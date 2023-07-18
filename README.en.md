@@ -2,6 +2,8 @@
 
 A minimalist [bilingual translation extension](https://github.com/fishjar/kiss-translator)。
 
+[kiss-translator.webm](https://github.com/fishjar/kiss-translator/assets/1157624/f7ba8a5c-e4a8-4d5a-823a-5c5c67a0a47f)
+
 <video controls>
   <source src="https://raw.githubusercontent.com/fishjar/kiss-translator/master/kiss-translator.webm" type="video/webm">
 </video>
