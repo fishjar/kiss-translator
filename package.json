@@ -1,0 +1,49 @@
+{
+  "name": "kiss-translator",
+  "description": "A simple translator extension",
+  "version": "1.0.1",
+  "author": "Gabe<yugang2002@gmail.com>",
+  "private": true,
+  "dependencies": {
+    "@emotion/react": "^11.11.1",
+    "@emotion/styled": "^11.10.8",
+    "@mui/icons-material": "^5.11.11",
+    "@mui/material": "^5.11.12",
+    "query-string": "^8.1.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-markdown": "^8.0.7",
+    "react-router-dom": "^6.10.0",
+    "react-scripts": "5.0.1",
+    "webextension-polyfill": "^0.10.0"
+  },
+  "scripts": {
+    "start": "react-app-rewired start",
+    "build": "BUILD_PATH=./build/chrome REACT_APP_BROWSER=chrome react-app-rewired build",
+    "build:edge": "BUILD_PATH=./build/edge REACT_APP_BROWSER=edge react-app-rewired build",
+    "build:firefox": "BUILD_PATH=./build/firefox REACT_APP_BROWSER=firefox react-app-rewired build && cp ./manifest.firefox.json ./build/firefox/manifest.json",
+    "test": "react-app-rewired test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "react-app-rewired": "^2.2.1"
+  }
+}
