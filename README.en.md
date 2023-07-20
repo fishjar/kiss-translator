@@ -40,5 +40,5 @@ If you also like a little more simplicity, welcome to pick it up.
 git clone https://github.com/fishjar/kiss-translator.git
 cd kiss-translator
 yarn
-yarn build:all
+yarn dist
 ```

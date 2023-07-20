@@ -52,6 +52,5 @@ export const matchRule = (rules, href) =>
  */
 export const detectLang = async (q) => {
   const res = await browser?.i18n.detectLanguage(q);
-  console.log("detecLang", q, res);
   return res?.languages?.[0]?.language;
 };

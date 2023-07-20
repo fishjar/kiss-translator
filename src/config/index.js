@@ -4,7 +4,7 @@ export { I18N, UI_LANGS } from "./i18n";
 const APP_NAME = process.env.REACT_APP_NAME.trim().split(/\s+/).join("-");
 
 export const APP_LCNAME = APP_NAME.toLowerCase();
-export const APP_VERSION = "1.1.1";
+export const APP_VERSION = "1.1.2";
 
 export const STOKEY_MSAUTH = `${APP_NAME}_msauth`;
 export const STOKEY_SETTING = `${APP_NAME}_setting`;
