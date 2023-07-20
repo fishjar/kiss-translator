@@ -29,7 +29,18 @@
 - [x] 支持翻译服务
   - [x] Google
   - [x] Microsoft
-  - [ ] OpenAI
+  - [x] OpenAI
   - [ ] DeepL
 - [ ] 上架应用市场
-- [ ] 开放源代码
+- [x] 开放源代码
+
+### 指引
+
+```sh
+git clone https://github.com/fishjar/kiss-translator.git
+cd kiss-translator
+yarn
+yarn build
+yarn build:edge
+yarn build:firefox
+```

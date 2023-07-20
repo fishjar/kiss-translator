@@ -29,7 +29,18 @@ If you also like a little more simplicity, welcome to pick it up.
 - [x] Support translation services
   - [x] Google
   - [x] Microsoft
-  - [ ] OpenAI
+  - [x] OpenAI
   - [ ] DeepL
 - [ ] Upload to app Store
-- [ ] Open source
+- [x] Open source
+
+### Guide
+
+```sh
+git clone https://github.com/fishjar/kiss-translator.git
+cd kiss-translator
+yarn
+yarn build
+yarn build:edge
+yarn build:firefox
+```
