@@ -1,7 +1,7 @@
 {
   "name": "kiss-translator",
   "description": "A simple translator extension",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "author": "Gabe<yugang2002@gmail.com>",
   "private": true,
   "dependencies": {
@@ -22,7 +22,8 @@
     "build": "BUILD_PATH=./build/chrome REACT_APP_BROWSER=chrome react-app-rewired build",
     "build:edge": "BUILD_PATH=./build/edge REACT_APP_BROWSER=edge react-app-rewired build",
     "build:firefox": "BUILD_PATH=./build/firefox REACT_APP_BROWSER=firefox react-app-rewired build && cp ./manifest.firefox.json ./build/firefox/manifest.json",
-    "dist": "rm -r dist && cp -r build dist",
+    "build:all": "yarn build && yarn build:edge && yarn build:firefox",
+    "dist": "yarn build:all && rm -r dist && cp -r build dist",
     "test": "react-app-rewired test",
     "eject": "react-scripts eject"
   },

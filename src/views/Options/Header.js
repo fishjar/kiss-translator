@@ -9,6 +9,7 @@ import { useDarkMode } from "../../hooks/ColorMode";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import { useI18n } from "../../hooks/I18n";
+import { APP_VERSION } from "../../config";
 
 function Header(props) {
   const i18n = useI18n();
@@ -35,7 +36,7 @@ function Header(props) {
             <MenuIcon />
           </IconButton>
         </Box>
-        <Box sx={{ flexGrow: 1 }}>{i18n("app_name")}</Box>
+        <Box sx={{ flexGrow: 1 }}>{`${i18n("app_name")} v${APP_VERSION}`}</Box>
         <IconButton onClick={switchColorMode} color="inherit">
           {darkMode ? <LightModeIcon /> : <DarkModeIcon />}
         </IconButton>

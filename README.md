@@ -20,7 +20,7 @@
 
 ### 进度
 
-- [x] 提供试用安装包（v1.1.0）
+- [x] 提供试用安装包
 - [x] 适配浏览器
   - [x] Chrome
   - [x] Edge
@@ -40,7 +40,5 @@
 git clone https://github.com/fishjar/kiss-translator.git
 cd kiss-translator
 yarn
-yarn build
-yarn build:edge
-yarn build:firefox
+yarn build:all
 ```
