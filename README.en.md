@@ -20,7 +20,7 @@ If you also like a little more simplicity, welcome to pick it up.
 
 ### Schedule
 
-- [x] Provide trial installation package (v1.0.1)
+- [x] Provide trial installation package (v1.1.0)
 - [x] Adapt browser
   - [x] Chrome
   - [x] Edge
