@@ -22,6 +22,7 @@
     "build": "BUILD_PATH=./build/chrome REACT_APP_BROWSER=chrome react-app-rewired build",
     "build:edge": "BUILD_PATH=./build/edge REACT_APP_BROWSER=edge react-app-rewired build",
     "build:firefox": "BUILD_PATH=./build/firefox REACT_APP_BROWSER=firefox react-app-rewired build && cp ./manifest.firefox.json ./build/firefox/manifest.json",
+    "dist": "rm -r dist && cp -r build dist",
     "test": "react-app-rewired test",
     "eject": "react-scripts eject"
   },
