@@ -84,13 +84,26 @@ export const OPT_LANGS_SPECIAL = {
     ["zh-TW", "zh-Hant"],
   ]),
   [OPT_TRANS_OPENAI]: new Map(
-    OPT_LANGS_FROM.map(([key, val]) => [key, val.split("-")[0].trim()])
+    OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
   ),
 };
 
+export const OPT_STYLE_NONE = "style_none"; // 无
 export const OPT_STYLE_LINE = "under_line"; // 下划线
+export const OPT_STYLE_DOTLINE = "dot_line"; // 点状线
+export const OPT_STYLE_DASHLINE = "dash_line"; // 点划线
+export const OPT_STYLE_WAVYLINE = "wavy_line"; // 波浪线
 export const OPT_STYLE_FUZZY = "fuzzy"; // 模糊
-export const OPT_STYLE_ALL = [OPT_STYLE_LINE, OPT_STYLE_FUZZY];
+export const OPT_STYLE_HIGHTLIGHT = "highlight"; // 高亮
+export const OPT_STYLE_ALL = [
+  OPT_STYLE_NONE,
+  OPT_STYLE_LINE,
+  OPT_STYLE_DOTLINE,
+  OPT_STYLE_DASHLINE,
+  OPT_STYLE_WAVYLINE,
+  OPT_STYLE_FUZZY,
+  OPT_STYLE_HIGHTLIGHT,
+];
 
 export const DEFAULT_FETCH_LIMIT = 1; // 默认并发请求数
 export const DEFAULT_FETCH_INTERVAL = 500; // 默认请求间隔时间
@@ -104,7 +117,7 @@ export const DEFAULT_RULE = {
   translator: OPT_TRANS_MICROSOFT,
   fromLang: "auto",
   toLang: "zh-CN",
-  textStyle: OPT_STYLE_LINE,
+  textStyle: OPT_STYLE_DASHLINE,
   transOpen: false,
 };
 

@@ -98,13 +98,33 @@ export const I18N = {
     zh: `如不明白，谨慎修改！不同的浏览器，选择器规则不一定通用。`,
     en: `If you don't understand, modify it carefully! Different browsers, the selector rules are not necessarily universal.`,
   },
+  style_none: {
+    zh: `无`,
+    en: `None`,
+  },
   under_line: {
-    zh: `下划线`,
-    en: `Under Line`,
+    zh: `下划直线`,
+    en: `Underline`,
+  },
+  dot_line: {
+    zh: `下划点状线`,
+    en: `Dotted Underline`,
+  },
+  dash_line: {
+    zh: `下划点划线`,
+    en: `Dashed Underline`,
+  },
+  wavy_line: {
+    zh: `下划波浪`,
+    en: `Wavy Underline`,
   },
   fuzzy: {
     zh: `模糊`,
     en: `Fuzzy`,
+  },
+  highlight: {
+    zh: `高亮`,
+    en: `Highlight`,
   },
   setting: {
     zh: `设置`,
