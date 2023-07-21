@@ -36,7 +36,7 @@ export default function Content({ q, rule }) {
           textDecoration: "dotted underline 2px",
           textUnderlineOffset: "0.3em",
         };
-      case OPT_STYLE_DASHLINE: // 点划线
+      case OPT_STYLE_DASHLINE: // 虚线
         return {
           opacity: hover ? 1 : 0.6,
           textDecoration: "dashed underline 2px",

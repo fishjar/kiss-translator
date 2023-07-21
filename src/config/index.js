@@ -4,7 +4,6 @@ export { I18N, UI_LANGS } from "./i18n";
 const APP_NAME = process.env.REACT_APP_NAME.trim().split(/\s+/).join("-");
 
 export const APP_LCNAME = APP_NAME.toLowerCase();
-export const APP_VERSION = "1.1.2";
 
 export const STOKEY_MSAUTH = `${APP_NAME}_msauth`;
 export const STOKEY_SETTING = `${APP_NAME}_setting`;
@@ -91,7 +90,7 @@ export const OPT_LANGS_SPECIAL = {
 export const OPT_STYLE_NONE = "style_none"; // 无
 export const OPT_STYLE_LINE = "under_line"; // 下划线
 export const OPT_STYLE_DOTLINE = "dot_line"; // 点状线
-export const OPT_STYLE_DASHLINE = "dash_line"; // 点划线
+export const OPT_STYLE_DASHLINE = "dash_line"; // 虚线
 export const OPT_STYLE_WAVYLINE = "wavy_line"; // 波浪线
 export const OPT_STYLE_FUZZY = "fuzzy"; // 模糊
 export const OPT_STYLE_HIGHTLIGHT = "highlight"; // 高亮

@@ -1,9 +1,8 @@
 {
   "name": "kiss-translator",
   "description": "A simple translator extension",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "author": "Gabe<yugang2002@gmail.com>",
-  "private": true,
   "dependencies": {
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.10.8",

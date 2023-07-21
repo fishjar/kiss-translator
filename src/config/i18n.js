@@ -111,11 +111,11 @@ export const I18N = {
     en: `Dotted Underline`,
   },
   dash_line: {
-    zh: `下划点划线`,
+    zh: `下划虚线`,
     en: `Dashed Underline`,
   },
   wavy_line: {
-    zh: `下划波浪`,
+    zh: `下划波浪线`,
     en: `Wavy Underline`,
   },
   fuzzy: {
