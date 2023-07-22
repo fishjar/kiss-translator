@@ -95,5 +95,5 @@ export function useRules() {
     await storage.setObj(STOKEY_RULES, rules);
   };
 
-  return [rules, add, del, put, merge];
+  return { list: rules, add, del, put, merge };
 }

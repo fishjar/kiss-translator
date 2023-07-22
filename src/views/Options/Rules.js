@@ -23,15 +23,7 @@ import Grid from "@mui/material/Grid";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import FileUploadIcon from "@mui/icons-material/FileUpload";
 
-function RuleFields({
-  rule,
-  rules,
-  index,
-  addRule,
-  delRule,
-  putRule,
-  setShow,
-}) {
+function RuleFields({ rule, rules, index, setShow }) {
   const initFormValues = rule || {
     ...DEFAULT_RULE,
     pattern: "",
@@ -54,7 +46,7 @@ function RuleFields({
   } = formValues;
 
   const hasSamePattern = (str) => {
-    for (const item of rules) {
+    for (const item of rules.list) {
       if (item.pattern === str && rule?.pattern !== str) {
         return true;
       }
@@ -105,10 +97,10 @@ function RuleFields({
     if (editMode) {
       // 编辑
       setDisabled(true);
-      putRule(index, formValues);
+      rules.put(index, formValues);
     } else {
       // 添加
-      addRule(formValues);
+      rules.add(formValues);
       setShow(false);
       setFormValues(initFormValues);
     }
@@ -248,7 +240,7 @@ function RuleFields({
                     variant="outlined"
                     onClick={(e) => {
                       e.preventDefault();
-                      delRule(rule.pattern);
+                      rules.del(rule.pattern);
                     }}
                   >
                     {i18n("delete")}
@@ -334,7 +326,7 @@ function UploadButton({ onChange, text }) {
 
 export default function Rules() {
   const i18n = useI18n();
-  const [rules, addRule, delRule, putRule, mergeRules] = useRules();
+  const rules = useRules();
   const [showAdd, setShowAdd] = useState(false);
 
   const handleImport = (e) => {
@@ -351,7 +343,7 @@ export default function Rules() {
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
-        await mergeRules(JSON.parse(e.target.result));
+        await rules.merge(JSON.parse(e.target.result));
       } catch (err) {
         console.log("[import rules]", err);
       }
@@ -379,29 +371,21 @@ export default function Rules() {
 
           <UploadButton text={i18n("import")} onChange={handleImport} />
           <DownloadButton
-            data={JSON.stringify([...rules].reverse(), null, "\t")}
+            data={JSON.stringify([...rules.list].reverse(), null, "\t")}
             text={i18n("export")}
           />
         </Stack>
 
-        {showAdd && (
-          <RuleFields addRule={addRule} rules={rules} setShow={setShowAdd} />
-        )}
+        {showAdd && <RuleFields rules={rules} setShow={setShowAdd} />}
 
         <Box>
-          {rules.map((rule, index) => (
+          {rules.list.map((rule, index) => (
             <Accordion key={rule.pattern}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Typography>{rule.pattern}</Typography>
               </AccordionSummary>
               <AccordionDetails>
-                <RuleFields
-                  rule={rule}
-                  index={index}
-                  putRule={putRule}
-                  delRule={delRule}
-                  rules={rules}
-                />
+                <RuleFields rule={rule} index={index} rules={rules} />
               </AccordionDetails>
             </Accordion>
           ))}
