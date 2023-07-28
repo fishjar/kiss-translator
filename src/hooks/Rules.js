@@ -15,46 +15,43 @@ import { matchValue } from "../libs/utils";
  */
 export function useRules() {
   const storages = useStorages();
-  let rules = storages?.[STOKEY_RULES] || [];
+  const list = storages?.[STOKEY_RULES] || [];
 
   const add = async (rule) => {
-    rules = [...rules];
+    const rules = [...list];
     if (rule.pattern === "*") {
       return;
     }
     if (rules.map((item) => item.pattern).includes(rule.pattern)) {
       return;
     }
-    await storage.setObj(STOKEY_RULES, [rule, ...rules]);
+    rules.unshift(rule);
+    await storage.setObj(STOKEY_RULES, rules);
   };
 
   const del = async (pattern) => {
-    rules = [...rules];
+    let rules = [...list];
     if (pattern === "*") {
       return;
     }
-    await storage.setObj(
-      STOKEY_RULES,
-      rules.filter((item) => item.pattern !== pattern)
-    );
+    rules = rules.filter((item) => item.pattern !== pattern);
+    await storage.setObj(STOKEY_RULES, rules);
   };
 
-  const put = async (index, obj) => {
-    rules = [...rules];
-    if (!rules[index]) {
-      return;
-    }
-    if (index === rules.length - 1) {
+  const put = async (pattern, obj) => {
+    const rules = [...list];
+    if (pattern === "*") {
       obj.pattern = "*";
     }
-    rules[index] = { ...rules[index], ...obj };
+    const rule = rules.find((r) => r.pattern === pattern);
+    rule && Object.assign(rule, obj);
     await storage.setObj(STOKEY_RULES, rules);
   };
 
   const merge = async (newRules) => {
     const fromLangs = OPT_LANGS_FROM.map((item) => item[0]);
     const toLangs = OPT_LANGS_TO.map((item) => item[0]);
-    rules = [...rules];
+    const rules = [...list];
     newRules
       .filter(
         ({ pattern, selector }) =>
@@ -95,5 +92,5 @@ export function useRules() {
     await storage.setObj(STOKEY_RULES, rules);
   };
 
-  return { list: rules, add, del, put, merge };
+  return { list, add, del, put, merge };
 }

@@ -23,7 +23,7 @@ import Grid from "@mui/material/Grid";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import FileUploadIcon from "@mui/icons-material/FileUpload";
 
-function RuleFields({ rule, rules, index, setShow }) {
+function RuleFields({ rule, rules, setShow }) {
   const initFormValues = rule || {
     ...DEFAULT_RULE,
     pattern: "",
@@ -97,7 +97,7 @@ function RuleFields({ rule, rules, index, setShow }) {
     if (editMode) {
       // 编辑
       setDisabled(true);
-      rules.put(index, formValues);
+      rules.put(rule.pattern, formValues);
     } else {
       // 添加
       rules.add(formValues);
@@ -379,13 +379,13 @@ export default function Rules() {
         {showAdd && <RuleFields rules={rules} setShow={setShowAdd} />}
 
         <Box>
-          {rules.list.map((rule, index) => (
+          {rules.list.map((rule) => (
             <Accordion key={rule.pattern}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Typography>{rule.pattern}</Typography>
               </AccordionSummary>
               <AccordionDetails>
-                <RuleFields rule={rule} index={index} rules={rules} />
+                <RuleFields rule={rule} rules={rules} />
               </AccordionDetails>
             </Accordion>
           ))}

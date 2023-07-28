@@ -179,7 +179,7 @@ export const I18N = {
     en: `Wrong file type`,
   },
   openai_api: {
-    zh: `OpenAI 接口地址`,
+    zh: `OpenAI 接口`,
     en: `OpenAI API`,
   },
   openai_key: {
