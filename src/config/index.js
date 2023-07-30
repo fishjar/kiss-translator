@@ -8,6 +8,11 @@ export const APP_LCNAME = APP_NAME.toLowerCase();
 export const STOKEY_MSAUTH = `${APP_NAME}_msauth`;
 export const STOKEY_SETTING = `${APP_NAME}_setting`;
 export const STOKEY_RULES = `${APP_NAME}_rules`;
+export const STOKEY_RULES_UPDATE_AT = `${APP_NAME}_rules_update_at`;
+
+export const KV_HEADER_KEY = "X-KISS-PSK";
+export const KV_RULES_KEY = "KT_RULES";
+export const KV_SETTING_KEY = "KT_SETTING";
 
 export const CACHE_NAME = `${APP_NAME}_cache`;
 
@@ -130,6 +135,9 @@ export const DEFAULT_SETTING = {
   openaiKey: "",
   openaiModel: "gpt-4",
   openaiPrompt: `You will be provided with a sentence in ${PROMPT_PLACE_FROM}, and your task is to translate it into ${PROMPT_PLACE_TO}.`,
+  syncUrl: "", // 数据同步接口
+  syncKey: "", // 数据同步密钥
+  updateAt: 1, // 更新时间
 };
 
 export const DEFAULT_RULES = [

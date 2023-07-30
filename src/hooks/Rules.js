@@ -4,10 +4,12 @@ import {
   OPT_STYLE_ALL,
   OPT_LANGS_FROM,
   OPT_LANGS_TO,
+  STOKEY_RULES_UPDATE_AT,
 } from "../config";
 import storage from "../libs/storage";
 import { useStorages } from "./Storage";
 import { matchValue } from "../libs/utils";
+import { apiSyncRules } from "../apis/data";
 
 /**
  * 匹配规则增删改查 hook
@@ -16,6 +18,17 @@ import { matchValue } from "../libs/utils";
 export function useRules() {
   const storages = useStorages();
   const list = storages?.[STOKEY_RULES] || [];
+
+  const update = async (rules) => {
+    const now = Date.now();
+    await storage.setObj(STOKEY_RULES, rules);
+    await storage.setObj(STOKEY_RULES_UPDATE_AT, now);
+    try {
+      await apiSyncRules(rules, now);
+    } catch (err) {
+      console.log("[sync rules]", err);
+    }
+  };
 
   const add = async (rule) => {
     const rules = [...list];
@@ -26,7 +39,7 @@ export function useRules() {
       return;
     }
     rules.unshift(rule);
-    await storage.setObj(STOKEY_RULES, rules);
+    await update(rules);
   };
 
   const del = async (pattern) => {
@@ -35,7 +48,7 @@ export function useRules() {
       return;
     }
     rules = rules.filter((item) => item.pattern !== pattern);
-    await storage.setObj(STOKEY_RULES, rules);
+    await update(rules);
   };
 
   const put = async (pattern, obj) => {
@@ -45,13 +58,13 @@ export function useRules() {
     }
     const rule = rules.find((r) => r.pattern === pattern);
     rule && Object.assign(rule, obj);
-    await storage.setObj(STOKEY_RULES, rules);
+    await update(rules);
   };
 
   const merge = async (newRules) => {
+    const rules = [...list];
     const fromLangs = OPT_LANGS_FROM.map((item) => item[0]);
     const toLangs = OPT_LANGS_TO.map((item) => item[0]);
-    const rules = [...list];
     newRules
       .filter(
         ({ pattern, selector }) =>
@@ -89,7 +102,7 @@ export function useRules() {
           rules.unshift(newRule);
         }
       });
-    await storage.setObj(STOKEY_RULES, rules);
+    await update(rules);
   };
 
   return { list, add, del, put, merge };

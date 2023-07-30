@@ -206,4 +206,12 @@ export const I18N = {
     zh: `重启浏览器时清除缓存`,
     en: `Clear cache when restarting browser`,
   },
+  data_sync_url: {
+    zh: `数据同步接口`,
+    en: `Data Sync API`,
+  },
+  data_sync_key: {
+    zh: `数据同步密钥`,
+    en: `Data Sync Key`,
+  },
 };

@@ -6,6 +6,7 @@ import {
   STOKEY_MSAUTH,
   DEFAULT_SETTING,
   DEFAULT_RULES,
+  STOKEY_RULES_UPDATE_AT,
 } from "../config";
 import storage from "../libs/storage";
 
@@ -16,6 +17,7 @@ export const defaultStorage = {
   [STOKEY_MSAUTH]: null,
   [STOKEY_SETTING]: DEFAULT_SETTING,
   [STOKEY_RULES]: DEFAULT_RULES,
+  [STOKEY_RULES_UPDATE_AT]: 1,
 };
 
 const StoragesContext = createContext(null);

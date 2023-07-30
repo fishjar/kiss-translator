@@ -68,10 +68,10 @@ const apiMicrosoftTranslate = (text, to, from) => {
 
 /**
  * OpenAI 翻译
- * @param {*} text 
- * @param {*} to 
- * @param {*} from 
- * @returns 
+ * @param {*} text
+ * @param {*} to
+ * @param {*} from
+ * @returns
  */
 const apiOpenaiTranslate = async (text, to, from) => {
   const { openaiUrl, openaiModel, openaiPrompt } = await getSetting();

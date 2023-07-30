@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { STOKEY_SETTING } from "../config";
 import storage from "../libs/storage";
 import { useStorages } from "./Storage";
@@ -16,7 +17,7 @@ export function useSetting() {
  * @returns
  */
 export function useSettingUpdate() {
-  return async (obj) => {
-    await storage.putObj(STOKEY_SETTING, obj);
-  };
+  return useCallback(async (obj) => {
+    await storage.putObj(STOKEY_SETTING, { ...obj, updateAt: Date.now() });
+  }, []);
 }

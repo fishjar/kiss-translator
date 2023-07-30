@@ -11,6 +11,7 @@ import {
 import { fetchData, setFetchLimit } from "./libs/fetch";
 import storage from "./libs/storage";
 import { getSetting } from "./libs";
+import { apiSyncAll } from "./apis/data";
 
 /**
  * 插件安装
@@ -26,6 +27,15 @@ browser.runtime.onInstalled.addListener(() => {
  */
 browser.runtime.onStartup.addListener(async () => {
   console.log("onStartup");
+
+  // 同步数据
+  try {
+    await apiSyncAll();
+  } catch (err) {
+    console.log("[sync all]", err);
+  }
+
+  // 清除缓存
   const { clearCache } = await getSetting();
   if (clearCache) {
     caches.delete(CACHE_NAME);
