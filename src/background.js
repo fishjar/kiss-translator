@@ -4,14 +4,16 @@ import {
   MSG_FETCH_LIMIT,
   DEFAULT_SETTING,
   DEFAULT_RULES,
+  DEFAULT_SYNC,
   STOKEY_SETTING,
   STOKEY_RULES,
+  STOKEY_SYNC,
   CACHE_NAME,
 } from "./config";
 import { fetchData, setFetchLimit } from "./libs/fetch";
 import storage from "./libs/storage";
 import { getSetting } from "./libs";
-import { apiSyncAll } from "./apis/data";
+import { syncAll } from "./libs/sync";
 
 /**
  * 插件安装
@@ -20,6 +22,7 @@ browser.runtime.onInstalled.addListener(() => {
   console.log("onInstalled");
   storage.trySetObj(STOKEY_SETTING, DEFAULT_SETTING);
   storage.trySetObj(STOKEY_RULES, DEFAULT_RULES);
+  storage.trySetObj(STOKEY_SYNC, DEFAULT_SYNC);
 });
 
 /**
@@ -29,11 +32,7 @@ browser.runtime.onStartup.addListener(async () => {
   console.log("onStartup");
 
   // 同步数据
-  try {
-    await apiSyncAll();
-  } catch (err) {
-    console.log("[sync all]", err);
-  }
+  await syncAll();
 
   // 清除缓存
   const { clearCache } = await getSetting();

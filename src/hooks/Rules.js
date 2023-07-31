@@ -4,12 +4,12 @@ import {
   OPT_STYLE_ALL,
   OPT_LANGS_FROM,
   OPT_LANGS_TO,
-  STOKEY_RULES_UPDATE_AT,
 } from "../config";
 import storage from "../libs/storage";
 import { useStorages } from "./Storage";
 import { matchValue } from "../libs/utils";
-import { apiSyncRules } from "../apis/data";
+import { syncRules } from "../libs/sync";
+import { useSync } from "./Sync";
 
 /**
  * 匹配规则增删改查 hook
@@ -18,13 +18,14 @@ import { apiSyncRules } from "../apis/data";
 export function useRules() {
   const storages = useStorages();
   const list = storages?.[STOKEY_RULES] || [];
+  const sync = useSync();
 
   const update = async (rules) => {
-    const now = Date.now();
+    const updateAt = sync.opt?.rulesUpdateAt ? Date.now() : 0;
     await storage.setObj(STOKEY_RULES, rules);
-    await storage.setObj(STOKEY_RULES_UPDATE_AT, now);
+    await sync.update({ rulesUpdateAt: updateAt });
     try {
-      await apiSyncRules(rules, now);
+      await syncRules();
     } catch (err) {
       console.log("[sync rules]", err);
     }

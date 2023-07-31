@@ -10,7 +10,6 @@ import {
   OPT_STYLE_ALL,
 } from "../../config";
 import { useState, useRef } from "react";
-import Alert from "@mui/material/Alert";
 import { useI18n } from "../../hooks/I18n";
 import Typography from "@mui/material/Typography";
 import Accordion from "@mui/material/Accordion";
@@ -354,8 +353,6 @@ export default function Rules() {
   return (
     <Box>
       <Stack spacing={3}>
-        <Alert severity="warning">{i18n("advanced_warn")}</Alert>
-
         <Stack direction="row" spacing={2}>
           <Button
             size="small"

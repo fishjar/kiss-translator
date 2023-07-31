@@ -33,6 +33,7 @@
   - [ ] DeepL
 - [ ] 上架应用市场
 - [x] 开放源代码
+- [x] 数据同步功能
 
 ### 指引
 
@@ -42,3 +43,7 @@ cd kiss-translator
 yarn
 yarn dist
 ```
+
+### 数据同步
+
+移步: [https://github.com/fishjar/kiss-worker](https://github.com/fishjar/kiss-worker)

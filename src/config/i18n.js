@@ -22,6 +22,10 @@ export const I18N = {
     zh: `规则设置`,
     en: `Rules Setting`,
   },
+  sync_setting: {
+    zh: `同步设置`,
+    en: `Sync Setting`,
+  },
   about: {
     zh: `关于`,
     en: `About`,
@@ -94,9 +98,13 @@ export const I18N = {
     zh: `添加`,
     en: `Add`,
   },
-  advanced_warn: {
-    zh: `如不明白，谨慎修改！不同的浏览器，选择器规则不一定通用。`,
-    en: `If you don't understand, modify it carefully! Different browsers, the selector rules are not necessarily universal.`,
+  sync_warn: {
+    zh: `数据同步功能只是按修改时间简单覆盖，谨慎使用！`,
+    en: `The data synchronization function is simply overwritten according to the modification time, use it with caution!`,
+  },
+  about_sync_api: {
+    zh: `查看关于数据同步接口部署`,
+    en: `View About Data Synchronization Interface Deployment`,
   },
   style_none: {
     zh: `无`,
@@ -139,8 +147,8 @@ export const I18N = {
     en: `Multiple URLs can be separated by English commas ","`,
   },
   selector_helper: {
-    zh: `遵循CSS选择器规则，但不同浏览器，可能支持不同，有些不同的写法。`,
-    en: `Follow the CSS selector rules, but different browsers may support different, and some have different ways of writing.`,
+    zh: `遵循CSS选择器规则，但不同浏览器，有些不同的写法。`,
+    en: `Follow the CSS selector rules, but different browsers have some different ways of writing.`,
   },
   translate_switch: {
     zh: `开启翻译`,

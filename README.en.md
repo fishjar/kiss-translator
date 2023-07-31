@@ -33,6 +33,7 @@ If you also like a little more simplicity, welcome to pick it up.
   - [ ] DeepL
 - [ ] Upload to app Store
 - [x] Open source
+- [x] Data Synchronization Function
 
 ### Guide
 
@@ -42,3 +43,7 @@ cd kiss-translator
 yarn
 yarn dist
 ```
+
+### Data Sync
+
+Goto: [https://github.com/fishjar/kiss-worker](https://github.com/fishjar/kiss-worker)

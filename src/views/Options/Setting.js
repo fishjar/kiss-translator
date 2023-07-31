@@ -9,21 +9,11 @@ import { useSetting, useSettingUpdate } from "../../hooks/Setting";
 import { limitNumber } from "../../libs/utils";
 import { useI18n } from "../../hooks/I18n";
 import { UI_LANGS } from "../../config";
-import { apiSyncAll } from "../../apis/data";
-import { useCallback } from "react";
 
 export default function Settings() {
   const i18n = useI18n();
   const setting = useSetting();
   const updateSetting = useSettingUpdate();
-
-  const handleSyncBlur = useCallback(async () => {
-    try {
-      await apiSyncAll();
-    } catch (err) {
-      console.log("sync data", err);
-    }
-  }, []);
 
   if (!setting) {
     return;
@@ -38,8 +28,6 @@ export default function Settings() {
     openaiModel,
     openaiPrompt,
     clearCache,
-    syncUrl,
-    syncKey,
   } = setting;
 
   return (
@@ -147,31 +135,6 @@ export default function Settings() {
           multiline
           minRows={2}
           maxRows={10}
-        />
-
-        <TextField
-          size="small"
-          label={i18n("data_sync_url")}
-          defaultValue={syncUrl}
-          onChange={(e) => {
-            updateSetting({
-              syncUrl: e.target.value,
-            });
-          }}
-          onBlur={handleSyncBlur}
-        />
-
-        <TextField
-          size="small"
-          type="password"
-          label={i18n("data_sync_key")}
-          defaultValue={syncKey}
-          onChange={(e) => {
-            updateSetting({
-              syncKey: e.target.value,
-            });
-          }}
-          onBlur={handleSyncBlur}
         />
       </Stack>
     </Box>

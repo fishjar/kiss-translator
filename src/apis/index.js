@@ -8,8 +8,26 @@ import {
   OPT_LANGS_SPECIAL,
   PROMPT_PLACE_FROM,
   PROMPT_PLACE_TO,
+  KV_HEADER_KEY,
 } from "../config";
 import { getSetting, detectLang } from "../libs";
+
+/**
+ * 同步数据
+ * @param {*} url
+ * @param {*} key
+ * @param {*} data
+ * @returns
+ */
+export const apiSyncData = async (url, key, data) =>
+  fetchPolyfill(url, {
+    headers: {
+      "Content-type": "application/json",
+      [KV_HEADER_KEY]: key,
+    },
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 
 /**
  * 谷歌翻译

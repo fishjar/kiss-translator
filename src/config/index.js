@@ -8,7 +8,7 @@ export const APP_LCNAME = APP_NAME.toLowerCase();
 export const STOKEY_MSAUTH = `${APP_NAME}_msauth`;
 export const STOKEY_SETTING = `${APP_NAME}_setting`;
 export const STOKEY_RULES = `${APP_NAME}_rules`;
-export const STOKEY_RULES_UPDATE_AT = `${APP_NAME}_rules_update_at`;
+export const STOKEY_SYNC = `${APP_NAME}_sync`;
 
 export const KV_HEADER_KEY = "X-KISS-PSK";
 export const KV_RULES_KEY = "KT_RULES";
@@ -26,6 +26,7 @@ export const THEME_LIGHT = "light";
 export const THEME_DARK = "dark";
 
 export const URL_APP_HOMEPAGE = "https://github.com/fishjar/kiss-translator";
+export const URL_KISS_WORKER = "https://github.com/fishjar/kiss-worker";
 export const URL_RAW_PREFIX =
   "https://raw.githubusercontent.com/fishjar/kiss-translator/master";
 export const URL_MICROSOFT_AUTH = "https://edge.microsoft.com/translate/auth";
@@ -135,9 +136,6 @@ export const DEFAULT_SETTING = {
   openaiKey: "",
   openaiModel: "gpt-4",
   openaiPrompt: `You will be provided with a sentence in ${PROMPT_PLACE_FROM}, and your task is to translate it into ${PROMPT_PLACE_TO}.`,
-  syncUrl: "", // 数据同步接口
-  syncKey: "", // 数据同步密钥
-  updateAt: 1, // 更新时间
 };
 
 export const DEFAULT_RULES = [
@@ -151,3 +149,12 @@ export const DEFAULT_RULES = [
 
 export const TRANS_MIN_LENGTH = 5; // 最短翻译长度
 export const TRANS_MAX_LENGTH = 5000; // 最长翻译长度
+
+export const DEFAULT_SYNC = {
+  syncUrl: "", // 数据同步接口
+  syncKey: "", // 数据同步密钥
+  settingUpdateAt: 0,
+  settingSyncAt: 0,
+  rulesUpdateAt: 0,
+  rulesSyncAt: 0,
+};
