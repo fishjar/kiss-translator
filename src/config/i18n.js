@@ -99,8 +99,8 @@ export const I18N = {
     en: `Add`,
   },
   sync_warn: {
-    zh: `数据同步功能只是按修改时间简单覆盖，谨慎使用！`,
-    en: `The data synchronization function is simply overwritten according to the modification time, use it with caution!`,
+    zh: `如果服务器存在其他客户端同步的数据，第一次同步将直接覆盖本地配置，后面则根据修改时间，新的覆盖旧的。`,
+    en: `If the server has data synchronized by other clients, the first synchronization will directly overwrite the local configuration, and later, according to the modification time, the new one will overwrite the old one.`,
   },
   about_sync_api: {
     zh: `查看关于数据同步接口部署`,
