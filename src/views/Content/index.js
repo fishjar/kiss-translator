@@ -7,6 +7,7 @@ import {
   OPT_STYLE_WAVYLINE,
   OPT_STYLE_FUZZY,
   OPT_STYLE_HIGHTLIGHT,
+  OPT_TRANS_OPENAI,
 } from "../../config";
 import { useTranslate } from "../../hooks/Translate";
 
@@ -76,12 +77,30 @@ export default function Content({ q, rule }) {
     return (
       <>
         {q.length > 40 ? <br /> : " "}
-        <span
-          style={style}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-          dangerouslySetInnerHTML={{ __html: text }}
-        />
+        {rule.translator === OPT_TRANS_OPENAI ? (
+          <span
+            style={style}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+          >
+            {text}
+          </span>
+        ) : (
+          <span
+            style={style}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+            dangerouslySetInnerHTML={{
+              __html: text.replace(
+                /<code>(.*?)<\/code>/gi,
+                (_match, p1) =>
+                  `<code>${p1
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")}</code>`
+              ),
+            }}
+          />
+        )}
       </>
     );
   }
