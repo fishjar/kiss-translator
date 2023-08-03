@@ -47,3 +47,7 @@ yarn dist
 ### Data Sync
 
 Goto: [https://github.com/fishjar/kiss-worker](https://github.com/fishjar/kiss-worker)
+
+### Discussion
+
+- Join [Telegram Group](https://t.me/+RRCu_4oNwrM2NmFl)

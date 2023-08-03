@@ -47,3 +47,7 @@ yarn dist
 ### 数据同步
 
 移步: [https://github.com/fishjar/kiss-worker](https://github.com/fishjar/kiss-worker)
+
+### 交流
+
+- 加入 [Telegram 群](https://t.me/+RRCu_4oNwrM2NmFl)
