@@ -7,11 +7,11 @@
   "author": "Gabe<yugang2002@gmail.com>",
   "homepage_url": "https://github.com/fishjar/kiss-translator",
   "background": {
-    "scripts": ["static/js/background.js"]
+    "scripts": ["background.js"]
   },
   "content_scripts": [
     {
-      "js": ["static/js/content.js"],
+      "js": ["content.js"],
       "matches": ["<all_urls>"]
     }
   ],
