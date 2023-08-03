@@ -33,9 +33,7 @@ module.exports = {
 
     config.output.filename = "[name].js";
     config.output.assetModuleFilename = "media/[name][ext]";
-    config.optimization.splitChunks = {
-      cacheGroups: { default: false },
-    };
+    config.optimization.splitChunks = { cacheGroups: { default: false } };
     config.optimization.runtimeChunk = false;
 
     config.plugins = config.plugins.filter(
