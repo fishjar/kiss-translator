@@ -103,7 +103,7 @@ class Translator {
     }
 
     // 除openai外，保留code和a标签
-    const q = this._rule.translator === el.innerText.trim();
+    const q = el.innerText.trim();
     if (!q || q.length < TRANS_MIN_LENGTH || q.length > TRANS_MAX_LENGTH) {
       // 太长或太短不翻译
       return;
