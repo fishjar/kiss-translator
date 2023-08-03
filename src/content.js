@@ -101,7 +101,7 @@ class Translator {
     }
 
     const q = el.innerHTML
-      .replace(/<(?!\/?(code|a|svg|img))[^>]+>/gi, "")
+      .replace(/<(?!\/?(code|a))[^>]+>/gi, "")
       .trim();
     if (!q) {
       return;
