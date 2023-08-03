@@ -3,8 +3,6 @@ import { useState } from "react";
 import { apiTranslate } from "../apis";
 import browser from "../libs/browser";
 import {
-  TRANS_MIN_LENGTH,
-  TRANS_MAX_LENGTH,
   MSG_TRANS_PUTRULE,
   DEFAULT_FETCH_LIMIT,
   MSG_FETCH_LIMIT,
@@ -47,11 +45,6 @@ export function useTranslate(q, initRule) {
 
   useEffect(() => {
     (async () => {
-      // 太长或太短不翻译
-      if (q.length < TRANS_MIN_LENGTH || q.length > TRANS_MAX_LENGTH) {
-        return;
-      }
-
       try {
         setLoading(true);
         const deLang = await detectLang(q);

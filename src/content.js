@@ -5,6 +5,9 @@ import {
   MSG_TRANS_TOGGLE,
   MSG_TRANS_GETRULE,
   MSG_TRANS_PUTRULE,
+  OPT_TRANS_OPENAI,
+  TRANS_MIN_LENGTH,
+  TRANS_MAX_LENGTH,
 } from "./config";
 import Content from "./views/Content";
 import { StoragesProvider } from "./hooks/Storage";
@@ -100,10 +103,13 @@ class Translator {
       return;
     }
 
-    const q = el.innerHTML
-      .replace(/<(?!\/?(code|a))[^>]+>/gi, "")
-      .trim();
-    if (!q) {
+    // 除openai外，保留code和a标签
+    const q =
+      this._rule.translator === OPT_TRANS_OPENAI
+        ? el.innerText.trim()
+        : el.innerHTML.replace(/<(?!\/?(code|a))[^>]+>/gi, "").trim();
+    if (!q || q.length < TRANS_MIN_LENGTH || q.length > TRANS_MAX_LENGTH) {
+      // 太长或太短不翻译
       return;
     }
 

@@ -1,7 +1,7 @@
 {
   "name": "kiss-translator",
   "description": "A simple translator extension",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "author": "Gabe<yugang2002@gmail.com>",
   "private": true,
   "dependencies": {
