@@ -96,7 +96,7 @@ function override(config, env) {
 
   // Custom MiniCssExtractPlugin instance to get rid of hash in filename template
   const miniCssExtractPlugin = new MiniCssExtractPlugin({
-    filename: "static/css/[name].css",
+    filename: "css/[name].css",
   });
   // Replace origin MiniCssExtractPlugin instance in config.plugins with the above one
   config.plugins = replacePlugin(
