@@ -80,9 +80,8 @@ export default function Content({ q, rule }) {
           style={style}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
-        >
-          {text}
-        </span>
+          dangerouslySetInnerHTML={{ __html: text }}
+        />
       </>
     );
   }

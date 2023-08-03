@@ -100,7 +100,9 @@ class Translator {
       return;
     }
 
-    const q = el.innerText.trim();
+    const q = el.innerHTML
+      .replace(/<(?!\/?(code|a|svg|img))[^>]+>/gi, "")
+      .trim();
     if (!q) {
       return;
     }
