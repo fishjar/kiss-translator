@@ -25,7 +25,6 @@ export const MSG_TRANS_PUTRULE = "trans_putrule";
 export const THEME_LIGHT = "light";
 export const THEME_DARK = "dark";
 
-export const URL_APP_HOMEPAGE = "https://github.com/fishjar/kiss-translator";
 export const URL_KISS_WORKER = "https://github.com/fishjar/kiss-worker";
 export const URL_RAW_PREFIX =
   "https://raw.githubusercontent.com/fishjar/kiss-translator/master";

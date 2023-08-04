@@ -163,7 +163,9 @@ function RuleFields({ rule, rules, setShow }) {
                 onChange={handleChange}
               >
                 {OPT_TRANS_ALL.map((item) => (
-                  <MenuItem value={item}>{item}</MenuItem>
+                  <MenuItem key={item} value={item}>
+                    {item}
+                  </MenuItem>
                 ))}
               </TextField>
             </Grid>
@@ -179,7 +181,7 @@ function RuleFields({ rule, rules, setShow }) {
                 onChange={handleChange}
               >
                 {OPT_LANGS_FROM.map(([lang, name]) => (
-                  <MenuItem value={lang}>{name}</MenuItem>
+                  <MenuItem key={lang} value={lang}>{name}</MenuItem>
                 ))}
               </TextField>
             </Grid>
@@ -195,7 +197,7 @@ function RuleFields({ rule, rules, setShow }) {
                 onChange={handleChange}
               >
                 {OPT_LANGS_TO.map(([lang, name]) => (
-                  <MenuItem value={lang}>{name}</MenuItem>
+                  <MenuItem key={lang} value={lang}>{name}</MenuItem>
                 ))}
               </TextField>
             </Grid>
@@ -211,7 +213,7 @@ function RuleFields({ rule, rules, setShow }) {
                 onChange={handleChange}
               >
                 {OPT_STYLE_ALL.map((item) => (
-                  <MenuItem value={item}>{i18n(item)}</MenuItem>
+                  <MenuItem key={item} value={item}>{i18n(item)}</MenuItem>
                 ))}
               </TextField>
             </Grid>

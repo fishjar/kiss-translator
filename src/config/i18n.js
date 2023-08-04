@@ -1,4 +1,4 @@
-import { URL_APP_HOMEPAGE } from ".";
+const URL_APP_HOMEPAGE = "https://github.com/fishjar/kiss-translator";
 
 export const UI_LANGS = [
   ["zh", "中文"],

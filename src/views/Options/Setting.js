@@ -45,7 +45,9 @@ export default function Settings() {
             }}
           >
             {UI_LANGS.map(([lang, name]) => (
-              <MenuItem value={lang}>{name}</MenuItem>
+              <MenuItem key={lang} value={lang}>
+                {name}
+              </MenuItem>
             ))}
           </Select>
         </FormControl>
