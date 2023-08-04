@@ -37,7 +37,7 @@ module.exports = {
     config.optimization.runtimeChunk = false;
 
     config.plugins = config.plugins.filter(
-      (plugin) => !names.find((name) => name.match(plugin.constructor.name))
+      (plugin) => !names.includes(plugin.constructor.name)
     );
 
     config.plugins.push(
