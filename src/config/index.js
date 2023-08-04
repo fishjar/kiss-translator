@@ -109,8 +109,8 @@ export const OPT_STYLE_ALL = [
   OPT_STYLE_HIGHTLIGHT,
 ];
 
-export const DEFAULT_FETCH_LIMIT = 1; // 默认并发请求数
-export const DEFAULT_FETCH_INTERVAL = 500; // 默认请求间隔时间
+export const DEFAULT_FETCH_LIMIT = 10; // 默认最大任务数量
+export const DEFAULT_FETCH_INTERVAL = 500; // 默认任务间隔时间
 
 export const PROMPT_PLACE_FROM = "{{from}}"; // 占位符
 export const PROMPT_PLACE_TO = "{{to}}"; // 占位符
@@ -122,13 +122,14 @@ export const DEFAULT_RULE = {
   fromLang: "auto",
   toLang: "zh-CN",
   textStyle: OPT_STYLE_DASHLINE,
-  transOpen: false,
+  transOpen: true,
 };
 
 export const DEFAULT_SETTING = {
   darkMode: false, // 深色模式
   uiLang: "zh", // 界面语言
-  fetchLimit: DEFAULT_FETCH_LIMIT, // 请求并发数量
+  fetchLimit: DEFAULT_FETCH_LIMIT, // 最大任务数量
+  fetchInterval: DEFAULT_FETCH_INTERVAL, // 任务间隔时间
   clearCache: false, // 是否在浏览器下次启动时清除缓存
   googleUrl: "https://translate.googleapis.com/translate_a/single", // 谷歌翻译接口
   openaiUrl: "https://api.openai.com/v1/chat/completions",

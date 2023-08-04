@@ -1,7 +1,6 @@
 import browser from "webextension-polyfill";
 import {
   MSG_FETCH,
-  MSG_FETCH_LIMIT,
   DEFAULT_SETTING,
   DEFAULT_RULES,
   DEFAULT_SYNC,
@@ -10,7 +9,7 @@ import {
   STOKEY_SYNC,
   CACHE_NAME,
 } from "./config";
-import { fetchData, setFetchLimit } from "./libs/fetch";
+import { fetchData } from "./libs/fetch";
 import storage from "./libs/storage";
 import { getSetting } from "./libs";
 import { syncAll } from "./libs/sync";
@@ -48,17 +47,13 @@ browser.runtime.onMessage.addListener(
   ({ action, args }, sender, sendResponse) => {
     switch (action) {
       case MSG_FETCH:
-        fetchData(args.input, args.init)
+        fetchData(args.input, args.init, args.opts)
           .then((data) => {
             sendResponse({ data });
           })
           .catch((error) => {
             sendResponse({ error: error.message });
           });
-        break;
-      case MSG_FETCH_LIMIT:
-        setFetchLimit(args.limit);
-        sendResponse({ data: "ok" });
         break;
       default:
         sendResponse({ error: `message action is unavailable: ${action}` });

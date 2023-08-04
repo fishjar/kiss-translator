@@ -43,8 +43,12 @@ export const I18N = {
     en: `Interface Language`,
   },
   fetch_limit: {
-    zh: `并发请求数量`,
-    en: `Concurrent Requests Limit`,
+    zh: `最大请求数量`,
+    en: `Maximum Number Of Request`,
+  },
+  fetch_interval: {
+    zh: `请求间隔时间(ms)`,
+    en: `Request Interval(ms)`,
   },
   translate_service: {
     zh: `翻译服务`,

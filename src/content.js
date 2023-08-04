@@ -11,6 +11,8 @@ import {
 import Content from "./views/Content";
 import { StoragesProvider } from "./hooks/Storage";
 import { queryEls, getRules, matchRule } from "./libs";
+import { getSetting } from "./libs";
+import { transPool } from "./libs/pool";
 
 /**
  * 翻译类
@@ -127,6 +129,9 @@ class Translator {
  * 入口函数
  */
 (async () => {
+  const { fetchInterval, fetchLimit } = await getSetting();
+  transPool.update(fetchInterval, fetchLimit);
+
   const rules = await getRules();
   const rule = matchRule(rules, document.location.href);
   const translator = new Translator(rule);

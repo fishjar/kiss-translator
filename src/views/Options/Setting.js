@@ -23,6 +23,7 @@ export default function Settings() {
     uiLang,
     googleUrl,
     fetchLimit,
+    fetchInterval,
     openaiUrl,
     openaiKey,
     openaiModel,
@@ -59,7 +60,19 @@ export default function Settings() {
           defaultValue={fetchLimit}
           onChange={(e) => {
             updateSetting({
-              fetchLimit: limitNumber(e.target.value, 1, 10),
+              fetchLimit: limitNumber(e.target.value, 1, 100),
+            });
+          }}
+        />
+
+        <TextField
+          size="small"
+          label={i18n("fetch_interval")}
+          type="number"
+          defaultValue={fetchInterval}
+          onChange={(e) => {
+            updateSetting({
+              fetchInterval: limitNumber(e.target.value, 0, 5000),
             });
           }}
         />

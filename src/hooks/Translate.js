@@ -1,14 +1,8 @@
 import { useEffect } from "react";
 import { useState } from "react";
-import { apiTranslate } from "../apis";
+import { transPool } from "../libs/pool";
 import browser from "../libs/browser";
-import {
-  MSG_TRANS_PUTRULE,
-  DEFAULT_FETCH_LIMIT,
-  MSG_FETCH_LIMIT,
-} from "../config";
-import { useSetting } from "./Setting";
-import { sendMsg } from "../libs/msg";
+import { MSG_TRANS_PUTRULE } from "../config";
 import { detectLang } from "../libs";
 
 /**
@@ -21,7 +15,6 @@ export function useTranslate(q, initRule) {
   const [loading, setLoading] = useState(false);
   const [sameLang, setSamelang] = useState(false);
   const [rule, setRule] = useState(initRule);
-  const { fetchLimit = DEFAULT_FETCH_LIMIT } = useSetting() || {};
 
   const { translator, fromLang, toLang, textStyle } = rule;
 
@@ -40,10 +33,6 @@ export function useTranslate(q, initRule) {
   }, []);
 
   useEffect(() => {
-    sendMsg(MSG_FETCH_LIMIT, { limit: fetchLimit });
-  }, [fetchLimit]);
-
-  useEffect(() => {
     (async () => {
       try {
         setLoading(true);
@@ -51,7 +40,7 @@ export function useTranslate(q, initRule) {
         if (toLang.includes(deLang)) {
           setSamelang(true);
         } else {
-          const [trText, isSame] = await apiTranslate({
+          const [trText, isSame] = await transPool.push({
             translator,
             q,
             fromLang,
