@@ -1,4 +1,4 @@
-import browser from "./browser";
+import { browser } from "./browser";
 
 async function set(key, val) {
   if (browser?.storage) {

@@ -1,4 +1,4 @@
-import browser from "./browser";
+import { browser } from "./browser";
 
 /**
  * 发送消息给background

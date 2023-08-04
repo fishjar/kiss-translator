@@ -10,6 +10,12 @@ export const STOKEY_SETTING = `${APP_NAME}_setting`;
 export const STOKEY_RULES = `${APP_NAME}_rules`;
 export const STOKEY_SYNC = `${APP_NAME}_sync`;
 
+export const CLIENT_WEB = "web";
+export const CLIENT_CHROME = "chrome";
+export const CLIENT_EDGE = "edge";
+export const CLIENT_FIREFOX = "firefox";
+export const CLIENT_USERSCRIPT = "userscript";
+
 export const KV_HEADER_KEY = "X-KISS-PSK";
 export const KV_RULES_KEY = "KT_RULES";
 export const KV_SETTING_KEY = "KT_SETTING";

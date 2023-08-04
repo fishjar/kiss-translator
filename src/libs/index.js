@@ -5,7 +5,7 @@ import {
   STOKEY_RULES,
   DEFAULT_RULE,
 } from "../config";
-import browser from "./browser";
+import { browser } from "./browser";
 
 /**
  * 获取节点列表并转为数组

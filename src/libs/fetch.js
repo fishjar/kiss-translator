@@ -1,4 +1,4 @@
-import browser from "./browser";
+import { browser } from "./browser";
 import { sendMsg } from "./msg";
 import {
   MSG_FETCH,

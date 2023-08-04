@@ -1,4 +1,4 @@
-import browser from "webextension-polyfill";
+import { browser } from "webextension-polyfill";
 import {
   MSG_FETCH,
   DEFAULT_SETTING,

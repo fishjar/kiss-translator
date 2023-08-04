@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import browser from "../libs/browser";
+import { browser } from "../libs/browser";
 import {
   STOKEY_SETTING,
   STOKEY_RULES,

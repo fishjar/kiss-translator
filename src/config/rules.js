@@ -1,7 +1,7 @@
 const els = `li, p, h1, h2, h3, h4, h5, h6, dd`;
 
 export const DEFAULT_SELECTOR =
-  process.env.REACT_APP_BROWSER === "firefox"
+  process.env.REACT_APP_CLIENT === "firefox"
     ? `:is(${els})`
     : `:is(${els}):not(:has(:is(${els})))`;
 

@@ -10,6 +10,5 @@ function _browser() {
   }
 }
 
-const browser = _browser();
-
-export default browser;
+export const browser = _browser();
+export const client = process.env.REACT_APP_CLIENT;

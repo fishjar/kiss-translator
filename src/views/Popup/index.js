@@ -6,7 +6,7 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import Button from "@mui/material/Button";
 import { sendTabMsg } from "../../libs/msg";
-import browser from "../../libs/browser";
+import { browser } from "../../libs/browser";
 import { useI18n } from "../../hooks/I18n";
 import TextField from "@mui/material/TextField";
 import {
@@ -90,7 +90,9 @@ export default function Popup() {
           onChange={handleChange}
         >
           {OPT_TRANS_ALL.map((item) => (
-            <MenuItem key={item} value={item}>{item}</MenuItem>
+            <MenuItem key={item} value={item}>
+              {item}
+            </MenuItem>
           ))}
         </TextField>
 
@@ -103,7 +105,9 @@ export default function Popup() {
           onChange={handleChange}
         >
           {OPT_LANGS_FROM.map(([lang, name]) => (
-            <MenuItem key={lang} value={lang}>{name}</MenuItem>
+            <MenuItem key={lang} value={lang}>
+              {name}
+            </MenuItem>
           ))}
         </TextField>
 
@@ -116,7 +120,9 @@ export default function Popup() {
           onChange={handleChange}
         >
           {OPT_LANGS_TO.map(([lang, name]) => (
-            <MenuItem key={lang} value={lang}>{name}</MenuItem>
+            <MenuItem key={lang} value={lang}>
+              {name}
+            </MenuItem>
           ))}
         </TextField>
 
@@ -129,7 +135,9 @@ export default function Popup() {
           onChange={handleChange}
         >
           {OPT_STYLE_ALL.map((item) => (
-            <MenuItem key={item} value={item}>{i18n(item)}</MenuItem>
+            <MenuItem key={item} value={item}>
+              {i18n(item)}
+            </MenuItem>
           ))}
         </TextField>
 

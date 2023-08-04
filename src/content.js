@@ -1,4 +1,4 @@
-import browser from "./libs/browser";
+import { browser } from "./libs/browser";
 import { createRoot } from "react-dom/client";
 import {
   APP_LCNAME,

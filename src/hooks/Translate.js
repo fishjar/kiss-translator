@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useState } from "react";
 import { transPool } from "../libs/pool";
-import browser from "../libs/browser";
+import { browser } from "../libs/browser";
 import { MSG_TRANS_PUTRULE } from "../config";
 import { detectLang } from "../libs";
 
