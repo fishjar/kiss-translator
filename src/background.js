@@ -9,7 +9,6 @@ import {
   STOKEY_SYNC,
   CACHE_NAME,
 } from "./config";
-import { fetchData } from "./libs/fetch";
 import storage from "./libs/storage";
 import { getSetting } from "./libs";
 import { syncAll } from "./libs/sync";
@@ -47,7 +46,10 @@ browser.runtime.onMessage.addListener(
   ({ action, args }, sender, sendResponse) => {
     switch (action) {
       case MSG_FETCH:
-        fetchData(args.input, args.init, args.opts)
+        fetch(args.input, args.init)
+          .then((res) => {
+            return res.json();
+          })
           .then((data) => {
             sendResponse({ data });
           })

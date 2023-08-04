@@ -31,24 +31,40 @@ const newCacheReq = async (request, translator) => {
 };
 
 /**
- * 调用fetch接口
+ * 兼容性封装
  * @param {*} input
  * @param {*} init
+ * @param {*} opts
  * @returns
  */
-export const fetchData = async (
-  input,
-  init,
-  { useCache = false, translator } = {}
-) => {
-  const req = new Request(input, init);
-  const cacheReq = await newCacheReq(req.clone(), translator);
+export const fetchPolyfill = async (input, init) => {
+  if (browser?.runtime) {
+    // 插件调用
+    const res = await sendMsg(MSG_FETCH, { input, init });
+    if (res.error) {
+      throw new Error(res.error);
+    }
+    return res.data;
+  }
+
+  // 网页直接调用
+  return await fetch(input, init);
+};
+
+/**
+ * 请求数据
+ * @param {*} input
+ * @param {*} init
+ * @param {*} opts
+ * @returns
+ */
+export const fetchData = async (input, init, { useCache, translator } = {}) => {
+  const cacheReq = await newCacheReq(new Request(input, init), translator);
   const cache = await caches.open(CACHE_NAME);
   let res;
 
   // 查询缓存
   if (useCache) {
-    // console.log("usecache")
     try {
       res = await cache.match(cacheReq);
     } catch (err) {
@@ -58,8 +74,7 @@ export const fetchData = async (
 
   // 发送请求
   if (!res) {
-    // console.log("usefetch")
-    res = await fetch(req);
+    res = await fetchPolyfill(input, init);
   }
 
   if (!res?.ok) {
@@ -80,25 +95,4 @@ export const fetchData = async (
     return await res.json();
   }
   return await res.text();
-};
-
-/**
- * 兼容性封装
- * @param {*} input
- * @param {*} init
- * @param {*} opts
- * @returns
- */
-export const fetchPolyfill = async (input, init, opts) => {
-  if (browser?.runtime) {
-    // 插件调用
-    const res = await sendMsg(MSG_FETCH, { input, init, opts });
-    if (res.error) {
-      throw new Error(res.error);
-    }
-    return res.data;
-  }
-
-  // 网页直接调用
-  return await fetchData(input, init, opts);
 };

@@ -1,5 +1,5 @@
 import queryString from "query-string";
-import { fetchPolyfill } from "../libs/fetch";
+import { fetchData } from "../libs/fetch";
 import {
   OPT_TRANS_GOOGLE,
   OPT_TRANS_MICROSOFT,
@@ -20,7 +20,7 @@ import { getSetting, detectLang } from "../libs";
  * @returns
  */
 export const apiSyncData = async (url, key, data) =>
-  fetchPolyfill(url, {
+  fetchData(url, {
     headers: {
       "Content-type": "application/json",
       [KV_HEADER_KEY]: key,
@@ -48,7 +48,7 @@ const apiGoogleTranslate = async (translator, text, to, from) => {
   };
   const { googleUrl } = await getSetting();
   const input = `${googleUrl}?${queryString.stringify(params)}`;
-  return fetchPolyfill(
+  return fetchData(
     input,
     {
       headers: {
@@ -73,7 +73,7 @@ const apiMicrosoftTranslate = (translator, text, to, from, token) => {
     "api-version": "3.0",
   };
   const input = `${URL_MICROSOFT_TRANS}?${queryString.stringify(params)}`;
-  return fetchPolyfill(
+  return fetchData(
     input,
     {
       headers: {
@@ -100,7 +100,7 @@ const apiOpenaiTranslate = async (translator, text, to, from) => {
   let prompt = openaiPrompt
     .replaceAll(PROMPT_PLACE_FROM, from)
     .replaceAll(PROMPT_PLACE_TO, to);
-  return fetchPolyfill(
+  return fetchData(
     openaiUrl,
     {
       headers: {
