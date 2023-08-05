@@ -18,7 +18,7 @@ import { Translator } from "./libs/translator";
  */
 (async () => {
   // 设置页面
-  if (document.location.href.includes("localhost:3000")) {
+  if (document.location.href.includes("kiss-translator-options")) {
     const root = ReactDOM.createRoot(document.getElementById("root"));
     root.render(
       <React.StrictMode>

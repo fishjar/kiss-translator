@@ -21,7 +21,10 @@ const App = () => {
 
   return (
     <div style={{ textAlign: "center" }}>
-      <p>KISS Translator userscript is disabled at this browser!</p>
+      <p>
+        <a href={process.env.REACT_APP_HOMEPAGE}>KISS Translator</a> Script not
+        installed or disabled!
+      </p>
       <p>
         <a href={process.env.REACT_APP_HOMEPAGE}>Click here read more!</a>
       </p>

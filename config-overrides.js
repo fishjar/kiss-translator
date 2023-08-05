@@ -113,7 +113,7 @@ const userscriptWebpack = (config, env) => {
   ];
 
   config.entry = {
-    index: paths.appSrc + "/userscriptOptions.js",
+    "kiss-translator-options": paths.appSrc + "/userscriptOptions.js",
     "kiss-translator.user": paths.appSrc + "/userscript.js",
   };
 
@@ -129,9 +129,9 @@ const userscriptWebpack = (config, env) => {
   config.plugins.push(
     new HtmlWebpackPlugin({
       inject: true,
-      chunks: ["index"],
+      chunks: ["kiss-translator-options"],
       template: paths.appHtml,
-      filename: "index.html",
+      filename: "kiss-translator-options.html",
     }),
     new webpack.BannerPlugin({
       banner,
