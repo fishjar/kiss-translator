@@ -20,9 +20,15 @@ const banner = `// ==UserScript==
 // @grant         GM_xmlhttpRequest
 // @grant         GM.xmlhttpRequest
 // @grant         GM_setValue
-// @grant         GM_getValue
 // @grant         GM.setValue
+// @grant         GM_getValue
 // @grant         GM.getValue
+// @grant         GM_deleteValue
+// @grant         GM.deleteValue
+// @grant         GM_addValueChangeListener
+// @grant         GM.addValueChangeListener
+// @grant         GM_removeValueChangeListener
+// @grant         GM.removeValueChangeListener
 // @connect       translate.googleapis.com
 // @connect       api-edge.cognitive.microsofttranslator.com
 // @connect       edge.microsoft.com

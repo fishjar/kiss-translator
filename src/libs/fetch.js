@@ -16,7 +16,7 @@ import {
 const fetchGM = async (input, { method = "GET", headers, body } = {}) =>
   new Promise((resolve, reject) => {
     try {
-      window.GM_xmlhttpRequest({
+      (window.GM_xmlhttpRequest || window.GM.xmlhttpRequest)({
         method,
         url: input,
         headers,

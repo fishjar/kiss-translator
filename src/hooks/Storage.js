@@ -72,7 +72,10 @@ export function StoragesProvider({ children }) {
       if (isExt) {
         browser.storage.onChanged.removeListener(handleChanged);
       } else if (isGm) {
-        window.GM.removeValueChangeListener(handleChanged);
+        (
+          window.GM_removeValueChangeListener ||
+          window.GM.removeValueChangeListener
+        )(handleChanged);
       } else {
         window.removeEventListener("storage", handleChanged);
       }
