@@ -13,20 +13,29 @@ import {
  * @param {*} init
  * @returns
  */
-const fetchGM = async (input, { method, headers, body }) =>
+const fetchGM = async (input, { method = "GET", headers, body } = {}) =>
   new Promise((resolve, reject) => {
     try {
-      window.GM.xmlhttpRequest({
+      window.GM_xmlhttpRequest({
         method,
         url: input,
         headers,
         data: body,
         onload: (response) => {
-          resolve(new Response(response.response));
+          if (response.status === 200) {
+            const headers = new Headers();
+            response.responseHeaders.split("\n").forEach((line) => {
+              let [name, value] = line.split(":").map((item) => item.trim());
+              if (name && value) {
+                headers.append(name, value);
+              }
+            });
+            resolve(new Response(response.response, { headers }));
+          } else {
+            reject(new Error(`[${response.status}] ${response.responseText}`));
+          }
         },
-        onerror: (error) => {
-          reject(error);
-        },
+        onerror: reject,
       });
     } catch (error) {
       reject(error);

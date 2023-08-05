@@ -2,7 +2,14 @@ import storage from "./storage";
 import { STOKEY_MSAUTH, URL_MICROSOFT_AUTH } from "../config";
 import { fetchPolyfill } from "./fetch";
 
-const parseMSToken = (token) => JSON.parse(atob(token.split(".")[1])).exp;
+const parseMSToken = (token) => {
+  try {
+    return JSON.parse(atob(token.split(".")[1])).exp;
+  } catch (err) {
+    console.log("[parseMSToken]", err);
+  }
+  return 0;
+};
 
 /**
  * 闭包缓存token，减少对storage查询

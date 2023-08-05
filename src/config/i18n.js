@@ -1,5 +1,3 @@
-const URL_APP_HOMEPAGE = "https://github.com/fishjar/kiss-translator";
-
 export const UI_LANGS = [
   ["zh", "中文"],
   ["en", "English"],
@@ -35,8 +33,8 @@ export const I18N = {
     en: `README.en.md`,
   },
   about_md_local: {
-    zh: `请 [点击这里](${URL_APP_HOMEPAGE}) 查看详情。`,
-    en: `Please [click here](${URL_APP_HOMEPAGE}) for details.`,
+    zh: `请 [点击这里](${process.env.REACT_APP_HOMEPAGE}) 查看详情。`,
+    en: `Please [click here](${process.env.REACT_APP_HOMEPAGE}) for details.`,
   },
   ui_lang: {
     zh: `界面语言`,

@@ -129,7 +129,7 @@ export const DEFAULT_RULE = {
   fromLang: "auto",
   toLang: "zh-CN",
   textStyle: OPT_STYLE_DASHLINE,
-  transOpen: true,
+  transOpen: false,
 };
 
 export const DEFAULT_SETTING = {

@@ -21,11 +21,11 @@ async function set(key, val) {
 
 async function get(key) {
   if (isExt) {
-    const res = await browser.storage.local.get([key]);
-    return res[key];
+    const val = await browser.storage.local.get([key]);
+    return val[key];
   } else if (isGm) {
-    const res = await window.GM.getValue(key);
-    return res;
+    const val = await window.GM.getValue(key);
+    return val;
   }
   return window.localStorage.getItem(key);
 }
