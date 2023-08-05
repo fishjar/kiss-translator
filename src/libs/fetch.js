@@ -1,4 +1,4 @@
-import { browser } from "./browser";
+import { isExt, isGm } from "./browser";
 import { sendMsg } from "./msg";
 import {
   MSG_FETCH,
@@ -8,7 +8,33 @@ import {
 } from "../config";
 
 /**
- * request 改造，因缓存必须是GET方法
+ * 油猴脚本的请求封装
+ * @param {*} input
+ * @param {*} init
+ * @returns
+ */
+const fetchGM = async (input, { method, headers, body }) =>
+  new Promise((resolve, reject) => {
+    try {
+      window.GM.xmlhttpRequest({
+        method,
+        url: input,
+        headers,
+        data: body,
+        onload: (response) => {
+          resolve(new Response(response.response));
+        },
+        onerror: (error) => {
+          reject(error);
+        },
+      });
+    } catch (error) {
+      reject(error);
+    }
+  });
+
+/**
+ * 构造缓存 request
  * @param {*} request
  * @returns
  */
@@ -28,27 +54,6 @@ const newCacheReq = async (request, translator) => {
   }
 
   return request;
-};
-
-/**
- * 兼容性封装
- * @param {*} input
- * @param {*} init
- * @param {*} opts
- * @returns
- */
-export const fetchPolyfill = async (input, init) => {
-  if (browser?.runtime) {
-    // 插件调用
-    const res = await sendMsg(MSG_FETCH, { input, init });
-    if (res.error) {
-      throw new Error(res.error);
-    }
-    return res.data;
-  }
-
-  // 网页直接调用
-  return await fetch(input, init);
 };
 
 /**
@@ -74,7 +79,11 @@ export const fetchData = async (input, init, { useCache, translator } = {}) => {
 
   // 发送请求
   if (!res) {
-    res = await fetchPolyfill(input, init);
+    if (isGm) {
+      res = await fetchGM(input, init);
+    } else {
+      res = await fetch(input, init);
+    }
   }
 
   if (!res?.ok) {
@@ -95,4 +104,25 @@ export const fetchData = async (input, init, { useCache, translator } = {}) => {
     return await res.json();
   }
   return await res.text();
+};
+
+/**
+ * fetch 兼容性封装
+ * @param {*} input
+ * @param {*} init
+ * @param {*} opts
+ * @returns
+ */
+export const fetchPolyfill = async (input, init, opts) => {
+  // 插件
+  if (isExt) {
+    const res = await sendMsg(MSG_FETCH, { input, init, opts });
+    if (res.error) {
+      throw new Error(res.error);
+    }
+    return res.data;
+  }
+
+  // 油猴/网页
+  return await fetchData(input, init, opts);
 };

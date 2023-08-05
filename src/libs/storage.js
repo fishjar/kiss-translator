@@ -1,8 +1,10 @@
-import { browser } from "./browser";
+import { browser, isExt, isGm } from "./browser";
 
 async function set(key, val) {
-  if (browser?.storage) {
+  if (isExt) {
     await browser.storage.local.set({ [key]: val });
+  } else if (isGm) {
+    await window.GM.setValue(key, val);
   } else {
     const oldValue = window.localStorage.getItem(key);
     window.localStorage.setItem(key, val);
@@ -18,16 +20,21 @@ async function set(key, val) {
 }
 
 async function get(key) {
-  if (browser?.storage) {
+  if (isExt) {
     const res = await browser.storage.local.get([key]);
     return res[key];
+  } else if (isGm) {
+    const res = await window.GM.getValue(key);
+    return res;
   }
   return window.localStorage.getItem(key);
 }
 
 async function del(key) {
-  if (browser?.storage) {
+  if (isExt) {
     await browser.storage.local.remove([key]);
+  } else if (isGm) {
+    await window.GM.deleteValue(key);
   } else {
     const oldValue = window.localStorage.getItem(key);
     window.localStorage.removeItem(key);
@@ -67,8 +74,10 @@ async function putObj(key, obj) {
  * @param {*} handleChanged
  */
 function onChanged(handleChanged) {
-  if (browser?.storage) {
+  if (isExt) {
     browser.storage.onChanged.addListener(handleChanged);
+  } else if (isGm) {
+    window.GM.addValueChangeListener("storage", handleChanged);
   } else {
     window.addEventListener("storage", handleChanged);
   }

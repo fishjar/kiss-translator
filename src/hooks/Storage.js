@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { browser } from "../libs/browser";
+import { browser, isExt, isGm, isWeb } from "../libs/browser";
 import {
   STOKEY_SETTING,
   STOKEY_RULES,
@@ -27,7 +27,7 @@ export function StoragesProvider({ children }) {
   const [storages, setStorages] = useState(null);
 
   const handleChanged = (changes) => {
-    if (!browser) {
+    if (isWeb || isGm) {
       const { key, oldValue, newValue } = changes;
       changes = {
         [key]: {
@@ -69,8 +69,10 @@ export function StoragesProvider({ children }) {
 
     // 解除监听
     return () => {
-      if (browser?.storage) {
+      if (isExt) {
         browser.storage.onChanged.removeListener(handleChanged);
+      } else if (isGm) {
+        window.GM.removeValueChangeListener(handleChanged);
       } else {
         window.removeEventListener("storage", handleChanged);
       }

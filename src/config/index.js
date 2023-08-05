@@ -15,6 +15,7 @@ export const CLIENT_CHROME = "chrome";
 export const CLIENT_EDGE = "edge";
 export const CLIENT_FIREFOX = "firefox";
 export const CLIENT_USERSCRIPT = "userscript";
+export const CLIENT_EXTS = [CLIENT_CHROME, CLIENT_EDGE, CLIENT_FIREFOX];
 
 export const KV_HEADER_KEY = "X-KISS-PSK";
 export const KV_RULES_KEY = "KT_RULES";

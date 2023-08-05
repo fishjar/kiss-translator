@@ -1,6 +1,6 @@
 import storage from "./storage";
 import { STOKEY_MSAUTH, URL_MICROSOFT_AUTH } from "../config";
-import { fetchData } from "./fetch";
+import { fetchPolyfill } from "./fetch";
 
 const parseMSToken = (token) => JSON.parse(atob(token.split(".")[1])).exp;
 
@@ -27,7 +27,7 @@ const _msAuth = () => {
     }
 
     // 缓存没有或失效，查询接口
-    token = await fetchData(URL_MICROSOFT_AUTH);
+    token = await fetchPolyfill(URL_MICROSOFT_AUTH);
     exp = parseMSToken(token);
     await storage.setObj(STOKEY_MSAUTH, { token, exp });
     return [token, exp];

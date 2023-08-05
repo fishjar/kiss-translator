@@ -1,4 +1,4 @@
-import { browser } from "webextension-polyfill";
+import browser from "webextension-polyfill";
 import {
   MSG_FETCH,
   DEFAULT_SETTING,
@@ -12,6 +12,7 @@ import {
 import storage from "./libs/storage";
 import { getSetting } from "./libs";
 import { syncAll } from "./libs/sync";
+import { fetchData } from "./libs/fetch";
 
 /**
  * 插件安装
@@ -46,10 +47,7 @@ browser.runtime.onMessage.addListener(
   ({ action, args }, sender, sendResponse) => {
     switch (action) {
       case MSG_FETCH:
-        fetch(args.input, args.init)
-          .then((res) => {
-            return res.json();
-          })
+        fetchData(args.input, args.init, args.opts)
           .then((data) => {
             sendResponse({ data });
           })
