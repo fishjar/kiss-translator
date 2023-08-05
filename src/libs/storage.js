@@ -4,11 +4,18 @@ async function set(key, val) {
   if (isExt) {
     await browser.storage.local.set({ [key]: val });
   } else if (isGm) {
+    const oldValue = await (window.GM_getValue || window.GM.getValue)(key);
     await (window.GM_setValue || window.GM.setValue)(key, val);
+    window.dispatchEvent(
+      new StorageEvent("storage", {
+        key,
+        oldValue,
+        newValue: val,
+      })
+    );
   } else {
     const oldValue = window.localStorage.getItem(key);
     window.localStorage.setItem(key, val);
-    // 手动唤起事件
     window.dispatchEvent(
       new StorageEvent("storage", {
         key,
@@ -34,11 +41,18 @@ async function del(key) {
   if (isExt) {
     await browser.storage.local.remove([key]);
   } else if (isGm) {
+    const oldValue = await (window.GM_getValue || window.GM.getValue)(key);
     await (window.GM_deleteValue || window.GM.deleteValue)(key);
+    window.dispatchEvent(
+      new StorageEvent("storage", {
+        key,
+        oldValue,
+        newValue: null,
+      })
+    );
   } else {
     const oldValue = window.localStorage.getItem(key);
     window.localStorage.removeItem(key);
-    // 手动唤起事件
     window.dispatchEvent(
       new StorageEvent("storage", {
         key,
@@ -76,11 +90,6 @@ async function putObj(key, obj) {
 function onChanged(handleChanged) {
   if (isExt) {
     browser.storage.onChanged.addListener(handleChanged);
-  } else if (isGm) {
-    (window.GM_addValueChangeListener || window.GM.addValueChangeListener)(
-      "storage",
-      handleChanged
-    );
   } else {
     window.addEventListener("storage", handleChanged);
   }

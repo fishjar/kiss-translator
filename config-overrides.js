@@ -25,10 +25,6 @@ const banner = `// ==UserScript==
 // @grant         GM.getValue
 // @grant         GM_deleteValue
 // @grant         GM.deleteValue
-// @grant         GM_addValueChangeListener
-// @grant         GM.addValueChangeListener
-// @grant         GM_removeValueChangeListener
-// @grant         GM.removeValueChangeListener
 // @connect       translate.googleapis.com
 // @connect       api-edge.cognitive.microsofttranslator.com
 // @connect       edge.microsoft.com
@@ -117,10 +113,11 @@ const userscriptWebpack = (config, env) => {
   ];
 
   config.entry = {
-    userscript: paths.appSrc + "/userscript.js",
+    index: paths.appSrc + "/userscriptOptions.js",
+    "kiss-translator.user": paths.appSrc + "/userscript.js",
   };
 
-  config.output.filename = "kiss-translator.user.js";
+  config.output.filename = "[name].js";
   config.optimization.splitChunks = { cacheGroups: { default: false } };
   config.optimization.runtimeChunk = false;
   config.optimization.minimize = false;
@@ -130,10 +127,17 @@ const userscriptWebpack = (config, env) => {
   );
 
   config.plugins.push(
+    new HtmlWebpackPlugin({
+      inject: true,
+      chunks: ["index"],
+      template: paths.appHtml,
+      filename: "index.html",
+    }),
     new webpack.BannerPlugin({
       banner,
       raw: true,
       entryOnly: true,
+      test: "kiss-translator.user.js",
     })
   );
 

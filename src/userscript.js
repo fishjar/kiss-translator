@@ -1,3 +1,7 @@
+import React from "react";
+import ReactDOM from "react-dom/client";
+import Options from "./views/Options";
+
 import { browser } from "./libs/browser";
 import {
   MSG_TRANS_TOGGLE,
@@ -13,6 +17,17 @@ import { Translator } from "./libs/translator";
  * 入口函数
  */
 (async () => {
+  // 设置页面
+  if (document.location.href.includes("localhost:3000")) {
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(
+      <React.StrictMode>
+        <Options />
+      </React.StrictMode>
+    );
+    return;
+  }
+
   const { fetchInterval, fetchLimit } = await getSetting();
   transPool.update(fetchInterval, fetchLimit);
 
