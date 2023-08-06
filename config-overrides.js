@@ -130,6 +130,7 @@ const webWebpack = (config, env) => {
   };
 
   config.output.filename = "[name].js";
+  config.output.publicPath = "./";
 
   config.plugins = config.plugins.filter(
     (plugin) => !names.includes(plugin.constructor.name)
