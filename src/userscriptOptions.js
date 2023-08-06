@@ -9,7 +9,7 @@ const App = () => {
       if (!document.querySelector("header")) {
         setLoading(false);
       }
-    }, 3000);
+    }, 5000);
     return () => {
       clearTimeout(timer);
     };
