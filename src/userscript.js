@@ -62,6 +62,11 @@ class ActionElement extends HTMLElement {
     return;
   }
 
+  // iframe
+  if (window.self !== window.top) {
+    return;
+  }
+
   // 插入按钮
   const actionName = "kiss-action";
   customElements.define(actionName, ActionElement);
@@ -97,7 +102,7 @@ class ActionElement extends HTMLElement {
         translator.updateRule(args);
         break;
       default:
-        // console.log(`[entry] kissEvent action skip: ${action}`);
+      // console.log(`[entry] kissEvent action skip: ${action}`);
     }
   });
 })();
