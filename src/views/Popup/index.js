@@ -6,7 +6,7 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import Button from "@mui/material/Button";
 import { sendTabMsg } from "../../libs/msg";
-import { browser } from "../../libs/browser";
+import { browser, isExt } from "../../libs/browser";
 import { useI18n } from "../../hooks/I18n";
 import TextField from "@mui/material/TextField";
 import {
@@ -17,6 +17,8 @@ import {
   OPT_LANGS_FROM,
   OPT_LANGS_TO,
   OPT_STYLE_ALL,
+  EVENT_KISS,
+  MSG_TRANS_CURRULE,
 } from "../../config";
 
 export default function Popup() {
@@ -24,13 +26,28 @@ export default function Popup() {
   const [rule, setRule] = useState(null);
 
   const handleOpenSetting = () => {
-    browser?.runtime.openOptionsPage();
+    if (isExt) {
+      browser?.runtime.openOptionsPage();
+    } else {
+      window.open(process.env.REACT_APP_OPTIONSPAGE, "_blank");
+    }
   };
 
   const handleTransToggle = async (e) => {
     try {
       setRule({ ...rule, transOpen: e.target.checked });
-      await sendTabMsg(MSG_TRANS_TOGGLE);
+
+      if (isExt) {
+        await sendTabMsg(MSG_TRANS_TOGGLE);
+      } else {
+        window.dispatchEvent(
+          new CustomEvent(EVENT_KISS, {
+            detail: {
+              action: MSG_TRANS_TOGGLE,
+            },
+          })
+        );
+      }
     } catch (err) {
       console.log("[toggle trans]", err);
     }
@@ -40,13 +57,50 @@ export default function Popup() {
     try {
       const { name, value } = e.target;
       setRule((pre) => ({ ...pre, [name]: value }));
-      await sendTabMsg(MSG_TRANS_PUTRULE, { [name]: value });
+
+      if (isExt) {
+        await sendTabMsg(MSG_TRANS_PUTRULE, { [name]: value });
+      } else {
+        window.dispatchEvent(
+          new CustomEvent(EVENT_KISS, {
+            detail: {
+              action: MSG_TRANS_PUTRULE,
+              args: { [name]: value },
+            },
+          })
+        );
+      }
     } catch (err) {
       console.log("[update rule]", err);
     }
   };
 
+  const handleKissEvent = (e) => {
+    const action = e?.detail?.action;
+    const args = e?.detail?.args || {};
+    switch (action) {
+      case MSG_TRANS_CURRULE:
+        setRule(args);
+        break;
+      default:
+        // console.log(`[popup] kissEvent action skip: ${action}`);
+    }
+  };
+
   useEffect(() => {
+    if (!isExt) {
+      window.addEventListener(EVENT_KISS, handleKissEvent);
+      window.dispatchEvent(
+        new CustomEvent(EVENT_KISS, {
+          detail: { action: MSG_TRANS_GETRULE },
+        })
+      );
+
+      return () => {
+        window.removeEventListener(EVENT_KISS, handleKissEvent);
+      };
+    }
+
     (async () => {
       try {
         const res = await sendTabMsg(MSG_TRANS_GETRULE);
@@ -75,7 +129,7 @@ export default function Popup() {
 
   return (
     <Box minWidth={300} sx={{ p: 2 }}>
-      <Stack spacing={3}>
+      <Stack spacing={2}>
         <FormControlLabel
           control={<Switch checked={transOpen} onChange={handleTransToggle} />}
           label={i18n("translate")}
@@ -83,6 +137,7 @@ export default function Popup() {
 
         <TextField
           select
+          SelectProps={{ MenuProps: { disablePortal: true } }}
           size="small"
           value={translator}
           name="translator"
@@ -98,6 +153,7 @@ export default function Popup() {
 
         <TextField
           select
+          SelectProps={{ MenuProps: { disablePortal: true } }}
           size="small"
           value={fromLang}
           name="fromLang"
@@ -113,6 +169,7 @@ export default function Popup() {
 
         <TextField
           select
+          SelectProps={{ MenuProps: { disablePortal: true } }}
           size="small"
           value={toLang}
           name="toLang"
@@ -128,6 +185,7 @@ export default function Popup() {
 
         <TextField
           select
+          SelectProps={{ MenuProps: { disablePortal: true } }}
           size="small"
           value={textStyle}
           name="textStyle"

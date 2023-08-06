@@ -4,36 +4,6 @@ const { WebpackManifestPlugin } = require("webpack-manifest-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const webpack = require("webpack");
 
-const isEnvUserscript = process.env.REACT_APP_CLIENT === "userscript";
-
-const banner = `// ==UserScript==
-// @name          ${process.env.REACT_APP_NAME}
-// @namespace     ${process.env.REACT_APP_HOMEPAGE}
-// @version       ${process.env.REACT_APP_VERSION}
-// @description   A minimalist bilingual translation extension.
-// @author        Gabe<yugang2002@gmail.com>
-// @homepageURL   ${process.env.REACT_APP_HOMEPAGE}
-// @match         *://*/*
-// @icon          https://raw.githubusercontent.com/fishjar/kiss-translator/master/public/images/logo192.png
-// @downloadURL   https://raw.githubusercontent.com/fishjar/kiss-translator/master/dist/userscript/kiss-translator.user.js
-// @updateURL     https://raw.githubusercontent.com/fishjar/kiss-translator/master/dist/userscript/kiss-translator.user.js
-// @grant         GM_xmlhttpRequest
-// @grant         GM.xmlhttpRequest
-// @grant         GM_setValue
-// @grant         GM.setValue
-// @grant         GM_getValue
-// @grant         GM.getValue
-// @grant         GM_deleteValue
-// @grant         GM.deleteValue
-// @connect       translate.googleapis.com
-// @connect       api-edge.cognitive.microsofttranslator.com
-// @connect       edge.microsoft.com
-// @connect       api.openai.com
-// @connect       localhost
-// ==/UserScript==
-
-`;
-
 // 扩展
 const extWebpack = (config, env) => {
   const isEnvProduction = env === "production";
@@ -106,21 +76,59 @@ const extWebpack = (config, env) => {
 
 // 油猴
 const userscriptWebpack = (config, env) => {
-  const names = [
-    "HtmlWebpackPlugin",
-    "WebpackManifestPlugin",
-    "MiniCssExtractPlugin",
-  ];
+  const banner = `// ==UserScript==
+// @name          ${process.env.REACT_APP_NAME}
+// @namespace     ${process.env.REACT_APP_HOMEPAGE}
+// @version       ${process.env.REACT_APP_VERSION}
+// @description   A minimalist bilingual translation extension.
+// @author        Gabe<yugang2002@gmail.com>
+// @homepageURL   ${process.env.REACT_APP_HOMEPAGE}
+// @match         *://*/*
+// @icon          https://raw.githubusercontent.com/fishjar/kiss-translator/master/public/images/logo192.png
+// @downloadURL   https://raw.githubusercontent.com/fishjar/kiss-translator/master/dist/userscript/kiss-translator.user.js
+// @updateURL     https://raw.githubusercontent.com/fishjar/kiss-translator/master/dist/userscript/kiss-translator.user.js
+// @grant         GM_xmlhttpRequest
+// @grant         GM.xmlhttpRequest
+// @grant         GM_setValue
+// @grant         GM.setValue
+// @grant         GM_getValue
+// @grant         GM.getValue
+// @grant         GM_deleteValue
+// @grant         GM.deleteValue
+// @connect       translate.googleapis.com
+// @connect       api-edge.cognitive.microsofttranslator.com
+// @connect       edge.microsoft.com
+// @connect       api.openai.com
+// @connect       localhost
+// ==/UserScript==
 
-  config.entry = {
-    "kiss-translator-options": paths.appSrc + "/userscriptOptions.js",
-    "kiss-translator.user": paths.appSrc + "/userscript.js",
-  };
+`;
 
-  config.output.filename = "[name].js";
+  config.entry = paths.appSrc + "/userscript.js";
+  config.output.filename = "kiss-translator.user.js";
   config.optimization.splitChunks = { cacheGroups: { default: false } };
   config.optimization.runtimeChunk = false;
   config.optimization.minimize = false;
+
+  config.plugins.push(
+    new webpack.BannerPlugin({
+      banner,
+      raw: true,
+      entryOnly: true,
+    })
+  );
+
+  return config;
+};
+
+// 文档
+const webWebpack = (config, env) => {
+  const names = ["HtmlWebpackPlugin"];
+
+  config.entry = {
+    main: paths.appSrc + "/userscriptIndex.js",
+    options: paths.appSrc + "/userscriptOptions.js",
+  };
 
   config.plugins = config.plugins.filter(
     (plugin) => !names.includes(plugin.constructor.name)
@@ -129,21 +137,33 @@ const userscriptWebpack = (config, env) => {
   config.plugins.push(
     new HtmlWebpackPlugin({
       inject: true,
-      chunks: ["kiss-translator-options"],
+      chunks: ["main"],
       template: paths.appHtml,
-      filename: "kiss-translator-options.html",
+      filename: "index.html",
     }),
-    new webpack.BannerPlugin({
-      banner,
-      raw: true,
-      entryOnly: true,
-      test: "kiss-translator.user.js",
+    new HtmlWebpackPlugin({
+      inject: true,
+      chunks: ["options"],
+      template: paths.appHtml,
+      filename: "options.html",
     })
   );
 
   return config;
 };
 
+let webpackConfig;
+switch (process.env.REACT_APP_CLIENT) {
+  case "userscript":
+    webpackConfig = userscriptWebpack;
+    break;
+  case "web":
+    webpackConfig = webWebpack;
+    break;
+  default:
+    webpackConfig = extWebpack;
+}
+
 module.exports = {
-  webpack: isEnvUserscript ? userscriptWebpack : extWebpack,
+  webpack: webpackConfig,
 };

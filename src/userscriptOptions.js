@@ -16,19 +16,24 @@ const App = () => {
   }, []);
 
   if (loading) {
-    return <p style={{ textAlign: "center" }}>loading...</p>;
+    return (
+      <center>
+        <p>KISS Translator</p>
+        <h1 style={{ textAlign: "center" }}>loading...</h1>
+      </center>
+    );
   }
 
   return (
-    <div style={{ textAlign: "center" }}>
+    <center>
       <p>
         <a href={process.env.REACT_APP_HOMEPAGE}>KISS Translator</a> Script not
         installed or disabled!
       </p>
-      <p>
+      <h1>
         <a href={process.env.REACT_APP_HOMEPAGE}>Click here read more!</a>
-      </p>
-    </div>
+      </h1>
+    </center>
   );
 };
 

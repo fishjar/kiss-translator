@@ -28,6 +28,9 @@ export const MSG_FETCH_LIMIT = "fetch_limit";
 export const MSG_TRANS_TOGGLE = "trans_toggle";
 export const MSG_TRANS_GETRULE = "trans_getrule";
 export const MSG_TRANS_PUTRULE = "trans_putrule";
+export const MSG_TRANS_CURRULE = "trans_currule";
+
+export const EVENT_KISS = "kissEvent";
 
 export const THEME_LIGHT = "light";
 export const THEME_DARK = "dark";

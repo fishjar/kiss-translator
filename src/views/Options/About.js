@@ -5,13 +5,15 @@ import { useI18n, useI18nMd } from "../../hooks/I18n";
 
 export default function About() {
   const i18n = useI18n();
-  const [md, loading, error] = useI18nMd("about_md");
+  const [data, loading, error] = useI18nMd("about_md");
   return (
     <Box>
       {loading ? (
-        <CircularProgress />
+        <center>
+          <CircularProgress />
+        </center>
       ) : (
-        <ReactMarkdown children={error ? i18n("about_md_local") : md} />
+        <ReactMarkdown children={error ? i18n("about_md_local") : data} />
       )}
     </Box>
   );

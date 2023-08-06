@@ -5,11 +5,12 @@ import Action from "./views/Action";
 import createCache from "@emotion/cache";
 import { CacheProvider } from "@emotion/react";
 
-import { browser } from "./libs/browser";
 import {
   MSG_TRANS_TOGGLE,
   MSG_TRANS_GETRULE,
   MSG_TRANS_PUTRULE,
+  MSG_TRANS_CURRULE,
+  EVENT_KISS,
 } from "./config";
 import { getRules, matchRule } from "./libs";
 import { getSetting } from "./libs";
@@ -48,7 +49,10 @@ class ActionElement extends HTMLElement {
  */
 (async () => {
   // 设置页面
-  if (document.location.href.includes("kiss-translator-options")) {
+  if (
+    document.location.href.includes("http://localhost:3000/options.html") ||
+    document.location.href.includes(process.env.REACT_APP_OPTIONSPAGE)
+  ) {
     const root = ReactDOM.createRoot(document.getElementById("root"));
     root.render(
       <React.StrictMode>
@@ -72,19 +76,28 @@ class ActionElement extends HTMLElement {
   const translator = new Translator(rule);
 
   // 监听消息
-  browser?.runtime.onMessage.addListener(async ({ action, args }) => {
+  window.addEventListener(EVENT_KISS, (e) => {
+    const action = e?.detail?.action;
+    const args = e?.detail?.args || {};
     switch (action) {
       case MSG_TRANS_TOGGLE:
         translator.toggle();
         break;
       case MSG_TRANS_GETRULE:
+        window.dispatchEvent(
+          new CustomEvent(EVENT_KISS, {
+            detail: {
+              action: MSG_TRANS_CURRULE,
+              args: translator.rule,
+            },
+          })
+        );
         break;
       case MSG_TRANS_PUTRULE:
         translator.updateRule(args);
         break;
       default:
-        return { error: `message action is unavailable: ${action}` };
+        // console.log(`[entry] kissEvent action skip: ${action}`);
     }
-    return { data: translator.rule };
   });
 })();
