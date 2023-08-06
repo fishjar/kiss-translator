@@ -34,7 +34,7 @@ If you also like a little more simplicity, welcome to pick it up.
 - [ ] Upload to app Store
 - [x] Open source
 - [x] Data Synchronization Function
-- [x] Grease Monkey Script
+- [x] [Grease Monkey Script](https://github.com/fishjar/kiss-translator/raw/master/dist/userscript/kiss-translator.user.js)
   - [x] [Tampermonkey](https://www.tampermonkey.net/) (Chrome)
   - [ ] [Greasy Fork](https://greasyfork.org/) (need test)
   - [ ] [Userscripts Safari](https://github.com/quoid/userscripts) (need test)

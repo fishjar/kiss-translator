@@ -34,7 +34,7 @@
 - [ ] 上架应用市场
 - [x] 开放源代码
 - [x] 数据同步功能
-- [x] 油猴脚本
+- [x] [油猴脚本](https://github.com/fishjar/kiss-translator/raw/master/dist/userscript/kiss-translator.user.js)
   - [x] [Tampermonkey](https://www.tampermonkey.net/) (Chrome)
   - [ ] [Greasy Fork](https://greasyfork.org/) (待测)
   - [ ] [Userscripts Safari](https://github.com/quoid/userscripts) (待测)
