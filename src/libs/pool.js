@@ -6,7 +6,7 @@ import {
 import { apiTranslate } from "../apis";
 import { msAuth } from "./auth";
 
-const _taskPool = (fn, preFn, _interval = 500, _limit = 100) => {
+const _taskPool = (fn, preFn, _interval = 100, _limit = 100) => {
   const pool = [];
   const maxRetry = 2; // 最大重试次数
   let maxCount = _limit; // 最大数量
@@ -56,7 +56,7 @@ const _taskPool = (fn, preFn, _interval = 500, _limit = 100) => {
         pool.push({ args, resolve, reject, retry: 0 });
       });
     },
-    update: (_interval = 500, _limit = 100) => {
+    update: (_interval = 100, _limit = 100) => {
       if (_interval >= 0 && _interval <= 5000 && _interval !== interval) {
         interval = _interval;
       }

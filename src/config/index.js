@@ -120,7 +120,7 @@ export const OPT_STYLE_ALL = [
 ];
 
 export const DEFAULT_FETCH_LIMIT = 10; // 默认最大任务数量
-export const DEFAULT_FETCH_INTERVAL = 500; // 默认任务间隔时间
+export const DEFAULT_FETCH_INTERVAL = 100; // 默认任务间隔时间
 
 export const PROMPT_PLACE_FROM = "{{from}}"; // 占位符
 export const PROMPT_PLACE_TO = "{{to}}"; // 占位符
