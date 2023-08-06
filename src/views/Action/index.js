@@ -1,7 +1,7 @@
 import Paper from "@mui/material/Paper";
 import Box from "@mui/material/Box";
 import Fab from "@mui/material/Fab";
-import AddIcon from "@mui/icons-material/Add";
+import TranslateIcon from '@mui/icons-material/Translate';
 import ThemeProvider from "../../hooks/Theme";
 import Draggable from "./Draggable";
 import IconButton from "@mui/material/IconButton";
@@ -121,7 +121,7 @@ export default function Action() {
                   }
                 }}
               >
-                <AddIcon />
+                <TranslateIcon />
               </Fab>
             }
           />

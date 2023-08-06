@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name          KISS Translator
 // @namespace     https://github.com/fishjar/kiss-translator
-// @version       1.3.1
+// @version       1.3.2
 // @description   A minimalist bilingual translation extension.
 // @author        Gabe<yugang2002@gmail.com>
 // @homepageURL   https://github.com/fishjar/kiss-translator
@@ -1931,27 +1931,6 @@ var useInsertionEffectWithLayoutFallback = useInsertionEffect || react__WEBPACK_
 
 /***/ }),
 
-/***/ 5211:
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
-
-"use strict";
-var __webpack_unused_export__;
-
-
-var _interopRequireDefault = __webpack_require__(4836);
-__webpack_unused_export__ = ({
-  value: true
-});
-exports.Z = void 0;
-var _createSvgIcon = _interopRequireDefault(__webpack_require__(5045));
-var _jsxRuntime = __webpack_require__(6417);
-var _default = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
-  d: "M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"
-}), 'Add');
-exports.Z = _default;
-
-/***/ }),
-
 /***/ 1198:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
@@ -2179,6 +2158,27 @@ var _jsxRuntime = __webpack_require__(6417);
 var _default = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
   d: "M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"
 }), 'Sync');
+exports.Z = _default;
+
+/***/ }),
+
+/***/ 3578:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+"use strict";
+var __webpack_unused_export__;
+
+
+var _interopRequireDefault = __webpack_require__(4836);
+__webpack_unused_export__ = ({
+  value: true
+});
+exports.Z = void 0;
+var _createSvgIcon = _interopRequireDefault(__webpack_require__(5045));
+var _jsxRuntime = __webpack_require__(6417);
+var _default = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
+  d: "m12.87 15.07-2.54-2.51.03-.03c1.74-1.94 2.98-4.17 3.71-6.53H17V4h-7V2H8v2H1v1.99h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7 1.62-4.33L19.12 17h-3.24z"
+}), 'Translate');
 exports.Z = _default;
 
 /***/ }),
@@ -54565,8 +54565,8 @@ var Fab = /*#__PURE__*/react.forwardRef(function Fab(inProps, ref) {
 });
  false ? 0 : void 0;
 /* harmony default export */ var Fab_Fab = (Fab);
-// EXTERNAL MODULE: ./node_modules/@mui/icons-material/Add.js
-var Add = __webpack_require__(5211);
+// EXTERNAL MODULE: ./node_modules/@mui/icons-material/Translate.js
+var Translate = __webpack_require__(3578);
 ;// CONCATENATED MODULE: ./src/views/Action/Draggable.js
 function Draggable(props){var _useState=(0,react.useState)(null),_useState2=(0,slicedToArray/* default */.Z)(_useState,2),origin=_useState2[0],setOrigin=_useState2[1];var _useState3=(0,react.useState)({x:props.left,y:props.top}),_useState4=(0,slicedToArray/* default */.Z)(_useState3,2),position=_useState4[0],setPosition=_useState4[1];var handlePointerDown=function handlePointerDown(e){e.target.setPointerCapture(e.pointerId);props===null||props===void 0?void 0:props.onStart();setOrigin({x:position.x,y:position.y,px:e.clientX,py:e.clientY});};var handlePointerMove=function handlePointerMove(e){props===null||props===void 0?void 0:props.onMove();if(origin){var dx=e.clientX-origin.px;var dy=e.clientY-origin.py;var x=origin.x+dx;var y=origin.y+dy;var _props$windowSize=props.windowSize,w=_props$windowSize.w,h=_props$windowSize.h;x=limitNumber(x,0,w-props.width);y=limitNumber(y,0,h-props.height);setPosition({x:x,y:y});}};var handlePointerUp=function handlePointerUp(e){setOrigin(null);};var handleClick=function handleClick(e){e.stopPropagation();};(0,react.useEffect)(function(){var _props$windowSize2=props.windowSize,w=_props$windowSize2.w,h=_props$windowSize2.h;setPosition(function(_ref){var x=_ref.x,y=_ref.y;return{x:limitNumber(x,0,w-props.width),y:limitNumber(y,0,h-props.height)};});},[props.windowSize,props.width,props.height]);return/*#__PURE__*/(0,jsx_runtime.jsxs)("div",{style:{position:"fixed",left:position.x,top:position.y,zIndex:2147483647},onClick:handleClick,children:[/*#__PURE__*/(0,jsx_runtime.jsx)("div",{onPointerDown:handlePointerDown,onPointerMove:handlePointerMove,onPointerUp:handlePointerUp,children:props.handler}),/*#__PURE__*/(0,jsx_runtime.jsx)("div",{children:props.children})]});}
 // EXTERNAL MODULE: ./node_modules/@mui/icons-material/Close.js
@@ -55126,7 +55126,7 @@ var Switch = /*#__PURE__*/react.forwardRef(function Switch(inProps, ref) {
 function Popup(){var i18n=useI18n();var _useState=(0,react.useState)(null),_useState2=(0,slicedToArray/* default */.Z)(_useState,2),rule=_useState2[0],setRule=_useState2[1];var handleOpenSetting=function handleOpenSetting(){if(isExt){browser===null||browser===void 0?void 0:browser.runtime.openOptionsPage();}else{window.open("https://fishjar.github.io/kiss-translator/options.html","_blank");}};var handleTransToggle=/*#__PURE__*/function(){var _ref=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(e){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:_context.prev=0;setRule(_objectSpread2(_objectSpread2({},rule),{},{transOpen:e.target.checked}));if(!isExt){_context.next=7;break;}_context.next=5;return sendTabMsg(MSG_TRANS_TOGGLE);case 5:_context.next=8;break;case 7:window.dispatchEvent(new CustomEvent(EVENT_KISS,{detail:{action:MSG_TRANS_TOGGLE}}));case 8:_context.next=13;break;case 10:_context.prev=10;_context.t0=_context["catch"](0);console.log("[toggle trans]",_context.t0);case 13:case"end":return _context.stop();}},_callee,null,[[0,10]]);}));return function handleTransToggle(_x){return _ref.apply(this,arguments);};}();var handleChange=/*#__PURE__*/function(){var _ref2=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(e){var _e$target,name,value;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:_context2.prev=0;_e$target=e.target,name=_e$target.name,value=_e$target.value;setRule(function(pre){return _objectSpread2(_objectSpread2({},pre),{},(0,defineProperty/* default */.Z)({},name,value));});if(!isExt){_context2.next=8;break;}_context2.next=6;return sendTabMsg(MSG_TRANS_PUTRULE,(0,defineProperty/* default */.Z)({},name,value));case 6:_context2.next=9;break;case 8:window.dispatchEvent(new CustomEvent(EVENT_KISS,{detail:{action:MSG_TRANS_PUTRULE,args:(0,defineProperty/* default */.Z)({},name,value)}}));case 9:_context2.next=14;break;case 11:_context2.prev=11;_context2.t0=_context2["catch"](0);console.log("[update rule]",_context2.t0);case 14:case"end":return _context2.stop();}},_callee2,null,[[0,11]]);}));return function handleChange(_x2){return _ref2.apply(this,arguments);};}();var handleKissEvent=function handleKissEvent(e){var _e$detail,_e$detail2;var action=e===null||e===void 0?void 0:(_e$detail=e.detail)===null||_e$detail===void 0?void 0:_e$detail.action;var args=(e===null||e===void 0?void 0:(_e$detail2=e.detail)===null||_e$detail2===void 0?void 0:_e$detail2.args)||{};switch(action){case MSG_TRANS_CURRULE:setRule(args);break;default:// console.log(`[popup] kissEvent action skip: ${action}`);
 }};(0,react.useEffect)(function(){if(!isExt){window.addEventListener(EVENT_KISS,handleKissEvent);window.dispatchEvent(new CustomEvent(EVENT_KISS,{detail:{action:MSG_TRANS_GETRULE}}));return function(){window.removeEventListener(EVENT_KISS,handleKissEvent);};}asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee3(){var res;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:_context3.prev=0;_context3.next=3;return sendTabMsg(MSG_TRANS_GETRULE);case 3:res=_context3.sent;if(!res.error){setRule(res.data);}_context3.next=10;break;case 7:_context3.prev=7;_context3.t0=_context3["catch"](0);console.log("[query rule]",_context3.t0);case 10:case"end":return _context3.stop();}},_callee3,null,[[0,7]]);}))();},[]);if(!rule){return/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{minWidth:300,sx:{p:2},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Stack_Stack,{spacing:3,children:/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{variant:"text",onClick:handleOpenSetting,children:i18n("setting")})})});}var transOpen=rule.transOpen,translator=rule.translator,fromLang=rule.fromLang,toLang=rule.toLang,textStyle=rule.textStyle;return/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{minWidth:300,sx:{p:2},children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(FormControlLabel_FormControlLabel,{control:/*#__PURE__*/(0,jsx_runtime.jsx)(Switch_Switch,{checked:transOpen,onChange:handleTransToggle}),label:i18n("translate")}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},size:"small",value:translator,name:"translator",label:i18n("translate_service"),onChange:handleChange,children:OPT_TRANS_ALL.map(function(item){return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:item,children:item},item);})}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},size:"small",value:fromLang,name:"fromLang",label:i18n("from_lang"),onChange:handleChange,children:OPT_LANGS_FROM.map(function(_ref4){var _ref5=(0,slicedToArray/* default */.Z)(_ref4,2),lang=_ref5[0],name=_ref5[1];return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:lang,children:name},lang);})}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},size:"small",value:toLang,name:"toLang",label:i18n("to_lang"),onChange:handleChange,children:OPT_LANGS_TO.map(function(_ref6){var _ref7=(0,slicedToArray/* default */.Z)(_ref6,2),lang=_ref7[0],name=_ref7[1];return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:lang,children:name},lang);})}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},size:"small",value:textStyle,name:"textStyle",label:i18n("text_style"),onChange:handleChange,children:OPT_STYLE_ALL.map(function(item){return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:item,children:i18n(item)},item);})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{variant:"text",onClick:handleOpenSetting,children:i18n("setting")})]})});}
 ;// CONCATENATED MODULE: ./src/views/Action/index.js
-function Action_Action(){var fabWidth=56;var _useState=(0,react.useState)(false),_useState2=(0,slicedToArray/* default */.Z)(_useState,2),showPopup=_useState2[0],setShowPopup=_useState2[1];var _useState3=(0,react.useState)({w:window.innerWidth,h:window.innerHeight}),_useState4=(0,slicedToArray/* default */.Z)(_useState3,2),windowSize=_useState4[0],setWindowSize=_useState4[1];var _useState5=(0,react.useState)(false),_useState6=(0,slicedToArray/* default */.Z)(_useState5,2),moved=_useState6[0],setMoved=_useState6[1];var handleWindowResize=function handleWindowResize(e){setWindowSize({w:window.innerWidth,h:window.innerHeight});};var handleWindowClick=function handleWindowClick(e){setShowPopup(false);};var handleStart=(0,react.useCallback)(function(){setMoved(false);},[]);var handleMove=(0,react.useCallback)(function(){setMoved(true);},[]);(0,react.useEffect)(function(){window.addEventListener("resize",handleWindowResize);window.addEventListener("click",handleWindowClick);return function(){window.removeEventListener("resize",handleWindowResize);window.removeEventListener("click",handleWindowClick);};},[]);var popProps=(0,react.useMemo)(function(){var width=Math.min(windowSize.w,300);var height=Math.min(windowSize.h,386);var left=(windowSize.w-width)/2;var top=(windowSize.h-height)/2;return{windowSize:windowSize,width:width,height:height,left:left,top:top};},[windowSize]);var fabProps={windowSize:windowSize,width:fabWidth,height:fabWidth,left:window.innerWidth-fabWidth-fabWidth,top:window.innerHeight-fabWidth-fabWidth};return/*#__PURE__*/(0,jsx_runtime.jsx)(StoragesProvider,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(MuiThemeProvider,{children:showPopup?/*#__PURE__*/(0,jsx_runtime.jsx)(Draggable,_objectSpread2(_objectSpread2({},popProps),{},{onStart:handleStart,onMove:handleMove,handler:/*#__PURE__*/(0,jsx_runtime.jsx)(Paper_Paper,{style:{cursor:"move"},elevation:3,children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",justifyContent:"space-between",alignItems:"center",spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{style:{marginLeft:16},children:"KISS Translator"}),/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{onClick:function onClick(){setShowPopup(false);},children:/*#__PURE__*/(0,jsx_runtime.jsx)(icons_material_Close/* default */.Z,{})})]})}),children:/*#__PURE__*/(0,jsx_runtime.jsx)(Paper_Paper,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(Popup,{})})}),"pop"):/*#__PURE__*/(0,jsx_runtime.jsx)(Draggable,_objectSpread2(_objectSpread2({},fabProps),{},{onStart:handleStart,onMove:handleMove,handler:/*#__PURE__*/(0,jsx_runtime.jsx)(Fab_Fab,{color:"primary",onClick:function onClick(e){if(!moved){setShowPopup(function(pre){return!pre;});}},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Add/* default */.Z,{})})}),"fab")})});}
+function Action_Action(){var fabWidth=56;var _useState=(0,react.useState)(false),_useState2=(0,slicedToArray/* default */.Z)(_useState,2),showPopup=_useState2[0],setShowPopup=_useState2[1];var _useState3=(0,react.useState)({w:window.innerWidth,h:window.innerHeight}),_useState4=(0,slicedToArray/* default */.Z)(_useState3,2),windowSize=_useState4[0],setWindowSize=_useState4[1];var _useState5=(0,react.useState)(false),_useState6=(0,slicedToArray/* default */.Z)(_useState5,2),moved=_useState6[0],setMoved=_useState6[1];var handleWindowResize=function handleWindowResize(e){setWindowSize({w:window.innerWidth,h:window.innerHeight});};var handleWindowClick=function handleWindowClick(e){setShowPopup(false);};var handleStart=(0,react.useCallback)(function(){setMoved(false);},[]);var handleMove=(0,react.useCallback)(function(){setMoved(true);},[]);(0,react.useEffect)(function(){window.addEventListener("resize",handleWindowResize);window.addEventListener("click",handleWindowClick);return function(){window.removeEventListener("resize",handleWindowResize);window.removeEventListener("click",handleWindowClick);};},[]);var popProps=(0,react.useMemo)(function(){var width=Math.min(windowSize.w,300);var height=Math.min(windowSize.h,386);var left=(windowSize.w-width)/2;var top=(windowSize.h-height)/2;return{windowSize:windowSize,width:width,height:height,left:left,top:top};},[windowSize]);var fabProps={windowSize:windowSize,width:fabWidth,height:fabWidth,left:window.innerWidth-fabWidth-fabWidth,top:window.innerHeight-fabWidth-fabWidth};return/*#__PURE__*/(0,jsx_runtime.jsx)(StoragesProvider,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(MuiThemeProvider,{children:showPopup?/*#__PURE__*/(0,jsx_runtime.jsx)(Draggable,_objectSpread2(_objectSpread2({},popProps),{},{onStart:handleStart,onMove:handleMove,handler:/*#__PURE__*/(0,jsx_runtime.jsx)(Paper_Paper,{style:{cursor:"move"},elevation:3,children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",justifyContent:"space-between",alignItems:"center",spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{style:{marginLeft:16},children:"KISS Translator"}),/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{onClick:function onClick(){setShowPopup(false);},children:/*#__PURE__*/(0,jsx_runtime.jsx)(icons_material_Close/* default */.Z,{})})]})}),children:/*#__PURE__*/(0,jsx_runtime.jsx)(Paper_Paper,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(Popup,{})})}),"pop"):/*#__PURE__*/(0,jsx_runtime.jsx)(Draggable,_objectSpread2(_objectSpread2({},fabProps),{},{onStart:handleStart,onMove:handleMove,handler:/*#__PURE__*/(0,jsx_runtime.jsx)(Fab_Fab,{color:"primary",onClick:function onClick(e){if(!moved){setShowPopup(function(pre){return!pre;});}},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Translate/* default */.Z,{})})}),"fab")})});}
 ;// CONCATENATED MODULE: ./src/libs/auth.js
 var parseMSToken=function parseMSToken(token){try{return JSON.parse(atob(token.split(".")[1])).exp;}catch(err){console.log("[parseMSToken]",err);}return 0;};/**
  * 闭包缓存token，减少对storage查询
