@@ -1,0 +1,9 @@
+{
+  "popup.js": "/popup.js",
+  "options.js": "/options.js",
+  "background.js": "/background.js",
+  "content.js": "/content.js",
+  "content.html": "/content.html",
+  "options.html": "/options.html",
+  "popup.html": "/popup.html"
+}

@@ -99,7 +99,6 @@ const userscriptWebpack = (config, env) => {
 // @connect       api-edge.cognitive.microsofttranslator.com
 // @connect       edge.microsoft.com
 // @connect       api.openai.com
-// @connect       localhost
 // ==/UserScript==
 
 `;
@@ -129,6 +128,8 @@ const webWebpack = (config, env) => {
     main: paths.appSrc + "/userscriptIndex.js",
     options: paths.appSrc + "/userscriptOptions.js",
   };
+
+  config.output.filename = "[name].js";
 
   config.plugins = config.plugins.filter(
     (plugin) => !names.includes(plugin.constructor.name)

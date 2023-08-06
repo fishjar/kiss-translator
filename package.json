@@ -19,14 +19,13 @@
   },
   "scripts": {
     "start": "REACT_APP_CLIENT=web react-app-rewired start",
-    "start:userscript": "REACT_APP_CLIENT=userscript react-app-rewired start",
     "build": "BUILD_PATH=./build/chrome REACT_APP_CLIENT=chrome react-app-rewired build && rm ./build/chrome/manifest.firefox.json",
-    "build:edge": "BUILD_PATH=./build/edge REACT_APP_CLIENT=edge react-app-rewired build && rm ./build/edge/manifest.firefox.json",
+    "build:edge": "cp -r build/chrome build/edge",
     "build:firefox": "BUILD_PATH=./build/firefox REACT_APP_CLIENT=firefox react-app-rewired build && rm ./build/firefox/manifest.json && mv ./build/firefox/manifest.firefox.json ./build/firefox/manifest.json",
     "build:userscript": "BUILD_PATH=./build/userscript REACT_APP_CLIENT=userscript react-app-rewired build",
     "build:web": "BUILD_PATH=./build/web REACT_APP_CLIENT=web react-app-rewired build",
     "build:all": "yarn build && yarn build:edge && yarn build:firefox && yarn build:userscript && yarn build:web",
-    "dist": "yarn build:all && rm -r dist && cp -r build dist",
+    "dist": "yarn build:all && rm -r dist && rm -r docs && cp -r build dist && rm -r dist/userscript/* && cp build/userscript/kiss-translator.user.js dist/userscript/ && mv dist/web docs",
     "test": "react-app-rewired test",
     "eject": "react-scripts eject"
   },

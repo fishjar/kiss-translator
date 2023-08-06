@@ -1,0 +1,11 @@
+{
+  "files": {
+    "main.js": "/main.js",
+    "options.js": "/options.js",
+    "options.html": "/options.html",
+    "index.html": "/index.html"
+  },
+  "entrypoints": [
+    "main.js"
+  ]
+}
