@@ -26,6 +26,7 @@
     "build:web": "BUILD_PATH=./build/web REACT_APP_CLIENT=web react-app-rewired build",
     "build:all": "yarn build && yarn build:edge && yarn build:firefox && yarn build:userscript && yarn build:web",
     "dist": "yarn build:all && rm -r dist && rm -r docs && cp -r build dist && rm -r dist/userscript/* && cp build/userscript/kiss-translator.user.js dist/userscript/ && mv dist/web docs",
+    "deploy:web": "wrangler pages deploy ./docs --project-name kiss-translator",
     "test": "react-app-rewired test",
     "eject": "react-scripts eject"
   },
@@ -48,6 +49,7 @@
     ]
   },
   "devDependencies": {
-    "react-app-rewired": "^2.2.1"
+    "react-app-rewired": "^2.2.1",
+    "wrangler": "^3.4.0"
   }
 }
