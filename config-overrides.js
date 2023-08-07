@@ -4,6 +4,8 @@ const { WebpackManifestPlugin } = require("webpack-manifest-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const webpack = require("webpack");
 
+console.log("process.env.REACT_APP_CLIENT", process.env.REACT_APP_CLIENT);
+
 // 扩展
 const extWebpack = (config, env) => {
   const isEnvProduction = env === "production";
@@ -129,8 +131,12 @@ const webWebpack = (config, env) => {
     options: paths.appSrc + "/userscriptOptions.js",
   };
 
+  if (env === "development") {
+    config.entry.content = paths.appSrc + "/userscript.js";
+  }
+
   config.output.filename = "[name].js";
-  config.output.publicPath = "./";
+  config.output.publicPath = env === "development" ? "/" : "./";
 
   config.plugins = config.plugins.filter(
     (plugin) => !names.includes(plugin.constructor.name)
@@ -150,6 +156,17 @@ const webWebpack = (config, env) => {
       filename: "options.html",
     })
   );
+
+  if (env === "development") {
+    config.plugins.push(
+      new HtmlWebpackPlugin({
+        inject: true,
+        chunks: ["content"],
+        template: paths.appPublic + "/content.html",
+        filename: "content.html",
+      })
+    );
+  }
 
   return config;
 };
