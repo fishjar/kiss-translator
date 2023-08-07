@@ -1,6 +1,6 @@
 {
   "name": "kiss-translator",
-  "description": "A simple translator extension",
+  "description": "A minimalist bilingual translation Extension & Greasemonkey Script",
   "version": "1.3.5",
   "author": "Gabe<yugang2002@gmail.com>",
   "private": true,
