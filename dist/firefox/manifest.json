@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "__MSG_app_name__",
   "description": "__MSG_app_description__",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "default_locale": "zh",
   "author": "Gabe<yugang2002@gmail.com>",
   "homepage_url": "https://github.com/fishjar/kiss-translator",

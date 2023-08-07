@@ -51,7 +51,8 @@ class ActionElement extends HTMLElement {
   // 设置页面
   if (
     document.location.href.includes("http://localhost:3000/options.html") ||
-    document.location.href.includes(process.env.REACT_APP_OPTIONSPAGE)
+    document.location.href.includes(process.env.REACT_APP_OPTIONSPAGE) ||
+    document.location.href.includes(process.env.REACT_APP_OPTIONSPAGE2)
   ) {
     const root = ReactDOM.createRoot(document.getElementById("root"));
     root.render(
