@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { limitNumber } from "../../libs/utils";
-import { isMobile } from "../../libs/browser";
+import { isMobile } from "../../libs/mobile";
 
 export default function Draggable(props) {
   const [origin, setOrigin] = useState(null);
