@@ -101,6 +101,7 @@ const userscriptWebpack = (config, env) => {
 // @connect       api-edge.cognitive.microsofttranslator.com
 // @connect       edge.microsoft.com
 // @connect       api.openai.com
+// @run-at        document-end
 // ==/UserScript==
 
 `;

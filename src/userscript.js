@@ -20,29 +20,29 @@ import { Translator } from "./libs/translator";
 /**
  * 自定义元素
  */
-class ActionElement extends HTMLElement {
-  connectedCallback() {
-    const shadowContainer = this.attachShadow({ mode: "open" });
-    const emotionRoot = document.createElement("style");
-    const shadowRootElement = document.createElement("div");
-    shadowContainer.appendChild(emotionRoot);
-    shadowContainer.appendChild(shadowRootElement);
+// class ActionElement extends HTMLElement {
+//   connectedCallback() {
+//     const shadowContainer = this.attachShadow({ mode: "open" });
+//     const emotionRoot = document.createElement("style");
+//     const shadowRootElement = document.createElement("div");
+//     shadowContainer.appendChild(emotionRoot);
+//     shadowContainer.appendChild(shadowRootElement);
 
-    const cache = createCache({
-      key: "css",
-      prepend: true,
-      container: emotionRoot,
-    });
+//     const cache = createCache({
+//       key: "css",
+//       prepend: true,
+//       container: emotionRoot,
+//     });
 
-    ReactDOM.createRoot(shadowRootElement).render(
-      <React.StrictMode>
-        <CacheProvider value={cache}>
-          <Action />
-        </CacheProvider>
-      </React.StrictMode>
-    );
-  }
-}
+//     ReactDOM.createRoot(shadowRootElement).render(
+//       <React.StrictMode>
+//         <CacheProvider value={cache}>
+//           <Action />
+//         </CacheProvider>
+//       </React.StrictMode>
+//     );
+//   }
+// }
 
 /**
  * 入口函数
@@ -69,10 +69,32 @@ class ActionElement extends HTMLElement {
   }
 
   // 插入按钮
-  const actionName = "kiss-action";
-  customElements.define(actionName, ActionElement);
-  const $action = document.createElement(actionName);
+  // const actionName = "kiss-action";
+  // customElements.define(actionName, ActionElement);
+  // const $action = document.createElement(actionName);
+  // document.body.parentElement.appendChild($action);
+
+  // 插入按钮，兼容性更好
+  const $action = document.createElement("div");
+  $action.setAttribute("id", "kiss-translator");
   document.body.parentElement.appendChild($action);
+  const shadowContainer = $action.attachShadow({ mode: "open" });
+  const emotionRoot = document.createElement("style");
+  const shadowRootElement = document.createElement("div");
+  shadowContainer.appendChild(emotionRoot);
+  shadowContainer.appendChild(shadowRootElement);
+  const cache = createCache({
+    key: "css",
+    prepend: true,
+    container: emotionRoot,
+  });
+  ReactDOM.createRoot(shadowRootElement).render(
+    <React.StrictMode>
+      <CacheProvider value={cache}>
+        <Action />
+      </CacheProvider>
+    </React.StrictMode>
+  );
 
   // 翻译页面
   const { fetchInterval, fetchLimit } = await getSetting();

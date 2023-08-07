@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name          KISS Translator
 // @namespace     https://github.com/fishjar/kiss-translator
-// @version       1.3.5
+// @version       1.3.6
 // @description   A minimalist bilingual translation extension.
 // @author        Gabe<yugang2002@gmail.com>
 // @homepageURL   https://github.com/fishjar/kiss-translator
@@ -21,6 +21,7 @@
 // @connect       api-edge.cognitive.microsofttranslator.com
 // @connect       edge.microsoft.com
 // @connect       api.openai.com
+// @run-at        document-end
 // ==/UserScript==
 
 
@@ -18041,6 +18042,15 @@ function asyncToGenerator_asyncToGenerator(fn) {
     });
   };
 }
+// EXTERNAL MODULE: ./node_modules/react/index.js
+var react = __webpack_require__(7313);
+var react_namespaceObject = /*#__PURE__*/__webpack_require__.t(react, 2);
+// EXTERNAL MODULE: ./node_modules/react-dom/client.js
+var client = __webpack_require__(1739);
+// EXTERNAL MODULE: ./node_modules/@babel/runtime/helpers/esm/slicedToArray.js + 1 modules
+var slicedToArray = __webpack_require__(9439);
+// EXTERNAL MODULE: ./node_modules/@babel/runtime/helpers/esm/toConsumableArray.js + 2 modules
+var toConsumableArray = __webpack_require__(3433);
 ;// CONCATENATED MODULE: ./node_modules/@babel/runtime/helpers/esm/classCallCheck.js
 function classCallCheck_classCallCheck(instance, Constructor) {
   if (!(instance instanceof Constructor)) {
@@ -18202,15 +18212,6 @@ function _wrapNativeSuper(Class) {
   };
   return _wrapNativeSuper(Class);
 }
-// EXTERNAL MODULE: ./node_modules/react/index.js
-var react = __webpack_require__(7313);
-var react_namespaceObject = /*#__PURE__*/__webpack_require__.t(react, 2);
-// EXTERNAL MODULE: ./node_modules/react-dom/client.js
-var client = __webpack_require__(1739);
-// EXTERNAL MODULE: ./node_modules/@babel/runtime/helpers/esm/slicedToArray.js + 1 modules
-var slicedToArray = __webpack_require__(9439);
-// EXTERNAL MODULE: ./node_modules/@babel/runtime/helpers/esm/toConsumableArray.js + 2 modules
-var toConsumableArray = __webpack_require__(3433);
 // EXTERNAL MODULE: ./node_modules/@babel/runtime/helpers/esm/arrayWithHoles.js
 var arrayWithHoles = __webpack_require__(3878);
 // EXTERNAL MODULE: ./node_modules/@babel/runtime/helpers/esm/iterableToArray.js
@@ -42493,7 +42494,7 @@ ReactMarkdown.propTypes = {
   components: prop_types.object
 };
 ;// CONCATENATED MODULE: ./src/config/rules.js
-var els="li, p, h1, h2, h3, h4, h5, h6, dd";var DEFAULT_SELECTOR= false|| true&&navigator.userAgent.match(/Firefox/i)?":is(".concat(els,")"):":is(".concat(els,"):not(:has(:is(").concat(els,")))");var RULES=[{pattern:"platform.openai.com/docs",selector:".docs-body ".concat(DEFAULT_SELECTOR)},{pattern:"en.wikipedia.org",selector:"h1, .mw-parser-output ".concat(DEFAULT_SELECTOR)},{pattern:"stackoverflow.com",selector:"h1, .s-prose p, .comment-body .comment-copy"},{pattern:"developer.chrome.com/docs, medium.com",selector:"h1, article ".concat(DEFAULT_SELECTOR)},{pattern:"news.ycombinator.com",selector:".title, .commtext"},{pattern:"github.com",selector:".markdown-body ".concat(DEFAULT_SELECTOR,", .repo-description p, .Layout-sidebar .f4, .container-lg .py-4 .f5, .container-lg .my-4 .f5, .Box-row .pr-4, .Box-row article .mt-1, [itemprop='description']")},{pattern:"twitter.com",selector:"[data-testid='tweetText']"},{pattern:"youtube.com",selector:"h1, h3:not(:has(#author-text)), #content-text, #description, yt-attributed-string>span>span"},{pattern:"www.google.com",selector:"h3, .IsZvec, [data-sncf=\"1\"]"}];
+var els="li, p, h1, h2, h3, h4, h5, h6, dd";var DEFAULT_SELECTOR= false|| true&&navigator.userAgent.match(/Firefox/i)?":is(".concat(els,")"):":is(".concat(els,"):not(:has(:is(").concat(els,")))");var RULES=[{pattern:"platform.openai.com/docs",selector:".docs-body ".concat(DEFAULT_SELECTOR)},{pattern:"en.wikipedia.org",selector:"h1, .mw-parser-output ".concat(DEFAULT_SELECTOR)},{pattern:"stackoverflow.com",selector:"h1, .s-prose p, .comment-body .comment-copy"},{pattern:"developer.chrome.com/docs, medium.com",selector:"h1, article ".concat(DEFAULT_SELECTOR)},{pattern:"news.ycombinator.com",selector:".title, .commtext"},{pattern:"github.com",selector:".markdown-body ".concat(DEFAULT_SELECTOR,", .repo-description p, .Layout-sidebar .f4, .container-lg .py-4 .f5, .container-lg .my-4 .f5, .Box-row .pr-4, .Box-row article .mt-1, [itemprop='description']")},{pattern:"twitter.com",selector:"[data-testid='tweetText']"},{pattern:"youtube.com",selector:"h1, h3:not(.ytd-comment-renderer), #content-text, #description, yt-attributed-string>span>span"},{pattern:"www.google.com",selector:"h3, .IsZvec, [data-sncf=\"1\"]"}];
 ;// CONCATENATED MODULE: ./src/config/i18n.js
 var UI_LANGS=[["zh","中文"],["en","English"]];var I18N={app_name:{zh:"\u7B80\u7EA6\u7FFB\u8BD1",en:"KISS Translator"},translate:{zh:"\u7FFB\u8BD1",en:"Translate"},basic_setting:{zh:"\u57FA\u672C\u8BBE\u7F6E",en:"Basic Setting"},rules_setting:{zh:"\u89C4\u5219\u8BBE\u7F6E",en:"Rules Setting"},sync_setting:{zh:"\u540C\u6B65\u8BBE\u7F6E",en:"Sync Setting"},about:{zh:"\u5173\u4E8E",en:"About"},about_md:{zh:"README.md",en:"README.en.md"},about_md_local:{zh:"\u8BF7 [\u70B9\u51FB\u8FD9\u91CC](".concat("https://github.com/fishjar/kiss-translator",") \u67E5\u770B\u8BE6\u60C5\u3002"),en:"Please [click here](".concat("https://github.com/fishjar/kiss-translator",") for details.")},ui_lang:{zh:"\u754C\u9762\u8BED\u8A00",en:"Interface Language"},fetch_limit:{zh:"\u6700\u5927\u8BF7\u6C42\u6570\u91CF",en:"Maximum Number Of Request"},fetch_interval:{zh:"\u8BF7\u6C42\u95F4\u9694\u65F6\u95F4(ms)",en:"Request Interval(ms)"},translate_service:{zh:"\u7FFB\u8BD1\u670D\u52A1",en:"Translate Service"},from_lang:{zh:"\u539F\u6587\u8BED\u8A00",en:"Source Language"},to_lang:{zh:"\u76EE\u6807\u8BED\u8A00",en:"Target Language"},text_style:{zh:"\u6587\u5B57\u6837\u5F0F",en:"Text Style"},google_api:{zh:"\u8C37\u6B4C\u7FFB\u8BD1\u63A5\u53E3",en:"Google Translate API"},default_selector:{zh:"\u9ED8\u8BA4\u9009\u62E9\u5668",en:"Default selector"},selector_rules:{zh:"\u9009\u62E9\u5668\u89C4\u5219",en:"Selector Rules"},save:{zh:"\u4FDD\u5B58",en:"Save"},edit:{zh:"\u7F16\u8F91",en:"Edit"},cancel:{zh:"\u53D6\u6D88",en:"Cancel"},delete:{zh:"\u5220\u9664",en:"Delete"},reset:{zh:"\u91CD\u7F6E",en:"Reset"},add:{zh:"\u6DFB\u52A0",en:"Add"},sync_warn:{zh:"\u5982\u679C\u670D\u52A1\u5668\u5B58\u5728\u5176\u4ED6\u5BA2\u6237\u7AEF\u540C\u6B65\u7684\u6570\u636E\uFF0C\u7B2C\u4E00\u6B21\u540C\u6B65\u5C06\u76F4\u63A5\u8986\u76D6\u672C\u5730\u914D\u7F6E\uFF0C\u540E\u9762\u5219\u6839\u636E\u4FEE\u6539\u65F6\u95F4\uFF0C\u65B0\u7684\u8986\u76D6\u65E7\u7684\u3002",en:"If the server has data synchronized by other clients, the first synchronization will directly overwrite the local configuration, and later, according to the modification time, the new one will overwrite the old one."},about_sync_api:{zh:"\u67E5\u770B\u5173\u4E8E\u6570\u636E\u540C\u6B65\u63A5\u53E3\u90E8\u7F72",en:"View About Data Synchronization Interface Deployment"},style_none:{zh:"\u65E0",en:"None"},under_line:{zh:"\u4E0B\u5212\u76F4\u7EBF",en:"Underline"},dot_line:{zh:"\u4E0B\u5212\u70B9\u72B6\u7EBF",en:"Dotted Underline"},dash_line:{zh:"\u4E0B\u5212\u865A\u7EBF",en:"Dashed Underline"},wavy_line:{zh:"\u4E0B\u5212\u6CE2\u6D6A\u7EBF",en:"Wavy Underline"},fuzzy:{zh:"\u6A21\u7CCA",en:"Fuzzy"},highlight:{zh:"\u9AD8\u4EAE",en:"Highlight"},setting:{zh:"\u8BBE\u7F6E",en:"Setting"},pattern:{zh:"\u5339\u914D\u7F51\u5740",en:"URL pattern"},pattern_helper:{zh:"\u591A\u4E2AURL\u652F\u6301\u82F1\u6587\u9017\u53F7\u201C,\u201D\u5206\u9694",en:"Multiple URLs can be separated by English commas \",\""},selector_helper:{zh:"\u9075\u5FAACSS\u9009\u62E9\u5668\u89C4\u5219\uFF0C\u4F46\u4E0D\u540C\u6D4F\u89C8\u5668\uFF0C\u6709\u4E9B\u4E0D\u540C\u7684\u5199\u6CD5\u3002",en:"Follow the CSS selector rules, but different browsers have some different ways of writing."},translate_switch:{zh:"\u5F00\u542F\u7FFB\u8BD1",en:"Translate Switch"},default_enabled:{zh:"\u9ED8\u8BA4\u5F00\u542F",en:"Enabled"},default_disabled:{zh:"\u9ED8\u8BA4\u5173\u95ED",en:"Disabled"},selector:{zh:"\u9009\u62E9\u5668",en:"Selector"},import:{zh:"\u5BFC\u5165",en:"Import"},export:{zh:"\u5BFC\u51FA",en:"Export"},error_cant_be_blank:{zh:"\u4E0D\u80FD\u4E3A\u7A7A",en:"Can not be blank"},error_duplicate_values:{zh:"\u5B58\u5728\u91CD\u590D\u7684\u503C",en:"There are duplicate values"},error_wrong_file_type:{zh:"\u9519\u8BEF\u7684\u6587\u4EF6\u7C7B\u578B",en:"Wrong file type"},openai_api:{zh:"OpenAI \u63A5\u53E3",en:"OpenAI API"},openai_key:{zh:"OpenAI \u5BC6\u94A5",en:"OpenAI Key"},openai_model:{zh:"OpenAI \u6A21\u578B",en:"OpenAI Model"},openai_prompt:{zh:"OpenAI \u63D0\u793A\u8BCD",en:"OpenAI Prompt"},clear_cache:{zh:"\u662F\u5426\u6E05\u9664\u7F13\u5B58",en:"Whether clear cache"},clear_cache_never:{zh:"\u4E0D\u6E05\u9664\u7F13\u5B58",en:"Never clear cache"},clear_cache_restart:{zh:"\u91CD\u542F\u6D4F\u89C8\u5668\u65F6\u6E05\u9664\u7F13\u5B58",en:"Clear cache when restarting browser"},data_sync_url:{zh:"\u6570\u636E\u540C\u6B65\u63A5\u53E3",en:"Data Sync API"},data_sync_key:{zh:"\u6570\u636E\u540C\u6B65\u5BC6\u94A5",en:"Data Sync Key"}};
 ;// CONCATENATED MODULE: ./src/config/index.js
@@ -55174,13 +55175,39 @@ var span=document.createElement(APP_LCNAME);el.appendChild(span);var root=(0,cli
 ;// CONCATENATED MODULE: ./src/userscript.js
 /**
  * 自定义元素
- */var ActionElement=/*#__PURE__*/function(_HTMLElement){_inherits(ActionElement,_HTMLElement);var _super=_createSuper(ActionElement);function ActionElement(){classCallCheck_classCallCheck(this,ActionElement);return _super.apply(this,arguments);}createClass_createClass(ActionElement,[{key:"connectedCallback",value:function connectedCallback(){var shadowContainer=this.attachShadow({mode:"open"});var emotionRoot=document.createElement("style");var shadowRootElement=document.createElement("div");shadowContainer.appendChild(emotionRoot);shadowContainer.appendChild(shadowRootElement);var cache=(0,emotion_cache_browser_esm/* default */.Z)({key:"css",prepend:true,container:emotionRoot});client.createRoot(shadowRootElement).render(/*#__PURE__*/(0,jsx_runtime.jsx)(react.StrictMode,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(emotion_element_c39617d8_browser_esm.C,{value:cache,children:/*#__PURE__*/(0,jsx_runtime.jsx)(Action_Action,{})})}));}}]);return ActionElement;}(/*#__PURE__*/_wrapNativeSuper(HTMLElement));/**
+ */ // class ActionElement extends HTMLElement {
+//   connectedCallback() {
+//     const shadowContainer = this.attachShadow({ mode: "open" });
+//     const emotionRoot = document.createElement("style");
+//     const shadowRootElement = document.createElement("div");
+//     shadowContainer.appendChild(emotionRoot);
+//     shadowContainer.appendChild(shadowRootElement);
+//     const cache = createCache({
+//       key: "css",
+//       prepend: true,
+//       container: emotionRoot,
+//     });
+//     ReactDOM.createRoot(shadowRootElement).render(
+//       <React.StrictMode>
+//         <CacheProvider value={cache}>
+//           <Action />
+//         </CacheProvider>
+//       </React.StrictMode>
+//     );
+//   }
+// }
+/**
  * 入口函数
- */asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(){var root,actionName,$action,_yield$getSetting,fetchInterval,fetchLimit,rules,rule,translator;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:if(!(document.location.href.includes("http://localhost:3000/options.html")||document.location.href.includes("https://kiss-translator.rayjar.com/options")||document.location.href.includes("https://fishjar.github.io/kiss-translator/options.html"))){_context.next=4;break;}root=client.createRoot(document.getElementById("root"));root.render(/*#__PURE__*/(0,jsx_runtime.jsx)(react.StrictMode,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(Options,{})}));return _context.abrupt("return");case 4:if(!(window.self!==window.top)){_context.next=6;break;}return _context.abrupt("return");case 6:// 插入按钮
-actionName="kiss-action";customElements.define(actionName,ActionElement);$action=document.createElement(actionName);document.body.parentElement.appendChild($action);// 翻译页面
-_context.next=12;return getSetting();case 12:_yield$getSetting=_context.sent;fetchInterval=_yield$getSetting.fetchInterval;fetchLimit=_yield$getSetting.fetchLimit;transPool.update(fetchInterval,fetchLimit);_context.next=18;return getRules();case 18:rules=_context.sent;rule=matchRule(rules,document.location.href);translator=new Translator(rule);// 监听消息
+ */asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(){var root,$action,shadowContainer,emotionRoot,shadowRootElement,cache,_yield$getSetting,fetchInterval,fetchLimit,rules,rule,translator;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:if(!(document.location.href.includes("http://localhost:3000/options.html")||document.location.href.includes("https://kiss-translator.rayjar.com/options")||document.location.href.includes("https://fishjar.github.io/kiss-translator/options.html"))){_context.next=4;break;}root=client.createRoot(document.getElementById("root"));root.render(/*#__PURE__*/(0,jsx_runtime.jsx)(react.StrictMode,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(Options,{})}));return _context.abrupt("return");case 4:if(!(window.self!==window.top)){_context.next=6;break;}return _context.abrupt("return");case 6:// 插入按钮
+// const actionName = "kiss-action";
+// customElements.define(actionName, ActionElement);
+// const $action = document.createElement(actionName);
+// document.body.parentElement.appendChild($action);
+// 插入按钮，兼容性更好
+$action=document.createElement("div");$action.setAttribute("id","kiss-translator");document.body.parentElement.appendChild($action);shadowContainer=$action.attachShadow({mode:"open"});emotionRoot=document.createElement("style");shadowRootElement=document.createElement("div");shadowContainer.appendChild(emotionRoot);shadowContainer.appendChild(shadowRootElement);cache=(0,emotion_cache_browser_esm/* default */.Z)({key:"css",prepend:true,container:emotionRoot});client.createRoot(shadowRootElement).render(/*#__PURE__*/(0,jsx_runtime.jsx)(react.StrictMode,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(emotion_element_c39617d8_browser_esm.C,{value:cache,children:/*#__PURE__*/(0,jsx_runtime.jsx)(Action_Action,{})})}));// 翻译页面
+_context.next=18;return getSetting();case 18:_yield$getSetting=_context.sent;fetchInterval=_yield$getSetting.fetchInterval;fetchLimit=_yield$getSetting.fetchLimit;transPool.update(fetchInterval,fetchLimit);_context.next=24;return getRules();case 24:rules=_context.sent;rule=matchRule(rules,document.location.href);translator=new Translator(rule);// 监听消息
 window.addEventListener(EVENT_KISS,function(e){var _e$detail,_e$detail2;var action=e===null||e===void 0?void 0:(_e$detail=e.detail)===null||_e$detail===void 0?void 0:_e$detail.action;var args=(e===null||e===void 0?void 0:(_e$detail2=e.detail)===null||_e$detail2===void 0?void 0:_e$detail2.args)||{};switch(action){case MSG_TRANS_TOGGLE:translator.toggle();break;case MSG_TRANS_GETRULE:window.dispatchEvent(new CustomEvent(EVENT_KISS,{detail:{action:MSG_TRANS_CURRULE,args:translator.rule}}));break;case MSG_TRANS_PUTRULE:translator.updateRule(args);break;default:// console.log(`[entry] kissEvent action skip: ${action}`);
-}});case 22:case"end":return _context.stop();}},_callee);}))();
+}});case 28:case"end":return _context.stop();}},_callee);}))();
 }();
 /******/ })()
 ;

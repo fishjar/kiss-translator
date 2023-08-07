@@ -38,7 +38,7 @@ export const RULES = [
   },
   {
     pattern: `youtube.com`,
-    selector: `h1, h3:not(:has(#author-text)), #content-text, #description, yt-attributed-string>span>span`,
+    selector: `h1, h3:not(.ytd-comment-renderer), #content-text, #description, yt-attributed-string>span>span`,
   },
   {
     pattern: `www.google.com`,
