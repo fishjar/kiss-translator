@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { limitNumber } from "../../libs/utils";
+import { isMobile } from "../../libs/browser";
 
 export default function Draggable(props) {
   const [origin, setOrigin] = useState(null);
@@ -9,21 +10,23 @@ export default function Draggable(props) {
   });
 
   const handlePointerDown = (e) => {
-    e.target.setPointerCapture(e.pointerId);
+    !isMobile && e.target.setPointerCapture(e.pointerId);
     props?.onStart();
+    const { clientX, clientY } = isMobile ? e.targetTouches[0] : e;
     setOrigin({
       x: position.x,
       y: position.y,
-      px: e.clientX,
-      py: e.clientY,
+      px: clientX,
+      py: clientY,
     });
   };
 
   const handlePointerMove = (e) => {
     props?.onMove();
+    const { clientX, clientY } = isMobile ? e.targetTouches[0] : e;
     if (origin) {
-      const dx = e.clientX - origin.px;
-      const dy = e.clientY - origin.py;
+      const dx = clientX - origin.px;
+      const dy = clientY - origin.py;
       let x = origin.x + dx;
       let y = origin.y + dy;
       const { w, h } = props.windowSize;
@@ -40,6 +43,18 @@ export default function Draggable(props) {
   const handleClick = (e) => {
     e.stopPropagation();
   };
+
+  const touchProps = isMobile
+    ? {
+        onTouchStart: handlePointerDown,
+        onTouchMove: handlePointerMove,
+        onTouchEnd: handlePointerUp,
+      }
+    : {
+        onPointerDown: handlePointerDown,
+        onPointerMove: handlePointerMove,
+        onPointerUp: handlePointerUp,
+      };
 
   useEffect(() => {
     const { w, h } = props.windowSize;
@@ -60,9 +75,10 @@ export default function Draggable(props) {
       onClick={handleClick}
     >
       <div
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
+        style={{
+          touchAction: "none",
+        }}
+        {...touchProps}
       >
         {props.handler}
       </div>
