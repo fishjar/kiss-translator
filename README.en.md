@@ -26,17 +26,22 @@ If you also like a little more simplicity, welcome to pick it up.
   - [x] Edge
   - [x] Firefox
   - [ ] Safari
+  - [x] Kiwi
 - [x] Support translation services
   - [x] Google
   - [x] Microsoft
   - [x] OpenAI
   - [ ] DeepL
 - [ ] Upload to app Store
+  - [ ] Chrome
+  - [ ] Edge
+  - [ ] Firefox
+  - [ ] Safari
+  - [ ] Greasy Fork
 - [x] Open source
 - [x] Data Synchronization Function
-- [x] [Grease Monkey Script](https://github.com/fishjar/kiss-translator/raw/master/dist/userscript/kiss-translator.user.js)
-  - [x] [Tampermonkey](https://www.tampermonkey.net/) (Chrome)
-  - [ ] [Greasy Fork](https://greasyfork.org/) (need test)
+- [x] Greasemonkey Script ([Install Link 1](https://github.com/fishjar/kiss-translator/raw/master/dist/userscript/kiss-translator.user.js) , [Install Link 1](https://kiss-translator.rayjar.com/kiss-translator.user.js))
+  - [x] [Tampermonkey](https://www.tampermonkey.net/) (Chrome/Edge/Firefox)
   - [ ] [Userscripts Safari](https://github.com/quoid/userscripts) (need test)
 
 ### Guide

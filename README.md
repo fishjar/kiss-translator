@@ -26,17 +26,22 @@
   - [x] Edge
   - [x] Firefox
   - [ ] Safari
+  - [x] Kiwi
 - [x] 支持翻译服务
   - [x] Google
   - [x] Microsoft
   - [x] OpenAI
   - [ ] DeepL
 - [ ] 上架应用市场
+  - [ ] Chrome
+  - [ ] Edge
+  - [ ] Firefox
+  - [ ] Safari
+  - [ ] Greasy Fork
 - [x] 开放源代码
 - [x] 数据同步功能
-- [x] [油猴脚本](https://github.com/fishjar/kiss-translator/raw/master/dist/userscript/kiss-translator.user.js)
-  - [x] [Tampermonkey](https://www.tampermonkey.net/) (Chrome)
-  - [ ] [Greasy Fork](https://greasyfork.org/) (待测)
+- [x] 油猴脚本 ([安装链接 1](https://github.com/fishjar/kiss-translator/raw/master/dist/userscript/kiss-translator.user.js) , [安装链接 2](https://kiss-translator.rayjar.com/kiss-translator.user.js))
+  - [x] [Tampermonkey](https://www.tampermonkey.net/) (Chrome/Edge/Firefox)
   - [ ] [Userscripts Safari](https://github.com/quoid/userscripts) (待测)
 
 ### 指引
