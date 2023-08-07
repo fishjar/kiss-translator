@@ -128,7 +128,9 @@ const webWebpack = (config, env) => {
 
   config.entry = {
     main: paths.appSrc + "/userscriptIndex.js",
-    options: paths.appSrc + "/userscriptOptions.js",
+    options:
+      paths.appSrc +
+      (env === "development" ? "/options.js" : "/userscriptOptions.js"),
   };
 
   if (env === "development") {
