@@ -2,7 +2,8 @@ const els = `li, p, h1, h2, h3, h4, h5, h6, dd`;
 
 export const DEFAULT_SELECTOR =
   process.env.REACT_APP_CLIENT === "firefox" ||
-  process.env.REACT_APP_CLIENT === "userscript"
+  (process.env.REACT_APP_CLIENT === "userscript" &&
+    navigator.userAgent.match(/Firefox/i))
     ? `:is(${els})`
     : `:is(${els}):not(:has(:is(${els})))`;
 
@@ -38,5 +39,9 @@ export const RULES = [
   {
     pattern: `youtube.com`,
     selector: `h1, h3:not(:has(#author-text)), #content-text, #description, yt-attributed-string>span>span`,
+  },
+  {
+    pattern: `www.google.com`,
+    selector: `h3, .IsZvec, [data-sncf="1"]`,
   },
 ];
