@@ -1,3 +1,5 @@
+import { DEFAULT_COLOR } from "../../config";
+
 export default function LoadingIcon() {
   return (
     <svg
@@ -7,7 +9,7 @@ export default function LoadingIcon() {
         maxHeight: "1.2em",
       }}
     >
-      <circle fill="#209CEE" stroke="none" cx="6" cy="50" r="6">
+      <circle fill={DEFAULT_COLOR} stroke="none" cx="6" cy="50" r="6">
         <animateTransform
           attributeName="transform"
           dur="1s"
@@ -17,7 +19,7 @@ export default function LoadingIcon() {
           begin="0.1"
         />
       </circle>
-      <circle fill="#209CEE" stroke="none" cx="30" cy="50" r="6">
+      <circle fill={DEFAULT_COLOR} stroke="none" cx="30" cy="50" r="6">
         <animateTransform
           attributeName="transform"
           dur="1s"
@@ -27,7 +29,7 @@ export default function LoadingIcon() {
           begin="0.2"
         />
       </circle>
-      <circle fill="#209CEE" stroke="none" cx="54" cy="50" r="6">
+      <circle fill={DEFAULT_COLOR} stroke="none" cx="54" cy="50" r="6">
         <animateTransform
           attributeName="transform"
           dur="1s"

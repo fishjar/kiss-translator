@@ -64,6 +64,10 @@ export const I18N = {
     zh: `文字样式`,
     en: `Text Style`,
   },
+  bg_color: {
+    zh: `样式颜色`,
+    en: `Style Color`,
+  },
   google_api: {
     zh: `谷歌翻译接口`,
     en: `Google Translate API`,

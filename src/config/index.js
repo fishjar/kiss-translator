@@ -127,6 +127,8 @@ export const DEFAULT_FETCH_INTERVAL = 100; // 默认任务间隔时间
 export const PROMPT_PLACE_FROM = "{{from}}"; // 占位符
 export const PROMPT_PLACE_TO = "{{to}}"; // 占位符
 
+export const DEFAULT_COLOR = "#209CEE"; // 默认高亮背景色/线条颜色
+
 // 全局规则
 export const GLOBLA_RULE = {
   pattern: "*",
@@ -136,6 +138,7 @@ export const GLOBLA_RULE = {
   toLang: "zh-CN",
   textStyle: OPT_STYLE_DASHLINE,
   transOpen: "false",
+  bgColor: "",
 };
 
 // 默认规则
@@ -147,6 +150,7 @@ export const DEFAULT_RULE = {
   toLang: GLOBAL_KEY,
   textStyle: GLOBAL_KEY,
   transOpen: GLOBAL_KEY,
+  bgColor: "",
 };
 
 export const DEFAULT_SETTING = {

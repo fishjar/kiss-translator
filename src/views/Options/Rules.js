@@ -39,6 +39,7 @@ function RuleFields({ rule, rules, setShow }) {
     toLang,
     textStyle,
     transOpen,
+    bgColor,
   } = formValues;
 
   const hasSamePattern = (str) => {
@@ -138,8 +139,8 @@ function RuleFields({ rule, rules, setShow }) {
         />
 
         <Box>
-          <Grid container spacing={2} columns={20}>
-            <Grid item xs={10} md={4}>
+          <Grid container spacing={2} columns={12}>
+            <Grid item xs={12} sm={6} md={3} lg={2}>
               <TextField
                 select
                 size="small"
@@ -155,7 +156,7 @@ function RuleFields({ rule, rules, setShow }) {
                 <MenuItem value={"false"}>{i18n("default_disabled")}</MenuItem>
               </TextField>
             </Grid>
-            <Grid item xs={10} md={4}>
+            <Grid item xs={12} sm={6} md={3} lg={2}>
               <TextField
                 select
                 size="small"
@@ -174,7 +175,7 @@ function RuleFields({ rule, rules, setShow }) {
                 ))}
               </TextField>
             </Grid>
-            <Grid item xs={10} md={4}>
+            <Grid item xs={12} sm={6} md={3} lg={2}>
               <TextField
                 select
                 size="small"
@@ -193,7 +194,7 @@ function RuleFields({ rule, rules, setShow }) {
                 ))}
               </TextField>
             </Grid>
-            <Grid item xs={10} md={4}>
+            <Grid item xs={12} sm={6} md={3} lg={2}>
               <TextField
                 select
                 size="small"
@@ -212,7 +213,7 @@ function RuleFields({ rule, rules, setShow }) {
                 ))}
               </TextField>
             </Grid>
-            <Grid item xs={10} md={4}>
+            <Grid item xs={12} sm={6} md={3} lg={2}>
               <TextField
                 select
                 size="small"
@@ -230,6 +231,17 @@ function RuleFields({ rule, rules, setShow }) {
                   </MenuItem>
                 ))}
               </TextField>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3} lg={2}>
+              <TextField
+                size="small"
+                fullWidth
+                name="bgColor"
+                value={bgColor}
+                label={i18n("bg_color")}
+                disabled={disabled}
+                onChange={handleChange}
+              />
             </Grid>
           </Grid>
         </Box>

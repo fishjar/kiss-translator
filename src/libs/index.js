@@ -54,6 +54,8 @@ export const matchRule = (rules, href) => {
     rule.selector = GLOBLA_RULE.selector;
   }
 
+  rule.bgColor = rule?.bgColor?.trim() || GLOBLA_RULE?.bgColor?.trim();
+
   ["translator", "fromLang", "toLang", "textStyle", "transOpen"].forEach(
     (key) => {
       if (rule[key] === GLOBAL_KEY) {

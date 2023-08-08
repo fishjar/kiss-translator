@@ -17,7 +17,7 @@ export function useTranslate(q, initRule) {
   const [sameLang, setSamelang] = useState(false);
   const [rule, setRule] = useState(initRule);
 
-  const { translator, fromLang, toLang, textStyle } = rule;
+  const { translator, fromLang, toLang, textStyle, bgColor } = rule;
 
   const handleMessage = ({ action, args }) => {
     if (action === MSG_TRANS_PUTRULE) {
@@ -34,7 +34,7 @@ export function useTranslate(q, initRule) {
         setRule((pre) => ({ ...pre, ...args }));
         break;
       default:
-        // console.log(`[popup] kissEvent action skip: ${action}`);
+      // console.log(`[popup] kissEvent action skip: ${action}`);
     }
   };
 
@@ -79,5 +79,5 @@ export function useTranslate(q, initRule) {
     })();
   }, [q, translator, fromLang, toLang]);
 
-  return { text, sameLang, loading, textStyle };
+  return { text, sameLang, loading, textStyle, bgColor };
 }

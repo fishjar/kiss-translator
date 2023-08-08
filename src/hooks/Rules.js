@@ -78,9 +78,11 @@ export function useRules() {
           toLang,
           textStyle,
           transOpen,
+          bgColor,
         }) => ({
           pattern,
           selector: typeof selector === "string" ? selector : "",
+          bgColor: typeof bgColor === "string" ? bgColor : "",
           translator: matchValue([GLOBAL_KEY, ...OPT_TRANS_ALL], translator),
           fromLang: matchValue([GLOBAL_KEY, ...fromLangs], fromLang),
           toLang: matchValue([GLOBAL_KEY, ...toLangs], toLang),
