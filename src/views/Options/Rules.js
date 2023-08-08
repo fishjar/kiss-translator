@@ -24,7 +24,7 @@ import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import FileUploadIcon from "@mui/icons-material/FileUpload";
 
 function RuleFields({ rule, rules, setShow }) {
-  const initFormValues = rule || DEFAULT_RULE;
+  const initFormValues = rule || { ...DEFAULT_RULE, transOpen: "true" };
   const editMode = !!rule;
 
   const i18n = useI18n();
