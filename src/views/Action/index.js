@@ -103,7 +103,7 @@ export default function Action() {
           }
         >
           <Paper>
-            <Popup />
+            <Popup setShowPopup={setShowPopup} />
           </Paper>
         </Draggable>
         <Draggable

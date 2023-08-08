@@ -21,7 +21,7 @@ import {
   MSG_TRANS_CURRULE,
 } from "../../config";
 
-export default function Popup() {
+export default function Popup({ setShowPopup }) {
   const i18n = useI18n();
   const [rule, setRule] = useState(null);
 
@@ -31,6 +31,7 @@ export default function Popup() {
     } else {
       window.open(process.env.REACT_APP_OPTIONSPAGE, "_blank");
     }
+    setShowPopup && setShowPopup(false);
   };
 
   const handleTransToggle = async (e) => {
