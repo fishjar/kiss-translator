@@ -3,6 +3,7 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import {
+  GLOBAL_KEY,
   DEFAULT_RULE,
   OPT_LANGS_FROM,
   OPT_LANGS_TO,
@@ -23,11 +24,7 @@ import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import FileUploadIcon from "@mui/icons-material/FileUpload";
 
 function RuleFields({ rule, rules, setShow }) {
-  const initFormValues = rule || {
-    ...DEFAULT_RULE,
-    pattern: "",
-    transOpen: true,
-  };
+  const initFormValues = rule || DEFAULT_RULE;
   const editMode = !!rule;
 
   const i18n = useI18n();
@@ -82,9 +79,9 @@ function RuleFields({ rule, rules, setShow }) {
     if (!pattern.trim()) {
       errors.pattern = i18n("error_cant_be_blank");
     }
-    if (!selector.trim()) {
-      errors.selector = i18n("error_cant_be_blank");
-    }
+    // if (!selector.trim()) {
+    //   errors.selector = i18n("error_cant_be_blank");
+    // }
     if (hasSamePattern(pattern)) {
       errors.pattern = i18n("error_duplicate_values");
     }
@@ -104,6 +101,12 @@ function RuleFields({ rule, rules, setShow }) {
       setFormValues(initFormValues);
     }
   };
+
+  const globalItem = rule?.pattern !== "*" && (
+    <MenuItem key={GLOBAL_KEY} value={GLOBAL_KEY}>
+      {GLOBAL_KEY}
+    </MenuItem>
+  );
 
   return (
     <form onSubmit={handleSubmit}>
@@ -147,8 +150,9 @@ function RuleFields({ rule, rules, setShow }) {
                 disabled={disabled}
                 onChange={handleChange}
               >
-                <MenuItem value={true}>{i18n("default_enabled")}</MenuItem>
-                <MenuItem value={false}>{i18n("default_disabled")}</MenuItem>
+                {globalItem}
+                <MenuItem value={"true"}>{i18n("default_enabled")}</MenuItem>
+                <MenuItem value={"false"}>{i18n("default_disabled")}</MenuItem>
               </TextField>
             </Grid>
             <Grid item xs={10} md={4}>
@@ -162,6 +166,7 @@ function RuleFields({ rule, rules, setShow }) {
                 disabled={disabled}
                 onChange={handleChange}
               >
+                {globalItem}
                 {OPT_TRANS_ALL.map((item) => (
                   <MenuItem key={item} value={item}>
                     {item}
@@ -180,8 +185,11 @@ function RuleFields({ rule, rules, setShow }) {
                 disabled={disabled}
                 onChange={handleChange}
               >
+                {globalItem}
                 {OPT_LANGS_FROM.map(([lang, name]) => (
-                  <MenuItem key={lang} value={lang}>{name}</MenuItem>
+                  <MenuItem key={lang} value={lang}>
+                    {name}
+                  </MenuItem>
                 ))}
               </TextField>
             </Grid>
@@ -196,8 +204,11 @@ function RuleFields({ rule, rules, setShow }) {
                 disabled={disabled}
                 onChange={handleChange}
               >
+                {globalItem}
                 {OPT_LANGS_TO.map(([lang, name]) => (
-                  <MenuItem key={lang} value={lang}>{name}</MenuItem>
+                  <MenuItem key={lang} value={lang}>
+                    {name}
+                  </MenuItem>
                 ))}
               </TextField>
             </Grid>
@@ -212,8 +223,11 @@ function RuleFields({ rule, rules, setShow }) {
                 disabled={disabled}
                 onChange={handleChange}
               >
+                {globalItem}
                 {OPT_STYLE_ALL.map((item) => (
-                  <MenuItem key={item} value={item}>{i18n(item)}</MenuItem>
+                  <MenuItem key={item} value={item}>
+                    {i18n(item)}
+                  </MenuItem>
                 ))}
               </TextField>
             </Grid>

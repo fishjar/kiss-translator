@@ -3,7 +3,8 @@ import {
   DEFAULT_SETTING,
   STOKEY_SETTING,
   STOKEY_RULES,
-  DEFAULT_RULE,
+  GLOBLA_RULE,
+  GLOBAL_KEY,
 } from "../config";
 import { browser } from "./browser";
 
@@ -38,12 +39,31 @@ export const getRules = async () => (await storage.getObj(STOKEY_RULES)) || [];
  * @param {string} href
  * @returns
  */
-export const matchRule = (rules, href) =>
-  rules.find((rule) =>
+export const matchRule = (rules, href) => {
+  const rule = rules.find((rule) =>
     rule.pattern
       .split(",")
       .some((p) => p.trim() === "*" || href.includes(p.trim()))
-  ) || DEFAULT_RULE;
+  );
+
+  if (!rule) {
+    return GLOBLA_RULE;
+  }
+
+  if (!rule?.selector?.trim()) {
+    rule.selector = GLOBLA_RULE.selector;
+  }
+
+  ["translator", "fromLang", "toLang", "textStyle", "transOpen"].forEach(
+    (key) => {
+      if (rule[key] === GLOBAL_KEY) {
+        rule[key] = GLOBLA_RULE[key];
+      }
+    }
+  );
+
+  return rule;
+};
 
 /**
  * 本地语言识别

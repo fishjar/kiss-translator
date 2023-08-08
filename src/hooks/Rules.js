@@ -4,6 +4,7 @@ import {
   OPT_STYLE_ALL,
   OPT_LANGS_FROM,
   OPT_LANGS_TO,
+  GLOBAL_KEY,
 } from "../config";
 import storage from "../libs/storage";
 import { useStorages } from "./Storage";
@@ -67,13 +68,7 @@ export function useRules() {
     const fromLangs = OPT_LANGS_FROM.map((item) => item[0]);
     const toLangs = OPT_LANGS_TO.map((item) => item[0]);
     newRules
-      .filter(
-        ({ pattern, selector }) =>
-          pattern &&
-          selector &&
-          typeof pattern === "string" &&
-          typeof selector === "string"
-      )
+      .filter(({ pattern }) => pattern && typeof pattern === "string")
       .map(
         ({
           pattern,
@@ -85,12 +80,12 @@ export function useRules() {
           transOpen,
         }) => ({
           pattern,
-          selector,
-          translator: matchValue(OPT_TRANS_ALL, translator),
-          fromLang: matchValue(fromLangs, fromLang),
-          toLang: matchValue(toLangs, toLang),
-          textStyle: matchValue(OPT_STYLE_ALL, textStyle),
-          transOpen: matchValue([true, false], transOpen),
+          selector: typeof selector === "string" ? selector : "",
+          translator: matchValue([GLOBAL_KEY, ...OPT_TRANS_ALL], translator),
+          fromLang: matchValue([GLOBAL_KEY, ...fromLangs], fromLang),
+          toLang: matchValue([GLOBAL_KEY, ...toLangs], toLang),
+          textStyle: matchValue([GLOBAL_KEY, ...OPT_STYLE_ALL], textStyle),
+          transOpen: matchValue([GLOBAL_KEY, "true", "false"], transOpen),
         })
       )
       .forEach((newRule) => {

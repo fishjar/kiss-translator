@@ -149,8 +149,8 @@ export const I18N = {
     en: `Multiple URLs can be separated by English commas ","`,
   },
   selector_helper: {
-    zh: `遵循CSS选择器规则，但不同浏览器，有些不同的写法。`,
-    en: `Follow the CSS selector rules, but different browsers have some different ways of writing.`,
+    zh: `1、遵循CSS选择器规则，但不同浏览器，支持写法不尽相同。2、留空表示采用全局设置。`,
+    en: `1. Follow CSS selector rules, but different browsers support different writing methods. 2. Leave blank to adopt the global setting.`,
   },
   translate_switch: {
     zh: `开启翻译`,

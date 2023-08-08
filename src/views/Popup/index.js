@@ -35,7 +35,7 @@ export default function Popup() {
 
   const handleTransToggle = async (e) => {
     try {
-      setRule({ ...rule, transOpen: e.target.checked });
+      setRule({ ...rule, transOpen: e.target.checked ? "true" : "false" });
 
       if (isExt) {
         await sendTabMsg(MSG_TRANS_TOGGLE);
@@ -83,7 +83,7 @@ export default function Popup() {
         setRule(args);
         break;
       default:
-        // console.log(`[popup] kissEvent action skip: ${action}`);
+      // console.log(`[popup] kissEvent action skip: ${action}`);
     }
   };
 
@@ -131,7 +131,12 @@ export default function Popup() {
     <Box minWidth={300} sx={{ p: 2 }}>
       <Stack spacing={2}>
         <FormControlLabel
-          control={<Switch checked={transOpen} onChange={handleTransToggle} />}
+          control={
+            <Switch
+              checked={transOpen === "true"}
+              onChange={handleTransToggle}
+            />
+          }
           label={i18n("translate")}
         />
 

@@ -10,6 +10,8 @@ export const STOKEY_SETTING = `${APP_NAME}_setting`;
 export const STOKEY_RULES = `${APP_NAME}_rules`;
 export const STOKEY_SYNC = `${APP_NAME}_sync`;
 
+export const GLOBAL_KEY = "*";
+
 export const CLIENT_WEB = "web";
 export const CLIENT_CHROME = "chrome";
 export const CLIENT_EDGE = "edge";
@@ -125,14 +127,26 @@ export const DEFAULT_FETCH_INTERVAL = 100; // 默认任务间隔时间
 export const PROMPT_PLACE_FROM = "{{from}}"; // 占位符
 export const PROMPT_PLACE_TO = "{{to}}"; // 占位符
 
-export const DEFAULT_RULE = {
+// 全局规则
+export const GLOBLA_RULE = {
   pattern: "*",
   selector: DEFAULT_SELECTOR,
   translator: OPT_TRANS_MICROSOFT,
   fromLang: "auto",
   toLang: "zh-CN",
   textStyle: OPT_STYLE_DASHLINE,
-  transOpen: false,
+  transOpen: "false",
+};
+
+// 默认规则
+export const DEFAULT_RULE = {
+  pattern: "",
+  selector: "",
+  translator: GLOBAL_KEY,
+  fromLang: GLOBAL_KEY,
+  toLang: GLOBAL_KEY,
+  textStyle: GLOBAL_KEY,
+  transOpen: GLOBAL_KEY,
 };
 
 export const DEFAULT_SETTING = {
@@ -152,9 +166,9 @@ export const DEFAULT_RULES = [
   ...RULES.map((item) => ({
     ...DEFAULT_RULE,
     ...item,
-    transOpen: true,
+    transOpen: "true",
   })),
-  DEFAULT_RULE,
+  GLOBLA_RULE,
 ];
 
 export const TRANS_MIN_LENGTH = 5; // 最短翻译长度

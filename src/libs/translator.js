@@ -40,7 +40,7 @@ export class Translator {
 
   constructor(rule) {
     this._rule = rule;
-    if (rule.transOpen) {
+    if (rule.transOpen === "true") {
       this._register();
     }
   }
@@ -54,11 +54,11 @@ export class Translator {
   };
 
   toggle = () => {
-    if (this._rule.transOpen) {
-      this._rule.transOpen = false;
+    if (this._rule.transOpen === "true") {
+      this._rule.transOpen = "false";
       this._unRegister();
     } else {
-      this._rule.transOpen = true;
+      this._rule.transOpen = "true";
       this._register();
     }
   };
