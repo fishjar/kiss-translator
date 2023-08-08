@@ -112,7 +112,7 @@ function RuleFields({ rule, rules, setShow }) {
           size="small"
           label={i18n("pattern")}
           error={!!errors.pattern}
-          helperText={errors.pattern ?? i18n("pattern_helper")}
+          helperText={errors.pattern || i18n("pattern_helper")}
           name="pattern"
           value={pattern}
           disabled={rule?.pattern === "*" || disabled}
@@ -123,7 +123,7 @@ function RuleFields({ rule, rules, setShow }) {
           size="small"
           label={i18n("selector")}
           error={!!errors.selector}
-          helperText={errors.selector ?? i18n("selector_helper")}
+          helperText={errors.selector || i18n("selector_helper")}
           name="selector"
           value={selector}
           disabled={disabled}
