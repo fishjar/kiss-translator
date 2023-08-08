@@ -79,11 +79,11 @@ function RuleFields({ rule, rules, setShow }) {
     if (!pattern.trim()) {
       errors.pattern = i18n("error_cant_be_blank");
     }
-    // if (!selector.trim()) {
-    //   errors.selector = i18n("error_cant_be_blank");
-    // }
     if (hasSamePattern(pattern)) {
       errors.pattern = i18n("error_duplicate_values");
+    }
+    if (pattern === "*" && !errors.pattern && !selector.trim()) {
+      errors.selector = i18n("error_cant_be_blank");
     }
     if (Object.keys(errors).length > 0) {
       setErrors(errors);
