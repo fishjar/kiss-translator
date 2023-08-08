@@ -30,14 +30,28 @@ export default function Draggable(props) {
       let x = origin.x + dx;
       let y = origin.y + dy;
       const { w, h } = props.windowSize;
-      x = limitNumber(x, 0, w - props.width);
-      y = limitNumber(y, 0, h - props.height);
+      x = limitNumber(x, -props.width / 2, w - props.width / 2);
+      y = limitNumber(y, -props.height / 2, h - props.height / 2);
       setPosition({ x, y });
     }
   };
 
   const handlePointerUp = (e) => {
     setOrigin(null);
+    if (props.name !== "fab") {
+      return;
+    }
+
+    const { w, h } = props.windowSize;
+    let { x: left, y: top } = position;
+    const right = w - left - props.width;
+    const bottom = h - top - props.height;
+    const min = Math.min(left, top, right, bottom);
+    left === min && (left = -props.width / 2);
+    top === min && (top = -props.height / 2);
+    right === min && (left = w - props.width / 2);
+    bottom === min && (top = h - props.height / 2);
+    setPosition({ x: left, y: top });
   };
 
   const handleClick = (e) => {
@@ -59,8 +73,8 @@ export default function Draggable(props) {
   useEffect(() => {
     const { w, h } = props.windowSize;
     setPosition(({ x, y }) => ({
-      x: limitNumber(x, 0, w - props.width),
-      y: limitNumber(y, 0, h - props.height),
+      x: limitNumber(x, -props.width / 2, w - props.width / 2),
+      y: limitNumber(y, -props.height / 2, h - props.height / 2),
     }));
   }, [props.windowSize, props.width, props.height]);
 
@@ -71,6 +85,10 @@ export default function Draggable(props) {
         left: position.x,
         top: position.y,
         zIndex: 2147483647,
+        display: props.show ? "block" : "none",
+        transitionProperty: origin ? "none" : "all",
+        transitionDuration: "1s",
+        transitionDelay: "1s",
       }}
       onClick={handleClick}
     >

@@ -1,7 +1,7 @@
 import Paper from "@mui/material/Paper";
 import Box from "@mui/material/Box";
 import Fab from "@mui/material/Fab";
-import TranslateIcon from '@mui/icons-material/Translate';
+import TranslateIcon from "@mui/icons-material/Translate";
 import ThemeProvider from "../../hooks/Theme";
 import Draggable from "./Draggable";
 import IconButton from "@mui/material/IconButton";
@@ -67,65 +67,66 @@ export default function Action() {
     windowSize,
     width: fabWidth,
     height: fabWidth,
-    left: window.innerWidth - fabWidth - fabWidth,
-    top: window.innerHeight - fabWidth - fabWidth,
+    left: window.innerWidth - fabWidth,
+    top: window.innerHeight - fabWidth,
   };
 
   return (
     <StoragesProvider>
       <ThemeProvider>
-        {showPopup ? (
-          <Draggable
-            key="pop"
-            {...popProps}
-            onStart={handleStart}
-            onMove={handleMove}
-            handler={
-              <Paper style={{ cursor: "move" }} elevation={3}>
-                <Stack
-                  direction="row"
-                  justifyContent="space-between"
-                  alignItems="center"
-                  spacing={2}
-                >
-                  <Box style={{ marginLeft: 16 }}>
-                    {process.env.REACT_APP_NAME}
-                  </Box>
-                  <IconButton
-                    onClick={() => {
-                      setShowPopup(false);
-                    }}
-                  >
-                    <CloseIcon />
-                  </IconButton>
-                </Stack>
-              </Paper>
-            }
-          >
-            <Paper>
-              <Popup />
-            </Paper>
-          </Draggable>
-        ) : (
-          <Draggable
-            key="fab"
-            {...fabProps}
-            onStart={handleStart}
-            onMove={handleMove}
-            handler={
-              <Fab
-                color="primary"
-                onClick={(e) => {
-                  if (!moved) {
-                    setShowPopup((pre) => !pre);
-                  }
-                }}
+        <Draggable
+          key="pop"
+          name="pop"
+          {...popProps}
+          show={showPopup}
+          onStart={handleStart}
+          onMove={handleMove}
+          handler={
+            <Paper style={{ cursor: "move" }} elevation={3}>
+              <Stack
+                direction="row"
+                justifyContent="space-between"
+                alignItems="center"
+                spacing={2}
               >
-                <TranslateIcon />
-              </Fab>
-            }
-          />
-        )}
+                <Box style={{ marginLeft: 16 }}>
+                  {process.env.REACT_APP_NAME}
+                </Box>
+                <IconButton
+                  onClick={() => {
+                    setShowPopup(false);
+                  }}
+                >
+                  <CloseIcon />
+                </IconButton>
+              </Stack>
+            </Paper>
+          }
+        >
+          <Paper>
+            <Popup />
+          </Paper>
+        </Draggable>
+        <Draggable
+          key="fab"
+          name="fab"
+          {...fabProps}
+          show={!showPopup}
+          onStart={handleStart}
+          onMove={handleMove}
+          handler={
+            <Fab
+              color="primary"
+              onClick={(e) => {
+                if (!moved) {
+                  setShowPopup((pre) => !pre);
+                }
+              }}
+            >
+              <TranslateIcon />
+            </Fab>
+          }
+        />
       </ThemeProvider>
     </StoragesProvider>
   );
