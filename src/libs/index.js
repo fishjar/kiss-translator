@@ -41,25 +41,28 @@ export const getRules = async () => (await storage.getObj(STOKEY_RULES)) || [];
  */
 export const matchRule = (rules, href) => {
   const rule = rules.find((rule) =>
-    rule.pattern
-      .split(",")
-      .some((p) => p.trim() === "*" || href.includes(p.trim()))
+    rule.pattern.split(",").some((p) => href.includes(p.trim()))
   );
+  const globalRule =
+    rules.find((rule) =>
+      rule.pattern.split(",").some((p) => p.trim() === "*")
+    ) || GLOBLA_RULE;
 
   if (!rule) {
-    return GLOBLA_RULE;
+    return globalRule;
   }
 
-  if (!rule?.selector?.trim()) {
-    rule.selector = GLOBLA_RULE.selector;
-  }
+  rule.selector =
+    rule?.selector?.trim() ||
+    globalRule?.selector?.trim() ||
+    GLOBLA_RULE.selector;
 
-  rule.bgColor = rule?.bgColor?.trim() || GLOBLA_RULE?.bgColor?.trim();
+  rule.bgColor = rule?.bgColor?.trim() || globalRule?.bgColor?.trim();
 
   ["translator", "fromLang", "toLang", "textStyle", "transOpen"].forEach(
     (key) => {
       if (rule[key] === GLOBAL_KEY) {
-        rule[key] = GLOBLA_RULE[key];
+        rule[key] = globalRule[key];
       }
     }
   );
