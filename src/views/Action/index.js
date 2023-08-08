@@ -68,7 +68,7 @@ export default function Action() {
     width: fabWidth,
     height: fabWidth,
     left: window.innerWidth - fabWidth - fabWidth / 2,
-    top: window.innerHeight - fabWidth - fabWidth / 2,
+    top: window.innerHeight - fabWidth - fabWidth,
   };
 
   return (
