@@ -76,7 +76,6 @@ export default function Action() {
       <ThemeProvider>
         <Draggable
           key="pop"
-          name="pop"
           {...popProps}
           show={showPopup}
           onStart={handleStart}
@@ -109,7 +108,7 @@ export default function Action() {
         </Draggable>
         <Draggable
           key="fab"
-          name="fab"
+          goside
           {...fabProps}
           show={!showPopup}
           onStart={handleStart}

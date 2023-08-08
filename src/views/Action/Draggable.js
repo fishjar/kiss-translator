@@ -38,7 +38,8 @@ export default function Draggable(props) {
 
   const handlePointerUp = (e) => {
     setOrigin(null);
-    if (props.name !== "fab") {
+
+    if (!props.goside) {
       return;
     }
 
@@ -88,7 +89,7 @@ export default function Draggable(props) {
         display: props.show ? "block" : "none",
         transitionProperty: origin ? "none" : "all",
         transitionDuration: "1s",
-        transitionDelay: "1s",
+        transitionDelay: "0.5s",
       }}
       onClick={handleClick}
     >
