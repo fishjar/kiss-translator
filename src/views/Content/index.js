@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import LoadingIcon from "./LoadingIcon";
 import {
   OPT_STYLE_LINE,
@@ -8,12 +8,16 @@ import {
   OPT_STYLE_FUZZY,
   OPT_STYLE_HIGHTLIGHT,
   DEFAULT_COLOR,
+  EVENT_KISS,
+  MSG_TRANS_CURRULE,
 } from "../../config";
 import { useTranslate } from "../../hooks/Translate";
 
-export default function Content({ q, rule }) {
+export default function Content({ q, translator }) {
+  const [rule, setRule] = useState(translator.rule);
   const [hover, setHover] = useState(false);
-  const { text, sameLang, loading, textStyle, bgColor } = useTranslate(q, rule);
+  const { text, sameLang, loading } = useTranslate(q, rule);
+  const { textStyle, bgColor } = rule;
 
   const handleMouseEnter = () => {
     setHover(true);
@@ -22,6 +26,24 @@ export default function Content({ q, rule }) {
   const handleMouseLeave = () => {
     setHover(false);
   };
+
+  const handleKissEvent = (e) => {
+    const { action, args } = e.detail;
+    switch (action) {
+      case MSG_TRANS_CURRULE:
+        setRule(args);
+        break;
+      default:
+      // console.log(`[popup] kissEvent action skip: ${action}`);
+    }
+  };
+
+  useEffect(() => {
+    window.addEventListener(EVENT_KISS, handleKissEvent);
+    return () => {
+      window.removeEventListener(EVENT_KISS, handleKissEvent);
+    };
+  }, []);
 
   const style = useMemo(() => {
     const lineColor = bgColor || "";

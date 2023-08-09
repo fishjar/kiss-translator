@@ -1,5 +1,11 @@
 import { createRoot } from "react-dom/client";
-import { APP_LCNAME, TRANS_MIN_LENGTH, TRANS_MAX_LENGTH } from "../config";
+import {
+  APP_LCNAME,
+  TRANS_MIN_LENGTH,
+  TRANS_MAX_LENGTH,
+  EVENT_KISS,
+  MSG_TRANS_CURRULE,
+} from "../config";
 import { StoragesProvider } from "../hooks/Storage";
 import { queryEls } from ".";
 import Content from "../views/Content";
@@ -28,7 +34,7 @@ export class Translator {
     mutations.forEach((mutation) => {
       mutation.addedNodes.forEach((node) => {
         try {
-          queryEls(this._rule.selector, node).forEach((el) => {
+          queryEls(this.rule.selector, node).forEach((el) => {
             this._interseObserver.observe(el);
           });
         } catch (err) {
@@ -39,26 +45,42 @@ export class Translator {
   });
 
   constructor(rule) {
-    this._rule = rule;
+    this.rule = rule;
     if (rule.transOpen === "true") {
       this._register();
     }
   }
 
   get rule() {
+    // console.log("get rule", this._rule);
     return this._rule;
   }
 
+  set rule(rule) {
+    // console.log("set rule", rule);
+    this._rule = rule;
+
+    // 广播消息
+    window.dispatchEvent(
+      new CustomEvent(EVENT_KISS, {
+        detail: {
+          action: MSG_TRANS_CURRULE,
+          args: rule,
+        },
+      })
+    );
+  }
+
   updateRule = (obj) => {
-    this._rule = { ...this._rule, ...obj };
+    this.rule = { ...this.rule, ...obj };
   };
 
   toggle = () => {
-    if (this._rule.transOpen === "true") {
-      this._rule = { ...this._rule, transOpen: "false" };
+    if (this.rule.transOpen === "true") {
+      this.rule = { ...this.rule, transOpen: "false" };
       this._unRegister();
     } else {
-      this._rule = { ...this._rule, transOpen: "true" };
+      this.rule = { ...this.rule, transOpen: "true" };
       this._register();
     }
   };
@@ -71,7 +93,7 @@ export class Translator {
     });
 
     // 监听节点显示
-    queryEls(this._rule.selector).forEach((el) => {
+    queryEls(this.rule.selector).forEach((el) => {
       this._interseObserver.observe(el);
     });
   };
@@ -81,7 +103,7 @@ export class Translator {
     this._mutaObserver.disconnect();
 
     // 解除节点显示监听
-    queryEls(this._rule.selector).forEach((el) =>
+    queryEls(this.rule.selector).forEach((el) =>
       this._interseObserver.unobserve(el)
     );
 
@@ -90,14 +112,19 @@ export class Translator {
   };
 
   _render = (el) => {
+    // 含子元素
+    if (el.querySelector(this.rule.selector)) {
+      return;
+    }
+
+    // 已翻译
     if (el.querySelector(APP_LCNAME)) {
       return;
     }
 
-    // 除openai外，保留code和a标签
+    // 太长或太短
     const q = el.innerText.trim();
     if (!q || q.length < TRANS_MIN_LENGTH || q.length > TRANS_MAX_LENGTH) {
-      // 太长或太短不翻译
       return;
     }
 
@@ -109,7 +136,7 @@ export class Translator {
     const root = createRoot(span);
     root.render(
       <StoragesProvider>
-        <Content q={q} rule={this._rule} />
+        <Content q={q} translator={this} />
       </StoragesProvider>
     );
   };
