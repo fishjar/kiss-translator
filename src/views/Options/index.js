@@ -23,7 +23,6 @@ export default function Options() {
     (async () => {
       let i = 0;
       for (;;) {
-        await sleep(1000);
         if (window.GM) {
           setReady(true);
           break;
@@ -33,6 +32,8 @@ export default function Options() {
           setError(true);
           break;
         }
+
+        await sleep(1000);
       }
     })();
   }, []);
