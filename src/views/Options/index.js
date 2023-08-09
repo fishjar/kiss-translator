@@ -6,8 +6,59 @@ import Layout from "./Layout";
 import SyncSetting from "./SyncSetting";
 import { StoragesProvider } from "../../hooks/Storage";
 import ThemeProvider from "../../hooks/Theme";
+import { useEffect, useState } from "react";
+import { isGm } from "../../libs/browser";
+import { sleep } from "../../libs/utils";
 
 export default function Options() {
+  const [error, setError] = useState(false);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    if (!isGm) {
+      return;
+    }
+
+    (async () => {
+      let i = 0;
+      for (;;) {
+        await sleep(1000);
+        if (window.GM) {
+          setReady(true);
+          break;
+        }
+
+        if (++i > 8) {
+          setError(true);
+          break;
+        }
+      }
+    })();
+  }, []);
+
+  if (error) {
+    return (
+      <center>
+        <h2>
+          Please confirm whether to install or enable{" "}
+          <a href={process.env.REACT_APP_OPTIONSPAGE}>KISS Translator</a>{" "}
+          GreaseMonkey script?
+        </h2>
+        <h2>
+          or <a href={process.env.REACT_APP_HOMEPAGE}>click here</a> for help
+        </h2>
+      </center>
+    );
+  }
+
+  if (isGm && !ready) {
+    return (
+      <center>
+        <h2>loading...</h2>
+      </center>
+    );
+  }
+
   return (
     <StoragesProvider>
       <ThemeProvider>

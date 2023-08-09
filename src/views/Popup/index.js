@@ -21,7 +21,7 @@ import {
 
 export default function Popup({ setShowPopup, translator: tran }) {
   const i18n = useI18n();
-  const [rule, setRule] = useState(tran.rule);
+  const [rule, setRule] = useState(tran?.rule);
 
   const handleOpenSetting = () => {
     if (isExt) {

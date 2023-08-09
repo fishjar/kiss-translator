@@ -27,3 +27,11 @@ export const matchValue = (arr, val) => {
   }
   return arr[0];
 };
+
+/**
+ * 等待
+ * @param {*} delay
+ * @returns
+ */
+export const sleep = (delay) =>
+  new Promise((resolve) => setTimeout(resolve, delay));

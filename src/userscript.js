@@ -1,6 +1,5 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import Options from "./views/Options";
 import Action from "./views/Action";
 import createCache from "@emotion/cache";
 import { CacheProvider } from "@emotion/react";
@@ -20,12 +19,11 @@ import { Translator } from "./libs/translator";
     document.location.href.includes(process.env.REACT_APP_OPTIONSPAGE) ||
     document.location.href.includes(process.env.REACT_APP_OPTIONSPAGE2)
   ) {
-    const root = ReactDOM.createRoot(document.getElementById("root"));
-    root.render(
-      <React.StrictMode>
-        <Options />
-      </React.StrictMode>
-    );
+    window.unsafeWindow.GM = window.GM;
+    window.unsafeWindow.GM_xmlhttpRequest = window.GM_xmlhttpRequest;
+    window.unsafeWindow.GM_setValue = window.GM_setValue;
+    window.unsafeWindow.GM_getValue = window.GM_getValue;
+    window.unsafeWindow.GM_deleteValue = window.GM_deleteValue;
     return;
   }
 

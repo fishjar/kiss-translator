@@ -109,7 +109,7 @@ const userscriptWebpack = (config, env) => {
   };
 
   config.output.filename = "[name].js";
-  config.output.publicPath = "./";
+  config.output.publicPath = env === "production" ? "./" : "/";
   config.optimization.splitChunks = { cacheGroups: { default: false } };
   config.optimization.runtimeChunk = false;
   config.optimization.minimize = false;
