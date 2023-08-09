@@ -55,10 +55,10 @@ export class Translator {
 
   toggle = () => {
     if (this._rule.transOpen === "true") {
-      this._rule.transOpen = "false";
+      this._rule = { ...this._rule, transOpen: "false" };
       this._unRegister();
     } else {
-      this._rule.transOpen = "true";
+      this._rule = { ...this._rule, transOpen: "true" };
       this._register();
     }
   };
