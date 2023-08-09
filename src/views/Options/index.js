@@ -23,7 +23,7 @@ export default function Options() {
       let i = 0;
       for (;;) {
         await sleep(1000);
-        if (window.GM) {
+        if (window.APP_NAME === process.env.REACT_APP_NAME) {
           setReady(true);
           break;
         }

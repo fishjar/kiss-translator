@@ -15,7 +15,7 @@ import { Translator } from "./libs/translator";
 (async () => {
   // 设置页面
   if (
-    document.location.href.includes("http://localhost:3000/options.html") ||
+    document.location.href.includes(process.env.REACT_APP_OPTIONSPAGE_DEV) ||
     document.location.href.includes(process.env.REACT_APP_OPTIONSPAGE) ||
     document.location.href.includes(process.env.REACT_APP_OPTIONSPAGE2)
   ) {
@@ -24,6 +24,7 @@ import { Translator } from "./libs/translator";
     window.unsafeWindow.GM_setValue = window.GM_setValue;
     window.unsafeWindow.GM_getValue = window.GM_getValue;
     window.unsafeWindow.GM_deleteValue = window.GM_deleteValue;
+    window.unsafeWindow.APP_NAME = process.env.REACT_APP_NAME;
     return;
   }
 
