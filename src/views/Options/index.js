@@ -9,6 +9,7 @@ import ThemeProvider from "../../hooks/Theme";
 import { useEffect, useState } from "react";
 import { isGm } from "../../libs/browser";
 import { sleep } from "../../libs/utils";
+import CircularProgress from "@mui/material/CircularProgress";
 
 export default function Options() {
   const [error, setError] = useState(false);
@@ -41,11 +42,13 @@ export default function Options() {
       <center>
         <h2>
           Please confirm whether to install or enable{" "}
-          <a href={process.env.REACT_APP_OPTIONSPAGE}>KISS Translator</a>{" "}
+          <a href={process.env.REACT_APP_HOMEPAGE}>KISS Translator</a>{" "}
           GreaseMonkey script?
         </h2>
         <h2>
-          or <a href={process.env.REACT_APP_HOMEPAGE}>click here</a> for help
+          <a href={process.env.REACT_APP_USERSCRIPT_DOWNLOADURL}>Click here</a>{" "}
+          to install, or <a href={process.env.REACT_APP_HOMEPAGE}>click here</a>{" "}
+          for help.
         </h2>
       </center>
     );
@@ -54,7 +57,7 @@ export default function Options() {
   if (isGm && !ready) {
     return (
       <center>
-        <h2>loading...</h2>
+        <CircularProgress />
       </center>
     );
   }
