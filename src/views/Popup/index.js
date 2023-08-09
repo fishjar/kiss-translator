@@ -17,13 +17,11 @@ import {
   OPT_LANGS_FROM,
   OPT_LANGS_TO,
   OPT_STYLE_ALL,
-  EVENT_KISS,
-  MSG_TRANS_CURRULE,
 } from "../../config";
 
-export default function Popup({ setShowPopup }) {
+export default function Popup({ setShowPopup, translator: tran }) {
   const i18n = useI18n();
-  const [rule, setRule] = useState(null);
+  const [rule, setRule] = useState(tran.rule);
 
   const handleOpenSetting = () => {
     if (isExt) {
@@ -41,13 +39,7 @@ export default function Popup({ setShowPopup }) {
       if (isExt) {
         await sendTabMsg(MSG_TRANS_TOGGLE);
       } else {
-        window.dispatchEvent(
-          new CustomEvent(EVENT_KISS, {
-            detail: {
-              action: MSG_TRANS_TOGGLE,
-            },
-          })
-        );
+        tran.toggle();
       }
     } catch (err) {
       console.log("[toggle trans]", err);
@@ -62,46 +54,17 @@ export default function Popup({ setShowPopup }) {
       if (isExt) {
         await sendTabMsg(MSG_TRANS_PUTRULE, { [name]: value });
       } else {
-        window.dispatchEvent(
-          new CustomEvent(EVENT_KISS, {
-            detail: {
-              action: MSG_TRANS_PUTRULE,
-              args: { [name]: value },
-            },
-          })
-        );
+        tran.updateRule({ [name]: value });
       }
     } catch (err) {
       console.log("[update rule]", err);
     }
   };
 
-  const handleKissEvent = (e) => {
-    const action = e?.detail?.action;
-    const args = e?.detail?.args || {};
-    switch (action) {
-      case MSG_TRANS_CURRULE:
-        setRule(args);
-        break;
-      default:
-      // console.log(`[popup] kissEvent action skip: ${action}`);
-    }
-  };
-
   useEffect(() => {
     if (!isExt) {
-      window.addEventListener(EVENT_KISS, handleKissEvent);
-      window.dispatchEvent(
-        new CustomEvent(EVENT_KISS, {
-          detail: { action: MSG_TRANS_GETRULE },
-        })
-      );
-
-      return () => {
-        window.removeEventListener(EVENT_KISS, handleKissEvent);
-      };
+      return;
     }
-
     (async () => {
       try {
         const res = await sendTabMsg(MSG_TRANS_GETRULE);

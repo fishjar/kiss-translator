@@ -5,44 +5,10 @@ import Action from "./views/Action";
 import createCache from "@emotion/cache";
 import { CacheProvider } from "@emotion/react";
 
-import {
-  MSG_TRANS_TOGGLE,
-  MSG_TRANS_GETRULE,
-  MSG_TRANS_PUTRULE,
-  MSG_TRANS_CURRULE,
-  EVENT_KISS,
-} from "./config";
 import { getRules, matchRule } from "./libs";
 import { getSetting } from "./libs";
 import { transPool } from "./libs/pool";
 import { Translator } from "./libs/translator";
-
-/**
- * 自定义元素
- */
-// class ActionElement extends HTMLElement {
-//   connectedCallback() {
-//     const shadowContainer = this.attachShadow({ mode: "open" });
-//     const emotionRoot = document.createElement("style");
-//     const shadowRootElement = document.createElement("div");
-//     shadowContainer.appendChild(emotionRoot);
-//     shadowContainer.appendChild(shadowRootElement);
-
-//     const cache = createCache({
-//       key: "css",
-//       prepend: true,
-//       container: emotionRoot,
-//     });
-
-//     ReactDOM.createRoot(shadowRootElement).render(
-//       <React.StrictMode>
-//         <CacheProvider value={cache}>
-//           <Action />
-//         </CacheProvider>
-//       </React.StrictMode>
-//     );
-//   }
-// }
 
 /**
  * 入口函数
@@ -63,18 +29,19 @@ import { Translator } from "./libs/translator";
     return;
   }
 
-  // iframe
+  // skip iframe
   if (window.self !== window.top) {
     return;
   }
 
-  // 插入按钮
-  // const actionName = "kiss-action";
-  // customElements.define(actionName, ActionElement);
-  // const $action = document.createElement(actionName);
-  // document.body.parentElement.appendChild($action);
+  // 翻译页面
+  const { fetchInterval, fetchLimit } = await getSetting();
+  transPool.update(fetchInterval, fetchLimit);
+  const rules = await getRules();
+  const rule = matchRule(rules, document.location.href);
+  const translator = new Translator(rule);
 
-  // 插入按钮，兼容性更好
+  // 浮球按钮
   const $action = document.createElement("div");
   $action.setAttribute("id", "kiss-translator");
   document.body.parentElement.appendChild($action);
@@ -91,41 +58,8 @@ import { Translator } from "./libs/translator";
   ReactDOM.createRoot(shadowRootElement).render(
     <React.StrictMode>
       <CacheProvider value={cache}>
-        <Action />
+        <Action translator={translator} />
       </CacheProvider>
     </React.StrictMode>
   );
-
-  // 翻译页面
-  const { fetchInterval, fetchLimit } = await getSetting();
-  transPool.update(fetchInterval, fetchLimit);
-  const rules = await getRules();
-  const rule = matchRule(rules, document.location.href);
-  const translator = new Translator(rule);
-
-  // 监听消息
-  window.addEventListener(EVENT_KISS, (e) => {
-    const action = e?.detail?.action;
-    const args = e?.detail?.args || {};
-    switch (action) {
-      case MSG_TRANS_TOGGLE:
-        translator.toggle();
-        break;
-      case MSG_TRANS_GETRULE:
-        window.dispatchEvent(
-          new CustomEvent(EVENT_KISS, {
-            detail: {
-              action: MSG_TRANS_CURRULE,
-              args: translator.rule,
-            },
-          })
-        );
-        break;
-      case MSG_TRANS_PUTRULE:
-        translator.updateRule(args);
-        break;
-      default:
-      // console.log(`[entry] kissEvent action skip: ${action}`);
-    }
-  });
 })();

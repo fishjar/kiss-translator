@@ -11,7 +11,7 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import { StoragesProvider } from "../../hooks/Storage";
 import Popup from "../Popup";
 
-export default function Action() {
+export default function Action({ translator }) {
   const fabWidth = 56;
   const [showPopup, setShowPopup] = useState(false);
   const [windowSize, setWindowSize] = useState({
@@ -103,7 +103,7 @@ export default function Action() {
           }
         >
           <Paper>
-            <Popup setShowPopup={setShowPopup} />
+            <Popup setShowPopup={setShowPopup} translator={translator} />
           </Paper>
         </Draggable>
         <Draggable
