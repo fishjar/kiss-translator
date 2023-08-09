@@ -67,8 +67,8 @@ export default function Action({ translator }) {
     windowSize,
     width: fabWidth,
     height: fabWidth,
-    left: window.innerWidth - fabWidth - fabWidth / 2,
-    top: window.innerHeight - fabWidth - fabWidth,
+    left: window.innerWidth - fabWidth,
+    top: window.innerHeight / 2,
   };
 
   return (
