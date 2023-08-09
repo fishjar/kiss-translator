@@ -142,7 +142,7 @@ const userscriptWebpack = (config, env) => {
   return config;
 };
 
-// 文档
+// 开发
 const webWebpack = (config, env) => {
   const names = ["HtmlWebpackPlugin"];
 
