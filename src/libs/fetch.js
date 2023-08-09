@@ -72,7 +72,11 @@ const newCacheReq = async (request, translator) => {
  * @param {*} opts
  * @returns
  */
-export const fetchData = async (input, init, { useCache, translator } = {}) => {
+export const fetchData = async (
+  input,
+  init,
+  { useCache, translator, useUnsafe } = {}
+) => {
   const cacheReq = await newCacheReq(new Request(input, init), translator);
   const cache = await caches.open(CACHE_NAME);
   let res;
@@ -89,7 +93,11 @@ export const fetchData = async (input, init, { useCache, translator } = {}) => {
   // 发送请求
   if (!res) {
     if (isGm) {
-      res = await fetchGM(input, init);
+      if (useUnsafe) {
+        res = await window.unsafeWindow.fetch(input, init);
+      } else {
+        res = await fetchGM(input, init);
+      }
     } else {
       res = await fetch(input, init);
     }

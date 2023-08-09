@@ -20,14 +20,18 @@ import { getSetting, detectLang } from "../libs";
  * @returns
  */
 export const apiSyncData = async (url, key, data) =>
-  fetchPolyfill(url, {
-    headers: {
-      "Content-type": "application/json",
-      [KV_HEADER_KEY]: key,
+  fetchPolyfill(
+    url,
+    {
+      headers: {
+        "Content-type": "application/json",
+        [KV_HEADER_KEY]: key,
+      },
+      method: "POST",
+      body: JSON.stringify(data),
     },
-    method: "POST",
-    body: JSON.stringify(data),
-  });
+    { useUnsafe: true }
+  );
 
 /**
  * 谷歌翻译
