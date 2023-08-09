@@ -92,15 +92,21 @@ export const fetchData = async (
 
   // 发送请求
   if (!res) {
-    if (isGm) {
-      if (useUnsafe) {
-        res = await window.unsafeWindow.fetch(input, init);
-      } else {
-        res = await fetchGM(input, init);
-      }
+    if (isGm && !useUnsafe) {
+      res = await fetchGM(input, init);
     } else {
       res = await fetch(input, init);
     }
+    // if (isGm) {
+    //   if (useUnsafe) {
+    //     // res = await window.unsafeWindow.fetch(input, init);
+    //     res = await fetch(input, init);
+    //   } else {
+    //     res = await fetchGM(input, init);
+    //   }
+    // } else {
+    //   res = await fetch(input, init);
+    // }
   }
 
   if (!res?.ok) {

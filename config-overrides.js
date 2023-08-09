@@ -28,7 +28,7 @@ const extWebpack = (config, env) => {
   ];
 
   config.entry = {
-    popup: paths.appIndexJs,
+    popup: paths.appSrc + "/popup.js",
     options: paths.appSrc + "/options.js",
     background: paths.appSrc + "/background.js",
     content: paths.appSrc + "/content.js",
@@ -49,13 +49,6 @@ const extWebpack = (config, env) => {
       chunks: ["options"],
       template: paths.appHtml,
       filename: "options.html",
-      minify,
-    }),
-    new HtmlWebpackPlugin({
-      inject: true,
-      chunks: ["content"],
-      template: paths.appPublic + "/content.html",
-      filename: "content.html",
       minify,
     }),
     new HtmlWebpackPlugin({
@@ -107,40 +100,19 @@ const userscriptWebpack = (config, env) => {
 
 `;
 
-  config.entry = paths.appSrc + "/userscript.js";
-  config.output.filename = "kiss-translator.user.js";
-  config.optimization.splitChunks = { cacheGroups: { default: false } };
-  config.optimization.runtimeChunk = false;
-  config.optimization.minimize = false;
-
-  config.plugins.push(
-    new webpack.BannerPlugin({
-      banner,
-      raw: true,
-      entryOnly: true,
-    })
-  );
-
-  return config;
-};
-
-// 文档
-const webWebpack = (config, env) => {
   const names = ["HtmlWebpackPlugin"];
 
   config.entry = {
-    main: paths.appSrc + "/userscriptIndex.js",
-    options:
-      paths.appSrc +
-      (env === "development" ? "/options.js" : "/userscriptOptions.js"),
+    main: paths.appIndexJs,
+    options: paths.appSrc + "/options.js",
+    "kiss-translator.user": paths.appSrc + "/userscript.js",
   };
 
-  if (env === "development") {
-    config.entry.content = paths.appSrc + "/userscript.js";
-  }
-
   config.output.filename = "[name].js";
-  config.output.publicPath = env === "development" ? "/" : "./";
+  config.output.publicPath = "./";
+  config.optimization.splitChunks = { cacheGroups: { default: false } };
+  config.optimization.runtimeChunk = false;
+  config.optimization.minimize = false;
 
   config.plugins = config.plugins.filter(
     (plugin) => !names.includes(plugin.constructor.name)
@@ -158,19 +130,55 @@ const webWebpack = (config, env) => {
       chunks: ["options"],
       template: paths.appHtml,
       filename: "options.html",
+    }),
+    new webpack.BannerPlugin({
+      banner,
+      raw: true,
+      entryOnly: true,
+      include: "kiss-translator.user",
     })
   );
 
-  if (env === "development") {
-    config.plugins.push(
-      new HtmlWebpackPlugin({
-        inject: true,
-        chunks: ["content"],
-        template: paths.appPublic + "/content.html",
-        filename: "content.html",
-      })
-    );
-  }
+  return config;
+};
+
+// 文档
+const webWebpack = (config, env) => {
+  const names = ["HtmlWebpackPlugin"];
+
+  config.entry = {
+    main: paths.appIndexJs,
+    options: paths.appSrc + "/options.js",
+    content: paths.appSrc + "/userscript.js",
+  };
+
+  config.output.filename = "[name].js";
+  config.output.publicPath = "/";
+
+  config.plugins = config.plugins.filter(
+    (plugin) => !names.includes(plugin.constructor.name)
+  );
+
+  config.plugins.push(
+    new HtmlWebpackPlugin({
+      inject: true,
+      chunks: ["main"],
+      template: paths.appHtml,
+      filename: "index.html",
+    }),
+    new HtmlWebpackPlugin({
+      inject: true,
+      chunks: ["options"],
+      template: paths.appHtml,
+      filename: "options.html",
+    }),
+    new HtmlWebpackPlugin({
+      inject: true,
+      chunks: ["content"],
+      template: paths.appPublic + "/content.html",
+      filename: "content.html",
+    })
+  );
 
   return config;
 };
