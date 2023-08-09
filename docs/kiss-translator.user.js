@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name          KISS Translator
 // @namespace     https://github.com/fishjar/kiss-translator
-// @version       1.3.8
+// @version       1.3.9
 // @description   A minimalist bilingual translation extension.
 // @author        Gabe<yugang2002@gmail.com>
 // @homepageURL   https://github.com/fishjar/kiss-translator
