@@ -6,19 +6,16 @@ import {
 } from "./config";
 import { getRules, matchRule } from "./libs";
 import { getSetting } from "./libs";
-import { fetchUpdate } from "./libs/fetch";
 import { Translator } from "./libs/translator";
 
 /**
  * 入口函数
  */
 (async () => {
-  const { fetchInterval, fetchLimit } = await getSetting();
-  fetchUpdate(fetchInterval, fetchLimit);
-
+  const setting = await getSetting();
   const rules = await getRules();
   const rule = matchRule(rules, document.location.href);
-  const translator = new Translator(rule);
+  const translator = new Translator(rule, setting);
 
   // 监听消息
   browser?.runtime.onMessage.addListener(async ({ action, args }) => {

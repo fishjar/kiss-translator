@@ -3,7 +3,6 @@ import ReactDOM from "react-dom/client";
 import Action from "./views/Action";
 import createCache from "@emotion/cache";
 import { CacheProvider } from "@emotion/react";
-import { fetchUpdate } from "./libs/fetch";
 import { getRules, matchRule } from "./libs";
 import { getSetting } from "./libs";
 import { Translator } from "./libs/translator";
@@ -33,11 +32,10 @@ import { Translator } from "./libs/translator";
   }
 
   // 翻译页面
-  const { fetchInterval, fetchLimit } = await getSetting();
-  fetchUpdate(fetchInterval, fetchLimit);
+  const setting = await getSetting();
   const rules = await getRules();
   const rule = matchRule(rules, document.location.href);
-  const translator = new Translator(rule);
+  const translator = new Translator(rule, setting);
 
   // 浮球按钮
   const $action = document.createElement("div");

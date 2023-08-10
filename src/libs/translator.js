@@ -9,6 +9,7 @@ import {
 import { StoragesProvider } from "../hooks/Storage";
 import { queryEls } from ".";
 import Content from "../views/Content";
+import { fetchUpdate } from "./fetch";
 
 /**
  * 翻译类
@@ -44,7 +45,8 @@ export class Translator {
     });
   });
 
-  constructor(rule) {
+  constructor(rule, { fetchInterval, fetchLimit }) {
+    fetchUpdate(fetchInterval, fetchLimit);
     this.rule = rule;
     if (rule.transOpen === "true") {
       this._register();
