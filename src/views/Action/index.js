@@ -89,7 +89,7 @@ export default function Action({ translator }) {
                 spacing={2}
               >
                 <Box style={{ marginLeft: 16 }}>
-                  {process.env.REACT_APP_NAME}
+                  {`${process.env.REACT_APP_NAME} v${process.env.REACT_APP_VERSION}`}
                 </Box>
                 <IconButton
                   onClick={() => {

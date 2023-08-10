@@ -35,7 +35,9 @@ function Header(props) {
             <MenuIcon />
           </IconButton>
         </Box>
-        <Box sx={{ flexGrow: 1 }}>{i18n("app_name")}</Box>
+        <Box sx={{ flexGrow: 1 }}>{`${i18n("app_name")} v${
+          process.env.REACT_APP_VERSION
+        }`}</Box>
         <IconButton onClick={switchColorMode} color="inherit">
           {darkMode ? <LightModeIcon /> : <DarkModeIcon />}
         </IconButton>
