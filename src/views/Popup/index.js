@@ -171,9 +171,9 @@ export default function Popup({ setShowPopup, translator: tran }) {
         <TextField
           size="small"
           name="bgColor"
-          defaultValue={bgColor}
+          value={bgColor}
           label={i18n("bg_color")}
-          onBlur={handleChange}
+          onChange={handleChange}
         />
 
         <Button variant="text" onClick={handleOpenSetting}>
