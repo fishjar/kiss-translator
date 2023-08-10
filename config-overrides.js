@@ -72,12 +72,13 @@ const extWebpack = (config, env) => {
 // 油猴
 const userscriptWebpack = (config, env) => {
   const banner = `// ==UserScript==
-// @name          ${process.env.REACT_APP_NAME}
+// @name          ${process.env.REACT_APP_NAME} (${process.env.REACT_APP_NAME_CN})
 // @namespace     ${process.env.REACT_APP_HOMEPAGE}
 // @version       ${process.env.REACT_APP_VERSION}
-// @description   A minimalist bilingual translation extension.
+// @description   A minimalist bilingual translation Extension & Greasemonkey Script (一个简约的双语网页翻译扩展 & 油猴脚本)
 // @author        Gabe<yugang2002@gmail.com>
 // @homepageURL   ${process.env.REACT_APP_HOMEPAGE}
+// @license       GPL-3.0
 // @match         *://*/*
 // @icon          ${process.env.REACT_APP_LOGOURL}
 // @downloadURL   ${process.env.REACT_APP_USERSCRIPT_DOWNLOADURL}
