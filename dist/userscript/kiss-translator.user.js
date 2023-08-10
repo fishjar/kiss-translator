@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name          KISS Translator (简约翻译)
+// @name          KISS Translator
 // @namespace     https://github.com/fishjar/kiss-translator
 // @version       1.4.1
 // @description   A minimalist bilingual translation Extension & Greasemonkey Script (一个简约的双语网页翻译扩展 & 油猴脚本)
