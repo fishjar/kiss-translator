@@ -4,6 +4,62 @@ export const DEFAULT_SELECTOR = `:is(${els})`;
 
 export const RULES = [
   {
+    pattern: `bearblog.dev, www.theverge.com, www.tampermonkey.net/documentation.php`,
+    selector: DEFAULT_SELECTOR,
+  },
+  {
+    pattern: `https://time.com/`,
+    selector: `h1, h3, .summary, .video-title, #article-body ${DEFAULT_SELECTOR}, .image-wrap-container .credit.body-caption, .media-heading`,
+  },
+  {
+    pattern: `www.dw.com`,
+    selector: `.ts-teaser-title a, .news-title a, .title a, .teaser-description a, .hbudab h3, .hbudab p, figcaption ,article ${DEFAULT_SELECTOR}`,
+  },
+  {
+    pattern: `www.bbc.com`,
+    selector: `.media__link, .media__summary, article ${DEFAULT_SELECTOR}, .ssrcss-y7krbn-Stack, .ssrcss-1mrs5ns-PromoLink, .ssrcss-18cjaf3-Headline, .gs-c-promo-heading__title, .gs-c-promo-summary`,
+  },
+  {
+    pattern: `www.chinadaily.com.cn`,
+    selector: `h1, .tMain [shape="rect"], .cMain [shape="rect"], .photo_art [shape="rect"], .mai_r [shape="rect"], .lisBox li, #Content ${DEFAULT_SELECTOR}`,
+  },
+  {
+    pattern: `www.facebook.com`,
+    selector: `[role="main"] [dir="auto"]`,
+  },
+  {
+    pattern: `www.reddit.com`,
+    selector: `[slot="title"], [slot="text-body"] ${DEFAULT_SELECTOR}, #-post-rtjson-content p`,
+  },
+  {
+    pattern: `www.quora.com`,
+    selector: `.qu-wordBreak--break-word`,
+  },
+  {
+    pattern: `edition.cnn.com`,
+    selector: `.container__title, .container__headline, .headline__text, .image__caption, [data-type="Title"], .article__content ${DEFAULT_SELECTOR}`,
+  },
+  {
+    pattern: `www.reuters.com`,
+    selector: `#main-content [data-testid="Heading"], #main-content [data-testid="Body"], .article-body__content__17Yit ${DEFAULT_SELECTOR}`,
+  },
+  {
+    pattern: `www.bloomberg.com`,
+    selector: `[data-component="headline"], [data-component="related-item-headline"], [data-component="title"], article ${DEFAULT_SELECTOR}`,
+  },
+  {
+    pattern: `deno.land`,
+    selector: `main ${DEFAULT_SELECTOR}`,
+  },
+  {
+    pattern: `doc.rust-lang.org`,
+    selector: `#content ${DEFAULT_SELECTOR}`,
+  },
+  {
+    pattern: `www.indiehackers.com`,
+    selector: `h1, h3, .content ${DEFAULT_SELECTOR}, .feed-item__title-link`,
+  },
+  {
     pattern: `platform.openai.com/docs`,
     selector: `.docs-body ${DEFAULT_SELECTOR}`,
   },
@@ -16,7 +72,7 @@ export const RULES = [
     selector: `h1, .s-prose p, .comment-body .comment-copy`,
   },
   {
-    pattern: `developer.chrome.com/docs, medium.com`,
+    pattern: `developer.chrome.com/docs, medium.com, developers.cloudflare.com, react.dev, create-react-app.dev`,
     selector: `h1, article ${DEFAULT_SELECTOR}`,
   },
   {

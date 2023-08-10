@@ -133,7 +133,10 @@ export class Translator {
     // console.log("---> ", q);
 
     const span = document.createElement(APP_LCNAME);
+    span.style.visibility = "visible";
     el.appendChild(span);
+    el.style.cssText += "-webkit-line-clamp: unset; max-height: none; height: auto;";
+    el.parentElement.style.cssText += "-webkit-line-clamp: unset; max-height: none; height: auto;";
 
     const root = createRoot(span);
     root.render(
