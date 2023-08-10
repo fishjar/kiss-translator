@@ -27,6 +27,7 @@
     "build:all": "yarn build && yarn build:edge && yarn build:firefox && yarn build:userscript",
     "dist": "yarn build:all && rm -rf dist && rm -rf docs && cp -r build dist && mv dist/userscript docs && mkdir dist/userscript && cp docs/kiss-translator.user.js dist/userscript/kiss-translator.user.js",
     "deploy:web": "wrangler pages deploy ./docs --project-name kiss-translator",
+    "zip": "zip -r edge.zip dist/edge/",
     "test": "react-app-rewired test",
     "eject": "react-scripts eject"
   },
