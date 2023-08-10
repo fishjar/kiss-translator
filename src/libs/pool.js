@@ -1,12 +1,4 @@
-import {
-  DEFAULT_FETCH_INTERVAL,
-  DEFAULT_FETCH_LIMIT,
-  OPT_TRANS_MICROSOFT,
-} from "../config";
-import { apiTranslate } from "../apis";
-import { msAuth } from "./auth";
-
-const _taskPool = (fn, preFn, _interval = 100, _limit = 100) => {
+export const taskPool = (fn, preFn, _interval = 100, _limit = 100) => {
   const pool = [];
   const maxRetry = 2; // 最大重试次数
   let maxCount = _limit; // 最大数量
@@ -14,11 +6,16 @@ const _taskPool = (fn, preFn, _interval = 100, _limit = 100) => {
   let interval = _interval; // 间隔时间
   let timer;
 
+  /**
+   * 任务池
+   * @param {*} item
+   * @param {*} preArgs
+   */
   const handleTask = async (item, preArgs) => {
     curCount++;
     const { args, resolve, reject, retry } = item;
     try {
-      const res = await fn(args, preArgs);
+      const res = await fn({ ...args, ...preArgs });
       resolve(res);
     } catch (err) {
       if (retry < maxRetry) {
@@ -71,16 +68,3 @@ const _taskPool = (fn, preFn, _interval = 100, _limit = 100) => {
     },
   };
 };
-
-export const transPool = _taskPool(
-  apiTranslate,
-  async ({ translator }) => {
-    if (translator === OPT_TRANS_MICROSOFT) {
-      const [token] = await msAuth();
-      return { token };
-    }
-    return {};
-  },
-  DEFAULT_FETCH_INTERVAL,
-  DEFAULT_FETCH_LIMIT
-);

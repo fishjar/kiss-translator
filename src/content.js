@@ -6,7 +6,7 @@ import {
 } from "./config";
 import { getRules, matchRule } from "./libs";
 import { getSetting } from "./libs";
-import { transPool } from "./libs/pool";
+import { fetchUpdate } from "./libs/fetch";
 import { Translator } from "./libs/translator";
 
 /**
@@ -14,7 +14,7 @@ import { Translator } from "./libs/translator";
  */
 (async () => {
   const { fetchInterval, fetchLimit } = await getSetting();
-  transPool.update(fetchInterval, fetchLimit);
+  fetchUpdate(fetchInterval, fetchLimit);
 
   const rules = await getRules();
   const rule = matchRule(rules, document.location.href);

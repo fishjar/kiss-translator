@@ -1,11 +1,16 @@
 import { isExt, isGm } from "./browser";
 import { sendMsg } from "./msg";
+import { taskPool } from "./pool";
 import {
   MSG_FETCH,
+  MSG_FETCH_LIMIT,
   CACHE_NAME,
   OPT_TRANS_MICROSOFT,
   OPT_TRANS_OPENAI,
+  DEFAULT_FETCH_INTERVAL,
+  DEFAULT_FETCH_LIMIT,
 } from "../config";
+import { msAuth } from "./auth";
 
 /**
  * 油猴脚本的请求封装
@@ -47,14 +52,7 @@ const fetchGM = async (input, { method = "GET", headers, body } = {}) =>
  * @param {*} request
  * @returns
  */
-const newCacheReq = async (request, translator) => {
-  if (translator === OPT_TRANS_MICROSOFT) {
-    request.headers.delete("Authorization");
-  } else if (translator === OPT_TRANS_OPENAI) {
-    request.headers.delete("Authorization");
-    request.headers.delete("api-key");
-  }
-
+const newCacheReq = async (request) => {
   if (request.method !== "GET") {
     const body = await request.text();
     const cacheUrl = new URL(request.url);
@@ -66,7 +64,42 @@ const newCacheReq = async (request, translator) => {
 };
 
 /**
- * 请求数据
+ * 发起请求
+ * @param {*} param0
+ * @returns
+ */
+const fetchApi = async ({ input, init, useUnsafe, translator, token }) => {
+  if (translator === OPT_TRANS_MICROSOFT) {
+    init.headers["Authorization"] = `Bearer ${token}`;
+  } else if (translator === OPT_TRANS_OPENAI) {
+    init.headers["Authorization"] = `Bearer ${token}`; // // OpenAI
+    init.headers["api-key"] = token; // Azure OpenAI
+  }
+
+  if (isGm && !useUnsafe) {
+    return fetchGM(input, init);
+  }
+  return fetch(input, init);
+};
+
+/**
+ * 请求池实例
+ */
+export const fetchPool = taskPool(
+  fetchApi,
+  async ({ translator }) => {
+    if (translator === OPT_TRANS_MICROSOFT) {
+      const [token] = await msAuth();
+      return { token };
+    }
+    return {};
+  },
+  DEFAULT_FETCH_INTERVAL,
+  DEFAULT_FETCH_LIMIT
+);
+
+/**
+ * 请求数据统一接口
  * @param {*} input
  * @param {*} init
  * @param {*} opts
@@ -75,9 +108,9 @@ const newCacheReq = async (request, translator) => {
 export const fetchData = async (
   input,
   init,
-  { useCache, translator, useUnsafe } = {}
+  { useCache, usePool, translator, useUnsafe, token } = {}
 ) => {
-  const cacheReq = await newCacheReq(new Request(input, init), translator);
+  const cacheReq = await newCacheReq(new Request(input, init));
   const cache = await caches.open(CACHE_NAME);
   let res;
 
@@ -90,25 +123,25 @@ export const fetchData = async (
     }
   }
 
-  // 发送请求
   if (!res) {
-    if (isGm && !useUnsafe) {
-      res = await fetchGM(input, init);
+    // 发送请求
+    if (usePool) {
+      res = await fetchPool.push({ input, init, useUnsafe, translator, token });
     } else {
-      res = await fetch(input, init);
+      res = await fetchApi({ input, init, useUnsafe, translator, token });
     }
-  }
 
-  if (!res?.ok) {
-    throw new Error(`response: ${res.statusText}`);
-  }
+    if (!res?.ok) {
+      throw new Error(`response: ${res.statusText}`);
+    }
 
-  // 插入缓存
-  if (useCache) {
-    try {
-      await cache.put(cacheReq, res.clone());
-    } catch (err) {
-      console.log("[cache put]", err);
+    // 插入缓存
+    if (useCache) {
+      try {
+        await cache.put(cacheReq, res.clone());
+      } catch (err) {
+        console.log("[cache put]", err);
+      }
     }
   }
 
@@ -138,4 +171,20 @@ export const fetchPolyfill = async (input, init, opts) => {
 
   // 油猴/网页
   return await fetchData(input, init, opts);
+};
+
+/**
+ * 更新 fetch pool 参数
+ * @param {*} interval
+ * @param {*} limit
+ */
+export const fetchUpdate = async (interval, limit) => {
+  if (isExt) {
+    const res = await sendMsg(MSG_FETCH_LIMIT, { interval, limit });
+    if (res.error) {
+      throw new Error(res.error);
+    }
+  } else {
+    fetchPool.update(interval, limit);
+  }
 };

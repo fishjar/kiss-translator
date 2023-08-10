@@ -1,6 +1,7 @@
 import browser from "webextension-polyfill";
 import {
   MSG_FETCH,
+  MSG_FETCH_LIMIT,
   DEFAULT_SETTING,
   DEFAULT_RULES,
   DEFAULT_SYNC,
@@ -12,7 +13,7 @@ import {
 import storage from "./libs/storage";
 import { getSetting } from "./libs";
 import { syncAll } from "./libs/sync";
-import { fetchData } from "./libs/fetch";
+import { fetchData, fetchPool } from "./libs/fetch";
 
 /**
  * 插件安装
@@ -47,13 +48,19 @@ browser.runtime.onMessage.addListener(
   ({ action, args }, sender, sendResponse) => {
     switch (action) {
       case MSG_FETCH:
-        fetchData(args.input, args.init, args.opts)
+        const { input, init, opts } = args;
+        fetchData(input, init, opts)
           .then((data) => {
             sendResponse({ data });
           })
           .catch((error) => {
             sendResponse({ error: error.message });
           });
+        break;
+      case MSG_FETCH_LIMIT:
+        const { interval, limit } = args;
+        fetchPool.update(interval, limit);
+        sendResponse({ data: "ok" });
         break;
       default:
         sendResponse({ error: `message action is unavailable: ${action}` });

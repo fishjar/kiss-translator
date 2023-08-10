@@ -59,7 +59,7 @@ const apiGoogleTranslate = async (translator, text, to, from) => {
         "Content-type": "application/json",
       },
     },
-    { useCache: true, translator }
+    { useCache: true, usePool: true, translator }
   );
 };
 
@@ -70,7 +70,7 @@ const apiGoogleTranslate = async (translator, text, to, from) => {
  * @param {*} from
  * @returns
  */
-const apiMicrosoftTranslate = (translator, text, to, from, token) => {
+const apiMicrosoftTranslate = (translator, text, to, from) => {
   const params = {
     from,
     to,
@@ -82,12 +82,11 @@ const apiMicrosoftTranslate = (translator, text, to, from, token) => {
     {
       headers: {
         "Content-type": "application/json",
-        Authorization: `Bearer ${token}`,
       },
       method: "POST",
       body: JSON.stringify([{ Text: text }]),
     },
-    { useCache: true, translator }
+    { useCache: true, usePool: true, translator }
   );
 };
 
@@ -109,8 +108,6 @@ const apiOpenaiTranslate = async (translator, text, to, from) => {
     {
       headers: {
         "Content-type": "application/json",
-        Authorization: `Bearer ${openaiKey}`, // OpenAI
-        "api-key": openaiKey, // Azure OpenAI
       },
       method: "POST",
       body: JSON.stringify({
@@ -129,7 +126,7 @@ const apiOpenaiTranslate = async (translator, text, to, from) => {
         max_tokens: 256,
       }),
     },
-    { useCache: true, translator }
+    { useCache: true, usePool: true, translator, token: openaiKey }
   );
 };
 
@@ -138,10 +135,7 @@ const apiOpenaiTranslate = async (translator, text, to, from) => {
  * @param {*} param0
  * @returns
  */
-export const apiTranslate = async (
-  { translator, q, fromLang, toLang },
-  { token }
-) => {
+export const apiTranslate = async ({ translator, q, fromLang, toLang }) => {
   let trText = "";
   let isSame = false;
 
@@ -153,7 +147,7 @@ export const apiTranslate = async (
     trText = res.sentences.map((item) => item.trans).join(" ");
     isSame = to === res.src;
   } else if (translator === OPT_TRANS_MICROSOFT) {
-    const res = await apiMicrosoftTranslate(translator, q, to, from, token);
+    const res = await apiMicrosoftTranslate(translator, q, to, from);
     trText = res[0].translations[0].text;
     isSame = to === res[0].detectedLanguage.language;
   } else if (translator === OPT_TRANS_OPENAI) {

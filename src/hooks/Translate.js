@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useState } from "react";
-import { transPool } from "../libs/pool";
 import { detectLang } from "../libs";
+import { apiTranslate } from "../apis";
 
 /**
  * 翻译hook
@@ -25,7 +25,7 @@ export function useTranslate(q, rule) {
         if (toLang.includes(deLang)) {
           setSamelang(true);
         } else {
-          const [trText, isSame] = await transPool.push({
+          const [trText, isSame] = await apiTranslate({
             translator,
             q,
             fromLang,
