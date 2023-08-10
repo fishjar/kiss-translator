@@ -37,7 +37,7 @@ If you also like a little more simplicity, welcome to pick it up.
   - [ ] Edge
   - [ ] Firefox
   - [ ] Safari
-  - [x] [Greasy Fork](https://greasyfork.org/zh-CN/scripts/472840-kiss-translator-%E7%AE%80%E7%BA%A6%E7%BF%BB%E8%AF%91)
+  - [x] [Greasy Fork](https://greasyfork.org/zh-CN/scripts/472840-kiss-translator)
 - [x] Open source
 - [x] Data Synchronization Function
 - [x] Greasemonkey Script ([Install Link 1](https://github.com/fishjar/kiss-translator/raw/master/dist/userscript/kiss-translator.user.js) , [Install Link 1](https://kiss-translator.rayjar.com/kiss-translator.user.js))

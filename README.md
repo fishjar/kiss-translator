@@ -37,7 +37,7 @@
   - [ ] Edge
   - [ ] Firefox
   - [ ] Safari
-  - [x] [Greasy Fork](https://greasyfork.org/zh-CN/scripts/472840-kiss-translator-%E7%AE%80%E7%BA%A6%E7%BF%BB%E8%AF%91)
+  - [x] [Greasy Fork](https://greasyfork.org/zh-CN/scripts/472840-kiss-translator)
 - [x] 开放源代码
 - [x] 数据同步功能
 - [x] 油猴脚本 ([安装链接 1](https://github.com/fishjar/kiss-translator/raw/master/dist/userscript/kiss-translator.user.js) , [安装链接 2](https://kiss-translator.rayjar.com/kiss-translator.user.js))
