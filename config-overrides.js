@@ -79,9 +79,9 @@ const userscriptWebpack = (config, env) => {
 // @author        Gabe<yugang2002@gmail.com>
 // @homepageURL   ${process.env.REACT_APP_HOMEPAGE}
 // @match         *://*/*
-// @icon          https://raw.githubusercontent.com/fishjar/kiss-translator/master/public/images/logo192.png
-// @downloadURL   https://raw.githubusercontent.com/fishjar/kiss-translator/master/dist/userscript/kiss-translator.user.js
-// @updateURL     https://raw.githubusercontent.com/fishjar/kiss-translator/master/dist/userscript/kiss-translator.user.js
+// @icon          ${process.env.REACT_APP_LOGOURL}
+// @downloadURL   ${process.env.REACT_APP_USERSCRIPT_DOWNLOADURL}
+// @updateURL     ${process.env.REACT_APP_USERSCRIPT_DOWNLOADURL}
 // @grant         GM_xmlhttpRequest
 // @grant         GM.xmlhttpRequest
 // @grant         GM_setValue

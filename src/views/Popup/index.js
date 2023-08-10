@@ -89,7 +89,7 @@ export default function Popup({ setShowPopup, translator: tran }) {
     );
   }
 
-  const { transOpen, translator, fromLang, toLang, textStyle } = rule;
+  const { transOpen, translator, fromLang, toLang, textStyle, bgColor } = rule;
 
   return (
     <Box minWidth={300} sx={{ p: 2 }}>
@@ -167,6 +167,14 @@ export default function Popup({ setShowPopup, translator: tran }) {
             </MenuItem>
           ))}
         </TextField>
+
+        <TextField
+          size="small"
+          name="bgColor"
+          defaultValue={bgColor}
+          label={i18n("bg_color")}
+          onBlur={handleChange}
+        />
 
         <Button variant="text" onClick={handleOpenSetting}>
           {i18n("setting")}
