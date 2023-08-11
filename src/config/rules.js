@@ -8,6 +8,42 @@ export const RULES = [
     selector: DEFAULT_SELECTOR,
   },
   {
+    pattern: `https://news.google.com/`,
+    selector: `h4`,
+  },
+  {
+    pattern: `themessenger.com`,
+    selector: `.leading-tight, .leading-tighter, .my-2 p, .font-body p, article ${DEFAULT_SELECTOR}`,
+  },
+  {
+    pattern: `www.telegraph.co.uk`,
+    selector: `article ${DEFAULT_SELECTOR}`,
+  },
+  {
+    pattern: `www.theguardian.com`,
+    selector: `.show-underline, .dcr-hup5wm div, .dcr-7vl6y8 div, .dcr-12evv1c, figcaption, article ${DEFAULT_SELECTOR}, [data-cy="mostviewed-footer"] h4`,
+  },
+  {
+    pattern: `www.semafor.com`,
+    selector: `${DEFAULT_SELECTOR}, .styles_intro__IYj__, [class*="styles_description"]`,
+  },
+  {
+    pattern: `www.noemamag.com`,
+    selector: `.splash__title, .single-card__title, .single-card__type, .single-card__topic, .highlighted-content__title, .single-card__author, article ${DEFAULT_SELECTOR}, .quote__text, .wp-caption-text div`,
+  },
+  {
+    pattern: `restofworld.org`,
+    selector: `${DEFAULT_SELECTOR}, .recirc-story__headline, .recirc-story__dek`,
+  },
+  {
+    pattern: `www.axios.com`,
+    selector: `.h7, ${DEFAULT_SELECTOR}`,
+  },
+  {
+    pattern: `www.newyorker.com`,
+    selector: `.summary-item__hed, .summary-item__dek, .summary-collection-grid__dek, .dqtvfu, .rubric__link, .caption, article ${DEFAULT_SELECTOR}, .HEhan ${DEFAULT_SELECTOR}, .ContributorBioBio-fBolsO`,
+  },
+  {
     pattern: `https://time.com/`,
     selector: `h1, h3, .summary, .video-title, #article-body ${DEFAULT_SELECTOR}, .image-wrap-container .credit.body-caption, .media-heading`,
   },
@@ -72,8 +108,8 @@ export const RULES = [
     selector: `h1, .s-prose p, .comment-body .comment-copy`,
   },
   {
-    pattern: `developer.chrome.com/docs, medium.com, developers.cloudflare.com, react.dev, create-react-app.dev`,
-    selector: `h1, article ${DEFAULT_SELECTOR}`,
+    pattern: `www.npmjs.com/package/, developer.chrome.com/docs, medium.com, developers.cloudflare.com, react.dev, create-react-app.dev`,
+    selector: `article ${DEFAULT_SELECTOR}`,
   },
   {
     pattern: `news.ycombinator.com`,
