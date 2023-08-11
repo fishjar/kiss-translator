@@ -2,8 +2,8 @@
   "manifest_version": 2,
   "name": "__MSG_app_name__",
   "description": "__MSG_app_description__",
-  "version": "1.4.0",
-  "default_locale": "zh",
+  "version": "1.4.1",
+  "default_locale": "zh_CN",
   "author": "Gabe<yugang2002@gmail.com>",
   "homepage_url": "https://github.com/fishjar/kiss-translator",
   "background": {
@@ -17,11 +17,14 @@
   ],
   "permissions": ["<all_urls>", "storage"],
   "icons": {
-    "192": "images/logo192.png"
+    "16": "images/logo16.png",
+    "32": "images/logo32.png",
+    "48": "images/logo48.png",
+    "128": "images/logo128.png"
   },
   "browser_action": {
     "default_icon": {
-      "192": "images/logo192.png"
+      "128": "images/logo128.png"
     },
     "default_title": "__MSG_app_name__",
     "default_popup": "popup.html"
