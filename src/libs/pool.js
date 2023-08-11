@@ -4,7 +4,7 @@ export const taskPool = (fn, preFn, _interval = 100, _limit = 100) => {
   let maxCount = _limit; // 最大数量
   let curCount = 0; // 当前数量
   let interval = _interval; // 间隔时间
-  let timer;
+  let timer = null;
 
   /**
    * 任务池
@@ -28,8 +28,11 @@ export const taskPool = (fn, preFn, _interval = 100, _limit = 100) => {
     }
   };
 
-  (async function run() {
+  const run = async () => {
     // console.log("timer", timer);
+    timer && clearTimeout(timer);
+    timer = setTimeout(run, interval);
+
     if (curCount < maxCount) {
       const item = pool.shift();
       if (item) {
@@ -42,13 +45,13 @@ export const taskPool = (fn, preFn, _interval = 100, _limit = 100) => {
         }
       }
     }
-
-    timer && clearTimeout(timer);
-    timer = setTimeout(run, interval);
-  })();
+  };
 
   return {
     push: async (args) => {
+      if (!timer) {
+        run();
+      }
       return new Promise((resolve, reject) => {
         pool.push({ args, resolve, reject, retry: 0 });
       });
@@ -65,6 +68,7 @@ export const taskPool = (fn, preFn, _interval = 100, _limit = 100) => {
       pool.length = 0;
       curCount = 0;
       timer && clearTimeout(timer);
+      timer = null;
     },
   };
 };

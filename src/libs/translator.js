@@ -9,7 +9,7 @@ import {
 import { StoragesProvider } from "../hooks/Storage";
 import { queryEls } from ".";
 import Content from "../views/Content";
-import { fetchUpdate } from "./fetch";
+import { fetchUpdate, fetchClear } from "./fetch";
 
 /**
  * 翻译类
@@ -111,6 +111,9 @@ export class Translator {
 
     // 移除已插入元素
     queryEls(APP_LCNAME).forEach((el) => el.remove());
+
+    // 清空任务池
+    fetchClear();
   };
 
   _render = (el) => {
@@ -135,8 +138,10 @@ export class Translator {
     const span = document.createElement(APP_LCNAME);
     span.style.visibility = "visible";
     el.appendChild(span);
-    el.style.cssText += "-webkit-line-clamp: unset; max-height: none; height: auto;";
-    el.parentElement.style.cssText += "-webkit-line-clamp: unset; max-height: none; height: auto;";
+    el.style.cssText +=
+      "-webkit-line-clamp: unset; max-height: none; height: auto;";
+    el.parentElement.style.cssText +=
+      "-webkit-line-clamp: unset; max-height: none; height: auto;";
 
     const root = createRoot(span);
     root.render(

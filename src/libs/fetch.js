@@ -4,6 +4,7 @@ import { taskPool } from "./pool";
 import {
   MSG_FETCH,
   MSG_FETCH_LIMIT,
+  MSG_FETCH_CLEAR,
   CACHE_NAME,
   OPT_TRANS_MICROSOFT,
   OPT_TRANS_OPENAI,
@@ -186,5 +187,19 @@ export const fetchUpdate = async (interval, limit) => {
     }
   } else {
     fetchPool.update(interval, limit);
+  }
+};
+
+/**
+ * 清空任务池
+ */
+export const fetchClear = async () => {
+  if (isExt) {
+    const res = await sendMsg(MSG_FETCH_CLEAR);
+    if (res.error) {
+      throw new Error(res.error);
+    }
+  } else {
+    fetchPool.clear();
   }
 };

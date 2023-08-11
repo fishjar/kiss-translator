@@ -27,6 +27,7 @@ export const CACHE_NAME = `${APP_NAME}_cache`;
 
 export const MSG_FETCH = "fetch";
 export const MSG_FETCH_LIMIT = "fetch_limit";
+export const MSG_FETCH_CLEAR = "fetch_clear";
 export const MSG_TRANS_TOGGLE = "trans_toggle";
 export const MSG_TRANS_GETRULE = "trans_getrule";
 export const MSG_TRANS_PUTRULE = "trans_putrule";

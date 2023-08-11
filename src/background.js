@@ -2,6 +2,7 @@ import browser from "webextension-polyfill";
 import {
   MSG_FETCH,
   MSG_FETCH_LIMIT,
+  MSG_FETCH_CLEAR,
   DEFAULT_SETTING,
   DEFAULT_RULES,
   DEFAULT_SYNC,
@@ -60,6 +61,10 @@ browser.runtime.onMessage.addListener(
       case MSG_FETCH_LIMIT:
         const { interval, limit } = args;
         fetchPool.update(interval, limit);
+        sendResponse({ data: "ok" });
+        break;
+      case MSG_FETCH_CLEAR:
+        fetchPool.clear();
         sendResponse({ data: "ok" });
         break;
       default:
