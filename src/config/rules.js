@@ -108,7 +108,7 @@ export const RULES = [
     selector: `h1, .s-prose p, .comment-body .comment-copy`,
   },
   {
-    pattern: `www.npmjs.com/package/, developer.chrome.com/docs, medium.com, developers.cloudflare.com, react.dev, create-react-app.dev, pytorch.org/docs/`,
+    pattern: `www.npmjs.com/package/, developer.chrome.com/docs, medium.com, developers.cloudflare.com, react.dev, create-react-app.dev, pytorch.org/`,
     selector: `article ${DEFAULT_SELECTOR}`,
   },
   {
