@@ -3,8 +3,7 @@ import ReactDOM from "react-dom/client";
 import Action from "./views/Action";
 import createCache from "@emotion/cache";
 import { CacheProvider } from "@emotion/react";
-import { getRules, matchRule } from "./libs";
-import { getSetting } from "./libs";
+import { getSetting, getRules, matchRule } from "./libs";
 import { Translator } from "./libs/translator";
 
 /**

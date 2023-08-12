@@ -4,8 +4,7 @@ import {
   MSG_TRANS_GETRULE,
   MSG_TRANS_PUTRULE,
 } from "./config";
-import { getRules, matchRule } from "./libs";
-import { getSetting } from "./libs";
+import { getSetting, getRules, matchRule } from "./libs";
 import { Translator } from "./libs/translator";
 
 /**
