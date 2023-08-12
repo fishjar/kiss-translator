@@ -128,7 +128,7 @@ export const RULES = [
     selector: `h1, h3:not(.ytd-comment-renderer), #content-text, #description, yt-attributed-string>span>span`,
   },
   {
-    pattern: `www.google.com`,
+    pattern: `www.google.com/search`,
     selector: `h3, .IsZvec, [data-sncf="1"]`,
   },
 ];
