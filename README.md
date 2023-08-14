@@ -40,7 +40,7 @@
   - [x] [Greasy Fork](https://greasyfork.org/zh-CN/scripts/472840-kiss-translator)
 - [x] 开放源代码
 - [x] 数据同步功能
-- [x] 油猴脚本 ([安装链接 1](https://github.com/fishjar/kiss-translator/raw/master/dist/userscript/kiss-translator.user.js) , [安装链接 2](https://kiss-translator.rayjar.com/kiss-translator.user.js))
+- [x] 油猴脚本
   - [x] [Tampermonkey](https://www.tampermonkey.net/) (Chrome/Edge/Firefox)
   - [ ] [Userscripts Safari](https://github.com/quoid/userscripts) (待测)
 
@@ -49,8 +49,8 @@
 ```sh
 git clone https://github.com/fishjar/kiss-translator.git
 cd kiss-translator
-yarn
-yarn dist
+yarn install
+yarn build
 ```
 
 ### 数据同步
