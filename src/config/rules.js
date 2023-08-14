@@ -84,7 +84,7 @@ export const RULES = [
     selector: `[data-component="headline"], [data-component="related-item-headline"], [data-component="title"], article ${DEFAULT_SELECTOR}`,
   },
   {
-    pattern: `deno.land`,
+    pattern: `deno.land, docs.github.com`,
     selector: `main ${DEFAULT_SELECTOR}`,
   },
   {
@@ -116,7 +116,7 @@ export const RULES = [
     selector: `.title, .commtext`,
   },
   {
-    pattern: `github.com`,
+    pattern: `https://github.com/`,
     selector: `.markdown-body ${DEFAULT_SELECTOR}, .repo-description p, .Layout-sidebar .f4, .container-lg .py-4 .f5, .container-lg .my-4 .f5, .Box-row .pr-4, .Box-row article .mt-1, [itemprop='description']`,
   },
   {
