@@ -97,6 +97,7 @@ const userscriptWebpack = (config, env) => {
 // @connect       edge.microsoft.com
 // @connect       api.openai.com
 // @connect       openai.azure.com
+// @connect       workers.dev
 // @run-at        document-end
 // ==/UserScript==
 
