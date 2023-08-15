@@ -14,6 +14,6 @@ export const useI18n = () => {
 export const useI18nMd = (key) => {
   const i18n = useI18n();
   const fileName = i18n(key);
-  const url = fileName ?? `${URL_RAW_PREFIX}/${fileName}`;
+  const url = fileName ? `${URL_RAW_PREFIX}/${fileName}` : "";
   return useFetch(url);
 };
