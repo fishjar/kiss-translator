@@ -125,7 +125,7 @@ export const RULES = [
   },
   {
     pattern: `youtube.com`,
-    selector: `h1, #video-title, #content-text, #description, yt-attributed-string>span>span`,
+    selector: `h1, #video-title, #content-text, #title, yt-attributed-string>span>span`,
   },
   {
     pattern: `www.google.com/search`,
