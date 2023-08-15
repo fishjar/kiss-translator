@@ -33,14 +33,14 @@
   - [x] OpenAI
   - [ ] DeepL
 - [ ] 上架应用市场
-  - [ ] Chrome
+  - [x] [Chrome](https://chrome.google.com/webstore/detail/kiss-translator/bdiifdefkgmcblbcghdlonllpjhhjgof?hl=zh-CN)
   - [ ] Edge
   - [x] [Firefox](https://addons.mozilla.org/zh-CN/firefox/addon/kiss-translator/)
   - [ ] Safari
   - [x] [Greasy Fork](https://greasyfork.org/zh-CN/scripts/472840-kiss-translator)
 - [x] 开放源代码
 - [x] 数据同步功能
-- [x] 油猴脚本
+- [x] 油猴脚本([链接 1](https://fishjar.github.io/kiss-translator/kiss-translator.user.js)、[链接 2](https://kiss-translator.rayjar.com/kiss-translator.user.js))
   - [x] [Tampermonkey](https://www.tampermonkey.net/) (Chrome/Edge/Firefox)
   - [ ] [Userscripts Safari](https://github.com/quoid/userscripts) (待测)
 
