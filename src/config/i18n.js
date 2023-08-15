@@ -1,6 +1,6 @@
 export const UI_LANGS = [
-  ["zh", "中文"],
   ["en", "English"],
+  ["zh", "中文"],
 ];
 
 export const I18N = {

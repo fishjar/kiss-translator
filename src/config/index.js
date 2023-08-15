@@ -156,7 +156,7 @@ export const DEFAULT_RULE = {
 
 export const DEFAULT_SETTING = {
   darkMode: false, // 深色模式
-  uiLang: "zh", // 界面语言
+  uiLang: "en", // 界面语言
   fetchLimit: DEFAULT_FETCH_LIMIT, // 最大任务数量
   fetchInterval: DEFAULT_FETCH_INTERVAL, // 任务间隔时间
   clearCache: false, // 是否在浏览器下次启动时清除缓存
