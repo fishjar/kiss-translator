@@ -1,0 +1,8 @@
+{
+  "app_name": {
+    "message": "KISS Translator"
+  },
+  "app_description": {
+    "message": "A minimalist bilingual translation Extension & Greasemonkey Script"
+  }
+}
