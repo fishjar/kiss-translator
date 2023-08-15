@@ -129,6 +129,6 @@ export const RULES = [
   },
   {
     pattern: `www.google.com/search`,
-    selector: `h3, .IsZvec, [data-sncf="1"]`,
+    selector: `h3, .IsZvec, .VwiC3b`,
   },
 ];
