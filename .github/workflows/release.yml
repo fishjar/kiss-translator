@@ -7,36 +7,39 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: "18.9.0"
-          registry-url: "https://registry.npmjs.org"
+          node-version: "18.17.0"
+          cache: "yarn"
       - run: yarn install
       - run: yarn build
-  deploy:
+      - uses: actions/upload-artifact@v3
+        with:
+          name: build-artifacts
+          path: build
+  deploy-web:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
+      - uses: actions/checkout@v3
+      - uses: actions/download-artifact@v3
+        with:
+          name: build-artifacts
+          path: build
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           folder: build/web
-          branch: gh-pages
-  archive:
-    needs: build
-    runs-on: ubuntu-latest
+  create-release:
+    runs-on: ubuntu-22.04
+    outputs:
+      upload_url: ${{ steps.create-release.outputs.upload_url }}
     steps:
-      - id: release
-        run: echo "fileName=kiss-translator_${{ github.ref }}.zip" >> "$GITHUB_OUTPUT"
-      - name: Archive Release
-        id: archive_release
-        run: zip -r ${{ steps.release.fileName }} build
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
+      - uses: actions/create-release@v1
+        id: create-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -44,13 +47,27 @@ jobs:
           release_name: Release ${{ github.ref }}
           draft: false
           prerelease: false
-      - name: Upload Release Asset
-        id: upload-release-asset
-        uses: actions/upload-release-asset@v1
+  upload-release:
+    needs: [build, create-release]
+    strategy:
+      matrix:
+        client: ["chrome", "edge", "firefox", "userscript"]
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/download-artifact@v3
+        with:
+          name: build-artifacts
+          path: build
+      - name: Zip Release
+        run: |
+          cd build
+          zip -r ${{ matrix.client }}.zip ${{ matrix.client }}
+      - uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./${{ steps.release.fileName }}
-          asset_name: ${{ steps.release.fileName }}
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./build/${{ matrix.client }}.zip
+          asset_name: kiss-translator_${{ github.ref_name }}_${{ matrix.client }}.zip
           asset_content_type: application/zip
