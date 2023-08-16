@@ -33,14 +33,14 @@ If you also like a little more simplicity, welcome to pick it up.
   - [x] OpenAI
   - [ ] DeepL
 - [ ] Upload to app Store
-  - [ ] Chrome
+  - [x] [Chrome](https://chrome.google.com/webstore/detail/kiss-translator/bdiifdefkgmcblbcghdlonllpjhhjgof)
   - [ ] Edge
   - [x] [Firefox](https://addons.mozilla.org/zh-CN/firefox/addon/kiss-translator/)
   - [ ] Safari
   - [x] [Greasy Fork](https://greasyfork.org/zh-CN/scripts/472840-kiss-translator)
 - [x] Open source
 - [x] Data Synchronization Function
-- [x] Greasemonkey Script
+- [x] Greasemonkey Script ([link 1](https://fishjar.github.io/kiss-translator/kiss-translator.user.js)、[link 2](https://kiss-translator.rayjar.com/kiss-translator.user.js))
   - [x] [Tampermonkey](https://www.tampermonkey.net/) (Chrome/Edge/Firefox)
   - [ ] [Userscripts Safari](https://github.com/quoid/userscripts) (need test)
 
