@@ -3,6 +3,7 @@ import {
   DEFAULT_SETTING,
   STOKEY_SETTING,
   STOKEY_RULES,
+  STOKEY_FAB,
   GLOBLA_RULE,
   GLOBAL_KEY,
 } from "../config";
@@ -31,6 +32,18 @@ export const getSetting = async () => ({
  * @returns
  */
 export const getRules = async () => (await storage.getObj(STOKEY_RULES)) || [];
+
+/**
+ * 查询fab位置信息
+ * @returns
+ */
+export const getFab = async () => (await storage.getObj(STOKEY_FAB)) || {};
+
+/**
+ * 设置fab位置信息
+ * @returns
+ */
+export const setFab = async (obj) => await storage.setObj(STOKEY_FAB, obj);
 
 /**
  * 根据href匹配规则

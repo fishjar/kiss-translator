@@ -12,7 +12,7 @@ import { StoragesProvider } from "../../hooks/Storage";
 import Popup from "../Popup";
 import { debounce } from "../../libs/utils";
 
-export default function Action({ translator }) {
+export default function Action({ translator, fab }) {
   const fabWidth = 40;
   const [showPopup, setShowPopup] = useState(false);
   const [windowSize, setWindowSize] = useState({
@@ -76,8 +76,8 @@ export default function Action({ translator }) {
     windowSize,
     width: fabWidth,
     height: fabWidth,
-    left: windowSize.w - fabWidth,
-    top: windowSize.h / 2,
+    left: fab.x ?? windowSize.w - fabWidth,
+    top: fab.y ?? windowSize.h / 2,
   };
 
   return (

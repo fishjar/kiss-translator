@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { limitNumber } from "../../libs/utils";
 import { isMobile } from "../../libs/mobile";
+import { setFab } from "../../libs";
 
 const getEdgePosition = (
   { x: left, y: top, edge },
@@ -88,7 +89,7 @@ export default function Draggable({
     setEdgeTimer(
       setTimeout(() => {
         setPosition((pre) => getHidePosition(pre, w, h, width, height));
-      }, 2000)
+      }, 1500)
     );
   }, []);
 
@@ -148,6 +149,15 @@ export default function Draggable({
     }
     goEdge(windowSize.w, windowSize.h, width, height);
   }, [snapEdge, goEdge, windowSize.w, windowSize.h, width, height]);
+
+  useEffect(() => {
+    if (position.hide) {
+      setFab({
+        x: position.x,
+        y: position.y,
+      });
+    }
+  }, [position]);
 
   const opacity = useMemo(() => {
     if (snapEdge) {

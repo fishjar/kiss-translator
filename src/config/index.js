@@ -9,6 +9,7 @@ export const STOKEY_MSAUTH = `${APP_NAME}_msauth`;
 export const STOKEY_SETTING = `${APP_NAME}_setting`;
 export const STOKEY_RULES = `${APP_NAME}_rules`;
 export const STOKEY_SYNC = `${APP_NAME}_sync`;
+export const STOKEY_FAB = `${APP_NAME}_fab`;
 
 export const GLOBAL_KEY = "*";
 

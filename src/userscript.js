@@ -3,7 +3,7 @@ import ReactDOM from "react-dom/client";
 import Action from "./views/Action";
 import createCache from "@emotion/cache";
 import { CacheProvider } from "@emotion/react";
-import { getSetting, getRules, matchRule } from "./libs";
+import { getSetting, getRules, matchRule, getFab } from "./libs";
 import { Translator } from "./libs/translator";
 
 /**
@@ -33,6 +33,7 @@ import { Translator } from "./libs/translator";
   const translator = new Translator(rule, setting);
 
   // 浮球按钮
+  const fab = await getFab();
   const $action = document.createElement("div");
   $action.setAttribute("id", "kiss-translator");
   document.body.parentElement.appendChild($action);
@@ -49,7 +50,7 @@ import { Translator } from "./libs/translator";
   ReactDOM.createRoot(shadowRootElement).render(
     <React.StrictMode>
       <CacheProvider value={cache}>
-        <Action translator={translator} />
+        <Action translator={translator} fab={fab} />
       </CacheProvider>
     </React.StrictMode>
   );
