@@ -16,12 +16,8 @@ import { Translator } from "./libs/translator";
     document.location.href.includes(process.env.REACT_APP_OPTIONSPAGE) ||
     document.location.href.includes(process.env.REACT_APP_OPTIONSPAGE2)
   ) {
-    window.unsafeWindow.GM = window.GM;
-    window.unsafeWindow.GM_xmlhttpRequest = window.GM_xmlhttpRequest;
-    window.unsafeWindow.GM_setValue = window.GM_setValue;
-    window.unsafeWindow.GM_getValue = window.GM_getValue;
-    window.unsafeWindow.GM_deleteValue = window.GM_deleteValue;
-    window.unsafeWindow.APP_NAME = process.env.REACT_APP_NAME;
+    unsafeWindow.GM = GM;
+    unsafeWindow.APP_NAME = process.env.REACT_APP_NAME;
     return;
   }
 

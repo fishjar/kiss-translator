@@ -34,7 +34,11 @@
     "extends": [
       "react-app",
       "react-app/jest"
-    ]
+    ],
+    "globals": {
+      "GM": true,
+      "unsafeWindow": true
+    }
   },
   "browserslist": {
     "production": [

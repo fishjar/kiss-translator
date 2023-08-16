@@ -21,31 +21,27 @@ import { msAuth } from "./auth";
  */
 const fetchGM = async (input, { method = "GET", headers, body } = {}) =>
   new Promise((resolve, reject) => {
-    try {
-      (window.GM_xmlhttpRequest || window.GM.xmlhttpRequest)({
-        method,
-        url: input,
-        headers,
-        data: body,
-        onload: (response) => {
-          if (response.status === 200) {
-            const headers = new Headers();
-            response.responseHeaders.split("\n").forEach((line) => {
-              let [name, value] = line.split(":").map((item) => item.trim());
-              if (name && value) {
-                headers.append(name, value);
-              }
-            });
-            resolve(new Response(response.response, { headers }));
-          } else {
-            reject(new Error(`[${response.status}] ${response.responseText}`));
-          }
-        },
-        onerror: reject,
-      });
-    } catch (error) {
-      reject(error);
-    }
+    GM.xmlHttpRequest({
+      method,
+      url: input,
+      headers,
+      data: body,
+      onload: (response) => {
+        if (response.status === 200) {
+          const headers = new Headers();
+          response.responseHeaders.split("\n").forEach((line) => {
+            const [name, value] = line.split(":").map((item) => item.trim());
+            if (name && value) {
+              headers.append(name, value);
+            }
+          });
+          resolve(new Response(response.response, { headers }));
+        } else {
+          reject(new Error(`[${response.status}] ${response.responseText}`));
+        }
+      },
+      onerror: reject,
+    });
   });
 
 /**
