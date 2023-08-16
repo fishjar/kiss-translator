@@ -12,18 +12,18 @@ import { StoragesProvider } from "../../hooks/Storage";
 import Popup from "../Popup";
 
 export default function Action({ translator }) {
-  const fabWidth = 56;
+  const fabWidth = 40;
   const [showPopup, setShowPopup] = useState(false);
   const [windowSize, setWindowSize] = useState({
-    w: window.innerWidth,
-    h: window.innerHeight,
+    w: document.documentElement.clientWidth,
+    h: document.documentElement.clientHeight,
   });
   const [moved, setMoved] = useState(false);
 
   const handleWindowResize = (e) => {
     setWindowSize({
-      w: window.innerWidth,
-      h: window.innerHeight,
+      w: document.documentElement.clientWidth,
+      h: document.documentElement.clientHeight,
     });
   };
 
@@ -67,8 +67,8 @@ export default function Action({ translator }) {
     windowSize,
     width: fabWidth,
     height: fabWidth,
-    left: window.innerWidth - fabWidth,
-    top: window.innerHeight / 2,
+    left: windowSize.w - fabWidth,
+    top: windowSize.h / 2,
   };
 
   return (
@@ -108,13 +108,14 @@ export default function Action({ translator }) {
         </Draggable>
         <Draggable
           key="fab"
-          goside
+          snapEdge
           {...fabProps}
           show={!showPopup}
           onStart={handleStart}
           onMove={handleMove}
           handler={
             <Fab
+              size="small"
               color="primary"
               onClick={(e) => {
                 if (!moved) {
