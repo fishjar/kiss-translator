@@ -35,3 +35,19 @@ export const matchValue = (arr, val) => {
  */
 export const sleep = (delay) =>
   new Promise((resolve) => setTimeout(resolve, delay));
+
+/**
+ * 防抖函数
+ * @param {*} func
+ * @param {*} delay
+ * @returns
+ */
+export const debounce = (func, delay = 200) => {
+  let timer;
+  return (...args) => {
+    timer && clearTimeout(timer);
+    timer = setTimeout(() => {
+      func(...args);
+    }, delay);
+  };
+};

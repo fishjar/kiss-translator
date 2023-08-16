@@ -82,21 +82,15 @@ export default function Draggable({
   });
   const [edgeTimer, setEdgeTimer] = useState(null);
 
-  const goEdge = useCallback(() => {
-    console.log("goEdge");
-    setPosition((pre) =>
-      getEdgePosition(pre, windowSize.w, windowSize.h, width, height)
-    );
+  const goEdge = useCallback((w, h, width, height) => {
+    setPosition((pre) => getEdgePosition(pre, w, h, width, height));
 
     setEdgeTimer(
       setTimeout(() => {
-        console.log("goHide");
-        setPosition((pre) =>
-          getHidePosition(pre, windowSize.w, windowSize.h, width, height)
-        );
+        setPosition((pre) => getHidePosition(pre, w, h, width, height));
       }, 2000)
     );
-  }, [windowSize.w, windowSize.h, width, height]);
+  }, []);
 
   const handlePointerDown = (e) => {
     !isMobile && e.target.setPointerCapture(e.pointerId);
@@ -132,7 +126,7 @@ export default function Draggable({
     if (!snapEdge) {
       return;
     }
-    goEdge();
+    goEdge(windowSize.w, windowSize.h, width, height);
   };
 
   const handleClick = (e) => {
@@ -143,7 +137,7 @@ export default function Draggable({
     e.stopPropagation();
     if (snapEdge && position.hide) {
       edgeTimer && clearTimeout(edgeTimer);
-      goEdge();
+      goEdge(windowSize.w, windowSize.h, width, height);
     }
   };
 
@@ -152,8 +146,8 @@ export default function Draggable({
     if (!snapEdge) {
       return;
     }
-    goEdge();
-  }, [snapEdge, goEdge]);
+    goEdge(windowSize.w, windowSize.h, width, height);
+  }, [snapEdge, goEdge, windowSize.w, windowSize.h, width, height]);
 
   const opacity = useMemo(() => {
     if (snapEdge) {

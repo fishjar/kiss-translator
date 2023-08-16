@@ -10,6 +10,7 @@ import Stack from "@mui/material/Stack";
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { StoragesProvider } from "../../hooks/Storage";
 import Popup from "../Popup";
+import { debounce } from "../../libs/utils";
 
 export default function Action({ translator }) {
   const fabWidth = 40;
@@ -20,12 +21,16 @@ export default function Action({ translator }) {
   });
   const [moved, setMoved] = useState(false);
 
-  const handleWindowResize = (e) => {
-    setWindowSize({
-      w: document.documentElement.clientWidth,
-      h: document.documentElement.clientHeight,
-    });
-  };
+  const handleWindowResize = useMemo(
+    () =>
+      debounce(() => {
+        setWindowSize({
+          w: document.documentElement.clientWidth,
+          h: document.documentElement.clientHeight,
+        });
+      }),
+    []
+  );
 
   const handleWindowClick = (e) => {
     setShowPopup(false);
@@ -41,10 +46,14 @@ export default function Action({ translator }) {
 
   useEffect(() => {
     window.addEventListener("resize", handleWindowResize);
-    window.addEventListener("click", handleWindowClick);
-
     return () => {
       window.removeEventListener("resize", handleWindowResize);
+    };
+  }, [handleWindowResize]);
+
+  useEffect(() => {
+    window.addEventListener("click", handleWindowClick);
+    return () => {
       window.removeEventListener("click", handleWindowClick);
     };
   }, []);
