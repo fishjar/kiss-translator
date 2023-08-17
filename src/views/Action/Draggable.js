@@ -30,6 +30,8 @@ const getEdgePosition = (
       edge = "top";
       top = 0;
   }
+  left = limitNumber(left, 0, windowWidth - width);
+  top = limitNumber(top, 0, windowHeight - height);
   return { x: left, y: top, edge, hide: false };
 };
 

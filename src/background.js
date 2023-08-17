@@ -20,7 +20,7 @@ import { fetchData, fetchPool } from "./libs/fetch";
  * 插件安装
  */
 browser.runtime.onInstalled.addListener(() => {
-  console.log("onInstalled");
+  console.log("KISS Translator onInstalled");
   storage.trySetObj(STOKEY_SETTING, DEFAULT_SETTING);
   storage.trySetObj(STOKEY_RULES, DEFAULT_RULES);
   storage.trySetObj(STOKEY_SYNC, DEFAULT_SYNC);
@@ -30,7 +30,7 @@ browser.runtime.onInstalled.addListener(() => {
  * 浏览器启动
  */
 browser.runtime.onStartup.addListener(async () => {
-  console.log("onStartup");
+  console.log("browser onStartup");
 
   // 同步数据
   await syncAll();

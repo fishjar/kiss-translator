@@ -6,14 +6,36 @@ import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
 import Select from "@mui/material/Select";
 import { useSetting, useSettingUpdate } from "../../hooks/Setting";
-import { limitNumber } from "../../libs/utils";
+import { limitNumber, debounce } from "../../libs/utils";
 import { useI18n } from "../../hooks/I18n";
 import { UI_LANGS } from "../../config";
+import { useMemo } from "react";
 
 export default function Settings() {
   const i18n = useI18n();
   const setting = useSetting();
   const updateSetting = useSettingUpdate();
+
+  const handleChange = useMemo(
+    () =>
+      debounce((e) => {
+        e.preventDefault();
+        let { name, value } = e.target;
+        switch (name) {
+          case "fetchLimit":
+            value = limitNumber(value, 1, 100);
+            break;
+          case "fetchInterval":
+            value = limitNumber(value, 0, 5000);
+            break;
+          default:
+        }
+        updateSetting({
+          [name]: value,
+        });
+      }, 500),
+    [updateSetting]
+  );
 
   if (!setting) {
     return;
@@ -37,13 +59,10 @@ export default function Settings() {
         <FormControl size="small">
           <InputLabel>{i18n("ui_lang")}</InputLabel>
           <Select
+            name="uiLang"
             value={uiLang}
             label={i18n("ui_lang")}
-            onChange={(e) => {
-              updateSetting({
-                uiLang: e.target.value,
-              });
-            }}
+            onChange={handleChange}
           >
             {UI_LANGS.map(([lang, name]) => (
               <MenuItem key={lang} value={lang}>
@@ -57,36 +76,27 @@ export default function Settings() {
           size="small"
           label={i18n("fetch_limit")}
           type="number"
+          name="fetchLimit"
           defaultValue={fetchLimit}
-          onChange={(e) => {
-            updateSetting({
-              fetchLimit: limitNumber(e.target.value, 1, 100),
-            });
-          }}
+          onChange={handleChange}
         />
 
         <TextField
           size="small"
           label={i18n("fetch_interval")}
           type="number"
+          name="fetchInterval"
           defaultValue={fetchInterval}
-          onChange={(e) => {
-            updateSetting({
-              fetchInterval: limitNumber(e.target.value, 0, 5000),
-            });
-          }}
+          onChange={handleChange}
         />
 
         <FormControl size="small">
           <InputLabel>{i18n("clear_cache")}</InputLabel>
           <Select
+            name="clearCache"
             value={clearCache}
             label={i18n("clear_cache")}
-            onChange={(e) => {
-              updateSetting({
-                clearCache: e.target.value,
-              });
-            }}
+            onChange={handleChange}
           >
             <MenuItem value={false}>{i18n("clear_cache_never")}</MenuItem>
             <MenuItem value={true}>{i18n("clear_cache_restart")}</MenuItem>
@@ -96,60 +106,43 @@ export default function Settings() {
         <TextField
           size="small"
           label={i18n("google_api")}
+          name="googleUrl"
           defaultValue={googleUrl}
-          onChange={(e) => {
-            updateSetting({
-              googleUrl: e.target.value,
-            });
-          }}
+          onChange={handleChange}
         />
 
         <TextField
           size="small"
           label={i18n("openai_api")}
+          name="openaiUrl"
           defaultValue={openaiUrl}
-          onChange={(e) => {
-            updateSetting({
-              openaiUrl: e.target.value,
-            });
-          }}
+          onChange={handleChange}
         />
 
         <TextField
           size="small"
           type="password"
           label={i18n("openai_key")}
+          name="openaiKey"
           defaultValue={openaiKey}
-          onChange={(e) => {
-            updateSetting({
-              openaiKey: e.target.value,
-            });
-          }}
+          onChange={handleChange}
         />
 
         <TextField
           size="small"
           label={i18n("openai_model")}
+          name="openaiModel"
           defaultValue={openaiModel}
-          onChange={(e) => {
-            updateSetting({
-              openaiModel: e.target.value,
-            });
-          }}
+          onChange={handleChange}
         />
 
         <TextField
           size="small"
           label={i18n("openai_prompt")}
+          name="openaiPrompt"
           defaultValue={openaiPrompt}
-          onChange={(e) => {
-            updateSetting({
-              openaiPrompt: e.target.value,
-            });
-          }}
+          onChange={handleChange}
           multiline
-          minRows={2}
-          maxRows={10}
         />
       </Stack>
     </Box>

@@ -122,6 +122,7 @@ function RuleFields({ rule, rules, setShow }) {
           disabled={rule?.pattern === "*" || disabled}
           onChange={handleChange}
           onFocus={handleFocus}
+          multiline
         />
         <TextField
           size="small"
@@ -134,8 +135,6 @@ function RuleFields({ rule, rules, setShow }) {
           onChange={handleChange}
           onFocus={handleFocus}
           multiline
-          minRows={2}
-          maxRows={10}
         />
 
         <Box>
@@ -301,6 +300,25 @@ function RuleFields({ rule, rules, setShow }) {
   );
 }
 
+function RuleAccordion({ rule, rules }) {
+  const [expanded, setExpanded] = useState(false);
+
+  const handleChange = (e) => {
+    setExpanded((pre) => !pre);
+  };
+
+  return (
+    <Accordion expanded={expanded} onChange={handleChange}>
+      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+        <Typography>{rule.pattern}</Typography>
+      </AccordionSummary>
+      <AccordionDetails>
+        {expanded && <RuleFields rule={rule} rules={rules} />}
+      </AccordionDetails>
+    </Accordion>
+  );
+}
+
 function DownloadButton({ data, text, fileName }) {
   const handleClick = (e) => {
     e.preventDefault();
@@ -405,14 +423,7 @@ export default function Rules() {
 
         <Box>
           {rules.list.map((rule) => (
-            <Accordion key={rule.pattern}>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography>{rule.pattern}</Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <RuleFields rule={rule} rules={rules} />
-              </AccordionDetails>
-            </Accordion>
+            <RuleAccordion key={rule.pattern} rule={rule} rules={rules} />
           ))}
         </Box>
       </Stack>

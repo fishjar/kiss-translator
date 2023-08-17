@@ -6,7 +6,6 @@ import Box from "@mui/material/Box";
 import Navigator from "./Navigator";
 import Header from "./Header";
 import { useTheme } from "@mui/material/styles";
-import { syncAll } from "../../libs/sync";
 
 export default function Layout() {
   const navWidth = 256;
@@ -21,7 +20,6 @@ export default function Layout() {
 
   useEffect(() => {
     setOpen(false);
-    syncAll();
   }, [location]);
 
   return (

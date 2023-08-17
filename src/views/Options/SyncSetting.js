@@ -3,23 +3,33 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import { useI18n } from "../../hooks/I18n";
 import { useSync } from "../../hooks/Sync";
-import { syncAll } from "../../libs/sync";
 import Alert from "@mui/material/Alert";
 import Link from "@mui/material/Link";
 import { URL_KISS_WORKER } from "../../config";
+import { debounce } from "../../libs/utils";
+import { useMemo } from "react";
 
 export default function SyncSetting() {
   const i18n = useI18n();
   const sync = useSync();
+
+  const handleChange = useMemo(
+    () =>
+      debounce((e) => {
+        e.preventDefault();
+        const { name, value } = e.target;
+        sync.update({
+          [name]: value,
+        });
+      }, 500),
+    [sync]
+  );
 
   if (!sync.opt) {
     return;
   }
 
   const { syncUrl, syncKey } = sync.opt;
-  const handleSyncBlur = () => {
-    syncAll();
-  };
 
   return (
     <Box>
@@ -29,13 +39,9 @@ export default function SyncSetting() {
         <TextField
           size="small"
           label={i18n("data_sync_url")}
+          name="syncUrl"
           defaultValue={syncUrl}
-          onChange={(e) => {
-            sync.update({
-              syncUrl: e.target.value,
-            });
-          }}
-          onBlur={handleSyncBlur}
+          onChange={handleChange}
           helperText={
             <Link href={URL_KISS_WORKER}>{i18n("about_sync_api")}</Link>
           }
@@ -45,13 +51,9 @@ export default function SyncSetting() {
           size="small"
           type="password"
           label={i18n("data_sync_key")}
+          name="syncKey"
           defaultValue={syncKey}
-          onChange={(e) => {
-            sync.update({
-              syncKey: e.target.value,
-            });
-          }}
-          onBlur={handleSyncBlur}
+          onChange={handleChange}
         />
       </Stack>
     </Box>

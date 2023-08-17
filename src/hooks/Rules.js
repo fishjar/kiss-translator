@@ -25,11 +25,7 @@ export function useRules() {
     const updateAt = sync.opt?.rulesUpdateAt ? Date.now() : 0;
     await storage.setObj(STOKEY_RULES, rules);
     await sync.update({ rulesUpdateAt: updateAt });
-    try {
-      await syncRules();
-    } catch (err) {
-      console.log("[sync rules]", err);
-    }
+    syncRules();
   };
 
   const add = async (rule) => {

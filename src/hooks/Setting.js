@@ -2,6 +2,7 @@ import { STOKEY_SETTING } from "../config";
 import storage from "../libs/storage";
 import { useStorages } from "./Storage";
 import { useSync } from "./Sync";
+import { syncSetting } from "../libs/sync";
 
 /**
  * 设置hook
@@ -22,5 +23,6 @@ export function useSettingUpdate() {
     const updateAt = sync.opt?.settingUpdateAt ? Date.now() : 0;
     await storage.putObj(STOKEY_SETTING, obj);
     await sync.update({ settingUpdateAt: updateAt });
+    syncSetting();
   };
 }
