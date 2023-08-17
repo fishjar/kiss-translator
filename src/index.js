@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import CircularProgress from "@mui/material/CircularProgress";
+import Divider from "@mui/material/Divider";
 import ReactMarkdown from "react-markdown";
 import Paper from "@mui/material/Paper";
 import { useFetch } from "./hooks/Fetch";
@@ -12,6 +13,7 @@ function App() {
   );
   return (
     <Paper sx={{ padding: 2, margin: 2 }}>
+      <Divider>{`KISS Translator v${process.env.REACT_APP_VERSION}`}</Divider>
       {loading ? (
         <center>
           <CircularProgress />
