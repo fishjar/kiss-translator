@@ -13,7 +13,7 @@ import { Translator } from "./libs/translator";
 (async () => {
   const setting = await getSetting();
   const rules = await getRules();
-  const rule = matchRule(rules, document.location.href);
+  const rule = matchRule(rules, document.location.href, setting);
   const translator = new Translator(rule, setting);
 
   // 监听消息

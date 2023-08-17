@@ -6,6 +6,7 @@ import {
   STOKEY_FAB,
   GLOBLA_RULE,
   GLOBAL_KEY,
+  BUILTIN_RULES,
 } from "../config";
 import { browser } from "./browser";
 
@@ -52,7 +53,11 @@ export const setFab = async (obj) => await storage.setObj(STOKEY_FAB, obj);
  * @param {string} href
  * @returns
  */
-export const matchRule = (rules, href) => {
+export const matchRule = (rules, href, { injectRules }) => {
+  if (injectRules) {
+    rules.splice(-1, 0, ...BUILTIN_RULES);
+  }
+
   const rule = rules.find((rule) =>
     rule.pattern.split(",").some((p) => href.includes(p.trim()))
   );

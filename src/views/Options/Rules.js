@@ -9,6 +9,7 @@ import {
   OPT_LANGS_TO,
   OPT_TRANS_ALL,
   OPT_STYLE_ALL,
+  BUILTIN_RULES,
 } from "../../config";
 import { useState, useRef } from "react";
 import { useI18n } from "../../hooks/I18n";
@@ -22,6 +23,9 @@ import MenuItem from "@mui/material/MenuItem";
 import Grid from "@mui/material/Grid";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import FileUploadIcon from "@mui/icons-material/FileUpload";
+import { useSetting, useSettingUpdate } from "../../hooks/Setting";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Switch from "@mui/material/Switch";
 
 function RuleFields({ rule, rules, setShow }) {
   const initFormValues = rule || { ...DEFAULT_RULE, transOpen: "true" };
@@ -245,56 +249,61 @@ function RuleFields({ rule, rules, setShow }) {
           </Grid>
         </Box>
 
-        {editMode ? (
-          // 编辑
-          <Stack direction="row" spacing={2}>
-            {disabled ? (
-              <>
-                <Button
-                  size="small"
-                  variant="contained"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setDisabled(false);
-                  }}
-                >
-                  {i18n("edit")}
-                </Button>
-                {rule?.pattern !== "*" && (
+        {rules &&
+          (editMode ? (
+            // 编辑
+            <Stack direction="row" spacing={2}>
+              {disabled ? (
+                <>
+                  <Button
+                    size="small"
+                    variant="contained"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setDisabled(false);
+                    }}
+                  >
+                    {i18n("edit")}
+                  </Button>
+                  {rule?.pattern !== "*" && (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        rules.del(rule.pattern);
+                      }}
+                    >
+                      {i18n("delete")}
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <>
+                  <Button size="small" variant="contained" type="submit">
+                    {i18n("save")}
+                  </Button>
                   <Button
                     size="small"
                     variant="outlined"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      rules.del(rule.pattern);
-                    }}
+                    onClick={handleCancel}
                   >
-                    {i18n("delete")}
+                    {i18n("cancel")}
                   </Button>
-                )}
-              </>
-            ) : (
-              <>
-                <Button size="small" variant="contained" type="submit">
-                  {i18n("save")}
-                </Button>
-                <Button size="small" variant="outlined" onClick={handleCancel}>
-                  {i18n("cancel")}
-                </Button>
-              </>
-            )}
-          </Stack>
-        ) : (
-          // 添加
-          <Stack direction="row" spacing={2}>
-            <Button size="small" variant="contained" type="submit">
-              {i18n("save")}
-            </Button>
-            <Button size="small" variant="outlined" onClick={handleCancel}>
-              {i18n("cancel")}
-            </Button>
-          </Stack>
-        )}
+                </>
+              )}
+            </Stack>
+          ) : (
+            // 添加
+            <Stack direction="row" spacing={2}>
+              <Button size="small" variant="contained" type="submit">
+                {i18n("save")}
+              </Button>
+              <Button size="small" variant="outlined" onClick={handleCancel}>
+                {i18n("cancel")}
+              </Button>
+            </Stack>
+          ))}
       </Stack>
     </form>
   );
@@ -310,7 +319,13 @@ function RuleAccordion({ rule, rules }) {
   return (
     <Accordion expanded={expanded} onChange={handleChange}>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Typography>{rule.pattern}</Typography>
+        <Typography
+          style={{
+            opacity: rules ? 1 : 0.5,
+          }}
+        >
+          {rule.pattern}
+        </Typography>
       </AccordionSummary>
       <AccordionDetails>
         {expanded && <RuleFields rule={rule} rules={rules} />}
@@ -373,6 +388,9 @@ export default function Rules() {
   const i18n = useI18n();
   const rules = useRules();
   const [showAdd, setShowAdd] = useState(false);
+  const setting = useSetting();
+  const updateSetting = useSettingUpdate();
+  const injectRules = !!setting?.injectRules;
 
   const handleImport = (e) => {
     const file = e.target.files[0];
@@ -396,6 +414,12 @@ export default function Rules() {
     reader.readAsText(file);
   };
 
+  const handleInject = () => {
+    updateSetting({
+      injectRules: !injectRules,
+    });
+  };
+
   return (
     <Box>
       <Stack spacing={3}>
@@ -417,6 +441,17 @@ export default function Rules() {
             data={JSON.stringify([...rules.list].reverse(), null, "\t")}
             text={i18n("export")}
           />
+
+          <FormControlLabel
+            control={
+              <Switch
+                size="small"
+                checked={injectRules}
+                onChange={handleInject}
+              />
+            }
+            label={i18n("inject_rules")}
+          />
         </Stack>
 
         {showAdd && <RuleFields rules={rules} setShow={setShowAdd} />}
@@ -426,6 +461,14 @@ export default function Rules() {
             <RuleAccordion key={rule.pattern} rule={rule} rules={rules} />
           ))}
         </Box>
+
+        {injectRules && (
+          <Box>
+            {BUILTIN_RULES.map((rule) => (
+              <RuleAccordion key={rule.pattern} rule={rule} />
+            ))}
+          </Box>
+        )}
       </Stack>
     </Box>
   );

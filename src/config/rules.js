@@ -4,12 +4,16 @@ export const DEFAULT_SELECTOR = `:is(${els})`;
 
 export const RULES = [
   {
-    pattern: `bearblog.dev, www.theverge.com, www.tampermonkey.net/documentation.php`,
-    selector: DEFAULT_SELECTOR,
+    pattern: `www.google.com/search`,
+    selector: `h3, .IsZvec, .VwiC3b`,
   },
   {
     pattern: `https://news.google.com/`,
     selector: `h4`,
+  },
+  {
+    pattern: `bearblog.dev, www.theverge.com, www.tampermonkey.net/documentation.php`,
+    selector: DEFAULT_SELECTOR,
   },
   {
     pattern: `themessenger.com`,
@@ -126,9 +130,5 @@ export const RULES = [
   {
     pattern: `youtube.com`,
     selector: `h1, #video-title, #content-text, #title, yt-attributed-string>span>span`,
-  },
-  {
-    pattern: `www.google.com/search`,
-    selector: `h3, .IsZvec, .VwiC3b`,
   },
 ];

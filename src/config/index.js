@@ -161,6 +161,7 @@ export const DEFAULT_SETTING = {
   fetchLimit: DEFAULT_FETCH_LIMIT, // 最大任务数量
   fetchInterval: DEFAULT_FETCH_INTERVAL, // 任务间隔时间
   clearCache: false, // 是否在浏览器下次启动时清除缓存
+  injectRules: true, // 是否注入内置规则
   googleUrl: "https://translate.googleapis.com/translate_a/single", // 谷歌翻译接口
   openaiUrl: "https://api.openai.com/v1/chat/completions",
   openaiKey: "",
@@ -169,13 +170,19 @@ export const DEFAULT_SETTING = {
 };
 
 export const DEFAULT_RULES = [
-  ...RULES.map((item) => ({
+  {
     ...DEFAULT_RULE,
-    ...item,
+    ...RULES[0],
     transOpen: "true",
-  })),
+  },
   GLOBLA_RULE,
 ];
+
+export const BUILTIN_RULES = RULES.map((item) => ({
+  ...DEFAULT_RULE,
+  ...item,
+  transOpen: "true",
+}));
 
 export const TRANS_MIN_LENGTH = 5; // 最短翻译长度
 export const TRANS_MAX_LENGTH = 5000; // 最长翻译长度

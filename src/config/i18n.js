@@ -104,6 +104,10 @@ export const I18N = {
     zh: `添加`,
     en: `Add`,
   },
+  inject_rules: {
+    zh: `注入内置规则`,
+    en: `Inject Built-in Rules`,
+  },
   sync_warn: {
     zh: `如果服务器存在其他客户端同步的数据，第一次同步将直接覆盖本地配置，后面则根据修改时间，新的覆盖旧的。`,
     en: `If the server has data synchronized by other clients, the first synchronization will directly overwrite the local configuration, and later, according to the modification time, the new one will overwrite the old one.`,
@@ -153,8 +157,8 @@ export const I18N = {
     en: `Multiple URLs can be separated by English commas ","`,
   },
   selector_helper: {
-    zh: `1、遵循CSS选择器规则，但不同浏览器，支持写法不尽相同。2、留空表示采用全局设置。`,
-    en: `1. Follow CSS selector rules, but different browsers support different writing methods. 2. Leave blank to adopt the global setting.`,
+    zh: `1、遵循CSS选择器规则。2、留空表示采用全局设置。`,
+    en: `1. Follow CSS selector rules. 2. Leave blank to adopt the global setting.`,
   },
   translate_switch: {
     zh: `开启翻译`,
