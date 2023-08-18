@@ -1,5 +1,11 @@
-import { DEFAULT_SELECTOR, RULES } from "./rules";
+import {
+  DEFAULT_SELECTOR,
+  GLOBAL_KEY,
+  DEFAULT_RULE,
+  BUILTIN_RULES,
+} from "./rules";
 export { I18N, UI_LANGS } from "./i18n";
+export { GLOBAL_KEY, DEFAULT_RULE, BUILTIN_RULES };
 
 const APP_NAME = process.env.REACT_APP_NAME.trim().split(/\s+/).join("-");
 
@@ -10,8 +16,6 @@ export const STOKEY_SETTING = `${APP_NAME}_setting`;
 export const STOKEY_RULES = `${APP_NAME}_rules`;
 export const STOKEY_SYNC = `${APP_NAME}_sync`;
 export const STOKEY_FAB = `${APP_NAME}_fab`;
-
-export const GLOBAL_KEY = "*";
 
 export const CLIENT_WEB = "web";
 export const CLIENT_CHROME = "chrome";
@@ -143,18 +147,6 @@ export const GLOBLA_RULE = {
   bgColor: "",
 };
 
-// 默认规则
-export const DEFAULT_RULE = {
-  pattern: "",
-  selector: "",
-  translator: GLOBAL_KEY,
-  fromLang: GLOBAL_KEY,
-  toLang: GLOBAL_KEY,
-  textStyle: GLOBAL_KEY,
-  transOpen: GLOBAL_KEY,
-  bgColor: "",
-};
-
 export const DEFAULT_SETTING = {
   darkMode: false, // 深色模式
   uiLang: "en", // 界面语言
@@ -169,20 +161,7 @@ export const DEFAULT_SETTING = {
   openaiPrompt: `You will be provided with a sentence in ${PROMPT_PLACE_FROM}, and your task is to translate it into ${PROMPT_PLACE_TO}.`,
 };
 
-export const DEFAULT_RULES = [
-  {
-    ...DEFAULT_RULE,
-    ...RULES[0],
-    transOpen: "true",
-  },
-  GLOBLA_RULE,
-];
-
-export const BUILTIN_RULES = RULES.map((item) => ({
-  ...DEFAULT_RULE,
-  ...item,
-  transOpen: "true",
-}));
+export const DEFAULT_RULES = [GLOBLA_RULE];
 
 export const TRANS_MIN_LENGTH = 5; // 最短翻译长度
 export const TRANS_MAX_LENGTH = 5000; // 最长翻译长度

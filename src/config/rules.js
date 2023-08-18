@@ -2,7 +2,20 @@ const els = `li, p, h1, h2, h3, h4, h5, h6, dd`;
 
 export const DEFAULT_SELECTOR = `:is(${els})`;
 
-export const RULES = [
+export const GLOBAL_KEY = "*";
+
+export const DEFAULT_RULE = {
+  pattern: "",
+  selector: "",
+  translator: GLOBAL_KEY,
+  fromLang: GLOBAL_KEY,
+  toLang: GLOBAL_KEY,
+  textStyle: GLOBAL_KEY,
+  transOpen: GLOBAL_KEY,
+  bgColor: "",
+};
+
+const RULES = [
   {
     pattern: `www.google.com/search`,
     selector: `h3, .IsZvec, .VwiC3b`,
@@ -132,3 +145,9 @@ export const RULES = [
     selector: `h1, #video-title, #content-text, #title, yt-attributed-string>span>span`,
   },
 ];
+
+export const BUILTIN_RULES = RULES.map((item) => ({
+  ...DEFAULT_RULE,
+  ...item,
+  transOpen: "true",
+}));

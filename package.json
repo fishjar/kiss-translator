@@ -25,7 +25,8 @@
     "build:firefox": "rm -rf build/firefox && cp -r build/chrome build/firefox && cat ./build/firefox/manifest.firefox.json > ./build/firefox/manifest.json",
     "build:web": "rm -rf build/web && BUILD_PATH=./build/web REACT_APP_CLIENT=userscript react-app-rewired build",
     "build:userscript": "rm -rf build/userscript && mkdir build/userscript && cp build/web/kiss-translator.user.js build/userscript/kiss-translator.user.js",
-    "build": "yarn build:chrome && yarn build:edge && yarn build:firefox && yarn build:web && yarn build:userscript",
+    "build:rules": "babel-node src/rules.js",
+    "build": "yarn build:chrome && yarn build:edge && yarn build:firefox && yarn build:web && yarn build:userscript && yarn build:rules",
     "deploy:web": "wrangler pages deploy ./build/web --project-name kiss-translator",
     "test": "react-app-rewired test",
     "eject": "react-scripts eject"
@@ -53,6 +54,10 @@
     ]
   },
   "devDependencies": {
+    "@babel/core": "^7.22.10",
+    "@babel/node": "^7.22.10",
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
+    "@babel/preset-env": "^7.22.10",
     "react-app-rewired": "^2.2.1",
     "wrangler": "^3.4.0"
   }
