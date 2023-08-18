@@ -83,13 +83,9 @@ const userscriptWebpack = (config, env) => {
 // @icon          ${process.env.REACT_APP_LOGOURL}
 // @downloadURL   ${process.env.REACT_APP_USERSCRIPT_DOWNLOADURL}
 // @updateURL     ${process.env.REACT_APP_USERSCRIPT_DOWNLOADURL}
-// @grant         GM_xmlhttpRequest
-// @grant         GM.xmlhttpRequest
-// @grant         GM_setValue
+// @grant         GM.xmlHttpRequest
 // @grant         GM.setValue
-// @grant         GM_getValue
 // @grant         GM.getValue
-// @grant         GM_deleteValue
 // @grant         GM.deleteValue
 // @grant         unsafeWindow
 // @connect       translate.googleapis.com
