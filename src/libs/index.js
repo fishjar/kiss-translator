@@ -9,6 +9,7 @@ import {
   BUILTIN_RULES,
 } from "../config";
 import { browser } from "./browser";
+import { isMatch } from "./utils";
 
 /**
  * 获取节点列表并转为数组
@@ -48,7 +49,6 @@ export const setFab = async (obj) => await storage.setObj(STOKEY_FAB, obj);
 
 /**
  * 根据href匹配规则
- * TODO: 支持通配符（*）匹配
  * @param {*} rules
  * @param {string} href
  * @returns
@@ -59,7 +59,7 @@ export const matchRule = (rules, href, { injectRules }) => {
   }
 
   const rule = rules.find((rule) =>
-    rule.pattern.split(",").some((p) => href.includes(p.trim()))
+    rule.pattern.split(",").some((p) => isMatch(href, p.trim()))
   );
   const globalRule =
     rules.find((rule) =>

@@ -51,3 +51,40 @@ export const debounce = (func, delay = 200) => {
     }, delay);
   };
 };
+
+/**
+ * 字符串通配符(*)匹配
+ * @param {*} s
+ * @param {*} p
+ * @returns
+ */
+export const isMatch = (s, p) => {
+  if (s.length === 0 || p.length === 0) {
+    return false;
+  }
+
+  p = `*${p}*`;
+
+  let [sIndex, pIndex] = [0, 0];
+  let [sRecord, pRecord] = [-1, -1];
+  while (sIndex < s.length && pRecord < p.length) {
+    if (p[pIndex] === "*") {
+      pIndex++;
+      [sRecord, pRecord] = [sIndex, pIndex];
+    } else if (s[sIndex] === p[pIndex]) {
+      sIndex++;
+      pIndex++;
+    } else if (sRecord + 1 < s.length) {
+      sRecord++;
+      [sIndex, pIndex] = [sRecord, pRecord];
+    } else {
+      return false;
+    }
+  }
+
+  if (p.length === pIndex) {
+    return true;
+  }
+
+  return p.slice(pIndex).replaceAll("*", "") === "";
+};
