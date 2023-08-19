@@ -3,7 +3,6 @@ import { browser, isExt, isGm, isWeb } from "../libs/browser";
 import {
   STOKEY_SETTING,
   STOKEY_RULES,
-  STOKEY_MSAUTH,
   STOKEY_SYNC,
   DEFAULT_SETTING,
   DEFAULT_RULES,
@@ -15,11 +14,12 @@ import storage from "../libs/storage";
  * 默认配置
  */
 export const defaultStorage = {
-  [STOKEY_MSAUTH]: null,
   [STOKEY_SETTING]: DEFAULT_SETTING,
   [STOKEY_RULES]: DEFAULT_RULES,
   [STOKEY_SYNC]: DEFAULT_SYNC,
 };
+
+const activeKeys = Object.keys(defaultStorage);
 
 const StoragesContext = createContext(null);
 
@@ -38,7 +38,10 @@ export function StoragesProvider({ children }) {
     }
     const newStorages = {};
     Object.entries(changes)
-      .filter(([_, { oldValue, newValue }]) => oldValue !== newValue)
+      .filter(
+        ([key, { oldValue, newValue }]) =>
+          activeKeys.includes(key) && oldValue !== newValue
+      )
       .forEach(([key, { newValue }]) => {
         newStorages[key] = JSON.parse(newValue);
       });
@@ -51,8 +54,7 @@ export function StoragesProvider({ children }) {
     // 首次从storage同步配置到内存
     (async () => {
       const curStorages = {};
-      const keys = Object.keys(defaultStorage);
-      for (const key of keys) {
+      for (const key of activeKeys) {
         const val = await storage.get(key);
         if (val) {
           curStorages[key] = JSON.parse(val);

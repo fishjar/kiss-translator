@@ -6,7 +6,6 @@ import {
   EVENT_KISS,
   MSG_TRANS_CURRULE,
 } from "../config";
-import { StoragesProvider } from "../hooks/Storage";
 import { queryEls } from ".";
 import Content from "../views/Content";
 import { fetchUpdate, fetchClear } from "./fetch";
@@ -144,10 +143,6 @@ export class Translator {
       "-webkit-line-clamp: unset; max-height: none; height: auto;";
 
     const root = createRoot(span);
-    root.render(
-      <StoragesProvider>
-        <Content q={q} translator={this} />
-      </StoragesProvider>
-    );
+    root.render(<Content q={q} translator={this} />);
   };
 }
