@@ -11,6 +11,7 @@ import { isGm } from "../../libs/browser";
 import { sleep } from "../../libs/utils";
 import CircularProgress from "@mui/material/CircularProgress";
 import { syncAll } from "../../libs/sync";
+import { AlertProvider } from "../../hooks/Alert";
 
 export default function Options() {
   const [error, setError] = useState(false);
@@ -69,16 +70,18 @@ export default function Options() {
   return (
     <StoragesProvider>
       <ThemeProvider>
-        <HashRouter>
-          <Routes>
-            <Route path="/" element={<Layout />}>
-              <Route index element={<Setting />} />
-              <Route path="rules" element={<Rules />} />
-              <Route path="sync" element={<SyncSetting />} />
-              <Route path="about" element={<About />} />
-            </Route>
-          </Routes>
-        </HashRouter>
+        <AlertProvider>
+          <HashRouter>
+            <Routes>
+              <Route path="/" element={<Layout />}>
+                <Route index element={<Setting />} />
+                <Route path="rules" element={<Rules />} />
+                <Route path="sync" element={<SyncSetting />} />
+                <Route path="about" element={<About />} />
+              </Route>
+            </Routes>
+          </HashRouter>
+        </AlertProvider>
       </ThemeProvider>
     </StoragesProvider>
   );

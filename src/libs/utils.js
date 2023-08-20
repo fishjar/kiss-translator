@@ -91,10 +91,23 @@ export const isMatch = (s, p) => {
 
 /**
  * 类型检查
- * @param {*} o 
- * @returns 
+ * @param {*} o
+ * @returns
  */
 export const type = (o) => {
   const s = Object.prototype.toString.call(o);
   return s.match(/\[object (.*?)\]/)[1].toLowerCase();
+};
+
+/**
+ * sha256
+ * @param {*} text
+ * @returns
+ */
+export const sha256 = async (text, salt) => {
+  const data = new TextEncoder().encode(text + salt);
+  const digest = await crypto.subtle.digest({ name: "SHA-256" }, data);
+  return [...new Uint8Array(digest)]
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 };

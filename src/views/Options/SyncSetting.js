@@ -8,6 +8,7 @@ import Link from "@mui/material/Link";
 import { URL_KISS_WORKER } from "../../config";
 import { debounce } from "../../libs/utils";
 import { useMemo } from "react";
+import { syncAll } from "../../libs/sync";
 
 export default function SyncSetting() {
   const i18n = useI18n();
@@ -15,13 +16,14 @@ export default function SyncSetting() {
 
   const handleChange = useMemo(
     () =>
-      debounce((e) => {
+      debounce(async (e) => {
         e.preventDefault();
         const { name, value } = e.target;
-        sync.update({
+        await sync.update({
           [name]: value,
         });
-      }, 500),
+        await syncAll();
+      }, 1000),
     [sync]
   );
 

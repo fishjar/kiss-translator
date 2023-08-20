@@ -32,9 +32,12 @@ import Radio from "@mui/material/Radio";
 import RadioGroup from "@mui/material/RadioGroup";
 import DeleteIcon from "@mui/icons-material/Delete";
 import IconButton from "@mui/material/IconButton";
+import ShareIcon from "@mui/icons-material/Share";
 import SyncIcon from "@mui/icons-material/Sync";
 import { useSubrules } from "../../hooks/Rules";
 import { rulesCache, tryLoadRules } from "../../libs/rules";
+import { useAlert } from "../../hooks/Alert";
+import { loadSyncOpt, syncShareRules } from "../../libs/sync";
 
 function RuleFields({ rule, rules, setShow }) {
   const initFormValues = rule || { ...DEFAULT_RULE, transOpen: "true" };
@@ -393,12 +396,56 @@ function UploadButton({ onChange, text }) {
   );
 }
 
+function ShareButton({ rules, injectRules, selectedSub }) {
+  const alert = useAlert();
+  const i18n = useI18n();
+  const handleClick = async () => {
+    try {
+      const { syncUrl, syncKey } = await loadSyncOpt();
+      if (!syncUrl || !syncKey) {
+        alert.warning(i18n("error_sync_setting"));
+        return;
+      }
+
+      const shareRules = [...rules.list];
+      if (injectRules) {
+        const subRules = await tryLoadRules(selectedSub?.url);
+        shareRules.splice(-1, 0, ...subRules);
+      }
+
+      const url = await syncShareRules({
+        rules: shareRules,
+        syncUrl,
+        syncKey,
+      });
+
+      window.open(url, "_blank");
+    } catch (err) {
+      alert.warning(i18n("error_got_some_wrong"));
+      console.log("[share rules]", err);
+    }
+  };
+
+  return (
+    <Button
+      size="small"
+      variant="outlined"
+      onClick={handleClick}
+      startIcon={<ShareIcon />}
+    >
+      {"分享"}
+    </Button>
+  );
+}
+
 function UserRules() {
   const i18n = useI18n();
   const rules = useRules();
   const [showAdd, setShowAdd] = useState(false);
   const setting = useSetting();
   const updateSetting = useSettingUpdate();
+  const subrules = useSubrules();
+  const selectedSub = subrules.list.find((item) => item.selected);
 
   const injectRules = !!setting?.injectRules;
 
@@ -449,6 +496,12 @@ function UserRules() {
         <DownloadButton
           data={JSON.stringify([...rules.list].reverse(), null, "\t")}
           text={i18n("export")}
+        />
+
+        <ShareButton
+          rules={rules}
+          injectRules={injectRules}
+          selectedSub={selectedSub}
         />
 
         <FormControlLabel

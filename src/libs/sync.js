@@ -3,18 +3,22 @@ import {
   DEFAULT_SYNC,
   KV_SETTING_KEY,
   KV_RULES_KEY,
+  KV_RULES_SHARE_KEY,
   STOKEY_SETTING,
   STOKEY_RULES,
+  KV_SALT_SHARE,
 } from "../config";
 import storage from "../libs/storage";
 import { getSetting, getRules } from ".";
 import { apiSyncData } from "../apis";
+import { sha256 } from "./utils";
 
-const loadOpt = async () => (await storage.getObj(STOKEY_SYNC)) || DEFAULT_SYNC;
+export const loadSyncOpt = async () =>
+  (await storage.getObj(STOKEY_SYNC)) || DEFAULT_SYNC;
 
 export const syncSetting = async () => {
   try {
-    const { syncUrl, syncKey, settingUpdateAt } = await loadOpt();
+    const { syncUrl, syncKey, settingUpdateAt } = await loadSyncOpt();
     if (!syncUrl || !syncKey) {
       return;
     }
@@ -44,7 +48,7 @@ export const syncSetting = async () => {
 
 export const syncRules = async () => {
   try {
-    const { syncUrl, syncKey, rulesUpdateAt } = await loadOpt();
+    const { syncUrl, syncKey, rulesUpdateAt } = await loadSyncOpt();
     if (!syncUrl || !syncKey) {
       return;
     }
@@ -70,6 +74,17 @@ export const syncRules = async () => {
   } catch (err) {
     console.log("[sync rules]", err);
   }
+};
+
+export const syncShareRules = async ({ rules, syncUrl, syncKey }) => {
+  await apiSyncData(syncUrl, syncKey, {
+    key: KV_RULES_SHARE_KEY,
+    value: rules,
+    updateAt: Date.now(),
+  });
+  const psk = await sha256(syncKey, KV_SALT_SHARE);
+  const shareUrl = `${syncUrl}?psk=${psk}`;
+  return shareUrl;
 };
 
 export const syncAll = async () => {

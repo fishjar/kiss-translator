@@ -248,4 +248,12 @@ export const I18N = {
     zh: `数据同步密钥`,
     en: `Data Sync Key`,
   },
+  error_got_some_wrong: {
+    zh: "抱歉，出错了！",
+    en: "Sorry, something went wrong!",
+  },
+  error_sync_setting: {
+    zh: "您的同步设置未填写，无法在线分享。",
+    en: "Your sync settings are missing and cannot be shared online.",
+  },
 };

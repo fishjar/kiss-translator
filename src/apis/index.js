@@ -8,9 +8,10 @@ import {
   OPT_LANGS_SPECIAL,
   PROMPT_PLACE_FROM,
   PROMPT_PLACE_TO,
-  KV_HEADER_KEY,
+  KV_SALT_SYNC,
 } from "../config";
 import { getSetting, detectLang } from "../libs";
+import { sha256 } from "../libs/utils";
 
 /**
  * 同步数据
@@ -25,7 +26,7 @@ export const apiSyncData = async (url, key, data) =>
     {
       headers: {
         "Content-type": "application/json",
-        [KV_HEADER_KEY]: key,
+        Authorization: `Bearer ${await sha256(key, KV_SALT_SYNC)}`,
       },
       method: "POST",
       body: JSON.stringify(data),
