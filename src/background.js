@@ -24,6 +24,7 @@ browser.runtime.onInstalled.addListener(() => {
   storage.trySetObj(STOKEY_SETTING, DEFAULT_SETTING);
   storage.trySetObj(STOKEY_RULES, DEFAULT_RULES);
   storage.trySetObj(STOKEY_SYNC, DEFAULT_SYNC);
+  // todo：缓存内置rules
 });
 
 /**

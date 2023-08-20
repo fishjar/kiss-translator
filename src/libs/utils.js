@@ -88,3 +88,13 @@ export const isMatch = (s, p) => {
 
   return p.slice(pIndex).replaceAll("*", "") === "";
 };
+
+/**
+ * 类型检查
+ * @param {*} o 
+ * @returns 
+ */
+export const type = (o) => {
+  const s = Object.prototype.toString.call(o);
+  return s.match(/\[object (.*?)\]/)[1].toLowerCase();
+};

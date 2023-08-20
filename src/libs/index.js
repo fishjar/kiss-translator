@@ -6,10 +6,11 @@ import {
   STOKEY_FAB,
   GLOBLA_RULE,
   GLOBAL_KEY,
-  BUILTIN_RULES,
+  DEFAULT_SUBRULES_LIST,
 } from "../config";
 import { browser } from "./browser";
 import { isMatch } from "./utils";
+import { tryLoadRules } from "./rules";
 
 /**
  * 获取节点列表并转为数组
@@ -53,9 +54,21 @@ export const setFab = async (obj) => await storage.setObj(STOKEY_FAB, obj);
  * @param {string} href
  * @returns
  */
-export const matchRule = (rules, href, { injectRules }) => {
+export const matchRule = async (
+  rules,
+  href,
+  { injectRules, subrulesList = DEFAULT_SUBRULES_LIST }
+) => {
   if (injectRules) {
-    rules.splice(-1, 0, ...BUILTIN_RULES);
+    try {
+      const selectedSub = subrulesList.find((item) => item.selected);
+      if (selectedSub?.url) {
+        const subRules = await tryLoadRules(selectedSub.url);
+        rules.splice(-1, 0, ...subRules);
+      }
+    } catch (err) {
+      console.log("[load injectRules]", err);
+    }
   }
 
   const rule = rules.find((rule) =>

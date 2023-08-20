@@ -94,6 +94,9 @@ const userscriptWebpack = (config, env) => {
 // @connect       api.openai.com
 // @connect       openai.azure.com
 // @connect       workers.dev
+// @connect       github.io
+// @connect       githubusercontent.com
+// @connect       kiss-translator.rayjar.com
 // @run-at        document-end
 // ==/UserScript==
 

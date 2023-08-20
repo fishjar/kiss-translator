@@ -16,6 +16,7 @@ export const STOKEY_SETTING = `${APP_NAME}_setting`;
 export const STOKEY_RULES = `${APP_NAME}_rules`;
 export const STOKEY_SYNC = `${APP_NAME}_sync`;
 export const STOKEY_FAB = `${APP_NAME}_fab`;
+export const STOKEY_RULESCACHE_PREFIX = `${APP_NAME}_rulescache_`;
 
 export const CLIENT_WEB = "web";
 export const CLIENT_CHROME = "chrome";
@@ -147,13 +148,25 @@ export const GLOBLA_RULE = {
   bgColor: "",
 };
 
+// 订阅列表
+export const DEFAULT_SUBRULES_LIST = [
+  {
+    url: "https://kiss-translator.rayjar.com/kiss-translator-rules.json",
+    selected: true,
+  },
+  {
+    url: "https://fishjar.github.io/kiss-translator/kiss-translator-rules.json",
+  },
+];
+
 export const DEFAULT_SETTING = {
   darkMode: false, // 深色模式
   uiLang: "en", // 界面语言
   fetchLimit: DEFAULT_FETCH_LIMIT, // 最大任务数量
   fetchInterval: DEFAULT_FETCH_INTERVAL, // 任务间隔时间
   clearCache: false, // 是否在浏览器下次启动时清除缓存
-  injectRules: true, // 是否注入内置规则
+  injectRules: true, // 是否注入订阅规则
+  subrulesList: DEFAULT_SUBRULES_LIST, // 订阅列表
   googleUrl: "https://translate.googleapis.com/translate_a/single", // 谷歌翻译接口
   openaiUrl: "https://api.openai.com/v1/chat/completions",
   openaiKey: "",

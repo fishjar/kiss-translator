@@ -1,16 +1,10 @@
-import {
-  STOKEY_RULES,
-  OPT_TRANS_ALL,
-  OPT_STYLE_ALL,
-  OPT_LANGS_FROM,
-  OPT_LANGS_TO,
-  GLOBAL_KEY,
-} from "../config";
+import { STOKEY_RULES, DEFAULT_SUBRULES_LIST } from "../config";
 import storage from "../libs/storage";
 import { useStorages } from "./Storage";
-import { matchValue } from "../libs/utils";
 import { syncRules } from "../libs/sync";
 import { useSync } from "./Sync";
+import { useSetting, useSettingUpdate } from "./Setting";
+import { checkRules } from "../libs/rules";
 
 /**
  * 匹配规则增删改查 hook
@@ -61,43 +55,53 @@ export function useRules() {
 
   const merge = async (newRules) => {
     const rules = [...list];
-    const fromLangs = OPT_LANGS_FROM.map((item) => item[0]);
-    const toLangs = OPT_LANGS_TO.map((item) => item[0]);
-    newRules
-      .filter(({ pattern }) => pattern && typeof pattern === "string")
-      .map(
-        ({
-          pattern,
-          selector,
-          translator,
-          fromLang,
-          toLang,
-          textStyle,
-          transOpen,
-          bgColor,
-        }) => ({
-          pattern,
-          selector: typeof selector === "string" ? selector : "",
-          bgColor: typeof bgColor === "string" ? bgColor : "",
-          translator: matchValue([GLOBAL_KEY, ...OPT_TRANS_ALL], translator),
-          fromLang: matchValue([GLOBAL_KEY, ...fromLangs], fromLang),
-          toLang: matchValue([GLOBAL_KEY, ...toLangs], toLang),
-          textStyle: matchValue([GLOBAL_KEY, ...OPT_STYLE_ALL], textStyle),
-          transOpen: matchValue([GLOBAL_KEY, "true", "false"], transOpen),
-        })
-      )
-      .forEach((newRule) => {
-        const rule = rules.find(
-          (oldRule) => oldRule.pattern === newRule.pattern
-        );
-        if (rule) {
-          Object.assign(rule, newRule);
-        } else {
-          rules.unshift(newRule);
-        }
-      });
+    newRules = checkRules(newRules);
+    newRules.forEach((newRule) => {
+      const rule = rules.find((oldRule) => oldRule.pattern === newRule.pattern);
+      if (rule) {
+        Object.assign(rule, newRule);
+      } else {
+        rules.unshift(newRule);
+      }
+    });
     await update(rules);
   };
 
   return { list, add, del, put, merge };
+}
+
+/**
+ * 订阅规则
+ * @returns
+ */
+export function useSubrules() {
+  const setting = useSetting();
+  const updateSetting = useSettingUpdate();
+  const list = setting?.subrulesList || DEFAULT_SUBRULES_LIST;
+
+  const select = async (url) => {
+    const subrulesList = [...list];
+    subrulesList.forEach((item) => {
+      if (item.url === url) {
+        item.selected = true;
+      } else {
+        item.selected = false;
+      }
+    });
+    await updateSetting({ subrulesList });
+  };
+
+  const add = async (url) => {
+    const subrulesList = [...list];
+    subrulesList.push({ url });
+    await updateSetting({ subrulesList });
+  };
+
+  const del = async (url) => {
+    let subrulesList = [...list];
+    subrulesList = subrulesList.filter((item) => item.url !== url);
+    await updateSetting({ subrulesList });
+  };
+
+  return { list, select, add, del };
 }

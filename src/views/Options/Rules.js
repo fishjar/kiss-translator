@@ -2,6 +2,7 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
+import CircularProgress from "@mui/material/CircularProgress";
 import {
   GLOBAL_KEY,
   DEFAULT_RULE,
@@ -9,9 +10,8 @@ import {
   OPT_LANGS_TO,
   OPT_TRANS_ALL,
   OPT_STYLE_ALL,
-  BUILTIN_RULES,
 } from "../../config";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useI18n } from "../../hooks/I18n";
 import Typography from "@mui/material/Typography";
 import Accordion from "@mui/material/Accordion";
@@ -26,6 +26,15 @@ import FileUploadIcon from "@mui/icons-material/FileUpload";
 import { useSetting, useSettingUpdate } from "../../hooks/Setting";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
+import Tabs from "@mui/material/Tabs";
+import Tab from "@mui/material/Tab";
+import Radio from "@mui/material/Radio";
+import RadioGroup from "@mui/material/RadioGroup";
+import DeleteIcon from "@mui/icons-material/Delete";
+import IconButton from "@mui/material/IconButton";
+import SyncIcon from "@mui/icons-material/Sync";
+import { useSubrules } from "../../hooks/Rules";
+import { rulesCache, tryLoadRules } from "../../libs/rules";
 
 function RuleFields({ rule, rules, setShow }) {
   const initFormValues = rule || { ...DEFAULT_RULE, transOpen: "true" };
@@ -384,12 +393,13 @@ function UploadButton({ onChange, text }) {
   );
 }
 
-export default function Rules() {
+function UserRules() {
   const i18n = useI18n();
   const rules = useRules();
   const [showAdd, setShowAdd] = useState(false);
   const setting = useSetting();
   const updateSetting = useSettingUpdate();
+
   const injectRules = !!setting?.injectRules;
 
   const handleImport = (e) => {
@@ -421,54 +431,268 @@ export default function Rules() {
   };
 
   return (
+    <Stack spacing={3}>
+      <Stack direction="row" spacing={2}>
+        <Button
+          size="small"
+          variant="contained"
+          disabled={showAdd}
+          onClick={(e) => {
+            e.preventDefault();
+            setShowAdd(true);
+          }}
+        >
+          {i18n("add")}
+        </Button>
+
+        <UploadButton text={i18n("import")} onChange={handleImport} />
+        <DownloadButton
+          data={JSON.stringify([...rules.list].reverse(), null, "\t")}
+          text={i18n("export")}
+        />
+
+        <FormControlLabel
+          control={
+            <Switch
+              size="small"
+              checked={injectRules}
+              onChange={handleInject}
+            />
+          }
+          label={i18n("inject_rules")}
+        />
+      </Stack>
+
+      {showAdd && <RuleFields rules={rules} setShow={setShowAdd} />}
+
+      <Box>
+        {rules.list.map((rule) => (
+          <RuleAccordion key={rule.pattern} rule={rule} rules={rules} />
+        ))}
+      </Box>
+    </Stack>
+  );
+}
+
+function SubRulesItem({ index, url, selectedUrl, subrules, setRules }) {
+  const [loading, setLoading] = useState(false);
+
+  const handleDel = async () => {
+    try {
+      await subrules.del(url);
+      await rulesCache.del(url);
+    } catch (err) {
+      console.log("[del subrules]", err);
+    }
+  };
+
+  const handleSync = async () => {
+    try {
+      setLoading(true);
+      const rules = await rulesCache.fetch(url);
+      await rulesCache.set(url, rules);
+      if (url === selectedUrl) {
+        setRules(rules);
+      }
+    } catch (err) {
+      console.log("[sync rules]", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Stack direction="row" alignItems="center" spacing={2}>
+      <FormControlLabel value={url} control={<Radio />} label={url} />
+
+      {loading ? (
+        <CircularProgress size={16} />
+      ) : (
+        <IconButton size="small" onClick={handleSync}>
+          <SyncIcon fontSize="small" />
+        </IconButton>
+      )}
+
+      {index !== 0 && selectedUrl !== url && (
+        <IconButton size="small" onClick={handleDel}>
+          <DeleteIcon fontSize="small" />
+        </IconButton>
+      )}
+    </Stack>
+  );
+}
+
+function SubRulesEdit({ subrules }) {
+  const i18n = useI18n();
+  const [inputText, setInputText] = useState("");
+  const [inputError, setInputError] = useState("");
+  const [showInput, setShowInput] = useState(false);
+
+  const handleCancel = (e) => {
+    e.preventDefault();
+    setShowInput(false);
+    setInputText("");
+    setInputError("");
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    const url = inputText.trim();
+
+    if (!url) {
+      setInputError(i18n("error_cant_be_blank"));
+      return;
+    }
+
+    if (subrules.list.find((item) => item.url === url)) {
+      setInputError(i18n("error_duplicate_values"));
+      return;
+    }
+
+    try {
+      const rules = await rulesCache.fetch(url);
+      if (rules.length === 0) {
+        throw new Error("empty rules");
+      }
+      await rulesCache.set(url, rules);
+      await subrules.add(url);
+      setShowInput(false);
+      setInputText("");
+    } catch (err) {
+      console.log("[fetch rules]", err);
+      setInputError(i18n("error_fetch_url"));
+    }
+  };
+
+  const handleInput = (e) => {
+    e.preventDefault();
+    setInputText(e.target.value);
+  };
+
+  const handleFocus = (e) => {
+    e.preventDefault();
+    setInputError("");
+  };
+
+  return (
+    <>
+      <Stack direction="row" alignItems="center" spacing={2}>
+        <Button
+          size="small"
+          variant="contained"
+          disabled={showInput}
+          onClick={(e) => {
+            e.preventDefault();
+            setShowInput(true);
+          }}
+        >
+          {i18n("add")}
+        </Button>
+      </Stack>
+
+      {showInput && (
+        <>
+          <TextField
+            size="small"
+            value={inputText}
+            error={!!inputError}
+            helperText={inputError}
+            onChange={handleInput}
+            onFocus={handleFocus}
+            label={i18n("subscribe_url")}
+          />
+
+          <Stack direction="row" alignItems="center" spacing={2}>
+            <Button size="small" variant="contained" onClick={handleSave}>
+              {i18n("save")}
+            </Button>
+            <Button size="small" variant="outlined" onClick={handleCancel}>
+              {i18n("cancel")}
+            </Button>
+          </Stack>
+        </>
+      )}
+    </>
+  );
+}
+
+function SubRules() {
+  const [loading, setLoading] = useState(false);
+  const [rules, setRules] = useState([]);
+  const subrules = useSubrules();
+  const selectedSub = subrules.list.find((item) => item.selected);
+
+  const handleSelect = (e) => {
+    const url = e.target.value;
+    subrules.select(url);
+  };
+
+  useEffect(() => {
+    (async () => {
+      if (selectedSub?.url) {
+        try {
+          setLoading(true);
+
+          const rules = await tryLoadRules(selectedSub?.url);
+          setRules(rules);
+        } catch (err) {
+          console.log("[load rules]", err);
+        } finally {
+          setLoading(false);
+        }
+      }
+    })();
+  }, [selectedSub?.url]);
+
+  return (
+    <Stack spacing={3}>
+      <SubRulesEdit subrules={subrules} />
+
+      <RadioGroup value={selectedSub?.url} onChange={handleSelect}>
+        {subrules.list.map((item, index) => (
+          <SubRulesItem
+            key={item.url}
+            url={item.url}
+            index={index}
+            selectedUrl={selectedSub?.url}
+            subrules={subrules}
+            setRules={setRules}
+          />
+        ))}
+      </RadioGroup>
+
+      <Box>
+        {loading ? (
+          <center>
+            <CircularProgress />
+          </center>
+        ) : (
+          rules.map((rule) => <RuleAccordion key={rule.pattern} rule={rule} />)
+        )}
+      </Box>
+    </Stack>
+  );
+}
+
+export default function Rules() {
+  const i18n = useI18n();
+  const [activeTab, setActiveTab] = useState(0);
+
+  const handleTabChange = (e, newValue) => {
+    setActiveTab(newValue);
+  };
+
+  return (
     <Box>
       <Stack spacing={3}>
-        <Stack direction="row" spacing={2}>
-          <Button
-            size="small"
-            variant="contained"
-            disabled={showAdd}
-            onClick={(e) => {
-              e.preventDefault();
-              setShowAdd(true);
-            }}
-          >
-            {i18n("add")}
-          </Button>
-
-          <UploadButton text={i18n("import")} onChange={handleImport} />
-          <DownloadButton
-            data={JSON.stringify([...rules.list].reverse(), null, "\t")}
-            text={i18n("export")}
-          />
-
-          <FormControlLabel
-            control={
-              <Switch
-                size="small"
-                checked={injectRules}
-                onChange={handleInject}
-              />
-            }
-            label={i18n("inject_rules")}
-          />
-        </Stack>
-
-        {showAdd && <RuleFields rules={rules} setShow={setShowAdd} />}
-
-        <Box>
-          {rules.list.map((rule) => (
-            <RuleAccordion key={rule.pattern} rule={rule} rules={rules} />
-          ))}
+        <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
+          <Tabs value={activeTab} onChange={handleTabChange}>
+            <Tab label={i18n("edit_rules")} />
+            <Tab label={i18n("subscribe_rules")} />
+          </Tabs>
         </Box>
-
-        {injectRules && (
-          <Box>
-            {BUILTIN_RULES.map((rule) => (
-              <RuleAccordion key={rule.pattern} rule={rule} />
-            ))}
-          </Box>
-        )}
+        <div hidden={activeTab !== 0}>{activeTab === 0 && <UserRules />}</div>
+        <div hidden={activeTab !== 1}>{activeTab === 1 && <SubRules />}</div>
       </Stack>
     </Box>
   );

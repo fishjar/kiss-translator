@@ -105,8 +105,20 @@ export const I18N = {
     en: `Add`,
   },
   inject_rules: {
-    zh: `注入内置规则`,
-    en: `Inject Built-in Rules`,
+    zh: `注入订阅规则`,
+    en: `Inject Subscribe Rules`,
+  },
+  edit_rules: {
+    zh: `编辑规则`,
+    en: `Edit Rules`,
+  },
+  subscribe_rules: {
+    zh: `订阅规则`,
+    en: `Subscribe Rules`,
+  },
+  subscribe_url: {
+    zh: `订阅地址`,
+    en: `Subscribe URL`,
   },
   sync_warn: {
     zh: `如果服务器存在其他客户端同步的数据，第一次同步将直接覆盖本地配置，后面则根据修改时间，新的覆盖旧的。`,
@@ -195,6 +207,10 @@ export const I18N = {
   error_wrong_file_type: {
     zh: `错误的文件类型`,
     en: `Wrong file type`,
+  },
+  error_fetch_url: {
+    zh: `请检查url地址是否正确或稍后再试。`,
+    en: `Please check if the url address is correct or try again later.`,
   },
   openai_api: {
     zh: `OpenAI 接口`,

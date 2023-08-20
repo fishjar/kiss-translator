@@ -1,3 +1,11 @@
+/**
+ * 任务池
+ * @param {*} fn
+ * @param {*} preFn
+ * @param {*} _interval
+ * @param {*} _limit
+ * @returns
+ */
 export const taskPool = (fn, preFn, _interval = 100, _limit = 100) => {
   const pool = [];
   const maxRetry = 2; // 最大重试次数
@@ -6,11 +14,6 @@ export const taskPool = (fn, preFn, _interval = 100, _limit = 100) => {
   let interval = _interval; // 间隔时间
   let timer = null;
 
-  /**
-   * 任务池
-   * @param {*} item
-   * @param {*} preArgs
-   */
   const handleTask = async (item, preArgs) => {
     curCount++;
     const { args, resolve, reject, retry } = item;

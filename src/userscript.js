@@ -29,7 +29,7 @@ import { Translator } from "./libs/translator";
   // 翻译页面
   const setting = await getSetting();
   const rules = await getRules();
-  const rule = matchRule(rules, document.location.href, setting);
+  const rule = await matchRule(rules, document.location.href, setting);
   const translator = new Translator(rule, setting);
 
   // 浮球按钮
