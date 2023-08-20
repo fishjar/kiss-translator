@@ -1499,6 +1499,28 @@ exports.Z = _default;
 
 /***/ }),
 
+/***/ 1997:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+"use strict";
+var __webpack_unused_export__;
+
+"use client";
+
+var _interopRequireDefault = __webpack_require__(4836);
+__webpack_unused_export__ = ({
+  value: true
+});
+exports.Z = void 0;
+var _createSvgIcon = _interopRequireDefault(__webpack_require__(5045));
+var _jsxRuntime = __webpack_require__(6417);
+var _default = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
+  d: "M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"
+}), 'Delete');
+exports.Z = _default;
+
+/***/ }),
+
 /***/ 2163:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
@@ -1675,6 +1697,28 @@ exports.Z = _default;
 
 /***/ }),
 
+/***/ 6845:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+"use strict";
+var __webpack_unused_export__;
+
+"use client";
+
+var _interopRequireDefault = __webpack_require__(4836);
+__webpack_unused_export__ = ({
+  value: true
+});
+exports.Z = void 0;
+var _createSvgIcon = _interopRequireDefault(__webpack_require__(5045));
+var _jsxRuntime = __webpack_require__(6417);
+var _default = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
+  d: "M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"
+}), 'Share');
+exports.Z = _default;
+
+/***/ }),
+
 /***/ 2453:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
@@ -1713,7 +1757,7 @@ Object.defineProperty(exports, "default", ({
     return _utils.createSvgIcon;
   }
 }));
-var _utils = __webpack_require__(3928);
+var _utils = __webpack_require__(8095);
 
 /***/ }),
 
@@ -2632,6 +2676,16 @@ var zIndex = {
 
 /***/ }),
 
+/***/ 5038:
+/***/ (function(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var _mui_utils__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4246);
+
+/* harmony default export */ __webpack_exports__.Z = (_mui_utils__WEBPACK_IMPORTED_MODULE_0__/* ["default"] */ .Z);
+
+/***/ }),
+
 /***/ 1171:
 /***/ (function(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
@@ -2824,7 +2878,7 @@ function createSvgIcon(path, displayName) {
 
 /***/ }),
 
-/***/ 3928:
+/***/ 8095:
 /***/ (function(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -2834,7 +2888,7 @@ __webpack_require__.r(__webpack_exports__);
 // EXPORTS
 __webpack_require__.d(__webpack_exports__, {
   capitalize: function() { return /* reexport */ capitalize/* default */.Z; },
-  createChainedFunction: function() { return /* reexport */ utils_createChainedFunction; },
+  createChainedFunction: function() { return /* reexport */ createChainedFunction/* default */.Z; },
   createSvgIcon: function() { return /* reexport */ createSvgIcon/* default */.Z; },
   debounce: function() { return /* reexport */ debounce/* default */.Z; },
   deprecatedPropType: function() { return /* reexport */ utils_deprecatedPropType; },
@@ -2845,7 +2899,7 @@ __webpack_require__.d(__webpack_exports__, {
   setRef: function() { return /* reexport */ utils_setRef; },
   unstable_ClassNameGenerator: function() { return /* binding */ unstable_ClassNameGenerator; },
   unstable_useEnhancedEffect: function() { return /* reexport */ useEnhancedEffect/* default */.Z; },
-  unstable_useId: function() { return /* reexport */ utils_useId; },
+  unstable_useId: function() { return /* reexport */ useId/* default */.Z; },
   unsupportedProp: function() { return /* reexport */ utils_unsupportedProp; },
   useControlled: function() { return /* reexport */ useControlled/* default */.Z; },
   useEventCallback: function() { return /* reexport */ useEventCallback/* default */.Z; },
@@ -2857,11 +2911,8 @@ __webpack_require__.d(__webpack_exports__, {
 var ClassNameGenerator = __webpack_require__(1271);
 // EXTERNAL MODULE: ./node_modules/@mui/material/utils/capitalize.js
 var capitalize = __webpack_require__(1615);
-// EXTERNAL MODULE: ./node_modules/@mui/utils/esm/createChainedFunction.js
-var createChainedFunction = __webpack_require__(4246);
-;// CONCATENATED MODULE: ./node_modules/@mui/material/utils/createChainedFunction.js
-
-/* harmony default export */ var utils_createChainedFunction = (createChainedFunction/* default */.Z);
+// EXTERNAL MODULE: ./node_modules/@mui/material/utils/createChainedFunction.js
+var createChainedFunction = __webpack_require__(5038);
 // EXTERNAL MODULE: ./node_modules/@mui/material/utils/createSvgIcon.js + 2 modules
 var createSvgIcon = __webpack_require__(1171);
 // EXTERNAL MODULE: ./node_modules/@mui/material/utils/debounce.js
@@ -2935,13 +2986,8 @@ var setRef = __webpack_require__(9265);
 /* harmony default export */ var utils_setRef = (setRef/* default */.Z);
 // EXTERNAL MODULE: ./node_modules/@mui/material/utils/useEnhancedEffect.js
 var useEnhancedEffect = __webpack_require__(3118);
-// EXTERNAL MODULE: ./node_modules/@mui/utils/esm/useId/useId.js
-var useId = __webpack_require__(8334);
-;// CONCATENATED MODULE: ./node_modules/@mui/material/utils/useId.js
-'use client';
-
-
-/* harmony default export */ var utils_useId = (useId/* default */.Z);
+// EXTERNAL MODULE: ./node_modules/@mui/material/utils/useId.js
+var useId = __webpack_require__(7677);
 ;// CONCATENATED MODULE: ./node_modules/@mui/utils/esm/unsupportedProp.js
 function unsupportedProp(props, propName, componentName, location, propFullName) {
   if (true) {
@@ -3118,6 +3164,18 @@ function useControlled(_ref) {
 
 "use strict";
 /* harmony import */ var _mui_utils__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(1577);
+'use client';
+
+
+/* harmony default export */ __webpack_exports__.Z = (_mui_utils__WEBPACK_IMPORTED_MODULE_0__/* ["default"] */ .Z);
+
+/***/ }),
+
+/***/ 7677:
+/***/ (function(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var _mui_utils__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(8334);
 'use client';
 
 
@@ -3614,10 +3672,11 @@ function resolveBreakpointValues(_ref) {
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   $n: function() { return /* binding */ lighten; },
 /* harmony export */   Fq: function() { return /* binding */ alpha; },
+/* harmony export */   _4: function() { return /* binding */ emphasize; },
 /* harmony export */   _j: function() { return /* binding */ darken; },
 /* harmony export */   mi: function() { return /* binding */ getContrastRatio; }
 /* harmony export */ });
-/* unused harmony exports hexToRgb, decomposeColor, colorChannel, private_safeColorChannel, recomposeColor, rgbToHex, hslToRgb, getLuminance, private_safeAlpha, private_safeDarken, private_safeLighten, emphasize, private_safeEmphasize */
+/* unused harmony exports hexToRgb, decomposeColor, colorChannel, private_safeColorChannel, recomposeColor, rgbToHex, hslToRgb, getLuminance, private_safeAlpha, private_safeDarken, private_safeLighten, private_safeEmphasize */
 /* harmony import */ var _mui_utils__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(7219);
 
 /* eslint-disable @typescript-eslint/naming-convention */
@@ -43073,11 +43132,11 @@ ReactMarkdown.propTypes = {
   components: prop_types.object
 };
 ;// CONCATENATED MODULE: ./src/config/rules.js
-var els="li, p, h1, h2, h3, h4, h5, h6, dd";var DEFAULT_SELECTOR=":is(".concat(els,")");var rules_GLOBAL_KEY="*";var DEFAULT_RULE={pattern:"",selector:"",translator:rules_GLOBAL_KEY,fromLang:rules_GLOBAL_KEY,toLang:rules_GLOBAL_KEY,textStyle:rules_GLOBAL_KEY,transOpen:rules_GLOBAL_KEY,bgColor:""};var RULES=[{pattern:"www.google.com/search",selector:"h3, .IsZvec, .VwiC3b"},{pattern:"https://news.google.com/",selector:"h4"},{pattern:"bearblog.dev, www.theverge.com, www.tampermonkey.net/documentation.php",selector:DEFAULT_SELECTOR},{pattern:"themessenger.com",selector:".leading-tight, .leading-tighter, .my-2 p, .font-body p, article ".concat(DEFAULT_SELECTOR)},{pattern:"www.telegraph.co.uk",selector:"article ".concat(DEFAULT_SELECTOR)},{pattern:"www.theguardian.com",selector:".show-underline, .dcr-hup5wm div, .dcr-7vl6y8 div, .dcr-12evv1c, figcaption, article ".concat(DEFAULT_SELECTOR,", [data-cy=\"mostviewed-footer\"] h4")},{pattern:"www.semafor.com",selector:"".concat(DEFAULT_SELECTOR,", .styles_intro__IYj__, [class*=\"styles_description\"]")},{pattern:"www.noemamag.com",selector:".splash__title, .single-card__title, .single-card__type, .single-card__topic, .highlighted-content__title, .single-card__author, article ".concat(DEFAULT_SELECTOR,", .quote__text, .wp-caption-text div")},{pattern:"restofworld.org",selector:"".concat(DEFAULT_SELECTOR,", .recirc-story__headline, .recirc-story__dek")},{pattern:"www.axios.com",selector:".h7, ".concat(DEFAULT_SELECTOR)},{pattern:"www.newyorker.com",selector:".summary-item__hed, .summary-item__dek, .summary-collection-grid__dek, .dqtvfu, .rubric__link, .caption, article ".concat(DEFAULT_SELECTOR,", .HEhan ").concat(DEFAULT_SELECTOR,", .ContributorBioBio-fBolsO")},{pattern:"https://time.com/",selector:"h1, h3, .summary, .video-title, #article-body ".concat(DEFAULT_SELECTOR,", .image-wrap-container .credit.body-caption, .media-heading")},{pattern:"www.dw.com",selector:".ts-teaser-title a, .news-title a, .title a, .teaser-description a, .hbudab h3, .hbudab p, figcaption ,article ".concat(DEFAULT_SELECTOR)},{pattern:"www.bbc.com",selector:"h1, h2, .media__link, .media__summary, article ".concat(DEFAULT_SELECTOR,", .ssrcss-y7krbn-Stack, .ssrcss-1mrs5ns-PromoLink, .ssrcss-18cjaf3-Headline, .gs-c-promo-heading__title, .gs-c-promo-summary, .media__content h3, .article__intro")},{pattern:"www.chinadaily.com.cn",selector:"h1, .tMain [shape=\"rect\"], .cMain [shape=\"rect\"], .photo_art [shape=\"rect\"], .mai_r [shape=\"rect\"], .lisBox li, #Content ".concat(DEFAULT_SELECTOR)},{pattern:"www.facebook.com",selector:"[role=\"main\"] [dir=\"auto\"]"},{pattern:"www.reddit.com",selector:"[slot=\"title\"], [slot=\"text-body\"] ".concat(DEFAULT_SELECTOR,", #-post-rtjson-content p")},{pattern:"www.quora.com",selector:".qu-wordBreak--break-word"},{pattern:"edition.cnn.com",selector:".container__title, .container__headline, .headline__text, .image__caption, [data-type=\"Title\"], .article__content ".concat(DEFAULT_SELECTOR)},{pattern:"www.reuters.com",selector:"#main-content [data-testid=\"Heading\"], #main-content [data-testid=\"Body\"], .article-body__content__17Yit ".concat(DEFAULT_SELECTOR)},{pattern:"www.bloomberg.com",selector:"[data-component=\"headline\"], [data-component=\"related-item-headline\"], [data-component=\"title\"], article ".concat(DEFAULT_SELECTOR)},{pattern:"deno.land, docs.github.com",selector:"main ".concat(DEFAULT_SELECTOR)},{pattern:"doc.rust-lang.org",selector:"#content ".concat(DEFAULT_SELECTOR)},{pattern:"www.indiehackers.com",selector:"h1, h3, .content ".concat(DEFAULT_SELECTOR,", .feed-item__title-link")},{pattern:"platform.openai.com/docs",selector:".docs-body ".concat(DEFAULT_SELECTOR)},{pattern:"en.wikipedia.org",selector:"h1, .mw-parser-output ".concat(DEFAULT_SELECTOR)},{pattern:"stackoverflow.com",selector:"h1, .s-prose p, .comment-body .comment-copy"},{pattern:"www.npmjs.com/package/, developer.chrome.com/docs, medium.com, developers.cloudflare.com, react.dev, create-react-app.dev, pytorch.org/",selector:"article ".concat(DEFAULT_SELECTOR)},{pattern:"news.ycombinator.com",selector:".title, .commtext"},{pattern:"https://github.com/",selector:".markdown-body ".concat(DEFAULT_SELECTOR,", .repo-description p, .Layout-sidebar .f4, .container-lg .py-4 .f5, .container-lg .my-4 .f5, .Box-row .pr-4, .Box-row article .mt-1, [itemprop='description'], .markdown-title, bdi")},{pattern:"twitter.com",selector:"[data-testid='tweetText']"},{pattern:"youtube.com",selector:"h1, #video-title, #content-text, #title, yt-attributed-string>span>span"}];var rules_BUILTIN_RULES=RULES.map(function(item){return _objectSpread2(_objectSpread2(_objectSpread2({},DEFAULT_RULE),item),{},{transOpen:"true"});});
+var els="li, p, h1, h2, h3, h4, h5, h6, dd";var DEFAULT_SELECTOR=":is(".concat(els,")");var rules_GLOBAL_KEY="*";var DEFAULT_RULE={pattern:"",selector:"",translator:rules_GLOBAL_KEY,fromLang:rules_GLOBAL_KEY,toLang:rules_GLOBAL_KEY,textStyle:rules_GLOBAL_KEY,transOpen:rules_GLOBAL_KEY,bgColor:""};var RULES=[{pattern:"www.google.com/search",selector:"h3, .IsZvec, .VwiC3b"},{pattern:"https://news.google.com/",selector:"h4"},{pattern:"bearblog.dev, www.theverge.com, www.tampermonkey.net/documentation.php",selector:DEFAULT_SELECTOR},{pattern:"themessenger.com",selector:".leading-tight, .leading-tighter, .my-2 p, .font-body p, article ".concat(DEFAULT_SELECTOR)},{pattern:"www.telegraph.co.uk",selector:"article ".concat(DEFAULT_SELECTOR)},{pattern:"www.theguardian.com",selector:".show-underline, .dcr-hup5wm div, .dcr-7vl6y8 div, .dcr-12evv1c, figcaption, article ".concat(DEFAULT_SELECTOR,", [data-cy=\"mostviewed-footer\"] h4")},{pattern:"www.semafor.com",selector:"".concat(DEFAULT_SELECTOR,", .styles_intro__IYj__, [class*=\"styles_description\"]")},{pattern:"www.noemamag.com",selector:".splash__title, .single-card__title, .single-card__type, .single-card__topic, .highlighted-content__title, .single-card__author, article ".concat(DEFAULT_SELECTOR,", .quote__text, .wp-caption-text div")},{pattern:"restofworld.org",selector:"".concat(DEFAULT_SELECTOR,", .recirc-story__headline, .recirc-story__dek")},{pattern:"www.axios.com",selector:".h7, ".concat(DEFAULT_SELECTOR)},{pattern:"www.newyorker.com",selector:".summary-item__hed, .summary-item__dek, .summary-collection-grid__dek, .dqtvfu, .rubric__link, .caption, article ".concat(DEFAULT_SELECTOR,", .HEhan ").concat(DEFAULT_SELECTOR,", .ContributorBioBio-fBolsO")},{pattern:"https://time.com/",selector:"h1, h3, .summary, .video-title, #article-body ".concat(DEFAULT_SELECTOR,", .image-wrap-container .credit.body-caption, .media-heading")},{pattern:"www.dw.com",selector:".ts-teaser-title a, .news-title a, .title a, .teaser-description a, .hbudab h3, .hbudab p, figcaption ,article ".concat(DEFAULT_SELECTOR)},{pattern:"www.bbc.com",selector:"h1, h2, .media__link, .media__summary, article ".concat(DEFAULT_SELECTOR,", .ssrcss-y7krbn-Stack, .ssrcss-1mrs5ns-PromoLink, .ssrcss-18cjaf3-Headline, .gs-c-promo-heading__title, .gs-c-promo-summary, .media__content h3, .article__intro")},{pattern:"www.chinadaily.com.cn",selector:"h1, .tMain [shape=\"rect\"], .cMain [shape=\"rect\"], .photo_art [shape=\"rect\"], .mai_r [shape=\"rect\"], .lisBox li, #Content ".concat(DEFAULT_SELECTOR)},{pattern:"www.facebook.com",selector:"[role=\"main\"] [dir=\"auto\"]"},{pattern:"www.reddit.com",selector:"[slot=\"title\"], [slot=\"text-body\"] ".concat(DEFAULT_SELECTOR,", #-post-rtjson-content p")},{pattern:"www.quora.com",selector:".qu-wordBreak--break-word"},{pattern:"edition.cnn.com",selector:".container__title, .container__headline, .headline__text, .image__caption, [data-type=\"Title\"], .article__content ".concat(DEFAULT_SELECTOR)},{pattern:"www.reuters.com",selector:"#main-content [data-testid=\"Heading\"], #main-content [data-testid=\"Body\"], .article-body__content__17Yit ".concat(DEFAULT_SELECTOR)},{pattern:"www.bloomberg.com",selector:"[data-component=\"headline\"], [data-component=\"related-item-headline\"], [data-component=\"title\"], article ".concat(DEFAULT_SELECTOR)},{pattern:"deno.land, docs.github.com",selector:"main ".concat(DEFAULT_SELECTOR)},{pattern:"doc.rust-lang.org",selector:"#content ".concat(DEFAULT_SELECTOR)},{pattern:"www.indiehackers.com",selector:"h1, h3, .content ".concat(DEFAULT_SELECTOR,", .feed-item__title-link")},{pattern:"platform.openai.com/docs",selector:".docs-body ".concat(DEFAULT_SELECTOR)},{pattern:"en.wikipedia.org",selector:"h1, .mw-parser-output ".concat(DEFAULT_SELECTOR)},{pattern:"stackoverflow.com",selector:"h1, .s-prose p, .comment-body .comment-copy"},{pattern:"www.npmjs.com/package/, developer.chrome.com/docs, medium.com, developers.cloudflare.com, react.dev, create-react-app.dev, pytorch.org/",selector:"article ".concat(DEFAULT_SELECTOR)},{pattern:"news.ycombinator.com",selector:".title, .commtext"},{pattern:"https://github.com/",selector:".markdown-body ".concat(DEFAULT_SELECTOR,", .repo-description p, .Layout-sidebar .f4, .container-lg .py-4 .f5, .container-lg .my-4 .f5, .Box-row .pr-4, .Box-row article .mt-1, [itemprop='description'], .markdown-title, bdi")},{pattern:"twitter.com",selector:"[data-testid='tweetText']"},{pattern:"youtube.com",selector:"h1, #video-title, #content-text, #title, yt-attributed-string>span>span"}];var BUILTIN_RULES=RULES.map(function(item){return _objectSpread2(_objectSpread2(_objectSpread2({},DEFAULT_RULE),item),{},{transOpen:"true"});});
 ;// CONCATENATED MODULE: ./src/config/i18n.js
-var UI_LANGS=[["en","English"],["zh","中文"]];var I18N={app_name:{zh:"\u7B80\u7EA6\u7FFB\u8BD1",en:"KISS Translator"},translate:{zh:"\u7FFB\u8BD1",en:"Translate"},basic_setting:{zh:"\u57FA\u672C\u8BBE\u7F6E",en:"Basic Setting"},rules_setting:{zh:"\u89C4\u5219\u8BBE\u7F6E",en:"Rules Setting"},sync_setting:{zh:"\u540C\u6B65\u8BBE\u7F6E",en:"Sync Setting"},about:{zh:"\u5173\u4E8E",en:"About"},about_md:{zh:"README.md",en:"README.en.md"},about_md_local:{zh:"\u8BF7 [\u70B9\u51FB\u8FD9\u91CC](".concat("https://github.com/fishjar/kiss-translator",") \u67E5\u770B\u8BE6\u60C5\u3002"),en:"Please [click here](".concat("https://github.com/fishjar/kiss-translator",") for details.")},ui_lang:{zh:"\u754C\u9762\u8BED\u8A00",en:"Interface Language"},fetch_limit:{zh:"\u6700\u5927\u8BF7\u6C42\u6570\u91CF",en:"Maximum Number Of Request"},fetch_interval:{zh:"\u8BF7\u6C42\u95F4\u9694\u65F6\u95F4(ms)",en:"Request Interval(ms)"},translate_service:{zh:"\u7FFB\u8BD1\u670D\u52A1",en:"Translate Service"},from_lang:{zh:"\u539F\u6587\u8BED\u8A00",en:"Source Language"},to_lang:{zh:"\u76EE\u6807\u8BED\u8A00",en:"Target Language"},text_style:{zh:"\u6587\u5B57\u6837\u5F0F",en:"Text Style"},bg_color:{zh:"\u6837\u5F0F\u989C\u8272",en:"Style Color"},google_api:{zh:"\u8C37\u6B4C\u7FFB\u8BD1\u63A5\u53E3",en:"Google Translate API"},default_selector:{zh:"\u9ED8\u8BA4\u9009\u62E9\u5668",en:"Default selector"},selector_rules:{zh:"\u9009\u62E9\u5668\u89C4\u5219",en:"Selector Rules"},save:{zh:"\u4FDD\u5B58",en:"Save"},edit:{zh:"\u7F16\u8F91",en:"Edit"},cancel:{zh:"\u53D6\u6D88",en:"Cancel"},delete:{zh:"\u5220\u9664",en:"Delete"},reset:{zh:"\u91CD\u7F6E",en:"Reset"},add:{zh:"\u6DFB\u52A0",en:"Add"},inject_rules:{zh:"\u6CE8\u5165\u5185\u7F6E\u89C4\u5219",en:"Inject Built-in Rules"},sync_warn:{zh:"\u5982\u679C\u670D\u52A1\u5668\u5B58\u5728\u5176\u4ED6\u5BA2\u6237\u7AEF\u540C\u6B65\u7684\u6570\u636E\uFF0C\u7B2C\u4E00\u6B21\u540C\u6B65\u5C06\u76F4\u63A5\u8986\u76D6\u672C\u5730\u914D\u7F6E\uFF0C\u540E\u9762\u5219\u6839\u636E\u4FEE\u6539\u65F6\u95F4\uFF0C\u65B0\u7684\u8986\u76D6\u65E7\u7684\u3002",en:"If the server has data synchronized by other clients, the first synchronization will directly overwrite the local configuration, and later, according to the modification time, the new one will overwrite the old one."},about_sync_api:{zh:"\u67E5\u770B\u5173\u4E8E\u6570\u636E\u540C\u6B65\u63A5\u53E3\u90E8\u7F72",en:"View About Data Synchronization Interface Deployment"},style_none:{zh:"\u65E0",en:"None"},under_line:{zh:"\u4E0B\u5212\u76F4\u7EBF",en:"Underline"},dot_line:{zh:"\u4E0B\u5212\u70B9\u72B6\u7EBF",en:"Dotted Underline"},dash_line:{zh:"\u4E0B\u5212\u865A\u7EBF",en:"Dashed Underline"},wavy_line:{zh:"\u4E0B\u5212\u6CE2\u6D6A\u7EBF",en:"Wavy Underline"},fuzzy:{zh:"\u6A21\u7CCA",en:"Fuzzy"},highlight:{zh:"\u9AD8\u4EAE",en:"Highlight"},setting:{zh:"\u8BBE\u7F6E",en:"Setting"},pattern:{zh:"\u5339\u914D\u7F51\u5740",en:"URL pattern"},pattern_helper:{zh:"1\u3001\u652F\u6301\u661F\u53F7(*)\u901A\u914D\u7B26\u30022\u3001\u591A\u4E2AURL\u652F\u6301\u82F1\u6587\u9017\u53F7\u201C,\u201D\u5206\u9694\u3002",en:"1. The asterisk (*) wildcard is supported. 2. Multiple URLs can be separated by English commas \",\"."},selector_helper:{zh:"1\u3001\u9075\u5FAACSS\u9009\u62E9\u5668\u89C4\u5219\u30022\u3001\u7559\u7A7A\u8868\u793A\u91C7\u7528\u5168\u5C40\u8BBE\u7F6E\u3002",en:"1. Follow CSS selector rules. 2. Leave blank to adopt the global setting."},translate_switch:{zh:"\u5F00\u542F\u7FFB\u8BD1",en:"Translate Switch"},default_enabled:{zh:"\u9ED8\u8BA4\u5F00\u542F",en:"Enabled"},default_disabled:{zh:"\u9ED8\u8BA4\u5173\u95ED",en:"Disabled"},selector:{zh:"\u9009\u62E9\u5668",en:"Selector"},import:{zh:"\u5BFC\u5165",en:"Import"},export:{zh:"\u5BFC\u51FA",en:"Export"},error_cant_be_blank:{zh:"\u4E0D\u80FD\u4E3A\u7A7A",en:"Can not be blank"},error_duplicate_values:{zh:"\u5B58\u5728\u91CD\u590D\u7684\u503C",en:"There are duplicate values"},error_wrong_file_type:{zh:"\u9519\u8BEF\u7684\u6587\u4EF6\u7C7B\u578B",en:"Wrong file type"},openai_api:{zh:"OpenAI \u63A5\u53E3",en:"OpenAI API"},openai_key:{zh:"OpenAI \u5BC6\u94A5",en:"OpenAI Key"},openai_model:{zh:"OpenAI \u6A21\u578B",en:"OpenAI Model"},openai_prompt:{zh:"OpenAI \u63D0\u793A\u8BCD",en:"OpenAI Prompt"},clear_cache:{zh:"\u662F\u5426\u6E05\u9664\u7F13\u5B58",en:"Whether clear cache"},clear_cache_never:{zh:"\u4E0D\u6E05\u9664\u7F13\u5B58",en:"Never clear cache"},clear_cache_restart:{zh:"\u91CD\u542F\u6D4F\u89C8\u5668\u65F6\u6E05\u9664\u7F13\u5B58",en:"Clear cache when restarting browser"},data_sync_url:{zh:"\u6570\u636E\u540C\u6B65\u63A5\u53E3",en:"Data Sync API"},data_sync_key:{zh:"\u6570\u636E\u540C\u6B65\u5BC6\u94A5",en:"Data Sync Key"}};
+var UI_LANGS=[["en","English"],["zh","中文"]];var I18N={app_name:{zh:"\u7B80\u7EA6\u7FFB\u8BD1",en:"KISS Translator"},translate:{zh:"\u7FFB\u8BD1",en:"Translate"},basic_setting:{zh:"\u57FA\u672C\u8BBE\u7F6E",en:"Basic Setting"},rules_setting:{zh:"\u89C4\u5219\u8BBE\u7F6E",en:"Rules Setting"},sync_setting:{zh:"\u540C\u6B65\u8BBE\u7F6E",en:"Sync Setting"},about:{zh:"\u5173\u4E8E",en:"About"},about_md:{zh:"README.md",en:"README.en.md"},about_md_local:{zh:"\u8BF7 [\u70B9\u51FB\u8FD9\u91CC](".concat("https://github.com/fishjar/kiss-translator",") \u67E5\u770B\u8BE6\u60C5\u3002"),en:"Please [click here](".concat("https://github.com/fishjar/kiss-translator",") for details.")},ui_lang:{zh:"\u754C\u9762\u8BED\u8A00",en:"Interface Language"},fetch_limit:{zh:"\u6700\u5927\u8BF7\u6C42\u6570\u91CF",en:"Maximum Number Of Request"},fetch_interval:{zh:"\u8BF7\u6C42\u95F4\u9694\u65F6\u95F4(ms)",en:"Request Interval(ms)"},translate_service:{zh:"\u7FFB\u8BD1\u670D\u52A1",en:"Translate Service"},from_lang:{zh:"\u539F\u6587\u8BED\u8A00",en:"Source Language"},to_lang:{zh:"\u76EE\u6807\u8BED\u8A00",en:"Target Language"},text_style:{zh:"\u6587\u5B57\u6837\u5F0F",en:"Text Style"},bg_color:{zh:"\u6837\u5F0F\u989C\u8272",en:"Style Color"},google_api:{zh:"\u8C37\u6B4C\u7FFB\u8BD1\u63A5\u53E3",en:"Google Translate API"},default_selector:{zh:"\u9ED8\u8BA4\u9009\u62E9\u5668",en:"Default selector"},selector_rules:{zh:"\u9009\u62E9\u5668\u89C4\u5219",en:"Selector Rules"},save:{zh:"\u4FDD\u5B58",en:"Save"},edit:{zh:"\u7F16\u8F91",en:"Edit"},cancel:{zh:"\u53D6\u6D88",en:"Cancel"},delete:{zh:"\u5220\u9664",en:"Delete"},reset:{zh:"\u91CD\u7F6E",en:"Reset"},add:{zh:"\u6DFB\u52A0",en:"Add"},inject_rules:{zh:"\u6CE8\u5165\u8BA2\u9605\u89C4\u5219",en:"Inject Subscribe Rules"},edit_rules:{zh:"\u7F16\u8F91\u89C4\u5219",en:"Edit Rules"},subscribe_rules:{zh:"\u8BA2\u9605\u89C4\u5219",en:"Subscribe Rules"},subscribe_url:{zh:"\u8BA2\u9605\u5730\u5740",en:"Subscribe URL"},sync_warn:{zh:"\u5982\u679C\u670D\u52A1\u5668\u5B58\u5728\u5176\u4ED6\u5BA2\u6237\u7AEF\u540C\u6B65\u7684\u6570\u636E\uFF0C\u7B2C\u4E00\u6B21\u540C\u6B65\u5C06\u76F4\u63A5\u8986\u76D6\u672C\u5730\u914D\u7F6E\uFF0C\u540E\u9762\u5219\u6839\u636E\u4FEE\u6539\u65F6\u95F4\uFF0C\u65B0\u7684\u8986\u76D6\u65E7\u7684\u3002",en:"If the server has data synchronized by other clients, the first synchronization will directly overwrite the local configuration, and later, according to the modification time, the new one will overwrite the old one."},about_sync_api:{zh:"\u67E5\u770B\u5173\u4E8E\u6570\u636E\u540C\u6B65\u63A5\u53E3\u90E8\u7F72",en:"View About Data Synchronization Interface Deployment"},style_none:{zh:"\u65E0",en:"None"},under_line:{zh:"\u4E0B\u5212\u76F4\u7EBF",en:"Underline"},dot_line:{zh:"\u4E0B\u5212\u70B9\u72B6\u7EBF",en:"Dotted Underline"},dash_line:{zh:"\u4E0B\u5212\u865A\u7EBF",en:"Dashed Underline"},wavy_line:{zh:"\u4E0B\u5212\u6CE2\u6D6A\u7EBF",en:"Wavy Underline"},fuzzy:{zh:"\u6A21\u7CCA",en:"Fuzzy"},highlight:{zh:"\u9AD8\u4EAE",en:"Highlight"},setting:{zh:"\u8BBE\u7F6E",en:"Setting"},pattern:{zh:"\u5339\u914D\u7F51\u5740",en:"URL pattern"},pattern_helper:{zh:"1\u3001\u652F\u6301\u661F\u53F7(*)\u901A\u914D\u7B26\u30022\u3001\u591A\u4E2AURL\u652F\u6301\u82F1\u6587\u9017\u53F7\u201C,\u201D\u5206\u9694\u3002",en:"1. The asterisk (*) wildcard is supported. 2. Multiple URLs can be separated by English commas \",\"."},selector_helper:{zh:"1\u3001\u9075\u5FAACSS\u9009\u62E9\u5668\u89C4\u5219\u30022\u3001\u7559\u7A7A\u8868\u793A\u91C7\u7528\u5168\u5C40\u8BBE\u7F6E\u3002",en:"1. Follow CSS selector rules. 2. Leave blank to adopt the global setting."},translate_switch:{zh:"\u5F00\u542F\u7FFB\u8BD1",en:"Translate Switch"},default_enabled:{zh:"\u9ED8\u8BA4\u5F00\u542F",en:"Enabled"},default_disabled:{zh:"\u9ED8\u8BA4\u5173\u95ED",en:"Disabled"},selector:{zh:"\u9009\u62E9\u5668",en:"Selector"},import:{zh:"\u5BFC\u5165",en:"Import"},export:{zh:"\u5BFC\u51FA",en:"Export"},error_cant_be_blank:{zh:"\u4E0D\u80FD\u4E3A\u7A7A",en:"Can not be blank"},error_duplicate_values:{zh:"\u5B58\u5728\u91CD\u590D\u7684\u503C",en:"There are duplicate values"},error_wrong_file_type:{zh:"\u9519\u8BEF\u7684\u6587\u4EF6\u7C7B\u578B",en:"Wrong file type"},error_fetch_url:{zh:"\u8BF7\u68C0\u67E5url\u5730\u5740\u662F\u5426\u6B63\u786E\u6216\u7A0D\u540E\u518D\u8BD5\u3002",en:"Please check if the url address is correct or try again later."},openai_api:{zh:"OpenAI \u63A5\u53E3",en:"OpenAI API"},openai_key:{zh:"OpenAI \u5BC6\u94A5",en:"OpenAI Key"},openai_model:{zh:"OpenAI \u6A21\u578B",en:"OpenAI Model"},openai_prompt:{zh:"OpenAI \u63D0\u793A\u8BCD",en:"OpenAI Prompt"},clear_cache:{zh:"\u662F\u5426\u6E05\u9664\u7F13\u5B58",en:"Whether clear cache"},clear_cache_never:{zh:"\u4E0D\u6E05\u9664\u7F13\u5B58",en:"Never clear cache"},clear_cache_restart:{zh:"\u91CD\u542F\u6D4F\u89C8\u5668\u65F6\u6E05\u9664\u7F13\u5B58",en:"Clear cache when restarting browser"},data_sync_url:{zh:"\u6570\u636E\u540C\u6B65\u63A5\u53E3",en:"Data Sync API"},data_sync_key:{zh:"\u6570\u636E\u540C\u6B65\u5BC6\u94A5",en:"Data Sync Key"},error_got_some_wrong:{zh:"抱歉，出错了！",en:"Sorry, something went wrong!"},error_sync_setting:{zh:"您的同步设置未填写，无法在线分享。",en:"Your sync settings are missing and cannot be shared online."}};
 ;// CONCATENATED MODULE: ./src/config/index.js
-var _OPT_LANGS_SPECIAL;var APP_NAME="KISS Translator".trim().split(/\s+/).join("-");var APP_LCNAME=APP_NAME.toLowerCase();var STOKEY_MSAUTH="".concat(APP_NAME,"_msauth");var STOKEY_SETTING="".concat(APP_NAME,"_setting");var STOKEY_RULES="".concat(APP_NAME,"_rules");var STOKEY_SYNC="".concat(APP_NAME,"_sync");var config_STOKEY_FAB="".concat(APP_NAME,"_fab");var CLIENT_WEB="web";var CLIENT_CHROME="chrome";var CLIENT_EDGE="edge";var CLIENT_FIREFOX="firefox";var CLIENT_USERSCRIPT="userscript";var CLIENT_EXTS=[CLIENT_CHROME,CLIENT_EDGE,CLIENT_FIREFOX];var KV_HEADER_KEY="X-KISS-PSK";var KV_RULES_KEY="KT_RULES";var KV_SETTING_KEY="KT_SETTING";var CACHE_NAME="".concat(APP_NAME,"_cache");var MSG_FETCH="fetch";var config_MSG_FETCH_LIMIT="fetch_limit";var config_MSG_FETCH_CLEAR="fetch_clear";var MSG_TRANS_TOGGLE="trans_toggle";var MSG_TRANS_GETRULE="trans_getrule";var MSG_TRANS_PUTRULE="trans_putrule";var MSG_TRANS_CURRULE="trans_currule";var EVENT_KISS="kissEvent";var THEME_LIGHT="light";var THEME_DARK="dark";var URL_KISS_WORKER="https://github.com/fishjar/kiss-worker";var URL_RAW_PREFIX="https://raw.githubusercontent.com/fishjar/kiss-translator/master";var URL_MICROSOFT_AUTH="https://edge.microsoft.com/translate/auth";var config_URL_MICROSOFT_TRANS="https://api-edge.cognitive.microsofttranslator.com/translate";var config_OPT_TRANS_GOOGLE="Google";var config_OPT_TRANS_MICROSOFT="Microsoft";var config_OPT_TRANS_OPENAI="OpenAI";var OPT_TRANS_ALL=[config_OPT_TRANS_GOOGLE,config_OPT_TRANS_MICROSOFT,config_OPT_TRANS_OPENAI];var OPT_LANGS_TO=[["en","English - English"],["zh-CN","Simplified Chinese - 简体中文"],["zh-TW","Traditional Chinese - 繁體中文"],["ar","Arabic - العربية"],["bg","Bulgarian - Български"],["ca","Catalan - Català"],["hr","Croatian - Hrvatski"],["cs","Czech - Čeština"],["da","Danish - Dansk"],["nl","Dutch - Nederlands"],["fi","Finnish - Suomi"],["fr","French - Français"],["de","German - Deutsch"],["el","Greek - Ελληνικά"],["hi","Hindi - हिन्दी"],["hu","Hungarian - Magyar"],["id","Indonesian - Indonesia"],["it","Italian - Italiano"],["ja","Japanese - 日本語"],["ko","Korean - 한국어"],["ms","Malay - Melayu"],["mt","Maltese - Malti"],["nb","Norwegian - Norsk Bokmål"],["pl","Polish - Polski"],["pt","Portuguese - Português"],["ro","Romanian - Română"],["ru","Russian - Русский"],["sk","Slovak - Slovenčina"],["sl","Slovenian - Slovenščina"],["es","Spanish - Español"],["sv","Swedish - Svenska"],["ta","Tamil - தமிழ்"],["te","Telugu - తెలుగు"],["th","Thai - ไทย"],["tr","Turkish - Türkçe"],["uk","Ukrainian - Українська"],["vi","Vietnamese - Tiếng Việt"]];var OPT_LANGS_FROM=[["auto","Auto-detect"]].concat(OPT_LANGS_TO);var config_OPT_LANGS_SPECIAL=(_OPT_LANGS_SPECIAL={},(0,defineProperty/* default */.Z)(_OPT_LANGS_SPECIAL,config_OPT_TRANS_MICROSOFT,new Map([["auto",""],["zh-CN","zh-Hans"],["zh-TW","zh-Hant"]])),(0,defineProperty/* default */.Z)(_OPT_LANGS_SPECIAL,config_OPT_TRANS_OPENAI,new Map(OPT_LANGS_FROM.map(function(_ref){var _ref2=(0,slicedToArray/* default */.Z)(_ref,2),key=_ref2[0],val=_ref2[1];return[key,val.split(" - ")[0]];}))),_OPT_LANGS_SPECIAL);var OPT_STYLE_NONE="style_none";// 无
+var _OPT_LANGS_SPECIAL;var APP_NAME="KISS Translator".trim().split(/\s+/).join("-");var APP_LCNAME=APP_NAME.toLowerCase();var STOKEY_MSAUTH="".concat(APP_NAME,"_msauth");var STOKEY_SETTING="".concat(APP_NAME,"_setting");var STOKEY_RULES="".concat(APP_NAME,"_rules");var STOKEY_SYNC="".concat(APP_NAME,"_sync");var config_STOKEY_FAB="".concat(APP_NAME,"_fab");var STOKEY_RULESCACHE_PREFIX="".concat(APP_NAME,"_rulescache_");var CLIENT_WEB="web";var CLIENT_CHROME="chrome";var CLIENT_EDGE="edge";var CLIENT_FIREFOX="firefox";var CLIENT_USERSCRIPT="userscript";var CLIENT_EXTS=[CLIENT_CHROME,CLIENT_EDGE,CLIENT_FIREFOX];var KV_RULES_KEY="KT_RULES";var KV_RULES_SHARE_KEY="KT_RULES_SHARE";var KV_SETTING_KEY="KT_SETTING";var KV_SALT_SYNC="KISS-Translator-SYNC";var KV_SALT_SHARE="KISS-Translator-SHARE";var CACHE_NAME="".concat(APP_NAME,"_cache");var MSG_FETCH="fetch";var config_MSG_FETCH_LIMIT="fetch_limit";var config_MSG_FETCH_CLEAR="fetch_clear";var MSG_TRANS_TOGGLE="trans_toggle";var MSG_TRANS_GETRULE="trans_getrule";var MSG_TRANS_PUTRULE="trans_putrule";var MSG_TRANS_CURRULE="trans_currule";var EVENT_KISS="kissEvent";var THEME_LIGHT="light";var THEME_DARK="dark";var URL_KISS_WORKER="https://github.com/fishjar/kiss-worker";var URL_RAW_PREFIX="https://raw.githubusercontent.com/fishjar/kiss-translator/master";var URL_MICROSOFT_AUTH="https://edge.microsoft.com/translate/auth";var config_URL_MICROSOFT_TRANS="https://api-edge.cognitive.microsofttranslator.com/translate";var config_OPT_TRANS_GOOGLE="Google";var config_OPT_TRANS_MICROSOFT="Microsoft";var config_OPT_TRANS_OPENAI="OpenAI";var OPT_TRANS_ALL=[config_OPT_TRANS_GOOGLE,config_OPT_TRANS_MICROSOFT,config_OPT_TRANS_OPENAI];var OPT_LANGS_TO=[["en","English - English"],["zh-CN","Simplified Chinese - 简体中文"],["zh-TW","Traditional Chinese - 繁體中文"],["ar","Arabic - العربية"],["bg","Bulgarian - Български"],["ca","Catalan - Català"],["hr","Croatian - Hrvatski"],["cs","Czech - Čeština"],["da","Danish - Dansk"],["nl","Dutch - Nederlands"],["fi","Finnish - Suomi"],["fr","French - Français"],["de","German - Deutsch"],["el","Greek - Ελληνικά"],["hi","Hindi - हिन्दी"],["hu","Hungarian - Magyar"],["id","Indonesian - Indonesia"],["it","Italian - Italiano"],["ja","Japanese - 日本語"],["ko","Korean - 한국어"],["ms","Malay - Melayu"],["mt","Maltese - Malti"],["nb","Norwegian - Norsk Bokmål"],["pl","Polish - Polski"],["pt","Portuguese - Português"],["ro","Romanian - Română"],["ru","Russian - Русский"],["sk","Slovak - Slovenčina"],["sl","Slovenian - Slovenščina"],["es","Spanish - Español"],["sv","Swedish - Svenska"],["ta","Tamil - தமிழ்"],["te","Telugu - తెలుగు"],["th","Thai - ไทย"],["tr","Turkish - Türkçe"],["uk","Ukrainian - Українська"],["vi","Vietnamese - Tiếng Việt"]];var OPT_LANGS_FROM=[["auto","Auto-detect"]].concat(OPT_LANGS_TO);var config_OPT_LANGS_SPECIAL=(_OPT_LANGS_SPECIAL={},(0,defineProperty/* default */.Z)(_OPT_LANGS_SPECIAL,config_OPT_TRANS_MICROSOFT,new Map([["auto",""],["zh-CN","zh-Hans"],["zh-TW","zh-Hant"]])),(0,defineProperty/* default */.Z)(_OPT_LANGS_SPECIAL,config_OPT_TRANS_OPENAI,new Map(OPT_LANGS_FROM.map(function(_ref){var _ref2=(0,slicedToArray/* default */.Z)(_ref,2),key=_ref2[0],val=_ref2[1];return[key,val.split(" - ")[0]];}))),_OPT_LANGS_SPECIAL);var OPT_STYLE_NONE="style_none";// 无
 var OPT_STYLE_LINE="under_line";// 下划线
 var OPT_STYLE_DOTLINE="dot_line";// 点状线
 var OPT_STYLE_DASHLINE="dash_line";// 虚线
@@ -43090,12 +43149,14 @@ var config_PROMPT_PLACE_FROM="{{from}}";// 占位符
 var config_PROMPT_PLACE_TO="{{to}}";// 占位符
 var DEFAULT_COLOR="#209CEE";// 默认高亮背景色/线条颜色
 // 全局规则
-var config_GLOBLA_RULE={pattern:"*",selector:DEFAULT_SELECTOR,translator:config_OPT_TRANS_MICROSOFT,fromLang:"auto",toLang:"zh-CN",textStyle:OPT_STYLE_DASHLINE,transOpen:"false",bgColor:""};var DEFAULT_SETTING={darkMode:false,// 深色模式
+var config_GLOBLA_RULE={pattern:"*",selector:DEFAULT_SELECTOR,translator:config_OPT_TRANS_MICROSOFT,fromLang:"auto",toLang:"zh-CN",textStyle:OPT_STYLE_DASHLINE,transOpen:"false",bgColor:""};// 订阅列表
+var config_DEFAULT_SUBRULES_LIST=[{url:"https://kiss-translator.rayjar.com/kiss-translator-rules.json",selected:true},{url:"https://fishjar.github.io/kiss-translator/kiss-translator-rules.json"}];var DEFAULT_SETTING={darkMode:false,// 深色模式
 uiLang:"en",// 界面语言
 fetchLimit:DEFAULT_FETCH_LIMIT,// 最大任务数量
 fetchInterval:DEFAULT_FETCH_INTERVAL,// 任务间隔时间
 clearCache:false,// 是否在浏览器下次启动时清除缓存
-injectRules:true,// 是否注入内置规则
+injectRules:true,// 是否注入订阅规则
+subrulesList:config_DEFAULT_SUBRULES_LIST,// 订阅列表
 googleUrl:"https://translate.googleapis.com/translate_a/single",// 谷歌翻译接口
 openaiUrl:"https://api.openai.com/v1/chat/completions",openaiKey:"",openaiModel:"gpt-4",openaiPrompt:"You will be provided with a sentence in ".concat(config_PROMPT_PLACE_FROM,", and your task is to translate it into ").concat(config_PROMPT_PLACE_TO,".")};var DEFAULT_RULES=[config_GLOBLA_RULE];var TRANS_MIN_LENGTH=5;// 最短翻译长度
 var TRANS_MAX_LENGTH=5000;// 最长翻译长度
@@ -43127,6 +43188,122 @@ return function(){if(browser_isExt){browser_browser.storage.onChanged.removeList
  * sync hook
  * @returns
  */function useSync(){var storages=useStorages();var opt=storages===null||storages===void 0?void 0:storages[STOKEY_SYNC];var update=(0,react.useCallback)(/*#__PURE__*/function(){var _ref=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(obj){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:_context.next=2;return libs_storage.putObj(STOKEY_SYNC,obj);case 2:case"end":return _context.stop();}},_callee);}));return function(_x){return _ref.apply(this,arguments);};}(),[]);return{opt:opt,update:update};}
+;// CONCATENATED MODULE: ./src/libs/msg.js
+/**
+ * 发送消息给background
+ * @param {*} action
+ * @param {*} args
+ * @returns
+ */var msg_sendMsg=function sendMsg(action,args){var _browser$runtime;return browser_browser===null||browser_browser===void 0?void 0:(_browser$runtime=browser_browser.runtime)===null||_browser$runtime===void 0?void 0:_browser$runtime.sendMessage({action:action,args:args});};/**
+ * 发送消息给当前页面
+ * @param {*} action
+ * @param {*} args
+ * @returns
+ */var sendTabMsg=/*#__PURE__*/(/* unused pure expression or super */ null && (function(){var _ref=_asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee(action,args){var tabs;return _regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:_context.next=2;return browser===null||browser===void 0?void 0:browser.tabs.query({active:true,currentWindow:true});case 2:tabs=_context.sent;_context.next=5;return browser===null||browser===void 0?void 0:browser.tabs.sendMessage(tabs[0].id,{action:action,args:args});case 5:return _context.abrupt("return",_context.sent);case 6:case"end":return _context.stop();}},_callee);}));return function sendTabMsg(_x,_x2){return _ref.apply(this,arguments);};}()));
+;// CONCATENATED MODULE: ./src/libs/pool.js
+/**
+ * 任务池
+ * @param {*} fn
+ * @param {*} preFn
+ * @param {*} _interval
+ * @param {*} _limit
+ * @returns
+ */var taskPool=function taskPool(fn,preFn){var _interval=arguments.length>2&&arguments[2]!==undefined?arguments[2]:100;var _limit=arguments.length>3&&arguments[3]!==undefined?arguments[3]:100;var pool=[];var maxRetry=2;// 最大重试次数
+var maxCount=_limit;// 最大数量
+var curCount=0;// 当前数量
+var interval=_interval;// 间隔时间
+var timer=null;var handleTask=/*#__PURE__*/function(){var _ref=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(item,preArgs){var args,resolve,reject,retry,res;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:curCount++;args=item.args,resolve=item.resolve,reject=item.reject,retry=item.retry;_context.prev=2;_context.next=5;return fn(_objectSpread2(_objectSpread2({},args),preArgs));case 5:res=_context.sent;resolve(res);_context.next=12;break;case 9:_context.prev=9;_context.t0=_context["catch"](2);if(retry<maxRetry){pool.push({args:args,resolve:resolve,reject:reject,retry:retry+1});}else{reject(_context.t0);}case 12:_context.prev=12;curCount--;return _context.finish(12);case 15:case"end":return _context.stop();}},_callee,null,[[2,9,12,15]]);}));return function handleTask(_x,_x2){return _ref.apply(this,arguments);};}();var run=/*#__PURE__*/function(){var _ref2=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(){var item,preArgs;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:// console.log("timer", timer);
+timer&&clearTimeout(timer);timer=setTimeout(run,interval);if(!(curCount<maxCount)){_context2.next=16;break;}item=pool.shift();if(!item){_context2.next=16;break;}_context2.prev=5;_context2.next=8;return preFn(item.args);case 8:preArgs=_context2.sent;handleTask(item,preArgs);_context2.next=16;break;case 12:_context2.prev=12;_context2.t0=_context2["catch"](5);console.log("[preFn]",_context2.t0);pool.push(item);case 16:case"end":return _context2.stop();}},_callee2,null,[[5,12]]);}));return function run(){return _ref2.apply(this,arguments);};}();return{push:function(){var _push=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee3(args){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:if(!timer){run();}return _context3.abrupt("return",new Promise(function(resolve,reject){pool.push({args:args,resolve:resolve,reject:reject,retry:0});}));case 2:case"end":return _context3.stop();}},_callee3);}));function push(_x3){return _push.apply(this,arguments);}return push;}(),update:function update(){var _interval=arguments.length>0&&arguments[0]!==undefined?arguments[0]:100;var _limit=arguments.length>1&&arguments[1]!==undefined?arguments[1]:100;if(_interval>=0&&_interval<=5000&&_interval!==interval){interval=_interval;}if(_limit>=1&&_limit<=100&&_limit!==maxCount){maxCount=_limit;}},clear:function clear(){pool.length=0;curCount=0;timer&&clearTimeout(timer);timer=null;}};};
+;// CONCATENATED MODULE: ./src/libs/auth.js
+var parseMSToken=function parseMSToken(token){try{return JSON.parse(atob(token.split(".")[1])).exp;}catch(err){console.log("[parseMSToken]",err);}return 0;};/**
+ * 闭包缓存token，减少对storage查询
+ * @returns
+ */var _msAuth=function _msAuth(){var _ref={},token=_ref.token,exp=_ref.exp;return/*#__PURE__*/asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(){var now,res;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:// 查询内存缓存
+now=Date.now();if(!(token&&exp*1000>now+1000)){_context.next=3;break;}return _context.abrupt("return",[token,exp]);case 3:_context.next=5;return libs_storage.getObj(STOKEY_MSAUTH);case 5:_context.t0=_context.sent;if(_context.t0){_context.next=8;break;}_context.t0={};case 8:res=_context.t0;token=res.token;exp=res.exp;if(!(token&&exp*1000>now+1000)){_context.next=13;break;}return _context.abrupt("return",[token,exp]);case 13:_context.next=15;return fetchData(URL_MICROSOFT_AUTH);case 15:token=_context.sent;exp=parseMSToken(token);_context.next=19;return libs_storage.setObj(STOKEY_MSAUTH,{token:token,exp:exp});case 19:return _context.abrupt("return",[token,exp]);case 20:case"end":return _context.stop();}},_callee);}));};var msAuth=_msAuth();
+;// CONCATENATED MODULE: ./src/libs/fetch.js
+/**
+ * 油猴脚本的请求封装
+ * @param {*} input
+ * @param {*} init
+ * @returns
+ */var fetchGM=/*#__PURE__*/function(){var _ref=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(input){var _ref2,_ref2$method,method,headers,body,_args=arguments;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:_ref2=_args.length>1&&_args[1]!==undefined?_args[1]:{},_ref2$method=_ref2.method,method=_ref2$method===void 0?"GET":_ref2$method,headers=_ref2.headers,body=_ref2.body;return _context.abrupt("return",new Promise(function(resolve,reject){GM.xmlHttpRequest({method:method,url:input,headers:headers,data:body,onload:function onload(response){if(response.status===200){var _headers=new Headers();response.responseHeaders.split("\n").forEach(function(line){var _line$split$map=line.split(":").map(function(item){return item.trim();}),_line$split$map2=(0,slicedToArray/* default */.Z)(_line$split$map,2),name=_line$split$map2[0],value=_line$split$map2[1];if(name&&value){_headers.append(name,value);}});resolve(new Response(response.response,{headers:_headers}));}else{reject(new Error("[".concat(response.status,"] ").concat(response.responseText)));}},onerror:reject});}));case 2:case"end":return _context.stop();}},_callee);}));return function fetchGM(_x){return _ref.apply(this,arguments);};}();/**
+ * 构造缓存 request
+ * @param {*} request
+ * @returns
+ */var newCacheReq=/*#__PURE__*/function(){var _ref3=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(request){var body,cacheUrl;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:if(!(request.method!=="GET")){_context2.next=7;break;}_context2.next=3;return request.text();case 3:body=_context2.sent;cacheUrl=new URL(request.url);cacheUrl.pathname+=body;request=new Request(cacheUrl.toString(),{method:"GET"});case 7:return _context2.abrupt("return",request);case 8:case"end":return _context2.stop();}},_callee2);}));return function newCacheReq(_x2){return _ref3.apply(this,arguments);};}();/**
+ * 发起请求
+ * @param {*} param0
+ * @returns
+ */var fetchApi=/*#__PURE__*/function(){var _ref5=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee3(_ref4){var input,init,useUnsafe,translator,token;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:input=_ref4.input,init=_ref4.init,useUnsafe=_ref4.useUnsafe,translator=_ref4.translator,token=_ref4.token;if(translator===config_OPT_TRANS_MICROSOFT){init.headers["Authorization"]="Bearer ".concat(token);}else if(translator===config_OPT_TRANS_OPENAI){init.headers["Authorization"]="Bearer ".concat(token);// // OpenAI
+init.headers["api-key"]=token;// Azure OpenAI
+}if(!(isGm&&!useUnsafe)){_context3.next=4;break;}return _context3.abrupt("return",fetchGM(input,init));case 4:return _context3.abrupt("return",fetch(input,init));case 5:case"end":return _context3.stop();}},_callee3);}));return function fetchApi(_x3){return _ref5.apply(this,arguments);};}();/**
+ * 请求池实例
+ */var fetchPool=taskPool(fetchApi,/*#__PURE__*/function(){var _ref7=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee4(_ref6){var translator,_yield$msAuth,_yield$msAuth2,token;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee4$(_context4){while(1)switch(_context4.prev=_context4.next){case 0:translator=_ref6.translator;if(!(translator===config_OPT_TRANS_MICROSOFT)){_context4.next=8;break;}_context4.next=4;return msAuth();case 4:_yield$msAuth=_context4.sent;_yield$msAuth2=(0,slicedToArray/* default */.Z)(_yield$msAuth,1);token=_yield$msAuth2[0];return _context4.abrupt("return",{token:token});case 8:return _context4.abrupt("return",{});case 9:case"end":return _context4.stop();}},_callee4);}));return function(_x4){return _ref7.apply(this,arguments);};}(),DEFAULT_FETCH_INTERVAL,DEFAULT_FETCH_LIMIT);/**
+ * 请求数据统一接口
+ * @param {*} input
+ * @param {*} init
+ * @param {*} opts
+ * @returns
+ */var fetchData=/*#__PURE__*/function(){var _ref8=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee5(input,init){var _ref9,useCache,usePool,translator,useUnsafe,token,cacheReq,cache,res,_res,contentType,_args5=arguments;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee5$(_context5){while(1)switch(_context5.prev=_context5.next){case 0:_ref9=_args5.length>2&&_args5[2]!==undefined?_args5[2]:{},useCache=_ref9.useCache,usePool=_ref9.usePool,translator=_ref9.translator,useUnsafe=_ref9.useUnsafe,token=_ref9.token;_context5.next=3;return newCacheReq(new Request(input,init));case 3:cacheReq=_context5.sent;_context5.next=6;return caches.open(CACHE_NAME);case 6:cache=_context5.sent;if(!useCache){_context5.next=17;break;}_context5.prev=8;_context5.next=11;return cache.match(cacheReq);case 11:res=_context5.sent;_context5.next=17;break;case 14:_context5.prev=14;_context5.t0=_context5["catch"](8);console.log("[cache match]",_context5.t0);case 17:if(res){_context5.next=38;break;}if(!usePool){_context5.next=24;break;}_context5.next=21;return fetchPool.push({input:input,init:init,useUnsafe:useUnsafe,translator:translator,token:token});case 21:res=_context5.sent;_context5.next=27;break;case 24:_context5.next=26;return fetchApi({input:input,init:init,useUnsafe:useUnsafe,translator:translator,token:token});case 26:res=_context5.sent;case 27:if((_res=res)!==null&&_res!==void 0&&_res.ok){_context5.next=29;break;}throw new Error("response: ".concat(res.statusText));case 29:if(!useCache){_context5.next=38;break;}_context5.prev=30;_context5.next=33;return cache.put(cacheReq,res.clone());case 33:_context5.next=38;break;case 35:_context5.prev=35;_context5.t1=_context5["catch"](30);console.log("[cache put]",_context5.t1);case 38:contentType=res.headers.get("Content-Type");if(!(contentType!==null&&contentType!==void 0&&contentType.includes("json"))){_context5.next=43;break;}_context5.next=42;return res.json();case 42:return _context5.abrupt("return",_context5.sent);case 43:_context5.next=45;return res.text();case 45:return _context5.abrupt("return",_context5.sent);case 46:case"end":return _context5.stop();}},_callee5,null,[[8,14],[30,35]]);}));return function fetchData(_x5,_x6){return _ref8.apply(this,arguments);};}();/**
+ * fetch 兼容性封装
+ * @param {*} input
+ * @param {*} init
+ * @param {*} opts
+ * @returns
+ */var fetch_fetchPolyfill=/*#__PURE__*/function(){var _ref10=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee6(input,init,opts){var res;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee6$(_context6){while(1)switch(_context6.prev=_context6.next){case 0:if(!browser_isExt){_context6.next=7;break;}_context6.next=3;return msg_sendMsg(MSG_FETCH,{input:input,init:init,opts:opts});case 3:res=_context6.sent;if(!res.error){_context6.next=6;break;}throw new Error(res.error);case 6:return _context6.abrupt("return",res.data);case 7:_context6.next=9;return fetchData(input,init,opts);case 9:return _context6.abrupt("return",_context6.sent);case 10:case"end":return _context6.stop();}},_callee6);}));return function fetchPolyfill(_x7,_x8,_x9){return _ref10.apply(this,arguments);};}();/**
+ * 更新 fetch pool 参数
+ * @param {*} interval
+ * @param {*} limit
+ */var fetchUpdate=/*#__PURE__*/(/* unused pure expression or super */ null && (function(){var _ref11=_asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee7(interval,limit){var res;return _regeneratorRuntime().wrap(function _callee7$(_context7){while(1)switch(_context7.prev=_context7.next){case 0:if(!isExt){_context7.next=8;break;}_context7.next=3;return sendMsg(MSG_FETCH_LIMIT,{interval:interval,limit:limit});case 3:res=_context7.sent;if(!res.error){_context7.next=6;break;}throw new Error(res.error);case 6:_context7.next=9;break;case 8:fetchPool.update(interval,limit);case 9:case"end":return _context7.stop();}},_callee7);}));return function fetchUpdate(_x10,_x11){return _ref11.apply(this,arguments);};}()));/**
+ * 清空任务池
+ */var fetchClear=/*#__PURE__*/(/* unused pure expression or super */ null && (function(){var _ref12=_asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee8(){var res;return _regeneratorRuntime().wrap(function _callee8$(_context8){while(1)switch(_context8.prev=_context8.next){case 0:if(!isExt){_context8.next=8;break;}_context8.next=3;return sendMsg(MSG_FETCH_CLEAR);case 3:res=_context8.sent;if(!res.error){_context8.next=6;break;}throw new Error(res.error);case 6:_context8.next=9;break;case 8:fetchPool.clear();case 9:case"end":return _context8.stop();}},_callee8);}));return function fetchClear(){return _ref12.apply(this,arguments);};}()));
+;// CONCATENATED MODULE: ./src/libs/utils.js
+/**
+ * 限制数字大小
+ * @param {*} num
+ * @param {*} min
+ * @param {*} max
+ * @returns
+ */var limitNumber=function limitNumber(num){var min=arguments.length>1&&arguments[1]!==undefined?arguments[1]:0;var max=arguments.length>2&&arguments[2]!==undefined?arguments[2]:100;var number=parseInt(num);if(Number.isNaN(number)||number<min){return min;}else if(number>max){return max;}return number;};/**
+ * 匹配是否为数组中的值
+ * @param {*} arr
+ * @param {*} val
+ * @returns
+ */var matchValue=function matchValue(arr,val){if(arr.length===0||arr.includes(val)){return val;}return arr[0];};/**
+ * 等待
+ * @param {*} delay
+ * @returns
+ */var sleep=function sleep(delay){return new Promise(function(resolve){return setTimeout(resolve,delay);});};/**
+ * 防抖函数
+ * @param {*} func
+ * @param {*} delay
+ * @returns
+ */var debounce=function debounce(func){var delay=arguments.length>1&&arguments[1]!==undefined?arguments[1]:200;var timer;return function(){for(var _len=arguments.length,args=new Array(_len),_key=0;_key<_len;_key++){args[_key]=arguments[_key];}timer&&clearTimeout(timer);timer=setTimeout(function(){func.apply(void 0,args);},delay);};};/**
+ * 字符串通配符(*)匹配
+ * @param {*} s
+ * @param {*} p
+ * @returns
+ */var utils_isMatch=function isMatch(s,p){if(s.length===0||p.length===0){return false;}p="*".concat(p,"*");var sIndex=0,pIndex=0;var sRecord=-1,pRecord=-1;while(sIndex<s.length&&pRecord<p.length){if(p[pIndex]==="*"){pIndex++;sRecord=sIndex;pRecord=pIndex;}else if(s[sIndex]===p[pIndex]){sIndex++;pIndex++;}else if(sRecord+1<s.length){sRecord++;sIndex=sRecord;pIndex=pRecord;}else{return false;}}if(p.length===pIndex){return true;}return p.slice(pIndex).replaceAll("*","")==="";};/**
+ * 类型检查
+ * @param {*} o
+ * @returns
+ */var type=function type(o){var s=Object.prototype.toString.call(o);return s.match(/\[object (.*?)\]/)[1].toLowerCase();};/**
+ * sha256
+ * @param {*} text
+ * @returns
+ */var sha256=/*#__PURE__*/function(){var _ref=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(text,salt){var data,digest;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:data=new TextEncoder().encode(text+salt);_context.next=3;return crypto.subtle.digest({name:"SHA-256"},data);case 3:digest=_context.sent;return _context.abrupt("return",(0,toConsumableArray/* default */.Z)(new Uint8Array(digest)).map(function(b){return b.toString(16).padStart(2,"0");}).join(""));case 5:case"end":return _context.stop();}},_callee);}));return function sha256(_x,_x2){return _ref.apply(this,arguments);};}();
+;// CONCATENATED MODULE: ./src/libs/rules.js
+var fromLangs=OPT_LANGS_FROM.map(function(item){return item[0];});var toLangs=OPT_LANGS_TO.map(function(item){return item[0];});/**
+ * 检查过滤rules
+ * @param {*} rules
+ * @returns
+ */var checkRules=function checkRules(rules){if(type(rules)==="string"){rules=JSON.parse(rules);}if(type(rules)!=="array"){throw new Error("data error");}var patternSet=new Set();rules=rules.filter(function(rule){return type(rule)==="object";}).filter(function(_ref){var pattern=_ref.pattern;if(type(pattern)!=="string"||patternSet.has(pattern.trim())){return false;}patternSet.add(pattern.trim());return true;}).map(function(_ref2){var pattern=_ref2.pattern,selector=_ref2.selector,translator=_ref2.translator,fromLang=_ref2.fromLang,toLang=_ref2.toLang,textStyle=_ref2.textStyle,transOpen=_ref2.transOpen,bgColor=_ref2.bgColor;return{pattern:pattern.trim(),selector:type(selector)==="string"?selector:"",bgColor:type(bgColor)==="string"?bgColor:"",translator:matchValue([rules_GLOBAL_KEY].concat((0,toConsumableArray/* default */.Z)(OPT_TRANS_ALL)),translator),fromLang:matchValue([rules_GLOBAL_KEY].concat((0,toConsumableArray/* default */.Z)(fromLangs)),fromLang),toLang:matchValue([rules_GLOBAL_KEY].concat((0,toConsumableArray/* default */.Z)(toLangs)),toLang),textStyle:matchValue([rules_GLOBAL_KEY].concat((0,toConsumableArray/* default */.Z)(OPT_STYLE_ALL)),textStyle),transOpen:matchValue([rules_GLOBAL_KEY,"true","false"],transOpen)};});return rules;};/**
+ * 本地rules缓存
+ */var rulesCache={fetch:function(){var _fetch=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(url){var res,rules;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:_context.next=2;return fetch_fetchPolyfill(url);case 2:res=_context.sent;rules=checkRules(res).filter(function(rule){return rule.pattern.replaceAll(rules_GLOBAL_KEY,"")!=="";});return _context.abrupt("return",rules);case 5:case"end":return _context.stop();}},_callee);}));function fetch(_x){return _fetch.apply(this,arguments);}return fetch;}(),set:function(){var _set=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(url,rules){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:_context2.next=2;return libs_storage.setObj("".concat(STOKEY_RULESCACHE_PREFIX).concat(url),rules);case 2:case"end":return _context2.stop();}},_callee2);}));function set(_x2,_x3){return _set.apply(this,arguments);}return set;}(),get:function(){var _get=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee3(url){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:_context3.next=2;return libs_storage.getObj("".concat(STOKEY_RULESCACHE_PREFIX).concat(url));case 2:return _context3.abrupt("return",_context3.sent);case 3:case"end":return _context3.stop();}},_callee3);}));function get(_x4){return _get.apply(this,arguments);}return get;}(),del:function(){var _del=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee4(url){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee4$(_context4){while(1)switch(_context4.prev=_context4.next){case 0:_context4.next=2;return libs_storage.del("".concat(STOKEY_RULESCACHE_PREFIX).concat(url));case 2:case"end":return _context4.stop();}},_callee4);}));function del(_x5){return _del.apply(this,arguments);}return del;}()};/**
+ * 从缓存或远程加载订阅的rules
+ * @param {*} url
+ * @returns
+ */var rules_tryLoadRules=/*#__PURE__*/function(){var _ref3=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee5(url){var _rules;var rules;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee5$(_context5){while(1)switch(_context5.prev=_context5.next){case 0:_context5.next=2;return rulesCache.get(url);case 2:rules=_context5.sent;if(!((_rules=rules)!==null&&_rules!==void 0&&_rules.length)){_context5.next=5;break;}return _context5.abrupt("return",rules);case 5:_context5.next=7;return rulesCache.fetch(url);case 7:rules=_context5.sent;_context5.next=10;return rulesCache.set(url,rules);case 10:return _context5.abrupt("return",rules);case 11:case"end":return _context5.stop();}},_callee5);}));return function tryLoadRules(_x6){return _ref3.apply(this,arguments);};}();
 ;// CONCATENATED MODULE: ./src/libs/index.js
 /**
  * 获取节点列表并转为数组
@@ -43150,11 +43327,11 @@ return function(){if(browser_isExt){browser_browser.storage.onChanged.removeList
  * @param {*} rules
  * @param {string} href
  * @returns
- */var matchRule=function matchRule(rules,href,_ref5){var _rule$selector,_globalRule$selector,_rule$bgColor,_globalRule$bgColor;var injectRules=_ref5.injectRules;if(injectRules){rules.splice.apply(rules,[-1,0].concat(_toConsumableArray(BUILTIN_RULES)));}var rule=rules.find(function(rule){return rule.pattern.split(",").some(function(p){return isMatch(href,p.trim());});});var globalRule=rules.find(function(rule){return rule.pattern.split(",").some(function(p){return p.trim()==="*";});})||GLOBLA_RULE;if(!rule){return globalRule;}rule.selector=(rule===null||rule===void 0?void 0:(_rule$selector=rule.selector)===null||_rule$selector===void 0?void 0:_rule$selector.trim())||(globalRule===null||globalRule===void 0?void 0:(_globalRule$selector=globalRule.selector)===null||_globalRule$selector===void 0?void 0:_globalRule$selector.trim())||GLOBLA_RULE.selector;rule.bgColor=(rule===null||rule===void 0?void 0:(_rule$bgColor=rule.bgColor)===null||_rule$bgColor===void 0?void 0:_rule$bgColor.trim())||(globalRule===null||globalRule===void 0?void 0:(_globalRule$bgColor=globalRule.bgColor)===null||_globalRule$bgColor===void 0?void 0:_globalRule$bgColor.trim());["translator","fromLang","toLang","textStyle","transOpen"].forEach(function(key){if(rule[key]===GLOBAL_KEY){rule[key]=globalRule[key];}});return rule;};/**
+ */var matchRule=/*#__PURE__*/(/* unused pure expression or super */ null && (function(){var _ref6=_asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee5(rules,href,_ref5){var _rule$selector,_globalRule$selector,_rule$bgColor,_globalRule$bgColor;var injectRules,_ref5$subrulesList,subrulesList,selectedSub,subRules,rule,globalRule;return _regeneratorRuntime().wrap(function _callee5$(_context5){while(1)switch(_context5.prev=_context5.next){case 0:injectRules=_ref5.injectRules,_ref5$subrulesList=_ref5.subrulesList,subrulesList=_ref5$subrulesList===void 0?DEFAULT_SUBRULES_LIST:_ref5$subrulesList;if(!injectRules){_context5.next=14;break;}_context5.prev=2;selectedSub=subrulesList.find(function(item){return item.selected;});if(!(selectedSub!==null&&selectedSub!==void 0&&selectedSub.url)){_context5.next=9;break;}_context5.next=7;return tryLoadRules(selectedSub.url);case 7:subRules=_context5.sent;rules.splice.apply(rules,[-1,0].concat(_toConsumableArray(subRules)));case 9:_context5.next=14;break;case 11:_context5.prev=11;_context5.t0=_context5["catch"](2);console.log("[load injectRules]",_context5.t0);case 14:rule=rules.find(function(rule){return rule.pattern.split(",").some(function(p){return isMatch(href,p.trim());});});globalRule=rules.find(function(rule){return rule.pattern.split(",").some(function(p){return p.trim()==="*";});})||GLOBLA_RULE;if(rule){_context5.next=18;break;}return _context5.abrupt("return",globalRule);case 18:rule.selector=(rule===null||rule===void 0?void 0:(_rule$selector=rule.selector)===null||_rule$selector===void 0?void 0:_rule$selector.trim())||(globalRule===null||globalRule===void 0?void 0:(_globalRule$selector=globalRule.selector)===null||_globalRule$selector===void 0?void 0:_globalRule$selector.trim())||GLOBLA_RULE.selector;rule.bgColor=(rule===null||rule===void 0?void 0:(_rule$bgColor=rule.bgColor)===null||_rule$bgColor===void 0?void 0:_rule$bgColor.trim())||(globalRule===null||globalRule===void 0?void 0:(_globalRule$bgColor=globalRule.bgColor)===null||_globalRule$bgColor===void 0?void 0:_globalRule$bgColor.trim());["translator","fromLang","toLang","textStyle","transOpen"].forEach(function(key){if(rule[key]===GLOBAL_KEY){rule[key]=globalRule[key];}});return _context5.abrupt("return",rule);case 22:case"end":return _context5.stop();}},_callee5,null,[[2,11]]);}));return function matchRule(_x2,_x3,_x4){return _ref6.apply(this,arguments);};}()));/**
  * 本地语言识别
  * @param {*} q
  * @returns
- */var libs_detectLang=/*#__PURE__*/(/* unused pure expression or super */ null && (function(){var _ref6=_asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee5(q){var _res$languages,_res$languages$;var res;return _regeneratorRuntime().wrap(function _callee5$(_context5){while(1)switch(_context5.prev=_context5.next){case 0:_context5.next=2;return browser===null||browser===void 0?void 0:browser.i18n.detectLanguage(q);case 2:res=_context5.sent;return _context5.abrupt("return",res===null||res===void 0?void 0:(_res$languages=res.languages)===null||_res$languages===void 0?void 0:(_res$languages$=_res$languages[0])===null||_res$languages$===void 0?void 0:_res$languages$.language);case 4:case"end":return _context5.stop();}},_callee5);}));return function detectLang(_x2){return _ref6.apply(this,arguments);};}()));
+ */var libs_detectLang=/*#__PURE__*/(/* unused pure expression or super */ null && (function(){var _ref7=_asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee6(q){var _res$languages,_res$languages$;var res;return _regeneratorRuntime().wrap(function _callee6$(_context6){while(1)switch(_context6.prev=_context6.next){case 0:_context6.next=2;return browser===null||browser===void 0?void 0:browser.i18n.detectLanguage(q);case 2:res=_context6.sent;return _context6.abrupt("return",res===null||res===void 0?void 0:(_res$languages=res.languages)===null||_res$languages===void 0?void 0:(_res$languages$=_res$languages[0])===null||_res$languages$===void 0?void 0:_res$languages$.language);case 4:case"end":return _context6.stop();}},_callee6);}));return function detectLang(_x5){return _ref7.apply(this,arguments);};}()));
 ;// CONCATENATED MODULE: ./node_modules/decode-uri-component/index.js
 var token = '%[a-f0-9]{2}';
 var singleMatcher = new RegExp('(' + token + ')|([^%]+?)', 'gi');
@@ -43679,72 +43856,6 @@ function exclude(input, filter, options) {
 ;// CONCATENATED MODULE: ./node_modules/query-string/index.js
 
 /* harmony default export */ var query_string = ((/* unused pure expression or super */ null && (queryString)));
-;// CONCATENATED MODULE: ./src/libs/msg.js
-/**
- * 发送消息给background
- * @param {*} action
- * @param {*} args
- * @returns
- */var msg_sendMsg=function sendMsg(action,args){var _browser$runtime;return browser_browser===null||browser_browser===void 0?void 0:(_browser$runtime=browser_browser.runtime)===null||_browser$runtime===void 0?void 0:_browser$runtime.sendMessage({action:action,args:args});};/**
- * 发送消息给当前页面
- * @param {*} action
- * @param {*} args
- * @returns
- */var sendTabMsg=/*#__PURE__*/(/* unused pure expression or super */ null && (function(){var _ref=_asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee(action,args){var tabs;return _regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:_context.next=2;return browser===null||browser===void 0?void 0:browser.tabs.query({active:true,currentWindow:true});case 2:tabs=_context.sent;_context.next=5;return browser===null||browser===void 0?void 0:browser.tabs.sendMessage(tabs[0].id,{action:action,args:args});case 5:return _context.abrupt("return",_context.sent);case 6:case"end":return _context.stop();}},_callee);}));return function sendTabMsg(_x,_x2){return _ref.apply(this,arguments);};}()));
-;// CONCATENATED MODULE: ./src/libs/pool.js
-var taskPool=function taskPool(fn,preFn){var _interval=arguments.length>2&&arguments[2]!==undefined?arguments[2]:100;var _limit=arguments.length>3&&arguments[3]!==undefined?arguments[3]:100;var pool=[];var maxRetry=2;// 最大重试次数
-var maxCount=_limit;// 最大数量
-var curCount=0;// 当前数量
-var interval=_interval;// 间隔时间
-var timer=null;/**
-   * 任务池
-   * @param {*} item
-   * @param {*} preArgs
-   */var handleTask=/*#__PURE__*/function(){var _ref=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(item,preArgs){var args,resolve,reject,retry,res;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:curCount++;args=item.args,resolve=item.resolve,reject=item.reject,retry=item.retry;_context.prev=2;_context.next=5;return fn(_objectSpread2(_objectSpread2({},args),preArgs));case 5:res=_context.sent;resolve(res);_context.next=12;break;case 9:_context.prev=9;_context.t0=_context["catch"](2);if(retry<maxRetry){pool.push({args:args,resolve:resolve,reject:reject,retry:retry+1});}else{reject(_context.t0);}case 12:_context.prev=12;curCount--;return _context.finish(12);case 15:case"end":return _context.stop();}},_callee,null,[[2,9,12,15]]);}));return function handleTask(_x,_x2){return _ref.apply(this,arguments);};}();var run=/*#__PURE__*/function(){var _ref2=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(){var item,preArgs;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:// console.log("timer", timer);
-timer&&clearTimeout(timer);timer=setTimeout(run,interval);if(!(curCount<maxCount)){_context2.next=16;break;}item=pool.shift();if(!item){_context2.next=16;break;}_context2.prev=5;_context2.next=8;return preFn(item.args);case 8:preArgs=_context2.sent;handleTask(item,preArgs);_context2.next=16;break;case 12:_context2.prev=12;_context2.t0=_context2["catch"](5);console.log("[preFn]",_context2.t0);pool.push(item);case 16:case"end":return _context2.stop();}},_callee2,null,[[5,12]]);}));return function run(){return _ref2.apply(this,arguments);};}();return{push:function(){var _push=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee3(args){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:if(!timer){run();}return _context3.abrupt("return",new Promise(function(resolve,reject){pool.push({args:args,resolve:resolve,reject:reject,retry:0});}));case 2:case"end":return _context3.stop();}},_callee3);}));function push(_x3){return _push.apply(this,arguments);}return push;}(),update:function update(){var _interval=arguments.length>0&&arguments[0]!==undefined?arguments[0]:100;var _limit=arguments.length>1&&arguments[1]!==undefined?arguments[1]:100;if(_interval>=0&&_interval<=5000&&_interval!==interval){interval=_interval;}if(_limit>=1&&_limit<=100&&_limit!==maxCount){maxCount=_limit;}},clear:function clear(){pool.length=0;curCount=0;timer&&clearTimeout(timer);timer=null;}};};
-;// CONCATENATED MODULE: ./src/libs/auth.js
-var parseMSToken=function parseMSToken(token){try{return JSON.parse(atob(token.split(".")[1])).exp;}catch(err){console.log("[parseMSToken]",err);}return 0;};/**
- * 闭包缓存token，减少对storage查询
- * @returns
- */var _msAuth=function _msAuth(){var _ref={},token=_ref.token,exp=_ref.exp;return/*#__PURE__*/asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(){var now,res;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:// 查询内存缓存
-now=Date.now();if(!(token&&exp*1000>now+1000)){_context.next=3;break;}return _context.abrupt("return",[token,exp]);case 3:_context.next=5;return libs_storage.getObj(STOKEY_MSAUTH);case 5:_context.t0=_context.sent;if(_context.t0){_context.next=8;break;}_context.t0={};case 8:res=_context.t0;token=res.token;exp=res.exp;if(!(token&&exp*1000>now+1000)){_context.next=13;break;}return _context.abrupt("return",[token,exp]);case 13:_context.next=15;return fetchData(URL_MICROSOFT_AUTH);case 15:token=_context.sent;exp=parseMSToken(token);_context.next=19;return libs_storage.setObj(STOKEY_MSAUTH,{token:token,exp:exp});case 19:return _context.abrupt("return",[token,exp]);case 20:case"end":return _context.stop();}},_callee);}));};var msAuth=_msAuth();
-;// CONCATENATED MODULE: ./src/libs/fetch.js
-/**
- * 油猴脚本的请求封装
- * @param {*} input
- * @param {*} init
- * @returns
- */var fetchGM=/*#__PURE__*/function(){var _ref=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(input){var _ref2,_ref2$method,method,headers,body,_args=arguments;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:_ref2=_args.length>1&&_args[1]!==undefined?_args[1]:{},_ref2$method=_ref2.method,method=_ref2$method===void 0?"GET":_ref2$method,headers=_ref2.headers,body=_ref2.body;return _context.abrupt("return",new Promise(function(resolve,reject){GM.xmlHttpRequest({method:method,url:input,headers:headers,data:body,onload:function onload(response){if(response.status===200){var _headers=new Headers();response.responseHeaders.split("\n").forEach(function(line){var _line$split$map=line.split(":").map(function(item){return item.trim();}),_line$split$map2=(0,slicedToArray/* default */.Z)(_line$split$map,2),name=_line$split$map2[0],value=_line$split$map2[1];if(name&&value){_headers.append(name,value);}});resolve(new Response(response.response,{headers:_headers}));}else{reject(new Error("[".concat(response.status,"] ").concat(response.responseText)));}},onerror:reject});}));case 2:case"end":return _context.stop();}},_callee);}));return function fetchGM(_x){return _ref.apply(this,arguments);};}();/**
- * 构造缓存 request
- * @param {*} request
- * @returns
- */var newCacheReq=/*#__PURE__*/function(){var _ref3=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(request){var body,cacheUrl;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:if(!(request.method!=="GET")){_context2.next=7;break;}_context2.next=3;return request.text();case 3:body=_context2.sent;cacheUrl=new URL(request.url);cacheUrl.pathname+=body;request=new Request(cacheUrl.toString(),{method:"GET"});case 7:return _context2.abrupt("return",request);case 8:case"end":return _context2.stop();}},_callee2);}));return function newCacheReq(_x2){return _ref3.apply(this,arguments);};}();/**
- * 发起请求
- * @param {*} param0
- * @returns
- */var fetchApi=/*#__PURE__*/function(){var _ref5=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee3(_ref4){var input,init,useUnsafe,translator,token;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:input=_ref4.input,init=_ref4.init,useUnsafe=_ref4.useUnsafe,translator=_ref4.translator,token=_ref4.token;if(translator===config_OPT_TRANS_MICROSOFT){init.headers["Authorization"]="Bearer ".concat(token);}else if(translator===config_OPT_TRANS_OPENAI){init.headers["Authorization"]="Bearer ".concat(token);// // OpenAI
-init.headers["api-key"]=token;// Azure OpenAI
-}if(!(isGm&&!useUnsafe)){_context3.next=4;break;}return _context3.abrupt("return",fetchGM(input,init));case 4:return _context3.abrupt("return",fetch(input,init));case 5:case"end":return _context3.stop();}},_callee3);}));return function fetchApi(_x3){return _ref5.apply(this,arguments);};}();/**
- * 请求池实例
- */var fetchPool=taskPool(fetchApi,/*#__PURE__*/function(){var _ref7=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee4(_ref6){var translator,_yield$msAuth,_yield$msAuth2,token;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee4$(_context4){while(1)switch(_context4.prev=_context4.next){case 0:translator=_ref6.translator;if(!(translator===config_OPT_TRANS_MICROSOFT)){_context4.next=8;break;}_context4.next=4;return msAuth();case 4:_yield$msAuth=_context4.sent;_yield$msAuth2=(0,slicedToArray/* default */.Z)(_yield$msAuth,1);token=_yield$msAuth2[0];return _context4.abrupt("return",{token:token});case 8:return _context4.abrupt("return",{});case 9:case"end":return _context4.stop();}},_callee4);}));return function(_x4){return _ref7.apply(this,arguments);};}(),DEFAULT_FETCH_INTERVAL,DEFAULT_FETCH_LIMIT);/**
- * 请求数据统一接口
- * @param {*} input
- * @param {*} init
- * @param {*} opts
- * @returns
- */var fetchData=/*#__PURE__*/function(){var _ref8=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee5(input,init){var _ref9,useCache,usePool,translator,useUnsafe,token,cacheReq,cache,res,_res,contentType,_args5=arguments;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee5$(_context5){while(1)switch(_context5.prev=_context5.next){case 0:_ref9=_args5.length>2&&_args5[2]!==undefined?_args5[2]:{},useCache=_ref9.useCache,usePool=_ref9.usePool,translator=_ref9.translator,useUnsafe=_ref9.useUnsafe,token=_ref9.token;_context5.next=3;return newCacheReq(new Request(input,init));case 3:cacheReq=_context5.sent;_context5.next=6;return caches.open(CACHE_NAME);case 6:cache=_context5.sent;if(!useCache){_context5.next=17;break;}_context5.prev=8;_context5.next=11;return cache.match(cacheReq);case 11:res=_context5.sent;_context5.next=17;break;case 14:_context5.prev=14;_context5.t0=_context5["catch"](8);console.log("[cache match]",_context5.t0);case 17:if(res){_context5.next=38;break;}if(!usePool){_context5.next=24;break;}_context5.next=21;return fetchPool.push({input:input,init:init,useUnsafe:useUnsafe,translator:translator,token:token});case 21:res=_context5.sent;_context5.next=27;break;case 24:_context5.next=26;return fetchApi({input:input,init:init,useUnsafe:useUnsafe,translator:translator,token:token});case 26:res=_context5.sent;case 27:if((_res=res)!==null&&_res!==void 0&&_res.ok){_context5.next=29;break;}throw new Error("response: ".concat(res.statusText));case 29:if(!useCache){_context5.next=38;break;}_context5.prev=30;_context5.next=33;return cache.put(cacheReq,res.clone());case 33:_context5.next=38;break;case 35:_context5.prev=35;_context5.t1=_context5["catch"](30);console.log("[cache put]",_context5.t1);case 38:contentType=res.headers.get("Content-Type");if(!(contentType!==null&&contentType!==void 0&&contentType.includes("json"))){_context5.next=43;break;}_context5.next=42;return res.json();case 42:return _context5.abrupt("return",_context5.sent);case 43:_context5.next=45;return res.text();case 45:return _context5.abrupt("return",_context5.sent);case 46:case"end":return _context5.stop();}},_callee5,null,[[8,14],[30,35]]);}));return function fetchData(_x5,_x6){return _ref8.apply(this,arguments);};}();/**
- * fetch 兼容性封装
- * @param {*} input
- * @param {*} init
- * @param {*} opts
- * @returns
- */var fetch_fetchPolyfill=/*#__PURE__*/function(){var _ref10=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee6(input,init,opts){var res;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee6$(_context6){while(1)switch(_context6.prev=_context6.next){case 0:if(!browser_isExt){_context6.next=7;break;}_context6.next=3;return msg_sendMsg(MSG_FETCH,{input:input,init:init,opts:opts});case 3:res=_context6.sent;if(!res.error){_context6.next=6;break;}throw new Error(res.error);case 6:return _context6.abrupt("return",res.data);case 7:_context6.next=9;return fetchData(input,init,opts);case 9:return _context6.abrupt("return",_context6.sent);case 10:case"end":return _context6.stop();}},_callee6);}));return function fetchPolyfill(_x7,_x8,_x9){return _ref10.apply(this,arguments);};}();/**
- * 更新 fetch pool 参数
- * @param {*} interval
- * @param {*} limit
- */var fetchUpdate=/*#__PURE__*/(/* unused pure expression or super */ null && (function(){var _ref11=_asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee7(interval,limit){var res;return _regeneratorRuntime().wrap(function _callee7$(_context7){while(1)switch(_context7.prev=_context7.next){case 0:if(!isExt){_context7.next=8;break;}_context7.next=3;return sendMsg(MSG_FETCH_LIMIT,{interval:interval,limit:limit});case 3:res=_context7.sent;if(!res.error){_context7.next=6;break;}throw new Error(res.error);case 6:_context7.next=9;break;case 8:fetchPool.update(interval,limit);case 9:case"end":return _context7.stop();}},_callee7);}));return function fetchUpdate(_x10,_x11){return _ref11.apply(this,arguments);};}()));/**
- * 清空任务池
- */var fetchClear=/*#__PURE__*/(/* unused pure expression or super */ null && (function(){var _ref12=_asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee8(){var res;return _regeneratorRuntime().wrap(function _callee8$(_context8){while(1)switch(_context8.prev=_context8.next){case 0:if(!isExt){_context8.next=8;break;}_context8.next=3;return sendMsg(MSG_FETCH_CLEAR);case 3:res=_context8.sent;if(!res.error){_context8.next=6;break;}throw new Error(res.error);case 6:_context8.next=9;break;case 8:fetchPool.clear();case 9:case"end":return _context8.stop();}},_callee8);}));return function fetchClear(){return _ref12.apply(this,arguments);};}()));
 ;// CONCATENATED MODULE: ./src/apis/index.js
 /**
  * 同步数据
@@ -43752,7 +43863,7 @@ init.headers["api-key"]=token;// Azure OpenAI
  * @param {*} key
  * @param {*} data
  * @returns
- */var apiSyncData=/*#__PURE__*/function(){var _ref=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(url,key,data){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:return _context.abrupt("return",fetch_fetchPolyfill(url,{headers:(0,defineProperty/* default */.Z)({"Content-type":"application/json"},KV_HEADER_KEY,key),method:"POST",body:JSON.stringify(data)},{useUnsafe:true}));case 1:case"end":return _context.stop();}},_callee);}));return function apiSyncData(_x,_x2,_x3){return _ref.apply(this,arguments);};}();/**
+ */var apiSyncData=/*#__PURE__*/function(){var _ref=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(url,key,data){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:_context.t0=fetch_fetchPolyfill;_context.t1=url;_context.t2="Bearer ";_context.next=5;return sha256(key,KV_SALT_SYNC);case 5:_context.t3=_context.sent;_context.t4=_context.t2.concat.call(_context.t2,_context.t3);_context.t5={"Content-type":"application/json",Authorization:_context.t4};_context.t6=JSON.stringify(data);_context.t7={headers:_context.t5,method:"POST",body:_context.t6};_context.t8={useUnsafe:true};return _context.abrupt("return",(0,_context.t0)(_context.t1,_context.t7,_context.t8));case 12:case"end":return _context.stop();}},_callee);}));return function apiSyncData(_x,_x2,_x3){return _ref.apply(this,arguments);};}();/**
  * 谷歌翻译
  * @param {*} text
  * @param {*} to
@@ -43776,7 +43887,7 @@ init.headers["api-key"]=token;// Azure OpenAI
  * @returns
  */var apiTranslate=/*#__PURE__*/(/* unused pure expression or super */ null && (function(){var _ref5=_asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee4(_ref4){var _OPT_LANGS_SPECIAL$tr,_OPT_LANGS_SPECIAL$tr2,_OPT_LANGS_SPECIAL$tr3,_OPT_LANGS_SPECIAL$tr4;var translator,q,fromLang,toLang,trText,isSame,from,to,res,_res,_res2$choices,_res2;return _regeneratorRuntime().wrap(function _callee4$(_context4){while(1)switch(_context4.prev=_context4.next){case 0:translator=_ref4.translator,q=_ref4.q,fromLang=_ref4.fromLang,toLang=_ref4.toLang;trText="";isSame=false;from=(_OPT_LANGS_SPECIAL$tr=OPT_LANGS_SPECIAL===null||OPT_LANGS_SPECIAL===void 0?void 0:(_OPT_LANGS_SPECIAL$tr2=OPT_LANGS_SPECIAL[translator])===null||_OPT_LANGS_SPECIAL$tr2===void 0?void 0:_OPT_LANGS_SPECIAL$tr2.get(fromLang))!==null&&_OPT_LANGS_SPECIAL$tr!==void 0?_OPT_LANGS_SPECIAL$tr:fromLang;to=(_OPT_LANGS_SPECIAL$tr3=OPT_LANGS_SPECIAL===null||OPT_LANGS_SPECIAL===void 0?void 0:(_OPT_LANGS_SPECIAL$tr4=OPT_LANGS_SPECIAL[translator])===null||_OPT_LANGS_SPECIAL$tr4===void 0?void 0:_OPT_LANGS_SPECIAL$tr4.get(toLang))!==null&&_OPT_LANGS_SPECIAL$tr3!==void 0?_OPT_LANGS_SPECIAL$tr3:toLang;if(!(translator===OPT_TRANS_GOOGLE)){_context4.next=13;break;}_context4.next=8;return apiGoogleTranslate(translator,q,to,from);case 8:res=_context4.sent;trText=res.sentences.map(function(item){return item.trans;}).join(" ");isSame=to===res.src;_context4.next=33;break;case 13:if(!(translator===OPT_TRANS_MICROSOFT)){_context4.next=21;break;}_context4.next=16;return apiMicrosoftTranslate(translator,q,to,from);case 16:_res=_context4.sent;trText=_res[0].translations[0].text;isSame=to===_res[0].detectedLanguage.language;_context4.next=33;break;case 21:if(!(translator===OPT_TRANS_OPENAI)){_context4.next=33;break;}_context4.next=24;return apiOpenaiTranslate(translator,q,to,from);case 24:_res2=_context4.sent;trText=_res2===null||_res2===void 0?void 0:(_res2$choices=_res2.choices)===null||_res2$choices===void 0?void 0:_res2$choices[0].message.content;_context4.next=28;return detectLang(q);case 28:_context4.t0=_context4.sent;_context4.next=31;return detectLang(trText);case 31:_context4.t1=_context4.sent;isSame=_context4.t0===_context4.t1;case 33:return _context4.abrupt("return",[trText,isSame]);case 34:case"end":return _context4.stop();}},_callee4);}));return function apiTranslate(_x12){return _ref5.apply(this,arguments);};}()));
 ;// CONCATENATED MODULE: ./src/libs/sync.js
-var loadOpt=/*#__PURE__*/function(){var _ref=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:_context.next=2;return libs_storage.getObj(STOKEY_SYNC);case 2:_context.t0=_context.sent;if(_context.t0){_context.next=5;break;}_context.t0=DEFAULT_SYNC;case 5:return _context.abrupt("return",_context.t0);case 6:case"end":return _context.stop();}},_callee);}));return function loadOpt(){return _ref.apply(this,arguments);};}();var syncSetting=/*#__PURE__*/function(){var _ref2=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(){var _yield$loadOpt,syncUrl,syncKey,settingUpdateAt,setting,res;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:_context2.prev=0;_context2.next=3;return loadOpt();case 3:_yield$loadOpt=_context2.sent;syncUrl=_yield$loadOpt.syncUrl;syncKey=_yield$loadOpt.syncKey;settingUpdateAt=_yield$loadOpt.settingUpdateAt;if(!(!syncUrl||!syncKey)){_context2.next=9;break;}return _context2.abrupt("return");case 9:_context2.next=11;return libs_getSetting();case 11:setting=_context2.sent;_context2.next=14;return apiSyncData(syncUrl,syncKey,{key:KV_SETTING_KEY,value:setting,updateAt:settingUpdateAt});case 14:res=_context2.sent;if(!(res&&res.updateAt>settingUpdateAt)){_context2.next=22;break;}_context2.next=18;return libs_storage.putObj(STOKEY_SYNC,{settingUpdateAt:res.updateAt,settingSyncAt:res.updateAt});case 18:_context2.next=20;return libs_storage.setObj(STOKEY_SETTING,res.value);case 20:_context2.next=24;break;case 22:_context2.next=24;return libs_storage.putObj(STOKEY_SYNC,{settingSyncAt:res.updateAt});case 24:_context2.next=29;break;case 26:_context2.prev=26;_context2.t0=_context2["catch"](0);console.log("[sync setting]",_context2.t0);case 29:case"end":return _context2.stop();}},_callee2,null,[[0,26]]);}));return function syncSetting(){return _ref2.apply(this,arguments);};}();var syncRules=/*#__PURE__*/function(){var _ref3=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee3(){var _yield$loadOpt2,syncUrl,syncKey,rulesUpdateAt,rules,res;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:_context3.prev=0;_context3.next=3;return loadOpt();case 3:_yield$loadOpt2=_context3.sent;syncUrl=_yield$loadOpt2.syncUrl;syncKey=_yield$loadOpt2.syncKey;rulesUpdateAt=_yield$loadOpt2.rulesUpdateAt;if(!(!syncUrl||!syncKey)){_context3.next=9;break;}return _context3.abrupt("return");case 9:_context3.next=11;return getRules();case 11:rules=_context3.sent;_context3.next=14;return apiSyncData(syncUrl,syncKey,{key:KV_RULES_KEY,value:rules,updateAt:rulesUpdateAt});case 14:res=_context3.sent;if(!(res&&res.updateAt>rulesUpdateAt)){_context3.next=22;break;}_context3.next=18;return libs_storage.putObj(STOKEY_SYNC,{rulesUpdateAt:res.updateAt,rulesSyncAt:res.updateAt});case 18:_context3.next=20;return libs_storage.setObj(STOKEY_RULES,res.value);case 20:_context3.next=24;break;case 22:_context3.next=24;return libs_storage.putObj(STOKEY_SYNC,{rulesSyncAt:res.updateAt});case 24:_context3.next=29;break;case 26:_context3.prev=26;_context3.t0=_context3["catch"](0);console.log("[sync rules]",_context3.t0);case 29:case"end":return _context3.stop();}},_callee3,null,[[0,26]]);}));return function syncRules(){return _ref3.apply(this,arguments);};}();var syncAll=/*#__PURE__*/function(){var _ref4=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee4(){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee4$(_context4){while(1)switch(_context4.prev=_context4.next){case 0:_context4.next=2;return syncSetting();case 2:_context4.next=4;return syncRules();case 4:case"end":return _context4.stop();}},_callee4);}));return function syncAll(){return _ref4.apply(this,arguments);};}();
+var loadSyncOpt=/*#__PURE__*/function(){var _ref=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:_context.next=2;return libs_storage.getObj(STOKEY_SYNC);case 2:_context.t0=_context.sent;if(_context.t0){_context.next=5;break;}_context.t0=DEFAULT_SYNC;case 5:return _context.abrupt("return",_context.t0);case 6:case"end":return _context.stop();}},_callee);}));return function loadSyncOpt(){return _ref.apply(this,arguments);};}();var syncSetting=/*#__PURE__*/function(){var _ref2=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(){var _yield$loadSyncOpt,syncUrl,syncKey,settingUpdateAt,setting,res;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:_context2.prev=0;_context2.next=3;return loadSyncOpt();case 3:_yield$loadSyncOpt=_context2.sent;syncUrl=_yield$loadSyncOpt.syncUrl;syncKey=_yield$loadSyncOpt.syncKey;settingUpdateAt=_yield$loadSyncOpt.settingUpdateAt;if(!(!syncUrl||!syncKey)){_context2.next=9;break;}return _context2.abrupt("return");case 9:_context2.next=11;return libs_getSetting();case 11:setting=_context2.sent;_context2.next=14;return apiSyncData(syncUrl,syncKey,{key:KV_SETTING_KEY,value:setting,updateAt:settingUpdateAt});case 14:res=_context2.sent;if(!(res&&res.updateAt>settingUpdateAt)){_context2.next=22;break;}_context2.next=18;return libs_storage.putObj(STOKEY_SYNC,{settingUpdateAt:res.updateAt,settingSyncAt:res.updateAt});case 18:_context2.next=20;return libs_storage.setObj(STOKEY_SETTING,res.value);case 20:_context2.next=24;break;case 22:_context2.next=24;return libs_storage.putObj(STOKEY_SYNC,{settingSyncAt:res.updateAt});case 24:_context2.next=29;break;case 26:_context2.prev=26;_context2.t0=_context2["catch"](0);console.log("[sync setting]",_context2.t0);case 29:case"end":return _context2.stop();}},_callee2,null,[[0,26]]);}));return function syncSetting(){return _ref2.apply(this,arguments);};}();var syncRules=/*#__PURE__*/function(){var _ref3=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee3(){var _yield$loadSyncOpt2,syncUrl,syncKey,rulesUpdateAt,rules,res;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:_context3.prev=0;_context3.next=3;return loadSyncOpt();case 3:_yield$loadSyncOpt2=_context3.sent;syncUrl=_yield$loadSyncOpt2.syncUrl;syncKey=_yield$loadSyncOpt2.syncKey;rulesUpdateAt=_yield$loadSyncOpt2.rulesUpdateAt;if(!(!syncUrl||!syncKey)){_context3.next=9;break;}return _context3.abrupt("return");case 9:_context3.next=11;return getRules();case 11:rules=_context3.sent;_context3.next=14;return apiSyncData(syncUrl,syncKey,{key:KV_RULES_KEY,value:rules,updateAt:rulesUpdateAt});case 14:res=_context3.sent;if(!(res&&res.updateAt>rulesUpdateAt)){_context3.next=22;break;}_context3.next=18;return libs_storage.putObj(STOKEY_SYNC,{rulesUpdateAt:res.updateAt,rulesSyncAt:res.updateAt});case 18:_context3.next=20;return libs_storage.setObj(STOKEY_RULES,res.value);case 20:_context3.next=24;break;case 22:_context3.next=24;return libs_storage.putObj(STOKEY_SYNC,{rulesSyncAt:res.updateAt});case 24:_context3.next=29;break;case 26:_context3.prev=26;_context3.t0=_context3["catch"](0);console.log("[sync rules]",_context3.t0);case 29:case"end":return _context3.stop();}},_callee3,null,[[0,26]]);}));return function syncRules(){return _ref3.apply(this,arguments);};}();var syncShareRules=/*#__PURE__*/function(){var _ref5=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee4(_ref4){var rules,syncUrl,syncKey,psk,shareUrl;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee4$(_context4){while(1)switch(_context4.prev=_context4.next){case 0:rules=_ref4.rules,syncUrl=_ref4.syncUrl,syncKey=_ref4.syncKey;_context4.next=3;return apiSyncData(syncUrl,syncKey,{key:KV_RULES_SHARE_KEY,value:rules,updateAt:Date.now()});case 3:_context4.next=5;return sha256(syncKey,KV_SALT_SHARE);case 5:psk=_context4.sent;shareUrl="".concat(syncUrl,"?psk=").concat(psk);return _context4.abrupt("return",shareUrl);case 8:case"end":return _context4.stop();}},_callee4);}));return function syncShareRules(_x){return _ref5.apply(this,arguments);};}();var syncAll=/*#__PURE__*/function(){var _ref6=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee5(){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee5$(_context5){while(1)switch(_context5.prev=_context5.next){case 0:_context5.next=2;return syncSetting();case 2:_context5.next=4;return syncRules();case 4:case"end":return _context5.stop();}},_callee5);}));return function syncAll(){return _ref6.apply(this,arguments);};}();
 ;// CONCATENATED MODULE: ./src/hooks/Setting.js
 /**
  * 设置hook
@@ -44019,7 +44130,7 @@ var useForkRef = __webpack_require__(1577);
 // EXTERNAL MODULE: ./node_modules/@mui/utils/esm/ownerWindow/ownerWindow.js
 var ownerWindow = __webpack_require__(8929);
 // EXTERNAL MODULE: ./node_modules/@mui/utils/esm/debounce/debounce.js
-var debounce = __webpack_require__(1636);
+var debounce_debounce = __webpack_require__(1636);
 // EXTERNAL MODULE: ./node_modules/@mui/utils/esm/useEnhancedEffect/useEnhancedEffect.js
 var useEnhancedEffect = __webpack_require__(5094);
 ;// CONCATENATED MODULE: ./node_modules/@mui/base/TextareaAutosize/TextareaAutosize.js
@@ -44177,7 +44288,7 @@ var TextareaAutosize = /*#__PURE__*/react.forwardRef(function TextareaAutosize(p
     });
   };
   react.useEffect(function () {
-    var handleResize = (0,debounce/* default */.Z)(function () {
+    var handleResize = (0,debounce_debounce/* default */.Z)(function () {
       renders.current = 0;
 
       // If the TextareaAutosize component is replaced by Suspense with a fallback, the last
@@ -52603,38 +52714,14 @@ var AccordionDetails = /*#__PURE__*/react.forwardRef(function AccordionDetails(i
 /* harmony default export */ var AccordionDetails_AccordionDetails = (AccordionDetails);
 // EXTERNAL MODULE: ./node_modules/@mui/icons-material/ExpandMore.js
 var ExpandMore = __webpack_require__(6306);
-;// CONCATENATED MODULE: ./src/libs/utils.js
-/**
- * 限制数字大小
- * @param {*} num
- * @param {*} min
- * @param {*} max
- * @returns
- */var limitNumber=function limitNumber(num){var min=arguments.length>1&&arguments[1]!==undefined?arguments[1]:0;var max=arguments.length>2&&arguments[2]!==undefined?arguments[2]:100;var number=parseInt(num);if(Number.isNaN(number)||number<min){return min;}else if(number>max){return max;}return number;};/**
- * 匹配是否为数组中的值
- * @param {*} arr
- * @param {*} val
- * @returns
- */var matchValue=function matchValue(arr,val){if(arr.length===0||arr.includes(val)){return val;}return arr[0];};/**
- * 等待
- * @param {*} delay
- * @returns
- */var sleep=function sleep(delay){return new Promise(function(resolve){return setTimeout(resolve,delay);});};/**
- * 防抖函数
- * @param {*} func
- * @param {*} delay
- * @returns
- */var libs_utils_debounce=function debounce(func){var delay=arguments.length>1&&arguments[1]!==undefined?arguments[1]:200;var timer;return function(){for(var _len=arguments.length,args=new Array(_len),_key=0;_key<_len;_key++){args[_key]=arguments[_key];}timer&&clearTimeout(timer);timer=setTimeout(function(){func.apply(void 0,args);},delay);};};/**
- * 字符串通配符(*)匹配
- * @param {*} s
- * @param {*} p
- * @returns
- */var utils_isMatch=function isMatch(s,p){if(s.length===0||p.length===0){return false;}p="*".concat(p,"*");var sIndex=0,pIndex=0;var sRecord=-1,pRecord=-1;while(sIndex<s.length&&pRecord<p.length){if(p[pIndex]==="*"){pIndex++;sRecord=sIndex;pRecord=pIndex;}else if(s[sIndex]===p[pIndex]){sIndex++;pIndex++;}else if(sRecord+1<s.length){sRecord++;sIndex=sRecord;pIndex=pRecord;}else{return false;}}if(p.length===pIndex){return true;}return p.slice(pIndex).replaceAll("*","")==="";};
 ;// CONCATENATED MODULE: ./src/hooks/Rules.js
 /**
  * 匹配规则增删改查 hook
  * @returns
- */function useRules(){var storages=useStorages();var list=(storages===null||storages===void 0?void 0:storages[STOKEY_RULES])||[];var sync=useSync();var update=/*#__PURE__*/function(){var _ref=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(rules){var _sync$opt;var updateAt;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:updateAt=(_sync$opt=sync.opt)!==null&&_sync$opt!==void 0&&_sync$opt.rulesUpdateAt?Date.now():0;_context.next=3;return libs_storage.setObj(STOKEY_RULES,rules);case 3:_context.next=5;return sync.update({rulesUpdateAt:updateAt});case 5:syncRules();case 6:case"end":return _context.stop();}},_callee);}));return function update(_x){return _ref.apply(this,arguments);};}();var add=/*#__PURE__*/function(){var _ref2=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(rule){var rules;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:rules=(0,toConsumableArray/* default */.Z)(list);if(!(rule.pattern==="*")){_context2.next=3;break;}return _context2.abrupt("return");case 3:if(!rules.map(function(item){return item.pattern;}).includes(rule.pattern)){_context2.next=5;break;}return _context2.abrupt("return");case 5:rules.unshift(rule);_context2.next=8;return update(rules);case 8:case"end":return _context2.stop();}},_callee2);}));return function add(_x2){return _ref2.apply(this,arguments);};}();var del=/*#__PURE__*/function(){var _ref3=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee3(pattern){var rules;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:rules=(0,toConsumableArray/* default */.Z)(list);if(!(pattern==="*")){_context3.next=3;break;}return _context3.abrupt("return");case 3:rules=rules.filter(function(item){return item.pattern!==pattern;});_context3.next=6;return update(rules);case 6:case"end":return _context3.stop();}},_callee3);}));return function del(_x3){return _ref3.apply(this,arguments);};}();var put=/*#__PURE__*/function(){var _ref4=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee4(pattern,obj){var rules,rule;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee4$(_context4){while(1)switch(_context4.prev=_context4.next){case 0:rules=(0,toConsumableArray/* default */.Z)(list);if(pattern==="*"){obj.pattern="*";}rule=rules.find(function(r){return r.pattern===pattern;});rule&&Object.assign(rule,obj);_context4.next=6;return update(rules);case 6:case"end":return _context4.stop();}},_callee4);}));return function put(_x4,_x5){return _ref4.apply(this,arguments);};}();var merge=/*#__PURE__*/function(){var _ref5=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee5(newRules){var rules,fromLangs,toLangs;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee5$(_context5){while(1)switch(_context5.prev=_context5.next){case 0:rules=(0,toConsumableArray/* default */.Z)(list);fromLangs=OPT_LANGS_FROM.map(function(item){return item[0];});toLangs=OPT_LANGS_TO.map(function(item){return item[0];});newRules.filter(function(_ref6){var pattern=_ref6.pattern;return pattern&&typeof pattern==="string";}).map(function(_ref7){var pattern=_ref7.pattern,selector=_ref7.selector,translator=_ref7.translator,fromLang=_ref7.fromLang,toLang=_ref7.toLang,textStyle=_ref7.textStyle,transOpen=_ref7.transOpen,bgColor=_ref7.bgColor;return{pattern:pattern,selector:typeof selector==="string"?selector:"",bgColor:typeof bgColor==="string"?bgColor:"",translator:matchValue([rules_GLOBAL_KEY].concat((0,toConsumableArray/* default */.Z)(OPT_TRANS_ALL)),translator),fromLang:matchValue([rules_GLOBAL_KEY].concat((0,toConsumableArray/* default */.Z)(fromLangs)),fromLang),toLang:matchValue([rules_GLOBAL_KEY].concat((0,toConsumableArray/* default */.Z)(toLangs)),toLang),textStyle:matchValue([rules_GLOBAL_KEY].concat((0,toConsumableArray/* default */.Z)(OPT_STYLE_ALL)),textStyle),transOpen:matchValue([rules_GLOBAL_KEY,"true","false"],transOpen)};}).forEach(function(newRule){var rule=rules.find(function(oldRule){return oldRule.pattern===newRule.pattern;});if(rule){Object.assign(rule,newRule);}else{rules.unshift(newRule);}});_context5.next=6;return update(rules);case 6:case"end":return _context5.stop();}},_callee5);}));return function merge(_x6){return _ref5.apply(this,arguments);};}();return{list:list,add:add,del:del,put:put,merge:merge};}
+ */function useRules(){var storages=useStorages();var list=(storages===null||storages===void 0?void 0:storages[STOKEY_RULES])||[];var sync=useSync();var update=/*#__PURE__*/function(){var _ref=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(rules){var _sync$opt;var updateAt;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:updateAt=(_sync$opt=sync.opt)!==null&&_sync$opt!==void 0&&_sync$opt.rulesUpdateAt?Date.now():0;_context.next=3;return libs_storage.setObj(STOKEY_RULES,rules);case 3:_context.next=5;return sync.update({rulesUpdateAt:updateAt});case 5:syncRules();case 6:case"end":return _context.stop();}},_callee);}));return function update(_x){return _ref.apply(this,arguments);};}();var add=/*#__PURE__*/function(){var _ref2=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(rule){var rules;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:rules=(0,toConsumableArray/* default */.Z)(list);if(!(rule.pattern==="*")){_context2.next=3;break;}return _context2.abrupt("return");case 3:if(!rules.map(function(item){return item.pattern;}).includes(rule.pattern)){_context2.next=5;break;}return _context2.abrupt("return");case 5:rules.unshift(rule);_context2.next=8;return update(rules);case 8:case"end":return _context2.stop();}},_callee2);}));return function add(_x2){return _ref2.apply(this,arguments);};}();var del=/*#__PURE__*/function(){var _ref3=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee3(pattern){var rules;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:rules=(0,toConsumableArray/* default */.Z)(list);if(!(pattern==="*")){_context3.next=3;break;}return _context3.abrupt("return");case 3:rules=rules.filter(function(item){return item.pattern!==pattern;});_context3.next=6;return update(rules);case 6:case"end":return _context3.stop();}},_callee3);}));return function del(_x3){return _ref3.apply(this,arguments);};}();var put=/*#__PURE__*/function(){var _ref4=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee4(pattern,obj){var rules,rule;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee4$(_context4){while(1)switch(_context4.prev=_context4.next){case 0:rules=(0,toConsumableArray/* default */.Z)(list);if(pattern==="*"){obj.pattern="*";}rule=rules.find(function(r){return r.pattern===pattern;});rule&&Object.assign(rule,obj);_context4.next=6;return update(rules);case 6:case"end":return _context4.stop();}},_callee4);}));return function put(_x4,_x5){return _ref4.apply(this,arguments);};}();var merge=/*#__PURE__*/function(){var _ref5=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee5(newRules){var rules;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee5$(_context5){while(1)switch(_context5.prev=_context5.next){case 0:rules=(0,toConsumableArray/* default */.Z)(list);newRules=checkRules(newRules);newRules.forEach(function(newRule){var rule=rules.find(function(oldRule){return oldRule.pattern===newRule.pattern;});if(rule){Object.assign(rule,newRule);}else{rules.unshift(newRule);}});_context5.next=5;return update(rules);case 5:case"end":return _context5.stop();}},_callee5);}));return function merge(_x6){return _ref5.apply(this,arguments);};}();return{list:list,add:add,del:del,put:put,merge:merge};}/**
+ * 订阅规则
+ * @returns
+ */function useSubrules(){var setting=useSetting();var updateSetting=useSettingUpdate();var list=(setting===null||setting===void 0?void 0:setting.subrulesList)||config_DEFAULT_SUBRULES_LIST;var select=/*#__PURE__*/function(){var _ref6=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee6(url){var subrulesList;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee6$(_context6){while(1)switch(_context6.prev=_context6.next){case 0:subrulesList=(0,toConsumableArray/* default */.Z)(list);subrulesList.forEach(function(item){if(item.url===url){item.selected=true;}else{item.selected=false;}});_context6.next=4;return updateSetting({subrulesList:subrulesList});case 4:case"end":return _context6.stop();}},_callee6);}));return function select(_x7){return _ref6.apply(this,arguments);};}();var add=/*#__PURE__*/function(){var _ref7=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee7(url){var subrulesList;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee7$(_context7){while(1)switch(_context7.prev=_context7.next){case 0:subrulesList=(0,toConsumableArray/* default */.Z)(list);subrulesList.push({url:url});_context7.next=4;return updateSetting({subrulesList:subrulesList});case 4:case"end":return _context7.stop();}},_callee7);}));return function add(_x8){return _ref7.apply(this,arguments);};}();var del=/*#__PURE__*/function(){var _ref8=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee8(url){var subrulesList;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee8$(_context8){while(1)switch(_context8.prev=_context8.next){case 0:subrulesList=(0,toConsumableArray/* default */.Z)(list);subrulesList=subrulesList.filter(function(item){return item.url!==url;});_context8.next=4;return updateSetting({subrulesList:subrulesList});case 4:case"end":return _context8.stop();}},_callee8);}));return function del(_x9){return _ref8.apply(this,arguments);};}();return{list:list,select:select,add:add,del:del};}
 ;// CONCATENATED MODULE: ./node_modules/@mui/material/Divider/dividerClasses.js
 
 
@@ -53886,14 +53973,2623 @@ var Switch = /*#__PURE__*/react.forwardRef(function Switch(inProps, ref) {
 });
  false ? 0 : void 0;
 /* harmony default export */ var Switch_Switch = (Switch);
+;// CONCATENATED MODULE: ./node_modules/@mui/utils/esm/scrollLeft.js
+// Source from https://github.com/alitaheri/normalize-scroll-left
+var cachedType;
+
+/**
+ * Based on the jquery plugin https://github.com/othree/jquery.rtl-scroll-type
+ *
+ * Types of scrollLeft, assuming scrollWidth=100 and direction is rtl.
+ *
+ * Type             | <- Most Left | Most Right -> | Initial
+ * ---------------- | ------------ | ------------- | -------
+ * default          | 0            | 100           | 100
+ * negative (spec*) | -100         | 0             | 0
+ * reverse          | 100          | 0             | 0
+ *
+ * Edge 85: default
+ * Safari 14: negative
+ * Chrome 85: negative
+ * Firefox 81: negative
+ * IE11: reverse
+ *
+ * spec* https://drafts.csswg.org/cssom-view/#dom-window-scroll
+ */
+function detectScrollType() {
+  if (cachedType) {
+    return cachedType;
+  }
+  var dummy = document.createElement('div');
+  var container = document.createElement('div');
+  container.style.width = '10px';
+  container.style.height = '1px';
+  dummy.appendChild(container);
+  dummy.dir = 'rtl';
+  dummy.style.fontSize = '14px';
+  dummy.style.width = '4px';
+  dummy.style.height = '1px';
+  dummy.style.position = 'absolute';
+  dummy.style.top = '-1000px';
+  dummy.style.overflow = 'scroll';
+  document.body.appendChild(dummy);
+  cachedType = 'reverse';
+  if (dummy.scrollLeft > 0) {
+    cachedType = 'default';
+  } else {
+    dummy.scrollLeft = 1;
+    if (dummy.scrollLeft === 0) {
+      cachedType = 'negative';
+    }
+  }
+  document.body.removeChild(dummy);
+  return cachedType;
+}
+
+// Based on https://stackoverflow.com/a/24394376
+function getNormalizedScrollLeft(element, direction) {
+  var scrollLeft = element.scrollLeft;
+
+  // Perform the calculations only when direction is rtl to avoid messing up the ltr behavior
+  if (direction !== 'rtl') {
+    return scrollLeft;
+  }
+  var type = detectScrollType();
+  switch (type) {
+    case 'negative':
+      return element.scrollWidth - element.clientWidth + scrollLeft;
+    case 'reverse':
+      return element.scrollWidth - element.clientWidth - scrollLeft;
+    default:
+      return scrollLeft;
+  }
+}
+;// CONCATENATED MODULE: ./node_modules/@mui/material/internal/animate.js
+function easeInOutSin(time) {
+  return (1 + Math.sin(Math.PI * time - Math.PI / 2)) / 2;
+}
+function animate(property, element, to) {
+  var options = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {};
+  var cb = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : function () {};
+  var _options$ease = options.ease,
+    ease = _options$ease === void 0 ? easeInOutSin : _options$ease,
+    _options$duration = options.duration,
+    duration = _options$duration === void 0 ? 300 : _options$duration;
+  var start = null;
+  var from = element[property];
+  var cancelled = false;
+  var cancel = function cancel() {
+    cancelled = true;
+  };
+  var step = function step(timestamp) {
+    if (cancelled) {
+      cb(new Error('Animation cancelled'));
+      return;
+    }
+    if (start === null) {
+      start = timestamp;
+    }
+    var time = Math.min(1, (timestamp - start) / duration);
+    element[property] = ease(time) * (to - from) + from;
+    if (time >= 1) {
+      requestAnimationFrame(function () {
+        cb(null);
+      });
+      return;
+    }
+    requestAnimationFrame(step);
+  };
+  if (from === to) {
+    cb(new Error('Element already at target position'));
+    return cancel;
+  }
+  requestAnimationFrame(step);
+  return cancel;
+}
+;// CONCATENATED MODULE: ./node_modules/@mui/material/Tabs/ScrollbarSize.js
+'use client';
+
+
+
+var ScrollbarSize_excluded = ["onChange"];
+
+
+
+
+
+var ScrollbarSize_styles = {
+  width: 99,
+  height: 99,
+  position: 'absolute',
+  top: -9999,
+  overflow: 'scroll'
+};
+
+/**
+ * @ignore - internal component.
+ * The component originates from https://github.com/STORIS/react-scrollbar-size.
+ * It has been moved into the core in order to minimize the bundle size.
+ */
+function ScrollbarSize(props) {
+  var onChange = props.onChange,
+    other = (0,objectWithoutPropertiesLoose/* default */.Z)(props, ScrollbarSize_excluded);
+  var scrollbarHeight = react.useRef();
+  var nodeRef = react.useRef(null);
+  var setMeasurements = function setMeasurements() {
+    scrollbarHeight.current = nodeRef.current.offsetHeight - nodeRef.current.clientHeight;
+  };
+  (0,utils_useEnhancedEffect/* default */.Z)(function () {
+    var handleResize = (0,utils_debounce/* default */.Z)(function () {
+      var prevHeight = scrollbarHeight.current;
+      setMeasurements();
+      if (prevHeight !== scrollbarHeight.current) {
+        onChange(scrollbarHeight.current);
+      }
+    });
+    var containerWindow = (0,utils_ownerWindow/* default */.Z)(nodeRef.current);
+    containerWindow.addEventListener('resize', handleResize);
+    return function () {
+      handleResize.clear();
+      containerWindow.removeEventListener('resize', handleResize);
+    };
+  }, [onChange]);
+  react.useEffect(function () {
+    setMeasurements();
+    onChange(scrollbarHeight.current);
+  }, [onChange]);
+  return /*#__PURE__*/(0,jsx_runtime.jsx)("div", (0,esm_extends/* default */.Z)({
+    style: ScrollbarSize_styles,
+    ref: nodeRef
+  }, other));
+}
+ false ? 0 : void 0;
+;// CONCATENATED MODULE: ./node_modules/@mui/material/internal/svg-icons/KeyboardArrowLeft.js
+'use client';
+
+
+
+
+/**
+ * @ignore - internal component.
+ */
+
+/* harmony default export */ var KeyboardArrowLeft = ((0,createSvgIcon/* default */.Z)( /*#__PURE__*/(0,jsx_runtime.jsx)("path", {
+  d: "M15.41 16.09l-4.58-4.59 4.58-4.59L14 5.5l-6 6 6 6z"
+}), 'KeyboardArrowLeft'));
+;// CONCATENATED MODULE: ./node_modules/@mui/material/internal/svg-icons/KeyboardArrowRight.js
+'use client';
+
+
+
+
+/**
+ * @ignore - internal component.
+ */
+
+/* harmony default export */ var KeyboardArrowRight = ((0,createSvgIcon/* default */.Z)( /*#__PURE__*/(0,jsx_runtime.jsx)("path", {
+  d: "M8.59 16.34l4.58-4.59-4.58-4.59L10 5.75l6 6-6 6z"
+}), 'KeyboardArrowRight'));
+;// CONCATENATED MODULE: ./node_modules/@mui/material/TabScrollButton/tabScrollButtonClasses.js
+
+
+function getTabScrollButtonUtilityClass(slot) {
+  return (0,generateUtilityClass_generateUtilityClass/* default */.Z)('MuiTabScrollButton', slot);
+}
+var tabScrollButtonClasses = (0,generateUtilityClasses/* default */.Z)('MuiTabScrollButton', ['root', 'vertical', 'horizontal', 'disabled']);
+/* harmony default export */ var TabScrollButton_tabScrollButtonClasses = (tabScrollButtonClasses);
+;// CONCATENATED MODULE: ./node_modules/@mui/material/TabScrollButton/TabScrollButton.js
+'use client';
+
+/* eslint-disable jsx-a11y/aria-role */
+
+
+
+var TabScrollButton_excluded = ["className", "slots", "slotProps", "direction", "orientation", "disabled"];
+
+
+
+
+
+
+
+
+
+
+
+
+var TabScrollButton_useUtilityClasses = function useUtilityClasses(ownerState) {
+  var classes = ownerState.classes,
+    orientation = ownerState.orientation,
+    disabled = ownerState.disabled;
+  var slots = {
+    root: ['root', orientation, disabled && 'disabled']
+  };
+  return (0,composeClasses/* default */.Z)(slots, getTabScrollButtonUtilityClass, classes);
+};
+var TabScrollButtonRoot = (0,styled/* default */.ZP)(ButtonBase_ButtonBase, {
+  name: 'MuiTabScrollButton',
+  slot: 'Root',
+  overridesResolver: function overridesResolver(props, styles) {
+    var ownerState = props.ownerState;
+    return [styles.root, ownerState.orientation && styles[ownerState.orientation]];
+  }
+})(function (_ref) {
+  var ownerState = _ref.ownerState;
+  return (0,esm_extends/* default */.Z)((0,defineProperty/* default */.Z)({
+    width: 40,
+    flexShrink: 0,
+    opacity: 0.8
+  }, "&.".concat(TabScrollButton_tabScrollButtonClasses.disabled), {
+    opacity: 0
+  }), ownerState.orientation === 'vertical' && {
+    width: '100%',
+    height: 40,
+    '& svg': {
+      transform: "rotate(".concat(ownerState.isRtl ? -90 : 90, "deg)")
+    }
+  });
+});
+var TabScrollButton = /*#__PURE__*/react.forwardRef(function TabScrollButton(inProps, ref) {
+  var _slots$StartScrollBut, _slots$EndScrollButto;
+  var props = (0,styles_useThemeProps/* default */.Z)({
+    props: inProps,
+    name: 'MuiTabScrollButton'
+  });
+  var className = props.className,
+    _props$slots = props.slots,
+    slots = _props$slots === void 0 ? {} : _props$slots,
+    _props$slotProps = props.slotProps,
+    slotProps = _props$slotProps === void 0 ? {} : _props$slotProps,
+    direction = props.direction,
+    other = (0,objectWithoutPropertiesLoose/* default */.Z)(props, TabScrollButton_excluded);
+  var theme = useTheme_useTheme();
+  var isRtl = theme.direction === 'rtl';
+  var ownerState = (0,esm_extends/* default */.Z)({
+    isRtl: isRtl
+  }, props);
+  var classes = TabScrollButton_useUtilityClasses(ownerState);
+  var StartButtonIcon = (_slots$StartScrollBut = slots.StartScrollButtonIcon) != null ? _slots$StartScrollBut : KeyboardArrowLeft;
+  var EndButtonIcon = (_slots$EndScrollButto = slots.EndScrollButtonIcon) != null ? _slots$EndScrollButto : KeyboardArrowRight;
+  var startButtonIconProps = useSlotProps({
+    elementType: StartButtonIcon,
+    externalSlotProps: slotProps.startScrollButtonIcon,
+    additionalProps: {
+      fontSize: 'small'
+    },
+    ownerState: ownerState
+  });
+  var endButtonIconProps = useSlotProps({
+    elementType: EndButtonIcon,
+    externalSlotProps: slotProps.endScrollButtonIcon,
+    additionalProps: {
+      fontSize: 'small'
+    },
+    ownerState: ownerState
+  });
+  return /*#__PURE__*/(0,jsx_runtime.jsx)(TabScrollButtonRoot, (0,esm_extends/* default */.Z)({
+    component: "div",
+    className: (0,clsx/* default */.Z)(classes.root, className),
+    ref: ref,
+    role: null,
+    ownerState: ownerState,
+    tabIndex: null
+  }, other, {
+    children: direction === 'left' ? /*#__PURE__*/(0,jsx_runtime.jsx)(StartButtonIcon, (0,esm_extends/* default */.Z)({}, startButtonIconProps)) : /*#__PURE__*/(0,jsx_runtime.jsx)(EndButtonIcon, (0,esm_extends/* default */.Z)({}, endButtonIconProps))
+  }));
+});
+ false ? 0 : void 0;
+/* harmony default export */ var TabScrollButton_TabScrollButton = (TabScrollButton);
+;// CONCATENATED MODULE: ./node_modules/@mui/material/Tabs/tabsClasses.js
+
+
+function getTabsUtilityClass(slot) {
+  return (0,generateUtilityClass_generateUtilityClass/* default */.Z)('MuiTabs', slot);
+}
+var tabsClasses = (0,generateUtilityClasses/* default */.Z)('MuiTabs', ['root', 'vertical', 'flexContainer', 'flexContainerVertical', 'centered', 'scroller', 'fixed', 'scrollableX', 'scrollableY', 'hideScrollbar', 'scrollButtons', 'scrollButtonsHideMobile', 'indicator']);
+/* harmony default export */ var Tabs_tabsClasses = (tabsClasses);
+;// CONCATENATED MODULE: ./node_modules/@mui/material/Tabs/Tabs.js
+'use client';
+
+
+
+
+
+var Tabs_excluded = ["aria-label", "aria-labelledby", "action", "centered", "children", "className", "component", "allowScrollButtonsMobile", "indicatorColor", "onChange", "orientation", "ScrollButtonComponent", "scrollButtons", "selectionFollowsFocus", "slots", "slotProps", "TabIndicatorProps", "TabScrollButtonProps", "textColor", "value", "variant", "visibleScrollbar"];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var Tabs_nextItem = function nextItem(list, item) {
+  if (list === item) {
+    return list.firstChild;
+  }
+  if (item && item.nextElementSibling) {
+    return item.nextElementSibling;
+  }
+  return list.firstChild;
+};
+var Tabs_previousItem = function previousItem(list, item) {
+  if (list === item) {
+    return list.lastChild;
+  }
+  if (item && item.previousElementSibling) {
+    return item.previousElementSibling;
+  }
+  return list.lastChild;
+};
+var Tabs_moveFocus = function moveFocus(list, currentFocus, traversalFunction) {
+  var wrappedOnce = false;
+  var nextFocus = traversalFunction(list, currentFocus);
+  while (nextFocus) {
+    // Prevent infinite loop.
+    if (nextFocus === list.firstChild) {
+      if (wrappedOnce) {
+        return;
+      }
+      wrappedOnce = true;
+    }
+
+    // Same logic as useAutocomplete.js
+    var nextFocusDisabled = nextFocus.disabled || nextFocus.getAttribute('aria-disabled') === 'true';
+    if (!nextFocus.hasAttribute('tabindex') || nextFocusDisabled) {
+      // Move to the next element.
+      nextFocus = traversalFunction(list, nextFocus);
+    } else {
+      nextFocus.focus();
+      return;
+    }
+  }
+};
+var Tabs_useUtilityClasses = function useUtilityClasses(ownerState) {
+  var vertical = ownerState.vertical,
+    fixed = ownerState.fixed,
+    hideScrollbar = ownerState.hideScrollbar,
+    scrollableX = ownerState.scrollableX,
+    scrollableY = ownerState.scrollableY,
+    centered = ownerState.centered,
+    scrollButtonsHideMobile = ownerState.scrollButtonsHideMobile,
+    classes = ownerState.classes;
+  var slots = {
+    root: ['root', vertical && 'vertical'],
+    scroller: ['scroller', fixed && 'fixed', hideScrollbar && 'hideScrollbar', scrollableX && 'scrollableX', scrollableY && 'scrollableY'],
+    flexContainer: ['flexContainer', vertical && 'flexContainerVertical', centered && 'centered'],
+    indicator: ['indicator'],
+    scrollButtons: ['scrollButtons', scrollButtonsHideMobile && 'scrollButtonsHideMobile'],
+    scrollableX: [scrollableX && 'scrollableX'],
+    hideScrollbar: [hideScrollbar && 'hideScrollbar']
+  };
+  return (0,composeClasses/* default */.Z)(slots, getTabsUtilityClass, classes);
+};
+var TabsRoot = (0,styled/* default */.ZP)('div', {
+  name: 'MuiTabs',
+  slot: 'Root',
+  overridesResolver: function overridesResolver(props, styles) {
+    var ownerState = props.ownerState;
+    return [(0,defineProperty/* default */.Z)({}, "& .".concat(Tabs_tabsClasses.scrollButtons), styles.scrollButtons), (0,defineProperty/* default */.Z)({}, "& .".concat(Tabs_tabsClasses.scrollButtons), ownerState.scrollButtonsHideMobile && styles.scrollButtonsHideMobile), styles.root, ownerState.vertical && styles.vertical];
+  }
+})(function (_ref3) {
+  var ownerState = _ref3.ownerState,
+    theme = _ref3.theme;
+  return (0,esm_extends/* default */.Z)({
+    overflow: 'hidden',
+    minHeight: 48,
+    // Add iOS momentum scrolling for iOS < 13.0
+    WebkitOverflowScrolling: 'touch',
+    display: 'flex'
+  }, ownerState.vertical && {
+    flexDirection: 'column'
+  }, ownerState.scrollButtonsHideMobile && (0,defineProperty/* default */.Z)({}, "& .".concat(Tabs_tabsClasses.scrollButtons), (0,defineProperty/* default */.Z)({}, theme.breakpoints.down('sm'), {
+    display: 'none'
+  })));
+});
+var TabsScroller = (0,styled/* default */.ZP)('div', {
+  name: 'MuiTabs',
+  slot: 'Scroller',
+  overridesResolver: function overridesResolver(props, styles) {
+    var ownerState = props.ownerState;
+    return [styles.scroller, ownerState.fixed && styles.fixed, ownerState.hideScrollbar && styles.hideScrollbar, ownerState.scrollableX && styles.scrollableX, ownerState.scrollableY && styles.scrollableY];
+  }
+})(function (_ref5) {
+  var ownerState = _ref5.ownerState;
+  return (0,esm_extends/* default */.Z)({
+    position: 'relative',
+    display: 'inline-block',
+    flex: '1 1 auto',
+    whiteSpace: 'nowrap'
+  }, ownerState.fixed && {
+    overflowX: 'hidden',
+    width: '100%'
+  }, ownerState.hideScrollbar && {
+    // Hide dimensionless scrollbar on macOS
+    scrollbarWidth: 'none',
+    // Firefox
+    '&::-webkit-scrollbar': {
+      display: 'none' // Safari + Chrome
+    }
+  }, ownerState.scrollableX && {
+    overflowX: 'auto',
+    overflowY: 'hidden'
+  }, ownerState.scrollableY && {
+    overflowY: 'auto',
+    overflowX: 'hidden'
+  });
+});
+var FlexContainer = (0,styled/* default */.ZP)('div', {
+  name: 'MuiTabs',
+  slot: 'FlexContainer',
+  overridesResolver: function overridesResolver(props, styles) {
+    var ownerState = props.ownerState;
+    return [styles.flexContainer, ownerState.vertical && styles.flexContainerVertical, ownerState.centered && styles.centered];
+  }
+})(function (_ref6) {
+  var ownerState = _ref6.ownerState;
+  return (0,esm_extends/* default */.Z)({
+    display: 'flex'
+  }, ownerState.vertical && {
+    flexDirection: 'column'
+  }, ownerState.centered && {
+    justifyContent: 'center'
+  });
+});
+var TabsIndicator = (0,styled/* default */.ZP)('span', {
+  name: 'MuiTabs',
+  slot: 'Indicator',
+  overridesResolver: function overridesResolver(props, styles) {
+    return styles.indicator;
+  }
+})(function (_ref7) {
+  var ownerState = _ref7.ownerState,
+    theme = _ref7.theme;
+  return (0,esm_extends/* default */.Z)({
+    position: 'absolute',
+    height: 2,
+    bottom: 0,
+    width: '100%',
+    transition: theme.transitions.create()
+  }, ownerState.indicatorColor === 'primary' && {
+    backgroundColor: (theme.vars || theme).palette.primary.main
+  }, ownerState.indicatorColor === 'secondary' && {
+    backgroundColor: (theme.vars || theme).palette.secondary.main
+  }, ownerState.vertical && {
+    height: '100%',
+    width: 2,
+    right: 0
+  });
+});
+var TabsScrollbarSize = (0,styled/* default */.ZP)(ScrollbarSize, {
+  name: 'MuiTabs',
+  slot: 'ScrollbarSize'
+})({
+  overflowX: 'auto',
+  overflowY: 'hidden',
+  // Hide dimensionless scrollbar on macOS
+  scrollbarWidth: 'none',
+  // Firefox
+  '&::-webkit-scrollbar': {
+    display: 'none' // Safari + Chrome
+  }
+});
+
+var defaultIndicatorStyle = {};
+var warnedOnceTabPresent = false;
+var Tabs = /*#__PURE__*/react.forwardRef(function Tabs(inProps, ref) {
+  var props = (0,styles_useThemeProps/* default */.Z)({
+    props: inProps,
+    name: 'MuiTabs'
+  });
+  var theme = useTheme_useTheme();
+  var isRtl = theme.direction === 'rtl';
+  var ariaLabel = props['aria-label'],
+    ariaLabelledBy = props['aria-labelledby'],
+    action = props.action,
+    _props$centered = props.centered,
+    centered = _props$centered === void 0 ? false : _props$centered,
+    childrenProp = props.children,
+    className = props.className,
+    _props$component = props.component,
+    component = _props$component === void 0 ? 'div' : _props$component,
+    _props$allowScrollBut = props.allowScrollButtonsMobile,
+    allowScrollButtonsMobile = _props$allowScrollBut === void 0 ? false : _props$allowScrollBut,
+    _props$indicatorColor = props.indicatorColor,
+    indicatorColor = _props$indicatorColor === void 0 ? 'primary' : _props$indicatorColor,
+    onChange = props.onChange,
+    _props$orientation = props.orientation,
+    orientation = _props$orientation === void 0 ? 'horizontal' : _props$orientation,
+    _props$ScrollButtonCo = props.ScrollButtonComponent,
+    ScrollButtonComponent = _props$ScrollButtonCo === void 0 ? TabScrollButton_TabScrollButton : _props$ScrollButtonCo,
+    _props$scrollButtons = props.scrollButtons,
+    scrollButtons = _props$scrollButtons === void 0 ? 'auto' : _props$scrollButtons,
+    selectionFollowsFocus = props.selectionFollowsFocus,
+    _props$slots = props.slots,
+    slots = _props$slots === void 0 ? {} : _props$slots,
+    _props$slotProps = props.slotProps,
+    slotProps = _props$slotProps === void 0 ? {} : _props$slotProps,
+    _props$TabIndicatorPr = props.TabIndicatorProps,
+    TabIndicatorProps = _props$TabIndicatorPr === void 0 ? {} : _props$TabIndicatorPr,
+    _props$TabScrollButto = props.TabScrollButtonProps,
+    TabScrollButtonProps = _props$TabScrollButto === void 0 ? {} : _props$TabScrollButto,
+    _props$textColor = props.textColor,
+    textColor = _props$textColor === void 0 ? 'primary' : _props$textColor,
+    value = props.value,
+    _props$variant = props.variant,
+    variant = _props$variant === void 0 ? 'standard' : _props$variant,
+    _props$visibleScrollb = props.visibleScrollbar,
+    visibleScrollbar = _props$visibleScrollb === void 0 ? false : _props$visibleScrollb,
+    other = (0,objectWithoutPropertiesLoose/* default */.Z)(props, Tabs_excluded);
+  var scrollable = variant === 'scrollable';
+  var vertical = orientation === 'vertical';
+  var scrollStart = vertical ? 'scrollTop' : 'scrollLeft';
+  var start = vertical ? 'top' : 'left';
+  var end = vertical ? 'bottom' : 'right';
+  var clientSize = vertical ? 'clientHeight' : 'clientWidth';
+  var size = vertical ? 'height' : 'width';
+  var ownerState = (0,esm_extends/* default */.Z)({}, props, {
+    component: component,
+    allowScrollButtonsMobile: allowScrollButtonsMobile,
+    indicatorColor: indicatorColor,
+    orientation: orientation,
+    vertical: vertical,
+    scrollButtons: scrollButtons,
+    textColor: textColor,
+    variant: variant,
+    visibleScrollbar: visibleScrollbar,
+    fixed: !scrollable,
+    hideScrollbar: scrollable && !visibleScrollbar,
+    scrollableX: scrollable && !vertical,
+    scrollableY: scrollable && vertical,
+    centered: centered && !scrollable,
+    scrollButtonsHideMobile: !allowScrollButtonsMobile
+  });
+  var classes = Tabs_useUtilityClasses(ownerState);
+  var startScrollButtonIconProps = useSlotProps({
+    elementType: slots.StartScrollButtonIcon,
+    externalSlotProps: slotProps.startScrollButtonIcon,
+    ownerState: ownerState
+  });
+  var endScrollButtonIconProps = useSlotProps({
+    elementType: slots.EndScrollButtonIcon,
+    externalSlotProps: slotProps.endScrollButtonIcon,
+    ownerState: ownerState
+  });
+  if (false) {}
+  var _React$useState = react.useState(false),
+    _React$useState2 = (0,slicedToArray/* default */.Z)(_React$useState, 2),
+    mounted = _React$useState2[0],
+    setMounted = _React$useState2[1];
+  var _React$useState3 = react.useState(defaultIndicatorStyle),
+    _React$useState4 = (0,slicedToArray/* default */.Z)(_React$useState3, 2),
+    indicatorStyle = _React$useState4[0],
+    setIndicatorStyle = _React$useState4[1];
+  var _React$useState5 = react.useState(false),
+    _React$useState6 = (0,slicedToArray/* default */.Z)(_React$useState5, 2),
+    displayStartScroll = _React$useState6[0],
+    setDisplayStartScroll = _React$useState6[1];
+  var _React$useState7 = react.useState(false),
+    _React$useState8 = (0,slicedToArray/* default */.Z)(_React$useState7, 2),
+    displayEndScroll = _React$useState8[0],
+    setDisplayEndScroll = _React$useState8[1];
+  var _React$useState9 = react.useState(false),
+    _React$useState10 = (0,slicedToArray/* default */.Z)(_React$useState9, 2),
+    updateScrollObserver = _React$useState10[0],
+    setUpdateScrollObserver = _React$useState10[1];
+  var _React$useState11 = react.useState({
+      overflow: 'hidden',
+      scrollbarWidth: 0
+    }),
+    _React$useState12 = (0,slicedToArray/* default */.Z)(_React$useState11, 2),
+    scrollerStyle = _React$useState12[0],
+    setScrollerStyle = _React$useState12[1];
+  var valueToIndex = new Map();
+  var tabsRef = react.useRef(null);
+  var tabListRef = react.useRef(null);
+  var getTabsMeta = function getTabsMeta() {
+    var tabsNode = tabsRef.current;
+    var tabsMeta;
+    if (tabsNode) {
+      var rect = tabsNode.getBoundingClientRect();
+      // create a new object with ClientRect class props + scrollLeft
+      tabsMeta = {
+        clientWidth: tabsNode.clientWidth,
+        scrollLeft: tabsNode.scrollLeft,
+        scrollTop: tabsNode.scrollTop,
+        scrollLeftNormalized: getNormalizedScrollLeft(tabsNode, theme.direction),
+        scrollWidth: tabsNode.scrollWidth,
+        top: rect.top,
+        bottom: rect.bottom,
+        left: rect.left,
+        right: rect.right
+      };
+    }
+    var tabMeta;
+    if (tabsNode && value !== false) {
+      var _children = tabListRef.current.children;
+      if (_children.length > 0) {
+        var tab = _children[valueToIndex.get(value)];
+        if (false) {}
+        tabMeta = tab ? tab.getBoundingClientRect() : null;
+        if (false) {}
+      }
+    }
+    return {
+      tabsMeta: tabsMeta,
+      tabMeta: tabMeta
+    };
+  };
+  var updateIndicatorState = (0,utils_useEventCallback/* default */.Z)(function () {
+    var _newIndicatorStyle;
+    var _getTabsMeta = getTabsMeta(),
+      tabsMeta = _getTabsMeta.tabsMeta,
+      tabMeta = _getTabsMeta.tabMeta;
+    var startValue = 0;
+    var startIndicator;
+    if (vertical) {
+      startIndicator = 'top';
+      if (tabMeta && tabsMeta) {
+        startValue = tabMeta.top - tabsMeta.top + tabsMeta.scrollTop;
+      }
+    } else {
+      startIndicator = isRtl ? 'right' : 'left';
+      if (tabMeta && tabsMeta) {
+        var correction = isRtl ? tabsMeta.scrollLeftNormalized + tabsMeta.clientWidth - tabsMeta.scrollWidth : tabsMeta.scrollLeft;
+        startValue = (isRtl ? -1 : 1) * (tabMeta[startIndicator] - tabsMeta[startIndicator] + correction);
+      }
+    }
+    var newIndicatorStyle = (_newIndicatorStyle = {}, (0,defineProperty/* default */.Z)(_newIndicatorStyle, startIndicator, startValue), (0,defineProperty/* default */.Z)(_newIndicatorStyle, size, tabMeta ? tabMeta[size] : 0), _newIndicatorStyle);
+
+    // IE11 support, replace with Number.isNaN
+    // eslint-disable-next-line no-restricted-globals
+    if (isNaN(indicatorStyle[startIndicator]) || isNaN(indicatorStyle[size])) {
+      setIndicatorStyle(newIndicatorStyle);
+    } else {
+      var dStart = Math.abs(indicatorStyle[startIndicator] - newIndicatorStyle[startIndicator]);
+      var dSize = Math.abs(indicatorStyle[size] - newIndicatorStyle[size]);
+      if (dStart >= 1 || dSize >= 1) {
+        setIndicatorStyle(newIndicatorStyle);
+      }
+    }
+  });
+  var scroll = function scroll(scrollValue) {
+    var _ref8 = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {},
+      _ref8$animation = _ref8.animation,
+      animation = _ref8$animation === void 0 ? true : _ref8$animation;
+    if (animation) {
+      animate(scrollStart, tabsRef.current, scrollValue, {
+        duration: theme.transitions.duration.standard
+      });
+    } else {
+      tabsRef.current[scrollStart] = scrollValue;
+    }
+  };
+  var moveTabsScroll = function moveTabsScroll(delta) {
+    var scrollValue = tabsRef.current[scrollStart];
+    if (vertical) {
+      scrollValue += delta;
+    } else {
+      scrollValue += delta * (isRtl ? -1 : 1);
+      // Fix for Edge
+      scrollValue *= isRtl && detectScrollType() === 'reverse' ? -1 : 1;
+    }
+    scroll(scrollValue);
+  };
+  var getScrollSize = function getScrollSize() {
+    var containerSize = tabsRef.current[clientSize];
+    var totalSize = 0;
+    var children = Array.from(tabListRef.current.children);
+    for (var i = 0; i < children.length; i += 1) {
+      var tab = children[i];
+      if (totalSize + tab[clientSize] > containerSize) {
+        // If the first item is longer than the container size, then only scroll
+        // by the container size.
+        if (i === 0) {
+          totalSize = containerSize;
+        }
+        break;
+      }
+      totalSize += tab[clientSize];
+    }
+    return totalSize;
+  };
+  var handleStartScrollClick = function handleStartScrollClick() {
+    moveTabsScroll(-1 * getScrollSize());
+  };
+  var handleEndScrollClick = function handleEndScrollClick() {
+    moveTabsScroll(getScrollSize());
+  };
+
+  // TODO Remove <ScrollbarSize /> as browser support for hiding the scrollbar
+  // with CSS improves.
+  var handleScrollbarSizeChange = react.useCallback(function (scrollbarWidth) {
+    setScrollerStyle({
+      overflow: null,
+      scrollbarWidth: scrollbarWidth
+    });
+  }, []);
+  var getConditionalElements = function getConditionalElements() {
+    var conditionalElements = {};
+    conditionalElements.scrollbarSizeListener = scrollable ? /*#__PURE__*/(0,jsx_runtime.jsx)(TabsScrollbarSize, {
+      onChange: handleScrollbarSizeChange,
+      className: (0,clsx/* default */.Z)(classes.scrollableX, classes.hideScrollbar)
+    }) : null;
+    var scrollButtonsActive = displayStartScroll || displayEndScroll;
+    var showScrollButtons = scrollable && (scrollButtons === 'auto' && scrollButtonsActive || scrollButtons === true);
+    conditionalElements.scrollButtonStart = showScrollButtons ? /*#__PURE__*/(0,jsx_runtime.jsx)(ScrollButtonComponent, (0,esm_extends/* default */.Z)({
+      slots: {
+        StartScrollButtonIcon: slots.StartScrollButtonIcon
+      },
+      slotProps: {
+        startScrollButtonIcon: startScrollButtonIconProps
+      },
+      orientation: orientation,
+      direction: isRtl ? 'right' : 'left',
+      onClick: handleStartScrollClick,
+      disabled: !displayStartScroll
+    }, TabScrollButtonProps, {
+      className: (0,clsx/* default */.Z)(classes.scrollButtons, TabScrollButtonProps.className)
+    })) : null;
+    conditionalElements.scrollButtonEnd = showScrollButtons ? /*#__PURE__*/(0,jsx_runtime.jsx)(ScrollButtonComponent, (0,esm_extends/* default */.Z)({
+      slots: {
+        EndScrollButtonIcon: slots.EndScrollButtonIcon
+      },
+      slotProps: {
+        endScrollButtonIcon: endScrollButtonIconProps
+      },
+      orientation: orientation,
+      direction: isRtl ? 'left' : 'right',
+      onClick: handleEndScrollClick,
+      disabled: !displayEndScroll
+    }, TabScrollButtonProps, {
+      className: (0,clsx/* default */.Z)(classes.scrollButtons, TabScrollButtonProps.className)
+    })) : null;
+    return conditionalElements;
+  };
+  var scrollSelectedIntoView = (0,utils_useEventCallback/* default */.Z)(function (animation) {
+    var _getTabsMeta2 = getTabsMeta(),
+      tabsMeta = _getTabsMeta2.tabsMeta,
+      tabMeta = _getTabsMeta2.tabMeta;
+    if (!tabMeta || !tabsMeta) {
+      return;
+    }
+    if (tabMeta[start] < tabsMeta[start]) {
+      // left side of button is out of view
+      var nextScrollStart = tabsMeta[scrollStart] + (tabMeta[start] - tabsMeta[start]);
+      scroll(nextScrollStart, {
+        animation: animation
+      });
+    } else if (tabMeta[end] > tabsMeta[end]) {
+      // right side of button is out of view
+      var _nextScrollStart = tabsMeta[scrollStart] + (tabMeta[end] - tabsMeta[end]);
+      scroll(_nextScrollStart, {
+        animation: animation
+      });
+    }
+  });
+  var updateScrollButtonState = (0,utils_useEventCallback/* default */.Z)(function () {
+    if (scrollable && scrollButtons !== false) {
+      setUpdateScrollObserver(!updateScrollObserver);
+    }
+  });
+  react.useEffect(function () {
+    var handleResize = (0,utils_debounce/* default */.Z)(function () {
+      // If the Tabs component is replaced by Suspense with a fallback, the last
+      // ResizeObserver's handler that runs because of the change in the layout is trying to
+      // access a dom node that is no longer there (as the fallback component is being shown instead).
+      // See https://github.com/mui/material-ui/issues/33276
+      // TODO: Add tests that will ensure the component is not failing when
+      // replaced by Suspense with a fallback, once React is updated to version 18
+      if (tabsRef.current) {
+        updateIndicatorState();
+      }
+    });
+    var win = (0,utils_ownerWindow/* default */.Z)(tabsRef.current);
+    win.addEventListener('resize', handleResize);
+    var resizeObserver;
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(handleResize);
+      Array.from(tabListRef.current.children).forEach(function (child) {
+        resizeObserver.observe(child);
+      });
+    }
+    return function () {
+      handleResize.clear();
+      win.removeEventListener('resize', handleResize);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
+    };
+  }, [updateIndicatorState]);
+
+  /**
+   * Toggle visibility of start and end scroll buttons
+   * Using IntersectionObserver on first and last Tabs.
+   */
+  react.useEffect(function () {
+    var tabListChildren = Array.from(tabListRef.current.children);
+    var length = tabListChildren.length;
+    if (typeof IntersectionObserver !== 'undefined' && length > 0 && scrollable && scrollButtons !== false) {
+      var firstTab = tabListChildren[0];
+      var lastTab = tabListChildren[length - 1];
+      var observerOptions = {
+        root: tabsRef.current,
+        threshold: 0.99
+      };
+      var handleScrollButtonStart = function handleScrollButtonStart(entries) {
+        setDisplayStartScroll(!entries[0].isIntersecting);
+      };
+      var firstObserver = new IntersectionObserver(handleScrollButtonStart, observerOptions);
+      firstObserver.observe(firstTab);
+      var handleScrollButtonEnd = function handleScrollButtonEnd(entries) {
+        setDisplayEndScroll(!entries[0].isIntersecting);
+      };
+      var lastObserver = new IntersectionObserver(handleScrollButtonEnd, observerOptions);
+      lastObserver.observe(lastTab);
+      return function () {
+        firstObserver.disconnect();
+        lastObserver.disconnect();
+      };
+    }
+    return undefined;
+  }, [scrollable, scrollButtons, updateScrollObserver, childrenProp == null ? void 0 : childrenProp.length]);
+  react.useEffect(function () {
+    setMounted(true);
+  }, []);
+  react.useEffect(function () {
+    updateIndicatorState();
+  });
+  react.useEffect(function () {
+    // Don't animate on the first render.
+    scrollSelectedIntoView(defaultIndicatorStyle !== indicatorStyle);
+  }, [scrollSelectedIntoView, indicatorStyle]);
+  react.useImperativeHandle(action, function () {
+    return {
+      updateIndicator: updateIndicatorState,
+      updateScrollButtons: updateScrollButtonState
+    };
+  }, [updateIndicatorState, updateScrollButtonState]);
+  var indicator = /*#__PURE__*/(0,jsx_runtime.jsx)(TabsIndicator, (0,esm_extends/* default */.Z)({}, TabIndicatorProps, {
+    className: (0,clsx/* default */.Z)(classes.indicator, TabIndicatorProps.className),
+    ownerState: ownerState,
+    style: (0,esm_extends/* default */.Z)({}, indicatorStyle, TabIndicatorProps.style)
+  }));
+  var childIndex = 0;
+  var children = react.Children.map(childrenProp, function (child) {
+    if (! /*#__PURE__*/react.isValidElement(child)) {
+      return null;
+    }
+    if (false) {}
+    var childValue = child.props.value === undefined ? childIndex : child.props.value;
+    valueToIndex.set(childValue, childIndex);
+    var selected = childValue === value;
+    childIndex += 1;
+    return /*#__PURE__*/react.cloneElement(child, (0,esm_extends/* default */.Z)({
+      fullWidth: variant === 'fullWidth',
+      indicator: selected && !mounted && indicator,
+      selected: selected,
+      selectionFollowsFocus: selectionFollowsFocus,
+      onChange: onChange,
+      textColor: textColor,
+      value: childValue
+    }, childIndex === 1 && value === false && !child.props.tabIndex ? {
+      tabIndex: 0
+    } : {}));
+  });
+  var handleKeyDown = function handleKeyDown(event) {
+    var list = tabListRef.current;
+    var currentFocus = (0,ownerDocument/* default */.Z)(list).activeElement;
+    // Keyboard navigation assumes that [role="tab"] are siblings
+    // though we might warn in the future about nested, interactive elements
+    // as a a11y violation
+    var role = currentFocus.getAttribute('role');
+    if (role !== 'tab') {
+      return;
+    }
+    var previousItemKey = orientation === 'horizontal' ? 'ArrowLeft' : 'ArrowUp';
+    var nextItemKey = orientation === 'horizontal' ? 'ArrowRight' : 'ArrowDown';
+    if (orientation === 'horizontal' && isRtl) {
+      // swap previousItemKey with nextItemKey
+      previousItemKey = 'ArrowRight';
+      nextItemKey = 'ArrowLeft';
+    }
+    switch (event.key) {
+      case previousItemKey:
+        event.preventDefault();
+        Tabs_moveFocus(list, currentFocus, Tabs_previousItem);
+        break;
+      case nextItemKey:
+        event.preventDefault();
+        Tabs_moveFocus(list, currentFocus, Tabs_nextItem);
+        break;
+      case 'Home':
+        event.preventDefault();
+        Tabs_moveFocus(list, null, Tabs_nextItem);
+        break;
+      case 'End':
+        event.preventDefault();
+        Tabs_moveFocus(list, null, Tabs_previousItem);
+        break;
+      default:
+        break;
+    }
+  };
+  var conditionalElements = getConditionalElements();
+  return /*#__PURE__*/(0,jsx_runtime.jsxs)(TabsRoot, (0,esm_extends/* default */.Z)({
+    className: (0,clsx/* default */.Z)(classes.root, className),
+    ownerState: ownerState,
+    ref: ref,
+    as: component
+  }, other, {
+    children: [conditionalElements.scrollButtonStart, conditionalElements.scrollbarSizeListener, /*#__PURE__*/(0,jsx_runtime.jsxs)(TabsScroller, {
+      className: classes.scroller,
+      ownerState: ownerState,
+      style: (0,defineProperty/* default */.Z)({
+        overflow: scrollerStyle.overflow
+      }, vertical ? "margin".concat(isRtl ? 'Left' : 'Right') : 'marginBottom', visibleScrollbar ? undefined : -scrollerStyle.scrollbarWidth),
+      ref: tabsRef,
+      children: [/*#__PURE__*/(0,jsx_runtime.jsx)(FlexContainer, {
+        "aria-label": ariaLabel,
+        "aria-labelledby": ariaLabelledBy,
+        "aria-orientation": orientation === 'vertical' ? 'vertical' : null,
+        className: classes.flexContainer,
+        ownerState: ownerState,
+        onKeyDown: handleKeyDown,
+        ref: tabListRef,
+        role: "tablist",
+        children: children
+      }), mounted && indicator]
+    }), conditionalElements.scrollButtonEnd]
+  }));
+});
+ false ? 0 : void 0;
+/* harmony default export */ var Tabs_Tabs = (Tabs);
+;// CONCATENATED MODULE: ./node_modules/@mui/material/Tab/tabClasses.js
+
+
+function getTabUtilityClass(slot) {
+  return (0,generateUtilityClass_generateUtilityClass/* default */.Z)('MuiTab', slot);
+}
+var tabClasses = (0,generateUtilityClasses/* default */.Z)('MuiTab', ['root', 'labelIcon', 'textColorInherit', 'textColorPrimary', 'textColorSecondary', 'selected', 'disabled', 'fullWidth', 'wrapped', 'iconWrapper']);
+/* harmony default export */ var Tab_tabClasses = (tabClasses);
+;// CONCATENATED MODULE: ./node_modules/@mui/material/Tab/Tab.js
+'use client';
+
+
+
+
+var Tab_excluded = ["className", "disabled", "disableFocusRipple", "fullWidth", "icon", "iconPosition", "indicator", "label", "onChange", "onClick", "onFocus", "selected", "selectionFollowsFocus", "textColor", "value", "wrapped"];
+
+
+
+
+
+
+
+
+
+
+
+var Tab_useUtilityClasses = function useUtilityClasses(ownerState) {
+  var classes = ownerState.classes,
+    textColor = ownerState.textColor,
+    fullWidth = ownerState.fullWidth,
+    wrapped = ownerState.wrapped,
+    icon = ownerState.icon,
+    label = ownerState.label,
+    selected = ownerState.selected,
+    disabled = ownerState.disabled;
+  var slots = {
+    root: ['root', icon && label && 'labelIcon', "textColor".concat((0,capitalize/* default */.Z)(textColor)), fullWidth && 'fullWidth', wrapped && 'wrapped', selected && 'selected', disabled && 'disabled'],
+    iconWrapper: ['iconWrapper']
+  };
+  return (0,composeClasses/* default */.Z)(slots, getTabUtilityClass, classes);
+};
+var TabRoot = (0,styled/* default */.ZP)(ButtonBase_ButtonBase, {
+  name: 'MuiTab',
+  slot: 'Root',
+  overridesResolver: function overridesResolver(props, styles) {
+    var ownerState = props.ownerState;
+    return [styles.root, ownerState.label && ownerState.icon && styles.labelIcon, styles["textColor".concat((0,capitalize/* default */.Z)(ownerState.textColor))], ownerState.fullWidth && styles.fullWidth, ownerState.wrapped && styles.wrapped];
+  }
+})(function (_ref) {
+  var _ref3, _ref4, _ref5;
+  var theme = _ref.theme,
+    ownerState = _ref.ownerState;
+  return (0,esm_extends/* default */.Z)({}, theme.typography.button, {
+    maxWidth: 360,
+    minWidth: 90,
+    position: 'relative',
+    minHeight: 48,
+    flexShrink: 0,
+    padding: '12px 16px',
+    overflow: 'hidden',
+    whiteSpace: 'normal',
+    textAlign: 'center'
+  }, ownerState.label && {
+    flexDirection: ownerState.iconPosition === 'top' || ownerState.iconPosition === 'bottom' ? 'column' : 'row'
+  }, {
+    lineHeight: 1.25
+  }, ownerState.icon && ownerState.label && (0,defineProperty/* default */.Z)({
+    minHeight: 72,
+    paddingTop: 9,
+    paddingBottom: 9
+  }, "& > .".concat(Tab_tabClasses.iconWrapper), (0,esm_extends/* default */.Z)({}, ownerState.iconPosition === 'top' && {
+    marginBottom: 6
+  }, ownerState.iconPosition === 'bottom' && {
+    marginTop: 6
+  }, ownerState.iconPosition === 'start' && {
+    marginRight: theme.spacing(1)
+  }, ownerState.iconPosition === 'end' && {
+    marginLeft: theme.spacing(1)
+  })), ownerState.textColor === 'inherit' && (_ref3 = {
+    color: 'inherit',
+    opacity: 0.6
+  }, (0,defineProperty/* default */.Z)(_ref3, "&.".concat(Tab_tabClasses.selected), {
+    opacity: 1
+  }), (0,defineProperty/* default */.Z)(_ref3, "&.".concat(Tab_tabClasses.disabled), {
+    opacity: (theme.vars || theme).palette.action.disabledOpacity
+  }), _ref3), ownerState.textColor === 'primary' && (_ref4 = {
+    color: (theme.vars || theme).palette.text.secondary
+  }, (0,defineProperty/* default */.Z)(_ref4, "&.".concat(Tab_tabClasses.selected), {
+    color: (theme.vars || theme).palette.primary.main
+  }), (0,defineProperty/* default */.Z)(_ref4, "&.".concat(Tab_tabClasses.disabled), {
+    color: (theme.vars || theme).palette.text.disabled
+  }), _ref4), ownerState.textColor === 'secondary' && (_ref5 = {
+    color: (theme.vars || theme).palette.text.secondary
+  }, (0,defineProperty/* default */.Z)(_ref5, "&.".concat(Tab_tabClasses.selected), {
+    color: (theme.vars || theme).palette.secondary.main
+  }), (0,defineProperty/* default */.Z)(_ref5, "&.".concat(Tab_tabClasses.disabled), {
+    color: (theme.vars || theme).palette.text.disabled
+  }), _ref5), ownerState.fullWidth && {
+    flexShrink: 1,
+    flexGrow: 1,
+    flexBasis: 0,
+    maxWidth: 'none'
+  }, ownerState.wrapped && {
+    fontSize: theme.typography.pxToRem(12)
+  });
+});
+var Tab = /*#__PURE__*/react.forwardRef(function Tab(inProps, ref) {
+  var props = (0,styles_useThemeProps/* default */.Z)({
+    props: inProps,
+    name: 'MuiTab'
+  });
+  var className = props.className,
+    _props$disabled = props.disabled,
+    disabled = _props$disabled === void 0 ? false : _props$disabled,
+    _props$disableFocusRi = props.disableFocusRipple,
+    disableFocusRipple = _props$disableFocusRi === void 0 ? false : _props$disableFocusRi,
+    fullWidth = props.fullWidth,
+    iconProp = props.icon,
+    _props$iconPosition = props.iconPosition,
+    iconPosition = _props$iconPosition === void 0 ? 'top' : _props$iconPosition,
+    indicator = props.indicator,
+    label = props.label,
+    onChange = props.onChange,
+    onClick = props.onClick,
+    onFocus = props.onFocus,
+    selected = props.selected,
+    selectionFollowsFocus = props.selectionFollowsFocus,
+    _props$textColor = props.textColor,
+    textColor = _props$textColor === void 0 ? 'inherit' : _props$textColor,
+    value = props.value,
+    _props$wrapped = props.wrapped,
+    wrapped = _props$wrapped === void 0 ? false : _props$wrapped,
+    other = (0,objectWithoutPropertiesLoose/* default */.Z)(props, Tab_excluded);
+  var ownerState = (0,esm_extends/* default */.Z)({}, props, {
+    disabled: disabled,
+    disableFocusRipple: disableFocusRipple,
+    selected: selected,
+    icon: !!iconProp,
+    iconPosition: iconPosition,
+    label: !!label,
+    fullWidth: fullWidth,
+    textColor: textColor,
+    wrapped: wrapped
+  });
+  var classes = Tab_useUtilityClasses(ownerState);
+  var icon = iconProp && label && /*#__PURE__*/react.isValidElement(iconProp) ? /*#__PURE__*/react.cloneElement(iconProp, {
+    className: (0,clsx/* default */.Z)(classes.iconWrapper, iconProp.props.className)
+  }) : iconProp;
+  var handleClick = function handleClick(event) {
+    if (!selected && onChange) {
+      onChange(event, value);
+    }
+    if (onClick) {
+      onClick(event);
+    }
+  };
+  var handleFocus = function handleFocus(event) {
+    if (selectionFollowsFocus && !selected && onChange) {
+      onChange(event, value);
+    }
+    if (onFocus) {
+      onFocus(event);
+    }
+  };
+  return /*#__PURE__*/(0,jsx_runtime.jsxs)(TabRoot, (0,esm_extends/* default */.Z)({
+    focusRipple: !disableFocusRipple,
+    className: (0,clsx/* default */.Z)(classes.root, className),
+    ref: ref,
+    role: "tab",
+    "aria-selected": selected,
+    disabled: disabled,
+    onClick: handleClick,
+    onFocus: handleFocus,
+    ownerState: ownerState,
+    tabIndex: selected ? 0 : -1
+  }, other, {
+    children: [iconPosition === 'top' || iconPosition === 'start' ? /*#__PURE__*/(0,jsx_runtime.jsxs)(react.Fragment, {
+      children: [icon, label]
+    }) : /*#__PURE__*/(0,jsx_runtime.jsxs)(react.Fragment, {
+      children: [label, icon]
+    }), indicator]
+  }));
+});
+ false ? 0 : void 0;
+/* harmony default export */ var Tab_Tab = (Tab);
+;// CONCATENATED MODULE: ./node_modules/@mui/material/internal/svg-icons/RadioButtonUnchecked.js
+'use client';
+
+
+
+
+/**
+ * @ignore - internal component.
+ */
+
+/* harmony default export */ var RadioButtonUnchecked = ((0,createSvgIcon/* default */.Z)( /*#__PURE__*/(0,jsx_runtime.jsx)("path", {
+  d: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
+}), 'RadioButtonUnchecked'));
+;// CONCATENATED MODULE: ./node_modules/@mui/material/internal/svg-icons/RadioButtonChecked.js
+'use client';
+
+
+
+
+/**
+ * @ignore - internal component.
+ */
+
+/* harmony default export */ var RadioButtonChecked = ((0,createSvgIcon/* default */.Z)( /*#__PURE__*/(0,jsx_runtime.jsx)("path", {
+  d: "M8.465 8.465C9.37 7.56 10.62 7 12 7C14.76 7 17 9.24 17 12C17 13.38 16.44 14.63 15.535 15.535C14.63 16.44 13.38 17 12 17C9.24 17 7 14.76 7 12C7 10.62 7.56 9.37 8.465 8.465Z"
+}), 'RadioButtonChecked'));
+;// CONCATENATED MODULE: ./node_modules/@mui/material/Radio/RadioButtonIcon.js
+'use client';
+
+
+
+
+
+
+
+
+
+var RadioButtonIconRoot = (0,styled/* default */.ZP)('span')({
+  position: 'relative',
+  display: 'flex'
+});
+var RadioButtonIconBackground = (0,styled/* default */.ZP)(RadioButtonUnchecked)({
+  // Scale applied to prevent dot misalignment in Safari
+  transform: 'scale(1)'
+});
+var RadioButtonIconDot = (0,styled/* default */.ZP)(RadioButtonChecked)(function (_ref) {
+  var theme = _ref.theme,
+    ownerState = _ref.ownerState;
+  return (0,esm_extends/* default */.Z)({
+    left: 0,
+    position: 'absolute',
+    transform: 'scale(0)',
+    transition: theme.transitions.create('transform', {
+      easing: theme.transitions.easing.easeIn,
+      duration: theme.transitions.duration.shortest
+    })
+  }, ownerState.checked && {
+    transform: 'scale(1)',
+    transition: theme.transitions.create('transform', {
+      easing: theme.transitions.easing.easeOut,
+      duration: theme.transitions.duration.shortest
+    })
+  });
+});
+
+/**
+ * @ignore - internal component.
+ */
+function RadioButtonIcon(props) {
+  var _props$checked = props.checked,
+    checked = _props$checked === void 0 ? false : _props$checked,
+    _props$classes = props.classes,
+    classes = _props$classes === void 0 ? {} : _props$classes,
+    fontSize = props.fontSize;
+  var ownerState = (0,esm_extends/* default */.Z)({}, props, {
+    checked: checked
+  });
+  return /*#__PURE__*/(0,jsx_runtime.jsxs)(RadioButtonIconRoot, {
+    className: classes.root,
+    ownerState: ownerState,
+    children: [/*#__PURE__*/(0,jsx_runtime.jsx)(RadioButtonIconBackground, {
+      fontSize: fontSize,
+      className: classes.background,
+      ownerState: ownerState
+    }), /*#__PURE__*/(0,jsx_runtime.jsx)(RadioButtonIconDot, {
+      fontSize: fontSize,
+      className: classes.dot,
+      ownerState: ownerState
+    })]
+  });
+}
+ false ? 0 : void 0;
+/* harmony default export */ var Radio_RadioButtonIcon = (RadioButtonIcon);
+// EXTERNAL MODULE: ./node_modules/@mui/material/utils/createChainedFunction.js
+var utils_createChainedFunction = __webpack_require__(5038);
+;// CONCATENATED MODULE: ./node_modules/@mui/material/RadioGroup/RadioGroupContext.js
+
+/**
+ * @ignore - internal component.
+ */
+var RadioGroupContext = /*#__PURE__*/react.createContext(undefined);
+if (false) {}
+/* harmony default export */ var RadioGroup_RadioGroupContext = (RadioGroupContext);
+;// CONCATENATED MODULE: ./node_modules/@mui/material/RadioGroup/useRadioGroup.js
+'use client';
+
+
+
+function useRadioGroup() {
+  return react.useContext(RadioGroup_RadioGroupContext);
+}
+;// CONCATENATED MODULE: ./node_modules/@mui/material/Radio/radioClasses.js
+
+
+function getRadioUtilityClass(slot) {
+  return (0,generateUtilityClass_generateUtilityClass/* default */.Z)('MuiRadio', slot);
+}
+var radioClasses = (0,generateUtilityClasses/* default */.Z)('MuiRadio', ['root', 'checked', 'disabled', 'colorPrimary', 'colorSecondary']);
+/* harmony default export */ var Radio_radioClasses = (radioClasses);
+;// CONCATENATED MODULE: ./node_modules/@mui/material/Radio/Radio.js
+'use client';
+
+
+
+
+var Radio_excluded = ["checked", "checkedIcon", "color", "icon", "name", "onChange", "size", "className"];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var Radio_useUtilityClasses = function useUtilityClasses(ownerState) {
+  var classes = ownerState.classes,
+    color = ownerState.color;
+  var slots = {
+    root: ['root', "color".concat((0,capitalize/* default */.Z)(color))]
+  };
+  return (0,esm_extends/* default */.Z)({}, classes, (0,composeClasses/* default */.Z)(slots, getRadioUtilityClass, classes));
+};
+var RadioRoot = (0,styled/* default */.ZP)(internal_SwitchBase, {
+  shouldForwardProp: function shouldForwardProp(prop) {
+    return (0,styled/* rootShouldForwardProp */.FO)(prop) || prop === 'classes';
+  },
+  name: 'MuiRadio',
+  slot: 'Root',
+  overridesResolver: function overridesResolver(props, styles) {
+    var ownerState = props.ownerState;
+    return [styles.root, styles["color".concat((0,capitalize/* default */.Z)(ownerState.color))]];
+  }
+})(function (_ref) {
+  var theme = _ref.theme,
+    ownerState = _ref.ownerState;
+  return (0,esm_extends/* default */.Z)({
+    color: (theme.vars || theme).palette.text.secondary
+  }, !ownerState.disableRipple && {
+    '&:hover': {
+      backgroundColor: theme.vars ? "rgba(".concat(ownerState.color === 'default' ? theme.vars.palette.action.activeChannel : theme.vars.palette[ownerState.color].mainChannel, " / ").concat(theme.vars.palette.action.hoverOpacity, ")") : (0,colorManipulator/* alpha */.Fq)(ownerState.color === 'default' ? theme.palette.action.active : theme.palette[ownerState.color].main, theme.palette.action.hoverOpacity),
+      // Reset on touch devices, it doesn't add specificity
+      '@media (hover: none)': {
+        backgroundColor: 'transparent'
+      }
+    }
+  }, ownerState.color !== 'default' && (0,defineProperty/* default */.Z)({}, "&.".concat(Radio_radioClasses.checked), {
+    color: (theme.vars || theme).palette[ownerState.color].main
+  }), (0,defineProperty/* default */.Z)({}, "&.".concat(Radio_radioClasses.disabled), {
+    color: (theme.vars || theme).palette.action.disabled
+  }));
+});
+function Radio_areEqualValues(a, b) {
+  if (typeof b === 'object' && b !== null) {
+    return a === b;
+  }
+
+  // The value could be a number, the DOM will stringify it anyway.
+  return String(a) === String(b);
+}
+var defaultCheckedIcon = /*#__PURE__*/(0,jsx_runtime.jsx)(Radio_RadioButtonIcon, {
+  checked: true
+});
+var defaultIcon = /*#__PURE__*/(0,jsx_runtime.jsx)(Radio_RadioButtonIcon, {});
+var Radio = /*#__PURE__*/react.forwardRef(function Radio(inProps, ref) {
+  var _defaultIcon$props$fo, _defaultCheckedIcon$p;
+  var props = (0,styles_useThemeProps/* default */.Z)({
+    props: inProps,
+    name: 'MuiRadio'
+  });
+  var checkedProp = props.checked,
+    _props$checkedIcon = props.checkedIcon,
+    checkedIcon = _props$checkedIcon === void 0 ? defaultCheckedIcon : _props$checkedIcon,
+    _props$color = props.color,
+    color = _props$color === void 0 ? 'primary' : _props$color,
+    _props$icon = props.icon,
+    icon = _props$icon === void 0 ? defaultIcon : _props$icon,
+    nameProp = props.name,
+    onChangeProp = props.onChange,
+    _props$size = props.size,
+    size = _props$size === void 0 ? 'medium' : _props$size,
+    className = props.className,
+    other = (0,objectWithoutPropertiesLoose/* default */.Z)(props, Radio_excluded);
+  var ownerState = (0,esm_extends/* default */.Z)({}, props, {
+    color: color,
+    size: size
+  });
+  var classes = Radio_useUtilityClasses(ownerState);
+  var radioGroup = useRadioGroup();
+  var checked = checkedProp;
+  var onChange = (0,utils_createChainedFunction/* default */.Z)(onChangeProp, radioGroup && radioGroup.onChange);
+  var name = nameProp;
+  if (radioGroup) {
+    if (typeof checked === 'undefined') {
+      checked = Radio_areEqualValues(radioGroup.value, props.value);
+    }
+    if (typeof name === 'undefined') {
+      name = radioGroup.name;
+    }
+  }
+  return /*#__PURE__*/(0,jsx_runtime.jsx)(RadioRoot, (0,esm_extends/* default */.Z)({
+    type: "radio",
+    icon: /*#__PURE__*/react.cloneElement(icon, {
+      fontSize: (_defaultIcon$props$fo = defaultIcon.props.fontSize) != null ? _defaultIcon$props$fo : size
+    }),
+    checkedIcon: /*#__PURE__*/react.cloneElement(checkedIcon, {
+      fontSize: (_defaultCheckedIcon$p = defaultCheckedIcon.props.fontSize) != null ? _defaultCheckedIcon$p : size
+    }),
+    ownerState: ownerState,
+    classes: classes,
+    name: name,
+    checked: checked,
+    onChange: onChange,
+    ref: ref,
+    className: (0,clsx/* default */.Z)(classes.root, className)
+  }, other));
+});
+ false ? 0 : void 0;
+/* harmony default export */ var Radio_Radio = (Radio);
+;// CONCATENATED MODULE: ./node_modules/@mui/material/FormGroup/formGroupClasses.js
+
+
+function getFormGroupUtilityClass(slot) {
+  return (0,generateUtilityClass_generateUtilityClass/* default */.Z)('MuiFormGroup', slot);
+}
+var formGroupClasses = (0,generateUtilityClasses/* default */.Z)('MuiFormGroup', ['root', 'row', 'error']);
+/* harmony default export */ var FormGroup_formGroupClasses = ((/* unused pure expression or super */ null && (formGroupClasses)));
+;// CONCATENATED MODULE: ./node_modules/@mui/material/FormGroup/FormGroup.js
+'use client';
+
+
+
+var FormGroup_excluded = ["className", "row"];
+
+
+
+
+
+
+
+
+
+
+var FormGroup_useUtilityClasses = function useUtilityClasses(ownerState) {
+  var classes = ownerState.classes,
+    row = ownerState.row,
+    error = ownerState.error;
+  var slots = {
+    root: ['root', row && 'row', error && 'error']
+  };
+  return (0,composeClasses/* default */.Z)(slots, getFormGroupUtilityClass, classes);
+};
+var FormGroupRoot = (0,styled/* default */.ZP)('div', {
+  name: 'MuiFormGroup',
+  slot: 'Root',
+  overridesResolver: function overridesResolver(props, styles) {
+    var ownerState = props.ownerState;
+    return [styles.root, ownerState.row && styles.row];
+  }
+})(function (_ref) {
+  var ownerState = _ref.ownerState;
+  return (0,esm_extends/* default */.Z)({
+    display: 'flex',
+    flexDirection: 'column',
+    flexWrap: 'wrap'
+  }, ownerState.row && {
+    flexDirection: 'row'
+  });
+});
+
+/**
+ * `FormGroup` wraps controls such as `Checkbox` and `Switch`.
+ * It provides compact row layout.
+ * For the `Radio`, you should be using the `RadioGroup` component instead of this one.
+ */
+var FormGroup = /*#__PURE__*/react.forwardRef(function FormGroup(inProps, ref) {
+  var props = (0,styles_useThemeProps/* default */.Z)({
+    props: inProps,
+    name: 'MuiFormGroup'
+  });
+  var className = props.className,
+    _props$row = props.row,
+    row = _props$row === void 0 ? false : _props$row,
+    other = (0,objectWithoutPropertiesLoose/* default */.Z)(props, FormGroup_excluded);
+  var muiFormControl = useFormControl();
+  var fcs = formControlState({
+    props: props,
+    muiFormControl: muiFormControl,
+    states: ['error']
+  });
+  var ownerState = (0,esm_extends/* default */.Z)({}, props, {
+    row: row,
+    error: fcs.error
+  });
+  var classes = FormGroup_useUtilityClasses(ownerState);
+  return /*#__PURE__*/(0,jsx_runtime.jsx)(FormGroupRoot, (0,esm_extends/* default */.Z)({
+    className: (0,clsx/* default */.Z)(classes.root, className),
+    ownerState: ownerState,
+    ref: ref
+  }, other));
+});
+ false ? 0 : void 0;
+/* harmony default export */ var FormGroup_FormGroup = (FormGroup);
+// EXTERNAL MODULE: ./node_modules/@mui/material/utils/useId.js
+var utils_useId = __webpack_require__(7677);
+;// CONCATENATED MODULE: ./node_modules/@mui/material/RadioGroup/RadioGroup.js
+'use client';
+
+
+
+
+var RadioGroup_excluded = ["actions", "children", "defaultValue", "name", "onChange", "value"];
+
+
+
+
+
+
+
+
+var RadioGroup = /*#__PURE__*/react.forwardRef(function RadioGroup(props, ref) {
+  var actions = props.actions,
+    children = props.children,
+    defaultValue = props.defaultValue,
+    nameProp = props.name,
+    _onChange = props.onChange,
+    valueProp = props.value,
+    other = (0,objectWithoutPropertiesLoose/* default */.Z)(props, RadioGroup_excluded);
+  var rootRef = react.useRef(null);
+  var _useControlled = (0,useControlled/* default */.Z)({
+      controlled: valueProp,
+      default: defaultValue,
+      name: 'RadioGroup'
+    }),
+    _useControlled2 = (0,slicedToArray/* default */.Z)(_useControlled, 2),
+    value = _useControlled2[0],
+    setValueState = _useControlled2[1];
+  react.useImperativeHandle(actions, function () {
+    return {
+      focus: function focus() {
+        var input = rootRef.current.querySelector('input:not(:disabled):checked');
+        if (!input) {
+          input = rootRef.current.querySelector('input:not(:disabled)');
+        }
+        if (input) {
+          input.focus();
+        }
+      }
+    };
+  }, []);
+  var handleRef = (0,utils_useForkRef/* default */.Z)(ref, rootRef);
+  var name = (0,utils_useId/* default */.Z)(nameProp);
+  var contextValue = react.useMemo(function () {
+    return {
+      name: name,
+      onChange: function onChange(event) {
+        setValueState(event.target.value);
+        if (_onChange) {
+          _onChange(event, event.target.value);
+        }
+      },
+      value: value
+    };
+  }, [name, _onChange, setValueState, value]);
+  return /*#__PURE__*/(0,jsx_runtime.jsx)(RadioGroup_RadioGroupContext.Provider, {
+    value: contextValue,
+    children: /*#__PURE__*/(0,jsx_runtime.jsx)(FormGroup_FormGroup, (0,esm_extends/* default */.Z)({
+      role: "radiogroup",
+      ref: handleRef
+    }, other, {
+      children: children
+    }))
+  });
+});
+ false ? 0 : void 0;
+/* harmony default export */ var RadioGroup_RadioGroup = (RadioGroup);
+// EXTERNAL MODULE: ./node_modules/@mui/icons-material/Delete.js
+var Delete = __webpack_require__(1997);
+;// CONCATENATED MODULE: ./node_modules/@mui/material/IconButton/iconButtonClasses.js
+
+
+function getIconButtonUtilityClass(slot) {
+  return (0,generateUtilityClass_generateUtilityClass/* default */.Z)('MuiIconButton', slot);
+}
+var iconButtonClasses = (0,generateUtilityClasses/* default */.Z)('MuiIconButton', ['root', 'disabled', 'colorInherit', 'colorPrimary', 'colorSecondary', 'colorError', 'colorInfo', 'colorSuccess', 'colorWarning', 'edgeStart', 'edgeEnd', 'sizeSmall', 'sizeMedium', 'sizeLarge']);
+/* harmony default export */ var IconButton_iconButtonClasses = (iconButtonClasses);
+;// CONCATENATED MODULE: ./node_modules/@mui/material/IconButton/IconButton.js
+'use client';
+
+
+
+
+var IconButton_excluded = ["edge", "children", "className", "color", "disabled", "disableFocusRipple", "size"];
+
+
+
+
+
+
+
+
+
+
+
+
+var IconButton_useUtilityClasses = function useUtilityClasses(ownerState) {
+  var classes = ownerState.classes,
+    disabled = ownerState.disabled,
+    color = ownerState.color,
+    edge = ownerState.edge,
+    size = ownerState.size;
+  var slots = {
+    root: ['root', disabled && 'disabled', color !== 'default' && "color".concat((0,capitalize/* default */.Z)(color)), edge && "edge".concat((0,capitalize/* default */.Z)(edge)), "size".concat((0,capitalize/* default */.Z)(size))]
+  };
+  return (0,composeClasses/* default */.Z)(slots, getIconButtonUtilityClass, classes);
+};
+var IconButtonRoot = (0,styled/* default */.ZP)(ButtonBase_ButtonBase, {
+  name: 'MuiIconButton',
+  slot: 'Root',
+  overridesResolver: function overridesResolver(props, styles) {
+    var ownerState = props.ownerState;
+    return [styles.root, ownerState.color !== 'default' && styles["color".concat((0,capitalize/* default */.Z)(ownerState.color))], ownerState.edge && styles["edge".concat((0,capitalize/* default */.Z)(ownerState.edge))], styles["size".concat((0,capitalize/* default */.Z)(ownerState.size))]];
+  }
+})(function (_ref) {
+  var theme = _ref.theme,
+    ownerState = _ref.ownerState;
+  return (0,esm_extends/* default */.Z)({
+    textAlign: 'center',
+    flex: '0 0 auto',
+    fontSize: theme.typography.pxToRem(24),
+    padding: 8,
+    borderRadius: '50%',
+    overflow: 'visible',
+    // Explicitly set the default value to solve a bug on IE11.
+    color: (theme.vars || theme).palette.action.active,
+    transition: theme.transitions.create('background-color', {
+      duration: theme.transitions.duration.shortest
+    })
+  }, !ownerState.disableRipple && {
+    '&:hover': {
+      backgroundColor: theme.vars ? "rgba(".concat(theme.vars.palette.action.activeChannel, " / ").concat(theme.vars.palette.action.hoverOpacity, ")") : (0,colorManipulator/* alpha */.Fq)(theme.palette.action.active, theme.palette.action.hoverOpacity),
+      // Reset on touch devices, it doesn't add specificity
+      '@media (hover: none)': {
+        backgroundColor: 'transparent'
+      }
+    }
+  }, ownerState.edge === 'start' && {
+    marginLeft: ownerState.size === 'small' ? -3 : -12
+  }, ownerState.edge === 'end' && {
+    marginRight: ownerState.size === 'small' ? -3 : -12
+  });
+}, function (_ref2) {
+  var theme = _ref2.theme,
+    ownerState = _ref2.ownerState;
+  var _palette;
+  var palette = (_palette = (theme.vars || theme).palette) == null ? void 0 : _palette[ownerState.color];
+  return (0,esm_extends/* default */.Z)({}, ownerState.color === 'inherit' && {
+    color: 'inherit'
+  }, ownerState.color !== 'inherit' && ownerState.color !== 'default' && (0,esm_extends/* default */.Z)({
+    color: palette == null ? void 0 : palette.main
+  }, !ownerState.disableRipple && {
+    '&:hover': (0,esm_extends/* default */.Z)({}, palette && {
+      backgroundColor: theme.vars ? "rgba(".concat(palette.mainChannel, " / ").concat(theme.vars.palette.action.hoverOpacity, ")") : (0,colorManipulator/* alpha */.Fq)(palette.main, theme.palette.action.hoverOpacity)
+    }, {
+      // Reset on touch devices, it doesn't add specificity
+      '@media (hover: none)': {
+        backgroundColor: 'transparent'
+      }
+    })
+  }), ownerState.size === 'small' && {
+    padding: 5,
+    fontSize: theme.typography.pxToRem(18)
+  }, ownerState.size === 'large' && {
+    padding: 12,
+    fontSize: theme.typography.pxToRem(28)
+  }, (0,defineProperty/* default */.Z)({}, "&.".concat(IconButton_iconButtonClasses.disabled), {
+    backgroundColor: 'transparent',
+    color: (theme.vars || theme).palette.action.disabled
+  }));
+});
+
+/**
+ * Refer to the [Icons](/material-ui/icons/) section of the documentation
+ * regarding the available icon options.
+ */
+var IconButton = /*#__PURE__*/react.forwardRef(function IconButton(inProps, ref) {
+  var props = (0,styles_useThemeProps/* default */.Z)({
+    props: inProps,
+    name: 'MuiIconButton'
+  });
+  var _props$edge = props.edge,
+    edge = _props$edge === void 0 ? false : _props$edge,
+    children = props.children,
+    className = props.className,
+    _props$color = props.color,
+    color = _props$color === void 0 ? 'default' : _props$color,
+    _props$disabled = props.disabled,
+    disabled = _props$disabled === void 0 ? false : _props$disabled,
+    _props$disableFocusRi = props.disableFocusRipple,
+    disableFocusRipple = _props$disableFocusRi === void 0 ? false : _props$disableFocusRi,
+    _props$size = props.size,
+    size = _props$size === void 0 ? 'medium' : _props$size,
+    other = (0,objectWithoutPropertiesLoose/* default */.Z)(props, IconButton_excluded);
+  var ownerState = (0,esm_extends/* default */.Z)({}, props, {
+    edge: edge,
+    color: color,
+    disabled: disabled,
+    disableFocusRipple: disableFocusRipple,
+    size: size
+  });
+  var classes = IconButton_useUtilityClasses(ownerState);
+  return /*#__PURE__*/(0,jsx_runtime.jsx)(IconButtonRoot, (0,esm_extends/* default */.Z)({
+    className: (0,clsx/* default */.Z)(classes.root, className),
+    centerRipple: true,
+    focusRipple: !disableFocusRipple,
+    disabled: disabled,
+    ref: ref,
+    ownerState: ownerState
+  }, other, {
+    children: children
+  }));
+});
+ false ? 0 : void 0;
+/* harmony default export */ var IconButton_IconButton = (IconButton);
+// EXTERNAL MODULE: ./node_modules/@mui/icons-material/Share.js
+var Share = __webpack_require__(6845);
+// EXTERNAL MODULE: ./node_modules/@mui/icons-material/Sync.js
+var Sync = __webpack_require__(2453);
+;// CONCATENATED MODULE: ./node_modules/@mui/base/ClickAwayListener/ClickAwayListener.js
+'use client';
+
+
+
+
+
+// TODO: return `EventHandlerName extends `on${infer EventName}` ? Lowercase<EventName> : never` once generatePropTypes runs with TS 4.1
+
+function mapEventPropToEvent(eventProp) {
+  return eventProp.substring(2).toLowerCase();
+}
+function clickedRootScrollbar(event, doc) {
+  return doc.documentElement.clientWidth < event.clientX || doc.documentElement.clientHeight < event.clientY;
+}
+/**
+ * Listen for click events that occur somewhere in the document, outside of the element itself.
+ * For instance, if you need to hide a menu when people click anywhere else on your page.
+ *
+ * Demos:
+ *
+ * - [Click-Away Listener](https://mui.com/base-ui/react-click-away-listener/)
+ *
+ * API:
+ *
+ * - [ClickAwayListener API](https://mui.com/base-ui/react-click-away-listener/components-api/#click-away-listener)
+ */
+function ClickAwayListener(props) {
+  var children = props.children,
+    _props$disableReactTr = props.disableReactTree,
+    disableReactTree = _props$disableReactTr === void 0 ? false : _props$disableReactTr,
+    _props$mouseEvent = props.mouseEvent,
+    mouseEvent = _props$mouseEvent === void 0 ? 'onClick' : _props$mouseEvent,
+    onClickAway = props.onClickAway,
+    _props$touchEvent = props.touchEvent,
+    touchEvent = _props$touchEvent === void 0 ? 'onTouchEnd' : _props$touchEvent;
+  var movedRef = react.useRef(false);
+  var nodeRef = react.useRef(null);
+  var activatedRef = react.useRef(false);
+  var syntheticEventRef = react.useRef(false);
+  react.useEffect(function () {
+    // Ensure that this component is not "activated" synchronously.
+    // https://github.com/facebook/react/issues/20074
+    setTimeout(function () {
+      activatedRef.current = true;
+    }, 0);
+    return function () {
+      activatedRef.current = false;
+    };
+  }, []);
+  var handleRef = (0,useForkRef/* default */.Z)(
+  // @ts-expect-error TODO upstream fix
+  children.ref, nodeRef);
+
+  // The handler doesn't take event.defaultPrevented into account:
+  //
+  // event.preventDefault() is meant to stop default behaviors like
+  // clicking a checkbox to check it, hitting a button to submit a form,
+  // and hitting left arrow to move the cursor in a text input etc.
+  // Only special HTML elements have these default behaviors.
+  var handleClickAway = (0,useEventCallback/* default */.Z)(function (event) {
+    // Given developers can stop the propagation of the synthetic event,
+    // we can only be confident with a positive value.
+    var insideReactTree = syntheticEventRef.current;
+    syntheticEventRef.current = false;
+    var doc = (0,ownerDocument_ownerDocument/* default */.Z)(nodeRef.current);
+
+    // 1. IE11 support, which trigger the handleClickAway even after the unbind
+    // 2. The child might render null.
+    // 3. Behave like a blur listener.
+    if (!activatedRef.current || !nodeRef.current || 'clientX' in event && clickedRootScrollbar(event, doc)) {
+      return;
+    }
+
+    // Do not act if user performed touchmove
+    if (movedRef.current) {
+      movedRef.current = false;
+      return;
+    }
+    var insideDOM;
+
+    // If not enough, can use https://github.com/DieterHolvoet/event-propagation-path/blob/master/propagationPath.js
+    if (event.composedPath) {
+      insideDOM = event.composedPath().indexOf(nodeRef.current) > -1;
+    } else {
+      insideDOM = !doc.documentElement.contains(
+      // @ts-expect-error returns `false` as intended when not dispatched from a Node
+      event.target) || nodeRef.current.contains(
+      // @ts-expect-error returns `false` as intended when not dispatched from a Node
+      event.target);
+    }
+    if (!insideDOM && (disableReactTree || !insideReactTree)) {
+      onClickAway(event);
+    }
+  });
+
+  // Keep track of mouse/touch events that bubbled up through the portal.
+  var createHandleSynthetic = function createHandleSynthetic(handlerName) {
+    return function (event) {
+      syntheticEventRef.current = true;
+      var childrenPropsHandler = children.props[handlerName];
+      if (childrenPropsHandler) {
+        childrenPropsHandler(event);
+      }
+    };
+  };
+  var childrenProps = {
+    ref: handleRef
+  };
+  if (touchEvent !== false) {
+    childrenProps[touchEvent] = createHandleSynthetic(touchEvent);
+  }
+  react.useEffect(function () {
+    if (touchEvent !== false) {
+      var mappedTouchEvent = mapEventPropToEvent(touchEvent);
+      var doc = (0,ownerDocument_ownerDocument/* default */.Z)(nodeRef.current);
+      var handleTouchMove = function handleTouchMove() {
+        movedRef.current = true;
+      };
+      doc.addEventListener(mappedTouchEvent, handleClickAway);
+      doc.addEventListener('touchmove', handleTouchMove);
+      return function () {
+        doc.removeEventListener(mappedTouchEvent, handleClickAway);
+        doc.removeEventListener('touchmove', handleTouchMove);
+      };
+    }
+    return undefined;
+  }, [handleClickAway, touchEvent]);
+  if (mouseEvent !== false) {
+    childrenProps[mouseEvent] = createHandleSynthetic(mouseEvent);
+  }
+  react.useEffect(function () {
+    if (mouseEvent !== false) {
+      var mappedMouseEvent = mapEventPropToEvent(mouseEvent);
+      var doc = (0,ownerDocument_ownerDocument/* default */.Z)(nodeRef.current);
+      doc.addEventListener(mappedMouseEvent, handleClickAway);
+      return function () {
+        doc.removeEventListener(mappedMouseEvent, handleClickAway);
+      };
+    }
+    return undefined;
+  }, [handleClickAway, mouseEvent]);
+  return /*#__PURE__*/(0,jsx_runtime.jsx)(react.Fragment, {
+    children: /*#__PURE__*/react.cloneElement(children, childrenProps)
+  });
+}
+ false ? 0 : void 0;
+if (false) {}
+
+;// CONCATENATED MODULE: ./node_modules/@mui/base/useSnackbar/useSnackbar.js
+'use client';
+
+
+
+
+
+
+/**
+ * The basic building block for creating custom snackbar.
+ *
+ * Demos:
+ *
+ * - [Snackbar](https://mui.com/base-ui/react-snackbar/#hook)
+ *
+ * API:
+ *
+ * - [useSnackbar API](https://mui.com/base-ui/react-snackbar/hooks-api/#use-snackbar)
+ */
+function useSnackbar(parameters) {
+  var _parameters$autoHideD = parameters.autoHideDuration,
+    autoHideDuration = _parameters$autoHideD === void 0 ? null : _parameters$autoHideD,
+    _parameters$disableWi = parameters.disableWindowBlurListener,
+    disableWindowBlurListener = _parameters$disableWi === void 0 ? false : _parameters$disableWi,
+    onClose = parameters.onClose,
+    open = parameters.open,
+    resumeHideDuration = parameters.resumeHideDuration;
+  var timerAutoHide = react.useRef();
+  react.useEffect(function () {
+    if (!open) {
+      return undefined;
+    }
+
+    /**
+     * @param {KeyboardEvent} nativeEvent
+     */
+    function handleKeyDown(nativeEvent) {
+      if (!nativeEvent.defaultPrevented) {
+        // IE11, Edge (prior to using Blink?) use 'Esc'
+        if (nativeEvent.key === 'Escape' || nativeEvent.key === 'Esc') {
+          // not calling `preventDefault` since we don't know if people may ignore this event e.g. a permanently open snackbar
+          onClose == null ? void 0 : onClose(nativeEvent, 'escapeKeyDown');
+        }
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown);
+    return function () {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [open, onClose]);
+  var handleClose = (0,useEventCallback/* default */.Z)(function (event, reason) {
+    onClose == null ? void 0 : onClose(event, reason);
+  });
+  var setAutoHideTimer = (0,useEventCallback/* default */.Z)(function (autoHideDurationParam) {
+    if (!onClose || autoHideDurationParam == null) {
+      return;
+    }
+    clearTimeout(timerAutoHide.current);
+    timerAutoHide.current = setTimeout(function () {
+      handleClose(null, 'timeout');
+    }, autoHideDurationParam);
+  });
+  react.useEffect(function () {
+    if (open) {
+      setAutoHideTimer(autoHideDuration);
+    }
+    return function () {
+      clearTimeout(timerAutoHide.current);
+    };
+  }, [open, autoHideDuration, setAutoHideTimer]);
+  var handleClickAway = function handleClickAway(event) {
+    onClose == null ? void 0 : onClose(event, 'clickaway');
+  };
+
+  // Pause the timer when the user is interacting with the Snackbar
+  // or when the user hide the window.
+  var handlePause = function handlePause() {
+    clearTimeout(timerAutoHide.current);
+  };
+
+  // Restart the timer when the user is no longer interacting with the Snackbar
+  // or when the window is shown back.
+  var handleResume = react.useCallback(function () {
+    if (autoHideDuration != null) {
+      setAutoHideTimer(resumeHideDuration != null ? resumeHideDuration : autoHideDuration * 0.5);
+    }
+  }, [autoHideDuration, resumeHideDuration, setAutoHideTimer]);
+  var createHandleBlur = function createHandleBlur(otherHandlers) {
+    return function (event) {
+      var onBlurCallback = otherHandlers.onBlur;
+      onBlurCallback == null ? void 0 : onBlurCallback(event);
+      handleResume();
+    };
+  };
+  var createHandleFocus = function createHandleFocus(otherHandlers) {
+    return function (event) {
+      var onFocusCallback = otherHandlers.onFocus;
+      onFocusCallback == null ? void 0 : onFocusCallback(event);
+      handlePause();
+    };
+  };
+  var createMouseEnter = function createMouseEnter(otherHandlers) {
+    return function (event) {
+      var onMouseEnterCallback = otherHandlers.onMouseEnter;
+      onMouseEnterCallback == null ? void 0 : onMouseEnterCallback(event);
+      handlePause();
+    };
+  };
+  var createMouseLeave = function createMouseLeave(otherHandlers) {
+    return function (event) {
+      var onMouseLeaveCallback = otherHandlers.onMouseLeave;
+      onMouseLeaveCallback == null ? void 0 : onMouseLeaveCallback(event);
+      handleResume();
+    };
+  };
+  react.useEffect(function () {
+    // TODO: window global should be refactored here
+    if (!disableWindowBlurListener && open) {
+      window.addEventListener('focus', handleResume);
+      window.addEventListener('blur', handlePause);
+      return function () {
+        window.removeEventListener('focus', handleResume);
+        window.removeEventListener('blur', handlePause);
+      };
+    }
+    return undefined;
+  }, [disableWindowBlurListener, handleResume, open]);
+  var getRootProps = function getRootProps() {
+    var otherHandlers = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+    var propsEventHandlers = extractEventHandlers(parameters);
+    var externalEventHandlers = (0,esm_extends/* default */.Z)({}, propsEventHandlers, otherHandlers);
+    return (0,esm_extends/* default */.Z)({
+      // ClickAwayListener adds an `onClick` prop which results in the alert not being announced.
+      // See https://github.com/mui/material-ui/issues/29080
+      role: 'presentation'
+    }, externalEventHandlers, {
+      onBlur: createHandleBlur(externalEventHandlers),
+      onFocus: createHandleFocus(externalEventHandlers),
+      onMouseEnter: createMouseEnter(externalEventHandlers),
+      onMouseLeave: createMouseLeave(externalEventHandlers)
+    });
+  };
+  return {
+    getRootProps: getRootProps,
+    onClickAway: handleClickAway
+  };
+}
+;// CONCATENATED MODULE: ./node_modules/@mui/material/SnackbarContent/snackbarContentClasses.js
+
+
+function getSnackbarContentUtilityClass(slot) {
+  return (0,generateUtilityClass_generateUtilityClass/* default */.Z)('MuiSnackbarContent', slot);
+}
+var snackbarContentClasses = (0,generateUtilityClasses/* default */.Z)('MuiSnackbarContent', ['root', 'message', 'action']);
+/* harmony default export */ var SnackbarContent_snackbarContentClasses = ((/* unused pure expression or super */ null && (snackbarContentClasses)));
+;// CONCATENATED MODULE: ./node_modules/@mui/material/SnackbarContent/SnackbarContent.js
+'use client';
+
+
+
+
+var SnackbarContent_excluded = ["action", "className", "message", "role"];
+
+
+
+
+
+
+
+
+
+
+
+var SnackbarContent_useUtilityClasses = function useUtilityClasses(ownerState) {
+  var classes = ownerState.classes;
+  var slots = {
+    root: ['root'],
+    action: ['action'],
+    message: ['message']
+  };
+  return (0,composeClasses/* default */.Z)(slots, getSnackbarContentUtilityClass, classes);
+};
+var SnackbarContentRoot = (0,styled/* default */.ZP)(Paper_Paper, {
+  name: 'MuiSnackbarContent',
+  slot: 'Root',
+  overridesResolver: function overridesResolver(props, styles) {
+    return styles.root;
+  }
+})(function (_ref) {
+  var theme = _ref.theme;
+  var emphasis = theme.palette.mode === 'light' ? 0.8 : 0.98;
+  var backgroundColor = (0,colorManipulator/* emphasize */._4)(theme.palette.background.default, emphasis);
+  return (0,esm_extends/* default */.Z)({}, theme.typography.body2, (0,defineProperty/* default */.Z)({
+    color: theme.vars ? theme.vars.palette.SnackbarContent.color : theme.palette.getContrastText(backgroundColor),
+    backgroundColor: theme.vars ? theme.vars.palette.SnackbarContent.bg : backgroundColor,
+    display: 'flex',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    padding: '6px 16px',
+    borderRadius: (theme.vars || theme).shape.borderRadius,
+    flexGrow: 1
+  }, theme.breakpoints.up('sm'), {
+    flexGrow: 'initial',
+    minWidth: 288
+  }));
+});
+var SnackbarContentMessage = (0,styled/* default */.ZP)('div', {
+  name: 'MuiSnackbarContent',
+  slot: 'Message',
+  overridesResolver: function overridesResolver(props, styles) {
+    return styles.message;
+  }
+})({
+  padding: '8px 0'
+});
+var SnackbarContentAction = (0,styled/* default */.ZP)('div', {
+  name: 'MuiSnackbarContent',
+  slot: 'Action',
+  overridesResolver: function overridesResolver(props, styles) {
+    return styles.action;
+  }
+})({
+  display: 'flex',
+  alignItems: 'center',
+  marginLeft: 'auto',
+  paddingLeft: 16,
+  marginRight: -8
+});
+var SnackbarContent = /*#__PURE__*/react.forwardRef(function SnackbarContent(inProps, ref) {
+  var props = (0,styles_useThemeProps/* default */.Z)({
+    props: inProps,
+    name: 'MuiSnackbarContent'
+  });
+  var action = props.action,
+    className = props.className,
+    message = props.message,
+    _props$role = props.role,
+    role = _props$role === void 0 ? 'alert' : _props$role,
+    other = (0,objectWithoutPropertiesLoose/* default */.Z)(props, SnackbarContent_excluded);
+  var ownerState = props;
+  var classes = SnackbarContent_useUtilityClasses(ownerState);
+  return /*#__PURE__*/(0,jsx_runtime.jsxs)(SnackbarContentRoot, (0,esm_extends/* default */.Z)({
+    role: role,
+    square: true,
+    elevation: 6,
+    className: (0,clsx/* default */.Z)(classes.root, className),
+    ownerState: ownerState,
+    ref: ref
+  }, other, {
+    children: [/*#__PURE__*/(0,jsx_runtime.jsx)(SnackbarContentMessage, {
+      className: classes.message,
+      ownerState: ownerState,
+      children: message
+    }), action ? /*#__PURE__*/(0,jsx_runtime.jsx)(SnackbarContentAction, {
+      className: classes.action,
+      ownerState: ownerState,
+      children: action
+    }) : null]
+  }));
+});
+ false ? 0 : void 0;
+/* harmony default export */ var SnackbarContent_SnackbarContent = (SnackbarContent);
+;// CONCATENATED MODULE: ./node_modules/@mui/material/Snackbar/snackbarClasses.js
+
+
+function getSnackbarUtilityClass(slot) {
+  return (0,generateUtilityClass_generateUtilityClass/* default */.Z)('MuiSnackbar', slot);
+}
+var snackbarClasses = (0,generateUtilityClasses/* default */.Z)('MuiSnackbar', ['root', 'anchorOriginTopCenter', 'anchorOriginBottomCenter', 'anchorOriginTopRight', 'anchorOriginBottomRight', 'anchorOriginTopLeft', 'anchorOriginBottomLeft']);
+/* harmony default export */ var Snackbar_snackbarClasses = ((/* unused pure expression or super */ null && (snackbarClasses)));
+;// CONCATENATED MODULE: ./node_modules/@mui/material/Snackbar/Snackbar.js
+'use client';
+
+
+
+
+
+var Snackbar_excluded = ["onEnter", "onExited"],
+  Snackbar_excluded2 = ["action", "anchorOrigin", "autoHideDuration", "children", "className", "ClickAwayListenerProps", "ContentProps", "disableWindowBlurListener", "message", "onBlur", "onClose", "onFocus", "onMouseEnter", "onMouseLeave", "open", "resumeHideDuration", "TransitionComponent", "transitionDuration", "TransitionProps"];
+
+
+
+
+
+
+
+
+
+
+
+
+
+var Snackbar_useUtilityClasses = function useUtilityClasses(ownerState) {
+  var classes = ownerState.classes,
+    anchorOrigin = ownerState.anchorOrigin;
+  var slots = {
+    root: ['root', "anchorOrigin".concat((0,capitalize/* default */.Z)(anchorOrigin.vertical)).concat((0,capitalize/* default */.Z)(anchorOrigin.horizontal))]
+  };
+  return (0,composeClasses/* default */.Z)(slots, getSnackbarUtilityClass, classes);
+};
+var SnackbarRoot = (0,styled/* default */.ZP)('div', {
+  name: 'MuiSnackbar',
+  slot: 'Root',
+  overridesResolver: function overridesResolver(props, styles) {
+    var ownerState = props.ownerState;
+    return [styles.root, styles["anchorOrigin".concat((0,capitalize/* default */.Z)(ownerState.anchorOrigin.vertical)).concat((0,capitalize/* default */.Z)(ownerState.anchorOrigin.horizontal))]];
+  }
+})(function (_ref) {
+  var theme = _ref.theme,
+    ownerState = _ref.ownerState;
+  var center = {
+    left: '50%',
+    right: 'auto',
+    transform: 'translateX(-50%)'
+  };
+  return (0,esm_extends/* default */.Z)({
+    zIndex: (theme.vars || theme).zIndex.snackbar,
+    position: 'fixed',
+    display: 'flex',
+    left: 8,
+    right: 8,
+    justifyContent: 'center',
+    alignItems: 'center'
+  }, ownerState.anchorOrigin.vertical === 'top' ? {
+    top: 8
+  } : {
+    bottom: 8
+  }, ownerState.anchorOrigin.horizontal === 'left' && {
+    justifyContent: 'flex-start'
+  }, ownerState.anchorOrigin.horizontal === 'right' && {
+    justifyContent: 'flex-end'
+  }, (0,defineProperty/* default */.Z)({}, theme.breakpoints.up('sm'), (0,esm_extends/* default */.Z)({}, ownerState.anchorOrigin.vertical === 'top' ? {
+    top: 24
+  } : {
+    bottom: 24
+  }, ownerState.anchorOrigin.horizontal === 'center' && center, ownerState.anchorOrigin.horizontal === 'left' && {
+    left: 24,
+    right: 'auto'
+  }, ownerState.anchorOrigin.horizontal === 'right' && {
+    right: 24,
+    left: 'auto'
+  })));
+});
+var Snackbar = /*#__PURE__*/react.forwardRef(function Snackbar(inProps, ref) {
+  var props = (0,styles_useThemeProps/* default */.Z)({
+    props: inProps,
+    name: 'MuiSnackbar'
+  });
+  var theme = useTheme_useTheme();
+  var defaultTransitionDuration = {
+    enter: theme.transitions.duration.enteringScreen,
+    exit: theme.transitions.duration.leavingScreen
+  };
+  var action = props.action,
+    _props$anchorOrigin = props.anchorOrigin,
+    _props$anchorOrigin2 = _props$anchorOrigin === void 0 ? {
+      vertical: 'bottom',
+      horizontal: 'left'
+    } : _props$anchorOrigin,
+    vertical = _props$anchorOrigin2.vertical,
+    horizontal = _props$anchorOrigin2.horizontal,
+    _props$autoHideDurati = props.autoHideDuration,
+    autoHideDuration = _props$autoHideDurati === void 0 ? null : _props$autoHideDurati,
+    children = props.children,
+    className = props.className,
+    ClickAwayListenerProps = props.ClickAwayListenerProps,
+    ContentProps = props.ContentProps,
+    _props$disableWindowB = props.disableWindowBlurListener,
+    disableWindowBlurListener = _props$disableWindowB === void 0 ? false : _props$disableWindowB,
+    message = props.message,
+    open = props.open,
+    _props$TransitionComp = props.TransitionComponent,
+    TransitionComponent = _props$TransitionComp === void 0 ? Grow_Grow : _props$TransitionComp,
+    _props$transitionDura = props.transitionDuration,
+    transitionDuration = _props$transitionDura === void 0 ? defaultTransitionDuration : _props$transitionDura,
+    _props$TransitionProp = props.TransitionProps,
+    _props$TransitionProp2 = _props$TransitionProp === void 0 ? {} : _props$TransitionProp,
+    onEnter = _props$TransitionProp2.onEnter,
+    onExited = _props$TransitionProp2.onExited,
+    TransitionProps = (0,objectWithoutPropertiesLoose/* default */.Z)(props.TransitionProps, Snackbar_excluded),
+    other = (0,objectWithoutPropertiesLoose/* default */.Z)(props, Snackbar_excluded2);
+  var ownerState = (0,esm_extends/* default */.Z)({}, props, {
+    anchorOrigin: {
+      vertical: vertical,
+      horizontal: horizontal
+    },
+    autoHideDuration: autoHideDuration,
+    disableWindowBlurListener: disableWindowBlurListener,
+    TransitionComponent: TransitionComponent,
+    transitionDuration: transitionDuration
+  });
+  var classes = Snackbar_useUtilityClasses(ownerState);
+  var _useSnackbar = useSnackbar((0,esm_extends/* default */.Z)({}, ownerState)),
+    getRootProps = _useSnackbar.getRootProps,
+    onClickAway = _useSnackbar.onClickAway;
+  var _React$useState = react.useState(true),
+    _React$useState2 = (0,slicedToArray/* default */.Z)(_React$useState, 2),
+    exited = _React$useState2[0],
+    setExited = _React$useState2[1];
+  var rootProps = useSlotProps({
+    elementType: SnackbarRoot,
+    getSlotProps: getRootProps,
+    externalForwardedProps: other,
+    ownerState: ownerState,
+    additionalProps: {
+      ref: ref
+    },
+    className: [classes.root, className]
+  });
+  var handleExited = function handleExited(node) {
+    setExited(true);
+    if (onExited) {
+      onExited(node);
+    }
+  };
+  var handleEnter = function handleEnter(node, isAppearing) {
+    setExited(false);
+    if (onEnter) {
+      onEnter(node, isAppearing);
+    }
+  };
+
+  // So we only render active snackbars.
+  if (!open && exited) {
+    return null;
+  }
+  return /*#__PURE__*/(0,jsx_runtime.jsx)(ClickAwayListener, (0,esm_extends/* default */.Z)({
+    onClickAway: onClickAway
+  }, ClickAwayListenerProps, {
+    children: /*#__PURE__*/(0,jsx_runtime.jsx)(SnackbarRoot, (0,esm_extends/* default */.Z)({}, rootProps, {
+      children: /*#__PURE__*/(0,jsx_runtime.jsx)(TransitionComponent, (0,esm_extends/* default */.Z)({
+        appear: true,
+        in: open,
+        timeout: transitionDuration,
+        direction: vertical === 'top' ? 'down' : 'up',
+        onEnter: handleEnter,
+        onExited: handleExited
+      }, TransitionProps, {
+        children: children || /*#__PURE__*/(0,jsx_runtime.jsx)(SnackbarContent_SnackbarContent, (0,esm_extends/* default */.Z)({
+          message: message,
+          action: action
+        }, ContentProps))
+      }))
+    }))
+  }));
+});
+ false ? 0 : void 0;
+/* harmony default export */ var Snackbar_Snackbar = (Snackbar);
+;// CONCATENATED MODULE: ./node_modules/@mui/material/Alert/alertClasses.js
+
+
+function getAlertUtilityClass(slot) {
+  return (0,generateUtilityClass_generateUtilityClass/* default */.Z)('MuiAlert', slot);
+}
+var alertClasses = (0,generateUtilityClasses/* default */.Z)('MuiAlert', ['root', 'action', 'icon', 'message', 'filled', 'filledSuccess', 'filledInfo', 'filledWarning', 'filledError', 'outlined', 'outlinedSuccess', 'outlinedInfo', 'outlinedWarning', 'outlinedError', 'standard', 'standardSuccess', 'standardInfo', 'standardWarning', 'standardError']);
+/* harmony default export */ var Alert_alertClasses = (alertClasses);
+;// CONCATENATED MODULE: ./node_modules/@mui/material/internal/svg-icons/SuccessOutlined.js
+'use client';
+
+
+
+
+/**
+ * @ignore - internal component.
+ */
+
+/* harmony default export */ var SuccessOutlined = ((0,createSvgIcon/* default */.Z)( /*#__PURE__*/(0,jsx_runtime.jsx)("path", {
+  d: "M20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4C12.76,4 13.5,4.11 14.2, 4.31L15.77,2.74C14.61,2.26 13.34,2 12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0, 0 22,12M7.91,10.08L6.5,11.5L11,16L21,6L19.59,4.58L11,13.17L7.91,10.08Z"
+}), 'SuccessOutlined'));
+;// CONCATENATED MODULE: ./node_modules/@mui/material/internal/svg-icons/ReportProblemOutlined.js
+'use client';
+
+
+
+
+/**
+ * @ignore - internal component.
+ */
+
+/* harmony default export */ var ReportProblemOutlined = ((0,createSvgIcon/* default */.Z)( /*#__PURE__*/(0,jsx_runtime.jsx)("path", {
+  d: "M12 5.99L19.53 19H4.47L12 5.99M12 2L1 21h22L12 2zm1 14h-2v2h2v-2zm0-6h-2v4h2v-4z"
+}), 'ReportProblemOutlined'));
+;// CONCATENATED MODULE: ./node_modules/@mui/material/internal/svg-icons/ErrorOutline.js
+'use client';
+
+
+
+
+/**
+ * @ignore - internal component.
+ */
+
+/* harmony default export */ var ErrorOutline = ((0,createSvgIcon/* default */.Z)( /*#__PURE__*/(0,jsx_runtime.jsx)("path", {
+  d: "M11 15h2v2h-2zm0-8h2v6h-2zm.99-5C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
+}), 'ErrorOutline'));
+;// CONCATENATED MODULE: ./node_modules/@mui/material/internal/svg-icons/InfoOutlined.js
+'use client';
+
+
+
+
+/**
+ * @ignore - internal component.
+ */
+
+/* harmony default export */ var InfoOutlined = ((0,createSvgIcon/* default */.Z)( /*#__PURE__*/(0,jsx_runtime.jsx)("path", {
+  d: "M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20, 12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10, 10 0 0,0 12,2M11,17H13V11H11V17Z"
+}), 'InfoOutlined'));
+;// CONCATENATED MODULE: ./node_modules/@mui/material/internal/svg-icons/Close.js
+'use client';
+
+
+
+
+/**
+ * @ignore - internal component.
+ *
+ * Alias to `Clear`.
+ */
+
+/* harmony default export */ var Close = ((0,createSvgIcon/* default */.Z)( /*#__PURE__*/(0,jsx_runtime.jsx)("path", {
+  d: "M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+}), 'Close'));
+;// CONCATENATED MODULE: ./node_modules/@mui/material/Alert/Alert.js
+'use client';
+
+
+
+
+var Alert_excluded = ["action", "children", "className", "closeText", "color", "components", "componentsProps", "icon", "iconMapping", "onClose", "role", "severity", "slotProps", "slots", "variant"];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var Alert_useUtilityClasses = function useUtilityClasses(ownerState) {
+  var variant = ownerState.variant,
+    color = ownerState.color,
+    severity = ownerState.severity,
+    classes = ownerState.classes;
+  var slots = {
+    root: ['root', "".concat(variant).concat((0,capitalize/* default */.Z)(color || severity)), "".concat(variant)],
+    icon: ['icon'],
+    message: ['message'],
+    action: ['action']
+  };
+  return (0,composeClasses/* default */.Z)(slots, getAlertUtilityClass, classes);
+};
+var AlertRoot = (0,styled/* default */.ZP)(Paper_Paper, {
+  name: 'MuiAlert',
+  slot: 'Root',
+  overridesResolver: function overridesResolver(props, styles) {
+    var ownerState = props.ownerState;
+    return [styles.root, styles[ownerState.variant], styles["".concat(ownerState.variant).concat((0,capitalize/* default */.Z)(ownerState.color || ownerState.severity))]];
+  }
+})(function (_ref3) {
+  var theme = _ref3.theme,
+    ownerState = _ref3.ownerState;
+  var getColor = theme.palette.mode === 'light' ? colorManipulator/* darken */._j : colorManipulator/* lighten */.$n;
+  var getBackgroundColor = theme.palette.mode === 'light' ? colorManipulator/* lighten */.$n : colorManipulator/* darken */._j;
+  var color = ownerState.color || ownerState.severity;
+  return (0,esm_extends/* default */.Z)({}, theme.typography.body2, {
+    backgroundColor: 'transparent',
+    display: 'flex',
+    padding: '6px 16px'
+  }, color && ownerState.variant === 'standard' && (0,defineProperty/* default */.Z)({
+    color: theme.vars ? theme.vars.palette.Alert["".concat(color, "Color")] : getColor(theme.palette[color].light, 0.6),
+    backgroundColor: theme.vars ? theme.vars.palette.Alert["".concat(color, "StandardBg")] : getBackgroundColor(theme.palette[color].light, 0.9)
+  }, "& .".concat(Alert_alertClasses.icon), theme.vars ? {
+    color: theme.vars.palette.Alert["".concat(color, "IconColor")]
+  } : {
+    color: theme.palette[color].main
+  }), color && ownerState.variant === 'outlined' && (0,defineProperty/* default */.Z)({
+    color: theme.vars ? theme.vars.palette.Alert["".concat(color, "Color")] : getColor(theme.palette[color].light, 0.6),
+    border: "1px solid ".concat((theme.vars || theme).palette[color].light)
+  }, "& .".concat(Alert_alertClasses.icon), theme.vars ? {
+    color: theme.vars.palette.Alert["".concat(color, "IconColor")]
+  } : {
+    color: theme.palette[color].main
+  }), color && ownerState.variant === 'filled' && (0,esm_extends/* default */.Z)({
+    fontWeight: theme.typography.fontWeightMedium
+  }, theme.vars ? {
+    color: theme.vars.palette.Alert["".concat(color, "FilledColor")],
+    backgroundColor: theme.vars.palette.Alert["".concat(color, "FilledBg")]
+  } : {
+    backgroundColor: theme.palette.mode === 'dark' ? theme.palette[color].dark : theme.palette[color].main,
+    color: theme.palette.getContrastText(theme.palette[color].main)
+  }));
+});
+var AlertIcon = (0,styled/* default */.ZP)('div', {
+  name: 'MuiAlert',
+  slot: 'Icon',
+  overridesResolver: function overridesResolver(props, styles) {
+    return styles.icon;
+  }
+})({
+  marginRight: 12,
+  padding: '7px 0',
+  display: 'flex',
+  fontSize: 22,
+  opacity: 0.9
+});
+var AlertMessage = (0,styled/* default */.ZP)('div', {
+  name: 'MuiAlert',
+  slot: 'Message',
+  overridesResolver: function overridesResolver(props, styles) {
+    return styles.message;
+  }
+})({
+  padding: '8px 0',
+  minWidth: 0,
+  overflow: 'auto'
+});
+var AlertAction = (0,styled/* default */.ZP)('div', {
+  name: 'MuiAlert',
+  slot: 'Action',
+  overridesResolver: function overridesResolver(props, styles) {
+    return styles.action;
+  }
+})({
+  display: 'flex',
+  alignItems: 'flex-start',
+  padding: '4px 0 0 16px',
+  marginLeft: 'auto',
+  marginRight: -8
+});
+var defaultIconMapping = {
+  success: /*#__PURE__*/(0,jsx_runtime.jsx)(SuccessOutlined, {
+    fontSize: "inherit"
+  }),
+  warning: /*#__PURE__*/(0,jsx_runtime.jsx)(ReportProblemOutlined, {
+    fontSize: "inherit"
+  }),
+  error: /*#__PURE__*/(0,jsx_runtime.jsx)(ErrorOutline, {
+    fontSize: "inherit"
+  }),
+  info: /*#__PURE__*/(0,jsx_runtime.jsx)(InfoOutlined, {
+    fontSize: "inherit"
+  })
+};
+var Alert = /*#__PURE__*/react.forwardRef(function Alert(inProps, ref) {
+  var _ref, _slots$closeButton, _ref2, _slots$closeIcon, _slotProps$closeButto, _slotProps$closeIcon;
+  var props = (0,styles_useThemeProps/* default */.Z)({
+    props: inProps,
+    name: 'MuiAlert'
+  });
+  var action = props.action,
+    children = props.children,
+    className = props.className,
+    _props$closeText = props.closeText,
+    closeText = _props$closeText === void 0 ? 'Close' : _props$closeText,
+    color = props.color,
+    _props$components = props.components,
+    components = _props$components === void 0 ? {} : _props$components,
+    _props$componentsProp = props.componentsProps,
+    componentsProps = _props$componentsProp === void 0 ? {} : _props$componentsProp,
+    icon = props.icon,
+    _props$iconMapping = props.iconMapping,
+    iconMapping = _props$iconMapping === void 0 ? defaultIconMapping : _props$iconMapping,
+    onClose = props.onClose,
+    _props$role = props.role,
+    role = _props$role === void 0 ? 'alert' : _props$role,
+    _props$severity = props.severity,
+    severity = _props$severity === void 0 ? 'success' : _props$severity,
+    _props$slotProps = props.slotProps,
+    slotProps = _props$slotProps === void 0 ? {} : _props$slotProps,
+    _props$slots = props.slots,
+    slots = _props$slots === void 0 ? {} : _props$slots,
+    _props$variant = props.variant,
+    variant = _props$variant === void 0 ? 'standard' : _props$variant,
+    other = (0,objectWithoutPropertiesLoose/* default */.Z)(props, Alert_excluded);
+  var ownerState = (0,esm_extends/* default */.Z)({}, props, {
+    color: color,
+    severity: severity,
+    variant: variant
+  });
+  var classes = Alert_useUtilityClasses(ownerState);
+  var AlertCloseButton = (_ref = (_slots$closeButton = slots.closeButton) != null ? _slots$closeButton : components.CloseButton) != null ? _ref : IconButton_IconButton;
+  var AlertCloseIcon = (_ref2 = (_slots$closeIcon = slots.closeIcon) != null ? _slots$closeIcon : components.CloseIcon) != null ? _ref2 : Close;
+  var closeButtonProps = (_slotProps$closeButto = slotProps.closeButton) != null ? _slotProps$closeButto : componentsProps.closeButton;
+  var closeIconProps = (_slotProps$closeIcon = slotProps.closeIcon) != null ? _slotProps$closeIcon : componentsProps.closeIcon;
+  return /*#__PURE__*/(0,jsx_runtime.jsxs)(AlertRoot, (0,esm_extends/* default */.Z)({
+    role: role,
+    elevation: 0,
+    ownerState: ownerState,
+    className: (0,clsx/* default */.Z)(classes.root, className),
+    ref: ref
+  }, other, {
+    children: [icon !== false ? /*#__PURE__*/(0,jsx_runtime.jsx)(AlertIcon, {
+      ownerState: ownerState,
+      className: classes.icon,
+      children: icon || iconMapping[severity] || defaultIconMapping[severity]
+    }) : null, /*#__PURE__*/(0,jsx_runtime.jsx)(AlertMessage, {
+      ownerState: ownerState,
+      className: classes.message,
+      children: children
+    }), action != null ? /*#__PURE__*/(0,jsx_runtime.jsx)(AlertAction, {
+      ownerState: ownerState,
+      className: classes.action,
+      children: action
+    }) : null, action == null && onClose ? /*#__PURE__*/(0,jsx_runtime.jsx)(AlertAction, {
+      ownerState: ownerState,
+      className: classes.action,
+      children: /*#__PURE__*/(0,jsx_runtime.jsx)(AlertCloseButton, (0,esm_extends/* default */.Z)({
+        size: "small",
+        "aria-label": closeText,
+        title: closeText,
+        color: "inherit",
+        onClick: onClose
+      }, closeButtonProps, {
+        children: /*#__PURE__*/(0,jsx_runtime.jsx)(AlertCloseIcon, (0,esm_extends/* default */.Z)({
+          fontSize: "small"
+        }, closeIconProps))
+      }))
+    }) : null]
+  }));
+});
+ false ? 0 : void 0;
+/* harmony default export */ var Alert_Alert = (Alert);
+;// CONCATENATED MODULE: ./src/hooks/Alert.js
+var hooks_Alert_Alert=/*#__PURE__*/(0,react.forwardRef)(function Alert(props,ref){return/*#__PURE__*/(0,jsx_runtime.jsx)(Alert_Alert,_objectSpread2({elevation:6,ref:ref,variant:"filled"},props));});var AlertContext=/*#__PURE__*/(0,react.createContext)(null);/**
+ * 左下角提示，注入context后，方便全局调用
+ * @param {*} param0
+ * @returns
+ */function AlertProvider(_ref){var children=_ref.children;var vertical="top";var horizontal="center";var _useState=(0,react.useState)(false),_useState2=(0,slicedToArray/* default */.Z)(_useState,2),open=_useState2[0],setOpen=_useState2[1];var _useState3=(0,react.useState)("info"),_useState4=(0,slicedToArray/* default */.Z)(_useState3,2),severity=_useState4[0],setSeverity=_useState4[1];var _useState5=(0,react.useState)(""),_useState6=(0,slicedToArray/* default */.Z)(_useState5,2),message=_useState6[0],setMessage=_useState6[1];var error=function error(msg){return showAlert(msg,"error");};var warning=function warning(msg){return showAlert(msg,"warning");};var info=function info(msg){return showAlert(msg,"info");};var success=function success(msg){return showAlert(msg,"success");};var showAlert=function showAlert(msg,type){setOpen(true);setMessage(msg);setSeverity(type);};var handleClose=function handleClose(_,reason){if(reason==="clickaway"){return;}setOpen(false);};return/*#__PURE__*/(0,jsx_runtime.jsxs)(AlertContext.Provider,{value:{error:error,warning:warning,info:info,success:success},children:[children,/*#__PURE__*/(0,jsx_runtime.jsx)(Snackbar_Snackbar,{open:open,autoHideDuration:3000,onClose:handleClose,anchorOrigin:{vertical:vertical,horizontal:horizontal},children:/*#__PURE__*/(0,jsx_runtime.jsx)(hooks_Alert_Alert,{onClose:handleClose,severity:severity,sx:{width:"100%"},children:message})})]});}function useAlert(){return (0,react.useContext)(AlertContext);}
 ;// CONCATENATED MODULE: ./src/views/Options/Rules.js
 function RuleFields(_ref){var rule=_ref.rule,rules=_ref.rules,setShow=_ref.setShow;var initFormValues=rule||_objectSpread2(_objectSpread2({},DEFAULT_RULE),{},{transOpen:"true"});var editMode=!!rule;var i18n=useI18n();var _useState=(0,react.useState)(editMode),_useState2=(0,slicedToArray/* default */.Z)(_useState,2),disabled=_useState2[0],setDisabled=_useState2[1];var _useState3=(0,react.useState)({}),_useState4=(0,slicedToArray/* default */.Z)(_useState3,2),errors=_useState4[0],setErrors=_useState4[1];var _useState5=(0,react.useState)(initFormValues),_useState6=(0,slicedToArray/* default */.Z)(_useState5,2),formValues=_useState6[0],setFormValues=_useState6[1];var pattern=formValues.pattern,selector=formValues.selector,translator=formValues.translator,fromLang=formValues.fromLang,toLang=formValues.toLang,textStyle=formValues.textStyle,transOpen=formValues.transOpen,bgColor=formValues.bgColor;var hasSamePattern=function hasSamePattern(str){var _iterator=createForOfIteratorHelper_createForOfIteratorHelper(rules.list),_step;try{for(_iterator.s();!(_step=_iterator.n()).done;){var item=_step.value;if(item.pattern===str&&(rule===null||rule===void 0?void 0:rule.pattern)!==str){return true;}}}catch(err){_iterator.e(err);}finally{_iterator.f();}return false;};var handleFocus=function handleFocus(e){e.preventDefault();var name=e.target.name;setErrors(function(pre){return _objectSpread2(_objectSpread2({},pre),{},(0,defineProperty/* default */.Z)({},name,""));});};var handleChange=function handleChange(e){e.preventDefault();var _e$target=e.target,name=_e$target.name,value=_e$target.value;setFormValues(function(pre){return _objectSpread2(_objectSpread2({},pre),{},(0,defineProperty/* default */.Z)({},name,value));});};var handleCancel=function handleCancel(e){e.preventDefault();if(editMode){setDisabled(true);}else{setShow(false);}setErrors({});setFormValues(initFormValues);};var handleSubmit=function handleSubmit(e){e.preventDefault();var errors={};if(!pattern.trim()){errors.pattern=i18n("error_cant_be_blank");}if(hasSamePattern(pattern)){errors.pattern=i18n("error_duplicate_values");}if(pattern==="*"&&!errors.pattern&&!selector.trim()){errors.selector=i18n("error_cant_be_blank");}if(Object.keys(errors).length>0){setErrors(errors);return;}if(editMode){// 编辑
 setDisabled(true);rules.put(rule.pattern,formValues);}else{// 添加
 rules.add(formValues);setShow(false);setFormValues(initFormValues);}};var globalItem=(rule===null||rule===void 0?void 0:rule.pattern)!=="*"&&/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:rules_GLOBAL_KEY,children:rules_GLOBAL_KEY},rules_GLOBAL_KEY);return/*#__PURE__*/(0,jsx_runtime.jsx)("form",{onSubmit:handleSubmit,children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("pattern"),error:!!errors.pattern,helperText:errors.pattern||i18n("pattern_helper"),name:"pattern",value:pattern,disabled:(rule===null||rule===void 0?void 0:rule.pattern)==="*"||disabled,onChange:handleChange,onFocus:handleFocus,multiline:true}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("selector"),error:!!errors.selector,helperText:errors.selector||i18n("selector_helper"),name:"selector",value:selector,disabled:disabled,onChange:handleChange,onFocus:handleFocus,multiline:true}),/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Grid_Grid,{container:true,spacing:2,columns:12,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:12,sm:6,md:3,lg:2,children:/*#__PURE__*/(0,jsx_runtime.jsxs)(TextField_TextField,{select:true,size:"small",fullWidth:true,name:"transOpen",value:transOpen,label:i18n("translate_switch"),disabled:disabled,onChange:handleChange,children:[globalItem,/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:"true",children:i18n("default_enabled")}),/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:"false",children:i18n("default_disabled")})]})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:12,sm:6,md:3,lg:2,children:/*#__PURE__*/(0,jsx_runtime.jsxs)(TextField_TextField,{select:true,size:"small",fullWidth:true,name:"translator",value:translator,label:i18n("translate_service"),disabled:disabled,onChange:handleChange,children:[globalItem,OPT_TRANS_ALL.map(function(item){return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:item,children:item},item);})]})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:12,sm:6,md:3,lg:2,children:/*#__PURE__*/(0,jsx_runtime.jsxs)(TextField_TextField,{select:true,size:"small",fullWidth:true,name:"fromLang",value:fromLang,label:i18n("from_lang"),disabled:disabled,onChange:handleChange,children:[globalItem,OPT_LANGS_FROM.map(function(_ref2){var _ref3=(0,slicedToArray/* default */.Z)(_ref2,2),lang=_ref3[0],name=_ref3[1];return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:lang,children:name},lang);})]})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:12,sm:6,md:3,lg:2,children:/*#__PURE__*/(0,jsx_runtime.jsxs)(TextField_TextField,{select:true,size:"small",fullWidth:true,name:"toLang",value:toLang,label:i18n("to_lang"),disabled:disabled,onChange:handleChange,children:[globalItem,OPT_LANGS_TO.map(function(_ref4){var _ref5=(0,slicedToArray/* default */.Z)(_ref4,2),lang=_ref5[0],name=_ref5[1];return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:lang,children:name},lang);})]})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:12,sm:6,md:3,lg:2,children:/*#__PURE__*/(0,jsx_runtime.jsxs)(TextField_TextField,{select:true,size:"small",fullWidth:true,name:"textStyle",value:textStyle,label:i18n("text_style"),disabled:disabled,onChange:handleChange,children:[globalItem,OPT_STYLE_ALL.map(function(item){return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:item,children:i18n(item)},item);})]})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:12,sm:6,md:3,lg:2,children:/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",fullWidth:true,name:"bgColor",value:bgColor,label:i18n("bg_color"),disabled:disabled,onChange:handleChange})})]})}),rules&&(editMode?/*#__PURE__*/ // 编辑
 (0,jsx_runtime.jsx)(Stack_Stack,{direction:"row",spacing:2,children:disabled?/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"contained",onClick:function onClick(e){e.preventDefault();setDisabled(false);},children:i18n("edit")}),(rule===null||rule===void 0?void 0:rule.pattern)!=="*"&&/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"outlined",onClick:function onClick(e){e.preventDefault();rules.del(rule.pattern);},children:i18n("delete")})]}):/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"contained",type:"submit",children:i18n("save")}),/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"outlined",onClick:handleCancel,children:i18n("cancel")})]})}):/*#__PURE__*/ // 添加
-(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"contained",type:"submit",children:i18n("save")}),/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"outlined",onClick:handleCancel,children:i18n("cancel")})]}))]})});}function RuleAccordion(_ref6){var rule=_ref6.rule,rules=_ref6.rules;var _useState7=(0,react.useState)(false),_useState8=(0,slicedToArray/* default */.Z)(_useState7,2),expanded=_useState8[0],setExpanded=_useState8[1];var handleChange=function handleChange(e){setExpanded(function(pre){return!pre;});};return/*#__PURE__*/(0,jsx_runtime.jsxs)(Accordion_Accordion,{expanded:expanded,onChange:handleChange,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(AccordionSummary_AccordionSummary,{expandIcon:/*#__PURE__*/(0,jsx_runtime.jsx)(ExpandMore/* default */.Z,{}),children:/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{style:{opacity:rules?1:0.5},children:rule.pattern})}),/*#__PURE__*/(0,jsx_runtime.jsx)(AccordionDetails_AccordionDetails,{children:expanded&&/*#__PURE__*/(0,jsx_runtime.jsx)(RuleFields,{rule:rule,rules:rules})})]});}function DownloadButton(_ref7){var data=_ref7.data,text=_ref7.text,fileName=_ref7.fileName;var handleClick=function handleClick(e){e.preventDefault();if(data){var url=window.URL.createObjectURL(new Blob([data]));var link=document.createElement("a");link.href=url;link.setAttribute("download",fileName||"".concat(Date.now(),".json"));document.body.appendChild(link);link.click();link.remove();}};return/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"outlined",onClick:handleClick,startIcon:/*#__PURE__*/(0,jsx_runtime.jsx)(FileDownload/* default */.Z,{}),children:text});}function UploadButton(_ref8){var onChange=_ref8.onChange,text=_ref8.text;var inputRef=(0,react.useRef)(null);var handleClick=function handleClick(){inputRef.current&&inputRef.current.click();};return/*#__PURE__*/(0,jsx_runtime.jsxs)(Button_Button,{size:"small",variant:"outlined",onClick:handleClick,startIcon:/*#__PURE__*/(0,jsx_runtime.jsx)(FileUpload/* default */.Z,{}),children:[text,/*#__PURE__*/(0,jsx_runtime.jsx)("input",{type:"file",accept:".json",ref:inputRef,onChange:onChange,hidden:true})]});}function Rules(){var i18n=useI18n();var rules=useRules();var _useState9=(0,react.useState)(false),_useState10=(0,slicedToArray/* default */.Z)(_useState9,2),showAdd=_useState10[0],setShowAdd=_useState10[1];var setting=useSetting();var updateSetting=useSettingUpdate();var injectRules=!!(setting!==null&&setting!==void 0&&setting.injectRules);var handleImport=function handleImport(e){var file=e.target.files[0];if(!file){return;}if(!file.type.includes("json")){alert(i18n("error_wrong_file_type"));return;}var reader=new FileReader();reader.onload=/*#__PURE__*/function(){var _ref9=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(e){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:_context.prev=0;_context.next=3;return rules.merge(JSON.parse(e.target.result));case 3:_context.next=8;break;case 5:_context.prev=5;_context.t0=_context["catch"](0);console.log("[import rules]",_context.t0);case 8:case"end":return _context.stop();}},_callee,null,[[0,5]]);}));return function(_x){return _ref9.apply(this,arguments);};}();reader.readAsText(file);};var handleInject=function handleInject(){updateSetting({injectRules:!injectRules});};return/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:3,children:[/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"contained",disabled:showAdd,onClick:function onClick(e){e.preventDefault();setShowAdd(true);},children:i18n("add")}),/*#__PURE__*/(0,jsx_runtime.jsx)(UploadButton,{text:i18n("import"),onChange:handleImport}),/*#__PURE__*/(0,jsx_runtime.jsx)(DownloadButton,{data:JSON.stringify((0,toConsumableArray/* default */.Z)(rules.list).reverse(),null,"\t"),text:i18n("export")}),/*#__PURE__*/(0,jsx_runtime.jsx)(FormControlLabel_FormControlLabel,{control:/*#__PURE__*/(0,jsx_runtime.jsx)(Switch_Switch,{size:"small",checked:injectRules,onChange:handleInject}),label:i18n("inject_rules")})]}),showAdd&&/*#__PURE__*/(0,jsx_runtime.jsx)(RuleFields,{rules:rules,setShow:setShowAdd}),/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:rules.list.map(function(rule){return/*#__PURE__*/(0,jsx_runtime.jsx)(RuleAccordion,{rule:rule,rules:rules},rule.pattern);})}),injectRules&&/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:rules_BUILTIN_RULES.map(function(rule){return/*#__PURE__*/(0,jsx_runtime.jsx)(RuleAccordion,{rule:rule},rule.pattern);})})]})});}
+(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"contained",type:"submit",children:i18n("save")}),/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"outlined",onClick:handleCancel,children:i18n("cancel")})]}))]})});}function RuleAccordion(_ref6){var rule=_ref6.rule,rules=_ref6.rules;var _useState7=(0,react.useState)(false),_useState8=(0,slicedToArray/* default */.Z)(_useState7,2),expanded=_useState8[0],setExpanded=_useState8[1];var handleChange=function handleChange(e){setExpanded(function(pre){return!pre;});};return/*#__PURE__*/(0,jsx_runtime.jsxs)(Accordion_Accordion,{expanded:expanded,onChange:handleChange,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(AccordionSummary_AccordionSummary,{expandIcon:/*#__PURE__*/(0,jsx_runtime.jsx)(ExpandMore/* default */.Z,{}),children:/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{style:{opacity:rules?1:0.5},children:rule.pattern})}),/*#__PURE__*/(0,jsx_runtime.jsx)(AccordionDetails_AccordionDetails,{children:expanded&&/*#__PURE__*/(0,jsx_runtime.jsx)(RuleFields,{rule:rule,rules:rules})})]});}function DownloadButton(_ref7){var data=_ref7.data,text=_ref7.text,fileName=_ref7.fileName;var handleClick=function handleClick(e){e.preventDefault();if(data){var url=window.URL.createObjectURL(new Blob([data]));var link=document.createElement("a");link.href=url;link.setAttribute("download",fileName||"".concat(Date.now(),".json"));document.body.appendChild(link);link.click();link.remove();}};return/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"outlined",onClick:handleClick,startIcon:/*#__PURE__*/(0,jsx_runtime.jsx)(FileDownload/* default */.Z,{}),children:text});}function UploadButton(_ref8){var onChange=_ref8.onChange,text=_ref8.text;var inputRef=(0,react.useRef)(null);var handleClick=function handleClick(){inputRef.current&&inputRef.current.click();};return/*#__PURE__*/(0,jsx_runtime.jsxs)(Button_Button,{size:"small",variant:"outlined",onClick:handleClick,startIcon:/*#__PURE__*/(0,jsx_runtime.jsx)(FileUpload/* default */.Z,{}),children:[text,/*#__PURE__*/(0,jsx_runtime.jsx)("input",{type:"file",accept:".json",ref:inputRef,onChange:onChange,hidden:true})]});}function ShareButton(_ref9){var rules=_ref9.rules,injectRules=_ref9.injectRules,selectedSub=_ref9.selectedSub;var alert=useAlert();var i18n=useI18n();var handleClick=/*#__PURE__*/function(){var _ref10=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(){var _yield$loadSyncOpt,syncUrl,syncKey,shareRules,subRules,url;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:_context.prev=0;_context.next=3;return loadSyncOpt();case 3:_yield$loadSyncOpt=_context.sent;syncUrl=_yield$loadSyncOpt.syncUrl;syncKey=_yield$loadSyncOpt.syncKey;if(!(!syncUrl||!syncKey)){_context.next=9;break;}alert.warning(i18n("error_sync_setting"));return _context.abrupt("return");case 9:shareRules=(0,toConsumableArray/* default */.Z)(rules.list);if(!injectRules){_context.next=15;break;}_context.next=13;return rules_tryLoadRules(selectedSub===null||selectedSub===void 0?void 0:selectedSub.url);case 13:subRules=_context.sent;shareRules.splice.apply(shareRules,[-1,0].concat((0,toConsumableArray/* default */.Z)(subRules)));case 15:_context.next=17;return syncShareRules({rules:shareRules,syncUrl:syncUrl,syncKey:syncKey});case 17:url=_context.sent;window.open(url,"_blank");_context.next=25;break;case 21:_context.prev=21;_context.t0=_context["catch"](0);alert.warning(i18n("error_got_some_wrong"));console.log("[share rules]",_context.t0);case 25:case"end":return _context.stop();}},_callee,null,[[0,21]]);}));return function handleClick(){return _ref10.apply(this,arguments);};}();return/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"outlined",onClick:handleClick,startIcon:/*#__PURE__*/(0,jsx_runtime.jsx)(Share/* default */.Z,{}),children:"分享"});}function UserRules(){var i18n=useI18n();var rules=useRules();var _useState9=(0,react.useState)(false),_useState10=(0,slicedToArray/* default */.Z)(_useState9,2),showAdd=_useState10[0],setShowAdd=_useState10[1];var setting=useSetting();var updateSetting=useSettingUpdate();var subrules=useSubrules();var selectedSub=subrules.list.find(function(item){return item.selected;});var injectRules=!!(setting!==null&&setting!==void 0&&setting.injectRules);var handleImport=function handleImport(e){var file=e.target.files[0];if(!file){return;}if(!file.type.includes("json")){alert(i18n("error_wrong_file_type"));return;}var reader=new FileReader();reader.onload=/*#__PURE__*/function(){var _ref11=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(e){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:_context2.prev=0;_context2.next=3;return rules.merge(JSON.parse(e.target.result));case 3:_context2.next=8;break;case 5:_context2.prev=5;_context2.t0=_context2["catch"](0);console.log("[import rules]",_context2.t0);case 8:case"end":return _context2.stop();}},_callee2,null,[[0,5]]);}));return function(_x){return _ref11.apply(this,arguments);};}();reader.readAsText(file);};var handleInject=function handleInject(){updateSetting({injectRules:!injectRules});};return/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:3,children:[/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"contained",disabled:showAdd,onClick:function onClick(e){e.preventDefault();setShowAdd(true);},children:i18n("add")}),/*#__PURE__*/(0,jsx_runtime.jsx)(UploadButton,{text:i18n("import"),onChange:handleImport}),/*#__PURE__*/(0,jsx_runtime.jsx)(DownloadButton,{data:JSON.stringify((0,toConsumableArray/* default */.Z)(rules.list).reverse(),null,"\t"),text:i18n("export")}),/*#__PURE__*/(0,jsx_runtime.jsx)(ShareButton,{rules:rules,injectRules:injectRules,selectedSub:selectedSub}),/*#__PURE__*/(0,jsx_runtime.jsx)(FormControlLabel_FormControlLabel,{control:/*#__PURE__*/(0,jsx_runtime.jsx)(Switch_Switch,{size:"small",checked:injectRules,onChange:handleInject}),label:i18n("inject_rules")})]}),showAdd&&/*#__PURE__*/(0,jsx_runtime.jsx)(RuleFields,{rules:rules,setShow:setShowAdd}),/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:rules.list.map(function(rule){return/*#__PURE__*/(0,jsx_runtime.jsx)(RuleAccordion,{rule:rule,rules:rules},rule.pattern);})})]});}function SubRulesItem(_ref12){var index=_ref12.index,url=_ref12.url,selectedUrl=_ref12.selectedUrl,subrules=_ref12.subrules,setRules=_ref12.setRules;var _useState11=(0,react.useState)(false),_useState12=(0,slicedToArray/* default */.Z)(_useState11,2),loading=_useState12[0],setLoading=_useState12[1];var handleDel=/*#__PURE__*/function(){var _ref13=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee3(){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:_context3.prev=0;_context3.next=3;return subrules.del(url);case 3:_context3.next=5;return rulesCache.del(url);case 5:_context3.next=10;break;case 7:_context3.prev=7;_context3.t0=_context3["catch"](0);console.log("[del subrules]",_context3.t0);case 10:case"end":return _context3.stop();}},_callee3,null,[[0,7]]);}));return function handleDel(){return _ref13.apply(this,arguments);};}();var handleSync=/*#__PURE__*/function(){var _ref14=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee4(){var rules;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee4$(_context4){while(1)switch(_context4.prev=_context4.next){case 0:_context4.prev=0;setLoading(true);_context4.next=4;return rulesCache.fetch(url);case 4:rules=_context4.sent;_context4.next=7;return rulesCache.set(url,rules);case 7:if(url===selectedUrl){setRules(rules);}_context4.next=13;break;case 10:_context4.prev=10;_context4.t0=_context4["catch"](0);console.log("[sync rules]",_context4.t0);case 13:_context4.prev=13;setLoading(false);return _context4.finish(13);case 16:case"end":return _context4.stop();}},_callee4,null,[[0,10,13,16]]);}));return function handleSync(){return _ref14.apply(this,arguments);};}();return/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",alignItems:"center",spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(FormControlLabel_FormControlLabel,{value:url,control:/*#__PURE__*/(0,jsx_runtime.jsx)(Radio_Radio,{}),label:url}),loading?/*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgress_CircularProgress,{size:16}):/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{size:"small",onClick:handleSync,children:/*#__PURE__*/(0,jsx_runtime.jsx)(Sync/* default */.Z,{fontSize:"small"})}),index!==0&&selectedUrl!==url&&/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{size:"small",onClick:handleDel,children:/*#__PURE__*/(0,jsx_runtime.jsx)(Delete/* default */.Z,{fontSize:"small"})})]});}function SubRulesEdit(_ref15){var subrules=_ref15.subrules;var i18n=useI18n();var _useState13=(0,react.useState)(""),_useState14=(0,slicedToArray/* default */.Z)(_useState13,2),inputText=_useState14[0],setInputText=_useState14[1];var _useState15=(0,react.useState)(""),_useState16=(0,slicedToArray/* default */.Z)(_useState15,2),inputError=_useState16[0],setInputError=_useState16[1];var _useState17=(0,react.useState)(false),_useState18=(0,slicedToArray/* default */.Z)(_useState17,2),showInput=_useState18[0],setShowInput=_useState18[1];var handleCancel=function handleCancel(e){e.preventDefault();setShowInput(false);setInputText("");setInputError("");};var handleSave=/*#__PURE__*/function(){var _ref16=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee5(e){var url,rules;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee5$(_context5){while(1)switch(_context5.prev=_context5.next){case 0:e.preventDefault();url=inputText.trim();if(url){_context5.next=5;break;}setInputError(i18n("error_cant_be_blank"));return _context5.abrupt("return");case 5:if(!subrules.list.find(function(item){return item.url===url;})){_context5.next=8;break;}setInputError(i18n("error_duplicate_values"));return _context5.abrupt("return");case 8:_context5.prev=8;_context5.next=11;return rulesCache.fetch(url);case 11:rules=_context5.sent;if(!(rules.length===0)){_context5.next=14;break;}throw new Error("empty rules");case 14:_context5.next=16;return rulesCache.set(url,rules);case 16:_context5.next=18;return subrules.add(url);case 18:setShowInput(false);setInputText("");_context5.next=26;break;case 22:_context5.prev=22;_context5.t0=_context5["catch"](8);console.log("[fetch rules]",_context5.t0);setInputError(i18n("error_fetch_url"));case 26:case"end":return _context5.stop();}},_callee5,null,[[8,22]]);}));return function handleSave(_x2){return _ref16.apply(this,arguments);};}();var handleInput=function handleInput(e){e.preventDefault();setInputText(e.target.value);};var handleFocus=function handleFocus(e){e.preventDefault();setInputError("");};return/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Stack_Stack,{direction:"row",alignItems:"center",spacing:2,children:/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"contained",disabled:showInput,onClick:function onClick(e){e.preventDefault();setShowInput(true);},children:i18n("add")})}),showInput&&/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",value:inputText,error:!!inputError,helperText:inputError,onChange:handleInput,onFocus:handleFocus,label:i18n("subscribe_url")}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",alignItems:"center",spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"contained",onClick:handleSave,children:i18n("save")}),/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"outlined",onClick:handleCancel,children:i18n("cancel")})]})]})]});}function SubRules(){var _useState19=(0,react.useState)(false),_useState20=(0,slicedToArray/* default */.Z)(_useState19,2),loading=_useState20[0],setLoading=_useState20[1];var _useState21=(0,react.useState)([]),_useState22=(0,slicedToArray/* default */.Z)(_useState21,2),rules=_useState22[0],setRules=_useState22[1];var subrules=useSubrules();var selectedSub=subrules.list.find(function(item){return item.selected;});var handleSelect=function handleSelect(e){var url=e.target.value;subrules.select(url);};(0,react.useEffect)(function(){asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee6(){var _rules;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee6$(_context6){while(1)switch(_context6.prev=_context6.next){case 0:if(!(selectedSub!==null&&selectedSub!==void 0&&selectedSub.url)){_context6.next=15;break;}_context6.prev=1;setLoading(true);_context6.next=5;return rules_tryLoadRules(selectedSub===null||selectedSub===void 0?void 0:selectedSub.url);case 5:_rules=_context6.sent;setRules(_rules);_context6.next=12;break;case 9:_context6.prev=9;_context6.t0=_context6["catch"](1);console.log("[load rules]",_context6.t0);case 12:_context6.prev=12;setLoading(false);return _context6.finish(12);case 15:case"end":return _context6.stop();}},_callee6,null,[[1,9,12,15]]);}))();},[selectedSub===null||selectedSub===void 0?void 0:selectedSub.url]);return/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:3,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(SubRulesEdit,{subrules:subrules}),/*#__PURE__*/(0,jsx_runtime.jsx)(RadioGroup_RadioGroup,{value:selectedSub===null||selectedSub===void 0?void 0:selectedSub.url,onChange:handleSelect,children:subrules.list.map(function(item,index){return/*#__PURE__*/(0,jsx_runtime.jsx)(SubRulesItem,{url:item.url,index:index,selectedUrl:selectedSub===null||selectedSub===void 0?void 0:selectedSub.url,subrules:subrules,setRules:setRules},item.url);})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:loading?/*#__PURE__*/(0,jsx_runtime.jsx)("center",{children:/*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgress_CircularProgress,{})}):rules.map(function(rule){return/*#__PURE__*/(0,jsx_runtime.jsx)(RuleAccordion,{rule:rule},rule.pattern);})})]});}function Rules(){var i18n=useI18n();var _useState23=(0,react.useState)(0),_useState24=(0,slicedToArray/* default */.Z)(_useState23,2),activeTab=_useState24[0],setActiveTab=_useState24[1];var handleTabChange=function handleTabChange(e,newValue){setActiveTab(newValue);};return/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:3,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{sx:{borderBottom:1,borderColor:"divider"},children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Tabs_Tabs,{value:activeTab,onChange:handleTabChange,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Tab_Tab,{label:i18n("edit_rules")}),/*#__PURE__*/(0,jsx_runtime.jsx)(Tab_Tab,{label:i18n("subscribe_rules")})]})}),/*#__PURE__*/(0,jsx_runtime.jsx)("div",{hidden:activeTab!==0,children:activeTab===0&&/*#__PURE__*/(0,jsx_runtime.jsx)(UserRules,{})}),/*#__PURE__*/(0,jsx_runtime.jsx)("div",{hidden:activeTab!==1,children:activeTab===1&&/*#__PURE__*/(0,jsx_runtime.jsx)(SubRules,{})})]})});}
 ;// CONCATENATED MODULE: ./src/views/Options/Setting.js
-function Settings(){var i18n=useI18n();var setting=useSetting();var updateSetting=useSettingUpdate();var handleChange=(0,react.useMemo)(function(){return libs_utils_debounce(function(e){e.preventDefault();var _e$target=e.target,name=_e$target.name,value=_e$target.value;switch(name){case"fetchLimit":value=limitNumber(value,1,100);break;case"fetchInterval":value=limitNumber(value,0,5000);break;default:}updateSetting((0,defineProperty/* default */.Z)({},name,value));},500);},[updateSetting]);if(!setting){return;}var uiLang=setting.uiLang,googleUrl=setting.googleUrl,fetchLimit=setting.fetchLimit,fetchInterval=setting.fetchInterval,openaiUrl=setting.openaiUrl,openaiKey=setting.openaiKey,openaiModel=setting.openaiModel,openaiPrompt=setting.openaiPrompt,clearCache=setting.clearCache;return/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:3,children:[/*#__PURE__*/(0,jsx_runtime.jsxs)(FormControl_FormControl,{size:"small",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(InputLabel_InputLabel,{children:i18n("ui_lang")}),/*#__PURE__*/(0,jsx_runtime.jsx)(Select_Select,{name:"uiLang",value:uiLang,label:i18n("ui_lang"),onChange:handleChange,children:UI_LANGS.map(function(_ref){var _ref2=(0,slicedToArray/* default */.Z)(_ref,2),lang=_ref2[0],name=_ref2[1];return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:lang,children:name},lang);})})]}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("fetch_limit"),type:"number",name:"fetchLimit",defaultValue:fetchLimit,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("fetch_interval"),type:"number",name:"fetchInterval",defaultValue:fetchInterval,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsxs)(FormControl_FormControl,{size:"small",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(InputLabel_InputLabel,{children:i18n("clear_cache")}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Select_Select,{name:"clearCache",value:clearCache,label:i18n("clear_cache"),onChange:handleChange,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:false,children:i18n("clear_cache_never")}),/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:true,children:i18n("clear_cache_restart")})]})]}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("google_api"),name:"googleUrl",defaultValue:googleUrl,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("openai_api"),name:"openaiUrl",defaultValue:openaiUrl,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",type:"password",label:i18n("openai_key"),name:"openaiKey",defaultValue:openaiKey,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("openai_model"),name:"openaiModel",defaultValue:openaiModel,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("openai_prompt"),name:"openaiPrompt",defaultValue:openaiPrompt,onChange:handleChange,multiline:true})]})});}
+function Settings(){var i18n=useI18n();var setting=useSetting();var updateSetting=useSettingUpdate();var handleChange=(0,react.useMemo)(function(){return debounce(function(e){e.preventDefault();var _e$target=e.target,name=_e$target.name,value=_e$target.value;switch(name){case"fetchLimit":value=limitNumber(value,1,100);break;case"fetchInterval":value=limitNumber(value,0,5000);break;default:}updateSetting((0,defineProperty/* default */.Z)({},name,value));},500);},[updateSetting]);if(!setting){return;}var uiLang=setting.uiLang,googleUrl=setting.googleUrl,fetchLimit=setting.fetchLimit,fetchInterval=setting.fetchInterval,openaiUrl=setting.openaiUrl,openaiKey=setting.openaiKey,openaiModel=setting.openaiModel,openaiPrompt=setting.openaiPrompt,clearCache=setting.clearCache;return/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:3,children:[/*#__PURE__*/(0,jsx_runtime.jsxs)(FormControl_FormControl,{size:"small",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(InputLabel_InputLabel,{children:i18n("ui_lang")}),/*#__PURE__*/(0,jsx_runtime.jsx)(Select_Select,{name:"uiLang",value:uiLang,label:i18n("ui_lang"),onChange:handleChange,children:UI_LANGS.map(function(_ref){var _ref2=(0,slicedToArray/* default */.Z)(_ref,2),lang=_ref2[0],name=_ref2[1];return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:lang,children:name},lang);})})]}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("fetch_limit"),type:"number",name:"fetchLimit",defaultValue:fetchLimit,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("fetch_interval"),type:"number",name:"fetchInterval",defaultValue:fetchInterval,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsxs)(FormControl_FormControl,{size:"small",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(InputLabel_InputLabel,{children:i18n("clear_cache")}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Select_Select,{name:"clearCache",value:clearCache,label:i18n("clear_cache"),onChange:handleChange,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:false,children:i18n("clear_cache_never")}),/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:true,children:i18n("clear_cache_restart")})]})]}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("google_api"),name:"googleUrl",defaultValue:googleUrl,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("openai_api"),name:"openaiUrl",defaultValue:openaiUrl,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",type:"password",label:i18n("openai_key"),name:"openaiKey",defaultValue:openaiKey,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("openai_model"),name:"openaiModel",defaultValue:openaiModel,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("openai_prompt"),name:"openaiPrompt",defaultValue:openaiPrompt,onChange:handleChange,multiline:true})]})});}
 // EXTERNAL MODULE: ./node_modules/@mui/system/esm/useThemeWithoutDefault.js
 var useThemeWithoutDefault = __webpack_require__(4976);
 // EXTERNAL MODULE: ./node_modules/@mui/system/esm/useThemeProps/getThemeProps.js
@@ -55049,8 +57745,6 @@ var icons_material_Settings = __webpack_require__(2495);
 var icons_material_Info = __webpack_require__(3973);
 // EXTERNAL MODULE: ./node_modules/@mui/icons-material/DesignServices.js
 var DesignServices = __webpack_require__(2163);
-// EXTERNAL MODULE: ./node_modules/@mui/icons-material/Sync.js
-var Sync = __webpack_require__(2453);
 ;// CONCATENATED MODULE: ./src/views/Options/Navigator.js
 function LinkItem(_ref){var label=_ref.label,url=_ref.url,icon=_ref.icon;var match=useMatch(url);return/*#__PURE__*/(0,jsx_runtime.jsxs)(ListItemButton_ListItemButton,{component:NavLink,to:url,selected:!!match,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(ListItemIcon_ListItemIcon,{children:icon}),/*#__PURE__*/(0,jsx_runtime.jsx)(ListItemText_ListItemText,{children:label})]});}function Navigator(props){var i18n=useI18n();var memus=[{id:"basic_setting",label:i18n("basic_setting"),url:"/",icon:/*#__PURE__*/(0,jsx_runtime.jsx)(icons_material_Settings/* default */.Z,{})},{id:"rules_setting",label:i18n("rules_setting"),url:"/rules",icon:/*#__PURE__*/(0,jsx_runtime.jsx)(DesignServices/* default */.Z,{})},{id:"sync",label:i18n("sync_setting"),url:"/sync",icon:/*#__PURE__*/(0,jsx_runtime.jsx)(Sync/* default */.Z,{})},{id:"about",label:i18n("about"),url:"/about",icon:/*#__PURE__*/(0,jsx_runtime.jsx)(icons_material_Info/* default */.Z,{})}];return/*#__PURE__*/(0,jsx_runtime.jsxs)(Drawer_Drawer,_objectSpread2(_objectSpread2({},props),{},{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Toolbar_Toolbar,{variant:"dense"}),/*#__PURE__*/(0,jsx_runtime.jsx)(List_List,{component:"nav",children:memus.map(function(_ref2){var id=_ref2.id,label=_ref2.label,url=_ref2.url,icon=_ref2.icon;return/*#__PURE__*/(0,jsx_runtime.jsx)(LinkItem,{label:label,url:url,icon:icon},id);})})]}));}
 ;// CONCATENATED MODULE: ./node_modules/@mui/material/AppBar/appBarClasses.js
@@ -55198,152 +57892,6 @@ var AppBar = /*#__PURE__*/react.forwardRef(function AppBar(inProps, ref) {
 });
  false ? 0 : void 0;
 /* harmony default export */ var AppBar_AppBar = (AppBar);
-;// CONCATENATED MODULE: ./node_modules/@mui/material/IconButton/iconButtonClasses.js
-
-
-function getIconButtonUtilityClass(slot) {
-  return (0,generateUtilityClass_generateUtilityClass/* default */.Z)('MuiIconButton', slot);
-}
-var iconButtonClasses = (0,generateUtilityClasses/* default */.Z)('MuiIconButton', ['root', 'disabled', 'colorInherit', 'colorPrimary', 'colorSecondary', 'colorError', 'colorInfo', 'colorSuccess', 'colorWarning', 'edgeStart', 'edgeEnd', 'sizeSmall', 'sizeMedium', 'sizeLarge']);
-/* harmony default export */ var IconButton_iconButtonClasses = (iconButtonClasses);
-;// CONCATENATED MODULE: ./node_modules/@mui/material/IconButton/IconButton.js
-'use client';
-
-
-
-
-var IconButton_excluded = ["edge", "children", "className", "color", "disabled", "disableFocusRipple", "size"];
-
-
-
-
-
-
-
-
-
-
-
-
-var IconButton_useUtilityClasses = function useUtilityClasses(ownerState) {
-  var classes = ownerState.classes,
-    disabled = ownerState.disabled,
-    color = ownerState.color,
-    edge = ownerState.edge,
-    size = ownerState.size;
-  var slots = {
-    root: ['root', disabled && 'disabled', color !== 'default' && "color".concat((0,capitalize/* default */.Z)(color)), edge && "edge".concat((0,capitalize/* default */.Z)(edge)), "size".concat((0,capitalize/* default */.Z)(size))]
-  };
-  return (0,composeClasses/* default */.Z)(slots, getIconButtonUtilityClass, classes);
-};
-var IconButtonRoot = (0,styled/* default */.ZP)(ButtonBase_ButtonBase, {
-  name: 'MuiIconButton',
-  slot: 'Root',
-  overridesResolver: function overridesResolver(props, styles) {
-    var ownerState = props.ownerState;
-    return [styles.root, ownerState.color !== 'default' && styles["color".concat((0,capitalize/* default */.Z)(ownerState.color))], ownerState.edge && styles["edge".concat((0,capitalize/* default */.Z)(ownerState.edge))], styles["size".concat((0,capitalize/* default */.Z)(ownerState.size))]];
-  }
-})(function (_ref) {
-  var theme = _ref.theme,
-    ownerState = _ref.ownerState;
-  return (0,esm_extends/* default */.Z)({
-    textAlign: 'center',
-    flex: '0 0 auto',
-    fontSize: theme.typography.pxToRem(24),
-    padding: 8,
-    borderRadius: '50%',
-    overflow: 'visible',
-    // Explicitly set the default value to solve a bug on IE11.
-    color: (theme.vars || theme).palette.action.active,
-    transition: theme.transitions.create('background-color', {
-      duration: theme.transitions.duration.shortest
-    })
-  }, !ownerState.disableRipple && {
-    '&:hover': {
-      backgroundColor: theme.vars ? "rgba(".concat(theme.vars.palette.action.activeChannel, " / ").concat(theme.vars.palette.action.hoverOpacity, ")") : (0,colorManipulator/* alpha */.Fq)(theme.palette.action.active, theme.palette.action.hoverOpacity),
-      // Reset on touch devices, it doesn't add specificity
-      '@media (hover: none)': {
-        backgroundColor: 'transparent'
-      }
-    }
-  }, ownerState.edge === 'start' && {
-    marginLeft: ownerState.size === 'small' ? -3 : -12
-  }, ownerState.edge === 'end' && {
-    marginRight: ownerState.size === 'small' ? -3 : -12
-  });
-}, function (_ref2) {
-  var theme = _ref2.theme,
-    ownerState = _ref2.ownerState;
-  var _palette;
-  var palette = (_palette = (theme.vars || theme).palette) == null ? void 0 : _palette[ownerState.color];
-  return (0,esm_extends/* default */.Z)({}, ownerState.color === 'inherit' && {
-    color: 'inherit'
-  }, ownerState.color !== 'inherit' && ownerState.color !== 'default' && (0,esm_extends/* default */.Z)({
-    color: palette == null ? void 0 : palette.main
-  }, !ownerState.disableRipple && {
-    '&:hover': (0,esm_extends/* default */.Z)({}, palette && {
-      backgroundColor: theme.vars ? "rgba(".concat(palette.mainChannel, " / ").concat(theme.vars.palette.action.hoverOpacity, ")") : (0,colorManipulator/* alpha */.Fq)(palette.main, theme.palette.action.hoverOpacity)
-    }, {
-      // Reset on touch devices, it doesn't add specificity
-      '@media (hover: none)': {
-        backgroundColor: 'transparent'
-      }
-    })
-  }), ownerState.size === 'small' && {
-    padding: 5,
-    fontSize: theme.typography.pxToRem(18)
-  }, ownerState.size === 'large' && {
-    padding: 12,
-    fontSize: theme.typography.pxToRem(28)
-  }, (0,defineProperty/* default */.Z)({}, "&.".concat(IconButton_iconButtonClasses.disabled), {
-    backgroundColor: 'transparent',
-    color: (theme.vars || theme).palette.action.disabled
-  }));
-});
-
-/**
- * Refer to the [Icons](/material-ui/icons/) section of the documentation
- * regarding the available icon options.
- */
-var IconButton = /*#__PURE__*/react.forwardRef(function IconButton(inProps, ref) {
-  var props = (0,styles_useThemeProps/* default */.Z)({
-    props: inProps,
-    name: 'MuiIconButton'
-  });
-  var _props$edge = props.edge,
-    edge = _props$edge === void 0 ? false : _props$edge,
-    children = props.children,
-    className = props.className,
-    _props$color = props.color,
-    color = _props$color === void 0 ? 'default' : _props$color,
-    _props$disabled = props.disabled,
-    disabled = _props$disabled === void 0 ? false : _props$disabled,
-    _props$disableFocusRi = props.disableFocusRipple,
-    disableFocusRipple = _props$disableFocusRi === void 0 ? false : _props$disableFocusRi,
-    _props$size = props.size,
-    size = _props$size === void 0 ? 'medium' : _props$size,
-    other = (0,objectWithoutPropertiesLoose/* default */.Z)(props, IconButton_excluded);
-  var ownerState = (0,esm_extends/* default */.Z)({}, props, {
-    edge: edge,
-    color: color,
-    disabled: disabled,
-    disableFocusRipple: disableFocusRipple,
-    size: size
-  });
-  var classes = IconButton_useUtilityClasses(ownerState);
-  return /*#__PURE__*/(0,jsx_runtime.jsx)(IconButtonRoot, (0,esm_extends/* default */.Z)({
-    className: (0,clsx/* default */.Z)(classes.root, className),
-    centerRipple: true,
-    focusRipple: !disableFocusRipple,
-    disabled: disabled,
-    ref: ref,
-    ownerState: ownerState
-  }, other, {
-    children: children
-  }));
-});
- false ? 0 : void 0;
-/* harmony default export */ var IconButton_IconButton = (IconButton);
 // EXTERNAL MODULE: ./node_modules/@mui/icons-material/Menu.js
 var icons_material_Menu = __webpack_require__(1317);
 ;// CONCATENATED MODULE: ./src/hooks/ColorMode.js
@@ -55359,293 +57907,9 @@ var LightMode = __webpack_require__(3544);
 // EXTERNAL MODULE: ./node_modules/@mui/icons-material/DarkMode.js
 var DarkMode = __webpack_require__(45);
 ;// CONCATENATED MODULE: ./src/views/Options/Header.js
-function Header(props){var i18n=useI18n();var onDrawerToggle=props.onDrawerToggle;var switchColorMode=useDarkModeSwitch();var darkMode=useDarkMode();return/*#__PURE__*/(0,jsx_runtime.jsx)(AppBar_AppBar,{color:"primary",position:"sticky",sx:{zIndex:1300},children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Toolbar_Toolbar,{variant:"dense",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{sx:{display:{sm:"none",xs:"block"}},children:/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{color:"inherit","aria-label":"open drawer",onClick:onDrawerToggle,edge:"start",children:/*#__PURE__*/(0,jsx_runtime.jsx)(icons_material_Menu/* default */.Z,{})})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{sx:{flexGrow:1},children:"".concat(i18n("app_name")," v").concat("1.4.6")}),/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{onClick:switchColorMode,color:"inherit",children:darkMode?/*#__PURE__*/(0,jsx_runtime.jsx)(LightMode/* default */.Z,{}):/*#__PURE__*/(0,jsx_runtime.jsx)(DarkMode/* default */.Z,{})})]})});}/* harmony default export */ var Options_Header = (Header);
+function Header(props){var i18n=useI18n();var onDrawerToggle=props.onDrawerToggle;var switchColorMode=useDarkModeSwitch();var darkMode=useDarkMode();return/*#__PURE__*/(0,jsx_runtime.jsx)(AppBar_AppBar,{color:"primary",position:"sticky",sx:{zIndex:1300},children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Toolbar_Toolbar,{variant:"dense",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{sx:{display:{sm:"none",xs:"block"}},children:/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{color:"inherit","aria-label":"open drawer",onClick:onDrawerToggle,edge:"start",children:/*#__PURE__*/(0,jsx_runtime.jsx)(icons_material_Menu/* default */.Z,{})})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{sx:{flexGrow:1},children:"".concat(i18n("app_name")," v").concat("1.5.0")}),/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{onClick:switchColorMode,color:"inherit",children:darkMode?/*#__PURE__*/(0,jsx_runtime.jsx)(LightMode/* default */.Z,{}):/*#__PURE__*/(0,jsx_runtime.jsx)(DarkMode/* default */.Z,{})})]})});}/* harmony default export */ var Options_Header = (Header);
 ;// CONCATENATED MODULE: ./src/views/Options/Layout.js
 function Layout(){var navWidth=256;var location=dist_useLocation();var theme=useTheme_useTheme();var _useState=(0,react.useState)(false),_useState2=(0,slicedToArray/* default */.Z)(_useState,2),open=_useState2[0],setOpen=_useState2[1];var isSm=useMediaQuery(theme.breakpoints.up("sm"));var handleDrawerToggle=function handleDrawerToggle(){setOpen(!open);};(0,react.useEffect)(function(){setOpen(false);},[location]);return/*#__PURE__*/(0,jsx_runtime.jsxs)(Box_Box,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(CssBaseline_CssBaseline,{}),/*#__PURE__*/(0,jsx_runtime.jsx)(Options_Header,{onDrawerToggle:handleDrawerToggle}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Box_Box,{sx:{display:"flex"},children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{component:"nav",sx:{width:{sm:navWidth},flexShrink:{sm:0}},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Navigator,{PaperProps:{style:{width:navWidth}},variant:isSm?"permanent":"temporary",open:isSm?true:open,onClose:handleDrawerToggle})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{component:"main",sx:{flex:1,p:2},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Outlet,{})})]})]});}
-;// CONCATENATED MODULE: ./node_modules/@mui/material/Alert/alertClasses.js
-
-
-function getAlertUtilityClass(slot) {
-  return (0,generateUtilityClass_generateUtilityClass/* default */.Z)('MuiAlert', slot);
-}
-var alertClasses = (0,generateUtilityClasses/* default */.Z)('MuiAlert', ['root', 'action', 'icon', 'message', 'filled', 'filledSuccess', 'filledInfo', 'filledWarning', 'filledError', 'outlined', 'outlinedSuccess', 'outlinedInfo', 'outlinedWarning', 'outlinedError', 'standard', 'standardSuccess', 'standardInfo', 'standardWarning', 'standardError']);
-/* harmony default export */ var Alert_alertClasses = (alertClasses);
-;// CONCATENATED MODULE: ./node_modules/@mui/material/internal/svg-icons/SuccessOutlined.js
-'use client';
-
-
-
-
-/**
- * @ignore - internal component.
- */
-
-/* harmony default export */ var SuccessOutlined = ((0,createSvgIcon/* default */.Z)( /*#__PURE__*/(0,jsx_runtime.jsx)("path", {
-  d: "M20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4C12.76,4 13.5,4.11 14.2, 4.31L15.77,2.74C14.61,2.26 13.34,2 12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0, 0 22,12M7.91,10.08L6.5,11.5L11,16L21,6L19.59,4.58L11,13.17L7.91,10.08Z"
-}), 'SuccessOutlined'));
-;// CONCATENATED MODULE: ./node_modules/@mui/material/internal/svg-icons/ReportProblemOutlined.js
-'use client';
-
-
-
-
-/**
- * @ignore - internal component.
- */
-
-/* harmony default export */ var ReportProblemOutlined = ((0,createSvgIcon/* default */.Z)( /*#__PURE__*/(0,jsx_runtime.jsx)("path", {
-  d: "M12 5.99L19.53 19H4.47L12 5.99M12 2L1 21h22L12 2zm1 14h-2v2h2v-2zm0-6h-2v4h2v-4z"
-}), 'ReportProblemOutlined'));
-;// CONCATENATED MODULE: ./node_modules/@mui/material/internal/svg-icons/ErrorOutline.js
-'use client';
-
-
-
-
-/**
- * @ignore - internal component.
- */
-
-/* harmony default export */ var ErrorOutline = ((0,createSvgIcon/* default */.Z)( /*#__PURE__*/(0,jsx_runtime.jsx)("path", {
-  d: "M11 15h2v2h-2zm0-8h2v6h-2zm.99-5C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
-}), 'ErrorOutline'));
-;// CONCATENATED MODULE: ./node_modules/@mui/material/internal/svg-icons/InfoOutlined.js
-'use client';
-
-
-
-
-/**
- * @ignore - internal component.
- */
-
-/* harmony default export */ var InfoOutlined = ((0,createSvgIcon/* default */.Z)( /*#__PURE__*/(0,jsx_runtime.jsx)("path", {
-  d: "M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20, 12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10, 10 0 0,0 12,2M11,17H13V11H11V17Z"
-}), 'InfoOutlined'));
-;// CONCATENATED MODULE: ./node_modules/@mui/material/internal/svg-icons/Close.js
-'use client';
-
-
-
-
-/**
- * @ignore - internal component.
- *
- * Alias to `Clear`.
- */
-
-/* harmony default export */ var Close = ((0,createSvgIcon/* default */.Z)( /*#__PURE__*/(0,jsx_runtime.jsx)("path", {
-  d: "M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
-}), 'Close'));
-;// CONCATENATED MODULE: ./node_modules/@mui/material/Alert/Alert.js
-'use client';
-
-
-
-
-var Alert_excluded = ["action", "children", "className", "closeText", "color", "components", "componentsProps", "icon", "iconMapping", "onClose", "role", "severity", "slotProps", "slots", "variant"];
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-var Alert_useUtilityClasses = function useUtilityClasses(ownerState) {
-  var variant = ownerState.variant,
-    color = ownerState.color,
-    severity = ownerState.severity,
-    classes = ownerState.classes;
-  var slots = {
-    root: ['root', "".concat(variant).concat((0,capitalize/* default */.Z)(color || severity)), "".concat(variant)],
-    icon: ['icon'],
-    message: ['message'],
-    action: ['action']
-  };
-  return (0,composeClasses/* default */.Z)(slots, getAlertUtilityClass, classes);
-};
-var AlertRoot = (0,styled/* default */.ZP)(Paper_Paper, {
-  name: 'MuiAlert',
-  slot: 'Root',
-  overridesResolver: function overridesResolver(props, styles) {
-    var ownerState = props.ownerState;
-    return [styles.root, styles[ownerState.variant], styles["".concat(ownerState.variant).concat((0,capitalize/* default */.Z)(ownerState.color || ownerState.severity))]];
-  }
-})(function (_ref3) {
-  var theme = _ref3.theme,
-    ownerState = _ref3.ownerState;
-  var getColor = theme.palette.mode === 'light' ? colorManipulator/* darken */._j : colorManipulator/* lighten */.$n;
-  var getBackgroundColor = theme.palette.mode === 'light' ? colorManipulator/* lighten */.$n : colorManipulator/* darken */._j;
-  var color = ownerState.color || ownerState.severity;
-  return (0,esm_extends/* default */.Z)({}, theme.typography.body2, {
-    backgroundColor: 'transparent',
-    display: 'flex',
-    padding: '6px 16px'
-  }, color && ownerState.variant === 'standard' && (0,defineProperty/* default */.Z)({
-    color: theme.vars ? theme.vars.palette.Alert["".concat(color, "Color")] : getColor(theme.palette[color].light, 0.6),
-    backgroundColor: theme.vars ? theme.vars.palette.Alert["".concat(color, "StandardBg")] : getBackgroundColor(theme.palette[color].light, 0.9)
-  }, "& .".concat(Alert_alertClasses.icon), theme.vars ? {
-    color: theme.vars.palette.Alert["".concat(color, "IconColor")]
-  } : {
-    color: theme.palette[color].main
-  }), color && ownerState.variant === 'outlined' && (0,defineProperty/* default */.Z)({
-    color: theme.vars ? theme.vars.palette.Alert["".concat(color, "Color")] : getColor(theme.palette[color].light, 0.6),
-    border: "1px solid ".concat((theme.vars || theme).palette[color].light)
-  }, "& .".concat(Alert_alertClasses.icon), theme.vars ? {
-    color: theme.vars.palette.Alert["".concat(color, "IconColor")]
-  } : {
-    color: theme.palette[color].main
-  }), color && ownerState.variant === 'filled' && (0,esm_extends/* default */.Z)({
-    fontWeight: theme.typography.fontWeightMedium
-  }, theme.vars ? {
-    color: theme.vars.palette.Alert["".concat(color, "FilledColor")],
-    backgroundColor: theme.vars.palette.Alert["".concat(color, "FilledBg")]
-  } : {
-    backgroundColor: theme.palette.mode === 'dark' ? theme.palette[color].dark : theme.palette[color].main,
-    color: theme.palette.getContrastText(theme.palette[color].main)
-  }));
-});
-var AlertIcon = (0,styled/* default */.ZP)('div', {
-  name: 'MuiAlert',
-  slot: 'Icon',
-  overridesResolver: function overridesResolver(props, styles) {
-    return styles.icon;
-  }
-})({
-  marginRight: 12,
-  padding: '7px 0',
-  display: 'flex',
-  fontSize: 22,
-  opacity: 0.9
-});
-var AlertMessage = (0,styled/* default */.ZP)('div', {
-  name: 'MuiAlert',
-  slot: 'Message',
-  overridesResolver: function overridesResolver(props, styles) {
-    return styles.message;
-  }
-})({
-  padding: '8px 0',
-  minWidth: 0,
-  overflow: 'auto'
-});
-var AlertAction = (0,styled/* default */.ZP)('div', {
-  name: 'MuiAlert',
-  slot: 'Action',
-  overridesResolver: function overridesResolver(props, styles) {
-    return styles.action;
-  }
-})({
-  display: 'flex',
-  alignItems: 'flex-start',
-  padding: '4px 0 0 16px',
-  marginLeft: 'auto',
-  marginRight: -8
-});
-var defaultIconMapping = {
-  success: /*#__PURE__*/(0,jsx_runtime.jsx)(SuccessOutlined, {
-    fontSize: "inherit"
-  }),
-  warning: /*#__PURE__*/(0,jsx_runtime.jsx)(ReportProblemOutlined, {
-    fontSize: "inherit"
-  }),
-  error: /*#__PURE__*/(0,jsx_runtime.jsx)(ErrorOutline, {
-    fontSize: "inherit"
-  }),
-  info: /*#__PURE__*/(0,jsx_runtime.jsx)(InfoOutlined, {
-    fontSize: "inherit"
-  })
-};
-var Alert = /*#__PURE__*/react.forwardRef(function Alert(inProps, ref) {
-  var _ref, _slots$closeButton, _ref2, _slots$closeIcon, _slotProps$closeButto, _slotProps$closeIcon;
-  var props = (0,styles_useThemeProps/* default */.Z)({
-    props: inProps,
-    name: 'MuiAlert'
-  });
-  var action = props.action,
-    children = props.children,
-    className = props.className,
-    _props$closeText = props.closeText,
-    closeText = _props$closeText === void 0 ? 'Close' : _props$closeText,
-    color = props.color,
-    _props$components = props.components,
-    components = _props$components === void 0 ? {} : _props$components,
-    _props$componentsProp = props.componentsProps,
-    componentsProps = _props$componentsProp === void 0 ? {} : _props$componentsProp,
-    icon = props.icon,
-    _props$iconMapping = props.iconMapping,
-    iconMapping = _props$iconMapping === void 0 ? defaultIconMapping : _props$iconMapping,
-    onClose = props.onClose,
-    _props$role = props.role,
-    role = _props$role === void 0 ? 'alert' : _props$role,
-    _props$severity = props.severity,
-    severity = _props$severity === void 0 ? 'success' : _props$severity,
-    _props$slotProps = props.slotProps,
-    slotProps = _props$slotProps === void 0 ? {} : _props$slotProps,
-    _props$slots = props.slots,
-    slots = _props$slots === void 0 ? {} : _props$slots,
-    _props$variant = props.variant,
-    variant = _props$variant === void 0 ? 'standard' : _props$variant,
-    other = (0,objectWithoutPropertiesLoose/* default */.Z)(props, Alert_excluded);
-  var ownerState = (0,esm_extends/* default */.Z)({}, props, {
-    color: color,
-    severity: severity,
-    variant: variant
-  });
-  var classes = Alert_useUtilityClasses(ownerState);
-  var AlertCloseButton = (_ref = (_slots$closeButton = slots.closeButton) != null ? _slots$closeButton : components.CloseButton) != null ? _ref : IconButton_IconButton;
-  var AlertCloseIcon = (_ref2 = (_slots$closeIcon = slots.closeIcon) != null ? _slots$closeIcon : components.CloseIcon) != null ? _ref2 : Close;
-  var closeButtonProps = (_slotProps$closeButto = slotProps.closeButton) != null ? _slotProps$closeButto : componentsProps.closeButton;
-  var closeIconProps = (_slotProps$closeIcon = slotProps.closeIcon) != null ? _slotProps$closeIcon : componentsProps.closeIcon;
-  return /*#__PURE__*/(0,jsx_runtime.jsxs)(AlertRoot, (0,esm_extends/* default */.Z)({
-    role: role,
-    elevation: 0,
-    ownerState: ownerState,
-    className: (0,clsx/* default */.Z)(classes.root, className),
-    ref: ref
-  }, other, {
-    children: [icon !== false ? /*#__PURE__*/(0,jsx_runtime.jsx)(AlertIcon, {
-      ownerState: ownerState,
-      className: classes.icon,
-      children: icon || iconMapping[severity] || defaultIconMapping[severity]
-    }) : null, /*#__PURE__*/(0,jsx_runtime.jsx)(AlertMessage, {
-      ownerState: ownerState,
-      className: classes.message,
-      children: children
-    }), action != null ? /*#__PURE__*/(0,jsx_runtime.jsx)(AlertAction, {
-      ownerState: ownerState,
-      className: classes.action,
-      children: action
-    }) : null, action == null && onClose ? /*#__PURE__*/(0,jsx_runtime.jsx)(AlertAction, {
-      ownerState: ownerState,
-      className: classes.action,
-      children: /*#__PURE__*/(0,jsx_runtime.jsx)(AlertCloseButton, (0,esm_extends/* default */.Z)({
-        size: "small",
-        "aria-label": closeText,
-        title: closeText,
-        color: "inherit",
-        onClick: onClose
-      }, closeButtonProps, {
-        children: /*#__PURE__*/(0,jsx_runtime.jsx)(AlertCloseIcon, (0,esm_extends/* default */.Z)({
-          fontSize: "small"
-        }, closeIconProps))
-      }))
-    }) : null]
-  }));
-});
- false ? 0 : void 0;
-/* harmony default export */ var Alert_Alert = (Alert);
 ;// CONCATENATED MODULE: ./node_modules/@mui/material/Link/linkClasses.js
 
 
@@ -55841,7 +58105,7 @@ var Link_Link = /*#__PURE__*/react.forwardRef(function Link(inProps, ref) {
  false ? 0 : void 0;
 /* harmony default export */ var material_Link_Link = (Link_Link);
 ;// CONCATENATED MODULE: ./src/views/Options/SyncSetting.js
-function SyncSetting(){var i18n=useI18n();var sync=useSync();var handleChange=(0,react.useMemo)(function(){return libs_utils_debounce(function(e){e.preventDefault();var _e$target=e.target,name=_e$target.name,value=_e$target.value;sync.update((0,defineProperty/* default */.Z)({},name,value));},500);},[sync]);if(!sync.opt){return;}var _sync$opt=sync.opt,syncUrl=_sync$opt.syncUrl,syncKey=_sync$opt.syncKey;return/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:3,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Alert_Alert,{severity:"warning",children:i18n("sync_warn")}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("data_sync_url"),name:"syncUrl",defaultValue:syncUrl,onChange:handleChange,helperText:/*#__PURE__*/(0,jsx_runtime.jsx)(material_Link_Link,{href:URL_KISS_WORKER,children:i18n("about_sync_api")})}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",type:"password",label:i18n("data_sync_key"),name:"syncKey",defaultValue:syncKey,onChange:handleChange})]})});}
+function SyncSetting(){var i18n=useI18n();var sync=useSync();var handleChange=(0,react.useMemo)(function(){return debounce(/*#__PURE__*/function(){var _ref=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(e){var _e$target,name,value;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:e.preventDefault();_e$target=e.target,name=_e$target.name,value=_e$target.value;_context.next=4;return sync.update((0,defineProperty/* default */.Z)({},name,value));case 4:_context.next=6;return syncAll();case 6:case"end":return _context.stop();}},_callee);}));return function(_x){return _ref.apply(this,arguments);};}(),1000);},[sync]);if(!sync.opt){return;}var _sync$opt=sync.opt,syncUrl=_sync$opt.syncUrl,syncKey=_sync$opt.syncKey;return/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:3,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Alert_Alert,{severity:"warning",children:i18n("sync_warn")}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("data_sync_url"),name:"syncUrl",defaultValue:syncUrl,onChange:handleChange,helperText:/*#__PURE__*/(0,jsx_runtime.jsx)(material_Link_Link,{href:URL_KISS_WORKER,children:i18n("about_sync_api")})}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",type:"password",label:i18n("data_sync_key"),name:"syncKey",defaultValue:syncKey,onChange:handleChange})]})});}
 ;// CONCATENATED MODULE: ./node_modules/@mui/private-theming/useTheme/ThemeContext.js
 
 var ThemeContext_ThemeContext = /*#__PURE__*/react.createContext(null);
@@ -55993,7 +58257,7 @@ function styles_ThemeProvider_ThemeProvider(_ref) {
 ;// CONCATENATED MODULE: ./src/views/Options/index.js
 function Options(){var _useState=(0,react.useState)(false),_useState2=(0,slicedToArray/* default */.Z)(_useState,2),error=_useState2[0],setError=_useState2[1];var _useState3=(0,react.useState)(false),_useState4=(0,slicedToArray/* default */.Z)(_useState3,2),ready=_useState4[0],setReady=_useState4[1];(0,react.useEffect)(function(){asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(){var i;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:if(!isGm){_context.next=12;break;}// 等待GM注入
 i=0;case 2:if(!(window.APP_NAME==="KISS Translator")){_context.next=5;break;}setReady(true);return _context.abrupt("break",12);case 5:if(!(++i>8)){_context.next=8;break;}setError(true);return _context.abrupt("break",12);case 8:_context.next=10;return sleep(1000);case 10:_context.next=2;break;case 12:// 同步数据
-syncAll();case 13:case"end":return _context.stop();}},_callee);}))();},[]);if(error){return/*#__PURE__*/(0,jsx_runtime.jsxs)("center",{children:[/*#__PURE__*/(0,jsx_runtime.jsxs)("h2",{children:["Please confirm whether to install or enable"," ",/*#__PURE__*/(0,jsx_runtime.jsx)("a",{href:"https://github.com/fishjar/kiss-translator",children:"KISS Translator"})," ","GreaseMonkey script?"]}),/*#__PURE__*/(0,jsx_runtime.jsxs)("h2",{children:[/*#__PURE__*/(0,jsx_runtime.jsx)("a",{href:"https://kiss-translator.rayjar.com/kiss-translator.user.js",children:"Click here"})," ","to install, or ",/*#__PURE__*/(0,jsx_runtime.jsx)("a",{href:"https://github.com/fishjar/kiss-translator",children:"click here"})," ","for help."]})]});}if(isGm&&!ready){return/*#__PURE__*/(0,jsx_runtime.jsx)("center",{children:/*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgress_CircularProgress,{})});}return/*#__PURE__*/(0,jsx_runtime.jsx)(StoragesProvider,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(MuiThemeProvider,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(HashRouter,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(Routes,{children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Route,{path:"/",element:/*#__PURE__*/(0,jsx_runtime.jsx)(Layout,{}),children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Route,{index:true,element:/*#__PURE__*/(0,jsx_runtime.jsx)(Settings,{})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Route,{path:"rules",element:/*#__PURE__*/(0,jsx_runtime.jsx)(Rules,{})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Route,{path:"sync",element:/*#__PURE__*/(0,jsx_runtime.jsx)(SyncSetting,{})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Route,{path:"about",element:/*#__PURE__*/(0,jsx_runtime.jsx)(About,{})})]})})})})});}
+syncAll();case 13:case"end":return _context.stop();}},_callee);}))();},[]);if(error){return/*#__PURE__*/(0,jsx_runtime.jsxs)("center",{children:[/*#__PURE__*/(0,jsx_runtime.jsxs)("h2",{children:["Please confirm whether to install or enable"," ",/*#__PURE__*/(0,jsx_runtime.jsx)("a",{href:"https://github.com/fishjar/kiss-translator",children:"KISS Translator"})," ","GreaseMonkey script?"]}),/*#__PURE__*/(0,jsx_runtime.jsxs)("h2",{children:[/*#__PURE__*/(0,jsx_runtime.jsx)("a",{href:"https://kiss-translator.rayjar.com/kiss-translator.user.js",children:"Click here"})," ","to install, or ",/*#__PURE__*/(0,jsx_runtime.jsx)("a",{href:"https://github.com/fishjar/kiss-translator",children:"click here"})," ","for help."]})]});}if(isGm&&!ready){return/*#__PURE__*/(0,jsx_runtime.jsx)("center",{children:/*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgress_CircularProgress,{})});}return/*#__PURE__*/(0,jsx_runtime.jsx)(StoragesProvider,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(MuiThemeProvider,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(AlertProvider,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(HashRouter,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(Routes,{children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Route,{path:"/",element:/*#__PURE__*/(0,jsx_runtime.jsx)(Layout,{}),children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Route,{index:true,element:/*#__PURE__*/(0,jsx_runtime.jsx)(Settings,{})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Route,{path:"rules",element:/*#__PURE__*/(0,jsx_runtime.jsx)(Rules,{})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Route,{path:"sync",element:/*#__PURE__*/(0,jsx_runtime.jsx)(SyncSetting,{})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Route,{path:"about",element:/*#__PURE__*/(0,jsx_runtime.jsx)(About,{})})]})})})})})});}
 ;// CONCATENATED MODULE: ./src/options.js
 var options_root=client.createRoot(document.getElementById("root"));options_root.render(/*#__PURE__*/(0,jsx_runtime.jsx)(react.StrictMode,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(Options,{})}));
 }();
