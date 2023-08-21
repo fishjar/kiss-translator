@@ -4,5 +4,8 @@
   },
   "app_description": {
     "message": "A minimalist bilingual translation Extension & Greasemonkey Script"
+  },
+  "toggle_translate": {
+    "message": "Toggle Translate"
   }
 }
