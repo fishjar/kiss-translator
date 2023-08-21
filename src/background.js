@@ -3,6 +3,8 @@ import {
   MSG_FETCH,
   MSG_FETCH_LIMIT,
   MSG_FETCH_CLEAR,
+  MSG_TRANS_TOGGLE,
+  CMD_TOGGLE_TRANSLATE,
   DEFAULT_SETTING,
   DEFAULT_RULES,
   DEFAULT_SYNC,
@@ -15,6 +17,7 @@ import storage from "./libs/storage";
 import { getSetting } from "./libs";
 import { syncAll } from "./libs/sync";
 import { fetchData, fetchPool } from "./libs/fetch";
+import { sendTabMsg } from "./libs/msg";
 
 /**
  * 插件安装
@@ -74,3 +77,16 @@ browser.runtime.onMessage.addListener(
     return true;
   }
 );
+
+/**
+ * 监听快捷键
+ */
+browser.commands.onCommand.addListener((command) => {
+  // console.log(`Command: ${command}`);
+  switch (command) {
+    case CMD_TOGGLE_TRANSLATE:
+      sendTabMsg(MSG_TRANS_TOGGLE);
+      break;
+    default:
+  }
+});

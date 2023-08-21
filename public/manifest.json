@@ -16,6 +16,14 @@
       "matches": ["<all_urls>"]
     }
   ],
+  "commands": {
+    "toggleTranslate": {
+      "suggested_key": {
+        "default": "Alt+Q"
+      },
+      "description": "__MSG_toggle_translate__"
+    }
+  },
   "permissions": ["storage"],
   "host_permissions": ["<all_urls>"],
   "icons": {

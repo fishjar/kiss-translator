@@ -54,4 +54,14 @@ import { Translator } from "./libs/translator";
       </CacheProvider>
     </React.StrictMode>
   );
+
+  // 注册菜单
+  GM.registerMenuCommand(
+    "Toggle Translate",
+    (event) => {
+      // console.log("Menu item selected", event);
+      translator.toggle();
+    },
+    "Q"
+  );
 })();

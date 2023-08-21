@@ -18,6 +18,8 @@ export const STOKEY_SYNC = `${APP_NAME}_sync`;
 export const STOKEY_FAB = `${APP_NAME}_fab`;
 export const STOKEY_RULESCACHE_PREFIX = `${APP_NAME}_rulescache_`;
 
+export const CMD_TOGGLE_TRANSLATE = "toggleTranslate";
+
 export const CLIENT_WEB = "web";
 export const CLIENT_CHROME = "chrome";
 export const CLIENT_EDGE = "edge";

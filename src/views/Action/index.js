@@ -112,7 +112,9 @@ export default function Action({ translator, fab }) {
           }
         >
           <Paper>
-            <Popup setShowPopup={setShowPopup} translator={translator} />
+            {showPopup && (
+              <Popup setShowPopup={setShowPopup} translator={translator} />
+            )}
           </Paper>
         </Draggable>
         <Draggable
