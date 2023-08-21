@@ -65,7 +65,7 @@ const newCacheReq = async (request) => {
  * @param {*} param0
  * @returns
  */
-const fetchApi = async ({ input, init, useUnsafe, translator, token }) => {
+const fetchApi = async ({ input, init, translator, token }) => {
   if (translator === OPT_TRANS_MICROSOFT) {
     init.headers["Authorization"] = `Bearer ${token}`;
   } else if (translator === OPT_TRANS_OPENAI) {
@@ -73,8 +73,13 @@ const fetchApi = async ({ input, init, useUnsafe, translator, token }) => {
     init.headers["api-key"] = token; // Azure OpenAI
   }
 
-  if (isGm && !useUnsafe) {
-    return fetchGM(input, init);
+  if (isGm) {
+    const connects = GM?.info?.script?.connects || [];
+    const url = new URL(input);
+    const isSafe = connects.find((item) => url.hostname.endsWith(item));
+    if (isSafe) {
+      return fetchGM(input, init);
+    }
   }
   return fetch(input, init);
 };
@@ -105,7 +110,7 @@ export const fetchPool = taskPool(
 export const fetchData = async (
   input,
   init,
-  { useCache, usePool, translator, useUnsafe, token } = {}
+  { useCache, usePool, translator, token } = {}
 ) => {
   const cacheReq = await newCacheReq(new Request(input, init));
   const cache = await caches.open(CACHE_NAME);
@@ -123,9 +128,9 @@ export const fetchData = async (
   if (!res) {
     // 发送请求
     if (usePool) {
-      res = await fetchPool.push({ input, init, useUnsafe, translator, token });
+      res = await fetchPool.push({ input, init, translator, token });
     } else {
-      res = await fetchApi({ input, init, useUnsafe, translator, token });
+      res = await fetchApi({ input, init, translator, token });
     }
 
     if (!res?.ok) {

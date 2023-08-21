@@ -21,18 +21,14 @@ import { sha256 } from "../libs/utils";
  * @returns
  */
 export const apiSyncData = async (url, key, data) =>
-  fetchPolyfill(
-    url,
-    {
-      headers: {
-        "Content-type": "application/json",
-        Authorization: `Bearer ${await sha256(key, KV_SALT_SYNC)}`,
-      },
-      method: "POST",
-      body: JSON.stringify(data),
+  fetchPolyfill(url, {
+    headers: {
+      "Content-type": "application/json",
+      Authorization: `Bearer ${await sha256(key, KV_SALT_SYNC)}`,
     },
-    { useUnsafe: true }
-  );
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 
 /**
  * 谷歌翻译

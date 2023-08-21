@@ -66,7 +66,7 @@ export const checkRules = (rules) => {
  */
 export const rulesCache = {
   fetch: async (url) => {
-    const res = await fetchPolyfill(url, null, { useUnsafe: true });
+    const res = await fetchPolyfill(url);
     const rules = checkRules(res).filter(
       (rule) => rule.pattern.replaceAll(GLOBAL_KEY, "") !== ""
     );
