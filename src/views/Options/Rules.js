@@ -548,7 +548,7 @@ function SubRulesItem({ index, url, selectedUrl, subrules, setRules }) {
         setRules(rules);
       }
     } catch (err) {
-      console.log("[sync rules]", err);
+      console.log("[sync sub rules]", err);
     } finally {
       setLoading(false);
     }

@@ -72,7 +72,7 @@ export const syncRules = async () => {
       });
     }
   } catch (err) {
-    console.log("[sync rules]", err);
+    console.log("[sync user rules]", err);
   }
 };
 
