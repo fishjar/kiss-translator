@@ -479,7 +479,7 @@ function UserRules() {
 
   return (
     <Stack spacing={3}>
-      <Stack direction="row" spacing={2}>
+      <Stack direction="row" spacing={2} useFlexGap flexWrap="wrap">
         <Button
           size="small"
           variant="contained"
