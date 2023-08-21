@@ -98,6 +98,7 @@ const userscriptWebpack = (config, env) => {
 // @connect       github.io
 // @connect       githubusercontent.com
 // @connect       kiss-translator.rayjar.com
+// @connect       ghproxy.com
 // @run-at        document-end
 // ==/UserScript==
 
