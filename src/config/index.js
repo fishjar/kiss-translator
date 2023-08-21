@@ -19,6 +19,7 @@ export const STOKEY_FAB = `${APP_NAME}_fab`;
 export const STOKEY_RULESCACHE_PREFIX = `${APP_NAME}_rulescache_`;
 
 export const CMD_TOGGLE_TRANSLATE = "toggleTranslate";
+export const CMD_TOGGLE_STYLE = "toggleStyle";
 
 export const CLIENT_WEB = "web";
 export const CLIENT_CHROME = "chrome";
@@ -39,6 +40,7 @@ export const MSG_FETCH = "fetch";
 export const MSG_FETCH_LIMIT = "fetch_limit";
 export const MSG_FETCH_CLEAR = "fetch_clear";
 export const MSG_TRANS_TOGGLE = "trans_toggle";
+export const MSG_TRANS_TOGGLE_STYLE = "trans_toggle_style";
 export const MSG_TRANS_GETRULE = "trans_getrule";
 export const MSG_TRANS_PUTRULE = "trans_putrule";
 export const MSG_TRANS_CURRULE = "trans_currule";

@@ -59,9 +59,15 @@ import { Translator } from "./libs/translator";
   GM.registerMenuCommand(
     "Toggle Translate",
     (event) => {
-      // console.log("Menu item selected", event);
       translator.toggle();
     },
     "Q"
+  );
+  GM.registerMenuCommand(
+    "Toggle Style",
+    (event) => {
+      translator.toggleStyle();
+    },
+    "C"
   );
 })();

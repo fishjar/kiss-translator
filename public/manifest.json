@@ -22,6 +22,12 @@
         "default": "Alt+Q"
       },
       "description": "__MSG_toggle_translate__"
+    },
+    "toggleStyle": {
+      "suggested_key": {
+        "default": "Alt+C"
+      },
+      "description": "__MSG_toggle_style__"
     }
   },
   "permissions": ["storage"],

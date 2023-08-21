@@ -1,6 +1,7 @@
 import { browser } from "./libs/browser";
 import {
   MSG_TRANS_TOGGLE,
+  MSG_TRANS_TOGGLE_STYLE,
   MSG_TRANS_GETRULE,
   MSG_TRANS_PUTRULE,
 } from "./config";
@@ -21,6 +22,9 @@ import { Translator } from "./libs/translator";
     switch (action) {
       case MSG_TRANS_TOGGLE:
         translator.toggle();
+        break;
+      case MSG_TRANS_TOGGLE_STYLE:
+        translator.toggleStyle();
         break;
       case MSG_TRANS_GETRULE:
         break;

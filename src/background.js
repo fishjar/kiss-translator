@@ -4,7 +4,9 @@ import {
   MSG_FETCH_LIMIT,
   MSG_FETCH_CLEAR,
   MSG_TRANS_TOGGLE,
+  MSG_TRANS_TOGGLE_STYLE,
   CMD_TOGGLE_TRANSLATE,
+  CMD_TOGGLE_STYLE,
   DEFAULT_SETTING,
   DEFAULT_RULES,
   DEFAULT_SYNC,
@@ -86,6 +88,9 @@ browser.commands.onCommand.addListener((command) => {
   switch (command) {
     case CMD_TOGGLE_TRANSLATE:
       sendTabMsg(MSG_TRANS_TOGGLE);
+      break;
+    case CMD_TOGGLE_STYLE:
+      sendTabMsg(MSG_TRANS_TOGGLE_STYLE);
       break;
     default:
   }

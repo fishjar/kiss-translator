@@ -5,6 +5,8 @@ import {
   TRANS_MAX_LENGTH,
   EVENT_KISS,
   MSG_TRANS_CURRULE,
+  OPT_STYLE_DASHLINE,
+  OPT_STYLE_FUZZY,
 } from "../config";
 import { queryEls } from ".";
 import Content from "../views/Content";
@@ -84,6 +86,14 @@ export class Translator {
       this.rule = { ...this.rule, transOpen: "true" };
       this._register();
     }
+  };
+
+  toggleStyle = () => {
+    const textStyle =
+      this.rule.textStyle === OPT_STYLE_FUZZY
+        ? OPT_STYLE_DASHLINE
+        : OPT_STYLE_FUZZY;
+    this.rule = { ...this.rule, textStyle };
   };
 
   _register = () => {
