@@ -12,6 +12,10 @@ export const I18N = {
     zh: `翻译`,
     en: `Translate`,
   },
+  translate_alt: {
+    zh: `翻译 (Alt+Q)`,
+    en: `Translate (Alt+Q)`,
+  },
   basic_setting: {
     zh: `基本设置`,
     en: `Basic Setting`,
@@ -63,6 +67,10 @@ export const I18N = {
   text_style: {
     zh: `文字样式`,
     en: `Text Style`,
+  },
+  text_style_alt: {
+    zh: `文字样式 (Alt+C)`,
+    en: `Text Style (Alt+C)`,
   },
   bg_color: {
     zh: `样式颜色`,

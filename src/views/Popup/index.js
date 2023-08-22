@@ -101,7 +101,7 @@ export default function Popup({ setShowPopup, translator: tran }) {
               onChange={handleTransToggle}
             />
           }
-          label={i18n("translate")}
+          label={i18n("translate_alt")}
         />
 
         <TextField
@@ -158,7 +158,7 @@ export default function Popup({ setShowPopup, translator: tran }) {
           size="small"
           value={textStyle}
           name="textStyle"
-          label={i18n("text_style")}
+          label={i18n("text_style_alt")}
           onChange={handleChange}
         >
           {OPT_STYLE_ALL.map((item) => (
