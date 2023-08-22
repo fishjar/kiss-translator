@@ -28,6 +28,12 @@ export default function Settings() {
           case "fetchInterval":
             value = limitNumber(value, 0, 5000);
             break;
+          case "minLength":
+            value = limitNumber(value, 1, 100);
+            break;
+          case "maxLength":
+            value = limitNumber(value, 100, 10000);
+            break;
           default:
         }
         updateSetting({
@@ -46,6 +52,8 @@ export default function Settings() {
     googleUrl,
     fetchLimit,
     fetchInterval,
+    minLength,
+    maxLength,
     openaiUrl,
     openaiKey,
     openaiModel,
@@ -87,6 +95,24 @@ export default function Settings() {
           type="number"
           name="fetchInterval"
           defaultValue={fetchInterval}
+          onChange={handleChange}
+        />
+
+        <TextField
+          size="small"
+          label={i18n("min_translate_length")}
+          type="number"
+          name="minLength"
+          defaultValue={minLength}
+          onChange={handleChange}
+        />
+
+        <TextField
+          size="small"
+          label={i18n("max_translate_length")}
+          type="number"
+          name="maxLength"
+          defaultValue={maxLength}
           onChange={handleChange}
         />
 

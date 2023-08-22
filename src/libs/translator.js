@@ -17,6 +17,8 @@ import { fetchUpdate, fetchClear } from "./fetch";
  */
 export class Translator {
   _rule = {};
+  _minLength = 0;
+  _maxLength = 0;
 
   _interseObserver = new IntersectionObserver(
     (intersections) => {
@@ -46,8 +48,10 @@ export class Translator {
     });
   });
 
-  constructor(rule, { fetchInterval, fetchLimit }) {
+  constructor(rule, { fetchInterval, fetchLimit, minLength, maxLength }) {
     fetchUpdate(fetchInterval, fetchLimit);
+    this._minLength = minLength ?? TRANS_MIN_LENGTH;
+    this._maxLength = maxLength ?? TRANS_MAX_LENGTH;
     this.rule = rule;
     if (rule.transOpen === "true") {
       this._register();
@@ -138,7 +142,7 @@ export class Translator {
 
     // 太长或太短
     const q = el.innerText.trim();
-    if (!q || q.length < TRANS_MIN_LENGTH || q.length > TRANS_MAX_LENGTH) {
+    if (!q || q.length < this._minLength || q.length > this._maxLength) {
       return;
     }
 

@@ -45,12 +45,20 @@ export const I18N = {
     en: `Interface Language`,
   },
   fetch_limit: {
-    zh: `最大请求数量`,
-    en: `Maximum Number Of Request`,
+    zh: `最大请求数量 (1-100)`,
+    en: `Maximum Number Of Request (1-100)`,
   },
   fetch_interval: {
-    zh: `请求间隔时间(ms)`,
-    en: `Request Interval(ms)`,
+    zh: `请求间隔时间 (0-5000ms)`,
+    en: `Request Interval (0-5000ms)`,
+  },
+  min_translate_length: {
+    zh: `最小翻译长度 (1-100)`,
+    en: `Min Translate Length (1-100)`,
+  },
+  max_translate_length: {
+    zh: `最大翻译长度 (100-10000)`,
+    en: `Max Translate Length (100-10000)`,
   },
   translate_service: {
     zh: `翻译服务`,
