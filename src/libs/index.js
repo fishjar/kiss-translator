@@ -10,7 +10,7 @@ import {
 } from "../config";
 import { browser } from "./browser";
 import { isMatch } from "./utils";
-import { tryLoadRules } from "./rules";
+import { loadSubRules } from "./rules";
 
 /**
  * 获取节点列表并转为数组
@@ -63,7 +63,7 @@ export const matchRule = async (
     try {
       const selectedSub = subrulesList.find((item) => item.selected);
       if (selectedSub?.url) {
-        const subRules = await tryLoadRules(selectedSub.url);
+        const subRules = await loadSubRules(selectedSub.url);
         rules.splice(-1, 0, ...subRules);
       }
     } catch (err) {

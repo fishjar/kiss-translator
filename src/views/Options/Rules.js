@@ -36,9 +36,9 @@ import IconButton from "@mui/material/IconButton";
 import ShareIcon from "@mui/icons-material/Share";
 import SyncIcon from "@mui/icons-material/Sync";
 import { useSubrules } from "../../hooks/Rules";
-import { rulesCache, tryLoadRules } from "../../libs/rules";
+import { rulesCache, loadSubRules, syncSubRules } from "../../libs/rules";
 import { useAlert } from "../../hooks/Alert";
-import { loadSyncOpt, syncShareRules } from "../../libs/sync";
+import { syncOpt, syncShareRules } from "../../libs/sync";
 
 function RuleFields({ rule, rules, setShow }) {
   const initFormValues = rule || { ...DEFAULT_RULE, transOpen: "true" };
@@ -402,7 +402,7 @@ function ShareButton({ rules, injectRules, selectedSub }) {
   const i18n = useI18n();
   const handleClick = async () => {
     try {
-      const { syncUrl, syncKey } = await loadSyncOpt();
+      const { syncUrl, syncKey } = await syncOpt.load();
       if (!syncUrl || !syncKey) {
         alert.warning(i18n("error_sync_setting"));
         return;
@@ -410,7 +410,7 @@ function ShareButton({ rules, injectRules, selectedSub }) {
 
       const shareRules = [...rules.list];
       if (injectRules) {
-        const subRules = await tryLoadRules(selectedSub?.url);
+        const subRules = await loadSubRules(selectedSub?.url);
         shareRules.splice(-1, 0, ...subRules);
       }
 
@@ -543,9 +543,8 @@ function SubRulesItem({ index, url, selectedUrl, subrules, setRules }) {
   const handleSync = async () => {
     try {
       setLoading(true);
-      const rules = await rulesCache.fetch(url);
-      await rulesCache.set(url, rules);
-      if (url === selectedUrl) {
+      const rules = await syncSubRules(url);
+      if (rules.length > 0 && url === selectedUrl) {
         setRules(rules);
       }
     } catch (err) {
@@ -604,11 +603,10 @@ function SubRulesEdit({ subrules }) {
     }
 
     try {
-      const rules = await rulesCache.fetch(url);
+      const rules = await syncSubRules(url);
       if (rules.length === 0) {
         throw new Error("empty rules");
       }
-      await rulesCache.set(url, rules);
       await subrules.add(url);
       setShowInput(false);
       setInputText("");
@@ -687,7 +685,7 @@ function SubRules() {
         try {
           setLoading(true);
 
-          const rules = await tryLoadRules(selectedSub?.url);
+          const rules = await loadSubRules(selectedSub?.url);
           setRules(rules);
         } catch (err) {
           console.log("[load rules]", err);

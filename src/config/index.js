@@ -157,7 +157,7 @@ export const GLOBLA_RULE = {
 // 订阅列表
 export const DEFAULT_SUBRULES_LIST = [
   {
-    url: "https://kiss-translator.rayjar.com/kiss-translator-rules.json",
+    url: process.env.REACT_APP_RULESURL,
     selected: true,
   },
   {
@@ -192,4 +192,5 @@ export const DEFAULT_SYNC = {
   settingSyncAt: 0,
   rulesUpdateAt: 0,
   rulesSyncAt: 0,
+  subRulesSyncAt: 0, // 订阅规则同步时间
 };

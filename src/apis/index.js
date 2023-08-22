@@ -20,7 +20,7 @@ import { sha256 } from "../libs/utils";
  * @param {*} data
  * @returns
  */
-export const apiSyncData = async (url, key, data) =>
+export const apiSyncData = async (url, key, data, isBg = false) =>
   fetchPolyfill(url, {
     headers: {
       "Content-type": "application/json",
@@ -28,6 +28,7 @@ export const apiSyncData = async (url, key, data) =>
     },
     method: "POST",
     body: JSON.stringify(data),
+    isBg,
   });
 
 /**
@@ -49,15 +50,14 @@ const apiGoogleTranslate = async (translator, text, to, from) => {
   };
   const { googleUrl } = await getSetting();
   const input = `${googleUrl}?${queryString.stringify(params)}`;
-  return fetchPolyfill(
-    input,
-    {
-      headers: {
-        "Content-type": "application/json",
-      },
+  return fetchPolyfill(input, {
+    headers: {
+      "Content-type": "application/json",
     },
-    { useCache: true, usePool: true, translator }
-  );
+    useCache: true,
+    usePool: true,
+    translator,
+  });
 };
 
 /**
@@ -74,17 +74,16 @@ const apiMicrosoftTranslate = (translator, text, to, from) => {
     "api-version": "3.0",
   };
   const input = `${URL_MICROSOFT_TRANS}?${queryString.stringify(params)}`;
-  return fetchPolyfill(
-    input,
-    {
-      headers: {
-        "Content-type": "application/json",
-      },
-      method: "POST",
-      body: JSON.stringify([{ Text: text }]),
+  return fetchPolyfill(input, {
+    headers: {
+      "Content-type": "application/json",
     },
-    { useCache: true, usePool: true, translator }
-  );
+    method: "POST",
+    body: JSON.stringify([{ Text: text }]),
+    useCache: true,
+    usePool: true,
+    translator,
+  });
 };
 
 /**
@@ -100,31 +99,31 @@ const apiOpenaiTranslate = async (translator, text, to, from) => {
   let prompt = openaiPrompt
     .replaceAll(PROMPT_PLACE_FROM, from)
     .replaceAll(PROMPT_PLACE_TO, to);
-  return fetchPolyfill(
-    openaiUrl,
-    {
-      headers: {
-        "Content-type": "application/json",
-      },
-      method: "POST",
-      body: JSON.stringify({
-        model: openaiModel,
-        messages: [
-          {
-            role: "system",
-            content: prompt,
-          },
-          {
-            role: "user",
-            content: text,
-          },
-        ],
-        temperature: 0,
-        max_tokens: 256,
-      }),
+  return fetchPolyfill(openaiUrl, {
+    headers: {
+      "Content-type": "application/json",
     },
-    { useCache: true, usePool: true, translator, token: openaiKey }
-  );
+    method: "POST",
+    body: JSON.stringify({
+      model: openaiModel,
+      messages: [
+        {
+          role: "system",
+          content: prompt,
+        },
+        {
+          role: "user",
+          content: text,
+        },
+      ],
+      temperature: 0,
+      max_tokens: 256,
+    }),
+    useCache: true,
+    usePool: true,
+    translator,
+    token: openaiKey,
+  });
 };
 
 /**

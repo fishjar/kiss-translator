@@ -13,69 +13,95 @@ import { getSetting, getRules } from ".";
 import { apiSyncData } from "../apis";
 import { sha256 } from "./utils";
 
-export const loadSyncOpt = async () =>
-  (await storage.getObj(STOKEY_SYNC)) || DEFAULT_SYNC;
+/**
+ * 同步相关数据
+ */
+export const syncOpt = {
+  load: async () => (await storage.getObj(STOKEY_SYNC)) || DEFAULT_SYNC,
+  update: async (obj) => {
+    await storage.putObj(STOKEY_SYNC, obj);
+  },
+};
 
-export const syncSetting = async () => {
+/**
+ * 同步设置
+ * @returns
+ */
+export const syncSetting = async (isBg = false) => {
   try {
-    const { syncUrl, syncKey, settingUpdateAt } = await loadSyncOpt();
+    const { syncUrl, syncKey, settingUpdateAt } = await syncOpt.load();
     if (!syncUrl || !syncKey) {
       return;
     }
 
     const setting = await getSetting();
-    const res = await apiSyncData(syncUrl, syncKey, {
-      key: KV_SETTING_KEY,
-      value: setting,
-      updateAt: settingUpdateAt,
-    });
+    const res = await apiSyncData(
+      syncUrl,
+      syncKey,
+      {
+        key: KV_SETTING_KEY,
+        value: setting,
+        updateAt: settingUpdateAt,
+      },
+      isBg
+    );
 
     if (res && res.updateAt > settingUpdateAt) {
-      await storage.putObj(STOKEY_SYNC, {
+      await syncOpt.update({
         settingUpdateAt: res.updateAt,
         settingSyncAt: res.updateAt,
       });
       await storage.setObj(STOKEY_SETTING, res.value);
     } else {
-      await storage.putObj(STOKEY_SYNC, {
-        settingSyncAt: res.updateAt,
-      });
+      await syncOpt.update({ settingSyncAt: res.updateAt });
     }
   } catch (err) {
     console.log("[sync setting]", err);
   }
 };
 
-export const syncRules = async () => {
+/**
+ * 同步规则
+ * @returns
+ */
+export const syncRules = async (isBg = false) => {
   try {
-    const { syncUrl, syncKey, rulesUpdateAt } = await loadSyncOpt();
+    const { syncUrl, syncKey, rulesUpdateAt } = await syncOpt.load();
     if (!syncUrl || !syncKey) {
       return;
     }
 
     const rules = await getRules();
-    const res = await apiSyncData(syncUrl, syncKey, {
-      key: KV_RULES_KEY,
-      value: rules,
-      updateAt: rulesUpdateAt,
-    });
+    const res = await apiSyncData(
+      syncUrl,
+      syncKey,
+      {
+        key: KV_RULES_KEY,
+        value: rules,
+        updateAt: rulesUpdateAt,
+      },
+      isBg
+    );
 
     if (res && res.updateAt > rulesUpdateAt) {
-      await storage.putObj(STOKEY_SYNC, {
+      await syncOpt.update({
         rulesUpdateAt: res.updateAt,
         rulesSyncAt: res.updateAt,
       });
       await storage.setObj(STOKEY_RULES, res.value);
     } else {
-      await storage.putObj(STOKEY_SYNC, {
-        rulesSyncAt: res.updateAt,
-      });
+      await syncOpt.update({ rulesSyncAt: res.updateAt });
     }
   } catch (err) {
     console.log("[sync user rules]", err);
   }
 };
 
+/**
+ * 同步分享规则
+ * @param {*} param0
+ * @returns
+ */
 export const syncShareRules = async ({ rules, syncUrl, syncKey }) => {
   await apiSyncData(syncUrl, syncKey, {
     key: KV_RULES_SHARE_KEY,
@@ -87,7 +113,11 @@ export const syncShareRules = async ({ rules, syncUrl, syncKey }) => {
   return shareUrl;
 };
 
-export const syncAll = async () => {
-  await syncSetting();
-  await syncRules();
+/**
+ * 同步个人设置和规则
+ * @returns
+ */
+export const syncAll = async (isBg = false) => {
+  await syncSetting(isBg);
+  await syncRules(isBg);
 };

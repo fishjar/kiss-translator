@@ -65,7 +65,7 @@ const newCacheReq = async (request) => {
  * @param {*} param0
  * @returns
  */
-const fetchApi = async ({ input, init, translator, token }) => {
+const fetchApi = async ({ input, init = {}, translator, token }) => {
   if (translator === OPT_TRANS_MICROSOFT) {
     init.headers["Authorization"] = `Bearer ${token}`;
   } else if (translator === OPT_TRANS_OPENAI) {
@@ -103,14 +103,12 @@ export const fetchPool = taskPool(
 /**
  * 请求数据统一接口
  * @param {*} input
- * @param {*} init
  * @param {*} opts
  * @returns
  */
 export const fetchData = async (
   input,
-  init,
-  { useCache, usePool, translator, token } = {}
+  { useCache, usePool, translator, token, ...init } = {}
 ) => {
   const cacheReq = await newCacheReq(new Request(input, init));
   const cache = await caches.open(CACHE_NAME);
@@ -157,22 +155,21 @@ export const fetchData = async (
 /**
  * fetch 兼容性封装
  * @param {*} input
- * @param {*} init
  * @param {*} opts
  * @returns
  */
-export const fetchPolyfill = async (input, init, opts) => {
+export const fetchPolyfill = async (input, { isBg = false, ...opts } = {}) => {
   // 插件
-  if (isExt) {
-    const res = await sendMsg(MSG_FETCH, { input, init, opts });
+  if (isExt && !isBg) {
+    const res = await sendMsg(MSG_FETCH, { input, opts });
     if (res.error) {
       throw new Error(res.error);
     }
     return res.data;
   }
 
-  // 油猴/网页
-  return await fetchData(input, init, opts);
+  // 油猴/网页/BackgroundPage
+  return await fetchData(input, opts);
 };
 
 /**

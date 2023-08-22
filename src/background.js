@@ -14,12 +14,15 @@ import {
   STOKEY_RULES,
   STOKEY_SYNC,
   CACHE_NAME,
+  STOKEY_RULESCACHE_PREFIX,
+  BUILTIN_RULES,
 } from "./config";
 import storage from "./libs/storage";
 import { getSetting } from "./libs";
 import { syncAll } from "./libs/sync";
 import { fetchData, fetchPool } from "./libs/fetch";
 import { sendTabMsg } from "./libs/msg";
+import { trySyncAllSubRules } from "./libs/rules";
 
 /**
  * 插件安装
@@ -29,7 +32,10 @@ browser.runtime.onInstalled.addListener(() => {
   storage.trySetObj(STOKEY_SETTING, DEFAULT_SETTING);
   storage.trySetObj(STOKEY_RULES, DEFAULT_RULES);
   storage.trySetObj(STOKEY_SYNC, DEFAULT_SYNC);
-  // todo：缓存内置rules
+  storage.trySetObj(
+    `${STOKEY_RULESCACHE_PREFIX}${process.env.REACT_APP_RULESURL}`,
+    BUILTIN_RULES
+  );
 });
 
 /**
@@ -39,13 +45,16 @@ browser.runtime.onStartup.addListener(async () => {
   console.log("browser onStartup");
 
   // 同步数据
-  await syncAll();
+  await syncAll(true);
 
   // 清除缓存
-  const { clearCache } = await getSetting();
-  if (clearCache) {
+  const setting = await getSetting();
+  if (setting.clearCache) {
     caches.delete(CACHE_NAME);
   }
+
+  // 同步订阅规则
+  trySyncAllSubRules(setting, true);
 });
 
 /**
@@ -55,8 +64,8 @@ browser.runtime.onMessage.addListener(
   ({ action, args }, sender, sendResponse) => {
     switch (action) {
       case MSG_FETCH:
-        const { input, init, opts } = args;
-        fetchData(input, init, opts)
+        const { input, opts } = args;
+        fetchData(input, opts)
           .then((data) => {
             sendResponse({ data });
           })

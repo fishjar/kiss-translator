@@ -5,6 +5,7 @@ import createCache from "@emotion/cache";
 import { CacheProvider } from "@emotion/react";
 import { getSetting, getRules, matchRule, getFab } from "./libs";
 import { Translator } from "./libs/translator";
+import { trySyncAllSubRules } from "./libs/rules";
 
 /**
  * 入口函数
@@ -70,4 +71,7 @@ import { Translator } from "./libs/translator";
     },
     "C"
   );
+
+  // 同步订阅规则
+  trySyncAllSubRules(setting);
 })();
