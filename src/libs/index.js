@@ -57,8 +57,9 @@ export const setFab = async (obj) => await storage.setObj(STOKEY_FAB, obj);
 export const matchRule = async (
   rules,
   href,
-  { injectRules, subrulesList = DEFAULT_SUBRULES_LIST }
+  { injectRules = true, subrulesList = DEFAULT_SUBRULES_LIST }
 ) => {
+  rules = [...rules];
   if (injectRules) {
     try {
       const selectedSub = subrulesList.find((item) => item.selected);
@@ -71,13 +72,13 @@ export const matchRule = async (
     }
   }
 
-  const rule = rules.find((rule) =>
-    rule.pattern.split(",").some((p) => isMatch(href, p.trim()))
+  const rule = rules.find((r) =>
+    r.pattern.split(",").some((p) => isMatch(href, p.trim()))
   );
+
   const globalRule =
-    rules.find((rule) =>
-      rule.pattern.split(",").some((p) => p.trim() === "*")
-    ) || GLOBLA_RULE;
+    rules.find((r) => r.pattern.split(",").some((p) => p.trim() === "*")) ||
+    GLOBLA_RULE;
 
   if (!rule) {
     return globalRule;

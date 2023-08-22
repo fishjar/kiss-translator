@@ -12,7 +12,7 @@ import {
   OPT_TRANS_ALL,
   OPT_STYLE_ALL,
 } from "../../config";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useI18n } from "../../hooks/I18n";
 import Typography from "@mui/material/Typography";
 import Accordion from "@mui/material/Accordion";
@@ -39,8 +39,9 @@ import { useSubrules } from "../../hooks/Rules";
 import { rulesCache, loadSubRules, syncSubRules } from "../../libs/rules";
 import { useAlert } from "../../hooks/Alert";
 import { syncOpt, syncShareRules } from "../../libs/sync";
+import { debounce } from "../../libs/utils";
 
-function RuleFields({ rule, rules, setShow }) {
+function RuleFields({ rule, rules, setShow, setKeyword }) {
   const initFormValues = rule || { ...DEFAULT_RULE, transOpen: "true" };
   const editMode = !!rule;
 
@@ -74,10 +75,22 @@ function RuleFields({ rule, rules, setShow }) {
     setErrors((pre) => ({ ...pre, [name]: "" }));
   };
 
+  const handlePatternChange = useMemo(
+    () =>
+      debounce(async (patterns) => {
+        setKeyword(patterns.trim());
+      }, 500),
+    [setKeyword]
+  );
+
   const handleChange = (e) => {
     e.preventDefault();
     const { name, value } = e.target;
     setFormValues((pre) => ({ ...pre, [name]: value }));
+    if (name === "pattern" && !editMode) {
+      console.log("pattern", value);
+      handlePatternChange(value);
+    }
   };
 
   const handleCancel = (e) => {
@@ -446,6 +459,9 @@ function UserRules() {
   const setting = useSetting();
   const updateSetting = useSettingUpdate();
   const subrules = useSubrules();
+  const [subRules, setSubRules] = useState([]);
+  const [keyword, setKeyword] = useState("");
+
   const selectedSub = subrules.list.find((item) => item.selected);
 
   const injectRules = !!setting?.injectRules;
@@ -477,6 +493,25 @@ function UserRules() {
       injectRules: !injectRules,
     });
   };
+
+  useEffect(() => {
+    (async () => {
+      if (selectedSub?.url) {
+        try {
+          const rules = await loadSubRules(selectedSub?.url);
+          setSubRules(rules);
+        } catch (err) {
+          console.log("[load rules]", err);
+        }
+      }
+    })();
+  }, [selectedSub?.url]);
+
+  useEffect(() => {
+    if (!showAdd) {
+      setKeyword("");
+    }
+  }, [showAdd]);
 
   return (
     <Stack spacing={3}>
@@ -517,12 +552,34 @@ function UserRules() {
         />
       </Stack>
 
-      {showAdd && <RuleFields rules={rules} setShow={setShowAdd} />}
+      {showAdd && (
+        <RuleFields
+          rules={rules}
+          setShow={setShowAdd}
+          setKeyword={setKeyword}
+        />
+      )}
 
       <Box>
-        {rules.list.map((rule) => (
-          <RuleAccordion key={rule.pattern} rule={rule} rules={rules} />
-        ))}
+        {rules.list
+          .filter(
+            (rule) =>
+              rule.pattern.includes(keyword) || keyword.includes(rule.pattern)
+          )
+          .map((rule) => (
+            <RuleAccordion key={rule.pattern} rule={rule} rules={rules} />
+          ))}
+      </Box>
+
+      <Box>
+        {subRules
+          .filter(
+            (rule) =>
+              rule.pattern.includes(keyword) || keyword.includes(rule.pattern)
+          )
+          .map((rule) => (
+            <RuleAccordion key={rule.pattern} rule={rule} />
+          ))}
       </Box>
     </Stack>
   );
