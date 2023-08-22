@@ -108,9 +108,9 @@ export const I18N = {
     zh: `注入订阅规则`,
     en: `Inject Subscribe Rules`,
   },
-  edit_rules: {
-    zh: `编辑规则`,
-    en: `Edit Rules`,
+  personal_rules: {
+    zh: `个人规则`,
+    en: `Personal Rules`,
   },
   subscribe_rules: {
     zh: `订阅规则`,
@@ -119,6 +119,14 @@ export const I18N = {
   subscribe_url: {
     zh: `订阅地址`,
     en: `Subscribe URL`,
+  },
+  rules_warn_1: {
+    zh: `1、“个人规则”一直生效，选择“注入订阅规则”后，“订阅规则”才会生效。`,
+    en: `1. The "Personal Rules" are always in effect. After selecting "Inject Subscription Rules", the "Subscription Rules" will take effect.`,
+  },
+  rules_warn_2: {
+    zh: `2、“订阅规则”的注入位置是倒数第二的位置，因此除全局规则(*)外，“个人规则”优先级比“订阅规则”高，“个人规则”填写同样的网址会覆盖”订阅规则“的条目。`,
+    en: `2. The injection position of "Subscription Rules" is the penultimate position. Therefore, except for the global rules (*), the priority of "Personal Rules" is higher than that of "Subscription Rules". Filling in the same url in "Personal Rules" will overwrite "Subscription Rules" entry.`,
   },
   sync_warn: {
     zh: `如果服务器存在其他客户端同步的数据，第一次同步将直接覆盖本地配置，后面则根据修改时间，新的覆盖旧的。`,

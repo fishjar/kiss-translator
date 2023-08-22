@@ -3,6 +3,7 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
+import Alert from "@mui/material/Alert";
 import {
   GLOBAL_KEY,
   DEFAULT_RULE,
@@ -738,9 +739,15 @@ export default function Rules() {
   return (
     <Box>
       <Stack spacing={3}>
+        <Alert severity="info">
+          {i18n("rules_warn_1")}
+          <br />
+          {i18n("rules_warn_2")}
+        </Alert>
+
         <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
           <Tabs value={activeTab} onChange={handleTabChange}>
-            <Tab label={i18n("edit_rules")} />
+            <Tab label={i18n("personal_rules")} />
             <Tab label={i18n("subscribe_rules")} />
           </Tabs>
         </Box>
