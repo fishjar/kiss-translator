@@ -88,7 +88,6 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
     const { name, value } = e.target;
     setFormValues((pre) => ({ ...pre, [name]: value }));
     if (name === "pattern" && !editMode) {
-      console.log("pattern", value);
       handlePatternChange(value);
     }
   };
