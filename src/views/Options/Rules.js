@@ -571,16 +571,18 @@ function UserRules() {
           ))}
       </Box>
 
-      <Box>
-        {subRules
-          .filter(
-            (rule) =>
-              rule.pattern.includes(keyword) || keyword.includes(rule.pattern)
-          )
-          .map((rule) => (
-            <RuleAccordion key={rule.pattern} rule={rule} />
-          ))}
-      </Box>
+      {injectRules && (
+        <Box>
+          {subRules
+            .filter(
+              (rule) =>
+                rule.pattern.includes(keyword) || keyword.includes(rule.pattern)
+            )
+            .map((rule) => (
+              <RuleAccordion key={rule.pattern} rule={rule} />
+            ))}
+        </Box>
+      )}
     </Stack>
   );
 }
