@@ -53,7 +53,6 @@ export class Translator {
   _mutaObserver = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
       mutation.addedNodes.forEach((node) => {
-        console.log("node", node);
         try {
           queryNodes(this.rule.selector, node).forEach((el) => {
             this._interseObserver.observe(el);
