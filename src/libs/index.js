@@ -13,15 +13,6 @@ import { isMatch } from "./utils";
 import { loadSubRules } from "./rules";
 
 /**
- * 获取节点列表并转为数组
- * @param {*} selector
- * @param {*} el
- * @returns
- */
-export const queryEls = (selector, el = document) =>
-  Array.from(el.querySelectorAll(selector));
-
-/**
  * 查询storage中的设置
  * @returns
  */

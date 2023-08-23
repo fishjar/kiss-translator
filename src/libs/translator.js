@@ -8,9 +8,23 @@ import {
   OPT_STYLE_DASHLINE,
   OPT_STYLE_FUZZY,
 } from "../config";
-import { queryEls } from ".";
 import Content from "../views/Content";
 import { fetchUpdate, fetchClear } from "./fetch";
+
+/**
+ * 获取节点列表并转为数组
+ * @param {*} selector
+ * @param {*} rootNode
+ * @returns
+ */
+function queryNodes(selector, rootNode = document) {
+  const childRoots = Array.from(rootNode.querySelectorAll("*"))
+    .map((item) => item.shadowRoot)
+    .filter(Boolean);
+  const childNodes = childRoots.map((item) => queryNodes(selector, item));
+  const nodes = Array.from(rootNode.querySelectorAll(selector));
+  return nodes.concat(childNodes).flat();
+}
 
 /**
  * 翻译类
@@ -20,6 +34,7 @@ export class Translator {
   _minLength = 0;
   _maxLength = 0;
 
+  // 显示
   _interseObserver = new IntersectionObserver(
     (intersections) => {
       intersections.forEach((intersection) => {
@@ -34,11 +49,13 @@ export class Translator {
     }
   );
 
+  // 变化
   _mutaObserver = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
       mutation.addedNodes.forEach((node) => {
+        console.log("node", node);
         try {
-          queryEls(this.rule.selector, node).forEach((el) => {
+          queryNodes(this.rule.selector, node).forEach((el) => {
             this._interseObserver.observe(el);
           });
         } catch (err) {
@@ -101,14 +118,15 @@ export class Translator {
   };
 
   _register = () => {
-    // 监听节点变化
+    // 监听节点变化;
     this._mutaObserver.observe(document, {
       childList: true,
       subtree: true,
+      characterData: true,
     });
 
     // 监听节点显示
-    queryEls(this.rule.selector).forEach((el) => {
+    queryNodes(this.rule.selector).forEach((el) => {
       this._interseObserver.observe(el);
     });
   };
@@ -118,12 +136,14 @@ export class Translator {
     this._mutaObserver.disconnect();
 
     // 解除节点显示监听
-    queryEls(this.rule.selector).forEach((el) =>
+    queryNodes(this.rule.selector).forEach((el) =>
       this._interseObserver.unobserve(el)
     );
 
     // 移除已插入元素
-    queryEls(APP_LCNAME).forEach((el) => el.remove());
+    queryNodes(this.rule.selector).forEach((el) => {
+      el?.querySelector(APP_LCNAME)?.remove();
+    });
 
     // 清空任务池
     fetchClear();
@@ -131,7 +151,7 @@ export class Translator {
 
   _render = (el) => {
     // 含子元素
-    if (el.querySelector(this.rule.selector)) {
+    if (queryNodes(this.rule.selector, el).length > 0) {
       return;
     }
 
