@@ -638,6 +638,7 @@ function SubRulesEdit({ subrules }) {
   const [inputText, setInputText] = useState("");
   const [inputError, setInputError] = useState("");
   const [showInput, setShowInput] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleCancel = (e) => {
     e.preventDefault();
@@ -661,6 +662,7 @@ function SubRulesEdit({ subrules }) {
     }
 
     try {
+      setLoading(true);
       const rules = await syncSubRules(url);
       if (rules.length === 0) {
         throw new Error("empty rules");
@@ -671,6 +673,8 @@ function SubRulesEdit({ subrules }) {
     } catch (err) {
       console.log("[fetch rules]", err);
       setInputError(i18n("error_fetch_url"));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -713,7 +717,12 @@ function SubRulesEdit({ subrules }) {
           />
 
           <Stack direction="row" alignItems="center" spacing={2}>
-            <Button size="small" variant="contained" onClick={handleSave}>
+            <Button
+              size="small"
+              variant="contained"
+              onClick={handleSave}
+              disabled={loading}
+            >
               {i18n("save")}
             </Button>
             <Button size="small" variant="outlined" onClick={handleCancel}>

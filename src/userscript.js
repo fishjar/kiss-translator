@@ -6,6 +6,7 @@ import { CacheProvider } from "@emotion/react";
 import { getSetting, getRules, matchRule, getFab } from "./libs";
 import { Translator } from "./libs/translator";
 import { trySyncAllSubRules } from "./libs/rules";
+import { isGm } from "./libs/browser";
 
 /**
  * 入口函数
@@ -57,20 +58,22 @@ import { trySyncAllSubRules } from "./libs/rules";
   );
 
   // 注册菜单
-  GM.registerMenuCommand(
-    "Toggle Translate",
-    (event) => {
-      translator.toggle();
-    },
-    "Q"
-  );
-  GM.registerMenuCommand(
-    "Toggle Style",
-    (event) => {
-      translator.toggleStyle();
-    },
-    "C"
-  );
+  if (isGm) {
+    GM.registerMenuCommand(
+      "Toggle Translate",
+      (event) => {
+        translator.toggle();
+      },
+      "Q"
+    );
+    GM.registerMenuCommand(
+      "Toggle Style",
+      (event) => {
+        translator.toggleStyle();
+      },
+      "C"
+    );
+  }
 
   // 同步订阅规则
   trySyncAllSubRules(setting);
