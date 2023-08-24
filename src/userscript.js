@@ -57,6 +57,11 @@ import { isGm } from "./libs/browser";
     </React.StrictMode>
   );
 
+  // skip iframe
+  if (window.self !== window.top) {
+    return;
+  }
+
   // 注册菜单
   if (isGm) {
     GM.registerMenuCommand(
