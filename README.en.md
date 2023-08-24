@@ -32,9 +32,9 @@ If you also like a little more simplicity, welcome to pick it up.
   - [x] Microsoft
   - [x] OpenAI
   - [ ] DeepL
-- [ ] Upload to app Store
+- [x] Upload to app Store
   - [x] [Chrome](https://chrome.google.com/webstore/detail/kiss-translator/bdiifdefkgmcblbcghdlonllpjhhjgof)
-  - [ ] Edge
+  - [x] [Edge](https://microsoftedge.microsoft.com/addons/detail/kiss-translator/jemckldkclkinpjighnoilpbldbdmmlh)
   - [x] [Firefox](https://addons.mozilla.org/zh-CN/firefox/addon/kiss-translator/)
   - [ ] Safari
   - [x] [Greasy Fork](https://greasyfork.org/zh-CN/scripts/472840-kiss-translator)
