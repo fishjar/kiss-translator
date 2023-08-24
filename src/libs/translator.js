@@ -19,7 +19,21 @@ export class Translator {
   _rule = {};
   _minLength = 0;
   _maxLength = 0;
-  _skipNodeNames = [APP_LCNAME, "style", "svg", "img"];
+  _skipNodeNames = [
+    APP_LCNAME,
+    "style",
+    "svg",
+    "img",
+    "audio",
+    "video",
+    "textarea",
+    "input",
+    "button",
+    "select",
+    "option",
+    "head",
+    "script",
+  ];
 
   // 显示
   _interseObserver = new IntersectionObserver(
@@ -40,14 +54,17 @@ export class Translator {
   _mutaObserver = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
       if (
-        mutation.target.localName !== APP_LCNAME &&
+        !this._skipNodeNames.includes(mutation.target.localName) &&
         mutation.addedNodes.length > 0
       ) {
         const addedNodes = Array.from(mutation.addedNodes).filter((node) => {
-          if (!this._skipNodeNames.includes(node.localName)) {
-            return true;
+          if (
+            this._skipNodeNames.includes(node.localName) ||
+            node.id === APP_LCNAME
+          ) {
+            return false;
           }
-          return false;
+          return true;
         });
         if (addedNodes.length > 0) {
           this._reTranslate();
@@ -56,6 +73,7 @@ export class Translator {
     });
   });
 
+  // 插入 shadowroot
   _overrideAttachShadow = () => {
     const _this = this;
     const _attachShadow = HTMLElement.prototype.attachShadow;
@@ -120,7 +138,7 @@ export class Translator {
 
   _queryNodes = (rootNode = document) => {
     const childRoots = Array.from(rootNode.querySelectorAll("*"))
-      .map((item) => item.shadowRoot)
+      .map((item) => item.shadowRoot || item.contentDocument)
       .filter(Boolean);
     const childNodes = childRoots.map((item) => this._queryNodes(item));
     const nodes = Array.from(rootNode.querySelectorAll(this.rule.selector));
@@ -129,10 +147,17 @@ export class Translator {
 
   _register = () => {
     // 监听节点变化;
-    this._mutaObserver.observe(document, {
-      childList: true,
-      subtree: true,
-      // characterData: true,
+    [
+      document,
+      ...Array.from(document.querySelectorAll("iframe")).map(
+        (iframe) => iframe.contentWindow.document
+      ),
+    ].forEach((item) => {
+      this._mutaObserver.observe(item, {
+        childList: true,
+        subtree: true,
+        // characterData: true,
+      });
     });
 
     // 监听节点显示
