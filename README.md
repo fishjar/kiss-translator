@@ -32,9 +32,9 @@
   - [x] Microsoft
   - [x] OpenAI
   - [ ] DeepL
-- [ ] 上架应用市场
+- [x] 上架应用市场
   - [x] [Chrome](https://chrome.google.com/webstore/detail/kiss-translator/bdiifdefkgmcblbcghdlonllpjhhjgof?hl=zh-CN)
-  - [ ] Edge
+  - [x] [Edge](https://microsoftedge.microsoft.com/addons/detail/%E7%AE%80%E7%BA%A6%E7%BF%BB%E8%AF%91/jemckldkclkinpjighnoilpbldbdmmlh?hl=zh-CN)
   - [x] [Firefox](https://addons.mozilla.org/zh-CN/firefox/addon/kiss-translator/)
   - [ ] Safari
   - [x] [Greasy Fork](https://greasyfork.org/zh-CN/scripts/472840-kiss-translator)
