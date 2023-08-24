@@ -129,7 +129,6 @@ export class Translator {
 
   _register = () => {
     // 监听节点变化;
-    this._mutaObserver.disconnect();
     this._mutaObserver.observe(document, {
       childList: true,
       subtree: true,
