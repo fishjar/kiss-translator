@@ -39,7 +39,7 @@ import { isGm } from "./libs/browser";
   const $action = document.createElement("div");
   $action.setAttribute("id", "kiss-translator");
   document.body.parentElement.appendChild($action);
-  const shadowContainer = $action.attachShadow({ mode: "open" });
+  const shadowContainer = $action.attachShadow({ mode: "closed" });
   const emotionRoot = document.createElement("style");
   const shadowRootElement = document.createElement("div");
   shadowContainer.appendChild(emotionRoot);

@@ -10,21 +10,7 @@ import {
 } from "../config";
 import Content from "../views/Content";
 import { fetchUpdate, fetchClear } from "./fetch";
-
-/**
- * 获取节点列表并转为数组
- * @param {*} selector
- * @param {*} rootNode
- * @returns
- */
-function queryNodes(selector, rootNode = document) {
-  const childRoots = Array.from(rootNode.querySelectorAll("*"))
-    .map((item) => item.shadowRoot)
-    .filter(Boolean);
-  const childNodes = childRoots.map((item) => queryNodes(selector, item));
-  const nodes = Array.from(rootNode.querySelectorAll(selector));
-  return nodes.concat(childNodes).flat();
-}
+import { debounce } from "./utils";
 
 /**
  * 翻译类
@@ -33,6 +19,7 @@ export class Translator {
   _rule = {};
   _minLength = 0;
   _maxLength = 0;
+  _skipNodeNames = [APP_LCNAME, "style", "svg", "img"];
 
   // 显示
   _interseObserver = new IntersectionObserver(
@@ -52,20 +39,35 @@ export class Translator {
   // 变化
   _mutaObserver = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
-      mutation.addedNodes.forEach((node) => {
-        try {
-          queryNodes(this.rule.selector, node).forEach((el) => {
-            this._interseObserver.observe(el);
-          });
-        } catch (err) {
-          //
+      if (
+        mutation.target.localName !== APP_LCNAME &&
+        mutation.addedNodes.length > 0
+      ) {
+        const addedNodes = Array.from(mutation.addedNodes).filter((node) => {
+          if (!this._skipNodeNames.includes(node.localName)) {
+            return true;
+          }
+          return false;
+        });
+        if (addedNodes.length > 0) {
+          this._reTranslate();
         }
-      });
+      }
     });
   });
 
+  _overrideAttachShadow = () => {
+    const _this = this;
+    const _attachShadow = HTMLElement.prototype.attachShadow;
+    HTMLElement.prototype.attachShadow = function () {
+      _this._reTranslate();
+      return _attachShadow.apply(this, arguments);
+    };
+  };
+
   constructor(rule, { fetchInterval, fetchLimit, minLength, maxLength }) {
     fetchUpdate(fetchInterval, fetchLimit);
+    this._overrideAttachShadow();
     this._minLength = minLength ?? TRANS_MIN_LENGTH;
     this._maxLength = maxLength ?? TRANS_MAX_LENGTH;
     this.rule = rule;
@@ -116,16 +118,27 @@ export class Translator {
     this.rule = { ...this.rule, textStyle };
   };
 
+  _queryNodes = (rootNode = document) => {
+    const childRoots = Array.from(rootNode.querySelectorAll("*"))
+      .map((item) => item.shadowRoot)
+      .filter(Boolean);
+    const childNodes = childRoots.map((item) => this._queryNodes(item));
+    const nodes = Array.from(rootNode.querySelectorAll(this.rule.selector));
+    return nodes.concat(childNodes).flat();
+  };
+
   _register = () => {
     // 监听节点变化;
+    this._mutaObserver.disconnect();
     this._mutaObserver.observe(document, {
       childList: true,
       subtree: true,
-      characterData: true,
+      // characterData: true,
     });
 
     // 监听节点显示
-    queryNodes(this.rule.selector).forEach((el) => {
+    this._queryNodes().forEach((el) => {
+      this._interseObserver.unobserve(el);
       this._interseObserver.observe(el);
     });
   };
@@ -135,12 +148,10 @@ export class Translator {
     this._mutaObserver.disconnect();
 
     // 解除节点显示监听
-    queryNodes(this.rule.selector).forEach((el) =>
-      this._interseObserver.unobserve(el)
-    );
+    this._queryNodes().forEach((el) => this._interseObserver.unobserve(el));
 
     // 移除已插入元素
-    queryNodes(this.rule.selector).forEach((el) => {
+    this._queryNodes().forEach((el) => {
       el?.querySelector(APP_LCNAME)?.remove();
     });
 
@@ -148,9 +159,18 @@ export class Translator {
     fetchClear();
   };
 
+  _reTranslate = debounce(() => {
+    if (this.rule.transOpen === "true") {
+      this._queryNodes().forEach((el) => {
+        this._interseObserver.unobserve(el);
+        this._interseObserver.observe(el);
+      });
+    }
+  }, 500);
+
   _render = (el) => {
     // 含子元素
-    if (queryNodes(this.rule.selector, el).length > 0) {
+    if (this._queryNodes(el).length > 0) {
       return;
     }
 
@@ -172,8 +192,10 @@ export class Translator {
     el.appendChild(span);
     el.style.cssText +=
       "-webkit-line-clamp: unset; max-height: none; height: auto;";
-    el.parentElement.style.cssText +=
-      "-webkit-line-clamp: unset; max-height: none; height: auto;";
+    if (el.parentElement) {
+      el.parentElement.style.cssText +=
+        "-webkit-line-clamp: unset; max-height: none; height: auto;";
+    }
 
     const root = createRoot(span);
     root.render(<Content q={q} translator={this} />);

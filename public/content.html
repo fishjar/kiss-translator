@@ -21,6 +21,7 @@
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root">
       <h2>React is a JavaScript library for building user interfaces.</h2>
+      <div id="addtitle"></div>
       <h2>Shadow 1</h2>
       <div id="shadow1"></div>
       <br />
@@ -236,13 +237,28 @@
       To create a production bundle, use `npm run build` or `yarn build`.
     -->
     <script>
-      for (var i = 1; i <= 2; i++) {
-        var shadow = document.querySelector("#shadow" + i);
-        var cont = document.querySelector(".cont" + i);
-        var root = shadow.attachShadow({ mode: "open" });
-        // root.appendChild(document.importNode(cont, true));
-        root.appendChild(cont.cloneNode(true));
-      }
+      setTimeout(function () {
+        for (var i = 1; i <= 2; i++) {
+          var shadow = document.querySelector("#shadow" + i);
+          var cont = document.querySelector(".cont" + i);
+          var root = shadow.attachShadow({ mode: "open" });
+          // root.appendChild(document.importNode(cont, true));
+          root.appendChild(cont.cloneNode(true));
+
+          var newLine = document.createElement("p");
+          newLine.innerText = "new line";
+          root.appendChild(newLine);
+        }
+      }, 3000);
+    </script>
+    <script>
+      setTimeout(function () {
+        var el = document.querySelector("h2");
+        el.innerText = "hello world";
+
+        var title = document.querySelector("#addtitle");
+        title.innerHTML = "<p>second title</p>";
+      }, 1000);
     </script>
   </body>
 </html>
