@@ -138,7 +138,7 @@ export class Translator {
 
   _queryNodes = (rootNode = document) => {
     const childRoots = Array.from(rootNode.querySelectorAll("*"))
-      .map((item) => item.shadowRoot || item.contentDocument)
+      .map((item) => item.shadowRoot)
       .filter(Boolean);
     const childNodes = childRoots.map((item) => this._queryNodes(item));
     const nodes = Array.from(rootNode.querySelectorAll(this.rule.selector));
@@ -147,17 +147,10 @@ export class Translator {
 
   _register = () => {
     // 监听节点变化;
-    [
-      document,
-      ...Array.from(document.querySelectorAll("iframe")).map(
-        (iframe) => iframe.contentWindow.document
-      ),
-    ].forEach((item) => {
-      this._mutaObserver.observe(item, {
-        childList: true,
-        subtree: true,
-        // characterData: true,
-      });
+    this._mutaObserver.observe(document, {
+      childList: true,
+      subtree: true,
+      // characterData: true,
     });
 
     // 监听节点显示

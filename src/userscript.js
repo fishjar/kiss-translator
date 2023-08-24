@@ -24,9 +24,9 @@ import { isGm } from "./libs/browser";
   }
 
   // skip iframe
-  if (window.self !== window.top) {
-    return;
-  }
+  // if (window.self !== window.top) {
+  //   return;
+  // }
 
   // 翻译页面
   const setting = await getSetting();
