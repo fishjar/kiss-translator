@@ -247,7 +247,7 @@ export class Translator {
       return;
     }
 
-    console.log("---> ", q);
+    // console.log("---> ", q);
 
     const span = document.createElement(APP_LCNAME);
     span.style.visibility = "visible";
