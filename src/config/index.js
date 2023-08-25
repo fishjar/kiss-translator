@@ -1,11 +1,12 @@
 import {
   DEFAULT_SELECTOR,
   GLOBAL_KEY,
+  SHADOW_KEY,
   DEFAULT_RULE,
   BUILTIN_RULES,
 } from "./rules";
 export { I18N, UI_LANGS } from "./i18n";
-export { GLOBAL_KEY, DEFAULT_RULE, BUILTIN_RULES };
+export { GLOBAL_KEY, SHADOW_KEY, DEFAULT_RULE, BUILTIN_RULES };
 
 const APP_NAME = process.env.REACT_APP_NAME.trim().split(/\s+/).join("-");
 

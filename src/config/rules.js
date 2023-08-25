@@ -4,6 +4,8 @@ export const DEFAULT_SELECTOR = `:is(${els})`;
 
 export const GLOBAL_KEY = "*";
 
+export const SHADOW_KEY = ">>>";
+
 export const DEFAULT_RULE = {
   pattern: "",
   selector: "",

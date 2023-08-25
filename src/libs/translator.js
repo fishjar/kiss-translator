@@ -7,6 +7,7 @@ import {
   MSG_TRANS_CURRULE,
   OPT_STYLE_DASHLINE,
   OPT_STYLE_FUZZY,
+  SHADOW_KEY,
 } from "../config";
 import Content from "../views/Content";
 import { fetchUpdate, fetchClear } from "./fetch";
@@ -33,7 +34,10 @@ export class Translator {
     "option",
     "head",
     "script",
+    "iframe",
   ];
+  _rootNodes = new Set();
+  _tranNodes = new Set();
 
   // 显示
   _interseObserver = new IntersectionObserver(
@@ -57,7 +61,7 @@ export class Translator {
         !this._skipNodeNames.includes(mutation.target.localName) &&
         mutation.addedNodes.length > 0
       ) {
-        const addedNodes = Array.from(mutation.addedNodes).filter((node) => {
+        const nodes = Array.from(mutation.addedNodes).filter((node) => {
           if (
             this._skipNodeNames.includes(node.localName) ||
             node.id === APP_LCNAME
@@ -66,7 +70,9 @@ export class Translator {
           }
           return true;
         });
-        if (addedNodes.length > 0) {
+        if (nodes.length > 0) {
+          // const rootNode = mutation.target.getRootNode();
+          // todo
           this._reTranslate();
         }
       }
@@ -136,27 +142,67 @@ export class Translator {
     this.rule = { ...this.rule, textStyle };
   };
 
+  _queryFilter = (selector, rootNode) => {
+    return Array.from(rootNode.querySelectorAll(selector)).filter(
+      (node) => this._queryFilter(selector, node).length === 0
+    );
+  };
+
   _queryNodes = (rootNode = document) => {
-    const childRoots = Array.from(rootNode.querySelectorAll("*"))
-      .map((item) => item.shadowRoot)
-      .filter(Boolean);
-    const childNodes = childRoots.map((item) => this._queryNodes(item));
-    const nodes = Array.from(rootNode.querySelectorAll(this.rule.selector));
-    return nodes.concat(childNodes).flat();
+    // const childRoots = Array.from(rootNode.querySelectorAll("*"))
+    //   .map((item) => item.shadowRoot)
+    //   .filter(Boolean);
+    // const childNodes = childRoots.map((item) => this._queryNodes(item));
+    // const nodes = Array.from(rootNode.querySelectorAll(this.rule.selector));
+    // return nodes.concat(childNodes).flat();
+
+    this._rootNodes.add(rootNode);
+    this._rule.selector
+      .split(";")
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .forEach((selector) => {
+        if (selector.includes(SHADOW_KEY)) {
+          const [outSelector, inSelector] = selector
+            .split(SHADOW_KEY)
+            .map((item) => item.trim());
+          if (outSelector && inSelector) {
+            const outNodes = rootNode.querySelectorAll(outSelector);
+            outNodes.forEach((outNode) => {
+              if (outNode.shadowRoot) {
+                this._rootNodes.add(outNode.shadowRoot);
+                this._queryFilter(inSelector, outNode.shadowRoot).forEach(
+                  (item) => {
+                    this._tranNodes.add(item);
+                  }
+                );
+              }
+            });
+          }
+        } else {
+          this._queryFilter(selector, rootNode).forEach((item) => {
+            this._tranNodes.add(item);
+          });
+        }
+      });
   };
 
   _register = () => {
-    // 监听节点变化;
-    this._mutaObserver.observe(document, {
-      childList: true,
-      subtree: true,
-      // characterData: true,
+    // 搜索节点
+    this._queryNodes();
+
+    this._rootNodes.forEach((node) => {
+      // 监听节点变化;
+      this._mutaObserver.observe(node, {
+        childList: true,
+        subtree: true,
+        // characterData: true,
+      });
     });
 
-    // 监听节点显示
-    this._queryNodes().forEach((el) => {
-      this._interseObserver.unobserve(el);
-      this._interseObserver.observe(el);
+    this._tranNodes.forEach((node) => {
+      // 监听节点显示
+      this._interseObserver.observe(node);
     });
   };
 
@@ -164,33 +210,29 @@ export class Translator {
     // 解除节点变化监听
     this._mutaObserver.disconnect();
 
-    // 解除节点显示监听
-    this._queryNodes().forEach((el) => this._interseObserver.unobserve(el));
+    this._tranNodes.forEach((node) => {
+      // 解除节点显示监听
+      this._interseObserver.unobserve(node);
 
-    // 移除已插入元素
-    this._queryNodes().forEach((el) => {
-      el?.querySelector(APP_LCNAME)?.remove();
+      // 移除已插入元素
+      node.querySelector(APP_LCNAME)?.remove();
     });
+
+    // 清空节点集合
+    this._rootNodes.clear();
+    this._tranNodes.clear();
 
     // 清空任务池
     fetchClear();
   };
 
   _reTranslate = debounce(() => {
-    if (this.rule.transOpen === "true") {
-      this._queryNodes().forEach((el) => {
-        this._interseObserver.unobserve(el);
-        this._interseObserver.observe(el);
-      });
+    if (this._rule.transOpen === "true") {
+      this._register();
     }
   }, 500);
 
   _render = (el) => {
-    // 含子元素
-    if (this._queryNodes(el).length > 0) {
-      return;
-    }
-
     // 已翻译
     if (el.querySelector(APP_LCNAME)) {
       return;
@@ -202,7 +244,7 @@ export class Translator {
       return;
     }
 
-    // console.log("---> ", q);
+    // console.log("---> ", el);
 
     const span = document.createElement(APP_LCNAME);
     span.style.visibility = "visible";
