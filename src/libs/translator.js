@@ -144,11 +144,17 @@ export class Translator {
 
   _querySelectorAll = (selector, node) => {
     try {
-      return node.querySelectorAll(selector);
+      return Array.from(node.querySelectorAll(selector));
     } catch (err) {
       console.log(`[querySelectorAll err]: ${selector}`);
     }
     return [];
+  };
+
+  _queryFilter = (selector, rootNode) => {
+    return this._querySelectorAll(selector, rootNode).filter(
+      (node) => this._queryFilter(selector, node).length === 0
+    );
   };
 
   _queryNodes = (rootNode = document) => {
@@ -174,7 +180,7 @@ export class Translator {
             outNodes.forEach((outNode) => {
               if (outNode.shadowRoot) {
                 this._rootNodes.add(outNode.shadowRoot);
-                this._querySelectorAll(inSelector, outNode.shadowRoot).forEach(
+                this._queryFilter(inSelector, outNode.shadowRoot).forEach(
                   (item) => {
                     this._tranNodes.add(item);
                   }
@@ -183,7 +189,7 @@ export class Translator {
             });
           }
         } else {
-          this._querySelectorAll(selector, rootNode).forEach((item) => {
+          this._queryFilter(selector, rootNode).forEach((item) => {
             this._tranNodes.add(item);
           });
         }
