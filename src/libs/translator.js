@@ -142,10 +142,13 @@ export class Translator {
     this.rule = { ...this.rule, textStyle };
   };
 
-  _queryFilter = (selector, rootNode) => {
-    return Array.from(rootNode.querySelectorAll(selector)).filter(
-      (node) => this._queryFilter(selector, node).length === 0
-    );
+  _querySelectorAll = (selector, node) => {
+    try {
+      return node.querySelectorAll(selector);
+    } catch (err) {
+      console.log(`[querySelectorAll err]: ${selector}`);
+    }
+    return [];
   };
 
   _queryNodes = (rootNode = document) => {
@@ -167,11 +170,11 @@ export class Translator {
             .split(SHADOW_KEY)
             .map((item) => item.trim());
           if (outSelector && inSelector) {
-            const outNodes = rootNode.querySelectorAll(outSelector);
+            const outNodes = this._querySelectorAll(outSelector, rootNode);
             outNodes.forEach((outNode) => {
               if (outNode.shadowRoot) {
                 this._rootNodes.add(outNode.shadowRoot);
-                this._queryFilter(inSelector, outNode.shadowRoot).forEach(
+                this._querySelectorAll(inSelector, outNode.shadowRoot).forEach(
                   (item) => {
                     this._tranNodes.add(item);
                   }
@@ -180,7 +183,7 @@ export class Translator {
             });
           }
         } else {
-          this._queryFilter(selector, rootNode).forEach((item) => {
+          this._querySelectorAll(selector, rootNode).forEach((item) => {
             this._tranNodes.add(item);
           });
         }
@@ -210,11 +213,11 @@ export class Translator {
     // 解除节点变化监听
     this._mutaObserver.disconnect();
 
-    this._tranNodes.forEach((node) => {
-      // 解除节点显示监听
-      this._interseObserver.unobserve(node);
+    // 解除节点显示监听
+    this._interseObserver.disconnect();
 
-      // 移除已插入元素
+    // 移除已插入元素
+    this._tranNodes.forEach((node) => {
       node.querySelector(APP_LCNAME)?.remove();
     });
 
@@ -244,7 +247,7 @@ export class Translator {
       return;
     }
 
-    // console.log("---> ", el);
+    console.log("---> ", q);
 
     const span = document.createElement(APP_LCNAME);
     span.style.visibility = "visible";
