@@ -37,7 +37,7 @@ export class Translator {
     "iframe",
   ];
   _rootNodes = new Set();
-  _tranNodes = new Set();
+  _tranNodes = new Map();
 
   // 显示
   _interseObserver = new IntersectionObserver(
@@ -182,7 +182,9 @@ export class Translator {
                 this._rootNodes.add(outNode.shadowRoot);
                 this._queryFilter(inSelector, outNode.shadowRoot).forEach(
                   (item) => {
-                    this._tranNodes.add(item);
+                    if (!this._tranNodes.has(item)) {
+                      this._tranNodes.set(item, "");
+                    }
                   }
                 );
               }
@@ -190,7 +192,9 @@ export class Translator {
           }
         } else {
           this._queryFilter(selector, rootNode).forEach((item) => {
-            this._tranNodes.add(item);
+            if (!this._tranNodes.has(item)) {
+              this._tranNodes.set(item, "");
+            }
           });
         }
       });
@@ -209,7 +213,7 @@ export class Translator {
       });
     });
 
-    this._tranNodes.forEach((node) => {
+    this._tranNodes.forEach((_, node) => {
       // 监听节点显示
       this._interseObserver.observe(node);
     });
@@ -223,7 +227,7 @@ export class Translator {
     this._interseObserver.disconnect();
 
     // 移除已插入元素
-    this._tranNodes.forEach((node) => {
+    this._tranNodes.forEach((_, node) => {
       node.querySelector(APP_LCNAME)?.remove();
     });
 
@@ -242,22 +246,37 @@ export class Translator {
   }, 500);
 
   _render = (el) => {
+    let traEl = el.querySelector(APP_LCNAME);
+
     // 已翻译
-    if (el.querySelector(APP_LCNAME)) {
-      return;
+    if (traEl) {
+      const preText = this._tranNodes.get(el);
+      const curText = el.innerText.trim();
+      // const traText = traEl.innerText.trim();
+
+      // todo
+      // 1. traText when loading
+      // 2. replace startsWith
+      if (curText.startsWith(preText)) {
+        return;
+      }
+
+      traEl.remove();
     }
 
-    // 太长或太短
     const q = el.innerText.trim();
+    this._tranNodes.set(el, q);
+
+    // 太长或太短
     if (!q || q.length < this._minLength || q.length > this._maxLength) {
       return;
     }
 
     // console.log("---> ", q);
 
-    const span = document.createElement(APP_LCNAME);
-    span.style.visibility = "visible";
-    el.appendChild(span);
+    traEl = document.createElement(APP_LCNAME);
+    traEl.style.visibility = "visible";
+    el.appendChild(traEl);
     el.style.cssText +=
       "-webkit-line-clamp: unset; max-height: none; height: auto;";
     if (el.parentElement) {
@@ -265,7 +284,7 @@ export class Translator {
         "-webkit-line-clamp: unset; max-height: none; height: auto;";
     }
 
-    const root = createRoot(span);
+    const root = createRoot(traEl);
     root.render(<Content q={q} translator={this} />);
   };
 }

@@ -17,40 +17,45 @@
     </style>
     <script>
       document.addEventListener("DOMContentLoaded", function () {
-        (() => {
-          var shadow = document.querySelector("#shadow1");
-          var root = shadow.attachShadow({ mode: "open" });
-          var newLine = document.createElement("p");
-          newLine.innerText = "new line";
-          root.appendChild(newLine);
-        })();
+        // (() => {
+        //   var shadow = document.querySelector("#shadow1");
+        //   var root = shadow.attachShadow({ mode: "open" });
+        //   var newLine = document.createElement("p");
+        //   newLine.innerText = "new line";
+        //   root.appendChild(newLine);
+        // })();
+
+        // setTimeout(function () {
+        //   var shadow = document.querySelector("#shadow2");
+        //   var root = shadow.attachShadow({ mode: "open" });
+        // }, 1000);
+
+        // setTimeout(() => {
+        //   var newLine = document.createElement("p");
+        //   newLine.innerText = "new line";
+        //   var shadow = document.querySelector("#shadow2");
+        //   shadow.shadowRoot.appendChild(newLine);
+        // }, 2000);
+
+        // setTimeout(() => {
+        //   var newLine = document.createElement("div");
+        //   newLine.innerHTML = "<p>second line</p><p>third line</p>";
+        //   var shadow = document.querySelector("#shadow2");
+        //   shadow.shadowRoot.appendChild(newLine);
+        // }, 3000);
+
+        // setTimeout(function () {
+        //   var el = document.querySelector("h2");
+        //   el.innerText = "hello world";
+
+        //   var title = document.querySelector("#addtitle");
+        //   title.innerHTML =
+        //     "<div><p>second title</p><ul><li>second title</li><li><p>second title</p></li></ul></div>";
+        // }, 1000);
 
         setTimeout(function () {
-          var shadow = document.querySelector("#shadow2");
-          var root = shadow.attachShadow({ mode: "open" });
-        }, 1000);
-
-        setTimeout(() => {
-          var newLine = document.createElement("p");
-          newLine.innerText = "new line";
-          var shadow = document.querySelector("#shadow2");
-          shadow.shadowRoot.appendChild(newLine);
-        }, 2000);
-
-        setTimeout(() => {
-          var newLine = document.createElement("div");
-          newLine.innerHTML = "<p>second line</p><p>third line</p>";
-          var shadow = document.querySelector("#shadow2");
-          shadow.shadowRoot.appendChild(newLine);
-        }, 3000);
-
-        setTimeout(function () {
-          var el = document.querySelector("h2");
+          var el = document.querySelector("h2>p>span");
           el.innerText = "hello world";
-
-          var title = document.querySelector("#addtitle");
-          title.innerHTML =
-            "<div><p>second title</p><ul><li>second title</li><li><p>second title</p></li></ul></div>";
         }, 1000);
       });
     </script>
@@ -60,7 +65,7 @@
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root">
       <h2>
-        <p>React is a JavaScript library for building user interfaces.</p>
+        <p><span>React is a JavaScript library for building user interfaces.</span></p>
       </h2>
       <div id="addtitle"></div>
       <h2>Shadow 1</h2>
