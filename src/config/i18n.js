@@ -193,8 +193,8 @@ export const I18N = {
     en: `1. The asterisk (*) wildcard is supported. 2. Multiple URLs can be separated by English commas ",".`,
   },
   selector_helper: {
-    zh: `1、遵循CSS选择器规则。2、留空表示采用全局设置。`,
-    en: `1. Follow CSS selector rules. 2. Leave blank to adopt the global setting.`,
+    zh: `1、遵循CSS选择器规则。2、留空表示采用全局设置。3、多个CSS选择器之间用“;”隔开。4、“shadow root”选择器和内部选择器用“>>>”隔开。`,
+    en: `1. Follow the CSS selector rules. 2. Leave blank to adopt the global setting. 3. Separate multiple CSS selectors with ";". 4. The "shadow root" selector and the internal selector are separated by ">>>".`,
   },
   translate_switch: {
     zh: `开启翻译`,
