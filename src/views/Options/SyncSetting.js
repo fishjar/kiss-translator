@@ -7,12 +7,16 @@ import Alert from "@mui/material/Alert";
 import Link from "@mui/material/Link";
 import { URL_KISS_WORKER } from "../../config";
 import { debounce } from "../../libs/utils";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { syncAll } from "../../libs/sync";
+import Button from "@mui/material/Button";
+import { useAlert } from "../../hooks/Alert";
 
 export default function SyncSetting() {
   const i18n = useI18n();
   const sync = useSync();
+  const alert = useAlert();
+  const [loading, setLoading] = useState(false);
 
   const handleChange = useMemo(
     () =>
@@ -22,10 +26,24 @@ export default function SyncSetting() {
         await sync.update({
           [name]: value,
         });
-        await syncAll();
-      }, 1000),
+        // trySyncAll();
+      }, 500),
     [sync]
   );
+
+  const handleSyncTest = async (e) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      await syncAll();
+      alert.success(i18n("data_sync_success"));
+    } catch (err) {
+      console.log("[sync all]", err);
+      alert.error(i18n("data_sync_error"));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (!sync.opt) {
     return;
@@ -57,6 +75,17 @@ export default function SyncSetting() {
           defaultValue={syncKey}
           onChange={handleChange}
         />
+
+        <Stack direction="row" spacing={2} useFlexGap flexWrap="wrap">
+          <Button
+            size="small"
+            variant="contained"
+            disabled={!syncUrl || !syncKey || loading}
+            onClick={handleSyncTest}
+          >
+            {i18n("data_sync_test")}
+          </Button>
+        </Stack>
       </Stack>
     </Box>
   );

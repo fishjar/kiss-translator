@@ -28,33 +28,37 @@ export const syncOpt = {
  * @returns
  */
 export const syncSetting = async (isBg = false) => {
+  const { syncUrl, syncKey, settingUpdateAt } = await syncOpt.load();
+  if (!syncUrl || !syncKey) {
+    return;
+  }
+
+  const setting = await getSetting();
+  const res = await apiSyncData(
+    syncUrl,
+    syncKey,
+    {
+      key: KV_SETTING_KEY,
+      value: setting,
+      updateAt: settingUpdateAt,
+    },
+    isBg
+  );
+
+  if (res && res.updateAt > settingUpdateAt) {
+    await syncOpt.update({
+      settingUpdateAt: res.updateAt,
+      settingSyncAt: res.updateAt,
+    });
+    await storage.setObj(STOKEY_SETTING, res.value);
+  } else {
+    await syncOpt.update({ settingSyncAt: res.updateAt });
+  }
+};
+
+export const trySyncSetting = async (isBg = false) => {
   try {
-    const { syncUrl, syncKey, settingUpdateAt } = await syncOpt.load();
-    if (!syncUrl || !syncKey) {
-      return;
-    }
-
-    const setting = await getSetting();
-    const res = await apiSyncData(
-      syncUrl,
-      syncKey,
-      {
-        key: KV_SETTING_KEY,
-        value: setting,
-        updateAt: settingUpdateAt,
-      },
-      isBg
-    );
-
-    if (res && res.updateAt > settingUpdateAt) {
-      await syncOpt.update({
-        settingUpdateAt: res.updateAt,
-        settingSyncAt: res.updateAt,
-      });
-      await storage.setObj(STOKEY_SETTING, res.value);
-    } else {
-      await syncOpt.update({ settingSyncAt: res.updateAt });
-    }
+    await syncSetting(isBg);
   } catch (err) {
     console.log("[sync setting]", err);
   }
@@ -65,33 +69,37 @@ export const syncSetting = async (isBg = false) => {
  * @returns
  */
 export const syncRules = async (isBg = false) => {
+  const { syncUrl, syncKey, rulesUpdateAt } = await syncOpt.load();
+  if (!syncUrl || !syncKey) {
+    return;
+  }
+
+  const rules = await getRules();
+  const res = await apiSyncData(
+    syncUrl,
+    syncKey,
+    {
+      key: KV_RULES_KEY,
+      value: rules,
+      updateAt: rulesUpdateAt,
+    },
+    isBg
+  );
+
+  if (res && res.updateAt > rulesUpdateAt) {
+    await syncOpt.update({
+      rulesUpdateAt: res.updateAt,
+      rulesSyncAt: res.updateAt,
+    });
+    await storage.setObj(STOKEY_RULES, res.value);
+  } else {
+    await syncOpt.update({ rulesSyncAt: res.updateAt });
+  }
+};
+
+export const trySyncRules = async (isBg = false) => {
   try {
-    const { syncUrl, syncKey, rulesUpdateAt } = await syncOpt.load();
-    if (!syncUrl || !syncKey) {
-      return;
-    }
-
-    const rules = await getRules();
-    const res = await apiSyncData(
-      syncUrl,
-      syncKey,
-      {
-        key: KV_RULES_KEY,
-        value: rules,
-        updateAt: rulesUpdateAt,
-      },
-      isBg
-    );
-
-    if (res && res.updateAt > rulesUpdateAt) {
-      await syncOpt.update({
-        rulesUpdateAt: res.updateAt,
-        rulesSyncAt: res.updateAt,
-      });
-      await storage.setObj(STOKEY_RULES, res.value);
-    } else {
-      await syncOpt.update({ rulesSyncAt: res.updateAt });
-    }
+    await syncRules(isBg);
   } catch (err) {
     console.log("[sync user rules]", err);
   }
@@ -120,4 +128,9 @@ export const syncShareRules = async ({ rules, syncUrl, syncKey }) => {
 export const syncAll = async (isBg = false) => {
   await syncSetting(isBg);
   await syncRules(isBg);
+};
+
+export const trySyncAll = async (isBg = false) => {
+  await trySyncSetting(isBg);
+  await trySyncRules(isBg);
 };

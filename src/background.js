@@ -19,7 +19,7 @@ import {
 } from "./config";
 import storage from "./libs/storage";
 import { getSetting } from "./libs";
-import { syncAll } from "./libs/sync";
+import { trySyncAll } from "./libs/sync";
 import { fetchData, fetchPool } from "./libs/fetch";
 import { sendTabMsg } from "./libs/msg";
 import { trySyncAllSubRules } from "./libs/rules";
@@ -45,7 +45,7 @@ browser.runtime.onStartup.addListener(async () => {
   console.log("browser onStartup");
 
   // 同步数据
-  await syncAll(true);
+  await trySyncAll(true);
 
   // 清除缓存
   const setting = await getSetting();

@@ -10,7 +10,7 @@ import { useEffect, useState } from "react";
 import { isGm } from "../../libs/browser";
 import { sleep } from "../../libs/utils";
 import CircularProgress from "@mui/material/CircularProgress";
-import { syncAll } from "../../libs/sync";
+import { trySyncAll } from "../../libs/sync";
 import { AlertProvider } from "../../hooks/Alert";
 
 export default function Options() {
@@ -38,7 +38,7 @@ export default function Options() {
       }
 
       // 同步数据
-      syncAll();
+      trySyncAll();
     })();
   }, []);
 

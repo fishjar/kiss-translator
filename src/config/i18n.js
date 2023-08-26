@@ -272,6 +272,18 @@ export const I18N = {
     zh: `数据同步密钥`,
     en: `Data Sync Key`,
   },
+  data_sync_test: {
+    zh: `数据同步测试`,
+    en: `Data Sync Test`,
+  },
+  data_sync_success: {
+    zh: `数据同步成功！`,
+    en: `Data Sync Success`,
+  },
+  data_sync_error: {
+    zh: `数据同步失败！`,
+    en: `Data Sync Error`,
+  },
   error_got_some_wrong: {
     zh: "抱歉，出错了！",
     en: "Sorry, something went wrong!",

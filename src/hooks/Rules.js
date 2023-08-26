@@ -1,7 +1,7 @@
 import { STOKEY_RULES, DEFAULT_SUBRULES_LIST } from "../config";
 import storage from "../libs/storage";
 import { useStorages } from "./Storage";
-import { syncRules } from "../libs/sync";
+import { trySyncRules } from "../libs/sync";
 import { useSync } from "./Sync";
 import { useSetting, useSettingUpdate } from "./Setting";
 import { checkRules } from "../libs/rules";
@@ -19,7 +19,7 @@ export function useRules() {
     const updateAt = sync.opt?.rulesUpdateAt ? Date.now() : 0;
     await storage.setObj(STOKEY_RULES, rules);
     await sync.update({ rulesUpdateAt: updateAt });
-    syncRules();
+    trySyncRules();
   };
 
   const add = async (rule) => {
