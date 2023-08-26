@@ -23,8 +23,12 @@ const RULES = [
     selector: `h3, .IsZvec, .VwiC3b`,
   },
   {
-    pattern: `https://news.google.com/`,
+    pattern: `news.google.com`,
     selector: `h4`,
+  },
+  {
+    pattern: `www.foxnews.com`,
+    selector: `h1, h2, .title, .sidebar [data-type="Title"], .article-content :is(li, p, h1, h2, h3, h4, h5, h6, dd); [data-spotim-module="conversation"]>div >>> [data-spot-im-class="message-text"] p,  [data-spot-im-class="message-text"]`,
   },
   {
     pattern: `bearblog.dev, www.theverge.com, www.tampermonkey.net/documentation.php`,
