@@ -7,14 +7,16 @@ import {
 } from "./config";
 import { getSetting, getRules, matchRule } from "./libs";
 import { Translator } from "./libs/translator";
+import { isIframe } from "./libs/iframe";
 
 /**
  * 入口函数
  */
 (async () => {
+  const href = isIframe ? document.referrer : document.location.href;
   const setting = await getSetting();
   const rules = await getRules();
-  const rule = await matchRule(rules, document.location.href, setting);
+  const rule = await matchRule(rules, href, setting);
   const translator = new Translator(rule, setting);
 
   // 监听消息
