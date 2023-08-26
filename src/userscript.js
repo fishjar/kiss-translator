@@ -26,9 +26,10 @@ import { isIframe } from "./libs/iframe";
   }
 
   // 翻译页面
+  const href = isIframe ? document.referrer : document.location.href;
   const setting = await getSetting();
   const rules = await getRules();
-  const rule = await matchRule(rules, document.location.href, setting);
+  const rule = await matchRule(rules, href, setting);
   const translator = new Translator(rule, setting);
 
   if (isIframe) {
