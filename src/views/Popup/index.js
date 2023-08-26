@@ -18,6 +18,7 @@ import {
   OPT_LANGS_TO,
   OPT_STYLE_ALL,
 } from "../../config";
+import { sendIframeMsg } from "../../libs/iframe";
 
 export default function Popup({ setShowPopup, translator: tran }) {
   const i18n = useI18n();
@@ -40,6 +41,7 @@ export default function Popup({ setShowPopup, translator: tran }) {
         await sendTabMsg(MSG_TRANS_TOGGLE);
       } else {
         tran.toggle();
+        sendIframeMsg(MSG_TRANS_TOGGLE);
       }
     } catch (err) {
       console.log("[toggle trans]", err);
@@ -55,6 +57,7 @@ export default function Popup({ setShowPopup, translator: tran }) {
         await sendTabMsg(MSG_TRANS_PUTRULE, { [name]: value });
       } else {
         tran.updateRule({ [name]: value });
+        sendIframeMsg(MSG_TRANS_PUTRULE, { [name]: value });
       }
     } catch (err) {
       console.log("[update rule]", err);

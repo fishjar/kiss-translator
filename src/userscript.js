@@ -7,6 +7,8 @@ import { getSetting, getRules, matchRule, getFab } from "./libs";
 import { Translator } from "./libs/translator";
 import { trySyncAllSubRules } from "./libs/rules";
 import { isGm } from "./libs/browser";
+import { MSG_TRANS_TOGGLE, MSG_TRANS_PUTRULE } from "./config";
+import { isIframe } from "./libs/iframe";
 
 /**
  * 入口函数
@@ -23,16 +25,28 @@ import { isGm } from "./libs/browser";
     return;
   }
 
-  // skip iframe
-  // if (window.self !== window.top) {
-  //   return;
-  // }
-
   // 翻译页面
   const setting = await getSetting();
   const rules = await getRules();
   const rule = await matchRule(rules, document.location.href, setting);
   const translator = new Translator(rule, setting);
+
+  if (isIframe) {
+    // iframe
+    window.addEventListener("message", (e) => {
+      const action = e?.data?.action;
+      switch (action) {
+        case MSG_TRANS_TOGGLE:
+          translator.toggle();
+          break;
+        case MSG_TRANS_PUTRULE:
+          translator.updateRule(e.data.args || {});
+          break;
+        default:
+      }
+    });
+    return;
+  }
 
   // 浮球按钮
   const fab = await getFab();
@@ -56,11 +70,6 @@ import { isGm } from "./libs/browser";
       </CacheProvider>
     </React.StrictMode>
   );
-
-  // skip iframe
-  if (window.self !== window.top) {
-    return;
-  }
 
   // 注册菜单
   if (isGm) {
