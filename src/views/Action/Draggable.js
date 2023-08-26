@@ -163,7 +163,7 @@ export default function Draggable({
 
   const opacity = useMemo(() => {
     if (snapEdge) {
-      return position.hide ? 0.1 : 1;
+      return position.hide ? 0.2 : 1;
     }
     return origin ? 0.8 : 1;
   }, [origin, snapEdge, position.hide]);
