@@ -3008,8 +3008,8 @@ var useControlled = __webpack_require__(4951);
 var useEventCallback = __webpack_require__(3236);
 // EXTERNAL MODULE: ./node_modules/@mui/material/utils/useForkRef.js
 var useForkRef = __webpack_require__(6983);
-// EXTERNAL MODULE: ./node_modules/@mui/material/utils/useIsFocusVisible.js + 1 modules
-var useIsFocusVisible = __webpack_require__(9127);
+// EXTERNAL MODULE: ./node_modules/@mui/material/utils/useIsFocusVisible.js
+var useIsFocusVisible = __webpack_require__(7037);
 ;// CONCATENATED MODULE: ./node_modules/@mui/material/utils/index.js
 'use client';
 
@@ -3183,183 +3183,15 @@ function useControlled(_ref) {
 
 /***/ }),
 
-/***/ 9127:
+/***/ 7037:
 /***/ (function(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-
-// EXPORTS
-__webpack_require__.d(__webpack_exports__, {
-  Z: function() { return /* binding */ utils_useIsFocusVisible; }
-});
-
-// EXTERNAL MODULE: ./node_modules/react/index.js
-var react = __webpack_require__(7313);
-;// CONCATENATED MODULE: ./node_modules/@mui/utils/esm/useIsFocusVisible.js
-'use client';
-
-// based on https://github.com/WICG/focus-visible/blob/v4.1.5/src/focus-visible.js
-
-var hadKeyboardEvent = true;
-var hadFocusVisibleRecently = false;
-var hadFocusVisibleRecentlyTimeout;
-var inputTypesWhitelist = {
-  text: true,
-  search: true,
-  url: true,
-  tel: true,
-  email: true,
-  password: true,
-  number: true,
-  date: true,
-  month: true,
-  week: true,
-  time: true,
-  datetime: true,
-  'datetime-local': true
-};
-
-/**
- * Computes whether the given element should automatically trigger the
- * `focus-visible` class being added, i.e. whether it should always match
- * `:focus-visible` when focused.
- * @param {Element} node
- * @returns {boolean}
- */
-function focusTriggersKeyboardModality(node) {
-  var type = node.type,
-    tagName = node.tagName;
-  if (tagName === 'INPUT' && inputTypesWhitelist[type] && !node.readOnly) {
-    return true;
-  }
-  if (tagName === 'TEXTAREA' && !node.readOnly) {
-    return true;
-  }
-  if (node.isContentEditable) {
-    return true;
-  }
-  return false;
-}
-
-/**
- * Keep track of our keyboard modality state with `hadKeyboardEvent`.
- * If the most recent user interaction was via the keyboard;
- * and the key press did not include a meta, alt/option, or control key;
- * then the modality is keyboard. Otherwise, the modality is not keyboard.
- * @param {KeyboardEvent} event
- */
-function handleKeyDown(event) {
-  if (event.metaKey || event.altKey || event.ctrlKey) {
-    return;
-  }
-  hadKeyboardEvent = true;
-}
-
-/**
- * If at any point a user clicks with a pointing device, ensure that we change
- * the modality away from keyboard.
- * This avoids the situation where a user presses a key on an already focused
- * element, and then clicks on a different element, focusing it with a
- * pointing device, while we still think we're in keyboard modality.
- */
-function handlePointerDown() {
-  hadKeyboardEvent = false;
-}
-function handleVisibilityChange() {
-  if (this.visibilityState === 'hidden') {
-    // If the tab becomes active again, the browser will handle calling focus
-    // on the element (Safari actually calls it twice).
-    // If this tab change caused a blur on an element with focus-visible,
-    // re-apply the class when the user switches back to the tab.
-    if (hadFocusVisibleRecently) {
-      hadKeyboardEvent = true;
-    }
-  }
-}
-function prepare(doc) {
-  doc.addEventListener('keydown', handleKeyDown, true);
-  doc.addEventListener('mousedown', handlePointerDown, true);
-  doc.addEventListener('pointerdown', handlePointerDown, true);
-  doc.addEventListener('touchstart', handlePointerDown, true);
-  doc.addEventListener('visibilitychange', handleVisibilityChange, true);
-}
-function teardown(doc) {
-  doc.removeEventListener('keydown', handleKeyDown, true);
-  doc.removeEventListener('mousedown', handlePointerDown, true);
-  doc.removeEventListener('pointerdown', handlePointerDown, true);
-  doc.removeEventListener('touchstart', handlePointerDown, true);
-  doc.removeEventListener('visibilitychange', handleVisibilityChange, true);
-}
-function isFocusVisible(event) {
-  var target = event.target;
-  try {
-    return target.matches(':focus-visible');
-  } catch (error) {
-    // Browsers not implementing :focus-visible will throw a SyntaxError.
-    // We use our own heuristic for those browsers.
-    // Rethrow might be better if it's not the expected error but do we really
-    // want to crash if focus-visible malfunctioned?
-  }
-
-  // No need for validFocusTarget check. The user does that by attaching it to
-  // focusable events only.
-  return hadKeyboardEvent || focusTriggersKeyboardModality(target);
-}
-function useIsFocusVisible() {
-  var ref = react.useCallback(function (node) {
-    if (node != null) {
-      prepare(node.ownerDocument);
-    }
-  }, []);
-  var isFocusVisibleRef = react.useRef(false);
-
-  /**
-   * Should be called if a blur event is fired
-   */
-  function handleBlurVisible() {
-    // checking against potential state variable does not suffice if we focus and blur synchronously.
-    // React wouldn't have time to trigger a re-render so `focusVisible` would be stale.
-    // Ideally we would adjust `isFocusVisible(event)` to look at `relatedTarget` for blur events.
-    // This doesn't work in IE11 due to https://github.com/facebook/react/issues/3751
-    // TODO: check again if React releases their internal changes to focus event handling (https://github.com/facebook/react/pull/19186).
-    if (isFocusVisibleRef.current) {
-      // To detect a tab/window switch, we look for a blur event followed
-      // rapidly by a visibility change.
-      // If we don't see a visibility change within 100ms, it's probably a
-      // regular focus change.
-      hadFocusVisibleRecently = true;
-      window.clearTimeout(hadFocusVisibleRecentlyTimeout);
-      hadFocusVisibleRecentlyTimeout = window.setTimeout(function () {
-        hadFocusVisibleRecently = false;
-      }, 100);
-      isFocusVisibleRef.current = false;
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * Should be called if a blur event is fired
-   */
-  function handleFocusVisible(event) {
-    if (isFocusVisible(event)) {
-      isFocusVisibleRef.current = true;
-      return true;
-    }
-    return false;
-  }
-  return {
-    isFocusVisibleRef: isFocusVisibleRef,
-    onFocus: handleFocusVisible,
-    onBlur: handleBlurVisible,
-    ref: ref
-  };
-}
-;// CONCATENATED MODULE: ./node_modules/@mui/material/utils/useIsFocusVisible.js
+/* harmony import */ var _mui_utils__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(9578);
 'use client';
 
 
-/* harmony default export */ var utils_useIsFocusVisible = (useIsFocusVisible);
+/* harmony default export */ __webpack_exports__.Z = (_mui_utils__WEBPACK_IMPORTED_MODULE_0__/* ["default"] */ .Z);
 
 /***/ }),
 
@@ -3373,12 +3205,14 @@ function useIsFocusVisible() {
 /* harmony export */ });
 /* harmony import */ var _emotion_styled__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3320);
 /**
- * @mui/styled-engine v5.13.2
+ * @mui/styled-engine v5.14.6
  *
  * @license MIT
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  */
+'use client';
+
 /* eslint-disable no-underscore-dangle */
 
 function styled(tag, options) {
@@ -5814,11 +5648,12 @@ var globalStateClassesMapping = {
   checked: 'checked',
   completed: 'completed',
   disabled: 'disabled',
-  readOnly: 'readOnly',
   error: 'error',
   expanded: 'expanded',
   focused: 'focused',
   focusVisible: 'focusVisible',
+  open: 'open',
+  readOnly: 'readOnly',
   required: 'required',
   selected: 'selected'
 };
@@ -6087,6 +5922,177 @@ function useId(idOverride) {
   }
   // eslint-disable-next-line react-hooks/rules-of-hooks -- `React.useId` is invariant at runtime.
   return useGlobalId(idOverride);
+}
+
+/***/ }),
+
+/***/ 9578:
+/***/ (function(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   Z: function() { return /* binding */ useIsFocusVisible; }
+/* harmony export */ });
+/* unused harmony export teardown */
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(7313);
+'use client';
+
+// based on https://github.com/WICG/focus-visible/blob/v4.1.5/src/focus-visible.js
+
+var hadKeyboardEvent = true;
+var hadFocusVisibleRecently = false;
+var hadFocusVisibleRecentlyTimeout;
+var inputTypesWhitelist = {
+  text: true,
+  search: true,
+  url: true,
+  tel: true,
+  email: true,
+  password: true,
+  number: true,
+  date: true,
+  month: true,
+  week: true,
+  time: true,
+  datetime: true,
+  'datetime-local': true
+};
+
+/**
+ * Computes whether the given element should automatically trigger the
+ * `focus-visible` class being added, i.e. whether it should always match
+ * `:focus-visible` when focused.
+ * @param {Element} node
+ * @returns {boolean}
+ */
+function focusTriggersKeyboardModality(node) {
+  var type = node.type,
+    tagName = node.tagName;
+  if (tagName === 'INPUT' && inputTypesWhitelist[type] && !node.readOnly) {
+    return true;
+  }
+  if (tagName === 'TEXTAREA' && !node.readOnly) {
+    return true;
+  }
+  if (node.isContentEditable) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Keep track of our keyboard modality state with `hadKeyboardEvent`.
+ * If the most recent user interaction was via the keyboard;
+ * and the key press did not include a meta, alt/option, or control key;
+ * then the modality is keyboard. Otherwise, the modality is not keyboard.
+ * @param {KeyboardEvent} event
+ */
+function handleKeyDown(event) {
+  if (event.metaKey || event.altKey || event.ctrlKey) {
+    return;
+  }
+  hadKeyboardEvent = true;
+}
+
+/**
+ * If at any point a user clicks with a pointing device, ensure that we change
+ * the modality away from keyboard.
+ * This avoids the situation where a user presses a key on an already focused
+ * element, and then clicks on a different element, focusing it with a
+ * pointing device, while we still think we're in keyboard modality.
+ */
+function handlePointerDown() {
+  hadKeyboardEvent = false;
+}
+function handleVisibilityChange() {
+  if (this.visibilityState === 'hidden') {
+    // If the tab becomes active again, the browser will handle calling focus
+    // on the element (Safari actually calls it twice).
+    // If this tab change caused a blur on an element with focus-visible,
+    // re-apply the class when the user switches back to the tab.
+    if (hadFocusVisibleRecently) {
+      hadKeyboardEvent = true;
+    }
+  }
+}
+function prepare(doc) {
+  doc.addEventListener('keydown', handleKeyDown, true);
+  doc.addEventListener('mousedown', handlePointerDown, true);
+  doc.addEventListener('pointerdown', handlePointerDown, true);
+  doc.addEventListener('touchstart', handlePointerDown, true);
+  doc.addEventListener('visibilitychange', handleVisibilityChange, true);
+}
+function teardown(doc) {
+  doc.removeEventListener('keydown', handleKeyDown, true);
+  doc.removeEventListener('mousedown', handlePointerDown, true);
+  doc.removeEventListener('pointerdown', handlePointerDown, true);
+  doc.removeEventListener('touchstart', handlePointerDown, true);
+  doc.removeEventListener('visibilitychange', handleVisibilityChange, true);
+}
+function isFocusVisible(event) {
+  var target = event.target;
+  try {
+    return target.matches(':focus-visible');
+  } catch (error) {
+    // Browsers not implementing :focus-visible will throw a SyntaxError.
+    // We use our own heuristic for those browsers.
+    // Rethrow might be better if it's not the expected error but do we really
+    // want to crash if focus-visible malfunctioned?
+  }
+
+  // No need for validFocusTarget check. The user does that by attaching it to
+  // focusable events only.
+  return hadKeyboardEvent || focusTriggersKeyboardModality(target);
+}
+function useIsFocusVisible() {
+  var ref = react__WEBPACK_IMPORTED_MODULE_0__.useCallback(function (node) {
+    if (node != null) {
+      prepare(node.ownerDocument);
+    }
+  }, []);
+  var isFocusVisibleRef = react__WEBPACK_IMPORTED_MODULE_0__.useRef(false);
+
+  /**
+   * Should be called if a blur event is fired
+   */
+  function handleBlurVisible() {
+    // checking against potential state variable does not suffice if we focus and blur synchronously.
+    // React wouldn't have time to trigger a re-render so `focusVisible` would be stale.
+    // Ideally we would adjust `isFocusVisible(event)` to look at `relatedTarget` for blur events.
+    // This doesn't work in IE11 due to https://github.com/facebook/react/issues/3751
+    // TODO: check again if React releases their internal changes to focus event handling (https://github.com/facebook/react/pull/19186).
+    if (isFocusVisibleRef.current) {
+      // To detect a tab/window switch, we look for a blur event followed
+      // rapidly by a visibility change.
+      // If we don't see a visibility change within 100ms, it's probably a
+      // regular focus change.
+      hadFocusVisibleRecently = true;
+      window.clearTimeout(hadFocusVisibleRecentlyTimeout);
+      hadFocusVisibleRecentlyTimeout = window.setTimeout(function () {
+        hadFocusVisibleRecently = false;
+      }, 100);
+      isFocusVisibleRef.current = false;
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Should be called if a blur event is fired
+   */
+  function handleFocusVisible(event) {
+    if (isFocusVisible(event)) {
+      isFocusVisibleRef.current = true;
+      return true;
+    }
+    return false;
+  }
+  return {
+    isFocusVisibleRef: isFocusVisibleRef,
+    onFocus: handleFocusVisible,
+    onBlur: handleBlurVisible,
+    ref: ref
+  };
 }
 
 /***/ }),
@@ -16480,14 +16486,14 @@ module.exports = _toPropertyKey, module.exports.__esModule = true, module.export
 /***/ 8698:
 /***/ (function(module) {
 
-function _typeof(obj) {
+function _typeof(o) {
   "@babel/helpers - typeof";
 
-  return (module.exports = _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (obj) {
-    return typeof obj;
-  } : function (obj) {
-    return obj && "function" == typeof Symbol && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
-  }, module.exports.__esModule = true, module.exports["default"] = module.exports), _typeof(obj);
+  return (module.exports = _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) {
+    return typeof o;
+  } : function (o) {
+    return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o;
+  }, module.exports.__esModule = true, module.exports["default"] = module.exports), _typeof(o);
 }
 module.exports = _typeof, module.exports.__esModule = true, module.exports["default"] = module.exports;
 
@@ -16659,31 +16665,31 @@ function _iterableToArray(iter) {
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: function() { return /* binding */ _iterableToArrayLimit; }
 /* harmony export */ });
-function _iterableToArrayLimit(arr, i) {
-  var _i = null == arr ? null : "undefined" != typeof Symbol && arr[Symbol.iterator] || arr["@@iterator"];
-  if (null != _i) {
-    var _s,
-      _e,
-      _x,
-      _r,
-      _arr = [],
-      _n = !0,
-      _d = !1;
+function _iterableToArrayLimit(r, l) {
+  var t = null == r ? null : "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"];
+  if (null != t) {
+    var e,
+      n,
+      i,
+      u,
+      a = [],
+      f = !0,
+      o = !1;
     try {
-      if (_x = (_i = _i.call(arr)).next, 0 === i) {
-        if (Object(_i) !== _i) return;
-        _n = !1;
-      } else for (; !(_n = (_s = _x.call(_i)).done) && (_arr.push(_s.value), _arr.length !== i); _n = !0);
-    } catch (err) {
-      _d = !0, _e = err;
+      if (i = (t = t.call(r)).next, 0 === l) {
+        if (Object(t) !== t) return;
+        f = !1;
+      } else for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = !0);
+    } catch (r) {
+      o = !0, n = r;
     } finally {
       try {
-        if (!_n && null != _i["return"] && (_r = _i["return"](), Object(_r) !== _r)) return;
+        if (!f && null != t["return"] && (u = t["return"](), Object(u) !== u)) return;
       } finally {
-        if (_d) throw _e;
+        if (o) throw n;
       }
     }
-    return _arr;
+    return a;
   }
 }
 
@@ -16826,14 +16832,14 @@ function _toPropertyKey(arg) {
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: function() { return /* binding */ _typeof; }
 /* harmony export */ });
-function _typeof(obj) {
+function _typeof(o) {
   "@babel/helpers - typeof";
 
-  return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (obj) {
-    return typeof obj;
-  } : function (obj) {
-    return obj && "function" == typeof Symbol && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
-  }, _typeof(obj);
+  return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) {
+    return typeof o;
+  } : function (o) {
+    return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o;
+  }, _typeof(o);
 }
 
 /***/ }),
@@ -17837,299 +17843,304 @@ var esm_typeof = __webpack_require__(1002);
 function regeneratorRuntime_regeneratorRuntime() {
   "use strict"; /*! regenerator-runtime -- Copyright (c) 2014-present, Facebook, Inc. -- license (MIT): https://github.com/facebook/regenerator/blob/main/LICENSE */
   regeneratorRuntime_regeneratorRuntime = function _regeneratorRuntime() {
-    return exports;
+    return e;
   };
-  var exports = {},
-    Op = Object.prototype,
-    hasOwn = Op.hasOwnProperty,
-    defineProperty = Object.defineProperty || function (obj, key, desc) {
-      obj[key] = desc.value;
+  var t,
+    e = {},
+    r = Object.prototype,
+    n = r.hasOwnProperty,
+    o = Object.defineProperty || function (t, e, r) {
+      t[e] = r.value;
     },
-    $Symbol = "function" == typeof Symbol ? Symbol : {},
-    iteratorSymbol = $Symbol.iterator || "@@iterator",
-    asyncIteratorSymbol = $Symbol.asyncIterator || "@@asyncIterator",
-    toStringTagSymbol = $Symbol.toStringTag || "@@toStringTag";
-  function define(obj, key, value) {
-    return Object.defineProperty(obj, key, {
-      value: value,
+    i = "function" == typeof Symbol ? Symbol : {},
+    a = i.iterator || "@@iterator",
+    c = i.asyncIterator || "@@asyncIterator",
+    u = i.toStringTag || "@@toStringTag";
+  function define(t, e, r) {
+    return Object.defineProperty(t, e, {
+      value: r,
       enumerable: !0,
       configurable: !0,
       writable: !0
-    }), obj[key];
+    }), t[e];
   }
   try {
     define({}, "");
-  } catch (err) {
-    define = function define(obj, key, value) {
-      return obj[key] = value;
+  } catch (t) {
+    define = function define(t, e, r) {
+      return t[e] = r;
     };
   }
-  function wrap(innerFn, outerFn, self, tryLocsList) {
-    var protoGenerator = outerFn && outerFn.prototype instanceof Generator ? outerFn : Generator,
-      generator = Object.create(protoGenerator.prototype),
-      context = new Context(tryLocsList || []);
-    return defineProperty(generator, "_invoke", {
-      value: makeInvokeMethod(innerFn, self, context)
-    }), generator;
+  function wrap(t, e, r, n) {
+    var i = e && e.prototype instanceof Generator ? e : Generator,
+      a = Object.create(i.prototype),
+      c = new Context(n || []);
+    return o(a, "_invoke", {
+      value: makeInvokeMethod(t, r, c)
+    }), a;
   }
-  function tryCatch(fn, obj, arg) {
+  function tryCatch(t, e, r) {
     try {
       return {
         type: "normal",
-        arg: fn.call(obj, arg)
+        arg: t.call(e, r)
       };
-    } catch (err) {
+    } catch (t) {
       return {
         type: "throw",
-        arg: err
+        arg: t
       };
     }
   }
-  exports.wrap = wrap;
-  var ContinueSentinel = {};
+  e.wrap = wrap;
+  var h = "suspendedStart",
+    l = "suspendedYield",
+    f = "executing",
+    s = "completed",
+    y = {};
   function Generator() {}
   function GeneratorFunction() {}
   function GeneratorFunctionPrototype() {}
-  var IteratorPrototype = {};
-  define(IteratorPrototype, iteratorSymbol, function () {
+  var p = {};
+  define(p, a, function () {
     return this;
   });
-  var getProto = Object.getPrototypeOf,
-    NativeIteratorPrototype = getProto && getProto(getProto(values([])));
-  NativeIteratorPrototype && NativeIteratorPrototype !== Op && hasOwn.call(NativeIteratorPrototype, iteratorSymbol) && (IteratorPrototype = NativeIteratorPrototype);
-  var Gp = GeneratorFunctionPrototype.prototype = Generator.prototype = Object.create(IteratorPrototype);
-  function defineIteratorMethods(prototype) {
-    ["next", "throw", "return"].forEach(function (method) {
-      define(prototype, method, function (arg) {
-        return this._invoke(method, arg);
+  var d = Object.getPrototypeOf,
+    v = d && d(d(values([])));
+  v && v !== r && n.call(v, a) && (p = v);
+  var g = GeneratorFunctionPrototype.prototype = Generator.prototype = Object.create(p);
+  function defineIteratorMethods(t) {
+    ["next", "throw", "return"].forEach(function (e) {
+      define(t, e, function (t) {
+        return this._invoke(e, t);
       });
     });
   }
-  function AsyncIterator(generator, PromiseImpl) {
-    function invoke(method, arg, resolve, reject) {
-      var record = tryCatch(generator[method], generator, arg);
-      if ("throw" !== record.type) {
-        var result = record.arg,
-          value = result.value;
-        return value && "object" == (0,esm_typeof/* default */.Z)(value) && hasOwn.call(value, "__await") ? PromiseImpl.resolve(value.__await).then(function (value) {
-          invoke("next", value, resolve, reject);
-        }, function (err) {
-          invoke("throw", err, resolve, reject);
-        }) : PromiseImpl.resolve(value).then(function (unwrapped) {
-          result.value = unwrapped, resolve(result);
-        }, function (error) {
-          return invoke("throw", error, resolve, reject);
+  function AsyncIterator(t, e) {
+    function invoke(r, o, i, a) {
+      var c = tryCatch(t[r], t, o);
+      if ("throw" !== c.type) {
+        var u = c.arg,
+          h = u.value;
+        return h && "object" == (0,esm_typeof/* default */.Z)(h) && n.call(h, "__await") ? e.resolve(h.__await).then(function (t) {
+          invoke("next", t, i, a);
+        }, function (t) {
+          invoke("throw", t, i, a);
+        }) : e.resolve(h).then(function (t) {
+          u.value = t, i(u);
+        }, function (t) {
+          return invoke("throw", t, i, a);
         });
       }
-      reject(record.arg);
+      a(c.arg);
     }
-    var previousPromise;
-    defineProperty(this, "_invoke", {
-      value: function value(method, arg) {
+    var r;
+    o(this, "_invoke", {
+      value: function value(t, n) {
         function callInvokeWithMethodAndArg() {
-          return new PromiseImpl(function (resolve, reject) {
-            invoke(method, arg, resolve, reject);
+          return new e(function (e, r) {
+            invoke(t, n, e, r);
           });
         }
-        return previousPromise = previousPromise ? previousPromise.then(callInvokeWithMethodAndArg, callInvokeWithMethodAndArg) : callInvokeWithMethodAndArg();
+        return r = r ? r.then(callInvokeWithMethodAndArg, callInvokeWithMethodAndArg) : callInvokeWithMethodAndArg();
       }
     });
   }
-  function makeInvokeMethod(innerFn, self, context) {
-    var state = "suspendedStart";
-    return function (method, arg) {
-      if ("executing" === state) throw new Error("Generator is already running");
-      if ("completed" === state) {
-        if ("throw" === method) throw arg;
+  function makeInvokeMethod(e, r, n) {
+    var o = h;
+    return function (i, a) {
+      if (o === f) throw new Error("Generator is already running");
+      if (o === s) {
+        if ("throw" === i) throw a;
         return {
-          value: void 0,
+          value: t,
           done: !0
         };
       }
-      for (context.method = method, context.arg = arg;;) {
-        var delegate = context.delegate;
-        if (delegate) {
-          var delegateResult = maybeInvokeDelegate(delegate, context);
-          if (delegateResult) {
-            if (delegateResult === ContinueSentinel) continue;
-            return delegateResult;
+      for (n.method = i, n.arg = a;;) {
+        var c = n.delegate;
+        if (c) {
+          var u = maybeInvokeDelegate(c, n);
+          if (u) {
+            if (u === y) continue;
+            return u;
           }
         }
-        if ("next" === context.method) context.sent = context._sent = context.arg;else if ("throw" === context.method) {
-          if ("suspendedStart" === state) throw state = "completed", context.arg;
-          context.dispatchException(context.arg);
-        } else "return" === context.method && context.abrupt("return", context.arg);
-        state = "executing";
-        var record = tryCatch(innerFn, self, context);
-        if ("normal" === record.type) {
-          if (state = context.done ? "completed" : "suspendedYield", record.arg === ContinueSentinel) continue;
+        if ("next" === n.method) n.sent = n._sent = n.arg;else if ("throw" === n.method) {
+          if (o === h) throw o = s, n.arg;
+          n.dispatchException(n.arg);
+        } else "return" === n.method && n.abrupt("return", n.arg);
+        o = f;
+        var p = tryCatch(e, r, n);
+        if ("normal" === p.type) {
+          if (o = n.done ? s : l, p.arg === y) continue;
           return {
-            value: record.arg,
-            done: context.done
+            value: p.arg,
+            done: n.done
           };
         }
-        "throw" === record.type && (state = "completed", context.method = "throw", context.arg = record.arg);
+        "throw" === p.type && (o = s, n.method = "throw", n.arg = p.arg);
       }
     };
   }
-  function maybeInvokeDelegate(delegate, context) {
-    var methodName = context.method,
-      method = delegate.iterator[methodName];
-    if (undefined === method) return context.delegate = null, "throw" === methodName && delegate.iterator["return"] && (context.method = "return", context.arg = undefined, maybeInvokeDelegate(delegate, context), "throw" === context.method) || "return" !== methodName && (context.method = "throw", context.arg = new TypeError("The iterator does not provide a '" + methodName + "' method")), ContinueSentinel;
-    var record = tryCatch(method, delegate.iterator, context.arg);
-    if ("throw" === record.type) return context.method = "throw", context.arg = record.arg, context.delegate = null, ContinueSentinel;
-    var info = record.arg;
-    return info ? info.done ? (context[delegate.resultName] = info.value, context.next = delegate.nextLoc, "return" !== context.method && (context.method = "next", context.arg = undefined), context.delegate = null, ContinueSentinel) : info : (context.method = "throw", context.arg = new TypeError("iterator result is not an object"), context.delegate = null, ContinueSentinel);
+  function maybeInvokeDelegate(e, r) {
+    var n = r.method,
+      o = e.iterator[n];
+    if (o === t) return r.delegate = null, "throw" === n && e.iterator["return"] && (r.method = "return", r.arg = t, maybeInvokeDelegate(e, r), "throw" === r.method) || "return" !== n && (r.method = "throw", r.arg = new TypeError("The iterator does not provide a '" + n + "' method")), y;
+    var i = tryCatch(o, e.iterator, r.arg);
+    if ("throw" === i.type) return r.method = "throw", r.arg = i.arg, r.delegate = null, y;
+    var a = i.arg;
+    return a ? a.done ? (r[e.resultName] = a.value, r.next = e.nextLoc, "return" !== r.method && (r.method = "next", r.arg = t), r.delegate = null, y) : a : (r.method = "throw", r.arg = new TypeError("iterator result is not an object"), r.delegate = null, y);
   }
-  function pushTryEntry(locs) {
-    var entry = {
-      tryLoc: locs[0]
+  function pushTryEntry(t) {
+    var e = {
+      tryLoc: t[0]
     };
-    1 in locs && (entry.catchLoc = locs[1]), 2 in locs && (entry.finallyLoc = locs[2], entry.afterLoc = locs[3]), this.tryEntries.push(entry);
+    1 in t && (e.catchLoc = t[1]), 2 in t && (e.finallyLoc = t[2], e.afterLoc = t[3]), this.tryEntries.push(e);
   }
-  function resetTryEntry(entry) {
-    var record = entry.completion || {};
-    record.type = "normal", delete record.arg, entry.completion = record;
+  function resetTryEntry(t) {
+    var e = t.completion || {};
+    e.type = "normal", delete e.arg, t.completion = e;
   }
-  function Context(tryLocsList) {
+  function Context(t) {
     this.tryEntries = [{
       tryLoc: "root"
-    }], tryLocsList.forEach(pushTryEntry, this), this.reset(!0);
+    }], t.forEach(pushTryEntry, this), this.reset(!0);
   }
-  function values(iterable) {
-    if (iterable || "" === iterable) {
-      var iteratorMethod = iterable[iteratorSymbol];
-      if (iteratorMethod) return iteratorMethod.call(iterable);
-      if ("function" == typeof iterable.next) return iterable;
-      if (!isNaN(iterable.length)) {
-        var i = -1,
-          next = function next() {
-            for (; ++i < iterable.length;) if (hasOwn.call(iterable, i)) return next.value = iterable[i], next.done = !1, next;
-            return next.value = undefined, next.done = !0, next;
+  function values(e) {
+    if (e || "" === e) {
+      var r = e[a];
+      if (r) return r.call(e);
+      if ("function" == typeof e.next) return e;
+      if (!isNaN(e.length)) {
+        var o = -1,
+          i = function next() {
+            for (; ++o < e.length;) if (n.call(e, o)) return next.value = e[o], next.done = !1, next;
+            return next.value = t, next.done = !0, next;
           };
-        return next.next = next;
+        return i.next = i;
       }
     }
-    throw new TypeError((0,esm_typeof/* default */.Z)(iterable) + " is not iterable");
+    throw new TypeError((0,esm_typeof/* default */.Z)(e) + " is not iterable");
   }
-  return GeneratorFunction.prototype = GeneratorFunctionPrototype, defineProperty(Gp, "constructor", {
+  return GeneratorFunction.prototype = GeneratorFunctionPrototype, o(g, "constructor", {
     value: GeneratorFunctionPrototype,
     configurable: !0
-  }), defineProperty(GeneratorFunctionPrototype, "constructor", {
+  }), o(GeneratorFunctionPrototype, "constructor", {
     value: GeneratorFunction,
     configurable: !0
-  }), GeneratorFunction.displayName = define(GeneratorFunctionPrototype, toStringTagSymbol, "GeneratorFunction"), exports.isGeneratorFunction = function (genFun) {
-    var ctor = "function" == typeof genFun && genFun.constructor;
-    return !!ctor && (ctor === GeneratorFunction || "GeneratorFunction" === (ctor.displayName || ctor.name));
-  }, exports.mark = function (genFun) {
-    return Object.setPrototypeOf ? Object.setPrototypeOf(genFun, GeneratorFunctionPrototype) : (genFun.__proto__ = GeneratorFunctionPrototype, define(genFun, toStringTagSymbol, "GeneratorFunction")), genFun.prototype = Object.create(Gp), genFun;
-  }, exports.awrap = function (arg) {
+  }), GeneratorFunction.displayName = define(GeneratorFunctionPrototype, u, "GeneratorFunction"), e.isGeneratorFunction = function (t) {
+    var e = "function" == typeof t && t.constructor;
+    return !!e && (e === GeneratorFunction || "GeneratorFunction" === (e.displayName || e.name));
+  }, e.mark = function (t) {
+    return Object.setPrototypeOf ? Object.setPrototypeOf(t, GeneratorFunctionPrototype) : (t.__proto__ = GeneratorFunctionPrototype, define(t, u, "GeneratorFunction")), t.prototype = Object.create(g), t;
+  }, e.awrap = function (t) {
     return {
-      __await: arg
+      __await: t
     };
-  }, defineIteratorMethods(AsyncIterator.prototype), define(AsyncIterator.prototype, asyncIteratorSymbol, function () {
+  }, defineIteratorMethods(AsyncIterator.prototype), define(AsyncIterator.prototype, c, function () {
     return this;
-  }), exports.AsyncIterator = AsyncIterator, exports.async = function (innerFn, outerFn, self, tryLocsList, PromiseImpl) {
-    void 0 === PromiseImpl && (PromiseImpl = Promise);
-    var iter = new AsyncIterator(wrap(innerFn, outerFn, self, tryLocsList), PromiseImpl);
-    return exports.isGeneratorFunction(outerFn) ? iter : iter.next().then(function (result) {
-      return result.done ? result.value : iter.next();
+  }), e.AsyncIterator = AsyncIterator, e.async = function (t, r, n, o, i) {
+    void 0 === i && (i = Promise);
+    var a = new AsyncIterator(wrap(t, r, n, o), i);
+    return e.isGeneratorFunction(r) ? a : a.next().then(function (t) {
+      return t.done ? t.value : a.next();
     });
-  }, defineIteratorMethods(Gp), define(Gp, toStringTagSymbol, "Generator"), define(Gp, iteratorSymbol, function () {
+  }, defineIteratorMethods(g), define(g, u, "Generator"), define(g, a, function () {
     return this;
-  }), define(Gp, "toString", function () {
+  }), define(g, "toString", function () {
     return "[object Generator]";
-  }), exports.keys = function (val) {
-    var object = Object(val),
-      keys = [];
-    for (var key in object) keys.push(key);
-    return keys.reverse(), function next() {
-      for (; keys.length;) {
-        var key = keys.pop();
-        if (key in object) return next.value = key, next.done = !1, next;
+  }), e.keys = function (t) {
+    var e = Object(t),
+      r = [];
+    for (var n in e) r.push(n);
+    return r.reverse(), function next() {
+      for (; r.length;) {
+        var t = r.pop();
+        if (t in e) return next.value = t, next.done = !1, next;
       }
       return next.done = !0, next;
     };
-  }, exports.values = values, Context.prototype = {
+  }, e.values = values, Context.prototype = {
     constructor: Context,
-    reset: function reset(skipTempReset) {
-      if (this.prev = 0, this.next = 0, this.sent = this._sent = undefined, this.done = !1, this.delegate = null, this.method = "next", this.arg = undefined, this.tryEntries.forEach(resetTryEntry), !skipTempReset) for (var name in this) "t" === name.charAt(0) && hasOwn.call(this, name) && !isNaN(+name.slice(1)) && (this[name] = undefined);
+    reset: function reset(e) {
+      if (this.prev = 0, this.next = 0, this.sent = this._sent = t, this.done = !1, this.delegate = null, this.method = "next", this.arg = t, this.tryEntries.forEach(resetTryEntry), !e) for (var r in this) "t" === r.charAt(0) && n.call(this, r) && !isNaN(+r.slice(1)) && (this[r] = t);
     },
     stop: function stop() {
       this.done = !0;
-      var rootRecord = this.tryEntries[0].completion;
-      if ("throw" === rootRecord.type) throw rootRecord.arg;
+      var t = this.tryEntries[0].completion;
+      if ("throw" === t.type) throw t.arg;
       return this.rval;
     },
-    dispatchException: function dispatchException(exception) {
-      if (this.done) throw exception;
-      var context = this;
-      function handle(loc, caught) {
-        return record.type = "throw", record.arg = exception, context.next = loc, caught && (context.method = "next", context.arg = undefined), !!caught;
+    dispatchException: function dispatchException(e) {
+      if (this.done) throw e;
+      var r = this;
+      function handle(n, o) {
+        return a.type = "throw", a.arg = e, r.next = n, o && (r.method = "next", r.arg = t), !!o;
       }
-      for (var i = this.tryEntries.length - 1; i >= 0; --i) {
-        var entry = this.tryEntries[i],
-          record = entry.completion;
-        if ("root" === entry.tryLoc) return handle("end");
-        if (entry.tryLoc <= this.prev) {
-          var hasCatch = hasOwn.call(entry, "catchLoc"),
-            hasFinally = hasOwn.call(entry, "finallyLoc");
-          if (hasCatch && hasFinally) {
-            if (this.prev < entry.catchLoc) return handle(entry.catchLoc, !0);
-            if (this.prev < entry.finallyLoc) return handle(entry.finallyLoc);
-          } else if (hasCatch) {
-            if (this.prev < entry.catchLoc) return handle(entry.catchLoc, !0);
+      for (var o = this.tryEntries.length - 1; o >= 0; --o) {
+        var i = this.tryEntries[o],
+          a = i.completion;
+        if ("root" === i.tryLoc) return handle("end");
+        if (i.tryLoc <= this.prev) {
+          var c = n.call(i, "catchLoc"),
+            u = n.call(i, "finallyLoc");
+          if (c && u) {
+            if (this.prev < i.catchLoc) return handle(i.catchLoc, !0);
+            if (this.prev < i.finallyLoc) return handle(i.finallyLoc);
+          } else if (c) {
+            if (this.prev < i.catchLoc) return handle(i.catchLoc, !0);
           } else {
-            if (!hasFinally) throw new Error("try statement without catch or finally");
-            if (this.prev < entry.finallyLoc) return handle(entry.finallyLoc);
+            if (!u) throw new Error("try statement without catch or finally");
+            if (this.prev < i.finallyLoc) return handle(i.finallyLoc);
           }
         }
       }
     },
-    abrupt: function abrupt(type, arg) {
-      for (var i = this.tryEntries.length - 1; i >= 0; --i) {
-        var entry = this.tryEntries[i];
-        if (entry.tryLoc <= this.prev && hasOwn.call(entry, "finallyLoc") && this.prev < entry.finallyLoc) {
-          var finallyEntry = entry;
+    abrupt: function abrupt(t, e) {
+      for (var r = this.tryEntries.length - 1; r >= 0; --r) {
+        var o = this.tryEntries[r];
+        if (o.tryLoc <= this.prev && n.call(o, "finallyLoc") && this.prev < o.finallyLoc) {
+          var i = o;
           break;
         }
       }
-      finallyEntry && ("break" === type || "continue" === type) && finallyEntry.tryLoc <= arg && arg <= finallyEntry.finallyLoc && (finallyEntry = null);
-      var record = finallyEntry ? finallyEntry.completion : {};
-      return record.type = type, record.arg = arg, finallyEntry ? (this.method = "next", this.next = finallyEntry.finallyLoc, ContinueSentinel) : this.complete(record);
+      i && ("break" === t || "continue" === t) && i.tryLoc <= e && e <= i.finallyLoc && (i = null);
+      var a = i ? i.completion : {};
+      return a.type = t, a.arg = e, i ? (this.method = "next", this.next = i.finallyLoc, y) : this.complete(a);
     },
-    complete: function complete(record, afterLoc) {
-      if ("throw" === record.type) throw record.arg;
-      return "break" === record.type || "continue" === record.type ? this.next = record.arg : "return" === record.type ? (this.rval = this.arg = record.arg, this.method = "return", this.next = "end") : "normal" === record.type && afterLoc && (this.next = afterLoc), ContinueSentinel;
+    complete: function complete(t, e) {
+      if ("throw" === t.type) throw t.arg;
+      return "break" === t.type || "continue" === t.type ? this.next = t.arg : "return" === t.type ? (this.rval = this.arg = t.arg, this.method = "return", this.next = "end") : "normal" === t.type && e && (this.next = e), y;
     },
-    finish: function finish(finallyLoc) {
-      for (var i = this.tryEntries.length - 1; i >= 0; --i) {
-        var entry = this.tryEntries[i];
-        if (entry.finallyLoc === finallyLoc) return this.complete(entry.completion, entry.afterLoc), resetTryEntry(entry), ContinueSentinel;
+    finish: function finish(t) {
+      for (var e = this.tryEntries.length - 1; e >= 0; --e) {
+        var r = this.tryEntries[e];
+        if (r.finallyLoc === t) return this.complete(r.completion, r.afterLoc), resetTryEntry(r), y;
       }
     },
-    "catch": function _catch(tryLoc) {
-      for (var i = this.tryEntries.length - 1; i >= 0; --i) {
-        var entry = this.tryEntries[i];
-        if (entry.tryLoc === tryLoc) {
-          var record = entry.completion;
-          if ("throw" === record.type) {
-            var thrown = record.arg;
-            resetTryEntry(entry);
+    "catch": function _catch(t) {
+      for (var e = this.tryEntries.length - 1; e >= 0; --e) {
+        var r = this.tryEntries[e];
+        if (r.tryLoc === t) {
+          var n = r.completion;
+          if ("throw" === n.type) {
+            var o = n.arg;
+            resetTryEntry(r);
           }
-          return thrown;
+          return o;
         }
       }
       throw new Error("illegal catch attempt");
     },
-    delegateYield: function delegateYield(iterable, resultName, nextLoc) {
+    delegateYield: function delegateYield(e, r, n) {
       return this.delegate = {
-        iterator: values(iterable),
-        resultName: resultName,
-        nextLoc: nextLoc
-      }, "next" === this.method && (this.arg = undefined), ContinueSentinel;
+        iterator: values(e),
+        resultName: r,
+        nextLoc: n
+      }, "next" === this.method && (this.arg = t), y;
     }
-  }, exports;
+  }, e;
 }
 ;// CONCATENATED MODULE: ./node_modules/@babel/runtime/helpers/esm/asyncToGenerator.js
 function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) {
@@ -26336,26 +26347,26 @@ var CircularProgress = /*#__PURE__*/react.forwardRef(function CircularProgress(i
 var defineProperty = __webpack_require__(4942);
 ;// CONCATENATED MODULE: ./node_modules/@babel/runtime/helpers/esm/objectSpread2.js
 
-function ownKeys(object, enumerableOnly) {
-  var keys = Object.keys(object);
+function ownKeys(e, r) {
+  var t = Object.keys(e);
   if (Object.getOwnPropertySymbols) {
-    var symbols = Object.getOwnPropertySymbols(object);
-    enumerableOnly && (symbols = symbols.filter(function (sym) {
-      return Object.getOwnPropertyDescriptor(object, sym).enumerable;
-    })), keys.push.apply(keys, symbols);
+    var o = Object.getOwnPropertySymbols(e);
+    r && (o = o.filter(function (r) {
+      return Object.getOwnPropertyDescriptor(e, r).enumerable;
+    })), t.push.apply(t, o);
   }
-  return keys;
+  return t;
 }
-function _objectSpread2(target) {
-  for (var i = 1; i < arguments.length; i++) {
-    var source = null != arguments[i] ? arguments[i] : {};
-    i % 2 ? ownKeys(Object(source), !0).forEach(function (key) {
-      (0,defineProperty/* default */.Z)(target, key, source[key]);
-    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(target, Object.getOwnPropertyDescriptors(source)) : ownKeys(Object(source)).forEach(function (key) {
-      Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key));
+function _objectSpread2(e) {
+  for (var r = 1; r < arguments.length; r++) {
+    var t = null != arguments[r] ? arguments[r] : {};
+    r % 2 ? ownKeys(Object(t), !0).forEach(function (r) {
+      (0,defineProperty/* default */.Z)(e, r, t[r]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys(Object(t)).forEach(function (r) {
+      Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r));
     });
   }
-  return target;
+  return e;
 }
 // EXTERNAL MODULE: ./node_modules/is-buffer/index.js
 var is_buffer = __webpack_require__(3110);
@@ -43132,9 +43143,9 @@ ReactMarkdown.propTypes = {
   components: prop_types.object
 };
 ;// CONCATENATED MODULE: ./src/config/rules.js
-var els="li, p, h1, h2, h3, h4, h5, h6, dd";var DEFAULT_SELECTOR=":is(".concat(els,")");var rules_GLOBAL_KEY="*";var DEFAULT_RULE={pattern:"",selector:"",translator:rules_GLOBAL_KEY,fromLang:rules_GLOBAL_KEY,toLang:rules_GLOBAL_KEY,textStyle:rules_GLOBAL_KEY,transOpen:rules_GLOBAL_KEY,bgColor:""};var RULES=[{pattern:"www.google.com/search",selector:"h3, .IsZvec, .VwiC3b"},{pattern:"https://news.google.com/",selector:"h4"},{pattern:"bearblog.dev, www.theverge.com, www.tampermonkey.net/documentation.php",selector:DEFAULT_SELECTOR},{pattern:"themessenger.com",selector:".leading-tight, .leading-tighter, .my-2 p, .font-body p, article ".concat(DEFAULT_SELECTOR)},{pattern:"www.telegraph.co.uk",selector:"article ".concat(DEFAULT_SELECTOR)},{pattern:"www.theguardian.com",selector:".show-underline, .dcr-hup5wm div, .dcr-7vl6y8 div, .dcr-12evv1c, figcaption, article ".concat(DEFAULT_SELECTOR,", [data-cy=\"mostviewed-footer\"] h4")},{pattern:"www.semafor.com",selector:"".concat(DEFAULT_SELECTOR,", .styles_intro__IYj__, [class*=\"styles_description\"]")},{pattern:"www.noemamag.com",selector:".splash__title, .single-card__title, .single-card__type, .single-card__topic, .highlighted-content__title, .single-card__author, article ".concat(DEFAULT_SELECTOR,", .quote__text, .wp-caption-text div")},{pattern:"restofworld.org",selector:"".concat(DEFAULT_SELECTOR,", .recirc-story__headline, .recirc-story__dek")},{pattern:"www.axios.com",selector:".h7, ".concat(DEFAULT_SELECTOR)},{pattern:"www.newyorker.com",selector:".summary-item__hed, .summary-item__dek, .summary-collection-grid__dek, .dqtvfu, .rubric__link, .caption, article ".concat(DEFAULT_SELECTOR,", .HEhan ").concat(DEFAULT_SELECTOR,", .ContributorBioBio-fBolsO")},{pattern:"https://time.com/",selector:"h1, h3, .summary, .video-title, #article-body ".concat(DEFAULT_SELECTOR,", .image-wrap-container .credit.body-caption, .media-heading")},{pattern:"www.dw.com",selector:".ts-teaser-title a, .news-title a, .title a, .teaser-description a, .hbudab h3, .hbudab p, figcaption ,article ".concat(DEFAULT_SELECTOR)},{pattern:"www.bbc.com",selector:"h1, h2, .media__link, .media__summary, article ".concat(DEFAULT_SELECTOR,", .ssrcss-y7krbn-Stack, .ssrcss-1mrs5ns-PromoLink, .ssrcss-18cjaf3-Headline, .gs-c-promo-heading__title, .gs-c-promo-summary, .media__content h3, .article__intro")},{pattern:"www.chinadaily.com.cn",selector:"h1, .tMain [shape=\"rect\"], .cMain [shape=\"rect\"], .photo_art [shape=\"rect\"], .mai_r [shape=\"rect\"], .lisBox li, #Content ".concat(DEFAULT_SELECTOR)},{pattern:"www.facebook.com",selector:"[role=\"main\"] [dir=\"auto\"]"},{pattern:"www.reddit.com",selector:"[slot=\"title\"], [slot=\"text-body\"] ".concat(DEFAULT_SELECTOR,", #-post-rtjson-content p")},{pattern:"www.quora.com",selector:".qu-wordBreak--break-word"},{pattern:"edition.cnn.com",selector:".container__title, .container__headline, .headline__text, .image__caption, [data-type=\"Title\"], .article__content ".concat(DEFAULT_SELECTOR)},{pattern:"www.reuters.com",selector:"#main-content [data-testid=\"Heading\"], #main-content [data-testid=\"Body\"], .article-body__content__17Yit ".concat(DEFAULT_SELECTOR)},{pattern:"www.bloomberg.com",selector:"[data-component=\"headline\"], [data-component=\"related-item-headline\"], [data-component=\"title\"], article ".concat(DEFAULT_SELECTOR)},{pattern:"deno.land, docs.github.com",selector:"main ".concat(DEFAULT_SELECTOR)},{pattern:"doc.rust-lang.org",selector:"#content ".concat(DEFAULT_SELECTOR)},{pattern:"www.indiehackers.com",selector:"h1, h3, .content ".concat(DEFAULT_SELECTOR,", .feed-item__title-link")},{pattern:"platform.openai.com/docs",selector:".docs-body ".concat(DEFAULT_SELECTOR)},{pattern:"en.wikipedia.org",selector:"h1, .mw-parser-output ".concat(DEFAULT_SELECTOR)},{pattern:"stackoverflow.com",selector:"h1, .s-prose p, .comment-body .comment-copy"},{pattern:"www.npmjs.com/package/, developer.chrome.com/docs, medium.com, developers.cloudflare.com, react.dev, create-react-app.dev, pytorch.org/",selector:"article ".concat(DEFAULT_SELECTOR)},{pattern:"news.ycombinator.com",selector:".title, .commtext"},{pattern:"https://github.com/",selector:".markdown-body ".concat(DEFAULT_SELECTOR,", .repo-description p, .Layout-sidebar .f4, .container-lg .py-4 .f5, .container-lg .my-4 .f5, .Box-row .pr-4, .Box-row article .mt-1, [itemprop='description'], .markdown-title, bdi")},{pattern:"twitter.com",selector:"[data-testid='tweetText']"},{pattern:"youtube.com",selector:"h1, #video-title, #content-text, #title, yt-attributed-string>span>span"}];var BUILTIN_RULES=RULES.map(function(item){return _objectSpread2(_objectSpread2(_objectSpread2({},DEFAULT_RULE),item),{},{transOpen:"true"});});
+var els="li, p, h1, h2, h3, h4, h5, h6, dd";var DEFAULT_SELECTOR=":is(".concat(els,")");var rules_GLOBAL_KEY="*";var SHADOW_KEY=">>>";var DEFAULT_RULE={pattern:"",selector:"",translator:rules_GLOBAL_KEY,fromLang:rules_GLOBAL_KEY,toLang:rules_GLOBAL_KEY,textStyle:rules_GLOBAL_KEY,transOpen:rules_GLOBAL_KEY,bgColor:""};var RULES=[{pattern:"www.google.com/search",selector:"h3, .IsZvec, .VwiC3b"},{pattern:"news.google.com",selector:"h4"},{pattern:"www.foxnews.com",selector:"h1, h2, .title, .sidebar [data-type=\"Title\"], .article-content :is(li, p, h1, h2, h3, h4, h5, h6, dd); [data-spotim-module=\"conversation\"]>div >>> [data-spot-im-class=\"message-text\"] p,  [data-spot-im-class=\"message-text\"]"},{pattern:"bearblog.dev, www.theverge.com, www.tampermonkey.net/documentation.php",selector:DEFAULT_SELECTOR},{pattern:"themessenger.com",selector:".leading-tight, .leading-tighter, .my-2 p, .font-body p, article ".concat(DEFAULT_SELECTOR)},{pattern:"www.telegraph.co.uk",selector:"article ".concat(DEFAULT_SELECTOR)},{pattern:"www.theguardian.com",selector:".show-underline, .dcr-hup5wm div, .dcr-7vl6y8 div, .dcr-12evv1c, figcaption, article ".concat(DEFAULT_SELECTOR,", [data-cy=\"mostviewed-footer\"] h4")},{pattern:"www.semafor.com",selector:"".concat(DEFAULT_SELECTOR,", .styles_intro__IYj__, [class*=\"styles_description\"]")},{pattern:"www.noemamag.com",selector:".splash__title, .single-card__title, .single-card__type, .single-card__topic, .highlighted-content__title, .single-card__author, article ".concat(DEFAULT_SELECTOR,", .quote__text, .wp-caption-text div")},{pattern:"restofworld.org",selector:"".concat(DEFAULT_SELECTOR,", .recirc-story__headline, .recirc-story__dek")},{pattern:"www.axios.com",selector:".h7, ".concat(DEFAULT_SELECTOR)},{pattern:"www.newyorker.com",selector:".summary-item__hed, .summary-item__dek, .summary-collection-grid__dek, .dqtvfu, .rubric__link, .caption, article ".concat(DEFAULT_SELECTOR,", .HEhan ").concat(DEFAULT_SELECTOR,", .ContributorBioBio-fBolsO")},{pattern:"https://time.com/",selector:"h1, h3, .summary, .video-title, #article-body ".concat(DEFAULT_SELECTOR,", .image-wrap-container .credit.body-caption, .media-heading")},{pattern:"www.dw.com",selector:".ts-teaser-title a, .news-title a, .title a, .teaser-description a, .hbudab h3, .hbudab p, figcaption ,article ".concat(DEFAULT_SELECTOR)},{pattern:"www.bbc.com",selector:"h1, h2, .media__link, .media__summary, article ".concat(DEFAULT_SELECTOR,", .ssrcss-y7krbn-Stack, .ssrcss-1mrs5ns-PromoLink, .ssrcss-18cjaf3-Headline, .gs-c-promo-heading__title, .gs-c-promo-summary, .media__content h3, .article__intro")},{pattern:"www.chinadaily.com.cn",selector:"h1, .tMain [shape=\"rect\"], .cMain [shape=\"rect\"], .photo_art [shape=\"rect\"], .mai_r [shape=\"rect\"], .lisBox li, #Content ".concat(DEFAULT_SELECTOR)},{pattern:"www.facebook.com",selector:"[role=\"main\"] [dir=\"auto\"]"},{pattern:"www.reddit.com",selector:"[slot=\"title\"], [slot=\"text-body\"] ".concat(DEFAULT_SELECTOR,", #-post-rtjson-content p")},{pattern:"www.quora.com",selector:".qu-wordBreak--break-word"},{pattern:"edition.cnn.com",selector:".container__title, .container__headline, .headline__text, .image__caption, [data-type=\"Title\"], .article__content ".concat(DEFAULT_SELECTOR)},{pattern:"www.reuters.com",selector:"#main-content [data-testid=\"Heading\"], #main-content [data-testid=\"Body\"], .article-body__content__17Yit ".concat(DEFAULT_SELECTOR)},{pattern:"www.bloomberg.com",selector:"[data-component=\"headline\"], [data-component=\"related-item-headline\"], [data-component=\"title\"], article ".concat(DEFAULT_SELECTOR)},{pattern:"deno.land, docs.github.com",selector:"main ".concat(DEFAULT_SELECTOR)},{pattern:"doc.rust-lang.org",selector:"#content ".concat(DEFAULT_SELECTOR)},{pattern:"www.indiehackers.com",selector:"h1, h3, .content ".concat(DEFAULT_SELECTOR,", .feed-item__title-link")},{pattern:"platform.openai.com/docs",selector:".docs-body ".concat(DEFAULT_SELECTOR)},{pattern:"en.wikipedia.org",selector:"h1, .mw-parser-output ".concat(DEFAULT_SELECTOR)},{pattern:"stackoverflow.com",selector:"h1, .s-prose p, .comment-body .comment-copy"},{pattern:"www.npmjs.com/package/, developer.chrome.com/docs, medium.com, developers.cloudflare.com, react.dev, create-react-app.dev, pytorch.org/",selector:"article ".concat(DEFAULT_SELECTOR)},{pattern:"news.ycombinator.com",selector:".title, .commtext"},{pattern:"https://github.com/",selector:".markdown-body ".concat(DEFAULT_SELECTOR,", .repo-description p, .Layout-sidebar .f4, .container-lg .py-4 .f5, .container-lg .my-4 .f5, .Box-row .pr-4, .Box-row article .mt-1, [itemprop='description'], .markdown-title, bdi")},{pattern:"twitter.com",selector:"[data-testid='tweetText']"},{pattern:"youtube.com",selector:"h1, #video-title, #content-text, #title, yt-attributed-string>span>span"}];var BUILTIN_RULES=RULES.map(function(item){return _objectSpread2(_objectSpread2(_objectSpread2({},DEFAULT_RULE),item),{},{transOpen:"true"});});
 ;// CONCATENATED MODULE: ./src/config/i18n.js
-var UI_LANGS=[["en","English"],["zh","中文"]];var I18N={app_name:{zh:"\u7B80\u7EA6\u7FFB\u8BD1",en:"KISS Translator"},translate:{zh:"\u7FFB\u8BD1",en:"Translate"},basic_setting:{zh:"\u57FA\u672C\u8BBE\u7F6E",en:"Basic Setting"},rules_setting:{zh:"\u89C4\u5219\u8BBE\u7F6E",en:"Rules Setting"},sync_setting:{zh:"\u540C\u6B65\u8BBE\u7F6E",en:"Sync Setting"},about:{zh:"\u5173\u4E8E",en:"About"},about_md:{zh:"README.md",en:"README.en.md"},about_md_local:{zh:"\u8BF7 [\u70B9\u51FB\u8FD9\u91CC](".concat("https://github.com/fishjar/kiss-translator",") \u67E5\u770B\u8BE6\u60C5\u3002"),en:"Please [click here](".concat("https://github.com/fishjar/kiss-translator",") for details.")},ui_lang:{zh:"\u754C\u9762\u8BED\u8A00",en:"Interface Language"},fetch_limit:{zh:"\u6700\u5927\u8BF7\u6C42\u6570\u91CF",en:"Maximum Number Of Request"},fetch_interval:{zh:"\u8BF7\u6C42\u95F4\u9694\u65F6\u95F4(ms)",en:"Request Interval(ms)"},translate_service:{zh:"\u7FFB\u8BD1\u670D\u52A1",en:"Translate Service"},from_lang:{zh:"\u539F\u6587\u8BED\u8A00",en:"Source Language"},to_lang:{zh:"\u76EE\u6807\u8BED\u8A00",en:"Target Language"},text_style:{zh:"\u6587\u5B57\u6837\u5F0F",en:"Text Style"},bg_color:{zh:"\u6837\u5F0F\u989C\u8272",en:"Style Color"},google_api:{zh:"\u8C37\u6B4C\u7FFB\u8BD1\u63A5\u53E3",en:"Google Translate API"},default_selector:{zh:"\u9ED8\u8BA4\u9009\u62E9\u5668",en:"Default selector"},selector_rules:{zh:"\u9009\u62E9\u5668\u89C4\u5219",en:"Selector Rules"},save:{zh:"\u4FDD\u5B58",en:"Save"},edit:{zh:"\u7F16\u8F91",en:"Edit"},cancel:{zh:"\u53D6\u6D88",en:"Cancel"},delete:{zh:"\u5220\u9664",en:"Delete"},reset:{zh:"\u91CD\u7F6E",en:"Reset"},add:{zh:"\u6DFB\u52A0",en:"Add"},inject_rules:{zh:"\u6CE8\u5165\u8BA2\u9605\u89C4\u5219",en:"Inject Subscribe Rules"},personal_rules:{zh:"\u4E2A\u4EBA\u89C4\u5219",en:"Personal Rules"},subscribe_rules:{zh:"\u8BA2\u9605\u89C4\u5219",en:"Subscribe Rules"},subscribe_url:{zh:"\u8BA2\u9605\u5730\u5740",en:"Subscribe URL"},rules_warn_1:{zh:"1\u3001\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u4E00\u76F4\u751F\u6548\uFF0C\u9009\u62E9\u201C\u6CE8\u5165\u8BA2\u9605\u89C4\u5219\u201D\u540E\uFF0C\u201C\u8BA2\u9605\u89C4\u5219\u201D\u624D\u4F1A\u751F\u6548\u3002",en:"1. The \"Personal Rules\" are always in effect. After selecting \"Inject Subscription Rules\", the \"Subscription Rules\" will take effect."},rules_warn_2:{zh:"2\u3001\u201C\u8BA2\u9605\u89C4\u5219\u201D\u7684\u6CE8\u5165\u4F4D\u7F6E\u662F\u5012\u6570\u7B2C\u4E8C\u7684\u4F4D\u7F6E\uFF0C\u56E0\u6B64\u9664\u5168\u5C40\u89C4\u5219(*)\u5916\uFF0C\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u4F18\u5148\u7EA7\u6BD4\u201C\u8BA2\u9605\u89C4\u5219\u201D\u9AD8\uFF0C\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u586B\u5199\u540C\u6837\u7684\u7F51\u5740\u4F1A\u8986\u76D6\u201D\u8BA2\u9605\u89C4\u5219\u201C\u7684\u6761\u76EE\u3002",en:"2. The injection position of \"Subscription Rules\" is the penultimate position. Therefore, except for the global rules (*), the priority of \"Personal Rules\" is higher than that of \"Subscription Rules\". Filling in the same url in \"Personal Rules\" will overwrite \"Subscription Rules\" entry."},sync_warn:{zh:"\u5982\u679C\u670D\u52A1\u5668\u5B58\u5728\u5176\u4ED6\u5BA2\u6237\u7AEF\u540C\u6B65\u7684\u6570\u636E\uFF0C\u7B2C\u4E00\u6B21\u540C\u6B65\u5C06\u76F4\u63A5\u8986\u76D6\u672C\u5730\u914D\u7F6E\uFF0C\u540E\u9762\u5219\u6839\u636E\u4FEE\u6539\u65F6\u95F4\uFF0C\u65B0\u7684\u8986\u76D6\u65E7\u7684\u3002",en:"If the server has data synchronized by other clients, the first synchronization will directly overwrite the local configuration, and later, according to the modification time, the new one will overwrite the old one."},about_sync_api:{zh:"\u67E5\u770B\u5173\u4E8E\u6570\u636E\u540C\u6B65\u63A5\u53E3\u90E8\u7F72",en:"View About Data Synchronization Interface Deployment"},style_none:{zh:"\u65E0",en:"None"},under_line:{zh:"\u4E0B\u5212\u76F4\u7EBF",en:"Underline"},dot_line:{zh:"\u4E0B\u5212\u70B9\u72B6\u7EBF",en:"Dotted Underline"},dash_line:{zh:"\u4E0B\u5212\u865A\u7EBF",en:"Dashed Underline"},wavy_line:{zh:"\u4E0B\u5212\u6CE2\u6D6A\u7EBF",en:"Wavy Underline"},fuzzy:{zh:"\u6A21\u7CCA",en:"Fuzzy"},highlight:{zh:"\u9AD8\u4EAE",en:"Highlight"},setting:{zh:"\u8BBE\u7F6E",en:"Setting"},pattern:{zh:"\u5339\u914D\u7F51\u5740",en:"URL pattern"},pattern_helper:{zh:"1\u3001\u652F\u6301\u661F\u53F7(*)\u901A\u914D\u7B26\u30022\u3001\u591A\u4E2AURL\u652F\u6301\u82F1\u6587\u9017\u53F7\u201C,\u201D\u5206\u9694\u3002",en:"1. The asterisk (*) wildcard is supported. 2. Multiple URLs can be separated by English commas \",\"."},selector_helper:{zh:"1\u3001\u9075\u5FAACSS\u9009\u62E9\u5668\u89C4\u5219\u30022\u3001\u7559\u7A7A\u8868\u793A\u91C7\u7528\u5168\u5C40\u8BBE\u7F6E\u3002",en:"1. Follow CSS selector rules. 2. Leave blank to adopt the global setting."},translate_switch:{zh:"\u5F00\u542F\u7FFB\u8BD1",en:"Translate Switch"},default_enabled:{zh:"\u9ED8\u8BA4\u5F00\u542F",en:"Enabled"},default_disabled:{zh:"\u9ED8\u8BA4\u5173\u95ED",en:"Disabled"},selector:{zh:"\u9009\u62E9\u5668",en:"Selector"},import:{zh:"\u5BFC\u5165",en:"Import"},export:{zh:"\u5BFC\u51FA",en:"Export"},error_cant_be_blank:{zh:"\u4E0D\u80FD\u4E3A\u7A7A",en:"Can not be blank"},error_duplicate_values:{zh:"\u5B58\u5728\u91CD\u590D\u7684\u503C",en:"There are duplicate values"},error_wrong_file_type:{zh:"\u9519\u8BEF\u7684\u6587\u4EF6\u7C7B\u578B",en:"Wrong file type"},error_fetch_url:{zh:"\u8BF7\u68C0\u67E5url\u5730\u5740\u662F\u5426\u6B63\u786E\u6216\u7A0D\u540E\u518D\u8BD5\u3002",en:"Please check if the url address is correct or try again later."},openai_api:{zh:"OpenAI \u63A5\u53E3",en:"OpenAI API"},openai_key:{zh:"OpenAI \u5BC6\u94A5",en:"OpenAI Key"},openai_model:{zh:"OpenAI \u6A21\u578B",en:"OpenAI Model"},openai_prompt:{zh:"OpenAI \u63D0\u793A\u8BCD",en:"OpenAI Prompt"},clear_cache:{zh:"\u662F\u5426\u6E05\u9664\u7F13\u5B58",en:"Whether clear cache"},clear_cache_never:{zh:"\u4E0D\u6E05\u9664\u7F13\u5B58",en:"Never clear cache"},clear_cache_restart:{zh:"\u91CD\u542F\u6D4F\u89C8\u5668\u65F6\u6E05\u9664\u7F13\u5B58",en:"Clear cache when restarting browser"},data_sync_url:{zh:"\u6570\u636E\u540C\u6B65\u63A5\u53E3",en:"Data Sync API"},data_sync_key:{zh:"\u6570\u636E\u540C\u6B65\u5BC6\u94A5",en:"Data Sync Key"},error_got_some_wrong:{zh:"抱歉，出错了！",en:"Sorry, something went wrong!"},error_sync_setting:{zh:"您的同步设置未填写，无法在线分享。",en:"Your sync settings are missing and cannot be shared online."}};
+var UI_LANGS=[["en","English"],["zh","中文"]];var I18N={app_name:{zh:"\u7B80\u7EA6\u7FFB\u8BD1",en:"KISS Translator"},translate:{zh:"\u7FFB\u8BD1",en:"Translate"},translate_alt:{zh:"\u7FFB\u8BD1 (Alt+Q)",en:"Translate (Alt+Q)"},basic_setting:{zh:"\u57FA\u672C\u8BBE\u7F6E",en:"Basic Setting"},rules_setting:{zh:"\u89C4\u5219\u8BBE\u7F6E",en:"Rules Setting"},sync_setting:{zh:"\u540C\u6B65\u8BBE\u7F6E",en:"Sync Setting"},about:{zh:"\u5173\u4E8E",en:"About"},about_md:{zh:"README.md",en:"README.en.md"},about_md_local:{zh:"\u8BF7 [\u70B9\u51FB\u8FD9\u91CC](".concat("https://github.com/fishjar/kiss-translator",") \u67E5\u770B\u8BE6\u60C5\u3002"),en:"Please [click here](".concat("https://github.com/fishjar/kiss-translator",") for details.")},ui_lang:{zh:"\u754C\u9762\u8BED\u8A00",en:"Interface Language"},fetch_limit:{zh:"\u6700\u5927\u8BF7\u6C42\u6570\u91CF (1-100)",en:"Maximum Number Of Request (1-100)"},fetch_interval:{zh:"\u8BF7\u6C42\u95F4\u9694\u65F6\u95F4 (0-5000ms)",en:"Request Interval (0-5000ms)"},min_translate_length:{zh:"\u6700\u5C0F\u7FFB\u8BD1\u957F\u5EA6 (1-100)",en:"Min Translate Length (1-100)"},max_translate_length:{zh:"\u6700\u5927\u7FFB\u8BD1\u957F\u5EA6 (100-10000)",en:"Max Translate Length (100-10000)"},translate_service:{zh:"\u7FFB\u8BD1\u670D\u52A1",en:"Translate Service"},from_lang:{zh:"\u539F\u6587\u8BED\u8A00",en:"Source Language"},to_lang:{zh:"\u76EE\u6807\u8BED\u8A00",en:"Target Language"},text_style:{zh:"\u6587\u5B57\u6837\u5F0F",en:"Text Style"},text_style_alt:{zh:"\u6587\u5B57\u6837\u5F0F (Alt+C)",en:"Text Style (Alt+C)"},bg_color:{zh:"\u6837\u5F0F\u989C\u8272",en:"Style Color"},google_api:{zh:"\u8C37\u6B4C\u7FFB\u8BD1\u63A5\u53E3",en:"Google Translate API"},default_selector:{zh:"\u9ED8\u8BA4\u9009\u62E9\u5668",en:"Default selector"},selector_rules:{zh:"\u9009\u62E9\u5668\u89C4\u5219",en:"Selector Rules"},save:{zh:"\u4FDD\u5B58",en:"Save"},edit:{zh:"\u7F16\u8F91",en:"Edit"},cancel:{zh:"\u53D6\u6D88",en:"Cancel"},delete:{zh:"\u5220\u9664",en:"Delete"},reset:{zh:"\u91CD\u7F6E",en:"Reset"},add:{zh:"\u6DFB\u52A0",en:"Add"},inject_rules:{zh:"\u6CE8\u5165\u8BA2\u9605\u89C4\u5219",en:"Inject Subscribe Rules"},personal_rules:{zh:"\u4E2A\u4EBA\u89C4\u5219",en:"Personal Rules"},subscribe_rules:{zh:"\u8BA2\u9605\u89C4\u5219",en:"Subscribe Rules"},subscribe_url:{zh:"\u8BA2\u9605\u5730\u5740",en:"Subscribe URL"},rules_warn_1:{zh:"1\u3001\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u4E00\u76F4\u751F\u6548\uFF0C\u9009\u62E9\u201C\u6CE8\u5165\u8BA2\u9605\u89C4\u5219\u201D\u540E\uFF0C\u201C\u8BA2\u9605\u89C4\u5219\u201D\u624D\u4F1A\u751F\u6548\u3002",en:"1. The \"Personal Rules\" are always in effect. After selecting \"Inject Subscription Rules\", the \"Subscription Rules\" will take effect."},rules_warn_2:{zh:"2\u3001\u201C\u8BA2\u9605\u89C4\u5219\u201D\u7684\u6CE8\u5165\u4F4D\u7F6E\u662F\u5012\u6570\u7B2C\u4E8C\u7684\u4F4D\u7F6E\uFF0C\u56E0\u6B64\u9664\u5168\u5C40\u89C4\u5219(*)\u5916\uFF0C\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u4F18\u5148\u7EA7\u6BD4\u201C\u8BA2\u9605\u89C4\u5219\u201D\u9AD8\uFF0C\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u586B\u5199\u540C\u6837\u7684\u7F51\u5740\u4F1A\u8986\u76D6\u201D\u8BA2\u9605\u89C4\u5219\u201C\u7684\u6761\u76EE\u3002",en:"2. The injection position of \"Subscription Rules\" is the penultimate position. Therefore, except for the global rules (*), the priority of \"Personal Rules\" is higher than that of \"Subscription Rules\". Filling in the same url in \"Personal Rules\" will overwrite \"Subscription Rules\" entry."},sync_warn:{zh:"\u5982\u679C\u670D\u52A1\u5668\u5B58\u5728\u5176\u4ED6\u5BA2\u6237\u7AEF\u540C\u6B65\u7684\u6570\u636E\uFF0C\u7B2C\u4E00\u6B21\u540C\u6B65\u5C06\u76F4\u63A5\u8986\u76D6\u672C\u5730\u914D\u7F6E\uFF0C\u540E\u9762\u5219\u6839\u636E\u4FEE\u6539\u65F6\u95F4\uFF0C\u65B0\u7684\u8986\u76D6\u65E7\u7684\u3002",en:"If the server has data synchronized by other clients, the first synchronization will directly overwrite the local configuration, and later, according to the modification time, the new one will overwrite the old one."},about_sync_api:{zh:"\u67E5\u770B\u5173\u4E8E\u6570\u636E\u540C\u6B65\u63A5\u53E3\u90E8\u7F72",en:"View About Data Synchronization Interface Deployment"},style_none:{zh:"\u65E0",en:"None"},under_line:{zh:"\u4E0B\u5212\u76F4\u7EBF",en:"Underline"},dot_line:{zh:"\u4E0B\u5212\u70B9\u72B6\u7EBF",en:"Dotted Underline"},dash_line:{zh:"\u4E0B\u5212\u865A\u7EBF",en:"Dashed Underline"},wavy_line:{zh:"\u4E0B\u5212\u6CE2\u6D6A\u7EBF",en:"Wavy Underline"},fuzzy:{zh:"\u6A21\u7CCA",en:"Fuzzy"},highlight:{zh:"\u9AD8\u4EAE",en:"Highlight"},setting:{zh:"\u8BBE\u7F6E",en:"Setting"},pattern:{zh:"\u5339\u914D\u7F51\u5740",en:"URL pattern"},pattern_helper:{zh:"1\u3001\u652F\u6301\u661F\u53F7(*)\u901A\u914D\u7B26\u30022\u3001\u591A\u4E2AURL\u652F\u6301\u82F1\u6587\u9017\u53F7\u201C,\u201D\u5206\u9694\u3002",en:"1. The asterisk (*) wildcard is supported. 2. Multiple URLs can be separated by English commas \",\"."},selector_helper:{zh:"1\u3001\u9075\u5FAACSS\u9009\u62E9\u5668\u89C4\u5219\u30022\u3001\u7559\u7A7A\u8868\u793A\u91C7\u7528\u5168\u5C40\u8BBE\u7F6E\u3002",en:"1. Follow CSS selector rules. 2. Leave blank to adopt the global setting."},translate_switch:{zh:"\u5F00\u542F\u7FFB\u8BD1",en:"Translate Switch"},default_enabled:{zh:"\u9ED8\u8BA4\u5F00\u542F",en:"Enabled"},default_disabled:{zh:"\u9ED8\u8BA4\u5173\u95ED",en:"Disabled"},selector:{zh:"\u9009\u62E9\u5668",en:"Selector"},import:{zh:"\u5BFC\u5165",en:"Import"},export:{zh:"\u5BFC\u51FA",en:"Export"},error_cant_be_blank:{zh:"\u4E0D\u80FD\u4E3A\u7A7A",en:"Can not be blank"},error_duplicate_values:{zh:"\u5B58\u5728\u91CD\u590D\u7684\u503C",en:"There are duplicate values"},error_wrong_file_type:{zh:"\u9519\u8BEF\u7684\u6587\u4EF6\u7C7B\u578B",en:"Wrong file type"},error_fetch_url:{zh:"\u8BF7\u68C0\u67E5url\u5730\u5740\u662F\u5426\u6B63\u786E\u6216\u7A0D\u540E\u518D\u8BD5\u3002",en:"Please check if the url address is correct or try again later."},openai_api:{zh:"OpenAI \u63A5\u53E3",en:"OpenAI API"},openai_key:{zh:"OpenAI \u5BC6\u94A5",en:"OpenAI Key"},openai_model:{zh:"OpenAI \u6A21\u578B",en:"OpenAI Model"},openai_prompt:{zh:"OpenAI \u63D0\u793A\u8BCD",en:"OpenAI Prompt"},clear_cache:{zh:"\u662F\u5426\u6E05\u9664\u7F13\u5B58",en:"Whether clear cache"},clear_cache_never:{zh:"\u4E0D\u6E05\u9664\u7F13\u5B58",en:"Never clear cache"},clear_cache_restart:{zh:"\u91CD\u542F\u6D4F\u89C8\u5668\u65F6\u6E05\u9664\u7F13\u5B58",en:"Clear cache when restarting browser"},data_sync_url:{zh:"\u6570\u636E\u540C\u6B65\u63A5\u53E3",en:"Data Sync API"},data_sync_key:{zh:"\u6570\u636E\u540C\u6B65\u5BC6\u94A5",en:"Data Sync Key"},data_sync_test:{zh:"\u6570\u636E\u540C\u6B65\u6D4B\u8BD5",en:"Data Sync Test"},data_sync_success:{zh:"\u6570\u636E\u540C\u6B65\u6210\u529F\uFF01",en:"Data Sync Success"},data_sync_error:{zh:"\u6570\u636E\u540C\u6B65\u5931\u8D25\uFF01",en:"Data Sync Error"},error_got_some_wrong:{zh:"抱歉，出错了！",en:"Sorry, something went wrong!"},error_sync_setting:{zh:"您的同步设置未填写，无法在线分享。",en:"Your sync settings are missing and cannot be shared online."}};
 ;// CONCATENATED MODULE: ./src/config/index.js
 var _OPT_LANGS_SPECIAL;var APP_NAME="KISS Translator".trim().split(/\s+/).join("-");var APP_LCNAME=APP_NAME.toLowerCase();var STOKEY_MSAUTH="".concat(APP_NAME,"_msauth");var STOKEY_SETTING="".concat(APP_NAME,"_setting");var STOKEY_RULES="".concat(APP_NAME,"_rules");var STOKEY_SYNC="".concat(APP_NAME,"_sync");var config_STOKEY_FAB="".concat(APP_NAME,"_fab");var STOKEY_RULESCACHE_PREFIX="".concat(APP_NAME,"_rulescache_");var CMD_TOGGLE_TRANSLATE="toggleTranslate";var CMD_TOGGLE_STYLE="toggleStyle";var CLIENT_WEB="web";var CLIENT_CHROME="chrome";var CLIENT_EDGE="edge";var CLIENT_FIREFOX="firefox";var CLIENT_USERSCRIPT="userscript";var CLIENT_EXTS=[CLIENT_CHROME,CLIENT_EDGE,CLIENT_FIREFOX];var KV_RULES_KEY="KT_RULES";var KV_RULES_SHARE_KEY="KT_RULES_SHARE";var KV_SETTING_KEY="KT_SETTING";var KV_SALT_SYNC="KISS-Translator-SYNC";var KV_SALT_SHARE="KISS-Translator-SHARE";var CACHE_NAME="".concat(APP_NAME,"_cache");var MSG_FETCH="fetch";var config_MSG_FETCH_LIMIT="fetch_limit";var config_MSG_FETCH_CLEAR="fetch_clear";var MSG_TRANS_TOGGLE="trans_toggle";var MSG_TRANS_TOGGLE_STYLE="trans_toggle_style";var MSG_TRANS_GETRULE="trans_getrule";var MSG_TRANS_PUTRULE="trans_putrule";var MSG_TRANS_CURRULE="trans_currule";var EVENT_KISS="kissEvent";var THEME_LIGHT="light";var THEME_DARK="dark";var URL_KISS_WORKER="https://github.com/fishjar/kiss-worker";var URL_RAW_PREFIX="https://raw.githubusercontent.com/fishjar/kiss-translator/master";var URL_MICROSOFT_AUTH="https://edge.microsoft.com/translate/auth";var config_URL_MICROSOFT_TRANS="https://api-edge.cognitive.microsofttranslator.com/translate";var config_OPT_TRANS_GOOGLE="Google";var config_OPT_TRANS_MICROSOFT="Microsoft";var config_OPT_TRANS_OPENAI="OpenAI";var OPT_TRANS_ALL=[config_OPT_TRANS_GOOGLE,config_OPT_TRANS_MICROSOFT,config_OPT_TRANS_OPENAI];var OPT_LANGS_TO=[["en","English - English"],["zh-CN","Simplified Chinese - 简体中文"],["zh-TW","Traditional Chinese - 繁體中文"],["ar","Arabic - العربية"],["bg","Bulgarian - Български"],["ca","Catalan - Català"],["hr","Croatian - Hrvatski"],["cs","Czech - Čeština"],["da","Danish - Dansk"],["nl","Dutch - Nederlands"],["fi","Finnish - Suomi"],["fr","French - Français"],["de","German - Deutsch"],["el","Greek - Ελληνικά"],["hi","Hindi - हिन्दी"],["hu","Hungarian - Magyar"],["id","Indonesian - Indonesia"],["it","Italian - Italiano"],["ja","Japanese - 日本語"],["ko","Korean - 한국어"],["ms","Malay - Melayu"],["mt","Maltese - Malti"],["nb","Norwegian - Norsk Bokmål"],["pl","Polish - Polski"],["pt","Portuguese - Português"],["ro","Romanian - Română"],["ru","Russian - Русский"],["sk","Slovak - Slovenčina"],["sl","Slovenian - Slovenščina"],["es","Spanish - Español"],["sv","Swedish - Svenska"],["ta","Tamil - தமிழ்"],["te","Telugu - తెలుగు"],["th","Thai - ไทย"],["tr","Turkish - Türkçe"],["uk","Ukrainian - Українська"],["vi","Vietnamese - Tiếng Việt"]];var OPT_LANGS_FROM=[["auto","Auto-detect"]].concat(OPT_LANGS_TO);var config_OPT_LANGS_SPECIAL=(_OPT_LANGS_SPECIAL={},(0,defineProperty/* default */.Z)(_OPT_LANGS_SPECIAL,config_OPT_TRANS_MICROSOFT,new Map([["auto",""],["zh-CN","zh-Hans"],["zh-TW","zh-Hant"]])),(0,defineProperty/* default */.Z)(_OPT_LANGS_SPECIAL,config_OPT_TRANS_OPENAI,new Map(OPT_LANGS_FROM.map(function(_ref){var _ref2=(0,slicedToArray/* default */.Z)(_ref,2),key=_ref2[0],val=_ref2[1];return[key,val.split(" - ")[0]];}))),_OPT_LANGS_SPECIAL);var OPT_STYLE_NONE="style_none";// 无
 var OPT_STYLE_LINE="under_line";// 下划线
@@ -43150,17 +43161,17 @@ var config_PROMPT_PLACE_TO="{{to}}";// 占位符
 var DEFAULT_COLOR="#209CEE";// 默认高亮背景色/线条颜色
 // 全局规则
 var config_GLOBLA_RULE={pattern:"*",selector:DEFAULT_SELECTOR,translator:config_OPT_TRANS_MICROSOFT,fromLang:"auto",toLang:"zh-CN",textStyle:OPT_STYLE_DASHLINE,transOpen:"false",bgColor:""};// 订阅列表
-var config_DEFAULT_SUBRULES_LIST=[{url:"https://kiss-translator.rayjar.com/kiss-translator-rules.json",selected:true},{url:"https://fishjar.github.io/kiss-translator/kiss-translator-rules.json"}];var DEFAULT_SETTING={darkMode:false,// 深色模式
+var config_DEFAULT_SUBRULES_LIST=[{url:"https://kiss-translator.rayjar.com/kiss-translator-rules.json",selected:true},{url:"https://fishjar.github.io/kiss-translator/kiss-translator-rules.json"}];var TRANS_MIN_LENGTH=5;// 最短翻译长度
+var TRANS_MAX_LENGTH=5000;// 最长翻译长度
+var DEFAULT_SETTING={darkMode:false,// 深色模式
 uiLang:"en",// 界面语言
 fetchLimit:DEFAULT_FETCH_LIMIT,// 最大任务数量
 fetchInterval:DEFAULT_FETCH_INTERVAL,// 任务间隔时间
-clearCache:false,// 是否在浏览器下次启动时清除缓存
+minLength:TRANS_MIN_LENGTH,maxLength:TRANS_MAX_LENGTH,clearCache:false,// 是否在浏览器下次启动时清除缓存
 injectRules:true,// 是否注入订阅规则
 subrulesList:config_DEFAULT_SUBRULES_LIST,// 订阅列表
 googleUrl:"https://translate.googleapis.com/translate_a/single",// 谷歌翻译接口
-openaiUrl:"https://api.openai.com/v1/chat/completions",openaiKey:"",openaiModel:"gpt-4",openaiPrompt:"You will be provided with a sentence in ".concat(config_PROMPT_PLACE_FROM,", and your task is to translate it into ").concat(config_PROMPT_PLACE_TO,".")};var DEFAULT_RULES=[config_GLOBLA_RULE];var TRANS_MIN_LENGTH=5;// 最短翻译长度
-var TRANS_MAX_LENGTH=5000;// 最长翻译长度
-var DEFAULT_SYNC={syncUrl:"",// 数据同步接口
+openaiUrl:"https://api.openai.com/v1/chat/completions",openaiKey:"",openaiModel:"gpt-4",openaiPrompt:"You will be provided with a sentence in ".concat(config_PROMPT_PLACE_FROM,", and your task is to translate it into ").concat(config_PROMPT_PLACE_TO,".")};var DEFAULT_RULES=[config_GLOBLA_RULE];var DEFAULT_SYNC={syncUrl:"",// 数据同步接口
 syncKey:"",// 数据同步密钥
 settingUpdateAt:0,settingSyncAt:0,rulesUpdateAt:0,rulesSyncAt:0,subRulesSyncAt:0// 订阅规则同步时间
 };
@@ -43335,11 +43346,6 @@ if(!(now-subRulesSyncAt>interval)){_context7.next=14;break;}_context7.next=12;re
  */var rules_loadSubRules=/*#__PURE__*/function(){var _ref7=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee8(url){var rules;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee8$(_context8){while(1)switch(_context8.prev=_context8.next){case 0:_context8.next=2;return rulesCache.get(url);case 2:rules=_context8.sent;if(!(rules!==null&&rules!==void 0&&rules.length)){_context8.next=5;break;}return _context8.abrupt("return",rules);case 5:_context8.next=7;return syncSubRules(url);case 7:return _context8.abrupt("return",_context8.sent);case 8:case"end":return _context8.stop();}},_callee8);}));return function loadSubRules(_x9){return _ref7.apply(this,arguments);};}();
 ;// CONCATENATED MODULE: ./src/libs/index.js
 /**
- * 获取节点列表并转为数组
- * @param {*} selector
- * @param {*} el
- * @returns
- */var queryEls=function queryEls(selector){var el=arguments.length>1&&arguments[1]!==undefined?arguments[1]:document;return Array.from(el.querySelectorAll(selector));};/**
  * 查询storage中的设置
  * @returns
  */var libs_getSetting=/*#__PURE__*/function(){var _ref=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:_context.t0=_objectSpread2;_context.t1=_objectSpread2({},DEFAULT_SETTING);_context.next=4;return libs_storage.getObj(STOKEY_SETTING);case 4:_context.t2=_context.sent;if(_context.t2){_context.next=7;break;}_context.t2={};case 7:_context.t3=_context.t2;return _context.abrupt("return",(0,_context.t0)(_context.t1,_context.t3));case 9:case"end":return _context.stop();}},_callee);}));return function getSetting(){return _ref.apply(this,arguments);};}();/**
@@ -43921,17 +43927,17 @@ function exclude(input, filter, options) {
  */var sync_syncOpt={load:function(){var _load=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:_context.next=2;return libs_storage.getObj(STOKEY_SYNC);case 2:_context.t0=_context.sent;if(_context.t0){_context.next=5;break;}_context.t0=DEFAULT_SYNC;case 5:return _context.abrupt("return",_context.t0);case 6:case"end":return _context.stop();}},_callee);}));function load(){return _load.apply(this,arguments);}return load;}(),update:function(){var _update=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(obj){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:_context2.next=2;return libs_storage.putObj(STOKEY_SYNC,obj);case 2:case"end":return _context2.stop();}},_callee2);}));function update(_x){return _update.apply(this,arguments);}return update;}()};/**
  * 同步设置
  * @returns
- */var syncSetting=/*#__PURE__*/function(){var _ref=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee3(){var isBg,_yield$syncOpt$load,syncUrl,syncKey,settingUpdateAt,setting,res,_args3=arguments;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:isBg=_args3.length>0&&_args3[0]!==undefined?_args3[0]:false;_context3.prev=1;_context3.next=4;return sync_syncOpt.load();case 4:_yield$syncOpt$load=_context3.sent;syncUrl=_yield$syncOpt$load.syncUrl;syncKey=_yield$syncOpt$load.syncKey;settingUpdateAt=_yield$syncOpt$load.settingUpdateAt;if(!(!syncUrl||!syncKey)){_context3.next=10;break;}return _context3.abrupt("return");case 10:_context3.next=12;return libs_getSetting();case 12:setting=_context3.sent;_context3.next=15;return apiSyncData(syncUrl,syncKey,{key:KV_SETTING_KEY,value:setting,updateAt:settingUpdateAt},isBg);case 15:res=_context3.sent;if(!(res&&res.updateAt>settingUpdateAt)){_context3.next=23;break;}_context3.next=19;return sync_syncOpt.update({settingUpdateAt:res.updateAt,settingSyncAt:res.updateAt});case 19:_context3.next=21;return libs_storage.setObj(STOKEY_SETTING,res.value);case 21:_context3.next=25;break;case 23:_context3.next=25;return sync_syncOpt.update({settingSyncAt:res.updateAt});case 25:_context3.next=30;break;case 27:_context3.prev=27;_context3.t0=_context3["catch"](1);console.log("[sync setting]",_context3.t0);case 30:case"end":return _context3.stop();}},_callee3,null,[[1,27]]);}));return function syncSetting(){return _ref.apply(this,arguments);};}();/**
+ */var syncSetting=/*#__PURE__*/function(){var _ref=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee3(){var isBg,_yield$syncOpt$load,syncUrl,syncKey,settingUpdateAt,setting,res,_args3=arguments;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:isBg=_args3.length>0&&_args3[0]!==undefined?_args3[0]:false;_context3.next=3;return sync_syncOpt.load();case 3:_yield$syncOpt$load=_context3.sent;syncUrl=_yield$syncOpt$load.syncUrl;syncKey=_yield$syncOpt$load.syncKey;settingUpdateAt=_yield$syncOpt$load.settingUpdateAt;if(!(!syncUrl||!syncKey)){_context3.next=9;break;}return _context3.abrupt("return");case 9:_context3.next=11;return libs_getSetting();case 11:setting=_context3.sent;_context3.next=14;return apiSyncData(syncUrl,syncKey,{key:KV_SETTING_KEY,value:setting,updateAt:settingUpdateAt},isBg);case 14:res=_context3.sent;if(!(res&&res.updateAt>settingUpdateAt)){_context3.next=22;break;}_context3.next=18;return sync_syncOpt.update({settingUpdateAt:res.updateAt,settingSyncAt:res.updateAt});case 18:_context3.next=20;return libs_storage.setObj(STOKEY_SETTING,res.value);case 20:_context3.next=24;break;case 22:_context3.next=24;return sync_syncOpt.update({settingSyncAt:res.updateAt});case 24:case"end":return _context3.stop();}},_callee3);}));return function syncSetting(){return _ref.apply(this,arguments);};}();var trySyncSetting=/*#__PURE__*/function(){var _ref2=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee4(){var isBg,_args4=arguments;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee4$(_context4){while(1)switch(_context4.prev=_context4.next){case 0:isBg=_args4.length>0&&_args4[0]!==undefined?_args4[0]:false;_context4.prev=1;_context4.next=4;return syncSetting(isBg);case 4:_context4.next=9;break;case 6:_context4.prev=6;_context4.t0=_context4["catch"](1);console.log("[sync setting]",_context4.t0);case 9:case"end":return _context4.stop();}},_callee4,null,[[1,6]]);}));return function trySyncSetting(){return _ref2.apply(this,arguments);};}();/**
  * 同步规则
  * @returns
- */var syncRules=/*#__PURE__*/function(){var _ref2=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee4(){var isBg,_yield$syncOpt$load2,syncUrl,syncKey,rulesUpdateAt,rules,res,_args4=arguments;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee4$(_context4){while(1)switch(_context4.prev=_context4.next){case 0:isBg=_args4.length>0&&_args4[0]!==undefined?_args4[0]:false;_context4.prev=1;_context4.next=4;return sync_syncOpt.load();case 4:_yield$syncOpt$load2=_context4.sent;syncUrl=_yield$syncOpt$load2.syncUrl;syncKey=_yield$syncOpt$load2.syncKey;rulesUpdateAt=_yield$syncOpt$load2.rulesUpdateAt;if(!(!syncUrl||!syncKey)){_context4.next=10;break;}return _context4.abrupt("return");case 10:_context4.next=12;return getRules();case 12:rules=_context4.sent;_context4.next=15;return apiSyncData(syncUrl,syncKey,{key:KV_RULES_KEY,value:rules,updateAt:rulesUpdateAt},isBg);case 15:res=_context4.sent;if(!(res&&res.updateAt>rulesUpdateAt)){_context4.next=23;break;}_context4.next=19;return sync_syncOpt.update({rulesUpdateAt:res.updateAt,rulesSyncAt:res.updateAt});case 19:_context4.next=21;return libs_storage.setObj(STOKEY_RULES,res.value);case 21:_context4.next=25;break;case 23:_context4.next=25;return sync_syncOpt.update({rulesSyncAt:res.updateAt});case 25:_context4.next=30;break;case 27:_context4.prev=27;_context4.t0=_context4["catch"](1);console.log("[sync user rules]",_context4.t0);case 30:case"end":return _context4.stop();}},_callee4,null,[[1,27]]);}));return function syncRules(){return _ref2.apply(this,arguments);};}();/**
+ */var syncRules=/*#__PURE__*/function(){var _ref3=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee5(){var isBg,_yield$syncOpt$load2,syncUrl,syncKey,rulesUpdateAt,rules,res,_args5=arguments;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee5$(_context5){while(1)switch(_context5.prev=_context5.next){case 0:isBg=_args5.length>0&&_args5[0]!==undefined?_args5[0]:false;_context5.next=3;return sync_syncOpt.load();case 3:_yield$syncOpt$load2=_context5.sent;syncUrl=_yield$syncOpt$load2.syncUrl;syncKey=_yield$syncOpt$load2.syncKey;rulesUpdateAt=_yield$syncOpt$load2.rulesUpdateAt;if(!(!syncUrl||!syncKey)){_context5.next=9;break;}return _context5.abrupt("return");case 9:_context5.next=11;return getRules();case 11:rules=_context5.sent;_context5.next=14;return apiSyncData(syncUrl,syncKey,{key:KV_RULES_KEY,value:rules,updateAt:rulesUpdateAt},isBg);case 14:res=_context5.sent;if(!(res&&res.updateAt>rulesUpdateAt)){_context5.next=22;break;}_context5.next=18;return sync_syncOpt.update({rulesUpdateAt:res.updateAt,rulesSyncAt:res.updateAt});case 18:_context5.next=20;return libs_storage.setObj(STOKEY_RULES,res.value);case 20:_context5.next=24;break;case 22:_context5.next=24;return sync_syncOpt.update({rulesSyncAt:res.updateAt});case 24:case"end":return _context5.stop();}},_callee5);}));return function syncRules(){return _ref3.apply(this,arguments);};}();var trySyncRules=/*#__PURE__*/function(){var _ref4=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee6(){var isBg,_args6=arguments;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee6$(_context6){while(1)switch(_context6.prev=_context6.next){case 0:isBg=_args6.length>0&&_args6[0]!==undefined?_args6[0]:false;_context6.prev=1;_context6.next=4;return syncRules(isBg);case 4:_context6.next=9;break;case 6:_context6.prev=6;_context6.t0=_context6["catch"](1);console.log("[sync user rules]",_context6.t0);case 9:case"end":return _context6.stop();}},_callee6,null,[[1,6]]);}));return function trySyncRules(){return _ref4.apply(this,arguments);};}();/**
  * 同步分享规则
  * @param {*} param0
  * @returns
- */var syncShareRules=/*#__PURE__*/function(){var _ref4=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee5(_ref3){var rules,syncUrl,syncKey,psk,shareUrl;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee5$(_context5){while(1)switch(_context5.prev=_context5.next){case 0:rules=_ref3.rules,syncUrl=_ref3.syncUrl,syncKey=_ref3.syncKey;_context5.next=3;return apiSyncData(syncUrl,syncKey,{key:KV_RULES_SHARE_KEY,value:rules,updateAt:Date.now()});case 3:_context5.next=5;return sha256(syncKey,KV_SALT_SHARE);case 5:psk=_context5.sent;shareUrl="".concat(syncUrl,"?psk=").concat(psk);return _context5.abrupt("return",shareUrl);case 8:case"end":return _context5.stop();}},_callee5);}));return function syncShareRules(_x2){return _ref4.apply(this,arguments);};}();/**
+ */var syncShareRules=/*#__PURE__*/function(){var _ref6=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee7(_ref5){var rules,syncUrl,syncKey,psk,shareUrl;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee7$(_context7){while(1)switch(_context7.prev=_context7.next){case 0:rules=_ref5.rules,syncUrl=_ref5.syncUrl,syncKey=_ref5.syncKey;_context7.next=3;return apiSyncData(syncUrl,syncKey,{key:KV_RULES_SHARE_KEY,value:rules,updateAt:Date.now()});case 3:_context7.next=5;return sha256(syncKey,KV_SALT_SHARE);case 5:psk=_context7.sent;shareUrl="".concat(syncUrl,"?psk=").concat(psk);return _context7.abrupt("return",shareUrl);case 8:case"end":return _context7.stop();}},_callee7);}));return function syncShareRules(_x2){return _ref6.apply(this,arguments);};}();/**
  * 同步个人设置和规则
  * @returns
- */var syncAll=/*#__PURE__*/function(){var _ref5=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee6(){var isBg,_args6=arguments;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee6$(_context6){while(1)switch(_context6.prev=_context6.next){case 0:isBg=_args6.length>0&&_args6[0]!==undefined?_args6[0]:false;_context6.next=3;return syncSetting(isBg);case 3:_context6.next=5;return syncRules(isBg);case 5:case"end":return _context6.stop();}},_callee6);}));return function syncAll(){return _ref5.apply(this,arguments);};}();
+ */var syncAll=/*#__PURE__*/function(){var _ref7=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee8(){var isBg,_args8=arguments;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee8$(_context8){while(1)switch(_context8.prev=_context8.next){case 0:isBg=_args8.length>0&&_args8[0]!==undefined?_args8[0]:false;_context8.next=3;return syncSetting(isBg);case 3:_context8.next=5;return syncRules(isBg);case 5:case"end":return _context8.stop();}},_callee8);}));return function syncAll(){return _ref7.apply(this,arguments);};}();var trySyncAll=/*#__PURE__*/function(){var _ref8=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee9(){var isBg,_args9=arguments;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee9$(_context9){while(1)switch(_context9.prev=_context9.next){case 0:isBg=_args9.length>0&&_args9[0]!==undefined?_args9[0]:false;_context9.next=3;return trySyncSetting(isBg);case 3:_context9.next=5;return trySyncRules(isBg);case 5:case"end":return _context9.stop();}},_callee9);}));return function trySyncAll(){return _ref8.apply(this,arguments);};}();
 ;// CONCATENATED MODULE: ./src/hooks/Setting.js
 /**
  * 设置hook
@@ -43939,7 +43945,7 @@ function exclude(input, filter, options) {
  */function useSetting(){var storages=useStorages();return storages===null||storages===void 0?void 0:storages[STOKEY_SETTING];}/**
  * 更新设置
  * @returns
- */function useSettingUpdate(){var sync=useSync();return/*#__PURE__*/function(){var _ref=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(obj){var _sync$opt;var updateAt;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:updateAt=(_sync$opt=sync.opt)!==null&&_sync$opt!==void 0&&_sync$opt.settingUpdateAt?Date.now():0;_context.next=3;return libs_storage.putObj(STOKEY_SETTING,obj);case 3:_context.next=5;return sync.update({settingUpdateAt:updateAt});case 5:syncSetting();case 6:case"end":return _context.stop();}},_callee);}));return function(_x){return _ref.apply(this,arguments);};}();}
+ */function useSettingUpdate(){var sync=useSync();return/*#__PURE__*/function(){var _ref=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(obj){var _sync$opt;var updateAt;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:updateAt=(_sync$opt=sync.opt)!==null&&_sync$opt!==void 0&&_sync$opt.settingUpdateAt?Date.now():0;_context.next=3;return libs_storage.putObj(STOKEY_SETTING,obj);case 3:_context.next=5;return sync.update({settingUpdateAt:updateAt});case 5:trySyncSetting();case 6:case"end":return _context.stop();}},_callee);}));return function(_x){return _ref.apply(this,arguments);};}();}
 ;// CONCATENATED MODULE: ./src/hooks/Fetch.js
 /**
  * fetch data hook
@@ -44447,6 +44453,8 @@ var utils_useForkRef = __webpack_require__(6983);
 // EXTERNAL MODULE: ./node_modules/@mui/material/utils/useEnhancedEffect.js
 var utils_useEnhancedEffect = __webpack_require__(3118);
 ;// CONCATENATED MODULE: ./node_modules/@mui/styled-engine/GlobalStyles/GlobalStyles.js
+'use client';
+
 
 
 
@@ -44914,7 +44922,7 @@ var InputBase = /*#__PURE__*/react.forwardRef(function InputBase(inProps, ref) {
     if (inputRef.current && event.currentTarget === event.target) {
       inputRef.current.focus();
     }
-    if (onClick && !fcs.disabled) {
+    if (onClick) {
       onClick(event);
     }
   };
@@ -47504,120 +47512,6 @@ var Grow = /*#__PURE__*/react.forwardRef(function Grow(props, ref) {
  false ? 0 : void 0;
 Grow.muiSupportAuto = true;
 /* harmony default export */ var Grow_Grow = (Grow);
-;// CONCATENATED MODULE: ./node_modules/@mui/base/utils/ClassNameConfigurator.js
-'use client';
-
-
-
-var defaultContextValue = {
-  disableDefaultClasses: false
-};
-var ClassNameConfiguratorContext = /*#__PURE__*/react.createContext(defaultContextValue);
-/**
- * @ignore - internal hook.
- *
- * Wraps the `generateUtilityClass` function and controls how the classes are generated.
- * Currently it only affects whether the classes are applied or not.
- *
- * @returns Function to be called with the `generateUtilityClass` function specific to a component to generate the classes.
- */
-function useClassNamesOverride(generateUtilityClass) {
-  var _React$useContext = react.useContext(ClassNameConfiguratorContext),
-    disableDefaultClasses = _React$useContext.disableDefaultClasses;
-  return function (slot) {
-    if (disableDefaultClasses) {
-      return '';
-    }
-    return generateUtilityClass(slot);
-  };
-}
-
-/**
- * Allows to configure the components within to not apply any built-in classes.
- */
-function ClassNameConfigurator(props) {
-  var disableDefaultClasses = props.disableDefaultClasses,
-    children = props.children;
-  var contextValue = React.useMemo(function () {
-    return {
-      disableDefaultClasses: disableDefaultClasses != null ? disableDefaultClasses : false
-    };
-  }, [disableDefaultClasses]);
-  return /*#__PURE__*/_jsx(ClassNameConfiguratorContext.Provider, {
-    value: contextValue,
-    children: children
-  });
-}
-// EXTERNAL MODULE: ./node_modules/@mui/utils/esm/setRef.js
-var setRef = __webpack_require__(9265);
-;// CONCATENATED MODULE: ./node_modules/@mui/base/Portal/Portal.js
-'use client';
-
-
-
-
-
-
-
-function getContainer(container) {
-  return typeof container === 'function' ? container() : container;
-}
-
-/**
- * Portals provide a first-class way to render children into a DOM node
- * that exists outside the DOM hierarchy of the parent component.
- *
- * Demos:
- *
- * - [Portal](https://mui.com/base-ui/react-portal/)
- *
- * API:
- *
- * - [Portal API](https://mui.com/base-ui/react-portal/components-api/#portal)
- */
-var Portal = /*#__PURE__*/react.forwardRef(function Portal(props, forwardedRef) {
-  var children = props.children,
-    container = props.container,
-    _props$disablePortal = props.disablePortal,
-    disablePortal = _props$disablePortal === void 0 ? false : _props$disablePortal;
-  var _React$useState = react.useState(null),
-    _React$useState2 = (0,slicedToArray/* default */.Z)(_React$useState, 2),
-    mountNode = _React$useState2[0],
-    setMountNode = _React$useState2[1];
-  // @ts-expect-error TODO upstream fix
-  var handleRef = (0,useForkRef/* default */.Z)( /*#__PURE__*/react.isValidElement(children) ? children.ref : null, forwardedRef);
-  (0,useEnhancedEffect/* default */.Z)(function () {
-    if (!disablePortal) {
-      setMountNode(getContainer(container) || document.body);
-    }
-  }, [container, disablePortal]);
-  (0,useEnhancedEffect/* default */.Z)(function () {
-    if (mountNode && !disablePortal) {
-      (0,setRef/* default */.Z)(forwardedRef, mountNode);
-      return function () {
-        (0,setRef/* default */.Z)(forwardedRef, null);
-      };
-    }
-    return undefined;
-  }, [forwardedRef, mountNode, disablePortal]);
-  if (disablePortal) {
-    if ( /*#__PURE__*/react.isValidElement(children)) {
-      var newProps = {
-        ref: handleRef
-      };
-      return /*#__PURE__*/react.cloneElement(children, newProps);
-    }
-    return /*#__PURE__*/(0,jsx_runtime.jsx)(react.Fragment, {
-      children: children
-    });
-  }
-  return /*#__PURE__*/(0,jsx_runtime.jsx)(react.Fragment, {
-    children: mountNode ? /*#__PURE__*/react_dom.createPortal(children, mountNode) : mountNode
-  });
-});
- false ? 0 : void 0;
-if (false) {}
-
 // EXTERNAL MODULE: ./node_modules/@mui/utils/esm/ownerDocument/ownerDocument.js
 var ownerDocument_ownerDocument = __webpack_require__(2504);
 // EXTERNAL MODULE: ./node_modules/@mui/utils/esm/useEventCallback/useEventCallback.js
@@ -47707,7 +47601,7 @@ function handleContainer(containerInfo, props) {
     if (container.parentNode instanceof DocumentFragment) {
       scrollContainer = (0,ownerDocument_ownerDocument/* default */.Z)(container).body;
     } else {
-      // Improve Gatsby support
+      // Support html overflow-y: auto for scroll stability between pages
       // https://css-tricks.com/snippets/css/force-vertical-scrollbar/
       var parent = container.parentElement;
       var containerWindow = (0,ownerWindow/* default */.Z)(container);
@@ -47867,7 +47761,7 @@ var ModalManager = /*#__PURE__*/function () {
 
 
 
-function useModal_getContainer(container) {
+function getContainer(container) {
   return typeof container === 'function' ? container() : container;
 }
 function getHasTransition(children) {
@@ -47937,7 +47831,7 @@ function useModal(parameters) {
     }
   };
   var handleOpen = (0,useEventCallback/* default */.Z)(function () {
-    var resolvedContainer = useModal_getContainer(container) || getDoc().body;
+    var resolvedContainer = getContainer(container) || getDoc().body;
     manager.add(getModal(), resolvedContainer);
 
     // The element was already mounted.
@@ -48345,178 +48239,75 @@ function FocusTrap(props) {
  false ? 0 : void 0;
 if (false) {}
 
-;// CONCATENATED MODULE: ./node_modules/@mui/base/Modal/modalClasses.js
-
-
-function getModalUtilityClass(slot) {
-  return (0,generateUtilityClass_generateUtilityClass/* default */.Z)('MuiModal', slot);
-}
-var modalClasses = (0,generateUtilityClasses/* default */.Z)('MuiModal', ['root', 'hidden', 'backdrop']);
-;// CONCATENATED MODULE: ./node_modules/@mui/base/Modal/Modal.js
+// EXTERNAL MODULE: ./node_modules/@mui/utils/esm/setRef.js
+var setRef = __webpack_require__(9265);
+;// CONCATENATED MODULE: ./node_modules/@mui/base/Portal/Portal.js
 'use client';
 
 
 
-var Modal_excluded = ["children", "closeAfterTransition", "container", "disableAutoFocus", "disableEnforceFocus", "disableEscapeKeyDown", "disablePortal", "disableRestoreFocus", "disableScrollLock", "hideBackdrop", "keepMounted", "onBackdropClick", "onClose", "onKeyDown", "open", "onTransitionEnter", "onTransitionExited", "slotProps", "slots"];
 
 
 
 
-
-
-
-
-
-
-
-
-var Modal_useUtilityClasses = function useUtilityClasses(ownerState) {
-  var open = ownerState.open,
-    exited = ownerState.exited;
-  var slots = {
-    root: ['root', !open && exited && 'hidden'],
-    backdrop: ['backdrop']
-  };
-  return (0,composeClasses/* default */.Z)(slots, useClassNamesOverride(getModalUtilityClass));
-};
+function Portal_getContainer(container) {
+  return typeof container === 'function' ? container() : container;
+}
 
 /**
- * Modal is a lower-level construct that is leveraged by the following components:
- *
- * *   [Dialog](https://mui.com/material-ui/api/dialog/)
- * *   [Drawer](https://mui.com/material-ui/api/drawer/)
- * *   [Menu](https://mui.com/material-ui/api/menu/)
- * *   [Popover](https://mui.com/material-ui/api/popover/)
- *
- * If you are creating a modal dialog, you probably want to use the [Dialog](https://mui.com/material-ui/api/dialog/) component
- * rather than directly using Modal.
- *
- * This component shares many concepts with [react-overlays](https://react-bootstrap.github.io/react-overlays/#modals).
+ * Portals provide a first-class way to render children into a DOM node
+ * that exists outside the DOM hierarchy of the parent component.
  *
  * Demos:
  *
- * - [Modal](https://mui.com/base-ui/react-modal/)
+ * - [Portal](https://mui.com/base-ui/react-portal/)
  *
  * API:
  *
- * - [Modal API](https://mui.com/base-ui/react-modal/components-api/#modal)
+ * - [Portal API](https://mui.com/base-ui/react-portal/components-api/#portal)
  */
-var Modal_Modal = /*#__PURE__*/react.forwardRef(function Modal(props, forwardedRef) {
-  var _slots$root;
+var Portal = /*#__PURE__*/react.forwardRef(function Portal(props, forwardedRef) {
   var children = props.children,
-    _props$closeAfterTran = props.closeAfterTransition,
-    closeAfterTransition = _props$closeAfterTran === void 0 ? false : _props$closeAfterTran,
     container = props.container,
-    _props$disableAutoFoc = props.disableAutoFocus,
-    disableAutoFocus = _props$disableAutoFoc === void 0 ? false : _props$disableAutoFoc,
-    _props$disableEnforce = props.disableEnforceFocus,
-    disableEnforceFocus = _props$disableEnforce === void 0 ? false : _props$disableEnforce,
-    _props$disableEscapeK = props.disableEscapeKeyDown,
-    disableEscapeKeyDown = _props$disableEscapeK === void 0 ? false : _props$disableEscapeK,
     _props$disablePortal = props.disablePortal,
-    disablePortal = _props$disablePortal === void 0 ? false : _props$disablePortal,
-    _props$disableRestore = props.disableRestoreFocus,
-    disableRestoreFocus = _props$disableRestore === void 0 ? false : _props$disableRestore,
-    _props$disableScrollL = props.disableScrollLock,
-    disableScrollLock = _props$disableScrollL === void 0 ? false : _props$disableScrollL,
-    _props$hideBackdrop = props.hideBackdrop,
-    hideBackdrop = _props$hideBackdrop === void 0 ? false : _props$hideBackdrop,
-    _props$keepMounted = props.keepMounted,
-    keepMounted = _props$keepMounted === void 0 ? false : _props$keepMounted,
-    onBackdropClick = props.onBackdropClick,
-    open = props.open,
-    _props$slotProps = props.slotProps,
-    slotProps = _props$slotProps === void 0 ? {} : _props$slotProps,
-    _props$slots = props.slots,
-    slots = _props$slots === void 0 ? {} : _props$slots,
-    other = (0,objectWithoutPropertiesLoose/* default */.Z)(props, Modal_excluded);
-  var propsWithDefaults = (0,esm_extends/* default */.Z)({}, props, {
-    closeAfterTransition: closeAfterTransition,
-    disableAutoFocus: disableAutoFocus,
-    disableEnforceFocus: disableEnforceFocus,
-    disableEscapeKeyDown: disableEscapeKeyDown,
-    disablePortal: disablePortal,
-    disableRestoreFocus: disableRestoreFocus,
-    disableScrollLock: disableScrollLock,
-    hideBackdrop: hideBackdrop,
-    keepMounted: keepMounted
-  });
-  var _useModal = useModal((0,esm_extends/* default */.Z)({}, propsWithDefaults, {
-      rootRef: forwardedRef
-    })),
-    getRootProps = _useModal.getRootProps,
-    getBackdropProps = _useModal.getBackdropProps,
-    getTransitionProps = _useModal.getTransitionProps,
-    portalRef = _useModal.portalRef,
-    isTopModal = _useModal.isTopModal,
-    exited = _useModal.exited,
-    hasTransition = _useModal.hasTransition;
-  var ownerState = (0,esm_extends/* default */.Z)({}, propsWithDefaults, {
-    exited: exited,
-    hasTransition: hasTransition
-  });
-  var classes = Modal_useUtilityClasses(ownerState);
-  var childProps = {};
-  if (children.props.tabIndex === undefined) {
-    childProps.tabIndex = '-1';
+    disablePortal = _props$disablePortal === void 0 ? false : _props$disablePortal;
+  var _React$useState = react.useState(null),
+    _React$useState2 = (0,slicedToArray/* default */.Z)(_React$useState, 2),
+    mountNode = _React$useState2[0],
+    setMountNode = _React$useState2[1];
+  // @ts-expect-error TODO upstream fix
+  var handleRef = (0,useForkRef/* default */.Z)( /*#__PURE__*/react.isValidElement(children) ? children.ref : null, forwardedRef);
+  (0,useEnhancedEffect/* default */.Z)(function () {
+    if (!disablePortal) {
+      setMountNode(Portal_getContainer(container) || document.body);
+    }
+  }, [container, disablePortal]);
+  (0,useEnhancedEffect/* default */.Z)(function () {
+    if (mountNode && !disablePortal) {
+      (0,setRef/* default */.Z)(forwardedRef, mountNode);
+      return function () {
+        (0,setRef/* default */.Z)(forwardedRef, null);
+      };
+    }
+    return undefined;
+  }, [forwardedRef, mountNode, disablePortal]);
+  if (disablePortal) {
+    if ( /*#__PURE__*/react.isValidElement(children)) {
+      var newProps = {
+        ref: handleRef
+      };
+      return /*#__PURE__*/react.cloneElement(children, newProps);
+    }
+    return /*#__PURE__*/(0,jsx_runtime.jsx)(react.Fragment, {
+      children: children
+    });
   }
-
-  // It's a Transition like component
-  if (hasTransition) {
-    var _getTransitionProps = getTransitionProps(),
-      onEnter = _getTransitionProps.onEnter,
-      onExited = _getTransitionProps.onExited;
-    childProps.onEnter = onEnter;
-    childProps.onExited = onExited;
-  }
-  var Root = (_slots$root = slots.root) != null ? _slots$root : 'div';
-  var rootProps = useSlotProps({
-    elementType: Root,
-    externalSlotProps: slotProps.root,
-    externalForwardedProps: other,
-    getSlotProps: getRootProps,
-    className: classes.root,
-    ownerState: ownerState
-  });
-  var BackdropComponent = slots.backdrop;
-  var backdropProps = useSlotProps({
-    elementType: BackdropComponent,
-    externalSlotProps: slotProps.backdrop,
-    getSlotProps: function getSlotProps(otherHandlers) {
-      return getBackdropProps((0,esm_extends/* default */.Z)({}, otherHandlers, {
-        onClick: function onClick(e) {
-          if (onBackdropClick) {
-            onBackdropClick(e);
-          }
-          if (otherHandlers != null && otherHandlers.onClick) {
-            otherHandlers.onClick(e);
-          }
-        }
-      }));
-    },
-    className: classes.backdrop,
-    ownerState: ownerState
-  });
-  if (!keepMounted && !open && (!hasTransition || exited)) {
-    return null;
-  }
-  return /*#__PURE__*/(0,jsx_runtime.jsx)(Portal, {
-    ref: portalRef,
-    container: container,
-    disablePortal: disablePortal,
-    children: /*#__PURE__*/(0,jsx_runtime.jsxs)(Root, (0,esm_extends/* default */.Z)({}, rootProps, {
-      children: [!hideBackdrop && BackdropComponent ? /*#__PURE__*/(0,jsx_runtime.jsx)(BackdropComponent, (0,esm_extends/* default */.Z)({}, backdropProps)) : null, /*#__PURE__*/(0,jsx_runtime.jsx)(FocusTrap, {
-        disableEnforceFocus: disableEnforceFocus,
-        disableAutoFocus: disableAutoFocus,
-        disableRestoreFocus: disableRestoreFocus,
-        isEnabled: isTopModal,
-        open: open,
-        children: /*#__PURE__*/react.cloneElement(children, childProps)
-      })]
-    }))
+  return /*#__PURE__*/(0,jsx_runtime.jsx)(react.Fragment, {
+    children: mountNode ? /*#__PURE__*/react_dom.createPortal(children, mountNode) : mountNode
   });
 });
  false ? 0 : void 0;
+if (false) {}
 
 ;// CONCATENATED MODULE: ./node_modules/@mui/material/Fade/Fade.js
 'use client';
@@ -48756,14 +48547,20 @@ var Backdrop = /*#__PURE__*/react.forwardRef(function Backdrop(inProps, ref) {
 });
  false ? 0 : void 0;
 /* harmony default export */ var Backdrop_Backdrop = (Backdrop);
+;// CONCATENATED MODULE: ./node_modules/@mui/material/Modal/modalClasses.js
+
+
+function getModalUtilityClass(slot) {
+  return (0,generateUtilityClass_generateUtilityClass/* default */.Z)('MuiModal', slot);
+}
+var modalClasses = (0,generateUtilityClasses/* default */.Z)('MuiModal', ['root', 'hidden', 'backdrop']);
+/* harmony default export */ var Modal_modalClasses = ((/* unused pure expression or super */ null && (modalClasses)));
 ;// CONCATENATED MODULE: ./node_modules/@mui/material/Modal/Modal.js
 'use client';
 
 
 
-
-var Modal_Modal_excluded = ["BackdropComponent", "BackdropProps", "classes", "className", "closeAfterTransition", "children", "container", "component", "components", "componentsProps", "disableAutoFocus", "disableEnforceFocus", "disableEscapeKeyDown", "disablePortal", "disableRestoreFocus", "disableScrollLock", "hideBackdrop", "keepMounted", "onBackdropClick", "onClose", "open", "slotProps", "slots", "theme"];
-
+var Modal_excluded = ["BackdropComponent", "BackdropProps", "classes", "className", "closeAfterTransition", "children", "container", "component", "components", "componentsProps", "disableAutoFocus", "disableEnforceFocus", "disableEscapeKeyDown", "disablePortal", "disableRestoreFocus", "disableScrollLock", "hideBackdrop", "keepMounted", "onBackdropClick", "onClose", "open", "slotProps", "slots", "theme"];
 
 
 
@@ -48773,7 +48570,22 @@ var Modal_Modal_excluded = ["BackdropComponent", "BackdropProps", "classes", "cl
 
 
 
-var Modal_modalClasses = (/* unused pure expression or super */ null && (modalUnstyledClasses));
+
+
+
+
+
+
+var Modal_useUtilityClasses = function useUtilityClasses(ownerState) {
+  var open = ownerState.open,
+    exited = ownerState.exited,
+    classes = ownerState.classes;
+  var slots = {
+    root: ['root', !open && exited && 'hidden'],
+    backdrop: ['backdrop']
+  };
+  return (0,composeClasses/* default */.Z)(slots, getModalUtilityClass, classes);
+};
 var ModalRoot = (0,styled/* default */.ZP)('div', {
   name: 'MuiModal',
   slot: 'Root',
@@ -48827,7 +48639,6 @@ var Modal = /*#__PURE__*/react.forwardRef(function Modal(inProps, ref) {
   var _props$BackdropCompon = props.BackdropComponent,
     BackdropComponent = _props$BackdropCompon === void 0 ? ModalBackdrop : _props$BackdropCompon,
     BackdropProps = props.BackdropProps,
-    classes = props.classes,
     className = props.className,
     _props$closeAfterTran = props.closeAfterTransition,
     closeAfterTransition = _props$closeAfterTran === void 0 ? false : _props$closeAfterTran,
@@ -48855,18 +48666,11 @@ var Modal = /*#__PURE__*/react.forwardRef(function Modal(inProps, ref) {
     _props$keepMounted = props.keepMounted,
     keepMounted = _props$keepMounted === void 0 ? false : _props$keepMounted,
     onBackdropClick = props.onBackdropClick,
-    onClose = props.onClose,
     open = props.open,
     slotProps = props.slotProps,
     slots = props.slots,
-    theme = props.theme,
-    other = (0,objectWithoutPropertiesLoose/* default */.Z)(props, Modal_Modal_excluded);
-  var _React$useState = react.useState(true),
-    _React$useState2 = (0,slicedToArray/* default */.Z)(_React$useState, 2),
-    exited = _React$useState2[0],
-    setExited = _React$useState2[1];
-  var commonProps = {
-    container: container,
+    other = (0,objectWithoutPropertiesLoose/* default */.Z)(props, Modal_excluded);
+  var propsWithDefaults = (0,esm_extends/* default */.Z)({}, props, {
     closeAfterTransition: closeAfterTransition,
     disableAutoFocus: disableAutoFocus,
     disableEnforceFocus: disableEnforceFocus,
@@ -48875,51 +48679,91 @@ var Modal = /*#__PURE__*/react.forwardRef(function Modal(inProps, ref) {
     disableRestoreFocus: disableRestoreFocus,
     disableScrollLock: disableScrollLock,
     hideBackdrop: hideBackdrop,
-    keepMounted: keepMounted,
-    onBackdropClick: onBackdropClick,
-    onClose: onClose,
-    open: open
-  };
-  var ownerState = (0,esm_extends/* default */.Z)({}, props, commonProps, {
+    keepMounted: keepMounted
+  });
+  var _useModal = useModal((0,esm_extends/* default */.Z)({}, propsWithDefaults, {
+      rootRef: ref
+    })),
+    getRootProps = _useModal.getRootProps,
+    getBackdropProps = _useModal.getBackdropProps,
+    getTransitionProps = _useModal.getTransitionProps,
+    portalRef = _useModal.portalRef,
+    isTopModal = _useModal.isTopModal,
+    exited = _useModal.exited,
+    hasTransition = _useModal.hasTransition;
+  var ownerState = (0,esm_extends/* default */.Z)({}, propsWithDefaults, {
     exited: exited
   });
+  var classes = Modal_useUtilityClasses(ownerState);
+  var childProps = {};
+  if (children.props.tabIndex === undefined) {
+    childProps.tabIndex = '-1';
+  }
+
+  // It's a Transition like component
+  if (hasTransition) {
+    var _getTransitionProps = getTransitionProps(),
+      onEnter = _getTransitionProps.onEnter,
+      onExited = _getTransitionProps.onExited;
+    childProps.onEnter = onEnter;
+    childProps.onExited = onExited;
+  }
   var RootSlot = (_ref = (_slots$root = slots == null ? void 0 : slots.root) != null ? _slots$root : components.Root) != null ? _ref : ModalRoot;
   var BackdropSlot = (_ref2 = (_slots$backdrop = slots == null ? void 0 : slots.backdrop) != null ? _slots$backdrop : components.Backdrop) != null ? _ref2 : BackdropComponent;
   var rootSlotProps = (_slotProps$root = slotProps == null ? void 0 : slotProps.root) != null ? _slotProps$root : componentsProps.root;
   var backdropSlotProps = (_slotProps$backdrop = slotProps == null ? void 0 : slotProps.backdrop) != null ? _slotProps$backdrop : componentsProps.backdrop;
-  return /*#__PURE__*/(0,jsx_runtime.jsx)(Modal_Modal, (0,esm_extends/* default */.Z)({
-    slots: {
-      root: RootSlot,
-      backdrop: BackdropSlot
+  var rootProps = useSlotProps({
+    elementType: RootSlot,
+    externalSlotProps: rootSlotProps,
+    externalForwardedProps: other,
+    getSlotProps: getRootProps,
+    additionalProps: {
+      ref: ref,
+      as: component
     },
-    slotProps: {
-      root: function root() {
-        return (0,esm_extends/* default */.Z)({}, resolveComponentProps(rootSlotProps, ownerState), !isHostComponent(RootSlot) && {
-          as: component,
-          theme: theme
-        }, {
-          className: (0,clsx/* default */.Z)(className, rootSlotProps == null ? void 0 : rootSlotProps.className, classes == null ? void 0 : classes.root, !ownerState.open && ownerState.exited && (classes == null ? void 0 : classes.hidden))
-        });
-      },
-      backdrop: function backdrop() {
-        return (0,esm_extends/* default */.Z)({}, BackdropProps, resolveComponentProps(backdropSlotProps, ownerState), {
-          className: (0,clsx/* default */.Z)(backdropSlotProps == null ? void 0 : backdropSlotProps.className, BackdropProps == null ? void 0 : BackdropProps.className, classes == null ? void 0 : classes.backdrop)
-        });
-      }
+    ownerState: ownerState,
+    className: (0,clsx/* default */.Z)(className, rootSlotProps == null ? void 0 : rootSlotProps.className, classes == null ? void 0 : classes.root, !ownerState.open && ownerState.exited && (classes == null ? void 0 : classes.hidden))
+  });
+  var backdropProps = useSlotProps({
+    elementType: BackdropSlot,
+    externalSlotProps: backdropSlotProps,
+    additionalProps: BackdropProps,
+    getSlotProps: function getSlotProps(otherHandlers) {
+      return getBackdropProps((0,esm_extends/* default */.Z)({}, otherHandlers, {
+        onClick: function onClick(e) {
+          if (onBackdropClick) {
+            onBackdropClick(e);
+          }
+          if (otherHandlers != null && otherHandlers.onClick) {
+            otherHandlers.onClick(e);
+          }
+        }
+      }));
     },
-    onTransitionEnter: function onTransitionEnter() {
-      return setExited(false);
-    },
-    onTransitionExited: function onTransitionExited() {
-      return setExited(true);
-    },
-    ref: ref
-  }, other, commonProps, {
-    children: children
-  }));
+    className: (0,clsx/* default */.Z)(backdropSlotProps == null ? void 0 : backdropSlotProps.className, BackdropProps == null ? void 0 : BackdropProps.className, classes == null ? void 0 : classes.backdrop),
+    ownerState: ownerState
+  });
+  if (!keepMounted && !open && (!hasTransition || exited)) {
+    return null;
+  }
+  return /*#__PURE__*/(0,jsx_runtime.jsx)(Portal, {
+    ref: portalRef,
+    container: container,
+    disablePortal: disablePortal,
+    children: /*#__PURE__*/(0,jsx_runtime.jsxs)(RootSlot, (0,esm_extends/* default */.Z)({}, rootProps, {
+      children: [!hideBackdrop && BackdropComponent ? /*#__PURE__*/(0,jsx_runtime.jsx)(BackdropSlot, (0,esm_extends/* default */.Z)({}, backdropProps)) : null, /*#__PURE__*/(0,jsx_runtime.jsx)(FocusTrap, {
+        disableEnforceFocus: disableEnforceFocus,
+        disableAutoFocus: disableAutoFocus,
+        disableRestoreFocus: disableRestoreFocus,
+        isEnabled: isTopModal,
+        open: open,
+        children: /*#__PURE__*/react.cloneElement(children, childProps)
+      })]
+    }))
+  });
 });
  false ? 0 : void 0;
-/* harmony default export */ var material_Modal_Modal = (Modal);
+/* harmony default export */ var Modal_Modal = (Modal);
 // EXTERNAL MODULE: ./node_modules/@mui/system/esm/colorManipulator.js
 var colorManipulator = __webpack_require__(7551);
 ;// CONCATENATED MODULE: ./node_modules/@mui/material/styles/getOverlayAlpha.js
@@ -49100,7 +48944,7 @@ var Popover_useUtilityClasses = function useUtilityClasses(ownerState) {
   };
   return (0,composeClasses/* default */.Z)(slots, getPopoverUtilityClass, classes);
 };
-var PopoverRoot = (0,styled/* default */.ZP)(material_Modal_Modal, {
+var PopoverRoot = (0,styled/* default */.ZP)(Modal_Modal, {
   name: 'MuiPopover',
   slot: 'Root',
   overridesResolver: function overridesResolver(props, styles) {
@@ -49775,7 +49619,7 @@ var useControlled = __webpack_require__(4951);
 function getSelectUtilityClasses(slot) {
   return (0,generateUtilityClass_generateUtilityClass/* default */.Z)('MuiSelect', slot);
 }
-var selectClasses = (0,generateUtilityClasses/* default */.Z)('MuiSelect', ['select', 'multiple', 'filled', 'outlined', 'standard', 'disabled', 'focused', 'icon', 'iconOpen', 'iconFilled', 'iconOutlined', 'iconStandard', 'nativeInput', 'error']);
+var selectClasses = (0,generateUtilityClasses/* default */.Z)('MuiSelect', ['root', 'select', 'multiple', 'filled', 'outlined', 'standard', 'disabled', 'focused', 'icon', 'iconOpen', 'iconFilled', 'iconOutlined', 'iconStandard', 'nativeInput', 'error']);
 /* harmony default export */ var Select_selectClasses = (selectClasses);
 ;// CONCATENATED MODULE: ./node_modules/@mui/material/Select/SelectInput.js
 'use client';
@@ -50300,7 +50144,8 @@ var createSvgIcon = __webpack_require__(1171);
 
 
 
-var Select_excluded = ["autoWidth", "children", "classes", "className", "defaultOpen", "displayEmpty", "IconComponent", "id", "input", "inputProps", "label", "labelId", "MenuProps", "multiple", "native", "onClose", "onOpen", "open", "renderValue", "SelectDisplayProps", "variant"];
+var Select_excluded = ["autoWidth", "children", "classes", "className", "defaultOpen", "displayEmpty", "IconComponent", "id", "input", "inputProps", "label", "labelId", "MenuProps", "multiple", "native", "onClose", "onOpen", "open", "renderValue", "SelectDisplayProps", "variant"],
+  Select_excluded2 = ["root"];
 
 
 
@@ -50382,6 +50227,7 @@ var Select = /*#__PURE__*/react.forwardRef(function Select(inProps, ref) {
     classes: classesProp
   });
   var classes = Select_useUtilityClasses(ownerState);
+  var restOfClasses = (0,objectWithoutPropertiesLoose/* default */.Z)(classes, Select_excluded2);
   var InputComponent = input || {
     standard: /*#__PURE__*/(0,jsx_runtime.jsx)(StyledInput, {
       ownerState: ownerState
@@ -50424,13 +50270,13 @@ var Select = /*#__PURE__*/react.forwardRef(function Select(inProps, ref) {
           id: id
         }, SelectDisplayProps)
       }, inputProps, {
-        classes: inputProps ? (0,deepmerge/* default */.Z)(classes, inputProps.classes) : classes
+        classes: inputProps ? (0,deepmerge/* default */.Z)(restOfClasses, inputProps.classes) : restOfClasses
       }, input ? input.props.inputProps : {})
     }, multiple && native && variant === 'outlined' ? {
       notched: true
     } : {}, {
       ref: inputComponentRef,
-      className: (0,clsx/* default */.Z)(InputComponent.props.className, className)
+      className: (0,clsx/* default */.Z)(InputComponent.props.className, className, classes.root)
     }, !input && {
       variant: variant
     }, other))
@@ -50452,7 +50298,7 @@ var textFieldClasses = (0,generateUtilityClasses/* default */.Z)('MuiTextField',
 
 
 
-var TextField_excluded = ["autoComplete", "autoFocus", "children", "className", "color", "defaultValue", "disabled", "error", "FormHelperTextProps", "fullWidth", "helperText", "id", "InputLabelProps", "inputProps", "InputProps", "inputRef", "label", "maxRows", "minRows", "multiline", "name", "onBlur", "onChange", "onClick", "onFocus", "placeholder", "required", "rows", "select", "SelectProps", "type", "value", "variant"];
+var TextField_excluded = ["autoComplete", "autoFocus", "children", "className", "color", "defaultValue", "disabled", "error", "FormHelperTextProps", "fullWidth", "helperText", "id", "InputLabelProps", "inputProps", "InputProps", "inputRef", "label", "maxRows", "minRows", "multiline", "name", "onBlur", "onChange", "onFocus", "placeholder", "required", "rows", "select", "SelectProps", "type", "value", "variant"];
 
 
 
@@ -50556,7 +50402,6 @@ var TextField = /*#__PURE__*/react.forwardRef(function TextField(inProps, ref) {
     name = props.name,
     onBlur = props.onBlur,
     onChange = props.onChange,
-    onClick = props.onClick,
     onFocus = props.onFocus,
     placeholder = props.placeholder,
     _props$required = props.required,
@@ -50597,14 +50442,6 @@ var TextField = /*#__PURE__*/react.forwardRef(function TextField(inProps, ref) {
     }
     InputMore['aria-describedby'] = undefined;
   }
-  var handleClick = function handleClick(event) {
-    if (!disabled && onClick) {
-      // The `onClick` is registered both on the root and the input elements.
-      // Without stopping the propagation, the event could be triggered twice.
-      event.stopPropagation();
-      onClick(event);
-    }
-  };
   var id = (0,useId/* default */.Z)(idOverride);
   var helperTextId = helperText && id ? "".concat(id, "-helper-text") : undefined;
   var inputLabelId = label && id ? "".concat(id, "-label") : undefined;
@@ -50627,7 +50464,6 @@ var TextField = /*#__PURE__*/react.forwardRef(function TextField(inProps, ref) {
     onBlur: onBlur,
     onChange: onChange,
     onFocus: onFocus,
-    onClick: handleClick,
     placeholder: placeholder,
     inputProps: inputProps
   }, InputMore, InputProps));
@@ -50640,8 +50476,7 @@ var TextField = /*#__PURE__*/react.forwardRef(function TextField(inProps, ref) {
     required: required,
     color: color,
     variant: variant,
-    ownerState: ownerState,
-    onClick: handleClick
+    ownerState: ownerState
   }, other, {
     children: [label != null && label !== '' && /*#__PURE__*/(0,jsx_runtime.jsx)(InputLabel_InputLabel, (0,esm_extends/* default */.Z)({
       htmlFor: id,
@@ -50669,8 +50504,8 @@ var TextField = /*#__PURE__*/react.forwardRef(function TextField(inProps, ref) {
 var resolveProps = __webpack_require__(9023);
 // EXTERNAL MODULE: ./node_modules/@mui/material/utils/useEventCallback.js
 var utils_useEventCallback = __webpack_require__(3236);
-// EXTERNAL MODULE: ./node_modules/@mui/material/utils/useIsFocusVisible.js + 1 modules
-var useIsFocusVisible = __webpack_require__(9127);
+// EXTERNAL MODULE: ./node_modules/@mui/material/utils/useIsFocusVisible.js
+var useIsFocusVisible = __webpack_require__(7037);
 ;// CONCATENATED MODULE: ./node_modules/react-transition-group/esm/utils/ChildMapping.js
 
 /**
@@ -53192,7 +53027,7 @@ var ExpandMore = __webpack_require__(6306);
 /**
  * 匹配规则增删改查 hook
  * @returns
- */function useRules(){var storages=useStorages();var list=(storages===null||storages===void 0?void 0:storages[STOKEY_RULES])||[];var sync=useSync();var update=/*#__PURE__*/function(){var _ref=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(rules){var _sync$opt;var updateAt;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:updateAt=(_sync$opt=sync.opt)!==null&&_sync$opt!==void 0&&_sync$opt.rulesUpdateAt?Date.now():0;_context.next=3;return libs_storage.setObj(STOKEY_RULES,rules);case 3:_context.next=5;return sync.update({rulesUpdateAt:updateAt});case 5:syncRules();case 6:case"end":return _context.stop();}},_callee);}));return function update(_x){return _ref.apply(this,arguments);};}();var add=/*#__PURE__*/function(){var _ref2=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(rule){var rules;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:rules=(0,toConsumableArray/* default */.Z)(list);if(!(rule.pattern==="*")){_context2.next=3;break;}return _context2.abrupt("return");case 3:if(!rules.map(function(item){return item.pattern;}).includes(rule.pattern)){_context2.next=5;break;}return _context2.abrupt("return");case 5:rules.unshift(rule);_context2.next=8;return update(rules);case 8:case"end":return _context2.stop();}},_callee2);}));return function add(_x2){return _ref2.apply(this,arguments);};}();var del=/*#__PURE__*/function(){var _ref3=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee3(pattern){var rules;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:rules=(0,toConsumableArray/* default */.Z)(list);if(!(pattern==="*")){_context3.next=3;break;}return _context3.abrupt("return");case 3:rules=rules.filter(function(item){return item.pattern!==pattern;});_context3.next=6;return update(rules);case 6:case"end":return _context3.stop();}},_callee3);}));return function del(_x3){return _ref3.apply(this,arguments);};}();var put=/*#__PURE__*/function(){var _ref4=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee4(pattern,obj){var rules,rule;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee4$(_context4){while(1)switch(_context4.prev=_context4.next){case 0:rules=(0,toConsumableArray/* default */.Z)(list);if(pattern==="*"){obj.pattern="*";}rule=rules.find(function(r){return r.pattern===pattern;});rule&&Object.assign(rule,obj);_context4.next=6;return update(rules);case 6:case"end":return _context4.stop();}},_callee4);}));return function put(_x4,_x5){return _ref4.apply(this,arguments);};}();var merge=/*#__PURE__*/function(){var _ref5=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee5(newRules){var rules;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee5$(_context5){while(1)switch(_context5.prev=_context5.next){case 0:rules=(0,toConsumableArray/* default */.Z)(list);newRules=checkRules(newRules);newRules.forEach(function(newRule){var rule=rules.find(function(oldRule){return oldRule.pattern===newRule.pattern;});if(rule){Object.assign(rule,newRule);}else{rules.unshift(newRule);}});_context5.next=5;return update(rules);case 5:case"end":return _context5.stop();}},_callee5);}));return function merge(_x6){return _ref5.apply(this,arguments);};}();return{list:list,add:add,del:del,put:put,merge:merge};}/**
+ */function useRules(){var storages=useStorages();var list=(storages===null||storages===void 0?void 0:storages[STOKEY_RULES])||[];var sync=useSync();var update=/*#__PURE__*/function(){var _ref=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(rules){var _sync$opt;var updateAt;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:updateAt=(_sync$opt=sync.opt)!==null&&_sync$opt!==void 0&&_sync$opt.rulesUpdateAt?Date.now():0;_context.next=3;return libs_storage.setObj(STOKEY_RULES,rules);case 3:_context.next=5;return sync.update({rulesUpdateAt:updateAt});case 5:trySyncRules();case 6:case"end":return _context.stop();}},_callee);}));return function update(_x){return _ref.apply(this,arguments);};}();var add=/*#__PURE__*/function(){var _ref2=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(rule){var rules;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:rules=(0,toConsumableArray/* default */.Z)(list);if(!(rule.pattern==="*")){_context2.next=3;break;}return _context2.abrupt("return");case 3:if(!rules.map(function(item){return item.pattern;}).includes(rule.pattern)){_context2.next=5;break;}return _context2.abrupt("return");case 5:rules.unshift(rule);_context2.next=8;return update(rules);case 8:case"end":return _context2.stop();}},_callee2);}));return function add(_x2){return _ref2.apply(this,arguments);};}();var del=/*#__PURE__*/function(){var _ref3=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee3(pattern){var rules;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:rules=(0,toConsumableArray/* default */.Z)(list);if(!(pattern==="*")){_context3.next=3;break;}return _context3.abrupt("return");case 3:rules=rules.filter(function(item){return item.pattern!==pattern;});_context3.next=6;return update(rules);case 6:case"end":return _context3.stop();}},_callee3);}));return function del(_x3){return _ref3.apply(this,arguments);};}();var put=/*#__PURE__*/function(){var _ref4=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee4(pattern,obj){var rules,rule;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee4$(_context4){while(1)switch(_context4.prev=_context4.next){case 0:rules=(0,toConsumableArray/* default */.Z)(list);if(pattern==="*"){obj.pattern="*";}rule=rules.find(function(r){return r.pattern===pattern;});rule&&Object.assign(rule,obj);_context4.next=6;return update(rules);case 6:case"end":return _context4.stop();}},_callee4);}));return function put(_x4,_x5){return _ref4.apply(this,arguments);};}();var merge=/*#__PURE__*/function(){var _ref5=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee5(newRules){var rules;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee5$(_context5){while(1)switch(_context5.prev=_context5.next){case 0:rules=(0,toConsumableArray/* default */.Z)(list);newRules=checkRules(newRules);newRules.forEach(function(newRule){var rule=rules.find(function(oldRule){return oldRule.pattern===newRule.pattern;});if(rule){Object.assign(rule,newRule);}else{rules.unshift(newRule);}});_context5.next=5;return update(rules);case 5:case"end":return _context5.stop();}},_callee5);}));return function merge(_x6){return _ref5.apply(this,arguments);};}();return{list:list,add:add,del:del,put:put,merge:merge};}/**
  * 订阅规则
  * @returns
  */function useSubrules(){var setting=useSetting();var updateSetting=useSettingUpdate();var list=(setting===null||setting===void 0?void 0:setting.subrulesList)||config_DEFAULT_SUBRULES_LIST;var select=/*#__PURE__*/function(){var _ref6=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee6(url){var subrulesList;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee6$(_context6){while(1)switch(_context6.prev=_context6.next){case 0:subrulesList=(0,toConsumableArray/* default */.Z)(list);subrulesList.forEach(function(item){if(item.url===url){item.selected=true;}else{item.selected=false;}});_context6.next=4;return updateSetting({subrulesList:subrulesList});case 4:case"end":return _context6.stop();}},_callee6);}));return function select(_x7){return _ref6.apply(this,arguments);};}();var add=/*#__PURE__*/function(){var _ref7=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee7(url){var subrulesList;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee7$(_context7){while(1)switch(_context7.prev=_context7.next){case 0:subrulesList=(0,toConsumableArray/* default */.Z)(list);subrulesList.push({url:url});_context7.next=4;return updateSetting({subrulesList:subrulesList});case 4:case"end":return _context7.stop();}},_callee7);}));return function add(_x8){return _ref7.apply(this,arguments);};}();var del=/*#__PURE__*/function(){var _ref8=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee8(url){var subrulesList;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee8$(_context8){while(1)switch(_context8.prev=_context8.next){case 0:subrulesList=(0,toConsumableArray/* default */.Z)(list);subrulesList=subrulesList.filter(function(item){return item.url!==url;});_context8.next=4;return updateSetting({subrulesList:subrulesList});case 4:case"end":return _context8.stop();}},_callee8);}));return function del(_x9){return _ref8.apply(this,arguments);};}();return{list:list,select:select,add:add,del:del};}
@@ -56631,9 +56466,9 @@ function RuleFields(_ref){var rule=_ref.rule,rules=_ref.rules,setShow=_ref.setSh
 setDisabled(true);rules.put(rule.pattern,formValues);}else{// 添加
 rules.add(formValues);setShow(false);setFormValues(initFormValues);}};var globalItem=(rule===null||rule===void 0?void 0:rule.pattern)!=="*"&&/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:rules_GLOBAL_KEY,children:rules_GLOBAL_KEY},rules_GLOBAL_KEY);return/*#__PURE__*/(0,jsx_runtime.jsx)("form",{onSubmit:handleSubmit,children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("pattern"),error:!!errors.pattern,helperText:errors.pattern||i18n("pattern_helper"),name:"pattern",value:pattern,disabled:(rule===null||rule===void 0?void 0:rule.pattern)==="*"||disabled,onChange:handleChange,onFocus:handleFocus,multiline:true}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("selector"),error:!!errors.selector,helperText:errors.selector||i18n("selector_helper"),name:"selector",value:selector,disabled:disabled,onChange:handleChange,onFocus:handleFocus,multiline:true}),/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Grid_Grid,{container:true,spacing:2,columns:12,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:12,sm:6,md:3,lg:2,children:/*#__PURE__*/(0,jsx_runtime.jsxs)(TextField_TextField,{select:true,size:"small",fullWidth:true,name:"transOpen",value:transOpen,label:i18n("translate_switch"),disabled:disabled,onChange:handleChange,children:[globalItem,/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:"true",children:i18n("default_enabled")}),/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:"false",children:i18n("default_disabled")})]})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:12,sm:6,md:3,lg:2,children:/*#__PURE__*/(0,jsx_runtime.jsxs)(TextField_TextField,{select:true,size:"small",fullWidth:true,name:"translator",value:translator,label:i18n("translate_service"),disabled:disabled,onChange:handleChange,children:[globalItem,OPT_TRANS_ALL.map(function(item){return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:item,children:item},item);})]})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:12,sm:6,md:3,lg:2,children:/*#__PURE__*/(0,jsx_runtime.jsxs)(TextField_TextField,{select:true,size:"small",fullWidth:true,name:"fromLang",value:fromLang,label:i18n("from_lang"),disabled:disabled,onChange:handleChange,children:[globalItem,OPT_LANGS_FROM.map(function(_ref3){var _ref4=(0,slicedToArray/* default */.Z)(_ref3,2),lang=_ref4[0],name=_ref4[1];return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:lang,children:name},lang);})]})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:12,sm:6,md:3,lg:2,children:/*#__PURE__*/(0,jsx_runtime.jsxs)(TextField_TextField,{select:true,size:"small",fullWidth:true,name:"toLang",value:toLang,label:i18n("to_lang"),disabled:disabled,onChange:handleChange,children:[globalItem,OPT_LANGS_TO.map(function(_ref5){var _ref6=(0,slicedToArray/* default */.Z)(_ref5,2),lang=_ref6[0],name=_ref6[1];return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:lang,children:name},lang);})]})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:12,sm:6,md:3,lg:2,children:/*#__PURE__*/(0,jsx_runtime.jsxs)(TextField_TextField,{select:true,size:"small",fullWidth:true,name:"textStyle",value:textStyle,label:i18n("text_style"),disabled:disabled,onChange:handleChange,children:[globalItem,OPT_STYLE_ALL.map(function(item){return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:item,children:i18n(item)},item);})]})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:12,sm:6,md:3,lg:2,children:/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",fullWidth:true,name:"bgColor",value:bgColor,label:i18n("bg_color"),disabled:disabled,onChange:handleChange})})]})}),rules&&(editMode?/*#__PURE__*/ // 编辑
 (0,jsx_runtime.jsx)(Stack_Stack,{direction:"row",spacing:2,children:disabled?/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"contained",onClick:function onClick(e){e.preventDefault();setDisabled(false);},children:i18n("edit")}),(rule===null||rule===void 0?void 0:rule.pattern)!=="*"&&/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"outlined",onClick:function onClick(e){e.preventDefault();rules.del(rule.pattern);},children:i18n("delete")})]}):/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"contained",type:"submit",children:i18n("save")}),/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"outlined",onClick:handleCancel,children:i18n("cancel")})]})}):/*#__PURE__*/ // 添加
-(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"contained",type:"submit",children:i18n("save")}),/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"outlined",onClick:handleCancel,children:i18n("cancel")})]}))]})});}function RuleAccordion(_ref7){var rule=_ref7.rule,rules=_ref7.rules;var _useState7=(0,react.useState)(false),_useState8=(0,slicedToArray/* default */.Z)(_useState7,2),expanded=_useState8[0],setExpanded=_useState8[1];var handleChange=function handleChange(e){setExpanded(function(pre){return!pre;});};return/*#__PURE__*/(0,jsx_runtime.jsxs)(Accordion_Accordion,{expanded:expanded,onChange:handleChange,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(AccordionSummary_AccordionSummary,{expandIcon:/*#__PURE__*/(0,jsx_runtime.jsx)(ExpandMore/* default */.Z,{}),children:/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{style:{opacity:rules?1:0.5},children:rule.pattern})}),/*#__PURE__*/(0,jsx_runtime.jsx)(AccordionDetails_AccordionDetails,{children:expanded&&/*#__PURE__*/(0,jsx_runtime.jsx)(RuleFields,{rule:rule,rules:rules})})]});}function DownloadButton(_ref8){var data=_ref8.data,text=_ref8.text,fileName=_ref8.fileName;var handleClick=function handleClick(e){e.preventDefault();if(data){var url=window.URL.createObjectURL(new Blob([data]));var link=document.createElement("a");link.href=url;link.setAttribute("download",fileName||"".concat(Date.now(),".json"));document.body.appendChild(link);link.click();link.remove();}};return/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"outlined",onClick:handleClick,startIcon:/*#__PURE__*/(0,jsx_runtime.jsx)(FileDownload/* default */.Z,{}),children:text});}function UploadButton(_ref9){var onChange=_ref9.onChange,text=_ref9.text;var inputRef=(0,react.useRef)(null);var handleClick=function handleClick(){inputRef.current&&inputRef.current.click();};return/*#__PURE__*/(0,jsx_runtime.jsxs)(Button_Button,{size:"small",variant:"outlined",onClick:handleClick,startIcon:/*#__PURE__*/(0,jsx_runtime.jsx)(FileUpload/* default */.Z,{}),children:[text,/*#__PURE__*/(0,jsx_runtime.jsx)("input",{type:"file",accept:".json",ref:inputRef,onChange:onChange,hidden:true})]});}function ShareButton(_ref10){var rules=_ref10.rules,injectRules=_ref10.injectRules,selectedSub=_ref10.selectedSub;var alert=useAlert();var i18n=useI18n();var handleClick=/*#__PURE__*/function(){var _ref11=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(){var _yield$syncOpt$load,syncUrl,syncKey,shareRules,subRules,url;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:_context2.prev=0;_context2.next=3;return sync_syncOpt.load();case 3:_yield$syncOpt$load=_context2.sent;syncUrl=_yield$syncOpt$load.syncUrl;syncKey=_yield$syncOpt$load.syncKey;if(!(!syncUrl||!syncKey)){_context2.next=9;break;}alert.warning(i18n("error_sync_setting"));return _context2.abrupt("return");case 9:shareRules=(0,toConsumableArray/* default */.Z)(rules.list);if(!injectRules){_context2.next=15;break;}_context2.next=13;return rules_loadSubRules(selectedSub===null||selectedSub===void 0?void 0:selectedSub.url);case 13:subRules=_context2.sent;shareRules.splice.apply(shareRules,[-1,0].concat((0,toConsumableArray/* default */.Z)(subRules)));case 15:_context2.next=17;return syncShareRules({rules:shareRules,syncUrl:syncUrl,syncKey:syncKey});case 17:url=_context2.sent;window.open(url,"_blank");_context2.next=25;break;case 21:_context2.prev=21;_context2.t0=_context2["catch"](0);alert.warning(i18n("error_got_some_wrong"));console.log("[share rules]",_context2.t0);case 25:case"end":return _context2.stop();}},_callee2,null,[[0,21]]);}));return function handleClick(){return _ref11.apply(this,arguments);};}();return/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"outlined",onClick:handleClick,startIcon:/*#__PURE__*/(0,jsx_runtime.jsx)(Share/* default */.Z,{}),children:"分享"});}function UserRules(){var i18n=useI18n();var rules=useRules();var _useState9=(0,react.useState)(false),_useState10=(0,slicedToArray/* default */.Z)(_useState9,2),showAdd=_useState10[0],setShowAdd=_useState10[1];var setting=useSetting();var updateSetting=useSettingUpdate();var subrules=useSubrules();var _useState11=(0,react.useState)([]),_useState12=(0,slicedToArray/* default */.Z)(_useState11,2),subRules=_useState12[0],setSubRules=_useState12[1];var _useState13=(0,react.useState)(""),_useState14=(0,slicedToArray/* default */.Z)(_useState13,2),keyword=_useState14[0],setKeyword=_useState14[1];var selectedSub=subrules.list.find(function(item){return item.selected;});var injectRules=!!(setting!==null&&setting!==void 0&&setting.injectRules);var handleImport=function handleImport(e){var file=e.target.files[0];if(!file){return;}if(!file.type.includes("json")){alert(i18n("error_wrong_file_type"));return;}var reader=new FileReader();reader.onload=/*#__PURE__*/function(){var _ref12=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee3(e){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:_context3.prev=0;_context3.next=3;return rules.merge(JSON.parse(e.target.result));case 3:_context3.next=8;break;case 5:_context3.prev=5;_context3.t0=_context3["catch"](0);console.log("[import rules]",_context3.t0);case 8:case"end":return _context3.stop();}},_callee3,null,[[0,5]]);}));return function(_x2){return _ref12.apply(this,arguments);};}();reader.readAsText(file);};var handleInject=function handleInject(){updateSetting({injectRules:!injectRules});};(0,react.useEffect)(function(){asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee4(){var _rules;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee4$(_context4){while(1)switch(_context4.prev=_context4.next){case 0:if(!(selectedSub!==null&&selectedSub!==void 0&&selectedSub.url)){_context4.next=11;break;}_context4.prev=1;_context4.next=4;return rules_loadSubRules(selectedSub===null||selectedSub===void 0?void 0:selectedSub.url);case 4:_rules=_context4.sent;setSubRules(_rules);_context4.next=11;break;case 8:_context4.prev=8;_context4.t0=_context4["catch"](1);console.log("[load rules]",_context4.t0);case 11:case"end":return _context4.stop();}},_callee4,null,[[1,8]]);}))();},[selectedSub===null||selectedSub===void 0?void 0:selectedSub.url]);(0,react.useEffect)(function(){if(!showAdd){setKeyword("");}},[showAdd]);return/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:3,children:[/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",spacing:2,useFlexGap:true,flexWrap:"wrap",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"contained",disabled:showAdd,onClick:function onClick(e){e.preventDefault();setShowAdd(true);},children:i18n("add")}),/*#__PURE__*/(0,jsx_runtime.jsx)(UploadButton,{text:i18n("import"),onChange:handleImport}),/*#__PURE__*/(0,jsx_runtime.jsx)(DownloadButton,{data:JSON.stringify((0,toConsumableArray/* default */.Z)(rules.list).reverse(),null,"\t"),text:i18n("export")}),/*#__PURE__*/(0,jsx_runtime.jsx)(ShareButton,{rules:rules,injectRules:injectRules,selectedSub:selectedSub}),/*#__PURE__*/(0,jsx_runtime.jsx)(FormControlLabel_FormControlLabel,{control:/*#__PURE__*/(0,jsx_runtime.jsx)(Switch_Switch,{size:"small",checked:injectRules,onChange:handleInject}),label:i18n("inject_rules")})]}),showAdd&&/*#__PURE__*/(0,jsx_runtime.jsx)(RuleFields,{rules:rules,setShow:setShowAdd,setKeyword:setKeyword}),/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:rules.list.filter(function(rule){return rule.pattern.includes(keyword)||keyword.includes(rule.pattern);}).map(function(rule){return/*#__PURE__*/(0,jsx_runtime.jsx)(RuleAccordion,{rule:rule,rules:rules},rule.pattern);})}),injectRules&&/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:subRules.filter(function(rule){return rule.pattern.includes(keyword)||keyword.includes(rule.pattern);}).map(function(rule){return/*#__PURE__*/(0,jsx_runtime.jsx)(RuleAccordion,{rule:rule},rule.pattern);})})]});}function SubRulesItem(_ref14){var index=_ref14.index,url=_ref14.url,selectedUrl=_ref14.selectedUrl,subrules=_ref14.subrules,setRules=_ref14.setRules;var _useState15=(0,react.useState)(false),_useState16=(0,slicedToArray/* default */.Z)(_useState15,2),loading=_useState16[0],setLoading=_useState16[1];var handleDel=/*#__PURE__*/function(){var _ref15=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee5(){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee5$(_context5){while(1)switch(_context5.prev=_context5.next){case 0:_context5.prev=0;_context5.next=3;return subrules.del(url);case 3:_context5.next=5;return rulesCache.del(url);case 5:_context5.next=10;break;case 7:_context5.prev=7;_context5.t0=_context5["catch"](0);console.log("[del subrules]",_context5.t0);case 10:case"end":return _context5.stop();}},_callee5,null,[[0,7]]);}));return function handleDel(){return _ref15.apply(this,arguments);};}();var handleSync=/*#__PURE__*/function(){var _ref16=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee6(){var rules;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee6$(_context6){while(1)switch(_context6.prev=_context6.next){case 0:_context6.prev=0;setLoading(true);_context6.next=4;return syncSubRules(url);case 4:rules=_context6.sent;if(rules.length>0&&url===selectedUrl){setRules(rules);}_context6.next=11;break;case 8:_context6.prev=8;_context6.t0=_context6["catch"](0);console.log("[sync sub rules]",_context6.t0);case 11:_context6.prev=11;setLoading(false);return _context6.finish(11);case 14:case"end":return _context6.stop();}},_callee6,null,[[0,8,11,14]]);}));return function handleSync(){return _ref16.apply(this,arguments);};}();return/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",alignItems:"center",spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(FormControlLabel_FormControlLabel,{value:url,control:/*#__PURE__*/(0,jsx_runtime.jsx)(Radio_Radio,{}),label:url}),loading?/*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgress_CircularProgress,{size:16}):/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{size:"small",onClick:handleSync,children:/*#__PURE__*/(0,jsx_runtime.jsx)(Sync/* default */.Z,{fontSize:"small"})}),index!==0&&selectedUrl!==url&&/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{size:"small",onClick:handleDel,children:/*#__PURE__*/(0,jsx_runtime.jsx)(Delete/* default */.Z,{fontSize:"small"})})]});}function SubRulesEdit(_ref17){var subrules=_ref17.subrules;var i18n=useI18n();var _useState17=(0,react.useState)(""),_useState18=(0,slicedToArray/* default */.Z)(_useState17,2),inputText=_useState18[0],setInputText=_useState18[1];var _useState19=(0,react.useState)(""),_useState20=(0,slicedToArray/* default */.Z)(_useState19,2),inputError=_useState20[0],setInputError=_useState20[1];var _useState21=(0,react.useState)(false),_useState22=(0,slicedToArray/* default */.Z)(_useState21,2),showInput=_useState22[0],setShowInput=_useState22[1];var handleCancel=function handleCancel(e){e.preventDefault();setShowInput(false);setInputText("");setInputError("");};var handleSave=/*#__PURE__*/function(){var _ref18=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee7(e){var url,rules;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee7$(_context7){while(1)switch(_context7.prev=_context7.next){case 0:e.preventDefault();url=inputText.trim();if(url){_context7.next=5;break;}setInputError(i18n("error_cant_be_blank"));return _context7.abrupt("return");case 5:if(!subrules.list.find(function(item){return item.url===url;})){_context7.next=8;break;}setInputError(i18n("error_duplicate_values"));return _context7.abrupt("return");case 8:_context7.prev=8;_context7.next=11;return syncSubRules(url);case 11:rules=_context7.sent;if(!(rules.length===0)){_context7.next=14;break;}throw new Error("empty rules");case 14:_context7.next=16;return subrules.add(url);case 16:setShowInput(false);setInputText("");_context7.next=24;break;case 20:_context7.prev=20;_context7.t0=_context7["catch"](8);console.log("[fetch rules]",_context7.t0);setInputError(i18n("error_fetch_url"));case 24:case"end":return _context7.stop();}},_callee7,null,[[8,20]]);}));return function handleSave(_x3){return _ref18.apply(this,arguments);};}();var handleInput=function handleInput(e){e.preventDefault();setInputText(e.target.value);};var handleFocus=function handleFocus(e){e.preventDefault();setInputError("");};return/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Stack_Stack,{direction:"row",alignItems:"center",spacing:2,children:/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"contained",disabled:showInput,onClick:function onClick(e){e.preventDefault();setShowInput(true);},children:i18n("add")})}),showInput&&/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",value:inputText,error:!!inputError,helperText:inputError,onChange:handleInput,onFocus:handleFocus,label:i18n("subscribe_url")}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",alignItems:"center",spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"contained",onClick:handleSave,children:i18n("save")}),/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"outlined",onClick:handleCancel,children:i18n("cancel")})]})]})]});}function SubRules(){var _useState23=(0,react.useState)(false),_useState24=(0,slicedToArray/* default */.Z)(_useState23,2),loading=_useState24[0],setLoading=_useState24[1];var _useState25=(0,react.useState)([]),_useState26=(0,slicedToArray/* default */.Z)(_useState25,2),rules=_useState26[0],setRules=_useState26[1];var subrules=useSubrules();var selectedSub=subrules.list.find(function(item){return item.selected;});var handleSelect=function handleSelect(e){var url=e.target.value;subrules.select(url);};(0,react.useEffect)(function(){asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee8(){var _rules2;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee8$(_context8){while(1)switch(_context8.prev=_context8.next){case 0:if(!(selectedSub!==null&&selectedSub!==void 0&&selectedSub.url)){_context8.next=15;break;}_context8.prev=1;setLoading(true);_context8.next=5;return rules_loadSubRules(selectedSub===null||selectedSub===void 0?void 0:selectedSub.url);case 5:_rules2=_context8.sent;setRules(_rules2);_context8.next=12;break;case 9:_context8.prev=9;_context8.t0=_context8["catch"](1);console.log("[load rules]",_context8.t0);case 12:_context8.prev=12;setLoading(false);return _context8.finish(12);case 15:case"end":return _context8.stop();}},_callee8,null,[[1,9,12,15]]);}))();},[selectedSub===null||selectedSub===void 0?void 0:selectedSub.url]);return/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:3,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(SubRulesEdit,{subrules:subrules}),/*#__PURE__*/(0,jsx_runtime.jsx)(RadioGroup_RadioGroup,{value:selectedSub===null||selectedSub===void 0?void 0:selectedSub.url,onChange:handleSelect,children:subrules.list.map(function(item,index){return/*#__PURE__*/(0,jsx_runtime.jsx)(SubRulesItem,{url:item.url,index:index,selectedUrl:selectedSub===null||selectedSub===void 0?void 0:selectedSub.url,subrules:subrules,setRules:setRules},item.url);})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:loading?/*#__PURE__*/(0,jsx_runtime.jsx)("center",{children:/*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgress_CircularProgress,{})}):rules.map(function(rule){return/*#__PURE__*/(0,jsx_runtime.jsx)(RuleAccordion,{rule:rule},rule.pattern);})})]});}function Rules(){var i18n=useI18n();var _useState27=(0,react.useState)(0),_useState28=(0,slicedToArray/* default */.Z)(_useState27,2),activeTab=_useState28[0],setActiveTab=_useState28[1];var handleTabChange=function handleTabChange(e,newValue){setActiveTab(newValue);};return/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:3,children:[/*#__PURE__*/(0,jsx_runtime.jsxs)(Alert_Alert,{severity:"info",children:[i18n("rules_warn_1"),/*#__PURE__*/(0,jsx_runtime.jsx)("br",{}),i18n("rules_warn_2")]}),/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{sx:{borderBottom:1,borderColor:"divider"},children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Tabs_Tabs,{value:activeTab,onChange:handleTabChange,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Tab_Tab,{label:i18n("personal_rules")}),/*#__PURE__*/(0,jsx_runtime.jsx)(Tab_Tab,{label:i18n("subscribe_rules")})]})}),/*#__PURE__*/(0,jsx_runtime.jsx)("div",{hidden:activeTab!==0,children:activeTab===0&&/*#__PURE__*/(0,jsx_runtime.jsx)(UserRules,{})}),/*#__PURE__*/(0,jsx_runtime.jsx)("div",{hidden:activeTab!==1,children:activeTab===1&&/*#__PURE__*/(0,jsx_runtime.jsx)(SubRules,{})})]})});}
+(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"contained",type:"submit",children:i18n("save")}),/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"outlined",onClick:handleCancel,children:i18n("cancel")})]}))]})});}function RuleAccordion(_ref7){var rule=_ref7.rule,rules=_ref7.rules;var _useState7=(0,react.useState)(false),_useState8=(0,slicedToArray/* default */.Z)(_useState7,2),expanded=_useState8[0],setExpanded=_useState8[1];var handleChange=function handleChange(e){setExpanded(function(pre){return!pre;});};return/*#__PURE__*/(0,jsx_runtime.jsxs)(Accordion_Accordion,{expanded:expanded,onChange:handleChange,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(AccordionSummary_AccordionSummary,{expandIcon:/*#__PURE__*/(0,jsx_runtime.jsx)(ExpandMore/* default */.Z,{}),children:/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{style:{opacity:rules?1:0.5},children:rule.pattern})}),/*#__PURE__*/(0,jsx_runtime.jsx)(AccordionDetails_AccordionDetails,{children:expanded&&/*#__PURE__*/(0,jsx_runtime.jsx)(RuleFields,{rule:rule,rules:rules})})]});}function DownloadButton(_ref8){var data=_ref8.data,text=_ref8.text,fileName=_ref8.fileName;var handleClick=function handleClick(e){e.preventDefault();if(data){var url=window.URL.createObjectURL(new Blob([data]));var link=document.createElement("a");link.href=url;link.setAttribute("download",fileName||"".concat(Date.now(),".json"));document.body.appendChild(link);link.click();link.remove();}};return/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"outlined",onClick:handleClick,startIcon:/*#__PURE__*/(0,jsx_runtime.jsx)(FileDownload/* default */.Z,{}),children:text});}function UploadButton(_ref9){var onChange=_ref9.onChange,text=_ref9.text;var inputRef=(0,react.useRef)(null);var handleClick=function handleClick(){inputRef.current&&inputRef.current.click();};return/*#__PURE__*/(0,jsx_runtime.jsxs)(Button_Button,{size:"small",variant:"outlined",onClick:handleClick,startIcon:/*#__PURE__*/(0,jsx_runtime.jsx)(FileUpload/* default */.Z,{}),children:[text,/*#__PURE__*/(0,jsx_runtime.jsx)("input",{type:"file",accept:".json",ref:inputRef,onChange:onChange,hidden:true})]});}function ShareButton(_ref10){var rules=_ref10.rules,injectRules=_ref10.injectRules,selectedSub=_ref10.selectedSub;var alert=useAlert();var i18n=useI18n();var handleClick=/*#__PURE__*/function(){var _ref11=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(){var _yield$syncOpt$load,syncUrl,syncKey,shareRules,subRules,url;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:_context2.prev=0;_context2.next=3;return sync_syncOpt.load();case 3:_yield$syncOpt$load=_context2.sent;syncUrl=_yield$syncOpt$load.syncUrl;syncKey=_yield$syncOpt$load.syncKey;if(!(!syncUrl||!syncKey)){_context2.next=9;break;}alert.warning(i18n("error_sync_setting"));return _context2.abrupt("return");case 9:shareRules=(0,toConsumableArray/* default */.Z)(rules.list);if(!injectRules){_context2.next=15;break;}_context2.next=13;return rules_loadSubRules(selectedSub===null||selectedSub===void 0?void 0:selectedSub.url);case 13:subRules=_context2.sent;shareRules.splice.apply(shareRules,[-1,0].concat((0,toConsumableArray/* default */.Z)(subRules)));case 15:_context2.next=17;return syncShareRules({rules:shareRules,syncUrl:syncUrl,syncKey:syncKey});case 17:url=_context2.sent;window.open(url,"_blank");_context2.next=25;break;case 21:_context2.prev=21;_context2.t0=_context2["catch"](0);alert.warning(i18n("error_got_some_wrong"));console.log("[share rules]",_context2.t0);case 25:case"end":return _context2.stop();}},_callee2,null,[[0,21]]);}));return function handleClick(){return _ref11.apply(this,arguments);};}();return/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"outlined",onClick:handleClick,startIcon:/*#__PURE__*/(0,jsx_runtime.jsx)(Share/* default */.Z,{}),children:"分享"});}function UserRules(){var i18n=useI18n();var rules=useRules();var _useState9=(0,react.useState)(false),_useState10=(0,slicedToArray/* default */.Z)(_useState9,2),showAdd=_useState10[0],setShowAdd=_useState10[1];var setting=useSetting();var updateSetting=useSettingUpdate();var subrules=useSubrules();var _useState11=(0,react.useState)([]),_useState12=(0,slicedToArray/* default */.Z)(_useState11,2),subRules=_useState12[0],setSubRules=_useState12[1];var _useState13=(0,react.useState)(""),_useState14=(0,slicedToArray/* default */.Z)(_useState13,2),keyword=_useState14[0],setKeyword=_useState14[1];var selectedSub=subrules.list.find(function(item){return item.selected;});var injectRules=!!(setting!==null&&setting!==void 0&&setting.injectRules);var handleImport=function handleImport(e){var file=e.target.files[0];if(!file){return;}if(!file.type.includes("json")){alert(i18n("error_wrong_file_type"));return;}var reader=new FileReader();reader.onload=/*#__PURE__*/function(){var _ref12=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee3(e){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:_context3.prev=0;_context3.next=3;return rules.merge(JSON.parse(e.target.result));case 3:_context3.next=8;break;case 5:_context3.prev=5;_context3.t0=_context3["catch"](0);console.log("[import rules]",_context3.t0);case 8:case"end":return _context3.stop();}},_callee3,null,[[0,5]]);}));return function(_x2){return _ref12.apply(this,arguments);};}();reader.readAsText(file);};var handleInject=function handleInject(){updateSetting({injectRules:!injectRules});};(0,react.useEffect)(function(){asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee4(){var _rules;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee4$(_context4){while(1)switch(_context4.prev=_context4.next){case 0:if(!(selectedSub!==null&&selectedSub!==void 0&&selectedSub.url)){_context4.next=11;break;}_context4.prev=1;_context4.next=4;return rules_loadSubRules(selectedSub===null||selectedSub===void 0?void 0:selectedSub.url);case 4:_rules=_context4.sent;setSubRules(_rules);_context4.next=11;break;case 8:_context4.prev=8;_context4.t0=_context4["catch"](1);console.log("[load rules]",_context4.t0);case 11:case"end":return _context4.stop();}},_callee4,null,[[1,8]]);}))();},[selectedSub===null||selectedSub===void 0?void 0:selectedSub.url]);(0,react.useEffect)(function(){if(!showAdd){setKeyword("");}},[showAdd]);return/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:3,children:[/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",alignItems:"center",spacing:2,useFlexGap:true,flexWrap:"wrap",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"contained",disabled:showAdd,onClick:function onClick(e){e.preventDefault();setShowAdd(true);},children:i18n("add")}),/*#__PURE__*/(0,jsx_runtime.jsx)(UploadButton,{text:i18n("import"),onChange:handleImport}),/*#__PURE__*/(0,jsx_runtime.jsx)(DownloadButton,{data:JSON.stringify((0,toConsumableArray/* default */.Z)(rules.list).reverse(),null,"\t"),text:i18n("export")}),/*#__PURE__*/(0,jsx_runtime.jsx)(ShareButton,{rules:rules,injectRules:injectRules,selectedSub:selectedSub}),/*#__PURE__*/(0,jsx_runtime.jsx)(FormControlLabel_FormControlLabel,{control:/*#__PURE__*/(0,jsx_runtime.jsx)(Switch_Switch,{size:"small",checked:injectRules,onChange:handleInject}),label:i18n("inject_rules")})]}),showAdd&&/*#__PURE__*/(0,jsx_runtime.jsx)(RuleFields,{rules:rules,setShow:setShowAdd,setKeyword:setKeyword}),/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:rules.list.filter(function(rule){return rule.pattern.includes(keyword)||keyword.includes(rule.pattern);}).map(function(rule){return/*#__PURE__*/(0,jsx_runtime.jsx)(RuleAccordion,{rule:rule,rules:rules},rule.pattern);})}),injectRules&&/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:subRules.filter(function(rule){return rule.pattern.includes(keyword)||keyword.includes(rule.pattern);}).map(function(rule){return/*#__PURE__*/(0,jsx_runtime.jsx)(RuleAccordion,{rule:rule},rule.pattern);})})]});}function SubRulesItem(_ref14){var index=_ref14.index,url=_ref14.url,selectedUrl=_ref14.selectedUrl,subrules=_ref14.subrules,setRules=_ref14.setRules;var _useState15=(0,react.useState)(false),_useState16=(0,slicedToArray/* default */.Z)(_useState15,2),loading=_useState16[0],setLoading=_useState16[1];var handleDel=/*#__PURE__*/function(){var _ref15=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee5(){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee5$(_context5){while(1)switch(_context5.prev=_context5.next){case 0:_context5.prev=0;_context5.next=3;return subrules.del(url);case 3:_context5.next=5;return rulesCache.del(url);case 5:_context5.next=10;break;case 7:_context5.prev=7;_context5.t0=_context5["catch"](0);console.log("[del subrules]",_context5.t0);case 10:case"end":return _context5.stop();}},_callee5,null,[[0,7]]);}));return function handleDel(){return _ref15.apply(this,arguments);};}();var handleSync=/*#__PURE__*/function(){var _ref16=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee6(){var rules;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee6$(_context6){while(1)switch(_context6.prev=_context6.next){case 0:_context6.prev=0;setLoading(true);_context6.next=4;return syncSubRules(url);case 4:rules=_context6.sent;if(rules.length>0&&url===selectedUrl){setRules(rules);}_context6.next=11;break;case 8:_context6.prev=8;_context6.t0=_context6["catch"](0);console.log("[sync sub rules]",_context6.t0);case 11:_context6.prev=11;setLoading(false);return _context6.finish(11);case 14:case"end":return _context6.stop();}},_callee6,null,[[0,8,11,14]]);}));return function handleSync(){return _ref16.apply(this,arguments);};}();return/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",alignItems:"center",spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(FormControlLabel_FormControlLabel,{value:url,control:/*#__PURE__*/(0,jsx_runtime.jsx)(Radio_Radio,{}),label:url}),loading?/*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgress_CircularProgress,{size:16}):/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{size:"small",onClick:handleSync,children:/*#__PURE__*/(0,jsx_runtime.jsx)(Sync/* default */.Z,{fontSize:"small"})}),index!==0&&selectedUrl!==url&&/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{size:"small",onClick:handleDel,children:/*#__PURE__*/(0,jsx_runtime.jsx)(Delete/* default */.Z,{fontSize:"small"})})]});}function SubRulesEdit(_ref17){var subrules=_ref17.subrules;var i18n=useI18n();var _useState17=(0,react.useState)(""),_useState18=(0,slicedToArray/* default */.Z)(_useState17,2),inputText=_useState18[0],setInputText=_useState18[1];var _useState19=(0,react.useState)(""),_useState20=(0,slicedToArray/* default */.Z)(_useState19,2),inputError=_useState20[0],setInputError=_useState20[1];var _useState21=(0,react.useState)(false),_useState22=(0,slicedToArray/* default */.Z)(_useState21,2),showInput=_useState22[0],setShowInput=_useState22[1];var _useState23=(0,react.useState)(false),_useState24=(0,slicedToArray/* default */.Z)(_useState23,2),loading=_useState24[0],setLoading=_useState24[1];var handleCancel=function handleCancel(e){e.preventDefault();setShowInput(false);setInputText("");setInputError("");};var handleSave=/*#__PURE__*/function(){var _ref18=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee7(e){var url,rules;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee7$(_context7){while(1)switch(_context7.prev=_context7.next){case 0:e.preventDefault();url=inputText.trim();if(url){_context7.next=5;break;}setInputError(i18n("error_cant_be_blank"));return _context7.abrupt("return");case 5:if(!subrules.list.find(function(item){return item.url===url;})){_context7.next=8;break;}setInputError(i18n("error_duplicate_values"));return _context7.abrupt("return");case 8:_context7.prev=8;setLoading(true);_context7.next=12;return syncSubRules(url);case 12:rules=_context7.sent;if(!(rules.length===0)){_context7.next=15;break;}throw new Error("empty rules");case 15:_context7.next=17;return subrules.add(url);case 17:setShowInput(false);setInputText("");_context7.next=25;break;case 21:_context7.prev=21;_context7.t0=_context7["catch"](8);console.log("[fetch rules]",_context7.t0);setInputError(i18n("error_fetch_url"));case 25:_context7.prev=25;setLoading(false);return _context7.finish(25);case 28:case"end":return _context7.stop();}},_callee7,null,[[8,21,25,28]]);}));return function handleSave(_x3){return _ref18.apply(this,arguments);};}();var handleInput=function handleInput(e){e.preventDefault();setInputText(e.target.value);};var handleFocus=function handleFocus(e){e.preventDefault();setInputError("");};return/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Stack_Stack,{direction:"row",alignItems:"center",spacing:2,children:/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"contained",disabled:showInput,onClick:function onClick(e){e.preventDefault();setShowInput(true);},children:i18n("add")})}),showInput&&/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",value:inputText,error:!!inputError,helperText:inputError,onChange:handleInput,onFocus:handleFocus,label:i18n("subscribe_url")}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",alignItems:"center",spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"contained",onClick:handleSave,disabled:loading,children:i18n("save")}),/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"outlined",onClick:handleCancel,children:i18n("cancel")})]})]})]});}function SubRules(){var _useState25=(0,react.useState)(false),_useState26=(0,slicedToArray/* default */.Z)(_useState25,2),loading=_useState26[0],setLoading=_useState26[1];var _useState27=(0,react.useState)([]),_useState28=(0,slicedToArray/* default */.Z)(_useState27,2),rules=_useState28[0],setRules=_useState28[1];var subrules=useSubrules();var selectedSub=subrules.list.find(function(item){return item.selected;});var handleSelect=function handleSelect(e){var url=e.target.value;subrules.select(url);};(0,react.useEffect)(function(){asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee8(){var _rules2;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee8$(_context8){while(1)switch(_context8.prev=_context8.next){case 0:if(!(selectedSub!==null&&selectedSub!==void 0&&selectedSub.url)){_context8.next=15;break;}_context8.prev=1;setLoading(true);_context8.next=5;return rules_loadSubRules(selectedSub===null||selectedSub===void 0?void 0:selectedSub.url);case 5:_rules2=_context8.sent;setRules(_rules2);_context8.next=12;break;case 9:_context8.prev=9;_context8.t0=_context8["catch"](1);console.log("[load rules]",_context8.t0);case 12:_context8.prev=12;setLoading(false);return _context8.finish(12);case 15:case"end":return _context8.stop();}},_callee8,null,[[1,9,12,15]]);}))();},[selectedSub===null||selectedSub===void 0?void 0:selectedSub.url]);return/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:3,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(SubRulesEdit,{subrules:subrules}),/*#__PURE__*/(0,jsx_runtime.jsx)(RadioGroup_RadioGroup,{value:selectedSub===null||selectedSub===void 0?void 0:selectedSub.url,onChange:handleSelect,children:subrules.list.map(function(item,index){return/*#__PURE__*/(0,jsx_runtime.jsx)(SubRulesItem,{url:item.url,index:index,selectedUrl:selectedSub===null||selectedSub===void 0?void 0:selectedSub.url,subrules:subrules,setRules:setRules},item.url);})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:loading?/*#__PURE__*/(0,jsx_runtime.jsx)("center",{children:/*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgress_CircularProgress,{})}):rules.map(function(rule){return/*#__PURE__*/(0,jsx_runtime.jsx)(RuleAccordion,{rule:rule},rule.pattern);})})]});}function Rules(){var i18n=useI18n();var _useState29=(0,react.useState)(0),_useState30=(0,slicedToArray/* default */.Z)(_useState29,2),activeTab=_useState30[0],setActiveTab=_useState30[1];var handleTabChange=function handleTabChange(e,newValue){setActiveTab(newValue);};return/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:3,children:[/*#__PURE__*/(0,jsx_runtime.jsxs)(Alert_Alert,{severity:"info",children:[i18n("rules_warn_1"),/*#__PURE__*/(0,jsx_runtime.jsx)("br",{}),i18n("rules_warn_2")]}),/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{sx:{borderBottom:1,borderColor:"divider"},children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Tabs_Tabs,{value:activeTab,onChange:handleTabChange,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Tab_Tab,{label:i18n("personal_rules")}),/*#__PURE__*/(0,jsx_runtime.jsx)(Tab_Tab,{label:i18n("subscribe_rules")})]})}),/*#__PURE__*/(0,jsx_runtime.jsx)("div",{hidden:activeTab!==0,children:activeTab===0&&/*#__PURE__*/(0,jsx_runtime.jsx)(UserRules,{})}),/*#__PURE__*/(0,jsx_runtime.jsx)("div",{hidden:activeTab!==1,children:activeTab===1&&/*#__PURE__*/(0,jsx_runtime.jsx)(SubRules,{})})]})});}
 ;// CONCATENATED MODULE: ./src/views/Options/Setting.js
-function Settings(){var i18n=useI18n();var setting=useSetting();var updateSetting=useSettingUpdate();var handleChange=(0,react.useMemo)(function(){return debounce(function(e){e.preventDefault();var _e$target=e.target,name=_e$target.name,value=_e$target.value;switch(name){case"fetchLimit":value=limitNumber(value,1,100);break;case"fetchInterval":value=limitNumber(value,0,5000);break;default:}updateSetting((0,defineProperty/* default */.Z)({},name,value));},500);},[updateSetting]);if(!setting){return;}var uiLang=setting.uiLang,googleUrl=setting.googleUrl,fetchLimit=setting.fetchLimit,fetchInterval=setting.fetchInterval,openaiUrl=setting.openaiUrl,openaiKey=setting.openaiKey,openaiModel=setting.openaiModel,openaiPrompt=setting.openaiPrompt,clearCache=setting.clearCache;return/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:3,children:[/*#__PURE__*/(0,jsx_runtime.jsxs)(FormControl_FormControl,{size:"small",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(InputLabel_InputLabel,{children:i18n("ui_lang")}),/*#__PURE__*/(0,jsx_runtime.jsx)(Select_Select,{name:"uiLang",value:uiLang,label:i18n("ui_lang"),onChange:handleChange,children:UI_LANGS.map(function(_ref){var _ref2=(0,slicedToArray/* default */.Z)(_ref,2),lang=_ref2[0],name=_ref2[1];return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:lang,children:name},lang);})})]}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("fetch_limit"),type:"number",name:"fetchLimit",defaultValue:fetchLimit,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("fetch_interval"),type:"number",name:"fetchInterval",defaultValue:fetchInterval,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsxs)(FormControl_FormControl,{size:"small",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(InputLabel_InputLabel,{children:i18n("clear_cache")}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Select_Select,{name:"clearCache",value:clearCache,label:i18n("clear_cache"),onChange:handleChange,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:false,children:i18n("clear_cache_never")}),/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:true,children:i18n("clear_cache_restart")})]})]}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("google_api"),name:"googleUrl",defaultValue:googleUrl,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("openai_api"),name:"openaiUrl",defaultValue:openaiUrl,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",type:"password",label:i18n("openai_key"),name:"openaiKey",defaultValue:openaiKey,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("openai_model"),name:"openaiModel",defaultValue:openaiModel,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("openai_prompt"),name:"openaiPrompt",defaultValue:openaiPrompt,onChange:handleChange,multiline:true})]})});}
+function Settings(){var i18n=useI18n();var setting=useSetting();var updateSetting=useSettingUpdate();var handleChange=(0,react.useMemo)(function(){return debounce(function(e){e.preventDefault();var _e$target=e.target,name=_e$target.name,value=_e$target.value;switch(name){case"fetchLimit":value=limitNumber(value,1,100);break;case"fetchInterval":value=limitNumber(value,0,5000);break;case"minLength":value=limitNumber(value,1,100);break;case"maxLength":value=limitNumber(value,100,10000);break;default:}updateSetting((0,defineProperty/* default */.Z)({},name,value));},500);},[updateSetting]);if(!setting){return;}var uiLang=setting.uiLang,googleUrl=setting.googleUrl,fetchLimit=setting.fetchLimit,fetchInterval=setting.fetchInterval,minLength=setting.minLength,maxLength=setting.maxLength,openaiUrl=setting.openaiUrl,openaiKey=setting.openaiKey,openaiModel=setting.openaiModel,openaiPrompt=setting.openaiPrompt,clearCache=setting.clearCache;return/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:3,children:[/*#__PURE__*/(0,jsx_runtime.jsxs)(FormControl_FormControl,{size:"small",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(InputLabel_InputLabel,{children:i18n("ui_lang")}),/*#__PURE__*/(0,jsx_runtime.jsx)(Select_Select,{name:"uiLang",value:uiLang,label:i18n("ui_lang"),onChange:handleChange,children:UI_LANGS.map(function(_ref){var _ref2=(0,slicedToArray/* default */.Z)(_ref,2),lang=_ref2[0],name=_ref2[1];return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:lang,children:name},lang);})})]}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("fetch_limit"),type:"number",name:"fetchLimit",defaultValue:fetchLimit,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("fetch_interval"),type:"number",name:"fetchInterval",defaultValue:fetchInterval,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("min_translate_length"),type:"number",name:"minLength",defaultValue:minLength,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("max_translate_length"),type:"number",name:"maxLength",defaultValue:maxLength,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsxs)(FormControl_FormControl,{size:"small",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(InputLabel_InputLabel,{children:i18n("clear_cache")}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Select_Select,{name:"clearCache",value:clearCache,label:i18n("clear_cache"),onChange:handleChange,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:false,children:i18n("clear_cache_never")}),/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:true,children:i18n("clear_cache_restart")})]})]}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("google_api"),name:"googleUrl",defaultValue:googleUrl,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("openai_api"),name:"openaiUrl",defaultValue:openaiUrl,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",type:"password",label:i18n("openai_key"),name:"openaiKey",defaultValue:openaiKey,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("openai_model"),name:"openaiModel",defaultValue:openaiModel,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("openai_prompt"),name:"openaiPrompt",defaultValue:openaiPrompt,onChange:handleChange,multiline:true})]})});}
 // EXTERNAL MODULE: ./node_modules/@mui/system/esm/useThemeWithoutDefault.js
 var useThemeWithoutDefault = __webpack_require__(4976);
 // EXTERNAL MODULE: ./node_modules/@mui/system/esm/useThemeProps/getThemeProps.js
@@ -57150,7 +56985,7 @@ var Drawer_useUtilityClasses = function useUtilityClasses(ownerState) {
   };
   return (0,composeClasses/* default */.Z)(slots, getDrawerUtilityClass, classes);
 };
-var DrawerRoot = (0,styled/* default */.ZP)(material_Modal_Modal, {
+var DrawerRoot = (0,styled/* default */.ZP)(Modal_Modal, {
   name: 'MuiDrawer',
   slot: 'Root',
   overridesResolver: Drawer_overridesResolver
@@ -57951,7 +57786,7 @@ var LightMode = __webpack_require__(3544);
 // EXTERNAL MODULE: ./node_modules/@mui/icons-material/DarkMode.js
 var DarkMode = __webpack_require__(45);
 ;// CONCATENATED MODULE: ./src/views/Options/Header.js
-function Header(props){var i18n=useI18n();var onDrawerToggle=props.onDrawerToggle;var switchColorMode=useDarkModeSwitch();var darkMode=useDarkMode();return/*#__PURE__*/(0,jsx_runtime.jsx)(AppBar_AppBar,{color:"primary",position:"sticky",sx:{zIndex:1300},children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Toolbar_Toolbar,{variant:"dense",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{sx:{display:{sm:"none",xs:"block"}},children:/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{color:"inherit","aria-label":"open drawer",onClick:onDrawerToggle,edge:"start",children:/*#__PURE__*/(0,jsx_runtime.jsx)(icons_material_Menu/* default */.Z,{})})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{sx:{flexGrow:1},children:"".concat(i18n("app_name")," v").concat("1.5.4")}),/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{onClick:switchColorMode,color:"inherit",children:darkMode?/*#__PURE__*/(0,jsx_runtime.jsx)(LightMode/* default */.Z,{}):/*#__PURE__*/(0,jsx_runtime.jsx)(DarkMode/* default */.Z,{})})]})});}/* harmony default export */ var Options_Header = (Header);
+function Header(props){var i18n=useI18n();var onDrawerToggle=props.onDrawerToggle;var switchColorMode=useDarkModeSwitch();var darkMode=useDarkMode();return/*#__PURE__*/(0,jsx_runtime.jsx)(AppBar_AppBar,{color:"primary",position:"sticky",sx:{zIndex:1300},children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Toolbar_Toolbar,{variant:"dense",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{sx:{display:{sm:"none",xs:"block"}},children:/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{color:"inherit","aria-label":"open drawer",onClick:onDrawerToggle,edge:"start",children:/*#__PURE__*/(0,jsx_runtime.jsx)(icons_material_Menu/* default */.Z,{})})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{sx:{flexGrow:1},children:"".concat(i18n("app_name")," v").concat("1.5.5")}),/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{onClick:switchColorMode,color:"inherit",children:darkMode?/*#__PURE__*/(0,jsx_runtime.jsx)(LightMode/* default */.Z,{}):/*#__PURE__*/(0,jsx_runtime.jsx)(DarkMode/* default */.Z,{})})]})});}/* harmony default export */ var Options_Header = (Header);
 ;// CONCATENATED MODULE: ./src/views/Options/Layout.js
 function Layout(){var navWidth=256;var location=dist_useLocation();var theme=useTheme_useTheme();var _useState=(0,react.useState)(false),_useState2=(0,slicedToArray/* default */.Z)(_useState,2),open=_useState2[0],setOpen=_useState2[1];var isSm=useMediaQuery(theme.breakpoints.up("sm"));var handleDrawerToggle=function handleDrawerToggle(){setOpen(!open);};(0,react.useEffect)(function(){setOpen(false);},[location]);return/*#__PURE__*/(0,jsx_runtime.jsxs)(Box_Box,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(CssBaseline_CssBaseline,{}),/*#__PURE__*/(0,jsx_runtime.jsx)(Options_Header,{onDrawerToggle:handleDrawerToggle}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Box_Box,{sx:{display:"flex"},children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{component:"nav",sx:{width:{sm:navWidth},flexShrink:{sm:0}},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Navigator,{PaperProps:{style:{width:navWidth}},variant:isSm?"permanent":"temporary",open:isSm?true:open,onClose:handleDrawerToggle})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{component:"main",sx:{flex:1,p:2},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Outlet,{})})]})]});}
 ;// CONCATENATED MODULE: ./node_modules/@mui/material/Link/linkClasses.js
@@ -58149,7 +57984,7 @@ var Link_Link = /*#__PURE__*/react.forwardRef(function Link(inProps, ref) {
  false ? 0 : void 0;
 /* harmony default export */ var material_Link_Link = (Link_Link);
 ;// CONCATENATED MODULE: ./src/views/Options/SyncSetting.js
-function SyncSetting(){var i18n=useI18n();var sync=useSync();var handleChange=(0,react.useMemo)(function(){return debounce(/*#__PURE__*/function(){var _ref=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(e){var _e$target,name,value;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:e.preventDefault();_e$target=e.target,name=_e$target.name,value=_e$target.value;_context.next=4;return sync.update((0,defineProperty/* default */.Z)({},name,value));case 4:_context.next=6;return syncAll();case 6:case"end":return _context.stop();}},_callee);}));return function(_x){return _ref.apply(this,arguments);};}(),1000);},[sync]);if(!sync.opt){return;}var _sync$opt=sync.opt,syncUrl=_sync$opt.syncUrl,syncKey=_sync$opt.syncKey;return/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:3,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Alert_Alert,{severity:"warning",children:i18n("sync_warn")}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("data_sync_url"),name:"syncUrl",defaultValue:syncUrl,onChange:handleChange,helperText:/*#__PURE__*/(0,jsx_runtime.jsx)(material_Link_Link,{href:URL_KISS_WORKER,children:i18n("about_sync_api")})}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",type:"password",label:i18n("data_sync_key"),name:"syncKey",defaultValue:syncKey,onChange:handleChange})]})});}
+function SyncSetting(){var i18n=useI18n();var sync=useSync();var alert=useAlert();var _useState=(0,react.useState)(false),_useState2=(0,slicedToArray/* default */.Z)(_useState,2),loading=_useState2[0],setLoading=_useState2[1];var handleChange=(0,react.useMemo)(function(){return debounce(/*#__PURE__*/function(){var _ref=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(e){var _e$target,name,value;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:e.preventDefault();_e$target=e.target,name=_e$target.name,value=_e$target.value;_context.next=4;return sync.update((0,defineProperty/* default */.Z)({},name,value));case 4:case"end":return _context.stop();}},_callee);}));return function(_x){return _ref.apply(this,arguments);};}(),500);},[sync]);var handleSyncTest=/*#__PURE__*/function(){var _ref2=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(e){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:e.preventDefault();_context2.prev=1;setLoading(true);_context2.next=5;return syncAll();case 5:alert.success(i18n("data_sync_success"));_context2.next=12;break;case 8:_context2.prev=8;_context2.t0=_context2["catch"](1);console.log("[sync all]",_context2.t0);alert.error(i18n("data_sync_error"));case 12:_context2.prev=12;setLoading(false);return _context2.finish(12);case 15:case"end":return _context2.stop();}},_callee2,null,[[1,8,12,15]]);}));return function handleSyncTest(_x2){return _ref2.apply(this,arguments);};}();if(!sync.opt){return;}var _sync$opt=sync.opt,syncUrl=_sync$opt.syncUrl,syncKey=_sync$opt.syncKey;return/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:3,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Alert_Alert,{severity:"warning",children:i18n("sync_warn")}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("data_sync_url"),name:"syncUrl",defaultValue:syncUrl,onChange:handleChange,helperText:/*#__PURE__*/(0,jsx_runtime.jsx)(material_Link_Link,{href:URL_KISS_WORKER,children:i18n("about_sync_api")})}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",type:"password",label:i18n("data_sync_key"),name:"syncKey",defaultValue:syncKey,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",alignItems:"center",spacing:2,useFlexGap:true,flexWrap:"wrap",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"contained",disabled:!syncUrl||!syncKey||loading,onClick:handleSyncTest,startIcon:/*#__PURE__*/(0,jsx_runtime.jsx)(Sync/* default */.Z,{}),children:i18n("data_sync_test")}),loading&&/*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgress_CircularProgress,{size:16})]})]})});}
 ;// CONCATENATED MODULE: ./node_modules/@mui/private-theming/useTheme/ThemeContext.js
 
 var ThemeContext_ThemeContext = /*#__PURE__*/react.createContext(null);
@@ -58301,7 +58136,7 @@ function styles_ThemeProvider_ThemeProvider(_ref) {
 ;// CONCATENATED MODULE: ./src/views/Options/index.js
 function Options(){var _useState=(0,react.useState)(false),_useState2=(0,slicedToArray/* default */.Z)(_useState,2),error=_useState2[0],setError=_useState2[1];var _useState3=(0,react.useState)(false),_useState4=(0,slicedToArray/* default */.Z)(_useState3,2),ready=_useState4[0],setReady=_useState4[1];(0,react.useEffect)(function(){asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(){var i;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:if(!isGm){_context.next=12;break;}// 等待GM注入
 i=0;case 2:if(!(window.APP_NAME==="KISS Translator")){_context.next=5;break;}setReady(true);return _context.abrupt("break",12);case 5:if(!(++i>8)){_context.next=8;break;}setError(true);return _context.abrupt("break",12);case 8:_context.next=10;return sleep(1000);case 10:_context.next=2;break;case 12:// 同步数据
-syncAll();case 13:case"end":return _context.stop();}},_callee);}))();},[]);if(error){return/*#__PURE__*/(0,jsx_runtime.jsxs)("center",{children:[/*#__PURE__*/(0,jsx_runtime.jsxs)("h2",{children:["Please confirm whether to install or enable"," ",/*#__PURE__*/(0,jsx_runtime.jsx)("a",{href:"https://github.com/fishjar/kiss-translator",children:"KISS Translator"})," ","GreaseMonkey script?"]}),/*#__PURE__*/(0,jsx_runtime.jsxs)("h2",{children:[/*#__PURE__*/(0,jsx_runtime.jsx)("a",{href:"https://kiss-translator.rayjar.com/kiss-translator.user.js",children:"Click here"})," ","to install, or ",/*#__PURE__*/(0,jsx_runtime.jsx)("a",{href:"https://github.com/fishjar/kiss-translator",children:"click here"})," ","for help."]})]});}if(isGm&&!ready){return/*#__PURE__*/(0,jsx_runtime.jsx)("center",{children:/*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgress_CircularProgress,{})});}return/*#__PURE__*/(0,jsx_runtime.jsx)(StoragesProvider,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(MuiThemeProvider,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(AlertProvider,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(HashRouter,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(Routes,{children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Route,{path:"/",element:/*#__PURE__*/(0,jsx_runtime.jsx)(Layout,{}),children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Route,{index:true,element:/*#__PURE__*/(0,jsx_runtime.jsx)(Settings,{})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Route,{path:"rules",element:/*#__PURE__*/(0,jsx_runtime.jsx)(Rules,{})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Route,{path:"sync",element:/*#__PURE__*/(0,jsx_runtime.jsx)(SyncSetting,{})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Route,{path:"about",element:/*#__PURE__*/(0,jsx_runtime.jsx)(About,{})})]})})})})})});}
+trySyncAll();case 13:case"end":return _context.stop();}},_callee);}))();},[]);if(error){return/*#__PURE__*/(0,jsx_runtime.jsxs)("center",{children:[/*#__PURE__*/(0,jsx_runtime.jsxs)("h2",{children:["Please confirm whether to install or enable"," ",/*#__PURE__*/(0,jsx_runtime.jsx)("a",{href:"https://github.com/fishjar/kiss-translator",children:"KISS Translator"})," ","GreaseMonkey script?"]}),/*#__PURE__*/(0,jsx_runtime.jsxs)("h2",{children:[/*#__PURE__*/(0,jsx_runtime.jsx)("a",{href:"https://kiss-translator.rayjar.com/kiss-translator.user.js",children:"Click here"})," ","to install, or ",/*#__PURE__*/(0,jsx_runtime.jsx)("a",{href:"https://github.com/fishjar/kiss-translator",children:"click here"})," ","for help."]})]});}if(isGm&&!ready){return/*#__PURE__*/(0,jsx_runtime.jsx)("center",{children:/*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgress_CircularProgress,{})});}return/*#__PURE__*/(0,jsx_runtime.jsx)(StoragesProvider,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(MuiThemeProvider,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(AlertProvider,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(HashRouter,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(Routes,{children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Route,{path:"/",element:/*#__PURE__*/(0,jsx_runtime.jsx)(Layout,{}),children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Route,{index:true,element:/*#__PURE__*/(0,jsx_runtime.jsx)(Settings,{})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Route,{path:"rules",element:/*#__PURE__*/(0,jsx_runtime.jsx)(Rules,{})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Route,{path:"sync",element:/*#__PURE__*/(0,jsx_runtime.jsx)(SyncSetting,{})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Route,{path:"about",element:/*#__PURE__*/(0,jsx_runtime.jsx)(About,{})})]})})})})})});}
 ;// CONCATENATED MODULE: ./src/options.js
 var options_root=client.createRoot(document.getElementById("root"));options_root.render(/*#__PURE__*/(0,jsx_runtime.jsx)(react.StrictMode,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(Options,{})}));
 }();
