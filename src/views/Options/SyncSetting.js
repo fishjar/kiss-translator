@@ -11,6 +11,8 @@ import { useMemo, useState } from "react";
 import { syncAll } from "../../libs/sync";
 import Button from "@mui/material/Button";
 import { useAlert } from "../../hooks/Alert";
+import SyncIcon from "@mui/icons-material/Sync";
+import CircularProgress from "@mui/material/CircularProgress";
 
 export default function SyncSetting() {
   const i18n = useI18n();
@@ -76,15 +78,17 @@ export default function SyncSetting() {
           onChange={handleChange}
         />
 
-        <Stack direction="row" spacing={2} useFlexGap flexWrap="wrap">
+        <Stack direction="row" alignItems="center" spacing={2} useFlexGap flexWrap="wrap">
           <Button
             size="small"
             variant="contained"
             disabled={!syncUrl || !syncKey || loading}
             onClick={handleSyncTest}
+            startIcon={<SyncIcon />}
           >
             {i18n("data_sync_test")}
           </Button>
+          {loading && <CircularProgress size={16} />}
         </Stack>
       </Stack>
     </Box>
