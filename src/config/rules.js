@@ -28,7 +28,7 @@ const RULES = [
   },
   {
     pattern: `www.foxnews.com`,
-    selector: `h1, h2, .title, .sidebar [data-type="Title"], .article-content :is(li, p, h1, h2, h3, h4, h5, h6, dd); [data-spotim-module="conversation"]>div >>> [data-spot-im-class="message-text"] p,  [data-spot-im-class="message-text"]`,
+    selector: `h1, h2, .title, .sidebar [data-type="Title"], .article-content ${DEFAULT_SELECTOR}; [data-spotim-module="conversation"]>div >>> [data-spot-im-class="message-text"] p,  [data-spot-im-class="message-text"]`,
   },
   {
     pattern: `bearblog.dev, www.theverge.com, www.tampermonkey.net/documentation.php`,
