@@ -13,7 +13,7 @@ import { isIframe } from "./libs/iframe";
 /**
  * 入口函数
  */
-(async () => {
+const init = async () => {
   // 设置页面
   if (
     document.location.href.includes(process.env.REACT_APP_OPTIONSPAGE_DEV) ||
@@ -74,22 +74,37 @@ import { isIframe } from "./libs/iframe";
 
   // 注册菜单
   if (isGm) {
-    GM.registerMenuCommand(
-      "Toggle Translate",
-      (event) => {
-        translator.toggle();
-      },
-      "Q"
-    );
-    GM.registerMenuCommand(
-      "Toggle Style",
-      (event) => {
-        translator.toggleStyle();
-      },
-      "C"
-    );
+    try {
+      GM.registerMenuCommand(
+        "Toggle Translate",
+        (event) => {
+          translator.toggle();
+        },
+        "Q"
+      );
+      GM.registerMenuCommand(
+        "Toggle Style",
+        (event) => {
+          translator.toggleStyle();
+        },
+        "C"
+      );
+    } catch (err) {
+      console.log("[registerMenuCommand]", err);
+    }
   }
 
   // 同步订阅规则
   trySyncAllSubRules(setting);
+};
+
+(async () => {
+  try {
+    await init();
+  } catch (err) {
+    const $err = document.createElement("div");
+    $err.innerText = `KISS-Translator Error: ${err.message}`;
+    $err.style.cssText = "background:red; color:#fff; z-index:10000;";
+    document.body.prepend($err);
+  }
 })();

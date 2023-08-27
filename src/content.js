@@ -12,7 +12,7 @@ import { isIframe } from "./libs/iframe";
 /**
  * 入口函数
  */
-(async () => {
+const init = async () => {
   const href = isIframe ? document.referrer : document.location.href;
   const setting = await getSetting();
   const rules = await getRules();
@@ -38,4 +38,15 @@ import { isIframe } from "./libs/iframe";
     }
     return { data: translator.rule };
   });
+};
+
+(async () => {
+  try {
+    await init();
+  } catch (err) {
+    const $err = document.createElement("div");
+    $err.innerText = `KISS-Translator Error: ${err.message}`;
+    $err.style.cssText = "background:red; color:#fff; z-index:10000;";
+    document.body.prepend($err);
+  }
 })();
