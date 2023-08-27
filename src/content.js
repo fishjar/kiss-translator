@@ -45,7 +45,7 @@ const init = async () => {
     await init();
   } catch (err) {
     const $err = document.createElement("div");
-    $err.innerText = `KISS-Translator Error: ${err.message}`;
+    $err.innerText = `KISS-Translator: ${err.message}`;
     $err.style.cssText = "background:red; color:#fff; z-index:10000;";
     document.body.prepend($err);
   }
