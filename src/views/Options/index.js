@@ -62,6 +62,7 @@ export default function Options() {
   if (isGm && !ready) {
     return (
       <center>
+        <p>{`KISS Translator v${process.env.REACT_APP_VERSION}`}</p>
         <CircularProgress />
       </center>
     );
