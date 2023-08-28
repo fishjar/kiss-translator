@@ -9,7 +9,7 @@ import { trySyncAllSubRules } from "./libs/rules";
 import { isGm } from "./libs/browser";
 import { MSG_TRANS_TOGGLE, MSG_TRANS_PUTRULE } from "./config";
 import { isIframe } from "./libs/iframe";
-import { genEventName, handlePing, injectScript } from "./libs/gm";
+import { handlePing, injectScript } from "./libs/gm";
 
 /**
  * 入口函数
