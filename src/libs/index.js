@@ -100,7 +100,7 @@ export const matchRule = async (
  */
 export const detectLang = async (q) => {
   try {
-    const res = await browser?.i18n.detectLanguage(q);
+    const res = await browser?.i18n?.detectLanguage(q);
     return res?.languages?.[0]?.language;
   } catch (err) {
     console.log("[detect lang]", err);
