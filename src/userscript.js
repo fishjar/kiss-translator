@@ -25,7 +25,12 @@ const init = async () => {
     // unsafeWindow.APP_NAME = process.env.REACT_APP_NAME;
     const ping = btoa(Math.random()).slice(3, 11);
     window.addEventListener(ping, handlePing);
-    window.eval(`(${injectScript})("${ping}")`); // eslint-disable-line
+    // window.eval(`(${injectScript})("${ping}")`); // eslint-disable-line
+    const script = document.createElement("script");
+    script.textContent = `(${injectScript})("${ping}")`;
+    if (document.head) {
+      document.head.append(script);
+    }
     return;
   }
 
