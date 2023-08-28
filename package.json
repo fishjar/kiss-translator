@@ -38,13 +38,7 @@
     ],
     "globals": {
       "GM": true
-    },
-    "no-eval": [
-      "error",
-      {
-        "allowIndirect": true
-      }
-    ]
+    }
   },
   "browserslist": {
     "production": [
