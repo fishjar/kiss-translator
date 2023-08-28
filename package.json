@@ -37,8 +37,7 @@
       "react-app/jest"
     ],
     "globals": {
-      "GM": true,
-      "unsafeWindow": true
+      "GM": true
     }
   },
   "browserslist": {

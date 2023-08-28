@@ -19,7 +19,7 @@ import { msAuth } from "./auth";
  * @param {*} init
  * @returns
  */
-const fetchGM = async (input, { method = "GET", headers, body } = {}) =>
+export const fetchGM = async (input, { method = "GET", headers, body } = {}) =>
   new Promise((resolve, reject) => {
     GM.xmlHttpRequest({
       method,
@@ -74,11 +74,21 @@ const fetchApi = async ({ input, init = {}, translator, token }) => {
   }
 
   if (isGm) {
-    const connects = GM?.info?.script?.connects || [];
+    let info;
+    if (window.KISS_GM) {
+      info = await window.KISS_GM.getInfo();
+    } else {
+      info = GM.info;
+    }
+    const connects = info?.script?.connects || [];
     const url = new URL(input);
     const isSafe = connects.find((item) => url.hostname.endsWith(item));
     if (isSafe) {
-      return fetchGM(input, init);
+      if (window.KISS_GM) {
+        return window.KISS_GM.fetch(input, init);
+      } else {
+        return fetchGM(input, init);
+      }
     }
   }
   return fetch(input, init);

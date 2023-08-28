@@ -9,6 +9,7 @@ import { trySyncAllSubRules } from "./libs/rules";
 import { isGm } from "./libs/browser";
 import { MSG_TRANS_TOGGLE, MSG_TRANS_PUTRULE } from "./config";
 import { isIframe } from "./libs/iframe";
+import { genEventName, handlePing, injectScript } from "./libs/gm";
 
 /**
  * 入口函数
@@ -20,8 +21,11 @@ const init = async () => {
     document.location.href.includes(process.env.REACT_APP_OPTIONSPAGE) ||
     document.location.href.includes(process.env.REACT_APP_OPTIONSPAGE2)
   ) {
-    unsafeWindow.GM = GM;
-    unsafeWindow.APP_NAME = process.env.REACT_APP_NAME;
+    // unsafeWindow.GM = GM;
+    // unsafeWindow.APP_NAME = process.env.REACT_APP_NAME;
+    const ping = btoa(Math.random()).slice(3, 11);
+    window.addEventListener(ping, handlePing);
+    window.eval(`(${injectScript})("${ping}")`);
     return;
   }
 
