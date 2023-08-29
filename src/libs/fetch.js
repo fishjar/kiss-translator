@@ -129,7 +129,7 @@ export const fetchData = async (
       const cache = await caches.open(CACHE_NAME);
       res = await cache.match(cacheReq);
     } catch (err) {
-      console.log("[cache match]", err);
+      console.log("[cache match]", err.message);
     }
   }
 
@@ -151,7 +151,7 @@ export const fetchData = async (
         const cache = await caches.open(CACHE_NAME);
         await cache.put(cacheReq, res.clone());
       } catch (err) {
-        console.log("[cache put]", err);
+        console.log("[cache put]", err.message);
       }
     }
   }

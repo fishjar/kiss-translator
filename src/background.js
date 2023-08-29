@@ -53,7 +53,7 @@ browser.runtime.onStartup.addListener(async () => {
     try {
       caches.delete(CACHE_NAME);
     } catch (err) {
-      console.log("[clean caches]", err);
+      console.log("[clean caches]", err.message);
     }
   }
 
