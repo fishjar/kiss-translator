@@ -43145,7 +43145,7 @@ ReactMarkdown.propTypes = {
 ;// CONCATENATED MODULE: ./src/config/rules.js
 var els="li, p, h1, h2, h3, h4, h5, h6, dd";var DEFAULT_SELECTOR=":is(".concat(els,")");var rules_GLOBAL_KEY="*";var SHADOW_KEY=">>>";var DEFAULT_RULE={pattern:"",selector:"",translator:rules_GLOBAL_KEY,fromLang:rules_GLOBAL_KEY,toLang:rules_GLOBAL_KEY,textStyle:rules_GLOBAL_KEY,transOpen:rules_GLOBAL_KEY,bgColor:""};var RULES=[{pattern:"www.google.com/search",selector:"h3, .IsZvec, .VwiC3b"},{pattern:"news.google.com",selector:"h4"},{pattern:"www.foxnews.com",selector:"h1, h2, .title, .sidebar [data-type=\"Title\"], .article-content ".concat(DEFAULT_SELECTOR,"; [data-spotim-module=\"conversation\"]>div >>> [data-spot-im-class=\"message-text\"] p,  [data-spot-im-class=\"message-text\"]")},{pattern:"bearblog.dev, www.theverge.com, www.tampermonkey.net/documentation.php",selector:DEFAULT_SELECTOR},{pattern:"themessenger.com",selector:".leading-tight, .leading-tighter, .my-2 p, .font-body p, article ".concat(DEFAULT_SELECTOR)},{pattern:"www.telegraph.co.uk",selector:"article ".concat(DEFAULT_SELECTOR)},{pattern:"www.theguardian.com",selector:".show-underline, .dcr-hup5wm div, .dcr-7vl6y8 div, .dcr-12evv1c, figcaption, article ".concat(DEFAULT_SELECTOR,", [data-cy=\"mostviewed-footer\"] h4")},{pattern:"www.semafor.com",selector:"".concat(DEFAULT_SELECTOR,", .styles_intro__IYj__, [class*=\"styles_description\"]")},{pattern:"www.noemamag.com",selector:".splash__title, .single-card__title, .single-card__type, .single-card__topic, .highlighted-content__title, .single-card__author, article ".concat(DEFAULT_SELECTOR,", .quote__text, .wp-caption-text div")},{pattern:"restofworld.org",selector:"".concat(DEFAULT_SELECTOR,", .recirc-story__headline, .recirc-story__dek")},{pattern:"www.axios.com",selector:".h7, ".concat(DEFAULT_SELECTOR)},{pattern:"www.newyorker.com",selector:".summary-item__hed, .summary-item__dek, .summary-collection-grid__dek, .dqtvfu, .rubric__link, .caption, article ".concat(DEFAULT_SELECTOR,", .HEhan ").concat(DEFAULT_SELECTOR,", .ContributorBioBio-fBolsO")},{pattern:"https://time.com/",selector:"h1, h3, .summary, .video-title, #article-body ".concat(DEFAULT_SELECTOR,", .image-wrap-container .credit.body-caption, .media-heading")},{pattern:"www.dw.com",selector:".ts-teaser-title a, .news-title a, .title a, .teaser-description a, .hbudab h3, .hbudab p, figcaption ,article ".concat(DEFAULT_SELECTOR)},{pattern:"www.bbc.com",selector:"h1, h2, .media__link, .media__summary, article ".concat(DEFAULT_SELECTOR,", .ssrcss-y7krbn-Stack, .ssrcss-1mrs5ns-PromoLink, .ssrcss-18cjaf3-Headline, .gs-c-promo-heading__title, .gs-c-promo-summary, .media__content h3, .article__intro")},{pattern:"www.chinadaily.com.cn",selector:"h1, .tMain [shape=\"rect\"], .cMain [shape=\"rect\"], .photo_art [shape=\"rect\"], .mai_r [shape=\"rect\"], .lisBox li, #Content ".concat(DEFAULT_SELECTOR)},{pattern:"www.facebook.com",selector:"[role=\"main\"] [dir=\"auto\"]"},{pattern:"www.reddit.com",selector:"[slot=\"title\"], [slot=\"text-body\"] ".concat(DEFAULT_SELECTOR,", #-post-rtjson-content p")},{pattern:"www.quora.com",selector:".qu-wordBreak--break-word"},{pattern:"edition.cnn.com",selector:".container__title, .container__headline, .headline__text, .image__caption, [data-type=\"Title\"], .article__content ".concat(DEFAULT_SELECTOR)},{pattern:"www.reuters.com",selector:"#main-content [data-testid=\"Heading\"], #main-content [data-testid=\"Body\"], .article-body__content__17Yit ".concat(DEFAULT_SELECTOR)},{pattern:"www.bloomberg.com",selector:"[data-component=\"headline\"], [data-component=\"related-item-headline\"], [data-component=\"title\"], article ".concat(DEFAULT_SELECTOR)},{pattern:"deno.land, docs.github.com",selector:"main ".concat(DEFAULT_SELECTOR)},{pattern:"doc.rust-lang.org",selector:"#content ".concat(DEFAULT_SELECTOR)},{pattern:"www.indiehackers.com",selector:"h1, h3, .content ".concat(DEFAULT_SELECTOR,", .feed-item__title-link")},{pattern:"platform.openai.com/docs",selector:".docs-body ".concat(DEFAULT_SELECTOR)},{pattern:"en.wikipedia.org",selector:"h1, .mw-parser-output ".concat(DEFAULT_SELECTOR)},{pattern:"stackoverflow.com",selector:"h1, .s-prose p, .comment-body .comment-copy"},{pattern:"www.npmjs.com/package/, developer.chrome.com/docs, medium.com, developers.cloudflare.com, react.dev, create-react-app.dev, pytorch.org/",selector:"article ".concat(DEFAULT_SELECTOR)},{pattern:"news.ycombinator.com",selector:".title, .commtext"},{pattern:"https://github.com/",selector:".markdown-body ".concat(DEFAULT_SELECTOR,", .repo-description p, .Layout-sidebar .f4, .container-lg .py-4 .f5, .container-lg .my-4 .f5, .Box-row .pr-4, .Box-row article .mt-1, [itemprop='description'], .markdown-title, bdi")},{pattern:"twitter.com",selector:"[data-testid='tweetText']"},{pattern:"youtube.com",selector:"h1, #video-title, #content-text, #title, yt-attributed-string>span>span"}];var BUILTIN_RULES=RULES.map(function(item){return _objectSpread2(_objectSpread2(_objectSpread2({},DEFAULT_RULE),item),{},{transOpen:"true"});});
 ;// CONCATENATED MODULE: ./src/config/i18n.js
-var UI_LANGS=[["en","English"],["zh","中文"]];var I18N={app_name:{zh:"\u7B80\u7EA6\u7FFB\u8BD1",en:"KISS Translator"},translate:{zh:"\u7FFB\u8BD1",en:"Translate"},translate_alt:{zh:"\u7FFB\u8BD1 (Alt+Q)",en:"Translate (Alt+Q)"},basic_setting:{zh:"\u57FA\u672C\u8BBE\u7F6E",en:"Basic Setting"},rules_setting:{zh:"\u89C4\u5219\u8BBE\u7F6E",en:"Rules Setting"},sync_setting:{zh:"\u540C\u6B65\u8BBE\u7F6E",en:"Sync Setting"},about:{zh:"\u5173\u4E8E",en:"About"},about_md:{zh:"README.md",en:"README.en.md"},about_md_local:{zh:"\u8BF7 [\u70B9\u51FB\u8FD9\u91CC](".concat("https://github.com/fishjar/kiss-translator",") \u67E5\u770B\u8BE6\u60C5\u3002"),en:"Please [click here](".concat("https://github.com/fishjar/kiss-translator",") for details.")},ui_lang:{zh:"\u754C\u9762\u8BED\u8A00",en:"Interface Language"},fetch_limit:{zh:"\u6700\u5927\u8BF7\u6C42\u6570\u91CF (1-100)",en:"Maximum Number Of Request (1-100)"},fetch_interval:{zh:"\u8BF7\u6C42\u95F4\u9694\u65F6\u95F4 (0-5000ms)",en:"Request Interval (0-5000ms)"},min_translate_length:{zh:"\u6700\u5C0F\u7FFB\u8BD1\u957F\u5EA6 (1-100)",en:"Min Translate Length (1-100)"},max_translate_length:{zh:"\u6700\u5927\u7FFB\u8BD1\u957F\u5EA6 (100-10000)",en:"Max Translate Length (100-10000)"},translate_service:{zh:"\u7FFB\u8BD1\u670D\u52A1",en:"Translate Service"},from_lang:{zh:"\u539F\u6587\u8BED\u8A00",en:"Source Language"},to_lang:{zh:"\u76EE\u6807\u8BED\u8A00",en:"Target Language"},text_style:{zh:"\u6587\u5B57\u6837\u5F0F",en:"Text Style"},text_style_alt:{zh:"\u6587\u5B57\u6837\u5F0F (Alt+C)",en:"Text Style (Alt+C)"},bg_color:{zh:"\u6837\u5F0F\u989C\u8272",en:"Style Color"},google_api:{zh:"\u8C37\u6B4C\u7FFB\u8BD1\u63A5\u53E3",en:"Google Translate API"},default_selector:{zh:"\u9ED8\u8BA4\u9009\u62E9\u5668",en:"Default selector"},selector_rules:{zh:"\u9009\u62E9\u5668\u89C4\u5219",en:"Selector Rules"},save:{zh:"\u4FDD\u5B58",en:"Save"},edit:{zh:"\u7F16\u8F91",en:"Edit"},cancel:{zh:"\u53D6\u6D88",en:"Cancel"},delete:{zh:"\u5220\u9664",en:"Delete"},reset:{zh:"\u91CD\u7F6E",en:"Reset"},add:{zh:"\u6DFB\u52A0",en:"Add"},inject_rules:{zh:"\u6CE8\u5165\u8BA2\u9605\u89C4\u5219",en:"Inject Subscribe Rules"},personal_rules:{zh:"\u4E2A\u4EBA\u89C4\u5219",en:"Personal Rules"},subscribe_rules:{zh:"\u8BA2\u9605\u89C4\u5219",en:"Subscribe Rules"},subscribe_url:{zh:"\u8BA2\u9605\u5730\u5740",en:"Subscribe URL"},rules_warn_1:{zh:"1\u3001\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u4E00\u76F4\u751F\u6548\uFF0C\u9009\u62E9\u201C\u6CE8\u5165\u8BA2\u9605\u89C4\u5219\u201D\u540E\uFF0C\u201C\u8BA2\u9605\u89C4\u5219\u201D\u624D\u4F1A\u751F\u6548\u3002",en:"1. The \"Personal Rules\" are always in effect. After selecting \"Inject Subscription Rules\", the \"Subscription Rules\" will take effect."},rules_warn_2:{zh:"2\u3001\u201C\u8BA2\u9605\u89C4\u5219\u201D\u7684\u6CE8\u5165\u4F4D\u7F6E\u662F\u5012\u6570\u7B2C\u4E8C\u7684\u4F4D\u7F6E\uFF0C\u56E0\u6B64\u9664\u5168\u5C40\u89C4\u5219(*)\u5916\uFF0C\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u4F18\u5148\u7EA7\u6BD4\u201C\u8BA2\u9605\u89C4\u5219\u201D\u9AD8\uFF0C\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u586B\u5199\u540C\u6837\u7684\u7F51\u5740\u4F1A\u8986\u76D6\u201D\u8BA2\u9605\u89C4\u5219\u201C\u7684\u6761\u76EE\u3002",en:"2. The injection position of \"Subscription Rules\" is the penultimate position. Therefore, except for the global rules (*), the priority of \"Personal Rules\" is higher than that of \"Subscription Rules\". Filling in the same url in \"Personal Rules\" will overwrite \"Subscription Rules\" entry."},sync_warn:{zh:"\u5982\u679C\u670D\u52A1\u5668\u5B58\u5728\u5176\u4ED6\u5BA2\u6237\u7AEF\u540C\u6B65\u7684\u6570\u636E\uFF0C\u7B2C\u4E00\u6B21\u540C\u6B65\u5C06\u76F4\u63A5\u8986\u76D6\u672C\u5730\u914D\u7F6E\uFF0C\u540E\u9762\u5219\u6839\u636E\u4FEE\u6539\u65F6\u95F4\uFF0C\u65B0\u7684\u8986\u76D6\u65E7\u7684\u3002",en:"If the server has data synchronized by other clients, the first synchronization will directly overwrite the local configuration, and later, according to the modification time, the new one will overwrite the old one."},about_sync_api:{zh:"\u67E5\u770B\u5173\u4E8E\u6570\u636E\u540C\u6B65\u63A5\u53E3\u90E8\u7F72",en:"View About Data Synchronization Interface Deployment"},style_none:{zh:"\u65E0",en:"None"},under_line:{zh:"\u4E0B\u5212\u76F4\u7EBF",en:"Underline"},dot_line:{zh:"\u4E0B\u5212\u70B9\u72B6\u7EBF",en:"Dotted Underline"},dash_line:{zh:"\u4E0B\u5212\u865A\u7EBF",en:"Dashed Underline"},wavy_line:{zh:"\u4E0B\u5212\u6CE2\u6D6A\u7EBF",en:"Wavy Underline"},fuzzy:{zh:"\u6A21\u7CCA",en:"Fuzzy"},highlight:{zh:"\u9AD8\u4EAE",en:"Highlight"},setting:{zh:"\u8BBE\u7F6E",en:"Setting"},pattern:{zh:"\u5339\u914D\u7F51\u5740",en:"URL pattern"},pattern_helper:{zh:"1\u3001\u652F\u6301\u661F\u53F7(*)\u901A\u914D\u7B26\u30022\u3001\u591A\u4E2AURL\u652F\u6301\u82F1\u6587\u9017\u53F7\u201C,\u201D\u5206\u9694\u3002",en:"1. The asterisk (*) wildcard is supported. 2. Multiple URLs can be separated by English commas \",\"."},selector_helper:{zh:"1\u3001\u9075\u5FAACSS\u9009\u62E9\u5668\u89C4\u5219\u30022\u3001\u7559\u7A7A\u8868\u793A\u91C7\u7528\u5168\u5C40\u8BBE\u7F6E\u30023\u3001\u591A\u4E2ACSS\u9009\u62E9\u5668\u4E4B\u95F4\u7528\u201C;\u201D\u9694\u5F00\u30024\u3001\u201Cshadow root\u201D\u9009\u62E9\u5668\u548C\u5185\u90E8\u9009\u62E9\u5668\u7528\u201C>>>\u201D\u9694\u5F00\u3002",en:"1. Follow the CSS selector rules. 2. Leave blank to adopt the global setting. 3. Separate multiple CSS selectors with \";\". 4. The \"shadow root\" selector and the internal selector are separated by \">>>\"."},translate_switch:{zh:"\u5F00\u542F\u7FFB\u8BD1",en:"Translate Switch"},default_enabled:{zh:"\u9ED8\u8BA4\u5F00\u542F",en:"Enabled"},default_disabled:{zh:"\u9ED8\u8BA4\u5173\u95ED",en:"Disabled"},selector:{zh:"\u9009\u62E9\u5668",en:"Selector"},import:{zh:"\u5BFC\u5165",en:"Import"},export:{zh:"\u5BFC\u51FA",en:"Export"},error_cant_be_blank:{zh:"\u4E0D\u80FD\u4E3A\u7A7A",en:"Can not be blank"},error_duplicate_values:{zh:"\u5B58\u5728\u91CD\u590D\u7684\u503C",en:"There are duplicate values"},error_wrong_file_type:{zh:"\u9519\u8BEF\u7684\u6587\u4EF6\u7C7B\u578B",en:"Wrong file type"},error_fetch_url:{zh:"\u8BF7\u68C0\u67E5url\u5730\u5740\u662F\u5426\u6B63\u786E\u6216\u7A0D\u540E\u518D\u8BD5\u3002",en:"Please check if the url address is correct or try again later."},openai_api:{zh:"OpenAI \u63A5\u53E3",en:"OpenAI API"},openai_key:{zh:"OpenAI \u5BC6\u94A5",en:"OpenAI Key"},openai_model:{zh:"OpenAI \u6A21\u578B",en:"OpenAI Model"},openai_prompt:{zh:"OpenAI \u63D0\u793A\u8BCD",en:"OpenAI Prompt"},clear_cache:{zh:"\u662F\u5426\u6E05\u9664\u7F13\u5B58",en:"Whether clear cache"},clear_cache_never:{zh:"\u4E0D\u6E05\u9664\u7F13\u5B58",en:"Never clear cache"},clear_cache_restart:{zh:"\u91CD\u542F\u6D4F\u89C8\u5668\u65F6\u6E05\u9664\u7F13\u5B58",en:"Clear cache when restarting browser"},data_sync_url:{zh:"\u6570\u636E\u540C\u6B65\u63A5\u53E3",en:"Data Sync API"},data_sync_key:{zh:"\u6570\u636E\u540C\u6B65\u5BC6\u94A5",en:"Data Sync Key"},data_sync_test:{zh:"\u6570\u636E\u540C\u6B65\u6D4B\u8BD5",en:"Data Sync Test"},data_sync_success:{zh:"\u6570\u636E\u540C\u6B65\u6210\u529F\uFF01",en:"Data Sync Success"},data_sync_error:{zh:"\u6570\u636E\u540C\u6B65\u5931\u8D25\uFF01",en:"Data Sync Error"},error_got_some_wrong:{zh:"抱歉，出错了！",en:"Sorry, something went wrong!"},error_sync_setting:{zh:"您的同步设置未填写，无法在线分享。",en:"Your sync settings are missing and cannot be shared online."}};
+var UI_LANGS=[["en","English"],["zh","中文"]];var I18N={app_name:{zh:"\u7B80\u7EA6\u7FFB\u8BD1",en:"KISS Translator"},translate:{zh:"\u7FFB\u8BD1",en:"Translate"},translate_alt:{zh:"\u7FFB\u8BD1 (Alt+Q)",en:"Translate (Alt+Q)"},basic_setting:{zh:"\u57FA\u672C\u8BBE\u7F6E",en:"Basic Setting"},rules_setting:{zh:"\u89C4\u5219\u8BBE\u7F6E",en:"Rules Setting"},sync_setting:{zh:"\u540C\u6B65\u8BBE\u7F6E",en:"Sync Setting"},about:{zh:"\u5173\u4E8E",en:"About"},about_md:{zh:"README.md",en:"README.en.md"},about_md_local:{zh:"\u8BF7 [\u70B9\u51FB\u8FD9\u91CC](".concat("https://github.com/fishjar/kiss-translator",") \u67E5\u770B\u8BE6\u60C5\u3002"),en:"Please [click here](".concat("https://github.com/fishjar/kiss-translator",") for details.")},ui_lang:{zh:"\u754C\u9762\u8BED\u8A00",en:"Interface Language"},fetch_limit:{zh:"\u6700\u5927\u8BF7\u6C42\u6570\u91CF (1-100)",en:"Maximum Number Of Request (1-100)"},fetch_interval:{zh:"\u8BF7\u6C42\u95F4\u9694\u65F6\u95F4 (0-5000ms)",en:"Request Interval (0-5000ms)"},min_translate_length:{zh:"\u6700\u5C0F\u7FFB\u8BD1\u957F\u5EA6 (1-100)",en:"Min Translate Length (1-100)"},max_translate_length:{zh:"\u6700\u5927\u7FFB\u8BD1\u957F\u5EA6 (100-10000)",en:"Max Translate Length (100-10000)"},translate_service:{zh:"\u7FFB\u8BD1\u670D\u52A1",en:"Translate Service"},from_lang:{zh:"\u539F\u6587\u8BED\u8A00",en:"Source Language"},to_lang:{zh:"\u76EE\u6807\u8BED\u8A00",en:"Target Language"},text_style:{zh:"\u6587\u5B57\u6837\u5F0F",en:"Text Style"},text_style_alt:{zh:"\u6587\u5B57\u6837\u5F0F (Alt+C)",en:"Text Style (Alt+C)"},bg_color:{zh:"\u6837\u5F0F\u989C\u8272",en:"Style Color"},google_api:{zh:"\u8C37\u6B4C\u7FFB\u8BD1\u63A5\u53E3",en:"Google Translate API"},default_selector:{zh:"\u9ED8\u8BA4\u9009\u62E9\u5668",en:"Default selector"},selector_rules:{zh:"\u9009\u62E9\u5668\u89C4\u5219",en:"Selector Rules"},save:{zh:"\u4FDD\u5B58",en:"Save"},edit:{zh:"\u7F16\u8F91",en:"Edit"},cancel:{zh:"\u53D6\u6D88",en:"Cancel"},delete:{zh:"\u5220\u9664",en:"Delete"},reset:{zh:"\u91CD\u7F6E",en:"Reset"},add:{zh:"\u6DFB\u52A0",en:"Add"},inject_rules:{zh:"\u6CE8\u5165\u8BA2\u9605\u89C4\u5219",en:"Inject Subscribe Rules"},personal_rules:{zh:"\u4E2A\u4EBA\u89C4\u5219",en:"Personal Rules"},subscribe_rules:{zh:"\u8BA2\u9605\u89C4\u5219",en:"Subscribe Rules"},subscribe_url:{zh:"\u8BA2\u9605\u5730\u5740",en:"Subscribe URL"},rules_warn_1:{zh:"1\u3001\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u4E00\u76F4\u751F\u6548\uFF0C\u9009\u62E9\u201C\u6CE8\u5165\u8BA2\u9605\u89C4\u5219\u201D\u540E\uFF0C\u201C\u8BA2\u9605\u89C4\u5219\u201D\u624D\u4F1A\u751F\u6548\u3002",en:"1. The \"Personal Rules\" are always in effect. After selecting \"Inject Subscription Rules\", the \"Subscription Rules\" will take effect."},rules_warn_2:{zh:"2\u3001\u201C\u8BA2\u9605\u89C4\u5219\u201D\u7684\u6CE8\u5165\u4F4D\u7F6E\u662F\u5012\u6570\u7B2C\u4E8C\u7684\u4F4D\u7F6E\uFF0C\u56E0\u6B64\u9664\u5168\u5C40\u89C4\u5219(*)\u5916\uFF0C\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u4F18\u5148\u7EA7\u6BD4\u201C\u8BA2\u9605\u89C4\u5219\u201D\u9AD8\uFF0C\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u586B\u5199\u540C\u6837\u7684\u7F51\u5740\u4F1A\u8986\u76D6\u201D\u8BA2\u9605\u89C4\u5219\u201C\u7684\u6761\u76EE\u3002",en:"2. The injection position of \"Subscription Rules\" is the penultimate position. Therefore, except for the global rules (*), the priority of \"Personal Rules\" is higher than that of \"Subscription Rules\". Filling in the same url in \"Personal Rules\" will overwrite \"Subscription Rules\" entry."},sync_warn:{zh:"\u5982\u679C\u670D\u52A1\u5668\u5B58\u5728\u5176\u4ED6\u5BA2\u6237\u7AEF\u540C\u6B65\u7684\u6570\u636E\uFF0C\u7B2C\u4E00\u6B21\u540C\u6B65\u5C06\u76F4\u63A5\u8986\u76D6\u672C\u5730\u914D\u7F6E\uFF0C\u540E\u9762\u5219\u6839\u636E\u4FEE\u6539\u65F6\u95F4\uFF0C\u65B0\u7684\u8986\u76D6\u65E7\u7684\u3002",en:"If the server has data synchronized by other clients, the first synchronization will directly overwrite the local configuration, and later, according to the modification time, the new one will overwrite the old one."},about_sync_api:{zh:"\u67E5\u770B\u5173\u4E8E\u6570\u636E\u540C\u6B65\u63A5\u53E3\u90E8\u7F72",en:"View About Data Synchronization Interface Deployment"},style_none:{zh:"\u65E0",en:"None"},under_line:{zh:"\u4E0B\u5212\u76F4\u7EBF",en:"Underline"},dot_line:{zh:"\u4E0B\u5212\u70B9\u72B6\u7EBF",en:"Dotted Underline"},dash_line:{zh:"\u4E0B\u5212\u865A\u7EBF",en:"Dashed Underline"},wavy_line:{zh:"\u4E0B\u5212\u6CE2\u6D6A\u7EBF",en:"Wavy Underline"},fuzzy:{zh:"\u6A21\u7CCA",en:"Fuzzy"},highlight:{zh:"\u9AD8\u4EAE",en:"Highlight"},setting:{zh:"\u8BBE\u7F6E",en:"Setting"},pattern:{zh:"\u5339\u914D\u7F51\u5740",en:"URL pattern"},pattern_helper:{zh:"1\u3001\u652F\u6301\u661F\u53F7(*)\u901A\u914D\u7B26\u30022\u3001\u591A\u4E2AURL\u652F\u6301\u82F1\u6587\u9017\u53F7\u201C,\u201D\u5206\u9694\u3002",en:"1. The asterisk (*) wildcard is supported. 2. Multiple URLs can be separated by English commas \",\"."},selector_helper:{zh:"1\u3001\u9075\u5FAACSS\u9009\u62E9\u5668\u89C4\u5219\u30022\u3001\u7559\u7A7A\u8868\u793A\u91C7\u7528\u5168\u5C40\u8BBE\u7F6E\u30023\u3001\u591A\u4E2ACSS\u9009\u62E9\u5668\u4E4B\u95F4\u7528\u201C;\u201D\u9694\u5F00\u30024\u3001\u201Cshadow root\u201D\u9009\u62E9\u5668\u548C\u5185\u90E8\u9009\u62E9\u5668\u7528\u201C>>>\u201D\u9694\u5F00\u3002",en:"1. Follow the CSS selector rules. 2. Leave blank to adopt the global setting. 3. Separate multiple CSS selectors with \";\". 4. The \"shadow root\" selector and the internal selector are separated by \">>>\"."},translate_switch:{zh:"\u5F00\u542F\u7FFB\u8BD1",en:"Translate Switch"},default_enabled:{zh:"\u9ED8\u8BA4\u5F00\u542F",en:"Enabled"},default_disabled:{zh:"\u9ED8\u8BA4\u5173\u95ED",en:"Disabled"},selector:{zh:"\u9009\u62E9\u5668",en:"Selector"},import:{zh:"\u5BFC\u5165",en:"Import"},export:{zh:"\u5BFC\u51FA",en:"Export"},error_cant_be_blank:{zh:"\u4E0D\u80FD\u4E3A\u7A7A",en:"Can not be blank"},error_duplicate_values:{zh:"\u5B58\u5728\u91CD\u590D\u7684\u503C",en:"There are duplicate values"},error_wrong_file_type:{zh:"\u9519\u8BEF\u7684\u6587\u4EF6\u7C7B\u578B",en:"Wrong file type"},error_fetch_url:{zh:"\u8BF7\u68C0\u67E5url\u5730\u5740\u662F\u5426\u6B63\u786E\u6216\u7A0D\u540E\u518D\u8BD5\u3002",en:"Please check if the url address is correct or try again later."},openai_api:{zh:"OpenAI \u63A5\u53E3",en:"OpenAI API"},openai_key:{zh:"OpenAI \u5BC6\u94A5",en:"OpenAI Key"},openai_model:{zh:"OpenAI \u6A21\u578B",en:"OpenAI Model"},openai_prompt:{zh:"OpenAI \u63D0\u793A\u8BCD",en:"OpenAI Prompt"},clear_cache:{zh:"\u662F\u5426\u6E05\u9664\u7F13\u5B58",en:"Whether clear cache"},clear_cache_never:{zh:"\u4E0D\u6E05\u9664\u7F13\u5B58",en:"Never clear cache"},clear_cache_restart:{zh:"\u91CD\u542F\u6D4F\u89C8\u5668\u65F6\u6E05\u9664\u7F13\u5B58",en:"Clear cache when restarting browser"},data_sync_url:{zh:"\u6570\u636E\u540C\u6B65\u63A5\u53E3",en:"Data Sync API"},data_sync_key:{zh:"\u6570\u636E\u540C\u6B65\u5BC6\u94A5",en:"Data Sync Key"},data_sync_test:{zh:"\u6570\u636E\u540C\u6B65\u6D4B\u8BD5",en:"Data Sync Test"},data_sync_success:{zh:"\u6570\u636E\u540C\u6B65\u6210\u529F\uFF01",en:"Data Sync Success"},data_sync_error:{zh:"\u6570\u636E\u540C\u6B65\u5931\u8D25\uFF01",en:"Data Sync Error"},error_got_some_wrong:{zh:"\u62B1\u6B49\uFF0C\u51FA\u9519\u4E86\uFF01",en:"Sorry, something went wrong!"},error_sync_setting:{zh:"\u60A8\u7684\u540C\u6B65\u8BBE\u7F6E\u672A\u586B\u5199\uFF0C\u65E0\u6CD5\u5728\u7EBF\u5206\u4EAB\u3002",en:"Your sync settings are missing and cannot be shared online."}};
 ;// CONCATENATED MODULE: ./src/config/index.js
 var _OPT_LANGS_SPECIAL;var APP_NAME="KISS Translator".trim().split(/\s+/).join("-");var APP_LCNAME=APP_NAME.toLowerCase();var STOKEY_MSAUTH="".concat(APP_NAME,"_msauth");var STOKEY_SETTING="".concat(APP_NAME,"_setting");var STOKEY_RULES="".concat(APP_NAME,"_rules");var STOKEY_SYNC="".concat(APP_NAME,"_sync");var config_STOKEY_FAB="".concat(APP_NAME,"_fab");var STOKEY_RULESCACHE_PREFIX="".concat(APP_NAME,"_rulescache_");var CMD_TOGGLE_TRANSLATE="toggleTranslate";var CMD_TOGGLE_STYLE="toggleStyle";var CLIENT_WEB="web";var CLIENT_CHROME="chrome";var CLIENT_EDGE="edge";var CLIENT_FIREFOX="firefox";var CLIENT_USERSCRIPT="userscript";var CLIENT_EXTS=[CLIENT_CHROME,CLIENT_EDGE,CLIENT_FIREFOX];var KV_RULES_KEY="KT_RULES";var KV_RULES_SHARE_KEY="KT_RULES_SHARE";var KV_SETTING_KEY="KT_SETTING";var KV_SALT_SYNC="KISS-Translator-SYNC";var KV_SALT_SHARE="KISS-Translator-SHARE";var CACHE_NAME="".concat(APP_NAME,"_cache");var MSG_FETCH="fetch";var config_MSG_FETCH_LIMIT="fetch_limit";var config_MSG_FETCH_CLEAR="fetch_clear";var MSG_TRANS_TOGGLE="trans_toggle";var MSG_TRANS_TOGGLE_STYLE="trans_toggle_style";var MSG_TRANS_GETRULE="trans_getrule";var MSG_TRANS_PUTRULE="trans_putrule";var MSG_TRANS_CURRULE="trans_currule";var EVENT_KISS="kissEvent";var THEME_LIGHT="light";var THEME_DARK="dark";var URL_KISS_WORKER="https://github.com/fishjar/kiss-worker";var URL_RAW_PREFIX="https://raw.githubusercontent.com/fishjar/kiss-translator/master";var URL_MICROSOFT_AUTH="https://edge.microsoft.com/translate/auth";var config_URL_MICROSOFT_TRANS="https://api-edge.cognitive.microsofttranslator.com/translate";var config_OPT_TRANS_GOOGLE="Google";var config_OPT_TRANS_MICROSOFT="Microsoft";var config_OPT_TRANS_OPENAI="OpenAI";var OPT_TRANS_ALL=[config_OPT_TRANS_GOOGLE,config_OPT_TRANS_MICROSOFT,config_OPT_TRANS_OPENAI];var OPT_LANGS_TO=[["en","English - English"],["zh-CN","Simplified Chinese - 简体中文"],["zh-TW","Traditional Chinese - 繁體中文"],["ar","Arabic - العربية"],["bg","Bulgarian - Български"],["ca","Catalan - Català"],["hr","Croatian - Hrvatski"],["cs","Czech - Čeština"],["da","Danish - Dansk"],["nl","Dutch - Nederlands"],["fi","Finnish - Suomi"],["fr","French - Français"],["de","German - Deutsch"],["el","Greek - Ελληνικά"],["hi","Hindi - हिन्दी"],["hu","Hungarian - Magyar"],["id","Indonesian - Indonesia"],["it","Italian - Italiano"],["ja","Japanese - 日本語"],["ko","Korean - 한국어"],["ms","Malay - Melayu"],["mt","Maltese - Malti"],["nb","Norwegian - Norsk Bokmål"],["pl","Polish - Polski"],["pt","Portuguese - Português"],["ro","Romanian - Română"],["ru","Russian - Русский"],["sk","Slovak - Slovenčina"],["sl","Slovenian - Slovenščina"],["es","Spanish - Español"],["sv","Swedish - Svenska"],["ta","Tamil - தமிழ்"],["te","Telugu - తెలుగు"],["th","Thai - ไทย"],["tr","Turkish - Türkçe"],["uk","Ukrainian - Українська"],["vi","Vietnamese - Tiếng Việt"]];var OPT_LANGS_FROM=[["auto","Auto-detect"]].concat(OPT_LANGS_TO);var config_OPT_LANGS_SPECIAL=(_OPT_LANGS_SPECIAL={},(0,defineProperty/* default */.Z)(_OPT_LANGS_SPECIAL,config_OPT_TRANS_MICROSOFT,new Map([["auto",""],["zh-CN","zh-Hans"],["zh-TW","zh-Hant"]])),(0,defineProperty/* default */.Z)(_OPT_LANGS_SPECIAL,config_OPT_TRANS_OPENAI,new Map(OPT_LANGS_FROM.map(function(_ref){var _ref2=(0,slicedToArray/* default */.Z)(_ref,2),key=_ref2[0],val=_ref2[1];return[key,val.split(" - ")[0]];}))),_OPT_LANGS_SPECIAL);var OPT_STYLE_NONE="style_none";// 无
 var OPT_STYLE_LINE="under_line";// 下划线
@@ -43161,7 +43161,7 @@ var config_PROMPT_PLACE_TO="{{to}}";// 占位符
 var DEFAULT_COLOR="#209CEE";// 默认高亮背景色/线条颜色
 // 全局规则
 var config_GLOBLA_RULE={pattern:"*",selector:DEFAULT_SELECTOR,translator:config_OPT_TRANS_MICROSOFT,fromLang:"auto",toLang:"zh-CN",textStyle:OPT_STYLE_DASHLINE,transOpen:"false",bgColor:""};// 订阅列表
-var config_DEFAULT_SUBRULES_LIST=[{url:"https://kiss-translator.rayjar.com/kiss-translator-rules.json",selected:true},{url:"https://fishjar.github.io/kiss-translator/kiss-translator-rules.json"}];var TRANS_MIN_LENGTH=5;// 最短翻译长度
+var config_DEFAULT_SUBRULES_LIST=[{url:"https://fishjar.github.io/kiss-translator/kiss-translator-rules.json",selected:true},{url:"https://fishjar.github.io/kiss-translator/kiss-translator-rules.json"}];var TRANS_MIN_LENGTH=5;// 最短翻译长度
 var TRANS_MAX_LENGTH=5000;// 最长翻译长度
 var DEFAULT_SETTING={darkMode:false,// 深色模式
 uiLang:"en",// 界面语言
@@ -53035,7 +53035,7 @@ var ExpandMore = __webpack_require__(6306);
 
 
 function getDividerUtilityClass(slot) {
-  return generateUtilityClass('MuiDivider', slot);
+  return (0,generateUtilityClass_generateUtilityClass/* default */.Z)('MuiDivider', slot);
 }
 var dividerClasses = (0,generateUtilityClasses/* default */.Z)('MuiDivider', ['root', 'absolute', 'fullWidth', 'inset', 'middle', 'flexItem', 'light', 'vertical', 'withChildren', 'withChildrenVertical', 'textAlignRight', 'textAlignLeft', 'wrapper', 'wrapperVertical']);
 /* harmony default export */ var Divider_dividerClasses = (dividerClasses);
@@ -57785,10 +57785,6 @@ var icons_material_Menu = __webpack_require__(1317);
 var LightMode = __webpack_require__(3544);
 // EXTERNAL MODULE: ./node_modules/@mui/icons-material/DarkMode.js
 var DarkMode = __webpack_require__(45);
-;// CONCATENATED MODULE: ./src/views/Options/Header.js
-function Header(props){var i18n=useI18n();var onDrawerToggle=props.onDrawerToggle;var switchColorMode=useDarkModeSwitch();var darkMode=useDarkMode();return/*#__PURE__*/(0,jsx_runtime.jsx)(AppBar_AppBar,{color:"primary",position:"sticky",sx:{zIndex:1300},children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Toolbar_Toolbar,{variant:"dense",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{sx:{display:{sm:"none",xs:"block"}},children:/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{color:"inherit","aria-label":"open drawer",onClick:onDrawerToggle,edge:"start",children:/*#__PURE__*/(0,jsx_runtime.jsx)(icons_material_Menu/* default */.Z,{})})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{sx:{flexGrow:1},children:"".concat(i18n("app_name")," v").concat("1.5.7")}),/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{onClick:switchColorMode,color:"inherit",children:darkMode?/*#__PURE__*/(0,jsx_runtime.jsx)(LightMode/* default */.Z,{}):/*#__PURE__*/(0,jsx_runtime.jsx)(DarkMode/* default */.Z,{})})]})});}/* harmony default export */ var Options_Header = (Header);
-;// CONCATENATED MODULE: ./src/views/Options/Layout.js
-function Layout(){var navWidth=256;var location=dist_useLocation();var theme=useTheme_useTheme();var _useState=(0,react.useState)(false),_useState2=(0,slicedToArray/* default */.Z)(_useState,2),open=_useState2[0],setOpen=_useState2[1];var isSm=useMediaQuery(theme.breakpoints.up("sm"));var handleDrawerToggle=function handleDrawerToggle(){setOpen(!open);};(0,react.useEffect)(function(){setOpen(false);},[location]);return/*#__PURE__*/(0,jsx_runtime.jsxs)(Box_Box,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(CssBaseline_CssBaseline,{}),/*#__PURE__*/(0,jsx_runtime.jsx)(Options_Header,{onDrawerToggle:handleDrawerToggle}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Box_Box,{sx:{display:"flex"},children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{component:"nav",sx:{width:{sm:navWidth},flexShrink:{sm:0}},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Navigator,{PaperProps:{style:{width:navWidth}},variant:isSm?"permanent":"temporary",open:isSm?true:open,onClose:handleDrawerToggle})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{component:"main",sx:{flex:1,p:2},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Outlet,{})})]})]});}
 ;// CONCATENATED MODULE: ./node_modules/@mui/material/Link/linkClasses.js
 
 
@@ -57983,6 +57979,10 @@ var Link_Link = /*#__PURE__*/react.forwardRef(function Link(inProps, ref) {
 });
  false ? 0 : void 0;
 /* harmony default export */ var material_Link_Link = (Link_Link);
+;// CONCATENATED MODULE: ./src/views/Options/Header.js
+function Header(props){var i18n=useI18n();var onDrawerToggle=props.onDrawerToggle;var switchColorMode=useDarkModeSwitch();var darkMode=useDarkMode();return/*#__PURE__*/(0,jsx_runtime.jsx)(AppBar_AppBar,{color:"primary",position:"sticky",sx:{zIndex:1300},children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Toolbar_Toolbar,{variant:"dense",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{sx:{display:{sm:"none",xs:"block"}},children:/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{color:"inherit","aria-label":"open drawer",onClick:onDrawerToggle,edge:"start",children:/*#__PURE__*/(0,jsx_runtime.jsx)(icons_material_Menu/* default */.Z,{})})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{sx:{flexGrow:1},children:/*#__PURE__*/(0,jsx_runtime.jsx)(material_Link_Link,{underline:"none",color:"inherit",href:"https://github.com/fishjar/kiss-translator",children:"".concat(i18n("app_name")," v").concat("1.5.8")})}),/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{onClick:switchColorMode,color:"inherit",children:darkMode?/*#__PURE__*/(0,jsx_runtime.jsx)(LightMode/* default */.Z,{}):/*#__PURE__*/(0,jsx_runtime.jsx)(DarkMode/* default */.Z,{})})]})});}/* harmony default export */ var Options_Header = (Header);
+;// CONCATENATED MODULE: ./src/views/Options/Layout.js
+function Layout(){var navWidth=256;var location=dist_useLocation();var theme=useTheme_useTheme();var _useState=(0,react.useState)(false),_useState2=(0,slicedToArray/* default */.Z)(_useState,2),open=_useState2[0],setOpen=_useState2[1];var isSm=useMediaQuery(theme.breakpoints.up("sm"));var handleDrawerToggle=function handleDrawerToggle(){setOpen(!open);};(0,react.useEffect)(function(){setOpen(false);},[location]);return/*#__PURE__*/(0,jsx_runtime.jsxs)(Box_Box,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(CssBaseline_CssBaseline,{}),/*#__PURE__*/(0,jsx_runtime.jsx)(Options_Header,{onDrawerToggle:handleDrawerToggle}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Box_Box,{sx:{display:"flex"},children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{component:"nav",sx:{width:{sm:navWidth},flexShrink:{sm:0}},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Navigator,{PaperProps:{style:{width:navWidth}},variant:isSm?"permanent":"temporary",open:isSm?true:open,onClose:handleDrawerToggle})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{component:"main",sx:{flex:1,p:2},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Outlet,{})})]})]});}
 ;// CONCATENATED MODULE: ./src/views/Options/SyncSetting.js
 function SyncSetting(){var i18n=useI18n();var sync=useSync();var alert=useAlert();var _useState=(0,react.useState)(false),_useState2=(0,slicedToArray/* default */.Z)(_useState,2),loading=_useState2[0],setLoading=_useState2[1];var handleChange=(0,react.useMemo)(function(){return debounce(/*#__PURE__*/function(){var _ref=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(e){var _e$target,name,value;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:e.preventDefault();_e$target=e.target,name=_e$target.name,value=_e$target.value;_context.next=4;return sync.update((0,defineProperty/* default */.Z)({},name,value));case 4:case"end":return _context.stop();}},_callee);}));return function(_x){return _ref.apply(this,arguments);};}(),500);},[sync]);var handleSyncTest=/*#__PURE__*/function(){var _ref2=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(e){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:e.preventDefault();_context2.prev=1;setLoading(true);_context2.next=5;return syncAll();case 5:alert.success(i18n("data_sync_success"));_context2.next=12;break;case 8:_context2.prev=8;_context2.t0=_context2["catch"](1);console.log("[sync all]",_context2.t0);alert.error(i18n("data_sync_error"));case 12:_context2.prev=12;setLoading(false);return _context2.finish(12);case 15:case"end":return _context2.stop();}},_callee2,null,[[1,8,12,15]]);}));return function handleSyncTest(_x2){return _ref2.apply(this,arguments);};}();if(!sync.opt){return;}var _sync$opt=sync.opt,syncUrl=_sync$opt.syncUrl,syncKey=_sync$opt.syncKey;return/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:3,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Alert_Alert,{severity:"warning",children:i18n("sync_warn")}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("data_sync_url"),name:"syncUrl",defaultValue:syncUrl,onChange:handleChange,helperText:/*#__PURE__*/(0,jsx_runtime.jsx)(material_Link_Link,{href:URL_KISS_WORKER,children:i18n("about_sync_api")})}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",type:"password",label:i18n("data_sync_key"),name:"syncKey",defaultValue:syncKey,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",alignItems:"center",spacing:2,useFlexGap:true,flexWrap:"wrap",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"contained",disabled:!syncUrl||!syncKey||loading,onClick:handleSyncTest,startIcon:/*#__PURE__*/(0,jsx_runtime.jsx)(Sync/* default */.Z,{}),children:i18n("data_sync_test")}),loading&&/*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgress_CircularProgress,{size:16})]})]})});}
 ;// CONCATENATED MODULE: ./node_modules/@mui/private-theming/useTheme/ThemeContext.js
@@ -58133,10 +58133,206 @@ function styles_ThemeProvider_ThemeProvider(_ref) {
  * @param {*} param0
  * @returns
  */function MuiThemeProvider(_ref){var children=_ref.children,options=_ref.options;var darkMode=useDarkMode();var theme=(0,react.useMemo)(function(){return (0,createTheme/* default */.Z)(_objectSpread2({palette:{mode:darkMode?THEME_DARK:THEME_LIGHT}},options));},[darkMode,options]);return/*#__PURE__*/(0,jsx_runtime.jsxs)(styles_ThemeProvider_ThemeProvider,{theme:theme,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(CssBaseline_CssBaseline,{}),children]});}
+;// CONCATENATED MODULE: ./node_modules/@mui/material/Divider/Divider.js
+'use client';
+
+
+
+var Divider_excluded = ["absolute", "children", "className", "component", "flexItem", "light", "orientation", "role", "textAlign", "variant"];
+
+
+
+
+
+
+
+
+
+var Divider_useUtilityClasses = function useUtilityClasses(ownerState) {
+  var absolute = ownerState.absolute,
+    children = ownerState.children,
+    classes = ownerState.classes,
+    flexItem = ownerState.flexItem,
+    light = ownerState.light,
+    orientation = ownerState.orientation,
+    textAlign = ownerState.textAlign,
+    variant = ownerState.variant;
+  var slots = {
+    root: ['root', absolute && 'absolute', variant, light && 'light', orientation === 'vertical' && 'vertical', flexItem && 'flexItem', children && 'withChildren', children && orientation === 'vertical' && 'withChildrenVertical', textAlign === 'right' && orientation !== 'vertical' && 'textAlignRight', textAlign === 'left' && orientation !== 'vertical' && 'textAlignLeft'],
+    wrapper: ['wrapper', orientation === 'vertical' && 'wrapperVertical']
+  };
+  return (0,composeClasses/* default */.Z)(slots, getDividerUtilityClass, classes);
+};
+var DividerRoot = (0,styled/* default */.ZP)('div', {
+  name: 'MuiDivider',
+  slot: 'Root',
+  overridesResolver: function overridesResolver(props, styles) {
+    var ownerState = props.ownerState;
+    return [styles.root, ownerState.absolute && styles.absolute, styles[ownerState.variant], ownerState.light && styles.light, ownerState.orientation === 'vertical' && styles.vertical, ownerState.flexItem && styles.flexItem, ownerState.children && styles.withChildren, ownerState.children && ownerState.orientation === 'vertical' && styles.withChildrenVertical, ownerState.textAlign === 'right' && ownerState.orientation !== 'vertical' && styles.textAlignRight, ownerState.textAlign === 'left' && ownerState.orientation !== 'vertical' && styles.textAlignLeft];
+  }
+})(function (_ref) {
+  var theme = _ref.theme,
+    ownerState = _ref.ownerState;
+  return (0,esm_extends/* default */.Z)({
+    margin: 0,
+    // Reset browser default style.
+    flexShrink: 0,
+    borderWidth: 0,
+    borderStyle: 'solid',
+    borderColor: (theme.vars || theme).palette.divider,
+    borderBottomWidth: 'thin'
+  }, ownerState.absolute && {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    width: '100%'
+  }, ownerState.light && {
+    borderColor: theme.vars ? "rgba(".concat(theme.vars.palette.dividerChannel, " / 0.08)") : (0,colorManipulator/* alpha */.Fq)(theme.palette.divider, 0.08)
+  }, ownerState.variant === 'inset' && {
+    marginLeft: 72
+  }, ownerState.variant === 'middle' && ownerState.orientation === 'horizontal' && {
+    marginLeft: theme.spacing(2),
+    marginRight: theme.spacing(2)
+  }, ownerState.variant === 'middle' && ownerState.orientation === 'vertical' && {
+    marginTop: theme.spacing(1),
+    marginBottom: theme.spacing(1)
+  }, ownerState.orientation === 'vertical' && {
+    height: '100%',
+    borderBottomWidth: 0,
+    borderRightWidth: 'thin'
+  }, ownerState.flexItem && {
+    alignSelf: 'stretch',
+    height: 'auto'
+  });
+}, function (_ref2) {
+  var ownerState = _ref2.ownerState;
+  return (0,esm_extends/* default */.Z)({}, ownerState.children && {
+    display: 'flex',
+    whiteSpace: 'nowrap',
+    textAlign: 'center',
+    border: 0,
+    '&::before, &::after': {
+      content: '""',
+      alignSelf: 'center'
+    }
+  });
+}, function (_ref3) {
+  var theme = _ref3.theme,
+    ownerState = _ref3.ownerState;
+  return (0,esm_extends/* default */.Z)({}, ownerState.children && ownerState.orientation !== 'vertical' && {
+    '&::before, &::after': {
+      width: '100%',
+      borderTop: "thin solid ".concat((theme.vars || theme).palette.divider)
+    }
+  });
+}, function (_ref4) {
+  var theme = _ref4.theme,
+    ownerState = _ref4.ownerState;
+  return (0,esm_extends/* default */.Z)({}, ownerState.children && ownerState.orientation === 'vertical' && {
+    flexDirection: 'column',
+    '&::before, &::after': {
+      height: '100%',
+      borderLeft: "thin solid ".concat((theme.vars || theme).palette.divider)
+    }
+  });
+}, function (_ref5) {
+  var ownerState = _ref5.ownerState;
+  return (0,esm_extends/* default */.Z)({}, ownerState.textAlign === 'right' && ownerState.orientation !== 'vertical' && {
+    '&::before': {
+      width: '90%'
+    },
+    '&::after': {
+      width: '10%'
+    }
+  }, ownerState.textAlign === 'left' && ownerState.orientation !== 'vertical' && {
+    '&::before': {
+      width: '10%'
+    },
+    '&::after': {
+      width: '90%'
+    }
+  });
+});
+var DividerWrapper = (0,styled/* default */.ZP)('span', {
+  name: 'MuiDivider',
+  slot: 'Wrapper',
+  overridesResolver: function overridesResolver(props, styles) {
+    var ownerState = props.ownerState;
+    return [styles.wrapper, ownerState.orientation === 'vertical' && styles.wrapperVertical];
+  }
+})(function (_ref6) {
+  var theme = _ref6.theme,
+    ownerState = _ref6.ownerState;
+  return (0,esm_extends/* default */.Z)({
+    display: 'inline-block',
+    paddingLeft: "calc(".concat(theme.spacing(1), " * 1.2)"),
+    paddingRight: "calc(".concat(theme.spacing(1), " * 1.2)")
+  }, ownerState.orientation === 'vertical' && {
+    paddingTop: "calc(".concat(theme.spacing(1), " * 1.2)"),
+    paddingBottom: "calc(".concat(theme.spacing(1), " * 1.2)")
+  });
+});
+var Divider = /*#__PURE__*/react.forwardRef(function Divider(inProps, ref) {
+  var props = (0,styles_useThemeProps/* default */.Z)({
+    props: inProps,
+    name: 'MuiDivider'
+  });
+  var _props$absolute = props.absolute,
+    absolute = _props$absolute === void 0 ? false : _props$absolute,
+    children = props.children,
+    className = props.className,
+    _props$component = props.component,
+    component = _props$component === void 0 ? children ? 'div' : 'hr' : _props$component,
+    _props$flexItem = props.flexItem,
+    flexItem = _props$flexItem === void 0 ? false : _props$flexItem,
+    _props$light = props.light,
+    light = _props$light === void 0 ? false : _props$light,
+    _props$orientation = props.orientation,
+    orientation = _props$orientation === void 0 ? 'horizontal' : _props$orientation,
+    _props$role = props.role,
+    role = _props$role === void 0 ? component !== 'hr' ? 'separator' : undefined : _props$role,
+    _props$textAlign = props.textAlign,
+    textAlign = _props$textAlign === void 0 ? 'center' : _props$textAlign,
+    _props$variant = props.variant,
+    variant = _props$variant === void 0 ? 'fullWidth' : _props$variant,
+    other = (0,objectWithoutPropertiesLoose/* default */.Z)(props, Divider_excluded);
+  var ownerState = (0,esm_extends/* default */.Z)({}, props, {
+    absolute: absolute,
+    component: component,
+    flexItem: flexItem,
+    light: light,
+    orientation: orientation,
+    role: role,
+    textAlign: textAlign,
+    variant: variant
+  });
+  var classes = Divider_useUtilityClasses(ownerState);
+  return /*#__PURE__*/(0,jsx_runtime.jsx)(DividerRoot, (0,esm_extends/* default */.Z)({
+    as: component,
+    className: (0,clsx/* default */.Z)(classes.root, className),
+    role: role,
+    ref: ref,
+    ownerState: ownerState
+  }, other, {
+    children: children ? /*#__PURE__*/(0,jsx_runtime.jsx)(DividerWrapper, {
+      className: classes.wrapper,
+      ownerState: ownerState,
+      children: children
+    }) : null
+  }));
+});
+
+/**
+ * The following flag is used to ensure that this component isn't tabbable i.e.
+ * does not get highlight/focus inside of MUI List.
+ */
+Divider.muiSkipListHighlight = true;
+ false ? 0 : void 0;
+/* harmony default export */ var Divider_Divider = (Divider);
 ;// CONCATENATED MODULE: ./src/views/Options/index.js
 function Options(){var _useState=(0,react.useState)(false),_useState2=(0,slicedToArray/* default */.Z)(_useState,2),error=_useState2[0],setError=_useState2[1];var _useState3=(0,react.useState)(false),_useState4=(0,slicedToArray/* default */.Z)(_useState3,2),ready=_useState4[0],setReady=_useState4[1];(0,react.useEffect)(function(){asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(){var i;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:if(!isGm){_context.next=12;break;}// 等待GM注入
 i=0;case 2:if(!(window.APP_NAME==="KISS Translator")){_context.next=5;break;}setReady(true);return _context.abrupt("break",12);case 5:if(!(++i>8)){_context.next=8;break;}setError(true);return _context.abrupt("break",12);case 8:_context.next=10;return sleep(1000);case 10:_context.next=2;break;case 12:// 同步数据
-trySyncAll();case 13:case"end":return _context.stop();}},_callee);}))();},[]);if(error){return/*#__PURE__*/(0,jsx_runtime.jsxs)("center",{children:[/*#__PURE__*/(0,jsx_runtime.jsxs)("h2",{children:["Please confirm whether to install or enable"," ",/*#__PURE__*/(0,jsx_runtime.jsx)("a",{href:"https://github.com/fishjar/kiss-translator",children:"KISS Translator"})," ","GreaseMonkey script?"]}),/*#__PURE__*/(0,jsx_runtime.jsxs)("h2",{children:[/*#__PURE__*/(0,jsx_runtime.jsx)("a",{href:"https://kiss-translator.rayjar.com/kiss-translator.user.js",children:"Click here"})," ","to install, or ",/*#__PURE__*/(0,jsx_runtime.jsx)("a",{href:"https://github.com/fishjar/kiss-translator",children:"click here"})," ","for help."]})]});}if(isGm&&!ready){return/*#__PURE__*/(0,jsx_runtime.jsxs)("center",{children:[/*#__PURE__*/(0,jsx_runtime.jsx)("p",{children:"KISS Translator v".concat("1.5.7")}),/*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgress_CircularProgress,{})]});}return/*#__PURE__*/(0,jsx_runtime.jsx)(StoragesProvider,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(MuiThemeProvider,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(AlertProvider,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(HashRouter,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(Routes,{children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Route,{path:"/",element:/*#__PURE__*/(0,jsx_runtime.jsx)(Layout,{}),children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Route,{index:true,element:/*#__PURE__*/(0,jsx_runtime.jsx)(Settings,{})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Route,{path:"rules",element:/*#__PURE__*/(0,jsx_runtime.jsx)(Rules,{})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Route,{path:"sync",element:/*#__PURE__*/(0,jsx_runtime.jsx)(SyncSetting,{})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Route,{path:"about",element:/*#__PURE__*/(0,jsx_runtime.jsx)(About,{})})]})})})})})});}
+trySyncAll();case 13:case"end":return _context.stop();}},_callee);}))();},[]);if(error){return/*#__PURE__*/(0,jsx_runtime.jsxs)("center",{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Divider_Divider,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(material_Link_Link,{href:"https://github.com/fishjar/kiss-translator",children:"KISS Translator v".concat("1.5.8")})}),/*#__PURE__*/(0,jsx_runtime.jsx)("h2",{children:"Please confirm whether to install or enable KISS Translator GreaseMonkey script?"}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(material_Link_Link,{href:"https://fishjar.github.io/kiss-translator/kiss-translator.user.js",children:"Install Userscript 1"}),/*#__PURE__*/(0,jsx_runtime.jsx)(material_Link_Link,{href:"https://kiss-translator.rayjar.com/kiss-translator.user.js",children:"Install Userscript 2"}),/*#__PURE__*/(0,jsx_runtime.jsx)(material_Link_Link,{href:"https://fishjar.github.io/kiss-translator/options.html",children:"Open Options Page 1"}),/*#__PURE__*/(0,jsx_runtime.jsx)(material_Link_Link,{href:"https://kiss-translator.rayjar.com/options",children:"Open Options Page 2"})]})]});}if(isGm&&!ready){return/*#__PURE__*/(0,jsx_runtime.jsxs)("center",{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Divider_Divider,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(material_Link_Link,{href:"https://github.com/fishjar/kiss-translator",children:"KISS Translator v".concat("1.5.8")})}),/*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgress_CircularProgress,{})]});}return/*#__PURE__*/(0,jsx_runtime.jsx)(StoragesProvider,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(MuiThemeProvider,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(AlertProvider,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(HashRouter,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(Routes,{children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Route,{path:"/",element:/*#__PURE__*/(0,jsx_runtime.jsx)(Layout,{}),children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Route,{index:true,element:/*#__PURE__*/(0,jsx_runtime.jsx)(Settings,{})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Route,{path:"rules",element:/*#__PURE__*/(0,jsx_runtime.jsx)(Rules,{})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Route,{path:"sync",element:/*#__PURE__*/(0,jsx_runtime.jsx)(SyncSetting,{})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Route,{path:"about",element:/*#__PURE__*/(0,jsx_runtime.jsx)(About,{})})]})})})})})});}
 ;// CONCATENATED MODULE: ./src/options.js
 var options_root=client.createRoot(document.getElementById("root"));options_root.render(/*#__PURE__*/(0,jsx_runtime.jsx)(react.StrictMode,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(Options,{})}));
 }();
