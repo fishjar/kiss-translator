@@ -8,6 +8,7 @@ import { useDarkModeSwitch } from "../../hooks/ColorMode";
 import { useDarkMode } from "../../hooks/ColorMode";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
+import Link from "@mui/material/Link";
 import { useI18n } from "../../hooks/I18n";
 
 function Header(props) {
@@ -35,9 +36,13 @@ function Header(props) {
             <MenuIcon />
           </IconButton>
         </Box>
-        <Box sx={{ flexGrow: 1 }}>{`${i18n("app_name")} v${
-          process.env.REACT_APP_VERSION
-        }`}</Box>
+        <Box sx={{ flexGrow: 1 }}>
+          <Link
+            underline="none"
+            color="inherit"
+            href={process.env.REACT_APP_HOMEPAGE}
+          >{`${i18n("app_name")} v${process.env.REACT_APP_VERSION}`}</Link>
+        </Box>
         <IconButton onClick={switchColorMode} color="inherit">
           {darkMode ? <LightModeIcon /> : <DarkModeIcon />}
         </IconButton>
