@@ -47,35 +47,28 @@ export default function Content({ q, translator }) {
 
   const style = useMemo(() => {
     const lineColor = bgColor || "";
+    const underlineStyle = (st) => ({
+      opacity: hover ? 1 : 0.6,
+      textDecorationLine: "underline",
+      textDecorationColor: lineColor,
+      textDecorationStyle: st,
+      textDecorationThickness: "2px",
+      textUnderlineOffset: "0.3em",
+      WebkittextDecorationLine: "underline",
+      WebkittextDecorationColor: lineColor,
+      WebkittextDecorationStyle: st,
+      WebkittextDecorationThickness: "2px",
+      WebkittextTextUnderlineOffset: "0.3em",
+    });
     switch (textStyle) {
       case OPT_STYLE_LINE: // 下划线
-        return {
-          opacity: hover ? 1 : 0.6,
-          textDecoration: `underline 2px ${lineColor}`,
-          WebkitTextDecoration: `underline 2px ${lineColor}`,
-          textUnderlineOffset: "0.3em",
-        };
+        return underlineStyle("solid");
       case OPT_STYLE_DOTLINE: // 点状线
-        return {
-          opacity: hover ? 1 : 0.6,
-          textDecoration: `dotted underline 2px ${lineColor}`,
-          WebkitTextDecoration: `dotted underline 2px ${lineColor}`,
-          textUnderlineOffset: "0.3em",
-        };
+        return underlineStyle("dotted");
       case OPT_STYLE_DASHLINE: // 虚线
-        return {
-          opacity: hover ? 1 : 0.6,
-          textDecoration: `dashed underline 2px ${lineColor}`,
-          WebkitTextDecoration: `dashed underline 2px ${lineColor}`,
-          textUnderlineOffset: "0.3em",
-        };
+        return underlineStyle("dashed");
       case OPT_STYLE_WAVYLINE: // 波浪线
-        return {
-          opacity: hover ? 1 : 0.6,
-          textDecoration: `wavy underline 2px ${lineColor}`,
-          WebkitTextDecoration: `wavy underline 2px ${lineColor}`,
-          textUnderlineOffset: "0.3em",
-        };
+        return underlineStyle("wavy");
       case OPT_STYLE_FUZZY: // 模糊
         return {
           filter: hover ? "none" : "blur(5px)",
