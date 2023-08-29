@@ -50,7 +50,11 @@ browser.runtime.onStartup.addListener(async () => {
   // 清除缓存
   const setting = await getSetting();
   if (setting.clearCache) {
-    caches.delete(CACHE_NAME);
+    try {
+      caches.delete(CACHE_NAME);
+    } catch (err) {
+      console.log("[clean caches]", err);
+    }
   }
 
   // 同步订阅规则

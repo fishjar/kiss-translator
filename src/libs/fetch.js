@@ -121,12 +121,12 @@ export const fetchData = async (
   { useCache, usePool, translator, token, ...init } = {}
 ) => {
   const cacheReq = await newCacheReq(new Request(input, init));
-  const cache = await caches.open(CACHE_NAME);
   let res;
 
   // 查询缓存
   if (useCache) {
     try {
+      const cache = await caches.open(CACHE_NAME);
       res = await cache.match(cacheReq);
     } catch (err) {
       console.log("[cache match]", err);
@@ -148,6 +148,7 @@ export const fetchData = async (
     // 插入缓存
     if (useCache) {
       try {
+        const cache = await caches.open(CACHE_NAME);
         await cache.put(cacheReq, res.clone());
       } catch (err) {
         console.log("[cache put]", err);
