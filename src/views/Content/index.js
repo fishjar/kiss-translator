@@ -52,24 +52,28 @@ export default function Content({ q, translator }) {
         return {
           opacity: hover ? 1 : 0.6,
           textDecoration: `underline 2px ${lineColor}`,
+          WebkitTextDecoration: `underline 2px ${lineColor}`,
           textUnderlineOffset: "0.3em",
         };
       case OPT_STYLE_DOTLINE: // 点状线
         return {
           opacity: hover ? 1 : 0.6,
           textDecoration: `dotted underline 2px ${lineColor}`,
+          WebkitTextDecoration: `dotted underline 2px ${lineColor}`,
           textUnderlineOffset: "0.3em",
         };
       case OPT_STYLE_DASHLINE: // 虚线
         return {
           opacity: hover ? 1 : 0.6,
           textDecoration: `dashed underline 2px ${lineColor}`,
+          WebkitTextDecoration: `dashed underline 2px ${lineColor}`,
           textUnderlineOffset: "0.3em",
         };
       case OPT_STYLE_WAVYLINE: // 波浪线
         return {
           opacity: hover ? 1 : 0.6,
           textDecoration: `wavy underline 2px ${lineColor}`,
+          WebkitTextDecoration: `wavy underline 2px ${lineColor}`,
           textUnderlineOffset: "0.3em",
         };
       case OPT_STYLE_FUZZY: // 模糊
