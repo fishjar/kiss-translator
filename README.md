@@ -42,7 +42,7 @@
 - [x] 数据同步功能
 - [x] 油猴脚本([链接 1](https://fishjar.github.io/kiss-translator/kiss-translator.user.js)、[链接 2](https://kiss-translator.rayjar.com/kiss-translator.user.js))
   - [x] [Tampermonkey](https://www.tampermonkey.net/) (Chrome/Edge/Firefox)
-  - [ ] [Userscripts Safari](https://github.com/quoid/userscripts) (待测)
+  - [x] [Userscripts Safari](https://github.com/quoid/userscripts) (iOS Safari)
 
 ### 指引
 

@@ -42,7 +42,7 @@ If you also like a little more simplicity, welcome to pick it up.
 - [x] Data Synchronization Function
 - [x] Greasemonkey Script ([link 1](https://fishjar.github.io/kiss-translator/kiss-translator.user.js)、[link 2](https://kiss-translator.rayjar.com/kiss-translator.user.js))
   - [x] [Tampermonkey](https://www.tampermonkey.net/) (Chrome/Edge/Firefox)
-  - [ ] [Userscripts Safari](https://github.com/quoid/userscripts) (need test)
+  - [x] [Userscripts Safari](https://github.com/quoid/userscripts) (iOS Safari)
 
 ### Guide
 
