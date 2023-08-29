@@ -6,6 +6,7 @@ import ReactMarkdown from "react-markdown";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
+import Link from "@mui/material/Link";
 import { useFetch } from "./hooks/Fetch";
 import { I18N, URL_RAW_PREFIX } from "./config";
 
@@ -26,7 +27,26 @@ function App() {
           {lang === "zh" ? "ENGLISH" : "中文"}
         </Button>
       </Stack>
-      <Divider>{`KISS Translator v${process.env.REACT_APP_VERSION}`}</Divider>
+      <Divider>
+        <Link
+          href={process.env.REACT_APP_HOMEPAGE}
+        >{`KISS Translator v${process.env.REACT_APP_VERSION}`}</Link>
+      </Divider>
+      <Stack spacing={2} direction="row" useFlexGap flexWrap="wrap">
+        <Link href={process.env.REACT_APP_USERSCRIPT_DOWNLOADURL}>
+          Install Userscript 1
+        </Link>
+        <Link href={process.env.REACT_APP_USERSCRIPT_DOWNLOADURL2}>
+          Install Userscript 2
+        </Link>
+        <Link href={process.env.REACT_APP_OPTIONSPAGE}>
+          Open Options Page 1
+        </Link>
+        <Link href={process.env.REACT_APP_OPTIONSPAGE2}>
+          Open Options Page 2
+        </Link>
+      </Stack>
+
       {loading ? (
         <center>
           <CircularProgress />

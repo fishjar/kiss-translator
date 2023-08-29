@@ -12,6 +12,9 @@ import { sleep } from "../../libs/utils";
 import CircularProgress from "@mui/material/CircularProgress";
 import { trySyncAll } from "../../libs/sync";
 import { AlertProvider } from "../../hooks/Alert";
+import Link from "@mui/material/Link";
+import Divider from "@mui/material/Divider";
+import Stack from "@mui/material/Stack";
 
 export default function Options() {
   const [error, setError] = useState(false);
@@ -45,16 +48,29 @@ export default function Options() {
   if (error) {
     return (
       <center>
+        <Divider>
+          <Link
+            href={process.env.REACT_APP_HOMEPAGE}
+          >{`KISS Translator v${process.env.REACT_APP_VERSION}`}</Link>
+        </Divider>
         <h2>
-          Please confirm whether to install or enable{" "}
-          <a href={process.env.REACT_APP_HOMEPAGE}>KISS Translator</a>{" "}
+          Please confirm whether to install or enable KISS Translator
           GreaseMonkey script?
         </h2>
-        <h2>
-          <a href={process.env.REACT_APP_USERSCRIPT_DOWNLOADURL}>Click here</a>{" "}
-          to install, or <a href={process.env.REACT_APP_HOMEPAGE}>click here</a>{" "}
-          for help.
-        </h2>
+        <Stack spacing={2}>
+          <Link href={process.env.REACT_APP_USERSCRIPT_DOWNLOADURL}>
+            Install Userscript 1
+          </Link>
+          <Link href={process.env.REACT_APP_USERSCRIPT_DOWNLOADURL2}>
+            Install Userscript 2
+          </Link>
+          <Link href={process.env.REACT_APP_OPTIONSPAGE}>
+            Open Options Page 1
+          </Link>
+          <Link href={process.env.REACT_APP_OPTIONSPAGE2}>
+            Open Options Page 2
+          </Link>
+        </Stack>
       </center>
     );
   }
@@ -62,7 +78,11 @@ export default function Options() {
   if (isGm && !ready) {
     return (
       <center>
-        <p>{`KISS Translator v${process.env.REACT_APP_VERSION}`}</p>
+        <Divider>
+          <Link
+            href={process.env.REACT_APP_HOMEPAGE}
+          >{`KISS Translator v${process.env.REACT_APP_VERSION}`}</Link>
+        </Divider>
         <CircularProgress />
       </center>
     );
