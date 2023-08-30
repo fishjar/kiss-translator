@@ -1,5 +1,12 @@
-import { getSyncWithDefault, updateSync } from "./storage";
+import { GLOBAL_KEY } from "../config";
+import {
+  getSyncWithDefault,
+  updateSync,
+  setSubRules,
+  getSubRules,
+} from "./storage";
 import { apiFetchRules } from "../apis";
+import { checkRules } from "./rules";
 
 /**
  * 同步订阅规则
@@ -7,9 +14,12 @@ import { apiFetchRules } from "../apis";
  * @returns
  */
 export const syncSubRules = async (url, isBg = false) => {
-  const rules = await apiFetchRules(url, isBg);
+  const res = await apiFetchRules(url, isBg);
+  const rules = checkRules(res).filter(
+    (rule) => rule.pattern.replaceAll(GLOBAL_KEY, "") !== ""
+  );
   if (rules.length > 0) {
-    await rulesCache.set(url, rules);
+    await setSubRules(url, rules);
   }
   return rules;
 };
@@ -54,7 +64,7 @@ export const trySyncAllSubRules = async ({ subrulesList }, isBg = false) => {
  * @returns
  */
 export const loadOrFetchSubRules = async (url) => {
-  const rules = await apiFetchRules(url);
+  const rules = await getSubRules(url);
   if (rules?.length) {
     return rules;
   }

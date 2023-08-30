@@ -3,13 +3,14 @@ import ReactDOM from "react-dom/client";
 import Action from "./views/Action";
 import createCache from "@emotion/cache";
 import { CacheProvider } from "@emotion/react";
-import { getSetting, getRules, matchRule, getFab } from "./libs";
+import { getSettingWithDefault, getRulesWithDefault,  getFabWithDefault } from "./libs/storage";
 import { Translator } from "./libs/translator";
 import { trySyncAllSubRules } from "./libs/subRules";
 import { isGm } from "./libs/client";
 import { MSG_TRANS_TOGGLE, MSG_TRANS_PUTRULE } from "./config";
 import { isIframe } from "./libs/iframe";
 import { handlePing, injectScript } from "./libs/gm";
+import { matchRule } from "./libs/rules";
 
 /**
  * 入口函数
@@ -36,8 +37,8 @@ const init = async () => {
 
   // 翻译页面
   const href = isIframe ? document.referrer : document.location.href;
-  const setting = await getSetting();
-  const rules = await getRules();
+  const setting = await getSettingWithDefault();
+  const rules = await getRulesWithDefault();
   const rule = await matchRule(rules, href, setting);
   const translator = new Translator(rule, setting);
 
@@ -59,7 +60,7 @@ const init = async () => {
   }
 
   // 浮球按钮
-  const fab = await getFab();
+  const fab = await getFabWithDefault();
   const $action = document.createElement("div");
   $action.setAttribute("id", "kiss-translator");
   document.body.parentElement.appendChild($action);

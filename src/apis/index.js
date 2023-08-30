@@ -1,7 +1,6 @@
 import queryString from "query-string";
 import { fetchPolyfill } from "../libs/fetch";
 import {
-  GLOBAL_KEY,
   OPT_TRANS_GOOGLE,
   OPT_TRANS_MICROSOFT,
   OPT_TRANS_OPENAI,
@@ -11,9 +10,8 @@ import {
   PROMPT_PLACE_TO,
   KV_SALT_SYNC,
 } from "../config";
-import { detectLang } from "../libs/browser";
+import { detectLang } from "../libs";
 import { sha256 } from "../libs/utils";
-import { checkRules } from "../libs/rules";
 
 /**
  * 同步数据
@@ -39,13 +37,8 @@ export const apiSyncData = async (url, key, data, isBg = false) =>
  * @param {*} isBg
  * @returns
  */
-export const apiFetchRules = async (url, isBg = false) => {
-  const res = await fetchPolyfill(url, { isBg });
-  const rules = checkRules(res).filter(
-    (rule) => rule.pattern.replaceAll(GLOBAL_KEY, "") !== ""
-  );
-  return rules;
-};
+export const apiFetchRules = (url, isBg = false) =>
+  fetchPolyfill(url, { isBg });
 
 /**
  * 谷歌翻译

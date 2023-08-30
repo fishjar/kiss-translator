@@ -159,7 +159,7 @@ export const DEFAULT_SUBRULES_LIST = [
     selected: true,
   },
   {
-    url: "https://fishjar.github.io/kiss-translator/kiss-translator-rules.json",
+    url: process.env.REACT_APP_RULESURL2,
     selected: false,
   },
 ];

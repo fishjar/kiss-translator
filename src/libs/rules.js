@@ -1,12 +1,3 @@
-import {
-  getSyncWithDefault,
-  updateSync,
-  getSubRulesWithDefault,
-  getSubRules,
-  delSubRules,
-  setSubRules,
-} from "./storage";
-import { fetchPolyfill } from "./fetch";
 import { matchValue, type, isMatch } from "./utils";
 import {
   GLOBAL_KEY,
@@ -17,8 +8,7 @@ import {
   GLOBLA_RULE,
   DEFAULT_SUBRULES_LIST,
 } from "../config";
-
-// import { syncOpt } from "./sync";
+import { loadOrFetchSubRules } from "./subRules";
 
 /**
  * 根据href匹配规则
@@ -36,7 +26,7 @@ export const matchRule = async (
     try {
       const selectedSub = subrulesList.find((item) => item.selected);
       if (selectedSub?.url) {
-        const subRules = await loadSubRules(selectedSub.url);
+        const subRules = await loadOrFetchSubRules(selectedSub.url);
         rules.splice(-1, 0, ...subRules);
       }
     } catch (err) {
@@ -123,19 +113,3 @@ export const checkRules = (rules) => {
 
   return rules;
 };
-
-// /**
-//  * 订阅规则的本地缓存
-//  */
-// export const rulesCache = {
-//   fetch: async (url, isBg = false) => {
-//     const res = await fetchPolyfill(url, { isBg });
-//     const rules = checkRules(res).filter(
-//       (rule) => rule.pattern.replaceAll(GLOBAL_KEY, "") !== ""
-//     );
-//     return rules;
-//   },
-//   set: (url, rules) => setSubRules(url, rules),
-//   get: (url) => getSubRulesWithDefault(url),
-//   del: (url) => delSubRules(url),
-// };

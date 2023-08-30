@@ -1,5 +1,5 @@
-import storage from "./storage";
-import { STOKEY_MSAUTH, URL_MICROSOFT_AUTH } from "../config";
+import { getMsauth, setMsauth } from "./storage";
+import { URL_MICROSOFT_AUTH } from "../config";
 import { fetchData } from "./fetch";
 
 const parseMSToken = (token) => {
@@ -26,9 +26,9 @@ const _msAuth = () => {
     }
 
     // 查询storage缓存
-    const res = (await storage.getObj(STOKEY_MSAUTH)) || {};
-    token = res.token;
-    exp = res.exp;
+    const res = await getMsauth();
+    token = res?.token;
+    exp = res?.exp;
     if (token && exp * 1000 > now + 1000) {
       return [token, exp];
     }
@@ -36,7 +36,7 @@ const _msAuth = () => {
     // 缓存没有或失效，查询接口
     token = await fetchData(URL_MICROSOFT_AUTH);
     exp = parseMSToken(token);
-    await storage.setObj(STOKEY_MSAUTH, { token, exp });
+    await setMsauth({ token, exp });
     return [token, exp];
   };
 };

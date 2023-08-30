@@ -13,7 +13,7 @@ export function useDarkMode() {
 
   const toggleDarkMode = useCallback(async () => {
     await updateSetting({ darkMode: !darkMode });
-  }, [darkMode]);
+  }, [darkMode, updateSetting]);
 
   return { darkMode, toggleDarkMode };
 }

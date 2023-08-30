@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useState } from "react";
-import { detectLang } from "../libs/browser";
+import { detectLang } from "../libs";
 import { apiTranslate } from "../apis";
 
 /**

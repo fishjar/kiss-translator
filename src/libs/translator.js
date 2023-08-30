@@ -12,7 +12,6 @@ import {
 import Content from "../views/Content";
 import { fetchUpdate, fetchClear } from "./fetch";
 import { debounce } from "./utils";
-import { isExt } from "./client";
 
 /**
  * 翻译类
@@ -100,6 +99,10 @@ export class Translator {
     if (rule.transOpen === "true") {
       this._register();
     }
+  }
+
+  get setting() {
+    return this._setting;
   }
 
   get rule() {

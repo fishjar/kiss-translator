@@ -6,41 +6,36 @@ import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
 import Select from "@mui/material/Select";
 import { useSetting } from "../../hooks/Setting";
-import { limitNumber, debounce } from "../../libs/utils";
+import { limitNumber } from "../../libs/utils";
 import { useI18n } from "../../hooks/I18n";
 import { UI_LANGS } from "../../config";
-import { useMemo } from "react";
 
 export default function Settings() {
   const i18n = useI18n();
   const { setting, updateSetting } = useSetting();
 
-  const handleChange = useMemo(
-    () =>
-      debounce((e) => {
-        e.preventDefault();
-        let { name, value } = e.target;
-        switch (name) {
-          case "fetchLimit":
-            value = limitNumber(value, 1, 100);
-            break;
-          case "fetchInterval":
-            value = limitNumber(value, 0, 5000);
-            break;
-          case "minLength":
-            value = limitNumber(value, 1, 100);
-            break;
-          case "maxLength":
-            value = limitNumber(value, 100, 10000);
-            break;
-          default:
-        }
-        updateSetting({
-          [name]: value,
-        });
-      }, 500),
-    [updateSetting]
-  );
+  const handleChange = (e) => {
+    e.preventDefault();
+    let { name, value } = e.target;
+    switch (name) {
+      case "fetchLimit":
+        value = limitNumber(value, 1, 100);
+        break;
+      case "fetchInterval":
+        value = limitNumber(value, 0, 5000);
+        break;
+      case "minLength":
+        value = limitNumber(value, 1, 100);
+        break;
+      case "maxLength":
+        value = limitNumber(value, 100, 10000);
+        break;
+      default:
+    }
+    updateSetting({
+      [name]: value,
+    });
+  };
 
   if (!setting) {
     return;
@@ -84,7 +79,7 @@ export default function Settings() {
           label={i18n("fetch_limit")}
           type="number"
           name="fetchLimit"
-          defaultValue={fetchLimit}
+          value={fetchLimit}
           onChange={handleChange}
         />
 
@@ -93,7 +88,7 @@ export default function Settings() {
           label={i18n("fetch_interval")}
           type="number"
           name="fetchInterval"
-          defaultValue={fetchInterval}
+          value={fetchInterval}
           onChange={handleChange}
         />
 
@@ -102,7 +97,7 @@ export default function Settings() {
           label={i18n("min_translate_length")}
           type="number"
           name="minLength"
-          defaultValue={minLength}
+          value={minLength}
           onChange={handleChange}
         />
 
@@ -111,7 +106,7 @@ export default function Settings() {
           label={i18n("max_translate_length")}
           type="number"
           name="maxLength"
-          defaultValue={maxLength}
+          value={maxLength}
           onChange={handleChange}
         />
 
@@ -132,7 +127,7 @@ export default function Settings() {
           size="small"
           label={i18n("google_api")}
           name="googleUrl"
-          defaultValue={googleUrl}
+          value={googleUrl}
           onChange={handleChange}
         />
 
@@ -140,7 +135,7 @@ export default function Settings() {
           size="small"
           label={i18n("openai_api")}
           name="openaiUrl"
-          defaultValue={openaiUrl}
+          value={openaiUrl}
           onChange={handleChange}
         />
 
@@ -149,7 +144,7 @@ export default function Settings() {
           type="password"
           label={i18n("openai_key")}
           name="openaiKey"
-          defaultValue={openaiKey}
+          value={openaiKey}
           onChange={handleChange}
         />
 
@@ -157,7 +152,7 @@ export default function Settings() {
           size="small"
           label={i18n("openai_model")}
           name="openaiModel"
-          defaultValue={openaiModel}
+          value={openaiModel}
           onChange={handleChange}
         />
 
@@ -165,7 +160,7 @@ export default function Settings() {
           size="small"
           label={i18n("openai_prompt")}
           name="openaiPrompt"
-          defaultValue={openaiPrompt}
+          value={openaiPrompt}
           onChange={handleChange}
           multiline
         />

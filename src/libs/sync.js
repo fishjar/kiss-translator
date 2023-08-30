@@ -1,27 +1,19 @@
 import {
-  STOKEY_SYNC,
-  DEFAULT_SYNC,
   KV_SETTING_KEY,
   KV_RULES_KEY,
   KV_RULES_SHARE_KEY,
-  STOKEY_SETTING,
-  STOKEY_RULES,
   KV_SALT_SHARE,
 } from "../config";
-import { storage, getSyncWithDefault, updateSync } from "../libs/storage";
-import { getSetting, getRules } from ".";
+import {
+  getSyncWithDefault,
+  updateSync,
+  getSettingWithDefault,
+  getRulesWithDefault,
+  setSetting,
+  setRules,
+} from "./storage";
 import { apiSyncData } from "../apis";
 import { sha256 } from "./utils";
-
-// /**
-//  * 同步相关数据
-//  */
-// export const syncOpt = {
-//   load: async () => (await storage.getObj(STOKEY_SYNC)) || DEFAULT_SYNC,
-//   update: async (obj) => {
-//     await storage.putObj(STOKEY_SYNC, obj);
-//   },
-// };
 
 /**
  * 同步设置
@@ -33,7 +25,7 @@ const syncSetting = async (isBg = false) => {
     return;
   }
 
-  const setting = await getSetting();
+  const setting = await getSettingWithDefault();
   const res = await apiSyncData(
     syncUrl,
     syncKey,
@@ -50,7 +42,7 @@ const syncSetting = async (isBg = false) => {
       settingUpdateAt: res.updateAt,
       settingSyncAt: res.updateAt,
     });
-    await storage.setObj(STOKEY_SETTING, res.value);
+    await setSetting(res.value);
   } else {
     await updateSync({ settingSyncAt: res.updateAt });
   }
@@ -74,7 +66,7 @@ const syncRules = async (isBg = false) => {
     return;
   }
 
-  const rules = await getRules();
+  const rules = await getRulesWithDefault();
   const res = await apiSyncData(
     syncUrl,
     syncKey,
@@ -91,7 +83,7 @@ const syncRules = async (isBg = false) => {
       rulesUpdateAt: res.updateAt,
       rulesSyncAt: res.updateAt,
     });
-    await storage.setObj(STOKEY_RULES, res.value);
+    await setRules(res.value);
   } else {
     await updateSync({ rulesSyncAt: res.updateAt });
   }

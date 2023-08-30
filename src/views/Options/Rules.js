@@ -24,7 +24,7 @@ import MenuItem from "@mui/material/MenuItem";
 import Grid from "@mui/material/Grid";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import FileUploadIcon from "@mui/icons-material/FileUpload";
-import { useSetting, useSettingUpdate } from "../../hooks/Setting";
+import { useSetting } from "../../hooks/Setting";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import Tabs from "@mui/material/Tabs";
@@ -35,11 +35,13 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import IconButton from "@mui/material/IconButton";
 import ShareIcon from "@mui/icons-material/Share";
 import SyncIcon from "@mui/icons-material/Sync";
-import { useSubrules } from "../../hooks/Rules";
-import { rulesCache, loadSubRules, syncSubRules } from "../../libs/rules";
+import { useSubRules } from "../../hooks/SubRules";
+import { syncSubRules } from "../../libs/subRules";
+import { loadOrFetchSubRules } from "../../libs/subRules";
 import { useAlert } from "../../hooks/Alert";
-import { syncOpt, syncShareRules } from "../../libs/sync";
+import { syncShareRules } from "../../libs/sync";
 import { debounce } from "../../libs/utils";
+import { delSubRules, getSyncWithDefault } from "../../libs/storage";
 
 function RuleFields({ rule, rules, setShow, setKeyword }) {
   const initFormValues = rule || { ...DEFAULT_RULE, transOpen: "true" };
@@ -409,12 +411,12 @@ function UploadButton({ onChange, text }) {
   );
 }
 
-function ShareButton({ rules, injectRules, selectedSub }) {
+function ShareButton({ rules, injectRules, selectedUrl }) {
   const alert = useAlert();
   const i18n = useI18n();
   const handleClick = async () => {
     try {
-      const { syncUrl, syncKey } = await syncOpt.load();
+      const { syncUrl, syncKey } = await getSyncWithDefault();
       if (!syncUrl || !syncKey) {
         alert.warning(i18n("error_sync_setting"));
         return;
@@ -422,7 +424,7 @@ function ShareButton({ rules, injectRules, selectedSub }) {
 
       const shareRules = [...rules.list];
       if (injectRules) {
-        const subRules = await loadSubRules(selectedSub?.url);
+        const subRules = await loadOrFetchSubRules(selectedUrl);
         shareRules.splice(-1, 0, ...subRules);
       }
 
@@ -451,19 +453,15 @@ function ShareButton({ rules, injectRules, selectedSub }) {
   );
 }
 
-function UserRules() {
+function UserRules({ subRules }) {
   const i18n = useI18n();
   const rules = useRules();
   const [showAdd, setShowAdd] = useState(false);
-  const setting = useSetting();
-  const updateSetting = useSettingUpdate();
-  const subrules = useSubrules();
-  const [subRules, setSubRules] = useState([]);
+  const { setting, updateSetting } = useSetting();
   const [keyword, setKeyword] = useState("");
 
-  const selectedSub = subrules.list.find((item) => item.selected);
-
   const injectRules = !!setting?.injectRules;
+  const { selectedUrl, selectedRules } = subRules;
 
   const handleImport = (e) => {
     const file = e.target.files[0];
@@ -494,19 +492,6 @@ function UserRules() {
   };
 
   useEffect(() => {
-    (async () => {
-      if (selectedSub?.url) {
-        try {
-          const rules = await loadSubRules(selectedSub?.url);
-          setSubRules(rules);
-        } catch (err) {
-          console.log("[load rules]", err);
-        }
-      }
-    })();
-  }, [selectedSub?.url]);
-
-  useEffect(() => {
     if (!showAdd) {
       setKeyword("");
     }
@@ -514,7 +499,13 @@ function UserRules() {
 
   return (
     <Stack spacing={3}>
-      <Stack direction="row" alignItems="center" spacing={2} useFlexGap flexWrap="wrap">
+      <Stack
+        direction="row"
+        alignItems="center"
+        spacing={2}
+        useFlexGap
+        flexWrap="wrap"
+      >
         <Button
           size="small"
           variant="contained"
@@ -536,7 +527,7 @@ function UserRules() {
         <ShareButton
           rules={rules}
           injectRules={injectRules}
-          selectedSub={selectedSub}
+          selectedUrl={selectedUrl}
         />
 
         <FormControlLabel
@@ -572,7 +563,7 @@ function UserRules() {
 
       {injectRules && (
         <Box>
-          {subRules
+          {selectedRules
             .filter(
               (rule) =>
                 rule.pattern.includes(keyword) || keyword.includes(rule.pattern)
@@ -586,13 +577,13 @@ function UserRules() {
   );
 }
 
-function SubRulesItem({ index, url, selectedUrl, subrules, setRules }) {
+function SubRulesItem({ index, url, selectedUrl, delSub, setSelectedRules }) {
   const [loading, setLoading] = useState(false);
 
   const handleDel = async () => {
     try {
-      await subrules.del(url);
-      await rulesCache.del(url);
+      await delSub(url);
+      await delSubRules(url);
     } catch (err) {
       console.log("[del subrules]", err);
     }
@@ -603,7 +594,7 @@ function SubRulesItem({ index, url, selectedUrl, subrules, setRules }) {
       setLoading(true);
       const rules = await syncSubRules(url);
       if (rules.length > 0 && url === selectedUrl) {
-        setRules(rules);
+        setSelectedRules(rules);
       }
     } catch (err) {
       console.log("[sync sub rules]", err);
@@ -633,7 +624,7 @@ function SubRulesItem({ index, url, selectedUrl, subrules, setRules }) {
   );
 }
 
-function SubRulesEdit({ subrules }) {
+function SubRulesEdit({ subList, addSub }) {
   const i18n = useI18n();
   const [inputText, setInputText] = useState("");
   const [inputError, setInputError] = useState("");
@@ -656,7 +647,7 @@ function SubRulesEdit({ subrules }) {
       return;
     }
 
-    if (subrules.list.find((item) => item.url === url)) {
+    if (subList.find((item) => item.url === url)) {
       setInputError(i18n("error_duplicate_values"));
       return;
     }
@@ -667,7 +658,7 @@ function SubRulesEdit({ subrules }) {
       if (rules.length === 0) {
         throw new Error("empty rules");
       }
-      await subrules.add(url);
+      await addSub(url);
       setShowInput(false);
       setInputText("");
     } catch (err) {
@@ -735,47 +726,36 @@ function SubRulesEdit({ subrules }) {
   );
 }
 
-function SubRules() {
-  const [loading, setLoading] = useState(false);
-  const [rules, setRules] = useState([]);
-  const subrules = useSubrules();
-  const selectedSub = subrules.list.find((item) => item.selected);
+function SubRules({ subRules }) {
+  const {
+    subList,
+    selectSub,
+    addSub,
+    delSub,
+    selectedUrl,
+    selectedRules,
+    setSelectedRules,
+    loading,
+  } = subRules;
 
   const handleSelect = (e) => {
     const url = e.target.value;
-    subrules.select(url);
+    selectSub(url);
   };
-
-  useEffect(() => {
-    (async () => {
-      if (selectedSub?.url) {
-        try {
-          setLoading(true);
-
-          const rules = await loadSubRules(selectedSub?.url);
-          setRules(rules);
-        } catch (err) {
-          console.log("[load rules]", err);
-        } finally {
-          setLoading(false);
-        }
-      }
-    })();
-  }, [selectedSub?.url]);
 
   return (
     <Stack spacing={3}>
-      <SubRulesEdit subrules={subrules} />
+      <SubRulesEdit subList={subList} addSub={addSub} />
 
-      <RadioGroup value={selectedSub?.url} onChange={handleSelect}>
-        {subrules.list.map((item, index) => (
+      <RadioGroup value={selectedUrl} onChange={handleSelect}>
+        {subList.map((item, index) => (
           <SubRulesItem
             key={item.url}
             url={item.url}
             index={index}
-            selectedUrl={selectedSub?.url}
-            subrules={subrules}
-            setRules={setRules}
+            selectedUrl={selectedUrl}
+            delSub={delSub}
+            setSelectedRules={setSelectedRules}
           />
         ))}
       </RadioGroup>
@@ -786,7 +766,9 @@ function SubRules() {
             <CircularProgress />
           </center>
         ) : (
-          rules.map((rule) => <RuleAccordion key={rule.pattern} rule={rule} />)
+          selectedRules.map((rule) => (
+            <RuleAccordion key={rule.pattern} rule={rule} />
+          ))
         )}
       </Box>
     </Stack>
@@ -796,6 +778,7 @@ function SubRules() {
 export default function Rules() {
   const i18n = useI18n();
   const [activeTab, setActiveTab] = useState(0);
+  const subRules = useSubRules();
 
   const handleTabChange = (e, newValue) => {
     setActiveTab(newValue);
@@ -816,8 +799,12 @@ export default function Rules() {
             <Tab label={i18n("subscribe_rules")} />
           </Tabs>
         </Box>
-        <div hidden={activeTab !== 0}>{activeTab === 0 && <UserRules />}</div>
-        <div hidden={activeTab !== 1}>{activeTab === 1 && <SubRules />}</div>
+        <div hidden={activeTab !== 0}>
+          {activeTab === 0 && <UserRules subRules={subRules} />}
+        </div>
+        <div hidden={activeTab !== 1}>
+          {activeTab === 1 && <SubRules subRules={subRules} />}
+        </div>
       </Stack>
     </Box>
   );

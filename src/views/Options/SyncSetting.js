@@ -6,8 +6,7 @@ import { useSync } from "../../hooks/Sync";
 import Alert from "@mui/material/Alert";
 import Link from "@mui/material/Link";
 import { URL_KISS_WORKER } from "../../config";
-import { debounce } from "../../libs/utils";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { syncAll } from "../../libs/sync";
 import Button from "@mui/material/Button";
 import { useAlert } from "../../hooks/Alert";
@@ -16,22 +15,17 @@ import CircularProgress from "@mui/material/CircularProgress";
 
 export default function SyncSetting() {
   const i18n = useI18n();
-  const sync = useSync();
+  const { sync, updateSync } = useSync();
   const alert = useAlert();
   const [loading, setLoading] = useState(false);
 
-  const handleChange = useMemo(
-    () =>
-      debounce(async (e) => {
-        e.preventDefault();
-        const { name, value } = e.target;
-        await sync.update({
-          [name]: value,
-        });
-        // trySyncAll();
-      }, 500),
-    [sync]
-  );
+  const handleChange = async (e) => {
+    e.preventDefault();
+    const { name, value } = e.target;
+    await updateSync({
+      [name]: value,
+    });
+  };
 
   const handleSyncTest = async (e) => {
     e.preventDefault();
@@ -47,11 +41,7 @@ export default function SyncSetting() {
     }
   };
 
-  if (!sync.opt) {
-    return;
-  }
-
-  const { syncUrl, syncKey } = sync.opt;
+  const { syncUrl, syncKey } = sync;
 
   return (
     <Box>
@@ -62,7 +52,7 @@ export default function SyncSetting() {
           size="small"
           label={i18n("data_sync_url")}
           name="syncUrl"
-          defaultValue={syncUrl}
+          value={syncUrl}
           onChange={handleChange}
           helperText={
             <Link href={URL_KISS_WORKER}>{i18n("about_sync_api")}</Link>
@@ -74,11 +64,17 @@ export default function SyncSetting() {
           type="password"
           label={i18n("data_sync_key")}
           name="syncKey"
-          defaultValue={syncKey}
+          value={syncKey}
           onChange={handleChange}
         />
 
-        <Stack direction="row" alignItems="center" spacing={2} useFlexGap flexWrap="wrap">
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={2}
+          useFlexGap
+          flexWrap="wrap"
+        >
           <Button
             size="small"
             variant="contained"

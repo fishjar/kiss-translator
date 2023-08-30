@@ -23,7 +23,7 @@ export function useRules() {
       await updateSync({ rulesUpdateAt: updateAt });
       trySyncRules();
     },
-    [rulesUpdateAt]
+    [rulesUpdateAt, save, updateSync]
   );
 
   const add = useCallback(
@@ -87,39 +87,3 @@ export function useRules() {
 
   return { list, add, del, put, merge };
 }
-
-// /**
-//  * 订阅规则
-//  * @returns
-//  */
-// export function useSubrules() {
-//   const setting = useSetting();
-//   const updateSetting = useSettingUpdate();
-//   const list = setting?.subrulesList || DEFAULT_SUBRULES_LIST;
-
-//   const select = async (url) => {
-//     const subrulesList = [...list];
-//     subrulesList.forEach((item) => {
-//       if (item.url === url) {
-//         item.selected = true;
-//       } else {
-//         item.selected = false;
-//       }
-//     });
-//     await updateSetting({ subrulesList });
-//   };
-
-//   const add = async (url) => {
-//     const subrulesList = [...list];
-//     subrulesList.push({ url });
-//     await updateSetting({ subrulesList });
-//   };
-
-//   const del = async (url) => {
-//     let subrulesList = [...list];
-//     subrulesList = subrulesList.filter((item) => item.url !== url);
-//     await updateSetting({ subrulesList });
-//   };
-
-//   return { list, select, add, del };
-// }

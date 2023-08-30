@@ -23,7 +23,7 @@ export function SettingProvider({ children }) {
       await updateSync({ settingUpdateAt: updateAt });
       trySyncSetting();
     },
-    [settingUpdateAt]
+    [settingUpdateAt, update, updateSync]
   );
 
   return (
@@ -45,35 +45,3 @@ export function SettingProvider({ children }) {
 export function useSetting() {
   return useContext(SettingContext);
 }
-
-// export function useSetting() {
-//   const [setting,setSeting]= useState(null);
-//   useEffect(()=>{
-//     (async ()=>{
-//       const
-//     })()
-//   },[])
-// }
-
-// /**
-//  * 设置hook
-//  * @returns
-//  */
-// export function useSetting() {
-//   const storages = useStorages();
-//   return storages?.[STOKEY_SETTING];
-// }
-
-// /**
-//  * 更新设置
-//  * @returns
-//  */
-// export function useSettingUpdate() {
-//   const sync = useSync();
-//   return async (obj) => {
-//     const updateAt = sync.opt?.settingUpdateAt ? Date.now() : 0;
-//     await storage.putObj(STOKEY_SETTING, obj);
-//     await sync.update({ settingUpdateAt: updateAt });
-//     trySyncSetting();
-//   };
-// }
