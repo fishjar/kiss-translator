@@ -5,12 +5,9 @@ import {
   DEFAULT_RULE,
   BUILTIN_RULES,
 } from "./rules";
+import { APP_NAME, APP_LCNAME } from "./app";
 export { I18N, UI_LANGS } from "./i18n";
-export { GLOBAL_KEY, SHADOW_KEY, DEFAULT_RULE, BUILTIN_RULES };
-
-const APP_NAME = process.env.REACT_APP_NAME.trim().split(/\s+/).join("-");
-
-export const APP_LCNAME = APP_NAME.toLowerCase();
+export { GLOBAL_KEY, SHADOW_KEY, DEFAULT_RULE, BUILTIN_RULES, APP_LCNAME };
 
 export const STOKEY_MSAUTH = `${APP_NAME}_msauth`;
 export const STOKEY_SETTING = `${APP_NAME}_setting`;
@@ -163,6 +160,7 @@ export const DEFAULT_SUBRULES_LIST = [
   },
   {
     url: "https://fishjar.github.io/kiss-translator/kiss-translator-rules.json",
+    selected: false,
   },
 ];
 

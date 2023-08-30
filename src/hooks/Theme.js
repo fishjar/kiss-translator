@@ -9,8 +9,8 @@ import { THEME_DARK, THEME_LIGHT } from "../config";
  * @param {*} param0
  * @returns
  */
-export default function MuiThemeProvider({ children, options }) {
-  const darkMode = useDarkMode();
+export default function Theme({ children, options }) {
+  const { darkMode } = useDarkMode();
   const theme = useMemo(() => {
     return createTheme({
       palette: {

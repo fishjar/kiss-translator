@@ -7,35 +7,19 @@ import {
   MSG_TRANS_TOGGLE_STYLE,
   CMD_TOGGLE_TRANSLATE,
   CMD_TOGGLE_STYLE,
-  DEFAULT_SETTING,
-  DEFAULT_RULES,
-  DEFAULT_SYNC,
-  STOKEY_SETTING,
-  STOKEY_RULES,
-  STOKEY_SYNC,
-  CACHE_NAME,
-  STOKEY_RULESCACHE_PREFIX,
-  BUILTIN_RULES,
 } from "./config";
-import storage from "./libs/storage";
-import { getSetting } from "./libs";
+import { getSettingWithDefault, tryInitDefaultData } from "./libs/storage";
 import { trySyncAll } from "./libs/sync";
 import { fetchData, fetchPool } from "./libs/fetch";
 import { sendTabMsg } from "./libs/msg";
-import { trySyncAllSubRules } from "./libs/rules";
+import { trySyncAllSubRules } from "./libs/subRules";
+import { tryClearCaches } from "./libs";
 
 /**
  * 插件安装
  */
 browser.runtime.onInstalled.addListener(() => {
-  console.log("KISS Translator onInstalled");
-  storage.trySetObj(STOKEY_SETTING, DEFAULT_SETTING);
-  storage.trySetObj(STOKEY_RULES, DEFAULT_RULES);
-  storage.trySetObj(STOKEY_SYNC, DEFAULT_SYNC);
-  storage.trySetObj(
-    `${STOKEY_RULESCACHE_PREFIX}${process.env.REACT_APP_RULESURL}`,
-    BUILTIN_RULES
-  );
+  tryInitDefaultData();
 });
 
 /**
@@ -48,13 +32,9 @@ browser.runtime.onStartup.addListener(async () => {
   await trySyncAll(true);
 
   // 清除缓存
-  const setting = await getSetting();
+  const setting = await getSettingWithDefault();
   if (setting.clearCache) {
-    try {
-      caches.delete(CACHE_NAME);
-    } catch (err) {
-      console.log("[clean caches]", err.message);
-    }
+    tryClearCaches();
   }
 
   // 同步订阅规则

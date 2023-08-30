@@ -5,7 +5,7 @@ import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
 import Select from "@mui/material/Select";
-import { useSetting, useSettingUpdate } from "../../hooks/Setting";
+import { useSetting } from "../../hooks/Setting";
 import { limitNumber, debounce } from "../../libs/utils";
 import { useI18n } from "../../hooks/I18n";
 import { UI_LANGS } from "../../config";
@@ -13,8 +13,7 @@ import { useMemo } from "react";
 
 export default function Settings() {
   const i18n = useI18n();
-  const setting = useSetting();
-  const updateSetting = useSettingUpdate();
+  const { setting, updateSetting } = useSetting();
 
   const handleChange = useMemo(
     () =>

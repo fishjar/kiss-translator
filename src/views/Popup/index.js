@@ -6,7 +6,8 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import Button from "@mui/material/Button";
 import { sendTabMsg } from "../../libs/msg";
-import { browser, isExt } from "../../libs/browser";
+import { browser } from "../../libs/browser";
+import { isExt } from "../../libs/client";
 import { useI18n } from "../../hooks/I18n";
 import TextField from "@mui/material/TextField";
 import {

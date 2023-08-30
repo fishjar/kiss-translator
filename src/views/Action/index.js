@@ -8,7 +8,7 @@ import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
 import Stack from "@mui/material/Stack";
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { StoragesProvider } from "../../hooks/Storage";
+import { SettingProvider } from "../../hooks/Setting";
 import Popup from "../Popup";
 import { debounce } from "../../libs/utils";
 
@@ -81,7 +81,7 @@ export default function Action({ translator, fab }) {
   };
 
   return (
-    <StoragesProvider>
+    <SettingProvider>
       <ThemeProvider>
         <Draggable
           key="pop"
@@ -139,6 +139,6 @@ export default function Action({ translator, fab }) {
           }
         />
       </ThemeProvider>
-    </StoragesProvider>
+    </SettingProvider>
   );
 }

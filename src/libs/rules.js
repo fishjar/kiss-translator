@@ -1,18 +1,78 @@
-import storage from "./storage";
-import { fetchPolyfill } from "./fetch";
-import { matchValue, type } from "./utils";
 import {
-  STOKEY_RULESCACHE_PREFIX,
+  getSyncWithDefault,
+  updateSync,
+  getSubRulesWithDefault,
+  getSubRules,
+  delSubRules,
+  setSubRules,
+} from "./storage";
+import { fetchPolyfill } from "./fetch";
+import { matchValue, type, isMatch } from "./utils";
+import {
   GLOBAL_KEY,
   OPT_TRANS_ALL,
   OPT_STYLE_ALL,
   OPT_LANGS_FROM,
   OPT_LANGS_TO,
+  GLOBLA_RULE,
+  DEFAULT_SUBRULES_LIST,
 } from "../config";
-import { syncOpt } from "./sync";
 
-const fromLangs = OPT_LANGS_FROM.map((item) => item[0]);
-const toLangs = OPT_LANGS_TO.map((item) => item[0]);
+// import { syncOpt } from "./sync";
+
+/**
+ * 根据href匹配规则
+ * @param {*} rules
+ * @param {string} href
+ * @returns
+ */
+export const matchRule = async (
+  rules,
+  href,
+  { injectRules = true, subrulesList = DEFAULT_SUBRULES_LIST }
+) => {
+  rules = [...rules];
+  if (injectRules) {
+    try {
+      const selectedSub = subrulesList.find((item) => item.selected);
+      if (selectedSub?.url) {
+        const subRules = await loadSubRules(selectedSub.url);
+        rules.splice(-1, 0, ...subRules);
+      }
+    } catch (err) {
+      console.log("[load injectRules]", err);
+    }
+  }
+
+  const rule = rules.find((r) =>
+    r.pattern.split(",").some((p) => isMatch(href, p.trim()))
+  );
+
+  const globalRule =
+    rules.find((r) => r.pattern.split(",").some((p) => p.trim() === "*")) ||
+    GLOBLA_RULE;
+
+  if (!rule) {
+    return globalRule;
+  }
+
+  rule.selector =
+    rule?.selector?.trim() ||
+    globalRule?.selector?.trim() ||
+    GLOBLA_RULE.selector;
+
+  rule.bgColor = rule?.bgColor?.trim() || globalRule?.bgColor?.trim();
+
+  ["translator", "fromLang", "toLang", "textStyle", "transOpen"].forEach(
+    (key) => {
+      if (rule[key] === GLOBAL_KEY) {
+        rule[key] = globalRule[key];
+      }
+    }
+  );
+
+  return rule;
+};
 
 /**
  * 检查过滤rules
@@ -27,6 +87,8 @@ export const checkRules = (rules) => {
     throw new Error("data error");
   }
 
+  const fromLangs = OPT_LANGS_FROM.map((item) => item[0]);
+  const toLangs = OPT_LANGS_TO.map((item) => item[0]);
   const patternSet = new Set();
   rules = rules
     .filter((rule) => type(rule) === "object")
@@ -62,84 +124,18 @@ export const checkRules = (rules) => {
   return rules;
 };
 
-/**
- * 订阅规则的本地缓存
- */
-export const rulesCache = {
-  fetch: async (url, isBg = false) => {
-    const res = await fetchPolyfill(url, { isBg });
-    const rules = checkRules(res).filter(
-      (rule) => rule.pattern.replaceAll(GLOBAL_KEY, "") !== ""
-    );
-    return rules;
-  },
-  set: async (url, rules) => {
-    await storage.setObj(`${STOKEY_RULESCACHE_PREFIX}${url}`, rules);
-  },
-  get: async (url) => {
-    return await storage.getObj(`${STOKEY_RULESCACHE_PREFIX}${url}`);
-  },
-  del: async (url) => {
-    await storage.del(`${STOKEY_RULESCACHE_PREFIX}${url}`);
-  },
-};
-
-/**
- * 同步订阅规则
- * @param {*} url
- * @returns
- */
-export const syncSubRules = async (url, isBg = false) => {
-  const rules = await rulesCache.fetch(url, isBg);
-  if (rules.length > 0) {
-    await rulesCache.set(url, rules);
-  }
-  return rules;
-};
-
-/**
- * 同步所有订阅规则
- * @param {*} url
- * @returns
- */
-export const syncAllSubRules = async (subrulesList, isBg = false) => {
-  for (let subrules of subrulesList) {
-    try {
-      await syncSubRules(subrules.url, isBg);
-    } catch (err) {
-      console.log(`[sync subrule error]: ${subrules.url}`, err);
-    }
-  }
-};
-
-/**
- * 根据时间同步所有订阅规则
- * @param {*} url
- * @returns
- */
-export const trySyncAllSubRules = async ({ subrulesList }, isBg = false) => {
-  try {
-    const { subRulesSyncAt } = await syncOpt.load();
-    const now = Date.now();
-    const interval = 24 * 60 * 60 * 1000; // 间隔一天
-    if (now - subRulesSyncAt > interval) {
-      await syncAllSubRules(subrulesList, isBg);
-      await syncOpt.update({ subRulesSyncAt: now });
-    }
-  } catch (err) {
-    console.log("[try sync all subrules]", err);
-  }
-};
-
-/**
- * 从缓存或远程加载订阅规则
- * @param {*} url
- * @returns
- */
-export const loadSubRules = async (url) => {
-  const rules = await rulesCache.get(url);
-  if (rules?.length) {
-    return rules;
-  }
-  return await syncSubRules(url);
-};
+// /**
+//  * 订阅规则的本地缓存
+//  */
+// export const rulesCache = {
+//   fetch: async (url, isBg = false) => {
+//     const res = await fetchPolyfill(url, { isBg });
+//     const rules = checkRules(res).filter(
+//       (rule) => rule.pattern.replaceAll(GLOBAL_KEY, "") !== ""
+//     );
+//     return rules;
+//   },
+//   set: (url, rules) => setSubRules(url, rules),
+//   get: (url) => getSubRulesWithDefault(url),
+//   del: (url) => delSubRules(url),
+// };

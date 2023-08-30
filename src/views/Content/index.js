@@ -16,7 +16,7 @@ import { useTranslate } from "../../hooks/Translate";
 export default function Content({ q, translator }) {
   const [rule, setRule] = useState(translator.rule);
   const [hover, setHover] = useState(false);
-  const { text, sameLang, loading } = useTranslate(q, rule);
+  const { text, sameLang, loading } = useTranslate(q, rule, translator.setting);
   const { textStyle, bgColor } = rule;
 
   const handleMouseEnter = () => {

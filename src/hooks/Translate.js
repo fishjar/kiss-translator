@@ -1,15 +1,16 @@
 import { useEffect } from "react";
 import { useState } from "react";
-import { detectLang } from "../libs";
+import { detectLang } from "../libs/browser";
 import { apiTranslate } from "../apis";
 
 /**
  * 翻译hook
  * @param {*} q
  * @param {*} rule
+ * @param {*} setting
  * @returns
  */
-export function useTranslate(q, rule) {
+export function useTranslate(q, rule, setting) {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [sameLang, setSamelang] = useState(false);
@@ -30,6 +31,7 @@ export function useTranslate(q, rule) {
             q,
             fromLang,
             toLang,
+            setting,
           });
           setText(trText);
           setSamelang(isSame);
@@ -40,7 +42,7 @@ export function useTranslate(q, rule) {
         setLoading(false);
       }
     })();
-  }, [q, translator, fromLang, toLang]);
+  }, [q, translator, fromLang, toLang, setting]);
 
   return { text, sameLang, loading };
 }

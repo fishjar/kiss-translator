@@ -1,4 +1,4 @@
-import { isExt, isGm } from "./browser";
+import { isExt, isGm } from "./client";
 import { sendMsg } from "./msg";
 import { taskPool } from "./pool";
 import {

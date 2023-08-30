@@ -1,6 +1,7 @@
 import queryString from "query-string";
 import { fetchPolyfill } from "../libs/fetch";
 import {
+  GLOBAL_KEY,
   OPT_TRANS_GOOGLE,
   OPT_TRANS_MICROSOFT,
   OPT_TRANS_OPENAI,
@@ -10,8 +11,9 @@ import {
   PROMPT_PLACE_TO,
   KV_SALT_SYNC,
 } from "../config";
-import { getSetting, detectLang } from "../libs";
+import { detectLang } from "../libs/browser";
 import { sha256 } from "../libs/utils";
+import { checkRules } from "../libs/rules";
 
 /**
  * 同步数据
@@ -32,13 +34,28 @@ export const apiSyncData = async (url, key, data, isBg = false) =>
   });
 
 /**
+ * 下载订阅规则
+ * @param {*} url
+ * @param {*} isBg
+ * @returns
+ */
+export const apiFetchRules = async (url, isBg = false) => {
+  const res = await fetchPolyfill(url, { isBg });
+  const rules = checkRules(res).filter(
+    (rule) => rule.pattern.replaceAll(GLOBAL_KEY, "") !== ""
+  );
+  return rules;
+};
+
+/**
  * 谷歌翻译
  * @param {*} text
  * @param {*} to
  * @param {*} from
  * @returns
  */
-const apiGoogleTranslate = async (translator, text, to, from) => {
+const apiGoogleTranslate = async (translator, text, to, from, setting) => {
+  const { googleUrl } = setting;
   const params = {
     client: "gtx",
     dt: "t",
@@ -48,7 +65,6 @@ const apiGoogleTranslate = async (translator, text, to, from) => {
     tl: to,
     q: text,
   };
-  const { googleUrl } = await getSetting();
   const input = `${googleUrl}?${queryString.stringify(params)}`;
   return fetchPolyfill(input, {
     headers: {
@@ -93,9 +109,8 @@ const apiMicrosoftTranslate = (translator, text, to, from) => {
  * @param {*} from
  * @returns
  */
-const apiOpenaiTranslate = async (translator, text, to, from) => {
-  const { openaiUrl, openaiKey, openaiModel, openaiPrompt } =
-    await getSetting();
+const apiOpenaiTranslate = async (translator, text, to, from, setting) => {
+  const { openaiUrl, openaiKey, openaiModel, openaiPrompt } = setting;
   let prompt = openaiPrompt
     .replaceAll(PROMPT_PLACE_FROM, from)
     .replaceAll(PROMPT_PLACE_TO, to);
@@ -131,7 +146,13 @@ const apiOpenaiTranslate = async (translator, text, to, from) => {
  * @param {*} param0
  * @returns
  */
-export const apiTranslate = async ({ translator, q, fromLang, toLang }) => {
+export const apiTranslate = async ({
+  translator,
+  q,
+  fromLang,
+  toLang,
+  setting,
+}) => {
   let trText = "";
   let isSame = false;
 
@@ -139,7 +160,7 @@ export const apiTranslate = async ({ translator, q, fromLang, toLang }) => {
   let to = OPT_LANGS_SPECIAL?.[translator]?.get(toLang) ?? toLang;
 
   if (translator === OPT_TRANS_GOOGLE) {
-    const res = await apiGoogleTranslate(translator, q, to, from);
+    const res = await apiGoogleTranslate(translator, q, to, from, setting);
     trText = res.sentences.map((item) => item.trans).join(" ");
     isSame = to === res.src;
   } else if (translator === OPT_TRANS_MICROSOFT) {
@@ -147,9 +168,11 @@ export const apiTranslate = async ({ translator, q, fromLang, toLang }) => {
     trText = res[0].translations[0].text;
     isSame = to === res[0].detectedLanguage.language;
   } else if (translator === OPT_TRANS_OPENAI) {
-    const res = await apiOpenaiTranslate(translator, q, to, from);
+    const res = await apiOpenaiTranslate(translator, q, to, from, setting);
     trText = res?.choices?.[0].message.content;
-    isSame = (await detectLang(q)) === (await detectLang(trText));
+    const sLang = await detectLang(q);
+    const tLang = await detectLang(trText);
+    isSame = q === trText || (sLang && tLang && sLang === tLang);
   }
 
   return [trText, isSame];

@@ -1,22 +1,19 @@
-import { useSetting, useSettingUpdate } from "./Setting";
+import { useCallback } from "react";
+import { useSetting } from "./Setting";
 
 /**
  * 深色模式hook
  * @returns
  */
 export function useDarkMode() {
-  const setting = useSetting();
-  return !!setting?.darkMode;
-}
+  const {
+    setting: { darkMode },
+    updateSetting,
+  } = useSetting();
 
-/**
- * 切换深色模式
- * @returns
- */
-export function useDarkModeSwitch() {
-  const darkMode = useDarkMode();
-  const updateSetting = useSettingUpdate();
-  return async () => {
+  const toggleDarkMode = useCallback(async () => {
     await updateSetting({ darkMode: !darkMode });
-  };
+  }, [darkMode]);
+
+  return { darkMode, toggleDarkMode };
 }

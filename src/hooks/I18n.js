@@ -7,7 +7,9 @@ import { useFetch } from "./Fetch";
  * @returns
  */
 export const useI18n = () => {
-  const { uiLang } = useSetting() ?? {};
+  const {
+    setting: { uiLang },
+  } = useSetting();
   return (key, defaultText = "") => I18N?.[key]?.[uiLang] ?? defaultText;
 };
 

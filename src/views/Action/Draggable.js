@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { limitNumber } from "../../libs/utils";
 import { isMobile } from "../../libs/mobile";
-import { setFab } from "../../libs";
+import { setFab } from "../../libs/storage";
 
 const getEdgePosition = (
   { x: left, y: top, edge },

@@ -8,27 +8,27 @@ import {
   STOKEY_RULES,
   KV_SALT_SHARE,
 } from "../config";
-import storage from "../libs/storage";
+import { storage, getSyncWithDefault, updateSync } from "../libs/storage";
 import { getSetting, getRules } from ".";
 import { apiSyncData } from "../apis";
 import { sha256 } from "./utils";
 
-/**
- * 同步相关数据
- */
-export const syncOpt = {
-  load: async () => (await storage.getObj(STOKEY_SYNC)) || DEFAULT_SYNC,
-  update: async (obj) => {
-    await storage.putObj(STOKEY_SYNC, obj);
-  },
-};
+// /**
+//  * 同步相关数据
+//  */
+// export const syncOpt = {
+//   load: async () => (await storage.getObj(STOKEY_SYNC)) || DEFAULT_SYNC,
+//   update: async (obj) => {
+//     await storage.putObj(STOKEY_SYNC, obj);
+//   },
+// };
 
 /**
  * 同步设置
  * @returns
  */
-export const syncSetting = async (isBg = false) => {
-  const { syncUrl, syncKey, settingUpdateAt } = await syncOpt.load();
+const syncSetting = async (isBg = false) => {
+  const { syncUrl, syncKey, settingUpdateAt } = await getSyncWithDefault();
   if (!syncUrl || !syncKey) {
     return;
   }
@@ -46,13 +46,13 @@ export const syncSetting = async (isBg = false) => {
   );
 
   if (res && res.updateAt > settingUpdateAt) {
-    await syncOpt.update({
+    await updateSync({
       settingUpdateAt: res.updateAt,
       settingSyncAt: res.updateAt,
     });
     await storage.setObj(STOKEY_SETTING, res.value);
   } else {
-    await syncOpt.update({ settingSyncAt: res.updateAt });
+    await updateSync({ settingSyncAt: res.updateAt });
   }
 };
 
@@ -68,8 +68,8 @@ export const trySyncSetting = async (isBg = false) => {
  * 同步规则
  * @returns
  */
-export const syncRules = async (isBg = false) => {
-  const { syncUrl, syncKey, rulesUpdateAt } = await syncOpt.load();
+const syncRules = async (isBg = false) => {
+  const { syncUrl, syncKey, rulesUpdateAt } = await getSyncWithDefault();
   if (!syncUrl || !syncKey) {
     return;
   }
@@ -87,13 +87,13 @@ export const syncRules = async (isBg = false) => {
   );
 
   if (res && res.updateAt > rulesUpdateAt) {
-    await syncOpt.update({
+    await updateSync({
       rulesUpdateAt: res.updateAt,
       rulesSyncAt: res.updateAt,
     });
     await storage.setObj(STOKEY_RULES, res.value);
   } else {
-    await syncOpt.update({ rulesSyncAt: res.updateAt });
+    await updateSync({ rulesSyncAt: res.updateAt });
   }
 };
 

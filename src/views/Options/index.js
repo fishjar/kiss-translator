@@ -4,10 +4,10 @@ import Rules from "./Rules";
 import Setting from "./Setting";
 import Layout from "./Layout";
 import SyncSetting from "./SyncSetting";
-import { StoragesProvider } from "../../hooks/Storage";
+import { SettingProvider } from "../../hooks/Setting";
 import ThemeProvider from "../../hooks/Theme";
 import { useEffect, useState } from "react";
-import { isGm } from "../../libs/browser";
+import { isGm } from "../../libs/client";
 import { sleep } from "../../libs/utils";
 import CircularProgress from "@mui/material/CircularProgress";
 import { trySyncAll } from "../../libs/sync";
@@ -89,7 +89,7 @@ export default function Options() {
   }
 
   return (
-    <StoragesProvider>
+    <SettingProvider>
       <ThemeProvider>
         <AlertProvider>
           <HashRouter>
@@ -104,6 +104,6 @@ export default function Options() {
           </HashRouter>
         </AlertProvider>
       </ThemeProvider>
-    </StoragesProvider>
+    </SettingProvider>
   );
 }

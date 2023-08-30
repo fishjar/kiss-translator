@@ -20,11 +20,6 @@ export function AlertProvider({ children }) {
   const [severity, setSeverity] = useState("info");
   const [message, setMessage] = useState("");
 
-  const error = (msg) => showAlert(msg, "error");
-  const warning = (msg) => showAlert(msg, "warning");
-  const info = (msg) => showAlert(msg, "info");
-  const success = (msg) => showAlert(msg, "success");
-
   const showAlert = (msg, type) => {
     setOpen(true);
     setMessage(msg);
@@ -37,6 +32,11 @@ export function AlertProvider({ children }) {
     }
     setOpen(false);
   };
+
+  const error = (msg) => showAlert(msg, "error");
+  const warning = (msg) => showAlert(msg, "warning");
+  const info = (msg) => showAlert(msg, "info");
+  const success = (msg) => showAlert(msg, "success");
 
   return (
     <AlertContext.Provider value={{ error, warning, info, success }}>

@@ -12,14 +12,16 @@ import {
 import Content from "../views/Content";
 import { fetchUpdate, fetchClear } from "./fetch";
 import { debounce } from "./utils";
+import { isExt } from "./client";
 
 /**
  * 翻译类
  */
 export class Translator {
   _rule = {};
-  _minLength = 0;
-  _maxLength = 0;
+  _setting = {};
+  _rootNodes = new Set();
+  _tranNodes = new Map();
   _skipNodeNames = [
     APP_LCNAME,
     "style",
@@ -36,8 +38,6 @@ export class Translator {
     "script",
     "iframe",
   ];
-  _rootNodes = new Set();
-  _tranNodes = new Map();
 
   // 显示
   _interseObserver = new IntersectionObserver(
@@ -89,12 +89,14 @@ export class Translator {
     };
   };
 
-  constructor(rule, { fetchInterval, fetchLimit, minLength, maxLength }) {
+  constructor(rule, setting) {
+    const { fetchInterval, fetchLimit } = setting;
     fetchUpdate(fetchInterval, fetchLimit);
     this._overrideAttachShadow();
-    this._minLength = minLength ?? TRANS_MIN_LENGTH;
-    this._maxLength = maxLength ?? TRANS_MAX_LENGTH;
-    this.rule = rule;
+
+    this._setting = setting;
+    this._rule = rule;
+
     if (rule.transOpen === "true") {
       this._register();
     }
@@ -268,7 +270,11 @@ export class Translator {
     this._tranNodes.set(el, q);
 
     // 太长或太短
-    if (!q || q.length < this._minLength || q.length > this._maxLength) {
+    if (
+      !q ||
+      q.length < (this._setting.minLength ?? TRANS_MIN_LENGTH) ||
+      q.length > (this._setting.maxLength ?? TRANS_MAX_LENGTH)
+    ) {
       return;
     }
 

@@ -5,17 +5,18 @@ import {
   MSG_TRANS_GETRULE,
   MSG_TRANS_PUTRULE,
 } from "./config";
-import { getSetting, getRules, matchRule } from "./libs";
+import { getSettingWithDefault, getRulesWithDefault } from "./libs/storage";
 import { Translator } from "./libs/translator";
 import { isIframe } from "./libs/iframe";
+import { matchRule } from "./libs/rules";
 
 /**
  * 入口函数
  */
 const init = async () => {
   const href = isIframe ? document.referrer : document.location.href;
-  const setting = await getSetting();
-  const rules = await getRules();
+  const setting = await getSettingWithDefault();
+  const rules = await getRulesWithDefault();
   const rule = await matchRule(rules, href, setting);
   const translator = new Translator(rule, setting);
 
