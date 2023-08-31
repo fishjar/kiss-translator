@@ -17,11 +17,11 @@ export const tryClearCaches = async () => {
  * @param {*} q
  * @returns
  */
-export const detectLang = async (q) => {
+export const tryDetectLang = async (q) => {
   try {
     const res = await browser?.i18n?.detectLanguage(q);
     return res?.languages?.[0]?.language;
   } catch (err) {
-    console.log("[detect lang]", err);
+    console.log("[detect lang]", err.message);
   }
 };

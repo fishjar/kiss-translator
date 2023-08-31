@@ -7,7 +7,7 @@ import Alert from "@mui/material/Alert";
 import Link from "@mui/material/Link";
 import { URL_KISS_WORKER } from "../../config";
 import { useState } from "react";
-import { syncAll } from "../../libs/sync";
+import { syncSettingAndRules } from "../../libs/sync";
 import Button from "@mui/material/Button";
 import { useAlert } from "../../hooks/Alert";
 import SyncIcon from "@mui/icons-material/Sync";
@@ -31,7 +31,7 @@ export default function SyncSetting() {
     e.preventDefault();
     try {
       setLoading(true);
-      await syncAll();
+      await syncSettingAndRules();
       alert.success(i18n("data_sync_success"));
     } catch (err) {
       console.log("[sync all]", err);

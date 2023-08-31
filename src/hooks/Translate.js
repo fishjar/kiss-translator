@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useState } from "react";
-import { detectLang } from "../libs";
+import { tryDetectLang } from "../libs";
 import { apiTranslate } from "../apis";
 
 /**
@@ -22,8 +22,8 @@ export function useTranslate(q, rule, setting) {
       try {
         setLoading(true);
 
-        const deLang = await detectLang(q);
-        if (toLang.includes(deLang)) {
+        const deLang = await tryDetectLang(q);
+        if (deLang && toLang.includes(deLang)) {
           setSamelang(true);
         } else {
           const [trText, isSame] = await apiTranslate({

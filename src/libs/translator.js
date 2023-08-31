@@ -10,7 +10,7 @@ import {
   SHADOW_KEY,
 } from "../config";
 import Content from "../views/Content";
-import { fetchUpdate, fetchClear } from "./fetch";
+import { updateFetchPool, clearFetchPool } from "./fetch";
 import { debounce } from "./utils";
 
 /**
@@ -90,7 +90,7 @@ export class Translator {
 
   constructor(rule, setting) {
     const { fetchInterval, fetchLimit } = setting;
-    fetchUpdate(fetchInterval, fetchLimit);
+    updateFetchPool(fetchInterval, fetchLimit);
     this._overrideAttachShadow();
 
     this._setting = setting;
@@ -241,7 +241,7 @@ export class Translator {
     this._tranNodes.clear();
 
     // 清空任务池
-    fetchClear();
+    clearFetchPool();
   };
 
   _reTranslate = debounce(() => {

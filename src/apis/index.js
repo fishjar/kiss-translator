@@ -10,7 +10,7 @@ import {
   PROMPT_PLACE_TO,
   KV_SALT_SYNC,
 } from "../config";
-import { detectLang } from "../libs";
+import { tryDetectLang } from "../libs";
 import { sha256 } from "../libs/utils";
 
 /**
@@ -163,8 +163,8 @@ export const apiTranslate = async ({
   } else if (translator === OPT_TRANS_OPENAI) {
     const res = await apiOpenaiTranslate(translator, q, to, from, setting);
     trText = res?.choices?.[0].message.content;
-    const sLang = await detectLang(q);
-    const tLang = await detectLang(trText);
+    const sLang = await tryDetectLang(q);
+    const tLang = await tryDetectLang(trText);
     isSame = q === trText || (sLang && tLang && sLang === tLang);
   }
 

@@ -117,12 +117,12 @@ export const syncShareRules = async ({ rules, syncUrl, syncKey }) => {
  * 同步个人设置和规则
  * @returns
  */
-export const syncAll = async (isBg = false) => {
+export const syncSettingAndRules = async (isBg = false) => {
   await syncSetting(isBg);
   await syncRules(isBg);
 };
 
-export const trySyncAll = async (isBg = false) => {
+export const trySyncSettingAndRules = async (isBg = false) => {
   await trySyncSetting(isBg);
   await trySyncRules(isBg);
 };

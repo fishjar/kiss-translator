@@ -9,7 +9,7 @@ import {
   CMD_TOGGLE_STYLE,
 } from "./config";
 import { getSettingWithDefault, tryInitDefaultData } from "./libs/storage";
-import { trySyncAll } from "./libs/sync";
+import { trySyncSettingAndRules } from "./libs/sync";
 import { fetchData, fetchPool } from "./libs/fetch";
 import { sendTabMsg } from "./libs/msg";
 import { trySyncAllSubRules } from "./libs/subRules";
@@ -29,7 +29,7 @@ browser.runtime.onStartup.addListener(async () => {
   console.log("browser onStartup");
 
   // 同步数据
-  await trySyncAll(true);
+  await trySyncSettingAndRules(true);
 
   // 清除缓存
   const setting = await getSettingWithDefault();

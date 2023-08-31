@@ -34,7 +34,12 @@ export const matchValue = (arr, val) => {
  * @returns
  */
 export const sleep = (delay) =>
-  new Promise((resolve) => setTimeout(resolve, delay));
+  new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      clearTimeout(timer);
+      resolve();
+    }, delay);
+  });
 
 /**
  * 防抖函数

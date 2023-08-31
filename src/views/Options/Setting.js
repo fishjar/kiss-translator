@@ -37,10 +37,6 @@ export default function Settings() {
     });
   };
 
-  if (!setting) {
-    return;
-  }
-
   const {
     uiLang,
     googleUrl,

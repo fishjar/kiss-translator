@@ -159,7 +159,7 @@ export default function Draggable({
         y: position.y,
       });
     }
-  }, [position]);
+  }, [position.x, position.y, position.hide]);
 
   const opacity = useMemo(() => {
     if (snapEdge) {

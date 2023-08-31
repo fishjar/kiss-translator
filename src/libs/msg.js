@@ -6,8 +6,8 @@ import { browser } from "./browser";
  * @param {*} args
  * @returns
  */
-export const sendMsg = (action, args) =>
-  browser?.runtime?.sendMessage({ action, args });
+export const sendBgMsg = (action, args) =>
+  browser.runtime.sendMessage({ action, args });
 
 /**
  * 发送消息给当前页面
@@ -16,6 +16,6 @@ export const sendMsg = (action, args) =>
  * @returns
  */
 export const sendTabMsg = async (action, args) => {
-  const tabs = await browser?.tabs.query({ active: true, currentWindow: true });
-  return await browser?.tabs.sendMessage(tabs[0].id, { action, args });
+  const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+  return browser.tabs.sendMessage(tabs[0].id, { action, args });
 };

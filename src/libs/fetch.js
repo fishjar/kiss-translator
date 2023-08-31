@@ -1,5 +1,5 @@
 import { isExt, isGm } from "./client";
-import { sendMsg } from "./msg";
+import { sendBgMsg } from "./msg";
 import { taskPool } from "./pool";
 import {
   MSG_FETCH,
@@ -172,7 +172,7 @@ export const fetchData = async (
 export const fetchPolyfill = async (input, { isBg = false, ...opts } = {}) => {
   // 插件
   if (isExt && !isBg) {
-    const res = await sendMsg(MSG_FETCH, { input, opts });
+    const res = await sendBgMsg(MSG_FETCH, { input, opts });
     if (res.error) {
       throw new Error(res.error);
     }
@@ -188,9 +188,9 @@ export const fetchPolyfill = async (input, { isBg = false, ...opts } = {}) => {
  * @param {*} interval
  * @param {*} limit
  */
-export const fetchUpdate = async (interval, limit) => {
+export const updateFetchPool = async (interval, limit) => {
   if (isExt) {
-    const res = await sendMsg(MSG_FETCH_LIMIT, { interval, limit });
+    const res = await sendBgMsg(MSG_FETCH_LIMIT, { interval, limit });
     if (res.error) {
       throw new Error(res.error);
     }
@@ -202,9 +202,9 @@ export const fetchUpdate = async (interval, limit) => {
 /**
  * 清空任务池
  */
-export const fetchClear = async () => {
+export const clearFetchPool = async () => {
   if (isExt) {
-    const res = await sendMsg(MSG_FETCH_CLEAR);
+    const res = await sendBgMsg(MSG_FETCH_CLEAR);
     if (res.error) {
       throw new Error(res.error);
     }

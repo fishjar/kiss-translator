@@ -10,7 +10,7 @@ import { useEffect, useState } from "react";
 import { isGm } from "../../libs/client";
 import { sleep } from "../../libs/utils";
 import CircularProgress from "@mui/material/CircularProgress";
-import { trySyncAll } from "../../libs/sync";
+import { trySyncSettingAndRules } from "../../libs/sync";
 import { AlertProvider } from "../../hooks/Alert";
 import Link from "@mui/material/Link";
 import Divider from "@mui/material/Divider";
@@ -27,6 +27,8 @@ export default function Options() {
         let i = 0;
         for (;;) {
           if (window.APP_NAME === process.env.REACT_APP_NAME) {
+            // 同步数据
+            await trySyncSettingAndRules();
             setReady(true);
             break;
           }
@@ -38,10 +40,11 @@ export default function Options() {
 
           await sleep(1000);
         }
+      } else {
+        // 同步数据
+        await trySyncSettingAndRules();
+        setReady(true);
       }
-
-      // 同步数据
-      trySyncAll();
     })();
   }, []);
 
@@ -75,7 +78,7 @@ export default function Options() {
     );
   }
 
-  if (isGm && !ready) {
+  if (!ready) {
     return (
       <center>
         <Divider>

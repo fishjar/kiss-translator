@@ -27,9 +27,14 @@ export function useStorage(key, defaultVal = null) {
 
   useEffect(() => {
     (async () => {
-      setData(await storage.getObj(key));
+      const val = await storage.getObj(key);
+      if (val) {
+        setData(val);
+      } else if (defaultVal) {
+        await storage.setObj(key, defaultVal);
+      }
     })();
-  }, [key]);
+  }, [key, defaultVal]);
 
   return { data, save, update, remove };
 }

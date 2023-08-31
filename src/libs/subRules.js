@@ -68,5 +68,5 @@ export const loadOrFetchSubRules = async (url) => {
   if (rules?.length) {
     return rules;
   }
-  return await syncSubRules(url);
+  return syncSubRules(url);
 };
