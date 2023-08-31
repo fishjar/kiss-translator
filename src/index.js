@@ -39,6 +39,12 @@ function App() {
         <Link href={process.env.REACT_APP_USERSCRIPT_DOWNLOADURL2}>
           Install Userscript 2
         </Link>
+        <Link href={process.env.REACT_APP_USERSCRIPT_IOS_DOWNLOADURL}>
+          Install Userscript Safari 1
+        </Link>
+        <Link href={process.env.REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2}>
+          Install Userscript Safari 2
+        </Link>
         <Link href={process.env.REACT_APP_OPTIONSPAGE}>
           Open Options Page 1
         </Link>

@@ -33,16 +33,16 @@
   - [x] OpenAI
   - [ ] DeepL
 - [x] 上架应用市场
-  - [x] [Chrome](https://chrome.google.com/webstore/detail/kiss-translator/bdiifdefkgmcblbcghdlonllpjhhjgof?hl=zh-CN)
-  - [x] [Edge](https://microsoftedge.microsoft.com/addons/detail/%E7%AE%80%E7%BA%A6%E7%BF%BB%E8%AF%91/jemckldkclkinpjighnoilpbldbdmmlh?hl=zh-CN)
-  - [x] [Firefox](https://addons.mozilla.org/zh-CN/firefox/addon/kiss-translator/)
+  - [x] Chrome [安装地址](https://chrome.google.com/webstore/detail/kiss-translator/bdiifdefkgmcblbcghdlonllpjhhjgof?hl=zh-CN)
+  - [x] Edge [安装地址](https://microsoftedge.microsoft.com/addons/detail/%E7%AE%80%E7%BA%A6%E7%BF%BB%E8%AF%91/jemckldkclkinpjighnoilpbldbdmmlh?hl=zh-CN)
+  - [x] Firefox [安装地址](https://addons.mozilla.org/zh-CN/firefox/addon/kiss-translator/)
   - [ ] Safari
-  - [x] [Greasy Fork](https://greasyfork.org/zh-CN/scripts/472840-kiss-translator)
+  - [x] Greasy Fork [安装地址](https://greasyfork.org/zh-CN/scripts/472840-kiss-translator)
 - [x] 开放源代码
 - [x] 数据同步功能
-- [x] 油猴脚本([链接 1](https://fishjar.github.io/kiss-translator/kiss-translator.user.js)、[链接 2](https://kiss-translator.rayjar.com/kiss-translator.user.js))
-  - [x] [Tampermonkey](https://www.tampermonkey.net/) (Chrome/Edge/Firefox)
-  - [x] [Userscripts Safari](https://github.com/quoid/userscripts) (iOS Safari)
+- [x] 油猴脚本 ([设置页面 1](https://fishjar.github.io/kiss-translator/options.html)、[设置页面 2](https://kiss-translator.rayjar.com/options))
+  - [x] [Tampermonkey](https://www.tampermonkey.net/) (Chrome/Edge/Firefox) [安装链接 1](https://fishjar.github.io/kiss-translator/kiss-translator.user.js)、[安装链接 2](https://kiss-translator.rayjar.com/kiss-translator.user.js)
+  - [x] [Userscripts Safari](https://github.com/quoid/userscripts) (iOS Safari) [安装链接 1](https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js)、[安装链接 2](https://kiss-translator.rayjar.com/kiss-translator.user-ios-safari.js)
 
 ### 指引
 

@@ -33,16 +33,16 @@ If you also like a little more simplicity, welcome to pick it up.
   - [x] OpenAI
   - [ ] DeepL
 - [x] Upload to app Store
-  - [x] [Chrome](https://chrome.google.com/webstore/detail/kiss-translator/bdiifdefkgmcblbcghdlonllpjhhjgof)
-  - [x] [Edge](https://microsoftedge.microsoft.com/addons/detail/kiss-translator/jemckldkclkinpjighnoilpbldbdmmlh)
-  - [x] [Firefox](https://addons.mozilla.org/zh-CN/firefox/addon/kiss-translator/)
+  - [x] Chrome [Install Link](https://chrome.google.com/webstore/detail/kiss-translator/bdiifdefkgmcblbcghdlonllpjhhjgof)
+  - [x] Edge [Install Link](https://microsoftedge.microsoft.com/addons/detail/kiss-translator/jemckldkclkinpjighnoilpbldbdmmlh)
+  - [x] Firefox [Install Link](https://addons.mozilla.org/en-US/firefox/addon/kiss-translator/)
   - [ ] Safari
-  - [x] [Greasy Fork](https://greasyfork.org/zh-CN/scripts/472840-kiss-translator)
+  - [x] Greasy Fork [Install Link](https://greasyfork.org/en/scripts/472840-kiss-translator)
 - [x] Open source
 - [x] Data Synchronization Function
-- [x] Greasemonkey Script ([link 1](https://fishjar.github.io/kiss-translator/kiss-translator.user.js)、[link 2](https://kiss-translator.rayjar.com/kiss-translator.user.js))
-  - [x] [Tampermonkey](https://www.tampermonkey.net/) (Chrome/Edge/Firefox)
-  - [x] [Userscripts Safari](https://github.com/quoid/userscripts) (iOS Safari)
+- [x] Greasemonkey Script ([Setting Page 1](https://fishjar.github.io/kiss-translator/options.html)、[Setting Page 2](https://kiss-translator.rayjar.com/options))
+  - [x] [Tampermonkey](https://www.tampermonkey.net/) (Chrome/Edge/Firefox) [Install Link 1](https://fishjar.github.io/kiss-translator/kiss-translator.user.js)、[Install Link 2](https://kiss-translator.rayjar.com/kiss-translator.user.js)
+  - [x] [Userscripts Safari](https://github.com/quoid/userscripts) (iOS Safari) [Install Link 1](https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js)、[Install Link 2](https://kiss-translator.rayjar.com/kiss-translator.user-ios-safari.js)
 
 ### Guide
 
