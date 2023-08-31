@@ -89,7 +89,7 @@ const userscriptWebpack = (config, env) => {
 // @grant         GM.getValue
 // @grant         GM.deleteValue
 // @grant         GM.info
-// @inject-into   content
+// @grant         unsafeWindow
 // @connect       translate.googleapis.com
 // @connect       api-edge.cognitive.microsofttranslator.com
 // @connect       edge.microsoft.com

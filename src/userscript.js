@@ -3,7 +3,11 @@ import ReactDOM from "react-dom/client";
 import Action from "./views/Action";
 import createCache from "@emotion/cache";
 import { CacheProvider } from "@emotion/react";
-import { getSettingWithDefault, getRulesWithDefault,  getFabWithDefault } from "./libs/storage";
+import {
+  getSettingWithDefault,
+  getRulesWithDefault,
+  getFabWithDefault,
+} from "./libs/storage";
 import { Translator } from "./libs/translator";
 import { trySyncAllSubRules } from "./libs/subRules";
 import { isGm } from "./libs/client";
@@ -22,16 +26,18 @@ const init = async () => {
     document.location.href.includes(process.env.REACT_APP_OPTIONSPAGE) ||
     document.location.href.includes(process.env.REACT_APP_OPTIONSPAGE2)
   ) {
-    // unsafeWindow.GM = GM;
-    // unsafeWindow.APP_NAME = process.env.REACT_APP_NAME;
-    const ping = btoa(Math.random()).slice(3, 11);
-    window.addEventListener(ping, handlePing);
-    // window.eval(`(${injectScript})("${ping}")`); // eslint-disable-line
-    const script = document.createElement("script");
-    script.textContent = `(${injectScript})("${ping}")`;
-    if (document.head) {
+    if (GM?.info?.script?.grant?.includes("unsafeWindow")) {
+      unsafeWindow.GM = GM;
+      unsafeWindow.APP_NAME = process.env.REACT_APP_NAME;
+    } else {
+      const ping = btoa(Math.random()).slice(3, 11);
+      window.addEventListener(ping, handlePing);
+      // window.eval(`(${injectScript})("${ping}")`); // eslint-disable-line
+      const script = document.createElement("script");
+      script.textContent = `(${injectScript})("${ping}")`;
       document.head.append(script);
     }
+
     return;
   }
 
