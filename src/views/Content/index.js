@@ -42,7 +42,7 @@ const FuzzySpan = styled.span`
 `;
 
 const HighlightSpan = styled.span`
-  coler: #fff;
+  color: #fff;
   background-color: ${(props) => props.$bgColor};
   &hover: {
     filter: none;
