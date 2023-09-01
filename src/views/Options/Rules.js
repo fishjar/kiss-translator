@@ -44,6 +44,7 @@ import { useAlert } from "../../hooks/Alert";
 import { syncShareRules } from "../../libs/sync";
 import { debounce } from "../../libs/utils";
 import { delSubRules, getSyncWithDefault } from "../../libs/storage";
+import OwSubRule from "./OwSubRule";
 
 function RuleFields({ rule, rules, setShow, setKeyword }) {
   const initFormValues = rule || {
@@ -140,7 +141,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
     }
   };
 
-  const globalItem = rule?.pattern !== "*" && (
+  const GlobalItem = rule?.pattern !== "*" && (
     <MenuItem key={GLOBAL_KEY} value={GLOBAL_KEY}>
       {GLOBAL_KEY}
     </MenuItem>
@@ -187,7 +188,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 disabled={disabled}
                 onChange={handleChange}
               >
-                {globalItem}
+                {GlobalItem}
                 <MenuItem value={"true"}>{i18n("default_enabled")}</MenuItem>
                 <MenuItem value={"false"}>{i18n("default_disabled")}</MenuItem>
               </TextField>
@@ -203,7 +204,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 disabled={disabled}
                 onChange={handleChange}
               >
-                {globalItem}
+                {GlobalItem}
                 {OPT_TRANS_ALL.map((item) => (
                   <MenuItem key={item} value={item}>
                     {item}
@@ -222,7 +223,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 disabled={disabled}
                 onChange={handleChange}
               >
-                {globalItem}
+                {GlobalItem}
                 {OPT_LANGS_FROM.map(([lang, name]) => (
                   <MenuItem key={lang} value={lang}>
                     {name}
@@ -241,7 +242,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 disabled={disabled}
                 onChange={handleChange}
               >
-                {globalItem}
+                {GlobalItem}
                 {OPT_LANGS_TO.map(([lang, name]) => (
                   <MenuItem key={lang} value={lang}>
                     {name}
@@ -260,7 +261,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 disabled={disabled}
                 onChange={handleChange}
               >
-                {globalItem}
+                {GlobalItem}
                 {OPT_STYLE_ALL.map((item) => (
                   <MenuItem key={item} value={item}>
                     {i18n(item)}
@@ -818,6 +819,7 @@ export default function Rules() {
           <Tabs value={activeTab} onChange={handleTabChange}>
             <Tab label={i18n("personal_rules")} />
             <Tab label={i18n("subscribe_rules")} />
+            <Tab label={i18n("overwrite_subscribe_rules")} />
           </Tabs>
         </Box>
         <div hidden={activeTab !== 0}>
@@ -826,6 +828,7 @@ export default function Rules() {
         <div hidden={activeTab !== 1}>
           {activeTab === 1 && <SubRules subRules={subRules} />}
         </div>
+        <div hidden={activeTab !== 2}>{activeTab === 2 && <OwSubRule />}</div>
       </Stack>
     </Box>
   );

@@ -1,13 +1,23 @@
 import {
   DEFAULT_SELECTOR,
   GLOBAL_KEY,
+  REMAIN_KEY,
   SHADOW_KEY,
   DEFAULT_RULE,
+  DEFAULT_OW_RULE,
   BUILTIN_RULES,
 } from "./rules";
 import { APP_NAME, APP_LCNAME } from "./app";
 export { I18N, UI_LANGS } from "./i18n";
-export { GLOBAL_KEY, SHADOW_KEY, DEFAULT_RULE, BUILTIN_RULES, APP_LCNAME };
+export {
+  GLOBAL_KEY,
+  REMAIN_KEY,
+  SHADOW_KEY,
+  DEFAULT_RULE,
+  DEFAULT_OW_RULE,
+  BUILTIN_RULES,
+  APP_LCNAME,
+};
 
 export const STOKEY_MSAUTH = `${APP_NAME}_msauth`;
 export const STOKEY_SETTING = `${APP_NAME}_setting`;
@@ -150,19 +160,6 @@ export const PROMPT_PLACE_TO = "{{to}}"; // 占位符
 
 export const DEFAULT_COLOR = "#209CEE"; // 默认高亮背景色/线条颜色
 
-export const DEFAULT_DIY_STYLE = `color: #666;
-background: linear-gradient(
-  45deg,
-  LightGreen 20%,
-  LightPink 20% 40%,
-  LightSalmon 40% 60%,
-  LightSeaGreen 60% 80%,
-  LightSkyBlue 80%
-);
-&:hover {
-  color: #333;
-};`;
-
 // 全局规则
 export const GLOBLA_RULE = {
   pattern: "*",
@@ -203,6 +200,7 @@ export const DEFAULT_SETTING = {
   clearCache: false, // 是否在浏览器下次启动时清除缓存
   injectRules: true, // 是否注入订阅规则
   subrulesList: DEFAULT_SUBRULES_LIST, // 订阅列表
+  owSubrule: DEFAULT_OW_RULE, // 覆写订阅规则
   googleUrl: "https://translate.googleapis.com/translate_a/single", // 谷歌翻译接口
   openaiUrl: "https://api.openai.com/v1/chat/completions",
   openaiKey: "",

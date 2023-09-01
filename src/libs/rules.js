@@ -1,12 +1,14 @@
 import { matchValue, type, isMatch } from "./utils";
 import {
   GLOBAL_KEY,
+  REMAIN_KEY,
   OPT_TRANS_ALL,
   OPT_STYLE_ALL,
   OPT_LANGS_FROM,
   OPT_LANGS_TO,
   GLOBLA_RULE,
   DEFAULT_SUBRULES_LIST,
+  DEFAULT_OW_RULE,
 } from "../config";
 import { loadOrFetchSubRules } from "./subRules";
 
@@ -19,14 +21,35 @@ import { loadOrFetchSubRules } from "./subRules";
 export const matchRule = async (
   rules,
   href,
-  { injectRules = true, subrulesList = DEFAULT_SUBRULES_LIST }
+  {
+    injectRules = true,
+    subrulesList = DEFAULT_SUBRULES_LIST,
+    owSubrule = DEFAULT_OW_RULE,
+  }
 ) => {
   rules = [...rules];
   if (injectRules) {
     try {
       const selectedSub = subrulesList.find((item) => item.selected);
       if (selectedSub?.url) {
-        const subRules = await loadOrFetchSubRules(selectedSub.url);
+        const mixRule = {};
+        Object.entries(owSubrule)
+          .filter(([key, val]) => {
+            if (
+              owSubrule.textStyle === REMAIN_KEY &&
+              (key === "bgColor" || key === "textDiyStyle")
+            ) {
+              return false;
+            }
+            return val !== REMAIN_KEY;
+          })
+          .forEach(([key, val]) => {
+            mixRule[key] = val;
+          });
+
+        const subRules = (await loadOrFetchSubRules(selectedSub.url)).map(
+          (item) => ({ ...item, ...mixRule })
+        );
         rules.splice(-1, 0, ...subRules);
       }
     } catch (err) {
@@ -39,8 +62,9 @@ export const matchRule = async (
   );
 
   const globalRule =
-    rules.find((r) => r.pattern.split(",").some((p) => p.trim() === "*")) ||
-    GLOBLA_RULE;
+    rules.find((r) =>
+      r.pattern.split(",").some((p) => p.trim() === GLOBAL_KEY)
+    ) || GLOBLA_RULE;
 
   if (!rule) {
     return globalRule;
@@ -52,7 +76,8 @@ export const matchRule = async (
     GLOBLA_RULE.selector;
 
   rule.bgColor = rule?.bgColor?.trim() || globalRule?.bgColor?.trim();
-  rule.textDiyStyle = rule?.textDiyStyle?.trim() || globalRule?.textDiyStyle?.trim();
+  rule.textDiyStyle =
+    rule?.textDiyStyle?.trim() || globalRule?.textDiyStyle?.trim();
 
   ["translator", "fromLang", "toLang", "textStyle", "transOpen"].forEach(
     (key) => {

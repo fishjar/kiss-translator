@@ -88,6 +88,10 @@ export const I18N = {
     zh: `样式颜色`,
     en: `Style Color`,
   },
+  remain_unchanged: {
+    zh: `保留不变`,
+    en: `Remain Unchanged`,
+  },
   google_api: {
     zh: `谷歌翻译接口`,
     en: `Google Translate API`,
@@ -135,6 +139,10 @@ export const I18N = {
   subscribe_rules: {
     zh: `订阅规则`,
     en: `Subscribe Rules`,
+  },
+  overwrite_subscribe_rules: {
+    zh: `覆写订阅规则`,
+    en: `Overwrite Subscribe Rules`,
   },
   subscribe_url: {
     zh: `订阅地址`,

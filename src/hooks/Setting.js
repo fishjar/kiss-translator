@@ -22,7 +22,7 @@ export function SettingProvider({ children }) {
     () =>
       debounce(() => {
         trySyncSetting();
-      }, [1000]),
+      }, [2000]),
     []
   );
 

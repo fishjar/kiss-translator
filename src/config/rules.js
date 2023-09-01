@@ -3,6 +3,7 @@ const els = `li, p, h1, h2, h3, h4, h5, h6, dd`;
 export const DEFAULT_SELECTOR = `:is(${els})`;
 
 export const GLOBAL_KEY = "*";
+export const REMAIN_KEY = "-";
 
 export const SHADOW_KEY = ">>>";
 
@@ -16,6 +17,29 @@ export const DEFAULT_RULE = {
   transOpen: GLOBAL_KEY,
   bgColor: "",
   textDiyStyle: "",
+};
+
+const DEFAULT_DIY_STYLE = `color: #666;
+background: linear-gradient(
+  45deg,
+  LightGreen 20%,
+  LightPink 20% 40%,
+  LightSalmon 40% 60%,
+  LightSeaGreen 60% 80%,
+  LightSkyBlue 80%
+);
+&:hover {
+  color: #333;
+};`;
+
+export const DEFAULT_OW_RULE = {
+  translator: REMAIN_KEY,
+  fromLang: REMAIN_KEY,
+  toLang: REMAIN_KEY,
+  textStyle: REMAIN_KEY,
+  transOpen: REMAIN_KEY,
+  bgColor: "",
+  textDiyStyle: DEFAULT_DIY_STYLE,
 };
 
 const RULES = [
