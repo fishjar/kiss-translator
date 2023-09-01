@@ -7,7 +7,8 @@
     "toLang": "*",
     "textStyle": "*",
     "transOpen": "true",
-    "bgColor": ""
+    "bgColor": "",
+    "textDiyStyle": ""
   },
   {
     "pattern": "news.google.com",
@@ -17,7 +18,8 @@
     "toLang": "*",
     "textStyle": "*",
     "transOpen": "true",
-    "bgColor": ""
+    "bgColor": "",
+    "textDiyStyle": ""
   },
   {
     "pattern": "www.foxnews.com",
@@ -27,7 +29,8 @@
     "toLang": "*",
     "textStyle": "*",
     "transOpen": "true",
-    "bgColor": ""
+    "bgColor": "",
+    "textDiyStyle": ""
   },
   {
     "pattern": "bearblog.dev, www.theverge.com, www.tampermonkey.net/documentation.php",
@@ -37,7 +40,8 @@
     "toLang": "*",
     "textStyle": "*",
     "transOpen": "true",
-    "bgColor": ""
+    "bgColor": "",
+    "textDiyStyle": ""
   },
   {
     "pattern": "themessenger.com",
@@ -47,7 +51,8 @@
     "toLang": "*",
     "textStyle": "*",
     "transOpen": "true",
-    "bgColor": ""
+    "bgColor": "",
+    "textDiyStyle": ""
   },
   {
     "pattern": "www.telegraph.co.uk",
@@ -57,7 +62,8 @@
     "toLang": "*",
     "textStyle": "*",
     "transOpen": "true",
-    "bgColor": ""
+    "bgColor": "",
+    "textDiyStyle": ""
   },
   {
     "pattern": "www.theguardian.com",
@@ -67,7 +73,8 @@
     "toLang": "*",
     "textStyle": "*",
     "transOpen": "true",
-    "bgColor": ""
+    "bgColor": "",
+    "textDiyStyle": ""
   },
   {
     "pattern": "www.semafor.com",
@@ -77,7 +84,8 @@
     "toLang": "*",
     "textStyle": "*",
     "transOpen": "true",
-    "bgColor": ""
+    "bgColor": "",
+    "textDiyStyle": ""
   },
   {
     "pattern": "www.noemamag.com",
@@ -87,7 +95,8 @@
     "toLang": "*",
     "textStyle": "*",
     "transOpen": "true",
-    "bgColor": ""
+    "bgColor": "",
+    "textDiyStyle": ""
   },
   {
     "pattern": "restofworld.org",
@@ -97,7 +106,8 @@
     "toLang": "*",
     "textStyle": "*",
     "transOpen": "true",
-    "bgColor": ""
+    "bgColor": "",
+    "textDiyStyle": ""
   },
   {
     "pattern": "www.axios.com",
@@ -107,7 +117,8 @@
     "toLang": "*",
     "textStyle": "*",
     "transOpen": "true",
-    "bgColor": ""
+    "bgColor": "",
+    "textDiyStyle": ""
   },
   {
     "pattern": "www.newyorker.com",
@@ -117,7 +128,8 @@
     "toLang": "*",
     "textStyle": "*",
     "transOpen": "true",
-    "bgColor": ""
+    "bgColor": "",
+    "textDiyStyle": ""
   },
   {
     "pattern": "https://time.com/",
@@ -127,7 +139,8 @@
     "toLang": "*",
     "textStyle": "*",
     "transOpen": "true",
-    "bgColor": ""
+    "bgColor": "",
+    "textDiyStyle": ""
   },
   {
     "pattern": "www.dw.com",
@@ -137,7 +150,8 @@
     "toLang": "*",
     "textStyle": "*",
     "transOpen": "true",
-    "bgColor": ""
+    "bgColor": "",
+    "textDiyStyle": ""
   },
   {
     "pattern": "www.bbc.com",
@@ -147,7 +161,8 @@
     "toLang": "*",
     "textStyle": "*",
     "transOpen": "true",
-    "bgColor": ""
+    "bgColor": "",
+    "textDiyStyle": ""
   },
   {
     "pattern": "www.chinadaily.com.cn",
@@ -157,7 +172,8 @@
     "toLang": "*",
     "textStyle": "*",
     "transOpen": "true",
-    "bgColor": ""
+    "bgColor": "",
+    "textDiyStyle": ""
   },
   {
     "pattern": "www.facebook.com",
@@ -167,7 +183,8 @@
     "toLang": "*",
     "textStyle": "*",
     "transOpen": "true",
-    "bgColor": ""
+    "bgColor": "",
+    "textDiyStyle": ""
   },
   {
     "pattern": "www.reddit.com",
@@ -177,7 +194,8 @@
     "toLang": "*",
     "textStyle": "*",
     "transOpen": "true",
-    "bgColor": ""
+    "bgColor": "",
+    "textDiyStyle": ""
   },
   {
     "pattern": "www.quora.com",
@@ -187,7 +205,8 @@
     "toLang": "*",
     "textStyle": "*",
     "transOpen": "true",
-    "bgColor": ""
+    "bgColor": "",
+    "textDiyStyle": ""
   },
   {
     "pattern": "edition.cnn.com",
@@ -197,7 +216,8 @@
     "toLang": "*",
     "textStyle": "*",
     "transOpen": "true",
-    "bgColor": ""
+    "bgColor": "",
+    "textDiyStyle": ""
   },
   {
     "pattern": "www.reuters.com",
@@ -207,7 +227,8 @@
     "toLang": "*",
     "textStyle": "*",
     "transOpen": "true",
-    "bgColor": ""
+    "bgColor": "",
+    "textDiyStyle": ""
   },
   {
     "pattern": "www.bloomberg.com",
@@ -217,7 +238,8 @@
     "toLang": "*",
     "textStyle": "*",
     "transOpen": "true",
-    "bgColor": ""
+    "bgColor": "",
+    "textDiyStyle": ""
   },
   {
     "pattern": "deno.land, docs.github.com",
@@ -227,7 +249,8 @@
     "toLang": "*",
     "textStyle": "*",
     "transOpen": "true",
-    "bgColor": ""
+    "bgColor": "",
+    "textDiyStyle": ""
   },
   {
     "pattern": "doc.rust-lang.org",
@@ -237,7 +260,8 @@
     "toLang": "*",
     "textStyle": "*",
     "transOpen": "true",
-    "bgColor": ""
+    "bgColor": "",
+    "textDiyStyle": ""
   },
   {
     "pattern": "www.indiehackers.com",
@@ -247,7 +271,8 @@
     "toLang": "*",
     "textStyle": "*",
     "transOpen": "true",
-    "bgColor": ""
+    "bgColor": "",
+    "textDiyStyle": ""
   },
   {
     "pattern": "platform.openai.com/docs",
@@ -257,7 +282,8 @@
     "toLang": "*",
     "textStyle": "*",
     "transOpen": "true",
-    "bgColor": ""
+    "bgColor": "",
+    "textDiyStyle": ""
   },
   {
     "pattern": "en.wikipedia.org",
@@ -267,7 +293,8 @@
     "toLang": "*",
     "textStyle": "*",
     "transOpen": "true",
-    "bgColor": ""
+    "bgColor": "",
+    "textDiyStyle": ""
   },
   {
     "pattern": "stackoverflow.com",
@@ -277,7 +304,8 @@
     "toLang": "*",
     "textStyle": "*",
     "transOpen": "true",
-    "bgColor": ""
+    "bgColor": "",
+    "textDiyStyle": ""
   },
   {
     "pattern": "www.npmjs.com/package/, developer.chrome.com/docs, medium.com, developers.cloudflare.com, react.dev, create-react-app.dev, pytorch.org/",
@@ -287,7 +315,8 @@
     "toLang": "*",
     "textStyle": "*",
     "transOpen": "true",
-    "bgColor": ""
+    "bgColor": "",
+    "textDiyStyle": ""
   },
   {
     "pattern": "news.ycombinator.com",
@@ -297,7 +326,8 @@
     "toLang": "*",
     "textStyle": "*",
     "transOpen": "true",
-    "bgColor": ""
+    "bgColor": "",
+    "textDiyStyle": ""
   },
   {
     "pattern": "https://github.com/",
@@ -307,7 +337,8 @@
     "toLang": "*",
     "textStyle": "*",
     "transOpen": "true",
-    "bgColor": ""
+    "bgColor": "",
+    "textDiyStyle": ""
   },
   {
     "pattern": "twitter.com",
@@ -317,7 +348,8 @@
     "toLang": "*",
     "textStyle": "*",
     "transOpen": "true",
-    "bgColor": ""
+    "bgColor": "",
+    "textDiyStyle": ""
   },
   {
     "pattern": "youtube.com",
@@ -327,6 +359,7 @@
     "toLang": "*",
     "textStyle": "*",
     "transOpen": "true",
-    "bgColor": ""
+    "bgColor": "",
+    "textDiyStyle": ""
   }
 ]
