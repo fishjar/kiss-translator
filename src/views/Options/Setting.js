@@ -9,7 +9,7 @@ import Link from "@mui/material/Link";
 import { useSetting } from "../../hooks/Setting";
 import { limitNumber } from "../../libs/utils";
 import { useI18n } from "../../hooks/I18n";
-import { UI_LANGS, URL_KISS_WORKER, TRANS_NEWLINE_LENGTH } from "../../config";
+import { UI_LANGS, URL_KISS_PROXY, TRANS_NEWLINE_LENGTH } from "../../config";
 
 export default function Settings() {
   const i18n = useI18n();
@@ -140,7 +140,7 @@ export default function Settings() {
           value={googleUrl}
           onChange={handleChange}
           helperText={
-            <Link href={URL_KISS_WORKER}>{i18n("about_api_proxy")}</Link>
+            <Link href={URL_KISS_PROXY}>{i18n("about_api_proxy")}</Link>
           }
         />
 
@@ -151,7 +151,7 @@ export default function Settings() {
           value={openaiUrl}
           onChange={handleChange}
           helperText={
-            <Link href={URL_KISS_WORKER}>{i18n("about_api_proxy")}</Link>
+            <Link href={URL_KISS_PROXY}>{i18n("about_api_proxy")}</Link>
           }
         />
 
