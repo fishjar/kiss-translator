@@ -7,10 +7,11 @@ import { createContext, useCallback, useContext } from "react";
 const SettingContext = createContext({
   setting: null,
   updateSetting: async () => {},
+  reloadSetting: async () => {},
 });
 
 export function SettingProvider({ children }) {
-  const { data, update } = useStorage(STOKEY_SETTING, DEFAULT_SETTING);
+  const { data, update, reload } = useStorage(STOKEY_SETTING, DEFAULT_SETTING);
   const {
     sync: { settingUpdateAt },
     updateSync,
@@ -31,6 +32,7 @@ export function SettingProvider({ children }) {
       value={{
         setting: data,
         updateSetting,
+        reloadSetting: reload,
       }}
     >
       {children}

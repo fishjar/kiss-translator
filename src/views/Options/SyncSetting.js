@@ -12,12 +12,14 @@ import Button from "@mui/material/Button";
 import { useAlert } from "../../hooks/Alert";
 import SyncIcon from "@mui/icons-material/Sync";
 import CircularProgress from "@mui/material/CircularProgress";
+import { useSetting } from "../../hooks/Setting";
 
 export default function SyncSetting() {
   const i18n = useI18n();
   const { sync, updateSync } = useSync();
   const alert = useAlert();
   const [loading, setLoading] = useState(false);
+  const { reloadSetting } = useSetting();
 
   const handleChange = async (e) => {
     e.preventDefault();
@@ -32,6 +34,7 @@ export default function SyncSetting() {
     try {
       setLoading(true);
       await syncSettingAndRules();
+      await reloadSetting();
       alert.success(i18n("data_sync_success"));
     } catch (err) {
       console.log("[sync all]", err);

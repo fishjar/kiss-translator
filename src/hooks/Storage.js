@@ -25,16 +25,20 @@ export function useStorage(key, defaultVal = null) {
     await storage.del(key);
   }, [key]);
 
-  useEffect(() => {
-    (async () => {
-      const val = await storage.getObj(key);
-      if (val) {
-        setData(val);
-      } else if (defaultVal) {
-        await storage.setObj(key, defaultVal);
-      }
-    })();
+  const reload = useCallback(async () => {
+    const val = await storage.getObj(key);
+    if (val) {
+      setData(val);
+    } else if (defaultVal) {
+      await storage.setObj(key, defaultVal);
+    }
   }, [key, defaultVal]);
 
-  return { data, save, update, remove };
+  useEffect(() => {
+    (async () => {
+      await reload();
+    })();
+  }, [reload]);
+
+  return { data, save, update, remove, reload };
 }

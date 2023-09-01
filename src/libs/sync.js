@@ -43,6 +43,7 @@ const syncSetting = async (isBg = false) => {
       settingSyncAt: res.updateAt,
     });
     await setSetting(res.value);
+    return res.value;
   } else {
     await updateSync({ settingSyncAt: res.updateAt });
   }
@@ -50,7 +51,7 @@ const syncSetting = async (isBg = false) => {
 
 export const trySyncSetting = async (isBg = false) => {
   try {
-    await syncSetting(isBg);
+    return await syncSetting(isBg);
   } catch (err) {
     console.log("[sync setting]", err);
   }
@@ -84,6 +85,7 @@ const syncRules = async (isBg = false) => {
       rulesSyncAt: res.updateAt,
     });
     await setRules(res.value);
+    return res.value;
   } else {
     await updateSync({ rulesSyncAt: res.updateAt });
   }
@@ -91,7 +93,7 @@ const syncRules = async (isBg = false) => {
 
 export const trySyncRules = async (isBg = false) => {
   try {
-    await syncRules(isBg);
+    return await syncRules(isBg);
   } catch (err) {
     console.log("[sync user rules]", err);
   }
@@ -118,11 +120,9 @@ export const syncShareRules = async ({ rules, syncUrl, syncKey }) => {
  * @returns
  */
 export const syncSettingAndRules = async (isBg = false) => {
-  await syncSetting(isBg);
-  await syncRules(isBg);
+  return [await syncSetting(isBg), await syncRules(isBg)];
 };
 
 export const trySyncSettingAndRules = async (isBg = false) => {
-  await trySyncSetting(isBg);
-  await trySyncRules(isBg);
+  return [await trySyncSetting(isBg), await trySyncRules(isBg)];
 };
