@@ -11,6 +11,8 @@ import {
   OPT_LANGS_TO,
   OPT_TRANS_ALL,
   OPT_STYLE_ALL,
+  OPT_STYLE_DIY,
+  OPT_STYLE_USE_COLOR,
 } from "../../config";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useI18n } from "../../hooks/I18n";
@@ -44,7 +46,10 @@ import { debounce } from "../../libs/utils";
 import { delSubRules, getSyncWithDefault } from "../../libs/storage";
 
 function RuleFields({ rule, rules, setShow, setKeyword }) {
-  const initFormValues = rule || { ...DEFAULT_RULE, transOpen: "true" };
+  const initFormValues = rule || {
+    ...DEFAULT_RULE,
+    transOpen: "true",
+  };
   const editMode = !!rule;
 
   const i18n = useI18n();
@@ -60,6 +65,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
     textStyle,
     transOpen,
     bgColor,
+    textDiyStyle,
   } = formValues;
 
   const hasSamePattern = (str) => {
@@ -262,19 +268,34 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 ))}
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={6} md={3} lg={2}>
-              <TextField
-                size="small"
-                fullWidth
-                name="bgColor"
-                value={bgColor}
-                label={i18n("bg_color")}
-                disabled={disabled}
-                onChange={handleChange}
-              />
-            </Grid>
+            {OPT_STYLE_USE_COLOR.includes(textStyle) && (
+              <Grid item xs={12} sm={6} md={3} lg={2}>
+                <TextField
+                  size="small"
+                  fullWidth
+                  name="bgColor"
+                  value={bgColor}
+                  label={i18n("bg_color")}
+                  disabled={disabled}
+                  onChange={handleChange}
+                />
+              </Grid>
+            )}
           </Grid>
         </Box>
+
+        {textStyle === OPT_STYLE_DIY && (
+          <TextField
+            size="small"
+            label={i18n("diy_style")}
+            helperText={i18n("diy_style_helper")}
+            name="textDiyStyle"
+            value={textDiyStyle}
+            disabled={disabled}
+            onChange={handleChange}
+            multiline
+          />
+        )}
 
         {rules &&
           (editMode ? (

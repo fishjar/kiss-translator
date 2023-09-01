@@ -52,6 +52,7 @@ export const matchRule = async (
     GLOBLA_RULE.selector;
 
   rule.bgColor = rule?.bgColor?.trim() || globalRule?.bgColor?.trim();
+  rule.textDiyStyle = rule?.textDiyStyle?.trim() || globalRule?.textDiyStyle?.trim();
 
   ["translator", "fromLang", "toLang", "textStyle", "transOpen"].forEach(
     (key) => {
@@ -99,10 +100,12 @@ export const checkRules = (rules) => {
         textStyle,
         transOpen,
         bgColor,
+        textDiyStyle,
       }) => ({
         pattern: pattern.trim(),
         selector: type(selector) === "string" ? selector : "",
         bgColor: type(bgColor) === "string" ? bgColor : "",
+        textDiyStyle: type(textDiyStyle) === "string" ? textDiyStyle : "",
         translator: matchValue([GLOBAL_KEY, ...OPT_TRANS_ALL], translator),
         fromLang: matchValue([GLOBAL_KEY, ...fromLangs], fromLang),
         toLang: matchValue([GLOBAL_KEY, ...toLangs], toLang),

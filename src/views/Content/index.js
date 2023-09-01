@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import LoadingIcon from "./LoadingIcon";
 import {
   OPT_STYLE_LINE,
@@ -6,29 +6,100 @@ import {
   OPT_STYLE_DASHLINE,
   OPT_STYLE_WAVYLINE,
   OPT_STYLE_FUZZY,
-  OPT_STYLE_HIGHTLIGHT,
+  OPT_STYLE_HIGHLIGHT,
+  OPT_STYLE_DIY,
   DEFAULT_COLOR,
   EVENT_KISS,
   MSG_TRANS_CURRULE,
   TRANS_NEWLINE_LENGTH,
 } from "../../config";
 import { useTranslate } from "../../hooks/Translate";
+import styled from "styled-components";
+
+const LineSpan = styled.span`
+  opacity: 0.6;
+  text-decoration-line: underline;
+  text-decoration-style: ${(props) => props.$lineStyle};
+  text-decoration-color: ${(props) => props.$lineColor};
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.3em;
+  -webkit-text-decoration-line: underline;
+  -webkit-text-decoration-style: ${(props) => props.$lineStyle};
+  -webkit-text-decoration-color: ${(props) => props.$lineColor};
+  -webkit-text-decoration-thickness: 2px;
+  -webkit-text-underline-offset: 0.3em;
+  &:hover {
+    opacity: 1;
+  }
+`;
+
+const FuzzySpan = styled.span`
+  filter: blur(5px);
+  transition: filter 0.2s ease-in-out;
+  &hover: {
+    filter: none;
+  }
+`;
+
+const HighlightSpan = styled.span`
+  coler: #fff;
+  background-color: ${(props) => props.$bgColor};
+  &hover: {
+    filter: none;
+  }
+`;
+
+const DiySpan = styled.span`
+  ${(props) => props.$diyStyle}
+`;
+
+function StyledSpan({ textStyle, textDiyStyle, bgColor, children }) {
+  switch (textStyle) {
+    case OPT_STYLE_LINE: // 下划线
+      return (
+        <LineSpan $lineStyle="solid" $lineColor={bgColor}>
+          {children}
+        </LineSpan>
+      );
+    case OPT_STYLE_DOTLINE: // 点状线
+      return (
+        <LineSpan $lineStyle="dotted" $lineColor={bgColor}>
+          {children}
+        </LineSpan>
+      );
+    case OPT_STYLE_DASHLINE: // 虚线
+      return (
+        <LineSpan $lineStyle="dashed" $lineColor={bgColor}>
+          {children}
+        </LineSpan>
+      );
+    case OPT_STYLE_WAVYLINE: // 波浪线
+      return (
+        <LineSpan $lineStyle="wavy" $lineColor={bgColor}>
+          {children}
+        </LineSpan>
+      );
+    case OPT_STYLE_FUZZY: // 模糊
+      return <FuzzySpan>{children}</FuzzySpan>;
+    case OPT_STYLE_HIGHLIGHT: // 高亮
+      return (
+        <HighlightSpan $bgColor={bgColor || DEFAULT_COLOR}>
+          {children}
+        </HighlightSpan>
+      );
+    case OPT_STYLE_DIY: // 自定义
+      return <DiySpan $diyStyle={textDiyStyle}>{children}</DiySpan>;
+    default:
+      return <span>{children}</span>;
+  }
+}
 
 export default function Content({ q, translator }) {
   const [rule, setRule] = useState(translator.rule);
-  const [hover, setHover] = useState(false);
   const { text, sameLang, loading } = useTranslate(q, rule, translator.setting);
-  const { textStyle, bgColor } = rule;
+  const { textStyle, bgColor = "", textDiyStyle = "" } = rule;
 
   const { newlineLength = TRANS_NEWLINE_LENGTH } = translator.setting;
-
-  const handleMouseEnter = () => {
-    setHover(true);
-  };
-
-  const handleMouseLeave = () => {
-    setHover(false);
-  };
 
   const handleKissEvent = (e) => {
     const { action, args } = e.detail;
@@ -37,7 +108,6 @@ export default function Content({ q, translator }) {
         setRule(args);
         break;
       default:
-      // console.log(`[popup] kissEvent action skip: ${action}`);
     }
   };
 
@@ -47,45 +117,6 @@ export default function Content({ q, translator }) {
       window.removeEventListener(EVENT_KISS, handleKissEvent);
     };
   }, []);
-
-  const style = useMemo(() => {
-    const lineColor = bgColor || "";
-    const underlineStyle = (st) => ({
-      opacity: hover ? 1 : 0.6,
-      textDecorationLine: "underline",
-      textDecorationColor: lineColor,
-      textDecorationStyle: st,
-      textDecorationThickness: "2px",
-      textUnderlineOffset: "0.3em",
-      WebkittextDecorationLine: "underline",
-      WebkittextDecorationColor: lineColor,
-      WebkittextDecorationStyle: st,
-      WebkittextDecorationThickness: "2px",
-      WebkittextTextUnderlineOffset: "0.3em",
-    });
-    switch (textStyle) {
-      case OPT_STYLE_LINE: // 下划线
-        return underlineStyle("solid");
-      case OPT_STYLE_DOTLINE: // 点状线
-        return underlineStyle("dotted");
-      case OPT_STYLE_DASHLINE: // 虚线
-        return underlineStyle("dashed");
-      case OPT_STYLE_WAVYLINE: // 波浪线
-        return underlineStyle("wavy");
-      case OPT_STYLE_FUZZY: // 模糊
-        return {
-          filter: hover ? "none" : "blur(5px)",
-          transition: "filter 0.2s ease-in-out",
-        };
-      case OPT_STYLE_HIGHTLIGHT: // 高亮
-        return {
-          color: "#FFF",
-          backgroundColor: bgColor || DEFAULT_COLOR,
-        };
-      default:
-        return {};
-    }
-  }, [textStyle, hover, bgColor]);
 
   if (loading) {
     return (
@@ -100,13 +131,13 @@ export default function Content({ q, translator }) {
     return (
       <>
         {q.length > newlineLength ? <br /> : " "}
-        <span
-          style={style}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
+        <StyledSpan
+          textStyle={textStyle}
+          textDiyStyle={textDiyStyle}
+          bgColor={bgColor}
         >
           {text}
-        </span>
+        </StyledSpan>
       </>
     );
   }

@@ -122,7 +122,8 @@ export const OPT_STYLE_DOTLINE = "dot_line"; // 点状线
 export const OPT_STYLE_DASHLINE = "dash_line"; // 虚线
 export const OPT_STYLE_WAVYLINE = "wavy_line"; // 波浪线
 export const OPT_STYLE_FUZZY = "fuzzy"; // 模糊
-export const OPT_STYLE_HIGHTLIGHT = "highlight"; // 高亮
+export const OPT_STYLE_HIGHLIGHT = "highlight"; // 高亮
+export const OPT_STYLE_DIY = "diy_style"; // 自定义样式
 export const OPT_STYLE_ALL = [
   OPT_STYLE_NONE,
   OPT_STYLE_LINE,
@@ -130,7 +131,15 @@ export const OPT_STYLE_ALL = [
   OPT_STYLE_DASHLINE,
   OPT_STYLE_WAVYLINE,
   OPT_STYLE_FUZZY,
-  OPT_STYLE_HIGHTLIGHT,
+  OPT_STYLE_HIGHLIGHT,
+  OPT_STYLE_DIY,
+];
+export const OPT_STYLE_USE_COLOR = [
+  OPT_STYLE_LINE,
+  OPT_STYLE_DOTLINE,
+  OPT_STYLE_DASHLINE,
+  OPT_STYLE_WAVYLINE,
+  OPT_STYLE_HIGHLIGHT,
 ];
 
 export const DEFAULT_FETCH_LIMIT = 10; // 默认最大任务数量
@@ -140,6 +149,19 @@ export const PROMPT_PLACE_FROM = "{{from}}"; // 占位符
 export const PROMPT_PLACE_TO = "{{to}}"; // 占位符
 
 export const DEFAULT_COLOR = "#209CEE"; // 默认高亮背景色/线条颜色
+
+export const DEFAULT_DIY_STYLE = `color: #666;
+background: linear-gradient(
+  45deg,
+  LightGreen 20%,
+  LightPink 20% 40%,
+  LightSalmon 40% 60%,
+  LightSeaGreen 60% 80%,
+  LightSkyBlue 80%
+);
+&:hover {
+  color: #333;
+};`;
 
 // 全局规则
 export const GLOBLA_RULE = {
@@ -151,6 +173,7 @@ export const GLOBLA_RULE = {
   textStyle: OPT_STYLE_DASHLINE,
   transOpen: "false",
   bgColor: "",
+  textDiyStyle: "",
 };
 
 // 订阅列表

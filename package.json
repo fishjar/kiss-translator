@@ -15,6 +15,7 @@
     "react-markdown": "^8.0.7",
     "react-router-dom": "^6.10.0",
     "react-scripts": "5.0.1",
+    "styled-components": "^6.0.7",
     "webextension-polyfill": "^0.10.0"
   },
   "scripts": {

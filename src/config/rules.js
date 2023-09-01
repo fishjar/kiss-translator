@@ -15,6 +15,7 @@ export const DEFAULT_RULE = {
   textStyle: GLOBAL_KEY,
   transOpen: GLOBAL_KEY,
   bgColor: "",
+  textDiyStyle: "",
 };
 
 const RULES = [
