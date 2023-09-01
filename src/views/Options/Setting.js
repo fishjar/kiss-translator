@@ -9,7 +9,7 @@ import Link from "@mui/material/Link";
 import { useSetting } from "../../hooks/Setting";
 import { limitNumber } from "../../libs/utils";
 import { useI18n } from "../../hooks/I18n";
-import { UI_LANGS, URL_KISS_WORKER } from "../../config";
+import { UI_LANGS, URL_KISS_WORKER, TRANS_NEWLINE_LENGTH } from "../../config";
 
 export default function Settings() {
   const i18n = useI18n();
@@ -31,6 +31,9 @@ export default function Settings() {
       case "maxLength":
         value = limitNumber(value, 100, 10000);
         break;
+      case "newlineLength":
+        value = limitNumber(value, 1, 1000);
+        break;
       default:
     }
     updateSetting({
@@ -50,6 +53,7 @@ export default function Settings() {
     openaiModel,
     openaiPrompt,
     clearCache,
+    newlineLength = TRANS_NEWLINE_LENGTH,
   } = setting;
 
   return (
@@ -104,6 +108,15 @@ export default function Settings() {
           type="number"
           name="maxLength"
           value={maxLength}
+          onChange={handleChange}
+        />
+
+        <TextField
+          size="small"
+          label={i18n("num_of_newline_characters")}
+          type="number"
+          name="newlineLength"
+          value={newlineLength}
           onChange={handleChange}
         />
 

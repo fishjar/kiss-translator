@@ -60,6 +60,10 @@ export const I18N = {
     zh: `最大翻译长度 (100-10000)`,
     en: `Max Translate Length (100-10000)`,
   },
+  num_of_newline_characters: {
+    zh: `换行字符数 (1-1000)`,
+    en: `Number of Newline Characters (1-1000)`,
+  },
   translate_service: {
     zh: `翻译服务`,
     en: `Translate Service`,

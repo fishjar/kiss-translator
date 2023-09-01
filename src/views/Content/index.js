@@ -10,6 +10,7 @@ import {
   DEFAULT_COLOR,
   EVENT_KISS,
   MSG_TRANS_CURRULE,
+  TRANS_NEWLINE_LENGTH,
 } from "../../config";
 import { useTranslate } from "../../hooks/Translate";
 
@@ -18,6 +19,8 @@ export default function Content({ q, translator }) {
   const [hover, setHover] = useState(false);
   const { text, sameLang, loading } = useTranslate(q, rule, translator.setting);
   const { textStyle, bgColor } = rule;
+
+  const { newlineLength = TRANS_NEWLINE_LENGTH } = translator.setting;
 
   const handleMouseEnter = () => {
     setHover(true);
@@ -87,7 +90,7 @@ export default function Content({ q, translator }) {
   if (loading) {
     return (
       <>
-        {q.length > 40 ? <br /> : " "}
+        {q.length > newlineLength ? <br /> : " "}
         <LoadingIcon />
       </>
     );
@@ -96,7 +99,7 @@ export default function Content({ q, translator }) {
   if (text && !sameLang) {
     return (
       <>
-        {q.length > 40 ? <br /> : " "}
+        {q.length > newlineLength ? <br /> : " "}
         <span
           style={style}
           onMouseEnter={handleMouseEnter}
