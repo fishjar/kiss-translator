@@ -1663,7 +1663,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/runtime@npm:^7.11.2, @babel/runtime@npm:^7.12.5, @babel/runtime@npm:^7.16.3, @babel/runtime@npm:^7.18.3, @babel/runtime@npm:^7.20.7, @babel/runtime@npm:^7.22.10, @babel/runtime@npm:^7.5.5, @babel/runtime@npm:^7.8.4, @babel/runtime@npm:^7.8.7":
+"@babel/runtime@npm:^7.11.2, @babel/runtime@npm:^7.12.5, @babel/runtime@npm:^7.16.3, @babel/runtime@npm:^7.18.3, @babel/runtime@npm:^7.20.1, @babel/runtime@npm:^7.20.7, @babel/runtime@npm:^7.22.10, @babel/runtime@npm:^7.5.5, @babel/runtime@npm:^7.8.4, @babel/runtime@npm:^7.8.7":
   version: 7.22.11
   resolution: "@babel/runtime@npm:7.22.11"
   dependencies:
@@ -3838,6 +3838,15 @@ __metadata:
     "@typescript-eslint/types": 5.62.0
     eslint-visitor-keys: ^3.3.0
   checksum: 976b05d103fe8335bef5c93ad3f76d781e3ce50329c0243ee0f00c0fcfb186c81df50e64bfdd34970148113f8ade90887f53e3c4938183afba830b4ba8e30a35
+  languageName: node
+  linkType: hard
+
+"@violentmonkey/shortcut@npm:^1.3.0":
+  version: 1.3.0
+  resolution: "@violentmonkey/shortcut@npm:1.3.0"
+  dependencies:
+    "@babel/runtime": ^7.20.1
+  checksum: 5c839c0193014ff29d000337c8cb03f950e5386379a5cc7c845b9e4c566126dc1cfc431b71bc591e30ce7b8a5e82c2fc38396d52b705352252eb0376a7d18fd3
   languageName: node
   linkType: hard
 
@@ -9516,6 +9525,7 @@ __metadata:
     "@emotion/styled": ^11.10.8
     "@mui/icons-material": ^5.11.11
     "@mui/material": ^5.11.12
+    "@violentmonkey/shortcut": ^1.3.0
     query-string: ^8.1.0
     react: ^18.2.0
     react-app-rewired: ^2.2.1

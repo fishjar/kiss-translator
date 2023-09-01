@@ -15,6 +15,7 @@ import { MSG_TRANS_TOGGLE, MSG_TRANS_PUTRULE } from "./config";
 import { isIframe } from "./libs/iframe";
 import { handlePing, injectScript } from "./libs/gm";
 import { matchRule } from "./libs/rules";
+import { register } from "@violentmonkey/shortcut";
 
 /**
  * 入口函数
@@ -108,6 +109,18 @@ const init = async () => {
     } catch (err) {
       console.log("[registerMenuCommand]", err);
     }
+  }
+
+  // 注册快捷键
+  try {
+    register("a-q", () => {
+      translator.toggle();
+    });
+    register("a-c", () => {
+      translator.toggleStyle();
+    });
+  } catch (err) {
+    console.log("[shortcut.register", err);
   }
 
   // 同步订阅规则
