@@ -18,6 +18,7 @@ import {
   OPT_LANGS_FROM,
   OPT_LANGS_TO,
   OPT_STYLE_ALL,
+  OPT_STYLE_USE_COLOR,
 } from "../../config";
 import { sendIframeMsg } from "../../libs/iframe";
 
@@ -172,13 +173,15 @@ export default function Popup({ setShowPopup, translator: tran }) {
           ))}
         </TextField>
 
-        <TextField
-          size="small"
-          name="bgColor"
-          value={bgColor}
-          label={i18n("bg_color")}
-          onChange={handleChange}
-        />
+        {OPT_STYLE_USE_COLOR.includes(textStyle) && (
+          <TextField
+            size="small"
+            name="bgColor"
+            value={bgColor}
+            label={i18n("bg_color")}
+            onChange={handleChange}
+          />
+        )}
 
         <Button variant="text" onClick={handleOpenSetting}>
           {i18n("setting")}
