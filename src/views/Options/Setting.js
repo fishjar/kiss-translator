@@ -5,10 +5,11 @@ import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
 import Select from "@mui/material/Select";
+import Link from "@mui/material/Link";
 import { useSetting } from "../../hooks/Setting";
 import { limitNumber } from "../../libs/utils";
 import { useI18n } from "../../hooks/I18n";
-import { UI_LANGS } from "../../config";
+import { UI_LANGS, URL_KISS_WORKER } from "../../config";
 
 export default function Settings() {
   const i18n = useI18n();
@@ -125,6 +126,9 @@ export default function Settings() {
           name="googleUrl"
           value={googleUrl}
           onChange={handleChange}
+          helperText={
+            <Link href={URL_KISS_WORKER}>{i18n("about_api_proxy")}</Link>
+          }
         />
 
         <TextField
@@ -133,6 +137,9 @@ export default function Settings() {
           name="openaiUrl"
           value={openaiUrl}
           onChange={handleChange}
+          helperText={
+            <Link href={URL_KISS_WORKER}>{i18n("about_api_proxy")}</Link>
+          }
         />
 
         <TextField

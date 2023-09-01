@@ -152,6 +152,10 @@ export const I18N = {
     zh: `查看关于数据同步接口部署`,
     en: `View About Data Synchronization Interface Deployment`,
   },
+  about_api_proxy: {
+    zh: `查看自建一个翻译接口代理`,
+    en: `Check out the self-built translation interface proxy`,
+  },
   style_none: {
     zh: `无`,
     en: `None`,
