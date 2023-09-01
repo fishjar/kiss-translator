@@ -16,8 +16,8 @@ export default function Action({ translator, fab }) {
   const fabWidth = 40;
   const [showPopup, setShowPopup] = useState(false);
   const [windowSize, setWindowSize] = useState({
-    w: document.documentElement.clientWidth,
-    h: document.documentElement.clientHeight,
+    w: window.innerWidth,
+    h: window.innerHeight,
   });
   const [moved, setMoved] = useState(false);
 
@@ -25,8 +25,8 @@ export default function Action({ translator, fab }) {
     () =>
       debounce(() => {
         setWindowSize({
-          w: document.documentElement.clientWidth,
-          h: document.documentElement.clientHeight,
+          w: window.innerWidth,
+          h: window.innerHeight,
         });
       }),
     []
