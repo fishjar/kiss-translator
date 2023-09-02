@@ -3,6 +3,7 @@ import { fetchPolyfill } from "../libs/fetch";
 import {
   OPT_TRANS_GOOGLE,
   OPT_TRANS_MICROSOFT,
+  OPT_TRANS_DEEPL,
   OPT_TRANS_OPENAI,
   URL_MICROSOFT_TRANS,
   OPT_LANGS_SPECIAL,
@@ -96,6 +97,36 @@ const apiMicrosoftTranslate = (translator, text, to, from) => {
 };
 
 /**
+ * DeepL翻译
+ * @param {*} text
+ * @param {*} to
+ * @param {*} from
+ * @returns
+ */
+const apiDeepLTranslate = (translator, text, to, from, setting) => {
+  const { deeplUrl, deeplKey } = setting;
+  const data = {
+    text: [text],
+    target_lang: to,
+    split_sentences: "0",
+  };
+  if (from) {
+    data.source_lang = from;
+  }
+  return fetchPolyfill(deeplUrl, {
+    headers: {
+      "Content-type": "application/json",
+    },
+    method: "POST",
+    body: JSON.stringify(data),
+    useCache: true,
+    usePool: true,
+    translator,
+    token: deeplKey,
+  });
+};
+
+/**
  * OpenAI 翻译
  * @param {*} text
  * @param {*} to
@@ -160,6 +191,10 @@ export const apiTranslate = async ({
     const res = await apiMicrosoftTranslate(translator, q, to, from);
     trText = res[0].translations[0].text;
     isSame = to === res[0].detectedLanguage.language;
+  } else if (translator === OPT_TRANS_DEEPL) {
+    const res = await apiDeepLTranslate(translator, q, to, from, setting);
+    trText = res.translations.map((item) => item.text).join(" ");
+    isSame = to === res.translations[0].detected_source_language;
   } else if (translator === OPT_TRANS_OPENAI) {
     const res = await apiOpenaiTranslate(translator, q, to, from, setting);
     trText = res?.choices?.[0].message.content;

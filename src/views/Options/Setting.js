@@ -49,6 +49,8 @@ export default function Settings() {
     minLength,
     maxLength,
     openaiUrl,
+    deeplUrl = "",
+    deeplKey = "",
     openaiKey,
     openaiModel,
     openaiPrompt,
@@ -142,6 +144,22 @@ export default function Settings() {
           helperText={
             <Link href={URL_KISS_PROXY}>{i18n("about_api_proxy")}</Link>
           }
+        />
+
+        <TextField
+          size="small"
+          label={i18n("deepl_api")}
+          name="deeplUrl"
+          value={deeplUrl}
+          onChange={handleChange}
+        />
+
+        <TextField
+          size="small"
+          label={i18n("deepl_key")}
+          name="deeplKey"
+          value={deeplKey}
+          onChange={handleChange}
         />
 
         <TextField

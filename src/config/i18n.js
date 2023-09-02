@@ -260,6 +260,14 @@ export const I18N = {
     zh: `请检查url地址是否正确或稍后再试。`,
     en: `Please check if the url address is correct or try again later.`,
   },
+  deepl_api: {
+    zh: `DeepL 接口`,
+    en: `DeepL API`,
+  },
+  deepl_key: {
+    zh: `DeepL 密钥`,
+    en: `DeepL Key`,
+  },
   openai_api: {
     zh: `OpenAI 接口`,
     en: `OpenAI API`,

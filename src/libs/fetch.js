@@ -7,6 +7,7 @@ import {
   MSG_FETCH_CLEAR,
   CACHE_NAME,
   OPT_TRANS_MICROSOFT,
+  OPT_TRANS_DEEPL,
   OPT_TRANS_OPENAI,
   DEFAULT_FETCH_INTERVAL,
   DEFAULT_FETCH_LIMIT,
@@ -67,9 +68,11 @@ const newCacheReq = async (request) => {
  */
 const fetchApi = async ({ input, init = {}, translator, token }) => {
   if (translator === OPT_TRANS_MICROSOFT) {
-    init.headers["Authorization"] = `Bearer ${token}`;
+    init.headers["Authorization"] = `Bearer ${token}`; // Microsoft
+  } else if (translator === OPT_TRANS_DEEPL) {
+    init.headers["Authorization"] = `DeepL-Auth-Key ${token}`; // DeepL
   } else if (translator === OPT_TRANS_OPENAI) {
-    init.headers["Authorization"] = `Bearer ${token}`; // // OpenAI
+    init.headers["Authorization"] = `Bearer ${token}`; // OpenAI
     init.headers["api-key"] = token; // Azure OpenAI
   }
 

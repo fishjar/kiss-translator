@@ -66,10 +66,12 @@ export const URL_MICROSOFT_TRANS =
 
 export const OPT_TRANS_GOOGLE = "Google";
 export const OPT_TRANS_MICROSOFT = "Microsoft";
+export const OPT_TRANS_DEEPL = "DeepL";
 export const OPT_TRANS_OPENAI = "OpenAI";
 export const OPT_TRANS_ALL = [
   OPT_TRANS_GOOGLE,
   OPT_TRANS_MICROSOFT,
+  OPT_TRANS_DEEPL,
   OPT_TRANS_OPENAI,
 ];
 
@@ -118,6 +120,12 @@ export const OPT_LANGS_SPECIAL = {
     ["auto", ""],
     ["zh-CN", "zh-Hans"],
     ["zh-TW", "zh-Hant"],
+  ]),
+  [OPT_TRANS_DEEPL]: new Map([
+    ...OPT_LANGS_FROM.map(([key]) => [key, key.toUpperCase()]),
+    ["auto", ""],
+    ["zh-CN", "ZH"],
+    ["zh-TW", "ZH"],
   ]),
   [OPT_TRANS_OPENAI]: new Map(
     OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
@@ -200,6 +208,8 @@ export const DEFAULT_SETTING = {
   subrulesList: DEFAULT_SUBRULES_LIST, // 订阅列表
   owSubrule: DEFAULT_OW_RULE, // 覆写订阅规则
   googleUrl: "https://translate.googleapis.com/translate_a/single", // 谷歌翻译接口
+  deeplUrl: "https://api-free.deepl.com/v2/translate",
+  deeplKey: "",
   openaiUrl: "https://api.openai.com/v1/chat/completions",
   openaiKey: "",
   openaiModel: "gpt-4",
