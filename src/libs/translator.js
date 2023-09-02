@@ -3,7 +3,6 @@ import {
   APP_LCNAME,
   TRANS_MIN_LENGTH,
   TRANS_MAX_LENGTH,
-  EVENT_KISS,
   MSG_TRANS_CURRULE,
   OPT_STYLE_DASHLINE,
   OPT_STYLE_FUZZY,
@@ -11,7 +10,7 @@ import {
 } from "../config";
 import Content from "../views/Content";
 import { updateFetchPool, clearFetchPool } from "./fetch";
-import { debounce } from "./utils";
+import { debounce, genEventName } from "./utils";
 
 /**
  * 翻译类
@@ -37,6 +36,7 @@ export class Translator {
     "script",
     "iframe",
   ];
+  _eventName = genEventName();
 
   // 显示
   _interseObserver = new IntersectionObserver(
@@ -105,6 +105,10 @@ export class Translator {
     return this._setting;
   }
 
+  get eventName() {
+    return this._eventName;
+  }
+
   get rule() {
     // console.log("get rule", this._rule);
     return this._rule;
@@ -115,8 +119,9 @@ export class Translator {
     this._rule = rule;
 
     // 广播消息
+    const eventName = this._eventName;
     window.dispatchEvent(
-      new CustomEvent(EVENT_KISS, {
+      new CustomEvent(eventName, {
         detail: {
           action: MSG_TRANS_CURRULE,
           args: rule,

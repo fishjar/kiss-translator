@@ -1,6 +1,11 @@
 import { fetchGM } from "./fetch";
 
 /**
+ * 之否支持unsafeWindow
+ */
+export const isGrantUnsafe = GM?.info?.script?.grant?.includes("unsafeWindow");
+
+/**
  * 注入页面的脚本，请求并接受GM接口信息
  * @param {*} param0
  */

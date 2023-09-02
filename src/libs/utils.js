@@ -116,3 +116,9 @@ export const sha256 = async (text, salt) => {
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 };
+
+/**
+ * 生成随机事件名称
+ * @returns
+ */
+export const genEventName = () => btoa(Math.random()).slice(3, 11);

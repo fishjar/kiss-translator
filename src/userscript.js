@@ -12,8 +12,9 @@ import { Translator } from "./libs/translator";
 import { trySyncAllSubRules } from "./libs/subRules";
 import { MSG_TRANS_TOGGLE, MSG_TRANS_PUTRULE } from "./config";
 import { isIframe } from "./libs/iframe";
-import { handlePing, injectScript } from "./libs/gm";
+import { isGrantUnsafe, handlePing, injectScript } from "./libs/gm";
 import { matchRule } from "./libs/rules";
+import { genEventName } from "./libs/utils";
 
 /**
  * 入口函数
@@ -25,11 +26,11 @@ const init = async () => {
     document.location.href.includes(process.env.REACT_APP_OPTIONSPAGE) ||
     document.location.href.includes(process.env.REACT_APP_OPTIONSPAGE2)
   ) {
-    if (GM?.info?.script?.grant?.includes("unsafeWindow")) {
+    if (isGrantUnsafe) {
       unsafeWindow.GM = GM;
       unsafeWindow.APP_NAME = process.env.REACT_APP_NAME;
     } else {
-      const ping = btoa(Math.random()).slice(3, 11);
+      const ping = genEventName();
       window.addEventListener(ping, handlePing);
       // window.eval(`(${injectScript})("${ping}")`); // eslint-disable-line
       const script = document.createElement("script");

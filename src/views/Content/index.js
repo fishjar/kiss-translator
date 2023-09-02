@@ -9,7 +9,6 @@ import {
   OPT_STYLE_HIGHLIGHT,
   OPT_STYLE_DIY,
   DEFAULT_COLOR,
-  EVENT_KISS,
   MSG_TRANS_CURRULE,
   TRANS_NEWLINE_LENGTH,
 } from "../../config";
@@ -112,11 +111,11 @@ export default function Content({ q, translator }) {
   };
 
   useEffect(() => {
-    window.addEventListener(EVENT_KISS, handleKissEvent);
+    window.addEventListener(translator.eventName, handleKissEvent);
     return () => {
-      window.removeEventListener(EVENT_KISS, handleKissEvent);
+      window.removeEventListener(translator.eventName, handleKissEvent);
     };
-  }, []);
+  }, [translator.eventName]);
 
   if (loading) {
     return (
