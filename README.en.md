@@ -1,10 +1,10 @@
-## KISS Translator
+# KISS Translator
 
 A minimalist [bilingual translation Extension & Greasemonkey Script](https://github.com/fishjar/kiss-translator).
 
 [kiss-translator.webm](https://github.com/fishjar/kiss-translator/assets/1157624/f7ba8a5c-e4a8-4d5a-823a-5c5c67a0a47f)
 
-### Inspiration
+## Inspiration
 
 The inspiration for this project comes from [Immersive Translate](https://github.com/immersive-translate/immersive-translate). After trying it out, I found that it can be used together with the [Webpage Word Translation Extension](https://github.com/fishjar/kiss-dictionary) developed by me earlier, which just forms a very good supplement.
 
@@ -14,11 +14,11 @@ It just so happens that I am obsessed with translation tools. Based on the conce
 
 If you also like a little more simplicity, welcome to pick it up.
 
-### Features
+## Features
 
 - Keep it simple, smart
 
-### Schedule
+## Schedule
 
 - [x] Provide trial installation package
 - [x] Adapt browser
@@ -42,9 +42,10 @@ If you also like a little more simplicity, welcome to pick it up.
 - [x] Data Synchronization Function
 - [x] Greasemonkey Script ([Setting Page 1](https://fishjar.github.io/kiss-translator/options.html)、[Setting Page 2](https://kiss-translator.rayjar.com/options))
   - [x] [Tampermonkey](https://www.tampermonkey.net/) (Chrome/Edge/Firefox) [Install Link 1](https://fishjar.github.io/kiss-translator/kiss-translator.user.js)、[Install Link 2](https://kiss-translator.rayjar.com/kiss-translator.user.js)
+  - [x] [Violentmonkey](https://violentmonkey.github.io/) (Chrome/Edge/Firefox) [Install Link 1](https://fishjar.github.io/kiss-translator/kiss-translator.user.js)、[Install Link 2](https://kiss-translator.rayjar.com/kiss-translator.user.js)
   - [x] [Userscripts Safari](https://github.com/quoid/userscripts) (iOS Safari) [Install Link 1](https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js)、[Install Link 2](https://kiss-translator.rayjar.com/kiss-translator.user-ios-safari.js)
 
-### Guide
+## Guide
 
 ```sh
 git clone https://github.com/fishjar/kiss-translator.git
@@ -53,10 +54,10 @@ yarn install
 yarn build
 ```
 
-### Data Sync
+## Data Sync
 
 Goto: [https://github.com/fishjar/kiss-worker](https://github.com/fishjar/kiss-worker)
 
-### Discussion
+## Discussion
 
 - Join [Telegram Group](https://t.me/+RRCu_4oNwrM2NmFl)

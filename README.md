@@ -1,10 +1,10 @@
-## 简约翻译
+# 简约翻译
 
 一个简约的 [双语网页翻译扩展 & 油猴脚本](https://github.com/fishjar/kiss-translator)。
 
 [kiss-translator.webm](https://github.com/fishjar/kiss-translator/assets/1157624/f7ba8a5c-e4a8-4d5a-823a-5c5c67a0a47f)
 
-### 缘由
+## 缘由
 
 本项目灵感来源于 [Immersive Translate](https://github.com/immersive-translate/immersive-translate)，在试用了后，发现搭配本人早前开发的 [网页划词翻译扩展](https://github.com/fishjar/kiss-dictionary) 一起使用，刚好形成很好补充。
 
@@ -14,11 +14,11 @@
 
 如果你也喜欢简约一点的，欢迎自取。
 
-### 特点
+## 特点
 
 - 保持简约
 
-### 进度
+## 进度
 
 - [x] 提供试用安装包
 - [x] 适配浏览器
@@ -42,9 +42,10 @@
 - [x] 数据同步功能
 - [x] 油猴脚本 ([设置页面 1](https://fishjar.github.io/kiss-translator/options.html)、[设置页面 2](https://kiss-translator.rayjar.com/options))
   - [x] [Tampermonkey](https://www.tampermonkey.net/) (Chrome/Edge/Firefox) [安装链接 1](https://fishjar.github.io/kiss-translator/kiss-translator.user.js)、[安装链接 2](https://kiss-translator.rayjar.com/kiss-translator.user.js)
+  - [x] [Violentmonkey](https://violentmonkey.github.io/) (Chrome/Edge/Firefox) [安装链接 1](https://fishjar.github.io/kiss-translator/kiss-translator.user.js)、[安装链接 2](https://kiss-translator.rayjar.com/kiss-translator.user.js)
   - [x] [Userscripts Safari](https://github.com/quoid/userscripts) (iOS Safari) [安装链接 1](https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js)、[安装链接 2](https://kiss-translator.rayjar.com/kiss-translator.user-ios-safari.js)
 
-### 指引
+## 指引
 
 ```sh
 git clone https://github.com/fishjar/kiss-translator.git
@@ -53,10 +54,10 @@ yarn install
 yarn build
 ```
 
-### 数据同步
+## 数据同步
 
 移步: [https://github.com/fishjar/kiss-worker](https://github.com/fishjar/kiss-worker)
 
-### 交流
+## 交流
 
 - 加入 [Telegram 群](https://t.me/+RRCu_4oNwrM2NmFl)
