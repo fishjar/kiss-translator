@@ -29957,6 +29957,7 @@ var html_html = create({
     autoComplete: spaceSeparated,
     autoFocus: types_boolean,
     autoPlay: types_boolean,
+    blocking: spaceSeparated,
     capture: types_boolean,
     charSet: null,
     checked: types_boolean,
@@ -29982,6 +29983,7 @@ var html_html = create({
     draggable: booleanish,
     encType: null,
     enterKeyHint: null,
+    fetchPriority: null,
     form: null,
     formAction: null,
     formEncType: null,
@@ -29999,6 +30001,7 @@ var html_html = create({
     id: null,
     imageSizes: null,
     imageSrcSet: null,
+    inert: types_boolean,
     inputMode: null,
     integrity: null,
     is: null,
@@ -30122,6 +30125,9 @@ var html_html = create({
     ping: spaceSeparated,
     placeholder: null,
     playsInline: types_boolean,
+    popover: null,
+    popoverTarget: null,
+    popoverTargetAction: null,
     poster: null,
     preload: null,
     readOnly: types_boolean,
@@ -30440,6 +30446,7 @@ var svg = create({
     textAnchor: 'text-anchor',
     textDecoration: 'text-decoration',
     textRendering: 'text-rendering',
+    transformOrigin: 'transform-origin',
     typeOf: 'typeof',
     underlinePosition: 'underline-position',
     underlineThickness: 'underline-thickness',
@@ -30805,6 +30812,7 @@ var svg = create({
     typeOf: commaOrSpaceSeparated,
     to: null,
     transform: null,
+    transformOrigin: null,
     u1: null,
     u2: null,
     underlinePosition: number,
@@ -34228,7 +34236,7 @@ syncKey:"",// 数据同步密钥
 settingUpdateAt:0,settingSyncAt:0,rulesUpdateAt:0,rulesSyncAt:0,subRulesSyncAt:0// 订阅规则同步时间
 };
 ;// CONCATENATED MODULE: ./src/index.js
-function App(){var _I18N$about_md;var _useState=(0,react.useState)("zh"),_useState2=_slicedToArray(_useState,2),lang=_useState2[0],setLang=_useState2[1];var _useFetch=useFetch("".concat(URL_RAW_PREFIX,"/").concat(I18N===null||I18N===void 0?void 0:(_I18N$about_md=I18N["about_md"])===null||_I18N$about_md===void 0?void 0:_I18N$about_md[lang])),_useFetch2=_slicedToArray(_useFetch,3),data=_useFetch2[0],loading=_useFetch2[1],error=_useFetch2[2];return/*#__PURE__*/(0,jsx_runtime.jsxs)(Paper_Paper,{sx:{padding:2,margin:2},children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Stack_Stack,{spacing:2,direction:"row",justifyContent:"flex-end",children:/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{variant:"text",onClick:function onClick(){setLang(function(pre){return pre==="zh"?"en":"zh";});},children:lang==="zh"?"ENGLISH":"中文"})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Divider_Divider,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(Link_Link,{href:"https://github.com/fishjar/kiss-translator",children:"KISS Translator v".concat("1.6.2")})}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:2,direction:"row",useFlexGap:true,flexWrap:"wrap",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Link_Link,{href:"https://fishjar.github.io/kiss-translator/kiss-translator.user.js",children:"Install Userscript 1"}),/*#__PURE__*/(0,jsx_runtime.jsx)(Link_Link,{href:"https://kiss-translator.rayjar.com/kiss-translator.user.js",children:"Install Userscript 2"}),/*#__PURE__*/(0,jsx_runtime.jsx)(Link_Link,{href:"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js",children:"Install Userscript Safari 1"}),/*#__PURE__*/(0,jsx_runtime.jsx)(Link_Link,{href:"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js",children:"Install Userscript Safari 2"}),/*#__PURE__*/(0,jsx_runtime.jsx)(Link_Link,{href:"https://fishjar.github.io/kiss-translator/options.html",children:"Open Options Page 1"}),/*#__PURE__*/(0,jsx_runtime.jsx)(Link_Link,{href:"https://kiss-translator.rayjar.com/options",children:"Open Options Page 2"})]}),loading?/*#__PURE__*/(0,jsx_runtime.jsx)("center",{children:/*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgress_CircularProgress,{})}):/*#__PURE__*/(0,jsx_runtime.jsx)(ReactMarkdown,{children:error?error.message:data})]});}var src_root=client.createRoot(document.getElementById("root"));src_root.render(/*#__PURE__*/(0,jsx_runtime.jsx)(react.StrictMode,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(App,{})}));
+function App(){var _I18N$about_md;var _useState=(0,react.useState)("zh"),_useState2=_slicedToArray(_useState,2),lang=_useState2[0],setLang=_useState2[1];var _useFetch=useFetch("".concat(URL_RAW_PREFIX,"/").concat(I18N===null||I18N===void 0?void 0:(_I18N$about_md=I18N["about_md"])===null||_I18N$about_md===void 0?void 0:_I18N$about_md[lang])),_useFetch2=_slicedToArray(_useFetch,3),data=_useFetch2[0],loading=_useFetch2[1],error=_useFetch2[2];return/*#__PURE__*/(0,jsx_runtime.jsxs)(Paper_Paper,{sx:{padding:2,margin:2},children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Stack_Stack,{spacing:2,direction:"row",justifyContent:"flex-end",children:/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{variant:"text",onClick:function onClick(){setLang(function(pre){return pre==="zh"?"en":"zh";});},children:lang==="zh"?"ENGLISH":"中文"})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Divider_Divider,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(Link_Link,{href:"https://github.com/fishjar/kiss-translator",children:"KISS Translator v".concat("1.6.3")})}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:2,direction:"row",useFlexGap:true,flexWrap:"wrap",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Link_Link,{href:"https://fishjar.github.io/kiss-translator/kiss-translator.user.js",children:"Install Userscript 1"}),/*#__PURE__*/(0,jsx_runtime.jsx)(Link_Link,{href:"https://kiss-translator.rayjar.com/kiss-translator.user.js",children:"Install Userscript 2"}),/*#__PURE__*/(0,jsx_runtime.jsx)(Link_Link,{href:"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js",children:"Install Userscript Safari 1"}),/*#__PURE__*/(0,jsx_runtime.jsx)(Link_Link,{href:"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js",children:"Install Userscript Safari 2"}),/*#__PURE__*/(0,jsx_runtime.jsx)(Link_Link,{href:"https://fishjar.github.io/kiss-translator/options.html",children:"Open Options Page 1"}),/*#__PURE__*/(0,jsx_runtime.jsx)(Link_Link,{href:"https://kiss-translator.rayjar.com/options",children:"Open Options Page 2"})]}),loading?/*#__PURE__*/(0,jsx_runtime.jsx)("center",{children:/*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgress_CircularProgress,{})}):/*#__PURE__*/(0,jsx_runtime.jsx)(ReactMarkdown,{children:error?error.message:data})]});}var src_root=client.createRoot(document.getElementById("root"));src_root.render(/*#__PURE__*/(0,jsx_runtime.jsx)(react.StrictMode,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(App,{})}));
 }();
 /******/ })()
 ;
