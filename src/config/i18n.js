@@ -285,8 +285,8 @@ export const I18N = {
     en: `OpenAI Prompt`,
   },
   clear_cache: {
-    zh: `是否清除缓存`,
-    en: `Whether clear cache`,
+    zh: `是否清除缓存 (仅扩展有效)`,
+    en: `Whether clear cache (only valid for extension)`,
   },
   clear_cache_never: {
     zh: `不清除缓存`,
