@@ -31,7 +31,7 @@
   - [x] Google
   - [x] Microsoft
   - [x] OpenAI
-  - [ ] DeepL
+  - [x] DeepL
 - [x] 上架应用市场
   - [x] Chrome [安装地址](https://chrome.google.com/webstore/detail/kiss-translator/bdiifdefkgmcblbcghdlonllpjhhjgof?hl=zh-CN)
   - [x] Edge [安装地址](https://microsoftedge.microsoft.com/addons/detail/%E7%AE%80%E7%BA%A6%E7%BF%BB%E8%AF%91/jemckldkclkinpjighnoilpbldbdmmlh?hl=zh-CN)
