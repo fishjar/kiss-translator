@@ -26,10 +26,10 @@
     "build:edge": "rm -rf build/edge && cp -r build/chrome build/edge",
     "build:firefox": "rm -rf build/firefox && cp -r build/chrome build/firefox && cat ./build/firefox/manifest.firefox.json > ./build/firefox/manifest.json",
     "build:web": "rm -rf build/web && BUILD_PATH=./build/web REACT_APP_CLIENT=userscript react-app-rewired build",
-    "build:userscript": "rm -rf build/userscript && mkdir build/userscript && cp build/web/kiss-translator.user.js build/userscript/kiss-translator.user.js",
-    "build:userscript-ios": "file1=build/userscript/kiss-translator.user.js file2=build/userscript/kiss-translator-ios-safari.user.js && cp $file1 $file2 && sed -i 's|// @grant         unsafeWindow|// @inject-into   content|g' $file2",
+    "build:userscript-ios": "file1=build/web/kiss-translator.user.js file2=build/web/kiss-translator-ios-safari.user.js && cp $file1 $file2 && sed -i 's|// @grant         unsafeWindow|// @inject-into   content|g' $file2",
+    "build:userscript": "rm -rf build/userscript && mkdir build/userscript && cp build/web/*.user.js build/userscript/",
     "build:rules": "babel-node src/rules.js",
-    "build": "yarn build:chrome && yarn build:edge && yarn build:firefox && yarn build:web && yarn build:userscript && yarn build:userscript-ios && yarn build:rules",
+    "build": "yarn build:chrome && yarn build:edge && yarn build:firefox && yarn build:web && yarn build:userscript-ios && yarn build:userscript && yarn build:rules",
     "deploy:web": "wrangler pages deploy ./build/web --project-name kiss-translator",
     "test": "react-app-rewired test",
     "eject": "react-scripts eject"
