@@ -18,6 +18,12 @@ If you also like a little more simplicity, welcome to pick it up.
 
 - Keep it simple, smart
 
+## Shortcut keys
+
+- `Alt+Q` Toggle Translation
+- `Alt+C` Toggle Styles
+- `Alt+K` Open Menu
+
 ## Schedule
 
 - [x] Provide trial installation package
