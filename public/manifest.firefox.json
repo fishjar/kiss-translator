@@ -17,6 +17,11 @@
     }
   ],
   "commands": {
+    "_execute_browser_action": {
+      "suggested_key": {
+        "default": "Alt+K"
+      }
+    },
     "toggleTranslate": {
       "suggested_key": {
         "default": "Alt+Q"

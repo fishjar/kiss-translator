@@ -11,6 +11,8 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import { SettingProvider } from "../../hooks/Setting";
 import Popup from "../Popup";
 import { debounce } from "../../libs/utils";
+import * as shortcut from "@violentmonkey/shortcut";
+import { isGm } from "../../libs/client";
 
 export default function Action({ translator, fab }) {
   const fabWidth = 40;
@@ -45,6 +47,73 @@ export default function Action({ translator, fab }) {
   }, []);
 
   useEffect(() => {
+    // 注册快捷键
+    shortcut.register("a-q", () => {
+      translator.toggle();
+      setShowPopup(false);
+    });
+    shortcut.register("a-c", () => {
+      translator.toggleStyle();
+      setShowPopup(false);
+    });
+    shortcut.register("a-k", () => {
+      setShowPopup((pre) => !pre);
+    });
+
+    return () => {
+      shortcut.disable();
+    };
+  }, [translator]);
+
+  useEffect(() => {
+    // 注册菜单
+    const menuCommandIds = [];
+    if (isGm) {
+      try {
+        menuCommandIds.push(
+          GM.registerMenuCommand(
+            "Toggle Translate",
+            (event) => {
+              translator.toggle();
+              setShowPopup(false);
+            },
+            "Q"
+          ),
+          GM.registerMenuCommand(
+            "Toggle Style",
+            (event) => {
+              translator.toggleStyle();
+              setShowPopup(false);
+            },
+            "C"
+          ),
+          GM.registerMenuCommand(
+            "Open Menu",
+            (event) => {
+              setShowPopup((pre) => !pre);
+            },
+            "K"
+          )
+        );
+      } catch (err) {
+        console.log("[registerMenuCommand]", err);
+      }
+    }
+
+    return () => {
+      if (isGm) {
+        try {
+          menuCommandIds.forEach((id) => {
+            GM.unregisterMenuCommand(id);
+          });
+        } catch (err) {
+          //
+        }
+      }
+    };
+  }, [translator]);
+
+  useEffect(() => {
     window.addEventListener("resize", handleWindowResize);
     return () => {
       window.removeEventListener("resize", handleWindowResize);
@@ -53,6 +122,7 @@ export default function Action({ translator, fab }) {
 
   useEffect(() => {
     window.addEventListener("click", handleWindowClick);
+
     return () => {
       window.removeEventListener("click", handleWindowClick);
     };

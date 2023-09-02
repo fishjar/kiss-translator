@@ -18,6 +18,11 @@
     }
   ],
   "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Alt+K"
+      }
+    },
     "toggleTranslate": {
       "suggested_key": {
         "default": "Alt+Q"

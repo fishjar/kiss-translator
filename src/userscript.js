@@ -10,12 +10,10 @@ import {
 } from "./libs/storage";
 import { Translator } from "./libs/translator";
 import { trySyncAllSubRules } from "./libs/subRules";
-import { isGm } from "./libs/client";
 import { MSG_TRANS_TOGGLE, MSG_TRANS_PUTRULE } from "./config";
 import { isIframe } from "./libs/iframe";
 import { handlePing, injectScript } from "./libs/gm";
 import { matchRule } from "./libs/rules";
-import { register } from "@violentmonkey/shortcut";
 
 /**
  * 入口函数
@@ -88,40 +86,6 @@ const init = async () => {
       </CacheProvider>
     </React.StrictMode>
   );
-
-  // 注册菜单
-  if (isGm) {
-    try {
-      GM.registerMenuCommand(
-        "Toggle Translate",
-        (event) => {
-          translator.toggle();
-        },
-        "Q"
-      );
-      GM.registerMenuCommand(
-        "Toggle Style",
-        (event) => {
-          translator.toggleStyle();
-        },
-        "C"
-      );
-    } catch (err) {
-      console.log("[registerMenuCommand]", err);
-    }
-  }
-
-  // 注册快捷键
-  try {
-    register("a-q", () => {
-      translator.toggle();
-    });
-    register("a-c", () => {
-      translator.toggleStyle();
-    });
-  } catch (err) {
-    console.log("[shortcut.register", err);
-  }
 
   // 同步订阅规则
   trySyncAllSubRules(setting);
