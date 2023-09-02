@@ -15,9 +15,11 @@ import { AlertProvider } from "../../hooks/Alert";
 import Link from "@mui/material/Link";
 import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
+import { adaptScript } from "../../libs/gm";
+import Alert from "@mui/material/Alert";
 
 export default function Options() {
-  const [error, setError] = useState(false);
+  const [error, setError] = useState("");
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -26,7 +28,22 @@ export default function Options() {
         // 等待GM注入
         let i = 0;
         for (;;) {
-          if (window.APP_NAME === process.env.REACT_APP_NAME) {
+          if (window?.APP_INFO?.name === process.env.REACT_APP_NAME) {
+            const { version, eventName } = window.APP_INFO;
+
+            // 检查版本是否一致
+            if (version !== process.env.REACT_APP_VERSION) {
+              setError(
+                `The version of the script(v${version}) and this page(v${process.env.REACT_APP_VERSION}) are inconsistent.`
+              );
+              break;
+            }
+
+            if (eventName) {
+              // 注入GM接口
+              adaptScript(eventName);
+            }
+
             // 同步数据
             await trySyncSettingAndRules();
             setReady(true);
@@ -34,7 +51,7 @@ export default function Options() {
           }
 
           if (++i > 8) {
-            setError(true);
+            setError("Time out.");
             break;
           }
 
@@ -51,6 +68,7 @@ export default function Options() {
   if (error) {
     return (
       <center>
+        <Alert severity="error">{error}</Alert>
         <Divider>
           <Link
             href={process.env.REACT_APP_HOMEPAGE}

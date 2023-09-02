@@ -1,25 +1,31 @@
 import { fetchGM } from "./fetch";
+import { genEventName } from "./utils";
 
-/**
- * 之否支持unsafeWindow
- */
-export const isGrantUnsafe = GM?.info?.script?.grant?.includes("unsafeWindow");
+const MSG_GM_xmlHttpRequest = "xmlHttpRequest";
+const MSG_GM_setValue = "setValue";
+const MSG_GM_getValue = "getValue";
+const MSG_GM_deleteValue = "deleteValue";
+const MSG_GM_info = "info";
 
 /**
  * 注入页面的脚本，请求并接受GM接口信息
  * @param {*} param0
  */
 export const injectScript = (ping) => {
-  const MSG_GM_xmlHttpRequest = "xmlHttpRequest";
-  const MSG_GM_setValue = "setValue";
-  const MSG_GM_getValue = "getValue";
-  const MSG_GM_deleteValue = "deleteValue";
-  const MSG_GM_info = "info";
-  let GM_info;
+  window.APP_INFO = {
+    name: process.env.REACT_APP_NAME,
+    version: process.env.REACT_APP_VERSION,
+    eventName: ping,
+  };
+};
 
+/**
+ * 适配GM脚本
+ */
+export const adaptScript = (ping) => {
   const promiseGM = (action, args, timeout = 5000) =>
     new Promise((resolve, reject) => {
-      const pong = btoa(Math.random()).slice(3, 11);
+      const pong = genEventName();
       const handleEvent = (e) => {
         window.removeEventListener(pong, handleEvent);
         const { data, error } = e.detail;
@@ -46,14 +52,13 @@ export const injectScript = (ping) => {
     setValue: (key, val) => promiseGM(MSG_GM_setValue, { key, val }),
     getValue: (key) => promiseGM(MSG_GM_getValue, { key }),
     deleteValue: (key) => promiseGM(MSG_GM_deleteValue, { key }),
-    getInfo: () => {
-      if (GM_info) {
-        return GM_info;
+    getInfo: async () => {
+      if (!window.GM_info) {
+        window.GM_info = await promiseGM(MSG_GM_info);
       }
-      return promiseGM(MSG_GM_info);
+      return window.GM_info;
     },
   };
-  window.APP_NAME = process.env.REACT_APP_NAME;
 };
 
 /**
@@ -61,11 +66,6 @@ export const injectScript = (ping) => {
  * @param {*} param0
  */
 export const handlePing = async (e) => {
-  const MSG_GM_xmlHttpRequest = "xmlHttpRequest";
-  const MSG_GM_setValue = "setValue";
-  const MSG_GM_getValue = "getValue";
-  const MSG_GM_deleteValue = "deleteValue";
-  const MSG_GM_info = "info";
   const { action, args, pong } = e.detail;
   let res;
   try {
