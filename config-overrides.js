@@ -93,6 +93,8 @@ const userscriptWebpack = (config, env) => {
 // @connect       translate.googleapis.com
 // @connect       api-edge.cognitive.microsofttranslator.com
 // @connect       edge.microsoft.com
+// @connect       api-free.deepl.com
+// @connect       api.deepl.com
 // @connect       api.openai.com
 // @connect       openai.azure.com
 // @connect       workers.dev
