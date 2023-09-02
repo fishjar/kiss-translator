@@ -17,6 +17,7 @@ import styled from "styled-components";
 
 const LineSpan = styled.span`
   opacity: 0.6;
+  -webkit-opacity: 0.6;
   text-decoration-line: underline;
   text-decoration-style: ${(props) => props.$lineStyle};
   text-decoration-color: ${(props) => props.$lineColor};
@@ -29,23 +30,22 @@ const LineSpan = styled.span`
   -webkit-text-underline-offset: 0.3em;
   &:hover {
     opacity: 1;
+    -webkit-opacity: 1;
   }
 `;
 
 const FuzzySpan = styled.span`
   filter: blur(5px);
-  transition: filter 0.2s ease-in-out;
-  &hover: {
+  -webkit-filter: blur(5px);
+  &:hover {
     filter: none;
+    -webkit-filter: none;
   }
 `;
 
 const HighlightSpan = styled.span`
   color: #fff;
   background-color: ${(props) => props.$bgColor};
-  &hover: {
-    filter: none;
-  }
 `;
 
 const DiySpan = styled.span`
