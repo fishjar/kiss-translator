@@ -83,7 +83,9 @@ const fetchApi = async ({ input, init = {}, translator, token }) => {
     } else {
       info = GM.info;
     }
-    const connects = info?.script?.connects || [];
+    // Tampermonkey --> .connects
+    // Violentmonkey --> .connect
+    const connects = info?.script?.connects || info?.script?.connect || [];
     const url = new URL(input);
     const isSafe = connects.find((item) => url.hostname.endsWith(item));
     if (isSafe) {
