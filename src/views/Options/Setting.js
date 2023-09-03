@@ -12,6 +12,7 @@ import { limitNumber } from "../../libs/utils";
 import { useI18n } from "../../hooks/I18n";
 import { apiTranslate } from "../../apis";
 import { useAlert } from "../../hooks/Alert";
+import CircularProgress from "@mui/material/CircularProgress";
 import {
   UI_LANGS,
   URL_KISS_PROXY,
@@ -21,6 +22,43 @@ import {
   OPT_TRANS_DEEPL,
   OPT_TRANS_OPENAI,
 } from "../../config";
+import { useState } from "react";
+
+function TestLink({ translator, setting }) {
+  const i18n = useI18n();
+  const alert = useAlert();
+  const [loading, setLoading] = useState(false);
+  const handleApiTest = async () => {
+    try {
+      setLoading(true);
+      const [text] = await apiTranslate({
+        translator,
+        q: "hello world",
+        fromLang: "en",
+        toLang: "zh-CN",
+        setting,
+      });
+      if (!text) {
+        throw new Error("empty reault");
+      }
+      alert.success(i18n("test_success"));
+    } catch (err) {
+      alert.error(`${i18n("test_failed")}: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return <CircularProgress sx={{ marginLeft: "2em" }} size={12} />;
+  }
+
+  return (
+    <Link sx={{ marginLeft: "1em" }} component="button" onClick={handleApiTest}>
+      {i18n("click_test")}
+    </Link>
+  );
+}
 
 export default function Settings() {
   const i18n = useI18n();
@@ -59,24 +97,6 @@ export default function Settings() {
       alert.success(i18n("clear_success"));
     } catch (err) {
       console.log("[clear cache]", err);
-    }
-  };
-
-  const handleApiTest = async (translator) => {
-    try {
-      const [text] = await apiTranslate({
-        translator,
-        q: "hello world",
-        fromLang: "en",
-        toLang: "zh-CN",
-        setting,
-      });
-      if (!text) {
-        throw new Error("empty reault");
-      }
-      alert.success(i18n("test_success"));
-    } catch (err) {
-      alert.error(`${i18n("test_failed")}: ${err.message}`);
     }
   };
 
@@ -185,15 +205,7 @@ export default function Settings() {
             <>
               {i18n("google_api")}
               {googleUrl && (
-                <Link
-                  sx={{ marginLeft: "1em" }}
-                  component="button"
-                  onClick={() => {
-                    handleApiTest(OPT_TRANS_GOOGLE);
-                  }}
-                >
-                  {i18n("click_test")}
-                </Link>
+                <TestLink translator={OPT_TRANS_GOOGLE} setting={setting} />
               )}
             </>
           }
@@ -211,15 +223,7 @@ export default function Settings() {
             <>
               {i18n("deepl_api")}
               {deeplUrl && (
-                <Link
-                  sx={{ marginLeft: "1em" }}
-                  component="button"
-                  onClick={() => {
-                    handleApiTest(OPT_TRANS_DEEPL);
-                  }}
-                >
-                  {i18n("click_test")}
-                </Link>
+                <TestLink translator={OPT_TRANS_DEEPL} setting={setting} />
               )}
             </>
           }
@@ -242,15 +246,7 @@ export default function Settings() {
             <>
               {i18n("openai_api")}
               {openaiUrl && openaiPrompt && (
-                <Link
-                  sx={{ marginLeft: "1em" }}
-                  component="button"
-                  onClick={() => {
-                    handleApiTest(OPT_TRANS_OPENAI);
-                  }}
-                >
-                  {i18n("click_test")}
-                </Link>
+                <TestLink translator={OPT_TRANS_OPENAI} setting={setting} />
               )}
             </>
           }
