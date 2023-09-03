@@ -6,14 +6,26 @@ import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
 import Select from "@mui/material/Select";
 import Link from "@mui/material/Link";
+import FormHelperText from "@mui/material/FormHelperText";
 import { useSetting } from "../../hooks/Setting";
 import { limitNumber } from "../../libs/utils";
 import { useI18n } from "../../hooks/I18n";
-import { UI_LANGS, URL_KISS_PROXY, TRANS_NEWLINE_LENGTH } from "../../config";
+import { apiTranslate } from "../../apis";
+import { useAlert } from "../../hooks/Alert";
+import {
+  UI_LANGS,
+  URL_KISS_PROXY,
+  TRANS_NEWLINE_LENGTH,
+  CACHE_NAME,
+  OPT_TRANS_GOOGLE,
+  OPT_TRANS_DEEPL,
+  OPT_TRANS_OPENAI,
+} from "../../config";
 
 export default function Settings() {
   const i18n = useI18n();
   const { setting, updateSetting } = useSetting();
+  const alert = useAlert();
 
   const handleChange = (e) => {
     e.preventDefault();
@@ -39,6 +51,33 @@ export default function Settings() {
     updateSetting({
       [name]: value,
     });
+  };
+
+  const handleClearCache = () => {
+    try {
+      caches.delete(CACHE_NAME);
+      alert.success(i18n("clear_success"));
+    } catch (err) {
+      console.log("[clear cache]", err);
+    }
+  };
+
+  const handleApiTest = async (translator) => {
+    try {
+      const [text] = await apiTranslate({
+        translator,
+        q: "hello world",
+        fromLang: "en",
+        toLang: "zh-CN",
+        setting,
+      });
+      if (!text) {
+        throw new Error("empty reault");
+      }
+      alert.success(i18n("test_success"));
+    } catch (err) {
+      alert.error(`${i18n("test_failed")}: ${err.message}`);
+    }
   };
 
   const {
@@ -123,21 +162,41 @@ export default function Settings() {
         />
 
         <FormControl size="small">
-          <InputLabel>{i18n("clear_cache")}</InputLabel>
+          <InputLabel>{i18n("if_clear_cache")}</InputLabel>
           <Select
             name="clearCache"
             value={clearCache}
-            label={i18n("clear_cache")}
+            label={i18n("if_clear_cache")}
             onChange={handleChange}
           >
             <MenuItem value={false}>{i18n("clear_cache_never")}</MenuItem>
             <MenuItem value={true}>{i18n("clear_cache_restart")}</MenuItem>
           </Select>
+          <FormHelperText>
+            <Link component="button" onClick={handleClearCache}>
+              {i18n("clear_all_cache_now")}
+            </Link>
+          </FormHelperText>
         </FormControl>
 
         <TextField
           size="small"
-          label={i18n("google_api")}
+          label={
+            <>
+              {i18n("google_api")}
+              {googleUrl && (
+                <Link
+                  sx={{ marginLeft: "1em" }}
+                  component="button"
+                  onClick={() => {
+                    handleApiTest(OPT_TRANS_GOOGLE);
+                  }}
+                >
+                  {i18n("click_test")}
+                </Link>
+              )}
+            </>
+          }
           name="googleUrl"
           value={googleUrl}
           onChange={handleChange}
@@ -148,7 +207,22 @@ export default function Settings() {
 
         <TextField
           size="small"
-          label={i18n("deepl_api")}
+          label={
+            <>
+              {i18n("deepl_api")}
+              {deeplUrl && (
+                <Link
+                  sx={{ marginLeft: "1em" }}
+                  component="button"
+                  onClick={() => {
+                    handleApiTest(OPT_TRANS_DEEPL);
+                  }}
+                >
+                  {i18n("click_test")}
+                </Link>
+              )}
+            </>
+          }
           name="deeplUrl"
           value={deeplUrl}
           onChange={handleChange}
@@ -164,7 +238,22 @@ export default function Settings() {
 
         <TextField
           size="small"
-          label={i18n("openai_api")}
+          label={
+            <>
+              {i18n("openai_api")}
+              {openaiUrl && openaiPrompt && (
+                <Link
+                  sx={{ marginLeft: "1em" }}
+                  component="button"
+                  onClick={() => {
+                    handleApiTest(OPT_TRANS_OPENAI);
+                  }}
+                >
+                  {i18n("click_test")}
+                </Link>
+              )}
+            </>
+          }
           name="openaiUrl"
           value={openaiUrl}
           onChange={handleChange}

@@ -19,6 +19,7 @@ import {
   OPT_LANGS_TO,
   OPT_STYLE_ALL,
   OPT_STYLE_USE_COLOR,
+  CACHE_NAME,
 } from "../../config";
 import { sendIframeMsg } from "../../libs/iframe";
 
@@ -66,6 +67,14 @@ export default function Popup({ setShowPopup, translator: tran }) {
     }
   };
 
+  const handleClearCache = () => {
+    try {
+      caches.delete(CACHE_NAME);
+    } catch (err) {
+      console.log("[clear cache]", err);
+    }
+  };
+
   useEffect(() => {
     if (!isExt) {
       return;
@@ -99,15 +108,27 @@ export default function Popup({ setShowPopup, translator: tran }) {
   return (
     <Box minWidth={300} sx={{ p: 2 }}>
       <Stack spacing={2}>
-        <FormControlLabel
-          control={
-            <Switch
-              checked={transOpen === "true"}
-              onChange={handleTransToggle}
-            />
-          }
-          label={i18n("translate_alt")}
-        />
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          alignItems="center"
+          spacing={2}
+        >
+          <FormControlLabel
+            control={
+              <Switch
+                checked={transOpen === "true"}
+                onChange={handleTransToggle}
+              />
+            }
+            label={i18n("translate_alt")}
+          />
+          {!isExt && (
+            <Button variant="text" onClick={handleClearCache}>
+              {i18n("clear_cache")}
+            </Button>
+          )}
+        </Stack>
 
         <TextField
           select

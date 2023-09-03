@@ -284,9 +284,9 @@ export const I18N = {
     zh: `OpenAI 提示词`,
     en: `OpenAI Prompt`,
   },
-  clear_cache: {
-    zh: `是否清除缓存 (仅扩展有效)`,
-    en: `Whether clear cache (only valid for extension)`,
+  if_clear_cache: {
+    zh: `是否清除缓存 (仅用于扩展)`,
+    en: `Whether clear cache (only for extension)`,
   },
   clear_cache_never: {
     zh: `不清除缓存`,
@@ -308,13 +308,13 @@ export const I18N = {
     zh: `数据同步测试`,
     en: `Data Sync Test`,
   },
-  data_sync_success: {
-    zh: `数据同步成功！`,
-    en: `Data Sync Success`,
+  sync_success: {
+    zh: `同步成功！`,
+    en: `Sync Success`,
   },
-  data_sync_error: {
-    zh: `数据同步失败！`,
-    en: `Data Sync Error`,
+  sync_failed: {
+    zh: `同步失败！`,
+    en: `Sync Error`,
   },
   error_got_some_wrong: {
     zh: `抱歉，出错了！`,
@@ -323,5 +323,33 @@ export const I18N = {
   error_sync_setting: {
     zh: `您的同步设置未填写，无法在线分享。`,
     en: `Your sync settings are missing and cannot be shared online.`,
+  },
+  click_test: {
+    zh: `点击测试`,
+    en: `Click Test`,
+  },
+  test_success: {
+    zh: `测试成功`,
+    en: `Test success`,
+  },
+  test_failed: {
+    zh: `测试失败`,
+    en: `Test failed`,
+  },
+  clear_all_cache_now: {
+    zh: `立即清除全部缓存`,
+    en: `Clear all cache now`,
+  },
+  clear_cache: {
+    zh: `清除缓存`,
+    en: `Clear Cache`,
+  },
+  clear_success: {
+    zh: `清除成功`,
+    en: `Clear success`,
+  },
+  clear_failed: {
+    zh: `清除失败`,
+    en: `Clear failed`,
   },
 };

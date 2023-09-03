@@ -35,10 +35,10 @@ export default function SyncSetting() {
       setLoading(true);
       await syncSettingAndRules();
       await reloadSetting();
-      alert.success(i18n("data_sync_success"));
+      alert.success(i18n("sync_success"));
     } catch (err) {
       console.log("[sync all]", err);
-      alert.error(i18n("data_sync_error"));
+      alert.error(i18n("sync_failed"));
     } finally {
       setLoading(false);
     }

@@ -36,8 +36,8 @@ If you also like a little more simplicity, welcome to pick it up.
 - [x] Support translation services
   - [x] Google
   - [x] Microsoft
-  - [x] OpenAI
   - [x] DeepL
+  - [x] OpenAI
 - [x] Upload to app Store
   - [x] Chrome [Install Link](https://chrome.google.com/webstore/detail/kiss-translator/bdiifdefkgmcblbcghdlonllpjhhjgof)
   - [x] Edge [Install Link](https://microsoftedge.microsoft.com/addons/detail/kiss-translator/jemckldkclkinpjighnoilpbldbdmmlh)
