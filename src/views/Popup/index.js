@@ -10,6 +10,8 @@ import { browser } from "../../libs/browser";
 import { isExt } from "../../libs/client";
 import { useI18n } from "../../hooks/I18n";
 import TextField from "@mui/material/TextField";
+import Divider from "@mui/material/Divider";
+import Header from "./Header";
 import {
   MSG_TRANS_TOGGLE,
   MSG_TRANS_GETRULE,
@@ -93,8 +95,10 @@ export default function Popup({ setShowPopup, translator: tran }) {
 
   if (!rule) {
     return (
-      <Box minWidth={300} sx={{ p: 2 }}>
-        <Stack spacing={3}>
+      <Box minWidth={300}>
+        <Header />
+        <Divider />
+        <Stack sx={{ p: 2 }} spacing={3}>
           <Button variant="text" onClick={handleOpenSetting}>
             {i18n("setting")}
           </Button>
@@ -106,8 +110,10 @@ export default function Popup({ setShowPopup, translator: tran }) {
   const { transOpen, translator, fromLang, toLang, textStyle, bgColor } = rule;
 
   return (
-    <Box minWidth={300} sx={{ p: 2 }}>
-      <Stack spacing={2}>
+    <Box minWidth={300}>
+      <Header />
+      <Divider />
+      <Stack sx={{ p: 2 }} spacing={2}>
         <Stack
           direction="row"
           justifyContent="space-between"

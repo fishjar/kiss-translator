@@ -1,18 +1,15 @@
 import Paper from "@mui/material/Paper";
-import Box from "@mui/material/Box";
 import Fab from "@mui/material/Fab";
 import TranslateIcon from "@mui/icons-material/Translate";
 import ThemeProvider from "../../hooks/Theme";
 import Draggable from "./Draggable";
-import IconButton from "@mui/material/IconButton";
-import CloseIcon from "@mui/icons-material/Close";
-import Stack from "@mui/material/Stack";
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { SettingProvider } from "../../hooks/Setting";
 import Popup from "../Popup";
 import { debounce } from "../../libs/utils";
 import * as shortcut from "@violentmonkey/shortcut";
 import { isGm } from "../../libs/client";
+import Header from "../Popup/Header";
 
 export default function Action({ translator, fab }) {
   const fabWidth = 40;
@@ -161,23 +158,7 @@ export default function Action({ translator, fab }) {
           onMove={handleMove}
           handler={
             <Paper style={{ cursor: "move" }} elevation={3}>
-              <Stack
-                direction="row"
-                justifyContent="space-between"
-                alignItems="center"
-                spacing={2}
-              >
-                <Box style={{ marginLeft: 16 }}>
-                  {`${process.env.REACT_APP_NAME} v${process.env.REACT_APP_VERSION}`}
-                </Box>
-                <IconButton
-                  onClick={() => {
-                    setShowPopup(false);
-                  }}
-                >
-                  <CloseIcon />
-                </IconButton>
-              </Stack>
+              <Header setShowPopup={setShowPopup} />
             </Paper>
           }
         >

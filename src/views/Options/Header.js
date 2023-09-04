@@ -4,16 +4,13 @@ import IconButton from "@mui/material/IconButton";
 import MenuIcon from "@mui/icons-material/Menu";
 import Toolbar from "@mui/material/Toolbar";
 import Box from "@mui/material/Box";
-import { useDarkMode } from "../../hooks/ColorMode";
-import LightModeIcon from "@mui/icons-material/LightMode";
-import DarkModeIcon from "@mui/icons-material/DarkMode";
 import Link from "@mui/material/Link";
 import { useI18n } from "../../hooks/I18n";
+import DarkModeButton from "./DarkModeButton";
 
 function Header(props) {
   const i18n = useI18n();
   const { onDrawerToggle } = props;
-  const { darkMode, toggleDarkMode } = useDarkMode();
 
   return (
     <AppBar
@@ -41,9 +38,7 @@ function Header(props) {
             href={process.env.REACT_APP_HOMEPAGE}
           >{`${i18n("app_name")} v${process.env.REACT_APP_VERSION}`}</Link>
         </Box>
-        <IconButton onClick={toggleDarkMode} color="inherit">
-          {darkMode ? <LightModeIcon /> : <DarkModeIcon />}
-        </IconButton>
+        <DarkModeButton />
       </Toolbar>
     </AppBar>
   );
