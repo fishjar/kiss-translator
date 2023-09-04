@@ -13,7 +13,7 @@ import {
   OPT_STYLE_ALL,
   OPT_STYLE_DIY,
   OPT_STYLE_USE_COLOR,
-  URL_KISS_RULES,
+  URL_KISS_RULES_NEW_ISSUE,
 } from "../../config";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useI18n } from "../../hooks/I18n";
@@ -484,7 +484,7 @@ function HelpButton() {
       size="small"
       variant="outlined"
       onClick={() => {
-        window.open(URL_KISS_RULES, "_blank");
+        window.open(URL_KISS_RULES_NEW_ISSUE, "_blank");
       }}
       startIcon={<HelpIcon />}
     >
