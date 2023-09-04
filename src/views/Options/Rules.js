@@ -13,6 +13,7 @@ import {
   OPT_STYLE_ALL,
   OPT_STYLE_DIY,
   OPT_STYLE_USE_COLOR,
+  URL_KISS_RULES,
 } from "../../config";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useI18n } from "../../hooks/I18n";
@@ -35,6 +36,7 @@ import Radio from "@mui/material/Radio";
 import RadioGroup from "@mui/material/RadioGroup";
 import DeleteIcon from "@mui/icons-material/Delete";
 import IconButton from "@mui/material/IconButton";
+import HelpIcon from "@mui/icons-material/Help";
 import ShareIcon from "@mui/icons-material/Share";
 import SyncIcon from "@mui/icons-material/Sync";
 import { useSubRules } from "../../hooks/SubRules";
@@ -470,7 +472,23 @@ function ShareButton({ rules, injectRules, selectedUrl }) {
       onClick={handleClick}
       startIcon={<ShareIcon />}
     >
-      {"分享"}
+      {i18n("share")}
+    </Button>
+  );
+}
+
+function HelpButton() {
+  const i18n = useI18n();
+  return (
+    <Button
+      size="small"
+      variant="outlined"
+      onClick={() => {
+        window.open(URL_KISS_RULES, "_blank");
+      }}
+      startIcon={<HelpIcon />}
+    >
+      {i18n("help")}
     </Button>
   );
 }
@@ -551,6 +569,8 @@ function UserRules({ subRules }) {
           injectRules={injectRules}
           selectedUrl={selectedUrl}
         />
+
+        <HelpButton />
 
         <FormControlLabel
           control={
@@ -715,6 +735,7 @@ function SubRulesEdit({ subList, addSub }) {
         >
           {i18n("add")}
         </Button>
+        <HelpButton />
       </Stack>
 
       {showInput && (

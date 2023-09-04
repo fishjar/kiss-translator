@@ -58,6 +58,7 @@ export const THEME_DARK = "dark";
 
 export const URL_KISS_WORKER = "https://github.com/fishjar/kiss-worker";
 export const URL_KISS_PROXY = "https://github.com/fishjar/kiss-proxy";
+export const URL_KISS_RULES = "https://github.com/fishjar/kiss-rules";
 export const URL_RAW_PREFIX =
   "https://raw.githubusercontent.com/fishjar/kiss-translator/master";
 export const URL_MICROSOFT_AUTH = "https://edge.microsoft.com/translate/auth";

@@ -36,6 +36,7 @@ function Header(props) {
             underline="none"
             color="inherit"
             href={process.env.REACT_APP_HOMEPAGE}
+            target="_blank"
           >{`${i18n("app_name")} v${process.env.REACT_APP_VERSION}`}</Link>
         </Box>
         <DarkModeButton />

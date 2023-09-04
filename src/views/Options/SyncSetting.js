@@ -58,7 +58,9 @@ export default function SyncSetting() {
           value={syncUrl}
           onChange={handleChange}
           helperText={
-            <Link href={URL_KISS_WORKER}>{i18n("about_sync_api")}</Link>
+            <Link href={URL_KISS_WORKER} target="_blank">
+              {i18n("about_sync_api")}
+            </Link>
           }
         />
 

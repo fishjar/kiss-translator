@@ -352,4 +352,12 @@ export const I18N = {
     zh: `清除失败`,
     en: `Clear failed`,
   },
+  share: {
+    zh: `分享`,
+    en: `Share`,
+  },
+  help: {
+    zh: `求助`,
+    en: `Help`,
+  },
 };

@@ -213,7 +213,9 @@ export default function Settings() {
           value={googleUrl}
           onChange={handleChange}
           helperText={
-            <Link href={URL_KISS_PROXY}>{i18n("about_api_proxy")}</Link>
+            <Link href={URL_KISS_PROXY} target="_blank">
+              {i18n("about_api_proxy")}
+            </Link>
           }
         />
 
@@ -254,7 +256,9 @@ export default function Settings() {
           value={openaiUrl}
           onChange={handleChange}
           helperText={
-            <Link href={URL_KISS_PROXY}>{i18n("about_api_proxy")}</Link>
+            <Link href={URL_KISS_PROXY} target="_blank">
+              {i18n("about_api_proxy")}
+            </Link>
           }
         />
 
