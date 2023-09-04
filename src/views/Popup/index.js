@@ -96,8 +96,12 @@ export default function Popup({ setShowPopup, translator: tran }) {
   if (!rule) {
     return (
       <Box minWidth={300}>
-        <Header />
-        <Divider />
+        {isExt && (
+          <>
+            <Header />
+            <Divider />
+          </>
+        )}
         <Stack sx={{ p: 2 }} spacing={3}>
           <Button variant="text" onClick={handleOpenSetting}>
             {i18n("setting")}
@@ -111,8 +115,12 @@ export default function Popup({ setShowPopup, translator: tran }) {
 
   return (
     <Box minWidth={300}>
-      <Header />
-      <Divider />
+      {isExt && (
+        <>
+          <Header />
+          <Divider />
+        </>
+      )}
       <Stack sx={{ p: 2 }} spacing={2}>
         <Stack
           direction="row"
