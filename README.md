@@ -18,7 +18,29 @@
 
 - 保持简约
 
-## 快捷键
+## 关联项目
+
+- 数据同步服务: [https://github.com/fishjar/kiss-worker](https://github.com/fishjar/kiss-worker)
+  - 可用于本项目的数据同步服务。
+  - 亦可用与分享个人的私有规则列表。
+  - 自己部署，自己管理，数据私有。
+- 社区订阅规则: [https://github.com/fishjar/kiss-rules](https://github.com/fishjar/kiss-rules)
+  - 提供社区维护的，最新最全的订阅规则列表。
+  - 求助规则相关的问题。
+- 网页修正脚本: [https://github.com/fishjar/kiss-webfixer](https://github.com/fishjar/kiss-webfixer)
+  - 针对一些特殊网站的修正脚本。
+  - 以便翻译软件得到更好的展示效果。
+- 翻译接口代理: [https://github.com/fishjar/kiss-proxy](https://github.com/fishjar/kiss-proxy)
+  - 如果访问某个翻译接口遇到网络问题，这个代理服务也许可以帮你到你。
+  - 自己部署，自己管理。
+- 简约词典插件: [https://github.com/fishjar/kiss-dictionary](https://github.com/fishjar/kiss-dictionary)
+  - 搭配本项目一起使用的划词翻译插件。
+  - 支持英文单词、句子、汉字的查询。
+  - 支持历史记录、单词收藏。
+
+## 简要说明
+
+### 支持快捷键
 
 - `Alt+Q` 开启翻译
 - `Alt+C` 切换样式
@@ -59,10 +81,6 @@ cd kiss-translator
 yarn install
 yarn build
 ```
-
-## 数据同步
-
-移步: [https://github.com/fishjar/kiss-worker](https://github.com/fishjar/kiss-worker)
 
 ## 交流
 

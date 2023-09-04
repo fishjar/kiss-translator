@@ -18,7 +18,29 @@ If you also like a little more simplicity, welcome to pick it up.
 
 - Keep it simple, smart
 
-## Shortcut keys
+## Associated ProjectS
+
+- Data synchronization service: [https://github.com/fishjar/kiss-worker](https://github.com/fishjar/kiss-worker)
+  - Data synchronization service available for this project.
+  - You can also share your own private rule list.
+  - Deploy by yourself, manage by yourself, data is private.
+- Community subscription rules: [https://github.com/fishjar/kiss-rules](https://github.com/fishjar/kiss-rules)
+  - Provides the latest and most complete list of subscription rules maintained by the community.
+  - Help with rules-related issues.
+- Web page correction script: [https://github.com/fishjar/kiss-webfixer](https://github.com/fishjar/kiss-webfixer)
+  - Fixed scripts for some special sites.
+  - So that the translation software can get better display effect.
+- Translation interface agent: [https://github.com/fishjar/kiss-proxy](https://github.com/fishjar/kiss-proxy)
+  - If you encounter network problems when accessing a certain translation interface, this proxy service may help you.
+  - Deploy and manage by yourself.
+- Minimalistic Dictionary Plugin: [https://github.com/fishjar/kiss-dictionary](https://github.com/fishjar/kiss-dictionary)
+  - A word-marking translation plug-in used with this project.
+  - Supports query of English words, sentences and Chinese characters.
+  - Supports history records and word collections.
+
+## Description
+
+### Support shortcut keys
 
 - `Alt+Q` Toggle Translation
 - `Alt+C` Toggle Styles
@@ -59,10 +81,6 @@ cd kiss-translator
 yarn install
 yarn build
 ```
-
-## Data Sync
-
-Goto: [https://github.com/fishjar/kiss-worker](https://github.com/fishjar/kiss-worker)
 
 ## Discussion
 
