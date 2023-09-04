@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name          KISS Translator
 // @namespace     https://github.com/fishjar/kiss-translator
-// @version       1.6.6
+// @version       1.6.7
 // @description   A minimalist bilingual translation Extension & Greasemonkey Script (一个简约的双语网页翻译扩展 & 油猴脚本)
 // @author        Gabe<yugang2002@gmail.com>
 // @homepageURL   https://github.com/fishjar/kiss-translator
@@ -1532,6 +1532,72 @@ var _jsxRuntime = __webpack_require__(6417);
 var _default = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
   d: "M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
 }), 'Close');
+exports.Z = _default;
+
+/***/ }),
+
+/***/ 45:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+"use strict";
+var __webpack_unused_export__;
+
+"use client";
+
+var _interopRequireDefault = __webpack_require__(4836);
+__webpack_unused_export__ = ({
+  value: true
+});
+exports.Z = void 0;
+var _createSvgIcon = _interopRequireDefault(__webpack_require__(5045));
+var _jsxRuntime = __webpack_require__(6417);
+var _default = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
+  d: "M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"
+}), 'DarkMode');
+exports.Z = _default;
+
+/***/ }),
+
+/***/ 5919:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+"use strict";
+var __webpack_unused_export__;
+
+"use client";
+
+var _interopRequireDefault = __webpack_require__(4836);
+__webpack_unused_export__ = ({
+  value: true
+});
+exports.Z = void 0;
+var _createSvgIcon = _interopRequireDefault(__webpack_require__(5045));
+var _jsxRuntime = __webpack_require__(6417);
+var _default = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
+  d: "M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"
+}), 'Home');
+exports.Z = _default;
+
+/***/ }),
+
+/***/ 3544:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+"use strict";
+var __webpack_unused_export__;
+
+"use client";
+
+var _interopRequireDefault = __webpack_require__(4836);
+__webpack_unused_export__ = ({
+  value: true
+});
+exports.Z = void 0;
+var _createSvgIcon = _interopRequireDefault(__webpack_require__(5045));
+var _jsxRuntime = __webpack_require__(6417);
+var _default = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
+  d: "M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0 .39-.39.39-1.03 0-1.41l-1.06-1.06zm1.06-10.96c.39-.39.39-1.03 0-1.41-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36c.39-.39.39-1.03 0-1.41-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06z"
+}), 'LightMode');
 exports.Z = _default;
 
 /***/ }),
@@ -17651,134 +17717,14 @@ var Paper = /*#__PURE__*/react.forwardRef(function Paper(inProps, ref) {
 });
  false ? 0 : void 0;
 /* harmony default export */ var Paper_Paper = (Paper);
-// EXTERNAL MODULE: ./node_modules/@mui/styled-engine/index.js
-var styled_engine = __webpack_require__(564);
-// EXTERNAL MODULE: ./node_modules/@mui/system/esm/styleFunctionSx/styleFunctionSx.js
-var styleFunctionSx = __webpack_require__(3649);
-// EXTERNAL MODULE: ./node_modules/@babel/runtime/helpers/esm/toConsumableArray.js
-var toConsumableArray = __webpack_require__(9062);
-// EXTERNAL MODULE: ./node_modules/@mui/utils/esm/deepmerge.js
-var deepmerge = __webpack_require__(3019);
-// EXTERNAL MODULE: ./node_modules/@mui/system/esm/styleFunctionSx/defaultSxConfig.js
-var defaultSxConfig = __webpack_require__(5789);
-;// CONCATENATED MODULE: ./node_modules/@mui/system/esm/styleFunctionSx/extendSxProp.js
-
-
-
-var extendSxProp_excluded = ["sx"];
-
-
-var splitProps = function splitProps(props) {
-  var _props$theme$unstable, _props$theme;
-  var result = {
-    systemProps: {},
-    otherProps: {}
-  };
-  var config = (_props$theme$unstable = props == null || (_props$theme = props.theme) == null ? void 0 : _props$theme.unstable_sxConfig) != null ? _props$theme$unstable : defaultSxConfig/* default */.Z;
-  Object.keys(props).forEach(function (prop) {
-    if (config[prop]) {
-      result.systemProps[prop] = props[prop];
-    } else {
-      result.otherProps[prop] = props[prop];
-    }
-  });
-  return result;
-};
-function extendSxProp(props) {
-  var inSx = props.sx,
-    other = (0,objectWithoutPropertiesLoose/* default */.Z)(props, extendSxProp_excluded);
-  var _splitProps = splitProps(other),
-    systemProps = _splitProps.systemProps,
-    otherProps = _splitProps.otherProps;
-  var finalSx;
-  if (Array.isArray(inSx)) {
-    finalSx = [systemProps].concat((0,toConsumableArray/* default */.Z)(inSx));
-  } else if (typeof inSx === 'function') {
-    finalSx = function finalSx() {
-      var result = inSx.apply(void 0, arguments);
-      if (!(0,deepmerge/* isPlainObject */.P)(result)) {
-        return systemProps;
-      }
-      return (0,esm_extends/* default */.Z)({}, systemProps, result);
-    };
-  } else {
-    finalSx = (0,esm_extends/* default */.Z)({}, systemProps, inSx);
-  }
-  return (0,esm_extends/* default */.Z)({}, otherProps, {
-    sx: finalSx
-  });
-}
-// EXTERNAL MODULE: ./node_modules/@mui/system/esm/useTheme.js
-var useTheme = __webpack_require__(6728);
-;// CONCATENATED MODULE: ./node_modules/@mui/system/esm/createBox.js
-'use client';
-
-
-
-var createBox_excluded = ["className", "component"];
-
-
-
-
-
-
-function createBox() {
-  var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-  var themeId = options.themeId,
-    defaultTheme = options.defaultTheme,
-    _options$defaultClass = options.defaultClassName,
-    defaultClassName = _options$defaultClass === void 0 ? 'MuiBox-root' : _options$defaultClass,
-    generateClassName = options.generateClassName;
-  var BoxRoot = (0,styled_engine/* default */.ZP)('div', {
-    shouldForwardProp: function shouldForwardProp(prop) {
-      return prop !== 'theme' && prop !== 'sx' && prop !== 'as';
-    }
-  })(styleFunctionSx/* default */.Z);
-  var Box = /*#__PURE__*/react.forwardRef(function Box(inProps, ref) {
-    var theme = (0,useTheme/* default */.Z)(defaultTheme);
-    var _extendSxProp = extendSxProp(inProps),
-      className = _extendSxProp.className,
-      _extendSxProp$compone = _extendSxProp.component,
-      component = _extendSxProp$compone === void 0 ? 'div' : _extendSxProp$compone,
-      other = (0,objectWithoutPropertiesLoose/* default */.Z)(_extendSxProp, createBox_excluded);
-    return /*#__PURE__*/(0,jsx_runtime.jsx)(BoxRoot, (0,esm_extends/* default */.Z)({
-      as: component,
-      ref: ref,
-      className: (0,clsx/* default */.Z)(className, generateClassName ? generateClassName(defaultClassName) : defaultClassName),
-      theme: themeId ? theme[themeId] || theme : theme
-    }, other));
-  });
-  return Box;
-}
-// EXTERNAL MODULE: ./node_modules/@mui/utils/esm/ClassNameGenerator/ClassNameGenerator.js
-var ClassNameGenerator = __webpack_require__(1271);
-// EXTERNAL MODULE: ./node_modules/@mui/material/styles/createTheme.js
-var createTheme = __webpack_require__(5669);
-// EXTERNAL MODULE: ./node_modules/@mui/material/styles/identifier.js
-var identifier = __webpack_require__(2951);
-;// CONCATENATED MODULE: ./node_modules/@mui/material/Box/Box.js
-'use client';
-
-
-
-
-
-
-var defaultTheme = (0,createTheme/* default */.Z)();
-var Box = createBox({
-  themeId: identifier/* default */.Z,
-  defaultTheme: defaultTheme,
-  defaultClassName: 'MuiBox-root',
-  generateClassName: ClassNameGenerator/* default */.Z.generate
-});
- false ? 0 : void 0;
-/* harmony default export */ var Box_Box = (Box);
 // EXTERNAL MODULE: ./node_modules/@mui/material/utils/useForkRef.js
 var useForkRef = __webpack_require__(6983);
 // EXTERNAL MODULE: ./node_modules/@mui/material/utils/useEventCallback.js
 var useEventCallback = __webpack_require__(3236);
 // EXTERNAL MODULE: ./node_modules/@mui/material/utils/useIsFocusVisible.js
 var useIsFocusVisible = __webpack_require__(7037);
+// EXTERNAL MODULE: ./node_modules/@babel/runtime/helpers/esm/toConsumableArray.js
+var toConsumableArray = __webpack_require__(9062);
 ;// CONCATENATED MODULE: ./node_modules/@babel/runtime/helpers/esm/taggedTemplateLiteral.js
 function _taggedTemplateLiteral(strings, raw) {
   if (!raw) {
@@ -19257,6 +19203,8 @@ var Fab = /*#__PURE__*/react.forwardRef(function Fab(inProps, ref) {
 /* harmony default export */ var Fab_Fab = (Fab);
 // EXTERNAL MODULE: ./node_modules/@mui/icons-material/Translate.js
 var Translate = __webpack_require__(3578);
+// EXTERNAL MODULE: ./node_modules/@mui/material/styles/createTheme.js
+var createTheme = __webpack_require__(5669);
 ;// CONCATENATED MODULE: ./node_modules/@mui/private-theming/useTheme/ThemeContext.js
 
 var ThemeContext_ThemeContext = /*#__PURE__*/react.createContext(null);
@@ -19265,7 +19213,7 @@ if (false) {}
 ;// CONCATENATED MODULE: ./node_modules/@mui/private-theming/useTheme/useTheme.js
 
 
-function useTheme_useTheme() {
+function useTheme() {
   var theme = react.useContext(useTheme_ThemeContext);
   if (false) {}
   return theme;
@@ -19301,7 +19249,7 @@ function mergeOuterLocalTheme(outerTheme, localTheme) {
 function ThemeProvider(props) {
   var children = props.children,
     localTheme = props.theme;
-  var outerTheme = useTheme_useTheme();
+  var outerTheme = useTheme();
   if (false) {}
   var theme = react.useMemo(function () {
     var output = outerTheme === null ? localTheme : mergeOuterLocalTheme(outerTheme, localTheme);
@@ -19365,7 +19313,7 @@ function ThemeProvider_ThemeProvider_ThemeProvider(props) {
     localTheme = props.theme,
     themeId = props.themeId;
   var upperTheme = (0,useThemeWithoutDefault/* default */.Z)(EMPTY_THEME);
-  var upperPrivateTheme = useTheme_useTheme() || EMPTY_THEME;
+  var upperPrivateTheme = useTheme() || EMPTY_THEME;
   if (false) {}
   var engineTheme = useThemeScoping(themeId, upperTheme, localTheme);
   var privateTheme = useThemeScoping(themeId, upperPrivateTheme, localTheme, true);
@@ -19380,6 +19328,8 @@ function ThemeProvider_ThemeProvider_ThemeProvider(props) {
  false ? 0 : void 0;
 if (false) {}
 /* harmony default export */ var esm_ThemeProvider_ThemeProvider = (ThemeProvider_ThemeProvider_ThemeProvider);
+// EXTERNAL MODULE: ./node_modules/@mui/material/styles/identifier.js
+var identifier = __webpack_require__(2951);
 ;// CONCATENATED MODULE: ./node_modules/@mui/material/styles/ThemeProvider.js
 'use client';
 
@@ -19423,6 +19373,8 @@ function GlobalStyles(props) {
   });
 }
  false ? 0 : void 0;
+// EXTERNAL MODULE: ./node_modules/@mui/system/esm/useTheme.js
+var esm_useTheme = __webpack_require__(6728);
 ;// CONCATENATED MODULE: ./node_modules/@mui/system/esm/GlobalStyles/GlobalStyles.js
 'use client';
 
@@ -19436,7 +19388,7 @@ function GlobalStyles_GlobalStyles(_ref) {
     themeId = _ref.themeId,
     _ref$defaultTheme = _ref.defaultTheme,
     defaultTheme = _ref$defaultTheme === void 0 ? {} : _ref$defaultTheme;
-  var upperTheme = (0,useTheme/* default */.Z)(defaultTheme);
+  var upperTheme = (0,esm_useTheme/* default */.Z)(defaultTheme);
   var globalStyles = typeof styles === 'function' ? styles(themeId ? upperTheme[themeId] || upperTheme : upperTheme) : styles;
   return /*#__PURE__*/(0,jsx_runtime.jsx)(GlobalStyles, {
     styles: globalStyles
@@ -19445,7 +19397,7 @@ function GlobalStyles_GlobalStyles(_ref) {
  false ? 0 : void 0;
 /* harmony default export */ var esm_GlobalStyles_GlobalStyles = (GlobalStyles_GlobalStyles);
 // EXTERNAL MODULE: ./node_modules/@mui/material/styles/defaultTheme.js
-var styles_defaultTheme = __webpack_require__(2248);
+var defaultTheme = __webpack_require__(2248);
 ;// CONCATENATED MODULE: ./node_modules/@mui/material/GlobalStyles/GlobalStyles.js
 'use client';
 
@@ -19458,7 +19410,7 @@ var styles_defaultTheme = __webpack_require__(2248);
 
 function GlobalStyles_GlobalStyles_GlobalStyles(props) {
   return /*#__PURE__*/(0,jsx_runtime.jsx)(esm_GlobalStyles_GlobalStyles, (0,esm_extends/* default */.Z)({}, props, {
-    defaultTheme: styles_defaultTheme/* default */.Z,
+    defaultTheme: defaultTheme/* default */.Z,
     themeId: identifier/* default */.Z
   }));
 }
@@ -19564,13 +19516,13 @@ function CssBaseline(inProps) {
  false ? 0 : void 0;
 /* harmony default export */ var CssBaseline_CssBaseline = (CssBaseline);
 ;// CONCATENATED MODULE: ./src/config/rules.js
-var els="li, p, h1, h2, h3, h4, h5, h6, dd";var DEFAULT_SELECTOR=":is(".concat(els,")");var GLOBAL_KEY="*";var REMAIN_KEY="-";var SHADOW_KEY=">>>";var DEFAULT_RULE={pattern:"",selector:"",translator:GLOBAL_KEY,fromLang:GLOBAL_KEY,toLang:GLOBAL_KEY,textStyle:GLOBAL_KEY,transOpen:GLOBAL_KEY,bgColor:"",textDiyStyle:""};var DEFAULT_DIY_STYLE="color: #666;\nbackground: linear-gradient(\n  45deg,\n  LightGreen 20%,\n  LightPink 20% 40%,\n  LightSalmon 40% 60%,\n  LightSeaGreen 60% 80%,\n  LightSkyBlue 80%\n);\n&:hover {\n  color: #333;\n};";var DEFAULT_OW_RULE={translator:REMAIN_KEY,fromLang:REMAIN_KEY,toLang:REMAIN_KEY,textStyle:REMAIN_KEY,transOpen:REMAIN_KEY,bgColor:"",textDiyStyle:DEFAULT_DIY_STYLE};var RULES=[{pattern:"www.google.com/search",selector:"h3, .IsZvec, .VwiC3b"},{pattern:"news.google.com",selector:"h4"},{pattern:"www.foxnews.com",selector:"h1, h2, .title, .sidebar [data-type=\"Title\"], .article-content ".concat(DEFAULT_SELECTOR,"; [data-spotim-module=\"conversation\"]>div >>> [data-spot-im-class=\"message-text\"] p,  [data-spot-im-class=\"message-text\"]")},{pattern:"bearblog.dev, www.theverge.com, www.tampermonkey.net/documentation.php",selector:DEFAULT_SELECTOR},{pattern:"themessenger.com",selector:".leading-tight, .leading-tighter, .my-2 p, .font-body p, article ".concat(DEFAULT_SELECTOR)},{pattern:"www.telegraph.co.uk",selector:"article ".concat(DEFAULT_SELECTOR)},{pattern:"www.theguardian.com",selector:".show-underline, .dcr-hup5wm div, .dcr-7vl6y8 div, .dcr-12evv1c, figcaption, article ".concat(DEFAULT_SELECTOR,", [data-cy=\"mostviewed-footer\"] h4")},{pattern:"www.semafor.com",selector:"".concat(DEFAULT_SELECTOR,", .styles_intro__IYj__, [class*=\"styles_description\"]")},{pattern:"www.noemamag.com",selector:".splash__title, .single-card__title, .single-card__type, .single-card__topic, .highlighted-content__title, .single-card__author, article ".concat(DEFAULT_SELECTOR,", .quote__text, .wp-caption-text div")},{pattern:"restofworld.org",selector:"".concat(DEFAULT_SELECTOR,", .recirc-story__headline, .recirc-story__dek")},{pattern:"www.axios.com",selector:".h7, ".concat(DEFAULT_SELECTOR)},{pattern:"www.newyorker.com",selector:".summary-item__hed, .summary-item__dek, .summary-collection-grid__dek, .dqtvfu, .rubric__link, .caption, article ".concat(DEFAULT_SELECTOR,", .HEhan ").concat(DEFAULT_SELECTOR,", .ContributorBioBio-fBolsO")},{pattern:"https://time.com/",selector:"h1, h3, .summary, .video-title, #article-body ".concat(DEFAULT_SELECTOR,", .image-wrap-container .credit.body-caption, .media-heading")},{pattern:"www.dw.com",selector:".ts-teaser-title a, .news-title a, .title a, .teaser-description a, .hbudab h3, .hbudab p, figcaption ,article ".concat(DEFAULT_SELECTOR)},{pattern:"www.bbc.com",selector:"h1, h2, .media__link, .media__summary, article ".concat(DEFAULT_SELECTOR,", .ssrcss-y7krbn-Stack, .ssrcss-1mrs5ns-PromoLink, .ssrcss-18cjaf3-Headline, .gs-c-promo-heading__title, .gs-c-promo-summary, .media__content h3, .article__intro")},{pattern:"www.chinadaily.com.cn",selector:"h1, .tMain [shape=\"rect\"], .cMain [shape=\"rect\"], .photo_art [shape=\"rect\"], .mai_r [shape=\"rect\"], .lisBox li, #Content ".concat(DEFAULT_SELECTOR)},{pattern:"www.facebook.com",selector:"[role=\"main\"] [dir=\"auto\"]"},{pattern:"www.reddit.com",selector:"[slot=\"title\"], [slot=\"text-body\"] ".concat(DEFAULT_SELECTOR,", #-post-rtjson-content p")},{pattern:"www.quora.com",selector:".qu-wordBreak--break-word"},{pattern:"edition.cnn.com",selector:".container__title, .container__headline, .headline__text, .image__caption, [data-type=\"Title\"], .article__content ".concat(DEFAULT_SELECTOR)},{pattern:"www.reuters.com",selector:"#main-content [data-testid=\"Heading\"], #main-content [data-testid=\"Body\"], .article-body__content__17Yit ".concat(DEFAULT_SELECTOR)},{pattern:"www.bloomberg.com",selector:"[data-component=\"headline\"], [data-component=\"related-item-headline\"], [data-component=\"title\"], article ".concat(DEFAULT_SELECTOR)},{pattern:"deno.land, docs.github.com",selector:"main ".concat(DEFAULT_SELECTOR)},{pattern:"doc.rust-lang.org",selector:"#content ".concat(DEFAULT_SELECTOR)},{pattern:"www.indiehackers.com",selector:"h1, h3, .content ".concat(DEFAULT_SELECTOR,", .feed-item__title-link")},{pattern:"platform.openai.com/docs",selector:".docs-body ".concat(DEFAULT_SELECTOR)},{pattern:"en.wikipedia.org",selector:"h1, .mw-parser-output ".concat(DEFAULT_SELECTOR)},{pattern:"stackoverflow.com",selector:"h1, .s-prose p, .comment-body .comment-copy"},{pattern:"www.npmjs.com/package/, developer.chrome.com/docs, medium.com, developers.cloudflare.com, react.dev, create-react-app.dev, pytorch.org/",selector:"article ".concat(DEFAULT_SELECTOR)},{pattern:"news.ycombinator.com",selector:".title, .commtext"},{pattern:"https://github.com/",selector:".markdown-body ".concat(DEFAULT_SELECTOR,", .repo-description p, .Layout-sidebar .f4, .container-lg .py-4 .f5, .container-lg .my-4 .f5, .Box-row .pr-4, .Box-row article .mt-1, [itemprop='description'], .markdown-title, bdi")},{pattern:"twitter.com",selector:"[data-testid='tweetText']"},{pattern:"youtube.com",selector:"h1, #video-title, #content-text, #title, yt-attributed-string>span>span"}];var rules_BUILTIN_RULES=RULES.map(function(item){return _objectSpread2(_objectSpread2(_objectSpread2({},DEFAULT_RULE),item),{},{transOpen:"true"});});
+var els="li, p, h1, h2, h3, h4, h5, h6, dd";var DEFAULT_SELECTOR=":is(".concat(els,")");var GLOBAL_KEY="*";var REMAIN_KEY="-";var SHADOW_KEY=">>>";var DEFAULT_RULE={pattern:"",selector:"",translator:GLOBAL_KEY,fromLang:GLOBAL_KEY,toLang:GLOBAL_KEY,textStyle:GLOBAL_KEY,transOpen:GLOBAL_KEY,bgColor:"",textDiyStyle:""};var DEFAULT_DIY_STYLE="color: #666;\nbackground: linear-gradient(\n  45deg,\n  LightGreen 20%,\n  LightPink 20% 40%,\n  LightSalmon 40% 60%,\n  LightSeaGreen 60% 80%,\n  LightSkyBlue 80%\n);\n&:hover {\n  color: #333;\n};";var DEFAULT_OW_RULE={translator:REMAIN_KEY,fromLang:REMAIN_KEY,toLang:REMAIN_KEY,textStyle:REMAIN_KEY,transOpen:REMAIN_KEY,bgColor:"",textDiyStyle:DEFAULT_DIY_STYLE};var RULES=[{pattern:"www.google.com/search",selector:"h3, .IsZvec, .VwiC3b"},{pattern:"news.google.com",selector:"h4"},{pattern:"www.foxnews.com",selector:"h1, h2, .title, .sidebar [data-type=\"Title\"], .article-content ".concat(DEFAULT_SELECTOR,"; [data-spotim-module=\"conversation\"]>div >>> [data-spot-im-class=\"message-text\"] p,  [data-spot-im-class=\"message-text\"]")},{pattern:"bearblog.dev, www.theverge.com, www.tampermonkey.net/documentation.php",selector:DEFAULT_SELECTOR},{pattern:"themessenger.com",selector:".leading-tight, .leading-tighter, .my-2 p, .font-body p, article ".concat(DEFAULT_SELECTOR)},{pattern:"www.telegraph.co.uk",selector:"article ".concat(DEFAULT_SELECTOR)},{pattern:"www.theguardian.com",selector:".show-underline, .dcr-hup5wm div, .dcr-7vl6y8 div, .dcr-12evv1c, figcaption, article ".concat(DEFAULT_SELECTOR,", [data-cy=\"mostviewed-footer\"] h4")},{pattern:"www.semafor.com",selector:"".concat(DEFAULT_SELECTOR,", .styles_intro__IYj__, [class*=\"styles_description\"]")},{pattern:"www.noemamag.com",selector:".splash__title, .single-card__title, .single-card__type, .single-card__topic, .highlighted-content__title, .single-card__author, article ".concat(DEFAULT_SELECTOR,", .quote__text, .wp-caption-text div")},{pattern:"restofworld.org",selector:"".concat(DEFAULT_SELECTOR,", .recirc-story__headline, .recirc-story__dek")},{pattern:"www.axios.com",selector:".h7, ".concat(DEFAULT_SELECTOR)},{pattern:"www.newyorker.com",selector:".summary-item__hed, .summary-item__dek, .summary-collection-grid__dek, .dqtvfu, .rubric__link, .caption, article ".concat(DEFAULT_SELECTOR,", .HEhan ").concat(DEFAULT_SELECTOR,", .ContributorBioBio-fBolsO")},{pattern:"https://time.com/",selector:"h1, h3, .summary, .video-title, #article-body ".concat(DEFAULT_SELECTOR,", .image-wrap-container .credit.body-caption, .media-heading")},{pattern:"www.dw.com",selector:".ts-teaser-title a, .news-title a, .title a, .teaser-description a, .hbudab h3, .hbudab p, figcaption ,article ".concat(DEFAULT_SELECTOR)},{pattern:"www.bbc.com",selector:"h1, h2, .media__link, .media__summary, article ".concat(DEFAULT_SELECTOR,", .ssrcss-y7krbn-Stack, .ssrcss-1mrs5ns-PromoLink, .ssrcss-18cjaf3-Headline, .gs-c-promo-heading__title, .gs-c-promo-summary, .media__content h3, .article__intro")},{pattern:"www.chinadaily.com.cn",selector:"h1, .tMain [shape=\"rect\"], .cMain [shape=\"rect\"], .photo_art [shape=\"rect\"], .mai_r [shape=\"rect\"], .lisBox li, #Content ".concat(DEFAULT_SELECTOR)},{pattern:"www.facebook.com",selector:"[role=\"main\"] [dir=\"auto\"]"},{pattern:"www.reddit.com",selector:"[slot=\"title\"], [slot=\"text-body\"] ".concat(DEFAULT_SELECTOR,", #-post-rtjson-content p")},{pattern:"www.quora.com",selector:".qu-wordBreak--break-word"},{pattern:"edition.cnn.com",selector:".container__title, .container__headline, .headline__text, .image__caption, [data-type=\"Title\"], .article__content ".concat(DEFAULT_SELECTOR)},{pattern:"www.reuters.com",selector:"#main-content [data-testid=\"Heading\"], #main-content [data-testid=\"Body\"], .article-body__content__17Yit ".concat(DEFAULT_SELECTOR)},{pattern:"www.bloomberg.com",selector:"[data-component=\"headline\"], [data-component=\"related-item-headline\"], [data-component=\"title\"], article ".concat(DEFAULT_SELECTOR)},{pattern:"deno.land, docs.github.com",selector:"main ".concat(DEFAULT_SELECTOR)},{pattern:"doc.rust-lang.org",selector:"#content ".concat(DEFAULT_SELECTOR)},{pattern:"www.indiehackers.com",selector:"h1, h3, .content ".concat(DEFAULT_SELECTOR,", .feed-item__title-link")},{pattern:"platform.openai.com/docs",selector:".docs-body ".concat(DEFAULT_SELECTOR)},{pattern:"en.wikipedia.org",selector:"h1, .mw-parser-output ".concat(DEFAULT_SELECTOR)},{pattern:"stackoverflow.com",selector:"h1, .s-prose p, .comment-body .comment-copy"},{pattern:"www.npmjs.com/package/, developer.chrome.com/docs, medium.com, developers.cloudflare.com, react.dev, create-react-app.dev, pytorch.org/",selector:"article ".concat(DEFAULT_SELECTOR)},{pattern:"news.ycombinator.com",selector:".title, .commtext"},{pattern:"https://github.com/",selector:".markdown-body ".concat(DEFAULT_SELECTOR,", .repo-description p, .Layout-sidebar .f4, .container-lg .py-4 .f5, .container-lg .my-4 .f5, .Box-row .pr-4, .Box-row article .mt-1, [itemprop='description'], .markdown-title, bdi")},{pattern:"twitter.com",selector:"[data-testid='tweetText']"},{pattern:"youtube.com",selector:"h1, #video-title, #content-text, #title, yt-attributed-string>span>span"}];var rules_BUILTIN_RULES=RULES.sort(function(a,b){return a.pattern.localeCompare(b.pattern);}).map(function(item){return _objectSpread2(_objectSpread2(_objectSpread2({},DEFAULT_RULE),item),{},{transOpen:"true"});});
 ;// CONCATENATED MODULE: ./src/config/app.js
 var APP_NAME="KISS Translator".trim().split(/\s+/).join("-");var APP_LCNAME=APP_NAME.toLowerCase();
 ;// CONCATENATED MODULE: ./src/config/i18n.js
-var UI_LANGS=(/* unused pure expression or super */ null && ([["en","English"],["zh","中文"]]));var I18N={app_name:{zh:"\u7B80\u7EA6\u7FFB\u8BD1",en:"KISS Translator"},translate:{zh:"\u7FFB\u8BD1",en:"Translate"},translate_alt:{zh:"\u7FFB\u8BD1 (Alt+Q)",en:"Translate (Alt+Q)"},basic_setting:{zh:"\u57FA\u672C\u8BBE\u7F6E",en:"Basic Setting"},rules_setting:{zh:"\u89C4\u5219\u8BBE\u7F6E",en:"Rules Setting"},sync_setting:{zh:"\u540C\u6B65\u8BBE\u7F6E",en:"Sync Setting"},about:{zh:"\u5173\u4E8E",en:"About"},about_md:{zh:"README.md",en:"README.en.md"},about_md_local:{zh:"\u8BF7 [\u70B9\u51FB\u8FD9\u91CC](".concat("https://github.com/fishjar/kiss-translator",") \u67E5\u770B\u8BE6\u60C5\u3002"),en:"Please [click here](".concat("https://github.com/fishjar/kiss-translator",") for details.")},ui_lang:{zh:"\u754C\u9762\u8BED\u8A00",en:"Interface Language"},fetch_limit:{zh:"\u6700\u5927\u8BF7\u6C42\u6570\u91CF (1-100)",en:"Maximum Number Of Request (1-100)"},fetch_interval:{zh:"\u8BF7\u6C42\u95F4\u9694\u65F6\u95F4 (0-5000ms)",en:"Request Interval (0-5000ms)"},min_translate_length:{zh:"\u6700\u5C0F\u7FFB\u8BD1\u957F\u5EA6 (1-100)",en:"Min Translate Length (1-100)"},max_translate_length:{zh:"\u6700\u5927\u7FFB\u8BD1\u957F\u5EA6 (100-10000)",en:"Max Translate Length (100-10000)"},num_of_newline_characters:{zh:"\u6362\u884C\u5B57\u7B26\u6570 (1-1000)",en:"Number of Newline Characters (1-1000)"},translate_service:{zh:"\u7FFB\u8BD1\u670D\u52A1",en:"Translate Service"},from_lang:{zh:"\u539F\u6587\u8BED\u8A00",en:"Source Language"},to_lang:{zh:"\u76EE\u6807\u8BED\u8A00",en:"Target Language"},text_style:{zh:"\u6587\u5B57\u6837\u5F0F",en:"Text Style"},text_style_alt:{zh:"\u6587\u5B57\u6837\u5F0F (Alt+C)",en:"Text Style (Alt+C)"},bg_color:{zh:"\u6837\u5F0F\u989C\u8272",en:"Style Color"},remain_unchanged:{zh:"\u4FDD\u7559\u4E0D\u53D8",en:"Remain Unchanged"},google_api:{zh:"\u8C37\u6B4C\u7FFB\u8BD1\u63A5\u53E3",en:"Google Translate API"},default_selector:{zh:"\u9ED8\u8BA4\u9009\u62E9\u5668",en:"Default selector"},selector_rules:{zh:"\u9009\u62E9\u5668\u89C4\u5219",en:"Selector Rules"},save:{zh:"\u4FDD\u5B58",en:"Save"},edit:{zh:"\u7F16\u8F91",en:"Edit"},cancel:{zh:"\u53D6\u6D88",en:"Cancel"},delete:{zh:"\u5220\u9664",en:"Delete"},reset:{zh:"\u91CD\u7F6E",en:"Reset"},add:{zh:"\u6DFB\u52A0",en:"Add"},inject_rules:{zh:"\u6CE8\u5165\u8BA2\u9605\u89C4\u5219",en:"Inject Subscribe Rules"},personal_rules:{zh:"\u4E2A\u4EBA\u89C4\u5219",en:"Personal Rules"},subscribe_rules:{zh:"\u8BA2\u9605\u89C4\u5219",en:"Subscribe Rules"},overwrite_subscribe_rules:{zh:"\u8986\u5199\u8BA2\u9605\u89C4\u5219",en:"Overwrite Subscribe Rules"},subscribe_url:{zh:"\u8BA2\u9605\u5730\u5740",en:"Subscribe URL"},rules_warn_1:{zh:"1\u3001\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u4E00\u76F4\u751F\u6548\uFF0C\u9009\u62E9\u201C\u6CE8\u5165\u8BA2\u9605\u89C4\u5219\u201D\u540E\uFF0C\u201C\u8BA2\u9605\u89C4\u5219\u201D\u624D\u4F1A\u751F\u6548\u3002",en:"1. The \"Personal Rules\" are always in effect. After selecting \"Inject Subscription Rules\", the \"Subscription Rules\" will take effect."},rules_warn_2:{zh:"2\u3001\u201C\u8BA2\u9605\u89C4\u5219\u201D\u7684\u6CE8\u5165\u4F4D\u7F6E\u662F\u5012\u6570\u7B2C\u4E8C\u7684\u4F4D\u7F6E\uFF0C\u56E0\u6B64\u9664\u5168\u5C40\u89C4\u5219(*)\u5916\uFF0C\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u4F18\u5148\u7EA7\u6BD4\u201C\u8BA2\u9605\u89C4\u5219\u201D\u9AD8\uFF0C\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u586B\u5199\u540C\u6837\u7684\u7F51\u5740\u4F1A\u8986\u76D6\u201D\u8BA2\u9605\u89C4\u5219\u201C\u7684\u6761\u76EE\u3002",en:"2. The injection position of \"Subscription Rules\" is the penultimate position. Therefore, except for the global rules (*), the priority of \"Personal Rules\" is higher than that of \"Subscription Rules\". Filling in the same url in \"Personal Rules\" will overwrite \"Subscription Rules\" entry."},sync_warn:{zh:"\u5982\u679C\u670D\u52A1\u5668\u5B58\u5728\u5176\u4ED6\u5BA2\u6237\u7AEF\u540C\u6B65\u7684\u6570\u636E\uFF0C\u7B2C\u4E00\u6B21\u540C\u6B65\u5C06\u76F4\u63A5\u8986\u76D6\u672C\u5730\u914D\u7F6E\uFF0C\u540E\u9762\u5219\u6839\u636E\u4FEE\u6539\u65F6\u95F4\uFF0C\u65B0\u7684\u8986\u76D6\u65E7\u7684\u3002",en:"If the server has data synchronized by other clients, the first synchronization will directly overwrite the local configuration, and later, according to the modification time, the new one will overwrite the old one."},about_sync_api:{zh:"\u67E5\u770B\u5173\u4E8E\u6570\u636E\u540C\u6B65\u63A5\u53E3\u90E8\u7F72",en:"View About Data Synchronization Interface Deployment"},about_api_proxy:{zh:"\u67E5\u770B\u81EA\u5EFA\u4E00\u4E2A\u7FFB\u8BD1\u63A5\u53E3\u4EE3\u7406",en:"Check out the self-built translation interface proxy"},style_none:{zh:"\u65E0",en:"None"},under_line:{zh:"\u4E0B\u5212\u76F4\u7EBF",en:"Underline"},dot_line:{zh:"\u4E0B\u5212\u70B9\u72B6\u7EBF",en:"Dotted Underline"},dash_line:{zh:"\u4E0B\u5212\u865A\u7EBF",en:"Dashed Underline"},wavy_line:{zh:"\u4E0B\u5212\u6CE2\u6D6A\u7EBF",en:"Wavy Underline"},fuzzy:{zh:"\u6A21\u7CCA",en:"Fuzzy"},highlight:{zh:"\u9AD8\u4EAE",en:"Highlight"},diy_style:{zh:"\u81EA\u5B9A\u4E49\u6837\u5F0F",en:"Custom Style"},diy_style_helper:{zh:"\u9075\u5FAA\u201Cstyled-components\u201D\u7684\u8BED\u6CD5",en:"Follow the syntax of \"styled-components\""},setting:{zh:"\u8BBE\u7F6E",en:"Setting"},pattern:{zh:"\u5339\u914D\u7F51\u5740",en:"URL pattern"},pattern_helper:{zh:"1\u3001\u652F\u6301\u661F\u53F7(*)\u901A\u914D\u7B26\u30022\u3001\u591A\u4E2AURL\u652F\u6301\u82F1\u6587\u9017\u53F7\u201C,\u201D\u5206\u9694\u3002",en:"1. The asterisk (*) wildcard is supported. 2. Multiple URLs can be separated by English commas \",\"."},selector_helper:{zh:"1\u3001\u9075\u5FAACSS\u9009\u62E9\u5668\u8BED\u6CD5\u30022\u3001\u7559\u7A7A\u8868\u793A\u91C7\u7528\u5168\u5C40\u8BBE\u7F6E\u30023\u3001\u591A\u4E2ACSS\u9009\u62E9\u5668\u4E4B\u95F4\u7528\u201C;\u201D\u9694\u5F00\u30024\u3001\u201Cshadow root\u201D\u9009\u62E9\u5668\u548C\u5185\u90E8\u9009\u62E9\u5668\u7528\u201C>>>\u201D\u9694\u5F00\u3002",en:"1. Follow CSS selector syntax. 2. Leave blank to adopt the global setting. 3. Separate multiple CSS selectors with \";\". 4. The \"shadow root\" selector and the internal selector are separated by \">>>\"."},translate_switch:{zh:"\u5F00\u542F\u7FFB\u8BD1",en:"Translate Switch"},default_enabled:{zh:"\u9ED8\u8BA4\u5F00\u542F",en:"Enabled"},default_disabled:{zh:"\u9ED8\u8BA4\u5173\u95ED",en:"Disabled"},selector:{zh:"\u9009\u62E9\u5668",en:"Selector"},import:{zh:"\u5BFC\u5165",en:"Import"},export:{zh:"\u5BFC\u51FA",en:"Export"},error_cant_be_blank:{zh:"\u4E0D\u80FD\u4E3A\u7A7A",en:"Can not be blank"},error_duplicate_values:{zh:"\u5B58\u5728\u91CD\u590D\u7684\u503C",en:"There are duplicate values"},error_wrong_file_type:{zh:"\u9519\u8BEF\u7684\u6587\u4EF6\u7C7B\u578B",en:"Wrong file type"},error_fetch_url:{zh:"\u8BF7\u68C0\u67E5url\u5730\u5740\u662F\u5426\u6B63\u786E\u6216\u7A0D\u540E\u518D\u8BD5\u3002",en:"Please check if the url address is correct or try again later."},deepl_api:{zh:"DeepL \u63A5\u53E3",en:"DeepL API"},deepl_key:{zh:"DeepL \u5BC6\u94A5",en:"DeepL Key"},openai_api:{zh:"OpenAI \u63A5\u53E3",en:"OpenAI API"},openai_key:{zh:"OpenAI \u5BC6\u94A5",en:"OpenAI Key"},openai_model:{zh:"OpenAI \u6A21\u578B",en:"OpenAI Model"},openai_prompt:{zh:"OpenAI \u63D0\u793A\u8BCD",en:"OpenAI Prompt"},if_clear_cache:{zh:"\u662F\u5426\u6E05\u9664\u7F13\u5B58 (\u4EC5\u7528\u4E8E\u6269\u5C55)",en:"Whether clear cache (only for extension)"},clear_cache_never:{zh:"\u4E0D\u6E05\u9664\u7F13\u5B58",en:"Never clear cache"},clear_cache_restart:{zh:"\u91CD\u542F\u6D4F\u89C8\u5668\u65F6\u6E05\u9664\u7F13\u5B58",en:"Clear cache when restarting browser"},data_sync_url:{zh:"\u6570\u636E\u540C\u6B65\u63A5\u53E3",en:"Data Sync API"},data_sync_key:{zh:"\u6570\u636E\u540C\u6B65\u5BC6\u94A5",en:"Data Sync Key"},data_sync_test:{zh:"\u6570\u636E\u540C\u6B65\u6D4B\u8BD5",en:"Data Sync Test"},sync_success:{zh:"\u540C\u6B65\u6210\u529F\uFF01",en:"Sync Success"},sync_failed:{zh:"\u540C\u6B65\u5931\u8D25\uFF01",en:"Sync Error"},error_got_some_wrong:{zh:"\u62B1\u6B49\uFF0C\u51FA\u9519\u4E86\uFF01",en:"Sorry, something went wrong!"},error_sync_setting:{zh:"\u60A8\u7684\u540C\u6B65\u8BBE\u7F6E\u672A\u586B\u5199\uFF0C\u65E0\u6CD5\u5728\u7EBF\u5206\u4EAB\u3002",en:"Your sync settings are missing and cannot be shared online."},click_test:{zh:"\u70B9\u51FB\u6D4B\u8BD5",en:"Click Test"},test_success:{zh:"\u6D4B\u8BD5\u6210\u529F",en:"Test success"},test_failed:{zh:"\u6D4B\u8BD5\u5931\u8D25",en:"Test failed"},clear_all_cache_now:{zh:"\u7ACB\u5373\u6E05\u9664\u5168\u90E8\u7F13\u5B58",en:"Clear all cache now"},clear_cache:{zh:"\u6E05\u9664\u7F13\u5B58",en:"Clear Cache"},clear_success:{zh:"\u6E05\u9664\u6210\u529F",en:"Clear success"},clear_failed:{zh:"\u6E05\u9664\u5931\u8D25",en:"Clear failed"}};
+var UI_LANGS=(/* unused pure expression or super */ null && ([["en","English"],["zh","中文"]]));var I18N={app_name:{zh:"\u7B80\u7EA6\u7FFB\u8BD1",en:"KISS Translator"},translate:{zh:"\u7FFB\u8BD1",en:"Translate"},translate_alt:{zh:"\u7FFB\u8BD1 (Alt+Q)",en:"Translate (Alt+Q)"},basic_setting:{zh:"\u57FA\u672C\u8BBE\u7F6E",en:"Basic Setting"},rules_setting:{zh:"\u89C4\u5219\u8BBE\u7F6E",en:"Rules Setting"},sync_setting:{zh:"\u540C\u6B65\u8BBE\u7F6E",en:"Sync Setting"},about:{zh:"\u5173\u4E8E",en:"About"},about_md:{zh:"README.md",en:"README.en.md"},about_md_local:{zh:"\u8BF7 [\u70B9\u51FB\u8FD9\u91CC](".concat("https://github.com/fishjar/kiss-translator",") \u67E5\u770B\u8BE6\u60C5\u3002"),en:"Please [click here](".concat("https://github.com/fishjar/kiss-translator",") for details.")},ui_lang:{zh:"\u754C\u9762\u8BED\u8A00",en:"Interface Language"},fetch_limit:{zh:"\u6700\u5927\u8BF7\u6C42\u6570\u91CF (1-100)",en:"Maximum Number Of Request (1-100)"},fetch_interval:{zh:"\u8BF7\u6C42\u95F4\u9694\u65F6\u95F4 (0-5000ms)",en:"Request Interval (0-5000ms)"},min_translate_length:{zh:"\u6700\u5C0F\u7FFB\u8BD1\u957F\u5EA6 (1-100)",en:"Min Translate Length (1-100)"},max_translate_length:{zh:"\u6700\u5927\u7FFB\u8BD1\u957F\u5EA6 (100-10000)",en:"Max Translate Length (100-10000)"},num_of_newline_characters:{zh:"\u6362\u884C\u5B57\u7B26\u6570 (1-1000)",en:"Number of Newline Characters (1-1000)"},translate_service:{zh:"\u7FFB\u8BD1\u670D\u52A1",en:"Translate Service"},from_lang:{zh:"\u539F\u6587\u8BED\u8A00",en:"Source Language"},to_lang:{zh:"\u76EE\u6807\u8BED\u8A00",en:"Target Language"},text_style:{zh:"\u6587\u5B57\u6837\u5F0F",en:"Text Style"},text_style_alt:{zh:"\u6587\u5B57\u6837\u5F0F (Alt+C)",en:"Text Style (Alt+C)"},bg_color:{zh:"\u6837\u5F0F\u989C\u8272",en:"Style Color"},remain_unchanged:{zh:"\u4FDD\u7559\u4E0D\u53D8",en:"Remain Unchanged"},google_api:{zh:"\u8C37\u6B4C\u7FFB\u8BD1\u63A5\u53E3",en:"Google Translate API"},default_selector:{zh:"\u9ED8\u8BA4\u9009\u62E9\u5668",en:"Default selector"},selector_rules:{zh:"\u9009\u62E9\u5668\u89C4\u5219",en:"Selector Rules"},save:{zh:"\u4FDD\u5B58",en:"Save"},edit:{zh:"\u7F16\u8F91",en:"Edit"},cancel:{zh:"\u53D6\u6D88",en:"Cancel"},delete:{zh:"\u5220\u9664",en:"Delete"},reset:{zh:"\u91CD\u7F6E",en:"Reset"},add:{zh:"\u6DFB\u52A0",en:"Add"},inject_rules:{zh:"\u6CE8\u5165\u8BA2\u9605\u89C4\u5219",en:"Inject Subscribe Rules"},personal_rules:{zh:"\u4E2A\u4EBA\u89C4\u5219",en:"Personal Rules"},subscribe_rules:{zh:"\u8BA2\u9605\u89C4\u5219",en:"Subscribe Rules"},overwrite_subscribe_rules:{zh:"\u8986\u5199\u8BA2\u9605\u89C4\u5219",en:"Overwrite Subscribe Rules"},subscribe_url:{zh:"\u8BA2\u9605\u5730\u5740",en:"Subscribe URL"},rules_warn_1:{zh:"1\u3001\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u4E00\u76F4\u751F\u6548\uFF0C\u9009\u62E9\u201C\u6CE8\u5165\u8BA2\u9605\u89C4\u5219\u201D\u540E\uFF0C\u201C\u8BA2\u9605\u89C4\u5219\u201D\u624D\u4F1A\u751F\u6548\u3002",en:"1. The \"Personal Rules\" are always in effect. After selecting \"Inject Subscription Rules\", the \"Subscription Rules\" will take effect."},rules_warn_2:{zh:"2\u3001\u201C\u8BA2\u9605\u89C4\u5219\u201D\u7684\u6CE8\u5165\u4F4D\u7F6E\u662F\u5012\u6570\u7B2C\u4E8C\u7684\u4F4D\u7F6E\uFF0C\u56E0\u6B64\u9664\u5168\u5C40\u89C4\u5219(*)\u5916\uFF0C\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u4F18\u5148\u7EA7\u6BD4\u201C\u8BA2\u9605\u89C4\u5219\u201D\u9AD8\uFF0C\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u586B\u5199\u540C\u6837\u7684\u7F51\u5740\u4F1A\u8986\u76D6\u201D\u8BA2\u9605\u89C4\u5219\u201C\u7684\u6761\u76EE\u3002",en:"2. The injection position of \"Subscription Rules\" is the penultimate position. Therefore, except for the global rules (*), the priority of \"Personal Rules\" is higher than that of \"Subscription Rules\". Filling in the same url in \"Personal Rules\" will overwrite \"Subscription Rules\" entry."},sync_warn:{zh:"\u5982\u679C\u670D\u52A1\u5668\u5B58\u5728\u5176\u4ED6\u5BA2\u6237\u7AEF\u540C\u6B65\u7684\u6570\u636E\uFF0C\u7B2C\u4E00\u6B21\u540C\u6B65\u5C06\u76F4\u63A5\u8986\u76D6\u672C\u5730\u914D\u7F6E\uFF0C\u540E\u9762\u5219\u6839\u636E\u4FEE\u6539\u65F6\u95F4\uFF0C\u65B0\u7684\u8986\u76D6\u65E7\u7684\u3002",en:"If the server has data synchronized by other clients, the first synchronization will directly overwrite the local configuration, and later, according to the modification time, the new one will overwrite the old one."},about_sync_api:{zh:"\u67E5\u770B\u5173\u4E8E\u6570\u636E\u540C\u6B65\u63A5\u53E3\u90E8\u7F72",en:"View About Data Synchronization Interface Deployment"},about_api_proxy:{zh:"\u67E5\u770B\u81EA\u5EFA\u4E00\u4E2A\u7FFB\u8BD1\u63A5\u53E3\u4EE3\u7406",en:"Check out the self-built translation interface proxy"},style_none:{zh:"\u65E0",en:"None"},under_line:{zh:"\u4E0B\u5212\u76F4\u7EBF",en:"Underline"},dot_line:{zh:"\u4E0B\u5212\u70B9\u72B6\u7EBF",en:"Dotted Underline"},dash_line:{zh:"\u4E0B\u5212\u865A\u7EBF",en:"Dashed Underline"},wavy_line:{zh:"\u4E0B\u5212\u6CE2\u6D6A\u7EBF",en:"Wavy Underline"},fuzzy:{zh:"\u6A21\u7CCA",en:"Fuzzy"},highlight:{zh:"\u9AD8\u4EAE",en:"Highlight"},diy_style:{zh:"\u81EA\u5B9A\u4E49\u6837\u5F0F",en:"Custom Style"},diy_style_helper:{zh:"\u9075\u5FAA\u201Cstyled-components\u201D\u7684\u8BED\u6CD5",en:"Follow the syntax of \"styled-components\""},setting:{zh:"\u8BBE\u7F6E",en:"Setting"},pattern:{zh:"\u5339\u914D\u7F51\u5740",en:"URL pattern"},pattern_helper:{zh:"1\u3001\u652F\u6301\u661F\u53F7(*)\u901A\u914D\u7B26\u30022\u3001\u591A\u4E2AURL\u652F\u6301\u82F1\u6587\u9017\u53F7\u201C,\u201D\u5206\u9694\u3002",en:"1. The asterisk (*) wildcard is supported. 2. Multiple URLs can be separated by English commas \",\"."},selector_helper:{zh:"1\u3001\u9075\u5FAACSS\u9009\u62E9\u5668\u8BED\u6CD5\u30022\u3001\u7559\u7A7A\u8868\u793A\u91C7\u7528\u5168\u5C40\u8BBE\u7F6E\u30023\u3001\u591A\u4E2ACSS\u9009\u62E9\u5668\u4E4B\u95F4\u7528\u201C;\u201D\u9694\u5F00\u30024\u3001\u201Cshadow root\u201D\u9009\u62E9\u5668\u548C\u5185\u90E8\u9009\u62E9\u5668\u7528\u201C>>>\u201D\u9694\u5F00\u3002",en:"1. Follow CSS selector syntax. 2. Leave blank to adopt the global setting. 3. Separate multiple CSS selectors with \";\". 4. The \"shadow root\" selector and the internal selector are separated by \">>>\"."},translate_switch:{zh:"\u5F00\u542F\u7FFB\u8BD1",en:"Translate Switch"},default_enabled:{zh:"\u9ED8\u8BA4\u5F00\u542F",en:"Enabled"},default_disabled:{zh:"\u9ED8\u8BA4\u5173\u95ED",en:"Disabled"},selector:{zh:"\u9009\u62E9\u5668",en:"Selector"},import:{zh:"\u5BFC\u5165",en:"Import"},export:{zh:"\u5BFC\u51FA",en:"Export"},error_cant_be_blank:{zh:"\u4E0D\u80FD\u4E3A\u7A7A",en:"Can not be blank"},error_duplicate_values:{zh:"\u5B58\u5728\u91CD\u590D\u7684\u503C",en:"There are duplicate values"},error_wrong_file_type:{zh:"\u9519\u8BEF\u7684\u6587\u4EF6\u7C7B\u578B",en:"Wrong file type"},error_fetch_url:{zh:"\u8BF7\u68C0\u67E5url\u5730\u5740\u662F\u5426\u6B63\u786E\u6216\u7A0D\u540E\u518D\u8BD5\u3002",en:"Please check if the url address is correct or try again later."},deepl_api:{zh:"DeepL \u63A5\u53E3",en:"DeepL API"},deepl_key:{zh:"DeepL \u5BC6\u94A5",en:"DeepL Key"},openai_api:{zh:"OpenAI \u63A5\u53E3",en:"OpenAI API"},openai_key:{zh:"OpenAI \u5BC6\u94A5",en:"OpenAI Key"},openai_model:{zh:"OpenAI \u6A21\u578B",en:"OpenAI Model"},openai_prompt:{zh:"OpenAI \u63D0\u793A\u8BCD",en:"OpenAI Prompt"},if_clear_cache:{zh:"\u662F\u5426\u6E05\u9664\u7F13\u5B58 (\u4EC5\u7528\u4E8E\u6269\u5C55)",en:"Whether clear cache (only for extension)"},clear_cache_never:{zh:"\u4E0D\u6E05\u9664\u7F13\u5B58",en:"Never clear cache"},clear_cache_restart:{zh:"\u91CD\u542F\u6D4F\u89C8\u5668\u65F6\u6E05\u9664\u7F13\u5B58",en:"Clear cache when restarting browser"},data_sync_url:{zh:"\u6570\u636E\u540C\u6B65\u63A5\u53E3",en:"Data Sync API"},data_sync_key:{zh:"\u6570\u636E\u540C\u6B65\u5BC6\u94A5",en:"Data Sync Key"},data_sync_test:{zh:"\u6570\u636E\u540C\u6B65\u6D4B\u8BD5",en:"Data Sync Test"},sync_success:{zh:"\u540C\u6B65\u6210\u529F\uFF01",en:"Sync Success"},sync_failed:{zh:"\u540C\u6B65\u5931\u8D25\uFF01",en:"Sync Error"},error_got_some_wrong:{zh:"\u62B1\u6B49\uFF0C\u51FA\u9519\u4E86\uFF01",en:"Sorry, something went wrong!"},error_sync_setting:{zh:"\u60A8\u7684\u540C\u6B65\u8BBE\u7F6E\u672A\u586B\u5199\uFF0C\u65E0\u6CD5\u5728\u7EBF\u5206\u4EAB\u3002",en:"Your sync settings are missing and cannot be shared online."},click_test:{zh:"\u70B9\u51FB\u6D4B\u8BD5",en:"Click Test"},test_success:{zh:"\u6D4B\u8BD5\u6210\u529F",en:"Test success"},test_failed:{zh:"\u6D4B\u8BD5\u5931\u8D25",en:"Test failed"},clear_all_cache_now:{zh:"\u7ACB\u5373\u6E05\u9664\u5168\u90E8\u7F13\u5B58",en:"Clear all cache now"},clear_cache:{zh:"\u6E05\u9664\u7F13\u5B58",en:"Clear Cache"},clear_success:{zh:"\u6E05\u9664\u6210\u529F",en:"Clear success"},clear_failed:{zh:"\u6E05\u9664\u5931\u8D25",en:"Clear failed"},share:{zh:"\u5206\u4EAB",en:"Share"},help:{zh:"\u6C42\u52A9",en:"Help"}};
 ;// CONCATENATED MODULE: ./src/config/index.js
-var _OPT_LANGS_SPECIAL;var STOKEY_MSAUTH="".concat(APP_NAME,"_msauth");var config_STOKEY_SETTING="".concat(APP_NAME,"_setting");var config_STOKEY_RULES="".concat(APP_NAME,"_rules");var config_STOKEY_SYNC="".concat(APP_NAME,"_sync");var STOKEY_FAB="".concat(APP_NAME,"_fab");var config_STOKEY_RULESCACHE_PREFIX="".concat(APP_NAME,"_rulescache_");var CMD_TOGGLE_TRANSLATE="toggleTranslate";var CMD_TOGGLE_STYLE="toggleStyle";var CLIENT_WEB="web";var CLIENT_CHROME="chrome";var CLIENT_EDGE="edge";var CLIENT_FIREFOX="firefox";var CLIENT_USERSCRIPT="userscript";var CLIENT_EXTS=[CLIENT_CHROME,CLIENT_EDGE,CLIENT_FIREFOX];var config_KV_RULES_KEY="KT_RULES";var config_KV_RULES_SHARE_KEY="KT_RULES_SHARE";var KV_SETTING_KEY="KT_SETTING";var KV_SALT_SYNC="KISS-Translator-SYNC";var config_KV_SALT_SHARE="KISS-Translator-SHARE";var config_CACHE_NAME="".concat(APP_NAME,"_cache");var MSG_FETCH="fetch";var MSG_FETCH_LIMIT="fetch_limit";var MSG_FETCH_CLEAR="fetch_clear";var MSG_TRANS_TOGGLE="trans_toggle";var MSG_TRANS_TOGGLE_STYLE="trans_toggle_style";var MSG_TRANS_GETRULE="trans_getrule";var MSG_TRANS_PUTRULE="trans_putrule";var MSG_TRANS_CURRULE="trans_currule";var THEME_LIGHT="light";var THEME_DARK="dark";var URL_KISS_WORKER="https://github.com/fishjar/kiss-worker";var URL_KISS_PROXY="https://github.com/fishjar/kiss-proxy";var config_URL_RAW_PREFIX="https://raw.githubusercontent.com/fishjar/kiss-translator/master";var URL_MICROSOFT_AUTH="https://edge.microsoft.com/translate/auth";var URL_MICROSOFT_TRANS="https://api-edge.cognitive.microsofttranslator.com/translate";var OPT_TRANS_GOOGLE="Google";var OPT_TRANS_MICROSOFT="Microsoft";var OPT_TRANS_DEEPL="DeepL";var OPT_TRANS_OPENAI="OpenAI";var OPT_TRANS_ALL=[OPT_TRANS_GOOGLE,OPT_TRANS_MICROSOFT,OPT_TRANS_DEEPL,OPT_TRANS_OPENAI];var OPT_LANGS_TO=[["en","English - English"],["zh-CN","Simplified Chinese - 简体中文"],["zh-TW","Traditional Chinese - 繁體中文"],["ar","Arabic - العربية"],["bg","Bulgarian - Български"],["ca","Catalan - Català"],["hr","Croatian - Hrvatski"],["cs","Czech - Čeština"],["da","Danish - Dansk"],["nl","Dutch - Nederlands"],["fi","Finnish - Suomi"],["fr","French - Français"],["de","German - Deutsch"],["el","Greek - Ελληνικά"],["hi","Hindi - हिन्दी"],["hu","Hungarian - Magyar"],["id","Indonesian - Indonesia"],["it","Italian - Italiano"],["ja","Japanese - 日本語"],["ko","Korean - 한국어"],["ms","Malay - Melayu"],["mt","Maltese - Malti"],["nb","Norwegian - Norsk Bokmål"],["pl","Polish - Polski"],["pt","Portuguese - Português"],["ro","Romanian - Română"],["ru","Russian - Русский"],["sk","Slovak - Slovenčina"],["sl","Slovenian - Slovenščina"],["es","Spanish - Español"],["sv","Swedish - Svenska"],["ta","Tamil - தமிழ்"],["te","Telugu - తెలుగు"],["th","Thai - ไทย"],["tr","Turkish - Türkçe"],["uk","Ukrainian - Українська"],["vi","Vietnamese - Tiếng Việt"]];var OPT_LANGS_FROM=[["auto","Auto-detect"]].concat(OPT_LANGS_TO);var OPT_LANGS_SPECIAL=(_OPT_LANGS_SPECIAL={},(0,defineProperty/* default */.Z)(_OPT_LANGS_SPECIAL,OPT_TRANS_MICROSOFT,new Map([["auto",""],["zh-CN","zh-Hans"],["zh-TW","zh-Hant"]])),(0,defineProperty/* default */.Z)(_OPT_LANGS_SPECIAL,OPT_TRANS_DEEPL,new Map([].concat((0,toConsumableArray/* default */.Z)(OPT_LANGS_FROM.map(function(_ref){var _ref2=(0,slicedToArray/* default */.Z)(_ref,1),key=_ref2[0];return[key,key.toUpperCase()];})),[["auto",""],["zh-CN","ZH"],["zh-TW","ZH"]]))),(0,defineProperty/* default */.Z)(_OPT_LANGS_SPECIAL,OPT_TRANS_OPENAI,new Map(OPT_LANGS_FROM.map(function(_ref3){var _ref4=(0,slicedToArray/* default */.Z)(_ref3,2),key=_ref4[0],val=_ref4[1];return[key,val.split(" - ")[0]];}))),_OPT_LANGS_SPECIAL);var OPT_STYLE_NONE="style_none";// 无
+var _OPT_LANGS_SPECIAL;var STOKEY_MSAUTH="".concat(APP_NAME,"_msauth");var config_STOKEY_SETTING="".concat(APP_NAME,"_setting");var config_STOKEY_RULES="".concat(APP_NAME,"_rules");var config_STOKEY_SYNC="".concat(APP_NAME,"_sync");var STOKEY_FAB="".concat(APP_NAME,"_fab");var config_STOKEY_RULESCACHE_PREFIX="".concat(APP_NAME,"_rulescache_");var CMD_TOGGLE_TRANSLATE="toggleTranslate";var CMD_TOGGLE_STYLE="toggleStyle";var CLIENT_WEB="web";var CLIENT_CHROME="chrome";var CLIENT_EDGE="edge";var CLIENT_FIREFOX="firefox";var CLIENT_USERSCRIPT="userscript";var CLIENT_EXTS=[CLIENT_CHROME,CLIENT_EDGE,CLIENT_FIREFOX];var config_KV_RULES_KEY="KT_RULES";var config_KV_RULES_SHARE_KEY="KT_RULES_SHARE";var KV_SETTING_KEY="KT_SETTING";var KV_SALT_SYNC="KISS-Translator-SYNC";var config_KV_SALT_SHARE="KISS-Translator-SHARE";var config_CACHE_NAME="".concat(APP_NAME,"_cache");var MSG_FETCH="fetch";var MSG_FETCH_LIMIT="fetch_limit";var MSG_FETCH_CLEAR="fetch_clear";var MSG_TRANS_TOGGLE="trans_toggle";var MSG_TRANS_TOGGLE_STYLE="trans_toggle_style";var MSG_TRANS_GETRULE="trans_getrule";var MSG_TRANS_PUTRULE="trans_putrule";var MSG_TRANS_CURRULE="trans_currule";var THEME_LIGHT="light";var THEME_DARK="dark";var URL_KISS_WORKER="https://github.com/fishjar/kiss-worker";var URL_KISS_PROXY="https://github.com/fishjar/kiss-proxy";var URL_KISS_RULES="https://github.com/fishjar/kiss-rules";var URL_KISS_RULES_NEW_ISSUE="https://github.com/fishjar/kiss-rules/issues/new";var config_URL_RAW_PREFIX="https://raw.githubusercontent.com/fishjar/kiss-translator/master";var URL_MICROSOFT_AUTH="https://edge.microsoft.com/translate/auth";var URL_MICROSOFT_TRANS="https://api-edge.cognitive.microsofttranslator.com/translate";var OPT_TRANS_GOOGLE="Google";var OPT_TRANS_MICROSOFT="Microsoft";var OPT_TRANS_DEEPL="DeepL";var OPT_TRANS_OPENAI="OpenAI";var OPT_TRANS_ALL=[OPT_TRANS_GOOGLE,OPT_TRANS_MICROSOFT,OPT_TRANS_DEEPL,OPT_TRANS_OPENAI];var OPT_LANGS_TO=[["en","English - English"],["zh-CN","Simplified Chinese - 简体中文"],["zh-TW","Traditional Chinese - 繁體中文"],["ar","Arabic - العربية"],["bg","Bulgarian - Български"],["ca","Catalan - Català"],["hr","Croatian - Hrvatski"],["cs","Czech - Čeština"],["da","Danish - Dansk"],["nl","Dutch - Nederlands"],["fi","Finnish - Suomi"],["fr","French - Français"],["de","German - Deutsch"],["el","Greek - Ελληνικά"],["hi","Hindi - हिन्दी"],["hu","Hungarian - Magyar"],["id","Indonesian - Indonesia"],["it","Italian - Italiano"],["ja","Japanese - 日本語"],["ko","Korean - 한국어"],["ms","Malay - Melayu"],["mt","Maltese - Malti"],["nb","Norwegian - Norsk Bokmål"],["pl","Polish - Polski"],["pt","Portuguese - Português"],["ro","Romanian - Română"],["ru","Russian - Русский"],["sk","Slovak - Slovenčina"],["sl","Slovenian - Slovenščina"],["es","Spanish - Español"],["sv","Swedish - Svenska"],["ta","Tamil - தமிழ்"],["te","Telugu - తెలుగు"],["th","Thai - ไทย"],["tr","Turkish - Türkçe"],["uk","Ukrainian - Українська"],["vi","Vietnamese - Tiếng Việt"]];var OPT_LANGS_FROM=[["auto","Auto-detect"]].concat(OPT_LANGS_TO);var OPT_LANGS_SPECIAL=(_OPT_LANGS_SPECIAL={},(0,defineProperty/* default */.Z)(_OPT_LANGS_SPECIAL,OPT_TRANS_MICROSOFT,new Map([["auto",""],["zh-CN","zh-Hans"],["zh-TW","zh-Hant"]])),(0,defineProperty/* default */.Z)(_OPT_LANGS_SPECIAL,OPT_TRANS_DEEPL,new Map([].concat((0,toConsumableArray/* default */.Z)(OPT_LANGS_FROM.map(function(_ref){var _ref2=(0,slicedToArray/* default */.Z)(_ref,1),key=_ref2[0];return[key,key.toUpperCase()];})),[["auto",""],["zh-CN","ZH"],["zh-TW","ZH"]]))),(0,defineProperty/* default */.Z)(_OPT_LANGS_SPECIAL,OPT_TRANS_OPENAI,new Map(OPT_LANGS_FROM.map(function(_ref3){var _ref4=(0,slicedToArray/* default */.Z)(_ref3,2),key=_ref4[0],val=_ref4[1];return[key,val.split(" - ")[0]];}))),_OPT_LANGS_SPECIAL);var OPT_STYLE_NONE="style_none";// 无
 var OPT_STYLE_LINE="under_line";// 下划线
 var OPT_STYLE_DOTLINE="dot_line";// 点状线
 var OPT_STYLE_DASHLINE="dash_line";// 虚线
@@ -19585,7 +19537,7 @@ var PROMPT_PLACE_TO="{{to}}";// 占位符
 var DEFAULT_COLOR="#209CEE";// 默认高亮背景色/线条颜色
 // 全局规则
 var GLOBLA_RULE={pattern:"*",selector:DEFAULT_SELECTOR,translator:OPT_TRANS_MICROSOFT,fromLang:"auto",toLang:"zh-CN",textStyle:OPT_STYLE_DASHLINE,transOpen:"false",bgColor:"",textDiyStyle:""};// 订阅列表
-var DEFAULT_SUBRULES_LIST=[{url:"https://fishjar.github.io/kiss-translator/kiss-translator-rules.json",selected:true},{url:"https://kiss-translator.rayjar.com/kiss-translator-rules.json",selected:false}];var TRANS_MIN_LENGTH=5;// 最短翻译长度
+var DEFAULT_SUBRULES_LIST=[{url:"https://fishjar.github.io/kiss-rules/kiss-rules.json",selected:false},{url:"https://fishjar.github.io/kiss-rules/kiss-rules-on.json",selected:true},{url:"https://fishjar.github.io/kiss-rules/kiss-rules-off.json",selected:false}];var TRANS_MIN_LENGTH=5;// 最短翻译长度
 var TRANS_MAX_LENGTH=5000;// 最长翻译长度
 var TRANS_NEWLINE_LENGTH=40;// 换行字符数
 var config_DEFAULT_SETTING={darkMode:false,// 深色模式
@@ -19628,7 +19580,7 @@ function set(_x,_x2){return _set.apply(this,arguments);}function _set(){_set=asy
  * ms auth
  */var getMsauth=function getMsauth(){return getObj(STOKEY_MSAUTH);};var setMsauth=function setMsauth(val){return setObj(STOKEY_MSAUTH,val);};/**
  * 存入默认数据
- */var tryInitDefaultData=/*#__PURE__*/(/* unused pure expression or super */ null && (function(){var _ref6=_asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee6(){return _regeneratorRuntime().wrap(function _callee6$(_context6){while(1)switch(_context6.prev=_context6.next){case 0:_context6.prev=0;_context6.next=3;return trySetObj(STOKEY_SETTING,DEFAULT_SETTING);case 3:_context6.next=5;return trySetObj(STOKEY_RULES,DEFAULT_RULES);case 5:_context6.next=7;return trySetObj(STOKEY_SYNC,DEFAULT_SYNC);case 7:_context6.next=9;return trySetObj("".concat(STOKEY_RULESCACHE_PREFIX).concat("https://fishjar.github.io/kiss-translator/kiss-translator-rules.json"),BUILTIN_RULES);case 9:_context6.next=14;break;case 11:_context6.prev=11;_context6.t0=_context6["catch"](0);console.log("[init default]",_context6.t0);case 14:case"end":return _context6.stop();}},_callee6,null,[[0,11]]);}));return function tryInitDefaultData(){return _ref6.apply(this,arguments);};}()));
+ */var tryInitDefaultData=/*#__PURE__*/(/* unused pure expression or super */ null && (function(){var _ref6=_asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee6(){return _regeneratorRuntime().wrap(function _callee6$(_context6){while(1)switch(_context6.prev=_context6.next){case 0:_context6.prev=0;_context6.next=3;return trySetObj(STOKEY_SETTING,DEFAULT_SETTING);case 3:_context6.next=5;return trySetObj(STOKEY_RULES,DEFAULT_RULES);case 5:_context6.next=7;return trySetObj(STOKEY_SYNC,DEFAULT_SYNC);case 7:_context6.next=9;return trySetObj("".concat(STOKEY_RULESCACHE_PREFIX).concat("https://fishjar.github.io/kiss-rules/kiss-rules.json"),BUILTIN_RULES);case 9:_context6.next=14;break;case 11:_context6.prev=11;_context6.t0=_context6["catch"](0);console.log("[init default]",_context6.t0);case 14:case"end":return _context6.stop();}},_callee6,null,[[0,11]]);}));return function tryInitDefaultData(){return _ref6.apply(this,arguments);};}()));
 ;// CONCATENATED MODULE: ./src/hooks/Storage.js
 function useStorage(key){var defaultVal=arguments.length>1&&arguments[1]!==undefined?arguments[1]:null;var _useState=(0,react.useState)(defaultVal),_useState2=(0,slicedToArray/* default */.Z)(_useState,2),data=_useState2[0],setData=_useState2[1];var save=(0,react.useCallback)(/*#__PURE__*/function(){var _ref=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(val){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:setData(val);_context.next=3;return storage.setObj(key,val);case 3:case"end":return _context.stop();}},_callee);}));return function(_x){return _ref.apply(this,arguments);};}(),[key]);var update=(0,react.useCallback)(/*#__PURE__*/function(){var _ref2=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(obj){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:setData(function(pre){return _objectSpread2(_objectSpread2({},pre),obj);});_context2.next=3;return storage.putObj(key,obj);case 3:case"end":return _context2.stop();}},_callee2);}));return function(_x2){return _ref2.apply(this,arguments);};}(),[key]);var remove=(0,react.useCallback)(/*#__PURE__*/asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee3(){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:setData(null);_context3.next=3;return storage.del(key);case 3:case"end":return _context3.stop();}},_callee3);})),[key]);var reload=(0,react.useCallback)(/*#__PURE__*/asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee4(){var val;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee4$(_context4){while(1)switch(_context4.prev=_context4.next){case 0:_context4.next=2;return storage.getObj(key);case 2:val=_context4.sent;if(!val){_context4.next=7;break;}setData(val);_context4.next=10;break;case 7:if(!defaultVal){_context4.next=10;break;}_context4.next=10;return storage.setObj(key,defaultVal);case 10:case"end":return _context4.stop();}},_callee4);})),[key,defaultVal]);(0,react.useEffect)(function(){asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee5(){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee5$(_context5){while(1)switch(_context5.prev=_context5.next){case 0:_context5.next=2;return reload();case 2:case"end":return _context5.stop();}},_callee5);}))();},[reload]);return{data:data,save:save,update:update,remove:remove,reload:reload};}
 ;// CONCATENATED MODULE: ./src/hooks/Sync.js
@@ -20493,154 +20445,120 @@ var SettingContext=/*#__PURE__*/(0,react.createContext)({setting:null,updateSett
 var isMobile=("ontouchstart"in document.documentElement);
 ;// CONCATENATED MODULE: ./src/views/Action/Draggable.js
 var getEdgePosition=function getEdgePosition(_ref,windowWidth,windowHeight,width,height){var left=_ref.x,top=_ref.y,edge=_ref.edge;var right=windowWidth-left-width;var bottom=windowHeight-top-height;var min=Math.min(left,top,right,bottom);switch(min){case right:edge="right";left=windowWidth-width;break;case left:edge="left";left=0;break;case bottom:edge="bottom";top=windowHeight-height;break;default:edge="top";top=0;}left=limitNumber(left,0,windowWidth-width);top=limitNumber(top,0,windowHeight-height);return{x:left,y:top,edge:edge,hide:false};};var getHidePosition=function getHidePosition(_ref2,windowWidth,windowHeight,width,height){var left=_ref2.x,top=_ref2.y,edge=_ref2.edge;switch(edge){case"right":left=windowWidth-width/2;break;case"left":left=-width/2;break;case"bottom":top=windowHeight-height/2;break;default:top=-height/2;}return{x:left,y:top,edge:edge,hide:true};};function Draggable(_ref3){var windowSize=_ref3.windowSize,width=_ref3.width,height=_ref3.height,left=_ref3.left,top=_ref3.top,show=_ref3.show,snapEdge=_ref3.snapEdge,onStart=_ref3.onStart,onMove=_ref3.onMove,handler=_ref3.handler,children=_ref3.children;var _useState=(0,react.useState)({x:left,y:top,px:left,py:top}),_useState2=(0,slicedToArray/* default */.Z)(_useState,2),origin=_useState2[0],setOrigin=_useState2[1];var _useState3=(0,react.useState)({x:left,y:top,edge:null,hide:false}),_useState4=(0,slicedToArray/* default */.Z)(_useState3,2),position=_useState4[0],setPosition=_useState4[1];var _useState5=(0,react.useState)(null),_useState6=(0,slicedToArray/* default */.Z)(_useState5,2),edgeTimer=_useState6[0],setEdgeTimer=_useState6[1];var goEdge=(0,react.useCallback)(function(w,h,width,height){setPosition(function(pre){return getEdgePosition(pre,w,h,width,height);});setEdgeTimer(setTimeout(function(){setPosition(function(pre){return getHidePosition(pre,w,h,width,height);});},1500));},[]);var handlePointerDown=function handlePointerDown(e){!isMobile&&e.target.setPointerCapture(e.pointerId);onStart&&onStart();edgeTimer&&clearTimeout(edgeTimer);var _ref4=isMobile?e.targetTouches[0]:e,clientX=_ref4.clientX,clientY=_ref4.clientY;setOrigin({x:position.x,y:position.y,px:clientX,py:clientY});};var handlePointerMove=function handlePointerMove(e){onMove&&onMove();var _ref5=isMobile?e.targetTouches[0]:e,clientX=_ref5.clientX,clientY=_ref5.clientY;if(origin){var dx=clientX-origin.px;var dy=clientY-origin.py;var x=origin.x+dx;var y=origin.y+dy;var w=windowSize.w,h=windowSize.h;x=limitNumber(x,0,w-width);y=limitNumber(y,0,h-height);setPosition({x:x,y:y,edge:null,hide:false});}};var handlePointerUp=function handlePointerUp(e){e.stopPropagation();setOrigin(null);if(!snapEdge){return;}goEdge(windowSize.w,windowSize.h,width,height);};var handleClick=function handleClick(e){e.stopPropagation();};var handleMouseEnter=function handleMouseEnter(e){e.stopPropagation();if(snapEdge&&position.hide){edgeTimer&&clearTimeout(edgeTimer);goEdge(windowSize.w,windowSize.h,width,height);}};(0,react.useEffect)(function(){setOrigin(null);if(!snapEdge){return;}goEdge(windowSize.w,windowSize.h,width,height);},[snapEdge,goEdge,windowSize.w,windowSize.h,width,height]);(0,react.useEffect)(function(){if(position.hide){setFab({x:position.x,y:position.y});}},[position.x,position.y,position.hide]);var opacity=(0,react.useMemo)(function(){if(snapEdge){return position.hide?0.2:1;}return origin?0.8:1;},[origin,snapEdge,position.hide]);var touchProps=isMobile?{onTouchStart:handlePointerDown,onTouchMove:handlePointerMove,onTouchEnd:handlePointerUp}:{onPointerDown:handlePointerDown,onPointerMove:handlePointerMove,onPointerUp:handlePointerUp};return/*#__PURE__*/(0,jsx_runtime.jsxs)("div",{style:{opacity:opacity,position:"fixed",left:position.x,top:position.y,zIndex:2147483647,display:show?"block":"none"},onMouseEnter:handleMouseEnter,onClick:handleClick,children:[/*#__PURE__*/(0,jsx_runtime.jsx)("div",_objectSpread2(_objectSpread2({style:{touchAction:"none"}},touchProps),{},{children:handler})),/*#__PURE__*/(0,jsx_runtime.jsx)("div",{children:children})]});}
-;// CONCATENATED MODULE: ./node_modules/@mui/material/IconButton/iconButtonClasses.js
+// EXTERNAL MODULE: ./node_modules/@mui/styled-engine/index.js
+var styled_engine = __webpack_require__(564);
+// EXTERNAL MODULE: ./node_modules/@mui/system/esm/styleFunctionSx/styleFunctionSx.js
+var styleFunctionSx = __webpack_require__(3649);
+// EXTERNAL MODULE: ./node_modules/@mui/utils/esm/deepmerge.js
+var deepmerge = __webpack_require__(3019);
+// EXTERNAL MODULE: ./node_modules/@mui/system/esm/styleFunctionSx/defaultSxConfig.js
+var defaultSxConfig = __webpack_require__(5789);
+;// CONCATENATED MODULE: ./node_modules/@mui/system/esm/styleFunctionSx/extendSxProp.js
 
 
-function getIconButtonUtilityClass(slot) {
-  return (0,generateUtilityClass_generateUtilityClass/* default */.Z)('MuiIconButton', slot);
+
+var extendSxProp_excluded = ["sx"];
+
+
+var splitProps = function splitProps(props) {
+  var _props$theme$unstable, _props$theme;
+  var result = {
+    systemProps: {},
+    otherProps: {}
+  };
+  var config = (_props$theme$unstable = props == null || (_props$theme = props.theme) == null ? void 0 : _props$theme.unstable_sxConfig) != null ? _props$theme$unstable : defaultSxConfig/* default */.Z;
+  Object.keys(props).forEach(function (prop) {
+    if (config[prop]) {
+      result.systemProps[prop] = props[prop];
+    } else {
+      result.otherProps[prop] = props[prop];
+    }
+  });
+  return result;
+};
+function extendSxProp(props) {
+  var inSx = props.sx,
+    other = (0,objectWithoutPropertiesLoose/* default */.Z)(props, extendSxProp_excluded);
+  var _splitProps = splitProps(other),
+    systemProps = _splitProps.systemProps,
+    otherProps = _splitProps.otherProps;
+  var finalSx;
+  if (Array.isArray(inSx)) {
+    finalSx = [systemProps].concat((0,toConsumableArray/* default */.Z)(inSx));
+  } else if (typeof inSx === 'function') {
+    finalSx = function finalSx() {
+      var result = inSx.apply(void 0, arguments);
+      if (!(0,deepmerge/* isPlainObject */.P)(result)) {
+        return systemProps;
+      }
+      return (0,esm_extends/* default */.Z)({}, systemProps, result);
+    };
+  } else {
+    finalSx = (0,esm_extends/* default */.Z)({}, systemProps, inSx);
+  }
+  return (0,esm_extends/* default */.Z)({}, otherProps, {
+    sx: finalSx
+  });
 }
-var iconButtonClasses = (0,generateUtilityClasses/* default */.Z)('MuiIconButton', ['root', 'disabled', 'colorInherit', 'colorPrimary', 'colorSecondary', 'colorError', 'colorInfo', 'colorSuccess', 'colorWarning', 'edgeStart', 'edgeEnd', 'sizeSmall', 'sizeMedium', 'sizeLarge']);
-/* harmony default export */ var IconButton_iconButtonClasses = (iconButtonClasses);
-;// CONCATENATED MODULE: ./node_modules/@mui/material/IconButton/IconButton.js
+;// CONCATENATED MODULE: ./node_modules/@mui/system/esm/createBox.js
+'use client';
+
+
+
+var createBox_excluded = ["className", "component"];
+
+
+
+
+
+
+function createBox() {
+  var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+  var themeId = options.themeId,
+    defaultTheme = options.defaultTheme,
+    _options$defaultClass = options.defaultClassName,
+    defaultClassName = _options$defaultClass === void 0 ? 'MuiBox-root' : _options$defaultClass,
+    generateClassName = options.generateClassName;
+  var BoxRoot = (0,styled_engine/* default */.ZP)('div', {
+    shouldForwardProp: function shouldForwardProp(prop) {
+      return prop !== 'theme' && prop !== 'sx' && prop !== 'as';
+    }
+  })(styleFunctionSx/* default */.Z);
+  var Box = /*#__PURE__*/react.forwardRef(function Box(inProps, ref) {
+    var theme = (0,esm_useTheme/* default */.Z)(defaultTheme);
+    var _extendSxProp = extendSxProp(inProps),
+      className = _extendSxProp.className,
+      _extendSxProp$compone = _extendSxProp.component,
+      component = _extendSxProp$compone === void 0 ? 'div' : _extendSxProp$compone,
+      other = (0,objectWithoutPropertiesLoose/* default */.Z)(_extendSxProp, createBox_excluded);
+    return /*#__PURE__*/(0,jsx_runtime.jsx)(BoxRoot, (0,esm_extends/* default */.Z)({
+      as: component,
+      ref: ref,
+      className: (0,clsx/* default */.Z)(className, generateClassName ? generateClassName(defaultClassName) : defaultClassName),
+      theme: themeId ? theme[themeId] || theme : theme
+    }, other));
+  });
+  return Box;
+}
+// EXTERNAL MODULE: ./node_modules/@mui/utils/esm/ClassNameGenerator/ClassNameGenerator.js
+var ClassNameGenerator = __webpack_require__(1271);
+;// CONCATENATED MODULE: ./node_modules/@mui/material/Box/Box.js
 'use client';
 
 
 
 
-var IconButton_excluded = ["edge", "children", "className", "color", "disabled", "disableFocusRipple", "size"];
 
 
-
-
-
-
-
-
-
-
-
-
-var IconButton_useUtilityClasses = function useUtilityClasses(ownerState) {
-  var classes = ownerState.classes,
-    disabled = ownerState.disabled,
-    color = ownerState.color,
-    edge = ownerState.edge,
-    size = ownerState.size;
-  var slots = {
-    root: ['root', disabled && 'disabled', color !== 'default' && "color".concat((0,capitalize/* default */.Z)(color)), edge && "edge".concat((0,capitalize/* default */.Z)(edge)), "size".concat((0,capitalize/* default */.Z)(size))]
-  };
-  return (0,composeClasses/* default */.Z)(slots, getIconButtonUtilityClass, classes);
-};
-var IconButtonRoot = (0,styled/* default */.ZP)(ButtonBase_ButtonBase, {
-  name: 'MuiIconButton',
-  slot: 'Root',
-  overridesResolver: function overridesResolver(props, styles) {
-    var ownerState = props.ownerState;
-    return [styles.root, ownerState.color !== 'default' && styles["color".concat((0,capitalize/* default */.Z)(ownerState.color))], ownerState.edge && styles["edge".concat((0,capitalize/* default */.Z)(ownerState.edge))], styles["size".concat((0,capitalize/* default */.Z)(ownerState.size))]];
-  }
-})(function (_ref) {
-  var theme = _ref.theme,
-    ownerState = _ref.ownerState;
-  return (0,esm_extends/* default */.Z)({
-    textAlign: 'center',
-    flex: '0 0 auto',
-    fontSize: theme.typography.pxToRem(24),
-    padding: 8,
-    borderRadius: '50%',
-    overflow: 'visible',
-    // Explicitly set the default value to solve a bug on IE11.
-    color: (theme.vars || theme).palette.action.active,
-    transition: theme.transitions.create('background-color', {
-      duration: theme.transitions.duration.shortest
-    })
-  }, !ownerState.disableRipple && {
-    '&:hover': {
-      backgroundColor: theme.vars ? "rgba(".concat(theme.vars.palette.action.activeChannel, " / ").concat(theme.vars.palette.action.hoverOpacity, ")") : (0,colorManipulator/* alpha */.Fq)(theme.palette.action.active, theme.palette.action.hoverOpacity),
-      // Reset on touch devices, it doesn't add specificity
-      '@media (hover: none)': {
-        backgroundColor: 'transparent'
-      }
-    }
-  }, ownerState.edge === 'start' && {
-    marginLeft: ownerState.size === 'small' ? -3 : -12
-  }, ownerState.edge === 'end' && {
-    marginRight: ownerState.size === 'small' ? -3 : -12
-  });
-}, function (_ref2) {
-  var theme = _ref2.theme,
-    ownerState = _ref2.ownerState;
-  var _palette;
-  var palette = (_palette = (theme.vars || theme).palette) == null ? void 0 : _palette[ownerState.color];
-  return (0,esm_extends/* default */.Z)({}, ownerState.color === 'inherit' && {
-    color: 'inherit'
-  }, ownerState.color !== 'inherit' && ownerState.color !== 'default' && (0,esm_extends/* default */.Z)({
-    color: palette == null ? void 0 : palette.main
-  }, !ownerState.disableRipple && {
-    '&:hover': (0,esm_extends/* default */.Z)({}, palette && {
-      backgroundColor: theme.vars ? "rgba(".concat(palette.mainChannel, " / ").concat(theme.vars.palette.action.hoverOpacity, ")") : (0,colorManipulator/* alpha */.Fq)(palette.main, theme.palette.action.hoverOpacity)
-    }, {
-      // Reset on touch devices, it doesn't add specificity
-      '@media (hover: none)': {
-        backgroundColor: 'transparent'
-      }
-    })
-  }), ownerState.size === 'small' && {
-    padding: 5,
-    fontSize: theme.typography.pxToRem(18)
-  }, ownerState.size === 'large' && {
-    padding: 12,
-    fontSize: theme.typography.pxToRem(28)
-  }, (0,defineProperty/* default */.Z)({}, "&.".concat(IconButton_iconButtonClasses.disabled), {
-    backgroundColor: 'transparent',
-    color: (theme.vars || theme).palette.action.disabled
-  }));
-});
-
-/**
- * Refer to the [Icons](/material-ui/icons/) section of the documentation
- * regarding the available icon options.
- */
-var IconButton = /*#__PURE__*/react.forwardRef(function IconButton(inProps, ref) {
-  var props = (0,styles_useThemeProps/* default */.Z)({
-    props: inProps,
-    name: 'MuiIconButton'
-  });
-  var _props$edge = props.edge,
-    edge = _props$edge === void 0 ? false : _props$edge,
-    children = props.children,
-    className = props.className,
-    _props$color = props.color,
-    color = _props$color === void 0 ? 'default' : _props$color,
-    _props$disabled = props.disabled,
-    disabled = _props$disabled === void 0 ? false : _props$disabled,
-    _props$disableFocusRi = props.disableFocusRipple,
-    disableFocusRipple = _props$disableFocusRi === void 0 ? false : _props$disableFocusRi,
-    _props$size = props.size,
-    size = _props$size === void 0 ? 'medium' : _props$size,
-    other = (0,objectWithoutPropertiesLoose/* default */.Z)(props, IconButton_excluded);
-  var ownerState = (0,esm_extends/* default */.Z)({}, props, {
-    edge: edge,
-    color: color,
-    disabled: disabled,
-    disableFocusRipple: disableFocusRipple,
-    size: size
-  });
-  var classes = IconButton_useUtilityClasses(ownerState);
-  return /*#__PURE__*/(0,jsx_runtime.jsx)(IconButtonRoot, (0,esm_extends/* default */.Z)({
-    className: (0,clsx/* default */.Z)(classes.root, className),
-    centerRipple: true,
-    focusRipple: !disableFocusRipple,
-    disabled: disabled,
-    ref: ref,
-    ownerState: ownerState
-  }, other, {
-    children: children
-  }));
+var Box_defaultTheme = (0,createTheme/* default */.Z)();
+var Box = createBox({
+  themeId: identifier/* default */.Z,
+  defaultTheme: Box_defaultTheme,
+  defaultClassName: 'MuiBox-root',
+  generateClassName: ClassNameGenerator/* default */.Z.generate
 });
  false ? 0 : void 0;
-/* harmony default export */ var IconButton_IconButton = (IconButton);
-// EXTERNAL MODULE: ./node_modules/@mui/icons-material/Close.js
-var Close = __webpack_require__(1198);
+/* harmony default export */ var Box_Box = (Box);
 // EXTERNAL MODULE: ./node_modules/@mui/system/esm/createStyled.js
 var createStyled = __webpack_require__(5182);
 ;// CONCATENATED MODULE: ./node_modules/@mui/system/esm/styled.js
@@ -20869,7 +20787,7 @@ var useEnhancedEffect = __webpack_require__(3118);
 
 
 function getDividerUtilityClass(slot) {
-  return generateUtilityClass('MuiDivider', slot);
+  return (0,generateUtilityClass_generateUtilityClass/* default */.Z)('MuiDivider', slot);
 }
 var dividerClasses = (0,generateUtilityClasses/* default */.Z)('MuiDivider', ['root', 'absolute', 'fullWidth', 'inset', 'middle', 'flexItem', 'light', 'vertical', 'withChildren', 'withChildrenVertical', 'textAlignRight', 'textAlignLeft', 'wrapper', 'wrapperVertical']);
 /* harmony default export */ var Divider_dividerClasses = (dividerClasses);
@@ -25153,8 +25071,8 @@ Transition.EXITING = EXITING;
 
 
 
-function styles_useTheme_useTheme() {
-  var theme = (0,useTheme/* default */.Z)(styles_defaultTheme/* default */.Z);
+function useTheme_useTheme() {
+  var theme = (0,esm_useTheme/* default */.Z)(defaultTheme/* default */.Z);
   if (false) {}
   return theme[identifier/* default */.Z] || theme;
 }
@@ -25234,7 +25152,7 @@ var Grow = /*#__PURE__*/react.forwardRef(function Grow(props, ref) {
     other = (0,objectWithoutPropertiesLoose/* default */.Z)(props, Grow_excluded);
   var timer = react.useRef();
   var autoTimeout = react.useRef();
-  var theme = styles_useTheme_useTheme();
+  var theme = useTheme_useTheme();
   var nodeRef = react.useRef(null);
   var handleRef = (0,useForkRef/* default */.Z)(nodeRef, _children.ref, ref);
   var normalizedTransitionCallback = function normalizedTransitionCallback(callback) {
@@ -26213,7 +26131,7 @@ var Fade_styles = {
  * It uses [react-transition-group](https://github.com/reactjs/react-transition-group) internally.
  */
 var Fade = /*#__PURE__*/react.forwardRef(function Fade(props, ref) {
-  var theme = styles_useTheme_useTheme();
+  var theme = useTheme_useTheme();
   var defaultTimeout = {
     enter: theme.transitions.duration.enteringScreen,
     exit: theme.transitions.duration.leavingScreen
@@ -27120,7 +27038,7 @@ var Menu = /*#__PURE__*/react.forwardRef(function Menu(inProps, ref) {
     slotProps = _props$slotProps === void 0 ? {} : _props$slotProps,
     TransitionProps = (0,objectWithoutPropertiesLoose/* default */.Z)(props.TransitionProps, Menu_excluded),
     other = (0,objectWithoutPropertiesLoose/* default */.Z)(props, Menu_excluded2);
-  var theme = styles_useTheme_useTheme();
+  var theme = useTheme_useTheme();
   var isRtl = theme.direction === 'rtl';
   var ownerState = (0,esm_extends/* default */.Z)({}, props, {
     autoFocus: autoFocus,
@@ -28276,10 +28194,364 @@ var TextField = /*#__PURE__*/react.forwardRef(function TextField(inProps, ref) {
 });
  false ? 0 : void 0;
 /* harmony default export */ var TextField_TextField = (TextField);
+;// CONCATENATED MODULE: ./node_modules/@mui/material/Divider/Divider.js
+'use client';
+
+
+
+var Divider_excluded = ["absolute", "children", "className", "component", "flexItem", "light", "orientation", "role", "textAlign", "variant"];
+
+
+
+
+
+
+
+
+
+var Divider_useUtilityClasses = function useUtilityClasses(ownerState) {
+  var absolute = ownerState.absolute,
+    children = ownerState.children,
+    classes = ownerState.classes,
+    flexItem = ownerState.flexItem,
+    light = ownerState.light,
+    orientation = ownerState.orientation,
+    textAlign = ownerState.textAlign,
+    variant = ownerState.variant;
+  var slots = {
+    root: ['root', absolute && 'absolute', variant, light && 'light', orientation === 'vertical' && 'vertical', flexItem && 'flexItem', children && 'withChildren', children && orientation === 'vertical' && 'withChildrenVertical', textAlign === 'right' && orientation !== 'vertical' && 'textAlignRight', textAlign === 'left' && orientation !== 'vertical' && 'textAlignLeft'],
+    wrapper: ['wrapper', orientation === 'vertical' && 'wrapperVertical']
+  };
+  return (0,composeClasses/* default */.Z)(slots, getDividerUtilityClass, classes);
+};
+var DividerRoot = (0,styled/* default */.ZP)('div', {
+  name: 'MuiDivider',
+  slot: 'Root',
+  overridesResolver: function overridesResolver(props, styles) {
+    var ownerState = props.ownerState;
+    return [styles.root, ownerState.absolute && styles.absolute, styles[ownerState.variant], ownerState.light && styles.light, ownerState.orientation === 'vertical' && styles.vertical, ownerState.flexItem && styles.flexItem, ownerState.children && styles.withChildren, ownerState.children && ownerState.orientation === 'vertical' && styles.withChildrenVertical, ownerState.textAlign === 'right' && ownerState.orientation !== 'vertical' && styles.textAlignRight, ownerState.textAlign === 'left' && ownerState.orientation !== 'vertical' && styles.textAlignLeft];
+  }
+})(function (_ref) {
+  var theme = _ref.theme,
+    ownerState = _ref.ownerState;
+  return (0,esm_extends/* default */.Z)({
+    margin: 0,
+    // Reset browser default style.
+    flexShrink: 0,
+    borderWidth: 0,
+    borderStyle: 'solid',
+    borderColor: (theme.vars || theme).palette.divider,
+    borderBottomWidth: 'thin'
+  }, ownerState.absolute && {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    width: '100%'
+  }, ownerState.light && {
+    borderColor: theme.vars ? "rgba(".concat(theme.vars.palette.dividerChannel, " / 0.08)") : (0,colorManipulator/* alpha */.Fq)(theme.palette.divider, 0.08)
+  }, ownerState.variant === 'inset' && {
+    marginLeft: 72
+  }, ownerState.variant === 'middle' && ownerState.orientation === 'horizontal' && {
+    marginLeft: theme.spacing(2),
+    marginRight: theme.spacing(2)
+  }, ownerState.variant === 'middle' && ownerState.orientation === 'vertical' && {
+    marginTop: theme.spacing(1),
+    marginBottom: theme.spacing(1)
+  }, ownerState.orientation === 'vertical' && {
+    height: '100%',
+    borderBottomWidth: 0,
+    borderRightWidth: 'thin'
+  }, ownerState.flexItem && {
+    alignSelf: 'stretch',
+    height: 'auto'
+  });
+}, function (_ref2) {
+  var ownerState = _ref2.ownerState;
+  return (0,esm_extends/* default */.Z)({}, ownerState.children && {
+    display: 'flex',
+    whiteSpace: 'nowrap',
+    textAlign: 'center',
+    border: 0,
+    '&::before, &::after': {
+      content: '""',
+      alignSelf: 'center'
+    }
+  });
+}, function (_ref3) {
+  var theme = _ref3.theme,
+    ownerState = _ref3.ownerState;
+  return (0,esm_extends/* default */.Z)({}, ownerState.children && ownerState.orientation !== 'vertical' && {
+    '&::before, &::after': {
+      width: '100%',
+      borderTop: "thin solid ".concat((theme.vars || theme).palette.divider)
+    }
+  });
+}, function (_ref4) {
+  var theme = _ref4.theme,
+    ownerState = _ref4.ownerState;
+  return (0,esm_extends/* default */.Z)({}, ownerState.children && ownerState.orientation === 'vertical' && {
+    flexDirection: 'column',
+    '&::before, &::after': {
+      height: '100%',
+      borderLeft: "thin solid ".concat((theme.vars || theme).palette.divider)
+    }
+  });
+}, function (_ref5) {
+  var ownerState = _ref5.ownerState;
+  return (0,esm_extends/* default */.Z)({}, ownerState.textAlign === 'right' && ownerState.orientation !== 'vertical' && {
+    '&::before': {
+      width: '90%'
+    },
+    '&::after': {
+      width: '10%'
+    }
+  }, ownerState.textAlign === 'left' && ownerState.orientation !== 'vertical' && {
+    '&::before': {
+      width: '10%'
+    },
+    '&::after': {
+      width: '90%'
+    }
+  });
+});
+var DividerWrapper = (0,styled/* default */.ZP)('span', {
+  name: 'MuiDivider',
+  slot: 'Wrapper',
+  overridesResolver: function overridesResolver(props, styles) {
+    var ownerState = props.ownerState;
+    return [styles.wrapper, ownerState.orientation === 'vertical' && styles.wrapperVertical];
+  }
+})(function (_ref6) {
+  var theme = _ref6.theme,
+    ownerState = _ref6.ownerState;
+  return (0,esm_extends/* default */.Z)({
+    display: 'inline-block',
+    paddingLeft: "calc(".concat(theme.spacing(1), " * 1.2)"),
+    paddingRight: "calc(".concat(theme.spacing(1), " * 1.2)")
+  }, ownerState.orientation === 'vertical' && {
+    paddingTop: "calc(".concat(theme.spacing(1), " * 1.2)"),
+    paddingBottom: "calc(".concat(theme.spacing(1), " * 1.2)")
+  });
+});
+var Divider = /*#__PURE__*/react.forwardRef(function Divider(inProps, ref) {
+  var props = (0,styles_useThemeProps/* default */.Z)({
+    props: inProps,
+    name: 'MuiDivider'
+  });
+  var _props$absolute = props.absolute,
+    absolute = _props$absolute === void 0 ? false : _props$absolute,
+    children = props.children,
+    className = props.className,
+    _props$component = props.component,
+    component = _props$component === void 0 ? children ? 'div' : 'hr' : _props$component,
+    _props$flexItem = props.flexItem,
+    flexItem = _props$flexItem === void 0 ? false : _props$flexItem,
+    _props$light = props.light,
+    light = _props$light === void 0 ? false : _props$light,
+    _props$orientation = props.orientation,
+    orientation = _props$orientation === void 0 ? 'horizontal' : _props$orientation,
+    _props$role = props.role,
+    role = _props$role === void 0 ? component !== 'hr' ? 'separator' : undefined : _props$role,
+    _props$textAlign = props.textAlign,
+    textAlign = _props$textAlign === void 0 ? 'center' : _props$textAlign,
+    _props$variant = props.variant,
+    variant = _props$variant === void 0 ? 'fullWidth' : _props$variant,
+    other = (0,objectWithoutPropertiesLoose/* default */.Z)(props, Divider_excluded);
+  var ownerState = (0,esm_extends/* default */.Z)({}, props, {
+    absolute: absolute,
+    component: component,
+    flexItem: flexItem,
+    light: light,
+    orientation: orientation,
+    role: role,
+    textAlign: textAlign,
+    variant: variant
+  });
+  var classes = Divider_useUtilityClasses(ownerState);
+  return /*#__PURE__*/(0,jsx_runtime.jsx)(DividerRoot, (0,esm_extends/* default */.Z)({
+    as: component,
+    className: (0,clsx/* default */.Z)(classes.root, className),
+    role: role,
+    ref: ref,
+    ownerState: ownerState
+  }, other, {
+    children: children ? /*#__PURE__*/(0,jsx_runtime.jsx)(DividerWrapper, {
+      className: classes.wrapper,
+      ownerState: ownerState,
+      children: children
+    }) : null
+  }));
+});
+
+/**
+ * The following flag is used to ensure that this component isn't tabbable i.e.
+ * does not get highlight/focus inside of MUI List.
+ */
+Divider.muiSkipListHighlight = true;
+ false ? 0 : void 0;
+/* harmony default export */ var Divider_Divider = (Divider);
+;// CONCATENATED MODULE: ./node_modules/@mui/material/IconButton/iconButtonClasses.js
+
+
+function getIconButtonUtilityClass(slot) {
+  return (0,generateUtilityClass_generateUtilityClass/* default */.Z)('MuiIconButton', slot);
+}
+var iconButtonClasses = (0,generateUtilityClasses/* default */.Z)('MuiIconButton', ['root', 'disabled', 'colorInherit', 'colorPrimary', 'colorSecondary', 'colorError', 'colorInfo', 'colorSuccess', 'colorWarning', 'edgeStart', 'edgeEnd', 'sizeSmall', 'sizeMedium', 'sizeLarge']);
+/* harmony default export */ var IconButton_iconButtonClasses = (iconButtonClasses);
+;// CONCATENATED MODULE: ./node_modules/@mui/material/IconButton/IconButton.js
+'use client';
+
+
+
+
+var IconButton_excluded = ["edge", "children", "className", "color", "disabled", "disableFocusRipple", "size"];
+
+
+
+
+
+
+
+
+
+
+
+
+var IconButton_useUtilityClasses = function useUtilityClasses(ownerState) {
+  var classes = ownerState.classes,
+    disabled = ownerState.disabled,
+    color = ownerState.color,
+    edge = ownerState.edge,
+    size = ownerState.size;
+  var slots = {
+    root: ['root', disabled && 'disabled', color !== 'default' && "color".concat((0,capitalize/* default */.Z)(color)), edge && "edge".concat((0,capitalize/* default */.Z)(edge)), "size".concat((0,capitalize/* default */.Z)(size))]
+  };
+  return (0,composeClasses/* default */.Z)(slots, getIconButtonUtilityClass, classes);
+};
+var IconButtonRoot = (0,styled/* default */.ZP)(ButtonBase_ButtonBase, {
+  name: 'MuiIconButton',
+  slot: 'Root',
+  overridesResolver: function overridesResolver(props, styles) {
+    var ownerState = props.ownerState;
+    return [styles.root, ownerState.color !== 'default' && styles["color".concat((0,capitalize/* default */.Z)(ownerState.color))], ownerState.edge && styles["edge".concat((0,capitalize/* default */.Z)(ownerState.edge))], styles["size".concat((0,capitalize/* default */.Z)(ownerState.size))]];
+  }
+})(function (_ref) {
+  var theme = _ref.theme,
+    ownerState = _ref.ownerState;
+  return (0,esm_extends/* default */.Z)({
+    textAlign: 'center',
+    flex: '0 0 auto',
+    fontSize: theme.typography.pxToRem(24),
+    padding: 8,
+    borderRadius: '50%',
+    overflow: 'visible',
+    // Explicitly set the default value to solve a bug on IE11.
+    color: (theme.vars || theme).palette.action.active,
+    transition: theme.transitions.create('background-color', {
+      duration: theme.transitions.duration.shortest
+    })
+  }, !ownerState.disableRipple && {
+    '&:hover': {
+      backgroundColor: theme.vars ? "rgba(".concat(theme.vars.palette.action.activeChannel, " / ").concat(theme.vars.palette.action.hoverOpacity, ")") : (0,colorManipulator/* alpha */.Fq)(theme.palette.action.active, theme.palette.action.hoverOpacity),
+      // Reset on touch devices, it doesn't add specificity
+      '@media (hover: none)': {
+        backgroundColor: 'transparent'
+      }
+    }
+  }, ownerState.edge === 'start' && {
+    marginLeft: ownerState.size === 'small' ? -3 : -12
+  }, ownerState.edge === 'end' && {
+    marginRight: ownerState.size === 'small' ? -3 : -12
+  });
+}, function (_ref2) {
+  var theme = _ref2.theme,
+    ownerState = _ref2.ownerState;
+  var _palette;
+  var palette = (_palette = (theme.vars || theme).palette) == null ? void 0 : _palette[ownerState.color];
+  return (0,esm_extends/* default */.Z)({}, ownerState.color === 'inherit' && {
+    color: 'inherit'
+  }, ownerState.color !== 'inherit' && ownerState.color !== 'default' && (0,esm_extends/* default */.Z)({
+    color: palette == null ? void 0 : palette.main
+  }, !ownerState.disableRipple && {
+    '&:hover': (0,esm_extends/* default */.Z)({}, palette && {
+      backgroundColor: theme.vars ? "rgba(".concat(palette.mainChannel, " / ").concat(theme.vars.palette.action.hoverOpacity, ")") : (0,colorManipulator/* alpha */.Fq)(palette.main, theme.palette.action.hoverOpacity)
+    }, {
+      // Reset on touch devices, it doesn't add specificity
+      '@media (hover: none)': {
+        backgroundColor: 'transparent'
+      }
+    })
+  }), ownerState.size === 'small' && {
+    padding: 5,
+    fontSize: theme.typography.pxToRem(18)
+  }, ownerState.size === 'large' && {
+    padding: 12,
+    fontSize: theme.typography.pxToRem(28)
+  }, (0,defineProperty/* default */.Z)({}, "&.".concat(IconButton_iconButtonClasses.disabled), {
+    backgroundColor: 'transparent',
+    color: (theme.vars || theme).palette.action.disabled
+  }));
+});
+
+/**
+ * Refer to the [Icons](/material-ui/icons/) section of the documentation
+ * regarding the available icon options.
+ */
+var IconButton = /*#__PURE__*/react.forwardRef(function IconButton(inProps, ref) {
+  var props = (0,styles_useThemeProps/* default */.Z)({
+    props: inProps,
+    name: 'MuiIconButton'
+  });
+  var _props$edge = props.edge,
+    edge = _props$edge === void 0 ? false : _props$edge,
+    children = props.children,
+    className = props.className,
+    _props$color = props.color,
+    color = _props$color === void 0 ? 'default' : _props$color,
+    _props$disabled = props.disabled,
+    disabled = _props$disabled === void 0 ? false : _props$disabled,
+    _props$disableFocusRi = props.disableFocusRipple,
+    disableFocusRipple = _props$disableFocusRi === void 0 ? false : _props$disableFocusRi,
+    _props$size = props.size,
+    size = _props$size === void 0 ? 'medium' : _props$size,
+    other = (0,objectWithoutPropertiesLoose/* default */.Z)(props, IconButton_excluded);
+  var ownerState = (0,esm_extends/* default */.Z)({}, props, {
+    edge: edge,
+    color: color,
+    disabled: disabled,
+    disableFocusRipple: disableFocusRipple,
+    size: size
+  });
+  var classes = IconButton_useUtilityClasses(ownerState);
+  return /*#__PURE__*/(0,jsx_runtime.jsx)(IconButtonRoot, (0,esm_extends/* default */.Z)({
+    className: (0,clsx/* default */.Z)(classes.root, className),
+    centerRipple: true,
+    focusRipple: !disableFocusRipple,
+    disabled: disabled,
+    ref: ref,
+    ownerState: ownerState
+  }, other, {
+    children: children
+  }));
+});
+ false ? 0 : void 0;
+/* harmony default export */ var IconButton_IconButton = (IconButton);
+// EXTERNAL MODULE: ./node_modules/@mui/icons-material/Close.js
+var Close = __webpack_require__(1198);
+// EXTERNAL MODULE: ./node_modules/@mui/icons-material/Home.js
+var Home = __webpack_require__(5919);
+// EXTERNAL MODULE: ./node_modules/@mui/icons-material/LightMode.js
+var LightMode = __webpack_require__(3544);
+// EXTERNAL MODULE: ./node_modules/@mui/icons-material/DarkMode.js
+var DarkMode = __webpack_require__(45);
+;// CONCATENATED MODULE: ./src/views/Options/DarkModeButton.js
+function DarkModeButton(){var _useDarkMode=useDarkMode(),darkMode=_useDarkMode.darkMode,toggleDarkMode=_useDarkMode.toggleDarkMode;return/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{onClick:toggleDarkMode,color:"inherit",children:darkMode?/*#__PURE__*/(0,jsx_runtime.jsx)(LightMode/* default */.Z,{}):/*#__PURE__*/(0,jsx_runtime.jsx)(DarkMode/* default */.Z,{})});}
+;// CONCATENATED MODULE: ./src/views/Popup/Header.js
+function Header(_ref){var setShowPopup=_ref.setShowPopup;var handleHomepage=function handleHomepage(){window.open("https://github.com/fishjar/kiss-translator","_blank");};return/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",justifyContent:"space-between",alignItems:"center",spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",justifyContent:"flex-start",alignItems:"center",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{onClick:handleHomepage,children:/*#__PURE__*/(0,jsx_runtime.jsx)(Home/* default */.Z,{})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:"".concat("KISS Translator"," v").concat("1.6.7")})]}),setShowPopup?/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{onClick:function onClick(){setShowPopup(false);},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Close/* default */.Z,{})}):/*#__PURE__*/(0,jsx_runtime.jsx)(DarkModeButton,{})]});}
 ;// CONCATENATED MODULE: ./src/libs/iframe.js
 var isIframe=window.self!==window.top;var sendIframeMsg=function sendIframeMsg(action,args){document.querySelectorAll("iframe").forEach(function(iframe){iframe.contentWindow.postMessage({action:action,args:args},"*");});};
 ;// CONCATENATED MODULE: ./src/views/Popup/index.js
-function Popup(_ref){var setShowPopup=_ref.setShowPopup,tran=_ref.translator;var i18n=useI18n();var _useState=(0,react.useState)(tran===null||tran===void 0?void 0:tran.rule),_useState2=(0,slicedToArray/* default */.Z)(_useState,2),rule=_useState2[0],setRule=_useState2[1];var handleOpenSetting=function handleOpenSetting(){if(isExt){browser===null||browser===void 0?void 0:browser.runtime.openOptionsPage();}else{window.open("https://fishjar.github.io/kiss-translator/options.html","_blank");}setShowPopup&&setShowPopup(false);};var handleTransToggle=/*#__PURE__*/function(){var _ref2=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(e){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:_context.prev=0;setRule(_objectSpread2(_objectSpread2({},rule),{},{transOpen:e.target.checked?"true":"false"}));if(!isExt){_context.next=7;break;}_context.next=5;return sendTabMsg(MSG_TRANS_TOGGLE);case 5:_context.next=9;break;case 7:tran.toggle();sendIframeMsg(MSG_TRANS_TOGGLE);case 9:_context.next=14;break;case 11:_context.prev=11;_context.t0=_context["catch"](0);console.log("[toggle trans]",_context.t0);case 14:case"end":return _context.stop();}},_callee,null,[[0,11]]);}));return function handleTransToggle(_x){return _ref2.apply(this,arguments);};}();var handleChange=/*#__PURE__*/function(){var _ref3=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(e){var _e$target,name,value;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:_context2.prev=0;_e$target=e.target,name=_e$target.name,value=_e$target.value;setRule(function(pre){return _objectSpread2(_objectSpread2({},pre),{},(0,defineProperty/* default */.Z)({},name,value));});if(!isExt){_context2.next=8;break;}_context2.next=6;return sendTabMsg(MSG_TRANS_PUTRULE,(0,defineProperty/* default */.Z)({},name,value));case 6:_context2.next=10;break;case 8:tran.updateRule((0,defineProperty/* default */.Z)({},name,value));sendIframeMsg(MSG_TRANS_PUTRULE,(0,defineProperty/* default */.Z)({},name,value));case 10:_context2.next=15;break;case 12:_context2.prev=12;_context2.t0=_context2["catch"](0);console.log("[update rule]",_context2.t0);case 15:case"end":return _context2.stop();}},_callee2,null,[[0,12]]);}));return function handleChange(_x2){return _ref3.apply(this,arguments);};}();var handleClearCache=function handleClearCache(){try{caches.delete(config_CACHE_NAME);}catch(err){console.log("[clear cache]",err);}};(0,react.useEffect)(function(){if(!isExt){return;}asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee3(){var res;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:_context3.prev=0;_context3.next=3;return sendTabMsg(MSG_TRANS_GETRULE);case 3:res=_context3.sent;if(!res.error){setRule(res.data);}_context3.next=10;break;case 7:_context3.prev=7;_context3.t0=_context3["catch"](0);console.log("[query rule]",_context3.t0);case 10:case"end":return _context3.stop();}},_callee3,null,[[0,7]]);}))();},[]);if(!rule){return/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{minWidth:300,sx:{p:2},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Stack_Stack,{spacing:3,children:/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{variant:"text",onClick:handleOpenSetting,children:i18n("setting")})})});}var transOpen=rule.transOpen,translator=rule.translator,fromLang=rule.fromLang,toLang=rule.toLang,textStyle=rule.textStyle,bgColor=rule.bgColor;return/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{minWidth:300,sx:{p:2},children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",justifyContent:"space-between",alignItems:"center",spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(FormControlLabel_FormControlLabel,{control:/*#__PURE__*/(0,jsx_runtime.jsx)(Switch_Switch,{checked:transOpen==="true",onChange:handleTransToggle}),label:i18n("translate_alt")}),!isExt&&/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{variant:"text",onClick:handleClearCache,children:i18n("clear_cache")})]}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},size:"small",value:translator,name:"translator",label:i18n("translate_service"),onChange:handleChange,children:OPT_TRANS_ALL.map(function(item){return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:item,children:item},item);})}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},size:"small",value:fromLang,name:"fromLang",label:i18n("from_lang"),onChange:handleChange,children:OPT_LANGS_FROM.map(function(_ref5){var _ref6=(0,slicedToArray/* default */.Z)(_ref5,2),lang=_ref6[0],name=_ref6[1];return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:lang,children:name},lang);})}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},size:"small",value:toLang,name:"toLang",label:i18n("to_lang"),onChange:handleChange,children:OPT_LANGS_TO.map(function(_ref7){var _ref8=(0,slicedToArray/* default */.Z)(_ref7,2),lang=_ref8[0],name=_ref8[1];return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:lang,children:name},lang);})}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},size:"small",value:textStyle,name:"textStyle",label:i18n("text_style_alt"),onChange:handleChange,children:OPT_STYLE_ALL.map(function(item){return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:item,children:i18n(item)},item);})}),OPT_STYLE_USE_COLOR.includes(textStyle)&&/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",name:"bgColor",value:bgColor,label:i18n("bg_color"),onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{variant:"text",onClick:handleOpenSetting,children:i18n("setting")})]})});}
+function Popup(_ref){var setShowPopup=_ref.setShowPopup,tran=_ref.translator;var i18n=useI18n();var _useState=(0,react.useState)(tran===null||tran===void 0?void 0:tran.rule),_useState2=(0,slicedToArray/* default */.Z)(_useState,2),rule=_useState2[0],setRule=_useState2[1];var handleOpenSetting=function handleOpenSetting(){if(isExt){browser===null||browser===void 0?void 0:browser.runtime.openOptionsPage();}else{window.open("https://fishjar.github.io/kiss-translator/options.html","_blank");}setShowPopup&&setShowPopup(false);};var handleTransToggle=/*#__PURE__*/function(){var _ref2=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(e){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:_context.prev=0;setRule(_objectSpread2(_objectSpread2({},rule),{},{transOpen:e.target.checked?"true":"false"}));if(!isExt){_context.next=7;break;}_context.next=5;return sendTabMsg(MSG_TRANS_TOGGLE);case 5:_context.next=9;break;case 7:tran.toggle();sendIframeMsg(MSG_TRANS_TOGGLE);case 9:_context.next=14;break;case 11:_context.prev=11;_context.t0=_context["catch"](0);console.log("[toggle trans]",_context.t0);case 14:case"end":return _context.stop();}},_callee,null,[[0,11]]);}));return function handleTransToggle(_x){return _ref2.apply(this,arguments);};}();var handleChange=/*#__PURE__*/function(){var _ref3=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(e){var _e$target,name,value;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:_context2.prev=0;_e$target=e.target,name=_e$target.name,value=_e$target.value;setRule(function(pre){return _objectSpread2(_objectSpread2({},pre),{},(0,defineProperty/* default */.Z)({},name,value));});if(!isExt){_context2.next=8;break;}_context2.next=6;return sendTabMsg(MSG_TRANS_PUTRULE,(0,defineProperty/* default */.Z)({},name,value));case 6:_context2.next=10;break;case 8:tran.updateRule((0,defineProperty/* default */.Z)({},name,value));sendIframeMsg(MSG_TRANS_PUTRULE,(0,defineProperty/* default */.Z)({},name,value));case 10:_context2.next=15;break;case 12:_context2.prev=12;_context2.t0=_context2["catch"](0);console.log("[update rule]",_context2.t0);case 15:case"end":return _context2.stop();}},_callee2,null,[[0,12]]);}));return function handleChange(_x2){return _ref3.apply(this,arguments);};}();var handleClearCache=function handleClearCache(){try{caches.delete(config_CACHE_NAME);}catch(err){console.log("[clear cache]",err);}};(0,react.useEffect)(function(){if(!isExt){return;}asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee3(){var res;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:_context3.prev=0;_context3.next=3;return sendTabMsg(MSG_TRANS_GETRULE);case 3:res=_context3.sent;if(!res.error){setRule(res.data);}_context3.next=10;break;case 7:_context3.prev=7;_context3.t0=_context3["catch"](0);console.log("[query rule]",_context3.t0);case 10:case"end":return _context3.stop();}},_callee3,null,[[0,7]]);}))();},[]);if(!rule){return/*#__PURE__*/(0,jsx_runtime.jsxs)(Box_Box,{minWidth:300,children:[isExt&&/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Header,{}),/*#__PURE__*/(0,jsx_runtime.jsx)(Divider_Divider,{})]}),/*#__PURE__*/(0,jsx_runtime.jsx)(Stack_Stack,{sx:{p:2},spacing:3,children:/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{variant:"text",onClick:handleOpenSetting,children:i18n("setting")})})]});}var transOpen=rule.transOpen,translator=rule.translator,fromLang=rule.fromLang,toLang=rule.toLang,textStyle=rule.textStyle,bgColor=rule.bgColor;return/*#__PURE__*/(0,jsx_runtime.jsxs)(Box_Box,{minWidth:300,children:[isExt&&/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Header,{}),/*#__PURE__*/(0,jsx_runtime.jsx)(Divider_Divider,{})]}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{sx:{p:2},spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",justifyContent:"space-between",alignItems:"center",spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(FormControlLabel_FormControlLabel,{control:/*#__PURE__*/(0,jsx_runtime.jsx)(Switch_Switch,{checked:transOpen==="true",onChange:handleTransToggle}),label:i18n("translate_alt")}),!isExt&&/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{variant:"text",onClick:handleClearCache,children:i18n("clear_cache")})]}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},size:"small",value:translator,name:"translator",label:i18n("translate_service"),onChange:handleChange,children:OPT_TRANS_ALL.map(function(item){return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:item,children:item},item);})}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},size:"small",value:fromLang,name:"fromLang",label:i18n("from_lang"),onChange:handleChange,children:OPT_LANGS_FROM.map(function(_ref5){var _ref6=(0,slicedToArray/* default */.Z)(_ref5,2),lang=_ref6[0],name=_ref6[1];return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:lang,children:name},lang);})}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},size:"small",value:toLang,name:"toLang",label:i18n("to_lang"),onChange:handleChange,children:OPT_LANGS_TO.map(function(_ref7){var _ref8=(0,slicedToArray/* default */.Z)(_ref7,2),lang=_ref8[0],name=_ref8[1];return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:lang,children:name},lang);})}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},size:"small",value:textStyle,name:"textStyle",label:i18n("text_style_alt"),onChange:handleChange,children:OPT_STYLE_ALL.map(function(item){return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:item,children:i18n(item)},item);})}),OPT_STYLE_USE_COLOR.includes(textStyle)&&/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",name:"bgColor",value:bgColor,label:i18n("bg_color"),onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{variant:"text",onClick:handleOpenSetting,children:i18n("setting")})]})]});}
 ;// CONCATENATED MODULE: ./node_modules/@violentmonkey/shortcut/dist/index.mjs
 
 
@@ -28749,7 +29021,7 @@ var handleKey = function handleKey() {
 function Action(_ref){var _fab$x,_fab$y;var translator=_ref.translator,fab=_ref.fab;var fabWidth=40;var _useState=(0,react.useState)(false),_useState2=(0,slicedToArray/* default */.Z)(_useState,2),showPopup=_useState2[0],setShowPopup=_useState2[1];var _useState3=(0,react.useState)({w:window.innerWidth,h:window.innerHeight}),_useState4=(0,slicedToArray/* default */.Z)(_useState3,2),windowSize=_useState4[0],setWindowSize=_useState4[1];var _useState5=(0,react.useState)(false),_useState6=(0,slicedToArray/* default */.Z)(_useState5,2),moved=_useState6[0],setMoved=_useState6[1];var handleWindowResize=(0,react.useMemo)(function(){return debounce(function(){setWindowSize({w:window.innerWidth,h:window.innerHeight});});},[]);var handleWindowClick=function handleWindowClick(e){setShowPopup(false);};var handleStart=(0,react.useCallback)(function(){setMoved(false);},[]);var handleMove=(0,react.useCallback)(function(){setMoved(true);},[]);(0,react.useEffect)(function(){// 注册快捷键
 register("a-q",function(){translator.toggle();setShowPopup(false);});register("a-c",function(){translator.toggleStyle();setShowPopup(false);});register("a-k",function(){setShowPopup(function(pre){return!pre;});});return function(){disable();};},[translator]);(0,react.useEffect)(function(){// 注册菜单
 var menuCommandIds=[];if(isGm){try{menuCommandIds.push(GM.registerMenuCommand("Toggle Translate",function(event){translator.toggle();setShowPopup(false);},"Q"),GM.registerMenuCommand("Toggle Style",function(event){translator.toggleStyle();setShowPopup(false);},"C"),GM.registerMenuCommand("Open Menu",function(event){setShowPopup(function(pre){return!pre;});},"K"));}catch(err){console.log("[registerMenuCommand]",err);}}return function(){if(isGm){try{menuCommandIds.forEach(function(id){GM.unregisterMenuCommand(id);});}catch(err){//
-}}};},[translator]);(0,react.useEffect)(function(){window.addEventListener("resize",handleWindowResize);return function(){window.removeEventListener("resize",handleWindowResize);};},[handleWindowResize]);(0,react.useEffect)(function(){window.addEventListener("click",handleWindowClick);return function(){window.removeEventListener("click",handleWindowClick);};},[]);var popProps=(0,react.useMemo)(function(){var width=Math.min(windowSize.w,300);var height=Math.min(windowSize.h,442);var left=(windowSize.w-width)/2;var top=(windowSize.h-height)/2;return{windowSize:windowSize,width:width,height:height,left:left,top:top};},[windowSize]);var fabProps={windowSize:windowSize,width:fabWidth,height:fabWidth,left:(_fab$x=fab.x)!==null&&_fab$x!==void 0?_fab$x:0,top:(_fab$y=fab.y)!==null&&_fab$y!==void 0?_fab$y:windowSize.h/2};return/*#__PURE__*/(0,jsx_runtime.jsx)(SettingProvider,{children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Theme,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Draggable,_objectSpread2(_objectSpread2({},popProps),{},{show:showPopup,onStart:handleStart,onMove:handleMove,handler:/*#__PURE__*/(0,jsx_runtime.jsx)(Paper_Paper,{style:{cursor:"move"},elevation:3,children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",justifyContent:"space-between",alignItems:"center",spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{style:{marginLeft:16},children:"".concat("KISS Translator"," v").concat("1.6.6")}),/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{onClick:function onClick(){setShowPopup(false);},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Close/* default */.Z,{})})]})}),children:/*#__PURE__*/(0,jsx_runtime.jsx)(Paper_Paper,{children:showPopup&&/*#__PURE__*/(0,jsx_runtime.jsx)(Popup,{setShowPopup:setShowPopup,translator:translator})})}),"pop"),/*#__PURE__*/(0,jsx_runtime.jsx)(Draggable,_objectSpread2(_objectSpread2({snapEdge:true},fabProps),{},{show:!showPopup,onStart:handleStart,onMove:handleMove,handler:/*#__PURE__*/(0,jsx_runtime.jsx)(Fab_Fab,{size:"small",color:"primary",onClick:function onClick(e){if(!moved){setShowPopup(function(pre){return!pre;});}},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Translate/* default */.Z,{})})}),"fab")]})});}
+}}};},[translator]);(0,react.useEffect)(function(){window.addEventListener("resize",handleWindowResize);return function(){window.removeEventListener("resize",handleWindowResize);};},[handleWindowResize]);(0,react.useEffect)(function(){window.addEventListener("click",handleWindowClick);return function(){window.removeEventListener("click",handleWindowClick);};},[]);var popProps=(0,react.useMemo)(function(){var width=Math.min(windowSize.w,300);var height=Math.min(windowSize.h,442);var left=(windowSize.w-width)/2;var top=(windowSize.h-height)/2;return{windowSize:windowSize,width:width,height:height,left:left,top:top};},[windowSize]);var fabProps={windowSize:windowSize,width:fabWidth,height:fabWidth,left:(_fab$x=fab.x)!==null&&_fab$x!==void 0?_fab$x:0,top:(_fab$y=fab.y)!==null&&_fab$y!==void 0?_fab$y:windowSize.h/2};return/*#__PURE__*/(0,jsx_runtime.jsx)(SettingProvider,{children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Theme,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Draggable,_objectSpread2(_objectSpread2({},popProps),{},{show:showPopup,onStart:handleStart,onMove:handleMove,handler:/*#__PURE__*/(0,jsx_runtime.jsx)(Paper_Paper,{style:{cursor:"move"},elevation:3,children:/*#__PURE__*/(0,jsx_runtime.jsx)(Header,{setShowPopup:setShowPopup})}),children:/*#__PURE__*/(0,jsx_runtime.jsx)(Paper_Paper,{children:showPopup&&/*#__PURE__*/(0,jsx_runtime.jsx)(Popup,{setShowPopup:setShowPopup,translator:translator})})}),"pop"),/*#__PURE__*/(0,jsx_runtime.jsx)(Draggable,_objectSpread2(_objectSpread2({snapEdge:true},fabProps),{},{show:!showPopup,onStart:handleStart,onMove:handleMove,handler:/*#__PURE__*/(0,jsx_runtime.jsx)(Fab_Fab,{size:"small",color:"primary",onClick:function onClick(e){if(!moved){setShowPopup(function(pre){return!pre;});}},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Translate/* default */.Z,{})})}),"fab")]})});}
 ;// CONCATENATED MODULE: ./src/views/Content/LoadingIcon.js
 function LoadingIcon(){return/*#__PURE__*/(0,jsx_runtime.jsxs)("svg",{viewBox:"0 0 100 100",style:{maxWidth:"1.2em",maxHeight:"1.2em"},children:[/*#__PURE__*/(0,jsx_runtime.jsx)("circle",{fill:DEFAULT_COLOR,stroke:"none",cx:"6",cy:"50",r:"6",children:/*#__PURE__*/(0,jsx_runtime.jsx)("animateTransform",{attributeName:"transform",dur:"1s",type:"translate",values:"0 15 ; 0 -15; 0 15",repeatCount:"indefinite",begin:"0.1"})}),/*#__PURE__*/(0,jsx_runtime.jsx)("circle",{fill:DEFAULT_COLOR,stroke:"none",cx:"30",cy:"50",r:"6",children:/*#__PURE__*/(0,jsx_runtime.jsx)("animateTransform",{attributeName:"transform",dur:"1s",type:"translate",values:"0 10 ; 0 -10; 0 10",repeatCount:"indefinite",begin:"0.2"})}),/*#__PURE__*/(0,jsx_runtime.jsx)("circle",{fill:DEFAULT_COLOR,stroke:"none",cx:"54",cy:"50",r:"6",children:/*#__PURE__*/(0,jsx_runtime.jsx)("animateTransform",{attributeName:"transform",dur:"1s",type:"translate",values:"0 5 ; 0 -5; 0 5",repeatCount:"indefinite",begin:"0.3"})})]});}
 ;// CONCATENATED MODULE: ./src/hooks/Translate.js
@@ -30256,10 +30528,10 @@ var emotion_unitless_esm = __webpack_require__(1536);
 
 
 
-var f = "undefined" != typeof process && void 0 !== ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.6.6","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE2":"https://kiss-translator.rayjar.com/options","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_LOGOURL2":"https://kiss-translator.rayjar.com/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-translator/kiss-translator-rules.json","REACT_APP_RULESURL2":"https://kiss-translator.rayjar.com/kiss-translator-rules.json","REACT_APP_VERSIONFILE":"https://fishjar.github.io/kiss-translator/version.txt","REACT_APP_VERSIONFILE2":"https://kiss-translator.rayjar.com/version.txt","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js"}) && (({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.6.6","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE2":"https://kiss-translator.rayjar.com/options","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_LOGOURL2":"https://kiss-translator.rayjar.com/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-translator/kiss-translator-rules.json","REACT_APP_RULESURL2":"https://kiss-translator.rayjar.com/kiss-translator-rules.json","REACT_APP_VERSIONFILE":"https://fishjar.github.io/kiss-translator/version.txt","REACT_APP_VERSIONFILE2":"https://kiss-translator.rayjar.com/version.txt","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js"}).REACT_APP_SC_ATTR || ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.6.6","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE2":"https://kiss-translator.rayjar.com/options","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_LOGOURL2":"https://kiss-translator.rayjar.com/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-translator/kiss-translator-rules.json","REACT_APP_RULESURL2":"https://kiss-translator.rayjar.com/kiss-translator-rules.json","REACT_APP_VERSIONFILE":"https://fishjar.github.io/kiss-translator/version.txt","REACT_APP_VERSIONFILE2":"https://kiss-translator.rayjar.com/version.txt","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js"}).SC_ATTR) || "data-styled",
+var f = "undefined" != typeof process && void 0 !== ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.6.7","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE2":"https://kiss-translator.rayjar.com/options","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_LOGOURL2":"https://kiss-translator.rayjar.com/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-rules/kiss-rules.json","REACT_APP_RULESURL_ON":"https://fishjar.github.io/kiss-rules/kiss-rules-on.json","REACT_APP_RULESURL_OFF":"https://fishjar.github.io/kiss-rules/kiss-rules-off.json","REACT_APP_VERSIONFILE":"https://fishjar.github.io/kiss-translator/version.txt","REACT_APP_VERSIONFILE2":"https://kiss-translator.rayjar.com/version.txt","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js"}) && (({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.6.7","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE2":"https://kiss-translator.rayjar.com/options","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_LOGOURL2":"https://kiss-translator.rayjar.com/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-rules/kiss-rules.json","REACT_APP_RULESURL_ON":"https://fishjar.github.io/kiss-rules/kiss-rules-on.json","REACT_APP_RULESURL_OFF":"https://fishjar.github.io/kiss-rules/kiss-rules-off.json","REACT_APP_VERSIONFILE":"https://fishjar.github.io/kiss-translator/version.txt","REACT_APP_VERSIONFILE2":"https://kiss-translator.rayjar.com/version.txt","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js"}).REACT_APP_SC_ATTR || ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.6.7","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE2":"https://kiss-translator.rayjar.com/options","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_LOGOURL2":"https://kiss-translator.rayjar.com/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-rules/kiss-rules.json","REACT_APP_RULESURL_ON":"https://fishjar.github.io/kiss-rules/kiss-rules-on.json","REACT_APP_RULESURL_OFF":"https://fishjar.github.io/kiss-rules/kiss-rules-off.json","REACT_APP_VERSIONFILE":"https://fishjar.github.io/kiss-translator/version.txt","REACT_APP_VERSIONFILE2":"https://kiss-translator.rayjar.com/version.txt","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js"}).SC_ATTR) || "data-styled",
   m = "6.0.7",
   y = "undefined" != typeof window && "HTMLElement" in window,
-  v = Boolean("boolean" == typeof SC_DISABLE_SPEEDY ? SC_DISABLE_SPEEDY : "undefined" != typeof process && void 0 !== ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.6.6","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE2":"https://kiss-translator.rayjar.com/options","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_LOGOURL2":"https://kiss-translator.rayjar.com/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-translator/kiss-translator-rules.json","REACT_APP_RULESURL2":"https://kiss-translator.rayjar.com/kiss-translator-rules.json","REACT_APP_VERSIONFILE":"https://fishjar.github.io/kiss-translator/version.txt","REACT_APP_VERSIONFILE2":"https://kiss-translator.rayjar.com/version.txt","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js"}) && void 0 !== ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.6.6","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE2":"https://kiss-translator.rayjar.com/options","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_LOGOURL2":"https://kiss-translator.rayjar.com/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-translator/kiss-translator-rules.json","REACT_APP_RULESURL2":"https://kiss-translator.rayjar.com/kiss-translator-rules.json","REACT_APP_VERSIONFILE":"https://fishjar.github.io/kiss-translator/version.txt","REACT_APP_VERSIONFILE2":"https://kiss-translator.rayjar.com/version.txt","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js"}).REACT_APP_SC_DISABLE_SPEEDY && "" !== ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.6.6","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE2":"https://kiss-translator.rayjar.com/options","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_LOGOURL2":"https://kiss-translator.rayjar.com/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-translator/kiss-translator-rules.json","REACT_APP_RULESURL2":"https://kiss-translator.rayjar.com/kiss-translator-rules.json","REACT_APP_VERSIONFILE":"https://fishjar.github.io/kiss-translator/version.txt","REACT_APP_VERSIONFILE2":"https://kiss-translator.rayjar.com/version.txt","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js"}).REACT_APP_SC_DISABLE_SPEEDY ? "false" !== ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.6.6","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE2":"https://kiss-translator.rayjar.com/options","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_LOGOURL2":"https://kiss-translator.rayjar.com/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-translator/kiss-translator-rules.json","REACT_APP_RULESURL2":"https://kiss-translator.rayjar.com/kiss-translator-rules.json","REACT_APP_VERSIONFILE":"https://fishjar.github.io/kiss-translator/version.txt","REACT_APP_VERSIONFILE2":"https://kiss-translator.rayjar.com/version.txt","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js"}).REACT_APP_SC_DISABLE_SPEEDY && ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.6.6","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE2":"https://kiss-translator.rayjar.com/options","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_LOGOURL2":"https://kiss-translator.rayjar.com/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-translator/kiss-translator-rules.json","REACT_APP_RULESURL2":"https://kiss-translator.rayjar.com/kiss-translator-rules.json","REACT_APP_VERSIONFILE":"https://fishjar.github.io/kiss-translator/version.txt","REACT_APP_VERSIONFILE2":"https://kiss-translator.rayjar.com/version.txt","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js"}).REACT_APP_SC_DISABLE_SPEEDY : "undefined" != typeof process && void 0 !== ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.6.6","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE2":"https://kiss-translator.rayjar.com/options","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_LOGOURL2":"https://kiss-translator.rayjar.com/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-translator/kiss-translator-rules.json","REACT_APP_RULESURL2":"https://kiss-translator.rayjar.com/kiss-translator-rules.json","REACT_APP_VERSIONFILE":"https://fishjar.github.io/kiss-translator/version.txt","REACT_APP_VERSIONFILE2":"https://kiss-translator.rayjar.com/version.txt","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js"}) && void 0 !== ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.6.6","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE2":"https://kiss-translator.rayjar.com/options","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_LOGOURL2":"https://kiss-translator.rayjar.com/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-translator/kiss-translator-rules.json","REACT_APP_RULESURL2":"https://kiss-translator.rayjar.com/kiss-translator-rules.json","REACT_APP_VERSIONFILE":"https://fishjar.github.io/kiss-translator/version.txt","REACT_APP_VERSIONFILE2":"https://kiss-translator.rayjar.com/version.txt","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js"}).SC_DISABLE_SPEEDY && "" !== ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.6.6","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE2":"https://kiss-translator.rayjar.com/options","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_LOGOURL2":"https://kiss-translator.rayjar.com/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-translator/kiss-translator-rules.json","REACT_APP_RULESURL2":"https://kiss-translator.rayjar.com/kiss-translator-rules.json","REACT_APP_VERSIONFILE":"https://fishjar.github.io/kiss-translator/version.txt","REACT_APP_VERSIONFILE2":"https://kiss-translator.rayjar.com/version.txt","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js"}).SC_DISABLE_SPEEDY ? "false" !== ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.6.6","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE2":"https://kiss-translator.rayjar.com/options","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_LOGOURL2":"https://kiss-translator.rayjar.com/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-translator/kiss-translator-rules.json","REACT_APP_RULESURL2":"https://kiss-translator.rayjar.com/kiss-translator-rules.json","REACT_APP_VERSIONFILE":"https://fishjar.github.io/kiss-translator/version.txt","REACT_APP_VERSIONFILE2":"https://kiss-translator.rayjar.com/version.txt","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js"}).SC_DISABLE_SPEEDY && ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.6.6","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE2":"https://kiss-translator.rayjar.com/options","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_LOGOURL2":"https://kiss-translator.rayjar.com/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-translator/kiss-translator-rules.json","REACT_APP_RULESURL2":"https://kiss-translator.rayjar.com/kiss-translator-rules.json","REACT_APP_VERSIONFILE":"https://fishjar.github.io/kiss-translator/version.txt","REACT_APP_VERSIONFILE2":"https://kiss-translator.rayjar.com/version.txt","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js"}).SC_DISABLE_SPEEDY : "production" !== "production"),
+  v = Boolean("boolean" == typeof SC_DISABLE_SPEEDY ? SC_DISABLE_SPEEDY : "undefined" != typeof process && void 0 !== ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.6.7","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE2":"https://kiss-translator.rayjar.com/options","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_LOGOURL2":"https://kiss-translator.rayjar.com/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-rules/kiss-rules.json","REACT_APP_RULESURL_ON":"https://fishjar.github.io/kiss-rules/kiss-rules-on.json","REACT_APP_RULESURL_OFF":"https://fishjar.github.io/kiss-rules/kiss-rules-off.json","REACT_APP_VERSIONFILE":"https://fishjar.github.io/kiss-translator/version.txt","REACT_APP_VERSIONFILE2":"https://kiss-translator.rayjar.com/version.txt","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js"}) && void 0 !== ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.6.7","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE2":"https://kiss-translator.rayjar.com/options","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_LOGOURL2":"https://kiss-translator.rayjar.com/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-rules/kiss-rules.json","REACT_APP_RULESURL_ON":"https://fishjar.github.io/kiss-rules/kiss-rules-on.json","REACT_APP_RULESURL_OFF":"https://fishjar.github.io/kiss-rules/kiss-rules-off.json","REACT_APP_VERSIONFILE":"https://fishjar.github.io/kiss-translator/version.txt","REACT_APP_VERSIONFILE2":"https://kiss-translator.rayjar.com/version.txt","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js"}).REACT_APP_SC_DISABLE_SPEEDY && "" !== ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.6.7","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE2":"https://kiss-translator.rayjar.com/options","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_LOGOURL2":"https://kiss-translator.rayjar.com/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-rules/kiss-rules.json","REACT_APP_RULESURL_ON":"https://fishjar.github.io/kiss-rules/kiss-rules-on.json","REACT_APP_RULESURL_OFF":"https://fishjar.github.io/kiss-rules/kiss-rules-off.json","REACT_APP_VERSIONFILE":"https://fishjar.github.io/kiss-translator/version.txt","REACT_APP_VERSIONFILE2":"https://kiss-translator.rayjar.com/version.txt","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js"}).REACT_APP_SC_DISABLE_SPEEDY ? "false" !== ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.6.7","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE2":"https://kiss-translator.rayjar.com/options","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_LOGOURL2":"https://kiss-translator.rayjar.com/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-rules/kiss-rules.json","REACT_APP_RULESURL_ON":"https://fishjar.github.io/kiss-rules/kiss-rules-on.json","REACT_APP_RULESURL_OFF":"https://fishjar.github.io/kiss-rules/kiss-rules-off.json","REACT_APP_VERSIONFILE":"https://fishjar.github.io/kiss-translator/version.txt","REACT_APP_VERSIONFILE2":"https://kiss-translator.rayjar.com/version.txt","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js"}).REACT_APP_SC_DISABLE_SPEEDY && ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.6.7","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE2":"https://kiss-translator.rayjar.com/options","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_LOGOURL2":"https://kiss-translator.rayjar.com/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-rules/kiss-rules.json","REACT_APP_RULESURL_ON":"https://fishjar.github.io/kiss-rules/kiss-rules-on.json","REACT_APP_RULESURL_OFF":"https://fishjar.github.io/kiss-rules/kiss-rules-off.json","REACT_APP_VERSIONFILE":"https://fishjar.github.io/kiss-translator/version.txt","REACT_APP_VERSIONFILE2":"https://kiss-translator.rayjar.com/version.txt","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js"}).REACT_APP_SC_DISABLE_SPEEDY : "undefined" != typeof process && void 0 !== ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.6.7","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE2":"https://kiss-translator.rayjar.com/options","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_LOGOURL2":"https://kiss-translator.rayjar.com/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-rules/kiss-rules.json","REACT_APP_RULESURL_ON":"https://fishjar.github.io/kiss-rules/kiss-rules-on.json","REACT_APP_RULESURL_OFF":"https://fishjar.github.io/kiss-rules/kiss-rules-off.json","REACT_APP_VERSIONFILE":"https://fishjar.github.io/kiss-translator/version.txt","REACT_APP_VERSIONFILE2":"https://kiss-translator.rayjar.com/version.txt","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js"}) && void 0 !== ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.6.7","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE2":"https://kiss-translator.rayjar.com/options","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_LOGOURL2":"https://kiss-translator.rayjar.com/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-rules/kiss-rules.json","REACT_APP_RULESURL_ON":"https://fishjar.github.io/kiss-rules/kiss-rules-on.json","REACT_APP_RULESURL_OFF":"https://fishjar.github.io/kiss-rules/kiss-rules-off.json","REACT_APP_VERSIONFILE":"https://fishjar.github.io/kiss-translator/version.txt","REACT_APP_VERSIONFILE2":"https://kiss-translator.rayjar.com/version.txt","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js"}).SC_DISABLE_SPEEDY && "" !== ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.6.7","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE2":"https://kiss-translator.rayjar.com/options","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_LOGOURL2":"https://kiss-translator.rayjar.com/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-rules/kiss-rules.json","REACT_APP_RULESURL_ON":"https://fishjar.github.io/kiss-rules/kiss-rules-on.json","REACT_APP_RULESURL_OFF":"https://fishjar.github.io/kiss-rules/kiss-rules-off.json","REACT_APP_VERSIONFILE":"https://fishjar.github.io/kiss-translator/version.txt","REACT_APP_VERSIONFILE2":"https://kiss-translator.rayjar.com/version.txt","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js"}).SC_DISABLE_SPEEDY ? "false" !== ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.6.7","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE2":"https://kiss-translator.rayjar.com/options","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_LOGOURL2":"https://kiss-translator.rayjar.com/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-rules/kiss-rules.json","REACT_APP_RULESURL_ON":"https://fishjar.github.io/kiss-rules/kiss-rules-on.json","REACT_APP_RULESURL_OFF":"https://fishjar.github.io/kiss-rules/kiss-rules-off.json","REACT_APP_VERSIONFILE":"https://fishjar.github.io/kiss-translator/version.txt","REACT_APP_VERSIONFILE2":"https://kiss-translator.rayjar.com/version.txt","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js"}).SC_DISABLE_SPEEDY && ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.6.7","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE2":"https://kiss-translator.rayjar.com/options","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_LOGOURL2":"https://kiss-translator.rayjar.com/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-rules/kiss-rules.json","REACT_APP_RULESURL_ON":"https://fishjar.github.io/kiss-rules/kiss-rules-on.json","REACT_APP_RULESURL_OFF":"https://fishjar.github.io/kiss-rules/kiss-rules-off.json","REACT_APP_VERSIONFILE":"https://fishjar.github.io/kiss-translator/version.txt","REACT_APP_VERSIONFILE2":"https://kiss-translator.rayjar.com/version.txt","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js"}).SC_DISABLE_SPEEDY : "production" !== "production"),
   g = {},
   S = /invalid hook call/i,
   w = new Set(),
@@ -31117,7 +31389,7 @@ if(!(now-subRulesSyncAt>interval)){_context3.next=14;break;}_context3.next=12;re
 var MSG_GM_xmlHttpRequest="xmlHttpRequest";var MSG_GM_setValue="setValue";var MSG_GM_getValue="getValue";var MSG_GM_deleteValue="deleteValue";var MSG_GM_info="info";/**
  * 注入页面的脚本，请求并接受GM接口信息
  * @param {*} param0
- */var injectScript=function injectScript(ping){window.APP_INFO={name:"KISS Translator",version:"1.6.6",eventName:ping};};/**
+ */var injectScript=function injectScript(ping){window.APP_INFO={name:"KISS Translator",version:"1.6.7",eventName:ping};};/**
  * 适配GM脚本
  */var adaptScript=function adaptScript(ping){var promiseGM=function promiseGM(action,args){var timeout=arguments.length>2&&arguments[2]!==undefined?arguments[2]:5000;return new Promise(function(resolve,reject){var pong=genEventName();var handleEvent=function handleEvent(e){window.removeEventListener(pong,handleEvent);var _e$detail=e.detail,data=_e$detail.data,error=_e$detail.error;if(error){reject(new Error(error));}else{resolve(data);}};window.addEventListener(pong,handleEvent);window.dispatchEvent(new CustomEvent(ping,{detail:{action:action,args:args,pong:pong}}));setTimeout(function(){window.removeEventListener(pong,handleEvent);reject(new Error("timeout"));},timeout);});};window.KISS_GM={fetch:function fetch(input,init){return promiseGM(MSG_GM_xmlHttpRequest,{input:input,init:init});},setValue:function setValue(key,val){return promiseGM(MSG_GM_setValue,{key:key,val:val});},getValue:function getValue(key){return promiseGM(MSG_GM_getValue,{key:key});},deleteValue:function deleteValue(key){return promiseGM(MSG_GM_deleteValue,{key:key});},getInfo:function(){var _getInfo=_asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee(){return _regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:if(window.GM_info){_context.next=4;break;}_context.next=3;return promiseGM(MSG_GM_info);case 3:window.GM_info=_context.sent;case 4:return _context.abrupt("return",window.GM_info);case 5:case"end":return _context.stop();}},_callee);}));function getInfo(){return _getInfo.apply(this,arguments);}return getInfo;}()};};/**
  * 监听并回应页面对GM接口的请求
@@ -31126,7 +31398,7 @@ var MSG_GM_xmlHttpRequest="xmlHttpRequest";var MSG_GM_setValue="setValue";var MS
 ;// CONCATENATED MODULE: ./src/userscript.js
 /**
  * 入口函数
- */var init=/*#__PURE__*/function(){var _ref=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(){var _GM,_GM$info,_GM$info$script,_GM$info$script$grant,ping,script,href,setting,rules,rule,translator,fab,$action,shadowContainer,emotionRoot,shadowRootElement,cache;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:if(!(document.location.href.includes("http://localhost:3000/options.html")||document.location.href.includes("https://fishjar.github.io/kiss-translator/options.html")||document.location.href.includes("https://kiss-translator.rayjar.com/options"))){_context.next=3;break;}if((_GM=GM)!==null&&_GM!==void 0&&(_GM$info=_GM.info)!==null&&_GM$info!==void 0&&(_GM$info$script=_GM$info.script)!==null&&_GM$info$script!==void 0&&(_GM$info$script$grant=_GM$info$script.grant)!==null&&_GM$info$script$grant!==void 0&&_GM$info$script$grant.includes("unsafeWindow")){unsafeWindow.GM=GM;unsafeWindow.APP_INFO={name:"KISS Translator",version:"1.6.6"};}else{ping=utils_genEventName();window.addEventListener(ping,handlePing);// window.eval(`(${injectScript})("${ping}")`); // eslint-disable-line
+ */var init=/*#__PURE__*/function(){var _ref=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(){var _GM,_GM$info,_GM$info$script,_GM$info$script$grant,ping,script,href,setting,rules,rule,translator,fab,$action,shadowContainer,emotionRoot,shadowRootElement,cache;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:if(!(document.location.href.includes("http://localhost:3000/options.html")||document.location.href.includes("https://fishjar.github.io/kiss-translator/options.html")||document.location.href.includes("https://kiss-translator.rayjar.com/options"))){_context.next=3;break;}if((_GM=GM)!==null&&_GM!==void 0&&(_GM$info=_GM.info)!==null&&_GM$info!==void 0&&(_GM$info$script=_GM$info.script)!==null&&_GM$info$script!==void 0&&(_GM$info$script$grant=_GM$info$script.grant)!==null&&_GM$info$script$grant!==void 0&&_GM$info$script$grant.includes("unsafeWindow")){unsafeWindow.GM=GM;unsafeWindow.APP_INFO={name:"KISS Translator",version:"1.6.7"};}else{ping=utils_genEventName();window.addEventListener(ping,handlePing);// window.eval(`(${injectScript})("${ping}")`); // eslint-disable-line
 script=document.createElement("script");script.textContent="(".concat(injectScript,")(\"").concat(ping,"\")");document.head.append(script);}return _context.abrupt("return");case 3:// 翻译页面
 href=isIframe?document.referrer:document.location.href;_context.next=6;return getSettingWithDefault();case 6:setting=_context.sent;_context.next=9;return storage_getRulesWithDefault();case 9:rules=_context.sent;_context.next=12;return matchRule(rules,href,setting);case 12:rule=_context.sent;translator=new Translator(rule,setting);if(!isIframe){_context.next=17;break;}// iframe
 window.addEventListener("message",function(e){var _e$data;var action=e===null||e===void 0?void 0:(_e$data=e.data)===null||_e$data===void 0?void 0:_e$data.action;switch(action){case MSG_TRANS_TOGGLE:translator.toggle();break;case MSG_TRANS_PUTRULE:translator.updateRule(e.data.args||{});break;default:}});return _context.abrupt("return");case 17:_context.next=19;return getFabWithDefault();case 19:fab=_context.sent;$action=document.createElement("div");$action.setAttribute("id","kiss-translator");document.body.parentElement.appendChild($action);shadowContainer=$action.attachShadow({mode:"closed"});emotionRoot=document.createElement("style");shadowRootElement=document.createElement("div");shadowContainer.appendChild(emotionRoot);shadowContainer.appendChild(shadowRootElement);cache=(0,emotion_cache_browser_esm/* default */.Z)({key:"css",prepend:true,container:emotionRoot});client.createRoot(shadowRootElement).render(/*#__PURE__*/(0,jsx_runtime.jsx)(react.StrictMode,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(emotion_element_c39617d8_browser_esm.C,{value:cache,children:/*#__PURE__*/(0,jsx_runtime.jsx)(Action,{translator:translator,fab:fab})})}));// 同步订阅规则
