@@ -177,7 +177,9 @@ const RULES = [
   },
 ];
 
-export const BUILTIN_RULES = RULES.map((item) => ({
+export const BUILTIN_RULES = RULES.sort((a, b) =>
+  a.pattern.localeCompare(b.pattern)
+).map((item) => ({
   ...DEFAULT_RULE,
   ...item,
   transOpen: "true",

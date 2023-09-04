@@ -183,10 +183,14 @@ export const GLOBLA_RULE = {
 export const DEFAULT_SUBRULES_LIST = [
   {
     url: process.env.REACT_APP_RULESURL,
+    selected: false,
+  },
+  {
+    url: process.env.REACT_APP_RULESURL_ON,
     selected: true,
   },
   {
-    url: process.env.REACT_APP_RULESURL2,
+    url: process.env.REACT_APP_RULESURL_OFF,
     selected: false,
   },
 ];
