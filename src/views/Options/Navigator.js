@@ -10,6 +10,7 @@ import InfoIcon from "@mui/icons-material/Info";
 import DesignServicesIcon from "@mui/icons-material/DesignServices";
 import { useI18n } from "../../hooks/I18n";
 import SyncIcon from "@mui/icons-material/Sync";
+import ApiIcon from "@mui/icons-material/Api";
 
 function LinkItem({ label, url, icon }) {
   const match = useMatch(url);
@@ -35,6 +36,12 @@ export default function Navigator(props) {
       label: i18n("rules_setting"),
       url: "/rules",
       icon: <DesignServicesIcon />,
+    },
+    {
+      id: "apis_setting",
+      label: i18n("apis_setting"),
+      url: "/apis",
+      icon: <ApiIcon />,
     },
     {
       id: "sync",

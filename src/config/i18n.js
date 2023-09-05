@@ -24,6 +24,10 @@ export const I18N = {
     zh: `规则设置`,
     en: `Rules Setting`,
   },
+  apis_setting: {
+    zh: `接口设置`,
+    en: `Apis Setting`,
+  },
   sync_setting: {
     zh: `同步设置`,
     en: `Sync Setting`,
@@ -359,5 +363,9 @@ export const I18N = {
   help: {
     zh: `求助`,
     en: `Help`,
+  },
+  restore_default: {
+    zh: `恢复默认`,
+    en: `Restore Default`,
   },
 };

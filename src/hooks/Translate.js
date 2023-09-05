@@ -31,7 +31,7 @@ export function useTranslate(q, rule, setting) {
             q,
             fromLang,
             toLang,
-            setting,
+            setting: setting[translator],
           });
           setText(trText);
           setSamelang(isSame);

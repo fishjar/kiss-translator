@@ -17,6 +17,7 @@ import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import { adaptScript } from "../../libs/gm";
 import Alert from "@mui/material/Alert";
+import Apis from "./Apis";
 
 export default function Options() {
   const [error, setError] = useState("");
@@ -124,6 +125,7 @@ export default function Options() {
               <Route path="/" element={<Layout />}>
                 <Route index element={<Setting />} />
                 <Route path="rules" element={<Rules />} />
+                <Route path="apis" element={<Apis />} />
                 <Route path="sync" element={<SyncSetting />} />
                 <Route path="about" element={<About />} />
               </Route>

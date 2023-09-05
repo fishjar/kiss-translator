@@ -71,11 +71,13 @@ export const OPT_TRANS_GOOGLE = "Google";
 export const OPT_TRANS_MICROSOFT = "Microsoft";
 export const OPT_TRANS_DEEPL = "DeepL";
 export const OPT_TRANS_OPENAI = "OpenAI";
+export const OPT_TRANS_CUSTOMIZE = "Customize";
 export const OPT_TRANS_ALL = [
   OPT_TRANS_GOOGLE,
   OPT_TRANS_MICROSOFT,
   OPT_TRANS_DEEPL,
   OPT_TRANS_OPENAI,
+  OPT_TRANS_CUSTOMIZE,
 ];
 
 export const OPT_LANGS_TO = [
@@ -198,6 +200,32 @@ export const DEFAULT_SUBRULES_LIST = [
   },
 ];
 
+// 翻译接口
+export const DEFAULT_TRANS_APIS = {
+  [OPT_TRANS_GOOGLE]: {
+    url: "https://translate.googleapis.com/translate_a/single",
+  },
+  [OPT_TRANS_MICROSOFT]: {
+    url: "https://api-edge.cognitive.microsofttranslator.com/translate",
+    authUrl: "https://edge.microsoft.com/translate/auth",
+  },
+  [OPT_TRANS_DEEPL]: {
+    url: "https://api-free.deepl.com/v2/translate",
+    key: "",
+  },
+  [OPT_TRANS_OPENAI]: {
+    url: "https://api.openai.com/v1/chat/completion",
+    key: "",
+    model: "gpt-4",
+    prompt: `You will be provided with a sentence in ${PROMPT_PLACE_FROM}, and your task is to translate it into ${PROMPT_PLACE_TO}.`,
+  },
+  [OPT_TRANS_CUSTOMIZE]: {
+    url: "",
+    key: "",
+    headers: "",
+  },
+};
+
 export const TRANS_MIN_LENGTH = 5; // 最短翻译长度
 export const TRANS_MAX_LENGTH = 5000; // 最长翻译长度
 export const TRANS_NEWLINE_LENGTH = 40; // 换行字符数
@@ -214,6 +242,7 @@ export const DEFAULT_SETTING = {
   injectRules: true, // 是否注入订阅规则
   subrulesList: DEFAULT_SUBRULES_LIST, // 订阅列表
   owSubrule: DEFAULT_OW_RULE, // 覆写订阅规则
+  transApis: DEFAULT_TRANS_APIS, // 翻译接口
   googleUrl: "https://translate.googleapis.com/translate_a/single", // 谷歌翻译接口
   deeplUrl: "https://api-free.deepl.com/v2/translate",
   deeplKey: "",

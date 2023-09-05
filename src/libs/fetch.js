@@ -67,13 +67,15 @@ const newCacheReq = async (request) => {
  * @returns
  */
 const fetchApi = async ({ input, init = {}, translator, token }) => {
-  if (translator === OPT_TRANS_MICROSOFT) {
-    init.headers["Authorization"] = `Bearer ${token}`; // Microsoft
-  } else if (translator === OPT_TRANS_DEEPL) {
-    init.headers["Authorization"] = `DeepL-Auth-Key ${token}`; // DeepL
-  } else if (translator === OPT_TRANS_OPENAI) {
-    init.headers["Authorization"] = `Bearer ${token}`; // OpenAI
-    init.headers["api-key"] = token; // Azure OpenAI
+  if (token) {
+    if (translator === OPT_TRANS_DEEPL) {
+      init.headers["Authorization"] = `DeepL-Auth-Key ${token}`; // DeepL
+    } else if (translator === OPT_TRANS_OPENAI) {
+      init.headers["Authorization"] = `Bearer ${token}`; // OpenAI
+      init.headers["api-key"] = token; // Azure OpenAI
+    } else {
+      init.headers["Authorization"] = `Bearer ${token}`; // Microsoft & others
+    }
   }
 
   if (isGm) {

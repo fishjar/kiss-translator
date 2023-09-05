@@ -5,6 +5,7 @@ import {
   OPT_TRANS_MICROSOFT,
   OPT_TRANS_DEEPL,
   OPT_TRANS_OPENAI,
+  OPT_TRANS_CUSTOMIZE,
   URL_MICROSOFT_TRANS,
   OPT_LANGS_SPECIAL,
   PROMPT_PLACE_FROM,
@@ -49,7 +50,7 @@ export const apiFetchRules = (url, isBg = false) =>
  * @returns
  */
 const apiGoogleTranslate = async (translator, text, to, from, setting) => {
-  const { googleUrl } = setting;
+  const { url, key } = setting;
   const params = {
     client: "gtx",
     dt: "t",
@@ -59,7 +60,7 @@ const apiGoogleTranslate = async (translator, text, to, from, setting) => {
     tl: to,
     q: text,
   };
-  const input = `${googleUrl}?${queryString.stringify(params)}`;
+  const input = `${url}?${queryString.stringify(params)}`;
   return fetchPolyfill(input, {
     headers: {
       "Content-type": "application/json",
@@ -67,6 +68,7 @@ const apiGoogleTranslate = async (translator, text, to, from, setting) => {
     useCache: true,
     usePool: true,
     translator,
+    token: key,
   });
 };
 
@@ -104,7 +106,7 @@ const apiMicrosoftTranslate = (translator, text, to, from) => {
  * @returns
  */
 const apiDeepLTranslate = (translator, text, to, from, setting) => {
-  const { deeplUrl, deeplKey } = setting;
+  const { url, key } = setting;
   const data = {
     text: [text],
     target_lang: to,
@@ -113,7 +115,7 @@ const apiDeepLTranslate = (translator, text, to, from, setting) => {
   if (from) {
     data.source_lang = from;
   }
-  return fetchPolyfill(deeplUrl, {
+  return fetchPolyfill(url, {
     headers: {
       "Content-type": "application/json",
     },
@@ -122,7 +124,7 @@ const apiDeepLTranslate = (translator, text, to, from, setting) => {
     useCache: true,
     usePool: true,
     translator,
-    token: deeplKey,
+    token: key,
   });
 };
 
@@ -134,17 +136,17 @@ const apiDeepLTranslate = (translator, text, to, from, setting) => {
  * @returns
  */
 const apiOpenaiTranslate = async (translator, text, to, from, setting) => {
-  const { openaiUrl, openaiKey, openaiModel, openaiPrompt } = setting;
-  let prompt = openaiPrompt
+  let { url, key, model, prompt } = setting;
+  prompt = prompt
     .replaceAll(PROMPT_PLACE_FROM, from)
     .replaceAll(PROMPT_PLACE_TO, to);
-  return fetchPolyfill(openaiUrl, {
+  return fetchPolyfill(url, {
     headers: {
       "Content-type": "application/json",
     },
     method: "POST",
     body: JSON.stringify({
-      model: openaiModel,
+      model: model,
       messages: [
         {
           role: "system",
@@ -161,7 +163,34 @@ const apiOpenaiTranslate = async (translator, text, to, from, setting) => {
     useCache: true,
     usePool: true,
     translator,
-    token: openaiKey,
+    token: key,
+  });
+};
+
+/**
+ * 自定义接口 翻译
+ * @param {*} text
+ * @param {*} to
+ * @param {*} from
+ * @returns
+ */
+const apiCustomizeTranslate = async (translator, text, to, from, setting) => {
+  let { url, key, headers } = setting;
+  return fetchPolyfill(url, {
+    headers: {
+      "Content-type": "application/json",
+      ...JSON.parse(headers),
+    },
+    method: "POST",
+    body: JSON.stringify({
+      text,
+      from,
+      to,
+    }),
+    useCache: true,
+    usePool: true,
+    translator,
+    token: key,
   });
 };
 
@@ -190,17 +219,19 @@ export const apiTranslate = async ({
   } else if (translator === OPT_TRANS_MICROSOFT) {
     const res = await apiMicrosoftTranslate(translator, q, to, from);
     trText = res[0].translations[0].text;
-    isSame = to === res[0].detectedLanguage.language;
+    isSame = to === res[0].detectedLanguage?.language;
   } else if (translator === OPT_TRANS_DEEPL) {
     const res = await apiDeepLTranslate(translator, q, to, from, setting);
     trText = res.translations.map((item) => item.text).join(" ");
-    isSame = to === res.translations[0].detected_source_language;
+    isSame = to === (from || res.translations[0].detected_source_language);
   } else if (translator === OPT_TRANS_OPENAI) {
     const res = await apiOpenaiTranslate(translator, q, to, from, setting);
     trText = res?.choices?.[0].message.content;
     const sLang = await tryDetectLang(q);
     const tLang = await tryDetectLang(trText);
     isSame = q === trText || (sLang && tLang && sLang === tLang);
+  } else if (translator === OPT_TRANS_CUSTOMIZE) {
+    // todo
   }
 
   return [trText, isSame];
