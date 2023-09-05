@@ -91,7 +91,14 @@ export const isMatch = (s, p) => {
     return true;
   }
 
-  return p.slice(pIndex).replaceAll("*", "") === "";
+  while (pIndex < p.length) {
+    if (p[pIndex] !== "*") {
+      return false;
+    }
+    pIndex++;
+  }
+
+  return true;
 };
 
 /**
