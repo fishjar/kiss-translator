@@ -22,7 +22,7 @@
 
 - 数据同步服务: [https://github.com/fishjar/kiss-worker](https://github.com/fishjar/kiss-worker)
   - 可用于本项目的数据同步服务。
-  - 亦可用与分享个人的私有规则列表。
+  - 亦可用于分享个人的私有规则列表。
   - 自己部署，自己管理，数据私有。
 - 社区订阅规则: [https://github.com/fishjar/kiss-rules](https://github.com/fishjar/kiss-rules)
   - 提供社区维护的，最新最全的订阅规则列表。

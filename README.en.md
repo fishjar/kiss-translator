@@ -22,7 +22,7 @@ If you also like a little more simplicity, welcome to pick it up.
 
 - Data synchronization service: [https://github.com/fishjar/kiss-worker](https://github.com/fishjar/kiss-worker)
   - Data synchronization service available for this project.
-  - You can also share your own private rule list.
+  - Can also be used to share personal private rule lists.
   - Deploy by yourself, manage by yourself, data is private.
 - Community subscription rules: [https://github.com/fishjar/kiss-rules](https://github.com/fishjar/kiss-rules)
   - Provides the latest and most complete list of subscription rules maintained by the community.
