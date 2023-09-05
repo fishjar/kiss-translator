@@ -35,8 +35,8 @@ const LineSpan = styled.span`
 `;
 
 const FuzzySpan = styled.span`
-  filter: blur(5px);
-  -webkit-filter: blur(5px);
+  filter: blur(0.2em);
+  -webkit-filter: blur(0.2em);
   &:hover {
     filter: none;
     -webkit-filter: none;
