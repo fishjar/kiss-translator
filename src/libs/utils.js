@@ -68,7 +68,7 @@ export const isMatch = (s, p) => {
     return false;
   }
 
-  p = `*${p}*`;
+  p = "*" + p + "*";
 
   let [sIndex, pIndex] = [0, 0];
   let [sRecord, pRecord] = [-1, -1];
