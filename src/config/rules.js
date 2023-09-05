@@ -1,4 +1,4 @@
-const els = `li, p, h1, h2, h3, h4, h5, h6, dd`;
+const els = `li, p, h1, h2, h3, h4, h5, h6, dd, blockquote`;
 
 export const DEFAULT_SELECTOR = `:is(${els})`;
 
