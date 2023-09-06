@@ -162,6 +162,19 @@ export const OPT_STYLE_USE_COLOR = [
   OPT_STYLE_HIGHLIGHT,
 ];
 
+export const OPT_MOUSEKEY_DISABLE = "mk_disable";
+export const OPT_MOUSEKEY_NONE = "mk_none";
+export const OPT_MOUSEKEY_CONTROL = "mk_control";
+export const OPT_MOUSEKEY_SHIFT = "mk_shift";
+export const OPT_MOUSEKEY_ALT = "mk_alt";
+export const OPT_MOUSEKEY_ALL = [
+  OPT_MOUSEKEY_DISABLE,
+  OPT_MOUSEKEY_NONE,
+  OPT_MOUSEKEY_CONTROL,
+  OPT_MOUSEKEY_SHIFT,
+  OPT_MOUSEKEY_ALT,
+];
+
 export const DEFAULT_FETCH_LIMIT = 10; // 默认最大任务数量
 export const DEFAULT_FETCH_INTERVAL = 100; // 默认任务间隔时间
 
@@ -242,6 +255,7 @@ export const DEFAULT_SETTING = {
   subrulesList: DEFAULT_SUBRULES_LIST, // 订阅列表
   owSubrule: DEFAULT_OW_RULE, // 覆写订阅规则
   transApis: DEFAULT_TRANS_APIS, // 翻译接口
+  mouseKey: OPT_MOUSEKEY_DISABLE, // 鼠标悬停翻译
 };
 
 export const DEFAULT_RULES = [GLOBLA_RULE];

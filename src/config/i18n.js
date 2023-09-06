@@ -169,6 +169,30 @@ export const I18N = {
     zh: `翻译服务`,
     en: `Translate Service`,
   },
+  mouseover_translation: {
+    zh: `鼠标悬停翻译`,
+    en: `Mouseover translation`,
+  },
+  mk_disable: {
+    zh: `禁用`,
+    en: `Disable`,
+  },
+  mk_none: {
+    zh: `鼠标悬停`,
+    en: `Mouseover`,
+  },
+  mk_control: {
+    zh: `Control + 鼠标悬停`,
+    en: `Control + Mouseover`,
+  },
+  mk_shift: {
+    zh: `Shift + 鼠标悬停`,
+    en: `Shift + Mouseover`,
+  },
+  mk_alt: {
+    zh: `Alt + 鼠标悬停`,
+    en: `Alt + Mouseover`,
+  },
   from_lang: {
     zh: `原文语言`,
     en: `Source Language`,

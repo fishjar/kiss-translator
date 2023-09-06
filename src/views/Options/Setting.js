@@ -11,7 +11,13 @@ import { useSetting } from "../../hooks/Setting";
 import { limitNumber } from "../../libs/utils";
 import { useI18n } from "../../hooks/I18n";
 import { useAlert } from "../../hooks/Alert";
-import { UI_LANGS, TRANS_NEWLINE_LENGTH, CACHE_NAME } from "../../config";
+import {
+  UI_LANGS,
+  TRANS_NEWLINE_LENGTH,
+  CACHE_NAME,
+  OPT_MOUSEKEY_ALL,
+  OPT_MOUSEKEY_DISABLE,
+} from "../../config";
 
 export default function Settings() {
   const i18n = useI18n();
@@ -61,6 +67,7 @@ export default function Settings() {
     maxLength,
     clearCache,
     newlineLength = TRANS_NEWLINE_LENGTH,
+    mouseKey = OPT_MOUSEKEY_DISABLE,
   } = setting;
 
   return (
@@ -126,6 +133,22 @@ export default function Settings() {
           value={newlineLength}
           onChange={handleChange}
         />
+
+        <FormControl size="small">
+          <InputLabel>{i18n("mouseover_translation")}</InputLabel>
+          <Select
+            name="mouseKey"
+            value={mouseKey}
+            label={i18n("mouseover_translation")}
+            onChange={handleChange}
+          >
+            {OPT_MOUSEKEY_ALL.map((item) => (
+              <MenuItem key={item} value={item}>
+                {i18n(item)}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
 
         <FormControl size="small">
           <InputLabel>{i18n("if_clear_cache")}</InputLabel>

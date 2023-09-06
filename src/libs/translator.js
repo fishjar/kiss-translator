@@ -7,6 +7,7 @@ import {
   OPT_STYLE_DASHLINE,
   OPT_STYLE_FUZZY,
   SHADOW_KEY,
+  OPT_MOUSEKEY_DISABLE,
 } from "../config";
 import Content from "../views/Content";
 import { updateFetchPool, clearFetchPool } from "./fetch";
@@ -37,6 +38,7 @@ export class Translator {
     "iframe",
   ];
   _eventName = genEventName();
+  _keydownNow = "";
 
   // 显示
   _interseObserver = new IntersectionObserver(
@@ -228,9 +230,41 @@ export class Translator {
     });
 
     this._tranNodes.forEach((_, node) => {
-      // 监听节点显示
-      this._interseObserver.observe(node);
+      if (
+        !this._setting.mouseKey ||
+        this._setting.mouseKey === OPT_MOUSEKEY_DISABLE
+      ) {
+        // 监听节点显示
+        this._interseObserver.observe(node);
+      } else {
+        // 监听鼠标悬停
+        node.addEventListener("mouseover", this._handleMouseover);
+      }
     });
+
+    // 监听键盘事件
+    window.addEventListener("keydown", this._handleKeydown);
+    window.addEventListener("keyup", this._handleKeyup);
+  };
+
+  _handleMouseover = (e) => {
+    if (
+      this._keydownNow &&
+      this._setting?.mouseKey?.endsWith(this._keydownNow)
+    ) {
+      e.target.removeEventListener("mouseover", this._handleMouseover);
+      this._render(e.target);
+    }
+  };
+
+  _handleKeydown = (e) => {
+    console.log("keydown", e.key);
+    this._keydownNow = e.key.toLowerCase();
+  };
+
+  _handleKeyup = (e) => {
+    console.log("keyup", e.key);
+    this._keydownNow = "";
   };
 
   _unRegister = () => {
@@ -238,12 +272,28 @@ export class Translator {
     this._mutaObserver.disconnect();
 
     // 解除节点显示监听
-    this._interseObserver.disconnect();
+    // this._interseObserver.disconnect();
 
-    // 移除已插入元素
     this._tranNodes.forEach((_, node) => {
+      if (
+        !this._setting.mouseKey ||
+        this._setting.mouseKey === OPT_MOUSEKEY_DISABLE
+      ) {
+        // 解除节点显示监听
+        this._interseObserver.unobserve(node);
+      } else {
+        // 移除鼠标悬停监听
+        node.removeEventListener("mouseover", this._handleMouseover);
+      }
+
+      // 移除已插入元素
       node.querySelector(APP_LCNAME)?.remove();
     });
+
+    // 解除监听键盘
+    window.removeEventListener("keydown", this._handleKeydown);
+    window.removeEventListener("keyup", this._handleKeyup);
+    this._keydownNow = "";
 
     // 清空节点集合
     this._rootNodes.clear();
