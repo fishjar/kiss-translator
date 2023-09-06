@@ -177,7 +177,7 @@ export const I18N = {
     zh: `禁用`,
     en: `Disable`,
   },
-  mk_none: {
+  mk_mouseover: {
     zh: `鼠标悬停`,
     en: `Mouseover`,
   },

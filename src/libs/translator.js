@@ -8,7 +8,7 @@ import {
   OPT_STYLE_FUZZY,
   SHADOW_KEY,
   OPT_MOUSEKEY_DISABLE,
-  OPT_MOUSEKEY_NONE,
+  OPT_MOUSEKEY_MOUSEOVER,
 } from "../config";
 import Content from "../views/Content";
 import { updateFetchPool, clearFetchPool } from "./fetch";
@@ -245,7 +245,7 @@ export class Translator {
 
   _handleMouseover = (e) => {
     const key = this._setting.mouseKey.slice(3);
-    if (this._setting.mouseKey === OPT_MOUSEKEY_NONE || e[key]) {
+    if (this._setting.mouseKey === OPT_MOUSEKEY_MOUSEOVER || e[key]) {
       e.target.removeEventListener("mouseover", this._handleMouseover);
       this._render(e.target);
     }
