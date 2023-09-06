@@ -13,9 +13,9 @@ import {
   TRANS_NEWLINE_LENGTH,
 } from "../../config";
 import { useTranslate } from "../../hooks/Translate";
-import styled from "styled-components";
+import { styled } from "@mui/material/styles";
 
-const LineSpan = styled.span`
+const LineSpan = styled("span")`
   opacity: 0.6;
   -webkit-opacity: 0.6;
   text-decoration-line: underline;
@@ -34,7 +34,7 @@ const LineSpan = styled.span`
   }
 `;
 
-const FuzzySpan = styled.span`
+const FuzzySpan = styled("span")`
   filter: blur(0.2em);
   -webkit-filter: blur(0.2em);
   &:hover {
@@ -43,12 +43,12 @@ const FuzzySpan = styled.span`
   }
 `;
 
-const HighlightSpan = styled.span`
+const HighlightSpan = styled("span")`
   color: #fff;
   background-color: ${(props) => props.$bgColor};
 `;
 
-const DiySpan = styled.span`
+const DiySpan = styled("span")`
   ${(props) => props.$diyStyle}
 `;
 

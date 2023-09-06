@@ -302,8 +302,8 @@ export const I18N = {
     en: `Custom Style`,
   },
   diy_style_helper: {
-    zh: `遵循“styled-components”的语法`,
-    en: `Follow the syntax of "styled-components"`,
+    zh: `遵循“CSS”的语法`,
+    en: `Follow the syntax of "CSS"`,
   },
   setting: {
     zh: `设置`,
