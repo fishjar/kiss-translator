@@ -181,15 +181,15 @@ export const I18N = {
     zh: `鼠标悬停`,
     en: `Mouseover`,
   },
-  mk_control: {
+  mk_ctrlKey: {
     zh: `Control + 鼠标悬停`,
     en: `Control + Mouseover`,
   },
-  mk_shift: {
+  mk_shiftKey: {
     zh: `Shift + 鼠标悬停`,
     en: `Shift + Mouseover`,
   },
-  mk_alt: {
+  mk_altKey: {
     zh: `Alt + 鼠标悬停`,
     en: `Alt + Mouseover`,
   },

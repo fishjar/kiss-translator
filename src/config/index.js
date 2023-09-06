@@ -164,9 +164,9 @@ export const OPT_STYLE_USE_COLOR = [
 
 export const OPT_MOUSEKEY_DISABLE = "mk_disable";
 export const OPT_MOUSEKEY_NONE = "mk_none";
-export const OPT_MOUSEKEY_CONTROL = "mk_control";
-export const OPT_MOUSEKEY_SHIFT = "mk_shift";
-export const OPT_MOUSEKEY_ALT = "mk_alt";
+export const OPT_MOUSEKEY_CONTROL = "mk_ctrlKey";
+export const OPT_MOUSEKEY_SHIFT = "mk_shiftKey";
+export const OPT_MOUSEKEY_ALT = "mk_altKey";
 export const OPT_MOUSEKEY_ALL = [
   OPT_MOUSEKEY_DISABLE,
   OPT_MOUSEKEY_NONE,

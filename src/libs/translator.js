@@ -8,6 +8,7 @@ import {
   OPT_STYLE_FUZZY,
   SHADOW_KEY,
   OPT_MOUSEKEY_DISABLE,
+  OPT_MOUSEKEY_NONE,
 } from "../config";
 import Content from "../views/Content";
 import { updateFetchPool, clearFetchPool } from "./fetch";
@@ -38,7 +39,6 @@ export class Translator {
     "iframe",
   ];
   _eventName = genEventName();
-  _keydownNow = "";
 
   // 显示
   _interseObserver = new IntersectionObserver(
@@ -241,30 +241,14 @@ export class Translator {
         node.addEventListener("mouseover", this._handleMouseover);
       }
     });
-
-    // 监听键盘事件
-    window.addEventListener("keydown", this._handleKeydown);
-    window.addEventListener("keyup", this._handleKeyup);
   };
 
   _handleMouseover = (e) => {
-    if (
-      this._keydownNow &&
-      this._setting?.mouseKey?.endsWith(this._keydownNow)
-    ) {
+    const key = this._setting.mouseKey.slice(3);
+    if (this._setting.mouseKey === OPT_MOUSEKEY_NONE || e[key]) {
       e.target.removeEventListener("mouseover", this._handleMouseover);
       this._render(e.target);
     }
-  };
-
-  _handleKeydown = (e) => {
-    console.log("keydown", e.key);
-    this._keydownNow = e.key.toLowerCase();
-  };
-
-  _handleKeyup = (e) => {
-    console.log("keyup", e.key);
-    this._keydownNow = "";
   };
 
   _unRegister = () => {
@@ -289,11 +273,6 @@ export class Translator {
       // 移除已插入元素
       node.querySelector(APP_LCNAME)?.remove();
     });
-
-    // 解除监听键盘
-    window.removeEventListener("keydown", this._handleKeydown);
-    window.removeEventListener("keyup", this._handleKeyup);
-    this._keydownNow = "";
 
     // 清空节点集合
     this._rootNodes.clear();
