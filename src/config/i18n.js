@@ -49,7 +49,7 @@ const customApiHelpZH = `/// 自定义翻译源接口说明
   method: "POST",
   headers: {
     "Content-type": "application/json",
-    "Authorization"] = "Bearer {{YOUR_KEY}}"
+    "Authorization" = "Bearer {{YOUR_KEY}}"
   },
   body: {
     text, // 需要翻译的文字
@@ -76,7 +76,7 @@ const customApiHelpEN = `/// Custom translation source interface description
   method: "POST",
   headers: {
     "Content-type": "application/json",
-    "Authorization"] = "Bearer {{YOUR_KEY}}"
+    "Authorization" = "Bearer {{YOUR_KEY}}"
   },
   body: {
     text, // text to be translated
