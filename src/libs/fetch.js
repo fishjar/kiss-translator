@@ -177,6 +177,10 @@ export const fetchData = async (
  * @returns
  */
 export const fetchPolyfill = async (input, { isBg = false, ...opts } = {}) => {
+  if (!input.trim()) {
+    throw new Error("URL is empty");
+  }
+
   // 插件
   if (isExt && !isBg) {
     const res = await sendBgMsg(MSG_FETCH, { input, opts });

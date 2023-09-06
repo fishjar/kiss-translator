@@ -3,6 +3,99 @@ export const UI_LANGS = [
   ["zh", "中文"],
 ];
 
+const customApiLangs = `["en", "English - English"],
+["zh-CN", "Simplified Chinese - 简体中文"],
+["zh-TW", "Traditional Chinese - 繁體中文"],
+["ar", "Arabic - العربية"],
+["bg", "Bulgarian - Български"],
+["ca", "Catalan - Català"],
+["hr", "Croatian - Hrvatski"],
+["cs", "Czech - Čeština"],
+["da", "Danish - Dansk"],
+["nl", "Dutch - Nederlands"],
+["fi", "Finnish - Suomi"],
+["fr", "French - Français"],
+["de", "German - Deutsch"],
+["el", "Greek - Ελληνικά"],
+["hi", "Hindi - हिन्दी"],
+["hu", "Hungarian - Magyar"],
+["id", "Indonesian - Indonesia"],
+["it", "Italian - Italiano"],
+["ja", "Japanese - 日本語"],
+["ko", "Korean - 한국어"],
+["ms", "Malay - Melayu"],
+["mt", "Maltese - Malti"],
+["nb", "Norwegian - Norsk Bokmål"],
+["pl", "Polish - Polski"],
+["pt", "Portuguese - Português"],
+["ro", "Romanian - Română"],
+["ru", "Russian - Русский"],
+["sk", "Slovak - Slovenčina"],
+["sl", "Slovenian - Slovenščina"],
+["es", "Spanish - Español"],
+["sv", "Swedish - Svenska"],
+["ta", "Tamil - தமிழ்"],
+["te", "Telugu - తెలుగు"],
+["th", "Thai - ไทย"],
+["tr", "Turkish - Türkçe"],
+["uk", "Ukrainian - Українська"],
+["vi", "Vietnamese - Tiếng Việt"],
+`;
+
+const customApiHelpZH = `/// 自定义翻译源接口说明
+// 请求（Request）数据将按下面规范发送
+{
+  url: {{YOUR_URL}},
+  method: "POST",
+  headers: {
+    "Content-type": "application/json",
+    "Authorization"] = "Bearer {{YOUR_KEY}}"
+  },
+  body: {
+    text, // 需要翻译的文字
+    from, // 源语言，可能为空，表示需要接口自动识别语言
+    to,   // 目标语言
+  }
+}
+
+// 返回（Response）数据需符合下面的JSON规范
+{
+  text, // 翻译后的文字
+  from, // 识别的源语言
+  to,   // 目标语言（可选）
+}
+
+// 支持的语言代码如下
+${customApiLangs}
+`;
+
+const customApiHelpEN = `/// Custom translation source interface description
+// Request data will be sent according to the following specifications
+{
+  url: {{YOUR_URL}},
+  method: "POST",
+  headers: {
+    "Content-type": "application/json",
+    "Authorization"] = "Bearer {{YOUR_KEY}}"
+  },
+  body: {
+    text, // text to be translated
+    from, // Source language, may be empty
+    to,   // Target language
+  }
+}
+
+// The returned data must conform to the following JSON specification
+{
+  text, // translated text
+  from, // Recognized source language
+  to,   // Target language (optional)
+}
+
+// The supported language codes are as follows
+${customApiLangs}
+`;
+
 export const I18N = {
   app_name: {
     zh: `简约翻译`,
@@ -11,6 +104,10 @@ export const I18N = {
   translate: {
     zh: `翻译`,
     en: `Translate`,
+  },
+  custom_api_help: {
+    zh: customApiHelpZH,
+    en: customApiHelpEN,
   },
   translate_alt: {
     zh: `翻译 (Alt+Q)`,

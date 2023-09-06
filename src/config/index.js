@@ -64,14 +64,12 @@ export const URL_KISS_RULES_NEW_ISSUE =
 export const URL_RAW_PREFIX =
   "https://raw.githubusercontent.com/fishjar/kiss-translator/master";
 export const URL_MICROSOFT_AUTH = "https://edge.microsoft.com/translate/auth";
-export const URL_MICROSOFT_TRANS =
-  "https://api-edge.cognitive.microsofttranslator.com/translate";
 
 export const OPT_TRANS_GOOGLE = "Google";
 export const OPT_TRANS_MICROSOFT = "Microsoft";
 export const OPT_TRANS_DEEPL = "DeepL";
 export const OPT_TRANS_OPENAI = "OpenAI";
-export const OPT_TRANS_CUSTOMIZE = "Customize";
+export const OPT_TRANS_CUSTOMIZE = "Custom";
 export const OPT_TRANS_ALL = [
   OPT_TRANS_GOOGLE,
   OPT_TRANS_MICROSOFT,
@@ -135,6 +133,7 @@ export const OPT_LANGS_SPECIAL = {
   [OPT_TRANS_OPENAI]: new Map(
     OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
   ),
+  [OPT_TRANS_CUSTOMIZE]: new Map([["auto", ""]]),
 };
 
 export const OPT_STYLE_NONE = "style_none"; // 无
@@ -204,6 +203,7 @@ export const DEFAULT_SUBRULES_LIST = [
 export const DEFAULT_TRANS_APIS = {
   [OPT_TRANS_GOOGLE]: {
     url: "https://translate.googleapis.com/translate_a/single",
+    key: "",
   },
   [OPT_TRANS_MICROSOFT]: {
     url: "https://api-edge.cognitive.microsofttranslator.com/translate",
@@ -222,7 +222,6 @@ export const DEFAULT_TRANS_APIS = {
   [OPT_TRANS_CUSTOMIZE]: {
     url: "",
     key: "",
-    headers: "",
   },
 };
 
@@ -243,13 +242,6 @@ export const DEFAULT_SETTING = {
   subrulesList: DEFAULT_SUBRULES_LIST, // 订阅列表
   owSubrule: DEFAULT_OW_RULE, // 覆写订阅规则
   transApis: DEFAULT_TRANS_APIS, // 翻译接口
-  googleUrl: "https://translate.googleapis.com/translate_a/single", // 谷歌翻译接口
-  deeplUrl: "https://api-free.deepl.com/v2/translate",
-  deeplKey: "",
-  openaiUrl: "https://api.openai.com/v1/chat/completions",
-  openaiKey: "",
-  openaiModel: "gpt-4",
-  openaiPrompt: `You will be provided with a sentence in ${PROMPT_PLACE_FROM}, and your task is to translate it into ${PROMPT_PLACE_TO}.`,
 };
 
 export const DEFAULT_RULES = [GLOBLA_RULE];

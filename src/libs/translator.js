@@ -211,6 +211,10 @@ export class Translator {
   };
 
   _register = () => {
+    if (this._rule.fromLang === this._rule.toLang) {
+      return;
+    }
+
     // 搜索节点
     this._queryNodes();
 

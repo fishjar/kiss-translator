@@ -10,55 +10,8 @@ import FormHelperText from "@mui/material/FormHelperText";
 import { useSetting } from "../../hooks/Setting";
 import { limitNumber } from "../../libs/utils";
 import { useI18n } from "../../hooks/I18n";
-import { apiTranslate } from "../../apis";
 import { useAlert } from "../../hooks/Alert";
-import CircularProgress from "@mui/material/CircularProgress";
-import {
-  UI_LANGS,
-  URL_KISS_PROXY,
-  TRANS_NEWLINE_LENGTH,
-  CACHE_NAME,
-  OPT_TRANS_GOOGLE,
-  OPT_TRANS_DEEPL,
-  OPT_TRANS_OPENAI,
-} from "../../config";
-import { useState } from "react";
-
-function TestLink({ translator, setting }) {
-  const i18n = useI18n();
-  const alert = useAlert();
-  const [loading, setLoading] = useState(false);
-  const handleApiTest = async () => {
-    try {
-      setLoading(true);
-      const [text] = await apiTranslate({
-        translator,
-        q: "hello world",
-        fromLang: "en",
-        toLang: "zh-CN",
-        setting,
-      });
-      if (!text) {
-        throw new Error("empty reault");
-      }
-      alert.success(i18n("test_success"));
-    } catch (err) {
-      alert.error(`${i18n("test_failed")}: ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return <CircularProgress sx={{ marginLeft: "2em" }} size={12} />;
-  }
-
-  return (
-    <Link sx={{ marginLeft: "1em" }} component="button" onClick={handleApiTest}>
-      {i18n("click_test")}
-    </Link>
-  );
-}
+import { UI_LANGS, TRANS_NEWLINE_LENGTH, CACHE_NAME } from "../../config";
 
 export default function Settings() {
   const i18n = useI18n();
@@ -102,17 +55,10 @@ export default function Settings() {
 
   const {
     uiLang,
-    googleUrl,
     fetchLimit,
     fetchInterval,
     minLength,
     maxLength,
-    openaiUrl,
-    deeplUrl = "",
-    deeplKey = "",
-    openaiKey,
-    openaiModel,
-    openaiPrompt,
     clearCache,
     newlineLength = TRANS_NEWLINE_LENGTH,
   } = setting;
@@ -198,95 +144,6 @@ export default function Settings() {
             </Link>
           </FormHelperText>
         </FormControl>
-
-        <TextField
-          size="small"
-          label={
-            <>
-              {i18n("google_api")}
-              {googleUrl && (
-                <TestLink translator={OPT_TRANS_GOOGLE} setting={setting} />
-              )}
-            </>
-          }
-          name="googleUrl"
-          value={googleUrl}
-          onChange={handleChange}
-          helperText={
-            <Link href={URL_KISS_PROXY} target="_blank">
-              {i18n("about_api_proxy")}
-            </Link>
-          }
-        />
-
-        <TextField
-          size="small"
-          label={
-            <>
-              {i18n("deepl_api")}
-              {deeplUrl && (
-                <TestLink translator={OPT_TRANS_DEEPL} setting={setting} />
-              )}
-            </>
-          }
-          name="deeplUrl"
-          value={deeplUrl}
-          onChange={handleChange}
-        />
-
-        <TextField
-          size="small"
-          label={i18n("deepl_key")}
-          name="deeplKey"
-          value={deeplKey}
-          onChange={handleChange}
-        />
-
-        <TextField
-          size="small"
-          label={
-            <>
-              {i18n("openai_api")}
-              {openaiUrl && openaiPrompt && (
-                <TestLink translator={OPT_TRANS_OPENAI} setting={setting} />
-              )}
-            </>
-          }
-          name="openaiUrl"
-          value={openaiUrl}
-          onChange={handleChange}
-          helperText={
-            <Link href={URL_KISS_PROXY} target="_blank">
-              {i18n("about_api_proxy")}
-            </Link>
-          }
-        />
-
-        <TextField
-          size="small"
-          type="password"
-          label={i18n("openai_key")}
-          name="openaiKey"
-          value={openaiKey}
-          onChange={handleChange}
-        />
-
-        <TextField
-          size="small"
-          label={i18n("openai_model")}
-          name="openaiModel"
-          value={openaiModel}
-          onChange={handleChange}
-        />
-
-        <TextField
-          size="small"
-          label={i18n("openai_prompt")}
-          name="openaiPrompt"
-          value={openaiPrompt}
-          onChange={handleChange}
-          multiline
-        />
       </Stack>
     </Box>
   );

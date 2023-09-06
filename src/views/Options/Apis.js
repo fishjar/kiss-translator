@@ -7,6 +7,7 @@ import {
   OPT_TRANS_MICROSOFT,
   OPT_TRANS_OPENAI,
   OPT_TRANS_CUSTOMIZE,
+  URL_KISS_PROXY,
 } from "../../config";
 import { useState } from "react";
 import { useI18n } from "../../hooks/I18n";
@@ -15,9 +16,12 @@ import Accordion from "@mui/material/Accordion";
 import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import Alert from "@mui/material/Alert";
 import { useAlert } from "../../hooks/Alert";
 import { useApi } from "../../hooks/Api";
 import { apiTranslate } from "../../apis";
+import Box from "@mui/material/Box";
+import Link from "@mui/material/Link";
 
 function TestButton({ translator, api }) {
   const i18n = useI18n();
@@ -28,10 +32,10 @@ function TestButton({ translator, api }) {
       setLoading(true);
       const [text] = await apiTranslate({
         translator,
-        q: "hello world",
-        fromLang: "auto",
+        text: "hello world",
+        fromLang: "en",
         toLang: "zh-CN",
-        setting: api,
+        apiSetting: { ...api, useCache: false },
       });
       if (!text) {
         throw new Error("empty reault");
@@ -45,7 +49,7 @@ function TestButton({ translator, api }) {
   };
 
   if (loading) {
-    return <CircularProgress sx={{ marginLeft: "2em" }} size={16} />;
+    return <CircularProgress size={16} />;
   }
 
   return (
@@ -58,7 +62,7 @@ function TestButton({ translator, api }) {
 function ApiFields({ translator }) {
   const i18n = useI18n();
   const { api, updateApi, resetApi } = useApi(translator);
-  const { url = "", key = "", model = "", prompt = "", headers = "" } = api;
+  const { url = "", key = "", model = "", prompt = "" } = api;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -106,16 +110,6 @@ function ApiFields({ translator }) {
           />
         </>
       )}
-      {translator === OPT_TRANS_CUSTOMIZE && (
-        <TextField
-          size="small"
-          label={"HEADERS"}
-          name="headers"
-          value={headers}
-          onChange={handleChange}
-          multiline
-        />
-      )}
 
       <Stack direction="row" spacing={2}>
         <TestButton translator={translator} api={api} />
@@ -131,6 +125,10 @@ function ApiFields({ translator }) {
           </Button>
         )}
       </Stack>
+
+      {translator === OPT_TRANS_CUSTOMIZE && (
+        <pre>{i18n("custom_api_help")}</pre>
+      )}
     </Stack>
   );
 }
@@ -155,7 +153,22 @@ function ApiAccordion({ translator }) {
 }
 
 export default function Apis() {
-  return OPT_TRANS_ALL.map((translator) => (
-    <ApiAccordion key={translator} translator={translator} />
-  ));
+  const i18n = useI18n();
+  return (
+    <Box>
+      <Stack spacing={3}>
+        <Alert severity="info">
+          <Link href={URL_KISS_PROXY} target="_blank">
+            {i18n("about_api_proxy")}
+          </Link>
+        </Alert>
+
+        <Box>
+          {OPT_TRANS_ALL.map((translator) => (
+            <ApiAccordion key={translator} translator={translator} />
+          ))}
+        </Box>
+      </Stack>
+    </Box>
+  );
 }

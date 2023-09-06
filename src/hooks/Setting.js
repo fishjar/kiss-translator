@@ -6,7 +6,7 @@ import { createContext, useCallback, useContext, useMemo } from "react";
 import { debounce } from "../libs/utils";
 
 const SettingContext = createContext({
-  setting: null,
+  setting: {},
   updateSetting: async () => {},
   reloadSetting: async () => {},
 });

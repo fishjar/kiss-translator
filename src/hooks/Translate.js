@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useState } from "react";
 import { tryDetectLang } from "../libs";
 import { apiTranslate } from "../apis";
+import { DEFAULT_TRANS_APIS } from "../config";
 
 /**
  * 翻译hook
@@ -28,10 +29,10 @@ export function useTranslate(q, rule, setting) {
         } else {
           const [trText, isSame] = await apiTranslate({
             translator,
-            q,
+            text: q,
             fromLang,
             toLang,
-            setting: setting[translator],
+            apiSetting: (setting.transApis || DEFAULT_TRANS_APIS)[translator],
           });
           setText(trText);
           setSamelang(isSame);

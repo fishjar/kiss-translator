@@ -5,8 +5,6 @@ import { useSetting } from "./Setting";
 export function useApi(translator) {
   const { setting, updateSetting } = useSetting();
   const apis = setting?.transApis || DEFAULT_TRANS_APIS;
-  const api = apis[translator] || {};
-  console.log("apis", translator, apis);
 
   const updateApi = useCallback(
     async (obj) => {
@@ -22,5 +20,5 @@ export function useApi(translator) {
     await updateSetting({ transApis });
   }, [translator, apis, updateSetting]);
 
-  return { api, updateApi, resetApi };
+  return { api: apis[translator] || {}, updateApi, resetApi };
 }
