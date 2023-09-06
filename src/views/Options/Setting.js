@@ -11,6 +11,7 @@ import { useSetting } from "../../hooks/Setting";
 import { limitNumber } from "../../libs/utils";
 import { useI18n } from "../../hooks/I18n";
 import { useAlert } from "../../hooks/Alert";
+import { isExt } from "../../libs/client";
 import {
   UI_LANGS,
   TRANS_NEWLINE_LENGTH,
@@ -150,23 +151,25 @@ export default function Settings() {
           </Select>
         </FormControl>
 
-        <FormControl size="small">
-          <InputLabel>{i18n("if_clear_cache")}</InputLabel>
-          <Select
-            name="clearCache"
-            value={clearCache}
-            label={i18n("if_clear_cache")}
-            onChange={handleChange}
-          >
-            <MenuItem value={false}>{i18n("clear_cache_never")}</MenuItem>
-            <MenuItem value={true}>{i18n("clear_cache_restart")}</MenuItem>
-          </Select>
-          <FormHelperText>
-            <Link component="button" onClick={handleClearCache}>
-              {i18n("clear_all_cache_now")}
-            </Link>
-          </FormHelperText>
-        </FormControl>
+        {isExt && (
+          <FormControl size="small">
+            <InputLabel>{i18n("if_clear_cache")}</InputLabel>
+            <Select
+              name="clearCache"
+              value={clearCache}
+              label={i18n("if_clear_cache")}
+              onChange={handleChange}
+            >
+              <MenuItem value={false}>{i18n("clear_cache_never")}</MenuItem>
+              <MenuItem value={true}>{i18n("clear_cache_restart")}</MenuItem>
+            </Select>
+            <FormHelperText>
+              <Link component="button" onClick={handleClearCache}>
+                {i18n("clear_all_cache_now")}
+              </Link>
+            </FormHelperText>
+          </FormControl>
+        )}
       </Stack>
     </Box>
   );
