@@ -7,6 +7,7 @@ import { isSameSet } from "./utils";
  * @returns
  */
 export const shortcutListener = (fn, target = document) => {
+  // todo: let done = false;
   const allkeys = new Set();
   const curkeys = new Set();
 
