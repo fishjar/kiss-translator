@@ -12,13 +12,89 @@ import { limitNumber } from "../../libs/utils";
 import { useI18n } from "../../hooks/I18n";
 import { useAlert } from "../../hooks/Alert";
 import { isExt } from "../../libs/client";
+import IconButton from "@mui/material/IconButton";
+import EditIcon from "@mui/icons-material/Edit";
+import Grid from "@mui/material/Grid";
 import {
   UI_LANGS,
   TRANS_NEWLINE_LENGTH,
   CACHE_NAME,
   OPT_MOUSEKEY_ALL,
   OPT_MOUSEKEY_DISABLE,
+  OPT_SHORTCUT_TRANSLATE,
+  OPT_SHORTCUT_STYLE,
+  OPT_SHORTCUT_POPUP,
 } from "../../config";
+import { useEffect, useState, useRef } from "react";
+import { useShortcut } from "../../hooks/Shortcut";
+
+function ShortcutItem({ action, label }) {
+  const { shortcut, setShortcut } = useShortcut(action);
+  const [disabled, setDisabled] = useState(true);
+  const [focused, setFocus] = useState(false);
+  const [formval, setFormval] = useState(shortcut);
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (!disabled) {
+      inputRef.current.focus();
+      setFormval([]);
+    }
+  }, [disabled]);
+
+  useEffect(() => {
+    if (!focused) {
+      return;
+    }
+
+    const keys = new Set();
+    const handleKeydown = (e) => {
+      // console.log("keydown", e);
+      e.code && keys.add(e.key);
+      setFormval([...keys]);
+    };
+    const handleKeyup = (e) => {
+      // console.log("keyup", e);
+      keys.delete(e.key);
+    };
+
+    window.addEventListener("keydown", handleKeydown);
+    window.addEventListener("keyup", handleKeyup);
+    return () => {
+      window.removeEventListener("keydown", handleKeydown);
+      window.removeEventListener("keyup", handleKeyup);
+    };
+  }, [focused]);
+
+  return (
+    <Stack direction="row">
+      <TextField
+        size="small"
+        label={label}
+        name={label}
+        value={formval.join(" + ")}
+        fullWidth
+        inputRef={inputRef}
+        disabled={disabled}
+        onFocus={(e) => {
+          setFocus(true);
+        }}
+        onBlur={(e) => {
+          setFocus(false);
+          setDisabled(true);
+          setShortcut(formval);
+        }}
+      />
+      <IconButton
+        onClick={() => {
+          setDisabled(false);
+        }}
+      >
+        {<EditIcon />}
+      </IconButton>
+    </Stack>
+  );
+}
 
 export default function Settings() {
   const i18n = useI18n();
@@ -151,7 +227,7 @@ export default function Settings() {
           </Select>
         </FormControl>
 
-        {isExt && (
+        {isExt ? (
           <FormControl size="small">
             <InputLabel>{i18n("if_clear_cache")}</InputLabel>
             <Select
@@ -169,6 +245,27 @@ export default function Settings() {
               </Link>
             </FormHelperText>
           </FormControl>
+        ) : (
+          <Grid container rowSpacing={2} columns={12}>
+            <Grid item xs={12} sm={12} md={4} lg={4}>
+              <ShortcutItem
+                action={OPT_SHORTCUT_TRANSLATE}
+                label={i18n("toggle_translate_shortcut")}
+              />
+            </Grid>
+            <Grid item xs={12} sm={12} md={4} lg={4}>
+              <ShortcutItem
+                action={OPT_SHORTCUT_STYLE}
+                label={i18n("toggle_style_shortcut")}
+              />
+            </Grid>
+            <Grid item xs={12} sm={12} md={4} lg={4}>
+              <ShortcutItem
+                action={OPT_SHORTCUT_POPUP}
+                label={i18n("toggle_popup_shortcut")}
+              />
+            </Grid>
+          </Grid>
         )}
       </Stack>
     </Box>

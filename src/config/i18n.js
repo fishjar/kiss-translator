@@ -489,4 +489,20 @@ export const I18N = {
     zh: `恢复默认`,
     en: `Restore Default`,
   },
+  shortcuts_setting: {
+    zh: `快捷键设置`,
+    en: `Shortcuts Setting`,
+  },
+  toggle_translate_shortcut: {
+    zh: `开启翻译快捷键`,
+    en: `Toggle Translate Shortcut`,
+  },
+  toggle_style_shortcut: {
+    zh: `切换样式快捷键`,
+    en: `Toggle Style Shortcut`,
+  },
+  toggle_popup_shortcut: {
+    zh: `打开弹窗快捷键`,
+    en: `Open Popup Shortcut`,
+  },
 };

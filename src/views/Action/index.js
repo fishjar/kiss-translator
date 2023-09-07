@@ -6,10 +6,10 @@ import Draggable from "./Draggable";
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { SettingProvider } from "../../hooks/Setting";
 import Popup from "../Popup";
-import { debounce } from "../../libs/utils";
-import * as shortcut from "@violentmonkey/shortcut";
+import { debounce, isSameSet } from "../../libs/utils";
 import { isGm } from "../../libs/client";
 import Header from "../Popup/Header";
+import { DEFAULT_SHORTCUTS, OPT_SHORTCUT_TRANSLATE } from "../../config";
 
 export default function Action({ translator, fab }) {
   const fabWidth = 40;
@@ -43,22 +43,55 @@ export default function Action({ translator, fab }) {
     setMoved(true);
   }, []);
 
+  // useEffect(() => {
+  //   // 注册快捷键
+  //   const handleKeydown = (e) => {
+  //     if (!e.altKey) {
+  //       return;
+  //     }
+  //     if (e.code === "KeyQ") {
+  //       translator.toggle();
+  //       setShowPopup(false);
+  //     } else if (e.code === "KeyC") {
+  //       translator.toggleStyle();
+  //       setShowPopup(false);
+  //     } else if (e.code === "KeyK") {
+  //       setShowPopup((pre) => !pre);
+  //     }
+  //   };
+  //   window.addEventListener("keydown", handleKeydown);
+  //   return () => {
+  //     window.removeEventListener("keydown", handleKeydown);
+  //   };
+  // }, [translator]);
+
   useEffect(() => {
     // 注册快捷键
-    shortcut.register("a-q", () => {
-      translator.toggle();
-      setShowPopup(false);
-    });
-    shortcut.register("a-c", () => {
-      translator.toggleStyle();
-      setShowPopup(false);
-    });
-    shortcut.register("a-k", () => {
-      setShowPopup((pre) => !pre);
-    });
+    const shortcuts = translator.setting.shortcuts || DEFAULT_SHORTCUTS;
+    const keys = new Set();
 
+    const handleKeydown = (e) => {
+      console.log("keydown", e);
+      e.code && keys.add(e.key);
+
+      console.log("keys", keys);
+      const isSame = isSameSet(
+        keys,
+        new Set(shortcuts[OPT_SHORTCUT_TRANSLATE])
+      );
+      console.log("isSame", keys, isSame);
+    };
+
+    const handleKeyup = (e) => {
+      console.log("keyup", e);
+      keys.delete(e.key);
+    };
+
+    window.addEventListener("keydown", handleKeydown);
+    window.addEventListener("keyup", handleKeyup);
     return () => {
-      shortcut.disable();
+      window.removeEventListener("keydown", handleKeydown);
+      window.removeEventListener("keyup", handleKeyup);
     };
   }, [translator]);
 

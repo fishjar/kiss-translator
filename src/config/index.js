@@ -238,6 +238,16 @@ export const DEFAULT_TRANS_APIS = {
   },
 };
 
+// 默认快捷键
+export const OPT_SHORTCUT_TRANSLATE = "toggleTranslate";
+export const OPT_SHORTCUT_STYLE = "toggleStyle";
+export const OPT_SHORTCUT_POPUP = "togglePopup";
+export const DEFAULT_SHORTCUTS = {
+  [OPT_SHORTCUT_TRANSLATE]: ["Alt", "q"],
+  [OPT_SHORTCUT_STYLE]: ["Alt", "c"],
+  [OPT_SHORTCUT_POPUP]: ["Alt", "k"],
+};
+
 export const TRANS_MIN_LENGTH = 5; // 最短翻译长度
 export const TRANS_MAX_LENGTH = 5000; // 最长翻译长度
 export const TRANS_NEWLINE_LENGTH = 40; // 换行字符数
@@ -256,6 +266,7 @@ export const DEFAULT_SETTING = {
   owSubrule: DEFAULT_OW_RULE, // 覆写订阅规则
   transApis: DEFAULT_TRANS_APIS, // 翻译接口
   mouseKey: OPT_MOUSEKEY_DISABLE, // 鼠标悬停翻译
+  shortcuts: DEFAULT_SHORTCUTS, // 快捷键
 };
 
 export const DEFAULT_RULES = [GLOBLA_RULE];

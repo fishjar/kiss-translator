@@ -139,3 +139,14 @@ export const sha256 = async (text, salt) => {
  * @returns
  */
 export const genEventName = () => btoa(Math.random()).slice(3, 11);
+
+/**
+ * 判断两个 Set 是否相同
+ * @param {*} a
+ * @param {*} b
+ * @returns
+ */
+export const isSameSet = (a, b) => {
+  const s = new Set([...a, ...b]);
+  return s.size === a.size && s.size === b.size;
+};
