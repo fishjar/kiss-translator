@@ -494,15 +494,15 @@ export const I18N = {
     en: `Shortcuts Setting`,
   },
   toggle_translate_shortcut: {
-    zh: `开启翻译快捷键`,
-    en: `Toggle Translate Shortcut`,
+    zh: `"开启翻译"快捷键`,
+    en: `"Toggle Translate" Shortcut`,
   },
   toggle_style_shortcut: {
-    zh: `切换样式快捷键`,
-    en: `Toggle Style Shortcut`,
+    zh: `"切换样式"快捷键`,
+    en: `"Toggle Style" Shortcut`,
   },
   toggle_popup_shortcut: {
-    zh: `打开弹窗快捷键`,
-    en: `Open Popup Shortcut`,
+    zh: `"打开弹窗"快捷键`,
+    en: `"Open Popup" Shortcut`,
   },
 };

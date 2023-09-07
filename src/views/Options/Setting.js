@@ -27,44 +27,29 @@ import {
 } from "../../config";
 import { useEffect, useState, useRef } from "react";
 import { useShortcut } from "../../hooks/Shortcut";
+import { shortcutListener } from "../../libs/shortcut";
 
 function ShortcutItem({ action, label }) {
   const { shortcut, setShortcut } = useShortcut(action);
   const [disabled, setDisabled] = useState(true);
-  const [focused, setFocus] = useState(false);
-  const [formval, setFormval] = useState(shortcut);
   const inputRef = useRef(null);
 
   useEffect(() => {
-    if (!disabled) {
-      inputRef.current.focus();
-      setFormval([]);
-    }
-  }, [disabled]);
-
-  useEffect(() => {
-    if (!focused) {
+    if (disabled) {
       return;
     }
 
-    const keys = new Set();
-    const handleKeydown = (e) => {
-      // console.log("keydown", e);
-      e.code && keys.add(e.key);
-      setFormval([...keys]);
-    };
-    const handleKeyup = (e) => {
-      // console.log("keyup", e);
-      keys.delete(e.key);
-    };
+    inputRef.current.focus();
+    setShortcut([]);
 
-    window.addEventListener("keydown", handleKeydown);
-    window.addEventListener("keyup", handleKeyup);
+    const clearShortcut = shortcutListener((keys) => {
+      setShortcut(keys);
+    }, inputRef.current);
+
     return () => {
-      window.removeEventListener("keydown", handleKeydown);
-      window.removeEventListener("keyup", handleKeyup);
+      clearShortcut();
     };
-  }, [focused]);
+  }, [disabled, setShortcut]);
 
   return (
     <Stack direction="row">
@@ -72,17 +57,12 @@ function ShortcutItem({ action, label }) {
         size="small"
         label={label}
         name={label}
-        value={formval.join(" + ")}
+        value={shortcut.join(" + ")}
         fullWidth
         inputRef={inputRef}
         disabled={disabled}
-        onFocus={(e) => {
-          setFocus(true);
-        }}
-        onBlur={(e) => {
-          setFocus(false);
+        onBlur={() => {
           setDisabled(true);
-          setShortcut(formval);
         }}
       />
       <IconButton

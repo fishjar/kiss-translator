@@ -8,12 +8,8 @@ export function useShortcut(action) {
 
   const setShortcut = useCallback(
     async (val) => {
-      await updateSetting({
-        shortcuts: {
-          ...shortcuts,
-          [action]: val,
-        },
-      });
+      Object.assign(shortcuts, { [action]: val });
+      await updateSetting({ shortcuts });
     },
     [action, shortcuts, updateSetting]
   );

@@ -6,10 +6,16 @@ import Draggable from "./Draggable";
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { SettingProvider } from "../../hooks/Setting";
 import Popup from "../Popup";
-import { debounce, isSameSet } from "../../libs/utils";
+import { debounce } from "../../libs/utils";
 import { isGm } from "../../libs/client";
 import Header from "../Popup/Header";
-import { DEFAULT_SHORTCUTS, OPT_SHORTCUT_TRANSLATE } from "../../config";
+import {
+  DEFAULT_SHORTCUTS,
+  OPT_SHORTCUT_TRANSLATE,
+  OPT_SHORTCUT_STYLE,
+  OPT_SHORTCUT_POPUP,
+} from "../../config";
+import { shortcutRegister } from "../../libs/shortcut";
 
 export default function Action({ translator, fab }) {
   const fabWidth = 40;
@@ -43,55 +49,27 @@ export default function Action({ translator, fab }) {
     setMoved(true);
   }, []);
 
-  // useEffect(() => {
-  //   // 注册快捷键
-  //   const handleKeydown = (e) => {
-  //     if (!e.altKey) {
-  //       return;
-  //     }
-  //     if (e.code === "KeyQ") {
-  //       translator.toggle();
-  //       setShowPopup(false);
-  //     } else if (e.code === "KeyC") {
-  //       translator.toggleStyle();
-  //       setShowPopup(false);
-  //     } else if (e.code === "KeyK") {
-  //       setShowPopup((pre) => !pre);
-  //     }
-  //   };
-  //   window.addEventListener("keydown", handleKeydown);
-  //   return () => {
-  //     window.removeEventListener("keydown", handleKeydown);
-  //   };
-  // }, [translator]);
-
   useEffect(() => {
     // 注册快捷键
     const shortcuts = translator.setting.shortcuts || DEFAULT_SHORTCUTS;
-    const keys = new Set();
+    const clearShortcuts = [
+      shortcutRegister(shortcuts[OPT_SHORTCUT_TRANSLATE], () => {
+        translator.toggle();
+        setShowPopup(false);
+      }),
+      shortcutRegister(shortcuts[OPT_SHORTCUT_STYLE], () => {
+        translator.toggleStyle();
+        setShowPopup(false);
+      }),
+      shortcutRegister(shortcuts[OPT_SHORTCUT_POPUP], () => {
+        setShowPopup((pre) => !pre);
+      }),
+    ];
 
-    const handleKeydown = (e) => {
-      console.log("keydown", e);
-      e.code && keys.add(e.key);
-
-      console.log("keys", keys);
-      const isSame = isSameSet(
-        keys,
-        new Set(shortcuts[OPT_SHORTCUT_TRANSLATE])
-      );
-      console.log("isSame", keys, isSame);
-    };
-
-    const handleKeyup = (e) => {
-      console.log("keyup", e);
-      keys.delete(e.key);
-    };
-
-    window.addEventListener("keydown", handleKeydown);
-    window.addEventListener("keyup", handleKeyup);
     return () => {
-      window.removeEventListener("keydown", handleKeydown);
-      window.removeEventListener("keyup", handleKeyup);
+      clearShortcuts.forEach((fn) => {
+        fn();
+      });
     };
   }, [translator]);
 

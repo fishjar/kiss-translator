@@ -4,21 +4,21 @@ import { useSetting } from "./Setting";
 
 export function useApi(translator) {
   const { setting, updateSetting } = useSetting();
-  const apis = setting?.transApis || DEFAULT_TRANS_APIS;
+  const transApis = setting?.transApis || DEFAULT_TRANS_APIS;
 
   const updateApi = useCallback(
     async (obj) => {
-      const api = apis[translator] || {};
-      const transApis = { ...apis, [translator]: { ...api, ...obj } };
+      const api = transApis[translator] || {};
+      Object.assign(transApis, { [translator]: { ...api, ...obj } });
       await updateSetting({ transApis });
     },
-    [translator, apis, updateSetting]
+    [translator, transApis, updateSetting]
   );
 
   const resetApi = useCallback(async () => {
-    const transApis = { ...apis, [translator]: DEFAULT_TRANS_APIS[translator] };
+    Object.assign(transApis, { [translator]: DEFAULT_TRANS_APIS[translator] });
     await updateSetting({ transApis });
-  }, [translator, apis, updateSetting]);
+  }, [translator, transApis, updateSetting]);
 
-  return { api: apis[translator] || {}, updateApi, resetApi };
+  return { api: transApis[translator] || {}, updateApi, resetApi };
 }
