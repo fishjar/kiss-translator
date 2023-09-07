@@ -7,6 +7,7 @@ import {
 } from "./storage";
 import { apiFetchRules } from "../apis";
 import { checkRules } from "./rules";
+import { isAllchar } from "./utils";
 
 /**
  * 同步订阅规则
@@ -16,7 +17,7 @@ import { checkRules } from "./rules";
 export const syncSubRules = async (url, isBg = false) => {
   const res = await apiFetchRules(url, isBg);
   const rules = checkRules(res).filter(
-    (rule) => rule.pattern.replaceAll(GLOBAL_KEY, "") !== ""
+    ({ pattern }) => !isAllchar(pattern, GLOBAL_KEY)
   );
   if (rules.length > 0) {
     await setSubRules(url, rules);

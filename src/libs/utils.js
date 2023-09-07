@@ -58,6 +58,23 @@ export const debounce = (func, delay = 200) => {
 };
 
 /**
+ * 判断字符串全是某个字符
+ * @param {*} s
+ * @param {*} c
+ * @param {*} i
+ * @returns
+ */
+export const isAllchar = (s, c, i = 0) => {
+  while (i < s.length) {
+    if (s[i] !== c) {
+      return false;
+    }
+    i++;
+  }
+  return true;
+};
+
+/**
  * 字符串通配符(*)匹配
  * @param {*} s
  * @param {*} p
@@ -91,14 +108,7 @@ export const isMatch = (s, p) => {
     return true;
   }
 
-  while (pIndex < p.length) {
-    if (p[pIndex] !== "*") {
-      return false;
-    }
-    pIndex++;
-  }
-
-  return true;
+  return isAllchar(p, "*", pIndex);
 };
 
 /**
