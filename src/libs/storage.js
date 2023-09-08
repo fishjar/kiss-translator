@@ -82,10 +82,8 @@ export const storage = {
  * 设置信息
  */
 export const getSetting = () => getObj(STOKEY_SETTING);
-export const getSettingWithDefault = async () => ({
-  ...DEFAULT_SETTING,
-  ...((await getSetting()) || {}),
-});
+export const getSettingWithDefault = async () =>
+  (await getSetting()) || DEFAULT_SETTING;
 export const setSetting = (val) => setObj(STOKEY_SETTING, val);
 export const updateSetting = (obj) => putObj(STOKEY_SETTING, obj);
 
