@@ -6,7 +6,7 @@ import {
   getSubRules,
   updateSetting,
 } from "./storage";
-import { apiFetchRules } from "../apis";
+import { apiFetch } from "../apis";
 import { checkRules } from "./rules";
 import { isAllchar } from "./utils";
 
@@ -16,7 +16,7 @@ import { isAllchar } from "./utils";
  * @returns
  */
 export const syncSubRules = async (url, isBg = false) => {
-  const res = await apiFetchRules(url, isBg);
+  const res = await apiFetch(url, isBg);
   const rules = checkRules(res).filter(
     ({ pattern }) => !isAllchar(pattern, GLOBAL_KEY)
   );

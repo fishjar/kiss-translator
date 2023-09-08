@@ -441,9 +441,9 @@ export const I18N = {
     zh: `数据同步密钥`,
     en: `Data Sync Key`,
   },
-  data_sync_test: {
-    zh: `数据同步测试`,
-    en: `Data Sync Test`,
+  sync_now: {
+    zh: `立即同步`,
+    en: `Sync Now`,
   },
   sync_success: {
     zh: `同步成功！`,

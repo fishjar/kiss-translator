@@ -1,4 +1,11 @@
 import { isMatch } from "./utils";
+import { getWebfix, setWebfix } from "./storage";
+import { apiFetch } from "../apis";
+
+/**
+ * 修复程序类型
+ */
+const WEBFIX_BR = "br";
 
 /**
  * 需要修复的站点列表
@@ -7,18 +14,18 @@ import { isMatch } from "./utils";
  * - rootSlector 需要监听的选择器，可留空
  * - fixer 修复函数，可针对不同网址，选用不同修复函数
  */
-export const sites = [
+const DEFAULT_SITES = [
   {
     pattern: "www.phoronix.com",
     selector: ".content",
     rootSlector: "",
-    fixer: brFixer,
+    fixer: WEBFIX_BR,
   },
   {
     pattern: "t.me/s/*",
     selector: ".tgme_widget_message_text",
     rootSlector: ".tgme_channel_history",
-    fixer: brFixer,
+    fixer: WEBFIX_BR,
   },
 ];
 
@@ -81,6 +88,13 @@ function brFixer(node) {
 }
 
 /**
+ * 修复程序映射
+ */
+const fixerMap = {
+  [WEBFIX_BR]: brFixer,
+};
+
+/**
  * 查找、监听节点，并执行修复函数
  * @param {*} selector
  * @param {*} fixer
@@ -109,18 +123,50 @@ function run(selector, fixer, rootSlector) {
 }
 
 /**
+ * 同步远程数据
+ * @param {*} url
+ * @returns
+ */
+export const syncWebfix = async (url) => {
+  const sites = await apiFetch(url);
+  await setWebfix(url, sites);
+  return sites;
+};
+
+/**
+ * 从缓存或远程加载修复站点
+ * @param {*} url
+ * @returns
+ */
+export const loadOrFetchWebfix = async (url) => {
+  try {
+    let sites = await getWebfix(url);
+    if (sites?.length) {
+      return sites;
+    }
+    return syncWebfix(url);
+  } catch (err) {
+    console.log("[load webfix]", err.message);
+    return DEFAULT_SITES;
+  }
+};
+
+/**
  * 匹配站点
  */
-export function webfix(href, { injectWebfix }) {
+export async function webfix(href, { injectWebfix }) {
   try {
     if (!injectWebfix) {
       return;
     }
 
+    const sites = await loadOrFetchWebfix(process.env.REACT_APP_WEBFIXURL);
     for (var i = 0; i < sites.length; i++) {
       var site = sites[i];
       if (isMatch(href, site.pattern)) {
-        run(site.selector, site.fixer, site.rootSlector);
+        if (fixerMap[site.fixer]) {
+          run(site.selector, fixerMap[site.fixer], site.rootSlector);
+        }
         break;
       }
     }

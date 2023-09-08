@@ -5,6 +5,7 @@ import {
   STOKEY_SYNC,
   STOKEY_MSAUTH,
   STOKEY_RULESCACHE_PREFIX,
+  STOKEY_WEBFIXCACHE_PREFIX,
   DEFAULT_SETTING,
   DEFAULT_RULES,
   DEFAULT_SYNC,
@@ -103,6 +104,14 @@ export const getSubRulesWithDefault = async () => (await getSubRules()) || [];
 export const delSubRules = (url) => del(STOKEY_RULESCACHE_PREFIX + url);
 export const setSubRules = (url, val) =>
   setObj(STOKEY_RULESCACHE_PREFIX + url, val);
+
+/**
+ * 修复站点
+ */
+export const getWebfix = (url) => getObj(STOKEY_WEBFIXCACHE_PREFIX + url);
+export const getWebfixWithDefault = async () => (await getWebfix()) || [];
+export const setWebfix = (url, val) =>
+  setObj(STOKEY_WEBFIXCACHE_PREFIX + url, val);
 
 /**
  * fab位置

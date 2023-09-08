@@ -87,7 +87,7 @@ export default function SyncSetting() {
             onClick={handleSyncTest}
             startIcon={<SyncIcon />}
           >
-            {i18n("data_sync_test")}
+            {i18n("sync_now")}
           </Button>
           {loading && <CircularProgress size={16} />}
         </Stack>

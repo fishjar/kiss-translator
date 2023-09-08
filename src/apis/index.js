@@ -33,13 +33,12 @@ export const apiSyncData = async (url, key, data, isBg = false) =>
   });
 
 /**
- * 下载订阅规则
+ * 下载数据
  * @param {*} url
  * @param {*} isBg
  * @returns
  */
-export const apiFetchRules = (url, isBg = false) =>
-  fetchPolyfill(url, { isBg });
+export const apiFetch = (url, isBg = false) => fetchPolyfill(url, { isBg });
 
 /**
  * 谷歌翻译
