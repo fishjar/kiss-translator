@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name          KISS Translator
 // @namespace     https://github.com/fishjar/kiss-translator
-// @version       1.6.7
+// @version       1.6.8
 // @description   A minimalist bilingual translation Extension & Greasemonkey Script (一个简约的双语网页翻译扩展 & 油猴脚本)
 // @author        Gabe<yugang2002@gmail.com>
 // @homepageURL   https://github.com/fishjar/kiss-translator
@@ -3087,7 +3087,7 @@ function useControlled(_ref) {
 /* harmony export */ });
 /* harmony import */ var _emotion_styled__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3320);
 /**
- * @mui/styled-engine v5.14.7
+ * @mui/styled-engine v5.14.8
  *
  * @license MIT
  * This source code is licensed under the MIT license found in the
@@ -4464,10 +4464,20 @@ var width = (0,_style__WEBPACK_IMPORTED_MODULE_0__/* ["default"] */ .ZP)({
 var maxWidth = function maxWidth(props) {
   if (props.maxWidth !== undefined && props.maxWidth !== null) {
     var styleFromPropValue = function styleFromPropValue(propValue) {
-      var _props$theme;
+      var _props$theme, _props$theme2;
       var breakpoint = ((_props$theme = props.theme) == null || (_props$theme = _props$theme.breakpoints) == null || (_props$theme = _props$theme.values) == null ? void 0 : _props$theme[propValue]) || _breakpoints__WEBPACK_IMPORTED_MODULE_1__/* .values */ .VO[propValue];
+      if (!breakpoint) {
+        return {
+          maxWidth: sizingTransform(propValue)
+        };
+      }
+      if (((_props$theme2 = props.theme) == null || (_props$theme2 = _props$theme2.breakpoints) == null ? void 0 : _props$theme2.unit) !== 'px') {
+        return {
+          maxWidth: "".concat(breakpoint).concat(props.theme.breakpoints.unit)
+        };
+      }
       return {
-        maxWidth: breakpoint || sizingTransform(propValue)
+        maxWidth: breakpoint
       };
     };
     return (0,_breakpoints__WEBPACK_IMPORTED_MODULE_1__/* .handleBreakpoints */ .k9)(props, props.maxWidth, styleFromPropValue);
@@ -14243,47 +14253,6 @@ if (true) {
 
 /***/ }),
 
-/***/ 9767:
-/***/ (function(module) {
-
-//
-
-module.exports = function shallowEqual(objA, objB, compare, compareContext) {
-  var ret = compare ? compare.call(compareContext, objA, objB) : void 0;
-  if (ret !== void 0) {
-    return !!ret;
-  }
-  if (objA === objB) {
-    return true;
-  }
-  if (typeof objA !== "object" || !objA || typeof objB !== "object" || !objB) {
-    return false;
-  }
-  var keysA = Object.keys(objA);
-  var keysB = Object.keys(objB);
-  if (keysA.length !== keysB.length) {
-    return false;
-  }
-  var bHasOwnProperty = Object.prototype.hasOwnProperty.bind(objB);
-
-  // Test for A's keys different from B.
-  for (var idx = 0; idx < keysA.length; idx++) {
-    var key = keysA[idx];
-    if (!bHasOwnProperty(key)) {
-      return false;
-    }
-    var valueA = objA[key];
-    var valueB = objB[key];
-    ret = compare ? compare.call(compareContext, valueA, valueB, key) : void 0;
-    if (ret === false || ret === void 0 && valueA !== valueB) {
-      return false;
-    }
-  }
-  return true;
-};
-
-/***/ }),
-
 /***/ 930:
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -17128,18 +17097,6 @@ function combine(array, callback) {
 /******/ 	}
 /******/ 	
 /************************************************************************/
-/******/ 	/* webpack/runtime/compat get default export */
-/******/ 	!function() {
-/******/ 		// getDefaultExport function for compatibility with non-harmony modules
-/******/ 		__webpack_require__.n = function(module) {
-/******/ 			var getter = module && module.__esModule ?
-/******/ 				function() { return module['default']; } :
-/******/ 				function() { return module; };
-/******/ 			__webpack_require__.d(getter, { a: getter });
-/******/ 			return getter;
-/******/ 		};
-/******/ 	}();
-/******/ 	
 /******/ 	/* webpack/runtime/create fake namespace object */
 /******/ 	!function() {
 /******/ 		var getProto = Object.getPrototypeOf ? function(obj) { return Object.getPrototypeOf(obj); } : function(obj) { return obj.__proto__; };
@@ -17196,11 +17153,6 @@ function combine(array, callback) {
 /******/ 			}
 /******/ 			Object.defineProperty(exports, '__esModule', { value: true });
 /******/ 		};
-/******/ 	}();
-/******/ 	
-/******/ 	/* webpack/runtime/nonce */
-/******/ 	!function() {
-/******/ 		__webpack_require__.nc = undefined;
 /******/ 	}();
 /******/ 	
 /************************************************************************/
@@ -19516,13 +19468,13 @@ function CssBaseline(inProps) {
  false ? 0 : void 0;
 /* harmony default export */ var CssBaseline_CssBaseline = (CssBaseline);
 ;// CONCATENATED MODULE: ./src/config/rules.js
-var els="li, p, h1, h2, h3, h4, h5, h6, dd";var DEFAULT_SELECTOR=":is(".concat(els,")");var GLOBAL_KEY="*";var REMAIN_KEY="-";var SHADOW_KEY=">>>";var DEFAULT_RULE={pattern:"",selector:"",translator:GLOBAL_KEY,fromLang:GLOBAL_KEY,toLang:GLOBAL_KEY,textStyle:GLOBAL_KEY,transOpen:GLOBAL_KEY,bgColor:"",textDiyStyle:""};var DEFAULT_DIY_STYLE="color: #666;\nbackground: linear-gradient(\n  45deg,\n  LightGreen 20%,\n  LightPink 20% 40%,\n  LightSalmon 40% 60%,\n  LightSeaGreen 60% 80%,\n  LightSkyBlue 80%\n);\n&:hover {\n  color: #333;\n};";var DEFAULT_OW_RULE={translator:REMAIN_KEY,fromLang:REMAIN_KEY,toLang:REMAIN_KEY,textStyle:REMAIN_KEY,transOpen:REMAIN_KEY,bgColor:"",textDiyStyle:DEFAULT_DIY_STYLE};var RULES=[{pattern:"www.google.com/search",selector:"h3, .IsZvec, .VwiC3b"},{pattern:"news.google.com",selector:"h4"},{pattern:"www.foxnews.com",selector:"h1, h2, .title, .sidebar [data-type=\"Title\"], .article-content ".concat(DEFAULT_SELECTOR,"; [data-spotim-module=\"conversation\"]>div >>> [data-spot-im-class=\"message-text\"] p,  [data-spot-im-class=\"message-text\"]")},{pattern:"bearblog.dev, www.theverge.com, www.tampermonkey.net/documentation.php",selector:DEFAULT_SELECTOR},{pattern:"themessenger.com",selector:".leading-tight, .leading-tighter, .my-2 p, .font-body p, article ".concat(DEFAULT_SELECTOR)},{pattern:"www.telegraph.co.uk",selector:"article ".concat(DEFAULT_SELECTOR)},{pattern:"www.theguardian.com",selector:".show-underline, .dcr-hup5wm div, .dcr-7vl6y8 div, .dcr-12evv1c, figcaption, article ".concat(DEFAULT_SELECTOR,", [data-cy=\"mostviewed-footer\"] h4")},{pattern:"www.semafor.com",selector:"".concat(DEFAULT_SELECTOR,", .styles_intro__IYj__, [class*=\"styles_description\"]")},{pattern:"www.noemamag.com",selector:".splash__title, .single-card__title, .single-card__type, .single-card__topic, .highlighted-content__title, .single-card__author, article ".concat(DEFAULT_SELECTOR,", .quote__text, .wp-caption-text div")},{pattern:"restofworld.org",selector:"".concat(DEFAULT_SELECTOR,", .recirc-story__headline, .recirc-story__dek")},{pattern:"www.axios.com",selector:".h7, ".concat(DEFAULT_SELECTOR)},{pattern:"www.newyorker.com",selector:".summary-item__hed, .summary-item__dek, .summary-collection-grid__dek, .dqtvfu, .rubric__link, .caption, article ".concat(DEFAULT_SELECTOR,", .HEhan ").concat(DEFAULT_SELECTOR,", .ContributorBioBio-fBolsO")},{pattern:"https://time.com/",selector:"h1, h3, .summary, .video-title, #article-body ".concat(DEFAULT_SELECTOR,", .image-wrap-container .credit.body-caption, .media-heading")},{pattern:"www.dw.com",selector:".ts-teaser-title a, .news-title a, .title a, .teaser-description a, .hbudab h3, .hbudab p, figcaption ,article ".concat(DEFAULT_SELECTOR)},{pattern:"www.bbc.com",selector:"h1, h2, .media__link, .media__summary, article ".concat(DEFAULT_SELECTOR,", .ssrcss-y7krbn-Stack, .ssrcss-1mrs5ns-PromoLink, .ssrcss-18cjaf3-Headline, .gs-c-promo-heading__title, .gs-c-promo-summary, .media__content h3, .article__intro")},{pattern:"www.chinadaily.com.cn",selector:"h1, .tMain [shape=\"rect\"], .cMain [shape=\"rect\"], .photo_art [shape=\"rect\"], .mai_r [shape=\"rect\"], .lisBox li, #Content ".concat(DEFAULT_SELECTOR)},{pattern:"www.facebook.com",selector:"[role=\"main\"] [dir=\"auto\"]"},{pattern:"www.reddit.com",selector:"[slot=\"title\"], [slot=\"text-body\"] ".concat(DEFAULT_SELECTOR,", #-post-rtjson-content p")},{pattern:"www.quora.com",selector:".qu-wordBreak--break-word"},{pattern:"edition.cnn.com",selector:".container__title, .container__headline, .headline__text, .image__caption, [data-type=\"Title\"], .article__content ".concat(DEFAULT_SELECTOR)},{pattern:"www.reuters.com",selector:"#main-content [data-testid=\"Heading\"], #main-content [data-testid=\"Body\"], .article-body__content__17Yit ".concat(DEFAULT_SELECTOR)},{pattern:"www.bloomberg.com",selector:"[data-component=\"headline\"], [data-component=\"related-item-headline\"], [data-component=\"title\"], article ".concat(DEFAULT_SELECTOR)},{pattern:"deno.land, docs.github.com",selector:"main ".concat(DEFAULT_SELECTOR)},{pattern:"doc.rust-lang.org",selector:"#content ".concat(DEFAULT_SELECTOR)},{pattern:"www.indiehackers.com",selector:"h1, h3, .content ".concat(DEFAULT_SELECTOR,", .feed-item__title-link")},{pattern:"platform.openai.com/docs",selector:".docs-body ".concat(DEFAULT_SELECTOR)},{pattern:"en.wikipedia.org",selector:"h1, .mw-parser-output ".concat(DEFAULT_SELECTOR)},{pattern:"stackoverflow.com",selector:"h1, .s-prose p, .comment-body .comment-copy"},{pattern:"www.npmjs.com/package/, developer.chrome.com/docs, medium.com, developers.cloudflare.com, react.dev, create-react-app.dev, pytorch.org/",selector:"article ".concat(DEFAULT_SELECTOR)},{pattern:"news.ycombinator.com",selector:".title, .commtext"},{pattern:"https://github.com/",selector:".markdown-body ".concat(DEFAULT_SELECTOR,", .repo-description p, .Layout-sidebar .f4, .container-lg .py-4 .f5, .container-lg .my-4 .f5, .Box-row .pr-4, .Box-row article .mt-1, [itemprop='description'], .markdown-title, bdi")},{pattern:"twitter.com",selector:"[data-testid='tweetText']"},{pattern:"youtube.com",selector:"h1, #video-title, #content-text, #title, yt-attributed-string>span>span"}];var rules_BUILTIN_RULES=RULES.sort(function(a,b){return a.pattern.localeCompare(b.pattern);}).map(function(item){return _objectSpread2(_objectSpread2(_objectSpread2({},DEFAULT_RULE),item),{},{transOpen:"true"});});
+var els="li, p, h1, h2, h3, h4, h5, h6, dd, blockquote";var DEFAULT_SELECTOR=":is(".concat(els,")");var GLOBAL_KEY="*";var REMAIN_KEY="-";var SHADOW_KEY=">>>";var DEFAULT_RULE={pattern:"",selector:"",translator:GLOBAL_KEY,fromLang:GLOBAL_KEY,toLang:GLOBAL_KEY,textStyle:GLOBAL_KEY,transOpen:GLOBAL_KEY,bgColor:"",textDiyStyle:""};var DEFAULT_DIY_STYLE="color: #666;\nbackground: linear-gradient(\n  45deg,\n  LightGreen 20%,\n  LightPink 20% 40%,\n  LightSalmon 40% 60%,\n  LightSeaGreen 60% 80%,\n  LightSkyBlue 80%\n);\n&:hover {\n  color: #333;\n};";var DEFAULT_OW_RULE={translator:REMAIN_KEY,fromLang:REMAIN_KEY,toLang:REMAIN_KEY,textStyle:REMAIN_KEY,transOpen:REMAIN_KEY,bgColor:"",textDiyStyle:DEFAULT_DIY_STYLE};var RULES=[{pattern:"www.google.com/search",selector:"h3, .IsZvec, .VwiC3b"},{pattern:"news.google.com",selector:"h4"},{pattern:"www.foxnews.com",selector:"h1, h2, .title, .sidebar [data-type=\"Title\"], .article-content ".concat(DEFAULT_SELECTOR,"; [data-spotim-module=\"conversation\"]>div >>> [data-spot-im-class=\"message-text\"] p,  [data-spot-im-class=\"message-text\"]")},{pattern:"bearblog.dev, www.theverge.com, www.tampermonkey.net/documentation.php",selector:DEFAULT_SELECTOR},{pattern:"themessenger.com",selector:".leading-tight, .leading-tighter, .my-2 p, .font-body p, article ".concat(DEFAULT_SELECTOR)},{pattern:"www.telegraph.co.uk",selector:"article ".concat(DEFAULT_SELECTOR)},{pattern:"www.theguardian.com",selector:".show-underline, .dcr-hup5wm div, .dcr-7vl6y8 div, .dcr-12evv1c, figcaption, article ".concat(DEFAULT_SELECTOR,", [data-cy=\"mostviewed-footer\"] h4")},{pattern:"www.semafor.com",selector:"".concat(DEFAULT_SELECTOR,", .styles_intro__IYj__, [class*=\"styles_description\"]")},{pattern:"www.noemamag.com",selector:".splash__title, .single-card__title, .single-card__type, .single-card__topic, .highlighted-content__title, .single-card__author, article ".concat(DEFAULT_SELECTOR,", .quote__text, .wp-caption-text div")},{pattern:"restofworld.org",selector:"".concat(DEFAULT_SELECTOR,", .recirc-story__headline, .recirc-story__dek")},{pattern:"www.axios.com",selector:".h7, ".concat(DEFAULT_SELECTOR)},{pattern:"www.newyorker.com",selector:".summary-item__hed, .summary-item__dek, .summary-collection-grid__dek, .dqtvfu, .rubric__link, .caption, article ".concat(DEFAULT_SELECTOR,", .HEhan ").concat(DEFAULT_SELECTOR,", .ContributorBioBio-fBolsO")},{pattern:"https://time.com/",selector:"h1, h3, .summary, .video-title, #article-body ".concat(DEFAULT_SELECTOR,", .image-wrap-container .credit.body-caption, .media-heading")},{pattern:"www.dw.com",selector:".ts-teaser-title a, .news-title a, .title a, .teaser-description a, .hbudab h3, .hbudab p, figcaption ,article ".concat(DEFAULT_SELECTOR)},{pattern:"www.bbc.com",selector:"h1, h2, .media__link, .media__summary, article ".concat(DEFAULT_SELECTOR,", .ssrcss-y7krbn-Stack, .ssrcss-1mrs5ns-PromoLink, .ssrcss-18cjaf3-Headline, .gs-c-promo-heading__title, .gs-c-promo-summary, .media__content h3, .article__intro")},{pattern:"www.chinadaily.com.cn",selector:"h1, .tMain [shape=\"rect\"], .cMain [shape=\"rect\"], .photo_art [shape=\"rect\"], .mai_r [shape=\"rect\"], .lisBox li, #Content ".concat(DEFAULT_SELECTOR)},{pattern:"www.facebook.com",selector:"[role=\"main\"] [dir=\"auto\"]"},{pattern:"www.reddit.com",selector:"[slot=\"title\"], [slot=\"text-body\"] ".concat(DEFAULT_SELECTOR,", #-post-rtjson-content p")},{pattern:"www.quora.com",selector:".qu-wordBreak--break-word"},{pattern:"edition.cnn.com",selector:".container__title, .container__headline, .headline__text, .image__caption, [data-type=\"Title\"], .article__content ".concat(DEFAULT_SELECTOR)},{pattern:"www.reuters.com",selector:"#main-content [data-testid=\"Heading\"], #main-content [data-testid=\"Body\"], .article-body__content__17Yit ".concat(DEFAULT_SELECTOR)},{pattern:"www.bloomberg.com",selector:"[data-component=\"headline\"], [data-component=\"related-item-headline\"], [data-component=\"title\"], article ".concat(DEFAULT_SELECTOR)},{pattern:"deno.land, docs.github.com",selector:"main ".concat(DEFAULT_SELECTOR)},{pattern:"doc.rust-lang.org",selector:"#content ".concat(DEFAULT_SELECTOR)},{pattern:"www.indiehackers.com",selector:"h1, h3, .content ".concat(DEFAULT_SELECTOR,", .feed-item__title-link")},{pattern:"platform.openai.com/docs",selector:".docs-body ".concat(DEFAULT_SELECTOR)},{pattern:"en.wikipedia.org",selector:"h1, .mw-parser-output ".concat(DEFAULT_SELECTOR)},{pattern:"stackoverflow.com",selector:"h1, .s-prose p, .comment-body .comment-copy"},{pattern:"www.npmjs.com/package/, developer.chrome.com/docs, medium.com, developers.cloudflare.com, react.dev, create-react-app.dev, pytorch.org/",selector:"article ".concat(DEFAULT_SELECTOR)},{pattern:"news.ycombinator.com",selector:".title, .commtext"},{pattern:"https://github.com/",selector:".markdown-body ".concat(DEFAULT_SELECTOR,", .repo-description p, .Layout-sidebar .f4, .container-lg .py-4 .f5, .container-lg .my-4 .f5, .Box-row .pr-4, .Box-row article .mt-1, [itemprop='description'], .markdown-title, bdi")},{pattern:"twitter.com",selector:"[data-testid='tweetText']"},{pattern:"youtube.com",selector:"h1, #video-title, #content-text, #title, yt-attributed-string>span>span"}];var rules_BUILTIN_RULES=RULES.sort(function(a,b){return a.pattern.localeCompare(b.pattern);}).map(function(item){return _objectSpread2(_objectSpread2(_objectSpread2({},DEFAULT_RULE),item),{},{transOpen:"true"});});
 ;// CONCATENATED MODULE: ./src/config/app.js
 var APP_NAME="KISS Translator".trim().split(/\s+/).join("-");var APP_LCNAME=APP_NAME.toLowerCase();
 ;// CONCATENATED MODULE: ./src/config/i18n.js
-var UI_LANGS=(/* unused pure expression or super */ null && ([["en","English"],["zh","中文"]]));var I18N={app_name:{zh:"\u7B80\u7EA6\u7FFB\u8BD1",en:"KISS Translator"},translate:{zh:"\u7FFB\u8BD1",en:"Translate"},translate_alt:{zh:"\u7FFB\u8BD1 (Alt+Q)",en:"Translate (Alt+Q)"},basic_setting:{zh:"\u57FA\u672C\u8BBE\u7F6E",en:"Basic Setting"},rules_setting:{zh:"\u89C4\u5219\u8BBE\u7F6E",en:"Rules Setting"},sync_setting:{zh:"\u540C\u6B65\u8BBE\u7F6E",en:"Sync Setting"},about:{zh:"\u5173\u4E8E",en:"About"},about_md:{zh:"README.md",en:"README.en.md"},about_md_local:{zh:"\u8BF7 [\u70B9\u51FB\u8FD9\u91CC](".concat("https://github.com/fishjar/kiss-translator",") \u67E5\u770B\u8BE6\u60C5\u3002"),en:"Please [click here](".concat("https://github.com/fishjar/kiss-translator",") for details.")},ui_lang:{zh:"\u754C\u9762\u8BED\u8A00",en:"Interface Language"},fetch_limit:{zh:"\u6700\u5927\u8BF7\u6C42\u6570\u91CF (1-100)",en:"Maximum Number Of Request (1-100)"},fetch_interval:{zh:"\u8BF7\u6C42\u95F4\u9694\u65F6\u95F4 (0-5000ms)",en:"Request Interval (0-5000ms)"},min_translate_length:{zh:"\u6700\u5C0F\u7FFB\u8BD1\u957F\u5EA6 (1-100)",en:"Min Translate Length (1-100)"},max_translate_length:{zh:"\u6700\u5927\u7FFB\u8BD1\u957F\u5EA6 (100-10000)",en:"Max Translate Length (100-10000)"},num_of_newline_characters:{zh:"\u6362\u884C\u5B57\u7B26\u6570 (1-1000)",en:"Number of Newline Characters (1-1000)"},translate_service:{zh:"\u7FFB\u8BD1\u670D\u52A1",en:"Translate Service"},from_lang:{zh:"\u539F\u6587\u8BED\u8A00",en:"Source Language"},to_lang:{zh:"\u76EE\u6807\u8BED\u8A00",en:"Target Language"},text_style:{zh:"\u6587\u5B57\u6837\u5F0F",en:"Text Style"},text_style_alt:{zh:"\u6587\u5B57\u6837\u5F0F (Alt+C)",en:"Text Style (Alt+C)"},bg_color:{zh:"\u6837\u5F0F\u989C\u8272",en:"Style Color"},remain_unchanged:{zh:"\u4FDD\u7559\u4E0D\u53D8",en:"Remain Unchanged"},google_api:{zh:"\u8C37\u6B4C\u7FFB\u8BD1\u63A5\u53E3",en:"Google Translate API"},default_selector:{zh:"\u9ED8\u8BA4\u9009\u62E9\u5668",en:"Default selector"},selector_rules:{zh:"\u9009\u62E9\u5668\u89C4\u5219",en:"Selector Rules"},save:{zh:"\u4FDD\u5B58",en:"Save"},edit:{zh:"\u7F16\u8F91",en:"Edit"},cancel:{zh:"\u53D6\u6D88",en:"Cancel"},delete:{zh:"\u5220\u9664",en:"Delete"},reset:{zh:"\u91CD\u7F6E",en:"Reset"},add:{zh:"\u6DFB\u52A0",en:"Add"},inject_rules:{zh:"\u6CE8\u5165\u8BA2\u9605\u89C4\u5219",en:"Inject Subscribe Rules"},personal_rules:{zh:"\u4E2A\u4EBA\u89C4\u5219",en:"Personal Rules"},subscribe_rules:{zh:"\u8BA2\u9605\u89C4\u5219",en:"Subscribe Rules"},overwrite_subscribe_rules:{zh:"\u8986\u5199\u8BA2\u9605\u89C4\u5219",en:"Overwrite Subscribe Rules"},subscribe_url:{zh:"\u8BA2\u9605\u5730\u5740",en:"Subscribe URL"},rules_warn_1:{zh:"1\u3001\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u4E00\u76F4\u751F\u6548\uFF0C\u9009\u62E9\u201C\u6CE8\u5165\u8BA2\u9605\u89C4\u5219\u201D\u540E\uFF0C\u201C\u8BA2\u9605\u89C4\u5219\u201D\u624D\u4F1A\u751F\u6548\u3002",en:"1. The \"Personal Rules\" are always in effect. After selecting \"Inject Subscription Rules\", the \"Subscription Rules\" will take effect."},rules_warn_2:{zh:"2\u3001\u201C\u8BA2\u9605\u89C4\u5219\u201D\u7684\u6CE8\u5165\u4F4D\u7F6E\u662F\u5012\u6570\u7B2C\u4E8C\u7684\u4F4D\u7F6E\uFF0C\u56E0\u6B64\u9664\u5168\u5C40\u89C4\u5219(*)\u5916\uFF0C\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u4F18\u5148\u7EA7\u6BD4\u201C\u8BA2\u9605\u89C4\u5219\u201D\u9AD8\uFF0C\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u586B\u5199\u540C\u6837\u7684\u7F51\u5740\u4F1A\u8986\u76D6\u201D\u8BA2\u9605\u89C4\u5219\u201C\u7684\u6761\u76EE\u3002",en:"2. The injection position of \"Subscription Rules\" is the penultimate position. Therefore, except for the global rules (*), the priority of \"Personal Rules\" is higher than that of \"Subscription Rules\". Filling in the same url in \"Personal Rules\" will overwrite \"Subscription Rules\" entry."},sync_warn:{zh:"\u5982\u679C\u670D\u52A1\u5668\u5B58\u5728\u5176\u4ED6\u5BA2\u6237\u7AEF\u540C\u6B65\u7684\u6570\u636E\uFF0C\u7B2C\u4E00\u6B21\u540C\u6B65\u5C06\u76F4\u63A5\u8986\u76D6\u672C\u5730\u914D\u7F6E\uFF0C\u540E\u9762\u5219\u6839\u636E\u4FEE\u6539\u65F6\u95F4\uFF0C\u65B0\u7684\u8986\u76D6\u65E7\u7684\u3002",en:"If the server has data synchronized by other clients, the first synchronization will directly overwrite the local configuration, and later, according to the modification time, the new one will overwrite the old one."},about_sync_api:{zh:"\u67E5\u770B\u5173\u4E8E\u6570\u636E\u540C\u6B65\u63A5\u53E3\u90E8\u7F72",en:"View About Data Synchronization Interface Deployment"},about_api_proxy:{zh:"\u67E5\u770B\u81EA\u5EFA\u4E00\u4E2A\u7FFB\u8BD1\u63A5\u53E3\u4EE3\u7406",en:"Check out the self-built translation interface proxy"},style_none:{zh:"\u65E0",en:"None"},under_line:{zh:"\u4E0B\u5212\u76F4\u7EBF",en:"Underline"},dot_line:{zh:"\u4E0B\u5212\u70B9\u72B6\u7EBF",en:"Dotted Underline"},dash_line:{zh:"\u4E0B\u5212\u865A\u7EBF",en:"Dashed Underline"},wavy_line:{zh:"\u4E0B\u5212\u6CE2\u6D6A\u7EBF",en:"Wavy Underline"},fuzzy:{zh:"\u6A21\u7CCA",en:"Fuzzy"},highlight:{zh:"\u9AD8\u4EAE",en:"Highlight"},diy_style:{zh:"\u81EA\u5B9A\u4E49\u6837\u5F0F",en:"Custom Style"},diy_style_helper:{zh:"\u9075\u5FAA\u201Cstyled-components\u201D\u7684\u8BED\u6CD5",en:"Follow the syntax of \"styled-components\""},setting:{zh:"\u8BBE\u7F6E",en:"Setting"},pattern:{zh:"\u5339\u914D\u7F51\u5740",en:"URL pattern"},pattern_helper:{zh:"1\u3001\u652F\u6301\u661F\u53F7(*)\u901A\u914D\u7B26\u30022\u3001\u591A\u4E2AURL\u652F\u6301\u82F1\u6587\u9017\u53F7\u201C,\u201D\u5206\u9694\u3002",en:"1. The asterisk (*) wildcard is supported. 2. Multiple URLs can be separated by English commas \",\"."},selector_helper:{zh:"1\u3001\u9075\u5FAACSS\u9009\u62E9\u5668\u8BED\u6CD5\u30022\u3001\u7559\u7A7A\u8868\u793A\u91C7\u7528\u5168\u5C40\u8BBE\u7F6E\u30023\u3001\u591A\u4E2ACSS\u9009\u62E9\u5668\u4E4B\u95F4\u7528\u201C;\u201D\u9694\u5F00\u30024\u3001\u201Cshadow root\u201D\u9009\u62E9\u5668\u548C\u5185\u90E8\u9009\u62E9\u5668\u7528\u201C>>>\u201D\u9694\u5F00\u3002",en:"1. Follow CSS selector syntax. 2. Leave blank to adopt the global setting. 3. Separate multiple CSS selectors with \";\". 4. The \"shadow root\" selector and the internal selector are separated by \">>>\"."},translate_switch:{zh:"\u5F00\u542F\u7FFB\u8BD1",en:"Translate Switch"},default_enabled:{zh:"\u9ED8\u8BA4\u5F00\u542F",en:"Enabled"},default_disabled:{zh:"\u9ED8\u8BA4\u5173\u95ED",en:"Disabled"},selector:{zh:"\u9009\u62E9\u5668",en:"Selector"},import:{zh:"\u5BFC\u5165",en:"Import"},export:{zh:"\u5BFC\u51FA",en:"Export"},error_cant_be_blank:{zh:"\u4E0D\u80FD\u4E3A\u7A7A",en:"Can not be blank"},error_duplicate_values:{zh:"\u5B58\u5728\u91CD\u590D\u7684\u503C",en:"There are duplicate values"},error_wrong_file_type:{zh:"\u9519\u8BEF\u7684\u6587\u4EF6\u7C7B\u578B",en:"Wrong file type"},error_fetch_url:{zh:"\u8BF7\u68C0\u67E5url\u5730\u5740\u662F\u5426\u6B63\u786E\u6216\u7A0D\u540E\u518D\u8BD5\u3002",en:"Please check if the url address is correct or try again later."},deepl_api:{zh:"DeepL \u63A5\u53E3",en:"DeepL API"},deepl_key:{zh:"DeepL \u5BC6\u94A5",en:"DeepL Key"},openai_api:{zh:"OpenAI \u63A5\u53E3",en:"OpenAI API"},openai_key:{zh:"OpenAI \u5BC6\u94A5",en:"OpenAI Key"},openai_model:{zh:"OpenAI \u6A21\u578B",en:"OpenAI Model"},openai_prompt:{zh:"OpenAI \u63D0\u793A\u8BCD",en:"OpenAI Prompt"},if_clear_cache:{zh:"\u662F\u5426\u6E05\u9664\u7F13\u5B58 (\u4EC5\u7528\u4E8E\u6269\u5C55)",en:"Whether clear cache (only for extension)"},clear_cache_never:{zh:"\u4E0D\u6E05\u9664\u7F13\u5B58",en:"Never clear cache"},clear_cache_restart:{zh:"\u91CD\u542F\u6D4F\u89C8\u5668\u65F6\u6E05\u9664\u7F13\u5B58",en:"Clear cache when restarting browser"},data_sync_url:{zh:"\u6570\u636E\u540C\u6B65\u63A5\u53E3",en:"Data Sync API"},data_sync_key:{zh:"\u6570\u636E\u540C\u6B65\u5BC6\u94A5",en:"Data Sync Key"},data_sync_test:{zh:"\u6570\u636E\u540C\u6B65\u6D4B\u8BD5",en:"Data Sync Test"},sync_success:{zh:"\u540C\u6B65\u6210\u529F\uFF01",en:"Sync Success"},sync_failed:{zh:"\u540C\u6B65\u5931\u8D25\uFF01",en:"Sync Error"},error_got_some_wrong:{zh:"\u62B1\u6B49\uFF0C\u51FA\u9519\u4E86\uFF01",en:"Sorry, something went wrong!"},error_sync_setting:{zh:"\u60A8\u7684\u540C\u6B65\u8BBE\u7F6E\u672A\u586B\u5199\uFF0C\u65E0\u6CD5\u5728\u7EBF\u5206\u4EAB\u3002",en:"Your sync settings are missing and cannot be shared online."},click_test:{zh:"\u70B9\u51FB\u6D4B\u8BD5",en:"Click Test"},test_success:{zh:"\u6D4B\u8BD5\u6210\u529F",en:"Test success"},test_failed:{zh:"\u6D4B\u8BD5\u5931\u8D25",en:"Test failed"},clear_all_cache_now:{zh:"\u7ACB\u5373\u6E05\u9664\u5168\u90E8\u7F13\u5B58",en:"Clear all cache now"},clear_cache:{zh:"\u6E05\u9664\u7F13\u5B58",en:"Clear Cache"},clear_success:{zh:"\u6E05\u9664\u6210\u529F",en:"Clear success"},clear_failed:{zh:"\u6E05\u9664\u5931\u8D25",en:"Clear failed"},share:{zh:"\u5206\u4EAB",en:"Share"},help:{zh:"\u6C42\u52A9",en:"Help"}};
+var UI_LANGS=(/* unused pure expression or super */ null && ([["en","English"],["zh","中文"]]));var customApiLangs="[\"en\", \"English - English\"],\n[\"zh-CN\", \"Simplified Chinese - \u7B80\u4F53\u4E2D\u6587\"],\n[\"zh-TW\", \"Traditional Chinese - \u7E41\u9AD4\u4E2D\u6587\"],\n[\"ar\", \"Arabic - \u0627\u0644\u0639\u0631\u0628\u064A\u0629\"],\n[\"bg\", \"Bulgarian - \u0411\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438\"],\n[\"ca\", \"Catalan - Catal\xE0\"],\n[\"hr\", \"Croatian - Hrvatski\"],\n[\"cs\", \"Czech - \u010Ce\u0161tina\"],\n[\"da\", \"Danish - Dansk\"],\n[\"nl\", \"Dutch - Nederlands\"],\n[\"fi\", \"Finnish - Suomi\"],\n[\"fr\", \"French - Fran\xE7ais\"],\n[\"de\", \"German - Deutsch\"],\n[\"el\", \"Greek - \u0395\u03BB\u03BB\u03B7\u03BD\u03B9\u03BA\u03AC\"],\n[\"hi\", \"Hindi - \u0939\u093F\u0928\u094D\u0926\u0940\"],\n[\"hu\", \"Hungarian - Magyar\"],\n[\"id\", \"Indonesian - Indonesia\"],\n[\"it\", \"Italian - Italiano\"],\n[\"ja\", \"Japanese - \u65E5\u672C\u8A9E\"],\n[\"ko\", \"Korean - \uD55C\uAD6D\uC5B4\"],\n[\"ms\", \"Malay - Melayu\"],\n[\"mt\", \"Maltese - Malti\"],\n[\"nb\", \"Norwegian - Norsk Bokm\xE5l\"],\n[\"pl\", \"Polish - Polski\"],\n[\"pt\", \"Portuguese - Portugu\xEAs\"],\n[\"ro\", \"Romanian - Rom\xE2n\u0103\"],\n[\"ru\", \"Russian - \u0420\u0443\u0441\u0441\u043A\u0438\u0439\"],\n[\"sk\", \"Slovak - Sloven\u010Dina\"],\n[\"sl\", \"Slovenian - Sloven\u0161\u010Dina\"],\n[\"es\", \"Spanish - Espa\xF1ol\"],\n[\"sv\", \"Swedish - Svenska\"],\n[\"ta\", \"Tamil - \u0BA4\u0BAE\u0BBF\u0BB4\u0BCD\"],\n[\"te\", \"Telugu - \u0C24\u0C46\u0C32\u0C41\u0C17\u0C41\"],\n[\"th\", \"Thai - \u0E44\u0E17\u0E22\"],\n[\"tr\", \"Turkish - T\xFCrk\xE7e\"],\n[\"uk\", \"Ukrainian - \u0423\u043A\u0440\u0430\u0457\u043D\u0441\u044C\u043A\u0430\"],\n[\"vi\", \"Vietnamese - Ti\u1EBFng Vi\u1EC7t\"],\n";var customApiHelpZH="/// \u81EA\u5B9A\u4E49\u7FFB\u8BD1\u6E90\u63A5\u53E3\u8BF4\u660E\n// \u8BF7\u6C42\uFF08Request\uFF09\u6570\u636E\u5C06\u6309\u4E0B\u9762\u89C4\u8303\u53D1\u9001\n{\n  url: {{YOUR_URL}},\n  method: \"POST\",\n  headers: {\n    \"Content-type\": \"application/json\",\n    \"Authorization\" = \"Bearer {{YOUR_KEY}}\"\n  },\n  body: {\n    text, // \u9700\u8981\u7FFB\u8BD1\u7684\u6587\u5B57\n    from, // \u6E90\u8BED\u8A00\uFF0C\u53EF\u80FD\u4E3A\u7A7A\uFF0C\u8868\u793A\u9700\u8981\u63A5\u53E3\u81EA\u52A8\u8BC6\u522B\u8BED\u8A00\n    to,   // \u76EE\u6807\u8BED\u8A00\n  }\n}\n\n// \u8FD4\u56DE\uFF08Response\uFF09\u6570\u636E\u9700\u7B26\u5408\u4E0B\u9762\u7684JSON\u89C4\u8303\n{\n  text, // \u7FFB\u8BD1\u540E\u7684\u6587\u5B57\n  from, // \u8BC6\u522B\u7684\u6E90\u8BED\u8A00\n  to,   // \u76EE\u6807\u8BED\u8A00\uFF08\u53EF\u9009\uFF09\n}\n\n// \u652F\u6301\u7684\u8BED\u8A00\u4EE3\u7801\u5982\u4E0B\n".concat(customApiLangs,"\n");var customApiHelpEN="/// Custom translation source interface description\n// Request data will be sent according to the following specifications\n{\n  url: {{YOUR_URL}},\n  method: \"POST\",\n  headers: {\n    \"Content-type\": \"application/json\",\n    \"Authorization\" = \"Bearer {{YOUR_KEY}}\"\n  },\n  body: {\n    text, // text to be translated\n    from, // Source language, may be empty\n    to,   // Target language\n  }\n}\n\n// The returned data must conform to the following JSON specification\n{\n  text, // translated text\n  from, // Recognized source language\n  to,   // Target language (optional)\n}\n\n// The supported language codes are as follows\n".concat(customApiLangs,"\n");var I18N={app_name:{zh:"\u7B80\u7EA6\u7FFB\u8BD1",en:"KISS Translator"},translate:{zh:"\u7FFB\u8BD1",en:"Translate"},custom_api_help:{zh:customApiHelpZH,en:customApiHelpEN},translate_alt:{zh:"\u7FFB\u8BD1 (Alt+Q)",en:"Translate (Alt+Q)"},basic_setting:{zh:"\u57FA\u672C\u8BBE\u7F6E",en:"Basic Setting"},rules_setting:{zh:"\u89C4\u5219\u8BBE\u7F6E",en:"Rules Setting"},apis_setting:{zh:"\u63A5\u53E3\u8BBE\u7F6E",en:"Apis Setting"},sync_setting:{zh:"\u540C\u6B65\u8BBE\u7F6E",en:"Sync Setting"},patch_setting:{zh:"\u8865\u4E01\u8BBE\u7F6E",en:"Patch Setting"},patch_setting_help:{zh:"\u9488\u5BF9\u4E00\u4E9B\u7279\u6B8A\u7F51\u7AD9\u7684\u4FEE\u6B63\u811A\u672C\uFF0C\u4EE5\u4FBF\u7FFB\u8BD1\u8F6F\u4EF6\u5F97\u5230\u66F4\u597D\u7684\u5C55\u793A\u6548\u679C\u3002",en:"Corrected scripts for some special websites so that the translation software can get better display results."},inject_webfix:{zh:"\u6CE8\u5165\u4FEE\u590D\u8865\u4E01",en:"Inject Webfix"},about:{zh:"\u5173\u4E8E",en:"About"},about_md:{zh:"README.md",en:"README.en.md"},about_md_local:{zh:"\u8BF7 [\u70B9\u51FB\u8FD9\u91CC](".concat("https://github.com/fishjar/kiss-translator",") \u67E5\u770B\u8BE6\u60C5\u3002"),en:"Please [click here](".concat("https://github.com/fishjar/kiss-translator",") for details.")},ui_lang:{zh:"\u754C\u9762\u8BED\u8A00",en:"Interface Language"},fetch_limit:{zh:"\u6700\u5927\u8BF7\u6C42\u6570\u91CF (1-100)",en:"Maximum Number Of Request (1-100)"},fetch_interval:{zh:"\u8BF7\u6C42\u95F4\u9694\u65F6\u95F4 (0-5000ms)",en:"Request Interval (0-5000ms)"},min_translate_length:{zh:"\u6700\u5C0F\u7FFB\u8BD1\u957F\u5EA6 (1-100)",en:"Min Translate Length (1-100)"},max_translate_length:{zh:"\u6700\u5927\u7FFB\u8BD1\u957F\u5EA6 (100-10000)",en:"Max Translate Length (100-10000)"},num_of_newline_characters:{zh:"\u6362\u884C\u5B57\u7B26\u6570 (1-1000)",en:"Number of Newline Characters (1-1000)"},translate_service:{zh:"\u7FFB\u8BD1\u670D\u52A1",en:"Translate Service"},mouseover_translation:{zh:"\u9F20\u6807\u60AC\u505C\u7FFB\u8BD1",en:"Mouseover translation"},mk_disable:{zh:"\u7981\u7528",en:"Disable"},mk_mouseover:{zh:"\u9F20\u6807\u60AC\u505C",en:"Mouseover"},mk_ctrlKey:{zh:"Control + \u9F20\u6807\u60AC\u505C",en:"Control + Mouseover"},mk_shiftKey:{zh:"Shift + \u9F20\u6807\u60AC\u505C",en:"Shift + Mouseover"},mk_altKey:{zh:"Alt + \u9F20\u6807\u60AC\u505C",en:"Alt + Mouseover"},from_lang:{zh:"\u539F\u6587\u8BED\u8A00",en:"Source Language"},to_lang:{zh:"\u76EE\u6807\u8BED\u8A00",en:"Target Language"},text_style:{zh:"\u6587\u5B57\u6837\u5F0F",en:"Text Style"},text_style_alt:{zh:"\u6587\u5B57\u6837\u5F0F (Alt+C)",en:"Text Style (Alt+C)"},bg_color:{zh:"\u6837\u5F0F\u989C\u8272",en:"Style Color"},remain_unchanged:{zh:"\u4FDD\u7559\u4E0D\u53D8",en:"Remain Unchanged"},google_api:{zh:"\u8C37\u6B4C\u7FFB\u8BD1\u63A5\u53E3",en:"Google Translate API"},default_selector:{zh:"\u9ED8\u8BA4\u9009\u62E9\u5668",en:"Default selector"},selector_rules:{zh:"\u9009\u62E9\u5668\u89C4\u5219",en:"Selector Rules"},save:{zh:"\u4FDD\u5B58",en:"Save"},edit:{zh:"\u7F16\u8F91",en:"Edit"},cancel:{zh:"\u53D6\u6D88",en:"Cancel"},delete:{zh:"\u5220\u9664",en:"Delete"},reset:{zh:"\u91CD\u7F6E",en:"Reset"},add:{zh:"\u6DFB\u52A0",en:"Add"},inject_rules:{zh:"\u6CE8\u5165\u8BA2\u9605\u89C4\u5219",en:"Inject Subscribe Rules"},personal_rules:{zh:"\u4E2A\u4EBA\u89C4\u5219",en:"Personal Rules"},subscribe_rules:{zh:"\u8BA2\u9605\u89C4\u5219",en:"Subscribe Rules"},overwrite_subscribe_rules:{zh:"\u8986\u5199\u8BA2\u9605\u89C4\u5219",en:"Overwrite Subscribe Rules"},subscribe_url:{zh:"\u8BA2\u9605\u5730\u5740",en:"Subscribe URL"},rules_warn_1:{zh:"1\u3001\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u4E00\u76F4\u751F\u6548\uFF0C\u9009\u62E9\u201C\u6CE8\u5165\u8BA2\u9605\u89C4\u5219\u201D\u540E\uFF0C\u201C\u8BA2\u9605\u89C4\u5219\u201D\u624D\u4F1A\u751F\u6548\u3002",en:"1. The \"Personal Rules\" are always in effect. After selecting \"Inject Subscription Rules\", the \"Subscription Rules\" will take effect."},rules_warn_2:{zh:"2\u3001\u201C\u8BA2\u9605\u89C4\u5219\u201D\u7684\u6CE8\u5165\u4F4D\u7F6E\u662F\u5012\u6570\u7B2C\u4E8C\u7684\u4F4D\u7F6E\uFF0C\u56E0\u6B64\u9664\u5168\u5C40\u89C4\u5219(*)\u5916\uFF0C\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u4F18\u5148\u7EA7\u6BD4\u201C\u8BA2\u9605\u89C4\u5219\u201D\u9AD8\uFF0C\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u586B\u5199\u540C\u6837\u7684\u7F51\u5740\u4F1A\u8986\u76D6\u201D\u8BA2\u9605\u89C4\u5219\u201C\u7684\u6761\u76EE\u3002",en:"2. The injection position of \"Subscription Rules\" is the penultimate position. Therefore, except for the global rules (*), the priority of \"Personal Rules\" is higher than that of \"Subscription Rules\". Filling in the same url in \"Personal Rules\" will overwrite \"Subscription Rules\" entry."},sync_warn:{zh:"\u5982\u679C\u670D\u52A1\u5668\u5B58\u5728\u5176\u4ED6\u5BA2\u6237\u7AEF\u540C\u6B65\u7684\u6570\u636E\uFF0C\u7B2C\u4E00\u6B21\u540C\u6B65\u5C06\u76F4\u63A5\u8986\u76D6\u672C\u5730\u914D\u7F6E\uFF0C\u540E\u9762\u5219\u6839\u636E\u4FEE\u6539\u65F6\u95F4\uFF0C\u65B0\u7684\u8986\u76D6\u65E7\u7684\u3002",en:"If the server has data synchronized by other clients, the first synchronization will directly overwrite the local configuration, and later, according to the modification time, the new one will overwrite the old one."},about_sync_api:{zh:"\u67E5\u770B\u5173\u4E8E\u6570\u636E\u540C\u6B65\u63A5\u53E3\u90E8\u7F72",en:"View About Data Synchronization Interface Deployment"},about_api_proxy:{zh:"\u67E5\u770B\u81EA\u5EFA\u4E00\u4E2A\u7FFB\u8BD1\u63A5\u53E3\u4EE3\u7406",en:"Check out the self-built translation interface proxy"},style_none:{zh:"\u65E0",en:"None"},under_line:{zh:"\u4E0B\u5212\u76F4\u7EBF",en:"Underline"},dot_line:{zh:"\u4E0B\u5212\u70B9\u72B6\u7EBF",en:"Dotted Underline"},dash_line:{zh:"\u4E0B\u5212\u865A\u7EBF",en:"Dashed Underline"},wavy_line:{zh:"\u4E0B\u5212\u6CE2\u6D6A\u7EBF",en:"Wavy Underline"},fuzzy:{zh:"\u6A21\u7CCA",en:"Fuzzy"},highlight:{zh:"\u9AD8\u4EAE",en:"Highlight"},diy_style:{zh:"\u81EA\u5B9A\u4E49\u6837\u5F0F",en:"Custom Style"},diy_style_helper:{zh:"\u9075\u5FAA\u201CCSS\u201D\u7684\u8BED\u6CD5",en:"Follow the syntax of \"CSS\""},setting:{zh:"\u8BBE\u7F6E",en:"Setting"},pattern:{zh:"\u5339\u914D\u7F51\u5740",en:"URL pattern"},pattern_helper:{zh:"1\u3001\u652F\u6301\u661F\u53F7(*)\u901A\u914D\u7B26\u30022\u3001\u591A\u4E2AURL\u652F\u6301\u82F1\u6587\u9017\u53F7\u201C,\u201D\u5206\u9694\u3002",en:"1. The asterisk (*) wildcard is supported. 2. Multiple URLs can be separated by English commas \",\"."},selector_helper:{zh:"1\u3001\u9075\u5FAACSS\u9009\u62E9\u5668\u8BED\u6CD5\u30022\u3001\u7559\u7A7A\u8868\u793A\u91C7\u7528\u5168\u5C40\u8BBE\u7F6E\u30023\u3001\u591A\u4E2ACSS\u9009\u62E9\u5668\u4E4B\u95F4\u7528\u201C;\u201D\u9694\u5F00\u30024\u3001\u201Cshadow root\u201D\u9009\u62E9\u5668\u548C\u5185\u90E8\u9009\u62E9\u5668\u7528\u201C>>>\u201D\u9694\u5F00\u3002",en:"1. Follow CSS selector syntax. 2. Leave blank to adopt the global setting. 3. Separate multiple CSS selectors with \";\". 4. The \"shadow root\" selector and the internal selector are separated by \">>>\"."},translate_switch:{zh:"\u5F00\u542F\u7FFB\u8BD1",en:"Translate Switch"},default_enabled:{zh:"\u9ED8\u8BA4\u5F00\u542F",en:"Enabled"},default_disabled:{zh:"\u9ED8\u8BA4\u5173\u95ED",en:"Disabled"},selector:{zh:"\u9009\u62E9\u5668",en:"Selector"},import:{zh:"\u5BFC\u5165",en:"Import"},export:{zh:"\u5BFC\u51FA",en:"Export"},error_cant_be_blank:{zh:"\u4E0D\u80FD\u4E3A\u7A7A",en:"Can not be blank"},error_duplicate_values:{zh:"\u5B58\u5728\u91CD\u590D\u7684\u503C",en:"There are duplicate values"},error_wrong_file_type:{zh:"\u9519\u8BEF\u7684\u6587\u4EF6\u7C7B\u578B",en:"Wrong file type"},error_fetch_url:{zh:"\u8BF7\u68C0\u67E5url\u5730\u5740\u662F\u5426\u6B63\u786E\u6216\u7A0D\u540E\u518D\u8BD5\u3002",en:"Please check if the url address is correct or try again later."},deepl_api:{zh:"DeepL \u63A5\u53E3",en:"DeepL API"},deepl_key:{zh:"DeepL \u5BC6\u94A5",en:"DeepL Key"},openai_api:{zh:"OpenAI \u63A5\u53E3",en:"OpenAI API"},openai_key:{zh:"OpenAI \u5BC6\u94A5",en:"OpenAI Key"},openai_model:{zh:"OpenAI \u6A21\u578B",en:"OpenAI Model"},openai_prompt:{zh:"OpenAI \u63D0\u793A\u8BCD",en:"OpenAI Prompt"},if_clear_cache:{zh:"\u662F\u5426\u6E05\u9664\u7F13\u5B58",en:"Whether clear cache"},clear_cache_never:{zh:"\u4E0D\u6E05\u9664\u7F13\u5B58",en:"Never clear cache"},clear_cache_restart:{zh:"\u91CD\u542F\u6D4F\u89C8\u5668\u65F6\u6E05\u9664\u7F13\u5B58",en:"Clear cache when restarting browser"},data_sync_url:{zh:"\u6570\u636E\u540C\u6B65\u63A5\u53E3",en:"Data Sync API"},data_sync_key:{zh:"\u6570\u636E\u540C\u6B65\u5BC6\u94A5",en:"Data Sync Key"},sync_now:{zh:"\u7ACB\u5373\u540C\u6B65",en:"Sync Now"},sync_success:{zh:"\u540C\u6B65\u6210\u529F\uFF01",en:"Sync Success"},sync_failed:{zh:"\u540C\u6B65\u5931\u8D25\uFF01",en:"Sync Error"},error_got_some_wrong:{zh:"\u62B1\u6B49\uFF0C\u51FA\u9519\u4E86\uFF01",en:"Sorry, something went wrong!"},error_sync_setting:{zh:"\u60A8\u7684\u540C\u6B65\u8BBE\u7F6E\u672A\u586B\u5199\uFF0C\u65E0\u6CD5\u5728\u7EBF\u5206\u4EAB\u3002",en:"Your sync settings are missing and cannot be shared online."},click_test:{zh:"\u70B9\u51FB\u6D4B\u8BD5",en:"Click Test"},test_success:{zh:"\u6D4B\u8BD5\u6210\u529F",en:"Test success"},test_failed:{zh:"\u6D4B\u8BD5\u5931\u8D25",en:"Test failed"},clear_all_cache_now:{zh:"\u7ACB\u5373\u6E05\u9664\u5168\u90E8\u7F13\u5B58",en:"Clear all cache now"},clear_cache:{zh:"\u6E05\u9664\u7F13\u5B58",en:"Clear Cache"},clear_success:{zh:"\u6E05\u9664\u6210\u529F",en:"Clear success"},clear_failed:{zh:"\u6E05\u9664\u5931\u8D25",en:"Clear failed"},share:{zh:"\u5206\u4EAB",en:"Share"},clear_all:{zh:"\u6E05\u7A7A",en:"Clear All"},help:{zh:"\u6C42\u52A9",en:"Help"},restore_default:{zh:"\u6062\u590D\u9ED8\u8BA4",en:"Restore Default"},shortcuts_setting:{zh:"\u5FEB\u6377\u952E\u8BBE\u7F6E",en:"Shortcuts Setting"},toggle_translate_shortcut:{zh:"\"\u5F00\u542F\u7FFB\u8BD1\"\u5FEB\u6377\u952E",en:"\"Toggle Translate\" Shortcut"},toggle_style_shortcut:{zh:"\"\u5207\u6362\u6837\u5F0F\"\u5FEB\u6377\u952E",en:"\"Toggle Style\" Shortcut"},toggle_popup_shortcut:{zh:"\"\u6253\u5F00\u5F39\u7A97\"\u5FEB\u6377\u952E",en:"\"Open Popup\" Shortcut"}};
 ;// CONCATENATED MODULE: ./src/config/index.js
-var _OPT_LANGS_SPECIAL;var STOKEY_MSAUTH="".concat(APP_NAME,"_msauth");var config_STOKEY_SETTING="".concat(APP_NAME,"_setting");var config_STOKEY_RULES="".concat(APP_NAME,"_rules");var config_STOKEY_SYNC="".concat(APP_NAME,"_sync");var STOKEY_FAB="".concat(APP_NAME,"_fab");var config_STOKEY_RULESCACHE_PREFIX="".concat(APP_NAME,"_rulescache_");var CMD_TOGGLE_TRANSLATE="toggleTranslate";var CMD_TOGGLE_STYLE="toggleStyle";var CLIENT_WEB="web";var CLIENT_CHROME="chrome";var CLIENT_EDGE="edge";var CLIENT_FIREFOX="firefox";var CLIENT_USERSCRIPT="userscript";var CLIENT_EXTS=[CLIENT_CHROME,CLIENT_EDGE,CLIENT_FIREFOX];var config_KV_RULES_KEY="KT_RULES";var config_KV_RULES_SHARE_KEY="KT_RULES_SHARE";var KV_SETTING_KEY="KT_SETTING";var KV_SALT_SYNC="KISS-Translator-SYNC";var config_KV_SALT_SHARE="KISS-Translator-SHARE";var config_CACHE_NAME="".concat(APP_NAME,"_cache");var MSG_FETCH="fetch";var MSG_FETCH_LIMIT="fetch_limit";var MSG_FETCH_CLEAR="fetch_clear";var MSG_TRANS_TOGGLE="trans_toggle";var MSG_TRANS_TOGGLE_STYLE="trans_toggle_style";var MSG_TRANS_GETRULE="trans_getrule";var MSG_TRANS_PUTRULE="trans_putrule";var MSG_TRANS_CURRULE="trans_currule";var THEME_LIGHT="light";var THEME_DARK="dark";var URL_KISS_WORKER="https://github.com/fishjar/kiss-worker";var URL_KISS_PROXY="https://github.com/fishjar/kiss-proxy";var URL_KISS_RULES="https://github.com/fishjar/kiss-rules";var URL_KISS_RULES_NEW_ISSUE="https://github.com/fishjar/kiss-rules/issues/new";var config_URL_RAW_PREFIX="https://raw.githubusercontent.com/fishjar/kiss-translator/master";var URL_MICROSOFT_AUTH="https://edge.microsoft.com/translate/auth";var URL_MICROSOFT_TRANS="https://api-edge.cognitive.microsofttranslator.com/translate";var OPT_TRANS_GOOGLE="Google";var OPT_TRANS_MICROSOFT="Microsoft";var OPT_TRANS_DEEPL="DeepL";var OPT_TRANS_OPENAI="OpenAI";var OPT_TRANS_ALL=[OPT_TRANS_GOOGLE,OPT_TRANS_MICROSOFT,OPT_TRANS_DEEPL,OPT_TRANS_OPENAI];var OPT_LANGS_TO=[["en","English - English"],["zh-CN","Simplified Chinese - 简体中文"],["zh-TW","Traditional Chinese - 繁體中文"],["ar","Arabic - العربية"],["bg","Bulgarian - Български"],["ca","Catalan - Català"],["hr","Croatian - Hrvatski"],["cs","Czech - Čeština"],["da","Danish - Dansk"],["nl","Dutch - Nederlands"],["fi","Finnish - Suomi"],["fr","French - Français"],["de","German - Deutsch"],["el","Greek - Ελληνικά"],["hi","Hindi - हिन्दी"],["hu","Hungarian - Magyar"],["id","Indonesian - Indonesia"],["it","Italian - Italiano"],["ja","Japanese - 日本語"],["ko","Korean - 한국어"],["ms","Malay - Melayu"],["mt","Maltese - Malti"],["nb","Norwegian - Norsk Bokmål"],["pl","Polish - Polski"],["pt","Portuguese - Português"],["ro","Romanian - Română"],["ru","Russian - Русский"],["sk","Slovak - Slovenčina"],["sl","Slovenian - Slovenščina"],["es","Spanish - Español"],["sv","Swedish - Svenska"],["ta","Tamil - தமிழ்"],["te","Telugu - తెలుగు"],["th","Thai - ไทย"],["tr","Turkish - Türkçe"],["uk","Ukrainian - Українська"],["vi","Vietnamese - Tiếng Việt"]];var OPT_LANGS_FROM=[["auto","Auto-detect"]].concat(OPT_LANGS_TO);var OPT_LANGS_SPECIAL=(_OPT_LANGS_SPECIAL={},(0,defineProperty/* default */.Z)(_OPT_LANGS_SPECIAL,OPT_TRANS_MICROSOFT,new Map([["auto",""],["zh-CN","zh-Hans"],["zh-TW","zh-Hant"]])),(0,defineProperty/* default */.Z)(_OPT_LANGS_SPECIAL,OPT_TRANS_DEEPL,new Map([].concat((0,toConsumableArray/* default */.Z)(OPT_LANGS_FROM.map(function(_ref){var _ref2=(0,slicedToArray/* default */.Z)(_ref,1),key=_ref2[0];return[key,key.toUpperCase()];})),[["auto",""],["zh-CN","ZH"],["zh-TW","ZH"]]))),(0,defineProperty/* default */.Z)(_OPT_LANGS_SPECIAL,OPT_TRANS_OPENAI,new Map(OPT_LANGS_FROM.map(function(_ref3){var _ref4=(0,slicedToArray/* default */.Z)(_ref3,2),key=_ref4[0],val=_ref4[1];return[key,val.split(" - ")[0]];}))),_OPT_LANGS_SPECIAL);var OPT_STYLE_NONE="style_none";// 无
+var _OPT_LANGS_SPECIAL,_DEFAULT_TRANS_APIS,_DEFAULT_SHORTCUTS;var STOKEY_MSAUTH="".concat(APP_NAME,"_msauth");var config_STOKEY_SETTING="".concat(APP_NAME,"_setting");var config_STOKEY_RULES="".concat(APP_NAME,"_rules");var config_STOKEY_SYNC="".concat(APP_NAME,"_sync");var STOKEY_FAB="".concat(APP_NAME,"_fab");var config_STOKEY_RULESCACHE_PREFIX="".concat(APP_NAME,"_rulescache_");var STOKEY_WEBFIXCACHE_PREFIX="".concat(APP_NAME,"_webfixcache_");var CMD_TOGGLE_TRANSLATE="toggleTranslate";var CMD_TOGGLE_STYLE="toggleStyle";var CLIENT_WEB="web";var CLIENT_CHROME="chrome";var CLIENT_EDGE="edge";var CLIENT_FIREFOX="firefox";var CLIENT_USERSCRIPT="userscript";var CLIENT_EXTS=[CLIENT_CHROME,CLIENT_EDGE,CLIENT_FIREFOX];var config_KV_RULES_KEY="KT_RULES";var config_KV_RULES_SHARE_KEY="KT_RULES_SHARE";var KV_SETTING_KEY="KT_SETTING";var KV_SALT_SYNC="KISS-Translator-SYNC";var config_KV_SALT_SHARE="KISS-Translator-SHARE";var config_CACHE_NAME="".concat(APP_NAME,"_cache");var MSG_FETCH="fetch";var MSG_FETCH_LIMIT="fetch_limit";var MSG_FETCH_CLEAR="fetch_clear";var MSG_TRANS_TOGGLE="trans_toggle";var MSG_TRANS_TOGGLE_STYLE="trans_toggle_style";var MSG_TRANS_GETRULE="trans_getrule";var MSG_TRANS_PUTRULE="trans_putrule";var MSG_TRANS_CURRULE="trans_currule";var THEME_LIGHT="light";var THEME_DARK="dark";var URL_KISS_WORKER="https://github.com/fishjar/kiss-worker";var URL_KISS_PROXY="https://github.com/fishjar/kiss-proxy";var URL_KISS_RULES="https://github.com/fishjar/kiss-rules";var URL_KISS_RULES_NEW_ISSUE="https://github.com/fishjar/kiss-rules/issues/new";var config_URL_RAW_PREFIX="https://raw.githubusercontent.com/fishjar/kiss-translator/master";var URL_MICROSOFT_AUTH="https://edge.microsoft.com/translate/auth";var OPT_TRANS_GOOGLE="Google";var OPT_TRANS_MICROSOFT="Microsoft";var OPT_TRANS_DEEPL="DeepL";var OPT_TRANS_OPENAI="OpenAI";var OPT_TRANS_CUSTOMIZE="Custom";var OPT_TRANS_ALL=[OPT_TRANS_GOOGLE,OPT_TRANS_MICROSOFT,OPT_TRANS_DEEPL,OPT_TRANS_OPENAI,OPT_TRANS_CUSTOMIZE];var OPT_LANGS_TO=[["en","English - English"],["zh-CN","Simplified Chinese - 简体中文"],["zh-TW","Traditional Chinese - 繁體中文"],["ar","Arabic - العربية"],["bg","Bulgarian - Български"],["ca","Catalan - Català"],["hr","Croatian - Hrvatski"],["cs","Czech - Čeština"],["da","Danish - Dansk"],["nl","Dutch - Nederlands"],["fi","Finnish - Suomi"],["fr","French - Français"],["de","German - Deutsch"],["el","Greek - Ελληνικά"],["hi","Hindi - हिन्दी"],["hu","Hungarian - Magyar"],["id","Indonesian - Indonesia"],["it","Italian - Italiano"],["ja","Japanese - 日本語"],["ko","Korean - 한국어"],["ms","Malay - Melayu"],["mt","Maltese - Malti"],["nb","Norwegian - Norsk Bokmål"],["pl","Polish - Polski"],["pt","Portuguese - Português"],["ro","Romanian - Română"],["ru","Russian - Русский"],["sk","Slovak - Slovenčina"],["sl","Slovenian - Slovenščina"],["es","Spanish - Español"],["sv","Swedish - Svenska"],["ta","Tamil - தமிழ்"],["te","Telugu - తెలుగు"],["th","Thai - ไทย"],["tr","Turkish - Türkçe"],["uk","Ukrainian - Українська"],["vi","Vietnamese - Tiếng Việt"]];var OPT_LANGS_FROM=[["auto","Auto-detect"]].concat(OPT_LANGS_TO);var OPT_LANGS_SPECIAL=(_OPT_LANGS_SPECIAL={},(0,defineProperty/* default */.Z)(_OPT_LANGS_SPECIAL,OPT_TRANS_MICROSOFT,new Map([["auto",""],["zh-CN","zh-Hans"],["zh-TW","zh-Hant"]])),(0,defineProperty/* default */.Z)(_OPT_LANGS_SPECIAL,OPT_TRANS_DEEPL,new Map([].concat((0,toConsumableArray/* default */.Z)(OPT_LANGS_FROM.map(function(_ref){var _ref2=(0,slicedToArray/* default */.Z)(_ref,1),key=_ref2[0];return[key,key.toUpperCase()];})),[["auto",""],["zh-CN","ZH"],["zh-TW","ZH"]]))),(0,defineProperty/* default */.Z)(_OPT_LANGS_SPECIAL,OPT_TRANS_OPENAI,new Map(OPT_LANGS_FROM.map(function(_ref3){var _ref4=(0,slicedToArray/* default */.Z)(_ref3,2),key=_ref4[0],val=_ref4[1];return[key,val.split(" - ")[0]];}))),(0,defineProperty/* default */.Z)(_OPT_LANGS_SPECIAL,OPT_TRANS_CUSTOMIZE,new Map([["auto",""]])),_OPT_LANGS_SPECIAL);var OPT_STYLE_NONE="style_none";// 无
 var OPT_STYLE_LINE="under_line";// 下划线
 var OPT_STYLE_DOTLINE="dot_line";// 点状线
 var OPT_STYLE_DASHLINE="dash_line";// 虚线
@@ -19530,14 +19482,16 @@ var OPT_STYLE_WAVYLINE="wavy_line";// 波浪线
 var OPT_STYLE_FUZZY="fuzzy";// 模糊
 var OPT_STYLE_HIGHLIGHT="highlight";// 高亮
 var OPT_STYLE_DIY="diy_style";// 自定义样式
-var OPT_STYLE_ALL=[OPT_STYLE_NONE,OPT_STYLE_LINE,OPT_STYLE_DOTLINE,OPT_STYLE_DASHLINE,OPT_STYLE_WAVYLINE,OPT_STYLE_FUZZY,OPT_STYLE_HIGHLIGHT,OPT_STYLE_DIY];var OPT_STYLE_USE_COLOR=[OPT_STYLE_LINE,OPT_STYLE_DOTLINE,OPT_STYLE_DASHLINE,OPT_STYLE_WAVYLINE,OPT_STYLE_HIGHLIGHT];var DEFAULT_FETCH_LIMIT=10;// 默认最大任务数量
+var OPT_STYLE_ALL=[OPT_STYLE_NONE,OPT_STYLE_LINE,OPT_STYLE_DOTLINE,OPT_STYLE_DASHLINE,OPT_STYLE_WAVYLINE,OPT_STYLE_FUZZY,OPT_STYLE_HIGHLIGHT,OPT_STYLE_DIY];var OPT_STYLE_USE_COLOR=[OPT_STYLE_LINE,OPT_STYLE_DOTLINE,OPT_STYLE_DASHLINE,OPT_STYLE_WAVYLINE,OPT_STYLE_HIGHLIGHT];var OPT_MOUSEKEY_DISABLE="mk_disable";var OPT_MOUSEKEY_MOUSEOVER="mk_mouseover";var OPT_MOUSEKEY_CONTROL="mk_ctrlKey";var OPT_MOUSEKEY_SHIFT="mk_shiftKey";var OPT_MOUSEKEY_ALT="mk_altKey";var OPT_MOUSEKEY_ALL=[OPT_MOUSEKEY_DISABLE,OPT_MOUSEKEY_MOUSEOVER,OPT_MOUSEKEY_CONTROL,OPT_MOUSEKEY_SHIFT,OPT_MOUSEKEY_ALT];var DEFAULT_FETCH_LIMIT=10;// 默认最大任务数量
 var DEFAULT_FETCH_INTERVAL=100;// 默认任务间隔时间
 var PROMPT_PLACE_FROM="{{from}}";// 占位符
 var PROMPT_PLACE_TO="{{to}}";// 占位符
 var DEFAULT_COLOR="#209CEE";// 默认高亮背景色/线条颜色
 // 全局规则
 var GLOBLA_RULE={pattern:"*",selector:DEFAULT_SELECTOR,translator:OPT_TRANS_MICROSOFT,fromLang:"auto",toLang:"zh-CN",textStyle:OPT_STYLE_DASHLINE,transOpen:"false",bgColor:"",textDiyStyle:""};// 订阅列表
-var DEFAULT_SUBRULES_LIST=[{url:"https://fishjar.github.io/kiss-rules/kiss-rules.json",selected:false},{url:"https://fishjar.github.io/kiss-rules/kiss-rules-on.json",selected:true},{url:"https://fishjar.github.io/kiss-rules/kiss-rules-off.json",selected:false}];var TRANS_MIN_LENGTH=5;// 最短翻译长度
+var DEFAULT_SUBRULES_LIST=[{url:"https://fishjar.github.io/kiss-rules/kiss-rules.json",selected:false},{url:"https://fishjar.github.io/kiss-rules/kiss-rules-on.json",selected:true},{url:"https://fishjar.github.io/kiss-rules/kiss-rules-off.json",selected:false}];// 翻译接口
+var DEFAULT_TRANS_APIS=(_DEFAULT_TRANS_APIS={},(0,defineProperty/* default */.Z)(_DEFAULT_TRANS_APIS,OPT_TRANS_GOOGLE,{url:"https://translate.googleapis.com/translate_a/single",key:""}),(0,defineProperty/* default */.Z)(_DEFAULT_TRANS_APIS,OPT_TRANS_MICROSOFT,{url:"https://api-edge.cognitive.microsofttranslator.com/translate",authUrl:"https://edge.microsoft.com/translate/auth"}),(0,defineProperty/* default */.Z)(_DEFAULT_TRANS_APIS,OPT_TRANS_DEEPL,{url:"https://api-free.deepl.com/v2/translate",key:""}),(0,defineProperty/* default */.Z)(_DEFAULT_TRANS_APIS,OPT_TRANS_OPENAI,{url:"https://api.openai.com/v1/chat/completion",key:"",model:"gpt-4",prompt:"You will be provided with a sentence in ".concat(PROMPT_PLACE_FROM,", and your task is to translate it into ").concat(PROMPT_PLACE_TO,".")}),(0,defineProperty/* default */.Z)(_DEFAULT_TRANS_APIS,OPT_TRANS_CUSTOMIZE,{url:"",key:""}),_DEFAULT_TRANS_APIS);// 默认快捷键
+var OPT_SHORTCUT_TRANSLATE="toggleTranslate";var OPT_SHORTCUT_STYLE="toggleStyle";var OPT_SHORTCUT_POPUP="togglePopup";var DEFAULT_SHORTCUTS=(_DEFAULT_SHORTCUTS={},(0,defineProperty/* default */.Z)(_DEFAULT_SHORTCUTS,OPT_SHORTCUT_TRANSLATE,["Alt","q"]),(0,defineProperty/* default */.Z)(_DEFAULT_SHORTCUTS,OPT_SHORTCUT_STYLE,["Alt","c"]),(0,defineProperty/* default */.Z)(_DEFAULT_SHORTCUTS,OPT_SHORTCUT_POPUP,["Alt","k"]),_DEFAULT_SHORTCUTS);var TRANS_MIN_LENGTH=5;// 最短翻译长度
 var TRANS_MAX_LENGTH=5000;// 最长翻译长度
 var TRANS_NEWLINE_LENGTH=40;// 换行字符数
 var config_DEFAULT_SETTING={darkMode:false,// 深色模式
@@ -19546,10 +19500,13 @@ fetchLimit:DEFAULT_FETCH_LIMIT,// 最大任务数量
 fetchInterval:DEFAULT_FETCH_INTERVAL,// 任务间隔时间
 minLength:TRANS_MIN_LENGTH,maxLength:TRANS_MAX_LENGTH,newlineLength:TRANS_NEWLINE_LENGTH,clearCache:false,// 是否在浏览器下次启动时清除缓存
 injectRules:true,// 是否注入订阅规则
+injectWebfix:true,// 是否注入修复补丁
 subrulesList:DEFAULT_SUBRULES_LIST,// 订阅列表
 owSubrule:DEFAULT_OW_RULE,// 覆写订阅规则
-googleUrl:"https://translate.googleapis.com/translate_a/single",// 谷歌翻译接口
-deeplUrl:"https://api-free.deepl.com/v2/translate",deeplKey:"",openaiUrl:"https://api.openai.com/v1/chat/completions",openaiKey:"",openaiModel:"gpt-4",openaiPrompt:"You will be provided with a sentence in ".concat(PROMPT_PLACE_FROM,", and your task is to translate it into ").concat(PROMPT_PLACE_TO,".")};var config_DEFAULT_RULES=[GLOBLA_RULE];var config_DEFAULT_SYNC={syncUrl:"",// 数据同步接口
+transApis:DEFAULT_TRANS_APIS,// 翻译接口
+mouseKey:OPT_MOUSEKEY_DISABLE,// 鼠标悬停翻译
+shortcuts:DEFAULT_SHORTCUTS// 快捷键
+};var config_DEFAULT_RULES=[GLOBLA_RULE];var config_DEFAULT_SYNC={syncUrl:"",// 数据同步接口
 syncKey:"",// 数据同步密钥
 settingUpdateAt:0,settingSyncAt:0,rulesUpdateAt:0,rulesSyncAt:0,subRulesSyncAt:0// 订阅规则同步时间
 };
@@ -19563,26 +19520,28 @@ var client_client="userscript";var isExt=CLIENT_EXTS.includes(client_client);var
  */function _browser(){try{return __webpack_require__(930);}catch(err){// console.log("[browser]", err.message);
 }}var browser=_browser();
 ;// CONCATENATED MODULE: ./src/libs/storage.js
-function set(_x,_x2){return _set.apply(this,arguments);}function _set(){_set=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee7(key,val){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee7$(_context7){while(1)switch(_context7.prev=_context7.next){case 0:if(!isExt){_context7.next=5;break;}_context7.next=3;return browser.storage.local.set((0,defineProperty/* default */.Z)({},key,val));case 3:_context7.next=11;break;case 5:if(!isGm){_context7.next=10;break;}_context7.next=8;return(window.KISS_GM||GM).setValue(key,val);case 8:_context7.next=11;break;case 10:window.localStorage.setItem(key,val);case 11:case"end":return _context7.stop();}},_callee7);}));return _set.apply(this,arguments);}function get(_x3){return _get.apply(this,arguments);}function _get(){_get=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee8(key){var val,_val;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee8$(_context8){while(1)switch(_context8.prev=_context8.next){case 0:if(!isExt){_context8.next=7;break;}_context8.next=3;return browser.storage.local.get([key]);case 3:val=_context8.sent;return _context8.abrupt("return",val[key]);case 7:if(!isGm){_context8.next=12;break;}_context8.next=10;return(window.KISS_GM||GM).getValue(key);case 10:_val=_context8.sent;return _context8.abrupt("return",_val);case 12:return _context8.abrupt("return",window.localStorage.getItem(key));case 13:case"end":return _context8.stop();}},_callee8);}));return _get.apply(this,arguments);}function del(_x4){return _del.apply(this,arguments);}function _del(){_del=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee9(key){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee9$(_context9){while(1)switch(_context9.prev=_context9.next){case 0:if(!isExt){_context9.next=5;break;}_context9.next=3;return browser.storage.local.remove([key]);case 3:_context9.next=11;break;case 5:if(!isGm){_context9.next=10;break;}_context9.next=8;return(window.KISS_GM||GM).deleteValue(key);case 8:_context9.next=11;break;case 10:window.localStorage.removeItem(key);case 11:case"end":return _context9.stop();}},_callee9);}));return _del.apply(this,arguments);}function setObj(_x5,_x6){return _setObj.apply(this,arguments);}function _setObj(){_setObj=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee10(key,obj){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee10$(_context10){while(1)switch(_context10.prev=_context10.next){case 0:_context10.next=2;return set(key,JSON.stringify(obj));case 2:case"end":return _context10.stop();}},_callee10);}));return _setObj.apply(this,arguments);}function trySetObj(_x7,_x8){return _trySetObj.apply(this,arguments);}function _trySetObj(){_trySetObj=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee11(key,obj){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee11$(_context11){while(1)switch(_context11.prev=_context11.next){case 0:_context11.next=2;return get(key);case 2:if(_context11.sent){_context11.next=5;break;}_context11.next=5;return setObj(key,obj);case 5:case"end":return _context11.stop();}},_callee11);}));return _trySetObj.apply(this,arguments);}function getObj(_x9){return _getObj.apply(this,arguments);}function _getObj(){_getObj=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee12(key){var val;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee12$(_context12){while(1)switch(_context12.prev=_context12.next){case 0:_context12.next=2;return get(key);case 2:val=_context12.sent;return _context12.abrupt("return",val&&JSON.parse(val));case 4:case"end":return _context12.stop();}},_callee12);}));return _getObj.apply(this,arguments);}function putObj(_x10,_x11){return _putObj.apply(this,arguments);}/**
+var _set,_get,_del,_setObj,_trySetObj,_getObj,_putObj,_ref,_ref2,_ref3,_ref4,_ref5,_ref6,_ref7;function set(_x,_x2){return(_set=_set||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(key,val){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:if(!isExt){_context.next=5;break;}_context.next=3;return browser.storage.local.set((0,defineProperty/* default */.Z)({},key,val));case 3:_context.next=11;break;case 5:if(!isGm){_context.next=10;break;}_context.next=8;return(window.KISS_GM||GM).setValue(key,val);case 8:_context.next=11;break;case 10:window.localStorage.setItem(key,val);case 11:case"end":return _context.stop();}},_callee);}))).apply(this,arguments);}function get(_x3){return(_get=_get||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(key){var val,_val;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:if(!isExt){_context2.next=7;break;}_context2.next=3;return browser.storage.local.get([key]);case 3:val=_context2.sent;return _context2.abrupt("return",val[key]);case 7:if(!isGm){_context2.next=12;break;}_context2.next=10;return(window.KISS_GM||GM).getValue(key);case 10:_val=_context2.sent;return _context2.abrupt("return",_val);case 12:return _context2.abrupt("return",window.localStorage.getItem(key));case 13:case"end":return _context2.stop();}},_callee2);}))).apply(this,arguments);}function del(_x4){return(_del=_del||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee3(key){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:if(!isExt){_context3.next=5;break;}_context3.next=3;return browser.storage.local.remove([key]);case 3:_context3.next=11;break;case 5:if(!isGm){_context3.next=10;break;}_context3.next=8;return(window.KISS_GM||GM).deleteValue(key);case 8:_context3.next=11;break;case 10:window.localStorage.removeItem(key);case 11:case"end":return _context3.stop();}},_callee3);}))).apply(this,arguments);}function setObj(_x5,_x6){return(_setObj=_setObj||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee4(key,obj){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee4$(_context4){while(1)switch(_context4.prev=_context4.next){case 0:_context4.next=2;return set(key,JSON.stringify(obj));case 2:case"end":return _context4.stop();}},_callee4);}))).apply(this,arguments);}function trySetObj(_x7,_x8){return(_trySetObj=_trySetObj||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee5(key,obj){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee5$(_context5){while(1)switch(_context5.prev=_context5.next){case 0:_context5.next=2;return get(key);case 2:if(_context5.sent){_context5.next=5;break;}_context5.next=5;return setObj(key,obj);case 5:case"end":return _context5.stop();}},_callee5);}))).apply(this,arguments);}function getObj(_x9){return(_getObj=_getObj||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee6(key){var val;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee6$(_context6){while(1)switch(_context6.prev=_context6.next){case 0:_context6.next=2;return get(key);case 2:val=_context6.sent;return _context6.abrupt("return",val&&JSON.parse(val));case 4:case"end":return _context6.stop();}},_callee6);}))).apply(this,arguments);}function putObj(_x10,_x11){return(_putObj=_putObj||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee7(key,obj){var _yield$getObj;var cur;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee7$(_context7){while(1)switch(_context7.prev=_context7.next){case 0:_context7.next=2;return getObj(key);case 2:_context7.t1=_yield$getObj=_context7.sent;_context7.t0=_context7.t1!==null;if(!_context7.t0){_context7.next=6;break;}_context7.t0=_yield$getObj!==void 0;case 6:if(!_context7.t0){_context7.next=10;break;}_context7.t2=_yield$getObj;_context7.next=11;break;case 10:_context7.t2={};case 11:cur=_context7.t2;_context7.next=14;return setObj(key,_objectSpread2(_objectSpread2({},cur),obj));case 14:case"end":return _context7.stop();}},_callee7);}))).apply(this,arguments);}/**
  * 对storage的封装
- */function _putObj(){_putObj=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee13(key,obj){var _yield$getObj;var cur;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee13$(_context13){while(1)switch(_context13.prev=_context13.next){case 0:_context13.next=2;return getObj(key);case 2:_context13.t1=_yield$getObj=_context13.sent;_context13.t0=_context13.t1!==null;if(!_context13.t0){_context13.next=6;break;}_context13.t0=_yield$getObj!==void 0;case 6:if(!_context13.t0){_context13.next=10;break;}_context13.t2=_yield$getObj;_context13.next=11;break;case 10:_context13.t2={};case 11:cur=_context13.t2;_context13.next=14;return setObj(key,_objectSpread2(_objectSpread2({},cur),obj));case 14:case"end":return _context13.stop();}},_callee13);}));return _putObj.apply(this,arguments);}var storage={get:get,set:set,del:del,setObj:setObj,trySetObj:trySetObj,getObj:getObj,putObj:putObj// onChanged,
+ */var storage={get:get,set:set,del:del,setObj:setObj,trySetObj:trySetObj,getObj:getObj,putObj:putObj// onChanged,
 };/**
  * 设置信息
- */var getSetting=function getSetting(){return getObj(config_STOKEY_SETTING);};var getSettingWithDefault=/*#__PURE__*/function(){var _ref=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:_context.t0=_objectSpread2;_context.t1=_objectSpread2({},config_DEFAULT_SETTING);_context.next=4;return getSetting();case 4:_context.t2=_context.sent;if(_context.t2){_context.next=7;break;}_context.t2={};case 7:_context.t3=_context.t2;return _context.abrupt("return",(0,_context.t0)(_context.t1,_context.t3));case 9:case"end":return _context.stop();}},_callee);}));return function getSettingWithDefault(){return _ref.apply(this,arguments);};}();var setSetting=function setSetting(val){return setObj(config_STOKEY_SETTING,val);};var updateSetting=function updateSetting(obj){return putObj(STOKEY_SETTING,obj);};/**
+ */var getSetting=function getSetting(){return getObj(config_STOKEY_SETTING);};var getSettingWithDefault=function getSettingWithDefault(){return(_ref=_ref||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee8(){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee8$(_context8){while(1)switch(_context8.prev=_context8.next){case 0:_context8.next=2;return getSetting();case 2:_context8.t0=_context8.sent;if(_context8.t0){_context8.next=5;break;}_context8.t0=config_DEFAULT_SETTING;case 5:return _context8.abrupt("return",_context8.t0);case 6:case"end":return _context8.stop();}},_callee8);}))).apply(this,arguments);};var setSetting=function setSetting(val){return setObj(config_STOKEY_SETTING,val);};var updateSetting=function updateSetting(obj){return putObj(config_STOKEY_SETTING,obj);};/**
  * 规则列表
- */var getRules=function getRules(){return getObj(config_STOKEY_RULES);};var storage_getRulesWithDefault=/*#__PURE__*/function(){var _ref2=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:_context2.next=2;return getRules();case 2:_context2.t0=_context2.sent;if(_context2.t0){_context2.next=5;break;}_context2.t0=config_DEFAULT_RULES;case 5:return _context2.abrupt("return",_context2.t0);case 6:case"end":return _context2.stop();}},_callee2);}));return function getRulesWithDefault(){return _ref2.apply(this,arguments);};}();var storage_setRules=function setRules(val){return setObj(STOKEY_RULES,val);};/**
+ */var getRules=function getRules(){return getObj(config_STOKEY_RULES);};var storage_getRulesWithDefault=function getRulesWithDefault(){return(_ref2=_ref2||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee9(){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee9$(_context9){while(1)switch(_context9.prev=_context9.next){case 0:_context9.next=2;return getRules();case 2:_context9.t0=_context9.sent;if(_context9.t0){_context9.next=5;break;}_context9.t0=config_DEFAULT_RULES;case 5:return _context9.abrupt("return",_context9.t0);case 6:case"end":return _context9.stop();}},_callee9);}))).apply(this,arguments);};var storage_setRules=function setRules(val){return setObj(STOKEY_RULES,val);};/**
  * 订阅规则
- */var getSubRules=function getSubRules(url){return getObj(config_STOKEY_RULESCACHE_PREFIX+url);};var getSubRulesWithDefault=/*#__PURE__*/(/* unused pure expression or super */ null && (function(){var _ref3=_asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee3(){return _regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:_context3.next=2;return getSubRules();case 2:_context3.t0=_context3.sent;if(_context3.t0){_context3.next=5;break;}_context3.t0=[];case 5:return _context3.abrupt("return",_context3.t0);case 6:case"end":return _context3.stop();}},_callee3);}));return function getSubRulesWithDefault(){return _ref3.apply(this,arguments);};}()));var delSubRules=function delSubRules(url){return del(STOKEY_RULESCACHE_PREFIX+url);};var setSubRules=function setSubRules(url,val){return setObj(config_STOKEY_RULESCACHE_PREFIX+url,val);};/**
+ */var getSubRules=function getSubRules(url){return getObj(config_STOKEY_RULESCACHE_PREFIX+url);};var getSubRulesWithDefault=function getSubRulesWithDefault(){return(_ref3=_ref3||_asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee10(){return _regeneratorRuntime().wrap(function _callee10$(_context10){while(1)switch(_context10.prev=_context10.next){case 0:_context10.next=2;return getSubRules();case 2:_context10.t0=_context10.sent;if(_context10.t0){_context10.next=5;break;}_context10.t0=[];case 5:return _context10.abrupt("return",_context10.t0);case 6:case"end":return _context10.stop();}},_callee10);}))).apply(this,arguments);};var delSubRules=function delSubRules(url){return del(STOKEY_RULESCACHE_PREFIX+url);};var setSubRules=function setSubRules(url,val){return setObj(config_STOKEY_RULESCACHE_PREFIX+url,val);};/**
+ * 修复站点
+ */var getWebfix=function getWebfix(url){return getObj(STOKEY_WEBFIXCACHE_PREFIX+url);};var getWebfixWithDefault=function getWebfixWithDefault(){return(_ref4=_ref4||_asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee11(){return _regeneratorRuntime().wrap(function _callee11$(_context11){while(1)switch(_context11.prev=_context11.next){case 0:_context11.next=2;return getWebfix();case 2:_context11.t0=_context11.sent;if(_context11.t0){_context11.next=5;break;}_context11.t0=[];case 5:return _context11.abrupt("return",_context11.t0);case 6:case"end":return _context11.stop();}},_callee11);}))).apply(this,arguments);};var setWebfix=function setWebfix(url,val){return setObj(STOKEY_WEBFIXCACHE_PREFIX+url,val);};/**
  * fab位置
- */var getFab=function getFab(){return getObj(STOKEY_FAB);};var getFabWithDefault=/*#__PURE__*/function(){var _ref4=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee4(){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee4$(_context4){while(1)switch(_context4.prev=_context4.next){case 0:_context4.next=2;return getFab();case 2:_context4.t0=_context4.sent;if(_context4.t0){_context4.next=5;break;}_context4.t0={};case 5:return _context4.abrupt("return",_context4.t0);case 6:case"end":return _context4.stop();}},_callee4);}));return function getFabWithDefault(){return _ref4.apply(this,arguments);};}();var setFab=function setFab(obj){return setObj(STOKEY_FAB,obj);};/**
+ */var getFab=function getFab(){return getObj(STOKEY_FAB);};var getFabWithDefault=function getFabWithDefault(){return(_ref5=_ref5||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee12(){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee12$(_context12){while(1)switch(_context12.prev=_context12.next){case 0:_context12.next=2;return getFab();case 2:_context12.t0=_context12.sent;if(_context12.t0){_context12.next=5;break;}_context12.t0={};case 5:return _context12.abrupt("return",_context12.t0);case 6:case"end":return _context12.stop();}},_callee12);}))).apply(this,arguments);};var setFab=function setFab(obj){return setObj(STOKEY_FAB,obj);};/**
  * 数据同步
- */var getSync=function getSync(){return getObj(config_STOKEY_SYNC);};var storage_getSyncWithDefault=/*#__PURE__*/function(){var _ref5=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee5(){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee5$(_context5){while(1)switch(_context5.prev=_context5.next){case 0:_context5.next=2;return getSync();case 2:_context5.t0=_context5.sent;if(_context5.t0){_context5.next=5;break;}_context5.t0=config_DEFAULT_SYNC;case 5:return _context5.abrupt("return",_context5.t0);case 6:case"end":return _context5.stop();}},_callee5);}));return function getSyncWithDefault(){return _ref5.apply(this,arguments);};}();var storage_updateSync=function updateSync(obj){return putObj(config_STOKEY_SYNC,obj);};/**
+ */var getSync=function getSync(){return getObj(config_STOKEY_SYNC);};var storage_getSyncWithDefault=function getSyncWithDefault(){return(_ref6=_ref6||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee13(){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee13$(_context13){while(1)switch(_context13.prev=_context13.next){case 0:_context13.next=2;return getSync();case 2:_context13.t0=_context13.sent;if(_context13.t0){_context13.next=5;break;}_context13.t0=config_DEFAULT_SYNC;case 5:return _context13.abrupt("return",_context13.t0);case 6:case"end":return _context13.stop();}},_callee13);}))).apply(this,arguments);};var storage_updateSync=function updateSync(obj){return putObj(config_STOKEY_SYNC,obj);};/**
  * ms auth
  */var getMsauth=function getMsauth(){return getObj(STOKEY_MSAUTH);};var setMsauth=function setMsauth(val){return setObj(STOKEY_MSAUTH,val);};/**
  * 存入默认数据
- */var tryInitDefaultData=/*#__PURE__*/(/* unused pure expression or super */ null && (function(){var _ref6=_asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee6(){return _regeneratorRuntime().wrap(function _callee6$(_context6){while(1)switch(_context6.prev=_context6.next){case 0:_context6.prev=0;_context6.next=3;return trySetObj(STOKEY_SETTING,DEFAULT_SETTING);case 3:_context6.next=5;return trySetObj(STOKEY_RULES,DEFAULT_RULES);case 5:_context6.next=7;return trySetObj(STOKEY_SYNC,DEFAULT_SYNC);case 7:_context6.next=9;return trySetObj("".concat(STOKEY_RULESCACHE_PREFIX).concat("https://fishjar.github.io/kiss-rules/kiss-rules.json"),BUILTIN_RULES);case 9:_context6.next=14;break;case 11:_context6.prev=11;_context6.t0=_context6["catch"](0);console.log("[init default]",_context6.t0);case 14:case"end":return _context6.stop();}},_callee6,null,[[0,11]]);}));return function tryInitDefaultData(){return _ref6.apply(this,arguments);};}()));
+ */var tryInitDefaultData=function tryInitDefaultData(){return(_ref7=_ref7||_asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee14(){return _regeneratorRuntime().wrap(function _callee14$(_context14){while(1)switch(_context14.prev=_context14.next){case 0:_context14.prev=0;_context14.next=3;return trySetObj(STOKEY_SETTING,DEFAULT_SETTING);case 3:_context14.next=5;return trySetObj(STOKEY_RULES,DEFAULT_RULES);case 5:_context14.next=7;return trySetObj(STOKEY_SYNC,DEFAULT_SYNC);case 7:_context14.next=9;return trySetObj("".concat(STOKEY_RULESCACHE_PREFIX).concat("https://fishjar.github.io/kiss-rules/kiss-rules.json"),BUILTIN_RULES);case 9:_context14.next=14;break;case 11:_context14.prev=11;_context14.t0=_context14["catch"](0);console.log("[init default]",_context14.t0);case 14:case"end":return _context14.stop();}},_callee14,null,[[0,11]]);}))).apply(this,arguments);};
 ;// CONCATENATED MODULE: ./src/hooks/Storage.js
-function useStorage(key){var defaultVal=arguments.length>1&&arguments[1]!==undefined?arguments[1]:null;var _useState=(0,react.useState)(defaultVal),_useState2=(0,slicedToArray/* default */.Z)(_useState,2),data=_useState2[0],setData=_useState2[1];var save=(0,react.useCallback)(/*#__PURE__*/function(){var _ref=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(val){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:setData(val);_context.next=3;return storage.setObj(key,val);case 3:case"end":return _context.stop();}},_callee);}));return function(_x){return _ref.apply(this,arguments);};}(),[key]);var update=(0,react.useCallback)(/*#__PURE__*/function(){var _ref2=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(obj){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:setData(function(pre){return _objectSpread2(_objectSpread2({},pre),obj);});_context2.next=3;return storage.putObj(key,obj);case 3:case"end":return _context2.stop();}},_callee2);}));return function(_x2){return _ref2.apply(this,arguments);};}(),[key]);var remove=(0,react.useCallback)(/*#__PURE__*/asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee3(){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:setData(null);_context3.next=3;return storage.del(key);case 3:case"end":return _context3.stop();}},_callee3);})),[key]);var reload=(0,react.useCallback)(/*#__PURE__*/asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee4(){var val;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee4$(_context4){while(1)switch(_context4.prev=_context4.next){case 0:_context4.next=2;return storage.getObj(key);case 2:val=_context4.sent;if(!val){_context4.next=7;break;}setData(val);_context4.next=10;break;case 7:if(!defaultVal){_context4.next=10;break;}_context4.next=10;return storage.setObj(key,defaultVal);case 10:case"end":return _context4.stop();}},_callee4);})),[key,defaultVal]);(0,react.useEffect)(function(){asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee5(){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee5$(_context5){while(1)switch(_context5.prev=_context5.next){case 0:_context5.next=2;return reload();case 2:case"end":return _context5.stop();}},_callee5);}))();},[reload]);return{data:data,save:save,update:update,remove:remove,reload:reload};}
+function useStorage(key){var _ref,_ref2;var defaultVal=arguments.length>1&&arguments[1]!==undefined?arguments[1]:null;var _useState=(0,react.useState)(true),_useState2=(0,slicedToArray/* default */.Z)(_useState,2),loading=_useState2[0],setLoading=_useState2[1];var _useState3=(0,react.useState)(defaultVal),_useState4=(0,slicedToArray/* default */.Z)(_useState3,2),data=_useState4[0],setData=_useState4[1];var save=(0,react.useCallback)(function(_x){return(_ref=_ref||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(val){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:setData(val);_context.next=3;return storage.setObj(key,val);case 3:case"end":return _context.stop();}},_callee);}))).apply(this,arguments);},[key]);var update=(0,react.useCallback)(function(_x2){return(_ref2=_ref2||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(obj){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:setData(function(pre){return _objectSpread2(_objectSpread2({},pre),obj);});_context2.next=3;return storage.putObj(key,obj);case 3:case"end":return _context2.stop();}},_callee2);}))).apply(this,arguments);},[key]);var remove=(0,react.useCallback)(/*#__PURE__*/asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee3(){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:setData(null);_context3.next=3;return storage.del(key);case 3:case"end":return _context3.stop();}},_callee3);})),[key]);var reload=(0,react.useCallback)(/*#__PURE__*/asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee4(){var val;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee4$(_context4){while(1)switch(_context4.prev=_context4.next){case 0:_context4.next=2;return storage.getObj(key);case 2:val=_context4.sent;if(!val){_context4.next=7;break;}setData(val);_context4.next=10;break;case 7:if(!defaultVal){_context4.next=10;break;}_context4.next=10;return storage.setObj(key,defaultVal);case 10:case"end":return _context4.stop();}},_callee4);})),[key,defaultVal]);(0,react.useEffect)(function(){asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee5(){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee5$(_context5){while(1)switch(_context5.prev=_context5.next){case 0:_context5.prev=0;setLoading(true);_context5.next=4;return reload();case 4:_context5.next=8;break;case 6:_context5.prev=6;_context5.t0=_context5["catch"](0);case 8:_context5.prev=8;setLoading(false);return _context5.finish(8);case 11:case"end":return _context5.stop();}},_callee5,null,[[0,6,8,11]]);}))();},[reload]);return{data:data,save:save,update:update,remove:remove,reload:reload,loading:loading};}
 ;// CONCATENATED MODULE: ./src/hooks/Sync.js
 /**
  * sync hook
@@ -20253,7 +20212,7 @@ function _objectWithoutProperties(source, excluded) {
   return target;
 }
 ;// CONCATENATED MODULE: ./src/libs/msg.js
-/**
+var msg_ref;/**
  * 发送消息给background
  * @param {*} action
  * @param {*} args
@@ -20263,7 +20222,7 @@ function _objectWithoutProperties(source, excluded) {
  * @param {*} action
  * @param {*} args
  * @returns
- */var sendTabMsg=/*#__PURE__*/function(){var _ref=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(action,args){var tabs;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:_context.next=2;return browser.tabs.query({active:true,currentWindow:true});case 2:tabs=_context.sent;return _context.abrupt("return",browser.tabs.sendMessage(tabs[0].id,{action:action,args:args}));case 4:case"end":return _context.stop();}},_callee);}));return function sendTabMsg(_x,_x2){return _ref.apply(this,arguments);};}();
+ */var sendTabMsg=function sendTabMsg(_x,_x2){return(msg_ref=msg_ref||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(action,args){var tabs;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:_context.next=2;return browser.tabs.query({active:true,currentWindow:true});case 2:tabs=_context.sent;return _context.abrupt("return",browser.tabs.sendMessage(tabs[0].id,{action:action,args:args}));case 4:case"end":return _context.stop();}},_callee);}))).apply(this,arguments);};
 ;// CONCATENATED MODULE: ./src/libs/pool.js
 /**
  * 任务池
@@ -20272,12 +20231,12 @@ function _objectWithoutProperties(source, excluded) {
  * @param {*} _interval
  * @param {*} _limit
  * @returns
- */var taskPool=function taskPool(fn,preFn){var _interval=arguments.length>2&&arguments[2]!==undefined?arguments[2]:100;var _limit=arguments.length>3&&arguments[3]!==undefined?arguments[3]:100;var pool=[];var maxRetry=2;// 最大重试次数
+ */var taskPool=function taskPool(fn,preFn){var _ref,_ref2,_push;var _interval=arguments.length>2&&arguments[2]!==undefined?arguments[2]:100;var _limit=arguments.length>3&&arguments[3]!==undefined?arguments[3]:100;var pool=[];var maxRetry=2;// 最大重试次数
 var maxCount=_limit;// 最大数量
 var curCount=0;// 当前数量
 var interval=_interval;// 间隔时间
-var timer=null;var handleTask=/*#__PURE__*/function(){var _ref=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(item,preArgs){var args,resolve,reject,retry,res;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:curCount++;args=item.args,resolve=item.resolve,reject=item.reject,retry=item.retry;_context.prev=2;_context.next=5;return fn(_objectSpread2(_objectSpread2({},args),preArgs));case 5:res=_context.sent;resolve(res);_context.next=12;break;case 9:_context.prev=9;_context.t0=_context["catch"](2);if(retry<maxRetry){pool.push({args:args,resolve:resolve,reject:reject,retry:retry+1});}else{reject(_context.t0);}case 12:_context.prev=12;curCount--;return _context.finish(12);case 15:case"end":return _context.stop();}},_callee,null,[[2,9,12,15]]);}));return function handleTask(_x,_x2){return _ref.apply(this,arguments);};}();var run=/*#__PURE__*/function(){var _ref2=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(){var item,preArgs;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:// console.log("timer", timer);
-timer&&clearTimeout(timer);timer=setTimeout(run,interval);if(!(curCount<maxCount)){_context2.next=16;break;}item=pool.shift();if(!item){_context2.next=16;break;}_context2.prev=5;_context2.next=8;return preFn(item.args);case 8:preArgs=_context2.sent;handleTask(item,preArgs);_context2.next=16;break;case 12:_context2.prev=12;_context2.t0=_context2["catch"](5);console.log("[preFn]",_context2.t0);pool.push(item);case 16:case"end":return _context2.stop();}},_callee2,null,[[5,12]]);}));return function run(){return _ref2.apply(this,arguments);};}();return{push:function(){var _push=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee3(args){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:if(!timer){run();}return _context3.abrupt("return",new Promise(function(resolve,reject){pool.push({args:args,resolve:resolve,reject:reject,retry:0});}));case 2:case"end":return _context3.stop();}},_callee3);}));function push(_x3){return _push.apply(this,arguments);}return push;}(),update:function update(){var _interval=arguments.length>0&&arguments[0]!==undefined?arguments[0]:100;var _limit=arguments.length>1&&arguments[1]!==undefined?arguments[1]:100;if(_interval>=0&&_interval<=5000&&_interval!==interval){interval=_interval;}if(_limit>=1&&_limit<=100&&_limit!==maxCount){maxCount=_limit;}},clear:function clear(){pool.length=0;curCount=0;timer&&clearTimeout(timer);timer=null;}};};
+var timer=null;var handleTask=function handleTask(_x,_x2){return(_ref=_ref||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(item,preArgs){var args,resolve,reject,retry,res;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:curCount++;args=item.args,resolve=item.resolve,reject=item.reject,retry=item.retry;_context.prev=2;_context.next=5;return fn(_objectSpread2(_objectSpread2({},args),preArgs));case 5:res=_context.sent;resolve(res);_context.next=12;break;case 9:_context.prev=9;_context.t0=_context["catch"](2);if(retry<maxRetry){pool.push({args:args,resolve:resolve,reject:reject,retry:retry+1});}else{reject(_context.t0);}case 12:_context.prev=12;curCount--;return _context.finish(12);case 15:case"end":return _context.stop();}},_callee,null,[[2,9,12,15]]);}))).apply(this,arguments);};var run=function run(){return(_ref2=_ref2||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(){var item,preArgs;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:// console.log("timer", timer);
+timer&&clearTimeout(timer);timer=setTimeout(run,interval);if(!(curCount<maxCount)){_context2.next=16;break;}item=pool.shift();if(!item){_context2.next=16;break;}_context2.prev=5;_context2.next=8;return preFn(item.args);case 8:preArgs=_context2.sent;handleTask(item,preArgs);_context2.next=16;break;case 12:_context2.prev=12;_context2.t0=_context2["catch"](5);console.log("[preFn]",_context2.t0);pool.push(item);case 16:case"end":return _context2.stop();}},_callee2,null,[[5,12]]);}))).apply(this,arguments);};return{push:function push(_x3){return(_push=_push||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee3(args){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:if(!timer){run();}return _context3.abrupt("return",new Promise(function(resolve,reject){pool.push({args:args,resolve:resolve,reject:reject,retry:0});}));case 2:case"end":return _context3.stop();}},_callee3);}))).apply(this,arguments);},update:function update(){var _interval=arguments.length>0&&arguments[0]!==undefined?arguments[0]:100;var _limit=arguments.length>1&&arguments[1]!==undefined?arguments[1]:100;if(_interval>=0&&_interval<=5000&&_interval!==interval){interval=_interval;}if(_limit>=1&&_limit<=100&&_limit!==maxCount){maxCount=_limit;}},clear:function clear(){pool.length=0;curCount=0;timer&&clearTimeout(timer);timer=null;}};};
 ;// CONCATENATED MODULE: ./src/libs/auth.js
 var parseMSToken=function parseMSToken(token){try{return JSON.parse(atob(token.split(".")[1])).exp;}catch(err){console.log("[parseMSToken]",err);}return 0;};/**
  * 闭包缓存token，减少对storage查询
@@ -20285,54 +20244,54 @@ var parseMSToken=function parseMSToken(token){try{return JSON.parse(atob(token.s
  */var _msAuth=function _msAuth(){var _ref={},token=_ref.token,exp=_ref.exp;return/*#__PURE__*/asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(){var now,res;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:// 查询内存缓存
 now=Date.now();if(!(token&&exp*1000>now+1000)){_context.next=3;break;}return _context.abrupt("return",[token,exp]);case 3:_context.next=5;return getMsauth();case 5:res=_context.sent;token=res===null||res===void 0?void 0:res.token;exp=res===null||res===void 0?void 0:res.exp;if(!(token&&exp*1000>now+1000)){_context.next=10;break;}return _context.abrupt("return",[token,exp]);case 10:_context.next=12;return fetchData(URL_MICROSOFT_AUTH);case 12:token=_context.sent;exp=parseMSToken(token);_context.next=16;return setMsauth({token:token,exp:exp});case 16:return _context.abrupt("return",[token,exp]);case 17:case"end":return _context.stop();}},_callee);}));};var msAuth=_msAuth();
 ;// CONCATENATED MODULE: ./src/libs/fetch.js
-var fetch_excluded=["useCache","usePool","translator","token"],_excluded2=["isBg"];/**
+var fetch_excluded=["useCache","usePool","translator","token"],_excluded2=["isBg"];var fetch_ref,fetch_ref3,fetch_ref5,fetch_ref7,_ref8,_ref10,_ref12,_ref13;/**
  * 油猴脚本的请求封装
  * @param {*} input
  * @param {*} init
  * @returns
- */var fetchGM=/*#__PURE__*/function(){var _ref=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(input){var _ref2,_ref2$method,method,headers,body,_args=arguments;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:_ref2=_args.length>1&&_args[1]!==undefined?_args[1]:{},_ref2$method=_ref2.method,method=_ref2$method===void 0?"GET":_ref2$method,headers=_ref2.headers,body=_ref2.body;return _context.abrupt("return",new Promise(function(resolve,reject){GM.xmlHttpRequest({method:method,url:input,headers:headers,data:body,onload:function onload(response){if(response.status===200){var _headers=new Headers();response.responseHeaders.split("\n").forEach(function(line){var _line$split$map=line.split(":").map(function(item){return item.trim();}),_line$split$map2=(0,slicedToArray/* default */.Z)(_line$split$map,2),name=_line$split$map2[0],value=_line$split$map2[1];if(name&&value){_headers.append(name,value);}});resolve(new Response(response.response,{headers:_headers}));}else{reject(new Error("[".concat(response.status,"] ").concat(response.responseText)));}},onerror:reject});}));case 2:case"end":return _context.stop();}},_callee);}));return function fetchGM(_x){return _ref.apply(this,arguments);};}();/**
+ */var fetchGM=function fetchGM(_x){return(fetch_ref=fetch_ref||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(input){var _ref2,_ref2$method,method,headers,body,_args=arguments;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:_ref2=_args.length>1&&_args[1]!==undefined?_args[1]:{},_ref2$method=_ref2.method,method=_ref2$method===void 0?"GET":_ref2$method,headers=_ref2.headers,body=_ref2.body;return _context.abrupt("return",new Promise(function(resolve,reject){GM.xmlHttpRequest({method:method,url:input,headers:headers,data:body,onload:function onload(response){if(response.status===200){var _headers=new Headers();response.responseHeaders.split("\n").forEach(function(line){var _line$split$map=line.split(":").map(function(item){return item.trim();}),_line$split$map2=(0,slicedToArray/* default */.Z)(_line$split$map,2),name=_line$split$map2[0],value=_line$split$map2[1];if(name&&value){_headers.append(name,value);}});resolve(new Response(response.response,{headers:_headers}));}else{reject(new Error("[".concat(response.status,"] ").concat(response.responseText)));}},onerror:reject});}));case 2:case"end":return _context.stop();}},_callee);}))).apply(this,arguments);};/**
  * 构造缓存 request
  * @param {*} request
  * @returns
- */var newCacheReq=/*#__PURE__*/function(){var _ref3=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(request){var body,cacheUrl;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:if(!(request.method!=="GET")){_context2.next=7;break;}_context2.next=3;return request.text();case 3:body=_context2.sent;cacheUrl=new URL(request.url);cacheUrl.pathname+=body;request=new Request(cacheUrl.toString(),{method:"GET"});case 7:return _context2.abrupt("return",request);case 8:case"end":return _context2.stop();}},_callee2);}));return function newCacheReq(_x2){return _ref3.apply(this,arguments);};}();/**
+ */var newCacheReq=function newCacheReq(_x2){return(fetch_ref3=fetch_ref3||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(request){var body,cacheUrl;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:if(!(request.method!=="GET")){_context2.next=7;break;}_context2.next=3;return request.text();case 3:body=_context2.sent;cacheUrl=new URL(request.url);cacheUrl.pathname+=body;request=new Request(cacheUrl.toString(),{method:"GET"});case 7:return _context2.abrupt("return",request);case 8:case"end":return _context2.stop();}},_callee2);}))).apply(this,arguments);};/**
  * 发起请求
  * @param {*} param0
  * @returns
- */var fetchApi=/*#__PURE__*/function(){var _ref5=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee3(_ref4){var input,_ref4$init,init,translator,token,_info,_info$script,_info2,_info2$script,info,connects,url,isSafe;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:input=_ref4.input,_ref4$init=_ref4.init,init=_ref4$init===void 0?{}:_ref4$init,translator=_ref4.translator,token=_ref4.token;if(translator===OPT_TRANS_MICROSOFT){init.headers["Authorization"]="Bearer ".concat(token);// Microsoft
-}else if(translator===OPT_TRANS_DEEPL){init.headers["Authorization"]="DeepL-Auth-Key ".concat(token);// DeepL
+ */var fetchApi=function fetchApi(_x3){return(fetch_ref5=fetch_ref5||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee3(_ref4){var input,_ref4$init,init,translator,token,_info,_info$script,_info2,_info2$script,info,connects,url,isSafe;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:input=_ref4.input,_ref4$init=_ref4.init,init=_ref4$init===void 0?{}:_ref4$init,translator=_ref4.translator,token=_ref4.token;if(token){if(translator===OPT_TRANS_DEEPL){init.headers["Authorization"]="DeepL-Auth-Key ".concat(token);// DeepL
 }else if(translator===OPT_TRANS_OPENAI){init.headers["Authorization"]="Bearer ".concat(token);// OpenAI
 init.headers["api-key"]=token;// Azure OpenAI
-}if(!isGm){_context3.next=19;break;}if(!window.KISS_GM){_context3.next=9;break;}_context3.next=6;return window.KISS_GM.getInfo();case 6:info=_context3.sent;_context3.next=10;break;case 9:info=GM.info;case 10:// Tampermonkey --> .connects
+}else{init.headers["Authorization"]="Bearer ".concat(token);// Microsoft & others
+}}if(!isGm){_context3.next=19;break;}if(!window.KISS_GM){_context3.next=9;break;}_context3.next=6;return window.KISS_GM.getInfo();case 6:info=_context3.sent;_context3.next=10;break;case 9:info=GM.info;case 10:// Tampermonkey --> .connects
 // Violentmonkey --> .connect
-connects=((_info=info)===null||_info===void 0?void 0:(_info$script=_info.script)===null||_info$script===void 0?void 0:_info$script.connects)||((_info2=info)===null||_info2===void 0?void 0:(_info2$script=_info2.script)===null||_info2$script===void 0?void 0:_info2$script.connect)||[];url=new URL(input);isSafe=connects.find(function(item){return url.hostname.endsWith(item);});if(!isSafe){_context3.next=19;break;}if(!window.KISS_GM){_context3.next=18;break;}return _context3.abrupt("return",window.KISS_GM.fetch(input,init));case 18:return _context3.abrupt("return",fetchGM(input,init));case 19:return _context3.abrupt("return",fetch(input,init));case 20:case"end":return _context3.stop();}},_callee3);}));return function fetchApi(_x3){return _ref5.apply(this,arguments);};}();/**
+connects=((_info=info)===null||_info===void 0?void 0:(_info$script=_info.script)===null||_info$script===void 0?void 0:_info$script.connects)||((_info2=info)===null||_info2===void 0?void 0:(_info2$script=_info2.script)===null||_info2$script===void 0?void 0:_info2$script.connect)||[];url=new URL(input);isSafe=connects.find(function(item){return url.hostname.endsWith(item);});if(!isSafe){_context3.next=19;break;}if(!window.KISS_GM){_context3.next=18;break;}return _context3.abrupt("return",window.KISS_GM.fetch(input,init));case 18:return _context3.abrupt("return",fetchGM(input,init));case 19:return _context3.abrupt("return",fetch(input,init));case 20:case"end":return _context3.stop();}},_callee3);}))).apply(this,arguments);};/**
  * 请求池实例
- */var fetchPool=taskPool(fetchApi,/*#__PURE__*/function(){var _ref7=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee4(_ref6){var translator,_yield$msAuth,_yield$msAuth2,token;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee4$(_context4){while(1)switch(_context4.prev=_context4.next){case 0:translator=_ref6.translator;if(!(translator===OPT_TRANS_MICROSOFT)){_context4.next=8;break;}_context4.next=4;return msAuth();case 4:_yield$msAuth=_context4.sent;_yield$msAuth2=(0,slicedToArray/* default */.Z)(_yield$msAuth,1);token=_yield$msAuth2[0];return _context4.abrupt("return",{token:token});case 8:return _context4.abrupt("return",{});case 9:case"end":return _context4.stop();}},_callee4);}));return function(_x4){return _ref7.apply(this,arguments);};}(),DEFAULT_FETCH_INTERVAL,DEFAULT_FETCH_LIMIT);/**
+ */var fetchPool=taskPool(fetchApi,function(_x4){return(fetch_ref7=fetch_ref7||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee4(_ref6){var translator,_yield$msAuth,_yield$msAuth2,token;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee4$(_context4){while(1)switch(_context4.prev=_context4.next){case 0:translator=_ref6.translator;if(!(translator===OPT_TRANS_MICROSOFT)){_context4.next=8;break;}_context4.next=4;return msAuth();case 4:_yield$msAuth=_context4.sent;_yield$msAuth2=(0,slicedToArray/* default */.Z)(_yield$msAuth,1);token=_yield$msAuth2[0];return _context4.abrupt("return",{token:token});case 8:return _context4.abrupt("return",{});case 9:case"end":return _context4.stop();}},_callee4);}))).apply(this,arguments);},DEFAULT_FETCH_INTERVAL,DEFAULT_FETCH_LIMIT);/**
  * 请求数据统一接口
  * @param {*} input
  * @param {*} opts
  * @returns
- */var fetchData=/*#__PURE__*/function(){var _ref8=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee5(input){var _ref9,useCache,usePool,translator,token,init,cacheReq,res,cache,_res,_cache,contentType,_args5=arguments;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee5$(_context5){while(1)switch(_context5.prev=_context5.next){case 0:_ref9=_args5.length>1&&_args5[1]!==undefined?_args5[1]:{},useCache=_ref9.useCache,usePool=_ref9.usePool,translator=_ref9.translator,token=_ref9.token,init=_objectWithoutProperties(_ref9,fetch_excluded);_context5.next=3;return newCacheReq(new Request(input,init));case 3:cacheReq=_context5.sent;if(!useCache){_context5.next=17;break;}_context5.prev=5;_context5.next=8;return caches.open(config_CACHE_NAME);case 8:cache=_context5.sent;_context5.next=11;return cache.match(cacheReq);case 11:res=_context5.sent;_context5.next=17;break;case 14:_context5.prev=14;_context5.t0=_context5["catch"](5);console.log("[cache match]",_context5.t0.message);case 17:if(res){_context5.next=41;break;}if(!usePool){_context5.next=24;break;}_context5.next=21;return fetchPool.push({input:input,init:init,translator:translator,token:token});case 21:res=_context5.sent;_context5.next=27;break;case 24:_context5.next=26;return fetchApi({input:input,init:init,translator:translator,token:token});case 26:res=_context5.sent;case 27:if((_res=res)!==null&&_res!==void 0&&_res.ok){_context5.next=29;break;}throw new Error("response: ".concat(res.statusText));case 29:if(!useCache){_context5.next=41;break;}_context5.prev=30;_context5.next=33;return caches.open(config_CACHE_NAME);case 33:_cache=_context5.sent;_context5.next=36;return _cache.put(cacheReq,res.clone());case 36:_context5.next=41;break;case 38:_context5.prev=38;_context5.t1=_context5["catch"](30);console.log("[cache put]",_context5.t1.message);case 41:contentType=res.headers.get("Content-Type");if(!(contentType!==null&&contentType!==void 0&&contentType.includes("json"))){_context5.next=46;break;}_context5.next=45;return res.json();case 45:return _context5.abrupt("return",_context5.sent);case 46:_context5.next=48;return res.text();case 48:return _context5.abrupt("return",_context5.sent);case 49:case"end":return _context5.stop();}},_callee5,null,[[5,14],[30,38]]);}));return function fetchData(_x5){return _ref8.apply(this,arguments);};}();/**
+ */var fetchData=function fetchData(_x5){return(_ref8=_ref8||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee5(input){var _ref9,useCache,usePool,translator,token,init,cacheReq,res,cache,_res,_cache,contentType,_args5=arguments;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee5$(_context5){while(1)switch(_context5.prev=_context5.next){case 0:_ref9=_args5.length>1&&_args5[1]!==undefined?_args5[1]:{},useCache=_ref9.useCache,usePool=_ref9.usePool,translator=_ref9.translator,token=_ref9.token,init=_objectWithoutProperties(_ref9,fetch_excluded);_context5.next=3;return newCacheReq(new Request(input,init));case 3:cacheReq=_context5.sent;if(!useCache){_context5.next=17;break;}_context5.prev=5;_context5.next=8;return caches.open(config_CACHE_NAME);case 8:cache=_context5.sent;_context5.next=11;return cache.match(cacheReq);case 11:res=_context5.sent;_context5.next=17;break;case 14:_context5.prev=14;_context5.t0=_context5["catch"](5);console.log("[cache match]",_context5.t0.message);case 17:if(res){_context5.next=41;break;}if(!usePool){_context5.next=24;break;}_context5.next=21;return fetchPool.push({input:input,init:init,translator:translator,token:token});case 21:res=_context5.sent;_context5.next=27;break;case 24:_context5.next=26;return fetchApi({input:input,init:init,translator:translator,token:token});case 26:res=_context5.sent;case 27:if((_res=res)!==null&&_res!==void 0&&_res.ok){_context5.next=29;break;}throw new Error("response: ".concat(res.statusText));case 29:if(!useCache){_context5.next=41;break;}_context5.prev=30;_context5.next=33;return caches.open(config_CACHE_NAME);case 33:_cache=_context5.sent;_context5.next=36;return _cache.put(cacheReq,res.clone());case 36:_context5.next=41;break;case 38:_context5.prev=38;_context5.t1=_context5["catch"](30);console.log("[cache put]",_context5.t1.message);case 41:contentType=res.headers.get("Content-Type");if(!(contentType!==null&&contentType!==void 0&&contentType.includes("json"))){_context5.next=46;break;}_context5.next=45;return res.json();case 45:return _context5.abrupt("return",_context5.sent);case 46:_context5.next=48;return res.text();case 48:return _context5.abrupt("return",_context5.sent);case 49:case"end":return _context5.stop();}},_callee5,null,[[5,14],[30,38]]);}))).apply(this,arguments);};/**
  * fetch 兼容性封装
  * @param {*} input
  * @param {*} opts
  * @returns
- */var fetchPolyfill=/*#__PURE__*/function(){var _ref10=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee6(input){var _ref11,_ref11$isBg,isBg,opts,res,_args6=arguments;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee6$(_context6){while(1)switch(_context6.prev=_context6.next){case 0:_ref11=_args6.length>1&&_args6[1]!==undefined?_args6[1]:{},_ref11$isBg=_ref11.isBg,isBg=_ref11$isBg===void 0?false:_ref11$isBg,opts=_objectWithoutProperties(_ref11,_excluded2);if(!(isExt&&!isBg)){_context6.next=8;break;}_context6.next=4;return sendBgMsg(MSG_FETCH,{input:input,opts:opts});case 4:res=_context6.sent;if(!res.error){_context6.next=7;break;}throw new Error(res.error);case 7:return _context6.abrupt("return",res.data);case 8:_context6.next=10;return fetchData(input,opts);case 10:return _context6.abrupt("return",_context6.sent);case 11:case"end":return _context6.stop();}},_callee6);}));return function fetchPolyfill(_x6){return _ref10.apply(this,arguments);};}();/**
+ */var fetchPolyfill=function fetchPolyfill(_x6){return(_ref10=_ref10||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee6(input){var _ref11,_ref11$isBg,isBg,opts,res,_args6=arguments;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee6$(_context6){while(1)switch(_context6.prev=_context6.next){case 0:_ref11=_args6.length>1&&_args6[1]!==undefined?_args6[1]:{},_ref11$isBg=_ref11.isBg,isBg=_ref11$isBg===void 0?false:_ref11$isBg,opts=_objectWithoutProperties(_ref11,_excluded2);if(input.trim()){_context6.next=3;break;}throw new Error("URL is empty");case 3:if(!(isExt&&!isBg)){_context6.next=10;break;}_context6.next=6;return sendBgMsg(MSG_FETCH,{input:input,opts:opts});case 6:res=_context6.sent;if(!res.error){_context6.next=9;break;}throw new Error(res.error);case 9:return _context6.abrupt("return",res.data);case 10:_context6.next=12;return fetchData(input,opts);case 12:return _context6.abrupt("return",_context6.sent);case 13:case"end":return _context6.stop();}},_callee6);}))).apply(this,arguments);};/**
  * 更新 fetch pool 参数
  * @param {*} interval
  * @param {*} limit
- */var updateFetchPool=/*#__PURE__*/function(){var _ref12=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee7(interval,limit){var res;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee7$(_context7){while(1)switch(_context7.prev=_context7.next){case 0:if(!isExt){_context7.next=8;break;}_context7.next=3;return sendBgMsg(MSG_FETCH_LIMIT,{interval:interval,limit:limit});case 3:res=_context7.sent;if(!res.error){_context7.next=6;break;}throw new Error(res.error);case 6:_context7.next=9;break;case 8:fetchPool.update(interval,limit);case 9:case"end":return _context7.stop();}},_callee7);}));return function updateFetchPool(_x7,_x8){return _ref12.apply(this,arguments);};}();/**
+ */var updateFetchPool=function updateFetchPool(_x7,_x8){return(_ref12=_ref12||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee7(interval,limit){var res;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee7$(_context7){while(1)switch(_context7.prev=_context7.next){case 0:if(!isExt){_context7.next=8;break;}_context7.next=3;return sendBgMsg(MSG_FETCH_LIMIT,{interval:interval,limit:limit});case 3:res=_context7.sent;if(!res.error){_context7.next=6;break;}throw new Error(res.error);case 6:_context7.next=9;break;case 8:fetchPool.update(interval,limit);case 9:case"end":return _context7.stop();}},_callee7);}))).apply(this,arguments);};/**
  * 清空任务池
- */var clearFetchPool=/*#__PURE__*/function(){var _ref13=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee8(){var res;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee8$(_context8){while(1)switch(_context8.prev=_context8.next){case 0:if(!isExt){_context8.next=8;break;}_context8.next=3;return sendBgMsg(MSG_FETCH_CLEAR);case 3:res=_context8.sent;if(!res.error){_context8.next=6;break;}throw new Error(res.error);case 6:_context8.next=9;break;case 8:fetchPool.clear();case 9:case"end":return _context8.stop();}},_callee8);}));return function clearFetchPool(){return _ref13.apply(this,arguments);};}();
+ */var clearFetchPool=function clearFetchPool(){return(_ref13=_ref13||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee8(){var res;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee8$(_context8){while(1)switch(_context8.prev=_context8.next){case 0:if(!isExt){_context8.next=8;break;}_context8.next=3;return sendBgMsg(MSG_FETCH_CLEAR);case 3:res=_context8.sent;if(!res.error){_context8.next=6;break;}throw new Error(res.error);case 6:_context8.next=9;break;case 8:fetchPool.clear();case 9:case"end":return _context8.stop();}},_callee8);}))).apply(this,arguments);};
 ;// CONCATENATED MODULE: ./src/libs/index.js
-/**
+var libs_ref,libs_ref2;/**
  * 清除缓存数据
- */var tryClearCaches=/*#__PURE__*/(/* unused pure expression or super */ null && (function(){var _ref=_asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee(){return _regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:try{caches.delete(CACHE_NAME);}catch(err){console.log("[clean caches]",err.message);}case 1:case"end":return _context.stop();}},_callee);}));return function tryClearCaches(){return _ref.apply(this,arguments);};}()));/**
+ */var tryClearCaches=function tryClearCaches(){return(libs_ref=libs_ref||_asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee(){return _regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:try{caches.delete(CACHE_NAME);}catch(err){console.log("[clean caches]",err.message);}case 1:case"end":return _context.stop();}},_callee);}))).apply(this,arguments);};/**
  * 本地语言识别
  * @param {*} q
  * @returns
- */var tryDetectLang=/*#__PURE__*/function(){var _ref2=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(q){var _browser$i18n,_res$languages,_res$languages$,res;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:_context2.prev=0;_context2.next=3;return browser===null||browser===void 0?void 0:(_browser$i18n=browser.i18n)===null||_browser$i18n===void 0?void 0:_browser$i18n.detectLanguage(q);case 3:res=_context2.sent;return _context2.abrupt("return",res===null||res===void 0?void 0:(_res$languages=res.languages)===null||_res$languages===void 0?void 0:(_res$languages$=_res$languages[0])===null||_res$languages$===void 0?void 0:_res$languages$.language);case 7:_context2.prev=7;_context2.t0=_context2["catch"](0);console.log("[detect lang]",_context2.t0.message);case 10:case"end":return _context2.stop();}},_callee2,null,[[0,7]]);}));return function tryDetectLang(_x){return _ref2.apply(this,arguments);};}();
+ */var tryDetectLang=function tryDetectLang(_x){return(libs_ref2=libs_ref2||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(q){var _browser$i18n,_res$languages,_res$languages$,res;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:_context2.prev=0;_context2.next=3;return browser===null||browser===void 0?void 0:(_browser$i18n=browser.i18n)===null||_browser$i18n===void 0?void 0:_browser$i18n.detectLanguage(q);case 3:res=_context2.sent;return _context2.abrupt("return",res===null||res===void 0?void 0:(_res$languages=res.languages)===null||_res$languages===void 0?void 0:(_res$languages$=_res$languages[0])===null||_res$languages$===void 0?void 0:_res$languages$.language);case 7:_context2.prev=7;_context2.t0=_context2["catch"](0);console.log("[detect lang]",_context2.t0.message);case 10:case"end":return _context2.stop();}},_callee2,null,[[0,7]]);}))).apply(this,arguments);};
 ;// CONCATENATED MODULE: ./src/libs/utils.js
-/**
+var utils_ref;/**
  * 限制数字大小
  * @param {*} num
  * @param {*} min
@@ -20352,12 +20311,23 @@ connects=((_info=info)===null||_info===void 0?void 0:(_info$script=_info.script)
  * @param {*} func
  * @param {*} delay
  * @returns
- */var debounce=function debounce(func){var delay=arguments.length>1&&arguments[1]!==undefined?arguments[1]:200;var timer;return function(){for(var _len=arguments.length,args=new Array(_len),_key=0;_key<_len;_key++){args[_key]=arguments[_key];}timer&&clearTimeout(timer);timer=setTimeout(function(){func.apply(void 0,args);},delay);};};/**
+ */var debounce=function debounce(func){var delay=arguments.length>1&&arguments[1]!==undefined?arguments[1]:200;var timer=null;return function(){for(var _len=arguments.length,args=new Array(_len),_key=0;_key<_len;_key++){args[_key]=arguments[_key];}timer&&clearTimeout(timer);timer=setTimeout(function(){func.apply(void 0,args);clearTimeout(timer);timer=null;},delay);};};/**
+ * 节流函数
+ * @param {*} func
+ * @param {*} delay
+ * @returns
+ */var throttle=function throttle(func){var delay=arguments.length>1&&arguments[1]!==undefined?arguments[1]:200;var timer=null;var cache=null;return function(){for(var _len2=arguments.length,args=new Array(_len2),_key2=0;_key2<_len2;_key2++){args[_key2]=arguments[_key2];}if(!timer){func.apply(void 0,args);cache=null;timer=setTimeout(function(){if(cache){func.apply(void 0,_toConsumableArray(cache));cache=null;}clearTimeout(timer);timer=null;},delay);}else{cache=args;}};};/**
+ * 判断字符串全是某个字符
+ * @param {*} s
+ * @param {*} c
+ * @param {*} i
+ * @returns
+ */var isAllchar=function isAllchar(s,c){var i=arguments.length>2&&arguments[2]!==undefined?arguments[2]:0;while(i<s.length){if(s[i]!==c){return false;}i++;}return true;};/**
  * 字符串通配符(*)匹配
  * @param {*} s
  * @param {*} p
  * @returns
- */var isMatch=function isMatch(s,p){if(s.length===0||p.length===0){return false;}p="*".concat(p,"*");var sIndex=0,pIndex=0;var sRecord=-1,pRecord=-1;while(sIndex<s.length&&pRecord<p.length){if(p[pIndex]==="*"){pIndex++;sRecord=sIndex;pRecord=pIndex;}else if(s[sIndex]===p[pIndex]){sIndex++;pIndex++;}else if(sRecord+1<s.length){sRecord++;sIndex=sRecord;pIndex=pRecord;}else{return false;}}if(p.length===pIndex){return true;}return p.slice(pIndex).replaceAll("*","")==="";};/**
+ */var isMatch=function isMatch(s,p){if(s.length===0||p.length===0){return false;}p="*"+p+"*";var sIndex=0,pIndex=0;var sRecord=-1,pRecord=-1;while(sIndex<s.length&&pRecord<p.length){if(p[pIndex]==="*"){pIndex++;sRecord=sIndex;pRecord=pIndex;}else if(s[sIndex]===p[pIndex]){sIndex++;pIndex++;}else if(sRecord+1<s.length){sRecord++;sIndex=sRecord;pIndex=pRecord;}else{return false;}}if(p.length===pIndex){return true;}return isAllchar(p,"*",pIndex);};/**
  * 类型检查
  * @param {*} o
  * @returns
@@ -20365,68 +20335,79 @@ connects=((_info=info)===null||_info===void 0?void 0:(_info$script=_info.script)
  * sha256
  * @param {*} text
  * @returns
- */var utils_sha256=/*#__PURE__*/function(){var _ref=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(text,salt){var data,digest;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:data=new TextEncoder().encode(text+salt);_context.next=3;return crypto.subtle.digest({name:"SHA-256"},data);case 3:digest=_context.sent;return _context.abrupt("return",(0,toConsumableArray/* default */.Z)(new Uint8Array(digest)).map(function(b){return b.toString(16).padStart(2,"0");}).join(""));case 5:case"end":return _context.stop();}},_callee);}));return function sha256(_x,_x2){return _ref.apply(this,arguments);};}();/**
+ */var utils_sha256=function sha256(_x,_x2){return(utils_ref=utils_ref||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(text,salt){var data,digest;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:data=new TextEncoder().encode(text+salt);_context.next=3;return crypto.subtle.digest({name:"SHA-256"},data);case 3:digest=_context.sent;return _context.abrupt("return",(0,toConsumableArray/* default */.Z)(new Uint8Array(digest)).map(function(b){return b.toString(16).padStart(2,"0");}).join(""));case 5:case"end":return _context.stop();}},_callee);}))).apply(this,arguments);};/**
  * 生成随机事件名称
  * @returns
- */var utils_genEventName=function genEventName(){return btoa(Math.random()).slice(3,11);};
+ */var utils_genEventName=function genEventName(){return btoa(Math.random()).slice(3,11);};/**
+ * 判断两个 Set 是否相同
+ * @param {*} a
+ * @param {*} b
+ * @returns
+ */var isSameSet=function isSameSet(a,b){var s=new Set([].concat((0,toConsumableArray/* default */.Z)(a),(0,toConsumableArray/* default */.Z)(b)));return s.size===a.size&&s.size===b.size;};
 ;// CONCATENATED MODULE: ./src/apis/index.js
-/**
+var apis_ref,apis_ref3,apis_ref5,apis_ref7,_ref9,_ref11;/**
  * 同步数据
  * @param {*} url
  * @param {*} key
  * @param {*} data
  * @returns
- */var apis_apiSyncData=/*#__PURE__*/function(){var _ref=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(url,key,data){var isBg,_args=arguments;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:isBg=_args.length>3&&_args[3]!==undefined?_args[3]:false;_context.t0=fetchPolyfill;_context.t1=url;_context.t2="Bearer ";_context.next=6;return utils_sha256(key,KV_SALT_SYNC);case 6:_context.t3=_context.sent;_context.t4=_context.t2.concat.call(_context.t2,_context.t3);_context.t5={"Content-type":"application/json",Authorization:_context.t4};_context.t6=JSON.stringify(data);_context.t7=isBg;_context.t8={headers:_context.t5,method:"POST",body:_context.t6,isBg:_context.t7};return _context.abrupt("return",(0,_context.t0)(_context.t1,_context.t8));case 13:case"end":return _context.stop();}},_callee);}));return function apiSyncData(_x,_x2,_x3){return _ref.apply(this,arguments);};}();/**
- * 下载订阅规则
+ */var apis_apiSyncData=function apiSyncData(_x,_x2,_x3){return(apis_ref=apis_ref||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(url,key,data){var isBg,_args=arguments;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:isBg=_args.length>3&&_args[3]!==undefined?_args[3]:false;_context.t0=fetchPolyfill;_context.t1=url;_context.t2="Bearer ";_context.next=6;return utils_sha256(key,KV_SALT_SYNC);case 6:_context.t3=_context.sent;_context.t4=_context.t2.concat.call(_context.t2,_context.t3);_context.t5={"Content-type":"application/json",Authorization:_context.t4};_context.t6=JSON.stringify(data);_context.t7=isBg;_context.t8={headers:_context.t5,method:"POST",body:_context.t6,isBg:_context.t7};return _context.abrupt("return",(0,_context.t0)(_context.t1,_context.t8));case 13:case"end":return _context.stop();}},_callee);}))).apply(this,arguments);};/**
+ * 下载数据
  * @param {*} url
  * @param {*} isBg
  * @returns
- */var apiFetchRules=function apiFetchRules(url){var isBg=arguments.length>1&&arguments[1]!==undefined?arguments[1]:false;return fetchPolyfill(url,{isBg:isBg});};/**
+ */var apiFetch=function apiFetch(url){var isBg=arguments.length>1&&arguments[1]!==undefined?arguments[1]:false;return fetchPolyfill(url,{isBg:isBg});};/**
  * 谷歌翻译
  * @param {*} text
  * @param {*} to
  * @param {*} from
  * @returns
- */var apiGoogleTranslate=/*#__PURE__*/function(){var _ref2=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(translator,text,to,from,setting){var googleUrl,params,input;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:googleUrl=setting.googleUrl;params={client:"gtx",dt:"t",dj:1,ie:"UTF-8",sl:from,tl:to,q:text};input="".concat(googleUrl,"?").concat(query_string.stringify(params));return _context2.abrupt("return",fetchPolyfill(input,{headers:{"Content-type":"application/json"},useCache:true,usePool:true,translator:translator}));case 4:case"end":return _context2.stop();}},_callee2);}));return function apiGoogleTranslate(_x4,_x5,_x6,_x7,_x8){return _ref2.apply(this,arguments);};}();/**
+ */var apiGoogleTranslate=function apiGoogleTranslate(_x4,_x5,_x6,_x7,_x8){return(apis_ref3=apis_ref3||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(translator,text,to,from,_ref2){var url,key,_ref2$useCache,useCache,params,input,res,trText,isSame;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:url=_ref2.url,key=_ref2.key,_ref2$useCache=_ref2.useCache,useCache=_ref2$useCache===void 0?true:_ref2$useCache;params={client:"gtx",dt:"t",dj:1,ie:"UTF-8",sl:from,tl:to,q:text};input="".concat(url,"?").concat(query_string.stringify(params));_context2.next=5;return fetchPolyfill(input,{headers:{"Content-type":"application/json"},useCache:useCache,usePool:true,translator:translator,token:key});case 5:res=_context2.sent;trText=res.sentences.map(function(item){return item.trans;}).join(" ");isSame=to===res.src;return _context2.abrupt("return",[trText,isSame]);case 9:case"end":return _context2.stop();}},_callee2);}))).apply(this,arguments);};/**
  * 微软翻译
  * @param {*} text
  * @param {*} to
  * @param {*} from
  * @returns
- */var apiMicrosoftTranslate=function apiMicrosoftTranslate(translator,text,to,from){var params={from:from,to:to,"api-version":"3.0"};var input="".concat(URL_MICROSOFT_TRANS,"?").concat(query_string.stringify(params));return fetchPolyfill(input,{headers:{"Content-type":"application/json"},method:"POST",body:JSON.stringify([{Text:text}]),useCache:true,usePool:true,translator:translator});};/**
+ */var apiMicrosoftTranslate=function apiMicrosoftTranslate(_x9,_x10,_x11,_x12,_x13){return(apis_ref5=apis_ref5||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee3(translator,text,to,from,_ref4){var _res$0$detectedLangua;var url,_ref4$useCache,useCache,params,input,res,trText,isSame;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:url=_ref4.url,_ref4$useCache=_ref4.useCache,useCache=_ref4$useCache===void 0?true:_ref4$useCache;params={from:from,to:to,"api-version":"3.0"};input="".concat(url,"?").concat(query_string.stringify(params));_context3.next=5;return fetchPolyfill(input,{headers:{"Content-type":"application/json"},method:"POST",body:JSON.stringify([{Text:text}]),useCache:useCache,usePool:true,translator:translator});case 5:res=_context3.sent;trText=res[0].translations[0].text;isSame=to===((_res$0$detectedLangua=res[0].detectedLanguage)===null||_res$0$detectedLangua===void 0?void 0:_res$0$detectedLangua.language);return _context3.abrupt("return",[trText,isSame]);case 9:case"end":return _context3.stop();}},_callee3);}))).apply(this,arguments);};/**
  * DeepL翻译
  * @param {*} text
  * @param {*} to
  * @param {*} from
  * @returns
- */var apiDeepLTranslate=function apiDeepLTranslate(translator,text,to,from,setting){var deeplUrl=setting.deeplUrl,deeplKey=setting.deeplKey;var data={text:[text],target_lang:to,split_sentences:"0"};if(from){data.source_lang=from;}return fetchPolyfill(deeplUrl,{headers:{"Content-type":"application/json"},method:"POST",body:JSON.stringify(data),useCache:true,usePool:true,translator:translator,token:deeplKey});};/**
+ */var apiDeepLTranslate=function apiDeepLTranslate(_x14,_x15,_x16,_x17,_x18){return(apis_ref7=apis_ref7||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee4(translator,text,to,from,_ref6){var url,key,_ref6$useCache,useCache,data,res,trText,isSame;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee4$(_context4){while(1)switch(_context4.prev=_context4.next){case 0:url=_ref6.url,key=_ref6.key,_ref6$useCache=_ref6.useCache,useCache=_ref6$useCache===void 0?true:_ref6$useCache;data={text:[text],target_lang:to,split_sentences:"0"};if(from){data.source_lang=from;}_context4.next=5;return fetchPolyfill(url,{headers:{"Content-type":"application/json"},method:"POST",body:JSON.stringify(data),useCache:useCache,usePool:true,translator:translator,token:key});case 5:res=_context4.sent;trText=res.translations.map(function(item){return item.text;}).join(" ");isSame=to===res.translations[0].detected_source_language;return _context4.abrupt("return",[trText,isSame]);case 9:case"end":return _context4.stop();}},_callee4);}))).apply(this,arguments);};/**
  * OpenAI 翻译
  * @param {*} text
  * @param {*} to
  * @param {*} from
  * @returns
- */var apiOpenaiTranslate=/*#__PURE__*/function(){var _ref3=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee3(translator,text,to,from,setting){var openaiUrl,openaiKey,openaiModel,openaiPrompt,prompt;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:openaiUrl=setting.openaiUrl,openaiKey=setting.openaiKey,openaiModel=setting.openaiModel,openaiPrompt=setting.openaiPrompt;prompt=openaiPrompt.replaceAll(PROMPT_PLACE_FROM,from).replaceAll(PROMPT_PLACE_TO,to);return _context3.abrupt("return",fetchPolyfill(openaiUrl,{headers:{"Content-type":"application/json"},method:"POST",body:JSON.stringify({model:openaiModel,messages:[{role:"system",content:prompt},{role:"user",content:text}],temperature:0,max_tokens:256}),useCache:true,usePool:true,translator:translator,token:openaiKey}));case 3:case"end":return _context3.stop();}},_callee3);}));return function apiOpenaiTranslate(_x9,_x10,_x11,_x12,_x13){return _ref3.apply(this,arguments);};}();/**
+ */var apiOpenaiTranslate=function apiOpenaiTranslate(_x19,_x20,_x21,_x22,_x23){return(_ref9=_ref9||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee5(translator,text,to,from,_ref8){var _res$choices;var url,key,model,prompt,_ref8$useCache,useCache,res,trText,sLang,tLang,isSame;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee5$(_context5){while(1)switch(_context5.prev=_context5.next){case 0:url=_ref8.url,key=_ref8.key,model=_ref8.model,prompt=_ref8.prompt,_ref8$useCache=_ref8.useCache,useCache=_ref8$useCache===void 0?true:_ref8$useCache;prompt=prompt.replaceAll(PROMPT_PLACE_FROM,from).replaceAll(PROMPT_PLACE_TO,to);_context5.next=4;return fetchPolyfill(url,{headers:{"Content-type":"application/json"},method:"POST",body:JSON.stringify({model:model,messages:[{role:"system",content:prompt},{role:"user",content:text}],temperature:0,max_tokens:256}),useCache:useCache,usePool:true,translator:translator,token:key});case 4:res=_context5.sent;trText=res===null||res===void 0?void 0:(_res$choices=res.choices)===null||_res$choices===void 0?void 0:_res$choices[0].message.content;_context5.next=8;return tryDetectLang(text);case 8:sLang=_context5.sent;_context5.next=11;return tryDetectLang(trText);case 11:tLang=_context5.sent;isSame=text===trText||sLang&&tLang&&sLang===tLang;return _context5.abrupt("return",[trText,isSame]);case 14:case"end":return _context5.stop();}},_callee5);}))).apply(this,arguments);};/**
+ * 自定义接口 翻译
+ * @param {*} text
+ * @param {*} to
+ * @param {*} from
+ * @returns
+ */var apiCustomTranslate=function apiCustomTranslate(_x24,_x25,_x26,_x27,_x28){return(_ref11=_ref11||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee6(translator,text,to,from,_ref10){var url,key,_ref10$useCache,useCache,res,trText,isSame;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee6$(_context6){while(1)switch(_context6.prev=_context6.next){case 0:url=_ref10.url,key=_ref10.key,_ref10$useCache=_ref10.useCache,useCache=_ref10$useCache===void 0?true:_ref10$useCache;_context6.next=3;return fetchPolyfill(url,{headers:{"Content-type":"application/json"},method:"POST",body:JSON.stringify({text:text,from:from,to:to}),useCache:useCache,usePool:true,translator:translator,token:key});case 3:res=_context6.sent;trText=res.text;isSame=to===res.from;return _context6.abrupt("return",[trText,isSame]);case 7:case"end":return _context6.stop();}},_callee6);}))).apply(this,arguments);};/**
  * 统一翻译接口
  * @param {*} param0
  * @returns
- */var apiTranslate=/*#__PURE__*/function(){var _ref5=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee4(_ref4){var _OPT_LANGS_SPECIAL$tr,_OPT_LANGS_SPECIAL$tr2,_OPT_LANGS_SPECIAL$tr3,_OPT_LANGS_SPECIAL$tr4;var translator,q,fromLang,toLang,setting,trText,isSame,from,to,res,_res,_res2,_res3$choices,_res3,sLang,tLang;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee4$(_context4){while(1)switch(_context4.prev=_context4.next){case 0:translator=_ref4.translator,q=_ref4.q,fromLang=_ref4.fromLang,toLang=_ref4.toLang,setting=_ref4.setting;trText="";isSame=false;from=(_OPT_LANGS_SPECIAL$tr=OPT_LANGS_SPECIAL===null||OPT_LANGS_SPECIAL===void 0?void 0:(_OPT_LANGS_SPECIAL$tr2=OPT_LANGS_SPECIAL[translator])===null||_OPT_LANGS_SPECIAL$tr2===void 0?void 0:_OPT_LANGS_SPECIAL$tr2.get(fromLang))!==null&&_OPT_LANGS_SPECIAL$tr!==void 0?_OPT_LANGS_SPECIAL$tr:fromLang;to=(_OPT_LANGS_SPECIAL$tr3=OPT_LANGS_SPECIAL===null||OPT_LANGS_SPECIAL===void 0?void 0:(_OPT_LANGS_SPECIAL$tr4=OPT_LANGS_SPECIAL[translator])===null||_OPT_LANGS_SPECIAL$tr4===void 0?void 0:_OPT_LANGS_SPECIAL$tr4.get(toLang))!==null&&_OPT_LANGS_SPECIAL$tr3!==void 0?_OPT_LANGS_SPECIAL$tr3:toLang;if(!(translator===OPT_TRANS_GOOGLE)){_context4.next=13;break;}_context4.next=8;return apiGoogleTranslate(translator,q,to,from,setting);case 8:res=_context4.sent;trText=res.sentences.map(function(item){return item.trans;}).join(" ");isSame=to===res.src;_context4.next=41;break;case 13:if(!(translator===OPT_TRANS_MICROSOFT)){_context4.next=21;break;}_context4.next=16;return apiMicrosoftTranslate(translator,q,to,from);case 16:_res=_context4.sent;trText=_res[0].translations[0].text;isSame=to===_res[0].detectedLanguage.language;_context4.next=41;break;case 21:if(!(translator===OPT_TRANS_DEEPL)){_context4.next=29;break;}_context4.next=24;return apiDeepLTranslate(translator,q,to,from,setting);case 24:_res2=_context4.sent;trText=_res2.translations.map(function(item){return item.text;}).join(" ");isSame=to===_res2.translations[0].detected_source_language;_context4.next=41;break;case 29:if(!(translator===OPT_TRANS_OPENAI)){_context4.next=41;break;}_context4.next=32;return apiOpenaiTranslate(translator,q,to,from,setting);case 32:_res3=_context4.sent;trText=_res3===null||_res3===void 0?void 0:(_res3$choices=_res3.choices)===null||_res3$choices===void 0?void 0:_res3$choices[0].message.content;_context4.next=36;return tryDetectLang(q);case 36:sLang=_context4.sent;_context4.next=39;return tryDetectLang(trText);case 39:tLang=_context4.sent;isSame=q===trText||sLang&&tLang&&sLang===tLang;case 41:return _context4.abrupt("return",[trText,isSame]);case 42:case"end":return _context4.stop();}},_callee4);}));return function apiTranslate(_x14){return _ref5.apply(this,arguments);};}();
+ */var apiTranslate=function apiTranslate(_ref12){var _OPT_LANGS_SPECIAL$tr,_OPT_LANGS_SPECIAL$tr2,_OPT_LANGS_SPECIAL$tr3,_OPT_LANGS_SPECIAL$tr4;var translator=_ref12.translator,text=_ref12.text,fromLang=_ref12.fromLang,toLang=_ref12.toLang,apiSetting=_ref12.apiSetting;var from=(_OPT_LANGS_SPECIAL$tr=(_OPT_LANGS_SPECIAL$tr2=OPT_LANGS_SPECIAL[translator])===null||_OPT_LANGS_SPECIAL$tr2===void 0?void 0:_OPT_LANGS_SPECIAL$tr2.get(fromLang))!==null&&_OPT_LANGS_SPECIAL$tr!==void 0?_OPT_LANGS_SPECIAL$tr:fromLang;var to=(_OPT_LANGS_SPECIAL$tr3=(_OPT_LANGS_SPECIAL$tr4=OPT_LANGS_SPECIAL[translator])===null||_OPT_LANGS_SPECIAL$tr4===void 0?void 0:_OPT_LANGS_SPECIAL$tr4.get(toLang))!==null&&_OPT_LANGS_SPECIAL$tr3!==void 0?_OPT_LANGS_SPECIAL$tr3:toLang;var callApi=function callApi(api){return api(translator,text,to,from,apiSetting);};switch(translator){case OPT_TRANS_GOOGLE:return callApi(apiGoogleTranslate);case OPT_TRANS_MICROSOFT:return callApi(apiMicrosoftTranslate);case OPT_TRANS_DEEPL:return callApi(apiDeepLTranslate);case OPT_TRANS_OPENAI:return callApi(apiOpenaiTranslate);case OPT_TRANS_CUSTOMIZE:return callApi(apiCustomTranslate);default:return["",false];}};
 ;// CONCATENATED MODULE: ./src/libs/sync.js
-/**
+var sync_ref,sync_ref2,sync_ref3,sync_ref4,sync_ref6,sync_ref7,sync_ref8;/**
  * 同步设置
  * @returns
- */var syncSetting=/*#__PURE__*/function(){var _ref=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(){var isBg,_yield$getSyncWithDef,syncUrl,syncKey,settingUpdateAt,setting,res,_args=arguments;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:isBg=_args.length>0&&_args[0]!==undefined?_args[0]:false;_context.next=3;return storage_getSyncWithDefault();case 3:_yield$getSyncWithDef=_context.sent;syncUrl=_yield$getSyncWithDef.syncUrl;syncKey=_yield$getSyncWithDef.syncKey;settingUpdateAt=_yield$getSyncWithDef.settingUpdateAt;if(!(!syncUrl||!syncKey)){_context.next=9;break;}return _context.abrupt("return");case 9:_context.next=11;return getSettingWithDefault();case 11:setting=_context.sent;_context.next=14;return apis_apiSyncData(syncUrl,syncKey,{key:KV_SETTING_KEY,value:setting,updateAt:settingUpdateAt},isBg);case 14:res=_context.sent;if(!(res&&res.updateAt>settingUpdateAt)){_context.next=23;break;}_context.next=18;return storage_updateSync({settingUpdateAt:res.updateAt,settingSyncAt:res.updateAt});case 18:_context.next=20;return setSetting(res.value);case 20:return _context.abrupt("return",res.value);case 23:_context.next=25;return storage_updateSync({settingSyncAt:res.updateAt});case 25:case"end":return _context.stop();}},_callee);}));return function syncSetting(){return _ref.apply(this,arguments);};}();var trySyncSetting=/*#__PURE__*/function(){var _ref2=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(){var isBg,_args2=arguments;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:isBg=_args2.length>0&&_args2[0]!==undefined?_args2[0]:false;_context2.prev=1;_context2.next=4;return syncSetting(isBg);case 4:return _context2.abrupt("return",_context2.sent);case 7:_context2.prev=7;_context2.t0=_context2["catch"](1);console.log("[sync setting]",_context2.t0);case 10:case"end":return _context2.stop();}},_callee2,null,[[1,7]]);}));return function trySyncSetting(){return _ref2.apply(this,arguments);};}();/**
+ */var syncSetting=function syncSetting(){return(sync_ref=sync_ref||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(){var isBg,_yield$getSyncWithDef,syncUrl,syncKey,settingUpdateAt,setting,res,_args=arguments;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:isBg=_args.length>0&&_args[0]!==undefined?_args[0]:false;_context.next=3;return storage_getSyncWithDefault();case 3:_yield$getSyncWithDef=_context.sent;syncUrl=_yield$getSyncWithDef.syncUrl;syncKey=_yield$getSyncWithDef.syncKey;settingUpdateAt=_yield$getSyncWithDef.settingUpdateAt;if(!(!syncUrl||!syncKey)){_context.next=9;break;}return _context.abrupt("return");case 9:_context.next=11;return getSettingWithDefault();case 11:setting=_context.sent;_context.next=14;return apis_apiSyncData(syncUrl,syncKey,{key:KV_SETTING_KEY,value:setting,updateAt:settingUpdateAt},isBg);case 14:res=_context.sent;if(!(res&&res.updateAt>settingUpdateAt)){_context.next=23;break;}_context.next=18;return storage_updateSync({settingUpdateAt:res.updateAt,settingSyncAt:res.updateAt});case 18:_context.next=20;return setSetting(res.value);case 20:return _context.abrupt("return",res.value);case 23:_context.next=25;return storage_updateSync({settingSyncAt:res.updateAt});case 25:case"end":return _context.stop();}},_callee);}))).apply(this,arguments);};var trySyncSetting=function trySyncSetting(){return(sync_ref2=sync_ref2||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(){var isBg,_args2=arguments;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:isBg=_args2.length>0&&_args2[0]!==undefined?_args2[0]:false;_context2.prev=1;_context2.next=4;return syncSetting(isBg);case 4:return _context2.abrupt("return",_context2.sent);case 7:_context2.prev=7;_context2.t0=_context2["catch"](1);console.log("[sync setting]",_context2.t0);case 10:case"end":return _context2.stop();}},_callee2,null,[[1,7]]);}))).apply(this,arguments);};/**
  * 同步规则
  * @returns
- */var syncRules=/*#__PURE__*/(/* unused pure expression or super */ null && (function(){var _ref3=_asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee3(){var isBg,_yield$getSyncWithDef2,syncUrl,syncKey,rulesUpdateAt,rules,res,_args3=arguments;return _regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:isBg=_args3.length>0&&_args3[0]!==undefined?_args3[0]:false;_context3.next=3;return getSyncWithDefault();case 3:_yield$getSyncWithDef2=_context3.sent;syncUrl=_yield$getSyncWithDef2.syncUrl;syncKey=_yield$getSyncWithDef2.syncKey;rulesUpdateAt=_yield$getSyncWithDef2.rulesUpdateAt;if(!(!syncUrl||!syncKey)){_context3.next=9;break;}return _context3.abrupt("return");case 9:_context3.next=11;return getRulesWithDefault();case 11:rules=_context3.sent;_context3.next=14;return apiSyncData(syncUrl,syncKey,{key:KV_RULES_KEY,value:rules,updateAt:rulesUpdateAt},isBg);case 14:res=_context3.sent;if(!(res&&res.updateAt>rulesUpdateAt)){_context3.next=23;break;}_context3.next=18;return updateSync({rulesUpdateAt:res.updateAt,rulesSyncAt:res.updateAt});case 18:_context3.next=20;return setRules(res.value);case 20:return _context3.abrupt("return",res.value);case 23:_context3.next=25;return updateSync({rulesSyncAt:res.updateAt});case 25:case"end":return _context3.stop();}},_callee3);}));return function syncRules(){return _ref3.apply(this,arguments);};}()));var trySyncRules=/*#__PURE__*/(/* unused pure expression or super */ null && (function(){var _ref4=_asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee4(){var isBg,_args4=arguments;return _regeneratorRuntime().wrap(function _callee4$(_context4){while(1)switch(_context4.prev=_context4.next){case 0:isBg=_args4.length>0&&_args4[0]!==undefined?_args4[0]:false;_context4.prev=1;_context4.next=4;return syncRules(isBg);case 4:return _context4.abrupt("return",_context4.sent);case 7:_context4.prev=7;_context4.t0=_context4["catch"](1);console.log("[sync user rules]",_context4.t0);case 10:case"end":return _context4.stop();}},_callee4,null,[[1,7]]);}));return function trySyncRules(){return _ref4.apply(this,arguments);};}()));/**
+ */var syncRules=function syncRules(){return(sync_ref3=sync_ref3||_asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee3(){var isBg,_yield$getSyncWithDef2,syncUrl,syncKey,rulesUpdateAt,rules,res,_args3=arguments;return _regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:isBg=_args3.length>0&&_args3[0]!==undefined?_args3[0]:false;_context3.next=3;return getSyncWithDefault();case 3:_yield$getSyncWithDef2=_context3.sent;syncUrl=_yield$getSyncWithDef2.syncUrl;syncKey=_yield$getSyncWithDef2.syncKey;rulesUpdateAt=_yield$getSyncWithDef2.rulesUpdateAt;if(!(!syncUrl||!syncKey)){_context3.next=9;break;}return _context3.abrupt("return");case 9:_context3.next=11;return getRulesWithDefault();case 11:rules=_context3.sent;_context3.next=14;return apiSyncData(syncUrl,syncKey,{key:KV_RULES_KEY,value:rules,updateAt:rulesUpdateAt},isBg);case 14:res=_context3.sent;if(!(res&&res.updateAt>rulesUpdateAt)){_context3.next=23;break;}_context3.next=18;return updateSync({rulesUpdateAt:res.updateAt,rulesSyncAt:res.updateAt});case 18:_context3.next=20;return setRules(res.value);case 20:return _context3.abrupt("return",res.value);case 23:_context3.next=25;return updateSync({rulesSyncAt:res.updateAt});case 25:case"end":return _context3.stop();}},_callee3);}))).apply(this,arguments);};var trySyncRules=function trySyncRules(){return(sync_ref4=sync_ref4||_asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee4(){var isBg,_args4=arguments;return _regeneratorRuntime().wrap(function _callee4$(_context4){while(1)switch(_context4.prev=_context4.next){case 0:isBg=_args4.length>0&&_args4[0]!==undefined?_args4[0]:false;_context4.prev=1;_context4.next=4;return syncRules(isBg);case 4:return _context4.abrupt("return",_context4.sent);case 7:_context4.prev=7;_context4.t0=_context4["catch"](1);console.log("[sync user rules]",_context4.t0);case 10:case"end":return _context4.stop();}},_callee4,null,[[1,7]]);}))).apply(this,arguments);};/**
  * 同步分享规则
  * @param {*} param0
  * @returns
- */var syncShareRules=/*#__PURE__*/(/* unused pure expression or super */ null && (function(){var _ref6=_asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee5(_ref5){var rules,syncUrl,syncKey,psk,shareUrl;return _regeneratorRuntime().wrap(function _callee5$(_context5){while(1)switch(_context5.prev=_context5.next){case 0:rules=_ref5.rules,syncUrl=_ref5.syncUrl,syncKey=_ref5.syncKey;_context5.next=3;return apiSyncData(syncUrl,syncKey,{key:KV_RULES_SHARE_KEY,value:rules,updateAt:Date.now()});case 3:_context5.next=5;return sha256(syncKey,KV_SALT_SHARE);case 5:psk=_context5.sent;shareUrl="".concat(syncUrl,"?psk=").concat(psk);return _context5.abrupt("return",shareUrl);case 8:case"end":return _context5.stop();}},_callee5);}));return function syncShareRules(_x){return _ref6.apply(this,arguments);};}()));/**
+ */var syncShareRules=function syncShareRules(_x){return(sync_ref6=sync_ref6||_asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee5(_ref5){var rules,syncUrl,syncKey,psk,shareUrl;return _regeneratorRuntime().wrap(function _callee5$(_context5){while(1)switch(_context5.prev=_context5.next){case 0:rules=_ref5.rules,syncUrl=_ref5.syncUrl,syncKey=_ref5.syncKey;_context5.next=3;return apiSyncData(syncUrl,syncKey,{key:KV_RULES_SHARE_KEY,value:rules,updateAt:Date.now()});case 3:_context5.next=5;return sha256(syncKey,KV_SALT_SHARE);case 5:psk=_context5.sent;shareUrl="".concat(syncUrl,"?psk=").concat(psk);return _context5.abrupt("return",shareUrl);case 8:case"end":return _context5.stop();}},_callee5);}))).apply(this,arguments);};/**
  * 同步个人设置和规则
  * @returns
- */var syncSettingAndRules=/*#__PURE__*/(/* unused pure expression or super */ null && (function(){var _ref7=_asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee6(){var isBg,_args6=arguments;return _regeneratorRuntime().wrap(function _callee6$(_context6){while(1)switch(_context6.prev=_context6.next){case 0:isBg=_args6.length>0&&_args6[0]!==undefined?_args6[0]:false;_context6.next=3;return syncSetting(isBg);case 3:_context6.t0=_context6.sent;_context6.next=6;return syncRules(isBg);case 6:_context6.t1=_context6.sent;return _context6.abrupt("return",[_context6.t0,_context6.t1]);case 8:case"end":return _context6.stop();}},_callee6);}));return function syncSettingAndRules(){return _ref7.apply(this,arguments);};}()));var trySyncSettingAndRules=/*#__PURE__*/(/* unused pure expression or super */ null && (function(){var _ref8=_asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee7(){var isBg,_args7=arguments;return _regeneratorRuntime().wrap(function _callee7$(_context7){while(1)switch(_context7.prev=_context7.next){case 0:isBg=_args7.length>0&&_args7[0]!==undefined?_args7[0]:false;_context7.next=3;return trySyncSetting(isBg);case 3:_context7.t0=_context7.sent;_context7.next=6;return trySyncRules(isBg);case 6:_context7.t1=_context7.sent;return _context7.abrupt("return",[_context7.t0,_context7.t1]);case 8:case"end":return _context7.stop();}},_callee7);}));return function trySyncSettingAndRules(){return _ref8.apply(this,arguments);};}()));
+ */var syncSettingAndRules=function syncSettingAndRules(){return(sync_ref7=sync_ref7||_asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee6(){var isBg,_args6=arguments;return _regeneratorRuntime().wrap(function _callee6$(_context6){while(1)switch(_context6.prev=_context6.next){case 0:isBg=_args6.length>0&&_args6[0]!==undefined?_args6[0]:false;_context6.next=3;return syncSetting(isBg);case 3:_context6.t0=_context6.sent;_context6.next=6;return syncRules(isBg);case 6:_context6.t1=_context6.sent;return _context6.abrupt("return",[_context6.t0,_context6.t1]);case 8:case"end":return _context6.stop();}},_callee6);}))).apply(this,arguments);};var trySyncSettingAndRules=function trySyncSettingAndRules(){return(sync_ref8=sync_ref8||_asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee7(){var isBg,_args7=arguments;return _regeneratorRuntime().wrap(function _callee7$(_context7){while(1)switch(_context7.prev=_context7.next){case 0:isBg=_args7.length>0&&_args7[0]!==undefined?_args7[0]:false;_context7.next=3;return trySyncSetting(isBg);case 3:_context7.t0=_context7.sent;_context7.next=6;return trySyncRules(isBg);case 6:_context7.t1=_context7.sent;return _context7.abrupt("return",[_context7.t0,_context7.t1]);case 8:case"end":return _context7.stop();}},_callee7);}))).apply(this,arguments);};
 ;// CONCATENATED MODULE: ./src/hooks/Setting.js
-var SettingContext=/*#__PURE__*/(0,react.createContext)({setting:null,updateSetting:function(){var _updateSetting=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:case"end":return _context.stop();}},_callee);}));function updateSetting(){return _updateSetting.apply(this,arguments);}return updateSetting;}(),reloadSetting:function(){var _reloadSetting=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:case"end":return _context2.stop();}},_callee2);}));function reloadSetting(){return _reloadSetting.apply(this,arguments);}return reloadSetting;}()});function SettingProvider(_ref){var children=_ref.children;var _useStorage=useStorage(config_STOKEY_SETTING,config_DEFAULT_SETTING),data=_useStorage.data,update=_useStorage.update,reload=_useStorage.reload;var _useSync=useSync(),settingUpdateAt=_useSync.sync.settingUpdateAt,updateSync=_useSync.updateSync;var syncSetting=(0,react.useMemo)(function(){return debounce(function(){trySyncSetting();},[2000]);},[]);var updateSetting=(0,react.useCallback)(/*#__PURE__*/function(){var _ref2=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee3(obj){var updateAt;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:updateAt=settingUpdateAt?Date.now():0;_context3.next=3;return update(obj);case 3:_context3.next=5;return updateSync({settingUpdateAt:updateAt});case 5:syncSetting();case 6:case"end":return _context3.stop();}},_callee3);}));return function(_x){return _ref2.apply(this,arguments);};}(),[settingUpdateAt,update,updateSync,syncSetting]);return/*#__PURE__*/(0,jsx_runtime.jsx)(SettingContext.Provider,{value:{setting:data,updateSetting:updateSetting,reloadSetting:reload},children:children});}/**
+var _updateSetting,_reloadSetting;var SettingContext=/*#__PURE__*/(0,react.createContext)({setting:{},updateSetting:function updateSetting(){return(_updateSetting=_updateSetting||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:case"end":return _context.stop();}},_callee);}))).apply(this,arguments);},reloadSetting:function reloadSetting(){return(_reloadSetting=_reloadSetting||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:case"end":return _context2.stop();}},_callee2);}))).apply(this,arguments);}});function SettingProvider(_ref){var _ref2;var children=_ref.children;var _useStorage=useStorage(config_STOKEY_SETTING,config_DEFAULT_SETTING),data=_useStorage.data,update=_useStorage.update,reload=_useStorage.reload,loading=_useStorage.loading;var _useSync=useSync(),settingUpdateAt=_useSync.sync.settingUpdateAt,updateSync=_useSync.updateSync;var syncSetting=(0,react.useMemo)(function(){return debounce(function(){trySyncSetting();},[2000]);},[]);var updateSetting=(0,react.useCallback)(function(_x){return(_ref2=_ref2||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee3(obj){var updateAt;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:updateAt=settingUpdateAt?Date.now():0;_context3.next=3;return update(obj);case 3:_context3.next=5;return updateSync({settingUpdateAt:updateAt});case 5:syncSetting();case 6:case"end":return _context3.stop();}},_callee3);}))).apply(this,arguments);},[settingUpdateAt,update,updateSync,syncSetting]);if(loading){return;}return/*#__PURE__*/(0,jsx_runtime.jsx)(SettingContext.Provider,{value:{setting:data,updateSetting:updateSetting,reloadSetting:reload},children:children});}/**
  * 设置 hook
  * @returns
  */function useSetting(){return (0,react.useContext)(SettingContext);}
@@ -22222,7 +22203,18 @@ var TextareaAutosize = /*#__PURE__*/react.forwardRef(function TextareaAutosize(p
     });
   };
   react.useEffect(function () {
-    var handleResize = (0,debounce_debounce/* default */.Z)(function () {
+    var handleResize = function handleResize() {
+      renders.current = 0;
+
+      // If the TextareaAutosize component is replaced by Suspense with a fallback, the last
+      // ResizeObserver's handler that runs because of the change in the layout is trying to
+      // access a dom node that is no longer there (as the fallback component is being shown instead).
+      // See https://github.com/mui/material-ui/issues/32640
+      if (inputRef.current) {
+        syncHeightWithFlushSync();
+      }
+    };
+    var handleResizeWindow = (0,debounce_debounce/* default */.Z)(function () {
       renders.current = 0;
 
       // If the TextareaAutosize component is replaced by Suspense with a fallback, the last
@@ -22236,14 +22228,14 @@ var TextareaAutosize = /*#__PURE__*/react.forwardRef(function TextareaAutosize(p
     var resizeObserver;
     var input = inputRef.current;
     var containerWindow = (0,ownerWindow/* default */.Z)(input);
-    containerWindow.addEventListener('resize', handleResize);
+    containerWindow.addEventListener('resize', handleResizeWindow);
     if (typeof ResizeObserver !== 'undefined') {
       resizeObserver = new ResizeObserver(handleResize);
       resizeObserver.observe(input);
     }
     return function () {
-      handleResize.clear();
-      containerWindow.removeEventListener('resize', handleResize);
+      handleResizeWindow.clear();
+      containerWindow.removeEventListener('resize', handleResizeWindow);
       if (resizeObserver) {
         resizeObserver.disconnect();
       }
@@ -22392,7 +22384,7 @@ var InputBase_useUtilityClasses = function useUtilityClasses(ownerState) {
     startAdornment = ownerState.startAdornment,
     type = ownerState.type;
   var slots = {
-    root: ['root', "color".concat((0,capitalize/* default */.Z)(color)), disabled && 'disabled', error && 'error', fullWidth && 'fullWidth', focused && 'focused', formControl && 'formControl', size === 'small' && 'sizeSmall', multiline && 'multiline', startAdornment && 'adornedStart', endAdornment && 'adornedEnd', hiddenLabel && 'hiddenLabel', readOnly && 'readOnly'],
+    root: ['root', "color".concat((0,capitalize/* default */.Z)(color)), disabled && 'disabled', error && 'error', fullWidth && 'fullWidth', focused && 'focused', formControl && 'formControl', size && size !== 'medium' && "size".concat((0,capitalize/* default */.Z)(size)), multiline && 'multiline', startAdornment && 'adornedStart', endAdornment && 'adornedEnd', hiddenLabel && 'hiddenLabel', readOnly && 'readOnly'],
     input: ['input', disabled && 'disabled', type === 'search' && 'inputTypeSearch', multiline && 'inputMultiline', size === 'small' && 'inputSizeSmall', hiddenLabel && 'inputHiddenLabel', startAdornment && 'inputAdornedStart', endAdornment && 'inputAdornedEnd', readOnly && 'readOnly']
   };
   return (0,composeClasses/* default */.Z)(slots, getInputBaseUtilityClass, classes);
@@ -23662,6 +23654,7 @@ var InputLabel_excluded = ["disableAnimation", "margin", "shrink", "variant", "c
 
 
 
+
 var InputLabel_useUtilityClasses = function useUtilityClasses(ownerState) {
   var classes = ownerState.classes,
     formControl = ownerState.formControl,
@@ -23671,7 +23664,7 @@ var InputLabel_useUtilityClasses = function useUtilityClasses(ownerState) {
     variant = ownerState.variant,
     required = ownerState.required;
   var slots = {
-    root: ['root', formControl && 'formControl', !disableAnimation && 'animated', shrink && 'shrink', size === 'small' && 'sizeSmall', variant],
+    root: ['root', formControl && 'formControl', !disableAnimation && 'animated', shrink && 'shrink', size && size !== 'normal' && "size".concat((0,capitalize/* default */.Z)(size)), variant],
     asterisk: [required && 'asterisk']
   };
   var composedClasses = (0,composeClasses/* default */.Z)(slots, getInputLabelUtilityClasses, classes);
@@ -27415,6 +27408,7 @@ var SelectInput_useUtilityClasses = function useUtilityClasses(ownerState) {
  * @ignore - internal component.
  */
 var SelectInput = /*#__PURE__*/react.forwardRef(function SelectInput(props, ref) {
+  var _MenuProps$slotProps;
   var ariaDescribedby = props['aria-describedby'],
     ariaLabel = props['aria-label'],
     autoFocus = props.autoFocus,
@@ -27744,6 +27738,7 @@ var SelectInput = /*#__PURE__*/react.forwardRef(function SelectInput(props, ref)
     error: error
   });
   var classes = SelectInput_useUtilityClasses(ownerState);
+  var paperProps = (0,esm_extends/* default */.Z)({}, MenuProps.PaperProps, (_MenuProps$slotProps = MenuProps.slotProps) == null ? void 0 : _MenuProps$slotProps.paper);
   return /*#__PURE__*/(0,jsx_runtime.jsxs)(react.Fragment, {
     children: [/*#__PURE__*/(0,jsx_runtime.jsx)(SelectSelect, (0,esm_extends/* default */.Z)({
       ref: handleDisplayRef,
@@ -27807,11 +27802,13 @@ var SelectInput = /*#__PURE__*/react.forwardRef(function SelectInput(props, ref)
         role: 'listbox',
         disableListWrap: true
       }, MenuProps.MenuListProps),
-      PaperProps: (0,esm_extends/* default */.Z)({}, MenuProps.PaperProps, {
-        style: (0,esm_extends/* default */.Z)({
-          minWidth: menuMinWidth
-        }, MenuProps.PaperProps != null ? MenuProps.PaperProps.style : null)
-      }),
+      slotProps: {
+        paper: (0,esm_extends/* default */.Z)({}, paperProps, {
+          style: (0,esm_extends/* default */.Z)({
+            minWidth: menuMinWidth
+          }, paperProps != null ? paperProps.style : null)
+        })
+      },
       children: items
     }))]
   });
@@ -28547,479 +28544,28 @@ var DarkMode = __webpack_require__(45);
 ;// CONCATENATED MODULE: ./src/views/Options/DarkModeButton.js
 function DarkModeButton(){var _useDarkMode=useDarkMode(),darkMode=_useDarkMode.darkMode,toggleDarkMode=_useDarkMode.toggleDarkMode;return/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{onClick:toggleDarkMode,color:"inherit",children:darkMode?/*#__PURE__*/(0,jsx_runtime.jsx)(LightMode/* default */.Z,{}):/*#__PURE__*/(0,jsx_runtime.jsx)(DarkMode/* default */.Z,{})});}
 ;// CONCATENATED MODULE: ./src/views/Popup/Header.js
-function Header(_ref){var setShowPopup=_ref.setShowPopup;var handleHomepage=function handleHomepage(){window.open("https://github.com/fishjar/kiss-translator","_blank");};return/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",justifyContent:"space-between",alignItems:"center",spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",justifyContent:"flex-start",alignItems:"center",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{onClick:handleHomepage,children:/*#__PURE__*/(0,jsx_runtime.jsx)(Home/* default */.Z,{})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:"".concat("KISS Translator"," v").concat("1.6.7")})]}),setShowPopup?/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{onClick:function onClick(){setShowPopup(false);},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Close/* default */.Z,{})}):/*#__PURE__*/(0,jsx_runtime.jsx)(DarkModeButton,{})]});}
+function Header(_ref){var setShowPopup=_ref.setShowPopup;var handleHomepage=function handleHomepage(){window.open("https://github.com/fishjar/kiss-translator","_blank");};return/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",justifyContent:"space-between",alignItems:"center",spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",justifyContent:"flex-start",alignItems:"center",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{onClick:handleHomepage,children:/*#__PURE__*/(0,jsx_runtime.jsx)(Home/* default */.Z,{})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:"".concat("KISS Translator"," v").concat("1.6.8")})]}),setShowPopup?/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{onClick:function onClick(){setShowPopup(false);},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Close/* default */.Z,{})}):/*#__PURE__*/(0,jsx_runtime.jsx)(DarkModeButton,{})]});}
 ;// CONCATENATED MODULE: ./src/libs/iframe.js
 var isIframe=window.self!==window.top;var sendIframeMsg=function sendIframeMsg(action,args){document.querySelectorAll("iframe").forEach(function(iframe){iframe.contentWindow.postMessage({action:action,args:args},"*");});};
 ;// CONCATENATED MODULE: ./src/views/Popup/index.js
-function Popup(_ref){var setShowPopup=_ref.setShowPopup,tran=_ref.translator;var i18n=useI18n();var _useState=(0,react.useState)(tran===null||tran===void 0?void 0:tran.rule),_useState2=(0,slicedToArray/* default */.Z)(_useState,2),rule=_useState2[0],setRule=_useState2[1];var handleOpenSetting=function handleOpenSetting(){if(isExt){browser===null||browser===void 0?void 0:browser.runtime.openOptionsPage();}else{window.open("https://fishjar.github.io/kiss-translator/options.html","_blank");}setShowPopup&&setShowPopup(false);};var handleTransToggle=/*#__PURE__*/function(){var _ref2=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(e){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:_context.prev=0;setRule(_objectSpread2(_objectSpread2({},rule),{},{transOpen:e.target.checked?"true":"false"}));if(!isExt){_context.next=7;break;}_context.next=5;return sendTabMsg(MSG_TRANS_TOGGLE);case 5:_context.next=9;break;case 7:tran.toggle();sendIframeMsg(MSG_TRANS_TOGGLE);case 9:_context.next=14;break;case 11:_context.prev=11;_context.t0=_context["catch"](0);console.log("[toggle trans]",_context.t0);case 14:case"end":return _context.stop();}},_callee,null,[[0,11]]);}));return function handleTransToggle(_x){return _ref2.apply(this,arguments);};}();var handleChange=/*#__PURE__*/function(){var _ref3=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(e){var _e$target,name,value;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:_context2.prev=0;_e$target=e.target,name=_e$target.name,value=_e$target.value;setRule(function(pre){return _objectSpread2(_objectSpread2({},pre),{},(0,defineProperty/* default */.Z)({},name,value));});if(!isExt){_context2.next=8;break;}_context2.next=6;return sendTabMsg(MSG_TRANS_PUTRULE,(0,defineProperty/* default */.Z)({},name,value));case 6:_context2.next=10;break;case 8:tran.updateRule((0,defineProperty/* default */.Z)({},name,value));sendIframeMsg(MSG_TRANS_PUTRULE,(0,defineProperty/* default */.Z)({},name,value));case 10:_context2.next=15;break;case 12:_context2.prev=12;_context2.t0=_context2["catch"](0);console.log("[update rule]",_context2.t0);case 15:case"end":return _context2.stop();}},_callee2,null,[[0,12]]);}));return function handleChange(_x2){return _ref3.apply(this,arguments);};}();var handleClearCache=function handleClearCache(){try{caches.delete(config_CACHE_NAME);}catch(err){console.log("[clear cache]",err);}};(0,react.useEffect)(function(){if(!isExt){return;}asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee3(){var res;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:_context3.prev=0;_context3.next=3;return sendTabMsg(MSG_TRANS_GETRULE);case 3:res=_context3.sent;if(!res.error){setRule(res.data);}_context3.next=10;break;case 7:_context3.prev=7;_context3.t0=_context3["catch"](0);console.log("[query rule]",_context3.t0);case 10:case"end":return _context3.stop();}},_callee3,null,[[0,7]]);}))();},[]);if(!rule){return/*#__PURE__*/(0,jsx_runtime.jsxs)(Box_Box,{minWidth:300,children:[isExt&&/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Header,{}),/*#__PURE__*/(0,jsx_runtime.jsx)(Divider_Divider,{})]}),/*#__PURE__*/(0,jsx_runtime.jsx)(Stack_Stack,{sx:{p:2},spacing:3,children:/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{variant:"text",onClick:handleOpenSetting,children:i18n("setting")})})]});}var transOpen=rule.transOpen,translator=rule.translator,fromLang=rule.fromLang,toLang=rule.toLang,textStyle=rule.textStyle,bgColor=rule.bgColor;return/*#__PURE__*/(0,jsx_runtime.jsxs)(Box_Box,{minWidth:300,children:[isExt&&/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Header,{}),/*#__PURE__*/(0,jsx_runtime.jsx)(Divider_Divider,{})]}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{sx:{p:2},spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",justifyContent:"space-between",alignItems:"center",spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(FormControlLabel_FormControlLabel,{control:/*#__PURE__*/(0,jsx_runtime.jsx)(Switch_Switch,{checked:transOpen==="true",onChange:handleTransToggle}),label:i18n("translate_alt")}),!isExt&&/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{variant:"text",onClick:handleClearCache,children:i18n("clear_cache")})]}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},size:"small",value:translator,name:"translator",label:i18n("translate_service"),onChange:handleChange,children:OPT_TRANS_ALL.map(function(item){return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:item,children:item},item);})}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},size:"small",value:fromLang,name:"fromLang",label:i18n("from_lang"),onChange:handleChange,children:OPT_LANGS_FROM.map(function(_ref5){var _ref6=(0,slicedToArray/* default */.Z)(_ref5,2),lang=_ref6[0],name=_ref6[1];return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:lang,children:name},lang);})}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},size:"small",value:toLang,name:"toLang",label:i18n("to_lang"),onChange:handleChange,children:OPT_LANGS_TO.map(function(_ref7){var _ref8=(0,slicedToArray/* default */.Z)(_ref7,2),lang=_ref8[0],name=_ref8[1];return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:lang,children:name},lang);})}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},size:"small",value:textStyle,name:"textStyle",label:i18n("text_style_alt"),onChange:handleChange,children:OPT_STYLE_ALL.map(function(item){return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:item,children:i18n(item)},item);})}),OPT_STYLE_USE_COLOR.includes(textStyle)&&/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",name:"bgColor",value:bgColor,label:i18n("bg_color"),onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{variant:"text",onClick:handleOpenSetting,children:i18n("setting")})]})]});}
-;// CONCATENATED MODULE: ./node_modules/@violentmonkey/shortcut/dist/index.mjs
-
-
-
-
-/*! @violentmonkey/shortcut v1.3.0 | ISC License */
-function _extends() {
-  _extends = Object.assign ? Object.assign.bind() : function (target) {
-    for (var i = 1; i < arguments.length; i++) {
-      var source = arguments[i];
-      for (var key in source) {
-        if (Object.prototype.hasOwnProperty.call(source, key)) {
-          target[key] = source[key];
-        }
-      }
-    }
-    return target;
-  };
-  return _extends.apply(this, arguments);
-}
-var isMacintosh = navigator.userAgent.includes('Macintosh');
-var modifiers = {
-  c: 'c',
-  s: 's',
-  a: 'a',
-  m: 'm',
-  ctrl: 'c',
-  control: 'c',
-  // macOS
-  shift: 's',
-  alt: 'a',
-  meta: 'm',
-  cmd: 'm',
-  ctrlcmd: isMacintosh ? 'm' : 'c'
-};
-var modifierList = ['m', 'c', 's', 'a'];
-var modifierSymbols = {
-  c: '^',
-  s: '⇧',
-  a: '⌥',
-  m: '⌘'
-};
-var aliases = {
-  arrowup: 'up',
-  arrowdown: 'down',
-  arrowleft: 'left',
-  arrowright: 'right',
-  cr: 'enter',
-  escape: 'esc',
-  ' ': 'space'
-};
-function buildKey(key) {
-  var caseSensitive = key.caseSensitive,
-    modifierState = key.modifierState;
-  var base = key.base;
-  if (!caseSensitive || base.length > 1) base = base.toLowerCase();
-  base = aliases[base] || base;
-  return [].concat((0,toConsumableArray/* default */.Z)(modifierList.filter(function (m) {
-    return modifierState[m];
-  })), [base]).filter(Boolean).join('-');
-}
-function breakKey(shortcut) {
-  var pieces = shortcut.split(/-(.)/);
-  var parts = [pieces[0]];
-  for (var i = 1; i < pieces.length; i += 2) {
-    parts.push(pieces[i] + pieces[i + 1]);
-  }
-  return parts;
-}
-function parseKey(shortcut, caseSensitive) {
-  var parts = breakKey(shortcut);
-  var base = parts.pop();
-  var modifierState = {};
-  var _iterator = _createForOfIteratorHelper(parts),
-    _step;
-  try {
-    for (_iterator.s(); !(_step = _iterator.n()).done;) {
-      var part = _step.value;
-      var key = modifiers[part.toLowerCase()];
-      if (!key) throw new Error("Unknown modifier key: ".concat(part));
-      modifierState[key] = true;
-    }
-  } catch (err) {
-    _iterator.e(err);
-  } finally {
-    _iterator.f();
-  }
-  return {
-    base: base,
-    modifierState: modifierState,
-    caseSensitive: caseSensitive
-  };
-}
-function getSequence(input) {
-  return Array.isArray(input) ? input : input.split(/\s+/);
-}
-function normalizeSequence(input, caseSensitive) {
-  return getSequence(input).map(function (key) {
-    return parseKey(key, caseSensitive);
-  });
-}
-function parseCondition(condition) {
-  return condition.split('&&').map(function (key) {
-    key = key.trim();
-    if (!key) return;
-    if (key[0] === '!') {
-      return {
-        not: true,
-        field: key.slice(1).trim()
-      };
-    }
-    return {
-      not: false,
-      field: key
-    };
-  }).filter(Boolean);
-}
-function reprKey(key) {
-  var modifierState = key.modifierState,
-    caseSensitive = key.caseSensitive;
-  var base = key.base;
-  if (!caseSensitive || base.length > 1) {
-    base = base[0].toUpperCase() + base.slice(1);
-  }
-  var modifiers = modifierList.filter(function (m) {
-    return modifierState[m];
-  }).map(function (m) {
-    return modifierSymbols[m];
-  });
-  return [].concat(_toConsumableArray(modifiers), [base]).join('');
-}
-function reprShortcut(input) {
-  var caseSensitive = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
-  return getSequence(input).map(function (key) {
-    return parseKey(key, caseSensitive);
-  }).map(function (key) {
-    return reprKey(key);
-  }).join(' ');
-}
-var KeyNode = /*#__PURE__*/function () {
-  function KeyNode() {
-    _classCallCheck(this, KeyNode);
-    this.children = new Map();
-    this.shortcuts = new Set();
-  }
-  _createClass(KeyNode, [{
-    key: "add",
-    value: function add(sequence, shortcut) {
-      var node = this;
-      var _iterator2 = _createForOfIteratorHelper(sequence),
-        _step2;
-      try {
-        for (_iterator2.s(); !(_step2 = _iterator2.n()).done;) {
-          var key = _step2.value;
-          var child = node.children.get(key);
-          if (!child) {
-            child = new KeyNode();
-            node.children.set(key, child);
-          }
-          node = child;
-        }
-      } catch (err) {
-        _iterator2.e(err);
-      } finally {
-        _iterator2.f();
-      }
-      node.shortcuts.add(shortcut);
-    }
-  }, {
-    key: "get",
-    value: function get(sequence) {
-      var node = this;
-      var _iterator3 = _createForOfIteratorHelper(sequence),
-        _step3;
-      try {
-        for (_iterator3.s(); !(_step3 = _iterator3.n()).done;) {
-          var key = _step3.value;
-          node = node.children.get(key);
-          if (!node) return null;
-        }
-      } catch (err) {
-        _iterator3.e(err);
-      } finally {
-        _iterator3.f();
-      }
-      return node;
-    }
-  }, {
-    key: "remove",
-    value: function remove(sequence, shortcut) {
-      var node = this;
-      var ancestors = [node];
-      var _iterator4 = _createForOfIteratorHelper(sequence),
-        _step4;
-      try {
-        for (_iterator4.s(); !(_step4 = _iterator4.n()).done;) {
-          var key = _step4.value;
-          node = node.children.get(key);
-          if (!node) return;
-          ancestors.push(node);
-        }
-      } catch (err) {
-        _iterator4.e(err);
-      } finally {
-        _iterator4.f();
-      }
-      if (shortcut) node.shortcuts.delete(shortcut);else node.shortcuts.clear();
-      var i = ancestors.length - 1;
-      while (i > 1) {
-        node = ancestors[i];
-        if (node.shortcuts.size || node.children.size) break;
-        var last = ancestors[i - 1];
-        last.children.delete(sequence[i - 1]);
-        i -= 1;
-      }
-    }
-  }]);
-  return KeyNode;
-}();
-var KeyboardService = /*#__PURE__*/function () {
-  function KeyboardService(options) {
-    var _this = this;
-    _classCallCheck(this, KeyboardService);
-    this._context = {};
-    this._conditionData = {};
-    this._dataCI = [];
-    this._dataCS = [];
-    this._rootCI = new KeyNode();
-    this._rootCS = new KeyNode();
-    this._reset = function () {
-      _this._curCI = null;
-      _this._curCS = null;
-      _this._resetTimer();
-    };
-    this.handleKey = function (e) {
-      // Chrome sends a trusted keydown event with no key when choosing from autofill
-      if (!e.key || e.key.length > 1 && modifiers[e.key.toLowerCase()]) return;
-      _this._resetTimer();
-      var keyCS = buildKey({
-        base: e.key,
-        modifierState: {
-          c: e.ctrlKey,
-          a: e.altKey,
-          m: e.metaKey
-        },
-        caseSensitive: true
-      });
-      var keyCI = buildKey({
-        base: e.key,
-        modifierState: {
-          c: e.ctrlKey,
-          s: e.shiftKey,
-          a: e.altKey,
-          m: e.metaKey
-        },
-        caseSensitive: false
-      });
-      if (_this.handleKeyOnce(keyCS, keyCI, false)) {
-        e.preventDefault();
-        _this._reset();
-      }
-      _this._timer = setTimeout(_this._reset, _this.options.sequenceTimeout);
-    };
-    this.options = _extends({}, KeyboardService.defaultOptions, options);
-  }
-  _createClass(KeyboardService, [{
-    key: "_resetTimer",
-    value: function _resetTimer() {
-      if (this._timer) {
-        clearTimeout(this._timer);
-        this._timer = null;
-      }
-    }
-  }, {
-    key: "_addCondition",
-    value: function _addCondition(condition) {
-      var cache = this._conditionData[condition];
-      if (!cache) {
-        var value = parseCondition(condition);
-        cache = {
-          count: 0,
-          value: value,
-          result: this._evalCondition(value)
-        };
-        this._conditionData[condition] = cache;
-      }
-      cache.count += 1;
-    }
-  }, {
-    key: "_removeCondition",
-    value: function _removeCondition(condition) {
-      var cache = this._conditionData[condition];
-      if (cache) {
-        cache.count -= 1;
-        if (!cache.count) {
-          delete this._conditionData[condition];
-        }
-      }
-    }
-  }, {
-    key: "_evalCondition",
-    value: function _evalCondition(conditions) {
-      var _this2 = this;
-      return conditions.every(function (cond) {
-        var value = _this2._context[cond.field];
-        if (cond.not) value = !value;
-        return value;
-      });
-    }
-  }, {
-    key: "_checkShortcut",
-    value: function _checkShortcut(item) {
-      var cache = item.condition && this._conditionData[item.condition];
-      var enabled = !cache || cache.result;
-      if (item.enabled !== enabled) {
-        item.enabled = enabled;
-        this._enableShortcut(item);
-      }
-    }
-  }, {
-    key: "_enableShortcut",
-    value: function _enableShortcut(item) {
-      var root = item.caseSensitive ? this._rootCS : this._rootCI;
-      if (item.enabled) {
-        root.add(item.sequence, item);
-      } else {
-        root.remove(item.sequence, item);
-      }
-    }
-  }, {
-    key: "enable",
-    value: function enable() {
-      this.disable();
-      document.addEventListener('keydown', this.handleKey);
-    }
-  }, {
-    key: "disable",
-    value: function disable() {
-      document.removeEventListener('keydown', this.handleKey);
-    }
-  }, {
-    key: "register",
-    value: function register(key, callback, options) {
-      var _this3 = this;
-      var _extends2 = _extends({
-          caseSensitive: false
-        }, options),
-        caseSensitive = _extends2.caseSensitive,
-        condition = _extends2.condition;
-      var sequence = normalizeSequence(key, caseSensitive).map(function (key) {
-        return buildKey(key);
-      });
-      var data = caseSensitive ? this._dataCS : this._dataCI;
-      var item = {
-        sequence: sequence,
-        condition: condition,
-        callback: callback,
-        enabled: false,
-        caseSensitive: caseSensitive
-      };
-      if (condition) this._addCondition(condition);
-      this._checkShortcut(item);
-      data.push(item);
-      return function () {
-        var index = data.indexOf(item);
-        if (index >= 0) {
-          data.splice(index, 1);
-          if (condition) _this3._removeCondition(condition);
-          item.enabled = false;
-          _this3._enableShortcut(item);
-        }
-      };
-    }
-  }, {
-    key: "setContext",
-    value: function setContext(key, value) {
-      this._context[key] = value;
-      for (var _i = 0, _Object$values = Object.values(this._conditionData); _i < _Object$values.length; _i++) {
-        var cache = _Object$values[_i];
-        cache.result = this._evalCondition(cache.value);
-      }
-      for (var _i2 = 0, _arr = [this._dataCS, this._dataCI]; _i2 < _arr.length; _i2++) {
-        var data = _arr[_i2];
-        var _iterator5 = _createForOfIteratorHelper(data),
-          _step5;
-        try {
-          for (_iterator5.s(); !(_step5 = _iterator5.n()).done;) {
-            var item = _step5.value;
-            this._checkShortcut(item);
-          }
-        } catch (err) {
-          _iterator5.e(err);
-        } finally {
-          _iterator5.f();
-        }
-      }
-    }
-  }, {
-    key: "handleKeyOnce",
-    value: function handleKeyOnce(keyCS, keyCI, fromRoot) {
-      var _curCS, _curCI;
-      var curCS = this._curCS;
-      var curCI = this._curCI;
-      if (fromRoot || !curCS && !curCI) {
-        // set fromRoot to true to avoid another retry
-        fromRoot = true;
-        curCS = this._rootCS;
-        curCI = this._rootCI;
-      }
-      if (curCS) curCS = curCS.get([keyCS]);
-      if (curCI) curCI = curCI.get([keyCI]);
-      var shortcuts = [].concat((0,toConsumableArray/* default */.Z)(curCI ? curCI.shortcuts : []), (0,toConsumableArray/* default */.Z)(curCS ? curCS.shortcuts : [])).reverse();
-      this._curCS = curCS;
-      this._curCI = curCI;
-      if (!fromRoot && !shortcuts.length && !((_curCS = curCS) != null && _curCS.children.size) && !((_curCI = curCI) != null && _curCI.children.size)) {
-        // Nothing is matched with the last key, rematch from root
-        return this.handleKeyOnce(keyCS, keyCI, true);
-      }
-      var _iterator6 = _createForOfIteratorHelper(shortcuts),
-        _step6;
-      try {
-        for (_iterator6.s(); !(_step6 = _iterator6.n()).done;) {
-          var shortcut = _step6.value;
-          try {
-            shortcut.callback();
-          } catch (_unused) {
-            // ignore
-          }
-          return true;
-        }
-      } catch (err) {
-        _iterator6.e(err);
-      } finally {
-        _iterator6.f();
-      }
-    }
-  }]);
-  return KeyboardService;
-}();
-KeyboardService.defaultOptions = {
-  sequenceTimeout: 500
-};
-var service;
-function getService() {
-  if (!service) {
-    service = new KeyboardService();
-    service.enable();
-  }
-  return service;
-}
-var register = function register() {
-  var _getService;
-  return (_getService = getService()).register.apply(_getService, arguments);
-};
-var enable = function enable() {
-  return getService().enable();
-};
-var disable = function disable() {
-  return getService().disable();
-};
-var handleKey = function handleKey() {
-  var _getService2;
-  return (_getService2 = getService()).handleKey.apply(_getService2, arguments);
-};
-
+function Popup(_ref){var _ref2,_ref3;var setShowPopup=_ref.setShowPopup,tran=_ref.translator;var i18n=useI18n();var _useState=(0,react.useState)(tran===null||tran===void 0?void 0:tran.rule),_useState2=(0,slicedToArray/* default */.Z)(_useState,2),rule=_useState2[0],setRule=_useState2[1];var handleOpenSetting=function handleOpenSetting(){if(isExt){browser===null||browser===void 0?void 0:browser.runtime.openOptionsPage();}else{window.open("https://fishjar.github.io/kiss-translator/options.html","_blank");}setShowPopup&&setShowPopup(false);};var handleTransToggle=function handleTransToggle(_x){return(_ref2=_ref2||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(e){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:_context.prev=0;setRule(_objectSpread2(_objectSpread2({},rule),{},{transOpen:e.target.checked?"true":"false"}));if(!isExt){_context.next=7;break;}_context.next=5;return sendTabMsg(MSG_TRANS_TOGGLE);case 5:_context.next=9;break;case 7:tran.toggle();sendIframeMsg(MSG_TRANS_TOGGLE);case 9:_context.next=14;break;case 11:_context.prev=11;_context.t0=_context["catch"](0);console.log("[toggle trans]",_context.t0);case 14:case"end":return _context.stop();}},_callee,null,[[0,11]]);}))).apply(this,arguments);};var handleChange=function handleChange(_x2){return(_ref3=_ref3||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(e){var _e$target,name,value;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:_context2.prev=0;_e$target=e.target,name=_e$target.name,value=_e$target.value;setRule(function(pre){return _objectSpread2(_objectSpread2({},pre),{},(0,defineProperty/* default */.Z)({},name,value));});if(!isExt){_context2.next=8;break;}_context2.next=6;return sendTabMsg(MSG_TRANS_PUTRULE,(0,defineProperty/* default */.Z)({},name,value));case 6:_context2.next=10;break;case 8:tran.updateRule((0,defineProperty/* default */.Z)({},name,value));sendIframeMsg(MSG_TRANS_PUTRULE,(0,defineProperty/* default */.Z)({},name,value));case 10:_context2.next=15;break;case 12:_context2.prev=12;_context2.t0=_context2["catch"](0);console.log("[update rule]",_context2.t0);case 15:case"end":return _context2.stop();}},_callee2,null,[[0,12]]);}))).apply(this,arguments);};var handleClearCache=function handleClearCache(){try{caches.delete(config_CACHE_NAME);}catch(err){console.log("[clear cache]",err);}};(0,react.useEffect)(function(){if(!isExt){return;}asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee3(){var res;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:_context3.prev=0;_context3.next=3;return sendTabMsg(MSG_TRANS_GETRULE);case 3:res=_context3.sent;if(!res.error){setRule(res.data);}_context3.next=10;break;case 7:_context3.prev=7;_context3.t0=_context3["catch"](0);console.log("[query rule]",_context3.t0);case 10:case"end":return _context3.stop();}},_callee3,null,[[0,7]]);}))();},[]);if(!rule){return/*#__PURE__*/(0,jsx_runtime.jsxs)(Box_Box,{minWidth:300,children:[isExt&&/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Header,{}),/*#__PURE__*/(0,jsx_runtime.jsx)(Divider_Divider,{})]}),/*#__PURE__*/(0,jsx_runtime.jsx)(Stack_Stack,{sx:{p:2},spacing:3,children:/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{variant:"text",onClick:handleOpenSetting,children:i18n("setting")})})]});}var transOpen=rule.transOpen,translator=rule.translator,fromLang=rule.fromLang,toLang=rule.toLang,textStyle=rule.textStyle,bgColor=rule.bgColor;return/*#__PURE__*/(0,jsx_runtime.jsxs)(Box_Box,{minWidth:300,children:[isExt&&/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Header,{}),/*#__PURE__*/(0,jsx_runtime.jsx)(Divider_Divider,{})]}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{sx:{p:2},spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",justifyContent:"space-between",alignItems:"center",spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(FormControlLabel_FormControlLabel,{control:/*#__PURE__*/(0,jsx_runtime.jsx)(Switch_Switch,{checked:transOpen==="true",onChange:handleTransToggle}),label:i18n("translate_alt")}),!isExt&&/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{variant:"text",onClick:handleClearCache,children:i18n("clear_cache")})]}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},size:"small",value:translator,name:"translator",label:i18n("translate_service"),onChange:handleChange,children:OPT_TRANS_ALL.map(function(item){return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:item,children:item},item);})}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},size:"small",value:fromLang,name:"fromLang",label:i18n("from_lang"),onChange:handleChange,children:OPT_LANGS_FROM.map(function(_ref5){var _ref6=(0,slicedToArray/* default */.Z)(_ref5,2),lang=_ref6[0],name=_ref6[1];return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:lang,children:name},lang);})}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},size:"small",value:toLang,name:"toLang",label:i18n("to_lang"),onChange:handleChange,children:OPT_LANGS_TO.map(function(_ref7){var _ref8=(0,slicedToArray/* default */.Z)(_ref7,2),lang=_ref8[0],name=_ref8[1];return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:lang,children:name},lang);})}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},size:"small",value:textStyle,name:"textStyle",label:i18n("text_style_alt"),onChange:handleChange,children:OPT_STYLE_ALL.map(function(item){return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:item,children:i18n(item)},item);})}),OPT_STYLE_USE_COLOR.includes(textStyle)&&/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",name:"bgColor",value:bgColor,label:i18n("bg_color"),onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{variant:"text",onClick:handleOpenSetting,children:i18n("setting")})]})]});}
+;// CONCATENATED MODULE: ./src/libs/shortcut.js
+/**
+ * 键盘快捷键监听
+ * @param {*} fn
+ * @param {*} target
+ * @param {*} timeout
+ * @returns
+ */var shortcutListener=function shortcutListener(fn){var target=arguments.length>1&&arguments[1]!==undefined?arguments[1]:document;var timeout=arguments.length>2&&arguments[2]!==undefined?arguments[2]:3000;var allkeys=new Set();var curkeys=new Set();var timer=null;var handleKeydown=function handleKeydown(e){timer&&clearTimeout(timer);timer=setTimeout(function(){allkeys.clear();curkeys.clear();clearTimeout(timer);timer=null;},timeout);if(e.code){allkeys.add(e.key);curkeys.add(e.key);fn((0,toConsumableArray/* default */.Z)(curkeys),(0,toConsumableArray/* default */.Z)(allkeys));}};var handleKeyup=function handleKeyup(e){curkeys.delete(e.key);if(curkeys.size===0){fn((0,toConsumableArray/* default */.Z)(curkeys),(0,toConsumableArray/* default */.Z)(allkeys));allkeys.clear();}};target.addEventListener("keydown",handleKeydown);target.addEventListener("keyup",handleKeyup);return function(){target.removeEventListener("keydown",handleKeydown);target.removeEventListener("keyup",handleKeyup);};};/**
+ * 注册键盘快捷键
+ * @param {*} targetKeys
+ * @param {*} fn
+ * @param {*} target
+ * @returns
+ */var shortcutRegister=function shortcutRegister(targetKeys,fn){var target=arguments.length>2&&arguments[2]!==undefined?arguments[2]:document;return shortcutListener(function(curkeys){if(isSameSet(new Set(targetKeys),new Set(curkeys))){fn();}},target);};
 ;// CONCATENATED MODULE: ./src/views/Action/index.js
 function Action(_ref){var _fab$x,_fab$y;var translator=_ref.translator,fab=_ref.fab;var fabWidth=40;var _useState=(0,react.useState)(false),_useState2=(0,slicedToArray/* default */.Z)(_useState,2),showPopup=_useState2[0],setShowPopup=_useState2[1];var _useState3=(0,react.useState)({w:window.innerWidth,h:window.innerHeight}),_useState4=(0,slicedToArray/* default */.Z)(_useState3,2),windowSize=_useState4[0],setWindowSize=_useState4[1];var _useState5=(0,react.useState)(false),_useState6=(0,slicedToArray/* default */.Z)(_useState5,2),moved=_useState6[0],setMoved=_useState6[1];var handleWindowResize=(0,react.useMemo)(function(){return debounce(function(){setWindowSize({w:window.innerWidth,h:window.innerHeight});});},[]);var handleWindowClick=function handleWindowClick(e){setShowPopup(false);};var handleStart=(0,react.useCallback)(function(){setMoved(false);},[]);var handleMove=(0,react.useCallback)(function(){setMoved(true);},[]);(0,react.useEffect)(function(){// 注册快捷键
-register("a-q",function(){translator.toggle();setShowPopup(false);});register("a-c",function(){translator.toggleStyle();setShowPopup(false);});register("a-k",function(){setShowPopup(function(pre){return!pre;});});return function(){disable();};},[translator]);(0,react.useEffect)(function(){// 注册菜单
+var shortcuts=translator.setting.shortcuts||DEFAULT_SHORTCUTS;var clearShortcuts=[shortcutRegister(shortcuts[OPT_SHORTCUT_TRANSLATE],function(){translator.toggle();setShowPopup(false);}),shortcutRegister(shortcuts[OPT_SHORTCUT_STYLE],function(){translator.toggleStyle();setShowPopup(false);}),shortcutRegister(shortcuts[OPT_SHORTCUT_POPUP],function(){setShowPopup(function(pre){return!pre;});})];return function(){clearShortcuts.forEach(function(fn){fn();});};},[translator]);(0,react.useEffect)(function(){// 注册菜单
 var menuCommandIds=[];if(isGm){try{menuCommandIds.push(GM.registerMenuCommand("Toggle Translate",function(event){translator.toggle();setShowPopup(false);},"Q"),GM.registerMenuCommand("Toggle Style",function(event){translator.toggleStyle();setShowPopup(false);},"C"),GM.registerMenuCommand("Open Menu",function(event){setShowPopup(function(pre){return!pre;});},"K"));}catch(err){console.log("[registerMenuCommand]",err);}}return function(){if(isGm){try{menuCommandIds.forEach(function(id){GM.unregisterMenuCommand(id);});}catch(err){//
 }}};},[translator]);(0,react.useEffect)(function(){window.addEventListener("resize",handleWindowResize);return function(){window.removeEventListener("resize",handleWindowResize);};},[handleWindowResize]);(0,react.useEffect)(function(){window.addEventListener("click",handleWindowClick);return function(){window.removeEventListener("click",handleWindowClick);};},[]);var popProps=(0,react.useMemo)(function(){var width=Math.min(windowSize.w,300);var height=Math.min(windowSize.h,442);var left=(windowSize.w-width)/2;var top=(windowSize.h-height)/2;return{windowSize:windowSize,width:width,height:height,left:left,top:top};},[windowSize]);var fabProps={windowSize:windowSize,width:fabWidth,height:fabWidth,left:(_fab$x=fab.x)!==null&&_fab$x!==void 0?_fab$x:0,top:(_fab$y=fab.y)!==null&&_fab$y!==void 0?_fab$y:windowSize.h/2};return/*#__PURE__*/(0,jsx_runtime.jsx)(SettingProvider,{children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Theme,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Draggable,_objectSpread2(_objectSpread2({},popProps),{},{show:showPopup,onStart:handleStart,onMove:handleMove,handler:/*#__PURE__*/(0,jsx_runtime.jsx)(Paper_Paper,{style:{cursor:"move"},elevation:3,children:/*#__PURE__*/(0,jsx_runtime.jsx)(Header,{setShowPopup:setShowPopup})}),children:/*#__PURE__*/(0,jsx_runtime.jsx)(Paper_Paper,{children:showPopup&&/*#__PURE__*/(0,jsx_runtime.jsx)(Popup,{setShowPopup:setShowPopup,translator:translator})})}),"pop"),/*#__PURE__*/(0,jsx_runtime.jsx)(Draggable,_objectSpread2(_objectSpread2({snapEdge:true},fabProps),{},{show:!showPopup,onStart:handleStart,onMove:handleMove,handler:/*#__PURE__*/(0,jsx_runtime.jsx)(Fab_Fab,{size:"small",color:"primary",onClick:function onClick(e){if(!moved){setShowPopup(function(pre){return!pre;});}},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Translate/* default */.Z,{})})}),"fab")]})});}
 ;// CONCATENATED MODULE: ./src/views/Content/LoadingIcon.js
@@ -29031,2289 +28577,9 @@ function LoadingIcon(){return/*#__PURE__*/(0,jsx_runtime.jsxs)("svg",{viewBox:"0
  * @param {*} rule
  * @param {*} setting
  * @returns
- */function useTranslate(q,rule,setting){var _useState=(0,react.useState)(""),_useState2=(0,slicedToArray/* default */.Z)(_useState,2),text=_useState2[0],setText=_useState2[1];var _useState3=(0,react.useState)(false),_useState4=(0,slicedToArray/* default */.Z)(_useState3,2),loading=_useState4[0],setLoading=_useState4[1];var _useState5=(0,react.useState)(false),_useState6=(0,slicedToArray/* default */.Z)(_useState5,2),sameLang=_useState6[0],setSamelang=_useState6[1];var translator=rule.translator,fromLang=rule.fromLang,toLang=rule.toLang;(0,react.useEffect)(function(){asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(){var deLang,_yield$apiTranslate,_yield$apiTranslate2,trText,isSame;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:_context.prev=0;setLoading(true);_context.next=4;return tryDetectLang(q);case 4:deLang=_context.sent;if(!(deLang&&toLang.includes(deLang))){_context.next=9;break;}setSamelang(true);_context.next=17;break;case 9:_context.next=11;return apiTranslate({translator:translator,q:q,fromLang:fromLang,toLang:toLang,setting:setting});case 11:_yield$apiTranslate=_context.sent;_yield$apiTranslate2=(0,slicedToArray/* default */.Z)(_yield$apiTranslate,2);trText=_yield$apiTranslate2[0];isSame=_yield$apiTranslate2[1];setText(trText);setSamelang(isSame);case 17:_context.next=22;break;case 19:_context.prev=19;_context.t0=_context["catch"](0);console.log("[translate]",_context.t0);case 22:_context.prev=22;setLoading(false);return _context.finish(22);case 25:case"end":return _context.stop();}},_callee,null,[[0,19,22,25]]);}))();},[q,translator,fromLang,toLang,setting]);return{text:text,sameLang:sameLang,loading:loading};}
-;// CONCATENATED MODULE: ./node_modules/tslib/tslib.es6.mjs
-/******************************************************************************
-Copyright (c) Microsoft Corporation.
-
-Permission to use, copy, modify, and/or distribute this software for any
-purpose with or without fee is hereby granted.
-
-THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
-REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
-INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
-OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-PERFORMANCE OF THIS SOFTWARE.
-***************************************************************************** */
-/* global Reflect, Promise, SuppressedError, Symbol */
-
-var _extendStatics = function extendStatics(d, b) {
-  _extendStatics = Object.setPrototypeOf || {
-    __proto__: []
-  } instanceof Array && function (d, b) {
-    d.__proto__ = b;
-  } || function (d, b) {
-    for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p];
-  };
-  return _extendStatics(d, b);
-};
-function __extends(d, b) {
-  if (typeof b !== "function" && b !== null) throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
-  _extendStatics(d, b);
-  function __() {
-    this.constructor = d;
-  }
-  d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-}
-var _assign = function __assign() {
-  _assign = Object.assign || function __assign(t) {
-    for (var s, i = 1, n = arguments.length; i < n; i++) {
-      s = arguments[i];
-      for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p)) t[p] = s[p];
-    }
-    return t;
-  };
-  return _assign.apply(this, arguments);
-};
-
-function __rest(s, e) {
-  var t = {};
-  for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0) t[p] = s[p];
-  if (s != null && typeof Object.getOwnPropertySymbols === "function") for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
-    if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i])) t[p[i]] = s[p[i]];
-  }
-  return t;
-}
-function __decorate(decorators, target, key, desc) {
-  var c = arguments.length,
-    r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc,
-    d;
-  if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-  return c > 3 && r && Object.defineProperty(target, key, r), r;
-}
-function __param(paramIndex, decorator) {
-  return function (target, key) {
-    decorator(target, key, paramIndex);
-  };
-}
-function __esDecorate(ctor, descriptorIn, decorators, contextIn, initializers, extraInitializers) {
-  function accept(f) {
-    if (f !== void 0 && typeof f !== "function") throw new TypeError("Function expected");
-    return f;
-  }
-  var kind = contextIn.kind,
-    key = kind === "getter" ? "get" : kind === "setter" ? "set" : "value";
-  var target = !descriptorIn && ctor ? contextIn["static"] ? ctor : ctor.prototype : null;
-  var descriptor = descriptorIn || (target ? Object.getOwnPropertyDescriptor(target, contextIn.name) : {});
-  var _,
-    done = false;
-  for (var i = decorators.length - 1; i >= 0; i--) {
-    var context = {};
-    for (var p in contextIn) context[p] = p === "access" ? {} : contextIn[p];
-    for (var p in contextIn.access) context.access[p] = contextIn.access[p];
-    context.addInitializer = function (f) {
-      if (done) throw new TypeError("Cannot add initializers after decoration has completed");
-      extraInitializers.push(accept(f || null));
-    };
-    var result = (0, decorators[i])(kind === "accessor" ? {
-      get: descriptor.get,
-      set: descriptor.set
-    } : descriptor[key], context);
-    if (kind === "accessor") {
-      if (result === void 0) continue;
-      if (result === null || typeof result !== "object") throw new TypeError("Object expected");
-      if (_ = accept(result.get)) descriptor.get = _;
-      if (_ = accept(result.set)) descriptor.set = _;
-      if (_ = accept(result.init)) initializers.unshift(_);
-    } else if (_ = accept(result)) {
-      if (kind === "field") initializers.unshift(_);else descriptor[key] = _;
-    }
-  }
-  if (target) Object.defineProperty(target, contextIn.name, descriptor);
-  done = true;
-}
-;
-function __runInitializers(thisArg, initializers, value) {
-  var useValue = arguments.length > 2;
-  for (var i = 0; i < initializers.length; i++) {
-    value = useValue ? initializers[i].call(thisArg, value) : initializers[i].call(thisArg);
-  }
-  return useValue ? value : void 0;
-}
-;
-function __propKey(x) {
-  return typeof x === "symbol" ? x : "".concat(x);
-}
-;
-function __setFunctionName(f, name, prefix) {
-  if (typeof name === "symbol") name = name.description ? "[".concat(name.description, "]") : "";
-  return Object.defineProperty(f, "name", {
-    configurable: true,
-    value: prefix ? "".concat(prefix, " ", name) : name
-  });
-}
-;
-function __metadata(metadataKey, metadataValue) {
-  if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(metadataKey, metadataValue);
-}
-function __awaiter(thisArg, _arguments, P, generator) {
-  function adopt(value) {
-    return value instanceof P ? value : new P(function (resolve) {
-      resolve(value);
-    });
-  }
-  return new (P || (P = Promise))(function (resolve, reject) {
-    function fulfilled(value) {
-      try {
-        step(generator.next(value));
-      } catch (e) {
-        reject(e);
-      }
-    }
-    function rejected(value) {
-      try {
-        step(generator["throw"](value));
-      } catch (e) {
-        reject(e);
-      }
-    }
-    function step(result) {
-      result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected);
-    }
-    step((generator = generator.apply(thisArg, _arguments || [])).next());
-  });
-}
-function __generator(thisArg, body) {
-  var _ = {
-      label: 0,
-      sent: function sent() {
-        if (t[0] & 1) throw t[1];
-        return t[1];
-      },
-      trys: [],
-      ops: []
-    },
-    f,
-    y,
-    t,
-    g;
-  return g = {
-    next: verb(0),
-    "throw": verb(1),
-    "return": verb(2)
-  }, typeof Symbol === "function" && (g[Symbol.iterator] = function () {
-    return this;
-  }), g;
-  function verb(n) {
-    return function (v) {
-      return step([n, v]);
-    };
-  }
-  function step(op) {
-    if (f) throw new TypeError("Generator is already executing.");
-    while (g && (g = 0, op[0] && (_ = 0)), _) try {
-      if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
-      if (y = 0, t) op = [op[0] & 2, t.value];
-      switch (op[0]) {
-        case 0:
-        case 1:
-          t = op;
-          break;
-        case 4:
-          _.label++;
-          return {
-            value: op[1],
-            done: false
-          };
-        case 5:
-          _.label++;
-          y = op[1];
-          op = [0];
-          continue;
-        case 7:
-          op = _.ops.pop();
-          _.trys.pop();
-          continue;
-        default:
-          if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) {
-            _ = 0;
-            continue;
-          }
-          if (op[0] === 3 && (!t || op[1] > t[0] && op[1] < t[3])) {
-            _.label = op[1];
-            break;
-          }
-          if (op[0] === 6 && _.label < t[1]) {
-            _.label = t[1];
-            t = op;
-            break;
-          }
-          if (t && _.label < t[2]) {
-            _.label = t[2];
-            _.ops.push(op);
-            break;
-          }
-          if (t[2]) _.ops.pop();
-          _.trys.pop();
-          continue;
-      }
-      op = body.call(thisArg, _);
-    } catch (e) {
-      op = [6, e];
-      y = 0;
-    } finally {
-      f = t = 0;
-    }
-    if (op[0] & 5) throw op[1];
-    return {
-      value: op[0] ? op[1] : void 0,
-      done: true
-    };
-  }
-}
-var __createBinding = Object.create ? function (o, m, k, k2) {
-  if (k2 === undefined) k2 = k;
-  var desc = Object.getOwnPropertyDescriptor(m, k);
-  if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-    desc = {
-      enumerable: true,
-      get: function get() {
-        return m[k];
-      }
-    };
-  }
-  Object.defineProperty(o, k2, desc);
-} : function (o, m, k, k2) {
-  if (k2 === undefined) k2 = k;
-  o[k2] = m[k];
-};
-function __exportStar(m, o) {
-  for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(o, p)) __createBinding(o, m, p);
-}
-function __values(o) {
-  var s = typeof Symbol === "function" && Symbol.iterator,
-    m = s && o[s],
-    i = 0;
-  if (m) return m.call(o);
-  if (o && typeof o.length === "number") return {
-    next: function next() {
-      if (o && i >= o.length) o = void 0;
-      return {
-        value: o && o[i++],
-        done: !o
-      };
-    }
-  };
-  throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
-}
-function __read(o, n) {
-  var m = typeof Symbol === "function" && o[Symbol.iterator];
-  if (!m) return o;
-  var i = m.call(o),
-    r,
-    ar = [],
-    e;
-  try {
-    while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
-  } catch (error) {
-    e = {
-      error: error
-    };
-  } finally {
-    try {
-      if (r && !r.done && (m = i["return"])) m.call(i);
-    } finally {
-      if (e) throw e.error;
-    }
-  }
-  return ar;
-}
-
-/** @deprecated */
-function __spread() {
-  for (var ar = [], i = 0; i < arguments.length; i++) ar = ar.concat(__read(arguments[i]));
-  return ar;
-}
-
-/** @deprecated */
-function __spreadArrays() {
-  for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
-  for (var r = Array(s), k = 0, i = 0; i < il; i++) for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++) r[k] = a[j];
-  return r;
-}
-function __spreadArray(to, from, pack) {
-  if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
-    if (ar || !(i in from)) {
-      if (!ar) ar = Array.prototype.slice.call(from, 0, i);
-      ar[i] = from[i];
-    }
-  }
-  return to.concat(ar || Array.prototype.slice.call(from));
-}
-function __await(v) {
-  return this instanceof __await ? (this.v = v, this) : new __await(v);
-}
-function __asyncGenerator(thisArg, _arguments, generator) {
-  if (!Symbol.asyncIterator) throw new TypeError("Symbol.asyncIterator is not defined.");
-  var g = generator.apply(thisArg, _arguments || []),
-    i,
-    q = [];
-  return i = {}, verb("next"), verb("throw"), verb("return"), i[Symbol.asyncIterator] = function () {
-    return this;
-  }, i;
-  function verb(n) {
-    if (g[n]) i[n] = function (v) {
-      return new Promise(function (a, b) {
-        q.push([n, v, a, b]) > 1 || resume(n, v);
-      });
-    };
-  }
-  function resume(n, v) {
-    try {
-      step(g[n](v));
-    } catch (e) {
-      settle(q[0][3], e);
-    }
-  }
-  function step(r) {
-    r.value instanceof __await ? Promise.resolve(r.value.v).then(fulfill, reject) : settle(q[0][2], r);
-  }
-  function fulfill(value) {
-    resume("next", value);
-  }
-  function reject(value) {
-    resume("throw", value);
-  }
-  function settle(f, v) {
-    if (f(v), q.shift(), q.length) resume(q[0][0], q[0][1]);
-  }
-}
-function __asyncDelegator(o) {
-  var i, p;
-  return i = {}, verb("next"), verb("throw", function (e) {
-    throw e;
-  }), verb("return"), i[Symbol.iterator] = function () {
-    return this;
-  }, i;
-  function verb(n, f) {
-    i[n] = o[n] ? function (v) {
-      return (p = !p) ? {
-        value: __await(o[n](v)),
-        done: false
-      } : f ? f(v) : v;
-    } : f;
-  }
-}
-function __asyncValues(o) {
-  if (!Symbol.asyncIterator) throw new TypeError("Symbol.asyncIterator is not defined.");
-  var m = o[Symbol.asyncIterator],
-    i;
-  return m ? m.call(o) : (o = typeof __values === "function" ? __values(o) : o[Symbol.iterator](), i = {}, verb("next"), verb("throw"), verb("return"), i[Symbol.asyncIterator] = function () {
-    return this;
-  }, i);
-  function verb(n) {
-    i[n] = o[n] && function (v) {
-      return new Promise(function (resolve, reject) {
-        v = o[n](v), settle(resolve, reject, v.done, v.value);
-      });
-    };
-  }
-  function settle(resolve, reject, d, v) {
-    Promise.resolve(v).then(function (v) {
-      resolve({
-        value: v,
-        done: d
-      });
-    }, reject);
-  }
-}
-function __makeTemplateObject(cooked, raw) {
-  if (Object.defineProperty) {
-    Object.defineProperty(cooked, "raw", {
-      value: raw
-    });
-  } else {
-    cooked.raw = raw;
-  }
-  return cooked;
-}
-;
-var __setModuleDefault = Object.create ? function (o, v) {
-  Object.defineProperty(o, "default", {
-    enumerable: true,
-    value: v
-  });
-} : function (o, v) {
-  o["default"] = v;
-};
-function __importStar(mod) {
-  if (mod && mod.__esModule) return mod;
-  var result = {};
-  if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-  __setModuleDefault(result, mod);
-  return result;
-}
-function __importDefault(mod) {
-  return mod && mod.__esModule ? mod : {
-    default: mod
-  };
-}
-function __classPrivateFieldGet(receiver, state, kind, f) {
-  if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
-  if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
-  return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
-}
-function __classPrivateFieldSet(receiver, state, value, kind, f) {
-  if (kind === "m") throw new TypeError("Private method is not writable");
-  if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
-  if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
-  return kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value), value;
-}
-function __classPrivateFieldIn(state, receiver) {
-  if (receiver === null || typeof receiver !== "object" && typeof receiver !== "function") throw new TypeError("Cannot use 'in' operator on non-object");
-  return typeof state === "function" ? receiver === state : state.has(receiver);
-}
-function __addDisposableResource(env, value, async) {
-  if (value !== null && value !== void 0) {
-    if (typeof value !== "object" && typeof value !== "function") throw new TypeError("Object expected.");
-    var dispose;
-    if (async) {
-      if (!Symbol.asyncDispose) throw new TypeError("Symbol.asyncDispose is not defined.");
-      dispose = value[Symbol.asyncDispose];
-    }
-    if (dispose === void 0) {
-      if (!Symbol.dispose) throw new TypeError("Symbol.dispose is not defined.");
-      dispose = value[Symbol.dispose];
-    }
-    if (typeof dispose !== "function") throw new TypeError("Object not disposable.");
-    env.stack.push({
-      value: value,
-      dispose: dispose,
-      async: async
-    });
-  } else if (async) {
-    env.stack.push({
-      async: true
-    });
-  }
-  return value;
-}
-var _SuppressedError = typeof SuppressedError === "function" ? SuppressedError : function (error, suppressed, message) {
-  var e = new Error(message);
-  return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
-};
-function __disposeResources(env) {
-  function fail(e) {
-    env.error = env.hasError ? new _SuppressedError(e, env.error, "An error was suppressed during disposal.") : e;
-    env.hasError = true;
-  }
-  function next() {
-    while (env.stack.length) {
-      var rec = env.stack.pop();
-      try {
-        var result = rec.dispose && rec.dispose.call(rec.value);
-        if (rec.async) return Promise.resolve(result).then(next, function (e) {
-          fail(e);
-          return next();
-        });
-      } catch (e) {
-        fail(e);
-      }
-    }
-    if (env.hasError) throw env.error;
-  }
-  return next();
-}
-/* harmony default export */ var tslib_es6 = ({
-  __extends: __extends,
-  __assign: _assign,
-  __rest: __rest,
-  __decorate: __decorate,
-  __param: __param,
-  __metadata: __metadata,
-  __awaiter: __awaiter,
-  __generator: __generator,
-  __createBinding: __createBinding,
-  __exportStar: __exportStar,
-  __values: __values,
-  __read: __read,
-  __spread: __spread,
-  __spreadArrays: __spreadArrays,
-  __spreadArray: __spreadArray,
-  __await: __await,
-  __asyncGenerator: __asyncGenerator,
-  __asyncDelegator: __asyncDelegator,
-  __asyncValues: __asyncValues,
-  __makeTemplateObject: __makeTemplateObject,
-  __importStar: __importStar,
-  __importDefault: __importDefault,
-  __classPrivateFieldGet: __classPrivateFieldGet,
-  __classPrivateFieldSet: __classPrivateFieldSet,
-  __classPrivateFieldIn: __classPrivateFieldIn,
-  __addDisposableResource: __addDisposableResource,
-  __disposeResources: __disposeResources
-});
-// EXTERNAL MODULE: ./node_modules/shallowequal/index.js
-var shallowequal = __webpack_require__(9767);
-var shallowequal_default = /*#__PURE__*/__webpack_require__.n(shallowequal);
-;// CONCATENATED MODULE: ./node_modules/styled-components/node_modules/stylis/src/Enum.js
-var MS = '-ms-';
-var MOZ = '-moz-';
-var WEBKIT = '-webkit-';
-var COMMENT = 'comm';
-var Enum_RULESET = 'rule';
-var DECLARATION = 'decl';
-var PAGE = '@page';
-var MEDIA = '@media';
-var IMPORT = '@import';
-var CHARSET = '@charset';
-var VIEWPORT = '@viewport';
-var SUPPORTS = '@supports';
-var DOCUMENT = '@document';
-var NAMESPACE = '@namespace';
-var KEYFRAMES = '@keyframes';
-var FONT_FACE = '@font-face';
-var COUNTER_STYLE = '@counter-style';
-var FONT_FEATURE_VALUES = '@font-feature-values';
-var LAYER = '@layer';
-;// CONCATENATED MODULE: ./node_modules/styled-components/node_modules/stylis/src/Utility.js
-/**
- * @param {number}
- * @return {number}
- */
-var abs = Math.abs;
-
-/**
- * @param {number}
- * @return {string}
- */
-var Utility_from = String.fromCharCode;
-
-/**
- * @param {object}
- * @return {object}
- */
-var Utility_assign = Object.assign;
-
-/**
- * @param {string} value
- * @param {number} length
- * @return {number}
- */
-function hash(value, length) {
-  return Utility_charat(value, 0) ^ 45 ? (((length << 2 ^ Utility_charat(value, 0)) << 2 ^ Utility_charat(value, 1)) << 2 ^ Utility_charat(value, 2)) << 2 ^ Utility_charat(value, 3) : 0;
-}
-
-/**
- * @param {string} value
- * @return {string}
- */
-function trim(value) {
-  return value.trim();
-}
-
-/**
- * @param {string} value
- * @param {RegExp} pattern
- * @return {string?}
- */
-function match(value, pattern) {
-  return (value = pattern.exec(value)) ? value[0] : value;
-}
-
-/**
- * @param {string} value
- * @param {(string|RegExp)} pattern
- * @param {string} replacement
- * @return {string}
- */
-function replace(value, pattern, replacement) {
-  return value.replace(pattern, replacement);
-}
-
-/**
- * @param {string} value
- * @param {string} search
- * @return {number}
- */
-function indexof(value, search) {
-  return value.indexOf(search);
-}
-
-/**
- * @param {string} value
- * @param {number} index
- * @return {number}
- */
-function Utility_charat(value, index) {
-  return value.charCodeAt(index) | 0;
-}
-
-/**
- * @param {string} value
- * @param {number} begin
- * @param {number} end
- * @return {string}
- */
-function Utility_substr(value, begin, end) {
-  return value.slice(begin, end);
-}
-
-/**
- * @param {string} value
- * @return {number}
- */
-function Utility_strlen(value) {
-  return value.length;
-}
-
-/**
- * @param {any[]} value
- * @return {number}
- */
-function Utility_sizeof(value) {
-  return value.length;
-}
-
-/**
- * @param {any} value
- * @param {any[]} array
- * @return {any}
- */
-function Utility_append(value, array) {
-  return array.push(value), value;
-}
-
-/**
- * @param {string[]} array
- * @param {function} callback
- * @return {string}
- */
-function Utility_combine(array, callback) {
-  return array.map(callback).join('');
-}
-
-/**
- * @param {string[]} array
- * @param {RegExp} pattern
- * @return {string[]}
- */
-function filter(array, pattern) {
-  return array.filter(function (value) {
-    return !match(value, pattern);
-  });
-}
-;// CONCATENATED MODULE: ./node_modules/styled-components/node_modules/stylis/src/Tokenizer.js
-
-var line = 1;
-var column = 1;
-var Tokenizer_length = 0;
-var position = 0;
-var character = 0;
-var characters = '';
-
-/**
- * @param {string} value
- * @param {object | null} root
- * @param {object | null} parent
- * @param {string} type
- * @param {string[] | string} props
- * @param {object[] | string} children
- * @param {object[]} siblings
- * @param {number} length
- */
-function node(value, root, parent, type, props, children, length, siblings) {
-  return {
-    value: value,
-    root: root,
-    parent: parent,
-    type: type,
-    props: props,
-    children: children,
-    line: line,
-    column: column,
-    length: length,
-    return: '',
-    siblings: siblings
-  };
-}
-
-/**
- * @param {object} root
- * @param {object} props
- * @return {object}
- */
-function copy(root, props) {
-  return Utility_assign(node('', null, null, '', null, null, 0, root.siblings), root, {
-    length: -root.length
-  }, props);
-}
-
-/**
- * @param {object} root
- */
-function lift(root) {
-  while (root.root) root = copy(root.root, {
-    children: [root]
-  });
-  Utility_append(root, root.siblings);
-}
-
-/**
- * @return {number}
- */
-function Tokenizer_char() {
-  return character;
-}
-
-/**
- * @return {number}
- */
-function prev() {
-  character = position > 0 ? Utility_charat(characters, --position) : 0;
-  if (column--, character === 10) column = 1, line--;
-  return character;
-}
-
-/**
- * @return {number}
- */
-function next() {
-  character = position < Tokenizer_length ? Utility_charat(characters, position++) : 0;
-  if (column++, character === 10) column = 1, line++;
-  return character;
-}
-
-/**
- * @return {number}
- */
-function peek() {
-  return Utility_charat(characters, position);
-}
-
-/**
- * @return {number}
- */
-function caret() {
-  return position;
-}
-
-/**
- * @param {number} begin
- * @param {number} end
- * @return {string}
- */
-function slice(begin, end) {
-  return Utility_substr(characters, begin, end);
-}
-
-/**
- * @param {number} type
- * @return {number}
- */
-function Tokenizer_token(type) {
-  switch (type) {
-    // \0 \t \n \r \s whitespace token
-    case 0:
-    case 9:
-    case 10:
-    case 13:
-    case 32:
-      return 5;
-    // ! + , / > @ ~ isolate token
-    case 33:
-    case 43:
-    case 44:
-    case 47:
-    case 62:
-    case 64:
-    case 126:
-    // ; { } breakpoint token
-    case 59:
-    case 123:
-    case 125:
-      return 4;
-    // : accompanied token
-    case 58:
-      return 3;
-    // " ' ( [ opening delimit token
-    case 34:
-    case 39:
-    case 40:
-    case 91:
-      return 2;
-    // ) ] closing delimit token
-    case 41:
-    case 93:
-      return 1;
-  }
-  return 0;
-}
-
-/**
- * @param {string} value
- * @return {any[]}
- */
-function alloc(value) {
-  return line = column = 1, Tokenizer_length = Utility_strlen(characters = value), position = 0, [];
-}
-
-/**
- * @param {any} value
- * @return {any}
- */
-function dealloc(value) {
-  return characters = '', value;
-}
-
-/**
- * @param {number} type
- * @return {string}
- */
-function delimit(type) {
-  return trim(slice(position - 1, delimiter(type === 91 ? type + 2 : type === 40 ? type + 1 : type)));
-}
-
-/**
- * @param {string} value
- * @return {string[]}
- */
-function Tokenizer_tokenize(value) {
-  return dealloc(tokenizer(alloc(value)));
-}
-
-/**
- * @param {number} type
- * @return {string}
- */
-function whitespace(type) {
-  while (character = peek()) if (character < 33) next();else break;
-  return Tokenizer_token(type) > 2 || Tokenizer_token(character) > 3 ? '' : ' ';
-}
-
-/**
- * @param {string[]} children
- * @return {string[]}
- */
-function tokenizer(children) {
-  while (next()) switch (Tokenizer_token(character)) {
-    case 0:
-      append(Tokenizer_identifier(position - 1), children);
-      break;
-    case 2:
-      append(delimit(character), children);
-      break;
-    default:
-      append(from(character), children);
-  }
-  return children;
-}
-
-/**
- * @param {number} index
- * @param {number} count
- * @return {string}
- */
-function escaping(index, count) {
-  while (--count && next())
-  // not 0-9 A-F a-f
-  if (character < 48 || character > 102 || character > 57 && character < 65 || character > 70 && character < 97) break;
-  return slice(index, caret() + (count < 6 && peek() == 32 && next() == 32));
-}
-
-/**
- * @param {number} type
- * @return {number}
- */
-function delimiter(type) {
-  while (next()) switch (character) {
-    // ] ) " '
-    case type:
-      return position;
-    // " '
-    case 34:
-    case 39:
-      if (type !== 34 && type !== 39) delimiter(character);
-      break;
-    // (
-    case 40:
-      if (type === 41) delimiter(type);
-      break;
-    // \
-    case 92:
-      next();
-      break;
-  }
-  return position;
-}
-
-/**
- * @param {number} type
- * @param {number} index
- * @return {number}
- */
-function commenter(type, index) {
-  while (next())
-  // //
-  if (type + character === 47 + 10) break;
-  // /*
-  else if (type + character === 42 + 42 && peek() === 47) break;
-  return '/*' + slice(index, position - 1) + '*' + Utility_from(type === 47 ? type : next());
-}
-
-/**
- * @param {number} index
- * @return {string}
- */
-function Tokenizer_identifier(index) {
-  while (!Tokenizer_token(peek())) next();
-  return slice(index, position);
-}
-;// CONCATENATED MODULE: ./node_modules/styled-components/node_modules/stylis/src/Serializer.js
-
-
-
-/**
- * @param {object[]} children
- * @param {function} callback
- * @return {string}
- */
-function serialize(children, callback) {
-  var output = '';
-  for (var i = 0; i < children.length; i++) output += callback(children[i], i, children, callback) || '';
-  return output;
-}
-
-/**
- * @param {object} element
- * @param {number} index
- * @param {object[]} children
- * @param {function} callback
- * @return {string}
- */
-function Serializer_stringify(element, index, children, callback) {
-  switch (element.type) {
-    case LAYER:
-      if (element.children.length) break;
-    case IMPORT:
-    case DECLARATION:
-      return element.return = element.return || element.value;
-    case COMMENT:
-      return '';
-    case KEYFRAMES:
-      return element.return = element.value + '{' + serialize(element.children, callback) + '}';
-    case Enum_RULESET:
-      if (!Utility_strlen(element.value = element.props.join(','))) return '';
-  }
-  return Utility_strlen(children = serialize(element.children, callback)) ? element.return = element.value + '{' + children + '}' : '';
-}
-;// CONCATENATED MODULE: ./node_modules/styled-components/node_modules/stylis/src/Prefixer.js
-
-
-
-/**
- * @param {string} value
- * @param {number} length
- * @param {object[]} children
- * @return {string}
- */
-function prefix(value, length, children) {
-  switch (hash(value, length)) {
-    // color-adjust
-    case 5103:
-      return WEBKIT + 'print-' + value + value;
-    // animation, animation-(delay|direction|duration|fill-mode|iteration-count|name|play-state|timing-function)
-    case 5737:
-    case 4201:
-    case 3177:
-    case 3433:
-    case 1641:
-    case 4457:
-    case 2921:
-    // text-decoration, filter, clip-path, backface-visibility, column, box-decoration-break
-    case 5572:
-    case 6356:
-    case 5844:
-    case 3191:
-    case 6645:
-    case 3005:
-    // mask, mask-image, mask-(mode|clip|size), mask-(repeat|origin), mask-position, mask-composite,
-    case 6391:
-    case 5879:
-    case 5623:
-    case 6135:
-    case 4599:
-    case 4855:
-    // background-clip, columns, column-(count|fill|gap|rule|rule-color|rule-style|rule-width|span|width)
-    case 4215:
-    case 6389:
-    case 5109:
-    case 5365:
-    case 5621:
-    case 3829:
-      return WEBKIT + value + value;
-    // tab-size
-    case 4789:
-      return MOZ + value + value;
-    // appearance, user-select, transform, hyphens, text-size-adjust
-    case 5349:
-    case 4246:
-    case 4810:
-    case 6968:
-    case 2756:
-      return WEBKIT + value + MOZ + value + MS + value + value;
-    // writing-mode
-    case 5936:
-      switch (Utility_charat(value, length + 11)) {
-        // vertical-l(r)
-        case 114:
-          return WEBKIT + value + MS + replace(value, /[svh]\w+-[tblr]{2}/, 'tb') + value;
-        // vertical-r(l)
-        case 108:
-          return WEBKIT + value + MS + replace(value, /[svh]\w+-[tblr]{2}/, 'tb-rl') + value;
-        // horizontal(-)tb
-        case 45:
-          return WEBKIT + value + MS + replace(value, /[svh]\w+-[tblr]{2}/, 'lr') + value;
-        // default: fallthrough to below
-      }
-    // flex, flex-direction, scroll-snap-type, writing-mode
-    case 6828:
-    case 4268:
-    case 2903:
-      return WEBKIT + value + MS + value + value;
-    // order
-    case 6165:
-      return WEBKIT + value + MS + 'flex-' + value + value;
-    // align-items
-    case 5187:
-      return WEBKIT + value + replace(value, /(\w+).+(:[^]+)/, WEBKIT + 'box-$1$2' + MS + 'flex-$1$2') + value;
-    // align-self
-    case 5443:
-      return WEBKIT + value + MS + 'flex-item-' + replace(value, /flex-|-self/g, '') + (!match(value, /flex-|baseline/) ? MS + 'grid-row-' + replace(value, /flex-|-self/g, '') : '') + value;
-    // align-content
-    case 4675:
-      return WEBKIT + value + MS + 'flex-line-pack' + replace(value, /align-content|flex-|-self/g, '') + value;
-    // flex-shrink
-    case 5548:
-      return WEBKIT + value + MS + replace(value, 'shrink', 'negative') + value;
-    // flex-basis
-    case 5292:
-      return WEBKIT + value + MS + replace(value, 'basis', 'preferred-size') + value;
-    // flex-grow
-    case 6060:
-      return WEBKIT + 'box-' + replace(value, '-grow', '') + WEBKIT + value + MS + replace(value, 'grow', 'positive') + value;
-    // transition
-    case 4554:
-      return WEBKIT + replace(value, /([^-])(transform)/g, '$1' + WEBKIT + '$2') + value;
-    // cursor
-    case 6187:
-      return replace(replace(replace(value, /(zoom-|grab)/, WEBKIT + '$1'), /(image-set)/, WEBKIT + '$1'), value, '') + value;
-    // background, background-image
-    case 5495:
-    case 3959:
-      return replace(value, /(image-set\([^]*)/, WEBKIT + '$1' + '$`$1');
-    // justify-content
-    case 4968:
-      return replace(replace(value, /(.+:)(flex-)?(.*)/, WEBKIT + 'box-pack:$3' + MS + 'flex-pack:$3'), /s.+-b[^;]+/, 'justify') + WEBKIT + value + value;
-    // justify-self
-    case 4200:
-      if (!match(value, /flex-|baseline/)) return MS + 'grid-column-align' + Utility_substr(value, length) + value;
-      break;
-    // grid-template-(columns|rows)
-    case 2592:
-    case 3360:
-      return MS + replace(value, 'template-', '') + value;
-    // grid-(row|column)-start
-    case 4384:
-    case 3616:
-      if (children && children.some(function (element, index) {
-        return length = index, match(element.props, /grid-\w+-end/);
-      })) {
-        return ~indexof(value + (children = children[length].value), 'span') ? value : MS + replace(value, '-start', '') + value + MS + 'grid-row-span:' + (~indexof(children, 'span') ? match(children, /\d+/) : +match(children, /\d+/) - +match(value, /\d+/)) + ';';
-      }
-      return MS + replace(value, '-start', '') + value;
-    // grid-(row|column)-end
-    case 4896:
-    case 4128:
-      return children && children.some(function (element) {
-        return match(element.props, /grid-\w+-start/);
-      }) ? value : MS + replace(replace(value, '-end', '-span'), 'span ', '') + value;
-    // (margin|padding)-inline-(start|end)
-    case 4095:
-    case 3583:
-    case 4068:
-    case 2532:
-      return replace(value, /(.+)-inline(.+)/, WEBKIT + '$1$2') + value;
-    // (min|max)?(width|height|inline-size|block-size)
-    case 8116:
-    case 7059:
-    case 5753:
-    case 5535:
-    case 5445:
-    case 5701:
-    case 4933:
-    case 4677:
-    case 5533:
-    case 5789:
-    case 5021:
-    case 4765:
-      // stretch, max-content, min-content, fill-available
-      if (Utility_strlen(value) - 1 - length > 6) switch (Utility_charat(value, length + 1)) {
-        // (m)ax-content, (m)in-content
-        case 109:
-          // -
-          if (Utility_charat(value, length + 4) !== 45) break;
-        // (f)ill-available, (f)it-content
-        case 102:
-          return replace(value, /(.+:)(.+)-([^]+)/, '$1' + WEBKIT + '$2-$3' + '$1' + MOZ + (Utility_charat(value, length + 3) == 108 ? '$3' : '$2-$3')) + value;
-        // (s)tretch
-        case 115:
-          return ~indexof(value, 'stretch') ? prefix(replace(value, 'stretch', 'fill-available'), length, children) + value : value;
-      }
-      break;
-    // grid-(column|row)
-    case 5152:
-    case 5920:
-      return replace(value, /(.+?):(\d+)(\s*\/\s*(span)?\s*(\d+))?(.*)/, function (_, a, b, c, d, e, f) {
-        return MS + a + ':' + b + f + (c ? MS + a + '-span:' + (d ? e : +e - +b) + f : '') + value;
-      });
-    // position: sticky
-    case 4949:
-      // stick(y)?
-      if (Utility_charat(value, length + 6) === 121) return replace(value, ':', ':' + WEBKIT) + value;
-      break;
-    // display: (flex|inline-flex|grid|inline-grid)
-    case 6444:
-      switch (Utility_charat(value, Utility_charat(value, 14) === 45 ? 18 : 11)) {
-        // (inline-)?fle(x)
-        case 120:
-          return replace(value, /(.+:)([^;\s!]+)(;|(\s+)?!.+)?/, '$1' + WEBKIT + (Utility_charat(value, 14) === 45 ? 'inline-' : '') + 'box$3' + '$1' + WEBKIT + '$2$3' + '$1' + MS + '$2box$3') + value;
-        // (inline-)?gri(d)
-        case 100:
-          return replace(value, ':', ':' + MS) + value;
-      }
-      break;
-    // scroll-margin, scroll-margin-(top|right|bottom|left)
-    case 5719:
-    case 2647:
-    case 2135:
-    case 3927:
-    case 2391:
-      return replace(value, 'scroll-', 'scroll-snap-') + value;
-  }
-  return value;
-}
-;// CONCATENATED MODULE: ./node_modules/styled-components/node_modules/stylis/src/Middleware.js
-
-
-
-
-
-
-/**
- * @param {function[]} collection
- * @return {function}
- */
-function middleware(collection) {
-  var length = Utility_sizeof(collection);
-  return function (element, index, children, callback) {
-    var output = '';
-    for (var i = 0; i < length; i++) output += collection[i](element, index, children, callback) || '';
-    return output;
-  };
-}
-
-/**
- * @param {function} callback
- * @return {function}
- */
-function rulesheet(callback) {
-  return function (element) {
-    if (!element.root) if (element = element.return) callback(element);
-  };
-}
-
-/**
- * @param {object} element
- * @param {number} index
- * @param {object[]} children
- * @param {function} callback
- */
-function prefixer(element, index, children, callback) {
-  if (element.length > -1) if (!element.return) switch (element.type) {
-    case DECLARATION:
-      element.return = prefix(element.value, element.length, children);
-      return;
-    case KEYFRAMES:
-      return serialize([copy(element, {
-        value: replace(element.value, '@', '@' + WEBKIT)
-      })], callback);
-    case Enum_RULESET:
-      if (element.length) return Utility_combine(children = element.props, function (value) {
-        switch (match(value, callback = /(::plac\w+|:read-\w+)/)) {
-          // :read-(only|write)
-          case ':read-only':
-          case ':read-write':
-            lift(copy(element, {
-              props: [replace(value, /:(read-\w+)/, ':' + MOZ + '$1')]
-            }));
-            lift(copy(element, {
-              props: [value]
-            }));
-            Utility_assign(element, {
-              props: filter(children, callback)
-            });
-            break;
-          // :placeholder
-          case '::placeholder':
-            lift(copy(element, {
-              props: [replace(value, /:(plac\w+)/, ':' + WEBKIT + 'input-$1')]
-            }));
-            lift(copy(element, {
-              props: [replace(value, /:(plac\w+)/, ':' + MOZ + '$1')]
-            }));
-            lift(copy(element, {
-              props: [replace(value, /:(plac\w+)/, MS + 'input-$1')]
-            }));
-            lift(copy(element, {
-              props: [value]
-            }));
-            Utility_assign(element, {
-              props: filter(children, callback)
-            });
-            break;
-        }
-        return '';
-      });
-  }
-}
-
-/**
- * @param {object} element
- * @param {number} index
- * @param {object[]} children
- */
-function namespace(element) {
-  switch (element.type) {
-    case RULESET:
-      element.props = element.props.map(function (value) {
-        return combine(tokenize(value), function (value, index, children) {
-          switch (charat(value, 0)) {
-            // \f
-            case 12:
-              return substr(value, 1, strlen(value));
-            // \0 ( + > ~
-            case 0:
-            case 40:
-            case 43:
-            case 62:
-            case 126:
-              return value;
-            // :
-            case 58:
-              if (children[++index] === 'global') children[index] = '', children[++index] = '\f' + substr(children[index], index = 1, -1);
-            // \s
-            case 32:
-              return index === 1 ? '' : value;
-            default:
-              switch (index) {
-                case 0:
-                  element = value;
-                  return sizeof(children) > 1 ? '' : value;
-                case index = sizeof(children) - 1:
-                case 2:
-                  return index === 2 ? value + element + element : value + element;
-                default:
-                  return value;
-              }
-          }
-        });
-      });
-  }
-}
-;// CONCATENATED MODULE: ./node_modules/styled-components/node_modules/stylis/src/Parser.js
-
-
-
-
-/**
- * @param {string} value
- * @return {object[]}
- */
-function compile(value) {
-  return dealloc(Parser_parse('', null, null, null, [''], value = alloc(value), 0, [0], value));
-}
-
-/**
- * @param {string} value
- * @param {object} root
- * @param {object?} parent
- * @param {string[]} rule
- * @param {string[]} rules
- * @param {string[]} rulesets
- * @param {number[]} pseudo
- * @param {number[]} points
- * @param {string[]} declarations
- * @return {object}
- */
-function Parser_parse(value, root, parent, rule, rules, rulesets, pseudo, points, declarations) {
-  var index = 0;
-  var offset = 0;
-  var length = pseudo;
-  var atrule = 0;
-  var property = 0;
-  var previous = 0;
-  var variable = 1;
-  var scanning = 1;
-  var ampersand = 1;
-  var character = 0;
-  var type = '';
-  var props = rules;
-  var children = rulesets;
-  var reference = rule;
-  var characters = type;
-  while (scanning) switch (previous = character, character = next()) {
-    // (
-    case 40:
-      if (previous != 108 && Utility_charat(characters, length - 1) == 58) {
-        if (indexof(characters += replace(delimit(character), '&', '&\f'), '&\f') != -1) ampersand = -1;
-        break;
-      }
-    // " ' [
-    case 34:
-    case 39:
-    case 91:
-      characters += delimit(character);
-      break;
-    // \t \n \r \s
-    case 9:
-    case 10:
-    case 13:
-    case 32:
-      characters += whitespace(previous);
-      break;
-    // \
-    case 92:
-      characters += escaping(caret() - 1, 7);
-      continue;
-    // /
-    case 47:
-      switch (peek()) {
-        case 42:
-        case 47:
-          Utility_append(comment(commenter(next(), caret()), root, parent, declarations), declarations);
-          break;
-        default:
-          characters += '/';
-      }
-      break;
-    // {
-    case 123 * variable:
-      points[index++] = Utility_strlen(characters) * ampersand;
-    // } ; \0
-    case 125 * variable:
-    case 59:
-    case 0:
-      switch (character) {
-        // \0 }
-        case 0:
-        case 125:
-          scanning = 0;
-        // ;
-        case 59 + offset:
-          if (ampersand == -1) characters = replace(characters, /\f/g, '');
-          if (property > 0 && Utility_strlen(characters) - length) Utility_append(property > 32 ? declaration(characters + ';', rule, parent, length - 1, declarations) : declaration(replace(characters, ' ', '') + ';', rule, parent, length - 2, declarations), declarations);
-          break;
-        // @ ;
-        case 59:
-          characters += ';';
-        // { rule/at-rule
-        default:
-          Utility_append(reference = ruleset(characters, root, parent, index, offset, rules, points, type, props = [], children = [], length, rulesets), rulesets);
-          if (character === 123) if (offset === 0) Parser_parse(characters, root, reference, reference, props, rulesets, length, points, children);else switch (atrule === 99 && Utility_charat(characters, 3) === 110 ? 100 : atrule) {
-            // d l m s
-            case 100:
-            case 108:
-            case 109:
-            case 115:
-              Parser_parse(value, reference, reference, rule && Utility_append(ruleset(value, reference, reference, 0, 0, rules, points, type, rules, props = [], length, children), children), rules, children, length, points, rule ? props : children);
-              break;
-            default:
-              Parser_parse(characters, reference, reference, reference, [''], children, 0, points, children);
-          }
-      }
-      index = offset = property = 0, variable = ampersand = 1, type = characters = '', length = pseudo;
-      break;
-    // :
-    case 58:
-      length = 1 + Utility_strlen(characters), property = previous;
-    default:
-      if (variable < 1) if (character == 123) --variable;else if (character == 125 && variable++ == 0 && prev() == 125) continue;
-      switch (characters += Utility_from(character), character * variable) {
-        // &
-        case 38:
-          ampersand = offset > 0 ? 1 : (characters += '\f', -1);
-          break;
-        // ,
-        case 44:
-          points[index++] = (Utility_strlen(characters) - 1) * ampersand, ampersand = 1;
-          break;
-        // @
-        case 64:
-          // -
-          if (peek() === 45) characters += delimit(next());
-          atrule = peek(), offset = length = Utility_strlen(type = characters += Tokenizer_identifier(caret())), character++;
-          break;
-        // -
-        case 45:
-          if (previous === 45 && Utility_strlen(characters) == 2) variable = 0;
-      }
-  }
-  return rulesets;
-}
-
-/**
- * @param {string} value
- * @param {object} root
- * @param {object?} parent
- * @param {number} index
- * @param {number} offset
- * @param {string[]} rules
- * @param {number[]} points
- * @param {string} type
- * @param {string[]} props
- * @param {string[]} children
- * @param {number} length
- * @param {object[]} siblings
- * @return {object}
- */
-function ruleset(value, root, parent, index, offset, rules, points, type, props, children, length, siblings) {
-  var post = offset - 1;
-  var rule = offset === 0 ? rules : [''];
-  var size = Utility_sizeof(rule);
-  for (var i = 0, j = 0, k = 0; i < index; ++i) for (var x = 0, y = Utility_substr(value, post + 1, post = abs(j = points[i])), z = value; x < size; ++x) if (z = trim(j > 0 ? rule[x] + ' ' + y : replace(y, /&\f/g, rule[x]))) props[k++] = z;
-  return node(value, root, parent, offset === 0 ? Enum_RULESET : type, props, children, length, siblings);
-}
-
-/**
- * @param {number} value
- * @param {object} root
- * @param {object?} parent
- * @param {object[]} siblings
- * @return {object}
- */
-function comment(value, root, parent, siblings) {
-  return node(value, root, parent, COMMENT, Utility_from(Tokenizer_char()), Utility_substr(value, 2, -2), 0, siblings);
-}
-
-/**
- * @param {string} value
- * @param {object} root
- * @param {object?} parent
- * @param {number} length
- * @param {object[]} siblings
- * @return {object}
- */
-function declaration(value, root, parent, length, siblings) {
-  return node(value, root, parent, DECLARATION, Utility_substr(value, 0, length), Utility_substr(value, length + 1, -1), length, siblings);
-}
-// EXTERNAL MODULE: ./node_modules/@emotion/unitless/dist/emotion-unitless.esm.js
-var emotion_unitless_esm = __webpack_require__(1536);
-;// CONCATENATED MODULE: ./node_modules/styled-components/dist/styled-components.browser.esm.js
-
-
-
-
-
-
-var f = "undefined" != typeof process && void 0 !== ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.6.7","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE2":"https://kiss-translator.rayjar.com/options","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_LOGOURL2":"https://kiss-translator.rayjar.com/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-rules/kiss-rules.json","REACT_APP_RULESURL_ON":"https://fishjar.github.io/kiss-rules/kiss-rules-on.json","REACT_APP_RULESURL_OFF":"https://fishjar.github.io/kiss-rules/kiss-rules-off.json","REACT_APP_VERSIONFILE":"https://fishjar.github.io/kiss-translator/version.txt","REACT_APP_VERSIONFILE2":"https://kiss-translator.rayjar.com/version.txt","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js"}) && (({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.6.7","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE2":"https://kiss-translator.rayjar.com/options","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_LOGOURL2":"https://kiss-translator.rayjar.com/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-rules/kiss-rules.json","REACT_APP_RULESURL_ON":"https://fishjar.github.io/kiss-rules/kiss-rules-on.json","REACT_APP_RULESURL_OFF":"https://fishjar.github.io/kiss-rules/kiss-rules-off.json","REACT_APP_VERSIONFILE":"https://fishjar.github.io/kiss-translator/version.txt","REACT_APP_VERSIONFILE2":"https://kiss-translator.rayjar.com/version.txt","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js"}).REACT_APP_SC_ATTR || ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.6.7","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE2":"https://kiss-translator.rayjar.com/options","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_LOGOURL2":"https://kiss-translator.rayjar.com/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-rules/kiss-rules.json","REACT_APP_RULESURL_ON":"https://fishjar.github.io/kiss-rules/kiss-rules-on.json","REACT_APP_RULESURL_OFF":"https://fishjar.github.io/kiss-rules/kiss-rules-off.json","REACT_APP_VERSIONFILE":"https://fishjar.github.io/kiss-translator/version.txt","REACT_APP_VERSIONFILE2":"https://kiss-translator.rayjar.com/version.txt","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js"}).SC_ATTR) || "data-styled",
-  m = "6.0.7",
-  y = "undefined" != typeof window && "HTMLElement" in window,
-  v = Boolean("boolean" == typeof SC_DISABLE_SPEEDY ? SC_DISABLE_SPEEDY : "undefined" != typeof process && void 0 !== ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.6.7","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE2":"https://kiss-translator.rayjar.com/options","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_LOGOURL2":"https://kiss-translator.rayjar.com/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-rules/kiss-rules.json","REACT_APP_RULESURL_ON":"https://fishjar.github.io/kiss-rules/kiss-rules-on.json","REACT_APP_RULESURL_OFF":"https://fishjar.github.io/kiss-rules/kiss-rules-off.json","REACT_APP_VERSIONFILE":"https://fishjar.github.io/kiss-translator/version.txt","REACT_APP_VERSIONFILE2":"https://kiss-translator.rayjar.com/version.txt","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js"}) && void 0 !== ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.6.7","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE2":"https://kiss-translator.rayjar.com/options","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_LOGOURL2":"https://kiss-translator.rayjar.com/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-rules/kiss-rules.json","REACT_APP_RULESURL_ON":"https://fishjar.github.io/kiss-rules/kiss-rules-on.json","REACT_APP_RULESURL_OFF":"https://fishjar.github.io/kiss-rules/kiss-rules-off.json","REACT_APP_VERSIONFILE":"https://fishjar.github.io/kiss-translator/version.txt","REACT_APP_VERSIONFILE2":"https://kiss-translator.rayjar.com/version.txt","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js"}).REACT_APP_SC_DISABLE_SPEEDY && "" !== ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.6.7","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE2":"https://kiss-translator.rayjar.com/options","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_LOGOURL2":"https://kiss-translator.rayjar.com/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-rules/kiss-rules.json","REACT_APP_RULESURL_ON":"https://fishjar.github.io/kiss-rules/kiss-rules-on.json","REACT_APP_RULESURL_OFF":"https://fishjar.github.io/kiss-rules/kiss-rules-off.json","REACT_APP_VERSIONFILE":"https://fishjar.github.io/kiss-translator/version.txt","REACT_APP_VERSIONFILE2":"https://kiss-translator.rayjar.com/version.txt","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js"}).REACT_APP_SC_DISABLE_SPEEDY ? "false" !== ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.6.7","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE2":"https://kiss-translator.rayjar.com/options","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_LOGOURL2":"https://kiss-translator.rayjar.com/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-rules/kiss-rules.json","REACT_APP_RULESURL_ON":"https://fishjar.github.io/kiss-rules/kiss-rules-on.json","REACT_APP_RULESURL_OFF":"https://fishjar.github.io/kiss-rules/kiss-rules-off.json","REACT_APP_VERSIONFILE":"https://fishjar.github.io/kiss-translator/version.txt","REACT_APP_VERSIONFILE2":"https://kiss-translator.rayjar.com/version.txt","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js"}).REACT_APP_SC_DISABLE_SPEEDY && ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.6.7","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE2":"https://kiss-translator.rayjar.com/options","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_LOGOURL2":"https://kiss-translator.rayjar.com/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-rules/kiss-rules.json","REACT_APP_RULESURL_ON":"https://fishjar.github.io/kiss-rules/kiss-rules-on.json","REACT_APP_RULESURL_OFF":"https://fishjar.github.io/kiss-rules/kiss-rules-off.json","REACT_APP_VERSIONFILE":"https://fishjar.github.io/kiss-translator/version.txt","REACT_APP_VERSIONFILE2":"https://kiss-translator.rayjar.com/version.txt","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js"}).REACT_APP_SC_DISABLE_SPEEDY : "undefined" != typeof process && void 0 !== ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.6.7","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE2":"https://kiss-translator.rayjar.com/options","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_LOGOURL2":"https://kiss-translator.rayjar.com/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-rules/kiss-rules.json","REACT_APP_RULESURL_ON":"https://fishjar.github.io/kiss-rules/kiss-rules-on.json","REACT_APP_RULESURL_OFF":"https://fishjar.github.io/kiss-rules/kiss-rules-off.json","REACT_APP_VERSIONFILE":"https://fishjar.github.io/kiss-translator/version.txt","REACT_APP_VERSIONFILE2":"https://kiss-translator.rayjar.com/version.txt","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js"}) && void 0 !== ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.6.7","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE2":"https://kiss-translator.rayjar.com/options","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_LOGOURL2":"https://kiss-translator.rayjar.com/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-rules/kiss-rules.json","REACT_APP_RULESURL_ON":"https://fishjar.github.io/kiss-rules/kiss-rules-on.json","REACT_APP_RULESURL_OFF":"https://fishjar.github.io/kiss-rules/kiss-rules-off.json","REACT_APP_VERSIONFILE":"https://fishjar.github.io/kiss-translator/version.txt","REACT_APP_VERSIONFILE2":"https://kiss-translator.rayjar.com/version.txt","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js"}).SC_DISABLE_SPEEDY && "" !== ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.6.7","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE2":"https://kiss-translator.rayjar.com/options","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_LOGOURL2":"https://kiss-translator.rayjar.com/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-rules/kiss-rules.json","REACT_APP_RULESURL_ON":"https://fishjar.github.io/kiss-rules/kiss-rules-on.json","REACT_APP_RULESURL_OFF":"https://fishjar.github.io/kiss-rules/kiss-rules-off.json","REACT_APP_VERSIONFILE":"https://fishjar.github.io/kiss-translator/version.txt","REACT_APP_VERSIONFILE2":"https://kiss-translator.rayjar.com/version.txt","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js"}).SC_DISABLE_SPEEDY ? "false" !== ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.6.7","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE2":"https://kiss-translator.rayjar.com/options","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_LOGOURL2":"https://kiss-translator.rayjar.com/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-rules/kiss-rules.json","REACT_APP_RULESURL_ON":"https://fishjar.github.io/kiss-rules/kiss-rules-on.json","REACT_APP_RULESURL_OFF":"https://fishjar.github.io/kiss-rules/kiss-rules-off.json","REACT_APP_VERSIONFILE":"https://fishjar.github.io/kiss-translator/version.txt","REACT_APP_VERSIONFILE2":"https://kiss-translator.rayjar.com/version.txt","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js"}).SC_DISABLE_SPEEDY && ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.6.7","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE2":"https://kiss-translator.rayjar.com/options","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_LOGOURL2":"https://kiss-translator.rayjar.com/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-rules/kiss-rules.json","REACT_APP_RULESURL_ON":"https://fishjar.github.io/kiss-rules/kiss-rules-on.json","REACT_APP_RULESURL_OFF":"https://fishjar.github.io/kiss-rules/kiss-rules-off.json","REACT_APP_VERSIONFILE":"https://fishjar.github.io/kiss-translator/version.txt","REACT_APP_VERSIONFILE2":"https://kiss-translator.rayjar.com/version.txt","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2":"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js"}).SC_DISABLE_SPEEDY : "production" !== "production"),
-  g = {},
-  S = /invalid hook call/i,
-  w = new Set(),
-  b = function b(t, n) {
-    if (false) { var a, o, s, i; }
-  },
-  E = Object.freeze([]),
-  N = Object.freeze({});
-function P(e, t, n) {
-  return void 0 === n && (n = N), e.theme !== n.theme && e.theme || t || n.theme;
-}
-var styled_components_browser_esm_ = new Set(["a", "abbr", "address", "area", "article", "aside", "audio", "b", "base", "bdi", "bdo", "big", "blockquote", "body", "br", "button", "canvas", "caption", "cite", "code", "col", "colgroup", "data", "datalist", "dd", "del", "details", "dfn", "dialog", "div", "dl", "dt", "em", "embed", "fieldset", "figcaption", "figure", "footer", "form", "h1", "h2", "h3", "h4", "h5", "h6", "head", "header", "hgroup", "hr", "html", "i", "iframe", "img", "input", "ins", "kbd", "keygen", "label", "legend", "li", "link", "main", "map", "mark", "menu", "menuitem", "meta", "meter", "nav", "noscript", "object", "ol", "optgroup", "option", "output", "p", "param", "picture", "pre", "progress", "q", "rp", "rt", "ruby", "s", "samp", "script", "section", "select", "small", "source", "span", "strong", "style", "sub", "summary", "sup", "table", "tbody", "td", "textarea", "tfoot", "th", "thead", "time", "title", "tr", "track", "u", "ul", "use", "var", "video", "wbr", "circle", "clipPath", "defs", "ellipse", "foreignObject", "g", "image", "line", "linearGradient", "marker", "mask", "path", "pattern", "polygon", "polyline", "radialGradient", "rect", "stop", "svg", "text", "tspan"]),
-  C = /[!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~-]+/g,
-  I = /(^-|-$)/g;
-function A(e) {
-  return e.replace(C, "-").replace(I, "");
-}
-var O = /(a)(d)/gi,
-  D = function D(e) {
-    return String.fromCharCode(e + (e > 25 ? 39 : 97));
-  };
-function R(e) {
-  var t,
-    n = "";
-  for (t = Math.abs(e); t > 52; t = t / 52 | 0) n = D(t % 52) + n;
-  return (D(t % 52) + n).replace(O, "$1-$2");
-}
-var T,
-  k = function k(e, t) {
-    for (var n = t.length; n;) e = 33 * e ^ t.charCodeAt(--n);
-    return e;
-  },
-  j = function j(e) {
-    return k(5381, e);
-  };
-function x(e) {
-  return R(j(e) >>> 0);
-}
-function V(e) {
-  return  false || e.displayName || e.name || "Component";
-}
-function M(e) {
-  return "string" == typeof e && ( true || 0);
-}
-var F = "function" == typeof Symbol && Symbol.for,
-  $ = F ? Symbol.for("react.memo") : 60115,
-  z = F ? Symbol.for("react.forward_ref") : 60112,
-  B = {
-    childContextTypes: !0,
-    contextType: !0,
-    contextTypes: !0,
-    defaultProps: !0,
-    displayName: !0,
-    getDefaultProps: !0,
-    getDerivedStateFromError: !0,
-    getDerivedStateFromProps: !0,
-    mixins: !0,
-    propTypes: !0,
-    type: !0
-  },
-  L = {
-    name: !0,
-    length: !0,
-    prototype: !0,
-    caller: !0,
-    callee: !0,
-    arguments: !0,
-    arity: !0
-  },
-  G = {
-    $$typeof: !0,
-    compare: !0,
-    defaultProps: !0,
-    displayName: !0,
-    propTypes: !0,
-    type: !0
-  },
-  Y = ((T = {})[z] = {
-    $$typeof: !0,
-    render: !0,
-    defaultProps: !0,
-    displayName: !0,
-    propTypes: !0
-  }, T[$] = G, T);
-function W(e) {
-  return ("type" in (t = e) && t.type.$$typeof) === $ ? G : "$$typeof" in e ? Y[e.$$typeof] : B;
-  var t;
-}
-var q = Object.defineProperty,
-  H = Object.getOwnPropertyNames,
-  U = Object.getOwnPropertySymbols,
-  J = Object.getOwnPropertyDescriptor,
-  X = Object.getPrototypeOf,
-  Z = Object.prototype;
-function K(e, t, n) {
-  if ("string" != typeof t) {
-    if (Z) {
-      var o = X(t);
-      o && o !== Z && K(e, o, n);
-    }
-    var r = H(t);
-    U && (r = r.concat(U(t)));
-    for (var s = W(e), i = W(t), a = 0; a < r.length; ++a) {
-      var c = r[a];
-      if (!(c in L || n && n[c] || i && c in i || s && c in s)) {
-        var l = J(t, c);
-        try {
-          q(e, c, l);
-        } catch (e) {}
-      }
-    }
-  }
-  return e;
-}
-function Q(e) {
-  return "function" == typeof e;
-}
-function ee(e) {
-  return "object" == typeof e && "styledComponentId" in e;
-}
-function te(e, t) {
-  return e && t ? "".concat(e, " ").concat(t) : e || t || "";
-}
-function ne(e, t) {
-  if (0 === e.length) return "";
-  for (var n = e[0], o = 1; o < e.length; o++) n += t ? t + e[o] : e[o];
-  return n;
-}
-function oe(e) {
-  return null !== e && "object" == typeof e && e.constructor.name === Object.name && !("props" in e && e.$$typeof);
-}
-function re(e, t, n) {
-  if (void 0 === n && (n = !1), !n && !oe(e) && !Array.isArray(e)) return t;
-  if (Array.isArray(t)) for (var o = 0; o < t.length; o++) e[o] = re(e[o], t[o]);else if (oe(t)) for (var o in t) e[o] = re(e[o], t[o]);
-  return e;
-}
-function se(e, t) {
-  Object.defineProperty(e, "toString", {
-    value: t
-  });
-}
-var ie =  false ? 0 : {};
-function ae() {
-  for (var e = [], t = 0; t < arguments.length; t++) e[t] = arguments[t];
-  for (var n = e[0], o = [], r = 1, s = e.length; r < s; r += 1) o.push(e[r]);
-  return o.forEach(function (e) {
-    n = n.replace(/%[a-z]/, e);
-  }), n;
-}
-function ce(t) {
-  for (var n = [], o = 1; o < arguments.length; o++) n[o - 1] = arguments[o];
-  return  true ? new Error("An error occurred. See https://github.com/styled-components/styled-components/blob/main/packages/styled-components/src/utils/errors.md#".concat(t, " for more information.").concat(n.length > 0 ? " Args: ".concat(n.join(", ")) : "")) : 0;
-}
-var le = function () {
-    function e(e) {
-      this.groupSizes = new Uint32Array(512), this.length = 512, this.tag = e;
-    }
-    return e.prototype.indexOfGroup = function (e) {
-      for (var t = 0, n = 0; n < e; n++) t += this.groupSizes[n];
-      return t;
-    }, e.prototype.insertRules = function (e, t) {
-      if (e >= this.groupSizes.length) {
-        for (var n = this.groupSizes, o = n.length, r = o; e >= r;) if ((r <<= 1) < 0) throw ce(16, "".concat(e));
-        this.groupSizes = new Uint32Array(r), this.groupSizes.set(n), this.length = r;
-        for (var s = o; s < r; s++) this.groupSizes[s] = 0;
-      }
-      for (var i = this.indexOfGroup(e + 1), a = (s = 0, t.length); s < a; s++) this.tag.insertRule(i, t[s]) && (this.groupSizes[e]++, i++);
-    }, e.prototype.clearGroup = function (e) {
-      if (e < this.length) {
-        var t = this.groupSizes[e],
-          n = this.indexOfGroup(e),
-          o = n + t;
-        this.groupSizes[e] = 0;
-        for (var r = n; r < o; r++) this.tag.deleteRule(n);
-      }
-    }, e.prototype.getGroup = function (e) {
-      var t = "";
-      if (e >= this.length || 0 === this.groupSizes[e]) return t;
-      for (var n = this.groupSizes[e], o = this.indexOfGroup(e), r = o + n, s = o; s < r; s++) t += "".concat(this.tag.getRule(s)).concat("/*!sc*/\n");
-      return t;
-    }, e;
-  }(),
-  ue = new Map(),
-  pe = new Map(),
-  de = 1,
-  he = function he(e) {
-    if (ue.has(e)) return ue.get(e);
-    for (; pe.has(de);) de++;
-    var t = de++;
-    if (false) {}
-    return ue.set(e, t), pe.set(t, e), t;
-  },
-  fe = function fe(e, t) {
-    ue.set(e, t), pe.set(t, e);
-  },
-  me = "style[".concat(f, "][").concat("data-styled-version", '="').concat("6.0.7", '"]'),
-  ye = new RegExp("^".concat(f, '\\.g(\\d+)\\[id="([\\w\\d-]+)"\\].*?"([^"]*)')),
-  ve = function ve(e, t, n) {
-    for (var o, r = n.split(","), s = 0, i = r.length; s < i; s++) (o = r[s]) && e.registerName(t, o);
-  },
-  ge = function ge(e, t) {
-    for (var n, o = (null !== (n = t.textContent) && void 0 !== n ? n : "").split("/*!sc*/\n"), r = [], s = 0, i = o.length; s < i; s++) {
-      var a = o[s].trim();
-      if (a) {
-        var c = a.match(ye);
-        if (c) {
-          var l = 0 | parseInt(c[1], 10),
-            u = c[2];
-          0 !== l && (fe(u, l), ve(e, u, c[3]), e.getTag().insertRules(l, r)), r.length = 0;
-        } else r.push(a);
-      }
-    }
-  };
-function Se() {
-  return  true ? __webpack_require__.nc : 0;
-}
-var we = function we(e) {
-    var t = document.head,
-      n = e || t,
-      o = document.createElement("style"),
-      r = function (e) {
-        var t = Array.from(e.querySelectorAll("style[".concat(f, "]")));
-        return t[t.length - 1];
-      }(n),
-      s = void 0 !== r ? r.nextSibling : null;
-    o.setAttribute(f, "active"), o.setAttribute("data-styled-version", "6.0.7");
-    var i = Se();
-    return i && o.setAttribute("nonce", i), n.insertBefore(o, s), o;
-  },
-  be = function () {
-    function e(e) {
-      this.element = we(e), this.element.appendChild(document.createTextNode("")), this.sheet = function (e) {
-        if (e.sheet) return e.sheet;
-        for (var t = document.styleSheets, n = 0, o = t.length; n < o; n++) {
-          var r = t[n];
-          if (r.ownerNode === e) return r;
-        }
-        throw ce(17);
-      }(this.element), this.length = 0;
-    }
-    return e.prototype.insertRule = function (e, t) {
-      try {
-        return this.sheet.insertRule(t, e), this.length++, !0;
-      } catch (e) {
-        return !1;
-      }
-    }, e.prototype.deleteRule = function (e) {
-      this.sheet.deleteRule(e), this.length--;
-    }, e.prototype.getRule = function (e) {
-      var t = this.sheet.cssRules[e];
-      return t && t.cssText ? t.cssText : "";
-    }, e;
-  }(),
-  Ee = function () {
-    function e(e) {
-      this.element = we(e), this.nodes = this.element.childNodes, this.length = 0;
-    }
-    return e.prototype.insertRule = function (e, t) {
-      if (e <= this.length && e >= 0) {
-        var n = document.createTextNode(t);
-        return this.element.insertBefore(n, this.nodes[e] || null), this.length++, !0;
-      }
-      return !1;
-    }, e.prototype.deleteRule = function (e) {
-      this.element.removeChild(this.nodes[e]), this.length--;
-    }, e.prototype.getRule = function (e) {
-      return e < this.length ? this.nodes[e].textContent : "";
-    }, e;
-  }(),
-  Ne = function () {
-    function e(e) {
-      this.rules = [], this.length = 0;
-    }
-    return e.prototype.insertRule = function (e, t) {
-      return e <= this.length && (this.rules.splice(e, 0, t), this.length++, !0);
-    }, e.prototype.deleteRule = function (e) {
-      this.rules.splice(e, 1), this.length--;
-    }, e.prototype.getRule = function (e) {
-      return e < this.length ? this.rules[e] : "";
-    }, e;
-  }(),
-  Pe = y,
-  _e = {
-    isServer: !y,
-    useCSSOMInjection: !v
-  },
-  Ce = function () {
-    function e(e, n, o) {
-      void 0 === e && (e = N), void 0 === n && (n = {});
-      var r = this;
-      this.options = _assign(_assign({}, _e), e), this.gs = n, this.names = new Map(o), this.server = !!e.isServer, !this.server && y && Pe && (Pe = !1, function (e) {
-        for (var t = document.querySelectorAll(me), n = 0, o = t.length; n < o; n++) {
-          var r = t[n];
-          r && "active" !== r.getAttribute(f) && (ge(e, r), r.parentNode && r.parentNode.removeChild(r));
-        }
-      }(this)), se(this, function () {
-        return function (e) {
-          for (var t = e.getTag(), n = t.length, o = "", r = function r(n) {
-              var r = function (e) {
-                return pe.get(e);
-              }(n);
-              if (void 0 === r) return "continue";
-              var s = e.names.get(r),
-                i = t.getGroup(n);
-              if (void 0 === s || 0 === i.length) return "continue";
-              var a = "".concat(f, ".g").concat(n, '[id="').concat(r, '"]'),
-                c = "";
-              void 0 !== s && s.forEach(function (e) {
-                e.length > 0 && (c += "".concat(e, ","));
-              }), o += "".concat(i).concat(a, '{content:"').concat(c, '"}').concat("/*!sc*/\n");
-            }, s = 0; s < n; s++) r(s);
-          return o;
-        }(r);
-      });
-    }
-    return e.registerId = function (e) {
-      return he(e);
-    }, e.prototype.reconstructWithOptions = function (n, o) {
-      return void 0 === o && (o = !0), new e(_assign(_assign({}, this.options), n), this.gs, o && this.names || void 0);
-    }, e.prototype.allocateGSInstance = function (e) {
-      return this.gs[e] = (this.gs[e] || 0) + 1;
-    }, e.prototype.getTag = function () {
-      return this.tag || (this.tag = (e = function (e) {
-        var t = e.useCSSOMInjection,
-          n = e.target;
-        return e.isServer ? new Ne(n) : t ? new be(n) : new Ee(n);
-      }(this.options), new le(e)));
-      var e;
-    }, e.prototype.hasNameForId = function (e, t) {
-      return this.names.has(e) && this.names.get(e).has(t);
-    }, e.prototype.registerName = function (e, t) {
-      if (he(e), this.names.has(e)) this.names.get(e).add(t);else {
-        var n = new Set();
-        n.add(t), this.names.set(e, n);
-      }
-    }, e.prototype.insertRules = function (e, t, n) {
-      this.registerName(e, t), this.getTag().insertRules(he(e), n);
-    }, e.prototype.clearNames = function (e) {
-      this.names.has(e) && this.names.get(e).clear();
-    }, e.prototype.clearRules = function (e) {
-      this.getTag().clearGroup(he(e)), this.clearNames(e);
-    }, e.prototype.clearTag = function () {
-      this.tag = void 0;
-    }, e;
-  }(),
-  Ie = /&/g,
-  Ae = /^\s*\/\/.*$/gm;
-function Oe(e, t) {
-  return e.map(function (e) {
-    return "rule" === e.type && (e.value = "".concat(t, " ").concat(e.value), e.value = e.value.replaceAll(",", ",".concat(t, " ")), e.props = e.props.map(function (e) {
-      return "".concat(t, " ").concat(e);
-    })), Array.isArray(e.children) && "@keyframes" !== e.type && (e.children = Oe(e.children, t)), e;
-  });
-}
-function De(e) {
-  var t,
-    n,
-    o,
-    r = void 0 === e ? N : e,
-    s = r.options,
-    i = void 0 === s ? N : s,
-    a = r.plugins,
-    c = void 0 === a ? E : a,
-    l = function l(e, o, r) {
-      return r === n || r.startsWith(n) && r.endsWith(n) && r.replaceAll(n, "").length > 0 ? ".".concat(t) : e;
-    },
-    u = c.slice();
-  u.push(function (e) {
-    e.type === Enum_RULESET && e.value.includes("&") && (e.props[0] = e.props[0].replace(Ie, n).replace(o, l));
-  }), i.prefix && u.push(prefixer), u.push(Serializer_stringify);
-  var p = function p(e, r, s, a) {
-    void 0 === r && (r = ""), void 0 === s && (s = ""), void 0 === a && (a = "&"), t = a, n = r, o = new RegExp("\\".concat(n, "\\b"), "g");
-    var c = e.replace(Ae, ""),
-      l = compile(s || r ? "".concat(s, " ").concat(r, " { ").concat(c, " }") : c);
-    i.namespace && (l = Oe(l, i.namespace));
-    var p = [];
-    return serialize(l, middleware(u.concat(rulesheet(function (e) {
-      return p.push(e);
-    })))), p;
-  };
-  return p.hash = c.length ? c.reduce(function (e, t) {
-    return t.name || ce(15), k(e, t.name);
-  }, 5381).toString() : "", p;
-}
-var Re = new Ce(),
-  Te = De(),
-  ke = react.createContext({
-    shouldForwardProp: void 0,
-    styleSheet: Re,
-    stylis: Te
-  }),
-  je = ke.Consumer,
-  xe = react.createContext(void 0);
-function Ve() {
-  return (0,react.useContext)(ke);
-}
-function Me(e) {
-  var t = (0,react.useState)(e.stylisPlugins),
-    n = t[0],
-    r = t[1],
-    c = Ve().styleSheet,
-    l = (0,react.useMemo)(function () {
-      var t = c;
-      return e.sheet ? t = e.sheet : e.target && (t = t.reconstructWithOptions({
-        target: e.target
-      }, !1)), e.disableCSSOMInjection && (t = t.reconstructWithOptions({
-        useCSSOMInjection: !1
-      })), t;
-    }, [e.disableCSSOMInjection, e.sheet, e.target, c]),
-    u = (0,react.useMemo)(function () {
-      return De({
-        options: {
-          namespace: e.namespace,
-          prefix: e.enableVendorPrefixes
-        },
-        plugins: n
-      });
-    }, [e.enableVendorPrefixes, e.namespace, n]);
-  return (0,react.useEffect)(function () {
-    shallowequal_default()(n, e.stylisPlugins) || r(e.stylisPlugins);
-  }, [e.stylisPlugins]), react.createElement(ke.Provider, {
-    value: {
-      shouldForwardProp: e.shouldForwardProp,
-      styleSheet: l,
-      stylis: u
-    }
-  }, react.createElement(xe.Provider, {
-    value: u
-  }, e.children));
-}
-var Fe = function () {
-    function e(e, t) {
-      var n = this;
-      this.inject = function (e, t) {
-        void 0 === t && (t = Te);
-        var o = n.name + t.hash;
-        e.hasNameForId(n.id, o) || e.insertRules(n.id, o, t(n.rules, o, "@keyframes"));
-      }, this.name = e, this.id = "sc-keyframes-".concat(e), this.rules = t, se(this, function () {
-        throw ce(12, String(n.name));
-      });
-    }
-    return e.prototype.getName = function (e) {
-      return void 0 === e && (e = Te), this.name + e.hash;
-    }, e;
-  }(),
-  $e = function $e(e) {
-    return e >= "A" && e <= "Z";
-  };
-function ze(e) {
-  for (var t = "", n = 0; n < e.length; n++) {
-    var o = e[n];
-    if (1 === n && "-" === o && "-" === e[0]) return e;
-    $e(o) ? t += "-" + o.toLowerCase() : t += o;
-  }
-  return t.startsWith("ms-") ? "-" + t : t;
-}
-var Be = function Be(e) {
-    return null == e || !1 === e || "" === e;
-  },
-  Le = function Le(t) {
-    var n,
-      o,
-      r = [];
-    for (var s in t) {
-      var i = t[s];
-      t.hasOwnProperty(s) && !Be(i) && (Array.isArray(i) && i.isCss || Q(i) ? r.push("".concat(ze(s), ":"), i, ";") : oe(i) ? r.push.apply(r, __spreadArray(__spreadArray(["".concat(s, " {")], Le(i), !1), ["}"], !1)) : r.push("".concat(ze(s), ": ").concat((n = s, null == (o = i) || "boolean" == typeof o || "" === o ? "" : "number" != typeof o || 0 === o || n in emotion_unitless_esm/* default */.Z || n.startsWith("--") ? String(o).trim() : "".concat(o, "px")), ";")));
-    }
-    return r;
-  };
-function Ge(e, t, n, o) {
-  if (Be(e)) return [];
-  if (ee(e)) return [".".concat(e.styledComponentId)];
-  if (Q(e)) {
-    if (!Q(s = e) || s.prototype && s.prototype.isReactComponent || !t) return [e];
-    var r = e(t);
-    return  true || 0, Ge(r, t, n, o);
-  }
-  var s;
-  return e instanceof Fe ? n ? (e.inject(n, o), [e.getName(o)]) : [e] : oe(e) ? Le(e) : Array.isArray(e) ? Array.prototype.concat.apply(E, e.map(function (e) {
-    return Ge(e, t, n, o);
-  })) : [e.toString()];
-}
-function Ye(e) {
-  for (var t = 0; t < e.length; t += 1) {
-    var n = e[t];
-    if (Q(n) && !ee(n)) return !1;
-  }
-  return !0;
-}
-var We = j("6.0.7"),
-  qe = function () {
-    function e(e, t, n) {
-      this.rules = e, this.staticRulesId = "", this.isStatic =  true && (void 0 === n || n.isStatic) && Ye(e), this.componentId = t, this.baseHash = k(We, t), this.baseStyle = n, Ce.registerId(t);
-    }
-    return e.prototype.generateAndInjectStyles = function (e, t, n) {
-      var o = this.baseStyle ? this.baseStyle.generateAndInjectStyles(e, t, n) : "";
-      if (this.isStatic && !n.hash) {
-        if (this.staticRulesId && t.hasNameForId(this.componentId, this.staticRulesId)) o = te(o, this.staticRulesId);else {
-          var r = ne(Ge(this.rules, e, t, n)),
-            s = R(k(this.baseHash, r) >>> 0);
-          if (!t.hasNameForId(this.componentId, s)) {
-            var i = n(r, ".".concat(s), void 0, this.componentId);
-            t.insertRules(this.componentId, s, i);
-          }
-          o = te(o, s), this.staticRulesId = s;
-        }
-      } else {
-        for (var a = k(this.baseHash, n.hash), c = "", l = 0; l < this.rules.length; l++) {
-          var u = this.rules[l];
-          if ("string" == typeof u) c += u,  false && (0);else if (u) {
-            var p = ne(Ge(u, e, t, n));
-            a = k(a, p), c += p;
-          }
-        }
-        if (c) {
-          var d = R(a >>> 0);
-          t.hasNameForId(this.componentId, d) || t.insertRules(this.componentId, d, n(c, ".".concat(d), void 0, this.componentId)), o = te(o, d);
-        }
-      }
-      return o;
-    }, e;
-  }(),
-  He = react.createContext(void 0),
-  Ue = He.Consumer;
-function Je() {
-  var e = c(He);
-  if (!e) throw ce(18);
-  return e;
-}
-function Xe(e) {
-  var n = o.useContext(He),
-    r = i(function () {
-      return function (e, n) {
-        if (!e) throw ce(14);
-        if (Q(e)) {
-          var o = e(n);
-          if (false) {}
-          return o;
-        }
-        if (Array.isArray(e) || "object" != typeof e) throw ce(8);
-        return n ? t(t({}, n), e) : e;
-      }(e.theme, n);
-    }, [e.theme, n]);
-  return e.children ? o.createElement(He.Provider, {
-    value: r
-  }, e.children) : null;
-}
-var Ze = {},
-  Ke = new Set();
-function Qe(e, r, s) {
-  var i = ee(e),
-    a = e,
-    c = !M(e),
-    p = r.attrs,
-    d = void 0 === p ? E : p,
-    h = r.componentId,
-    f = void 0 === h ? function (e, t) {
-      var n = "string" != typeof e ? "sc" : A(e);
-      Ze[n] = (Ze[n] || 0) + 1;
-      var o = "".concat(n, "-").concat(x("6.0.7" + n + Ze[n]));
-      return t ? "".concat(t, "-").concat(o) : o;
-    }(r.displayName, r.parentComponentId) : h,
-    m = r.displayName,
-    y = void 0 === m ? function (e) {
-      return M(e) ? "styled.".concat(e) : "Styled(".concat(V(e), ")");
-    }(e) : m,
-    v = r.displayName && r.componentId ? "".concat(A(r.displayName), "-").concat(r.componentId) : r.componentId || f,
-    g = i && a.attrs ? a.attrs.concat(d).filter(Boolean) : d,
-    S = r.shouldForwardProp;
-  if (i && a.shouldForwardProp) {
-    var w = a.shouldForwardProp;
-    if (r.shouldForwardProp) {
-      var C = r.shouldForwardProp;
-      S = function S(e, t) {
-        return w(e, t) && C(e, t);
-      };
-    } else S = w;
-  }
-  var I = new qe(s, v, i ? a.componentStyle : void 0);
-  function O(e, r) {
-    return function (e, r, s) {
-      var i = e.attrs,
-        a = e.componentStyle,
-        c = e.defaultProps,
-        p = e.foldedComponentIds,
-        d = e.styledComponentId,
-        h = e.target,
-        f = react.useContext(He),
-        m = Ve(),
-        y = e.shouldForwardProp || m.shouldForwardProp;
-       false && 0;
-      var v = function (e, n, o) {
-          for (var r, s = _assign(_assign({}, n), {
-              className: void 0,
-              theme: o
-            }), i = 0; i < e.length; i += 1) {
-            var a = Q(r = e[i]) ? r(s) : r;
-            for (var c in a) s[c] = "className" === c ? te(s[c], a[c]) : "style" === c ? _assign(_assign({}, s[c]), a[c]) : a[c];
-          }
-          return n.className && (s.className = te(s.className, n.className)), s;
-        }(i, r, P(r, f, c) || N),
-        g = v.as || h,
-        S = {};
-      for (var w in v) void 0 === v[w] || "$" === w[0] || "as" === w || "theme" === w || ("forwardedAs" === w ? S.as = v.forwardedAs : y && !y(w, g) || (S[w] = v[w], y || "development" !== "production" || 0 || 0 || 0 || (0)));
-      var b = function (e, t) {
-        var n = Ve(),
-          o = e.generateAndInjectStyles(t, n.styleSheet, n.stylis);
-        return  false && 0, o;
-      }(a, v);
-       false && 0;
-      var E = te(p, d);
-      return b && (E += " " + b), v.className && (E += " " + v.className), S[M(g) && !styled_components_browser_esm_.has(g) ? "class" : "className"] = E, S.ref = s, (0,react.createElement)(g, S);
-    }(D, e, r);
-  }
-   false && (0);
-  var D = react.forwardRef(O);
-  return D.attrs = g, D.componentStyle = I, D.shouldForwardProp = S,  false && (0), D.foldedComponentIds = i ? te(a.foldedComponentIds, a.styledComponentId) : "", D.styledComponentId = v, D.target = i ? a.target : e, Object.defineProperty(D, "defaultProps", {
-    get: function get() {
-      return this._foldedDefaultProps;
-    },
-    set: function set(e) {
-      this._foldedDefaultProps = i ? function (e) {
-        for (var t = [], n = 1; n < arguments.length; n++) t[n - 1] = arguments[n];
-        for (var o = 0, r = t; o < r.length; o++) re(e, r[o], !0);
-        return e;
-      }({}, a.defaultProps, e) : e;
-    }
-  }),  false && (0), se(D, function () {
-    return ".".concat(D.styledComponentId);
-  }), c && K(D, e, {
-    attrs: !0,
-    componentStyle: !0,
-    displayName: !0,
-    foldedComponentIds: !0,
-    shouldForwardProp: !0,
-    styledComponentId: !0,
-    target: !0
-  }), D;
-}
-function et(e, t) {
-  for (var n = [e[0]], o = 0, r = t.length; o < r; o += 1) n.push(t[o], e[o + 1]);
-  return n;
-}
-var tt = function tt(e) {
-  return Object.assign(e, {
-    isCss: !0
-  });
-};
-function nt(t) {
-  for (var n = [], o = 1; o < arguments.length; o++) n[o - 1] = arguments[o];
-  if (Q(t) || oe(t)) {
-    var r = t;
-    return tt(Ge(et(E, __spreadArray([r], n, !0))));
-  }
-  var s = t;
-  return 0 === n.length && 1 === s.length && "string" == typeof s[0] ? Ge(s) : tt(Ge(et(s, n)));
-}
-function ot(n, o, r) {
-  if (void 0 === r && (r = N), !o) throw ce(1, o);
-  var s = function s(t) {
-    for (var s = [], i = 1; i < arguments.length; i++) s[i - 1] = arguments[i];
-    return n(o, r, nt.apply(void 0, __spreadArray([t], s, !1)));
-  };
-  return s.attrs = function (e) {
-    return ot(n, o, _assign(_assign({}, r), {
-      attrs: Array.prototype.concat(r.attrs, e).filter(Boolean)
-    }));
-  }, s.withConfig = function (e) {
-    return ot(n, o, _assign(_assign({}, r), e));
-  }, s;
-}
-var rt = function rt(e) {
-    return ot(Qe, e);
-  },
-  st = rt;
-styled_components_browser_esm_.forEach(function (e) {
-  st[e] = rt(e);
-});
-var it = function () {
-  function e(e, t) {
-    this.rules = e, this.componentId = t, this.isStatic = Ye(e), Ce.registerId(this.componentId + 1);
-  }
-  return e.prototype.createStyles = function (e, t, n, o) {
-    var r = o(ne(Ge(this.rules, t, n, o)), ""),
-      s = this.componentId + e;
-    n.insertRules(s, s, r);
-  }, e.prototype.removeStyles = function (e, t) {
-    t.clearRules(this.componentId + e);
-  }, e.prototype.renderStyles = function (e, t, n, o) {
-    e > 2 && Ce.registerId(this.componentId + e), this.removeStyles(e, n), this.createStyles(e, t, n, o);
-  }, e;
-}();
-function at(n) {
-  for (var r = [], s = 1; s < arguments.length; s++) r[s - 1] = arguments[s];
-  var i = nt.apply(void 0, e([n], r, !1)),
-    a = "sc-global-".concat(x(JSON.stringify(i))),
-    c = new it(i, a);
-   false && 0;
-  var l = function l(e) {
-    var t = Ve(),
-      n = o.useContext(He),
-      r = o.useRef(t.styleSheet.allocateGSInstance(a)).current;
-    return  false && 0,  false && 0, t.styleSheet.server && u(r, e, t.styleSheet, n, t.stylis), o.useLayoutEffect(function () {
-      if (!t.styleSheet.server) return u(r, e, t.styleSheet, n, t.stylis), function () {
-        return c.removeStyles(r, t.styleSheet);
-      };
-    }, [r, e, t.styleSheet, n, t.stylis]), null;
-  };
-  function u(e, n, o, r, s) {
-    if (c.isStatic) c.renderStyles(e, g, o, s);else {
-      var i = t(t({}, n), {
-        theme: P(n, r, l.defaultProps)
-      });
-      c.renderStyles(e, i, o, s);
-    }
-  }
-  return o.memo(l);
-}
-function ct(t) {
-  for (var n = [], o = 1; o < arguments.length; o++) n[o - 1] = arguments[o];
-   false && 0;
-  var r = ne(nt.apply(void 0, e([t], n, !1))),
-    s = x(r);
-  return new Fe(s, r);
-}
-function lt(e) {
-  var n = o.forwardRef(function (n, r) {
-    var s = P(n, o.useContext(He), e.defaultProps);
-    return  false && 0, o.createElement(e, t({}, n, {
-      theme: s,
-      ref: r
-    }));
-  });
-  return  false && (0), K(n, e);
-}
-var ut = function () {
-    function e() {
-      var e = this;
-      this._emitSheetCSS = function () {
-        var t = e.instance.toString(),
-          n = Se(),
-          o = ne([n && 'nonce="'.concat(n, '"'), "".concat(f, '="true"'), "".concat("data-styled-version", '="').concat("6.0.7", '"')].filter(Boolean), " ");
-        return "<style ".concat(o, ">").concat(t, "</style>");
-      }, this.getStyleTags = function () {
-        if (e.sealed) throw ce(2);
-        return e._emitSheetCSS();
-      }, this.getStyleElement = function () {
-        var n;
-        if (e.sealed) throw ce(2);
-        var r = ((n = {})[f] = "", n["data-styled-version"] = "6.0.7", n.dangerouslySetInnerHTML = {
-            __html: e.instance.toString()
-          }, n),
-          s = Se();
-        return s && (r.nonce = s), [react.createElement("style", _assign({}, r, {
-          key: "sc-0-0"
-        }))];
-      }, this.seal = function () {
-        e.sealed = !0;
-      }, this.instance = new Ce({
-        isServer: !0
-      }), this.sealed = !1;
-    }
-    return e.prototype.collectStyles = function (e) {
-      if (this.sealed) throw ce(2);
-      return react.createElement(Me, {
-        sheet: this.instance
-      }, e);
-    }, e.prototype.interleaveWithNodeStream = function (e) {
-      throw ce(3);
-    }, e;
-  }(),
-  pt = {
-    StyleSheet: Ce,
-    mainSheet: Re
-  };
- false && 0;
-var dt = "__sc-".concat(f, "__");
- false && (0);
-
-//# sourceMappingURL=styled-components.browser.esm.js.map
+ */function useTranslate(q,rule,setting){var _useState=(0,react.useState)(""),_useState2=(0,slicedToArray/* default */.Z)(_useState,2),text=_useState2[0],setText=_useState2[1];var _useState3=(0,react.useState)(false),_useState4=(0,slicedToArray/* default */.Z)(_useState3,2),loading=_useState4[0],setLoading=_useState4[1];var _useState5=(0,react.useState)(false),_useState6=(0,slicedToArray/* default */.Z)(_useState5,2),sameLang=_useState6[0],setSamelang=_useState6[1];var translator=rule.translator,fromLang=rule.fromLang,toLang=rule.toLang;(0,react.useEffect)(function(){asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(){var deLang,_yield$apiTranslate,_yield$apiTranslate2,trText,isSame;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:_context.prev=0;setLoading(true);_context.next=4;return tryDetectLang(q);case 4:deLang=_context.sent;if(!(deLang&&toLang.includes(deLang))){_context.next=9;break;}setSamelang(true);_context.next=17;break;case 9:_context.next=11;return apiTranslate({translator:translator,text:q,fromLang:fromLang,toLang:toLang,apiSetting:(setting.transApis||DEFAULT_TRANS_APIS)[translator]});case 11:_yield$apiTranslate=_context.sent;_yield$apiTranslate2=(0,slicedToArray/* default */.Z)(_yield$apiTranslate,2);trText=_yield$apiTranslate2[0];isSame=_yield$apiTranslate2[1];setText(trText);setSamelang(isSame);case 17:_context.next=22;break;case 19:_context.prev=19;_context.t0=_context["catch"](0);console.log("[translate]",_context.t0);case 22:_context.prev=22;setLoading(false);return _context.finish(22);case 25:case"end":return _context.stop();}},_callee,null,[[0,19,22,25]]);}))();},[q,translator,fromLang,toLang,setting]);return{text:text,sameLang:sameLang,loading:loading};}
 ;// CONCATENATED MODULE: ./src/views/Content/index.js
-var Content_templateObject,Content_templateObject2,Content_templateObject3,Content_templateObject4;var LineSpan=st.span(Content_templateObject||(Content_templateObject=_taggedTemplateLiteral(["\n  opacity: 0.6;\n  -webkit-opacity: 0.6;\n  text-decoration-line: underline;\n  text-decoration-style: ",";\n  text-decoration-color: ",";\n  text-decoration-thickness: 2px;\n  text-underline-offset: 0.3em;\n  -webkit-text-decoration-line: underline;\n  -webkit-text-decoration-style: ",";\n  -webkit-text-decoration-color: ",";\n  -webkit-text-decoration-thickness: 2px;\n  -webkit-text-underline-offset: 0.3em;\n  &:hover {\n    opacity: 1;\n    -webkit-opacity: 1;\n  }\n"])),function(props){return props.$lineStyle;},function(props){return props.$lineColor;},function(props){return props.$lineStyle;},function(props){return props.$lineColor;});var FuzzySpan=st.span(Content_templateObject2||(Content_templateObject2=_taggedTemplateLiteral(["\n  filter: blur(5px);\n  -webkit-filter: blur(5px);\n  &:hover {\n    filter: none;\n    -webkit-filter: none;\n  }\n"])));var HighlightSpan=st.span(Content_templateObject3||(Content_templateObject3=_taggedTemplateLiteral(["\n  color: #fff;\n  background-color: ",";\n"])),function(props){return props.$bgColor;});var DiySpan=st.span(Content_templateObject4||(Content_templateObject4=_taggedTemplateLiteral(["\n  ","\n"])),function(props){return props.$diyStyle;});function StyledSpan(_ref){var textStyle=_ref.textStyle,textDiyStyle=_ref.textDiyStyle,bgColor=_ref.bgColor,children=_ref.children;switch(textStyle){case OPT_STYLE_LINE:// 下划线
+var Content_templateObject,Content_templateObject2,Content_templateObject3,Content_templateObject4;var LineSpan=(0,styled/* default */.ZP)("span")(Content_templateObject||(Content_templateObject=_taggedTemplateLiteral(["\n  opacity: 0.6;\n  -webkit-opacity: 0.6;\n  text-decoration-line: underline;\n  text-decoration-style: ",";\n  text-decoration-color: ",";\n  text-decoration-thickness: 2px;\n  text-underline-offset: 0.3em;\n  -webkit-text-decoration-line: underline;\n  -webkit-text-decoration-style: ",";\n  -webkit-text-decoration-color: ",";\n  -webkit-text-decoration-thickness: 2px;\n  -webkit-text-underline-offset: 0.3em;\n  &:hover {\n    opacity: 1;\n    -webkit-opacity: 1;\n  }\n"])),function(props){return props.$lineStyle;},function(props){return props.$lineColor;},function(props){return props.$lineStyle;},function(props){return props.$lineColor;});var FuzzySpan=(0,styled/* default */.ZP)("span")(Content_templateObject2||(Content_templateObject2=_taggedTemplateLiteral(["\n  filter: blur(0.2em);\n  -webkit-filter: blur(0.2em);\n  &:hover {\n    filter: none;\n    -webkit-filter: none;\n  }\n"])));var HighlightSpan=(0,styled/* default */.ZP)("span")(Content_templateObject3||(Content_templateObject3=_taggedTemplateLiteral(["\n  color: #fff;\n  background-color: ",";\n"])),function(props){return props.$bgColor;});var DiySpan=(0,styled/* default */.ZP)("span")(Content_templateObject4||(Content_templateObject4=_taggedTemplateLiteral(["\n  ","\n"])),function(props){return props.$diyStyle;});function StyledSpan(_ref){var textStyle=_ref.textStyle,textDiyStyle=_ref.textDiyStyle,bgColor=_ref.bgColor,children=_ref.children;switch(textStyle){case OPT_STYLE_LINE:// 下划线
 return/*#__PURE__*/(0,jsx_runtime.jsx)(LineSpan,{$lineStyle:"solid",$lineColor:bgColor,children:children});case OPT_STYLE_DOTLINE:// 点状线
 return/*#__PURE__*/(0,jsx_runtime.jsx)(LineSpan,{$lineStyle:"dotted",$lineColor:bgColor,children:children});case OPT_STYLE_DASHLINE:// 虚线
 return/*#__PURE__*/(0,jsx_runtime.jsx)(LineSpan,{$lineStyle:"dashed",$lineColor:bgColor,children:children});case OPT_STYLE_WAVYLINE:// 波浪线
@@ -31335,14 +28601,18 @@ this._overrideAttachShadow=function(){var _this=_this2;var _attachShadow=HTMLEle
 // const childNodes = childRoots.map((item) => this._queryNodes(item));
 // const nodes = Array.from(rootNode.querySelectorAll(this.rule.selector));
 // return nodes.concat(childNodes).flat();
-_this2._rootNodes.add(rootNode);_this2._rule.selector.split(";").map(function(item){return item.trim();}).filter(Boolean).forEach(function(selector){if(selector.includes(SHADOW_KEY)){var _selector$split$map=selector.split(SHADOW_KEY).map(function(item){return item.trim();}),_selector$split$map2=(0,slicedToArray/* default */.Z)(_selector$split$map,2),outSelector=_selector$split$map2[0],inSelector=_selector$split$map2[1];if(outSelector&&inSelector){var outNodes=_this2._querySelectorAll(outSelector,rootNode);outNodes.forEach(function(outNode){if(outNode.shadowRoot){_this2._rootNodes.add(outNode.shadowRoot);_this2._queryFilter(inSelector,outNode.shadowRoot).forEach(function(item){if(!_this2._tranNodes.has(item)){_this2._tranNodes.set(item,"");}});}});}}else{_this2._queryFilter(selector,rootNode).forEach(function(item){if(!_this2._tranNodes.has(item)){_this2._tranNodes.set(item,"");}});}});};this._register=function(){// 搜索节点
+_this2._rootNodes.add(rootNode);_this2._rule.selector.split(";").map(function(item){return item.trim();}).filter(Boolean).forEach(function(selector){if(selector.includes(SHADOW_KEY)){var _selector$split$map=selector.split(SHADOW_KEY).map(function(item){return item.trim();}),_selector$split$map2=(0,slicedToArray/* default */.Z)(_selector$split$map,2),outSelector=_selector$split$map2[0],inSelector=_selector$split$map2[1];if(outSelector&&inSelector){var outNodes=_this2._querySelectorAll(outSelector,rootNode);outNodes.forEach(function(outNode){if(outNode.shadowRoot){_this2._rootNodes.add(outNode.shadowRoot);_this2._queryFilter(inSelector,outNode.shadowRoot).forEach(function(item){if(!_this2._tranNodes.has(item)){_this2._tranNodes.set(item,"");}});}});}}else{_this2._queryFilter(selector,rootNode).forEach(function(item){if(!_this2._tranNodes.has(item)){_this2._tranNodes.set(item,"");}});}});};this._register=function(){if(_this2._rule.fromLang===_this2._rule.toLang){return;}// 搜索节点
 _this2._queryNodes();_this2._rootNodes.forEach(function(node){// 监听节点变化;
 _this2._mutaObserver.observe(node,{childList:true,subtree:true// characterData: true,
-});});_this2._tranNodes.forEach(function(_,node){// 监听节点显示
-_this2._interseObserver.observe(node);});};this._unRegister=function(){// 解除节点变化监听
+});});_this2._tranNodes.forEach(function(_,node){if(!_this2._setting.mouseKey||_this2._setting.mouseKey===OPT_MOUSEKEY_DISABLE){// 监听节点显示
+_this2._interseObserver.observe(node);}else{// 监听鼠标悬停
+node.addEventListener("mouseover",_this2._handleMouseover);}});};this._handleMouseover=function(e){var key=_this2._setting.mouseKey.slice(3);if(_this2._setting.mouseKey===OPT_MOUSEKEY_MOUSEOVER||e[key]){e.target.removeEventListener("mouseover",_this2._handleMouseover);_this2._render(e.target);}};this._unRegister=function(){// 解除节点变化监听
 _this2._mutaObserver.disconnect();// 解除节点显示监听
-_this2._interseObserver.disconnect();// 移除已插入元素
-_this2._tranNodes.forEach(function(_,node){var _node$querySelector;(_node$querySelector=node.querySelector(APP_LCNAME))===null||_node$querySelector===void 0?void 0:_node$querySelector.remove();});// 清空节点集合
+// this._interseObserver.disconnect();
+_this2._tranNodes.forEach(function(_,node){var _node$querySelector;if(!_this2._setting.mouseKey||_this2._setting.mouseKey===OPT_MOUSEKEY_DISABLE){// 解除节点显示监听
+_this2._interseObserver.unobserve(node);}else{// 移除鼠标悬停监听
+node.removeEventListener("mouseover",_this2._handleMouseover);}// 移除已插入元素
+(_node$querySelector=node.querySelector(APP_LCNAME))===null||_node$querySelector===void 0?void 0:_node$querySelector.remove();});// 清空节点集合
 _this2._rootNodes.clear();_this2._tranNodes.clear();// 清空任务池
 clearFetchPool();};this._reTranslate=debounce(function(){if(_this2._rule.transOpen==="true"){_this2._register();}},500);this._render=function(el){var _this2$_setting$minLe,_this2$_setting$maxLe;var traEl=el.querySelector(APP_LCNAME);// 已翻译
 if(traEl){var preText=_this2._tranNodes.get(el);var curText=el.innerText.trim();// const traText = traEl.innerText.trim();
@@ -31356,53 +28626,87 @@ return this._rule;},set:function set(rule){// console.log("set rule", rule);
 this._rule=rule;// 广播消息
 var eventName=this._eventName;window.dispatchEvent(new CustomEvent(eventName,{detail:{action:MSG_TRANS_CURRULE,args:rule}}));}}]);return Translator;}();
 ;// CONCATENATED MODULE: ./src/libs/rules.js
-/**
+var rules_ref2;/**
  * 根据href匹配规则
  * @param {*} rules
  * @param {string} href
  * @returns
- */var matchRule=/*#__PURE__*/function(){var _ref2=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(rules,href,_ref){var _rule$selector,_globalRule$selector,_rule$bgColor,_globalRule$bgColor,_rule$textDiyStyle,_globalRule$textDiySt;var _ref$injectRules,injectRules,_ref$subrulesList,subrulesList,_ref$owSubrule,owSubrule,selectedSub,_rules,mixRule,subRules,rule,globalRule;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:_ref$injectRules=_ref.injectRules,injectRules=_ref$injectRules===void 0?true:_ref$injectRules,_ref$subrulesList=_ref.subrulesList,subrulesList=_ref$subrulesList===void 0?DEFAULT_SUBRULES_LIST:_ref$subrulesList,_ref$owSubrule=_ref.owSubrule,owSubrule=_ref$owSubrule===void 0?DEFAULT_OW_RULE:_ref$owSubrule;rules=(0,toConsumableArray/* default */.Z)(rules);if(!injectRules){_context.next=17;break;}_context.prev=3;selectedSub=subrulesList.find(function(item){return item.selected;});if(!(selectedSub!==null&&selectedSub!==void 0&&selectedSub.url)){_context.next=12;break;}mixRule={};Object.entries(owSubrule).filter(function(_ref3){var _ref4=(0,slicedToArray/* default */.Z)(_ref3,2),key=_ref4[0],val=_ref4[1];if(owSubrule.textStyle===REMAIN_KEY&&(key==="bgColor"||key==="textDiyStyle")){return false;}return val!==REMAIN_KEY;}).forEach(function(_ref5){var _ref6=(0,slicedToArray/* default */.Z)(_ref5,2),key=_ref6[0],val=_ref6[1];mixRule[key]=val;});_context.next=10;return loadOrFetchSubRules(selectedSub.url);case 10:subRules=_context.sent.map(function(item){return _objectSpread2(_objectSpread2({},item),mixRule);});(_rules=rules).splice.apply(_rules,[-1,0].concat((0,toConsumableArray/* default */.Z)(subRules)));case 12:_context.next=17;break;case 14:_context.prev=14;_context.t0=_context["catch"](3);console.log("[load injectRules]",_context.t0);case 17:rule=rules.find(function(r){return r.pattern.split(",").some(function(p){return isMatch(href,p.trim());});});globalRule=rules.find(function(r){return r.pattern.split(",").some(function(p){return p.trim()===GLOBAL_KEY;});})||GLOBLA_RULE;if(rule){_context.next=21;break;}return _context.abrupt("return",globalRule);case 21:rule.selector=(rule===null||rule===void 0?void 0:(_rule$selector=rule.selector)===null||_rule$selector===void 0?void 0:_rule$selector.trim())||(globalRule===null||globalRule===void 0?void 0:(_globalRule$selector=globalRule.selector)===null||_globalRule$selector===void 0?void 0:_globalRule$selector.trim())||GLOBLA_RULE.selector;rule.bgColor=(rule===null||rule===void 0?void 0:(_rule$bgColor=rule.bgColor)===null||_rule$bgColor===void 0?void 0:_rule$bgColor.trim())||(globalRule===null||globalRule===void 0?void 0:(_globalRule$bgColor=globalRule.bgColor)===null||_globalRule$bgColor===void 0?void 0:_globalRule$bgColor.trim());rule.textDiyStyle=(rule===null||rule===void 0?void 0:(_rule$textDiyStyle=rule.textDiyStyle)===null||_rule$textDiyStyle===void 0?void 0:_rule$textDiyStyle.trim())||(globalRule===null||globalRule===void 0?void 0:(_globalRule$textDiySt=globalRule.textDiyStyle)===null||_globalRule$textDiySt===void 0?void 0:_globalRule$textDiySt.trim());["translator","fromLang","toLang","textStyle","transOpen"].forEach(function(key){if(rule[key]===GLOBAL_KEY){rule[key]=globalRule[key];}});return _context.abrupt("return",rule);case 26:case"end":return _context.stop();}},_callee,null,[[3,14]]);}));return function matchRule(_x,_x2,_x3){return _ref2.apply(this,arguments);};}();/**
+ */var matchRule=function matchRule(_x,_x2,_x3){return(rules_ref2=rules_ref2||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(rules,href,_ref){var _rule$selector;var _ref$injectRules,injectRules,_ref$subrulesList,subrulesList,_ref$owSubrule,owSubrule,selectedSub,_rules,mixRule,subRules,rule,globalRule,_rule$bgColor,_rule$textDiyStyle;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:_ref$injectRules=_ref.injectRules,injectRules=_ref$injectRules===void 0?true:_ref$injectRules,_ref$subrulesList=_ref.subrulesList,subrulesList=_ref$subrulesList===void 0?DEFAULT_SUBRULES_LIST:_ref$subrulesList,_ref$owSubrule=_ref.owSubrule,owSubrule=_ref$owSubrule===void 0?DEFAULT_OW_RULE:_ref$owSubrule;rules=(0,toConsumableArray/* default */.Z)(rules);if(!injectRules){_context.next=17;break;}_context.prev=3;selectedSub=subrulesList.find(function(item){return item.selected;});if(!(selectedSub!==null&&selectedSub!==void 0&&selectedSub.url)){_context.next=12;break;}mixRule={};Object.entries(owSubrule).filter(function(_ref3){var _ref4=(0,slicedToArray/* default */.Z)(_ref3,2),key=_ref4[0],val=_ref4[1];if(owSubrule.textStyle===REMAIN_KEY&&(key==="bgColor"||key==="textDiyStyle")){return false;}return val!==REMAIN_KEY;}).forEach(function(_ref5){var _ref6=(0,slicedToArray/* default */.Z)(_ref5,2),key=_ref6[0],val=_ref6[1];mixRule[key]=val;});_context.next=10;return loadOrFetchSubRules(selectedSub.url);case 10:subRules=_context.sent.map(function(item){return _objectSpread2(_objectSpread2({},item),mixRule);});(_rules=rules).splice.apply(_rules,[-1,0].concat((0,toConsumableArray/* default */.Z)(subRules)));case 12:_context.next=17;break;case 14:_context.prev=14;_context.t0=_context["catch"](3);console.log("[load injectRules]",_context.t0);case 17:rule=rules.find(function(r){return r.pattern.split(",").some(function(p){return isMatch(href,p.trim());});});globalRule=rules.find(function(r){return r.pattern===GLOBAL_KEY;})||GLOBLA_RULE;if(rule){_context.next=21;break;}return _context.abrupt("return",globalRule);case 21:rule.selector=((_rule$selector=rule.selector)===null||_rule$selector===void 0?void 0:_rule$selector.trim())||globalRule.selector;if(rule.textStyle===GLOBAL_KEY){rule.textStyle=globalRule.textStyle;rule.bgColor=globalRule.bgColor;rule.textDiyStyle=globalRule.textDiyStyle;}else{rule.bgColor=((_rule$bgColor=rule.bgColor)===null||_rule$bgColor===void 0?void 0:_rule$bgColor.trim())||globalRule.bgColor;rule.textDiyStyle=((_rule$textDiyStyle=rule.textDiyStyle)===null||_rule$textDiyStyle===void 0?void 0:_rule$textDiyStyle.trim())||globalRule.textDiyStyle;}["translator","fromLang","toLang","transOpen"].forEach(function(key){if(rule[key]===GLOBAL_KEY){rule[key]=globalRule[key];}});return _context.abrupt("return",rule);case 25:case"end":return _context.stop();}},_callee,null,[[3,14]]);}))).apply(this,arguments);};/**
  * 检查过滤rules
  * @param {*} rules
  * @returns
  */var checkRules=function checkRules(rules){if(type(rules)==="string"){rules=JSON.parse(rules);}if(type(rules)!=="array"){throw new Error("data error");}var fromLangs=OPT_LANGS_FROM.map(function(item){return item[0];});var toLangs=OPT_LANGS_TO.map(function(item){return item[0];});var patternSet=new Set();rules=rules.filter(function(rule){return type(rule)==="object";}).filter(function(_ref7){var pattern=_ref7.pattern;if(type(pattern)!=="string"||patternSet.has(pattern.trim())){return false;}patternSet.add(pattern.trim());return true;}).map(function(_ref8){var pattern=_ref8.pattern,selector=_ref8.selector,translator=_ref8.translator,fromLang=_ref8.fromLang,toLang=_ref8.toLang,textStyle=_ref8.textStyle,transOpen=_ref8.transOpen,bgColor=_ref8.bgColor,textDiyStyle=_ref8.textDiyStyle;return{pattern:pattern.trim(),selector:type(selector)==="string"?selector:"",bgColor:type(bgColor)==="string"?bgColor:"",textDiyStyle:type(textDiyStyle)==="string"?textDiyStyle:"",translator:matchValue([GLOBAL_KEY].concat((0,toConsumableArray/* default */.Z)(OPT_TRANS_ALL)),translator),fromLang:matchValue([GLOBAL_KEY].concat((0,toConsumableArray/* default */.Z)(fromLangs)),fromLang),toLang:matchValue([GLOBAL_KEY].concat((0,toConsumableArray/* default */.Z)(toLangs)),toLang),textStyle:matchValue([GLOBAL_KEY].concat((0,toConsumableArray/* default */.Z)(OPT_STYLE_ALL)),textStyle),transOpen:matchValue([GLOBAL_KEY,"true","false"],transOpen)};});return rules;};
 ;// CONCATENATED MODULE: ./src/libs/subRules.js
-/**
+var subRules_ref,subRules_ref3,subRules_ref5,subRules_ref6;/**
  * 同步订阅规则
  * @param {*} url
  * @returns
- */var syncSubRules=/*#__PURE__*/function(){var _ref=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(url){var isBg,res,rules,_args=arguments;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:isBg=_args.length>1&&_args[1]!==undefined?_args[1]:false;_context.next=3;return apiFetchRules(url,isBg);case 3:res=_context.sent;rules=checkRules(res).filter(function(rule){return rule.pattern.replaceAll(GLOBAL_KEY,"")!=="";});if(!(rules.length>0)){_context.next=8;break;}_context.next=8;return setSubRules(url,rules);case 8:return _context.abrupt("return",rules);case 9:case"end":return _context.stop();}},_callee);}));return function syncSubRules(_x){return _ref.apply(this,arguments);};}();/**
+ */var syncSubRules=function syncSubRules(_x){return(subRules_ref=subRules_ref||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(url){var isBg,res,rules,_args=arguments;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:isBg=_args.length>1&&_args[1]!==undefined?_args[1]:false;_context.next=3;return apiFetch(url,isBg);case 3:res=_context.sent;rules=checkRules(res).filter(function(_ref2){var pattern=_ref2.pattern;return!isAllchar(pattern,GLOBAL_KEY);});if(!(rules.length>0)){_context.next=8;break;}_context.next=8;return setSubRules(url,rules);case 8:return _context.abrupt("return",rules);case 9:case"end":return _context.stop();}},_callee);}))).apply(this,arguments);};/**
  * 同步所有订阅规则
  * @param {*} url
  * @returns
- */var syncAllSubRules=/*#__PURE__*/function(){var _ref2=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(subrulesList){var isBg,_iterator,_step,subrules,_args2=arguments;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:isBg=_args2.length>1&&_args2[1]!==undefined?_args2[1]:false;_iterator=_createForOfIteratorHelper(subrulesList);_context2.prev=2;_iterator.s();case 4:if((_step=_iterator.n()).done){_context2.next=16;break;}subrules=_step.value;_context2.prev=6;_context2.next=9;return syncSubRules(subrules.url,isBg);case 9:_context2.next=14;break;case 11:_context2.prev=11;_context2.t0=_context2["catch"](6);console.log("[sync subrule error]: ".concat(subrules.url),_context2.t0);case 14:_context2.next=4;break;case 16:_context2.next=21;break;case 18:_context2.prev=18;_context2.t1=_context2["catch"](2);_iterator.e(_context2.t1);case 21:_context2.prev=21;_iterator.f();return _context2.finish(21);case 24:case"end":return _context2.stop();}},_callee2,null,[[2,18,21,24],[6,11]]);}));return function syncAllSubRules(_x2){return _ref2.apply(this,arguments);};}();/**
+ */var syncAllSubRules=function syncAllSubRules(_x2){return(subRules_ref3=subRules_ref3||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(subrulesList){var isBg,_iterator,_step,subrules,_args2=arguments;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:isBg=_args2.length>1&&_args2[1]!==undefined?_args2[1]:false;_iterator=_createForOfIteratorHelper(subrulesList);_context2.prev=2;_iterator.s();case 4:if((_step=_iterator.n()).done){_context2.next=16;break;}subrules=_step.value;_context2.prev=6;_context2.next=9;return syncSubRules(subrules.url,isBg);case 9:_context2.next=14;break;case 11:_context2.prev=11;_context2.t0=_context2["catch"](6);console.log("[sync subrule error]: ".concat(subrules.url),_context2.t0);case 14:_context2.next=4;break;case 16:_context2.next=21;break;case 18:_context2.prev=18;_context2.t1=_context2["catch"](2);_iterator.e(_context2.t1);case 21:_context2.prev=21;_iterator.f();return _context2.finish(21);case 24:case"end":return _context2.stop();}},_callee2,null,[[2,18,21,24],[6,11]]);}))).apply(this,arguments);};/**
  * 根据时间同步所有订阅规则
  * @param {*} url
  * @returns
- */var trySyncAllSubRules=/*#__PURE__*/function(){var _ref4=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee3(_ref3){var subrulesList,isBg,_yield$getSyncWithDef,subRulesSyncAt,now,interval,_args3=arguments;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:subrulesList=_ref3.subrulesList;isBg=_args3.length>1&&_args3[1]!==undefined?_args3[1]:false;_context3.prev=2;_context3.next=5;return storage_getSyncWithDefault();case 5:_yield$getSyncWithDef=_context3.sent;subRulesSyncAt=_yield$getSyncWithDef.subRulesSyncAt;now=Date.now();interval=24*60*60*1000;// 间隔一天
-if(!(now-subRulesSyncAt>interval)){_context3.next=14;break;}_context3.next=12;return syncAllSubRules(subrulesList,isBg);case 12:_context3.next=14;return storage_updateSync({subRulesSyncAt:now});case 14:_context3.next=19;break;case 16:_context3.prev=16;_context3.t0=_context3["catch"](2);console.log("[try sync all subrules]",_context3.t0);case 19:case"end":return _context3.stop();}},_callee3,null,[[2,16]]);}));return function trySyncAllSubRules(_x3){return _ref4.apply(this,arguments);};}();/**
+ */var trySyncAllSubRules=function trySyncAllSubRules(_x3){return(subRules_ref5=subRules_ref5||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee3(_ref4){var subrulesList,isBg,_yield$getSyncWithDef,subRulesSyncAt,now,interval,_args3=arguments;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:subrulesList=_ref4.subrulesList;isBg=_args3.length>1&&_args3[1]!==undefined?_args3[1]:false;_context3.prev=2;_context3.next=5;return storage_getSyncWithDefault();case 5:_yield$getSyncWithDef=_context3.sent;subRulesSyncAt=_yield$getSyncWithDef.subRulesSyncAt;now=Date.now();interval=24*60*60*1000;// 间隔一天
+if(!(now-subRulesSyncAt>interval)){_context3.next=14;break;}_context3.next=12;return syncAllSubRules(subrulesList,isBg);case 12:_context3.next=14;return storage_updateSync({subRulesSyncAt:now});case 14:subrulesList.forEach(function(item){item.syncAt=now;});_context3.next=17;return updateSetting({subrulesList:subrulesList});case 17:_context3.next=22;break;case 19:_context3.prev=19;_context3.t0=_context3["catch"](2);console.log("[try sync all subrules]",_context3.t0);case 22:case"end":return _context3.stop();}},_callee3,null,[[2,19]]);}))).apply(this,arguments);};/**
  * 从缓存或远程加载订阅规则
  * @param {*} url
  * @returns
- */var loadOrFetchSubRules=/*#__PURE__*/function(){var _ref5=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee4(url){var rules;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee4$(_context4){while(1)switch(_context4.prev=_context4.next){case 0:_context4.next=2;return getSubRules(url);case 2:rules=_context4.sent;if(!(rules!==null&&rules!==void 0&&rules.length)){_context4.next=5;break;}return _context4.abrupt("return",rules);case 5:return _context4.abrupt("return",syncSubRules(url));case 6:case"end":return _context4.stop();}},_callee4);}));return function loadOrFetchSubRules(_x4){return _ref5.apply(this,arguments);};}();
+ */var loadOrFetchSubRules=function loadOrFetchSubRules(_x4){return(subRules_ref6=subRules_ref6||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee4(url){var rules;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee4$(_context4){while(1)switch(_context4.prev=_context4.next){case 0:_context4.next=2;return getSubRules(url);case 2:rules=_context4.sent;if(!(rules!==null&&rules!==void 0&&rules.length)){_context4.next=5;break;}return _context4.abrupt("return",rules);case 5:return _context4.abrupt("return",syncSubRules(url));case 6:case"end":return _context4.stop();}},_callee4);}))).apply(this,arguments);};
 ;// CONCATENATED MODULE: ./src/libs/gm.js
-var MSG_GM_xmlHttpRequest="xmlHttpRequest";var MSG_GM_setValue="setValue";var MSG_GM_getValue="getValue";var MSG_GM_deleteValue="deleteValue";var MSG_GM_info="info";/**
+var gm_ref;var MSG_GM_xmlHttpRequest="xmlHttpRequest";var MSG_GM_setValue="setValue";var MSG_GM_getValue="getValue";var MSG_GM_deleteValue="deleteValue";var MSG_GM_info="info";/**
  * 注入页面的脚本，请求并接受GM接口信息
  * @param {*} param0
- */var injectScript=function injectScript(ping){window.APP_INFO={name:"KISS Translator",version:"1.6.7",eventName:ping};};/**
+ */var injectScript=function injectScript(ping){window.APP_INFO={name:"KISS Translator",version:"1.6.8",eventName:ping};};/**
  * 适配GM脚本
- */var adaptScript=function adaptScript(ping){var promiseGM=function promiseGM(action,args){var timeout=arguments.length>2&&arguments[2]!==undefined?arguments[2]:5000;return new Promise(function(resolve,reject){var pong=genEventName();var handleEvent=function handleEvent(e){window.removeEventListener(pong,handleEvent);var _e$detail=e.detail,data=_e$detail.data,error=_e$detail.error;if(error){reject(new Error(error));}else{resolve(data);}};window.addEventListener(pong,handleEvent);window.dispatchEvent(new CustomEvent(ping,{detail:{action:action,args:args,pong:pong}}));setTimeout(function(){window.removeEventListener(pong,handleEvent);reject(new Error("timeout"));},timeout);});};window.KISS_GM={fetch:function fetch(input,init){return promiseGM(MSG_GM_xmlHttpRequest,{input:input,init:init});},setValue:function setValue(key,val){return promiseGM(MSG_GM_setValue,{key:key,val:val});},getValue:function getValue(key){return promiseGM(MSG_GM_getValue,{key:key});},deleteValue:function deleteValue(key){return promiseGM(MSG_GM_deleteValue,{key:key});},getInfo:function(){var _getInfo=_asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee(){return _regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:if(window.GM_info){_context.next=4;break;}_context.next=3;return promiseGM(MSG_GM_info);case 3:window.GM_info=_context.sent;case 4:return _context.abrupt("return",window.GM_info);case 5:case"end":return _context.stop();}},_callee);}));function getInfo(){return _getInfo.apply(this,arguments);}return getInfo;}()};};/**
+ */var adaptScript=function adaptScript(ping){var _getInfo;var promiseGM=function promiseGM(action,args){var timeout=arguments.length>2&&arguments[2]!==undefined?arguments[2]:5000;return new Promise(function(resolve,reject){var pong=genEventName();var handleEvent=function handleEvent(e){window.removeEventListener(pong,handleEvent);var _e$detail=e.detail,data=_e$detail.data,error=_e$detail.error;if(error){reject(new Error(error));}else{resolve(data);}};window.addEventListener(pong,handleEvent);window.dispatchEvent(new CustomEvent(ping,{detail:{action:action,args:args,pong:pong}}));setTimeout(function(){window.removeEventListener(pong,handleEvent);reject(new Error("timeout"));},timeout);});};window.KISS_GM={fetch:function fetch(input,init){return promiseGM(MSG_GM_xmlHttpRequest,{input:input,init:init});},setValue:function setValue(key,val){return promiseGM(MSG_GM_setValue,{key:key,val:val});},getValue:function getValue(key){return promiseGM(MSG_GM_getValue,{key:key});},deleteValue:function deleteValue(key){return promiseGM(MSG_GM_deleteValue,{key:key});},getInfo:function getInfo(){return(_getInfo=_getInfo||_asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee(){return _regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:if(window.GM_info){_context.next=4;break;}_context.next=3;return promiseGM(MSG_GM_info);case 3:window.GM_info=_context.sent;case 4:return _context.abrupt("return",window.GM_info);case 5:case"end":return _context.stop();}},_callee);}))).apply(this,arguments);}};};/**
  * 监听并回应页面对GM接口的请求
  * @param {*} param0
- */var handlePing=/*#__PURE__*/function(){var _ref=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(e){var _e$detail2,action,args,pong,res,input,init,key,val;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:_e$detail2=e.detail,action=_e$detail2.action,args=_e$detail2.args,pong=_e$detail2.pong;_context2.prev=1;_context2.t0=action;_context2.next=_context2.t0===MSG_GM_xmlHttpRequest?5:_context2.t0===MSG_GM_setValue?10:_context2.t0===MSG_GM_getValue?15:_context2.t0===MSG_GM_deleteValue?19:_context2.t0===MSG_GM_info?23:25;break;case 5:input=args.input,init=args.init;_context2.next=8;return fetchGM(input,init);case 8:res=_context2.sent;return _context2.abrupt("break",26);case 10:key=args.key,val=args.val;_context2.next=13;return GM.setValue(key,val);case 13:res=val;return _context2.abrupt("break",26);case 15:_context2.next=17;return GM.getValue(args.key);case 17:res=_context2.sent;return _context2.abrupt("break",26);case 19:_context2.next=21;return GM.deleteValue(args.key);case 21:res="ok";return _context2.abrupt("break",26);case 23:res=GM.info;return _context2.abrupt("break",26);case 25:throw new Error("message action is unavailable: ".concat(action));case 26:window.dispatchEvent(new CustomEvent(pong,{detail:{data:res}}));_context2.next=32;break;case 29:_context2.prev=29;_context2.t1=_context2["catch"](1);window.dispatchEvent(new CustomEvent(pong,{detail:{error:_context2.t1.message}}));case 32:case"end":return _context2.stop();}},_callee2,null,[[1,29]]);}));return function handlePing(_x){return _ref.apply(this,arguments);};}();
+ */var handlePing=function handlePing(_x){return(gm_ref=gm_ref||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(e){var _e$detail2,action,args,pong,res,input,init,key,val;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:_e$detail2=e.detail,action=_e$detail2.action,args=_e$detail2.args,pong=_e$detail2.pong;_context2.prev=1;_context2.t0=action;_context2.next=_context2.t0===MSG_GM_xmlHttpRequest?5:_context2.t0===MSG_GM_setValue?10:_context2.t0===MSG_GM_getValue?15:_context2.t0===MSG_GM_deleteValue?19:_context2.t0===MSG_GM_info?23:25;break;case 5:input=args.input,init=args.init;_context2.next=8;return fetchGM(input,init);case 8:res=_context2.sent;return _context2.abrupt("break",26);case 10:key=args.key,val=args.val;_context2.next=13;return GM.setValue(key,val);case 13:res=val;return _context2.abrupt("break",26);case 15:_context2.next=17;return GM.getValue(args.key);case 17:res=_context2.sent;return _context2.abrupt("break",26);case 19:_context2.next=21;return GM.deleteValue(args.key);case 21:res="ok";return _context2.abrupt("break",26);case 23:res=GM.info;return _context2.abrupt("break",26);case 25:throw new Error("message action is unavailable: ".concat(action));case 26:window.dispatchEvent(new CustomEvent(pong,{detail:{data:res}}));_context2.next=32;break;case 29:_context2.prev=29;_context2.t1=_context2["catch"](1);window.dispatchEvent(new CustomEvent(pong,{detail:{error:_context2.t1.message}}));case 32:case"end":return _context2.stop();}},_callee2,null,[[1,29]]);}))).apply(this,arguments);};
+;// CONCATENATED MODULE: ./src/libs/webfix.js
+var webfix_ref,webfix_ref2,_webfix;/**
+ * 修复程序类型
+ */var WEBFIX_BR="br";/**
+ * 需要修复的站点列表
+ * - pattern 匹配网址
+ * - selector 需要修复的选择器
+ * - rootSlector 需要监听的选择器，可留空
+ * - fixer 修复函数，可针对不同网址，选用不同修复函数
+ */var DEFAULT_SITES=[{pattern:"www.phoronix.com",selector:".content",rootSlector:"",fixer:WEBFIX_BR},{pattern:"t.me/s/*",selector:".tgme_widget_message_text",rootSlector:".tgme_channel_history",fixer:WEBFIX_BR}];/**
+ * 修复过的标记
+ */var fixedSign="kissfixed";/**
+ * 采用 `br` 换行网站的修复函数
+ * 目标是将 `br` 替换成 `p`
+ * @param {*} node
+ * @returns
+ */function brFixer(node){if(node.hasAttribute(fixedSign)){return;}node.setAttribute(fixedSign,"true");var gapTags=["BR","WBR"];var newlineTags=["DIV","UL","OL","LI","H1","H2","H3","H4","H5","H6","P","HR","PRE","TABLE"];var html="";node.childNodes.forEach(function(child,index){if(index===0){html+="<p>";}if(gapTags.indexOf(child.nodeName)!==-1){html+="</p><p>";}else if(newlineTags.indexOf(child.nodeName)!==-1){html+="</p>"+child.outerHTML+"<p>";}else if(child.outerHTML){html+=child.outerHTML;}else if(child.nodeValue){html+=child.nodeValue;}if(index===node.childNodes.length-1){html+="</p>";}});node.innerHTML=html;}/**
+ * 修复程序映射
+ */var fixerMap=(0,defineProperty/* default */.Z)({},WEBFIX_BR,brFixer);/**
+ * 查找、监听节点，并执行修复函数
+ * @param {*} selector
+ * @param {*} fixer
+ * @param {*} rootSlector
+ */function run(selector,fixer,rootSlector){var mutaObserver=new MutationObserver(function(mutations){mutations.forEach(function(mutation){mutation.addedNodes.forEach(function(addNode){addNode.querySelectorAll(selector).forEach(fixer);});});});var rootNodes=[document];if(rootSlector){rootNodes=document.querySelectorAll(rootSlector);}rootNodes.forEach(function(rootNode){rootNode.querySelectorAll(selector).forEach(fixer);mutaObserver.observe(rootNode,{childList:true});});}/**
+ * 同步远程数据
+ * @param {*} url
+ * @returns
+ */var syncWebfix=function syncWebfix(_x){return(webfix_ref=webfix_ref||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(url){var sites;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:_context.next=2;return apiFetch(url);case 2:sites=_context.sent;_context.next=5;return setWebfix(url,sites);case 5:return _context.abrupt("return",sites);case 6:case"end":return _context.stop();}},_callee);}))).apply(this,arguments);};/**
+ * 从缓存或远程加载修复站点
+ * @param {*} url
+ * @returns
+ */var loadOrFetchWebfix=function loadOrFetchWebfix(_x2){return(webfix_ref2=webfix_ref2||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(url){var sites;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:_context2.prev=0;_context2.next=3;return getWebfix(url);case 3:sites=_context2.sent;if(!(sites!==null&&sites!==void 0&&sites.length)){_context2.next=6;break;}return _context2.abrupt("return",sites);case 6:return _context2.abrupt("return",syncWebfix(url));case 9:_context2.prev=9;_context2.t0=_context2["catch"](0);console.log("[load webfix]",_context2.t0.message);return _context2.abrupt("return",DEFAULT_SITES);case 13:case"end":return _context2.stop();}},_callee2,null,[[0,9]]);}))).apply(this,arguments);};/**
+ * 匹配站点
+ */function webfix(_x3,_x4){return(_webfix=_webfix||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee3(href,_ref3){var injectWebfix,sites,i,site;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:injectWebfix=_ref3.injectWebfix;_context3.prev=1;if(injectWebfix){_context3.next=4;break;}return _context3.abrupt("return");case 4:_context3.next=6;return loadOrFetchWebfix("https://fishjar.github.io/kiss-rules/kiss-webfix.json");case 6:sites=_context3.sent;i=0;case 8:if(!(i<sites.length)){_context3.next=16;break;}site=sites[i];if(!isMatch(href,site.pattern)){_context3.next=13;break;}if(fixerMap[site.fixer]){run(site.selector,fixerMap[site.fixer],site.rootSlector);}return _context3.abrupt("break",16);case 13:i++;_context3.next=8;break;case 16:_context3.next=21;break;case 18:_context3.prev=18;_context3.t0=_context3["catch"](1);console.error("[kiss-webfix]: ".concat(_context3.t0.message));case 21:case"end":return _context3.stop();}},_callee3,null,[[1,18]]);}))).apply(this,arguments);}
 ;// CONCATENATED MODULE: ./src/userscript.js
-/**
+var userscript_ref;/**
  * 入口函数
- */var init=/*#__PURE__*/function(){var _ref=asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(){var _GM,_GM$info,_GM$info$script,_GM$info$script$grant,ping,script,href,setting,rules,rule,translator,fab,$action,shadowContainer,emotionRoot,shadowRootElement,cache;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:if(!(document.location.href.includes("http://localhost:3000/options.html")||document.location.href.includes("https://fishjar.github.io/kiss-translator/options.html")||document.location.href.includes("https://kiss-translator.rayjar.com/options"))){_context.next=3;break;}if((_GM=GM)!==null&&_GM!==void 0&&(_GM$info=_GM.info)!==null&&_GM$info!==void 0&&(_GM$info$script=_GM$info.script)!==null&&_GM$info$script!==void 0&&(_GM$info$script$grant=_GM$info$script.grant)!==null&&_GM$info$script$grant!==void 0&&_GM$info$script$grant.includes("unsafeWindow")){unsafeWindow.GM=GM;unsafeWindow.APP_INFO={name:"KISS Translator",version:"1.6.7"};}else{ping=utils_genEventName();window.addEventListener(ping,handlePing);// window.eval(`(${injectScript})("${ping}")`); // eslint-disable-line
+ */var init=function init(){return(userscript_ref=userscript_ref||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(){var _GM,_GM$info,_GM$info$script,_GM$info$script$grant,ping,script,href,setting,rules,rule,translator,fab,$action,shadowContainer,emotionRoot,shadowRootElement,cache;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:if(!(document.location.href.includes("http://localhost:3000/options.html")||document.location.href.includes("https://fishjar.github.io/kiss-translator/options.html")||document.location.href.includes("https://kiss-translator.rayjar.com/options"))){_context.next=3;break;}if((_GM=GM)!==null&&_GM!==void 0&&(_GM$info=_GM.info)!==null&&_GM$info!==void 0&&(_GM$info$script=_GM$info.script)!==null&&_GM$info$script!==void 0&&(_GM$info$script$grant=_GM$info$script.grant)!==null&&_GM$info$script$grant!==void 0&&_GM$info$script$grant.includes("unsafeWindow")){unsafeWindow.GM=GM;unsafeWindow.APP_INFO={name:"KISS Translator",version:"1.6.8"};}else{ping=utils_genEventName();window.addEventListener(ping,handlePing);// window.eval(`(${injectScript})("${ping}")`); // eslint-disable-line
 script=document.createElement("script");script.textContent="(".concat(injectScript,")(\"").concat(ping,"\")");document.head.append(script);}return _context.abrupt("return");case 3:// 翻译页面
-href=isIframe?document.referrer:document.location.href;_context.next=6;return getSettingWithDefault();case 6:setting=_context.sent;_context.next=9;return storage_getRulesWithDefault();case 9:rules=_context.sent;_context.next=12;return matchRule(rules,href,setting);case 12:rule=_context.sent;translator=new Translator(rule,setting);if(!isIframe){_context.next=17;break;}// iframe
-window.addEventListener("message",function(e){var _e$data;var action=e===null||e===void 0?void 0:(_e$data=e.data)===null||_e$data===void 0?void 0:_e$data.action;switch(action){case MSG_TRANS_TOGGLE:translator.toggle();break;case MSG_TRANS_PUTRULE:translator.updateRule(e.data.args||{});break;default:}});return _context.abrupt("return");case 17:_context.next=19;return getFabWithDefault();case 19:fab=_context.sent;$action=document.createElement("div");$action.setAttribute("id","kiss-translator");document.body.parentElement.appendChild($action);shadowContainer=$action.attachShadow({mode:"closed"});emotionRoot=document.createElement("style");shadowRootElement=document.createElement("div");shadowContainer.appendChild(emotionRoot);shadowContainer.appendChild(shadowRootElement);cache=(0,emotion_cache_browser_esm/* default */.Z)({key:"css",prepend:true,container:emotionRoot});client.createRoot(shadowRootElement).render(/*#__PURE__*/(0,jsx_runtime.jsx)(react.StrictMode,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(emotion_element_c39617d8_browser_esm.C,{value:cache,children:/*#__PURE__*/(0,jsx_runtime.jsx)(Action,{translator:translator,fab:fab})})}));// 同步订阅规则
-trySyncAllSubRules(setting);case 31:case"end":return _context.stop();}},_callee);}));return function init(){return _ref.apply(this,arguments);};}();asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(){var $err;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:_context2.prev=0;_context2.next=3;return init();case 3:_context2.next=11;break;case 5:_context2.prev=5;_context2.t0=_context2["catch"](0);$err=document.createElement("div");$err.innerText="KISS-Translator: ".concat(_context2.t0.message);$err.style.cssText="background:red; color:#fff; z-index:10000;";document.body.prepend($err);case 11:case"end":return _context2.stop();}},_callee2,null,[[0,5]]);}))();
+href=isIframe?document.referrer:document.location.href;_context.next=6;return getSettingWithDefault();case 6:setting=_context.sent;_context.next=9;return storage_getRulesWithDefault();case 9:rules=_context.sent;_context.next=12;return matchRule(rules,href,setting);case 12:rule=_context.sent;translator=new Translator(rule,setting);webfix(href,setting);if(!isIframe){_context.next=18;break;}// iframe
+window.addEventListener("message",function(e){var _e$data;var action=e===null||e===void 0?void 0:(_e$data=e.data)===null||_e$data===void 0?void 0:_e$data.action;switch(action){case MSG_TRANS_TOGGLE:translator.toggle();break;case MSG_TRANS_PUTRULE:translator.updateRule(e.data.args||{});break;default:}});return _context.abrupt("return");case 18:_context.next=20;return getFabWithDefault();case 20:fab=_context.sent;$action=document.createElement("div");$action.setAttribute("id","kiss-translator");document.body.parentElement.appendChild($action);shadowContainer=$action.attachShadow({mode:"closed"});emotionRoot=document.createElement("style");shadowRootElement=document.createElement("div");shadowContainer.appendChild(emotionRoot);shadowContainer.appendChild(shadowRootElement);cache=(0,emotion_cache_browser_esm/* default */.Z)({key:"css",prepend:true,container:emotionRoot});client.createRoot(shadowRootElement).render(/*#__PURE__*/(0,jsx_runtime.jsx)(react.StrictMode,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(emotion_element_c39617d8_browser_esm.C,{value:cache,children:/*#__PURE__*/(0,jsx_runtime.jsx)(Action,{translator:translator,fab:fab})})}));// 同步订阅规则
+trySyncAllSubRules(setting);case 32:case"end":return _context.stop();}},_callee);}))).apply(this,arguments);};asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(){var $err;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:_context2.prev=0;_context2.next=3;return init();case 3:_context2.next=12;break;case 5:_context2.prev=5;_context2.t0=_context2["catch"](0);console.error("[KISS-Translator]",_context2.t0);$err=document.createElement("div");$err.innerText="KISS-Translator: ".concat(_context2.t0.message);$err.style.cssText="background:red; color:#fff;";document.body.prepend($err);case 12:case"end":return _context2.stop();}},_callee2,null,[[0,5]]);}))();
 }();
 /******/ })()
 ;
