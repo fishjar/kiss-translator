@@ -4,24 +4,34 @@ import { isSameSet } from "./utils";
  * 键盘快捷键监听
  * @param {*} fn
  * @param {*} target
+ * @param {*} timeout
  * @returns
  */
-export const shortcutListener = (fn, target = document) => {
-  // todo: let done = false;
+export const shortcutListener = (fn, target = document, timeout = 3000) => {
   const allkeys = new Set();
   const curkeys = new Set();
+  let timer = null;
 
   const handleKeydown = (e) => {
+    timer && clearTimeout(timer);
+    timer = setTimeout(() => {
+      allkeys.clear();
+      curkeys.clear();
+      clearTimeout(timer);
+      timer = null;
+    }, timeout);
+
     if (e.code) {
       allkeys.add(e.key);
       curkeys.add(e.key);
+      fn([...curkeys], [...allkeys]);
     }
   };
 
   const handleKeyup = (e) => {
     curkeys.delete(e.key);
     if (curkeys.size === 0) {
-      fn([...allkeys]);
+      fn([...curkeys], [...allkeys]);
       allkeys.clear();
     }
   };
@@ -42,8 +52,8 @@ export const shortcutListener = (fn, target = document) => {
  * @returns
  */
 export const shortcutRegister = (targetKeys, fn, target = document) => {
-  return shortcutListener((keys) => {
-    if (isSameSet(new Set(targetKeys), new Set(keys))) {
+  return shortcutListener((curkeys) => {
+    if (isSameSet(new Set(targetKeys), new Set(curkeys))) {
       fn();
     }
   }, target);

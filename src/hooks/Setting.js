@@ -12,7 +12,10 @@ const SettingContext = createContext({
 });
 
 export function SettingProvider({ children }) {
-  const { data, update, reload } = useStorage(STOKEY_SETTING, DEFAULT_SETTING);
+  const { data, update, reload, loading } = useStorage(
+    STOKEY_SETTING,
+    DEFAULT_SETTING
+  );
   const {
     sync: { settingUpdateAt },
     updateSync,
@@ -35,6 +38,10 @@ export function SettingProvider({ children }) {
     },
     [settingUpdateAt, update, updateSync, syncSetting]
   );
+
+  if (loading) {
+    return;
+  }
 
   return (
     <SettingContext.Provider

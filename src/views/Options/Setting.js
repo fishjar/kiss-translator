@@ -33,23 +33,29 @@ function ShortcutItem({ action, label }) {
   const { shortcut, setShortcut } = useShortcut(action);
   const [disabled, setDisabled] = useState(true);
   const inputRef = useRef(null);
+  const [formval, setFormval] = useState(shortcut);
 
   useEffect(() => {
     if (disabled) {
+      setFormval(shortcut);
       return;
     }
 
     inputRef.current.focus();
-    setShortcut([]);
+    setFormval([]);
 
-    const clearShortcut = shortcutListener((keys) => {
-      setShortcut(keys);
+    const clearShortcut = shortcutListener((curkeys, allkeys) => {
+      setFormval(allkeys);
+      if (curkeys.length === 0) {
+        setDisabled(true);
+        setShortcut(allkeys);
+      }
     }, inputRef.current);
 
     return () => {
       clearShortcut();
     };
-  }, [disabled, setShortcut]);
+  }, [disabled, setShortcut, shortcut]);
 
   return (
     <Stack direction="row">
@@ -57,7 +63,7 @@ function ShortcutItem({ action, label }) {
         size="small"
         label={label}
         name={label}
-        value={shortcut.join(" + ")}
+        value={formval.join(" + ")}
         fullWidth
         inputRef={inputRef}
         disabled={disabled}

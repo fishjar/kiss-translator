@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { storage } from "../libs/storage";
 
 export function useStorage(key, defaultVal = null) {
+  const [loading, setLoading] = useState(true);
   const [data, setData] = useState(defaultVal);
 
   const save = useCallback(
@@ -36,9 +37,16 @@ export function useStorage(key, defaultVal = null) {
 
   useEffect(() => {
     (async () => {
-      await reload();
+      try {
+        setLoading(true);
+        await reload();
+      } catch (err) {
+        //
+      } finally {
+        setLoading(false);
+      }
     })();
   }, [reload]);
 
-  return { data, save, update, remove, reload };
+  return { data, save, update, remove, reload, loading };
 }
