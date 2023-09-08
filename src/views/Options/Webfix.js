@@ -17,6 +17,8 @@ import { syncWebfix, loadOrFetchWebfix } from "../../libs/webfix";
 import Button from "@mui/material/Button";
 import SyncIcon from "@mui/icons-material/Sync";
 import { useAlert } from "../../hooks/Alert";
+import HelpButton from "./HelpButton";
+import { URL_KISS_RULES_NEW_ISSUE } from "../../config";
 
 function ApiFields({ site }) {
   const { selector, rootSlector, fixer } = site;
@@ -122,6 +124,7 @@ export default function Webfix() {
           >
             {i18n("sync_now")}
           </Button>
+          <HelpButton url={URL_KISS_RULES_NEW_ISSUE} />
           <FormControlLabel
             control={
               <Switch

@@ -36,7 +36,6 @@ import Radio from "@mui/material/Radio";
 import RadioGroup from "@mui/material/RadioGroup";
 import DeleteIcon from "@mui/icons-material/Delete";
 import IconButton from "@mui/material/IconButton";
-import HelpIcon from "@mui/icons-material/Help";
 import ShareIcon from "@mui/icons-material/Share";
 import SyncIcon from "@mui/icons-material/Sync";
 import { useSubRules } from "../../hooks/SubRules";
@@ -48,6 +47,7 @@ import { debounce } from "../../libs/utils";
 import { delSubRules, getSyncWithDefault } from "../../libs/storage";
 import OwSubRule from "./OwSubRule";
 import ClearAllIcon from "@mui/icons-material/ClearAll";
+import HelpButton from "./HelpButton";
 
 function RuleFields({ rule, rules, setShow, setKeyword }) {
   const initFormValues = rule || {
@@ -478,22 +478,6 @@ function ShareButton({ rules, injectRules, selectedUrl }) {
   );
 }
 
-function HelpButton() {
-  const i18n = useI18n();
-  return (
-    <Button
-      size="small"
-      variant="outlined"
-      onClick={() => {
-        window.open(URL_KISS_RULES_NEW_ISSUE, "_blank");
-      }}
-      startIcon={<HelpIcon />}
-    >
-      {i18n("help")}
-    </Button>
-  );
-}
-
 function UserRules({ subRules }) {
   const i18n = useI18n();
   const rules = useRules();
@@ -582,7 +566,7 @@ function UserRules({ subRules }) {
           {i18n("clear_all")}
         </Button>
 
-        <HelpButton />
+        <HelpButton url={URL_KISS_RULES_NEW_ISSUE} />
 
         <FormControlLabel
           control={
@@ -762,7 +746,7 @@ function SubRulesEdit({ subList, addSub }) {
         >
           {i18n("add")}
         </Button>
-        <HelpButton />
+        <HelpButton url={URL_KISS_RULES_NEW_ISSUE} />
       </Stack>
 
       {showInput && (
