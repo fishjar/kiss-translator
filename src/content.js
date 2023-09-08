@@ -9,6 +9,7 @@ import { getSettingWithDefault, getRulesWithDefault } from "./libs/storage";
 import { Translator } from "./libs/translator";
 import { isIframe } from "./libs/iframe";
 import { matchRule } from "./libs/rules";
+import { webfix } from "./libs/webfix";
 
 /**
  * 入口函数
@@ -19,6 +20,7 @@ const init = async () => {
   const rules = await getRulesWithDefault();
   const rule = await matchRule(rules, href, setting);
   const translator = new Translator(rule, setting);
+  webfix(href, setting);
 
   // 监听消息
   browser?.runtime.onMessage.addListener(async ({ action, args }) => {

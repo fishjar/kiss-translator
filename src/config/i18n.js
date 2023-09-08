@@ -129,6 +129,18 @@ export const I18N = {
     zh: `同步设置`,
     en: `Sync Setting`,
   },
+  patch_setting: {
+    zh: `补丁设置`,
+    en: `Patch Setting`,
+  },
+  patch_setting_help: {
+    zh: `针对一些特殊网站的修正脚本，以便翻译软件得到更好的展示效果。`,
+    en: `Corrected scripts for some special websites so that the translation software can get better display results.`,
+  },
+  inject_webfix: {
+    zh: `注入修复补丁`,
+    en: `Inject Webfix`,
+  },
   about: {
     zh: `关于`,
     en: `About`,

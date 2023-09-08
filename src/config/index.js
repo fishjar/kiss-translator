@@ -25,6 +25,7 @@ export const STOKEY_RULES = `${APP_NAME}_rules`;
 export const STOKEY_SYNC = `${APP_NAME}_sync`;
 export const STOKEY_FAB = `${APP_NAME}_fab`;
 export const STOKEY_RULESCACHE_PREFIX = `${APP_NAME}_rulescache_`;
+export const STOKEY_WEBFIXCACHE_PREFIX = `${APP_NAME}_webfixcache_`;
 
 export const CMD_TOGGLE_TRANSLATE = "toggleTranslate";
 export const CMD_TOGGLE_STYLE = "toggleStyle";
@@ -262,6 +263,7 @@ export const DEFAULT_SETTING = {
   newlineLength: TRANS_NEWLINE_LENGTH,
   clearCache: false, // 是否在浏览器下次启动时清除缓存
   injectRules: true, // 是否注入订阅规则
+  injectWebfix: true, // 是否注入修复补丁
   subrulesList: DEFAULT_SUBRULES_LIST, // 订阅列表
   owSubrule: DEFAULT_OW_RULE, // 覆写订阅规则
   transApis: DEFAULT_TRANS_APIS, // 翻译接口

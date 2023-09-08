@@ -15,6 +15,7 @@ import { isIframe } from "./libs/iframe";
 import { handlePing, injectScript } from "./libs/gm";
 import { matchRule } from "./libs/rules";
 import { genEventName } from "./libs/utils";
+import { webfix } from "./libs/webfix";
 
 /**
  * 入口函数
@@ -50,6 +51,7 @@ const init = async () => {
   const rules = await getRulesWithDefault();
   const rule = await matchRule(rules, href, setting);
   const translator = new Translator(rule, setting);
+  webfix(href, setting);
 
   if (isIframe) {
     // iframe

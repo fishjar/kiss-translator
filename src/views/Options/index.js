@@ -18,6 +18,7 @@ import Stack from "@mui/material/Stack";
 import { adaptScript } from "../../libs/gm";
 import Alert from "@mui/material/Alert";
 import Apis from "./Apis";
+import Webfix from "./Webfix";
 
 export default function Options() {
   const [error, setError] = useState("");
@@ -127,6 +128,7 @@ export default function Options() {
                 <Route path="rules" element={<Rules />} />
                 <Route path="apis" element={<Apis />} />
                 <Route path="sync" element={<SyncSetting />} />
+                <Route path="webfix" element={<Webfix />} />
                 <Route path="about" element={<About />} />
               </Route>
             </Routes>

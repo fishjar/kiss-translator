@@ -11,6 +11,7 @@ import DesignServicesIcon from "@mui/icons-material/DesignServices";
 import { useI18n } from "../../hooks/I18n";
 import SyncIcon from "@mui/icons-material/Sync";
 import ApiIcon from "@mui/icons-material/Api";
+import SendTimeExtensionIcon from "@mui/icons-material/SendTimeExtension";
 
 function LinkItem({ label, url, icon }) {
   const match = useMatch(url);
@@ -48,6 +49,12 @@ export default function Navigator(props) {
       label: i18n("sync_setting"),
       url: "/sync",
       icon: <SyncIcon />,
+    },
+    {
+      id: "webfix",
+      label: i18n("patch_setting"),
+      url: "/webfix",
+      icon: <SendTimeExtensionIcon />,
     },
     { id: "about", label: i18n("about"), url: "/about", icon: <InfoIcon /> },
   ];
