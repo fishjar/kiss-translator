@@ -53,7 +53,28 @@ export const debounce = (func, delay = 200) => {
     timer && clearTimeout(timer);
     timer = setTimeout(() => {
       func(...args);
+      clearTimeout(timer);
+      timer = null;
     }, delay);
+  };
+};
+
+/**
+ * 节流函数
+ * @param {*} func
+ * @param {*} delay
+ * @returns
+ */
+export const throttle = (func, delay = 200) => {
+  let timer;
+  return (...args) => {
+    if (!timer) {
+      func(...args);
+      timer = setTimeout(() => {
+        clearTimeout(timer);
+        timer = null;
+      }, delay);
+    }
   };
 };
 
