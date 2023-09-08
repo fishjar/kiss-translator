@@ -60,32 +60,25 @@ export const matchRule = async (
   const rule = rules.find((r) =>
     r.pattern.split(",").some((p) => isMatch(href, p.trim()))
   );
-
-  const globalRule =
-    rules.find((r) =>
-      r.pattern.split(",").some((p) => p.trim() === GLOBAL_KEY)
-    ) || GLOBLA_RULE;
-
+  const globalRule = rules.find((r) => r.pattern === GLOBAL_KEY) || GLOBLA_RULE;
   if (!rule) {
     return globalRule;
   }
 
-  rule.selector =
-    rule?.selector?.trim() ||
-    globalRule?.selector?.trim() ||
-    GLOBLA_RULE.selector;
-
-  rule.bgColor = rule?.bgColor?.trim() || globalRule?.bgColor?.trim();
-  rule.textDiyStyle =
-    rule?.textDiyStyle?.trim() || globalRule?.textDiyStyle?.trim();
-
-  ["translator", "fromLang", "toLang", "textStyle", "transOpen"].forEach(
-    (key) => {
-      if (rule[key] === GLOBAL_KEY) {
-        rule[key] = globalRule[key];
-      }
+  rule.selector = rule.selector?.trim() || globalRule.selector;
+  if (rule.textStyle === GLOBAL_KEY) {
+    rule.textStyle = globalRule.textStyle;
+    rule.bgColor = globalRule.bgColor;
+    rule.textDiyStyle = globalRule.textDiyStyle;
+  } else {
+    rule.bgColor = rule.bgColor?.trim() || globalRule.bgColor;
+    rule.textDiyStyle = rule.textDiyStyle?.trim() || globalRule.textDiyStyle;
+  }
+  ["translator", "fromLang", "toLang", "transOpen"].forEach((key) => {
+    if (rule[key] === GLOBAL_KEY) {
+      rule[key] = globalRule[key];
     }
-  );
+  });
 
   return rule;
 };
