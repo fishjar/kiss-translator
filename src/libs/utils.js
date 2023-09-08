@@ -48,7 +48,7 @@ export const sleep = (delay) =>
  * @returns
  */
 export const debounce = (func, delay = 200) => {
-  let timer;
+  let timer = null;
   return (...args) => {
     timer && clearTimeout(timer);
     timer = setTimeout(() => {
@@ -66,14 +66,22 @@ export const debounce = (func, delay = 200) => {
  * @returns
  */
 export const throttle = (func, delay = 200) => {
-  let timer;
+  let timer = null;
+  let cache = null;
   return (...args) => {
     if (!timer) {
       func(...args);
+      cache = null;
       timer = setTimeout(() => {
+        if (cache) {
+          func(...cache);
+          cache = null;
+        }
         clearTimeout(timer);
         timer = null;
       }, delay);
+    } else {
+      cache = args;
     }
   };
 };
