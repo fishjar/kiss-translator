@@ -53,6 +53,12 @@ export function useRules() {
     [list, updateRules]
   );
 
+  const clear = useCallback(async () => {
+    let rules = [...list];
+    rules = rules.filter((item) => item.pattern === "*");
+    await updateRules(rules);
+  }, [list, updateRules]);
+
   const put = useCallback(
     async (pattern, obj) => {
       const rules = [...list];
@@ -85,5 +91,5 @@ export function useRules() {
     [list, updateRules]
   );
 
-  return { list, add, del, put, merge };
+  return { list, add, del, clear, put, merge };
 }

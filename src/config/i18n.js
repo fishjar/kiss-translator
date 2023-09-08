@@ -481,6 +481,10 @@ export const I18N = {
     zh: `分享`,
     en: `Share`,
   },
+  clear_all: {
+    zh: `清空`,
+    en: `Clear All`,
+  },
   help: {
     zh: `求助`,
     en: `Help`,

@@ -47,6 +47,7 @@ import { syncShareRules } from "../../libs/sync";
 import { debounce } from "../../libs/utils";
 import { delSubRules, getSyncWithDefault } from "../../libs/storage";
 import OwSubRule from "./OwSubRule";
+import ClearAllIcon from "@mui/icons-material/ClearAll";
 
 function RuleFields({ rule, rules, setShow, setKeyword }) {
   const initFormValues = rule || {
@@ -569,6 +570,17 @@ function UserRules({ subRules }) {
           injectRules={injectRules}
           selectedUrl={selectedUrl}
         />
+
+        <Button
+          size="small"
+          variant="outlined"
+          onClick={() => {
+            rules.clear();
+          }}
+          startIcon={<ClearAllIcon />}
+        >
+          {i18n("clear_all")}
+        </Button>
 
         <HelpButton />
 
