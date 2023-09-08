@@ -32,10 +32,23 @@ export function useSubRules() {
     [list, updateSetting]
   );
 
+  const updateSub = useCallback(
+    async (url, obj) => {
+      const subrulesList = [...list];
+      subrulesList.forEach((item) => {
+        if (item.url === url) {
+          Object.assign(item, obj);
+        }
+      });
+      await updateSetting({ subrulesList });
+    },
+    [list, updateSetting]
+  );
+
   const addSub = useCallback(
     async (url) => {
       const subrulesList = [...list];
-      subrulesList.push({ url, selected: false });
+      subrulesList.push({ url, selected: false, syncAt: Date.now() });
       await updateSetting({ subrulesList });
     },
     [list, updateSetting]
@@ -70,6 +83,7 @@ export function useSubRules() {
   return {
     subList: list,
     selectSub,
+    updateSub,
     addSub,
     delSub,
     selectedSub,

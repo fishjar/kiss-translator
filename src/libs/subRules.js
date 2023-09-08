@@ -4,6 +4,7 @@ import {
   updateSync,
   setSubRules,
   getSubRules,
+  updateSetting,
 } from "./storage";
 import { apiFetchRules } from "../apis";
 import { checkRules } from "./rules";
@@ -54,6 +55,10 @@ export const trySyncAllSubRules = async ({ subrulesList }, isBg = false) => {
       await syncAllSubRules(subrulesList, isBg);
       await updateSync({ subRulesSyncAt: now });
     }
+    subrulesList.forEach((item) => {
+      item.syncAt = now;
+    });
+    await updateSetting({ subrulesList });
   } catch (err) {
     console.log("[try sync all subrules]", err);
   }

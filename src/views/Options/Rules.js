@@ -619,7 +619,15 @@ function UserRules({ subRules }) {
   );
 }
 
-function SubRulesItem({ index, url, selectedUrl, delSub, setSelectedRules }) {
+function SubRulesItem({
+  index,
+  url,
+  syncAt,
+  selectedUrl,
+  delSub,
+  updateSub,
+  setSelectedRules,
+}) {
   const [loading, setLoading] = useState(false);
 
   const handleDel = async () => {
@@ -638,6 +646,7 @@ function SubRulesItem({ index, url, selectedUrl, delSub, setSelectedRules }) {
       if (rules.length > 0 && url === selectedUrl) {
         setSelectedRules(rules);
       }
+      await updateSub(url, { syncAt: Date.now() });
     } catch (err) {
       console.log("[sync sub rules]", err);
     } finally {
@@ -648,6 +657,12 @@ function SubRulesItem({ index, url, selectedUrl, delSub, setSelectedRules }) {
   return (
     <Stack direction="row" alignItems="center" spacing={2}>
       <FormControlLabel value={url} control={<Radio />} label={url} />
+
+      {syncAt && (
+        <span style={{ marginLeft: "0.5em", opacity: 0.6 }}>
+          [{new Date(syncAt).toLocaleString()}]
+        </span>
+      )}
 
       {loading ? (
         <CircularProgress size={16} />
@@ -773,6 +788,7 @@ function SubRules({ subRules }) {
   const {
     subList,
     selectSub,
+    updateSub,
     addSub,
     delSub,
     selectedUrl,
@@ -795,9 +811,11 @@ function SubRules({ subRules }) {
           <SubRulesItem
             key={item.url}
             url={item.url}
+            syncAt={item.syncAt}
             index={index}
             selectedUrl={selectedUrl}
             delSub={delSub}
+            updateSub={updateSub}
             setSelectedRules={setSelectedRules}
           />
         ))}
