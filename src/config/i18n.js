@@ -271,15 +271,15 @@ export const I18N = {
   },
   personal_rules: {
     zh: `个人规则`,
-    en: `Personal Rules`,
+    en: `Rules`,
   },
   subscribe_rules: {
     zh: `订阅规则`,
-    en: `Subscribe Rules`,
+    en: `Subscribe`,
   },
   overwrite_subscribe_rules: {
     zh: `覆写订阅规则`,
-    en: `Overwrite Subscribe Rules`,
+    en: `Overwrite`,
   },
   subscribe_url: {
     zh: `订阅地址`,
