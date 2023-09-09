@@ -51,9 +51,12 @@ export const shortcutListener = (fn, target = document, timeout = 3000) => {
  * @param {*} target
  * @returns
  */
-export const shortcutRegister = (targetKeys, fn, target = document) => {
+export const shortcutRegister = (targetKeys = [], fn, target = document) => {
   return shortcutListener((curkeys) => {
-    if (isSameSet(new Set(targetKeys), new Set(curkeys))) {
+    if (
+      targetKeys.length > 0 &&
+      isSameSet(new Set(targetKeys), new Set(curkeys))
+    ) {
       fn();
     }
   }, target);
