@@ -243,10 +243,12 @@ export const DEFAULT_TRANS_APIS = {
 export const OPT_SHORTCUT_TRANSLATE = "toggleTranslate";
 export const OPT_SHORTCUT_STYLE = "toggleStyle";
 export const OPT_SHORTCUT_POPUP = "togglePopup";
+export const OPT_SHORTCUT_SETTING = "openSetting";
 export const DEFAULT_SHORTCUTS = {
   [OPT_SHORTCUT_TRANSLATE]: ["Alt", "q"],
   [OPT_SHORTCUT_STYLE]: ["Alt", "c"],
   [OPT_SHORTCUT_POPUP]: ["Alt", "k"],
+  [OPT_SHORTCUT_SETTING]: ["Alt", "o"],
 };
 
 export const TRANS_MIN_LENGTH = 5; // 最短翻译长度
@@ -269,6 +271,7 @@ export const DEFAULT_SETTING = {
   transApis: DEFAULT_TRANS_APIS, // 翻译接口
   mouseKey: OPT_MOUSEKEY_DISABLE, // 鼠标悬停翻译
   shortcuts: DEFAULT_SHORTCUTS, // 快捷键
+  hideFab: false, // 是否隐藏按钮
 };
 
 export const DEFAULT_RULES = [GLOBLA_RULE];

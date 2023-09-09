@@ -521,4 +521,20 @@ export const I18N = {
     zh: `"打开弹窗"快捷键`,
     en: `"Open Popup" Shortcut`,
   },
+  open_setting_shortcut: {
+    zh: `"打开设置"快捷键`,
+    en: `"Open Setting" Shortcut`,
+  },
+  hide_fab_button: {
+    zh: `隐藏悬浮按钮`,
+    en: `"Hide Fab Button`,
+  },
+  show: {
+    zh: `显示`,
+    en: `"Show`,
+  },
+  hide: {
+    zh: `隐藏`,
+    en: `"Hide`,
+  },
 };

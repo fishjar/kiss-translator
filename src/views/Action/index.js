@@ -14,6 +14,7 @@ import {
   OPT_SHORTCUT_TRANSLATE,
   OPT_SHORTCUT_STYLE,
   OPT_SHORTCUT_POPUP,
+  OPT_SHORTCUT_SETTING,
 } from "../../config";
 import { shortcutRegister } from "../../libs/shortcut";
 
@@ -64,6 +65,9 @@ export default function Action({ translator, fab }) {
       shortcutRegister(shortcuts[OPT_SHORTCUT_POPUP], () => {
         setShowPopup((pre) => !pre);
       }),
+      shortcutRegister(shortcuts[OPT_SHORTCUT_SETTING], () => {
+        window.open(process.env.REACT_APP_OPTIONSPAGE, "_blank");
+      }),
     ];
 
     return () => {
@@ -80,7 +84,7 @@ export default function Action({ translator, fab }) {
       try {
         menuCommandIds.push(
           GM.registerMenuCommand(
-            "Toggle Translate",
+            "Toggle Translate (Alt+q)",
             (event) => {
               translator.toggle();
               setShowPopup(false);
@@ -88,7 +92,7 @@ export default function Action({ translator, fab }) {
             "Q"
           ),
           GM.registerMenuCommand(
-            "Toggle Style",
+            "Toggle Style (Alt+c)",
             (event) => {
               translator.toggleStyle();
               setShowPopup(false);
@@ -96,11 +100,18 @@ export default function Action({ translator, fab }) {
             "C"
           ),
           GM.registerMenuCommand(
-            "Open Menu",
+            "Open Menu (Alt+k)",
             (event) => {
               setShowPopup((pre) => !pre);
             },
             "K"
+          ),
+          GM.registerMenuCommand(
+            "Open Setting (Alt+o)",
+            (event) => {
+              setShowPopup((pre) => !pre);
+            },
+            "O"
           )
         );
       } catch (err) {
@@ -183,7 +194,7 @@ export default function Action({ translator, fab }) {
           key="fab"
           snapEdge
           {...fabProps}
-          show={!showPopup}
+          show={translator.setting.hideFab ? false : !showPopup}
           onStart={handleStart}
           onMove={handleMove}
           handler={

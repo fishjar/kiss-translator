@@ -24,6 +24,7 @@ import {
   OPT_SHORTCUT_TRANSLATE,
   OPT_SHORTCUT_STYLE,
   OPT_SHORTCUT_POPUP,
+  OPT_SHORTCUT_SETTING,
 } from "../../config";
 import { useEffect, useState, useRef } from "react";
 import { useShortcut } from "../../hooks/Shortcut";
@@ -128,6 +129,7 @@ export default function Settings() {
     clearCache,
     newlineLength = TRANS_NEWLINE_LENGTH,
     mouseKey = OPT_MOUSEKEY_DISABLE,
+    hideFab = false,
   } = setting;
 
   return (
@@ -229,26 +231,46 @@ export default function Settings() {
             </FormHelperText>
           </FormControl>
         ) : (
-          <Grid container rowSpacing={2} columns={12}>
-            <Grid item xs={12} sm={12} md={4} lg={4}>
-              <ShortcutItem
-                action={OPT_SHORTCUT_TRANSLATE}
-                label={i18n("toggle_translate_shortcut")}
-              />
+          <>
+            <FormControl size="small">
+              <InputLabel>{i18n("hide_fab_button")}</InputLabel>
+              <Select
+                name="hideFab"
+                value={hideFab}
+                label={i18n("hide_fab_button")}
+                onChange={handleChange}
+              >
+                <MenuItem value={false}>{i18n("show")}</MenuItem>
+                <MenuItem value={true}>{i18n("hide")}</MenuItem>
+              </Select>
+            </FormControl>
+            <Grid container rowSpacing={2} columns={12}>
+              <Grid item xs={12} sm={12} md={3} lg={3}>
+                <ShortcutItem
+                  action={OPT_SHORTCUT_TRANSLATE}
+                  label={i18n("toggle_translate_shortcut")}
+                />
+              </Grid>
+              <Grid item xs={12} sm={12} md={3} lg={3}>
+                <ShortcutItem
+                  action={OPT_SHORTCUT_STYLE}
+                  label={i18n("toggle_style_shortcut")}
+                />
+              </Grid>
+              <Grid item xs={12} sm={12} md={3} lg={3}>
+                <ShortcutItem
+                  action={OPT_SHORTCUT_POPUP}
+                  label={i18n("toggle_popup_shortcut")}
+                />
+              </Grid>
+              <Grid item xs={12} sm={12} md={3} lg={3}>
+                <ShortcutItem
+                  action={OPT_SHORTCUT_SETTING}
+                  label={i18n("open_setting_shortcut")}
+                />
+              </Grid>
             </Grid>
-            <Grid item xs={12} sm={12} md={4} lg={4}>
-              <ShortcutItem
-                action={OPT_SHORTCUT_STYLE}
-                label={i18n("toggle_style_shortcut")}
-              />
-            </Grid>
-            <Grid item xs={12} sm={12} md={4} lg={4}>
-              <ShortcutItem
-                action={OPT_SHORTCUT_POPUP}
-                label={i18n("toggle_popup_shortcut")}
-              />
-            </Grid>
-          </Grid>
+          </>
         )}
       </Stack>
     </Box>
