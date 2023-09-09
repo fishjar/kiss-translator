@@ -5,7 +5,8 @@ import { apiFetch } from "../apis";
 /**
  * 修复程序类型
  */
-const WEBFIX_BR = "br";
+const FIXER_BR = "br";
+const FIXER_FONTSIZE = "fontSize";
 
 /**
  * 需要修复的站点列表
@@ -19,13 +20,19 @@ const DEFAULT_SITES = [
     pattern: "www.phoronix.com",
     selector: ".content",
     rootSlector: "",
-    fixer: WEBFIX_BR,
+    fixer: FIXER_BR,
   },
   {
-    pattern: "t.me/s/*",
+    pattern: "t.me/s/",
     selector: ".tgme_widget_message_text",
     rootSlector: ".tgme_channel_history",
-    fixer: WEBFIX_BR,
+    fixer: FIXER_BR,
+  },
+  {
+    pattern: "baidu.com",
+    selector: "html",
+    rootSlector: "",
+    fixer: FIXER_FONTSIZE,
   },
 ];
 
@@ -88,10 +95,19 @@ function brFixer(node) {
 }
 
 /**
+ * 修复字体大小问题，如 baidu.com
+ * @param {*} node
+ */
+function fontSizeFixer(node) {
+  node.style.cssText += "font-size:1em;";
+}
+
+/**
  * 修复程序映射
  */
 const fixerMap = {
-  [WEBFIX_BR]: brFixer,
+  [FIXER_BR]: brFixer,
+  [FIXER_FONTSIZE]: fontSizeFixer,
 };
 
 /**
