@@ -655,7 +655,7 @@ function SubRulesItem({
       <FormControlLabel value={url} control={<Radio />} label={url} />
 
       {syncAt && (
-        <span style={{ marginLeft: "0.5em", opacity: 0.6 }}>
+        <span style={{ marginLeft: "0.5em", opacity: 0.5 }}>
           [{new Date(syncAt).toLocaleString()}]
         </span>
       )}
