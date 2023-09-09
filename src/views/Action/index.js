@@ -109,7 +109,7 @@ export default function Action({ translator, fab }) {
           GM.registerMenuCommand(
             "Open Setting (Alt+o)",
             (event) => {
-              setShowPopup((pre) => !pre);
+              window.open(process.env.REACT_APP_OPTIONSPAGE, "_blank");
             },
             "O"
           )
