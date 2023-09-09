@@ -5,6 +5,7 @@ import { useSetting } from "./Setting";
 export function useShortcut(action) {
   const { setting, updateSetting } = useSetting();
   const shortcuts = setting?.shortcuts || DEFAULT_SHORTCUTS;
+  const shortcut = shortcuts[action] || [];
 
   const setShortcut = useCallback(
     async (val) => {
@@ -14,5 +15,5 @@ export function useShortcut(action) {
     [action, shortcuts, updateSetting]
   );
 
-  return { shortcut: shortcuts[action] || [], setShortcut };
+  return { shortcut, setShortcut };
 }
