@@ -1,6 +1,5 @@
 import { STOKEY_SETTING, DEFAULT_SETTING } from "../config";
 import { useStorage } from "./Storage";
-import { useSync } from "./Sync";
 import { trySyncSetting } from "../libs/sync";
 import { createContext, useCallback, useContext, useMemo } from "react";
 import { debounce } from "../libs/utils";
@@ -16,10 +15,6 @@ export function SettingProvider({ children }) {
     STOKEY_SETTING,
     DEFAULT_SETTING
   );
-  const {
-    sync: { settingUpdateAt },
-    updateSync,
-  } = useSync();
 
   const syncSetting = useMemo(
     () =>
@@ -31,12 +26,10 @@ export function SettingProvider({ children }) {
 
   const updateSetting = useCallback(
     async (obj) => {
-      const updateAt = settingUpdateAt ? Date.now() : 0;
       await update(obj);
-      await updateSync({ settingUpdateAt: updateAt });
       syncSetting();
     },
-    [settingUpdateAt, update, updateSync, syncSetting]
+    [update, syncSetting]
   );
 
   if (loading) {

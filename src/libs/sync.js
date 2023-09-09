@@ -20,7 +20,7 @@ import { sha256 } from "./utils";
  * @returns
  */
 const syncSetting = async (isBg = false) => {
-  const { syncUrl, syncKey, settingUpdateAt } = await getSyncWithDefault();
+  const { syncUrl, syncKey, settingUpdateAt = 0 } = await getSyncWithDefault();
   if (!syncUrl || !syncKey) {
     return;
   }
@@ -37,16 +37,15 @@ const syncSetting = async (isBg = false) => {
     isBg
   );
 
-  if (res && res.updateAt > settingUpdateAt) {
-    await updateSync({
-      settingUpdateAt: res.updateAt,
-      settingSyncAt: res.updateAt,
-    });
+  if (res.updateAt > settingUpdateAt) {
     await setSetting(res.value);
-    return res.value;
-  } else {
-    await updateSync({ settingSyncAt: res.updateAt });
   }
+  await updateSync({
+    settingUpdateAt: res.updateAt,
+    settingSyncAt: Date.now(),
+  });
+
+  return res.value;
 };
 
 export const trySyncSetting = async (isBg = false) => {
@@ -79,16 +78,15 @@ const syncRules = async (isBg = false) => {
     isBg
   );
 
-  if (res && res.updateAt > rulesUpdateAt) {
-    await updateSync({
-      rulesUpdateAt: res.updateAt,
-      rulesSyncAt: res.updateAt,
-    });
+  if (res.updateAt > rulesUpdateAt) {
     await setRules(res.value);
-    return res.value;
-  } else {
-    await updateSync({ rulesSyncAt: res.updateAt });
   }
+  await updateSync({
+    rulesUpdateAt: res.updateAt,
+    rulesSyncAt: Date.now(),
+  });
+
+  return res.value;
 };
 
 export const trySyncRules = async (isBg = false) => {

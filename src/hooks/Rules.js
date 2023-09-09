@@ -1,7 +1,6 @@
 import { STOKEY_RULES, DEFAULT_RULES } from "../config";
 import { useStorage } from "./Storage";
 import { trySyncRules } from "../libs/sync";
-import { useSync } from "./Sync";
 import { checkRules } from "../libs/rules";
 import { useCallback } from "react";
 
@@ -11,19 +10,13 @@ import { useCallback } from "react";
  */
 export function useRules() {
   const { data: list, save } = useStorage(STOKEY_RULES, DEFAULT_RULES);
-  const {
-    sync: { rulesUpdateAt },
-    updateSync,
-  } = useSync();
 
   const updateRules = useCallback(
     async (rules) => {
-      const updateAt = rulesUpdateAt ? Date.now() : 0;
       await save(rules);
-      await updateSync({ rulesUpdateAt: updateAt });
       trySyncRules();
     },
-    [rulesUpdateAt, save, updateSync]
+    [save]
   );
 
   const add = useCallback(
