@@ -10,5 +10,8 @@
   },
   "toggle_style": {
     "message": "Toggle Style"
+  },
+  "open_options": {
+    "message": "Open Options"
   }
 }

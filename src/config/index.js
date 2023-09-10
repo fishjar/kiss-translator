@@ -29,6 +29,7 @@ export const STOKEY_WEBFIXCACHE_PREFIX = `${APP_NAME}_webfixcache_`;
 
 export const CMD_TOGGLE_TRANSLATE = "toggleTranslate";
 export const CMD_TOGGLE_STYLE = "toggleStyle";
+export const CMD_OPEN_OPTIONS = "openOptions";
 
 export const CLIENT_WEB = "web";
 export const CLIENT_CHROME = "chrome";

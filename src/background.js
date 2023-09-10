@@ -7,6 +7,7 @@ import {
   MSG_TRANS_TOGGLE_STYLE,
   CMD_TOGGLE_TRANSLATE,
   CMD_TOGGLE_STYLE,
+  CMD_OPEN_OPTIONS,
 } from "./config";
 import { getSettingWithDefault, tryInitDefaultData } from "./libs/storage";
 import { trySyncSettingAndRules } from "./libs/sync";
@@ -84,6 +85,9 @@ browser.commands.onCommand.addListener((command) => {
       break;
     case CMD_TOGGLE_STYLE:
       sendTabMsg(MSG_TRANS_TOGGLE_STYLE);
+      break;
+    case CMD_OPEN_OPTIONS:
+      browser.runtime.openOptionsPage();
       break;
     default:
   }

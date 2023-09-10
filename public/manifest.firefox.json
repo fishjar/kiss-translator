@@ -33,6 +33,12 @@
         "default": "Alt+C"
       },
       "description": "__MSG_toggle_style__"
+    },
+    "openOptions": {
+      "suggested_key": {
+        "default": "Alt+O"
+      },
+      "description": "__MSG_open_options__"
     }
   },
   "permissions": ["<all_urls>", "storage"],
