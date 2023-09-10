@@ -36,7 +36,7 @@ export default function Options() {
             // 检查版本是否一致
             if (version !== process.env.REACT_APP_VERSION) {
               setError(
-                `The version of the script(v${version}) and this page(v${process.env.REACT_APP_VERSION}) are inconsistent.`
+                `The version is inconsistent, please check whether the script(v${version}) is the latest version(v${process.env.REACT_APP_VERSION}). (版本不一致，请检查脚本(v${version})是否为最新版(v${process.env.REACT_APP_VERSION}))`
               );
               break;
             }
@@ -53,7 +53,7 @@ export default function Options() {
           }
 
           if (++i > 8) {
-            setError("Time out.");
+            setError("Time out. (连接超时)");
             break;
           }
 
@@ -78,26 +78,26 @@ export default function Options() {
         </Divider>
         <h2>
           Please confirm whether to install or enable KISS Translator
-          GreaseMonkey script?
+          GreaseMonkey script? (请检查是否安装或启用简约翻译油猴脚本)
         </h2>
         <Stack spacing={2}>
           <Link href={process.env.REACT_APP_USERSCRIPT_DOWNLOADURL}>
-            Install Userscript 1
+            Install Userscript for Tampermonkey/Violentmonkey 1 (油猴脚本 安装地址 1)
           </Link>
           <Link href={process.env.REACT_APP_USERSCRIPT_DOWNLOADURL2}>
-            Install Userscript 2
+            Install Userscript for Tampermonkey/Violentmonkey 2 (油猴脚本 安装地址 2)
           </Link>
           <Link href={process.env.REACT_APP_USERSCRIPT_IOS_DOWNLOADURL}>
-            Install Userscript Safari 1
+            Install Userscript for iOS Safari 1 (油猴脚本 iOS Safari专用 安装地址 1)
           </Link>
           <Link href={process.env.REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2}>
-            Install Userscript Safari 2
+            Install Userscript for iOS Safari 2 (油猴脚本 iOS Safari专用 安装地址 2)
           </Link>
           <Link href={process.env.REACT_APP_OPTIONSPAGE}>
-            Open Options Page 1
+            Open Options Page 1 (打开设置页面 1)
           </Link>
           <Link href={process.env.REACT_APP_OPTIONSPAGE2}>
-            Open Options Page 2
+            Open Options Page 2 (打开设置页面 2)
           </Link>
         </Stack>
       </center>
