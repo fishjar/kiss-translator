@@ -5,7 +5,7 @@ import MenuItem from "@mui/material/MenuItem";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import Button from "@mui/material/Button";
-import { sendTabMsg } from "../../libs/msg";
+import { sendTabMsg, getTabInfo } from "../../libs/msg";
 import { browser } from "../../libs/browser";
 import { isExt } from "../../libs/client";
 import { useI18n } from "../../hooks/I18n";
@@ -24,6 +24,7 @@ import {
   CACHE_NAME,
 } from "../../config";
 import { sendIframeMsg } from "../../libs/iframe";
+import { saveRule } from "../../libs/rules";
 
 export default function Popup({ setShowPopup, translator: tran }) {
   const i18n = useI18n();
@@ -74,6 +75,21 @@ export default function Popup({ setShowPopup, translator: tran }) {
       caches.delete(CACHE_NAME);
     } catch (err) {
       console.log("[clear cache]", err);
+    }
+  };
+
+  const handleSaveRule = async () => {
+    try {
+      let pattern = window.location.host;
+      if (isExt) {
+        const tab = await getTabInfo();
+        const url = new URL(tab.url);
+        pattern = url.host;
+      }
+
+      saveRule({ ...rule, pattern });
+    } catch (err) {
+      console.log("[save rule]", err);
     }
   };
 
@@ -218,9 +234,19 @@ export default function Popup({ setShowPopup, translator: tran }) {
           />
         )}
 
-        <Button variant="text" onClick={handleOpenSetting}>
-          {i18n("setting")}
-        </Button>
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          alignItems="center"
+          spacing={2}
+        >
+          <Button variant="text" onClick={handleSaveRule}>
+            {i18n("save_rule")}
+          </Button>
+          <Button variant="text" onClick={handleOpenSetting}>
+            {i18n("setting")}
+          </Button>
+        </Stack>
       </Stack>
     </Box>
   );

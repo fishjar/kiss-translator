@@ -537,4 +537,8 @@ export const I18N = {
     zh: `隐藏`,
     en: `"Hide`,
   },
+  save_rule: {
+    zh: `保存规则`,
+    en: `"Save Rule`,
+  },
 };

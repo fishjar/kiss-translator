@@ -19,3 +19,12 @@ export const sendTabMsg = async (action, args) => {
   const tabs = await browser.tabs.query({ active: true, currentWindow: true });
   return browser.tabs.sendMessage(tabs[0].id, { action, args });
 };
+
+/**
+ * 获取当前tab信息
+ * @returns
+ */
+export const getTabInfo = async () => {
+  const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+  return tabs[0];
+};

@@ -11,6 +11,8 @@ import {
   DEFAULT_OW_RULE,
 } from "../config";
 import { loadOrFetchSubRules } from "./subRules";
+import { getRulesWithDefault, setRules } from "./storage";
+import { trySyncRules } from "./sync";
 
 /**
  * 根据href匹配规则
@@ -133,4 +135,20 @@ export const checkRules = (rules) => {
     );
 
   return rules;
+};
+
+/**
+ * 保存或更新rule
+ * @param {*} newRule
+ */
+export const saveRule = async (newRule) => {
+  const rules = await getRulesWithDefault();
+  const rule = rules.find((item) => isMatch(item.pattern, newRule.pattern));
+  if (rule) {
+    Object.assign(rule, { ...newRule, pattern: rule.pattern });
+  } else {
+    rules.unshift(newRule);
+  }
+  await setRules(rules);
+  trySyncRules();
 };
