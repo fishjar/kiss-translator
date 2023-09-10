@@ -527,19 +527,19 @@ export const I18N = {
   },
   hide_fab_button: {
     zh: `隐藏悬浮按钮`,
-    en: `"Hide Fab Button`,
+    en: `Hide Fab Button`,
   },
   show: {
     zh: `显示`,
-    en: `"Show`,
+    en: `Show`,
   },
   hide: {
     zh: `隐藏`,
-    en: `"Hide`,
+    en: `Hide`,
   },
   save_rule: {
     zh: `保存规则`,
-    en: `"Save Rule`,
+    en: `Save Rule`,
   },
   global_rule: {
     zh: `全局规则`,
