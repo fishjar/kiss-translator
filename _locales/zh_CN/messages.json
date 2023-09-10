@@ -6,9 +6,12 @@
     "message": "一个简约的双语网页翻译扩展 & 油猴脚本"
   },
   "toggle_translate": {
-    "message": "切换翻译"
+    "message": "开启翻译"
   },
   "toggle_style": {
     "message": "切换样式"
+  },
+  "open_options": {
+    "message": "打开设置"
   }
 }
