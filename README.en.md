@@ -44,7 +44,8 @@ If you also like a little more simplicity, welcome to pick it up.
 
 - `Alt+Q` Toggle Translation
 - `Alt+C` Toggle Styles
-- `Alt+K` Open Menu
+- `Alt+K` Open Popup
+- `Alt+O` Open Options
 
 ## Schedule
 
