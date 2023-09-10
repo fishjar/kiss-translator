@@ -43,6 +43,7 @@ const customApiLangs = `["en", "English - English"],
 `;
 
 const customApiHelpZH = `/// 自定义翻译源接口说明
+
 // 请求（Request）数据将按下面规范发送
 {
   url: {{YOUR_URL}},
@@ -70,6 +71,7 @@ ${customApiLangs}
 `;
 
 const customApiHelpEN = `/// Custom translation source interface description
+
 // Request data will be sent according to the following specifications
 {
   url: {{YOUR_URL}},
