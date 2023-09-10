@@ -143,7 +143,7 @@ export const checkRules = (rules) => {
  */
 export const saveRule = async (newRule) => {
   const rules = await getRulesWithDefault();
-  const rule = rules.find((item) => isMatch(item.pattern, newRule.pattern));
+  const rule = rules.find((item) => isMatch(newRule.pattern, item.pattern));
   if (rule) {
     Object.assign(rule, { ...newRule, pattern: rule.pattern });
   } else {
