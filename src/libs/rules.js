@@ -144,7 +144,7 @@ export const checkRules = (rules) => {
 export const saveRule = async (newRule) => {
   const rules = await getRulesWithDefault();
   const rule = rules.find((item) => isMatch(newRule.pattern, item.pattern));
-  if (rule) {
+  if (rule && rule.pattern !== GLOBAL_KEY) {
     Object.assign(rule, { ...newRule, pattern: rule.pattern });
   } else {
     rules.unshift(newRule);

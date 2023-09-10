@@ -80,14 +80,13 @@ export default function Popup({ setShowPopup, translator: tran }) {
 
   const handleSaveRule = async () => {
     try {
-      let pattern = window.location.host;
+      let host = window.location.host;
       if (isExt) {
         const tab = await getTabInfo();
         const url = new URL(tab.url);
-        pattern = url.host;
+        host = url.host;
       }
-
-      saveRule({ ...rule, pattern });
+      saveRule({ ...rule, pattern: host });
     } catch (err) {
       console.log("[save rule]", err);
     }
