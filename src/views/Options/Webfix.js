@@ -1,6 +1,6 @@
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useI18n } from "../../hooks/I18n";
 import Typography from "@mui/material/Typography";
 import Accordion from "@mui/material/Accordion";
@@ -75,11 +75,17 @@ export default function Webfix() {
   const alert = useAlert();
   const { setting, updateSetting } = useSetting();
 
+  const loadSites = useCallback(async () => {
+    const sites = await loadOrFetchWebfix(process.env.REACT_APP_WEBFIXURL);
+    setSites(sites);
+  }, []);
+
   const handleSyncTest = async (e) => {
     e.preventDefault();
     try {
       setLoading(true);
       await syncWebfix(process.env.REACT_APP_WEBFIXURL);
+      await loadSites();
       alert.success(i18n("sync_success"));
     } catch (err) {
       console.log("[sync webfix]", err);
@@ -93,15 +99,14 @@ export default function Webfix() {
     (async () => {
       try {
         setLoading(true);
-        const sites = await loadOrFetchWebfix(process.env.REACT_APP_WEBFIXURL);
-        setSites(sites);
+        await loadSites();
       } catch (err) {
         console.log("[load webfix]", err.message);
       } finally {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [loadSites]);
 
   return (
     <Box>
