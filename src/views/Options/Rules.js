@@ -362,6 +362,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
 }
 
 function RuleAccordion({ rule, rules }) {
+  const i18n = useI18n();
   const [expanded, setExpanded] = useState(false);
 
   const handleChange = (e) => {
@@ -376,7 +377,9 @@ function RuleAccordion({ rule, rules }) {
             opacity: rules ? 1 : 0.5,
           }}
         >
-          {rule.pattern}
+          {rule.pattern === GLOBAL_KEY
+            ? `[${i18n("global_rule")}] ${rule.pattern}`
+            : rule.pattern}
         </Typography>
       </AccordionSummary>
       <AccordionDetails>

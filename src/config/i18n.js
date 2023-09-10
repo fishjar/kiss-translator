@@ -541,4 +541,8 @@ export const I18N = {
     zh: `保存规则`,
     en: `"Save Rule`,
   },
+  global_rule: {
+    zh: `全局规则`,
+    en: `Global Rule`,
+  },
 };
