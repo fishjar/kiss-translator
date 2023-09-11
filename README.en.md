@@ -16,7 +16,34 @@ If you also like a little more simplicity, welcome to pick it up.
 
 ## Features
 
-- Keep it simple, smart
+- [x] Keep it simple, smart
+- [x] Open source
+- [x] Adapt to common browsers
+  - [x] Chrome/Edge/Firefox/Kiwi
+  - [ ] Safari
+- [x] Supports multiple translation services
+  - [x] Google/Microsoft/DeepL/OpenAI
+  - [x] Custom translation interface
+- [x] Data synchronization function
+- [x] Rule subscription function
+- [x] Custom style
+- [x] Shortcut key operation
+  - `Alt+Q` Toggle Translation
+  - `Alt+C` Toggle Styles
+  - `Alt+K` Open Popup
+  - `Alt+O` Open Options
+
+## Download
+
+- [x] Browser extension
+  - [x] Chrome [Installation address](https://chrome.google.com/webstore/detail/kiss-translator/bdiifdefkgmcblbcghdlonllpjhhjgof?hl=zh-CN)
+  - [x] Edge [Installation address](https://microsoftedge.microsoft.com/addons/detail/%E7%AE%80%E7%BA%A6%E7%BF%BB%E8%AF%91/jemckldkclkinpjighnoilpbldbdmmlh?hl=zh-CN)
+  - [x] Firefox [Installation address](https://addons.mozilla.org/zh-CN/firefox/addon/kiss-translator/)
+  - [ ] Safari
+- [x] GreaseMonkey Script
+  - [x] Chrome/Edge/Firefox ([Tampermonkey](https://www.tampermonkey.net/)/[Violentmonkey](https://violentmonkey.github.io/)) [Installation link 1](https://fishjar.github.io/kiss-translator/kiss-translator.user.js)、 [Installation link 2](https://kiss-translator.rayjar.com/kiss-translator.user.js)
+    - Greasy Fork [Installation address](https://greasyfork.org/zh-CN/scripts/472840-kiss-translator)
+  - [x] iOS Safari ([Userscripts Safari](https://github.com/quoid/userscripts)) [Installation link 1](https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js)、 [Installation link 2](https://kiss-translator.rayjar.com/kiss-translator.user-ios-safari.js)
 
 ## Associated ProjectS
 
@@ -38,43 +65,7 @@ If you also like a little more simplicity, welcome to pick it up.
   - Supports query of English words, sentences and Chinese characters.
   - Supports history records and word collections.
 
-## Description
-
-### Support shortcut keys
-
-- `Alt+Q` Toggle Translation
-- `Alt+C` Toggle Styles
-- `Alt+K` Open Popup
-- `Alt+O` Open Options
-
-## Schedule
-
-- [x] Provide trial installation package
-- [x] Adapt browser
-  - [x] Chrome
-  - [x] Edge
-  - [x] Firefox
-  - [ ] Safari
-  - [x] Kiwi
-- [x] Support translation services
-  - [x] Google
-  - [x] Microsoft
-  - [x] DeepL
-  - [x] OpenAI
-- [x] Upload to app Store
-  - [x] Chrome [Install Link](https://chrome.google.com/webstore/detail/kiss-translator/bdiifdefkgmcblbcghdlonllpjhhjgof)
-  - [x] Edge [Install Link](https://microsoftedge.microsoft.com/addons/detail/kiss-translator/jemckldkclkinpjighnoilpbldbdmmlh)
-  - [x] Firefox [Install Link](https://addons.mozilla.org/en-US/firefox/addon/kiss-translator/)
-  - [ ] Safari
-  - [x] Greasy Fork [Install Link](https://greasyfork.org/en/scripts/472840-kiss-translator)
-- [x] Open source
-- [x] Data Synchronization Function
-- [x] Greasemonkey Script ([Setting Page 1](https://fishjar.github.io/kiss-translator/options.html)、[Setting Page 2](https://kiss-translator.rayjar.com/options))
-  - [x] [Tampermonkey](https://www.tampermonkey.net/) (Chrome/Edge/Firefox) [Install Link 1](https://fishjar.github.io/kiss-translator/kiss-translator.user.js)、[Install Link 2](https://kiss-translator.rayjar.com/kiss-translator.user.js)
-  - [x] [Violentmonkey](https://violentmonkey.github.io/) (Chrome/Edge/Firefox) [Install Link 1](https://fishjar.github.io/kiss-translator/kiss-translator.user.js)、[Install Link 2](https://kiss-translator.rayjar.com/kiss-translator.user.js)
-  - [x] [Userscripts Safari](https://github.com/quoid/userscripts) (iOS Safari) [Install Link 1](https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js)、[Install Link 2](https://kiss-translator.rayjar.com/kiss-translator.user-ios-safari.js)
-
-## Guide
+## Development Guidelines
 
 ```sh
 git clone https://github.com/fishjar/kiss-translator.git

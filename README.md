@@ -16,7 +16,34 @@
 
 ## 特点
 
-- 保持简约
+- [x] 保持简约
+- [x] 开放源代码
+- [x] 适配常见浏览器
+  - [x] Chrome/Edge/Firefox/Kiwi
+  - [ ] Safari
+- [x] 支持多种翻译服务
+  - [x] Google/Microsoft/DeepL/OpenAI
+  - [x] 自定义翻译接口
+- [x] 数据同步功能
+- [x] 规则订阅功能
+- [x] 自定义样式
+- [x] 快捷键操作
+  - `Alt+Q` 开启翻译
+  - `Alt+C` 切换样式
+  - `Alt+K` 打开弹窗
+  - `Alt+O` 打开设置
+
+## 下载
+
+- [x] 浏览器扩展
+  - [x] Chrome [安装地址](https://chrome.google.com/webstore/detail/kiss-translator/bdiifdefkgmcblbcghdlonllpjhhjgof?hl=zh-CN)
+  - [x] Edge [安装地址](https://microsoftedge.microsoft.com/addons/detail/%E7%AE%80%E7%BA%A6%E7%BF%BB%E8%AF%91/jemckldkclkinpjighnoilpbldbdmmlh?hl=zh-CN)
+  - [x] Firefox [安装地址](https://addons.mozilla.org/zh-CN/firefox/addon/kiss-translator/)
+  - [ ] Safari
+- [x] 油猴脚本
+  - [x] Chrome/Edge/Firefox ([Tampermonkey](https://www.tampermonkey.net/)/[Violentmonkey](https://violentmonkey.github.io/)) [安装链接 1](https://fishjar.github.io/kiss-translator/kiss-translator.user.js)、 [安装链接 2](https://kiss-translator.rayjar.com/kiss-translator.user.js)
+    - Greasy Fork [安装地址](https://greasyfork.org/zh-CN/scripts/472840-kiss-translator)
+  - [x] iOS Safari ([Userscripts Safari](https://github.com/quoid/userscripts)) [安装链接 1](https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js)、 [安装链接 2](https://kiss-translator.rayjar.com/kiss-translator.user-ios-safari.js)
 
 ## 关联项目
 
@@ -38,43 +65,7 @@
   - 支持英文单词、句子、汉字的查询。
   - 支持历史记录、单词收藏。
 
-## 简要说明
-
-### 支持快捷键
-
-- `Alt+Q` 开启翻译
-- `Alt+C` 切换样式
-- `Alt+K` 打开弹窗
-- `Alt+O` 打开设置
-
-## 进度
-
-- [x] 提供试用安装包
-- [x] 适配浏览器
-  - [x] Chrome
-  - [x] Edge
-  - [x] Firefox
-  - [ ] Safari
-  - [x] Kiwi
-- [x] 支持翻译服务
-  - [x] Google
-  - [x] Microsoft
-  - [x] DeepL
-  - [x] OpenAI
-- [x] 上架应用市场
-  - [x] Chrome [安装地址](https://chrome.google.com/webstore/detail/kiss-translator/bdiifdefkgmcblbcghdlonllpjhhjgof?hl=zh-CN)
-  - [x] Edge [安装地址](https://microsoftedge.microsoft.com/addons/detail/%E7%AE%80%E7%BA%A6%E7%BF%BB%E8%AF%91/jemckldkclkinpjighnoilpbldbdmmlh?hl=zh-CN)
-  - [x] Firefox [安装地址](https://addons.mozilla.org/zh-CN/firefox/addon/kiss-translator/)
-  - [ ] Safari
-  - [x] Greasy Fork [安装地址](https://greasyfork.org/zh-CN/scripts/472840-kiss-translator)
-- [x] 开放源代码
-- [x] 数据同步功能
-- [x] 油猴脚本 ([设置页面 1](https://fishjar.github.io/kiss-translator/options.html)、[设置页面 2](https://kiss-translator.rayjar.com/options))
-  - [x] [Tampermonkey](https://www.tampermonkey.net/) (Chrome/Edge/Firefox) [安装链接 1](https://fishjar.github.io/kiss-translator/kiss-translator.user.js)、[安装链接 2](https://kiss-translator.rayjar.com/kiss-translator.user.js)
-  - [x] [Violentmonkey](https://violentmonkey.github.io/) (Chrome/Edge/Firefox) [安装链接 1](https://fishjar.github.io/kiss-translator/kiss-translator.user.js)、[安装链接 2](https://kiss-translator.rayjar.com/kiss-translator.user.js)
-  - [x] [Userscripts Safari](https://github.com/quoid/userscripts) (iOS Safari) [安装链接 1](https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js)、[安装链接 2](https://kiss-translator.rayjar.com/kiss-translator.user-ios-safari.js)
-
-## 指引
+## 开发指引
 
 ```sh
 git clone https://github.com/fishjar/kiss-translator.git
