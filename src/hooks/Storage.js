@@ -31,6 +31,7 @@ export function useStorage(key, defaultVal = null) {
     if (val) {
       setData(val);
     } else if (defaultVal) {
+      setData(defaultVal);
       await storage.setObj(key, defaultVal);
     }
   }, [key, defaultVal]);

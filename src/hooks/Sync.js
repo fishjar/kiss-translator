@@ -7,8 +7,8 @@ import { useStorage } from "./Storage";
  * @returns
  */
 export function useSync() {
-  const { data, update } = useStorage(STOKEY_SYNC, DEFAULT_SYNC);
-  return { sync: data, updateSync: update };
+  const { data, update, reload } = useStorage(STOKEY_SYNC, DEFAULT_SYNC);
+  return { sync: data, updateSync: update, reloadSync: reload };
 }
 
 /**
@@ -17,7 +17,7 @@ export function useSync() {
  * @returns
  */
 export function useSyncCaches() {
-  const { sync, updateSync } = useSync();
+  const { sync, updateSync, reloadSync } = useSync();
 
   const updateDataCache = useCallback(
     async (url) => {
@@ -41,5 +41,6 @@ export function useSyncCaches() {
     dataCaches: sync.dataCaches || {},
     updateDataCache,
     deleteDataCache,
+    reloadSync,
   };
 }

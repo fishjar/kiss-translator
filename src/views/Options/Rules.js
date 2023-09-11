@@ -798,13 +798,17 @@ function SubRules({ subRules }) {
     setSelectedRules,
     loading,
   } = subRules;
-  const { dataCaches, updateDataCache, deleteDataCache } =
+  const { dataCaches, updateDataCache, deleteDataCache, reloadSync } =
     useSyncCaches();
 
   const handleSelect = (e) => {
     const url = e.target.value;
     selectSub(url);
   };
+
+  useEffect(() => {
+    reloadSync();
+  }, [selectedRules, reloadSync]);
 
   return (
     <Stack spacing={3}>

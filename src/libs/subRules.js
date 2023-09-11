@@ -11,6 +11,16 @@ import { checkRules } from "./rules";
 import { isAllchar } from "./utils";
 
 /**
+ * 更新缓存同步时间
+ * @param {*} url
+ */
+const updateSyncDataCache = async (url) => {
+  const { dataCaches = {} } = await getSyncWithDefault();
+  dataCaches[url] = Date.now();
+  await updateSync({ dataCaches });
+};
+
+/**
  * 同步订阅规则
  * @param {*} url
  * @returns
@@ -35,6 +45,7 @@ export const syncAllSubRules = async (subrulesList, isBg = false) => {
   for (let subrules of subrulesList) {
     try {
       await syncSubRules(subrules.url, isBg);
+      await updateSyncDataCache(subrules.url);
     } catch (err) {
       console.log(`[sync subrule error]: ${subrules.url}`, err);
     }
@@ -70,9 +81,10 @@ export const trySyncAllSubRules = async ({ subrulesList }, isBg = false) => {
  * @returns
  */
 export const loadOrFetchSubRules = async (url) => {
-  const rules = await getSubRules(url);
-  if (rules?.length) {
-    return rules;
+  let rules = await getSubRules(url);
+  if (!rules || rules.length === 0) {
+    rules = await syncSubRules(url);
+    await updateSyncDataCache(url);
   }
-  return syncSubRules(url);
+  return rules || [];
 };

@@ -49,9 +49,8 @@ export const matchRule = async (
             mixRule[key] = val;
           });
 
-        const subRules = (await loadOrFetchSubRules(selectedSub.url)).map(
-          (item) => ({ ...item, ...mixRule })
-        );
+        let subRules = await loadOrFetchSubRules(selectedSub.url);
+        subRules = subRules.map((item) => ({ ...item, ...mixRule }));
         rules.splice(-1, 0, ...subRules);
       }
     } catch (err) {
