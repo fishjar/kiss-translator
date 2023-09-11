@@ -25,9 +25,9 @@ If you also like a little more simplicity, welcome to pick it up.
   - [x] Google/Microsoft/DeepL/OpenAI
   - [x] Custom translation interface
 - [x] Data synchronization function
-- [x] Rule subscription function
+- [x] Custom rules + rule subscription
 - [x] Custom style
-- [x] Shortcut key operation
+- [x] Custom shortcut keys
   - `Alt+Q` Toggle Translation
   - `Alt+C` Toggle Styles
   - `Alt+K` Open Popup
