@@ -21,14 +21,14 @@ import HelpButton from "./HelpButton";
 import { URL_KISS_RULES_NEW_ISSUE } from "../../config";
 
 function ApiFields({ site }) {
-  const { selector, rootSlector, fixer } = site;
+  const { selector, rootSelector, fixer } = site;
   return (
     <Stack spacing={3}>
       <TextField
         size="small"
-        label={"rootSlector"}
-        name="rootSlector"
-        value={rootSlector || "document"}
+        label={"rootSelector"}
+        name="rootSelector"
+        value={rootSelector || "document"}
         disabled
       />
       <TextField
