@@ -344,8 +344,8 @@ export const I18N = {
     en: `Follow the syntax of "CSS"`,
   },
   setting: {
-    zh: `设置(Alt+O)`,
-    en: `Setting(Alt+O)`,
+    zh: `设置 (Alt+O)`,
+    en: `Setting (Alt+O)`,
   },
   pattern: {
     zh: `匹配网址`,
