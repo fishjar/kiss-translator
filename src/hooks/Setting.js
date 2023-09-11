@@ -19,7 +19,7 @@ export function SettingProvider({ children }) {
   const syncSetting = useMemo(
     () =>
       debounce(() => {
-        trySyncSetting();
+        trySyncSetting(false, true);
       }, [2000]),
     []
   );

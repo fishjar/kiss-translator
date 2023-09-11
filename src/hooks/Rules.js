@@ -14,7 +14,7 @@ export function useRules() {
   const updateRules = useCallback(
     async (rules) => {
       await save(rules);
-      trySyncRules();
+      trySyncRules(false, true);
     },
     [save]
   );

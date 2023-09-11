@@ -19,10 +19,19 @@ import { sha256 } from "./utils";
  * 同步设置
  * @returns
  */
-const syncSetting = async (isBg = false) => {
-  const { syncUrl, syncKey, settingUpdateAt = 0 } = await getSyncWithDefault();
+const syncSetting = async (isBg = false, isForce = false) => {
+  let {
+    syncUrl,
+    syncKey,
+    settingUpdateAt = 0,
+    settingSyncAt = 0,
+  } = await getSyncWithDefault();
   if (!syncUrl || !syncKey) {
     return;
+  }
+
+  if (isForce) {
+    settingUpdateAt = Date.now();
   }
 
   const setting = await getSettingWithDefault();
@@ -32,7 +41,7 @@ const syncSetting = async (isBg = false) => {
     {
       key: KV_SETTING_KEY,
       value: setting,
-      updateAt: settingUpdateAt,
+      updateAt: settingSyncAt === 0 ? 0 : settingUpdateAt,
     },
     isBg
   );
@@ -48,9 +57,9 @@ const syncSetting = async (isBg = false) => {
   return res.value;
 };
 
-export const trySyncSetting = async (isBg = false) => {
+export const trySyncSetting = async (isBg = false, isForce = false) => {
   try {
-    return await syncSetting(isBg);
+    return await syncSetting(isBg, isForce);
   } catch (err) {
     console.log("[sync setting]", err);
   }
@@ -60,10 +69,19 @@ export const trySyncSetting = async (isBg = false) => {
  * 同步规则
  * @returns
  */
-const syncRules = async (isBg = false) => {
-  const { syncUrl, syncKey, rulesUpdateAt } = await getSyncWithDefault();
+const syncRules = async (isBg = false, isForce = false) => {
+  let {
+    syncUrl,
+    syncKey,
+    rulesUpdateAt = 0,
+    rulesSyncAt = 0,
+  } = await getSyncWithDefault();
   if (!syncUrl || !syncKey) {
     return;
+  }
+
+  if (isForce) {
+    rulesUpdateAt = Date.now();
   }
 
   const rules = await getRulesWithDefault();
@@ -73,7 +91,7 @@ const syncRules = async (isBg = false) => {
     {
       key: KV_RULES_KEY,
       value: rules,
-      updateAt: rulesUpdateAt,
+      updateAt: rulesSyncAt === 0 ? 0 : rulesUpdateAt,
     },
     isBg
   );
@@ -89,9 +107,9 @@ const syncRules = async (isBg = false) => {
   return res.value;
 };
 
-export const trySyncRules = async (isBg = false) => {
+export const trySyncRules = async (isBg = false, isForce = false) => {
   try {
-    return await syncRules(isBg);
+    return await syncRules(isBg, isForce);
   } catch (err) {
     console.log("[sync user rules]", err);
   }
