@@ -48,6 +48,7 @@ import { delSubRules, getSyncWithDefault } from "../../libs/storage";
 import OwSubRule from "./OwSubRule";
 import ClearAllIcon from "@mui/icons-material/ClearAll";
 import HelpButton from "./HelpButton";
+import { useSyncCaches } from "../../hooks/Sync";
 
 function RuleFields({ rule, rules, setShow, setKeyword }) {
   const initFormValues = rule || {
@@ -624,8 +625,9 @@ function SubRulesItem({
   syncAt,
   selectedUrl,
   delSub,
-  updateSub,
   setSelectedRules,
+  updateDataCache,
+  deleteDataCache,
 }) {
   const [loading, setLoading] = useState(false);
 
@@ -633,6 +635,7 @@ function SubRulesItem({
     try {
       await delSub(url);
       await delSubRules(url);
+      await deleteDataCache(url);
     } catch (err) {
       console.log("[del subrules]", err);
     }
@@ -645,7 +648,7 @@ function SubRulesItem({
       if (rules.length > 0 && url === selectedUrl) {
         setSelectedRules(rules);
       }
-      await updateSub(url, { syncAt: Date.now() });
+      await updateDataCache(url);
     } catch (err) {
       console.log("[sync sub rules]", err);
     } finally {
@@ -680,7 +683,7 @@ function SubRulesItem({
   );
 }
 
-function SubRulesEdit({ subList, addSub }) {
+function SubRulesEdit({ subList, addSub, updateDataCache }) {
   const i18n = useI18n();
   const [inputText, setInputText] = useState("");
   const [inputError, setInputError] = useState("");
@@ -715,6 +718,7 @@ function SubRulesEdit({ subList, addSub }) {
         throw new Error("empty rules");
       }
       await addSub(url);
+      await updateDataCache(url);
       setShowInput(false);
       setInputText("");
     } catch (err) {
@@ -787,7 +791,6 @@ function SubRules({ subRules }) {
   const {
     subList,
     selectSub,
-    updateSub,
     addSub,
     delSub,
     selectedUrl,
@@ -795,6 +798,8 @@ function SubRules({ subRules }) {
     setSelectedRules,
     loading,
   } = subRules;
+  const { dataCaches, updateDataCache, deleteDataCache } =
+    useSyncCaches();
 
   const handleSelect = (e) => {
     const url = e.target.value;
@@ -803,19 +808,24 @@ function SubRules({ subRules }) {
 
   return (
     <Stack spacing={3}>
-      <SubRulesEdit subList={subList} addSub={addSub} />
+      <SubRulesEdit
+        subList={subList}
+        addSub={addSub}
+        updateDataCache={updateDataCache}
+      />
 
       <RadioGroup value={selectedUrl} onChange={handleSelect}>
         {subList.map((item, index) => (
           <SubRulesItem
             key={item.url}
             url={item.url}
-            syncAt={item.syncAt}
+            syncAt={dataCaches[item.url]}
             index={index}
             selectedUrl={selectedUrl}
             delSub={delSub}
-            updateSub={updateSub}
             setSelectedRules={setSelectedRules}
+            updateDataCache={updateDataCache}
+            deleteDataCache={deleteDataCache}
           />
         ))}
       </RadioGroup>

@@ -285,4 +285,5 @@ export const DEFAULT_SYNC = {
   rulesUpdateAt: 0,
   rulesSyncAt: 0,
   subRulesSyncAt: 0, // 订阅规则同步时间
+  dataCaches: {}, // 缓存同步时间
 };

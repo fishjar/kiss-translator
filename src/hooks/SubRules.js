@@ -48,7 +48,7 @@ export function useSubRules() {
   const addSub = useCallback(
     async (url) => {
       const subrulesList = [...list];
-      subrulesList.push({ url, selected: false, syncAt: Date.now() });
+      subrulesList.push({ url, selected: false });
       await updateSetting({ subrulesList });
     },
     [list, updateSetting]
