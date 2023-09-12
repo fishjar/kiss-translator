@@ -21,7 +21,12 @@ export default function Header({ setShowPopup }) {
         <IconButton onClick={handleHomepage}>
           <HomeIcon />
         </IconButton>
-        <Box>
+        <Box
+          sx={{
+            userSelect: "none",
+            WebkitUserSelect: "none",
+          }}
+        >
           {`${process.env.REACT_APP_NAME} v${process.env.REACT_APP_VERSION}`}
         </Box>
       </Stack>

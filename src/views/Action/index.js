@@ -79,58 +79,54 @@ export default function Action({ translator, fab }) {
   }, [translator]);
 
   useEffect(() => {
-    // 注册菜单
-    const menuCommandIds = [];
-    if (isGm) {
-      try {
-        menuCommandIds.push(
-          GM.registerMenuCommand(
-            "Toggle Translate (Alt+q)",
-            (event) => {
-              translator.toggle();
-              setShowPopup(false);
-            },
-            "Q"
-          ),
-          GM.registerMenuCommand(
-            "Toggle Style (Alt+c)",
-            (event) => {
-              translator.toggleStyle();
-              setShowPopup(false);
-            },
-            "C"
-          ),
-          GM.registerMenuCommand(
-            "Open Menu (Alt+k)",
-            (event) => {
-              setShowPopup((pre) => !pre);
-            },
-            "K"
-          ),
-          GM.registerMenuCommand(
-            "Open Setting (Alt+o)",
-            (event) => {
-              window.open(process.env.REACT_APP_OPTIONSPAGE, "_blank");
-            },
-            "O"
-          )
-        );
-      } catch (err) {
-        console.log("[registerMenuCommand]", err);
-      }
+    if (!isGm) {
+      return;
     }
 
-    return () => {
-      if (isGm) {
-        try {
-          menuCommandIds.forEach((id) => {
-            GM.unregisterMenuCommand(id);
-          });
-        } catch (err) {
-          //
-        }
-      }
-    };
+    // 注册菜单
+    try {
+      const menuCommandIds = [];
+      menuCommandIds.push(
+        GM.registerMenuCommand(
+          "Toggle Translate (Alt+q)",
+          (event) => {
+            translator.toggle();
+            setShowPopup(false);
+          },
+          "Q"
+        ),
+        GM.registerMenuCommand(
+          "Toggle Style (Alt+c)",
+          (event) => {
+            translator.toggleStyle();
+            setShowPopup(false);
+          },
+          "C"
+        ),
+        GM.registerMenuCommand(
+          "Open Menu (Alt+k)",
+          (event) => {
+            setShowPopup((pre) => !pre);
+          },
+          "K"
+        ),
+        GM.registerMenuCommand(
+          "Open Setting (Alt+o)",
+          (event) => {
+            window.open(process.env.REACT_APP_OPTIONSPAGE, "_blank");
+          },
+          "O"
+        )
+      );
+
+      return () => {
+        menuCommandIds.forEach((id) => {
+          GM.unregisterMenuCommand(id);
+        });
+      };
+    } catch (err) {
+      console.log("[registerMenuCommand]", err);
+    }
   }, [translator]);
 
   useEffect(() => {
