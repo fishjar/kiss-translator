@@ -1,4 +1,3 @@
-import Paper from "@mui/material/Paper";
 import Fab from "@mui/material/Fab";
 import TranslateIcon from "@mui/icons-material/Translate";
 import ThemeProvider from "../../hooks/Theme";
@@ -9,6 +8,8 @@ import Popup from "../Popup";
 import { debounce } from "../../libs/utils";
 import { isGm } from "../../libs/client";
 import Header from "../Popup/Header";
+import Box from "@mui/material/Box";
+import Divider from "@mui/material/Divider";
 import {
   DEFAULT_SHORTCUTS,
   OPT_SHORTCUT_TRANSLATE,
@@ -178,17 +179,17 @@ export default function Action({ translator, fab }) {
           show={showPopup}
           onStart={handleStart}
           onMove={handleMove}
+          usePaper
           handler={
-            <Paper style={{ cursor: "move" }} elevation={3}>
+            <Box style={{ cursor: "move" }}>
               <Header setShowPopup={setShowPopup} />
-            </Paper>
+              <Divider />
+            </Box>
           }
         >
-          <Paper>
-            {showPopup && (
-              <Popup setShowPopup={setShowPopup} translator={translator} />
-            )}
-          </Paper>
+          {showPopup && (
+            <Popup setShowPopup={setShowPopup} translator={translator} />
+          )}
         </Draggable>
         <Draggable
           key="fab"

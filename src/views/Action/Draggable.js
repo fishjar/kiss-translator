@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { limitNumber } from "../../libs/utils";
 import { isMobile } from "../../libs/mobile";
 import { setFab } from "../../libs/storage";
+import Paper from "@mui/material/Paper";
 
 const getEdgePosition = (
   { x: left, y: top, edge },
@@ -58,6 +59,17 @@ const getHidePosition = (
   return { x: left, y: top, edge, hide: true };
 };
 
+function DraggableWrapper({ children, usePaper, ...props }) {
+  if (usePaper) {
+    return (
+      <Paper {...props} elevation={4}>
+        {children}
+      </Paper>
+    );
+  }
+  return <div {...props}>{children}</div>;
+}
+
 export default function Draggable({
   windowSize,
   width,
@@ -70,6 +82,7 @@ export default function Draggable({
   onMove,
   handler,
   children,
+  usePaper,
 }) {
   const [origin, setOrigin] = useState({
     x: left,
@@ -181,7 +194,8 @@ export default function Draggable({
       };
 
   return (
-    <div
+    <DraggableWrapper
+      usePaper={usePaper}
       style={{
         opacity,
         position: "fixed",
@@ -202,6 +216,6 @@ export default function Draggable({
         {handler}
       </div>
       <div>{children}</div>
-    </div>
+    </DraggableWrapper>
   );
 }
