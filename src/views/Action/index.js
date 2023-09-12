@@ -166,7 +166,7 @@ export default function Action({ translator, fab }) {
     windowSize,
     width: fabWidth,
     height: fabWidth,
-    left: fab.x ?? 0,
+    left: fab.x ?? -fabWidth,
     top: fab.y ?? windowSize.h / 2,
   };
 

@@ -1,62 +1,36 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { limitNumber } from "../../libs/utils";
 import { isMobile } from "../../libs/mobile";
 import { setFab } from "../../libs/storage";
+import { debounce } from "../../libs/utils";
 import Paper from "@mui/material/Paper";
 
-const getEdgePosition = (
-  { x: left, y: top, edge },
+const getEdgePosition = ({
+  x: left,
+  y: top,
+  width,
+  height,
   windowWidth,
   windowHeight,
-  width,
-  height
-) => {
+  hover,
+}) => {
   const right = windowWidth - left - width;
   const bottom = windowHeight - top - height;
   const min = Math.min(left, top, right, bottom);
   switch (min) {
     case right:
-      edge = "right";
-      left = windowWidth - width;
+      left = hover ? windowWidth - width : windowWidth - width / 2;
       break;
     case left:
-      edge = "left";
-      left = 0;
+      left = hover ? 0 : -width / 2;
       break;
     case bottom:
-      edge = "bottom";
-      top = windowHeight - height;
+      top = hover ? windowHeight - height : windowHeight - height / 2;
       break;
     default:
-      edge = "top";
-      top = 0;
+      top = hover ? 0 : -height / 2;
   }
-  left = limitNumber(left, 0, windowWidth - width);
-  top = limitNumber(top, 0, windowHeight - height);
-  return { x: left, y: top, edge, hide: false };
-};
-
-const getHidePosition = (
-  { x: left, y: top, edge },
-  windowWidth,
-  windowHeight,
-  width,
-  height
-) => {
-  switch (edge) {
-    case "right":
-      left = windowWidth - width / 2;
-      break;
-    case "left":
-      left = -width / 2;
-      break;
-    case "bottom":
-      top = windowHeight - height / 2;
-      break;
-    default:
-      top = -height / 2;
-  }
-  return { x: left, y: top, edge, hide: true };
+  return { x: left, y: top };
 };
 
 function DraggableWrapper({ children, usePaper, ...props }) {
@@ -71,7 +45,7 @@ function DraggableWrapper({ children, usePaper, ...props }) {
 }
 
 export default function Draggable({
-  windowSize,
+  windowSize: { w: windowWidth, h: windowHeight },
   width,
   height,
   left,
@@ -84,65 +58,36 @@ export default function Draggable({
   children,
   usePaper,
 }) {
-  const [origin, setOrigin] = useState({
-    x: left,
-    y: top,
-    px: left,
-    py: top,
-  });
-  const [position, setPosition] = useState({
-    x: left,
-    y: top,
-    edge: null,
-    hide: false,
-  });
-  const [edgeTimer, setEdgeTimer] = useState(null);
-
-  const goEdge = useCallback((w, h, width, height) => {
-    setPosition((pre) => getEdgePosition(pre, w, h, width, height));
-
-    setEdgeTimer(
-      setTimeout(() => {
-        setPosition((pre) => getHidePosition(pre, w, h, width, height));
-      }, 1500)
-    );
-  }, []);
+  const [hover, setHover] = useState(false);
+  const [origin, setOrigin] = useState(null);
+  const [position, setPosition] = useState({ x: left, y: top });
+  const setFabPosition = useMemo(() => debounce(setFab, 500), []);
 
   const handlePointerDown = (e) => {
     !isMobile && e.target.setPointerCapture(e.pointerId);
     onStart && onStart();
-    edgeTimer && clearTimeout(edgeTimer);
+    const { x, y } = position;
     const { clientX, clientY } = isMobile ? e.targetTouches[0] : e;
-    setOrigin({
-      x: position.x,
-      y: position.y,
-      px: clientX,
-      py: clientY,
-    });
+    setOrigin({ x, y, clientX, clientY });
   };
 
   const handlePointerMove = (e) => {
     onMove && onMove();
     const { clientX, clientY } = isMobile ? e.targetTouches[0] : e;
     if (origin) {
-      const dx = clientX - origin.px;
-      const dy = clientY - origin.py;
+      const dx = clientX - origin.clientX;
+      const dy = clientY - origin.clientY;
       let x = origin.x + dx;
       let y = origin.y + dy;
-      const { w, h } = windowSize;
-      x = limitNumber(x, 0, w - width);
-      y = limitNumber(y, 0, h - height);
-      setPosition({ x, y, edge: null, hide: false });
+      x = limitNumber(x, -width / 2, windowWidth - width / 2);
+      y = limitNumber(y, 0, windowHeight - height / 2);
+      setPosition({ x, y });
     }
   };
 
   const handlePointerUp = (e) => {
     e.stopPropagation();
     setOrigin(null);
-    if (!snapEdge) {
-      return;
-    }
-    goEdge(windowSize.w, windowSize.h, width, height);
   };
 
   const handleClick = (e) => {
@@ -151,35 +96,48 @@ export default function Draggable({
 
   const handleMouseEnter = (e) => {
     e.stopPropagation();
-    if (snapEdge && position.hide) {
-      edgeTimer && clearTimeout(edgeTimer);
-      goEdge(windowSize.w, windowSize.h, width, height);
-    }
+    setHover(true);
+  };
+
+  const handleMouseLeave = (e) => {
+    e.stopPropagation();
+    setHover(false);
   };
 
   useEffect(() => {
-    setOrigin(null);
-    if (!snapEdge) {
+    if (!snapEdge || !!origin) {
       return;
     }
-    goEdge(windowSize.w, windowSize.h, width, height);
-  }, [snapEdge, goEdge, windowSize.w, windowSize.h, width, height]);
 
-  useEffect(() => {
-    if (position.hide) {
-      setFab({
-        x: position.x,
-        y: position.y,
+    setPosition((pre) => {
+      const edgePosition = getEdgePosition({
+        ...pre,
+        width,
+        height,
+        windowWidth,
+        windowHeight,
+        hover,
       });
-    }
-  }, [position.x, position.y, position.hide]);
+      setFabPosition(edgePosition);
+      return edgePosition;
+    });
+  }, [
+    origin,
+    hover,
+    width,
+    height,
+    windowWidth,
+    windowHeight,
+    snapEdge,
+    setFabPosition,
+  ]);
 
   const opacity = useMemo(() => {
     if (snapEdge) {
-      return position.hide ? 0.2 : 1;
+      return hover || origin ? 1 : 0.2;
     }
     return origin ? 0.8 : 1;
-  }, [origin, snapEdge, position.hide]);
+  }, [origin, snapEdge, hover]);
 
   const touchProps = isMobile
     ? {
@@ -205,6 +163,7 @@ export default function Draggable({
         display: show ? "block" : "none",
       }}
       onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       onClick={handleClick}
     >
       <div
