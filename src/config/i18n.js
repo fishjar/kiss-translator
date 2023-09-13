@@ -555,6 +555,10 @@ export const I18N = {
     zh: `启用输入框翻译`,
     en: `Input Box Translation`,
   },
+  input_translation_help: {
+    zh: `输入框翻译功能除需这里开启，还需要在“规则设置”页面，填写相应的“输入框选择器”`,
+    en: `In addition to turning on the input box translation function here, you also need to fill in the corresponding "input selector" on the "Rule Settings" page.`,
+  },
   input_selector: {
     zh: `输入框选择器`,
     en: `Input Selector`,
@@ -567,8 +571,8 @@ export const I18N = {
     zh: `触发翻译快捷键`,
     en: `Trigger Translation Shortcut Keys`,
   },
-  trigger_trans_count: {
-    zh: `触发翻译连击次数`,
-    en: `Trigger Translation Press Nunber`,
+  shortcut_press_count: {
+    zh: `快捷键连击次数`,
+    en: `Shortcut Press Nunber`,
   },
 };

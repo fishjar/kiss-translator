@@ -44,7 +44,7 @@ export default function SyncSetting() {
     }
   };
 
-  const { syncUrl, syncKey } = sync;
+  const { syncUrl = "", syncKey = "" } = sync;
 
   return (
     <Box>

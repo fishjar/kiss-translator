@@ -10,6 +10,8 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import { useInputRule } from "../../hooks/InputRule";
 import { useCallback } from "react";
+import Grid from "@mui/material/Grid";
+import Alert from "@mui/material/Alert";
 
 export default function InputSetting() {
   const i18n = useI18n();
@@ -49,6 +51,8 @@ export default function InputSetting() {
   return (
     <Box>
       <Stack spacing={3}>
+        <Alert severity="info">{i18n("input_translation_help")}</Alert>
+
         <FormControlLabel
           control={
             <Switch
@@ -108,26 +112,34 @@ export default function InputSetting() {
           ))}
         </TextField>
 
-        <ShortcutInput
-          value={triggerShortcut}
-          onChange={handleShortcutInput}
-          label={i18n("trigger_trans_shortcut")}
-        />
-
-        <TextField
-          select
-          size="small"
-          name="triggerCount"
-          value={triggerCount}
-          label={i18n("trigger_trans_count")}
-          onChange={handleChange}
-        >
-          {[1, 2, 3].map((val) => (
-            <MenuItem key={val} value={val}>
-              {val}
-            </MenuItem>
-          ))}
-        </TextField>
+        <Box>
+          <Grid container rowSpacing={2} columns={12}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
+              <ShortcutInput
+                value={triggerShortcut}
+                onChange={handleShortcutInput}
+                label={i18n("trigger_trans_shortcut")}
+              />
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
+              <TextField
+                select
+                size="small"
+                fullWidth
+                name="triggerCount"
+                value={triggerCount}
+                label={i18n("shortcut_press_count")}
+                onChange={handleChange}
+              >
+                {[1, 2, 3, 4, 5].map((val) => (
+                  <MenuItem key={val} value={val}>
+                    {val}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+          </Grid>
+        </Box>
       </Stack>
     </Box>
   );

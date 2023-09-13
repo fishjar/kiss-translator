@@ -296,10 +296,11 @@ export class Translator {
             }
 
             timer = setInterval(() => {
+              const loadingText = `${text} ${"-\\|/"[++num % 4]} `;
               if (this._inputNodeNames.includes(node.nodeName)) {
-                node.value = text + "-\\|/"[++num % 4];
+                node.value = loadingText;
               } else {
-                node.textContent = text + "-\\|/"[++num % 4];
+                node.textContent = loadingText;
               }
             }, 200);
 
