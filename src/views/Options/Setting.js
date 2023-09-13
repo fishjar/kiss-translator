@@ -244,32 +244,35 @@ export default function Settings() {
                 <MenuItem value={true}>{i18n("hide")}</MenuItem>
               </Select>
             </FormControl>
-            <Grid container rowSpacing={2} columns={12}>
-              <Grid item xs={12} sm={12} md={3} lg={3}>
-                <ShortcutItem
-                  action={OPT_SHORTCUT_TRANSLATE}
-                  label={i18n("toggle_translate_shortcut")}
-                />
+
+            <Box>
+              <Grid container rowSpacing={2} columns={12}>
+                <Grid item xs={12} sm={12} md={3} lg={3}>
+                  <ShortcutItem
+                    action={OPT_SHORTCUT_TRANSLATE}
+                    label={i18n("toggle_translate_shortcut")}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={12} md={3} lg={3}>
+                  <ShortcutItem
+                    action={OPT_SHORTCUT_STYLE}
+                    label={i18n("toggle_style_shortcut")}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={12} md={3} lg={3}>
+                  <ShortcutItem
+                    action={OPT_SHORTCUT_POPUP}
+                    label={i18n("toggle_popup_shortcut")}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={12} md={3} lg={3}>
+                  <ShortcutItem
+                    action={OPT_SHORTCUT_SETTING}
+                    label={i18n("open_setting_shortcut")}
+                  />
+                </Grid>
               </Grid>
-              <Grid item xs={12} sm={12} md={3} lg={3}>
-                <ShortcutItem
-                  action={OPT_SHORTCUT_STYLE}
-                  label={i18n("toggle_style_shortcut")}
-                />
-              </Grid>
-              <Grid item xs={12} sm={12} md={3} lg={3}>
-                <ShortcutItem
-                  action={OPT_SHORTCUT_POPUP}
-                  label={i18n("toggle_popup_shortcut")}
-                />
-              </Grid>
-              <Grid item xs={12} sm={12} md={3} lg={3}>
-                <ShortcutItem
-                  action={OPT_SHORTCUT_SETTING}
-                  label={i18n("open_setting_shortcut")}
-                />
-              </Grid>
-            </Grid>
+            </Box>
           </>
         )}
       </Stack>
