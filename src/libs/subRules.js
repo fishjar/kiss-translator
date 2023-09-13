@@ -4,11 +4,11 @@ import {
   updateSync,
   setSubRules,
   getSubRules,
-  updateSetting,
 } from "./storage";
 import { apiFetch } from "../apis";
 import { checkRules } from "./rules";
 import { isAllchar } from "./utils";
+import { syncWebfix } from "./webfix";
 
 /**
  * 更新缓存同步时间
@@ -63,13 +63,13 @@ export const trySyncAllSubRules = async ({ subrulesList }, isBg = false) => {
     const now = Date.now();
     const interval = 24 * 60 * 60 * 1000; // 间隔一天
     if (now - subRulesSyncAt > interval) {
+      // 同步订阅规则
       await syncAllSubRules(subrulesList, isBg);
       await updateSync({ subRulesSyncAt: now });
+
+      // 同步修复规则
+      await syncWebfix(process.env.REACT_APP_WEBFIXURL);
     }
-    subrulesList.forEach((item) => {
-      item.syncAt = now;
-    });
-    await updateSetting({ subrulesList });
   } catch (err) {
     console.log("[try sync all subrules]", err);
   }
