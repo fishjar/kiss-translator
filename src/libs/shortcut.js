@@ -65,3 +65,41 @@ export const shortcutRegister = (targetKeys = [], fn, target = document) => {
     }
   }, target);
 };
+
+/**
+ * 注册连续快捷键
+ * @param {*} targetKeys 
+ * @param {*} fn 
+ * @param {*} step 
+ * @param {*} timeout 
+ * @param {*} target 
+ * @returns 
+ */
+export const stepShortcutRegister = (
+  targetKeys = [],
+  fn,
+  step = 3,
+  timeout = 500,
+  target = document
+) => {
+  let count = 0;
+  let pre = Date.now();
+  return shortcutListener((curkeys) => {
+    if (targetKeys.length > 0) {
+      const now = Date.now();
+      if (
+        (count === 0 || now - pre < timeout) &&
+        isSameSet(new Set(targetKeys), new Set(curkeys))
+      ) {
+        count++;
+        if (count === step) {
+          count = 0;
+          fn();
+        }
+      } else {
+        count = 0;
+      }
+      pre = now;
+    }
+  }, target);
+};

@@ -12,8 +12,6 @@ import { limitNumber } from "../../libs/utils";
 import { useI18n } from "../../hooks/I18n";
 import { useAlert } from "../../hooks/Alert";
 import { isExt } from "../../libs/client";
-import IconButton from "@mui/material/IconButton";
-import EditIcon from "@mui/icons-material/Edit";
 import Grid from "@mui/material/Grid";
 import {
   UI_LANGS,
@@ -26,57 +24,13 @@ import {
   OPT_SHORTCUT_POPUP,
   OPT_SHORTCUT_SETTING,
 } from "../../config";
-import { useEffect, useState, useRef } from "react";
 import { useShortcut } from "../../hooks/Shortcut";
-import { shortcutListener } from "../../libs/shortcut";
+import ShortcutInput from "./ShortcutInput";
 
 function ShortcutItem({ action, label }) {
   const { shortcut, setShortcut } = useShortcut(action);
-  const [disabled, setDisabled] = useState(true);
-  const inputRef = useRef(null);
-
-  useEffect(() => {
-    if (disabled) {
-      return;
-    }
-
-    inputRef.current.focus();
-    setShortcut([]);
-
-    const clearShortcut = shortcutListener((curkeys, allkeys) => {
-      setShortcut(allkeys);
-      if (curkeys.length === 0) {
-        setDisabled(true);
-      }
-    }, inputRef.current);
-
-    return () => {
-      clearShortcut();
-    };
-  }, [disabled, setShortcut]);
-
   return (
-    <Stack direction="row">
-      <TextField
-        size="small"
-        label={label}
-        name={label}
-        value={shortcut.join(" + ")}
-        fullWidth
-        inputRef={inputRef}
-        disabled={disabled}
-        onBlur={() => {
-          setDisabled(true);
-        }}
-      />
-      <IconButton
-        onClick={() => {
-          setDisabled(false);
-        }}
-      >
-        {<EditIcon />}
-      </IconButton>
-    </Stack>
+    <ShortcutInput value={shortcut} onChange={setShortcut} label={label} />
   );
 }
 

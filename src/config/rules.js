@@ -10,6 +10,7 @@ export const SHADOW_KEY = ">>>";
 export const DEFAULT_RULE = {
   pattern: "",
   selector: "",
+  inputSelector: "",
   translator: GLOBAL_KEY,
   fromLang: GLOBAL_KEY,
   toLang: GLOBAL_KEY,

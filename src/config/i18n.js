@@ -547,4 +547,28 @@ export const I18N = {
     zh: `全局规则`,
     en: `Global Rule`,
   },
+  input_setting: {
+    zh: `输入框设置`,
+    en: `Input Box Setting`,
+  },
+  input_box_translation: {
+    zh: `启用输入框翻译`,
+    en: `Input Box Translation`,
+  },
+  input_selector: {
+    zh: `输入框选择器`,
+    en: `Input Selector`,
+  },
+  input_selector_helper: {
+    zh: `用于输入框翻译。`,
+    en: `Used for input box translation.`,
+  },
+  trigger_trans_shortcut: {
+    zh: `触发翻译快捷键`,
+    en: `Trigger Translation Shortcut Keys`,
+  },
+  trigger_trans_count: {
+    zh: `触发翻译连击次数`,
+    en: `Trigger Translation Press Nunber`,
+  },
 };

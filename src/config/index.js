@@ -189,6 +189,7 @@ export const DEFAULT_COLOR = "#209CEE"; // 默认高亮背景色/线条颜色
 export const GLOBLA_RULE = {
   pattern: "*",
   selector: DEFAULT_SELECTOR,
+  inputSelector: "",
   translator: OPT_TRANS_MICROSOFT,
   fromLang: "auto",
   toLang: "zh-CN",
@@ -196,6 +197,15 @@ export const GLOBLA_RULE = {
   transOpen: "false",
   bgColor: "",
   textDiyStyle: "",
+};
+
+export const DEFAULT_INPUT_RULE = {
+  transOpen: true,
+  translator: OPT_TRANS_MICROSOFT,
+  fromLang: "auto",
+  toLang: "en",
+  triggerShortcut: ["Alt", "i"],
+  triggerCount: 1,
 };
 
 // 订阅列表
@@ -273,6 +283,7 @@ export const DEFAULT_SETTING = {
   mouseKey: OPT_MOUSEKEY_DISABLE, // 鼠标悬停翻译
   shortcuts: DEFAULT_SHORTCUTS, // 快捷键
   hideFab: false, // 是否隐藏按钮
+  inputRule: DEFAULT_INPUT_RULE, // 输入框设置
 };
 
 export const DEFAULT_RULES = [GLOBLA_RULE];

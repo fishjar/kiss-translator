@@ -19,6 +19,7 @@ import { adaptScript } from "../../libs/gm";
 import Alert from "@mui/material/Alert";
 import Apis from "./Apis";
 import Webfix from "./Webfix";
+import InputSetting from "./InputSetting";
 
 export default function Options() {
   const [error, setError] = useState("");
@@ -82,16 +83,20 @@ export default function Options() {
         </h2>
         <Stack spacing={2}>
           <Link href={process.env.REACT_APP_USERSCRIPT_DOWNLOADURL}>
-            Install Userscript for Tampermonkey/Violentmonkey 1 (油猴脚本 安装地址 1)
+            Install Userscript for Tampermonkey/Violentmonkey 1 (油猴脚本
+            安装地址 1)
           </Link>
           <Link href={process.env.REACT_APP_USERSCRIPT_DOWNLOADURL2}>
-            Install Userscript for Tampermonkey/Violentmonkey 2 (油猴脚本 安装地址 2)
+            Install Userscript for Tampermonkey/Violentmonkey 2 (油猴脚本
+            安装地址 2)
           </Link>
           <Link href={process.env.REACT_APP_USERSCRIPT_IOS_DOWNLOADURL}>
-            Install Userscript for iOS Safari 1 (油猴脚本 iOS Safari专用 安装地址 1)
+            Install Userscript for iOS Safari 1 (油猴脚本 iOS Safari专用
+            安装地址 1)
           </Link>
           <Link href={process.env.REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2}>
-            Install Userscript for iOS Safari 2 (油猴脚本 iOS Safari专用 安装地址 2)
+            Install Userscript for iOS Safari 2 (油猴脚本 iOS Safari专用
+            安装地址 2)
           </Link>
           <Link href={process.env.REACT_APP_OPTIONSPAGE}>
             Open Options Page 1 (打开设置页面 1)
@@ -126,6 +131,7 @@ export default function Options() {
               <Route path="/" element={<Layout />}>
                 <Route index element={<Setting />} />
                 <Route path="rules" element={<Rules />} />
+                <Route path="input" element={<InputSetting />} />
                 <Route path="apis" element={<Apis />} />
                 <Route path="sync" element={<SyncSetting />} />
                 <Route path="webfix" element={<Webfix />} />
