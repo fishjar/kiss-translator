@@ -68,12 +68,12 @@ export const shortcutRegister = (targetKeys = [], fn, target = document) => {
 
 /**
  * 注册连续快捷键
- * @param {*} targetKeys 
- * @param {*} fn 
- * @param {*} step 
- * @param {*} timeout 
- * @param {*} target 
- * @returns 
+ * @param {*} targetKeys
+ * @param {*} fn
+ * @param {*} step
+ * @param {*} timeout
+ * @param {*} target
+ * @returns
  */
 export const stepShortcutRegister = (
   targetKeys = [],
@@ -84,12 +84,19 @@ export const stepShortcutRegister = (
 ) => {
   let count = 0;
   let pre = Date.now();
-  return shortcutListener((curkeys) => {
-    if (targetKeys.length > 0) {
+  let timer;
+  return shortcutListener((curkeys, allkeys) => {
+    timer && clearTimeout(timer);
+    timer = setTimeout(() => {
+      clearTimeout(timer);
+      count = 0;
+    }, timeout);
+
+    if (targetKeys.length > 0 && curkeys.length === 0) {
       const now = Date.now();
       if (
         (count === 0 || now - pre < timeout) &&
-        isSameSet(new Set(targetKeys), new Set(curkeys))
+        isSameSet(new Set(targetKeys), new Set(allkeys))
       ) {
         count++;
         if (count === step) {

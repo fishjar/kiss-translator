@@ -9,16 +9,22 @@ import {
   SHADOW_KEY,
   OPT_MOUSEKEY_DISABLE,
   OPT_MOUSEKEY_MOUSEOVER,
+  DEFAULT_INPUT_RULE,
+  DEFAULT_TRANS_APIS,
 } from "../config";
 import Content from "../views/Content";
 import { updateFetchPool, clearFetchPool } from "./fetch";
 import { debounce, genEventName } from "./utils";
+import { stepShortcutRegister } from "./shortcut";
+import { apiTranslate } from "../apis";
+import { tryDetectLang } from ".";
 
 /**
  * 翻译类
  */
 export class Translator {
   _rule = {};
+  _inputRule = {};
   _setting = {};
   _rootNodes = new Set();
   _tranNodes = new Map();
@@ -38,6 +44,7 @@ export class Translator {
     "script",
     "iframe",
   ];
+  _inputNodeNames = ["INPUT", "TEXTAREA"];
   _eventName = genEventName();
 
   // 显示
@@ -100,6 +107,12 @@ export class Translator {
 
     if (rule.transOpen === "true") {
       this._register();
+    }
+
+    const inputRule = setting.inputRule || DEFAULT_INPUT_RULE;
+    this._inputRule = { ...inputRule, selector: rule.inputSelector };
+    if (inputRule.transOpen && rule.inputSelector) {
+      this._registerInput();
     }
   }
 
@@ -241,6 +254,85 @@ export class Translator {
         node.addEventListener("mouseover", this._handleMouseover);
       }
     });
+  };
+
+  _registerInput = () => {
+    const {
+      triggerShortcut,
+      translator,
+      fromLang,
+      toLang,
+      triggerCount,
+      selector,
+    } = this._inputRule;
+    const apiSetting = (this._setting.transApis || DEFAULT_TRANS_APIS)[
+      translator
+    ];
+
+    stepShortcutRegister(
+      triggerShortcut,
+      () => {
+        document.querySelectorAll(selector).forEach(async (node) => {
+          let text = "";
+          let num = 0;
+          let timer;
+
+          if (this._inputNodeNames.includes(node.nodeName)) {
+            text = node.value?.trim() || "";
+          } else {
+            text = node.textContent?.trim() || "";
+          }
+
+          if (!text) {
+            return;
+          }
+
+          // console.log("input -->", text);
+
+          try {
+            const deLang = await tryDetectLang(text);
+            if (deLang && toLang.includes(deLang)) {
+              return;
+            }
+
+            timer = setInterval(() => {
+              if (this._inputNodeNames.includes(node.nodeName)) {
+                node.value = text + "-\\|/"[++num % 4];
+              } else {
+                node.textContent = text + "-\\|/"[++num % 4];
+              }
+            }, 200);
+
+            const [trText, isSame] = await apiTranslate({
+              translator,
+              text,
+              fromLang,
+              toLang,
+              apiSetting,
+            });
+            if (!trText || isSame) {
+              throw new Error("same lang or no res");
+            }
+
+            clearInterval(timer);
+            if (this._inputNodeNames.includes(node.nodeName)) {
+              node.value = trText;
+            } else {
+              node.textContent = trText;
+            }
+          } catch (err) {
+            console.log("[translate input]", err.message);
+            timer && clearInterval(timer);
+            if (this._inputNodeNames.includes(node.nodeName)) {
+              node.value = text;
+            } else {
+              node.textContent = text;
+            }
+          }
+        });
+      },
+      triggerCount
+    );
   };
 
   _handleMouseover = (e) => {
