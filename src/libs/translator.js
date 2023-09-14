@@ -347,6 +347,9 @@ export class Translator {
             clearInterval(timer);
             if (this._inputNodeNames.includes(node.nodeName)) {
               node.value = trText;
+              node.dispatchEvent(
+                new Event("input", { bubbles: true, cancelable: true })
+              );
             } else {
               node.textContent = trText;
             }
