@@ -12,10 +12,11 @@ import {
   DEFAULT_INPUT_RULE,
   DEFAULT_TRANS_APIS,
   DEFAULT_INPUT_SHORTCUT,
+  OPT_LANGS_LIST,
 } from "../config";
 import Content from "../views/Content";
 import { updateFetchPool, clearFetchPool } from "./fetch";
-import { debounce, genEventName, removeEndchar } from "./utils";
+import { debounce, genEventName, removeEndchar, matchInputStr } from "./utils";
 import { stepShortcutRegister } from "./shortcut";
 import { apiTranslate } from "../apis";
 import { tryDetectLang } from ".";
@@ -265,6 +266,7 @@ export class Translator {
       toLang,
       triggerCount,
       selector,
+      transSign,
     } = this._inputRule;
     const apiSetting = (this._setting.transApis || DEFAULT_TRANS_APIS)[
       translator
@@ -296,6 +298,22 @@ export class Translator {
 
           if (!text.trim()) {
             return;
+          }
+
+          if (transSign) {
+            const res = matchInputStr(text, transSign);
+            if (res) {
+              let lang = res[1];
+              if (lang === "zh" || lang === "cn") {
+                lang = "zh-CN";
+              } else if (lang === "tw" || lang === "hk") {
+                lang = "zh-TW";
+              }
+              if (lang && OPT_LANGS_LIST.includes(lang)) {
+                toLang = lang;
+              }
+              text = res[2];
+            }
           }
 
           // console.log("input -->", text);

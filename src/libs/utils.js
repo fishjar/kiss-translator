@@ -194,3 +194,32 @@ export const removeEndchar = (s, c, count = 1) => {
   }
   return s.slice(0, i);
 };
+
+/**
+ * 匹配字符串及语言标识
+ * @param {*} str
+ * @param {*} sign
+ * @returns
+ */
+export const matchInputStr = (str, sign) => {
+  let reg = /\/([\w-]+)\s+([^]+)/;
+  switch (sign) {
+    case "//":
+      reg = /\/\/([\w-]+)\s+([^]+)/;
+      break;
+    case "\\":
+      reg = /\\([\w-]+)\s+([^]+)/;
+      break;
+    case "\\\\":
+      reg = /\\\\([\w-]+)\s+([^]+)/;
+      break;
+    case ">":
+      reg = />([\w-]+)\s+([^]+)/;
+      break;
+    case ">>":
+      reg = />>([\w-]+)\s+([^]+)/;
+      break;
+    default:
+  }
+  return str.match(reg);
+};

@@ -137,6 +137,7 @@ export const OPT_LANGS_SPECIAL = {
   ),
   [OPT_TRANS_CUSTOMIZE]: new Map([["auto", ""]]),
 };
+export const OPT_LANGS_LIST = OPT_LANGS_TO.map(([lang]) => lang);
 
 export const OPT_STYLE_NONE = "style_none"; // 无
 export const OPT_STYLE_LINE = "under_line"; // 下划线
@@ -200,6 +201,7 @@ export const GLOBLA_RULE = {
 };
 
 // 输入框翻译
+export const OPT_INPUT_TRANS_SIGNS = ["/", "//", "\\", "\\\\", ">", ">>"];
 export const DEFAULT_INPUT_SHORTCUT = ["Alt", "i"];
 export const DEFAULT_INPUT_RULE = {
   transOpen: true,
@@ -208,6 +210,7 @@ export const DEFAULT_INPUT_RULE = {
   toLang: "en",
   triggerShortcut: DEFAULT_INPUT_SHORTCUT,
   triggerCount: 1,
+  transSign: OPT_INPUT_TRANS_SIGNS[0],
 };
 
 // 订阅列表

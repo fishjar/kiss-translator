@@ -577,6 +577,14 @@ export const I18N = {
   },
   shortcut_press_count: {
     zh: `快捷键连击次数`,
-    en: `Shortcut Press Nunber`,
+    en: `Shortcut Press Number`,
+  },
+  input_trans_start_sign: {
+    zh: `翻译起始标识`,
+    en: `Translation Start Sign`,
+  },
+  input_trans_start_sign_help: {
+    zh: `标识后面可以加目标语言代码，如： “/en 你好”、“/zh hello”`,
+    en: `The target language code can be added after the sign, such as: "/en 你好", "/zh hello"`,
   },
 };

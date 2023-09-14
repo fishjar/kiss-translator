@@ -2,9 +2,13 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
-import { limitNumber } from "../../libs/utils";
 import { useI18n } from "../../hooks/I18n";
-import { OPT_TRANS_ALL, OPT_LANGS_FROM, OPT_LANGS_TO } from "../../config";
+import {
+  OPT_TRANS_ALL,
+  OPT_LANGS_FROM,
+  OPT_LANGS_TO,
+  OPT_INPUT_TRANS_SIGNS,
+} from "../../config";
 import ShortcutInput from "./ShortcutInput";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
@@ -20,13 +24,12 @@ export default function InputSetting() {
   const handleChange = (e) => {
     e.preventDefault();
     let { name, value } = e.target;
-    console.log({ name, value });
-    switch (name) {
-      case "triggerCount":
-        value = limitNumber(value, 1, 3);
-        break;
-      default:
-    }
+    // switch (name) {
+    //   case "triggerCount":
+    //     value = limitNumber(value, 1, 5);
+    //     break;
+    //   default:
+    // }
     updateInputRule({
       [name]: value,
     });
@@ -46,6 +49,7 @@ export default function InputSetting() {
     toLang,
     triggerShortcut,
     triggerCount,
+    transSign,
   } = inputRule;
 
   return (
@@ -108,6 +112,23 @@ export default function InputSetting() {
           {OPT_LANGS_TO.map(([lang, name]) => (
             <MenuItem key={lang} value={lang}>
               {name}
+            </MenuItem>
+          ))}
+        </TextField>
+
+        <TextField
+          select
+          size="small"
+          name="transSign"
+          value={transSign}
+          label={i18n("input_trans_start_sign")}
+          onChange={handleChange}
+          helperText={i18n("input_trans_start_sign_help")}
+        >
+          <MenuItem value={""}>{i18n("style_none")}</MenuItem>
+          {OPT_INPUT_TRANS_SIGNS.map((item) => (
+            <MenuItem key={item} value={item}>
+              {item}
             </MenuItem>
           ))}
         </TextField>
