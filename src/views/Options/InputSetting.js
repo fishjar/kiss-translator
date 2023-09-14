@@ -119,6 +119,7 @@ export default function InputSetting() {
                 value={triggerShortcut}
                 onChange={handleShortcutInput}
                 label={i18n("trigger_trans_shortcut")}
+                helperText={i18n("trigger_trans_shortcut_help")}
               />
             </Grid>
             <Grid item xs={12} sm={12} md={6} lg={6}>

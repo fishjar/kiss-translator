@@ -5,7 +5,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import { useEffect, useState, useRef } from "react";
 import { shortcutListener } from "../../libs/shortcut";
 
-export default function ShortcutInput({ value, onChange, label }) {
+export default function ShortcutInput({ value, onChange, label, helperText }) {
   const [disabled, setDisabled] = useState(true);
   const inputRef = useRef(null);
 
@@ -30,7 +30,7 @@ export default function ShortcutInput({ value, onChange, label }) {
   }, [disabled, onChange]);
 
   return (
-    <Stack direction="row">
+    <Stack direction="row" alignItems="flex-start">
       <TextField
         size="small"
         label={label}
@@ -42,6 +42,7 @@ export default function ShortcutInput({ value, onChange, label }) {
         onBlur={() => {
           setDisabled(true);
         }}
+        helperText={helperText}
       />
       <IconButton
         onClick={() => {

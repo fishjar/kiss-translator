@@ -11,10 +11,11 @@ import {
   OPT_MOUSEKEY_MOUSEOVER,
   DEFAULT_INPUT_RULE,
   DEFAULT_TRANS_APIS,
+  DEFAULT_INPUT_SHORTCUT,
 } from "../config";
 import Content from "../views/Content";
 import { updateFetchPool, clearFetchPool } from "./fetch";
-import { debounce, genEventName } from "./utils";
+import { debounce, genEventName, removeEndchar } from "./utils";
 import { stepShortcutRegister } from "./shortcut";
 import { apiTranslate } from "../apis";
 import { tryDetectLang } from ".";
@@ -257,7 +258,7 @@ export class Translator {
   };
 
   _registerInput = () => {
-    const {
+    let {
       triggerShortcut,
       translator,
       fromLang,
@@ -269,6 +270,11 @@ export class Translator {
       translator
     ];
 
+    if (triggerShortcut.length === 0) {
+      triggerShortcut = DEFAULT_INPUT_SHORTCUT;
+      triggerCount = 1;
+    }
+
     stepShortcutRegister(
       triggerShortcut,
       () => {
@@ -278,12 +284,17 @@ export class Translator {
           let timer;
 
           if (this._inputNodeNames.includes(node.nodeName)) {
-            text = node.value?.trim() || "";
+            text = node.value || "";
           } else {
-            text = node.textContent?.trim() || "";
+            text = node.textContent || "";
           }
 
-          if (!text) {
+          // todo: remove multiple char
+          if (triggerShortcut.length === 1 && triggerShortcut[0].length === 1) {
+            text = removeEndchar(text, triggerShortcut[0], triggerCount);
+          }
+
+          if (!text.trim()) {
             return;
           }
 

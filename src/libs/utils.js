@@ -179,3 +179,18 @@ export const isSameSet = (a, b) => {
   const s = new Set([...a, ...b]);
   return s.size === a.size && s.size === b.size;
 };
+
+/**
+ * 去掉字符串末尾某个字符
+ * @param {*} s
+ * @param {*} c
+ * @param {*} count
+ * @returns
+ */
+export const removeEndchar = (s, c, count = 1) => {
+  let i = s.length;
+  while (i > s.length - count && s[i - 1] === c) {
+    i--;
+  }
+  return s.slice(0, i);
+};

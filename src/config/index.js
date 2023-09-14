@@ -199,12 +199,14 @@ export const GLOBLA_RULE = {
   textDiyStyle: "",
 };
 
+// 输入框翻译
+export const DEFAULT_INPUT_SHORTCUT = ["Alt", "i"];
 export const DEFAULT_INPUT_RULE = {
   transOpen: true,
   translator: OPT_TRANS_MICROSOFT,
   fromLang: "auto",
   toLang: "en",
-  triggerShortcut: ["Alt", "i"],
+  triggerShortcut: DEFAULT_INPUT_SHORTCUT,
   triggerCount: 1,
 };
 
