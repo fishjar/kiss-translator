@@ -360,7 +360,6 @@ export class Translator {
         }
 
         let text = getNodeText(node);
-        const loadingId = "kiss-" + genEventName();
 
         // todo: remove multiple char
         if (triggerShortcut.length === 1 && triggerShortcut[0].length === 1) {
@@ -389,6 +388,7 @@ export class Translator {
 
         // console.log("input -->", text);
 
+        const loadingId = "kiss-" + genEventName();
         try {
           addLoading(node, loadingId);
 
