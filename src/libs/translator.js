@@ -188,7 +188,7 @@ export class Translator {
     }
 
     this._inputRule = setting.inputRule || DEFAULT_INPUT_RULE;
-    if (setting.inputRule.transOpen) {
+    if (this._inputRule.transOpen) {
       this._registerInput();
     }
   }
@@ -391,8 +391,6 @@ export class Translator {
 
         try {
           addLoading(node, loadingId);
-
-          await sleep(2000);
 
           const deLang = await tryDetectLang(text);
           if (deLang && toLang.includes(deLang)) {
