@@ -24,6 +24,8 @@ If you also like a little more simplicity, welcome to pick it up.
 - [x] Supports multiple translation services
   - [x] Google/Microsoft/DeepL/OpenAI
   - [x] Custom translation interface
+- [x] Support input box translation
+- [x] Support YouTube subtitle translation
 - [x] Data synchronization function
 - [x] Custom rules + rule subscription
 - [x] Custom style
@@ -32,6 +34,7 @@ If you also like a little more simplicity, welcome to pick it up.
   - `Alt+C` Toggle Styles
   - `Alt+K` Open Popup
   - `Alt+O` Open Options
+  - `Alt+I` Input Box Translation
 
 ## Download
 
