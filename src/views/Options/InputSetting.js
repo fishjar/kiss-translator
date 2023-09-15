@@ -55,8 +55,6 @@ export default function InputSetting() {
   return (
     <Box>
       <Stack spacing={3}>
-        <Alert severity="info">{i18n("input_translation_help")}</Alert>
-
         <FormControlLabel
           control={
             <Switch

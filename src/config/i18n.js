@@ -555,10 +555,6 @@ export const I18N = {
     zh: `启用输入框翻译`,
     en: `Input Box Translation`,
   },
-  input_translation_help: {
-    zh: `输入框翻译功能除需这里开启，还需要在“规则设置”页面，填写相应的“输入框选择器”`,
-    en: `In addition to turning on the input box translation function here, you also need to fill in the corresponding "input selector" on the "Rule Settings" page.`,
-  },
   input_selector: {
     zh: `输入框选择器`,
     en: `Input Selector`,
