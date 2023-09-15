@@ -568,12 +568,16 @@ export const I18N = {
     en: `Trigger Translation Shortcut Keys`,
   },
   trigger_trans_shortcut_help: {
-    zh: `不设则默认为单击快捷键“Alt+i”`,
-    en: `If not set, the default is to click the shortcut key "Alt+i"`,
+    zh: `默认为单击“Alt+i”`,
+    en: `Default is "Alt+i"`,
   },
   shortcut_press_count: {
     zh: `快捷键连击次数`,
     en: `Shortcut Press Number`,
+  },
+  combo_timeout: {
+    zh: `连击超时时间 (10-1000ms)`,
+    en: `Combo Timeout (10-1000ms)`,
   },
   input_trans_start_sign: {
     zh: `翻译起始标识`,

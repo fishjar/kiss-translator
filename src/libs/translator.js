@@ -340,6 +340,7 @@ export class Translator {
       fromLang,
       toLang,
       triggerCount,
+      triggerTime,
       transSign,
     } = this._inputRule;
     const apiSetting = (this._setting.transApis || DEFAULT_TRANS_APIS)[
@@ -434,7 +435,8 @@ export class Translator {
           removeLoading(loadingId);
         }
       },
-      triggerCount
+      triggerCount,
+      triggerTime
     );
   };
 

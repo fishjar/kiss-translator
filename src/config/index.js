@@ -209,6 +209,7 @@ export const DEFAULT_INPUT_RULE = {
   toLang: "en",
   triggerShortcut: DEFAULT_INPUT_SHORTCUT,
   triggerCount: 1,
+  triggerTime: 200,
   transSign: OPT_INPUT_TRANS_SIGNS[0],
 };
 

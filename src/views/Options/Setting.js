@@ -110,7 +110,7 @@ export default function Settings() {
           label={i18n("fetch_limit")}
           type="number"
           name="fetchLimit"
-          value={fetchLimit}
+          defaultValue={fetchLimit}
           onChange={handleChange}
         />
 
@@ -119,7 +119,7 @@ export default function Settings() {
           label={i18n("fetch_interval")}
           type="number"
           name="fetchInterval"
-          value={fetchInterval}
+          defaultValue={fetchInterval}
           onChange={handleChange}
         />
 
@@ -128,7 +128,7 @@ export default function Settings() {
           label={i18n("min_translate_length")}
           type="number"
           name="minLength"
-          value={minLength}
+          defaultValue={minLength}
           onChange={handleChange}
         />
 
@@ -137,7 +137,7 @@ export default function Settings() {
           label={i18n("max_translate_length")}
           type="number"
           name="maxLength"
-          value={maxLength}
+          defaultValue={maxLength}
           onChange={handleChange}
         />
 
@@ -146,7 +146,7 @@ export default function Settings() {
           label={i18n("num_of_newline_characters")}
           type="number"
           name="newlineLength"
-          value={newlineLength}
+          defaultValue={newlineLength}
           onChange={handleChange}
         />
 
@@ -200,7 +200,7 @@ export default function Settings() {
             </FormControl>
 
             <Box>
-              <Grid container rowSpacing={2} columns={12}>
+              <Grid container spacing={2} columns={12}>
                 <Grid item xs={12} sm={12} md={3} lg={3}>
                   <ShortcutItem
                     action={OPT_SHORTCUT_TRANSLATE}

@@ -15,7 +15,7 @@ import Switch from "@mui/material/Switch";
 import { useInputRule } from "../../hooks/InputRule";
 import { useCallback } from "react";
 import Grid from "@mui/material/Grid";
-import Alert from "@mui/material/Alert";
+import { limitNumber } from "../../libs/utils";
 
 export default function InputSetting() {
   const i18n = useI18n();
@@ -24,12 +24,12 @@ export default function InputSetting() {
   const handleChange = (e) => {
     e.preventDefault();
     let { name, value } = e.target;
-    // switch (name) {
-    //   case "triggerCount":
-    //     value = limitNumber(value, 1, 5);
-    //     break;
-    //   default:
-    // }
+    switch (name) {
+      case "triggerTime":
+        value = limitNumber(value, 10, 1000);
+        break;
+      default:
+    }
     updateInputRule({
       [name]: value,
     });
@@ -49,6 +49,7 @@ export default function InputSetting() {
     toLang,
     triggerShortcut,
     triggerCount,
+    triggerTime,
     transSign,
   } = inputRule;
 
@@ -132,8 +133,8 @@ export default function InputSetting() {
         </TextField>
 
         <Box>
-          <Grid container rowSpacing={2} columns={12}>
-            <Grid item xs={12} sm={12} md={6} lg={6}>
+          <Grid container spacing={2} columns={12}>
+            <Grid item xs={12} sm={12} md={4} lg={4}>
               <ShortcutInput
                 value={triggerShortcut}
                 onChange={handleShortcutInput}
@@ -141,11 +142,11 @@ export default function InputSetting() {
                 helperText={i18n("trigger_trans_shortcut_help")}
               />
             </Grid>
-            <Grid item xs={12} sm={12} md={6} lg={6}>
+            <Grid item xs={12} sm={12} md={4} lg={4}>
               <TextField
                 select
-                size="small"
                 fullWidth
+                size="small"
                 name="triggerCount"
                 value={triggerCount}
                 label={i18n("shortcut_press_count")}
@@ -157,6 +158,17 @@ export default function InputSetting() {
                   </MenuItem>
                 ))}
               </TextField>
+            </Grid>
+            <Grid item xs={12} sm={12} md={4} lg={4}>
+              <TextField
+                fullWidth
+                size="small"
+                label={i18n("combo_timeout")}
+                type="number"
+                name="triggerTime"
+                defaultValue={triggerTime}
+                onChange={handleChange}
+              />
             </Grid>
           </Grid>
         </Box>
