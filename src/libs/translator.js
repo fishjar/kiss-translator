@@ -16,10 +16,87 @@ import {
 } from "../config";
 import Content from "../views/Content";
 import { updateFetchPool, clearFetchPool } from "./fetch";
-import { debounce, genEventName, removeEndchar, matchInputStr } from "./utils";
+import {
+  debounce,
+  genEventName,
+  removeEndchar,
+  matchInputStr,
+  sleep,
+} from "./utils";
 import { stepShortcutRegister } from "./shortcut";
 import { apiTranslate } from "../apis";
 import { tryDetectLang } from ".";
+import { loadingSvg } from "./svg";
+
+function isInputNode(node) {
+  return node.nodeName === "INPUT" || node.nodeName === "TEXTAREA";
+}
+
+function isEditAbleNode(node) {
+  return node.hasAttribute("contenteditable");
+}
+
+function selectContent(node) {
+  node.focus();
+  const range = document.createRange();
+  range.selectNodeContents(node);
+
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+
+function pasteContentEvent(node, text) {
+  node.focus();
+  const data = new DataTransfer();
+  data.setData("text/plain", text);
+
+  const event = new ClipboardEvent("paste", { clipboardData: data });
+  document.dispatchEvent(event);
+  data.clearData();
+}
+
+function pasteContentCommand(node, text) {
+  node.focus();
+  document.execCommand("insertText", false, text);
+}
+
+function collapseToEnd(node) {
+  node.focus();
+  const selection = window.getSelection();
+  selection.collapseToEnd();
+}
+
+function getNodeText(node) {
+  if (isInputNode(node)) {
+    return node.value;
+  }
+  return node.innerText || node.textContent || "";
+}
+
+function addLoading(node, loadingId) {
+  const div = document.createElement("div");
+  div.id = loadingId;
+  div.innerHTML = loadingSvg;
+  div.style.cssText = `
+      width: ${node.offsetWidth}px;
+      height: ${node.offsetHeight}px;
+      line-height: ${node.offsetHeight}px;
+      position: absolute;
+      text-align: center;
+      left: ${node.offsetLeft}px;
+      top: ${node.offsetTop}px;
+      z-index: 2147483647;
+    `;
+  node.offsetParent?.appendChild(div);
+}
+
+function removeLoading(loadingId) {
+  const div = document.getElementById(loadingId);
+  if (div) {
+    div.remove();
+  }
+}
 
 /**
  * 翻译类
@@ -46,7 +123,6 @@ export class Translator {
     "script",
     "iframe",
   ];
-  _inputNodeNames = ["INPUT", "TEXTAREA"];
   _eventName = genEventName();
 
   // 显示
@@ -111,9 +187,8 @@ export class Translator {
       this._register();
     }
 
-    const inputRule = setting.inputRule || DEFAULT_INPUT_RULE;
-    this._inputRule = { ...inputRule, selector: rule.inputSelector };
-    if (inputRule.transOpen && rule.inputSelector) {
+    this._inputRule = setting.inputRule || DEFAULT_INPUT_RULE;
+    if (setting.inputRule.transOpen) {
       this._registerInput();
     }
   }
@@ -265,7 +340,6 @@ export class Translator {
       fromLang,
       toLang,
       triggerCount,
-      selector,
       transSign,
     } = this._inputRule;
     const apiSetting = (this._setting.transApis || DEFAULT_TRANS_APIS)[
@@ -279,90 +353,88 @@ export class Translator {
 
     stepShortcutRegister(
       triggerShortcut,
-      () => {
-        document.querySelectorAll(selector).forEach(async (node) => {
-          let text = "";
-          let num = 0;
-          let timer;
+      async () => {
+        const node = document.activeElement;
+        if (!node || !(isInputNode(node) || isEditAbleNode(node))) {
+          return;
+        }
 
-          if (this._inputNodeNames.includes(node.nodeName)) {
-            text = node.value || "";
-          } else {
-            text = node.textContent || "";
+        let text = getNodeText(node);
+        const loadingId = "kiss-" + genEventName();
+
+        // todo: remove multiple char
+        if (triggerShortcut.length === 1 && triggerShortcut[0].length === 1) {
+          text = removeEndchar(text, triggerShortcut[0], triggerCount);
+        }
+
+        if (!text.trim()) {
+          return;
+        }
+
+        if (transSign) {
+          const res = matchInputStr(text, transSign);
+          if (res) {
+            let lang = res[1];
+            if (lang === "zh" || lang === "cn") {
+              lang = "zh-CN";
+            } else if (lang === "tw" || lang === "hk") {
+              lang = "zh-TW";
+            }
+            if (lang && OPT_LANGS_LIST.includes(lang)) {
+              toLang = lang;
+            }
+            text = res[2];
           }
+        }
 
-          // todo: remove multiple char
-          if (triggerShortcut.length === 1 && triggerShortcut[0].length === 1) {
-            text = removeEndchar(text, triggerShortcut[0], triggerCount);
-          }
+        // console.log("input -->", text);
 
-          if (!text.trim()) {
+        try {
+          addLoading(node, loadingId);
+
+          await sleep(2000);
+
+          const deLang = await tryDetectLang(text);
+          if (deLang && toLang.includes(deLang)) {
             return;
           }
 
-          if (transSign) {
-            const res = matchInputStr(text, transSign);
-            if (res) {
-              let lang = res[1];
-              if (lang === "zh" || lang === "cn") {
-                lang = "zh-CN";
-              } else if (lang === "tw" || lang === "hk") {
-                lang = "zh-TW";
-              }
-              if (lang && OPT_LANGS_LIST.includes(lang)) {
-                toLang = lang;
-              }
-              text = res[2];
-            }
+          const [trText, isSame] = await apiTranslate({
+            translator,
+            text,
+            fromLang,
+            toLang,
+            apiSetting,
+          });
+          if (!trText || isSame) {
+            return;
           }
 
-          // console.log("input -->", text);
-
-          try {
-            const deLang = await tryDetectLang(text);
-            if (deLang && toLang.includes(deLang)) {
-              return;
-            }
-
-            timer = setInterval(() => {
-              const loadingText = `${text} ${"-\\|/"[++num % 4]} `;
-              if (this._inputNodeNames.includes(node.nodeName)) {
-                node.value = loadingText;
-              } else {
-                node.textContent = loadingText;
-              }
-            }, 200);
-
-            const [trText, isSame] = await apiTranslate({
-              translator,
-              text,
-              fromLang,
-              toLang,
-              apiSetting,
-            });
-            if (!trText || isSame) {
-              throw new Error("same lang or no res");
-            }
-
-            clearInterval(timer);
-            if (this._inputNodeNames.includes(node.nodeName)) {
-              node.value = trText;
-              node.dispatchEvent(
-                new Event("input", { bubbles: true, cancelable: true })
-              );
-            } else {
-              node.textContent = trText;
-            }
-          } catch (err) {
-            console.log("[translate input]", err.message);
-            timer && clearInterval(timer);
-            if (this._inputNodeNames.includes(node.nodeName)) {
-              node.value = text;
-            } else {
-              node.textContent = text;
-            }
+          if (isInputNode(node)) {
+            node.value = trText;
+            node.dispatchEvent(
+              new Event("input", { bubbles: true, cancelable: true })
+            );
+            return;
           }
-        });
+
+          selectContent(node);
+          await sleep(200);
+
+          pasteContentEvent(node, trText);
+          await sleep(200);
+
+          if (getNodeText(node).startsWith(text)) {
+            pasteContentCommand(node, trText);
+            await sleep(100);
+          } else {
+            collapseToEnd(node);
+          }
+        } catch (err) {
+          console.log("[translate input]", err.message);
+        } finally {
+          removeLoading(loadingId);
+        }
       },
       triggerCount
     );

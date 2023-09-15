@@ -190,7 +190,6 @@ export const DEFAULT_COLOR = "#209CEE"; // 默认高亮背景色/线条颜色
 export const GLOBLA_RULE = {
   pattern: "*",
   selector: DEFAULT_SELECTOR,
-  inputSelector: "",
   translator: OPT_TRANS_MICROSOFT,
   fromLang: "auto",
   toLang: "zh-CN",

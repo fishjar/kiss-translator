@@ -64,7 +64,6 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
   const {
     pattern,
     selector,
-    inputSelector = "",
     translator,
     fromLang,
     toLang,
@@ -174,17 +173,6 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
           helperText={errors.selector || i18n("selector_helper")}
           name="selector"
           value={selector}
-          disabled={disabled}
-          onChange={handleChange}
-          onFocus={handleFocus}
-          multiline
-        />
-        <TextField
-          size="small"
-          label={i18n("input_selector")}
-          helperText={i18n("input_selector_helper")}
-          name="inputSelector"
-          value={inputSelector}
           disabled={disabled}
           onChange={handleChange}
           onFocus={handleFocus}
