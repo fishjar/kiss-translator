@@ -334,12 +334,12 @@ export class Translator {
   };
 
   _registerInput = () => {
-    let {
-      triggerShortcut,
+    const {
+      triggerShortcut: initTriggerShortcut,
       translator,
       fromLang,
-      toLang,
-      triggerCount,
+      toLang: initToLang,
+      triggerCount: initTriggerCount,
       triggerTime,
       transSign,
     } = this._inputRule;
@@ -347,6 +347,8 @@ export class Translator {
       translator
     ];
 
+    let triggerShortcut = initTriggerShortcut;
+    let triggerCount = initTriggerCount;
     if (triggerShortcut.length === 0) {
       triggerShortcut = DEFAULT_INPUT_SHORTCUT;
       triggerCount = 1;
@@ -360,17 +362,17 @@ export class Translator {
           return;
         }
 
-        let text = getNodeText(node);
-
-        // todo: remove multiple char
+        let initText = getNodeText(node);
         if (triggerShortcut.length === 1 && triggerShortcut[0].length === 1) {
-          text = removeEndchar(text, triggerShortcut[0], triggerCount);
+          // todo: remove multiple char
+          initText = removeEndchar(initText, triggerShortcut[0], triggerCount);
         }
-
-        if (!text.trim()) {
+        if (!initText.trim()) {
           return;
         }
 
+        let text = initText;
+        let toLang = initToLang;
         if (transSign) {
           const res = matchInputStr(text, transSign);
           if (res) {
@@ -423,7 +425,8 @@ export class Translator {
           pasteContentEvent(node, trText);
           await sleep(200);
 
-          if (getNodeText(node).startsWith(text)) {
+          // todo: use includes?
+          if (getNodeText(node).startsWith(initText)) {
             pasteContentCommand(node, trText);
             await sleep(100);
           } else {
