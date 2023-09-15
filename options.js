@@ -1719,6 +1719,28 @@ exports.Z = _default;
 
 /***/ }),
 
+/***/ 7030:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+"use strict";
+var __webpack_unused_export__;
+
+"use client";
+
+var _interopRequireDefault = __webpack_require__(4836);
+__webpack_unused_export__ = ({
+  value: true
+});
+exports.Z = void 0;
+var _createSvgIcon = _interopRequireDefault(__webpack_require__(5045));
+var _jsxRuntime = __webpack_require__(6417);
+var _default = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
+  d: "M21 3.01H3c-1.1 0-2 .9-2 2V9h2V4.99h18v14.03H3V15H1v4.01c0 1.1.9 1.98 2 1.98h18c1.1 0 2-.88 2-1.98v-14c0-1.11-.9-2-2-2zM11 16l4-4-4-4v3H1v2h10v3z"
+}), 'Input');
+exports.Z = _default;
+
+/***/ }),
+
 /***/ 3544:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
@@ -3317,7 +3339,7 @@ function useControlled(_ref) {
 /* harmony export */ });
 /* harmony import */ var _emotion_styled__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3320);
 /**
- * @mui/styled-engine v5.14.8
+ * @mui/styled-engine v5.14.9
  *
  * @license MIT
  * This source code is licensed under the MIT license found in the
@@ -18557,7 +18579,7 @@ function createForOfIteratorHelper_createForOfIteratorHelper(o, allowArrayLike) 
 
 var _loadLazyRouteModule, _callLoaderOrAction, _resolveDeferredResults, _resolveDeferredData;
 /**
- * @remix-run/router v1.8.0
+ * @remix-run/router v1.9.0
  *
  * Copyright (c) Remix Software Inc.
  *
@@ -18810,7 +18832,7 @@ function warning(cond, message) {
     try {
       // Welcome to debugging history!
       //
-      // This error is thrown as a convenience so you can more easily
+      // This error is thrown as a convenience, so you can more easily
       // find the source for a warning that appears in the console by
       // enabling "pause on exceptions" in your JavaScript debugger.
       throw new Error(message);
@@ -19036,7 +19058,7 @@ var immutableRouteKeys = new Set(["lazy", "caseSensitive", "path", "id", "index"
 function isIndexRoute(route) {
   return route.index === true;
 }
-// Walk the route tree generating unique IDs where necessary so we are working
+// Walk the route tree generating unique IDs where necessary, so we are working
 // solely with AgnosticDataRouteObject's within the Router
 function convertRoutesToDataRoutes(routes, mapRouteProperties, parentPath, manifest) {
   if (parentPath === void 0) {
@@ -19098,6 +19120,18 @@ function matchRoutes(routes, locationArg, basename) {
   }
   return matches;
 }
+function convertRouteMatchToUiMatch(match, loaderData) {
+  var route = match.route,
+    pathname = match.pathname,
+    params = match.params;
+  return {
+    id: route.id,
+    pathname: pathname,
+    params: params,
+    data: loaderData[route.id],
+    handle: route.handle
+  };
+}
 function flattenRoutes(routes, branches, parentsMeta, parentPath) {
   if (branches === void 0) {
     branches = [];
@@ -19121,7 +19155,7 @@ function flattenRoutes(routes, branches, parentsMeta, parentPath) {
     }
     var path = router_joinPaths([parentPath, meta.relativePath]);
     var routesMeta = parentsMeta.concat(meta);
-    // Add the children before adding this route to the array so we traverse the
+    // Add the children before adding this route to the array, so we traverse the
     // route tree depth-first and child routes appear before their parents in
     // the "flattened" version.
     if (route.children && route.children.length > 0) {
@@ -19196,16 +19230,16 @@ function explodeOptionalSegments(path) {
   var restExploded = explodeOptionalSegments(rest.join("/"));
   var result = [];
   // All child paths with the prefix.  Do this for all children before the
-  // optional version for all children so we get consistent ordering where the
+  // optional version for all children, so we get consistent ordering where the
   // parent optional aspect is preferred as required.  Otherwise, we can get
   // child sections interspersed where deeper optional segments are higher than
-  // parent optional segments, where for example, /:two would explodes _earlier_
+  // parent optional segments, where for example, /:two would explode _earlier_
   // then /:one.  By always including the parent as required _for all children_
   // first, we avoid this issue
   result.push.apply(result, (0,toConsumableArray/* default */.Z)(restExploded.map(function (subpath) {
     return subpath === "" ? required : [required, subpath].join("/");
   })));
-  // Then if this is an optional value, add all child versions without
+  // Then, if this is an optional value, add all child versions without
   if (isOptional) {
     result.push.apply(result, (0,toConsumableArray/* default */.Z)(restExploded));
   }
@@ -19402,7 +19436,7 @@ function compilePath(path, caseSensitive, end) {
     regexpSource += "\\/*$";
   } else if (path !== "" && path !== "/") {
     // If our path is non-empty and contains anything beyond an initial slash,
-    // then we have _some_ form of path in our regex so we should expect to
+    // then we have _some_ form of path in our regex, so we should expect to
     // match only if we find the end of this path segment.  Look for an optional
     // non-captured trailing slash (to match a portion of the URL) or the end
     // of the path (if we've matched to the end).  We used to do this with a
@@ -19880,8 +19914,8 @@ var redirectDocument = function redirectDocument(url, init) {
  * @private
  * Utility class we use to hold auto-unwrapped 4xx/5xx Response bodies
  */
-var router_ErrorResponse = /*#__PURE__*/(/* unused pure expression or super */ null && (_createClass(function ErrorResponse(status, statusText, data, internal) {
-  _classCallCheck(this, ErrorResponse);
+var ErrorResponseImpl = /*#__PURE__*/(/* unused pure expression or super */ null && (_createClass(function ErrorResponseImpl(status, statusText, data, internal) {
+  _classCallCheck(this, ErrorResponseImpl);
   if (internal === void 0) {
     internal = false;
   }
@@ -20856,8 +20890,7 @@ function router_createRouter(init) {
               fetchers: new Map(state.fetchers)
             });
             return _context6.abrupt("return", startRedirectNavigation(state, actionResult, {
-              submission: submission,
-              isFetchActionRedirect: true
+              fetcherSubmission: submission
             }));
           case 34:
             if (!isErrorResult(actionResult)) {
@@ -21105,21 +21138,17 @@ function router_createRouter(init) {
    */
   function startRedirectNavigation(_x33, _x34, _x35) {
     return (_startRedirectNavigation = _startRedirectNavigation || _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee8(state, redirect, _temp) {
-      var _ref7, submission, replace, isFetchActionRedirect, redirectLocation, isDocumentReload, url, redirectHistoryAction, activeSubmission, overrideNavigation;
+      var _ref7, submission, fetcherSubmission, replace, redirectLocation, isDocumentReload, url, redirectHistoryAction, _state$navigation, formMethod, formAction, formEncType, activeSubmission, overrideNavigation;
       return _regeneratorRuntime().wrap(function _callee8$(_context8) {
         while (1) switch (_context8.prev = _context8.next) {
           case 0:
-            _ref7 = _temp === void 0 ? {} : _temp, submission = _ref7.submission, replace = _ref7.replace, isFetchActionRedirect = _ref7.isFetchActionRedirect;
+            _ref7 = _temp === void 0 ? {} : _temp, submission = _ref7.submission, fetcherSubmission = _ref7.fetcherSubmission, replace = _ref7.replace;
             if (redirect.revalidate) {
               isRevalidationRequired = true;
             }
-            redirectLocation = createLocation(state.location, redirect.location,
-            // TODO: This can be removed once we get rid of useTransition in Remix v2
-            _extends({
+            redirectLocation = createLocation(state.location, redirect.location, {
               _isRedirect: true
-            }, isFetchActionRedirect ? {
-              _isFetchActionRedirect: true
-            } : {}));
+            });
             invariant(redirectLocation, "Expected a location on the redirect navigation");
             if (!isBrowser) {
               _context8.next = 10;
@@ -21153,14 +21182,19 @@ function router_createRouter(init) {
             pendingNavigationController = null;
             redirectHistoryAction = replace === true ? Action.Replace : Action.Push; // Use the incoming submission if provided, fallback on the active one in
             // state.navigation
-            activeSubmission = submission || getSubmissionFromNavigation(state.navigation); // If this was a 307/308 submission we want to preserve the HTTP method and
+            _state$navigation = state.navigation, formMethod = _state$navigation.formMethod, formAction = _state$navigation.formAction, formEncType = _state$navigation.formEncType;
+            if (!submission && !fetcherSubmission && formMethod && formAction && formEncType) {
+              submission = getSubmissionFromNavigation(state.navigation);
+            }
+            // If this was a 307/308 submission we want to preserve the HTTP method and
             // re-submit the GET/POST/PUT/PATCH/DELETE as a submission navigation to the
             // redirected location
+            activeSubmission = submission || fetcherSubmission;
             if (!(redirectPreserveMethodStatusCodes.has(redirect.status) && activeSubmission && isMutationMethod(activeSubmission.formMethod))) {
-              _context8.next = 18;
+              _context8.next = 20;
               break;
             }
-            _context8.next = 16;
+            _context8.next = 18;
             return startNavigation(redirectHistoryAction, redirectLocation, {
               submission: _extends({}, activeSubmission, {
                 formAction: redirect.location
@@ -21168,34 +21202,22 @@ function router_createRouter(init) {
               // Preserve this flag across redirects
               preventScrollReset: pendingPreventScrollReset
             });
-          case 16:
-            _context8.next = 26;
-            break;
           case 18:
-            if (!isFetchActionRedirect) {
-              _context8.next = 23;
-              break;
-            }
-            _context8.next = 21;
-            return startNavigation(redirectHistoryAction, redirectLocation, {
-              overrideNavigation: getLoadingNavigation(redirectLocation),
-              fetcherSubmission: activeSubmission,
-              // Preserve this flag across redirects
-              preventScrollReset: pendingPreventScrollReset
-            });
-          case 21:
-            _context8.next = 26;
+            _context8.next = 23;
             break;
-          case 23:
-            // If we have a submission, we will preserve it through the redirect navigation
-            overrideNavigation = getLoadingNavigation(redirectLocation, activeSubmission);
-            _context8.next = 26;
+          case 20:
+            // If we have a navigation submission, we will preserve it through the
+            // redirect navigation
+            overrideNavigation = getLoadingNavigation(redirectLocation, submission);
+            _context8.next = 23;
             return startNavigation(redirectHistoryAction, redirectLocation, {
               overrideNavigation: overrideNavigation,
+              // Send fetcher submissions through for shouldRevalidate
+              fetcherSubmission: fetcherSubmission,
               // Preserve this flag across redirects
               preventScrollReset: pendingPreventScrollReset
             });
-          case 26:
+          case 23:
           case "end":
             return _context8.stop();
         }
@@ -21454,7 +21476,7 @@ function router_createRouter(init) {
   function getScrollKey(location, matches) {
     if (getScrollRestorationKey) {
       var key = getScrollRestorationKey(location, matches.map(function (m) {
-        return createUseMatchesMatch(m, state.loaderData);
+        return convertRouteMatchToUiMatch(m, state.loaderData);
       }));
       return key || location.key;
     }
@@ -21839,7 +21861,7 @@ function createStaticHandler(routes, opts) {
               break;
             }
             method = isRouteRequest ? "queryRoute" : "query";
-            throw new Error(method + "() call aborted");
+            throw new Error(method + "() call aborted: " + request.method + " " + request.url);
           case 13:
             if (!isRedirectResult(result)) {
               _context14.next = 15;
@@ -21985,7 +22007,7 @@ function createStaticHandler(routes, opts) {
               break;
             }
             method = isRouteRequest ? "queryRoute" : "query";
-            throw new Error(method + "() call aborted");
+            throw new Error(method + "() call aborted: " + request.method + " " + request.url);
           case 13:
             // Process and commit output from loaders
             activeDeferreds = new Map();
@@ -22437,7 +22459,7 @@ function loadLazyRouteModule(_x60, _x61, _x62) {
 }
 function callLoaderOrAction(_x63, _x64, _x65, _x66, _x67, _x68, _x69, _x70) {
   return (_callLoaderOrAction = _callLoaderOrAction || _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee16(type, request, match, matches, manifest, mapRouteProperties, basename, opts) {
-    var resultType, result, onReject, runHandler, handler, values, url, pathname, _url, _pathname, status, location, currentUrl, _url2, isSameBasename, queryRouteResponse, data, contentType, _result$init, _result$init2;
+    var resultType, result, onReject, runHandler, handler, handlerError, values, url, pathname, _url, _pathname, status, location, currentUrl, _url2, isSameBasename, queryRouteResponse, data, contentType, _result$init, _result$init2;
     return _regeneratorRuntime().wrap(function _callee16$(_context17) {
       while (1) switch (_context17.prev = _context17.next) {
         case 0:
@@ -22463,38 +22485,50 @@ function callLoaderOrAction(_x63, _x64, _x65, _x66, _x67, _x68, _x69, _x70) {
           _context17.prev = 2;
           handler = match.route[type];
           if (!match.route.lazy) {
-            _context17.next = 30;
+            _context17.next = 32;
             break;
           }
           if (!handler) {
-            _context17.next = 12;
+            _context17.next = 14;
             break;
           }
           _context17.next = 8;
-          return Promise.all([runHandler(handler), loadLazyRouteModule(match.route, mapRouteProperties, manifest)]);
+          return Promise.all([
+          // If the handler throws, don't let it immediately bubble out,
+          // since we need to let the lazy() execution finish so we know if this
+          // route has a boundary that can handle the error
+          runHandler(handler).catch(function (e) {
+            handlerError = e;
+          }), loadLazyRouteModule(match.route, mapRouteProperties, manifest)]);
         case 8:
           values = _context17.sent;
-          result = values[0];
-          _context17.next = 28;
-          break;
-        case 12:
-          _context17.next = 14;
-          return loadLazyRouteModule(match.route, mapRouteProperties, manifest);
-        case 14:
-          handler = match.route[type];
-          if (!handler) {
-            _context17.next = 21;
+          if (!handlerError) {
+            _context17.next = 11;
             break;
           }
-          _context17.next = 18;
-          return runHandler(handler);
-        case 18:
-          result = _context17.sent;
-          _context17.next = 28;
+          throw handlerError;
+        case 11:
+          result = values[0];
+          _context17.next = 30;
           break;
-        case 21:
+        case 14:
+          _context17.next = 16;
+          return loadLazyRouteModule(match.route, mapRouteProperties, manifest);
+        case 16:
+          handler = match.route[type];
+          if (!handler) {
+            _context17.next = 23;
+            break;
+          }
+          _context17.next = 20;
+          return runHandler(handler);
+        case 20:
+          result = _context17.sent;
+          _context17.next = 30;
+          break;
+        case 23:
           if (!(type === "action")) {
-            _context17.next = 27;
+            _context17.next = 29;
             break;
           }
           url = new URL(request.url);
@@ -22504,17 +22538,17 @@ function callLoaderOrAction(_x63, _x64, _x65, _x66, _x67, _x68, _x69, _x70) {
             pathname: pathname,
             routeId: match.route.id
           });
-        case 27:
+        case 29:
           return _context17.abrupt("return", {
             type: ResultType.data,
             data: undefined
           });
-        case 28:
-          _context17.next = 39;
-          break;
         case 30:
+          _context17.next = 41;
+          break;
+        case 32:
           if (handler) {
-            _context17.next = 36;
+            _context17.next = 38;
             break;
           }
           _url = new URL(request.url);
@@ -22522,34 +22556,34 @@ function callLoaderOrAction(_x63, _x64, _x65, _x66, _x67, _x68, _x69, _x70) {
           throw getInternalRouterError(404, {
             pathname: _pathname
           });
-        case 36:
-          _context17.next = 38;
-          return runHandler(handler);
         case 38:
+          _context17.next = 40;
+          return runHandler(handler);
+        case 40:
           result = _context17.sent;
-        case 39:
+        case 41:
           invariant(result !== undefined, "You defined " + (type === "action" ? "an action" : "a loader") + " for route " + ("\"" + match.route.id + "\" but didn't return anything from your `" + type + "` ") + "function. Please return a value or `null`.");
-          _context17.next = 46;
+          _context17.next = 48;
           break;
-        case 42:
-          _context17.prev = 42;
+        case 44:
+          _context17.prev = 44;
           _context17.t0 = _context17["catch"](2);
           resultType = ResultType.error;
           result = _context17.t0;
-        case 46:
-          _context17.prev = 46;
+        case 48:
+          _context17.prev = 48;
           if (onReject) {
             request.signal.removeEventListener("abort", onReject);
           }
-          return _context17.finish(46);
-        case 49:
+          return _context17.finish(48);
+        case 51:
           if (!isResponse(result)) {
-            _context17.next = 75;
+            _context17.next = 77;
             break;
           }
           status = result.status; // Process redirects
           if (!redirectStatusCodes.has(status)) {
-            _context17.next = 59;
+            _context17.next = 61;
             break;
           }
           location = result.headers.get("Location");
@@ -22573,12 +22607,12 @@ function callLoaderOrAction(_x63, _x64, _x65, _x66, _x67, _x68, _x69, _x70) {
           // redirect.  We also update the Location header in place in this flow so
           // basename and relative routing is taken into account
           if (!opts.isStaticRequest) {
-            _context17.next = 58;
+            _context17.next = 60;
             break;
           }
           result.headers.set("Location", location);
           throw result;
-        case 58:
+        case 60:
           return _context17.abrupt("return", {
             type: ResultType.redirect,
             status: status,
@@ -22586,9 +22620,9 @@ function callLoaderOrAction(_x63, _x64, _x65, _x66, _x67, _x68, _x69, _x70) {
             revalidate: result.headers.get("X-Remix-Revalidate") !== null,
             reloadDocument: result.headers.get("X-Remix-Reload-Document") !== null
           });
-        case 59:
+        case 61:
           if (!opts.isRouteRequest) {
-            _context17.next = 62;
+            _context17.next = 64;
             break;
           }
           queryRouteResponse = {
@@ -22596,53 +22630,53 @@ function callLoaderOrAction(_x63, _x64, _x65, _x66, _x67, _x68, _x69, _x70) {
             response: result
           };
           throw queryRouteResponse;
-        case 62:
+        case 64:
           contentType = result.headers.get("Content-Type"); // Check between word boundaries instead of startsWith() due to the last
           // paragraph of https://httpwg.org/specs/rfc9110.html#field.content-type
           if (!(contentType && /\bapplication\/json\b/.test(contentType))) {
-            _context17.next = 69;
+            _context17.next = 71;
             break;
           }
-          _context17.next = 66;
+          _context17.next = 68;
           return result.json();
-        case 66:
+        case 68:
           data = _context17.sent;
-          _context17.next = 72;
+          _context17.next = 74;
           break;
-        case 69:
-          _context17.next = 71;
-          return result.text();
         case 71:
+          _context17.next = 73;
+          return result.text();
+        case 73:
           data = _context17.sent;
-        case 72:
+        case 74:
           if (!(resultType === ResultType.error)) {
-            _context17.next = 74;
+            _context17.next = 76;
             break;
           }
           return _context17.abrupt("return", {
             type: resultType,
-            error: new router_ErrorResponse(status, result.statusText, data),
+            error: new ErrorResponseImpl(status, result.statusText, data),
             headers: result.headers
           });
-        case 74:
+        case 76:
           return _context17.abrupt("return", {
             type: ResultType.data,
             data: data,
             statusCode: result.status,
             headers: result.headers
           });
-        case 75:
+        case 77:
           if (!(resultType === ResultType.error)) {
-            _context17.next = 77;
+            _context17.next = 79;
             break;
           }
           return _context17.abrupt("return", {
             type: resultType,
             error: result
           });
-        case 77:
+        case 79:
           if (!isDeferredData(result)) {
-            _context17.next = 79;
+            _context17.next = 81;
             break;
           }
           return _context17.abrupt("return", {
@@ -22651,16 +22685,16 @@ function callLoaderOrAction(_x63, _x64, _x65, _x66, _x67, _x68, _x69, _x70) {
             statusCode: (_result$init = result.init) == null ? void 0 : _result$init.status,
             headers: ((_result$init2 = result.init) == null ? void 0 : _result$init2.headers) && new Headers(result.init.headers)
           });
-        case 79:
+        case 81:
           return _context17.abrupt("return", {
             type: ResultType.data,
             data: result
           });
-        case 80:
+        case 82:
         case "end":
           return _context17.stop();
       }
-    }, _callee16, null, [[2, 42, 46, 49]]);
+    }, _callee16, null, [[2, 44, 48, 51]]);
   }))).apply(this, arguments);
 } // Utility method for creating the Request instances for loaders/actions during
 // client-side navigations and fetches.  During SSR we will always have a
@@ -22930,7 +22964,7 @@ function getInternalRouterError(status, _temp4) {
       errorMessage = "Invalid request method \"" + method.toUpperCase() + "\"";
     }
   }
-  return new router_ErrorResponse(status || 500, statusText, new Error(errorMessage), true);
+  return new ErrorResponseImpl(status || 500, statusText, new Error(errorMessage), true);
 }
 // Find any returned redirect errors, starting from the lowest match
 function findRedirect(results) {
@@ -23123,20 +23157,6 @@ function hasNakedIndexQuery(search) {
     return v === "";
   });
 }
-// Note: This should match the format exported by useMatches, so if you change
-// this please also change that :)  Eventually we'll DRY this up
-function createUseMatchesMatch(match, loaderData) {
-  var route = match.route,
-    pathname = match.pathname,
-    params = match.params;
-  return {
-    id: route.id,
-    pathname: pathname,
-    params: params,
-    data: loaderData[route.id],
-    handle: route.handle
-  };
-}
 function getTargetMatch(matches, location) {
   var search = typeof location === "string" ? parsePath(location).search : location.search;
   if (matches[matches.length - 1].route.index && hasNakedIndexQuery(search || "")) {
@@ -23237,8 +23257,7 @@ function getLoadingFetcher(submission, data) {
       formData: submission.formData,
       json: submission.json,
       text: submission.text,
-      data: data,
-      " _hasFetcherDoneAnything ": true
+      data: data
     };
     return fetcher;
   } else {
@@ -23250,8 +23269,7 @@ function getLoadingFetcher(submission, data) {
       formData: undefined,
       json: undefined,
       text: undefined,
-      data: data,
-      " _hasFetcherDoneAnything ": true
+      data: data
     };
     return _fetcher;
   }
@@ -23265,8 +23283,7 @@ function getSubmittingFetcher(submission, existingFetcher) {
     formData: submission.formData,
     json: submission.json,
     text: submission.text,
-    data: existingFetcher ? existingFetcher.data : undefined,
-    " _hasFetcherDoneAnything ": true
+    data: existingFetcher ? existingFetcher.data : undefined
   };
   return fetcher;
 }
@@ -23279,8 +23296,7 @@ function getDoneFetcher(data) {
     formData: undefined,
     json: undefined,
     text: undefined,
-    data: data,
-    " _hasFetcherDoneAnything ": true
+    data: data
   };
   return fetcher;
 }
@@ -23296,7 +23312,7 @@ function getDoneFetcher(data) {
 
 
 /**
- * React Router v6.15.0
+ * React Router v6.16.0
  *
  * Copyright (c) Remix Software Inc.
  *
@@ -23921,19 +23937,8 @@ function dist_useMatches() {
     matches = _useDataRouterState.matches,
     loaderData = _useDataRouterState.loaderData;
   return React.useMemo(function () {
-    return matches.map(function (match) {
-      var pathname = match.pathname,
-        params = match.params;
-      // Note: This structure matches that created by createUseMatchesMatch
-      // in the @remix-run/router , so if you change this please also change
-      // that :)  Eventually we'll DRY this up
-      return {
-        id: match.route.id,
-        pathname: pathname,
-        params: params,
-        data: loaderData[match.route.id],
-        handle: match.route.handle
-      };
+    return matches.map(function (m) {
+      return UNSAFE_convertRouteMatchToUiMatch(m, loaderData);
     });
   }, [matches, loaderData]);
 }
@@ -24648,7 +24653,7 @@ function createMemoryRouter(routes, opts) {
 
 
 /**
- * React Router DOM v6.15.0
+ * React Router DOM v6.16.0
  *
  * Copyright (c) Remix Software Inc.
  *
@@ -24904,7 +24909,7 @@ function deserializeErrors(errors) {
     // Hey you!  If you change this, please change the corresponding logic in
     // serializeErrors in react-router-dom/server.tsx :)
     if (val && val.__type === "RouteErrorResponse") {
-      serialized[key] = new ErrorResponse(val.status, val.statusText, val.data, val.internal === true);
+      serialized[key] = new UNSAFE_ErrorResponseImpl(val.status, val.statusText, val.data, val.internal === true);
     } else if (val && val.__type === "Error") {
       // Attempt to reconstruct the right type of Error (i.e., ReferenceError)
       if (val.__subType) {
@@ -25494,6 +25499,7 @@ function createFetcherForm(fetcherKey, routeId) {
   return FetcherForm;
 }
 var fetcherId = 0;
+// TODO: (v7) Change the useFetcher generic default from `any` to `unknown`
 /**
  * Interacts with route loaders and actions without causing a navigation. Great
  * for any interaction that stays on the same page.
@@ -43221,9 +43227,9 @@ var els="li, p, h1, h2, h3, h4, h5, h6, dd, blockquote";var DEFAULT_SELECTOR=":i
 ;// CONCATENATED MODULE: ./src/config/app.js
 var APP_NAME="KISS Translator".trim().split(/\s+/).join("-");var APP_LCNAME=APP_NAME.toLowerCase();
 ;// CONCATENATED MODULE: ./src/config/i18n.js
-var UI_LANGS=[["en","English"],["zh","中文"]];var customApiLangs="[\"en\", \"English - English\"],\n[\"zh-CN\", \"Simplified Chinese - \u7B80\u4F53\u4E2D\u6587\"],\n[\"zh-TW\", \"Traditional Chinese - \u7E41\u9AD4\u4E2D\u6587\"],\n[\"ar\", \"Arabic - \u0627\u0644\u0639\u0631\u0628\u064A\u0629\"],\n[\"bg\", \"Bulgarian - \u0411\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438\"],\n[\"ca\", \"Catalan - Catal\xE0\"],\n[\"hr\", \"Croatian - Hrvatski\"],\n[\"cs\", \"Czech - \u010Ce\u0161tina\"],\n[\"da\", \"Danish - Dansk\"],\n[\"nl\", \"Dutch - Nederlands\"],\n[\"fi\", \"Finnish - Suomi\"],\n[\"fr\", \"French - Fran\xE7ais\"],\n[\"de\", \"German - Deutsch\"],\n[\"el\", \"Greek - \u0395\u03BB\u03BB\u03B7\u03BD\u03B9\u03BA\u03AC\"],\n[\"hi\", \"Hindi - \u0939\u093F\u0928\u094D\u0926\u0940\"],\n[\"hu\", \"Hungarian - Magyar\"],\n[\"id\", \"Indonesian - Indonesia\"],\n[\"it\", \"Italian - Italiano\"],\n[\"ja\", \"Japanese - \u65E5\u672C\u8A9E\"],\n[\"ko\", \"Korean - \uD55C\uAD6D\uC5B4\"],\n[\"ms\", \"Malay - Melayu\"],\n[\"mt\", \"Maltese - Malti\"],\n[\"nb\", \"Norwegian - Norsk Bokm\xE5l\"],\n[\"pl\", \"Polish - Polski\"],\n[\"pt\", \"Portuguese - Portugu\xEAs\"],\n[\"ro\", \"Romanian - Rom\xE2n\u0103\"],\n[\"ru\", \"Russian - \u0420\u0443\u0441\u0441\u043A\u0438\u0439\"],\n[\"sk\", \"Slovak - Sloven\u010Dina\"],\n[\"sl\", \"Slovenian - Sloven\u0161\u010Dina\"],\n[\"es\", \"Spanish - Espa\xF1ol\"],\n[\"sv\", \"Swedish - Svenska\"],\n[\"ta\", \"Tamil - \u0BA4\u0BAE\u0BBF\u0BB4\u0BCD\"],\n[\"te\", \"Telugu - \u0C24\u0C46\u0C32\u0C41\u0C17\u0C41\"],\n[\"th\", \"Thai - \u0E44\u0E17\u0E22\"],\n[\"tr\", \"Turkish - T\xFCrk\xE7e\"],\n[\"uk\", \"Ukrainian - \u0423\u043A\u0440\u0430\u0457\u043D\u0441\u044C\u043A\u0430\"],\n[\"vi\", \"Vietnamese - Ti\u1EBFng Vi\u1EC7t\"],\n";var customApiHelpZH="/// \u81EA\u5B9A\u4E49\u7FFB\u8BD1\u6E90\u63A5\u53E3\u8BF4\u660E\n\n// \u8BF7\u6C42\uFF08Request\uFF09\u6570\u636E\u5C06\u6309\u4E0B\u9762\u89C4\u8303\u53D1\u9001\n{\n  url: {{YOUR_URL}},\n  method: \"POST\",\n  headers: {\n    \"Content-type\": \"application/json\",\n    \"Authorization\" = \"Bearer {{YOUR_KEY}}\"\n  },\n  body: {\n    text, // \u9700\u8981\u7FFB\u8BD1\u7684\u6587\u5B57\n    from, // \u6E90\u8BED\u8A00\uFF0C\u53EF\u80FD\u4E3A\u7A7A\uFF0C\u8868\u793A\u9700\u8981\u63A5\u53E3\u81EA\u52A8\u8BC6\u522B\u8BED\u8A00\n    to,   // \u76EE\u6807\u8BED\u8A00\n  }\n}\n\n// \u8FD4\u56DE\uFF08Response\uFF09\u6570\u636E\u9700\u7B26\u5408\u4E0B\u9762\u7684JSON\u89C4\u8303\n{\n  text, // \u7FFB\u8BD1\u540E\u7684\u6587\u5B57\n  from, // \u8BC6\u522B\u7684\u6E90\u8BED\u8A00\n  to,   // \u76EE\u6807\u8BED\u8A00\uFF08\u53EF\u9009\uFF09\n}\n\n// \u652F\u6301\u7684\u8BED\u8A00\u4EE3\u7801\u5982\u4E0B\n".concat(customApiLangs,"\n");var customApiHelpEN="/// Custom translation source interface description\n\n// Request data will be sent according to the following specifications\n{\n  url: {{YOUR_URL}},\n  method: \"POST\",\n  headers: {\n    \"Content-type\": \"application/json\",\n    \"Authorization\" = \"Bearer {{YOUR_KEY}}\"\n  },\n  body: {\n    text, // text to be translated\n    from, // Source language, may be empty\n    to,   // Target language\n  }\n}\n\n// The returned data must conform to the following JSON specification\n{\n  text, // translated text\n  from, // Recognized source language\n  to,   // Target language (optional)\n}\n\n// The supported language codes are as follows\n".concat(customApiLangs,"\n");var I18N={app_name:{zh:"\u7B80\u7EA6\u7FFB\u8BD1",en:"KISS Translator"},translate:{zh:"\u7FFB\u8BD1",en:"Translate"},custom_api_help:{zh:customApiHelpZH,en:customApiHelpEN},translate_alt:{zh:"\u7FFB\u8BD1 (Alt+Q)",en:"Translate (Alt+Q)"},basic_setting:{zh:"\u57FA\u672C\u8BBE\u7F6E",en:"Basic Setting"},rules_setting:{zh:"\u89C4\u5219\u8BBE\u7F6E",en:"Rules Setting"},apis_setting:{zh:"\u63A5\u53E3\u8BBE\u7F6E",en:"Apis Setting"},sync_setting:{zh:"\u540C\u6B65\u8BBE\u7F6E",en:"Sync Setting"},patch_setting:{zh:"\u8865\u4E01\u8BBE\u7F6E",en:"Patch Setting"},patch_setting_help:{zh:"\u9488\u5BF9\u4E00\u4E9B\u7279\u6B8A\u7F51\u7AD9\u7684\u4FEE\u6B63\u811A\u672C\uFF0C\u4EE5\u4FBF\u7FFB\u8BD1\u8F6F\u4EF6\u5F97\u5230\u66F4\u597D\u7684\u5C55\u793A\u6548\u679C\u3002",en:"Corrected scripts for some special websites so that the translation software can get better display results."},inject_webfix:{zh:"\u6CE8\u5165\u4FEE\u590D\u8865\u4E01",en:"Inject Webfix"},about:{zh:"\u5173\u4E8E",en:"About"},about_md:{zh:"README.md",en:"README.en.md"},about_md_local:{zh:"\u8BF7 [\u70B9\u51FB\u8FD9\u91CC](".concat("https://github.com/fishjar/kiss-translator",") \u67E5\u770B\u8BE6\u60C5\u3002"),en:"Please [click here](".concat("https://github.com/fishjar/kiss-translator",") for details.")},ui_lang:{zh:"\u754C\u9762\u8BED\u8A00",en:"Interface Language"},fetch_limit:{zh:"\u6700\u5927\u8BF7\u6C42\u6570\u91CF (1-100)",en:"Maximum Number Of Request (1-100)"},fetch_interval:{zh:"\u8BF7\u6C42\u95F4\u9694\u65F6\u95F4 (0-5000ms)",en:"Request Interval (0-5000ms)"},min_translate_length:{zh:"\u6700\u5C0F\u7FFB\u8BD1\u957F\u5EA6 (1-100)",en:"Min Translate Length (1-100)"},max_translate_length:{zh:"\u6700\u5927\u7FFB\u8BD1\u957F\u5EA6 (100-10000)",en:"Max Translate Length (100-10000)"},num_of_newline_characters:{zh:"\u6362\u884C\u5B57\u7B26\u6570 (1-1000)",en:"Number of Newline Characters (1-1000)"},translate_service:{zh:"\u7FFB\u8BD1\u670D\u52A1",en:"Translate Service"},mouseover_translation:{zh:"\u9F20\u6807\u60AC\u505C\u7FFB\u8BD1",en:"Mouseover translation"},mk_disable:{zh:"\u7981\u7528",en:"Disable"},mk_mouseover:{zh:"\u9F20\u6807\u60AC\u505C",en:"Mouseover"},mk_ctrlKey:{zh:"Control + \u9F20\u6807\u60AC\u505C",en:"Control + Mouseover"},mk_shiftKey:{zh:"Shift + \u9F20\u6807\u60AC\u505C",en:"Shift + Mouseover"},mk_altKey:{zh:"Alt + \u9F20\u6807\u60AC\u505C",en:"Alt + Mouseover"},from_lang:{zh:"\u539F\u6587\u8BED\u8A00",en:"Source Language"},to_lang:{zh:"\u76EE\u6807\u8BED\u8A00",en:"Target Language"},text_style:{zh:"\u6587\u5B57\u6837\u5F0F",en:"Text Style"},text_style_alt:{zh:"\u6587\u5B57\u6837\u5F0F (Alt+C)",en:"Text Style (Alt+C)"},bg_color:{zh:"\u6837\u5F0F\u989C\u8272",en:"Style Color"},remain_unchanged:{zh:"\u4FDD\u7559\u4E0D\u53D8",en:"Remain Unchanged"},google_api:{zh:"\u8C37\u6B4C\u7FFB\u8BD1\u63A5\u53E3",en:"Google Translate API"},default_selector:{zh:"\u9ED8\u8BA4\u9009\u62E9\u5668",en:"Default selector"},selector_rules:{zh:"\u9009\u62E9\u5668\u89C4\u5219",en:"Selector Rules"},save:{zh:"\u4FDD\u5B58",en:"Save"},edit:{zh:"\u7F16\u8F91",en:"Edit"},cancel:{zh:"\u53D6\u6D88",en:"Cancel"},delete:{zh:"\u5220\u9664",en:"Delete"},reset:{zh:"\u91CD\u7F6E",en:"Reset"},add:{zh:"\u6DFB\u52A0",en:"Add"},inject_rules:{zh:"\u6CE8\u5165\u8BA2\u9605\u89C4\u5219",en:"Inject Subscribe Rules"},personal_rules:{zh:"\u4E2A\u4EBA\u89C4\u5219",en:"Rules"},subscribe_rules:{zh:"\u8BA2\u9605\u89C4\u5219",en:"Subscribe"},overwrite_subscribe_rules:{zh:"\u8986\u5199\u8BA2\u9605\u89C4\u5219",en:"Overwrite"},subscribe_url:{zh:"\u8BA2\u9605\u5730\u5740",en:"Subscribe URL"},rules_warn_1:{zh:"1\u3001\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u4E00\u76F4\u751F\u6548\uFF0C\u9009\u62E9\u201C\u6CE8\u5165\u8BA2\u9605\u89C4\u5219\u201D\u540E\uFF0C\u201C\u8BA2\u9605\u89C4\u5219\u201D\u624D\u4F1A\u751F\u6548\u3002",en:"1. The \"Personal Rules\" are always in effect. After selecting \"Inject Subscription Rules\", the \"Subscription Rules\" will take effect."},rules_warn_2:{zh:"2\u3001\u201C\u8BA2\u9605\u89C4\u5219\u201D\u7684\u6CE8\u5165\u4F4D\u7F6E\u662F\u5012\u6570\u7B2C\u4E8C\u7684\u4F4D\u7F6E\uFF0C\u56E0\u6B64\u9664\u5168\u5C40\u89C4\u5219(*)\u5916\uFF0C\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u4F18\u5148\u7EA7\u6BD4\u201C\u8BA2\u9605\u89C4\u5219\u201D\u9AD8\uFF0C\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u586B\u5199\u540C\u6837\u7684\u7F51\u5740\u4F1A\u8986\u76D6\u201D\u8BA2\u9605\u89C4\u5219\u201C\u7684\u6761\u76EE\u3002",en:"2. The injection position of \"Subscription Rules\" is the penultimate position. Therefore, except for the global rules (*), the priority of \"Personal Rules\" is higher than that of \"Subscription Rules\". Filling in the same url in \"Personal Rules\" will overwrite \"Subscription Rules\" entry."},sync_warn:{zh:"\u5982\u679C\u670D\u52A1\u5668\u5B58\u5728\u5176\u4ED6\u5BA2\u6237\u7AEF\u540C\u6B65\u7684\u6570\u636E\uFF0C\u7B2C\u4E00\u6B21\u540C\u6B65\u5C06\u76F4\u63A5\u8986\u76D6\u672C\u5730\u914D\u7F6E\uFF0C\u540E\u9762\u5219\u6839\u636E\u4FEE\u6539\u65F6\u95F4\uFF0C\u65B0\u7684\u8986\u76D6\u65E7\u7684\u3002",en:"If the server has data synchronized by other clients, the first synchronization will directly overwrite the local configuration, and later, according to the modification time, the new one will overwrite the old one."},about_sync_api:{zh:"\u67E5\u770B\u5173\u4E8E\u6570\u636E\u540C\u6B65\u63A5\u53E3\u90E8\u7F72",en:"View About Data Synchronization Interface Deployment"},about_api_proxy:{zh:"\u67E5\u770B\u81EA\u5EFA\u4E00\u4E2A\u7FFB\u8BD1\u63A5\u53E3\u4EE3\u7406",en:"Check out the self-built translation interface proxy"},style_none:{zh:"\u65E0",en:"None"},under_line:{zh:"\u4E0B\u5212\u76F4\u7EBF",en:"Underline"},dot_line:{zh:"\u4E0B\u5212\u70B9\u72B6\u7EBF",en:"Dotted Underline"},dash_line:{zh:"\u4E0B\u5212\u865A\u7EBF",en:"Dashed Underline"},wavy_line:{zh:"\u4E0B\u5212\u6CE2\u6D6A\u7EBF",en:"Wavy Underline"},fuzzy:{zh:"\u6A21\u7CCA",en:"Fuzzy"},highlight:{zh:"\u9AD8\u4EAE",en:"Highlight"},diy_style:{zh:"\u81EA\u5B9A\u4E49\u6837\u5F0F",en:"Custom Style"},diy_style_helper:{zh:"\u9075\u5FAA\u201CCSS\u201D\u7684\u8BED\u6CD5",en:"Follow the syntax of \"CSS\""},setting:{zh:"\u8BBE\u7F6E (Alt+O)",en:"Setting (Alt+O)"},pattern:{zh:"\u5339\u914D\u7F51\u5740",en:"URL pattern"},pattern_helper:{zh:"1\u3001\u652F\u6301\u661F\u53F7(*)\u901A\u914D\u7B26\u30022\u3001\u591A\u4E2AURL\u652F\u6301\u82F1\u6587\u9017\u53F7\u201C,\u201D\u5206\u9694\u3002",en:"1. The asterisk (*) wildcard is supported. 2. Multiple URLs can be separated by English commas \",\"."},selector_helper:{zh:"1\u3001\u9075\u5FAACSS\u9009\u62E9\u5668\u8BED\u6CD5\u30022\u3001\u7559\u7A7A\u8868\u793A\u91C7\u7528\u5168\u5C40\u8BBE\u7F6E\u30023\u3001\u591A\u4E2ACSS\u9009\u62E9\u5668\u4E4B\u95F4\u7528\u201C;\u201D\u9694\u5F00\u30024\u3001\u201Cshadow root\u201D\u9009\u62E9\u5668\u548C\u5185\u90E8\u9009\u62E9\u5668\u7528\u201C>>>\u201D\u9694\u5F00\u3002",en:"1. Follow CSS selector syntax. 2. Leave blank to adopt the global setting. 3. Separate multiple CSS selectors with \";\". 4. The \"shadow root\" selector and the internal selector are separated by \">>>\"."},translate_switch:{zh:"\u5F00\u542F\u7FFB\u8BD1",en:"Translate Switch"},default_enabled:{zh:"\u9ED8\u8BA4\u5F00\u542F",en:"Enabled"},default_disabled:{zh:"\u9ED8\u8BA4\u5173\u95ED",en:"Disabled"},selector:{zh:"\u9009\u62E9\u5668",en:"Selector"},import:{zh:"\u5BFC\u5165",en:"Import"},export:{zh:"\u5BFC\u51FA",en:"Export"},error_cant_be_blank:{zh:"\u4E0D\u80FD\u4E3A\u7A7A",en:"Can not be blank"},error_duplicate_values:{zh:"\u5B58\u5728\u91CD\u590D\u7684\u503C",en:"There are duplicate values"},error_wrong_file_type:{zh:"\u9519\u8BEF\u7684\u6587\u4EF6\u7C7B\u578B",en:"Wrong file type"},error_fetch_url:{zh:"\u8BF7\u68C0\u67E5url\u5730\u5740\u662F\u5426\u6B63\u786E\u6216\u7A0D\u540E\u518D\u8BD5\u3002",en:"Please check if the url address is correct or try again later."},deepl_api:{zh:"DeepL \u63A5\u53E3",en:"DeepL API"},deepl_key:{zh:"DeepL \u5BC6\u94A5",en:"DeepL Key"},openai_api:{zh:"OpenAI \u63A5\u53E3",en:"OpenAI API"},openai_key:{zh:"OpenAI \u5BC6\u94A5",en:"OpenAI Key"},openai_model:{zh:"OpenAI \u6A21\u578B",en:"OpenAI Model"},openai_prompt:{zh:"OpenAI \u63D0\u793A\u8BCD",en:"OpenAI Prompt"},if_clear_cache:{zh:"\u662F\u5426\u6E05\u9664\u7F13\u5B58",en:"Whether clear cache"},clear_cache_never:{zh:"\u4E0D\u6E05\u9664\u7F13\u5B58",en:"Never clear cache"},clear_cache_restart:{zh:"\u91CD\u542F\u6D4F\u89C8\u5668\u65F6\u6E05\u9664\u7F13\u5B58",en:"Clear cache when restarting browser"},data_sync_url:{zh:"\u6570\u636E\u540C\u6B65\u63A5\u53E3",en:"Data Sync API"},data_sync_key:{zh:"\u6570\u636E\u540C\u6B65\u5BC6\u94A5",en:"Data Sync Key"},sync_now:{zh:"\u7ACB\u5373\u540C\u6B65",en:"Sync Now"},sync_success:{zh:"\u540C\u6B65\u6210\u529F\uFF01",en:"Sync Success"},sync_failed:{zh:"\u540C\u6B65\u5931\u8D25\uFF01",en:"Sync Error"},error_got_some_wrong:{zh:"\u62B1\u6B49\uFF0C\u51FA\u9519\u4E86\uFF01",en:"Sorry, something went wrong!"},error_sync_setting:{zh:"\u60A8\u7684\u540C\u6B65\u8BBE\u7F6E\u672A\u586B\u5199\uFF0C\u65E0\u6CD5\u5728\u7EBF\u5206\u4EAB\u3002",en:"Your sync settings are missing and cannot be shared online."},click_test:{zh:"\u70B9\u51FB\u6D4B\u8BD5",en:"Click Test"},test_success:{zh:"\u6D4B\u8BD5\u6210\u529F",en:"Test success"},test_failed:{zh:"\u6D4B\u8BD5\u5931\u8D25",en:"Test failed"},clear_all_cache_now:{zh:"\u7ACB\u5373\u6E05\u9664\u5168\u90E8\u7F13\u5B58",en:"Clear all cache now"},clear_cache:{zh:"\u6E05\u9664\u7F13\u5B58",en:"Clear Cache"},clear_success:{zh:"\u6E05\u9664\u6210\u529F",en:"Clear success"},clear_failed:{zh:"\u6E05\u9664\u5931\u8D25",en:"Clear failed"},share:{zh:"\u5206\u4EAB",en:"Share"},clear_all:{zh:"\u6E05\u7A7A",en:"Clear All"},help:{zh:"\u6C42\u52A9",en:"Help"},restore_default:{zh:"\u6062\u590D\u9ED8\u8BA4",en:"Restore Default"},shortcuts_setting:{zh:"\u5FEB\u6377\u952E\u8BBE\u7F6E",en:"Shortcuts Setting"},toggle_translate_shortcut:{zh:"\"\u5F00\u542F\u7FFB\u8BD1\"\u5FEB\u6377\u952E",en:"\"Toggle Translate\" Shortcut"},toggle_style_shortcut:{zh:"\"\u5207\u6362\u6837\u5F0F\"\u5FEB\u6377\u952E",en:"\"Toggle Style\" Shortcut"},toggle_popup_shortcut:{zh:"\"\u6253\u5F00\u5F39\u7A97\"\u5FEB\u6377\u952E",en:"\"Open Popup\" Shortcut"},open_setting_shortcut:{zh:"\"\u6253\u5F00\u8BBE\u7F6E\"\u5FEB\u6377\u952E",en:"\"Open Setting\" Shortcut"},hide_fab_button:{zh:"\u9690\u85CF\u60AC\u6D6E\u6309\u94AE",en:"Hide Fab Button"},show:{zh:"\u663E\u793A",en:"Show"},hide:{zh:"\u9690\u85CF",en:"Hide"},save_rule:{zh:"\u4FDD\u5B58\u89C4\u5219",en:"Save Rule"},global_rule:{zh:"\u5168\u5C40\u89C4\u5219",en:"Global Rule"}};
+var UI_LANGS=[["en","English"],["zh","中文"]];var customApiLangs="[\"en\", \"English - English\"],\n[\"zh-CN\", \"Simplified Chinese - \u7B80\u4F53\u4E2D\u6587\"],\n[\"zh-TW\", \"Traditional Chinese - \u7E41\u9AD4\u4E2D\u6587\"],\n[\"ar\", \"Arabic - \u0627\u0644\u0639\u0631\u0628\u064A\u0629\"],\n[\"bg\", \"Bulgarian - \u0411\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438\"],\n[\"ca\", \"Catalan - Catal\xE0\"],\n[\"hr\", \"Croatian - Hrvatski\"],\n[\"cs\", \"Czech - \u010Ce\u0161tina\"],\n[\"da\", \"Danish - Dansk\"],\n[\"nl\", \"Dutch - Nederlands\"],\n[\"fi\", \"Finnish - Suomi\"],\n[\"fr\", \"French - Fran\xE7ais\"],\n[\"de\", \"German - Deutsch\"],\n[\"el\", \"Greek - \u0395\u03BB\u03BB\u03B7\u03BD\u03B9\u03BA\u03AC\"],\n[\"hi\", \"Hindi - \u0939\u093F\u0928\u094D\u0926\u0940\"],\n[\"hu\", \"Hungarian - Magyar\"],\n[\"id\", \"Indonesian - Indonesia\"],\n[\"it\", \"Italian - Italiano\"],\n[\"ja\", \"Japanese - \u65E5\u672C\u8A9E\"],\n[\"ko\", \"Korean - \uD55C\uAD6D\uC5B4\"],\n[\"ms\", \"Malay - Melayu\"],\n[\"mt\", \"Maltese - Malti\"],\n[\"nb\", \"Norwegian - Norsk Bokm\xE5l\"],\n[\"pl\", \"Polish - Polski\"],\n[\"pt\", \"Portuguese - Portugu\xEAs\"],\n[\"ro\", \"Romanian - Rom\xE2n\u0103\"],\n[\"ru\", \"Russian - \u0420\u0443\u0441\u0441\u043A\u0438\u0439\"],\n[\"sk\", \"Slovak - Sloven\u010Dina\"],\n[\"sl\", \"Slovenian - Sloven\u0161\u010Dina\"],\n[\"es\", \"Spanish - Espa\xF1ol\"],\n[\"sv\", \"Swedish - Svenska\"],\n[\"ta\", \"Tamil - \u0BA4\u0BAE\u0BBF\u0BB4\u0BCD\"],\n[\"te\", \"Telugu - \u0C24\u0C46\u0C32\u0C41\u0C17\u0C41\"],\n[\"th\", \"Thai - \u0E44\u0E17\u0E22\"],\n[\"tr\", \"Turkish - T\xFCrk\xE7e\"],\n[\"uk\", \"Ukrainian - \u0423\u043A\u0440\u0430\u0457\u043D\u0441\u044C\u043A\u0430\"],\n[\"vi\", \"Vietnamese - Ti\u1EBFng Vi\u1EC7t\"],\n";var customApiHelpZH="/// \u81EA\u5B9A\u4E49\u7FFB\u8BD1\u6E90\u63A5\u53E3\u8BF4\u660E\n\n// \u8BF7\u6C42\uFF08Request\uFF09\u6570\u636E\u5C06\u6309\u4E0B\u9762\u89C4\u8303\u53D1\u9001\n{\n  url: {{YOUR_URL}},\n  method: \"POST\",\n  headers: {\n    \"Content-type\": \"application/json\",\n    \"Authorization\" = \"Bearer {{YOUR_KEY}}\"\n  },\n  body: {\n    text, // \u9700\u8981\u7FFB\u8BD1\u7684\u6587\u5B57\n    from, // \u6E90\u8BED\u8A00\uFF0C\u53EF\u80FD\u4E3A\u7A7A\uFF0C\u8868\u793A\u9700\u8981\u63A5\u53E3\u81EA\u52A8\u8BC6\u522B\u8BED\u8A00\n    to,   // \u76EE\u6807\u8BED\u8A00\n  }\n}\n\n// \u8FD4\u56DE\uFF08Response\uFF09\u6570\u636E\u9700\u7B26\u5408\u4E0B\u9762\u7684JSON\u89C4\u8303\n{\n  text, // \u7FFB\u8BD1\u540E\u7684\u6587\u5B57\n  from, // \u8BC6\u522B\u7684\u6E90\u8BED\u8A00\n  to,   // \u76EE\u6807\u8BED\u8A00\uFF08\u53EF\u9009\uFF09\n}\n\n// \u652F\u6301\u7684\u8BED\u8A00\u4EE3\u7801\u5982\u4E0B\n".concat(customApiLangs,"\n");var customApiHelpEN="/// Custom translation source interface description\n\n// Request data will be sent according to the following specifications\n{\n  url: {{YOUR_URL}},\n  method: \"POST\",\n  headers: {\n    \"Content-type\": \"application/json\",\n    \"Authorization\" = \"Bearer {{YOUR_KEY}}\"\n  },\n  body: {\n    text, // text to be translated\n    from, // Source language, may be empty\n    to,   // Target language\n  }\n}\n\n// The returned data must conform to the following JSON specification\n{\n  text, // translated text\n  from, // Recognized source language\n  to,   // Target language (optional)\n}\n\n// The supported language codes are as follows\n".concat(customApiLangs,"\n");var I18N={app_name:{zh:"\u7B80\u7EA6\u7FFB\u8BD1",en:"KISS Translator"},translate:{zh:"\u7FFB\u8BD1",en:"Translate"},custom_api_help:{zh:customApiHelpZH,en:customApiHelpEN},translate_alt:{zh:"\u7FFB\u8BD1 (Alt+Q)",en:"Translate (Alt+Q)"},basic_setting:{zh:"\u57FA\u672C\u8BBE\u7F6E",en:"Basic Setting"},rules_setting:{zh:"\u89C4\u5219\u8BBE\u7F6E",en:"Rules Setting"},apis_setting:{zh:"\u63A5\u53E3\u8BBE\u7F6E",en:"Apis Setting"},sync_setting:{zh:"\u540C\u6B65\u8BBE\u7F6E",en:"Sync Setting"},patch_setting:{zh:"\u8865\u4E01\u8BBE\u7F6E",en:"Patch Setting"},patch_setting_help:{zh:"\u9488\u5BF9\u4E00\u4E9B\u7279\u6B8A\u7F51\u7AD9\u7684\u4FEE\u6B63\u811A\u672C\uFF0C\u4EE5\u4FBF\u7FFB\u8BD1\u8F6F\u4EF6\u5F97\u5230\u66F4\u597D\u7684\u5C55\u793A\u6548\u679C\u3002",en:"Corrected scripts for some special websites so that the translation software can get better display results."},inject_webfix:{zh:"\u6CE8\u5165\u4FEE\u590D\u8865\u4E01",en:"Inject Webfix"},about:{zh:"\u5173\u4E8E",en:"About"},about_md:{zh:"README.md",en:"README.en.md"},about_md_local:{zh:"\u8BF7 [\u70B9\u51FB\u8FD9\u91CC](".concat("https://github.com/fishjar/kiss-translator",") \u67E5\u770B\u8BE6\u60C5\u3002"),en:"Please [click here](".concat("https://github.com/fishjar/kiss-translator",") for details.")},ui_lang:{zh:"\u754C\u9762\u8BED\u8A00",en:"Interface Language"},fetch_limit:{zh:"\u6700\u5927\u8BF7\u6C42\u6570\u91CF (1-100)",en:"Maximum Number Of Request (1-100)"},fetch_interval:{zh:"\u8BF7\u6C42\u95F4\u9694\u65F6\u95F4 (0-5000ms)",en:"Request Interval (0-5000ms)"},min_translate_length:{zh:"\u6700\u5C0F\u7FFB\u8BD1\u957F\u5EA6 (1-100)",en:"Min Translate Length (1-100)"},max_translate_length:{zh:"\u6700\u5927\u7FFB\u8BD1\u957F\u5EA6 (100-10000)",en:"Max Translate Length (100-10000)"},num_of_newline_characters:{zh:"\u6362\u884C\u5B57\u7B26\u6570 (1-1000)",en:"Number of Newline Characters (1-1000)"},translate_service:{zh:"\u7FFB\u8BD1\u670D\u52A1",en:"Translate Service"},mouseover_translation:{zh:"\u9F20\u6807\u60AC\u505C\u7FFB\u8BD1",en:"Mouseover translation"},mk_disable:{zh:"\u7981\u7528",en:"Disable"},mk_mouseover:{zh:"\u9F20\u6807\u60AC\u505C",en:"Mouseover"},mk_ctrlKey:{zh:"Control + \u9F20\u6807\u60AC\u505C",en:"Control + Mouseover"},mk_shiftKey:{zh:"Shift + \u9F20\u6807\u60AC\u505C",en:"Shift + Mouseover"},mk_altKey:{zh:"Alt + \u9F20\u6807\u60AC\u505C",en:"Alt + Mouseover"},from_lang:{zh:"\u539F\u6587\u8BED\u8A00",en:"Source Language"},to_lang:{zh:"\u76EE\u6807\u8BED\u8A00",en:"Target Language"},text_style:{zh:"\u6587\u5B57\u6837\u5F0F",en:"Text Style"},text_style_alt:{zh:"\u6587\u5B57\u6837\u5F0F (Alt+C)",en:"Text Style (Alt+C)"},bg_color:{zh:"\u6837\u5F0F\u989C\u8272",en:"Style Color"},remain_unchanged:{zh:"\u4FDD\u7559\u4E0D\u53D8",en:"Remain Unchanged"},google_api:{zh:"\u8C37\u6B4C\u7FFB\u8BD1\u63A5\u53E3",en:"Google Translate API"},default_selector:{zh:"\u9ED8\u8BA4\u9009\u62E9\u5668",en:"Default selector"},selector_rules:{zh:"\u9009\u62E9\u5668\u89C4\u5219",en:"Selector Rules"},save:{zh:"\u4FDD\u5B58",en:"Save"},edit:{zh:"\u7F16\u8F91",en:"Edit"},cancel:{zh:"\u53D6\u6D88",en:"Cancel"},delete:{zh:"\u5220\u9664",en:"Delete"},reset:{zh:"\u91CD\u7F6E",en:"Reset"},add:{zh:"\u6DFB\u52A0",en:"Add"},inject_rules:{zh:"\u6CE8\u5165\u8BA2\u9605\u89C4\u5219",en:"Inject Subscribe Rules"},personal_rules:{zh:"\u4E2A\u4EBA\u89C4\u5219",en:"Rules"},subscribe_rules:{zh:"\u8BA2\u9605\u89C4\u5219",en:"Subscribe"},overwrite_subscribe_rules:{zh:"\u8986\u5199\u8BA2\u9605\u89C4\u5219",en:"Overwrite"},subscribe_url:{zh:"\u8BA2\u9605\u5730\u5740",en:"Subscribe URL"},rules_warn_1:{zh:"1\u3001\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u4E00\u76F4\u751F\u6548\uFF0C\u9009\u62E9\u201C\u6CE8\u5165\u8BA2\u9605\u89C4\u5219\u201D\u540E\uFF0C\u201C\u8BA2\u9605\u89C4\u5219\u201D\u624D\u4F1A\u751F\u6548\u3002",en:"1. The \"Personal Rules\" are always in effect. After selecting \"Inject Subscription Rules\", the \"Subscription Rules\" will take effect."},rules_warn_2:{zh:"2\u3001\u201C\u8BA2\u9605\u89C4\u5219\u201D\u7684\u6CE8\u5165\u4F4D\u7F6E\u662F\u5012\u6570\u7B2C\u4E8C\u7684\u4F4D\u7F6E\uFF0C\u56E0\u6B64\u9664\u5168\u5C40\u89C4\u5219(*)\u5916\uFF0C\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u4F18\u5148\u7EA7\u6BD4\u201C\u8BA2\u9605\u89C4\u5219\u201D\u9AD8\uFF0C\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u586B\u5199\u540C\u6837\u7684\u7F51\u5740\u4F1A\u8986\u76D6\u201D\u8BA2\u9605\u89C4\u5219\u201C\u7684\u6761\u76EE\u3002",en:"2. The injection position of \"Subscription Rules\" is the penultimate position. Therefore, except for the global rules (*), the priority of \"Personal Rules\" is higher than that of \"Subscription Rules\". Filling in the same url in \"Personal Rules\" will overwrite \"Subscription Rules\" entry."},sync_warn:{zh:"\u5982\u679C\u670D\u52A1\u5668\u5B58\u5728\u5176\u4ED6\u5BA2\u6237\u7AEF\u540C\u6B65\u7684\u6570\u636E\uFF0C\u7B2C\u4E00\u6B21\u540C\u6B65\u5C06\u76F4\u63A5\u8986\u76D6\u672C\u5730\u914D\u7F6E\uFF0C\u540E\u9762\u5219\u6839\u636E\u4FEE\u6539\u65F6\u95F4\uFF0C\u65B0\u7684\u8986\u76D6\u65E7\u7684\u3002",en:"If the server has data synchronized by other clients, the first synchronization will directly overwrite the local configuration, and later, according to the modification time, the new one will overwrite the old one."},about_sync_api:{zh:"\u67E5\u770B\u5173\u4E8E\u6570\u636E\u540C\u6B65\u63A5\u53E3\u90E8\u7F72",en:"View About Data Synchronization Interface Deployment"},about_api_proxy:{zh:"\u67E5\u770B\u81EA\u5EFA\u4E00\u4E2A\u7FFB\u8BD1\u63A5\u53E3\u4EE3\u7406",en:"Check out the self-built translation interface proxy"},style_none:{zh:"\u65E0",en:"None"},under_line:{zh:"\u4E0B\u5212\u76F4\u7EBF",en:"Underline"},dot_line:{zh:"\u4E0B\u5212\u70B9\u72B6\u7EBF",en:"Dotted Underline"},dash_line:{zh:"\u4E0B\u5212\u865A\u7EBF",en:"Dashed Underline"},wavy_line:{zh:"\u4E0B\u5212\u6CE2\u6D6A\u7EBF",en:"Wavy Underline"},fuzzy:{zh:"\u6A21\u7CCA",en:"Fuzzy"},highlight:{zh:"\u9AD8\u4EAE",en:"Highlight"},diy_style:{zh:"\u81EA\u5B9A\u4E49\u6837\u5F0F",en:"Custom Style"},diy_style_helper:{zh:"\u9075\u5FAA\u201CCSS\u201D\u7684\u8BED\u6CD5",en:"Follow the syntax of \"CSS\""},setting:{zh:"\u8BBE\u7F6E (Alt+O)",en:"Setting (Alt+O)"},pattern:{zh:"\u5339\u914D\u7F51\u5740",en:"URL pattern"},pattern_helper:{zh:"1\u3001\u652F\u6301\u661F\u53F7(*)\u901A\u914D\u7B26\u30022\u3001\u591A\u4E2AURL\u652F\u6301\u82F1\u6587\u9017\u53F7\u201C,\u201D\u5206\u9694\u3002",en:"1. The asterisk (*) wildcard is supported. 2. Multiple URLs can be separated by English commas \",\"."},selector_helper:{zh:"1\u3001\u9075\u5FAACSS\u9009\u62E9\u5668\u8BED\u6CD5\u30022\u3001\u7559\u7A7A\u8868\u793A\u91C7\u7528\u5168\u5C40\u8BBE\u7F6E\u30023\u3001\u591A\u4E2ACSS\u9009\u62E9\u5668\u4E4B\u95F4\u7528\u201C;\u201D\u9694\u5F00\u30024\u3001\u201Cshadow root\u201D\u9009\u62E9\u5668\u548C\u5185\u90E8\u9009\u62E9\u5668\u7528\u201C>>>\u201D\u9694\u5F00\u3002",en:"1. Follow CSS selector syntax. 2. Leave blank to adopt the global setting. 3. Separate multiple CSS selectors with \";\". 4. The \"shadow root\" selector and the internal selector are separated by \">>>\"."},translate_switch:{zh:"\u5F00\u542F\u7FFB\u8BD1",en:"Translate Switch"},default_enabled:{zh:"\u9ED8\u8BA4\u5F00\u542F",en:"Enabled"},default_disabled:{zh:"\u9ED8\u8BA4\u5173\u95ED",en:"Disabled"},selector:{zh:"\u9009\u62E9\u5668",en:"Selector"},import:{zh:"\u5BFC\u5165",en:"Import"},export:{zh:"\u5BFC\u51FA",en:"Export"},error_cant_be_blank:{zh:"\u4E0D\u80FD\u4E3A\u7A7A",en:"Can not be blank"},error_duplicate_values:{zh:"\u5B58\u5728\u91CD\u590D\u7684\u503C",en:"There are duplicate values"},error_wrong_file_type:{zh:"\u9519\u8BEF\u7684\u6587\u4EF6\u7C7B\u578B",en:"Wrong file type"},error_fetch_url:{zh:"\u8BF7\u68C0\u67E5url\u5730\u5740\u662F\u5426\u6B63\u786E\u6216\u7A0D\u540E\u518D\u8BD5\u3002",en:"Please check if the url address is correct or try again later."},deepl_api:{zh:"DeepL \u63A5\u53E3",en:"DeepL API"},deepl_key:{zh:"DeepL \u5BC6\u94A5",en:"DeepL Key"},openai_api:{zh:"OpenAI \u63A5\u53E3",en:"OpenAI API"},openai_key:{zh:"OpenAI \u5BC6\u94A5",en:"OpenAI Key"},openai_model:{zh:"OpenAI \u6A21\u578B",en:"OpenAI Model"},openai_prompt:{zh:"OpenAI \u63D0\u793A\u8BCD",en:"OpenAI Prompt"},if_clear_cache:{zh:"\u662F\u5426\u6E05\u9664\u7F13\u5B58",en:"Whether clear cache"},clear_cache_never:{zh:"\u4E0D\u6E05\u9664\u7F13\u5B58",en:"Never clear cache"},clear_cache_restart:{zh:"\u91CD\u542F\u6D4F\u89C8\u5668\u65F6\u6E05\u9664\u7F13\u5B58",en:"Clear cache when restarting browser"},data_sync_url:{zh:"\u6570\u636E\u540C\u6B65\u63A5\u53E3",en:"Data Sync API"},data_sync_key:{zh:"\u6570\u636E\u540C\u6B65\u5BC6\u94A5",en:"Data Sync Key"},sync_now:{zh:"\u7ACB\u5373\u540C\u6B65",en:"Sync Now"},sync_success:{zh:"\u540C\u6B65\u6210\u529F\uFF01",en:"Sync Success"},sync_failed:{zh:"\u540C\u6B65\u5931\u8D25\uFF01",en:"Sync Error"},error_got_some_wrong:{zh:"\u62B1\u6B49\uFF0C\u51FA\u9519\u4E86\uFF01",en:"Sorry, something went wrong!"},error_sync_setting:{zh:"\u60A8\u7684\u540C\u6B65\u8BBE\u7F6E\u672A\u586B\u5199\uFF0C\u65E0\u6CD5\u5728\u7EBF\u5206\u4EAB\u3002",en:"Your sync settings are missing and cannot be shared online."},click_test:{zh:"\u70B9\u51FB\u6D4B\u8BD5",en:"Click Test"},test_success:{zh:"\u6D4B\u8BD5\u6210\u529F",en:"Test success"},test_failed:{zh:"\u6D4B\u8BD5\u5931\u8D25",en:"Test failed"},clear_all_cache_now:{zh:"\u7ACB\u5373\u6E05\u9664\u5168\u90E8\u7F13\u5B58",en:"Clear all cache now"},clear_cache:{zh:"\u6E05\u9664\u7F13\u5B58",en:"Clear Cache"},clear_success:{zh:"\u6E05\u9664\u6210\u529F",en:"Clear success"},clear_failed:{zh:"\u6E05\u9664\u5931\u8D25",en:"Clear failed"},share:{zh:"\u5206\u4EAB",en:"Share"},clear_all:{zh:"\u6E05\u7A7A",en:"Clear All"},help:{zh:"\u6C42\u52A9",en:"Help"},restore_default:{zh:"\u6062\u590D\u9ED8\u8BA4",en:"Restore Default"},shortcuts_setting:{zh:"\u5FEB\u6377\u952E\u8BBE\u7F6E",en:"Shortcuts Setting"},toggle_translate_shortcut:{zh:"\"\u5F00\u542F\u7FFB\u8BD1\"\u5FEB\u6377\u952E",en:"\"Toggle Translate\" Shortcut"},toggle_style_shortcut:{zh:"\"\u5207\u6362\u6837\u5F0F\"\u5FEB\u6377\u952E",en:"\"Toggle Style\" Shortcut"},toggle_popup_shortcut:{zh:"\"\u6253\u5F00\u5F39\u7A97\"\u5FEB\u6377\u952E",en:"\"Open Popup\" Shortcut"},open_setting_shortcut:{zh:"\"\u6253\u5F00\u8BBE\u7F6E\"\u5FEB\u6377\u952E",en:"\"Open Setting\" Shortcut"},hide_fab_button:{zh:"\u9690\u85CF\u60AC\u6D6E\u6309\u94AE",en:"Hide Fab Button"},show:{zh:"\u663E\u793A",en:"Show"},hide:{zh:"\u9690\u85CF",en:"Hide"},save_rule:{zh:"\u4FDD\u5B58\u89C4\u5219",en:"Save Rule"},global_rule:{zh:"\u5168\u5C40\u89C4\u5219",en:"Global Rule"},input_setting:{zh:"\u8F93\u5165\u6846\u8BBE\u7F6E",en:"Input Box Setting"},input_box_translation:{zh:"\u542F\u7528\u8F93\u5165\u6846\u7FFB\u8BD1",en:"Input Box Translation"},input_selector:{zh:"\u8F93\u5165\u6846\u9009\u62E9\u5668",en:"Input Selector"},input_selector_helper:{zh:"\u7528\u4E8E\u8F93\u5165\u6846\u7FFB\u8BD1\u3002",en:"Used for input box translation."},trigger_trans_shortcut:{zh:"\u89E6\u53D1\u7FFB\u8BD1\u5FEB\u6377\u952E",en:"Trigger Translation Shortcut Keys"},trigger_trans_shortcut_help:{zh:"\u9ED8\u8BA4\u4E3A\u5355\u51FB\u201CAlt+i\u201D",en:"Default is \"Alt+i\""},shortcut_press_count:{zh:"\u5FEB\u6377\u952E\u8FDE\u51FB\u6B21\u6570",en:"Shortcut Press Number"},combo_timeout:{zh:"\u8FDE\u51FB\u8D85\u65F6\u65F6\u95F4 (10-1000ms)",en:"Combo Timeout (10-1000ms)"},input_trans_start_sign:{zh:"\u7FFB\u8BD1\u8D77\u59CB\u6807\u8BC6",en:"Translation Start Sign"},input_trans_start_sign_help:{zh:"\u6807\u8BC6\u540E\u9762\u53EF\u4EE5\u52A0\u76EE\u6807\u8BED\u8A00\u4EE3\u7801\uFF0C\u5982\uFF1A \u201C/en \u4F60\u597D\u201D\u3001\u201C/zh hello\u201D",en:"The target language code can be added after the sign, such as: \"/en \u4F60\u597D\", \"/zh hello\""}};
 ;// CONCATENATED MODULE: ./src/config/index.js
-var _OPT_LANGS_SPECIAL,_DEFAULT_TRANS_APIS,_DEFAULT_SHORTCUTS;var STOKEY_MSAUTH="".concat(APP_NAME,"_msauth");var config_STOKEY_SETTING="".concat(APP_NAME,"_setting");var config_STOKEY_RULES="".concat(APP_NAME,"_rules");var config_STOKEY_SYNC="".concat(APP_NAME,"_sync");var config_STOKEY_FAB="".concat(APP_NAME,"_fab");var config_STOKEY_RULESCACHE_PREFIX="".concat(APP_NAME,"_rulescache_");var STOKEY_WEBFIXCACHE_PREFIX="".concat(APP_NAME,"_webfixcache_");var CMD_TOGGLE_TRANSLATE="toggleTranslate";var CMD_TOGGLE_STYLE="toggleStyle";var CMD_OPEN_OPTIONS="openOptions";var CLIENT_WEB="web";var CLIENT_CHROME="chrome";var CLIENT_EDGE="edge";var CLIENT_FIREFOX="firefox";var CLIENT_USERSCRIPT="userscript";var CLIENT_EXTS=[CLIENT_CHROME,CLIENT_EDGE,CLIENT_FIREFOX];var KV_RULES_KEY="KT_RULES";var KV_RULES_SHARE_KEY="KT_RULES_SHARE";var KV_SETTING_KEY="KT_SETTING";var KV_SALT_SYNC="KISS-Translator-SYNC";var KV_SALT_SHARE="KISS-Translator-SHARE";var config_CACHE_NAME="".concat(APP_NAME,"_cache");var MSG_FETCH="fetch";var config_MSG_FETCH_LIMIT="fetch_limit";var config_MSG_FETCH_CLEAR="fetch_clear";var MSG_TRANS_TOGGLE="trans_toggle";var MSG_TRANS_TOGGLE_STYLE="trans_toggle_style";var MSG_TRANS_GETRULE="trans_getrule";var MSG_TRANS_PUTRULE="trans_putrule";var MSG_TRANS_CURRULE="trans_currule";var THEME_LIGHT="light";var THEME_DARK="dark";var URL_KISS_WORKER="https://github.com/fishjar/kiss-worker";var URL_KISS_PROXY="https://github.com/fishjar/kiss-proxy";var URL_KISS_RULES="https://github.com/fishjar/kiss-rules";var URL_KISS_RULES_NEW_ISSUE="https://github.com/fishjar/kiss-rules/issues/new";var URL_RAW_PREFIX="https://raw.githubusercontent.com/fishjar/kiss-translator/master";var URL_MICROSOFT_AUTH="https://edge.microsoft.com/translate/auth";var OPT_TRANS_GOOGLE="Google";var OPT_TRANS_MICROSOFT="Microsoft";var OPT_TRANS_DEEPL="DeepL";var OPT_TRANS_OPENAI="OpenAI";var OPT_TRANS_CUSTOMIZE="Custom";var OPT_TRANS_ALL=[OPT_TRANS_GOOGLE,OPT_TRANS_MICROSOFT,OPT_TRANS_DEEPL,OPT_TRANS_OPENAI,OPT_TRANS_CUSTOMIZE];var OPT_LANGS_TO=[["en","English - English"],["zh-CN","Simplified Chinese - 简体中文"],["zh-TW","Traditional Chinese - 繁體中文"],["ar","Arabic - العربية"],["bg","Bulgarian - Български"],["ca","Catalan - Català"],["hr","Croatian - Hrvatski"],["cs","Czech - Čeština"],["da","Danish - Dansk"],["nl","Dutch - Nederlands"],["fi","Finnish - Suomi"],["fr","French - Français"],["de","German - Deutsch"],["el","Greek - Ελληνικά"],["hi","Hindi - हिन्दी"],["hu","Hungarian - Magyar"],["id","Indonesian - Indonesia"],["it","Italian - Italiano"],["ja","Japanese - 日本語"],["ko","Korean - 한국어"],["ms","Malay - Melayu"],["mt","Maltese - Malti"],["nb","Norwegian - Norsk Bokmål"],["pl","Polish - Polski"],["pt","Portuguese - Português"],["ro","Romanian - Română"],["ru","Russian - Русский"],["sk","Slovak - Slovenčina"],["sl","Slovenian - Slovenščina"],["es","Spanish - Español"],["sv","Swedish - Svenska"],["ta","Tamil - தமிழ்"],["te","Telugu - తెలుగు"],["th","Thai - ไทย"],["tr","Turkish - Türkçe"],["uk","Ukrainian - Українська"],["vi","Vietnamese - Tiếng Việt"]];var OPT_LANGS_FROM=[["auto","Auto-detect"]].concat(OPT_LANGS_TO);var OPT_LANGS_SPECIAL=(_OPT_LANGS_SPECIAL={},(0,defineProperty/* default */.Z)(_OPT_LANGS_SPECIAL,OPT_TRANS_MICROSOFT,new Map([["auto",""],["zh-CN","zh-Hans"],["zh-TW","zh-Hant"]])),(0,defineProperty/* default */.Z)(_OPT_LANGS_SPECIAL,OPT_TRANS_DEEPL,new Map([].concat((0,toConsumableArray/* default */.Z)(OPT_LANGS_FROM.map(function(_ref){var _ref2=(0,slicedToArray/* default */.Z)(_ref,1),key=_ref2[0];return[key,key.toUpperCase()];})),[["auto",""],["zh-CN","ZH"],["zh-TW","ZH"]]))),(0,defineProperty/* default */.Z)(_OPT_LANGS_SPECIAL,OPT_TRANS_OPENAI,new Map(OPT_LANGS_FROM.map(function(_ref3){var _ref4=(0,slicedToArray/* default */.Z)(_ref3,2),key=_ref4[0],val=_ref4[1];return[key,val.split(" - ")[0]];}))),(0,defineProperty/* default */.Z)(_OPT_LANGS_SPECIAL,OPT_TRANS_CUSTOMIZE,new Map([["auto",""]])),_OPT_LANGS_SPECIAL);var OPT_STYLE_NONE="style_none";// 无
+var _OPT_LANGS_SPECIAL,_DEFAULT_TRANS_APIS,_DEFAULT_SHORTCUTS;var STOKEY_MSAUTH="".concat(APP_NAME,"_msauth");var config_STOKEY_SETTING="".concat(APP_NAME,"_setting");var config_STOKEY_RULES="".concat(APP_NAME,"_rules");var config_STOKEY_SYNC="".concat(APP_NAME,"_sync");var config_STOKEY_FAB="".concat(APP_NAME,"_fab");var config_STOKEY_RULESCACHE_PREFIX="".concat(APP_NAME,"_rulescache_");var STOKEY_WEBFIXCACHE_PREFIX="".concat(APP_NAME,"_webfixcache_");var CMD_TOGGLE_TRANSLATE="toggleTranslate";var CMD_TOGGLE_STYLE="toggleStyle";var CMD_OPEN_OPTIONS="openOptions";var CLIENT_WEB="web";var CLIENT_CHROME="chrome";var CLIENT_EDGE="edge";var CLIENT_FIREFOX="firefox";var CLIENT_USERSCRIPT="userscript";var CLIENT_EXTS=[CLIENT_CHROME,CLIENT_EDGE,CLIENT_FIREFOX];var KV_RULES_KEY="KT_RULES";var KV_RULES_SHARE_KEY="KT_RULES_SHARE";var KV_SETTING_KEY="KT_SETTING";var KV_SALT_SYNC="KISS-Translator-SYNC";var KV_SALT_SHARE="KISS-Translator-SHARE";var config_CACHE_NAME="".concat(APP_NAME,"_cache");var MSG_FETCH="fetch";var config_MSG_FETCH_LIMIT="fetch_limit";var config_MSG_FETCH_CLEAR="fetch_clear";var MSG_TRANS_TOGGLE="trans_toggle";var MSG_TRANS_TOGGLE_STYLE="trans_toggle_style";var MSG_TRANS_GETRULE="trans_getrule";var MSG_TRANS_PUTRULE="trans_putrule";var MSG_TRANS_CURRULE="trans_currule";var THEME_LIGHT="light";var THEME_DARK="dark";var URL_KISS_WORKER="https://github.com/fishjar/kiss-worker";var URL_KISS_PROXY="https://github.com/fishjar/kiss-proxy";var URL_KISS_RULES="https://github.com/fishjar/kiss-rules";var URL_KISS_RULES_NEW_ISSUE="https://github.com/fishjar/kiss-rules/issues/new";var URL_RAW_PREFIX="https://raw.githubusercontent.com/fishjar/kiss-translator/master";var URL_MICROSOFT_AUTH="https://edge.microsoft.com/translate/auth";var OPT_TRANS_GOOGLE="Google";var OPT_TRANS_MICROSOFT="Microsoft";var OPT_TRANS_DEEPL="DeepL";var OPT_TRANS_OPENAI="OpenAI";var OPT_TRANS_CUSTOMIZE="Custom";var OPT_TRANS_ALL=[OPT_TRANS_GOOGLE,OPT_TRANS_MICROSOFT,OPT_TRANS_DEEPL,OPT_TRANS_OPENAI,OPT_TRANS_CUSTOMIZE];var OPT_LANGS_TO=[["en","English - English"],["zh-CN","Simplified Chinese - 简体中文"],["zh-TW","Traditional Chinese - 繁體中文"],["ar","Arabic - العربية"],["bg","Bulgarian - Български"],["ca","Catalan - Català"],["hr","Croatian - Hrvatski"],["cs","Czech - Čeština"],["da","Danish - Dansk"],["nl","Dutch - Nederlands"],["fi","Finnish - Suomi"],["fr","French - Français"],["de","German - Deutsch"],["el","Greek - Ελληνικά"],["hi","Hindi - हिन्दी"],["hu","Hungarian - Magyar"],["id","Indonesian - Indonesia"],["it","Italian - Italiano"],["ja","Japanese - 日本語"],["ko","Korean - 한국어"],["ms","Malay - Melayu"],["mt","Maltese - Malti"],["nb","Norwegian - Norsk Bokmål"],["pl","Polish - Polski"],["pt","Portuguese - Português"],["ro","Romanian - Română"],["ru","Russian - Русский"],["sk","Slovak - Slovenčina"],["sl","Slovenian - Slovenščina"],["es","Spanish - Español"],["sv","Swedish - Svenska"],["ta","Tamil - தமிழ்"],["te","Telugu - తెలుగు"],["th","Thai - ไทย"],["tr","Turkish - Türkçe"],["uk","Ukrainian - Українська"],["vi","Vietnamese - Tiếng Việt"]];var OPT_LANGS_FROM=[["auto","Auto-detect"]].concat(OPT_LANGS_TO);var OPT_LANGS_SPECIAL=(_OPT_LANGS_SPECIAL={},(0,defineProperty/* default */.Z)(_OPT_LANGS_SPECIAL,OPT_TRANS_MICROSOFT,new Map([["auto",""],["zh-CN","zh-Hans"],["zh-TW","zh-Hant"]])),(0,defineProperty/* default */.Z)(_OPT_LANGS_SPECIAL,OPT_TRANS_DEEPL,new Map([].concat((0,toConsumableArray/* default */.Z)(OPT_LANGS_FROM.map(function(_ref){var _ref2=(0,slicedToArray/* default */.Z)(_ref,1),key=_ref2[0];return[key,key.toUpperCase()];})),[["auto",""],["zh-CN","ZH"],["zh-TW","ZH"]]))),(0,defineProperty/* default */.Z)(_OPT_LANGS_SPECIAL,OPT_TRANS_OPENAI,new Map(OPT_LANGS_FROM.map(function(_ref3){var _ref4=(0,slicedToArray/* default */.Z)(_ref3,2),key=_ref4[0],val=_ref4[1];return[key,val.split(" - ")[0]];}))),(0,defineProperty/* default */.Z)(_OPT_LANGS_SPECIAL,OPT_TRANS_CUSTOMIZE,new Map([["auto",""]])),_OPT_LANGS_SPECIAL);var OPT_LANGS_LIST=OPT_LANGS_TO.map(function(_ref5){var _ref6=(0,slicedToArray/* default */.Z)(_ref5,1),lang=_ref6[0];return lang;});var OPT_STYLE_NONE="style_none";// 无
 var OPT_STYLE_LINE="under_line";// 下划线
 var OPT_STYLE_DOTLINE="dot_line";// 点状线
 var OPT_STYLE_DASHLINE="dash_line";// 虚线
@@ -43237,7 +43243,8 @@ var PROMPT_PLACE_FROM="{{from}}";// 占位符
 var PROMPT_PLACE_TO="{{to}}";// 占位符
 var DEFAULT_COLOR="#209CEE";// 默认高亮背景色/线条颜色
 // 全局规则
-var config_GLOBLA_RULE={pattern:"*",selector:DEFAULT_SELECTOR,translator:OPT_TRANS_MICROSOFT,fromLang:"auto",toLang:"zh-CN",textStyle:OPT_STYLE_DASHLINE,transOpen:"false",bgColor:"",textDiyStyle:""};// 订阅列表
+var config_GLOBLA_RULE={pattern:"*",selector:DEFAULT_SELECTOR,translator:OPT_TRANS_MICROSOFT,fromLang:"auto",toLang:"zh-CN",textStyle:OPT_STYLE_DASHLINE,transOpen:"false",bgColor:"",textDiyStyle:""};// 输入框翻译
+var OPT_INPUT_TRANS_SIGNS=["/","//","\\","\\\\",">",">>"];var DEFAULT_INPUT_SHORTCUT=["Alt","i"];var DEFAULT_INPUT_RULE={transOpen:true,translator:OPT_TRANS_MICROSOFT,fromLang:"auto",toLang:"en",triggerShortcut:DEFAULT_INPUT_SHORTCUT,triggerCount:1,triggerTime:200,transSign:OPT_INPUT_TRANS_SIGNS[0]};// 订阅列表
 var config_DEFAULT_SUBRULES_LIST=[{url:"https://fishjar.github.io/kiss-rules/kiss-rules.json",selected:false},{url:"https://fishjar.github.io/kiss-rules/kiss-rules-on.json",selected:true},{url:"https://fishjar.github.io/kiss-rules/kiss-rules-off.json",selected:false}];// 翻译接口
 var DEFAULT_TRANS_APIS=(_DEFAULT_TRANS_APIS={},(0,defineProperty/* default */.Z)(_DEFAULT_TRANS_APIS,OPT_TRANS_GOOGLE,{url:"https://translate.googleapis.com/translate_a/single",key:""}),(0,defineProperty/* default */.Z)(_DEFAULT_TRANS_APIS,OPT_TRANS_MICROSOFT,{url:"https://api-edge.cognitive.microsofttranslator.com/translate",authUrl:"https://edge.microsoft.com/translate/auth"}),(0,defineProperty/* default */.Z)(_DEFAULT_TRANS_APIS,OPT_TRANS_DEEPL,{url:"https://api-free.deepl.com/v2/translate",key:""}),(0,defineProperty/* default */.Z)(_DEFAULT_TRANS_APIS,OPT_TRANS_OPENAI,{url:"https://api.openai.com/v1/chat/completion",key:"",model:"gpt-4",prompt:"You will be provided with a sentence in ".concat(PROMPT_PLACE_FROM,", and your task is to translate it into ").concat(PROMPT_PLACE_TO,".")}),(0,defineProperty/* default */.Z)(_DEFAULT_TRANS_APIS,OPT_TRANS_CUSTOMIZE,{url:"",key:""}),_DEFAULT_TRANS_APIS);// 默认快捷键
 var OPT_SHORTCUT_TRANSLATE="toggleTranslate";var OPT_SHORTCUT_STYLE="toggleStyle";var OPT_SHORTCUT_POPUP="togglePopup";var OPT_SHORTCUT_SETTING="openSetting";var DEFAULT_SHORTCUTS=(_DEFAULT_SHORTCUTS={},(0,defineProperty/* default */.Z)(_DEFAULT_SHORTCUTS,OPT_SHORTCUT_TRANSLATE,["Alt","q"]),(0,defineProperty/* default */.Z)(_DEFAULT_SHORTCUTS,OPT_SHORTCUT_STYLE,["Alt","c"]),(0,defineProperty/* default */.Z)(_DEFAULT_SHORTCUTS,OPT_SHORTCUT_POPUP,["Alt","k"]),(0,defineProperty/* default */.Z)(_DEFAULT_SHORTCUTS,OPT_SHORTCUT_SETTING,["Alt","o"]),_DEFAULT_SHORTCUTS);var TRANS_MIN_LENGTH=5;// 最短翻译长度
@@ -43255,7 +43262,8 @@ owSubrule:rules_DEFAULT_OW_RULE,// 覆写订阅规则
 transApis:DEFAULT_TRANS_APIS,// 翻译接口
 mouseKey:OPT_MOUSEKEY_DISABLE,// 鼠标悬停翻译
 shortcuts:DEFAULT_SHORTCUTS,// 快捷键
-hideFab:false// 是否隐藏按钮
+hideFab:false,// 是否隐藏按钮
+inputRule:DEFAULT_INPUT_RULE// 输入框设置
 };var config_DEFAULT_RULES=[config_GLOBLA_RULE];var config_DEFAULT_SYNC={syncUrl:"",// 数据同步接口
 syncKey:"",// 数据同步密钥
 settingUpdateAt:0,settingSyncAt:0,rulesUpdateAt:0,rulesSyncAt:0,subRulesSyncAt:0,// 订阅规则同步时间
@@ -43276,7 +43284,7 @@ var _set,_get,_del,_setObj,_trySetObj,_getObj,_putObj,_ref,_ref2,_ref3,_ref4,_re
  */var storage={get:get,set:set,del:del,setObj:setObj,trySetObj:trySetObj,getObj:getObj,putObj:putObj// onChanged,
 };/**
  * 设置信息
- */var getSetting=function getSetting(){return getObj(config_STOKEY_SETTING);};var getSettingWithDefault=function getSettingWithDefault(){return(_ref=_ref||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee8(){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee8$(_context8){while(1)switch(_context8.prev=_context8.next){case 0:_context8.next=2;return getSetting();case 2:_context8.t0=_context8.sent;if(_context8.t0){_context8.next=5;break;}_context8.t0=config_DEFAULT_SETTING;case 5:return _context8.abrupt("return",_context8.t0);case 6:case"end":return _context8.stop();}},_callee8);}))).apply(this,arguments);};var setSetting=function setSetting(val){return setObj(config_STOKEY_SETTING,val);};var storage_updateSetting=function updateSetting(obj){return putObj(STOKEY_SETTING,obj);};/**
+ */var getSetting=function getSetting(){return getObj(config_STOKEY_SETTING);};var getSettingWithDefault=function getSettingWithDefault(){return(_ref=_ref||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee8(){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee8$(_context8){while(1)switch(_context8.prev=_context8.next){case 0:_context8.next=2;return getSetting();case 2:_context8.t0=_context8.sent;if(_context8.t0){_context8.next=5;break;}_context8.t0=config_DEFAULT_SETTING;case 5:return _context8.abrupt("return",_context8.t0);case 6:case"end":return _context8.stop();}},_callee8);}))).apply(this,arguments);};var setSetting=function setSetting(val){return setObj(config_STOKEY_SETTING,val);};var updateSetting=function updateSetting(obj){return putObj(STOKEY_SETTING,obj);};/**
  * 规则列表
  */var getRules=function getRules(){return getObj(config_STOKEY_RULES);};var storage_getRulesWithDefault=function getRulesWithDefault(){return(_ref2=_ref2||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee9(){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee9$(_context9){while(1)switch(_context9.prev=_context9.next){case 0:_context9.next=2;return getRules();case 2:_context9.t0=_context9.sent;if(_context9.t0){_context9.next=5;break;}_context9.t0=config_DEFAULT_RULES;case 5:return _context9.abrupt("return",_context9.t0);case 6:case"end":return _context9.stop();}},_callee9);}))).apply(this,arguments);};var storage_setRules=function setRules(val){return setObj(config_STOKEY_RULES,val);};/**
  * 订阅规则
@@ -44037,7 +44045,18 @@ var utils_ref;/**
  * @param {*} a
  * @param {*} b
  * @returns
- */var utils_isSameSet=function isSameSet(a,b){var s=new Set([].concat(_toConsumableArray(a),_toConsumableArray(b)));return s.size===a.size&&s.size===b.size;};
+ */var utils_isSameSet=function isSameSet(a,b){var s=new Set([].concat(_toConsumableArray(a),_toConsumableArray(b)));return s.size===a.size&&s.size===b.size;};/**
+ * 去掉字符串末尾某个字符
+ * @param {*} s
+ * @param {*} c
+ * @param {*} count
+ * @returns
+ */var removeEndchar=function removeEndchar(s,c){var count=arguments.length>2&&arguments[2]!==undefined?arguments[2]:1;var i=s.length;while(i>s.length-count&&s[i-1]===c){i--;}return s.slice(0,i);};/**
+ * 匹配字符串及语言标识
+ * @param {*} str
+ * @param {*} sign
+ * @returns
+ */var matchInputStr=function matchInputStr(str,sign){var reg=/\/([\w-]+)\s+([^]+)/;switch(sign){case"//":reg=/\/\/([\w-]+)\s+([^]+)/;break;case"\\":reg=/\\([\w-]+)\s+([^]+)/;break;case"\\\\":reg=/\\\\([\w-]+)\s+([^]+)/;break;case">":reg=/>([\w-]+)\s+([^]+)/;break;case">>":reg=/>>([\w-]+)\s+([^]+)/;break;default:}return str.match(reg);};
 ;// CONCATENATED MODULE: ./src/apis/index.js
 var apis_ref,apis_ref3,apis_ref5,apis_ref7,_ref9,_ref11;/**
  * 同步数据
@@ -48042,7 +48061,7 @@ function useModal(parameters) {
   var createHandleKeyDown = function createHandleKeyDown(otherHandlers) {
     return function (event) {
       var _otherHandlers$onKeyD;
-      (_otherHandlers$onKeyD = otherHandlers.onKeyDown) == null ? void 0 : _otherHandlers$onKeyD.call(otherHandlers, event);
+      (_otherHandlers$onKeyD = otherHandlers.onKeyDown) == null || _otherHandlers$onKeyD.call(otherHandlers, event);
 
       // The handler doesn't take event.defaultPrevented into account:
       //
@@ -48065,7 +48084,7 @@ function useModal(parameters) {
   var createHandleBackdropClick = function createHandleBackdropClick(otherHandlers) {
     return function (event) {
       var _otherHandlers$onClic;
-      (_otherHandlers$onClic = otherHandlers.onClick) == null ? void 0 : _otherHandlers$onClic.call(otherHandlers, event);
+      (_otherHandlers$onClic = otherHandlers.onClick) == null || _otherHandlers$onClic.call(otherHandlers, event);
       if (event.target !== event.currentTarget) {
         return;
       }
@@ -48116,8 +48135,8 @@ function useModal(parameters) {
       }
     };
     return {
-      onEnter: (0,createChainedFunction/* default */.Z)(handleEnter, children.props.onEnter),
-      onExited: (0,createChainedFunction/* default */.Z)(handleExited, children.props.onExited)
+      onEnter: (0,createChainedFunction/* default */.Z)(handleEnter, children == null ? void 0 : children.props.onEnter),
+      onExited: (0,createChainedFunction/* default */.Z)(handleExited, children == null ? void 0 : children.props.onExited)
     };
   };
   return {
@@ -48293,49 +48312,6 @@ function FocusTrap(props) {
       return;
     }
     var doc = (0,ownerDocument_ownerDocument/* default */.Z)(rootRef.current);
-    var contain = function contain(nativeEvent) {
-      var rootElement = rootRef.current;
-
-      // Cleanup functions are executed lazily in React 17.
-      // Contain can be called between the component being unmounted and its cleanup function being run.
-      if (rootElement === null) {
-        return;
-      }
-      if (!doc.hasFocus() || disableEnforceFocus || !isEnabled() || ignoreNextEnforceFocus.current) {
-        ignoreNextEnforceFocus.current = false;
-        return;
-      }
-      if (!rootElement.contains(doc.activeElement)) {
-        // if the focus event is not coming from inside the children's react tree, reset the refs
-        if (nativeEvent && reactFocusEventTarget.current !== nativeEvent.target || doc.activeElement !== reactFocusEventTarget.current) {
-          reactFocusEventTarget.current = null;
-        } else if (reactFocusEventTarget.current !== null) {
-          return;
-        }
-        if (!activated.current) {
-          return;
-        }
-        var tabbable = [];
-        if (doc.activeElement === sentinelStart.current || doc.activeElement === sentinelEnd.current) {
-          tabbable = getTabbable(rootRef.current);
-        }
-        if (tabbable.length > 0) {
-          var _lastKeydown$current, _lastKeydown$current2;
-          var isShiftTab = Boolean(((_lastKeydown$current = lastKeydown.current) == null ? void 0 : _lastKeydown$current.shiftKey) && ((_lastKeydown$current2 = lastKeydown.current) == null ? void 0 : _lastKeydown$current2.key) === 'Tab');
-          var focusNext = tabbable[0];
-          var focusPrevious = tabbable[tabbable.length - 1];
-          if (typeof focusNext !== 'string' && typeof focusPrevious !== 'string') {
-            if (isShiftTab) {
-              focusPrevious.focus();
-            } else {
-              focusNext.focus();
-            }
-          }
-        } else {
-          rootElement.focus();
-        }
-      }
-    };
     var loopFocus = function loopFocus(nativeEvent) {
       lastKeydown.current = nativeEvent;
       if (disableEnforceFocus || !isEnabled() || nativeEvent.key !== 'Tab') {
@@ -48353,6 +48329,62 @@ function FocusTrap(props) {
         }
       }
     };
+    var contain = function contain() {
+      var rootElement = rootRef.current;
+
+      // Cleanup functions are executed lazily in React 17.
+      // Contain can be called between the component being unmounted and its cleanup function being run.
+      if (rootElement === null) {
+        return;
+      }
+      if (!doc.hasFocus() || !isEnabled() || ignoreNextEnforceFocus.current) {
+        ignoreNextEnforceFocus.current = false;
+        return;
+      }
+
+      // The focus is already inside
+      if (rootElement.contains(doc.activeElement)) {
+        return;
+      }
+
+      // The disableEnforceFocus is set and the focus is outside of the focus trap (and sentinel nodes)
+      if (disableEnforceFocus && doc.activeElement !== sentinelStart.current && doc.activeElement !== sentinelEnd.current) {
+        return;
+      }
+
+      // if the focus event is not coming from inside the children's react tree, reset the refs
+      if (doc.activeElement !== reactFocusEventTarget.current) {
+        reactFocusEventTarget.current = null;
+      } else if (reactFocusEventTarget.current !== null) {
+        return;
+      }
+      if (!activated.current) {
+        return;
+      }
+      var tabbable = [];
+      if (doc.activeElement === sentinelStart.current || doc.activeElement === sentinelEnd.current) {
+        tabbable = getTabbable(rootRef.current);
+      }
+
+      // one of the sentinel nodes was focused, so move the focus
+      // to the first/last tabbable element inside the focus trap
+      if (tabbable.length > 0) {
+        var _lastKeydown$current, _lastKeydown$current2;
+        var isShiftTab = Boolean(((_lastKeydown$current = lastKeydown.current) == null ? void 0 : _lastKeydown$current.shiftKey) && ((_lastKeydown$current2 = lastKeydown.current) == null ? void 0 : _lastKeydown$current2.key) === 'Tab');
+        var focusNext = tabbable[0];
+        var focusPrevious = tabbable[tabbable.length - 1];
+        if (typeof focusNext !== 'string' && typeof focusPrevious !== 'string') {
+          if (isShiftTab) {
+            focusPrevious.focus();
+          } else {
+            focusNext.focus();
+          }
+        }
+        // no tabbable elements in the trap focus or the focus was outside of the focus trap
+      } else {
+        rootElement.focus();
+      }
+    };
     doc.addEventListener('focusin', contain);
     doc.addEventListener('keydown', loopFocus, true);
 
@@ -48364,7 +48396,7 @@ function FocusTrap(props) {
     // https://html.spec.whatwg.org/multipage/interaction.html#focus-fixup-rule.
     var interval = setInterval(function () {
       if (doc.activeElement && doc.activeElement.tagName === 'BODY') {
-        contain(null);
+        contain();
       }
     }, 50);
     return function () {
@@ -48731,7 +48763,7 @@ var modalClasses = (0,generateUtilityClasses/* default */.Z)('MuiModal', ['root'
 
 
 
-var Modal_excluded = ["BackdropComponent", "BackdropProps", "classes", "className", "closeAfterTransition", "children", "container", "component", "components", "componentsProps", "disableAutoFocus", "disableEnforceFocus", "disableEscapeKeyDown", "disablePortal", "disableRestoreFocus", "disableScrollLock", "hideBackdrop", "keepMounted", "onBackdropClick", "onClose", "open", "slotProps", "slots", "theme"];
+var Modal_excluded = ["BackdropComponent", "BackdropProps", "classes", "className", "closeAfterTransition", "children", "container", "component", "components", "componentsProps", "disableAutoFocus", "disableEnforceFocus", "disableEscapeKeyDown", "disablePortal", "disableRestoreFocus", "disableScrollLock", "hideBackdrop", "keepMounted", "onBackdropClick", "onClose", "onTransitionEnter", "onTransitionExited", "open", "slotProps", "slots", "theme"];
 
 
 
@@ -51623,6 +51655,14 @@ var buttonClasses = (0,generateUtilityClasses/* default */.Z)('MuiButton', ['roo
 var ButtonGroupContext = /*#__PURE__*/react.createContext({});
 if (false) {}
 /* harmony default export */ var ButtonGroup_ButtonGroupContext = (ButtonGroupContext);
+;// CONCATENATED MODULE: ./node_modules/@mui/material/ButtonGroup/ButtonGroupButtonContext.js
+
+/**
+ * @ignore - internal component.
+ */
+var ButtonGroupButtonContext = /*#__PURE__*/react.createContext(undefined);
+if (false) {}
+/* harmony default export */ var ButtonGroup_ButtonGroupButtonContext = (ButtonGroupButtonContext);
 ;// CONCATENATED MODULE: ./node_modules/@mui/material/Button/Button.js
 'use client';
 
@@ -51630,6 +51670,7 @@ if (false) {}
 
 
 var Button_excluded = ["children", "color", "component", "className", "disabled", "disableElevation", "disableFocusRipple", "endIcon", "focusVisibleClassName", "fullWidth", "size", "startIcon", "type", "variant"];
+
 
 
 
@@ -51843,6 +51884,7 @@ var ButtonEndIcon = (0,styled/* default */.ZP)('span', {
 var Button = /*#__PURE__*/react.forwardRef(function Button(inProps, ref) {
   // props priority: `inProps` > `contextProps` > `themeDefaultProps`
   var contextProps = react.useContext(ButtonGroup_ButtonGroupContext);
+  var buttonGroupButtonContextPositionClassName = react.useContext(ButtonGroup_ButtonGroupButtonContext);
   var resolvedProps = (0,resolveProps/* default */.Z)(contextProps, inProps);
   var props = (0,styles_useThemeProps/* default */.Z)({
     props: resolvedProps,
@@ -51893,9 +51935,10 @@ var Button = /*#__PURE__*/react.forwardRef(function Button(inProps, ref) {
     ownerState: ownerState,
     children: endIconProp
   });
+  var positionClassName = buttonGroupButtonContextPositionClassName || '';
   return /*#__PURE__*/(0,jsx_runtime.jsxs)(ButtonRoot, (0,esm_extends/* default */.Z)({
     ownerState: ownerState,
-    className: (0,clsx/* default */.Z)(contextProps.className, classes.root, className),
+    className: (0,clsx/* default */.Z)(contextProps.className, classes.root, className, positionClassName),
     component: component,
     disabled: disabled,
     focusRipple: !disableFocusRipple,
@@ -53209,6 +53252,43 @@ var AccordionDetails = /*#__PURE__*/react.forwardRef(function AccordionDetails(i
 /* harmony default export */ var AccordionDetails_AccordionDetails = (AccordionDetails);
 // EXTERNAL MODULE: ./node_modules/@mui/icons-material/ExpandMore.js
 var ExpandMore = __webpack_require__(6306);
+;// CONCATENATED MODULE: ./src/libs/webfix.js
+var _fixerMap,webfix_ref,webfix_ref2,_webfix;/**
+ * 修复程序类型
+ */var FIXER_BR="br";var FIXER_FONTSIZE="fontSize";/**
+ * 需要修复的站点列表
+ * - pattern 匹配网址
+ * - selector 需要修复的选择器
+ * - rootSelector 需要监听的选择器，可留空
+ * - fixer 修复函数，可针对不同网址，选用不同修复函数
+ */var DEFAULT_SITES=[{pattern:"www.phoronix.com",selector:".content",rootSelector:"",fixer:FIXER_BR},{pattern:"t.me/s/",selector:".tgme_widget_message_text",rootSelector:".tgme_channel_history",fixer:FIXER_BR},{pattern:"baidu.com",selector:"html",rootSelector:"",fixer:FIXER_FONTSIZE}];/**
+ * 修复过的标记
+ */var fixedSign="kissfixed";/**
+ * 采用 `br` 换行网站的修复函数
+ * 目标是将 `br` 替换成 `p`
+ * @param {*} node
+ * @returns
+ */function brFixer(node){if(node.hasAttribute(fixedSign)){return;}node.setAttribute(fixedSign,"true");var gapTags=["BR","WBR"];var newlineTags=["DIV","UL","OL","LI","H1","H2","H3","H4","H5","H6","P","HR","PRE","TABLE"];var html="";node.childNodes.forEach(function(child,index){if(index===0){html+="<p>";}if(gapTags.indexOf(child.nodeName)!==-1){html+="</p><p>";}else if(newlineTags.indexOf(child.nodeName)!==-1){html+="</p>"+child.outerHTML+"<p>";}else if(child.outerHTML){html+=child.outerHTML;}else if(child.nodeValue){html+=child.nodeValue;}if(index===node.childNodes.length-1){html+="</p>";}});node.innerHTML=html;}/**
+ * 修复字体大小问题，如 baidu.com
+ * @param {*} node
+ */function fontSizeFixer(node){node.style.cssText+="font-size:1em;";}/**
+ * 修复程序映射
+ */var fixerMap=(_fixerMap={},(0,defineProperty/* default */.Z)(_fixerMap,FIXER_BR,brFixer),(0,defineProperty/* default */.Z)(_fixerMap,FIXER_FONTSIZE,fontSizeFixer),_fixerMap);/**
+ * 查找、监听节点，并执行修复函数
+ * @param {*} selector
+ * @param {*} fixer
+ * @param {*} rootSelector
+ */function run(selector,fixer,rootSelector){var mutaObserver=new MutationObserver(function(mutations){mutations.forEach(function(mutation){mutation.addedNodes.forEach(function(addNode){addNode.querySelectorAll(selector).forEach(fixer);});});});var rootNodes=[document];if(rootSelector){rootNodes=document.querySelectorAll(rootSelector);}rootNodes.forEach(function(rootNode){rootNode.querySelectorAll(selector).forEach(fixer);mutaObserver.observe(rootNode,{childList:true});});}/**
+ * 同步远程数据
+ * @param {*} url
+ * @returns
+ */var webfix_syncWebfix=function syncWebfix(_x){return(webfix_ref=webfix_ref||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(url){var sites;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:_context.next=2;return apiFetch(url);case 2:sites=_context.sent;_context.next=5;return setWebfix(url,sites);case 5:return _context.abrupt("return",sites);case 6:case"end":return _context.stop();}},_callee);}))).apply(this,arguments);};/**
+ * 从缓存或远程加载修复站点
+ * @param {*} url
+ * @returns
+ */var loadOrFetchWebfix=function loadOrFetchWebfix(_x2){return(webfix_ref2=webfix_ref2||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(url){var sites;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:_context2.prev=0;_context2.next=3;return getWebfix(url);case 3:sites=_context2.sent;if(!(sites!==null&&sites!==void 0&&sites.length)){_context2.next=6;break;}return _context2.abrupt("return",sites);case 6:return _context2.abrupt("return",webfix_syncWebfix(url));case 9:_context2.prev=9;_context2.t0=_context2["catch"](0);console.log("[load webfix]",_context2.t0.message);return _context2.abrupt("return",DEFAULT_SITES);case 13:case"end":return _context2.stop();}},_callee2,null,[[0,9]]);}))).apply(this,arguments);};/**
+ * 匹配站点
+ */function webfix(_x3,_x4){return(_webfix=_webfix||_asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee3(href,_ref3){var injectWebfix,sites,i,site;return _regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:injectWebfix=_ref3.injectWebfix;_context3.prev=1;if(injectWebfix){_context3.next=4;break;}return _context3.abrupt("return");case 4:_context3.next=6;return loadOrFetchWebfix("https://fishjar.github.io/kiss-rules/kiss-webfix.json");case 6:sites=_context3.sent;i=0;case 8:if(!(i<sites.length)){_context3.next=16;break;}site=sites[i];if(!isMatch(href,site.pattern)){_context3.next=13;break;}if(fixerMap[site.fixer]){run(site.selector,fixerMap[site.fixer],site.rootSelector);}return _context3.abrupt("break",16);case 13:i++;_context3.next=8;break;case 16:_context3.next=21;break;case 18:_context3.prev=18;_context3.t0=_context3["catch"](1);console.error("[kiss-webfix]: ".concat(_context3.t0.message));case 21:case"end":return _context3.stop();}},_callee3,null,[[1,18]]);}))).apply(this,arguments);}
 ;// CONCATENATED MODULE: ./src/libs/subRules.js
 var subRules_ref,subRules_ref2,subRules_ref4,subRules_ref6,subRules_ref7;/**
  * 更新缓存同步时间
@@ -53226,7 +53306,7 @@ var subRules_ref,subRules_ref2,subRules_ref4,subRules_ref6,subRules_ref7;/**
  * @param {*} url
  * @returns
  */var trySyncAllSubRules=function trySyncAllSubRules(_x4){return(subRules_ref6=subRules_ref6||_asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee4(_ref5){var subrulesList,isBg,_yield$getSyncWithDef3,subRulesSyncAt,now,interval,_args4=arguments;return _regeneratorRuntime().wrap(function _callee4$(_context4){while(1)switch(_context4.prev=_context4.next){case 0:subrulesList=_ref5.subrulesList;isBg=_args4.length>1&&_args4[1]!==undefined?_args4[1]:false;_context4.prev=2;_context4.next=5;return getSyncWithDefault();case 5:_yield$getSyncWithDef3=_context4.sent;subRulesSyncAt=_yield$getSyncWithDef3.subRulesSyncAt;now=Date.now();interval=24*60*60*1000;// 间隔一天
-if(!(now-subRulesSyncAt>interval)){_context4.next=14;break;}_context4.next=12;return syncAllSubRules(subrulesList,isBg);case 12:_context4.next=14;return updateSync({subRulesSyncAt:now});case 14:subrulesList.forEach(function(item){item.syncAt=now;});_context4.next=17;return updateSetting({subrulesList:subrulesList});case 17:_context4.next=22;break;case 19:_context4.prev=19;_context4.t0=_context4["catch"](2);console.log("[try sync all subrules]",_context4.t0);case 22:case"end":return _context4.stop();}},_callee4,null,[[2,19]]);}))).apply(this,arguments);};/**
+if(!(now-subRulesSyncAt>interval)){_context4.next=16;break;}_context4.next=12;return syncAllSubRules(subrulesList,isBg);case 12:_context4.next=14;return updateSync({subRulesSyncAt:now});case 14:_context4.next=16;return syncWebfix("https://fishjar.github.io/kiss-rules/kiss-webfix.json");case 16:_context4.next=21;break;case 18:_context4.prev=18;_context4.t0=_context4["catch"](2);console.log("[try sync all subrules]",_context4.t0);case 21:case"end":return _context4.stop();}},_callee4,null,[[2,18]]);}))).apply(this,arguments);};/**
  * 从缓存或远程加载订阅规则
  * @param {*} url
  * @returns
@@ -55000,10 +55080,7 @@ var TabsIndicator = (0,styled/* default */.ZP)('span', {
     right: 0
   });
 });
-var TabsScrollbarSize = (0,styled/* default */.ZP)(ScrollbarSize, {
-  name: 'MuiTabs',
-  slot: 'ScrollbarSize'
-})({
+var TabsScrollbarSize = (0,styled/* default */.ZP)(ScrollbarSize)({
   overflowX: 'auto',
   overflowY: 'hidden',
   // Hide dimensionless scrollbar on macOS
@@ -56242,7 +56319,6 @@ if (false) {}
 
 
 
-
 /**
  * The basic building block for creating custom snackbar.
  *
@@ -56254,7 +56330,8 @@ if (false) {}
  *
  * - [useSnackbar API](https://mui.com/base-ui/react-snackbar/hooks-api/#use-snackbar)
  */
-function useSnackbar(parameters) {
+function useSnackbar() {
+  var parameters = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
   var _parameters$autoHideD = parameters.autoHideDuration,
     autoHideDuration = _parameters$autoHideD === void 0 ? null : _parameters$autoHideD,
     _parameters$disableWi = parameters.disableWindowBlurListener,
@@ -56276,7 +56353,7 @@ function useSnackbar(parameters) {
         // IE11, Edge (prior to using Blink?) use 'Esc'
         if (nativeEvent.key === 'Escape' || nativeEvent.key === 'Esc') {
           // not calling `preventDefault` since we don't know if people may ignore this event e.g. a permanently open snackbar
-          onClose == null ? void 0 : onClose(nativeEvent, 'escapeKeyDown');
+          onClose == null || onClose(nativeEvent, 'escapeKeyDown');
         }
       }
     }
@@ -56286,7 +56363,7 @@ function useSnackbar(parameters) {
     };
   }, [open, onClose]);
   var handleClose = (0,useEventCallback/* default */.Z)(function (event, reason) {
-    onClose == null ? void 0 : onClose(event, reason);
+    onClose == null || onClose(event, reason);
   });
   var setAutoHideTimer = (0,useEventCallback/* default */.Z)(function (autoHideDurationParam) {
     if (!onClose || autoHideDurationParam == null) {
@@ -56306,7 +56383,7 @@ function useSnackbar(parameters) {
     };
   }, [open, autoHideDuration, setAutoHideTimer]);
   var handleClickAway = function handleClickAway(event) {
-    onClose == null ? void 0 : onClose(event, 'clickaway');
+    onClose == null || onClose(event, 'clickaway');
   };
 
   // Pause the timer when the user is interacting with the Snackbar
@@ -56325,28 +56402,28 @@ function useSnackbar(parameters) {
   var createHandleBlur = function createHandleBlur(otherHandlers) {
     return function (event) {
       var onBlurCallback = otherHandlers.onBlur;
-      onBlurCallback == null ? void 0 : onBlurCallback(event);
+      onBlurCallback == null || onBlurCallback(event);
       handleResume();
     };
   };
   var createHandleFocus = function createHandleFocus(otherHandlers) {
     return function (event) {
       var onFocusCallback = otherHandlers.onFocus;
-      onFocusCallback == null ? void 0 : onFocusCallback(event);
+      onFocusCallback == null || onFocusCallback(event);
       handlePause();
     };
   };
   var createMouseEnter = function createMouseEnter(otherHandlers) {
     return function (event) {
       var onMouseEnterCallback = otherHandlers.onMouseEnter;
-      onMouseEnterCallback == null ? void 0 : onMouseEnterCallback(event);
+      onMouseEnterCallback == null || onMouseEnterCallback(event);
       handlePause();
     };
   };
   var createMouseLeave = function createMouseLeave(otherHandlers) {
     return function (event) {
       var onMouseLeaveCallback = otherHandlers.onMouseLeave;
-      onMouseLeaveCallback == null ? void 0 : onMouseLeaveCallback(event);
+      onMouseLeaveCallback == null || onMouseLeaveCallback(event);
       handleResume();
     };
   };
@@ -56363,14 +56440,13 @@ function useSnackbar(parameters) {
     return undefined;
   }, [disableWindowBlurListener, handleResume, open]);
   var getRootProps = function getRootProps() {
-    var otherHandlers = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-    var propsEventHandlers = extractEventHandlers(parameters);
-    var externalEventHandlers = (0,esm_extends/* default */.Z)({}, propsEventHandlers, otherHandlers);
+    var externalProps = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+    var externalEventHandlers = (0,esm_extends/* default */.Z)({}, extractEventHandlers(parameters), extractEventHandlers(externalProps));
     return (0,esm_extends/* default */.Z)({
       // ClickAwayListener adds an `onClick` prop which results in the alert not being announced.
       // See https://github.com/mui/material-ui/issues/29080
       role: 'presentation'
-    }, externalEventHandlers, {
+    }, externalProps, externalEventHandlers, {
       onBlur: createHandleBlur(externalEventHandlers),
       onFocus: createHandleFocus(externalEventHandlers),
       onMouseEnter: createMouseEnter(externalEventHandlers),
@@ -56906,10 +56982,10 @@ var Link_Link = /*#__PURE__*/react.forwardRef(function Link(inProps, ref) {
 });
  false ? 0 : void 0;
 /* harmony default export */ var material_Link_Link = (Link_Link);
-// EXTERNAL MODULE: ./node_modules/@mui/icons-material/Edit.js
-var Edit = __webpack_require__(5954);
 ;// CONCATENATED MODULE: ./src/hooks/Shortcut.js
 function useShortcut(action){var _ref;var _useSetting=useSetting(),setting=_useSetting.setting,updateSetting=_useSetting.updateSetting;var shortcuts=(setting===null||setting===void 0?void 0:setting.shortcuts)||DEFAULT_SHORTCUTS;var shortcut=shortcuts[action]||[];var setShortcut=(0,react.useCallback)(function(_x){return(_ref=_ref||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(val){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:Object.assign(shortcuts,(0,defineProperty/* default */.Z)({},action,val));_context.next=3;return updateSetting({shortcuts:shortcuts});case 3:case"end":return _context.stop();}},_callee);}))).apply(this,arguments);},[action,shortcuts,updateSetting]);return{shortcut:shortcut,setShortcut:setShortcut};}
+// EXTERNAL MODULE: ./node_modules/@mui/icons-material/Edit.js
+var Edit = __webpack_require__(5954);
 ;// CONCATENATED MODULE: ./src/libs/shortcut.js
 /**
  * 键盘快捷键监听
@@ -56923,9 +56999,19 @@ function useShortcut(action){var _ref;var _useSetting=useSetting(),setting=_useS
  * @param {*} fn
  * @param {*} target
  * @returns
- */var shortcutRegister=function shortcutRegister(){var targetKeys=arguments.length>0&&arguments[0]!==undefined?arguments[0]:[];var fn=arguments.length>1?arguments[1]:undefined;var target=arguments.length>2&&arguments[2]!==undefined?arguments[2]:document;return shortcutListener(function(curkeys){if(targetKeys.length>0&&isSameSet(new Set(targetKeys),new Set(curkeys))){fn();}},target);};
+ */var shortcutRegister=function shortcutRegister(){var targetKeys=arguments.length>0&&arguments[0]!==undefined?arguments[0]:[];var fn=arguments.length>1?arguments[1]:undefined;var target=arguments.length>2&&arguments[2]!==undefined?arguments[2]:document;return shortcutListener(function(curkeys){if(targetKeys.length>0&&isSameSet(new Set(targetKeys),new Set(curkeys))){fn();}},target);};/**
+ * 注册连续快捷键
+ * @param {*} targetKeys
+ * @param {*} fn
+ * @param {*} step
+ * @param {*} timeout
+ * @param {*} target
+ * @returns
+ */var stepShortcutRegister=function stepShortcutRegister(){var targetKeys=arguments.length>0&&arguments[0]!==undefined?arguments[0]:[];var fn=arguments.length>1?arguments[1]:undefined;var step=arguments.length>2&&arguments[2]!==undefined?arguments[2]:3;var timeout=arguments.length>3&&arguments[3]!==undefined?arguments[3]:500;var target=arguments.length>4&&arguments[4]!==undefined?arguments[4]:document;var count=0;var pre=Date.now();var timer;return shortcutListener(function(curkeys,allkeys){timer&&clearTimeout(timer);timer=setTimeout(function(){clearTimeout(timer);count=0;},timeout);if(targetKeys.length>0&&curkeys.length===0){var now=Date.now();if((count===0||now-pre<timeout)&&isSameSet(new Set(targetKeys),new Set(allkeys))){count++;if(count===step){count=0;fn();}}else{count=0;}pre=now;}},target);};
+;// CONCATENATED MODULE: ./src/views/Options/ShortcutInput.js
+function ShortcutInput(_ref){var value=_ref.value,onChange=_ref.onChange,label=_ref.label,helperText=_ref.helperText;var _useState=(0,react.useState)(true),_useState2=(0,slicedToArray/* default */.Z)(_useState,2),disabled=_useState2[0],setDisabled=_useState2[1];var inputRef=(0,react.useRef)(null);(0,react.useEffect)(function(){if(disabled){return;}inputRef.current.focus();onChange([]);var clearShortcut=shortcutListener(function(curkeys,allkeys){onChange(allkeys);if(curkeys.length===0){setDisabled(true);}},inputRef.current);return function(){clearShortcut();};},[disabled,onChange]);return/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",alignItems:"flex-start",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:label,name:label,value:value.map(function(item){return item===" "?"Space":item;}).join(" + "),fullWidth:true,inputRef:inputRef,disabled:disabled,onBlur:function onBlur(){setDisabled(true);},helperText:helperText}),/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{onClick:function onClick(){setDisabled(false);},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Edit/* default */.Z,{})})]});}
 ;// CONCATENATED MODULE: ./src/views/Options/Setting.js
-function ShortcutItem(_ref){var action=_ref.action,label=_ref.label;var _useShortcut=useShortcut(action),shortcut=_useShortcut.shortcut,setShortcut=_useShortcut.setShortcut;var _useState=(0,react.useState)(true),_useState2=(0,slicedToArray/* default */.Z)(_useState,2),disabled=_useState2[0],setDisabled=_useState2[1];var inputRef=(0,react.useRef)(null);(0,react.useEffect)(function(){if(disabled){return;}inputRef.current.focus();setShortcut([]);var clearShortcut=shortcutListener(function(curkeys,allkeys){setShortcut(allkeys);if(curkeys.length===0){setDisabled(true);}},inputRef.current);return function(){clearShortcut();};},[disabled,setShortcut]);return/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:label,name:label,value:shortcut.join(" + "),fullWidth:true,inputRef:inputRef,disabled:disabled,onBlur:function onBlur(){setDisabled(true);}}),/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{onClick:function onClick(){setDisabled(false);},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Edit/* default */.Z,{})})]});}function Settings(){var i18n=useI18n();var _useSetting=useSetting(),setting=_useSetting.setting,updateSetting=_useSetting.updateSetting;var alert=useAlert();var handleChange=function handleChange(e){e.preventDefault();var _e$target=e.target,name=_e$target.name,value=_e$target.value;switch(name){case"fetchLimit":value=limitNumber(value,1,100);break;case"fetchInterval":value=limitNumber(value,0,5000);break;case"minLength":value=limitNumber(value,1,100);break;case"maxLength":value=limitNumber(value,100,10000);break;case"newlineLength":value=limitNumber(value,1,1000);break;default:}updateSetting((0,defineProperty/* default */.Z)({},name,value));};var handleClearCache=function handleClearCache(){try{caches.delete(config_CACHE_NAME);alert.success(i18n("clear_success"));}catch(err){console.log("[clear cache]",err);}};var uiLang=setting.uiLang,fetchLimit=setting.fetchLimit,fetchInterval=setting.fetchInterval,minLength=setting.minLength,maxLength=setting.maxLength,clearCache=setting.clearCache,_setting$newlineLengt=setting.newlineLength,newlineLength=_setting$newlineLengt===void 0?TRANS_NEWLINE_LENGTH:_setting$newlineLengt,_setting$mouseKey=setting.mouseKey,mouseKey=_setting$mouseKey===void 0?OPT_MOUSEKEY_DISABLE:_setting$mouseKey,_setting$hideFab=setting.hideFab,hideFab=_setting$hideFab===void 0?false:_setting$hideFab;return/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:3,children:[/*#__PURE__*/(0,jsx_runtime.jsxs)(FormControl_FormControl,{size:"small",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(InputLabel_InputLabel,{children:i18n("ui_lang")}),/*#__PURE__*/(0,jsx_runtime.jsx)(Select_Select,{name:"uiLang",value:uiLang,label:i18n("ui_lang"),onChange:handleChange,children:UI_LANGS.map(function(_ref2){var _ref3=(0,slicedToArray/* default */.Z)(_ref2,2),lang=_ref3[0],name=_ref3[1];return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:lang,children:name},lang);})})]}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("fetch_limit"),type:"number",name:"fetchLimit",value:fetchLimit,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("fetch_interval"),type:"number",name:"fetchInterval",value:fetchInterval,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("min_translate_length"),type:"number",name:"minLength",value:minLength,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("max_translate_length"),type:"number",name:"maxLength",value:maxLength,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("num_of_newline_characters"),type:"number",name:"newlineLength",value:newlineLength,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsxs)(FormControl_FormControl,{size:"small",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(InputLabel_InputLabel,{children:i18n("mouseover_translation")}),/*#__PURE__*/(0,jsx_runtime.jsx)(Select_Select,{name:"mouseKey",value:mouseKey,label:i18n("mouseover_translation"),onChange:handleChange,children:OPT_MOUSEKEY_ALL.map(function(item){return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:item,children:i18n(item)},item);})})]}),client_isExt?/*#__PURE__*/(0,jsx_runtime.jsxs)(FormControl_FormControl,{size:"small",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(InputLabel_InputLabel,{children:i18n("if_clear_cache")}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Select_Select,{name:"clearCache",value:clearCache,label:i18n("if_clear_cache"),onChange:handleChange,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:false,children:i18n("clear_cache_never")}),/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:true,children:i18n("clear_cache_restart")})]}),/*#__PURE__*/(0,jsx_runtime.jsx)(FormHelperText_FormHelperText,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(material_Link_Link,{component:"button",onClick:handleClearCache,children:i18n("clear_all_cache_now")})})]}):/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[/*#__PURE__*/(0,jsx_runtime.jsxs)(FormControl_FormControl,{size:"small",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(InputLabel_InputLabel,{children:i18n("hide_fab_button")}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Select_Select,{name:"hideFab",value:hideFab,label:i18n("hide_fab_button"),onChange:handleChange,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:false,children:i18n("show")}),/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:true,children:i18n("hide")})]})]}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Grid_Grid,{container:true,rowSpacing:2,columns:12,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:12,sm:12,md:3,lg:3,children:/*#__PURE__*/(0,jsx_runtime.jsx)(ShortcutItem,{action:OPT_SHORTCUT_TRANSLATE,label:i18n("toggle_translate_shortcut")})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:12,sm:12,md:3,lg:3,children:/*#__PURE__*/(0,jsx_runtime.jsx)(ShortcutItem,{action:OPT_SHORTCUT_STYLE,label:i18n("toggle_style_shortcut")})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:12,sm:12,md:3,lg:3,children:/*#__PURE__*/(0,jsx_runtime.jsx)(ShortcutItem,{action:OPT_SHORTCUT_POPUP,label:i18n("toggle_popup_shortcut")})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:12,sm:12,md:3,lg:3,children:/*#__PURE__*/(0,jsx_runtime.jsx)(ShortcutItem,{action:OPT_SHORTCUT_SETTING,label:i18n("open_setting_shortcut")})})]})]})]})});}
+function ShortcutItem(_ref){var action=_ref.action,label=_ref.label;var _useShortcut=useShortcut(action),shortcut=_useShortcut.shortcut,setShortcut=_useShortcut.setShortcut;return/*#__PURE__*/(0,jsx_runtime.jsx)(ShortcutInput,{value:shortcut,onChange:setShortcut,label:label});}function Settings(){var i18n=useI18n();var _useSetting=useSetting(),setting=_useSetting.setting,updateSetting=_useSetting.updateSetting;var alert=useAlert();var handleChange=function handleChange(e){e.preventDefault();var _e$target=e.target,name=_e$target.name,value=_e$target.value;switch(name){case"fetchLimit":value=limitNumber(value,1,100);break;case"fetchInterval":value=limitNumber(value,0,5000);break;case"minLength":value=limitNumber(value,1,100);break;case"maxLength":value=limitNumber(value,100,10000);break;case"newlineLength":value=limitNumber(value,1,1000);break;default:}updateSetting((0,defineProperty/* default */.Z)({},name,value));};var handleClearCache=function handleClearCache(){try{caches.delete(config_CACHE_NAME);alert.success(i18n("clear_success"));}catch(err){console.log("[clear cache]",err);}};var uiLang=setting.uiLang,fetchLimit=setting.fetchLimit,fetchInterval=setting.fetchInterval,minLength=setting.minLength,maxLength=setting.maxLength,clearCache=setting.clearCache,_setting$newlineLengt=setting.newlineLength,newlineLength=_setting$newlineLengt===void 0?TRANS_NEWLINE_LENGTH:_setting$newlineLengt,_setting$mouseKey=setting.mouseKey,mouseKey=_setting$mouseKey===void 0?OPT_MOUSEKEY_DISABLE:_setting$mouseKey,_setting$hideFab=setting.hideFab,hideFab=_setting$hideFab===void 0?false:_setting$hideFab;return/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:3,children:[/*#__PURE__*/(0,jsx_runtime.jsxs)(FormControl_FormControl,{size:"small",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(InputLabel_InputLabel,{children:i18n("ui_lang")}),/*#__PURE__*/(0,jsx_runtime.jsx)(Select_Select,{name:"uiLang",value:uiLang,label:i18n("ui_lang"),onChange:handleChange,children:UI_LANGS.map(function(_ref2){var _ref3=(0,slicedToArray/* default */.Z)(_ref2,2),lang=_ref3[0],name=_ref3[1];return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:lang,children:name},lang);})})]}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("fetch_limit"),type:"number",name:"fetchLimit",defaultValue:fetchLimit,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("fetch_interval"),type:"number",name:"fetchInterval",defaultValue:fetchInterval,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("min_translate_length"),type:"number",name:"minLength",defaultValue:minLength,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("max_translate_length"),type:"number",name:"maxLength",defaultValue:maxLength,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("num_of_newline_characters"),type:"number",name:"newlineLength",defaultValue:newlineLength,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsxs)(FormControl_FormControl,{size:"small",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(InputLabel_InputLabel,{children:i18n("mouseover_translation")}),/*#__PURE__*/(0,jsx_runtime.jsx)(Select_Select,{name:"mouseKey",value:mouseKey,label:i18n("mouseover_translation"),onChange:handleChange,children:OPT_MOUSEKEY_ALL.map(function(item){return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:item,children:i18n(item)},item);})})]}),client_isExt?/*#__PURE__*/(0,jsx_runtime.jsxs)(FormControl_FormControl,{size:"small",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(InputLabel_InputLabel,{children:i18n("if_clear_cache")}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Select_Select,{name:"clearCache",value:clearCache,label:i18n("if_clear_cache"),onChange:handleChange,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:false,children:i18n("clear_cache_never")}),/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:true,children:i18n("clear_cache_restart")})]}),/*#__PURE__*/(0,jsx_runtime.jsx)(FormHelperText_FormHelperText,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(material_Link_Link,{component:"button",onClick:handleClearCache,children:i18n("clear_all_cache_now")})})]}):/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[/*#__PURE__*/(0,jsx_runtime.jsxs)(FormControl_FormControl,{size:"small",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(InputLabel_InputLabel,{children:i18n("hide_fab_button")}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Select_Select,{name:"hideFab",value:hideFab,label:i18n("hide_fab_button"),onChange:handleChange,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:false,children:i18n("show")}),/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:true,children:i18n("hide")})]})]}),/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Grid_Grid,{container:true,spacing:2,columns:12,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:12,sm:12,md:3,lg:3,children:/*#__PURE__*/(0,jsx_runtime.jsx)(ShortcutItem,{action:OPT_SHORTCUT_TRANSLATE,label:i18n("toggle_translate_shortcut")})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:12,sm:12,md:3,lg:3,children:/*#__PURE__*/(0,jsx_runtime.jsx)(ShortcutItem,{action:OPT_SHORTCUT_STYLE,label:i18n("toggle_style_shortcut")})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:12,sm:12,md:3,lg:3,children:/*#__PURE__*/(0,jsx_runtime.jsx)(ShortcutItem,{action:OPT_SHORTCUT_POPUP,label:i18n("toggle_popup_shortcut")})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:12,sm:12,md:3,lg:3,children:/*#__PURE__*/(0,jsx_runtime.jsx)(ShortcutItem,{action:OPT_SHORTCUT_SETTING,label:i18n("open_setting_shortcut")})})]})})]})]})});}
 // EXTERNAL MODULE: ./node_modules/@mui/system/esm/useThemeWithoutDefault.js
 var useThemeWithoutDefault = __webpack_require__(4976);
 // EXTERNAL MODULE: ./node_modules/@mui/system/esm/useThemeProps/getThemeProps.js
@@ -58085,8 +58171,10 @@ var DesignServices = __webpack_require__(2163);
 var Api = __webpack_require__(1877);
 // EXTERNAL MODULE: ./node_modules/@mui/icons-material/SendTimeExtension.js
 var SendTimeExtension = __webpack_require__(888);
+// EXTERNAL MODULE: ./node_modules/@mui/icons-material/Input.js
+var icons_material_Input = __webpack_require__(7030);
 ;// CONCATENATED MODULE: ./src/views/Options/Navigator.js
-function LinkItem(_ref){var label=_ref.label,url=_ref.url,icon=_ref.icon;var match=useMatch(url);return/*#__PURE__*/(0,jsx_runtime.jsxs)(ListItemButton_ListItemButton,{component:NavLink,to:url,selected:!!match,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(ListItemIcon_ListItemIcon,{children:icon}),/*#__PURE__*/(0,jsx_runtime.jsx)(ListItemText_ListItemText,{children:label})]});}function Navigator(props){var i18n=useI18n();var memus=[{id:"basic_setting",label:i18n("basic_setting"),url:"/",icon:/*#__PURE__*/(0,jsx_runtime.jsx)(icons_material_Settings/* default */.Z,{})},{id:"rules_setting",label:i18n("rules_setting"),url:"/rules",icon:/*#__PURE__*/(0,jsx_runtime.jsx)(DesignServices/* default */.Z,{})},{id:"apis_setting",label:i18n("apis_setting"),url:"/apis",icon:/*#__PURE__*/(0,jsx_runtime.jsx)(Api/* default */.Z,{})},{id:"sync",label:i18n("sync_setting"),url:"/sync",icon:/*#__PURE__*/(0,jsx_runtime.jsx)(Sync/* default */.Z,{})},{id:"webfix",label:i18n("patch_setting"),url:"/webfix",icon:/*#__PURE__*/(0,jsx_runtime.jsx)(SendTimeExtension/* default */.Z,{})},{id:"about",label:i18n("about"),url:"/about",icon:/*#__PURE__*/(0,jsx_runtime.jsx)(icons_material_Info/* default */.Z,{})}];return/*#__PURE__*/(0,jsx_runtime.jsxs)(Drawer_Drawer,_objectSpread2(_objectSpread2({},props),{},{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Toolbar_Toolbar,{variant:"dense"}),/*#__PURE__*/(0,jsx_runtime.jsx)(List_List,{component:"nav",children:memus.map(function(_ref2){var id=_ref2.id,label=_ref2.label,url=_ref2.url,icon=_ref2.icon;return/*#__PURE__*/(0,jsx_runtime.jsx)(LinkItem,{label:label,url:url,icon:icon},id);})})]}));}
+function LinkItem(_ref){var label=_ref.label,url=_ref.url,icon=_ref.icon;var match=useMatch(url);return/*#__PURE__*/(0,jsx_runtime.jsxs)(ListItemButton_ListItemButton,{component:NavLink,to:url,selected:!!match,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(ListItemIcon_ListItemIcon,{children:icon}),/*#__PURE__*/(0,jsx_runtime.jsx)(ListItemText_ListItemText,{children:label})]});}function Navigator(props){var i18n=useI18n();var memus=[{id:"basic_setting",label:i18n("basic_setting"),url:"/",icon:/*#__PURE__*/(0,jsx_runtime.jsx)(icons_material_Settings/* default */.Z,{})},{id:"rules_setting",label:i18n("rules_setting"),url:"/rules",icon:/*#__PURE__*/(0,jsx_runtime.jsx)(DesignServices/* default */.Z,{})},{id:"input_setting",label:i18n("input_setting"),url:"/input",icon:/*#__PURE__*/(0,jsx_runtime.jsx)(icons_material_Input/* default */.Z,{})},{id:"apis_setting",label:i18n("apis_setting"),url:"/apis",icon:/*#__PURE__*/(0,jsx_runtime.jsx)(Api/* default */.Z,{})},{id:"sync",label:i18n("sync_setting"),url:"/sync",icon:/*#__PURE__*/(0,jsx_runtime.jsx)(Sync/* default */.Z,{})},{id:"webfix",label:i18n("patch_setting"),url:"/webfix",icon:/*#__PURE__*/(0,jsx_runtime.jsx)(SendTimeExtension/* default */.Z,{})},{id:"about",label:i18n("about"),url:"/about",icon:/*#__PURE__*/(0,jsx_runtime.jsx)(icons_material_Info/* default */.Z,{})}];return/*#__PURE__*/(0,jsx_runtime.jsxs)(Drawer_Drawer,_objectSpread2(_objectSpread2({},props),{},{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Toolbar_Toolbar,{variant:"dense"}),/*#__PURE__*/(0,jsx_runtime.jsx)(List_List,{component:"nav",children:memus.map(function(_ref2){var id=_ref2.id,label=_ref2.label,url=_ref2.url,icon=_ref2.icon;return/*#__PURE__*/(0,jsx_runtime.jsx)(LinkItem,{label:label,url:url,icon:icon},id);})})]}));}
 ;// CONCATENATED MODULE: ./node_modules/@mui/material/AppBar/appBarClasses.js
 
 
@@ -58246,11 +58334,11 @@ var DarkMode = __webpack_require__(45);
 ;// CONCATENATED MODULE: ./src/views/Options/DarkModeButton.js
 function DarkModeButton(){var _useDarkMode=useDarkMode(),darkMode=_useDarkMode.darkMode,toggleDarkMode=_useDarkMode.toggleDarkMode;return/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{onClick:toggleDarkMode,color:"inherit",children:darkMode?/*#__PURE__*/(0,jsx_runtime.jsx)(LightMode/* default */.Z,{}):/*#__PURE__*/(0,jsx_runtime.jsx)(DarkMode/* default */.Z,{})});}
 ;// CONCATENATED MODULE: ./src/views/Options/Header.js
-function Header(props){var i18n=useI18n();var onDrawerToggle=props.onDrawerToggle;return/*#__PURE__*/(0,jsx_runtime.jsx)(AppBar_AppBar,{color:"primary",position:"sticky",sx:{zIndex:1300},children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Toolbar_Toolbar,{variant:"dense",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{sx:{display:{sm:"none",xs:"block"}},children:/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{color:"inherit","aria-label":"open drawer",onClick:onDrawerToggle,edge:"start",children:/*#__PURE__*/(0,jsx_runtime.jsx)(icons_material_Menu/* default */.Z,{})})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{sx:{flexGrow:1},children:/*#__PURE__*/(0,jsx_runtime.jsx)(material_Link_Link,{underline:"none",color:"inherit",href:"https://github.com/fishjar/kiss-translator",target:"_blank",children:"".concat(i18n("app_name")," v").concat("1.7.0")})}),/*#__PURE__*/(0,jsx_runtime.jsx)(DarkModeButton,{})]})});}/* harmony default export */ var Options_Header = (Header);
+function Header(props){var i18n=useI18n();var onDrawerToggle=props.onDrawerToggle;return/*#__PURE__*/(0,jsx_runtime.jsx)(AppBar_AppBar,{color:"primary",position:"sticky",sx:{zIndex:1300},children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Toolbar_Toolbar,{variant:"dense",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{sx:{display:{sm:"none",xs:"block"}},children:/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{color:"inherit","aria-label":"open drawer",onClick:onDrawerToggle,edge:"start",children:/*#__PURE__*/(0,jsx_runtime.jsx)(icons_material_Menu/* default */.Z,{})})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{sx:{flexGrow:1},children:/*#__PURE__*/(0,jsx_runtime.jsx)(material_Link_Link,{underline:"none",color:"inherit",href:"https://github.com/fishjar/kiss-translator",target:"_blank",children:"".concat(i18n("app_name")," v").concat("1.7.1")})}),/*#__PURE__*/(0,jsx_runtime.jsx)(DarkModeButton,{})]})});}/* harmony default export */ var Options_Header = (Header);
 ;// CONCATENATED MODULE: ./src/views/Options/Layout.js
 function Layout(){var navWidth=256;var location=dist_useLocation();var theme=useTheme_useTheme();var _useState=(0,react.useState)(false),_useState2=(0,slicedToArray/* default */.Z)(_useState,2),open=_useState2[0],setOpen=_useState2[1];var isSm=useMediaQuery(theme.breakpoints.up("sm"));var handleDrawerToggle=function handleDrawerToggle(){setOpen(!open);};(0,react.useEffect)(function(){setOpen(false);},[location]);return/*#__PURE__*/(0,jsx_runtime.jsxs)(Box_Box,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(CssBaseline_CssBaseline,{}),/*#__PURE__*/(0,jsx_runtime.jsx)(Options_Header,{onDrawerToggle:handleDrawerToggle}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Box_Box,{sx:{display:"flex"},children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{component:"nav",sx:{width:{sm:navWidth},flexShrink:{sm:0}},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Navigator,{PaperProps:{style:{width:navWidth}},variant:isSm?"permanent":"temporary",open:isSm?true:open,onClose:handleDrawerToggle})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{component:"main",sx:{flex:1,p:2},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Outlet,{})})]})]});}
 ;// CONCATENATED MODULE: ./src/views/Options/SyncSetting.js
-function SyncSetting(){var _ref,_ref2;var i18n=useI18n();var _useSync=useSync(),sync=_useSync.sync,updateSync=_useSync.updateSync;var alert=useAlert();var _useState=(0,react.useState)(false),_useState2=(0,slicedToArray/* default */.Z)(_useState,2),loading=_useState2[0],setLoading=_useState2[1];var _useSetting=useSetting(),reloadSetting=_useSetting.reloadSetting;var handleChange=function handleChange(_x){return(_ref=_ref||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(e){var _e$target,name,value;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:e.preventDefault();_e$target=e.target,name=_e$target.name,value=_e$target.value;_context.next=4;return updateSync((0,defineProperty/* default */.Z)({},name,value));case 4:case"end":return _context.stop();}},_callee);}))).apply(this,arguments);};var handleSyncTest=function handleSyncTest(_x2){return(_ref2=_ref2||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(e){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:e.preventDefault();_context2.prev=1;setLoading(true);_context2.next=5;return syncSettingAndRules();case 5:_context2.next=7;return reloadSetting();case 7:alert.success(i18n("sync_success"));_context2.next=14;break;case 10:_context2.prev=10;_context2.t0=_context2["catch"](1);console.log("[sync all]",_context2.t0);alert.error(i18n("sync_failed"));case 14:_context2.prev=14;setLoading(false);return _context2.finish(14);case 17:case"end":return _context2.stop();}},_callee2,null,[[1,10,14,17]]);}))).apply(this,arguments);};var syncUrl=sync.syncUrl,syncKey=sync.syncKey;return/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:3,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Alert_Alert,{severity:"warning",children:i18n("sync_warn")}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("data_sync_url"),name:"syncUrl",value:syncUrl,onChange:handleChange,helperText:/*#__PURE__*/(0,jsx_runtime.jsx)(material_Link_Link,{href:URL_KISS_WORKER,target:"_blank",children:i18n("about_sync_api")})}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",type:"password",label:i18n("data_sync_key"),name:"syncKey",value:syncKey,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",alignItems:"center",spacing:2,useFlexGap:true,flexWrap:"wrap",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"contained",disabled:!syncUrl||!syncKey||loading,onClick:handleSyncTest,startIcon:/*#__PURE__*/(0,jsx_runtime.jsx)(Sync/* default */.Z,{}),children:i18n("sync_now")}),loading&&/*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgress_CircularProgress,{size:16})]})]})});}
+function SyncSetting(){var _ref,_ref2;var i18n=useI18n();var _useSync=useSync(),sync=_useSync.sync,updateSync=_useSync.updateSync;var alert=useAlert();var _useState=(0,react.useState)(false),_useState2=(0,slicedToArray/* default */.Z)(_useState,2),loading=_useState2[0],setLoading=_useState2[1];var _useSetting=useSetting(),reloadSetting=_useSetting.reloadSetting;var handleChange=function handleChange(_x){return(_ref=_ref||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(e){var _e$target,name,value;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:e.preventDefault();_e$target=e.target,name=_e$target.name,value=_e$target.value;_context.next=4;return updateSync((0,defineProperty/* default */.Z)({},name,value));case 4:case"end":return _context.stop();}},_callee);}))).apply(this,arguments);};var handleSyncTest=function handleSyncTest(_x2){return(_ref2=_ref2||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(e){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:e.preventDefault();_context2.prev=1;setLoading(true);_context2.next=5;return syncSettingAndRules();case 5:_context2.next=7;return reloadSetting();case 7:alert.success(i18n("sync_success"));_context2.next=14;break;case 10:_context2.prev=10;_context2.t0=_context2["catch"](1);console.log("[sync all]",_context2.t0);alert.error(i18n("sync_failed"));case 14:_context2.prev=14;setLoading(false);return _context2.finish(14);case 17:case"end":return _context2.stop();}},_callee2,null,[[1,10,14,17]]);}))).apply(this,arguments);};var _sync$syncUrl=sync.syncUrl,syncUrl=_sync$syncUrl===void 0?"":_sync$syncUrl,_sync$syncKey=sync.syncKey,syncKey=_sync$syncKey===void 0?"":_sync$syncKey;return/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:3,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Alert_Alert,{severity:"warning",children:i18n("sync_warn")}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("data_sync_url"),name:"syncUrl",value:syncUrl,onChange:handleChange,helperText:/*#__PURE__*/(0,jsx_runtime.jsx)(material_Link_Link,{href:URL_KISS_WORKER,target:"_blank",children:i18n("about_sync_api")})}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",type:"password",label:i18n("data_sync_key"),name:"syncKey",value:syncKey,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",alignItems:"center",spacing:2,useFlexGap:true,flexWrap:"wrap",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"contained",disabled:!syncUrl||!syncKey||loading,onClick:handleSyncTest,startIcon:/*#__PURE__*/(0,jsx_runtime.jsx)(Sync/* default */.Z,{}),children:i18n("sync_now")}),loading&&/*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgress_CircularProgress,{size:16})]})]})});}
 ;// CONCATENATED MODULE: ./node_modules/@mui/private-theming/useTheme/ThemeContext.js
 
 var ThemeContext_ThemeContext = /*#__PURE__*/react.createContext(null);
@@ -58599,7 +58687,7 @@ Divider.muiSkipListHighlight = true;
 var gm_ref;var MSG_GM_xmlHttpRequest="xmlHttpRequest";var MSG_GM_setValue="setValue";var MSG_GM_getValue="getValue";var MSG_GM_deleteValue="deleteValue";var MSG_GM_info="info";/**
  * 注入页面的脚本，请求并接受GM接口信息
  * @param {*} param0
- */var injectScript=function injectScript(ping){window.APP_INFO={name:"KISS Translator",version:"1.7.0",eventName:ping};};/**
+ */var injectScript=function injectScript(ping){window.APP_INFO={name:"KISS Translator",version:"1.7.1",eventName:ping};};/**
  * 适配GM脚本
  */var adaptScript=function adaptScript(ping){var _getInfo;var promiseGM=function promiseGM(action,args){var timeout=arguments.length>2&&arguments[2]!==undefined?arguments[2]:5000;return new Promise(function(resolve,reject){var pong=genEventName();var handleEvent=function handleEvent(e){window.removeEventListener(pong,handleEvent);var _e$detail=e.detail,data=_e$detail.data,error=_e$detail.error;if(error){reject(new Error(error));}else{resolve(data);}};window.addEventListener(pong,handleEvent);window.dispatchEvent(new CustomEvent(ping,{detail:{action:action,args:args,pong:pong}}));setTimeout(function(){window.removeEventListener(pong,handleEvent);reject(new Error("timeout"));},timeout);});};window.KISS_GM={fetch:function fetch(input,init){return promiseGM(MSG_GM_xmlHttpRequest,{input:input,init:init});},setValue:function setValue(key,val){return promiseGM(MSG_GM_setValue,{key:key,val:val});},getValue:function getValue(key){return promiseGM(MSG_GM_getValue,{key:key});},deleteValue:function deleteValue(key){return promiseGM(MSG_GM_deleteValue,{key:key});},getInfo:function getInfo(){return(_getInfo=_getInfo||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:if(window.GM_info){_context.next=4;break;}_context.next=3;return promiseGM(MSG_GM_info);case 3:window.GM_info=_context.sent;case 4:return _context.abrupt("return",window.GM_info);case 5:case"end":return _context.stop();}},_callee);}))).apply(this,arguments);}};};/**
  * 监听并回应页面对GM接口的请求
@@ -58609,51 +58697,18 @@ var gm_ref;var MSG_GM_xmlHttpRequest="xmlHttpRequest";var MSG_GM_setValue="setVa
 function useApi(translator){var _ref;var _useSetting=useSetting(),setting=_useSetting.setting,updateSetting=_useSetting.updateSetting;var transApis=(setting===null||setting===void 0?void 0:setting.transApis)||DEFAULT_TRANS_APIS;var updateApi=(0,react.useCallback)(function(_x){return(_ref=_ref||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(obj){var api;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:api=transApis[translator]||{};Object.assign(transApis,(0,defineProperty/* default */.Z)({},translator,_objectSpread2(_objectSpread2({},api),obj)));_context.next=4;return updateSetting({transApis:transApis});case 4:case"end":return _context.stop();}},_callee);}))).apply(this,arguments);},[translator,transApis,updateSetting]);var resetApi=(0,react.useCallback)(/*#__PURE__*/asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:Object.assign(transApis,(0,defineProperty/* default */.Z)({},translator,DEFAULT_TRANS_APIS[translator]));_context2.next=3;return updateSetting({transApis:transApis});case 3:case"end":return _context2.stop();}},_callee2);})),[translator,transApis,updateSetting]);return{api:transApis[translator]||{},updateApi:updateApi,resetApi:resetApi};}
 ;// CONCATENATED MODULE: ./src/views/Options/Apis.js
 function TestButton(_ref){var _ref2;var translator=_ref.translator,api=_ref.api;var i18n=useI18n();var alert=useAlert();var _useState=(0,react.useState)(false),_useState2=(0,slicedToArray/* default */.Z)(_useState,2),loading=_useState2[0],setLoading=_useState2[1];var handleApiTest=function handleApiTest(){return(_ref2=_ref2||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(){var _yield$apiTranslate,_yield$apiTranslate2,text;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:_context.prev=0;setLoading(true);_context.next=4;return apiTranslate({translator:translator,text:"hello world",fromLang:"en",toLang:"zh-CN",apiSetting:_objectSpread2(_objectSpread2({},api),{},{useCache:false})});case 4:_yield$apiTranslate=_context.sent;_yield$apiTranslate2=(0,slicedToArray/* default */.Z)(_yield$apiTranslate,1);text=_yield$apiTranslate2[0];if(text){_context.next=9;break;}throw new Error("empty reault");case 9:alert.success(i18n("test_success"));_context.next=15;break;case 12:_context.prev=12;_context.t0=_context["catch"](0);alert.error("".concat(i18n("test_failed"),": ").concat(_context.t0.message));case 15:_context.prev=15;setLoading(false);return _context.finish(15);case 18:case"end":return _context.stop();}},_callee,null,[[0,12,15,18]]);}))).apply(this,arguments);};if(loading){return/*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgress_CircularProgress,{size:16});}return/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"contained",onClick:handleApiTest,children:i18n("click_test")});}function ApiFields(_ref3){var translator=_ref3.translator;var i18n=useI18n();var _useApi=useApi(translator),api=_useApi.api,updateApi=_useApi.updateApi,resetApi=_useApi.resetApi;var _api$url=api.url,url=_api$url===void 0?"":_api$url,_api$key=api.key,key=_api$key===void 0?"":_api$key,_api$model=api.model,model=_api$model===void 0?"":_api$model,_api$prompt=api.prompt,prompt=_api$prompt===void 0?"":_api$prompt;var handleChange=function handleChange(e){var _e$target=e.target,name=_e$target.name,value=_e$target.value;updateApi((0,defineProperty/* default */.Z)({},name,value));};return/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:3,children:[translator!==OPT_TRANS_MICROSOFT&&/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:"URL",name:"url",value:url,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:"KEY",name:"key",value:key,onChange:handleChange})]}),translator===OPT_TRANS_OPENAI&&/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:"MODEL",name:"model",value:model,onChange:handleChange}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:"PROMPT",name:"prompt",value:prompt,onChange:handleChange,multiline:true})]}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(TestButton,{translator:translator,api:api}),translator!==OPT_TRANS_MICROSOFT&&/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"outlined",onClick:function onClick(){resetApi();},children:i18n("restore_default")})]}),translator===OPT_TRANS_CUSTOMIZE&&/*#__PURE__*/(0,jsx_runtime.jsx)("pre",{children:i18n("custom_api_help")})]});}function ApiAccordion(_ref4){var translator=_ref4.translator;var _useState3=(0,react.useState)(false),_useState4=(0,slicedToArray/* default */.Z)(_useState3,2),expanded=_useState4[0],setExpanded=_useState4[1];var handleChange=function handleChange(e){setExpanded(function(pre){return!pre;});};return/*#__PURE__*/(0,jsx_runtime.jsxs)(Accordion_Accordion,{expanded:expanded,onChange:handleChange,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(AccordionSummary_AccordionSummary,{expandIcon:/*#__PURE__*/(0,jsx_runtime.jsx)(ExpandMore/* default */.Z,{}),children:/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{children:translator})}),/*#__PURE__*/(0,jsx_runtime.jsx)(AccordionDetails_AccordionDetails,{children:expanded&&/*#__PURE__*/(0,jsx_runtime.jsx)(ApiFields,{translator:translator})})]});}function Apis(){var i18n=useI18n();return/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:3,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Alert_Alert,{severity:"info",children:/*#__PURE__*/(0,jsx_runtime.jsx)(material_Link_Link,{href:URL_KISS_PROXY,target:"_blank",children:i18n("about_api_proxy")})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:OPT_TRANS_ALL.map(function(translator){return/*#__PURE__*/(0,jsx_runtime.jsx)(ApiAccordion,{translator:translator},translator);})})]})});}
-;// CONCATENATED MODULE: ./src/libs/webfix.js
-var _fixerMap,webfix_ref,webfix_ref2,_webfix;/**
- * 修复程序类型
- */var FIXER_BR="br";var FIXER_FONTSIZE="fontSize";/**
- * 需要修复的站点列表
- * - pattern 匹配网址
- * - selector 需要修复的选择器
- * - rootSelector 需要监听的选择器，可留空
- * - fixer 修复函数，可针对不同网址，选用不同修复函数
- */var DEFAULT_SITES=[{pattern:"www.phoronix.com",selector:".content",rootSelector:"",fixer:FIXER_BR},{pattern:"t.me/s/",selector:".tgme_widget_message_text",rootSelector:".tgme_channel_history",fixer:FIXER_BR},{pattern:"baidu.com",selector:"html",rootSelector:"",fixer:FIXER_FONTSIZE}];/**
- * 修复过的标记
- */var fixedSign="kissfixed";/**
- * 采用 `br` 换行网站的修复函数
- * 目标是将 `br` 替换成 `p`
- * @param {*} node
- * @returns
- */function brFixer(node){if(node.hasAttribute(fixedSign)){return;}node.setAttribute(fixedSign,"true");var gapTags=["BR","WBR"];var newlineTags=["DIV","UL","OL","LI","H1","H2","H3","H4","H5","H6","P","HR","PRE","TABLE"];var html="";node.childNodes.forEach(function(child,index){if(index===0){html+="<p>";}if(gapTags.indexOf(child.nodeName)!==-1){html+="</p><p>";}else if(newlineTags.indexOf(child.nodeName)!==-1){html+="</p>"+child.outerHTML+"<p>";}else if(child.outerHTML){html+=child.outerHTML;}else if(child.nodeValue){html+=child.nodeValue;}if(index===node.childNodes.length-1){html+="</p>";}});node.innerHTML=html;}/**
- * 修复字体大小问题，如 baidu.com
- * @param {*} node
- */function fontSizeFixer(node){node.style.cssText+="font-size:1em;";}/**
- * 修复程序映射
- */var fixerMap=(_fixerMap={},(0,defineProperty/* default */.Z)(_fixerMap,FIXER_BR,brFixer),(0,defineProperty/* default */.Z)(_fixerMap,FIXER_FONTSIZE,fontSizeFixer),_fixerMap);/**
- * 查找、监听节点，并执行修复函数
- * @param {*} selector
- * @param {*} fixer
- * @param {*} rootSelector
- */function run(selector,fixer,rootSelector){var mutaObserver=new MutationObserver(function(mutations){mutations.forEach(function(mutation){mutation.addedNodes.forEach(function(addNode){addNode.querySelectorAll(selector).forEach(fixer);});});});var rootNodes=[document];if(rootSelector){rootNodes=document.querySelectorAll(rootSelector);}rootNodes.forEach(function(rootNode){rootNode.querySelectorAll(selector).forEach(fixer);mutaObserver.observe(rootNode,{childList:true});});}/**
- * 同步远程数据
- * @param {*} url
- * @returns
- */var syncWebfix=function syncWebfix(_x){return(webfix_ref=webfix_ref||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(url){var sites;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:_context.next=2;return apiFetch(url);case 2:sites=_context.sent;_context.next=5;return setWebfix(url,sites);case 5:return _context.abrupt("return",sites);case 6:case"end":return _context.stop();}},_callee);}))).apply(this,arguments);};/**
- * 从缓存或远程加载修复站点
- * @param {*} url
- * @returns
- */var loadOrFetchWebfix=function loadOrFetchWebfix(_x2){return(webfix_ref2=webfix_ref2||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(url){var sites;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:_context2.prev=0;_context2.next=3;return getWebfix(url);case 3:sites=_context2.sent;if(!(sites!==null&&sites!==void 0&&sites.length)){_context2.next=6;break;}return _context2.abrupt("return",sites);case 6:return _context2.abrupt("return",syncWebfix(url));case 9:_context2.prev=9;_context2.t0=_context2["catch"](0);console.log("[load webfix]",_context2.t0.message);return _context2.abrupt("return",DEFAULT_SITES);case 13:case"end":return _context2.stop();}},_callee2,null,[[0,9]]);}))).apply(this,arguments);};/**
- * 匹配站点
- */function webfix(_x3,_x4){return(_webfix=_webfix||_asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee3(href,_ref3){var injectWebfix,sites,i,site;return _regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:injectWebfix=_ref3.injectWebfix;_context3.prev=1;if(injectWebfix){_context3.next=4;break;}return _context3.abrupt("return");case 4:_context3.next=6;return loadOrFetchWebfix("https://fishjar.github.io/kiss-rules/kiss-webfix.json");case 6:sites=_context3.sent;i=0;case 8:if(!(i<sites.length)){_context3.next=16;break;}site=sites[i];if(!isMatch(href,site.pattern)){_context3.next=13;break;}if(fixerMap[site.fixer]){run(site.selector,fixerMap[site.fixer],site.rootSelector);}return _context3.abrupt("break",16);case 13:i++;_context3.next=8;break;case 16:_context3.next=21;break;case 18:_context3.prev=18;_context3.t0=_context3["catch"](1);console.error("[kiss-webfix]: ".concat(_context3.t0.message));case 21:case"end":return _context3.stop();}},_callee3,null,[[1,18]]);}))).apply(this,arguments);}
 ;// CONCATENATED MODULE: ./src/views/Options/Webfix.js
-function Webfix_ApiFields(_ref){var site=_ref.site;var selector=site.selector,rootSelector=site.rootSelector,fixer=site.fixer;return/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:3,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:"rootSelector",name:"rootSelector",value:rootSelector||"document",disabled:true}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:"selector",name:"selector",value:selector,disabled:true}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:"fixer",name:"fixer",value:fixer,disabled:true})]});}function Webfix_ApiAccordion(_ref2){var site=_ref2.site;var _useState=(0,react.useState)(false),_useState2=(0,slicedToArray/* default */.Z)(_useState,2),expanded=_useState2[0],setExpanded=_useState2[1];var handleChange=function handleChange(e){setExpanded(function(pre){return!pre;});};return/*#__PURE__*/(0,jsx_runtime.jsxs)(Accordion_Accordion,{expanded:expanded,onChange:handleChange,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(AccordionSummary_AccordionSummary,{expandIcon:/*#__PURE__*/(0,jsx_runtime.jsx)(ExpandMore/* default */.Z,{}),children:/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{children:site.pattern})}),/*#__PURE__*/(0,jsx_runtime.jsx)(AccordionDetails_AccordionDetails,{children:expanded&&/*#__PURE__*/(0,jsx_runtime.jsx)(Webfix_ApiFields,{site:site})})]});}function Webfix(){var _ref4;var _useState3=(0,react.useState)(false),_useState4=(0,slicedToArray/* default */.Z)(_useState3,2),loading=_useState4[0],setLoading=_useState4[1];var _useState5=(0,react.useState)([]),_useState6=(0,slicedToArray/* default */.Z)(_useState5,2),sites=_useState6[0],setSites=_useState6[1];var i18n=useI18n();var alert=useAlert();var _useSetting=useSetting(),setting=_useSetting.setting,updateSetting=_useSetting.updateSetting;var loadSites=(0,react.useCallback)(/*#__PURE__*/asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(){var sites;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:_context.next=2;return loadOrFetchWebfix("https://fishjar.github.io/kiss-rules/kiss-webfix.json");case 2:sites=_context.sent;setSites(sites);case 4:case"end":return _context.stop();}},_callee);})),[]);var handleSyncTest=function handleSyncTest(_x){return(_ref4=_ref4||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(e){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:e.preventDefault();_context2.prev=1;setLoading(true);_context2.next=5;return syncWebfix("https://fishjar.github.io/kiss-rules/kiss-webfix.json");case 5:_context2.next=7;return loadSites();case 7:alert.success(i18n("sync_success"));_context2.next=14;break;case 10:_context2.prev=10;_context2.t0=_context2["catch"](1);console.log("[sync webfix]",_context2.t0);alert.error(i18n("sync_failed"));case 14:_context2.prev=14;setLoading(false);return _context2.finish(14);case 17:case"end":return _context2.stop();}},_callee2,null,[[1,10,14,17]]);}))).apply(this,arguments);};(0,react.useEffect)(function(){asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee3(){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:_context3.prev=0;setLoading(true);_context3.next=4;return loadSites();case 4:_context3.next=9;break;case 6:_context3.prev=6;_context3.t0=_context3["catch"](0);console.log("[load webfix]",_context3.t0.message);case 9:_context3.prev=9;setLoading(false);return _context3.finish(9);case 12:case"end":return _context3.stop();}},_callee3,null,[[0,6,9,12]]);}))();},[loadSites]);return/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:3,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Alert_Alert,{severity:"info",children:i18n("patch_setting_help")}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",alignItems:"center",spacing:2,useFlexGap:true,flexWrap:"wrap",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"outlined",disabled:loading,onClick:handleSyncTest,startIcon:/*#__PURE__*/(0,jsx_runtime.jsx)(Sync/* default */.Z,{}),children:i18n("sync_now")}),/*#__PURE__*/(0,jsx_runtime.jsx)(HelpButton,{url:URL_KISS_RULES_NEW_ISSUE}),/*#__PURE__*/(0,jsx_runtime.jsx)(FormControlLabel_FormControlLabel,{control:/*#__PURE__*/(0,jsx_runtime.jsx)(Switch_Switch,{size:"small",checked:!!setting.injectWebfix,onChange:function onChange(){updateSetting({injectWebfix:!setting.injectWebfix});}}),label:i18n("inject_webfix")})]}),setting.injectWebfix&&/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:loading?/*#__PURE__*/(0,jsx_runtime.jsx)("center",{children:/*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgress_CircularProgress,{size:16})}):sites.map(function(site){return/*#__PURE__*/(0,jsx_runtime.jsx)(Webfix_ApiAccordion,{site:site},site.pattern);})})]})});}
+function Webfix_ApiFields(_ref){var site=_ref.site;var selector=site.selector,rootSelector=site.rootSelector,fixer=site.fixer;return/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:3,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:"rootSelector",name:"rootSelector",value:rootSelector||"document",disabled:true}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:"selector",name:"selector",value:selector,disabled:true}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:"fixer",name:"fixer",value:fixer,disabled:true})]});}function Webfix_ApiAccordion(_ref2){var site=_ref2.site;var _useState=(0,react.useState)(false),_useState2=(0,slicedToArray/* default */.Z)(_useState,2),expanded=_useState2[0],setExpanded=_useState2[1];var handleChange=function handleChange(e){setExpanded(function(pre){return!pre;});};return/*#__PURE__*/(0,jsx_runtime.jsxs)(Accordion_Accordion,{expanded:expanded,onChange:handleChange,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(AccordionSummary_AccordionSummary,{expandIcon:/*#__PURE__*/(0,jsx_runtime.jsx)(ExpandMore/* default */.Z,{}),children:/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{children:site.pattern})}),/*#__PURE__*/(0,jsx_runtime.jsx)(AccordionDetails_AccordionDetails,{children:expanded&&/*#__PURE__*/(0,jsx_runtime.jsx)(Webfix_ApiFields,{site:site})})]});}function Webfix(){var _ref4;var _useState3=(0,react.useState)(false),_useState4=(0,slicedToArray/* default */.Z)(_useState3,2),loading=_useState4[0],setLoading=_useState4[1];var _useState5=(0,react.useState)([]),_useState6=(0,slicedToArray/* default */.Z)(_useState5,2),sites=_useState6[0],setSites=_useState6[1];var i18n=useI18n();var alert=useAlert();var _useSetting=useSetting(),setting=_useSetting.setting,updateSetting=_useSetting.updateSetting;var loadSites=(0,react.useCallback)(/*#__PURE__*/asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(){var sites;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:_context.next=2;return loadOrFetchWebfix("https://fishjar.github.io/kiss-rules/kiss-webfix.json");case 2:sites=_context.sent;setSites(sites);case 4:case"end":return _context.stop();}},_callee);})),[]);var handleSyncTest=function handleSyncTest(_x){return(_ref4=_ref4||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee2(e){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee2$(_context2){while(1)switch(_context2.prev=_context2.next){case 0:e.preventDefault();_context2.prev=1;setLoading(true);_context2.next=5;return webfix_syncWebfix("https://fishjar.github.io/kiss-rules/kiss-webfix.json");case 5:_context2.next=7;return loadSites();case 7:alert.success(i18n("sync_success"));_context2.next=14;break;case 10:_context2.prev=10;_context2.t0=_context2["catch"](1);console.log("[sync webfix]",_context2.t0);alert.error(i18n("sync_failed"));case 14:_context2.prev=14;setLoading(false);return _context2.finish(14);case 17:case"end":return _context2.stop();}},_callee2,null,[[1,10,14,17]]);}))).apply(this,arguments);};(0,react.useEffect)(function(){asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee3(){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee3$(_context3){while(1)switch(_context3.prev=_context3.next){case 0:_context3.prev=0;setLoading(true);_context3.next=4;return loadSites();case 4:_context3.next=9;break;case 6:_context3.prev=6;_context3.t0=_context3["catch"](0);console.log("[load webfix]",_context3.t0.message);case 9:_context3.prev=9;setLoading(false);return _context3.finish(9);case 12:case"end":return _context3.stop();}},_callee3,null,[[0,6,9,12]]);}))();},[loadSites]);return/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:3,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Alert_Alert,{severity:"info",children:i18n("patch_setting_help")}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",alignItems:"center",spacing:2,useFlexGap:true,flexWrap:"wrap",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{size:"small",variant:"outlined",disabled:loading,onClick:handleSyncTest,startIcon:/*#__PURE__*/(0,jsx_runtime.jsx)(Sync/* default */.Z,{}),children:i18n("sync_now")}),/*#__PURE__*/(0,jsx_runtime.jsx)(HelpButton,{url:URL_KISS_RULES_NEW_ISSUE}),/*#__PURE__*/(0,jsx_runtime.jsx)(FormControlLabel_FormControlLabel,{control:/*#__PURE__*/(0,jsx_runtime.jsx)(Switch_Switch,{size:"small",checked:!!setting.injectWebfix,onChange:function onChange(){updateSetting({injectWebfix:!setting.injectWebfix});}}),label:i18n("inject_webfix")})]}),setting.injectWebfix&&/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:loading?/*#__PURE__*/(0,jsx_runtime.jsx)("center",{children:/*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgress_CircularProgress,{size:16})}):sites.map(function(site){return/*#__PURE__*/(0,jsx_runtime.jsx)(Webfix_ApiAccordion,{site:site},site.pattern);})})]})});}
+;// CONCATENATED MODULE: ./src/hooks/InputRule.js
+function useInputRule(){var _ref;var _useSetting=useSetting(),setting=_useSetting.setting,updateSetting=_useSetting.updateSetting;var inputRule=(setting===null||setting===void 0?void 0:setting.inputRule)||DEFAULT_INPUT_RULE;var updateInputRule=(0,react.useCallback)(function(_x){return(_ref=_ref||asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(obj){return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:Object.assign(inputRule,obj);_context.next=3;return updateSetting({inputRule:inputRule});case 3:case"end":return _context.stop();}},_callee);}))).apply(this,arguments);},[inputRule,updateSetting]);return{inputRule:inputRule,updateInputRule:updateInputRule};}
+;// CONCATENATED MODULE: ./src/views/Options/InputSetting.js
+function InputSetting(){var i18n=useI18n();var _useInputRule=useInputRule(),inputRule=_useInputRule.inputRule,updateInputRule=_useInputRule.updateInputRule;var handleChange=function handleChange(e){e.preventDefault();var _e$target=e.target,name=_e$target.name,value=_e$target.value;switch(name){case"triggerTime":value=limitNumber(value,10,1000);break;default:}updateInputRule((0,defineProperty/* default */.Z)({},name,value));};var handleShortcutInput=(0,react.useCallback)(function(val){updateInputRule({triggerShortcut:val});},[updateInputRule]);var transOpen=inputRule.transOpen,translator=inputRule.translator,fromLang=inputRule.fromLang,toLang=inputRule.toLang,triggerShortcut=inputRule.triggerShortcut,triggerCount=inputRule.triggerCount,triggerTime=inputRule.triggerTime,transSign=inputRule.transSign;return/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:3,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(FormControlLabel_FormControlLabel,{control:/*#__PURE__*/(0,jsx_runtime.jsx)(Switch_Switch,{size:"small",name:"transOpen",checked:transOpen,onChange:function onChange(){updateInputRule({transOpen:!transOpen});}}),label:i18n("input_box_translation")}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,size:"small",name:"translator",value:translator,label:i18n("translate_service"),onChange:handleChange,children:OPT_TRANS_ALL.map(function(item){return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:item,children:item},item);})}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,size:"small",name:"fromLang",value:fromLang,label:i18n("from_lang"),onChange:handleChange,children:OPT_LANGS_FROM.map(function(_ref){var _ref2=(0,slicedToArray/* default */.Z)(_ref,2),lang=_ref2[0],name=_ref2[1];return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:lang,children:name},lang);})}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,size:"small",name:"toLang",value:toLang,label:i18n("to_lang"),onChange:handleChange,children:OPT_LANGS_TO.map(function(_ref3){var _ref4=(0,slicedToArray/* default */.Z)(_ref3,2),lang=_ref4[0],name=_ref4[1];return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:lang,children:name},lang);})}),/*#__PURE__*/(0,jsx_runtime.jsxs)(TextField_TextField,{select:true,size:"small",name:"transSign",value:transSign,label:i18n("input_trans_start_sign"),onChange:handleChange,helperText:i18n("input_trans_start_sign_help"),children:[/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:"",children:i18n("style_none")}),OPT_INPUT_TRANS_SIGNS.map(function(item){return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:item,children:item},item);})]}),/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Grid_Grid,{container:true,spacing:2,columns:12,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:12,sm:12,md:4,lg:4,children:/*#__PURE__*/(0,jsx_runtime.jsx)(ShortcutInput,{value:triggerShortcut,onChange:handleShortcutInput,label:i18n("trigger_trans_shortcut"),helperText:i18n("trigger_trans_shortcut_help")})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:12,sm:12,md:4,lg:4,children:/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,fullWidth:true,size:"small",name:"triggerCount",value:triggerCount,label:i18n("shortcut_press_count"),onChange:handleChange,children:[1,2,3,4,5].map(function(val){return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:val,children:val},val);})})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:12,sm:12,md:4,lg:4,children:/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{fullWidth:true,size:"small",label:i18n("combo_timeout"),type:"number",name:"triggerTime",defaultValue:triggerTime,onChange:handleChange})})]})})]})});}
 ;// CONCATENATED MODULE: ./src/views/Options/index.js
 function Options(){var _useState=(0,react.useState)(""),_useState2=(0,slicedToArray/* default */.Z)(_useState,2),error=_useState2[0],setError=_useState2[1];var _useState3=(0,react.useState)(false),_useState4=(0,slicedToArray/* default */.Z)(_useState3,2),ready=_useState4[0],setReady=_useState4[1];(0,react.useEffect)(function(){asyncToGenerator_asyncToGenerator(/*#__PURE__*/regeneratorRuntime_regeneratorRuntime().mark(function _callee(){var i,_window,_window$APP_INFO,_window$APP_INFO2,version,eventName;return regeneratorRuntime_regeneratorRuntime().wrap(function _callee$(_context){while(1)switch(_context.prev=_context.next){case 0:if(!isGm){_context.next=21;break;}// 等待GM注入
 i=0;case 2:if(!(((_window=window)===null||_window===void 0?void 0:(_window$APP_INFO=_window.APP_INFO)===null||_window$APP_INFO===void 0?void 0:_window$APP_INFO.name)==="KISS Translator")){_context.next=12;break;}_window$APP_INFO2=window.APP_INFO,version=_window$APP_INFO2.version,eventName=_window$APP_INFO2.eventName;// 检查版本是否一致
-if(!(version!=="1.7.0")){_context.next=7;break;}setError("The version is inconsistent, please check whether the script(v".concat(version,") is the latest version(v").concat("1.7.0","). (\u7248\u672C\u4E0D\u4E00\u81F4\uFF0C\u8BF7\u68C0\u67E5\u811A\u672C(v").concat(version,")\u662F\u5426\u4E3A\u6700\u65B0\u7248(v").concat("1.7.0","))"));return _context.abrupt("break",19);case 7:if(eventName){// 注入GM接口
+if(!(version!=="1.7.1")){_context.next=7;break;}setError("The version is inconsistent, please check whether the script(v".concat(version,") is the latest version(v").concat("1.7.1","). (\u7248\u672C\u4E0D\u4E00\u81F4\uFF0C\u8BF7\u68C0\u67E5\u811A\u672C(v").concat(version,")\u662F\u5426\u4E3A\u6700\u65B0\u7248(v").concat("1.7.1","))"));return _context.abrupt("break",19);case 7:if(eventName){// 注入GM接口
 adaptScript(eventName);}// 同步数据
-_context.next=10;return trySyncSettingAndRules();case 10:setReady(true);return _context.abrupt("break",19);case 12:if(!(++i>8)){_context.next=15;break;}setError("Time out. (连接超时)");return _context.abrupt("break",19);case 15:_context.next=17;return sleep(1000);case 17:_context.next=2;break;case 19:_context.next=24;break;case 21:_context.next=23;return trySyncSettingAndRules();case 23:setReady(true);case 24:case"end":return _context.stop();}},_callee);}))();},[]);if(error){return/*#__PURE__*/(0,jsx_runtime.jsxs)("center",{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Alert_Alert,{severity:"error",children:error}),/*#__PURE__*/(0,jsx_runtime.jsx)(Divider_Divider,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(material_Link_Link,{href:"https://github.com/fishjar/kiss-translator",children:"KISS Translator v".concat("1.7.0")})}),/*#__PURE__*/(0,jsx_runtime.jsx)("h2",{children:"Please confirm whether to install or enable KISS Translator GreaseMonkey script? (\u8BF7\u68C0\u67E5\u662F\u5426\u5B89\u88C5\u6216\u542F\u7528\u7B80\u7EA6\u7FFB\u8BD1\u6CB9\u7334\u811A\u672C)"}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(material_Link_Link,{href:"https://fishjar.github.io/kiss-translator/kiss-translator.user.js",children:"Install Userscript for Tampermonkey/Violentmonkey 1 (\u6CB9\u7334\u811A\u672C \u5B89\u88C5\u5730\u5740 1)"}),/*#__PURE__*/(0,jsx_runtime.jsx)(material_Link_Link,{href:"https://kiss-translator.rayjar.com/kiss-translator.user.js",children:"Install Userscript for Tampermonkey/Violentmonkey 2 (\u6CB9\u7334\u811A\u672C \u5B89\u88C5\u5730\u5740 2)"}),/*#__PURE__*/(0,jsx_runtime.jsx)(material_Link_Link,{href:"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js",children:"Install Userscript for iOS Safari 1 (\u6CB9\u7334\u811A\u672C iOS Safari\u4E13\u7528 \u5B89\u88C5\u5730\u5740 1)"}),/*#__PURE__*/(0,jsx_runtime.jsx)(material_Link_Link,{href:"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js",children:"Install Userscript for iOS Safari 2 (\u6CB9\u7334\u811A\u672C iOS Safari\u4E13\u7528 \u5B89\u88C5\u5730\u5740 2)"}),/*#__PURE__*/(0,jsx_runtime.jsx)(material_Link_Link,{href:"https://fishjar.github.io/kiss-translator/options.html",children:"Open Options Page 1 (\u6253\u5F00\u8BBE\u7F6E\u9875\u9762 1)"}),/*#__PURE__*/(0,jsx_runtime.jsx)(material_Link_Link,{href:"https://kiss-translator.rayjar.com/options",children:"Open Options Page 2 (\u6253\u5F00\u8BBE\u7F6E\u9875\u9762 2)"})]})]});}if(!ready){return/*#__PURE__*/(0,jsx_runtime.jsxs)("center",{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Divider_Divider,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(material_Link_Link,{href:"https://github.com/fishjar/kiss-translator",children:"KISS Translator v".concat("1.7.0")})}),/*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgress_CircularProgress,{})]});}return/*#__PURE__*/(0,jsx_runtime.jsx)(SettingProvider,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(Theme,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(AlertProvider,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(HashRouter,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(Routes,{children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Route,{path:"/",element:/*#__PURE__*/(0,jsx_runtime.jsx)(Layout,{}),children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Route,{index:true,element:/*#__PURE__*/(0,jsx_runtime.jsx)(Settings,{})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Route,{path:"rules",element:/*#__PURE__*/(0,jsx_runtime.jsx)(Rules,{})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Route,{path:"apis",element:/*#__PURE__*/(0,jsx_runtime.jsx)(Apis,{})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Route,{path:"sync",element:/*#__PURE__*/(0,jsx_runtime.jsx)(SyncSetting,{})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Route,{path:"webfix",element:/*#__PURE__*/(0,jsx_runtime.jsx)(Webfix,{})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Route,{path:"about",element:/*#__PURE__*/(0,jsx_runtime.jsx)(About,{})})]})})})})})});}
+_context.next=10;return trySyncSettingAndRules();case 10:setReady(true);return _context.abrupt("break",19);case 12:if(!(++i>8)){_context.next=15;break;}setError("Time out. (连接超时)");return _context.abrupt("break",19);case 15:_context.next=17;return sleep(1000);case 17:_context.next=2;break;case 19:_context.next=24;break;case 21:_context.next=23;return trySyncSettingAndRules();case 23:setReady(true);case 24:case"end":return _context.stop();}},_callee);}))();},[]);if(error){return/*#__PURE__*/(0,jsx_runtime.jsxs)("center",{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Alert_Alert,{severity:"error",children:error}),/*#__PURE__*/(0,jsx_runtime.jsx)(Divider_Divider,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(material_Link_Link,{href:"https://github.com/fishjar/kiss-translator",children:"KISS Translator v".concat("1.7.1")})}),/*#__PURE__*/(0,jsx_runtime.jsx)("h2",{children:"Please confirm whether to install or enable KISS Translator GreaseMonkey script? (\u8BF7\u68C0\u67E5\u662F\u5426\u5B89\u88C5\u6216\u542F\u7528\u7B80\u7EA6\u7FFB\u8BD1\u6CB9\u7334\u811A\u672C)"}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(material_Link_Link,{href:"https://fishjar.github.io/kiss-translator/kiss-translator.user.js",children:"Install Userscript for Tampermonkey/Violentmonkey 1 (\u6CB9\u7334\u811A\u672C \u5B89\u88C5\u5730\u5740 1)"}),/*#__PURE__*/(0,jsx_runtime.jsx)(material_Link_Link,{href:"https://kiss-translator.rayjar.com/kiss-translator.user.js",children:"Install Userscript for Tampermonkey/Violentmonkey 2 (\u6CB9\u7334\u811A\u672C \u5B89\u88C5\u5730\u5740 2)"}),/*#__PURE__*/(0,jsx_runtime.jsx)(material_Link_Link,{href:"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js",children:"Install Userscript for iOS Safari 1 (\u6CB9\u7334\u811A\u672C iOS Safari\u4E13\u7528 \u5B89\u88C5\u5730\u5740 1)"}),/*#__PURE__*/(0,jsx_runtime.jsx)(material_Link_Link,{href:"https://kiss-translator.rayjar.com/kiss-translator-ios-safari.user.js",children:"Install Userscript for iOS Safari 2 (\u6CB9\u7334\u811A\u672C iOS Safari\u4E13\u7528 \u5B89\u88C5\u5730\u5740 2)"}),/*#__PURE__*/(0,jsx_runtime.jsx)(material_Link_Link,{href:"https://fishjar.github.io/kiss-translator/options.html",children:"Open Options Page 1 (\u6253\u5F00\u8BBE\u7F6E\u9875\u9762 1)"}),/*#__PURE__*/(0,jsx_runtime.jsx)(material_Link_Link,{href:"https://kiss-translator.rayjar.com/options",children:"Open Options Page 2 (\u6253\u5F00\u8BBE\u7F6E\u9875\u9762 2)"})]})]});}if(!ready){return/*#__PURE__*/(0,jsx_runtime.jsxs)("center",{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Divider_Divider,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(material_Link_Link,{href:"https://github.com/fishjar/kiss-translator",children:"KISS Translator v".concat("1.7.1")})}),/*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgress_CircularProgress,{})]});}return/*#__PURE__*/(0,jsx_runtime.jsx)(SettingProvider,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(Theme,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(AlertProvider,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(HashRouter,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(Routes,{children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Route,{path:"/",element:/*#__PURE__*/(0,jsx_runtime.jsx)(Layout,{}),children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Route,{index:true,element:/*#__PURE__*/(0,jsx_runtime.jsx)(Settings,{})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Route,{path:"rules",element:/*#__PURE__*/(0,jsx_runtime.jsx)(Rules,{})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Route,{path:"input",element:/*#__PURE__*/(0,jsx_runtime.jsx)(InputSetting,{})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Route,{path:"apis",element:/*#__PURE__*/(0,jsx_runtime.jsx)(Apis,{})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Route,{path:"sync",element:/*#__PURE__*/(0,jsx_runtime.jsx)(SyncSetting,{})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Route,{path:"webfix",element:/*#__PURE__*/(0,jsx_runtime.jsx)(Webfix,{})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Route,{path:"about",element:/*#__PURE__*/(0,jsx_runtime.jsx)(About,{})})]})})})})})});}
 ;// CONCATENATED MODULE: ./src/options.js
 var options_root=client.createRoot(document.getElementById("root"));options_root.render(/*#__PURE__*/(0,jsx_runtime.jsx)(react.StrictMode,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(Options,{})}));
 }();
