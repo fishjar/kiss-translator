@@ -24,7 +24,7 @@
 - [x] 支持多种翻译服务
   - [x] Google/Microsoft/DeepL/OpenAI
   - [x] 自定义翻译接口
-- [x] 支持常见翻译场景
+- [x] 覆盖常见翻译场景
   - [x] 网页双语翻译
   - [x] 输入框翻译
   - [x] 鼠标悬停翻译
@@ -40,7 +40,7 @@
   - `Alt+O` 打开设置
   - `Alt+I` 输入框翻译
 
-## 下载
+## 安装
 
 - [x] 浏览器扩展
   - [x] Chrome [安装地址](https://chrome.google.com/webstore/detail/kiss-translator/bdiifdefkgmcblbcghdlonllpjhhjgof?hl=zh-CN)

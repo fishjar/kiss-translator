@@ -24,7 +24,7 @@ If you also like a little more simplicity, welcome to pick it up.
 - [x] Supports multiple translation services
   - [x] Google/Microsoft/DeepL/OpenAI
   - [x] Custom translation interface
-- [x] Support common translation scenarios
+- [x] Covers common translation scenarios
   - [x] Web bilingual translation
   - [x] Input box translation
   - [x] Mouseover translation
@@ -40,7 +40,7 @@ If you also like a little more simplicity, welcome to pick it up.
   - `Alt+O` Open Options
   - `Alt+I` Input Box Translation
 
-## Download
+## Install
 
 - [x] Browser extension
   - [x] Chrome [Installation address](https://chrome.google.com/webstore/detail/kiss-translator/bdiifdefkgmcblbcghdlonllpjhhjgof?hl=zh-CN)
