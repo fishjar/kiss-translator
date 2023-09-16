@@ -24,11 +24,15 @@ If you also like a little more simplicity, welcome to pick it up.
 - [x] Supports multiple translation services
   - [x] Google/Microsoft/DeepL/OpenAI
   - [x] Custom translation interface
-- [x] Support input box translation
-- [x] Support YouTube subtitle translation
-- [x] Data synchronization function
-- [x] Custom rules + rule subscription
-- [x] Custom style
+- [x] Support common translation scenarios
+  - [x] Web bilingual translation
+  - [x] Input box translation
+  - [x] Mouseover translation
+  - [x] YouTube subtitle translation
+- [x] Cross-client data synchronization
+- [x] Custom translation rules
+  - [x] Rule subscription/rule sharing
+- [x] Custom translation style
 - [x] Custom shortcut keys
   - `Alt+Q` Toggle Translation
   - `Alt+C` Toggle Styles

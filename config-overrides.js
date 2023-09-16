@@ -75,7 +75,7 @@ const userscriptWebpack = (config, env) => {
 // @name          ${process.env.REACT_APP_NAME}
 // @namespace     ${process.env.REACT_APP_HOMEPAGE}
 // @version       ${process.env.REACT_APP_VERSION}
-// @description   A minimalist bilingual translation Extension & Greasemonkey Script (一个简约的双语网页翻译扩展 & 油猴脚本)
+// @description   A minimalist bilingual translation Extension & Greasemonkey Script (一个简约的网页双语翻译扩展 & 油猴脚本)
 // @author        Gabe<yugang2002@gmail.com>
 // @homepageURL   ${process.env.REACT_APP_HOMEPAGE}
 // @license       GPL-3.0

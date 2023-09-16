@@ -1,6 +1,6 @@
 # 简约翻译
 
-一个简约的 [双语网页翻译扩展 & 油猴脚本](https://github.com/fishjar/kiss-translator)。
+一个简约的 [网页双语翻译扩展 & 油猴脚本](https://github.com/fishjar/kiss-translator)。
 
 [kiss-translator.webm](https://github.com/fishjar/kiss-translator/assets/1157624/f7ba8a5c-e4a8-4d5a-823a-5c5c67a0a47f)
 
@@ -14,9 +14,9 @@
 
 如果你也喜欢简约一点的，欢迎自取。
 
-## 特点
+## 特性
 
-- [x] 保持简约
+- [x] 简约而不失灵性
 - [x] 开放源代码
 - [x] 适配常见浏览器
   - [x] Chrome/Edge/Firefox/Kiwi
@@ -24,11 +24,15 @@
 - [x] 支持多种翻译服务
   - [x] Google/Microsoft/DeepL/OpenAI
   - [x] 自定义翻译接口
-- [x] 支持输入框翻译
-- [x] 支持 YouTube 字幕翻译
-- [x] 数据同步功能
-- [x] 自定义规则 + 规则订阅
-- [x] 自定义样式
+- [x] 支持常见翻译场景
+  - [x] 网页双语翻译
+  - [x] 输入框翻译
+  - [x] 鼠标悬停翻译
+  - [x] YouTube 字幕翻译
+- [x] 跨客户端数据同步
+- [x] 自定义翻译规则
+  - [x] 规则订阅/规则分享
+- [x] 自定义译文样式
 - [x] 自定义快捷键
   - `Alt+Q` 开启翻译
   - `Alt+C` 切换样式
