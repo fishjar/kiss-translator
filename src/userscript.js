@@ -10,8 +10,13 @@ import {
 } from "./libs/storage";
 import { Translator } from "./libs/translator";
 import { trySyncAllSubRules } from "./libs/subRules";
-import { MSG_TRANS_TOGGLE, MSG_TRANS_PUTRULE } from "./config";
-import { isIframe } from "./libs/iframe";
+import {
+  MSG_TRANS_TOGGLE,
+  MSG_TRANS_TOGGLE_STYLE,
+  MSG_TRANS_GETRULE,
+  MSG_TRANS_PUTRULE,
+} from "./config";
+import { isIframe, sendIframeMsg, sendPrentMsg } from "./libs/iframe";
 import { handlePing, injectScript } from "./libs/gm";
 import { matchRule } from "./libs/rules";
 import { genEventName } from "./libs/utils";
@@ -46,29 +51,49 @@ const init = async () => {
   }
 
   // 翻译页面
-  const href = isIframe ? document.referrer : document.location.href;
   const setting = await getSettingWithDefault();
+
+  if (isIframe) {
+    let translator;
+    window.addEventListener("message", (e) => {
+      const { action, args } = e.data || {};
+      switch (action) {
+        case MSG_TRANS_TOGGLE:
+          translator?.toggle();
+          break;
+        case MSG_TRANS_TOGGLE_STYLE:
+          translator?.toggleStyle();
+          break;
+        case MSG_TRANS_PUTRULE:
+          if (!translator) {
+            translator = new Translator(args, setting);
+          } else {
+            translator.updateRule(args || {});
+          }
+          break;
+        default:
+      }
+    });
+    sendPrentMsg(MSG_TRANS_GETRULE);
+    return;
+  }
+
+  const href = isIframe ? document.referrer : document.location.href;
   const rules = await getRulesWithDefault();
   const rule = await matchRule(rules, href, setting);
   const translator = new Translator(rule, setting);
   webfix(href, setting);
 
-  if (isIframe) {
-    // iframe
-    window.addEventListener("message", (e) => {
-      const action = e?.data?.action;
-      switch (action) {
-        case MSG_TRANS_TOGGLE:
-          translator.toggle();
-          break;
-        case MSG_TRANS_PUTRULE:
-          translator.updateRule(e.data.args || {});
-          break;
-        default:
-      }
-    });
-    return;
-  }
+  // 监听消息
+  window.addEventListener("message", (e) => {
+    const { action } = e.data || {};
+    switch (action) {
+      case MSG_TRANS_GETRULE:
+        sendIframeMsg(MSG_TRANS_PUTRULE, rule);
+        break;
+      default:
+    }
+  });
 
   // 浮球按钮
   const fab = await getFabWithDefault();

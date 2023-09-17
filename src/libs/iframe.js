@@ -5,3 +5,7 @@ export const sendIframeMsg = (action, args) => {
     iframe.contentWindow.postMessage({ action, args }, "*");
   });
 };
+
+export const sendPrentMsg = (action, args) => {
+  window.parent.postMessage({ action, args }, "*");
+};

@@ -16,8 +16,11 @@ import {
   OPT_SHORTCUT_STYLE,
   OPT_SHORTCUT_POPUP,
   OPT_SHORTCUT_SETTING,
+  MSG_TRANS_TOGGLE,
+  MSG_TRANS_TOGGLE_STYLE,
 } from "../../config";
 import { shortcutRegister } from "../../libs/shortcut";
+import { sendIframeMsg } from "../../libs/iframe";
 
 export default function Action({ translator, fab }) {
   const fabWidth = 40;
@@ -57,10 +60,12 @@ export default function Action({ translator, fab }) {
     const clearShortcuts = [
       shortcutRegister(shortcuts[OPT_SHORTCUT_TRANSLATE], () => {
         translator.toggle();
+        sendIframeMsg(MSG_TRANS_TOGGLE);
         setShowPopup(false);
       }),
       shortcutRegister(shortcuts[OPT_SHORTCUT_STYLE], () => {
         translator.toggleStyle();
+        sendIframeMsg(MSG_TRANS_TOGGLE_STYLE);
         setShowPopup(false);
       }),
       shortcutRegister(shortcuts[OPT_SHORTCUT_POPUP], () => {
@@ -91,6 +96,7 @@ export default function Action({ translator, fab }) {
           "Toggle Translate (Alt+q)",
           (event) => {
             translator.toggle();
+            sendIframeMsg(MSG_TRANS_TOGGLE);
             setShowPopup(false);
           },
           "Q"
@@ -99,6 +105,7 @@ export default function Action({ translator, fab }) {
           "Toggle Style (Alt+c)",
           (event) => {
             translator.toggleStyle();
+            sendIframeMsg(MSG_TRANS_TOGGLE_STYLE);
             setShowPopup(false);
           },
           "C"
