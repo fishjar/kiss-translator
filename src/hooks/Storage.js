@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { storage } from "../libs/storage";
 
-export function useStorage(key, defaultVal = null) {
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState(defaultVal);
+export function useStorage(key, defaultVal) {
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState(null);
 
   const save = useCallback(
     async (val) => {
@@ -15,7 +15,7 @@ export function useStorage(key, defaultVal = null) {
 
   const update = useCallback(
     async (obj) => {
-      setData((pre) => ({ ...pre, ...obj }));
+      setData((pre = {}) => ({ ...pre, ...obj }));
       await storage.putObj(key, obj);
     },
     [key]
@@ -27,27 +27,37 @@ export function useStorage(key, defaultVal = null) {
   }, [key]);
 
   const reload = useCallback(async () => {
-    const val = await storage.getObj(key);
-    if (val) {
-      setData(val);
-    } else if (defaultVal) {
-      setData(defaultVal);
-      await storage.setObj(key, defaultVal);
+    try {
+      setLoading(true);
+      const val = await storage.getObj(key);
+      if (val) {
+        setData(val);
+      }
+    } catch (err) {
+      console.log("[storage reload]", err.message);
+    } finally {
+      setLoading(false);
     }
-  }, [key, defaultVal]);
+  }, [key]);
 
   useEffect(() => {
     (async () => {
       try {
         setLoading(true);
-        await reload();
+        const val = await storage.getObj(key);
+        if (val) {
+          setData(val);
+        } else if (defaultVal) {
+          setData(defaultVal);
+          await storage.setObj(key, defaultVal);
+        }
       } catch (err) {
-        //
+        console.log("[storage load]", err.message);
       } finally {
         setLoading(false);
       }
     })();
-  }, [reload]);
+  }, [key, defaultVal]);
 
   return { data, save, update, remove, reload, loading };
 }

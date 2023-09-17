@@ -526,6 +526,10 @@ function UserRules({ subRules }) {
     }
   }, [showAdd]);
 
+  if (!rules.list) {
+    return;
+  }
+
   return (
     <Stack spacing={3}>
       <Stack

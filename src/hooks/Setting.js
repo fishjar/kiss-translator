@@ -5,16 +5,13 @@ import { createContext, useCallback, useContext, useMemo } from "react";
 import { debounce } from "../libs/utils";
 
 const SettingContext = createContext({
-  setting: {},
+  setting: null,
   updateSetting: async () => {},
   reloadSetting: async () => {},
 });
 
 export function SettingProvider({ children }) {
-  const { data, update, reload, loading } = useStorage(
-    STOKEY_SETTING,
-    DEFAULT_SETTING
-  );
+  const { data, update, reload } = useStorage(STOKEY_SETTING, DEFAULT_SETTING);
 
   const syncSetting = useMemo(
     () =>
@@ -32,7 +29,7 @@ export function SettingProvider({ children }) {
     [update, syncSetting]
   );
 
-  if (loading) {
+  if (!data) {
     return;
   }
 

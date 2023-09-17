@@ -44,6 +44,10 @@ export default function SyncSetting() {
     }
   };
 
+  if (!sync) {
+    return;
+  }
+
   const { syncUrl = "", syncKey = "" } = sync;
 
   return (
