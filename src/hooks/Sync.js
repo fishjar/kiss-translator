@@ -21,7 +21,7 @@ export function useSyncCaches() {
 
   const updateDataCache = useCallback(
     async (url) => {
-      const dataCaches = sync.dataCaches || {};
+      const dataCaches = sync?.dataCaches || {};
       dataCaches[url] = Date.now();
       await updateSync({ dataCaches });
     },
@@ -30,7 +30,7 @@ export function useSyncCaches() {
 
   const deleteDataCache = useCallback(
     async (url) => {
-      const dataCaches = sync.dataCaches || {};
+      const dataCaches = sync?.dataCaches || {};
       delete dataCaches[url];
       await updateSync({ dataCaches });
     },
@@ -38,7 +38,7 @@ export function useSyncCaches() {
   );
 
   return {
-    dataCaches: sync.dataCaches || {},
+    dataCaches: sync?.dataCaches || {},
     updateDataCache,
     deleteDataCache,
     reloadSync,
