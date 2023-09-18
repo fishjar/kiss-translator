@@ -435,9 +435,17 @@ export const I18N = {
     zh: `重启浏览器时清除缓存`,
     en: `Clear cache when restarting browser`,
   },
+  data_sync_type: {
+    zh: `数据同步方式`,
+    en: `Data Sync Type`,
+  },
   data_sync_url: {
     zh: `数据同步接口`,
     en: `Data Sync API`,
+  },
+  data_sync_user: {
+    zh: `数据同步账户`,
+    en: `Data Sync User`,
   },
   data_sync_key: {
     zh: `数据同步密钥`,
@@ -460,8 +468,8 @@ export const I18N = {
     en: `Sorry, something went wrong!`,
   },
   error_sync_setting: {
-    zh: `您的同步设置未填写，无法在线分享。`,
-    en: `Your sync settings are missing and cannot be shared online.`,
+    zh: `您的同步类型必须为“KISS-Worker”，且需填写完整`,
+    en: `Your sync type must be "KISS-Worker" and must be filled in completely`,
   },
   click_test: {
     zh: `点击测试`,

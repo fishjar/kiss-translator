@@ -14,6 +14,7 @@ import {
   OPT_STYLE_DIY,
   OPT_STYLE_USE_COLOR,
   URL_KISS_RULES_NEW_ISSUE,
+  OPT_SYNCTYPE_WORKER,
 } from "../../config";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useI18n } from "../../hooks/I18n";
@@ -445,8 +446,8 @@ function ShareButton({ rules, injectRules, selectedUrl }) {
   const i18n = useI18n();
   const handleClick = async () => {
     try {
-      const { syncUrl, syncKey } = await getSyncWithDefault();
-      if (!syncUrl || !syncKey) {
+      const { syncType, syncUrl, syncKey } = await getSyncWithDefault();
+      if (syncType !== OPT_SYNCTYPE_WORKER || !syncUrl || !syncKey) {
         alert.warning(i18n("error_sync_setting"));
         return;
       }

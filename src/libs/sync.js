@@ -1,4 +1,5 @@
 import {
+  APP_LCNAME,
   KV_SETTING_KEY,
   KV_RULES_KEY,
   KV_RULES_SHARE_KEY,
@@ -15,6 +16,45 @@ import {
 } from "./storage";
 import { apiSyncData } from "../apis";
 import { sha256 } from "./utils";
+import { createClient } from "webdav";
+
+const syncByWebdav = async ({
+  key,
+  value,
+  syncUrl,
+  syncUser,
+  syncKey,
+  updateAt = 0,
+  syncAt = 0,
+  isForce = false,
+}) => {
+  const client = createClient(syncUrl, {
+    username: syncUser,
+    password: syncKey,
+  });
+  const pathname = `/${APP_LCNAME}`;
+  const filename = `/${APP_LCNAME}/${key}`;
+  const data = JSON.stringify(value, null, "  ");
+
+  if ((await client.exists(pathname)) === false) {
+    await client.createDirectory(pathname);
+  }
+
+  const isExist = await client.exists(filename);
+  if (isExist && !isForce) {
+    const { lastmod } = await client.stat(filename);
+    const fileUpdateAt = Date.parse(lastmod);
+    if (syncAt === 0 || fileUpdateAt > updateAt) {
+      const data = await client.getFileContents(filename, { format: "text" });
+      return { updateAt: fileUpdateAt, value: JSON.parse(data) };
+    }
+  }
+
+  await client.putFileContents(filename, data);
+  const { lastmod } = await client.stat(filename);
+  const fileUpdateAt = Date.parse(lastmod);
+  return { updateAt: fileUpdateAt, value };
+};
 
 const syncByWorker = async ({
   key,
@@ -59,16 +99,21 @@ const syncSetting = async (isBg = false, isForce = false) => {
   }
 
   const setting = await getSettingWithDefault();
-  const res = await syncByWorker({
+  const args = {
     key: KV_SETTING_KEY,
     value: setting,
     syncUrl,
+    syncUser,
     syncKey,
     updateAt: settingUpdateAt,
     syncAt: settingSyncAt,
     isBg,
     isForce,
-  });
+  };
+  const res =
+    syncType === OPT_SYNCTYPE_WEBDAV
+      ? await syncByWebdav(args)
+      : await syncByWorker(args);
 
   if (res.updateAt > settingUpdateAt) {
     await setSetting(res.value);
@@ -107,16 +152,21 @@ const syncRules = async (isBg = false, isForce = false) => {
   }
 
   const rules = await getRulesWithDefault();
-  const res = await syncByWorker({
+  const args = {
     key: KV_RULES_KEY,
     value: rules,
     syncUrl,
+    syncUser,
     syncKey,
     updateAt: rulesUpdateAt,
     syncAt: rulesSyncAt,
     isBg,
     isForce,
-  });
+  };
+  const res =
+    syncType === OPT_SYNCTYPE_WEBDAV
+      ? await syncByWebdav(args)
+      : await syncByWorker(args);
 
   if (res.updateAt > rulesUpdateAt) {
     await setRules(res.value);
@@ -143,14 +193,15 @@ export const trySyncRules = async (isBg = false, isForce = false) => {
  * @returns
  */
 export const syncShareRules = async ({ rules, syncUrl, syncKey }) => {
-  await syncByWorker({
+  const args = {
     key: KV_RULES_SHARE_KEY,
     value: rules,
     syncUrl,
     syncKey,
     updateAt: Date.now(),
     syncAt: Date.now(),
-  });
+  };
+  await syncByWorker(args);
   const psk = await sha256(syncKey, KV_SALT_SHARE);
   const shareUrl = `${syncUrl}/rules?psk=${psk}`;
   return shareUrl;

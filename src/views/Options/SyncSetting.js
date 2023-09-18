@@ -5,7 +5,13 @@ import { useI18n } from "../../hooks/I18n";
 import { useSync } from "../../hooks/Sync";
 import Alert from "@mui/material/Alert";
 import Link from "@mui/material/Link";
-import { URL_KISS_WORKER } from "../../config";
+import MenuItem from "@mui/material/MenuItem";
+import {
+  URL_KISS_WORKER,
+  OPT_SYNCTYPE_ALL,
+  OPT_SYNCTYPE_WORKER,
+  OPT_SYNCTYPE_WEBDAV,
+} from "../../config";
 import { useState } from "react";
 import { syncSettingAndRules } from "../../libs/sync";
 import Button from "@mui/material/Button";
@@ -48,12 +54,32 @@ export default function SyncSetting() {
     return;
   }
 
-  const { syncUrl = "", syncKey = "" } = sync;
+  const {
+    syncType = OPT_SYNCTYPE_WORKER,
+    syncUrl = "",
+    syncUser = "",
+    syncKey = "",
+  } = sync;
 
   return (
     <Box>
       <Stack spacing={3}>
         <Alert severity="warning">{i18n("sync_warn")}</Alert>
+
+        <TextField
+          select
+          size="small"
+          name="syncType"
+          value={syncType}
+          label={i18n("data_sync_type")}
+          onChange={handleChange}
+        >
+          {OPT_SYNCTYPE_ALL.map((item) => (
+            <MenuItem key={item} value={item}>
+              {item}
+            </MenuItem>
+          ))}
+        </TextField>
 
         <TextField
           size="small"
@@ -62,11 +88,23 @@ export default function SyncSetting() {
           value={syncUrl}
           onChange={handleChange}
           helperText={
-            <Link href={URL_KISS_WORKER} target="_blank">
-              {i18n("about_sync_api")}
-            </Link>
+            syncType === OPT_SYNCTYPE_WORKER && (
+              <Link href={URL_KISS_WORKER} target="_blank">
+                {i18n("about_sync_api")}
+              </Link>
+            )
           }
         />
+
+        {syncType === OPT_SYNCTYPE_WEBDAV && (
+          <TextField
+            size="small"
+            label={i18n("data_sync_user")}
+            name="syncUser"
+            value={syncUser}
+            onChange={handleChange}
+          />
+        )}
 
         <TextField
           size="small"
