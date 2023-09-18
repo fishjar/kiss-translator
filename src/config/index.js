@@ -38,9 +38,9 @@ export const CLIENT_FIREFOX = "firefox";
 export const CLIENT_USERSCRIPT = "userscript";
 export const CLIENT_EXTS = [CLIENT_CHROME, CLIENT_EDGE, CLIENT_FIREFOX];
 
-export const KV_RULES_KEY = "KT_RULES";
-export const KV_RULES_SHARE_KEY = "KT_RULES_SHARE";
-export const KV_SETTING_KEY = "KT_SETTING";
+export const KV_RULES_KEY = "kiss-rules.json";
+export const KV_RULES_SHARE_KEY = "kiss-rules-share.json";
+export const KV_SETTING_KEY = "kiss-setting.json";
 export const KV_SALT_SYNC = "KISS-Translator-SYNC";
 export const KV_SALT_SHARE = "KISS-Translator-SHARE";
 

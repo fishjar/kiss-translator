@@ -36,7 +36,7 @@ const syncSetting = async (isBg = false, isForce = false) => {
 
   const setting = await getSettingWithDefault();
   const res = await apiSyncData(
-    syncUrl,
+    `${syncUrl}/sync`,
     syncKey,
     {
       key: KV_SETTING_KEY,
@@ -86,7 +86,7 @@ const syncRules = async (isBg = false, isForce = false) => {
 
   const rules = await getRulesWithDefault();
   const res = await apiSyncData(
-    syncUrl,
+    `${syncUrl}/sync`,
     syncKey,
     {
       key: KV_RULES_KEY,
@@ -121,13 +121,13 @@ export const trySyncRules = async (isBg = false, isForce = false) => {
  * @returns
  */
 export const syncShareRules = async ({ rules, syncUrl, syncKey }) => {
-  await apiSyncData(syncUrl, syncKey, {
+  await apiSyncData(`${syncUrl}/sync`, syncKey, {
     key: KV_RULES_SHARE_KEY,
     value: rules,
     updateAt: Date.now(),
   });
   const psk = await sha256(syncKey, KV_SALT_SHARE);
-  const shareUrl = `${syncUrl}?psk=${psk}`;
+  const shareUrl = `${syncUrl}/rules?psk=${psk}`;
   return shareUrl;
 };
 
