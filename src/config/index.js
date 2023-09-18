@@ -293,8 +293,14 @@ export const DEFAULT_SETTING = {
 
 export const DEFAULT_RULES = [GLOBLA_RULE];
 
+export const OPT_SYNCTYPE_WORKER = "KISS-Worker";
+export const OPT_SYNCTYPE_WEBDAV = "WebDAV";
+export const OPT_SYNCTYPE_ALL = [OPT_SYNCTYPE_WORKER, OPT_SYNCTYPE_WEBDAV];
+
 export const DEFAULT_SYNC = {
+  syncType: OPT_SYNCTYPE_WORKER, // 同步方式
   syncUrl: "", // 数据同步接口
+  syncUser: "", // 数据同步用户名
   syncKey: "", // 数据同步密钥
   settingUpdateAt: 0,
   settingSyncAt: 0,
