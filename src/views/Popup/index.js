@@ -21,10 +21,10 @@ import {
   OPT_LANGS_TO,
   OPT_STYLE_ALL,
   OPT_STYLE_USE_COLOR,
-  CACHE_NAME,
 } from "../../config";
 import { sendIframeMsg } from "../../libs/iframe";
 import { saveRule } from "../../libs/rules";
+import { tryClearCaches } from "../../libs";
 
 export default function Popup({ setShowPopup, translator: tran }) {
   const i18n = useI18n();
@@ -71,11 +71,7 @@ export default function Popup({ setShowPopup, translator: tran }) {
   };
 
   const handleClearCache = () => {
-    try {
-      caches.delete(CACHE_NAME);
-    } catch (err) {
-      console.log("[clear cache]", err);
-    }
+    tryClearCaches();
   };
 
   const handleSaveRule = async () => {
