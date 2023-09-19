@@ -16,7 +16,15 @@ import {
 } from "./storage";
 import { apiSyncData } from "../apis";
 import { sha256 } from "./utils";
-import { createClient } from "webdav";
+import { createClient, getPatcher } from "webdav";
+import { fetchApi } from "./fetch";
+
+getPatcher().patch("request", (opts) => {
+  return fetchApi({
+    input: opts.url,
+    init: { method: opts.method, headers: opts.headers, body: opts.data },
+  });
+});
 
 const syncByWebdav = async ({
   key,

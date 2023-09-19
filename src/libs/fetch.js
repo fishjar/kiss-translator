@@ -28,7 +28,7 @@ export const fetchGM = async (input, { method = "GET", headers, body } = {}) =>
       headers,
       data: body,
       onload: (response) => {
-        if (response.status === 200) {
+        if (response.status < 300) {
           const headers = new Headers();
           response.responseHeaders.split("\n").forEach((line) => {
             const [name, value] = line.split(":").map((item) => item.trim());
@@ -66,7 +66,7 @@ const newCacheReq = async (request) => {
  * @param {*} param0
  * @returns
  */
-const fetchApi = async ({ input, init = {}, translator, token }) => {
+export const fetchApi = async ({ input, init = {}, translator, token }) => {
   if (token) {
     if (translator === OPT_TRANS_DEEPL) {
       init.headers["Authorization"] = `DeepL-Auth-Key ${token}`; // DeepL
