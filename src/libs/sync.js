@@ -64,7 +64,7 @@ const syncData = async (key, valueFn) => {
     syncMeta = {},
   } = await getSyncWithDefault();
   if (!syncUrl || !syncKey || (syncType === OPT_SYNCTYPE_WEBDAV && !syncUser)) {
-    throw new Error("sync setting err");
+    return;
   }
 
   let { updateAt = 0, syncAt = 0 } = syncMeta[key] || {};
@@ -93,7 +93,7 @@ const syncData = async (key, valueFn) => {
   };
   await updateSync({ syncMeta });
 
-  return [JSON.parse(res.value), res.updateAt > updateAt];
+  return { value: JSON.parse(res.value), isNew: res.updateAt > updateAt };
 };
 
 /**
@@ -101,9 +101,9 @@ const syncData = async (key, valueFn) => {
  * @returns
  */
 const syncSetting = async () => {
-  const [value, isNew] = await syncData(KV_SETTING_KEY, getSettingWithDefault);
-  if (isNew) {
-    await setSetting(value);
+  const res = await syncData(KV_SETTING_KEY, getSettingWithDefault);
+  if (res?.isNew) {
+    await setSetting(res.value);
   }
 };
 
@@ -120,9 +120,9 @@ export const trySyncSetting = async () => {
  * @returns
  */
 const syncRules = async () => {
-  const [value, isNew] = await syncData(KV_RULES_KEY, getRulesWithDefault);
-  if (isNew) {
-    await setRules(value);
+  const res = await syncData(KV_RULES_KEY, getRulesWithDefault);
+  if (res?.isNew) {
+    await setRules(res.value);
   }
 };
 
@@ -140,15 +140,16 @@ export const trySyncRules = async () => {
  * @returns
  */
 export const syncShareRules = async ({ rules, syncUrl, syncKey }) => {
-  const args = {
+  const data = {
     key: KV_RULES_SHARE_KEY,
-    value: rules,
+    value: JSON.stringify(rules, null, "  "),
+    updateAt: Date.now(),
+  };
+  const args = {
     syncUrl,
     syncKey,
-    updateAt: Date.now(),
-    syncAt: Date.now(),
   };
-  await syncByWorker(args);
+  await syncByWorker(data, args);
   const psk = await sha256(syncKey, KV_SALT_SHARE);
   const shareUrl = `${syncUrl}/rules?psk=${psk}`;
   return shareUrl;
