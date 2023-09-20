@@ -302,10 +302,11 @@ export const DEFAULT_SYNC = {
   syncUrl: "", // 数据同步接口
   syncUser: "", // 数据同步用户名
   syncKey: "", // 数据同步密钥
-  settingUpdateAt: 0,
-  settingSyncAt: 0,
-  rulesUpdateAt: 0,
-  rulesSyncAt: 0,
+  syncMeta: {}, // 数据更新及同步信息
+  // settingUpdateAt: 0,
+  // settingSyncAt: 0,
+  // rulesUpdateAt: 0,
+  // rulesSyncAt: 0,
   subRulesSyncAt: 0, // 订阅规则同步时间
   dataCaches: {}, // 缓存同步时间
 };

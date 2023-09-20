@@ -26,117 +26,90 @@ getPatcher().patch("request", (opts) => {
   });
 });
 
-const syncByWebdav = async ({
-  key,
-  value,
-  syncUrl,
-  syncUser,
-  syncKey,
-  updateAt = 0,
-  syncAt = 0,
-  isForce = false,
-}) => {
+const syncByWebdav = async (data, { syncUrl, syncUser, syncKey }) => {
   const client = createClient(syncUrl, {
     username: syncUser,
     password: syncKey,
   });
   const pathname = `/${APP_LCNAME}`;
-  const filename = `/${APP_LCNAME}/${key}`;
-  const data = JSON.stringify(value, null, "  ");
+  const filename = `/${APP_LCNAME}/${data.key}`;
 
   if ((await client.exists(pathname)) === false) {
     await client.createDirectory(pathname);
   }
 
   const isExist = await client.exists(filename);
-  if (isExist && !isForce) {
-    const { lastmod } = await client.stat(filename);
-    const fileUpdateAt = Date.parse(lastmod);
-    if (syncAt === 0 || fileUpdateAt > updateAt) {
-      const data = await client.getFileContents(filename, { format: "text" });
-      return { updateAt: fileUpdateAt, value: JSON.parse(data) };
+  if (isExist) {
+    const cont = await client.getFileContents(filename, { format: "text" });
+    const webData = JSON.parse(cont);
+    if (webData.updateAt >= data.updateAt) {
+      return webData;
     }
   }
 
-  await client.putFileContents(filename, data);
-  const { lastmod } = await client.stat(filename);
-  const fileUpdateAt = Date.parse(lastmod);
-  return { updateAt: fileUpdateAt, value };
+  await client.putFileContents(filename, JSON.stringify(data, null, "  "));
+  return data;
 };
 
-const syncByWorker = async ({
-  key,
-  value,
-  syncUrl,
-  syncKey,
-  updateAt = 0,
-  syncAt = 0,
-  isBg = false,
-  isForce = false,
-}) => {
-  if (isForce) {
-    updateAt = Date.now();
-  }
-  return await apiSyncData(
-    `${syncUrl}/sync`,
+const syncByWorker = async (data, { syncUrl, syncKey }) => {
+  return await apiSyncData(`${syncUrl}/sync`, syncKey, data);
+};
+
+const syncData = async (key, valueFn) => {
+  const {
+    syncType,
+    syncUrl,
+    syncUser,
     syncKey,
-    {
-      key,
-      value,
-      updateAt: syncAt === 0 ? 0 : updateAt,
-    },
-    isBg
-  );
+    syncMeta = {},
+  } = await getSyncWithDefault();
+  if (!syncUrl || !syncKey || (syncType === OPT_SYNCTYPE_WEBDAV && !syncUser)) {
+    throw new Error("sync setting err");
+  }
+
+  let { updateAt = 0, syncAt = 0 } = syncMeta[key] || {};
+  syncAt === 0 && (updateAt = 0);
+
+  const value = await valueFn();
+  const data = {
+    key,
+    value: JSON.stringify(value),
+    updateAt,
+  };
+  const args = {
+    syncUrl,
+    syncUser,
+    syncKey,
+  };
+
+  const res =
+    syncType === OPT_SYNCTYPE_WEBDAV
+      ? await syncByWebdav(data, args)
+      : await syncByWorker(data, args);
+
+  syncMeta[key] = {
+    updateAt: res.updateAt,
+    syncAt: Date.now(),
+  };
+  await updateSync({ syncMeta });
+
+  return [JSON.parse(res.value), res.updateAt > updateAt];
 };
 
 /**
  * 同步设置
  * @returns
  */
-const syncSetting = async (isBg = false, isForce = false) => {
-  const {
-    syncType,
-    syncUrl,
-    syncUser,
-    syncKey,
-    settingUpdateAt = 0,
-    settingSyncAt = 0,
-  } = await getSyncWithDefault();
-  if (!syncUrl || !syncKey || (syncType === OPT_SYNCTYPE_WEBDAV && !syncUser)) {
-    return;
+const syncSetting = async () => {
+  const [value, isNew] = await syncData(KV_SETTING_KEY, getSettingWithDefault);
+  if (isNew) {
+    await setSetting(value);
   }
-
-  const setting = await getSettingWithDefault();
-  const args = {
-    key: KV_SETTING_KEY,
-    value: setting,
-    syncUrl,
-    syncUser,
-    syncKey,
-    updateAt: settingUpdateAt,
-    syncAt: settingSyncAt,
-    isBg,
-    isForce,
-  };
-  const res =
-    syncType === OPT_SYNCTYPE_WEBDAV
-      ? await syncByWebdav(args)
-      : await syncByWorker(args);
-
-  if (res.updateAt > settingUpdateAt) {
-    await setSetting(res.value);
-  }
-  await updateSync({
-    settingUpdateAt: res.updateAt,
-    settingSyncAt: Date.now(),
-  });
-
-  return res.value;
 };
 
-export const trySyncSetting = async (isBg = false, isForce = false) => {
+export const trySyncSetting = async () => {
   try {
-    return await syncSetting(isBg, isForce);
+    await syncSetting();
   } catch (err) {
     console.log("[sync setting]", err);
   }
@@ -146,50 +119,16 @@ export const trySyncSetting = async (isBg = false, isForce = false) => {
  * 同步规则
  * @returns
  */
-const syncRules = async (isBg = false, isForce = false) => {
-  const {
-    syncType,
-    syncUrl,
-    syncUser,
-    syncKey,
-    rulesUpdateAt = 0,
-    rulesSyncAt = 0,
-  } = await getSyncWithDefault();
-  if (!syncUrl || !syncKey || (syncType === OPT_SYNCTYPE_WEBDAV && !syncUser)) {
-    return;
+const syncRules = async () => {
+  const [value, isNew] = await syncData(KV_RULES_KEY, getRulesWithDefault);
+  if (isNew) {
+    await setRules(value);
   }
-
-  const rules = await getRulesWithDefault();
-  const args = {
-    key: KV_RULES_KEY,
-    value: rules,
-    syncUrl,
-    syncUser,
-    syncKey,
-    updateAt: rulesUpdateAt,
-    syncAt: rulesSyncAt,
-    isBg,
-    isForce,
-  };
-  const res =
-    syncType === OPT_SYNCTYPE_WEBDAV
-      ? await syncByWebdav(args)
-      : await syncByWorker(args);
-
-  if (res.updateAt > rulesUpdateAt) {
-    await setRules(res.value);
-  }
-  await updateSync({
-    rulesUpdateAt: res.updateAt,
-    rulesSyncAt: Date.now(),
-  });
-
-  return res.value;
 };
 
-export const trySyncRules = async (isBg = false, isForce = false) => {
+export const trySyncRules = async () => {
   try {
-    return await syncRules(isBg, isForce);
+    await syncRules();
   } catch (err) {
     console.log("[sync user rules]", err);
   }
@@ -219,10 +158,12 @@ export const syncShareRules = async ({ rules, syncUrl, syncKey }) => {
  * 同步个人设置和规则
  * @returns
  */
-export const syncSettingAndRules = async (isBg = false) => {
-  return [await syncSetting(isBg), await syncRules(isBg)];
+export const syncSettingAndRules = async () => {
+  await syncSetting();
+  await syncRules();
 };
 
-export const trySyncSettingAndRules = async (isBg = false) => {
-  return [await trySyncSetting(isBg), await trySyncRules(isBg)];
+export const trySyncSettingAndRules = async () => {
+  await trySyncSetting();
+  await trySyncRules();
 };

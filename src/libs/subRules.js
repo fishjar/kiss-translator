@@ -25,8 +25,8 @@ const updateSyncDataCache = async (url) => {
  * @param {*} url
  * @returns
  */
-export const syncSubRules = async (url, isBg = false) => {
-  const res = await apiFetch(url, isBg);
+export const syncSubRules = async (url) => {
+  const res = await apiFetch(url);
   const rules = checkRules(res).filter(
     ({ pattern }) => !isAllchar(pattern, GLOBAL_KEY)
   );
@@ -41,10 +41,10 @@ export const syncSubRules = async (url, isBg = false) => {
  * @param {*} url
  * @returns
  */
-export const syncAllSubRules = async (subrulesList, isBg = false) => {
+export const syncAllSubRules = async (subrulesList) => {
   for (let subrules of subrulesList) {
     try {
-      await syncSubRules(subrules.url, isBg);
+      await syncSubRules(subrules.url);
       await updateSyncDataCache(subrules.url);
     } catch (err) {
       console.log(`[sync subrule error]: ${subrules.url}`, err);
@@ -57,14 +57,14 @@ export const syncAllSubRules = async (subrulesList, isBg = false) => {
  * @param {*} url
  * @returns
  */
-export const trySyncAllSubRules = async ({ subrulesList }, isBg = false) => {
+export const trySyncAllSubRules = async ({ subrulesList }) => {
   try {
     const { subRulesSyncAt } = await getSyncWithDefault();
     const now = Date.now();
     const interval = 24 * 60 * 60 * 1000; // 间隔一天
     if (now - subRulesSyncAt > interval) {
       // 同步订阅规则
-      await syncAllSubRules(subrulesList, isBg);
+      await syncAllSubRules(subrulesList);
       await updateSync({ subRulesSyncAt: now });
 
       // 同步修复规则

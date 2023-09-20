@@ -13,6 +13,7 @@ import {
   DEFAULT_FETCH_LIMIT,
 } from "../config";
 import { msAuth } from "./auth";
+import { isBg } from "./browser";
 
 /**
  * 油猴脚本的请求封装
@@ -176,13 +177,13 @@ export const fetchData = async (
  * @param {*} opts
  * @returns
  */
-export const fetchPolyfill = async (input, { isBg = false, ...opts } = {}) => {
+export const fetchPolyfill = async (input, opts) => {
   if (!input.trim()) {
     throw new Error("URL is empty");
   }
 
   // 插件
-  if (isExt && !isBg) {
+  if (isExt && !isBg()) {
     const res = await sendBgMsg(MSG_FETCH, { input, opts });
     if (res.error) {
       throw new Error(res.error);

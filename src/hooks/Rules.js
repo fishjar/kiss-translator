@@ -1,8 +1,9 @@
-import { STOKEY_RULES, DEFAULT_RULES } from "../config";
+import { STOKEY_RULES, DEFAULT_RULES, KV_RULES_KEY } from "../config";
 import { useStorage } from "./Storage";
 import { trySyncRules } from "../libs/sync";
 import { checkRules } from "../libs/rules";
 import { useCallback } from "react";
+import { useSyncMeta } from "./Sync";
 
 /**
  * 规则 hook
@@ -10,13 +11,15 @@ import { useCallback } from "react";
  */
 export function useRules() {
   const { data: list, save } = useStorage(STOKEY_RULES, DEFAULT_RULES);
+  const { updateSyncMeta } = useSyncMeta();
 
   const updateRules = useCallback(
     async (rules) => {
       await save(rules);
-      trySyncRules(false, true);
+      await updateSyncMeta(KV_RULES_KEY);
+      trySyncRules();
     },
-    [save]
+    [save, updateSyncMeta]
   );
 
   const add = useCallback(

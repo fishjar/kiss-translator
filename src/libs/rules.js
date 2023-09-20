@@ -149,5 +149,5 @@ export const saveRule = async (newRule) => {
     rules.unshift(newRule);
   }
   await setRules(rules);
-  trySyncRules(false, true);
+  trySyncRules();
 };

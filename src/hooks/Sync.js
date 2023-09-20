@@ -12,6 +12,23 @@ export function useSync() {
 }
 
 /**
+ * update syncmeta hook
+ * @returns
+ */
+export function useSyncMeta() {
+  const { sync, updateSync } = useSync();
+  const updateSyncMeta = useCallback(
+    async (key) => {
+      const syncMeta = sync?.syncMeta || {};
+      syncMeta[key] = { ...(syncMeta[key] || {}), updateAt: Date.now() };
+      await updateSync({ syncMeta });
+    },
+    [sync, updateSync]
+  );
+  return { updateSyncMeta };
+}
+
+/**
  * caches sync hook
  * @param {*} url
  * @returns

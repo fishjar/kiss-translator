@@ -21,7 +21,7 @@ import { sha256 } from "../libs/utils";
  * @param {*} data
  * @returns
  */
-export const apiSyncData = async (url, key, data, isBg = false) =>
+export const apiSyncData = async (url, key, data) =>
   fetchPolyfill(url, {
     headers: {
       "Content-type": "application/json",
@@ -29,16 +29,14 @@ export const apiSyncData = async (url, key, data, isBg = false) =>
     },
     method: "POST",
     body: JSON.stringify(data),
-    isBg,
   });
 
 /**
  * 下载数据
  * @param {*} url
- * @param {*} isBg
  * @returns
  */
-export const apiFetch = (url, isBg = false) => fetchPolyfill(url, { isBg });
+export const apiFetch = (url) => fetchPolyfill(url);
 
 /**
  * 谷歌翻译

@@ -32,7 +32,7 @@ browser.runtime.onStartup.addListener(async () => {
   console.log("browser onStartup");
 
   // 同步数据
-  await trySyncSettingAndRules(true);
+  await trySyncSettingAndRules();
 
   // 清除缓存
   const setting = await getSettingWithDefault();
@@ -41,7 +41,7 @@ browser.runtime.onStartup.addListener(async () => {
   }
 
   // 同步订阅规则
-  trySyncAllSubRules(setting, true);
+  trySyncAllSubRules(setting);
 });
 
 /**
