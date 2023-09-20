@@ -16,6 +16,8 @@ import { sendTabMsg } from "./libs/msg";
 import { trySyncAllSubRules } from "./libs/subRules";
 import { tryClearCaches } from "./libs";
 
+globalThis.ContextType = "BACKGROUND";
+
 /**
  * 插件安装
  */

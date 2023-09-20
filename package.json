@@ -40,7 +40,8 @@
     ],
     "globals": {
       "GM": true,
-      "unsafeWindow": true
+      "unsafeWindow": true,
+      "globalThis": true
     }
   },
   "browserslist": {

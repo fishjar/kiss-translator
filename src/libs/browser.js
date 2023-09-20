@@ -13,3 +13,5 @@ function _browser() {
 }
 
 export const browser = _browser();
+
+export const isBg = () => globalThis?.ContextType === "BACKGROUND";
