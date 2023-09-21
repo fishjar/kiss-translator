@@ -10,12 +10,15 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8.7.6
       - uses: actions/setup-node@v3
         with:
           node-version: "18.17.0"
-          cache: "yarn"
-      - run: yarn install
-      - run: yarn build
+          cache: "pnpm"
+      - run: pnpm install
+      - run: pnpm build
       - uses: actions/upload-artifact@v3
         with:
           name: build-artifacts
