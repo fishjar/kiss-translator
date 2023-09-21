@@ -30,6 +30,8 @@ If you also like a little more simplicity, welcome to pick it up.
   - [x] Mouseover translation
   - [x] YouTube subtitle translation
 - [x] Cross-client data synchronization
+  - [x] KISS-Worker（cloudflare/docker）
+  - [x] WebDAV
 - [x] Custom translation rules
   - [x] Rule subscription/rule sharing
 - [x] Custom translation style
@@ -41,6 +43,11 @@ If you also like a little more simplicity, welcome to pick it up.
   - `Alt+I` Input Box Translation
 
 ## Install
+
+> Note: For the following reasons, it is recommended to use browser extensions first
+>
+> - Browser extension can use local language recognition
+> - Grease Monkey script will encounter more usage problems
 
 - [x] Browser extension
   - [x] Chrome [Installation address](https://chrome.google.com/webstore/detail/kiss-translator/bdiifdefkgmcblbcghdlonllpjhhjgof?hl=zh-CN)

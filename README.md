@@ -16,7 +16,7 @@
 
 ## 特性
 
-- [x] 简约而不失灵性
+- [x] 保持简约
 - [x] 开放源代码
 - [x] 适配常见浏览器
   - [x] Chrome/Edge/Firefox/Kiwi
@@ -30,6 +30,8 @@
   - [x] 鼠标悬停翻译
   - [x] YouTube 字幕翻译
 - [x] 跨客户端数据同步
+  - [x] KISS-Worker（cloudflare/docker）
+  - [x] WebDAV
 - [x] 自定义翻译规则
   - [x] 规则订阅/规则分享
 - [x] 自定义译文样式
@@ -41,6 +43,11 @@
   - `Alt+I` 输入框翻译
 
 ## 安装
+
+> 注：基于以下原因，建议优先使用浏览器扩展
+>
+> - 浏览器扩展可以使用本地的语言识别
+> - 油猴脚本会遇到更多使用上的问题
 
 - [x] 浏览器扩展
   - [x] Chrome [安装地址](https://chrome.google.com/webstore/detail/kiss-translator/bdiifdefkgmcblbcghdlonllpjhhjgof?hl=zh-CN)
