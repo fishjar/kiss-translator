@@ -15,7 +15,7 @@ import {
   setRules,
 } from "./storage";
 import { apiSyncData } from "../apis";
-import { sha256 } from "./utils";
+import { sha256, removeEndchar } from "./utils";
 import { createClient, getPatcher } from "webdav";
 import { fetchApi } from "./fetch";
 
@@ -52,6 +52,7 @@ const syncByWebdav = async (data, { syncUrl, syncUser, syncKey }) => {
 };
 
 const syncByWorker = async (data, { syncUrl, syncKey }) => {
+  syncUrl = removeEndchar(syncUrl, "/");
   return await apiSyncData(`${syncUrl}/sync`, syncKey, data);
 };
 
