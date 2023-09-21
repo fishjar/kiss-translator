@@ -77,8 +77,8 @@ If you also like a little more simplicity, welcome to pick it up.
 ```sh
 git clone https://github.com/fishjar/kiss-translator.git
 cd kiss-translator
-yarn install
-yarn build
+pnpm install
+pnpm build
 ```
 
 ## Discussion

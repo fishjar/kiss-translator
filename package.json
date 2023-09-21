@@ -5,6 +5,7 @@
   "author": "Gabe<yugang2002@gmail.com>",
   "private": true,
   "dependencies": {
+    "@emotion/cache": "^11.11.0",
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.10.8",
     "@mui/icons-material": "^5.11.11",
@@ -28,7 +29,7 @@
     "build:userscript-ios": "file1=build/web/kiss-translator.user.js file2=build/web/kiss-translator-ios-safari.user.js && cp $file1 $file2 && sed -i 's|// @grant         unsafeWindow|// @inject-into   content|g' $file2",
     "build:userscript": "rm -rf build/userscript && mkdir build/userscript && cp build/web/*.user.js build/userscript/",
     "build:rules": "babel-node src/rules.js",
-    "build": "yarn build:chrome && yarn build:edge && yarn build:firefox && yarn build:web && yarn build:userscript-ios && yarn build:userscript && yarn build:rules",
+    "build": "pnpm build:chrome && pnpm build:edge && pnpm build:firefox && pnpm build:web && pnpm build:userscript-ios && pnpm build:userscript && pnpm build:rules",
     "deploy:web": "wrangler pages deploy ./build/web --project-name kiss-translator",
     "test": "react-app-rewired test",
     "eject": "react-scripts eject"

@@ -77,8 +77,8 @@
 ```sh
 git clone https://github.com/fishjar/kiss-translator.git
 cd kiss-translator
-yarn install
-yarn build
+pnpm install
+pnpm build
 ```
 
 ## 交流
