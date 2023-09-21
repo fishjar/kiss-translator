@@ -47,7 +47,7 @@ const syncByWebdav = async (data, { syncUrl, syncUser, syncKey }) => {
     }
   }
 
-  await client.putFileContents(filename, JSON.stringify(data, null, "  "));
+  await client.putFileContents(filename, JSON.stringify(data, null, 2));
   return data;
 };
 
@@ -142,7 +142,7 @@ export const trySyncRules = async () => {
 export const syncShareRules = async ({ rules, syncUrl, syncKey }) => {
   const data = {
     key: KV_RULES_SHARE_KEY,
-    value: JSON.stringify(rules, null, "  "),
+    value: JSON.stringify(rules, null, 2),
     updateAt: Date.now(),
   };
   const args = {
