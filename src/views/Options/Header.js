@@ -1,4 +1,3 @@
-import PropTypes from "prop-types";
 import AppBar from "@mui/material/AppBar";
 import IconButton from "@mui/material/IconButton";
 import MenuIcon from "@mui/icons-material/Menu";
@@ -44,9 +43,5 @@ function Header(props) {
     </AppBar>
   );
 }
-
-Header.propTypes = {
-  onDrawerToggle: PropTypes.func.isRequired,
-};
 
 export default Header;
