@@ -23,7 +23,7 @@ export function useSyncMeta() {
       syncMeta[key] = { ...(syncMeta[key] || {}), updateAt: Date.now() };
       await updateSync({ syncMeta });
     },
-    [sync, updateSync]
+    [sync?.syncMeta, updateSync]
   );
   return { updateSyncMeta };
 }
