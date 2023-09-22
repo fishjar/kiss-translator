@@ -269,7 +269,7 @@ export const DEFAULT_SHORTCUTS = {
 
 export const TRANS_MIN_LENGTH = 5; // 最短翻译长度
 export const TRANS_MAX_LENGTH = 5000; // 最长翻译长度
-export const TRANS_NEWLINE_LENGTH = 40; // 换行字符数
+export const TRANS_NEWLINE_LENGTH = 30; // 换行字符数
 
 export const DEFAULT_SETTING = {
   darkMode: false, // 深色模式
