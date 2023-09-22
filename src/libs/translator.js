@@ -91,8 +91,8 @@ function addLoading(node, loadingId) {
   node.offsetParent?.appendChild(div);
 }
 
-function removeLoading(loadingId) {
-  const div = document.getElementById(loadingId);
+function removeLoading(node, loadingId) {
+  const div = node.offsetParent.querySelector(`#${loadingId}`);
   if (div) {
     div.remove();
   }
@@ -259,6 +259,22 @@ export class Translator {
     );
   };
 
+  _queryShadowNodes = (selector, rootNode) => {
+    this._rootNodes.add(rootNode);
+    this._queryFilter(selector, rootNode).forEach((item) => {
+      if (!this._tranNodes.has(item)) {
+        this._tranNodes.set(item, "");
+      }
+    });
+
+    Array.from(rootNode.querySelectorAll("*"))
+      .map((item) => item.shadowRoot)
+      .filter(Boolean)
+      .forEach((item) => {
+        this._queryShadowNodes(selector, item);
+      });
+  };
+
   _queryNodes = (rootNode = document) => {
     // const childRoots = Array.from(rootNode.querySelectorAll("*"))
     //   .map((item) => item.shadowRoot)
@@ -281,14 +297,15 @@ export class Translator {
             const outNodes = this._querySelectorAll(outSelector, rootNode);
             outNodes.forEach((outNode) => {
               if (outNode.shadowRoot) {
-                this._rootNodes.add(outNode.shadowRoot);
-                this._queryFilter(inSelector, outNode.shadowRoot).forEach(
-                  (item) => {
-                    if (!this._tranNodes.has(item)) {
-                      this._tranNodes.set(item, "");
-                    }
-                  }
-                );
+                // this._rootNodes.add(outNode.shadowRoot);
+                // this._queryFilter(inSelector, outNode.shadowRoot).forEach(
+                //   (item) => {
+                //     if (!this._tranNodes.has(item)) {
+                //       this._tranNodes.set(item, "");
+                //     }
+                //   }
+                // );
+                this._queryShadowNodes(inSelector, outNode.shadowRoot);
               }
             });
           }
@@ -357,8 +374,17 @@ export class Translator {
     stepShortcutRegister(
       triggerShortcut,
       async () => {
-        const node = document.activeElement;
-        if (!node || !(isInputNode(node) || isEditAbleNode(node))) {
+        let node = document.activeElement;
+
+        if (!node) {
+          return;
+        }
+
+        while (node.shadowRoot) {
+          node = node.shadowRoot.activeElement;
+        }
+
+        if (!isInputNode(node) && !isEditAbleNode(node)) {
           return;
         }
 
@@ -435,7 +461,7 @@ export class Translator {
         } catch (err) {
           console.log("[translate input]", err.message);
         } finally {
-          removeLoading(loadingId);
+          removeLoading(node, loadingId);
         }
       },
       triggerCount,
