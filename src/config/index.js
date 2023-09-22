@@ -201,7 +201,7 @@ export const GLOBLA_RULE = {
 
 // 输入框翻译
 export const OPT_INPUT_TRANS_SIGNS = ["/", "//", "\\", "\\\\", ">", ">>"];
-export const DEFAULT_INPUT_SHORTCUT = ["Alt", "i"];
+export const DEFAULT_INPUT_SHORTCUT = ["AltLeft", "KeyI"];
 export const DEFAULT_INPUT_RULE = {
   transOpen: true,
   translator: OPT_TRANS_MICROSOFT,
@@ -261,10 +261,10 @@ export const OPT_SHORTCUT_STYLE = "toggleStyle";
 export const OPT_SHORTCUT_POPUP = "togglePopup";
 export const OPT_SHORTCUT_SETTING = "openSetting";
 export const DEFAULT_SHORTCUTS = {
-  [OPT_SHORTCUT_TRANSLATE]: ["Alt", "q"],
-  [OPT_SHORTCUT_STYLE]: ["Alt", "c"],
-  [OPT_SHORTCUT_POPUP]: ["Alt", "k"],
-  [OPT_SHORTCUT_SETTING]: ["Alt", "o"],
+  [OPT_SHORTCUT_TRANSLATE]: ["AltLeft", "KeyQ"],
+  [OPT_SHORTCUT_STYLE]: ["AltLeft", "KeyC"],
+  [OPT_SHORTCUT_POPUP]: ["AltLeft", "KeyK"],
+  [OPT_SHORTCUT_SETTING]: ["AltLeft", "KeyN"],
 };
 
 export const TRANS_MIN_LENGTH = 5; // 最短翻译长度

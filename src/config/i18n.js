@@ -576,8 +576,8 @@ export const I18N = {
     en: `Trigger Translation Shortcut Keys`,
   },
   trigger_trans_shortcut_help: {
-    zh: `默认为单击“Alt+i”`,
-    en: `Default is "Alt+i"`,
+    zh: `默认为单击“AltLeft+KeyI”`,
+    en: `Default is "AltLeft+KeyI"`,
   },
   shortcut_press_count: {
     zh: `快捷键连击次数`,

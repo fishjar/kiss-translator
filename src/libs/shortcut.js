@@ -22,14 +22,14 @@ export const shortcutListener = (fn, target = document, timeout = 3000) => {
     }, timeout);
 
     if (e.code) {
-      allkeys.add(e.key);
-      curkeys.add(e.key);
+      allkeys.add(e.code);
+      curkeys.add(e.code);
       fn([...curkeys], [...allkeys]);
     }
   };
 
   const handleKeyup = (e) => {
-    curkeys.delete(e.key);
+    curkeys.delete(e.code);
     if (curkeys.size === 0) {
       fn([...curkeys], [...allkeys]);
       allkeys.clear();
