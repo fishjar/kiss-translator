@@ -26,6 +26,7 @@ import {
 } from "../../config";
 import { useShortcut } from "../../hooks/Shortcut";
 import ShortcutInput from "./ShortcutInput";
+import { useFab } from "../../hooks/Fab";
 
 function ShortcutItem({ action, label }) {
   const { shortcut, setShortcut } = useShortcut(action);
@@ -38,6 +39,7 @@ export default function Settings() {
   const i18n = useI18n();
   const { setting, updateSetting } = useSetting();
   const alert = useAlert();
+  const { fab, updateFab } = useFab();
 
   const handleChange = (e) => {
     e.preventDefault();
@@ -83,8 +85,8 @@ export default function Settings() {
     clearCache,
     newlineLength = TRANS_NEWLINE_LENGTH,
     mouseKey = OPT_MOUSEKEY_DISABLE,
-    hideFab = false,
   } = setting;
+  const { isHide = false } = fab || {};
 
   return (
     <Box>
@@ -166,6 +168,21 @@ export default function Settings() {
           </Select>
         </FormControl>
 
+        <FormControl size="small">
+          <InputLabel>{i18n("hide_fab_button")}</InputLabel>
+          <Select
+            name="isHide"
+            value={isHide}
+            label={i18n("hide_fab_button")}
+            onChange={(e) => {
+              updateFab({ isHide: e.target.value });
+            }}
+          >
+            <MenuItem value={false}>{i18n("show")}</MenuItem>
+            <MenuItem value={true}>{i18n("hide")}</MenuItem>
+          </Select>
+        </FormControl>
+
         {isExt ? (
           <FormControl size="small">
             <InputLabel>{i18n("if_clear_cache")}</InputLabel>
@@ -186,19 +203,6 @@ export default function Settings() {
           </FormControl>
         ) : (
           <>
-            <FormControl size="small">
-              <InputLabel>{i18n("hide_fab_button")}</InputLabel>
-              <Select
-                name="hideFab"
-                value={hideFab}
-                label={i18n("hide_fab_button")}
-                onChange={handleChange}
-              >
-                <MenuItem value={false}>{i18n("show")}</MenuItem>
-                <MenuItem value={true}>{i18n("hide")}</MenuItem>
-              </Select>
-            </FormControl>
-
             <Box>
               <Grid container spacing={2} columns={12}>
                 <Grid item xs={12} sm={12} md={3} lg={3}>

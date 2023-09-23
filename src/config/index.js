@@ -49,6 +49,8 @@ export const CACHE_NAME = `${APP_NAME}_cache`;
 export const MSG_FETCH = "fetch";
 export const MSG_FETCH_LIMIT = "fetch_limit";
 export const MSG_FETCH_CLEAR = "fetch_clear";
+export const MSG_OPEN_OPTIONS = "open_options";
+export const MSG_SAVE_RULE = "save_rule";
 export const MSG_TRANS_TOGGLE = "trans_toggle";
 export const MSG_TRANS_TOGGLE_STYLE = "trans_toggle_style";
 export const MSG_TRANS_GETRULE = "trans_getrule";
@@ -287,7 +289,6 @@ export const DEFAULT_SETTING = {
   transApis: DEFAULT_TRANS_APIS, // 翻译接口
   mouseKey: OPT_MOUSEKEY_DISABLE, // 鼠标悬停翻译
   shortcuts: DEFAULT_SHORTCUTS, // 快捷键
-  hideFab: false, // 是否隐藏按钮
   inputRule: DEFAULT_INPUT_RULE, // 输入框设置
 };
 
@@ -303,10 +304,6 @@ export const DEFAULT_SYNC = {
   syncUser: "", // 数据同步用户名
   syncKey: "", // 数据同步密钥
   syncMeta: {}, // 数据更新及同步信息
-  // settingUpdateAt: 0,
-  // settingSyncAt: 0,
-  // rulesUpdateAt: 0,
-  // rulesSyncAt: 0,
   subRulesSyncAt: 0, // 订阅规则同步时间
   dataCaches: {}, // 缓存同步时间
 };

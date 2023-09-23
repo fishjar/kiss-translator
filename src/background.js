@@ -4,6 +4,8 @@ import {
   MSG_FETCH_LIMIT,
   MSG_FETCH_CLEAR,
   MSG_TRANS_TOGGLE,
+  MSG_OPEN_OPTIONS,
+  MSG_SAVE_RULE,
   MSG_TRANS_TOGGLE_STYLE,
   CMD_TOGGLE_TRANSLATE,
   CMD_TOGGLE_STYLE,
@@ -15,6 +17,7 @@ import { fetchData, fetchPool } from "./libs/fetch";
 import { sendTabMsg } from "./libs/msg";
 import { trySyncAllSubRules } from "./libs/subRules";
 import { tryClearCaches } from "./libs";
+import { saveRule } from "./libs/rules";
 
 globalThis.ContextType = "BACKGROUND";
 
@@ -68,6 +71,12 @@ browser.runtime.onMessage.addListener(
       case MSG_FETCH_CLEAR:
         fetchPool.clear();
         sendResponse({ data: "ok" });
+        break;
+      case MSG_OPEN_OPTIONS:
+        browser.runtime.openOptionsPage();
+        break;
+      case MSG_SAVE_RULE:
+        saveRule(args);
         break;
       default:
         sendResponse({ error: `message action is unavailable: ${action}` });

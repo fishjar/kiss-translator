@@ -5,7 +5,7 @@ import MenuItem from "@mui/material/MenuItem";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import Button from "@mui/material/Button";
-import { sendTabMsg, getTabInfo } from "../../libs/msg";
+import { sendBgMsg, sendTabMsg, getTabInfo } from "../../libs/msg";
 import { browser } from "../../libs/browser";
 import { isExt } from "../../libs/client";
 import { useI18n } from "../../hooks/I18n";
@@ -16,6 +16,8 @@ import {
   MSG_TRANS_TOGGLE,
   MSG_TRANS_GETRULE,
   MSG_TRANS_PUTRULE,
+  MSG_OPEN_OPTIONS,
+  MSG_SAVE_RULE,
   OPT_TRANS_ALL,
   OPT_LANGS_FROM,
   OPT_LANGS_TO,
@@ -31,8 +33,10 @@ export default function Popup({ setShowPopup, translator: tran }) {
   const [rule, setRule] = useState(tran?.rule);
 
   const handleOpenSetting = () => {
-    if (isExt) {
+    if (!tran) {
       browser?.runtime.openOptionsPage();
+    } else if (isExt) {
+      sendBgMsg(MSG_OPEN_OPTIONS);
     } else {
       window.open(process.env.REACT_APP_OPTIONSPAGE, "_blank");
     }
@@ -43,7 +47,7 @@ export default function Popup({ setShowPopup, translator: tran }) {
     try {
       setRule({ ...rule, transOpen: e.target.checked ? "true" : "false" });
 
-      if (isExt) {
+      if (!tran) {
         await sendTabMsg(MSG_TRANS_TOGGLE);
       } else {
         tran.toggle();
@@ -59,7 +63,7 @@ export default function Popup({ setShowPopup, translator: tran }) {
       const { name, value } = e.target;
       setRule((pre) => ({ ...pre, [name]: value }));
 
-      if (isExt) {
+      if (!tran) {
         await sendTabMsg(MSG_TRANS_PUTRULE, { [name]: value });
       } else {
         tran.updateRule({ [name]: value });
@@ -77,18 +81,23 @@ export default function Popup({ setShowPopup, translator: tran }) {
   const handleSaveRule = async () => {
     try {
       let href = window.location.href;
-      if (isExt) {
+      if (!tran) {
         const tab = await getTabInfo();
         href = tab.url;
       }
-      saveRule({ ...rule, pattern: href });
+      const rule = { ...rule, pattern: href };
+      if (isExt && tran) {
+        sendBgMsg(MSG_SAVE_RULE, rule);
+      } else {
+        saveRule(rule);
+      }
     } catch (err) {
       console.log("[save rule]", err);
     }
   };
 
   useEffect(() => {
-    if (!isExt) {
+    if (tran) {
       return;
     }
     (async () => {
@@ -101,12 +110,12 @@ export default function Popup({ setShowPopup, translator: tran }) {
         console.log("[query rule]", err);
       }
     })();
-  }, []);
+  }, [tran]);
 
   if (!rule) {
     return (
       <Box minWidth={300}>
-        {isExt && (
+        {!tran && (
           <>
             <Header />
             <Divider />
@@ -125,7 +134,7 @@ export default function Popup({ setShowPopup, translator: tran }) {
 
   return (
     <Box minWidth={300}>
-      {isExt && (
+      {!tran && (
         <>
           <Header />
           <Divider />

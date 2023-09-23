@@ -55,6 +55,10 @@ export default function Action({ translator, fab }) {
   }, []);
 
   useEffect(() => {
+    if (!isGm) {
+      return;
+    }
+
     // 注册快捷键
     const shortcuts = translator.setting.shortcuts || DEFAULT_SHORTCUTS;
     const clearShortcuts = [
@@ -198,7 +202,7 @@ export default function Action({ translator, fab }) {
           key="fab"
           snapEdge
           {...fabProps}
-          show={translator.setting.hideFab ? false : !showPopup}
+          show={fab.isHide ? false : !showPopup}
           onStart={handleStart}
           onMove={handleMove}
           handler={

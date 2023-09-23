@@ -1,11 +1,20 @@
 import { browser } from "./libs/browser";
+import React from "react";
+import ReactDOM from "react-dom/client";
+import Action from "./views/Action";
+import createCache from "@emotion/cache";
+import { CacheProvider } from "@emotion/react";
 import {
   MSG_TRANS_TOGGLE,
   MSG_TRANS_TOGGLE_STYLE,
   MSG_TRANS_GETRULE,
   MSG_TRANS_PUTRULE,
 } from "./config";
-import { getSettingWithDefault, getRulesWithDefault } from "./libs/storage";
+import {
+  getSettingWithDefault,
+  getRulesWithDefault,
+  getFabWithDefault,
+} from "./libs/storage";
 import { Translator } from "./libs/translator";
 import { isIframe, sendIframeMsg, sendPrentMsg } from "./libs/iframe";
 import { matchRule } from "./libs/rules";
@@ -79,6 +88,31 @@ const init = async () => {
       default:
     }
   });
+
+  // 浮球按钮
+  const fab = await getFabWithDefault();
+  if (!fab.isHide) {
+    const $action = document.createElement("div");
+    $action.setAttribute("id", "kiss-translator");
+    document.body.parentElement.appendChild($action);
+    const shadowContainer = $action.attachShadow({ mode: "closed" });
+    const emotionRoot = document.createElement("style");
+    const shadowRootElement = document.createElement("div");
+    shadowContainer.appendChild(emotionRoot);
+    shadowContainer.appendChild(shadowRootElement);
+    const cache = createCache({
+      key: "css",
+      prepend: true,
+      container: emotionRoot,
+    });
+    ReactDOM.createRoot(shadowRootElement).render(
+      <React.StrictMode>
+        <CacheProvider value={cache}>
+          <Action translator={translator} fab={fab} />
+        </CacheProvider>
+      </React.StrictMode>
+    );
+  }
 };
 
 (async () => {

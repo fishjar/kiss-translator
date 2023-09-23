@@ -119,6 +119,7 @@ export const setWebfix = (url, val) =>
 export const getFab = () => getObj(STOKEY_FAB);
 export const getFabWithDefault = async () => (await getFab()) || {};
 export const setFab = (obj) => setObj(STOKEY_FAB, obj);
+export const updateFab = (obj) => putObj(STOKEY_FAB, obj);
 
 /**
  * 数据同步
