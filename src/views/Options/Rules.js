@@ -554,7 +554,7 @@ function UserRules({ subRules }) {
 
         <UploadButton text={i18n("import")} onChange={handleImport} />
         <DownloadButton
-          data={JSON.stringify([...rules.list].reverse(), null, "\t")}
+          data={JSON.stringify([...rules.list].reverse(), null, 2)}
           text={i18n("export")}
         />
 
