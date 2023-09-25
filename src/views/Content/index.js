@@ -120,7 +120,7 @@ export default function Content({ q, translator }) {
   if (loading) {
     return (
       <>
-        {q.length > newlineLength ? <br /> : " "}
+        {q.length >= newlineLength ? <br /> : " "}
         <LoadingIcon />
       </>
     );
@@ -129,7 +129,7 @@ export default function Content({ q, translator }) {
   if (text && !sameLang) {
     return (
       <>
-        {q.length > newlineLength ? <br /> : " "}
+        {q.length >= newlineLength ? <br /> : " "}
         <StyledSpan
           textStyle={textStyle}
           textDiyStyle={textDiyStyle}

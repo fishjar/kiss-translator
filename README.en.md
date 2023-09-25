@@ -59,7 +59,7 @@ If you also like a little more simplicity, welcome to pick it up.
     - Greasy Fork [Installation address](https://greasyfork.org/zh-CN/scripts/472840-kiss-translator)
   - [x] iOS Safari ([Userscripts Safari](https://github.com/quoid/userscripts)) [Installation link 1](https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js)、 [Installation link 2](https://kiss-translator.rayjar.com/kiss-translator.user-ios-safari.js)
 
-## Associated ProjectS
+## Associated Projects
 
 - Data synchronization service: [https://github.com/fishjar/kiss-worker](https://github.com/fishjar/kiss-worker)
   - Data synchronization service available for this project.
