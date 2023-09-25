@@ -50,20 +50,20 @@ const customApiHelpZH = `/// 自定义翻译源接口说明
   method: "POST",
   headers: {
     "Content-type": "application/json",
-    "Authorization" = "Bearer {{YOUR_KEY}}"
+    "Authorization": "Bearer {{YOUR_KEY}}",
   },
   body: {
-    text, // 需要翻译的文字
-    from, // 源语言，可能为空，表示需要接口自动识别语言
-    to,   // 目标语言
+    text: "", // 需要翻译的文字
+    from: "", // 源语言，可能为空，表示需要接口自动识别语言
+    to: "",   // 目标语言
   }
 }
 
 // 返回（Response）数据需符合下面的JSON规范
 {
-  text, // 翻译后的文字
-  from, // 识别的源语言
-  to,   // 目标语言（可选）
+  text: "", // 翻译后的文字
+  from: "", // 识别的源语言
+  to: "",   // 目标语言（可选）
 }
 
 // 支持的语言代码如下
@@ -78,20 +78,20 @@ const customApiHelpEN = `/// Custom translation source interface description
   method: "POST",
   headers: {
     "Content-type": "application/json",
-    "Authorization" = "Bearer {{YOUR_KEY}}"
+    "Authorization": "Bearer {{YOUR_KEY}}",
   },
   body: {
-    text, // text to be translated
-    from, // Source language, may be empty
-    to,   // Target language
+    text: "", // text to be translated
+    from: "", // Source language, may be empty
+    to: "",   // Target language
   }
 }
 
 // The returned data must conform to the following JSON specification
 {
-  text, // translated text
-  from, // Recognized source language
-  to,   // Target language (optional)
+  text: "", // translated text
+  from: "", // Recognized source language
+  to: "",   // Target language (optional)
 }
 
 // The supported language codes are as follows
