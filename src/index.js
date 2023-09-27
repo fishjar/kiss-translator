@@ -32,25 +32,23 @@ function App() {
           href={process.env.REACT_APP_HOMEPAGE}
         >{`KISS Translator v${process.env.REACT_APP_VERSION}`}</Link>
       </Divider>
-      <Stack spacing={2} direction="row" useFlexGap flexWrap="wrap">
+      <Stack spacing={2}>
         <Link href={process.env.REACT_APP_USERSCRIPT_DOWNLOADURL}>
-          Install Userscript 1
+          Install/Update Userscript for Tampermonkey/Violentmonkey
         </Link>
-        <Link href={process.env.REACT_APP_USERSCRIPT_DOWNLOADURL2}>
-          Install Userscript 2
-        </Link>
+        {/* <Link href={process.env.REACT_APP_USERSCRIPT_DOWNLOADURL2}>
+          Install/Update Userscript for Tampermonkey/Violentmonkey 2
+        </Link> */}
         <Link href={process.env.REACT_APP_USERSCRIPT_IOS_DOWNLOADURL}>
-          Install Userscript Safari 1
+          Install/Update Userscript for iOS Safari
         </Link>
-        <Link href={process.env.REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2}>
-          Install Userscript Safari 2
-        </Link>
-        <Link href={process.env.REACT_APP_OPTIONSPAGE}>
-          Open Options Page 1
-        </Link>
-        <Link href={process.env.REACT_APP_OPTIONSPAGE2}>
+        {/* <Link href={process.env.REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2}>
+          Install/Update Userscript for iOS Safari 2
+        </Link> */}
+        <Link href={process.env.REACT_APP_OPTIONSPAGE}>Open Options Page</Link>
+        {/* <Link href={process.env.REACT_APP_OPTIONSPAGE2}>
           Open Options Page 2
-        </Link>
+        </Link> */}
       </Stack>
 
       {loading ? (

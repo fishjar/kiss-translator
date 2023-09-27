@@ -85,11 +85,11 @@ export default function Popup({ setShowPopup, translator: tran }) {
         const tab = await getTabInfo();
         href = tab.url;
       }
-      const rule = { ...rule, pattern: href };
+      const newRule = { ...rule, pattern: href };
       if (isExt && tran) {
-        sendBgMsg(MSG_SAVE_RULE, rule);
+        sendBgMsg(MSG_SAVE_RULE, newRule);
       } else {
-        saveRule(rule);
+        saveRule(newRule);
       }
     } catch (err) {
       console.log("[save rule]", err);
