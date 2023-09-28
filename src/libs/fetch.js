@@ -28,19 +28,21 @@ export const fetchGM = async (input, { method = "GET", headers, body } = {}) =>
       url: input,
       headers,
       data: body,
-      onload: (response) => {
-        if (response.status < 300) {
-          const headers = new Headers();
-          response.responseHeaders.split("\n").forEach((line) => {
-            const [name, value] = line.split(":").map((item) => item.trim());
-            if (name && value) {
-              headers.append(name, value);
-            }
-          });
-          resolve(new Response(response.response, { headers }));
-        } else {
-          reject(new Error(`[${response.status}] ${response.responseText}`));
-        }
+      onload: ({ response, responseHeaders, status, statusText }) => {
+        const headers = new Headers();
+        responseHeaders.split("\n").forEach((line) => {
+          const [name, value] = line.split(":").map((item) => item.trim());
+          if (name && value) {
+            headers.append(name, value);
+          }
+        });
+        resolve(
+          new Response(response, {
+            headers,
+            status,
+            statusText,
+          })
+        );
       },
       onerror: reject,
     });
