@@ -9,6 +9,7 @@ import {
   MSG_TRANS_TOGGLE_STYLE,
   MSG_TRANS_GETRULE,
   MSG_TRANS_PUTRULE,
+  APP_LCNAME,
 } from "./config";
 import {
   getSettingWithDefault,
@@ -93,7 +94,7 @@ const init = async () => {
   const fab = await getFabWithDefault();
   if (!fab.isHide) {
     const $action = document.createElement("div");
-    $action.setAttribute("id", "kiss-translator");
+    $action.setAttribute("id", APP_LCNAME);
     document.body.parentElement.appendChild($action);
     const shadowContainer = $action.attachShadow({ mode: "closed" });
     const emotionRoot = document.createElement("style");
@@ -101,7 +102,7 @@ const init = async () => {
     shadowContainer.appendChild(emotionRoot);
     shadowContainer.appendChild(shadowRootElement);
     const cache = createCache({
-      key: "kiss-translator",
+      key: APP_LCNAME,
       prepend: true,
       container: emotionRoot,
     });

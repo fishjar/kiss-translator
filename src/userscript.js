@@ -15,6 +15,7 @@ import {
   MSG_TRANS_TOGGLE_STYLE,
   MSG_TRANS_GETRULE,
   MSG_TRANS_PUTRULE,
+  APP_LCNAME,
 } from "./config";
 import { isIframe, sendIframeMsg, sendPrentMsg } from "./libs/iframe";
 import { handlePing, injectScript } from "./libs/gm";
@@ -98,7 +99,7 @@ const init = async () => {
   // 浮球按钮
   const fab = await getFabWithDefault();
   const $action = document.createElement("div");
-  $action.setAttribute("id", "kiss-translator");
+  $action.setAttribute("id", APP_LCNAME);
   document.body.parentElement.appendChild($action);
   const shadowContainer = $action.attachShadow({ mode: "closed" });
   const emotionRoot = document.createElement("style");
@@ -106,7 +107,7 @@ const init = async () => {
   shadowContainer.appendChild(emotionRoot);
   shadowContainer.appendChild(shadowRootElement);
   const cache = createCache({
-    key: "kiss-translator",
+    key: APP_LCNAME,
     prepend: true,
     container: emotionRoot,
   });
