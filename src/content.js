@@ -101,7 +101,7 @@ const init = async () => {
     shadowContainer.appendChild(emotionRoot);
     shadowContainer.appendChild(shadowRootElement);
     const cache = createCache({
-      key: "css",
+      key: "kiss-translator",
       prepend: true,
       container: emotionRoot,
     });
