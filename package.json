@@ -64,6 +64,5 @@
     "@babel/preset-env": "^7.22.10",
     "react-app-rewired": "^2.2.1",
     "wrangler": "^3.4.0"
-  },
-  "packageManager": "yarn@3.6.3"
+  }
 }
