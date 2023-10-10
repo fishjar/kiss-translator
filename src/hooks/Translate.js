@@ -23,7 +23,7 @@ export function useTranslate(q, rule, setting) {
       try {
         setLoading(true);
 
-        const deLang = await tryDetectLang(q);
+        const deLang = await tryDetectLang(q, true);
         if (deLang && toLang.includes(deLang)) {
           setSamelang(true);
         } else {

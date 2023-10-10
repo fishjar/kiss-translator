@@ -10,6 +10,8 @@ import {
   PROMPT_PLACE_FROM,
   PROMPT_PLACE_TO,
   KV_SALT_SYNC,
+  URL_BAIDU_LANGDETECT,
+  OPT_LANGS_BAIDU,
 } from "../config";
 import { tryDetectLang } from "../libs";
 import { sha256 } from "../libs/utils";
@@ -235,6 +237,30 @@ const apiCustomTranslate = async (
   const isSame = to === res.from;
 
   return [trText, isSame];
+};
+
+/**
+ * 百度语言识别
+ * @param {*} text
+ * @returns
+ */
+export const apiBaiduLangdetect = async (text) => {
+  const res = await fetchPolyfill(URL_BAIDU_LANGDETECT, {
+    headers: {
+      "Content-type": "application/json",
+    },
+    method: "POST",
+    body: JSON.stringify({
+      query: text,
+    }),
+    useCache: true,
+  });
+
+  if (res.error === 0) {
+    return OPT_LANGS_BAIDU.get(res.lan) ?? res.lan;
+  }
+
+  return "";
 };
 
 /**

@@ -68,10 +68,12 @@ export const URL_KISS_RULES_NEW_ISSUE =
 export const URL_RAW_PREFIX =
   "https://raw.githubusercontent.com/fishjar/kiss-translator/master";
 export const URL_MICROSOFT_AUTH = "https://edge.microsoft.com/translate/auth";
+export const URL_BAIDU_LANGDETECT = "https://fanyi.baidu.com/langdetect";
 
 export const OPT_TRANS_GOOGLE = "Google";
 export const OPT_TRANS_MICROSOFT = "Microsoft";
 export const OPT_TRANS_DEEPL = "DeepL";
+export const OPT_TRANS_BAIDU = "Baidu";
 export const OPT_TRANS_OPENAI = "OpenAI";
 export const OPT_TRANS_CUSTOMIZE = "Custom";
 export const OPT_TRANS_ALL = [
@@ -134,12 +136,45 @@ export const OPT_LANGS_SPECIAL = {
     ["zh-CN", "ZH"],
     ["zh-TW", "ZH"],
   ]),
+  [OPT_TRANS_BAIDU]: new Map([
+    ...OPT_LANGS_FROM.map(([key]) => [key, key.toUpperCase()]),
+    ["zh-CN", "zh"],
+    ["zh-TW", "cht"],
+    ["ar", "ara"],
+    ["bg", "bul"],
+    ["ca", "cat"],
+    ["hr", "hrv"],
+    ["da", "dan"],
+    ["fi", "fin"],
+    ["fr", "fra"],
+    ["hi", "mai"],
+    ["ja", "jp"],
+    ["ko", "kor"],
+    ["ms", "may"],
+    ["mt", "mlt"],
+    ["nb", "nor"],
+    ["ro", "rom"],
+    ["ru", "ru"],
+    ["sl", "slo"],
+    ["es", "spa"],
+    ["sv", "swe"],
+    ["ta", "tam"],
+    ["te", "tel"],
+    ["uk", "ukr"],
+    ["vi", "vie"],
+  ]),
   [OPT_TRANS_OPENAI]: new Map(
     OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
   ),
   [OPT_TRANS_CUSTOMIZE]: new Map([["auto", ""]]),
 };
 export const OPT_LANGS_LIST = OPT_LANGS_TO.map(([lang]) => lang);
+export const OPT_LANGS_BAIDU = new Map(
+  Array.from(OPT_LANGS_SPECIAL[OPT_TRANS_BAIDU].entries()).map(([k, v]) => [
+    v,
+    k,
+  ])
+);
 
 export const OPT_STYLE_NONE = "style_none"; // 无
 export const OPT_STYLE_LINE = "under_line"; // 下划线

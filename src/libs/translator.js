@@ -421,7 +421,7 @@ export class Translator {
         try {
           addLoading(node, loadingId);
 
-          const deLang = await tryDetectLang(text);
+          const deLang = await tryDetectLang(text, true);
           if (deLang && toLang.includes(deLang)) {
             return;
           }
