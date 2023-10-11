@@ -319,6 +319,7 @@ export const DEFAULT_SETTING = {
   clearCache: false, // 是否在浏览器下次启动时清除缓存
   injectRules: true, // 是否注入订阅规则
   injectWebfix: true, // 是否注入修复补丁
+  detectRemote: false, // 是否使用远程语言检测
   subrulesList: DEFAULT_SUBRULES_LIST, // 订阅列表
   owSubrule: DEFAULT_OW_RULE, // 覆写订阅规则
   transApis: DEFAULT_TRANS_APIS, // 翻译接口

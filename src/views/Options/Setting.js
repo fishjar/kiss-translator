@@ -85,6 +85,7 @@ export default function Settings() {
     clearCache,
     newlineLength = TRANS_NEWLINE_LENGTH,
     mouseKey = OPT_MOUSEKEY_DISABLE,
+    detectRemote = false,
   } = setting;
   const { isHide = false } = fab || {};
 
@@ -181,6 +182,20 @@ export default function Settings() {
             <MenuItem value={false}>{i18n("show")}</MenuItem>
             <MenuItem value={true}>{i18n("hide")}</MenuItem>
           </Select>
+        </FormControl>
+
+        <FormControl size="small">
+          <InputLabel>{i18n("detect_lang_remote")}</InputLabel>
+          <Select
+            name="detectRemote"
+            value={detectRemote}
+            label={i18n("detect_lang_remote")}
+            onChange={handleChange}
+          >
+            <MenuItem value={false}>{i18n("disable")}</MenuItem>
+            <MenuItem value={true}>{i18n("enable")}</MenuItem>
+          </Select>
+          <FormHelperText>{i18n("detect_lang_remote_help")}</FormHelperText>
         </FormControl>
 
         {isExt ? (

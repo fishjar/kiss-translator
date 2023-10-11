@@ -363,6 +363,7 @@ export class Translator {
     const apiSetting = (this._setting.transApis || DEFAULT_TRANS_APIS)[
       translator
     ];
+    const { detectRemote } = this._setting;
 
     let triggerShortcut = initTriggerShortcut;
     let triggerCount = initTriggerCount;
@@ -421,7 +422,7 @@ export class Translator {
         try {
           addLoading(node, loadingId);
 
-          const deLang = await tryDetectLang(text, true);
+          const deLang = await tryDetectLang(text, detectRemote);
           if (deLang && toLang.includes(deLang)) {
             return;
           }

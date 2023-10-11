@@ -595,4 +595,20 @@ export const I18N = {
     zh: `标识后面可以加目标语言代码，如： “/en 你好”、“/zh hello”`,
     en: `The target language code can be added after the sign, such as: "/en 你好", "/zh hello"`,
   },
+  detect_lang_remote: {
+    zh: `远程语言检测`,
+    en: `Remote language detection`,
+  },
+  detect_lang_remote_help: {
+    zh: `启用后检测准确度增加，但会降低翻译速度，请酌情开启`,
+    en: `After enabling, the detection accuracy will increase, but it will reduce the translation speed. Please enable it as appropriate.`,
+  },
+  disable: {
+    zh: `禁用`,
+    en: `Disable`,
+  },
+  enable: {
+    zh: `启用`,
+    en: `Enable`,
+  },
 };
