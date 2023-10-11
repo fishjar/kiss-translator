@@ -281,7 +281,7 @@ export const DEFAULT_TRANS_APIS = {
     key: "",
   },
   [OPT_TRANS_OPENAI]: {
-    url: "https://api.openai.com/v1/chat/completion",
+    url: "https://api.openai.com/v1/chat/completions",
     key: "",
     model: "gpt-4",
     prompt: `You will be provided with a sentence in ${PROMPT_PLACE_FROM}, and your task is to translate it into ${PROMPT_PLACE_TO}.`,
