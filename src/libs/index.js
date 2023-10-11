@@ -21,16 +21,21 @@ export const tryClearCaches = async () => {
 export const tryDetectLang = async (q, useRemote = false) => {
   let lang = "";
 
-  try {
-    if (useRemote) {
+  if (useRemote) {
+    try {
       lang = await apiBaiduLangdetect(q);
+    } catch (err) {
+      console.log("[detect lang remote]", err.message);
     }
-    if (!lang) {
+  }
+
+  if (!lang) {
+    try {
       const res = await browser?.i18n?.detectLanguage(q);
       lang = res?.languages?.[0]?.language;
+    } catch (err) {
+      console.log("[detect lang local]", err.message);
     }
-  } catch (err) {
-    console.log("[detect lang]", err.message);
   }
 
   return lang;

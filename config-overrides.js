@@ -103,6 +103,7 @@ const userscriptWebpack = (config, env) => {
 // @connect       kiss-translator.rayjar.com
 // @connect       ghproxy.com
 // @connect       dav.jianguoyun.com
+// @connect       fanyi.baidu.com
 // @connect       localhost:3000
 // @run-at        document-end
 // ==/UserScript==
