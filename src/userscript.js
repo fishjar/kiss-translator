@@ -17,7 +17,7 @@ import {
   MSG_TRANS_PUTRULE,
   APP_LCNAME,
 } from "./config";
-import { isIframe, sendIframeMsg, sendPrentMsg } from "./libs/iframe";
+import { isIframe, sendIframeMsg, sendParentMsg } from "./libs/iframe";
 import { handlePing, injectScript } from "./libs/gm";
 import { matchRule } from "./libs/rules";
 import { genEventName } from "./libs/utils";
@@ -75,7 +75,7 @@ const init = async () => {
         default:
       }
     });
-    sendPrentMsg(MSG_TRANS_GETRULE);
+    sendParentMsg(MSG_TRANS_GETRULE);
     return;
   }
 

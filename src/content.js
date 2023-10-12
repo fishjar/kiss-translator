@@ -17,7 +17,7 @@ import {
   getFabWithDefault,
 } from "./libs/storage";
 import { Translator } from "./libs/translator";
-import { isIframe, sendIframeMsg, sendPrentMsg } from "./libs/iframe";
+import { isIframe, sendIframeMsg, sendParentMsg } from "./libs/iframe";
 import { matchRule } from "./libs/rules";
 import { webfix } from "./libs/webfix";
 
@@ -48,7 +48,7 @@ const init = async () => {
         default:
       }
     });
-    sendPrentMsg(MSG_TRANS_GETRULE);
+    sendParentMsg(MSG_TRANS_GETRULE);
     return;
   }
 

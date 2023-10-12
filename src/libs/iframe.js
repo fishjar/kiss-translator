@@ -6,6 +6,6 @@ export const sendIframeMsg = (action, args) => {
   });
 };
 
-export const sendPrentMsg = (action, args) => {
+export const sendParentMsg = (action, args) => {
   window.parent.postMessage({ action, args }, "*");
 };
