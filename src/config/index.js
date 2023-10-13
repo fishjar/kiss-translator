@@ -173,7 +173,6 @@ export const OPT_LANGS_SPECIAL = {
     ["auto", ""],
   ]),
 };
-console.log("OPT_LANGS_SPECIAL", OPT_LANGS_SPECIAL);
 export const OPT_LANGS_LIST = OPT_LANGS_TO.map(([lang]) => lang);
 export const OPT_LANGS_BAIDU = new Map(
   Array.from(OPT_LANGS_SPECIAL[OPT_TRANS_BAIDU].entries()).map(([k, v]) => [
@@ -181,7 +180,6 @@ export const OPT_LANGS_BAIDU = new Map(
     k,
   ])
 );
-console.log("OPT_LANGS_BAIDU", OPT_LANGS_BAIDU);
 
 export const OPT_STYLE_NONE = "style_none"; // 无
 export const OPT_STYLE_LINE = "under_line"; // 下划线
