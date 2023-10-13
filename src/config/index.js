@@ -125,7 +125,9 @@ export const OPT_LANGS_TO = [
 ];
 export const OPT_LANGS_FROM = [["auto", "Auto-detect"], ...OPT_LANGS_TO];
 export const OPT_LANGS_SPECIAL = {
+  [OPT_TRANS_GOOGLE]: new Map(OPT_LANGS_FROM.map(([key]) => [key, key])),
   [OPT_TRANS_MICROSOFT]: new Map([
+    ...OPT_LANGS_FROM.map(([key]) => [key, key]),
     ["auto", ""],
     ["zh-CN", "zh-Hans"],
     ["zh-TW", "zh-Hant"],
@@ -137,7 +139,7 @@ export const OPT_LANGS_SPECIAL = {
     ["zh-TW", "ZH"],
   ]),
   [OPT_TRANS_BAIDU]: new Map([
-    ...OPT_LANGS_FROM.map(([key]) => [key, key.toUpperCase()]),
+    ...OPT_LANGS_FROM.map(([key]) => [key, key]),
     ["zh-CN", "zh"],
     ["zh-TW", "cht"],
     ["ar", "ara"],
@@ -166,8 +168,12 @@ export const OPT_LANGS_SPECIAL = {
   [OPT_TRANS_OPENAI]: new Map(
     OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
   ),
-  [OPT_TRANS_CUSTOMIZE]: new Map([["auto", ""]]),
+  [OPT_TRANS_CUSTOMIZE]: new Map([
+    ...OPT_LANGS_FROM.map(([key]) => [key, key]),
+    ["auto", ""],
+  ]),
 };
+console.log("OPT_LANGS_SPECIAL", OPT_LANGS_SPECIAL);
 export const OPT_LANGS_LIST = OPT_LANGS_TO.map(([lang]) => lang);
 export const OPT_LANGS_BAIDU = new Map(
   Array.from(OPT_LANGS_SPECIAL[OPT_TRANS_BAIDU].entries()).map(([k, v]) => [
@@ -175,6 +181,7 @@ export const OPT_LANGS_BAIDU = new Map(
     k,
   ])
 );
+console.log("OPT_LANGS_BAIDU", OPT_LANGS_BAIDU);
 
 export const OPT_STYLE_NONE = "style_none"; // 无
 export const OPT_STYLE_LINE = "under_line"; // 下划线

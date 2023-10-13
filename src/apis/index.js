@@ -275,8 +275,13 @@ export const apiTranslate = ({
   toLang,
   apiSetting,
 }) => {
-  const from = OPT_LANGS_SPECIAL[translator]?.get(fromLang) ?? fromLang;
-  const to = OPT_LANGS_SPECIAL[translator]?.get(toLang) ?? toLang;
+  const from = OPT_LANGS_SPECIAL[translator].get(fromLang);
+  const to = OPT_LANGS_SPECIAL[translator].get(toLang);
+
+  if (!to) {
+    return ["", from === to];
+  }
+
   const callApi = (api) => api(translator, text, to, from, apiSetting);
 
   switch (translator) {
