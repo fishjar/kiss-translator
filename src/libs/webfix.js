@@ -6,6 +6,7 @@ import { apiFetch } from "../apis";
  * 修复程序类型
  */
 const FIXER_BR = "br";
+const FIXER_BN = "bn";
 const FIXER_FONTSIZE = "fontSize";
 
 /**
@@ -33,6 +34,12 @@ const DEFAULT_SITES = [
     selector: "html",
     rootSelector: "",
     fixer: FIXER_FONTSIZE,
+  },
+  {
+    pattern: "chat.openai.com",
+    selector: "div[data-testid^=conversation-turn] .items-start > div",
+    rootSelector: "",
+    fixer: FIXER_BN,
   },
 ];
 
@@ -95,6 +102,26 @@ function brFixer(node) {
 }
 
 /**
+ * 目标是将 `\n` 替换成 `p`
+ * @param {*} node
+ * @returns
+ */
+function bnFixer(node) {
+  if (node.hasAttribute(fixedSign)) {
+    return;
+  }
+  node.setAttribute(fixedSign, "true");
+
+  const childs = node.childNodes;
+  if (childs.length === 1 && childs[0].nodeName === "#text") {
+    node.innerHTML = node.innerHTML
+      .split("\n")
+      .map((item) => `<p>${item || "&nbsp;"}</p>`)
+      .join("");
+  }
+}
+
+/**
  * 修复字体大小问题，如 baidu.com
  * @param {*} node
  */
@@ -107,6 +134,7 @@ function fontSizeFixer(node) {
  */
 const fixerMap = {
   [FIXER_BR]: brFixer,
+  [FIXER_BN]: bnFixer,
   [FIXER_FONTSIZE]: fontSizeFixer,
 };
 
@@ -134,6 +162,7 @@ function run(selector, fixer, rootSelector) {
     rootNode.querySelectorAll(selector).forEach(fixer);
     mutaObserver.observe(rootNode, {
       childList: true,
+      subtree: true,
     });
   });
 }
