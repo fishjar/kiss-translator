@@ -132,7 +132,7 @@ const apiDeepLTranslate = async (
   const data = {
     text: [text],
     target_lang: to,
-    split_sentences: "0",
+    // split_sentences: "0",
   };
   if (from) {
     data.source_lang = from;
