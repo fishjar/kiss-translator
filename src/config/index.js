@@ -73,6 +73,7 @@ export const URL_BAIDU_LANGDETECT = "https://fanyi.baidu.com/langdetect";
 export const OPT_TRANS_GOOGLE = "Google";
 export const OPT_TRANS_MICROSOFT = "Microsoft";
 export const OPT_TRANS_DEEPL = "DeepL";
+export const OPT_TRANS_DEEPLX = "DeepLX";
 export const OPT_TRANS_BAIDU = "Baidu";
 export const OPT_TRANS_OPENAI = "OpenAI";
 export const OPT_TRANS_CUSTOMIZE = "Custom";
@@ -80,6 +81,7 @@ export const OPT_TRANS_ALL = [
   OPT_TRANS_GOOGLE,
   OPT_TRANS_MICROSOFT,
   OPT_TRANS_DEEPL,
+  OPT_TRANS_DEEPLX,
   OPT_TRANS_OPENAI,
   OPT_TRANS_CUSTOMIZE,
 ];
@@ -133,6 +135,12 @@ export const OPT_LANGS_SPECIAL = {
     ["zh-TW", "zh-Hant"],
   ]),
   [OPT_TRANS_DEEPL]: new Map([
+    ...OPT_LANGS_FROM.map(([key]) => [key, key.toUpperCase()]),
+    ["auto", ""],
+    ["zh-CN", "ZH"],
+    ["zh-TW", "ZH"],
+  ]),
+  [OPT_TRANS_DEEPLX]: new Map([
     ...OPT_LANGS_FROM.map(([key]) => [key, key.toUpperCase()]),
     ["auto", ""],
     ["zh-CN", "ZH"],
@@ -283,6 +291,10 @@ export const DEFAULT_TRANS_APIS = {
   },
   [OPT_TRANS_DEEPL]: {
     url: "https://api-free.deepl.com/v2/translate",
+    key: "",
+  },
+  [OPT_TRANS_DEEPLX]: {
+    url: "http://localhost:1188/translate",
     key: "",
   },
   [OPT_TRANS_OPENAI]: {

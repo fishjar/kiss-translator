@@ -4,6 +4,7 @@ import {
   OPT_TRANS_GOOGLE,
   OPT_TRANS_MICROSOFT,
   OPT_TRANS_DEEPL,
+  OPT_TRANS_DEEPLX,
   OPT_TRANS_OPENAI,
   OPT_TRANS_CUSTOMIZE,
   OPT_LANGS_SPECIAL,
@@ -155,6 +156,45 @@ const apiDeepLTranslate = async (
 };
 
 /**
+ * DeepLX翻译
+ * https://github.com/OwO-Network/DeepLX
+ * @param {*} text
+ * @param {*} to
+ * @param {*} from
+ * @returns
+ */
+const apiDeepLXTranslate = async (
+  translator,
+  text,
+  to,
+  from,
+  { url, key, useCache = true }
+) => {
+  const data = {
+    text,
+    target_lang: to,
+  };
+  if (from) {
+    data.source_lang = from;
+  }
+  const res = await fetchPolyfill(url, {
+    headers: {
+      "Content-type": "application/json",
+    },
+    method: "POST",
+    body: JSON.stringify(data),
+    useCache,
+    usePool: true,
+    translator,
+    token: key,
+  });
+  const trText = res.data;
+  const isSame = to === res.source_lang;
+
+  return [trText, isSame];
+};
+
+/**
  * OpenAI 翻译
  * @param {*} text
  * @param {*} to
@@ -291,6 +331,8 @@ export const apiTranslate = ({
       return callApi(apiMicrosoftTranslate);
     case OPT_TRANS_DEEPL:
       return callApi(apiDeepLTranslate);
+    case OPT_TRANS_DEEPLX:
+      return callApi(apiDeepLXTranslate);
     case OPT_TRANS_OPENAI:
       return callApi(apiOpenaiTranslate);
     case OPT_TRANS_CUSTOMIZE:

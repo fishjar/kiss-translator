@@ -105,6 +105,9 @@ const userscriptWebpack = (config, env) => {
 // @connect       dav.jianguoyun.com
 // @connect       fanyi.baidu.com
 // @connect       localhost:3000
+// @connect       127.0.0.1:3000
+// @connect       localhost:1188
+// @connect       127.0.0.1:1188
 // @run-at        document-end
 // ==/UserScript==
 
