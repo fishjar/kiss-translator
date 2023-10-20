@@ -20,6 +20,7 @@ export {
 };
 
 export const STOKEY_MSAUTH = `${APP_NAME}_msauth`;
+export const STOKEY_BDAUTH = `${APP_NAME}_bdauth`;
 export const STOKEY_SETTING = `${APP_NAME}_setting`;
 export const STOKEY_RULES = `${APP_NAME}_rules`;
 export const STOKEY_SYNC = `${APP_NAME}_sync`;
@@ -67,21 +68,34 @@ export const URL_KISS_RULES_NEW_ISSUE =
   "https://github.com/fishjar/kiss-rules/issues/new";
 export const URL_RAW_PREFIX =
   "https://raw.githubusercontent.com/fishjar/kiss-translator/master";
+
+export const URL_CACHE_TRAN = `https://${APP_LCNAME}/translate`;
+export const URL_MICROSOFT_TRAN =
+  "https://api-edge.cognitive.microsofttranslator.com/translate";
 export const URL_MICROSOFT_AUTH = "https://edge.microsoft.com/translate/auth";
 export const URL_BAIDU_LANGDETECT = "https://fanyi.baidu.com/langdetect";
+export const URL_BAIDU_WEB = "https://fanyi.baidu.com/";
+export const URL_BAIDU_TRAN = "https://fanyi.baidu.com/v2transapi";
+export const URL_DEEPLFREE_TRAN = "https://www2.deepl.com/jsonrpc";
+export const URL_TENCENT_TRANSMART = "https://transmart.qq.com/api/imt";
 
 export const OPT_TRANS_GOOGLE = "Google";
 export const OPT_TRANS_MICROSOFT = "Microsoft";
 export const OPT_TRANS_DEEPL = "DeepL";
 export const OPT_TRANS_DEEPLX = "DeepLX";
+export const OPT_TRANS_DEEPLFREE = "DeepLFree";
 export const OPT_TRANS_BAIDU = "Baidu";
+export const OPT_TRANS_TENCENT = "Tencent";
 export const OPT_TRANS_OPENAI = "OpenAI";
 export const OPT_TRANS_CUSTOMIZE = "Custom";
 export const OPT_TRANS_ALL = [
   OPT_TRANS_GOOGLE,
   OPT_TRANS_MICROSOFT,
   OPT_TRANS_DEEPL,
+  OPT_TRANS_DEEPLFREE,
   OPT_TRANS_DEEPLX,
+  OPT_TRANS_BAIDU,
+  OPT_TRANS_TENCENT,
   OPT_TRANS_OPENAI,
   OPT_TRANS_CUSTOMIZE,
 ];
@@ -140,6 +154,12 @@ export const OPT_LANGS_SPECIAL = {
     ["zh-CN", "ZH"],
     ["zh-TW", "ZH"],
   ]),
+  [OPT_TRANS_DEEPLFREE]: new Map([
+    ...OPT_LANGS_FROM.map(([key]) => [key, key.toUpperCase()]),
+    ["auto", "auto"],
+    ["zh-CN", "ZH"],
+    ["zh-TW", "ZH"],
+  ]),
   [OPT_TRANS_DEEPLX]: new Map([
     ...OPT_LANGS_FROM.map(([key]) => [key, key.toUpperCase()]),
     ["auto", ""],
@@ -173,6 +193,28 @@ export const OPT_LANGS_SPECIAL = {
     ["uk", "ukr"],
     ["vi", "vie"],
   ]),
+  [OPT_TRANS_TENCENT]: new Map([
+    ["auto", "auto"],
+    ["zh-CN", "zh"],
+    ["zh-TW", "zh"],
+    ["en", "en"],
+    ["ar", "ar"],
+    ["de", "de"],
+    ["ru", "ru"],
+    ["fr", "fr"],
+    ["fi", "fil"],
+    ["ko", "ko"],
+    ["ms", "ms"],
+    ["pt", "pt"],
+    ["ja", "ja"],
+    ["th", "th"],
+    ["tr", "tr"],
+    ["es", "es"],
+    ["it", "it"],
+    ["hi", "hi"],
+    ["id", "id"],
+    ["vi", "vi"],
+  ]),
   [OPT_TRANS_OPENAI]: new Map(
     OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
   ),
@@ -188,6 +230,13 @@ export const OPT_LANGS_BAIDU = new Map(
     k,
   ])
 );
+export const OPT_LANGS_TENCENT = new Map(
+  Array.from(OPT_LANGS_SPECIAL[OPT_TRANS_TENCENT].entries()).map(([k, v]) => [
+    v,
+    k,
+  ])
+);
+OPT_LANGS_TENCENT.set("zh", "zh-CN");
 
 export const OPT_STYLE_NONE = "style_none"; // 无
 export const OPT_STYLE_LINE = "under_line"; // 下划线
@@ -284,10 +333,6 @@ export const DEFAULT_TRANS_APIS = {
   [OPT_TRANS_GOOGLE]: {
     url: "https://translate.googleapis.com/translate_a/single",
     key: "",
-  },
-  [OPT_TRANS_MICROSOFT]: {
-    url: "https://api-edge.cognitive.microsofttranslator.com/translate",
-    authUrl: "https://edge.microsoft.com/translate/auth",
   },
   [OPT_TRANS_DEEPL]: {
     url: "https://api-free.deepl.com/v2/translate",

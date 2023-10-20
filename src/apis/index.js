@@ -4,18 +4,26 @@ import {
   OPT_TRANS_GOOGLE,
   OPT_TRANS_MICROSOFT,
   OPT_TRANS_DEEPL,
+  OPT_TRANS_DEEPLFREE,
   OPT_TRANS_DEEPLX,
+  OPT_TRANS_BAIDU,
+  OPT_TRANS_TENCENT,
   OPT_TRANS_OPENAI,
   OPT_TRANS_CUSTOMIZE,
+  URL_CACHE_TRAN,
   OPT_LANGS_SPECIAL,
   PROMPT_PLACE_FROM,
   PROMPT_PLACE_TO,
   KV_SALT_SYNC,
   URL_BAIDU_LANGDETECT,
+  URL_MICROSOFT_TRAN,
   OPT_LANGS_BAIDU,
 } from "../config";
 import { tryDetectLang } from "../libs";
 import { sha256 } from "../libs/utils";
+import { apiDeepLFreeTranslate } from "./deepl";
+import { apiBaiduTranslate } from "./baidu";
+import { apiTencentTranslate } from "./tencent";
 
 /**
  * 同步数据
@@ -92,14 +100,14 @@ const apiMicrosoftTranslate = async (
   text,
   to,
   from,
-  { url, useCache = true }
+  { useCache = true }
 ) => {
   const params = {
     from,
     to,
     "api-version": "3.0",
   };
-  const input = `${url}?${queryString.stringify(params)}`;
+  const input = `${URL_MICROSOFT_TRAN}?${queryString.stringify(params)}`;
   const res = await fetchPolyfill(input, {
     headers: {
       "Content-type": "application/json",
@@ -308,36 +316,61 @@ export const apiBaiduLangdetect = async (text) => {
  * @param {*} param0
  * @returns
  */
-export const apiTranslate = ({
+export const apiTranslate = async ({
   translator,
   text,
   fromLang,
   toLang,
-  apiSetting,
+  apiSetting = {},
+  useCache = true,
+  usePool = true,
 }) => {
-  const from = OPT_LANGS_SPECIAL[translator].get(fromLang);
-  const to = OPT_LANGS_SPECIAL[translator].get(toLang);
+  let trText = "";
+  let isSame = false;
 
-  if (!to) {
-    return ["", from === to];
-  }
+  const transOpts = {
+    translator,
+    text,
+    fromLang,
+    toLang,
+  };
 
-  const callApi = (api) => api(translator, text, to, from, apiSetting);
+  const res = await fetchPolyfill(
+    `${URL_CACHE_TRAN}?${queryString.stringify(transOpts)}`,
+    {
+      useCache,
+      usePool,
+      transOpts,
+      apiSetting,
+    }
+  );
 
   switch (translator) {
     case OPT_TRANS_GOOGLE:
-      return callApi(apiGoogleTranslate);
+      break;
     case OPT_TRANS_MICROSOFT:
-      return callApi(apiMicrosoftTranslate);
+      trText = res[0].translations[0].text;
+      isSame = toLang === res[0].detectedLanguage?.language;
+      break;
     case OPT_TRANS_DEEPL:
-      return callApi(apiDeepLTranslate);
+      break;
+    case OPT_TRANS_DEEPLFREE:
+      break;
     case OPT_TRANS_DEEPLX:
-      return callApi(apiDeepLXTranslate);
+      break;
+    case OPT_TRANS_BAIDU:
+      break;
+    case OPT_TRANS_TENCENT:
+      trText = res.auto_translation;
+      isSame = text === trText;
+      break;
     case OPT_TRANS_OPENAI:
-      return callApi(apiOpenaiTranslate);
+      break;
     case OPT_TRANS_CUSTOMIZE:
-      return callApi(apiCustomTranslate);
+      break;
     default:
-      return ["", false];
+      break;
   }
+
+  return [trText, isSame];
 };

@@ -32,7 +32,8 @@ export function useTranslate(q, rule, setting) {
             text: q,
             fromLang,
             toLang,
-            apiSetting: (setting.transApis || DEFAULT_TRANS_APIS)[translator],
+            apiSetting:
+              setting.transApis?.[translator] || DEFAULT_TRANS_APIS[translator],
           });
           setText(trText);
           setSamelang(isSame);

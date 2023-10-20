@@ -4,6 +4,7 @@ import {
   STOKEY_FAB,
   STOKEY_SYNC,
   STOKEY_MSAUTH,
+  STOKEY_BDAUTH,
   STOKEY_RULESCACHE_PREFIX,
   STOKEY_WEBFIXCACHE_PREFIX,
   DEFAULT_SETTING,
@@ -133,6 +134,12 @@ export const updateSync = (obj) => putObj(STOKEY_SYNC, obj);
  */
 export const getMsauth = () => getObj(STOKEY_MSAUTH);
 export const setMsauth = (val) => setObj(STOKEY_MSAUTH, val);
+
+/**
+ * baidu auth
+ */
+export const getBdauth = () => getObj(STOKEY_BDAUTH);
+export const setBdauth = (val) => setObj(STOKEY_BDAUTH, val);
 
 /**
  * 存入默认数据

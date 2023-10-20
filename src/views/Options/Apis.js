@@ -5,6 +5,9 @@ import CircularProgress from "@mui/material/CircularProgress";
 import {
   OPT_TRANS_ALL,
   OPT_TRANS_MICROSOFT,
+  OPT_TRANS_DEEPLFREE,
+  OPT_TRANS_BAIDU,
+  OPT_TRANS_TENCENT,
   OPT_TRANS_OPENAI,
   OPT_TRANS_CUSTOMIZE,
   URL_KISS_PROXY,
@@ -71,9 +74,16 @@ function ApiFields({ translator }) {
     });
   };
 
+  const buildinTranslators = [
+    OPT_TRANS_MICROSOFT,
+    OPT_TRANS_DEEPLFREE,
+    OPT_TRANS_BAIDU,
+    OPT_TRANS_TENCENT,
+  ];
+
   return (
     <Stack spacing={3}>
-      {translator !== OPT_TRANS_MICROSOFT && (
+      {!buildinTranslators.includes(translator) && (
         <>
           <TextField
             size="small"
@@ -113,7 +123,7 @@ function ApiFields({ translator }) {
 
       <Stack direction="row" spacing={2}>
         <TestButton translator={translator} api={api} />
-        {translator !== OPT_TRANS_MICROSOFT && (
+        {!buildinTranslators.includes(translator) && (
           <Button
             size="small"
             variant="outlined"
