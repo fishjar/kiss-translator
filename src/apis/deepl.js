@@ -1,22 +1,8 @@
-import { fetchPolyfill } from "../libs/fetch";
 import { URL_DEEPLFREE_TRAN } from "../config";
 
 let id = 1e4 * Math.round(1e4 * Math.random());
 
-/**
- * DeepL翻译
- * @param {*} text
- * @param {*} to
- * @param {*} from
- * @returns
- */
-export const apiDeepLFreeTranslate = async (
-  translator,
-  text,
-  to,
-  from,
-  { useCache = true }
-) => {
+export const genDeeplFree = ({ text, from, to }) => {
   const iCount = (text.match(/[i]/g) || []).length + 1;
   let timestamp = Date.now();
   timestamp = timestamp + (iCount - (timestamp % iCount));
@@ -51,7 +37,7 @@ export const apiDeepLFreeTranslate = async (
     (id + 3) % 13 === 0 || (id + 5) % 29 === 0 ? 'method" : "' : 'method": "'
   );
 
-  const res = await fetchPolyfill(URL_DEEPLFREE_TRAN, {
+  const init = {
     headers: {
       "Content-Type": "application/json",
       Accept: "*/*",
@@ -66,12 +52,7 @@ export const apiDeepLFreeTranslate = async (
     },
     method: "POST",
     body,
-    useCache,
-    usePool: true,
-    translator,
-  });
-  const trText = res.result?.texts.map((item) => item.text).join(" ");
-  const isSame = to === res.result?.lang;
+  };
 
-  return [trText, isSame];
+  return [URL_DEEPLFREE_TRAN, init];
 };

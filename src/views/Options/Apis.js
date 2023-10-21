@@ -38,7 +38,8 @@ function TestButton({ translator, api }) {
         text: "hello world",
         fromLang: "en",
         toLang: "zh-CN",
-        apiSetting: { ...api, useCache: false },
+        apiSetting: api,
+        useCache: false,
       });
       if (!text) {
         throw new Error("empty reault");

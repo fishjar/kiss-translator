@@ -31,7 +31,7 @@ export const taskPool = (
         curCount++;
         const { args, resolve, reject, retry } = item;
         try {
-          const preArgs = await preFn(item.args);
+          const preArgs = preFn ? await preFn(item.args) : {};
           const res = await fn({ ...args, ...preArgs });
           resolve(res);
         } catch (err) {

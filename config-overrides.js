@@ -95,6 +95,7 @@ const userscriptWebpack = (config, env) => {
 // @connect       edge.microsoft.com
 // @connect       api-free.deepl.com
 // @connect       api.deepl.com
+// @connect       www2.deepl.com
 // @connect       api.openai.com
 // @connect       openai.azure.com
 // @connect       workers.dev
@@ -104,6 +105,7 @@ const userscriptWebpack = (config, env) => {
 // @connect       ghproxy.com
 // @connect       dav.jianguoyun.com
 // @connect       fanyi.baidu.com
+// @connect       transmart.qq.com
 // @connect       localhost:3000
 // @connect       127.0.0.1:3000
 // @connect       localhost:1188

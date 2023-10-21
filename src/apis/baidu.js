@@ -1,7 +1,7 @@
 import queryString from "query-string";
-import { fetchPolyfill } from "../libs/fetch";
 import { getBdauth, setBdauth } from "../libs/storage";
 import { URL_BAIDU_WEB, URL_BAIDU_TRAN } from "../config";
+import { fetchApi } from "../libs/fetch";
 
 /* eslint-disable */
 function n(t, e) {
@@ -147,26 +147,13 @@ function getSign(t, gtk, r = null) {
   );
 }
 
-const getCookie = async () => {
-  const res = await fetch(URL_BAIDU_WEB, {
-    headers: {
-      "Content-type": "text/html; charset=utf-8",
-    },
-  });
-
-  if (!res.ok) {
-    throw new Error(res.statusText);
-  }
-
-  return res.headers.get("set-cookie");
-};
-
 const getToken = async () => {
-  const cookie = await getCookie();
-  const res = await fetch(URL_BAIDU_WEB, {
-    headers: {
-      "Content-type": "text/html; charset=utf-8",
-      cookie,
+  const res = await fetchApi({
+    input: URL_BAIDU_WEB,
+    init: {
+      headers: {
+        "Content-type": "text/html; charset=utf-8",
+      },
     },
   });
 
@@ -179,7 +166,11 @@ const getToken = async () => {
   const gtk = text.match(/gtk = "(.*)";/)[1];
   const exp = Date.now() + 8 * 60 * 60 * 1000;
 
-  return { cookie, token, gtk, exp };
+  if (!token || !gtk) {
+    throw new Error("[baidu] get token error");
+  }
+
+  return { token, gtk, exp };
 };
 
 /**
@@ -212,21 +203,8 @@ const _bdAuth = () => {
 
 const bdAuth = _bdAuth();
 
-/**
- * 腾讯翻译
- * @param {*} text
- * @param {*} to
- * @param {*} from
- * @returns
- */
-export const apiBaiduTranslate = async (
-  translator,
-  text,
-  to,
-  from,
-  { useCache = true }
-) => {
-  const { cookie, token, gtk } = await bdAuth();
+export const genBaidu = async ({ text, from, to }) => {
+  const { token, gtk } = await bdAuth();
   const sign = getSign(text, gtk);
   const data = {
     from,
@@ -239,19 +217,14 @@ export const apiBaiduTranslate = async (
     ts: Date.now(),
   };
 
-  const res = await fetchPolyfill(`${URL_BAIDU_TRAN}?from=${from}&to=${to}`, {
+  const input = `${URL_BAIDU_TRAN}?from=${from}&to=${to}`;
+  const init = {
     headers: {
       "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
-      cookie,
     },
     method: "POST",
     body: queryString.stringify(data),
-    useCache,
-    usePool: true,
-    translator,
-  });
-  const trText = res.trans_result?.data.map((item) => item.dst).join(" ");
-  const isSame = res.trans_result?.to === res.trans_result?.from;
+  };
 
-  return [trText, isSame, res];
+  return [input, init];
 };
