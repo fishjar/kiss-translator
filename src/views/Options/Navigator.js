@@ -46,6 +46,12 @@ export default function Navigator(props) {
       icon: <InputIcon />,
     },
     {
+      id: "selection_translate",
+      label: i18n("selection_translate"),
+      url: "/tranbox",
+      icon: <InputIcon />,
+    },
+    {
       id: "apis_setting",
       label: i18n("apis_setting"),
       url: "/apis",

@@ -9,11 +9,13 @@ import {
   MSG_TRANS_GETRULE,
   MSG_TRANS_PUTRULE,
   APP_LCNAME,
+  DEFAULT_TRANBOX_SETTING,
 } from "./config";
 import { getRulesWithDefault, getFabWithDefault } from "./libs/storage";
 import { Translator } from "./libs/translator";
 import { sendIframeMsg, sendParentMsg } from "./libs/iframe";
 import { matchRule } from "./libs/rules";
+import Slection from "./views/Selection";
 
 export async function runTranslator(setting) {
   const href = document.location.href;
@@ -50,28 +52,57 @@ export function runIframe(setting) {
 
 export async function showFab(translator) {
   const fab = await getFabWithDefault();
-  if (!fab.isHide) {
-    const $action = document.createElement("div");
-    $action.setAttribute("id", APP_LCNAME);
-    document.body.parentElement.appendChild($action);
-    const shadowContainer = $action.attachShadow({ mode: "closed" });
-    const emotionRoot = document.createElement("style");
-    const shadowRootElement = document.createElement("div");
-    shadowContainer.appendChild(emotionRoot);
-    shadowContainer.appendChild(shadowRootElement);
-    const cache = createCache({
-      key: APP_LCNAME,
-      prepend: true,
-      container: emotionRoot,
-    });
-    ReactDOM.createRoot(shadowRootElement).render(
-      <React.StrictMode>
-        <CacheProvider value={cache}>
-          <Action translator={translator} fab={fab} />
-        </CacheProvider>
-      </React.StrictMode>
-    );
+  if (fab.isHide) {
+    return;
   }
+
+  const $action = document.createElement("div");
+  $action.setAttribute("id", APP_LCNAME);
+  document.body.parentElement.appendChild($action);
+  const shadowContainer = $action.attachShadow({ mode: "closed" });
+  const emotionRoot = document.createElement("style");
+  const shadowRootElement = document.createElement("div");
+  shadowContainer.appendChild(emotionRoot);
+  shadowContainer.appendChild(shadowRootElement);
+  const cache = createCache({
+    key: APP_LCNAME,
+    prepend: true,
+    container: emotionRoot,
+  });
+  ReactDOM.createRoot(shadowRootElement).render(
+    <React.StrictMode>
+      <CacheProvider value={cache}>
+        <Action translator={translator} fab={fab} />
+      </CacheProvider>
+    </React.StrictMode>
+  );
+}
+
+export function showTransbox({ tranboxSetting = DEFAULT_TRANBOX_SETTING }) {
+  if (!tranboxSetting?.transOpen) {
+    return;
+  }
+
+  const $tranbox = document.createElement("div");
+  $tranbox.setAttribute("id", "kiss-transbox");
+  document.body.parentElement.appendChild($tranbox);
+  const shadowContainer = $tranbox.attachShadow({ mode: "closed" });
+  const emotionRoot = document.createElement("style");
+  const shadowRootElement = document.createElement("div");
+  shadowContainer.appendChild(emotionRoot);
+  shadowContainer.appendChild(shadowRootElement);
+  const cache = createCache({
+    key: "kiss-transbox",
+    prepend: true,
+    container: emotionRoot,
+  });
+  ReactDOM.createRoot(shadowRootElement).render(
+    <React.StrictMode>
+      <CacheProvider value={cache}>
+        <Slection tranboxSetting={tranboxSetting} />
+      </CacheProvider>
+    </React.StrictMode>
+  );
 }
 
 export function windowListener(rule) {

@@ -611,4 +611,24 @@ export const I18N = {
     zh: `启用`,
     en: `Enable`,
   },
+  selection_translate: {
+    zh: `划词翻译`,
+    en: `Selection Translate`,
+  },
+  toggle_selection_translate: {
+    zh: `启用划词翻译`,
+    en: `Use Selection Translate`,
+  },
+  trigger_tranbox_shortcut: {
+    zh: `显示翻译框快捷键`,
+    en: `Toggle Translate Box Shortcut`,
+  },
+  tanbtn_offset_x: {
+    zh: `翻译按钮偏移（X）`,
+    en: `Translate Button Offset (X)`,
+  },
+  tanbtn_offset_y: {
+    zh: `翻译按钮偏移（Y）`,
+    en: `Translate Button Offset (Y)`,
+  },
 };

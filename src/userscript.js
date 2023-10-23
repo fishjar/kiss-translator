@@ -8,6 +8,7 @@ import {
   runIframe,
   runTranslator,
   showFab,
+  showTransbox,
   windowListener,
   showErr,
 } from "./common";
@@ -64,6 +65,9 @@ function runSettingPage() {
 
     // 浮球按钮
     await showFab(translator);
+
+    // 划词翻译
+    showTransbox(setting);
 
     // 同步订阅规则
     await trySyncAllSubRules(setting);

@@ -12,6 +12,7 @@ import {
   runIframe,
   runTranslator,
   showFab,
+  showTransbox,
   windowListener,
   showErr,
 } from "./common";
@@ -66,6 +67,9 @@ function runtimeListener(translator) {
 
     // 浮球按钮
     await showFab(translator);
+
+    // 划词翻译
+    showTransbox(setting);
   } catch (err) {
     showErr(err);
   }

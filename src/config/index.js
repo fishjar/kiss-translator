@@ -312,6 +312,18 @@ export const DEFAULT_INPUT_RULE = {
   transSign: OPT_INPUT_TRANS_SIGNS[0],
 };
 
+// 划词翻译
+export const DEFAULT_TRANBOX_SHORTCUT = ["AltLeft", "KeyB"];
+export const DEFAULT_TRANBOX_SETTING = {
+  transOpen: true,
+  translator: OPT_TRANS_MICROSOFT,
+  fromLang: "auto",
+  toLang: "zh-CN",
+  tranboxShortcut: DEFAULT_TRANBOX_SHORTCUT,
+  btnOffsetX: 10,
+  btnOffsetY: 10,
+};
+
 // 订阅列表
 export const DEFAULT_SUBRULES_LIST = [
   {
@@ -388,6 +400,7 @@ export const DEFAULT_SETTING = {
   mouseKey: OPT_MOUSEKEY_DISABLE, // 鼠标悬停翻译
   shortcuts: DEFAULT_SHORTCUTS, // 快捷键
   inputRule: DEFAULT_INPUT_RULE, // 输入框设置
+  tranboxSetting: DEFAULT_TRANBOX_SETTING, // 划词翻译设置
 };
 
 export const DEFAULT_RULES = [GLOBLA_RULE];
