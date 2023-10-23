@@ -199,12 +199,13 @@ export const loadOrFetchWebfix = async (url) => {
 /**
  * 匹配站点
  */
-export async function webfix(href, { injectWebfix }) {
+export async function runWebfix({ injectWebfix }) {
   try {
     if (!injectWebfix) {
       return;
     }
 
+    const href = document.location.href;
     const sites = await loadOrFetchWebfix(process.env.REACT_APP_WEBFIXURL);
     for (var i = 0; i < sites.length; i++) {
       var site = sites[i];

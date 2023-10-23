@@ -1,64 +1,22 @@
 import { browser } from "./libs/browser";
-import React from "react";
-import ReactDOM from "react-dom/client";
-import Action from "./views/Action";
-import createCache from "@emotion/cache";
-import { CacheProvider } from "@emotion/react";
 import {
   MSG_TRANS_TOGGLE,
   MSG_TRANS_TOGGLE_STYLE,
   MSG_TRANS_GETRULE,
   MSG_TRANS_PUTRULE,
-  APP_LCNAME,
 } from "./config";
+import { getSettingWithDefault } from "./libs/storage";
+import { isIframe, sendIframeMsg } from "./libs/iframe";
+import { runWebfix } from "./libs/webfix";
 import {
-  getSettingWithDefault,
-  getRulesWithDefault,
-  getFabWithDefault,
-} from "./libs/storage";
-import { Translator } from "./libs/translator";
-import { isIframe, sendIframeMsg, sendParentMsg } from "./libs/iframe";
-import { matchRule } from "./libs/rules";
-import { webfix } from "./libs/webfix";
+  runIframe,
+  runTranslator,
+  showFab,
+  windowListener,
+  showErr,
+} from "./common";
 
-/**
- * 入口函数
- */
-const init = async () => {
-  const setting = await getSettingWithDefault();
-
-  if (isIframe) {
-    let translator;
-    window.addEventListener("message", (e) => {
-      const { action, args } = e.data || {};
-      switch (action) {
-        case MSG_TRANS_TOGGLE:
-          translator?.toggle();
-          break;
-        case MSG_TRANS_TOGGLE_STYLE:
-          translator?.toggleStyle();
-          break;
-        case MSG_TRANS_PUTRULE:
-          if (!translator) {
-            translator = new Translator(args, setting);
-          } else {
-            translator.updateRule(args || {});
-          }
-          break;
-        default:
-      }
-    });
-    sendParentMsg(MSG_TRANS_GETRULE);
-    return;
-  }
-
-  const href = document.location.href;
-  const rules = await getRulesWithDefault();
-  const rule = await matchRule(rules, href, setting);
-  const translator = new Translator(rule, setting);
-  webfix(href, setting);
-
-  // 监听消息
+function runtimeListener(translator) {
   browser?.runtime.onMessage.addListener(async ({ action, args }) => {
     switch (action) {
       case MSG_TRANS_TOGGLE:
@@ -80,50 +38,35 @@ const init = async () => {
     }
     return { data: translator.rule };
   });
-  window.addEventListener("message", (e) => {
-    const { action } = e.data || {};
-    switch (action) {
-      case MSG_TRANS_GETRULE:
-        sendIframeMsg(MSG_TRANS_PUTRULE, rule);
-        break;
-      default:
-    }
-  });
+}
 
-  // 浮球按钮
-  const fab = await getFabWithDefault();
-  if (!fab.isHide) {
-    const $action = document.createElement("div");
-    $action.setAttribute("id", APP_LCNAME);
-    document.body.parentElement.appendChild($action);
-    const shadowContainer = $action.attachShadow({ mode: "closed" });
-    const emotionRoot = document.createElement("style");
-    const shadowRootElement = document.createElement("div");
-    shadowContainer.appendChild(emotionRoot);
-    shadowContainer.appendChild(shadowRootElement);
-    const cache = createCache({
-      key: APP_LCNAME,
-      prepend: true,
-      container: emotionRoot,
-    });
-    ReactDOM.createRoot(shadowRootElement).render(
-      <React.StrictMode>
-        <CacheProvider value={cache}>
-          <Action translator={translator} fab={fab} />
-        </CacheProvider>
-      </React.StrictMode>
-    );
-  }
-};
-
+/**
+ * 入口函数
+ */
 (async () => {
   try {
-    await init();
+    // 读取设置信息
+    const setting = await getSettingWithDefault();
+
+    // 适配iframe
+    if (isIframe) {
+      runIframe(setting);
+      return;
+    }
+
+    // 不规范网页修复
+    await runWebfix(setting);
+
+    // 翻译网页
+    const { translator, rule } = await runTranslator(setting);
+
+    // 监听消息
+    windowListener(rule);
+    runtimeListener(translator);
+
+    // 浮球按钮
+    await showFab(translator);
   } catch (err) {
-    console.error("[KISS-Translator]", err);
-    const $err = document.createElement("div");
-    $err.innerText = `KISS-Translator: ${err.message}`;
-    $err.style.cssText = "background:red; color:#fff;";
-    document.body.prepend($err);
+    showErr(err);
   }
 })();
