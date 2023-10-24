@@ -47,7 +47,9 @@ function DictCont({ dictResult }) {
           <div>{`英: /${ph_en}/ 美: /${ph_am}/`}</div>
           <ul>
             {parts.map(({ part, means }, idx) => (
-              <li key={idx}>{`[${part}] ${means.join("; ")}`}</li>
+              <li key={idx}>
+                {part ? `[${part}] ${means.join("; ")}` : means.join("; ")}
+              </li>
             ))}
           </ul>
         </div>
