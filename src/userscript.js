@@ -63,11 +63,11 @@ function runSettingPage() {
     // 监听消息
     windowListener(rule);
 
-    // 浮球按钮
-    await showFab(translator);
-
     // 划词翻译
     showTransbox(setting);
+
+    // 浮球按钮
+    await showFab(translator);
 
     // 同步订阅规则
     await trySyncAllSubRules(setting);

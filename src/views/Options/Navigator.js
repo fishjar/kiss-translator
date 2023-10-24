@@ -13,6 +13,7 @@ import SyncIcon from "@mui/icons-material/Sync";
 import ApiIcon from "@mui/icons-material/Api";
 import SendTimeExtensionIcon from "@mui/icons-material/SendTimeExtension";
 import InputIcon from "@mui/icons-material/Input";
+import TranslateIcon from '@mui/icons-material/Translate';
 
 function LinkItem({ label, url, icon }) {
   const match = useMatch(url);
@@ -49,7 +50,7 @@ export default function Navigator(props) {
       id: "selection_translate",
       label: i18n("selection_translate"),
       url: "/tranbox",
-      icon: <InputIcon />,
+      icon: <TranslateIcon />,
     },
     {
       id: "apis_setting",

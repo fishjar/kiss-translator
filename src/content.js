@@ -65,11 +65,11 @@ function runtimeListener(translator) {
     windowListener(rule);
     runtimeListener(translator);
 
-    // 浮球按钮
-    await showFab(translator);
-
     // 划词翻译
     showTransbox(setting);
+
+    // 浮球按钮
+    await showFab(translator);
   } catch (err) {
     showErr(err);
   }
