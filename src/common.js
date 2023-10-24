@@ -78,7 +78,10 @@ export async function showFab(translator) {
   );
 }
 
-export function showTransbox({ tranboxSetting = DEFAULT_TRANBOX_SETTING }) {
+export function showTransbox({
+  tranboxSetting = DEFAULT_TRANBOX_SETTING,
+  transApis,
+}) {
   if (!tranboxSetting?.transOpen) {
     return;
   }
@@ -99,7 +102,7 @@ export function showTransbox({ tranboxSetting = DEFAULT_TRANBOX_SETTING }) {
   ReactDOM.createRoot(shadowRootElement).render(
     <React.StrictMode>
       <CacheProvider value={cache}>
-        <Slection tranboxSetting={tranboxSetting} />
+        <Slection tranboxSetting={tranboxSetting} transApis={transApis} />
       </CacheProvider>
     </React.StrictMode>
   );

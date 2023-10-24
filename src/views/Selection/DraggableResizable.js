@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Paper from "@mui/material/Paper";
 import Box from "@mui/material/Box";
 
@@ -75,6 +75,7 @@ function Pointer({
           w = origin.w + dx;
           h = origin.h + dy;
           break;
+        default:
       }
 
       if (w < minSize.w) {
@@ -134,7 +135,8 @@ export default function DraggableResizable({
     w: 1200,
     h: 1200,
   },
-  sx,
+  onChangeSize,
+  onChangePosition,
 }) {
   const lineWidth = 4;
   const [position, setPosition] = useState(defaultPosition);
@@ -149,6 +151,14 @@ export default function DraggableResizable({
     maxSize,
   };
 
+  useEffect(() => {
+    onChangeSize && onChangeSize(size);
+  }, [size, onChangeSize]);
+
+  useEffect(() => {
+    onChangePosition && onChangePosition(position);
+  }, [position, onChangePosition]);
+
   return (
     <Box
       style={{
@@ -158,7 +168,7 @@ export default function DraggableResizable({
         display: "grid",
         gridTemplateColumns: `${lineWidth * 2}px auto ${lineWidth * 2}px`,
         gridTemplateRows: `${lineWidth * 2}px auto ${lineWidth * 2}px`,
-        zIndex: 10000,
+        zIndex: 2147483647,
       }}
     >
       <Pointer

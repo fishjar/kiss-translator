@@ -110,7 +110,7 @@ export default function Tranbox() {
 
         <TextField
           size="small"
-          label={i18n("tanbtn_offset_x")}
+          label={i18n("tranbtn_offset_x")}
           type="number"
           name="btnOffsetX"
           defaultValue={btnOffsetX}
@@ -119,7 +119,7 @@ export default function Tranbox() {
 
         <TextField
           size="small"
-          label={i18n("tanbtn_offset_y")}
+          label={i18n("tranbtn_offset_y")}
           type="number"
           name="btnOffsetY"
           defaultValue={btnOffsetY}

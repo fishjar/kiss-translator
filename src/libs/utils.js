@@ -223,3 +223,13 @@ export const matchInputStr = (str, sign) => {
   }
   return str.match(reg);
 };
+
+/**
+ * 判断是否英文单词
+ * @param {*} str
+ * @returns
+ */
+export const isValidWord = (str) => {
+  const regex = /^[a-zA-Z-]+$/;
+  return regex.test(str);
+};

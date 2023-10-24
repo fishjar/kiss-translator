@@ -6,6 +6,7 @@ export default function TranBtn({ onClick, position, tranboxSetting }) {
         position: "fixed",
         left: position.x + tranboxSetting.btnOffsetX,
         top: position.y + tranboxSetting.btnOffsetY,
+        zIndex: 2147483647,
       }}
       onClick={onClick}
       onMouseUp={(e) => {
