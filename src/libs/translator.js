@@ -124,6 +124,7 @@ export class Translator {
     "iframe",
   ];
   _eventName = genEventName();
+  _mouseoverNode = null;
 
   // 显示
   _interseObserver = new IntersectionObserver(
@@ -336,18 +337,22 @@ export class Translator {
       });
     });
 
-    this._tranNodes.forEach((_, node) => {
-      if (
-        !this._setting.mouseKey ||
-        this._setting.mouseKey === OPT_MOUSEKEY_DISABLE
-      ) {
-        // 监听节点显示
+    if (
+      !this._setting.mouseKey ||
+      this._setting.mouseKey === OPT_MOUSEKEY_DISABLE
+    ) {
+      // 监听节点显示
+      this._tranNodes.forEach((_, node) => {
         this._interseObserver.observe(node);
-      } else {
-        // 监听鼠标悬停
+      });
+    } else {
+      // 监听鼠标悬停
+      window.addEventListener("keydown", this._handleKeydown);
+      this._tranNodes.forEach((_, node) => {
         node.addEventListener("mouseover", this._handleMouseover);
-      }
-    });
+        node.addEventListener("mouseout", this._handleMouseout);
+      });
+    }
   };
 
   _registerInput = () => {
@@ -470,10 +475,43 @@ export class Translator {
   };
 
   _handleMouseover = (e) => {
+    // console.log("mouseover", e);
+    if (!this._tranNodes.has(e.target)) {
+      return;
+    }
+
     const key = this._setting.mouseKey.slice(3);
     if (this._setting.mouseKey === OPT_MOUSEKEY_MOUSEOVER || e[key]) {
       e.target.removeEventListener("mouseover", this._handleMouseover);
+      e.target.removeEventListener("mouseout", this._handleMouseout);
       this._render(e.target);
+    } else {
+      this._mouseoverNode = e.target;
+    }
+  };
+
+  _handleMouseout = (e) => {
+    // console.log("mouseout", e);
+    if (!this._tranNodes.has(e.target)) {
+      return;
+    }
+
+    this._mouseoverNode = null;
+  };
+
+  _handleKeydown = (e) => {
+    // console.log("keydown", e);
+    const key = this._setting.mouseKey.slice(3);
+    if (e[key] && this._mouseoverNode) {
+      this._mouseoverNode.removeEventListener(
+        "mouseover",
+        this._handleMouseover
+      );
+      this._mouseoverNode.removeEventListener("mouseout", this._handleMouseout);
+
+      const node = this._mouseoverNode;
+      this._render(node);
+      this._mouseoverNode = null;
     }
   };
 
@@ -484,21 +522,26 @@ export class Translator {
     // 解除节点显示监听
     // this._interseObserver.disconnect();
 
-    this._tranNodes.forEach((_, node) => {
-      if (
-        !this._setting.mouseKey ||
-        this._setting.mouseKey === OPT_MOUSEKEY_DISABLE
-      ) {
-        // 解除节点显示监听
+    if (
+      !this._setting.mouseKey ||
+      this._setting.mouseKey === OPT_MOUSEKEY_DISABLE
+    ) {
+      // 解除节点显示监听
+      this._tranNodes.forEach((_, node) => {
         this._interseObserver.unobserve(node);
-      } else {
-        // 移除鼠标悬停监听
+        // 移除已插入元素
+        node.querySelector(APP_LCNAME)?.remove();
+      });
+    } else {
+      // 移除鼠标悬停监听
+      window.removeEventListener("keydown", this._handleKeydown);
+      this._tranNodes.forEach((_, node) => {
         node.removeEventListener("mouseover", this._handleMouseover);
-      }
-
-      // 移除已插入元素
-      node.querySelector(APP_LCNAME)?.remove();
-    });
+        node.removeEventListener("mouseout", this._handleMouseout);
+        // 移除已插入元素
+        node.querySelector(APP_LCNAME)?.remove();
+      });
+    }
 
     // 清空节点集合
     this._rootNodes.clear();
