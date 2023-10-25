@@ -2,6 +2,8 @@ import TextField from "@mui/material/TextField";
 import Box from "@mui/material/Box";
 import Alert from "@mui/material/Alert";
 import CircularProgress from "@mui/material/CircularProgress";
+import Chip from "@mui/material/Chip";
+import Stack from "@mui/material/Stack";
 import { useI18n } from "../../hooks/I18n";
 import { DEFAULT_TRANS_APIS, OPT_TRANS_BAIDU } from "../../config";
 import { useEffect, useState } from "react";
@@ -27,24 +29,9 @@ function DictCont({ dictResult }) {
       <div style={{ fontWeight: "bold" }}>
         {dictResult.simple_means?.word_name}
       </div>
-      <div>
-        {Object.entries(dictResult.simple_means?.exchange || {}).map(
-          ([key, val]) => (
-            <span key={key}>{`${exchangeMap[key] || key}: ${val.join(
-              ","
-            )}; `}</span>
-          )
-        )}
-      </div>
-      <div>
-        {Object.values(dictResult.simple_means?.tags || {})
-          .flat()
-          .filter((item) => item)
-          .join(", ")}
-      </div>
       {dictResult.simple_means?.symbols?.map(({ ph_en, ph_am, parts }, idx) => (
         <div key={idx}>
-          <div>{`英: /${ph_en}/ 美: /${ph_am}/`}</div>
+          <div>{`英[${ph_en}] 美[${ph_am}]`}</div>
           <ul>
             {parts.map(({ part, means }, idx) => (
               <li key={idx}>
@@ -54,6 +41,28 @@ function DictCont({ dictResult }) {
           </ul>
         </div>
       ))}
+      {/* <div>
+        {Object.entries(dictResult.simple_means?.exchange || {}).map(
+          ([key, val]) => (
+            <span key={key}>{`${exchangeMap[key] || key}: ${val.join(
+              ", "
+            )}; `}</span>
+          )
+        )}
+      </div> */}
+      <div>
+        {Object.entries(dictResult.simple_means?.exchange || {})
+          .map(([key, val]) => `${exchangeMap[key] || key}: ${val.join(", ")}`)
+          .join("; ")}
+      </div>
+      <Stack direction="row" spacing={1}>
+        {Object.values(dictResult.simple_means?.tags || {})
+          .flat()
+          .filter((item) => item)
+          .map((item) => (
+            <Chip label={item} size="small" />
+          ))}
+      </Stack>
     </Box>
   );
 }
@@ -93,7 +102,7 @@ export default function TranCont({
         // 词典
         if (isValidWord(text) && toLang.startsWith("zh")) {
           if (fromLang === "en" && translator === OPT_TRANS_BAIDU) {
-            setDictResult(tranRes[2]);
+            setDictResult(tranRes[2].dict_result);
           } else {
             const dictRes = await apiTranslate({
               text,

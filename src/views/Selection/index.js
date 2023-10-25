@@ -9,10 +9,10 @@ export default function Slection({ tranboxSetting, transApis }) {
   const [selectedText, setSelText] = useState("");
   const [text, setText] = useState("");
   const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [boxSize, setBoxSize] = useState({ w: 600, h: 400 });
+  const [boxSize, setBoxSize] = useState({ w: 600, h: 420 });
   const [boxPosition, setBoxPosition] = useState({
     x: (window.innerWidth - 600) / 2,
-    y: (window.innerHeight - 400) / 2,
+    y: (window.innerHeight - 420) / 2,
   });
 
   function handleMouseup(e) {
