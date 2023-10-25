@@ -19,7 +19,10 @@ export default function Tranbox() {
     e.preventDefault();
     let { name, value } = e.target;
     switch (name) {
-      case "btnOffsetX" || "btnOffsetY":
+      case "btnOffsetX":
+        value = limitNumber(value, 0, 100);
+        break;
+      case "btnOffsetY":
         value = limitNumber(value, 0, 100);
         break;
       default:

@@ -624,12 +624,12 @@ export const I18N = {
     en: `Toggle Translate Box Shortcut`,
   },
   tranbtn_offset_x: {
-    zh: `翻译按钮偏移（X）`,
-    en: `Translate Button Offset (X)`,
+    zh: `翻译按钮偏移X（0-100）`,
+    en: `Translate Button Offset X (0-100)`,
   },
   tranbtn_offset_y: {
-    zh: `翻译按钮偏移（Y）`,
-    en: `Translate Button Offset (Y)`,
+    zh: `翻译按钮偏移Y（0-100）`,
+    en: `Translate Button Offset Y (0-100)`,
   },
   translated_text: {
     zh: `译文`,
