@@ -1,6 +1,4 @@
 export default function TranBtn({ onClick, position, tranboxSetting }) {
-  console.log("x", position.x + tranboxSetting.btnOffsetX);
-  console.log("y", position.y + tranboxSetting.btnOffsetY);
   return (
     <div
       style={{
