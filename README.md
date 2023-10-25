@@ -12,11 +12,12 @@
   - [x] Chrome/Edge/Firefox/Kiwi
   - [ ] Safari
 - [x] 支持多种翻译服务
-  - [x] Google/Microsoft/DeepL/OpenAI
+  - [x] Google/Microsoft/DeepL/OpenAI/Baidu/Tencent
   - [x] 自定义翻译接口
 - [x] 覆盖常见翻译场景
   - [x] 网页双语对照翻译
   - [x] 输入框翻译
+  - [x] 划词翻译
   - [x] 鼠标悬停翻译
   - [x] YouTube 字幕翻译
 - [x] 跨客户端数据同步
@@ -28,8 +29,9 @@
 - [x] 自定义快捷键
   - `Alt+Q` 开启翻译
   - `Alt+C` 切换样式
-  - `Alt+K` 打开弹窗
-  - `Alt+O` 打开设置
+  - `Alt+K` 打开设置弹窗
+  - `Alt+B` 打开翻译弹窗
+  - `Alt+O` 打开设置页面
   - `Alt+I` 输入框翻译
 
 ## 安装

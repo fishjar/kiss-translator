@@ -12,11 +12,12 @@ A simple [bilingual translation extension & Greasemonkey script](https://github.
   - [x] Chrome/Edge/Firefox/Kiwi
   - [ ] Safari
 - [x] Supports multiple translation services
-  - [x] Google/Microsoft/DeepL/OpenAI
+  - [x] Google/Microsoft/DeepL/OpenAI/Baidu/Tencent
   - [x] Custom translation interface
 - [x] Covers common translation scenarios
   - [x] Web bilingual translation
   - [x] Input box translation
+  - [x] Seletction translation
   - [x] Mouseover translation
   - [x] YouTube subtitle translation
 - [x] Cross-client data synchronization
@@ -28,8 +29,9 @@ A simple [bilingual translation extension & Greasemonkey script](https://github.
 - [x] Custom shortcut keys
   - `Alt+Q` Toggle Translation
   - `Alt+C` Toggle Styles
-  - `Alt+K` Open Popup
-  - `Alt+O` Open Options
+  - `Alt+K` Open Setting Popup
+  - `Alt+B` Open Translate Popup
+  - `Alt+O` Open Options Page
   - `Alt+I` Input Box Translation
 
 ## Install
