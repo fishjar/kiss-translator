@@ -41,15 +41,6 @@ function DictCont({ dictResult }) {
           </ul>
         </div>
       ))}
-      {/* <div>
-        {Object.entries(dictResult.simple_means?.exchange || {}).map(
-          ([key, val]) => (
-            <span key={key}>{`${exchangeMap[key] || key}: ${val.join(
-              ", "
-            )}; `}</span>
-          )
-        )}
-      </div> */}
       <div>
         {Object.entries(dictResult.simple_means?.exchange || {})
           .map(([key, val]) => `${exchangeMap[key] || key}: ${val.join(", ")}`)
