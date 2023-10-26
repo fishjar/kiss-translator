@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { apiTranslate } from "../../apis";
 import { isValidWord } from "../../libs/utils";
 import CopyBtn from "./CopyBtn";
+import FavBtn from "./FavBtn";
 
 const exchangeMap = {
   word_third: "第三人称单数",
@@ -20,16 +21,24 @@ const exchangeMap = {
   word_proto: "原词",
 };
 
-function DictCont({ dictResult }) {
+export function DictCont({ dictResult }) {
   if (!dictResult) {
     return;
   }
 
   return (
     <Box>
-      <div style={{ fontWeight: "bold" }}>
-        {dictResult.simple_means?.word_name}
-      </div>
+      <Stack
+        direction="row"
+        justifyContent="space-between"
+        alignItems="flex-start"
+      >
+        <div style={{ fontWeight: "bold" }}>
+          {dictResult.simple_means?.word_name}
+        </div>
+        <FavBtn word={dictResult.simple_means?.word_name} />
+      </Stack>
+
       {dictResult.simple_means?.symbols?.map(({ ph_en, ph_am, parts }, idx) => (
         <div key={idx}>
           <div>{`英[${ph_en}] 美[${ph_am}]`}</div>
@@ -42,11 +51,13 @@ function DictCont({ dictResult }) {
           </ul>
         </div>
       ))}
+
       <div>
         {Object.entries(dictResult.simple_means?.exchange || {})
           .map(([key, val]) => `${exchangeMap[key] || key}: ${val.join(", ")}`)
           .join("; ")}
       </div>
+
       <Stack direction="row" spacing={1}>
         {Object.values(dictResult.simple_means?.tags || {})
           .flat()

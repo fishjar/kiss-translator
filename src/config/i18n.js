@@ -555,7 +555,7 @@ export const I18N = {
     zh: `全局规则`,
     en: `Global Rule`,
   },
-  input_box_translation: {
+  input_translate: {
     zh: `输入框翻译`,
     en: `Input Box Translation`,
   },
@@ -638,5 +638,9 @@ export const I18N = {
   original_text: {
     zh: `原文`,
     en: `Original Text`,
+  },
+  favorite_words: {
+    zh: `收藏词汇`,
+    en: `Favorite Words`,
   },
 };

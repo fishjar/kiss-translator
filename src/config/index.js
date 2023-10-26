@@ -23,6 +23,7 @@ export const STOKEY_MSAUTH = `${APP_NAME}_msauth`;
 export const STOKEY_BDAUTH = `${APP_NAME}_bdauth`;
 export const STOKEY_SETTING = `${APP_NAME}_setting`;
 export const STOKEY_RULES = `${APP_NAME}_rules`;
+export const STOKEY_WORDS = `${APP_NAME}_words`;
 export const STOKEY_SYNC = `${APP_NAME}_sync`;
 export const STOKEY_FAB = `${APP_NAME}_fab`;
 export const STOKEY_RULESCACHE_PREFIX = `${APP_NAME}_rulescache_`;
@@ -40,6 +41,7 @@ export const CLIENT_USERSCRIPT = "userscript";
 export const CLIENT_EXTS = [CLIENT_CHROME, CLIENT_EDGE, CLIENT_FIREFOX];
 
 export const KV_RULES_KEY = "kiss-rules.json";
+export const KV_WORDS_KEY = "kiss-words.json";
 export const KV_RULES_SHARE_KEY = "kiss-rules-share.json";
 export const KV_SETTING_KEY = "kiss-setting.json";
 export const KV_SALT_SYNC = "KISS-Translator-SYNC";

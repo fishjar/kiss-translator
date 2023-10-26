@@ -1,6 +1,7 @@
 import {
   STOKEY_SETTING,
   STOKEY_RULES,
+  STOKEY_WORDS,
   STOKEY_FAB,
   STOKEY_SYNC,
   STOKEY_MSAUTH,
@@ -96,6 +97,13 @@ export const getRules = () => getObj(STOKEY_RULES);
 export const getRulesWithDefault = async () =>
   (await getRules()) || DEFAULT_RULES;
 export const setRules = (val) => setObj(STOKEY_RULES, val);
+
+/**
+ * 词汇列表
+ */
+export const getWords = () => getObj(STOKEY_WORDS);
+export const getWordsWithDefault = async () => (await getWords()) || {};
+export const setWords = (val) => setObj(STOKEY_WORDS, val);
 
 /**
  * 订阅规则

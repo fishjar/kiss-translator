@@ -2,6 +2,7 @@ import {
   APP_LCNAME,
   KV_SETTING_KEY,
   KV_RULES_KEY,
+  KV_WORDS_KEY,
   KV_RULES_SHARE_KEY,
   KV_SALT_SHARE,
   OPT_SYNCTYPE_WEBDAV,
@@ -11,8 +12,10 @@ import {
   updateSync,
   getSettingWithDefault,
   getRulesWithDefault,
+  getWordsWithDefault,
   setSetting,
   setRules,
+  setWords,
 } from "./storage";
 import { apiSyncData } from "../apis";
 import { sha256, removeEndchar } from "./utils";
@@ -136,6 +139,25 @@ export const trySyncRules = async () => {
 };
 
 /**
+ * 同步词汇
+ * @returns
+ */
+const syncWords = async () => {
+  const res = await syncData(KV_WORDS_KEY, getWordsWithDefault);
+  if (res?.isNew) {
+    await setWords(res.value);
+  }
+};
+
+export const trySyncWords = async () => {
+  try {
+    await syncWords();
+  } catch (err) {
+    console.log("[sync fav words]", err);
+  }
+};
+
+/**
  * 同步分享规则
  * @param {*} param0
  * @returns
@@ -163,9 +185,11 @@ export const syncShareRules = async ({ rules, syncUrl, syncKey }) => {
 export const syncSettingAndRules = async () => {
   await syncSetting();
   await syncRules();
+  await syncWords();
 };
 
 export const trySyncSettingAndRules = async () => {
   await trySyncSetting();
   await trySyncRules();
+  await trySyncWords();
 };

@@ -14,6 +14,7 @@ import ApiIcon from "@mui/icons-material/Api";
 import SendTimeExtensionIcon from "@mui/icons-material/SendTimeExtension";
 import InputIcon from "@mui/icons-material/Input";
 import SelectAllIcon from '@mui/icons-material/SelectAll';
+import EventNoteIcon from '@mui/icons-material/EventNote';
 
 function LinkItem({ label, url, icon }) {
   const match = useMatch(url);
@@ -69,6 +70,12 @@ export default function Navigator(props) {
       label: i18n("patch_setting"),
       url: "/webfix",
       icon: <SendTimeExtensionIcon />,
+    },
+    {
+      id: "words",
+      label: i18n("favorite_words"),
+      url: "/words",
+      icon: <EventNoteIcon />,
     },
     { id: "about", label: i18n("about"), url: "/about", icon: <InfoIcon /> },
   ];

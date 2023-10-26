@@ -21,6 +21,7 @@ import Apis from "./Apis";
 import Webfix from "./Webfix";
 import InputSetting from "./InputSetting";
 import Tranbox from "./Tranbox";
+import FavWords from "./FavWords";
 
 export default function Options() {
   const [error, setError] = useState("");
@@ -125,6 +126,7 @@ export default function Options() {
                 <Route path="apis" element={<Apis />} />
                 <Route path="sync" element={<SyncSetting />} />
                 <Route path="webfix" element={<Webfix />} />
+                <Route path="words" element={<FavWords />} />
                 <Route path="about" element={<About />} />
               </Route>
             </Routes>
