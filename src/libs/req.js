@@ -8,6 +8,7 @@ import {
   OPT_TRANS_BAIDU,
   OPT_TRANS_TENCENT,
   OPT_TRANS_OPENAI,
+  OPT_TRANS_CLOUDFLAREAI,
   OPT_TRANS_CUSTOMIZE,
   URL_MICROSOFT_TRAN,
   URL_TENCENT_TRANSMART,
@@ -143,7 +144,7 @@ const genTencent = ({ text, from, to }) => {
   return [URL_TENCENT_TRANSMART, init];
 };
 
-const genOpenai = ({ text, from, to, url, key, prompt, model }) => {
+const genOpenAI = ({ text, from, to, url, key, prompt, model }) => {
   prompt = prompt
     .replaceAll(PROMPT_PLACE_FROM, from)
     .replaceAll(PROMPT_PLACE_TO, to);
@@ -177,6 +178,25 @@ const genOpenai = ({ text, from, to, url, key, prompt, model }) => {
   return [url, init];
 };
 
+const genCloudflareAI = ({ text, from, to, url, key }) => {
+  const data = {
+    text,
+    source_lang: from,
+    target_lang: to,
+  };
+
+  const init = {
+    headers: {
+      "Content-type": "application/json",
+      Authorization: `Bearer ${key}`,
+    },
+    method: "POST",
+    body: JSON.stringify(data),
+  };
+
+  return [url, init];
+};
+
 const genCustom = ({ text, from, to, url, key }) => {
   const data = {
     text,
@@ -197,6 +217,11 @@ const genCustom = ({ text, from, to, url, key }) => {
   return [url, init];
 };
 
+/**
+ * 构造翻译接口 request
+ * @param {*}
+ * @returns
+ */
 export const newTransReq = ({ translator, text, from, to }, apiSetting) => {
   const args = { text, from, to, ...apiSetting };
   switch (translator) {
@@ -215,7 +240,9 @@ export const newTransReq = ({ translator, text, from, to }, apiSetting) => {
     case OPT_TRANS_TENCENT:
       return genTencent(args);
     case OPT_TRANS_OPENAI:
-      return genOpenai(args);
+      return genOpenAI(args);
+    case OPT_TRANS_CLOUDFLAREAI:
+      return genCloudflareAI(args);
     case OPT_TRANS_CUSTOMIZE:
       return genCustom(args);
     default:

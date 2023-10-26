@@ -9,6 +9,7 @@ import {
   OPT_TRANS_BAIDU,
   OPT_TRANS_TENCENT,
   OPT_TRANS_OPENAI,
+  OPT_TRANS_CLOUDFLAREAI,
   OPT_TRANS_CUSTOMIZE,
   URL_CACHE_TRAN,
   KV_SALT_SYNC,
@@ -176,12 +177,15 @@ export const apiTranslate = async ({
       trText = res?.choices?.[0].message.content;
       isSame = text === trText;
       break;
+    case OPT_TRANS_CLOUDFLAREAI:
+      trText = res?.result?.translated_text;
+      isSame = text === trText;
+      break;
     case OPT_TRANS_CUSTOMIZE:
       trText = res.text;
       isSame = to === res.from;
       break;
     default:
-      break;
   }
 
   return [trText, isSame, res];

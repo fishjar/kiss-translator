@@ -87,6 +87,7 @@ export const OPT_TRANS_DEEPLFREE = "DeepLFree";
 export const OPT_TRANS_BAIDU = "Baidu";
 export const OPT_TRANS_TENCENT = "Tencent";
 export const OPT_TRANS_OPENAI = "OpenAI";
+export const OPT_TRANS_CLOUDFLAREAI = "CloudflareAI";
 export const OPT_TRANS_CUSTOMIZE = "Custom";
 export const OPT_TRANS_ALL = [
   OPT_TRANS_GOOGLE,
@@ -97,6 +98,7 @@ export const OPT_TRANS_ALL = [
   OPT_TRANS_BAIDU,
   OPT_TRANS_TENCENT,
   OPT_TRANS_OPENAI,
+  OPT_TRANS_CLOUDFLAREAI,
   OPT_TRANS_CUSTOMIZE,
 ];
 
@@ -218,6 +220,20 @@ export const OPT_LANGS_SPECIAL = {
   [OPT_TRANS_OPENAI]: new Map(
     OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
   ),
+  [OPT_TRANS_CLOUDFLAREAI]: new Map([
+    ["auto", ""],
+    ["zh-CN", "chinese"],
+    ["zh-TW", "chinese"],
+    ["en", "english"],
+    ["ar", "arabic"],
+    ["de", "german"],
+    ["ru", "russian"],
+    ["fr", "french"],
+    ["pt", "portuguese"],
+    ["ja", "japanese"],
+    ["es", "spanish"],
+    ["hi", "hindi"],
+  ]),
   [OPT_TRANS_CUSTOMIZE]: new Map([
     ...OPT_LANGS_FROM.map(([key]) => [key, key]),
     ["auto", ""],
@@ -359,6 +375,10 @@ export const DEFAULT_TRANS_APIS = {
     key: "",
     model: "gpt-4",
     prompt: `You will be provided with a sentence in ${PROMPT_PLACE_FROM}, and your task is to translate it into ${PROMPT_PLACE_TO}.`,
+  },
+  [OPT_TRANS_CLOUDFLAREAI]: {
+    url: "https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/ai/run/@cf/meta/m2m100-1.2b",
+    key: "",
   },
   [OPT_TRANS_CUSTOMIZE]: {
     url: "",
