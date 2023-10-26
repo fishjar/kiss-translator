@@ -16,7 +16,7 @@ import {
   URL_KISS_RULES_NEW_ISSUE,
   OPT_SYNCTYPE_WORKER,
 } from "../../config";
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useI18n } from "../../hooks/I18n";
 import Typography from "@mui/material/Typography";
 import Accordion from "@mui/material/Accordion";
@@ -26,8 +26,6 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useRules } from "../../hooks/Rules";
 import MenuItem from "@mui/material/MenuItem";
 import Grid from "@mui/material/Grid";
-import FileDownloadIcon from "@mui/icons-material/FileDownload";
-import FileUploadIcon from "@mui/icons-material/FileUpload";
 import { useSetting } from "../../hooks/Setting";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
@@ -50,6 +48,8 @@ import OwSubRule from "./OwSubRule";
 import ClearAllIcon from "@mui/icons-material/ClearAll";
 import HelpButton from "./HelpButton";
 import { useSyncCaches } from "../../hooks/Sync";
+import DownloadButton from "./DownloadButton";
+import UploadButton from "./UploadButton";
 
 function RuleFields({ rule, rules, setShow, setKeyword }) {
   const initFormValues = rule || {
@@ -392,77 +392,6 @@ function RuleAccordion({ rule, rules }) {
   );
 }
 
-function DownloadButton({ data, text, fileName }) {
-  const handleClick = (e) => {
-    e.preventDefault();
-    if (data) {
-      const url = window.URL.createObjectURL(new Blob([data]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute(
-        "download",
-        fileName || `kiss-rules_${Date.now()}.json`
-      );
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-    }
-  };
-  return (
-    <Button
-      size="small"
-      variant="outlined"
-      onClick={handleClick}
-      startIcon={<FileDownloadIcon />}
-    >
-      {text}
-    </Button>
-  );
-}
-
-function UploadButton({ handleImport, text }) {
-  const i18n = useI18n();
-  const inputRef = useRef(null);
-  const handleClick = () => {
-    inputRef.current && inputRef.current.click();
-  };
-  const onChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) {
-      return;
-    }
-
-    if (!file.type.includes("json")) {
-      alert(i18n("error_wrong_file_type"));
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      handleImport(e.target.result);
-    };
-    reader.readAsText(file);
-  };
-
-  return (
-    <Button
-      size="small"
-      variant="outlined"
-      onClick={handleClick}
-      startIcon={<FileUploadIcon />}
-    >
-      {text}
-      <input
-        type="file"
-        accept=".json"
-        ref={inputRef}
-        onChange={onChange}
-        hidden
-      />
-    </Button>
-  );
-}
-
 function ShareButton({ rules, injectRules, selectedUrl }) {
   const alert = useAlert();
   const i18n = useI18n();
@@ -564,6 +493,7 @@ function UserRules({ subRules }) {
         <DownloadButton
           data={JSON.stringify([...rules.list].reverse(), null, 2)}
           text={i18n("export")}
+          fileName={`kiss-rules_${Date.now()}.json`}
         />
 
         <ShareButton
