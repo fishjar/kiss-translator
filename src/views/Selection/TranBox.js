@@ -8,10 +8,13 @@ import MenuItem from "@mui/material/MenuItem";
 import Grid from "@mui/material/Grid";
 import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
+import IconButton from "@mui/material/IconButton";
+import DoneIcon from "@mui/icons-material/Done";
 import { useI18n } from "../../hooks/I18n";
 import { OPT_TRANS_ALL, OPT_LANGS_FROM, OPT_LANGS_TO } from "../../config";
 import { useState, useRef } from "react";
 import TranCont from "./TranCont";
+import CopyBtn from "./CopyBtn";
 
 function TranForm({ text, setText, tranboxSetting, transApis }) {
   const i18n = useI18n();
@@ -112,6 +115,31 @@ function TranForm({ text, setText, tranboxSetting, transApis }) {
           onBlur={() => {
             setEditMode(false);
             setText(editText.trim());
+          }}
+          InputProps={{
+            endAdornment: (
+              <Stack
+                direction="row"
+                sx={{
+                  position: "absolute",
+                  right: 0,
+                  top: 0,
+                }}
+              >
+                {editMode ? (
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
+                  >
+                    <DoneIcon fontSize="inherit" />
+                  </IconButton>
+                ) : (
+                  <CopyBtn text={text} />
+                )}
+              </Stack>
+            ),
           }}
         />
       </Box>

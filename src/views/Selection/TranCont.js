@@ -9,6 +9,7 @@ import { DEFAULT_TRANS_APIS, OPT_TRANS_BAIDU } from "../../config";
 import { useEffect, useState } from "react";
 import { apiTranslate } from "../../apis";
 import { isValidWord } from "../../libs/utils";
+import CopyBtn from "./CopyBtn";
 
 const exchangeMap = {
   word_third: "第三人称单数",
@@ -118,9 +119,24 @@ export default function TranCont({
       <Box>
         <TextField
           label={i18n("translated_text")}
+          // disabled
           fullWidth
           multiline
           value={trText}
+          InputProps={{
+            endAdornment: (
+              <Stack
+                direction="row"
+                sx={{
+                  position: "absolute",
+                  right: 0,
+                  top: 0,
+                }}
+              >
+                <CopyBtn text={trText} />
+              </Stack>
+            ),
+          }}
         />
       </Box>
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import TranBtn from "./Tranbtn";
-import TranBox from "./Tranbox";
+import TranBtn from "./TranBtn";
+import TranBox from "./TranBox";
 import { shortcutRegister } from "../../libs/shortcut";
 
 export default function Slection({ tranboxSetting, transApis }) {
