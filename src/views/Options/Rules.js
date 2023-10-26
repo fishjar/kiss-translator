@@ -399,7 +399,10 @@ function DownloadButton({ data, text, fileName }) {
       const url = window.URL.createObjectURL(new Blob([data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", fileName || `${Date.now()}.json`);
+      link.setAttribute(
+        "download",
+        fileName || `kiss-rules_${Date.now()}.json`
+      );
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -417,10 +420,28 @@ function DownloadButton({ data, text, fileName }) {
   );
 }
 
-function UploadButton({ onChange, text }) {
+function UploadButton({ handleImport, text }) {
+  const i18n = useI18n();
   const inputRef = useRef(null);
   const handleClick = () => {
     inputRef.current && inputRef.current.click();
+  };
+  const onChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.includes("json")) {
+      alert(i18n("error_wrong_file_type"));
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      handleImport(e.target.result);
+    };
+    reader.readAsText(file);
   };
 
   return (
@@ -494,26 +515,12 @@ function UserRules({ subRules }) {
   const injectRules = !!setting?.injectRules;
   const { selectedUrl, selectedRules } = subRules;
 
-  const handleImport = (e) => {
-    const file = e.target.files[0];
-    if (!file) {
-      return;
+  const handleImport = async (data) => {
+    try {
+      await rules.merge(JSON.parse(data));
+    } catch (err) {
+      console.log("[import rules]", err);
     }
-
-    if (!file.type.includes("json")) {
-      alert(i18n("error_wrong_file_type"));
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        await rules.merge(JSON.parse(e.target.result));
-      } catch (err) {
-        console.log("[import rules]", err);
-      }
-    };
-    reader.readAsText(file);
   };
 
   const handleInject = () => {
@@ -553,7 +560,7 @@ function UserRules({ subRules }) {
           {i18n("add")}
         </Button>
 
-        <UploadButton text={i18n("import")} onChange={handleImport} />
+        <UploadButton text={i18n("import")} handleImport={handleImport} />
         <DownloadButton
           data={JSON.stringify([...rules.list].reverse(), null, 2)}
           text={i18n("export")}
