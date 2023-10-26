@@ -67,7 +67,7 @@ export default function InputSetting() {
               }}
             />
           }
-          label={i18n("input_box_translation")}
+          label={i18n("use_input_box_translation")}
         />
 
         <TextField

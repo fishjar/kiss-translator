@@ -555,11 +555,11 @@ export const I18N = {
     zh: `全局规则`,
     en: `Global Rule`,
   },
-  input_translate: {
-    zh: `输入框翻译`,
-    en: `Input Box Translate`,
-  },
   input_box_translation: {
+    zh: `输入框翻译`,
+    en: `Input Box Translation`,
+  },
+  use_input_box_translation: {
     zh: `启用输入框翻译`,
     en: `Input Box Translation`,
   },
