@@ -18,6 +18,7 @@ A simple [bilingual translation extension & Greasemonkey script](https://github.
   - [x] Web bilingual translation
   - [x] Input box translation
   - [x] Seletction translation
+    - [x] Favorite Words
   - [x] Mouseover translation
   - [x] YouTube subtitle translation
 - [x] Cross-client data synchronization
