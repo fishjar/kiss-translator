@@ -555,9 +555,9 @@ export const I18N = {
     zh: `全局规则`,
     en: `Global Rule`,
   },
-  input_setting: {
-    zh: `输入框设置`,
-    en: `Input Box Setting`,
+  input_translate: {
+    zh: `输入框翻译`,
+    en: `Input Box Translate`,
   },
   input_box_translation: {
     zh: `启用输入框翻译`,

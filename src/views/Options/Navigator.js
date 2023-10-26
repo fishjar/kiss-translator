@@ -41,8 +41,8 @@ export default function Navigator(props) {
       icon: <DesignServicesIcon />,
     },
     {
-      id: "input_setting",
-      label: i18n("input_setting"),
+      id: "input_translate",
+      label: i18n("input_translate"),
       url: "/input",
       icon: <InputIcon />,
     },
