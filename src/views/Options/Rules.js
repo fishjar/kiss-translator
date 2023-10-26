@@ -375,8 +375,9 @@ function RuleAccordion({ rule, rules }) {
     <Accordion expanded={expanded} onChange={handleChange}>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
         <Typography
-          style={{
+          sx={{
             opacity: rules ? 1 : 0.5,
+            overflowWrap: "anywhere",
           }}
         >
           {rule.pattern === GLOBAL_KEY
@@ -663,7 +664,14 @@ function SubRulesItem({
 
   return (
     <Stack direction="row" alignItems="center" spacing={2}>
-      <FormControlLabel value={url} control={<Radio />} label={url} />
+      <FormControlLabel
+        value={url}
+        control={<Radio />}
+        sx={{
+          overflowWrap: "anywhere",
+        }}
+        label={url}
+      />
 
       {syncAt && (
         <span style={{ marginLeft: "0.5em", opacity: 0.5 }}>
