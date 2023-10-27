@@ -32,8 +32,8 @@ export default function TranCont({
         setError("");
         setDictResult(null);
 
-        const apis = { ...transApis, ...DEFAULT_TRANS_APIS };
-        const apiSetting = apis[translator];
+        const apiSetting =
+          transApis[translator] || DEFAULT_TRANS_APIS[translator];
         const tranRes = await apiTranslate({
           text,
           translator,
@@ -53,7 +53,6 @@ export default function TranCont({
               translator: OPT_TRANS_BAIDU,
               fromLang: "en",
               toLang: "zh-CN",
-              apiSetting: apis[OPT_TRANS_BAIDU],
             });
             setDictResult(dictRes[2].dict_result);
           }
