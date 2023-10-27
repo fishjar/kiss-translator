@@ -49,7 +49,7 @@ export default function DictCont({ dictResult }) {
           .join("; ")}
       </div>
 
-      <Stack direction="row" spacing={1}>
+      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
         {Object.values(dictResult.simple_means?.tags || {})
           .flat()
           .filter((item) => item)
