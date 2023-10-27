@@ -33,7 +33,7 @@ export default function DictCont({ dictResult }) {
       {dictResult.simple_means?.symbols?.map(({ ph_en, ph_am, parts }, idx) => (
         <div key={idx}>
           {(ph_en || ph_am) && (
-            <div>{`英[${ph_en || ""}] 美[${ph_am || ""}]`}</div>
+            <div>{`英/${ph_en || ""}/ 美/${ph_am || ""}/`}</div>
           )}
           <ul style={{ margin: "0.5em 0" }}>
             {parts.map(({ part, means }, idx) => (
