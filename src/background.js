@@ -60,7 +60,7 @@ browser.runtime.onMessage.addListener(
             sendResponse({ data });
           })
           .catch((error) => {
-            sendResponse({ error: error.message });
+            sendResponse({ error: error.message, cause: error.cause });
           });
         break;
       case MSG_FETCH_LIMIT:

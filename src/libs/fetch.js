@@ -127,7 +127,13 @@ export const fetchData = async (
     }
 
     if (!res?.ok) {
-      throw new Error(`response: ${res.statusText}`);
+      const cause = {
+        status: res.status,
+      };
+      if (res.headers.get("Content-Type")?.includes("json")) {
+        cause.body = await res.json();
+      }
+      throw new Error(`response: [${res.status}] ${res.statusText}`, { cause });
     }
 
     // 插入缓存
@@ -163,7 +169,7 @@ export const fetchPolyfill = async (input, opts) => {
   if (isExt && !isBg()) {
     const res = await sendBgMsg(MSG_FETCH, { input, opts });
     if (res.error) {
-      throw new Error(res.error);
+      throw new Error(res.error, { cause: res.cause });
     }
     return res.data;
   }

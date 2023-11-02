@@ -46,7 +46,20 @@ function TestButton({ translator, api }) {
       }
       alert.success(i18n("test_success"));
     } catch (err) {
-      alert.error(`${i18n("test_failed")}: ${err.message}`);
+      // alert.error(`${i18n("test_failed")}: ${err.message}`);
+      alert.error(
+        <>
+          <div>{`${i18n("test_failed")}: ${err.message}`}</div>
+          <pre
+            style={{
+              maxWidth: 400,
+              overflow: "auto",
+            }}
+          >
+            {JSON.stringify(err.cause || {}, null, 2)}
+          </pre>
+        </>
+      );
     } finally {
       setLoading(false);
     }
