@@ -1,7 +1,7 @@
 export const isIframe = window.self !== window.top;
 
 export const sendIframeMsg = (action, args) => {
-  document.getElementsByTagName("iframe").forEach((iframe) => {
+  document.querySelectorAll("iframe").forEach((iframe) => {
     iframe.contentWindow.postMessage({ action, args }, "*");
   });
 };
