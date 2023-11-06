@@ -55,6 +55,10 @@ export const fetchApi = async ({ input, init, transOpts, apiSetting }) => {
     [input, init] = await newTransReq(transOpts, apiSetting);
   }
 
+  if (!input) {
+    throw new Error("url is empty");
+  }
+
   if (isGm) {
     let info;
     if (window.KISS_GM) {
