@@ -9,7 +9,7 @@ const exchangeMap = {
   word_done: "过去式",
   word_past: "过去分词",
   word_pl: "复数",
-  word_proto: "原词",
+  word_proto: "词根",
 };
 
 export default function DictCont({ dictResult }) {
