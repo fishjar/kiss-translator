@@ -111,11 +111,15 @@ export const apiTranslate = async ({
   let trText = "";
   let isSame = false;
 
+  if (!text) {
+    return [trText, true];
+  }
+
   const from =
     OPT_LANGS_SPECIAL[translator].get(fromLang) ??
     OPT_LANGS_SPECIAL[translator].get("auto");
   const to = OPT_LANGS_SPECIAL[translator].get(toLang);
-  if (!text || !to) {
+  if (!to) {
     console.log(`[trans] target lang: ${toLang} not support`);
     return [trText, isSame];
   }
