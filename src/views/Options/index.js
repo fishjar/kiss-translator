@@ -22,6 +22,7 @@ import Webfix from "./Webfix";
 import InputSetting from "./InputSetting";
 import Tranbox from "./Tranbox";
 import FavWords from "./FavWords";
+import TouchSetting from "./touchSetting";
 
 export default function Options() {
   const [error, setError] = useState("");
@@ -122,6 +123,7 @@ export default function Options() {
                 <Route index element={<Setting />} />
                 <Route path="rules" element={<Rules />} />
                 <Route path="input" element={<InputSetting />} />
+                <Route path="touch" element={<TouchSetting />} />
                 <Route path="tranbox" element={<Tranbox />} />
                 <Route path="apis" element={<Apis />} />
                 <Route path="sync" element={<SyncSetting />} />

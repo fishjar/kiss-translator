@@ -643,4 +643,20 @@ export const I18N = {
     zh: `收藏词汇`,
     en: `Favorite Words`,
   },
+  touch_setting: {
+    zh: `触屏设置`,
+    en: `Touch Setting`,
+  },
+  touch_tap_0: {
+    zh: `禁用`,
+    en: `Disable`,
+  },
+  touch_tap_2: {
+    zh: `双指轻触`,
+    en: `Two finger tap`,
+  },
+  touch_tap_3: {
+    zh: `三指轻触`,
+    en: `Three finger tap`,
+  },
 };

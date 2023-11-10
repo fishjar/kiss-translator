@@ -404,6 +404,14 @@ export const TRANS_MIN_LENGTH = 5; // 最短翻译长度
 export const TRANS_MAX_LENGTH = 5000; // 最长翻译长度
 export const TRANS_NEWLINE_LENGTH = 20; // 换行字符数
 
+// 触屏操作
+export const DEFAULT_TOUCH_OPERATION = {
+  [OPT_SHORTCUT_TRANSLATE]: [2, 1, 500],
+  [OPT_SHORTCUT_STYLE]: [3, 1, 500],
+  [OPT_SHORTCUT_POPUP]: [0, 1, 500],
+  [OPT_SHORTCUT_SETTING]: [3, 2, 500],
+};
+
 export const DEFAULT_SETTING = {
   darkMode: false, // 深色模式
   uiLang: "en", // 界面语言
@@ -423,6 +431,7 @@ export const DEFAULT_SETTING = {
   shortcuts: DEFAULT_SHORTCUTS, // 快捷键
   inputRule: DEFAULT_INPUT_RULE, // 输入框设置
   tranboxSetting: DEFAULT_TRANBOX_SETTING, // 划词翻译设置
+  touchOperations: DEFAULT_TOUCH_OPERATION, // 触屏操作
 };
 
 export const DEFAULT_RULES = [GLOBLA_RULE];
