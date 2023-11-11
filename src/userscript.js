@@ -11,6 +11,7 @@ import {
   showTransbox,
   windowListener,
   showErr,
+  touchOperation,
 } from "./common";
 
 function runSettingPage() {
@@ -69,9 +70,13 @@ function runSettingPage() {
     // 浮球按钮
     await showFab(translator);
 
+    // 触屏操作
+    touchOperation(translator);
+
     // 同步订阅规则
     await trySyncAllSubRules(setting);
   } catch (err) {
-    showErr(err);
+    console.error("[KISS-Translator]", err);
+    showErr(err.message);
   }
 })();

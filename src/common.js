@@ -16,6 +16,8 @@ import { Translator } from "./libs/translator";
 import { sendIframeMsg, sendParentMsg } from "./libs/iframe";
 import { matchRule } from "./libs/rules";
 import Slection from "./views/Selection";
+import { touchTapListener } from "./libs/touch";
+import { debounce } from "./libs/utils";
 
 export async function runTranslator(setting) {
   const href = document.location.href;
@@ -120,10 +122,22 @@ export function windowListener(rule) {
   });
 }
 
-export function showErr(err) {
-  console.error("[KISS-Translator]", err);
+export function showErr(message) {
   const $err = document.createElement("div");
-  $err.innerText = `KISS-Translator: ${err.message}`;
+  $err.innerText = `KISS-Translator: ${message}`;
   $err.style.cssText = "background:red; color:#fff;";
   document.body.prepend($err);
+}
+
+export function touchOperation(translator) {
+  const { touchTranslate = 2 } = translator.setting;
+  if (touchTranslate === 0) {
+    return;
+  }
+
+  const handleTap = debounce(() => {
+    translator.toggle();
+    sendIframeMsg(MSG_TRANS_TOGGLE);
+  });
+  touchTapListener(handleTap, touchTranslate);
 }

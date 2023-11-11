@@ -60,6 +60,9 @@ export default function Settings() {
       case "newlineLength":
         value = limitNumber(value, 1, 1000);
         break;
+      case "touchTranslate":
+        value = limitNumber(value, 0, 3);
+        break;
       default:
     }
     updateSetting({
@@ -86,6 +89,7 @@ export default function Settings() {
     newlineLength = TRANS_NEWLINE_LENGTH,
     mouseKey = OPT_MOUSEKEY_DISABLE,
     detectRemote = false,
+    touchTranslate = 2,
   } = setting;
   const { isHide = false } = fab || {};
 
@@ -164,6 +168,22 @@ export default function Settings() {
             {OPT_MOUSEKEY_ALL.map((item) => (
               <MenuItem key={item} value={item}>
                 {i18n(item)}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
+        <FormControl size="small">
+          <InputLabel>{i18n("touch_translate_shortcut")}</InputLabel>
+          <Select
+            name="touchTranslate"
+            value={touchTranslate}
+            label={i18n("touch_translate_shortcut")}
+            onChange={handleChange}
+          >
+            {[0, 2, 3].map((item) => (
+              <MenuItem key={item} value={item}>
+                {i18n(`touch_tap_${item}`)}
               </MenuItem>
             ))}
           </Select>

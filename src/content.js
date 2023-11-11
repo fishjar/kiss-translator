@@ -15,6 +15,7 @@ import {
   showTransbox,
   windowListener,
   showErr,
+  touchOperation,
 } from "./common";
 
 function runtimeListener(translator) {
@@ -70,7 +71,11 @@ function runtimeListener(translator) {
 
     // 浮球按钮
     await showFab(translator);
+
+    // 触屏操作
+    touchOperation(translator);
   } catch (err) {
-    showErr(err);
+    console.error("[KISS-Translator]", err);
+    showErr(err.message);
   }
 })();

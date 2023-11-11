@@ -1,31 +1,12 @@
-export function touchTapListener(fn, setting) {
-  const [touchLength, touchCount, touchTime] = setting;
-
-  let lastTouch = 0;
-  let curCount = 0;
+export function touchTapListener(fn, touchsLength) {
   const handleTouchend = (e) => {
-    if (e.touches.length !== touchLength) {
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      clearTimeout(timer);
-      curCount = 0;
-    }, touchTime);
-
-    curCount++;
-    const now = Date.now();
-    if (curCount === touchCount && now - lastTouch <= touchTime) {
-      timer && clearTimeout(timer);
-      curCount = 0;
+    if (e.touches.length === touchsLength) {
       fn();
     }
-
-    lastTouch = now;
   };
 
-  document.addEventListener("touchend", handleTouchend);
+  document.addEventListener("touchstart", handleTouchend);
   return () => {
-    document.removeEventListener("touchend", handleTouchend);
+    document.removeEventListener("touchstart", handleTouchend);
   };
 }

@@ -15,7 +15,6 @@ import SendTimeExtensionIcon from "@mui/icons-material/SendTimeExtension";
 import InputIcon from "@mui/icons-material/Input";
 import SelectAllIcon from "@mui/icons-material/SelectAll";
 import EventNoteIcon from "@mui/icons-material/EventNote";
-import TouchAppIcon from "@mui/icons-material/TouchApp";
 
 function LinkItem({ label, url, icon }) {
   const match = useMatch(url);
@@ -47,12 +46,6 @@ export default function Navigator(props) {
       label: i18n("input_translate"),
       url: "/input",
       icon: <InputIcon />,
-    },
-    {
-      id: "touch_setting",
-      label: i18n("touch_setting"),
-      url: "/touch",
-      icon: <TouchAppIcon />,
     },
     {
       id: "selection_translate",
