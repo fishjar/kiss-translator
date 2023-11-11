@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import TranBtn from "./TranBtn";
 import TranBox from "./TranBox";
 import { shortcutRegister } from "../../libs/shortcut";
+import { sleep } from "../../libs/utils";
 
 export default function Slection({ tranboxSetting, transApis }) {
   const [showBox, setShowBox] = useState(false);
@@ -15,7 +16,9 @@ export default function Slection({ tranboxSetting, transApis }) {
     y: (window.innerHeight - 400) / 2,
   });
 
-  function handleMouseup(e) {
+  async function handleMouseup(e) {
+    await sleep(10);
+
     const selectedText = window.getSelection()?.toString()?.trim() || "";
     if (!selectedText) {
       setShowBtn(false);
