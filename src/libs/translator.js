@@ -349,8 +349,8 @@ export class Translator {
       // 监听鼠标悬停
       window.addEventListener("keydown", this._handleKeydown);
       this._tranNodes.forEach((_, node) => {
-        node.addEventListener("mouseover", this._handleMouseover);
-        node.addEventListener("mouseout", this._handleMouseout);
+        node.addEventListener("mouseenter", this._handleMouseover);
+        node.addEventListener("mouseleave", this._handleMouseout);
       });
     }
   };
@@ -475,15 +475,15 @@ export class Translator {
   };
 
   _handleMouseover = (e) => {
-    // console.log("mouseover", e);
+    // console.log("mouseenter", e);
     if (!this._tranNodes.has(e.target)) {
       return;
     }
 
     const key = this._setting.mouseKey.slice(3);
     if (this._setting.mouseKey === OPT_MOUSEKEY_MOUSEOVER || e[key]) {
-      e.target.removeEventListener("mouseover", this._handleMouseover);
-      e.target.removeEventListener("mouseout", this._handleMouseout);
+      e.target.removeEventListener("mouseenter", this._handleMouseover);
+      e.target.removeEventListener("mouseleave", this._handleMouseout);
       this._render(e.target);
     } else {
       this._mouseoverNode = e.target;
@@ -491,7 +491,7 @@ export class Translator {
   };
 
   _handleMouseout = (e) => {
-    // console.log("mouseout", e);
+    // console.log("mouseleave", e);
     if (!this._tranNodes.has(e.target)) {
       return;
     }
@@ -504,10 +504,13 @@ export class Translator {
     const key = this._setting.mouseKey.slice(3);
     if (e[key] && this._mouseoverNode) {
       this._mouseoverNode.removeEventListener(
-        "mouseover",
+        "mouseenter",
         this._handleMouseover
       );
-      this._mouseoverNode.removeEventListener("mouseout", this._handleMouseout);
+      this._mouseoverNode.removeEventListener(
+        "mouseleave",
+        this._handleMouseout
+      );
 
       const node = this._mouseoverNode;
       this._render(node);
@@ -536,8 +539,9 @@ export class Translator {
       // 移除鼠标悬停监听
       window.removeEventListener("keydown", this._handleKeydown);
       this._tranNodes.forEach((_, node) => {
-        node.removeEventListener("mouseover", this._handleMouseover);
-        node.removeEventListener("mouseout", this._handleMouseout);
+        // node.style.pointerEvents = "none";
+        node.removeEventListener("mouseenter", this._handleMouseover);
+        node.removeEventListener("mouseleave", this._handleMouseout);
         // 移除已插入元素
         node.querySelector(APP_LCNAME)?.remove();
       });
