@@ -5,9 +5,10 @@ import { apiFetch } from "../apis";
 /**
  * 修复程序类型
  */
-const FIXER_BR = "br";
+export const FIXER_BR = "br";
 const FIXER_BN = "bn";
 const FIXER_FONTSIZE = "fontSize";
+export const FIXER_ALL = [FIXER_BR, FIXER_BN, FIXER_FONTSIZE];
 
 /**
  * 需要修复的站点列表

@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { storage } from "../libs/storage";
 
+/**
+ * 
+ * @param {*} key 
+ * @param {*} defaultVal 需为调用hook外的常量
+ * @returns 
+ */
 export function useStorage(key, defaultVal) {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState(null);

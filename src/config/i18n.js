@@ -375,6 +375,14 @@ export const I18N = {
     zh: `选择器`,
     en: `Selector`,
   },
+  rootSelector: {
+    zh: `根选择器`,
+    en: `Root Selector`,
+  },
+  fixerFunction: {
+    zh: `修复函数`,
+    en: `Fixer Function`,
+  },
   import: {
     zh: `导入`,
     en: `Import`,
