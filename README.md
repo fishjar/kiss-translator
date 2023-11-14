@@ -48,9 +48,9 @@
   - [x] Firefox [安装地址](https://addons.mozilla.org/zh-CN/firefox/addon/kiss-translator/)
   - [ ] Safari
 - [x] 油猴脚本
-  - [x] Chrome/Edge/Firefox ([Tampermonkey](https://www.tampermonkey.net/)/[Violentmonkey](https://violentmonkey.github.io/)) [安装链接 1](https://fishjar.github.io/kiss-translator/kiss-translator.user.js)、 [安装链接 2](https://kiss-translator.rayjar.com/kiss-translator.user.js)
+  - [x] Chrome/Edge/Firefox ([Tampermonkey](https://www.tampermonkey.net/)/[Violentmonkey](https://violentmonkey.github.io/)) [安装链接](https://fishjar.github.io/kiss-translator/kiss-translator.user.js)
     - Greasy Fork [安装地址](https://greasyfork.org/zh-CN/scripts/472840-kiss-translator)
-  - [x] iOS Safari ([Userscripts Safari](https://github.com/quoid/userscripts)) [安装链接 1](https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js)、 [安装链接 2](https://kiss-translator.rayjar.com/kiss-translator.user-ios-safari.js)
+  - [x] iOS Safari ([Userscripts Safari](https://github.com/quoid/userscripts)) [安装链接](https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js)
 
 ## 关联项目
 

@@ -48,9 +48,9 @@ A simple [bilingual translation extension & Greasemonkey script](https://github.
   - [x] Firefox [Installation address](https://addons.mozilla.org/zh-CN/firefox/addon/kiss-translator/)
   - [ ] Safari
 - [x] GreaseMonkey Script
-  - [x] Chrome/Edge/Firefox ([Tampermonkey](https://www.tampermonkey.net/)/[Violentmonkey](https://violentmonkey.github.io/)) [Installation link 1](https://fishjar.github.io/kiss-translator/kiss-translator.user.js)、 [Installation link 2](https://kiss-translator.rayjar.com/kiss-translator.user.js)
+  - [x] Chrome/Edge/Firefox ([Tampermonkey](https://www.tampermonkey.net/)/[Violentmonkey](https://violentmonkey.github.io/)) [Installation link](https://fishjar.github.io/kiss-translator/kiss-translator.user.js)
     - Greasy Fork [Installation address](https://greasyfork.org/zh-CN/scripts/472840-kiss-translator)
-  - [x] iOS Safari ([Userscripts Safari](https://github.com/quoid/userscripts)) [Installation link 1](https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js)、 [Installation link 2](https://kiss-translator.rayjar.com/kiss-translator.user-ios-safari.js)
+  - [x] iOS Safari ([Userscripts Safari](https://github.com/quoid/userscripts)) [Installation link](https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js)
 
 ## Associated Projects
 
