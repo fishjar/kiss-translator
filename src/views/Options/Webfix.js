@@ -13,12 +13,7 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import { useSetting } from "../../hooks/Setting";
 import CircularProgress from "@mui/material/CircularProgress";
-import {
-  syncWebfix,
-  loadOrFetchWebfix,
-  FIXER_BR,
-  FIXER_ALL,
-} from "../../libs/webfix";
+import { syncWebfix, loadOrFetchWebfix, FIXER_ALL } from "../../libs/webfix";
 import Button from "@mui/material/Button";
 import SyncIcon from "@mui/icons-material/Sync";
 import { useAlert } from "../../hooks/Alert";
@@ -33,7 +28,7 @@ function WebfixFields({ rule, webfix, setShow }) {
     pattern: "",
     selector: "",
     rootSelector: "",
-    fixer: FIXER_BR,
+    fixer: FIXER_ALL[0],
   };
   const i18n = useI18n();
   const [disabled, setDisabled] = useState(editMode);

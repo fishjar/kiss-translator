@@ -5,10 +5,18 @@ import { apiFetch } from "../apis";
 /**
  * 修复程序类型
  */
-export const FIXER_BR = "br";
+const FIXER_BR = "br";
 const FIXER_BN = "bn";
+const FIXER_BR_DIV = "brToDiv";
+const FIXER_BN_DIV = "bnToDiv";
 const FIXER_FONTSIZE = "fontSize";
-export const FIXER_ALL = [FIXER_BR, FIXER_BN, FIXER_FONTSIZE];
+export const FIXER_ALL = [
+  FIXER_BR,
+  FIXER_BN,
+  FIXER_BR_DIV,
+  FIXER_BN_DIV,
+  FIXER_FONTSIZE,
+];
 
 /**
  * 需要修复的站点列表
@@ -55,7 +63,7 @@ const fixedSign = "kissfixed";
  * @param {*} node
  * @returns
  */
-function brFixer(node) {
+function brFixer(node, tag = "p") {
   if (node.hasAttribute(fixedSign)) {
     return;
   }
@@ -82,13 +90,13 @@ function brFixer(node) {
   var html = "";
   node.childNodes.forEach(function (child, index) {
     if (index === 0) {
-      html += "<p>";
+      html += `<${tag} class="kiss-p">`;
     }
 
     if (gapTags.indexOf(child.nodeName) !== -1) {
-      html += "</p><p>";
+      html += `</${tag}><${tag} class="kiss-p">`;
     } else if (newlineTags.indexOf(child.nodeName) !== -1) {
-      html += "</p>" + child.outerHTML + "<p>";
+      html += `</${tag}>${child.outerHTML}<${tag} class="kiss-p">`;
     } else if (child.outerHTML) {
       html += child.outerHTML;
     } else if (child.nodeValue) {
@@ -96,10 +104,14 @@ function brFixer(node) {
     }
 
     if (index === node.childNodes.length - 1) {
-      html += "</p>";
+      html += `</${tag}>`;
     }
   });
   node.innerHTML = html;
+}
+
+function brDivFixer(node) {
+  return brFixer(node, "div");
 }
 
 /**
@@ -107,19 +119,19 @@ function brFixer(node) {
  * @param {*} node
  * @returns
  */
-function bnFixer(node) {
+function bnFixer(node, tag = "p") {
   if (node.hasAttribute(fixedSign)) {
     return;
   }
   node.setAttribute(fixedSign, "true");
+  node.innerHTML = node.innerHTML
+    .split("\n")
+    .map((item) => `<${tag} class="kiss-p">${item || "&nbsp;"}</${tag}>`)
+    .join("");
+}
 
-  const childs = node.childNodes;
-  if (childs.length === 1 && childs[0].nodeName === "#text") {
-    node.innerHTML = node.innerHTML
-      .split("\n")
-      .map((item) => `<p>${item || "&nbsp;"}</p>`)
-      .join("");
-  }
+function bnDivFixer(node) {
+  return bnFixer(node, "div");
 }
 
 /**
@@ -136,6 +148,8 @@ function fontSizeFixer(node) {
 const fixerMap = {
   [FIXER_BR]: brFixer,
   [FIXER_BN]: bnFixer,
+  [FIXER_BR_DIV]: brDivFixer,
+  [FIXER_BN_DIV]: bnDivFixer,
   [FIXER_FONTSIZE]: fontSizeFixer,
 };
 
@@ -150,7 +164,9 @@ function run(selector, fixer, rootSelector) {
     mutations.forEach(function (mutation) {
       mutation.addedNodes.forEach(function (addNode) {
         if (addNode && addNode.querySelectorAll) {
-          addNode.querySelectorAll(selector).forEach(fixer);
+          addNode.querySelectorAll(selector).forEach(function (node) {
+            fixer(node);
+          });
         }
       });
     });
@@ -162,7 +178,9 @@ function run(selector, fixer, rootSelector) {
   }
 
   rootNodes.forEach(function (rootNode) {
-    rootNode.querySelectorAll(selector).forEach(fixer);
+    rootNode.querySelectorAll(selector).forEach(function (node) {
+      fixer(node);
+    });
     mutaObserver.observe(rootNode, {
       childList: true,
       subtree: true,
@@ -204,12 +222,14 @@ export const loadOrFetchWebfix = async (url) => {
  */
 export async function runWebfix({ injectWebfix }) {
   try {
-    const href = document.location.href;
-    let sites = await getWebfixRulesWithDefault();
-    if (injectWebfix) {
-      const subSites = await loadOrFetchWebfix(process.env.REACT_APP_WEBFIXURL);
-      sites = [...sites, ...subSites];
+    if (!injectWebfix) {
+      return;
     }
+
+    const href = document.location.href;
+    const userSites = await getWebfixRulesWithDefault();
+    const subSites = await loadOrFetchWebfix(process.env.REACT_APP_WEBFIXURL);
+    const sites = [...userSites, ...subSites];
     for (var i = 0; i < sites.length; i++) {
       var site = sites[i];
       if (isMatch(href, site.pattern)) {
