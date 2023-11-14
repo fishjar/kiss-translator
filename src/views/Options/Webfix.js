@@ -119,7 +119,7 @@ function WebfixFields({ rule, webfix, setShow }) {
         />
         <TextField
           size="small"
-          label={i18n("rootSelector")}
+          label={i18n("root_selector")}
           error={!!errors.rootSelector}
           helperText={errors.rootSelector}
           name="rootSelector"
@@ -146,7 +146,7 @@ function WebfixFields({ rule, webfix, setShow }) {
           size="small"
           name="fixer"
           value={fixer}
-          label={i18n("fixerFunction")}
+          label={i18n("fixer_function")}
           disabled={disabled}
           onChange={handleChange}
         >

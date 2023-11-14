@@ -375,11 +375,11 @@ export const I18N = {
     zh: `选择器`,
     en: `Selector`,
   },
-  rootSelector: {
+  root_selector: {
     zh: `根选择器`,
     en: `Root Selector`,
   },
-  fixerFunction: {
+  fixer_function: {
     zh: `修复函数`,
     en: `Fixer Function`,
   },

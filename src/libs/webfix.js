@@ -1,5 +1,5 @@
 import { isMatch } from "./utils";
-import { getWebfix, setWebfix } from "./storage";
+import { getWebfix, setWebfix, getWebfixRulesWithDefault } from "./storage";
 import { apiFetch } from "../apis";
 
 /**
@@ -202,12 +202,12 @@ export const loadOrFetchWebfix = async (url) => {
  */
 export async function runWebfix({ injectWebfix }) {
   try {
-    if (!injectWebfix) {
-      return;
-    }
-
     const href = document.location.href;
-    const sites = await loadOrFetchWebfix(process.env.REACT_APP_WEBFIXURL);
+    let sites = await getWebfixRulesWithDefault();
+    if (injectWebfix) {
+      const subSites = await loadOrFetchWebfix(process.env.REACT_APP_WEBFIXURL);
+      sites = [...sites, ...subSites];
+    }
     for (var i = 0; i < sites.length; i++) {
       var site = sites[i];
       if (isMatch(href, site.pattern)) {
