@@ -149,7 +149,9 @@ function run(selector, fixer, rootSelector) {
   var mutaObserver = new MutationObserver(function (mutations) {
     mutations.forEach(function (mutation) {
       mutation.addedNodes.forEach(function (addNode) {
-        addNode?.querySelectorAll(selector)?.forEach(fixer);
+        if (addNode && addNode.querySelectorAll) {
+          addNode.querySelectorAll(selector).forEach(fixer);
+        }
       });
     });
   });
