@@ -547,6 +547,10 @@ export const I18N = {
     zh: `隐藏悬浮按钮`,
     en: `Hide Fab Button`,
   },
+  hide_tran_button: {
+    zh: `隐藏翻译按钮`,
+    en: `Hide Translate Button`,
+  },
   show: {
     zh: `显示`,
     en: `Show`,
@@ -630,6 +634,10 @@ export const I18N = {
   trigger_tranbox_shortcut: {
     zh: `显示翻译框快捷键`,
     en: `Toggle Translate Box Shortcut`,
+  },
+  trigger_transel_shortcut: {
+    zh: `翻译选中文字快捷键`,
+    en: `Translate Selected Shortcut`,
   },
   tranbtn_offset_x: {
     zh: `翻译按钮偏移X（0-100）`,

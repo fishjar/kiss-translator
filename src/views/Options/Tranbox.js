@@ -3,7 +3,12 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import { useI18n } from "../../hooks/I18n";
-import { OPT_TRANS_ALL, OPT_LANGS_FROM, OPT_LANGS_TO } from "../../config";
+import {
+  OPT_TRANS_ALL,
+  OPT_LANGS_FROM,
+  OPT_LANGS_TO,
+  DEFAULT_TRANSEL_SHORTCUT,
+} from "../../config";
 import ShortcutInput from "./ShortcutInput";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
@@ -39,14 +44,23 @@ export default function Tranbox() {
     [updateTranbox]
   );
 
+  const handleShortcutTransel = useCallback(
+    (val) => {
+      updateTranbox({ transelShortcut: val });
+    },
+    [updateTranbox]
+  );
+
   const {
     transOpen,
     translator,
     fromLang,
     toLang,
     tranboxShortcut,
+    transelShortcut = DEFAULT_TRANSEL_SHORTCUT,
     btnOffsetX,
     btnOffsetY,
+    hideTranBtn = false,
   } = tranboxSetting;
 
   return (
@@ -129,10 +143,28 @@ export default function Tranbox() {
           onChange={handleChange}
         />
 
+        <TextField
+          select
+          size="small"
+          name="hideTranBtn"
+          value={hideTranBtn}
+          label={i18n("hide_tran_button")}
+          onChange={handleChange}
+        >
+          <MenuItem value={false}>{i18n("show")}</MenuItem>
+          <MenuItem value={true}>{i18n("hide")}</MenuItem>
+        </TextField>
+
         <ShortcutInput
           value={tranboxShortcut}
           onChange={handleShortcutInput}
           label={i18n("trigger_tranbox_shortcut")}
+        />
+
+        <ShortcutInput
+          value={transelShortcut}
+          onChange={handleShortcutTransel}
+          label={i18n("trigger_transel_shortcut")}
         />
       </Stack>
     </Box>

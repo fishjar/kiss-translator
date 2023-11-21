@@ -6,12 +6,15 @@
     "message": "一个简约的双语对照翻译扩展 & 油猴脚本"
   },
   "toggle_translate": {
-    "message": "开启翻译"
+    "message": "开启翻译 (Alt+Q)"
   },
   "toggle_style": {
-    "message": "切换样式"
+    "message": "切换样式 (Alt+C)"
   },
   "open_options": {
-    "message": "打开设置"
+    "message": "打开设置 (Alt+O)"
+  },
+  "translate_selected": {
+    "message": "翻译选中文字 (Alt+S)"
   }
 }

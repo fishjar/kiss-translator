@@ -34,6 +34,7 @@ A simple, open source [bilingual translation extension & Greasemonkey script](ht
   - `Alt+B` Open Translate Popup
   - `Alt+O` Open Options Page
   - `Alt+I` Input Box Translation
+  - `Alt+S` Translate Selected Text
 
 ## Install
 

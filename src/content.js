@@ -2,6 +2,7 @@ import { browser } from "./libs/browser";
 import {
   MSG_TRANS_TOGGLE,
   MSG_TRANS_TOGGLE_STYLE,
+  MSG_TRANSLATE_SELECTED,
   MSG_TRANS_GETRULE,
   MSG_TRANS_PUTRULE,
 } from "./config";
@@ -34,6 +35,9 @@ function runtimeListener(translator) {
       case MSG_TRANS_PUTRULE:
         translator.updateRule(args);
         sendIframeMsg(MSG_TRANS_PUTRULE, args);
+        break;
+      case MSG_TRANSLATE_SELECTED:
+        window.dispatchEvent(new CustomEvent(MSG_TRANSLATE_SELECTED));
         break;
       default:
         return { error: `message action is unavailable: ${action}` };

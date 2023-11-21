@@ -7,9 +7,11 @@ import {
   MSG_OPEN_OPTIONS,
   MSG_SAVE_RULE,
   MSG_TRANS_TOGGLE_STYLE,
+  MSG_TRANSLATE_SELECTED,
   CMD_TOGGLE_TRANSLATE,
   CMD_TOGGLE_STYLE,
   CMD_OPEN_OPTIONS,
+  CMD_TRANSLATE_SELECTED,
 } from "./config";
 import { getSettingWithDefault, tryInitDefaultData } from "./libs/storage";
 import { trySyncSettingAndRules } from "./libs/sync";
@@ -26,14 +28,34 @@ globalThis.ContextType = "BACKGROUND";
  */
 browser.runtime.onInstalled.addListener(() => {
   tryInitDefaultData();
+
+  // 右键菜单
+  browser.contextMenus.create({
+    id: CMD_TRANSLATE_SELECTED,
+    title: browser.i18n.getMessage("translate_selected"),
+    contexts: ["selection"],
+  });
+  browser.contextMenus.create({
+    id: CMD_TOGGLE_TRANSLATE,
+    title: browser.i18n.getMessage("toggle_translate"),
+    contexts: ["all"],
+  });
+  browser.contextMenus.create({
+    id: CMD_TOGGLE_STYLE,
+    title: browser.i18n.getMessage("toggle_style"),
+    contexts: ["all"],
+  });
+  browser.contextMenus.create({
+    id: CMD_OPEN_OPTIONS,
+    title: browser.i18n.getMessage("open_options"),
+    contexts: ["all"],
+  });
 });
 
 /**
  * 浏览器启动
  */
 browser.runtime.onStartup.addListener(async () => {
-  console.log("browser onStartup");
-
   // 同步数据
   await trySyncSettingAndRules();
 
@@ -96,6 +118,24 @@ browser.commands.onCommand.addListener((command) => {
       break;
     case CMD_TOGGLE_STYLE:
       sendTabMsg(MSG_TRANS_TOGGLE_STYLE);
+      break;
+    case CMD_OPEN_OPTIONS:
+      browser.runtime.openOptionsPage();
+      break;
+    default:
+  }
+});
+
+browser.contextMenus.onClicked.addListener(({ menuItemId }) => {
+  switch (menuItemId) {
+    case CMD_TOGGLE_TRANSLATE:
+      sendTabMsg(MSG_TRANS_TOGGLE);
+      break;
+    case CMD_TOGGLE_STYLE:
+      sendTabMsg(MSG_TRANS_TOGGLE_STYLE);
+      break;
+    case CMD_TRANSLATE_SELECTED:
+      sendTabMsg(MSG_TRANSLATE_SELECTED);
       break;
     case CMD_OPEN_OPTIONS:
       browser.runtime.openOptionsPage();
