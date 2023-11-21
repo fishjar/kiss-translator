@@ -36,6 +36,11 @@ browser.runtime.onInstalled.addListener(() => {
     contexts: ["selection"],
   });
   browser.contextMenus.create({
+    id: "selection_separator",
+    type: "separator",
+    contexts: ["selection"],
+  });
+  browser.contextMenus.create({
     id: CMD_TOGGLE_TRANSLATE,
     title: browser.i18n.getMessage("toggle_translate"),
     contexts: ["all"],
@@ -43,6 +48,11 @@ browser.runtime.onInstalled.addListener(() => {
   browser.contextMenus.create({
     id: CMD_TOGGLE_STYLE,
     title: browser.i18n.getMessage("toggle_style"),
+    contexts: ["all"],
+  });
+  browser.contextMenus.create({
+    id: "options_separator",
+    type: "separator",
     contexts: ["all"],
   });
   browser.contextMenus.create({
