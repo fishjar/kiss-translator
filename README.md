@@ -40,8 +40,8 @@
 
 > 注：基于以下原因，建议优先使用浏览器扩展
 >
-> - 浏览器扩展可以使用本地的语言识别
-> - 油猴脚本会遇到更多使用上的问题
+> - 浏览器扩展的功能更完整（本地语言识别、划词翻译、右键菜单等）
+> - 油猴脚本会遇到更多使用上的问题（跨域问题、脚本冲突等）
 
 - [x] 浏览器扩展
   - [x] Chrome [安装地址](https://chrome.google.com/webstore/detail/kiss-translator/bdiifdefkgmcblbcghdlonllpjhhjgof?hl=zh-CN)

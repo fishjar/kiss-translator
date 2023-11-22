@@ -40,8 +40,8 @@ A simple, open source [bilingual translation extension & Greasemonkey script](ht
 
 > Note: For the following reasons, it is recommended to use browser extensions first
 >
-> - Browser extension can use local language recognition
-> - Grease Monkey script will encounter more usage problems
+> - Browser extensions have more complete functions (local language recognition, seletction translation, context menu, etc.)
+> - Grease Monkey script will encounter more usage problems (cross domain issues, script conflicts, etc.)
 
 - [x] Browser extension
   - [x] Chrome [Installation address](https://chrome.google.com/webstore/detail/kiss-translator/bdiifdefkgmcblbcghdlonllpjhhjgof?hl=zh-CN)
