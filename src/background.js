@@ -8,9 +8,11 @@ import {
   MSG_SAVE_RULE,
   MSG_TRANS_TOGGLE_STYLE,
   MSG_TRANSLATE_SELECTED,
+  MSG_OPEN_TRANBOX,
   CMD_TOGGLE_TRANSLATE,
   CMD_TOGGLE_STYLE,
   CMD_OPEN_OPTIONS,
+  CMD_OPEN_TRANBOX,
   CMD_TRANSLATE_SELECTED,
 } from "./config";
 import { getSettingWithDefault, tryInitDefaultData } from "./libs/storage";
@@ -53,6 +55,11 @@ browser.runtime.onInstalled.addListener(() => {
   browser.contextMenus.create({
     id: "options_separator",
     type: "separator",
+    contexts: ["all"],
+  });
+  browser.contextMenus.create({
+    id: CMD_OPEN_TRANBOX,
+    title: browser.i18n.getMessage("open_tranbox"),
     contexts: ["all"],
   });
   browser.contextMenus.create({
@@ -146,6 +153,9 @@ browser.contextMenus.onClicked.addListener(({ menuItemId }) => {
       break;
     case CMD_TRANSLATE_SELECTED:
       sendTabMsg(MSG_TRANSLATE_SELECTED);
+      break;
+    case CMD_OPEN_TRANBOX:
+      sendTabMsg(MSG_OPEN_TRANBOX);
       break;
     case CMD_OPEN_OPTIONS:
       browser.runtime.openOptionsPage();

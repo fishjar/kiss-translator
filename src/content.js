@@ -3,6 +3,7 @@ import {
   MSG_TRANS_TOGGLE,
   MSG_TRANS_TOGGLE_STYLE,
   MSG_TRANSLATE_SELECTED,
+  MSG_OPEN_TRANBOX,
   MSG_TRANS_GETRULE,
   MSG_TRANS_PUTRULE,
 } from "./config";
@@ -38,6 +39,9 @@ function runtimeListener(translator) {
         break;
       case MSG_TRANSLATE_SELECTED:
         window.dispatchEvent(new CustomEvent(MSG_TRANSLATE_SELECTED));
+        break;
+      case MSG_OPEN_TRANBOX:
+        window.dispatchEvent(new CustomEvent(MSG_OPEN_TRANBOX));
         break;
       default:
         return { error: `message action is unavailable: ${action}` };

@@ -14,6 +14,9 @@
   "open_options": {
     "message": "Open Options (Alt+O)"
   },
+  "open_tranbox": {
+    "message": "Open Translate Popup (Alt+B)"
+  },
   "translate_selected": {
     "message": "Translate Selected Text (Alt+S)"
   }

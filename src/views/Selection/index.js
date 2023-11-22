@@ -3,7 +3,11 @@ import TranBtn from "./TranBtn";
 import TranBox from "./TranBox";
 import { shortcutRegister } from "../../libs/shortcut";
 import { sleep } from "../../libs/utils";
-import { MSG_TRANSLATE_SELECTED, DEFAULT_TRANSEL_SHORTCUT } from "../../config";
+import {
+  MSG_TRANSLATE_SELECTED,
+  MSG_OPEN_TRANBOX,
+  DEFAULT_TRANSEL_SHORTCUT,
+} from "../../config";
 
 export default function Slection({ tranboxSetting, transApis }) {
   const [showBox, setShowBox] = useState(false);
@@ -89,6 +93,16 @@ export default function Slection({ tranboxSetting, transApis }) {
       window.removeEventListener(MSG_TRANSLATE_SELECTED, handleTranSelected);
     };
   }, [handleTranSelected]);
+
+  useEffect(() => {
+    const handleOpenTranbox = () => {
+      setShowBox((pre) => !pre);
+    };
+    window.addEventListener(MSG_OPEN_TRANBOX, handleOpenTranbox);
+    return () => {
+      window.removeEventListener(MSG_OPEN_TRANBOX, handleOpenTranbox);
+    };
+  }, []);
 
   return (
     <>

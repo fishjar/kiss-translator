@@ -33,6 +33,7 @@ export const STOKEY_WEBFIXCACHE_PREFIX = `${APP_NAME}_webfixcache_`;
 export const CMD_TOGGLE_TRANSLATE = "toggleTranslate";
 export const CMD_TOGGLE_STYLE = "toggleStyle";
 export const CMD_OPEN_OPTIONS = "openOptions";
+export const CMD_OPEN_TRANBOX = "openTranbox";
 export const CMD_TRANSLATE_SELECTED = "translateSelected";
 
 export const CLIENT_WEB = "web";
@@ -60,6 +61,7 @@ export const MSG_SAVE_RULE = "save_rule";
 export const MSG_TRANS_TOGGLE = "trans_toggle";
 export const MSG_TRANS_TOGGLE_STYLE = "trans_toggle_style";
 export const MSG_TRANSLATE_SELECTED = "translate_selected";
+export const MSG_OPEN_TRANBOX = "open_tranbox";
 export const MSG_TRANS_GETRULE = "trans_getrule";
 export const MSG_TRANS_PUTRULE = "trans_putrule";
 export const MSG_TRANS_CURRULE = "trans_currule";
