@@ -6,6 +6,7 @@ import Box from "@mui/material/Box";
 import Link from "@mui/material/Link";
 import { useI18n } from "../../hooks/I18n";
 import DarkModeButton from "./DarkModeButton";
+import Typography from "@mui/material/Typography";
 
 function Header(props) {
   const i18n = useI18n();
@@ -30,14 +31,14 @@ function Header(props) {
             <MenuIcon />
           </IconButton>
         </Box>
-        <Box sx={{ flexGrow: 1 }}>
+        <Typography component="div" sx={{ flexGrow: 1, fontWeight: "bold" }}>
           <Link
             underline="none"
             color="inherit"
             href={process.env.REACT_APP_HOMEPAGE}
             target="_blank"
           >{`${i18n("app_name")} v${process.env.REACT_APP_VERSION}`}</Link>
-        </Box>
+        </Typography>
         <DarkModeButton />
       </Toolbar>
     </AppBar>

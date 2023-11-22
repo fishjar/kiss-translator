@@ -95,6 +95,7 @@ function TranForm({ text, setText, tranboxSetting, transApis }) {
 
       <Box>
         <TextField
+          size="small"
           label={i18n("original_text")}
           inputRef={inputRef}
           fullWidth

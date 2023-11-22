@@ -4,6 +4,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import HomeIcon from "@mui/icons-material/Home";
 import Stack from "@mui/material/Stack";
 import DarkModeButton from "../Options/DarkModeButton";
+import Typography from "@mui/material/Typography";
 
 export default function Header({ setShowPopup }) {
   const handleHomepage = () => {
@@ -21,14 +22,16 @@ export default function Header({ setShowPopup }) {
         <IconButton onClick={handleHomepage}>
           <HomeIcon />
         </IconButton>
-        <Box
+        <Typography
+          component="div"
           sx={{
             userSelect: "none",
             WebkitUserSelect: "none",
+            fontWeight: "bold",
           }}
         >
           {`${process.env.REACT_APP_NAME} v${process.env.REACT_APP_VERSION}`}
-        </Box>
+        </Typography>
       </Stack>
 
       {setShowPopup ? (

@@ -2,6 +2,7 @@ import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
 import FavBtn from "./FavBtn";
+import Typography from "@mui/material/Typography";
 
 const exchangeMap = {
   word_third: "第三人称单数",
@@ -24,16 +25,16 @@ export default function DictCont({ dictResult }) {
         justifyContent="space-between"
         alignItems="flex-start"
       >
-        <div style={{ fontWeight: "bold" }}>
+        <Typography variant="subtitle1" style={{ fontWeight: "bold" }}>
           {dictResult.simple_means?.word_name}
-        </div>
+        </Typography>
         <FavBtn word={dictResult.simple_means?.word_name} />
       </Stack>
 
       {dictResult.simple_means?.symbols?.map(({ ph_en, ph_am, parts }, idx) => (
-        <div key={idx}>
+        <Typography key={idx} component="div">
           {(ph_en || ph_am) && (
-            <div>{`英 /${ph_en || ""}/ 美 /${ph_am || ""}/`}</div>
+            <Typography>{`英 /${ph_en || ""}/ 美 /${ph_am || ""}/`}</Typography>
           )}
           <ul style={{ margin: "0.5em 0" }}>
             {parts.map(({ part, means }, idx) => (
@@ -42,14 +43,14 @@ export default function DictCont({ dictResult }) {
               </li>
             ))}
           </ul>
-        </div>
+        </Typography>
       ))}
 
-      <div>
+      <Typography>
         {Object.entries(dictResult.simple_means?.exchange || {})
           .map(([key, val]) => `${exchangeMap[key] || key}: ${val.join(", ")}`)
           .join("; ")}
-      </div>
+      </Typography>
 
       <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
         {Object.values(dictResult.simple_means?.tags || {})

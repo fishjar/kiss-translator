@@ -69,6 +69,7 @@ export default function TranCont({
     <>
       <Box>
         <TextField
+          size="small"
           label={i18n("translated_text")}
           // disabled
           fullWidth

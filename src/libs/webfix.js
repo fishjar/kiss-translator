@@ -15,7 +15,7 @@ export const FIXER_ALL = [
   FIXER_BN,
   FIXER_BR_DIV,
   FIXER_BN_DIV,
-  FIXER_FONTSIZE,
+  // FIXER_FONTSIZE,
 ];
 
 /**

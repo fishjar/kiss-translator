@@ -12,9 +12,23 @@ import { THEME_DARK, THEME_LIGHT } from "../config";
 export default function Theme({ children, options }) {
   const { darkMode } = useDarkMode();
   const theme = useMemo(() => {
+    let htmlFontSize = 16;
+    try {
+      const s = window.getComputedStyle(document.body.parentNode).fontSize;
+      const fontSize = parseInt(s.replace("px", ""));
+      if (fontSize > 0 && fontSize < 1000) {
+        htmlFontSize = fontSize;
+      }
+    } catch (err) {
+      //
+    }
+
     return createTheme({
       palette: {
         mode: darkMode ? THEME_DARK : THEME_LIGHT,
+      },
+      typography: {
+        htmlFontSize,
       },
       ...options,
     });
