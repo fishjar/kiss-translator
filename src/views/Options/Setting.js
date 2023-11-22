@@ -181,7 +181,7 @@ export default function Settings() {
             label={i18n("touch_translate_shortcut")}
             onChange={handleChange}
           >
-            {[0, 2, 3].map((item) => (
+            {[0, 2, 3, 4].map((item) => (
               <MenuItem key={item} value={item}>
                 {i18n(`touch_tap_${item}`)}
               </MenuItem>

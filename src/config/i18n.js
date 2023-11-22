@@ -679,4 +679,8 @@ export const I18N = {
     zh: `三指轻触`,
     en: `Three finger tap`,
   },
+  touch_tap_4: {
+    zh: `四指轻触`,
+    en: `Four finger tap`,
+  },
 };
