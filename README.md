@@ -66,7 +66,7 @@
   - 针对一些特殊网站的修正脚本。
   - 以便翻译软件得到更好的展示效果。
 - 翻译接口代理: [https://github.com/fishjar/kiss-proxy](https://github.com/fishjar/kiss-proxy)
-  - 如果访问某个翻译接口遇到网络问题，这个代理服务也许可以帮你到你。
+  - 如果访问某个翻译接口遇到网络问题，这个代理服务也许可以帮到你。
   - 自己部署，自己管理。
 - 简约词典插件: [https://github.com/fishjar/kiss-dictionary](https://github.com/fishjar/kiss-dictionary)
   - 搭配本项目一起使用的划词翻译插件。
