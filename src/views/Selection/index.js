@@ -3,6 +3,7 @@ import TranBtn from "./TranBtn";
 import TranBox from "./TranBox";
 import { shortcutRegister } from "../../libs/shortcut";
 import { sleep } from "../../libs/utils";
+import { isGm } from "../../libs/client";
 import {
   MSG_TRANSLATE_SELECTED,
   MSG_OPEN_TRANBOX,
@@ -103,6 +104,41 @@ export default function Slection({ tranboxSetting, transApis }) {
       window.removeEventListener(MSG_OPEN_TRANBOX, handleOpenTranbox);
     };
   }, []);
+
+  useEffect(() => {
+    if (!isGm) {
+      return;
+    }
+
+    // 注册菜单
+    try {
+      const menuCommandIds = [];
+      menuCommandIds.push(
+        GM.registerMenuCommand(
+          "Translate Selected Text (Alt+S)",
+          (event) => {
+            handleTranSelected();
+          },
+          "S"
+        ),
+        GM.registerMenuCommand(
+          "Open Translate Popup (Alt+B)",
+          (event) => {
+            setShowBox((pre) => !pre);
+          },
+          "B"
+        )
+      );
+
+      return () => {
+        menuCommandIds.forEach((id) => {
+          GM.unregisterMenuCommand(id);
+        });
+      };
+    } catch (err) {
+      console.log("[registerMenuCommand]", err);
+    }
+  }, [handleTranSelected]);
 
   return (
     <>
