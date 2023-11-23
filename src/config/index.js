@@ -406,7 +406,7 @@ export const DEFAULT_SHORTCUTS = {
   [OPT_SHORTCUT_TRANSLATE]: ["AltLeft", "KeyQ"],
   [OPT_SHORTCUT_STYLE]: ["AltLeft", "KeyC"],
   [OPT_SHORTCUT_POPUP]: ["AltLeft", "KeyK"],
-  [OPT_SHORTCUT_SETTING]: ["AltLeft", "KeyN"],
+  [OPT_SHORTCUT_SETTING]: ["AltLeft", "KeyO"],
 };
 
 export const TRANS_MIN_LENGTH = 5; // 最短翻译长度
