@@ -412,6 +412,13 @@ export const DEFAULT_SHORTCUTS = {
 export const TRANS_MIN_LENGTH = 5; // 最短翻译长度
 export const TRANS_MAX_LENGTH = 5000; // 最长翻译长度
 export const TRANS_NEWLINE_LENGTH = 20; // 换行字符数
+export const DEFAULT_BLACKLIST = [
+  "https://fishjar.github.io/kiss-translator/options.html",
+  "https://translate.google.com",
+  "https://www.deepl.com/translator",
+  "oapi.dingtalk.com",
+  "login.dingtalk.com",
+]; // 禁用翻译名单
 
 export const DEFAULT_SETTING = {
   darkMode: false, // 深色模式
@@ -433,6 +440,7 @@ export const DEFAULT_SETTING = {
   inputRule: DEFAULT_INPUT_RULE, // 输入框设置
   tranboxSetting: DEFAULT_TRANBOX_SETTING, // 划词翻译设置
   touchTranslate: 2, // 触屏翻译
+  blacklist: DEFAULT_BLACKLIST.join(",\n"), // 禁用翻译名单
 };
 
 export const DEFAULT_RULES = [GLOBLA_RULE];

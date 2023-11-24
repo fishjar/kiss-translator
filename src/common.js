@@ -8,27 +8,83 @@ import {
   MSG_TRANS_TOGGLE_STYLE,
   MSG_TRANS_GETRULE,
   MSG_TRANS_PUTRULE,
+  MSG_TRANSLATE_SELECTED,
+  MSG_OPEN_TRANBOX,
   APP_LCNAME,
   DEFAULT_TRANBOX_SETTING,
 } from "./config";
-import { getRulesWithDefault, getFabWithDefault } from "./libs/storage";
+import { getFabWithDefault, getSettingWithDefault } from "./libs/storage";
 import { Translator } from "./libs/translator";
-import { sendIframeMsg, sendParentMsg } from "./libs/iframe";
-import { matchRule } from "./libs/rules";
+import { isIframe, sendIframeMsg, sendParentMsg } from "./libs/iframe";
 import Slection from "./views/Selection";
 import { touchTapListener } from "./libs/touch";
-import { debounce } from "./libs/utils";
+import { debounce, genEventName } from "./libs/utils";
+import { handlePing, injectScript } from "./libs/gm";
+import { browser } from "./libs/browser";
+import { runWebfix } from "./libs/webfix";
+import { matchRule } from "./libs/rules";
+import { trySyncAllSubRules } from "./libs/subRules";
+import { isInBlacklist } from "./libs/blacklist";
 
-export async function runTranslator(setting) {
-  const href = document.location.href;
-  const rules = await getRulesWithDefault();
-  const rule = await matchRule(rules, href, setting);
-  const translator = new Translator(rule, setting);
-
-  return { translator, rule };
+/**
+ * 油猴脚本设置页面
+ */
+function runSettingPage() {
+  if (GM?.info?.script?.grant?.includes("unsafeWindow")) {
+    unsafeWindow.GM = GM;
+    unsafeWindow.APP_INFO = {
+      name: process.env.REACT_APP_NAME,
+      version: process.env.REACT_APP_VERSION,
+    };
+  } else {
+    const ping = genEventName();
+    window.addEventListener(ping, handlePing);
+    // window.eval(`(${injectScript})("${ping}")`); // eslint-disable-line
+    const script = document.createElement("script");
+    script.textContent = `(${injectScript})("${ping}")`;
+    document.head.append(script);
+  }
 }
 
-export function runIframe(setting) {
+/**
+ * 插件监听后端事件
+ * @param {*} translator
+ */
+function runtimeListener(translator) {
+  browser?.runtime.onMessage.addListener(async ({ action, args }) => {
+    switch (action) {
+      case MSG_TRANS_TOGGLE:
+        translator.toggle();
+        sendIframeMsg(MSG_TRANS_TOGGLE);
+        break;
+      case MSG_TRANS_TOGGLE_STYLE:
+        translator.toggleStyle();
+        sendIframeMsg(MSG_TRANS_TOGGLE_STYLE);
+        break;
+      case MSG_TRANS_GETRULE:
+        break;
+      case MSG_TRANS_PUTRULE:
+        translator.updateRule(args);
+        sendIframeMsg(MSG_TRANS_PUTRULE, args);
+        break;
+      case MSG_TRANSLATE_SELECTED:
+        window.dispatchEvent(new CustomEvent(MSG_TRANSLATE_SELECTED));
+        break;
+      case MSG_OPEN_TRANBOX:
+        window.dispatchEvent(new CustomEvent(MSG_OPEN_TRANBOX));
+        break;
+      default:
+        return { error: `message action is unavailable: ${action}` };
+    }
+    return { data: translator.rule };
+  });
+}
+
+/**
+ * iframe 页面执行
+ * @param {*} setting
+ */
+function runIframe(setting) {
   let translator;
   window.addEventListener("message", (e) => {
     const { action, args } = e.data || {};
@@ -52,7 +108,12 @@ export function runIframe(setting) {
   sendParentMsg(MSG_TRANS_GETRULE);
 }
 
-export async function showFab(translator) {
+/**
+ * 悬浮按钮
+ * @param {*} translator
+ * @returns
+ */
+async function showFab(translator) {
   const fab = await getFabWithDefault();
   if (fab.isHide) {
     return;
@@ -80,10 +141,12 @@ export async function showFab(translator) {
   );
 }
 
-export function showTransbox({
-  tranboxSetting = DEFAULT_TRANBOX_SETTING,
-  transApis,
-}) {
+/**
+ * 划词翻译
+ * @param {*} param0
+ * @returns
+ */
+function showTransbox({ tranboxSetting = DEFAULT_TRANBOX_SETTING, transApis }) {
   if (!tranboxSetting?.transOpen) {
     return;
   }
@@ -110,7 +173,11 @@ export function showTransbox({
   );
 }
 
-export function windowListener(rule) {
+/**
+ * 监听来自iframe页面消息
+ * @param {*} rule
+ */
+function windowListener(rule) {
   window.addEventListener("message", (e) => {
     const { action } = e.data || {};
     switch (action) {
@@ -122,14 +189,23 @@ export function windowListener(rule) {
   });
 }
 
-export function showErr(message) {
+/**
+ * 显示错误信息到页面顶部
+ * @param {*} message
+ */
+function showErr(message) {
   const $err = document.createElement("div");
   $err.innerText = `KISS-Translator: ${message}`;
   $err.style.cssText = "background:red; color:#fff;";
   document.body.prepend($err);
 }
 
-export function touchOperation(translator) {
+/**
+ * 监听触屏操作
+ * @param {*} translator
+ * @returns
+ */
+function touchOperation(translator) {
   const { touchTranslate = 2 } = translator.setting;
   if (touchTranslate === 0) {
     return;
@@ -140,4 +216,64 @@ export function touchOperation(translator) {
     sendIframeMsg(MSG_TRANS_TOGGLE);
   });
   touchTapListener(handleTap, touchTranslate);
+}
+
+/**
+ * 入口函数
+ */
+export async function run(isUserscript = false) {
+  try {
+    const href = document.location.href;
+
+    // 设置页面
+    if (
+      isUserscript &&
+      (href.includes(process.env.REACT_APP_OPTIONSPAGE_DEV) ||
+        href.includes(process.env.REACT_APP_OPTIONSPAGE) ||
+        href.includes(process.env.REACT_APP_OPTIONSPAGE2))
+    ) {
+      runSettingPage();
+      return;
+    }
+
+    // 读取设置信息
+    const setting = await getSettingWithDefault();
+
+    // 黑名单
+    if (isInBlacklist(href, setting)) {
+      return;
+    }
+
+    // 适配iframe
+    if (isIframe) {
+      runIframe(setting);
+      return;
+    }
+
+    // 不规范网页修复
+    await runWebfix(setting);
+
+    // 翻译网页
+    const rule = await matchRule(href, setting);
+    const translator = new Translator(rule, setting);
+
+    // 监听消息
+    windowListener(rule);
+    !isUserscript && runtimeListener(translator);
+
+    // 划词翻译
+    showTransbox(setting);
+
+    // 浮球按钮
+    await showFab(translator);
+
+    // 触屏操作
+    touchOperation(translator);
+
+    // 同步订阅规则
+    isUserscript && (await trySyncAllSubRules(setting));
+  } catch (err) {
+    console.error("[KISS-Translator]", err);
+    showErr(err.message);
+  }
 }

@@ -23,6 +23,7 @@ import {
   OPT_SHORTCUT_STYLE,
   OPT_SHORTCUT_POPUP,
   OPT_SHORTCUT_SETTING,
+  DEFAULT_BLACKLIST,
 } from "../../config";
 import { useShortcut } from "../../hooks/Shortcut";
 import ShortcutInput from "./ShortcutInput";
@@ -90,6 +91,7 @@ export default function Settings() {
     mouseKey = OPT_MOUSEKEY_DISABLE,
     detectRemote = false,
     touchTranslate = 2,
+    blacklist = DEFAULT_BLACKLIST.join(",\n"),
   } = setting;
   const { isHide = false } = fab || {};
 
@@ -268,6 +270,16 @@ export default function Settings() {
             </Box>
           </>
         )}
+
+        <TextField
+          size="small"
+          label={i18n("translate_blacklist")}
+          helperText={i18n("pattern_helper")}
+          name="blacklist"
+          defaultValue={blacklist}
+          onChange={handleChange}
+          multiline
+        />
       </Stack>
     </Box>
   );

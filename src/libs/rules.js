@@ -21,7 +21,6 @@ import { trySyncRules } from "./sync";
  * @returns
  */
 export const matchRule = async (
-  rules,
   href,
   {
     injectRules = true,
@@ -29,7 +28,7 @@ export const matchRule = async (
     owSubrule = DEFAULT_OW_RULE,
   }
 ) => {
-  rules = [...rules];
+  const rules = await getRulesWithDefault();
   if (injectRules) {
     try {
       const selectedSub = subrulesList.find((item) => item.selected);

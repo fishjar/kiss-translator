@@ -352,8 +352,8 @@ export const I18N = {
     en: `URL pattern`,
   },
   pattern_helper: {
-    zh: `1、支持星号(*)通配符。2、多个URL支持英文逗号“,”分隔。`,
-    en: `1. The asterisk (*) wildcard is supported. 2. Multiple URLs can be separated by English commas ",".`,
+    zh: `1、支持星号(*)通配符。2、多个URL用英文逗号“,”分隔。`,
+    en: `1. The asterisk (*) wildcard is supported. 2. Multiple URLs separated by English commas ",".`,
   },
   selector_helper: {
     zh: `1、遵循CSS选择器语法。2、留空表示采用全局设置。3、多个CSS选择器之间用“;”隔开。4、“shadow root”选择器和内部选择器用“>>>”隔开。`,
@@ -682,5 +682,9 @@ export const I18N = {
   touch_tap_4: {
     zh: `四指轻触`,
     en: `Four finger tap`,
+  },
+  translate_blacklist: {
+    zh: `禁用翻译名单`,
+    en: `Translate Blacklist`,
   },
 };
