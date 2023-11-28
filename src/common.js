@@ -8,7 +8,6 @@ import {
   MSG_TRANS_TOGGLE_STYLE,
   MSG_TRANS_GETRULE,
   MSG_TRANS_PUTRULE,
-  MSG_TRANSLATE_SELECTED,
   MSG_OPEN_TRANBOX,
   APP_LCNAME,
   DEFAULT_TRANBOX_SETTING,
@@ -66,9 +65,6 @@ function runtimeListener(translator) {
       case MSG_TRANS_PUTRULE:
         translator.updateRule(args);
         sendIframeMsg(MSG_TRANS_PUTRULE, args);
-        break;
-      case MSG_TRANSLATE_SELECTED:
-        window.dispatchEvent(new CustomEvent(MSG_TRANSLATE_SELECTED));
         break;
       case MSG_OPEN_TRANBOX:
         window.dispatchEvent(new CustomEvent(MSG_OPEN_TRANBOX));

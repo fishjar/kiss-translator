@@ -636,12 +636,8 @@ export const I18N = {
     en: `Use Selection Translate`,
   },
   trigger_tranbox_shortcut: {
-    zh: `显示翻译框快捷键`,
-    en: `Toggle Translate Box Shortcut`,
-  },
-  trigger_transel_shortcut: {
-    zh: `翻译选中文字快捷键`,
-    en: `Translate Selected Shortcut`,
+    zh: `显示翻译框/翻译选中文字快捷键`,
+    en: `Open Translate Popup/Translate Selected Shortcut`,
   },
   tranbtn_offset_x: {
     zh: `翻译按钮偏移X（0-100）`,

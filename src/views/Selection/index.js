@@ -4,11 +4,7 @@ import TranBox from "./TranBox";
 import { shortcutRegister } from "../../libs/shortcut";
 import { sleep } from "../../libs/utils";
 import { isGm } from "../../libs/client";
-import {
-  MSG_TRANSLATE_SELECTED,
-  MSG_OPEN_TRANBOX,
-  DEFAULT_TRANSEL_SHORTCUT,
-} from "../../config";
+import { MSG_OPEN_TRANBOX, DEFAULT_TRANBOX_SHORTCUT } from "../../config";
 
 export default function Slection({ tranboxSetting, transApis }) {
   const [showBox, setShowBox] = useState(false);
@@ -30,11 +26,12 @@ export default function Slection({ tranboxSetting, transApis }) {
     setShowBox(true);
   };
 
-  const handleTranSelected = useCallback(() => {
+  const handleTranbox = useCallback(() => {
     setShowBtn(false);
 
     const selectedText = window.getSelection()?.toString()?.trim() || "";
     if (!selectedText) {
+      setShowBox((pre) => !pre);
       return;
     }
 
@@ -66,44 +63,21 @@ export default function Slection({ tranboxSetting, transApis }) {
 
   useEffect(() => {
     const clearShortcut = shortcutRegister(
-      tranboxSetting.tranboxShortcut,
-      () => {
-        setShowBox((pre) => !pre);
-      }
+      tranboxSetting.tranboxShortcut || DEFAULT_TRANBOX_SHORTCUT,
+      handleTranbox
     );
 
     return () => {
       clearShortcut();
     };
-  }, [tranboxSetting.tranboxShortcut]);
+  }, [tranboxSetting.tranboxShortcut, handleTranbox]);
 
   useEffect(() => {
-    const clearShortcut = shortcutRegister(
-      tranboxSetting.transelShortcut || DEFAULT_TRANSEL_SHORTCUT,
-      handleTranSelected
-    );
-
+    window.addEventListener(MSG_OPEN_TRANBOX, handleTranbox);
     return () => {
-      clearShortcut();
+      window.removeEventListener(MSG_OPEN_TRANBOX, handleTranbox);
     };
-  }, [tranboxSetting.transelShortcut, handleTranSelected]);
-
-  useEffect(() => {
-    window.addEventListener(MSG_TRANSLATE_SELECTED, handleTranSelected);
-    return () => {
-      window.removeEventListener(MSG_TRANSLATE_SELECTED, handleTranSelected);
-    };
-  }, [handleTranSelected]);
-
-  useEffect(() => {
-    const handleOpenTranbox = () => {
-      setShowBox((pre) => !pre);
-    };
-    window.addEventListener(MSG_OPEN_TRANBOX, handleOpenTranbox);
-    return () => {
-      window.removeEventListener(MSG_OPEN_TRANBOX, handleOpenTranbox);
-    };
-  }, []);
+  }, [handleTranbox]);
 
   useEffect(() => {
     if (!isGm) {
@@ -117,16 +91,9 @@ export default function Slection({ tranboxSetting, transApis }) {
         GM.registerMenuCommand(
           "Translate Selected Text (Alt+S)",
           (event) => {
-            handleTranSelected();
+            handleTranbox();
           },
           "S"
-        ),
-        GM.registerMenuCommand(
-          "Open Translate Popup (Alt+B)",
-          (event) => {
-            setShowBox((pre) => !pre);
-          },
-          "B"
         )
       );
 
@@ -138,7 +105,7 @@ export default function Slection({ tranboxSetting, transApis }) {
     } catch (err) {
       console.log("[registerMenuCommand]", err);
     }
-  }, [handleTranSelected]);
+  }, [handleTranbox]);
 
   return (
     <>

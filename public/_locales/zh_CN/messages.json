@@ -15,9 +15,6 @@
     "message": "打开设置 (Alt+O)"
   },
   "open_tranbox": {
-    "message": "打开翻译弹窗 (Alt+B)"
-  },
-  "translate_selected": {
-    "message": "翻译选中文字 (Alt+S)"
+    "message": "翻译弹窗/选中文字 (Alt+S)"
   }
 }

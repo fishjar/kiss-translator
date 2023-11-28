@@ -7,13 +7,11 @@ import {
   MSG_OPEN_OPTIONS,
   MSG_SAVE_RULE,
   MSG_TRANS_TOGGLE_STYLE,
-  MSG_TRANSLATE_SELECTED,
   MSG_OPEN_TRANBOX,
   CMD_TOGGLE_TRANSLATE,
   CMD_TOGGLE_STYLE,
   CMD_OPEN_OPTIONS,
   CMD_OPEN_TRANBOX,
-  CMD_TRANSLATE_SELECTED,
 } from "./config";
 import { getSettingWithDefault, tryInitDefaultData } from "./libs/storage";
 import { trySyncSettingAndRules } from "./libs/sync";
@@ -33,16 +31,6 @@ browser.runtime.onInstalled.addListener(() => {
 
   // 右键菜单
   browser.contextMenus.create({
-    id: CMD_TRANSLATE_SELECTED,
-    title: browser.i18n.getMessage("translate_selected"),
-    contexts: ["selection"],
-  });
-  browser.contextMenus.create({
-    id: "selection_separator",
-    type: "separator",
-    contexts: ["selection"],
-  });
-  browser.contextMenus.create({
     id: CMD_TOGGLE_TRANSLATE,
     title: browser.i18n.getMessage("toggle_translate"),
     contexts: ["all"],
@@ -53,13 +41,13 @@ browser.runtime.onInstalled.addListener(() => {
     contexts: ["all"],
   });
   browser.contextMenus.create({
-    id: "options_separator",
-    type: "separator",
+    id: CMD_OPEN_TRANBOX,
+    title: browser.i18n.getMessage("open_tranbox"),
     contexts: ["all"],
   });
   browser.contextMenus.create({
-    id: CMD_OPEN_TRANBOX,
-    title: browser.i18n.getMessage("open_tranbox"),
+    id: "options_separator",
+    type: "separator",
     contexts: ["all"],
   });
   browser.contextMenus.create({
@@ -150,9 +138,6 @@ browser.contextMenus.onClicked.addListener(({ menuItemId }) => {
       break;
     case CMD_TOGGLE_STYLE:
       sendTabMsg(MSG_TRANS_TOGGLE_STYLE);
-      break;
-    case CMD_TRANSLATE_SELECTED:
-      sendTabMsg(MSG_TRANSLATE_SELECTED);
       break;
     case CMD_OPEN_TRANBOX:
       sendTabMsg(MSG_OPEN_TRANBOX);

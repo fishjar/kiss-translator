@@ -34,7 +34,6 @@ export const CMD_TOGGLE_TRANSLATE = "toggleTranslate";
 export const CMD_TOGGLE_STYLE = "toggleStyle";
 export const CMD_OPEN_OPTIONS = "openOptions";
 export const CMD_OPEN_TRANBOX = "openTranbox";
-export const CMD_TRANSLATE_SELECTED = "translateSelected";
 
 export const CLIENT_WEB = "web";
 export const CLIENT_CHROME = "chrome";
@@ -60,7 +59,6 @@ export const MSG_OPEN_OPTIONS = "open_options";
 export const MSG_SAVE_RULE = "save_rule";
 export const MSG_TRANS_TOGGLE = "trans_toggle";
 export const MSG_TRANS_TOGGLE_STYLE = "trans_toggle_style";
-export const MSG_TRANSLATE_SELECTED = "translate_selected";
 export const MSG_OPEN_TRANBOX = "open_tranbox";
 export const MSG_TRANS_GETRULE = "trans_getrule";
 export const MSG_TRANS_PUTRULE = "trans_putrule";
@@ -340,15 +338,13 @@ export const DEFAULT_INPUT_RULE = {
 };
 
 // 划词翻译
-export const DEFAULT_TRANBOX_SHORTCUT = ["AltLeft", "KeyB"];
-export const DEFAULT_TRANSEL_SHORTCUT = ["AltLeft", "KeyS"];
+export const DEFAULT_TRANBOX_SHORTCUT = ["AltLeft", "KeyS"];
 export const DEFAULT_TRANBOX_SETTING = {
   transOpen: true,
   translator: OPT_TRANS_MICROSOFT,
   fromLang: "auto",
   toLang: "zh-CN",
   tranboxShortcut: DEFAULT_TRANBOX_SHORTCUT,
-  transelShortcut: DEFAULT_TRANSEL_SHORTCUT,
   btnOffsetX: 10,
   btnOffsetY: 10,
   hideTranBtn: false,
