@@ -687,4 +687,12 @@ export const I18N = {
     zh: `禁用翻译名单`,
     en: `Translate Blacklist`,
   },
+  disable_langs: {
+    zh: `不翻译的语言`,
+    en: `Disable Languages`,
+  },
+  disable_langs_helper: {
+    zh: `此功能依赖准确的语言检测，建议启用远程语言检测。`,
+    en: `This feature relies on accurate language detection. It is recommended to enable remote language detection.`,
+  }
 };

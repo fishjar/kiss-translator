@@ -24,7 +24,11 @@ export function useTranslate(q, rule, setting) {
         setLoading(true);
 
         const deLang = await tryDetectLang(q, setting.detectRemote);
-        if (deLang && toLang.includes(deLang)) {
+        const disableLangs = setting.disableLangs || [];
+        if (
+          deLang &&
+          (toLang.includes(deLang) || disableLangs.includes(deLang))
+        ) {
           setSamelang(true);
         } else {
           const [trText, isSame] = await apiTranslate({

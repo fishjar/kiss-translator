@@ -23,6 +23,7 @@ import {
   OPT_SHORTCUT_STYLE,
   OPT_SHORTCUT_POPUP,
   OPT_SHORTCUT_SETTING,
+  OPT_LANGS_TO,
   DEFAULT_BLACKLIST,
 } from "../../config";
 import { useShortcut } from "../../hooks/Shortcut";
@@ -43,6 +44,7 @@ export default function Settings() {
   const { fab, updateFab } = useFab();
 
   const handleChange = (e) => {
+    console.log("e", e);
     e.preventDefault();
     let { name, value } = e.target;
     switch (name) {
@@ -92,6 +94,7 @@ export default function Settings() {
     detectRemote = false,
     touchTranslate = 2,
     blacklist = DEFAULT_BLACKLIST.join(",\n"),
+    disableLangs = [],
   } = setting;
   const { isHide = false } = fab || {};
 
@@ -218,6 +221,24 @@ export default function Settings() {
             <MenuItem value={true}>{i18n("enable")}</MenuItem>
           </Select>
           <FormHelperText>{i18n("detect_lang_remote_help")}</FormHelperText>
+        </FormControl>
+
+        <FormControl>
+          <InputLabel>{i18n("disable_langs")}</InputLabel>
+          <Select
+            multiple
+            name="disableLangs"
+            value={disableLangs}
+            label={i18n("disable_langs")}
+            onChange={handleChange}
+          >
+            {OPT_LANGS_TO.map(([langKey, langName]) => (
+              <MenuItem key={langKey} value={langKey}>
+                {langName}
+              </MenuItem>
+            ))}
+          </Select>
+          <FormHelperText>{i18n("disable_langs_helper")}</FormHelperText>
         </FormControl>
 
         {isExt ? (

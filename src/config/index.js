@@ -441,6 +441,7 @@ export const DEFAULT_SETTING = {
   tranboxSetting: DEFAULT_TRANBOX_SETTING, // 划词翻译设置
   touchTranslate: 2, // 触屏翻译
   blacklist: DEFAULT_BLACKLIST.join(",\n"), // 禁用翻译名单
+  disableLangs: [], // 不翻译的语言
 };
 
 export const DEFAULT_RULES = [GLOBLA_RULE];
