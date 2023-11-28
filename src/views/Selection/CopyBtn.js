@@ -5,9 +5,9 @@ import { useState } from "react";
 
 export default function CopyBtn({ text }) {
   const [copied, setCopied] = useState(false);
-  const handleClick = (e) => {
+  const handleClick = async (e) => {
     e.stopPropagation();
-    navigator.clipboard.writeText(text);
+    await navigator.clipboard.writeText(text);
     setCopied(true);
     const timer = setTimeout(() => {
       clearTimeout(timer);
