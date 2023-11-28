@@ -31,10 +31,9 @@ A simple, open source [bilingual translation extension & Greasemonkey script](ht
   - `Alt+Q` Toggle Translation
   - `Alt+C` Toggle Styles
   - `Alt+K` Open Setting Popup
-  - `Alt+B` Open Translate Popup
+  - `Alt+S` Open Translate Popup / Translate Selected Text
   - `Alt+O` Open Options Page
   - `Alt+I` Input Box Translation
-  - `Alt+S` Translate Selected Text
 
 ## Install
 
