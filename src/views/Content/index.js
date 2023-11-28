@@ -7,6 +7,7 @@ import {
   OPT_STYLE_WAVYLINE,
   OPT_STYLE_FUZZY,
   OPT_STYLE_HIGHLIGHT,
+  OPT_STYLE_BLOCKQUOTE,
   OPT_STYLE_DIY,
   DEFAULT_COLOR,
   MSG_TRANS_CURRULE,
@@ -28,6 +29,18 @@ const LineSpan = styled("span")`
   -webkit-text-decoration-color: ${(props) => props.$lineColor};
   -webkit-text-decoration-thickness: 2px;
   -webkit-text-underline-offset: 0.3em;
+  &:hover {
+    opacity: 1;
+    -webkit-opacity: 1;
+  }
+`;
+
+const BlockquoteSpan = styled("span")`
+  opacity: 0.6;
+  -webkit-opacity: 0.6;
+  display: block;
+  padding: 0 0.75em;
+  border-left: 0.25em solid ${(props) => props.$lineColor};
   &:hover {
     opacity: 1;
     -webkit-opacity: 1;
@@ -85,6 +98,12 @@ function StyledSpan({ textStyle, textDiyStyle, bgColor, children }) {
         <HighlightSpan $bgColor={bgColor || DEFAULT_COLOR}>
           {children}
         </HighlightSpan>
+      );
+    case OPT_STYLE_BLOCKQUOTE: // 引用
+      return (
+        <BlockquoteSpan $lineColor={bgColor || DEFAULT_COLOR}>
+          {children}
+        </BlockquoteSpan>
       );
     case OPT_STYLE_DIY: // 自定义
       return <DiySpan $diyStyle={textDiyStyle}>{children}</DiySpan>;

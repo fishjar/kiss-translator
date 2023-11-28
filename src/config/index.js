@@ -269,6 +269,7 @@ export const OPT_STYLE_DASHLINE = "dash_line"; // 虚线
 export const OPT_STYLE_WAVYLINE = "wavy_line"; // 波浪线
 export const OPT_STYLE_FUZZY = "fuzzy"; // 模糊
 export const OPT_STYLE_HIGHLIGHT = "highlight"; // 高亮
+export const OPT_STYLE_BLOCKQUOTE = "blockquote"; // 引用
 export const OPT_STYLE_DIY = "diy_style"; // 自定义样式
 export const OPT_STYLE_ALL = [
   OPT_STYLE_NONE,
@@ -278,6 +279,7 @@ export const OPT_STYLE_ALL = [
   OPT_STYLE_WAVYLINE,
   OPT_STYLE_FUZZY,
   OPT_STYLE_HIGHLIGHT,
+  OPT_STYLE_BLOCKQUOTE,
   OPT_STYLE_DIY,
 ];
 export const OPT_STYLE_USE_COLOR = [
@@ -286,6 +288,7 @@ export const OPT_STYLE_USE_COLOR = [
   OPT_STYLE_DASHLINE,
   OPT_STYLE_WAVYLINE,
   OPT_STYLE_HIGHLIGHT,
+  OPT_STYLE_BLOCKQUOTE,
 ];
 
 export const OPT_MOUSEKEY_DISABLE = "mk_disable";

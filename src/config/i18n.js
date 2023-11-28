@@ -335,6 +335,10 @@ export const I18N = {
     zh: `高亮`,
     en: `Highlight`,
   },
+  blockquote: {
+    zh: `引用`,
+    en: `Blockquote`,
+  },
   diy_style: {
     zh: `自定义样式`,
     en: `Custom Style`,
