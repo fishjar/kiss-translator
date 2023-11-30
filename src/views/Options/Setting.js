@@ -223,7 +223,7 @@ export default function Settings() {
           <FormHelperText>{i18n("detect_lang_remote_help")}</FormHelperText>
         </FormControl>
 
-        <FormControl>
+        <FormControl size="small">
           <InputLabel>{i18n("disable_langs")}</InputLabel>
           <Select
             multiple
