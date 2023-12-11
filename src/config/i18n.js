@@ -694,5 +694,9 @@ export const I18N = {
   disable_langs_helper: {
     zh: `此功能依赖准确的语言检测，建议启用远程语言检测。`,
     en: `This feature relies on accurate language detection. It is recommended to enable remote language detection.`,
-  }
+  },
+  add_context_menus: {
+    zh: `添加右键菜单`,
+    en: `Add Context Menus`,
+  },
 };

@@ -8,6 +8,7 @@ import {
   MSG_SAVE_RULE,
   MSG_TRANS_TOGGLE_STYLE,
   MSG_OPEN_TRANBOX,
+  MSG_CONTEXT_MENUS,
   CMD_TOGGLE_TRANSLATE,
   CMD_TOGGLE_STYLE,
   CMD_OPEN_OPTIONS,
@@ -24,12 +25,9 @@ import { saveRule } from "./libs/rules";
 globalThis.ContextType = "BACKGROUND";
 
 /**
- * 插件安装
+ * 添加右键菜单
  */
-browser.runtime.onInstalled.addListener(() => {
-  tryInitDefaultData();
-
-  // 右键菜单
+function addContextMenus() {
   browser.contextMenus.create({
     id: CMD_TOGGLE_TRANSLATE,
     title: browser.i18n.getMessage("toggle_translate"),
@@ -55,6 +53,28 @@ browser.runtime.onInstalled.addListener(() => {
     title: browser.i18n.getMessage("open_options"),
     contexts: ["all"],
   });
+}
+
+/**
+ * 清除右键菜单
+ */
+function removeContextMenus() {
+  for (const id of [
+    CMD_TOGGLE_TRANSLATE,
+    CMD_TOGGLE_STYLE,
+    CMD_OPEN_TRANBOX,
+    CMD_OPEN_OPTIONS,
+    "options_separator",
+  ]) {
+    browser.contextMenus.remove(id);
+  }
+}
+
+/**
+ * 插件安装
+ */
+browser.runtime.onInstalled.addListener(() => {
+  tryInitDefaultData();
 });
 
 /**
@@ -64,14 +84,26 @@ browser.runtime.onStartup.addListener(async () => {
   // 同步数据
   await trySyncSettingAndRules();
 
+  const {
+    clearCache,
+    contextMenus = true,
+    subrulesList,
+  } = await getSettingWithDefault();
+
   // 清除缓存
-  const setting = await getSettingWithDefault();
-  if (setting.clearCache) {
+  if (clearCache) {
     tryClearCaches();
   }
 
+  // 右键菜单
+  if (contextMenus) {
+    addContextMenus();
+  } else {
+    removeContextMenus();
+  }
+
   // 同步订阅规则
-  trySyncAllSubRules(setting);
+  trySyncAllSubRules({ subrulesList });
 });
 
 /**
@@ -105,6 +137,14 @@ browser.runtime.onMessage.addListener(
       case MSG_SAVE_RULE:
         saveRule(args);
         break;
+      case MSG_CONTEXT_MENUS:
+        const { contextMenus } = args;
+        if (contextMenus) {
+          addContextMenus();
+        } else {
+          removeContextMenus();
+        }
+        break;
       default:
         sendResponse({ error: `message action is unavailable: ${action}` });
     }
@@ -131,6 +171,9 @@ browser.commands.onCommand.addListener((command) => {
   }
 });
 
+/**
+ * 监听右键菜单
+ */
 browser.contextMenus.onClicked.addListener(({ menuItemId }) => {
   switch (menuItemId) {
     case CMD_TOGGLE_TRANSLATE:

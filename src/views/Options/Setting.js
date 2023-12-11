@@ -25,10 +25,12 @@ import {
   OPT_SHORTCUT_SETTING,
   OPT_LANGS_TO,
   DEFAULT_BLACKLIST,
+  MSG_CONTEXT_MENUS,
 } from "../../config";
 import { useShortcut } from "../../hooks/Shortcut";
 import ShortcutInput from "./ShortcutInput";
 import { useFab } from "../../hooks/Fab";
+import { sendBgMsg } from "../../libs/msg";
 
 function ShortcutItem({ action, label }) {
   const { shortcut, setShortcut } = useShortcut(action);
@@ -44,7 +46,6 @@ export default function Settings() {
   const { fab, updateFab } = useFab();
 
   const handleChange = (e) => {
-    console.log("e", e);
     e.preventDefault();
     let { name, value } = e.target;
     switch (name) {
@@ -65,6 +66,9 @@ export default function Settings() {
         break;
       case "touchTranslate":
         value = limitNumber(value, 0, 3);
+        break;
+      case "contextMenus":
+        sendBgMsg(MSG_CONTEXT_MENUS, { contextMenus: value });
         break;
       default:
     }
@@ -92,6 +96,7 @@ export default function Settings() {
     newlineLength = TRANS_NEWLINE_LENGTH,
     mouseKey = OPT_MOUSEKEY_DISABLE,
     detectRemote = false,
+    contextMenus = true,
     touchTranslate = 2,
     blacklist = DEFAULT_BLACKLIST.join(",\n"),
     disableLangs = [],
@@ -242,23 +247,38 @@ export default function Settings() {
         </FormControl>
 
         {isExt ? (
-          <FormControl size="small">
-            <InputLabel>{i18n("if_clear_cache")}</InputLabel>
-            <Select
-              name="clearCache"
-              value={clearCache}
-              label={i18n("if_clear_cache")}
-              onChange={handleChange}
-            >
-              <MenuItem value={false}>{i18n("clear_cache_never")}</MenuItem>
-              <MenuItem value={true}>{i18n("clear_cache_restart")}</MenuItem>
-            </Select>
-            <FormHelperText>
-              <Link component="button" onClick={handleClearCache}>
-                {i18n("clear_all_cache_now")}
-              </Link>
-            </FormHelperText>
-          </FormControl>
+          <>
+            <FormControl size="small">
+              <InputLabel>{i18n("add_context_menus")}</InputLabel>
+              <Select
+                name="contextMenus"
+                value={contextMenus}
+                label={i18n("add_context_menus")}
+                onChange={handleChange}
+              >
+                <MenuItem value={false}>{i18n("disable")}</MenuItem>
+                <MenuItem value={true}>{i18n("enable")}</MenuItem>
+              </Select>
+            </FormControl>
+
+            <FormControl size="small">
+              <InputLabel>{i18n("if_clear_cache")}</InputLabel>
+              <Select
+                name="clearCache"
+                value={clearCache}
+                label={i18n("if_clear_cache")}
+                onChange={handleChange}
+              >
+                <MenuItem value={false}>{i18n("clear_cache_never")}</MenuItem>
+                <MenuItem value={true}>{i18n("clear_cache_restart")}</MenuItem>
+              </Select>
+              <FormHelperText>
+                <Link component="button" onClick={handleClearCache}>
+                  {i18n("clear_all_cache_now")}
+                </Link>
+              </FormHelperText>
+            </FormControl>
+          </>
         ) : (
           <>
             <Box>

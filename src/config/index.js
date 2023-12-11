@@ -63,6 +63,7 @@ export const MSG_OPEN_TRANBOX = "open_tranbox";
 export const MSG_TRANS_GETRULE = "trans_getrule";
 export const MSG_TRANS_PUTRULE = "trans_putrule";
 export const MSG_TRANS_CURRULE = "trans_currule";
+export const MSG_CONTEXT_MENUS = "context_menus";
 
 export const THEME_LIGHT = "light";
 export const THEME_DARK = "dark";
@@ -431,6 +432,7 @@ export const DEFAULT_SETTING = {
   injectRules: true, // 是否注入订阅规则
   injectWebfix: true, // 是否注入修复补丁
   detectRemote: false, // 是否使用远程语言检测
+  contextMenus: true, // 是否添加右键菜单
   subrulesList: DEFAULT_SUBRULES_LIST, // 订阅列表
   owSubrule: DEFAULT_OW_RULE, // 覆写订阅规则
   transApis: DEFAULT_TRANS_APIS, // 翻译接口
