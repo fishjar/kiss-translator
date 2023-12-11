@@ -24,6 +24,7 @@ function TranForm({ text, setText, tranboxSetting, transApis }) {
   const [translator, setTranslator] = useState(tranboxSetting.translator);
   const [fromLang, setFromLang] = useState(tranboxSetting.fromLang);
   const [toLang, setToLang] = useState(tranboxSetting.toLang);
+  const [toLang2, setToLang2] = useState(tranboxSetting.toLang2);
   const inputRef = useRef(null);
 
   return (
@@ -150,6 +151,9 @@ function TranForm({ text, setText, tranboxSetting, transApis }) {
         translator={translator}
         fromLang={fromLang}
         toLang={toLang}
+        toLang2={toLang2}
+        setToLang={setToLang}
+        setToLang2={setToLang2}
         transApis={transApis}
       />
     </Stack>

@@ -44,6 +44,7 @@ export default function Tranbox() {
     translator,
     fromLang,
     toLang,
+    toLang2 = "en",
     tranboxShortcut,
     btnOffsetX,
     btnOffsetY,
@@ -106,6 +107,22 @@ export default function Tranbox() {
           onChange={handleChange}
         >
           {OPT_LANGS_TO.map(([lang, name]) => (
+            <MenuItem key={lang} value={lang}>
+              {name}
+            </MenuItem>
+          ))}
+        </TextField>
+
+        <TextField
+          select
+          size="small"
+          name="toLang2"
+          value={toLang2}
+          label={i18n("to_lang2")}
+          helperText={i18n("to_lang2_helper")}
+          onChange={handleChange}
+        >
+          {[["none", "None"], ...OPT_LANGS_TO].map(([lang, name]) => (
             <MenuItem key={lang} value={lang}>
               {name}
             </MenuItem>

@@ -6,7 +6,7 @@ import Stack from "@mui/material/Stack";
 import { useI18n } from "../../hooks/I18n";
 import { DEFAULT_TRANS_APIS, OPT_TRANS_BAIDU } from "../../config";
 import { useEffect, useState } from "react";
-import { apiTranslate } from "../../apis";
+import { apiTranslate, apiBaiduLangdetect } from "../../apis";
 import { isValidWord } from "../../libs/utils";
 import CopyBtn from "./CopyBtn";
 import DictCont from "./DictCont";
@@ -16,6 +16,9 @@ export default function TranCont({
   translator,
   fromLang,
   toLang,
+  toLang2 = "en",
+  setToLang,
+  setToLang2,
   transApis,
 }) {
   const i18n = useI18n();
@@ -31,6 +34,16 @@ export default function TranCont({
         setTrText("");
         setError("");
         setDictResult(null);
+
+        // 互译
+        if (toLang !== toLang2 && toLang2 !== "none") {
+          const detectLang = await apiBaiduLangdetect(text);
+          if (detectLang === toLang) {
+            setToLang(toLang2);
+            setToLang2(toLang);
+            return;
+          }
+        }
 
         const apiSetting =
           transApis[translator] || DEFAULT_TRANS_APIS[translator];
@@ -63,7 +76,16 @@ export default function TranCont({
         setLoading(false);
       }
     })();
-  }, [text, translator, fromLang, toLang, transApis]);
+  }, [
+    text,
+    translator,
+    fromLang,
+    toLang,
+    toLang2,
+    setToLang,
+    setToLang2,
+    transApis,
+  ]);
 
   return (
     <>

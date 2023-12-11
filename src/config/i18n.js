@@ -215,6 +215,14 @@ export const I18N = {
     zh: `目标语言`,
     en: `Target Language`,
   },
+  to_lang2: {
+    zh: `第二目标语言`,
+    en: `Target Language 2`,
+  },
+  to_lang2_helper: {
+    zh: `设定后，与目标语言产生互译效果，但依赖远程语言识别。`,
+    en: `After setting, it will produce mutual translation effect with the target language, but it relies on remote language recognition.`,
+  },
   text_style: {
     zh: `文字样式`,
     en: `Text Style`,

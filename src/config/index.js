@@ -345,6 +345,7 @@ export const DEFAULT_TRANBOX_SETTING = {
   translator: OPT_TRANS_MICROSOFT,
   fromLang: "auto",
   toLang: "zh-CN",
+  toLang2: "en",
   tranboxShortcut: DEFAULT_TRANBOX_SHORTCUT,
   btnOffsetX: 10,
   btnOffsetY: 10,
