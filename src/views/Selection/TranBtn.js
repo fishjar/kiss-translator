@@ -3,7 +3,7 @@ export default function TranBtn({ onClick, position, tranboxSetting }) {
     <div
       style={{
         cursor: "pointer",
-        position: "fixed",
+        position: "absolute",
         left: position.x + tranboxSetting.btnOffsetX,
         top: position.y + tranboxSetting.btnOffsetY,
         zIndex: 2147483647,

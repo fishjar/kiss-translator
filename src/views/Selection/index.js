@@ -52,7 +52,8 @@ export default function Slection({ tranboxSetting, transApis }) {
       }
 
       !tranboxSetting.hideTranBtn && setShowBtn(true);
-      setPosition({ x: e.clientX, y: e.clientY });
+      // setPosition({ x: e.clientX, y: e.clientY });
+      setPosition({ x: e.pageX, y: e.pageY });
     }
 
     window.addEventListener("mouseup", handleMouseup);
