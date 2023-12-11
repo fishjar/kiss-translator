@@ -65,7 +65,7 @@ export default function Settings() {
         value = limitNumber(value, 1, 1000);
         break;
       case "touchTranslate":
-        value = limitNumber(value, 0, 3);
+        value = limitNumber(value, 0, 4);
         break;
       case "contextMenus":
         sendBgMsg(MSG_CONTEXT_MENUS, { contextMenus: value });
