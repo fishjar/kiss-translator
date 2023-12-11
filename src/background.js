@@ -59,15 +59,7 @@ function addContextMenus() {
  * 清除右键菜单
  */
 function removeContextMenus() {
-  for (const id of [
-    CMD_TOGGLE_TRANSLATE,
-    CMD_TOGGLE_STYLE,
-    CMD_OPEN_TRANBOX,
-    CMD_OPEN_OPTIONS,
-    "options_separator",
-  ]) {
-    browser.contextMenus.remove(id);
-  }
+  browser.contextMenus.removeAll();
 }
 
 /**
@@ -75,6 +67,9 @@ function removeContextMenus() {
  */
 browser.runtime.onInstalled.addListener(() => {
   tryInitDefaultData();
+
+  // 右键菜单
+  addContextMenus();
 });
 
 /**
@@ -96,9 +91,7 @@ browser.runtime.onStartup.addListener(async () => {
   }
 
   // 右键菜单
-  if (contextMenus) {
-    addContextMenus();
-  } else {
+  if (!contextMenus) {
     removeContextMenus();
   }
 
