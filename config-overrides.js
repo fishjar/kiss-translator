@@ -85,6 +85,7 @@ const userscriptWebpack = (config, env) => {
 // @updateURL     ${process.env.REACT_APP_USERSCRIPT_DOWNLOADURL}
 // @grant         GM.xmlHttpRequest
 // @grant         GM.registerMenuCommand
+// @grant         GM.unregisterMenuCommand
 // @grant         GM.setValue
 // @grant         GM.getValue
 // @grant         GM.deleteValue
