@@ -6,7 +6,7 @@ import { sleep } from "../../libs/utils";
 import { isGm } from "../../libs/client";
 import { MSG_OPEN_TRANBOX, DEFAULT_TRANBOX_SHORTCUT } from "../../config";
 
-export default function Slection({ tranboxSetting, transApis }) {
+export default function Slection({ contextMenus, tranboxSetting, transApis }) {
   const [showBox, setShowBox] = useState(false);
   const [showBtn, setShowBtn] = useState(false);
   const [selectedText, setSelText] = useState("");
@@ -88,15 +88,16 @@ export default function Slection({ tranboxSetting, transApis }) {
     // 注册菜单
     try {
       const menuCommandIds = [];
-      menuCommandIds.push(
-        GM.registerMenuCommand(
-          "Translate Selected Text (Alt+S)",
-          (event) => {
-            handleTranbox();
-          },
-          "S"
-        )
-      );
+      contextMenus &&
+        menuCommandIds.push(
+          GM.registerMenuCommand(
+            "Translate Selected Text (Alt+S)",
+            (event) => {
+              handleTranbox();
+            },
+            "S"
+          )
+        );
 
       return () => {
         menuCommandIds.forEach((id) => {
@@ -106,7 +107,7 @@ export default function Slection({ tranboxSetting, transApis }) {
     } catch (err) {
       console.log("[registerMenuCommand]", err);
     }
-  }, [handleTranbox]);
+  }, [handleTranbox, contextMenus]);
 
   return (
     <>

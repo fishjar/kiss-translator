@@ -68,7 +68,7 @@ export default function Settings() {
         value = limitNumber(value, 0, 4);
         break;
       case "contextMenus":
-        sendBgMsg(MSG_CONTEXT_MENUS, { contextMenus: value });
+        isExt && sendBgMsg(MSG_CONTEXT_MENUS, { contextMenus: value });
         break;
       default:
     }
@@ -215,6 +215,19 @@ export default function Settings() {
         </FormControl>
 
         <FormControl size="small">
+          <InputLabel>{i18n("add_context_menus")}</InputLabel>
+          <Select
+            name="contextMenus"
+            value={contextMenus}
+            label={i18n("add_context_menus")}
+            onChange={handleChange}
+          >
+            <MenuItem value={false}>{i18n("disable")}</MenuItem>
+            <MenuItem value={true}>{i18n("enable")}</MenuItem>
+          </Select>
+        </FormControl>
+
+        <FormControl size="small">
           <InputLabel>{i18n("detect_lang_remote")}</InputLabel>
           <Select
             name="detectRemote"
@@ -248,19 +261,6 @@ export default function Settings() {
 
         {isExt ? (
           <>
-            <FormControl size="small">
-              <InputLabel>{i18n("add_context_menus")}</InputLabel>
-              <Select
-                name="contextMenus"
-                value={contextMenus}
-                label={i18n("add_context_menus")}
-                onChange={handleChange}
-              >
-                <MenuItem value={false}>{i18n("disable")}</MenuItem>
-                <MenuItem value={true}>{i18n("enable")}</MenuItem>
-              </Select>
-            </FormControl>
-
             <FormControl size="small">
               <InputLabel>{i18n("if_clear_cache")}</InputLabel>
               <Select

@@ -95,40 +95,42 @@ export default function Action({ translator, fab }) {
     // 注册菜单
     try {
       const menuCommandIds = [];
-      menuCommandIds.push(
-        GM.registerMenuCommand(
-          "Toggle Translate (Alt+q)",
-          (event) => {
-            translator.toggle();
-            sendIframeMsg(MSG_TRANS_TOGGLE);
-            setShowPopup(false);
-          },
-          "Q"
-        ),
-        GM.registerMenuCommand(
-          "Toggle Style (Alt+c)",
-          (event) => {
-            translator.toggleStyle();
-            sendIframeMsg(MSG_TRANS_TOGGLE_STYLE);
-            setShowPopup(false);
-          },
-          "C"
-        ),
-        GM.registerMenuCommand(
-          "Open Menu (Alt+k)",
-          (event) => {
-            setShowPopup((pre) => !pre);
-          },
-          "K"
-        ),
-        GM.registerMenuCommand(
-          "Open Setting (Alt+o)",
-          (event) => {
-            window.open(process.env.REACT_APP_OPTIONSPAGE, "_blank");
-          },
-          "O"
-        )
-      );
+      const { contextMenus = true } = translator.setting;
+      contextMenus &&
+        menuCommandIds.push(
+          GM.registerMenuCommand(
+            "Toggle Translate (Alt+q)",
+            (event) => {
+              translator.toggle();
+              sendIframeMsg(MSG_TRANS_TOGGLE);
+              setShowPopup(false);
+            },
+            "Q"
+          ),
+          GM.registerMenuCommand(
+            "Toggle Style (Alt+c)",
+            (event) => {
+              translator.toggleStyle();
+              sendIframeMsg(MSG_TRANS_TOGGLE_STYLE);
+              setShowPopup(false);
+            },
+            "C"
+          ),
+          GM.registerMenuCommand(
+            "Open Menu (Alt+k)",
+            (event) => {
+              setShowPopup((pre) => !pre);
+            },
+            "K"
+          ),
+          GM.registerMenuCommand(
+            "Open Setting (Alt+o)",
+            (event) => {
+              window.open(process.env.REACT_APP_OPTIONSPAGE, "_blank");
+            },
+            "O"
+          )
+        );
 
       return () => {
         menuCommandIds.forEach((id) => {

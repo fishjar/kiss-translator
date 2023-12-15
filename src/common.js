@@ -142,7 +142,11 @@ async function showFab(translator) {
  * @param {*} param0
  * @returns
  */
-function showTransbox({ tranboxSetting = DEFAULT_TRANBOX_SETTING, transApis }) {
+function showTransbox({
+  contextMenus = true,
+  tranboxSetting = DEFAULT_TRANBOX_SETTING,
+  transApis,
+}) {
   if (!tranboxSetting?.transOpen) {
     return;
   }
@@ -163,7 +167,11 @@ function showTransbox({ tranboxSetting = DEFAULT_TRANBOX_SETTING, transApis }) {
   ReactDOM.createRoot(shadowRootElement).render(
     <React.StrictMode>
       <CacheProvider value={cache}>
-        <Slection tranboxSetting={tranboxSetting} transApis={transApis} />
+        <Slection
+          contextMenus={contextMenus}
+          tranboxSetting={tranboxSetting}
+          transApis={transApis}
+        />
       </CacheProvider>
     </React.StrictMode>
   );
