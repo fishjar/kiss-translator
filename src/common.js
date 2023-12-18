@@ -24,6 +24,7 @@ import { runWebfix } from "./libs/webfix";
 import { matchRule } from "./libs/rules";
 import { trySyncAllSubRules } from "./libs/subRules";
 import { isInBlacklist } from "./libs/blacklist";
+import inputTranslate from "./libs/inputTranslate";
 
 /**
  * 油猴脚本设置页面
@@ -264,6 +265,9 @@ export async function run(isUserscript = false) {
     // 监听消息
     windowListener(rule);
     !isUserscript && runtimeListener(translator);
+
+    // 输入框翻译
+    inputTranslate(setting);
 
     // 划词翻译
     showTransbox(setting);
