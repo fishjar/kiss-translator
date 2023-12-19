@@ -217,7 +217,12 @@ export default function Action({ translator, fab }) {
                 }
               }}
             >
-              <TranslateIcon />
+              <TranslateIcon
+                sx={{
+                  width: 24,
+                  height: 24,
+                }}
+              />
             </Fab>
           }
         />
