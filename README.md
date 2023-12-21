@@ -12,7 +12,7 @@
   - [x] Chrome/Edge/Firefox/Kiwi
   - [ ] Safari
 - [x] 支持多种翻译服务
-  - [x] Google/Microsoft/DeepL/OpenAI/CloudflareAI/Baidu/Tencent
+  - [x] Google/Microsoft/DeepL/OpenAI/Gemini/CloudflareAI/Baidu/Tencent
   - [x] 自定义翻译接口
 - [x] 覆盖常见翻译场景
   - [x] 网页双语对照翻译

@@ -8,12 +8,14 @@ import {
   OPT_TRANS_BAIDU,
   OPT_TRANS_TENCENT,
   OPT_TRANS_OPENAI,
+  OPT_TRANS_GEMINI,
   OPT_TRANS_CLOUDFLAREAI,
   OPT_TRANS_CUSTOMIZE,
   URL_MICROSOFT_TRAN,
   URL_TENCENT_TRANSMART,
   PROMPT_PLACE_FROM,
   PROMPT_PLACE_TO,
+  PROMPT_PLACE_TEXT,
 } from "../config";
 import { msAuth } from "./auth";
 import { genDeeplFree } from "../apis/deepl";
@@ -178,6 +180,37 @@ const genOpenAI = ({ text, from, to, url, key, prompt, model }) => {
   return [url, init];
 };
 
+const genGemini = ({ text, from, to, url, key, prompt, model }) => {
+  prompt = prompt
+    .replaceAll(PROMPT_PLACE_FROM, from)
+    .replaceAll(PROMPT_PLACE_TO, to)
+    .replaceAll(PROMPT_PLACE_TEXT, text);
+
+  const data = {
+    contents: [
+      {
+        // role: "user",
+        parts: [
+          {
+            text: prompt,
+          },
+        ],
+      },
+    ],
+  };
+
+  const input = `${url}/${model}:generateContent?key=${key}`;
+  const init = {
+    headers: {
+      "Content-type": "application/json",
+    },
+    method: "POST",
+    body: JSON.stringify(data),
+  };
+
+  return [input, init];
+};
+
 const genCloudflareAI = ({ text, from, to, url, key }) => {
   const data = {
     text,
@@ -241,6 +274,8 @@ export const newTransReq = ({ translator, text, from, to }, apiSetting) => {
       return genTencent(args);
     case OPT_TRANS_OPENAI:
       return genOpenAI(args);
+    case OPT_TRANS_GEMINI:
+      return genGemini(args);
     case OPT_TRANS_CLOUDFLAREAI:
       return genCloudflareAI(args);
     case OPT_TRANS_CUSTOMIZE:

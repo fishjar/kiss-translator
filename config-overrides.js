@@ -98,6 +98,7 @@ const userscriptWebpack = (config, env) => {
 // @connect       api.deepl.com
 // @connect       www2.deepl.com
 // @connect       api.openai.com
+// @connect       generativelanguage.googleapis.com
 // @connect       openai.azure.com
 // @connect       workers.dev
 // @connect       github.io

@@ -94,6 +94,7 @@ export const OPT_TRANS_DEEPLFREE = "DeepLFree";
 export const OPT_TRANS_BAIDU = "Baidu";
 export const OPT_TRANS_TENCENT = "Tencent";
 export const OPT_TRANS_OPENAI = "OpenAI";
+export const OPT_TRANS_GEMINI = "Gemini";
 export const OPT_TRANS_CLOUDFLAREAI = "CloudflareAI";
 export const OPT_TRANS_CUSTOMIZE = "Custom";
 export const OPT_TRANS_ALL = [
@@ -105,6 +106,7 @@ export const OPT_TRANS_ALL = [
   OPT_TRANS_BAIDU,
   OPT_TRANS_TENCENT,
   OPT_TRANS_OPENAI,
+  OPT_TRANS_GEMINI,
   OPT_TRANS_CLOUDFLAREAI,
   OPT_TRANS_CUSTOMIZE,
 ];
@@ -227,6 +229,9 @@ export const OPT_LANGS_SPECIAL = {
   [OPT_TRANS_OPENAI]: new Map(
     OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
   ),
+  [OPT_TRANS_GEMINI]: new Map(
+    OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
+  ),
   [OPT_TRANS_CLOUDFLAREAI]: new Map([
     ["auto", ""],
     ["zh-CN", "chinese"],
@@ -308,6 +313,7 @@ export const DEFAULT_FETCH_INTERVAL = 100; // 默认任务间隔时间
 
 export const PROMPT_PLACE_FROM = "{{from}}"; // 占位符
 export const PROMPT_PLACE_TO = "{{to}}"; // 占位符
+export const PROMPT_PLACE_TEXT = "{{text}}"; // 占位符
 
 export const DEFAULT_COLOR = "#209CEE"; // 默认高亮背景色/线条颜色
 
@@ -387,6 +393,12 @@ export const DEFAULT_TRANS_APIS = {
     key: "",
     model: "gpt-4",
     prompt: `You will be provided with a sentence in ${PROMPT_PLACE_FROM}, and your task is to translate it into ${PROMPT_PLACE_TO}.`,
+  },
+  [OPT_TRANS_GEMINI]: {
+    url: "https://generativelanguage.googleapis.com/v1/models",
+    key: "",
+    model: "gemini-pro",
+    prompt: `Translate the following text from ${PROMPT_PLACE_FROM} to ${PROMPT_PLACE_TO}:\n\n${PROMPT_PLACE_TEXT}`,
   },
   [OPT_TRANS_CLOUDFLAREAI]: {
     url: "https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/ai/run/@cf/meta/m2m100-1.2b",

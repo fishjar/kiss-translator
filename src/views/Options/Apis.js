@@ -9,6 +9,7 @@ import {
   OPT_TRANS_BAIDU,
   OPT_TRANS_TENCENT,
   OPT_TRANS_OPENAI,
+  OPT_TRANS_GEMINI,
   OPT_TRANS_CUSTOMIZE,
   URL_KISS_PROXY,
 } from "../../config";
@@ -115,7 +116,7 @@ function ApiFields({ translator }) {
           />
         </>
       )}
-      {translator === OPT_TRANS_OPENAI && (
+      {(translator === OPT_TRANS_OPENAI || translator === OPT_TRANS_GEMINI) && (
         <>
           <TextField
             size="small"

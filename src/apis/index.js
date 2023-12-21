@@ -9,6 +9,7 @@ import {
   OPT_TRANS_BAIDU,
   OPT_TRANS_TENCENT,
   OPT_TRANS_OPENAI,
+  OPT_TRANS_GEMINI,
   OPT_TRANS_CLOUDFLAREAI,
   OPT_TRANS_CUSTOMIZE,
   URL_CACHE_TRAN,
@@ -179,6 +180,10 @@ export const apiTranslate = async ({
       break;
     case OPT_TRANS_OPENAI:
       trText = res?.choices?.[0].message.content;
+      isSame = text === trText;
+      break;
+    case OPT_TRANS_GEMINI:
+      trText = res?.candidates?.[0].content.parts[0].text;
       isSame = text === trText;
       break;
     case OPT_TRANS_CLOUDFLAREAI:
