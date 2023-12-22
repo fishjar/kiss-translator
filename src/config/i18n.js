@@ -707,4 +707,8 @@ export const I18N = {
     zh: `添加右键菜单`,
     en: `Add Context Menus`,
   },
+  mulkeys_help: {
+    zh: `支持英文逗号隔开多个KEY轮寻调用。`,
+    en: `Supports multiple KEY round calling calls separated by English commas.`,
+  },
 };

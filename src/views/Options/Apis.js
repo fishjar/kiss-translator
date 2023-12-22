@@ -5,11 +5,13 @@ import CircularProgress from "@mui/material/CircularProgress";
 import {
   OPT_TRANS_ALL,
   OPT_TRANS_MICROSOFT,
+  OPT_TRANS_DEEPL,
   OPT_TRANS_DEEPLFREE,
   OPT_TRANS_BAIDU,
   OPT_TRANS_TENCENT,
   OPT_TRANS_OPENAI,
   OPT_TRANS_GEMINI,
+  OPT_TRANS_CLOUDFLAREAI,
   OPT_TRANS_CUSTOMIZE,
   URL_KISS_PROXY,
 } from "../../config";
@@ -96,6 +98,13 @@ function ApiFields({ translator }) {
     OPT_TRANS_TENCENT,
   ];
 
+  const mulkeysTranslators = [
+    OPT_TRANS_DEEPL,
+    OPT_TRANS_OPENAI,
+    OPT_TRANS_GEMINI,
+    OPT_TRANS_CLOUDFLAREAI,
+  ];
+
   return (
     <Stack spacing={3}>
       {!buildinTranslators.includes(translator) && (
@@ -113,6 +122,10 @@ function ApiFields({ translator }) {
             name="key"
             value={key}
             onChange={handleChange}
+            multiline={mulkeysTranslators.includes(translator)}
+            helperText={
+              mulkeysTranslators.includes(translator) ? i18n("mulkeys_help") : ""
+            }
           />
         </>
       )}

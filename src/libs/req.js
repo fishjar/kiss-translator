@@ -21,6 +21,25 @@ import { msAuth } from "./auth";
 import { genDeeplFree } from "../apis/deepl";
 import { genBaidu } from "../apis/baidu";
 
+const keyMap = new Map();
+
+// 轮寻key
+const keyPick = (translator, key = "") => {
+  const keys = key
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  if (keys.length === 0) {
+    return "";
+  }
+
+  let index = keyMap.get(translator) ?? -1;
+  keyMap.set(translator, ++index);
+
+  return keys[index % keys.length];
+};
+
 /**
  * 构造缓存 request
  * @param {*} request
@@ -257,6 +276,17 @@ const genCustom = ({ text, from, to, url, key }) => {
  */
 export const newTransReq = ({ translator, text, from, to }, apiSetting) => {
   const args = { text, from, to, ...apiSetting };
+
+  switch (translator) {
+    case OPT_TRANS_DEEPL:
+    case OPT_TRANS_OPENAI:
+    case OPT_TRANS_GEMINI:
+    case OPT_TRANS_CLOUDFLAREAI:
+      args.key = keyPick(translator, args.key);
+      break;
+    default:
+  }
+
   switch (translator) {
     case OPT_TRANS_GOOGLE:
       return genGoogle(args);
