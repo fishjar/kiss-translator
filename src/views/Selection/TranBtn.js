@@ -4,12 +4,12 @@ export default function TranBtn({ onClick, position, tranboxSetting }) {
   const left = limitNumber(
     position.x + tranboxSetting.btnOffsetX,
     0,
-    window.innerWidth - 20
+    document.body.scrollWidth - 20
   );
   const top = limitNumber(
     position.y + tranboxSetting.btnOffsetY,
     0,
-    window.innerHeight - 20
+    document.body.scrollHeight - 20
   );
 
   return (
