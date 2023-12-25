@@ -49,6 +49,7 @@ export default function Slection({ contextMenus, tranboxSetting, transApis }) {
 
   useEffect(() => {
     async function handleMouseup(e) {
+      e.stopPropagation();
       await sleep(10);
 
       const selectedText = window.getSelection()?.toString()?.trim() || "";
@@ -64,7 +65,9 @@ export default function Slection({ contextMenus, tranboxSetting, transApis }) {
       setPosition({ x: pageX, y: pageY });
     }
 
-    window.addEventListener(isMobile ? "touchend" : "mouseup", handleMouseup);
+    // TODO: mobile support
+    window.addEventListener("mouseup", handleMouseup);
+    // window.addEventListener(isMobile ? "touchend" : "mouseup", handleMouseup);
     return () => {
       window.removeEventListener(
         isMobile ? "touchend" : "mouseup",
