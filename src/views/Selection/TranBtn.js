@@ -1,11 +1,24 @@
+import { limitNumber } from "../../libs/utils";
+
 export default function TranBtn({ onClick, position, tranboxSetting }) {
+  const left = limitNumber(
+    position.x + tranboxSetting.btnOffsetX,
+    0,
+    window.innerWidth - 20
+  );
+  const top = limitNumber(
+    position.y + tranboxSetting.btnOffsetY,
+    0,
+    window.innerHeight - 20
+  );
+
   return (
     <div
       style={{
         cursor: "pointer",
         position: "absolute",
-        left: position.x + tranboxSetting.btnOffsetX,
-        top: position.y + tranboxSetting.btnOffsetY,
+        left,
+        top,
         zIndex: 2147483647,
       }}
       onClick={onClick}

@@ -2,20 +2,27 @@ import { useState, useEffect, useCallback } from "react";
 import TranBtn from "./TranBtn";
 import TranBox from "./TranBox";
 import { shortcutRegister } from "../../libs/shortcut";
-import { sleep } from "../../libs/utils";
+import { sleep, limitNumber } from "../../libs/utils";
 import { isGm } from "../../libs/client";
 import { MSG_OPEN_TRANBOX, DEFAULT_TRANBOX_SHORTCUT } from "../../config";
+import { isMobile } from "../../libs/mobile";
 
 export default function Slection({ contextMenus, tranboxSetting, transApis }) {
+  const boxWidth = limitNumber(window.innerWidth, 300, 600);
+  const boxHeight = limitNumber(window.innerHeight, 200, 400);
+
   const [showBox, setShowBox] = useState(false);
   const [showBtn, setShowBtn] = useState(false);
   const [selectedText, setSelText] = useState("");
   const [text, setText] = useState("");
   const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [boxSize, setBoxSize] = useState({ w: 600, h: 400 });
+  const [boxSize, setBoxSize] = useState({
+    w: boxWidth,
+    h: boxHeight,
+  });
   const [boxPosition, setBoxPosition] = useState({
-    x: (window.innerWidth - 600) / 2,
-    y: (window.innerHeight - 400) / 2,
+    x: (window.innerWidth - boxWidth) / 2,
+    y: (window.innerHeight - boxHeight) / 2,
   });
 
   const handleClick = (e) => {
@@ -51,14 +58,18 @@ export default function Slection({ contextMenus, tranboxSetting, transApis }) {
         return;
       }
 
+      const { pageX, pageY } = isMobile ? e.changedTouches[0] : e;
       !tranboxSetting.hideTranBtn && setShowBtn(true);
       // setPosition({ x: e.clientX, y: e.clientY });
-      setPosition({ x: e.pageX, y: e.pageY });
+      setPosition({ x: pageX, y: pageY });
     }
 
-    window.addEventListener("mouseup", handleMouseup);
+    window.addEventListener(isMobile ? "touchend" : "mouseup", handleMouseup);
     return () => {
-      window.removeEventListener("mouseup", handleMouseup);
+      window.removeEventListener(
+        isMobile ? "touchend" : "mouseup",
+        handleMouseup
+      );
     };
   }, [tranboxSetting.hideTranBtn]);
 

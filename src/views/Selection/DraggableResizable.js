@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Paper from "@mui/material/Paper";
 import Box from "@mui/material/Box";
+import { isMobile } from "../../libs/mobile";
 
 function Pointer({
   direction,
@@ -16,21 +17,23 @@ function Pointer({
   const [origin, setOrigin] = useState(null);
 
   function handlePointerDown(e) {
-    e.target.setPointerCapture(e.pointerId);
+    !isMobile && e.target.setPointerCapture(e.pointerId);
+    const { clientX, clientY } = isMobile ? e.targetTouches[0] : e;
     setOrigin({
       x: position.x,
       y: position.y,
       w: size.w,
       h: size.h,
-      clientX: e.clientX,
-      clientY: e.clientY,
+      clientX,
+      clientY,
     });
   }
 
   function handlePointerMove(e) {
+    const { clientX, clientY } = isMobile ? e.targetTouches[0] : e;
     if (origin) {
-      const dx = e.clientX - origin.clientX;
-      const dy = e.clientY - origin.clientY;
+      const dx = clientX - origin.clientX;
+      const dy = clientY - origin.clientY;
       let x = position.x;
       let y = position.y;
       let w = size.w;
@@ -101,16 +104,24 @@ function Pointer({
   }
 
   function handlePointerUp(e) {
+    e.stopPropagation();
     setOrigin(null);
   }
 
+  const touchProps = isMobile
+    ? {
+        onTouchStart: handlePointerDown,
+        onTouchMove: handlePointerMove,
+        onTouchEnd: handlePointerUp,
+      }
+    : {
+        onPointerDown: handlePointerDown,
+        onPointerMove: handlePointerMove,
+        onPointerUp: handlePointerUp,
+      };
+
   return (
-    <div
-      {...props}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-    >
+    <div {...props} {...touchProps}>
       {children}
     </div>
   );
@@ -162,6 +173,7 @@ export default function DraggableResizable({
   return (
     <Box
       style={{
+        touchAction: "none",
         position: "fixed",
         left: position.x,
         top: position.y,
