@@ -112,10 +112,6 @@ function runIframe(setting) {
  */
 async function showFab(translator) {
   const fab = await getFabWithDefault();
-  if (fab.isHide) {
-    return;
-  }
-
   const $action = document.createElement("div");
   $action.setAttribute("id", APP_LCNAME);
   document.body.parentElement.appendChild($action);
