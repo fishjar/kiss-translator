@@ -13,6 +13,7 @@ import {
 import Content from "../views/Content";
 import { updateFetchPool, clearFetchPool } from "./fetch";
 import { debounce, genEventName } from "./utils";
+import { runFixer } from "./webfix";
 
 /**
  * 翻译类
@@ -20,6 +21,7 @@ import { debounce, genEventName } from "./utils";
 export class Translator {
   _rule = {};
   _setting = {};
+  _fixerSetting = null;
   _rootNodes = new Set();
   _tranNodes = new Map();
   _skipNodeNames = [
@@ -91,13 +93,14 @@ export class Translator {
     };
   };
 
-  constructor(rule, setting) {
+  constructor(rule, setting, fixerSetting) {
     const { fetchInterval, fetchLimit } = setting;
     updateFetchPool(fetchInterval, fetchLimit);
     this._overrideAttachShadow();
 
     this._setting = setting;
     this._rule = rule;
+    this._fixerSetting = fixerSetting;
 
     if (rule.transOpen === "true") {
       this._register();
@@ -233,6 +236,11 @@ export class Translator {
   _register = () => {
     if (this._rule.fromLang === this._rule.toLang) {
       return;
+    }
+
+    // webfix
+    if (this._fixerSetting) {
+      runFixer(this._fixerSetting);
     }
 
     // 搜索节点

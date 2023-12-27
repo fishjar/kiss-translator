@@ -20,7 +20,7 @@ import { touchTapListener } from "./libs/touch";
 import { debounce, genEventName } from "./libs/utils";
 import { handlePing, injectScript } from "./libs/gm";
 import { browser } from "./libs/browser";
-import { runWebfix } from "./libs/webfix";
+import { matchFixer } from "./libs/webfix";
 import { matchRule } from "./libs/rules";
 import { trySyncAllSubRules } from "./libs/subRules";
 import { isInBlacklist } from "./libs/blacklist";
@@ -252,11 +252,11 @@ export async function run(isUserscript = false) {
     }
 
     // 不规范网页修复
-    await runWebfix(setting);
+    const fixerSetting = await matchFixer(href, setting);
 
     // 翻译网页
     const rule = await matchRule(href, setting);
-    const translator = new Translator(rule, setting);
+    const translator = new Translator(rule, setting, fixerSetting);
 
     // 监听消息
     windowListener(rule);

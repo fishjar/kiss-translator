@@ -218,28 +218,38 @@ export const loadOrFetchWebfix = async (url) => {
 };
 
 /**
- * 匹配站点
+ * 执行fixer
+ * @param {*} param0
  */
-export async function runWebfix({ injectWebfix }) {
+export async function runFixer({ selector, fixer, rootSelector }) {
   try {
-    if (!injectWebfix) {
-      return;
-    }
+    run(selector, fixerMap[fixer], rootSelector);
+  } catch (err) {
+    console.error(`[kiss-webfix run]: ${err.message}`);
+  }
+}
 
-    const href = document.location.href;
+/**
+ * 匹配fixer配置
+ */
+export async function matchFixer(href, { injectWebfix }) {
+  if (!injectWebfix) {
+    return null;
+  }
+
+  try {
     const userSites = await getWebfixRulesWithDefault();
     const subSites = await loadOrFetchWebfix(process.env.REACT_APP_WEBFIXURL);
     const sites = [...userSites, ...subSites];
     for (var i = 0; i < sites.length; i++) {
       var site = sites[i];
-      if (isMatch(href, site.pattern)) {
-        if (fixerMap[site.fixer]) {
-          run(site.selector, fixerMap[site.fixer], site.rootSelector);
-        }
-        break;
+      if (isMatch(href, site.pattern) && fixerMap[site.fixer]) {
+        return site;
       }
     }
   } catch (err) {
-    console.error(`[kiss-webfix]: ${err.message}`);
+    console.error(`[kiss-webfix match]: ${err.message}`);
   }
+
+  return null;
 }
