@@ -36,8 +36,8 @@ export const shortcutListener = (fn, target = document, timeout = 3000) => {
     }
   };
 
-  target.addEventListener("keydown", handleKeydown);
-  target.addEventListener("keyup", handleKeyup);
+  target.addEventListener("keydown", handleKeydown, true);
+  target.addEventListener("keyup", handleKeyup, true);
   return () => {
     if (timer) {
       clearTimeout(timer);
