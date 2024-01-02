@@ -176,7 +176,7 @@ const RULES_MAP = {
 
 export const BUILTIN_RULES = Object.entries(RULES_MAP)
   .sort((a, b) => a[0].localeCompare(b[0]))
-  .map(([pattern, [selector, keepSelector]]) => ({
+  .map(([pattern, [selector, keepSelector = ""]]) => ({
     ...DEFAULT_RULE,
     pattern,
     selector,
