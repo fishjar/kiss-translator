@@ -387,6 +387,14 @@ export const I18N = {
     zh: `选择器`,
     en: `Selector`,
   },
+  keep_selector: {
+    zh: `保留元素选择器`,
+    en: `Keep unchanged selector`,
+  },
+  keep_selector_helper: {
+    zh: `1、遵循CSS选择器语法。2、留空表示采用全局设置。`,
+    en: `1. Follow CSS selector syntax. 2. Leave blank to adopt the global setting.`,
+  },
   root_selector: {
     zh: `根选择器`,
     en: `Root Selector`,

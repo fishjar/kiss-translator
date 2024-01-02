@@ -65,6 +65,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
   const {
     pattern,
     selector,
+    keepSelector = "",
     translator,
     fromLang,
     toLang,
@@ -177,6 +178,16 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
           disabled={disabled}
           onChange={handleChange}
           onFocus={handleFocus}
+          multiline
+        />
+        <TextField
+          size="small"
+          label={i18n("keep_selector")}
+          helperText={i18n("keep_selector_helper")}
+          name="keepSelector"
+          value={keepSelector}
+          disabled={disabled}
+          onChange={handleChange}
           multiline
         />
 

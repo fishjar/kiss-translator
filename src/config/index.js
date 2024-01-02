@@ -1,5 +1,6 @@
 import {
   DEFAULT_SELECTOR,
+  DEFAULT_KEEP_SELECTOR,
   GLOBAL_KEY,
   REMAIN_KEY,
   SHADOW_KEY,
@@ -321,6 +322,7 @@ export const DEFAULT_COLOR = "#209CEE"; // 默认高亮背景色/线条颜色
 export const GLOBLA_RULE = {
   pattern: "*",
   selector: DEFAULT_SELECTOR,
+  keepSelector: DEFAULT_KEEP_SELECTOR,
   translator: OPT_TRANS_MICROSOFT,
   fromLang: "auto",
   toLang: "zh-CN",

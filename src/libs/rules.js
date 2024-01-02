@@ -66,6 +66,7 @@ export const matchRule = async (
   }
 
   rule.selector = rule.selector?.trim() || globalRule.selector;
+  rule.keepSelector = rule.keepSelector?.trim() || globalRule.keepSelector;
   if (rule.textStyle === GLOBAL_KEY) {
     rule.textStyle = globalRule.textStyle;
     rule.bgColor = globalRule.bgColor;
@@ -112,6 +113,7 @@ export const checkRules = (rules) => {
       ({
         pattern,
         selector,
+        keepSelector,
         translator,
         fromLang,
         toLang,
@@ -122,6 +124,7 @@ export const checkRules = (rules) => {
       }) => ({
         pattern: pattern.trim(),
         selector: type(selector) === "string" ? selector : "",
+        keepSelector: type(keepSelector) === "string" ? keepSelector : "",
         bgColor: type(bgColor) === "string" ? bgColor : "",
         textDiyStyle: type(textDiyStyle) === "string" ? textDiyStyle : "",
         translator: matchValue([GLOBAL_KEY, ...OPT_TRANS_ALL], translator),

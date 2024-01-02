@@ -360,6 +360,11 @@ export class Translator {
     }
   }, 500);
 
+  _matchLength = (q) =>
+    !q ||
+    q.length < (this._setting.minLength ?? TRANS_MIN_LENGTH) ||
+    q.length > (this._setting.maxLength ?? TRANS_MAX_LENGTH);
+
   _render = (el) => {
     let traEl = el.querySelector(APP_LCNAME);
 
@@ -379,16 +384,37 @@ export class Translator {
       traEl.remove();
     }
 
-    const q = el.innerText.trim();
+    let q = el.innerText.trim();
     this._tranNodes.set(el, q);
 
     // 太长或太短
-    if (
-      !q ||
-      q.length < (this._setting.minLength ?? TRANS_MIN_LENGTH) ||
-      q.length > (this._setting.maxLength ?? TRANS_MAX_LENGTH)
-    ) {
+    if (this._matchLength(q)) {
       return;
+    }
+
+    // console.log("---> ", q);
+
+    const keepSelector = this._rule.keepSelector || "";
+    const keeps = [];
+    if (keepSelector.trim()) {
+      let text = "";
+      el.childNodes.forEach((child) => {
+        if (child.nodeType === 1 && child.matches(keepSelector)) {
+          text += `#${keeps.length}#`;
+          keeps.push(child.outerHTML);
+        } else {
+          text += child.textContent;
+        }
+      });
+
+      // 太长或太短
+      if (this._matchLength(text.replace(/#(\d+)#/g, "").trim())) {
+        return;
+      }
+
+      if (keeps.length > 0) {
+        q = text;
+      }
     }
 
     // console.log("---> ", q);
@@ -404,6 +430,6 @@ export class Translator {
     }
 
     const root = createRoot(traEl);
-    root.render(<Content q={q} translator={this} />);
+    root.render(<Content q={q} keeps={keeps} translator={this} />);
   };
 }

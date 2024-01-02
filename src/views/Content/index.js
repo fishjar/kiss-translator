@@ -112,7 +112,7 @@ function StyledSpan({ textStyle, textDiyStyle, bgColor, children }) {
   }
 }
 
-export default function Content({ q, translator }) {
+export default function Content({ q, keeps, translator }) {
   const [rule, setRule] = useState(translator.rule);
   const { text, sameLang, loading } = useTranslate(q, rule, translator.setting);
   const { textStyle, bgColor = "", textDiyStyle = "" } = rule;
@@ -145,18 +145,28 @@ export default function Content({ q, translator }) {
     );
   }
 
-  if (text && !sameLang) {
-    return (
-      <>
-        {q.length >= newlineLength ? <br /> : " "}
-        <StyledSpan
-          textStyle={textStyle}
-          textDiyStyle={textDiyStyle}
-          bgColor={bgColor}
-        >
-          {text}
-        </StyledSpan>
-      </>
-    );
+  if (!text || sameLang) {
+    return;
   }
+
+  return (
+    <>
+      {q.length >= newlineLength ? <br /> : " "}
+      <StyledSpan
+        textStyle={textStyle}
+        textDiyStyle={textDiyStyle}
+        bgColor={bgColor}
+      >
+        {keeps.length > 0 ? (
+          <span
+            dangerouslySetInnerHTML={{
+              __html: text.replace(/#(\d+)#/g, (_, p) => keeps[parseInt(p)]),
+            }}
+          />
+        ) : (
+          text
+        )}
+      </StyledSpan>
+    </>
+  );
 }
