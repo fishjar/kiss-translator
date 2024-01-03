@@ -97,22 +97,33 @@ const RULES_MAP = {
   "www.bloomberg.com": [
     `[data-component="headline"], [data-component="related-item-headline"], [data-component="title"], article ${DEFAULT_SELECTOR}`,
   ],
-  "deno.land, docs.github.com": [`main ${DEFAULT_SELECTOR}`],
-  "doc.rust-lang.org": [`.content ${DEFAULT_SELECTOR}`],
+  "deno.land, docs.github.com": [`main ${DEFAULT_SELECTOR}`, `code, img, svg`],
+  "doc.rust-lang.org": [`.content ${DEFAULT_SELECTOR}`, `code, img, svg`],
   "www.indiehackers.com": [
     `h1, h3, .content ${DEFAULT_SELECTOR}, .feed-item__title-link`,
   ],
-  "platform.openai.com/docs": [`.docs-body ${DEFAULT_SELECTOR}`],
-  "en.wikipedia.org": [`h1, .mw-parser-output ${DEFAULT_SELECTOR}`],
-  "stackoverflow.com": [`h1, .s-prose p, .comment-body .comment-copy`],
+  "platform.openai.com/docs": [
+    `.docs-body ${DEFAULT_SELECTOR}`,
+    `code, img, svg`,
+  ],
+  "en.wikipedia.org": [
+    `h1, .mw-parser-output ${DEFAULT_SELECTOR}`,
+    `.mwe-math-element`,
+  ],
+  "stackoverflow.com": [
+    `h1, .s-prose p, .comment-body .comment-copy`,
+    `code, img, svg`,
+  ],
   "www.npmjs.com/package, developer.chrome.com/docs, medium.com, developers.cloudflare.com, react.dev, create-react-app.dev, pytorch.org":
     [`article ${DEFAULT_SELECTOR}`],
   "news.ycombinator.com": [`.title, .commtext`],
   "github.com": [
     `.markdown-body ${DEFAULT_SELECTOR}, .repo-description p, .Layout-sidebar .f4, .container-lg .py-4 .f5, .container-lg .my-4 .f5, .Box-row .pr-4, .Box-row article .mt-1, [itemprop="description"], .markdown-title, bdi, .ws-pre-wrap, .status-meta, span.status-meta, .col-10.color-fg-muted, .TimelineItem-body, .pinned-item-list-item-content .color-fg-muted, .markdown-body td, .markdown-body th`,
+    `code, img, svg`,
   ],
   "twitter.com": [
     `[data-testid="tweetText"], [data-testid="birdwatch-pivot"]>div.css-1rynq56`,
+    `img, a, .r-18u37iz, .css-175oi2r`,
   ],
   "m.youtube.com": [
     `.slim-video-information-title .yt-core-attributed-string, .media-item-headline .yt-core-attributed-string, .comment-text .yt-core-attributed-string, .typography-body-2b .yt-core-attributed-string, #ytp-caption-window-container .ytp-caption-segment`,
@@ -162,6 +173,7 @@ const RULES_MAP = {
   "blogs.windows.com": [`${DEFAULT_SELECTOR}, .c-uhf-nav-link, figcaption`],
   "developer.apple.com/documentation/": [
     `#main ${DEFAULT_SELECTOR}, #main .abstract .content, #main .abstract.content, #main .link span`,
+    `code, img, svg`,
   ],
   "greasyfork.org": [
     `h2, .script-link, .script-description, #additional-info ${DEFAULT_SELECTOR}`,
