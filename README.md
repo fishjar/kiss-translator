@@ -84,3 +84,7 @@ pnpm build
 ## 交流
 
 - 加入 [Telegram 群](https://t.me/+RRCu_4oNwrM2NmFl)
+
+## 赞赏
+
+![appreciate](https://github.com/fishjar/kiss-translator/assets/1157624/9836564a-1a6b-4908-97cf-b7ad3ab5b994)
