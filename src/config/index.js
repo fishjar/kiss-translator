@@ -347,14 +347,12 @@ export const DEFAULT_INPUT_RULE = {
 };
 
 // 划词翻译
-export const DEFAULT_TRANBOX_SHORTCUT = ["AltLeft", "KeyS"];
 export const DEFAULT_TRANBOX_SETTING = {
   transOpen: true,
   translator: OPT_TRANS_MICROSOFT,
   fromLang: "auto",
   toLang: "zh-CN",
   toLang2: "en",
-  tranboxShortcut: DEFAULT_TRANBOX_SHORTCUT,
   btnOffsetX: 10,
   btnOffsetY: 10,
   hideTranBtn: false,

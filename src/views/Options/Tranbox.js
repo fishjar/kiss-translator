@@ -4,10 +4,8 @@ import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import { useI18n } from "../../hooks/I18n";
 import { OPT_TRANS_ALL, OPT_LANGS_FROM, OPT_LANGS_TO } from "../../config";
-import ShortcutInput from "./ShortcutInput";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
-import { useCallback } from "react";
 import { limitNumber } from "../../libs/utils";
 import { useTranbox } from "../../hooks/Tranbox";
 
@@ -32,20 +30,12 @@ export default function Tranbox() {
     });
   };
 
-  const handleShortcutInput = useCallback(
-    (val) => {
-      updateTranbox({ tranboxShortcut: val });
-    },
-    [updateTranbox]
-  );
-
   const {
     transOpen,
     translator,
     fromLang,
     toLang,
     toLang2 = "en",
-    tranboxShortcut,
     btnOffsetX,
     btnOffsetY,
     hideTranBtn = false,
@@ -158,12 +148,6 @@ export default function Tranbox() {
           <MenuItem value={false}>{i18n("show")}</MenuItem>
           <MenuItem value={true}>{i18n("hide")}</MenuItem>
         </TextField>
-
-        <ShortcutInput
-          value={tranboxShortcut}
-          onChange={handleShortcutInput}
-          label={i18n("trigger_tranbox_shortcut")}
-        />
       </Stack>
     </Box>
   );

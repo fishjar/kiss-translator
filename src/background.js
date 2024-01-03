@@ -154,6 +154,9 @@ browser.commands.onCommand.addListener((command) => {
     case CMD_TOGGLE_TRANSLATE:
       sendTabMsg(MSG_TRANS_TOGGLE);
       break;
+    case CMD_OPEN_TRANBOX:
+      sendTabMsg(MSG_OPEN_TRANBOX);
+      break;
     case CMD_TOGGLE_STYLE:
       sendTabMsg(MSG_TRANS_TOGGLE_STYLE);
       break;

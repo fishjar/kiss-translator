@@ -28,11 +28,15 @@
       },
       "description": "__MSG_toggle_translate__"
     },
-    "toggleStyle": {
+    "openTranbox": {
       "suggested_key": {
-        "default": "Alt+C"
+        "default": "Alt+S"
       },
-      "description": "__MSG_toggle_style__"
+      "description": "__MSG_open_tranbox__"
+    },
+    "toggleStyle": {
+      "description": "__MSG_toggle_style__",
+      "global": false
     },
     "openOptions": {
       "suggested_key": {
