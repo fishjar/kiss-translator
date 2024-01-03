@@ -360,7 +360,7 @@ export class Translator {
     }
   }, 500);
 
-  _matchLength = (q) =>
+  _invalidLength = (q) =>
     !q ||
     q.length < (this._setting.minLength ?? TRANS_MIN_LENGTH) ||
     q.length > (this._setting.maxLength ?? TRANS_MAX_LENGTH);
@@ -388,7 +388,7 @@ export class Translator {
     this._tranNodes.set(el, q);
 
     // 太长或太短
-    if (this._matchLength(q)) {
+    if (this._invalidLength(q)) {
       return;
     }
 
@@ -400,6 +400,10 @@ export class Translator {
       let text = "";
       el.childNodes.forEach((child) => {
         if (child.nodeType === 1 && child.matches(keepSelector)) {
+          if (child.nodeName === "IMG") {
+            child.style.cssText += `width: ${child.width}px;`;
+            child.style.cssText += `height: ${child.height}px;`;
+          }
           text += `#${keeps.length}#`;
           keeps.push(child.outerHTML);
         } else {
@@ -408,7 +412,7 @@ export class Translator {
       });
 
       // 太长或太短
-      if (this._matchLength(text.replace(/#(\d+)#/g, "").trim())) {
+      if (this._invalidLength(text.replace(/#(\d+)#/g, "").trim())) {
         return;
       }
 
