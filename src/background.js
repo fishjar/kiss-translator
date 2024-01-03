@@ -31,27 +31,27 @@ function addContextMenus() {
   browser.contextMenus.create({
     id: CMD_TOGGLE_TRANSLATE,
     title: browser.i18n.getMessage("toggle_translate"),
-    contexts: ["all"],
+    contexts: ["page", "selection"],
   });
   browser.contextMenus.create({
     id: CMD_TOGGLE_STYLE,
     title: browser.i18n.getMessage("toggle_style"),
-    contexts: ["all"],
+    contexts: ["page", "selection"],
   });
   browser.contextMenus.create({
     id: CMD_OPEN_TRANBOX,
     title: browser.i18n.getMessage("open_tranbox"),
-    contexts: ["all"],
+    contexts: ["page", "selection"],
   });
   browser.contextMenus.create({
     id: "options_separator",
     type: "separator",
-    contexts: ["all"],
+    contexts: ["page", "selection"],
   });
   browser.contextMenus.create({
     id: CMD_OPEN_OPTIONS,
     title: browser.i18n.getMessage("open_options"),
-    contexts: ["all"],
+    contexts: ["page", "selection"],
   });
 }
 
