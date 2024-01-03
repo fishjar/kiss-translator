@@ -35,13 +35,12 @@
       "description": "__MSG_open_tranbox__"
     },
     "toggleStyle": {
-      "description": "__MSG_toggle_style__",
-      "global": false
+      "suggested_key": {
+        "default": "Alt+C"
+      },
+      "description": "__MSG_toggle_style__"
     },
     "openOptions": {
-      "suggested_key": {
-        "default": "Alt+O"
-      },
       "description": "__MSG_open_options__"
     }
   },

@@ -99,7 +99,7 @@ export default function Action({ translator, fab }) {
       contextMenus &&
         menuCommandIds.push(
           GM.registerMenuCommand(
-            "Toggle Translate (Alt+q)",
+            "Toggle Translate (Alt+Q)",
             (event) => {
               translator.toggle();
               sendIframeMsg(MSG_TRANS_TOGGLE);
@@ -108,7 +108,7 @@ export default function Action({ translator, fab }) {
             "Q"
           ),
           GM.registerMenuCommand(
-            "Toggle Style (Alt+c)",
+            "Toggle Style (Alt+C)",
             (event) => {
               translator.toggleStyle();
               sendIframeMsg(MSG_TRANS_TOGGLE_STYLE);
@@ -117,14 +117,14 @@ export default function Action({ translator, fab }) {
             "C"
           ),
           GM.registerMenuCommand(
-            "Open Menu (Alt+k)",
+            "Open Menu (Alt+K)",
             (event) => {
               setShowPopup((pre) => !pre);
             },
             "K"
           ),
           GM.registerMenuCommand(
-            "Open Setting (Alt+o)",
+            "Open Setting",
             (event) => {
               window.open(process.env.REACT_APP_OPTIONSPAGE, "_blank");
             },
