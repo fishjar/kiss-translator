@@ -84,3 +84,7 @@ pnpm build
 ## Discussion
 
 - Join [Telegram Group](https://t.me/+RRCu_4oNwrM2NmFl)
+
+## Appreciate
+
+![appreciate](https://github.com/fishjar/kiss-translator/assets/1157624/ebaecabe-2934-4172-8085-af236f5ee399)

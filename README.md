@@ -88,4 +88,3 @@ pnpm build
 ## 赞赏
 
 ![appreciate](https://github.com/fishjar/kiss-translator/assets/1157624/ebaecabe-2934-4172-8085-af236f5ee399)
-
