@@ -64,7 +64,7 @@ export default function Slection({ contextMenus, tranboxSetting, transApis }) {
       setPosition({ x: pageX, y: pageY });
     }
 
-    // toto: mobile support
+    // todo: mobile support
     window.addEventListener("mouseup", handleMouseup);
     // window.addEventListener(isMobile ? "touchend" : "mouseup", handleMouseup);
     return () => {
