@@ -155,11 +155,6 @@ export default function Popup({ setShowPopup, translator: tran }) {
             }
             label={i18n("translate_alt")}
           />
-          {!isExt && (
-            <Button variant="text" onClick={handleClearCache}>
-              {i18n("clear_cache")}
-            </Button>
-          )}
         </Stack>
 
         <TextField
@@ -245,6 +240,11 @@ export default function Popup({ setShowPopup, translator: tran }) {
           <Button variant="text" onClick={handleSaveRule}>
             {i18n("save_rule")}
           </Button>
+          {!isExt && (
+            <Button variant="text" onClick={handleClearCache}>
+              {i18n("clear_cache")}
+            </Button>
+          )}
           <Button variant="text" onClick={handleOpenSetting}>
             {i18n("setting")}
           </Button>
