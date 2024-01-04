@@ -23,7 +23,7 @@ import { genBaidu } from "../apis/baidu";
 
 const keyMap = new Map();
 
-// 轮寻key
+// 轮询key
 const keyPick = (translator, key = "") => {
   const keys = key
     .split(",")
@@ -34,10 +34,11 @@ const keyPick = (translator, key = "") => {
     return "";
   }
 
-  let index = keyMap.get(translator) ?? -1;
-  keyMap.set(translator, ++index);
+  const preIndex = keyMap.get(translator) ?? -1;
+  const curIndex = (preIndex + 1) % keys.length;
+  keyMap.set(translator, curIndex);
 
-  return keys[index % keys.length];
+  return keys[curIndex];
 };
 
 /**
