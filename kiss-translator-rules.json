@@ -2,6 +2,7 @@
   {
     "pattern": "app.slack.com/client/",
     "selector": ".p-rich_text_section, .c-message_attachment__text, .p-rich_text_list li",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -13,6 +14,7 @@
   {
     "pattern": "bard.google.com",
     "selector": ".query-content :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote), message-content :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote)",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -24,6 +26,7 @@
   {
     "pattern": "bearblog.dev, www.theverge.com, www.tampermonkey.net/documentation.php",
     "selector": ":is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote)",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -35,6 +38,7 @@
   {
     "pattern": "blogs.windows.com",
     "selector": ":is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote), .c-uhf-nav-link, figcaption",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -46,6 +50,7 @@
   {
     "pattern": "chat.openai.com",
     "selector": "div[data-message-author-role] > div :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote)",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -57,6 +62,7 @@
   {
     "pattern": "chromereleases.googleblog.com",
     "selector": ".title, .publishdate, p, i, .header-desc, .header-title, .text",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -68,6 +74,7 @@
   {
     "pattern": "deno.land, docs.github.com",
     "selector": "main :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote)",
+    "keepSelector": "code, img, svg",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -79,6 +86,7 @@
   {
     "pattern": "developer.apple.com/documentation/",
     "selector": "#main :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote), #main .abstract .content, #main .abstract.content, #main .link span",
+    "keepSelector": "code, img, svg",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -89,7 +97,8 @@
   },
   {
     "pattern": "discord.com/channels/",
-    "selector": "div[id^=message-content]",
+    "selector": "li[id^=chat-messages] div[id^=message-content], div[class^=headerText], div[class^=name_], section[aria-label='Search Results'] div[id^=message-content]",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -101,6 +110,19 @@
   {
     "pattern": "doc.rust-lang.org",
     "selector": ".content :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote)",
+    "keepSelector": "code, img, svg",
+    "translator": "*",
+    "fromLang": "*",
+    "toLang": "*",
+    "textStyle": "*",
+    "transOpen": "*",
+    "bgColor": "",
+    "textDiyStyle": ""
+  },
+  {
+    "pattern": "docs.arduino.cc",
+    "selector": "[class^=\"tutorial-module--left\"] :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote)",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -112,6 +134,7 @@
   {
     "pattern": "edition.cnn.com",
     "selector": ".container__title, .container__headline, .headline__text, .image__caption, [data-type=\"Title\"], .article__content :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote)",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -123,6 +146,7 @@
   {
     "pattern": "education.github.com",
     "selector": ":is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote), a, summary, span.Button-content",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -134,6 +158,19 @@
   {
     "pattern": "en.wikipedia.org",
     "selector": "h1, .mw-parser-output :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote)",
+    "keepSelector": ".mwe-math-element",
+    "translator": "*",
+    "fromLang": "*",
+    "toLang": "*",
+    "textStyle": "*",
+    "transOpen": "*",
+    "bgColor": "",
+    "textDiyStyle": ""
+  },
+  {
+    "pattern": "forum.arduino.cc",
+    "selector": ".top-row>.title, .featured-topic>.title, .link-top-line>.title, .category-description, .topic-excerpt, .fancy-title, .cooked :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote)",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -144,7 +181,8 @@
   },
   {
     "pattern": "forum.ru-board.com",
-    "selector": ".tit, .dats, span.post :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote)",
+    "selector": ".tit, .dats, span.post, .lgf :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote)",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -156,6 +194,19 @@
   {
     "pattern": "github.com",
     "selector": ".markdown-body :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote), .repo-description p, .Layout-sidebar .f4, .container-lg .py-4 .f5, .container-lg .my-4 .f5, .Box-row .pr-4, .Box-row article .mt-1, [itemprop=\"description\"], .markdown-title, bdi, .ws-pre-wrap, .status-meta, span.status-meta, .col-10.color-fg-muted, .TimelineItem-body, .pinned-item-list-item-content .color-fg-muted, .markdown-body td, .markdown-body th",
+    "keepSelector": "code, img, svg",
+    "translator": "*",
+    "fromLang": "*",
+    "toLang": "*",
+    "textStyle": "*",
+    "transOpen": "*",
+    "bgColor": "",
+    "textDiyStyle": ""
+  },
+  {
+    "pattern": "greasyfork.org",
+    "selector": "h2, .script-link, .script-description, #additional-info :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote)",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -167,6 +218,7 @@
   {
     "pattern": "m.youtube.com",
     "selector": ".slim-video-information-title .yt-core-attributed-string, .media-item-headline .yt-core-attributed-string, .comment-text .yt-core-attributed-string, .typography-body-2b .yt-core-attributed-string, #ytp-caption-window-container .ytp-caption-segment",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -178,6 +230,7 @@
   {
     "pattern": "mail.google.com",
     "selector": ":is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote), h2[data-thread-perm-id], span[data-thread-id], div[data-message-id] div[class=''], .messageBody, #views",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -189,6 +242,7 @@
   {
     "pattern": "news.google.com",
     "selector": "[role=\"link\"], .DY5T1d, .ifw3f, :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote)",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -200,6 +254,7 @@
   {
     "pattern": "news.ycombinator.com",
     "selector": ".title, .commtext",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -211,6 +266,7 @@
   {
     "pattern": "platform.openai.com/docs",
     "selector": ".docs-body :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote)",
+    "keepSelector": "code, img, svg",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -222,6 +278,7 @@
   {
     "pattern": "restofworld.org",
     "selector": ":is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote), .recirc-story__headline, .recirc-story__dek",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -233,6 +290,7 @@
   {
     "pattern": "stackoverflow.com",
     "selector": "h1, .s-prose p, .comment-body .comment-copy",
+    "keepSelector": "code, img, svg",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -244,6 +302,7 @@
   {
     "pattern": "t.me/s/",
     "selector": ".js-message_text :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote)",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -255,6 +314,7 @@
   {
     "pattern": "themessenger.com",
     "selector": ".leading-tight, .leading-tighter, .my-2 p, .font-body p, article :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote)",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -266,6 +326,7 @@
   {
     "pattern": "time.com",
     "selector": "h1, h3, .summary, .video-title, #article-body :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote), .image-wrap-container .credit.body-caption, .media-heading",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -276,7 +337,8 @@
   },
   {
     "pattern": "twitter.com",
-    "selector": "[data-testid=\"tweetText\"]",
+    "selector": "[data-testid=\"tweetText\"], [data-testid=\"birdwatch-pivot\"]>div.css-1rynq56",
+    "keepSelector": "img, a, .r-18u37iz, .css-175oi2r",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -288,6 +350,7 @@
   {
     "pattern": "web.telegram.org/a/",
     "selector": ".message, .text-content, .bot-commands-list-element-description, .reply-markup-button-text",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -299,6 +362,7 @@
   {
     "pattern": "web.telegram.org/k/",
     "selector": ".message, .bot-commands-list-element-description, .reply-markup-button-text",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -310,6 +374,7 @@
   {
     "pattern": "web.whatsapp.com",
     "selector": ".copyable-text > span",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -321,6 +386,7 @@
   {
     "pattern": "www.axios.com",
     "selector": ".h7, :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote)",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -331,7 +397,8 @@
   },
   {
     "pattern": "www.bbc.com",
-    "selector": "h1, h2, .media__link, .media__summary, article :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote), .ssrcss-y7krbn-Stack, .ssrcss-17zglt8-PromoHeadline, .ssrcss-18cjaf3-Headline, .gs-c-promo-heading__title, .gs-c-promo-summary, .media__content h3, .article__intro",
+    "selector": "h1, h2, .media__link, .media__summary, article :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote), .ssrcss-y7krbn-Stack, .ssrcss-17zglt8-PromoHeadline, .ssrcss-18cjaf3-Headline, .gs-c-promo-heading__title, .gs-c-promo-summary, .media__content h3, .article__intro, .lx-c-summary-points>li",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -343,6 +410,7 @@
   {
     "pattern": "www.bing.com",
     "selector": ".b_algoSlug, .rwrl_padref; .cib-serp-main >>> .ac-textBlock :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote), .text-message-content div",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -354,6 +422,7 @@
   {
     "pattern": "www.bloomberg.com",
     "selector": "[data-component=\"headline\"], [data-component=\"related-item-headline\"], [data-component=\"title\"], article :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote)",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -365,6 +434,7 @@
   {
     "pattern": "www.chinadaily.com.cn",
     "selector": "h1, .tMain [shape=\"rect\"], .cMain [shape=\"rect\"], .photo_art [shape=\"rect\"], .mai_r [shape=\"rect\"], .lisBox li, #Content :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote)",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -376,6 +446,7 @@
   {
     "pattern": "www.dw.com",
     "selector": ".ts-teaser-title a, .news-title a, .title a, .teaser-description a, .hbudab h3, .hbudab p, figcaption ,article :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote)",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -387,6 +458,19 @@
   {
     "pattern": "www.facebook.com",
     "selector": "[role=\"main\"] [dir=\"auto\"]",
+    "keepSelector": "",
+    "translator": "*",
+    "fromLang": "*",
+    "toLang": "*",
+    "textStyle": "*",
+    "transOpen": "*",
+    "bgColor": "",
+    "textDiyStyle": ""
+  },
+  {
+    "pattern": "www.fmkorea.com",
+    "selector": "#container :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote)",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -398,6 +482,7 @@
   {
     "pattern": "www.foxnews.com",
     "selector": "h1, h2, .title, .sidebar [data-type=\"Title\"], .article-content :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote); [data-spotim-module=\"conversation\"]>div >>> [data-spot-im-class=\"message-text\"] p,  [data-spot-im-class=\"message-text\"]",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -409,6 +494,19 @@
   {
     "pattern": "www.google.com/search",
     "selector": "h3, .IsZvec, .VwiC3b",
+    "keepSelector": "",
+    "translator": "*",
+    "fromLang": "*",
+    "toLang": "*",
+    "textStyle": "*",
+    "transOpen": "*",
+    "bgColor": "",
+    "textDiyStyle": ""
+  },
+  {
+    "pattern": "www.historydefined.net",
+    "selector": ".wp-element-caption, :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote)",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -420,6 +518,7 @@
   {
     "pattern": "www.indiehackers.com",
     "selector": "h1, h3, .content :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote), .feed-item__title-link",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -431,6 +530,7 @@
   {
     "pattern": "www.instagram.com/",
     "selector": "h1, article span[dir=auto] > span[dir=auto], ._ab1y",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -442,6 +542,7 @@
   {
     "pattern": "www.instagram.com/p/,www.instagram.com/reels/",
     "selector": "h1, div[class='x9f619 xjbqb8w x78zum5 x168nmei x13lgxp2 x5pf9jr xo71vjh x1uhb9sk x1plvlek xryxfnj x1c4vz4f x2lah0s xdt5ytf xqjyukv x1cy8zhl x1oa3qoh x1nhvcw1'] > span[class='x1lliihq x1plvlek xryxfnj x1n2onr6 x193iq5w xeuugli x1fj9vlw x13faqbe x1vvkbs x1s928wv xhkezso x1gmr53x x1cpjm7i x1fgarty x1943h6x x1i0vuye xvs91rp xo1l8bm x5n08af x10wh9bi x1wdrske x8viiok x18hxmgj'], span[class='x193iq5w xeuugli x1fj9vlw x13faqbe x1vvkbs xt0psk2 x1i0vuye xvs91rp xo1l8bm x5n08af x10wh9bi x1wdrske x8viiok x18hxmgj']",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -452,7 +553,8 @@
   },
   {
     "pattern": "www.newyorker.com",
-    "selector": ".summary-item__hed, .summary-item__dek, .summary-collection-grid__dek, .dqtvfu, .rubric__link, .caption, article :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote), .HEhan :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote), .ContributorBioBio-fBolsO",
+    "selector": ".summary-item__hed, .summary-item__dek, .summary-collection-grid__dek, .dqtvfu, .rubric__link, .caption, article :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote), .HEhan :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote), .ContributorBioBio-fBolsO, .BaseText-ewhhUZ",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -464,6 +566,7 @@
   {
     "pattern": "www.noemamag.com",
     "selector": ".splash__title, .single-card__title, .single-card__type, .single-card__topic, .highlighted-content__title, .single-card__author, article :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote), .quote__text, .wp-caption-text div",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -475,6 +578,7 @@
   {
     "pattern": "www.npmjs.com/package, developer.chrome.com/docs, medium.com, developers.cloudflare.com, react.dev, create-react-app.dev, pytorch.org",
     "selector": "article :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote)",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -486,6 +590,7 @@
   {
     "pattern": "www.phoronix.com",
     "selector": "article :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote)",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -497,6 +602,7 @@
   {
     "pattern": "www.quora.com",
     "selector": ".qu-wordBreak--break-word",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -507,7 +613,8 @@
   },
   {
     "pattern": "www.reddit.com",
-    "selector": "[slot=\"title\"], [slot=\"text-body\"] :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote), #-post-rtjson-content p",
+    "selector": "div:is(.tbIApBd2DM_drfZQJjIum, ._1zPvgKHteTOub9dKkvrOl4,.ULWj94BYSOqoJDetxgcnU),a:is([class^=\"_334yl59\"],[class^=\"_2GrMpxD\"]),h1,h2,h3,h4,h5,h6,p,button",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -519,6 +626,7 @@
   {
     "pattern": "www.reuters.com",
     "selector": "#main-content [data-testid=\"Heading\"], #main-content [data-testid=\"Body\"], .article-body__content__17Yit :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote)",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -530,6 +638,7 @@
   {
     "pattern": "www.semafor.com",
     "selector": ":is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote), .styles_intro__IYj__, [class*=\"styles_description\"]",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -541,6 +650,7 @@
   {
     "pattern": "www.telegraph.co.uk, go.dev/doc/",
     "selector": "article :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote)",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -552,6 +662,7 @@
   {
     "pattern": "www.theguardian.com",
     "selector": ".show-underline, .dcr-hup5wm div, .dcr-7vl6y8 div, .dcr-12evv1c, figcaption, article :is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote), [data-cy=\"mostviewed-footer\"] h4",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -563,6 +674,7 @@
   {
     "pattern": "www.youtube.com",
     "selector": "h1, #video-title, #content-text, #title, yt-attributed-string>span>span, #ytp-caption-window-container .ytp-caption-segment",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",
@@ -574,6 +686,7 @@
   {
     "pattern": "wx2.qq.com",
     "selector": ".js_message_plain",
+    "keepSelector": "",
     "translator": "*",
     "fromLang": "*",
     "toLang": "*",

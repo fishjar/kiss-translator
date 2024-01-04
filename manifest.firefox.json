@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "__MSG_app_name__",
   "description": "__MSG_app_description__",
-  "version": "1.7.15",
+  "version": "1.7.16",
   "default_locale": "en",
   "author": "Gabe<yugang2002@gmail.com>",
   "homepage_url": "https://github.com/fishjar/kiss-translator",
@@ -28,6 +28,12 @@
       },
       "description": "__MSG_toggle_translate__"
     },
+    "openTranbox": {
+      "suggested_key": {
+        "default": "Alt+S"
+      },
+      "description": "__MSG_open_tranbox__"
+    },
     "toggleStyle": {
       "suggested_key": {
         "default": "Alt+C"
@@ -35,9 +41,6 @@
       "description": "__MSG_toggle_style__"
     },
     "openOptions": {
-      "suggested_key": {
-        "default": "Alt+O"
-      },
       "description": "__MSG_open_options__"
     }
   },
