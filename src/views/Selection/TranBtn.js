@@ -1,17 +1,8 @@
-import { limitNumber } from "../../libs/utils";
 import { isMobile } from "../../libs/mobile";
 
 export default function TranBtn({ onClick, position, tranboxSetting }) {
-  const left = limitNumber(
-    position.x + tranboxSetting.btnOffsetX,
-    0,
-    document.body.scrollWidth - 20
-  );
-  const top = limitNumber(
-    position.y + tranboxSetting.btnOffsetY,
-    0,
-    document.body.scrollHeight - 20
-  );
+  const left = position.x + tranboxSetting.btnOffsetX;
+  const top = position.y + tranboxSetting.btnOffsetY;
 
   const touchProps = isMobile
     ? {
