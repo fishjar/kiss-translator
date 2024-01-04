@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import TranBtn from "./TranBtn";
 import TranBox from "./TranBox";
+import { shortcutRegister } from "../../libs/shortcut";
 import { sleep, limitNumber } from "../../libs/utils";
-import { isGm } from "../../libs/client";
-import { MSG_OPEN_TRANBOX } from "../../config";
+import { isGm, isExt } from "../../libs/client";
+import { MSG_OPEN_TRANBOX, DEFAULT_TRANBOX_SHORTCUT } from "../../config";
 import { isMobile } from "../../libs/mobile";
 
 export default function Slection({ contextMenus, tranboxSetting, transApis }) {
@@ -74,6 +75,21 @@ export default function Slection({ contextMenus, tranboxSetting, transApis }) {
       );
     };
   }, [tranboxSetting.hideTranBtn]);
+
+  useEffect(() => {
+    if (isExt) {
+      return;
+    }
+
+    const clearShortcut = shortcutRegister(
+      tranboxSetting.tranboxShortcut || DEFAULT_TRANBOX_SHORTCUT,
+      handleTranbox
+    );
+
+    return () => {
+      clearShortcut();
+    };
+  }, [tranboxSetting.tranboxShortcut, handleTranbox]);
 
   useEffect(() => {
     window.addEventListener(MSG_OPEN_TRANBOX, handleTranbox);
