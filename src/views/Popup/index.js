@@ -22,7 +22,6 @@ import {
   OPT_LANGS_FROM,
   OPT_LANGS_TO,
   OPT_STYLE_ALL,
-  OPT_STYLE_USE_COLOR,
 } from "../../config";
 import { sendIframeMsg } from "../../libs/iframe";
 import { saveRule } from "../../libs/rules";
@@ -130,7 +129,7 @@ export default function Popup({ setShowPopup, translator: tran }) {
     );
   }
 
-  const { transOpen, translator, fromLang, toLang, textStyle, bgColor } = rule;
+  const { transOpen, translator, fromLang, toLang, textStyle } = rule;
 
   return (
     <Box minWidth={300}>
@@ -227,7 +226,7 @@ export default function Popup({ setShowPopup, translator: tran }) {
           ))}
         </TextField>
 
-        {OPT_STYLE_USE_COLOR.includes(textStyle) && (
+        {/* {OPT_STYLE_USE_COLOR.includes(textStyle) && (
           <TextField
             size="small"
             name="bgColor"
@@ -235,7 +234,7 @@ export default function Popup({ setShowPopup, translator: tran }) {
             label={i18n("bg_color")}
             onChange={handleChange}
           />
-        )}
+        )} */}
 
         <Stack
           direction="row"
