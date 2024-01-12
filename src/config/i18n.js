@@ -716,7 +716,7 @@ export const I18N = {
     en: `Add Context Menus`,
   },
   mulkeys_help: {
-    zh: `支持英文逗号隔开多个KEY轮寻调用。`,
+    zh: `支持英文逗号隔开多个KEY轮询调用。`,
     en: `Supports multiple KEY round calling calls separated by English commas.`,
   },
 };
