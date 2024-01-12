@@ -396,10 +396,15 @@ export class Translator {
 
     const keepSelector = this._rule.keepSelector || "";
     const keeps = [];
-    if (keepSelector.trim()) {
+    const [matchSelector, subSelector] = keepSelector.split(SHADOW_KEY);
+    if (matchSelector.trim() || subSelector?.trim()) {
       let text = "";
       el.childNodes.forEach((child) => {
-        if (child.nodeType === 1 && child.matches(keepSelector)) {
+        if (
+          child.nodeType === 1 &&
+          ((matchSelector.trim() && child.matches(matchSelector)) ||
+            (subSelector?.trim() && child.querySelector(subSelector)))
+        ) {
           if (child.nodeName === "IMG") {
             child.style.cssText += `width: ${child.width}px;`;
             child.style.cssText += `height: ${child.height}px;`;

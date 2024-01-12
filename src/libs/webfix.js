@@ -99,8 +99,8 @@ function brFixer(node, tag = "p") {
       html += `</${tag}>${child.outerHTML}<${tag} class="kiss-p">`;
     } else if (child.outerHTML) {
       html += child.outerHTML;
-    } else if (child.nodeValue) {
-      html += child.nodeValue;
+    } else if (child.textContent) {
+      html += child.textContent;
     }
 
     if (index === node.childNodes.length - 1) {

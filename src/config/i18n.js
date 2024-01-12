@@ -392,8 +392,8 @@ export const I18N = {
     en: `Keep unchanged selector`,
   },
   keep_selector_helper: {
-    zh: `1、遵循CSS选择器语法。2、留空表示采用全局设置。`,
-    en: `1. Follow CSS selector syntax. 2. Leave blank to adopt the global setting.`,
+    zh: `1、遵循CSS选择器语法。2、留空表示采用全局设置。3、子元素选择器用“>>>”隔开。`,
+    en: `1. Follow CSS selector syntax. 2. Leave blank to adopt the global setting. 3.Sub-element selectors are separated by ">>>".`,
   },
   root_selector: {
     zh: `根选择器`,
