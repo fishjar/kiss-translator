@@ -125,11 +125,14 @@ export const apiTranslate = async ({
     return [trText, isSame];
   }
 
+  // 版本号一/二位升级，旧缓存失效
+  const [v1, v2] = process.env.REACT_APP_VERSION.split(".");
   const cacheOpts = {
     translator,
     text,
     fromLang,
     toLang,
+    version: [v1, v2].join("."),
   };
 
   const transOpts = {
@@ -171,8 +174,15 @@ export const apiTranslate = async ({
       isSame = to === res.source_lang;
       break;
     case OPT_TRANS_BAIDU:
-      trText = res.trans_result?.data.map((item) => item.dst).join(" ");
-      isSame = res.trans_result?.to === res.trans_result?.from;
+      // trText = res.trans_result?.data.map((item) => item.dst).join(" ");
+      // isSame = res.trans_result?.to === res.trans_result?.from;
+      if (res.type === 1) {
+        trText = Object.keys(JSON.parse(res.result).content[0].mean[0].cont)[0];
+        isSame = to === res.from;
+      } else if (res.type === 2) {
+        trText = res.data[0].dst;
+        isSame = to === res.from;
+      }
       break;
     case OPT_TRANS_TENCENT:
       trText = res.auto_translation;

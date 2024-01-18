@@ -1,6 +1,10 @@
 import queryString from "query-string";
 import { getBdauth, setBdauth } from "../libs/storage";
-import { URL_BAIDU_WEB, URL_BAIDU_TRAN } from "../config";
+import {
+  URL_BAIDU_WEB,
+  URL_BAIDU_TRANSAPI_V2,
+  URL_BAIDU_TRANSAPI,
+} from "../config";
 import { fetchApi } from "../libs/fetch";
 
 /* eslint-disable */
@@ -203,7 +207,12 @@ const _bdAuth = () => {
 
 const bdAuth = _bdAuth();
 
-export const genBaidu = async ({ text, from, to }) => {
+/**
+ * 失效作废
+ * @param {*} param0
+ * @returns
+ */
+export const genBaiduV2 = async ({ text, from, to }) => {
   const { token, gtk } = await bdAuth();
   const sign = getSign(text, gtk);
   const data = {
@@ -217,7 +226,7 @@ export const genBaidu = async ({ text, from, to }) => {
     ts: Date.now(),
   };
 
-  const input = `${URL_BAIDU_TRAN}?from=${from}&to=${to}`;
+  const input = `${URL_BAIDU_TRANSAPI_V2}?from=${from}&to=${to}`;
   const init = {
     headers: {
       "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -227,4 +236,23 @@ export const genBaidu = async ({ text, from, to }) => {
   };
 
   return [input, init];
+};
+
+export const genBaidu = async ({ text, from, to }) => {
+  const data = {
+    from,
+    to,
+    query: text,
+    source: "txt",
+  };
+
+  const init = {
+    headers: {
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+    },
+    method: "POST",
+    body: queryString.stringify(data),
+  };
+
+  return [URL_BAIDU_TRANSAPI, init];
 };

@@ -35,7 +35,7 @@ function DictField({ word }) {
           fromLang: "en",
           toLang: "zh-CN",
         });
-        setDictResult(dictRes[2].dict_result);
+        dictRes[2].type === 1 && setDictResult(JSON.parse(dictRes[2].result));
       } catch (err) {
         setError(err.message);
       } finally {

@@ -59,7 +59,8 @@ export default function TranCont({
         // 词典
         if (isValidWord(text) && toLang.startsWith("zh")) {
           if (fromLang === "en" && translator === OPT_TRANS_BAIDU) {
-            setDictResult(tranRes[2].dict_result);
+            tranRes[2].type === 1 &&
+              setDictResult(JSON.parse(tranRes[2].result));
           } else {
             const dictRes = await apiTranslate({
               text,
@@ -67,7 +68,8 @@ export default function TranCont({
               fromLang: "en",
               toLang: "zh-CN",
             });
-            setDictResult(dictRes[2].dict_result);
+            dictRes[2].type === 1 &&
+              setDictResult(JSON.parse(dictRes[2].result));
           }
         }
       } catch (err) {

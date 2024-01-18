@@ -83,7 +83,8 @@ export const URL_MICROSOFT_TRAN =
 export const URL_MICROSOFT_AUTH = "https://edge.microsoft.com/translate/auth";
 export const URL_BAIDU_LANGDETECT = "https://fanyi.baidu.com/langdetect";
 export const URL_BAIDU_WEB = "https://fanyi.baidu.com/";
-export const URL_BAIDU_TRAN = "https://fanyi.baidu.com/v2transapi";
+export const URL_BAIDU_TRANSAPI = "https://fanyi.baidu.com/transapi";
+export const URL_BAIDU_TRANSAPI_V2 = "https://fanyi.baidu.com/v2transapi";
 export const URL_DEEPLFREE_TRAN = "https://www2.deepl.com/jsonrpc";
 export const URL_TENCENT_TRANSMART = "https://transmart.qq.com/api/imt";
 
@@ -101,11 +102,11 @@ export const OPT_TRANS_CUSTOMIZE = "Custom";
 export const OPT_TRANS_ALL = [
   OPT_TRANS_GOOGLE,
   OPT_TRANS_MICROSOFT,
+  OPT_TRANS_BAIDU,
+  OPT_TRANS_TENCENT,
   OPT_TRANS_DEEPL,
   OPT_TRANS_DEEPLFREE,
   OPT_TRANS_DEEPLX,
-  OPT_TRANS_BAIDU,
-  OPT_TRANS_TENCENT,
   OPT_TRANS_OPENAI,
   OPT_TRANS_GEMINI,
   OPT_TRANS_CLOUDFLAREAI,
