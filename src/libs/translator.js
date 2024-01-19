@@ -42,6 +42,8 @@ export class Translator {
   ];
   _eventName = genEventName();
   _mouseoverNode = null;
+  _keepSelector = [null, null];
+  _terms = new Map();
 
   // 显示
   _interseObserver = new IntersectionObserver(
@@ -101,6 +103,17 @@ export class Translator {
     this._setting = setting;
     this._rule = rule;
     this._fixerSetting = fixerSetting;
+
+    this._keepSelector = (rule.keepSelector || "")
+      .split(SHADOW_KEY)
+      .map((item) => item.trim());
+    const terms = (rule.terms || "")
+      .split(/\n|;/)
+      .map((item) => item.split(",").map((item) => item.trim()))
+      .filter(([term]) => Boolean(term));
+    if (terms.length > 0) {
+      this._terms = new Map(terms);
+    }
 
     if (rule.transOpen === "true") {
       this._register();
@@ -386,47 +399,48 @@ export class Translator {
 
     let q = el.innerText.trim();
     this._tranNodes.set(el, q);
-
-    // 太长或太短
-    if (this._invalidLength(q)) {
-      return;
-    }
-
-    // console.log("---> ", q);
-
-    const keepSelector = this._rule.keepSelector || "";
     const keeps = [];
-    const [matchSelector, subSelector] = keepSelector.split(SHADOW_KEY);
-    if (matchSelector.trim() || subSelector?.trim()) {
+
+    // 保留元素
+    const [matchSelector, subSelector] = this._keepSelector;
+    if (matchSelector || subSelector) {
       let text = "";
       el.childNodes.forEach((child) => {
         if (
           child.nodeType === 1 &&
-          ((matchSelector.trim() && child.matches(matchSelector)) ||
-            (subSelector?.trim() && child.querySelector(subSelector)))
+          ((matchSelector && child.matches(matchSelector)) ||
+            (subSelector && child.querySelector(subSelector)))
         ) {
           if (child.nodeName === "IMG") {
             child.style.cssText += `width: ${child.width}px;`;
             child.style.cssText += `height: ${child.height}px;`;
           }
-          text += `#${keeps.length}#`;
+          text += `[${keeps.length}]`;
           keeps.push(child.outerHTML);
         } else {
           text += child.textContent;
         }
       });
 
-      // 太长或太短
-      if (this._invalidLength(text.replace(/#(\d+)#/g, "").trim())) {
-        return;
-      }
-
       if (keeps.length > 0) {
         q = text;
       }
     }
 
-    // console.log("---> ", q);
+    // 太长或太短
+    if (this._invalidLength(q.replace(/\[(\d+)\]/g, "").trim())) {
+      return;
+    }
+
+    // 专业术语
+    if (this._terms.size > 0) {
+      const re = new RegExp([...this._terms.keys()].join("|"), "g");
+      q = q.replace(re, (term) => {
+        const text = `[${keeps.length}]`;
+        keeps.push(this._terms.get(term) || term);
+        return text;
+      });
+    }
 
     traEl = document.createElement(APP_LCNAME);
     traEl.style.visibility = "visible";
@@ -437,6 +451,8 @@ export class Translator {
       el.parentElement.style.cssText +=
         "-webkit-line-clamp: unset; max-height: none; height: auto;";
     }
+
+    // console.log({ q, keeps });
 
     const root = createRoot(traEl);
     root.render(<Content q={q} keeps={keeps} translator={this} />);

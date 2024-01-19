@@ -324,6 +324,7 @@ export const GLOBLA_RULE = {
   pattern: "*",
   selector: DEFAULT_SELECTOR,
   keepSelector: DEFAULT_KEEP_SELECTOR,
+  terms: "",
   translator: OPT_TRANS_MICROSOFT,
   fromLang: "auto",
   toLang: "zh-CN",

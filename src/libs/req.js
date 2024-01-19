@@ -26,7 +26,7 @@ const keyMap = new Map();
 // 轮询key
 const keyPick = (translator, key = "") => {
   const keys = key
-    .split(",")
+    .split(/\n|,/)
     .map((item) => item.trim())
     .filter(Boolean);
 

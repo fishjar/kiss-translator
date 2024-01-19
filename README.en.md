@@ -26,6 +26,7 @@ A simple, open source [bilingual translation extension & Greasemonkey script](ht
   - [x] WebDAV
 - [x] Custom translation rules
   - [x] Rule subscription/rule sharing
+  - [x] Customized terminology
 - [x] Custom translation style
 - [x] Custom shortcut keys
   - `Alt+Q` Toggle Translation

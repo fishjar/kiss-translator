@@ -158,7 +158,9 @@ export const apiTranslate = async ({
       isSame = to === res.src;
       break;
     case OPT_TRANS_MICROSOFT:
-      trText = res[0].translations.map((item) => item.text).join(" ");
+      trText = res
+        .map((item) => item.translations.map((item) => item.text).join(" "))
+        .join(" ");
       isSame = text === trText;
       break;
     case OPT_TRANS_DEEPL:
@@ -180,7 +182,7 @@ export const apiTranslate = async ({
         trText = Object.keys(JSON.parse(res.result).content[0].mean[0].cont)[0];
         isSame = to === res.from;
       } else if (res.type === 2) {
-        trText = res.data[0].dst;
+        trText = res.data.map((item) => item.dst).join(" ");
         isSame = to === res.from;
       }
       break;
@@ -189,11 +191,13 @@ export const apiTranslate = async ({
       isSame = text === trText;
       break;
     case OPT_TRANS_OPENAI:
-      trText = res?.choices?.[0].message.content;
+      trText = res?.choices?.map((item) => item.message.content).join(" ");
       isSame = text === trText;
       break;
     case OPT_TRANS_GEMINI:
-      trText = res?.candidates?.[0].content.parts[0].text;
+      trText = res?.candidates
+        ?.map((item) => item.content.parts.map((item) => item.text).join(" "))
+        .join(" ");
       isSame = text === trText;
       break;
     case OPT_TRANS_CLOUDFLAREAI:

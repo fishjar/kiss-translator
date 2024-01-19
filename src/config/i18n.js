@@ -364,8 +364,8 @@ export const I18N = {
     en: `URL pattern`,
   },
   pattern_helper: {
-    zh: `1、支持星号(*)通配符。2、多个URL用英文逗号“,”分隔。`,
-    en: `1. The asterisk (*) wildcard is supported. 2. Multiple URLs separated by English commas ",".`,
+    zh: `1、支持星号(*)通配符。2、多个URL用换行或英文逗号“,”分隔。`,
+    en: `1. Supports the asterisk (*) wildcard character. 2. Separate multiple URLs with newlines or English commas ",".`,
   },
   selector_helper: {
     zh: `1、遵循CSS选择器语法。2、留空表示采用全局设置。3、多个CSS选择器之间用“;”隔开。4、“shadow root”选择器和内部选择器用“>>>”隔开。`,
@@ -394,6 +394,14 @@ export const I18N = {
   keep_selector_helper: {
     zh: `1、遵循CSS选择器语法。2、留空表示采用全局设置。3、子元素选择器用“>>>”隔开。`,
     en: `1. Follow CSS selector syntax. 2. Leave blank to adopt the global setting. 3.Sub-element selectors are separated by ">>>".`,
+  },
+  terms: {
+    zh: `专业术语`,
+    en: `Terms`,
+  },
+  terms_helper: {
+    zh: `1、多条术语用换行或分号“;”隔开。2、术语和译文用英文逗号“,”隔开。3、没有译文视为不翻译术语。4、留空表示采用全局设置。`,
+    en: `1. Separate multiple terms with newlines or semicolons ";". 2. Terms and translations are separated by English commas ",". 3. If there is no translation, the term will be deemed not to be translated. 4. Leave blank to adopt the global setting.`,
   },
   root_selector: {
     zh: `根选择器`,
@@ -716,7 +724,7 @@ export const I18N = {
     en: `Add Context Menus`,
   },
   mulkeys_help: {
-    zh: `支持英文逗号隔开多个KEY轮询调用。`,
-    en: `Supports multiple KEY round calling calls separated by English commas.`,
+    zh: `支持用换行或英文逗号“,”分隔多个KEY轮询调用。`,
+    en: `Supports multiple KEY polling calls separated by newlines or English commas ",".`,
   },
 };

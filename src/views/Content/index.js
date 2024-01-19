@@ -160,7 +160,7 @@ export default function Content({ q, keeps, translator }) {
         {keeps.length > 0 ? (
           <span
             dangerouslySetInnerHTML={{
-              __html: text.replace(/#(\d+)#/g, (_, p) => keeps[parseInt(p)]),
+              __html: text.replace(/\[(\d+)\]/g, (_, p) => keeps[parseInt(p)]),
             }}
           />
         ) : (

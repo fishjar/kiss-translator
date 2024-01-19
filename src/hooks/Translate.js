@@ -23,6 +23,12 @@ export function useTranslate(q, rule, setting) {
       try {
         setLoading(true);
 
+        if (!q.replace(/\[(\d+)\]/g, "").trim()) {
+          setText(q);
+          setSamelang(false);
+          return;
+        }
+
         const deLang = await tryDetectLang(q, setting.detectRemote);
         const disableLangs = setting.disableLangs || [];
         if (

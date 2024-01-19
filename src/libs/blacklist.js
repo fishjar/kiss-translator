@@ -10,4 +10,4 @@ import { DEFAULT_BLACKLIST } from "../config";
 export const isInBlacklist = (
   href,
   { blacklist = DEFAULT_BLACKLIST.join(",\n") }
-) => blacklist.split(",").some((url) => isMatch(href, url.trim()));
+) => blacklist.split(/\n|,/).some((url) => isMatch(href, url.trim()));
