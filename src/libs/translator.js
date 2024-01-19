@@ -9,11 +9,13 @@ import {
   SHADOW_KEY,
   OPT_MOUSEKEY_DISABLE,
   OPT_MOUSEKEY_MOUSEOVER,
+  DEFAULT_TRANS_APIS,
 } from "../config";
 import Content from "../views/Content";
 import { updateFetchPool, clearFetchPool } from "./fetch";
 import { debounce, genEventName } from "./utils";
 import { runFixer } from "./webfix";
+import { apiTranslate } from "../apis";
 
 /**
  * 翻译类
@@ -44,6 +46,7 @@ export class Translator {
   _mouseoverNode = null;
   _keepSelector = [null, null];
   _terms = new Map();
+  _docTitle = "";
 
   // 显示
   _interseObserver = new IntersectionObserver(
@@ -171,6 +174,20 @@ export class Translator {
     this.rule = { ...this.rule, textStyle };
   };
 
+  translateText = async (text) => {
+    const { translator, fromLang, toLang } = this._rule;
+    const apiSetting =
+      this._setting.transApis?.[translator] || DEFAULT_TRANS_APIS[translator];
+    const [trText] = await apiTranslate({
+      text,
+      translator,
+      fromLang,
+      toLang,
+      apiSetting,
+    });
+    return trText;
+  };
+
   _querySelectorAll = (selector, node) => {
     try {
       return Array.from(node.querySelectorAll(selector));
@@ -284,6 +301,15 @@ export class Translator {
         node.addEventListener("mouseleave", this._handleMouseout);
       });
     }
+
+    // 翻译页面标题
+    const title = document.title;
+    if (!title.endsWith("[ByKT]")) {
+      this._docTitle = title;
+      this.translateText(title).then((trText) => {
+        document.title = `${trText} | ${title} [ByKT]`;
+      });
+    }
   };
 
   _handleMouseover = (e) => {
@@ -331,6 +357,9 @@ export class Translator {
   };
 
   _unRegister = () => {
+    // 恢复页面标题
+    document.title = this._docTitle;
+
     // 解除节点变化监听
     this._mutaObserver.disconnect();
 
