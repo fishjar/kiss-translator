@@ -84,7 +84,7 @@ export default function Popup({ setShowPopup, translator: tran }) {
         const tab = await getTabInfo();
         href = tab.url;
       }
-      const newRule = { ...rule, pattern: href };
+      const newRule = { ...rule, pattern: href.split("/")[2] };
       if (isExt && tran) {
         sendBgMsg(MSG_SAVE_RULE, newRule);
       } else {
