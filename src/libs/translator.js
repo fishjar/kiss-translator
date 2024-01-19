@@ -8,6 +8,7 @@ import {
   OPT_STYLE_FUZZY,
   SHADOW_KEY,
   OPT_MOUSEKEY_DISABLE,
+  OPT_MOUSEKEY_PAGEOPEN,
   OPT_MOUSEKEY_MOUSEOVER,
   DEFAULT_TRANS_APIS,
 } from "../config";
@@ -293,6 +294,11 @@ export class Translator {
       this._tranNodes.forEach((_, node) => {
         this._interseObserver.observe(node);
       });
+    } else if (this._setting.mouseKey === OPT_MOUSEKEY_PAGEOPEN) {
+      // 全文直接翻译
+      this._tranNodes.forEach((_, node) => {
+        this._render(node);
+      });
     } else {
       // 监听鼠标悬停
       window.addEventListener("keydown", this._handleKeydown);
@@ -374,6 +380,10 @@ export class Translator {
       this._tranNodes.forEach((_, node) => {
         this._interseObserver.unobserve(node);
         // 移除已插入元素
+        node.querySelector(APP_LCNAME)?.remove();
+      });
+    } else if (this._setting.mouseKey === OPT_MOUSEKEY_PAGEOPEN) {
+      this._tranNodes.forEach((_, node) => {
         node.querySelector(APP_LCNAME)?.remove();
       });
     } else {

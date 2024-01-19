@@ -168,11 +168,11 @@ export default function Settings() {
         />
 
         <FormControl size="small">
-          <InputLabel>{i18n("mouseover_translation")}</InputLabel>
+          <InputLabel>{i18n("translate_timing")}</InputLabel>
           <Select
             name="mouseKey"
             value={mouseKey}
-            label={i18n("mouseover_translation")}
+            label={i18n("translate_timing")}
             onChange={handleChange}
           >
             {OPT_MOUSEKEY_ALL.map((item) => (

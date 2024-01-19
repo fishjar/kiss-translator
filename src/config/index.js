@@ -298,12 +298,14 @@ export const OPT_STYLE_USE_COLOR = [
 ];
 
 export const OPT_MOUSEKEY_DISABLE = "mk_disable";
+export const OPT_MOUSEKEY_PAGEOPEN = "mk_pageopen";
 export const OPT_MOUSEKEY_MOUSEOVER = "mk_mouseover";
 export const OPT_MOUSEKEY_CONTROL = "mk_ctrlKey";
 export const OPT_MOUSEKEY_SHIFT = "mk_shiftKey";
 export const OPT_MOUSEKEY_ALT = "mk_altKey";
 export const OPT_MOUSEKEY_ALL = [
   OPT_MOUSEKEY_DISABLE,
+  OPT_MOUSEKEY_PAGEOPEN,
   OPT_MOUSEKEY_MOUSEOVER,
   OPT_MOUSEKEY_CONTROL,
   OPT_MOUSEKEY_SHIFT,

@@ -183,13 +183,17 @@ export const I18N = {
     zh: `翻译服务`,
     en: `Translate Service`,
   },
-  mouseover_translation: {
-    zh: `鼠标悬停翻译`,
-    en: `Mouseover translation`,
+  translate_timing: {
+    zh: `翻译时机`,
+    en: `Translate Timing`,
   },
   mk_disable: {
-    zh: `禁用`,
-    en: `Disable`,
+    zh: `滚动加载（建议）`,
+    en: `Rolling Loading (Suggested)`,
+  },
+  mk_pageopen: {
+    zh: `页面打开`,
+    en: `Page Open`,
   },
   mk_mouseover: {
     zh: `鼠标悬停`,
