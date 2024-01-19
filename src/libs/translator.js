@@ -310,10 +310,10 @@ export class Translator {
 
     // 翻译页面标题
     const title = document.title;
-    if (!title.endsWith("[ByKT]")) {
+    if (!title.endsWith("| ByKT")) {
       this._docTitle = title;
       this.translateText(title).then((trText) => {
-        document.title = `${trText} | ${title} [ByKT]`;
+        document.title = `${trText} | ${title} | ByKT`;
       });
     }
   };
