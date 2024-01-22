@@ -109,7 +109,7 @@ export default function Slection({ contextMenus, tranboxSetting, transApis }) {
       contextMenus &&
         menuCommandIds.push(
           GM.registerMenuCommand(
-            "Translate Selected Text (Alt+S)",
+            "Translate Selected Text",
             (event) => {
               handleTranbox();
             },

@@ -9,6 +9,7 @@ import {
   MSG_TRANS_TOGGLE_STYLE,
   MSG_OPEN_TRANBOX,
   MSG_CONTEXT_MENUS,
+  MSG_COMMAND_SHORTCUTS,
   CMD_TOGGLE_TRANSLATE,
   CMD_TOGGLE_STYLE,
   CMD_OPEN_OPTIONS,
@@ -137,6 +138,16 @@ browser.runtime.onMessage.addListener(
         } else {
           removeContextMenus();
         }
+        break;
+      case MSG_COMMAND_SHORTCUTS:
+        browser.commands
+          .getAll()
+          .then((commands) => {
+            sendResponse({ data: commands });
+          })
+          .catch((error) => {
+            sendResponse({ error: error.message });
+          });
         break;
       default:
         sendResponse({ error: `message action is unavailable: ${action}` });

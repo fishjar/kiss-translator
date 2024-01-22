@@ -6,15 +6,15 @@
     "message": "A simple bilingual translation extension & Greasemonkey script"
   },
   "toggle_translate": {
-    "message": "Toggle Translate (Alt+Q)"
+    "message": "Toggle Translate"
   },
   "toggle_style": {
-    "message": "Toggle Style (Alt+C)"
+    "message": "Toggle Style"
   },
   "open_options": {
-    "message": "Open Options (Alt+O)"
+    "message": "Open Options"
   },
   "open_tranbox": {
-    "message": "Translate Popup/Selected (Alt+S)"
+    "message": "Translate Popup/Selected"
   }
 }

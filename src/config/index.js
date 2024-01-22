@@ -65,6 +65,7 @@ export const MSG_TRANS_GETRULE = "trans_getrule";
 export const MSG_TRANS_PUTRULE = "trans_putrule";
 export const MSG_TRANS_CURRULE = "trans_currule";
 export const MSG_CONTEXT_MENUS = "context_menus";
+export const MSG_COMMAND_SHORTCUTS = "command_shortcuts";
 
 export const THEME_LIGHT = "light";
 export const THEME_DARK = "dark";

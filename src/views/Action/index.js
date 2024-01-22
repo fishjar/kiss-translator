@@ -99,7 +99,7 @@ export default function Action({ translator, fab }) {
       contextMenus &&
         menuCommandIds.push(
           GM.registerMenuCommand(
-            "Toggle Translate (Alt+Q)",
+            "Toggle Translate",
             (event) => {
               translator.toggle();
               sendIframeMsg(MSG_TRANS_TOGGLE);
@@ -108,7 +108,7 @@ export default function Action({ translator, fab }) {
             "Q"
           ),
           GM.registerMenuCommand(
-            "Toggle Style (Alt+C)",
+            "Toggle Style",
             (event) => {
               translator.toggleStyle();
               sendIframeMsg(MSG_TRANS_TOGGLE_STYLE);
@@ -117,7 +117,7 @@ export default function Action({ translator, fab }) {
             "C"
           ),
           GM.registerMenuCommand(
-            "Open Menu (Alt+K)",
+            "Open Menu",
             (event) => {
               setShowPopup((pre) => !pre);
             },

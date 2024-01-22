@@ -18,6 +18,7 @@ import {
   MSG_TRANS_PUTRULE,
   MSG_OPEN_OPTIONS,
   MSG_SAVE_RULE,
+  MSG_COMMAND_SHORTCUTS,
   OPT_TRANS_ALL,
   OPT_LANGS_FROM,
   OPT_LANGS_TO,
@@ -30,6 +31,7 @@ import { tryClearCaches } from "../../libs";
 export default function Popup({ setShowPopup, translator: tran }) {
   const i18n = useI18n();
   const [rule, setRule] = useState(tran?.rule);
+  const [commands, setCommands] = useState({});
 
   const handleOpenSetting = () => {
     if (!tran) {
@@ -111,6 +113,32 @@ export default function Popup({ setShowPopup, translator: tran }) {
     })();
   }, [tran]);
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const commands = {};
+        if (isExt) {
+          const res = await sendBgMsg(MSG_COMMAND_SHORTCUTS);
+          if (!res.error) {
+            res.data.forEach(({ name, shortcut }) => {
+              commands[name] = shortcut;
+            });
+          }
+        } else {
+          const shortcuts = tran.setting.shortcuts;
+          if (shortcuts) {
+            Object.entries(shortcuts).forEach(([key, val]) => {
+              commands[key] = val.join("+");
+            });
+          }
+        }
+        setCommands(commands);
+      } catch (err) {
+        console.log("[query cmds]", err);
+      }
+    })();
+  }, [tran]);
+
   if (!rule) {
     return (
       <Box minWidth={300}>
@@ -153,7 +181,11 @@ export default function Popup({ setShowPopup, translator: tran }) {
                 onChange={handleTransToggle}
               />
             }
-            label={i18n("translate_alt")}
+            label={
+              commands["toggleTranslate"]
+                ? `${i18n("translate_alt")}(${commands["toggleTranslate"]})`
+                : i18n("translate_alt")
+            }
           />
         </Stack>
 
@@ -211,7 +243,11 @@ export default function Popup({ setShowPopup, translator: tran }) {
           size="small"
           value={textStyle}
           name="textStyle"
-          label={i18n("text_style_alt")}
+          label={
+            commands["toggleStyle"]
+              ? `${i18n("text_style_alt")}(${commands["toggleStyle"]})`
+              : i18n("text_style_alt")
+          }
           onChange={handleChange}
         >
           {OPT_STYLE_ALL.map((item) => (

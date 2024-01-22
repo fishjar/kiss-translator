@@ -112,8 +112,8 @@ export const I18N = {
     en: customApiHelpEN,
   },
   translate_alt: {
-    zh: `翻译 (Alt+Q)`,
-    en: `Translate (Alt+Q)`,
+    zh: `翻译`,
+    en: `Translate`,
   },
   basic_setting: {
     zh: `基本设置`,
@@ -232,8 +232,8 @@ export const I18N = {
     en: `Text Style`,
   },
   text_style_alt: {
-    zh: `文字样式 (Alt+C)`,
-    en: `Text Style (Alt+C)`,
+    zh: `文字样式`,
+    en: `Text Style`,
   },
   bg_color: {
     zh: `样式颜色`,
