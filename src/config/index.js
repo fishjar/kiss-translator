@@ -298,8 +298,8 @@ export const OPT_STYLE_USE_COLOR = [
   OPT_STYLE_BLOCKQUOTE,
 ];
 
-export const OPT_MOUSEKEY_DISABLE = "mk_disable";
-export const OPT_MOUSEKEY_PAGEOPEN = "mk_pageopen";
+export const OPT_MOUSEKEY_DISABLE = "mk_disable"; // 滚动加载翻译
+export const OPT_MOUSEKEY_PAGEOPEN = "mk_pageopen"; // 直接翻译到底
 export const OPT_MOUSEKEY_MOUSEOVER = "mk_mouseover";
 export const OPT_MOUSEKEY_CONTROL = "mk_ctrlKey";
 export const OPT_MOUSEKEY_SHIFT = "mk_shiftKey";
@@ -453,10 +453,11 @@ export const DEFAULT_SETTING = {
   injectWebfix: true, // 是否注入修复补丁
   detectRemote: false, // 是否使用远程语言检测
   contextMenus: true, // 是否添加右键菜单
+  transTitle: false, // 是否同时翻译页面标题
   subrulesList: DEFAULT_SUBRULES_LIST, // 订阅列表
   owSubrule: DEFAULT_OW_RULE, // 覆写订阅规则
   transApis: DEFAULT_TRANS_APIS, // 翻译接口
-  mouseKey: OPT_MOUSEKEY_DISABLE, // 鼠标悬停翻译
+  mouseKey: OPT_MOUSEKEY_DISABLE, // 翻译时机/鼠标悬停翻译
   shortcuts: DEFAULT_SHORTCUTS, // 快捷键
   inputRule: DEFAULT_INPUT_RULE, // 输入框设置
   tranboxSetting: DEFAULT_TRANBOX_SETTING, // 划词翻译设置

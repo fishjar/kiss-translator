@@ -731,4 +731,8 @@ export const I18N = {
     zh: `支持用换行或英文逗号“,”分隔多个KEY轮询调用。`,
     en: `Supports multiple KEY polling calls separated by newlines or English commas ",".`,
   },
+  translate_page_title: {
+    zh: `是否同时翻译页面标题`,
+    en: `Translate Page Title`,
+  },
 };

@@ -97,6 +97,7 @@ export default function Settings() {
     mouseKey = OPT_MOUSEKEY_DISABLE,
     detectRemote = false,
     contextMenus = true,
+    transTitle = false,
     touchTranslate = 2,
     blacklist = DEFAULT_BLACKLIST.join(",\n"),
     disableLangs = [],
@@ -180,6 +181,19 @@ export default function Settings() {
                 {i18n(item)}
               </MenuItem>
             ))}
+          </Select>
+        </FormControl>
+
+        <FormControl size="small">
+          <InputLabel>{i18n("translate_page_title")}</InputLabel>
+          <Select
+            name="transTitle"
+            value={transTitle}
+            label={i18n("translate_page_title")}
+            onChange={handleChange}
+          >
+            <MenuItem value={false}>{i18n("disable")}</MenuItem>
+            <MenuItem value={true}>{i18n("enable")}</MenuItem>
           </Select>
         </FormControl>
 
