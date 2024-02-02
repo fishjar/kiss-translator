@@ -69,8 +69,8 @@ function brFixer(node, tag = "p") {
   }
   node.setAttribute(fixedSign, "true");
 
-  var gapTags = ["BR", "WBR"];
-  var newlineTags = [
+  const gapTags = ["BR", "WBR"];
+  const newlineTags = [
     "DIV",
     "UL",
     "OL",
@@ -87,7 +87,7 @@ function brFixer(node, tag = "p") {
     "TABLE",
   ];
 
-  var html = "";
+  let html = "";
   node.childNodes.forEach(function (child, index) {
     if (index === 0) {
       html += `<${tag} class="kiss-p">`;
@@ -160,7 +160,7 @@ const fixerMap = {
  * @param {*} rootSelector
  */
 function run(selector, fixer, rootSelector) {
-  var mutaObserver = new MutationObserver(function (mutations) {
+  const mutaObserver = new MutationObserver(function (mutations) {
     mutations.forEach(function (mutation) {
       mutation.addedNodes.forEach(function (addNode) {
         if (addNode && addNode.querySelectorAll) {
@@ -172,7 +172,7 @@ function run(selector, fixer, rootSelector) {
     });
   });
 
-  var rootNodes = [document];
+  let rootNodes = [document];
   if (rootSelector) {
     rootNodes = document.querySelectorAll(rootSelector);
   }
@@ -241,8 +241,8 @@ export async function matchFixer(href, { injectWebfix }) {
     const userSites = await getWebfixRulesWithDefault();
     const subSites = await loadOrFetchWebfix(process.env.REACT_APP_WEBFIXURL);
     const sites = [...userSites, ...subSites];
-    for (var i = 0; i < sites.length; i++) {
-      var site = sites[i];
+    for (let i = 0; i < sites.length; i++) {
+      const site = sites[i];
       if (isMatch(href, site.pattern) && fixerMap[site.fixer]) {
         return site;
       }

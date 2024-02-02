@@ -42,7 +42,7 @@ export const syncSubRules = async (url) => {
  * @returns
  */
 export const syncAllSubRules = async (subrulesList) => {
-  for (let subrules of subrulesList) {
+  for (const subrules of subrulesList) {
     try {
       await syncSubRules(subrules.url);
       await updateSyncDataCache(subrules.url);

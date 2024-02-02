@@ -473,7 +473,7 @@ export class Translator {
 
     // 专业术语
     if (this._terms.length > 0) {
-      for (let term of this._terms) {
+      for (const term of this._terms) {
         const re = new RegExp(term[0], "g");
         q = q.replace(re, (t) => {
           const text = `[${keeps.length}]`;
