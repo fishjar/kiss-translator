@@ -46,7 +46,7 @@ export class Translator {
   _eventName = genEventName();
   _mouseoverNode = null;
   _keepSelector = [null, null];
-  _terms = new Map();
+  _terms = [];
   _docTitle = "";
 
   // 显示
@@ -111,13 +111,10 @@ export class Translator {
     this._keepSelector = (rule.keepSelector || "")
       .split(SHADOW_KEY)
       .map((item) => item.trim());
-    const terms = (rule.terms || "")
+    this._terms = (rule.terms || "")
       .split(/\n|;/)
       .map((item) => item.split(",").map((item) => item.trim()))
       .filter(([term]) => Boolean(term));
-    if (terms.length > 0) {
-      this._terms = new Map(terms);
-    }
 
     if (rule.transOpen === "true") {
       this._register();
@@ -475,13 +472,15 @@ export class Translator {
     }
 
     // 专业术语
-    if (this._terms.size > 0) {
-      const re = new RegExp([...this._terms.keys()].join("|"), "g");
-      q = q.replace(re, (term) => {
-        const text = `[${keeps.length}]`;
-        keeps.push(this._terms.get(term) || term);
-        return text;
-      });
+    if (this._terms.length > 0) {
+      for (let term of this._terms) {
+        const re = new RegExp(term[0], "g");
+        q = q.replace(re, (t) => {
+          const text = `[${keeps.length}]`;
+          keeps.push(term[1] || t);
+          return text;
+        });
+      }
     }
 
     traEl = document.createElement(APP_LCNAME);
