@@ -309,14 +309,12 @@ export class Translator {
     }
 
     // 翻译页面标题
-    if (this._setting.transTitle) {
+    if (this._setting.transTitle && !this._docTitle) {
       const title = document.title;
-      if (!title.endsWith("| ByKT")) {
-        this._docTitle = title;
-        this.translateText(title).then((trText) => {
-          document.title = `${trText} | ${title} | ByKT`;
-        });
-      }
+      this._docTitle = title;
+      this.translateText(title).then((trText) => {
+        document.title = `${trText} | ${title}`;
+      });
     }
   };
 
@@ -366,8 +364,9 @@ export class Translator {
 
   _unRegister = () => {
     // 恢复页面标题
-    if (this._setting.transTitle) {
+    if (this._docTitle) {
       document.title = this._docTitle;
+      this._docTitle = "";
     }
 
     // 解除节点变化监听
