@@ -92,7 +92,9 @@ browser.runtime.onStartup.addListener(async () => {
   }
 
   // 右键菜单
-  if (!contextMenus) {
+  if (contextMenus) {
+    addContextMenus();
+  } else {
     removeContextMenus();
   }
 
