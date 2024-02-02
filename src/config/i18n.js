@@ -404,8 +404,8 @@ export const I18N = {
     en: `Terms`,
   },
   terms_helper: {
-    zh: `1、多条术语用换行或分号“;”隔开。2、术语和译文用英文逗号“,”隔开。3、没有译文视为不翻译术语。4、留空表示采用全局设置。`,
-    en: `1. Separate multiple terms with newlines or semicolons ";". 2. Terms and translations are separated by English commas ",". 3. If there is no translation, the term will be deemed not to be translated. 4. Leave blank to adopt the global setting.`,
+    zh: `0、支持正则表达式匹配。1、多条术语用换行或分号“;”隔开。2、术语和译文用英文逗号“,”隔开。3、没有译文视为不翻译术语。4、留空表示采用全局设置。`,
+    en: `0. Supports regular expression matching. 1. Separate multiple terms with newlines or semicolons ";". 2. Terms and translations are separated by English commas ",". 3. If there is no translation, the term will be deemed not to be translated. 4. Leave blank to adopt the global setting.`,
   },
   root_selector: {
     zh: `根选择器`,
