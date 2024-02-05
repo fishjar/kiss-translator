@@ -28,7 +28,14 @@ globalThis.ContextType = "BACKGROUND";
 /**
  * 添加右键菜单
  */
-function addContextMenus() {
+async function addContextMenus() {
+  // 添加前先删除,避免重复ID的错误
+  try {
+    await browser.contextMenus.removeAll();
+  } catch (err) {
+    //
+  }
+
   browser.contextMenus.create({
     id: CMD_TOGGLE_TRANSLATE,
     title: browser.i18n.getMessage("toggle_translate"),
@@ -93,6 +100,7 @@ browser.runtime.onStartup.addListener(async () => {
 
   // 右键菜单
   if (contextMenus) {
+    // firefox重启后菜单会消失,故重复添加
     addContextMenus();
   } else {
     removeContextMenus();
