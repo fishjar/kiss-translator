@@ -452,7 +452,8 @@ export const DEFAULT_SETTING = {
   injectRules: true, // 是否注入订阅规则
   injectWebfix: true, // 是否注入修复补丁
   detectRemote: false, // 是否使用远程语言检测
-  contextMenus: true, // 是否添加右键菜单
+  contextMenus: true, // 是否添加右键菜单(作废)
+  contextMenuType: 1, // 右键菜单类型(0不显示，1简单菜单，2多级菜单)
   transTitle: false, // 是否同时翻译页面标题
   subrulesList: DEFAULT_SUBRULES_LIST, // 订阅列表
   owSubrule: DEFAULT_OW_RULE, // 覆写订阅规则

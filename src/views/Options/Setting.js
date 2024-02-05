@@ -67,8 +67,8 @@ export default function Settings() {
       case "touchTranslate":
         value = limitNumber(value, 0, 4);
         break;
-      case "contextMenus":
-        isExt && sendBgMsg(MSG_CONTEXT_MENUS, { contextMenus: value });
+      case "contextMenuType":
+        isExt && sendBgMsg(MSG_CONTEXT_MENUS, { contextMenuType: value });
         break;
       default:
     }
@@ -96,7 +96,7 @@ export default function Settings() {
     newlineLength = TRANS_NEWLINE_LENGTH,
     mouseKey = OPT_MOUSEKEY_DISABLE,
     detectRemote = false,
-    contextMenus = true,
+    contextMenuType = 1,
     transTitle = false,
     touchTranslate = 2,
     blacklist = DEFAULT_BLACKLIST.join(",\n"),
@@ -229,15 +229,16 @@ export default function Settings() {
         </FormControl>
 
         <FormControl size="small">
-          <InputLabel>{i18n("add_context_menus")}</InputLabel>
+          <InputLabel>{i18n("context_menus")}</InputLabel>
           <Select
-            name="contextMenus"
-            value={contextMenus}
-            label={i18n("add_context_menus")}
+            name="contextMenuType"
+            value={contextMenuType}
+            label={i18n("context_menus")}
             onChange={handleChange}
           >
-            <MenuItem value={false}>{i18n("disable")}</MenuItem>
-            <MenuItem value={true}>{i18n("enable")}</MenuItem>
+            <MenuItem value={0}>{i18n("hide_context_menus")}</MenuItem>
+            <MenuItem value={1}>{i18n("simple_context_menus")}</MenuItem>
+            <MenuItem value={2}>{i18n("secondary_context_menus")}</MenuItem>
           </Select>
         </FormControl>
 

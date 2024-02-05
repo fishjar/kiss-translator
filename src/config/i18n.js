@@ -723,9 +723,21 @@ export const I18N = {
     zh: `此功能依赖准确的语言检测，建议启用远程语言检测。`,
     en: `This feature relies on accurate language detection. It is recommended to enable remote language detection.`,
   },
-  add_context_menus: {
-    zh: `添加右键菜单`,
-    en: `Add Context Menus`,
+  context_menus: {
+    zh: `右键菜单`,
+    en: `Context Menus`,
+  },
+  hide_context_menus: {
+    zh: `隐藏右键菜单`,
+    en: `Hide Context Menus`,
+  },
+  simple_context_menus: {
+    zh: `简单右键菜单`,
+    en: `Simple_context_menus Context Menus`,
+  },
+  secondary_context_menus: {
+    zh: `二级右键菜单`,
+    en: `Secondary Context Menus`,
   },
   mulkeys_help: {
     zh: `支持用换行或英文逗号“,”分隔多个KEY轮询调用。`,

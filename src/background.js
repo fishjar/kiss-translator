@@ -28,7 +28,7 @@ globalThis.ContextType = "BACKGROUND";
 /**
  * 添加右键菜单
  */
-async function addContextMenus() {
+async function addContextMenus(contextMenuType = 1) {
   // 添加前先删除,避免重复ID的错误
   try {
     await browser.contextMenus.removeAll();
@@ -36,38 +36,43 @@ async function addContextMenus() {
     //
   }
 
-  browser.contextMenus.create({
-    id: CMD_TOGGLE_TRANSLATE,
-    title: browser.i18n.getMessage("toggle_translate"),
-    contexts: ["page", "selection"],
-  });
-  browser.contextMenus.create({
-    id: CMD_TOGGLE_STYLE,
-    title: browser.i18n.getMessage("toggle_style"),
-    contexts: ["page", "selection"],
-  });
-  browser.contextMenus.create({
-    id: CMD_OPEN_TRANBOX,
-    title: browser.i18n.getMessage("open_tranbox"),
-    contexts: ["page", "selection"],
-  });
-  browser.contextMenus.create({
-    id: "options_separator",
-    type: "separator",
-    contexts: ["page", "selection"],
-  });
-  browser.contextMenus.create({
-    id: CMD_OPEN_OPTIONS,
-    title: browser.i18n.getMessage("open_options"),
-    contexts: ["page", "selection"],
-  });
-}
-
-/**
- * 清除右键菜单
- */
-function removeContextMenus() {
-  browser.contextMenus.removeAll();
+  switch (contextMenuType) {
+    case 1:
+      browser.contextMenus.create({
+        id: CMD_TOGGLE_TRANSLATE,
+        title: browser.i18n.getMessage("toggle_translate"),
+        contexts: ["page", "selection"],
+      });
+      break;
+    case 2:
+      browser.contextMenus.create({
+        id: CMD_TOGGLE_TRANSLATE,
+        title: browser.i18n.getMessage("toggle_translate"),
+        contexts: ["page", "selection"],
+      });
+      browser.contextMenus.create({
+        id: CMD_TOGGLE_STYLE,
+        title: browser.i18n.getMessage("toggle_style"),
+        contexts: ["page", "selection"],
+      });
+      browser.contextMenus.create({
+        id: CMD_OPEN_TRANBOX,
+        title: browser.i18n.getMessage("open_tranbox"),
+        contexts: ["page", "selection"],
+      });
+      browser.contextMenus.create({
+        id: "options_separator",
+        type: "separator",
+        contexts: ["page", "selection"],
+      });
+      browser.contextMenus.create({
+        id: CMD_OPEN_OPTIONS,
+        title: browser.i18n.getMessage("open_options"),
+        contexts: ["page", "selection"],
+      });
+      break;
+    default:
+  }
 }
 
 /**
@@ -87,11 +92,8 @@ browser.runtime.onStartup.addListener(async () => {
   // 同步数据
   await trySyncSettingAndRules();
 
-  const {
-    clearCache,
-    contextMenus = true,
-    subrulesList,
-  } = await getSettingWithDefault();
+  const { clearCache, contextMenuType, subrulesList } =
+    await getSettingWithDefault();
 
   // 清除缓存
   if (clearCache) {
@@ -99,12 +101,8 @@ browser.runtime.onStartup.addListener(async () => {
   }
 
   // 右键菜单
-  if (contextMenus) {
-    // firefox重启后菜单会消失,故重复添加
-    addContextMenus();
-  } else {
-    removeContextMenus();
-  }
+  // firefox重启后菜单会消失,故重复添加
+  addContextMenus(contextMenuType);
 
   // 同步订阅规则
   trySyncAllSubRules({ subrulesList });
@@ -142,12 +140,8 @@ browser.runtime.onMessage.addListener(
         saveRule(args);
         break;
       case MSG_CONTEXT_MENUS:
-        const { contextMenus } = args;
-        if (contextMenus) {
-          addContextMenus();
-        } else {
-          removeContextMenus();
-        }
+        const { contextMenuType } = args;
+        addContextMenus(contextMenuType);
         break;
       case MSG_COMMAND_SHORTCUTS:
         browser.commands

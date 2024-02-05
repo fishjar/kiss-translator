@@ -95,8 +95,8 @@ export default function Action({ translator, fab }) {
     // 注册菜单
     try {
       const menuCommandIds = [];
-      const { contextMenus = true } = translator.setting;
-      contextMenus &&
+      const { contextMenuType } = translator.setting;
+      contextMenuType !== 0 &&
         menuCommandIds.push(
           GM.registerMenuCommand(
             "Toggle Translate",

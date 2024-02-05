@@ -140,7 +140,7 @@ async function showFab(translator) {
  * @returns
  */
 function showTransbox({
-  contextMenus = true,
+  contextMenuType,
   tranboxSetting = DEFAULT_TRANBOX_SETTING,
   transApis,
 }) {
@@ -165,7 +165,7 @@ function showTransbox({
     <React.StrictMode>
       <CacheProvider value={cache}>
         <Slection
-          contextMenus={contextMenus}
+          contextMenuType={contextMenuType}
           tranboxSetting={tranboxSetting}
           transApis={transApis}
         />

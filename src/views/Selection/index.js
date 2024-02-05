@@ -7,7 +7,11 @@ import { isGm, isExt } from "../../libs/client";
 import { MSG_OPEN_TRANBOX, DEFAULT_TRANBOX_SHORTCUT } from "../../config";
 import { isMobile } from "../../libs/mobile";
 
-export default function Slection({ contextMenus, tranboxSetting, transApis }) {
+export default function Slection({
+  contextMenuType,
+  tranboxSetting,
+  transApis,
+}) {
   const boxWidth = limitNumber(window.innerWidth, 300, 600);
   const boxHeight = limitNumber(window.innerHeight, 200, 400);
 
@@ -106,7 +110,7 @@ export default function Slection({ contextMenus, tranboxSetting, transApis }) {
     // 注册菜单
     try {
       const menuCommandIds = [];
-      contextMenus &&
+      contextMenuType !== 0 &&
         menuCommandIds.push(
           GM.registerMenuCommand(
             "Translate Selected Text",
@@ -125,7 +129,7 @@ export default function Slection({ contextMenus, tranboxSetting, transApis }) {
     } catch (err) {
       console.log("[registerMenuCommand]", err);
     }
-  }, [handleTranbox, contextMenus]);
+  }, [handleTranbox, contextMenuType]);
 
   return (
     <>
