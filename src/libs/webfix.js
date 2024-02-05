@@ -85,6 +85,7 @@ function brFixer(node, tag = "p") {
     "HR",
     "PRE",
     "TABLE",
+    "BLOCKQUOTE",
   ];
 
   let html = "";
