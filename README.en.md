@@ -44,7 +44,7 @@ A simple, open source [bilingual translation extension & Greasemonkey script](ht
 > - Grease Monkey script will encounter more usage problems (cross domain issues, script conflicts, etc.)
 
 - [x] Browser extension
-  - [x] Chrome [Installation address](https://chrome.google.com/webstore/detail/kiss-translator/bdiifdefkgmcblbcghdlonllpjhhjgof?hl=zh-CN)
+  - [x] Chrome/Kiwi [Installation address](https://chrome.google.com/webstore/detail/kiss-translator/bdiifdefkgmcblbcghdlonllpjhhjgof?hl=zh-CN)
   - [x] Edge [Installation address](https://microsoftedge.microsoft.com/addons/detail/%E7%AE%80%E7%BA%A6%E7%BF%BB%E8%AF%91/jemckldkclkinpjighnoilpbldbdmmlh?hl=zh-CN)
   - [x] Firefox [Installation address](https://addons.mozilla.org/zh-CN/firefox/addon/kiss-translator/)
   - [ ] Safari
