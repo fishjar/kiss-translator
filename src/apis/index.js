@@ -196,7 +196,7 @@ export const apiTranslate = async ({
       break;
     case OPT_TRANS_GEMINI:
       trText = res?.candidates
-        ?.map((item) => item.content.parts.map((item) => item.text).join(" "))
+        ?.map((item) => item.content?.parts.map((item) => item.text).join(" "))
         .join(" ");
       isSame = text === trText;
       break;
