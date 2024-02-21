@@ -40,7 +40,7 @@ async function addContextMenus(contextMenuType = 1) {
     case 1:
       browser.contextMenus.create({
         id: CMD_TOGGLE_TRANSLATE,
-        title: browser.i18n.getMessage("toggle_translate"),
+        title: browser.i18n.getMessage("app_name"),
         contexts: ["page", "selection"],
       });
       break;
