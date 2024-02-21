@@ -29,7 +29,7 @@ export default function DictCont({ dictResult }) {
       <Typography component="div">
         <Typography>
           {dictResult.voice
-            .map(Object.entries)
+            ?.map(Object.entries)
             .map((item) => item[0])
             .map(([key, val]) => `${phonicMap[key] || key} ${val}`)
             .join(" ")}
