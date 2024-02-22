@@ -437,8 +437,7 @@ export const DEFAULT_BLACKLIST = [
   "https://translate.google.com",
   "https://www.deepl.com/translator",
   "oapi.dingtalk.com",
-  "login.dingtalk.com",
-  "https://notebooks.githubusercontent.com/view/ipynb"
+  "login.dingtalk.com"
 ]; // 禁用翻译名单
 
 export const DEFAULT_SETTING = {
