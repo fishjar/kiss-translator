@@ -14,7 +14,7 @@ import {
 } from "./config";
 import { getFabWithDefault, getSettingWithDefault } from "./libs/storage";
 import { Translator } from "./libs/translator";
-import { isIframe, sendIframeMsg, sendParentMsg } from "./libs/iframe";
+import { isIframe, sendIframeMsg } from "./libs/iframe";
 import Slection from "./views/Selection";
 import { touchTapListener } from "./libs/touch";
 import { debounce, genEventName } from "./libs/utils";
@@ -79,10 +79,9 @@ function runtimeListener(translator) {
 
 /**
  * iframe 页面执行
- * @param {*} setting
+ * @param {*} translator
  */
-function runIframe(setting) {
-  let translator;
+function runIframe(translator) {
   window.addEventListener("message", (e) => {
     const { action, args } = e.data || {};
     switch (action) {
@@ -93,16 +92,11 @@ function runIframe(setting) {
         translator?.toggleStyle();
         break;
       case MSG_TRANS_PUTRULE:
-        if (!translator) {
-          translator = new Translator(args, setting);
-        } else {
-          translator.updateRule(args || {});
-        }
+        translator.updateRule(args || {});
         break;
       default:
     }
   });
-  sendParentMsg(MSG_TRANS_GETRULE);
 }
 
 /**
@@ -175,22 +169,6 @@ function showTransbox({
 }
 
 /**
- * 监听来自iframe页面消息
- * @param {*} rule
- */
-function windowListener(rule) {
-  window.addEventListener("message", (e) => {
-    const { action } = e.data || {};
-    switch (action) {
-      case MSG_TRANS_GETRULE:
-        sendIframeMsg(MSG_TRANS_PUTRULE, rule);
-        break;
-      default:
-    }
-  });
-}
-
-/**
  * 显示错误信息到页面顶部
  * @param {*} message
  */
@@ -245,12 +223,6 @@ export async function run(isUserscript = false) {
       return;
     }
 
-    // 适配iframe
-    if (isIframe) {
-      runIframe(setting);
-      return;
-    }
-
     // 不规范网页修复
     const fixerSetting = await matchFixer(href, setting);
 
@@ -258,8 +230,13 @@ export async function run(isUserscript = false) {
     const rule = await matchRule(href, setting);
     const translator = new Translator(rule, setting, fixerSetting);
 
+    // 适配iframe
+    if (isIframe) {
+      runIframe(translator);
+      return;
+    }
+
     // 监听消息
-    windowListener(rule);
     !isUserscript && runtimeListener(translator);
 
     // 输入框翻译
