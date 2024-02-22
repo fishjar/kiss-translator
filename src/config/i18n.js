@@ -376,7 +376,7 @@ export const I18N = {
     en: `1. Follow CSS selector syntax. 2. Leave blank to adopt the global setting. 3. Separate multiple CSS selectors with ";". 4. The "shadow root" selector and the internal selector are separated by ">>>".`,
   },
   translate_switch: {
-    zh: `启停翻译`,
+    zh: `开启翻译`,
     en: `Translate Switch`,
   },
   default_enabled: {
@@ -560,7 +560,7 @@ export const I18N = {
     en: `Shortcuts Setting`,
   },
   toggle_translate_shortcut: {
-    zh: `"启停翻译"快捷键`,
+    zh: `"开启翻译"快捷键`,
     en: `"Toggle Translate" Shortcut`,
   },
   toggle_style_shortcut: {
