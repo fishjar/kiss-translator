@@ -439,7 +439,6 @@ export class Translator {
     let q = el.innerText.trim();
     this._tranNodes.set(el, q);
     const keeps = [];
-    console.log("q", q);
 
     // 保留元素
     const [matchSelector, subSelector] = this._keepSelector;
@@ -471,7 +470,6 @@ export class Translator {
         }
       }
     }
-    console.log("q2", q);
 
     // 太长或太短
     if (this._invalidLength(q.replace(/\[(\d+)\]/g, "").trim())) {
