@@ -188,7 +188,7 @@ export const I18N = {
     en: `Translate Timing`,
   },
   mk_disable: {
-    zh: `滚动加载（建议）`,
+    zh: `滚动加载（推荐）`,
     en: `Rolling Loading (Suggested)`,
   },
   mk_pageopen: {
@@ -742,6 +742,18 @@ export const I18N = {
   mulkeys_help: {
     zh: `支持用换行或英文逗号“,”分隔多个KEY轮询调用。`,
     en: `Supports multiple KEY polling calls separated by newlines or English commas ",".`,
+  },
+  translation_element_tag: {
+    zh: `译文元素标签`,
+    en: `Translation Element Tag`,
+  },
+  show_only_translations: {
+    zh: `仅显示译文`,
+    en: `Show Only Translations`,
+  },
+  show_only_translations_help: {
+    zh: `非完美实现，某些页面可能有样式等问题。`,
+    en: `It is not a perfect implementation and some pages may have style issues.`,
   },
   translate_page_title: {
     zh: `是否同时翻译页面标题`,

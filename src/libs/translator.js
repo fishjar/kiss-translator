@@ -372,31 +372,64 @@ export class Translator {
     // 解除节点显示监听
     // this._interseObserver.disconnect();
 
-    if (
-      !this._setting.mouseKey ||
-      this._setting.mouseKey === OPT_MOUSEKEY_DISABLE
-    ) {
-      // 解除节点显示监听
-      this._tranNodes.forEach((_, node) => {
+    // 移除键盘监听
+    window.removeEventListener("keydown", this._handleKeydown);
+
+    this._tranNodes.forEach((innerHTML, node) => {
+      if (
+        !this._setting.mouseKey ||
+        this._setting.mouseKey === OPT_MOUSEKEY_DISABLE
+      ) {
+        // 解除节点显示监听
         this._interseObserver.unobserve(node);
-        // 移除已插入元素
-        node.querySelector(APP_LCNAME)?.remove();
-      });
-    } else if (this._setting.mouseKey === OPT_MOUSEKEY_PAGEOPEN) {
-      this._tranNodes.forEach((_, node) => {
-        node.querySelector(APP_LCNAME)?.remove();
-      });
-    } else {
-      // 移除鼠标悬停监听
-      window.removeEventListener("keydown", this._handleKeydown);
-      this._tranNodes.forEach((_, node) => {
+      } else if (this._setting.mouseKey !== OPT_MOUSEKEY_PAGEOPEN) {
+        // 移除鼠标悬停监听
         // node.style.pointerEvents = "none";
         node.removeEventListener("mouseenter", this._handleMouseover);
         node.removeEventListener("mouseleave", this._handleMouseout);
-        // 移除已插入元素
-        node.querySelector(APP_LCNAME)?.remove();
-      });
-    }
+      }
+
+      // 移除已插入元素
+      node.querySelector(APP_LCNAME)?.remove();
+      if (innerHTML && this._setting.transOnly) {
+        node.innerHTML = innerHTML;
+      }
+    });
+
+    // if (
+    //   !this._setting.mouseKey ||
+    //   this._setting.mouseKey === OPT_MOUSEKEY_DISABLE
+    // ) {
+    //   // 解除节点显示监听
+    //   this._tranNodes.forEach((innerHTML, node) => {
+    //     this._interseObserver.unobserve(node);
+    //     // 移除已插入元素
+    //     node.querySelector(APP_LCNAME)?.remove();
+    //     if (innerHTML) {
+    //       node.innerHTML = innerHTML;
+    //     }
+    //   });
+    // } else if (this._setting.mouseKey === OPT_MOUSEKEY_PAGEOPEN) {
+    //   this._tranNodes.forEach((innerHTML, node) => {
+    //     node.querySelector(APP_LCNAME)?.remove();
+    //     if (innerHTML) {
+    //       node.innerHTML = innerHTML;
+    //     }
+    //   });
+    // } else {
+    //   // 移除鼠标悬停监听
+    //   window.removeEventListener("keydown", this._handleKeydown);
+    //   this._tranNodes.forEach((innerHTML, node) => {
+    //     // node.style.pointerEvents = "none";
+    //     node.removeEventListener("mouseenter", this._handleMouseover);
+    //     node.removeEventListener("mouseleave", this._handleMouseout);
+    //     // 移除已插入元素
+    //     node.querySelector(APP_LCNAME)?.remove();
+    //     if (innerHTML) {
+    //       node.innerHTML = innerHTML;
+    //     }
+    //   });
+    // }
 
     // 清空节点集合
     this._rootNodes.clear();
@@ -422,6 +455,10 @@ export class Translator {
 
     // 已翻译
     if (traEl) {
+      if (this._setting.transOnly) {
+        return;
+      }
+
       const preText = this._tranNodes.get(el);
       const curText = el.innerText.trim();
       // const traText = traEl.innerText.trim();
@@ -437,7 +474,11 @@ export class Translator {
     }
 
     let q = el.innerText.trim();
-    this._tranNodes.set(el, q);
+    if (this._setting.transOnly) {
+      this._tranNodes.set(el, el.innerHTML);
+    } else {
+      this._tranNodes.set(el, q);
+    }
     const keeps = [];
 
     // 保留元素
@@ -490,6 +531,9 @@ export class Translator {
 
     traEl = document.createElement(APP_LCNAME);
     traEl.style.visibility = "visible";
+    if (this._setting.transOnly) {
+      el.innerHTML = "";
+    }
     el.appendChild(traEl);
     el.style.cssText +=
       "-webkit-line-clamp: unset; max-height: none; height: auto;";

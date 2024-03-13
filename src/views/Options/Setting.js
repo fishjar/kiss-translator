@@ -97,6 +97,8 @@ export default function Settings() {
     mouseKey = OPT_MOUSEKEY_DISABLE,
     detectRemote = false,
     contextMenuType = 1,
+    transTag = "span",
+    transOnly = false,
     transTitle = false,
     touchTranslate = 2,
     blacklist = DEFAULT_BLACKLIST.join(",\n"),
@@ -182,6 +184,33 @@ export default function Settings() {
               </MenuItem>
             ))}
           </Select>
+        </FormControl>
+
+        <FormControl size="small">
+          <InputLabel>{i18n("translation_element_tag")}</InputLabel>
+          <Select
+            name="transTag"
+            value={transTag}
+            label={i18n("translation_element_tag")}
+            onChange={handleChange}
+          >
+            <MenuItem value={"span"}>{`<span>`}</MenuItem>
+            <MenuItem value={"font"}>{`<font>`}</MenuItem>
+          </Select>
+        </FormControl>
+
+        <FormControl size="small">
+          <InputLabel>{i18n("show_only_translations")}</InputLabel>
+          <Select
+            name="transOnly"
+            value={transOnly}
+            label={i18n("show_only_translations")}
+            onChange={handleChange}
+          >
+            <MenuItem value={false}>{i18n("disable")}</MenuItem>
+            <MenuItem value={true}>{i18n("enable")}</MenuItem>
+          </Select>
+          <FormHelperText>{i18n("show_only_translations_help")}</FormHelperText>
         </FormControl>
 
         <FormControl size="small">

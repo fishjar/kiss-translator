@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import LoadingIcon from "./LoadingIcon";
 import {
   OPT_STYLE_LINE,
@@ -16,7 +16,9 @@ import {
 import { useTranslate } from "../../hooks/Translate";
 import { styled } from "@mui/material/styles";
 
-const LineSpan = styled("span")`
+const Span = styled("span")``;
+
+const LineSpan = styled(Span)`
   opacity: 0.6;
   -webkit-opacity: 0.6;
   text-decoration-line: underline;
@@ -35,7 +37,7 @@ const LineSpan = styled("span")`
   }
 `;
 
-const BlockquoteSpan = styled("span")`
+const BlockquoteSpan = styled(Span)`
   opacity: 0.6;
   -webkit-opacity: 0.6;
   display: block;
@@ -47,7 +49,7 @@ const BlockquoteSpan = styled("span")`
   }
 `;
 
-const FuzzySpan = styled("span")`
+const FuzzySpan = styled(Span)`
   filter: blur(0.2em);
   -webkit-filter: blur(0.2em);
   &:hover {
@@ -56,59 +58,63 @@ const FuzzySpan = styled("span")`
   }
 `;
 
-const HighlightSpan = styled("span")`
+const HighlightSpan = styled(Span)`
   color: #fff;
   background-color: ${(props) => props.$bgColor};
 `;
 
-const DiySpan = styled("span")`
+const DiySpan = styled(Span)`
   ${(props) => props.$diyStyle}
 `;
 
-function StyledSpan({ textStyle, textDiyStyle, bgColor, children }) {
+function StyledSpan({ textStyle, textDiyStyle, bgColor, children, ...props }) {
   switch (textStyle) {
     case OPT_STYLE_LINE: // 下划线
       return (
-        <LineSpan $lineStyle="solid" $lineColor={bgColor}>
+        <LineSpan $lineStyle="solid" $lineColor={bgColor} {...props}>
           {children}
         </LineSpan>
       );
     case OPT_STYLE_DOTLINE: // 点状线
       return (
-        <LineSpan $lineStyle="dotted" $lineColor={bgColor}>
+        <LineSpan $lineStyle="dotted" $lineColor={bgColor} {...props}>
           {children}
         </LineSpan>
       );
     case OPT_STYLE_DASHLINE: // 虚线
       return (
-        <LineSpan $lineStyle="dashed" $lineColor={bgColor}>
+        <LineSpan $lineStyle="dashed" $lineColor={bgColor} {...props}>
           {children}
         </LineSpan>
       );
     case OPT_STYLE_WAVYLINE: // 波浪线
       return (
-        <LineSpan $lineStyle="wavy" $lineColor={bgColor}>
+        <LineSpan $lineStyle="wavy" $lineColor={bgColor} {...props}>
           {children}
         </LineSpan>
       );
     case OPT_STYLE_FUZZY: // 模糊
-      return <FuzzySpan>{children}</FuzzySpan>;
+      return <FuzzySpan {...props}>{children}</FuzzySpan>;
     case OPT_STYLE_HIGHLIGHT: // 高亮
       return (
-        <HighlightSpan $bgColor={bgColor || DEFAULT_COLOR}>
+        <HighlightSpan $bgColor={bgColor || DEFAULT_COLOR} {...props}>
           {children}
         </HighlightSpan>
       );
     case OPT_STYLE_BLOCKQUOTE: // 引用
       return (
-        <BlockquoteSpan $lineColor={bgColor || DEFAULT_COLOR}>
+        <BlockquoteSpan $lineColor={bgColor || DEFAULT_COLOR} {...props}>
           {children}
         </BlockquoteSpan>
       );
     case OPT_STYLE_DIY: // 自定义
-      return <DiySpan $diyStyle={textDiyStyle}>{children}</DiySpan>;
+      return (
+        <DiySpan $diyStyle={textDiyStyle} {...props}>
+          {children}
+        </DiySpan>
+      );
     default:
-      return <span>{children}</span>;
+      return <Span {...props}>{children}</Span>;
   }
 }
 
@@ -117,7 +123,11 @@ export default function Content({ q, keeps, translator }) {
   const { text, sameLang, loading } = useTranslate(q, rule, translator.setting);
   const { textStyle, bgColor = "", textDiyStyle = "" } = rule;
 
-  const { newlineLength = TRANS_NEWLINE_LENGTH } = translator.setting;
+  const {
+    newlineLength = TRANS_NEWLINE_LENGTH,
+    transTag = "span",
+    transOnly = false,
+  } = translator.setting;
 
   const handleKissEvent = (e) => {
     const { action, args } = e.detail;
@@ -136,10 +146,27 @@ export default function Content({ q, keeps, translator }) {
     };
   }, [translator.eventName]);
 
+  const gap = useMemo(() => {
+    if (transOnly) {
+      return "";
+    }
+    return q.length >= newlineLength ? <br /> : " ";
+  }, [q, transOnly, newlineLength]);
+
+  const styles = useMemo(
+    () => ({
+      textStyle,
+      textDiyStyle,
+      bgColor,
+      as: transTag,
+    }),
+    [textStyle, textDiyStyle, bgColor, transTag]
+  );
+
   if (loading) {
     return (
       <>
-        {q.length >= newlineLength ? <br /> : " "}
+        {gap}
         <LoadingIcon />
       </>
     );
@@ -149,24 +176,24 @@ export default function Content({ q, keeps, translator }) {
     return;
   }
 
+  if (keeps.length > 0) {
+    return (
+      <>
+        {gap}
+        <StyledSpan
+          {...styles}
+          dangerouslySetInnerHTML={{
+            __html: text.replace(/\[(\d+)\]/g, (_, p) => keeps[parseInt(p)]),
+          }}
+        />
+      </>
+    );
+  }
+
   return (
     <>
-      {q.length >= newlineLength ? <br /> : " "}
-      <StyledSpan
-        textStyle={textStyle}
-        textDiyStyle={textDiyStyle}
-        bgColor={bgColor}
-      >
-        {keeps.length > 0 ? (
-          <span
-            dangerouslySetInnerHTML={{
-              __html: text.replace(/\[(\d+)\]/g, (_, p) => keeps[parseInt(p)]),
-            }}
-          />
-        ) : (
-          text
-        )}
-      </StyledSpan>
+      {gap}
+      <StyledSpan {...styles}>{text}</StyledSpan>
     </>
   );
 }
