@@ -317,6 +317,19 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
           </Grid>
         </Box>
 
+        {textStyle === OPT_STYLE_DIY && (
+          <TextField
+            size="small"
+            label={i18n("diy_style")}
+            helperText={i18n("diy_style_helper")}
+            name="textDiyStyle"
+            value={textDiyStyle}
+            disabled={disabled}
+            onChange={handleChange}
+            multiline
+          />
+        )}
+
         {showMore && (
           <>
             <TextField
@@ -356,19 +369,6 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
               multiline
             />
           </>
-        )}
-
-        {textStyle === OPT_STYLE_DIY && (
-          <TextField
-            size="small"
-            label={i18n("diy_style")}
-            helperText={i18n("diy_style_helper")}
-            name="textDiyStyle"
-            value={textDiyStyle}
-            disabled={disabled}
-            onChange={handleChange}
-            multiline
-          />
         )}
 
         {rules &&
