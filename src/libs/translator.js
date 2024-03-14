@@ -396,41 +396,6 @@ export class Translator {
       }
     });
 
-    // if (
-    //   !this._setting.mouseKey ||
-    //   this._setting.mouseKey === OPT_MOUSEKEY_DISABLE
-    // ) {
-    //   // 解除节点显示监听
-    //   this._tranNodes.forEach((innerHTML, node) => {
-    //     this._interseObserver.unobserve(node);
-    //     // 移除已插入元素
-    //     node.querySelector(APP_LCNAME)?.remove();
-    //     if (innerHTML) {
-    //       node.innerHTML = innerHTML;
-    //     }
-    //   });
-    // } else if (this._setting.mouseKey === OPT_MOUSEKEY_PAGEOPEN) {
-    //   this._tranNodes.forEach((innerHTML, node) => {
-    //     node.querySelector(APP_LCNAME)?.remove();
-    //     if (innerHTML) {
-    //       node.innerHTML = innerHTML;
-    //     }
-    //   });
-    // } else {
-    //   // 移除鼠标悬停监听
-    //   window.removeEventListener("keydown", this._handleKeydown);
-    //   this._tranNodes.forEach((innerHTML, node) => {
-    //     // node.style.pointerEvents = "none";
-    //     node.removeEventListener("mouseenter", this._handleMouseover);
-    //     node.removeEventListener("mouseleave", this._handleMouseout);
-    //     // 移除已插入元素
-    //     node.querySelector(APP_LCNAME)?.remove();
-    //     if (innerHTML) {
-    //       node.innerHTML = innerHTML;
-    //     }
-    //   });
-    // }
-
     // 清空节点集合
     this._rootNodes.clear();
     this._tranNodes.clear();
