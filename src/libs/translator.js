@@ -389,10 +389,11 @@ export class Translator {
         node.removeEventListener("mouseleave", this._handleMouseout);
       }
 
-      // 移除已插入元素
-      node.querySelector(APP_LCNAME)?.remove();
+      // 移除/恢复元素
       if (innerHTML && this._setting.transOnly) {
         node.innerHTML = innerHTML;
+      } else {
+        node.querySelector(APP_LCNAME)?.remove();
       }
     });
 
@@ -496,9 +497,9 @@ export class Translator {
 
     traEl = document.createElement(APP_LCNAME);
     traEl.style.visibility = "visible";
-    if (this._setting.transOnly) {
-      el.innerHTML = "";
-    }
+    // if (this._setting.transOnly) {
+    //   el.innerHTML = "";
+    // }
     el.appendChild(traEl);
     el.style.cssText +=
       "-webkit-line-clamp: unset; max-height: none; height: auto;";
@@ -510,6 +511,6 @@ export class Translator {
     // console.log({ q, keeps });
 
     const root = createRoot(traEl);
-    root.render(<Content q={q} keeps={keeps} translator={this} />);
+    root.render(<Content q={q} keeps={keeps} translator={this} $el={el} />);
   };
 }

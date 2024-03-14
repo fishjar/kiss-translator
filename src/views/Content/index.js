@@ -14,114 +14,79 @@ import {
   TRANS_NEWLINE_LENGTH,
 } from "../../config";
 import { useTranslate } from "../../hooks/Translate";
-import { styled } from "@mui/material/styles";
+import { styled, css } from "@mui/material/styles";
+import { APP_LCNAME } from "../../config";
 
-const Span = styled("span")``;
+const LINE_STYLES = {
+  [OPT_STYLE_LINE]: "solid",
+  [OPT_STYLE_DOTLINE]: "dotted",
+  [OPT_STYLE_DASHLINE]: "dashed",
+  [OPT_STYLE_WAVYLINE]: "wavy",
+};
 
-const LineSpan = styled(Span)`
-  opacity: 0.6;
-  -webkit-opacity: 0.6;
-  text-decoration-line: underline;
-  text-decoration-style: ${(props) => props.$lineStyle};
-  text-decoration-color: ${(props) => props.$lineColor};
-  text-decoration-thickness: 2px;
-  text-underline-offset: 0.3em;
-  -webkit-text-decoration-line: underline;
-  -webkit-text-decoration-style: ${(props) => props.$lineStyle};
-  -webkit-text-decoration-color: ${(props) => props.$lineColor};
-  -webkit-text-decoration-thickness: 2px;
-  -webkit-text-underline-offset: 0.3em;
-  &:hover {
-    opacity: 1;
-    -webkit-opacity: 1;
-  }
+const StyledSpan = styled("span")`
+  ${({ textStyle, textDiyStyle, bgColor }) => {
+    switch (textStyle) {
+      case OPT_STYLE_LINE: // 下划线
+      case OPT_STYLE_DOTLINE: // 点状线
+      case OPT_STYLE_DASHLINE: // 虚线
+      case OPT_STYLE_WAVYLINE: // 波浪线
+        return css`
+          opacity: 0.6;
+          -webkit-opacity: 0.6;
+          text-decoration-line: underline;
+          text-decoration-style: ${LINE_STYLES[textStyle]};
+          text-decoration-color: ${bgColor};
+          text-decoration-thickness: 2px;
+          text-underline-offset: 0.3em;
+          -webkit-text-decoration-line: underline;
+          -webkit-text-decoration-style: ${LINE_STYLES[textStyle]};
+          -webkit-text-decoration-color: ${bgColor};
+          -webkit-text-decoration-thickness: 2px;
+          -webkit-text-underline-offset: 0.3em;
+          &:hover {
+            opacity: 1;
+            -webkit-opacity: 1;
+          }
+        `;
+      case OPT_STYLE_FUZZY: // 模糊
+        return css`
+          filter: blur(0.2em);
+          -webkit-filter: blur(0.2em);
+          &:hover {
+            filter: none;
+            -webkit-filter: none;
+          }
+        `;
+      case OPT_STYLE_HIGHLIGHT: // 高亮
+        return css`
+          color: #fff;
+          background-color: ${bgColor || DEFAULT_COLOR};
+        `;
+      case OPT_STYLE_BLOCKQUOTE: // 引用
+        return css`
+          opacity: 0.6;
+          -webkit-opacity: 0.6;
+          display: block;
+          padding: 0 0.75em;
+          border-left: 0.25em solid ${bgColor || DEFAULT_COLOR};
+          &:hover {
+            opacity: 1;
+            -webkit-opacity: 1;
+          }
+        `;
+      case OPT_STYLE_DIY: // 自定义
+        return textDiyStyle;
+      default:
+        return ``;
+    }
+  }}
 `;
 
-const BlockquoteSpan = styled(Span)`
-  opacity: 0.6;
-  -webkit-opacity: 0.6;
-  display: block;
-  padding: 0 0.75em;
-  border-left: 0.25em solid ${(props) => props.$lineColor};
-  &:hover {
-    opacity: 1;
-    -webkit-opacity: 1;
-  }
-`;
-
-const FuzzySpan = styled(Span)`
-  filter: blur(0.2em);
-  -webkit-filter: blur(0.2em);
-  &:hover {
-    filter: none;
-    -webkit-filter: none;
-  }
-`;
-
-const HighlightSpan = styled(Span)`
-  color: #fff;
-  background-color: ${(props) => props.$bgColor};
-`;
-
-const DiySpan = styled(Span)`
-  ${(props) => props.$diyStyle}
-`;
-
-function StyledSpan({ textStyle, textDiyStyle, bgColor, children, ...props }) {
-  switch (textStyle) {
-    case OPT_STYLE_LINE: // 下划线
-      return (
-        <LineSpan $lineStyle="solid" $lineColor={bgColor} {...props}>
-          {children}
-        </LineSpan>
-      );
-    case OPT_STYLE_DOTLINE: // 点状线
-      return (
-        <LineSpan $lineStyle="dotted" $lineColor={bgColor} {...props}>
-          {children}
-        </LineSpan>
-      );
-    case OPT_STYLE_DASHLINE: // 虚线
-      return (
-        <LineSpan $lineStyle="dashed" $lineColor={bgColor} {...props}>
-          {children}
-        </LineSpan>
-      );
-    case OPT_STYLE_WAVYLINE: // 波浪线
-      return (
-        <LineSpan $lineStyle="wavy" $lineColor={bgColor} {...props}>
-          {children}
-        </LineSpan>
-      );
-    case OPT_STYLE_FUZZY: // 模糊
-      return <FuzzySpan {...props}>{children}</FuzzySpan>;
-    case OPT_STYLE_HIGHLIGHT: // 高亮
-      return (
-        <HighlightSpan $bgColor={bgColor || DEFAULT_COLOR} {...props}>
-          {children}
-        </HighlightSpan>
-      );
-    case OPT_STYLE_BLOCKQUOTE: // 引用
-      return (
-        <BlockquoteSpan $lineColor={bgColor || DEFAULT_COLOR} {...props}>
-          {children}
-        </BlockquoteSpan>
-      );
-    case OPT_STYLE_DIY: // 自定义
-      return (
-        <DiySpan $diyStyle={textDiyStyle} {...props}>
-          {children}
-        </DiySpan>
-      );
-    default:
-      return <Span {...props}>{children}</Span>;
-  }
-}
-
-export default function Content({ q, keeps, translator }) {
+export default function Content({ q, keeps, translator, $el }) {
   const [rule, setRule] = useState(translator.rule);
   const { text, sameLang, loading } = useTranslate(q, rule, translator.setting);
-  const { textStyle, bgColor = "", textDiyStyle = "" } = rule;
+  const { transOpen, textStyle, bgColor = "", textDiyStyle = "" } = rule;
 
   const {
     newlineLength = TRANS_NEWLINE_LENGTH,
@@ -174,6 +139,14 @@ export default function Content({ q, keeps, translator }) {
 
   if (!text || sameLang) {
     return;
+  }
+
+  if (transOnly && transOpen === "true" && $el.querySelector(APP_LCNAME)) {
+    Array.from($el.childNodes).forEach((el) => {
+      if (el.localName !== APP_LCNAME) {
+        el.remove();
+      }
+    });
   }
 
   if (keeps.length > 0) {
