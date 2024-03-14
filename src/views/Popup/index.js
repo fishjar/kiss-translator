@@ -5,7 +5,7 @@ import MenuItem from "@mui/material/MenuItem";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import Button from "@mui/material/Button";
-import { sendBgMsg, sendTabMsg, getTabInfo } from "../../libs/msg";
+import { sendBgMsg, sendTabMsg, getCurTab } from "../../libs/msg";
 import { browser } from "../../libs/browser";
 import { isExt } from "../../libs/client";
 import { useI18n } from "../../hooks/I18n";
@@ -83,7 +83,7 @@ export default function Popup({ setShowPopup, translator: tran }) {
     try {
       let href = window.location.href;
       if (!tran) {
-        const tab = await getTabInfo();
+        const tab = await getCurTab();
         href = tab.url;
       }
       const newRule = { ...rule, pattern: href.split("/")[2] };

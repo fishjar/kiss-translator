@@ -1,6 +1,23 @@
 import { browser } from "./browser";
 
 /**
+ * 获取当前tab信息
+ * @returns
+ */
+export const getCurTab = async () => {
+  const [tab] = await browser.tabs.query({
+    active: true,
+    lastFocusedWindow: true,
+  });
+  return tab;
+};
+
+export const getCurTabId = async () => {
+  const tab = await getCurTab();
+  return tab.id;
+};
+
+/**
  * 发送消息给background
  * @param {*} action
  * @param {*} args
@@ -16,15 +33,6 @@ export const sendBgMsg = (action, args) =>
  * @returns
  */
 export const sendTabMsg = async (action, args) => {
-  const tabs = await browser.tabs.query({ active: true, currentWindow: true });
-  return browser.tabs.sendMessage(tabs[0].id, { action, args });
-};
-
-/**
- * 获取当前tab信息
- * @returns
- */
-export const getTabInfo = async () => {
-  const tabs = await browser.tabs.query({ active: true, currentWindow: true });
-  return tabs[0];
+  const tabId = await getCurTabId();
+  return browser.tabs.sendMessage(tabId, { action, args });
 };
