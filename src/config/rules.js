@@ -18,6 +18,10 @@ export const DEFAULT_RULE = {
   transOpen: GLOBAL_KEY,
   bgColor: "",
   textDiyStyle: "",
+  selectStyle: "",
+  parentStyle: "",
+  injectJs: "",
+  injectCss: "",
 };
 
 const DEFAULT_DIY_STYLE = `color: #666;

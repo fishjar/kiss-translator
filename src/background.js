@@ -10,6 +10,8 @@ import {
   MSG_OPEN_TRANBOX,
   MSG_CONTEXT_MENUS,
   MSG_COMMAND_SHORTCUTS,
+  MSG_INJECT_JS,
+  MSG_INJECT_CSS,
   CMD_TOGGLE_TRANSLATE,
   CMD_TOGGLE_STYLE,
   CMD_OPEN_OPTIONS,
@@ -22,6 +24,8 @@ import { sendTabMsg } from "./libs/msg";
 import { trySyncAllSubRules } from "./libs/subRules";
 import { tryClearCaches } from "./libs";
 import { saveRule } from "./libs/rules";
+import { getCurTabId } from "./libs/msg";
+import { injectInlineJs, injectInternalCss } from "./libs/injector";
 
 globalThis.ContextType = "BACKGROUND";
 
@@ -138,6 +142,40 @@ browser.runtime.onMessage.addListener(
         break;
       case MSG_SAVE_RULE:
         saveRule(args);
+        break;
+      case MSG_INJECT_JS:
+        getCurTabId()
+          .then((tabId) =>
+            browser.scripting.executeScript({
+              target: { tabId: tabId, allFrames: true },
+              func: injectInlineJs,
+              args: [args],
+              world: "MAIN",
+            })
+          )
+          .then(() => {
+            // skip
+          })
+          .catch((error) => {
+            sendResponse({ error: error.message });
+          });
+        break;
+      case MSG_INJECT_CSS:
+        getCurTabId()
+          .then((tabId) =>
+            browser.scripting.executeScript({
+              target: { tabId: tabId, allFrames: true },
+              func: injectInternalCss,
+              args: [args],
+              world: "MAIN",
+            })
+          )
+          .then(() => {
+            // skip
+          })
+          .catch((error) => {
+            sendResponse({ error: error.message });
+          });
         break;
       case MSG_CONTEXT_MENUS:
         const { contextMenuType } = args;

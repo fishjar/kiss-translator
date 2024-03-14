@@ -4,6 +4,8 @@ import {
   TRANS_MIN_LENGTH,
   TRANS_MAX_LENGTH,
   MSG_TRANS_CURRULE,
+  MSG_INJECT_JS,
+  MSG_INJECT_CSS,
   OPT_STYLE_DASHLINE,
   OPT_STYLE_FUZZY,
   SHADOW_KEY,
@@ -17,6 +19,7 @@ import { updateFetchPool, clearFetchPool } from "./fetch";
 import { debounce, genEventName } from "./utils";
 import { runFixer } from "./webfix";
 import { apiTranslate } from "../apis";
+import { sendBgMsg } from "./msg";
 
 /**
  * 翻译类
@@ -262,7 +265,8 @@ export class Translator {
   };
 
   _register = () => {
-    if (this._rule.fromLang === this._rule.toLang) {
+    const { fromLang, toLang, injectJs, injectCss } = this._rule;
+    if (fromLang === toLang) {
       return;
     }
 
@@ -270,6 +274,10 @@ export class Translator {
     if (this._fixerSetting) {
       runFixer(this._fixerSetting);
     }
+
+    // 注入用户JS/CSS
+    injectJs && sendBgMsg(MSG_INJECT_JS, injectJs);
+    injectCss && sendBgMsg(MSG_INJECT_CSS, injectCss);
 
     // 搜索节点
     this._queryNodes();
@@ -397,6 +405,11 @@ export class Translator {
       }
     });
 
+    // 移除用户JS/CSS
+    document
+      .querySelectorAll(`[data-source^="KISS-Calendar"]`)
+      ?.forEach((el) => el.remove());
+
     // 清空节点集合
     this._rootNodes.clear();
     this._tranNodes.clear();
@@ -500,12 +513,11 @@ export class Translator {
     // if (this._setting.transOnly) {
     //   el.innerHTML = "";
     // }
+    const { selectStyle, parentStyle } = this._rule;
     el.appendChild(traEl);
-    el.style.cssText +=
-      "-webkit-line-clamp: unset; max-height: none; height: auto;";
+    el.style.cssText += selectStyle;
     if (el.parentElement) {
-      el.parentElement.style.cssText +=
-        "-webkit-line-clamp: unset; max-height: none; height: auto;";
+      el.parentElement.style.cssText += parentStyle;
     }
 
     // console.log({ q, keeps });

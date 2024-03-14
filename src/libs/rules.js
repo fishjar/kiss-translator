@@ -68,6 +68,10 @@ export const matchRule = async (
   rule.selector = rule.selector?.trim() || globalRule.selector;
   rule.keepSelector = rule.keepSelector?.trim() || globalRule.keepSelector;
   rule.terms = rule.terms?.trim() || globalRule.terms;
+  rule.selectStyle = rule.selectStyle?.trim() || globalRule.selectStyle;
+  rule.parentStyle = rule.parentStyle?.trim() || globalRule.parentStyle;
+  rule.injectJs = rule.injectJs?.trim() || globalRule.injectJs;
+  rule.injectCss = rule.injectCss?.trim() || globalRule.injectCss;
   if (rule.textStyle === GLOBAL_KEY) {
     rule.textStyle = globalRule.textStyle;
     rule.bgColor = globalRule.bgColor;
@@ -116,6 +120,10 @@ export const checkRules = (rules) => {
         selector,
         keepSelector,
         terms,
+        selectStyle,
+        parentStyle,
+        injectJs,
+        injectCss,
         translator,
         fromLang,
         toLang,
@@ -128,6 +136,10 @@ export const checkRules = (rules) => {
         selector: type(selector) === "string" ? selector : "",
         keepSelector: type(keepSelector) === "string" ? keepSelector : "",
         terms: type(terms) === "string" ? terms : "",
+        selectStyle: type(selectStyle) === "string" ? selectStyle : "",
+        parentStyle: type(parentStyle) === "string" ? parentStyle : "",
+        injectJs: type(injectJs) === "string" ? injectJs : "",
+        injectCss: type(injectCss) === "string" ? injectCss : "",
         bgColor: type(bgColor) === "string" ? bgColor : "",
         textDiyStyle: type(textDiyStyle) === "string" ? textDiyStyle : "",
         translator: matchValue([GLOBAL_KEY, ...OPT_TRANS_ALL], translator),

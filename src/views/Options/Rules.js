@@ -62,11 +62,16 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
   const [disabled, setDisabled] = useState(editMode);
   const [errors, setErrors] = useState({});
   const [formValues, setFormValues] = useState(initFormValues);
+  const [showMore, setShowMore] = useState(!rules);
   const {
     pattern,
     selector,
     keepSelector = "",
     terms = "",
+    selectStyle = "",
+    parentStyle = "",
+    injectJs = "",
+    injectCss = "",
     translator,
     fromLang,
     toLang,
@@ -312,6 +317,47 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
           </Grid>
         </Box>
 
+        {showMore && (
+          <>
+            <TextField
+              size="small"
+              label={i18n("selector_style")}
+              name="selectStyle"
+              value={selectStyle}
+              disabled={disabled}
+              onChange={handleChange}
+              multiline
+            />
+            <TextField
+              size="small"
+              label={i18n("selector_parent_style")}
+              name="parentStyle"
+              value={parentStyle}
+              disabled={disabled}
+              onChange={handleChange}
+              multiline
+            />
+            <TextField
+              size="small"
+              label={i18n("inject_js")}
+              name="injectJs"
+              value={injectJs}
+              disabled={disabled}
+              onChange={handleChange}
+              multiline
+            />
+            <TextField
+              size="small"
+              label={i18n("inject_css")}
+              name="injectCss"
+              value={injectCss}
+              disabled={disabled}
+              onChange={handleChange}
+              multiline
+            />
+          </>
+        )}
+
         {textStyle === OPT_STYLE_DIY && (
           <TextField
             size="small"
@@ -353,6 +399,17 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                       {i18n("delete")}
                     </Button>
                   )}
+                  {!showMore && (
+                    <Button
+                      size="small"
+                      variant="text"
+                      onClick={() => {
+                        setShowMore(true);
+                      }}
+                    >
+                      {i18n("more")}
+                    </Button>
+                  )}
                 </>
               ) : (
                 <>
@@ -366,6 +423,17 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                   >
                     {i18n("cancel")}
                   </Button>
+                  {!showMore && (
+                    <Button
+                      size="small"
+                      variant="text"
+                      onClick={() => {
+                        setShowMore(true);
+                      }}
+                    >
+                      {i18n("more")}
+                    </Button>
+                  )}
                 </>
               )}
             </Stack>
@@ -378,6 +446,17 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
               <Button size="small" variant="outlined" onClick={handleCancel}>
                 {i18n("cancel")}
               </Button>
+              {!showMore && (
+                <Button
+                  size="small"
+                  variant="text"
+                  onClick={() => {
+                    setShowMore(true);
+                  }}
+                >
+                  {i18n("more")}
+                </Button>
+              )}
             </Stack>
           ))}
       </Stack>

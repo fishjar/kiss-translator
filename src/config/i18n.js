@@ -407,6 +407,22 @@ export const I18N = {
     zh: `0、支持正则表达式匹配。1、多条术语用换行或分号“;”隔开。2、术语和译文用英文逗号“,”隔开。3、没有译文视为不翻译术语。4、留空表示采用全局设置。`,
     en: `0. Supports regular expression matching. 1. Separate multiple terms with newlines or semicolons ";". 2. Terms and translations are separated by English commas ",". 3. If there is no translation, the term will be deemed not to be translated. 4. Leave blank to adopt the global setting.`,
   },
+  selector_style: {
+    zh: `选择器样式`,
+    en: `Selector Style`,
+  },
+  selector_parent_style: {
+    zh: `选择器父样式`,
+    en: `Selector Parent Style`,
+  },
+  inject_js: {
+    zh: `注入JS`,
+    en: `Inject JS`,
+  },
+  inject_css: {
+    zh: `注入CSS`,
+    en: `Inject CSS`,
+  },
   root_selector: {
     zh: `根选择器`,
     en: `Root Selector`,
@@ -758,5 +774,9 @@ export const I18N = {
   translate_page_title: {
     zh: `是否同时翻译页面标题`,
     en: `Translate Page Title`,
+  },
+  more: {
+    zh: `更多`,
+    en: `More`,
   },
 };

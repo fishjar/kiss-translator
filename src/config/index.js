@@ -66,6 +66,8 @@ export const MSG_TRANS_PUTRULE = "trans_putrule";
 export const MSG_TRANS_CURRULE = "trans_currule";
 export const MSG_CONTEXT_MENUS = "context_menus";
 export const MSG_COMMAND_SHORTCUTS = "command_shortcuts";
+export const MSG_INJECT_JS = "inject_js";
+export const MSG_INJECT_CSS = "inject_css";
 
 export const THEME_LIGHT = "light";
 export const THEME_DARK = "dark";
@@ -335,6 +337,10 @@ export const GLOBLA_RULE = {
   transOpen: "false",
   bgColor: "",
   textDiyStyle: "",
+  selectStyle: "-webkit-line-clamp: unset; max-height: none; height: auto;",
+  parentStyle: "-webkit-line-clamp: unset; max-height: none; height: auto;",
+  injectJs: "",
+  injectCss: "",
 };
 
 // 输入框翻译
