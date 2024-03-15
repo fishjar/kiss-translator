@@ -196,16 +196,6 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
           onChange={handleChange}
           multiline
         />
-        <TextField
-          size="small"
-          label={i18n("terms")}
-          helperText={i18n("terms_helper")}
-          name="terms"
-          value={terms}
-          disabled={disabled}
-          onChange={handleChange}
-          multiline
-        />
 
         <Box>
           <Grid container spacing={2} columns={12}>
@@ -333,6 +323,16 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
 
         {showMore && (
           <>
+            <TextField
+              size="small"
+              label={i18n("terms")}
+              helperText={i18n("terms_helper")}
+              name="terms"
+              value={terms}
+              disabled={disabled}
+              onChange={handleChange}
+              multiline
+            />
             <TextField
               size="small"
               label={i18n("selector_style")}
