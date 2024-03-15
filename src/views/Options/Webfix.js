@@ -142,6 +142,7 @@ function WebfixFields({ rule, webfix, setShow }) {
           name="fixer"
           value={fixer}
           label={i18n("fixer_function")}
+          helperText={i18n("fixer_function_helper")}
           disabled={disabled}
           onChange={handleChange}
         >

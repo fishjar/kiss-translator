@@ -188,15 +188,15 @@ export const I18N = {
     en: `Translate Timing`,
   },
   mk_disable: {
-    zh: `滚动加载（推荐）`,
+    zh: `滚动加载翻译（推荐）`,
     en: `Rolling Loading (Suggested)`,
   },
   mk_pageopen: {
-    zh: `页面打开`,
+    zh: `页面打开全部翻译`,
     en: `Page Open`,
   },
   mk_mouseover: {
-    zh: `鼠标悬停`,
+    zh: `鼠标悬停翻译`,
     en: `Mouseover`,
   },
   mk_ctrlKey: {
@@ -434,6 +434,10 @@ export const I18N = {
   fixer_function: {
     zh: `修复函数`,
     en: `Fixer Function`,
+  },
+  fixer_function_helper: {
+    zh: `1、br目标是将<br>换行替换成<p>包裹换行。2、bn目标是将\\n换行替换成<p>包裹换行。3、brToDiv和bnToDiv是替换成<div class="kiss-p">`,
+    en: `1. The goal of br is to replace <br> line breaks with <p> wrapped line breaks. 2. The goal of bn is to replace \\n newlines with <p> wrapped newlines. 3. brToDiv and bnToDiv are replaced with <div class="kiss-p">`,
   },
   import: {
     zh: `导入`,
