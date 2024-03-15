@@ -326,6 +326,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
             value={textDiyStyle}
             disabled={disabled}
             onChange={handleChange}
+            maxRows={10}
             multiline
           />
         )}
@@ -339,6 +340,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
               value={selectStyle}
               disabled={disabled}
               onChange={handleChange}
+              maxRows={10}
               multiline
             />
             <TextField
@@ -348,6 +350,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
               value={parentStyle}
               disabled={disabled}
               onChange={handleChange}
+              maxRows={10}
               multiline
             />
             <TextField
@@ -358,6 +361,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
               value={injectJs}
               disabled={disabled}
               onChange={handleChange}
+              maxRows={10}
               multiline
             />
             <TextField
@@ -367,6 +371,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
               value={injectCss}
               disabled={disabled}
               onChange={handleChange}
+              maxRows={10}
               multiline
             />
           </>
