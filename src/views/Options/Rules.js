@@ -355,10 +355,9 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
             />
             <TextField
               size="small"
-              label={i18n("inject_js")}
-              helperText={i18n("inject_js_helper")}
-              name="injectJs"
-              value={injectJs}
+              label={i18n("inject_css")}
+              name="injectCss"
+              value={injectCss}
               disabled={disabled}
               onChange={handleChange}
               maxRows={10}
@@ -366,9 +365,10 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
             />
             <TextField
               size="small"
-              label={i18n("inject_css")}
-              name="injectCss"
-              value={injectCss}
+              label={i18n("inject_js")}
+              helperText={i18n("inject_js_helper")}
+              name="injectJs"
+              value={injectJs}
               disabled={disabled}
               onChange={handleChange}
               maxRows={10}
