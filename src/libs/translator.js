@@ -20,6 +20,8 @@ import { debounce, genEventName } from "./utils";
 import { runFixer } from "./webfix";
 import { apiTranslate } from "../apis";
 import { sendBgMsg } from "./msg";
+import { isExt } from "./client";
+import { injectInlineJs, injectInternalCss } from "./injector";
 
 /**
  * 翻译类
@@ -276,8 +278,13 @@ export class Translator {
     }
 
     // 注入用户JS/CSS
-    injectJs && sendBgMsg(MSG_INJECT_JS, injectJs);
-    injectCss && sendBgMsg(MSG_INJECT_CSS, injectCss);
+    if (isExt) {
+      injectJs && sendBgMsg(MSG_INJECT_JS, injectJs);
+      injectCss && sendBgMsg(MSG_INJECT_CSS, injectCss);
+    } else {
+      injectJs && injectInlineJs(injectJs);
+      injectCss && injectInternalCss(injectCss);
+    }
 
     // 搜索节点
     this._queryNodes();
@@ -406,9 +413,7 @@ export class Translator {
     });
 
     // 移除用户JS/CSS
-    document
-      .querySelectorAll(`[data-source^="KISS-Calendar"]`)
-      ?.forEach((el) => el.remove());
+    this._removeInjector();
 
     // 清空节点集合
     this._rootNodes.clear();
@@ -418,8 +423,15 @@ export class Translator {
     clearFetchPool();
   };
 
+  _removeInjector = () => {
+    document
+      .querySelectorAll(`[data-source^="KISS-Calendar"]`)
+      ?.forEach((el) => el.remove());
+  };
+
   _reTranslate = debounce(() => {
     if (this._rule.transOpen === "true") {
+      this._removeInjector();
       this._register();
     }
   }, 500);

@@ -353,6 +353,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
             <TextField
               size="small"
               label={i18n("inject_js")}
+              helperText={i18n("inject_js_helper")}
               name="injectJs"
               value={injectJs}
               disabled={disabled}

@@ -228,11 +228,11 @@ export const I18N = {
     en: `After setting, it will produce mutual translation effect with the target language, but it relies on remote language recognition.`,
   },
   text_style: {
-    zh: `文字样式`,
+    zh: `译文样式`,
     en: `Text Style`,
   },
   text_style_alt: {
-    zh: `文字样式`,
+    zh: `译文样式`,
     en: `Text Style`,
   },
   bg_color: {
@@ -418,6 +418,10 @@ export const I18N = {
   inject_js: {
     zh: `注入JS`,
     en: `Inject JS`,
+  },
+  inject_js_helper: {
+    zh: `翻译时注入运行，且随着页面变化，可能会多次注入运行。`,
+    en: `It is injected and run during translation, and may be injected and run multiple times as the page changes.`,
   },
   inject_css: {
     zh: `注入CSS`,
