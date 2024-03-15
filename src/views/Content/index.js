@@ -12,6 +12,7 @@ import {
   DEFAULT_COLOR,
   MSG_TRANS_CURRULE,
   TRANS_NEWLINE_LENGTH,
+  DEFAULT_TRANS_TAG,
 } from "../../config";
 import { useTranslate } from "../../hooks/Translate";
 import { styled, css } from "@mui/material/styles";
@@ -90,7 +91,7 @@ export default function Content({ q, keeps, translator, $el }) {
 
   const {
     newlineLength = TRANS_NEWLINE_LENGTH,
-    transTag = "span",
+    transTag = DEFAULT_TRANS_TAG,
     transOnly = false,
   } = translator.setting;
 

@@ -324,6 +324,8 @@ export const PROMPT_PLACE_TEXT = "{{text}}"; // 占位符
 
 export const DEFAULT_COLOR = "#209CEE"; // 默认高亮背景色/线条颜色
 
+export const DEFAULT_TRANS_TAG = "font";
+
 // 全局规则
 export const GLOBLA_RULE = {
   pattern: "*",
@@ -460,7 +462,7 @@ export const DEFAULT_SETTING = {
   detectRemote: false, // 是否使用远程语言检测
   contextMenus: true, // 是否添加右键菜单(作废)
   contextMenuType: 1, // 右键菜单类型(0不显示，1简单菜单，2多级菜单)
-  transTag: "span", // 译文元素标签
+  transTag: DEFAULT_TRANS_TAG, // 译文元素标签
   transOnly: false, // 是否仅显示译文
   transTitle: false, // 是否同时翻译页面标题
   subrulesList: DEFAULT_SUBRULES_LIST, // 订阅列表

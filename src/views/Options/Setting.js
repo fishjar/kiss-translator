@@ -26,6 +26,7 @@ import {
   OPT_LANGS_TO,
   DEFAULT_BLACKLIST,
   MSG_CONTEXT_MENUS,
+  DEFAULT_TRANS_TAG,
 } from "../../config";
 import { useShortcut } from "../../hooks/Shortcut";
 import ShortcutInput from "./ShortcutInput";
@@ -97,7 +98,7 @@ export default function Settings() {
     mouseKey = OPT_MOUSEKEY_DISABLE,
     detectRemote = false,
     contextMenuType = 1,
-    transTag = "span",
+    transTag = DEFAULT_TRANS_TAG,
     transOnly = false,
     transTitle = false,
     touchTranslate = 2,
