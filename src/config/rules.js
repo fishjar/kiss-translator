@@ -7,21 +7,29 @@ export const REMAIN_KEY = "-";
 export const SHADOW_KEY = ">>>";
 
 export const DEFAULT_RULE = {
-  pattern: "",
-  selector: "",
-  keepSelector: "",
-  terms: "",
-  translator: GLOBAL_KEY,
-  fromLang: GLOBAL_KEY,
-  toLang: GLOBAL_KEY,
-  textStyle: GLOBAL_KEY,
-  transOpen: GLOBAL_KEY,
-  bgColor: "",
-  textDiyStyle: "",
-  selectStyle: "",
-  parentStyle: "",
-  injectJs: "",
-  injectCss: "",
+  pattern: "", // 匹配网址
+  selector: "", // 选择器
+  keepSelector: "", // 保留元素选择器
+  terms: "", // 专业术语
+  translator: GLOBAL_KEY, // 翻译服务
+  fromLang: GLOBAL_KEY, // 源语言
+  toLang: GLOBAL_KEY, // 目标语言
+  textStyle: GLOBAL_KEY, // 译文样式
+  transOpen: GLOBAL_KEY, // 开启翻译
+  bgColor: "", // 译文颜色
+  textDiyStyle: "", // 自定义译文样式
+  selectStyle: "", // 选择器节点样式
+  parentStyle: "", // 选择器父节点样式
+  injectJs: "", // 注入JS
+  injectCss: "", // 注入CSS
+  transOnly: GLOBAL_KEY, // 是否仅显示译文
+  transTiming: GLOBAL_KEY, // 翻译时机/鼠标悬停翻译
+  transTag: GLOBAL_KEY, // 译文元素标签
+  transTitle: GLOBAL_KEY, // 是否同时翻译页面标题
+  detectRemote: GLOBAL_KEY, // 是否使用远程语言检测
+  skipLangs: [], // 不翻译的语言
+  fixerSelector: "", // 修复函数选择器
+  fixerFunc: GLOBAL_KEY, // 修复函数
 };
 
 const DEFAULT_DIY_STYLE = `color: #666;
@@ -251,9 +259,6 @@ const RULES_MAP = {
   "randomnerdtutorials.com": {
     selector: `article ${DEFAULT_SELECTOR}`,
   },
-  "forum.arduino.cc": {
-    selector: `.top-row>.title, .featured-topic>.title, .link-top-line>.title, .category-description, .topic-excerpt, .fancy-title, .cooked ${DEFAULT_SELECTOR}`,
-  },
   "notebooks.githubusercontent.com/view/ipynb": {
     selector: `#notebook-container ${DEFAULT_SELECTOR}`,
     keepSelector: `code, img, svg`,
@@ -276,6 +281,8 @@ export const BUILTIN_RULES = Object.entries(RULES_MAP)
         selectStyle = "",
         parentStyle = "",
         injectCss = "",
+        fixerSelector = "",
+        fixerFunc = GLOBAL_KEY,
       },
     ]) => ({
       ...DEFAULT_RULE,
@@ -286,5 +293,7 @@ export const BUILTIN_RULES = Object.entries(RULES_MAP)
       selectStyle,
       parentStyle,
       injectCss,
+      fixerSelector,
+      fixerFunc,
     })
   );

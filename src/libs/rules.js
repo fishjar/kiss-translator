@@ -6,13 +6,13 @@ import {
   OPT_STYLE_ALL,
   OPT_LANGS_FROM,
   OPT_LANGS_TO,
+  OPT_TIMING_ALL,
   GLOBLA_RULE,
-  DEFAULT_SUBRULES_LIST,
-  DEFAULT_OW_RULE,
 } from "../config";
 import { loadOrFetchSubRules } from "./subRules";
 import { getRulesWithDefault, setRules } from "./storage";
 import { trySyncRules } from "./sync";
+import { FIXER_ALL } from "./webfix";
 
 /**
  * 根据href匹配规则
@@ -22,11 +22,7 @@ import { trySyncRules } from "./sync";
  */
 export const matchRule = async (
   href,
-  {
-    injectRules = true,
-    subrulesList = DEFAULT_SUBRULES_LIST,
-    owSubrule = DEFAULT_OW_RULE,
-  }
+  { injectRules, subrulesList, owSubrule }
 ) => {
   const rules = await getRulesWithDefault();
   if (injectRules) {
@@ -60,18 +56,49 @@ export const matchRule = async (
   const rule = rules.find((r) =>
     r.pattern.split(",").some((p) => isMatch(href, p.trim()))
   );
-  const globalRule = rules.find((r) => r.pattern === GLOBAL_KEY) || GLOBLA_RULE;
+  const globalRule = {
+    ...GLOBLA_RULE,
+    ...(rules.find((r) => r.pattern === GLOBAL_KEY) || {}),
+  };
   if (!rule) {
     return globalRule;
   }
 
-  rule.selector = rule.selector?.trim() || globalRule.selector;
-  rule.keepSelector = rule.keepSelector?.trim() || globalRule.keepSelector;
-  rule.terms = rule.terms?.trim() || globalRule.terms;
-  rule.selectStyle = rule.selectStyle?.trim() || globalRule.selectStyle;
-  rule.parentStyle = rule.parentStyle?.trim() || globalRule.parentStyle;
-  rule.injectJs = rule.injectJs?.trim() || globalRule.injectJs;
-  rule.injectCss = rule.injectCss?.trim() || globalRule.injectCss;
+  [
+    "selector",
+    "keepSelector",
+    "terms",
+    "selectStyle",
+    "parentStyle",
+    "injectJs",
+    "injectCss",
+    "fixerSelector",
+  ].forEach((key) => {
+    if (!rule[key]?.trim()) {
+      rule[key] = globalRule[key];
+    }
+  });
+
+  [
+    "translator",
+    "fromLang",
+    "toLang",
+    "transOpen",
+    "transOnly",
+    "transTiming",
+    "transTag",
+    "transTitle",
+    "detectRemote",
+    "fixerFunc",
+  ].forEach((key) => {
+    if (rule[key] === undefined || rule[key] === GLOBAL_KEY) {
+      rule[key] = globalRule[key];
+    }
+  });
+
+  if (!rule.skipLangs || rule.skipLangs.length === 0) {
+    rule.skipLangs = globalRule.skipLangs;
+  }
   if (rule.textStyle === GLOBAL_KEY) {
     rule.textStyle = globalRule.textStyle;
     rule.bgColor = globalRule.bgColor;
@@ -80,11 +107,6 @@ export const matchRule = async (
     rule.bgColor = rule.bgColor?.trim() || globalRule.bgColor;
     rule.textDiyStyle = rule.textDiyStyle?.trim() || globalRule.textDiyStyle;
   }
-  ["translator", "fromLang", "toLang", "transOpen"].forEach((key) => {
-    if (rule[key] === GLOBAL_KEY) {
-      rule[key] = globalRule[key];
-    }
-  });
 
   return rule;
 };
@@ -131,6 +153,14 @@ export const checkRules = (rules) => {
         transOpen,
         bgColor,
         textDiyStyle,
+        transOnly,
+        transTiming,
+        transTag,
+        transTitle,
+        detectRemote,
+        skipLangs,
+        fixerSelector,
+        fixerFunc,
       }) => ({
         pattern: pattern.trim(),
         selector: type(selector) === "string" ? selector : "",
@@ -147,6 +177,14 @@ export const checkRules = (rules) => {
         toLang: matchValue([GLOBAL_KEY, ...toLangs], toLang),
         textStyle: matchValue([GLOBAL_KEY, ...OPT_STYLE_ALL], textStyle),
         transOpen: matchValue([GLOBAL_KEY, "true", "false"], transOpen),
+        transOnly: matchValue([GLOBAL_KEY, "true", "false"], transOnly),
+        transTiming: matchValue([GLOBAL_KEY, ...OPT_TIMING_ALL], transTiming),
+        transTag: matchValue([GLOBAL_KEY, "font", "span"], transTag),
+        transTitle: matchValue([GLOBAL_KEY, "true", "false"], transTitle),
+        detectRemote: matchValue([GLOBAL_KEY, "true", "false"], detectRemote),
+        skipLangs: type(skipLangs) === "array" ? skipLangs : [],
+        fixerSelector: type(fixerSelector) === "string" ? fixerSelector : "",
+        fixerFunc: matchValue([GLOBAL_KEY, ...FIXER_ALL], fixerFunc),
       })
     );
 

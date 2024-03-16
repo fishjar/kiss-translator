@@ -16,7 +16,7 @@ export function useTranslate(q, rule, setting) {
   const [loading, setLoading] = useState(false);
   const [sameLang, setSamelang] = useState(false);
 
-  const { translator, fromLang, toLang } = rule;
+  const { translator, fromLang, toLang, detectRemote, skipLangs = [] } = rule;
 
   useEffect(() => {
     (async () => {
@@ -29,12 +29,8 @@ export function useTranslate(q, rule, setting) {
           return;
         }
 
-        const deLang = await tryDetectLang(q, setting.detectRemote);
-        const disableLangs = setting.disableLangs || [];
-        if (
-          deLang &&
-          (toLang.includes(deLang) || disableLangs.includes(deLang))
-        ) {
+        const deLang = await tryDetectLang(q, detectRemote === "true");
+        if (deLang && (toLang.includes(deLang) || skipLangs.includes(deLang))) {
           setSamelang(true);
         } else {
           const [trText, isSame] = await apiTranslate({
@@ -54,7 +50,7 @@ export function useTranslate(q, rule, setting) {
         setLoading(false);
       }
     })();
-  }, [q, translator, fromLang, toLang, setting]);
+  }, [q, translator, fromLang, toLang, detectRemote, skipLangs, setting]);
 
   return { text, sameLang, loading };
 }

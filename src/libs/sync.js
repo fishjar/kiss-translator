@@ -2,7 +2,6 @@ import {
   APP_LCNAME,
   KV_SETTING_KEY,
   KV_RULES_KEY,
-  KV_WFRULES_KEY,
   KV_WORDS_KEY,
   KV_RULES_SHARE_KEY,
   KV_SALT_SHARE,
@@ -14,10 +13,8 @@ import {
   getSettingWithDefault,
   getRulesWithDefault,
   getWordsWithDefault,
-  getWebfixRulesWithDefault,
   setSetting,
   setRules,
-  setWebfixRules,
   setWords,
 } from "./storage";
 import { apiSyncData } from "../apis";
@@ -142,25 +139,6 @@ export const trySyncRules = async () => {
 };
 
 /**
- * 同步修复规则
- * @returns
- */
-const syncWebfixRules = async () => {
-  const res = await syncData(KV_WFRULES_KEY, getWebfixRulesWithDefault);
-  if (res?.isNew) {
-    await setWebfixRules(res.value);
-  }
-};
-
-export const trySyncWebfixRules = async () => {
-  try {
-    await syncWebfixRules();
-  } catch (err) {
-    console.log("[sync user webfix rules]", err);
-  }
-};
-
-/**
  * 同步词汇
  * @returns
  */
@@ -207,13 +185,11 @@ export const syncShareRules = async ({ rules, syncUrl, syncKey }) => {
 export const syncSettingAndRules = async () => {
   await syncSetting();
   await syncRules();
-  await syncWebfixRules();
   await syncWords();
 };
 
 export const trySyncSettingAndRules = async () => {
   await trySyncSetting();
   await trySyncRules();
-  await trySyncWebfixRules();
   await trySyncWords();
 };

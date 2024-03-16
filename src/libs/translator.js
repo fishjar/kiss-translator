@@ -9,9 +9,9 @@ import {
   OPT_STYLE_DASHLINE,
   OPT_STYLE_FUZZY,
   SHADOW_KEY,
-  OPT_MOUSEKEY_DISABLE,
-  OPT_MOUSEKEY_PAGEOPEN,
-  OPT_MOUSEKEY_MOUSEOVER,
+  OPT_TIMING_PAGESCROLL,
+  OPT_TIMING_PAGEOPEN,
+  OPT_TIMING_MOUSEOVER,
   DEFAULT_TRANS_APIS,
 } from "../config";
 import Content from "../views/Content";
@@ -29,7 +29,6 @@ import { injectInlineJs, injectInternalCss } from "./injector";
 export class Translator {
   _rule = {};
   _setting = {};
-  _fixerSetting = null;
   _rootNodes = new Set();
   _tranNodes = new Map();
   _skipNodeNames = [
@@ -104,14 +103,13 @@ export class Translator {
     };
   };
 
-  constructor(rule, setting, fixerSetting) {
+  constructor(rule, setting) {
     const { fetchInterval, fetchLimit } = setting;
     updateFetchPool(fetchInterval, fetchLimit);
     this._overrideAttachShadow();
 
     this._setting = setting;
     this._rule = rule;
-    this._fixerSetting = fixerSetting;
 
     this._keepSelector = (rule.keepSelector || "")
       .split(SHADOW_KEY)
@@ -267,14 +265,15 @@ export class Translator {
   };
 
   _register = () => {
-    const { fromLang, toLang, injectJs, injectCss } = this._rule;
+    const { fromLang, toLang, injectJs, injectCss, fixerSelector, fixerFunc } =
+      this._rule;
     if (fromLang === toLang) {
       return;
     }
 
     // webfix
-    if (this._fixerSetting) {
-      runFixer(this._fixerSetting);
+    if (fixerSelector && fixerFunc !== "-") {
+      runFixer(fixerSelector, fixerFunc);
     }
 
     // 注入用户JS/CSS
@@ -299,14 +298,14 @@ export class Translator {
     });
 
     if (
-      !this._setting.mouseKey ||
-      this._setting.mouseKey === OPT_MOUSEKEY_DISABLE
+      !this._rule.transTiming ||
+      this._rule.transTiming === OPT_TIMING_PAGESCROLL
     ) {
       // 监听节点显示
       this._tranNodes.forEach((_, node) => {
         this._interseObserver.observe(node);
       });
-    } else if (this._setting.mouseKey === OPT_MOUSEKEY_PAGEOPEN) {
+    } else if (this._rule.transTiming === OPT_TIMING_PAGEOPEN) {
       // 全文直接翻译
       this._tranNodes.forEach((_, node) => {
         this._render(node);
@@ -321,7 +320,7 @@ export class Translator {
     }
 
     // 翻译页面标题
-    if (this._setting.transTitle && !this._docTitle) {
+    if (this._rule.transTitle === "true" && !this._docTitle) {
       const title = document.title;
       this._docTitle = title;
       this.translateText(title).then((trText) => {
@@ -336,8 +335,8 @@ export class Translator {
       return;
     }
 
-    const key = this._setting.mouseKey.slice(3);
-    if (this._setting.mouseKey === OPT_MOUSEKEY_MOUSEOVER || e[key]) {
+    const key = this._rule.transTiming.slice(3);
+    if (this._rule.transTiming === OPT_TIMING_MOUSEOVER || e[key]) {
       e.target.removeEventListener("mouseenter", this._handleMouseover);
       e.target.removeEventListener("mouseleave", this._handleMouseout);
       this._render(e.target);
@@ -357,7 +356,7 @@ export class Translator {
 
   _handleKeydown = (e) => {
     // console.log("keydown", e);
-    const key = this._setting.mouseKey.slice(3);
+    const key = this._rule.transTiming.slice(3);
     if (e[key] && this._mouseoverNode) {
       this._mouseoverNode.removeEventListener(
         "mouseenter",
@@ -392,12 +391,12 @@ export class Translator {
 
     this._tranNodes.forEach((innerHTML, node) => {
       if (
-        !this._setting.mouseKey ||
-        this._setting.mouseKey === OPT_MOUSEKEY_DISABLE
+        !this._rule.transTiming ||
+        this._rule.transTiming === OPT_TIMING_PAGESCROLL
       ) {
         // 解除节点显示监听
         this._interseObserver.unobserve(node);
-      } else if (this._setting.mouseKey !== OPT_MOUSEKEY_PAGEOPEN) {
+      } else if (this._rule.transTiming !== OPT_TIMING_PAGEOPEN) {
         // 移除鼠标悬停监听
         // node.style.pointerEvents = "none";
         node.removeEventListener("mouseenter", this._handleMouseover);
@@ -405,7 +404,7 @@ export class Translator {
       }
 
       // 移除/恢复元素
-      if (innerHTML && this._setting.transOnly) {
+      if (innerHTML && this._rule.transOnly === "true") {
         node.innerHTML = innerHTML;
       } else {
         node.querySelector(APP_LCNAME)?.remove();
@@ -446,7 +445,7 @@ export class Translator {
 
     // 已翻译
     if (traEl) {
-      if (this._setting.transOnly) {
+      if (this._rule.transOnly === "true") {
         return;
       }
 
@@ -465,7 +464,7 @@ export class Translator {
     }
 
     let q = el.innerText.trim();
-    if (this._setting.transOnly) {
+    if (this._rule.transOnly === "true") {
       this._tranNodes.set(el, el.innerHTML);
     } else {
       this._tranNodes.set(el, q);
@@ -522,7 +521,7 @@ export class Translator {
 
     traEl = document.createElement(APP_LCNAME);
     traEl.style.visibility = "visible";
-    // if (this._setting.transOnly) {
+    // if (this._rule.transOnly === "true") {
     //   el.innerHTML = "";
     // }
     const { selectStyle, parentStyle } = this._rule;
@@ -531,8 +530,6 @@ export class Translator {
     if (el.parentElement) {
       el.parentElement.style.cssText += parentStyle;
     }
-
-    // console.log({ q, keeps });
 
     const root = createRoot(traEl);
     root.render(<Content q={q} keeps={keeps} translator={this} $el={el} />);

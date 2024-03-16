@@ -11,8 +11,6 @@ import {
   OPT_STYLE_DIY,
   DEFAULT_COLOR,
   MSG_TRANS_CURRULE,
-  TRANS_NEWLINE_LENGTH,
-  DEFAULT_TRANS_TAG,
 } from "../../config";
 import { useTranslate } from "../../hooks/Translate";
 import { styled, css } from "@mui/material/styles";
@@ -87,13 +85,10 @@ const StyledSpan = styled("span")`
 export default function Content({ q, keeps, translator, $el }) {
   const [rule, setRule] = useState(translator.rule);
   const { text, sameLang, loading } = useTranslate(q, rule, translator.setting);
-  const { transOpen, textStyle, bgColor = "", textDiyStyle = "" } = rule;
+  const { transOpen, textStyle, bgColor, textDiyStyle, transOnly, transTag } =
+    rule;
 
-  const {
-    newlineLength = TRANS_NEWLINE_LENGTH,
-    transTag = DEFAULT_TRANS_TAG,
-    transOnly = false,
-  } = translator.setting;
+  const { newlineLength } = translator.setting;
 
   const handleKissEvent = (e) => {
     const { action, args } = e.detail;
@@ -113,7 +108,7 @@ export default function Content({ q, keeps, translator, $el }) {
   }, [translator.eventName]);
 
   const gap = useMemo(() => {
-    if (transOnly) {
+    if (transOnly === "true") {
       return "";
     }
     return q.length >= newlineLength ? <br /> : " ";
@@ -142,7 +137,11 @@ export default function Content({ q, keeps, translator, $el }) {
     return;
   }
 
-  if (transOnly && transOpen === "true" && $el.querySelector(APP_LCNAME)) {
+  if (
+    transOnly === "true" &&
+    transOpen === "true" &&
+    $el.querySelector(APP_LCNAME)
+  ) {
     Array.from($el.childNodes).forEach((el) => {
       if (el.localName !== APP_LCNAME) {
         el.remove();

@@ -62,9 +62,6 @@ A simple, open source [bilingual translation extension & Greasemonkey script](ht
 - Community subscription rules: [https://github.com/fishjar/kiss-rules](https://github.com/fishjar/kiss-rules)
   - Provides the latest and most complete list of subscription rules maintained by the community.
   - Help with rules-related issues.
-- Web page correction script: [https://github.com/fishjar/kiss-webfixer](https://github.com/fishjar/kiss-webfixer)
-  - Fixed scripts for some special sites.
-  - So that the translation software can get better display effect.
 - Translation interface agent: [https://github.com/fishjar/kiss-proxy](https://github.com/fishjar/kiss-proxy)
   - If you encounter network problems when accessing a certain translation interface, this proxy service may help you.
   - Deploy and manage by yourself.

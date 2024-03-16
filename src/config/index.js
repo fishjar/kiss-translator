@@ -24,12 +24,10 @@ export const STOKEY_MSAUTH = `${APP_NAME}_msauth`;
 export const STOKEY_BDAUTH = `${APP_NAME}_bdauth`;
 export const STOKEY_SETTING = `${APP_NAME}_setting`;
 export const STOKEY_RULES = `${APP_NAME}_rules`;
-export const STOKEY_WFRULES = `${APP_NAME}_webfix_rules`;
 export const STOKEY_WORDS = `${APP_NAME}_words`;
 export const STOKEY_SYNC = `${APP_NAME}_sync`;
 export const STOKEY_FAB = `${APP_NAME}_fab`;
 export const STOKEY_RULESCACHE_PREFIX = `${APP_NAME}_rulescache_`;
-export const STOKEY_WEBFIXCACHE_PREFIX = `${APP_NAME}_webfixcache_`;
 
 export const CMD_TOGGLE_TRANSLATE = "toggleTranslate";
 export const CMD_TOGGLE_STYLE = "toggleStyle";
@@ -44,7 +42,6 @@ export const CLIENT_USERSCRIPT = "userscript";
 export const CLIENT_EXTS = [CLIENT_CHROME, CLIENT_EDGE, CLIENT_FIREFOX];
 
 export const KV_RULES_KEY = "kiss-rules.json";
-export const KV_WFRULES_KEY = "kiss-webfix.json";
 export const KV_WORDS_KEY = "kiss-words.json";
 export const KV_RULES_SHARE_KEY = "kiss-rules-share.json";
 export const KV_SETTING_KEY = "kiss-setting.json";
@@ -300,19 +297,19 @@ export const OPT_STYLE_USE_COLOR = [
   OPT_STYLE_BLOCKQUOTE,
 ];
 
-export const OPT_MOUSEKEY_DISABLE = "mk_disable"; // 滚动加载翻译
-export const OPT_MOUSEKEY_PAGEOPEN = "mk_pageopen"; // 直接翻译到底
-export const OPT_MOUSEKEY_MOUSEOVER = "mk_mouseover";
-export const OPT_MOUSEKEY_CONTROL = "mk_ctrlKey";
-export const OPT_MOUSEKEY_SHIFT = "mk_shiftKey";
-export const OPT_MOUSEKEY_ALT = "mk_altKey";
-export const OPT_MOUSEKEY_ALL = [
-  OPT_MOUSEKEY_DISABLE,
-  OPT_MOUSEKEY_PAGEOPEN,
-  OPT_MOUSEKEY_MOUSEOVER,
-  OPT_MOUSEKEY_CONTROL,
-  OPT_MOUSEKEY_SHIFT,
-  OPT_MOUSEKEY_ALT,
+export const OPT_TIMING_PAGESCROLL = "mk_pagescroll"; // 滚动加载翻译
+export const OPT_TIMING_PAGEOPEN = "mk_pageopen"; // 直接翻译到底
+export const OPT_TIMING_MOUSEOVER = "mk_mouseover";
+export const OPT_TIMING_CONTROL = "mk_ctrlKey";
+export const OPT_TIMING_SHIFT = "mk_shiftKey";
+export const OPT_TIMING_ALT = "mk_altKey";
+export const OPT_TIMING_ALL = [
+  OPT_TIMING_PAGESCROLL,
+  OPT_TIMING_PAGEOPEN,
+  OPT_TIMING_MOUSEOVER,
+  OPT_TIMING_CONTROL,
+  OPT_TIMING_SHIFT,
+  OPT_TIMING_ALT,
 ];
 
 export const DEFAULT_FETCH_LIMIT = 10; // 默认最大任务数量
@@ -325,24 +322,34 @@ export const PROMPT_PLACE_TEXT = "{{text}}"; // 占位符
 export const DEFAULT_COLOR = "#209CEE"; // 默认高亮背景色/线条颜色
 
 export const DEFAULT_TRANS_TAG = "font";
+export const DEFAULT_SELECT_STYLE =
+  "-webkit-line-clamp: unset; max-height: none; height: auto;";
 
 // 全局规则
 export const GLOBLA_RULE = {
-  pattern: "*",
-  selector: DEFAULT_SELECTOR,
-  keepSelector: DEFAULT_KEEP_SELECTOR,
-  terms: "",
-  translator: OPT_TRANS_MICROSOFT,
-  fromLang: "auto",
-  toLang: "zh-CN",
-  textStyle: OPT_STYLE_DASHLINE,
-  transOpen: "false",
-  bgColor: "",
-  textDiyStyle: "",
-  selectStyle: "-webkit-line-clamp: unset; max-height: none; height: auto;",
-  parentStyle: "-webkit-line-clamp: unset; max-height: none; height: auto;",
-  injectJs: "",
-  injectCss: "",
+  pattern: "*", // 匹配网址
+  selector: DEFAULT_SELECTOR, // 选择器
+  keepSelector: DEFAULT_KEEP_SELECTOR, // 保留元素选择器
+  terms: "", // 专业术语
+  translator: OPT_TRANS_MICROSOFT, // 翻译服务
+  fromLang: "auto", // 源语言
+  toLang: "zh-CN", // 目标语言
+  textStyle: OPT_STYLE_DASHLINE, // 译文样式
+  transOpen: "false", // 开启翻译
+  bgColor: "", // 译文颜色
+  textDiyStyle: "", // 自定义译文样式
+  selectStyle: DEFAULT_SELECT_STYLE, // 选择器节点样式
+  parentStyle: DEFAULT_SELECT_STYLE, // 选择器父节点样式
+  injectJs: "", // 注入JS
+  injectCss: "", // 注入CSS
+  transOnly: "false", // 是否仅显示译文
+  transTiming: OPT_TIMING_PAGESCROLL, // 翻译时机/鼠标悬停翻译
+  transTag: DEFAULT_TRANS_TAG, // 译文元素标签
+  transTitle: "false", // 是否同时翻译页面标题
+  detectRemote: "false", // 是否使用远程语言检测
+  skipLangs: [], // 不翻译的语言
+  fixerSelector: "", // 修复函数选择器
+  fixerFunc: "-", // 修复函数
 };
 
 // 输入框翻译
@@ -458,23 +465,24 @@ export const DEFAULT_SETTING = {
   newlineLength: TRANS_NEWLINE_LENGTH,
   clearCache: false, // 是否在浏览器下次启动时清除缓存
   injectRules: true, // 是否注入订阅规则
-  injectWebfix: true, // 是否注入修复补丁
-  detectRemote: false, // 是否使用远程语言检测
-  contextMenus: true, // 是否添加右键菜单(作废)
+  // injectWebfix: true, // 是否注入修复补丁(作废)
+  // detectRemote: false, // 是否使用远程语言检测(移至rule，作废)
+  // contextMenus: true, // 是否添加右键菜单(作废)
   contextMenuType: 1, // 右键菜单类型(0不显示，1简单菜单，2多级菜单)
-  transTag: DEFAULT_TRANS_TAG, // 译文元素标签
-  transOnly: false, // 是否仅显示译文
-  transTitle: false, // 是否同时翻译页面标题
+  // transTag: DEFAULT_TRANS_TAG, // 译文元素标签(移至rule，作废)
+  // transOnly: false, // 是否仅显示译文(移至rule，作废)
+  // transTitle: false, // 是否同时翻译页面标题(移至rule，作废)
   subrulesList: DEFAULT_SUBRULES_LIST, // 订阅列表
   owSubrule: DEFAULT_OW_RULE, // 覆写订阅规则
   transApis: DEFAULT_TRANS_APIS, // 翻译接口
-  mouseKey: OPT_MOUSEKEY_DISABLE, // 翻译时机/鼠标悬停翻译
+  // mouseKey: OPT_TIMING_PAGESCROLL, // 翻译时机/鼠标悬停翻译(移至rule，作废)
   shortcuts: DEFAULT_SHORTCUTS, // 快捷键
   inputRule: DEFAULT_INPUT_RULE, // 输入框设置
   tranboxSetting: DEFAULT_TRANBOX_SETTING, // 划词翻译设置
   touchTranslate: 2, // 触屏翻译
   blacklist: DEFAULT_BLACKLIST.join(",\n"), // 禁用翻译名单
-  disableLangs: [], // 不翻译的语言
+  // disableLangs: [], // 不翻译的语言(移至rule，作废)
+  transInterval: 500, // 翻译间隔时间
 };
 
 export const DEFAULT_RULES = [GLOBLA_RULE];

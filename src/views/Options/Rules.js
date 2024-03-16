@@ -15,6 +15,9 @@ import {
   OPT_STYLE_USE_COLOR,
   URL_KISS_RULES_NEW_ISSUE,
   OPT_SYNCTYPE_WORKER,
+  OPT_TIMING_PAGESCROLL,
+  DEFAULT_TRANS_TAG,
+  OPT_TIMING_ALL,
 } from "../../config";
 import { useState, useEffect, useMemo } from "react";
 import { useI18n } from "../../hooks/I18n";
@@ -50,12 +53,10 @@ import HelpButton from "./HelpButton";
 import { useSyncCaches } from "../../hooks/Sync";
 import DownloadButton from "./DownloadButton";
 import UploadButton from "./UploadButton";
+import { FIXER_ALL } from "../../libs/webfix";
 
 function RuleFields({ rule, rules, setShow, setKeyword }) {
-  const initFormValues = rule || {
-    ...DEFAULT_RULE,
-    transOpen: "true",
-  };
+  const initFormValues = { ...DEFAULT_RULE, ...(rule || {}) };
   const editMode = !!rule;
 
   const i18n = useI18n();
@@ -79,6 +80,14 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
     transOpen,
     bgColor,
     textDiyStyle,
+    transOnly = "false",
+    transTiming = OPT_TIMING_PAGESCROLL,
+    transTag = DEFAULT_TRANS_TAG,
+    transTitle = "false",
+    detectRemote = "false",
+    skipLangs = [],
+    fixerSelector = "",
+    fixerFunc = "-",
   } = formValues;
 
   const hasSamePattern = (str) => {
@@ -323,6 +332,141 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
 
         {showMore && (
           <>
+            <Box>
+              <Grid container spacing={2} columns={12}>
+                <Grid item xs={12} sm={6} md={3} lg={2}>
+                  <TextField
+                    select
+                    size="small"
+                    fullWidth
+                    name="transOnly"
+                    value={transOnly}
+                    label={i18n("show_only_translations")}
+                    disabled={disabled}
+                    onChange={handleChange}
+                  >
+                    {GlobalItem}
+                    <MenuItem value={"false"}>{i18n("disable")}</MenuItem>
+                    <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
+                  </TextField>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3} lg={2}>
+                  <TextField
+                    select
+                    size="small"
+                    fullWidth
+                    name="transTiming"
+                    value={transTiming}
+                    label={i18n("translate_timing")}
+                    disabled={disabled}
+                    onChange={handleChange}
+                  >
+                    {GlobalItem}
+                    {OPT_TIMING_ALL.map((item) => (
+                      <MenuItem key={item} value={item}>
+                        {i18n(item)}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3} lg={2}>
+                  <TextField
+                    select
+                    size="small"
+                    fullWidth
+                    name="transTag"
+                    value={transTag}
+                    label={i18n("translation_element_tag")}
+                    disabled={disabled}
+                    onChange={handleChange}
+                  >
+                    {GlobalItem}
+                    <MenuItem value={"span"}>{`<span>`}</MenuItem>
+                    <MenuItem value={"font"}>{`<font>`}</MenuItem>
+                  </TextField>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3} lg={2}>
+                  <TextField
+                    select
+                    size="small"
+                    fullWidth
+                    name="transTitle"
+                    value={transTitle}
+                    label={i18n("translate_page_title")}
+                    disabled={disabled}
+                    onChange={handleChange}
+                  >
+                    {GlobalItem}
+                    <MenuItem value={"false"}>{i18n("disable")}</MenuItem>
+                    <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
+                  </TextField>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3} lg={2}>
+                  <TextField
+                    select
+                    size="small"
+                    fullWidth
+                    name="detectRemote"
+                    value={detectRemote}
+                    label={i18n("detect_lang_remote")}
+                    disabled={disabled}
+                    onChange={handleChange}
+                  >
+                    {GlobalItem}
+                    <MenuItem value={"false"}>{i18n("disable")}</MenuItem>
+                    <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
+                  </TextField>
+                </Grid>
+              </Grid>
+            </Box>
+
+            <TextField
+              select
+              size="small"
+              label={i18n("disable_langs")}
+              helperText={i18n("disable_langs_helper")}
+              name="skipLangs"
+              value={skipLangs}
+              disabled={disabled}
+              onChange={handleChange}
+              SelectProps={{
+                multiple: true,
+              }}
+            >
+              {OPT_LANGS_TO.map(([langKey, langName]) => (
+                <MenuItem key={langKey} value={langKey}>
+                  {langName}
+                </MenuItem>
+              ))}
+            </TextField>
+
+            <TextField
+              size="small"
+              label={i18n("fixer_selector")}
+              name="fixerSelector"
+              value={fixerSelector}
+              disabled={disabled}
+              onChange={handleChange}
+              multiline
+            />
+            <TextField
+              select
+              size="small"
+              name="fixerFunc"
+              value={fixerFunc}
+              label={i18n("fixer_function")}
+              helperText={i18n("fixer_function_helper")}
+              disabled={disabled}
+              onChange={handleChange}
+            >
+              {GlobalItem}
+              {FIXER_ALL.map((item) => (
+                <MenuItem key={item} value={item}>
+                  {item}
+                </MenuItem>
+              ))}
+            </TextField>
+
             <TextField
               size="small"
               label={i18n("terms")}

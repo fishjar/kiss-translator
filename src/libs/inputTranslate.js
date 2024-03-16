@@ -7,7 +7,6 @@ import {
 import { genEventName, removeEndchar, matchInputStr, sleep } from "./utils";
 import { stepShortcutRegister } from "./shortcut";
 import { apiTranslate } from "../apis";
-import { tryDetectLang } from ".";
 import { loadingSvg } from "./svg";
 
 function isInputNode(node) {
@@ -83,7 +82,7 @@ function removeLoading(node, loadingId) {
 /**
  * 输入框翻译
  */
-export default function inputTranslate ({
+export default function inputTranslate({
   inputRule: {
     transOpen,
     triggerShortcut,
@@ -95,7 +94,6 @@ export default function inputTranslate ({
     transSign,
   } = DEFAULT_INPUT_RULE,
   transApis,
-  detectRemote,
 }) {
   if (!transOpen) {
     return;
@@ -155,11 +153,6 @@ export default function inputTranslate ({
       const loadingId = "kiss-" + genEventName();
       try {
         addLoading(node, loadingId);
-
-        const deLang = await tryDetectLang(text, detectRemote);
-        if (deLang && toLang.includes(deLang)) {
-          return;
-        }
 
         const [trText, isSame] = await apiTranslate({
           translator,

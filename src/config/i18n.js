@@ -187,7 +187,7 @@ export const I18N = {
     zh: `翻译时机`,
     en: `Translate Timing`,
   },
-  mk_disable: {
+  mk_pagescroll: {
     zh: `滚动加载翻译（推荐）`,
     en: `Rolling Loading (Suggested)`,
   },
@@ -408,11 +408,11 @@ export const I18N = {
     en: `0. Supports regular expression matching. 1. Separate multiple terms with newlines or semicolons ";". 2. Terms and translations are separated by English commas ",". 3. If there is no translation, the term will be deemed not to be translated. 4. Leave blank to adopt the global setting.`,
   },
   selector_style: {
-    zh: `选择器样式`,
+    zh: `选择器节点样式`,
     en: `Selector Style`,
   },
   selector_parent_style: {
-    zh: `选择器父样式`,
+    zh: `选择器父节点样式`,
     en: `Selector Parent Style`,
   },
   inject_js: {
@@ -786,5 +786,9 @@ export const I18N = {
   more: {
     zh: `更多`,
     en: `More`,
+  },
+  fixer_selector: {
+    zh: `修复函数选择器`,
+    en: `Fixer Selector`,
   },
 };

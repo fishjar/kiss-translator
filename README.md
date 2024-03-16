@@ -62,9 +62,6 @@
 - 社区订阅规则: [https://github.com/fishjar/kiss-rules](https://github.com/fishjar/kiss-rules)
   - 提供社区维护的，最新最全的订阅规则列表。
   - 求助规则相关的问题。
-- 网页修正脚本: [https://github.com/fishjar/kiss-webfixer](https://github.com/fishjar/kiss-webfixer)
-  - 针对一些特殊网站的修正脚本。
-  - 以便翻译软件得到更好的展示效果。
 - 翻译接口代理: [https://github.com/fishjar/kiss-proxy](https://github.com/fishjar/kiss-proxy)
   - 如果访问某个翻译接口遇到网络问题，这个代理服务也许可以帮到你。
   - 自己部署，自己管理。

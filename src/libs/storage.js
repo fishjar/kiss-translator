@@ -1,14 +1,12 @@
 import {
   STOKEY_SETTING,
   STOKEY_RULES,
-  STOKEY_WFRULES,
   STOKEY_WORDS,
   STOKEY_FAB,
   STOKEY_SYNC,
   STOKEY_MSAUTH,
   STOKEY_BDAUTH,
   STOKEY_RULESCACHE_PREFIX,
-  STOKEY_WEBFIXCACHE_PREFIX,
   DEFAULT_SETTING,
   DEFAULT_RULES,
   DEFAULT_SYNC,
@@ -86,8 +84,10 @@ export const storage = {
  * 设置信息
  */
 export const getSetting = () => getObj(STOKEY_SETTING);
-export const getSettingWithDefault = async () =>
-  (await getSetting()) || DEFAULT_SETTING;
+export const getSettingWithDefault = async () => ({
+  ...DEFAULT_SETTING,
+  ...((await getSetting()) || {}),
+});
 export const setSetting = (val) => setObj(STOKEY_SETTING, val);
 export const updateSetting = (obj) => putObj(STOKEY_SETTING, obj);
 
@@ -98,14 +98,6 @@ export const getRules = () => getObj(STOKEY_RULES);
 export const getRulesWithDefault = async () =>
   (await getRules()) || DEFAULT_RULES;
 export const setRules = (val) => setObj(STOKEY_RULES, val);
-
-/**
- * 修复规则列表
- */
-export const getWebfixRules = () => getObj(STOKEY_WFRULES);
-export const getWebfixRulesWithDefault = async () =>
-  (await getWebfixRules()) || [];
-export const setWebfixRules = (val) => setObj(STOKEY_WFRULES, val);
 
 /**
  * 词汇列表
@@ -122,14 +114,6 @@ export const getSubRulesWithDefault = async () => (await getSubRules()) || [];
 export const delSubRules = (url) => del(STOKEY_RULESCACHE_PREFIX + url);
 export const setSubRules = (url, val) =>
   setObj(STOKEY_RULESCACHE_PREFIX + url, val);
-
-/**
- * 修复站点
- */
-export const getWebfix = (url) => getObj(STOKEY_WEBFIXCACHE_PREFIX + url);
-export const getWebfixWithDefault = async () => (await getWebfix()) || [];
-export const setWebfix = (url, val) =>
-  setObj(STOKEY_WEBFIXCACHE_PREFIX + url, val);
 
 /**
  * fab位置

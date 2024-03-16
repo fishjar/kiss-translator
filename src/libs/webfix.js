@@ -1,55 +1,18 @@
-import { isMatch } from "./utils";
-import { getWebfix, setWebfix, getWebfixRulesWithDefault } from "./storage";
-import { apiFetch } from "../apis";
-
 /**
  * 修复程序类型
  */
+const FIXER_NONE = "-";
 const FIXER_BR = "br";
 const FIXER_BN = "bn";
 const FIXER_BR_DIV = "brToDiv";
 const FIXER_BN_DIV = "bnToDiv";
-const FIXER_FONTSIZE = "fontSize";
+
 export const FIXER_ALL = [
+  FIXER_NONE,
   FIXER_BR,
   FIXER_BN,
   FIXER_BR_DIV,
   FIXER_BN_DIV,
-  // FIXER_FONTSIZE,
-];
-
-/**
- * 需要修复的站点列表
- * - pattern 匹配网址
- * - selector 需要修复的选择器
- * - rootSelector 需要监听的选择器，可留空
- * - fixer 修复函数，可针对不同网址，选用不同修复函数
- */
-const DEFAULT_SITES = [
-  {
-    pattern: "www.phoronix.com",
-    selector: ".content",
-    rootSelector: "",
-    fixer: FIXER_BR,
-  },
-  {
-    pattern: "t.me/s/",
-    selector: ".tgme_widget_message_text",
-    rootSelector: ".tgme_channel_history",
-    fixer: FIXER_BR,
-  },
-  {
-    pattern: "baidu.com",
-    selector: "html",
-    rootSelector: "",
-    fixer: FIXER_FONTSIZE,
-  },
-  {
-    pattern: "chat.openai.com",
-    selector: "div[data-testid^=conversation-turn] .items-start > div",
-    rootSelector: "",
-    fixer: FIXER_BN,
-  },
 ];
 
 /**
@@ -136,14 +99,6 @@ function bnDivFixer(node) {
 }
 
 /**
- * 修复字体大小问题，如 baidu.com
- * @param {*} node
- */
-function fontSizeFixer(node) {
-  node.style.cssText += "font-size:1em;";
-}
-
-/**
  * 修复程序映射
  */
 const fixerMap = {
@@ -151,7 +106,6 @@ const fixerMap = {
   [FIXER_BN]: bnFixer,
   [FIXER_BR_DIV]: brDivFixer,
   [FIXER_BN_DIV]: bnDivFixer,
-  [FIXER_FONTSIZE]: fontSizeFixer,
 };
 
 /**
@@ -190,67 +144,15 @@ function run(selector, fixer, rootSelector) {
 }
 
 /**
- * 同步远程数据
- * @param {*} url
- * @returns
- */
-export const syncWebfix = async (url) => {
-  const sites = await apiFetch(url);
-  await setWebfix(url, sites);
-  return sites;
-};
-
-/**
- * 从缓存或远程加载修复站点
- * @param {*} url
- * @returns
- */
-export const loadOrFetchWebfix = async (url) => {
-  try {
-    let sites = await getWebfix(url);
-    if (sites?.length) {
-      return sites;
-    }
-    return syncWebfix(url);
-  } catch (err) {
-    console.log("[load webfix]", err.message);
-    return DEFAULT_SITES;
-  }
-};
-
-/**
  * 执行fixer
  * @param {*} param0
  */
-export async function runFixer({ selector, fixer, rootSelector }) {
+export async function runFixer(selector, fixer = "-", rootSelector) {
   try {
-    run(selector, fixerMap[fixer], rootSelector);
+    if (Object.keys(fixerMap).includes(fixer)) {
+      run(selector, fixerMap[fixer], rootSelector);
+    }
   } catch (err) {
     console.error(`[kiss-webfix run]: ${err.message}`);
   }
-}
-
-/**
- * 匹配fixer配置
- */
-export async function matchFixer(href, { injectWebfix }) {
-  if (!injectWebfix) {
-    return null;
-  }
-
-  try {
-    const userSites = await getWebfixRulesWithDefault();
-    const subSites = await loadOrFetchWebfix(process.env.REACT_APP_WEBFIXURL);
-    const sites = [...userSites, ...subSites];
-    for (let i = 0; i < sites.length; i++) {
-      const site = sites[i];
-      if (isMatch(href, site.pattern) && fixerMap[site.fixer]) {
-        return site;
-      }
-    }
-  } catch (err) {
-    console.error(`[kiss-webfix match]: ${err.message}`);
-  }
-
-  return null;
 }

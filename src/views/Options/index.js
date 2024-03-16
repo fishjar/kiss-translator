@@ -18,7 +18,6 @@ import Stack from "@mui/material/Stack";
 import { adaptScript } from "../../libs/gm";
 import Alert from "@mui/material/Alert";
 import Apis from "./Apis";
-import Webfix from "./Webfix";
 import InputSetting from "./InputSetting";
 import Tranbox from "./Tranbox";
 import FavWords from "./FavWords";
@@ -125,7 +124,6 @@ export default function Options() {
                 <Route path="tranbox" element={<Tranbox />} />
                 <Route path="apis" element={<Apis />} />
                 <Route path="sync" element={<SyncSetting />} />
-                <Route path="webfix" element={<Webfix />} />
                 <Route path="words" element={<FavWords />} />
                 <Route path="about" element={<About />} />
               </Route>

@@ -20,7 +20,6 @@ import { touchTapListener } from "./libs/touch";
 import { debounce, genEventName } from "./libs/utils";
 import { handlePing, injectScript } from "./libs/gm";
 import { browser } from "./libs/browser";
-import { matchFixer } from "./libs/webfix";
 import { matchRule } from "./libs/rules";
 import { trySyncAllSubRules } from "./libs/subRules";
 import { isInBlacklist } from "./libs/blacklist";
@@ -223,12 +222,9 @@ export async function run(isUserscript = false) {
       return;
     }
 
-    // 不规范网页修复
-    const fixerSetting = await matchFixer(href, setting);
-
     // 翻译网页
     const rule = await matchRule(href, setting);
-    const translator = new Translator(rule, setting, fixerSetting);
+    const translator = new Translator(rule, setting);
 
     // 适配iframe
     if (isIframe) {

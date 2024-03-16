@@ -1,5 +1,4 @@
 import { isMatch } from "./utils";
-import { DEFAULT_BLACKLIST } from "../config";
 
 /**
  * 检查是否在黑名单中
@@ -7,7 +6,5 @@ import { DEFAULT_BLACKLIST } from "../config";
  * @param {*} param1
  * @returns
  */
-export const isInBlacklist = (
-  href,
-  { blacklist = DEFAULT_BLACKLIST.join(",\n") }
-) => blacklist.split(/\n|,/).some((url) => isMatch(href, url.trim()));
+export const isInBlacklist = (href, { blacklist }) =>
+  blacklist.split(/\n|,/).some((url) => isMatch(href, url.trim()));

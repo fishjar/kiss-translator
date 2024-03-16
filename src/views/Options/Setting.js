@@ -17,16 +17,12 @@ import {
   UI_LANGS,
   TRANS_NEWLINE_LENGTH,
   CACHE_NAME,
-  OPT_MOUSEKEY_ALL,
-  OPT_MOUSEKEY_DISABLE,
   OPT_SHORTCUT_TRANSLATE,
   OPT_SHORTCUT_STYLE,
   OPT_SHORTCUT_POPUP,
   OPT_SHORTCUT_SETTING,
-  OPT_LANGS_TO,
   DEFAULT_BLACKLIST,
   MSG_CONTEXT_MENUS,
-  DEFAULT_TRANS_TAG,
 } from "../../config";
 import { useShortcut } from "../../hooks/Shortcut";
 import ShortcutInput from "./ShortcutInput";
@@ -95,15 +91,9 @@ export default function Settings() {
     maxLength,
     clearCache,
     newlineLength = TRANS_NEWLINE_LENGTH,
-    mouseKey = OPT_MOUSEKEY_DISABLE,
-    detectRemote = false,
     contextMenuType = 1,
-    transTag = DEFAULT_TRANS_TAG,
-    transOnly = false,
-    transTitle = false,
     touchTranslate = 2,
     blacklist = DEFAULT_BLACKLIST.join(",\n"),
-    disableLangs = [],
   } = setting;
   const { isHide = false } = fab || {};
 
@@ -172,62 +162,6 @@ export default function Settings() {
         />
 
         <FormControl size="small">
-          <InputLabel>{i18n("translate_timing")}</InputLabel>
-          <Select
-            name="mouseKey"
-            value={mouseKey}
-            label={i18n("translate_timing")}
-            onChange={handleChange}
-          >
-            {OPT_MOUSEKEY_ALL.map((item) => (
-              <MenuItem key={item} value={item}>
-                {i18n(item)}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-        <FormControl size="small">
-          <InputLabel>{i18n("translation_element_tag")}</InputLabel>
-          <Select
-            name="transTag"
-            value={transTag}
-            label={i18n("translation_element_tag")}
-            onChange={handleChange}
-          >
-            <MenuItem value={"span"}>{`<span>`}</MenuItem>
-            <MenuItem value={"font"}>{`<font>`}</MenuItem>
-          </Select>
-        </FormControl>
-
-        <FormControl size="small">
-          <InputLabel>{i18n("show_only_translations")}</InputLabel>
-          <Select
-            name="transOnly"
-            value={transOnly}
-            label={i18n("show_only_translations")}
-            onChange={handleChange}
-          >
-            <MenuItem value={false}>{i18n("disable")}</MenuItem>
-            <MenuItem value={true}>{i18n("enable")}</MenuItem>
-          </Select>
-          <FormHelperText>{i18n("show_only_translations_help")}</FormHelperText>
-        </FormControl>
-
-        <FormControl size="small">
-          <InputLabel>{i18n("translate_page_title")}</InputLabel>
-          <Select
-            name="transTitle"
-            value={transTitle}
-            label={i18n("translate_page_title")}
-            onChange={handleChange}
-          >
-            <MenuItem value={false}>{i18n("disable")}</MenuItem>
-            <MenuItem value={true}>{i18n("enable")}</MenuItem>
-          </Select>
-        </FormControl>
-
-        <FormControl size="small">
           <InputLabel>{i18n("touch_translate_shortcut")}</InputLabel>
           <Select
             name="touchTranslate"
@@ -270,38 +204,6 @@ export default function Settings() {
             <MenuItem value={1}>{i18n("simple_context_menus")}</MenuItem>
             <MenuItem value={2}>{i18n("secondary_context_menus")}</MenuItem>
           </Select>
-        </FormControl>
-
-        <FormControl size="small">
-          <InputLabel>{i18n("detect_lang_remote")}</InputLabel>
-          <Select
-            name="detectRemote"
-            value={detectRemote}
-            label={i18n("detect_lang_remote")}
-            onChange={handleChange}
-          >
-            <MenuItem value={false}>{i18n("disable")}</MenuItem>
-            <MenuItem value={true}>{i18n("enable")}</MenuItem>
-          </Select>
-          <FormHelperText>{i18n("detect_lang_remote_help")}</FormHelperText>
-        </FormControl>
-
-        <FormControl size="small">
-          <InputLabel>{i18n("disable_langs")}</InputLabel>
-          <Select
-            multiple
-            name="disableLangs"
-            value={disableLangs}
-            label={i18n("disable_langs")}
-            onChange={handleChange}
-          >
-            {OPT_LANGS_TO.map(([langKey, langName]) => (
-              <MenuItem key={langKey} value={langKey}>
-                {langName}
-              </MenuItem>
-            ))}
-          </Select>
-          <FormHelperText>{i18n("disable_langs_helper")}</FormHelperText>
         </FormControl>
 
         {isExt ? (
