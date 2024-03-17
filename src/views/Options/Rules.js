@@ -7,6 +7,7 @@ import Alert from "@mui/material/Alert";
 import {
   GLOBAL_KEY,
   DEFAULT_RULE,
+  GLOBLA_RULE,
   OPT_LANGS_FROM,
   OPT_LANGS_TO,
   OPT_TRANS_ALL,
@@ -56,7 +57,10 @@ import UploadButton from "./UploadButton";
 import { FIXER_ALL } from "../../libs/webfix";
 
 function RuleFields({ rule, rules, setShow, setKeyword }) {
-  const initFormValues = { ...DEFAULT_RULE, ...(rule || {}) };
+  const initFormValues = {
+    ...(rule?.pattern === "*" ? GLOBLA_RULE : DEFAULT_RULE),
+    ...(rule || {}),
+  };
   const editMode = !!rule;
 
   const i18n = useI18n();
