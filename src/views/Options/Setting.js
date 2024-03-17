@@ -52,6 +52,9 @@ export default function Settings() {
       case "fetchInterval":
         value = limitNumber(value, 0, 5000);
         break;
+      case "transInterval":
+        value = limitNumber(value, 100, 5000);
+        break;
       case "minLength":
         value = limitNumber(value, 1, 100);
         break;
@@ -94,6 +97,7 @@ export default function Settings() {
     contextMenuType = 1,
     touchTranslate = 2,
     blacklist = DEFAULT_BLACKLIST.join(",\n"),
+    transInterval = 500,
   } = setting;
   const { isHide = false } = fab || {};
 
@@ -131,6 +135,15 @@ export default function Settings() {
           type="number"
           name="fetchInterval"
           defaultValue={fetchInterval}
+          onChange={handleChange}
+        />
+
+        <TextField
+          size="small"
+          label={i18n("translate_interval")}
+          type="number"
+          name="transInterval"
+          defaultValue={transInterval}
           onChange={handleChange}
         />
 

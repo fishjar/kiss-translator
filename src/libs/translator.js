@@ -430,10 +430,13 @@ export class Translator {
 
   _reTranslate = debounce(() => {
     if (this._rule.transOpen === "true") {
+      window.removeEventListener("keydown", this._handleKeydown);
+      this._mutaObserver.disconnect();
+      this._interseObserver.disconnect();
       this._removeInjector();
       this._register();
     }
-  }, 500);
+  }, this._setting.transInterval);
 
   _invalidLength = (q) =>
     !q ||

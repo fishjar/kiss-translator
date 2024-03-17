@@ -167,6 +167,10 @@ export const I18N = {
     zh: `请求间隔时间 (0-5000ms)`,
     en: `Request Interval (0-5000ms)`,
   },
+  translate_interval: {
+    zh: `翻译间隔时间 (100-5000ms)`,
+    en: `Translate Interval (100-5000ms)`,
+  },
   min_translate_length: {
     zh: `最小翻译长度 (1-100)`,
     en: `Min Translate Length (1-100)`,
