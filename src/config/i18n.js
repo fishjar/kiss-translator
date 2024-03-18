@@ -311,6 +311,10 @@ export const I18N = {
     zh: `2、“订阅规则”的注入位置是倒数第二的位置，因此除全局规则(*)外，“个人规则”优先级比“订阅规则”高，“个人规则”填写同样的网址会覆盖”订阅规则“的条目。`,
     en: `2. The injection position of "Subscription Rules" is the penultimate position. Therefore, except for the global rules (*), the priority of "Personal Rules" is higher than that of "Subscription Rules". Filling in the same url in "Personal Rules" will overwrite "Subscription Rules" entry.`,
   },
+  rules_warn_3: {
+    zh: `3、关于规则填写：输入框留空或下拉框选“*”表示采用全局规则。`,
+    en: `3. Regarding filling in the rules: Leave the input box blank or select "*" in the drop-down box to use global rule.`,
+  },
   sync_warn: {
     zh: `如果服务器存在其他客户端同步的数据，第一次同步将直接覆盖本地配置，后面则根据修改时间，新的覆盖旧的。`,
     en: `If the server has data synchronized by other clients, the first synchronization will directly overwrite the local configuration, and later, according to the modification time, the new one will overwrite the old one.`,
@@ -376,8 +380,8 @@ export const I18N = {
     en: `1. Supports the asterisk (*) wildcard character. 2. Separate multiple URLs with newlines or English commas ",".`,
   },
   selector_helper: {
-    zh: `1、遵循CSS选择器语法。2、留空表示采用全局设置。3、多个CSS选择器之间用“;”隔开。4、“shadow root”选择器和内部选择器用“>>>”隔开。`,
-    en: `1. Follow CSS selector syntax. 2. Leave blank to adopt the global setting. 3. Separate multiple CSS selectors with ";". 4. The "shadow root" selector and the internal selector are separated by ">>>".`,
+    zh: `1、遵循CSS选择器语法。2、多个CSS选择器之间用“;”隔开。3、“shadow root”选择器和内部选择器用“>>>”隔开。`,
+    en: `1. Follow CSS selector syntax. 2. Separate multiple CSS selectors with ";". 3. The "shadow root" selector and the internal selector are separated by ">>>".`,
   },
   translate_switch: {
     zh: `开启翻译`,
@@ -400,16 +404,16 @@ export const I18N = {
     en: `Keep unchanged selector`,
   },
   keep_selector_helper: {
-    zh: `1、遵循CSS选择器语法。2、留空表示采用全局设置。3、子元素选择器用“>>>”隔开。`,
-    en: `1. Follow CSS selector syntax. 2. Leave blank to adopt the global setting. 3.Sub-element selectors are separated by ">>>".`,
+    zh: `1、遵循CSS选择器语法。2、子元素选择器用“>>>”隔开。`,
+    en: `1. Follow CSS selector syntax. 2. Sub-element selectors are separated by ">>>".`,
   },
   terms: {
     zh: `专业术语`,
     en: `Terms`,
   },
   terms_helper: {
-    zh: `0、支持正则表达式匹配。1、多条术语用换行或分号“;”隔开。2、术语和译文用英文逗号“,”隔开。3、没有译文视为不翻译术语。4、留空表示采用全局设置。`,
-    en: `0. Supports regular expression matching. 1. Separate multiple terms with newlines or semicolons ";". 2. Terms and translations are separated by English commas ",". 3. If there is no translation, the term will be deemed not to be translated. 4. Leave blank to adopt the global setting.`,
+    zh: `1、支持正则表达式匹配。2、多条术语用换行或分号“;”隔开。3、术语和译文用英文逗号“,”隔开。4、没有译文视为不翻译术语。`,
+    en: `1. Supports regular expression matching. 2. Separate multiple terms with newlines or semicolons ";". 3. Terms and translations are separated by English commas ",". 4. If there is no translation, the term will be deemed not to be translated.`,
   },
   selector_style: {
     zh: `选择器节点样式`,
@@ -424,8 +428,8 @@ export const I18N = {
     en: `Inject JS`,
   },
   inject_js_helper: {
-    zh: `翻译时注入运行，且随着页面变化，可能会多次注入运行。`,
-    en: `It is injected and run during translation, and may be injected and run multiple times as the page changes.`,
+    zh: `1、开启翻译时注入运行。2、随着页面变化，可能会多次注入运行。`,
+    en: `1. Inject execution when translation is enabled. 2. As the page changes, it may be injected and run multiple times.`,
   },
   inject_css: {
     zh: `注入CSS`,
@@ -440,7 +444,7 @@ export const I18N = {
     en: `Fixer Function`,
   },
   fixer_function_helper: {
-    zh: `1、br目标是将<br>换行替换成<p>包裹换行。2、bn目标是将\\n换行替换成<p>包裹换行。3、brToDiv和bnToDiv是替换成<div class="kiss-p">`,
+    zh: `1、br是将<br>换行替换成<p>包裹换行。2、bn是将\\n换行替换成<p>包裹换行。3、brToDiv和bnToDiv是替换成<div class="kiss-p">`,
     en: `1. The goal of br is to replace <br> line breaks with <p> wrapped line breaks. 2. The goal of bn is to replace \\n newlines with <p> wrapped newlines. 3. brToDiv and bnToDiv are replaced with <div class="kiss-p">`,
   },
   import: {
@@ -784,7 +788,7 @@ export const I18N = {
     en: `It is not a perfect implementation and some pages may have style issues.`,
   },
   translate_page_title: {
-    zh: `是否同时翻译页面标题`,
+    zh: `是否翻译页面标题`,
     en: `Translate Page Title`,
   },
   more: {

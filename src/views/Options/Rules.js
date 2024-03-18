@@ -55,6 +55,10 @@ import { useSyncCaches } from "../../hooks/Sync";
 import DownloadButton from "./DownloadButton";
 import UploadButton from "./UploadButton";
 import { FIXER_ALL } from "../../libs/webfix";
+import AddIcon from "@mui/icons-material/Add";
+import EditIcon from "@mui/icons-material/Edit";
+import CancelIcon from "@mui/icons-material/Cancel";
+import SaveIcon from "@mui/icons-material/Save";
 
 function RuleFields({ rule, rules, setShow, setKeyword }) {
   const initFormValues = {
@@ -538,6 +542,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                       e.preventDefault();
                       setDisabled(false);
                     }}
+                    startIcon={<EditIcon />}
                   >
                     {i18n("edit")}
                   </Button>
@@ -549,6 +554,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                         e.preventDefault();
                         rules.del(rule.pattern);
                       }}
+                      startIcon={<DeleteIcon />}
                     >
                       {i18n("delete")}
                     </Button>
@@ -560,6 +566,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                       onClick={() => {
                         setShowMore(true);
                       }}
+                      startIcon={<ExpandMoreIcon />}
                     >
                       {i18n("more")}
                     </Button>
@@ -567,13 +574,19 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 </>
               ) : (
                 <>
-                  <Button size="small" variant="contained" type="submit">
+                  <Button
+                    size="small"
+                    variant="contained"
+                    type="submit"
+                    startIcon={<SaveIcon />}
+                  >
                     {i18n("save")}
                   </Button>
                   <Button
                     size="small"
                     variant="outlined"
                     onClick={handleCancel}
+                    startIcon={<CancelIcon />}
                   >
                     {i18n("cancel")}
                   </Button>
@@ -584,6 +597,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                       onClick={() => {
                         setShowMore(true);
                       }}
+                      startIcon={<ExpandMoreIcon />}
                     >
                       {i18n("more")}
                     </Button>
@@ -594,10 +608,20 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
           ) : (
             // 添加
             <Stack direction="row" spacing={2}>
-              <Button size="small" variant="contained" type="submit">
+              <Button
+                size="small"
+                variant="contained"
+                type="submit"
+                startIcon={<SaveIcon />}
+              >
                 {i18n("save")}
               </Button>
-              <Button size="small" variant="outlined" onClick={handleCancel}>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={handleCancel}
+                startIcon={<CancelIcon />}
+              >
                 {i18n("cancel")}
               </Button>
               {!showMore && (
@@ -740,6 +764,7 @@ function UserRules({ subRules }) {
             e.preventDefault();
             setShowAdd(true);
           }}
+          startIcon={<AddIcon />}
         >
           {i18n("add")}
         </Button>
@@ -955,6 +980,7 @@ function SubRulesEdit({ subList, addSub, updateDataCache }) {
             e.preventDefault();
             setShowInput(true);
           }}
+          startIcon={<AddIcon />}
         >
           {i18n("add")}
         </Button>
@@ -979,10 +1005,16 @@ function SubRulesEdit({ subList, addSub, updateDataCache }) {
               variant="contained"
               onClick={handleSave}
               disabled={loading}
+              startIcon={<SaveIcon />}
             >
               {i18n("save")}
             </Button>
-            <Button size="small" variant="outlined" onClick={handleCancel}>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={handleCancel}
+              startIcon={<CancelIcon />}
+            >
               {i18n("cancel")}
             </Button>
           </Stack>
@@ -1070,6 +1102,8 @@ export default function Rules() {
           {i18n("rules_warn_1")}
           <br />
           {i18n("rules_warn_2")}
+          <br />
+          {i18n("rules_warn_3")}
         </Alert>
 
         <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
