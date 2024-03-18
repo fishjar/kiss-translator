@@ -107,7 +107,9 @@ async function showFab(translator) {
   const fab = await getFabWithDefault();
   const $action = document.createElement("div");
   $action.setAttribute("id", APP_LCNAME);
-  $action.style.fontSize = '0px';
+  $action.style.fontSize = "0";
+  $action.style.width = "0";
+  $action.style.height = "0";
   document.body.parentElement.appendChild($action);
   const shadowContainer = $action.attachShadow({ mode: "closed" });
   const emotionRoot = document.createElement("style");
@@ -144,7 +146,9 @@ function showTransbox({
 
   const $tranbox = document.createElement("div");
   $tranbox.setAttribute("id", "kiss-transbox");
-  $tranbox.style.fontSize = "0px";
+  $tranbox.style.fontSize = "0";
+  $tranbox.style.width = "0";
+  $tranbox.style.height = "0";
   document.body.parentElement.appendChild($tranbox);
   const shadowContainer = $tranbox.attachShadow({ mode: "closed" });
   const emotionRoot = document.createElement("style");
