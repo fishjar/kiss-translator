@@ -163,9 +163,13 @@ const RULES_MAP = {
   },
   "m.youtube.com": {
     selector: `.slim-video-information-title .yt-core-attributed-string, .media-item-headline .yt-core-attributed-string, .comment-text .yt-core-attributed-string, .typography-body-2b .yt-core-attributed-string, #ytp-caption-window-container .ytp-caption-segment`,
+    selectStyle: `-webkit-line-clamp: unset; max-height: none; height: auto;`,
+    parentStyle: `-webkit-line-clamp: unset; max-height: none; height: auto;`,
   },
   "www.youtube.com": {
     selector: `h1, #video-title, #content-text, #title, yt-attributed-string>span>span, #ytp-caption-window-container .ytp-caption-segment`,
+    selectStyle: `-webkit-line-clamp: unset; max-height: none; height: auto;`,
+    parentStyle: `-webkit-line-clamp: unset; max-height: none; height: auto;`,
   },
   "bard.google.com": {
     selector: `.query-content ${DEFAULT_SELECTOR}, message-content ${DEFAULT_SELECTOR}`,
