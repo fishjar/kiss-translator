@@ -40,7 +40,7 @@ export default function Options() {
               setError(
                 `The version of the local script(v${version}) is not the latest version(v${process.env.REACT_APP_VERSION}). 本地脚本之版本(v${version})非最新版(v${process.env.REACT_APP_VERSION})。`
               );
-              break;
+              return;
             }
 
             if (eventName) {
@@ -48,9 +48,6 @@ export default function Options() {
               adaptScript(eventName);
             }
 
-            // 同步数据
-            await trySyncSettingAndRules();
-            setReady(true);
             break;
           }
 
@@ -58,16 +55,16 @@ export default function Options() {
             setError(
               "Time out. Please confirm whether to install or enable KISS Translator GreaseMonkey script? 连接超时，请检查是否安装或启用简约翻译油猴脚本。"
             );
-            break;
+            return;
           }
 
           await sleep(1000);
         }
-      } else {
-        // 同步数据
-        await trySyncSettingAndRules();
-        setReady(true);
       }
+
+      // 同步数据
+      await trySyncSettingAndRules();
+      setReady(true);
     })();
   }, []);
 
