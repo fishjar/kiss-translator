@@ -179,7 +179,7 @@ export const checkRules = (rules) => {
         transOpen: matchValue([GLOBAL_KEY, "true", "false"], transOpen),
         transOnly: matchValue([GLOBAL_KEY, "true", "false"], transOnly),
         transTiming: matchValue([GLOBAL_KEY, ...OPT_TIMING_ALL], transTiming),
-        transTag: matchValue([GLOBAL_KEY, "font", "span"], transTag),
+        transTag: matchValue([GLOBAL_KEY, "span", "font"], transTag),
         transTitle: matchValue([GLOBAL_KEY, "true", "false"], transTitle),
         detectRemote: matchValue([GLOBAL_KEY, "true", "false"], detectRemote),
         skipLangs: type(skipLangs) === "array" ? skipLangs : [],
