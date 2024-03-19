@@ -431,8 +431,8 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
             <TextField
               select
               size="small"
-              label={i18n("disable_langs")}
-              helperText={i18n("disable_langs_helper")}
+              label={i18n("skip_langs")}
+              helperText={i18n("skip_langs_helper")}
               name="skipLangs"
               value={skipLangs}
               disabled={disabled}
@@ -447,6 +447,17 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 </MenuItem>
               ))}
             </TextField>
+
+            <TextField
+              size="small"
+              label={i18n("terms")}
+              helperText={i18n("terms_helper")}
+              name="terms"
+              value={terms}
+              disabled={disabled}
+              onChange={handleChange}
+              multiline
+            />
 
             <TextField
               size="small"
@@ -477,17 +488,8 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
 
             <TextField
               size="small"
-              label={i18n("terms")}
-              helperText={i18n("terms_helper")}
-              name="terms"
-              value={terms}
-              disabled={disabled}
-              onChange={handleChange}
-              multiline
-            />
-            <TextField
-              size="small"
               label={i18n("selector_style")}
+              helperText={i18n("selector_style_helper")}
               name="selectStyle"
               value={selectStyle}
               disabled={disabled}
@@ -498,6 +500,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
             <TextField
               size="small"
               label={i18n("selector_parent_style")}
+              helperText={i18n("selector_style_helper")}
               name="parentStyle"
               value={parentStyle}
               disabled={disabled}
@@ -508,6 +511,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
             <TextField
               size="small"
               label={i18n("inject_css")}
+              helperText={i18n("inject_css_helper")}
               name="injectCss"
               value={injectCss}
               disabled={disabled}

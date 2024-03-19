@@ -160,24 +160,24 @@ export const I18N = {
     en: `Interface Language`,
   },
   fetch_limit: {
-    zh: `最大请求数量 (1-100)`,
-    en: `Maximum Number Of Request (1-100)`,
+    zh: `最大并发请求数量 (1-100)`,
+    en: `Maximum Number Of Concurrent Requests (1-100)`,
   },
   fetch_interval: {
-    zh: `请求间隔时间 (0-5000ms)`,
-    en: `Request Interval (0-5000ms)`,
+    zh: `每次请求间隔时间 (0-5000ms)`,
+    en: `Time Between Requests (0-5000ms)`,
   },
   translate_interval: {
-    zh: `翻译间隔时间 (100-5000ms)`,
-    en: `Translate Interval (100-5000ms)`,
+    zh: `重新翻译间隔时间 (100-5000ms)`,
+    en: `Retranslation Interval (100-5000ms)`,
   },
   min_translate_length: {
-    zh: `最小翻译长度 (1-100)`,
-    en: `Min Translate Length (1-100)`,
+    zh: `最小翻译字符数 (1-100)`,
+    en: `Minimum number Of Translated Characters (1-100)`,
   },
   max_translate_length: {
-    zh: `最大翻译长度 (100-10000)`,
-    en: `Max Translate Length (100-10000)`,
+    zh: `最大翻译字符数 (100-10000)`,
+    en: `Maximum number Of Translated Characters (100-10000)`,
   },
   num_of_newline_characters: {
     zh: `换行字符数 (1-1000)`,
@@ -412,12 +412,16 @@ export const I18N = {
     en: `Terms`,
   },
   terms_helper: {
-    zh: `1、支持正则表达式匹配。2、多条术语用换行或分号“;”隔开。3、术语和译文用英文逗号“,”隔开。4、没有译文视为不翻译术语。`,
-    en: `1. Supports regular expression matching. 2. Separate multiple terms with newlines or semicolons ";". 3. Terms and translations are separated by English commas ",". 4. If there is no translation, the term will be deemed not to be translated.`,
+    zh: `1、支持正则表达式匹配，无需斜杆，不支持修饰符。2、多条术语用换行或分号“;”隔开。3、术语和译文用英文逗号“,”隔开。4、没有译文视为不翻译术语。`,
+    en: `1. Supports regular expression matching, no slash required, and no modifiers are supported. 2. Separate multiple terms with newlines or semicolons ";". 3. Terms and translations are separated by English commas ",". 4. If there is no translation, the term will be deemed not to be translated.`,
   },
   selector_style: {
     zh: `选择器节点样式`,
     en: `Selector Style`,
+  },
+  selector_style_helper: {
+    zh: `开启翻译时注入，关闭翻译时不会移除。`,
+    en: `It is injected when translation is turned on and will not be removed when translation is turned off.`,
   },
   selector_parent_style: {
     zh: `选择器父节点样式`,
@@ -428,12 +432,16 @@ export const I18N = {
     en: `Inject JS`,
   },
   inject_js_helper: {
-    zh: `1、开启翻译时注入运行。2、随着页面变化，可能会多次注入运行。`,
-    en: `1. Inject execution when translation is enabled. 2. As the page changes, it may be injected and run multiple times.`,
+    zh: `1、开启翻译时注入运行，关闭翻译时移除。2、随着页面变化，可能会多次注入运行。`,
+    en: `1. Inject and run when translation is turned on, and removed when translation is turned off. 2. As the page changes, it may be injected and run multiple times.`,
   },
   inject_css: {
     zh: `注入CSS`,
     en: `Inject CSS`,
+  },
+  inject_css_helper: {
+    zh: `开启翻译时注入，关闭翻译时将移除。`,
+    en: `Injected when translation is enabled and removed when translation is disabled.`,
   },
   root_selector: {
     zh: `根选择器`,
@@ -747,11 +755,11 @@ export const I18N = {
     zh: `禁用翻译名单`,
     en: `Translate Blacklist`,
   },
-  disable_langs: {
+  skip_langs: {
     zh: `不翻译的语言`,
     en: `Disable Languages`,
   },
-  disable_langs_helper: {
+  skip_langs_helper: {
     zh: `此功能依赖准确的语言检测，建议启用远程语言检测。`,
     en: `This feature relies on accurate language detection. It is recommended to enable remote language detection.`,
   },
@@ -796,7 +804,7 @@ export const I18N = {
     en: `More`,
   },
   fixer_selector: {
-    zh: `修复函数选择器`,
+    zh: `网页修复选择器`,
     en: `Fixer Selector`,
   },
 };
