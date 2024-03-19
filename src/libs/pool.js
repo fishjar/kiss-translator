@@ -1,3 +1,5 @@
+import { kissLog } from "./log";
+
 /**
  * 任务池
  * @param {*} fn
@@ -35,7 +37,7 @@ export const taskPool = (
           const res = await fn({ ...args, ...preArgs });
           resolve(res);
         } catch (err) {
-          console.log("[task]", retry, err);
+          kissLog(err, "task");
           if (retry < maxRetry) {
             const retryTimer = setTimeout(() => {
               clearTimeout(retryTimer);

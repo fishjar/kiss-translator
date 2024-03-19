@@ -8,6 +8,7 @@ import {
 import { apiFetch } from "../apis";
 import { checkRules } from "./rules";
 import { isAllchar } from "./utils";
+import { kissLog } from "./log";
 
 /**
  * 更新缓存同步时间
@@ -46,7 +47,7 @@ export const syncAllSubRules = async (subrulesList) => {
       await syncSubRules(subrules.url);
       await updateSyncDataCache(subrules.url);
     } catch (err) {
-      console.log(`[sync subrule error]: ${subrules.url}`, err);
+      kissLog(err, `sync subrule error: ${subrules.url}`);
     }
   }
 };
@@ -67,7 +68,7 @@ export const trySyncAllSubRules = async ({ subrulesList }) => {
       await updateSync({ subRulesSyncAt: now });
     }
   } catch (err) {
-    console.log("[try sync all subrules]", err);
+    kissLog(err, "try sync all subrules");
   }
 };
 

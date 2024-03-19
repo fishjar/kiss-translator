@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { storage } from "../libs/storage";
+import { kissLog } from "../libs/log";
 
 /**
- * 
- * @param {*} key 
+ *
+ * @param {*} key
  * @param {*} defaultVal 需为调用hook外的常量
- * @returns 
+ * @returns
  */
 export function useStorage(key, defaultVal) {
   const [loading, setLoading] = useState(false);
@@ -40,7 +41,7 @@ export function useStorage(key, defaultVal) {
         setData(val);
       }
     } catch (err) {
-      console.log("[storage reload]", err.message);
+      kissLog(err, "storage reload");
     } finally {
       setLoading(false);
     }
@@ -58,7 +59,7 @@ export function useStorage(key, defaultVal) {
           await storage.setObj(key, defaultVal);
         }
       } catch (err) {
-        console.log("[storage load]", err.message);
+        kissLog(err, "storage load");
       } finally {
         setLoading(false);
       }

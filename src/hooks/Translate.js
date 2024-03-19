@@ -3,6 +3,7 @@ import { useState } from "react";
 import { tryDetectLang } from "../libs";
 import { apiTranslate } from "../apis";
 import { DEFAULT_TRANS_APIS } from "../config";
+import { kissLog } from "../libs/log";
 
 /**
  * 翻译hook
@@ -45,7 +46,7 @@ export function useTranslate(q, rule, setting) {
           setSamelang(isSame);
         }
       } catch (err) {
-        console.log("[translate]", err);
+        kissLog(err, "translate");
       } finally {
         setLoading(false);
       }

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { trySyncWords } from "../libs/sync";
 import { getWordsWithDefault, setWords } from "../libs/storage";
 import { useSyncMeta } from "./Sync";
+import { kissLog } from "../libs/log";
 
 export function useFavWords() {
   const [loading, setLoading] = useState(false);
@@ -56,7 +57,7 @@ export function useFavWords() {
         const favWords = await getWordsWithDefault();
         setFavWords(favWords);
       } catch (err) {
-        console.log("[query fav]", err);
+        kissLog(err, "query fav");
       } finally {
         setLoading(false);
       }

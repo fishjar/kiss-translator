@@ -59,6 +59,7 @@ import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import CancelIcon from "@mui/icons-material/Cancel";
 import SaveIcon from "@mui/icons-material/Save";
+import { kissLog } from "../../libs/log";
 
 function RuleFields({ rule, rules, setShow, setKeyword }) {
   const initFormValues = {
@@ -701,7 +702,7 @@ function ShareButton({ rules, injectRules, selectedUrl }) {
       window.open(url, "_blank");
     } catch (err) {
       alert.warning(i18n("error_got_some_wrong"));
-      console.log("[share rules]", err);
+      kissLog(err, "share rules");
     }
   };
 
@@ -731,7 +732,7 @@ function UserRules({ subRules }) {
     try {
       await rules.merge(JSON.parse(data));
     } catch (err) {
-      console.log("[import rules]", err);
+      kissLog(err, "import rules");
     }
   };
 
@@ -864,7 +865,7 @@ function SubRulesItem({
       await delSubRules(url);
       await deleteDataCache(url);
     } catch (err) {
-      console.log("[del subrules]", err);
+      kissLog(err, "del subrules");
     }
   };
 
@@ -877,7 +878,7 @@ function SubRulesItem({
       }
       await updateDataCache(url);
     } catch (err) {
-      console.log("[sync sub rules]", err);
+      kissLog(err, "sync sub rules");
     } finally {
       setLoading(false);
     }
@@ -956,7 +957,7 @@ function SubRulesEdit({ subList, addSub, updateDataCache }) {
       setShowInput(false);
       setInputText("");
     } catch (err) {
-      console.log("[fetch rules]", err);
+      kissLog(err, "fetch rules");
       setInputError(i18n("error_fetch_url"));
     } finally {
       setLoading(false);

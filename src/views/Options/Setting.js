@@ -28,6 +28,7 @@ import { useShortcut } from "../../hooks/Shortcut";
 import ShortcutInput from "./ShortcutInput";
 import { useFab } from "../../hooks/Fab";
 import { sendBgMsg } from "../../libs/msg";
+import { kissLog } from "../../libs/log";
 
 function ShortcutItem({ action, label }) {
   const { shortcut, setShortcut } = useShortcut(action);
@@ -82,7 +83,7 @@ export default function Settings() {
       caches.delete(CACHE_NAME);
       alert.success(i18n("clear_success"));
     } catch (err) {
-      console.log("[clear cache]", err);
+      kissLog(err, "clear cache");
     }
   };
 

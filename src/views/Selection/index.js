@@ -6,6 +6,7 @@ import { sleep, limitNumber } from "../../libs/utils";
 import { isGm, isExt } from "../../libs/client";
 import { MSG_OPEN_TRANBOX, DEFAULT_TRANBOX_SHORTCUT } from "../../config";
 import { isMobile } from "../../libs/mobile";
+import { kissLog } from "../../libs/log";
 
 export default function Slection({
   contextMenuType,
@@ -127,7 +128,7 @@ export default function Slection({
         });
       };
     } catch (err) {
-      console.log("[registerMenuCommand]", err);
+      kissLog(err, "registerMenuCommand");
     }
   }, [handleTranbox, contextMenuType]);
 

@@ -18,6 +18,7 @@ import UploadButton from "./UploadButton";
 import Button from "@mui/material/Button";
 import ClearAllIcon from "@mui/icons-material/ClearAll";
 import { isValidWord } from "../../libs/utils";
+import { kissLog } from "../../libs/log";
 
 function DictField({ word }) {
   const [dictResult, setDictResult] = useState(null);
@@ -93,7 +94,7 @@ export default function FavWords() {
         .filter(isValidWord);
       await mergeWords(newWords);
     } catch (err) {
-      console.log("[import rules]", err);
+      kissLog(err, "import rules");
     }
   };
 

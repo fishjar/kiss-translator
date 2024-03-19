@@ -21,6 +21,7 @@ import {
 } from "../../config";
 import { shortcutRegister } from "../../libs/shortcut";
 import { sendIframeMsg } from "../../libs/iframe";
+import { kissLog } from "../../libs/log";
 
 export default function Action({ translator, fab }) {
   const fabWidth = 40;
@@ -138,7 +139,7 @@ export default function Action({ translator, fab }) {
         });
       };
     } catch (err) {
-      console.log("[registerMenuCommand]", err);
+      kissLog(err, "registerMenuCommand");
     }
   }, [translator]);
 

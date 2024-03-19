@@ -27,6 +27,7 @@ import {
 import { sendIframeMsg } from "../../libs/iframe";
 import { saveRule } from "../../libs/rules";
 import { tryClearCaches } from "../../libs";
+import { kissLog } from "../../libs/log";
 
 export default function Popup({ setShowPopup, translator: tran }) {
   const i18n = useI18n();
@@ -55,7 +56,7 @@ export default function Popup({ setShowPopup, translator: tran }) {
         sendIframeMsg(MSG_TRANS_TOGGLE);
       }
     } catch (err) {
-      console.log("[toggle trans]", err);
+      kissLog(err, "toggle trans");
     }
   };
 
@@ -71,7 +72,7 @@ export default function Popup({ setShowPopup, translator: tran }) {
         sendIframeMsg(MSG_TRANS_PUTRULE, { [name]: value });
       }
     } catch (err) {
-      console.log("[update rule]", err);
+      kissLog(err, "update rule");
     }
   };
 
@@ -93,7 +94,7 @@ export default function Popup({ setShowPopup, translator: tran }) {
         saveRule(newRule);
       }
     } catch (err) {
-      console.log("[save rule]", err);
+      kissLog(err, "save rule");
     }
   };
 
@@ -108,7 +109,7 @@ export default function Popup({ setShowPopup, translator: tran }) {
           setRule(res.data);
         }
       } catch (err) {
-        console.log("[query rule]", err);
+        kissLog(err, "query rule");
       }
     })();
   }, [tran]);
@@ -132,7 +133,7 @@ export default function Popup({ setShowPopup, translator: tran }) {
         }
         setCommands(commands);
       } catch (err) {
-        console.log("[query cmds]", err);
+        kissLog(err, "query cmds");
       }
     })();
   }, [tran]);

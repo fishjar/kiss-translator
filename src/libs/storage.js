@@ -14,6 +14,7 @@ import {
 } from "../config";
 import { isExt, isGm } from "./client";
 import { browser } from "./browser";
+import { kissLog } from "./log";
 
 async function set(key, val) {
   if (isExt) {
@@ -155,6 +156,6 @@ export const tryInitDefaultData = async () => {
       BUILTIN_RULES
     );
   } catch (err) {
-    console.log("[init default]", err);
+    kissLog(err, "init default");
   }
 };

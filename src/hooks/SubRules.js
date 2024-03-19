@@ -3,6 +3,7 @@ import { useSetting } from "./Setting";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { loadOrFetchSubRules } from "../libs/subRules";
 import { delSubRules } from "../libs/storage";
+import { kissLog } from "../libs/log";
 
 /**
  * 订阅规则
@@ -72,7 +73,7 @@ export function useSubRules() {
           const rules = await loadOrFetchSubRules(selectedUrl);
           setSelectedRules(rules);
         } catch (err) {
-          console.log("[loadOrFetchSubRules]", err);
+          kissLog(err, "loadOrFetchSubRules");
         } finally {
           setLoading(false);
         }

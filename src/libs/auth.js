@@ -1,12 +1,13 @@
 import { getMsauth, setMsauth } from "./storage";
 import { URL_MICROSOFT_AUTH } from "../config";
 import { fetchData } from "./fetch";
+import { kissLog } from "./log";
 
 const parseMSToken = (token) => {
   try {
     return JSON.parse(atob(token.split(".")[1])).exp;
   } catch (err) {
-    console.log("[parseMSToken]", err);
+    kissLog(err, "parseMSToken");
   }
   return 0;
 };

@@ -19,6 +19,7 @@ import { useAlert } from "../../hooks/Alert";
 import SyncIcon from "@mui/icons-material/Sync";
 import CircularProgress from "@mui/material/CircularProgress";
 import { useSetting } from "../../hooks/Setting";
+import { kissLog } from "../../libs/log";
 
 export default function SyncSetting() {
   const i18n = useI18n();
@@ -43,7 +44,7 @@ export default function SyncSetting() {
       await reloadSetting();
       alert.success(i18n("sync_success"));
     } catch (err) {
-      console.log("[sync all]", err);
+      kissLog(err, "sync all");
       alert.error(i18n("sync_failed"));
     } finally {
       setLoading(false);

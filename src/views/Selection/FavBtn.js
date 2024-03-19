@@ -3,6 +3,7 @@ import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import { useState } from "react";
 import { useFavWords } from "../../hooks/FavWords";
+import { kissLog } from "../../libs/log";
 
 export default function FavBtn({ word }) {
   const { favWords, toggleFav } = useFavWords();
@@ -13,7 +14,7 @@ export default function FavBtn({ word }) {
       setLoading(true);
       await toggleFav(word);
     } catch (err) {
-      console.log("[set fav]", err);
+      kissLog(err, "set fav");
     } finally {
       setLoading(false);
     }

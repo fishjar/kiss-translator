@@ -13,6 +13,7 @@ import { loadOrFetchSubRules } from "./subRules";
 import { getRulesWithDefault, setRules } from "./storage";
 import { trySyncRules } from "./sync";
 import { FIXER_ALL } from "./webfix";
+import { kissLog } from "./log";
 
 /**
  * 根据href匹配规则
@@ -49,7 +50,7 @@ export const matchRule = async (
         rules.splice(-1, 0, ...subRules);
       }
     } catch (err) {
-      console.log("[load injectRules]", err);
+      kissLog(err, "load injectRules");
     }
   }
 

@@ -8,6 +8,7 @@ import { genEventName, removeEndchar, matchInputStr, sleep } from "./utils";
 import { stepShortcutRegister } from "./shortcut";
 import { apiTranslate } from "../apis";
 import { loadingSvg } from "./svg";
+import { kissLog } from "./log";
 
 function isInputNode(node) {
   return node.nodeName === "INPUT" || node.nodeName === "TEXTAREA";
@@ -187,7 +188,7 @@ export default function inputTranslate({
           collapseToEnd(node);
         }
       } catch (err) {
-        console.log("[translate input]", err.message);
+        kissLog(err, "translate input");
       } finally {
         removeLoading(node, loadingId);
       }

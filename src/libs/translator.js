@@ -22,6 +22,7 @@ import { apiTranslate } from "../apis";
 import { sendBgMsg } from "./msg";
 import { isExt } from "./client";
 import { injectInlineJs, injectInternalCss } from "./injector";
+import { kissLog } from "./log";
 
 /**
  * 翻译类
@@ -193,7 +194,7 @@ export class Translator {
     try {
       return Array.from(node.querySelectorAll(selector));
     } catch (err) {
-      console.log(`[querySelectorAll err]: ${selector}`);
+      kissLog(selector, "querySelectorAll err");
     }
     return [];
   };

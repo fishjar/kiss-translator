@@ -11,6 +11,7 @@ import {
 } from "../config";
 import { isBg } from "./browser";
 import { newCacheReq, newTransReq } from "./req";
+import { kissLog } from "./log";
 
 const TIMEOUT = 5000;
 
@@ -125,7 +126,7 @@ export const fetchData = async (
       const cache = await caches.open(CACHE_NAME);
       res = await cache.match(cacheReq);
     } catch (err) {
-      console.log("[cache match]", err.message);
+      kissLog(err, "cache match");
     }
   }
 
@@ -154,7 +155,7 @@ export const fetchData = async (
         const cache = await caches.open(CACHE_NAME);
         await cache.put(cacheReq, res.clone());
       } catch (err) {
-        console.log("[cache put]", err.message);
+        kissLog(err, "cache put");
       }
     }
   }
