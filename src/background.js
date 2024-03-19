@@ -139,9 +139,11 @@ browser.runtime.onMessage.addListener(
         break;
       case MSG_OPEN_OPTIONS:
         browser.runtime.openOptionsPage();
+        sendResponse({ data: "ok" });
         break;
       case MSG_SAVE_RULE:
         saveRule(args);
+        sendResponse({ data: "ok" });
         break;
       case MSG_INJECT_JS:
         getCurTabId()
@@ -154,7 +156,7 @@ browser.runtime.onMessage.addListener(
             })
           )
           .then(() => {
-            // skip
+            sendResponse({ data: "ok" });
           })
           .catch((error) => {
             sendResponse({ error: error.message });
@@ -171,7 +173,7 @@ browser.runtime.onMessage.addListener(
             })
           )
           .then(() => {
-            // skip
+            sendResponse({ data: "ok" });
           })
           .catch((error) => {
             sendResponse({ error: error.message });
@@ -180,6 +182,7 @@ browser.runtime.onMessage.addListener(
       case MSG_CONTEXT_MENUS:
         const { contextMenuType } = args;
         addContextMenus(contextMenuType);
+        sendResponse({ data: "ok" });
         break;
       case MSG_COMMAND_SHORTCUTS:
         browser.commands
