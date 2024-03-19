@@ -50,16 +50,22 @@ function TestButton({ translator, api }) {
       alert.success(i18n("test_success"));
     } catch (err) {
       // alert.error(`${i18n("test_failed")}: ${err.message}`);
+      let msg = err.message;
+      try {
+        msg = JSON.stringify(JSON.parse(err.message), null, 2);
+      } catch (err) {
+        // skip
+      }
       alert.error(
         <>
-          <div>{`${i18n("test_failed")}: ${err.message}`}</div>
+          <div>{i18n("test_failed")}</div>
           <pre
             style={{
               maxWidth: 400,
               overflow: "auto",
             }}
           >
-            {JSON.stringify(err.cause || {}, null, 2)}
+            {msg}
           </pre>
         </>
       );
@@ -124,7 +130,9 @@ function ApiFields({ translator }) {
             onChange={handleChange}
             multiline={mulkeysTranslators.includes(translator)}
             helperText={
-              mulkeysTranslators.includes(translator) ? i18n("mulkeys_help") : ""
+              mulkeysTranslators.includes(translator)
+                ? i18n("mulkeys_help")
+                : ""
             }
           />
         </>

@@ -119,11 +119,9 @@ export default function Popup({ setShowPopup, translator: tran }) {
         const commands = {};
         if (isExt) {
           const res = await sendBgMsg(MSG_COMMAND_SHORTCUTS);
-          if (!res.error) {
-            res.data.forEach(({ name, shortcut }) => {
-              commands[name] = shortcut;
-            });
-          }
+          res.forEach(({ name, shortcut }) => {
+            commands[name] = shortcut;
+          });
         } else {
           const shortcuts = tran.setting.shortcuts;
           if (shortcuts) {

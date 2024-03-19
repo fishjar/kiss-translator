@@ -2,7 +2,7 @@ import { loadingSvg } from "../../libs/svg";
 
 export default function LoadingIcon() {
   return (
-    <div
+    <span
       style={{
         display: "inline-block",
         width: "1.2em",

@@ -115,91 +115,42 @@ browser.runtime.onStartup.addListener(async () => {
 /**
  * 监听消息
  */
-browser.runtime.onMessage.addListener(
-  ({ action, args }, sender, sendResponse) => {
-    switch (action) {
-      case MSG_FETCH:
-        const { input, opts } = args;
-        fetchData(input, opts)
-          .then((data) => {
-            sendResponse({ data });
-          })
-          .catch((error) => {
-            sendResponse({ error: error.message, cause: error.cause });
-          });
-        break;
-      case MSG_FETCH_LIMIT:
-        const { interval, limit } = args;
-        fetchPool.update(interval, limit);
-        sendResponse({ data: "ok" });
-        break;
-      case MSG_FETCH_CLEAR:
-        fetchPool.clear();
-        sendResponse({ data: "ok" });
-        break;
-      case MSG_OPEN_OPTIONS:
-        browser.runtime.openOptionsPage();
-        sendResponse({ data: "ok" });
-        break;
-      case MSG_SAVE_RULE:
-        saveRule(args);
-        sendResponse({ data: "ok" });
-        break;
-      case MSG_INJECT_JS:
-        getCurTabId()
-          .then((tabId) =>
-            browser.scripting.executeScript({
-              target: { tabId: tabId, allFrames: true },
-              func: injectInlineJs,
-              args: [args],
-              world: "MAIN",
-            })
-          )
-          .then(() => {
-            sendResponse({ data: "ok" });
-          })
-          .catch((error) => {
-            sendResponse({ error: error.message });
-          });
-        break;
-      case MSG_INJECT_CSS:
-        getCurTabId()
-          .then((tabId) =>
-            browser.scripting.executeScript({
-              target: { tabId: tabId, allFrames: true },
-              func: injectInternalCss,
-              args: [args],
-              world: "MAIN",
-            })
-          )
-          .then(() => {
-            sendResponse({ data: "ok" });
-          })
-          .catch((error) => {
-            sendResponse({ error: error.message });
-          });
-        break;
-      case MSG_CONTEXT_MENUS:
-        const { contextMenuType } = args;
-        addContextMenus(contextMenuType);
-        sendResponse({ data: "ok" });
-        break;
-      case MSG_COMMAND_SHORTCUTS:
-        browser.commands
-          .getAll()
-          .then((commands) => {
-            sendResponse({ data: commands });
-          })
-          .catch((error) => {
-            sendResponse({ error: error.message });
-          });
-        break;
-      default:
-        sendResponse({ error: `message action is unavailable: ${action}` });
-    }
-    return true;
+browser.runtime.onMessage.addListener(async ({ action, args }) => {
+  switch (action) {
+    case MSG_FETCH:
+      const { input, opts } = args;
+      return await fetchData(input, opts);
+    case MSG_FETCH_LIMIT:
+      const { interval, limit } = args;
+      return fetchPool.update(interval, limit);
+    case MSG_FETCH_CLEAR:
+      return fetchPool.clear();
+    case MSG_OPEN_OPTIONS:
+      return await browser.runtime.openOptionsPage();
+    case MSG_SAVE_RULE:
+      return await saveRule(args);
+    case MSG_INJECT_JS:
+      return await browser.scripting.executeScript({
+        target: { tabId: await getCurTabId(), allFrames: true },
+        func: injectInlineJs,
+        args: [args],
+        world: "MAIN",
+      });
+    case MSG_INJECT_CSS:
+      return await browser.scripting.executeScript({
+        target: { tabId: await getCurTabId(), allFrames: true },
+        func: injectInternalCss,
+        args: [args],
+        world: "MAIN",
+      });
+    case MSG_CONTEXT_MENUS:
+      return await addContextMenus(args.contextMenuType);
+    case MSG_COMMAND_SHORTCUTS:
+      return await browser.commands.getAll();
+    default:
+      throw new Error(`message action is unavailable: ${action}`);
   }
-);
+});
 
 /**
  * 监听快捷键

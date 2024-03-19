@@ -138,13 +138,14 @@ export const fetchData = async (
     }
 
     if (!res?.ok) {
-      const cause = {
+      const msg = {
+        url: input,
         status: res.status,
       };
       if (res.headers.get("Content-Type")?.includes("json")) {
-        cause.body = await res.json();
+        msg.response = await res.json();
       }
-      throw new Error(`response: [${res.status}] ${res.statusText}`, { cause });
+      throw new Error(JSON.stringify(msg));
     }
 
     // 插入缓存
@@ -178,11 +179,7 @@ export const fetchPolyfill = async (input, opts) => {
 
   // 插件
   if (isExt && !isBg()) {
-    const res = await sendBgMsg(MSG_FETCH, { input, opts });
-    if (res.error) {
-      throw new Error(res.error, { cause: res.cause });
-    }
-    return res.data;
+    return await sendBgMsg(MSG_FETCH, { input, opts });
   }
 
   // 油猴/网页/BackgroundPage
@@ -196,10 +193,7 @@ export const fetchPolyfill = async (input, opts) => {
  */
 export const updateFetchPool = async (interval, limit) => {
   if (isExt) {
-    const res = await sendBgMsg(MSG_FETCH_LIMIT, { interval, limit });
-    if (res.error) {
-      throw new Error(res.error);
-    }
+    await sendBgMsg(MSG_FETCH_LIMIT, { interval, limit });
   } else {
     fetchPool.update(interval, limit);
   }
@@ -210,10 +204,7 @@ export const updateFetchPool = async (interval, limit) => {
  */
 export const clearFetchPool = async () => {
   if (isExt) {
-    const res = await sendBgMsg(MSG_FETCH_CLEAR);
-    if (res.error) {
-      throw new Error(res.error);
-    }
+    await sendBgMsg(MSG_FETCH_CLEAR);
   } else {
     fetchPool.clear();
   }
