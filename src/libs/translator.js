@@ -516,7 +516,7 @@ export class Translator {
         const re = new RegExp(term[0], "g");
         q = q.replace(re, (t) => {
           const text = `[${keeps.length}]`;
-          keeps.push(term[1] || t);
+          keeps.push(`<i class="kiss-trem">${term[1] || t}</i>`);
           return text;
         });
       }
