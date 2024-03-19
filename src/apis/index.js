@@ -15,6 +15,7 @@ import {
   URL_CACHE_TRAN,
   KV_SALT_SYNC,
   URL_BAIDU_LANGDETECT,
+  URL_BAIDU_SUGGEST,
   OPT_LANGS_BAIDU,
   URL_TENCENT_TRANSMART,
   OPT_LANGS_TENCENT,
@@ -68,6 +69,30 @@ export const apiBaiduLangdetect = async (text) => {
   }
 
   return "";
+};
+
+/**
+ * 百度翻译建议
+ * @param {*} text
+ * @returns
+ */
+export const apiBaiduSuggest = async (text) => {
+  const res = await fetchPolyfill(URL_BAIDU_SUGGEST, {
+    headers: {
+      "Content-type": "application/json",
+    },
+    method: "POST",
+    body: JSON.stringify({
+      kw: text,
+    }),
+    useCache: true,
+  });
+
+  if (res.errno === 0) {
+    return res.data;
+  }
+
+  return [];
 };
 
 /**

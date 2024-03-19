@@ -6,10 +6,11 @@ import Stack from "@mui/material/Stack";
 import { useI18n } from "../../hooks/I18n";
 import { DEFAULT_TRANS_APIS, OPT_TRANS_BAIDU } from "../../config";
 import { useEffect, useState } from "react";
-import { apiTranslate, apiBaiduLangdetect } from "../../apis";
+import { apiTranslate, apiBaiduLangdetect, apiBaiduSuggest } from "../../apis";
 import { isValidWord } from "../../libs/utils";
 import CopyBtn from "./CopyBtn";
 import DictCont from "./DictCont";
+import SugCont from "./SugCont";
 
 export default function TranCont({
   text,
@@ -26,6 +27,7 @@ export default function TranCont({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [dictResult, setDictResult] = useState(null);
+  const [sugs, setSugs] = useState([]);
 
   useEffect(() => {
     (async () => {
@@ -34,6 +36,7 @@ export default function TranCont({
         setTrText("");
         setError("");
         setDictResult(null);
+        setSugs([]);
 
         // 互译
         if (toLang !== toLang2 && toLang2 !== "none") {
@@ -45,6 +48,7 @@ export default function TranCont({
           }
         }
 
+        // 翻译
         const apiSetting =
           transApis[translator] || DEFAULT_TRANS_APIS[translator];
         const tranRes = await apiTranslate({
@@ -71,6 +75,11 @@ export default function TranCont({
             dictRes[2].type === 1 &&
               setDictResult(JSON.parse(dictRes[2].result));
           }
+        }
+
+        // 建议
+        if (text.length < 20) {
+          setSugs(await apiBaiduSuggest(text));
         }
       } catch (err) {
         setError(err.message);
@@ -119,6 +128,7 @@ export default function TranCont({
       {loading && <CircularProgress size={24} />}
       {error && <Alert severity="error">{error}</Alert>}
       {dictResult && <DictCont dictResult={dictResult} />}
+      {sugs.length > 0 && <SugCont sugs={sugs} />}
     </>
   );
 }
