@@ -12,6 +12,8 @@ import {
 import { isBg } from "./browser";
 import { newCacheReq, newTransReq } from "./req";
 
+const TIMEOUT = 8000;
+
 /**
  * 油猴脚本的请求封装
  * @param {*} input
@@ -26,6 +28,7 @@ export const fetchGM = async (input, { method = "GET", headers, body } = {}) =>
       headers,
       data: body,
       // withCredentials: true,
+      timeout: TIMEOUT,
       onload: ({ response, responseHeaders, status, statusText, ...opts }) => {
         const headers = {};
         responseHeaders.split("\n").forEach((line) => {
@@ -84,6 +87,10 @@ export const fetchApi = async ({ input, init, transOpts, apiSetting }) => {
         statusText,
       });
     }
+  }
+
+  if (AbortSignal?.timeout) {
+    Object.assign(init, { signal: AbortSignal.timeout(TIMEOUT) });
   }
 
   return fetch(input, init);
