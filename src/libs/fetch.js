@@ -12,7 +12,7 @@ import {
 import { isBg } from "./browser";
 import { newCacheReq, newTransReq } from "./req";
 
-const TIMEOUT = 8000;
+const TIMEOUT = 5000;
 
 /**
  * 油猴脚本的请求封装
