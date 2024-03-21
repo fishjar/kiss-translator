@@ -5,7 +5,7 @@ import { BUILTIN_RULES } from "./config/rules";
 (() => {
   // rules
   try {
-    const data = JSON.stringify(BUILTIN_RULES, null, "  ");
+    const data = JSON.stringify(BUILTIN_RULES, null, 2);
     const file = path.resolve(
       __dirname,
       "../build/web/kiss-translator-rules.json"

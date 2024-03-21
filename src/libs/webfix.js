@@ -1,11 +1,11 @@
 /**
  * 修复程序类型
  */
-const FIXER_NONE = "-";
-const FIXER_BR = "br";
-const FIXER_BN = "bn";
-const FIXER_BR_DIV = "brToDiv";
-const FIXER_BN_DIV = "bnToDiv";
+export const FIXER_NONE = "-";
+export const FIXER_BR = "br";
+export const FIXER_BN = "bn";
+export const FIXER_BR_DIV = "brToDiv";
+export const FIXER_BN_DIV = "bnToDiv";
 
 export const FIXER_ALL = [
   FIXER_NONE,
@@ -18,7 +18,7 @@ export const FIXER_ALL = [
 /**
  * 修复过的标记
  */
-const fixedSign = "kissfixed";
+const fixedSign = "kiss-fixed";
 
 /**
  * 采用 `br` 换行网站的修复函数
@@ -99,16 +99,6 @@ function bnDivFixer(node) {
 }
 
 /**
- * 修复程序映射
- */
-const fixerMap = {
-  [FIXER_BR]: brFixer,
-  [FIXER_BN]: bnFixer,
-  [FIXER_BR_DIV]: brDivFixer,
-  [FIXER_BN_DIV]: bnDivFixer,
-};
-
-/**
  * 查找、监听节点，并执行修复函数
  * @param {*} selector
  * @param {*} fixer
@@ -142,6 +132,16 @@ function run(selector, fixer, rootSelector) {
     });
   });
 }
+
+/**
+ * 修复程序映射
+ */
+const fixerMap = {
+  [FIXER_BR]: brFixer,
+  [FIXER_BN]: bnFixer,
+  [FIXER_BR_DIV]: brDivFixer,
+  [FIXER_BN_DIV]: bnDivFixer,
+};
 
 /**
  * 执行fixer
