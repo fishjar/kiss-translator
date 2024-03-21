@@ -13,6 +13,8 @@ import {
   OPT_TIMING_PAGEOPEN,
   OPT_TIMING_MOUSEOVER,
   DEFAULT_TRANS_APIS,
+  DEFAULT_FETCH_LIMIT,
+  DEFAULT_FETCH_INTERVAL,
 } from "../config";
 import Content from "../views/Content";
 import { updateFetchPool, clearFetchPool } from "./fetch";
@@ -104,9 +106,19 @@ export class Translator {
     };
   };
 
-  constructor(rule, setting) {
-    const { fetchInterval, fetchLimit } = setting;
+  _updatePool(translator) {
+    if (!translator) {
+      return;
+    }
+
+    const {
+      fetchInterval = DEFAULT_FETCH_INTERVAL,
+      fetchLimit = DEFAULT_FETCH_LIMIT,
+    } = this._setting.transApis[translator] || {};
     updateFetchPool(fetchInterval, fetchLimit);
+  }
+
+  constructor(rule, setting) {
     this._overrideAttachShadow();
 
     this._setting = setting;
@@ -119,6 +131,8 @@ export class Translator {
       .split(/\n|;/)
       .map((item) => item.split(",").map((item) => item.trim()))
       .filter(([term]) => Boolean(term));
+
+    this._updatePool(rule.translator);
 
     if (rule.transOpen === "true") {
       this._register();
@@ -156,6 +170,7 @@ export class Translator {
 
   updateRule = (obj) => {
     this.rule = { ...this.rule, ...obj };
+    this._updatePool(obj.translator);
   };
 
   toggle = () => {

@@ -402,34 +402,64 @@ export const DEFAULT_TRANS_APIS = {
   [OPT_TRANS_GOOGLE]: {
     url: "https://translate.googleapis.com/translate_a/single",
     key: "",
+    fetchLimit: DEFAULT_FETCH_LIMIT, // 最大任务数量
+    fetchInterval: DEFAULT_FETCH_INTERVAL, // 任务间隔时间
+  },
+  [OPT_TRANS_MICROSOFT]: {
+    fetchLimit: DEFAULT_FETCH_LIMIT,
+    fetchInterval: DEFAULT_FETCH_INTERVAL,
+  },
+  [OPT_TRANS_BAIDU]: {
+    fetchLimit: DEFAULT_FETCH_LIMIT,
+    fetchInterval: DEFAULT_FETCH_INTERVAL,
+  },
+  [OPT_TRANS_TENCENT]: {
+    fetchLimit: DEFAULT_FETCH_LIMIT,
+    fetchInterval: DEFAULT_FETCH_INTERVAL,
   },
   [OPT_TRANS_DEEPL]: {
     url: "https://api-free.deepl.com/v2/translate",
     key: "",
+    fetchLimit: 1,
+    fetchInterval: 500,
+  },
+  [OPT_TRANS_DEEPLFREE]: {
+    fetchLimit: 1,
+    fetchInterval: 500,
   },
   [OPT_TRANS_DEEPLX]: {
     url: "http://localhost:1188/translate",
     key: "",
+    fetchLimit: 1,
+    fetchInterval: 500,
   },
   [OPT_TRANS_OPENAI]: {
     url: "https://api.openai.com/v1/chat/completions",
     key: "",
     model: "gpt-4",
     prompt: `You will be provided with a sentence in ${PROMPT_PLACE_FROM}, and your task is to translate it into ${PROMPT_PLACE_TO}.`,
+    fetchLimit: 1,
+    fetchInterval: 500,
   },
   [OPT_TRANS_GEMINI]: {
     url: "https://generativelanguage.googleapis.com/v1/models",
     key: "",
     model: "gemini-pro",
     prompt: `Translate the following text from ${PROMPT_PLACE_FROM} to ${PROMPT_PLACE_TO}:\n\n${PROMPT_PLACE_TEXT}`,
+    fetchLimit: 1,
+    fetchInterval: 500,
   },
   [OPT_TRANS_CLOUDFLAREAI]: {
     url: "https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/ai/run/@cf/meta/m2m100-1.2b",
     key: "",
+    fetchLimit: 1,
+    fetchInterval: 500,
   },
   [OPT_TRANS_CUSTOMIZE]: {
     url: "",
     key: "",
+    fetchLimit: DEFAULT_FETCH_LIMIT,
+    fetchInterval: DEFAULT_FETCH_INTERVAL,
   },
 };
 
@@ -459,8 +489,8 @@ export const DEFAULT_BLACKLIST = [
 export const DEFAULT_SETTING = {
   darkMode: false, // 深色模式
   uiLang: "en", // 界面语言
-  fetchLimit: DEFAULT_FETCH_LIMIT, // 最大任务数量
-  fetchInterval: DEFAULT_FETCH_INTERVAL, // 任务间隔时间
+  // fetchLimit: DEFAULT_FETCH_LIMIT, // 最大任务数量(移至transApis，作废)
+  // fetchInterval: DEFAULT_FETCH_INTERVAL, // 任务间隔时间(移至transApis，作废)
   minLength: TRANS_MIN_LENGTH,
   maxLength: TRANS_MAX_LENGTH,
   newlineLength: TRANS_NEWLINE_LENGTH,

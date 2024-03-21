@@ -89,8 +89,6 @@ export default function Settings() {
 
   const {
     uiLang,
-    fetchLimit,
-    fetchInterval,
     minLength,
     maxLength,
     clearCache,
@@ -120,24 +118,6 @@ export default function Settings() {
             ))}
           </Select>
         </FormControl>
-
-        <TextField
-          size="small"
-          label={i18n("fetch_limit")}
-          type="number"
-          name="fetchLimit"
-          defaultValue={fetchLimit}
-          onChange={handleChange}
-        />
-
-        <TextField
-          size="small"
-          label={i18n("fetch_interval")}
-          type="number"
-          name="fetchInterval"
-          defaultValue={fetchInterval}
-          onChange={handleChange}
-        />
 
         <TextField
           size="small"

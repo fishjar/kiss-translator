@@ -14,6 +14,8 @@ import {
   OPT_TRANS_CLOUDFLAREAI,
   OPT_TRANS_CUSTOMIZE,
   URL_KISS_PROXY,
+  DEFAULT_FETCH_LIMIT,
+  DEFAULT_FETCH_INTERVAL,
 } from "../../config";
 import { useState } from "react";
 import { useI18n } from "../../hooks/I18n";
@@ -28,6 +30,7 @@ import { useApi } from "../../hooks/Api";
 import { apiTranslate } from "../../apis";
 import Box from "@mui/material/Box";
 import Link from "@mui/material/Link";
+import { limitNumber } from "../../libs/utils";
 
 function TestButton({ translator, api }) {
   const i18n = useI18n();
@@ -88,10 +91,26 @@ function TestButton({ translator, api }) {
 function ApiFields({ translator }) {
   const i18n = useI18n();
   const { api, updateApi, resetApi } = useApi(translator);
-  const { url = "", key = "", model = "", prompt = "" } = api;
+  const {
+    url = "",
+    key = "",
+    model = "",
+    prompt = "",
+    fetchLimit = DEFAULT_FETCH_LIMIT,
+    fetchInterval = DEFAULT_FETCH_INTERVAL,
+  } = api;
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    let { name, value } = e.target;
+    switch (name) {
+      case "fetchLimit":
+        value = limitNumber(value, 1, 100);
+        break;
+      case "fetchInterval":
+        value = limitNumber(value, 0, 5000);
+        break;
+      default:
+    }
     updateApi({
       [name]: value,
     });
@@ -137,6 +156,7 @@ function ApiFields({ translator }) {
           />
         </>
       )}
+
       {(translator === OPT_TRANS_OPENAI || translator === OPT_TRANS_GEMINI) && (
         <>
           <TextField
@@ -157,19 +177,35 @@ function ApiFields({ translator }) {
         </>
       )}
 
+      <TextField
+        size="small"
+        label={i18n("fetch_limit")}
+        type="number"
+        name="fetchLimit"
+        value={fetchLimit}
+        onChange={handleChange}
+      />
+
+      <TextField
+        size="small"
+        label={i18n("fetch_interval")}
+        type="number"
+        name="fetchInterval"
+        value={fetchInterval}
+        onChange={handleChange}
+      />
+
       <Stack direction="row" spacing={2}>
         <TestButton translator={translator} api={api} />
-        {!buildinTranslators.includes(translator) && (
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={() => {
-              resetApi();
-            }}
-          >
-            {i18n("restore_default")}
-          </Button>
-        )}
+        <Button
+          size="small"
+          variant="outlined"
+          onClick={() => {
+            resetApi();
+          }}
+        >
+          {i18n("restore_default")}
+        </Button>
       </Stack>
 
       {translator === OPT_TRANS_CUSTOMIZE && (
