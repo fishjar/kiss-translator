@@ -147,7 +147,7 @@ function run(selector, fixer, rootSelector) {
  * 执行fixer
  * @param {*} param0
  */
-export async function runFixer(selector, fixer = "-", rootSelector) {
+export function runFixer(selector, fixer = "-", rootSelector) {
   try {
     if (Object.keys(fixerMap).includes(fixer)) {
       run(selector, fixerMap[fixer], rootSelector);
