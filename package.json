@@ -30,6 +30,7 @@
     "build:userscript": "rm -rf build/userscript && mkdir build/userscript && cp build/web/*.user.js build/userscript/",
     "build:rules": "babel-node src/rules.js",
     "build": "pnpm build:chrome && pnpm build:edge && pnpm build:firefox && pnpm build:web && pnpm build:userscript-ios && pnpm build:userscript && pnpm build:rules",
+    "pack": "cd build && zip -r chrome.zip chrome && zip -r edge.zip edge && cd firefox && zip -r ../firefox.zip .",
     "test": "react-app-rewired test",
     "eject": "react-scripts eject"
   },
