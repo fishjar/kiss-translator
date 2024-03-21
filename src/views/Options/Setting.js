@@ -121,15 +121,6 @@ export default function Settings() {
 
         <TextField
           size="small"
-          label={i18n("translate_interval")}
-          type="number"
-          name="transInterval"
-          defaultValue={transInterval}
-          onChange={handleChange}
-        />
-
-        <TextField
-          size="small"
           label={i18n("min_translate_length")}
           type="number"
           name="minLength"
@@ -152,6 +143,15 @@ export default function Settings() {
           type="number"
           name="newlineLength"
           defaultValue={newlineLength}
+          onChange={handleChange}
+        />
+
+        <TextField
+          size="small"
+          label={i18n("translate_interval")}
+          type="number"
+          name="transInterval"
+          defaultValue={transInterval}
           onChange={handleChange}
         />
 
