@@ -105,7 +105,9 @@ export const apiBaiduSuggest = async (text) => {
  */
 export const apiBaiduTTS = (text, lan = "uk", spd = 3) => {
   const url = `${URL_BAIDU_TTS}?${queryString.stringify({ lan, text, spd })}`;
-  return fetchPolyfill(url);
+  return fetchPolyfill(url, {
+    useCache: false, // 为避免缓存过快增长，禁用缓存语音数据
+  });
 };
 
 /**

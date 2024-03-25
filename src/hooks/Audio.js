@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { apiBaiduTTS } from "../apis";
+import { kissLog } from "../libs/log";
 
 /**
  * 声音播放hook
@@ -7,13 +8,12 @@ import { apiBaiduTTS } from "../apis";
  * @returns
  */
 export function useAudio(src) {
-  // const audioRef = useRef(new Audio(src));
   const audioRef = useRef(null);
   const [error, setError] = useState(null);
   const [ready, setReady] = useState(false);
   const [playing, setPlaying] = useState(false);
 
-  const play = useCallback(() => {
+  const onPlay = useCallback(() => {
     audioRef.current?.play();
   }, []);
 
@@ -33,17 +33,27 @@ export function useAudio(src) {
     error,
     ready,
     playing,
-    play,
+    onPlay,
   };
 }
 
+/**
+ * 获取语音hook
+ * @param {*} text
+ * @param {*} lan
+ * @param {*} spd
+ * @returns
+ */
 export function useTextAudio(text, lan = "uk", spd = 3) {
   const [src, setSrc] = useState("");
 
   useEffect(() => {
     (async () => {
-      const res = await apiBaiduTTS(text, lan, spd);
-      setSrc(res);
+      try {
+        setSrc(await apiBaiduTTS(text, lan, spd));
+      } catch (err) {
+        kissLog(err, "baidu tts");
+      }
     })();
   }, [text, lan, spd]);
 

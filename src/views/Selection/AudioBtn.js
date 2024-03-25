@@ -3,13 +3,9 @@ import VolumeUpIcon from "@mui/icons-material/VolumeUp";
 import { useTextAudio } from "../../hooks/Audio";
 
 export default function AudioBtn({ text, lan = "uk" }) {
-  const { error, ready, playing, play } = useTextAudio(text, lan);
+  const { error, ready, playing, onPlay } = useTextAudio(text, lan);
 
-  if (error) {
-    return;
-  }
-
-  if (!ready) {
+  if (error || !ready) {
     return (
       <IconButton disabled>
         <VolumeUpIcon />
@@ -26,11 +22,7 @@ export default function AudioBtn({ text, lan = "uk" }) {
   }
 
   return (
-    <IconButton
-      onClick={() => {
-        play();
-      }}
-    >
+    <IconButton onClick={onPlay}>
       <VolumeUpIcon />
     </IconButton>
   );
