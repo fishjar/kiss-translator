@@ -16,6 +16,7 @@ import {
   KV_SALT_SYNC,
   URL_BAIDU_LANGDETECT,
   URL_BAIDU_SUGGEST,
+  URL_BAIDU_TTS,
   OPT_LANGS_BAIDU,
   URL_TENCENT_TRANSMART,
   OPT_LANGS_TENCENT,
@@ -93,6 +94,18 @@ export const apiBaiduSuggest = async (text) => {
   }
 
   return [];
+};
+
+/**
+ * 百度语音
+ * @param {*} text
+ * @param {*} lan
+ * @param {*} spd
+ * @returns
+ */
+export const apiBaiduTTS = (text, lan = "uk", spd = 3) => {
+  const url = `${URL_BAIDU_TTS}?${queryString.stringify({ lan, text, spd })}`;
+  return fetchPolyfill(url);
 };
 
 /**

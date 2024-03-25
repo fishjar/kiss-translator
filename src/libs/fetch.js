@@ -12,6 +12,7 @@ import {
 import { isBg } from "./browser";
 import { newCacheReq, newTransReq } from "./req";
 import { kissLog } from "./log";
+import { blobToBase64 } from "./utils";
 
 const TIMEOUT = 5000;
 
@@ -163,6 +164,9 @@ export const fetchData = async (
   const contentType = res.headers.get("Content-Type");
   if (contentType?.includes("json")) {
     return await res.json();
+  } else if (contentType?.includes("audio")) {
+    const blob = await res.blob();
+    return await blobToBase64(blob);
   }
   return await res.text();
 };

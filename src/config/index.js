@@ -83,6 +83,7 @@ export const URL_MICROSOFT_TRAN =
 export const URL_MICROSOFT_AUTH = "https://edge.microsoft.com/translate/auth";
 export const URL_BAIDU_LANGDETECT = "https://fanyi.baidu.com/langdetect";
 export const URL_BAIDU_SUGGEST = "https://fanyi.baidu.com/sug";
+export const URL_BAIDU_TTS = "https://fanyi.baidu.com/gettts";
 export const URL_BAIDU_WEB = "https://fanyi.baidu.com/";
 export const URL_BAIDU_TRANSAPI = "https://fanyi.baidu.com/transapi";
 export const URL_BAIDU_TRANSAPI_V2 = "https://fanyi.baidu.com/v2transapi";
