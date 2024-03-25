@@ -102,17 +102,12 @@ function TranForm({ text, setText, tranboxSetting, transApis }) {
           fullWidth
           multiline
           value={editMode ? editText : text}
-          disabled={!editMode}
           onChange={(e) => {
             setEditText(e.target.value);
           }}
-          onClick={() => {
+          onFocus={() => {
             setEditMode(true);
             setEditText(text);
-            const timer = setTimeout(() => {
-              clearTimeout(timer);
-              inputRef.current?.focus();
-            }, 100);
           }}
           onBlur={() => {
             setEditMode(false);
