@@ -91,7 +91,7 @@ async function addContextMenus(contextMenuType = 1) {
 
 /**
  * 更新CSP策略
- * @param {*} csplist 
+ * @param {*} csplist
  */
 async function updateCspRules(csplist = DEFAULT_CSPLIST.join(",\n")) {
   try {
@@ -132,9 +132,6 @@ browser.runtime.onInstalled.addListener(() => {
 
   // 右键菜单
   addContextMenus();
-
-  // 禁用CSP
-  updateCspRules();
 });
 
 /**
@@ -155,6 +152,9 @@ browser.runtime.onStartup.addListener(async () => {
   // 右键菜单
   // firefox重启后菜单会消失,故重复添加
   addContextMenus(contextMenuType);
+
+  // 禁用CSP
+  updateCspRules();
 
   // 同步订阅规则
   trySyncAllSubRules({ subrulesList });
