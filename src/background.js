@@ -132,6 +132,9 @@ browser.runtime.onInstalled.addListener(() => {
 
   // 右键菜单
   addContextMenus();
+
+  // 禁用CSP
+  updateCspRules();
 });
 
 /**
@@ -141,7 +144,7 @@ browser.runtime.onStartup.addListener(async () => {
   // 同步数据
   await trySyncSettingAndRules();
 
-  const { clearCache, contextMenuType, subrulesList } =
+  const { clearCache, contextMenuType, subrulesList, csplist } =
     await getSettingWithDefault();
 
   // 清除缓存
@@ -154,7 +157,7 @@ browser.runtime.onStartup.addListener(async () => {
   addContextMenus(contextMenuType);
 
   // 禁用CSP
-  updateCspRules();
+  updateCspRules(csplist);
 
   // 同步订阅规则
   trySyncAllSubRules({ subrulesList });
