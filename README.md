@@ -9,7 +9,7 @@
 - [x] 保持简约
 - [x] 开放源代码
 - [x] 适配常见浏览器
-  - [x] Chrome/Edge/Firefox/Kiwi
+  - [x] Chrome/Edge/Firefox/Kiwi/Orion
   - [ ] Safari
 - [x] 支持多种翻译服务
   - [x] Google/Microsoft/DeepL/OpenAI/Gemini/CloudflareAI/Baidu/Tencent
@@ -44,13 +44,15 @@
 > - 油猴脚本会遇到更多使用上的问题（跨域问题、脚本冲突等）
 
 - [x] 浏览器扩展
-  - [x] Chrome/Kiwi [安装地址](https://chrome.google.com/webstore/detail/kiss-translator/bdiifdefkgmcblbcghdlonllpjhhjgof?hl=zh-CN)
+  - [x] Chrome [安装地址](https://chrome.google.com/webstore/detail/kiss-translator/bdiifdefkgmcblbcghdlonllpjhhjgof?hl=zh-CN)
+    - [x] Kiwi (Android)
+    - [x] Orion (iOS)
   - [x] Edge [安装地址](https://microsoftedge.microsoft.com/addons/detail/%E7%AE%80%E7%BA%A6%E7%BF%BB%E8%AF%91/jemckldkclkinpjighnoilpbldbdmmlh?hl=zh-CN)
   - [x] Firefox [安装地址](https://addons.mozilla.org/zh-CN/firefox/addon/kiss-translator/)
   - [ ] Safari
 - [x] 油猴脚本
   - [x] Chrome/Edge/Firefox ([Tampermonkey](https://www.tampermonkey.net/)/[Violentmonkey](https://violentmonkey.github.io/)) [安装链接](https://fishjar.github.io/kiss-translator/kiss-translator.user.js)
-    - Greasy Fork [安装地址](https://greasyfork.org/zh-CN/scripts/472840-kiss-translator)
+    - [Greasy Fork](https://greasyfork.org/zh-CN/scripts/472840-kiss-translator)
   - [x] iOS Safari ([Userscripts Safari](https://github.com/quoid/userscripts)) [安装链接](https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js)
 
 ## 关联项目

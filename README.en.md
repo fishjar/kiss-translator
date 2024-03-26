@@ -9,7 +9,7 @@ A simple, open source [bilingual translation extension & Greasemonkey script](ht
 - [x] Keep it simple, smart
 - [x] Open source
 - [x] Adapt to common browsers
-  - [x] Chrome/Edge/Firefox/Kiwi
+  - [x] Chrome/Edge/Firefox/Kiwi/Orion
   - [ ] Safari
 - [x] Supports multiple translation services
   - [x] Google/Microsoft/DeepL/OpenAI/Gemini/CloudflareAI/Baidu/Tencent
@@ -44,13 +44,15 @@ A simple, open source [bilingual translation extension & Greasemonkey script](ht
 > - Grease Monkey script will encounter more usage problems (cross domain issues, script conflicts, etc.)
 
 - [x] Browser extension
-  - [x] Chrome/Kiwi [Installation address](https://chrome.google.com/webstore/detail/kiss-translator/bdiifdefkgmcblbcghdlonllpjhhjgof?hl=zh-CN)
+  - [x] Chrome [Installation address](https://chrome.google.com/webstore/detail/kiss-translator/bdiifdefkgmcblbcghdlonllpjhhjgof?hl=zh-CN)
+    - [x] Kiwi (Android)
+    - [x] Orion (iOS)
   - [x] Edge [Installation address](https://microsoftedge.microsoft.com/addons/detail/%E7%AE%80%E7%BA%A6%E7%BF%BB%E8%AF%91/jemckldkclkinpjighnoilpbldbdmmlh?hl=zh-CN)
   - [x] Firefox [Installation address](https://addons.mozilla.org/zh-CN/firefox/addon/kiss-translator/)
   - [ ] Safari
 - [x] GreaseMonkey Script
   - [x] Chrome/Edge/Firefox ([Tampermonkey](https://www.tampermonkey.net/)/[Violentmonkey](https://violentmonkey.github.io/)) [Installation link](https://fishjar.github.io/kiss-translator/kiss-translator.user.js)
-    - Greasy Fork [Installation address](https://greasyfork.org/zh-CN/scripts/472840-kiss-translator)
+    - [Greasy Fork](https://greasyfork.org/zh-CN/scripts/472840-kiss-translator)
   - [x] iOS Safari ([Userscripts Safari](https://github.com/quoid/userscripts)) [Installation link](https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js)
 
 ## Associated Projects
