@@ -65,6 +65,7 @@ export const MSG_CONTEXT_MENUS = "context_menus";
 export const MSG_COMMAND_SHORTCUTS = "command_shortcuts";
 export const MSG_INJECT_JS = "inject_js";
 export const MSG_INJECT_CSS = "inject_css";
+export const MSG_UPDATE_CSP = "update_csp";
 
 export const THEME_LIGHT = "light";
 export const THEME_DARK = "dark";
@@ -486,6 +487,7 @@ export const DEFAULT_BLACKLIST = [
   "oapi.dingtalk.com",
   "login.dingtalk.com",
 ]; // 禁用翻译名单
+export const DEFAULT_CSPLIST = ["https://github.com"]; // 禁用CSP名单
 
 export const DEFAULT_SETTING = {
   darkMode: false, // 深色模式
@@ -513,6 +515,7 @@ export const DEFAULT_SETTING = {
   tranboxSetting: DEFAULT_TRANBOX_SETTING, // 划词翻译设置
   touchTranslate: 2, // 触屏翻译
   blacklist: DEFAULT_BLACKLIST.join(",\n"), // 禁用翻译名单
+  csplist: DEFAULT_CSPLIST.join(",\n"), // 禁用CSP名单
   // disableLangs: [], // 不翻译的语言(移至rule，作废)
   transInterval: 500, // 翻译间隔时间
 };

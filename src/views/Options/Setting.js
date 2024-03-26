@@ -22,7 +22,9 @@ import {
   OPT_SHORTCUT_POPUP,
   OPT_SHORTCUT_SETTING,
   DEFAULT_BLACKLIST,
+  DEFAULT_CSPLIST,
   MSG_CONTEXT_MENUS,
+  MSG_UPDATE_CSP,
 } from "../../config";
 import { useShortcut } from "../../hooks/Shortcut";
 import ShortcutInput from "./ShortcutInput";
@@ -69,7 +71,10 @@ export default function Settings() {
         value = limitNumber(value, 0, 4);
         break;
       case "contextMenuType":
-        isExt && sendBgMsg(MSG_CONTEXT_MENUS, { contextMenuType: value });
+        isExt && sendBgMsg(MSG_CONTEXT_MENUS, value);
+        break;
+      case "csplist":
+        isExt && sendBgMsg(MSG_UPDATE_CSP, value);
         break;
       default:
     }
@@ -96,6 +101,7 @@ export default function Settings() {
     contextMenuType = 1,
     touchTranslate = 2,
     blacklist = DEFAULT_BLACKLIST.join(",\n"),
+    csplist = DEFAULT_CSPLIST.join(",\n"),
     transInterval = 500,
   } = setting;
   const { isHide = false } = fab || {};
@@ -219,6 +225,18 @@ export default function Settings() {
                 </Link>
               </FormHelperText>
             </FormControl>
+
+            <TextField
+              size="small"
+              label={i18n("disabled_csplist")}
+              helperText={
+                i18n("pattern_helper") + " " + i18n("disabled_csplist_helper")
+              }
+              name="csplist"
+              defaultValue={csplist}
+              onChange={handleChange}
+              multiline
+            />
           </>
         ) : (
           <>

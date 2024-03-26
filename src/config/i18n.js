@@ -755,6 +755,14 @@ export const I18N = {
     zh: `禁用翻译名单`,
     en: `Translate Blacklist`,
   },
+  disabled_csplist: {
+    zh: `禁用CSP名单`,
+    en: `Disabled CSP List`,
+  },
+  disabled_csplist_helper: {
+    zh: `3、通过调整CSP策略，使得某些页面能够注入JS/CSS/Media，请谨慎使用，除非您已知晓相关风险。`,
+    en: `3. By adjusting the CSP policy, some pages can inject JS/CSS/Media. Please use it with caution unless you are aware of the related risks.`,
+  },
   skip_langs: {
     zh: `不翻译的语言`,
     en: `Disable Languages`,
