@@ -58,11 +58,11 @@ export class Translator {
 
   // 显示
   _interseObserver = new IntersectionObserver(
-    (intersections) => {
-      intersections.forEach((intersection) => {
-        if (intersection.isIntersecting) {
-          this._render(intersection.target);
-          this._interseObserver.unobserve(intersection.target);
+    (entries, observer) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          observer.unobserve(entry.target);
+          this._render(entry.target);
         }
       });
     },
