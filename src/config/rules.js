@@ -4,8 +4,8 @@ export const GLOBAL_KEY = "*";
 export const REMAIN_KEY = "-";
 export const SHADOW_KEY = ">>>";
 
-export const DEFAULT_SELECTOR = `:is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote)`;
-export const DEFAULT_KEEP_SELECTOR = `code, img, svg`;
+export const DEFAULT_SELECTOR = `:is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote, .kiss-p)`;
+export const DEFAULT_KEEP_SELECTOR = `code, img, svg, pre`;
 export const DEFAULT_RULE = {
   pattern: "", // 匹配网址
   selector: "", // 选择器
