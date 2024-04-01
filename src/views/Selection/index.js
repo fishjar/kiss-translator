@@ -132,6 +132,18 @@ export default function Slection({
     }
   }, [handleTranbox, contextMenuType]);
 
+  useEffect(() => {
+    if (tranboxSetting.hideClickAway) {
+      const handleHideBox = () => {
+        setShowBox(false);
+      };
+      window.addEventListener("click", handleHideBox);
+      return () => {
+        window.removeEventListener("click", handleHideBox);
+      };
+    }
+  }, [tranboxSetting.hideClickAway]);
+
   return (
     <>
       {showBox && (

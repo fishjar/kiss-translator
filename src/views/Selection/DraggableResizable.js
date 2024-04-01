@@ -148,6 +148,7 @@ export default function DraggableResizable({
   },
   onChangeSize,
   onChangePosition,
+  ...props
 }) {
   const lineWidth = 4;
   const [position, setPosition] = useState(defaultPosition);
@@ -182,6 +183,7 @@ export default function DraggableResizable({
         gridTemplateRows: `${lineWidth * 2}px auto ${lineWidth * 2}px`,
         zIndex: 2147483647,
       }}
+      {...props}
     >
       <Pointer
         direction="TopLeft"

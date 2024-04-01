@@ -623,6 +623,10 @@ export const I18N = {
     zh: `隐藏翻译按钮`,
     en: `Hide Translate Button`,
   },
+  hide_click_away: {
+    zh: `点击外部关闭弹窗`,
+    en: `Click outside to close the pop-up window`,
+  },
   show: {
     zh: `显示`,
     en: `Show`,

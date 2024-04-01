@@ -388,7 +388,8 @@ export const DEFAULT_TRANBOX_SETTING = {
   tranboxShortcut: DEFAULT_TRANBOX_SHORTCUT,
   btnOffsetX: 10,
   btnOffsetY: 10,
-  hideTranBtn: false,
+  hideTranBtn: false, // 是否隐藏翻译按钮
+  hideClickAway: false, // 是否点击外部关闭弹窗
 };
 
 // 订阅列表

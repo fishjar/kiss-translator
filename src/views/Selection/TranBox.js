@@ -175,6 +175,7 @@ export default function TranBox({
           header={<Header setShowPopup={setShowBox} />}
           onChangeSize={setBoxSize}
           onChangePosition={setBoxPosition}
+          onClick={(e) => e.stopPropagation()}
         >
           <Divider />
           <TranForm
