@@ -208,7 +208,7 @@ function ApiFields({ translator }) {
         </Button>
       </Stack>
 
-      {translator === OPT_TRANS_CUSTOMIZE && (
+      {translator.startsWith(OPT_TRANS_CUSTOMIZE) && (
         <pre>{i18n("custom_api_help")}</pre>
       )}
     </Stack>

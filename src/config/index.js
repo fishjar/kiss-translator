@@ -102,6 +102,10 @@ export const OPT_TRANS_OPENAI = "OpenAI";
 export const OPT_TRANS_GEMINI = "Gemini";
 export const OPT_TRANS_CLOUDFLAREAI = "CloudflareAI";
 export const OPT_TRANS_CUSTOMIZE = "Custom";
+export const OPT_TRANS_CUSTOMIZE_2 = "Custom2";
+export const OPT_TRANS_CUSTOMIZE_3 = "Custom3";
+export const OPT_TRANS_CUSTOMIZE_4 = "Custom4";
+export const OPT_TRANS_CUSTOMIZE_5 = "Custom5";
 export const OPT_TRANS_ALL = [
   OPT_TRANS_GOOGLE,
   OPT_TRANS_MICROSOFT,
@@ -114,6 +118,10 @@ export const OPT_TRANS_ALL = [
   OPT_TRANS_GEMINI,
   OPT_TRANS_CLOUDFLAREAI,
   OPT_TRANS_CUSTOMIZE,
+  OPT_TRANS_CUSTOMIZE_2,
+  OPT_TRANS_CUSTOMIZE_3,
+  OPT_TRANS_CUSTOMIZE_4,
+  OPT_TRANS_CUSTOMIZE_5,
 ];
 
 export const OPT_LANGS_TO = [
@@ -400,6 +408,12 @@ export const DEFAULT_SUBRULES_LIST = [
 ];
 
 // 翻译接口
+const defaultCustomApi = {
+  url: "",
+  key: "",
+  fetchLimit: DEFAULT_FETCH_LIMIT,
+  fetchInterval: DEFAULT_FETCH_INTERVAL,
+};
 export const DEFAULT_TRANS_APIS = {
   [OPT_TRANS_GOOGLE]: {
     url: "https://translate.googleapis.com/translate_a/single",
@@ -457,12 +471,11 @@ export const DEFAULT_TRANS_APIS = {
     fetchLimit: 1,
     fetchInterval: 500,
   },
-  [OPT_TRANS_CUSTOMIZE]: {
-    url: "",
-    key: "",
-    fetchLimit: DEFAULT_FETCH_LIMIT,
-    fetchInterval: DEFAULT_FETCH_INTERVAL,
-  },
+  [OPT_TRANS_CUSTOMIZE]: defaultCustomApi,
+  [OPT_TRANS_CUSTOMIZE_2]: defaultCustomApi,
+  [OPT_TRANS_CUSTOMIZE_3]: defaultCustomApi,
+  [OPT_TRANS_CUSTOMIZE_4]: defaultCustomApi,
+  [OPT_TRANS_CUSTOMIZE_5]: defaultCustomApi,
 };
 
 // 默认快捷键
