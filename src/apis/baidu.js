@@ -4,6 +4,7 @@ import {
   URL_BAIDU_WEB,
   URL_BAIDU_TRANSAPI_V2,
   URL_BAIDU_TRANSAPI,
+  DEFAULT_USER_AGENT,
 } from "../config";
 import { fetchApi } from "../libs/fetch";
 
@@ -248,7 +249,9 @@ export const genBaidu = async ({ text, from, to }) => {
 
   const init = {
     headers: {
+      // Origin: "https://fanyi.baidu.com",
       "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+      "User-Agent": DEFAULT_USER_AGENT,
     },
     method: "POST",
     body: queryString.stringify(data),

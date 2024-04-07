@@ -91,6 +91,9 @@ export const URL_BAIDU_TRANSAPI_V2 = "https://fanyi.baidu.com/v2transapi";
 export const URL_DEEPLFREE_TRAN = "https://www2.deepl.com/jsonrpc";
 export const URL_TENCENT_TRANSMART = "https://transmart.qq.com/api/imt";
 
+export const DEFAULT_USER_AGENT =
+  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36";
+
 export const OPT_TRANS_GOOGLE = "Google";
 export const OPT_TRANS_MICROSOFT = "Microsoft";
 export const OPT_TRANS_DEEPL = "DeepL";

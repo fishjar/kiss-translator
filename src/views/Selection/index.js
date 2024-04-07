@@ -71,8 +71,8 @@ export default function Slection({
     }
 
     // todo: mobile support
-    window.addEventListener("mouseup", handleMouseup);
-    // window.addEventListener(isMobile ? "touchend" : "mouseup", handleMouseup);
+    // window.addEventListener("mouseup", handleMouseup);
+    window.addEventListener(isMobile ? "touchend" : "mouseup", handleMouseup);
     return () => {
       window.removeEventListener(
         isMobile ? "touchend" : "mouseup",
