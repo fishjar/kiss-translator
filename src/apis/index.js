@@ -12,6 +12,10 @@ import {
   OPT_TRANS_GEMINI,
   OPT_TRANS_CLOUDFLAREAI,
   OPT_TRANS_CUSTOMIZE,
+  OPT_TRANS_CUSTOMIZE_2,
+  OPT_TRANS_CUSTOMIZE_3,
+  OPT_TRANS_CUSTOMIZE_4,
+  OPT_TRANS_CUSTOMIZE_5,
   URL_CACHE_TRAN,
   KV_SALT_SYNC,
   URL_BAIDU_LANGDETECT,
@@ -245,6 +249,10 @@ export const apiTranslate = async ({
       isSame = text === trText;
       break;
     case OPT_TRANS_CUSTOMIZE:
+    case OPT_TRANS_CUSTOMIZE_2:
+    case OPT_TRANS_CUSTOMIZE_3:
+    case OPT_TRANS_CUSTOMIZE_4:
+    case OPT_TRANS_CUSTOMIZE_5:
       trText = res.text;
       isSame = to === res.from;
       break;

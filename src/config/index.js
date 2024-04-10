@@ -266,6 +266,22 @@ export const OPT_LANGS_SPECIAL = {
     ...OPT_LANGS_FROM.map(([key]) => [key, key]),
     ["auto", ""],
   ]),
+  [OPT_TRANS_CUSTOMIZE_2]: new Map([
+    ...OPT_LANGS_FROM.map(([key]) => [key, key]),
+    ["auto", ""],
+  ]),
+  [OPT_TRANS_CUSTOMIZE_3]: new Map([
+    ...OPT_LANGS_FROM.map(([key]) => [key, key]),
+    ["auto", ""],
+  ]),
+  [OPT_TRANS_CUSTOMIZE_4]: new Map([
+    ...OPT_LANGS_FROM.map(([key]) => [key, key]),
+    ["auto", ""],
+  ]),
+  [OPT_TRANS_CUSTOMIZE_5]: new Map([
+    ...OPT_LANGS_FROM.map(([key]) => [key, key]),
+    ["auto", ""],
+  ]),
 };
 export const OPT_LANGS_LIST = OPT_LANGS_TO.map(([lang]) => lang);
 export const OPT_LANGS_BAIDU = new Map(

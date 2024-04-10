@@ -11,6 +11,10 @@ import {
   OPT_TRANS_GEMINI,
   OPT_TRANS_CLOUDFLAREAI,
   OPT_TRANS_CUSTOMIZE,
+  OPT_TRANS_CUSTOMIZE_2,
+  OPT_TRANS_CUSTOMIZE_3,
+  OPT_TRANS_CUSTOMIZE_4,
+  OPT_TRANS_CUSTOMIZE_5,
   URL_MICROSOFT_TRAN,
   URL_TENCENT_TRANSMART,
   PROMPT_PLACE_FROM,
@@ -310,6 +314,10 @@ export const newTransReq = ({ translator, text, from, to }, apiSetting) => {
     case OPT_TRANS_CLOUDFLAREAI:
       return genCloudflareAI(args);
     case OPT_TRANS_CUSTOMIZE:
+    case OPT_TRANS_CUSTOMIZE_2:
+    case OPT_TRANS_CUSTOMIZE_3:
+    case OPT_TRANS_CUSTOMIZE_4:
+    case OPT_TRANS_CUSTOMIZE_5:
       return genCustom(args);
     default:
       throw new Error(`[trans] translator: ${translator} not support`);
