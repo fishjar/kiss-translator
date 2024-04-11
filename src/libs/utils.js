@@ -202,26 +202,20 @@ export const removeEndchar = (s, c, count = 1) => {
  * @returns
  */
 export const matchInputStr = (str, sign) => {
-  let reg = /\/([\w-]+)\s+([^]+)/;
   switch (sign) {
     case "//":
-      reg = /\/\/([\w-]+)\s+([^]+)/;
-      break;
+      return str.match(/\/\/([\w-]+)\s+([^]+)/);
     case "\\":
-      reg = /\\([\w-]+)\s+([^]+)/;
-      break;
+      return str.match(/\\([\w-]+)\s+([^]+)/);
     case "\\\\":
-      reg = /\\\\([\w-]+)\s+([^]+)/;
-      break;
+      return str.match(/\\\\([\w-]+)\s+([^]+)/);
     case ">":
-      reg = />([\w-]+)\s+([^]+)/;
-      break;
+      return str.match(/>([\w-]+)\s+([^]+)/);
     case ">>":
-      reg = />>([\w-]+)\s+([^]+)/;
-      break;
+      return str.match(/>>([\w-]+)\s+([^]+)/);
     default:
   }
-  return str.match(reg);
+  return str.match(/\/([\w-]+)\s+([^]+)/);
 };
 
 /**
