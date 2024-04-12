@@ -139,9 +139,11 @@ export const fetchData = async (
       res = await fetchApi({ input, init, transOpts, apiSetting });
     }
 
-    if (!res?.ok) {
+    if (!res) {
+      throw new Error("Unknow error");
+    } else if (!res.ok) {
       const msg = {
-        url: input,
+        url: res.url,
         status: res.status,
       };
       if (res.headers.get("Content-Type")?.includes("json")) {
