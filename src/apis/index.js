@@ -6,6 +6,7 @@ import {
   OPT_TRANS_DEEPL,
   OPT_TRANS_DEEPLFREE,
   OPT_TRANS_DEEPLX,
+  OPT_TRANS_NIUTRANS,
   OPT_TRANS_BAIDU,
   OPT_TRANS_TENCENT,
   OPT_TRANS_OPENAI,
@@ -218,6 +219,14 @@ export const apiTranslate = async ({
     case OPT_TRANS_DEEPLX:
       trText = res.data;
       isSame = to === res.source_lang;
+      break;
+    case OPT_TRANS_NIUTRANS:
+      const json = JSON.parse(res);
+      if (json.error_msg) {
+        throw new Error(json.error_msg);
+      }
+      trText = json.tgt_text;
+      isSame = to === json.from;
       break;
     case OPT_TRANS_BAIDU:
       // trText = res.trans_result?.data.map((item) => item.dst).join(" ");

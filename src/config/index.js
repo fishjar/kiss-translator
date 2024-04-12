@@ -90,6 +90,8 @@ export const URL_BAIDU_TRANSAPI = "https://fanyi.baidu.com/transapi";
 export const URL_BAIDU_TRANSAPI_V2 = "https://fanyi.baidu.com/v2transapi";
 export const URL_DEEPLFREE_TRAN = "https://www2.deepl.com/jsonrpc";
 export const URL_TENCENT_TRANSMART = "https://transmart.qq.com/api/imt";
+export const URL_NIUTRANS_REG =
+  "https://niutrans.com/login?active=3&userSource=kiss-translator";
 
 export const DEFAULT_USER_AGENT =
   "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36";
@@ -99,6 +101,7 @@ export const OPT_TRANS_MICROSOFT = "Microsoft";
 export const OPT_TRANS_DEEPL = "DeepL";
 export const OPT_TRANS_DEEPLX = "DeepLX";
 export const OPT_TRANS_DEEPLFREE = "DeepLFree";
+export const OPT_TRANS_NIUTRANS = "NiuTrans";
 export const OPT_TRANS_BAIDU = "Baidu";
 export const OPT_TRANS_TENCENT = "Tencent";
 export const OPT_TRANS_OPENAI = "OpenAI";
@@ -117,6 +120,7 @@ export const OPT_TRANS_ALL = [
   OPT_TRANS_DEEPL,
   OPT_TRANS_DEEPLFREE,
   OPT_TRANS_DEEPLX,
+  OPT_TRANS_NIUTRANS,
   OPT_TRANS_OPENAI,
   OPT_TRANS_GEMINI,
   OPT_TRANS_CLOUDFLAREAI,
@@ -192,6 +196,12 @@ export const OPT_LANGS_SPECIAL = {
     ["auto", ""],
     ["zh-CN", "ZH"],
     ["zh-TW", "ZH"],
+  ]),
+  [OPT_TRANS_NIUTRANS]: new Map([
+    ...OPT_LANGS_FROM.map(([key]) => [key, key]),
+    ["auto", "auto"],
+    ["zh-CN", "zh"],
+    ["zh-TW", "cht"],
   ]),
   [OPT_TRANS_BAIDU]: new Map([
     ...OPT_LANGS_FROM.map(([key]) => [key, key]),
@@ -468,6 +478,14 @@ export const DEFAULT_TRANS_APIS = {
     key: "",
     fetchLimit: 1,
     fetchInterval: 500,
+  },
+  [OPT_TRANS_NIUTRANS]: {
+    url: "https://api.niutrans.com/NiuTransServer/translation",
+    key: "",
+    dictNo: "",
+    memoryNo: "",
+    fetchLimit: DEFAULT_FETCH_LIMIT,
+    fetchInterval: DEFAULT_FETCH_INTERVAL,
   },
   [OPT_TRANS_OPENAI]: {
     url: "https://api.openai.com/v1/chat/completions",

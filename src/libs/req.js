@@ -5,6 +5,7 @@ import {
   OPT_TRANS_DEEPL,
   OPT_TRANS_DEEPLFREE,
   OPT_TRANS_DEEPLX,
+  OPT_TRANS_NIUTRANS,
   OPT_TRANS_BAIDU,
   OPT_TRANS_TENCENT,
   OPT_TRANS_OPENAI,
@@ -141,6 +142,27 @@ const genDeeplX = ({ text, from, to, url, key }) => {
   if (key) {
     init.headers.Authorization = `Bearer ${key}`;
   }
+
+  return [url, init];
+};
+
+const genNiuTrans = ({ text, from, to, url, key, dictNo, memoryNo }) => {
+  const data = {
+    from,
+    to,
+    apikey: key,
+    src_text: text,
+    dictNo,
+    memoryNo,
+  };
+
+  const init = {
+    headers: {
+      "Content-type": "application/json",
+    },
+    method: "POST",
+    body: JSON.stringify(data),
+  };
 
   return [url, init];
 };
@@ -287,6 +309,7 @@ export const newTransReq = ({ translator, text, from, to }, apiSetting) => {
     case OPT_TRANS_OPENAI:
     case OPT_TRANS_GEMINI:
     case OPT_TRANS_CLOUDFLAREAI:
+    case OPT_TRANS_NIUTRANS:
       args.key = keyPick(translator, args.key);
       break;
     default:
@@ -303,6 +326,8 @@ export const newTransReq = ({ translator, text, from, to }, apiSetting) => {
       return genDeeplFree(args);
     case OPT_TRANS_DEEPLX:
       return genDeeplX(args);
+    case OPT_TRANS_NIUTRANS:
+      return genNiuTrans(args);
     case OPT_TRANS_BAIDU:
       return genBaidu(args);
     case OPT_TRANS_TENCENT:

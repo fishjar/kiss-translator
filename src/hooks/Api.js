@@ -8,7 +8,10 @@ export function useApi(translator) {
 
   const updateApi = useCallback(
     async (obj) => {
-      const api = transApis[translator] || {};
+      const api = {
+        ...DEFAULT_TRANS_APIS[translator],
+        ...(transApis[translator] || {}),
+      };
       Object.assign(transApis, { [translator]: { ...api, ...obj } });
       await updateSetting({ transApis });
     },
@@ -20,5 +23,12 @@ export function useApi(translator) {
     await updateSetting({ transApis });
   }, [translator, transApis, updateSetting]);
 
-  return { api: transApis[translator] || {}, updateApi, resetApi };
+  return {
+    api: {
+      ...DEFAULT_TRANS_APIS[translator],
+      ...(transApis[translator] || {}),
+    },
+    updateApi,
+    resetApi,
+  };
 }

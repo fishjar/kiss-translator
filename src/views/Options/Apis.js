@@ -13,7 +13,9 @@ import {
   OPT_TRANS_GEMINI,
   OPT_TRANS_CLOUDFLAREAI,
   OPT_TRANS_CUSTOMIZE,
+  OPT_TRANS_NIUTRANS,
   URL_KISS_PROXY,
+  URL_NIUTRANS_REG,
   DEFAULT_FETCH_LIMIT,
   DEFAULT_FETCH_INTERVAL,
 } from "../../config";
@@ -62,14 +64,24 @@ function TestButton({ translator, api }) {
       alert.error(
         <>
           <div>{i18n("test_failed")}</div>
-          <pre
-            style={{
-              maxWidth: 400,
-              overflow: "auto",
-            }}
-          >
-            {msg}
-          </pre>
+          {msg === err.message ? (
+            <div
+              style={{
+                maxWidth: 400,
+              }}
+            >
+              {msg}
+            </div>
+          ) : (
+            <pre
+              style={{
+                maxWidth: 400,
+                overflow: "auto",
+              }}
+            >
+              {msg}
+            </pre>
+          )}
         </>
       );
     } finally {
@@ -98,6 +110,8 @@ function ApiFields({ translator }) {
     prompt = "",
     fetchLimit = DEFAULT_FETCH_LIMIT,
     fetchInterval = DEFAULT_FETCH_INTERVAL,
+    dictNo = "",
+    memoryNo = "",
   } = api;
 
   const handleChange = (e) => {
@@ -128,7 +142,22 @@ function ApiFields({ translator }) {
     OPT_TRANS_OPENAI,
     OPT_TRANS_GEMINI,
     OPT_TRANS_CLOUDFLAREAI,
+    OPT_TRANS_NIUTRANS,
   ];
+
+  const keyHelper =
+    translator === OPT_TRANS_NIUTRANS ? (
+      <>
+        {i18n("mulkeys_help")}
+        <Link href={URL_NIUTRANS_REG} target="_blank">
+          {i18n("reg_niutrans")}
+        </Link>
+      </>
+    ) : mulkeysTranslators.includes(translator) ? (
+      i18n("mulkeys_help")
+    ) : (
+      ""
+    );
 
   return (
     <Stack spacing={3}>
@@ -148,11 +177,7 @@ function ApiFields({ translator }) {
             value={key}
             onChange={handleChange}
             multiline={mulkeysTranslators.includes(translator)}
-            helperText={
-              mulkeysTranslators.includes(translator)
-                ? i18n("mulkeys_help")
-                : ""
-            }
+            helperText={keyHelper}
           />
         </>
       )}
@@ -173,6 +198,25 @@ function ApiFields({ translator }) {
             value={prompt}
             onChange={handleChange}
             multiline
+          />
+        </>
+      )}
+
+      {translator === OPT_TRANS_NIUTRANS && (
+        <>
+          <TextField
+            size="small"
+            label={"DictNo"}
+            name="dictNo"
+            value={dictNo}
+            onChange={handleChange}
+          />
+          <TextField
+            size="small"
+            label={"MemoryNo"}
+            name="memoryNo"
+            value={memoryNo}
+            onChange={handleChange}
           />
         </>
       )}

@@ -819,4 +819,8 @@ export const I18N = {
     zh: `网页修复选择器`,
     en: `Fixer Selector`,
   },
+  reg_niutrans: {
+    zh: `获取小牛翻译密钥`,
+    en: `Get NiuTrans APIKey`,
+  },
 };
