@@ -81,15 +81,9 @@ export default function Options() {
           <Link href={process.env.REACT_APP_USERSCRIPT_DOWNLOADURL}>
             Install/Update Userscript for Tampermonkey/Violentmonkey
           </Link>
-          {/* <Link href={process.env.REACT_APP_USERSCRIPT_DOWNLOADURL2}>
-            Install/Update Userscript for Tampermonkey/Violentmonkey 2
-          </Link> */}
           <Link href={process.env.REACT_APP_USERSCRIPT_IOS_DOWNLOADURL}>
             Install/Update Userscript for iOS Safari
           </Link>
-          {/* <Link href={process.env.REACT_APP_USERSCRIPT_IOS_DOWNLOADURL2}>
-            Install/Update Userscript for iOS Safari 2
-          </Link> */}
         </Stack>
       </center>
     );

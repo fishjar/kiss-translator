@@ -213,8 +213,7 @@ export async function run(isUserscript = false) {
     if (
       isUserscript &&
       (href.includes(process.env.REACT_APP_OPTIONSPAGE_DEV) ||
-        href.includes(process.env.REACT_APP_OPTIONSPAGE) ||
-        href.includes(process.env.REACT_APP_OPTIONSPAGE2))
+        href.includes(process.env.REACT_APP_OPTIONSPAGE))
     ) {
       runSettingPage();
       return;
