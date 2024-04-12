@@ -55,7 +55,7 @@ export default function Slection({
   useEffect(() => {
     async function handleMouseup(e) {
       e.stopPropagation();
-      await sleep(10);
+      await sleep(100);
 
       const selectedText = window.getSelection()?.toString()?.trim() || "";
       setSelText(selectedText);
