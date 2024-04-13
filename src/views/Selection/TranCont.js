@@ -109,6 +109,7 @@ export default function TranCont({
           multiline
           value={trText}
           InputProps={{
+            startAdornment: loading ? <CircularProgress size={16} /> : null,
             endAdornment: (
               <Stack
                 direction="row"
