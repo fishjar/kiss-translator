@@ -14,6 +14,8 @@ import { useI18n } from "../../hooks/I18n";
 import { OPT_TRANS_ALL, OPT_LANGS_FROM, OPT_LANGS_TO } from "../../config";
 import { useState, useRef } from "react";
 import TranCont from "./TranCont";
+import DictCont from "./DictCont";
+import SugCont from "./SugCont";
 import CopyBtn from "./CopyBtn";
 
 function TranForm({ text, setText, tranboxSetting, transApis }) {
@@ -24,7 +26,6 @@ function TranForm({ text, setText, tranboxSetting, transApis }) {
   const [translator, setTranslator] = useState(tranboxSetting.translator);
   const [fromLang, setFromLang] = useState(tranboxSetting.fromLang);
   const [toLang, setToLang] = useState(tranboxSetting.toLang);
-  const [toLang2, setToLang2] = useState(tranboxSetting.toLang2);
   const inputRef = useRef(null);
 
   return (
@@ -146,11 +147,11 @@ function TranForm({ text, setText, tranboxSetting, transApis }) {
         translator={translator}
         fromLang={fromLang}
         toLang={toLang}
-        toLang2={toLang2}
-        setToLang={setToLang}
-        setToLang2={setToLang2}
+        toLang2={tranboxSetting.toLang2}
         transApis={transApis}
       />
+      <DictCont text={text} />
+      <SugCont text={text} />
     </Stack>
   );
 }
