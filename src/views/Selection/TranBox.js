@@ -1,7 +1,6 @@
 import { SettingProvider } from "../../hooks/Setting";
 import ThemeProvider from "../../hooks/Theme";
 import DraggableResizable from "./DraggableResizable";
-import Header from "../Popup/Header";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
@@ -10,6 +9,12 @@ import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
 import DoneIcon from "@mui/icons-material/Done";
+import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
+import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
+import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
+import PushPinIcon from "@mui/icons-material/PushPin";
+import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
+import CloseIcon from "@mui/icons-material/Close";
 import { useI18n } from "../../hooks/I18n";
 import { OPT_TRANS_ALL, OPT_LANGS_FROM, OPT_LANGS_TO } from "../../config";
 import { useState, useRef } from "react";
@@ -17,8 +22,50 @@ import TranCont from "./TranCont";
 import DictCont from "./DictCont";
 import SugCont from "./SugCont";
 import CopyBtn from "./CopyBtn";
+import { isValidWord } from "../../libs/utils";
 
-function TranForm({ text, setText, tranboxSetting, transApis }) {
+function Header({
+  setShowPopup,
+  simpleStyle,
+  setSimpleStyle,
+  hideClickAway,
+  setHideClickAway,
+}) {
+  return (
+    <Stack direction="row" justifyContent="space-between" alignItems="center">
+      <DragIndicatorIcon />
+
+      <Stack direction="row" alignItems="center">
+        <IconButton
+          size="small"
+          onClick={() => {
+            setHideClickAway((pre) => !pre);
+          }}
+        >
+          {hideClickAway ? <PushPinOutlinedIcon /> : <PushPinIcon />}
+        </IconButton>
+        <IconButton
+          size="small"
+          onClick={() => {
+            setSimpleStyle((pre) => !pre);
+          }}
+        >
+          {simpleStyle ? <UnfoldMoreIcon /> : <UnfoldLessIcon />}
+        </IconButton>
+        <IconButton
+          size="small"
+          onClick={() => {
+            setShowPopup(false);
+          }}
+        >
+          <CloseIcon />
+        </IconButton>
+      </Stack>
+    </Stack>
+  );
+}
+
+function TranForm({ text, setText, tranboxSetting, transApis, simpleStyle }) {
   const i18n = useI18n();
 
   const [editMode, setEditMode] = useState(false);
@@ -29,127 +76,135 @@ function TranForm({ text, setText, tranboxSetting, transApis }) {
   const inputRef = useRef(null);
 
   return (
-    <Stack sx={{ p: 2 }} spacing={2}>
-      <Box>
-        <Grid container spacing={2} columns={12}>
-          <Grid item xs={4} sm={4} md={4} lg={4}>
-            <TextField
-              select
-              SelectProps={{ MenuProps: { disablePortal: true } }}
-              fullWidth
-              size="small"
-              name="fromLang"
-              value={fromLang}
-              label={i18n("from_lang")}
-              onChange={(e) => {
-                setFromLang(e.target.value);
-              }}
-            >
-              {OPT_LANGS_FROM.map(([lang, name]) => (
-                <MenuItem key={lang} value={lang}>
-                  {name}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Grid>
-          <Grid item xs={4} sm={4} md={4} lg={4}>
-            <TextField
-              select
-              SelectProps={{ MenuProps: { disablePortal: true } }}
-              fullWidth
-              size="small"
-              name="toLang"
-              value={toLang}
-              label={i18n("to_lang")}
-              onChange={(e) => {
-                setToLang(e.target.value);
-              }}
-            >
-              {OPT_LANGS_TO.map(([lang, name]) => (
-                <MenuItem key={lang} value={lang}>
-                  {name}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Grid>
-          <Grid item xs={4} sm={4} md={4} lg={4}>
-            <TextField
-              select
-              SelectProps={{ MenuProps: { disablePortal: true } }}
-              fullWidth
-              size="small"
-              value={translator}
-              name="translator"
-              label={i18n("translate_service")}
-              onChange={(e) => {
-                setTranslator(e.target.value);
-              }}
-            >
-              {OPT_TRANS_ALL.map((item) => (
-                <MenuItem key={item} value={item}>
-                  {item}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Grid>
-        </Grid>
-      </Box>
+    <Stack sx={{ p: simpleStyle ? 1 : 2 }} spacing={simpleStyle ? 1 : 2}>
+      {!simpleStyle && (
+        <>
+          <Box>
+            <Grid container spacing={simpleStyle ? 1 : 2} columns={12}>
+              <Grid item xs={4} sm={4} md={4} lg={4}>
+                <TextField
+                  select
+                  SelectProps={{ MenuProps: { disablePortal: true } }}
+                  fullWidth
+                  size="small"
+                  name="fromLang"
+                  value={fromLang}
+                  label={i18n("from_lang")}
+                  onChange={(e) => {
+                    setFromLang(e.target.value);
+                  }}
+                >
+                  {OPT_LANGS_FROM.map(([lang, name]) => (
+                    <MenuItem key={lang} value={lang}>
+                      {name}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+              <Grid item xs={4} sm={4} md={4} lg={4}>
+                <TextField
+                  select
+                  SelectProps={{ MenuProps: { disablePortal: true } }}
+                  fullWidth
+                  size="small"
+                  name="toLang"
+                  value={toLang}
+                  label={i18n("to_lang")}
+                  onChange={(e) => {
+                    setToLang(e.target.value);
+                  }}
+                >
+                  {OPT_LANGS_TO.map(([lang, name]) => (
+                    <MenuItem key={lang} value={lang}>
+                      {name}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+              <Grid item xs={4} sm={4} md={4} lg={4}>
+                <TextField
+                  select
+                  SelectProps={{ MenuProps: { disablePortal: true } }}
+                  fullWidth
+                  size="small"
+                  value={translator}
+                  name="translator"
+                  label={i18n("translate_service")}
+                  onChange={(e) => {
+                    setTranslator(e.target.value);
+                  }}
+                >
+                  {OPT_TRANS_ALL.map((item) => (
+                    <MenuItem key={item} value={item}>
+                      {item}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+            </Grid>
+          </Box>
 
-      <Box>
-        <TextField
-          size="small"
-          label={i18n("original_text")}
-          inputRef={inputRef}
-          fullWidth
-          multiline
-          value={editMode ? editText : text}
-          onChange={(e) => {
-            setEditText(e.target.value);
-          }}
-          onFocus={() => {
-            setEditMode(true);
-            setEditText(text);
-          }}
-          onBlur={() => {
-            setEditMode(false);
-            setText(editText.trim());
-          }}
-          InputProps={{
-            endAdornment: (
-              <Stack
-                direction="row"
-                sx={{
-                  position: "absolute",
-                  right: 0,
-                  top: 0,
-                }}
-              >
-                {editMode ? (
-                  <IconButton
-                    size="small"
-                    onClick={(e) => {
-                      e.stopPropagation();
+          <Box>
+            <TextField
+              size="small"
+              label={i18n("original_text")}
+              inputRef={inputRef}
+              fullWidth
+              multiline
+              value={editMode ? editText : text}
+              onChange={(e) => {
+                setEditText(e.target.value);
+              }}
+              onFocus={() => {
+                setEditMode(true);
+                setEditText(text);
+              }}
+              onBlur={() => {
+                setEditMode(false);
+                setText(editText.trim());
+              }}
+              InputProps={{
+                endAdornment: (
+                  <Stack
+                    direction="row"
+                    sx={{
+                      position: "absolute",
+                      right: 0,
+                      top: 0,
                     }}
                   >
-                    <DoneIcon fontSize="inherit" />
-                  </IconButton>
-                ) : (
-                  <CopyBtn text={text} />
-                )}
-              </Stack>
-            ),
-          }}
-        />
-      </Box>
+                    {editMode ? (
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                        }}
+                      >
+                        <DoneIcon fontSize="inherit" />
+                      </IconButton>
+                    ) : (
+                      <CopyBtn text={text} />
+                    )}
+                  </Stack>
+                ),
+              }}
+            />
+          </Box>
+        </>
+      )}
 
-      <TranCont
-        text={text}
-        translator={translator}
-        fromLang={fromLang}
-        toLang={toLang}
-        toLang2={tranboxSetting.toLang2}
-        transApis={transApis}
-      />
+      {(!simpleStyle || !isValidWord(text)) && (
+        <TranCont
+          text={text}
+          translator={translator}
+          fromLang={fromLang}
+          toLang={toLang}
+          toLang2={tranboxSetting.toLang2}
+          transApis={transApis}
+          simpleStyle={simpleStyle}
+        />
+      )}
+
       <DictCont text={text} />
       <SugCont text={text} />
     </Stack>
@@ -166,6 +221,10 @@ export default function TranBox({
   setBoxSize,
   boxPosition,
   setBoxPosition,
+  simpleStyle,
+  setSimpleStyle,
+  hideClickAway,
+  setHideClickAway,
 }) {
   return (
     <SettingProvider>
@@ -173,7 +232,15 @@ export default function TranBox({
         <DraggableResizable
           defaultPosition={boxPosition}
           defaultSize={boxSize}
-          header={<Header setShowPopup={setShowBox} />}
+          header={
+            <Header
+              setShowPopup={setShowBox}
+              simpleStyle={simpleStyle}
+              setSimpleStyle={setSimpleStyle}
+              hideClickAway={hideClickAway}
+              setHideClickAway={setHideClickAway}
+            />
+          }
           onChangeSize={setBoxSize}
           onChangePosition={setBoxPosition}
           onClick={(e) => e.stopPropagation()}
@@ -184,6 +251,7 @@ export default function TranBox({
             setText={setText}
             tranboxSetting={tranboxSetting}
             transApis={transApis}
+            simpleStyle={simpleStyle}
           />
         </DraggableResizable>
       </ThemeProvider>

@@ -418,7 +418,8 @@ export const DEFAULT_TRANBOX_SETTING = {
   btnOffsetX: 10,
   btnOffsetY: 10,
   hideTranBtn: false, // 是否隐藏翻译按钮
-  hideClickAway: false, // 是否点击外部关闭弹窗
+  hideClickAway: false, // 默认是否点击外部关闭弹窗
+  simpleStyle: false, // 默认是否简洁界面
 };
 
 // 订阅列表

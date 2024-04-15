@@ -7,6 +7,7 @@ import { DEFAULT_TRANS_APIS } from "../../config";
 import { useEffect, useState } from "react";
 import { apiTranslate, apiBaiduLangdetect } from "../../apis";
 import CopyBtn from "./CopyBtn";
+import Typography from "@mui/material/Typography";
 
 export default function TranCont({
   text,
@@ -15,6 +16,7 @@ export default function TranCont({
   toLang,
   toLang2 = "en",
   transApis,
+  simpleStyle,
 }) {
   const i18n = useI18n();
   const [trText, setTrText] = useState("");
@@ -53,6 +55,14 @@ export default function TranCont({
       }
     })();
   }, [text, translator, fromLang, toLang, toLang2, transApis]);
+
+  if (simpleStyle) {
+    return (
+      <Box>
+        <Typography style={{ whiteSpace: "pre-line" }}>{trText}</Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box>

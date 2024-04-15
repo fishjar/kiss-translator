@@ -13,9 +13,16 @@ export default function Slection({
   tranboxSetting,
   transApis,
 }) {
-  const boxWidth = limitNumber(window.innerWidth, 300, 600);
-  const boxHeight = limitNumber(window.innerHeight, 200, 400);
+  const boxWidth =
+    isMobile || tranboxSetting.simpleStyle
+      ? 300
+      : limitNumber(window.innerWidth, 300, 600);
+  const boxHeight =
+    isMobile || tranboxSetting.simpleStyle
+      ? 200
+      : limitNumber(window.innerHeight, 200, 400);
 
+  const [simpleStyle, setSimpleStyle] = useState(!!tranboxSetting.simpleStyle);
   const [showBox, setShowBox] = useState(false);
   const [showBtn, setShowBtn] = useState(false);
   const [selectedText, setSelText] = useState("");
@@ -29,6 +36,9 @@ export default function Slection({
     x: (window.innerWidth - boxWidth) / 2,
     y: (window.innerHeight - boxHeight) / 2,
   });
+  const [hideClickAway, setHideClickAway] = useState(
+    !!tranboxSetting.hideClickAway
+  );
 
   const handleClick = (e) => {
     e.stopPropagation();
@@ -64,10 +74,10 @@ export default function Slection({
         return;
       }
 
-      const { pageX, pageY } = isMobile ? e.changedTouches[0] : e;
+      const { clientX, clientY } = isMobile ? e.changedTouches[0] : e;
       !tranboxSetting.hideTranBtn && setShowBtn(true);
       // setPosition({ x: e.clientX, y: e.clientY });
-      setPosition({ x: pageX, y: pageY });
+      setPosition({ x: clientX, y: clientY });
     }
 
     // todo: mobile support
@@ -133,7 +143,7 @@ export default function Slection({
   }, [handleTranbox, contextMenuType]);
 
   useEffect(() => {
-    if (tranboxSetting.hideClickAway) {
+    if (hideClickAway) {
       const handleHideBox = () => {
         setShowBox(false);
       };
@@ -142,7 +152,7 @@ export default function Slection({
         window.removeEventListener("click", handleHideBox);
       };
     }
-  }, [tranboxSetting.hideClickAway]);
+  }, [hideClickAway]);
 
   return (
     <>
@@ -157,6 +167,10 @@ export default function Slection({
           tranboxSetting={tranboxSetting}
           transApis={transApis}
           setShowBox={setShowBox}
+          simpleStyle={simpleStyle}
+          setSimpleStyle={setSimpleStyle}
+          hideClickAway={hideClickAway}
+          setHideClickAway={setHideClickAway}
         />
       )}
 
