@@ -51,6 +51,7 @@ export default function Tranbox() {
     btnOffsetY,
     hideTranBtn = false,
     hideClickAway = false,
+    simpleStyle = false,
   } = tranboxSetting;
 
   return (
@@ -167,6 +168,18 @@ export default function Tranbox() {
           name="hideClickAway"
           value={hideClickAway}
           label={i18n("hide_click_away")}
+          onChange={handleChange}
+        >
+          <MenuItem value={false}>{i18n("disable")}</MenuItem>
+          <MenuItem value={true}>{i18n("enable")}</MenuItem>
+        </TextField>
+
+        <TextField
+          select
+          size="small"
+          name="simpleStyle"
+          value={simpleStyle}
+          label={i18n("use_simple_style")}
           onChange={handleChange}
         >
           <MenuItem value={false}>{i18n("disable")}</MenuItem>

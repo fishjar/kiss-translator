@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import FavBtn from "./FavBtn";
 import Typography from "@mui/material/Typography";
@@ -9,6 +8,7 @@ import Alert from "@mui/material/Alert";
 import { OPT_TRANS_BAIDU } from "../../config";
 import { apiTranslate } from "../../apis";
 import { isValidWord } from "../../libs/utils";
+import CopyBtn from "./CopyBtn";
 
 const phonicMap = {
   en_phonic: ["英", "uk"],
@@ -61,40 +61,60 @@ export default function DictCont({ text }) {
     return;
   }
 
+  const copyText = [
+    dictResult.src,
+    dictResult.voice
+      ?.map(Object.entries)
+      .map((item) => item[0])
+      .map(([key, val]) => `${phonicMap[key]?.[0] || key} ${val}`)
+      .join(" "),
+    dictResult.content[0].mean
+      .map(({ pre, cont }) => {
+        return `${pre ? `[${pre}] ` : ""}${Object.keys(cont).join("; ")}`;
+      })
+      .join("\n"),
+  ].join("\n");
+
   return (
-    <Box>
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        alignItems="flex-start"
-      >
+    <Stack spacing={1}>
+      <Stack direction="row" justifyContent="space-between">
         <Typography variant="subtitle1" style={{ fontWeight: "bold" }}>
           {dictResult.src}
         </Typography>
-        <FavBtn word={dictResult.src} />
+        <Stack direction="row" justifyContent="space-between">
+          <CopyBtn text={copyText} />
+          <FavBtn word={dictResult.src} />
+        </Stack>
       </Stack>
 
       <Typography component="div">
-        <Stack direction="row">
+        <Typography component="div">
           {dictResult.voice
             ?.map(Object.entries)
             .map((item) => item[0])
             .map(([key, val]) => (
-              <span key={key}>
-                <span>{`${phonicMap[key]?.[0] || key} ${val}`}</span>
+              <Typography
+                component="div"
+                key={key}
+                style={{ display: "inline-block" }}
+              >
+                <Typography component="span">{`${
+                  phonicMap[key]?.[0] || key
+                } ${val}`}</Typography>
                 <AudioBtn text={dictResult.src} lan={phonicMap[key]?.[1]} />
-              </span>
+              </Typography>
             ))}
-        </Stack>
-        <ul style={{ margin: "0.5em 0" }}>
+        </Typography>
+
+        <Typography component="ul">
           {dictResult.content[0].mean.map(({ pre, cont }, idx) => (
-            <li key={idx}>
+            <Typography component="li" key={idx}>
               {pre && `[${pre}] `}
               {Object.keys(cont).join("; ")}
-            </li>
+            </Typography>
           ))}
-        </ul>
+        </Typography>
       </Typography>
-    </Box>
+    </Stack>
   );
 }

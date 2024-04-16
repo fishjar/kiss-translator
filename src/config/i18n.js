@@ -627,6 +627,10 @@ export const I18N = {
     zh: `点击外部关闭弹窗`,
     en: `Click outside to close the pop-up window`,
   },
+  use_simple_style: {
+    zh: `使用简洁界面`,
+    en: `Click outside to close the pop-up window`,
+  },
   show: {
     zh: `显示`,
     en: `Show`,

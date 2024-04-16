@@ -22,7 +22,6 @@ export default function Slection({
       ? 200
       : limitNumber(window.innerHeight, 200, 400);
 
-  const [simpleStyle, setSimpleStyle] = useState(!!tranboxSetting.simpleStyle);
   const [showBox, setShowBox] = useState(false);
   const [showBtn, setShowBtn] = useState(false);
   const [selectedText, setSelText] = useState("");
@@ -36,6 +35,7 @@ export default function Slection({
     x: (window.innerWidth - boxWidth) / 2,
     y: (window.innerHeight - boxHeight) / 2,
   });
+  const [simpleStyle, setSimpleStyle] = useState(!!tranboxSetting.simpleStyle);
   const [hideClickAway, setHideClickAway] = useState(
     !!tranboxSetting.hideClickAway
   );

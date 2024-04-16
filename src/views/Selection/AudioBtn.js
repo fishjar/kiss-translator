@@ -8,7 +8,7 @@ export default function AudioBtn({ text, lan = "uk" }) {
   if (error || !ready) {
     return (
       <IconButton disabled size="small">
-        <VolumeUpIcon />
+        <VolumeUpIcon fontSize="inherit" />
       </IconButton>
     );
   }
@@ -16,14 +16,14 @@ export default function AudioBtn({ text, lan = "uk" }) {
   if (playing) {
     return (
       <IconButton color="primary" size="small">
-        <VolumeUpIcon />
+        <VolumeUpIcon fontSize="inherit" />
       </IconButton>
     );
   }
 
   return (
     <IconButton onClick={onPlay} size="small">
-      <VolumeUpIcon />
+      <VolumeUpIcon fontSize="inherit" />
     </IconButton>
   );
 }

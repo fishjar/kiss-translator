@@ -33,7 +33,7 @@ function Header({
 }) {
   return (
     <Stack direction="row" justifyContent="space-between" alignItems="center">
-      <DragIndicatorIcon />
+      <DragIndicatorIcon fontSize="small" />
 
       <Stack direction="row" alignItems="center">
         <IconButton
@@ -42,7 +42,11 @@ function Header({
             setHideClickAway((pre) => !pre);
           }}
         >
-          {hideClickAway ? <PushPinOutlinedIcon /> : <PushPinIcon />}
+          {hideClickAway ? (
+            <PushPinOutlinedIcon fontSize="small" />
+          ) : (
+            <PushPinIcon fontSize="small" />
+          )}
         </IconButton>
         <IconButton
           size="small"
@@ -50,7 +54,11 @@ function Header({
             setSimpleStyle((pre) => !pre);
           }}
         >
-          {simpleStyle ? <UnfoldMoreIcon /> : <UnfoldLessIcon />}
+          {simpleStyle ? (
+            <UnfoldMoreIcon fontSize="small" />
+          ) : (
+            <UnfoldLessIcon fontSize="small" />
+          )}
         </IconButton>
         <IconButton
           size="small"
@@ -58,7 +66,7 @@ function Header({
             setShowPopup(false);
           }}
         >
-          <CloseIcon />
+          <CloseIcon fontSize="small" />
         </IconButton>
       </Stack>
     </Stack>
