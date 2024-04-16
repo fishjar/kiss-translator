@@ -1,7 +1,7 @@
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
-import CircularProgress from "@mui/material/CircularProgress";
+import LoadingButton from "@mui/lab/LoadingButton";
 import {
   OPT_TRANS_ALL,
   OPT_TRANS_MICROSOFT,
@@ -89,14 +89,15 @@ function TestButton({ translator, api }) {
     }
   };
 
-  if (loading) {
-    return <CircularProgress size={16} />;
-  }
-
   return (
-    <Button size="small" variant="contained" onClick={handleApiTest}>
+    <LoadingButton
+      size="small"
+      variant="contained"
+      onClick={handleApiTest}
+      loading={loading}
+    >
       {i18n("click_test")}
-    </Button>
+    </LoadingButton>
   );
 }
 

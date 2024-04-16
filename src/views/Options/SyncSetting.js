@@ -6,6 +6,7 @@ import { useSync } from "../../hooks/Sync";
 import Alert from "@mui/material/Alert";
 import Link from "@mui/material/Link";
 import MenuItem from "@mui/material/MenuItem";
+import LoadingButton from "@mui/lab/LoadingButton";
 import {
   URL_KISS_WORKER,
   OPT_SYNCTYPE_ALL,
@@ -14,10 +15,8 @@ import {
 } from "../../config";
 import { useState } from "react";
 import { syncSettingAndRules } from "../../libs/sync";
-import Button from "@mui/material/Button";
 import { useAlert } from "../../hooks/Alert";
 import SyncIcon from "@mui/icons-material/Sync";
-import CircularProgress from "@mui/material/CircularProgress";
 import { useSetting } from "../../hooks/Setting";
 import { kissLog } from "../../libs/log";
 
@@ -123,16 +122,16 @@ export default function SyncSetting() {
           useFlexGap
           flexWrap="wrap"
         >
-          <Button
+          <LoadingButton
             size="small"
             variant="contained"
             disabled={!syncUrl || !syncKey || loading}
             onClick={handleSyncTest}
             startIcon={<SyncIcon />}
+            loading={loading}
           >
             {i18n("sync_now")}
-          </Button>
-          {loading && <CircularProgress size={16} />}
+          </LoadingButton>
         </Stack>
       </Stack>
     </Box>
