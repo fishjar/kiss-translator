@@ -103,7 +103,6 @@ export default function Slection({
 
       const { clientX, clientY } = isMobile ? e.changedTouches[0] : e;
       setShowBtn(!hideTranBtn);
-      // setPosition({ x: e.clientX, y: e.clientY });
       setPosition({ x: clientX, y: clientY });
     }
 

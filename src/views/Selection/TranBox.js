@@ -32,44 +32,46 @@ function Header({
   setHideClickAway,
 }) {
   return (
-    <Stack direction="row" justifyContent="space-between" alignItems="center">
-      <DragIndicatorIcon fontSize="small" />
-
-      <Stack direction="row" alignItems="center">
-        <IconButton
-          size="small"
-          onClick={() => {
-            setHideClickAway((pre) => !pre);
-          }}
-        >
-          {hideClickAway ? (
-            <PushPinOutlinedIcon fontSize="small" />
-          ) : (
-            <PushPinIcon fontSize="small" />
-          )}
-        </IconButton>
-        <IconButton
-          size="small"
-          onClick={() => {
-            setSimpleStyle((pre) => !pre);
-          }}
-        >
-          {simpleStyle ? (
-            <UnfoldMoreIcon fontSize="small" />
-          ) : (
-            <UnfoldLessIcon fontSize="small" />
-          )}
-        </IconButton>
-        <IconButton
-          size="small"
-          onClick={() => {
-            setShowPopup(false);
-          }}
-        >
-          <CloseIcon fontSize="small" />
-        </IconButton>
+    <Box>
+      <Stack direction="row" justifyContent="space-between" alignItems="center">
+        <DragIndicatorIcon fontSize="small" />
+        <Stack direction="row" alignItems="center">
+          <IconButton
+            size="small"
+            onClick={() => {
+              setHideClickAway((pre) => !pre);
+            }}
+          >
+            {hideClickAway ? (
+              <PushPinOutlinedIcon fontSize="small" />
+            ) : (
+              <PushPinIcon fontSize="small" />
+            )}
+          </IconButton>
+          <IconButton
+            size="small"
+            onClick={() => {
+              setSimpleStyle((pre) => !pre);
+            }}
+          >
+            {simpleStyle ? (
+              <UnfoldMoreIcon fontSize="small" />
+            ) : (
+              <UnfoldLessIcon fontSize="small" />
+            )}
+          </IconButton>
+          <IconButton
+            size="small"
+            onClick={() => {
+              setShowPopup(false);
+            }}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </Stack>
       </Stack>
-    </Stack>
+      <Divider />
+    </Box>
   );
 }
 
@@ -253,7 +255,6 @@ export default function TranBox({
           onChangePosition={setBoxPosition}
           onClick={(e) => e.stopPropagation()}
         >
-          <Divider />
           <TranForm
             text={text}
             setText={setText}
