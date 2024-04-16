@@ -407,6 +407,10 @@ export const DEFAULT_INPUT_RULE = {
 };
 
 // 划词翻译
+export const PHONIC_MAP = {
+  en_phonic: ["英", "uk"],
+  us_phonic: ["美", "en"],
+};
 export const OPT_TRANBOX_TRIGGER_CLICK = "click";
 export const OPT_TRANBOX_TRIGGER_HOVER = "hover";
 export const OPT_TRANBOX_TRIGGER_SELECT = "select";

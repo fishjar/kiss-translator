@@ -17,6 +17,8 @@ import Button from "@mui/material/Button";
 import ClearAllIcon from "@mui/icons-material/ClearAll";
 import { isValidWord } from "../../libs/utils";
 import { kissLog } from "../../libs/log";
+import { apiTranslate } from "../../apis";
+import { OPT_TRANS_BAIDU, PHONIC_MAP } from "../../config";
 
 function FavAccordion({ word, index }) {
   const [expanded, setExpanded] = useState(false);
@@ -65,6 +67,45 @@ export default function FavWords() {
     }
   };
 
+  const handleTranslation = async () => {
+    const tranList = [];
+    for (const text of downloadList) {
+      try {
+        const dictRes = await apiTranslate({
+          text,
+          translator: OPT_TRANS_BAIDU,
+          fromLang: "en",
+          toLang: "zh-CN",
+        });
+        if (dictRes[2]?.type === 1) {
+          tranList.push(JSON.parse(dictRes[2].result));
+        }
+      } catch (err) {
+        // skip
+      }
+    }
+
+    return tranList
+      .map((dictResult) =>
+        [
+          `## ${dictResult.src}`,
+          dictResult.voice
+            ?.map(Object.entries)
+            .map((item) => item[0])
+            .map(([key, val]) => `${PHONIC_MAP[key]?.[0] || key} ${val}`)
+            .join(" "),
+          dictResult.content[0].mean
+            .map(({ pre, cont }) => {
+              return `  - ${pre ? `[${pre}] ` : ""}${Object.keys(cont).join(
+                "; "
+              )}`;
+            })
+            .join("\n"),
+        ].join("\n\n")
+      )
+      .join("\n\n");
+  };
+
   return (
     <Box>
       <Stack spacing={3}>
@@ -82,9 +123,14 @@ export default function FavWords() {
             fileExts={[".txt", ".csv"]}
           />
           <DownloadButton
-            data={downloadList.join("\n")}
+            handleData={() => downloadList.join("\n")}
             text={i18n("export")}
             fileName={`kiss-words_${Date.now()}.txt`}
+          />
+          <DownloadButton
+            handleData={handleTranslation}
+            text={i18n("export_translation")}
+            fileName={`kiss-words_${Date.now()}.md`}
           />
           <Button
             size="small"

@@ -5,15 +5,10 @@ import Typography from "@mui/material/Typography";
 import AudioBtn from "./AudioBtn";
 import CircularProgress from "@mui/material/CircularProgress";
 import Alert from "@mui/material/Alert";
-import { OPT_TRANS_BAIDU } from "../../config";
+import { OPT_TRANS_BAIDU, PHONIC_MAP } from "../../config";
 import { apiTranslate } from "../../apis";
 import { isValidWord } from "../../libs/utils";
 import CopyBtn from "./CopyBtn";
-
-const phonicMap = {
-  en_phonic: ["英", "uk"],
-  us_phonic: ["美", "en"],
-};
 
 export default function DictCont({ text }) {
   const [loading, setLoading] = useState(true);
@@ -66,7 +61,7 @@ export default function DictCont({ text }) {
     dictResult.voice
       ?.map(Object.entries)
       .map((item) => item[0])
-      .map(([key, val]) => `${phonicMap[key]?.[0] || key} ${val}`)
+      .map(([key, val]) => `${PHONIC_MAP[key]?.[0] || key} ${val}`)
       .join(" "),
     dictResult.content[0].mean
       .map(({ pre, cont }) => {
@@ -99,9 +94,9 @@ export default function DictCont({ text }) {
                 style={{ display: "inline-block" }}
               >
                 <Typography component="span">{`${
-                  phonicMap[key]?.[0] || key
+                  PHONIC_MAP[key]?.[0] || key
                 } ${val}`}</Typography>
-                <AudioBtn text={dictResult.src} lan={phonicMap[key]?.[1]} />
+                <AudioBtn text={dictResult.src} lan={PHONIC_MAP[key]?.[1]} />
               </Typography>
             ))}
         </Typography>

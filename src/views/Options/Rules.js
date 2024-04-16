@@ -776,7 +776,7 @@ function UserRules({ subRules }) {
 
         <UploadButton text={i18n("import")} handleImport={handleImport} />
         <DownloadButton
-          data={JSON.stringify([...rules.list].reverse(), null, 2)}
+          handleData={() => JSON.stringify([...rules.list].reverse(), null, 2)}
           text={i18n("export")}
           fileName={`kiss-rules_${Date.now()}.json`}
         />

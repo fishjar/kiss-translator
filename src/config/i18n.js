@@ -463,6 +463,10 @@ export const I18N = {
     zh: `导出`,
     en: `Export`,
   },
+  export_translation: {
+    zh: `导出释义`,
+    en: `Export Translation`,
+  },
   error_cant_be_blank: {
     zh: `不能为空`,
     en: `Can not be blank`,
