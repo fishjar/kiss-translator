@@ -407,6 +407,14 @@ export const DEFAULT_INPUT_RULE = {
 };
 
 // 划词翻译
+export const OPT_TRANBOX_TRIGGER_CLICK = "click";
+export const OPT_TRANBOX_TRIGGER_HOVER = "hover";
+export const OPT_TRANBOX_TRIGGER_SELECT = "select";
+export const OPT_TRANBOX_TRIGGER_ALL = [
+  OPT_TRANBOX_TRIGGER_CLICK,
+  OPT_TRANBOX_TRIGGER_HOVER,
+  OPT_TRANBOX_TRIGGER_SELECT,
+];
 export const DEFAULT_TRANBOX_SHORTCUT = ["AltLeft", "KeyS"];
 export const DEFAULT_TRANBOX_SETTING = {
   transOpen: true,
@@ -418,8 +426,9 @@ export const DEFAULT_TRANBOX_SETTING = {
   btnOffsetX: 10,
   btnOffsetY: 10,
   hideTranBtn: false, // 是否隐藏翻译按钮
-  hideClickAway: false, // 默认是否点击外部关闭弹窗
-  simpleStyle: false, // 默认是否简洁界面
+  hideClickAway: false, // 是否点击外部关闭弹窗
+  simpleStyle: false, // 是否简洁界面
+  triggerMode: OPT_TRANBOX_TRIGGER_CLICK, // 触发翻译方式
 };
 
 // 订阅列表

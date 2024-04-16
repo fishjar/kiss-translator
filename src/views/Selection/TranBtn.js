@@ -1,7 +1,12 @@
 import { isMobile } from "../../libs/mobile";
 import { limitNumber } from "../../libs/utils";
 
-export default function TranBtn({ onClick, position, tranboxSetting }) {
+export default function TranBtn({
+  onTrigger,
+  btnEvent,
+  position,
+  tranboxSetting,
+}) {
   const left = limitNumber(
     position.x + tranboxSetting.btnOffsetX,
     0,
@@ -13,14 +18,6 @@ export default function TranBtn({ onClick, position, tranboxSetting }) {
     window.innerHeight - 32
   );
 
-  const touchProps = isMobile
-    ? {
-        onTouchEnd: onClick,
-      }
-    : {
-        onMouseUp: onClick,
-      };
-
   return (
     <div
       style={{
@@ -31,7 +28,7 @@ export default function TranBtn({ onClick, position, tranboxSetting }) {
         top,
         zIndex: 2147483647,
       }}
-      {...touchProps}
+      {...{ [btnEvent]: onTrigger }}
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"

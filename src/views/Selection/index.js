@@ -1,10 +1,16 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import TranBtn from "./TranBtn";
 import TranBox from "./TranBox";
 import { shortcutRegister } from "../../libs/shortcut";
 import { sleep, limitNumber } from "../../libs/utils";
 import { isGm, isExt } from "../../libs/client";
-import { MSG_OPEN_TRANBOX, DEFAULT_TRANBOX_SHORTCUT } from "../../config";
+import {
+  MSG_OPEN_TRANBOX,
+  DEFAULT_TRANBOX_SHORTCUT,
+  OPT_TRANBOX_TRIGGER_CLICK,
+  OPT_TRANBOX_TRIGGER_HOVER,
+  OPT_TRANBOX_TRIGGER_SELECT,
+} from "../../config";
 import { isMobile } from "../../libs/mobile";
 import { kissLog } from "../../libs/log";
 
@@ -13,12 +19,20 @@ export default function Slection({
   tranboxSetting,
   transApis,
 }) {
+  const {
+    hideTranBtn = false,
+    simpleStyle: initSimpleStyle = false,
+    hideClickAway: initHideClickAway = false,
+    tranboxShortcut = DEFAULT_TRANBOX_SHORTCUT,
+    triggerMode = OPT_TRANBOX_TRIGGER_CLICK,
+  } = tranboxSetting;
+
   const boxWidth =
-    isMobile || tranboxSetting.simpleStyle
+    isMobile || initSimpleStyle
       ? 300
       : limitNumber(window.innerWidth, 300, 600);
   const boxHeight =
-    isMobile || tranboxSetting.simpleStyle
+    isMobile || initSimpleStyle
       ? 200
       : limitNumber(window.innerHeight, 200, 400);
 
@@ -35,18 +49,17 @@ export default function Slection({
     x: (window.innerWidth - boxWidth) / 2,
     y: (window.innerHeight - boxHeight) / 2,
   });
-  const [simpleStyle, setSimpleStyle] = useState(!!tranboxSetting.simpleStyle);
-  const [hideClickAway, setHideClickAway] = useState(
-    !!tranboxSetting.hideClickAway
+  const [simpleStyle, setSimpleStyle] = useState(initSimpleStyle);
+  const [hideClickAway, setHideClickAway] = useState(initHideClickAway);
+
+  const handleTrigger = useCallback(
+    (text) => {
+      setShowBtn(false);
+      setText(text || selectedText);
+      setShowBox(true);
+    },
+    [selectedText]
   );
-
-  const handleClick = (e) => {
-    e.stopPropagation();
-
-    setShowBtn(false);
-    setText(selectedText);
-    setShowBox(true);
-  };
 
   const handleTranbox = useCallback(() => {
     setShowBtn(false);
@@ -62,10 +75,19 @@ export default function Slection({
     setShowBox(true);
   }, []);
 
+  const btnEvent = useMemo(() => {
+    if (isMobile) {
+      return "onTouchEnd";
+    } else if (triggerMode === OPT_TRANBOX_TRIGGER_HOVER) {
+      return "onMouseOver";
+    }
+    return "onMouseUp";
+  }, [triggerMode]);
+
   useEffect(() => {
     async function handleMouseup(e) {
       e.stopPropagation();
-      await sleep(100);
+      await sleep(200);
 
       const selectedText = window.getSelection()?.toString()?.trim() || "";
       setSelText(selectedText);
@@ -74,8 +96,13 @@ export default function Slection({
         return;
       }
 
+      if (triggerMode === OPT_TRANBOX_TRIGGER_SELECT) {
+        handleTrigger(selectedText);
+        return;
+      }
+
       const { clientX, clientY } = isMobile ? e.changedTouches[0] : e;
-      !tranboxSetting.hideTranBtn && setShowBtn(true);
+      setShowBtn(!hideTranBtn);
       // setPosition({ x: e.clientX, y: e.clientY });
       setPosition({ x: clientX, y: clientY });
     }
@@ -89,22 +116,17 @@ export default function Slection({
         handleMouseup
       );
     };
-  }, [tranboxSetting.hideTranBtn]);
+  }, [hideTranBtn, triggerMode, handleTrigger]);
 
   useEffect(() => {
     if (isExt) {
       return;
     }
-
-    const clearShortcut = shortcutRegister(
-      tranboxSetting.tranboxShortcut || DEFAULT_TRANBOX_SHORTCUT,
-      handleTranbox
-    );
-
+    const clearShortcut = shortcutRegister(tranboxShortcut, handleTranbox);
     return () => {
       clearShortcut();
     };
-  }, [tranboxSetting.tranboxShortcut, handleTranbox]);
+  }, [tranboxShortcut, handleTranbox]);
 
   useEffect(() => {
     window.addEventListener(MSG_OPEN_TRANBOX, handleTranbox);
@@ -178,7 +200,11 @@ export default function Slection({
         <TranBtn
           position={position}
           tranboxSetting={tranboxSetting}
-          onClick={handleClick}
+          btnEvent={btnEvent}
+          onTrigger={(e) => {
+            e.stopPropagation();
+            handleTrigger();
+          }}
         />
       )}
     </>

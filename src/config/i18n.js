@@ -827,4 +827,20 @@ export const I18N = {
     zh: `获取小牛翻译密钥`,
     en: `Get NiuTrans APIKey`,
   },
+  trigger_mode: {
+    zh: `触发方式`,
+    en: `Trigger Mode`,
+  },
+  trigger_click: {
+    zh: `点击触发`,
+    en: `Click Trigger`,
+  },
+  trigger_hover: {
+    zh: `鼠标悬停触发`,
+    en: `Hover Trigger`,
+  },
+  trigger_select: {
+    zh: `选中触发`,
+    en: `Select Trigger`,
+  },
 };

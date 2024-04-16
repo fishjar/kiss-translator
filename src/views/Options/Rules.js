@@ -366,7 +366,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                     fullWidth
                     name="transTiming"
                     value={transTiming}
-                    label={i18n("translate_timing")}
+                    label={i18n("trigger_mode")}
                     disabled={disabled}
                     onChange={handleChange}
                   >

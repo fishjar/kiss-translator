@@ -3,7 +3,13 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import { useI18n } from "../../hooks/I18n";
-import { OPT_TRANS_ALL, OPT_LANGS_FROM, OPT_LANGS_TO } from "../../config";
+import {
+  OPT_TRANS_ALL,
+  OPT_LANGS_FROM,
+  OPT_LANGS_TO,
+  OPT_TRANBOX_TRIGGER_CLICK,
+  OPT_TRANBOX_TRIGGER_ALL,
+} from "../../config";
 import ShortcutInput from "./ShortcutInput";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
@@ -52,6 +58,7 @@ export default function Tranbox() {
     hideTranBtn = false,
     hideClickAway = false,
     simpleStyle = false,
+    triggerMode = OPT_TRANBOX_TRIGGER_CLICK,
   } = tranboxSetting;
 
   return (
@@ -184,6 +191,21 @@ export default function Tranbox() {
         >
           <MenuItem value={false}>{i18n("disable")}</MenuItem>
           <MenuItem value={true}>{i18n("enable")}</MenuItem>
+        </TextField>
+
+        <TextField
+          select
+          size="small"
+          name="triggerMode"
+          value={triggerMode}
+          label={i18n("trigger_mode")}
+          onChange={handleChange}
+        >
+          {OPT_TRANBOX_TRIGGER_ALL.map((item) => (
+            <MenuItem key={item} value={item}>
+              {i18n(`trigger_${item}`)}
+            </MenuItem>
+          ))}
         </TextField>
 
         {!isExt && (
