@@ -71,7 +71,7 @@ export default function DictCont({ text }) {
   ].join("\n");
 
   return (
-    <Stack spacing={1}>
+    <Stack className="KT-transbox-dict" spacing={1}>
       <Stack direction="row" justifyContent="space-between">
         <Typography variant="subtitle1" style={{ fontWeight: "bold" }}>
           {dictResult.src}

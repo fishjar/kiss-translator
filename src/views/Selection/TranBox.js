@@ -32,7 +32,7 @@ function Header({
   setHideClickAway,
 }) {
   return (
-    <Box>
+    <Box className="KT-transbox-header">
       <Stack direction="row" justifyContent="space-between" alignItems="center">
         <DragIndicatorIcon fontSize="small" />
         <Stack direction="row" alignItems="center">
@@ -86,10 +86,14 @@ function TranForm({ text, setText, tranboxSetting, transApis, simpleStyle }) {
   const inputRef = useRef(null);
 
   return (
-    <Stack sx={{ p: simpleStyle ? 1 : 2 }} spacing={simpleStyle ? 1 : 2}>
+    <Stack
+      className="KT-transbox-container"
+      sx={{ p: simpleStyle ? 1 : 2 }}
+      spacing={simpleStyle ? 1 : 2}
+    >
       {!simpleStyle && (
         <>
-          <Box>
+          <Box className="KT-transbox-select">
             <Grid container spacing={simpleStyle ? 1 : 2} columns={12}>
               <Grid item xs={4} sm={4} md={4} lg={4}>
                 <TextField
@@ -154,7 +158,7 @@ function TranForm({ text, setText, tranboxSetting, transApis, simpleStyle }) {
             </Grid>
           </Box>
 
-          <Box>
+          <Box className="KT-transbox-origin">
             <TextField
               size="small"
               label={i18n("original_text")}
@@ -235,10 +239,11 @@ export default function TranBox({
   setSimpleStyle,
   hideClickAway,
   setHideClickAway,
+  extStyles,
 }) {
   return (
     <SettingProvider>
-      <ThemeProvider>
+      <ThemeProvider styles={extStyles}>
         <DraggableResizable
           defaultPosition={boxPosition}
           defaultSize={boxSize}

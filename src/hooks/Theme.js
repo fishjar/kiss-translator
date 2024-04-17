@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
-import CssBaseline from "@mui/material/CssBaseline";
+import { CssBaseline, GlobalStyles } from "@mui/material";
 import { useDarkMode } from "./ColorMode";
 import { THEME_DARK, THEME_LIGHT } from "../config";
 
@@ -9,7 +9,7 @@ import { THEME_DARK, THEME_LIGHT } from "../config";
  * @param {*} param0
  * @returns
  */
-export default function Theme({ children, options }) {
+export default function Theme({ children, options, styles }) {
   const { darkMode } = useDarkMode();
   const theme = useMemo(() => {
     let htmlFontSize = 16;
@@ -38,6 +38,7 @@ export default function Theme({ children, options }) {
     <ThemeProvider theme={theme}>
       {/* CssBaseline kickstart an elegant, consistent, and simple baseline to build upon. */}
       <CssBaseline />
+      <GlobalStyles styles={styles} />
       {children}
     </ThemeProvider>
   );

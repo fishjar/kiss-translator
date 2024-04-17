@@ -21,7 +21,7 @@ export default function SugCont({ text }) {
   }
 
   return (
-    <Stack spacing={1}>
+    <Stack className="KT-transbox-sug" spacing={1}>
       {sugs.map(({ k, v }) => (
         <Typography component="div" key={k}>
           <Typography>{k}</Typography>

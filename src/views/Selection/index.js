@@ -25,6 +25,7 @@ export default function Slection({
     hideClickAway: initHideClickAway = false,
     tranboxShortcut = DEFAULT_TRANBOX_SHORTCUT,
     triggerMode = OPT_TRANBOX_TRIGGER_CLICK,
+    extStyles,
   } = tranboxSetting;
 
   const boxWidth =
@@ -192,6 +193,7 @@ export default function Slection({
           setSimpleStyle={setSimpleStyle}
           hideClickAway={hideClickAway}
           setHideClickAway={setHideClickAway}
+          extStyles={extStyles}
         />
       )}
 

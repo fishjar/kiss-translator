@@ -847,4 +847,8 @@ export const I18N = {
     zh: `选中触发`,
     en: `Select Trigger`,
   },
+  extend_styles: {
+    zh: `附加样式`,
+    en: `Extend Styles`,
+  },
 };

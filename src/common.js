@@ -139,6 +139,7 @@ function showTransbox({
   contextMenuType,
   tranboxSetting = DEFAULT_TRANBOX_SETTING,
   transApis,
+  darkMode,
 }) {
   if (!tranboxSetting?.transOpen) {
     return;
@@ -153,6 +154,8 @@ function showTransbox({
   const shadowContainer = $tranbox.attachShadow({ mode: "closed" });
   const emotionRoot = document.createElement("style");
   const shadowRootElement = document.createElement("div");
+  shadowRootElement.classList.add(`KT-transbox`);
+  shadowRootElement.classList.add(`KT-transbox_${darkMode ? "dark" : "light"}`);
   shadowContainer.appendChild(emotionRoot);
   shadowContainer.appendChild(shadowRootElement);
   const cache = createCache({

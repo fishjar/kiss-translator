@@ -59,7 +59,7 @@ export default function TranCont({
 
   if (simpleStyle) {
     return (
-      <Box>
+      <Box className="KT-transbox-target KT-transbox-target_simple">
         {error ? (
           <Alert severity="error">{error}</Alert>
         ) : loading ? (
@@ -72,7 +72,7 @@ export default function TranCont({
   }
 
   return (
-    <Box>
+    <Box className="KT-transbox-target KT-transbox-target_default">
       <TextField
         size="small"
         label={i18n("translated_text")}

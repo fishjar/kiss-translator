@@ -173,6 +173,7 @@ export default function DraggableResizable({
 
   return (
     <Box
+      className="KT-draggable"
       style={{
         touchAction: "none",
         position: "fixed",
@@ -219,11 +220,17 @@ export default function DraggableResizable({
         }}
         {...opts}
       />
-      <Paper elevation={4}>
-        <Pointer direction="Header" style={{ cursor: "move" }} {...opts}>
+      <Paper className="KT-draggable-body" elevation={4}>
+        <Pointer
+          className="KT-draggable-header"
+          direction="Header"
+          style={{ cursor: "move" }}
+          {...opts}
+        >
           {header}
         </Pointer>
-        <div
+        <Box
+          className="KT-draggable-container"
           style={{
             width: size.w,
             height: size.h,
@@ -231,7 +238,7 @@ export default function DraggableResizable({
           }}
         >
           {children}
-        </div>
+        </Box>
       </Paper>
       <Pointer
         direction="Right"

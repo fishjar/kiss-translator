@@ -433,6 +433,7 @@ export const DEFAULT_TRANBOX_SETTING = {
   hideClickAway: false, // 是否点击外部关闭弹窗
   simpleStyle: false, // 是否简洁界面
   triggerMode: OPT_TRANBOX_TRIGGER_CLICK, // 触发翻译方式
+  extStyles: "", // 附加样式
 };
 
 // 订阅列表

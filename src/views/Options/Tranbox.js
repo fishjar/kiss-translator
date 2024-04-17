@@ -59,6 +59,7 @@ export default function Tranbox() {
     hideClickAway = false,
     simpleStyle = false,
     triggerMode = OPT_TRANBOX_TRIGGER_CLICK,
+    extStyles = "",
   } = tranboxSetting;
 
   return (
@@ -207,6 +208,16 @@ export default function Tranbox() {
             </MenuItem>
           ))}
         </TextField>
+
+        <TextField
+          size="small"
+          label={i18n("extend_styles")}
+          name="extStyles"
+          defaultValue={extStyles}
+          onChange={handleChange}
+          maxRows={10}
+          multiline
+        />
 
         {!isExt && (
           <ShortcutInput

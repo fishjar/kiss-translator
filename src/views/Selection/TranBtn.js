@@ -20,6 +20,7 @@ export default function TranBtn({
 
   return (
     <div
+      className="KT-tranbtn"
       style={{
         cursor: "pointer",
         // position: "absolute",

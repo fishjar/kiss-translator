@@ -278,6 +278,7 @@ export default function Settings() {
           name="blacklist"
           defaultValue={blacklist}
           onChange={handleChange}
+          maxRows={10}
           multiline
         />
       </Stack>
