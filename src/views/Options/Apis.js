@@ -113,7 +113,7 @@ function ApiFields({ translator }) {
     fetchInterval = DEFAULT_FETCH_INTERVAL,
     dictNo = "",
     memoryNo = "",
-    customRequest = "",
+    customOption = "",
   } = api;
 
   const handleChange = (e) => {
@@ -226,9 +226,9 @@ function ApiFields({ translator }) {
       {translator.startsWith(OPT_TRANS_CUSTOMIZE) && (
         <TextField
           size="small"
-          label={"CUSTOM REQUEST"}
-          name="customRequest"
-          value={customRequest}
+          label={i18n("custom_option")}
+          name="customOption"
+          value={customOption}
           onChange={handleChange}
           multiline
         />

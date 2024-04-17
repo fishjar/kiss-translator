@@ -458,7 +458,7 @@ export const DEFAULT_SUBRULES_LIST = [
 const defaultCustomApi = {
   url: "",
   key: "",
-  customRequest: "",
+  customOption: "",
   fetchLimit: DEFAULT_FETCH_LIMIT,
   fetchInterval: DEFAULT_FETCH_INTERVAL,
 };

@@ -42,24 +42,28 @@ const customApiLangs = `["en", "English - English"],
 ["vi", "Vietnamese - Tiếng Việt"],
 `;
 
-const customApiHelpZH = `/// 自定义翻译源接口说明
-
-// 请求（Request）数据将按下面规范发送
-{
-  url: {{YOUR_URL}},
-  method: "POST",
-  headers: {
+const customDefaultOption = `{
+  "url": "{{url}}",
+  "method": "POST",
+  "headers": {
     "Content-type": "application/json",
-    "Authorization": "Bearer {{YOUR_KEY}}",
+    "Authorization": "Bearer {{key}}"
   },
-  body: {
-    text: "", // 需要翻译的文字
-    from: "", // 源语言，可能为空，表示需要接口自动识别语言
-    to: "",   // 目标语言
+  "body": {
+    "text": "{{text}}",
+    "from": "{{from}}",
+    "to": "{{to}}"
+  },
+  "resPattern": {
+    "text": "text",
+    "from": "from"
   }
-}
+}`;
 
-// 返回（Response）数据需符合下面的JSON规范
+const customApiHelpZH = `// 自定义选项范例
+${customDefaultOption}
+
+// 返回数据默认格式
 {
   text: "", // 翻译后的文字
   from: "", // 识别的源语言
@@ -70,24 +74,10 @@ const customApiHelpZH = `/// 自定义翻译源接口说明
 ${customApiLangs}
 `;
 
-const customApiHelpEN = `/// Custom translation source interface description
+const customApiHelpEN = `// Example of custom options
+${customDefaultOption}
 
-// Request data will be sent according to the following specifications
-{
-  url: {{YOUR_URL}},
-  method: "POST",
-  headers: {
-    "Content-type": "application/json",
-    "Authorization": "Bearer {{YOUR_KEY}}",
-  },
-  body: {
-    text: "", // text to be translated
-    from: "", // Source language, may be empty
-    to: "",   // Target language
-  }
-}
-
-// The returned data must conform to the following JSON specification
+// Return data default format
 {
   text: "", // translated text
   from: "", // Recognized source language
@@ -850,5 +840,9 @@ export const I18N = {
   extend_styles: {
     zh: `附加样式`,
     en: `Extend Styles`,
+  },
+  custom_option: {
+    zh: `自定义选项`,
+    en: `Custom Option`,
   },
 };

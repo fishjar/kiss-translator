@@ -27,7 +27,6 @@ import {
 import { msAuth } from "./auth";
 import { genDeeplFree } from "../apis/deepl";
 import { genBaidu } from "../apis/baidu";
-import { kissLog } from "./log";
 
 const keyMap = new Map();
 
@@ -279,7 +278,7 @@ const genCloudflareAI = ({ text, from, to, url, key }) => {
   return [url, init];
 };
 
-const genCustom = ({ text, from, to, url, key, customRequest = "" }) => {
+const genCustom = ({ text, from, to, url, key, customOption = "" }) => {
   const replaceInput = (str) =>
     str
       .replaceAll(INPUT_PLACE_URL, url)
@@ -304,19 +303,19 @@ const genCustom = ({ text, from, to, url, key, customRequest = "" }) => {
   }
   url = replaceInput(url);
 
-  if (customRequest.trim()) {
+  if (customOption.trim()) {
     try {
-      const req = JSON.parse(replaceInput(customRequest));
-      req.url && (url = req.url);
-      req.headers && (init.headers = req.headers);
-      req.method && (init.method = req.method);
+      const opt = JSON.parse(replaceInput(customOption));
+      opt.url && (url = opt.url);
+      opt.headers && (init.headers = opt.headers);
+      opt.method && (init.method = opt.method);
       if (init.method === "GET") {
         delete init.body;
       } else {
-        req.body && (init.body = JSON.stringify(req.body));
+        opt.body && (init.body = JSON.stringify(opt.body));
       }
     } catch (err) {
-      kissLog(err, "parse custom request");
+      throw new Error(`custom option parse err: ${err}`);
     }
   }
 

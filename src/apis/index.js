@@ -264,6 +264,25 @@ export const apiTranslate = async ({
     case OPT_TRANS_CUSTOMIZE_5:
       trText = res.text;
       isSame = to === res.from;
+
+      const { customOption } = apiSetting;
+      if (customOption.trim()) {
+        try {
+          const opt = JSON.parse(customOption);
+          const textPattern = opt.resPattern?.text;
+          const fromPattern = opt.resPattern?.from;
+          if (textPattern) {
+            trText = textPattern.split(".").reduce((pre, cur) => pre[cur], res);
+          }
+          if (fromPattern) {
+            isSame =
+              to === fromPattern.split(".").reduce((pre, cur) => pre[cur], res);
+          }
+        } catch (err) {
+          throw new Error(`custom option parse err: ${err}`);
+        }
+      }
+
       break;
     default:
   }
