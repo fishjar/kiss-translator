@@ -18,13 +18,16 @@ import {
   OPT_TRANS_CUSTOMIZE_5,
   URL_MICROSOFT_TRAN,
   URL_TENCENT_TRANSMART,
-  PROMPT_PLACE_FROM,
-  PROMPT_PLACE_TO,
-  PROMPT_PLACE_TEXT,
+  INPUT_PLACE_URL,
+  INPUT_PLACE_FROM,
+  INPUT_PLACE_TO,
+  INPUT_PLACE_TEXT,
+  INPUT_PLACE_KEY,
 } from "../config";
 import { msAuth } from "./auth";
 import { genDeeplFree } from "../apis/deepl";
 import { genBaidu } from "../apis/baidu";
+import { kissLog } from "./log";
 
 const keyMap = new Map();
 
@@ -194,8 +197,8 @@ const genTencent = ({ text, from, to }) => {
 
 const genOpenAI = ({ text, from, to, url, key, prompt, model }) => {
   prompt = prompt
-    .replaceAll(PROMPT_PLACE_FROM, from)
-    .replaceAll(PROMPT_PLACE_TO, to);
+    .replaceAll(INPUT_PLACE_FROM, from)
+    .replaceAll(INPUT_PLACE_TO, to);
 
   const data = {
     model,
@@ -228,9 +231,9 @@ const genOpenAI = ({ text, from, to, url, key, prompt, model }) => {
 
 const genGemini = ({ text, from, to, url, key, prompt, model }) => {
   prompt = prompt
-    .replaceAll(PROMPT_PLACE_FROM, from)
-    .replaceAll(PROMPT_PLACE_TO, to)
-    .replaceAll(PROMPT_PLACE_TEXT, text);
+    .replaceAll(INPUT_PLACE_FROM, from)
+    .replaceAll(INPUT_PLACE_TO, to)
+    .replaceAll(INPUT_PLACE_TEXT, text);
 
   const data = {
     contents: [
@@ -276,7 +279,14 @@ const genCloudflareAI = ({ text, from, to, url, key }) => {
   return [url, init];
 };
 
-const genCustom = ({ text, from, to, url, key }) => {
+const genCustom = ({ text, from, to, url, key, customRequest = "" }) => {
+  const replaceInput = (str) =>
+    str
+      .replaceAll(INPUT_PLACE_URL, url)
+      .replaceAll(INPUT_PLACE_FROM, from)
+      .replaceAll(INPUT_PLACE_TO, to)
+      .replaceAll(INPUT_PLACE_TEXT, text)
+      .replaceAll(INPUT_PLACE_KEY, key);
   const data = {
     text,
     from,
@@ -291,6 +301,23 @@ const genCustom = ({ text, from, to, url, key }) => {
   };
   if (key) {
     init.headers.Authorization = `Bearer ${key}`;
+  }
+  url = replaceInput(url);
+
+  if (customRequest.trim()) {
+    try {
+      const req = JSON.parse(replaceInput(customRequest));
+      req.url && (url = req.url);
+      req.headers && (init.headers = req.headers);
+      req.method && (init.method = req.method);
+      if (init.method === "GET") {
+        delete init.body;
+      } else {
+        req.body && (init.body = JSON.stringify(req.body));
+      }
+    } catch (err) {
+      kissLog(err, "parse custom request");
+    }
   }
 
   return [url, init];

@@ -355,9 +355,11 @@ export const OPT_TIMING_ALL = [
 export const DEFAULT_FETCH_LIMIT = 10; // 默认最大任务数量
 export const DEFAULT_FETCH_INTERVAL = 100; // 默认任务间隔时间
 
-export const PROMPT_PLACE_FROM = "{{from}}"; // 占位符
-export const PROMPT_PLACE_TO = "{{to}}"; // 占位符
-export const PROMPT_PLACE_TEXT = "{{text}}"; // 占位符
+export const INPUT_PLACE_URL = "{{url}}"; // 占位符
+export const INPUT_PLACE_FROM = "{{from}}"; // 占位符
+export const INPUT_PLACE_TO = "{{to}}"; // 占位符
+export const INPUT_PLACE_TEXT = "{{text}}"; // 占位符
+export const INPUT_PLACE_KEY = "{{key}}"; // 占位符
 
 export const DEFAULT_COLOR = "#209CEE"; // 默认高亮背景色/线条颜色
 
@@ -456,6 +458,7 @@ export const DEFAULT_SUBRULES_LIST = [
 const defaultCustomApi = {
   url: "",
   key: "",
+  customRequest: "",
   fetchLimit: DEFAULT_FETCH_LIMIT,
   fetchInterval: DEFAULT_FETCH_INTERVAL,
 };
@@ -506,7 +509,7 @@ export const DEFAULT_TRANS_APIS = {
     url: "https://api.openai.com/v1/chat/completions",
     key: "",
     model: "gpt-4",
-    prompt: `You will be provided with a sentence in ${PROMPT_PLACE_FROM}, and your task is to translate it into ${PROMPT_PLACE_TO}.`,
+    prompt: `You will be provided with a sentence in ${INPUT_PLACE_FROM}, and your task is to translate it into ${INPUT_PLACE_TO}.`,
     fetchLimit: 1,
     fetchInterval: 500,
   },
@@ -514,7 +517,7 @@ export const DEFAULT_TRANS_APIS = {
     url: "https://generativelanguage.googleapis.com/v1/models",
     key: "",
     model: "gemini-pro",
-    prompt: `Translate the following text from ${PROMPT_PLACE_FROM} to ${PROMPT_PLACE_TO}:\n\n${PROMPT_PLACE_TEXT}`,
+    prompt: `Translate the following text from ${INPUT_PLACE_FROM} to ${INPUT_PLACE_TO}:\n\n${INPUT_PLACE_TEXT}`,
     fetchLimit: 1,
     fetchInterval: 500,
   },
