@@ -203,7 +203,7 @@ function TranForm({ text, setText, tranboxSetting, transApis, simpleStyle }) {
         </>
       )}
 
-      {(!simpleStyle || !isValidWord(text)) && (
+      {(!simpleStyle || !isValidWord(text) || !toLang.startsWith("zh")) && (
         <TranCont
           text={text}
           translator={translator}
