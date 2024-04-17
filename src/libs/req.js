@@ -232,7 +232,7 @@ const genGemini = ({ text, from, to, url, key, prompt, model }) => {
   prompt = prompt
     .replaceAll(INPUT_PLACE_FROM, from)
     .replaceAll(INPUT_PLACE_TO, to)
-    .replaceAll(INPUT_PLACE_TEXT, encodeURIComponent(text));
+    .replaceAll(INPUT_PLACE_TEXT, text);
 
   const data = {
     contents: [
@@ -284,7 +284,7 @@ const genCustom = ({ text, from, to, url, key, customOption = "" }) => {
       .replaceAll(INPUT_PLACE_URL, url)
       .replaceAll(INPUT_PLACE_FROM, from)
       .replaceAll(INPUT_PLACE_TO, to)
-      .replaceAll(INPUT_PLACE_TEXT, encodeURIComponent(text))
+      .replaceAll(INPUT_PLACE_TEXT, text)
       .replaceAll(INPUT_PLACE_KEY, key);
   const data = {
     text,
