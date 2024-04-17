@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { apiTranslate, apiBaiduLangdetect } from "../../apis";
 import CopyBtn from "./CopyBtn";
 import Typography from "@mui/material/Typography";
+import Alert from "@mui/material/Alert";
 
 export default function TranCont({
   text,
@@ -59,7 +60,13 @@ export default function TranCont({
   if (simpleStyle) {
     return (
       <Box>
-        <Typography style={{ whiteSpace: "pre-line" }}>{trText}</Typography>
+        {error ? (
+          <Alert severity="error">{error}</Alert>
+        ) : loading ? (
+          <CircularProgress size={16} />
+        ) : (
+          <Typography style={{ whiteSpace: "pre-line" }}>{trText}</Typography>
+        )}
       </Box>
     );
   }
