@@ -266,7 +266,7 @@ export const apiTranslate = async ({
       isSame = to === res.from;
 
       const { customOption } = apiSetting;
-      if (customOption.trim()) {
+      if (customOption?.trim()) {
         try {
           const opt = JSON.parse(customOption);
           const textPattern = opt.resPattern?.text;

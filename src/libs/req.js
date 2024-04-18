@@ -278,13 +278,13 @@ const genCloudflareAI = ({ text, from, to, url, key }) => {
   return [url, init];
 };
 
-const genCustom = ({ text, from, to, url, key, customOption = "" }) => {
+const genCustom = ({ text, from, to, url, key, customOption }) => {
   const replaceInput = (str) =>
     str
       .replaceAll(INPUT_PLACE_URL, url)
       .replaceAll(INPUT_PLACE_FROM, from)
       .replaceAll(INPUT_PLACE_TO, to)
-      .replaceAll(INPUT_PLACE_TEXT, text)
+      .replaceAll(INPUT_PLACE_TEXT, text.replaceAll(`"`, `\n`))
       .replaceAll(INPUT_PLACE_KEY, key);
   const data = {
     text,
@@ -303,7 +303,7 @@ const genCustom = ({ text, from, to, url, key, customOption = "" }) => {
   }
   url = replaceInput(url);
 
-  if (customOption.trim()) {
+  if (customOption?.trim()) {
     try {
       const opt = JSON.parse(replaceInput(customOption));
       opt.url && (url = opt.url);
