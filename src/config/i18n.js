@@ -818,8 +818,8 @@ export const I18N = {
     en: `Fixer Selector`,
   },
   reg_niutrans: {
-    zh: `获取小牛翻译密钥`,
-    en: `Get NiuTrans APIKey`,
+    zh: `获取小牛翻译密钥【简约翻译专属新用户注册赠送300万字符】`,
+    en: `Get NiuTrans APIKey [KISS Translator Exclusive New User Registration Free 3 Million Characters]`,
   },
   trigger_mode: {
     zh: `触发方式`,
