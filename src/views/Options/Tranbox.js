@@ -58,6 +58,7 @@ export default function Tranbox() {
     hideTranBtn = false,
     hideClickAway = false,
     simpleStyle = false,
+    followSelection = false,
     triggerMode = OPT_TRANBOX_TRIGGER_CLICK,
     extStyles = "",
   } = tranboxSetting;
@@ -188,6 +189,18 @@ export default function Tranbox() {
           name="simpleStyle"
           value={simpleStyle}
           label={i18n("use_simple_style")}
+          onChange={handleChange}
+        >
+          <MenuItem value={false}>{i18n("disable")}</MenuItem>
+          <MenuItem value={true}>{i18n("enable")}</MenuItem>
+        </TextField>
+
+        <TextField
+          select
+          size="small"
+          name="followSelection"
+          value={followSelection}
+          label={i18n("follow_selection")}
           onChange={handleChange}
         >
           <MenuItem value={false}>{i18n("disable")}</MenuItem>

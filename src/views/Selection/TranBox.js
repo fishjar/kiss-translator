@@ -14,6 +14,8 @@ import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
 import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 import PushPinIcon from "@mui/icons-material/PushPin";
 import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
+import LockIcon from "@mui/icons-material/Lock";
+import LockOpenIcon from "@mui/icons-material/LockOpen";
 import CloseIcon from "@mui/icons-material/Close";
 import { useI18n } from "../../hooks/I18n";
 import { OPT_TRANS_ALL, OPT_LANGS_FROM, OPT_LANGS_TO } from "../../config";
@@ -30,6 +32,8 @@ function Header({
   setSimpleStyle,
   hideClickAway,
   setHideClickAway,
+  followSelection,
+  setFollowSelection,
 }) {
   return (
     <Box
@@ -47,6 +51,18 @@ function Header({
             }}
           >
             {hideClickAway ? (
+              <LockOpenIcon fontSize="small" />
+            ) : (
+              <LockIcon fontSize="small" />
+            )}
+          </IconButton>
+          <IconButton
+            size="small"
+            onClick={() => {
+              setFollowSelection((pre) => !pre);
+            }}
+          >
+            {followSelection ? (
               <PushPinOutlinedIcon fontSize="small" />
             ) : (
               <PushPinIcon fontSize="small" />
@@ -243,14 +259,18 @@ export default function TranBox({
   setSimpleStyle,
   hideClickAway,
   setHideClickAway,
+  followSelection,
+  setFollowSelection,
   extStyles,
 }) {
   return (
     <SettingProvider>
       <ThemeProvider styles={extStyles}>
         <DraggableResizable
-          defaultPosition={boxPosition}
-          defaultSize={boxSize}
+          position={boxPosition}
+          size={boxSize}
+          setSize={setBoxSize}
+          setPosition={setBoxPosition}
           header={
             <Header
               setShowPopup={setShowBox}
@@ -258,10 +278,10 @@ export default function TranBox({
               setSimpleStyle={setSimpleStyle}
               hideClickAway={hideClickAway}
               setHideClickAway={setHideClickAway}
+              followSelection={followSelection}
+              setFollowSelection={setFollowSelection}
             />
           }
-          onChangeSize={setBoxSize}
-          onChangePosition={setBoxPosition}
           onClick={(e) => e.stopPropagation()}
         >
           <TranForm

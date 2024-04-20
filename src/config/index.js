@@ -434,6 +434,7 @@ export const DEFAULT_TRANBOX_SETTING = {
   hideTranBtn: false, // 是否隐藏翻译按钮
   hideClickAway: false, // 是否点击外部关闭弹窗
   simpleStyle: false, // 是否简洁界面
+  followSelection: false, // 翻译框是否跟随选中文本
   triggerMode: OPT_TRANBOX_TRIGGER_CLICK, // 触发翻译方式
   extStyles: "", // 附加样式
 };

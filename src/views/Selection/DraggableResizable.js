@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Paper from "@mui/material/Paper";
 import Box from "@mui/material/Box";
 import { isMobile } from "../../libs/mobile";
@@ -130,11 +130,11 @@ function Pointer({
 export default function DraggableResizable({
   header,
   children,
-  defaultPosition = {
+  position = {
     x: 0,
     y: 0,
   },
-  defaultSize = {
+  size = {
     w: 600,
     h: 400,
   },
@@ -146,14 +146,13 @@ export default function DraggableResizable({
     w: 1200,
     h: 1200,
   },
+  setSize,
+  setPosition,
   onChangeSize,
   onChangePosition,
   ...props
 }) {
   const lineWidth = 4;
-  const [position, setPosition] = useState(defaultPosition);
-  const [size, setSize] = useState(defaultSize);
-
   const opts = {
     size,
     setSize,
@@ -162,14 +161,6 @@ export default function DraggableResizable({
     minSize,
     maxSize,
   };
-
-  useEffect(() => {
-    onChangeSize && onChangeSize(size);
-  }, [size, onChangeSize]);
-
-  useEffect(() => {
-    onChangePosition && onChangePosition(position);
-  }, [position, onChangePosition]);
 
   return (
     <Box

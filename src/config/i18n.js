@@ -861,4 +861,8 @@ export const I18N = {
     zh: `打开设置`,
     en: `Open Setting`,
   },
+  follow_selection: {
+    zh: `翻译框跟随选中文本`,
+    en: `Transbox Follow Selection`,
+  },
 };

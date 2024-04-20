@@ -25,6 +25,7 @@ export default function Slection({
     hideTranBtn = false,
     simpleStyle: initSimpleStyle = false,
     hideClickAway: initHideClickAway = false,
+    followSelection: initFollowMouse = false,
     tranboxShortcut = DEFAULT_TRANBOX_SHORTCUT,
     triggerMode = OPT_TRANBOX_TRIGGER_CLICK,
     extStyles,
@@ -55,6 +56,7 @@ export default function Slection({
   });
   const [simpleStyle, setSimpleStyle] = useState(initSimpleStyle);
   const [hideClickAway, setHideClickAway] = useState(initHideClickAway);
+  const [followSelection, setFollowSelection] = useState(initFollowMouse);
 
   const handleTrigger = useCallback(
     (text) => {
@@ -68,16 +70,25 @@ export default function Slection({
   const handleTranbox = useCallback(() => {
     setShowBtn(false);
 
-    const selectedText = window.getSelection()?.toString()?.trim() || "";
+    const selection = window.getSelection();
+    const selectedText = selection?.toString()?.trim() || "";
     if (!selectedText) {
       setShowBox((pre) => !pre);
       return;
     }
 
+    const rect = selection?.getRangeAt(0)?.getBoundingClientRect();
+    if (rect && followSelection) {
+      setBoxPosition({
+        x: limitNumber(rect.right, 0, window.innerWidth - 300),
+        y: limitNumber(rect.bottom, 0, window.innerHeight - 200),
+      });
+    }
+
     setSelText(selectedText);
     setText(selectedText);
     setShowBox(true);
-  }, []);
+  }, [followSelection]);
 
   const btnEvent = useMemo(() => {
     if (isMobile) {
@@ -93,11 +104,20 @@ export default function Slection({
       e.stopPropagation();
       await sleep(200);
 
-      const selectedText = window.getSelection()?.toString()?.trim() || "";
+      const selection = window.getSelection();
+      const selectedText = selection?.toString()?.trim() || "";
       setSelText(selectedText);
       if (!selectedText) {
         setShowBtn(false);
         return;
+      }
+
+      const rect = selection?.getRangeAt(0)?.getBoundingClientRect();
+      if (rect && followSelection) {
+        setBoxPosition({
+          x: limitNumber(rect.right, 0, window.innerWidth - 300),
+          y: limitNumber(rect.bottom, 0, window.innerHeight - 200),
+        });
       }
 
       if (triggerMode === OPT_TRANBOX_TRIGGER_SELECT) {
@@ -119,7 +139,7 @@ export default function Slection({
         handleMouseup
       );
     };
-  }, [hideTranBtn, triggerMode, handleTrigger]);
+  }, [hideTranBtn, triggerMode, followSelection, handleTrigger]);
 
   useEffect(() => {
     if (isExt) {
@@ -196,6 +216,8 @@ export default function Slection({
           setSimpleStyle={setSimpleStyle}
           hideClickAway={hideClickAway}
           setHideClickAway={setHideClickAway}
+          followSelection={followSelection}
+          setFollowSelection={setFollowSelection}
           extStyles={extStyles}
         />
       )}
