@@ -12,7 +12,7 @@ A simple, open source [bilingual translation extension & Greasemonkey script](ht
   - [x] Chrome/Edge/Firefox/Kiwi/Orion
   - [ ] Safari
 - [x] Supports multiple translation services
-  - [x] Google/Microsoft/DeepL/OpenAI/Gemini/CloudflareAI/Baidu/Tencent
+  - [x] Google/Microsoft/DeepL/NiuTrans/OpenAI/Gemini/CloudflareAI/Baidu/Tencent
   - [x] Custom translation interface
 - [x] Covers common translation scenarios
   - [x] Web bilingual translation
