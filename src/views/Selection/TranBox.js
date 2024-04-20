@@ -32,7 +32,11 @@ function Header({
   setHideClickAway,
 }) {
   return (
-    <Box className="KT-transbox-header">
+    <Box
+      className="KT-transbox-header"
+      onMouseUp={(e) => e.stopPropagation()}
+      onTouchEnd={(e) => e.stopPropagation()}
+    >
       <Stack direction="row" justifyContent="space-between" alignItems="center">
         <DragIndicatorIcon fontSize="small" />
         <Stack direction="row" alignItems="center">
