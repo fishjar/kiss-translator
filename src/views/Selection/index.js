@@ -13,11 +13,13 @@ import {
 } from "../../config";
 import { isMobile } from "../../libs/mobile";
 import { kissLog } from "../../libs/log";
+import { useLangMap } from "../../hooks/I18n";
 
 export default function Slection({
   contextMenuType,
   tranboxSetting,
   transApis,
+  uiLang,
 }) {
   const {
     hideTranBtn = false,
@@ -37,6 +39,7 @@ export default function Slection({
       ? 200
       : limitNumber(window.innerHeight, 200, 400);
 
+  const langMap = useLangMap(uiLang);
   const [showBox, setShowBox] = useState(false);
   const [showBtn, setShowBtn] = useState(false);
   const [selectedText, setSelText] = useState("");
@@ -146,7 +149,7 @@ export default function Slection({
       contextMenuType !== 0 &&
         menuCommandIds.push(
           GM.registerMenuCommand(
-            "Translate Selected Text",
+            langMap("translate_selected_text"),
             (event) => {
               handleTranbox();
             },
@@ -162,7 +165,7 @@ export default function Slection({
     } catch (err) {
       kissLog(err, "registerMenuCommand");
     }
-  }, [handleTranbox, contextMenuType]);
+  }, [handleTranbox, contextMenuType, langMap]);
 
   useEffect(() => {
     if (hideClickAway) {

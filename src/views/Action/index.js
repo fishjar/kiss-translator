@@ -22,6 +22,7 @@ import {
 import { shortcutRegister } from "../../libs/shortcut";
 import { sendIframeMsg } from "../../libs/iframe";
 import { kissLog } from "../../libs/log";
+import { getI18n } from "../../hooks/I18n";
 
 export default function Action({ translator, fab }) {
   const fabWidth = 40;
@@ -96,11 +97,11 @@ export default function Action({ translator, fab }) {
     // 注册菜单
     try {
       const menuCommandIds = [];
-      const { contextMenuType } = translator.setting;
+      const { contextMenuType, uiLang } = translator.setting;
       contextMenuType !== 0 &&
         menuCommandIds.push(
           GM.registerMenuCommand(
-            "Toggle Translate",
+            getI18n(uiLang, "translate_switch"),
             (event) => {
               translator.toggle();
               sendIframeMsg(MSG_TRANS_TOGGLE);
@@ -109,7 +110,7 @@ export default function Action({ translator, fab }) {
             "Q"
           ),
           GM.registerMenuCommand(
-            "Toggle Style",
+            getI18n(uiLang, "toggle_style"),
             (event) => {
               translator.toggleStyle();
               sendIframeMsg(MSG_TRANS_TOGGLE_STYLE);
@@ -118,14 +119,14 @@ export default function Action({ translator, fab }) {
             "C"
           ),
           GM.registerMenuCommand(
-            "Open Menu",
+            getI18n(uiLang, "open_menu"),
             (event) => {
               setShowPopup((pre) => !pre);
             },
             "K"
           ),
           GM.registerMenuCommand(
-            "Open Setting",
+            getI18n(uiLang, "open_setting"),
             (event) => {
               window.open(process.env.REACT_APP_OPTIONSPAGE, "_blank");
             },

@@ -140,6 +140,7 @@ function showTransbox({
   tranboxSetting = DEFAULT_TRANBOX_SETTING,
   transApis,
   darkMode,
+  uiLang,
 }) {
   if (!tranboxSetting?.transOpen) {
     return;
@@ -170,6 +171,7 @@ function showTransbox({
           contextMenuType={contextMenuType}
           tranboxSetting={tranboxSetting}
           transApis={transApis}
+          uiLang={uiLang}
         />
       </CacheProvider>
     </React.StrictMode>

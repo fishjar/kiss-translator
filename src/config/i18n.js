@@ -845,4 +845,20 @@ export const I18N = {
     zh: `自定义选项`,
     en: `Custom Option`,
   },
+  translate_selected_text: {
+    zh: `翻译选中文字`,
+    en: `Translate Selected Text`,
+  },
+  toggle_style: {
+    zh: `切换样式`,
+    en: `Toggle Style`,
+  },
+  open_menu: {
+    zh: `打开弹窗菜单`,
+    en: `Open Popup Menu`,
+  },
+  open_setting: {
+    zh: `打开设置`,
+    en: `Open Setting`,
+  },
 };
