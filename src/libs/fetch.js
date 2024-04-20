@@ -99,25 +99,17 @@ export const fetchApi = async ({ input, init, transOpts, apiSetting }) => {
 };
 
 /**
- * 请求池实例
- */
-export const fetchPool = taskPool(
-  fetchApi,
-  null,
-  DEFAULT_FETCH_INTERVAL,
-  DEFAULT_FETCH_LIMIT
-);
-
-/**
  * 请求数据统一接口
- * @param {*} input
- * @param {*} opts
+ * @param {*} param0
  * @returns
  */
-export const fetchData = async (
+export const fetchHandle = async ({
   input,
-  { useCache, usePool, transOpts, apiSetting, ...init } = {}
-) => {
+  useCache,
+  transOpts,
+  apiSetting,
+  ...init
+}) => {
   const cacheReq = await newCacheReq(input, init);
   let res;
 
@@ -133,12 +125,7 @@ export const fetchData = async (
 
   if (!res) {
     // 发送请求
-    if (usePool) {
-      res = await fetchPool.push({ input, init, transOpts, apiSetting });
-    } else {
-      res = await fetchApi({ input, init, transOpts, apiSetting });
-    }
-
+    res = await fetchApi({ input, init, transOpts, apiSetting });
     if (!res) {
       throw new Error("Unknow error");
     } else if (!res.ok) {
@@ -171,6 +158,29 @@ export const fetchData = async (
     return await blobToBase64(blob);
   }
   return await res.text();
+};
+
+/**
+ * 请求池实例
+ */
+export const fetchPool = taskPool(
+  fetchHandle,
+  null,
+  DEFAULT_FETCH_INTERVAL,
+  DEFAULT_FETCH_LIMIT
+);
+
+/**
+ * 请求池分发
+ * @param {*} input
+ * @param {*} param1
+ * @returns
+ */
+export const fetchData = (input, { usePool, ...opts } = {}) => {
+  if (usePool) {
+    return fetchPool.push({ input, ...opts });
+  }
+  return fetchHandle({ input, ...opts });
 };
 
 /**
