@@ -6,6 +6,7 @@ import {
   OPT_TRANS_ALL,
   OPT_TRANS_MICROSOFT,
   OPT_TRANS_DEEPL,
+  OPT_TRANS_DEEPLX,
   OPT_TRANS_DEEPLFREE,
   OPT_TRANS_BAIDU,
   OPT_TRANS_TENCENT,
@@ -171,6 +172,11 @@ function ApiFields({ translator }) {
             name="url"
             value={url}
             onChange={handleChange}
+            multiline={translator === OPT_TRANS_DEEPLX}
+            maxRows={10}
+            helperText={
+              translator === OPT_TRANS_DEEPLX ? i18n("mulkeys_help") : ""
+            }
           />
           <TextField
             size="small"
@@ -179,6 +185,7 @@ function ApiFields({ translator }) {
             value={key}
             onChange={handleChange}
             multiline={mulkeysTranslators.includes(translator)}
+            maxRows={10}
             helperText={keyHelper}
           />
         </>
@@ -200,6 +207,7 @@ function ApiFields({ translator }) {
             value={prompt}
             onChange={handleChange}
             multiline
+            maxRows={10}
           />
         </>
       )}
@@ -231,6 +239,7 @@ function ApiFields({ translator }) {
           value={customOption}
           onChange={handleChange}
           multiline
+          maxRows={10}
         />
       )}
 

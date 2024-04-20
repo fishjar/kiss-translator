@@ -29,9 +29,10 @@ import { genDeeplFree } from "../apis/deepl";
 import { genBaidu } from "../apis/baidu";
 
 const keyMap = new Map();
+const urlMap = new Map();
 
-// 轮询key
-const keyPick = (translator, key = "") => {
+// 轮询key/url
+const keyPick = (translator, key = "", cacheMap) => {
   const keys = key
     .split(/\n|,/)
     .map((item) => item.trim())
@@ -41,9 +42,9 @@ const keyPick = (translator, key = "") => {
     return "";
   }
 
-  const preIndex = keyMap.get(translator) ?? -1;
+  const preIndex = cacheMap.get(translator) ?? -1;
   const curIndex = (preIndex + 1) % keys.length;
-  keyMap.set(translator, curIndex);
+  cacheMap.set(translator, curIndex);
 
   return keys[curIndex];
 };
@@ -336,7 +337,10 @@ export const newTransReq = ({ translator, text, from, to }, apiSetting) => {
     case OPT_TRANS_GEMINI:
     case OPT_TRANS_CLOUDFLAREAI:
     case OPT_TRANS_NIUTRANS:
-      args.key = keyPick(translator, args.key);
+      args.key = keyPick(translator, args.key, keyMap);
+      break;
+    case OPT_TRANS_DEEPLX:
+      args.url = keyPick(translator, args.url, urlMap);
       break;
     default:
   }

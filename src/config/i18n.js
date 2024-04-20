@@ -790,8 +790,8 @@ export const I18N = {
     en: `Secondary Context Menus`,
   },
   mulkeys_help: {
-    zh: `支持用换行或英文逗号“,”分隔多个KEY轮询调用。`,
-    en: `Supports multiple KEY polling calls separated by newlines or English commas ",".`,
+    zh: `支持用换行或英文逗号“,”分隔，轮询调用。`,
+    en: `Supports polling calls separated by newlines or English commas ",".`,
   },
   translation_element_tag: {
     zh: `译文元素标签`,
