@@ -5,18 +5,11 @@ export default function TranBtn({
   onTrigger,
   btnEvent,
   position,
-  tranboxSetting,
+  btnOffsetX,
+  btnOffsetY,
 }) {
-  const left = limitNumber(
-    position.x + tranboxSetting.btnOffsetX,
-    0,
-    window.innerWidth - 32
-  );
-  const top = limitNumber(
-    position.y + tranboxSetting.btnOffsetY,
-    0,
-    window.innerHeight - 32
-  );
+  const left = limitNumber(position.x + btnOffsetX, 0, window.innerWidth - 32);
+  const top = limitNumber(position.y + btnOffsetY, 0, window.innerHeight - 32);
 
   return (
     <div

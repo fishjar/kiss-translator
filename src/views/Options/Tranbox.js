@@ -27,10 +27,10 @@ export default function Tranbox() {
     let { name, value } = e.target;
     switch (name) {
       case "btnOffsetX":
-        value = limitNumber(value, 0, 100);
-        break;
       case "btnOffsetY":
-        value = limitNumber(value, 0, 100);
+      case "boxOffsetX":
+      case "boxOffsetY":
+        value = limitNumber(value, -200, 200);
         break;
       default:
     }
@@ -55,6 +55,8 @@ export default function Tranbox() {
     tranboxShortcut,
     btnOffsetX,
     btnOffsetY,
+    boxOffsetX = 0,
+    boxOffsetY = 10,
     hideTranBtn = false,
     hideClickAway = false,
     simpleStyle = false,
@@ -156,6 +158,24 @@ export default function Tranbox() {
           type="number"
           name="btnOffsetY"
           defaultValue={btnOffsetY}
+          onChange={handleChange}
+        />
+
+        <TextField
+          size="small"
+          label={i18n("tranbox_offset_x")}
+          type="number"
+          name="boxOffsetX"
+          defaultValue={boxOffsetX}
+          onChange={handleChange}
+        />
+
+        <TextField
+          size="small"
+          label={i18n("tranbox_offset_y")}
+          type="number"
+          name="boxOffsetY"
+          defaultValue={boxOffsetY}
           onChange={handleChange}
         />
 

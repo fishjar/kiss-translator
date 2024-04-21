@@ -710,12 +710,20 @@ export const I18N = {
     en: `Open Translate Popup/Translate Selected Shortcut`,
   },
   tranbtn_offset_x: {
-    zh: `翻译按钮偏移X（0-100）`,
-    en: `Translate Button Offset X (0-100)`,
+    zh: `翻译按钮偏移X（±200）`,
+    en: `Translate Button Offset X (±200)`,
   },
   tranbtn_offset_y: {
-    zh: `翻译按钮偏移Y（0-100）`,
-    en: `Translate Button Offset Y (0-100)`,
+    zh: `翻译按钮偏移Y（±200）`,
+    en: `Translate Button Offset Y (±200)`,
+  },
+  tranbox_offset_x: {
+    zh: `翻译框偏移X（±200）`,
+    en: `Translate Box Offset X (±200)`,
+  },
+  tranbox_offset_y: {
+    zh: `翻译框偏移Y（±200）`,
+    en: `Translate Box Offset Y (±200)`,
   },
   translated_text: {
     zh: `译文`,

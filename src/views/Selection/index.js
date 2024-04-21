@@ -29,6 +29,10 @@ export default function Slection({
     tranboxShortcut = DEFAULT_TRANBOX_SHORTCUT,
     triggerMode = OPT_TRANBOX_TRIGGER_CLICK,
     extStyles,
+    btnOffsetX,
+    btnOffsetY,
+    boxOffsetX = 0,
+    boxOffsetY = 10,
   } = tranboxSetting;
 
   const boxWidth =
@@ -79,16 +83,18 @@ export default function Slection({
 
     const rect = selection?.getRangeAt(0)?.getBoundingClientRect();
     if (rect && followSelection) {
+      const x = (rect.left + rect.right) / 2 + boxOffsetX;
+      const y = rect.bottom + boxOffsetY;
       setBoxPosition({
-        x: limitNumber(rect.right, 0, window.innerWidth - 300),
-        y: limitNumber(rect.bottom, 0, window.innerHeight - 200),
+        x: limitNumber(x, 0, window.innerWidth - 300),
+        y: limitNumber(y, 0, window.innerHeight - 200),
       });
     }
 
     setSelText(selectedText);
     setText(selectedText);
     setShowBox(true);
-  }, [followSelection]);
+  }, [followSelection, boxOffsetX, boxOffsetY]);
 
   const btnEvent = useMemo(() => {
     if (isMobile) {
@@ -114,9 +120,11 @@ export default function Slection({
 
       const rect = selection?.getRangeAt(0)?.getBoundingClientRect();
       if (rect && followSelection) {
+        const x = (rect.left + rect.right) / 2 + boxOffsetX;
+        const y = rect.bottom + boxOffsetY;
         setBoxPosition({
-          x: limitNumber(rect.right, 0, window.innerWidth - 300),
-          y: limitNumber(rect.bottom, 0, window.innerHeight - 200),
+          x: limitNumber(x, 0, window.innerWidth - 300),
+          y: limitNumber(y, 0, window.innerHeight - 200),
         });
       }
 
@@ -139,7 +147,14 @@ export default function Slection({
         handleMouseup
       );
     };
-  }, [hideTranBtn, triggerMode, followSelection, handleTrigger]);
+  }, [
+    hideTranBtn,
+    triggerMode,
+    followSelection,
+    boxOffsetX,
+    boxOffsetY,
+    handleTrigger,
+  ]);
 
   useEffect(() => {
     if (isExt) {
@@ -225,7 +240,8 @@ export default function Slection({
       {showBtn && (
         <TranBtn
           position={position}
-          tranboxSetting={tranboxSetting}
+          btnOffsetX={btnOffsetX}
+          btnOffsetY={btnOffsetY}
           btnEvent={btnEvent}
           onTrigger={(e) => {
             e.stopPropagation();
