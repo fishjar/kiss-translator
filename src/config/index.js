@@ -51,8 +51,7 @@ export const KV_SALT_SHARE = "KISS-Translator-SHARE";
 export const CACHE_NAME = `${APP_NAME}_cache`;
 
 export const MSG_FETCH = "fetch";
-export const MSG_FETCH_LIMIT = "fetch_limit";
-export const MSG_FETCH_CLEAR = "fetch_clear";
+export const MSG_GET_HTTPCACHE = "get_httpcache";
 export const MSG_OPEN_OPTIONS = "open_options";
 export const MSG_SAVE_RULE = "save_rule";
 export const MSG_TRANS_TOGGLE = "trans_toggle";

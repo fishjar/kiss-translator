@@ -24,9 +24,9 @@ import {
   INPUT_PLACE_TEXT,
   INPUT_PLACE_KEY,
 } from "../config";
-import { msAuth } from "./auth";
-import { genDeeplFree } from "../apis/deepl";
-import { genBaidu } from "../apis/baidu";
+import { msAuth } from "../libs/auth";
+import { genDeeplFree } from "./deepl";
+import { genBaidu } from "./baidu";
 
 const keyMap = new Map();
 const urlMap = new Map();
@@ -47,23 +47,6 @@ const keyPick = (translator, key = "", cacheMap) => {
   cacheMap.set(translator, curIndex);
 
   return keys[curIndex];
-};
-
-/**
- * 构造缓存 request
- * @param {*} request
- * @returns
- */
-export const newCacheReq = async (input, init) => {
-  let request = new Request(input, init);
-  if (request.method !== "GET") {
-    const body = await request.text();
-    const cacheUrl = new URL(request.url);
-    cacheUrl.pathname += body;
-    request = new Request(cacheUrl.toString(), { method: "GET" });
-  }
-
-  return request;
 };
 
 const genGoogle = ({ text, from, to, url, key }) => {
@@ -324,11 +307,11 @@ const genCustom = ({ text, from, to, url, key, customOption }) => {
 };
 
 /**
- * 构造翻译接口 request
+ * 构造翻译接口请求参数
  * @param {*}
  * @returns
  */
-export const newTransReq = ({ translator, text, from, to }, apiSetting) => {
+export const genTransReq = ({ translator, text, from, to }, apiSetting) => {
   const args = { text, from, to, ...apiSetting };
 
   switch (translator) {

@@ -20,13 +20,14 @@ import {
 import { apiSyncData } from "../apis";
 import { sha256, removeEndchar } from "./utils";
 import { createClient, getPatcher } from "webdav";
-import { fetchApi } from "./fetch";
+import { fetchPatcher } from "./fetch";
 import { kissLog } from "./log";
 
 getPatcher().patch("request", (opts) => {
-  return fetchApi({
-    input: opts.url,
-    init: { method: opts.method, headers: opts.headers, body: opts.data },
+  return fetchPatcher(opts.url, {
+    method: opts.method,
+    headers: opts.headers,
+    body: opts.data,
   });
 });
 

@@ -1,5 +1,5 @@
 import queryString from "query-string";
-import { fetchPolyfill } from "../libs/fetch";
+import { fetchData } from "../libs/fetch";
 import {
   OPT_TRANS_GOOGLE,
   OPT_TRANS_MICROSOFT,
@@ -37,7 +37,7 @@ import { sha256 } from "../libs/utils";
  * @returns
  */
 export const apiSyncData = async (url, key, data) =>
-  fetchPolyfill(url, {
+  fetchData(url, {
     headers: {
       "Content-type": "application/json",
       Authorization: `Bearer ${await sha256(key, KV_SALT_SYNC)}`,
@@ -51,7 +51,7 @@ export const apiSyncData = async (url, key, data) =>
  * @param {*} url
  * @returns
  */
-export const apiFetch = (url) => fetchPolyfill(url);
+export const apiFetch = (url) => fetchData(url);
 
 /**
  * 百度语言识别
@@ -59,7 +59,7 @@ export const apiFetch = (url) => fetchPolyfill(url);
  * @returns
  */
 export const apiBaiduLangdetect = async (text) => {
-  const res = await fetchPolyfill(URL_BAIDU_LANGDETECT, {
+  const res = await fetchData(URL_BAIDU_LANGDETECT, {
     headers: {
       "Content-type": "application/json",
     },
@@ -83,7 +83,7 @@ export const apiBaiduLangdetect = async (text) => {
  * @returns
  */
 export const apiBaiduSuggest = async (text) => {
-  const res = await fetchPolyfill(URL_BAIDU_SUGGEST, {
+  const res = await fetchData(URL_BAIDU_SUGGEST, {
     headers: {
       "Content-type": "application/json",
     },
@@ -110,7 +110,7 @@ export const apiBaiduSuggest = async (text) => {
  */
 export const apiBaiduTTS = (text, lan = "uk", spd = 3) => {
   const url = `${URL_BAIDU_TTS}?${queryString.stringify({ lan, text, spd })}`;
-  return fetchPolyfill(url, {
+  return fetchData(url, {
     useCache: false, // 为避免缓存过快增长，禁用缓存语音数据
   });
 };
@@ -128,7 +128,7 @@ export const apiTencentLangdetect = async (text) => {
     text,
   });
 
-  const res = await fetchPolyfill(URL_TENCENT_TRANSMART, {
+  const res = await fetchData(URL_TENCENT_TRANSMART, {
     headers: {
       "Content-type": "application/json",
     },
@@ -187,7 +187,7 @@ export const apiTranslate = async ({
     to,
   };
 
-  const res = await fetchPolyfill(
+  const res = await fetchData(
     `${URL_CACHE_TRAN}?${queryString.stringify(cacheOpts)}`,
     {
       useCache,

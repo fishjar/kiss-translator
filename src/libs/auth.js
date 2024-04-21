@@ -1,6 +1,6 @@
 import { getMsauth, setMsauth } from "./storage";
 import { URL_MICROSOFT_AUTH } from "../config";
-import { fetchData } from "./fetch";
+import { fetchHandle } from "./fetch";
 import { kissLog } from "./log";
 
 const parseMSToken = (token) => {
@@ -35,7 +35,7 @@ const _msAuth = () => {
     }
 
     // 缓存没有或失效，查询接口
-    token = await fetchData(URL_MICROSOFT_AUTH);
+    token = await fetchHandle({ input: URL_MICROSOFT_AUTH });
     exp = parseMSToken(token);
     await setMsauth({ token, exp });
     return [token, exp];
