@@ -10,6 +10,8 @@ import {
   OPT_TRANS_BAIDU,
   OPT_TRANS_TENCENT,
   OPT_TRANS_OPENAI,
+  OPT_TRANS_OPENAI_2,
+  OPT_TRANS_OPENAI_3,
   OPT_TRANS_GEMINI,
   OPT_TRANS_CLOUDFLAREAI,
   OPT_TRANS_CUSTOMIZE,
@@ -244,6 +246,8 @@ export const apiTranslate = async ({
       isSame = text === trText;
       break;
     case OPT_TRANS_OPENAI:
+    case OPT_TRANS_OPENAI_2:
+    case OPT_TRANS_OPENAI_3:
       trText = res?.choices?.map((item) => item.message.content).join(" ");
       isSame = text === trText;
       break;

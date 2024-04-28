@@ -9,6 +9,8 @@ import {
   OPT_TRANS_BAIDU,
   OPT_TRANS_TENCENT,
   OPT_TRANS_OPENAI,
+  OPT_TRANS_OPENAI_2,
+  OPT_TRANS_OPENAI_3,
   OPT_TRANS_GEMINI,
   OPT_TRANS_CLOUDFLAREAI,
   OPT_TRANS_CUSTOMIZE,
@@ -317,6 +319,8 @@ export const genTransReq = ({ translator, text, from, to }, apiSetting) => {
   switch (translator) {
     case OPT_TRANS_DEEPL:
     case OPT_TRANS_OPENAI:
+    case OPT_TRANS_OPENAI_2:
+    case OPT_TRANS_OPENAI_3:
     case OPT_TRANS_GEMINI:
     case OPT_TRANS_CLOUDFLAREAI:
     case OPT_TRANS_NIUTRANS:
@@ -346,6 +350,8 @@ export const genTransReq = ({ translator, text, from, to }, apiSetting) => {
     case OPT_TRANS_TENCENT:
       return genTencent(args);
     case OPT_TRANS_OPENAI:
+    case OPT_TRANS_OPENAI_2:
+    case OPT_TRANS_OPENAI_3:
       return genOpenAI(args);
     case OPT_TRANS_GEMINI:
       return genGemini(args);

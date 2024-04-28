@@ -104,6 +104,8 @@ export const OPT_TRANS_NIUTRANS = "NiuTrans";
 export const OPT_TRANS_BAIDU = "Baidu";
 export const OPT_TRANS_TENCENT = "Tencent";
 export const OPT_TRANS_OPENAI = "OpenAI";
+export const OPT_TRANS_OPENAI_2 = "OpenAI2";
+export const OPT_TRANS_OPENAI_3 = "OpenAI3";
 export const OPT_TRANS_GEMINI = "Gemini";
 export const OPT_TRANS_CLOUDFLAREAI = "CloudflareAI";
 export const OPT_TRANS_CUSTOMIZE = "Custom";
@@ -121,6 +123,8 @@ export const OPT_TRANS_ALL = [
   OPT_TRANS_DEEPLX,
   OPT_TRANS_NIUTRANS,
   OPT_TRANS_OPENAI,
+  OPT_TRANS_OPENAI_2,
+  OPT_TRANS_OPENAI_3,
   OPT_TRANS_GEMINI,
   OPT_TRANS_CLOUDFLAREAI,
   OPT_TRANS_CUSTOMIZE,
@@ -252,6 +256,12 @@ export const OPT_LANGS_SPECIAL = {
     ["vi", "vi"],
   ]),
   [OPT_TRANS_OPENAI]: new Map(
+    OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
+  ),
+  [OPT_TRANS_OPENAI_2]: new Map(
+    OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
+  ),
+  [OPT_TRANS_OPENAI_3]: new Map(
     OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
   ),
   [OPT_TRANS_GEMINI]: new Map(
@@ -464,6 +474,14 @@ const defaultCustomApi = {
   fetchLimit: DEFAULT_FETCH_LIMIT,
   fetchInterval: DEFAULT_FETCH_INTERVAL,
 };
+const defaultOpenaiApi = {
+  url: "https://api.openai.com/v1/chat/completions",
+  key: "",
+  model: "gpt-4",
+  prompt: `You will be provided with a sentence in ${INPUT_PLACE_FROM}, and your task is to translate it into ${INPUT_PLACE_TO}.`,
+  fetchLimit: 1,
+  fetchInterval: 500,
+};
 export const DEFAULT_TRANS_APIS = {
   [OPT_TRANS_GOOGLE]: {
     url: "https://translate.googleapis.com/translate_a/single",
@@ -507,14 +525,9 @@ export const DEFAULT_TRANS_APIS = {
     fetchLimit: DEFAULT_FETCH_LIMIT,
     fetchInterval: DEFAULT_FETCH_INTERVAL,
   },
-  [OPT_TRANS_OPENAI]: {
-    url: "https://api.openai.com/v1/chat/completions",
-    key: "",
-    model: "gpt-4",
-    prompt: `You will be provided with a sentence in ${INPUT_PLACE_FROM}, and your task is to translate it into ${INPUT_PLACE_TO}.`,
-    fetchLimit: 1,
-    fetchInterval: 500,
-  },
+  [OPT_TRANS_OPENAI]: defaultOpenaiApi,
+  [OPT_TRANS_OPENAI_2]: defaultOpenaiApi,
+  [OPT_TRANS_OPENAI_3]: defaultOpenaiApi,
   [OPT_TRANS_GEMINI]: {
     url: "https://generativelanguage.googleapis.com/v1/models",
     key: "",

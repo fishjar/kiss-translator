@@ -11,6 +11,8 @@ import {
   OPT_TRANS_BAIDU,
   OPT_TRANS_TENCENT,
   OPT_TRANS_OPENAI,
+  OPT_TRANS_OPENAI_2,
+  OPT_TRANS_OPENAI_3,
   OPT_TRANS_GEMINI,
   OPT_TRANS_CLOUDFLAREAI,
   OPT_TRANS_CUSTOMIZE,
@@ -133,7 +135,7 @@ function ApiFields({ translator }) {
     });
   };
 
-  const buildinTranslators = [
+  const builtinTranslators = [
     OPT_TRANS_MICROSOFT,
     OPT_TRANS_DEEPLFREE,
     OPT_TRANS_BAIDU,
@@ -143,6 +145,8 @@ function ApiFields({ translator }) {
   const mulkeysTranslators = [
     OPT_TRANS_DEEPL,
     OPT_TRANS_OPENAI,
+    OPT_TRANS_OPENAI_2,
+    OPT_TRANS_OPENAI_3,
     OPT_TRANS_GEMINI,
     OPT_TRANS_CLOUDFLAREAI,
     OPT_TRANS_NIUTRANS,
@@ -164,7 +168,7 @@ function ApiFields({ translator }) {
 
   return (
     <Stack spacing={3}>
-      {!buildinTranslators.includes(translator) && (
+      {!builtinTranslators.includes(translator) && (
         <>
           <TextField
             size="small"
@@ -191,7 +195,8 @@ function ApiFields({ translator }) {
         </>
       )}
 
-      {(translator === OPT_TRANS_OPENAI || translator === OPT_TRANS_GEMINI) && (
+      {(translator.startsWith(OPT_TRANS_OPENAI) ||
+        translator === OPT_TRANS_GEMINI) && (
         <>
           <TextField
             size="small"
