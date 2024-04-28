@@ -14,6 +14,9 @@ import {
   OPT_TRANS_OPENAI_3,
   OPT_TRANS_GEMINI,
   OPT_TRANS_CLOUDFLAREAI,
+  OPT_TRANS_OLLAMA,
+  OPT_TRANS_OLLAMA_2,
+  OPT_TRANS_OLLAMA_3,
   OPT_TRANS_CUSTOMIZE,
   OPT_TRANS_CUSTOMIZE_2,
   OPT_TRANS_CUSTOMIZE_3,
@@ -259,6 +262,12 @@ export const apiTranslate = async ({
       break;
     case OPT_TRANS_CLOUDFLAREAI:
       trText = res?.result?.translated_text;
+      isSame = text === trText;
+      break;
+    case OPT_TRANS_OLLAMA:
+    case OPT_TRANS_OLLAMA_2:
+    case OPT_TRANS_OLLAMA_3:
+      trText = res?.response;
       isSame = text === trText;
       break;
     case OPT_TRANS_CUSTOMIZE:

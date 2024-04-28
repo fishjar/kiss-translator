@@ -108,6 +108,9 @@ export const OPT_TRANS_OPENAI_2 = "OpenAI2";
 export const OPT_TRANS_OPENAI_3 = "OpenAI3";
 export const OPT_TRANS_GEMINI = "Gemini";
 export const OPT_TRANS_CLOUDFLAREAI = "CloudflareAI";
+export const OPT_TRANS_OLLAMA = "Ollama";
+export const OPT_TRANS_OLLAMA_2 = "Ollama2";
+export const OPT_TRANS_OLLAMA_3 = "Ollama3";
 export const OPT_TRANS_CUSTOMIZE = "Custom";
 export const OPT_TRANS_CUSTOMIZE_2 = "Custom2";
 export const OPT_TRANS_CUSTOMIZE_3 = "Custom3";
@@ -127,6 +130,9 @@ export const OPT_TRANS_ALL = [
   OPT_TRANS_OPENAI_3,
   OPT_TRANS_GEMINI,
   OPT_TRANS_CLOUDFLAREAI,
+  OPT_TRANS_OLLAMA,
+  OPT_TRANS_OLLAMA_2,
+  OPT_TRANS_OLLAMA_3,
   OPT_TRANS_CUSTOMIZE,
   OPT_TRANS_CUSTOMIZE_2,
   OPT_TRANS_CUSTOMIZE_3,
@@ -265,6 +271,15 @@ export const OPT_LANGS_SPECIAL = {
     OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
   ),
   [OPT_TRANS_GEMINI]: new Map(
+    OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
+  ),
+  [OPT_TRANS_OLLAMA]: new Map(
+    OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
+  ),
+  [OPT_TRANS_OLLAMA_2]: new Map(
+    OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
+  ),
+  [OPT_TRANS_OLLAMA_3]: new Map(
     OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
   ),
   [OPT_TRANS_CLOUDFLAREAI]: new Map([
@@ -482,6 +497,14 @@ const defaultOpenaiApi = {
   fetchLimit: 1,
   fetchInterval: 500,
 };
+const defaultOllamaApi = {
+  url: "http://localhost:11434/api/generate",
+  key: "",
+  model: "llama3",
+  prompt: `Translate the following text from ${INPUT_PLACE_FROM} to ${INPUT_PLACE_TO}:\n\n${INPUT_PLACE_TEXT}`,
+  fetchLimit: 1,
+  fetchInterval: 500,
+};
 export const DEFAULT_TRANS_APIS = {
   [OPT_TRANS_GOOGLE]: {
     url: "https://translate.googleapis.com/translate_a/single",
@@ -542,6 +565,9 @@ export const DEFAULT_TRANS_APIS = {
     fetchLimit: 1,
     fetchInterval: 500,
   },
+  [OPT_TRANS_OLLAMA]: defaultOllamaApi,
+  [OPT_TRANS_OLLAMA_2]: defaultOllamaApi,
+  [OPT_TRANS_OLLAMA_3]: defaultOllamaApi,
   [OPT_TRANS_CUSTOMIZE]: defaultCustomApi,
   [OPT_TRANS_CUSTOMIZE_2]: defaultCustomApi,
   [OPT_TRANS_CUSTOMIZE_3]: defaultCustomApi,

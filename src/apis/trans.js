@@ -13,6 +13,9 @@ import {
   OPT_TRANS_OPENAI_3,
   OPT_TRANS_GEMINI,
   OPT_TRANS_CLOUDFLAREAI,
+  OPT_TRANS_OLLAMA,
+  OPT_TRANS_OLLAMA_2,
+  OPT_TRANS_OLLAMA_3,
   OPT_TRANS_CUSTOMIZE,
   OPT_TRANS_CUSTOMIZE_2,
   OPT_TRANS_CUSTOMIZE_3,
@@ -245,6 +248,32 @@ const genGemini = ({ text, from, to, url, key, prompt, model }) => {
   return [input, init];
 };
 
+const genOllama = ({ text, from, to, url, key, prompt, model }) => {
+  prompt = prompt
+    .replaceAll(INPUT_PLACE_FROM, from)
+    .replaceAll(INPUT_PLACE_TO, to)
+    .replaceAll(INPUT_PLACE_TEXT, text);
+
+  const data = {
+    model,
+    prompt,
+    stream: false,
+  };
+
+  const init = {
+    headers: {
+      "Content-type": "application/json",
+    },
+    method: "POST",
+    body: JSON.stringify(data),
+  };
+  if (key) {
+    init.headers.Authorization = `Bearer ${key}`;
+  }
+
+  return [url, init];
+};
+
 const genCloudflareAI = ({ text, from, to, url, key }) => {
   const data = {
     text,
@@ -323,6 +352,9 @@ export const genTransReq = ({ translator, text, from, to }, apiSetting) => {
     case OPT_TRANS_OPENAI_3:
     case OPT_TRANS_GEMINI:
     case OPT_TRANS_CLOUDFLAREAI:
+    case OPT_TRANS_OLLAMA:
+    case OPT_TRANS_OLLAMA_2:
+    case OPT_TRANS_OLLAMA_3:
     case OPT_TRANS_NIUTRANS:
       args.key = keyPick(translator, args.key, keyMap);
       break;
@@ -357,6 +389,10 @@ export const genTransReq = ({ translator, text, from, to }, apiSetting) => {
       return genGemini(args);
     case OPT_TRANS_CLOUDFLAREAI:
       return genCloudflareAI(args);
+    case OPT_TRANS_OLLAMA:
+    case OPT_TRANS_OLLAMA_2:
+    case OPT_TRANS_OLLAMA_3:
+      return genOllama(args);
     case OPT_TRANS_CUSTOMIZE:
     case OPT_TRANS_CUSTOMIZE_2:
     case OPT_TRANS_CUSTOMIZE_3:

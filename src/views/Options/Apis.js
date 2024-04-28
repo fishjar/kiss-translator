@@ -15,6 +15,9 @@ import {
   OPT_TRANS_OPENAI_3,
   OPT_TRANS_GEMINI,
   OPT_TRANS_CLOUDFLAREAI,
+  OPT_TRANS_OLLAMA,
+  OPT_TRANS_OLLAMA_2,
+  OPT_TRANS_OLLAMA_3,
   OPT_TRANS_CUSTOMIZE,
   OPT_TRANS_NIUTRANS,
   URL_KISS_PROXY,
@@ -149,6 +152,9 @@ function ApiFields({ translator }) {
     OPT_TRANS_OPENAI_3,
     OPT_TRANS_GEMINI,
     OPT_TRANS_CLOUDFLAREAI,
+    OPT_TRANS_OLLAMA,
+    OPT_TRANS_OLLAMA_2,
+    OPT_TRANS_OLLAMA_3,
     OPT_TRANS_NIUTRANS,
   ];
 
@@ -196,6 +202,7 @@ function ApiFields({ translator }) {
       )}
 
       {(translator.startsWith(OPT_TRANS_OPENAI) ||
+        translator.startsWith(OPT_TRANS_OLLAMA) ||
         translator === OPT_TRANS_GEMINI) && (
         <>
           <TextField
