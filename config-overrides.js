@@ -112,6 +112,8 @@ const userscriptWebpack = (config, env) => {
 // @connect       127.0.0.1:3000
 // @connect       localhost:1188
 // @connect       127.0.0.1:1188
+// @connect       localhost:11434
+// @connect       127.0.0.1:11434
 // @run-at        document-end
 // ==/UserScript==
 
