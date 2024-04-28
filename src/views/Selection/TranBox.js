@@ -25,6 +25,7 @@ import DictCont from "./DictCont";
 import SugCont from "./SugCont";
 import CopyBtn from "./CopyBtn";
 import { isValidWord } from "../../libs/utils";
+import { isMobile } from "../../libs/mobile";
 
 function Header({
   setShowPopup,
@@ -34,7 +35,12 @@ function Header({
   setHideClickAway,
   followSelection,
   setFollowSelection,
+  mouseHover,
 }) {
+  if (!isMobile && simpleStyle && !mouseHover) {
+    return;
+  }
+
   return (
     <Box
       className="KT-transbox-header"
@@ -263,6 +269,7 @@ export default function TranBox({
   setFollowSelection,
   extStyles,
 }) {
+  const [mouseHover, setMouseHover] = useState(false);
   return (
     <SettingProvider>
       <ThemeProvider styles={extStyles}>
@@ -280,9 +287,12 @@ export default function TranBox({
               setHideClickAway={setHideClickAway}
               followSelection={followSelection}
               setFollowSelection={setFollowSelection}
+              mouseHover={mouseHover}
             />
           }
           onClick={(e) => e.stopPropagation()}
+          onMouseEnter={() => setMouseHover(true)}
+          onMouseLeave={() => setMouseHover(false)}
         >
           <TranForm
             text={text}
