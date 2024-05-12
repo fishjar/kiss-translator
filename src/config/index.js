@@ -485,7 +485,9 @@ export const DEFAULT_SUBRULES_LIST = [
 const defaultCustomApi = {
   url: "",
   key: "",
-  customOption: "",
+  customOption: "", // (作废)
+  reqHook: "", // request 钩子函数
+  resHook: "", // response 钩子函数
   fetchLimit: DEFAULT_FETCH_LIMIT,
   fetchInterval: DEFAULT_FETCH_INTERVAL,
 };

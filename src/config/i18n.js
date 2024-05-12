@@ -42,7 +42,23 @@ const customApiLangs = `["en", "English - English"],
 ["vi", "Vietnamese - Tiếng Việt"],
 `;
 
-const customDefaultOption = `{
+const hookExample = `// URL
+https://translate.googleapis.com/translate_a/single?client=gtx&dj=1&dt=t&ie=UTF-8&q={{text}}&sl=en&tl=zh-CN
+
+// Request Hook
+(text, from, to, url, key) => [url, {
+  headers: {
+      "Content-type": "application/json",
+  },
+  method: "GET",
+  body: null,
+}]
+
+// Response Hook
+(res, text, from, to) => [res.sentences.map((item) => item.trans).join(" "), to === res.src]`;
+
+const customApiHelpZH = `// 请求数据默认格式
+{
   "url": "{{url}}",
   "method": "POST",
   "headers": {
@@ -50,18 +66,12 @@ const customDefaultOption = `{
     "Authorization": "Bearer {{key}}"
   },
   "body": {
-    "text": "{{text}}",
-    "from": "{{from}}",
-    "to": "{{to}}"
+    "text": "{{text}}", // 待翻译文字
+    "from": "{{from}}", // 文字的语言（可能为空）
+    "to": "{{to}}",     // 目标语言
   },
-  "resPattern": {
-    "text": "text",
-    "from": "from"
-  }
-}`;
+}
 
-const customApiHelpZH = `// 自定义选项范例
-${customDefaultOption}
 
 // 返回数据默认格式
 {
@@ -70,19 +80,42 @@ ${customDefaultOption}
   to: "",   // 目标语言（可选）
 }
 
+
+// Hook 范例
+${hookExample}
+
+
 // 支持的语言代码如下
 ${customApiLangs}
 `;
 
-const customApiHelpEN = `// Example of custom options
-${customDefaultOption}
+const customApiHelpEN = `// Default request
+{
+  "url": "{{url}}",
+  "method": "POST",
+  "headers": {
+    "Content-type": "application/json",
+    "Authorization": "Bearer {{key}}"
+  },
+  "body": {
+    "text": "{{text}}", // Text to be translated
+    "from": "{{from}}", // The language of the text (may be empty)
+    "to": "{{to}}",     // Target language
+  },
+}
 
-// Return data default format
+
+// Default response
 {
   text: "", // translated text
   from: "", // Recognized source language
   to: "",   // Target language (optional)
 }
+
+
+/// Hook Example
+${hookExample}
+
 
 // The supported language codes are as follows
 ${customApiLangs}

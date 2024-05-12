@@ -119,7 +119,8 @@ function ApiFields({ translator }) {
     fetchInterval = DEFAULT_FETCH_INTERVAL,
     dictNo = "",
     memoryNo = "",
-    customOption = "",
+    reqHook = "",
+    resHook = "",
   } = api;
 
   const handleChange = (e) => {
@@ -244,15 +245,26 @@ function ApiFields({ translator }) {
       )}
 
       {translator.startsWith(OPT_TRANS_CUSTOMIZE) && (
-        <TextField
-          size="small"
-          label={i18n("custom_option")}
-          name="customOption"
-          value={customOption}
-          onChange={handleChange}
-          multiline
-          maxRows={10}
-        />
+        <>
+          <TextField
+            size="small"
+            label={"Request Hook"}
+            name="reqHook"
+            value={reqHook}
+            onChange={handleChange}
+            multiline
+            maxRows={10}
+          />
+          <TextField
+            size="small"
+            label={"Response Hook"}
+            name="resHook"
+            value={resHook}
+            onChange={handleChange}
+            multiline
+            maxRows={10}
+          />
+        </>
       )}
 
       <TextField

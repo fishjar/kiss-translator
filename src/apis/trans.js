@@ -32,6 +32,7 @@ import {
 import { msAuth } from "../libs/auth";
 import { genDeeplFree } from "./deepl";
 import { genBaidu } from "./baidu";
+import interpreter from "../libs/interpreter";
 
 const keyMap = new Map();
 const urlMap = new Map();
@@ -293,20 +294,27 @@ const genCloudflareAI = ({ text, from, to, url, key }) => {
   return [url, init];
 };
 
-const genCustom = ({ text, from, to, url, key, customOption }) => {
-  const replaceInput = (str) =>
-    str
-      .replaceAll(INPUT_PLACE_URL, url)
-      .replaceAll(INPUT_PLACE_FROM, from)
-      .replaceAll(INPUT_PLACE_TO, to)
-      .replaceAll(INPUT_PLACE_TEXT, text.replaceAll(`"`, `\n`))
-      .replaceAll(INPUT_PLACE_KEY, key);
+const genCustom = ({ text, from, to, url, key, reqHook }) => {
+  url = url
+    .replaceAll(INPUT_PLACE_URL, url)
+    .replaceAll(INPUT_PLACE_FROM, from)
+    .replaceAll(INPUT_PLACE_TO, to)
+    .replaceAll(INPUT_PLACE_TEXT, text)
+    .replaceAll(INPUT_PLACE_KEY, key);
+  let init = {};
+
+  if (reqHook?.trim()) {
+    interpreter.run(`exports.reqHook = ${reqHook}`);
+    [url, init] = interpreter.exports.reqHook(text, from, to, url, key);
+    return [url, init];
+  }
+
   const data = {
     text,
     from,
     to,
   };
-  const init = {
+  init = {
     headers: {
       "Content-type": "application/json",
     },
@@ -315,23 +323,6 @@ const genCustom = ({ text, from, to, url, key, customOption }) => {
   };
   if (key) {
     init.headers.Authorization = `Bearer ${key}`;
-  }
-  url = replaceInput(url);
-
-  if (customOption?.trim()) {
-    try {
-      const opt = JSON.parse(replaceInput(customOption));
-      opt.url && (url = opt.url);
-      opt.headers && (init.headers = opt.headers);
-      opt.method && (init.method = opt.method);
-      if (init.method === "GET") {
-        delete init.body;
-      } else {
-        opt.body && (init.body = JSON.stringify(opt.body));
-      }
-    } catch (err) {
-      throw new Error(`custom option parse err: ${err}`);
-    }
   }
 
   return [url, init];

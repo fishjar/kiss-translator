@@ -33,6 +33,7 @@ import {
   OPT_LANGS_SPECIAL,
 } from "../config";
 import { sha256 } from "../libs/utils";
+import interpreter from "../libs/interpreter";
 
 /**
  * 同步数据
@@ -275,27 +276,14 @@ export const apiTranslate = async ({
     case OPT_TRANS_CUSTOMIZE_3:
     case OPT_TRANS_CUSTOMIZE_4:
     case OPT_TRANS_CUSTOMIZE_5:
-      trText = res.text;
-      isSame = to === res.from;
-
-      const { customOption } = apiSetting;
-      if (customOption?.trim()) {
-        try {
-          const opt = JSON.parse(customOption);
-          const textPattern = opt.resPattern?.text;
-          const fromPattern = opt.resPattern?.from;
-          if (textPattern) {
-            trText = textPattern.split(".").reduce((pre, cur) => pre[cur], res);
-          }
-          if (fromPattern) {
-            isSame =
-              to === fromPattern.split(".").reduce((pre, cur) => pre[cur], res);
-          }
-        } catch (err) {
-          throw new Error(`custom option parse err: ${err}`);
-        }
+      const { resHook } = apiSetting;
+      if (resHook?.trim()) {
+        interpreter.run(`exports.resHook = ${resHook}`);
+        [trText, isSame] = interpreter.exports.resHook(res, text, from, to);
+      } else {
+        trText = res.text;
+        isSame = to === res.from;
       }
-
       break;
     default:
   }
