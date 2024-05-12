@@ -31,6 +31,8 @@ import ShortcutInput from "./ShortcutInput";
 import { useFab } from "../../hooks/Fab";
 import { sendBgMsg } from "../../libs/msg";
 import { kissLog } from "../../libs/log";
+import UploadButton from "./UploadButton";
+import DownloadButton from "./DownloadButton";
 
 function ShortcutItem({ action, label }) {
   const { shortcut, setShortcut } = useShortcut(action);
@@ -92,6 +94,14 @@ export default function Settings() {
     }
   };
 
+  const handleImport = async (data) => {
+    try {
+      await updateSetting(JSON.parse(data));
+    } catch (err) {
+      kissLog(err, "import setting");
+    }
+  };
+
   const {
     uiLang,
     minLength,
@@ -109,6 +119,21 @@ export default function Settings() {
   return (
     <Box>
       <Stack spacing={3}>
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={2}
+          useFlexGap
+          flexWrap="wrap"
+        >
+          <UploadButton text={i18n("import")} handleImport={handleImport} />
+          <DownloadButton
+            handleData={() => JSON.stringify(setting, null, 2)}
+            text={i18n("export")}
+            fileName={`kiss-setting_${Date.now()}.json`}
+          />
+        </Stack>
+
         <FormControl size="small">
           <InputLabel>{i18n("ui_lang")}</InputLabel>
           <Select
