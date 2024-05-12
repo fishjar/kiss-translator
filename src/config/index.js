@@ -384,6 +384,7 @@ export const INPUT_PLACE_FROM = "{{from}}"; // 占位符
 export const INPUT_PLACE_TO = "{{to}}"; // 占位符
 export const INPUT_PLACE_TEXT = "{{text}}"; // 占位符
 export const INPUT_PLACE_KEY = "{{key}}"; // 占位符
+export const INPUT_PLACE_MODEL = "{{model}}"; // 占位符
 
 export const DEFAULT_COLOR = "#209CEE"; // 默认高亮背景色/线条颜色
 
@@ -554,7 +555,7 @@ export const DEFAULT_TRANS_APIS = {
   [OPT_TRANS_OPENAI_2]: defaultOpenaiApi,
   [OPT_TRANS_OPENAI_3]: defaultOpenaiApi,
   [OPT_TRANS_GEMINI]: {
-    url: "https://generativelanguage.googleapis.com/v1/models",
+    url: `https://generativelanguage.googleapis.com/v1/models/${INPUT_PLACE_MODEL}:generateContent?key=${INPUT_PLACE_KEY}`,
     key: "",
     model: "gemini-pro",
     prompt: `Translate the following text from ${INPUT_PLACE_FROM} to ${INPUT_PLACE_TO}:\n\n${INPUT_PLACE_TEXT}`,
@@ -562,7 +563,7 @@ export const DEFAULT_TRANS_APIS = {
     fetchInterval: 500,
   },
   [OPT_TRANS_CLOUDFLAREAI]: {
-    url: "https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/ai/run/@cf/meta/m2m100-1.2b",
+    url: "https://api.cloudflare.com/client/v4/accounts/{{ACCOUNT_ID}}/ai/run/@cf/meta/m2m100-1.2b",
     key: "",
     fetchLimit: 1,
     fetchInterval: 500,

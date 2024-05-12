@@ -28,6 +28,7 @@ import {
   INPUT_PLACE_TO,
   INPUT_PLACE_TEXT,
   INPUT_PLACE_KEY,
+  INPUT_PLACE_MODEL,
 } from "../config";
 import { msAuth } from "../libs/auth";
 import { genDeeplFree } from "./deepl";
@@ -219,6 +220,9 @@ const genOpenAI = ({ text, from, to, url, key, prompt, model }) => {
 };
 
 const genGemini = ({ text, from, to, url, key, prompt, model }) => {
+  url = url
+    .replaceAll(INPUT_PLACE_MODEL, model)
+    .replaceAll(INPUT_PLACE_KEY, key);
   prompt = prompt
     .replaceAll(INPUT_PLACE_FROM, from)
     .replaceAll(INPUT_PLACE_TO, to)
@@ -237,7 +241,6 @@ const genGemini = ({ text, from, to, url, key, prompt, model }) => {
     ],
   };
 
-  const input = `${url}/${model}:generateContent?key=${key}`;
   const init = {
     headers: {
       "Content-type": "application/json",
@@ -246,7 +249,7 @@ const genGemini = ({ text, from, to, url, key, prompt, model }) => {
     body: JSON.stringify(data),
   };
 
-  return [input, init];
+  return [url, init];
 };
 
 const genOllama = ({ text, from, to, url, key, prompt, model }) => {
