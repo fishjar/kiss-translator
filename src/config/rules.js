@@ -30,6 +30,9 @@ export const DEFAULT_RULE = {
   skipLangs: [], // 不翻译的语言
   fixerSelector: "", // 修复函数选择器
   fixerFunc: GLOBAL_KEY, // 修复函数
+  transStartHook: "", // 钩子函数
+  transEndHook: "", // 钩子函数
+  transRemoveHook: "", // 钩子函数
 };
 
 const DEFAULT_DIY_STYLE = `color: #666;

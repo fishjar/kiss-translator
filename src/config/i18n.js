@@ -906,4 +906,28 @@ export const I18N = {
     zh: `翻译框跟随选中文本`,
     en: `Transbox Follow Selection`,
   },
+  translate_start_hook: {
+    zh: `翻译开始钩子函数`,
+    en: `Translate Start Hook`,
+  },
+  translate_start_hook_helper: {
+    zh: `翻译开始时运行，入参为： 翻译节点，原文文本。`,
+    en: `Run when translation starts, the input parameters are: translation node, original text.`,
+  },
+  translate_end_hook: {
+    zh: `翻译完成钩子函数`,
+    en: `Translate End Hook`,
+  },
+  translate_end_hook_helper: {
+    zh: `翻译完成时运行，入参为： 翻译节点，原文文本，译文文本，保留元素。`,
+    en: `Run when the translation is completed, the input parameters are: translation node, original text, translation text, retained elements.`,
+  },
+  translate_remove_hook: {
+    zh: `翻译移除钩子函数`,
+    en: `Translate Removed Hook`,
+  },
+  translate_remove_hook_helper: {
+    zh: `翻译移除时运行，入参为： 翻译节点。`,
+    en: `Run when translation is removed, the input parameters are: translation node.`,
+  },
 };

@@ -15,6 +15,7 @@ import {
 import { useTranslate } from "../../hooks/Translate";
 import { styled, css } from "@mui/material/styles";
 import { APP_LCNAME } from "../../config";
+import interpreter from "../../libs/interpreter";
 
 const LINE_STYLES = {
   [OPT_STYLE_LINE]: "solid",
@@ -85,8 +86,15 @@ const StyledSpan = styled("span")`
 export default function Content({ q, keeps, translator, $el }) {
   const [rule, setRule] = useState(translator.rule);
   const { text, sameLang, loading } = useTranslate(q, rule, translator.setting);
-  const { transOpen, textStyle, bgColor, textDiyStyle, transOnly, transTag } =
-    rule;
+  const {
+    transOpen,
+    textStyle,
+    bgColor,
+    textDiyStyle,
+    transOnly,
+    transTag,
+    transEndHook,
+  } = rule;
 
   const { newlineLength } = translator.setting;
 
@@ -106,6 +114,14 @@ export default function Content({ q, keeps, translator, $el }) {
       window.removeEventListener(translator.eventName, handleKissEvent);
     };
   }, [translator.eventName]);
+
+  useEffect(() => {
+    // 运行钩子函数
+    if (text && transEndHook?.trim()) {
+      interpreter.run(`exports.transEndHook = ${transEndHook}`);
+      interpreter.exports.transEndHook($el, q, text, keeps);
+    }
+  }, [$el, q, text, keeps, transEndHook]);
 
   const gap = useMemo(() => {
     if (transOnly === "true") {

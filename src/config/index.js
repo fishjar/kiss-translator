@@ -417,6 +417,9 @@ export const GLOBLA_RULE = {
   skipLangs: [], // 不翻译的语言
   fixerSelector: "", // 修复函数选择器
   fixerFunc: "-", // 修复函数
+  transStartHook: "", // 钩子函数
+  transEndHook: "", // 钩子函数
+  transRemoveHook: "", // 钩子函数
 };
 
 // 输入框翻译

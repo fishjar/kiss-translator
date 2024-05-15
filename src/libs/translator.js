@@ -25,6 +25,7 @@ import { sendBgMsg } from "./msg";
 import { isExt } from "./client";
 import { injectInlineJs, injectInternalCss } from "./injector";
 import { kissLog } from "./log";
+import interpreter from "./interpreter";
 
 /**
  * 翻译类
@@ -405,6 +406,7 @@ export class Translator {
     // 移除键盘监听
     window.removeEventListener("keydown", this._handleKeydown);
 
+    const { transRemoveHook } = this._rule;
     this._tranNodes.forEach((innerHTML, node) => {
       if (
         !this._rule.transTiming ||
@@ -420,10 +422,17 @@ export class Translator {
       }
 
       // 移除/恢复元素
-      if (innerHTML && this._rule.transOnly === "true") {
-        node.innerHTML = innerHTML;
-      } else {
-        node.querySelector(APP_LCNAME)?.remove();
+      if (innerHTML) {
+        if (this._rule.transOnly === "true") {
+          node.innerHTML = innerHTML;
+        } else {
+          node.querySelector(APP_LCNAME)?.remove();
+        }
+        // 钩子函数
+        if (transRemoveHook?.trim()) {
+          interpreter.run(`exports.transRemoveHook = ${transRemoveHook}`);
+          interpreter.exports.transRemoveHook(node);
+        }
       }
     });
 
@@ -490,6 +499,13 @@ export class Translator {
     }
     const keeps = [];
 
+    // 翻译开始钩子函数
+    const { transStartHook } = this._rule;
+    if (transStartHook?.trim()) {
+      interpreter.run(`exports.transStartHook = ${transStartHook}`);
+      interpreter.exports.transStartHook(el, q);
+    }
+
     // 保留元素
     const [matchSelector, subSelector] = this._keepSelector;
     if (matchSelector || subSelector) {
@@ -538,18 +554,22 @@ export class Translator {
       }
     }
 
-    traEl = document.createElement(APP_LCNAME);
-    traEl.style.visibility = "visible";
-    // if (this._rule.transOnly === "true") {
-    //   el.innerHTML = "";
-    // }
+    // 附加样式
     const { selectStyle, parentStyle } = this._rule;
-    el.appendChild(traEl);
     el.style.cssText += selectStyle;
     if (el.parentElement) {
       el.parentElement.style.cssText += parentStyle;
     }
 
+    // 插入译文节点
+    traEl = document.createElement(APP_LCNAME);
+    traEl.style.visibility = "visible";
+    // if (this._rule.transOnly === "true") {
+    //   el.innerHTML = "";
+    // }
+    el.appendChild(traEl);
+
+    // 渲染译文节点
     const root = createRoot(traEl);
     root.render(<Content q={q} keeps={keeps} translator={this} $el={el} />);
   };

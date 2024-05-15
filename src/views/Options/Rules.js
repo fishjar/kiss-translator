@@ -97,6 +97,9 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
     skipLangs = [],
     fixerSelector = "",
     fixerFunc = "-",
+    transStartHook = "",
+    transEndHook = "",
+    transRemoveHook = "",
   } = formValues;
 
   const hasSamePattern = (str) => {
@@ -458,6 +461,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
               disabled={disabled}
               onChange={handleChange}
               multiline
+              maxRows={10}
             />
 
             <TextField
@@ -468,6 +472,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
               disabled={disabled}
               onChange={handleChange}
               multiline
+              maxRows={10}
             />
             <TextField
               select
@@ -486,6 +491,40 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 </MenuItem>
               ))}
             </TextField>
+
+            <TextField
+              size="small"
+              label={i18n("translate_start_hook")}
+              helperText={i18n("translate_start_hook_helper")}
+              name="transStartHook"
+              value={transStartHook}
+              disabled={disabled}
+              onChange={handleChange}
+              multiline
+              maxRows={10}
+            />
+            <TextField
+              size="small"
+              label={i18n("translate_end_hook")}
+              helperText={i18n("translate_end_hook_helper")}
+              name="transEndHook"
+              value={transEndHook}
+              disabled={disabled}
+              onChange={handleChange}
+              multiline
+              maxRows={10}
+            />
+            <TextField
+              size="small"
+              label={i18n("translate_remove_hook")}
+              helperText={i18n("translate_remove_hook_helper")}
+              name="transRemoveHook"
+              value={transRemoveHook}
+              disabled={disabled}
+              onChange={handleChange}
+              multiline
+              maxRows={10}
+            />
 
             <TextField
               size="small"

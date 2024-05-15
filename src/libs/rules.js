@@ -74,6 +74,9 @@ export const matchRule = async (
     "injectJs",
     "injectCss",
     "fixerSelector",
+    "transStartHook",
+    "transEndHook",
+    "transRemoveHook",
   ].forEach((key) => {
     if (!rule[key]?.trim()) {
       rule[key] = globalRule[key];
@@ -162,6 +165,9 @@ export const checkRules = (rules) => {
         skipLangs,
         fixerSelector,
         fixerFunc,
+        transStartHook,
+        transEndHook,
+        transRemoveHook,
       }) => ({
         pattern: pattern.trim(),
         selector: type(selector) === "string" ? selector : "",
@@ -185,6 +191,10 @@ export const checkRules = (rules) => {
         detectRemote: matchValue([GLOBAL_KEY, "true", "false"], detectRemote),
         skipLangs: type(skipLangs) === "array" ? skipLangs : [],
         fixerSelector: type(fixerSelector) === "string" ? fixerSelector : "",
+        transStartHook: type(transStartHook) === "string" ? transStartHook : "",
+        transEndHook: type(transEndHook) === "string" ? transEndHook : "",
+        transRemoveHook:
+          type(transRemoveHook) === "string" ? transRemoveHook : "",
         fixerFunc: matchValue([GLOBAL_KEY, ...FIXER_ALL], fixerFunc),
       })
     );
