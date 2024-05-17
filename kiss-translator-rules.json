@@ -22,7 +22,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "bard.google.com",
@@ -47,7 +50,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "bearblog.dev, www.theverge.com, www.tampermonkey.net/documentation.php",
@@ -72,7 +78,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "blogs.windows.com",
@@ -97,7 +106,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": ".t-content>div>ul>li",
-    "fixerFunc": "br"
+    "fixerFunc": "br",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "chat.openai.com",
@@ -122,7 +134,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "div[data-message-author-role='user'] > div",
-    "fixerFunc": "bn"
+    "fixerFunc": "bn",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "chromereleases.googleblog.com",
@@ -147,7 +162,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": ".post-content, .post-content > span, li > span",
-    "fixerFunc": "br"
+    "fixerFunc": "br",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "deno.land, docs.github.com",
@@ -172,7 +190,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "developer.apple.com/documentation/",
@@ -197,7 +218,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "developers.cloudflare.com",
@@ -222,7 +246,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "discord.com/channels/",
@@ -247,7 +274,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "doc.rust-lang.org",
@@ -272,7 +302,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "docs.arduino.cc",
@@ -297,7 +330,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "docs.rs",
@@ -322,7 +358,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "edition.cnn.com",
@@ -347,7 +386,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "education.github.com",
@@ -372,7 +414,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "en.wikipedia.org",
@@ -397,7 +442,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "forum.arduino.cc",
@@ -422,7 +470,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "forum.ru-board.com",
@@ -447,7 +498,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "span.post",
-    "fixerFunc": "br"
+    "fixerFunc": "br",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "github.com",
@@ -472,7 +526,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "go.dev/tour",
@@ -497,7 +554,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "gobyexample.com",
@@ -522,7 +582,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "greasyfork.org",
@@ -547,7 +610,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "m.youtube.com",
@@ -572,7 +638,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "mail.google.com",
@@ -597,7 +666,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": ".a3s.aiL",
-    "fixerFunc": "br"
+    "fixerFunc": "br",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "news.google.com",
@@ -622,7 +694,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "news.yahoo.co.jp/articles/",
@@ -647,7 +722,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": ".sc-cTsKDU",
-    "fixerFunc": "bn"
+    "fixerFunc": "bn",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "news.ycombinator.com",
@@ -672,7 +750,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": ".toptext, .commtext",
-    "fixerFunc": "br"
+    "fixerFunc": "br",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "notebooks.githubusercontent.com/view/ipynb",
@@ -697,7 +778,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "pkg.go.dev",
@@ -722,7 +806,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "platform.openai.com/docs",
@@ -747,7 +834,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "play.google.com/store/apps/details",
@@ -772,7 +862,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "[data-g-id=\"description\"]",
-    "fixerFunc": "br"
+    "fixerFunc": "br",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "randomnerdtutorials.com",
@@ -797,7 +890,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "restofworld.org",
@@ -822,7 +918,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "stackoverflow.com, serverfault.com, superuser.com, stackexchange.com, askubuntu.com, stackapps.com, mathoverflow.net",
@@ -847,7 +946,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "t.me/s/",
@@ -872,7 +974,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": ".tgme_widget_message_text",
-    "fixerFunc": "br"
+    "fixerFunc": "br",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "themessenger.com",
@@ -897,7 +1002,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "time.com",
@@ -922,7 +1030,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "twitter.com",
@@ -947,7 +1058,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "ubuntuforums.org",
@@ -972,7 +1086,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": ".postcontent",
-    "fixerFunc": "br"
+    "fixerFunc": "br",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "web.telegram.org/a",
@@ -997,7 +1114,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": ".text-content",
-    "fixerFunc": "brToDiv"
+    "fixerFunc": "brToDiv",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "web.telegram.org/k",
@@ -1022,7 +1142,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": ".message",
-    "fixerFunc": "bnToDiv"
+    "fixerFunc": "bnToDiv",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "web.whatsapp.com",
@@ -1047,7 +1170,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "www.axios.com",
@@ -1072,7 +1198,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "www.bbc.com",
@@ -1097,7 +1226,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "www.bing.com, copilot.microsoft.com",
@@ -1122,7 +1254,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "www.bloomberg.com",
@@ -1147,7 +1282,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "www.chinadaily.com.cn",
@@ -1172,7 +1310,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "www.dw.com",
@@ -1197,7 +1338,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "www.facebook.com",
@@ -1222,7 +1366,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "www.fmkorea.com",
@@ -1247,7 +1394,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "www.foxnews.com",
@@ -1272,7 +1422,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "www.google.com/search",
@@ -1297,7 +1450,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "www.historydefined.net",
@@ -1322,7 +1478,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "www.indiehackers.com",
@@ -1347,7 +1506,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "www.instagram.com/",
@@ -1372,7 +1534,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "www.instagram.com/p/,www.instagram.com/reels/",
@@ -1397,7 +1562,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "www.newyorker.com",
@@ -1422,7 +1590,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "www.noemamag.com",
@@ -1447,7 +1618,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "www.npmjs.com/package, developer.chrome.com/docs, medium.com, react.dev, create-react-app.dev, pytorch.org",
@@ -1472,7 +1646,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "www.phoronix.com",
@@ -1497,7 +1674,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": ".content",
-    "fixerFunc": "br"
+    "fixerFunc": "br",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "www.quora.com",
@@ -1522,7 +1702,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "www.reddit.com, new.reddit.com, sh.reddit.com",
@@ -1547,7 +1730,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "www.reuters.com",
@@ -1572,7 +1758,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "www.semafor.com",
@@ -1597,7 +1786,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "www.telegraph.co.uk, go.dev/doc/",
@@ -1622,7 +1814,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "www.theguardian.com",
@@ -1647,7 +1842,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "www.youtube.com",
@@ -1672,7 +1870,10 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   },
   {
     "pattern": "wx2.qq.com",
@@ -1697,6 +1898,9 @@
     "detectRemote": "*",
     "skipLangs": [],
     "fixerSelector": "",
-    "fixerFunc": "*"
+    "fixerFunc": "*",
+    "transStartHook": "",
+    "transEndHook": "",
+    "transRemoveHook": ""
   }
 ]
