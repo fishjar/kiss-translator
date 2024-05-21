@@ -202,7 +202,7 @@ export const OPT_LANGS_SPECIAL = {
   ]),
   [OPT_TRANS_DEEPLX]: new Map([
     ...OPT_LANGS_FROM.map(([key]) => [key, key.toUpperCase()]),
-    ["auto", ""],
+    ["auto", "auto"],
     ["zh-CN", "ZH"],
     ["zh-TW", "ZH"],
   ]),
