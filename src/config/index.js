@@ -500,6 +500,8 @@ const defaultOpenaiApi = {
   key: "",
   model: "gpt-4",
   prompt: `You will be provided with a sentence in ${INPUT_PLACE_FROM}, and your task is to translate it into ${INPUT_PLACE_TO}.`,
+  temperature: 0,
+  maxTokens: 256,
   fetchLimit: 1,
   fetchInterval: 500,
 };

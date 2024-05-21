@@ -15,6 +15,16 @@ export const limitNumber = (num, min = 0, max = 100) => {
   return number;
 };
 
+export const limitFloat = (num, min = 0, max = 100) => {
+  const number = parseFloat(num);
+  if (Number.isNaN(number) || number < min) {
+    return min;
+  } else if (number > max) {
+    return max;
+  }
+  return number;
+};
+
 /**
  * 匹配是否为数组中的值
  * @param {*} arr

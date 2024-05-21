@@ -185,7 +185,17 @@ const genTencent = ({ text, from, to }) => {
   return [URL_TENCENT_TRANSMART, init];
 };
 
-const genOpenAI = ({ text, from, to, url, key, prompt, model }) => {
+const genOpenAI = ({
+  text,
+  from,
+  to,
+  url,
+  key,
+  prompt,
+  model,
+  temperature,
+  maxTokens,
+}) => {
   prompt = prompt
     .replaceAll(INPUT_PLACE_FROM, from)
     .replaceAll(INPUT_PLACE_TO, to);
@@ -202,8 +212,8 @@ const genOpenAI = ({ text, from, to, url, key, prompt, model }) => {
         content: text,
       },
     ],
-    temperature: 0,
-    max_tokens: 256,
+    temperature,
+    max_tokens: maxTokens,
   };
 
   const init = {

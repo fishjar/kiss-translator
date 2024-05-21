@@ -38,7 +38,7 @@ import { useApi } from "../../hooks/Api";
 import { apiTranslate } from "../../apis";
 import Box from "@mui/material/Box";
 import Link from "@mui/material/Link";
-import { limitNumber } from "../../libs/utils";
+import { limitNumber, limitFloat } from "../../libs/utils";
 
 function TestButton({ translator, api }) {
   const i18n = useI18n();
@@ -121,6 +121,8 @@ function ApiFields({ translator }) {
     memoryNo = "",
     reqHook = "",
     resHook = "",
+    temperature = 0,
+    maxTokens = 256,
   } = api;
 
   const handleChange = (e) => {
@@ -131,6 +133,12 @@ function ApiFields({ translator }) {
         break;
       case "fetchInterval":
         value = limitNumber(value, 0, 5000);
+        break;
+      case "temperature":
+        value = limitFloat(value, 0, 2);
+        break;
+      case "maxTokens":
+        value = limitNumber(value, 0, 2 ** 15);
         break;
       default:
     }
@@ -221,6 +229,27 @@ function ApiFields({ translator }) {
             onChange={handleChange}
             multiline
             maxRows={10}
+          />
+        </>
+      )}
+
+      {translator.startsWith(OPT_TRANS_OPENAI) && (
+        <>
+          <TextField
+            size="small"
+            label={"Temperature"}
+            type="number"
+            name="temperature"
+            value={temperature}
+            onChange={handleChange}
+          />
+          <TextField
+            size="small"
+            label={"Max Tokens"}
+            type="number"
+            name="maxTokens"
+            value={maxTokens}
+            onChange={handleChange}
           />
         </>
       )}
