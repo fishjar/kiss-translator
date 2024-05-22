@@ -656,7 +656,7 @@ export const I18N = {
   },
   use_simple_style: {
     zh: `使用简洁界面`,
-    en: `Click outside to close the pop-up window`,
+    en: `Use a simple interface`,
   },
   show: {
     zh: `显示`,
