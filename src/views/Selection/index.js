@@ -20,6 +20,7 @@ export default function Slection({
   tranboxSetting,
   transApis,
   uiLang,
+  langDetector,
 }) {
   const {
     hideTranBtn = false,
@@ -234,6 +235,7 @@ export default function Slection({
           followSelection={followSelection}
           setFollowSelection={setFollowSelection}
           extStyles={extStyles}
+          langDetector={langDetector}
         />
       )}
 

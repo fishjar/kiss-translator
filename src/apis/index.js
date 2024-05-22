@@ -24,6 +24,8 @@ import {
   OPT_TRANS_CUSTOMIZE_5,
   URL_CACHE_TRAN,
   KV_SALT_SYNC,
+  URL_GOOGLE_TRAN,
+  URL_MICROSOFT_LANGDETECT,
   URL_BAIDU_LANGDETECT,
   URL_BAIDU_SUGGEST,
   URL_BAIDU_TTS,
@@ -31,9 +33,11 @@ import {
   URL_TENCENT_TRANSMART,
   OPT_LANGS_TENCENT,
   OPT_LANGS_SPECIAL,
+  OPT_LANGS_MICROSOFT,
 } from "../config";
 import { sha256 } from "../libs/utils";
 import interpreter from "../libs/interpreter";
+import { msAuth } from "../libs/auth";
 
 /**
  * 同步数据
@@ -58,6 +62,52 @@ export const apiSyncData = async (url, key, data) =>
  * @returns
  */
 export const apiFetch = (url) => fetchData(url);
+
+/**
+ * Google语言识别
+ * @param {*} text
+ * @returns
+ */
+export const apiGoogleLangdetect = async (text) => {
+  const params = {
+    client: "gtx",
+    dt: "t",
+    dj: 1,
+    ie: "UTF-8",
+    sl: "auto",
+    tl: "zh-CN",
+    q: text,
+  };
+  const input = `${URL_GOOGLE_TRAN}?${queryString.stringify(params)}`;
+  const res = await fetchData(input, {
+    headers: {
+      "Content-type": "application/json",
+    },
+    useCache: true,
+  });
+
+  return res.src;
+};
+
+/**
+ * Microsoft语言识别
+ * @param {*} text
+ * @returns
+ */
+export const apiMicrosoftLangdetect = async (text) => {
+  const [token] = await msAuth();
+  const res = await fetchData(URL_MICROSOFT_LANGDETECT, {
+    headers: {
+      "Content-type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    method: "POST",
+    body: JSON.stringify([{ Text: text }]),
+    useCache: true,
+  });
+
+  return OPT_LANGS_MICROSOFT.get(res[0].language) ?? res[0].language;
+};
 
 /**
  * 百度语言识别

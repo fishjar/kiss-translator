@@ -78,9 +78,16 @@ export const URL_RAW_PREFIX =
   "https://raw.githubusercontent.com/fishjar/kiss-translator/master";
 
 export const URL_CACHE_TRAN = `https://${APP_LCNAME}/translate`;
+
+// api.cognitive.microsofttranslator.com
 export const URL_MICROSOFT_TRAN =
   "https://api-edge.cognitive.microsofttranslator.com/translate";
 export const URL_MICROSOFT_AUTH = "https://edge.microsoft.com/translate/auth";
+export const URL_MICROSOFT_LANGDETECT =
+  "https://api-edge.cognitive.microsofttranslator.com/detect?api-version=3.0";
+
+export const URL_GOOGLE_TRAN =
+  "https://translate.googleapis.com/translate_a/single";
 export const URL_BAIDU_LANGDETECT = "https://fanyi.baidu.com/langdetect";
 export const URL_BAIDU_SUGGEST = "https://fanyi.baidu.com/sug";
 export const URL_BAIDU_TTS = "https://fanyi.baidu.com/gettts";
@@ -138,6 +145,13 @@ export const OPT_TRANS_ALL = [
   OPT_TRANS_CUSTOMIZE_3,
   OPT_TRANS_CUSTOMIZE_4,
   OPT_TRANS_CUSTOMIZE_5,
+];
+
+export const OPT_LANGDETECTOR_ALL = [
+  OPT_TRANS_GOOGLE,
+  OPT_TRANS_MICROSOFT,
+  OPT_TRANS_BAIDU,
+  OPT_TRANS_TENCENT,
 ];
 
 export const OPT_LANGS_TO = [
@@ -318,6 +332,12 @@ export const OPT_LANGS_SPECIAL = {
   ]),
 };
 export const OPT_LANGS_LIST = OPT_LANGS_TO.map(([lang]) => lang);
+export const OPT_LANGS_MICROSOFT = new Map(
+  Array.from(OPT_LANGS_SPECIAL[OPT_TRANS_MICROSOFT].entries()).map(([k, v]) => [
+    v,
+    k,
+  ])
+);
 export const OPT_LANGS_BAIDU = new Map(
   Array.from(OPT_LANGS_SPECIAL[OPT_TRANS_BAIDU].entries()).map(([k, v]) => [
     v,
@@ -515,7 +535,7 @@ const defaultOllamaApi = {
 };
 export const DEFAULT_TRANS_APIS = {
   [OPT_TRANS_GOOGLE]: {
-    url: "https://translate.googleapis.com/translate_a/single",
+    url: URL_GOOGLE_TRAN,
     key: "",
     fetchLimit: DEFAULT_FETCH_LIMIT, // 最大任务数量
     fetchInterval: DEFAULT_FETCH_INTERVAL, // 任务间隔时间
@@ -636,6 +656,7 @@ export const DEFAULT_SETTING = {
   csplist: DEFAULT_CSPLIST.join(",\n"), // 禁用CSP名单
   // disableLangs: [], // 不翻译的语言(移至rule，作废)
   transInterval: 500, // 翻译间隔时间
+  langDetector: OPT_TRANS_MICROSOFT, // 远程语言识别服务
 };
 
 export const DEFAULT_RULES = [GLOBLA_RULE];

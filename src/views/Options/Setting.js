@@ -17,6 +17,8 @@ import {
   UI_LANGS,
   TRANS_NEWLINE_LENGTH,
   CACHE_NAME,
+  OPT_TRANS_MICROSOFT,
+  OPT_LANGDETECTOR_ALL,
   OPT_SHORTCUT_TRANSLATE,
   OPT_SHORTCUT_STYLE,
   OPT_SHORTCUT_POPUP,
@@ -113,6 +115,7 @@ export default function Settings() {
     blacklist = DEFAULT_BLACKLIST.join(",\n"),
     csplist = DEFAULT_CSPLIST.join(",\n"),
     transInterval = 500,
+    langDetector = OPT_TRANS_MICROSOFT,
   } = setting;
   const { isHide = false } = fab || {};
 
@@ -228,6 +231,22 @@ export default function Settings() {
             <MenuItem value={0}>{i18n("hide_context_menus")}</MenuItem>
             <MenuItem value={1}>{i18n("simple_context_menus")}</MenuItem>
             <MenuItem value={2}>{i18n("secondary_context_menus")}</MenuItem>
+          </Select>
+        </FormControl>
+
+        <FormControl size="small">
+          <InputLabel>{i18n("detect_lang_remote")}</InputLabel>
+          <Select
+            name="langDetector"
+            value={langDetector}
+            label={i18n("detect_lang_remote")}
+            onChange={handleChange}
+          >
+            {OPT_LANGDETECTOR_ALL.map((item) => (
+              <MenuItem value={item} key={item}>
+                {item}
+              </MenuItem>
+            ))}
           </Select>
         </FormControl>
 

@@ -101,7 +101,14 @@ function Header({
   );
 }
 
-function TranForm({ text, setText, tranboxSetting, transApis, simpleStyle }) {
+function TranForm({
+  text,
+  setText,
+  tranboxSetting,
+  transApis,
+  simpleStyle,
+  langDetector,
+}) {
   const i18n = useI18n();
 
   const [editMode, setEditMode] = useState(false);
@@ -242,6 +249,7 @@ function TranForm({ text, setText, tranboxSetting, transApis, simpleStyle }) {
           toLang2={tranboxSetting.toLang2}
           transApis={transApis}
           simpleStyle={simpleStyle}
+          langDetector={langDetector}
         />
       )}
 
@@ -268,6 +276,7 @@ export default function TranBox({
   followSelection,
   setFollowSelection,
   extStyles,
+  langDetector,
 }) {
   const [mouseHover, setMouseHover] = useState(false);
   return (
@@ -300,6 +309,7 @@ export default function TranBox({
             tranboxSetting={tranboxSetting}
             transApis={transApis}
             simpleStyle={simpleStyle}
+            langDetector={langDetector}
           />
         </DraggableResizable>
       </ThemeProvider>

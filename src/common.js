@@ -141,6 +141,7 @@ function showTransbox({
   transApis,
   darkMode,
   uiLang,
+  langDetector,
 }) {
   if (!tranboxSetting?.transOpen) {
     return;
@@ -172,6 +173,7 @@ function showTransbox({
           tranboxSetting={tranboxSetting}
           transApis={transApis}
           uiLang={uiLang}
+          langDetector={langDetector}
         />
       </CacheProvider>
     </React.StrictMode>

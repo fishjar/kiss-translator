@@ -30,7 +30,11 @@ export function useTranslate(q, rule, setting) {
           return;
         }
 
-        const deLang = await tryDetectLang(q, detectRemote === "true");
+        const deLang = await tryDetectLang(
+          q,
+          detectRemote === "true",
+          setting.langDetector
+        );
         if (deLang && (toLang.includes(deLang) || skipLangs.includes(deLang))) {
           setSamelang(true);
         } else {

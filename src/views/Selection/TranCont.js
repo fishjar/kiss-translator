@@ -5,10 +5,11 @@ import Stack from "@mui/material/Stack";
 import { useI18n } from "../../hooks/I18n";
 import { DEFAULT_TRANS_APIS } from "../../config";
 import { useEffect, useState } from "react";
-import { apiTranslate, apiBaiduLangdetect } from "../../apis";
+import { apiTranslate } from "../../apis";
 import CopyBtn from "./CopyBtn";
 import Typography from "@mui/material/Typography";
 import Alert from "@mui/material/Alert";
+import { tryDetectLang } from "../../libs";
 
 export default function TranCont({
   text,
@@ -18,6 +19,7 @@ export default function TranCont({
   toLang2 = "en",
   transApis,
   simpleStyle,
+  langDetector,
 }) {
   const i18n = useI18n();
   const [trText, setTrText] = useState("");
@@ -33,7 +35,7 @@ export default function TranCont({
 
         let to = toLang;
         if (toLang !== toLang2 && toLang2 !== "none") {
-          const detectLang = await apiBaiduLangdetect(text);
+          const detectLang = await tryDetectLang(text, true, langDetector);
           if (detectLang === toLang) {
             to = toLang2;
           }
@@ -55,7 +57,7 @@ export default function TranCont({
         setLoading(false);
       }
     })();
-  }, [text, translator, fromLang, toLang, toLang2, transApis]);
+  }, [text, translator, fromLang, toLang, toLang2, transApis, langDetector]);
 
   if (simpleStyle) {
     return (
