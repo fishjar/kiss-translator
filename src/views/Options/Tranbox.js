@@ -9,6 +9,7 @@ import {
   OPT_LANGS_TO,
   OPT_TRANBOX_TRIGGER_CLICK,
   OPT_TRANBOX_TRIGGER_ALL,
+  OPT_DICT_BAIDU,
 } from "../../config";
 import ShortcutInput from "./ShortcutInput";
 import FormControlLabel from "@mui/material/FormControlLabel";
@@ -63,6 +64,7 @@ export default function Tranbox() {
     followSelection = false,
     triggerMode = OPT_TRANBOX_TRIGGER_CLICK,
     extStyles = "",
+    enDict = OPT_DICT_BAIDU,
   } = tranboxSetting;
 
   return (
@@ -141,6 +143,18 @@ export default function Tranbox() {
               {name}
             </MenuItem>
           ))}
+        </TextField>
+
+        <TextField
+          select
+          size="small"
+          name="enDict"
+          value={enDict}
+          label={i18n("english_dict")}
+          onChange={handleChange}
+        >
+          <MenuItem value={"-"}>{i18n("disable")}</MenuItem>
+          <MenuItem value={OPT_DICT_BAIDU}>{OPT_DICT_BAIDU}</MenuItem>
         </TextField>
 
         <TextField

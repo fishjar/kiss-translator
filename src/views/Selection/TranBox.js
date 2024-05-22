@@ -108,6 +108,7 @@ function TranForm({
   transApis,
   simpleStyle,
   langDetector,
+  enDict,
 }) {
   const i18n = useI18n();
 
@@ -240,7 +241,10 @@ function TranForm({
         </>
       )}
 
-      {(!simpleStyle || !isValidWord(text) || !toLang.startsWith("zh")) && (
+      {(!simpleStyle ||
+        !isValidWord(text) ||
+        !toLang.startsWith("zh") ||
+        enDict === "-") && (
         <TranCont
           text={text}
           translator={translator}
@@ -253,8 +257,12 @@ function TranForm({
         />
       )}
 
-      <DictCont text={text} />
-      <SugCont text={text} />
+      {enDict !== "-" && (
+        <>
+          <DictCont text={text} />
+          <SugCont text={text} />
+        </>
+      )}
     </Stack>
   );
 }
@@ -277,6 +285,7 @@ export default function TranBox({
   setFollowSelection,
   extStyles,
   langDetector,
+  enDict,
 }) {
   const [mouseHover, setMouseHover] = useState(false);
   return (
@@ -310,6 +319,7 @@ export default function TranBox({
             transApis={transApis}
             simpleStyle={simpleStyle}
             langDetector={langDetector}
+            enDict={enDict}
           />
         </DraggableResizable>
       </ThemeProvider>

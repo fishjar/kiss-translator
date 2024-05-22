@@ -930,4 +930,8 @@ export const I18N = {
     zh: `翻译移除时运行，入参为： 翻译节点。`,
     en: `Run when translation is removed, the input parameters are: translation node.`,
   },
+  english_dict: {
+    zh: `英文词典`,
+    en: `English Dictionary`,
+  },
 };
