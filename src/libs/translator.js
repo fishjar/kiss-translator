@@ -53,7 +53,7 @@ export class Translator {
   ];
   _eventName = genEventName();
   _mouseoverNode = null;
-  _keepSelector = [null, null];
+  _keepSelector = "";
   _terms = [];
   _docTitle = "";
 
@@ -125,9 +125,7 @@ export class Translator {
     this._setting = setting;
     this._rule = rule;
 
-    this._keepSelector = (rule.keepSelector || "")
-      .split(SHADOW_KEY)
-      .map((item) => item.trim());
+    this._keepSelector = rule.keepSelector || "";
     this._terms = (rule.terms || "")
       .split(/\n|;/)
       .map((item) => item.split(",").map((item) => item.trim()))
@@ -507,15 +505,11 @@ export class Translator {
     }
 
     // 保留元素
-    const [matchSelector, subSelector] = this._keepSelector;
-    if (matchSelector || subSelector) {
+    const keepSelector = this._keepSelector.trim();
+    if (keepSelector) {
       let text = "";
       el.childNodes.forEach((child) => {
-        if (
-          child.nodeType === 1 &&
-          ((matchSelector && child.matches(matchSelector)) ||
-            (subSelector && child.querySelector(subSelector)))
-        ) {
+        if (child.nodeType === 1 && child.matches(keepSelector)) {
           if (child.nodeName === "IMG") {
             child.style.cssText += `width: ${child.width}px;`;
             child.style.cssText += `height: ${child.height}px;`;

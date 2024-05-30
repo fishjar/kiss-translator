@@ -433,6 +433,34 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
             </Box>
 
             <TextField
+              size="small"
+              label={i18n("fixer_selector")}
+              name="fixerSelector"
+              value={fixerSelector}
+              disabled={disabled}
+              onChange={handleChange}
+              multiline
+              maxRows={10}
+            />
+            <TextField
+              select
+              size="small"
+              name="fixerFunc"
+              value={fixerFunc}
+              label={i18n("fixer_function")}
+              helperText={i18n("fixer_function_helper")}
+              disabled={disabled}
+              onChange={handleChange}
+            >
+              {GlobalItem}
+              {FIXER_ALL.map((item) => (
+                <MenuItem key={item} value={item}>
+                  {item}
+                </MenuItem>
+              ))}
+            </TextField>
+
+            <TextField
               select
               size="small"
               label={i18n("skip_langs")}
@@ -463,34 +491,6 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
               multiline
               maxRows={10}
             />
-
-            <TextField
-              size="small"
-              label={i18n("fixer_selector")}
-              name="fixerSelector"
-              value={fixerSelector}
-              disabled={disabled}
-              onChange={handleChange}
-              multiline
-              maxRows={10}
-            />
-            <TextField
-              select
-              size="small"
-              name="fixerFunc"
-              value={fixerFunc}
-              label={i18n("fixer_function")}
-              helperText={i18n("fixer_function_helper")}
-              disabled={disabled}
-              onChange={handleChange}
-            >
-              {GlobalItem}
-              {FIXER_ALL.map((item) => (
-                <MenuItem key={item} value={item}>
-                  {item}
-                </MenuItem>
-              ))}
-            </TextField>
 
             <TextField
               size="small"

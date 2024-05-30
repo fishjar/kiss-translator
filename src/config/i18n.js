@@ -427,8 +427,8 @@ export const I18N = {
     en: `Keep unchanged selector`,
   },
   keep_selector_helper: {
-    zh: `1、遵循CSS选择器语法。2、子元素选择器用“>>>”隔开。`,
-    en: `1. Follow CSS selector syntax. 2. Sub-element selectors are separated by ">>>".`,
+    zh: `1、遵循CSS选择器语法。`,
+    en: `1. Follow CSS selector syntax.`,
   },
   terms: {
     zh: `专业术语`,
