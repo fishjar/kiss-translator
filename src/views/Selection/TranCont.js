@@ -34,7 +34,7 @@ export default function TranCont({
         setError("");
 
         let to = toLang;
-        if (toLang !== toLang2 && toLang2 !== "none") {
+        if (fromLang === "auto" && toLang !== toLang2 && toLang2 !== "none") {
           const detectLang = await tryDetectLang(text, true, langDetector);
           if (detectLang === toLang) {
             to = toLang2;
