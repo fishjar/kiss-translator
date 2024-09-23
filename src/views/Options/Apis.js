@@ -14,6 +14,7 @@ import {
   OPT_TRANS_OPENAI_2,
   OPT_TRANS_OPENAI_3,
   OPT_TRANS_GEMINI,
+  OPT_TRANS_CLAUDE,
   OPT_TRANS_CLOUDFLAREAI,
   OPT_TRANS_OLLAMA,
   OPT_TRANS_OLLAMA_2,
@@ -115,6 +116,7 @@ function ApiFields({ translator }) {
     key = "",
     model = "",
     prompt = "",
+    systemPrompt = "",
     fetchLimit = DEFAULT_FETCH_LIMIT,
     fetchInterval = DEFAULT_FETCH_INTERVAL,
     dictNo = "",
@@ -160,6 +162,7 @@ function ApiFields({ translator }) {
     OPT_TRANS_OPENAI_2,
     OPT_TRANS_OPENAI_3,
     OPT_TRANS_GEMINI,
+    OPT_TRANS_CLAUDE,
     OPT_TRANS_CLOUDFLAREAI,
     OPT_TRANS_OLLAMA,
     OPT_TRANS_OLLAMA_2,
@@ -212,6 +215,7 @@ function ApiFields({ translator }) {
 
       {(translator.startsWith(OPT_TRANS_OPENAI) ||
         translator.startsWith(OPT_TRANS_OLLAMA) ||
+        translator === OPT_TRANS_CLAUDE ||
         translator === OPT_TRANS_GEMINI) && (
         <>
           <TextField
@@ -233,7 +237,20 @@ function ApiFields({ translator }) {
         </>
       )}
 
-      {translator.startsWith(OPT_TRANS_OPENAI) && (
+      {translator === OPT_TRANS_CLAUDE && (
+          <>
+            <TextField
+                size="small"
+                label={"SYSTEM PROMPT"}
+                name="systemPrompt"
+                value={systemPrompt}
+                onChange={handleChange}
+            />
+          </>
+      )}
+
+      {(translator.startsWith(OPT_TRANS_OPENAI) ||
+        translator === OPT_TRANS_CLAUDE) && (
         <>
           <TextField
             size="small"
