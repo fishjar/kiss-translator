@@ -13,6 +13,7 @@ import {
   OPT_TRANS_OPENAI_2,
   OPT_TRANS_OPENAI_3,
   OPT_TRANS_GEMINI,
+  OPT_TRANS_CLAUDE,
   OPT_TRANS_CLOUDFLAREAI,
   OPT_TRANS_OLLAMA,
   OPT_TRANS_OLLAMA_2,
@@ -309,6 +310,10 @@ export const apiTranslate = async ({
       trText = res?.candidates
         ?.map((item) => item.content?.parts.map((item) => item.text).join(" "))
         .join(" ");
+      isSame = text === trText;
+      break;
+    case OPT_TRANS_CLAUDE:
+      trText = res?.content?.map((item) => item.text).join(" ");
       isSame = text === trText;
       break;
     case OPT_TRANS_CLOUDFLAREAI:

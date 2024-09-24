@@ -116,6 +116,7 @@ export const OPT_TRANS_OPENAI = "OpenAI";
 export const OPT_TRANS_OPENAI_2 = "OpenAI2";
 export const OPT_TRANS_OPENAI_3 = "OpenAI3";
 export const OPT_TRANS_GEMINI = "Gemini";
+export const OPT_TRANS_CLAUDE = "Claude";
 export const OPT_TRANS_CLOUDFLAREAI = "CloudflareAI";
 export const OPT_TRANS_OLLAMA = "Ollama";
 export const OPT_TRANS_OLLAMA_2 = "Ollama2";
@@ -138,6 +139,7 @@ export const OPT_TRANS_ALL = [
   OPT_TRANS_OPENAI_2,
   OPT_TRANS_OPENAI_3,
   OPT_TRANS_GEMINI,
+  OPT_TRANS_CLAUDE,
   OPT_TRANS_CLOUDFLAREAI,
   OPT_TRANS_OLLAMA,
   OPT_TRANS_OLLAMA_2,
@@ -288,6 +290,9 @@ export const OPT_LANGS_SPECIAL = {
   ),
   [OPT_TRANS_GEMINI]: new Map(
     OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
+  ),
+  [OPT_TRANS_CLAUDE]: new Map(
+      OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
   ),
   [OPT_TRANS_OLLAMA]: new Map(
     OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
@@ -587,6 +592,17 @@ export const DEFAULT_TRANS_APIS = {
     key: "",
     model: "gemini-pro",
     prompt: `Translate the following text from ${INPUT_PLACE_FROM} to ${INPUT_PLACE_TO}:\n\n${INPUT_PLACE_TEXT}`,
+    fetchLimit: 1,
+    fetchInterval: 500,
+  },
+  [OPT_TRANS_CLAUDE]: {
+    url: "https://api.anthropic.com/v1/messages",
+    key: "",
+    model: "claude-3-haiku-20240307",
+    prompt: `Translate the following source text from ${INPUT_PLACE_FROM} to ${INPUT_PLACE_TO}. Output translation directly without any additional text.\n\nSource Text: ${INPUT_PLACE_TEXT}\n\nTranslated Text:`,
+    systemPrompt: `You are a professional, authentic machine translation engine.`,
+    temperature: 0,
+    maxTokens: 1024,
     fetchLimit: 1,
     fetchInterval: 500,
   },
