@@ -192,25 +192,35 @@ const genOpenAI = ({
   to,
   url,
   key,
+  systemPrompt,
   prompt,
   model,
   temperature,
   maxTokens,
 }) => {
+  // 兼容历史上作为systemPrompt的prompt，如果prompt中不包含带翻译文本，则添加文本到prompt末尾
+  if (!prompt.includes(INPUT_PLACE_TEXT)) {
+    prompt += `\nSource Text: ${INPUT_PLACE_TEXT}`;
+  }
   prompt = prompt
     .replaceAll(INPUT_PLACE_FROM, from)
-    .replaceAll(INPUT_PLACE_TO, to);
+    .replaceAll(INPUT_PLACE_TO, to)
+    .replaceAll(INPUT_PLACE_TEXT, text);
+  systemPrompt = systemPrompt
+      .replaceAll(INPUT_PLACE_FROM, from)
+      .replaceAll(INPUT_PLACE_TO, to)
+      .replaceAll(INPUT_PLACE_TEXT, text);
 
   const data = {
     model,
     messages: [
       {
         role: "system",
-        content: prompt,
+        content: systemPrompt,
       },
       {
         role: "user",
-        content: text,
+        content: prompt,
       },
     ],
     temperature,
@@ -276,6 +286,10 @@ const genClaude = ({
   maxTokens,
 }) => {
   prompt = prompt
+      .replaceAll(INPUT_PLACE_FROM, from)
+      .replaceAll(INPUT_PLACE_TO, to)
+      .replaceAll(INPUT_PLACE_TEXT, text);
+  systemPrompt = systemPrompt
       .replaceAll(INPUT_PLACE_FROM, from)
       .replaceAll(INPUT_PLACE_TO, to)
       .replaceAll(INPUT_PLACE_TEXT, text);

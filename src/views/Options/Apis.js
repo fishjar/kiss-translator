@@ -237,21 +237,16 @@ function ApiFields({ translator }) {
         </>
       )}
 
-      {translator === OPT_TRANS_CLAUDE && (
-          <>
-            <TextField
-                size="small"
-                label={"SYSTEM PROMPT"}
-                name="systemPrompt"
-                value={systemPrompt}
-                onChange={handleChange}
-            />
-          </>
-      )}
-
       {(translator.startsWith(OPT_TRANS_OPENAI) ||
         translator === OPT_TRANS_CLAUDE) && (
         <>
+          <TextField
+              size="small"
+              label={"SYSTEM PROMPT"}
+              name="systemPrompt"
+              value={systemPrompt}
+              onChange={handleChange}
+          />
           <TextField
             size="small"
             label={"Temperature"}
