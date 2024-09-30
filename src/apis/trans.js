@@ -320,7 +320,7 @@ const genClaude = ({
   return [url, init];
 };
 
-const genOllama = ({ text, from, to, url, key, prompt, model }) => {
+const genOllama = ({ text, from, to, url, key, system,prompt, model }) => {
   prompt = prompt
     .replaceAll(INPUT_PLACE_FROM, from)
     .replaceAll(INPUT_PLACE_TO, to)
@@ -328,6 +328,7 @@ const genOllama = ({ text, from, to, url, key, prompt, model }) => {
 
   const data = {
     model,
+    system,
     prompt,
     stream: false,
   };
