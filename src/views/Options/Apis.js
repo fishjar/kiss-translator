@@ -114,6 +114,7 @@ function ApiFields({ translator }) {
     url = "",
     key = "",
     model = "",
+    system = "",
     prompt = "",
     fetchLimit = DEFAULT_FETCH_LIMIT,
     fetchInterval = DEFAULT_FETCH_INTERVAL,
@@ -211,7 +212,6 @@ function ApiFields({ translator }) {
       )}
 
       {(translator.startsWith(OPT_TRANS_OPENAI) ||
-        translator.startsWith(OPT_TRANS_OLLAMA) ||
         translator === OPT_TRANS_GEMINI) && (
         <>
           <TextField
@@ -233,6 +233,36 @@ function ApiFields({ translator }) {
         </>
       )}
 
+      {(translator.startsWith(OPT_TRANS_OLLAMA)) && (
+        <>
+          <TextField
+            size="small"
+            label={"MODEL"}
+            name="model"
+            value={model}
+            onChange={handleChange}
+          />
+          <TextField
+            size="small"
+            label={"SYSTEM PROMPT"}
+            name="system"
+            value={system}
+            onChange={handleChange}
+            multiline
+            maxRows={10}
+          />
+          <TextField
+            size="small"
+            label={"PROMPT"}
+            name="prompt"
+            value={prompt}
+            onChange={handleChange}
+            multiline
+            maxRows={10}
+          />
+        </>
+      )}
+      
       {translator.startsWith(OPT_TRANS_OPENAI) && (
         <>
           <TextField
