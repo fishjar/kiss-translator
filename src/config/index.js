@@ -537,8 +537,9 @@ const defaultOpenaiApi = {
 const defaultOllamaApi = {
   url: "http://localhost:11434/api/generate",
   key: "",
-  model: "llama3",
-  prompt: `Translate the following text from ${INPUT_PLACE_FROM} to ${INPUT_PLACE_TO}:\n\n${INPUT_PLACE_TEXT}`,
+  model: "llama3.1",
+  system:"You are a professional, authentic machine translation engine.",
+  prompt: `Translate the following text from ${INPUT_PLACE_FROM} to ${INPUT_PLACE_TO},output translation directly without any additional text:\n\n${INPUT_PLACE_TEXT}`,
   fetchLimit: 1,
   fetchInterval: 500,
 };

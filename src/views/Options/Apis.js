@@ -115,6 +115,7 @@ function ApiFields({ translator }) {
     url = "",
     key = "",
     model = "",
+    system = "",
     prompt = "",
     systemPrompt = "",
     fetchLimit = DEFAULT_FETCH_LIMIT,
@@ -214,7 +215,6 @@ function ApiFields({ translator }) {
       )}
 
       {(translator.startsWith(OPT_TRANS_OPENAI) ||
-        translator.startsWith(OPT_TRANS_OLLAMA) ||
         translator === OPT_TRANS_CLAUDE ||
         translator === OPT_TRANS_GEMINI) && (
         <>
@@ -223,6 +223,34 @@ function ApiFields({ translator }) {
             label={"MODEL"}
             name="model"
             value={model}
+            onChange={handleChange}
+          />
+          <TextField
+            size="small"
+            label={"PROMPT"}
+            name="prompt"
+            value={prompt}
+            onChange={handleChange}
+            multiline
+            maxRows={10}
+          />
+        </>
+      )}
+      
+      {(translator.startsWith(OPT_TRANS_OLLAMA)) && (
+        <>
+          <TextField
+            size="small"
+            label={"MODEL"}
+            name="model"
+            value={model}
+            onChange={handleChange}
+          />
+          <TextField
+            size="small"
+            label={"SYSTEM MESSAGE"}
+            name="system"
+            value={system}
             onChange={handleChange}
           />
           <TextField
