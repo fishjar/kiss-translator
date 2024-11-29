@@ -193,23 +193,23 @@ const genOpenAI = ({
   url,
   key,
   systemPrompt,
-  prompt,
+  userPrompt,
   model,
   temperature,
   maxTokens,
 }) => {
   // 兼容历史上作为systemPrompt的prompt，如果prompt中不包含带翻译文本，则添加文本到prompt末尾
-  if (!prompt.includes(INPUT_PLACE_TEXT)) {
-    prompt += `\nSource Text: ${INPUT_PLACE_TEXT}`;
-  }
-  prompt = prompt
+  // if (!prompt.includes(INPUT_PLACE_TEXT)) {
+  //   prompt += `\nSource Text: ${INPUT_PLACE_TEXT}`;
+  // }
+  systemPrompt = systemPrompt
     .replaceAll(INPUT_PLACE_FROM, from)
     .replaceAll(INPUT_PLACE_TO, to)
     .replaceAll(INPUT_PLACE_TEXT, text);
-  systemPrompt = systemPrompt
-      .replaceAll(INPUT_PLACE_FROM, from)
-      .replaceAll(INPUT_PLACE_TO, to)
-      .replaceAll(INPUT_PLACE_TEXT, text);
+  userPrompt = userPrompt
+    .replaceAll(INPUT_PLACE_FROM, from)
+    .replaceAll(INPUT_PLACE_TO, to)
+    .replaceAll(INPUT_PLACE_TEXT, text);
 
   const data = {
     model,
@@ -220,7 +220,7 @@ const genOpenAI = ({
       },
       {
         role: "user",
-        content: prompt,
+        content: userPrompt,
       },
     ],
     temperature,
@@ -240,26 +240,30 @@ const genOpenAI = ({
   return [url, init];
 };
 
-const genGemini = ({ text, from, to, url, key, prompt, model }) => {
+const genGemini = ({ text, from, to, url, key, systemPrompt, userPrompt, model }) => {
   url = url
     .replaceAll(INPUT_PLACE_MODEL, model)
     .replaceAll(INPUT_PLACE_KEY, key);
-  prompt = prompt
+  systemPrompt = systemPrompt
+    .replaceAll(INPUT_PLACE_FROM, from)
+    .replaceAll(INPUT_PLACE_TO, to)
+    .replaceAll(INPUT_PLACE_TEXT, text);
+  userPrompt = userPrompt
     .replaceAll(INPUT_PLACE_FROM, from)
     .replaceAll(INPUT_PLACE_TO, to)
     .replaceAll(INPUT_PLACE_TEXT, text);
 
   const data = {
-    contents: [
-      {
-        // role: "user",
-        parts: [
-          {
-            text: prompt,
-          },
-        ],
-      },
-    ],
+    system_instruction: {
+      parts: {
+        text: systemPrompt,
+      }
+    },
+    contents: {
+      parts: {
+        text: userPrompt,
+      }
+    }
   };
 
   const init = {
@@ -280,19 +284,19 @@ const genClaude = ({
   url,
   key,
   systemPrompt,
-  prompt,
+  userPrompt,
   model,
   temperature,
   maxTokens,
 }) => {
-  prompt = prompt
-      .replaceAll(INPUT_PLACE_FROM, from)
-      .replaceAll(INPUT_PLACE_TO, to)
-      .replaceAll(INPUT_PLACE_TEXT, text);
   systemPrompt = systemPrompt
-      .replaceAll(INPUT_PLACE_FROM, from)
-      .replaceAll(INPUT_PLACE_TO, to)
-      .replaceAll(INPUT_PLACE_TEXT, text);
+    .replaceAll(INPUT_PLACE_FROM, from)
+    .replaceAll(INPUT_PLACE_TO, to)
+    .replaceAll(INPUT_PLACE_TEXT, text);
+  userPrompt = userPrompt
+    .replaceAll(INPUT_PLACE_FROM, from)
+    .replaceAll(INPUT_PLACE_TO, to)
+    .replaceAll(INPUT_PLACE_TEXT, text);
 
   const data = {
     model,
@@ -300,7 +304,7 @@ const genClaude = ({
     messages: [
       {
         role: "user",
-        content: prompt,
+        content: userPrompt,
       },
     ],
     temperature,
@@ -320,16 +324,20 @@ const genClaude = ({
   return [url, init];
 };
 
-const genOllama = ({ text, from, to, url, key, system,prompt, model }) => {
-  prompt = prompt
+const genOllama = ({ text, from, to, url, key, systemPrompt, userPrompt, model }) => {
+  systemPrompt = systemPrompt
+    .replaceAll(INPUT_PLACE_FROM, from)
+    .replaceAll(INPUT_PLACE_TO, to)
+    .replaceAll(INPUT_PLACE_TEXT, text);
+  userPrompt = userPrompt
     .replaceAll(INPUT_PLACE_FROM, from)
     .replaceAll(INPUT_PLACE_TO, to)
     .replaceAll(INPUT_PLACE_TEXT, text);
 
   const data = {
     model,
-    system,
-    prompt,
+    system: systemPrompt,
+    prompt: userPrompt,
     stream: false,
   };
 

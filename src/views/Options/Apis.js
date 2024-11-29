@@ -115,9 +115,8 @@ function ApiFields({ translator }) {
     url = "",
     key = "",
     model = "",
-    system = "",
-    prompt = "",
     systemPrompt = "",
+    userPrompt = "",
     fetchLimit = DEFAULT_FETCH_LIMIT,
     fetchInterval = DEFAULT_FETCH_INTERVAL,
     dictNo = "",
@@ -215,6 +214,7 @@ function ApiFields({ translator }) {
       )}
 
       {(translator.startsWith(OPT_TRANS_OPENAI) ||
+        translator.startsWith(OPT_TRANS_OLLAMA) ||
         translator === OPT_TRANS_CLAUDE ||
         translator === OPT_TRANS_GEMINI) && (
         <>
@@ -227,37 +227,18 @@ function ApiFields({ translator }) {
           />
           <TextField
             size="small"
-            label={"PROMPT"}
-            name="prompt"
-            value={prompt}
+            label={"SYSTEM PROMPT"}
+            name="systemPrompt"
+            value={systemPrompt}
             onChange={handleChange}
             multiline
             maxRows={10}
           />
-        </>
-      )}
-      
-      {(translator.startsWith(OPT_TRANS_OLLAMA)) && (
-        <>
           <TextField
             size="small"
-            label={"MODEL"}
-            name="model"
-            value={model}
-            onChange={handleChange}
-          />
-          <TextField
-            size="small"
-            label={"SYSTEM MESSAGE"}
-            name="system"
-            value={system}
-            onChange={handleChange}
-          />
-          <TextField
-            size="small"
-            label={"PROMPT"}
-            name="prompt"
-            value={prompt}
+            label={"USER PROMPT"}
+            name="userPrompt"
+            value={userPrompt}
             onChange={handleChange}
             multiline
             maxRows={10}
@@ -268,13 +249,6 @@ function ApiFields({ translator }) {
       {(translator.startsWith(OPT_TRANS_OPENAI) ||
         translator === OPT_TRANS_CLAUDE) && (
         <>
-          <TextField
-              size="small"
-              label={"SYSTEM PROMPT"}
-              name="systemPrompt"
-              value={systemPrompt}
-              onChange={handleChange}
-          />
           <TextField
             size="small"
             label={"Temperature"}
