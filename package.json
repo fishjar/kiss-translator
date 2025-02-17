@@ -27,7 +27,7 @@
     "build:chrome": "rm -rf build/chrome && BUILD_PATH=./build/chrome REACT_APP_CLIENT=chrome react-app-rewired build && rm build/chrome/content.html",
     "build:edge": "rm -rf build/edge && cp -r build/chrome build/edge",
     "build:firefox": "rm -rf build/firefox && cp -r build/chrome build/firefox && cat ./build/firefox/manifest.firefox.json > ./build/firefox/manifest.json && rm build/*/manifest.firefox.json",
-    "build:thunderbird":"rm -rf build/thunderbird && cp -r build/chrome build/thunderbird && cat ./build/thunderbird/manifest.thunderbird.json > ./build/thunderbird/manifest.json && cp ./build/thunderbird/background.thunderbird.js ./build/thunderbird/background.js && rm build/*/manifest.thunderbird.json && rm build/*/background.thunderbird.js"
+    "build:thunderbird":"rm -rf build/thunderbird && cp -r build/chrome build/thunderbird && cat ./build/thunderbird/manifest.thunderbird.json > ./build/thunderbird/manifest.json && cp ./build/thunderbird/background.thunderbird.js ./build/thunderbird/background.js && rm build/*/manifest.thunderbird.json && rm build/*/background.thunderbird.js",
     "build:web": "rm -rf build/web && BUILD_PATH=./build/web REACT_APP_CLIENT=userscript react-app-rewired build",
     "build:userscript-ios": "file1=build/web/kiss-translator.user.js file2=build/web/kiss-translator-ios-safari.user.js && cp $file1 $file2 && sed -i 's|// @grant         unsafeWindow|// @inject-into   content|g' $file2",
     "build:userscript": "rm -rf build/userscript && mkdir build/userscript && cp build/web/*.user.js build/userscript/",
