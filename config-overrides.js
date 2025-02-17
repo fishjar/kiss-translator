@@ -31,6 +31,7 @@ const extWebpack = (config, env) => {
     popup: paths.appSrc + "/popup.js",
     options: paths.appSrc + "/options.js",
     background: paths.appSrc + "/background.js",
+    backgroundthunderbird: paths.appSrc + "/background.thunderbird.js",
     content: paths.appSrc + "/content.js",
   };
 
