@@ -108,7 +108,7 @@ export const fetchPatcher = async (input, init, transOpts, apiSetting) => {
     }
   }
 
-  if (AbortSignal?.timeout) {
+  if (AbortSignal?.timeout && !init.signal) {
     Object.assign(init, { signal: AbortSignal.timeout(TIMEOUT) });
   }
 
