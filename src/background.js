@@ -42,7 +42,7 @@ const REMOVE_HEADERS = [
 /**
  * 添加右键菜单
  */
-async function addmenus(contextMenuType = 1) {
+async function addContextMenus(contextMenuType = 1) {
   // 添加前先删除,避免重复ID的错误
   try {
     await browser.menus.removeAll();
@@ -145,7 +145,7 @@ browser.runtime.onInstalled.addListener(() => {
   }
   
   // 右键菜单
-  addmenus();
+  addContextMenus();
 
   // 禁用CSP
   updateCspRules();
@@ -154,7 +154,7 @@ browser.runtime.onInstalled.addListener(() => {
 /**
  * 浏览器启动
  */
-browser.runtime.onStartup.addListener(async () => {  
+browser.runtime.onStartup.addListener(async () => {
   // 同步数据
   await trySyncSettingAndRules();
 
@@ -173,7 +173,7 @@ browser.runtime.onStartup.addListener(async () => {
 
   // 右键菜单
   // firefox重启后菜单会消失,故重复添加
-  addmenus(contextMenuType);
+  addContextMenus(contextMenuType);
 
   // 禁用CSP
   updateCspRules(csplist);
@@ -213,7 +213,7 @@ browser.runtime.onMessage.addListener(async ({ action, args }) => {
     case MSG_UPDATE_CSP:
       return await updateCspRules(args);
     case MSG_CONTEXT_MENUS:
-      return await addmenus(args);
+      return await addContextMenus(args);
     case MSG_COMMAND_SHORTCUTS:
       return await browser.commands.getAll();
     default:
@@ -246,7 +246,7 @@ browser.commands.onCommand.addListener((command) => {
 /**
  * 监听右键菜单
  */
-browser.menus.onClicked.addListener(({ menuItemId }) => {
+browser.contextMenus.onClicked.addListener(({ menuItemId }) => {
   switch (menuItemId) {
     case CMD_TOGGLE_TRANSLATE:
       sendTabMsg(MSG_TRANS_TOGGLE);
