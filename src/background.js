@@ -41,44 +41,44 @@ const REMOVE_HEADERS = [
 /**
  * 添加右键菜单
  */
-async function addContextMenus(contextMenuType = 1) {
+async function addmenus(contextMenuType = 1) {
   // 添加前先删除,避免重复ID的错误
   try {
-    await browser.contextMenus.removeAll();
+    await browser.menus.removeAll();
   } catch (err) {
     //
   }
 
   switch (contextMenuType) {
     case 1:
-      browser.contextMenus.create({
+      browser.menus.create({
         id: CMD_TOGGLE_TRANSLATE,
         title: browser.i18n.getMessage("app_name"),
         contexts: ["page", "selection"],
       });
       break;
     case 2:
-      browser.contextMenus.create({
+      browser.menus.create({
         id: CMD_TOGGLE_TRANSLATE,
         title: browser.i18n.getMessage("toggle_translate"),
         contexts: ["page", "selection"],
       });
-      browser.contextMenus.create({
+      browser.menus.create({
         id: CMD_TOGGLE_STYLE,
         title: browser.i18n.getMessage("toggle_style"),
         contexts: ["page", "selection"],
       });
-      browser.contextMenus.create({
+      browser.menus.create({
         id: CMD_OPEN_TRANBOX,
         title: browser.i18n.getMessage("open_tranbox"),
         contexts: ["page", "selection"],
       });
-      browser.contextMenus.create({
+      browser.menus.create({
         id: "options_separator",
         type: "separator",
         contexts: ["page", "selection"],
       });
-      browser.contextMenus.create({
+      browser.menus.create({
         id: CMD_OPEN_OPTIONS,
         title: browser.i18n.getMessage("open_options"),
         contexts: ["page", "selection"],
@@ -124,13 +124,27 @@ async function updateCspRules(csplist = DEFAULT_CSPLIST.join(",\n")) {
 }
 
 /**
+ * 注册邮件显示脚本
+ */
+async function registerMsgDisplayScript() {
+		await messenger.messageDisplayScripts.register({
+			js: [{file: "/content.js"}]
+		});
+	}
+
+/**
  * 插件安装
  */
 browser.runtime.onInstalled.addListener(() => {
   tryInitDefaultData();
 
+  //在thunderbird中注册脚本
+  if (process.env.REACT_APP_CLIENT === "thunderbird") {
+    registerMsgDisplayScript();
+  }
+  
   // 右键菜单
-  addContextMenus();
+  addmenus();
 
   // 禁用CSP
   updateCspRules();
@@ -139,7 +153,7 @@ browser.runtime.onInstalled.addListener(() => {
 /**
  * 浏览器启动
  */
-browser.runtime.onStartup.addListener(async () => {
+browser.runtime.onStartup.addListener(async () => {  
   // 同步数据
   await trySyncSettingAndRules();
 
@@ -151,9 +165,14 @@ browser.runtime.onStartup.addListener(async () => {
     tryClearCaches();
   }
 
+  //在thunderbird中注册脚本
+  if (process.env.REACT_APP_CLIENT === "thunderbird") {
+    registerMsgDisplayScript();
+  }
+
   // 右键菜单
   // firefox重启后菜单会消失,故重复添加
-  addContextMenus(contextMenuType);
+  addmenus(contextMenuType);
 
   // 禁用CSP
   updateCspRules(csplist);
@@ -193,7 +212,7 @@ browser.runtime.onMessage.addListener(async ({ action, args }) => {
     case MSG_UPDATE_CSP:
       return await updateCspRules(args);
     case MSG_CONTEXT_MENUS:
-      return await addContextMenus(args);
+      return await addmenus(args);
     case MSG_COMMAND_SHORTCUTS:
       return await browser.commands.getAll();
     default:
@@ -226,7 +245,7 @@ browser.commands.onCommand.addListener((command) => {
 /**
  * 监听右键菜单
  */
-browser.contextMenus.onClicked.addListener(({ menuItemId }) => {
+browser.menus.onClicked.addListener(({ menuItemId }) => {
   switch (menuItemId) {
     case CMD_TOGGLE_TRANSLATE:
       sendTabMsg(MSG_TRANS_TOGGLE);
