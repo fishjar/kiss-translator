@@ -1,3 +1,4 @@
+/* global messenger */
 import browser from "webextension-polyfill";
 import {
   MSG_FETCH,
