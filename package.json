@@ -32,7 +32,7 @@
     "build:userscript-ios": "file1=build/web/kiss-translator.user.js file2=build/web/kiss-translator-ios-safari.user.js && cp $file1 $file2 && sed -i 's|// @grant         unsafeWindow|// @inject-into   content|g' $file2",
     "build:userscript": "rm -rf build/userscript && mkdir build/userscript && cp build/web/*.user.js build/userscript/",
     "build:rules": "babel-node src/rules.js",
-    "build": "pnpm build:chrome && pnpm build:edge && pnpm build:firefox && pnpm build:thunderbird && pnpm build:web && pnpm build:userscript-ios && pnpm build:userscript && pnpm build:rules",
+    "build": "pnpm build:chrome && pnpm build:edge && pnpm build:thunderbird && pnpm build:firefox && pnpm build:web && pnpm build:userscript-ios && pnpm build:userscript && pnpm build:rules",
     "zip": "cd build && zip -r chrome.zip chrome && zip -r edge.zip edge && (cd firefox && zip -r ../firefox.zip .) && (cd thunderbird && zip -r ../thunderbird.zip .)",
     "test": "react-app-rewired test",
     "eject": "react-scripts eject"
