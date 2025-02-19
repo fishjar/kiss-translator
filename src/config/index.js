@@ -39,7 +39,8 @@ export const CLIENT_CHROME = "chrome";
 export const CLIENT_EDGE = "edge";
 export const CLIENT_FIREFOX = "firefox";
 export const CLIENT_USERSCRIPT = "userscript";
-export const CLIENT_EXTS = [CLIENT_CHROME, CLIENT_EDGE, CLIENT_FIREFOX];
+export const CLIENT_THUNDERBIRD = "thunderbird";
+export const CLIENT_EXTS = [CLIENT_CHROME, CLIENT_EDGE, CLIENT_FIREFOX, CLIENT_THUNDERBIRD];
 
 export const KV_RULES_KEY = "kiss-rules.json";
 export const KV_WORDS_KEY = "kiss-words.json";
