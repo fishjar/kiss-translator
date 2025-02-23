@@ -323,7 +323,11 @@ export const apiTranslate = async ({
     case OPT_TRANS_OLLAMA:
     case OPT_TRANS_OLLAMA_2:
     case OPT_TRANS_OLLAMA_3:
-      trText = res?.response;
+      if (res?.model.startsWith('deepseek-r1')) {
+        trText = res?.response.replace(/<think>[\s\S]*<\/think>/i, '');
+      }else{
+        trText = res?.response;
+      }
       isSame = text === trText;
       break;
     case OPT_TRANS_CUSTOMIZE:
