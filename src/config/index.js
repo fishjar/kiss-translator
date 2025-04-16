@@ -87,8 +87,10 @@ export const URL_MICROSOFT_AUTH = "https://edge.microsoft.com/translate/auth";
 export const URL_MICROSOFT_LANGDETECT =
   "https://api-edge.cognitive.microsofttranslator.com/detect?api-version=3.0";
 
-export const URL_GOOGLE_TRAN =
-  "https://translate.googleapis.com/translate_a/single";
+export const URL_GOOGLE_TRAN = "https://translate-pa.googleapis.com/v1/translateHtml";
+
+export const DEFAULT_GOOGLE_API_KEY = "AIzaSyATBXajvzQLTDHEQbcpq0Ihe0vWDHmO520";
+
 export const URL_BAIDU_LANGDETECT = "https://fanyi.baidu.com/langdetect";
 export const URL_BAIDU_SUGGEST = "https://fanyi.baidu.com/sug";
 export const URL_BAIDU_TTS = "https://fanyi.baidu.com/gettts";
@@ -547,7 +549,7 @@ const defaultOllamaApi = {
 export const DEFAULT_TRANS_APIS = {
   [OPT_TRANS_GOOGLE]: {
     url: URL_GOOGLE_TRAN,
-    key: "",
+    key: DEFAULT_GOOGLE_API_KEY,
     fetchLimit: DEFAULT_FETCH_LIMIT, // 最大任务数量
     fetchInterval: DEFAULT_FETCH_INTERVAL, // 任务间隔时间
   },
