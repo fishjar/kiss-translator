@@ -323,7 +323,8 @@ export const apiTranslate = async ({
     case OPT_TRANS_OLLAMA:
     case OPT_TRANS_OLLAMA_2:
     case OPT_TRANS_OLLAMA_3:
-      if (res?.model.startsWith('deepseek-r1')) {
+      const deepModels = ['deepseek-r1', 'qwen3']; 
+      if (deepModels.some(model => res?.model?.startsWith(model))) {
         trText = res?.response.replace(/<think>[\s\S]*<\/think>/i, '');
       }else{
         trText = res?.response;
