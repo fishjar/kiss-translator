@@ -117,6 +117,7 @@ function ApiFields({ translator }) {
     model = "",
     systemPrompt = "",
     userPrompt = "",
+    thinkIgnore = "",
     fetchLimit = DEFAULT_FETCH_LIMIT,
     fetchInterval = DEFAULT_FETCH_INTERVAL,
     dictNo = "",
@@ -242,6 +243,18 @@ function ApiFields({ translator }) {
             onChange={handleChange}
             multiline
             maxRows={10}
+          />
+        </>
+      )}
+
+      {(translator.startsWith(OPT_TRANS_OLLAMA)) && (
+        <>
+          <TextField
+            size="small"
+            label={i18n("think_ignore")}
+            name="thinkIgnore"
+            value={thinkIgnore}
+            onChange={handleChange}
           />
         </>
       )}

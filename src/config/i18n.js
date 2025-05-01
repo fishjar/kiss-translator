@@ -186,6 +186,10 @@ export const I18N = {
     zh: `最大并发请求数量 (1-100)`,
     en: `Maximum Number Of Concurrent Requests (1-100)`,
   },
+  think_ignore:  {
+    zh: `忽略以下模型的<think>输出,逗号(,)分割`,
+    en: `Ignore the <think> block for the following models, comma (,) separated`,
+  },
   fetch_interval: {
     zh: `每次请求间隔时间 (0-5000ms)`,
     en: `Time Between Requests (0-5000ms)`,
