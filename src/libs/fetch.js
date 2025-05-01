@@ -1,19 +1,23 @@
 import { isExt, isGm } from "./client";
 import { sendBgMsg } from "./msg";
 import { taskPool } from "./pool";
+import { storage,getSettingWithDefault } from "./storage";
+
+
 import {
   MSG_FETCH,
   MSG_GET_HTTPCACHE,
   CACHE_NAME,
   DEFAULT_FETCH_INTERVAL,
   DEFAULT_FETCH_LIMIT,
+  HTTP_TIMEOUT,
 } from "../config";
 import { isBg } from "./browser";
 import { genTransReq } from "../apis/trans";
 import { kissLog } from "./log";
 import { blobToBase64 } from "./utils";
 
-const TIMEOUT = 5000;
+let TIMEOUT = HTTP_TIMEOUT;
 
 /**
  * 构造缓存 request
@@ -39,7 +43,8 @@ const newCacheReq = async (input, init) => {
  * @param {*} init
  * @returns
  */
-export const fetchGM = async (input, { method = "GET", headers, body } = {}) =>
+export const fetchGM = async (input, { method = "GET", headers, body } = {}) =>{
+  TIMEOUT = (await getSettingWithDefault()).httpTimeout;
   new Promise((resolve, reject) => {
     GM.xmlHttpRequest({
       method,
@@ -66,7 +71,7 @@ export const fetchGM = async (input, { method = "GET", headers, body } = {}) =>
       onerror: reject,
     });
   });
-
+}
 /**
  * 发起请求
  * @param {*} param0
@@ -108,6 +113,10 @@ export const fetchPatcher = async (input, init, transOpts, apiSetting) => {
     }
   }
 
+  //const kiss_setting = await storage.get("KISS-Translator_setting");
+  //TIMEOUT = JSON.parse(kiss_setting)?.httpTimeout || TIMEOUT;
+  TIMEOUT = (await getSettingWithDefault()).httpTimeout;
+  console.log("TIMEOUT", TIMEOUT);
   if (AbortSignal?.timeout && !init.signal) {
     Object.assign(init, { signal: AbortSignal.timeout(TIMEOUT) });
   }

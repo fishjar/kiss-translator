@@ -194,6 +194,10 @@ export const I18N = {
     zh: `重新翻译间隔时间 (100-5000ms)`,
     en: `Retranslation Interval (100-5000ms)`,
   },
+  http_timeout: {
+    zh: `请求超时时间 (5000-30000ms)`,
+    en: `Request Timeout Time (5000-30000ms)`,
+  },
   min_translate_length: {
     zh: `最小翻译字符数 (1-100)`,
     en: `Minimum number Of Translated Characters (1-100)`,

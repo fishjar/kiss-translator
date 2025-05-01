@@ -27,6 +27,7 @@ import {
   DEFAULT_CSPLIST,
   MSG_CONTEXT_MENUS,
   MSG_UPDATE_CSP,
+  HTTP_TIMEOUT,
 } from "../../config";
 import { useShortcut } from "../../hooks/Shortcut";
 import ShortcutInput from "./ShortcutInput";
@@ -71,6 +72,9 @@ export default function Settings() {
       case "newlineLength":
         value = limitNumber(value, 1, 1000);
         break;
+      case "httpTimeout":
+        value = limitNumber(value, 5000, 30000);
+        break;
       case "touchTranslate":
         value = limitNumber(value, 0, 4);
         break;
@@ -110,6 +114,7 @@ export default function Settings() {
     maxLength,
     clearCache,
     newlineLength = TRANS_NEWLINE_LENGTH,
+    httpTimeout = HTTP_TIMEOUT,
     contextMenuType = 1,
     touchTranslate = 2,
     blacklist = DEFAULT_BLACKLIST.join(",\n"),
@@ -188,7 +193,14 @@ export default function Settings() {
           defaultValue={transInterval}
           onChange={handleChange}
         />
-
+        <TextField
+          size="small"
+          label={i18n("http_timeout")}
+          type="number"
+          name="httpTimeout"
+          defaultValue={httpTimeout}
+          onChange={handleChange}
+        />
         <FormControl size="small">
           <InputLabel>{i18n("touch_translate_shortcut")}</InputLabel>
           <Select
