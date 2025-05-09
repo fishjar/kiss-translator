@@ -543,6 +543,7 @@ const defaultOllamaApi = {
   model: "llama3.1",
   systemPrompt: `You are a professional, authentic machine translation engine.`,
   userPrompt: `Translate the following source text from ${INPUT_PLACE_FROM} to ${INPUT_PLACE_TO}. Output translation directly without any additional text.\n\nSource Text: ${INPUT_PLACE_TEXT}\n\nTranslated Text:`,
+  thinkIgnore:`qwen3,deepseek-r1`,
   fetchLimit: 1,
   fetchInterval: 500,
 };
@@ -643,6 +644,7 @@ export const DEFAULT_SHORTCUTS = {
 export const TRANS_MIN_LENGTH = 5; // 最短翻译长度
 export const TRANS_MAX_LENGTH = 5000; // 最长翻译长度
 export const TRANS_NEWLINE_LENGTH = 20; // 换行字符数
+export const HTTP_TIMEOUT = 5000; // 调用超时时间
 export const DEFAULT_BLACKLIST = [
   "https://fishjar.github.io/kiss-translator/options.html",
   "https://translate.google.com",
@@ -660,6 +662,7 @@ export const DEFAULT_SETTING = {
   minLength: TRANS_MIN_LENGTH,
   maxLength: TRANS_MAX_LENGTH,
   newlineLength: TRANS_NEWLINE_LENGTH,
+  httpTimeout: HTTP_TIMEOUT,
   clearCache: false, // 是否在浏览器下次启动时清除缓存
   injectRules: true, // 是否注入订阅规则
   // injectWebfix: true, // 是否注入修复补丁(作废)
