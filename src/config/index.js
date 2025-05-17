@@ -39,7 +39,8 @@ export const CLIENT_CHROME = "chrome";
 export const CLIENT_EDGE = "edge";
 export const CLIENT_FIREFOX = "firefox";
 export const CLIENT_USERSCRIPT = "userscript";
-export const CLIENT_EXTS = [CLIENT_CHROME, CLIENT_EDGE, CLIENT_FIREFOX];
+export const CLIENT_THUNDERBIRD = "thunderbird";
+export const CLIENT_EXTS = [CLIENT_CHROME, CLIENT_EDGE, CLIENT_FIREFOX, CLIENT_THUNDERBIRD];
 
 export const KV_RULES_KEY = "kiss-rules.json";
 export const KV_WORDS_KEY = "kiss-words.json";
@@ -86,8 +87,10 @@ export const URL_MICROSOFT_AUTH = "https://edge.microsoft.com/translate/auth";
 export const URL_MICROSOFT_LANGDETECT =
   "https://api-edge.cognitive.microsofttranslator.com/detect?api-version=3.0";
 
-export const URL_GOOGLE_TRAN =
-  "https://translate.googleapis.com/translate_a/single";
+export const URL_GOOGLE_TRAN = "https://translate-pa.googleapis.com/v1/translateHtml";
+
+export const DEFAULT_GOOGLE_API_KEY = "AIzaSyATBXajvzQLTDHEQbcpq0Ihe0vWDHmO520";
+
 export const URL_BAIDU_LANGDETECT = "https://fanyi.baidu.com/langdetect";
 export const URL_BAIDU_SUGGEST = "https://fanyi.baidu.com/sug";
 export const URL_BAIDU_TTS = "https://fanyi.baidu.com/gettts";
@@ -540,13 +543,14 @@ const defaultOllamaApi = {
   model: "llama3.1",
   systemPrompt: `You are a professional, authentic machine translation engine.`,
   userPrompt: `Translate the following source text from ${INPUT_PLACE_FROM} to ${INPUT_PLACE_TO}. Output translation directly without any additional text.\n\nSource Text: ${INPUT_PLACE_TEXT}\n\nTranslated Text:`,
+  thinkIgnore:`qwen3,deepseek-r1`,
   fetchLimit: 1,
   fetchInterval: 500,
 };
 export const DEFAULT_TRANS_APIS = {
   [OPT_TRANS_GOOGLE]: {
     url: URL_GOOGLE_TRAN,
-    key: "",
+    key: DEFAULT_GOOGLE_API_KEY,
     fetchLimit: DEFAULT_FETCH_LIMIT, // 最大任务数量
     fetchInterval: DEFAULT_FETCH_INTERVAL, // 任务间隔时间
   },
@@ -640,6 +644,7 @@ export const DEFAULT_SHORTCUTS = {
 export const TRANS_MIN_LENGTH = 5; // 最短翻译长度
 export const TRANS_MAX_LENGTH = 5000; // 最长翻译长度
 export const TRANS_NEWLINE_LENGTH = 20; // 换行字符数
+export const HTTP_TIMEOUT = 5000; // 调用超时时间
 export const DEFAULT_BLACKLIST = [
   "https://fishjar.github.io/kiss-translator/options.html",
   "https://translate.google.com",
@@ -657,6 +662,7 @@ export const DEFAULT_SETTING = {
   minLength: TRANS_MIN_LENGTH,
   maxLength: TRANS_MAX_LENGTH,
   newlineLength: TRANS_NEWLINE_LENGTH,
+  httpTimeout: HTTP_TIMEOUT,
   clearCache: false, // 是否在浏览器下次启动时清除缓存
   injectRules: true, // 是否注入订阅规则
   // injectWebfix: true, // 是否注入修复补丁(作废)

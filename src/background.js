@@ -1,3 +1,4 @@
+/* global messenger */
 import browser from "webextension-polyfill";
 import {
   MSG_FETCH,
@@ -44,41 +45,41 @@ const REMOVE_HEADERS = [
 async function addContextMenus(contextMenuType = 1) {
   // 添加前先删除,避免重复ID的错误
   try {
-    await browser.contextMenus.removeAll();
+    await browser.menus.removeAll();
   } catch (err) {
     //
   }
 
   switch (contextMenuType) {
     case 1:
-      browser.contextMenus.create({
+      browser.menus.create({
         id: CMD_TOGGLE_TRANSLATE,
         title: browser.i18n.getMessage("app_name"),
         contexts: ["page", "selection"],
       });
       break;
     case 2:
-      browser.contextMenus.create({
+      browser.menus.create({
         id: CMD_TOGGLE_TRANSLATE,
         title: browser.i18n.getMessage("toggle_translate"),
         contexts: ["page", "selection"],
       });
-      browser.contextMenus.create({
+      browser.menus.create({
         id: CMD_TOGGLE_STYLE,
         title: browser.i18n.getMessage("toggle_style"),
         contexts: ["page", "selection"],
       });
-      browser.contextMenus.create({
+      browser.menus.create({
         id: CMD_OPEN_TRANBOX,
         title: browser.i18n.getMessage("open_tranbox"),
         contexts: ["page", "selection"],
       });
-      browser.contextMenus.create({
+      browser.menus.create({
         id: "options_separator",
         type: "separator",
         contexts: ["page", "selection"],
       });
-      browser.contextMenus.create({
+      browser.menus.create({
         id: CMD_OPEN_OPTIONS,
         title: browser.i18n.getMessage("open_options"),
         contexts: ["page", "selection"],
@@ -124,11 +125,25 @@ async function updateCspRules(csplist = DEFAULT_CSPLIST.join(",\n")) {
 }
 
 /**
+ * 注册邮件显示脚本
+ */
+async function registerMsgDisplayScript() {
+		await messenger.messageDisplayScripts.register({
+			js: [{file: "/content.js"}]
+		});
+	}
+
+/**
  * 插件安装
  */
 browser.runtime.onInstalled.addListener(() => {
   tryInitDefaultData();
 
+  //在thunderbird中注册脚本
+  if (process.env.REACT_APP_CLIENT === "thunderbird") {
+    registerMsgDisplayScript();
+  }
+  
   // 右键菜单
   addContextMenus();
 
@@ -149,6 +164,11 @@ browser.runtime.onStartup.addListener(async () => {
   // 清除缓存
   if (clearCache) {
     tryClearCaches();
+  }
+
+  //在thunderbird中注册脚本
+  if (process.env.REACT_APP_CLIENT === "thunderbird") {
+    registerMsgDisplayScript();
   }
 
   // 右键菜单

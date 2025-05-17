@@ -39,6 +39,7 @@ import {
 import { sha256 } from "../libs/utils";
 import interpreter from "../libs/interpreter";
 import { msAuth } from "../libs/auth";
+import {getSettingWithDefault } from "../libs/storage";
 
 /**
  * 同步数据
@@ -255,10 +256,19 @@ export const apiTranslate = async ({
   );
 
   switch (translator) {
-    case OPT_TRANS_GOOGLE:
-      trText = res.sentences.map((item) => item.trans).join(" ");
-      isSame = to === res.src;
+    case OPT_TRANS_GOOGLE: {
+      if (!res || !Array.isArray(res) || res.length < 2) {
+        console.error("Unexpected response structure:", res);
+        trText = "Error: Invalid response structure";
+        isSame = false;
+      } else {
+        const translatedText = Array.isArray(res[0]) ? res[0].join(" ") : "Translation unavailable";
+        const isTranslationComplete = to === (Array.isArray(res[1]) ? res[1][0] : undefined);
+        trText = translatedText;
+        isSame = isTranslationComplete;
+      }
       break;
+    }
     case OPT_TRANS_MICROSOFT:
       trText = res
         .map((item) => item.translations.map((item) => item.text).join(" "))
@@ -323,7 +333,13 @@ export const apiTranslate = async ({
     case OPT_TRANS_OLLAMA:
     case OPT_TRANS_OLLAMA_2:
     case OPT_TRANS_OLLAMA_3:
-      trText = res?.response;
+      let deepModels = (await getSettingWithDefault()).transApis[translator]?.thinkIgnore || '';
+      deepModels = deepModels.split(',').filter(model => model.trim() !== '');
+      if (deepModels.some(model => res?.model?.startsWith(model))) {
+        trText = res?.response.replace(/<think>[\s\S]*<\/think>/i, '');
+      }else{
+        trText = res?.response;
+      }
       isSame = text === trText;
       break;
     case OPT_TRANS_CUSTOMIZE:
