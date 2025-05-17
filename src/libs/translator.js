@@ -516,7 +516,7 @@ export class Translator {
           }
           text += `[${keeps.length}]`;
           keeps.push(child.outerHTML);
-        } else {
+        } else if (child.nodeType === 1 || child.nodeType === 3) {
           text += child.textContent;
         }
       });
