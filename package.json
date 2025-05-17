@@ -45,7 +45,8 @@
     "globals": {
       "GM": true,
       "unsafeWindow": true,
-      "globalThis": true
+      "globalThis": true,
+      "messenger": true
     }
   },
   "browserslist": {
