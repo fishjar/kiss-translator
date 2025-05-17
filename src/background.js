@@ -17,6 +17,7 @@ import {
   CMD_TOGGLE_STYLE,
   CMD_OPEN_OPTIONS,
   CMD_OPEN_TRANBOX,
+  CLIENT_THUNDERBIRD,
 } from "./config";
 import { getSettingWithDefault, tryInitDefaultData } from "./libs/storage";
 import { trySyncSettingAndRules } from "./libs/sync";
@@ -139,7 +140,7 @@ browser.runtime.onInstalled.addListener(() => {
   tryInitDefaultData();
 
   //在thunderbird中注册脚本
-  if (process.env.REACT_APP_CLIENT === "thunderbird") {
+  if (process.env.REACT_APP_CLIENT === CLIENT_THUNDERBIRD) {
     registerMsgDisplayScript();
   }
   
@@ -166,7 +167,7 @@ browser.runtime.onStartup.addListener(async () => {
   }
 
   //在thunderbird中注册脚本
-  if (process.env.REACT_APP_CLIENT === "thunderbird") {
+  if (process.env.REACT_APP_CLIENT === CLIENT_THUNDERBIRD) {
     registerMsgDisplayScript();
   }
 
