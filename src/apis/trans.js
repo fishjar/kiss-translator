@@ -314,7 +314,7 @@ const genClaude = ({
   return [url, init];
 };
 
-const genOllama = ({ text, from, to, url, key, systemPrompt, userPrompt, model }) => {
+const genOllama = ({ text, from, to, think,url, key, systemPrompt, userPrompt,model }) => {
   systemPrompt = systemPrompt
     .replaceAll(INPUT_PLACE_FROM, from)
     .replaceAll(INPUT_PLACE_TO, to)
@@ -328,6 +328,7 @@ const genOllama = ({ text, from, to, url, key, systemPrompt, userPrompt, model }
     model,
     system: systemPrompt,
     prompt: userPrompt,
+    think: think,
     stream: false,
   };
 

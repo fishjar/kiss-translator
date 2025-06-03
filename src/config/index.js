@@ -543,6 +543,7 @@ const defaultOllamaApi = {
   model: "llama3.1",
   systemPrompt: `You are a professional, authentic machine translation engine.`,
   userPrompt: `Translate the following source text from ${INPUT_PLACE_FROM} to ${INPUT_PLACE_TO}. Output translation directly without any additional text.\n\nSource Text: ${INPUT_PLACE_TEXT}\n\nTranslated Text:`,
+  think:false,
   thinkIgnore:`qwen3,deepseek-r1`,
   fetchLimit: 1,
   fetchInterval: 500,
