@@ -2,6 +2,7 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import LoadingButton from "@mui/lab/LoadingButton";
+import MenuItem from "@mui/material/MenuItem";
 import {
   OPT_TRANS_ALL,
   OPT_TRANS_MICROSOFT,
@@ -117,6 +118,7 @@ function ApiFields({ translator }) {
     model = "",
     systemPrompt = "",
     userPrompt = "",
+    think="",
     thinkIgnore = "",
     fetchLimit = DEFAULT_FETCH_LIMIT,
     fetchInterval = DEFAULT_FETCH_INTERVAL,
@@ -249,6 +251,17 @@ function ApiFields({ translator }) {
 
       {(translator.startsWith(OPT_TRANS_OLLAMA)) && (
         <>
+          <TextField
+            select
+            size="small"
+            name="think"
+            value={think}
+            label={i18n("if_think")}
+            onChange={handleChange}
+          >
+            <MenuItem value={false}>{i18n("nothink")}</MenuItem>
+            <MenuItem value={true}>{i18n("think")}</MenuItem>
+          </TextField>
           <TextField
             size="small"
             label={i18n("think_ignore")}
