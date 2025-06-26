@@ -58,16 +58,26 @@ const keyPick = (translator, key = "", cacheMap) => {
 };
 
 const genGoogle = ({ text, from, to, url, key }) => {
-  const body = JSON.stringify([[ [text], from, to ], "wt_lib"]);
-  const init = {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json+protobuf",
-      "X-Goog-API-Key": key,
-    },
-    body,
+  const params = {
+    client: "gtx",
+    dt: "t",
+    dj: 1,
+    ie: "UTF-8",
+    sl: from,
+    tl: to,
+    q: text,
   };
-  return [url, init];
+  const input = `${url}?${queryString.stringify(params)}`;
+  const init = {
+    headers: {
+      "Content-type": "application/json",
+    },
+  };
+  if (key) {
+    init.headers.Authorization = `Bearer ${key}`;
+  }
+
+  return [input, init];
 };
 
 const genMicrosoft = async ({ text, from, to }) => {
