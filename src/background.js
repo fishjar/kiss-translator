@@ -52,34 +52,34 @@ async function addContextMenus(contextMenuType = 1) {
 
   switch (contextMenuType) {
     case 1:
-      browser.menus.create({
+      browser.contextMenus.create({
         id: CMD_TOGGLE_TRANSLATE,
         title: browser.i18n.getMessage("app_name"),
         contexts: ["page", "selection"],
       });
       break;
     case 2:
-      browser.menus.create({
+      browser.contextMenus.create({
         id: CMD_TOGGLE_TRANSLATE,
         title: browser.i18n.getMessage("toggle_translate"),
         contexts: ["page", "selection"],
       });
-      browser.menus.create({
+      browser.contextMenus.create({
         id: CMD_TOGGLE_STYLE,
         title: browser.i18n.getMessage("toggle_style"),
         contexts: ["page", "selection"],
       });
-      browser.menus.create({
+      browser.contextMenus.create({
         id: CMD_OPEN_TRANBOX,
         title: browser.i18n.getMessage("open_tranbox"),
         contexts: ["page", "selection"],
       });
-      browser.menus.create({
+      browser.contextMenus.create({
         id: "options_separator",
         type: "separator",
         contexts: ["page", "selection"],
       });
-      browser.menus.create({
+      browser.contextMenus.create({
         id: CMD_OPEN_OPTIONS,
         title: browser.i18n.getMessage("open_options"),
         contexts: ["page", "selection"],
