@@ -1,8 +1,7 @@
 import { isExt, isGm } from "./client";
 import { sendBgMsg } from "./msg";
 import { taskPool } from "./pool";
-import { storage,getSettingWithDefault } from "./storage";
-
+import { getSettingWithDefault } from "./storage";
 
 import {
   MSG_FETCH,
@@ -16,8 +15,6 @@ import { isBg } from "./browser";
 import { genTransReq } from "../apis/trans";
 import { kissLog } from "./log";
 import { blobToBase64 } from "./utils";
-
-let TIMEOUT = HTTP_TIMEOUT;
 
 /**
  * 构造缓存 request
@@ -43,8 +40,7 @@ const newCacheReq = async (input, init) => {
  * @param {*} init
  * @returns
  */
-export const fetchGM = async (input, { method = "GET", headers, body } = {}) =>{
-  TIMEOUT = (await getSettingWithDefault()).httpTimeout;
+export const fetchGM = async (input, { method = "GET", headers, body, timeout = HTTP_TIMEOUT } = {}) =>
   new Promise((resolve, reject) => {
     GM.xmlHttpRequest({
       method,
@@ -52,7 +48,7 @@ export const fetchGM = async (input, { method = "GET", headers, body } = {}) =>{
       headers,
       data: body,
       // withCredentials: true,
-      timeout: TIMEOUT,
+      timeout,
       onload: ({ response, responseHeaders, status, statusText }) => {
         const headers = {};
         responseHeaders.split("\n").forEach((line) => {
@@ -71,7 +67,7 @@ export const fetchGM = async (input, { method = "GET", headers, body } = {}) =>{
       onerror: reject,
     });
   });
-}
+
 /**
  * 发起请求
  * @param {*} param0
@@ -84,6 +80,14 @@ export const fetchPatcher = async (input, init, transOpts, apiSetting) => {
 
   if (!input) {
     throw new Error("url is empty");
+  }
+
+  let timeout = HTTP_TIMEOUT;
+  try {
+    // todo: 不必每次都查询，缓存参数
+    timeout = (await getSettingWithDefault()).httpTimeout;
+  } catch (err) {
+    //
   }
 
   if (isGm) {
@@ -101,6 +105,9 @@ export const fetchPatcher = async (input, init, transOpts, apiSetting) => {
     const isSafe = connects.find((item) => url.hostname.endsWith(item));
 
     if (isSafe) {
+      // todo: 自定义接口 init 可能包含了 signal
+      Object.assign(init, { timeout });
+
       const { body, headers, status, statusText } = window.KISS_GM
         ? await window.KISS_GM.fetch(input, init)
         : await fetchGM(input, init);
@@ -113,12 +120,8 @@ export const fetchPatcher = async (input, init, transOpts, apiSetting) => {
     }
   }
 
-  //const kiss_setting = await storage.get("KISS-Translator_setting");
-  //TIMEOUT = JSON.parse(kiss_setting)?.httpTimeout || TIMEOUT;
-  TIMEOUT = (await getSettingWithDefault()).httpTimeout;
-  console.log("TIMEOUT", TIMEOUT);
   if (AbortSignal?.timeout && !init.signal) {
-    Object.assign(init, { signal: AbortSignal.timeout(TIMEOUT) });
+    Object.assign(init, { signal: AbortSignal.timeout(timeout) });
   }
 
   return fetch(input, init);
