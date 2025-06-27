@@ -39,7 +39,6 @@ import {
 import { sha256 } from "../libs/utils";
 import interpreter from "../libs/interpreter";
 import { msAuth } from "../libs/auth";
-import {getSettingWithDefault } from "../libs/storage";
 
 /**
  * 同步数据
@@ -324,8 +323,8 @@ export const apiTranslate = async ({
     case OPT_TRANS_OLLAMA:
     case OPT_TRANS_OLLAMA_2:
     case OPT_TRANS_OLLAMA_3:
-      let deepModels = (await getSettingWithDefault()).transApis[translator]?.thinkIgnore || '';
-      deepModels = deepModels.split(',').filter(model => model.trim() !== '');
+      const { thinkIgnore = "" } = apiSetting;
+      const deepModels = thinkIgnore.split(',').filter(model => model.trim());
       if (deepModels.some(model => res?.model?.startsWith(model))) {
         trText = res?.response.replace(/<think>[\s\S]*<\/think>/i, '');
       }else{

@@ -118,7 +118,7 @@ function ApiFields({ translator }) {
     model = "",
     systemPrompt = "",
     userPrompt = "",
-    think="",
+    think = false,
     thinkIgnore = "",
     fetchLimit = DEFAULT_FETCH_LIMIT,
     fetchInterval = DEFAULT_FETCH_INTERVAL,
