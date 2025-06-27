@@ -92,6 +92,7 @@ const userscriptWebpack = (config, env) => {
 // @grant         GM.info
 // @grant         unsafeWindow
 // @connect       translate.googleapis.com
+// @connect       translate-pa.googleapis.com
 // @connect       api-edge.cognitive.microsofttranslator.com
 // @connect       edge.microsoft.com
 // @connect       api-free.deepl.com
@@ -108,6 +109,7 @@ const userscriptWebpack = (config, env) => {
 // @connect       dav.jianguoyun.com
 // @connect       fanyi.baidu.com
 // @connect       transmart.qq.com
+// @connect       niutrans.com
 // @connect       localhost:3000
 // @connect       127.0.0.1:3000
 // @connect       localhost:1188

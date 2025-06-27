@@ -89,7 +89,8 @@ export const URL_MICROSOFT_LANGDETECT =
 
 export const URL_GOOGLE_TRAN =
   "https://translate.googleapis.com/translate_a/single";
-
+export const URL_GOOGLE_TRAN2 =
+  "https://translate-pa.googleapis.com/v1/translateHtml";
 export const DEFAULT_GOOGLE_API_KEY = "AIzaSyATBXajvzQLTDHEQbcpq0Ihe0vWDHmO520";
 
 export const URL_BAIDU_LANGDETECT = "https://fanyi.baidu.com/langdetect";
@@ -109,6 +110,7 @@ export const DEFAULT_USER_AGENT =
 export const OPT_DICT_BAIDU = "Baidu";
 
 export const OPT_TRANS_GOOGLE = "Google";
+export const OPT_TRANS_GOOGLE2 = "Google2";
 export const OPT_TRANS_MICROSOFT = "Microsoft";
 export const OPT_TRANS_DEEPL = "DeepL";
 export const OPT_TRANS_DEEPLX = "DeepLX";
@@ -132,6 +134,7 @@ export const OPT_TRANS_CUSTOMIZE_4 = "Custom4";
 export const OPT_TRANS_CUSTOMIZE_5 = "Custom5";
 export const OPT_TRANS_ALL = [
   OPT_TRANS_GOOGLE,
+  OPT_TRANS_GOOGLE2,
   OPT_TRANS_MICROSOFT,
   OPT_TRANS_BAIDU,
   OPT_TRANS_TENCENT,
@@ -204,6 +207,7 @@ export const OPT_LANGS_TO = [
 export const OPT_LANGS_FROM = [["auto", "Auto-detect"], ...OPT_LANGS_TO];
 export const OPT_LANGS_SPECIAL = {
   [OPT_TRANS_GOOGLE]: new Map(OPT_LANGS_FROM.map(([key]) => [key, key])),
+  [OPT_TRANS_GOOGLE2]: new Map(OPT_LANGS_FROM.map(([key]) => [key, key])),
   [OPT_TRANS_MICROSOFT]: new Map([
     ...OPT_LANGS_FROM.map(([key]) => [key, key]),
     ["auto", ""],
@@ -553,9 +557,14 @@ export const DEFAULT_TRANS_APIS = {
   [OPT_TRANS_GOOGLE]: {
     url: URL_GOOGLE_TRAN,
     key: "",
-    // key: DEFAULT_GOOGLE_API_KEY,
     fetchLimit: DEFAULT_FETCH_LIMIT, // 最大任务数量
     fetchInterval: DEFAULT_FETCH_INTERVAL, // 任务间隔时间
+  },
+  [OPT_TRANS_GOOGLE2]: {
+    url: URL_GOOGLE_TRAN2,
+    key: DEFAULT_GOOGLE_API_KEY,
+    fetchLimit: DEFAULT_FETCH_LIMIT,
+    fetchInterval: DEFAULT_FETCH_INTERVAL,
   },
   [OPT_TRANS_MICROSOFT]: {
     fetchLimit: DEFAULT_FETCH_LIMIT,

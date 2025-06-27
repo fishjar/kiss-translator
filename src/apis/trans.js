@@ -1,6 +1,7 @@
 import queryString from "query-string";
 import {
   OPT_TRANS_GOOGLE,
+  OPT_TRANS_GOOGLE2,
   OPT_TRANS_MICROSOFT,
   OPT_TRANS_DEEPL,
   OPT_TRANS_DEEPLFREE,
@@ -78,6 +79,20 @@ const genGoogle = ({ text, from, to, url, key }) => {
   }
 
   return [input, init];
+};
+
+const genGoogle2 = ({ text, from, to, url, key }) => {
+  const body = JSON.stringify([[ [text], from, to ], "wt_lib"]);
+  const init = {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json+protobuf",
+      "X-Goog-API-Key": key,
+    },
+    body,
+  };
+
+  return [url, init];
 };
 
 const genMicrosoft = async ({ text, from, to }) => {
@@ -440,6 +455,8 @@ export const genTransReq = ({ translator, text, from, to }, apiSetting) => {
   switch (translator) {
     case OPT_TRANS_GOOGLE:
       return genGoogle(args);
+    case OPT_TRANS_GOOGLE2:
+        return genGoogle2(args);
     case OPT_TRANS_MICROSOFT:
       return genMicrosoft(args);
     case OPT_TRANS_DEEPL:
