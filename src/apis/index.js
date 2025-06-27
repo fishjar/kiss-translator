@@ -302,7 +302,7 @@ export const apiTranslate = async ({
       }
       break;
     case OPT_TRANS_TENCENT:
-      trText = res.auto_translation;
+      trText = res?.auto_translation?.[0];
       isSame = text === trText;
       break;
     case OPT_TRANS_OPENAI:

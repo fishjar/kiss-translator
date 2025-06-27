@@ -179,10 +179,13 @@ const genNiuTrans = ({ text, from, to, url, key, dictNo, memoryNo }) => {
 const genTencent = ({ text, from, to }) => {
   const data = {
     header: {
-      fn: "auto_translation_block",
+      fn: "auto_translation",
+      client_key: "browser-chrome-110.0.0-Mac OS-df4bd4c5-a65d-44b2-a40f-42f34f3535f2-1677486696487"
     },
+    type: "plain",
+    model_category: "normal",
     source: {
-      text_block: text,
+      text_list: [text],
       lang: from,
     },
     target: {
@@ -193,6 +196,8 @@ const genTencent = ({ text, from, to }) => {
   const init = {
     headers: {
       "Content-Type": "application/json",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36",
+      "referer": "https://transmart.qq.com/zh-CN/index"
     },
     method: "POST",
     body: JSON.stringify(data),
