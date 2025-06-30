@@ -11,6 +11,7 @@ import {
   OPT_TRANS_DEEPLFREE,
   OPT_TRANS_BAIDU,
   OPT_TRANS_TENCENT,
+  OPT_TRANS_VOLCENGINE,
   OPT_TRANS_OPENAI,
   OPT_TRANS_OPENAI_2,
   OPT_TRANS_OPENAI_3,
@@ -157,6 +158,7 @@ function ApiFields({ translator }) {
     OPT_TRANS_DEEPLFREE,
     OPT_TRANS_BAIDU,
     OPT_TRANS_TENCENT,
+    OPT_TRANS_VOLCENGINE,
   ];
 
   const mulkeysTranslators = [

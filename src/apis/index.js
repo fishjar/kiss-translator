@@ -10,6 +10,7 @@ import {
   OPT_TRANS_NIUTRANS,
   OPT_TRANS_BAIDU,
   OPT_TRANS_TENCENT,
+  OPT_TRANS_VOLCENGINE,
   OPT_TRANS_OPENAI,
   OPT_TRANS_OPENAI_2,
   OPT_TRANS_OPENAI_3,
@@ -304,6 +305,10 @@ export const apiTranslate = async ({
     case OPT_TRANS_TENCENT:
       trText = res?.auto_translation?.[0];
       isSame = text === trText;
+      break;
+    case OPT_TRANS_VOLCENGINE:
+      trText = res?.translation || "";
+      isSame = to === res?.detected_language;
       break;
     case OPT_TRANS_OPENAI:
     case OPT_TRANS_OPENAI_2:

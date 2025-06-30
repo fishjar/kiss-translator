@@ -110,6 +110,7 @@ const userscriptWebpack = (config, env) => {
 // @connect       fanyi.baidu.com
 // @connect       transmart.qq.com
 // @connect       niutrans.com
+// @connect       translate.volcengine.com
 // @connect       localhost:3000
 // @connect       127.0.0.1:3000
 // @connect       localhost:1188

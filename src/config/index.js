@@ -101,6 +101,7 @@ export const URL_BAIDU_TRANSAPI = "https://fanyi.baidu.com/transapi";
 export const URL_BAIDU_TRANSAPI_V2 = "https://fanyi.baidu.com/v2transapi";
 export const URL_DEEPLFREE_TRAN = "https://www2.deepl.com/jsonrpc";
 export const URL_TENCENT_TRANSMART = "https://transmart.qq.com/api/imt";
+export const URL_VOLCENGINE_TRAN = "https://translate.volcengine.com/crx/translate/v1";
 export const URL_NIUTRANS_REG =
   "https://niutrans.com/login?active=3&userSource=kiss-translator";
 
@@ -118,6 +119,7 @@ export const OPT_TRANS_DEEPLFREE = "DeepLFree";
 export const OPT_TRANS_NIUTRANS = "NiuTrans";
 export const OPT_TRANS_BAIDU = "Baidu";
 export const OPT_TRANS_TENCENT = "Tencent";
+export const OPT_TRANS_VOLCENGINE = "Volcengine";
 export const OPT_TRANS_OPENAI = "OpenAI";
 export const OPT_TRANS_OPENAI_2 = "OpenAI2";
 export const OPT_TRANS_OPENAI_3 = "OpenAI3";
@@ -138,6 +140,7 @@ export const OPT_TRANS_ALL = [
   OPT_TRANS_MICROSOFT,
   OPT_TRANS_BAIDU,
   OPT_TRANS_TENCENT,
+  OPT_TRANS_VOLCENGINE,
   OPT_TRANS_DEEPL,
   OPT_TRANS_DEEPLFREE,
   OPT_TRANS_DEEPLX,
@@ -237,6 +240,12 @@ export const OPT_LANGS_SPECIAL = {
     ["auto", "auto"],
     ["zh-CN", "zh"],
     ["zh-TW", "cht"],
+  ]),
+  [OPT_TRANS_VOLCENGINE]: new Map([
+    ...OPT_LANGS_FROM.map(([key]) => [key, key]),
+    ["auto", "auto"],
+    ["zh-CN", "zh"],
+    ["zh-TW", "zh-Hant"],
   ]),
   [OPT_TRANS_BAIDU]: new Map([
     ...OPT_LANGS_FROM.map(([key]) => [key, key]),
@@ -575,6 +584,10 @@ export const DEFAULT_TRANS_APIS = {
     fetchInterval: DEFAULT_FETCH_INTERVAL,
   },
   [OPT_TRANS_TENCENT]: {
+    fetchLimit: DEFAULT_FETCH_LIMIT,
+    fetchInterval: DEFAULT_FETCH_INTERVAL,
+  },
+  [OPT_TRANS_VOLCENGINE]: {
     fetchLimit: DEFAULT_FETCH_LIMIT,
     fetchInterval: DEFAULT_FETCH_INTERVAL,
   },

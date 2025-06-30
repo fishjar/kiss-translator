@@ -9,6 +9,7 @@ import {
   OPT_TRANS_NIUTRANS,
   OPT_TRANS_BAIDU,
   OPT_TRANS_TENCENT,
+  OPT_TRANS_VOLCENGINE,
   OPT_TRANS_OPENAI,
   OPT_TRANS_OPENAI_2,
   OPT_TRANS_OPENAI_3,
@@ -25,6 +26,7 @@ import {
   OPT_TRANS_CUSTOMIZE_5,
   URL_MICROSOFT_TRAN,
   URL_TENCENT_TRANSMART,
+  URL_VOLCENGINE_TRAN,
   INPUT_PLACE_URL,
   INPUT_PLACE_FROM,
   INPUT_PLACE_TO,
@@ -204,6 +206,24 @@ const genTencent = ({ text, from, to }) => {
   };
 
   return [URL_TENCENT_TRANSMART, init];
+};
+
+const genVolcengine = ({ text, from, to }) => {
+  const data = {
+    source_language: from,
+    target_language: to,
+    text: text,
+  };
+
+  const init = {
+    headers: {
+      "Content-type": "application/json",
+    },
+    method: "POST",
+    body: JSON.stringify(data),
+  };
+
+  return [URL_VOLCENGINE_TRAN, init];
 };
 
 const genOpenAI = ({
@@ -476,6 +496,8 @@ export const genTransReq = ({ translator, text, from, to }, apiSetting) => {
       return genBaidu(args);
     case OPT_TRANS_TENCENT:
       return genTencent(args);
+    case OPT_TRANS_VOLCENGINE:
+      return genVolcengine(args);
     case OPT_TRANS_OPENAI:
     case OPT_TRANS_OPENAI_2:
     case OPT_TRANS_OPENAI_3:
