@@ -84,7 +84,7 @@ const genGoogle = ({ text, from, to, url, key }) => {
 };
 
 const genGoogle2 = ({ text, from, to, url, key }) => {
-  const body = JSON.stringify([[ [text], from, to ], "wt_lib"]);
+  const body = JSON.stringify([[[text], from, to], "wt_lib"]);
   const init = {
     method: "POST",
     headers: {
@@ -182,7 +182,8 @@ const genTencent = ({ text, from, to }) => {
   const data = {
     header: {
       fn: "auto_translation",
-      client_key: "browser-chrome-110.0.0-Mac OS-df4bd4c5-a65d-44b2-a40f-42f34f3535f2-1677486696487"
+      client_key:
+        "browser-chrome-110.0.0-Mac OS-df4bd4c5-a65d-44b2-a40f-42f34f3535f2-1677486696487",
     },
     type: "plain",
     model_category: "normal",
@@ -198,8 +199,9 @@ const genTencent = ({ text, from, to }) => {
   const init = {
     headers: {
       "Content-Type": "application/json",
-      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36",
-      "referer": "https://transmart.qq.com/zh-CN/index"
+      "user-agent":
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36",
+      referer: "https://transmart.qq.com/zh-CN/index",
     },
     method: "POST",
     body: JSON.stringify(data),
@@ -280,7 +282,16 @@ const genOpenAI = ({
   return [url, init];
 };
 
-const genGemini = ({ text, from, to, url, key, systemPrompt, userPrompt, model }) => {
+const genGemini = ({
+  text,
+  from,
+  to,
+  url,
+  key,
+  systemPrompt,
+  userPrompt,
+  model,
+}) => {
   url = url
     .replaceAll(INPUT_PLACE_MODEL, model)
     .replaceAll(INPUT_PLACE_KEY, key);
@@ -297,13 +308,13 @@ const genGemini = ({ text, from, to, url, key, systemPrompt, userPrompt, model }
     system_instruction: {
       parts: {
         text: systemPrompt,
-      }
+      },
     },
     contents: {
       parts: {
         text: userPrompt,
-      }
-    }
+      },
+    },
   };
 
   const init = {
@@ -364,7 +375,17 @@ const genClaude = ({
   return [url, init];
 };
 
-const genOllama = ({ text, from, to, think,url, key, systemPrompt, userPrompt,model }) => {
+const genOllama = ({
+  text,
+  from,
+  to,
+  think,
+  url,
+  key,
+  systemPrompt,
+  userPrompt,
+  model,
+}) => {
   systemPrompt = systemPrompt
     .replaceAll(INPUT_PLACE_FROM, from)
     .replaceAll(INPUT_PLACE_TO, to)
@@ -469,6 +490,11 @@ export const genTransReq = ({ translator, text, from, to }, apiSetting) => {
     case OPT_TRANS_OLLAMA_2:
     case OPT_TRANS_OLLAMA_3:
     case OPT_TRANS_NIUTRANS:
+    case OPT_TRANS_CUSTOMIZE:
+    case OPT_TRANS_CUSTOMIZE_2:
+    case OPT_TRANS_CUSTOMIZE_3:
+    case OPT_TRANS_CUSTOMIZE_4:
+    case OPT_TRANS_CUSTOMIZE_5:
       args.key = keyPick(translator, args.key, keyMap);
       break;
     case OPT_TRANS_DEEPLX:
@@ -481,7 +507,7 @@ export const genTransReq = ({ translator, text, from, to }, apiSetting) => {
     case OPT_TRANS_GOOGLE:
       return genGoogle(args);
     case OPT_TRANS_GOOGLE2:
-        return genGoogle2(args);
+      return genGoogle2(args);
     case OPT_TRANS_MICROSOFT:
       return genMicrosoft(args);
     case OPT_TRANS_DEEPL:
