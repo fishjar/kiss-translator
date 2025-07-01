@@ -135,15 +135,18 @@ async function showFab(translator) {
  * @param {*} param0
  * @returns
  */
-function showTransbox({
-  contextMenuType,
-  tranboxSetting = DEFAULT_TRANBOX_SETTING,
-  transApis,
-  darkMode,
-  uiLang,
-  langDetector,
-}) {
-  if (!tranboxSetting?.transOpen) {
+function showTransbox(
+  {
+    contextMenuType,
+    tranboxSetting = DEFAULT_TRANBOX_SETTING,
+    transApis,
+    darkMode,
+    uiLang,
+    langDetector,
+  },
+  { transSelected }
+) {
+  if (transSelected === "false") {
     return;
   }
 
@@ -251,7 +254,7 @@ export async function run(isUserscript = false) {
     inputTranslate(setting);
 
     // 划词翻译
-    showTransbox(setting);
+    showTransbox(setting, rule);
 
     // 浮球按钮
     await showFab(translator);

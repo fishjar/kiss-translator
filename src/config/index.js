@@ -463,6 +463,7 @@ export const GLOBLA_RULE = {
   transTiming: OPT_TIMING_PAGESCROLL, // 翻译时机/鼠标悬停翻译
   transTag: DEFAULT_TRANS_TAG, // 译文元素标签
   transTitle: "false", // 是否同时翻译页面标题
+  transSelected: "true", // 是否启用划词翻译
   detectRemote: "false", // 是否使用远程语言检测
   skipLangs: [], // 不翻译的语言
   fixerSelector: "", // 修复函数选择器
@@ -501,7 +502,7 @@ export const OPT_TRANBOX_TRIGGER_ALL = [
 ];
 export const DEFAULT_TRANBOX_SHORTCUT = ["AltLeft", "KeyS"];
 export const DEFAULT_TRANBOX_SETTING = {
-  transOpen: true,
+  // transOpen: true, // 是否启用划词翻译（作废，移至rule）
   translator: OPT_TRANS_MICROSOFT,
   fromLang: "auto",
   toLang: "zh-CN",

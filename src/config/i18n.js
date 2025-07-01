@@ -962,4 +962,8 @@ export const I18N = {
     zh: `是否禁用`,
     en: `Is Disabled`,
   },
+  translate_selected: {
+    zh: `是否启用划词翻译`,
+    en: `If translate selected`,
+  }
 };

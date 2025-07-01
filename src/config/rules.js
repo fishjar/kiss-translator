@@ -26,6 +26,7 @@ export const DEFAULT_RULE = {
   transTiming: GLOBAL_KEY, // 翻译时机/鼠标悬停翻译
   transTag: GLOBAL_KEY, // 译文元素标签
   transTitle: GLOBAL_KEY, // 是否同时翻译页面标题
+  transSelected: GLOBAL_KEY, // 是否启用划词翻译
   detectRemote: GLOBAL_KEY, // 是否使用远程语言检测
   skipLangs: [], // 不翻译的语言
   fixerSelector: "", // 修复函数选择器

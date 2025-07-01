@@ -92,6 +92,7 @@ export const matchRule = async (
     "transTiming",
     "transTag",
     "transTitle",
+    "transSelected",
     "detectRemote",
     "fixerFunc",
   ].forEach((key) => {
@@ -161,6 +162,7 @@ export const checkRules = (rules) => {
         transTiming,
         transTag,
         transTitle,
+        transSelected,
         detectRemote,
         skipLangs,
         fixerSelector,
@@ -188,6 +190,7 @@ export const checkRules = (rules) => {
         transTiming: matchValue([GLOBAL_KEY, ...OPT_TIMING_ALL], transTiming),
         transTag: matchValue([GLOBAL_KEY, "span", "font"], transTag),
         transTitle: matchValue([GLOBAL_KEY, "true", "false"], transTitle),
+        transSelected: matchValue([GLOBAL_KEY, "true", "false"], transSelected),
         detectRemote: matchValue([GLOBAL_KEY, "true", "false"], detectRemote),
         skipLangs: type(skipLangs) === "array" ? skipLangs : [],
         fixerSelector: type(fixerSelector) === "string" ? fixerSelector : "",
