@@ -9,7 +9,7 @@ import {
   CACHE_NAME,
   DEFAULT_FETCH_INTERVAL,
   DEFAULT_FETCH_LIMIT,
-  HTTP_TIMEOUT,
+  DEFAULT_HTTP_TIMEOUT,
 } from "../config";
 import { isBg } from "./browser";
 import { genTransReq } from "../apis/trans";
@@ -40,7 +40,10 @@ const newCacheReq = async (input, init) => {
  * @param {*} init
  * @returns
  */
-export const fetchGM = async (input, { method = "GET", headers, body, timeout = HTTP_TIMEOUT } = {}) =>
+export const fetchGM = async (
+  input,
+  { method = "GET", headers, body, timeout } = {}
+) =>
   new Promise((resolve, reject) => {
     GM.xmlHttpRequest({
       method,
@@ -82,12 +85,13 @@ export const fetchPatcher = async (input, init, transOpts, apiSetting) => {
     throw new Error("url is empty");
   }
 
-  let timeout = HTTP_TIMEOUT;
-  try {
-    // todo: 不必每次都查询，缓存参数
-    timeout = (await getSettingWithDefault()).httpTimeout;
-  } catch (err) {
-    //
+  let timeout = apiSetting?.httpTimeout || DEFAULT_HTTP_TIMEOUT;
+  if (!apiSetting) {
+    try {
+      timeout = (await getSettingWithDefault()).httpTimeout;
+    } catch (err) {
+      //
+    }
   }
 
   if (isGm) {

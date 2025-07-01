@@ -40,7 +40,12 @@ export const CLIENT_EDGE = "edge";
 export const CLIENT_FIREFOX = "firefox";
 export const CLIENT_USERSCRIPT = "userscript";
 export const CLIENT_THUNDERBIRD = "thunderbird";
-export const CLIENT_EXTS = [CLIENT_CHROME, CLIENT_EDGE, CLIENT_FIREFOX, CLIENT_THUNDERBIRD];
+export const CLIENT_EXTS = [
+  CLIENT_CHROME,
+  CLIENT_EDGE,
+  CLIENT_FIREFOX,
+  CLIENT_THUNDERBIRD,
+];
 
 export const KV_RULES_KEY = "kiss-rules.json";
 export const KV_WORDS_KEY = "kiss-words.json";
@@ -101,7 +106,8 @@ export const URL_BAIDU_TRANSAPI = "https://fanyi.baidu.com/transapi";
 export const URL_BAIDU_TRANSAPI_V2 = "https://fanyi.baidu.com/v2transapi";
 export const URL_DEEPLFREE_TRAN = "https://www2.deepl.com/jsonrpc";
 export const URL_TENCENT_TRANSMART = "https://transmart.qq.com/api/imt";
-export const URL_VOLCENGINE_TRAN = "https://translate.volcengine.com/crx/translate/v1";
+export const URL_VOLCENGINE_TRAN =
+  "https://translate.volcengine.com/crx/translate/v1";
 export const URL_NIUTRANS_REG =
   "https://niutrans.com/login?active=3&userSource=kiss-translator";
 
@@ -309,7 +315,7 @@ export const OPT_LANGS_SPECIAL = {
     OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
   ),
   [OPT_TRANS_CLAUDE]: new Map(
-      OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
+    OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
   ),
   [OPT_TRANS_OLLAMA]: new Map(
     OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
@@ -530,6 +536,8 @@ export const DEFAULT_SUBRULES_LIST = [
   },
 ];
 
+export const DEFAULT_HTTP_TIMEOUT = 5000; // 调用超时时间
+
 // 翻译接口
 const defaultCustomApi = {
   url: "",
@@ -539,6 +547,9 @@ const defaultCustomApi = {
   resHook: "", // response 钩子函数
   fetchLimit: DEFAULT_FETCH_LIMIT,
   fetchInterval: DEFAULT_FETCH_INTERVAL,
+  apiName: "",
+  isDisabled: false,
+  httpTimeout: DEFAULT_HTTP_TIMEOUT,
 };
 const defaultOpenaiApi = {
   url: "https://api.openai.com/v1/chat/completions",
@@ -552,6 +563,7 @@ const defaultOpenaiApi = {
   fetchInterval: 500,
   apiName: "",
   isDisabled: false,
+  httpTimeout: DEFAULT_HTTP_TIMEOUT * 2,
 };
 const defaultOllamaApi = {
   url: "http://localhost:11434/api/generate",
@@ -559,12 +571,13 @@ const defaultOllamaApi = {
   model: "llama3.1",
   systemPrompt: `You are a professional, authentic machine translation engine.`,
   userPrompt: `Translate the following source text from ${INPUT_PLACE_FROM} to ${INPUT_PLACE_TO}. Output translation directly without any additional text.\n\nSource Text: ${INPUT_PLACE_TEXT}\n\nTranslated Text:`,
-  think:false,
-  thinkIgnore:`qwen3,deepseek-r1`,
+  think: false,
+  thinkIgnore: `qwen3,deepseek-r1`,
   fetchLimit: 1,
   fetchInterval: 500,
   apiName: "",
   isDisabled: false,
+  httpTimeout: DEFAULT_HTTP_TIMEOUT * 2,
 };
 export const DEFAULT_TRANS_APIS = {
   [OPT_TRANS_GOOGLE]: {
@@ -572,8 +585,9 @@ export const DEFAULT_TRANS_APIS = {
     key: "",
     fetchLimit: DEFAULT_FETCH_LIMIT, // 最大任务数量
     fetchInterval: DEFAULT_FETCH_INTERVAL, // 任务间隔时间
-    apiName: OPT_TRANS_GOOGLE,
-    isDisabled: false,
+    apiName: OPT_TRANS_GOOGLE, // 接口自定义名称
+    isDisabled: false, // 是否禁用
+    httpTimeout: DEFAULT_HTTP_TIMEOUT, // 超时时间
   },
   [OPT_TRANS_GOOGLE2]: {
     url: URL_GOOGLE_TRAN2,
@@ -582,30 +596,35 @@ export const DEFAULT_TRANS_APIS = {
     fetchInterval: DEFAULT_FETCH_INTERVAL,
     apiName: OPT_TRANS_GOOGLE2,
     isDisabled: false,
+    httpTimeout: DEFAULT_HTTP_TIMEOUT,
   },
   [OPT_TRANS_MICROSOFT]: {
     fetchLimit: DEFAULT_FETCH_LIMIT,
     fetchInterval: DEFAULT_FETCH_INTERVAL,
     apiName: OPT_TRANS_MICROSOFT,
     isDisabled: false,
+    httpTimeout: DEFAULT_HTTP_TIMEOUT,
   },
   [OPT_TRANS_BAIDU]: {
     fetchLimit: DEFAULT_FETCH_LIMIT,
     fetchInterval: DEFAULT_FETCH_INTERVAL,
     apiName: OPT_TRANS_BAIDU,
     isDisabled: false,
+    httpTimeout: DEFAULT_HTTP_TIMEOUT,
   },
   [OPT_TRANS_TENCENT]: {
     fetchLimit: DEFAULT_FETCH_LIMIT,
     fetchInterval: DEFAULT_FETCH_INTERVAL,
     apiName: OPT_TRANS_TENCENT,
     isDisabled: false,
+    httpTimeout: DEFAULT_HTTP_TIMEOUT,
   },
   [OPT_TRANS_VOLCENGINE]: {
     fetchLimit: DEFAULT_FETCH_LIMIT,
     fetchInterval: DEFAULT_FETCH_INTERVAL,
     apiName: OPT_TRANS_VOLCENGINE,
     isDisabled: false,
+    httpTimeout: DEFAULT_HTTP_TIMEOUT,
   },
   [OPT_TRANS_DEEPL]: {
     url: "https://api-free.deepl.com/v2/translate",
@@ -614,12 +633,14 @@ export const DEFAULT_TRANS_APIS = {
     fetchInterval: 500,
     apiName: OPT_TRANS_DEEPL,
     isDisabled: false,
+    httpTimeout: DEFAULT_HTTP_TIMEOUT,
   },
   [OPT_TRANS_DEEPLFREE]: {
     fetchLimit: 1,
     fetchInterval: 500,
     apiName: OPT_TRANS_DEEPLFREE,
     isDisabled: false,
+    httpTimeout: DEFAULT_HTTP_TIMEOUT,
   },
   [OPT_TRANS_DEEPLX]: {
     url: "http://localhost:1188/translate",
@@ -628,6 +649,7 @@ export const DEFAULT_TRANS_APIS = {
     fetchInterval: 500,
     apiName: OPT_TRANS_DEEPLX,
     isDisabled: false,
+    httpTimeout: DEFAULT_HTTP_TIMEOUT,
   },
   [OPT_TRANS_NIUTRANS]: {
     url: "https://api.niutrans.com/NiuTransServer/translation",
@@ -638,6 +660,7 @@ export const DEFAULT_TRANS_APIS = {
     fetchInterval: DEFAULT_FETCH_INTERVAL,
     apiName: OPT_TRANS_NIUTRANS,
     isDisabled: false,
+    httpTimeout: DEFAULT_HTTP_TIMEOUT,
   },
   [OPT_TRANS_OPENAI]: defaultOpenaiApi,
   [OPT_TRANS_OPENAI_2]: defaultOpenaiApi,
@@ -652,6 +675,7 @@ export const DEFAULT_TRANS_APIS = {
     fetchInterval: 500,
     apiName: OPT_TRANS_GEMINI,
     isDisabled: false,
+    httpTimeout: DEFAULT_HTTP_TIMEOUT * 2,
   },
   [OPT_TRANS_CLAUDE]: {
     url: "https://api.anthropic.com/v1/messages",
@@ -665,6 +689,7 @@ export const DEFAULT_TRANS_APIS = {
     fetchInterval: 500,
     apiName: OPT_TRANS_CLAUDE,
     isDisabled: false,
+    httpTimeout: DEFAULT_HTTP_TIMEOUT * 2,
   },
   [OPT_TRANS_CLOUDFLAREAI]: {
     url: "https://api.cloudflare.com/client/v4/accounts/{{ACCOUNT_ID}}/ai/run/@cf/meta/m2m100-1.2b",
@@ -673,6 +698,7 @@ export const DEFAULT_TRANS_APIS = {
     fetchInterval: 500,
     apiName: OPT_TRANS_CLOUDFLAREAI,
     isDisabled: false,
+    httpTimeout: DEFAULT_HTTP_TIMEOUT * 2,
   },
   [OPT_TRANS_OLLAMA]: defaultOllamaApi,
   [OPT_TRANS_OLLAMA_2]: defaultOllamaApi,
@@ -699,7 +725,6 @@ export const DEFAULT_SHORTCUTS = {
 export const TRANS_MIN_LENGTH = 5; // 最短翻译长度
 export const TRANS_MAX_LENGTH = 5000; // 最长翻译长度
 export const TRANS_NEWLINE_LENGTH = 20; // 换行字符数
-export const HTTP_TIMEOUT = 5000; // 调用超时时间
 export const DEFAULT_BLACKLIST = [
   "https://fishjar.github.io/kiss-translator/options.html",
   "https://translate.google.com",
@@ -717,7 +742,7 @@ export const DEFAULT_SETTING = {
   minLength: TRANS_MIN_LENGTH,
   maxLength: TRANS_MAX_LENGTH,
   newlineLength: TRANS_NEWLINE_LENGTH,
-  httpTimeout: HTTP_TIMEOUT,
+  httpTimeout: DEFAULT_HTTP_TIMEOUT,
   clearCache: false, // 是否在浏览器下次启动时清除缓存
   injectRules: true, // 是否注入订阅规则
   // injectWebfix: true, // 是否注入修复补丁(作废)

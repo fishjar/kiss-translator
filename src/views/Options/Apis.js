@@ -29,6 +29,7 @@ import {
   URL_NIUTRANS_REG,
   DEFAULT_FETCH_LIMIT,
   DEFAULT_FETCH_INTERVAL,
+  DEFAULT_HTTP_TIMEOUT,
 } from "../../config";
 import { useState } from "react";
 import { useI18n } from "../../hooks/I18n";
@@ -125,6 +126,7 @@ function ApiFields({ translator }) {
     thinkIgnore = "",
     fetchLimit = DEFAULT_FETCH_LIMIT,
     fetchInterval = DEFAULT_FETCH_INTERVAL,
+    httpTimeout = DEFAULT_HTTP_TIMEOUT,
     dictNo = "",
     memoryNo = "",
     reqHook = "",
@@ -143,6 +145,9 @@ function ApiFields({ translator }) {
         break;
       case "fetchInterval":
         value = limitNumber(value, 0, 5000);
+        break;
+      case "httpTimeout":
+        value = limitNumber(value, 5000, 30000);
         break;
       case "temperature":
         value = limitFloat(value, 0, 2);
@@ -263,7 +268,7 @@ function ApiFields({ translator }) {
         </>
       )}
 
-      {(translator.startsWith(OPT_TRANS_OLLAMA)) && (
+      {translator.startsWith(OPT_TRANS_OLLAMA) && (
         <>
           <TextField
             select
@@ -368,13 +373,22 @@ function ApiFields({ translator }) {
         onChange={handleChange}
       />
 
+      <TextField
+        size="small"
+        label={i18n("http_timeout")}
+        type="number"
+        name="httpTimeout"
+        defaultValue={httpTimeout}
+        onChange={handleChange}
+      />
+
       <FormControlLabel
         control={
           <Switch
             size="small"
             name="isDisabled"
             checked={isDisabled}
-            onChange={()=>{
+            onChange={() => {
               updateApi({ isDisabled: !isDisabled });
             }}
           />

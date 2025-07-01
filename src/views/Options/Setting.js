@@ -27,7 +27,7 @@ import {
   DEFAULT_CSPLIST,
   MSG_CONTEXT_MENUS,
   MSG_UPDATE_CSP,
-  HTTP_TIMEOUT,
+  DEFAULT_HTTP_TIMEOUT,
 } from "../../config";
 import { useShortcut } from "../../hooks/Shortcut";
 import ShortcutInput from "./ShortcutInput";
@@ -114,7 +114,7 @@ export default function Settings() {
     maxLength,
     clearCache,
     newlineLength = TRANS_NEWLINE_LENGTH,
-    httpTimeout = HTTP_TIMEOUT,
+    httpTimeout = DEFAULT_HTTP_TIMEOUT,
     contextMenuType = 1,
     touchTranslate = 2,
     blacklist = DEFAULT_BLACKLIST.join(",\n"),
