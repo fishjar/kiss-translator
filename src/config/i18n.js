@@ -874,6 +874,10 @@ export const I18N = {
     zh: `更多`,
     en: `More`,
   },
+  less: {
+    zh: `更少`,
+    en: `Less`,
+  },
   fixer_selector: {
     zh: `网页修复选择器`,
     en: `Fixer Selector`,

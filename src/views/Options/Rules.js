@@ -27,6 +27,7 @@ import Accordion from "@mui/material/Accordion";
 import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import { useRules } from "../../hooks/Rules";
 import MenuItem from "@mui/material/MenuItem";
 import Grid from "@mui/material/Grid";
@@ -179,6 +180,30 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
     <MenuItem key={GLOBAL_KEY} value={GLOBAL_KEY}>
       {GLOBAL_KEY}
     </MenuItem>
+  );
+
+  const ShowMoreButton = showMore ? (
+    <Button
+      size="small"
+      variant="text"
+      onClick={() => {
+        setShowMore(false);
+      }}
+      startIcon={<ExpandLessIcon />}
+    >
+      {i18n("less")}
+    </Button>
+  ) : (
+    <Button
+      size="small"
+      variant="text"
+      onClick={() => {
+        setShowMore(true);
+      }}
+      startIcon={<ExpandMoreIcon />}
+    >
+      {i18n("more")}
+    </Button>
   );
 
   return (
@@ -343,112 +368,112 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
           />
         )}
 
+        <Box>
+          <Grid container spacing={2} columns={12}>
+            <Grid item xs={12} sm={6} md={3} lg={2}>
+              <TextField
+                select
+                size="small"
+                fullWidth
+                name="transOnly"
+                value={transOnly}
+                label={i18n("show_only_translations")}
+                disabled={disabled}
+                onChange={handleChange}
+              >
+                {GlobalItem}
+                <MenuItem value={"false"}>{i18n("disable")}</MenuItem>
+                <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3} lg={2}>
+              <TextField
+                select
+                size="small"
+                fullWidth
+                name="transTiming"
+                value={transTiming}
+                label={i18n("trigger_mode")}
+                disabled={disabled}
+                onChange={handleChange}
+              >
+                {GlobalItem}
+                {OPT_TIMING_ALL.map((item) => (
+                  <MenuItem key={item} value={item}>
+                    {i18n(item)}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3} lg={2}>
+              <TextField
+                select
+                size="small"
+                fullWidth
+                name="transTag"
+                value={transTag}
+                label={i18n("translation_element_tag")}
+                disabled={disabled}
+                onChange={handleChange}
+              >
+                {GlobalItem}
+                <MenuItem value={"span"}>{`<span>`}</MenuItem>
+                <MenuItem value={"font"}>{`<font>`}</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3} lg={2}>
+              <TextField
+                select
+                size="small"
+                fullWidth
+                name="transTitle"
+                value={transTitle}
+                label={i18n("translate_page_title")}
+                disabled={disabled}
+                onChange={handleChange}
+              >
+                {GlobalItem}
+                <MenuItem value={"false"}>{i18n("disable")}</MenuItem>
+                <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3} lg={2}>
+              <TextField
+                select
+                size="small"
+                fullWidth
+                name="transSelected"
+                value={transSelected}
+                label={i18n("translate_selected")}
+                disabled={disabled}
+                onChange={handleChange}
+              >
+                {GlobalItem}
+                <MenuItem value={"false"}>{i18n("disable")}</MenuItem>
+                <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3} lg={2}>
+              <TextField
+                select
+                size="small"
+                fullWidth
+                name="detectRemote"
+                value={detectRemote}
+                label={i18n("detect_lang_remote")}
+                disabled={disabled}
+                onChange={handleChange}
+              >
+                {GlobalItem}
+                <MenuItem value={"false"}>{i18n("disable")}</MenuItem>
+                <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
+              </TextField>
+            </Grid>
+          </Grid>
+        </Box>
+
         {showMore && (
           <>
-            <Box>
-              <Grid container spacing={2} columns={12}>
-                <Grid item xs={12} sm={6} md={3} lg={2}>
-                  <TextField
-                    select
-                    size="small"
-                    fullWidth
-                    name="transOnly"
-                    value={transOnly}
-                    label={i18n("show_only_translations")}
-                    disabled={disabled}
-                    onChange={handleChange}
-                  >
-                    {GlobalItem}
-                    <MenuItem value={"false"}>{i18n("disable")}</MenuItem>
-                    <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
-                  </TextField>
-                </Grid>
-                <Grid item xs={12} sm={6} md={3} lg={2}>
-                  <TextField
-                    select
-                    size="small"
-                    fullWidth
-                    name="transTiming"
-                    value={transTiming}
-                    label={i18n("trigger_mode")}
-                    disabled={disabled}
-                    onChange={handleChange}
-                  >
-                    {GlobalItem}
-                    {OPT_TIMING_ALL.map((item) => (
-                      <MenuItem key={item} value={item}>
-                        {i18n(item)}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </Grid>
-                <Grid item xs={12} sm={6} md={3} lg={2}>
-                  <TextField
-                    select
-                    size="small"
-                    fullWidth
-                    name="transTag"
-                    value={transTag}
-                    label={i18n("translation_element_tag")}
-                    disabled={disabled}
-                    onChange={handleChange}
-                  >
-                    {GlobalItem}
-                    <MenuItem value={"span"}>{`<span>`}</MenuItem>
-                    <MenuItem value={"font"}>{`<font>`}</MenuItem>
-                  </TextField>
-                </Grid>
-                <Grid item xs={12} sm={6} md={3} lg={2}>
-                  <TextField
-                    select
-                    size="small"
-                    fullWidth
-                    name="transTitle"
-                    value={transTitle}
-                    label={i18n("translate_page_title")}
-                    disabled={disabled}
-                    onChange={handleChange}
-                  >
-                    {GlobalItem}
-                    <MenuItem value={"false"}>{i18n("disable")}</MenuItem>
-                    <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
-                  </TextField>
-                </Grid>
-                <Grid item xs={12} sm={6} md={3} lg={2}>
-                  <TextField
-                    select
-                    size="small"
-                    fullWidth
-                    name="transSelected"
-                    value={transSelected}
-                    label={i18n("translate_selected")}
-                    disabled={disabled}
-                    onChange={handleChange}
-                  >
-                    {GlobalItem}
-                    <MenuItem value={"false"}>{i18n("disable")}</MenuItem>
-                    <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
-                  </TextField>
-                </Grid>
-                <Grid item xs={12} sm={6} md={3} lg={2}>
-                  <TextField
-                    select
-                    size="small"
-                    fullWidth
-                    name="detectRemote"
-                    value={detectRemote}
-                    label={i18n("detect_lang_remote")}
-                    disabled={disabled}
-                    onChange={handleChange}
-                  >
-                    {GlobalItem}
-                    <MenuItem value={"false"}>{i18n("disable")}</MenuItem>
-                    <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
-                  </TextField>
-                </Grid>
-              </Grid>
-            </Box>
-
             <TextField
               size="small"
               label={i18n("fixer_selector")}
@@ -620,18 +645,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                       {i18n("delete")}
                     </Button>
                   )}
-                  {!showMore && (
-                    <Button
-                      size="small"
-                      variant="text"
-                      onClick={() => {
-                        setShowMore(true);
-                      }}
-                      startIcon={<ExpandMoreIcon />}
-                    >
-                      {i18n("more")}
-                    </Button>
-                  )}
+                  {ShowMoreButton}
                 </>
               ) : (
                 <>
@@ -651,18 +665,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                   >
                     {i18n("cancel")}
                   </Button>
-                  {!showMore && (
-                    <Button
-                      size="small"
-                      variant="text"
-                      onClick={() => {
-                        setShowMore(true);
-                      }}
-                      startIcon={<ExpandMoreIcon />}
-                    >
-                      {i18n("more")}
-                    </Button>
-                  )}
+                  {ShowMoreButton}
                 </>
               )}
             </Stack>
@@ -685,17 +688,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
               >
                 {i18n("cancel")}
               </Button>
-              {!showMore && (
-                <Button
-                  size="small"
-                  variant="text"
-                  onClick={() => {
-                    setShowMore(true);
-                  }}
-                >
-                  {i18n("more")}
-                </Button>
-              )}
+              {ShowMoreButton}
             </Stack>
           ))}
       </Stack>
