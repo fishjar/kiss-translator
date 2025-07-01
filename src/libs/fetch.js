@@ -95,33 +95,46 @@ export const fetchPatcher = async (input, init, transOpts, apiSetting) => {
   }
 
   if (isGm) {
-    let info;
-    if (window.KISS_GM) {
-      info = await window.KISS_GM.getInfo();
-    } else {
-      info = GM.info;
-    }
+    // let info;
+    // if (window.KISS_GM) {
+    //   info = await window.KISS_GM.getInfo();
+    // } else {
+    //   info = GM.info;
+    // }
 
     // Tampermonkey --> .connects
     // Violentmonkey --> .connect
-    const connects = info?.script?.connects || info?.script?.connect || [];
-    const url = new URL(input);
-    const isSafe = connects.find((item) => url.hostname.endsWith(item));
+    // const connects = info?.script?.connects || info?.script?.connect || [];
+    // const url = new URL(input);
+    // const isSafe = connects.find((item) => url.hostname.endsWith(item));
 
-    if (isSafe) {
-      // todo: 自定义接口 init 可能包含了 signal
-      Object.assign(init, { timeout });
+    // if (isSafe) {
+    //   // todo: 自定义接口 init 可能包含了 signal
+    //   Object.assign(init, { timeout });
 
-      const { body, headers, status, statusText } = window.KISS_GM
-        ? await window.KISS_GM.fetch(input, init)
-        : await fetchGM(input, init);
+    //   const { body, headers, status, statusText } = window.KISS_GM
+    //     ? await window.KISS_GM.fetch(input, init)
+    //     : await fetchGM(input, init);
 
-      return new Response(body, {
-        headers: new Headers(headers),
-        status,
-        statusText,
-      });
-    }
+    //   return new Response(body, {
+    //     headers: new Headers(headers),
+    //     status,
+    //     statusText,
+    //   });
+    // }
+
+    // todo: 自定义接口 init 可能包含了 signal
+    Object.assign(init, { timeout });
+
+    const { body, headers, status, statusText } = window.KISS_GM
+      ? await window.KISS_GM.fetch(input, init)
+      : await fetchGM(input, init);
+
+    return new Response(body, {
+      headers: new Headers(headers),
+      status,
+      statusText,
+    });
   }
 
   if (AbortSignal?.timeout && !init.signal) {

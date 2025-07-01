@@ -111,12 +111,8 @@ const userscriptWebpack = (config, env) => {
 // @connect       transmart.qq.com
 // @connect       niutrans.com
 // @connect       translate.volcengine.com
-// @connect       localhost:3000
-// @connect       127.0.0.1:3000
-// @connect       localhost:1188
-// @connect       127.0.0.1:1188
-// @connect       localhost:11434
-// @connect       127.0.0.1:11434
+// @connect       localhost
+// @connect       127.0.0.1
 // @run-at        document-end
 // ==/UserScript==
 
