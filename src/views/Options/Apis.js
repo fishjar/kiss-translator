@@ -62,7 +62,7 @@ function TestButton({ translator, api }) {
         useCache: false,
       });
       if (!text) {
-        throw new Error("empty reault");
+        throw new Error("empty result");
       }
       alert.success(i18n("test_success"));
     } catch (err) {
