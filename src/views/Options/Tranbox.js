@@ -12,8 +12,6 @@ import {
   OPT_DICT_BAIDU,
 } from "../../config";
 import ShortcutInput from "./ShortcutInput";
-import FormControlLabel from "@mui/material/FormControlLabel";
-import Switch from "@mui/material/Switch";
 import { useCallback } from "react";
 import { limitNumber } from "../../libs/utils";
 import { useTranbox } from "../../hooks/Tranbox";
@@ -48,7 +46,6 @@ export default function Tranbox() {
   );
 
   const {
-    transOpen,
     translator,
     fromLang,
     toLang,
@@ -70,20 +67,6 @@ export default function Tranbox() {
   return (
     <Box>
       <Stack spacing={3}>
-        <FormControlLabel
-          control={
-            <Switch
-              size="small"
-              name="transOpen"
-              checked={transOpen}
-              onChange={() => {
-                updateTranbox({ transOpen: !transOpen });
-              }}
-            />
-          }
-          label={i18n("toggle_selection_translate")}
-        />
-
         <TextField
           select
           size="small"
