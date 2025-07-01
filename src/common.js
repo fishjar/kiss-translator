@@ -72,7 +72,7 @@ function runtimeListener(translator) {
       default:
         return { error: `message action is unavailable: ${action}` };
     }
-    return { data: translator.rule };
+    return { rule: translator.rule, setting: translator.setting };
   });
 }
 

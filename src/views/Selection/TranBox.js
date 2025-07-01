@@ -18,8 +18,13 @@ import LockIcon from "@mui/icons-material/Lock";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 import CloseIcon from "@mui/icons-material/Close";
 import { useI18n } from "../../hooks/I18n";
-import { OPT_TRANS_ALL, OPT_LANGS_FROM, OPT_LANGS_TO } from "../../config";
-import { useState, useRef } from "react";
+import {
+  OPT_TRANS_ALL,
+  OPT_LANGS_FROM,
+  OPT_LANGS_TO,
+  DEFAULT_TRANS_APIS,
+} from "../../config";
+import { useState, useRef, useMemo } from "react";
 import TranCont from "./TranCont";
 import DictCont from "./DictCont";
 import SugCont from "./SugCont";
@@ -119,6 +124,20 @@ function TranForm({
   const [toLang, setToLang] = useState(tranboxSetting.toLang);
   const inputRef = useRef(null);
 
+  const optApis = useMemo(
+    () =>
+      OPT_TRANS_ALL.map((key) => ({
+        ...(transApis[key] || DEFAULT_TRANS_APIS[key]),
+        apiKey: key,
+      }))
+        .filter((item) => !item.isDisabled)
+        .map(({ apiKey, apiName }) => ({
+          key: apiKey,
+          name: apiName?.trim() || apiKey,
+        })),
+    [transApis]
+  );
+
   return (
     <Stack
       className="KT-transbox-container"
@@ -182,9 +201,9 @@ function TranForm({
                     setTranslator(e.target.value);
                   }}
                 >
-                  {OPT_TRANS_ALL.map((item) => (
-                    <MenuItem key={item} value={item}>
-                      {item}
+                  {optApis.map(({ key, name }) => (
+                    <MenuItem key={key} value={key}>
+                      {name}
                     </MenuItem>
                   ))}
                 </TextField>

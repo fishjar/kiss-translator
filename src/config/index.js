@@ -550,6 +550,8 @@ const defaultOpenaiApi = {
   maxTokens: 256,
   fetchLimit: 1,
   fetchInterval: 500,
+  apiName: "",
+  isDisabled: false,
 };
 const defaultOllamaApi = {
   url: "http://localhost:11434/api/generate",
@@ -561,6 +563,8 @@ const defaultOllamaApi = {
   thinkIgnore:`qwen3,deepseek-r1`,
   fetchLimit: 1,
   fetchInterval: 500,
+  apiName: "",
+  isDisabled: false,
 };
 export const DEFAULT_TRANS_APIS = {
   [OPT_TRANS_GOOGLE]: {
@@ -568,44 +572,62 @@ export const DEFAULT_TRANS_APIS = {
     key: "",
     fetchLimit: DEFAULT_FETCH_LIMIT, // 最大任务数量
     fetchInterval: DEFAULT_FETCH_INTERVAL, // 任务间隔时间
+    apiName: OPT_TRANS_GOOGLE,
+    isDisabled: false,
   },
   [OPT_TRANS_GOOGLE2]: {
     url: URL_GOOGLE_TRAN2,
     key: DEFAULT_GOOGLE_API_KEY,
     fetchLimit: DEFAULT_FETCH_LIMIT,
     fetchInterval: DEFAULT_FETCH_INTERVAL,
+    apiName: OPT_TRANS_GOOGLE2,
+    isDisabled: false,
   },
   [OPT_TRANS_MICROSOFT]: {
     fetchLimit: DEFAULT_FETCH_LIMIT,
     fetchInterval: DEFAULT_FETCH_INTERVAL,
+    apiName: OPT_TRANS_MICROSOFT,
+    isDisabled: false,
   },
   [OPT_TRANS_BAIDU]: {
     fetchLimit: DEFAULT_FETCH_LIMIT,
     fetchInterval: DEFAULT_FETCH_INTERVAL,
+    apiName: OPT_TRANS_BAIDU,
+    isDisabled: false,
   },
   [OPT_TRANS_TENCENT]: {
     fetchLimit: DEFAULT_FETCH_LIMIT,
     fetchInterval: DEFAULT_FETCH_INTERVAL,
+    apiName: OPT_TRANS_TENCENT,
+    isDisabled: false,
   },
   [OPT_TRANS_VOLCENGINE]: {
     fetchLimit: DEFAULT_FETCH_LIMIT,
     fetchInterval: DEFAULT_FETCH_INTERVAL,
+    apiName: OPT_TRANS_VOLCENGINE,
+    isDisabled: false,
   },
   [OPT_TRANS_DEEPL]: {
     url: "https://api-free.deepl.com/v2/translate",
     key: "",
     fetchLimit: 1,
     fetchInterval: 500,
+    apiName: OPT_TRANS_DEEPL,
+    isDisabled: false,
   },
   [OPT_TRANS_DEEPLFREE]: {
     fetchLimit: 1,
     fetchInterval: 500,
+    apiName: OPT_TRANS_DEEPLFREE,
+    isDisabled: false,
   },
   [OPT_TRANS_DEEPLX]: {
     url: "http://localhost:1188/translate",
     key: "",
     fetchLimit: 1,
     fetchInterval: 500,
+    apiName: OPT_TRANS_DEEPLX,
+    isDisabled: false,
   },
   [OPT_TRANS_NIUTRANS]: {
     url: "https://api.niutrans.com/NiuTransServer/translation",
@@ -614,6 +636,8 @@ export const DEFAULT_TRANS_APIS = {
     memoryNo: "",
     fetchLimit: DEFAULT_FETCH_LIMIT,
     fetchInterval: DEFAULT_FETCH_INTERVAL,
+    apiName: OPT_TRANS_NIUTRANS,
+    isDisabled: false,
   },
   [OPT_TRANS_OPENAI]: defaultOpenaiApi,
   [OPT_TRANS_OPENAI_2]: defaultOpenaiApi,
@@ -626,6 +650,8 @@ export const DEFAULT_TRANS_APIS = {
     userPrompt: `Translate the following source text from ${INPUT_PLACE_FROM} to ${INPUT_PLACE_TO}. Output translation directly without any additional text.\n\nSource Text: ${INPUT_PLACE_TEXT}\n\nTranslated Text:`,
     fetchLimit: 1,
     fetchInterval: 500,
+    apiName: OPT_TRANS_GEMINI,
+    isDisabled: false,
   },
   [OPT_TRANS_CLAUDE]: {
     url: "https://api.anthropic.com/v1/messages",
@@ -637,12 +663,16 @@ export const DEFAULT_TRANS_APIS = {
     maxTokens: 1024,
     fetchLimit: 1,
     fetchInterval: 500,
+    apiName: OPT_TRANS_CLAUDE,
+    isDisabled: false,
   },
   [OPT_TRANS_CLOUDFLAREAI]: {
     url: "https://api.cloudflare.com/client/v4/accounts/{{ACCOUNT_ID}}/ai/run/@cf/meta/m2m100-1.2b",
     key: "",
     fetchLimit: 1,
     fetchInterval: 500,
+    apiName: OPT_TRANS_CLOUDFLAREAI,
+    isDisabled: false,
   },
   [OPT_TRANS_OLLAMA]: defaultOllamaApi,
   [OPT_TRANS_OLLAMA_2]: defaultOllamaApi,

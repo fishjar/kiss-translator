@@ -954,4 +954,12 @@ export const I18N = {
     zh: `英文词典`,
     en: `English Dictionary`,
   },
+  api_name: {
+    zh: `接口名称`,
+    en: `API Name`,
+  },
+  is_disabled: {
+    zh: `是否禁用`,
+    en: `Is Disabled`,
+  },
 };

@@ -3,6 +3,8 @@ import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import LoadingButton from "@mui/lab/LoadingButton";
 import MenuItem from "@mui/material/MenuItem";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Switch from "@mui/material/Switch";
 import {
   OPT_TRANS_ALL,
   OPT_TRANS_MICROSOFT,
@@ -129,6 +131,8 @@ function ApiFields({ translator }) {
     resHook = "",
     temperature = 0,
     maxTokens = 256,
+    apiName = "",
+    isDisabled = false,
   } = api;
 
   const handleChange = (e) => {
@@ -191,6 +195,14 @@ function ApiFields({ translator }) {
 
   return (
     <Stack spacing={3}>
+      <TextField
+        size="small"
+        label={i18n("api_name")}
+        name="apiName"
+        value={apiName}
+        onChange={handleChange}
+      />
+
       {!builtinTranslators.includes(translator) && (
         <>
           <TextField
@@ -354,6 +366,20 @@ function ApiFields({ translator }) {
         name="fetchInterval"
         value={fetchInterval}
         onChange={handleChange}
+      />
+
+      <FormControlLabel
+        control={
+          <Switch
+            size="small"
+            name="isDisabled"
+            checked={isDisabled}
+            onChange={()=>{
+              updateApi({ isDisabled: !isDisabled });
+            }}
+          />
+        }
+        label={i18n("is_disabled")}
       />
 
       <Stack direction="row" spacing={2}>

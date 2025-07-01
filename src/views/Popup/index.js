@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import MenuItem from "@mui/material/MenuItem";
@@ -23,6 +23,7 @@ import {
   OPT_LANGS_FROM,
   OPT_LANGS_TO,
   OPT_STYLE_ALL,
+  DEFAULT_TRANS_APIS,
 } from "../../config";
 import { sendIframeMsg } from "../../libs/iframe";
 import { saveRule } from "../../libs/rules";
@@ -32,6 +33,7 @@ import { kissLog } from "../../libs/log";
 export default function Popup({ setShowPopup, translator: tran }) {
   const i18n = useI18n();
   const [rule, setRule] = useState(tran?.rule);
+  const [transApis, setTransApis] = useState(tran?.setting?.transApis || []);
   const [commands, setCommands] = useState({});
 
   const handleOpenSetting = () => {
@@ -46,6 +48,7 @@ export default function Popup({ setShowPopup, translator: tran }) {
   };
 
   const handleTransToggle = async (e) => {
+    console.log({ tran });
     try {
       setRule({ ...rule, transOpen: e.target.checked ? "true" : "false" });
 
@@ -106,7 +109,8 @@ export default function Popup({ setShowPopup, translator: tran }) {
       try {
         const res = await sendTabMsg(MSG_TRANS_GETRULE);
         if (!res.error) {
-          setRule(res.data);
+          setRule(res.rule);
+          setTransApis(res.setting.transApis);
         }
       } catch (err) {
         kissLog(err, "query rule");
@@ -137,6 +141,20 @@ export default function Popup({ setShowPopup, translator: tran }) {
       }
     })();
   }, [tran]);
+
+  const optApis = useMemo(
+    () =>
+      OPT_TRANS_ALL.map((key) => ({
+        ...(transApis[key] || DEFAULT_TRANS_APIS[key]),
+        apiKey: key,
+      }))
+        .filter((item) => !item.isDisabled)
+        .map(({ apiKey, apiName }) => ({
+          key: apiKey,
+          name: apiName?.trim() || apiKey,
+        })),
+    [transApis]
+  );
 
   if (!rule) {
     return (
@@ -197,9 +215,9 @@ export default function Popup({ setShowPopup, translator: tran }) {
           label={i18n("translate_service")}
           onChange={handleChange}
         >
-          {OPT_TRANS_ALL.map((item) => (
-            <MenuItem key={item} value={item}>
-              {item}
+          {optApis.map(({ key, name }) => (
+            <MenuItem key={key} value={key}>
+              {name}
             </MenuItem>
           ))}
         </TextField>
