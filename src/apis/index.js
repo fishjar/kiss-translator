@@ -2,7 +2,7 @@ import queryString from "query-string";
 import { fetchData } from "../libs/fetch";
 import {
   OPT_TRANS_GOOGLE,
-  OPT_TRANS_GOOGLE2,
+  OPT_TRANS_GOOGLE_2,
   OPT_TRANS_MICROSOFT,
   OPT_TRANS_DEEPL,
   OPT_TRANS_DEEPLFREE,
@@ -261,7 +261,7 @@ export const apiTranslate = async ({
       trText = res.sentences.map((item) => item.trans).join(" ");
       isSame = to === res.src;
       break;
-    case OPT_TRANS_GOOGLE2:
+    case OPT_TRANS_GOOGLE_2:
       trText = res?.[0]?.[0]||"";
       isSame = to === res.src;
       break;

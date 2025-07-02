@@ -1,7 +1,7 @@
 import queryString from "query-string";
 import {
   OPT_TRANS_GOOGLE,
-  OPT_TRANS_GOOGLE2,
+  OPT_TRANS_GOOGLE_2,
   OPT_TRANS_MICROSOFT,
   OPT_TRANS_DEEPL,
   OPT_TRANS_DEEPLFREE,
@@ -506,7 +506,7 @@ export const genTransReq = ({ translator, text, from, to }, apiSetting) => {
   switch (translator) {
     case OPT_TRANS_GOOGLE:
       return genGoogle(args);
-    case OPT_TRANS_GOOGLE2:
+    case OPT_TRANS_GOOGLE_2:
       return genGoogle2(args);
     case OPT_TRANS_MICROSOFT:
       return genMicrosoft(args);
