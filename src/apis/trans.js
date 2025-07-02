@@ -291,6 +291,8 @@ const genGemini = ({
   systemPrompt,
   userPrompt,
   model,
+  temperature,
+  maxTokens,
 }) => {
   url = url
     .replaceAll(INPUT_PLACE_MODEL, model)
@@ -311,9 +313,16 @@ const genGemini = ({
       },
     },
     contents: {
+      role: "user",
       parts: {
         text: userPrompt,
       },
+    },
+    generationConfig: {
+      maxOutputTokens: maxTokens,
+      temperature,
+      // topP: 0.8,
+      // topK: 10,
     },
   };
 

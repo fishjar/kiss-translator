@@ -301,7 +301,8 @@ function ApiFields({ translator }) {
       )}
 
       {(translator.startsWith(OPT_TRANS_OPENAI) ||
-        translator === OPT_TRANS_CLAUDE) && (
+        translator === OPT_TRANS_CLAUDE ||
+        translator === OPT_TRANS_GEMINI) && (
         <>
           <TextField
             size="small"

@@ -669,9 +669,11 @@ export const DEFAULT_TRANS_APIS = {
   [OPT_TRANS_GEMINI]: {
     url: `https://generativelanguage.googleapis.com/v1/models/${INPUT_PLACE_MODEL}:generateContent?key=${INPUT_PLACE_KEY}`,
     key: "",
-    model: "gemini-pro",
+    model: "gemini-2.5-flash",
     systemPrompt: `You are a professional, authentic machine translation engine.`,
     userPrompt: `Translate the following source text from ${INPUT_PLACE_FROM} to ${INPUT_PLACE_TO}. Output translation directly without any additional text.\n\nSource Text: ${INPUT_PLACE_TEXT}\n\nTranslated Text:`,
+    temperature: 0,
+    maxTokens: 2048,
     fetchLimit: 1,
     fetchInterval: 500,
     apiName: OPT_TRANS_GEMINI,
