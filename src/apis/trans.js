@@ -14,6 +14,7 @@ import {
   OPT_TRANS_OPENAI_2,
   OPT_TRANS_OPENAI_3,
   OPT_TRANS_GEMINI,
+  OPT_TRANS_GEMINI_2,
   OPT_TRANS_CLAUDE,
   OPT_TRANS_CLOUDFLAREAI,
   OPT_TRANS_OLLAMA,
@@ -337,6 +338,55 @@ const genGemini = ({
   return [url, init];
 };
 
+const genGemini2 = ({
+  text,
+  from,
+  to,
+  url,
+  key,
+  systemPrompt,
+  userPrompt,
+  model,
+  temperature,
+  reasoningEffort,
+}) => {
+  systemPrompt = systemPrompt
+    .replaceAll(INPUT_PLACE_FROM, from)
+    .replaceAll(INPUT_PLACE_TO, to)
+    .replaceAll(INPUT_PLACE_TEXT, text);
+  userPrompt = userPrompt
+    .replaceAll(INPUT_PLACE_FROM, from)
+    .replaceAll(INPUT_PLACE_TO, to)
+    .replaceAll(INPUT_PLACE_TEXT, text);
+
+  const data = {
+    model,
+    reasoning_effort: reasoningEffort,
+    messages: [
+      {
+        role: "system",
+        content: systemPrompt,
+      },
+      {
+        role: "user",
+        content: userPrompt,
+      },
+    ],
+    temperature,
+  };
+
+  const init = {
+    headers: {
+      "Content-type": "application/json",
+      Authorization: `Bearer ${key}`,
+    },
+    method: "POST",
+    body: JSON.stringify(data),
+  };
+
+  return [url, init];
+};
+
 const genClaude = ({
   text,
   from,
@@ -493,6 +543,7 @@ export const genTransReq = ({ translator, text, from, to }, apiSetting) => {
     case OPT_TRANS_OPENAI_2:
     case OPT_TRANS_OPENAI_3:
     case OPT_TRANS_GEMINI:
+    case OPT_TRANS_GEMINI_2:
     case OPT_TRANS_CLAUDE:
     case OPT_TRANS_CLOUDFLAREAI:
     case OPT_TRANS_OLLAMA:
@@ -539,6 +590,8 @@ export const genTransReq = ({ translator, text, from, to }, apiSetting) => {
       return genOpenAI(args);
     case OPT_TRANS_GEMINI:
       return genGemini(args);
+    case OPT_TRANS_GEMINI_2:
+      return genGemini2(args);
     case OPT_TRANS_CLAUDE:
       return genClaude(args);
     case OPT_TRANS_CLOUDFLAREAI:

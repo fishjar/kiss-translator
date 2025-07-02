@@ -15,6 +15,7 @@ import {
   OPT_TRANS_OPENAI_2,
   OPT_TRANS_OPENAI_3,
   OPT_TRANS_GEMINI,
+  OPT_TRANS_GEMINI_2,
   OPT_TRANS_CLAUDE,
   OPT_TRANS_CLOUDFLAREAI,
   OPT_TRANS_OLLAMA,
@@ -262,7 +263,7 @@ export const apiTranslate = async ({
       isSame = to === res.src;
       break;
     case OPT_TRANS_GOOGLE_2:
-      trText = res?.[0]?.[0]||"";
+      trText = res?.[0]?.[0] || "";
       isSame = to === res.src;
       break;
     case OPT_TRANS_MICROSOFT:
@@ -313,6 +314,7 @@ export const apiTranslate = async ({
     case OPT_TRANS_OPENAI:
     case OPT_TRANS_OPENAI_2:
     case OPT_TRANS_OPENAI_3:
+    case OPT_TRANS_GEMINI_2:
       trText = res?.choices?.map((item) => item.message.content).join(" ");
       isSame = text === trText;
       break;
@@ -334,10 +336,10 @@ export const apiTranslate = async ({
     case OPT_TRANS_OLLAMA_2:
     case OPT_TRANS_OLLAMA_3:
       const { thinkIgnore = "" } = apiSetting;
-      const deepModels = thinkIgnore.split(',').filter(model => model.trim());
-      if (deepModels.some(model => res?.model?.startsWith(model))) {
-        trText = res?.response.replace(/<think>[\s\S]*<\/think>/i, '');
-      }else{
+      const deepModels = thinkIgnore.split(",").filter((model) => model.trim());
+      if (deepModels.some((model) => res?.model?.startsWith(model))) {
+        trText = res?.response.replace(/<think>[\s\S]*<\/think>/i, "");
+      } else {
         trText = res?.response;
       }
       isSame = text === trText;

@@ -130,6 +130,7 @@ export const OPT_TRANS_OPENAI = "OpenAI";
 export const OPT_TRANS_OPENAI_2 = "OpenAI2";
 export const OPT_TRANS_OPENAI_3 = "OpenAI3";
 export const OPT_TRANS_GEMINI = "Gemini";
+export const OPT_TRANS_GEMINI_2 = "Gemini2";
 export const OPT_TRANS_CLAUDE = "Claude";
 export const OPT_TRANS_CLOUDFLAREAI = "CloudflareAI";
 export const OPT_TRANS_OLLAMA = "Ollama";
@@ -155,6 +156,7 @@ export const OPT_TRANS_ALL = [
   OPT_TRANS_OPENAI_2,
   OPT_TRANS_OPENAI_3,
   OPT_TRANS_GEMINI,
+  OPT_TRANS_GEMINI_2,
   OPT_TRANS_CLAUDE,
   OPT_TRANS_CLOUDFLAREAI,
   OPT_TRANS_OLLAMA,
@@ -312,6 +314,9 @@ export const OPT_LANGS_SPECIAL = {
     OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
   ),
   [OPT_TRANS_GEMINI]: new Map(
+    OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
+  ),
+  [OPT_TRANS_GEMINI_2]: new Map(
     OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
   ),
   [OPT_TRANS_CLAUDE]: new Map(
@@ -677,6 +682,20 @@ export const DEFAULT_TRANS_APIS = {
     fetchLimit: 1,
     fetchInterval: 500,
     apiName: OPT_TRANS_GEMINI,
+    isDisabled: false,
+    httpTimeout: DEFAULT_HTTP_TIMEOUT * 2,
+  },
+  [OPT_TRANS_GEMINI_2]: {
+    url: `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions`,
+    key: "",
+    model: "gemini-2.0-flash",
+    systemPrompt: `You are a professional, authentic machine translation engine.`,
+    userPrompt: `Translate the following source text from ${INPUT_PLACE_FROM} to ${INPUT_PLACE_TO}. Output translation directly without any additional text.\n\nSource Text: ${INPUT_PLACE_TEXT}\n\nTranslated Text:`,
+    temperature: 0,
+    reasoningEffort: "low",
+    fetchLimit: 1,
+    fetchInterval: 500,
+    apiName: OPT_TRANS_GEMINI_2,
     isDisabled: false,
     httpTimeout: DEFAULT_HTTP_TIMEOUT * 2,
   },
