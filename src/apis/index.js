@@ -42,6 +42,7 @@ import {
 import { sha256 } from "../libs/utils";
 import interpreter from "../libs/interpreter";
 import { msAuth } from "../libs/auth";
+import { kissLog } from "../libs/log";
 
 /**
  * 同步数据
@@ -226,7 +227,7 @@ export const apiTranslate = async ({
     OPT_LANGS_SPECIAL[translator].get("auto");
   const to = OPT_LANGS_SPECIAL[translator].get(toLang);
   if (!to) {
-    console.log(`[trans] target lang: ${toLang} not support`);
+    kissLog(`target lang: ${toLang} not support`, "translate");
     return [trText, isSame];
   }
 

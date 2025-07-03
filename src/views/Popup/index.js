@@ -48,7 +48,6 @@ export default function Popup({ setShowPopup, translator: tran }) {
   };
 
   const handleTransToggle = async (e) => {
-    console.log({ tran });
     try {
       setRule({ ...rule, transOpen: e.target.checked ? "true" : "false" });
 
