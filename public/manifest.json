@@ -45,12 +45,7 @@
       "description": "__MSG_open_options__"
     }
   },
-  "permissions": [
-    "storage",
-    "contextMenus",
-    "scripting",
-    "declarativeNetRequest"
-  ],
+  "permissions": ["storage", "contextMenus", "scripting", "declarativeNetRequest"],
   "host_permissions": ["<all_urls>"],
   "icons": {
     "16": "images/logo16.png",

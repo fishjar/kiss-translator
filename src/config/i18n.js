@@ -186,19 +186,19 @@ export const I18N = {
     zh: `最大并发请求数量 (1-100)`,
     en: `Maximum Number Of Concurrent Requests (1-100)`,
   },
-  if_think:  {
+  if_think: {
     zh: `启用或禁用模型的深度思考能力`,
     en: `Enable or disable the model’s thinking behavior `,
   },
-  think:  {
+  think: {
     zh: `启用深度思考`,
     en: `enable thinking`,
   },
-  nothink:  {
+  nothink: {
     zh: `禁用深度思考`,
     en: `disable thinking`,
   },
-  think_ignore:  {
+  think_ignore: {
     zh: `忽略以下模型的<think>输出,逗号(,)分割,当模型支持思考但ollama不支持时需要填写本参数`,
     en: `Ignore the <think> block for the following models, comma (,) separated`,
   },
@@ -969,5 +969,5 @@ export const I18N = {
   translate_selected: {
     zh: `是否启用划词翻译`,
     en: `If translate selected`,
-  }
+  },
 };

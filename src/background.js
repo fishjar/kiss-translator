@@ -128,10 +128,10 @@ async function updateCspRules(csplist = DEFAULT_CSPLIST.join(",\n")) {
  * 注册邮件显示脚本
  */
 async function registerMsgDisplayScript() {
-		await messenger.messageDisplayScripts.register({
-			js: [{file: "/content.js"}]
-		});
-	}
+  await messenger.messageDisplayScripts.register({
+    js: [{ file: "/content.js" }],
+  });
+}
 
 /**
  * 插件安装
@@ -143,7 +143,7 @@ browser.runtime.onInstalled.addListener(() => {
   if (process.env.REACT_APP_CLIENT === CLIENT_THUNDERBIRD) {
     registerMsgDisplayScript();
   }
-  
+
   // 右键菜单
   addContextMenus();
 

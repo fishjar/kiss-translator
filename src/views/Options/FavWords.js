@@ -96,9 +96,7 @@ export default function FavWords() {
             .join(" "),
           dictResult.content[0].mean
             .map(({ pre, cont }) => {
-              return `  - ${pre ? `[${pre}] ` : ""}${Object.keys(cont).join(
-                "; "
-              )}`;
+              return `  - ${pre ? `[${pre}] ` : ""}${Object.keys(cont).join("; ")}`;
             })
             .join("\n"),
         ].join("\n\n")

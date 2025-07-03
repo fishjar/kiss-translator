@@ -93,9 +93,7 @@ export default function DictCont({ text }) {
                 key={key}
                 style={{ display: "inline-block" }}
               >
-                <Typography component="span">{`${
-                  PHONIC_MAP[key]?.[0] || key
-                } ${val}`}</Typography>
+                <Typography component="span">{`${PHONIC_MAP[key]?.[0] || key} ${val}`}</Typography>
                 <AudioBtn text={dictResult.src} lan={PHONIC_MAP[key]?.[1]} />
               </Typography>
             ))}
