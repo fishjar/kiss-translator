@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name          KISS Translator
 // @namespace     https://github.com/fishjar/kiss-translator
-// @version       1.8.11
+// @version       1.9.0
 // @description   A simple bilingual translation extension & Greasemonkey script (一个简约的双语对照翻译扩展 & 油猴脚本)
 // @author        Gabe<yugang2002@gmail.com>
 // @homepageURL   https://github.com/fishjar/kiss-translator
@@ -19,6 +19,7 @@
 // @grant         GM.info
 // @inject-into   content
 // @connect       translate.googleapis.com
+// @connect       translate-pa.googleapis.com
 // @connect       api-edge.cognitive.microsofttranslator.com
 // @connect       edge.microsoft.com
 // @connect       api-free.deepl.com
@@ -35,12 +36,10 @@
 // @connect       dav.jianguoyun.com
 // @connect       fanyi.baidu.com
 // @connect       transmart.qq.com
-// @connect       localhost:3000
-// @connect       127.0.0.1:3000
-// @connect       localhost:1188
-// @connect       127.0.0.1:1188
-// @connect       localhost:11434
-// @connect       127.0.0.1:11434
+// @connect       niutrans.com
+// @connect       translate.volcengine.com
+// @connect       localhost
+// @connect       127.0.0.1
 // @run-at        document-end
 // ==/UserScript==
 
@@ -2375,7 +2374,7 @@ var insertStyles = function insertStyles(cache, serialized, isStringTag) {
 
 /***/ }),
 
-/***/ 305:
+/***/ 8373:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -2388,7 +2387,7 @@ __webpack_unused_export__ = ({
   value: true
 });
 exports.Z = void 0;
-var _createSvgIcon = _interopRequireDefault(__webpack_require__(3783));
+var _createSvgIcon = _interopRequireDefault(__webpack_require__(1954));
 var _jsxRuntime = __webpack_require__(7394);
 var _default = exports.Z = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
   d: "M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
@@ -2396,7 +2395,7 @@ var _default = exports.Z = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRun
 
 /***/ }),
 
-/***/ 5413:
+/***/ 6409:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -2409,7 +2408,7 @@ __webpack_unused_export__ = ({
   value: true
 });
 exports.Z = void 0;
-var _createSvgIcon = _interopRequireDefault(__webpack_require__(3783));
+var _createSvgIcon = _interopRequireDefault(__webpack_require__(1954));
 var _jsxRuntime = __webpack_require__(7394);
 var _default = exports.Z = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
   d: "M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2m0 16H8V7h11z"
@@ -2417,7 +2416,7 @@ var _default = exports.Z = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRun
 
 /***/ }),
 
-/***/ 5788:
+/***/ 7415:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -2430,7 +2429,7 @@ __webpack_unused_export__ = ({
   value: true
 });
 exports.Z = void 0;
-var _createSvgIcon = _interopRequireDefault(__webpack_require__(3783));
+var _createSvgIcon = _interopRequireDefault(__webpack_require__(1954));
 var _jsxRuntime = __webpack_require__(7394);
 var _default = exports.Z = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
   d: "M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1"
@@ -2438,7 +2437,7 @@ var _default = exports.Z = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRun
 
 /***/ }),
 
-/***/ 2478:
+/***/ 5813:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -2451,7 +2450,7 @@ __webpack_unused_export__ = ({
   value: true
 });
 exports.Z = void 0;
-var _createSvgIcon = _interopRequireDefault(__webpack_require__(3783));
+var _createSvgIcon = _interopRequireDefault(__webpack_require__(1954));
 var _jsxRuntime = __webpack_require__(7394);
 var _default = exports.Z = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
   d: "M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"
@@ -2459,7 +2458,7 @@ var _default = exports.Z = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRun
 
 /***/ }),
 
-/***/ 6147:
+/***/ 5908:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -2472,7 +2471,7 @@ __webpack_unused_export__ = ({
   value: true
 });
 exports.Z = void 0;
-var _createSvgIcon = _interopRequireDefault(__webpack_require__(3783));
+var _createSvgIcon = _interopRequireDefault(__webpack_require__(1954));
 var _jsxRuntime = __webpack_require__(7394);
 var _default = exports.Z = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
   d: "M11 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2m-2-8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2m0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2m6 4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2m0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2m0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2"
@@ -2480,7 +2479,7 @@ var _default = exports.Z = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRun
 
 /***/ }),
 
-/***/ 9839:
+/***/ 6510:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -2493,7 +2492,7 @@ __webpack_unused_export__ = ({
   value: true
 });
 exports.Z = void 0;
-var _createSvgIcon = _interopRequireDefault(__webpack_require__(3783));
+var _createSvgIcon = _interopRequireDefault(__webpack_require__(1954));
 var _jsxRuntime = __webpack_require__(7394);
 var _default = exports.Z = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
   d: "m12 21.35-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54z"
@@ -2501,7 +2500,7 @@ var _default = exports.Z = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRun
 
 /***/ }),
 
-/***/ 6062:
+/***/ 111:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -2514,7 +2513,7 @@ __webpack_unused_export__ = ({
   value: true
 });
 exports.Z = void 0;
-var _createSvgIcon = _interopRequireDefault(__webpack_require__(3783));
+var _createSvgIcon = _interopRequireDefault(__webpack_require__(1954));
 var _jsxRuntime = __webpack_require__(7394);
 var _default = exports.Z = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
   d: "M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3m-4.4 15.55-.1.1-.1-.1C7.14 14.24 4 11.39 4 8.5 4 6.5 5.5 5 7.5 5c1.54 0 3.04.99 3.57 2.36h1.87C13.46 5.99 14.96 5 16.5 5c2 0 3.5 1.5 3.5 3.5 0 2.89-3.14 5.74-7.9 10.05"
@@ -2522,7 +2521,7 @@ var _default = exports.Z = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRun
 
 /***/ }),
 
-/***/ 9235:
+/***/ 1088:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -2535,7 +2534,7 @@ __webpack_unused_export__ = ({
   value: true
 });
 exports.Z = void 0;
-var _createSvgIcon = _interopRequireDefault(__webpack_require__(3783));
+var _createSvgIcon = _interopRequireDefault(__webpack_require__(1954));
 var _jsxRuntime = __webpack_require__(7394);
 var _default = exports.Z = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
   d: "M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"
@@ -2543,7 +2542,7 @@ var _default = exports.Z = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRun
 
 /***/ }),
 
-/***/ 8375:
+/***/ 1064:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -2556,7 +2555,7 @@ __webpack_unused_export__ = ({
   value: true
 });
 exports.Z = void 0;
-var _createSvgIcon = _interopRequireDefault(__webpack_require__(3783));
+var _createSvgIcon = _interopRequireDefault(__webpack_require__(1954));
 var _jsxRuntime = __webpack_require__(7394);
 var _default = exports.Z = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
   d: "M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2m-7.53 12L9 10.5l1.4-1.41 2.07 2.08L17.6 6 19 7.41zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4z"
@@ -2564,7 +2563,7 @@ var _default = exports.Z = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRun
 
 /***/ }),
 
-/***/ 6250:
+/***/ 4766:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -2577,7 +2576,7 @@ __webpack_unused_export__ = ({
   value: true
 });
 exports.Z = void 0;
-var _createSvgIcon = _interopRequireDefault(__webpack_require__(3783));
+var _createSvgIcon = _interopRequireDefault(__webpack_require__(1954));
 var _jsxRuntime = __webpack_require__(7394);
 var _default = exports.Z = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
   d: "M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5M2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1m18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1M11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1m0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1M5.99 4.58c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41zm12.37 12.37c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0 .39-.39.39-1.03 0-1.41zm1.06-10.96c.39-.39.39-1.03 0-1.41-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0zM7.05 18.36c.39-.39.39-1.03 0-1.41-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0z"
@@ -2585,7 +2584,7 @@ var _default = exports.Z = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRun
 
 /***/ }),
 
-/***/ 509:
+/***/ 2227:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -2598,7 +2597,7 @@ __webpack_unused_export__ = ({
   value: true
 });
 exports.Z = void 0;
-var _createSvgIcon = _interopRequireDefault(__webpack_require__(3783));
+var _createSvgIcon = _interopRequireDefault(__webpack_require__(1954));
 var _jsxRuntime = __webpack_require__(7394);
 var _default = exports.Z = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
   d: "M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2m-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2m3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1z"
@@ -2606,7 +2605,7 @@ var _default = exports.Z = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRun
 
 /***/ }),
 
-/***/ 1463:
+/***/ 2386:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -2619,7 +2618,7 @@ __webpack_unused_export__ = ({
   value: true
 });
 exports.Z = void 0;
-var _createSvgIcon = _interopRequireDefault(__webpack_require__(3783));
+var _createSvgIcon = _interopRequireDefault(__webpack_require__(1954));
 var _jsxRuntime = __webpack_require__(7394);
 var _default = exports.Z = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
   d: "M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2m6-9h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6h1.9c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2m0 12H6V10h12z"
@@ -2627,7 +2626,7 @@ var _default = exports.Z = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRun
 
 /***/ }),
 
-/***/ 71:
+/***/ 2340:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -2640,7 +2639,7 @@ __webpack_unused_export__ = ({
   value: true
 });
 exports.Z = void 0;
-var _createSvgIcon = _interopRequireDefault(__webpack_require__(3783));
+var _createSvgIcon = _interopRequireDefault(__webpack_require__(1954));
 var _jsxRuntime = __webpack_require__(7394);
 var _default = exports.Z = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
   fillRule: "evenodd",
@@ -2649,7 +2648,7 @@ var _default = exports.Z = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRun
 
 /***/ }),
 
-/***/ 9318:
+/***/ 1457:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -2662,7 +2661,7 @@ __webpack_unused_export__ = ({
   value: true
 });
 exports.Z = void 0;
-var _createSvgIcon = _interopRequireDefault(__webpack_require__(3783));
+var _createSvgIcon = _interopRequireDefault(__webpack_require__(1954));
 var _jsxRuntime = __webpack_require__(7394);
 var _default = exports.Z = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
   d: "M14 4v5c0 1.12.37 2.16 1 3H9c.65-.86 1-1.9 1-3V4zm3-2H7c-.55 0-1 .45-1 1s.45 1 1 1h1v5c0 1.66-1.34 3-3 3v2h5.97v7l1 1 1-1v-7H19v-2c-1.66 0-3-1.34-3-3V4h1c.55 0 1-.45 1-1s-.45-1-1-1"
@@ -2670,7 +2669,7 @@ var _default = exports.Z = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRun
 
 /***/ }),
 
-/***/ 9055:
+/***/ 2761:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -2683,7 +2682,7 @@ __webpack_unused_export__ = ({
   value: true
 });
 exports.Z = void 0;
-var _createSvgIcon = _interopRequireDefault(__webpack_require__(3783));
+var _createSvgIcon = _interopRequireDefault(__webpack_require__(1954));
 var _jsxRuntime = __webpack_require__(7394);
 var _default = exports.Z = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
   d: "m12.87 15.07-2.54-2.51.03-.03c1.74-1.94 2.98-4.17 3.71-6.53H17V4h-7V2H8v2H1v1.99h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"
@@ -2691,7 +2690,7 @@ var _default = exports.Z = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRun
 
 /***/ }),
 
-/***/ 651:
+/***/ 3767:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -2704,7 +2703,7 @@ __webpack_unused_export__ = ({
   value: true
 });
 exports.Z = void 0;
-var _createSvgIcon = _interopRequireDefault(__webpack_require__(3783));
+var _createSvgIcon = _interopRequireDefault(__webpack_require__(1954));
 var _jsxRuntime = __webpack_require__(7394);
 var _default = exports.Z = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
   d: "M7.41 18.59 8.83 20 12 16.83 15.17 20l1.41-1.41L12 14zm9.18-13.18L15.17 4 12 7.17 8.83 4 7.41 5.41 12 10z"
@@ -2712,7 +2711,7 @@ var _default = exports.Z = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRun
 
 /***/ }),
 
-/***/ 5804:
+/***/ 8470:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -2725,7 +2724,7 @@ __webpack_unused_export__ = ({
   value: true
 });
 exports.Z = void 0;
-var _createSvgIcon = _interopRequireDefault(__webpack_require__(3783));
+var _createSvgIcon = _interopRequireDefault(__webpack_require__(1954));
 var _jsxRuntime = __webpack_require__(7394);
 var _default = exports.Z = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
   d: "M12 5.83 15.17 9l1.41-1.41L12 3 7.41 7.59 8.83 9zm0 12.34L8.83 15l-1.41 1.41L12 21l4.59-4.59L15.17 15z"
@@ -2733,7 +2732,7 @@ var _default = exports.Z = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRun
 
 /***/ }),
 
-/***/ 6060:
+/***/ 1777:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -2746,7 +2745,7 @@ __webpack_unused_export__ = ({
   value: true
 });
 exports.Z = void 0;
-var _createSvgIcon = _interopRequireDefault(__webpack_require__(3783));
+var _createSvgIcon = _interopRequireDefault(__webpack_require__(1954));
 var _jsxRuntime = __webpack_require__(7394);
 var _default = exports.Z = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRuntime.jsx)("path", {
   d: "M3 9v6h4l5 5V4L7 9zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02M14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77"
@@ -2754,7 +2753,7 @@ var _default = exports.Z = (0, _createSvgIcon.default)( /*#__PURE__*/(0, _jsxRun
 
 /***/ }),
 
-/***/ 3783:
+/***/ 1954:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -2770,11 +2769,11 @@ Object.defineProperty(exports, "default", ({
     return _utils.createSvgIcon;
   }
 }));
-var _utils = __webpack_require__(1254);
+var _utils = __webpack_require__(5101);
 
 /***/ }),
 
-/***/ 7262:
+/***/ 6582:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -2801,7 +2800,7 @@ const blue = {
 
 /***/ }),
 
-/***/ 3353:
+/***/ 269:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -2816,7 +2815,7 @@ const common = {
 
 /***/ }),
 
-/***/ 2587:
+/***/ 8152:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -2843,7 +2842,7 @@ const green = {
 
 /***/ }),
 
-/***/ 2181:
+/***/ 202:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -2870,7 +2869,7 @@ const grey = {
 
 /***/ }),
 
-/***/ 6645:
+/***/ 9239:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -2897,7 +2896,7 @@ const lightBlue = {
 
 /***/ }),
 
-/***/ 5283:
+/***/ 4549:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -2924,7 +2923,7 @@ const orange = {
 
 /***/ }),
 
-/***/ 9617:
+/***/ 761:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -2951,7 +2950,7 @@ const purple = {
 
 /***/ }),
 
-/***/ 6008:
+/***/ 6150:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -2978,7 +2977,7 @@ const red = {
 
 /***/ }),
 
-/***/ 791:
+/***/ 6288:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -3005,7 +3004,7 @@ function createMixins(breakpoints, mixins) {
 
 /***/ }),
 
-/***/ 2777:
+/***/ 847:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -3017,15 +3016,15 @@ function createMixins(breakpoints, mixins) {
 /* harmony import */ var _babel_runtime_helpers_esm_objectWithoutPropertiesLoose__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(3031);
 /* harmony import */ var _mui_utils_formatMuiErrorMessage__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(4451);
 /* harmony import */ var _mui_utils_deepmerge__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(8836);
-/* harmony import */ var _mui_system_colorManipulator__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1744);
-/* harmony import */ var _colors_common__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3353);
-/* harmony import */ var _colors_grey__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(2181);
-/* harmony import */ var _colors_purple__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(9617);
-/* harmony import */ var _colors_red__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(6008);
-/* harmony import */ var _colors_orange__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(5283);
-/* harmony import */ var _colors_blue__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(7262);
-/* harmony import */ var _colors_lightBlue__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(6645);
-/* harmony import */ var _colors_green__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(2587);
+/* harmony import */ var _mui_system_colorManipulator__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(2686);
+/* harmony import */ var _colors_common__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(269);
+/* harmony import */ var _colors_grey__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(202);
+/* harmony import */ var _colors_purple__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(761);
+/* harmony import */ var _colors_red__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(6150);
+/* harmony import */ var _colors_orange__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(4549);
+/* harmony import */ var _colors_blue__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(6582);
+/* harmony import */ var _colors_lightBlue__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(9239);
+/* harmony import */ var _colors_green__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(8152);
 
 
 
@@ -3318,7 +3317,7 @@ function createPalette(palette) {
 
 /***/ }),
 
-/***/ 1126:
+/***/ 4593:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -3330,15 +3329,15 @@ function createPalette(palette) {
 /* harmony import */ var _babel_runtime_helpers_esm_objectWithoutPropertiesLoose__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3031);
 /* harmony import */ var _mui_utils_formatMuiErrorMessage__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(4451);
 /* harmony import */ var _mui_utils_deepmerge__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(8836);
-/* harmony import */ var _mui_system_styleFunctionSx__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(3913);
-/* harmony import */ var _mui_system_styleFunctionSx__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(7692);
-/* harmony import */ var _mui_system_createTheme__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(2332);
-/* harmony import */ var _createMixins__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(791);
-/* harmony import */ var _createPalette__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(2777);
-/* harmony import */ var _createTypography__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(6661);
-/* harmony import */ var _shadows__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(2454);
-/* harmony import */ var _createTransitions__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(1292);
-/* harmony import */ var _zIndex__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(8771);
+/* harmony import */ var _mui_system_styleFunctionSx__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(1524);
+/* harmony import */ var _mui_system_styleFunctionSx__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(1048);
+/* harmony import */ var _mui_system_createTheme__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(3985);
+/* harmony import */ var _createMixins__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(6288);
+/* harmony import */ var _createPalette__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(847);
+/* harmony import */ var _createTypography__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(2155);
+/* harmony import */ var _shadows__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(5081);
+/* harmony import */ var _createTransitions__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(3803);
+/* harmony import */ var _zIndex__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(430);
 
 
 
@@ -3400,7 +3399,7 @@ function createMuiTheme() {
 
 /***/ }),
 
-/***/ 1292:
+/***/ 3803:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -3480,7 +3479,7 @@ function createTransitions(inputTransitions) {
 
 /***/ }),
 
-/***/ 6661:
+/***/ 2155:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -3576,14 +3575,14 @@ function createTypography(palette, typography) {
 
 /***/ }),
 
-/***/ 1315:
+/***/ 559:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _createTheme__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(1126);
+/* harmony import */ var _createTheme__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4593);
 'use client';
 
 
@@ -3592,7 +3591,7 @@ const defaultTheme = (0,_createTheme__WEBPACK_IMPORTED_MODULE_0__/* ["default"] 
 
 /***/ }),
 
-/***/ 4876:
+/***/ 6617:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -3603,21 +3602,21 @@ const defaultTheme = (0,_createTheme__WEBPACK_IMPORTED_MODULE_0__/* ["default"] 
 
 /***/ }),
 
-/***/ 2243:
+/***/ 512:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _slotShouldForwardProp__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(5023);
+/* harmony import */ var _slotShouldForwardProp__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(2378);
 
 const rootShouldForwardProp = prop => (0,_slotShouldForwardProp__WEBPACK_IMPORTED_MODULE_0__/* ["default"] */ .Z)(prop) && prop !== 'classes';
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (rootShouldForwardProp);
 
 /***/ }),
 
-/***/ 2454:
+/***/ 5081:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -3637,7 +3636,7 @@ const shadows = ['none', createShadow(0, 2, 1, -1, 0, 1, 1, 0, 0, 1, 3, 0), crea
 
 /***/ }),
 
-/***/ 5023:
+/***/ 2378:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -3652,17 +3651,17 @@ function slotShouldForwardProp(prop) {
 
 /***/ }),
 
-/***/ 1535:
+/***/ 5807:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   ZP: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _mui_system_createStyled__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(1950);
-/* harmony import */ var _defaultTheme__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(1315);
-/* harmony import */ var _identifier__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(4876);
-/* harmony import */ var _rootShouldForwardProp__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(2243);
+/* harmony import */ var _mui_system_createStyled__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3952);
+/* harmony import */ var _defaultTheme__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(559);
+/* harmony import */ var _identifier__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(6617);
+/* harmony import */ var _rootShouldForwardProp__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(512);
 'use client';
 
 
@@ -3680,16 +3679,16 @@ const styled = (0,_mui_system_createStyled__WEBPACK_IMPORTED_MODULE_0__/* ["defa
 
 /***/ }),
 
-/***/ 1778:
+/***/ 3954:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (/* binding */ useThemeProps)
 /* harmony export */ });
-/* harmony import */ var _mui_system_useThemeProps__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3696);
-/* harmony import */ var _defaultTheme__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1315);
-/* harmony import */ var _identifier__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(4876);
+/* harmony import */ var _mui_system_useThemeProps__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(8251);
+/* harmony import */ var _defaultTheme__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(559);
+/* harmony import */ var _identifier__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(6617);
 'use client';
 
 
@@ -3710,7 +3709,7 @@ function useThemeProps(_ref) {
 
 /***/ }),
 
-/***/ 8771:
+/***/ 430:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -3733,7 +3732,7 @@ const zIndex = {
 
 /***/ }),
 
-/***/ 7593:
+/***/ 5652:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -3746,7 +3745,7 @@ const zIndex = {
 
 /***/ }),
 
-/***/ 2876:
+/***/ 9415:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -3759,7 +3758,7 @@ const zIndex = {
 
 /***/ }),
 
-/***/ 9295:
+/***/ 174:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -3776,20 +3775,20 @@ var react = __webpack_require__(7948);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@babel+runtime@7.24.4/node_modules/@babel/runtime/helpers/esm/objectWithoutPropertiesLoose.js
 var objectWithoutPropertiesLoose = __webpack_require__(3031);
 // EXTERNAL MODULE: ./node_modules/.pnpm/clsx@2.1.0/node_modules/clsx/dist/clsx.mjs
-var clsx = __webpack_require__(8152);
+var clsx = __webpack_require__(7919);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mui+utils@5.15.14_@types+react@18.2.79_react@18.2.0/node_modules/@mui/utils/composeClasses/composeClasses.js
 var composeClasses = __webpack_require__(5923);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/utils/capitalize.js
-var capitalize = __webpack_require__(7593);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/styles/useThemeProps.js
-var useThemeProps = __webpack_require__(1778);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/styles/styled.js
-var styled = __webpack_require__(1535);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/capitalize.js
+var capitalize = __webpack_require__(5652);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/styles/useThemeProps.js
+var useThemeProps = __webpack_require__(3954);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/styles/styled.js
+var styled = __webpack_require__(5807);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mui+utils@5.15.14_@types+react@18.2.79_react@18.2.0/node_modules/@mui/utils/generateUtilityClasses/generateUtilityClasses.js
 var generateUtilityClasses = __webpack_require__(3453);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mui+utils@5.15.14_@types+react@18.2.79_react@18.2.0/node_modules/@mui/utils/generateUtilityClass/generateUtilityClass.js
 var generateUtilityClass = __webpack_require__(8092);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/SvgIcon/svgIconClasses.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/SvgIcon/svgIconClasses.js
 
 
 function getSvgIconUtilityClass(slot) {
@@ -3799,7 +3798,7 @@ const svgIconClasses = (0,generateUtilityClasses/* default */.Z)('MuiSvgIcon', [
 /* harmony default export */ const SvgIcon_svgIconClasses = ((/* unused pure expression or super */ null && (svgIconClasses)));
 // EXTERNAL MODULE: ./node_modules/.pnpm/react@18.2.0/node_modules/react/jsx-runtime.js
 var jsx_runtime = __webpack_require__(7394);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/SvgIcon/SvgIcon.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/SvgIcon/SvgIcon.js
 'use client';
 
 
@@ -3917,7 +3916,7 @@ const SvgIcon = /*#__PURE__*/react.forwardRef(function SvgIcon(inProps, ref) {
  false ? 0 : void 0;
 SvgIcon.muiName = 'SvgIcon';
 /* harmony default export */ const SvgIcon_SvgIcon = (SvgIcon);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/utils/createSvgIcon.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/createSvgIcon.js
 'use client';
 
 
@@ -3944,7 +3943,7 @@ function createSvgIcon(path, displayName) {
 
 /***/ }),
 
-/***/ 5036:
+/***/ 5692:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -3957,7 +3956,7 @@ function createSvgIcon(path, displayName) {
 
 /***/ }),
 
-/***/ 1254:
+/***/ 5101:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -3988,14 +3987,14 @@ __webpack_require__.d(__webpack_exports__, {
 
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mui+utils@5.15.14_@types+react@18.2.79_react@18.2.0/node_modules/@mui/utils/ClassNameGenerator/ClassNameGenerator.js
 var ClassNameGenerator = __webpack_require__(3705);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/utils/capitalize.js
-var capitalize = __webpack_require__(7593);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/utils/createChainedFunction.js
-var createChainedFunction = __webpack_require__(2876);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/utils/createSvgIcon.js + 2 modules
-var createSvgIcon = __webpack_require__(9295);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/utils/debounce.js
-var debounce = __webpack_require__(5036);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/capitalize.js
+var capitalize = __webpack_require__(5652);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/createChainedFunction.js
+var createChainedFunction = __webpack_require__(9415);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/createSvgIcon.js + 2 modules
+var createSvgIcon = __webpack_require__(174);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/debounce.js
+var debounce = __webpack_require__(5692);
 ;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+utils@5.15.14_@types+react@18.2.79_react@18.2.0/node_modules/@mui/utils/deprecatedPropType/deprecatedPropType.js
 function deprecatedPropType(validator, reason) {
   if (true) {
@@ -4010,15 +4009,15 @@ function deprecatedPropType(validator, reason) {
     return null;
   };
 }
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/utils/deprecatedPropType.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/deprecatedPropType.js
 
 /* harmony default export */ const utils_deprecatedPropType = (deprecatedPropType);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/utils/isMuiElement.js + 1 modules
-var isMuiElement = __webpack_require__(3272);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/utils/ownerDocument.js
-var ownerDocument = __webpack_require__(1704);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/utils/ownerWindow.js
-var ownerWindow = __webpack_require__(5329);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/isMuiElement.js + 1 modules
+var isMuiElement = __webpack_require__(2829);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/ownerDocument.js
+var ownerDocument = __webpack_require__(9259);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/ownerWindow.js
+var ownerWindow = __webpack_require__(6879);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@babel+runtime@7.24.4/node_modules/@babel/runtime/helpers/esm/extends.js
 var esm_extends = __webpack_require__(1010);
 ;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+utils@5.15.14_@types+react@18.2.79_react@18.2.0/node_modules/@mui/utils/requirePropFactory/requirePropFactory.js
@@ -4049,18 +4048,18 @@ function requirePropFactory(componentNameInError, Component) {
   };
   return requireProp;
 }
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/utils/requirePropFactory.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/requirePropFactory.js
 
 /* harmony default export */ const utils_requirePropFactory = (requirePropFactory);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mui+utils@5.15.14_@types+react@18.2.79_react@18.2.0/node_modules/@mui/utils/setRef/setRef.js
 var setRef = __webpack_require__(9109);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/utils/setRef.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/setRef.js
 
 /* harmony default export */ const utils_setRef = (setRef/* default */.Z);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/utils/useEnhancedEffect.js
-var useEnhancedEffect = __webpack_require__(208);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/utils/useId.js
-var useId = __webpack_require__(3163);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/useEnhancedEffect.js
+var useEnhancedEffect = __webpack_require__(2754);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/useId.js
+var useId = __webpack_require__(4204);
 ;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+utils@5.15.14_@types+react@18.2.79_react@18.2.0/node_modules/@mui/utils/unsupportedProp/unsupportedProp.js
 function unsupportedProp(props, propName, componentName, location, propFullName) {
   if (true) {
@@ -4072,18 +4071,18 @@ function unsupportedProp(props, propName, componentName, location, propFullName)
   }
   return null;
 }
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/utils/unsupportedProp.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/unsupportedProp.js
 
 /* harmony default export */ const utils_unsupportedProp = (unsupportedProp);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/utils/useControlled.js + 1 modules
-var useControlled = __webpack_require__(1520);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/utils/useEventCallback.js
-var useEventCallback = __webpack_require__(4505);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/utils/useForkRef.js
-var useForkRef = __webpack_require__(6490);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/utils/useIsFocusVisible.js
-var useIsFocusVisible = __webpack_require__(1511);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/utils/index.js
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/useControlled.js + 1 modules
+var useControlled = __webpack_require__(6559);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/useEventCallback.js
+var useEventCallback = __webpack_require__(1469);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/useForkRef.js
+var useForkRef = __webpack_require__(8689);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/useIsFocusVisible.js
+var useIsFocusVisible = __webpack_require__(7541);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/index.js
 'use client';
 
 
@@ -4115,7 +4114,7 @@ const unstable_ClassNameGenerator = {
 
 /***/ }),
 
-/***/ 3272:
+/***/ 2829:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -4137,13 +4136,13 @@ function isMuiElement(element, muiNames) {
   // eslint-disable-next-line no-underscore-dangle
   (_muiName = element.type.muiName) != null ? _muiName : (_element$type = element.type) == null || (_element$type = _element$type._payload) == null || (_element$type = _element$type.value) == null ? void 0 : _element$type.muiName) !== -1;
 }
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/utils/isMuiElement.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/isMuiElement.js
 
 /* harmony default export */ const utils_isMuiElement = (isMuiElement);
 
 /***/ }),
 
-/***/ 1704:
+/***/ 9259:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -4156,7 +4155,7 @@ function isMuiElement(element, muiNames) {
 
 /***/ }),
 
-/***/ 5329:
+/***/ 6879:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -4169,7 +4168,7 @@ function isMuiElement(element, muiNames) {
 
 /***/ }),
 
-/***/ 1520:
+/***/ 6559:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -4207,7 +4206,7 @@ function useControlled(_ref) {
   }, []);
   return [value, setValueIfUncontrolled];
 }
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/utils/useControlled.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/useControlled.js
 'use client';
 
 
@@ -4215,7 +4214,7 @@ function useControlled(_ref) {
 
 /***/ }),
 
-/***/ 208:
+/***/ 2754:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -4230,7 +4229,7 @@ function useControlled(_ref) {
 
 /***/ }),
 
-/***/ 4505:
+/***/ 1469:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -4245,7 +4244,7 @@ function useControlled(_ref) {
 
 /***/ }),
 
-/***/ 6490:
+/***/ 8689:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -4260,7 +4259,7 @@ function useControlled(_ref) {
 
 /***/ }),
 
-/***/ 3163:
+/***/ 4204:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -4275,7 +4274,7 @@ function useControlled(_ref) {
 
 /***/ }),
 
-/***/ 1511:
+/***/ 7541:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -4290,7 +4289,7 @@ function useControlled(_ref) {
 
 /***/ }),
 
-/***/ 8732:
+/***/ 9450:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -4323,7 +4322,7 @@ function GlobalStyles(props) {
 
 /***/ }),
 
-/***/ 6818:
+/***/ 5190:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -4380,7 +4379,7 @@ var emotion_utils_browser_esm = __webpack_require__(1443);
 var emotion_serialize_browser_esm = __webpack_require__(7073);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@emotion+use-insertion-effect-with-fallbacks@1.0.1_react@18.2.0/node_modules/@emotion/use-insertion-effect-with-fallbacks/dist/emotion-use-insertion-effect-with-fallbacks.browser.esm.js
 var emotion_use_insertion_effect_with_fallbacks_browser_esm = __webpack_require__(122);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@emotion+styled@11.11.0_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0/node_modules/@emotion/styled/base/dist/emotion-styled-base.browser.esm.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@emotion+styled@11.11.0_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@types+react@18.2.79_react@18.2.0/node_modules/@emotion/styled/base/dist/emotion-styled-base.browser.esm.js
 
 
 
@@ -4517,7 +4516,7 @@ var createStyled = function createStyled(tag, options) {
   };
 };
 
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@emotion+styled@11.11.0_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0/node_modules/@emotion/styled/dist/emotion-styled.browser.esm.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@emotion+styled@11.11.0_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@types+react@18.2.79_react@18.2.0/node_modules/@emotion/styled/dist/emotion-styled.browser.esm.js
 
 
 
@@ -4541,7 +4540,7 @@ var emotion_react_browser_esm = __webpack_require__(2150);
 var emotion_cache_browser_esm = __webpack_require__(3029);
 // EXTERNAL MODULE: ./node_modules/.pnpm/react@18.2.0/node_modules/react/jsx-runtime.js
 var jsx_runtime = __webpack_require__(7394);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+styled-engine@5.15.14_@emotion+react@11.11.1_@emotion+styled@11.11.0_react@18.2.0/node_modules/@mui/styled-engine/StyledEngineProvider/StyledEngineProvider.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+styled-engine@5.15.14_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@e_38b353972d011fd8524090cbc8c519bf/node_modules/@mui/styled-engine/StyledEngineProvider/StyledEngineProvider.js
 'use client';
 
 
@@ -4570,9 +4569,9 @@ function StyledEngineProvider(props) {
   }) : children;
 }
  false ? 0 : void 0;
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+styled-engine@5.15.14_@emotion+react@11.11.1_@emotion+styled@11.11.0_react@18.2.0/node_modules/@mui/styled-engine/GlobalStyles/GlobalStyles.js
-var GlobalStyles = __webpack_require__(8732);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+styled-engine@5.15.14_@emotion+react@11.11.1_@emotion+styled@11.11.0_react@18.2.0/node_modules/@mui/styled-engine/index.js
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+styled-engine@5.15.14_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@e_38b353972d011fd8524090cbc8c519bf/node_modules/@mui/styled-engine/GlobalStyles/GlobalStyles.js
+var GlobalStyles = __webpack_require__(9450);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+styled-engine@5.15.14_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@e_38b353972d011fd8524090cbc8c519bf/node_modules/@mui/styled-engine/index.js
 /**
  * @mui/styled-engine v5.15.14
  *
@@ -4604,7 +4603,7 @@ const internal_processStyles = (tag, processor) => {
 
 /***/ }),
 
-/***/ 1744:
+/***/ 2686:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -4976,7 +4975,7 @@ function blend(background, overlay, opacity) {
 
 /***/ }),
 
-/***/ 1950:
+/***/ 3952:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -4992,12 +4991,12 @@ __webpack_unused_export__ = shouldForwardProp;
 __webpack_unused_export__ = void 0;
 var _extends2 = _interopRequireDefault(__webpack_require__(4708));
 var _objectWithoutPropertiesLoose2 = _interopRequireDefault(__webpack_require__(3364));
-var _styledEngine = _interopRequireWildcard(__webpack_require__(6818));
+var _styledEngine = _interopRequireWildcard(__webpack_require__(5190));
 var _deepmerge = __webpack_require__(9499);
 var _capitalize = _interopRequireDefault(__webpack_require__(6814));
 var _getDisplayName = _interopRequireDefault(__webpack_require__(8853));
-var _createTheme = _interopRequireDefault(__webpack_require__(8523));
-var _styleFunctionSx = _interopRequireDefault(__webpack_require__(1238));
+var _createTheme = _interopRequireDefault(__webpack_require__(7553));
+var _styleFunctionSx = _interopRequireDefault(__webpack_require__(7168));
 const _excluded = ["ownerState"],
   _excluded2 = ["variants"],
   _excluded3 = ["name", "slot", "skipVariantsResolver", "skipSx", "overridesResolver"];
@@ -5250,7 +5249,7 @@ function createStyled() {
 
 /***/ }),
 
-/***/ 9074:
+/***/ 9744:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -5420,7 +5419,7 @@ function resolveBreakpointValues(_ref) {
 
 /***/ }),
 
-/***/ 4447:
+/***/ 1900:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -5504,7 +5503,7 @@ function applyStyles(key, styles) {
 
 /***/ }),
 
-/***/ 782:
+/***/ 3776:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -5600,7 +5599,7 @@ function createBreakpoints(breakpoints) {
 
 /***/ }),
 
-/***/ 2332:
+/***/ 3985:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -5616,16 +5615,16 @@ var esm_extends = __webpack_require__(1010);
 var objectWithoutPropertiesLoose = __webpack_require__(3031);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mui+utils@5.15.14_@types+react@18.2.79_react@18.2.0/node_modules/@mui/utils/deepmerge/deepmerge.js
 var deepmerge = __webpack_require__(8836);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react@18.2.0/node_modules/@mui/system/esm/createTheme/createBreakpoints.js
-var createBreakpoints = __webpack_require__(782);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react@18.2.0/node_modules/@mui/system/esm/createTheme/shape.js
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/createTheme/createBreakpoints.js
+var createBreakpoints = __webpack_require__(3776);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/createTheme/shape.js
 const shape = {
   borderRadius: 4
 };
 /* harmony default export */ const createTheme_shape = (shape);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react@18.2.0/node_modules/@mui/system/esm/spacing.js + 1 modules
-var esm_spacing = __webpack_require__(9521);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react@18.2.0/node_modules/@mui/system/esm/createTheme/createSpacing.js
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/spacing.js + 1 modules
+var esm_spacing = __webpack_require__(4275);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/createTheme/createSpacing.js
 
 
 // The different signatures imply different meaning for their arguments that can't be expressed structurally.
@@ -5658,13 +5657,13 @@ function createSpacing() {
   spacing.mui = true;
   return spacing;
 }
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react@18.2.0/node_modules/@mui/system/esm/styleFunctionSx/styleFunctionSx.js
-var styleFunctionSx = __webpack_require__(7692);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react@18.2.0/node_modules/@mui/system/esm/styleFunctionSx/defaultSxConfig.js + 5 modules
-var defaultSxConfig = __webpack_require__(3913);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react@18.2.0/node_modules/@mui/system/esm/createTheme/applyStyles.js
-var applyStyles = __webpack_require__(4447);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react@18.2.0/node_modules/@mui/system/esm/createTheme/createTheme.js
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/styleFunctionSx/styleFunctionSx.js
+var styleFunctionSx = __webpack_require__(1048);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/styleFunctionSx/defaultSxConfig.js + 5 modules
+var defaultSxConfig = __webpack_require__(1524);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/createTheme/applyStyles.js
+var applyStyles = __webpack_require__(1900);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/createTheme/createTheme.js
 
 
 const _excluded = ["breakpoints", "palette", "spacing", "shape"];
@@ -5715,7 +5714,7 @@ function createTheme() {
 
 /***/ }),
 
-/***/ 8523:
+/***/ 7553:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -5725,16 +5724,16 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   private_createBreakpoints: () => (/* reexport safe */ _createBreakpoints__WEBPACK_IMPORTED_MODULE_1__.Z),
 /* harmony export */   unstable_applyStyles: () => (/* reexport safe */ _applyStyles__WEBPACK_IMPORTED_MODULE_2__.Z)
 /* harmony export */ });
-/* harmony import */ var _createTheme__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(2332);
-/* harmony import */ var _createBreakpoints__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(782);
-/* harmony import */ var _applyStyles__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(4447);
+/* harmony import */ var _createTheme__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3985);
+/* harmony import */ var _createBreakpoints__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(3776);
+/* harmony import */ var _applyStyles__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(1900);
 
 
 
 
 /***/ }),
 
-/***/ 5388:
+/***/ 3287:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -5756,7 +5755,7 @@ function merge(acc, item) {
 
 /***/ }),
 
-/***/ 9521:
+/***/ 4275:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -5772,13 +5771,13 @@ __webpack_require__.d(__webpack_exports__, {
 
 // UNUSED EXPORTS: default, getStyleFromPropValue, marginKeys, paddingKeys
 
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react@18.2.0/node_modules/@mui/system/esm/breakpoints.js
-var breakpoints = __webpack_require__(9074);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react@18.2.0/node_modules/@mui/system/esm/style.js
-var style = __webpack_require__(3335);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react@18.2.0/node_modules/@mui/system/esm/merge.js
-var merge = __webpack_require__(5388);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react@18.2.0/node_modules/@mui/system/esm/memoize.js
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/breakpoints.js
+var breakpoints = __webpack_require__(9744);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/style.js
+var style = __webpack_require__(6634);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/merge.js
+var merge = __webpack_require__(3287);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/memoize.js
 function memoize(fn) {
   const cache = {};
   return arg => {
@@ -5788,7 +5787,7 @@ function memoize(fn) {
     return cache[arg];
   };
 }
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react@18.2.0/node_modules/@mui/system/esm/spacing.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/spacing.js
 
 
 
@@ -5917,7 +5916,7 @@ spacing.filterProps = spacingKeys;
 
 /***/ }),
 
-/***/ 3335:
+/***/ 6634:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -5927,7 +5926,7 @@ spacing.filterProps = spacingKeys;
 /* harmony export */   ZP: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
 /* harmony import */ var _mui_utils_capitalize__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4656);
-/* harmony import */ var _breakpoints__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(9074);
+/* harmony import */ var _breakpoints__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(9744);
 
 
 
@@ -6006,7 +6005,7 @@ function style(options) {
 
 /***/ }),
 
-/***/ 3913:
+/***/ 1524:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -6016,13 +6015,13 @@ __webpack_require__.d(__webpack_exports__, {
   Z: () => (/* binding */ styleFunctionSx_defaultSxConfig)
 });
 
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react@18.2.0/node_modules/@mui/system/esm/spacing.js + 1 modules
-var spacing = __webpack_require__(9521);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react@18.2.0/node_modules/@mui/system/esm/style.js
-var style = __webpack_require__(3335);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react@18.2.0/node_modules/@mui/system/esm/merge.js
-var merge = __webpack_require__(5388);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react@18.2.0/node_modules/@mui/system/esm/compose.js
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/spacing.js + 1 modules
+var spacing = __webpack_require__(4275);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/style.js
+var style = __webpack_require__(6634);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/merge.js
+var merge = __webpack_require__(3287);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/compose.js
 
 function compose() {
   for (var _len = arguments.length, styles = new Array(_len), _key = 0; _key < _len; _key++) {
@@ -6050,9 +6049,9 @@ function compose() {
   return fn;
 }
 /* harmony default export */ const esm_compose = (compose);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react@18.2.0/node_modules/@mui/system/esm/breakpoints.js
-var breakpoints = __webpack_require__(9074);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react@18.2.0/node_modules/@mui/system/esm/borders.js
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/breakpoints.js
+var breakpoints = __webpack_require__(9744);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/borders.js
 
 
 
@@ -6100,7 +6099,7 @@ borderRadius.propTypes =  false ? 0 : {};
 borderRadius.filterProps = ['borderRadius'];
 const borders = esm_compose(border, borderTop, borderRight, borderBottom, borderLeft, borderColor, borderTopColor, borderRightColor, borderBottomColor, borderLeftColor, borderRadius, outline, outlineColor);
 /* harmony default export */ const esm_borders = ((/* unused pure expression or super */ null && (borders)));
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react@18.2.0/node_modules/@mui/system/esm/cssGrid.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/cssGrid.js
 
 
 
@@ -6180,7 +6179,7 @@ const gridArea = (0,style/* default */.ZP)({
 });
 const grid = esm_compose(gap, columnGap, rowGap, gridColumn, gridRow, gridAutoFlow, gridAutoColumns, gridAutoRows, gridTemplateColumns, gridTemplateRows, gridTemplateAreas, gridArea);
 /* harmony default export */ const cssGrid = ((/* unused pure expression or super */ null && (grid)));
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react@18.2.0/node_modules/@mui/system/esm/palette.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/palette.js
 
 
 function paletteTransform(value, userValue) {
@@ -6207,7 +6206,7 @@ const backgroundColor = (0,style/* default */.ZP)({
 });
 const palette = esm_compose(color, bgcolor, backgroundColor);
 /* harmony default export */ const esm_palette = ((/* unused pure expression or super */ null && (palette)));
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react@18.2.0/node_modules/@mui/system/esm/sizing.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/sizing.js
 
 
 
@@ -6273,7 +6272,7 @@ const boxSizing = (0,style/* default */.ZP)({
 });
 const sizing = esm_compose(width, maxWidth, minWidth, height, maxHeight, minHeight, boxSizing);
 /* harmony default export */ const esm_sizing = ((/* unused pure expression or super */ null && (sizing)));
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react@18.2.0/node_modules/@mui/system/esm/styleFunctionSx/defaultSxConfig.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/styleFunctionSx/defaultSxConfig.js
 
 
 
@@ -6568,7 +6567,7 @@ const defaultSxConfig = {
 
 /***/ }),
 
-/***/ 761:
+/***/ 416:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -6578,7 +6577,7 @@ const defaultSxConfig = {
 /* harmony import */ var _babel_runtime_helpers_esm_extends__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(1010);
 /* harmony import */ var _babel_runtime_helpers_esm_objectWithoutPropertiesLoose__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(3031);
 /* harmony import */ var _mui_utils_deepmerge__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(8836);
-/* harmony import */ var _defaultSxConfig__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3913);
+/* harmony import */ var _defaultSxConfig__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(1524);
 
 
 const _excluded = ["sx"];
@@ -6630,7 +6629,7 @@ function extendSxProp(props) {
 
 /***/ }),
 
-/***/ 1238:
+/***/ 7168:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -6641,9 +6640,9 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   unstable_createStyleFunctionSx: () => (/* reexport safe */ _styleFunctionSx__WEBPACK_IMPORTED_MODULE_0__.n),
 /* harmony export */   unstable_defaultSxConfig: () => (/* reexport safe */ _defaultSxConfig__WEBPACK_IMPORTED_MODULE_2__.Z)
 /* harmony export */ });
-/* harmony import */ var _styleFunctionSx__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(7692);
-/* harmony import */ var _extendSxProp__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(761);
-/* harmony import */ var _defaultSxConfig__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(3913);
+/* harmony import */ var _styleFunctionSx__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(1048);
+/* harmony import */ var _extendSxProp__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(416);
+/* harmony import */ var _defaultSxConfig__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(1524);
 
 
 
@@ -6651,7 +6650,7 @@ __webpack_require__.r(__webpack_exports__);
 
 /***/ }),
 
-/***/ 7692:
+/***/ 1048:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -6660,10 +6659,10 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   n: () => (/* binding */ unstable_createStyleFunctionSx)
 /* harmony export */ });
 /* harmony import */ var _mui_utils_capitalize__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(4656);
-/* harmony import */ var _merge__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(5388);
-/* harmony import */ var _style__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3335);
-/* harmony import */ var _breakpoints__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(9074);
-/* harmony import */ var _defaultSxConfig__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(3913);
+/* harmony import */ var _merge__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(3287);
+/* harmony import */ var _style__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(6634);
+/* harmony import */ var _breakpoints__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(9744);
+/* harmony import */ var _defaultSxConfig__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(1524);
 
 
 
@@ -6798,7 +6797,7 @@ styleFunctionSx.filterProps = ['sx'];
 
 /***/ }),
 
-/***/ 234:
+/***/ 1199:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -6806,8 +6805,8 @@ styleFunctionSx.filterProps = ['sx'];
 /* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
 /* unused harmony export systemDefaultTheme */
-/* harmony import */ var _createTheme__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(2332);
-/* harmony import */ var _useThemeWithoutDefault__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(4601);
+/* harmony import */ var _createTheme__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3985);
+/* harmony import */ var _useThemeWithoutDefault__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(5727);
 'use client';
 
 
@@ -6821,7 +6820,7 @@ function useTheme() {
 
 /***/ }),
 
-/***/ 2473:
+/***/ 929:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -6844,15 +6843,15 @@ function getThemeProps(params) {
 
 /***/ }),
 
-/***/ 3696:
+/***/ 8251:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   Z: () => (/* binding */ useThemeProps)
 /* harmony export */ });
-/* harmony import */ var _getThemeProps__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(2473);
-/* harmony import */ var _useTheme__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(234);
+/* harmony import */ var _getThemeProps__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(929);
+/* harmony import */ var _useTheme__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(1199);
 'use client';
 
 
@@ -6878,7 +6877,7 @@ function useThemeProps(_ref) {
 
 /***/ }),
 
-/***/ 4601:
+/***/ 5727:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -29104,7 +29103,7 @@ function _objectWithoutPropertiesLoose(source, excluded) {
 
 /***/ }),
 
-/***/ 8152:
+/***/ 7919:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -29267,19 +29266,19 @@ var objectWithoutPropertiesLoose = __webpack_require__(3031);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@babel+runtime@7.24.4/node_modules/@babel/runtime/helpers/esm/extends.js
 var esm_extends = __webpack_require__(1010);
 // EXTERNAL MODULE: ./node_modules/.pnpm/clsx@2.1.0/node_modules/clsx/dist/clsx.mjs
-var clsx = __webpack_require__(8152);
+var clsx = __webpack_require__(7919);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mui+utils@5.15.14_@types+react@18.2.79_react@18.2.0/node_modules/@mui/utils/composeClasses/composeClasses.js
 var composeClasses = __webpack_require__(5923);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/styles/styled.js
-var styled = __webpack_require__(1535);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/styles/useThemeProps.js
-var useThemeProps = __webpack_require__(1778);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/utils/useForkRef.js
-var useForkRef = __webpack_require__(6490);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/utils/useEventCallback.js
-var useEventCallback = __webpack_require__(4505);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/utils/useIsFocusVisible.js
-var useIsFocusVisible = __webpack_require__(1511);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/styles/styled.js
+var styled = __webpack_require__(5807);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/styles/useThemeProps.js
+var useThemeProps = __webpack_require__(3954);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/useForkRef.js
+var useForkRef = __webpack_require__(8689);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/useEventCallback.js
+var useEventCallback = __webpack_require__(1469);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/useIsFocusVisible.js
+var useIsFocusVisible = __webpack_require__(7541);
 ;// CONCATENATED MODULE: ./node_modules/.pnpm/@babel+runtime@7.24.4/node_modules/@babel/runtime/helpers/esm/taggedTemplateLiteral.js
 function _taggedTemplateLiteral(strings, raw) {
   if (!raw) {
@@ -29313,10 +29312,10 @@ function _inheritsLoose(subClass, superClass) {
   subClass.prototype.constructor = subClass;
   _setPrototypeOf(subClass, superClass);
 }
-;// CONCATENATED MODULE: ./node_modules/.pnpm/react-transition-group@4.4.5_react-dom@18.2.0_react@18.2.0/node_modules/react-transition-group/esm/TransitionGroupContext.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/react-transition-group@4.4.5_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/react-transition-group/esm/TransitionGroupContext.js
 
 /* harmony default export */ const TransitionGroupContext = (react.createContext(null));
-;// CONCATENATED MODULE: ./node_modules/.pnpm/react-transition-group@4.4.5_react-dom@18.2.0_react@18.2.0/node_modules/react-transition-group/esm/utils/ChildMapping.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/react-transition-group@4.4.5_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/react-transition-group/esm/utils/ChildMapping.js
 
 /**
  * Given `this.props.children`, return an object mapping key to child.
@@ -29446,7 +29445,7 @@ function getNextChildMapping(nextProps, prevChildMapping, onExited) {
   });
   return children;
 }
-;// CONCATENATED MODULE: ./node_modules/.pnpm/react-transition-group@4.4.5_react-dom@18.2.0_react@18.2.0/node_modules/react-transition-group/esm/TransitionGroup.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/react-transition-group@4.4.5_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/react-transition-group/esm/TransitionGroup.js
 
 
 
@@ -29566,7 +29565,7 @@ var emotion_react_browser_esm = __webpack_require__(2150);
 var useTimeout = __webpack_require__(5859);
 // EXTERNAL MODULE: ./node_modules/.pnpm/react@18.2.0/node_modules/react/jsx-runtime.js
 var jsx_runtime = __webpack_require__(7394);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/ButtonBase/Ripple.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/ButtonBase/Ripple.js
 'use client';
 
 
@@ -29623,7 +29622,7 @@ function Ripple(props) {
 /* harmony default export */ const ButtonBase_Ripple = (Ripple);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mui+utils@5.15.14_@types+react@18.2.79_react@18.2.0/node_modules/@mui/utils/generateUtilityClasses/generateUtilityClasses.js
 var generateUtilityClasses = __webpack_require__(3453);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/ButtonBase/touchRippleClasses.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/ButtonBase/touchRippleClasses.js
 
 
 function getTouchRippleUtilityClass(slot) {
@@ -29631,7 +29630,7 @@ function getTouchRippleUtilityClass(slot) {
 }
 const touchRippleClasses = (0,generateUtilityClasses/* default */.Z)('MuiTouchRipple', ['root', 'ripple', 'rippleVisible', 'ripplePulsate', 'child', 'childLeaving', 'childPulsate']);
 /* harmony default export */ const ButtonBase_touchRippleClasses = (touchRippleClasses);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/ButtonBase/TouchRipple.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/ButtonBase/TouchRipple.js
 'use client';
 
 
@@ -29897,7 +29896,7 @@ const TouchRipple = /*#__PURE__*/react.forwardRef(function TouchRipple(inProps, 
 /* harmony default export */ const ButtonBase_TouchRipple = (TouchRipple);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mui+utils@5.15.14_@types+react@18.2.79_react@18.2.0/node_modules/@mui/utils/generateUtilityClass/generateUtilityClass.js
 var generateUtilityClass_generateUtilityClass = __webpack_require__(8092);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/ButtonBase/buttonBaseClasses.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/ButtonBase/buttonBaseClasses.js
 
 
 function getButtonBaseUtilityClass(slot) {
@@ -29905,7 +29904,7 @@ function getButtonBaseUtilityClass(slot) {
 }
 const buttonBaseClasses = (0,generateUtilityClasses/* default */.Z)('MuiButtonBase', ['root', 'disabled', 'focusVisible']);
 /* harmony default export */ const ButtonBase_buttonBaseClasses = (buttonBaseClasses);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/ButtonBase/ButtonBase.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/ButtonBase/ButtonBase.js
 'use client';
 
 
@@ -30220,9 +30219,9 @@ const ButtonBase = /*#__PURE__*/react.forwardRef(function ButtonBase(inProps, re
 });
  false ? 0 : void 0;
 /* harmony default export */ const ButtonBase_ButtonBase = (ButtonBase);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/utils/capitalize.js
-var capitalize = __webpack_require__(7593);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/Fab/fabClasses.js
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/capitalize.js
+var capitalize = __webpack_require__(5652);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Fab/fabClasses.js
 
 
 function getFabUtilityClass(slot) {
@@ -30230,9 +30229,9 @@ function getFabUtilityClass(slot) {
 }
 const fabClasses = (0,generateUtilityClasses/* default */.Z)('MuiFab', ['root', 'primary', 'secondary', 'extended', 'circular', 'focusVisible', 'disabled', 'colorInherit', 'sizeSmall', 'sizeMedium', 'sizeLarge', 'info', 'error', 'warning', 'success']);
 /* harmony default export */ const Fab_fabClasses = (fabClasses);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/styles/rootShouldForwardProp.js
-var rootShouldForwardProp = __webpack_require__(2243);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/Fab/Fab.js
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/styles/rootShouldForwardProp.js
+var rootShouldForwardProp = __webpack_require__(512);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Fab/Fab.js
 'use client';
 
 
@@ -30402,10 +30401,10 @@ const Fab = /*#__PURE__*/react.forwardRef(function Fab(inProps, ref) {
 });
  false ? 0 : void 0;
 /* harmony default export */ const Fab_Fab = (Fab);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@types+react@18.2.79_react@18.2.0/node_modules/@mui/icons-material/Translate.js
-var Translate = __webpack_require__(9055);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/styles/createTheme.js
-var createTheme = __webpack_require__(1126);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@1_1e29dcefa4691dc57f2acd9f73947cfd/node_modules/@mui/icons-material/Translate.js
+var Translate = __webpack_require__(2761);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/styles/createTheme.js
+var createTheme = __webpack_require__(4593);
 ;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+private-theming@5.15.14_@types+react@18.2.79_react@18.2.0/node_modules/@mui/private-theming/useTheme/ThemeContext.js
 
 const ThemeContext = /*#__PURE__*/react.createContext(null);
@@ -30471,9 +30470,9 @@ if (false) {}
 /* harmony default export */ const ThemeProvider_ThemeProvider = (ThemeProvider);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0/node_modules/@emotion/react/dist/emotion-element-c39617d8.browser.esm.js
 var emotion_element_c39617d8_browser_esm = __webpack_require__(2412);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react@18.2.0/node_modules/@mui/system/esm/useThemeWithoutDefault.js
-var useThemeWithoutDefault = __webpack_require__(4601);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react@18.2.0/node_modules/@mui/system/esm/RtlProvider/index.js
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/useThemeWithoutDefault.js
+var useThemeWithoutDefault = __webpack_require__(5727);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/RtlProvider/index.js
 
 
 const RtlProvider_excluded = ["value"];
@@ -30496,7 +30495,7 @@ const useRtl = () => {
   return value != null ? value : false;
 };
 /* harmony default export */ const esm_RtlProvider = (RtlProvider);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react@18.2.0/node_modules/@mui/system/esm/ThemeProvider/ThemeProvider.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/ThemeProvider/ThemeProvider.js
 'use client';
 
 
@@ -30564,9 +30563,9 @@ function ThemeProvider_ThemeProvider_ThemeProvider(props) {
  false ? 0 : void 0;
 if (false) {}
 /* harmony default export */ const esm_ThemeProvider_ThemeProvider = (ThemeProvider_ThemeProvider_ThemeProvider);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/styles/identifier.js
-var identifier = __webpack_require__(4876);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/styles/ThemeProvider.js
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/styles/identifier.js
+var identifier = __webpack_require__(6617);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/styles/ThemeProvider.js
 'use client';
 
 
@@ -30589,11 +30588,11 @@ function styles_ThemeProvider_ThemeProvider(_ref) {
   }));
 }
  false ? 0 : void 0;
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+styled-engine@5.15.14_@emotion+react@11.11.1_@emotion+styled@11.11.0_react@18.2.0/node_modules/@mui/styled-engine/GlobalStyles/GlobalStyles.js
-var GlobalStyles = __webpack_require__(8732);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react@18.2.0/node_modules/@mui/system/esm/useTheme.js
-var esm_useTheme = __webpack_require__(234);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react@18.2.0/node_modules/@mui/system/esm/GlobalStyles/GlobalStyles.js
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+styled-engine@5.15.14_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@e_38b353972d011fd8524090cbc8c519bf/node_modules/@mui/styled-engine/GlobalStyles/GlobalStyles.js
+var GlobalStyles = __webpack_require__(9450);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/useTheme.js
+var esm_useTheme = __webpack_require__(1199);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/GlobalStyles/GlobalStyles.js
 'use client';
 
 
@@ -30615,9 +30614,9 @@ function GlobalStyles_GlobalStyles(_ref) {
 }
  false ? 0 : void 0;
 /* harmony default export */ const esm_GlobalStyles_GlobalStyles = (GlobalStyles_GlobalStyles);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/styles/defaultTheme.js
-var defaultTheme = __webpack_require__(1315);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/GlobalStyles/GlobalStyles.js
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/styles/defaultTheme.js
+var defaultTheme = __webpack_require__(559);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/GlobalStyles/GlobalStyles.js
 'use client';
 
 
@@ -30635,7 +30634,7 @@ function GlobalStyles_GlobalStyles_GlobalStyles(props) {
 }
  false ? 0 : void 0;
 /* harmony default export */ const material_GlobalStyles_GlobalStyles = (GlobalStyles_GlobalStyles_GlobalStyles);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/CssBaseline/CssBaseline.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/CssBaseline/CssBaseline.js
 'use client';
 
 
@@ -30770,6 +30769,7 @@ transOnly:GLOBAL_KEY,// 是否仅显示译文
 transTiming:GLOBAL_KEY,// 翻译时机/鼠标悬停翻译
 transTag:GLOBAL_KEY,// 译文元素标签
 transTitle:GLOBAL_KEY,// 是否同时翻译页面标题
+transSelected:GLOBAL_KEY,// 是否启用划词翻译
 detectRemote:GLOBAL_KEY,// 是否使用远程语言检测
 skipLangs:[],// 不翻译的语言
 fixerSelector:"",// 修复函数选择器
@@ -30781,10 +30781,10 @@ transRemoveHook:""// 钩子函数
 ;// CONCATENATED MODULE: ./src/config/app.js
 const APP_NAME="KISS Translator".trim().split(/\s+/).join("-");const APP_LCNAME=APP_NAME.toLowerCase();
 ;// CONCATENATED MODULE: ./src/config/i18n.js
-const UI_LANGS=(/* unused pure expression or super */ null && ([["en","English"],["zh","中文"]]));const customApiLangs="[\"en\", \"English - English\"],\n[\"zh-CN\", \"Simplified Chinese - \u7B80\u4F53\u4E2D\u6587\"],\n[\"zh-TW\", \"Traditional Chinese - \u7E41\u9AD4\u4E2D\u6587\"],\n[\"ar\", \"Arabic - \u0627\u0644\u0639\u0631\u0628\u064A\u0629\"],\n[\"bg\", \"Bulgarian - \u0411\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438\"],\n[\"ca\", \"Catalan - Catal\xE0\"],\n[\"hr\", \"Croatian - Hrvatski\"],\n[\"cs\", \"Czech - \u010Ce\u0161tina\"],\n[\"da\", \"Danish - Dansk\"],\n[\"nl\", \"Dutch - Nederlands\"],\n[\"fi\", \"Finnish - Suomi\"],\n[\"fr\", \"French - Fran\xE7ais\"],\n[\"de\", \"German - Deutsch\"],\n[\"el\", \"Greek - \u0395\u03BB\u03BB\u03B7\u03BD\u03B9\u03BA\u03AC\"],\n[\"hi\", \"Hindi - \u0939\u093F\u0928\u094D\u0926\u0940\"],\n[\"hu\", \"Hungarian - Magyar\"],\n[\"id\", \"Indonesian - Indonesia\"],\n[\"it\", \"Italian - Italiano\"],\n[\"ja\", \"Japanese - \u65E5\u672C\u8A9E\"],\n[\"ko\", \"Korean - \uD55C\uAD6D\uC5B4\"],\n[\"ms\", \"Malay - Melayu\"],\n[\"mt\", \"Maltese - Malti\"],\n[\"nb\", \"Norwegian - Norsk Bokm\xE5l\"],\n[\"pl\", \"Polish - Polski\"],\n[\"pt\", \"Portuguese - Portugu\xEAs\"],\n[\"ro\", \"Romanian - Rom\xE2n\u0103\"],\n[\"ru\", \"Russian - \u0420\u0443\u0441\u0441\u043A\u0438\u0439\"],\n[\"sk\", \"Slovak - Sloven\u010Dina\"],\n[\"sl\", \"Slovenian - Sloven\u0161\u010Dina\"],\n[\"es\", \"Spanish - Espa\xF1ol\"],\n[\"sv\", \"Swedish - Svenska\"],\n[\"ta\", \"Tamil - \u0BA4\u0BAE\u0BBF\u0BB4\u0BCD\"],\n[\"te\", \"Telugu - \u0C24\u0C46\u0C32\u0C41\u0C17\u0C41\"],\n[\"th\", \"Thai - \u0E44\u0E17\u0E22\"],\n[\"tr\", \"Turkish - T\xFCrk\xE7e\"],\n[\"uk\", \"Ukrainian - \u0423\u043A\u0440\u0430\u0457\u043D\u0441\u044C\u043A\u0430\"],\n[\"vi\", \"Vietnamese - Ti\u1EBFng Vi\u1EC7t\"],\n";const hookExample="// URL\nhttps://translate.googleapis.com/translate_a/single?client=gtx&dj=1&dt=t&ie=UTF-8&q={{text}}&sl=en&tl=zh-CN\n\n// Request Hook\n(text, from, to, url, key) => [url, {\n  headers: {\n      \"Content-type\": \"application/json\",\n  },\n  method: \"GET\",\n  body: null,\n}]\n\n// Response Hook\n(res, text, from, to) => [res.sentences.map((item) => item.trans).join(\" \"), to === res.src]";const customApiHelpZH="// \u8BF7\u6C42\u6570\u636E\u9ED8\u8BA4\u683C\u5F0F\n{\n  \"url\": \"{{url}}\",\n  \"method\": \"POST\",\n  \"headers\": {\n    \"Content-type\": \"application/json\",\n    \"Authorization\": \"Bearer {{key}}\"\n  },\n  \"body\": {\n    \"text\": \"{{text}}\", // \u5F85\u7FFB\u8BD1\u6587\u5B57\n    \"from\": \"{{from}}\", // \u6587\u5B57\u7684\u8BED\u8A00\uFF08\u53EF\u80FD\u4E3A\u7A7A\uFF09\n    \"to\": \"{{to}}\",     // \u76EE\u6807\u8BED\u8A00\n  },\n}\n\n\n// \u8FD4\u56DE\u6570\u636E\u9ED8\u8BA4\u683C\u5F0F\n{\n  text: \"\", // \u7FFB\u8BD1\u540E\u7684\u6587\u5B57\n  from: \"\", // \u8BC6\u522B\u7684\u6E90\u8BED\u8A00\n  to: \"\",   // \u76EE\u6807\u8BED\u8A00\uFF08\u53EF\u9009\uFF09\n}\n\n\n// Hook \u8303\u4F8B\n".concat(hookExample,"\n\n\n// \u652F\u6301\u7684\u8BED\u8A00\u4EE3\u7801\u5982\u4E0B\n").concat(customApiLangs,"\n");const customApiHelpEN="// Default request\n{\n  \"url\": \"{{url}}\",\n  \"method\": \"POST\",\n  \"headers\": {\n    \"Content-type\": \"application/json\",\n    \"Authorization\": \"Bearer {{key}}\"\n  },\n  \"body\": {\n    \"text\": \"{{text}}\", // Text to be translated\n    \"from\": \"{{from}}\", // The language of the text (may be empty)\n    \"to\": \"{{to}}\",     // Target language\n  },\n}\n\n\n// Default response\n{\n  text: \"\", // translated text\n  from: \"\", // Recognized source language\n  to: \"\",   // Target language (optional)\n}\n\n\n/// Hook Example\n".concat(hookExample,"\n\n\n// The supported language codes are as follows\n").concat(customApiLangs,"\n");const I18N={app_name:{zh:"\u7B80\u7EA6\u7FFB\u8BD1",en:"KISS Translator"},translate:{zh:"\u7FFB\u8BD1",en:"Translate"},custom_api_help:{zh:customApiHelpZH,en:customApiHelpEN},translate_alt:{zh:"\u7FFB\u8BD1",en:"Translate"},basic_setting:{zh:"\u57FA\u672C\u8BBE\u7F6E",en:"Basic Setting"},rules_setting:{zh:"\u89C4\u5219\u8BBE\u7F6E",en:"Rules Setting"},apis_setting:{zh:"\u63A5\u53E3\u8BBE\u7F6E",en:"Apis Setting"},sync_setting:{zh:"\u540C\u6B65\u8BBE\u7F6E",en:"Sync Setting"},patch_setting:{zh:"\u8865\u4E01\u8BBE\u7F6E",en:"Patch Setting"},patch_setting_help:{zh:"\u9488\u5BF9\u4E00\u4E9B\u7279\u6B8A\u7F51\u7AD9\u7684\u4FEE\u6B63\u811A\u672C\uFF0C\u4EE5\u4FBF\u7FFB\u8BD1\u8F6F\u4EF6\u5F97\u5230\u66F4\u597D\u7684\u5C55\u793A\u6548\u679C\u3002",en:"Corrected scripts for some special websites so that the translation software can get better display results."},inject_webfix:{zh:"\u6CE8\u5165\u4FEE\u590D\u8865\u4E01",en:"Inject Webfix"},about:{zh:"\u5173\u4E8E",en:"About"},about_md:{zh:"README.md",en:"README.en.md"},about_md_local:{zh:"\u8BF7 [\u70B9\u51FB\u8FD9\u91CC](".concat("https://github.com/fishjar/kiss-translator",") \u67E5\u770B\u8BE6\u60C5\u3002"),en:"Please [click here](".concat("https://github.com/fishjar/kiss-translator",") for details.")},ui_lang:{zh:"\u754C\u9762\u8BED\u8A00",en:"Interface Language"},fetch_limit:{zh:"\u6700\u5927\u5E76\u53D1\u8BF7\u6C42\u6570\u91CF (1-100)",en:"Maximum Number Of Concurrent Requests (1-100)"},fetch_interval:{zh:"\u6BCF\u6B21\u8BF7\u6C42\u95F4\u9694\u65F6\u95F4 (0-5000ms)",en:"Time Between Requests (0-5000ms)"},translate_interval:{zh:"\u91CD\u65B0\u7FFB\u8BD1\u95F4\u9694\u65F6\u95F4 (100-5000ms)",en:"Retranslation Interval (100-5000ms)"},min_translate_length:{zh:"\u6700\u5C0F\u7FFB\u8BD1\u5B57\u7B26\u6570 (1-100)",en:"Minimum number Of Translated Characters (1-100)"},max_translate_length:{zh:"\u6700\u5927\u7FFB\u8BD1\u5B57\u7B26\u6570 (100-10000)",en:"Maximum number Of Translated Characters (100-10000)"},num_of_newline_characters:{zh:"\u6362\u884C\u5B57\u7B26\u6570 (1-1000)",en:"Number of Newline Characters (1-1000)"},translate_service:{zh:"\u7FFB\u8BD1\u670D\u52A1",en:"Translate Service"},translate_timing:{zh:"\u7FFB\u8BD1\u65F6\u673A",en:"Translate Timing"},mk_pagescroll:{zh:"\u6EDA\u52A8\u52A0\u8F7D\u7FFB\u8BD1\uFF08\u63A8\u8350\uFF09",en:"Rolling Loading (Suggested)"},mk_pageopen:{zh:"\u9875\u9762\u6253\u5F00\u5168\u90E8\u7FFB\u8BD1",en:"Page Open"},mk_mouseover:{zh:"\u9F20\u6807\u60AC\u505C\u7FFB\u8BD1",en:"Mouseover"},mk_ctrlKey:{zh:"Control + \u9F20\u6807\u60AC\u505C",en:"Control + Mouseover"},mk_shiftKey:{zh:"Shift + \u9F20\u6807\u60AC\u505C",en:"Shift + Mouseover"},mk_altKey:{zh:"Alt + \u9F20\u6807\u60AC\u505C",en:"Alt + Mouseover"},from_lang:{zh:"\u539F\u6587\u8BED\u8A00",en:"Source Language"},to_lang:{zh:"\u76EE\u6807\u8BED\u8A00",en:"Target Language"},to_lang2:{zh:"\u7B2C\u4E8C\u76EE\u6807\u8BED\u8A00",en:"Target Language 2"},to_lang2_helper:{zh:"\u8BBE\u5B9A\u540E\uFF0C\u4E0E\u76EE\u6807\u8BED\u8A00\u4EA7\u751F\u4E92\u8BD1\u6548\u679C\uFF0C\u4F46\u4F9D\u8D56\u8FDC\u7A0B\u8BED\u8A00\u8BC6\u522B\u3002",en:"After setting, it will produce mutual translation effect with the target language, but it relies on remote language recognition."},text_style:{zh:"\u8BD1\u6587\u6837\u5F0F",en:"Text Style"},text_style_alt:{zh:"\u8BD1\u6587\u6837\u5F0F",en:"Text Style"},bg_color:{zh:"\u6837\u5F0F\u989C\u8272",en:"Style Color"},remain_unchanged:{zh:"\u4FDD\u7559\u4E0D\u53D8",en:"Remain Unchanged"},google_api:{zh:"\u8C37\u6B4C\u7FFB\u8BD1\u63A5\u53E3",en:"Google Translate API"},default_selector:{zh:"\u9ED8\u8BA4\u9009\u62E9\u5668",en:"Default selector"},selector_rules:{zh:"\u9009\u62E9\u5668\u89C4\u5219",en:"Selector Rules"},save:{zh:"\u4FDD\u5B58",en:"Save"},edit:{zh:"\u7F16\u8F91",en:"Edit"},cancel:{zh:"\u53D6\u6D88",en:"Cancel"},delete:{zh:"\u5220\u9664",en:"Delete"},reset:{zh:"\u91CD\u7F6E",en:"Reset"},add:{zh:"\u6DFB\u52A0",en:"Add"},inject_rules:{zh:"\u6CE8\u5165\u8BA2\u9605\u89C4\u5219",en:"Inject Subscribe Rules"},personal_rules:{zh:"\u4E2A\u4EBA\u89C4\u5219",en:"Rules"},subscribe_rules:{zh:"\u8BA2\u9605\u89C4\u5219",en:"Subscribe"},overwrite_subscribe_rules:{zh:"\u8986\u5199\u8BA2\u9605\u89C4\u5219",en:"Overwrite"},subscribe_url:{zh:"\u8BA2\u9605\u5730\u5740",en:"Subscribe URL"},rules_warn_1:{zh:"1\u3001\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u4E00\u76F4\u751F\u6548\uFF0C\u9009\u62E9\u201C\u6CE8\u5165\u8BA2\u9605\u89C4\u5219\u201D\u540E\uFF0C\u201C\u8BA2\u9605\u89C4\u5219\u201D\u624D\u4F1A\u751F\u6548\u3002",en:"1. The \"Personal Rules\" are always in effect. After selecting \"Inject Subscription Rules\", the \"Subscription Rules\" will take effect."},rules_warn_2:{zh:"2\u3001\u201C\u8BA2\u9605\u89C4\u5219\u201D\u7684\u6CE8\u5165\u4F4D\u7F6E\u662F\u5012\u6570\u7B2C\u4E8C\u7684\u4F4D\u7F6E\uFF0C\u56E0\u6B64\u9664\u5168\u5C40\u89C4\u5219(*)\u5916\uFF0C\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u4F18\u5148\u7EA7\u6BD4\u201C\u8BA2\u9605\u89C4\u5219\u201D\u9AD8\uFF0C\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u586B\u5199\u540C\u6837\u7684\u7F51\u5740\u4F1A\u8986\u76D6\u201D\u8BA2\u9605\u89C4\u5219\u201C\u7684\u6761\u76EE\u3002",en:"2. The injection position of \"Subscription Rules\" is the penultimate position. Therefore, except for the global rules (*), the priority of \"Personal Rules\" is higher than that of \"Subscription Rules\". Filling in the same url in \"Personal Rules\" will overwrite \"Subscription Rules\" entry."},rules_warn_3:{zh:"3\u3001\u5173\u4E8E\u89C4\u5219\u586B\u5199\uFF1A\u8F93\u5165\u6846\u7559\u7A7A\u6216\u4E0B\u62C9\u6846\u9009\u201C*\u201D\u8868\u793A\u91C7\u7528\u5168\u5C40\u89C4\u5219\u3002",en:"3. Regarding filling in the rules: Leave the input box blank or select \"*\" in the drop-down box to use global rule."},sync_warn:{zh:"\u5982\u679C\u670D\u52A1\u5668\u5B58\u5728\u5176\u4ED6\u5BA2\u6237\u7AEF\u540C\u6B65\u7684\u6570\u636E\uFF0C\u7B2C\u4E00\u6B21\u540C\u6B65\u5C06\u76F4\u63A5\u8986\u76D6\u672C\u5730\u914D\u7F6E\uFF0C\u540E\u9762\u5219\u6839\u636E\u4FEE\u6539\u65F6\u95F4\uFF0C\u65B0\u7684\u8986\u76D6\u65E7\u7684\u3002",en:"If the server has data synchronized by other clients, the first synchronization will directly overwrite the local configuration, and later, according to the modification time, the new one will overwrite the old one."},about_sync_api:{zh:"\u67E5\u770B\u5173\u4E8E\u6570\u636E\u540C\u6B65\u63A5\u53E3\u90E8\u7F72",en:"View About Data Synchronization Interface Deployment"},about_api_proxy:{zh:"\u67E5\u770B\u81EA\u5EFA\u4E00\u4E2A\u7FFB\u8BD1\u63A5\u53E3\u4EE3\u7406",en:"Check out the self-built translation interface proxy"},style_none:{zh:"\u65E0",en:"None"},under_line:{zh:"\u4E0B\u5212\u76F4\u7EBF",en:"Underline"},dot_line:{zh:"\u4E0B\u5212\u70B9\u72B6\u7EBF",en:"Dotted Underline"},dash_line:{zh:"\u4E0B\u5212\u865A\u7EBF",en:"Dashed Underline"},wavy_line:{zh:"\u4E0B\u5212\u6CE2\u6D6A\u7EBF",en:"Wavy Underline"},fuzzy:{zh:"\u6A21\u7CCA",en:"Fuzzy"},highlight:{zh:"\u9AD8\u4EAE",en:"Highlight"},blockquote:{zh:"\u5F15\u7528",en:"Blockquote"},diy_style:{zh:"\u81EA\u5B9A\u4E49\u6837\u5F0F",en:"Custom Style"},diy_style_helper:{zh:"\u9075\u5FAA\u201CCSS\u201D\u7684\u8BED\u6CD5",en:"Follow the syntax of \"CSS\""},setting:{zh:"\u8BBE\u7F6E",en:"Setting"},pattern:{zh:"\u5339\u914D\u7F51\u5740",en:"URL pattern"},pattern_helper:{zh:"1\u3001\u652F\u6301\u661F\u53F7(*)\u901A\u914D\u7B26\u30022\u3001\u591A\u4E2AURL\u7528\u6362\u884C\u6216\u82F1\u6587\u9017\u53F7\u201C,\u201D\u5206\u9694\u3002",en:"1. Supports the asterisk (*) wildcard character. 2. Separate multiple URLs with newlines or English commas \",\"."},selector_helper:{zh:"1\u3001\u9075\u5FAACSS\u9009\u62E9\u5668\u8BED\u6CD5\u30022\u3001\u591A\u4E2ACSS\u9009\u62E9\u5668\u4E4B\u95F4\u7528\u201C;\u201D\u9694\u5F00\u30023\u3001\u201Cshadow root\u201D\u9009\u62E9\u5668\u548C\u5185\u90E8\u9009\u62E9\u5668\u7528\u201C>>>\u201D\u9694\u5F00\u3002",en:"1. Follow CSS selector syntax. 2. Separate multiple CSS selectors with \";\". 3. The \"shadow root\" selector and the internal selector are separated by \">>>\"."},translate_switch:{zh:"\u5F00\u542F\u7FFB\u8BD1",en:"Translate Switch"},default_enabled:{zh:"\u9ED8\u8BA4\u5F00\u542F",en:"Enabled"},default_disabled:{zh:"\u9ED8\u8BA4\u5173\u95ED",en:"Disabled"},selector:{zh:"\u9009\u62E9\u5668",en:"Selector"},keep_selector:{zh:"\u4FDD\u7559\u5143\u7D20\u9009\u62E9\u5668",en:"Keep unchanged selector"},keep_selector_helper:{zh:"1\u3001\u9075\u5FAACSS\u9009\u62E9\u5668\u8BED\u6CD5\u30022\u3001\u5B50\u5143\u7D20\u9009\u62E9\u5668\u7528\u201C>>>\u201D\u9694\u5F00\u3002",en:"1. Follow CSS selector syntax. 2. Sub-element selectors are separated by \">>>\"."},terms:{zh:"\u4E13\u4E1A\u672F\u8BED",en:"Terms"},terms_helper:{zh:"1\u3001\u652F\u6301\u6B63\u5219\u8868\u8FBE\u5F0F\u5339\u914D\uFF0C\u65E0\u9700\u659C\u6746\uFF0C\u4E0D\u652F\u6301\u4FEE\u9970\u7B26\u30022\u3001\u591A\u6761\u672F\u8BED\u7528\u6362\u884C\u6216\u5206\u53F7\u201C;\u201D\u9694\u5F00\u30023\u3001\u672F\u8BED\u548C\u8BD1\u6587\u7528\u82F1\u6587\u9017\u53F7\u201C,\u201D\u9694\u5F00\u30024\u3001\u6CA1\u6709\u8BD1\u6587\u89C6\u4E3A\u4E0D\u7FFB\u8BD1\u672F\u8BED\u3002",en:"1. Supports regular expression matching, no slash required, and no modifiers are supported. 2. Separate multiple terms with newlines or semicolons \";\". 3. Terms and translations are separated by English commas \",\". 4. If there is no translation, the term will be deemed not to be translated."},selector_style:{zh:"\u9009\u62E9\u5668\u8282\u70B9\u6837\u5F0F",en:"Selector Style"},selector_style_helper:{zh:"\u5F00\u542F\u7FFB\u8BD1\u65F6\u6CE8\u5165\uFF0C\u5173\u95ED\u7FFB\u8BD1\u65F6\u4E0D\u4F1A\u79FB\u9664\u3002",en:"It is injected when translation is turned on and will not be removed when translation is turned off."},selector_parent_style:{zh:"\u9009\u62E9\u5668\u7236\u8282\u70B9\u6837\u5F0F",en:"Selector Parent Style"},inject_js:{zh:"\u6CE8\u5165JS",en:"Inject JS"},inject_js_helper:{zh:"1\u3001\u5F00\u542F\u7FFB\u8BD1\u65F6\u6CE8\u5165\u8FD0\u884C\uFF0C\u5173\u95ED\u7FFB\u8BD1\u65F6\u79FB\u9664\u30022\u3001\u968F\u7740\u9875\u9762\u53D8\u5316\uFF0C\u53EF\u80FD\u4F1A\u591A\u6B21\u6CE8\u5165\u8FD0\u884C\u3002",en:"1. Inject and run when translation is turned on, and removed when translation is turned off. 2. As the page changes, it may be injected and run multiple times."},inject_css:{zh:"\u6CE8\u5165CSS",en:"Inject CSS"},inject_css_helper:{zh:"\u5F00\u542F\u7FFB\u8BD1\u65F6\u6CE8\u5165\uFF0C\u5173\u95ED\u7FFB\u8BD1\u65F6\u5C06\u79FB\u9664\u3002",en:"Injected when translation is enabled and removed when translation is disabled."},root_selector:{zh:"\u6839\u9009\u62E9\u5668",en:"Root Selector"},fixer_function:{zh:"\u4FEE\u590D\u51FD\u6570",en:"Fixer Function"},fixer_function_helper:{zh:"1\u3001br\u662F\u5C06<br>\u6362\u884C\u66FF\u6362\u6210<p \"kiss-p\">\u30022\u3001bn\u662F\u5C06\\n\u6362\u884C\u66FF\u6362\u6210<p \"kiss-p\">\u30023\u3001brToDiv\u548CbnToDiv\u662F\u66FF\u6362\u6210<div class=\"kiss-p\">\u3002",en:"1. br replaces <br> line breaks with <p \"kiss-p\">. 2. bn replaces \\n newline with <p \"kiss-p\">. 3. brToDiv and bnToDiv are replaced with <div class=\"kiss-p\">."},import:{zh:"\u5BFC\u5165",en:"Import"},export:{zh:"\u5BFC\u51FA",en:"Export"},export_translation:{zh:"\u5BFC\u51FA\u91CA\u4E49",en:"Export Translation"},error_cant_be_blank:{zh:"\u4E0D\u80FD\u4E3A\u7A7A",en:"Can not be blank"},error_duplicate_values:{zh:"\u5B58\u5728\u91CD\u590D\u7684\u503C",en:"There are duplicate values"},error_wrong_file_type:{zh:"\u9519\u8BEF\u7684\u6587\u4EF6\u7C7B\u578B",en:"Wrong file type"},error_fetch_url:{zh:"\u8BF7\u68C0\u67E5url\u5730\u5740\u662F\u5426\u6B63\u786E\u6216\u7A0D\u540E\u518D\u8BD5\u3002",en:"Please check if the url address is correct or try again later."},deepl_api:{zh:"DeepL \u63A5\u53E3",en:"DeepL API"},deepl_key:{zh:"DeepL \u5BC6\u94A5",en:"DeepL Key"},openai_api:{zh:"OpenAI \u63A5\u53E3",en:"OpenAI API"},openai_key:{zh:"OpenAI \u5BC6\u94A5",en:"OpenAI Key"},openai_model:{zh:"OpenAI \u6A21\u578B",en:"OpenAI Model"},openai_prompt:{zh:"OpenAI \u63D0\u793A\u8BCD",en:"OpenAI Prompt"},if_clear_cache:{zh:"\u662F\u5426\u6E05\u9664\u7F13\u5B58",en:"Whether clear cache"},clear_cache_never:{zh:"\u4E0D\u6E05\u9664\u7F13\u5B58",en:"Never clear cache"},clear_cache_restart:{zh:"\u91CD\u542F\u6D4F\u89C8\u5668\u65F6\u6E05\u9664\u7F13\u5B58",en:"Clear cache when restarting browser"},data_sync_type:{zh:"\u6570\u636E\u540C\u6B65\u65B9\u5F0F",en:"Data Sync Type"},data_sync_url:{zh:"\u6570\u636E\u540C\u6B65\u63A5\u53E3",en:"Data Sync API"},data_sync_user:{zh:"\u6570\u636E\u540C\u6B65\u8D26\u6237",en:"Data Sync User"},data_sync_key:{zh:"\u6570\u636E\u540C\u6B65\u5BC6\u94A5",en:"Data Sync Key"},sync_now:{zh:"\u7ACB\u5373\u540C\u6B65",en:"Sync Now"},sync_success:{zh:"\u540C\u6B65\u6210\u529F\uFF01",en:"Sync Success"},sync_failed:{zh:"\u540C\u6B65\u5931\u8D25\uFF01",en:"Sync Error"},error_got_some_wrong:{zh:"\u62B1\u6B49\uFF0C\u51FA\u9519\u4E86\uFF01",en:"Sorry, something went wrong!"},error_sync_setting:{zh:"\u60A8\u7684\u540C\u6B65\u7C7B\u578B\u5FC5\u987B\u4E3A\u201CKISS-Worker\u201D\uFF0C\u4E14\u9700\u586B\u5199\u5B8C\u6574",en:"Your sync type must be \"KISS-Worker\" and must be filled in completely"},click_test:{zh:"\u70B9\u51FB\u6D4B\u8BD5",en:"Click Test"},test_success:{zh:"\u6D4B\u8BD5\u6210\u529F",en:"Test success"},test_failed:{zh:"\u6D4B\u8BD5\u5931\u8D25",en:"Test failed"},clear_all_cache_now:{zh:"\u7ACB\u5373\u6E05\u9664\u5168\u90E8\u7F13\u5B58",en:"Clear all cache now"},clear_cache:{zh:"\u6E05\u9664\u7F13\u5B58",en:"Clear Cache"},clear_success:{zh:"\u6E05\u9664\u6210\u529F",en:"Clear success"},clear_failed:{zh:"\u6E05\u9664\u5931\u8D25",en:"Clear failed"},share:{zh:"\u5206\u4EAB",en:"Share"},clear_all:{zh:"\u6E05\u7A7A",en:"Clear All"},help:{zh:"\u6C42\u52A9",en:"Help"},restore_default:{zh:"\u6062\u590D\u9ED8\u8BA4",en:"Restore Default"},shortcuts_setting:{zh:"\u5FEB\u6377\u952E\u8BBE\u7F6E",en:"Shortcuts Setting"},toggle_translate_shortcut:{zh:"\"\u5F00\u542F\u7FFB\u8BD1\"\u5FEB\u6377\u952E",en:"\"Toggle Translate\" Shortcut"},toggle_style_shortcut:{zh:"\"\u5207\u6362\u6837\u5F0F\"\u5FEB\u6377\u952E",en:"\"Toggle Style\" Shortcut"},toggle_popup_shortcut:{zh:"\"\u6253\u5F00\u5F39\u7A97\"\u5FEB\u6377\u952E",en:"\"Open Popup\" Shortcut"},open_setting_shortcut:{zh:"\"\u6253\u5F00\u8BBE\u7F6E\"\u5FEB\u6377\u952E",en:"\"Open Setting\" Shortcut"},hide_fab_button:{zh:"\u9690\u85CF\u60AC\u6D6E\u6309\u94AE",en:"Hide Fab Button"},hide_tran_button:{zh:"\u9690\u85CF\u7FFB\u8BD1\u6309\u94AE",en:"Hide Translate Button"},hide_click_away:{zh:"\u70B9\u51FB\u5916\u90E8\u5173\u95ED\u5F39\u7A97",en:"Click outside to close the pop-up window"},use_simple_style:{zh:"\u4F7F\u7528\u7B80\u6D01\u754C\u9762",en:"Use a simple interface"},show:{zh:"\u663E\u793A",en:"Show"},hide:{zh:"\u9690\u85CF",en:"Hide"},save_rule:{zh:"\u4FDD\u5B58\u89C4\u5219",en:"Save Rule"},global_rule:{zh:"\u5168\u5C40\u89C4\u5219",en:"Global Rule"},input_translate:{zh:"\u8F93\u5165\u6846\u7FFB\u8BD1",en:"Input Box Translation"},use_input_box_translation:{zh:"\u542F\u7528\u8F93\u5165\u6846\u7FFB\u8BD1",en:"Input Box Translation"},input_selector:{zh:"\u8F93\u5165\u6846\u9009\u62E9\u5668",en:"Input Selector"},input_selector_helper:{zh:"\u7528\u4E8E\u8F93\u5165\u6846\u7FFB\u8BD1\u3002",en:"Used for input box translation."},trigger_trans_shortcut:{zh:"\u89E6\u53D1\u7FFB\u8BD1\u5FEB\u6377\u952E",en:"Trigger Translation Shortcut Keys"},trigger_trans_shortcut_help:{zh:"\u9ED8\u8BA4\u4E3A\u5355\u51FB\u201CAltLeft+KeyI\u201D",en:"Default is \"AltLeft+KeyI\""},shortcut_press_count:{zh:"\u5FEB\u6377\u952E\u8FDE\u51FB\u6B21\u6570",en:"Shortcut Press Number"},combo_timeout:{zh:"\u8FDE\u51FB\u8D85\u65F6\u65F6\u95F4 (10-1000ms)",en:"Combo Timeout (10-1000ms)"},input_trans_start_sign:{zh:"\u7FFB\u8BD1\u8D77\u59CB\u6807\u8BC6",en:"Translation Start Sign"},input_trans_start_sign_help:{zh:"\u6807\u8BC6\u540E\u9762\u53EF\u4EE5\u52A0\u76EE\u6807\u8BED\u8A00\u4EE3\u7801\uFF0C\u5982\uFF1A \u201C/en \u4F60\u597D\u201D\u3001\u201C/zh hello\u201D",en:"The target language code can be added after the sign, such as: \"/en \u4F60\u597D\", \"/zh hello\""},detect_lang_remote:{zh:"\u8FDC\u7A0B\u8BED\u8A00\u68C0\u6D4B",en:"Remote language detection"},detect_lang_remote_help:{zh:"\u542F\u7528\u540E\u68C0\u6D4B\u51C6\u786E\u5EA6\u589E\u52A0\uFF0C\u4F46\u4F1A\u964D\u4F4E\u7FFB\u8BD1\u901F\u5EA6\uFF0C\u8BF7\u914C\u60C5\u5F00\u542F",en:"After enabling, the detection accuracy will increase, but it will reduce the translation speed. Please enable it as appropriate."},disable:{zh:"\u7981\u7528",en:"Disable"},enable:{zh:"\u542F\u7528",en:"Enable"},selection_translate:{zh:"\u5212\u8BCD\u7FFB\u8BD1",en:"Selection Translate"},toggle_selection_translate:{zh:"\u542F\u7528\u5212\u8BCD\u7FFB\u8BD1",en:"Use Selection Translate"},trigger_tranbox_shortcut:{zh:"\u663E\u793A\u7FFB\u8BD1\u6846/\u7FFB\u8BD1\u9009\u4E2D\u6587\u5B57\u5FEB\u6377\u952E",en:"Open Translate Popup/Translate Selected Shortcut"},tranbtn_offset_x:{zh:"\u7FFB\u8BD1\u6309\u94AE\u504F\u79FBX\uFF08\xB1200\uFF09",en:"Translate Button Offset X (\xB1200)"},tranbtn_offset_y:{zh:"\u7FFB\u8BD1\u6309\u94AE\u504F\u79FBY\uFF08\xB1200\uFF09",en:"Translate Button Offset Y (\xB1200)"},tranbox_offset_x:{zh:"\u7FFB\u8BD1\u6846\u504F\u79FBX\uFF08\xB1200\uFF09",en:"Translate Box Offset X (\xB1200)"},tranbox_offset_y:{zh:"\u7FFB\u8BD1\u6846\u504F\u79FBY\uFF08\xB1200\uFF09",en:"Translate Box Offset Y (\xB1200)"},translated_text:{zh:"\u8BD1\u6587",en:"Translated Text"},original_text:{zh:"\u539F\u6587",en:"Original Text"},favorite_words:{zh:"\u6536\u85CF\u8BCD\u6C47",en:"Favorite Words"},touch_setting:{zh:"\u89E6\u5C4F\u8BBE\u7F6E",en:"Touch Setting"},touch_translate_shortcut:{zh:"\u89E6\u5C4F\u7FFB\u8BD1\u5FEB\u6377\u65B9\u5F0F",en:"Touch Translate Shortcut"},touch_tap_0:{zh:"\u7981\u7528",en:"Disable"},touch_tap_2:{zh:"\u53CC\u6307\u8F7B\u89E6",en:"Two finger tap"},touch_tap_3:{zh:"\u4E09\u6307\u8F7B\u89E6",en:"Three finger tap"},touch_tap_4:{zh:"\u56DB\u6307\u8F7B\u89E6",en:"Four finger tap"},translate_blacklist:{zh:"\u7981\u7528\u7FFB\u8BD1\u540D\u5355",en:"Translate Blacklist"},disabled_csplist:{zh:"\u7981\u7528CSP\u540D\u5355",en:"Disabled CSP List"},disabled_csplist_helper:{zh:"3\u3001\u901A\u8FC7\u8C03\u6574CSP\u7B56\u7565\uFF0C\u4F7F\u5F97\u67D0\u4E9B\u9875\u9762\u80FD\u591F\u6CE8\u5165JS/CSS/Media\uFF0C\u8BF7\u8C28\u614E\u4F7F\u7528\uFF0C\u9664\u975E\u60A8\u5DF2\u77E5\u6653\u76F8\u5173\u98CE\u9669\u3002",en:"3. By adjusting the CSP policy, some pages can inject JS/CSS/Media. Please use it with caution unless you are aware of the related risks."},skip_langs:{zh:"\u4E0D\u7FFB\u8BD1\u7684\u8BED\u8A00",en:"Disable Languages"},skip_langs_helper:{zh:"\u6B64\u529F\u80FD\u4F9D\u8D56\u51C6\u786E\u7684\u8BED\u8A00\u68C0\u6D4B\uFF0C\u5EFA\u8BAE\u542F\u7528\u8FDC\u7A0B\u8BED\u8A00\u68C0\u6D4B\u3002",en:"This feature relies on accurate language detection. It is recommended to enable remote language detection."},context_menus:{zh:"\u53F3\u952E\u83DC\u5355",en:"Context Menus"},hide_context_menus:{zh:"\u9690\u85CF\u53F3\u952E\u83DC\u5355",en:"Hide Context Menus"},simple_context_menus:{zh:"\u7B80\u5355\u53F3\u952E\u83DC\u5355",en:"Simple_context_menus Context Menus"},secondary_context_menus:{zh:"\u4E8C\u7EA7\u53F3\u952E\u83DC\u5355",en:"Secondary Context Menus"},mulkeys_help:{zh:"\u652F\u6301\u7528\u6362\u884C\u6216\u82F1\u6587\u9017\u53F7\u201C,\u201D\u5206\u9694\uFF0C\u8F6E\u8BE2\u8C03\u7528\u3002",en:"Supports polling calls separated by newlines or English commas \",\"."},translation_element_tag:{zh:"\u8BD1\u6587\u5143\u7D20\u6807\u7B7E",en:"Translation Element Tag"},show_only_translations:{zh:"\u4EC5\u663E\u793A\u8BD1\u6587",en:"Show Only Translations"},show_only_translations_help:{zh:"\u975E\u5B8C\u7F8E\u5B9E\u73B0\uFF0C\u67D0\u4E9B\u9875\u9762\u53EF\u80FD\u6709\u6837\u5F0F\u7B49\u95EE\u9898\u3002",en:"It is not a perfect implementation and some pages may have style issues."},translate_page_title:{zh:"\u662F\u5426\u7FFB\u8BD1\u9875\u9762\u6807\u9898",en:"Translate Page Title"},more:{zh:"\u66F4\u591A",en:"More"},fixer_selector:{zh:"\u7F51\u9875\u4FEE\u590D\u9009\u62E9\u5668",en:"Fixer Selector"},reg_niutrans:{zh:"\u83B7\u53D6\u5C0F\u725B\u7FFB\u8BD1\u5BC6\u94A5\u3010\u7B80\u7EA6\u7FFB\u8BD1\u4E13\u5C5E\u65B0\u7528\u6237\u6CE8\u518C\u8D60\u9001300\u4E07\u5B57\u7B26\u3011",en:"Get NiuTrans APIKey [KISS Translator Exclusive New User Registration Free 3 Million Characters]"},trigger_mode:{zh:"\u89E6\u53D1\u65B9\u5F0F",en:"Trigger Mode"},trigger_click:{zh:"\u70B9\u51FB\u89E6\u53D1",en:"Click Trigger"},trigger_hover:{zh:"\u9F20\u6807\u60AC\u505C\u89E6\u53D1",en:"Hover Trigger"},trigger_select:{zh:"\u9009\u4E2D\u89E6\u53D1",en:"Select Trigger"},extend_styles:{zh:"\u9644\u52A0\u6837\u5F0F",en:"Extend Styles"},custom_option:{zh:"\u81EA\u5B9A\u4E49\u9009\u9879",en:"Custom Option"},translate_selected_text:{zh:"\u7FFB\u8BD1\u9009\u4E2D\u6587\u5B57",en:"Translate Selected Text"},toggle_style:{zh:"\u5207\u6362\u6837\u5F0F",en:"Toggle Style"},open_menu:{zh:"\u6253\u5F00\u5F39\u7A97\u83DC\u5355",en:"Open Popup Menu"},open_setting:{zh:"\u6253\u5F00\u8BBE\u7F6E",en:"Open Setting"},follow_selection:{zh:"\u7FFB\u8BD1\u6846\u8DDF\u968F\u9009\u4E2D\u6587\u672C",en:"Transbox Follow Selection"},translate_start_hook:{zh:"\u7FFB\u8BD1\u5F00\u59CB\u94A9\u5B50\u51FD\u6570",en:"Translate Start Hook"},translate_start_hook_helper:{zh:"\u7FFB\u8BD1\u5F00\u59CB\u65F6\u8FD0\u884C\uFF0C\u5165\u53C2\u4E3A\uFF1A \u7FFB\u8BD1\u8282\u70B9\uFF0C\u539F\u6587\u6587\u672C\u3002",en:"Run when translation starts, the input parameters are: translation node, original text."},translate_end_hook:{zh:"\u7FFB\u8BD1\u5B8C\u6210\u94A9\u5B50\u51FD\u6570",en:"Translate End Hook"},translate_end_hook_helper:{zh:"\u7FFB\u8BD1\u5B8C\u6210\u65F6\u8FD0\u884C\uFF0C\u5165\u53C2\u4E3A\uFF1A \u7FFB\u8BD1\u8282\u70B9\uFF0C\u539F\u6587\u6587\u672C\uFF0C\u8BD1\u6587\u6587\u672C\uFF0C\u4FDD\u7559\u5143\u7D20\u3002",en:"Run when the translation is completed, the input parameters are: translation node, original text, translation text, retained elements."},translate_remove_hook:{zh:"\u7FFB\u8BD1\u79FB\u9664\u94A9\u5B50\u51FD\u6570",en:"Translate Removed Hook"},translate_remove_hook_helper:{zh:"\u7FFB\u8BD1\u79FB\u9664\u65F6\u8FD0\u884C\uFF0C\u5165\u53C2\u4E3A\uFF1A \u7FFB\u8BD1\u8282\u70B9\u3002",en:"Run when translation is removed, the input parameters are: translation node."},english_dict:{zh:"\u82F1\u6587\u8BCD\u5178",en:"English Dictionary"}};
+const UI_LANGS=(/* unused pure expression or super */ null && ([["en","English"],["zh","中文"]]));const customApiLangs="[\"en\", \"English - English\"],\n[\"zh-CN\", \"Simplified Chinese - \u7B80\u4F53\u4E2D\u6587\"],\n[\"zh-TW\", \"Traditional Chinese - \u7E41\u9AD4\u4E2D\u6587\"],\n[\"ar\", \"Arabic - \u0627\u0644\u0639\u0631\u0628\u064A\u0629\"],\n[\"bg\", \"Bulgarian - \u0411\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438\"],\n[\"ca\", \"Catalan - Catal\xE0\"],\n[\"hr\", \"Croatian - Hrvatski\"],\n[\"cs\", \"Czech - \u010Ce\u0161tina\"],\n[\"da\", \"Danish - Dansk\"],\n[\"nl\", \"Dutch - Nederlands\"],\n[\"fi\", \"Finnish - Suomi\"],\n[\"fr\", \"French - Fran\xE7ais\"],\n[\"de\", \"German - Deutsch\"],\n[\"el\", \"Greek - \u0395\u03BB\u03BB\u03B7\u03BD\u03B9\u03BA\u03AC\"],\n[\"hi\", \"Hindi - \u0939\u093F\u0928\u094D\u0926\u0940\"],\n[\"hu\", \"Hungarian - Magyar\"],\n[\"id\", \"Indonesian - Indonesia\"],\n[\"it\", \"Italian - Italiano\"],\n[\"ja\", \"Japanese - \u65E5\u672C\u8A9E\"],\n[\"ko\", \"Korean - \uD55C\uAD6D\uC5B4\"],\n[\"ms\", \"Malay - Melayu\"],\n[\"mt\", \"Maltese - Malti\"],\n[\"nb\", \"Norwegian - Norsk Bokm\xE5l\"],\n[\"pl\", \"Polish - Polski\"],\n[\"pt\", \"Portuguese - Portugu\xEAs\"],\n[\"ro\", \"Romanian - Rom\xE2n\u0103\"],\n[\"ru\", \"Russian - \u0420\u0443\u0441\u0441\u043A\u0438\u0439\"],\n[\"sk\", \"Slovak - Sloven\u010Dina\"],\n[\"sl\", \"Slovenian - Sloven\u0161\u010Dina\"],\n[\"es\", \"Spanish - Espa\xF1ol\"],\n[\"sv\", \"Swedish - Svenska\"],\n[\"ta\", \"Tamil - \u0BA4\u0BAE\u0BBF\u0BB4\u0BCD\"],\n[\"te\", \"Telugu - \u0C24\u0C46\u0C32\u0C41\u0C17\u0C41\"],\n[\"th\", \"Thai - \u0E44\u0E17\u0E22\"],\n[\"tr\", \"Turkish - T\xFCrk\xE7e\"],\n[\"uk\", \"Ukrainian - \u0423\u043A\u0440\u0430\u0457\u043D\u0441\u044C\u043A\u0430\"],\n[\"vi\", \"Vietnamese - Ti\u1EBFng Vi\u1EC7t\"],\n";const hookExample="// URL\nhttps://translate.googleapis.com/translate_a/single?client=gtx&dj=1&dt=t&ie=UTF-8&q={{text}}&sl=en&tl=zh-CN\n\n// Request Hook\n(text, from, to, url, key) => [url, {\n  headers: {\n      \"Content-type\": \"application/json\",\n  },\n  method: \"GET\",\n  body: null,\n}]\n\n// Response Hook\n(res, text, from, to) => [res.sentences.map((item) => item.trans).join(\" \"), to === res.src]";const customApiHelpZH="// \u8BF7\u6C42\u6570\u636E\u9ED8\u8BA4\u683C\u5F0F\n{\n  \"url\": \"{{url}}\",\n  \"method\": \"POST\",\n  \"headers\": {\n    \"Content-type\": \"application/json\",\n    \"Authorization\": \"Bearer {{key}}\"\n  },\n  \"body\": {\n    \"text\": \"{{text}}\", // \u5F85\u7FFB\u8BD1\u6587\u5B57\n    \"from\": \"{{from}}\", // \u6587\u5B57\u7684\u8BED\u8A00\uFF08\u53EF\u80FD\u4E3A\u7A7A\uFF09\n    \"to\": \"{{to}}\",     // \u76EE\u6807\u8BED\u8A00\n  },\n}\n\n\n// \u8FD4\u56DE\u6570\u636E\u9ED8\u8BA4\u683C\u5F0F\n{\n  text: \"\", // \u7FFB\u8BD1\u540E\u7684\u6587\u5B57\n  from: \"\", // \u8BC6\u522B\u7684\u6E90\u8BED\u8A00\n  to: \"\",   // \u76EE\u6807\u8BED\u8A00\uFF08\u53EF\u9009\uFF09\n}\n\n\n// Hook \u8303\u4F8B\n".concat(hookExample,"\n\n\n// \u652F\u6301\u7684\u8BED\u8A00\u4EE3\u7801\u5982\u4E0B\n").concat(customApiLangs,"\n");const customApiHelpEN="// Default request\n{\n  \"url\": \"{{url}}\",\n  \"method\": \"POST\",\n  \"headers\": {\n    \"Content-type\": \"application/json\",\n    \"Authorization\": \"Bearer {{key}}\"\n  },\n  \"body\": {\n    \"text\": \"{{text}}\", // Text to be translated\n    \"from\": \"{{from}}\", // The language of the text (may be empty)\n    \"to\": \"{{to}}\",     // Target language\n  },\n}\n\n\n// Default response\n{\n  text: \"\", // translated text\n  from: \"\", // Recognized source language\n  to: \"\",   // Target language (optional)\n}\n\n\n/// Hook Example\n".concat(hookExample,"\n\n\n// The supported language codes are as follows\n").concat(customApiLangs,"\n");const I18N={app_name:{zh:"\u7B80\u7EA6\u7FFB\u8BD1",en:"KISS Translator"},translate:{zh:"\u7FFB\u8BD1",en:"Translate"},custom_api_help:{zh:customApiHelpZH,en:customApiHelpEN},translate_alt:{zh:"\u7FFB\u8BD1",en:"Translate"},basic_setting:{zh:"\u57FA\u672C\u8BBE\u7F6E",en:"Basic Setting"},rules_setting:{zh:"\u89C4\u5219\u8BBE\u7F6E",en:"Rules Setting"},apis_setting:{zh:"\u63A5\u53E3\u8BBE\u7F6E",en:"Apis Setting"},sync_setting:{zh:"\u540C\u6B65\u8BBE\u7F6E",en:"Sync Setting"},patch_setting:{zh:"\u8865\u4E01\u8BBE\u7F6E",en:"Patch Setting"},patch_setting_help:{zh:"\u9488\u5BF9\u4E00\u4E9B\u7279\u6B8A\u7F51\u7AD9\u7684\u4FEE\u6B63\u811A\u672C\uFF0C\u4EE5\u4FBF\u7FFB\u8BD1\u8F6F\u4EF6\u5F97\u5230\u66F4\u597D\u7684\u5C55\u793A\u6548\u679C\u3002",en:"Corrected scripts for some special websites so that the translation software can get better display results."},inject_webfix:{zh:"\u6CE8\u5165\u4FEE\u590D\u8865\u4E01",en:"Inject Webfix"},about:{zh:"\u5173\u4E8E",en:"About"},about_md:{zh:"README.md",en:"README.en.md"},about_md_local:{zh:"\u8BF7 [\u70B9\u51FB\u8FD9\u91CC](".concat("https://github.com/fishjar/kiss-translator",") \u67E5\u770B\u8BE6\u60C5\u3002"),en:"Please [click here](".concat("https://github.com/fishjar/kiss-translator",") for details.")},ui_lang:{zh:"\u754C\u9762\u8BED\u8A00",en:"Interface Language"},fetch_limit:{zh:"\u6700\u5927\u5E76\u53D1\u8BF7\u6C42\u6570\u91CF (1-100)",en:"Maximum Number Of Concurrent Requests (1-100)"},if_think:{zh:"\u542F\u7528\u6216\u7981\u7528\u6A21\u578B\u7684\u6DF1\u5EA6\u601D\u8003\u80FD\u529B",en:"Enable or disable the model\u2019s thinking behavior "},think:{zh:"\u542F\u7528\u6DF1\u5EA6\u601D\u8003",en:"enable thinking"},nothink:{zh:"\u7981\u7528\u6DF1\u5EA6\u601D\u8003",en:"disable thinking"},think_ignore:{zh:"\u5FFD\u7565\u4EE5\u4E0B\u6A21\u578B\u7684<think>\u8F93\u51FA,\u9017\u53F7(,)\u5206\u5272,\u5F53\u6A21\u578B\u652F\u6301\u601D\u8003\u4F46ollama\u4E0D\u652F\u6301\u65F6\u9700\u8981\u586B\u5199\u672C\u53C2\u6570",en:"Ignore the <think> block for the following models, comma (,) separated"},fetch_interval:{zh:"\u6BCF\u6B21\u8BF7\u6C42\u95F4\u9694\u65F6\u95F4 (0-5000ms)",en:"Time Between Requests (0-5000ms)"},translate_interval:{zh:"\u91CD\u65B0\u7FFB\u8BD1\u95F4\u9694\u65F6\u95F4 (100-5000ms)",en:"Retranslation Interval (100-5000ms)"},http_timeout:{zh:"\u8BF7\u6C42\u8D85\u65F6\u65F6\u95F4 (5000-30000ms)",en:"Request Timeout Time (5000-30000ms)"},min_translate_length:{zh:"\u6700\u5C0F\u7FFB\u8BD1\u5B57\u7B26\u6570 (1-100)",en:"Minimum number Of Translated Characters (1-100)"},max_translate_length:{zh:"\u6700\u5927\u7FFB\u8BD1\u5B57\u7B26\u6570 (100-10000)",en:"Maximum number Of Translated Characters (100-10000)"},num_of_newline_characters:{zh:"\u6362\u884C\u5B57\u7B26\u6570 (1-1000)",en:"Number of Newline Characters (1-1000)"},translate_service:{zh:"\u7FFB\u8BD1\u670D\u52A1",en:"Translate Service"},translate_timing:{zh:"\u7FFB\u8BD1\u65F6\u673A",en:"Translate Timing"},mk_pagescroll:{zh:"\u6EDA\u52A8\u52A0\u8F7D\u7FFB\u8BD1\uFF08\u63A8\u8350\uFF09",en:"Rolling Loading (Suggested)"},mk_pageopen:{zh:"\u9875\u9762\u6253\u5F00\u5168\u90E8\u7FFB\u8BD1",en:"Page Open"},mk_mouseover:{zh:"\u9F20\u6807\u60AC\u505C\u7FFB\u8BD1",en:"Mouseover"},mk_ctrlKey:{zh:"Control + \u9F20\u6807\u60AC\u505C",en:"Control + Mouseover"},mk_shiftKey:{zh:"Shift + \u9F20\u6807\u60AC\u505C",en:"Shift + Mouseover"},mk_altKey:{zh:"Alt + \u9F20\u6807\u60AC\u505C",en:"Alt + Mouseover"},from_lang:{zh:"\u539F\u6587\u8BED\u8A00",en:"Source Language"},to_lang:{zh:"\u76EE\u6807\u8BED\u8A00",en:"Target Language"},to_lang2:{zh:"\u7B2C\u4E8C\u76EE\u6807\u8BED\u8A00",en:"Target Language 2"},to_lang2_helper:{zh:"\u8BBE\u5B9A\u540E\uFF0C\u4E0E\u76EE\u6807\u8BED\u8A00\u4EA7\u751F\u4E92\u8BD1\u6548\u679C\uFF0C\u4F46\u4F9D\u8D56\u8FDC\u7A0B\u8BED\u8A00\u8BC6\u522B\u3002",en:"After setting, it will produce mutual translation effect with the target language, but it relies on remote language recognition."},text_style:{zh:"\u8BD1\u6587\u6837\u5F0F",en:"Text Style"},text_style_alt:{zh:"\u8BD1\u6587\u6837\u5F0F",en:"Text Style"},bg_color:{zh:"\u6837\u5F0F\u989C\u8272",en:"Style Color"},remain_unchanged:{zh:"\u4FDD\u7559\u4E0D\u53D8",en:"Remain Unchanged"},google_api:{zh:"\u8C37\u6B4C\u7FFB\u8BD1\u63A5\u53E3",en:"Google Translate API"},default_selector:{zh:"\u9ED8\u8BA4\u9009\u62E9\u5668",en:"Default selector"},selector_rules:{zh:"\u9009\u62E9\u5668\u89C4\u5219",en:"Selector Rules"},save:{zh:"\u4FDD\u5B58",en:"Save"},edit:{zh:"\u7F16\u8F91",en:"Edit"},cancel:{zh:"\u53D6\u6D88",en:"Cancel"},delete:{zh:"\u5220\u9664",en:"Delete"},reset:{zh:"\u91CD\u7F6E",en:"Reset"},add:{zh:"\u6DFB\u52A0",en:"Add"},inject_rules:{zh:"\u6CE8\u5165\u8BA2\u9605\u89C4\u5219",en:"Inject Subscribe Rules"},personal_rules:{zh:"\u4E2A\u4EBA\u89C4\u5219",en:"Rules"},subscribe_rules:{zh:"\u8BA2\u9605\u89C4\u5219",en:"Subscribe"},overwrite_subscribe_rules:{zh:"\u8986\u5199\u8BA2\u9605\u89C4\u5219",en:"Overwrite"},subscribe_url:{zh:"\u8BA2\u9605\u5730\u5740",en:"Subscribe URL"},rules_warn_1:{zh:"1\u3001\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u4E00\u76F4\u751F\u6548\uFF0C\u9009\u62E9\u201C\u6CE8\u5165\u8BA2\u9605\u89C4\u5219\u201D\u540E\uFF0C\u201C\u8BA2\u9605\u89C4\u5219\u201D\u624D\u4F1A\u751F\u6548\u3002",en:"1. The \"Personal Rules\" are always in effect. After selecting \"Inject Subscription Rules\", the \"Subscription Rules\" will take effect."},rules_warn_2:{zh:"2\u3001\u201C\u8BA2\u9605\u89C4\u5219\u201D\u7684\u6CE8\u5165\u4F4D\u7F6E\u662F\u5012\u6570\u7B2C\u4E8C\u7684\u4F4D\u7F6E\uFF0C\u56E0\u6B64\u9664\u5168\u5C40\u89C4\u5219(*)\u5916\uFF0C\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u4F18\u5148\u7EA7\u6BD4\u201C\u8BA2\u9605\u89C4\u5219\u201D\u9AD8\uFF0C\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u586B\u5199\u540C\u6837\u7684\u7F51\u5740\u4F1A\u8986\u76D6\u201D\u8BA2\u9605\u89C4\u5219\u201C\u7684\u6761\u76EE\u3002",en:"2. The injection position of \"Subscription Rules\" is the penultimate position. Therefore, except for the global rules (*), the priority of \"Personal Rules\" is higher than that of \"Subscription Rules\". Filling in the same url in \"Personal Rules\" will overwrite \"Subscription Rules\" entry."},rules_warn_3:{zh:"3\u3001\u5173\u4E8E\u89C4\u5219\u586B\u5199\uFF1A\u8F93\u5165\u6846\u7559\u7A7A\u6216\u4E0B\u62C9\u6846\u9009\u201C*\u201D\u8868\u793A\u91C7\u7528\u5168\u5C40\u89C4\u5219\u3002",en:"3. Regarding filling in the rules: Leave the input box blank or select \"*\" in the drop-down box to use global rule."},sync_warn:{zh:"\u5982\u679C\u670D\u52A1\u5668\u5B58\u5728\u5176\u4ED6\u5BA2\u6237\u7AEF\u540C\u6B65\u7684\u6570\u636E\uFF0C\u7B2C\u4E00\u6B21\u540C\u6B65\u5C06\u76F4\u63A5\u8986\u76D6\u672C\u5730\u914D\u7F6E\uFF0C\u540E\u9762\u5219\u6839\u636E\u4FEE\u6539\u65F6\u95F4\uFF0C\u65B0\u7684\u8986\u76D6\u65E7\u7684\u3002",en:"If the server has data synchronized by other clients, the first synchronization will directly overwrite the local configuration, and later, according to the modification time, the new one will overwrite the old one."},about_sync_api:{zh:"\u67E5\u770B\u5173\u4E8E\u6570\u636E\u540C\u6B65\u63A5\u53E3\u90E8\u7F72",en:"View About Data Synchronization Interface Deployment"},about_api_proxy:{zh:"\u67E5\u770B\u81EA\u5EFA\u4E00\u4E2A\u7FFB\u8BD1\u63A5\u53E3\u4EE3\u7406",en:"Check out the self-built translation interface proxy"},style_none:{zh:"\u65E0",en:"None"},under_line:{zh:"\u4E0B\u5212\u76F4\u7EBF",en:"Underline"},dot_line:{zh:"\u4E0B\u5212\u70B9\u72B6\u7EBF",en:"Dotted Underline"},dash_line:{zh:"\u4E0B\u5212\u865A\u7EBF",en:"Dashed Underline"},wavy_line:{zh:"\u4E0B\u5212\u6CE2\u6D6A\u7EBF",en:"Wavy Underline"},fuzzy:{zh:"\u6A21\u7CCA",en:"Fuzzy"},highlight:{zh:"\u9AD8\u4EAE",en:"Highlight"},blockquote:{zh:"\u5F15\u7528",en:"Blockquote"},diy_style:{zh:"\u81EA\u5B9A\u4E49\u6837\u5F0F",en:"Custom Style"},diy_style_helper:{zh:"\u9075\u5FAA\u201CCSS\u201D\u7684\u8BED\u6CD5",en:"Follow the syntax of \"CSS\""},setting:{zh:"\u8BBE\u7F6E",en:"Setting"},pattern:{zh:"\u5339\u914D\u7F51\u5740",en:"URL pattern"},pattern_helper:{zh:"1\u3001\u652F\u6301\u661F\u53F7(*)\u901A\u914D\u7B26\u30022\u3001\u591A\u4E2AURL\u7528\u6362\u884C\u6216\u82F1\u6587\u9017\u53F7\u201C,\u201D\u5206\u9694\u3002",en:"1. Supports the asterisk (*) wildcard character. 2. Separate multiple URLs with newlines or English commas \",\"."},selector_helper:{zh:"1\u3001\u9075\u5FAACSS\u9009\u62E9\u5668\u8BED\u6CD5\u30022\u3001\u591A\u4E2ACSS\u9009\u62E9\u5668\u4E4B\u95F4\u7528\u201C;\u201D\u9694\u5F00\u30023\u3001\u201Cshadow root\u201D\u9009\u62E9\u5668\u548C\u5185\u90E8\u9009\u62E9\u5668\u7528\u201C>>>\u201D\u9694\u5F00\u3002",en:"1. Follow CSS selector syntax. 2. Separate multiple CSS selectors with \";\". 3. The \"shadow root\" selector and the internal selector are separated by \">>>\"."},translate_switch:{zh:"\u5F00\u542F\u7FFB\u8BD1",en:"Translate Switch"},default_enabled:{zh:"\u9ED8\u8BA4\u5F00\u542F",en:"Enabled"},default_disabled:{zh:"\u9ED8\u8BA4\u5173\u95ED",en:"Disabled"},selector:{zh:"\u9009\u62E9\u5668",en:"Selector"},keep_selector:{zh:"\u4FDD\u7559\u5143\u7D20\u9009\u62E9\u5668",en:"Keep unchanged selector"},keep_selector_helper:{zh:"1\u3001\u9075\u5FAACSS\u9009\u62E9\u5668\u8BED\u6CD5\u3002",en:"1. Follow CSS selector syntax."},terms:{zh:"\u4E13\u4E1A\u672F\u8BED",en:"Terms"},terms_helper:{zh:"1\u3001\u652F\u6301\u6B63\u5219\u8868\u8FBE\u5F0F\u5339\u914D\uFF0C\u65E0\u9700\u659C\u6746\uFF0C\u4E0D\u652F\u6301\u4FEE\u9970\u7B26\u30022\u3001\u591A\u6761\u672F\u8BED\u7528\u6362\u884C\u6216\u5206\u53F7\u201C;\u201D\u9694\u5F00\u30023\u3001\u672F\u8BED\u548C\u8BD1\u6587\u7528\u82F1\u6587\u9017\u53F7\u201C,\u201D\u9694\u5F00\u30024\u3001\u6CA1\u6709\u8BD1\u6587\u89C6\u4E3A\u4E0D\u7FFB\u8BD1\u672F\u8BED\u3002",en:"1. Supports regular expression matching, no slash required, and no modifiers are supported. 2. Separate multiple terms with newlines or semicolons \";\". 3. Terms and translations are separated by English commas \",\". 4. If there is no translation, the term will be deemed not to be translated."},selector_style:{zh:"\u9009\u62E9\u5668\u8282\u70B9\u6837\u5F0F",en:"Selector Style"},selector_style_helper:{zh:"\u5F00\u542F\u7FFB\u8BD1\u65F6\u6CE8\u5165\uFF0C\u5173\u95ED\u7FFB\u8BD1\u65F6\u4E0D\u4F1A\u79FB\u9664\u3002",en:"It is injected when translation is turned on and will not be removed when translation is turned off."},selector_parent_style:{zh:"\u9009\u62E9\u5668\u7236\u8282\u70B9\u6837\u5F0F",en:"Selector Parent Style"},inject_js:{zh:"\u6CE8\u5165JS",en:"Inject JS"},inject_js_helper:{zh:"1\u3001\u5F00\u542F\u7FFB\u8BD1\u65F6\u6CE8\u5165\u8FD0\u884C\uFF0C\u5173\u95ED\u7FFB\u8BD1\u65F6\u79FB\u9664\u30022\u3001\u968F\u7740\u9875\u9762\u53D8\u5316\uFF0C\u53EF\u80FD\u4F1A\u591A\u6B21\u6CE8\u5165\u8FD0\u884C\u3002",en:"1. Inject and run when translation is turned on, and removed when translation is turned off. 2. As the page changes, it may be injected and run multiple times."},inject_css:{zh:"\u6CE8\u5165CSS",en:"Inject CSS"},inject_css_helper:{zh:"\u5F00\u542F\u7FFB\u8BD1\u65F6\u6CE8\u5165\uFF0C\u5173\u95ED\u7FFB\u8BD1\u65F6\u5C06\u79FB\u9664\u3002",en:"Injected when translation is enabled and removed when translation is disabled."},root_selector:{zh:"\u6839\u9009\u62E9\u5668",en:"Root Selector"},fixer_function:{zh:"\u4FEE\u590D\u51FD\u6570",en:"Fixer Function"},fixer_function_helper:{zh:"1\u3001br\u662F\u5C06<br>\u6362\u884C\u66FF\u6362\u6210<p \"kiss-p\">\u30022\u3001bn\u662F\u5C06\\n\u6362\u884C\u66FF\u6362\u6210<p \"kiss-p\">\u30023\u3001brToDiv\u548CbnToDiv\u662F\u66FF\u6362\u6210<div class=\"kiss-p\">\u3002",en:"1. br replaces <br> line breaks with <p \"kiss-p\">. 2. bn replaces \\n newline with <p \"kiss-p\">. 3. brToDiv and bnToDiv are replaced with <div class=\"kiss-p\">."},import:{zh:"\u5BFC\u5165",en:"Import"},export:{zh:"\u5BFC\u51FA",en:"Export"},export_translation:{zh:"\u5BFC\u51FA\u91CA\u4E49",en:"Export Translation"},error_cant_be_blank:{zh:"\u4E0D\u80FD\u4E3A\u7A7A",en:"Can not be blank"},error_duplicate_values:{zh:"\u5B58\u5728\u91CD\u590D\u7684\u503C",en:"There are duplicate values"},error_wrong_file_type:{zh:"\u9519\u8BEF\u7684\u6587\u4EF6\u7C7B\u578B",en:"Wrong file type"},error_fetch_url:{zh:"\u8BF7\u68C0\u67E5url\u5730\u5740\u662F\u5426\u6B63\u786E\u6216\u7A0D\u540E\u518D\u8BD5\u3002",en:"Please check if the url address is correct or try again later."},deepl_api:{zh:"DeepL \u63A5\u53E3",en:"DeepL API"},deepl_key:{zh:"DeepL \u5BC6\u94A5",en:"DeepL Key"},openai_api:{zh:"OpenAI \u63A5\u53E3",en:"OpenAI API"},openai_key:{zh:"OpenAI \u5BC6\u94A5",en:"OpenAI Key"},openai_model:{zh:"OpenAI \u6A21\u578B",en:"OpenAI Model"},openai_prompt:{zh:"OpenAI \u63D0\u793A\u8BCD",en:"OpenAI Prompt"},if_clear_cache:{zh:"\u662F\u5426\u6E05\u9664\u7F13\u5B58",en:"Whether clear cache"},clear_cache_never:{zh:"\u4E0D\u6E05\u9664\u7F13\u5B58",en:"Never clear cache"},clear_cache_restart:{zh:"\u91CD\u542F\u6D4F\u89C8\u5668\u65F6\u6E05\u9664\u7F13\u5B58",en:"Clear cache when restarting browser"},data_sync_type:{zh:"\u6570\u636E\u540C\u6B65\u65B9\u5F0F",en:"Data Sync Type"},data_sync_url:{zh:"\u6570\u636E\u540C\u6B65\u63A5\u53E3",en:"Data Sync API"},data_sync_user:{zh:"\u6570\u636E\u540C\u6B65\u8D26\u6237",en:"Data Sync User"},data_sync_key:{zh:"\u6570\u636E\u540C\u6B65\u5BC6\u94A5",en:"Data Sync Key"},sync_now:{zh:"\u7ACB\u5373\u540C\u6B65",en:"Sync Now"},sync_success:{zh:"\u540C\u6B65\u6210\u529F\uFF01",en:"Sync Success"},sync_failed:{zh:"\u540C\u6B65\u5931\u8D25\uFF01",en:"Sync Error"},error_got_some_wrong:{zh:"\u62B1\u6B49\uFF0C\u51FA\u9519\u4E86\uFF01",en:"Sorry, something went wrong!"},error_sync_setting:{zh:"\u60A8\u7684\u540C\u6B65\u7C7B\u578B\u5FC5\u987B\u4E3A\u201CKISS-Worker\u201D\uFF0C\u4E14\u9700\u586B\u5199\u5B8C\u6574",en:"Your sync type must be \"KISS-Worker\" and must be filled in completely"},click_test:{zh:"\u70B9\u51FB\u6D4B\u8BD5",en:"Click Test"},test_success:{zh:"\u6D4B\u8BD5\u6210\u529F",en:"Test success"},test_failed:{zh:"\u6D4B\u8BD5\u5931\u8D25",en:"Test failed"},clear_all_cache_now:{zh:"\u7ACB\u5373\u6E05\u9664\u5168\u90E8\u7F13\u5B58",en:"Clear all cache now"},clear_cache:{zh:"\u6E05\u9664\u7F13\u5B58",en:"Clear Cache"},clear_success:{zh:"\u6E05\u9664\u6210\u529F",en:"Clear success"},clear_failed:{zh:"\u6E05\u9664\u5931\u8D25",en:"Clear failed"},share:{zh:"\u5206\u4EAB",en:"Share"},clear_all:{zh:"\u6E05\u7A7A",en:"Clear All"},help:{zh:"\u6C42\u52A9",en:"Help"},restore_default:{zh:"\u6062\u590D\u9ED8\u8BA4",en:"Restore Default"},shortcuts_setting:{zh:"\u5FEB\u6377\u952E\u8BBE\u7F6E",en:"Shortcuts Setting"},toggle_translate_shortcut:{zh:"\"\u5F00\u542F\u7FFB\u8BD1\"\u5FEB\u6377\u952E",en:"\"Toggle Translate\" Shortcut"},toggle_style_shortcut:{zh:"\"\u5207\u6362\u6837\u5F0F\"\u5FEB\u6377\u952E",en:"\"Toggle Style\" Shortcut"},toggle_popup_shortcut:{zh:"\"\u6253\u5F00\u5F39\u7A97\"\u5FEB\u6377\u952E",en:"\"Open Popup\" Shortcut"},open_setting_shortcut:{zh:"\"\u6253\u5F00\u8BBE\u7F6E\"\u5FEB\u6377\u952E",en:"\"Open Setting\" Shortcut"},hide_fab_button:{zh:"\u9690\u85CF\u60AC\u6D6E\u6309\u94AE",en:"Hide Fab Button"},hide_tran_button:{zh:"\u9690\u85CF\u7FFB\u8BD1\u6309\u94AE",en:"Hide Translate Button"},hide_click_away:{zh:"\u70B9\u51FB\u5916\u90E8\u5173\u95ED\u5F39\u7A97",en:"Click outside to close the pop-up window"},use_simple_style:{zh:"\u4F7F\u7528\u7B80\u6D01\u754C\u9762",en:"Use a simple interface"},show:{zh:"\u663E\u793A",en:"Show"},hide:{zh:"\u9690\u85CF",en:"Hide"},save_rule:{zh:"\u4FDD\u5B58\u89C4\u5219",en:"Save Rule"},global_rule:{zh:"\u5168\u5C40\u89C4\u5219",en:"Global Rule"},input_translate:{zh:"\u8F93\u5165\u6846\u7FFB\u8BD1",en:"Input Box Translation"},use_input_box_translation:{zh:"\u542F\u7528\u8F93\u5165\u6846\u7FFB\u8BD1",en:"Input Box Translation"},input_selector:{zh:"\u8F93\u5165\u6846\u9009\u62E9\u5668",en:"Input Selector"},input_selector_helper:{zh:"\u7528\u4E8E\u8F93\u5165\u6846\u7FFB\u8BD1\u3002",en:"Used for input box translation."},trigger_trans_shortcut:{zh:"\u89E6\u53D1\u7FFB\u8BD1\u5FEB\u6377\u952E",en:"Trigger Translation Shortcut Keys"},trigger_trans_shortcut_help:{zh:"\u9ED8\u8BA4\u4E3A\u5355\u51FB\u201CAltLeft+KeyI\u201D",en:"Default is \"AltLeft+KeyI\""},shortcut_press_count:{zh:"\u5FEB\u6377\u952E\u8FDE\u51FB\u6B21\u6570",en:"Shortcut Press Number"},combo_timeout:{zh:"\u8FDE\u51FB\u8D85\u65F6\u65F6\u95F4 (10-1000ms)",en:"Combo Timeout (10-1000ms)"},input_trans_start_sign:{zh:"\u7FFB\u8BD1\u8D77\u59CB\u6807\u8BC6",en:"Translation Start Sign"},input_trans_start_sign_help:{zh:"\u6807\u8BC6\u540E\u9762\u53EF\u4EE5\u52A0\u76EE\u6807\u8BED\u8A00\u4EE3\u7801\uFF0C\u5982\uFF1A \u201C/en \u4F60\u597D\u201D\u3001\u201C/zh hello\u201D",en:"The target language code can be added after the sign, such as: \"/en \u4F60\u597D\", \"/zh hello\""},detect_lang_remote:{zh:"\u8FDC\u7A0B\u8BED\u8A00\u68C0\u6D4B",en:"Remote language detection"},detect_lang_remote_help:{zh:"\u542F\u7528\u540E\u68C0\u6D4B\u51C6\u786E\u5EA6\u589E\u52A0\uFF0C\u4F46\u4F1A\u964D\u4F4E\u7FFB\u8BD1\u901F\u5EA6\uFF0C\u8BF7\u914C\u60C5\u5F00\u542F",en:"After enabling, the detection accuracy will increase, but it will reduce the translation speed. Please enable it as appropriate."},disable:{zh:"\u7981\u7528",en:"Disable"},enable:{zh:"\u542F\u7528",en:"Enable"},selection_translate:{zh:"\u5212\u8BCD\u7FFB\u8BD1",en:"Selection Translate"},toggle_selection_translate:{zh:"\u542F\u7528\u5212\u8BCD\u7FFB\u8BD1",en:"Use Selection Translate"},trigger_tranbox_shortcut:{zh:"\u663E\u793A\u7FFB\u8BD1\u6846/\u7FFB\u8BD1\u9009\u4E2D\u6587\u5B57\u5FEB\u6377\u952E",en:"Open Translate Popup/Translate Selected Shortcut"},tranbtn_offset_x:{zh:"\u7FFB\u8BD1\u6309\u94AE\u504F\u79FBX\uFF08\xB1200\uFF09",en:"Translate Button Offset X (\xB1200)"},tranbtn_offset_y:{zh:"\u7FFB\u8BD1\u6309\u94AE\u504F\u79FBY\uFF08\xB1200\uFF09",en:"Translate Button Offset Y (\xB1200)"},tranbox_offset_x:{zh:"\u7FFB\u8BD1\u6846\u504F\u79FBX\uFF08\xB1200\uFF09",en:"Translate Box Offset X (\xB1200)"},tranbox_offset_y:{zh:"\u7FFB\u8BD1\u6846\u504F\u79FBY\uFF08\xB1200\uFF09",en:"Translate Box Offset Y (\xB1200)"},translated_text:{zh:"\u8BD1\u6587",en:"Translated Text"},original_text:{zh:"\u539F\u6587",en:"Original Text"},favorite_words:{zh:"\u6536\u85CF\u8BCD\u6C47",en:"Favorite Words"},touch_setting:{zh:"\u89E6\u5C4F\u8BBE\u7F6E",en:"Touch Setting"},touch_translate_shortcut:{zh:"\u89E6\u5C4F\u7FFB\u8BD1\u5FEB\u6377\u65B9\u5F0F",en:"Touch Translate Shortcut"},touch_tap_0:{zh:"\u7981\u7528",en:"Disable"},touch_tap_2:{zh:"\u53CC\u6307\u8F7B\u89E6",en:"Two finger tap"},touch_tap_3:{zh:"\u4E09\u6307\u8F7B\u89E6",en:"Three finger tap"},touch_tap_4:{zh:"\u56DB\u6307\u8F7B\u89E6",en:"Four finger tap"},translate_blacklist:{zh:"\u7981\u7528\u7FFB\u8BD1\u540D\u5355",en:"Translate Blacklist"},disabled_csplist:{zh:"\u7981\u7528CSP\u540D\u5355",en:"Disabled CSP List"},disabled_csplist_helper:{zh:"3\u3001\u901A\u8FC7\u8C03\u6574CSP\u7B56\u7565\uFF0C\u4F7F\u5F97\u67D0\u4E9B\u9875\u9762\u80FD\u591F\u6CE8\u5165JS/CSS/Media\uFF0C\u8BF7\u8C28\u614E\u4F7F\u7528\uFF0C\u9664\u975E\u60A8\u5DF2\u77E5\u6653\u76F8\u5173\u98CE\u9669\u3002",en:"3. By adjusting the CSP policy, some pages can inject JS/CSS/Media. Please use it with caution unless you are aware of the related risks."},skip_langs:{zh:"\u4E0D\u7FFB\u8BD1\u7684\u8BED\u8A00",en:"Disable Languages"},skip_langs_helper:{zh:"\u6B64\u529F\u80FD\u4F9D\u8D56\u51C6\u786E\u7684\u8BED\u8A00\u68C0\u6D4B\uFF0C\u5EFA\u8BAE\u542F\u7528\u8FDC\u7A0B\u8BED\u8A00\u68C0\u6D4B\u3002",en:"This feature relies on accurate language detection. It is recommended to enable remote language detection."},context_menus:{zh:"\u53F3\u952E\u83DC\u5355",en:"Context Menus"},hide_context_menus:{zh:"\u9690\u85CF\u53F3\u952E\u83DC\u5355",en:"Hide Context Menus"},simple_context_menus:{zh:"\u7B80\u5355\u53F3\u952E\u83DC\u5355",en:"Simple_context_menus Context Menus"},secondary_context_menus:{zh:"\u4E8C\u7EA7\u53F3\u952E\u83DC\u5355",en:"Secondary Context Menus"},mulkeys_help:{zh:"\u652F\u6301\u7528\u6362\u884C\u6216\u82F1\u6587\u9017\u53F7\u201C,\u201D\u5206\u9694\uFF0C\u8F6E\u8BE2\u8C03\u7528\u3002",en:"Supports polling calls separated by newlines or English commas \",\"."},translation_element_tag:{zh:"\u8BD1\u6587\u5143\u7D20\u6807\u7B7E",en:"Translation Element Tag"},show_only_translations:{zh:"\u4EC5\u663E\u793A\u8BD1\u6587",en:"Show Only Translations"},show_only_translations_help:{zh:"\u975E\u5B8C\u7F8E\u5B9E\u73B0\uFF0C\u67D0\u4E9B\u9875\u9762\u53EF\u80FD\u6709\u6837\u5F0F\u7B49\u95EE\u9898\u3002",en:"It is not a perfect implementation and some pages may have style issues."},translate_page_title:{zh:"\u662F\u5426\u7FFB\u8BD1\u9875\u9762\u6807\u9898",en:"Translate Page Title"},more:{zh:"\u66F4\u591A",en:"More"},less:{zh:"\u66F4\u5C11",en:"Less"},fixer_selector:{zh:"\u7F51\u9875\u4FEE\u590D\u9009\u62E9\u5668",en:"Fixer Selector"},reg_niutrans:{zh:"\u83B7\u53D6\u5C0F\u725B\u7FFB\u8BD1\u5BC6\u94A5\u3010\u7B80\u7EA6\u7FFB\u8BD1\u4E13\u5C5E\u65B0\u7528\u6237\u6CE8\u518C\u8D60\u9001300\u4E07\u5B57\u7B26\u3011",en:"Get NiuTrans APIKey [KISS Translator Exclusive New User Registration Free 3 Million Characters]"},trigger_mode:{zh:"\u89E6\u53D1\u65B9\u5F0F",en:"Trigger Mode"},trigger_click:{zh:"\u70B9\u51FB\u89E6\u53D1",en:"Click Trigger"},trigger_hover:{zh:"\u9F20\u6807\u60AC\u505C\u89E6\u53D1",en:"Hover Trigger"},trigger_select:{zh:"\u9009\u4E2D\u89E6\u53D1",en:"Select Trigger"},extend_styles:{zh:"\u9644\u52A0\u6837\u5F0F",en:"Extend Styles"},custom_option:{zh:"\u81EA\u5B9A\u4E49\u9009\u9879",en:"Custom Option"},translate_selected_text:{zh:"\u7FFB\u8BD1\u9009\u4E2D\u6587\u5B57",en:"Translate Selected Text"},toggle_style:{zh:"\u5207\u6362\u6837\u5F0F",en:"Toggle Style"},open_menu:{zh:"\u6253\u5F00\u5F39\u7A97\u83DC\u5355",en:"Open Popup Menu"},open_setting:{zh:"\u6253\u5F00\u8BBE\u7F6E",en:"Open Setting"},follow_selection:{zh:"\u7FFB\u8BD1\u6846\u8DDF\u968F\u9009\u4E2D\u6587\u672C",en:"Transbox Follow Selection"},translate_start_hook:{zh:"\u7FFB\u8BD1\u5F00\u59CB\u94A9\u5B50\u51FD\u6570",en:"Translate Start Hook"},translate_start_hook_helper:{zh:"\u7FFB\u8BD1\u5F00\u59CB\u65F6\u8FD0\u884C\uFF0C\u5165\u53C2\u4E3A\uFF1A \u7FFB\u8BD1\u8282\u70B9\uFF0C\u539F\u6587\u6587\u672C\u3002",en:"Run when translation starts, the input parameters are: translation node, original text."},translate_end_hook:{zh:"\u7FFB\u8BD1\u5B8C\u6210\u94A9\u5B50\u51FD\u6570",en:"Translate End Hook"},translate_end_hook_helper:{zh:"\u7FFB\u8BD1\u5B8C\u6210\u65F6\u8FD0\u884C\uFF0C\u5165\u53C2\u4E3A\uFF1A \u7FFB\u8BD1\u8282\u70B9\uFF0C\u539F\u6587\u6587\u672C\uFF0C\u8BD1\u6587\u6587\u672C\uFF0C\u4FDD\u7559\u5143\u7D20\u3002",en:"Run when the translation is completed, the input parameters are: translation node, original text, translation text, retained elements."},translate_remove_hook:{zh:"\u7FFB\u8BD1\u79FB\u9664\u94A9\u5B50\u51FD\u6570",en:"Translate Removed Hook"},translate_remove_hook_helper:{zh:"\u7FFB\u8BD1\u79FB\u9664\u65F6\u8FD0\u884C\uFF0C\u5165\u53C2\u4E3A\uFF1A \u7FFB\u8BD1\u8282\u70B9\u3002",en:"Run when translation is removed, the input parameters are: translation node."},english_dict:{zh:"\u82F1\u6587\u8BCD\u5178",en:"English Dictionary"},api_name:{zh:"\u63A5\u53E3\u540D\u79F0",en:"API Name"},is_disabled:{zh:"\u662F\u5426\u7981\u7528",en:"Is Disabled"},translate_selected:{zh:"\u662F\u5426\u542F\u7528\u5212\u8BCD\u7FFB\u8BD1",en:"If translate selected"}};
 ;// CONCATENATED MODULE: ./src/config/index.js
-const STOKEY_MSAUTH="".concat(APP_NAME,"_msauth");const config_STOKEY_BDAUTH="".concat(APP_NAME,"_bdauth");const config_STOKEY_SETTING="".concat(APP_NAME,"_setting");const config_STOKEY_RULES="".concat(APP_NAME,"_rules");const STOKEY_WORDS="".concat(APP_NAME,"_words");const config_STOKEY_SYNC="".concat(APP_NAME,"_sync");const config_STOKEY_FAB="".concat(APP_NAME,"_fab");const config_STOKEY_RULESCACHE_PREFIX="".concat(APP_NAME,"_rulescache_");const CMD_TOGGLE_TRANSLATE="toggleTranslate";const CMD_TOGGLE_STYLE="toggleStyle";const CMD_OPEN_OPTIONS="openOptions";const CMD_OPEN_TRANBOX="openTranbox";const CLIENT_WEB="web";const CLIENT_CHROME="chrome";const CLIENT_EDGE="edge";const CLIENT_FIREFOX="firefox";const CLIENT_USERSCRIPT="userscript";const CLIENT_EXTS=[CLIENT_CHROME,CLIENT_EDGE,CLIENT_FIREFOX];const KV_RULES_KEY="kiss-rules.json";const KV_WORDS_KEY="kiss-words.json";const config_KV_RULES_SHARE_KEY="kiss-rules-share.json";const KV_SETTING_KEY="kiss-setting.json";const KV_SALT_SYNC="KISS-Translator-SYNC";const config_KV_SALT_SHARE="KISS-Translator-SHARE";const CACHE_NAME="".concat(APP_NAME,"_cache");const MSG_FETCH="fetch";const MSG_GET_HTTPCACHE="get_httpcache";const MSG_OPEN_OPTIONS="open_options";const MSG_SAVE_RULE="save_rule";const MSG_TRANS_TOGGLE="trans_toggle";const MSG_TRANS_TOGGLE_STYLE="trans_toggle_style";const MSG_OPEN_TRANBOX="open_tranbox";const MSG_TRANS_GETRULE="trans_getrule";const MSG_TRANS_PUTRULE="trans_putrule";const MSG_TRANS_CURRULE="trans_currule";const MSG_CONTEXT_MENUS="context_menus";const MSG_COMMAND_SHORTCUTS="command_shortcuts";const MSG_INJECT_JS="inject_js";const MSG_INJECT_CSS="inject_css";const MSG_UPDATE_CSP="update_csp";const THEME_LIGHT="light";const THEME_DARK="dark";const URL_KISS_WORKER="https://github.com/fishjar/kiss-worker";const URL_KISS_PROXY="https://github.com/fishjar/kiss-proxy";const URL_KISS_RULES="https://github.com/fishjar/kiss-rules";const URL_KISS_RULES_NEW_ISSUE="https://github.com/fishjar/kiss-rules/issues/new";const config_URL_RAW_PREFIX="https://raw.githubusercontent.com/fishjar/kiss-translator/master";const URL_CACHE_TRAN="https://".concat(APP_LCNAME,"/translate");// api.cognitive.microsofttranslator.com
-const URL_MICROSOFT_TRAN="https://api-edge.cognitive.microsofttranslator.com/translate";const URL_MICROSOFT_AUTH="https://edge.microsoft.com/translate/auth";const URL_MICROSOFT_LANGDETECT="https://api-edge.cognitive.microsofttranslator.com/detect?api-version=3.0";const URL_GOOGLE_TRAN="https://translate.googleapis.com/translate_a/single";const URL_BAIDU_LANGDETECT="https://fanyi.baidu.com/langdetect";const URL_BAIDU_SUGGEST="https://fanyi.baidu.com/sug";const URL_BAIDU_TTS="https://fanyi.baidu.com/gettts";const URL_BAIDU_WEB="https://fanyi.baidu.com/";const URL_BAIDU_TRANSAPI="https://fanyi.baidu.com/transapi";const URL_BAIDU_TRANSAPI_V2="https://fanyi.baidu.com/v2transapi";const URL_DEEPLFREE_TRAN="https://www2.deepl.com/jsonrpc";const URL_TENCENT_TRANSMART="https://transmart.qq.com/api/imt";const URL_NIUTRANS_REG="https://niutrans.com/login?active=3&userSource=kiss-translator";const DEFAULT_USER_AGENT="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36";const OPT_DICT_BAIDU="Baidu";const OPT_TRANS_GOOGLE="Google";const OPT_TRANS_MICROSOFT="Microsoft";const OPT_TRANS_DEEPL="DeepL";const OPT_TRANS_DEEPLX="DeepLX";const OPT_TRANS_DEEPLFREE="DeepLFree";const OPT_TRANS_NIUTRANS="NiuTrans";const OPT_TRANS_BAIDU="Baidu";const OPT_TRANS_TENCENT="Tencent";const OPT_TRANS_OPENAI="OpenAI";const OPT_TRANS_OPENAI_2="OpenAI2";const OPT_TRANS_OPENAI_3="OpenAI3";const OPT_TRANS_GEMINI="Gemini";const OPT_TRANS_CLOUDFLAREAI="CloudflareAI";const OPT_TRANS_OLLAMA="Ollama";const OPT_TRANS_OLLAMA_2="Ollama2";const OPT_TRANS_OLLAMA_3="Ollama3";const OPT_TRANS_CUSTOMIZE="Custom";const OPT_TRANS_CUSTOMIZE_2="Custom2";const OPT_TRANS_CUSTOMIZE_3="Custom3";const OPT_TRANS_CUSTOMIZE_4="Custom4";const OPT_TRANS_CUSTOMIZE_5="Custom5";const OPT_TRANS_ALL=[OPT_TRANS_GOOGLE,OPT_TRANS_MICROSOFT,OPT_TRANS_BAIDU,OPT_TRANS_TENCENT,OPT_TRANS_DEEPL,OPT_TRANS_DEEPLFREE,OPT_TRANS_DEEPLX,OPT_TRANS_NIUTRANS,OPT_TRANS_OPENAI,OPT_TRANS_OPENAI_2,OPT_TRANS_OPENAI_3,OPT_TRANS_GEMINI,OPT_TRANS_CLOUDFLAREAI,OPT_TRANS_OLLAMA,OPT_TRANS_OLLAMA_2,OPT_TRANS_OLLAMA_3,OPT_TRANS_CUSTOMIZE,OPT_TRANS_CUSTOMIZE_2,OPT_TRANS_CUSTOMIZE_3,OPT_TRANS_CUSTOMIZE_4,OPT_TRANS_CUSTOMIZE_5];const OPT_LANGDETECTOR_ALL=[OPT_TRANS_GOOGLE,OPT_TRANS_MICROSOFT,OPT_TRANS_BAIDU,OPT_TRANS_TENCENT];const OPT_LANGS_TO=[["en","English - English"],["zh-CN","Simplified Chinese - 简体中文"],["zh-TW","Traditional Chinese - 繁體中文"],["ar","Arabic - العربية"],["bg","Bulgarian - Български"],["ca","Catalan - Català"],["hr","Croatian - Hrvatski"],["cs","Czech - Čeština"],["da","Danish - Dansk"],["nl","Dutch - Nederlands"],["fi","Finnish - Suomi"],["fr","French - Français"],["de","German - Deutsch"],["el","Greek - Ελληνικά"],["hi","Hindi - हिन्दी"],["hu","Hungarian - Magyar"],["id","Indonesian - Indonesia"],["it","Italian - Italiano"],["ja","Japanese - 日本語"],["ko","Korean - 한국어"],["ms","Malay - Melayu"],["mt","Maltese - Malti"],["nb","Norwegian - Norsk Bokmål"],["pl","Polish - Polski"],["pt","Portuguese - Português"],["ro","Romanian - Română"],["ru","Russian - Русский"],["sk","Slovak - Slovenčina"],["sl","Slovenian - Slovenščina"],["es","Spanish - Español"],["sv","Swedish - Svenska"],["ta","Tamil - தமிழ்"],["te","Telugu - తెలుగు"],["th","Thai - ไทย"],["tr","Turkish - Türkçe"],["uk","Ukrainian - Українська"],["vi","Vietnamese - Tiếng Việt"]];const OPT_LANGS_FROM=[["auto","Auto-detect"],...OPT_LANGS_TO];const OPT_LANGS_SPECIAL={[OPT_TRANS_GOOGLE]:new Map(OPT_LANGS_FROM.map(_ref=>{let[key]=_ref;return[key,key];})),[OPT_TRANS_MICROSOFT]:new Map([...OPT_LANGS_FROM.map(_ref2=>{let[key]=_ref2;return[key,key];}),["auto",""],["zh-CN","zh-Hans"],["zh-TW","zh-Hant"]]),[OPT_TRANS_DEEPL]:new Map([...OPT_LANGS_FROM.map(_ref3=>{let[key]=_ref3;return[key,key.toUpperCase()];}),["auto",""],["zh-CN","ZH"],["zh-TW","ZH"]]),[OPT_TRANS_DEEPLFREE]:new Map([...OPT_LANGS_FROM.map(_ref4=>{let[key]=_ref4;return[key,key.toUpperCase()];}),["auto","auto"],["zh-CN","ZH"],["zh-TW","ZH"]]),[OPT_TRANS_DEEPLX]:new Map([...OPT_LANGS_FROM.map(_ref5=>{let[key]=_ref5;return[key,key.toUpperCase()];}),["auto","auto"],["zh-CN","ZH"],["zh-TW","ZH"]]),[OPT_TRANS_NIUTRANS]:new Map([...OPT_LANGS_FROM.map(_ref6=>{let[key]=_ref6;return[key,key];}),["auto","auto"],["zh-CN","zh"],["zh-TW","cht"]]),[OPT_TRANS_BAIDU]:new Map([...OPT_LANGS_FROM.map(_ref7=>{let[key]=_ref7;return[key,key];}),["zh-CN","zh"],["zh-TW","cht"],["ar","ara"],["bg","bul"],["ca","cat"],["hr","hrv"],["da","dan"],["fi","fin"],["fr","fra"],["hi","mai"],["ja","jp"],["ko","kor"],["ms","may"],["mt","mlt"],["nb","nor"],["ro","rom"],["ru","ru"],["sl","slo"],["es","spa"],["sv","swe"],["ta","tam"],["te","tel"],["uk","ukr"],["vi","vie"]]),[OPT_TRANS_TENCENT]:new Map([["auto","auto"],["zh-CN","zh"],["zh-TW","zh"],["en","en"],["ar","ar"],["de","de"],["ru","ru"],["fr","fr"],["fi","fil"],["ko","ko"],["ms","ms"],["pt","pt"],["ja","ja"],["th","th"],["tr","tr"],["es","es"],["it","it"],["hi","hi"],["id","id"],["vi","vi"]]),[OPT_TRANS_OPENAI]:new Map(OPT_LANGS_FROM.map(_ref8=>{let[key,val]=_ref8;return[key,val.split(" - ")[0]];})),[OPT_TRANS_OPENAI_2]:new Map(OPT_LANGS_FROM.map(_ref9=>{let[key,val]=_ref9;return[key,val.split(" - ")[0]];})),[OPT_TRANS_OPENAI_3]:new Map(OPT_LANGS_FROM.map(_ref10=>{let[key,val]=_ref10;return[key,val.split(" - ")[0]];})),[OPT_TRANS_GEMINI]:new Map(OPT_LANGS_FROM.map(_ref11=>{let[key,val]=_ref11;return[key,val.split(" - ")[0]];})),[OPT_TRANS_OLLAMA]:new Map(OPT_LANGS_FROM.map(_ref12=>{let[key,val]=_ref12;return[key,val.split(" - ")[0]];})),[OPT_TRANS_OLLAMA_2]:new Map(OPT_LANGS_FROM.map(_ref13=>{let[key,val]=_ref13;return[key,val.split(" - ")[0]];})),[OPT_TRANS_OLLAMA_3]:new Map(OPT_LANGS_FROM.map(_ref14=>{let[key,val]=_ref14;return[key,val.split(" - ")[0]];})),[OPT_TRANS_CLOUDFLAREAI]:new Map([["auto",""],["zh-CN","chinese"],["zh-TW","chinese"],["en","english"],["ar","arabic"],["de","german"],["ru","russian"],["fr","french"],["pt","portuguese"],["ja","japanese"],["es","spanish"],["hi","hindi"]]),[OPT_TRANS_CUSTOMIZE]:new Map([...OPT_LANGS_FROM.map(_ref15=>{let[key]=_ref15;return[key,key];}),["auto",""]]),[OPT_TRANS_CUSTOMIZE_2]:new Map([...OPT_LANGS_FROM.map(_ref16=>{let[key]=_ref16;return[key,key];}),["auto",""]]),[OPT_TRANS_CUSTOMIZE_3]:new Map([...OPT_LANGS_FROM.map(_ref17=>{let[key]=_ref17;return[key,key];}),["auto",""]]),[OPT_TRANS_CUSTOMIZE_4]:new Map([...OPT_LANGS_FROM.map(_ref18=>{let[key]=_ref18;return[key,key];}),["auto",""]]),[OPT_TRANS_CUSTOMIZE_5]:new Map([...OPT_LANGS_FROM.map(_ref19=>{let[key]=_ref19;return[key,key];}),["auto",""]])};const OPT_LANGS_LIST=OPT_LANGS_TO.map(_ref20=>{let[lang]=_ref20;return lang;});const OPT_LANGS_MICROSOFT=new Map(Array.from(OPT_LANGS_SPECIAL[OPT_TRANS_MICROSOFT].entries()).map(_ref21=>{let[k,v]=_ref21;return[v,k];}));const OPT_LANGS_BAIDU=new Map(Array.from(OPT_LANGS_SPECIAL[OPT_TRANS_BAIDU].entries()).map(_ref22=>{let[k,v]=_ref22;return[v,k];}));const OPT_LANGS_TENCENT=new Map(Array.from(OPT_LANGS_SPECIAL[OPT_TRANS_TENCENT].entries()).map(_ref23=>{let[k,v]=_ref23;return[v,k];}));OPT_LANGS_TENCENT.set("zh","zh-CN");const OPT_STYLE_NONE="style_none";// 无
+const STOKEY_MSAUTH="".concat(APP_NAME,"_msauth");const config_STOKEY_BDAUTH="".concat(APP_NAME,"_bdauth");const config_STOKEY_SETTING="".concat(APP_NAME,"_setting");const config_STOKEY_RULES="".concat(APP_NAME,"_rules");const STOKEY_WORDS="".concat(APP_NAME,"_words");const config_STOKEY_SYNC="".concat(APP_NAME,"_sync");const config_STOKEY_FAB="".concat(APP_NAME,"_fab");const config_STOKEY_RULESCACHE_PREFIX="".concat(APP_NAME,"_rulescache_");const CMD_TOGGLE_TRANSLATE="toggleTranslate";const CMD_TOGGLE_STYLE="toggleStyle";const CMD_OPEN_OPTIONS="openOptions";const CMD_OPEN_TRANBOX="openTranbox";const CLIENT_WEB="web";const CLIENT_CHROME="chrome";const CLIENT_EDGE="edge";const CLIENT_FIREFOX="firefox";const CLIENT_USERSCRIPT="userscript";const CLIENT_THUNDERBIRD="thunderbird";const CLIENT_EXTS=[CLIENT_CHROME,CLIENT_EDGE,CLIENT_FIREFOX,CLIENT_THUNDERBIRD];const KV_RULES_KEY="kiss-rules.json";const KV_WORDS_KEY="kiss-words.json";const config_KV_RULES_SHARE_KEY="kiss-rules-share.json";const KV_SETTING_KEY="kiss-setting.json";const KV_SALT_SYNC="KISS-Translator-SYNC";const config_KV_SALT_SHARE="KISS-Translator-SHARE";const CACHE_NAME="".concat(APP_NAME,"_cache");const MSG_FETCH="fetch";const MSG_GET_HTTPCACHE="get_httpcache";const MSG_OPEN_OPTIONS="open_options";const MSG_SAVE_RULE="save_rule";const MSG_TRANS_TOGGLE="trans_toggle";const MSG_TRANS_TOGGLE_STYLE="trans_toggle_style";const MSG_OPEN_TRANBOX="open_tranbox";const MSG_TRANS_GETRULE="trans_getrule";const MSG_TRANS_PUTRULE="trans_putrule";const MSG_TRANS_CURRULE="trans_currule";const MSG_CONTEXT_MENUS="context_menus";const MSG_COMMAND_SHORTCUTS="command_shortcuts";const MSG_INJECT_JS="inject_js";const MSG_INJECT_CSS="inject_css";const MSG_UPDATE_CSP="update_csp";const THEME_LIGHT="light";const THEME_DARK="dark";const URL_KISS_WORKER="https://github.com/fishjar/kiss-worker";const URL_KISS_PROXY="https://github.com/fishjar/kiss-proxy";const URL_KISS_RULES="https://github.com/fishjar/kiss-rules";const URL_KISS_RULES_NEW_ISSUE="https://github.com/fishjar/kiss-rules/issues/new";const config_URL_RAW_PREFIX="https://raw.githubusercontent.com/fishjar/kiss-translator/master";const URL_CACHE_TRAN="https://".concat(APP_LCNAME,"/translate");// api.cognitive.microsofttranslator.com
+const URL_MICROSOFT_TRAN="https://api-edge.cognitive.microsofttranslator.com/translate";const URL_MICROSOFT_AUTH="https://edge.microsoft.com/translate/auth";const URL_MICROSOFT_LANGDETECT="https://api-edge.cognitive.microsofttranslator.com/detect?api-version=3.0";const URL_GOOGLE_TRAN="https://translate.googleapis.com/translate_a/single";const URL_GOOGLE_TRAN2="https://translate-pa.googleapis.com/v1/translateHtml";const DEFAULT_GOOGLE_API_KEY="AIzaSyATBXajvzQLTDHEQbcpq0Ihe0vWDHmO520";const URL_BAIDU_LANGDETECT="https://fanyi.baidu.com/langdetect";const URL_BAIDU_SUGGEST="https://fanyi.baidu.com/sug";const URL_BAIDU_TTS="https://fanyi.baidu.com/gettts";const URL_BAIDU_WEB="https://fanyi.baidu.com/";const URL_BAIDU_TRANSAPI="https://fanyi.baidu.com/transapi";const URL_BAIDU_TRANSAPI_V2="https://fanyi.baidu.com/v2transapi";const URL_DEEPLFREE_TRAN="https://www2.deepl.com/jsonrpc";const URL_TENCENT_TRANSMART="https://transmart.qq.com/api/imt";const URL_VOLCENGINE_TRAN="https://translate.volcengine.com/crx/translate/v1";const URL_NIUTRANS_REG="https://niutrans.com/login?active=3&userSource=kiss-translator";const DEFAULT_USER_AGENT="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36";const OPT_DICT_BAIDU="Baidu";const OPT_TRANS_GOOGLE="Google";const OPT_TRANS_GOOGLE_2="Google2";const OPT_TRANS_MICROSOFT="Microsoft";const OPT_TRANS_DEEPL="DeepL";const OPT_TRANS_DEEPLX="DeepLX";const OPT_TRANS_DEEPLFREE="DeepLFree";const OPT_TRANS_NIUTRANS="NiuTrans";const OPT_TRANS_BAIDU="Baidu";const OPT_TRANS_TENCENT="Tencent";const OPT_TRANS_VOLCENGINE="Volcengine";const OPT_TRANS_OPENAI="OpenAI";const OPT_TRANS_OPENAI_2="OpenAI2";const OPT_TRANS_OPENAI_3="OpenAI3";const OPT_TRANS_GEMINI="Gemini";const OPT_TRANS_GEMINI_2="Gemini2";const OPT_TRANS_CLAUDE="Claude";const OPT_TRANS_CLOUDFLAREAI="CloudflareAI";const OPT_TRANS_OLLAMA="Ollama";const OPT_TRANS_OLLAMA_2="Ollama2";const OPT_TRANS_OLLAMA_3="Ollama3";const OPT_TRANS_CUSTOMIZE="Custom";const OPT_TRANS_CUSTOMIZE_2="Custom2";const OPT_TRANS_CUSTOMIZE_3="Custom3";const OPT_TRANS_CUSTOMIZE_4="Custom4";const OPT_TRANS_CUSTOMIZE_5="Custom5";const OPT_TRANS_ALL=[OPT_TRANS_GOOGLE,OPT_TRANS_GOOGLE_2,OPT_TRANS_MICROSOFT,OPT_TRANS_BAIDU,OPT_TRANS_TENCENT,OPT_TRANS_VOLCENGINE,OPT_TRANS_DEEPL,OPT_TRANS_DEEPLFREE,OPT_TRANS_DEEPLX,OPT_TRANS_NIUTRANS,OPT_TRANS_OPENAI,OPT_TRANS_OPENAI_2,OPT_TRANS_OPENAI_3,OPT_TRANS_GEMINI,OPT_TRANS_GEMINI_2,OPT_TRANS_CLAUDE,OPT_TRANS_CLOUDFLAREAI,OPT_TRANS_OLLAMA,OPT_TRANS_OLLAMA_2,OPT_TRANS_OLLAMA_3,OPT_TRANS_CUSTOMIZE,OPT_TRANS_CUSTOMIZE_2,OPT_TRANS_CUSTOMIZE_3,OPT_TRANS_CUSTOMIZE_4,OPT_TRANS_CUSTOMIZE_5];const OPT_LANGDETECTOR_ALL=[OPT_TRANS_GOOGLE,OPT_TRANS_MICROSOFT,OPT_TRANS_BAIDU,OPT_TRANS_TENCENT];const OPT_LANGS_TO=[["en","English - English"],["zh-CN","Simplified Chinese - 简体中文"],["zh-TW","Traditional Chinese - 繁體中文"],["ar","Arabic - العربية"],["bg","Bulgarian - Български"],["ca","Catalan - Català"],["hr","Croatian - Hrvatski"],["cs","Czech - Čeština"],["da","Danish - Dansk"],["nl","Dutch - Nederlands"],["fi","Finnish - Suomi"],["fr","French - Français"],["de","German - Deutsch"],["el","Greek - Ελληνικά"],["hi","Hindi - हिन्दी"],["hu","Hungarian - Magyar"],["id","Indonesian - Indonesia"],["it","Italian - Italiano"],["ja","Japanese - 日本語"],["ko","Korean - 한국어"],["ms","Malay - Melayu"],["mt","Maltese - Malti"],["nb","Norwegian - Norsk Bokmål"],["pl","Polish - Polski"],["pt","Portuguese - Português"],["ro","Romanian - Română"],["ru","Russian - Русский"],["sk","Slovak - Slovenčina"],["sl","Slovenian - Slovenščina"],["es","Spanish - Español"],["sv","Swedish - Svenska"],["ta","Tamil - தமிழ்"],["te","Telugu - తెలుగు"],["th","Thai - ไทย"],["tr","Turkish - Türkçe"],["uk","Ukrainian - Українська"],["vi","Vietnamese - Tiếng Việt"]];const OPT_LANGS_FROM=[["auto","Auto-detect"],...OPT_LANGS_TO];const OPT_LANGS_SPECIAL={[OPT_TRANS_GOOGLE]:new Map(OPT_LANGS_FROM.map(_ref=>{let[key]=_ref;return[key,key];})),[OPT_TRANS_GOOGLE_2]:new Map(OPT_LANGS_FROM.map(_ref2=>{let[key]=_ref2;return[key,key];})),[OPT_TRANS_MICROSOFT]:new Map([...OPT_LANGS_FROM.map(_ref3=>{let[key]=_ref3;return[key,key];}),["auto",""],["zh-CN","zh-Hans"],["zh-TW","zh-Hant"]]),[OPT_TRANS_DEEPL]:new Map([...OPT_LANGS_FROM.map(_ref4=>{let[key]=_ref4;return[key,key.toUpperCase()];}),["auto",""],["zh-CN","ZH"],["zh-TW","ZH"]]),[OPT_TRANS_DEEPLFREE]:new Map([...OPT_LANGS_FROM.map(_ref5=>{let[key]=_ref5;return[key,key.toUpperCase()];}),["auto","auto"],["zh-CN","ZH"],["zh-TW","ZH"]]),[OPT_TRANS_DEEPLX]:new Map([...OPT_LANGS_FROM.map(_ref6=>{let[key]=_ref6;return[key,key.toUpperCase()];}),["auto","auto"],["zh-CN","ZH"],["zh-TW","ZH"]]),[OPT_TRANS_NIUTRANS]:new Map([...OPT_LANGS_FROM.map(_ref7=>{let[key]=_ref7;return[key,key];}),["auto","auto"],["zh-CN","zh"],["zh-TW","cht"]]),[OPT_TRANS_VOLCENGINE]:new Map([...OPT_LANGS_FROM.map(_ref8=>{let[key]=_ref8;return[key,key];}),["auto","auto"],["zh-CN","zh"],["zh-TW","zh-Hant"]]),[OPT_TRANS_BAIDU]:new Map([...OPT_LANGS_FROM.map(_ref9=>{let[key]=_ref9;return[key,key];}),["zh-CN","zh"],["zh-TW","cht"],["ar","ara"],["bg","bul"],["ca","cat"],["hr","hrv"],["da","dan"],["fi","fin"],["fr","fra"],["hi","mai"],["ja","jp"],["ko","kor"],["ms","may"],["mt","mlt"],["nb","nor"],["ro","rom"],["ru","ru"],["sl","slo"],["es","spa"],["sv","swe"],["ta","tam"],["te","tel"],["uk","ukr"],["vi","vie"]]),[OPT_TRANS_TENCENT]:new Map([["auto","auto"],["zh-CN","zh"],["zh-TW","zh"],["en","en"],["ar","ar"],["de","de"],["ru","ru"],["fr","fr"],["fi","fil"],["ko","ko"],["ms","ms"],["pt","pt"],["ja","ja"],["th","th"],["tr","tr"],["es","es"],["it","it"],["hi","hi"],["id","id"],["vi","vi"]]),[OPT_TRANS_OPENAI]:new Map(OPT_LANGS_FROM.map(_ref10=>{let[key,val]=_ref10;return[key,val.split(" - ")[0]];})),[OPT_TRANS_OPENAI_2]:new Map(OPT_LANGS_FROM.map(_ref11=>{let[key,val]=_ref11;return[key,val.split(" - ")[0]];})),[OPT_TRANS_OPENAI_3]:new Map(OPT_LANGS_FROM.map(_ref12=>{let[key,val]=_ref12;return[key,val.split(" - ")[0]];})),[OPT_TRANS_GEMINI]:new Map(OPT_LANGS_FROM.map(_ref13=>{let[key,val]=_ref13;return[key,val.split(" - ")[0]];})),[OPT_TRANS_GEMINI_2]:new Map(OPT_LANGS_FROM.map(_ref14=>{let[key,val]=_ref14;return[key,val.split(" - ")[0]];})),[OPT_TRANS_CLAUDE]:new Map(OPT_LANGS_FROM.map(_ref15=>{let[key,val]=_ref15;return[key,val.split(" - ")[0]];})),[OPT_TRANS_OLLAMA]:new Map(OPT_LANGS_FROM.map(_ref16=>{let[key,val]=_ref16;return[key,val.split(" - ")[0]];})),[OPT_TRANS_OLLAMA_2]:new Map(OPT_LANGS_FROM.map(_ref17=>{let[key,val]=_ref17;return[key,val.split(" - ")[0]];})),[OPT_TRANS_OLLAMA_3]:new Map(OPT_LANGS_FROM.map(_ref18=>{let[key,val]=_ref18;return[key,val.split(" - ")[0]];})),[OPT_TRANS_CLOUDFLAREAI]:new Map([["auto",""],["zh-CN","chinese"],["zh-TW","chinese"],["en","english"],["ar","arabic"],["de","german"],["ru","russian"],["fr","french"],["pt","portuguese"],["ja","japanese"],["es","spanish"],["hi","hindi"]]),[OPT_TRANS_CUSTOMIZE]:new Map([...OPT_LANGS_FROM.map(_ref19=>{let[key]=_ref19;return[key,key];}),["auto",""]]),[OPT_TRANS_CUSTOMIZE_2]:new Map([...OPT_LANGS_FROM.map(_ref20=>{let[key]=_ref20;return[key,key];}),["auto",""]]),[OPT_TRANS_CUSTOMIZE_3]:new Map([...OPT_LANGS_FROM.map(_ref21=>{let[key]=_ref21;return[key,key];}),["auto",""]]),[OPT_TRANS_CUSTOMIZE_4]:new Map([...OPT_LANGS_FROM.map(_ref22=>{let[key]=_ref22;return[key,key];}),["auto",""]]),[OPT_TRANS_CUSTOMIZE_5]:new Map([...OPT_LANGS_FROM.map(_ref23=>{let[key]=_ref23;return[key,key];}),["auto",""]])};const OPT_LANGS_LIST=OPT_LANGS_TO.map(_ref24=>{let[lang]=_ref24;return lang;});const OPT_LANGS_MICROSOFT=new Map(Array.from(OPT_LANGS_SPECIAL[OPT_TRANS_MICROSOFT].entries()).map(_ref25=>{let[k,v]=_ref25;return[v,k];}));const OPT_LANGS_BAIDU=new Map(Array.from(OPT_LANGS_SPECIAL[OPT_TRANS_BAIDU].entries()).map(_ref26=>{let[k,v]=_ref26;return[v,k];}));const OPT_LANGS_TENCENT=new Map(Array.from(OPT_LANGS_SPECIAL[OPT_TRANS_TENCENT].entries()).map(_ref27=>{let[k,v]=_ref27;return[v,k];}));OPT_LANGS_TENCENT.set("zh","zh-CN");const OPT_STYLE_NONE="style_none";// 无
 const OPT_STYLE_LINE="under_line";// 下划线
 const OPT_STYLE_DOTLINE="dot_line";// 点状线
 const OPT_STYLE_DASHLINE="dash_line";// 虚线
@@ -30824,6 +30824,7 @@ transOnly:"false",// 是否仅显示译文
 transTiming:OPT_TIMING_PAGESCROLL,// 翻译时机/鼠标悬停翻译
 transTag:DEFAULT_TRANS_TAG,// 译文元素标签
 transTitle:"false",// 是否同时翻译页面标题
+transSelected:"true",// 是否启用划词翻译
 detectRemote:"false",// 是否使用远程语言检测
 skipLangs:[],// 不翻译的语言
 fixerSelector:"",// 修复函数选择器
@@ -30833,7 +30834,8 @@ transEndHook:"",// 钩子函数
 transRemoveHook:""// 钩子函数
 };// 输入框翻译
 const OPT_INPUT_TRANS_SIGNS=["/","//","\\","\\\\",">",">>"];const DEFAULT_INPUT_SHORTCUT=["AltLeft","KeyI"];const DEFAULT_INPUT_RULE={transOpen:true,translator:OPT_TRANS_MICROSOFT,fromLang:"auto",toLang:"en",triggerShortcut:DEFAULT_INPUT_SHORTCUT,triggerCount:1,triggerTime:200,transSign:OPT_INPUT_TRANS_SIGNS[0]};// 划词翻译
-const PHONIC_MAP={en_phonic:["英","uk"],us_phonic:["美","en"]};const OPT_TRANBOX_TRIGGER_CLICK="click";const OPT_TRANBOX_TRIGGER_HOVER="hover";const OPT_TRANBOX_TRIGGER_SELECT="select";const OPT_TRANBOX_TRIGGER_ALL=[OPT_TRANBOX_TRIGGER_CLICK,OPT_TRANBOX_TRIGGER_HOVER,OPT_TRANBOX_TRIGGER_SELECT];const DEFAULT_TRANBOX_SHORTCUT=["AltLeft","KeyS"];const DEFAULT_TRANBOX_SETTING={transOpen:true,translator:OPT_TRANS_MICROSOFT,fromLang:"auto",toLang:"zh-CN",toLang2:"en",tranboxShortcut:DEFAULT_TRANBOX_SHORTCUT,btnOffsetX:10,btnOffsetY:10,boxOffsetX:0,boxOffsetY:10,hideTranBtn:false,// 是否隐藏翻译按钮
+const PHONIC_MAP={en_phonic:["英","uk"],us_phonic:["美","en"]};const OPT_TRANBOX_TRIGGER_CLICK="click";const OPT_TRANBOX_TRIGGER_HOVER="hover";const OPT_TRANBOX_TRIGGER_SELECT="select";const OPT_TRANBOX_TRIGGER_ALL=[OPT_TRANBOX_TRIGGER_CLICK,OPT_TRANBOX_TRIGGER_HOVER,OPT_TRANBOX_TRIGGER_SELECT];const DEFAULT_TRANBOX_SHORTCUT=["AltLeft","KeyS"];const DEFAULT_TRANBOX_SETTING={// transOpen: true, // 是否启用划词翻译（作废，移至rule）
+translator:OPT_TRANS_MICROSOFT,fromLang:"auto",toLang:"zh-CN",toLang2:"en",tranboxShortcut:DEFAULT_TRANBOX_SHORTCUT,btnOffsetX:10,btnOffsetY:10,boxOffsetX:0,boxOffsetY:10,hideTranBtn:false,// 是否隐藏翻译按钮
 hideClickAway:false,// 是否点击外部关闭弹窗
 simpleStyle:false,// 是否简洁界面
 followSelection:false,// 翻译框是否跟随选中文本
@@ -30841,13 +30843,17 @@ triggerMode:OPT_TRANBOX_TRIGGER_CLICK,// 触发翻译方式
 extStyles:"",// 附加样式
 enDict:OPT_DICT_BAIDU// 英文词典
 };// 订阅列表
-const DEFAULT_SUBRULES_LIST=[{url:"https://fishjar.github.io/kiss-rules/kiss-rules.json",selected:false},{url:"https://fishjar.github.io/kiss-rules/kiss-rules-on.json",selected:true},{url:"https://fishjar.github.io/kiss-rules/kiss-rules-off.json",selected:false}];// 翻译接口
+const DEFAULT_SUBRULES_LIST=[{url:"https://fishjar.github.io/kiss-rules/kiss-rules.json",selected:false},{url:"https://fishjar.github.io/kiss-rules/kiss-rules-on.json",selected:true},{url:"https://fishjar.github.io/kiss-rules/kiss-rules-off.json",selected:false}];const DEFAULT_HTTP_TIMEOUT=5000;// 调用超时时间
+// 翻译接口
 const defaultCustomApi={url:"",key:"",customOption:"",// (作废)
 reqHook:"",// request 钩子函数
 resHook:"",// response 钩子函数
-fetchLimit:DEFAULT_FETCH_LIMIT,fetchInterval:DEFAULT_FETCH_INTERVAL};const defaultOpenaiApi={url:"https://api.openai.com/v1/chat/completions",key:"",model:"gpt-4",prompt:"You will be provided with a sentence in ".concat(INPUT_PLACE_FROM,", and your task is to translate it into ").concat(INPUT_PLACE_TO,"."),temperature:0,maxTokens:256,fetchLimit:1,fetchInterval:500};const defaultOllamaApi={url:"http://localhost:11434/api/generate",key:"",model:"llama3",prompt:"Translate the following text from ".concat(INPUT_PLACE_FROM," to ").concat(INPUT_PLACE_TO,":\n\n").concat(INPUT_PLACE_TEXT),fetchLimit:1,fetchInterval:500};const DEFAULT_TRANS_APIS={[OPT_TRANS_GOOGLE]:{url:URL_GOOGLE_TRAN,key:"",fetchLimit:DEFAULT_FETCH_LIMIT,// 最大任务数量
-fetchInterval:DEFAULT_FETCH_INTERVAL// 任务间隔时间
-},[OPT_TRANS_MICROSOFT]:{fetchLimit:DEFAULT_FETCH_LIMIT,fetchInterval:DEFAULT_FETCH_INTERVAL},[OPT_TRANS_BAIDU]:{fetchLimit:DEFAULT_FETCH_LIMIT,fetchInterval:DEFAULT_FETCH_INTERVAL},[OPT_TRANS_TENCENT]:{fetchLimit:DEFAULT_FETCH_LIMIT,fetchInterval:DEFAULT_FETCH_INTERVAL},[OPT_TRANS_DEEPL]:{url:"https://api-free.deepl.com/v2/translate",key:"",fetchLimit:1,fetchInterval:500},[OPT_TRANS_DEEPLFREE]:{fetchLimit:1,fetchInterval:500},[OPT_TRANS_DEEPLX]:{url:"http://localhost:1188/translate",key:"",fetchLimit:1,fetchInterval:500},[OPT_TRANS_NIUTRANS]:{url:"https://api.niutrans.com/NiuTransServer/translation",key:"",dictNo:"",memoryNo:"",fetchLimit:DEFAULT_FETCH_LIMIT,fetchInterval:DEFAULT_FETCH_INTERVAL},[OPT_TRANS_OPENAI]:defaultOpenaiApi,[OPT_TRANS_OPENAI_2]:defaultOpenaiApi,[OPT_TRANS_OPENAI_3]:defaultOpenaiApi,[OPT_TRANS_GEMINI]:{url:"https://generativelanguage.googleapis.com/v1/models/".concat(INPUT_PLACE_MODEL,":generateContent?key=").concat(INPUT_PLACE_KEY),key:"",model:"gemini-pro",prompt:"Translate the following text from ".concat(INPUT_PLACE_FROM," to ").concat(INPUT_PLACE_TO,":\n\n").concat(INPUT_PLACE_TEXT),fetchLimit:1,fetchInterval:500},[OPT_TRANS_CLOUDFLAREAI]:{url:"https://api.cloudflare.com/client/v4/accounts/{{ACCOUNT_ID}}/ai/run/@cf/meta/m2m100-1.2b",key:"",fetchLimit:1,fetchInterval:500},[OPT_TRANS_OLLAMA]:defaultOllamaApi,[OPT_TRANS_OLLAMA_2]:defaultOllamaApi,[OPT_TRANS_OLLAMA_3]:defaultOllamaApi,[OPT_TRANS_CUSTOMIZE]:defaultCustomApi,[OPT_TRANS_CUSTOMIZE_2]:defaultCustomApi,[OPT_TRANS_CUSTOMIZE_3]:defaultCustomApi,[OPT_TRANS_CUSTOMIZE_4]:defaultCustomApi,[OPT_TRANS_CUSTOMIZE_5]:defaultCustomApi};// 默认快捷键
+fetchLimit:DEFAULT_FETCH_LIMIT,fetchInterval:DEFAULT_FETCH_INTERVAL,apiName:"",isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT};const defaultOpenaiApi={url:"https://api.openai.com/v1/chat/completions",key:"",model:"gpt-4",systemPrompt:"You are a professional, authentic machine translation engine.",userPrompt:"Translate the following source text from ".concat(INPUT_PLACE_FROM," to ").concat(INPUT_PLACE_TO,". Output translation directly without any additional text.\n\nSource Text: ").concat(INPUT_PLACE_TEXT,"\n\nTranslated Text:"),temperature:0,maxTokens:256,fetchLimit:1,fetchInterval:500,apiName:"",isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT*2};const defaultOllamaApi={url:"http://localhost:11434/api/generate",key:"",model:"llama3.1",systemPrompt:"You are a professional, authentic machine translation engine.",userPrompt:"Translate the following source text from ".concat(INPUT_PLACE_FROM," to ").concat(INPUT_PLACE_TO,". Output translation directly without any additional text.\n\nSource Text: ").concat(INPUT_PLACE_TEXT,"\n\nTranslated Text:"),think:false,thinkIgnore:"qwen3,deepseek-r1",fetchLimit:1,fetchInterval:500,apiName:"",isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT*2};const DEFAULT_TRANS_APIS={[OPT_TRANS_GOOGLE]:{url:URL_GOOGLE_TRAN,key:"",fetchLimit:DEFAULT_FETCH_LIMIT,// 最大任务数量
+fetchInterval:DEFAULT_FETCH_INTERVAL,// 任务间隔时间
+apiName:OPT_TRANS_GOOGLE,// 接口自定义名称
+isDisabled:false,// 是否禁用
+httpTimeout:DEFAULT_HTTP_TIMEOUT// 超时时间
+},[OPT_TRANS_GOOGLE_2]:{url:URL_GOOGLE_TRAN2,key:DEFAULT_GOOGLE_API_KEY,fetchLimit:DEFAULT_FETCH_LIMIT,fetchInterval:DEFAULT_FETCH_INTERVAL,apiName:OPT_TRANS_GOOGLE_2,isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT},[OPT_TRANS_MICROSOFT]:{fetchLimit:DEFAULT_FETCH_LIMIT,fetchInterval:DEFAULT_FETCH_INTERVAL,apiName:OPT_TRANS_MICROSOFT,isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT},[OPT_TRANS_BAIDU]:{fetchLimit:DEFAULT_FETCH_LIMIT,fetchInterval:DEFAULT_FETCH_INTERVAL,apiName:OPT_TRANS_BAIDU,isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT},[OPT_TRANS_TENCENT]:{fetchLimit:DEFAULT_FETCH_LIMIT,fetchInterval:DEFAULT_FETCH_INTERVAL,apiName:OPT_TRANS_TENCENT,isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT},[OPT_TRANS_VOLCENGINE]:{fetchLimit:DEFAULT_FETCH_LIMIT,fetchInterval:DEFAULT_FETCH_INTERVAL,apiName:OPT_TRANS_VOLCENGINE,isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT},[OPT_TRANS_DEEPL]:{url:"https://api-free.deepl.com/v2/translate",key:"",fetchLimit:1,fetchInterval:500,apiName:OPT_TRANS_DEEPL,isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT},[OPT_TRANS_DEEPLFREE]:{fetchLimit:1,fetchInterval:500,apiName:OPT_TRANS_DEEPLFREE,isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT},[OPT_TRANS_DEEPLX]:{url:"http://localhost:1188/translate",key:"",fetchLimit:1,fetchInterval:500,apiName:OPT_TRANS_DEEPLX,isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT},[OPT_TRANS_NIUTRANS]:{url:"https://api.niutrans.com/NiuTransServer/translation",key:"",dictNo:"",memoryNo:"",fetchLimit:DEFAULT_FETCH_LIMIT,fetchInterval:DEFAULT_FETCH_INTERVAL,apiName:OPT_TRANS_NIUTRANS,isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT},[OPT_TRANS_OPENAI]:defaultOpenaiApi,[OPT_TRANS_OPENAI_2]:defaultOpenaiApi,[OPT_TRANS_OPENAI_3]:defaultOpenaiApi,[OPT_TRANS_GEMINI]:{url:"https://generativelanguage.googleapis.com/v1/models/".concat(INPUT_PLACE_MODEL,":generateContent?key=").concat(INPUT_PLACE_KEY),key:"",model:"gemini-2.5-flash",systemPrompt:"You are a professional, authentic machine translation engine.",userPrompt:"Translate the following source text from ".concat(INPUT_PLACE_FROM," to ").concat(INPUT_PLACE_TO,". Output translation directly without any additional text.\n\nSource Text: ").concat(INPUT_PLACE_TEXT,"\n\nTranslated Text:"),temperature:0,maxTokens:2048,fetchLimit:1,fetchInterval:500,apiName:OPT_TRANS_GEMINI,isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT*2},[OPT_TRANS_GEMINI_2]:{url:"https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",key:"",model:"gemini-2.0-flash",systemPrompt:"You are a professional, authentic machine translation engine.",userPrompt:"Translate the following source text from ".concat(INPUT_PLACE_FROM," to ").concat(INPUT_PLACE_TO,". Output translation directly without any additional text.\n\nSource Text: ").concat(INPUT_PLACE_TEXT,"\n\nTranslated Text:"),temperature:0,reasoningEffort:"low",fetchLimit:1,fetchInterval:500,apiName:OPT_TRANS_GEMINI_2,isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT*2},[OPT_TRANS_CLAUDE]:{url:"https://api.anthropic.com/v1/messages",key:"",model:"claude-3-haiku-20240307",systemPrompt:"You are a professional, authentic machine translation engine.",userPrompt:"Translate the following source text from ".concat(INPUT_PLACE_FROM," to ").concat(INPUT_PLACE_TO,". Output translation directly without any additional text.\n\nSource Text: ").concat(INPUT_PLACE_TEXT,"\n\nTranslated Text:"),temperature:0,maxTokens:1024,fetchLimit:1,fetchInterval:500,apiName:OPT_TRANS_CLAUDE,isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT*2},[OPT_TRANS_CLOUDFLAREAI]:{url:"https://api.cloudflare.com/client/v4/accounts/{{ACCOUNT_ID}}/ai/run/@cf/meta/m2m100-1.2b",key:"",fetchLimit:1,fetchInterval:500,apiName:OPT_TRANS_CLOUDFLAREAI,isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT*2},[OPT_TRANS_OLLAMA]:defaultOllamaApi,[OPT_TRANS_OLLAMA_2]:defaultOllamaApi,[OPT_TRANS_OLLAMA_3]:defaultOllamaApi,[OPT_TRANS_CUSTOMIZE]:defaultCustomApi,[OPT_TRANS_CUSTOMIZE_2]:defaultCustomApi,[OPT_TRANS_CUSTOMIZE_3]:defaultCustomApi,[OPT_TRANS_CUSTOMIZE_4]:defaultCustomApi,[OPT_TRANS_CUSTOMIZE_5]:defaultCustomApi};// 默认快捷键
 const OPT_SHORTCUT_TRANSLATE="toggleTranslate";const OPT_SHORTCUT_STYLE="toggleStyle";const OPT_SHORTCUT_POPUP="togglePopup";const OPT_SHORTCUT_SETTING="openSetting";const DEFAULT_SHORTCUTS={[OPT_SHORTCUT_TRANSLATE]:["AltLeft","KeyQ"],[OPT_SHORTCUT_STYLE]:["AltLeft","KeyC"],[OPT_SHORTCUT_POPUP]:["AltLeft","KeyK"],[OPT_SHORTCUT_SETTING]:["AltLeft","KeyO"]};const TRANS_MIN_LENGTH=5;// 最短翻译长度
 const TRANS_MAX_LENGTH=5000;// 最长翻译长度
 const TRANS_NEWLINE_LENGTH=20;// 换行字符数
@@ -30857,7 +30863,7 @@ const config_DEFAULT_SETTING={darkMode:false,// 深色模式
 uiLang:"en",// 界面语言
 // fetchLimit: DEFAULT_FETCH_LIMIT, // 最大任务数量(移至transApis，作废)
 // fetchInterval: DEFAULT_FETCH_INTERVAL, // 任务间隔时间(移至transApis，作废)
-minLength:TRANS_MIN_LENGTH,maxLength:TRANS_MAX_LENGTH,newlineLength:TRANS_NEWLINE_LENGTH,clearCache:false,// 是否在浏览器下次启动时清除缓存
+minLength:TRANS_MIN_LENGTH,maxLength:TRANS_MAX_LENGTH,newlineLength:TRANS_NEWLINE_LENGTH,httpTimeout:DEFAULT_HTTP_TIMEOUT,clearCache:false,// 是否在浏览器下次启动时清除缓存
 injectRules:true,// 是否注入订阅规则
 // injectWebfix: true, // 是否注入修复补丁(作废)
 // detectRemote: false, // 是否使用远程语言检测(移至rule，作废)
@@ -31507,15 +31513,20 @@ sourceType:"script",// Whether the code runs in a sandbox
 sandBox:true});/* harmony default export */ const libs_interpreter = (interpreter);
 ;// CONCATENATED MODULE: ./src/apis/trans.js
 const keyMap=new Map();const urlMap=new Map();// 轮询key/url
-const keyPick=function(translator){var _cacheMap$get;let key=arguments.length>1&&arguments[1]!==undefined?arguments[1]:"";let cacheMap=arguments.length>2?arguments[2]:undefined;const keys=key.split(/\n|,/).map(item=>item.trim()).filter(Boolean);if(keys.length===0){return"";}const preIndex=(_cacheMap$get=cacheMap.get(translator))!==null&&_cacheMap$get!==void 0?_cacheMap$get:-1;const curIndex=(preIndex+1)%keys.length;cacheMap.set(translator,curIndex);return keys[curIndex];};const genGoogle=_ref=>{let{text,from,to,url,key}=_ref;const params={client:"gtx",dt:"t",dj:1,ie:"UTF-8",sl:from,tl:to,q:text};const input="".concat(url,"?").concat(query_string.stringify(params));const init={headers:{"Content-type":"application/json"}};if(key){init.headers.Authorization="Bearer ".concat(key);}return[input,init];};const genMicrosoft=async _ref2=>{let{text,from,to}=_ref2;const[token]=await msAuth();const params={from,to,"api-version":"3.0"};const input="".concat(URL_MICROSOFT_TRAN,"?").concat(query_string.stringify(params));const init={headers:{"Content-type":"application/json",Authorization:"Bearer ".concat(token)},method:"POST",body:JSON.stringify([{Text:text}])};return[input,init];};const genDeepl=_ref3=>{let{text,from,to,url,key}=_ref3;const data={text:[text],target_lang:to,source_lang:from// split_sentences: "0",
-};const init={headers:{"Content-type":"application/json",Authorization:"DeepL-Auth-Key ".concat(key)},method:"POST",body:JSON.stringify(data)};return[url,init];};const genDeeplX=_ref4=>{let{text,from,to,url,key}=_ref4;const data={text,target_lang:to,source_lang:from};const init={headers:{"Content-type":"application/json"},method:"POST",body:JSON.stringify(data)};if(key){init.headers.Authorization="Bearer ".concat(key);}return[url,init];};const genNiuTrans=_ref5=>{let{text,from,to,url,key,dictNo,memoryNo}=_ref5;const data={from,to,apikey:key,src_text:text,dictNo,memoryNo};const init={headers:{"Content-type":"application/json"},method:"POST",body:JSON.stringify(data)};return[url,init];};const genTencent=_ref6=>{let{text,from,to}=_ref6;const data={header:{fn:"auto_translation_block"},source:{text_block:text,lang:from},target:{lang:to}};const init={headers:{"Content-Type":"application/json"},method:"POST",body:JSON.stringify(data)};return[URL_TENCENT_TRANSMART,init];};const genOpenAI=_ref7=>{let{text,from,to,url,key,prompt,model,temperature,maxTokens}=_ref7;prompt=prompt.replaceAll(INPUT_PLACE_FROM,from).replaceAll(INPUT_PLACE_TO,to);const data={model,messages:[{role:"system",content:prompt},{role:"user",content:text}],temperature,max_tokens:maxTokens};const init={headers:{"Content-type":"application/json",Authorization:"Bearer ".concat(key),// OpenAI
+const keyPick=function(translator){var _cacheMap$get;let key=arguments.length>1&&arguments[1]!==undefined?arguments[1]:"";let cacheMap=arguments.length>2?arguments[2]:undefined;const keys=key.split(/\n|,/).map(item=>item.trim()).filter(Boolean);if(keys.length===0){return"";}const preIndex=(_cacheMap$get=cacheMap.get(translator))!==null&&_cacheMap$get!==void 0?_cacheMap$get:-1;const curIndex=(preIndex+1)%keys.length;cacheMap.set(translator,curIndex);return keys[curIndex];};const genGoogle=_ref=>{let{text,from,to,url,key}=_ref;const params={client:"gtx",dt:"t",dj:1,ie:"UTF-8",sl:from,tl:to,q:text};const input="".concat(url,"?").concat(query_string.stringify(params));const init={headers:{"Content-type":"application/json"}};if(key){init.headers.Authorization="Bearer ".concat(key);}return[input,init];};const genGoogle2=_ref2=>{let{text,from,to,url,key}=_ref2;const body=JSON.stringify([[[text],from,to],"wt_lib"]);const init={method:"POST",headers:{"Content-Type":"application/json+protobuf","X-Goog-API-Key":key},body};return[url,init];};const genMicrosoft=async _ref3=>{let{text,from,to}=_ref3;const[token]=await msAuth();const params={from,to,"api-version":"3.0"};const input="".concat(URL_MICROSOFT_TRAN,"?").concat(query_string.stringify(params));const init={headers:{"Content-type":"application/json",Authorization:"Bearer ".concat(token)},method:"POST",body:JSON.stringify([{Text:text}])};return[input,init];};const genDeepl=_ref4=>{let{text,from,to,url,key}=_ref4;const data={text:[text],target_lang:to,source_lang:from// split_sentences: "0",
+};const init={headers:{"Content-type":"application/json",Authorization:"DeepL-Auth-Key ".concat(key)},method:"POST",body:JSON.stringify(data)};return[url,init];};const genDeeplX=_ref5=>{let{text,from,to,url,key}=_ref5;const data={text,target_lang:to,source_lang:from};const init={headers:{"Content-type":"application/json"},method:"POST",body:JSON.stringify(data)};if(key){init.headers.Authorization="Bearer ".concat(key);}return[url,init];};const genNiuTrans=_ref6=>{let{text,from,to,url,key,dictNo,memoryNo}=_ref6;const data={from,to,apikey:key,src_text:text,dictNo,memoryNo};const init={headers:{"Content-type":"application/json"},method:"POST",body:JSON.stringify(data)};return[url,init];};const genTencent=_ref7=>{let{text,from,to}=_ref7;const data={header:{fn:"auto_translation",client_key:"browser-chrome-110.0.0-Mac OS-df4bd4c5-a65d-44b2-a40f-42f34f3535f2-1677486696487"},type:"plain",model_category:"normal",source:{text_list:[text],lang:from},target:{lang:to}};const init={headers:{"Content-Type":"application/json","user-agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36",referer:"https://transmart.qq.com/zh-CN/index"},method:"POST",body:JSON.stringify(data)};return[URL_TENCENT_TRANSMART,init];};const genVolcengine=_ref8=>{let{text,from,to}=_ref8;const data={source_language:from,target_language:to,text:text};const init={headers:{"Content-type":"application/json"},method:"POST",body:JSON.stringify(data)};return[URL_VOLCENGINE_TRAN,init];};const genOpenAI=_ref9=>{let{text,from,to,url,key,systemPrompt,userPrompt,model,temperature,maxTokens}=_ref9;// 兼容历史上作为systemPrompt的prompt，如果prompt中不包含带翻译文本，则添加文本到prompt末尾
+// if (!prompt.includes(INPUT_PLACE_TEXT)) {
+//   prompt += `\nSource Text: ${INPUT_PLACE_TEXT}`;
+// }
+systemPrompt=systemPrompt.replaceAll(INPUT_PLACE_FROM,from).replaceAll(INPUT_PLACE_TO,to).replaceAll(INPUT_PLACE_TEXT,text);userPrompt=userPrompt.replaceAll(INPUT_PLACE_FROM,from).replaceAll(INPUT_PLACE_TO,to).replaceAll(INPUT_PLACE_TEXT,text);const data={model,messages:[{role:"system",content:systemPrompt},{role:"user",content:userPrompt}],temperature,max_tokens:maxTokens};const init={headers:{"Content-type":"application/json",Authorization:"Bearer ".concat(key),// OpenAI
 "api-key":key// Azure OpenAI
-},method:"POST",body:JSON.stringify(data)};return[url,init];};const genGemini=_ref8=>{let{text,from,to,url,key,prompt,model}=_ref8;url=url.replaceAll(INPUT_PLACE_MODEL,model).replaceAll(INPUT_PLACE_KEY,key);prompt=prompt.replaceAll(INPUT_PLACE_FROM,from).replaceAll(INPUT_PLACE_TO,to).replaceAll(INPUT_PLACE_TEXT,text);const data={contents:[{// role: "user",
-parts:[{text:prompt}]}]};const init={headers:{"Content-type":"application/json"},method:"POST",body:JSON.stringify(data)};return[url,init];};const genOllama=_ref9=>{let{text,from,to,url,key,prompt,model}=_ref9;prompt=prompt.replaceAll(INPUT_PLACE_FROM,from).replaceAll(INPUT_PLACE_TO,to).replaceAll(INPUT_PLACE_TEXT,text);const data={model,prompt,stream:false};const init={headers:{"Content-type":"application/json"},method:"POST",body:JSON.stringify(data)};if(key){init.headers.Authorization="Bearer ".concat(key);}return[url,init];};const genCloudflareAI=_ref10=>{let{text,from,to,url,key}=_ref10;const data={text,source_lang:from,target_lang:to};const init={headers:{"Content-type":"application/json",Authorization:"Bearer ".concat(key)},method:"POST",body:JSON.stringify(data)};return[url,init];};const genCustom=_ref11=>{let{text,from,to,url,key,reqHook}=_ref11;url=url.replaceAll(INPUT_PLACE_URL,url).replaceAll(INPUT_PLACE_FROM,from).replaceAll(INPUT_PLACE_TO,to).replaceAll(INPUT_PLACE_TEXT,text).replaceAll(INPUT_PLACE_KEY,key);let init={};if(reqHook!==null&&reqHook!==void 0&&reqHook.trim()){libs_interpreter.run("exports.reqHook = ".concat(reqHook));[url,init]=libs_interpreter.exports.reqHook(text,from,to,url,key);return[url,init];}const data={text,from,to};init={headers:{"Content-type":"application/json"},method:"POST",body:JSON.stringify(data)};if(key){init.headers.Authorization="Bearer ".concat(key);}return[url,init];};/**
+},method:"POST",body:JSON.stringify(data)};return[url,init];};const genGemini=_ref10=>{let{text,from,to,url,key,systemPrompt,userPrompt,model,temperature,maxTokens}=_ref10;url=url.replaceAll(INPUT_PLACE_MODEL,model).replaceAll(INPUT_PLACE_KEY,key);systemPrompt=systemPrompt.replaceAll(INPUT_PLACE_FROM,from).replaceAll(INPUT_PLACE_TO,to).replaceAll(INPUT_PLACE_TEXT,text);userPrompt=userPrompt.replaceAll(INPUT_PLACE_FROM,from).replaceAll(INPUT_PLACE_TO,to).replaceAll(INPUT_PLACE_TEXT,text);const data={system_instruction:{parts:{text:systemPrompt}},contents:{role:"user",parts:{text:userPrompt}},generationConfig:{maxOutputTokens:maxTokens,temperature// topP: 0.8,
+// topK: 10,
+}};const init={headers:{"Content-type":"application/json"},method:"POST",body:JSON.stringify(data)};return[url,init];};const genGemini2=_ref11=>{let{text,from,to,url,key,systemPrompt,userPrompt,model,temperature,reasoningEffort}=_ref11;systemPrompt=systemPrompt.replaceAll(INPUT_PLACE_FROM,from).replaceAll(INPUT_PLACE_TO,to).replaceAll(INPUT_PLACE_TEXT,text);userPrompt=userPrompt.replaceAll(INPUT_PLACE_FROM,from).replaceAll(INPUT_PLACE_TO,to).replaceAll(INPUT_PLACE_TEXT,text);const data={model,reasoning_effort:reasoningEffort,messages:[{role:"system",content:systemPrompt},{role:"user",content:userPrompt}],temperature};const init={headers:{"Content-type":"application/json",Authorization:"Bearer ".concat(key)},method:"POST",body:JSON.stringify(data)};return[url,init];};const genClaude=_ref12=>{let{text,from,to,url,key,systemPrompt,userPrompt,model,temperature,maxTokens}=_ref12;systemPrompt=systemPrompt.replaceAll(INPUT_PLACE_FROM,from).replaceAll(INPUT_PLACE_TO,to).replaceAll(INPUT_PLACE_TEXT,text);userPrompt=userPrompt.replaceAll(INPUT_PLACE_FROM,from).replaceAll(INPUT_PLACE_TO,to).replaceAll(INPUT_PLACE_TEXT,text);const data={model,system:systemPrompt,messages:[{role:"user",content:userPrompt}],temperature,max_tokens:maxTokens};const init={headers:{"Content-type":"application/json","anthropic-version":"2023-06-01","x-api-key":key},method:"POST",body:JSON.stringify(data)};return[url,init];};const genOllama=_ref13=>{let{text,from,to,think,url,key,systemPrompt,userPrompt,model}=_ref13;systemPrompt=systemPrompt.replaceAll(INPUT_PLACE_FROM,from).replaceAll(INPUT_PLACE_TO,to).replaceAll(INPUT_PLACE_TEXT,text);userPrompt=userPrompt.replaceAll(INPUT_PLACE_FROM,from).replaceAll(INPUT_PLACE_TO,to).replaceAll(INPUT_PLACE_TEXT,text);const data={model,system:systemPrompt,prompt:userPrompt,think:think,stream:false};const init={headers:{"Content-type":"application/json"},method:"POST",body:JSON.stringify(data)};if(key){init.headers.Authorization="Bearer ".concat(key);}return[url,init];};const genCloudflareAI=_ref14=>{let{text,from,to,url,key}=_ref14;const data={text,source_lang:from,target_lang:to};const init={headers:{"Content-type":"application/json",Authorization:"Bearer ".concat(key)},method:"POST",body:JSON.stringify(data)};return[url,init];};const genCustom=_ref15=>{let{text,from,to,url,key,reqHook}=_ref15;url=url.replaceAll(INPUT_PLACE_URL,url).replaceAll(INPUT_PLACE_FROM,from).replaceAll(INPUT_PLACE_TO,to).replaceAll(INPUT_PLACE_TEXT,text).replaceAll(INPUT_PLACE_KEY,key);let init={};if(reqHook!==null&&reqHook!==void 0&&reqHook.trim()){libs_interpreter.run("exports.reqHook = ".concat(reqHook));[url,init]=libs_interpreter.exports.reqHook(text,from,to,url,key);return[url,init];}const data={text,from,to};init={headers:{"Content-type":"application/json"},method:"POST",body:JSON.stringify(data)};if(key){init.headers.Authorization="Bearer ".concat(key);}return[url,init];};/**
  * 构造翻译接口请求参数
  * @param {*}
  * @returns
- */const genTransReq=(_ref12,apiSetting)=>{let{translator,text,from,to}=_ref12;const args={text,from,to,...apiSetting};switch(translator){case OPT_TRANS_DEEPL:case OPT_TRANS_OPENAI:case OPT_TRANS_OPENAI_2:case OPT_TRANS_OPENAI_3:case OPT_TRANS_GEMINI:case OPT_TRANS_CLOUDFLAREAI:case OPT_TRANS_OLLAMA:case OPT_TRANS_OLLAMA_2:case OPT_TRANS_OLLAMA_3:case OPT_TRANS_NIUTRANS:args.key=keyPick(translator,args.key,keyMap);break;case OPT_TRANS_DEEPLX:args.url=keyPick(translator,args.url,urlMap);break;default:}switch(translator){case OPT_TRANS_GOOGLE:return genGoogle(args);case OPT_TRANS_MICROSOFT:return genMicrosoft(args);case OPT_TRANS_DEEPL:return genDeepl(args);case OPT_TRANS_DEEPLFREE:return genDeeplFree(args);case OPT_TRANS_DEEPLX:return genDeeplX(args);case OPT_TRANS_NIUTRANS:return genNiuTrans(args);case OPT_TRANS_BAIDU:return genBaidu(args);case OPT_TRANS_TENCENT:return genTencent(args);case OPT_TRANS_OPENAI:case OPT_TRANS_OPENAI_2:case OPT_TRANS_OPENAI_3:return genOpenAI(args);case OPT_TRANS_GEMINI:return genGemini(args);case OPT_TRANS_CLOUDFLAREAI:return genCloudflareAI(args);case OPT_TRANS_OLLAMA:case OPT_TRANS_OLLAMA_2:case OPT_TRANS_OLLAMA_3:return genOllama(args);case OPT_TRANS_CUSTOMIZE:case OPT_TRANS_CUSTOMIZE_2:case OPT_TRANS_CUSTOMIZE_3:case OPT_TRANS_CUSTOMIZE_4:case OPT_TRANS_CUSTOMIZE_5:return genCustom(args);default:throw new Error("[trans] translator: ".concat(translator," not support"));}};
+ */const genTransReq=(_ref16,apiSetting)=>{let{translator,text,from,to}=_ref16;const args={text,from,to,...apiSetting};switch(translator){case OPT_TRANS_DEEPL:case OPT_TRANS_OPENAI:case OPT_TRANS_OPENAI_2:case OPT_TRANS_OPENAI_3:case OPT_TRANS_GEMINI:case OPT_TRANS_GEMINI_2:case OPT_TRANS_CLAUDE:case OPT_TRANS_CLOUDFLAREAI:case OPT_TRANS_OLLAMA:case OPT_TRANS_OLLAMA_2:case OPT_TRANS_OLLAMA_3:case OPT_TRANS_NIUTRANS:case OPT_TRANS_CUSTOMIZE:case OPT_TRANS_CUSTOMIZE_2:case OPT_TRANS_CUSTOMIZE_3:case OPT_TRANS_CUSTOMIZE_4:case OPT_TRANS_CUSTOMIZE_5:args.key=keyPick(translator,args.key,keyMap);break;case OPT_TRANS_DEEPLX:args.url=keyPick(translator,args.url,urlMap);break;default:}switch(translator){case OPT_TRANS_GOOGLE:return genGoogle(args);case OPT_TRANS_GOOGLE_2:return genGoogle2(args);case OPT_TRANS_MICROSOFT:return genMicrosoft(args);case OPT_TRANS_DEEPL:return genDeepl(args);case OPT_TRANS_DEEPLFREE:return genDeeplFree(args);case OPT_TRANS_DEEPLX:return genDeeplX(args);case OPT_TRANS_NIUTRANS:return genNiuTrans(args);case OPT_TRANS_BAIDU:return genBaidu(args);case OPT_TRANS_TENCENT:return genTencent(args);case OPT_TRANS_VOLCENGINE:return genVolcengine(args);case OPT_TRANS_OPENAI:case OPT_TRANS_OPENAI_2:case OPT_TRANS_OPENAI_3:return genOpenAI(args);case OPT_TRANS_GEMINI:return genGemini(args);case OPT_TRANS_GEMINI_2:return genGemini2(args);case OPT_TRANS_CLAUDE:return genClaude(args);case OPT_TRANS_CLOUDFLAREAI:return genCloudflareAI(args);case OPT_TRANS_OLLAMA:case OPT_TRANS_OLLAMA_2:case OPT_TRANS_OLLAMA_3:return genOllama(args);case OPT_TRANS_CUSTOMIZE:case OPT_TRANS_CUSTOMIZE_2:case OPT_TRANS_CUSTOMIZE_3:case OPT_TRANS_CUSTOMIZE_4:case OPT_TRANS_CUSTOMIZE_5:return genCustom(args);default:throw new Error("[trans] translator: ".concat(translator," not support"));}};
 ;// CONCATENATED MODULE: ./src/libs/utils.js
 /**
  * 限制数字大小
@@ -31590,7 +31601,7 @@ parts:[{text:prompt}]}]};const init={headers:{"Content-type":"application/json"}
  * @returns
  */const blobToBase64=blob=>{return new Promise(resolve=>{const reader=new FileReader();reader.onloadend=()=>resolve(reader.result);reader.readAsDataURL(blob);});};
 ;// CONCATENATED MODULE: ./src/libs/fetch.js
-const TIMEOUT=5000;/**
+/**
  * 构造缓存 request
  * @param {*} input
  * @param {*} init
@@ -31600,14 +31611,37 @@ const TIMEOUT=5000;/**
  * @param {*} input
  * @param {*} init
  * @returns
- */const fetchGM=async function(input){let{method="GET",headers,body}=arguments.length>1&&arguments[1]!==undefined?arguments[1]:{};return new Promise((resolve,reject)=>{GM.xmlHttpRequest({method,url:input,headers,data:body,// withCredentials: true,
-timeout:TIMEOUT,onload:_ref=>{let{response,responseHeaders,status,statusText}=_ref;const headers={};responseHeaders.split("\n").forEach(line=>{const[name,value]=line.split(":").map(item=>item.trim());if(name&&value){headers[name]=value;}});resolve({body:response,headers,status,statusText});},onerror:reject});});};/**
+ */const fetchGM=async function(input){let{method="GET",headers,body,timeout}=arguments.length>1&&arguments[1]!==undefined?arguments[1]:{};return new Promise((resolve,reject)=>{GM.xmlHttpRequest({method,url:input,headers,data:body,// withCredentials: true,
+timeout,onload:_ref=>{let{response,responseHeaders,status,statusText}=_ref;const headers={};responseHeaders.split("\n").forEach(line=>{const[name,value]=line.split(":").map(item=>item.trim());if(name&&value){headers[name]=value;}});resolve({body:response,headers,status,statusText});},onerror:reject});});};/**
  * 发起请求
  * @param {*} param0
  * @returns
- */const fetchPatcher=async(input,init,transOpts,apiSetting)=>{var _AbortSignal;if(transOpts!==null&&transOpts!==void 0&&transOpts.translator){[input,init]=await genTransReq(transOpts,apiSetting);}if(!input){throw new Error("url is empty");}if(isGm){var _info,_info$script,_info2,_info2$script;let info;if(window.KISS_GM){info=await window.KISS_GM.getInfo();}else{info=GM.info;}// Tampermonkey --> .connects
+ */const fetchPatcher=async(input,init,transOpts,apiSetting)=>{var _AbortSignal;if(transOpts!==null&&transOpts!==void 0&&transOpts.translator){[input,init]=await genTransReq(transOpts,apiSetting);}if(!input){throw new Error("url is empty");}let timeout=(apiSetting===null||apiSetting===void 0?void 0:apiSetting.httpTimeout)||DEFAULT_HTTP_TIMEOUT;if(!apiSetting){try{timeout=(await getSettingWithDefault()).httpTimeout;}catch(err){//
+}}if(isGm){// let info;
+// if (window.KISS_GM) {
+//   info = await window.KISS_GM.getInfo();
+// } else {
+//   info = GM.info;
+// }
+// Tampermonkey --> .connects
 // Violentmonkey --> .connect
-const connects=((_info=info)===null||_info===void 0?void 0:(_info$script=_info.script)===null||_info$script===void 0?void 0:_info$script.connects)||((_info2=info)===null||_info2===void 0?void 0:(_info2$script=_info2.script)===null||_info2$script===void 0?void 0:_info2$script.connect)||[];const url=new URL(input);const isSafe=connects.find(item=>url.hostname.endsWith(item));if(isSafe){const{body,headers,status,statusText}=window.KISS_GM?await window.KISS_GM.fetch(input,init):await fetchGM(input,init);return new Response(body,{headers:new Headers(headers),status,statusText});}}if((_AbortSignal=AbortSignal)!==null&&_AbortSignal!==void 0&&_AbortSignal.timeout){Object.assign(init,{signal:AbortSignal.timeout(TIMEOUT)});}return fetch(input,init);};/**
+// const connects = info?.script?.connects || info?.script?.connect || [];
+// const url = new URL(input);
+// const isSafe = connects.find((item) => url.hostname.endsWith(item));
+// if (isSafe) {
+//   // todo: 自定义接口 init 可能包含了 signal
+//   Object.assign(init, { timeout });
+//   const { body, headers, status, statusText } = window.KISS_GM
+//     ? await window.KISS_GM.fetch(input, init)
+//     : await fetchGM(input, init);
+//   return new Response(body, {
+//     headers: new Headers(headers),
+//     status,
+//     statusText,
+//   });
+// }
+// todo: 自定义接口 init 可能包含了 signal
+Object.assign(init,{timeout});const{body,headers,status,statusText}=window.KISS_GM?await window.KISS_GM.fetch(input,init):await fetchGM(input,init);return new Response(body,{headers:new Headers(headers),status,statusText});}if((_AbortSignal=AbortSignal)!==null&&_AbortSignal!==void 0&&_AbortSignal.timeout&&!init.signal){Object.assign(init,{signal:AbortSignal.timeout(timeout)});}return fetch(input,init);};/**
  * 解析 response
  * @param {*} res
  * @returns
@@ -31699,10 +31733,10 @@ return fetchPolyfill({input,useCache,...args});};/**
  * 统一翻译接口
  * @param {*} param0
  * @returns
- */const apiTranslate=async _ref=>{var _OPT_LANGS_SPECIAL$tr,_res$result,_res$result2,_res$choices,_res$candidates,_res$result3;let{translator,text,fromLang,toLang,apiSetting={},useCache=true,usePool=true}=_ref;let trText="";let isSame=false;if(!text){return[trText,true];}const from=(_OPT_LANGS_SPECIAL$tr=OPT_LANGS_SPECIAL[translator].get(fromLang))!==null&&_OPT_LANGS_SPECIAL$tr!==void 0?_OPT_LANGS_SPECIAL$tr:OPT_LANGS_SPECIAL[translator].get("auto");const to=OPT_LANGS_SPECIAL[translator].get(toLang);if(!to){console.log("[trans] target lang: ".concat(toLang," not support"));return[trText,isSame];}// 版本号一/二位升级，旧缓存失效
-const[v1,v2]="1.8.11".split(".");const cacheOpts={translator,text,fromLang,toLang,version:[v1,v2].join(".")};const transOpts={translator,text,from,to};const res=await fetchData("".concat(URL_CACHE_TRAN,"?").concat(query_string.stringify(cacheOpts)),{useCache,usePool,transOpts,apiSetting});switch(translator){case OPT_TRANS_GOOGLE:trText=res.sentences.map(item=>item.trans).join(" ");isSame=to===res.src;break;case OPT_TRANS_MICROSOFT:trText=res.map(item=>item.translations.map(item=>item.text).join(" ")).join(" ");isSame=text===trText;break;case OPT_TRANS_DEEPL:trText=res.translations.map(item=>item.text).join(" ");isSame=to===res.translations[0].detected_source_language;break;case OPT_TRANS_DEEPLFREE:trText=(_res$result=res.result)===null||_res$result===void 0?void 0:_res$result.texts.map(item=>item.text).join(" ");isSame=to===((_res$result2=res.result)===null||_res$result2===void 0?void 0:_res$result2.lang);break;case OPT_TRANS_DEEPLX:trText=res.data;isSame=to===res.source_lang;break;case OPT_TRANS_NIUTRANS:const json=JSON.parse(res);if(json.error_msg){throw new Error(json.error_msg);}trText=json.tgt_text;isSame=to===json.from;break;case OPT_TRANS_BAIDU:// trText = res.trans_result?.data.map((item) => item.dst).join(" ");
+ */const apiTranslate=async _ref=>{var _OPT_LANGS_SPECIAL$tr,_res$,_res$result,_res$result2,_res$auto_translation,_res$choices,_res$candidates,_res$content,_res$result3;let{translator,text,fromLang,toLang,apiSetting={},useCache=true,usePool=true}=_ref;let trText="";let isSame=false;if(!text){return[trText,true];}const from=(_OPT_LANGS_SPECIAL$tr=OPT_LANGS_SPECIAL[translator].get(fromLang))!==null&&_OPT_LANGS_SPECIAL$tr!==void 0?_OPT_LANGS_SPECIAL$tr:OPT_LANGS_SPECIAL[translator].get("auto");const to=OPT_LANGS_SPECIAL[translator].get(toLang);if(!to){log_kissLog("target lang: ".concat(toLang," not support"),"translate");return[trText,isSame];}// 版本号一/二位升级，旧缓存失效
+const[v1,v2]="1.9.0".split(".");const cacheOpts={translator,text,fromLang,toLang,version:[v1,v2].join(".")};const transOpts={translator,text,from,to};const res=await fetchData("".concat(URL_CACHE_TRAN,"?").concat(query_string.stringify(cacheOpts)),{useCache,usePool,transOpts,apiSetting});switch(translator){case OPT_TRANS_GOOGLE:trText=res.sentences.map(item=>item.trans).join(" ");isSame=to===res.src;break;case OPT_TRANS_GOOGLE_2:trText=(res===null||res===void 0?void 0:(_res$=res[0])===null||_res$===void 0?void 0:_res$[0])||"";isSame=to===res.src;break;case OPT_TRANS_MICROSOFT:trText=res.map(item=>item.translations.map(item=>item.text).join(" ")).join(" ");isSame=text===trText;break;case OPT_TRANS_DEEPL:trText=res.translations.map(item=>item.text).join(" ");isSame=to===res.translations[0].detected_source_language;break;case OPT_TRANS_DEEPLFREE:trText=(_res$result=res.result)===null||_res$result===void 0?void 0:_res$result.texts.map(item=>item.text).join(" ");isSame=to===((_res$result2=res.result)===null||_res$result2===void 0?void 0:_res$result2.lang);break;case OPT_TRANS_DEEPLX:trText=res.data;isSame=to===res.source_lang;break;case OPT_TRANS_NIUTRANS:const json=JSON.parse(res);if(json.error_msg){throw new Error(json.error_msg);}trText=json.tgt_text;isSame=to===json.from;break;case OPT_TRANS_BAIDU:// trText = res.trans_result?.data.map((item) => item.dst).join(" ");
 // isSame = res.trans_result?.to === res.trans_result?.from;
-if(res.type===1){trText=Object.keys(JSON.parse(res.result).content[0].mean[0].cont)[0];isSame=to===res.from;}else if(res.type===2){trText=res.data.map(item=>item.dst).join(" ");isSame=to===res.from;}break;case OPT_TRANS_TENCENT:trText=res.auto_translation;isSame=text===trText;break;case OPT_TRANS_OPENAI:case OPT_TRANS_OPENAI_2:case OPT_TRANS_OPENAI_3:trText=res===null||res===void 0?void 0:(_res$choices=res.choices)===null||_res$choices===void 0?void 0:_res$choices.map(item=>item.message.content).join(" ");isSame=text===trText;break;case OPT_TRANS_GEMINI:trText=res===null||res===void 0?void 0:(_res$candidates=res.candidates)===null||_res$candidates===void 0?void 0:_res$candidates.map(item=>{var _item$content;return(_item$content=item.content)===null||_item$content===void 0?void 0:_item$content.parts.map(item=>item.text).join(" ");}).join(" ");isSame=text===trText;break;case OPT_TRANS_CLOUDFLAREAI:trText=res===null||res===void 0?void 0:(_res$result3=res.result)===null||_res$result3===void 0?void 0:_res$result3.translated_text;isSame=text===trText;break;case OPT_TRANS_OLLAMA:case OPT_TRANS_OLLAMA_2:case OPT_TRANS_OLLAMA_3:trText=res===null||res===void 0?void 0:res.response;isSame=text===trText;break;case OPT_TRANS_CUSTOMIZE:case OPT_TRANS_CUSTOMIZE_2:case OPT_TRANS_CUSTOMIZE_3:case OPT_TRANS_CUSTOMIZE_4:case OPT_TRANS_CUSTOMIZE_5:const{resHook}=apiSetting;if(resHook!==null&&resHook!==void 0&&resHook.trim()){libs_interpreter.run("exports.resHook = ".concat(resHook));[trText,isSame]=libs_interpreter.exports.resHook(res,text,from,to);}else{trText=res.text;isSame=to===res.from;}break;default:}return[trText,isSame,res];};
+if(res.type===1){trText=Object.keys(JSON.parse(res.result).content[0].mean[0].cont)[0];isSame=to===res.from;}else if(res.type===2){trText=res.data.map(item=>item.dst).join(" ");isSame=to===res.from;}break;case OPT_TRANS_TENCENT:trText=res===null||res===void 0?void 0:(_res$auto_translation=res.auto_translation)===null||_res$auto_translation===void 0?void 0:_res$auto_translation[0];isSame=text===trText;break;case OPT_TRANS_VOLCENGINE:trText=(res===null||res===void 0?void 0:res.translation)||"";isSame=to===(res===null||res===void 0?void 0:res.detected_language);break;case OPT_TRANS_OPENAI:case OPT_TRANS_OPENAI_2:case OPT_TRANS_OPENAI_3:case OPT_TRANS_GEMINI_2:trText=res===null||res===void 0?void 0:(_res$choices=res.choices)===null||_res$choices===void 0?void 0:_res$choices.map(item=>item.message.content).join(" ");isSame=text===trText;break;case OPT_TRANS_GEMINI:trText=res===null||res===void 0?void 0:(_res$candidates=res.candidates)===null||_res$candidates===void 0?void 0:_res$candidates.map(item=>{var _item$content;return(_item$content=item.content)===null||_item$content===void 0?void 0:_item$content.parts.map(item=>item.text).join(" ");}).join(" ");isSame=text===trText;break;case OPT_TRANS_CLAUDE:trText=res===null||res===void 0?void 0:(_res$content=res.content)===null||_res$content===void 0?void 0:_res$content.map(item=>item.text).join(" ");isSame=text===trText;break;case OPT_TRANS_CLOUDFLAREAI:trText=res===null||res===void 0?void 0:(_res$result3=res.result)===null||_res$result3===void 0?void 0:_res$result3.translated_text;isSame=text===trText;break;case OPT_TRANS_OLLAMA:case OPT_TRANS_OLLAMA_2:case OPT_TRANS_OLLAMA_3:const{thinkIgnore=""}=apiSetting;const deepModels=thinkIgnore.split(",").filter(model=>model.trim());if(deepModels.some(model=>{var _res$model;return res===null||res===void 0?void 0:(_res$model=res.model)===null||_res$model===void 0?void 0:_res$model.startsWith(model);})){trText=res===null||res===void 0?void 0:res.response.replace(/<think>[\s\S]*<\/think>/i,"");}else{trText=res===null||res===void 0?void 0:res.response;}isSame=text===trText;break;case OPT_TRANS_CUSTOMIZE:case OPT_TRANS_CUSTOMIZE_2:case OPT_TRANS_CUSTOMIZE_3:case OPT_TRANS_CUSTOMIZE_4:case OPT_TRANS_CUSTOMIZE_5:const{resHook}=apiSetting;if(resHook!==null&&resHook!==void 0&&resHook.trim()){libs_interpreter.run("exports.resHook = ".concat(resHook));[trText,isSame]=libs_interpreter.exports.resHook(res,text,from,to);}else{trText=res.text;isSame=to===res.from;}break;default:}return[trText,isSame,res];};
 ;// CONCATENATED MODULE: ./node_modules/.pnpm/webdav@5.3.0/node_modules/webdav/dist/web/index.js
 /*! For license information please see index.js.LICENSE.txt */
 var t = {
@@ -34515,7 +34549,7 @@ var n = {};
         return t.length === e && "." !== t && ".." !== t;
       };
     },
-    te = "object" === ("undefined" == typeof process ? "undefined" : Nt(process)) && process ? "object" === Nt(({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.8.11","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-rules/kiss-rules.json","REACT_APP_RULESURL_ON":"https://fishjar.github.io/kiss-rules/kiss-rules-on.json","REACT_APP_RULESURL_OFF":"https://fishjar.github.io/kiss-rules/kiss-rules-off.json","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js"})) && ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.8.11","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-rules/kiss-rules.json","REACT_APP_RULESURL_ON":"https://fishjar.github.io/kiss-rules/kiss-rules-on.json","REACT_APP_RULESURL_OFF":"https://fishjar.github.io/kiss-rules/kiss-rules-off.json","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js"}) && ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.8.11","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-rules/kiss-rules.json","REACT_APP_RULESURL_ON":"https://fishjar.github.io/kiss-rules/kiss-rules-on.json","REACT_APP_RULESURL_OFF":"https://fishjar.github.io/kiss-rules/kiss-rules-off.json","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js"}).__MINIMATCH_TESTING_PLATFORM__ || process.platform : "posix";
+    te = "object" === ("undefined" == typeof process ? "undefined" : Nt(process)) && process ? "object" === Nt(({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.9.0","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-rules/kiss-rules.json","REACT_APP_RULESURL_ON":"https://fishjar.github.io/kiss-rules/kiss-rules-on.json","REACT_APP_RULESURL_OFF":"https://fishjar.github.io/kiss-rules/kiss-rules-off.json","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js"})) && ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.9.0","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-rules/kiss-rules.json","REACT_APP_RULESURL_ON":"https://fishjar.github.io/kiss-rules/kiss-rules-on.json","REACT_APP_RULESURL_OFF":"https://fishjar.github.io/kiss-rules/kiss-rules-off.json","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js"}) && ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.9.0","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-rules/kiss-rules.json","REACT_APP_RULESURL_ON":"https://fishjar.github.io/kiss-rules/kiss-rules-on.json","REACT_APP_RULESURL_OFF":"https://fishjar.github.io/kiss-rules/kiss-rules-off.json","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js"}).__MINIMATCH_TESTING_PLATFORM__ || process.platform : "posix";
   It.sep = "win32" === te ? "\\" : "/";
   var ee = Symbol("globstar **");
   It.GLOBSTAR = ee;
@@ -36341,9 +36375,9 @@ const SettingContext=/*#__PURE__*/(0,react.createContext)({setting:null,updateSe
 }return (0,createTheme/* default */.Z)({palette:{mode:darkMode?THEME_DARK:THEME_LIGHT},typography:{htmlFontSize},...options});},[darkMode,options]);return/*#__PURE__*/(0,jsx_runtime.jsxs)(styles_ThemeProvider_ThemeProvider,{theme:theme,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(CssBaseline_CssBaseline,{}),/*#__PURE__*/(0,jsx_runtime.jsx)(material_GlobalStyles_GlobalStyles,{styles:styles}),children]});}
 ;// CONCATENATED MODULE: ./src/libs/mobile.js
 const isMobile=("ontouchstart"in document.documentElement);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react@18.2.0/node_modules/@mui/system/colorManipulator.js
-var colorManipulator = __webpack_require__(1744);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/styles/getOverlayAlpha.js
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/colorManipulator.js
+var colorManipulator = __webpack_require__(2686);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/styles/getOverlayAlpha.js
 // Inspired by https://github.com/material-components/material-components-ios/blob/bca36107405594d5b7b16265a5b0ed698f85a5ee/components/Elevation/src/UIColor%2BMaterialElevation.m#L61
 const getOverlayAlpha = elevation => {
   let alphaValue;
@@ -36355,7 +36389,7 @@ const getOverlayAlpha = elevation => {
   return (alphaValue / 100).toFixed(2);
 };
 /* harmony default export */ const styles_getOverlayAlpha = (getOverlayAlpha);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/Paper/paperClasses.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Paper/paperClasses.js
 
 
 function getPaperUtilityClass(slot) {
@@ -36363,7 +36397,7 @@ function getPaperUtilityClass(slot) {
 }
 const paperClasses = (0,generateUtilityClasses/* default */.Z)('MuiPaper', ['root', 'rounded', 'outlined', 'elevation', 'elevation0', 'elevation1', 'elevation2', 'elevation3', 'elevation4', 'elevation5', 'elevation6', 'elevation7', 'elevation8', 'elevation9', 'elevation10', 'elevation11', 'elevation12', 'elevation13', 'elevation14', 'elevation15', 'elevation16', 'elevation17', 'elevation18', 'elevation19', 'elevation20', 'elevation21', 'elevation22', 'elevation23', 'elevation24']);
 /* harmony default export */ const Paper_paperClasses = ((/* unused pure expression or super */ null && (paperClasses)));
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/Paper/Paper.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Paper/Paper.js
 'use client';
 
 
@@ -36457,13 +36491,13 @@ const Paper = /*#__PURE__*/react.forwardRef(function Paper(inProps, ref) {
 /* harmony default export */ const Paper_Paper = (Paper);
 ;// CONCATENATED MODULE: ./src/views/Action/Draggable.js
 const getEdgePosition=_ref=>{let{x:left,y:top,width,height,windowWidth,windowHeight,hover}=_ref;const right=windowWidth-left-width;const bottom=windowHeight-top-height;const min=Math.min(left,top,right,bottom);switch(min){case right:left=hover?windowWidth-width:windowWidth-width/2;break;case left:left=hover?0:-width/2;break;case bottom:top=hover?windowHeight-height:windowHeight-height/2;break;default:top=hover?0:-height/2;}return{x:left,y:top};};function DraggableWrapper(_ref2){let{children,usePaper,...props}=_ref2;if(usePaper){return/*#__PURE__*/(0,jsx_runtime.jsx)(Paper_Paper,{...props,elevation:4,children:children});}return/*#__PURE__*/(0,jsx_runtime.jsx)("div",{...props,children:children});}function Draggable(_ref3){let{windowSize:{w:windowWidth,h:windowHeight},width,height,left,top,show,snapEdge,onStart,onMove,handler,children,usePaper}=_ref3;const[hover,setHover]=(0,react.useState)(false);const[origin,setOrigin]=(0,react.useState)(null);const[position,setPosition]=(0,react.useState)({x:left,y:top});const setFabPosition=(0,react.useMemo)(()=>debounce(updateFab,500),[]);const handlePointerDown=e=>{!isMobile&&e.target.setPointerCapture(e.pointerId);onStart&&onStart();const{x,y}=position;const{clientX,clientY}=isMobile?e.targetTouches[0]:e;setOrigin({x,y,clientX,clientY});};const handlePointerMove=e=>{onMove&&onMove();const{clientX,clientY}=isMobile?e.targetTouches[0]:e;if(origin){const dx=clientX-origin.clientX;const dy=clientY-origin.clientY;let x=origin.x+dx;let y=origin.y+dy;x=limitNumber(x,-width/2,windowWidth-width/2);y=limitNumber(y,0,windowHeight-height/2);setPosition({x,y});}};const handlePointerUp=e=>{e.stopPropagation();setOrigin(null);};const handleClick=e=>{e.stopPropagation();};const handleMouseEnter=e=>{e.stopPropagation();setHover(true);};const handleMouseLeave=e=>{e.stopPropagation();setHover(false);};(0,react.useEffect)(()=>{if(!snapEdge||!!origin){return;}setPosition(pre=>{const edgePosition=getEdgePosition({...pre,width,height,windowWidth,windowHeight,hover});setFabPosition(edgePosition);return edgePosition;});},[origin,hover,width,height,windowWidth,windowHeight,snapEdge,setFabPosition]);const opacity=(0,react.useMemo)(()=>{if(snapEdge){return hover||origin?1:0.2;}return origin?0.8:1;},[origin,snapEdge,hover]);const touchProps=isMobile?{onTouchStart:handlePointerDown,onTouchMove:handlePointerMove,onTouchEnd:handlePointerUp}:{onPointerDown:handlePointerDown,onPointerMove:handlePointerMove,onPointerUp:handlePointerUp};return/*#__PURE__*/(0,jsx_runtime.jsxs)(DraggableWrapper,{usePaper:usePaper,style:{opacity,position:"fixed",left:position.x,top:position.y,zIndex:2147483647,display:show?"block":"none"},onMouseEnter:handleMouseEnter,onMouseLeave:handleMouseLeave,onClick:handleClick,children:[/*#__PURE__*/(0,jsx_runtime.jsx)("div",{style:{touchAction:"none"},...touchProps,children:handler}),/*#__PURE__*/(0,jsx_runtime.jsx)("div",{children:children})]});}
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+styled-engine@5.15.14_@emotion+react@11.11.1_@emotion+styled@11.11.0_react@18.2.0/node_modules/@mui/styled-engine/index.js + 5 modules
-var styled_engine = __webpack_require__(6818);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react@18.2.0/node_modules/@mui/system/esm/styleFunctionSx/styleFunctionSx.js
-var styleFunctionSx = __webpack_require__(7692);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react@18.2.0/node_modules/@mui/system/esm/styleFunctionSx/extendSxProp.js
-var extendSxProp = __webpack_require__(761);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react@18.2.0/node_modules/@mui/system/esm/createBox.js
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+styled-engine@5.15.14_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@e_38b353972d011fd8524090cbc8c519bf/node_modules/@mui/styled-engine/index.js + 5 modules
+var styled_engine = __webpack_require__(5190);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/styleFunctionSx/styleFunctionSx.js
+var styleFunctionSx = __webpack_require__(1048);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/styleFunctionSx/extendSxProp.js
+var extendSxProp = __webpack_require__(416);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/createBox.js
 'use client';
 
 
@@ -36505,11 +36539,11 @@ function createBox() {
 }
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mui+utils@5.15.14_@types+react@18.2.79_react@18.2.0/node_modules/@mui/utils/ClassNameGenerator/ClassNameGenerator.js
 var ClassNameGenerator = __webpack_require__(3705);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/Box/boxClasses.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Box/boxClasses.js
 
 const boxClasses = (0,generateUtilityClasses/* default */.Z)('MuiBox', ['root']);
 /* harmony default export */ const Box_boxClasses = (boxClasses);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/Box/Box.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Box/Box.js
 'use client';
 
 
@@ -36529,9 +36563,9 @@ const Box = createBox({
 /* harmony default export */ const Box_Box = (Box);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mui+utils@5.15.14_@types+react@18.2.79_react@18.2.0/node_modules/@mui/utils/deepmerge/deepmerge.js
 var deepmerge = __webpack_require__(8836);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react@18.2.0/node_modules/@mui/system/esm/createTheme/createTheme.js + 2 modules
-var createTheme_createTheme = __webpack_require__(2332);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react@18.2.0/node_modules/@mui/system/esm/createStyled.js
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/createTheme/createTheme.js + 2 modules
+var createTheme_createTheme = __webpack_require__(3985);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/createStyled.js
 
 
 const createStyled_excluded = ["ownerState"],
@@ -36764,17 +36798,17 @@ function createStyled() {
     return muiStyledResolver;
   };
 }
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react@18.2.0/node_modules/@mui/system/esm/styled.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/styled.js
 
 const styled_styled = createStyled();
 /* harmony default export */ const esm_styled = (styled_styled);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react@18.2.0/node_modules/@mui/system/esm/useThemeProps/useThemeProps.js
-var useThemeProps_useThemeProps = __webpack_require__(3696);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react@18.2.0/node_modules/@mui/system/esm/breakpoints.js
-var breakpoints = __webpack_require__(9074);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react@18.2.0/node_modules/@mui/system/esm/spacing.js + 1 modules
-var spacing = __webpack_require__(9521);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react@18.2.0/node_modules/@mui/system/esm/Stack/createStack.js
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/useThemeProps/useThemeProps.js
+var useThemeProps_useThemeProps = __webpack_require__(8251);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/breakpoints.js
+var breakpoints = __webpack_require__(9744);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/spacing.js + 1 modules
+var spacing = __webpack_require__(4275);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/Stack/createStack.js
 
 
 const createStack_excluded = ["component", "direction", "spacing", "divider", "children", "className", "useFlexGap"];
@@ -36944,7 +36978,7 @@ function createStack() {
    false ? 0 : void 0;
   return Stack;
 }
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/Stack/Stack.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Stack/Stack.js
 'use client';
 
 
@@ -36964,7 +36998,7 @@ const Stack = createStack({
 });
  false ? 0 : void 0;
 /* harmony default export */ const Stack_Stack = (Stack);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/List/ListContext.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/List/ListContext.js
 'use client';
 
 
@@ -36975,9 +37009,9 @@ const Stack = createStack({
 const ListContext = /*#__PURE__*/react.createContext({});
 if (false) {}
 /* harmony default export */ const List_ListContext = (ListContext);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/utils/useEnhancedEffect.js
-var useEnhancedEffect = __webpack_require__(208);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/Divider/dividerClasses.js
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/useEnhancedEffect.js
+var useEnhancedEffect = __webpack_require__(2754);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Divider/dividerClasses.js
 
 
 function getDividerUtilityClass(slot) {
@@ -36985,7 +37019,7 @@ function getDividerUtilityClass(slot) {
 }
 const dividerClasses = (0,generateUtilityClasses/* default */.Z)('MuiDivider', ['root', 'absolute', 'fullWidth', 'inset', 'middle', 'flexItem', 'light', 'vertical', 'withChildren', 'withChildrenVertical', 'textAlignRight', 'textAlignLeft', 'wrapper', 'wrapperVertical']);
 /* harmony default export */ const Divider_dividerClasses = (dividerClasses);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/ListItemIcon/listItemIconClasses.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/ListItemIcon/listItemIconClasses.js
 
 
 function getListItemIconUtilityClass(slot) {
@@ -36993,7 +37027,7 @@ function getListItemIconUtilityClass(slot) {
 }
 const listItemIconClasses = (0,generateUtilityClasses/* default */.Z)('MuiListItemIcon', ['root', 'alignItemsFlexStart']);
 /* harmony default export */ const ListItemIcon_listItemIconClasses = (listItemIconClasses);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/ListItemText/listItemTextClasses.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/ListItemText/listItemTextClasses.js
 
 
 function getListItemTextUtilityClass(slot) {
@@ -37001,7 +37035,7 @@ function getListItemTextUtilityClass(slot) {
 }
 const listItemTextClasses = (0,generateUtilityClasses/* default */.Z)('MuiListItemText', ['root', 'multiline', 'dense', 'inset', 'primary', 'secondary']);
 /* harmony default export */ const ListItemText_listItemTextClasses = (listItemTextClasses);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/MenuItem/menuItemClasses.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/MenuItem/menuItemClasses.js
 
 
 function getMenuItemUtilityClass(slot) {
@@ -37009,7 +37043,7 @@ function getMenuItemUtilityClass(slot) {
 }
 const menuItemClasses = (0,generateUtilityClasses/* default */.Z)('MuiMenuItem', ['root', 'focusVisible', 'dense', 'disabled', 'divider', 'gutters', 'selected']);
 /* harmony default export */ const MenuItem_menuItemClasses = (menuItemClasses);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/MenuItem/MenuItem.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/MenuItem/MenuItem.js
 'use client';
 
 
@@ -37197,7 +37231,7 @@ const MenuItem = /*#__PURE__*/react.forwardRef(function MenuItem(inProps, ref) {
 });
  false ? 0 : void 0;
 /* harmony default export */ const MenuItem_MenuItem = (MenuItem);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/FormControl/FormControlContext.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/FormControl/FormControlContext.js
 
 /**
  * @ignore - internal component.
@@ -37205,7 +37239,7 @@ const MenuItem = /*#__PURE__*/react.forwardRef(function MenuItem(inProps, ref) {
 const FormControlContext = /*#__PURE__*/react.createContext(undefined);
 if (false) {}
 /* harmony default export */ const FormControl_FormControlContext = (FormControlContext);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/FormControl/useFormControl.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/FormControl/useFormControl.js
 'use client';
 
 
@@ -37213,7 +37247,7 @@ if (false) {}
 function useFormControl() {
   return react.useContext(FormControl_FormControlContext);
 }
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/Typography/typographyClasses.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Typography/typographyClasses.js
 
 
 function getTypographyUtilityClass(slot) {
@@ -37221,7 +37255,7 @@ function getTypographyUtilityClass(slot) {
 }
 const typographyClasses = (0,generateUtilityClasses/* default */.Z)('MuiTypography', ['root', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'subtitle1', 'subtitle2', 'body1', 'body2', 'inherit', 'button', 'caption', 'overline', 'alignLeft', 'alignRight', 'alignCenter', 'alignJustify', 'noWrap', 'gutterBottom', 'paragraph']);
 /* harmony default export */ const Typography_typographyClasses = ((/* unused pure expression or super */ null && (typographyClasses)));
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/Typography/Typography.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Typography/Typography.js
 'use client';
 
 
@@ -37349,7 +37383,7 @@ const Typography = /*#__PURE__*/react.forwardRef(function Typography(inProps, re
 });
  false ? 0 : void 0;
 /* harmony default export */ const Typography_Typography = (Typography);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/FormControlLabel/formControlLabelClasses.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/FormControlLabel/formControlLabelClasses.js
 
 
 function getFormControlLabelUtilityClasses(slot) {
@@ -37357,7 +37391,7 @@ function getFormControlLabelUtilityClasses(slot) {
 }
 const formControlLabelClasses = (0,generateUtilityClasses/* default */.Z)('MuiFormControlLabel', ['root', 'labelPlacementStart', 'labelPlacementTop', 'labelPlacementBottom', 'disabled', 'label', 'error', 'required', 'asterisk']);
 /* harmony default export */ const FormControlLabel_formControlLabelClasses = (formControlLabelClasses);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/FormControl/formControlState.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/FormControl/formControlState.js
 function formControlState(_ref) {
   let {
     props,
@@ -37374,7 +37408,7 @@ function formControlState(_ref) {
     return acc;
   }, {});
 }
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/FormControlLabel/FormControlLabel.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/FormControlLabel/FormControlLabel.js
 'use client';
 
 
@@ -37547,9 +37581,9 @@ const FormControlLabel = /*#__PURE__*/react.forwardRef(function FormControlLabel
 });
  false ? 0 : void 0;
 /* harmony default export */ const FormControlLabel_FormControlLabel = (FormControlLabel);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/utils/useControlled.js + 1 modules
-var useControlled = __webpack_require__(1520);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/internal/switchBaseClasses.js
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/useControlled.js + 1 modules
+var useControlled = __webpack_require__(6559);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/internal/switchBaseClasses.js
 
 
 function getSwitchBaseUtilityClass(slot) {
@@ -37557,7 +37591,7 @@ function getSwitchBaseUtilityClass(slot) {
 }
 const switchBaseClasses = (0,generateUtilityClasses/* default */.Z)('PrivateSwitchBase', ['root', 'checked', 'disabled', 'input', 'edgeStart', 'edgeEnd']);
 /* harmony default export */ const internal_switchBaseClasses = ((/* unused pure expression or super */ null && (switchBaseClasses)));
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/internal/SwitchBase.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/internal/SwitchBase.js
 'use client';
 
 
@@ -37732,7 +37766,7 @@ const SwitchBase = /*#__PURE__*/react.forwardRef(function SwitchBase(props, ref)
 // so that the API documentation is updated.
  false ? 0 : void 0;
 /* harmony default export */ const internal_SwitchBase = (SwitchBase);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/zero-styled/index.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/zero-styled/index.js
 
 
 
@@ -37740,7 +37774,7 @@ const SwitchBase = /*#__PURE__*/react.forwardRef(function SwitchBase(props, ref)
 function createUseThemeProps(name) {
   return useThemeProps/* default */.Z;
 }
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/Switch/switchClasses.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Switch/switchClasses.js
 
 
 function getSwitchUtilityClass(slot) {
@@ -37748,7 +37782,7 @@ function getSwitchUtilityClass(slot) {
 }
 const switchClasses = (0,generateUtilityClasses/* default */.Z)('MuiSwitch', ['root', 'edgeStart', 'edgeEnd', 'switchBase', 'colorPrimary', 'colorSecondary', 'sizeSmall', 'sizeMedium', 'checked', 'disabled', 'input', 'thumb', 'track']);
 /* harmony default export */ const Switch_switchClasses = (switchClasses);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/Switch/Switch.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Switch/Switch.js
 'use client';
 
 // @inheritedComponent IconButton
@@ -38015,7 +38049,7 @@ const Switch = /*#__PURE__*/react.forwardRef(function Switch(inProps, ref) {
 /* harmony default export */ const Switch_Switch = (Switch);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mui+utils@5.15.14_@types+react@18.2.79_react@18.2.0/node_modules/@mui/utils/resolveProps/resolveProps.js
 var resolveProps = __webpack_require__(3928);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/Button/buttonClasses.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Button/buttonClasses.js
 
 
 function getButtonUtilityClass(slot) {
@@ -38023,7 +38057,7 @@ function getButtonUtilityClass(slot) {
 }
 const buttonClasses = (0,generateUtilityClasses/* default */.Z)('MuiButton', ['root', 'text', 'textInherit', 'textPrimary', 'textSecondary', 'textSuccess', 'textError', 'textInfo', 'textWarning', 'outlined', 'outlinedInherit', 'outlinedPrimary', 'outlinedSecondary', 'outlinedSuccess', 'outlinedError', 'outlinedInfo', 'outlinedWarning', 'contained', 'containedInherit', 'containedPrimary', 'containedSecondary', 'containedSuccess', 'containedError', 'containedInfo', 'containedWarning', 'disableElevation', 'focusVisible', 'disabled', 'colorInherit', 'colorPrimary', 'colorSecondary', 'colorSuccess', 'colorError', 'colorInfo', 'colorWarning', 'textSizeSmall', 'textSizeMedium', 'textSizeLarge', 'outlinedSizeSmall', 'outlinedSizeMedium', 'outlinedSizeLarge', 'containedSizeSmall', 'containedSizeMedium', 'containedSizeLarge', 'sizeMedium', 'sizeSmall', 'sizeLarge', 'fullWidth', 'startIcon', 'endIcon', 'icon', 'iconSizeSmall', 'iconSizeMedium', 'iconSizeLarge']);
 /* harmony default export */ const Button_buttonClasses = (buttonClasses);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/ButtonGroup/ButtonGroupContext.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/ButtonGroup/ButtonGroupContext.js
 
 /**
  * @ignore - internal component.
@@ -38031,7 +38065,7 @@ const buttonClasses = (0,generateUtilityClasses/* default */.Z)('MuiButton', ['r
 const ButtonGroupContext = /*#__PURE__*/react.createContext({});
 if (false) {}
 /* harmony default export */ const ButtonGroup_ButtonGroupContext = (ButtonGroupContext);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/ButtonGroup/ButtonGroupButtonContext.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/ButtonGroup/ButtonGroupButtonContext.js
 
 /**
  * @ignore - internal component.
@@ -38039,7 +38073,7 @@ if (false) {}
 const ButtonGroupButtonContext = /*#__PURE__*/react.createContext(undefined);
 if (false) {}
 /* harmony default export */ const ButtonGroup_ButtonGroupButtonContext = (ButtonGroupButtonContext);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/Button/Button.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Button/Button.js
 'use client';
 
 
@@ -38358,7 +38392,7 @@ var ownerWindow = __webpack_require__(6029);
 var useEnhancedEffect_useEnhancedEffect = __webpack_require__(4536);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mui+utils@5.15.14_@types+react@18.2.79_react@18.2.0/node_modules/@mui/utils/debounce/debounce.js
 var debounce_debounce = __webpack_require__(9082);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+base@5.0.0-beta.40_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/base/TextareaAutosize/TextareaAutosize.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+base@5.0.0-beta.40_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/@mui/base/TextareaAutosize/TextareaAutosize.js
 'use client';
 
 
@@ -38545,14 +38579,14 @@ const TextareaAutosize = /*#__PURE__*/react.forwardRef(function TextareaAutosize
 });
  false ? 0 : void 0;
 
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+base@5.0.0-beta.40_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/base/utils/isHostComponent.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+base@5.0.0-beta.40_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/@mui/base/utils/isHostComponent.js
 /**
  * Determines if a given element is a DOM element name (i.e. not a React component).
  */
 function isHostComponent(element) {
   return typeof element === 'string';
 }
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/InputBase/utils.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/InputBase/utils.js
 // Supports determination of isControlled().
 // Controlled input accepts its current value as a prop.
 //
@@ -38584,7 +38618,7 @@ function isFilled(obj) {
 function isAdornedStart(obj) {
   return obj.startAdornment;
 }
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/InputBase/inputBaseClasses.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/InputBase/inputBaseClasses.js
 
 
 function getInputBaseUtilityClass(slot) {
@@ -38592,7 +38626,7 @@ function getInputBaseUtilityClass(slot) {
 }
 const inputBaseClasses = (0,generateUtilityClasses/* default */.Z)('MuiInputBase', ['root', 'formControl', 'focused', 'disabled', 'adornedStart', 'adornedEnd', 'error', 'sizeSmall', 'multiline', 'colorSecondary', 'fullWidth', 'hiddenLabel', 'readOnly', 'input', 'inputSizeSmall', 'inputMultiline', 'inputTypeSearch', 'inputAdornedStart', 'inputAdornedEnd', 'inputHiddenLabel']);
 /* harmony default export */ const InputBase_inputBaseClasses = (inputBaseClasses);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/InputBase/InputBase.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/InputBase/InputBase.js
 'use client';
 
 
@@ -39067,7 +39101,7 @@ const InputBase = /*#__PURE__*/react.forwardRef(function InputBase(inProps, ref)
 });
  false ? 0 : void 0;
 /* harmony default export */ const InputBase_InputBase = (InputBase);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/Input/inputClasses.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Input/inputClasses.js
 
 
 
@@ -39077,7 +39111,7 @@ function getInputUtilityClass(slot) {
 }
 const inputClasses = (0,esm_extends/* default */.Z)({}, InputBase_inputBaseClasses, (0,generateUtilityClasses/* default */.Z)('MuiInput', ['root', 'underline', 'input']));
 /* harmony default export */ const Input_inputClasses = (inputClasses);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/Input/Input.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Input/Input.js
 'use client';
 
 
@@ -39238,7 +39272,7 @@ const Input = /*#__PURE__*/react.forwardRef(function Input(inProps, ref) {
  false ? 0 : void 0;
 Input.muiName = 'Input';
 /* harmony default export */ const Input_Input = (Input);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/FilledInput/filledInputClasses.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/FilledInput/filledInputClasses.js
 
 
 
@@ -39248,7 +39282,7 @@ function getFilledInputUtilityClass(slot) {
 }
 const filledInputClasses = (0,esm_extends/* default */.Z)({}, InputBase_inputBaseClasses, (0,generateUtilityClasses/* default */.Z)('MuiFilledInput', ['root', 'underline', 'input']));
 /* harmony default export */ const FilledInput_filledInputClasses = (filledInputClasses);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/FilledInput/FilledInput.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/FilledInput/FilledInput.js
 'use client';
 
 
@@ -39492,7 +39526,7 @@ const FilledInput = /*#__PURE__*/react.forwardRef(function FilledInput(inProps, 
  false ? 0 : void 0;
 FilledInput.muiName = 'Input';
 /* harmony default export */ const FilledInput_FilledInput = (FilledInput);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/OutlinedInput/NotchedOutline.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/OutlinedInput/NotchedOutline.js
 'use client';
 
 
@@ -39607,7 +39641,7 @@ function NotchedOutline(props) {
   }));
 }
  false ? 0 : void 0;
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/OutlinedInput/outlinedInputClasses.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/OutlinedInput/outlinedInputClasses.js
 
 
 
@@ -39617,7 +39651,7 @@ function getOutlinedInputUtilityClass(slot) {
 }
 const outlinedInputClasses = (0,esm_extends/* default */.Z)({}, InputBase_inputBaseClasses, (0,generateUtilityClasses/* default */.Z)('MuiOutlinedInput', ['root', 'notchedOutline', 'input']));
 /* harmony default export */ const OutlinedInput_outlinedInputClasses = (outlinedInputClasses);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/OutlinedInput/OutlinedInput.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/OutlinedInput/OutlinedInput.js
 'use client';
 
 
@@ -39808,7 +39842,7 @@ const OutlinedInput = /*#__PURE__*/react.forwardRef(function OutlinedInput(inPro
  false ? 0 : void 0;
 OutlinedInput.muiName = 'Input';
 /* harmony default export */ const OutlinedInput_OutlinedInput = (OutlinedInput);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/FormLabel/formLabelClasses.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/FormLabel/formLabelClasses.js
 
 
 function getFormLabelUtilityClasses(slot) {
@@ -39816,7 +39850,7 @@ function getFormLabelUtilityClasses(slot) {
 }
 const formLabelClasses = (0,generateUtilityClasses/* default */.Z)('MuiFormLabel', ['root', 'colorSecondary', 'focused', 'disabled', 'error', 'filled', 'required', 'asterisk']);
 /* harmony default export */ const FormLabel_formLabelClasses = (formLabelClasses);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/FormLabel/FormLabel.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/FormLabel/FormLabel.js
 'use client';
 
 
@@ -39937,7 +39971,7 @@ const FormLabel = /*#__PURE__*/react.forwardRef(function FormLabel(inProps, ref)
 });
  false ? 0 : void 0;
 /* harmony default export */ const FormLabel_FormLabel = (FormLabel);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/InputLabel/inputLabelClasses.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/InputLabel/inputLabelClasses.js
 
 
 function getInputLabelUtilityClasses(slot) {
@@ -39945,7 +39979,7 @@ function getInputLabelUtilityClasses(slot) {
 }
 const inputLabelClasses = (0,generateUtilityClasses/* default */.Z)('MuiInputLabel', ['root', 'focused', 'disabled', 'error', 'required', 'asterisk', 'formControl', 'sizeSmall', 'shrink', 'animated', 'standard', 'filled', 'outlined']);
 /* harmony default export */ const InputLabel_inputLabelClasses = ((/* unused pure expression or super */ null && (inputLabelClasses)));
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/InputLabel/InputLabel.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/InputLabel/InputLabel.js
 'use client';
 
 
@@ -40099,9 +40133,9 @@ const InputLabel = /*#__PURE__*/react.forwardRef(function InputLabel(inProps, re
 });
  false ? 0 : void 0;
 /* harmony default export */ const InputLabel_InputLabel = (InputLabel);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/utils/isMuiElement.js + 1 modules
-var isMuiElement = __webpack_require__(3272);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/FormControl/formControlClasses.js
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/isMuiElement.js + 1 modules
+var isMuiElement = __webpack_require__(2829);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/FormControl/formControlClasses.js
 
 
 function getFormControlUtilityClasses(slot) {
@@ -40109,7 +40143,7 @@ function getFormControlUtilityClasses(slot) {
 }
 const formControlClasses = (0,generateUtilityClasses/* default */.Z)('MuiFormControl', ['root', 'marginNone', 'marginNormal', 'marginDense', 'fullWidth', 'disabled']);
 /* harmony default export */ const FormControl_formControlClasses = ((/* unused pure expression or super */ null && (formControlClasses)));
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/FormControl/FormControl.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/FormControl/FormControl.js
 'use client';
 
 
@@ -40313,7 +40347,7 @@ const FormControl = /*#__PURE__*/react.forwardRef(function FormControl(inProps, 
 });
  false ? 0 : void 0;
 /* harmony default export */ const FormControl_FormControl = (FormControl);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/FormHelperText/formHelperTextClasses.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/FormHelperText/formHelperTextClasses.js
 
 
 function getFormHelperTextUtilityClasses(slot) {
@@ -40321,7 +40355,7 @@ function getFormHelperTextUtilityClasses(slot) {
 }
 const formHelperTextClasses = (0,generateUtilityClasses/* default */.Z)('MuiFormHelperText', ['root', 'error', 'disabled', 'sizeSmall', 'sizeMedium', 'contained', 'focused', 'filled', 'required']);
 /* harmony default export */ const FormHelperText_formHelperTextClasses = (formHelperTextClasses);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/FormHelperText/FormHelperText.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/FormHelperText/FormHelperText.js
 'use client';
 
 
@@ -40437,9 +40471,9 @@ const FormHelperText = /*#__PURE__*/react.forwardRef(function FormHelperText(inP
 /* harmony default export */ const FormHelperText_FormHelperText = (FormHelperText);
 // EXTERNAL MODULE: ./node_modules/.pnpm/react-is@18.2.0/node_modules/react-is/index.js
 var react_is = __webpack_require__(8890);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/utils/ownerDocument.js
-var ownerDocument = __webpack_require__(1704);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+base@5.0.0-beta.40_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/base/utils/appendOwnerState.js
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/ownerDocument.js
+var ownerDocument = __webpack_require__(9259);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+base@5.0.0-beta.40_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/@mui/base/utils/appendOwnerState.js
 
 
 
@@ -40464,7 +40498,7 @@ function appendOwnerState(elementType, otherProps, ownerState) {
     ownerState: (0,esm_extends/* default */.Z)({}, otherProps.ownerState, ownerState)
   });
 }
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+base@5.0.0-beta.40_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/base/utils/extractEventHandlers.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+base@5.0.0-beta.40_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/@mui/base/utils/extractEventHandlers.js
 /**
  * Extracts event handlers from a given object.
  * A prop is considered an event handler if it is a function and its name starts with `on`.
@@ -40483,7 +40517,7 @@ function extractEventHandlers(object) {
   });
   return result;
 }
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+base@5.0.0-beta.40_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/base/utils/omitEventHandlers.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+base@5.0.0-beta.40_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/@mui/base/utils/omitEventHandlers.js
 /**
  * Removes event handlers from the given object.
  * A field is considered an event handler if it is a function with a name beginning with `on`.
@@ -40501,7 +40535,7 @@ function omitEventHandlers(object) {
   });
   return result;
 }
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+base@5.0.0-beta.40_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/base/utils/mergeSlotProps.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+base@5.0.0-beta.40_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/@mui/base/utils/mergeSlotProps.js
 
 
 
@@ -40571,7 +40605,7 @@ function mergeSlotProps(parameters) {
     internalRef: internalSlotProps.ref
   };
 }
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+base@5.0.0-beta.40_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/base/utils/resolveComponentProps.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+base@5.0.0-beta.40_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/@mui/base/utils/resolveComponentProps.js
 /**
  * If `componentProps` is a function, calls it with the provided `ownerState`.
  * Otherwise, just returns `componentProps`.
@@ -40582,7 +40616,7 @@ function resolveComponentProps(componentProps, ownerState, slotState) {
   }
   return componentProps;
 }
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+base@5.0.0-beta.40_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/base/utils/useSlotProps.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+base@5.0.0-beta.40_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/@mui/base/utils/useSlotProps.js
 'use client';
 
 
@@ -40622,7 +40656,7 @@ function useSlotProps(parameters) {
   }), ownerState);
   return props;
 }
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/List/listClasses.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/List/listClasses.js
 
 
 function getListUtilityClass(slot) {
@@ -40630,7 +40664,7 @@ function getListUtilityClass(slot) {
 }
 const listClasses = (0,generateUtilityClasses/* default */.Z)('MuiList', ['root', 'padding', 'dense', 'subheader']);
 /* harmony default export */ const List_listClasses = ((/* unused pure expression or super */ null && (listClasses)));
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/List/List.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/List/List.js
 'use client';
 
 
@@ -40728,10 +40762,10 @@ function getScrollbarSize(doc) {
   const documentWidth = doc.documentElement.clientWidth;
   return Math.abs(window.innerWidth - documentWidth);
 }
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/utils/getScrollbarSize.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/getScrollbarSize.js
 
 /* harmony default export */ const utils_getScrollbarSize = (getScrollbarSize);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/MenuList/MenuList.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/MenuList/MenuList.js
 'use client';
 
 
@@ -40969,21 +41003,21 @@ const MenuList = /*#__PURE__*/react.forwardRef(function MenuList(props, ref) {
 });
  false ? 0 : void 0;
 /* harmony default export */ const MenuList_MenuList = (MenuList);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/utils/debounce.js
-var utils_debounce = __webpack_require__(5036);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/utils/ownerWindow.js
-var utils_ownerWindow = __webpack_require__(5329);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/debounce.js
+var utils_debounce = __webpack_require__(5692);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/ownerWindow.js
+var utils_ownerWindow = __webpack_require__(6879);
 // EXTERNAL MODULE: ./node_modules/.pnpm/react-dom@18.2.0_react@18.2.0/node_modules/react-dom/index.js
 var react_dom = __webpack_require__(7366);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/react-transition-group@4.4.5_react-dom@18.2.0_react@18.2.0/node_modules/react-transition-group/esm/config.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/react-transition-group@4.4.5_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/react-transition-group/esm/config.js
 /* harmony default export */ const config = ({
   disabled: false
 });
-;// CONCATENATED MODULE: ./node_modules/.pnpm/react-transition-group@4.4.5_react-dom@18.2.0_react@18.2.0/node_modules/react-transition-group/esm/utils/reflow.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/react-transition-group@4.4.5_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/react-transition-group/esm/utils/reflow.js
 var forceReflow = function forceReflow(node) {
   return node.scrollTop;
 };
-;// CONCATENATED MODULE: ./node_modules/.pnpm/react-transition-group@4.4.5_react-dom@18.2.0_react@18.2.0/node_modules/react-transition-group/esm/Transition.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/react-transition-group@4.4.5_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/react-transition-group/esm/Transition.js
 
 
 
@@ -41373,7 +41407,7 @@ Transition.ENTERING = ENTERING;
 Transition.ENTERED = ENTERED;
 Transition.EXITING = EXITING;
 /* harmony default export */ const esm_Transition = (Transition);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/styles/useTheme.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/styles/useTheme.js
 'use client';
 
 
@@ -41385,7 +41419,7 @@ function useTheme_useTheme() {
   if (false) {}
   return theme[identifier/* default */.Z] || theme;
 }
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/transitions/utils.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/transitions/utils.js
 const reflow = node => node.scrollTop;
 function getTransitionProps(props, options) {
   var _style$transitionDura, _style$transitionTimi;
@@ -41400,7 +41434,7 @@ function getTransitionProps(props, options) {
     delay: style.transitionDelay
   };
 }
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/Grow/Grow.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Grow/Grow.js
 'use client';
 
 
@@ -41589,7 +41623,7 @@ var ownerDocument_ownerDocument = __webpack_require__(1563);
 var useEventCallback_useEventCallback = __webpack_require__(9210);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mui+utils@5.15.14_@types+react@18.2.79_react@18.2.0/node_modules/@mui/utils/createChainedFunction/createChainedFunction.js
 var createChainedFunction = __webpack_require__(3444);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+base@5.0.0-beta.40_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/base/unstable_useModal/ModalManager.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+base@5.0.0-beta.40_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/@mui/base/unstable_useModal/ModalManager.js
 
 // Is a vertical scrollbar displayed?
 function isOverflowing(container) {
@@ -41805,7 +41839,7 @@ class ModalManager {
     return this.modals.length > 0 && this.modals[this.modals.length - 1] === modal;
   }
 }
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+base@5.0.0-beta.40_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/base/unstable_useModal/useModal.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+base@5.0.0-beta.40_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/@mui/base/unstable_useModal/useModal.js
 'use client';
 
 
@@ -42002,7 +42036,7 @@ function useModal(parameters) {
     hasTransition
   };
 }
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+base@5.0.0-beta.40_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/base/FocusTrap/FocusTrap.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+base@5.0.0-beta.40_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/@mui/base/FocusTrap/FocusTrap.js
 'use client';
 
 /* eslint-disable consistent-return, jsx-a11y/no-noninteractive-tabindex */
@@ -42287,7 +42321,7 @@ if (false) {}
 
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mui+utils@5.15.14_@types+react@18.2.79_react@18.2.0/node_modules/@mui/utils/setRef/setRef.js
 var setRef = __webpack_require__(9109);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+base@5.0.0-beta.40_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/base/Portal/Portal.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+base@5.0.0-beta.40_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/@mui/base/Portal/Portal.js
 'use client';
 
 
@@ -42352,7 +42386,7 @@ const Portal = /*#__PURE__*/react.forwardRef(function Portal(props, forwardedRef
  false ? 0 : void 0;
 if (false) {}
 
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/Fade/Fade.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Fade/Fade.js
 'use client';
 
 
@@ -42484,7 +42518,7 @@ const Fade = /*#__PURE__*/react.forwardRef(function Fade(props, ref) {
 });
  false ? 0 : void 0;
 /* harmony default export */ const Fade_Fade = (Fade);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/Backdrop/backdropClasses.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Backdrop/backdropClasses.js
 
 
 function getBackdropUtilityClass(slot) {
@@ -42492,7 +42526,7 @@ function getBackdropUtilityClass(slot) {
 }
 const backdropClasses = (0,generateUtilityClasses/* default */.Z)('MuiBackdrop', ['root', 'invisible']);
 /* harmony default export */ const Backdrop_backdropClasses = ((/* unused pure expression or super */ null && (backdropClasses)));
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/Backdrop/Backdrop.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Backdrop/Backdrop.js
 'use client';
 
 
@@ -42589,7 +42623,7 @@ const Backdrop = /*#__PURE__*/react.forwardRef(function Backdrop(inProps, ref) {
 });
  false ? 0 : void 0;
 /* harmony default export */ const Backdrop_Backdrop = (Backdrop);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/Modal/modalClasses.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Modal/modalClasses.js
 
 
 function getModalUtilityClass(slot) {
@@ -42597,7 +42631,7 @@ function getModalUtilityClass(slot) {
 }
 const modalClasses = (0,generateUtilityClasses/* default */.Z)('MuiModal', ['root', 'hidden', 'backdrop']);
 /* harmony default export */ const Modal_modalClasses = ((/* unused pure expression or super */ null && (modalClasses)));
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/Modal/Modal.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Modal/Modal.js
 'use client';
 
 
@@ -42806,7 +42840,7 @@ const Modal = /*#__PURE__*/react.forwardRef(function Modal(inProps, ref) {
 });
  false ? 0 : void 0;
 /* harmony default export */ const Modal_Modal = (Modal);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/Popover/popoverClasses.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Popover/popoverClasses.js
 
 
 function getPopoverUtilityClass(slot) {
@@ -42814,7 +42848,7 @@ function getPopoverUtilityClass(slot) {
 }
 const popoverClasses = (0,generateUtilityClasses/* default */.Z)('MuiPopover', ['root', 'paper']);
 /* harmony default export */ const Popover_popoverClasses = ((/* unused pure expression or super */ null && (popoverClasses)));
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/Popover/Popover.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Popover/Popover.js
 'use client';
 
 
@@ -43162,7 +43196,7 @@ const Popover = /*#__PURE__*/react.forwardRef(function Popover(inProps, ref) {
 });
  false ? 0 : void 0;
 /* harmony default export */ const Popover_Popover = (Popover);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/Menu/menuClasses.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Menu/menuClasses.js
 
 
 function getMenuUtilityClass(slot) {
@@ -43170,7 +43204,7 @@ function getMenuUtilityClass(slot) {
 }
 const menuClasses = (0,generateUtilityClasses/* default */.Z)('MuiMenu', ['root', 'paper', 'list']);
 /* harmony default export */ const Menu_menuClasses = ((/* unused pure expression or super */ null && (menuClasses)));
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/Menu/Menu.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Menu/Menu.js
 'use client';
 
 
@@ -43369,7 +43403,7 @@ const Menu = /*#__PURE__*/react.forwardRef(function Menu(inProps, ref) {
 });
  false ? 0 : void 0;
 /* harmony default export */ const Menu_Menu = (Menu);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/NativeSelect/nativeSelectClasses.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/NativeSelect/nativeSelectClasses.js
 
 
 function getNativeSelectUtilityClasses(slot) {
@@ -43377,7 +43411,7 @@ function getNativeSelectUtilityClasses(slot) {
 }
 const nativeSelectClasses = (0,generateUtilityClasses/* default */.Z)('MuiNativeSelect', ['root', 'select', 'multiple', 'filled', 'outlined', 'standard', 'disabled', 'icon', 'iconOpen', 'iconFilled', 'iconOutlined', 'iconStandard', 'nativeInput', 'error']);
 /* harmony default export */ const NativeSelect_nativeSelectClasses = (nativeSelectClasses);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/NativeSelect/NativeSelectInput.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/NativeSelect/NativeSelectInput.js
 'use client';
 
 
@@ -43549,9 +43583,9 @@ const NativeSelectInput = /*#__PURE__*/react.forwardRef(function NativeSelectInp
 });
  false ? 0 : void 0;
 /* harmony default export */ const NativeSelect_NativeSelectInput = (NativeSelectInput);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/styles/slotShouldForwardProp.js
-var slotShouldForwardProp = __webpack_require__(5023);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/Select/selectClasses.js
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/styles/slotShouldForwardProp.js
+var slotShouldForwardProp = __webpack_require__(2378);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Select/selectClasses.js
 
 
 function getSelectUtilityClasses(slot) {
@@ -43559,7 +43593,7 @@ function getSelectUtilityClasses(slot) {
 }
 const selectClasses = (0,generateUtilityClasses/* default */.Z)('MuiSelect', ['root', 'select', 'multiple', 'filled', 'outlined', 'standard', 'disabled', 'focused', 'icon', 'iconOpen', 'iconFilled', 'iconOutlined', 'iconStandard', 'nativeInput', 'error']);
 /* harmony default export */ const Select_selectClasses = (selectClasses);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/Select/SelectInput.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Select/SelectInput.js
 'use client';
 
 
@@ -44065,9 +44099,9 @@ const SelectInput = /*#__PURE__*/react.forwardRef(function SelectInput(props, re
 });
  false ? 0 : void 0;
 /* harmony default export */ const Select_SelectInput = (SelectInput);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/utils/createSvgIcon.js + 2 modules
-var createSvgIcon = __webpack_require__(9295);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/internal/svg-icons/ArrowDropDown.js
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/createSvgIcon.js + 2 modules
+var createSvgIcon = __webpack_require__(174);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/internal/svg-icons/ArrowDropDown.js
 'use client';
 
 
@@ -44080,7 +44114,7 @@ var createSvgIcon = __webpack_require__(9295);
 /* harmony default export */ const ArrowDropDown = ((0,createSvgIcon/* default */.Z)( /*#__PURE__*/(0,jsx_runtime.jsx)("path", {
   d: "M7 10l5 5 5-5z"
 }), 'ArrowDropDown'));
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/Select/Select.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Select/Select.js
 'use client';
 
 
@@ -44218,7 +44252,7 @@ const Select = /*#__PURE__*/react.forwardRef(function Select(inProps, ref) {
  false ? 0 : void 0;
 Select.muiName = 'Select';
 /* harmony default export */ const Select_Select = (Select);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/TextField/textFieldClasses.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/TextField/textFieldClasses.js
 
 
 function getTextFieldUtilityClass(slot) {
@@ -44226,7 +44260,7 @@ function getTextFieldUtilityClass(slot) {
 }
 const textFieldClasses = (0,generateUtilityClasses/* default */.Z)('MuiTextField', ['root']);
 /* harmony default export */ const TextField_textFieldClasses = ((/* unused pure expression or super */ null && (textFieldClasses)));
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/TextField/TextField.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/TextField/TextField.js
 'use client';
 
 
@@ -44427,7 +44461,7 @@ const TextField = /*#__PURE__*/react.forwardRef(function TextField(inProps, ref)
 });
  false ? 0 : void 0;
 /* harmony default export */ const TextField_TextField = (TextField);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/Divider/Divider.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Divider/Divider.js
 'use client';
 
 
@@ -44635,7 +44669,7 @@ const Divider = /*#__PURE__*/react.forwardRef(function Divider(inProps, ref) {
 Divider.muiSkipListHighlight = true;
  false ? 0 : void 0;
 /* harmony default export */ const Divider_Divider = (Divider);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/IconButton/iconButtonClasses.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/IconButton/iconButtonClasses.js
 
 
 function getIconButtonUtilityClass(slot) {
@@ -44643,7 +44677,7 @@ function getIconButtonUtilityClass(slot) {
 }
 const iconButtonClasses = (0,generateUtilityClasses/* default */.Z)('MuiIconButton', ['root', 'disabled', 'colorInherit', 'colorPrimary', 'colorSecondary', 'colorError', 'colorInfo', 'colorSuccess', 'colorWarning', 'edgeStart', 'edgeEnd', 'sizeSmall', 'sizeMedium', 'sizeLarge']);
 /* harmony default export */ const IconButton_iconButtonClasses = (iconButtonClasses);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/IconButton/IconButton.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/IconButton/IconButton.js
 'use client';
 
 
@@ -44787,18 +44821,18 @@ const IconButton = /*#__PURE__*/react.forwardRef(function IconButton(inProps, re
 });
  false ? 0 : void 0;
 /* harmony default export */ const IconButton_IconButton = (IconButton);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@types+react@18.2.79_react@18.2.0/node_modules/@mui/icons-material/Close.js
-var Close = __webpack_require__(305);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@types+react@18.2.79_react@18.2.0/node_modules/@mui/icons-material/Home.js
-var Home = __webpack_require__(9235);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@types+react@18.2.79_react@18.2.0/node_modules/@mui/icons-material/LightMode.js
-var LightMode = __webpack_require__(6250);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@types+react@18.2.79_react@18.2.0/node_modules/@mui/icons-material/DarkMode.js
-var DarkMode = __webpack_require__(5788);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@1_1e29dcefa4691dc57f2acd9f73947cfd/node_modules/@mui/icons-material/Close.js
+var Close = __webpack_require__(8373);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@1_1e29dcefa4691dc57f2acd9f73947cfd/node_modules/@mui/icons-material/Home.js
+var Home = __webpack_require__(1088);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@1_1e29dcefa4691dc57f2acd9f73947cfd/node_modules/@mui/icons-material/LightMode.js
+var LightMode = __webpack_require__(4766);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@1_1e29dcefa4691dc57f2acd9f73947cfd/node_modules/@mui/icons-material/DarkMode.js
+var DarkMode = __webpack_require__(7415);
 ;// CONCATENATED MODULE: ./src/views/Options/DarkModeButton.js
 function DarkModeButton(){const{darkMode,toggleDarkMode}=useDarkMode();return/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{onClick:toggleDarkMode,color:"inherit",children:darkMode?/*#__PURE__*/(0,jsx_runtime.jsx)(LightMode/* default */.Z,{}):/*#__PURE__*/(0,jsx_runtime.jsx)(DarkMode/* default */.Z,{})});}
 ;// CONCATENATED MODULE: ./src/views/Popup/Header.js
-function Header(_ref){let{setShowPopup}=_ref;const handleHomepage=()=>{window.open("https://github.com/fishjar/kiss-translator","_blank");};return/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",justifyContent:"space-between",alignItems:"center",spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",justifyContent:"flex-start",alignItems:"center",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{onClick:handleHomepage,children:/*#__PURE__*/(0,jsx_runtime.jsx)(Home/* default */.Z,{})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{component:"div",sx:{userSelect:"none",WebkitUserSelect:"none",fontWeight:"bold"},children:"".concat("KISS Translator"," v").concat("1.8.11")})]}),setShowPopup?/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{onClick:()=>{setShowPopup(false);},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Close/* default */.Z,{})}):/*#__PURE__*/(0,jsx_runtime.jsx)(DarkModeButton,{})]});}
+function Header(_ref){let{setShowPopup}=_ref;const handleHomepage=()=>{window.open("https://github.com/fishjar/kiss-translator","_blank");};return/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",justifyContent:"space-between",alignItems:"center",spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",justifyContent:"flex-start",alignItems:"center",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{onClick:handleHomepage,children:/*#__PURE__*/(0,jsx_runtime.jsx)(Home/* default */.Z,{})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{component:"div",sx:{userSelect:"none",WebkitUserSelect:"none",fontWeight:"bold"},children:"".concat("KISS Translator"," v").concat("1.9.0")})]}),setShowPopup?/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{onClick:()=>{setShowPopup(false);},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Close/* default */.Z,{})}):/*#__PURE__*/(0,jsx_runtime.jsx)(DarkModeButton,{})]});}
 ;// CONCATENATED MODULE: ./src/libs/iframe.js
 const isIframe=window.self!==window.top;const sendIframeMsg=(action,args)=>{document.querySelectorAll("iframe").forEach(iframe=>{iframe.contentWindow.postMessage({action,args},"*");});};const sendParentMsg=(action,args)=>{window.parent.postMessage({action,args},"*");};
 ;// CONCATENATED MODULE: ./src/libs/subRules.js
@@ -44830,11 +44864,11 @@ await syncAllSubRules(subrulesList);await updateSync({subRulesSyncAt:now});}}cat
  * @param {*} rules
  * @param {string} href
  * @returns
- */const matchRule=async(href,_ref)=>{let{injectRules,subrulesList,owSubrule}=_ref;const rules=await getRulesWithDefault();if(injectRules){try{const selectedSub=subrulesList.find(item=>item.selected);if(selectedSub!==null&&selectedSub!==void 0&&selectedSub.url){const mixRule={};Object.entries(owSubrule).filter(_ref2=>{let[key,val]=_ref2;if(owSubrule.textStyle===REMAIN_KEY&&(key==="bgColor"||key==="textDiyStyle")){return false;}return val!==REMAIN_KEY;}).forEach(_ref3=>{let[key,val]=_ref3;mixRule[key]=val;});let subRules=await loadOrFetchSubRules(selectedSub.url);subRules=subRules.map(item=>({...item,...mixRule}));rules.splice(-1,0,...subRules);}}catch(err){log_kissLog(err,"load injectRules");}}const rule=rules.find(r=>r.pattern.split(",").some(p=>isMatch(href,p.trim())));const globalRule={...GLOBLA_RULE,...(rules.find(r=>r.pattern===GLOBAL_KEY)||{})};if(!rule){return globalRule;}["selector","keepSelector","terms","selectStyle","parentStyle","injectJs","injectCss","fixerSelector","transStartHook","transEndHook","transRemoveHook"].forEach(key=>{var _rule$key;if(!((_rule$key=rule[key])!==null&&_rule$key!==void 0&&_rule$key.trim())){rule[key]=globalRule[key];}});["translator","fromLang","toLang","transOpen","transOnly","transTiming","transTag","transTitle","detectRemote","fixerFunc"].forEach(key=>{if(rule[key]===undefined||rule[key]===GLOBAL_KEY){rule[key]=globalRule[key];}});if(!rule.skipLangs||rule.skipLangs.length===0){rule.skipLangs=globalRule.skipLangs;}if(rule.textStyle===GLOBAL_KEY){rule.textStyle=globalRule.textStyle;rule.bgColor=globalRule.bgColor;rule.textDiyStyle=globalRule.textDiyStyle;}else{var _rule$bgColor,_rule$textDiyStyle;rule.bgColor=((_rule$bgColor=rule.bgColor)===null||_rule$bgColor===void 0?void 0:_rule$bgColor.trim())||globalRule.bgColor;rule.textDiyStyle=((_rule$textDiyStyle=rule.textDiyStyle)===null||_rule$textDiyStyle===void 0?void 0:_rule$textDiyStyle.trim())||globalRule.textDiyStyle;}return rule;};/**
+ */const matchRule=async(href,_ref)=>{let{injectRules,subrulesList,owSubrule}=_ref;const rules=await getRulesWithDefault();if(injectRules){try{const selectedSub=subrulesList.find(item=>item.selected);if(selectedSub!==null&&selectedSub!==void 0&&selectedSub.url){const mixRule={};Object.entries(owSubrule).filter(_ref2=>{let[key,val]=_ref2;if(owSubrule.textStyle===REMAIN_KEY&&(key==="bgColor"||key==="textDiyStyle")){return false;}return val!==REMAIN_KEY;}).forEach(_ref3=>{let[key,val]=_ref3;mixRule[key]=val;});let subRules=await loadOrFetchSubRules(selectedSub.url);subRules=subRules.map(item=>({...item,...mixRule}));rules.splice(-1,0,...subRules);}}catch(err){log_kissLog(err,"load injectRules");}}const rule=rules.find(r=>r.pattern.split(",").some(p=>isMatch(href,p.trim())));const globalRule={...GLOBLA_RULE,...(rules.find(r=>r.pattern===GLOBAL_KEY)||{})};if(!rule){return globalRule;}["selector","keepSelector","terms","selectStyle","parentStyle","injectJs","injectCss","fixerSelector","transStartHook","transEndHook","transRemoveHook"].forEach(key=>{var _rule$key;if(!((_rule$key=rule[key])!==null&&_rule$key!==void 0&&_rule$key.trim())){rule[key]=globalRule[key];}});["translator","fromLang","toLang","transOpen","transOnly","transTiming","transTag","transTitle","transSelected","detectRemote","fixerFunc"].forEach(key=>{if(rule[key]===undefined||rule[key]===GLOBAL_KEY){rule[key]=globalRule[key];}});if(!rule.skipLangs||rule.skipLangs.length===0){rule.skipLangs=globalRule.skipLangs;}if(rule.textStyle===GLOBAL_KEY){rule.textStyle=globalRule.textStyle;rule.bgColor=globalRule.bgColor;rule.textDiyStyle=globalRule.textDiyStyle;}else{var _rule$bgColor,_rule$textDiyStyle;rule.bgColor=((_rule$bgColor=rule.bgColor)===null||_rule$bgColor===void 0?void 0:_rule$bgColor.trim())||globalRule.bgColor;rule.textDiyStyle=((_rule$textDiyStyle=rule.textDiyStyle)===null||_rule$textDiyStyle===void 0?void 0:_rule$textDiyStyle.trim())||globalRule.textDiyStyle;}return rule;};/**
  * 检查过滤rules
  * @param {*} rules
  * @returns
- */const checkRules=rules=>{if(type(rules)==="string"){rules=JSON.parse(rules);}if(type(rules)!=="array"){throw new Error("data error");}const fromLangs=OPT_LANGS_FROM.map(item=>item[0]);const toLangs=OPT_LANGS_TO.map(item=>item[0]);const patternSet=new Set();rules=rules.filter(rule=>type(rule)==="object").filter(_ref4=>{let{pattern}=_ref4;if(type(pattern)!=="string"||patternSet.has(pattern.trim())){return false;}patternSet.add(pattern.trim());return true;}).map(_ref5=>{let{pattern,selector,keepSelector,terms,selectStyle,parentStyle,injectJs,injectCss,translator,fromLang,toLang,textStyle,transOpen,bgColor,textDiyStyle,transOnly,transTiming,transTag,transTitle,detectRemote,skipLangs,fixerSelector,fixerFunc,transStartHook,transEndHook,transRemoveHook}=_ref5;return{pattern:pattern.trim(),selector:type(selector)==="string"?selector:"",keepSelector:type(keepSelector)==="string"?keepSelector:"",terms:type(terms)==="string"?terms:"",selectStyle:type(selectStyle)==="string"?selectStyle:"",parentStyle:type(parentStyle)==="string"?parentStyle:"",injectJs:type(injectJs)==="string"?injectJs:"",injectCss:type(injectCss)==="string"?injectCss:"",bgColor:type(bgColor)==="string"?bgColor:"",textDiyStyle:type(textDiyStyle)==="string"?textDiyStyle:"",translator:matchValue([GLOBAL_KEY,...OPT_TRANS_ALL],translator),fromLang:matchValue([GLOBAL_KEY,...fromLangs],fromLang),toLang:matchValue([GLOBAL_KEY,...toLangs],toLang),textStyle:matchValue([GLOBAL_KEY,...OPT_STYLE_ALL],textStyle),transOpen:matchValue([GLOBAL_KEY,"true","false"],transOpen),transOnly:matchValue([GLOBAL_KEY,"true","false"],transOnly),transTiming:matchValue([GLOBAL_KEY,...OPT_TIMING_ALL],transTiming),transTag:matchValue([GLOBAL_KEY,"span","font"],transTag),transTitle:matchValue([GLOBAL_KEY,"true","false"],transTitle),detectRemote:matchValue([GLOBAL_KEY,"true","false"],detectRemote),skipLangs:type(skipLangs)==="array"?skipLangs:[],fixerSelector:type(fixerSelector)==="string"?fixerSelector:"",transStartHook:type(transStartHook)==="string"?transStartHook:"",transEndHook:type(transEndHook)==="string"?transEndHook:"",transRemoveHook:type(transRemoveHook)==="string"?transRemoveHook:"",fixerFunc:matchValue([GLOBAL_KEY,...FIXER_ALL],fixerFunc)};});return rules;};/**
+ */const checkRules=rules=>{if(type(rules)==="string"){rules=JSON.parse(rules);}if(type(rules)!=="array"){throw new Error("data error");}const fromLangs=OPT_LANGS_FROM.map(item=>item[0]);const toLangs=OPT_LANGS_TO.map(item=>item[0]);const patternSet=new Set();rules=rules.filter(rule=>type(rule)==="object").filter(_ref4=>{let{pattern}=_ref4;if(type(pattern)!=="string"||patternSet.has(pattern.trim())){return false;}patternSet.add(pattern.trim());return true;}).map(_ref5=>{let{pattern,selector,keepSelector,terms,selectStyle,parentStyle,injectJs,injectCss,translator,fromLang,toLang,textStyle,transOpen,bgColor,textDiyStyle,transOnly,transTiming,transTag,transTitle,transSelected,detectRemote,skipLangs,fixerSelector,fixerFunc,transStartHook,transEndHook,transRemoveHook}=_ref5;return{pattern:pattern.trim(),selector:type(selector)==="string"?selector:"",keepSelector:type(keepSelector)==="string"?keepSelector:"",terms:type(terms)==="string"?terms:"",selectStyle:type(selectStyle)==="string"?selectStyle:"",parentStyle:type(parentStyle)==="string"?parentStyle:"",injectJs:type(injectJs)==="string"?injectJs:"",injectCss:type(injectCss)==="string"?injectCss:"",bgColor:type(bgColor)==="string"?bgColor:"",textDiyStyle:type(textDiyStyle)==="string"?textDiyStyle:"",translator:matchValue([GLOBAL_KEY,...OPT_TRANS_ALL],translator),fromLang:matchValue([GLOBAL_KEY,...fromLangs],fromLang),toLang:matchValue([GLOBAL_KEY,...toLangs],toLang),textStyle:matchValue([GLOBAL_KEY,...OPT_STYLE_ALL],textStyle),transOpen:matchValue([GLOBAL_KEY,"true","false"],transOpen),transOnly:matchValue([GLOBAL_KEY,"true","false"],transOnly),transTiming:matchValue([GLOBAL_KEY,...OPT_TIMING_ALL],transTiming),transTag:matchValue([GLOBAL_KEY,"span","font"],transTag),transTitle:matchValue([GLOBAL_KEY,"true","false"],transTitle),transSelected:matchValue([GLOBAL_KEY,"true","false"],transSelected),detectRemote:matchValue([GLOBAL_KEY,"true","false"],detectRemote),skipLangs:type(skipLangs)==="array"?skipLangs:[],fixerSelector:type(fixerSelector)==="string"?fixerSelector:"",transStartHook:type(transStartHook)==="string"?transStartHook:"",transEndHook:type(transEndHook)==="string"?transEndHook:"",transRemoveHook:type(transRemoveHook)==="string"?transRemoveHook:"",fixerFunc:matchValue([GLOBAL_KEY,...FIXER_ALL],fixerFunc)};});return rules;};/**
  * 保存或更新rule
  * @param {*} newRule
  */const saveRule=async newRule=>{const rules=await getRulesWithDefault();const rule=rules.find(item=>isMatch(newRule.pattern,item.pattern));if(rule&&rule.pattern!==GLOBAL_KEY){Object.assign(rule,{...newRule,pattern:rule.pattern});}else{rules.unshift(newRule);}await setRules(rules);trySyncRules();};
@@ -44847,7 +44881,7 @@ const langdetectMap={[OPT_TRANS_GOOGLE]:apiGoogleLangdetect,[OPT_TRANS_MICROSOFT
  * @returns
  */const tryDetectLang=async function(q){let useRemote=arguments.length>1&&arguments[1]!==undefined?arguments[1]:false;let langDetector=arguments.length>2&&arguments[2]!==undefined?arguments[2]:OPT_TRANS_MICROSOFT;let lang="";if(useRemote){try{lang=await langdetectMap[langDetector](q);}catch(err){log_kissLog(err,"detect lang remote");}}if(!lang){try{var _browser$i18n,_res$languages,_res$languages$;const res=await(browser===null||browser===void 0?void 0:(_browser$i18n=browser.i18n)===null||_browser$i18n===void 0?void 0:_browser$i18n.detectLanguage(q));lang=res===null||res===void 0?void 0:(_res$languages=res.languages)===null||_res$languages===void 0?void 0:(_res$languages$=_res$languages[0])===null||_res$languages$===void 0?void 0:_res$languages$.language;}catch(err){log_kissLog(err,"detect lang local");}}return lang;};
 ;// CONCATENATED MODULE: ./src/views/Popup/index.js
-function Popup(_ref){let{setShowPopup,translator:tran}=_ref;const i18n=useI18n();const[rule,setRule]=(0,react.useState)(tran===null||tran===void 0?void 0:tran.rule);const[commands,setCommands]=(0,react.useState)({});const handleOpenSetting=()=>{if(!tran){browser===null||browser===void 0?void 0:browser.runtime.openOptionsPage();}else if(isExt){sendBgMsg(MSG_OPEN_OPTIONS);}else{window.open("https://fishjar.github.io/kiss-translator/options.html","_blank");}setShowPopup&&setShowPopup(false);};const handleTransToggle=async e=>{try{setRule({...rule,transOpen:e.target.checked?"true":"false"});if(!tran){await sendTabMsg(MSG_TRANS_TOGGLE);}else{tran.toggle();sendIframeMsg(MSG_TRANS_TOGGLE);}}catch(err){log_kissLog(err,"toggle trans");}};const handleChange=async e=>{try{const{name,value}=e.target;setRule(pre=>({...pre,[name]:value}));if(!tran){await sendTabMsg(MSG_TRANS_PUTRULE,{[name]:value});}else{tran.updateRule({[name]:value});sendIframeMsg(MSG_TRANS_PUTRULE,{[name]:value});}}catch(err){log_kissLog(err,"update rule");}};const handleClearCache=()=>{tryClearCaches();};const handleSaveRule=async()=>{try{let href=window.location.href;if(!tran){const tab=await getCurTab();href=tab.url;}const newRule={...rule,pattern:href.split("/")[2]};if(isExt&&tran){sendBgMsg(MSG_SAVE_RULE,newRule);}else{saveRule(newRule);}}catch(err){log_kissLog(err,"save rule");}};(0,react.useEffect)(()=>{if(tran){return;}(async()=>{try{const res=await sendTabMsg(MSG_TRANS_GETRULE);if(!res.error){setRule(res.data);}}catch(err){log_kissLog(err,"query rule");}})();},[tran]);(0,react.useEffect)(()=>{(async()=>{try{const commands={};if(isExt){const res=await sendBgMsg(MSG_COMMAND_SHORTCUTS);res.forEach(_ref2=>{let{name,shortcut}=_ref2;commands[name]=shortcut;});}else{const shortcuts=tran.setting.shortcuts;if(shortcuts){Object.entries(shortcuts).forEach(_ref3=>{let[key,val]=_ref3;commands[key]=val.join("+");});}}setCommands(commands);}catch(err){log_kissLog(err,"query cmds");}})();},[tran]);if(!rule){return/*#__PURE__*/(0,jsx_runtime.jsxs)(Box_Box,{minWidth:300,children:[!tran&&/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Header,{}),/*#__PURE__*/(0,jsx_runtime.jsx)(Divider_Divider,{})]}),/*#__PURE__*/(0,jsx_runtime.jsx)(Stack_Stack,{sx:{p:2},spacing:3,children:/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{variant:"text",onClick:handleOpenSetting,children:i18n("setting")})})]});}const{transOpen,translator,fromLang,toLang,textStyle}=rule;return/*#__PURE__*/(0,jsx_runtime.jsxs)(Box_Box,{minWidth:300,children:[!tran&&/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Header,{}),/*#__PURE__*/(0,jsx_runtime.jsx)(Divider_Divider,{})]}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{sx:{p:2},spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Stack_Stack,{direction:"row",justifyContent:"space-between",alignItems:"center",spacing:2,children:/*#__PURE__*/(0,jsx_runtime.jsx)(FormControlLabel_FormControlLabel,{control:/*#__PURE__*/(0,jsx_runtime.jsx)(Switch_Switch,{checked:transOpen==="true",onChange:handleTransToggle}),label:commands["toggleTranslate"]?"".concat(i18n("translate_alt"),"(").concat(commands["toggleTranslate"],")"):i18n("translate_alt")})}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},size:"small",value:translator,name:"translator",label:i18n("translate_service"),onChange:handleChange,children:OPT_TRANS_ALL.map(item=>/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:item,children:item},item))}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},size:"small",value:fromLang,name:"fromLang",label:i18n("from_lang"),onChange:handleChange,children:OPT_LANGS_FROM.map(_ref4=>{let[lang,name]=_ref4;return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:lang,children:name},lang);})}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},size:"small",value:toLang,name:"toLang",label:i18n("to_lang"),onChange:handleChange,children:OPT_LANGS_TO.map(_ref5=>{let[lang,name]=_ref5;return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:lang,children:name},lang);})}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},size:"small",value:textStyle,name:"textStyle",label:commands["toggleStyle"]?"".concat(i18n("text_style_alt"),"(").concat(commands["toggleStyle"],")"):i18n("text_style_alt"),onChange:handleChange,children:OPT_STYLE_ALL.map(item=>/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:item,children:i18n(item)},item))}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",justifyContent:"space-between",alignItems:"center",spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{variant:"text",onClick:handleSaveRule,children:i18n("save_rule")}),!isExt&&/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{variant:"text",onClick:handleClearCache,children:i18n("clear_cache")}),/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{variant:"text",onClick:handleOpenSetting,children:i18n("setting")})]})]})]});}
+function Popup(_ref){var _tran$setting;let{setShowPopup,translator:tran}=_ref;const i18n=useI18n();const[rule,setRule]=(0,react.useState)(tran===null||tran===void 0?void 0:tran.rule);const[transApis,setTransApis]=(0,react.useState)((tran===null||tran===void 0?void 0:(_tran$setting=tran.setting)===null||_tran$setting===void 0?void 0:_tran$setting.transApis)||[]);const[commands,setCommands]=(0,react.useState)({});const handleOpenSetting=()=>{if(!tran){browser===null||browser===void 0?void 0:browser.runtime.openOptionsPage();}else if(isExt){sendBgMsg(MSG_OPEN_OPTIONS);}else{window.open("https://fishjar.github.io/kiss-translator/options.html","_blank");}setShowPopup&&setShowPopup(false);};const handleTransToggle=async e=>{try{setRule({...rule,transOpen:e.target.checked?"true":"false"});if(!tran){await sendTabMsg(MSG_TRANS_TOGGLE);}else{tran.toggle();sendIframeMsg(MSG_TRANS_TOGGLE);}}catch(err){log_kissLog(err,"toggle trans");}};const handleChange=async e=>{try{const{name,value}=e.target;setRule(pre=>({...pre,[name]:value}));if(!tran){await sendTabMsg(MSG_TRANS_PUTRULE,{[name]:value});}else{tran.updateRule({[name]:value});sendIframeMsg(MSG_TRANS_PUTRULE,{[name]:value});}}catch(err){log_kissLog(err,"update rule");}};const handleClearCache=()=>{tryClearCaches();};const handleSaveRule=async()=>{try{let href=window.location.href;if(!tran){const tab=await getCurTab();href=tab.url;}const newRule={...rule,pattern:href.split("/")[2]};if(isExt&&tran){sendBgMsg(MSG_SAVE_RULE,newRule);}else{saveRule(newRule);}}catch(err){log_kissLog(err,"save rule");}};(0,react.useEffect)(()=>{if(tran){return;}(async()=>{try{const res=await sendTabMsg(MSG_TRANS_GETRULE);if(!res.error){setRule(res.rule);setTransApis(res.setting.transApis);}}catch(err){log_kissLog(err,"query rule");}})();},[tran]);(0,react.useEffect)(()=>{(async()=>{try{const commands={};if(isExt){const res=await sendBgMsg(MSG_COMMAND_SHORTCUTS);res.forEach(_ref2=>{let{name,shortcut}=_ref2;commands[name]=shortcut;});}else{const shortcuts=tran.setting.shortcuts;if(shortcuts){Object.entries(shortcuts).forEach(_ref3=>{let[key,val]=_ref3;commands[key]=val.join("+");});}}setCommands(commands);}catch(err){log_kissLog(err,"query cmds");}})();},[tran]);const optApis=(0,react.useMemo)(()=>OPT_TRANS_ALL.map(key=>({...(transApis[key]||DEFAULT_TRANS_APIS[key]),apiKey:key})).filter(item=>!item.isDisabled).map(_ref4=>{let{apiKey,apiName}=_ref4;return{key:apiKey,name:(apiName===null||apiName===void 0?void 0:apiName.trim())||apiKey};}),[transApis]);if(!rule){return/*#__PURE__*/(0,jsx_runtime.jsxs)(Box_Box,{minWidth:300,children:[!tran&&/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Header,{}),/*#__PURE__*/(0,jsx_runtime.jsx)(Divider_Divider,{})]}),/*#__PURE__*/(0,jsx_runtime.jsx)(Stack_Stack,{sx:{p:2},spacing:3,children:/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{variant:"text",onClick:handleOpenSetting,children:i18n("setting")})})]});}const{transOpen,translator,fromLang,toLang,textStyle}=rule;return/*#__PURE__*/(0,jsx_runtime.jsxs)(Box_Box,{minWidth:300,children:[!tran&&/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Header,{}),/*#__PURE__*/(0,jsx_runtime.jsx)(Divider_Divider,{})]}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{sx:{p:2},spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Stack_Stack,{direction:"row",justifyContent:"space-between",alignItems:"center",spacing:2,children:/*#__PURE__*/(0,jsx_runtime.jsx)(FormControlLabel_FormControlLabel,{control:/*#__PURE__*/(0,jsx_runtime.jsx)(Switch_Switch,{checked:transOpen==="true",onChange:handleTransToggle}),label:commands["toggleTranslate"]?"".concat(i18n("translate_alt"),"(").concat(commands["toggleTranslate"],")"):i18n("translate_alt")})}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},size:"small",value:translator,name:"translator",label:i18n("translate_service"),onChange:handleChange,children:optApis.map(_ref5=>{let{key,name}=_ref5;return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:key,children:name},key);})}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},size:"small",value:fromLang,name:"fromLang",label:i18n("from_lang"),onChange:handleChange,children:OPT_LANGS_FROM.map(_ref6=>{let[lang,name]=_ref6;return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:lang,children:name},lang);})}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},size:"small",value:toLang,name:"toLang",label:i18n("to_lang"),onChange:handleChange,children:OPT_LANGS_TO.map(_ref7=>{let[lang,name]=_ref7;return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:lang,children:name},lang);})}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},size:"small",value:textStyle,name:"textStyle",label:commands["toggleStyle"]?"".concat(i18n("text_style_alt"),"(").concat(commands["toggleStyle"],")"):i18n("text_style_alt"),onChange:handleChange,children:OPT_STYLE_ALL.map(item=>/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:item,children:i18n(item)},item))}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",justifyContent:"space-between",alignItems:"center",spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{variant:"text",onClick:handleSaveRule,children:i18n("save_rule")}),!isExt&&/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{variant:"text",onClick:handleClearCache,children:i18n("clear_cache")}),/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{variant:"text",onClick:handleOpenSetting,children:i18n("setting")})]})]})]});}
 ;// CONCATENATED MODULE: ./src/libs/shortcut.js
 /**
  * 键盘快捷键监听
@@ -44887,7 +44921,7 @@ function LoadingIcon(){return/*#__PURE__*/(0,jsx_runtime.jsx)("span",{style:{dis
  * @param {*} rule
  * @param {*} setting
  * @returns
- */function useTranslate(q,rule,setting){const[text,setText]=(0,react.useState)("");const[loading,setLoading]=(0,react.useState)(false);const[sameLang,setSamelang]=(0,react.useState)(false);const{translator,fromLang,toLang,detectRemote,skipLangs=[]}=rule;(0,react.useEffect)(()=>{(async()=>{try{setLoading(true);if(!q.replace(/\[(\d+)\]/g,"").trim()){setText(q);setSamelang(false);return;}const deLang=await tryDetectLang(q,detectRemote==="true",setting.langDetector);if(deLang&&(toLang.includes(deLang)||skipLangs.includes(deLang))){setSamelang(true);}else{const[trText,isSame]=await apiTranslate({translator,text:q,fromLang,toLang,apiSetting:{...DEFAULT_TRANS_APIS[translator],...(setting.transApis[translator]||{})}});setText(trText);setSamelang(isSame);}}catch(err){log_kissLog(err,"translate");}finally{setLoading(false);}})();},[q,translator,fromLang,toLang,detectRemote,skipLangs,setting]);return{text,sameLang,loading};}
+ */function useTranslate(q,rule,setting){const[text,setText]=(0,react.useState)("");const[loading,setLoading]=(0,react.useState)(false);const[sameLang,setSamelang]=(0,react.useState)(false);const{translator,fromLang,toLang,detectRemote,skipLangs=[]}=rule;(0,react.useEffect)(()=>{(async()=>{try{setLoading(true);if(!q.replace(/\[(\d+)\]/g,"").trim()){setText(q);setSamelang(false);return;}let deLang="";if(fromLang==="auto"){deLang=await tryDetectLang(q,detectRemote==="true",setting.langDetector);}if(deLang&&(toLang.includes(deLang)||skipLangs.includes(deLang))){setSamelang(true);}else{const[trText,isSame]=await apiTranslate({translator,text:q,fromLang,toLang,apiSetting:{...DEFAULT_TRANS_APIS[translator],...(setting.transApis[translator]||{})}});setText(trText);setSamelang(isSame);}}catch(err){log_kissLog(err,"translate");}finally{setLoading(false);}})();},[q,translator,fromLang,toLang,detectRemote,skipLangs,setting]);return{text,sameLang,loading};}
 ;// CONCATENATED MODULE: ./src/views/Content/index.js
 var Content_templateObject,Content_templateObject2,Content_templateObject3,Content_templateObject4,_templateObject5;const LINE_STYLES={[OPT_STYLE_LINE]:"solid",[OPT_STYLE_DOTLINE]:"dotted",[OPT_STYLE_DASHLINE]:"dashed",[OPT_STYLE_WAVYLINE]:"wavy"};const StyledSpan=(0,styled/* default */.ZP)("span")(Content_templateObject||(Content_templateObject=_taggedTemplateLiteral(["\n  ","\n"])),_ref=>{let{textStyle,textDiyStyle,bgColor}=_ref;switch(textStyle){case OPT_STYLE_LINE:// 下划线
 case OPT_STYLE_DOTLINE:// 点状线
@@ -44908,7 +44942,7 @@ const injectExternalCss=href=>{var _document$head2;const el=document.createEleme
 ;// CONCATENATED MODULE: ./src/libs/translator.js
 /**
  * 翻译类
- */class Translator{_updatePool(translator){if(!translator){return;}const{fetchInterval=DEFAULT_FETCH_INTERVAL,fetchLimit=DEFAULT_FETCH_LIMIT}=this._setting.transApis[translator]||{};updateFetchPool(fetchInterval,fetchLimit);}constructor(rule,setting){var _this2=this;this._rule={};this._setting={};this._rootNodes=new Set();this._tranNodes=new Map();this._skipNodeNames=[APP_LCNAME,"style","svg","img","audio","video","textarea","input","button","select","option","head","script","iframe"];this._eventName=utils_genEventName();this._mouseoverNode=null;this._keepSelector=[null,null];this._terms=[];this._docTitle="";// 显示
+ */class Translator{_updatePool(translator){if(!translator){return;}const{fetchInterval=DEFAULT_FETCH_INTERVAL,fetchLimit=DEFAULT_FETCH_LIMIT}=this._setting.transApis[translator]||{};updateFetchPool(fetchInterval,fetchLimit);}constructor(rule,setting){var _this2=this;this._rule={};this._setting={};this._rootNodes=new Set();this._tranNodes=new Map();this._skipNodeNames=[APP_LCNAME,"style","svg","img","audio","video","textarea","input","button","select","option","head","script","iframe"];this._eventName=utils_genEventName();this._mouseoverNode=null;this._keepSelector="";this._terms=[];this._docTitle="";// 显示
 this._interseObserver=new IntersectionObserver((entries,observer)=>{entries.forEach(entry=>{if(entry.isIntersecting){observer.unobserve(entry.target);this._render(entry.target);}});},{threshold:0.1});// 变化
 this._mutaObserver=new MutationObserver(mutations=>{mutations.forEach(mutation=>{if(!this._skipNodeNames.includes(mutation.target.localName)&&mutation.addedNodes.length>0){const nodes=Array.from(mutation.addedNodes).filter(node=>{if(this._skipNodeNames.includes(node.localName)||node.id===APP_LCNAME){return false;}return true;});if(nodes.length>0){// const rootNode = mutation.target.getRootNode();
 // todo
@@ -44959,7 +44993,7 @@ if(traEl){if(this._rule.transOnly==="true"){return;}const preText=this._tranNode
 // 2. replace startsWith
 if(curText.startsWith(preText)){return;}traEl.remove();}let q=el.innerText.trim();if(this._rule.transOnly==="true"){this._tranNodes.set(el,el.innerHTML);}else{this._tranNodes.set(el,q);}const keeps=[];// 翻译开始钩子函数
 const{transStartHook}=this._rule;if(transStartHook!==null&&transStartHook!==void 0&&transStartHook.trim()){libs_interpreter.run("exports.transStartHook = ".concat(transStartHook));libs_interpreter.exports.transStartHook(el,q);}// 保留元素
-const[matchSelector,subSelector]=this._keepSelector;if(matchSelector||subSelector){let text="";el.childNodes.forEach(child=>{if(child.nodeType===1&&(matchSelector&&child.matches(matchSelector)||subSelector&&child.querySelector(subSelector))){if(child.nodeName==="IMG"){child.style.cssText+="width: ".concat(child.width,"px;");child.style.cssText+="height: ".concat(child.height,"px;");}text+="[".concat(keeps.length,"]");keeps.push(child.outerHTML);}else{text+=child.textContent;}});if(keeps.length>0){// textContent会保留些无用的换行符，严重影响翻译质量
+const keepSelector=this._keepSelector.trim();if(keepSelector){let text="";el.childNodes.forEach(child=>{if(child.nodeType===1&&child.matches(keepSelector)){if(child.nodeName==="IMG"){child.style.cssText+="width: ".concat(child.width,"px;");child.style.cssText+="height: ".concat(child.height,"px;");}text+="[".concat(keeps.length,"]");keeps.push(child.outerHTML);}else if(child.nodeType===1||child.nodeType===3){text+=child.textContent;}});if(keeps.length>0){// textContent会保留些无用的换行符，严重影响翻译质量
 if(q.includes("\n")){q=text;}else{q=text.replaceAll("\n"," ");}}}// 太长或太短
 if(this._invalidLength(q.replace(/\[(\d+)\]/g,"").trim())){return;}// 专业术语
 if(this._terms.length>0){for(const term of this._terms){const re=new RegExp(term[0],"g");q=q.replace(re,t=>{const text="[".concat(keeps.length,"]");keeps.push("<i class=\"kiss-trem\">".concat(term[1]||t,"</i>"));return text;});}}// 附加样式
@@ -44968,7 +45002,7 @@ traEl=document.createElement(APP_LCNAME);traEl.style.visibility="visible";// if 
 //   el.innerHTML = "";
 // }
 el.appendChild(traEl);// 渲染译文节点
-const root=(0,client.createRoot)(traEl);root.render(/*#__PURE__*/(0,jsx_runtime.jsx)(Content,{q:q,keeps:keeps,translator:this,$el:el}));};this._overrideAttachShadow();this._setting=setting;this._rule=rule;this._keepSelector=(rule.keepSelector||"").split(SHADOW_KEY).map(item=>item.trim());this._terms=(rule.terms||"").split(/\n|;/).map(item=>item.split(",").map(item=>item.trim())).filter(_ref=>{let[term]=_ref;return Boolean(term);});this._updatePool(rule.translator);if(rule.transOpen==="true"){this._register();}}get setting(){return this._setting;}get eventName(){return this._eventName;}get rule(){// console.log("get rule", this._rule);
+const root=(0,client.createRoot)(traEl);root.render(/*#__PURE__*/(0,jsx_runtime.jsx)(Content,{q:q,keeps:keeps,translator:this,$el:el}));};this._overrideAttachShadow();this._setting=setting;this._rule=rule;this._keepSelector=rule.keepSelector||"";this._terms=(rule.terms||"").split(/\n|;/).map(item=>item.split(",").map(item=>item.trim())).filter(_ref=>{let[term]=_ref;return Boolean(term);});this._updatePool(rule.translator);if(rule.transOpen==="true"){this._register();}}get setting(){return this._setting;}get eventName(){return this._eventName;}get rule(){// console.log("get rule", this._rule);
 return this._rule;}set rule(rule){// console.log("set rule", rule);
 this._rule=rule;// 广播消息
 const eventName=this._eventName;window.dispatchEvent(new CustomEvent(eventName,{detail:{action:MSG_TRANS_CURRULE,args:rule}}));}}
@@ -44977,7 +45011,7 @@ function TranBtn(_ref){let{onTrigger,btnEvent,position,btnOffsetX,btnOffsetY}=_r
 position:"fixed",left,top,zIndex:2147483647},[btnEvent]:onTrigger,children:/*#__PURE__*/(0,jsx_runtime.jsxs)("svg",{xmlns:"http://www.w3.org/2000/svg",width:isMobile?"32":"20",height:isMobile?"32":"20",viewBox:"0 0 32 32",version:"1.1",children:[/*#__PURE__*/(0,jsx_runtime.jsx)("path",{d:"M0 0 C10.56 0 21.12 0 32 0 C32 10.56 32 21.12 32 32 C21.44 32 10.88 32 0 32 C0 21.44 0 10.88 0 0 Z ",fill:"#209CEE",transform:"translate(0,0)"}),/*#__PURE__*/(0,jsx_runtime.jsx)("path",{d:"M0 0 C0.66 0 1.32 0 2 0 C2 2.97 2 5.94 2 9 C2.969375 8.2575 3.93875 7.515 4.9375 6.75 C5.48277344 6.33234375 6.02804688 5.9146875 6.58984375 5.484375 C8.39053593 3.83283924 8.39053593 3.83283924 9 0 C13.95 0 18.9 0 24 0 C24 0.99 24 1.98 24 3 C22.68 3 21.36 3 20 3 C20 9.27 20 15.54 20 22 C19.01 22 18.02 22 17 22 C17 15.73 17 9.46 17 3 C15.35 3 13.7 3 12 3 C11.731875 3.598125 11.46375 4.19625 11.1875 4.8125 C10.01506533 6.97224808 8.80630718 8.35790256 7 10 C8.01790655 12.27071461 8.77442829 13.80784632 10.6875 15.4375 C11.120625 15.953125 11.55375 16.46875 12 17 C11.6875 19.6875 11.6875 19.6875 11 22 C10.34 22 9.68 22 9 22 C8.773125 21.236875 8.54625 20.47375 8.3125 19.6875 C6.73268318 16.45263699 5.16717283 15.58358642 2 14 C2 16.64 2 19.28 2 22 C1.34 22 0.68 22 0 22 C0 14.74 0 7.48 0 0 Z ",fill:"#E9F5FD",transform:"translate(4,5)"})]})});}
 ;// CONCATENATED MODULE: ./src/views/Selection/DraggableResizable.js
 function Pointer(_ref){let{direction,size,setSize,position,setPosition,children,minSize,maxSize,...props}=_ref;const[origin,setOrigin]=(0,react.useState)(null);function handlePointerDown(e){!isMobile&&e.target.setPointerCapture(e.pointerId);const{clientX,clientY}=isMobile?e.targetTouches[0]:e;setOrigin({x:position.x,y:position.y,w:size.w,h:size.h,clientX,clientY});}function handlePointerMove(e){const{clientX,clientY}=isMobile?e.targetTouches[0]:e;if(origin){const dx=clientX-origin.clientX;const dy=clientY-origin.clientY;let x=position.x;let y=position.y;let w=size.w;let h=size.h;switch(direction){case"Header":x=origin.x+dx;y=origin.y+dy;break;case"TopLeft":x=origin.x+dx;y=origin.y+dy;w=origin.w-dx;h=origin.h-dy;break;case"Top":y=origin.y+dy;h=origin.h-dy;break;case"TopRight":y=origin.y+dy;w=origin.w+dx;h=origin.h-dy;break;case"Left":x=origin.x+dx;w=origin.w-dx;break;case"Right":w=origin.w+dx;break;case"BottomLeft":x=origin.x+dx;w=origin.w-dx;h=origin.h+dy;break;case"Bottom":h=origin.h+dy;break;case"BottomRight":w=origin.w+dx;h=origin.h+dy;break;default:}if(w<minSize.w){w=minSize.w;x=position.x;}if(w>maxSize.w){w=maxSize.w;x=position.x;}if(h<minSize.h){h=minSize.h;y=position.y;}if(h>maxSize.h){h=maxSize.h;y=position.y;}setPosition({x,y});setSize({w,h});}}function handlePointerUp(e){e.stopPropagation();setOrigin(null);}const touchProps=isMobile?{onTouchStart:handlePointerDown,onTouchMove:handlePointerMove,onTouchEnd:handlePointerUp}:{onPointerDown:handlePointerDown,onPointerMove:handlePointerMove,onPointerUp:handlePointerUp};return/*#__PURE__*/(0,jsx_runtime.jsx)("div",{...props,...touchProps,children:children});}function DraggableResizable(_ref2){let{header,children,position={x:0,y:0},size={w:600,h:400},minSize={w:300,h:200},maxSize={w:1200,h:1200},setSize,setPosition,onChangeSize,onChangePosition,...props}=_ref2;const lineWidth=4;const opts={size,setSize,position,setPosition,minSize,maxSize};return/*#__PURE__*/(0,jsx_runtime.jsxs)(Box_Box,{className:"KT-draggable",style:{touchAction:"none",position:"fixed",left:position.x,top:position.y,display:"grid",gridTemplateColumns:"".concat(lineWidth*2,"px auto ").concat(lineWidth*2,"px"),gridTemplateRows:"".concat(lineWidth*2,"px auto ").concat(lineWidth*2,"px"),zIndex:2147483647},...props,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Pointer,{direction:"TopLeft",style:{transform:"translate(".concat(lineWidth,"px, ").concat(lineWidth,"px)"),cursor:"nw-resize"},...opts}),/*#__PURE__*/(0,jsx_runtime.jsx)(Pointer,{direction:"Top",style:{margin:"0 ".concat(lineWidth,"px"),transform:"translate(0px, ".concat(lineWidth,"px)"),cursor:"row-resize"},...opts}),/*#__PURE__*/(0,jsx_runtime.jsx)(Pointer,{direction:"TopRight",style:{transform:"translate(-".concat(lineWidth,"px, ").concat(lineWidth,"px)"),cursor:"ne-resize"},...opts}),/*#__PURE__*/(0,jsx_runtime.jsx)(Pointer,{direction:"Left",style:{margin:"".concat(lineWidth,"px 0"),transform:"translate(".concat(lineWidth,"px, 0px)"),cursor:"col-resize"},...opts}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Paper_Paper,{className:"KT-draggable-body",elevation:4,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Pointer,{className:"KT-draggable-header",direction:"Header",style:{cursor:"move"},...opts,children:header}),/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{className:"KT-draggable-container",style:{width:size.w,height:size.h,overflow:"hidden auto"},children:children})]}),/*#__PURE__*/(0,jsx_runtime.jsx)(Pointer,{direction:"Right",style:{margin:"".concat(lineWidth,"px 0"),transform:"translate(-".concat(lineWidth,"px, 0px)"),cursor:"col-resize"},...opts}),/*#__PURE__*/(0,jsx_runtime.jsx)(Pointer,{direction:"BottomLeft",style:{transform:"translate(".concat(lineWidth,"px, -").concat(lineWidth,"px)"),cursor:"ne-resize"},...opts}),/*#__PURE__*/(0,jsx_runtime.jsx)(Pointer,{direction:"Bottom",style:{margin:"0 ".concat(lineWidth,"px"),transform:"translate(0px, -".concat(lineWidth,"px)"),cursor:"row-resize"},...opts}),/*#__PURE__*/(0,jsx_runtime.jsx)(Pointer,{direction:"BottomRight",style:{transform:"translate(-".concat(lineWidth,"px, -").concat(lineWidth,"px)"),cursor:"nw-resize"},...opts})]});}
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/Grid/GridContext.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Grid/GridContext.js
 'use client';
 
 
@@ -44988,7 +45022,7 @@ function Pointer(_ref){let{direction,size,setSize,position,setPosition,children,
 const GridContext = /*#__PURE__*/react.createContext();
 if (false) {}
 /* harmony default export */ const Grid_GridContext = (GridContext);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/Grid/gridClasses.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Grid/gridClasses.js
 
 
 function getGridUtilityClass(slot) {
@@ -45008,7 +45042,7 @@ const gridClasses = (0,generateUtilityClasses/* default */.Z)('MuiGrid', ['root'
 // grid sizes for all breakpoints
 ...GRID_SIZES.map(size => "grid-xs-".concat(size)), ...GRID_SIZES.map(size => "grid-sm-".concat(size)), ...GRID_SIZES.map(size => "grid-md-".concat(size)), ...GRID_SIZES.map(size => "grid-lg-".concat(size)), ...GRID_SIZES.map(size => "grid-xl-".concat(size))]);
 /* harmony default export */ const Grid_gridClasses = (gridClasses);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/Grid/Grid.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Grid/Grid.js
 'use client';
 
 // A grid component using the following libs as inspiration.
@@ -45447,23 +45481,23 @@ const Grid = /*#__PURE__*/react.forwardRef(function Grid(inProps, ref) {
  false ? 0 : void 0;
 if (false) {}
 /* harmony default export */ const Grid_Grid = (Grid);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@types+react@18.2.79_react@18.2.0/node_modules/@mui/icons-material/Done.js
-var Done = __webpack_require__(2478);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@types+react@18.2.79_react@18.2.0/node_modules/@mui/icons-material/DragIndicator.js
-var DragIndicator = __webpack_require__(6147);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@types+react@18.2.79_react@18.2.0/node_modules/@mui/icons-material/UnfoldLess.js
-var UnfoldLess = __webpack_require__(651);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@types+react@18.2.79_react@18.2.0/node_modules/@mui/icons-material/UnfoldMore.js
-var UnfoldMore = __webpack_require__(5804);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@types+react@18.2.79_react@18.2.0/node_modules/@mui/icons-material/PushPin.js
-var PushPin = __webpack_require__(71);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@types+react@18.2.79_react@18.2.0/node_modules/@mui/icons-material/PushPinOutlined.js
-var PushPinOutlined = __webpack_require__(9318);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@types+react@18.2.79_react@18.2.0/node_modules/@mui/icons-material/Lock.js
-var Lock = __webpack_require__(509);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@types+react@18.2.79_react@18.2.0/node_modules/@mui/icons-material/LockOpen.js
-var LockOpen = __webpack_require__(1463);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/CircularProgress/circularProgressClasses.js
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@1_1e29dcefa4691dc57f2acd9f73947cfd/node_modules/@mui/icons-material/Done.js
+var Done = __webpack_require__(5813);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@1_1e29dcefa4691dc57f2acd9f73947cfd/node_modules/@mui/icons-material/DragIndicator.js
+var DragIndicator = __webpack_require__(5908);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@1_1e29dcefa4691dc57f2acd9f73947cfd/node_modules/@mui/icons-material/UnfoldLess.js
+var UnfoldLess = __webpack_require__(3767);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@1_1e29dcefa4691dc57f2acd9f73947cfd/node_modules/@mui/icons-material/UnfoldMore.js
+var UnfoldMore = __webpack_require__(8470);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@1_1e29dcefa4691dc57f2acd9f73947cfd/node_modules/@mui/icons-material/PushPin.js
+var PushPin = __webpack_require__(2340);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@1_1e29dcefa4691dc57f2acd9f73947cfd/node_modules/@mui/icons-material/PushPinOutlined.js
+var PushPinOutlined = __webpack_require__(1457);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@1_1e29dcefa4691dc57f2acd9f73947cfd/node_modules/@mui/icons-material/Lock.js
+var Lock = __webpack_require__(2227);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@1_1e29dcefa4691dc57f2acd9f73947cfd/node_modules/@mui/icons-material/LockOpen.js
+var LockOpen = __webpack_require__(2386);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/CircularProgress/circularProgressClasses.js
 
 
 function getCircularProgressUtilityClass(slot) {
@@ -45471,7 +45505,7 @@ function getCircularProgressUtilityClass(slot) {
 }
 const circularProgressClasses = (0,generateUtilityClasses/* default */.Z)('MuiCircularProgress', ['root', 'determinate', 'indeterminate', 'colorPrimary', 'colorSecondary', 'svg', 'circle', 'circleDeterminate', 'circleIndeterminate', 'circleDisableShrink']);
 /* harmony default export */ const CircularProgress_circularProgressClasses = ((/* unused pure expression or super */ null && (circularProgressClasses)));
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/CircularProgress/CircularProgress.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/CircularProgress/CircularProgress.js
 'use client';
 
 
@@ -45648,13 +45682,13 @@ const CircularProgress = /*#__PURE__*/react.forwardRef(function CircularProgress
 });
  false ? 0 : void 0;
 /* harmony default export */ const CircularProgress_CircularProgress = (CircularProgress);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@types+react@18.2.79_react@18.2.0/node_modules/@mui/icons-material/ContentCopy.js
-var ContentCopy = __webpack_require__(5413);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@types+react@18.2.79_react@18.2.0/node_modules/@mui/icons-material/LibraryAddCheck.js
-var LibraryAddCheck = __webpack_require__(8375);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@1_1e29dcefa4691dc57f2acd9f73947cfd/node_modules/@mui/icons-material/ContentCopy.js
+var ContentCopy = __webpack_require__(6409);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@1_1e29dcefa4691dc57f2acd9f73947cfd/node_modules/@mui/icons-material/LibraryAddCheck.js
+var LibraryAddCheck = __webpack_require__(1064);
 ;// CONCATENATED MODULE: ./src/views/Selection/CopyBtn.js
 function CopyBtn(_ref){let{text}=_ref;const[copied,setCopied]=(0,react.useState)(false);const handleClick=async e=>{e.stopPropagation();await navigator.clipboard.writeText(text);setCopied(true);const timer=setTimeout(()=>{clearTimeout(timer);setCopied(false);},500);};return/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{size:"small",sx:{opacity:0.5,"&:hover":{opacity:1}},onClick:handleClick,children:copied?/*#__PURE__*/(0,jsx_runtime.jsx)(LibraryAddCheck/* default */.Z,{fontSize:"inherit"}):/*#__PURE__*/(0,jsx_runtime.jsx)(ContentCopy/* default */.Z,{fontSize:"inherit"})});}
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/utils/useSlot.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/useSlot.js
 'use client';
 
 
@@ -45737,7 +45771,7 @@ name, parameters) {
   });
   return [elementType, props];
 }
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/Alert/alertClasses.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Alert/alertClasses.js
 
 
 function getAlertUtilityClass(slot) {
@@ -45745,7 +45779,7 @@ function getAlertUtilityClass(slot) {
 }
 const alertClasses = (0,generateUtilityClasses/* default */.Z)('MuiAlert', ['root', 'action', 'icon', 'message', 'filled', 'colorSuccess', 'colorInfo', 'colorWarning', 'colorError', 'filledSuccess', 'filledInfo', 'filledWarning', 'filledError', 'outlined', 'outlinedSuccess', 'outlinedInfo', 'outlinedWarning', 'outlinedError', 'standard', 'standardSuccess', 'standardInfo', 'standardWarning', 'standardError']);
 /* harmony default export */ const Alert_alertClasses = (alertClasses);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/internal/svg-icons/SuccessOutlined.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/internal/svg-icons/SuccessOutlined.js
 'use client';
 
 
@@ -45758,7 +45792,7 @@ const alertClasses = (0,generateUtilityClasses/* default */.Z)('MuiAlert', ['roo
 /* harmony default export */ const SuccessOutlined = ((0,createSvgIcon/* default */.Z)( /*#__PURE__*/(0,jsx_runtime.jsx)("path", {
   d: "M20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4C12.76,4 13.5,4.11 14.2, 4.31L15.77,2.74C14.61,2.26 13.34,2 12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0, 0 22,12M7.91,10.08L6.5,11.5L11,16L21,6L19.59,4.58L11,13.17L7.91,10.08Z"
 }), 'SuccessOutlined'));
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/internal/svg-icons/ReportProblemOutlined.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/internal/svg-icons/ReportProblemOutlined.js
 'use client';
 
 
@@ -45771,7 +45805,7 @@ const alertClasses = (0,generateUtilityClasses/* default */.Z)('MuiAlert', ['roo
 /* harmony default export */ const ReportProblemOutlined = ((0,createSvgIcon/* default */.Z)( /*#__PURE__*/(0,jsx_runtime.jsx)("path", {
   d: "M12 5.99L19.53 19H4.47L12 5.99M12 2L1 21h22L12 2zm1 14h-2v2h2v-2zm0-6h-2v4h2v-4z"
 }), 'ReportProblemOutlined'));
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/internal/svg-icons/ErrorOutline.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/internal/svg-icons/ErrorOutline.js
 'use client';
 
 
@@ -45784,7 +45818,7 @@ const alertClasses = (0,generateUtilityClasses/* default */.Z)('MuiAlert', ['roo
 /* harmony default export */ const ErrorOutline = ((0,createSvgIcon/* default */.Z)( /*#__PURE__*/(0,jsx_runtime.jsx)("path", {
   d: "M11 15h2v2h-2zm0-8h2v6h-2zm.99-5C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
 }), 'ErrorOutline'));
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/internal/svg-icons/InfoOutlined.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/internal/svg-icons/InfoOutlined.js
 'use client';
 
 
@@ -45797,7 +45831,7 @@ const alertClasses = (0,generateUtilityClasses/* default */.Z)('MuiAlert', ['roo
 /* harmony default export */ const InfoOutlined = ((0,createSvgIcon/* default */.Z)( /*#__PURE__*/(0,jsx_runtime.jsx)("path", {
   d: "M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20, 12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10, 10 0 0,0 12,2M11,17H13V11H11V17Z"
 }), 'InfoOutlined'));
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/internal/svg-icons/Close.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/internal/svg-icons/Close.js
 'use client';
 
 
@@ -45812,7 +45846,7 @@ const alertClasses = (0,generateUtilityClasses/* default */.Z)('MuiAlert', ['roo
 /* harmony default export */ const svg_icons_Close = ((0,createSvgIcon/* default */.Z)( /*#__PURE__*/(0,jsx_runtime.jsx)("path", {
   d: "M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
 }), 'Close'));
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@emotion+styled@11.11.0_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0/node_modules/@mui/material/Alert/Alert.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Alert/Alert.js
 'use client';
 
 
@@ -46065,18 +46099,18 @@ const Alert = /*#__PURE__*/react.forwardRef(function Alert(inProps, ref) {
  false ? 0 : void 0;
 /* harmony default export */ const Alert_Alert = (Alert);
 ;// CONCATENATED MODULE: ./src/views/Selection/TranCont.js
-function TranCont(_ref){let{text,translator,fromLang,toLang,toLang2="en",transApis,simpleStyle,langDetector}=_ref;const i18n=useI18n();const[trText,setTrText]=(0,react.useState)("");const[loading,setLoading]=(0,react.useState)(true);const[error,setError]=(0,react.useState)("");(0,react.useEffect)(()=>{(async()=>{try{setLoading(true);setTrText("");setError("");let to=toLang;if(toLang!==toLang2&&toLang2!=="none"){const detectLang=await tryDetectLang(text,true,langDetector);if(detectLang===toLang){to=toLang2;}}const apiSetting=transApis[translator]||DEFAULT_TRANS_APIS[translator];const tranRes=await apiTranslate({text,translator,fromLang,toLang:to,apiSetting});setTrText(tranRes[0]);}catch(err){setError(err.message);}finally{setLoading(false);}})();},[text,translator,fromLang,toLang,toLang2,transApis,langDetector]);if(simpleStyle){return/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{className:"KT-transbox-target KT-transbox-target_simple",children:error?/*#__PURE__*/(0,jsx_runtime.jsx)(Alert_Alert,{severity:"error",children:error}):loading?/*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgress_CircularProgress,{size:16}):/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{style:{whiteSpace:"pre-line"},children:trText})});}return/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{className:"KT-transbox-target KT-transbox-target_default",children:/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("translated_text")// disabled
+function TranCont(_ref){let{text,translator,fromLang,toLang,toLang2="en",transApis,simpleStyle,langDetector}=_ref;const i18n=useI18n();const[trText,setTrText]=(0,react.useState)("");const[loading,setLoading]=(0,react.useState)(true);const[error,setError]=(0,react.useState)("");(0,react.useEffect)(()=>{(async()=>{try{setLoading(true);setTrText("");setError("");let to=toLang;if(fromLang==="auto"&&toLang!==toLang2&&toLang2!=="none"){const detectLang=await tryDetectLang(text,true,langDetector);if(detectLang===toLang){to=toLang2;}}const apiSetting=transApis[translator]||DEFAULT_TRANS_APIS[translator];const tranRes=await apiTranslate({text,translator,fromLang,toLang:to,apiSetting});setTrText(tranRes[0]);}catch(err){setError(err.message);}finally{setLoading(false);}})();},[text,translator,fromLang,toLang,toLang2,transApis,langDetector]);if(simpleStyle){return/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{className:"KT-transbox-target KT-transbox-target_simple",children:error?/*#__PURE__*/(0,jsx_runtime.jsx)(Alert_Alert,{severity:"error",children:error}):loading?/*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgress_CircularProgress,{size:16}):/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{style:{whiteSpace:"pre-line"},children:trText})});}return/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{className:"KT-transbox-target KT-transbox-target_default",children:/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("translated_text")// disabled
 ,fullWidth:true,multiline:true,value:trText,helperText:error,InputProps:{startAdornment:loading?/*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgress_CircularProgress,{size:16}):null,endAdornment:/*#__PURE__*/(0,jsx_runtime.jsx)(Stack_Stack,{direction:"row",sx:{position:"absolute",right:0,top:0},children:/*#__PURE__*/(0,jsx_runtime.jsx)(CopyBtn,{text:trText})})}})});}
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@types+react@18.2.79_react@18.2.0/node_modules/@mui/icons-material/Favorite.js
-var Favorite = __webpack_require__(9839);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@types+react@18.2.79_react@18.2.0/node_modules/@mui/icons-material/FavoriteBorder.js
-var FavoriteBorder = __webpack_require__(6062);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@1_1e29dcefa4691dc57f2acd9f73947cfd/node_modules/@mui/icons-material/Favorite.js
+var Favorite = __webpack_require__(6510);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@1_1e29dcefa4691dc57f2acd9f73947cfd/node_modules/@mui/icons-material/FavoriteBorder.js
+var FavoriteBorder = __webpack_require__(111);
 ;// CONCATENATED MODULE: ./src/hooks/FavWords.js
 function useFavWords(){const[loading,setLoading]=(0,react.useState)(false);const[favWords,setFavWords]=(0,react.useState)({});const{updateSyncMeta}=useSyncMeta();const toggleFav=(0,react.useCallback)(async word=>{const favs={...favWords};if(favs[word]){delete favs[word];}else{favs[word]={createdAt:Date.now()};}await setWords(favs);await updateSyncMeta(KV_WORDS_KEY);await trySyncWords();setFavWords(favs);},[updateSyncMeta,favWords]);const mergeWords=(0,react.useCallback)(async newWords=>{const favs={...favWords};newWords.forEach(word=>{if(!favs[word]){favs[word]={createdAt:Date.now()};}});await setWords(favs);await updateSyncMeta(KV_WORDS_KEY);await trySyncWords();setFavWords(favs);},[updateSyncMeta,favWords]);const clearWords=(0,react.useCallback)(async()=>{await setWords({});await updateSyncMeta(KV_WORDS_KEY);await trySyncWords();setFavWords({});},[updateSyncMeta]);(0,react.useEffect)(()=>{(async()=>{try{setLoading(true);await trySyncWords();const favWords=await getWordsWithDefault();setFavWords(favWords);}catch(err){log_kissLog(err,"query fav");}finally{setLoading(false);}})();},[]);return{loading,favWords,toggleFav,mergeWords,clearWords};}
 ;// CONCATENATED MODULE: ./src/views/Selection/FavBtn.js
 function FavBtn(_ref){let{word}=_ref;const{favWords,toggleFav}=useFavWords();const[loading,setLoading]=(0,react.useState)(false);const handleClick=async()=>{try{setLoading(true);await toggleFav(word);}catch(err){log_kissLog(err,"set fav");}finally{setLoading(false);}};return/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{disabled:loading,size:"small",onClick:handleClick,children:favWords[word]?/*#__PURE__*/(0,jsx_runtime.jsx)(Favorite/* default */.Z,{fontSize:"inherit"}):/*#__PURE__*/(0,jsx_runtime.jsx)(FavoriteBorder/* default */.Z,{fontSize:"inherit"})});}
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@types+react@18.2.79_react@18.2.0/node_modules/@mui/icons-material/VolumeUp.js
-var VolumeUp = __webpack_require__(6060);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@1_1e29dcefa4691dc57f2acd9f73947cfd/node_modules/@mui/icons-material/VolumeUp.js
+var VolumeUp = __webpack_require__(1777);
 ;// CONCATENATED MODULE: ./src/hooks/Audio.js
 /**
  * 声音播放hook
@@ -46097,7 +46131,7 @@ function DictCont(_ref){var _dictResult$voice,_dictResult$voice2;let{text}=_ref;
 function SugCont(_ref){let{text}=_ref;const[sugs,setSugs]=(0,react.useState)([]);(0,react.useEffect)(()=>{(async()=>{try{setSugs(await apiBaiduSuggest(text));}catch(err){// skip
 }})();},[text]);if(sugs.length===0){return;}return/*#__PURE__*/(0,jsx_runtime.jsx)(Stack_Stack,{className:"KT-transbox-sug",spacing:1,children:sugs.map(_ref2=>{let{k,v}=_ref2;return/*#__PURE__*/(0,jsx_runtime.jsxs)(Typography_Typography,{component:"div",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{children:k}),/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{component:"ul",style:{margin:"0"},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{component:"li",children:v})})]},k);})});}
 ;// CONCATENATED MODULE: ./src/views/Selection/TranBox.js
-function TranBox_Header(_ref){let{setShowPopup,simpleStyle,setSimpleStyle,hideClickAway,setHideClickAway,followSelection,setFollowSelection,mouseHover}=_ref;if(!isMobile&&simpleStyle&&!mouseHover){return;}return/*#__PURE__*/(0,jsx_runtime.jsxs)(Box_Box,{className:"KT-transbox-header",onMouseUp:e=>e.stopPropagation(),onTouchEnd:e=>e.stopPropagation(),children:[/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",justifyContent:"space-between",alignItems:"center",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(DragIndicator/* default */.Z,{fontSize:"small"}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",alignItems:"center",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{size:"small",onClick:()=>{setHideClickAway(pre=>!pre);},children:hideClickAway?/*#__PURE__*/(0,jsx_runtime.jsx)(LockOpen/* default */.Z,{fontSize:"small"}):/*#__PURE__*/(0,jsx_runtime.jsx)(Lock/* default */.Z,{fontSize:"small"})}),/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{size:"small",onClick:()=>{setFollowSelection(pre=>!pre);},children:followSelection?/*#__PURE__*/(0,jsx_runtime.jsx)(PushPinOutlined/* default */.Z,{fontSize:"small"}):/*#__PURE__*/(0,jsx_runtime.jsx)(PushPin/* default */.Z,{fontSize:"small"})}),/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{size:"small",onClick:()=>{setSimpleStyle(pre=>!pre);},children:simpleStyle?/*#__PURE__*/(0,jsx_runtime.jsx)(UnfoldMore/* default */.Z,{fontSize:"small"}):/*#__PURE__*/(0,jsx_runtime.jsx)(UnfoldLess/* default */.Z,{fontSize:"small"})}),/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{size:"small",onClick:()=>{setShowPopup(false);},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Close/* default */.Z,{fontSize:"small"})})]})]}),/*#__PURE__*/(0,jsx_runtime.jsx)(Divider_Divider,{})]});}function TranForm(_ref2){let{text,setText,tranboxSetting,transApis,simpleStyle,langDetector,enDict}=_ref2;const i18n=useI18n();const[editMode,setEditMode]=(0,react.useState)(false);const[editText,setEditText]=(0,react.useState)("");const[translator,setTranslator]=(0,react.useState)(tranboxSetting.translator);const[fromLang,setFromLang]=(0,react.useState)(tranboxSetting.fromLang);const[toLang,setToLang]=(0,react.useState)(tranboxSetting.toLang);const inputRef=(0,react.useRef)(null);return/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{className:"KT-transbox-container",sx:{p:simpleStyle?1:2},spacing:simpleStyle?1:2,children:[!simpleStyle&&/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{className:"KT-transbox-select",children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Grid_Grid,{container:true,spacing:simpleStyle?1:2,columns:12,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:4,sm:4,md:4,lg:4,children:/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},fullWidth:true,size:"small",name:"fromLang",value:fromLang,label:i18n("from_lang"),onChange:e=>{setFromLang(e.target.value);},children:OPT_LANGS_FROM.map(_ref3=>{let[lang,name]=_ref3;return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:lang,children:name},lang);})})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:4,sm:4,md:4,lg:4,children:/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},fullWidth:true,size:"small",name:"toLang",value:toLang,label:i18n("to_lang"),onChange:e=>{setToLang(e.target.value);},children:OPT_LANGS_TO.map(_ref4=>{let[lang,name]=_ref4;return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:lang,children:name},lang);})})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:4,sm:4,md:4,lg:4,children:/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},fullWidth:true,size:"small",value:translator,name:"translator",label:i18n("translate_service"),onChange:e=>{setTranslator(e.target.value);},children:OPT_TRANS_ALL.map(item=>/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:item,children:item},item))})})]})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{className:"KT-transbox-origin",children:/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("original_text"),inputRef:inputRef,fullWidth:true,multiline:true,value:editMode?editText:text,onChange:e=>{setEditText(e.target.value);},onFocus:()=>{setEditMode(true);setEditText(text);},onBlur:()=>{setEditMode(false);setText(editText.trim());},InputProps:{endAdornment:/*#__PURE__*/(0,jsx_runtime.jsx)(Stack_Stack,{direction:"row",sx:{position:"absolute",right:0,top:0},children:editMode?/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{size:"small",onClick:e=>{e.stopPropagation();},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Done/* default */.Z,{fontSize:"inherit"})}):/*#__PURE__*/(0,jsx_runtime.jsx)(CopyBtn,{text:text})})}})})]}),(!simpleStyle||!isValidWord(text)||!toLang.startsWith("zh")||enDict==="-")&&/*#__PURE__*/(0,jsx_runtime.jsx)(TranCont,{text:text,translator:translator,fromLang:fromLang,toLang:toLang,toLang2:tranboxSetting.toLang2,transApis:transApis,simpleStyle:simpleStyle,langDetector:langDetector}),enDict!=="-"&&/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(DictCont,{text:text}),/*#__PURE__*/(0,jsx_runtime.jsx)(SugCont,{text:text})]})]});}function TranBox(_ref5){let{text,setText,setShowBox,tranboxSetting,transApis,boxSize,setBoxSize,boxPosition,setBoxPosition,simpleStyle,setSimpleStyle,hideClickAway,setHideClickAway,followSelection,setFollowSelection,extStyles,langDetector,enDict}=_ref5;const[mouseHover,setMouseHover]=(0,react.useState)(false);return/*#__PURE__*/(0,jsx_runtime.jsx)(SettingProvider,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(Theme,{styles:extStyles,children:/*#__PURE__*/(0,jsx_runtime.jsx)(DraggableResizable,{position:boxPosition,size:boxSize,setSize:setBoxSize,setPosition:setBoxPosition,header:/*#__PURE__*/(0,jsx_runtime.jsx)(TranBox_Header,{setShowPopup:setShowBox,simpleStyle:simpleStyle,setSimpleStyle:setSimpleStyle,hideClickAway:hideClickAway,setHideClickAway:setHideClickAway,followSelection:followSelection,setFollowSelection:setFollowSelection,mouseHover:mouseHover}),onClick:e=>e.stopPropagation(),onMouseEnter:()=>setMouseHover(true),onMouseLeave:()=>setMouseHover(false),children:/*#__PURE__*/(0,jsx_runtime.jsx)(TranForm,{text:text,setText:setText,tranboxSetting:tranboxSetting,transApis:transApis,simpleStyle:simpleStyle,langDetector:langDetector,enDict:enDict})})})});}
+function TranBox_Header(_ref){let{setShowPopup,simpleStyle,setSimpleStyle,hideClickAway,setHideClickAway,followSelection,setFollowSelection,mouseHover}=_ref;if(!isMobile&&simpleStyle&&!mouseHover){return;}return/*#__PURE__*/(0,jsx_runtime.jsxs)(Box_Box,{className:"KT-transbox-header",onMouseUp:e=>e.stopPropagation(),onTouchEnd:e=>e.stopPropagation(),children:[/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",justifyContent:"space-between",alignItems:"center",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(DragIndicator/* default */.Z,{fontSize:"small"}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",alignItems:"center",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{size:"small",onClick:()=>{setHideClickAway(pre=>!pre);},children:hideClickAway?/*#__PURE__*/(0,jsx_runtime.jsx)(LockOpen/* default */.Z,{fontSize:"small"}):/*#__PURE__*/(0,jsx_runtime.jsx)(Lock/* default */.Z,{fontSize:"small"})}),/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{size:"small",onClick:()=>{setFollowSelection(pre=>!pre);},children:followSelection?/*#__PURE__*/(0,jsx_runtime.jsx)(PushPinOutlined/* default */.Z,{fontSize:"small"}):/*#__PURE__*/(0,jsx_runtime.jsx)(PushPin/* default */.Z,{fontSize:"small"})}),/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{size:"small",onClick:()=>{setSimpleStyle(pre=>!pre);},children:simpleStyle?/*#__PURE__*/(0,jsx_runtime.jsx)(UnfoldMore/* default */.Z,{fontSize:"small"}):/*#__PURE__*/(0,jsx_runtime.jsx)(UnfoldLess/* default */.Z,{fontSize:"small"})}),/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{size:"small",onClick:()=>{setShowPopup(false);},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Close/* default */.Z,{fontSize:"small"})})]})]}),/*#__PURE__*/(0,jsx_runtime.jsx)(Divider_Divider,{})]});}function TranForm(_ref2){let{text,setText,tranboxSetting,transApis,simpleStyle,langDetector,enDict}=_ref2;const i18n=useI18n();const[editMode,setEditMode]=(0,react.useState)(false);const[editText,setEditText]=(0,react.useState)("");const[translator,setTranslator]=(0,react.useState)(tranboxSetting.translator);const[fromLang,setFromLang]=(0,react.useState)(tranboxSetting.fromLang);const[toLang,setToLang]=(0,react.useState)(tranboxSetting.toLang);const inputRef=(0,react.useRef)(null);const optApis=(0,react.useMemo)(()=>OPT_TRANS_ALL.map(key=>({...(transApis[key]||DEFAULT_TRANS_APIS[key]),apiKey:key})).filter(item=>!item.isDisabled).map(_ref3=>{let{apiKey,apiName}=_ref3;return{key:apiKey,name:(apiName===null||apiName===void 0?void 0:apiName.trim())||apiKey};}),[transApis]);return/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{className:"KT-transbox-container",sx:{p:simpleStyle?1:2},spacing:simpleStyle?1:2,children:[!simpleStyle&&/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{className:"KT-transbox-select",children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Grid_Grid,{container:true,spacing:simpleStyle?1:2,columns:12,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:4,sm:4,md:4,lg:4,children:/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},fullWidth:true,size:"small",name:"fromLang",value:fromLang,label:i18n("from_lang"),onChange:e=>{setFromLang(e.target.value);},children:OPT_LANGS_FROM.map(_ref4=>{let[lang,name]=_ref4;return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:lang,children:name},lang);})})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:4,sm:4,md:4,lg:4,children:/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},fullWidth:true,size:"small",name:"toLang",value:toLang,label:i18n("to_lang"),onChange:e=>{setToLang(e.target.value);},children:OPT_LANGS_TO.map(_ref5=>{let[lang,name]=_ref5;return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:lang,children:name},lang);})})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:4,sm:4,md:4,lg:4,children:/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},fullWidth:true,size:"small",value:translator,name:"translator",label:i18n("translate_service"),onChange:e=>{setTranslator(e.target.value);},children:optApis.map(_ref6=>{let{key,name}=_ref6;return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:key,children:name},key);})})})]})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{className:"KT-transbox-origin",children:/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("original_text"),inputRef:inputRef,fullWidth:true,multiline:true,value:editMode?editText:text,onChange:e=>{setEditText(e.target.value);},onFocus:()=>{setEditMode(true);setEditText(text);},onBlur:()=>{setEditMode(false);setText(editText.trim());},InputProps:{endAdornment:/*#__PURE__*/(0,jsx_runtime.jsx)(Stack_Stack,{direction:"row",sx:{position:"absolute",right:0,top:0},children:editMode?/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{size:"small",onClick:e=>{e.stopPropagation();},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Done/* default */.Z,{fontSize:"inherit"})}):/*#__PURE__*/(0,jsx_runtime.jsx)(CopyBtn,{text:text})})}})})]}),(!simpleStyle||!isValidWord(text)||!toLang.startsWith("zh")||enDict==="-")&&/*#__PURE__*/(0,jsx_runtime.jsx)(TranCont,{text:text,translator:translator,fromLang:fromLang,toLang:toLang,toLang2:tranboxSetting.toLang2,transApis:transApis,simpleStyle:simpleStyle,langDetector:langDetector}),enDict!=="-"&&/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(DictCont,{text:text}),/*#__PURE__*/(0,jsx_runtime.jsx)(SugCont,{text:text})]})]});}function TranBox(_ref7){let{text,setText,setShowBox,tranboxSetting,transApis,boxSize,setBoxSize,boxPosition,setBoxPosition,simpleStyle,setSimpleStyle,hideClickAway,setHideClickAway,followSelection,setFollowSelection,extStyles,langDetector,enDict}=_ref7;const[mouseHover,setMouseHover]=(0,react.useState)(false);return/*#__PURE__*/(0,jsx_runtime.jsx)(SettingProvider,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(Theme,{styles:extStyles,children:/*#__PURE__*/(0,jsx_runtime.jsx)(DraggableResizable,{position:boxPosition,size:boxSize,setSize:setBoxSize,setPosition:setBoxPosition,header:/*#__PURE__*/(0,jsx_runtime.jsx)(TranBox_Header,{setShowPopup:setShowBox,simpleStyle:simpleStyle,setSimpleStyle:setSimpleStyle,hideClickAway:hideClickAway,setHideClickAway:setHideClickAway,followSelection:followSelection,setFollowSelection:setFollowSelection,mouseHover:mouseHover}),onClick:e=>e.stopPropagation(),onMouseEnter:()=>setMouseHover(true),onMouseLeave:()=>setMouseHover(false),children:/*#__PURE__*/(0,jsx_runtime.jsx)(TranForm,{text:text,setText:setText,tranboxSetting:tranboxSetting,transApis:transApis,simpleStyle:simpleStyle,langDetector:langDetector,enDict:enDict})})})});}
 ;// CONCATENATED MODULE: ./src/views/Selection/index.js
 function Slection(_ref){let{contextMenuType,tranboxSetting,transApis,uiLang,langDetector}=_ref;const{hideTranBtn=false,simpleStyle:initSimpleStyle=false,hideClickAway:initHideClickAway=false,followSelection:initFollowMouse=false,tranboxShortcut=DEFAULT_TRANBOX_SHORTCUT,triggerMode=OPT_TRANBOX_TRIGGER_CLICK,extStyles,btnOffsetX,btnOffsetY,boxOffsetX=0,boxOffsetY=10,enDict=OPT_DICT_BAIDU}=tranboxSetting;const boxWidth=isMobile||initSimpleStyle?300:limitNumber(window.innerWidth,300,600);const boxHeight=isMobile||initSimpleStyle?200:limitNumber(window.innerHeight,200,400);const langMap=useLangMap(uiLang);const[showBox,setShowBox]=(0,react.useState)(false);const[showBtn,setShowBtn]=(0,react.useState)(false);const[selectedText,setSelText]=(0,react.useState)("");const[text,setText]=(0,react.useState)("");const[position,setPosition]=(0,react.useState)({x:0,y:0});const[boxSize,setBoxSize]=(0,react.useState)({w:boxWidth,h:boxHeight});const[boxPosition,setBoxPosition]=(0,react.useState)({x:(window.innerWidth-boxWidth)/2,y:(window.innerHeight-boxHeight)/2});const[simpleStyle,setSimpleStyle]=(0,react.useState)(initSimpleStyle);const[hideClickAway,setHideClickAway]=(0,react.useState)(initHideClickAway);const[followSelection,setFollowSelection]=(0,react.useState)(initFollowMouse);const handleTrigger=(0,react.useCallback)(text=>{setShowBtn(false);setText(text||selectedText);setShowBox(true);},[selectedText]);const handleTranbox=(0,react.useCallback)(()=>{var _selection$toString,_selection$getRangeAt;setShowBtn(false);const selection=window.getSelection();const selectedText=(selection===null||selection===void 0?void 0:(_selection$toString=selection.toString())===null||_selection$toString===void 0?void 0:_selection$toString.trim())||"";if(!selectedText){setShowBox(pre=>!pre);return;}const rect=selection===null||selection===void 0?void 0:(_selection$getRangeAt=selection.getRangeAt(0))===null||_selection$getRangeAt===void 0?void 0:_selection$getRangeAt.getBoundingClientRect();if(rect&&followSelection){const x=(rect.left+rect.right)/2+boxOffsetX;const y=rect.bottom+boxOffsetY;setBoxPosition({x:limitNumber(x,0,window.innerWidth-300),y:limitNumber(y,0,window.innerHeight-200)});}setSelText(selectedText);setText(selectedText);setShowBox(true);},[followSelection,boxOffsetX,boxOffsetY]);const btnEvent=(0,react.useMemo)(()=>{if(isMobile){return"onTouchEnd";}else if(triggerMode===OPT_TRANBOX_TRIGGER_HOVER){return"onMouseOver";}return"onMouseUp";},[triggerMode]);(0,react.useEffect)(()=>{async function handleMouseup(e){var _selection$toString2,_selection$getRangeAt2;e.stopPropagation();await sleep(200);const selection=window.getSelection();const selectedText=(selection===null||selection===void 0?void 0:(_selection$toString2=selection.toString())===null||_selection$toString2===void 0?void 0:_selection$toString2.trim())||"";setSelText(selectedText);if(!selectedText){setShowBtn(false);return;}const rect=selection===null||selection===void 0?void 0:(_selection$getRangeAt2=selection.getRangeAt(0))===null||_selection$getRangeAt2===void 0?void 0:_selection$getRangeAt2.getBoundingClientRect();if(rect&&followSelection){const x=(rect.left+rect.right)/2+boxOffsetX;const y=rect.bottom+boxOffsetY;setBoxPosition({x:limitNumber(x,0,window.innerWidth-300),y:limitNumber(y,0,window.innerHeight-200)});}if(triggerMode===OPT_TRANBOX_TRIGGER_SELECT){handleTrigger(selectedText);return;}const{clientX,clientY}=isMobile?e.changedTouches[0]:e;setShowBtn(!hideTranBtn);setPosition({x:clientX,y:clientY});}// todo: mobile support
 // window.addEventListener("mouseup", handleMouseup);
@@ -46109,7 +46143,7 @@ function touchTapListener(fn,touchsLength){const handleTouchend=e=>{if(e.touches
 const MSG_GM_xmlHttpRequest="xmlHttpRequest";const MSG_GM_setValue="setValue";const MSG_GM_getValue="getValue";const MSG_GM_deleteValue="deleteValue";const MSG_GM_info="info";/**
  * 注入页面的脚本，请求并接受GM接口信息
  * @param {*} param0
- */const injectScript=ping=>{window.APP_INFO={name:"KISS Translator",version:"1.8.11",eventName:ping};};/**
+ */const injectScript=ping=>{window.APP_INFO={name:"KISS Translator",version:"1.9.0",eventName:ping};};/**
  * 适配GM脚本
  */const adaptScript=ping=>{const promiseGM=function(action,args){let timeout=arguments.length>2&&arguments[2]!==undefined?arguments[2]:5000;return new Promise((resolve,reject)=>{const pong=genEventName();const handleEvent=e=>{window.removeEventListener(pong,handleEvent);const{data,error}=e.detail;if(error){reject(new Error(error));}else{resolve(data);}};window.addEventListener(pong,handleEvent);window.dispatchEvent(new CustomEvent(ping,{detail:{action,args,pong}}));setTimeout(()=>{window.removeEventListener(pong,handleEvent);reject(new Error("timeout"));},timeout);});};window.KISS_GM={fetch:(input,init)=>promiseGM(MSG_GM_xmlHttpRequest,{input,init}),setValue:(key,val)=>promiseGM(MSG_GM_setValue,{key,val}),getValue:key=>promiseGM(MSG_GM_getValue,{key}),deleteValue:key=>promiseGM(MSG_GM_deleteValue,{key}),getInfo:async()=>{if(!window.GM_info){window.GM_info=await promiseGM(MSG_GM_info);}return window.GM_info;}};};/**
  * 监听并回应页面对GM接口的请求
@@ -46132,11 +46166,11 @@ if(getNodeText(node).startsWith(initText)){pasteContentCommand(node,trText);awai
 ;// CONCATENATED MODULE: ./src/common.js
 /**
  * 油猴脚本设置页面
- */function runSettingPage(){var _GM,_GM$info,_GM$info$script,_GM$info$script$grant;if((_GM=GM)!==null&&_GM!==void 0&&(_GM$info=_GM.info)!==null&&_GM$info!==void 0&&(_GM$info$script=_GM$info.script)!==null&&_GM$info$script!==void 0&&(_GM$info$script$grant=_GM$info$script.grant)!==null&&_GM$info$script$grant!==void 0&&_GM$info$script$grant.includes("unsafeWindow")){unsafeWindow.GM=GM;unsafeWindow.APP_INFO={name:"KISS Translator",version:"1.8.11"};}else{const ping=utils_genEventName();window.addEventListener(ping,handlePing);// window.eval(`(${injectScript})("${ping}")`); // eslint-disable-line
+ */function runSettingPage(){var _GM,_GM$info,_GM$info$script,_GM$info$script$grant;if((_GM=GM)!==null&&_GM!==void 0&&(_GM$info=_GM.info)!==null&&_GM$info!==void 0&&(_GM$info$script=_GM$info.script)!==null&&_GM$info$script!==void 0&&(_GM$info$script$grant=_GM$info$script.grant)!==null&&_GM$info$script$grant!==void 0&&_GM$info$script$grant.includes("unsafeWindow")){unsafeWindow.GM=GM;unsafeWindow.APP_INFO={name:"KISS Translator",version:"1.9.0"};}else{const ping=utils_genEventName();window.addEventListener(ping,handlePing);// window.eval(`(${injectScript})("${ping}")`); // eslint-disable-line
 const script=document.createElement("script");script.textContent="(".concat(injectScript,")(\"").concat(ping,"\")");document.head.append(script);}}/**
  * 插件监听后端事件
  * @param {*} translator
- */function runtimeListener(translator){browser===null||browser===void 0?void 0:browser.runtime.onMessage.addListener(async _ref=>{let{action,args}=_ref;switch(action){case MSG_TRANS_TOGGLE:translator.toggle();sendIframeMsg(MSG_TRANS_TOGGLE);break;case MSG_TRANS_TOGGLE_STYLE:translator.toggleStyle();sendIframeMsg(MSG_TRANS_TOGGLE_STYLE);break;case MSG_TRANS_GETRULE:break;case MSG_TRANS_PUTRULE:translator.updateRule(args);sendIframeMsg(MSG_TRANS_PUTRULE,args);break;case MSG_OPEN_TRANBOX:window.dispatchEvent(new CustomEvent(MSG_OPEN_TRANBOX));break;default:return{error:"message action is unavailable: ".concat(action)};}return{data:translator.rule};});}/**
+ */function runtimeListener(translator){browser===null||browser===void 0?void 0:browser.runtime.onMessage.addListener(async _ref=>{let{action,args}=_ref;switch(action){case MSG_TRANS_TOGGLE:translator.toggle();sendIframeMsg(MSG_TRANS_TOGGLE);break;case MSG_TRANS_TOGGLE_STYLE:translator.toggleStyle();sendIframeMsg(MSG_TRANS_TOGGLE_STYLE);break;case MSG_TRANS_GETRULE:break;case MSG_TRANS_PUTRULE:translator.updateRule(args);sendIframeMsg(MSG_TRANS_PUTRULE,args);break;case MSG_OPEN_TRANBOX:window.dispatchEvent(new CustomEvent(MSG_OPEN_TRANBOX));break;default:return{error:"message action is unavailable: ".concat(action)};}return{rule:translator.rule,setting:translator.setting};});}/**
  * iframe 页面执行
  * @param {*} translator
  */function runIframe(translator){window.addEventListener("message",e=>{const{action,args}=e.data||{};switch(action){case MSG_TRANS_TOGGLE:translator===null||translator===void 0?void 0:translator.toggle();break;case MSG_TRANS_TOGGLE_STYLE:translator===null||translator===void 0?void 0:translator.toggleStyle();break;case MSG_TRANS_PUTRULE:translator.updateRule(args||{});break;default:}});}/**
@@ -46147,7 +46181,7 @@ const script=document.createElement("script");script.textContent="(".concat(inje
  * 划词翻译
  * @param {*} param0
  * @returns
- */function showTransbox(_ref2){let{contextMenuType,tranboxSetting=DEFAULT_TRANBOX_SETTING,transApis,darkMode,uiLang,langDetector}=_ref2;if(!(tranboxSetting!==null&&tranboxSetting!==void 0&&tranboxSetting.transOpen)){return;}const $tranbox=document.createElement("div");$tranbox.setAttribute("id","kiss-transbox");$tranbox.style.fontSize="0";$tranbox.style.width="0";$tranbox.style.height="0";document.body.parentElement.appendChild($tranbox);const shadowContainer=$tranbox.attachShadow({mode:"closed"});const emotionRoot=document.createElement("style");const shadowRootElement=document.createElement("div");shadowRootElement.classList.add("KT-transbox");shadowRootElement.classList.add("KT-transbox_".concat(darkMode?"dark":"light"));shadowContainer.appendChild(emotionRoot);shadowContainer.appendChild(shadowRootElement);const cache=(0,emotion_cache_browser_esm/* default */.Z)({key:"kiss-transbox",prepend:true,container:emotionRoot});client.createRoot(shadowRootElement).render(/*#__PURE__*/(0,jsx_runtime.jsx)(react.StrictMode,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(emotion_element_c39617d8_browser_esm.C,{value:cache,children:/*#__PURE__*/(0,jsx_runtime.jsx)(Slection,{contextMenuType:contextMenuType,tranboxSetting:tranboxSetting,transApis:transApis,uiLang:uiLang,langDetector:langDetector})})}));}/**
+ */function showTransbox(_ref2,_ref3){let{contextMenuType,tranboxSetting=DEFAULT_TRANBOX_SETTING,transApis,darkMode,uiLang,langDetector}=_ref2;let{transSelected}=_ref3;if(transSelected==="false"){return;}const $tranbox=document.createElement("div");$tranbox.setAttribute("id","kiss-transbox");$tranbox.style.fontSize="0";$tranbox.style.width="0";$tranbox.style.height="0";document.body.parentElement.appendChild($tranbox);const shadowContainer=$tranbox.attachShadow({mode:"closed"});const emotionRoot=document.createElement("style");const shadowRootElement=document.createElement("div");shadowRootElement.classList.add("KT-transbox");shadowRootElement.classList.add("KT-transbox_".concat(darkMode?"dark":"light"));shadowContainer.appendChild(emotionRoot);shadowContainer.appendChild(shadowRootElement);const cache=(0,emotion_cache_browser_esm/* default */.Z)({key:"kiss-transbox",prepend:true,container:emotionRoot});client.createRoot(shadowRootElement).render(/*#__PURE__*/(0,jsx_runtime.jsx)(react.StrictMode,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(emotion_element_c39617d8_browser_esm.C,{value:cache,children:/*#__PURE__*/(0,jsx_runtime.jsx)(Slection,{contextMenuType:contextMenuType,tranboxSetting:tranboxSetting,transApis:transApis,uiLang:uiLang,langDetector:langDetector})})}));}/**
  * 显示错误信息到页面顶部
  * @param {*} message
  */function showErr(message){const $err=document.createElement("div");$err.innerText="KISS-Translator: ".concat(message);$err.style.cssText="background:red; color:#fff;";document.body.prepend($err);}/**
@@ -46164,7 +46198,7 @@ const rule=await matchRule(href,setting);const translator=new Translator(rule,se
 if(isIframe){runIframe(translator);return;}// 监听消息
 !isUserscript&&runtimeListener(translator);// 输入框翻译
 inputTranslate(setting);// 划词翻译
-showTransbox(setting);// 浮球按钮
+showTransbox(setting,rule);// 浮球按钮
 await showFab(translator);// 触屏操作
 touchOperation(translator);// 同步订阅规则
 isUserscript&&(await trySyncAllSubRules(setting));}catch(err){console.error("[KISS-Translator]",err);showErr(err.message);}}
