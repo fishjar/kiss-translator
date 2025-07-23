@@ -692,7 +692,7 @@ export const DEFAULT_TRANS_APIS = {
     systemPrompt: `You are a professional, authentic machine translation engine.`,
     userPrompt: `Translate the following source text from ${INPUT_PLACE_FROM} to ${INPUT_PLACE_TO}. Output translation directly without any additional text.\n\nSource Text: ${INPUT_PLACE_TEXT}\n\nTranslated Text:`,
     temperature: 0,
-    reasoningEffort: "low",
+    maxTokens: 2048,
     fetchLimit: 1,
     fetchInterval: 500,
     apiName: OPT_TRANS_GEMINI_2,

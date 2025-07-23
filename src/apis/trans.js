@@ -348,7 +348,7 @@ const genGemini2 = ({
   userPrompt,
   model,
   temperature,
-  reasoningEffort,
+  maxTokens,
 }) => {
   systemPrompt = systemPrompt
     .replaceAll(INPUT_PLACE_FROM, from)
@@ -361,7 +361,6 @@ const genGemini2 = ({
 
   const data = {
     model,
-    reasoning_effort: reasoningEffort,
     messages: [
       {
         role: "system",
@@ -373,6 +372,7 @@ const genGemini2 = ({
       },
     ],
     temperature,
+    max_tokens: maxTokens,
   };
 
   const init = {

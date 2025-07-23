@@ -140,7 +140,6 @@ function ApiFields({ translator }) {
     maxTokens = 256,
     apiName = "",
     isDisabled = false,
-    reasoningEffort = "low",
   } = api;
 
   const handleChange = (e) => {
@@ -305,7 +304,8 @@ function ApiFields({ translator }) {
 
       {(translator.startsWith(OPT_TRANS_OPENAI) ||
         translator === OPT_TRANS_CLAUDE ||
-        translator === OPT_TRANS_GEMINI) && (
+        translator === OPT_TRANS_GEMINI ||
+        translator === OPT_TRANS_GEMINI_2) && (
         <>
           <TextField
             size="small"
@@ -323,32 +323,6 @@ function ApiFields({ translator }) {
             value={maxTokens}
             onChange={handleChange}
           />
-        </>
-      )}
-
-      {translator === OPT_TRANS_GEMINI_2 && (
-        <>
-          <TextField
-            size="small"
-            label="Temperature"
-            type="number"
-            name="temperature"
-            value={temperature}
-            onChange={handleChange}
-          />
-          <TextField
-            select
-            size="small"
-            name="reasoningEffort"
-            value={reasoningEffort}
-            label="Reasoning Effort"
-            onChange={handleChange}
-          >
-            <MenuItem value={"none"}>none</MenuItem>
-            <MenuItem value={"low"}>low</MenuItem>
-            <MenuItem value={"medium"}>medium</MenuItem>
-            <MenuItem value={"high"}>high</MenuItem>
-          </TextField>
         </>
       )}
 
