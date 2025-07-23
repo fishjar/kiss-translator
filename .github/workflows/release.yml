@@ -18,7 +18,7 @@ jobs:
           node-version: latest
           cache: "pnpm"
       - run: pnpm install
-      - run: pnpm build
+      - run: pnpm build+zip
       - uses: actions/upload-artifact@v4
         with:
           name: build-artifacts
@@ -55,7 +55,7 @@ jobs:
     needs: [build, create-release]
     strategy:
       matrix:
-        client: ["chrome", "edge", "firefox", "userscript"]
+        client: ["chrome", "edge", "firefox", "userscript", "thunderbird"]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -63,10 +63,6 @@ jobs:
         with:
           name: build-artifacts
           path: build
-      - name: Zip Release
-        run: |
-          cd build
-          zip -r ${{ matrix.client }}.zip ${{ matrix.client }}
       - uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
