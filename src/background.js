@@ -45,9 +45,9 @@ const REMOVE_HEADERS = [
 async function addContextMenus(contextMenuType = 1) {
   // 添加前先删除,避免重复ID的错误
   try {
-    await browser.menus.removeAll();
+    await browser.contextMenus.removeAll();
   } catch (err) {
-    //
+    kissLog(err, "remove contextMenus");
   }
 
   switch (contextMenuType) {
