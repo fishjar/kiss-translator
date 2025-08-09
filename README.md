@@ -101,6 +101,7 @@
 ```sh
 git clone https://github.com/fishjar/kiss-translator.git
 cd kiss-translator
+git checkout dev # 提交PR建议推送到dev分支
 pnpm install
 pnpm build
 ```

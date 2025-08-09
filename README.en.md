@@ -104,6 +104,7 @@ https://github.com/fishjar/kiss-translator/issues/174
 ```sh
 git clone https://github.com/fishjar/kiss-translator.git
 cd kiss-translator
+git checkout dev # Submit a PR suggestion to push to the dev branch
 pnpm install
 pnpm build
 ```
