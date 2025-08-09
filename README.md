@@ -13,8 +13,9 @@
 - [x] 适配常见浏览器
   - [x] Chrome/Edge/Firefox/Kiwi/Orion
   - [ ] Safari
+  - [x] Thunderbird
 - [x] 支持多种翻译服务
-  - [x] Google/Microsoft/DeepL/NiuTrans/OpenAI/Gemini/CloudflareAI/Baidu/Tencent
+  - [x] Google/Microsoft/DeepL/NiuTrans/OpenAI/Gemini/Ollama/CloudflareAI/Baidu/Tencent/Claude/Volcengine
   - [x] 自定义翻译接口
 - [x] 覆盖常见翻译场景
   - [x] 网页双语对照翻译
@@ -52,6 +53,7 @@
   - [x] Edge [安装地址](https://microsoftedge.microsoft.com/addons/detail/%E7%AE%80%E7%BA%A6%E7%BF%BB%E8%AF%91/jemckldkclkinpjighnoilpbldbdmmlh?hl=zh-CN)
   - [x] Firefox [安装地址](https://addons.mozilla.org/zh-CN/firefox/addon/kiss-translator/)
   - [ ] Safari
+  - [x] Thunderbird [下载地址](https://github.com/fishjar/kiss-translator/releases)
 - [x] 油猴脚本
   - [x] Chrome/Edge/Firefox ([Tampermonkey](https://www.tampermonkey.net/)/[Violentmonkey](https://violentmonkey.github.io/)) [安装链接](https://fishjar.github.io/kiss-translator/kiss-translator.user.js)
     - [Greasy Fork](https://greasyfork.org/zh-CN/scripts/472840-kiss-translator)
@@ -69,10 +71,30 @@
 - 翻译接口代理: [https://github.com/fishjar/kiss-proxy](https://github.com/fishjar/kiss-proxy)
   - 如果访问某个翻译接口遇到网络问题，这个代理服务也许可以帮到你。
   - 自己部署，自己管理。
-- 简约词典插件: [https://github.com/fishjar/kiss-dictionary](https://github.com/fishjar/kiss-dictionary)
-  - 搭配本项目一起使用的划词翻译插件。
-  - 支持英文单词、句子、汉字的查询。
-  - 支持历史记录、单词收藏。
+
+## 常见问题
+
+### 为什么有些网页翻译不全
+
+> 本插件的网页翻译是基于CSS选择器的，通用规则不能适配所有网页，有时需要自行添加相应网站的单独规则。如果不会写规则，可以到这里求助： https://github.com/fishjar/kiss-rules/issues
+
+### 规则设置的优先级是如何的
+
+> 个人规则>覆写订阅规则>订阅规则>订阅规则>全局规则
+> 其中全局规则优先级最低，但非常重要，相当于默认规则。
+
+### 为什么油管字幕一句话会断开翻译
+
+> 本插件没有针对视频做特殊开发，对油管的支持也是当做网页翻译看待，自动生成字幕是流式生成并输出的，所以支持较差。
+> 如果需要关闭本插件的字幕翻译，增加一条规则即可，参考：https://github.com/fishjar/kiss-translator/issues/62
+
+### 本地的Ollama接口不能使用
+
+> 如果出现403的情况，参考：https://github.com/fishjar/kiss-translator/issues/174
+
+### 填写的接口在油猴脚本不能使用
+
+> 油猴脚本需要增加域名白名单，否则不能发出请求。
 
 ## 开发指引
 

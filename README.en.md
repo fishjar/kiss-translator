@@ -13,8 +13,9 @@ A simple, open source [bilingual translation extension & Greasemonkey script](ht
 - [x] Adapt to common browsers
   - [x] Chrome/Edge/Firefox/Kiwi/Orion
   - [ ] Safari
+  - [x] Thunderbird
 - [x] Supports multiple translation services
-  - [x] Google/Microsoft/DeepL/NiuTrans/OpenAI/Gemini/CloudflareAI/Baidu/Tencent
+  - [x] Google/Microsoft/DeepL/NiuTrans/OpenAI/Gemini/Ollama/CloudflareAI/Baidu/Tencent/Claude/Volcengine
   - [x] Custom translation interface
 - [x] Covers common translation scenarios
   - [x] Web bilingual translation
@@ -52,6 +53,7 @@ A simple, open source [bilingual translation extension & Greasemonkey script](ht
   - [x] Edge [Installation address](https://microsoftedge.microsoft.com/addons/detail/%E7%AE%80%E7%BA%A6%E7%BF%BB%E8%AF%91/jemckldkclkinpjighnoilpbldbdmmlh?hl=zh-CN)
   - [x] Firefox [Installation address](https://addons.mozilla.org/zh-CN/firefox/addon/kiss-translator/)
   - [ ] Safari
+  - [x] Thunderbird [Download address](https://github.com/fishjar/kiss-translator/releases)
 - [x] GreaseMonkey Script
   - [x] Chrome/Edge/Firefox ([Tampermonkey](https://www.tampermonkey.net/)/[Violentmonkey](https://violentmonkey.github.io/)) [Installation link](https://fishjar.github.io/kiss-translator/kiss-translator.user.js)
     - [Greasy Fork](https://greasyfork.org/zh-CN/scripts/472840-kiss-translator)
@@ -69,10 +71,33 @@ A simple, open source [bilingual translation extension & Greasemonkey script](ht
 - Translation interface agent: [https://github.com/fishjar/kiss-proxy](https://github.com/fishjar/kiss-proxy)
   - If you encounter network problems when accessing a certain translation interface, this proxy service may help you.
   - Deploy and manage by yourself.
-- Minimalistic Dictionary Plugin: [https://github.com/fishjar/kiss-dictionary](https://github.com/fishjar/kiss-dictionary)
-  - A word-marking translation plug-in used with this project.
-  - Supports query of English words, sentences and Chinese characters.
-  - Supports history records and word collections.
+
+## Frequently Asked Questions
+
+### Why are some web pages not fully translated?
+
+> This extension's webpage translation is based on CSS selectors. Generic rules cannot adapt to all websites, and sometimes you need to manually add site-specific rules. If you don't know how to write rules, you can seek help here:  
+https://github.com/fishjar/kiss-rules/issues
+
+### What is the priority order of rule settings?
+
+> Personal Rules > Override Subscription Rules > Subscription Rules > Global Rules  
+> Among these, Global Rules have the lowest priority but are very important as they serve as the default rules.
+
+### Why are YouTube subtitles translated in broken sentences?
+
+> This extension has no special development for video content. Support for YouTube is also treated as regular webpage translation. Auto-generated subtitles are streamed and output progressively, resulting in poorer support.  
+> To disable this extension's subtitle translation, add a rule. Reference:  
+https://github.com/fishjar/kiss-translator/issues/62
+
+### Local Ollama interface cannot be used
+
+> If encountering a 403 error, refer to:  
+https://github.com/fishjar/kiss-translator/issues/174
+
+### Custom API doesn't work in Tampermonkey scripts
+
+> Tampermonkey scripts require adding domains to the whitelist; otherwise, requests cannot be sent.
 
 ## Development Guidelines
 
