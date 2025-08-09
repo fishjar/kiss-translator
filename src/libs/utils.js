@@ -250,3 +250,20 @@ export const blobToBase64 = (blob) => {
     reader.readAsDataURL(blob);
   });
 };
+
+/**
+ * 获取html内的文本
+ * @param {*} htmlStr
+ * @param {*} skipTag
+ * @returns
+ */
+export const getHtmlText = (htmlStr, skipTag = "") => {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(htmlStr, "text/html");
+
+  if (skipTag) {
+    doc.querySelectorAll(skipTag).forEach((el) => el.remove());
+  }
+
+  return doc.body.innerText.trim();
+};

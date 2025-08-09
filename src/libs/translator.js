@@ -18,7 +18,7 @@ import {
 } from "../config";
 import Content from "../views/Content";
 import { updateFetchPool, clearFetchPool } from "./fetch";
-import { debounce, genEventName } from "./utils";
+import { debounce, genEventName, getHtmlText } from "./utils";
 import { runFixer } from "./webfix";
 import { apiTranslate } from "../apis";
 import { sendBgMsg } from "./msg";
@@ -475,26 +475,19 @@ export class Translator {
         return;
       }
 
-      const preText = this._tranNodes.get(el);
-      const curText = el.innerText.trim();
-      // const traText = traEl.innerText.trim();
-
-      // todo
-      // 1. traText when loading
-      // 2. replace startsWith
-      if (curText.startsWith(preText)) {
+      const preText = getHtmlText(this._tranNodes.get(el));
+      const curText = getHtmlText(el.innerHTML, APP_LCNAME);
+      if (preText === curText) {
         return;
       }
 
       traEl.remove();
     }
 
+    // 缓存已翻译元素
+    this._tranNodes.set(el, el.innerHTML);
+
     let q = el.innerText.trim();
-    if (this._rule.transOnly === "true") {
-      this._tranNodes.set(el, el.innerHTML);
-    } else {
-      this._tranNodes.set(el, q);
-    }
     const keeps = [];
 
     // 翻译开始钩子函数
