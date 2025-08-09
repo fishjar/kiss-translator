@@ -267,7 +267,7 @@ const genOpenAI = ({
       },
     ],
     temperature,
-    max_tokens: maxTokens,
+    max_completion_tokens: maxTokens,
   };
 
   const init = {
