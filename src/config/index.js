@@ -443,7 +443,7 @@ export const INPUT_PLACE_MODEL = "{{model}}"; // 占位符
 
 export const DEFAULT_COLOR = "#209CEE"; // 默认高亮背景色/线条颜色
 
-export const DEFAULT_TRANS_TAG = "span";
+export const DEFAULT_TRANS_TAG = "font";
 export const DEFAULT_SELECT_STYLE =
   "-webkit-line-clamp: unset; max-height: none; height: auto;";
 
