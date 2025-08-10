@@ -117,9 +117,8 @@ function TestButton({ translator, api }) {
   );
 }
 
-function ApiFields({ translator }) {
+function ApiFields({ translator, api, updateApi, resetApi }) {
   const i18n = useI18n();
-  const { api, updateApi, resetApi } = useApi(translator);
   const {
     url = "",
     key = "",
@@ -430,6 +429,7 @@ function ApiFields({ translator }) {
 
 function ApiAccordion({ translator }) {
   const [expanded, setExpanded] = useState(false);
+  const { api, updateApi, resetApi } = useApi(translator);
 
   const handleChange = (e) => {
     setExpanded((pre) => !pre);
@@ -438,10 +438,19 @@ function ApiAccordion({ translator }) {
   return (
     <Accordion expanded={expanded} onChange={handleChange}>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Typography>{translator}</Typography>
+        <Typography>
+          {api.apiName ? `${translator} (${api.apiName})` : translator}
+        </Typography>
       </AccordionSummary>
       <AccordionDetails>
-        {expanded && <ApiFields translator={translator} />}
+        {expanded && (
+          <ApiFields
+            translator={translator}
+            api={api}
+            updateApi={updateApi}
+            resetApi={resetApi}
+          />
+        )}
       </AccordionDetails>
     </Accordion>
   );
@@ -452,9 +461,7 @@ export default function Apis() {
   return (
     <Box>
       <Stack spacing={3}>
-        <Alert severity="info">
-          {i18n("about_api")}
-        </Alert>
+        <Alert severity="info">{i18n("about_api")}</Alert>
 
         <Box>
           {OPT_TRANS_ALL.map((translator) => (
