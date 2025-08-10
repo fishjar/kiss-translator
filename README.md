@@ -11,11 +11,17 @@
 - [x] 保持简约
 - [x] 开放源代码
 - [x] 适配常见浏览器
-  - [x] Chrome/Edge/Firefox/Kiwi/Orion
+  - [x] Chrome/Edge
+  - [x] Firefox
+  - [x] Kiwi (Android)
+  - [x] Orion (iOS)
   - [ ] Safari
   - [x] Thunderbird
 - [x] 支持多种翻译服务
-  - [x] Google/Microsoft/DeepL/NiuTrans/OpenAI/Gemini/Ollama/CloudflareAI/Baidu/Tencent/Claude/Volcengine
+  - [x] Google/Microsoft
+  - [x] Baidu/Tencent/Volcengine
+  - [x] OpenAI/Gemini/Claude/Ollama/DeepSeek/CloudflareAI
+  - [x] DeepL/DeepLX/NiuTrans
   - [x] 自定义翻译接口
 - [x] 覆盖常见翻译场景
   - [x] 网页双语对照翻译

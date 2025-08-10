@@ -11,11 +11,17 @@ A simple, open source [bilingual translation extension & Greasemonkey script](ht
 - [x] Keep it simple, smart
 - [x] Open source
 - [x] Adapt to common browsers
-  - [x] Chrome/Edge/Firefox/Kiwi/Orion
+  - [x] Chrome/Edge
+  - [x] Firefox
+  - [x] Kiwi (Android)
+  - [x] Orion (iOS)
   - [ ] Safari
   - [x] Thunderbird
 - [x] Supports multiple translation services
-  - [x] Google/Microsoft/DeepL/NiuTrans/OpenAI/Gemini/Ollama/CloudflareAI/Baidu/Tencent/Claude/Volcengine
+  - [x] Google/Microsoft
+  - [x] Baidu/Tencent/Volcengine
+  - [x] OpenAI/Gemini/Claude/Ollama/DeepSeek/CloudflareAI
+  - [x] DeepL/DeepLX/NiuTrans
   - [x] Custom translation interface
 - [x] Covers common translation scenarios
   - [x] Web bilingual translation
