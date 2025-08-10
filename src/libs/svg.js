@@ -1,5 +1,5 @@
 export const loadingSvg = `
-<svg viewBox="0 0 100 100" style="display:inline-block; width:100%; height: 100%;">
+<svg viewBox="0 0 100 100" style="display:inline-block; width:100%; height: 100%; max-width: 24; max-height: 24;">
     <circle fill="#209CEE" stroke="none" cx="6" cy="50" r="6">
     <animateTransform
         attributeName="transform"
