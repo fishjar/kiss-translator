@@ -175,7 +175,7 @@ Example of a Response Hook function:
 (res, text, from, to) => [res.text, to === res.src]
 ```
 
-For more custom interface examples, refer to: [custom-api.md](custom-api.md)
+For more custom interface examples, refer to: [custom-api.md](https://github.com/fishjar/kiss-translator/blob/master/custom-api.md)
 
 ## Development Guidelines
 

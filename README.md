@@ -174,7 +174,7 @@ Response Hook 函数示例如下：
 (res, text, from, to) => [res.text, to === res.src]
 ```
 
-更多的自定义接口示例，请参考： [custom-api.md](custom-api.md)
+更多的自定义接口示例，请参考： [custom-api.md](https://github.com/fishjar/kiss-translator/blob/master/custom-api.md)
 
 ## 开发指引
 
