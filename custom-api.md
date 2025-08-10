@@ -98,7 +98,7 @@ Request Hook
 (text, from, to, url, key) => [url, {
   method: "POST",
   headers: {
-      "Authorization": Bearer ${key},
+      "Authorization": `Bearer ${key}`,
       "Content-type": "application/json",
   },
   body: JSON.stringify({
