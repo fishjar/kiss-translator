@@ -196,7 +196,7 @@ Response Hook
 ]
 ```
 
-## 接入 openrouter
+## 接入 Qwen-MT
 
 > 由网友 atom 提供
 
