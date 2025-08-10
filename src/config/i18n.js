@@ -42,21 +42,6 @@ const customApiLangs = `["en", "English - English"],
 ["vi", "Vietnamese - Tiếng Việt"],
 `;
 
-const hookExample = `// URL
-https://translate.googleapis.com/translate_a/single?client=gtx&dj=1&dt=t&ie=UTF-8&q={{text}}&sl=en&tl=zh-CN
-
-// Request Hook
-(text, from, to, url, key) => [url, {
-  headers: {
-      "Content-type": "application/json",
-  },
-  method: "GET",
-  body: null,
-}]
-
-// Response Hook
-(res, text, from, to) => [res.sentences.map((item) => item.trans).join(" "), to === res.src]`;
-
 const customApiHelpZH = `// 请求数据默认格式
 {
   "url": "{{url}}",
@@ -82,7 +67,21 @@ const customApiHelpZH = `// 请求数据默认格式
 
 
 // Hook 范例
-${hookExample}
+// URL
+https://translate.googleapis.com/translate_a/single?client=gtx&dj=1&dt=t&ie=UTF-8&q={{text}}&sl=en&tl=zh-CN
+
+// Request Hook
+(text, from, to, url, key) => [url, {
+  headers: {
+      "Content-type": "application/json",
+  },
+  method: "GET",
+  body: null,
+}]
+
+// Response Hook
+// 其中返回数组第一个值表示译文字符串，第二个值为布尔值，表示原文语言与目标语言是否相同
+(res, text, from, to) => [res.sentences.map((item) => item.trans).join(" "), to === res.src]
 
 
 // 支持的语言代码如下
@@ -114,7 +113,22 @@ const customApiHelpEN = `// Default request
 
 
 /// Hook Example
-${hookExample}
+// URL
+https://translate.googleapis.com/translate_a/single?client=gtx&dj=1&dt=t&ie=UTF-8&q={{text}}&sl=en&tl=zh-CN
+
+// Request Hook
+(text, from, to, url, key) => [url, {
+  headers: {
+      "Content-type": "application/json",
+  },
+  method: "GET",
+  body: null,
+}]
+
+// Response Hook
+// In the returned array, the first value is the translated string, while the second value is a boolean
+// that indicates whether the source language is the same as the target language.
+(res, text, from, to) => [res.sentences.map((item) => item.trans).join(" "), to === res.src]
 
 
 // The supported language codes are as follows
