@@ -88,7 +88,7 @@
 在插件管理那里设置，例如： 
 
 - chrome [chrome://extensions/shortcuts](chrome://extensions/shortcuts)
-- firefox [cabout:addons](about:addons)
+- firefox [about:addons](about:addons)
 
 ### 如何关闭划词翻译
 

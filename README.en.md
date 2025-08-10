@@ -88,7 +88,7 @@ You can achieve this through `Rules Setting` with the following methods:
 Set this in the extension management page, for example:
 
 - chrome [chrome://extensions/shortcuts](chrome://extensions/shortcuts)
-- firefox [cabout:addons](about:addons)
+- firefox [about:addons](about:addons)
 
 ### How to Turn Off Selection Translation
 
