@@ -135,6 +135,67 @@ Response Hook
 ]
 ```
 
+## 接入 gemini-2.5-flash, 关闭思考模式, 去审查
+
+> 由网友 Rick Sanchez 提供
+
+URL
+
+```sh
+https://generativelanguage.googleapis.com/v1beta/models
+```
+
+Request Hook
+
+```js
+(text, from, to, url, key) => [`${url}/gemini-2.5-flash:generateContent?key=${key}`, {
+    headers: {
+        "Content-Type": "application/json",
+    },
+    method: "POST",
+    body: JSON.stringify({
+        "generationConfig": {
+            "temperature": 0.8,
+            "thinkingConfig": {
+                "thinkingBudget": 0, //gemini-2.5-flash设为0关闭思考模式
+            },
+        },
+        "safetySettings": [
+            {
+                "category": "HARM_CATEGORY_HARASSMENT",
+                "threshold": "BLOCK_NONE",
+            },
+            {
+                "category": "HARM_CATEGORY_HATE_SPEECH",
+                "threshold": "BLOCK_NONE",
+            },
+            {
+                "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                "threshold": "BLOCK_NONE",
+            },
+            {
+                "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                "threshold": "BLOCK_NONE",
+            }
+        ],
+        "contents": [{
+            "parts": [{
+                "text": `自定义提示词`
+            }]
+        }],
+    }),
+}]
+```
+
+Response Hook
+
+```js
+(res, text, from, to) => [
+  res.candidates?.[0]?.content?.parts?.[0]?.text ?? "",
+  false
+]
+```
+
 ## 接入 openrouter
 
 > 由网友 atom 提供
@@ -281,3 +342,5 @@ Response Hook
 ```js
 (res, text, from, to) => [res?.[0]?.join(" ") || "Translation unavailable", to === res?.[1]?.[0]]
 ```
+
+

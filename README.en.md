@@ -169,7 +169,8 @@ Example of a Response Hook function:
  * @param {string} to   Target language
  * @returns {Array[string, boolean]} [Translated text, whether target language is same as source]
  * Note: If the second return value is true (target language same as source), 
- *       the translation will not be displayed on the page
+ *       the translation will not be displayed on the page,
+ *       If the parameters are incomplete, it is recommended to return false directly
  */
 (res, text, from, to) => [res.text, to === res.src]
 ```

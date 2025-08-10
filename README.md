@@ -168,7 +168,8 @@ Response Hook 函数示例如下：
  * @param {string} from 原文语言
  * @param {string} to   译文语言
  * @returns {Array[string, boolean]} [译文, 译文语言与原文语言是否相同]
- * 注：如果返回值第二个值为true（译文语言与原文语言相同）则译文不会在页面显示
+ * 注：如果返回值第二个值为true（译文语言与原文语言相同）则译文不会在页面显示，
+ *     参数不全的情况建议直接返回false
  */
 (res, text, from, to) => [res.text, to === res.src]
 ```
