@@ -132,6 +132,49 @@
 
 油猴脚本需要增加域名白名单，否则不能发出请求。
 
+### 如何设置自定义接口的hook函数
+
+自定义接口功能非常灵活，理论可以接入任何翻译接口。
+
+Request Hook 函数示例如下：
+
+```js
+/**
+ * Request Hook
+ * @param {string} text 需要翻译的原文
+ * @param {string} from 原文语言
+ * @param {string} to   译文语言
+ * @param {string} url  翻译接口地址
+ * @param {string} key  翻译接口密钥
+ * @returns {Array[string, object]} [接口地址, 请求参数对象]
+ */
+(text, from, to, url, key) => [url, {
+  headers: {
+    "Content-type": "application/json",
+    "Authorization": `Bearer ${key}`
+  },
+  method: "POST",
+  body: { text, to },
+}]
+```
+
+Response Hook 函数示例如下：
+
+```js
+/**
+ * Request Hook
+ * @param {string} res  接口返回的json数据
+ * @param {string} text 需要翻译的原文
+ * @param {string} from 原文语言
+ * @param {string} to   译文语言
+ * @returns {Array[string, boolean]} [译文, 译文语言与原文语言是否相同]
+ * 注：如果返回值第二个值为true（译文语言与原文语言相同）则译文不会在页面显示
+ */
+(res, text, from, to) => [res.text, to === res.src]
+```
+
+更多的自定义接口示例，请参考： [custom-api.md](custom-api.md)
+
 ## 开发指引
 
 ```sh

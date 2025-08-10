@@ -133,6 +133,49 @@ If encountering a 403 error, refer to: https://github.com/fishjar/kiss-translato
 
 Tampermonkey scripts require adding domains to the whitelist; otherwise, requests cannot be sent.
 
+### How to Set Up Hook Functions for Custom Interfaces
+
+The custom interface feature is highly flexible and can theoretically integrate with any translation interface.
+
+Example of a Request Hook function:
+
+```js
+/**
+ * Request Hook
+ * @param {string} text Text to be translated
+ * @param {string} from Source language
+ * @param {string} to   Target language
+ * @param {string} url  Translation interface URL
+ * @param {string} key  Translation interface API key
+ * @returns {Array[string, object]} [Interface URL, request object]
+ */
+(text, from, to, url, key) => [url, {
+  headers: {
+    "Content-type": "application/json",
+    "Authorization": `Bearer ${key}`
+  },
+  method: "POST",
+  body: { text, to },
+}]
+```
+
+Example of a Response Hook function:
+
+```js
+ * Response Hook
+ * @param {string} res  JSON data returned by the interface
+ * @param {string} text Text to be translated
+ * @param {string} from Source language
+ * @param {string} to   Target language
+ * @returns {Array[string, boolean]} [Translated text, whether target language is same as source]
+ * Note: If the second return value is true (target language same as source), 
+ *       the translation will not be displayed on the page
+ */
+(res, text, from, to) => [res.text, to === res.src]
+```
+
+For more custom interface examples, refer to: [custom-api.md](custom-api.md)
+
 ## Development Guidelines
 
 ```sh
