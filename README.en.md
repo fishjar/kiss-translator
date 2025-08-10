@@ -74,30 +74,58 @@ A simple, open source [bilingual translation extension & Greasemonkey script](ht
 
 ## Frequently Asked Questions
 
+### How to Turn Off Automatic Translation
+
+You can achieve this through `Rules Setting` with the following methods:
+
+- Personal Rules: RULES-> Global Rule -> Translate Switch -> Disaabled
+- Subscription Rules: SUBSCRIBE -> Select the third option `kiss-rules-off.json`
+- Override Subscription Rules: OVERWRITE -> Translate Switch -> Disaabled
+- Add a Personal Rule for a Specific Website: Translate Switch -> Disaabled
+
+### How to Set Keyboard Shortcuts
+
+Set this in the extension management page, for example:
+
+- chrome [chrome://extensions/shortcuts](chrome://extensions/shortcuts)
+- firefox [cabout:addons](about:addons)
+
+### How to Turn Off Selection Translation
+
+Set this in the `Rules Setting`: RULES -> Global Rule -> If translate selected -> Disable
+
+### How to Set it to Show Only the Translation
+
+Set this in the `Rules Setting`: RULES -> Global Rule -> Show Only Translations -> Enable
+
+### How to Set Mouse Hover Translation
+
+Set this in the `Rules Setting`: RULES -> Global Rule -> TTrigger Mode
+
 ### Why are some web pages not fully translated?
 
-> This extension's webpage translation is based on CSS selectors. Generic rules cannot adapt to all websites, and sometimes you need to manually add site-specific rules. If you don't know how to write rules, you can seek help here:  
+This extension's webpage translation is based on CSS selectors. Generic rules cannot adapt to all websites, and sometimes you need to manually add site-specific rules. If you don't know how to write rules, you can seek help here:  
 https://github.com/fishjar/kiss-rules/issues
 
 ### What is the priority order of rule settings?
 
-> Personal Rules > Override Subscription Rules > Subscription Rules > Global Rules  
-> Among these, Global Rules have the lowest priority but are very important as they serve as the default rules.
+Personal Rules > Override Subscription Rules > Subscription Rules > Global Rules
+
+Among these, Global Rules have the lowest priority but are very important as they serve as the default rules.
 
 ### Why are YouTube subtitles translated in broken sentences?
 
-> This extension has no special development for video content. Support for YouTube is also treated as regular webpage translation. Auto-generated subtitles are streamed and output progressively, resulting in poorer support.  
-> To disable this extension's subtitle translation, add a rule. Reference:  
-https://github.com/fishjar/kiss-translator/issues/62
+This extension has no special development for video content. Support for YouTube is also treated as regular webpage translation. Auto-generated subtitles are streamed and output progressively, resulting in poorer support.
+
+To disable this extension's subtitle translation, add a rule. Reference: https://github.com/fishjar/kiss-translator/issues/62
 
 ### Local Ollama interface cannot be used
 
-> If encountering a 403 error, refer to:  
-https://github.com/fishjar/kiss-translator/issues/174
+If encountering a 403 error, refer to: https://github.com/fishjar/kiss-translator/issues/174
 
 ### Custom API doesn't work in Tampermonkey scripts
 
-> Tampermonkey scripts require adding domains to the whitelist; otherwise, requests cannot be sent.
+Tampermonkey scripts require adding domains to the whitelist; otherwise, requests cannot be sent.
 
 ## Development Guidelines
 
