@@ -16,6 +16,7 @@
   - [x] Kiwi (Android)
   - [x] Orion (iOS)
   - [ ] Safari
+    - [x] Safari (Mac)
   - [x] Thunderbird
 - [x] 支持多种翻译服务
   - [x] Google/Microsoft
@@ -59,6 +60,7 @@
   - [x] Edge [安装地址](https://microsoftedge.microsoft.com/addons/detail/%E7%AE%80%E7%BA%A6%E7%BF%BB%E8%AF%91/jemckldkclkinpjighnoilpbldbdmmlh?hl=zh-CN)
   - [x] Firefox [安装地址](https://addons.mozilla.org/zh-CN/firefox/addon/kiss-translator/)
   - [ ] Safari
+    - [x] Safari (Mac) 第三方编译，未作验证，自行获取： https://www.nodeloc.com/t/topic/54245
   - [x] Thunderbird [下载地址](https://github.com/fishjar/kiss-translator/releases)
 - [x] 油猴脚本
   - [x] Chrome/Edge/Firefox ([Tampermonkey](https://www.tampermonkey.net/)/[Violentmonkey](https://violentmonkey.github.io/)) [安装链接](https://fishjar.github.io/kiss-translator/kiss-translator.user.js)
