@@ -359,12 +359,20 @@ export const I18N = {
     en: `3. Regarding filling in the rules: Leave the input box blank or select "*" in the drop-down box to use global rule.`,
   },
   sync_warn: {
+    zh: `涉及隐私数据的同步请谨慎选择第三方同步服务，建议自行搭建 kiss-worker 或 WebDAV 服务。`,
+    en: `When synchronizing data that involves privacy, please be cautious about choosing third-party sync services. It is recommended to set up your own sync service using kiss-worker or WebDAV.`,
+  },
+  sync_warn_2: {
     zh: `如果服务器存在其他客户端同步的数据，第一次同步将直接覆盖本地配置，后面则根据修改时间，新的覆盖旧的。`,
     en: `If the server has data synchronized by other clients, the first synchronization will directly overwrite the local configuration, and later, according to the modification time, the new one will overwrite the old one.`,
   },
   about_sync_api: {
-    zh: `查看关于数据同步接口部署`,
-    en: `View About Data Synchronization Interface Deployment`,
+    zh: `自建kiss-wroker数据同步服务`,
+    en: `Self-hosting a Kiss-worker data sync service`,
+  },
+  about_api: {
+    zh: `暂未列出的接口，理论上都可以通过自定义接口的形式支持。`,
+    en: `Interfaces that have not yet been launched can theoretically be supported through custom interfaces.`,
   },
   about_api_proxy: {
     zh: `查看自建一个翻译接口代理`,

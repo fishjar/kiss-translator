@@ -65,6 +65,7 @@ export default function SyncSetting() {
     <Box>
       <Stack spacing={3}>
         <Alert severity="warning">{i18n("sync_warn")}</Alert>
+        <Alert severity="warning">{i18n("sync_warn_2")}</Alert>
 
         <TextField
           select

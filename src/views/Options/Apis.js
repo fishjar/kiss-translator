@@ -30,7 +30,6 @@ import {
   OPT_TRANS_CUSTOMIZE_4,
   OPT_TRANS_CUSTOMIZE_5,
   OPT_TRANS_NIUTRANS,
-  URL_KISS_PROXY,
   URL_NIUTRANS_REG,
   DEFAULT_FETCH_LIMIT,
   DEFAULT_FETCH_INTERVAL,
@@ -454,9 +453,7 @@ export default function Apis() {
     <Box>
       <Stack spacing={3}>
         <Alert severity="info">
-          <Link href={URL_KISS_PROXY} target="_blank">
-            {i18n("about_api_proxy")}
-          </Link>
+          {i18n("about_api")}
         </Alert>
 
         <Box>
