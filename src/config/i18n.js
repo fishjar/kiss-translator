@@ -228,11 +228,11 @@ export const I18N = {
     zh: `请求超时时间 (5000-30000ms)`,
     en: `Request Timeout Time (5000-30000ms)`,
   },
-  api_custom_params: {
-    zh: `API自定义参数`,
+  custom_body: {
+    zh: `自定义Body参数`,
     en: `API Custom Params`,
   },
-  api_custom_params_help: {
+  custom_body_help: {
     zh: `使用JSON格式，例如 "top_p": 0.7`,
     en: `Use JSON format, for example "top_p": 0.7`,
   },

@@ -125,7 +125,7 @@ function ApiFields({ translator, api, updateApi, resetApi }) {
     model = "",
     systemPrompt = "",
     userPrompt = "",
-    apiCustomParams = "",
+    customBody = "",
     think = false,
     thinkIgnore = "",
     fetchLimit = DEFAULT_FETCH_LIMIT,
@@ -278,8 +278,8 @@ function ApiFields({ translator, api, updateApi, resetApi }) {
           <TextField
             size="small"
             label={i18n("api_custom_params")}
-            name="apiCustomParams"
-            value={apiCustomParams}
+            name="customBody"
+            value={customBody}
             onChange={handleChange}
             multiline
             maxRows={10}

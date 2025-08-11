@@ -240,7 +240,7 @@ const genOpenAI = ({
   model,
   temperature,
   maxTokens,
-  apiCustomParams,
+  customBody,
 }) => {
   // 兼容历史上作为systemPrompt的prompt，如果prompt中不包含带翻译文本，则添加文本到prompt末尾
   // if (!prompt.includes(INPUT_PLACE_TEXT)) {
@@ -255,7 +255,7 @@ const genOpenAI = ({
     .replaceAll(INPUT_PLACE_TO, to)
     .replaceAll(INPUT_PLACE_TEXT, text);
 
-  apiCustomParams = JSON.parse("{" + apiCustomParams + "}");
+  customBody = JSON.parse("{" + customBody + "}");
 
   const data = {
     model,
@@ -271,7 +271,7 @@ const genOpenAI = ({
     ],
     temperature,
     max_completion_tokens: maxTokens,
-    ...apiCustomParams,
+    ...customBody,
   };
 
   const init = {
@@ -298,7 +298,7 @@ const genGemini = ({
   model,
   temperature,
   maxTokens,
-  apiCustomParams,
+  customBody,
 }) => {
   url = url
     .replaceAll(INPUT_PLACE_MODEL, model)
@@ -312,7 +312,7 @@ const genGemini = ({
     .replaceAll(INPUT_PLACE_TO, to)
     .replaceAll(INPUT_PLACE_TEXT, text);
 
-  apiCustomParams = JSON.parse("{" + apiCustomParams + "}");
+  customBody = JSON.parse("{" + customBody + "}");
 
   const data = {
     system_instruction: {
@@ -332,7 +332,7 @@ const genGemini = ({
       // topP: 0.8,
       // topK: 10,
     },
-    ...apiCustomParams,
+    ...customBody,
   };
 
   const init = {
@@ -357,7 +357,7 @@ const genGemini2 = ({
   model,
   temperature,
   maxTokens,
-  apiCustomParams,
+  customBody,
 }) => {
   systemPrompt = systemPrompt
     .replaceAll(INPUT_PLACE_FROM, from)
@@ -368,7 +368,7 @@ const genGemini2 = ({
     .replaceAll(INPUT_PLACE_TO, to)
     .replaceAll(INPUT_PLACE_TEXT, text);
 
-  apiCustomParams = JSON.parse("{" + apiCustomParams + "}");
+  customBody = JSON.parse("{" + customBody + "}");
 
   const data = {
     model,
@@ -384,7 +384,7 @@ const genGemini2 = ({
     ],
     temperature,
     max_tokens: maxTokens,
-    ...apiCustomParams,
+    ...customBody,
   };
 
   const init = {
@@ -410,7 +410,7 @@ const genClaude = ({
   model,
   temperature,
   maxTokens,
-  apiCustomParams,
+  customBody,
 }) => {
   systemPrompt = systemPrompt
     .replaceAll(INPUT_PLACE_FROM, from)
@@ -421,7 +421,7 @@ const genClaude = ({
     .replaceAll(INPUT_PLACE_TO, to)
     .replaceAll(INPUT_PLACE_TEXT, text);
 
-  apiCustomParams = JSON.parse("{" + apiCustomParams + "}");
+  customBody = JSON.parse("{" + customBody + "}");
 
   const data = {
     model,
@@ -434,7 +434,7 @@ const genClaude = ({
     ],
     temperature,
     max_tokens: maxTokens,
-    ...apiCustomParams,
+    ...customBody,
   };
 
   const init = {
@@ -460,7 +460,7 @@ const genOllama = ({
   systemPrompt,
   userPrompt,
   model,
-  apiCustomParams,
+  customBody,
 }) => {
   systemPrompt = systemPrompt
     .replaceAll(INPUT_PLACE_FROM, from)
@@ -471,7 +471,7 @@ const genOllama = ({
     .replaceAll(INPUT_PLACE_TO, to)
     .replaceAll(INPUT_PLACE_TEXT, text);
 
-  apiCustomParams = JSON.parse("{" + apiCustomParams + "}");
+  customBody = JSON.parse("{" + customBody + "}");
 
   const data = {
     model,
@@ -479,7 +479,7 @@ const genOllama = ({
     prompt: userPrompt,
     think: think,
     stream: false,
-    ...apiCustomParams,
+    ...customBody,
   };
 
   const init = {
