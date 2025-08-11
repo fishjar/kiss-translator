@@ -125,6 +125,8 @@ function ApiFields({ translator, api, updateApi, resetApi }) {
     model = "",
     systemPrompt = "",
     userPrompt = "",
+    customHeader = "",
+    customBody = "",
     think = false,
     thinkIgnore = "",
     fetchLimit = DEFAULT_FETCH_LIMIT,
@@ -273,6 +275,26 @@ function ApiFields({ translator, api, updateApi, resetApi }) {
             onChange={handleChange}
             multiline
             maxRows={10}
+          />
+          <TextField
+            size="small"
+            label={i18n("custom_header")}
+            name="customHeader"
+            value={customHeader}
+            onChange={handleChange}
+            multiline
+            maxRows={10}
+            helperText={i18n("custom_header_help")}
+          />
+          <TextField
+            size="small"
+            label={i18n("custom_body")}
+            name="customBody"
+            value={customBody}
+            onChange={handleChange}
+            multiline
+            maxRows={10}
+            helperText={i18n("custom_body_help")}
           />
         </>
       )}
