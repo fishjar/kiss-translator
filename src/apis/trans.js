@@ -240,6 +240,7 @@ const genOpenAI = ({
   model,
   temperature,
   maxTokens,
+  customHeader,
   customBody,
 }) => {
   // 兼容历史上作为systemPrompt的prompt，如果prompt中不包含带翻译文本，则添加文本到prompt末尾
@@ -255,6 +256,7 @@ const genOpenAI = ({
     .replaceAll(INPUT_PLACE_TO, to)
     .replaceAll(INPUT_PLACE_TEXT, text);
 
+  customHeader = JSON.parse("{" + customHeader + "}");
   customBody = JSON.parse("{" + customBody + "}");
 
   const data = {
@@ -279,6 +281,7 @@ const genOpenAI = ({
       "Content-type": "application/json",
       Authorization: `Bearer ${key}`, // OpenAI
       "api-key": key, // Azure OpenAI
+      ...customHeader,
     },
     method: "POST",
     body: JSON.stringify(data),
@@ -298,6 +301,7 @@ const genGemini = ({
   model,
   temperature,
   maxTokens,
+  customHeader,
   customBody,
 }) => {
   url = url
@@ -312,6 +316,7 @@ const genGemini = ({
     .replaceAll(INPUT_PLACE_TO, to)
     .replaceAll(INPUT_PLACE_TEXT, text);
 
+  customHeader = JSON.parse("{" + customHeader + "}");
   customBody = JSON.parse("{" + customBody + "}");
 
   const data = {
@@ -338,6 +343,7 @@ const genGemini = ({
   const init = {
     headers: {
       "Content-type": "application/json",
+      ...customHeader,
     },
     method: "POST",
     body: JSON.stringify(data),
@@ -357,6 +363,7 @@ const genGemini2 = ({
   model,
   temperature,
   maxTokens,
+  customHeader,
   customBody,
 }) => {
   systemPrompt = systemPrompt
@@ -368,6 +375,7 @@ const genGemini2 = ({
     .replaceAll(INPUT_PLACE_TO, to)
     .replaceAll(INPUT_PLACE_TEXT, text);
 
+  customHeader = JSON.parse("{" + customHeader + "}");
   customBody = JSON.parse("{" + customBody + "}");
 
   const data = {
@@ -391,6 +399,7 @@ const genGemini2 = ({
     headers: {
       "Content-type": "application/json",
       Authorization: `Bearer ${key}`,
+      ...customHeader,
     },
     method: "POST",
     body: JSON.stringify(data),
@@ -410,6 +419,7 @@ const genClaude = ({
   model,
   temperature,
   maxTokens,
+  customHeader,
   customBody,
 }) => {
   systemPrompt = systemPrompt
@@ -421,6 +431,7 @@ const genClaude = ({
     .replaceAll(INPUT_PLACE_TO, to)
     .replaceAll(INPUT_PLACE_TEXT, text);
 
+  customHeader = JSON.parse("{" + customHeader + "}");
   customBody = JSON.parse("{" + customBody + "}");
 
   const data = {
@@ -442,6 +453,7 @@ const genClaude = ({
       "Content-type": "application/json",
       "anthropic-version": "2023-06-01",
       "x-api-key": key,
+      ...customHeader,
     },
     method: "POST",
     body: JSON.stringify(data),
@@ -460,6 +472,7 @@ const genOllama = ({
   systemPrompt,
   userPrompt,
   model,
+  customHeader,
   customBody,
 }) => {
   systemPrompt = systemPrompt
@@ -471,6 +484,7 @@ const genOllama = ({
     .replaceAll(INPUT_PLACE_TO, to)
     .replaceAll(INPUT_PLACE_TEXT, text);
 
+  customHeader = JSON.parse("{" + customHeader + "}");
   customBody = JSON.parse("{" + customBody + "}");
 
   const data = {
@@ -485,6 +499,7 @@ const genOllama = ({
   const init = {
     headers: {
       "Content-type": "application/json",
+      ...customHeader,
     },
     method: "POST",
     body: JSON.stringify(data),

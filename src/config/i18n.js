@@ -228,9 +228,17 @@ export const I18N = {
     zh: `请求超时时间 (5000-30000ms)`,
     en: `Request Timeout Time (5000-30000ms)`,
   },
+  custom_header: {
+    zh: `自定义Header参数`,
+    en: `Custom Header Params`,
+  },
+  custom_header_help: {
+    zh: `使用JSON格式，例如 "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:141.0) Gecko/20100101 Firefox/141.0"`,
+    en: `Use JSON format, for example "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:141.0) Gecko/20100101 Firefox/141.0"`,
+  },
   custom_body: {
     zh: `自定义Body参数`,
-    en: `API Custom Params`,
+    en: `Custom Body Params`,
   },
   custom_body_help: {
     zh: `使用JSON格式，例如 "top_p": 0.7`,
