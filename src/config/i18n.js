@@ -424,6 +424,10 @@ export const I18N = {
     zh: `下划虚线`,
     en: `Dashed Underline`,
   },
+  dash_box: {
+    zh: `虚线框`,
+    en: `Dashed Box`,
+  },
   wavy_line: {
     zh: `下划波浪线`,
     en: `Wavy Underline`,

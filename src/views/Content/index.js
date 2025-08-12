@@ -5,6 +5,7 @@ import {
   OPT_STYLE_DOTLINE,
   OPT_STYLE_DASHLINE,
   OPT_STYLE_WAVYLINE,
+  OPT_STYLE_DASHBOX,
   OPT_STYLE_FUZZY,
   OPT_STYLE_HIGHLIGHT,
   OPT_STYLE_BLOCKQUOTE,
@@ -48,6 +49,19 @@ const StyledSpan = styled("span")`
             opacity: 1;
             -webkit-opacity: 1;
           }
+        `;
+      case OPT_STYLE_DASHBOX: // 虚线框
+        return css`
+          color: ${bgColor || DEFAULT_COLOR};
+          border: 1px dashed ${bgColor || DEFAULT_COLOR};
+          background: transparent;
+          display: block;
+          padding: 5px 5px;
+          box-sizing: border-box;
+          white-space: normal;
+          word-wrap: break-word;
+          overflow-wrap: break-word;
+          line-height: 1.4;
         `;
       case OPT_STYLE_FUZZY: // 模糊
         return css`
