@@ -178,6 +178,7 @@ Response Hook 函数示例如下：
 
 更多的自定义接口示例，请参考： [custom-api.md](https://github.com/fishjar/kiss-translator/blob/master/custom-api.md)
 
+<<<<<<< HEAD
 ## 未来规划 
 
  本项目为业余开发，无严格时间表，欢迎社区共建。以下为初步设想的功能方向：
@@ -191,6 +192,8 @@ Response Hook 函数示例如下：
  
  如果你对某个方向感兴趣，欢迎在 [Issues](https://github.com/fishjar/kiss-translator/issues) 中讨论或提交 PR！
 
+=======
+>>>>>>> 39b3b00117ee4f9a43c9489638bf7438db5c2101
 ## 开发指引
 
 ```sh
