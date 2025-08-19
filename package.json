@@ -1,0 +1,74 @@
+{
+  "name": "kiss-translator",
+  "description": "A minimalist bilingual translation Extension & Greasemonkey Script",
+  "version": "1.9.2",
+  "author": "Gabe<yugang2002@gmail.com>",
+  "private": true,
+  "dependencies": {
+    "@emotion/cache": "^11.11.0",
+    "@emotion/react": "^11.11.1",
+    "@emotion/styled": "^11.11.0",
+    "@mui/icons-material": "^5.15.15",
+    "@mui/lab": "5.0.0-alpha.170",
+    "@mui/material": "^5.15.15",
+    "query-string": "^8.1.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-markdown": "^8.0.7",
+    "react-router-dom": "^6.16.0",
+    "react-scripts": "5.0.1",
+    "sval": "^0.5.2",
+    "webdav": "^5.3.0",
+    "webextension-polyfill": "^0.10.0"
+  },
+  "scripts": {
+    "start": "REACT_APP_CLIENT=web react-app-rewired start",
+    "start:userscript": "REACT_APP_CLIENT=userscript react-app-rewired start",
+    "build:chrome": "rm -rf build/chrome && BUILD_PATH=./build/chrome REACT_APP_CLIENT=chrome react-app-rewired build && rm build/chrome/content.html",
+    "build:edge": "rm -rf build/edge && cp -r build/chrome build/edge",
+    "build:thunderbird": "rm -rf build/thunderbird && BUILD_PATH=./build/thunderbird REACT_APP_CLIENT=thunderbird react-app-rewired build && rm build/thunderbird/content.html && cp ./build/thunderbird/manifest.thunderbird.json ./build/thunderbird/manifest.json && rm build/*/manifest.thunderbird.json",
+    "build:firefox": "rm -rf build/firefox && cp -r build/chrome build/firefox && cat ./build/firefox/manifest.firefox.json > ./build/firefox/manifest.json && rm build/*/manifest.firefox.json",
+    "build:web": "rm -rf build/web && BUILD_PATH=./build/web REACT_APP_CLIENT=userscript react-app-rewired build",
+    "build:userscript-ios": "file1=build/web/kiss-translator.user.js file2=build/web/kiss-translator-ios-safari.user.js && cp $file1 $file2 && sed -i 's|// @grant         unsafeWindow|// @inject-into   content|g' $file2",
+    "build:userscript": "rm -rf build/userscript && mkdir build/userscript && cp build/web/*.user.js build/userscript/",
+    "build:rules": "babel-node src/rules.js",
+    "build": "pnpm format && pnpm build:chrome && pnpm build:edge && pnpm build:thunderbird && pnpm build:firefox && pnpm build:web && pnpm build:userscript-ios && pnpm build:userscript && pnpm build:rules",
+    "zip": "cd build && rm -f *.zip && zip -r chrome.zip chrome && zip -r edge.zip edge && zip -r userscript.zip userscript && (cd firefox && zip -r ../firefox.zip .) && (cd thunderbird && zip -r ../thunderbird.zip .)",
+    "build+zip": "pnpm build && pnpm zip",
+    "format": "prettier --write \"**/*.{js,json,html}\"",
+    "test": "react-app-rewired test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ],
+    "globals": {
+      "GM": true,
+      "unsafeWindow": true,
+      "globalThis": true,
+      "messenger": true
+    }
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@babel/core": "^7.22.20",
+    "@babel/node": "^7.22.19",
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
+    "@babel/preset-env": "^7.22.20",
+    "prettier": "3.6.2",
+    "react-app-rewired": "^2.2.1"
+  }
+}

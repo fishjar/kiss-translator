@@ -1,0 +1,20 @@
+{
+  "app_name": {
+    "message": "KISS Translator"
+  },
+  "app_description": {
+    "message": "A simple bilingual translation extension & Greasemonkey script"
+  },
+  "toggle_translate": {
+    "message": "Toggle Translate"
+  },
+  "toggle_style": {
+    "message": "Toggle Style"
+  },
+  "open_options": {
+    "message": "Open Options"
+  },
+  "open_tranbox": {
+    "message": "Translate Popup/Selected"
+  }
+}
