@@ -6,7 +6,7 @@ export const UI_LANGS = [
 
 const customApiLangs = `["en", "English - English"],
 ["zh-CN", "Simplified Chinese - 简体中文"],
-["zh_TW", "Traditional Chinese - 繁體中文"],
+["zh-TW", "Traditional Chinese - 繁體中文"],
 ["ar", "Arabic - العربية"],
 ["bg", "Bulgarian - Български"],
 ["ca", "Catalan - Català"],
