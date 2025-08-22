@@ -267,3 +267,25 @@ export const getHtmlText = (htmlStr, skipTag = "") => {
 
   return doc.body.innerText.trim();
 };
+
+/**
+ * 解析JSON字符串对象
+ * @param {*} str
+ * @returns
+ */
+export const parseJsonObj = (str) => {
+  if (!str || type(str) !== "string") {
+    return {};
+  }
+
+  try {
+    if (str.trim()[0] !== "{") {
+      str = `{${str}}`;
+    }
+    return JSON.parse(str);
+  } catch (err) {
+    //
+  }
+
+  return {};
+};

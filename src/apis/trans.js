@@ -39,6 +39,7 @@ import { msAuth } from "../libs/auth";
 import { genDeeplFree } from "./deepl";
 import { genBaidu } from "./baidu";
 import interpreter from "../libs/interpreter";
+import { parseJsonObj } from "../libs/utils";
 
 const keyMap = new Map();
 const urlMap = new Map();
@@ -256,8 +257,9 @@ const genOpenAI = ({
     .replaceAll(INPUT_PLACE_TO, to)
     .replaceAll(INPUT_PLACE_TEXT, text);
 
-  customHeader = JSON.parse("{" + customHeader + "}");
-  customBody = JSON.parse("{" + customBody + "}");
+  // TODO: 同时支持json对象和hook函数
+  customHeader = parseJsonObj(customHeader);
+  customBody = parseJsonObj(customBody);
 
   const data = {
     model,
@@ -316,8 +318,8 @@ const genGemini = ({
     .replaceAll(INPUT_PLACE_TO, to)
     .replaceAll(INPUT_PLACE_TEXT, text);
 
-  customHeader = JSON.parse("{" + customHeader + "}");
-  customBody = JSON.parse("{" + customBody + "}");
+  customHeader = parseJsonObj(customHeader);
+  customBody = parseJsonObj(customBody);
 
   const data = {
     system_instruction: {
@@ -375,8 +377,8 @@ const genGemini2 = ({
     .replaceAll(INPUT_PLACE_TO, to)
     .replaceAll(INPUT_PLACE_TEXT, text);
 
-  customHeader = JSON.parse("{" + customHeader + "}");
-  customBody = JSON.parse("{" + customBody + "}");
+  customHeader = parseJsonObj(customHeader);
+  customBody = parseJsonObj(customBody);
 
   const data = {
     model,
@@ -431,8 +433,8 @@ const genClaude = ({
     .replaceAll(INPUT_PLACE_TO, to)
     .replaceAll(INPUT_PLACE_TEXT, text);
 
-  customHeader = JSON.parse("{" + customHeader + "}");
-  customBody = JSON.parse("{" + customBody + "}");
+  customHeader = parseJsonObj(customHeader);
+  customBody = parseJsonObj(customBody);
 
   const data = {
     model,
@@ -485,8 +487,8 @@ const genOllama = ({
     .replaceAll(INPUT_PLACE_TO, to)
     .replaceAll(INPUT_PLACE_TEXT, text);
 
-  customHeader = JSON.parse("{" + customHeader + "}");
-  customBody = JSON.parse("{" + customBody + "}");
+  customHeader = parseJsonObj(customHeader);
+  customBody = parseJsonObj(customBody);
 
   const data = {
     model,
