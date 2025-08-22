@@ -26,6 +26,8 @@
     "start": "REACT_APP_CLIENT=web react-app-rewired start",
     "start:userscript": "REACT_APP_CLIENT=userscript react-app-rewired start",
     "build:chrome": "rm -rf build/chrome && BUILD_PATH=./build/chrome REACT_APP_CLIENT=chrome react-app-rewired build && rm build/chrome/content.html",
+    "build:safari-output": "rm -rf build/safari && BUILD_PATH=./build/safari REACT_APP_CLIENT=safari react-app-rewired build && rm build/safari/content.html",
+    "build:safari": "node src/scripts/build-safari.js",
     "build:edge": "rm -rf build/edge && cp -r build/chrome build/edge",
     "build:thunderbird": "rm -rf build/thunderbird && BUILD_PATH=./build/thunderbird REACT_APP_CLIENT=thunderbird react-app-rewired build && rm build/thunderbird/content.html && cp ./build/thunderbird/manifest.thunderbird.json ./build/thunderbird/manifest.json && rm build/*/manifest.thunderbird.json",
     "build:firefox": "rm -rf build/firefox && cp -r build/chrome build/firefox && cat ./build/firefox/manifest.firefox.json > ./build/firefox/manifest.json && rm build/*/manifest.firefox.json",
@@ -69,8 +71,12 @@
     "@babel/node": "^7.22.19",
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
     "@babel/preset-env": "^7.22.20",
+    "dotenv": "^17.2.1",
+    "find-up": "^7.0.0",
     "prettier": "3.6.2",
-    "react-app-rewired": "^2.2.1"
+    "react-app-rewired": "^2.2.1",
+    "tsx": "^4.20.4",
+    "zx": "^8.8.1"
   },
   "packageManager": "pnpm@10.5.2+sha512.da9dc28cd3ff40d0592188235ab25d3202add8a207afbedc682220e4a0029ffbff4562102b9e6e46b4e3f9e8bd53e6d05de48544b0c57d4b0179e22c76d1199b"
 }
