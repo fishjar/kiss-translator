@@ -241,6 +241,16 @@ export class Translator {
       });
   };
 
+  _addAllShadowRootsToMonitoring = (rootNode) => {
+    Array.from(rootNode.querySelectorAll("*"))
+      .map((item) => item.shadowRoot)
+      .filter(Boolean)
+      .forEach((shadowRoot) => {
+        this._rootNodes.add(shadowRoot);
+        this._addAllShadowRootsToMonitoring(shadowRoot);
+      });
+  };
+
   _queryNodes = (rootNode = document) => {
     // const childRoots = Array.from(rootNode.querySelectorAll("*"))
     //   .map((item) => item.shadowRoot)
@@ -281,6 +291,7 @@ export class Translator {
               this._tranNodes.set(item, "");
             }
           });
+          this._addAllShadowRootsToMonitoring(rootNode);
         }
       });
   };
