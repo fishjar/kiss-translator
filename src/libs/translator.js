@@ -16,6 +16,7 @@ import {
   DEFAULT_FETCH_LIMIT,
   DEFAULT_FETCH_INTERVAL,
 } from "../config";
+import { querySelectorAllDeep } from "query-selector-shadow-dom";
 import Content from "../views/Content";
 import { updateFetchPool, clearFetchPool } from "./fetch";
 import { debounce, genEventName, getHtmlText } from "./utils";
@@ -206,9 +207,14 @@ export class Translator {
 
   _querySelectorAll = (selector, node) => {
     try {
-      return Array.from(node.querySelectorAll(selector));
+      return querySelectorAllDeep(selector, node);
     } catch (err) {
-      kissLog(selector, "querySelectorAll err");
+      kissLog(selector, "querySelectorAllDeep err");
+      try {
+        return Array.from(node.querySelectorAll(selector));
+      } catch (fallbackErr) {
+        kissLog(selector, "querySelectorAll fallback err");
+      }
     }
     return [];
   };
