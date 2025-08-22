@@ -425,6 +425,7 @@ const genClaude = ({
     headers: {
       "Content-type": "application/json",
       "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true",
       "x-api-key": key,
     },
     method: "POST",
