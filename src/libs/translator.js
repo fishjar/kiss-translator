@@ -467,6 +467,11 @@ export class Translator {
     q.length > (this._setting.maxLength ?? TRANS_MAX_LENGTH);
 
   _render = (el) => {
+    // 检查元素是否有效
+    if (!el || typeof el.innerText === "undefined") {
+      return;
+    }
+
     let traEl = el.querySelector(APP_LCNAME);
 
     // 已翻译
