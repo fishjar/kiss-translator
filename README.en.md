@@ -179,7 +179,6 @@ Example of a Response Hook function:
 
 For more custom interface examples, refer to: [custom-api.md](https://github.com/fishjar/kiss-translator/blob/master/custom-api.md)
 
-<<<<<<< HEAD
 ## Future Plans 
 
  This is a side project with no strict timeline. Community contributions are welcome. The following are preliminary feature directions:
@@ -193,8 +192,6 @@ For more custom interface examples, refer to: [custom-api.md](https://github.com
 
  If you're interested in any of these directions, feel free to discuss in [Issues](https://github.com/fishjar/kiss-translator/issues) or submit a PR!
 
-=======
->>>>>>> 39b3b00117ee4f9a43c9489638bf7438db5c2101
 ## Development Guidelines
 
 ```sh
