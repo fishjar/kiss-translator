@@ -21,6 +21,7 @@ import {
   OPT_TRANS_OLLAMA,
   OPT_TRANS_OLLAMA_2,
   OPT_TRANS_OLLAMA_3,
+  OPT_TRANS_OPENROUTER,
   OPT_TRANS_CUSTOMIZE,
   OPT_TRANS_CUSTOMIZE_2,
   OPT_TRANS_CUSTOMIZE_3,
@@ -316,6 +317,7 @@ export const apiTranslate = async ({
     case OPT_TRANS_OPENAI_2:
     case OPT_TRANS_OPENAI_3:
     case OPT_TRANS_GEMINI_2:
+    case OPT_TRANS_OPENROUTER:
       trText = res?.choices?.map((item) => item.message.content).join(" ");
       isSame = text === trText;
       break;

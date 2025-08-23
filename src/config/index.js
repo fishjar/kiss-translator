@@ -136,6 +136,7 @@ export const OPT_TRANS_CLOUDFLAREAI = "CloudflareAI";
 export const OPT_TRANS_OLLAMA = "Ollama";
 export const OPT_TRANS_OLLAMA_2 = "Ollama2";
 export const OPT_TRANS_OLLAMA_3 = "Ollama3";
+export const OPT_TRANS_OPENROUTER = "OpenRouter";
 export const OPT_TRANS_CUSTOMIZE = "Custom";
 export const OPT_TRANS_CUSTOMIZE_2 = "Custom2";
 export const OPT_TRANS_CUSTOMIZE_3 = "Custom3";
@@ -162,6 +163,7 @@ export const OPT_TRANS_ALL = [
   OPT_TRANS_OLLAMA,
   OPT_TRANS_OLLAMA_2,
   OPT_TRANS_OLLAMA_3,
+  OPT_TRANS_OPENROUTER,
   OPT_TRANS_CUSTOMIZE,
   OPT_TRANS_CUSTOMIZE_2,
   OPT_TRANS_CUSTOMIZE_3,
@@ -329,6 +331,9 @@ export const OPT_LANGS_SPECIAL = {
     OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
   ),
   [OPT_TRANS_OLLAMA_3]: new Map(
+    OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
+  ),
+  [OPT_TRANS_OPENROUTER]: new Map(
     OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
   ),
   [OPT_TRANS_CLOUDFLAREAI]: new Map([
@@ -738,6 +743,22 @@ export const DEFAULT_TRANS_APIS = {
   [OPT_TRANS_OLLAMA]: defaultOllamaApi,
   [OPT_TRANS_OLLAMA_2]: defaultOllamaApi,
   [OPT_TRANS_OLLAMA_3]: defaultOllamaApi,
+  [OPT_TRANS_OPENROUTER]: {
+    url: "https://openrouter.ai/api/v1/chat/completions",
+    key: "",
+    model: "openai/gpt-4o",
+    systemPrompt: `You are a professional, authentic machine translation engine.`,
+    userPrompt: `Translate the following source text from ${INPUT_PLACE_FROM} to ${INPUT_PLACE_TO}. Output translation directly without any additional text.\n\nSource Text: ${INPUT_PLACE_TEXT}\n\nTranslated Text:`,
+    customHeader: "",
+    customBody: "",
+    temperature: 0,
+    maxTokens: 256,
+    fetchLimit: 1,
+    fetchInterval: 500,
+    apiName: OPT_TRANS_OPENROUTER,
+    isDisabled: false,
+    httpTimeout: DEFAULT_HTTP_TIMEOUT * 2,
+  },
   [OPT_TRANS_CUSTOMIZE]: defaultCustomApi,
   [OPT_TRANS_CUSTOMIZE_2]: defaultCustomApi,
   [OPT_TRANS_CUSTOMIZE_3]: defaultCustomApi,

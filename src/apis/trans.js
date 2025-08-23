@@ -20,6 +20,7 @@ import {
   OPT_TRANS_OLLAMA,
   OPT_TRANS_OLLAMA_2,
   OPT_TRANS_OLLAMA_3,
+  OPT_TRANS_OPENROUTER,
   OPT_TRANS_CUSTOMIZE,
   OPT_TRANS_CUSTOMIZE_2,
   OPT_TRANS_CUSTOMIZE_3,
@@ -465,6 +466,62 @@ const genClaude = ({
   return [url, init];
 };
 
+const genOpenRouter = ({
+  text,
+  from,
+  to,
+  url,
+  key,
+  systemPrompt,
+  userPrompt,
+  model,
+  temperature,
+  maxTokens,
+  customHeader,
+  customBody,
+}) => {
+  systemPrompt = systemPrompt
+    .replaceAll(INPUT_PLACE_FROM, from)
+    .replaceAll(INPUT_PLACE_TO, to)
+    .replaceAll(INPUT_PLACE_TEXT, text);
+  userPrompt = userPrompt
+    .replaceAll(INPUT_PLACE_FROM, from)
+    .replaceAll(INPUT_PLACE_TO, to)
+    .replaceAll(INPUT_PLACE_TEXT, text);
+
+  customHeader = parseJsonObj(customHeader);
+  customBody = parseJsonObj(customBody);
+
+  const data = {
+    model,
+    messages: [
+      {
+        role: "system",
+        content: systemPrompt,
+      },
+      {
+        role: "user",
+        content: userPrompt,
+      },
+    ],
+    temperature,
+    max_tokens: maxTokens,
+    ...customBody,
+  };
+
+  const init = {
+    headers: {
+      "Content-type": "application/json",
+      Authorization: `Bearer ${key}`,
+      ...customHeader,
+    },
+    method: "POST",
+    body: JSON.stringify(data),
+  };
+
+  return [url, init];
+};
+
 const genOllama = ({
   text,
   from,
@@ -587,6 +644,7 @@ export const genTransReq = ({ translator, text, from, to }, apiSetting) => {
     case OPT_TRANS_OLLAMA:
     case OPT_TRANS_OLLAMA_2:
     case OPT_TRANS_OLLAMA_3:
+    case OPT_TRANS_OPENROUTER:
     case OPT_TRANS_NIUTRANS:
     case OPT_TRANS_CUSTOMIZE:
     case OPT_TRANS_CUSTOMIZE_2:
@@ -638,6 +696,8 @@ export const genTransReq = ({ translator, text, from, to }, apiSetting) => {
     case OPT_TRANS_OLLAMA_2:
     case OPT_TRANS_OLLAMA_3:
       return genOllama(args);
+    case OPT_TRANS_OPENROUTER:
+      return genOpenRouter(args);
     case OPT_TRANS_CUSTOMIZE:
     case OPT_TRANS_CUSTOMIZE_2:
     case OPT_TRANS_CUSTOMIZE_3:

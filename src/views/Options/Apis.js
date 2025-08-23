@@ -24,6 +24,7 @@ import {
   OPT_TRANS_OLLAMA,
   OPT_TRANS_OLLAMA_2,
   OPT_TRANS_OLLAMA_3,
+  OPT_TRANS_OPENROUTER,
   OPT_TRANS_CUSTOMIZE,
   OPT_TRANS_CUSTOMIZE_2,
   OPT_TRANS_CUSTOMIZE_3,
@@ -187,6 +188,7 @@ function ApiFields({ translator, api, updateApi, resetApi }) {
     OPT_TRANS_OLLAMA,
     OPT_TRANS_OLLAMA_2,
     OPT_TRANS_OLLAMA_3,
+    OPT_TRANS_OPENROUTER,
     OPT_TRANS_NIUTRANS,
     OPT_TRANS_CUSTOMIZE,
     OPT_TRANS_CUSTOMIZE_2,
@@ -249,6 +251,7 @@ function ApiFields({ translator, api, updateApi, resetApi }) {
       {(translator.startsWith(OPT_TRANS_OPENAI) ||
         translator.startsWith(OPT_TRANS_OLLAMA) ||
         translator === OPT_TRANS_CLAUDE ||
+        translator === OPT_TRANS_OPENROUTER ||
         translator.startsWith(OPT_TRANS_GEMINI)) && (
         <>
           <TextField
@@ -324,6 +327,7 @@ function ApiFields({ translator, api, updateApi, resetApi }) {
 
       {(translator.startsWith(OPT_TRANS_OPENAI) ||
         translator === OPT_TRANS_CLAUDE ||
+        translator === OPT_TRANS_OPENROUTER ||
         translator === OPT_TRANS_GEMINI ||
         translator === OPT_TRANS_GEMINI_2) && (
         <>
