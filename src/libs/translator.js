@@ -16,7 +16,6 @@ import {
   DEFAULT_FETCH_LIMIT,
   DEFAULT_FETCH_INTERVAL,
 } from "../config";
-import { querySelectorAllDeep } from "query-selector-shadow-dom";
 import Content from "../views/Content";
 import { updateFetchPool, clearFetchPool } from "./fetch";
 import { debounce, genEventName, getHtmlText } from "./utils";
@@ -207,14 +206,9 @@ export class Translator {
 
   _querySelectorAll = (selector, node) => {
     try {
-      return querySelectorAllDeep(selector, node);
+      return Array.from(node.querySelectorAll(selector));
     } catch (err) {
-      kissLog(selector, "querySelectorAllDeep err");
-      try {
-        return Array.from(node.querySelectorAll(selector));
-      } catch (fallbackErr) {
-        kissLog(selector, "querySelectorAll fallback err");
-      }
+      kissLog(selector, "querySelectorAll err");
     }
     return [];
   };
@@ -238,16 +232,6 @@ export class Translator {
       .filter(Boolean)
       .forEach((item) => {
         this._queryShadowNodes(selector, item);
-      });
-  };
-
-  _addAllShadowRootsToMonitoring = (rootNode) => {
-    Array.from(rootNode.querySelectorAll("*"))
-      .map((item) => item.shadowRoot)
-      .filter(Boolean)
-      .forEach((shadowRoot) => {
-        this._rootNodes.add(shadowRoot);
-        this._addAllShadowRootsToMonitoring(shadowRoot);
       });
   };
 
@@ -291,7 +275,6 @@ export class Translator {
               this._tranNodes.set(item, "");
             }
           });
-          this._addAllShadowRootsToMonitoring(rootNode);
         }
       });
   };
