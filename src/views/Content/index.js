@@ -56,12 +56,11 @@ const StyledSpan = styled("span")`
           border: 1px dashed ${bgColor || DEFAULT_COLOR};
           background: transparent;
           display: block;
-          padding: 5px 5px;
+          padding: 0.2em;
           box-sizing: border-box;
           white-space: normal;
           word-wrap: break-word;
           overflow-wrap: break-word;
-          line-height: 1.4;
         `;
       case OPT_STYLE_FUZZY: // 模糊
         return css`
