@@ -129,14 +129,6 @@ export default function Content({ q, keeps, translator, $el }) {
     };
   }, [translator.eventName]);
 
-  useEffect(() => {
-    // 运行钩子函数
-    if (text && transEndHook?.trim()) {
-      interpreter.run(`exports.transEndHook = ${transEndHook}`);
-      interpreter.exports.transEndHook($el, q, text, keeps);
-    }
-  }, [$el, q, text, keeps, transEndHook]);
-
   const gap = useMemo(() => {
     if (transOnly === "true") {
       return "";
@@ -154,6 +146,16 @@ export default function Content({ q, keeps, translator, $el }) {
     [textStyle, textDiyStyle, bgColor, transTag]
   );
 
+  const trText = useMemo(() => {
+    if (loading || !transEndHook?.trim()) {
+      return text;
+    }
+
+    // 翻译完成钩子函数
+    interpreter.run(`exports.transEndHook = ${transEndHook}`);
+    return interpreter.exports.transEndHook($el, q, text, keeps);
+  }, [loading, $el, q, text, keeps, transEndHook]);
+
   if (loading) {
     return (
       <>
@@ -163,7 +165,7 @@ export default function Content({ q, keeps, translator, $el }) {
     );
   }
 
-  if (!text || sameLang) {
+  if (!trText || sameLang) {
     return;
   }
 
@@ -186,7 +188,7 @@ export default function Content({ q, keeps, translator, $el }) {
         <StyledSpan
           {...styles}
           dangerouslySetInnerHTML={{
-            __html: text.replace(/\[(\d+)\]/g, (_, p) => keeps[parseInt(p)]),
+            __html: trText.replace(/\[(\d+)\]/g, (_, p) => keeps[parseInt(p)]),
           }}
         />
       </>
@@ -196,7 +198,7 @@ export default function Content({ q, keeps, translator, $el }) {
   return (
     <>
       {gap}
-      <StyledSpan {...styles}>{text}</StyledSpan>
+      <StyledSpan {...styles}>{trText}</StyledSpan>
     </>
   );
 }

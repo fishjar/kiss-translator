@@ -1184,9 +1184,9 @@ export const I18N = {
     zh_TW: `翻譯開始 Hook`,
   },
   translate_start_hook_helper: {
-    zh: `翻译开始时运行，入参为： 翻译节点，原文文本。`,
-    en: `Run when translation starts, the input parameters are: translation node, original text.`,
-    zh_TW: `翻譯開始時執行，入參為：翻譯節點、原文文字。`,
+    zh: `翻译开始时运行，入参为： 翻译节点，原文文本，返回：待译文本。`,
+    en: `Run when translation starts, the input parameters are: translation node, original text, and returns: text to be translated.`,
+    zh_TW: `翻譯開始時執行，入參為：翻譯節點、原文文字，回傳：待譯文本。`,
   },
   translate_end_hook: {
     zh: `翻译完成钩子函数`,
@@ -1194,9 +1194,9 @@ export const I18N = {
     zh_TW: `翻譯完成 Hook`,
   },
   translate_end_hook_helper: {
-    zh: `翻译完成时运行，入参为： 翻译节点，原文文本，译文文本，保留元素。`,
-    en: `Run when the translation is completed, the input parameters are: translation node, original text, translation text, retained elements.`,
-    zh_TW: `翻譯完成時執行，入參為：翻譯節點、原文文字、譯文文字、保留元素。`,
+    zh: `翻译完成时运行，入参为： 翻译节点，原文文本，译文文本，保留元素、术语列表，返回：译文文本。`,
+    en: `Run when the translation is completed, the input parameters are: translation node, original text, translation text, retained elements, and returns: translation text.`,
+    zh_TW: `翻譯完成時執行，入參為：翻譯節點、原文文字、譯文文字、保留元素，返回：譯文文本。`,
   },
   translate_remove_hook: {
     zh: `翻译移除钩子函数`,

@@ -495,13 +495,6 @@ export class Translator {
     let q = el.innerText.trim();
     const keeps = [];
 
-    // 翻译开始钩子函数
-    const { transStartHook } = this._rule;
-    if (transStartHook?.trim()) {
-      interpreter.run(`exports.transStartHook = ${transStartHook}`);
-      interpreter.exports.transStartHook(el, q);
-    }
-
     // 保留元素
     const keepSelector = this._keepSelector.trim();
     if (keepSelector) {
@@ -540,17 +533,22 @@ export class Translator {
         const re = new RegExp(term[0], "g");
         q = q.replace(re, (t) => {
           const text = `[${keeps.length}]`;
-          keeps.push(`<i class="kiss-trem">${term[1] || t}</i>`);
+          keeps.push(`<i class="kiss-term">${term[1] || t}</i>`);
           return text;
         });
       }
     }
 
-    // 附加样式
-    const { selectStyle, parentStyle } = this._rule;
-    el.style.cssText += selectStyle;
-    if (el.parentElement) {
-      el.parentElement.style.cssText += parentStyle;
+    // 翻译开始钩子函数
+    const { transStartHook } = this._rule;
+    if (transStartHook?.trim()) {
+      interpreter.run(`exports.transStartHook = ${transStartHook}`);
+      q = interpreter.exports.transStartHook(el, q);
+    }
+
+    // 终止翻译
+    if (!q) {
+      return;
     }
 
     // 插入译文节点
@@ -564,5 +562,12 @@ export class Translator {
     // 渲染译文节点
     const root = createRoot(traEl);
     root.render(<Content q={q} keeps={keeps} translator={this} $el={el} />);
+
+    // 附加样式
+    const { selectStyle, parentStyle } = this._rule;
+    el.style.cssText += selectStyle;
+    if (el.parentElement) {
+      el.parentElement.style.cssText += parentStyle;
+    }
   };
 }

@@ -14,7 +14,7 @@ import { kissLog } from "../libs/log";
  */
 export function useTranslate(q, rule, setting) {
   const [text, setText] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [sameLang, setSamelang] = useState(false);
 
   const { translator, fromLang, toLang, detectRemote, skipLangs = [] } = rule;
@@ -22,8 +22,6 @@ export function useTranslate(q, rule, setting) {
   useEffect(() => {
     (async () => {
       try {
-        setLoading(true);
-
         if (!q.replace(/\[(\d+)\]/g, "").trim()) {
           setText(q);
           setSamelang(false);
