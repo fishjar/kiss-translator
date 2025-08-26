@@ -413,6 +413,11 @@ export const I18N = {
     en: `Inject Subscribe Rules`,
     zh_TW: `注入訂閱規則`,
   },
+  global_rule: {
+    zh: `全局规则`,
+    en: `Global Rule`,
+    zh_TW: `全域規則`,
+  },
   personal_rules: {
     zh: `个人规则`,
     en: `Rules`,

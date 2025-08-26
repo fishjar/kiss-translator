@@ -696,9 +696,9 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
   );
 }
 
-function RuleAccordion({ rule, rules }) {
+function RuleAccordion({ rule, rules, isExpanded = false }) {
   const i18n = useI18n();
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(isExpanded);
 
   const handleChange = (e) => {
     setExpanded((pre) => !pre);
@@ -767,9 +767,8 @@ function ShareButton({ rules, injectRules, selectedUrl }) {
   );
 }
 
-function UserRules({ subRules }) {
+function UserRules({ subRules, rules }) {
   const i18n = useI18n();
-  const rules = useRules();
   const [showAdd, setShowAdd] = useState(false);
   const { setting, updateSetting } = useSetting();
   const [keyword, setKeyword] = useState("");
@@ -1140,10 +1139,29 @@ function SubRules({ subRules }) {
   );
 }
 
+function GlobalRule({ rules }) {
+  if (!rules.list) {
+    return;
+  }
+
+  const globalRule = rules.list[rules.list.length - 1];
+  return (
+    <Stack spacing={3}>
+      <RuleAccordion
+        key={globalRule.pattern}
+        rule={globalRule}
+        rules={rules}
+        isExpanded={true}
+      />
+    </Stack>
+  );
+}
+
 export default function Rules() {
   const i18n = useI18n();
   const [activeTab, setActiveTab] = useState(0);
   const subRules = useSubRules();
+  const rules = useRules();
 
   const handleTabChange = (e, newValue) => {
     setActiveTab(newValue);
@@ -1162,18 +1180,22 @@ export default function Rules() {
 
         <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
           <Tabs value={activeTab} onChange={handleTabChange}>
+            <Tab label={i18n("global_rule")} />
             <Tab label={i18n("personal_rules")} />
             <Tab label={i18n("subscribe_rules")} />
             <Tab label={i18n("overwrite_subscribe_rules")} />
           </Tabs>
         </Box>
         <div hidden={activeTab !== 0}>
-          {activeTab === 0 && <UserRules subRules={subRules} />}
+          {activeTab === 0 && <GlobalRule rules={rules} />}
         </div>
         <div hidden={activeTab !== 1}>
-          {activeTab === 1 && <SubRules subRules={subRules} />}
+          {activeTab === 1 && <UserRules subRules={subRules} rules={rules} />}
         </div>
-        <div hidden={activeTab !== 2}>{activeTab === 2 && <OwSubRule />}</div>
+        <div hidden={activeTab !== 2}>
+          {activeTab === 2 && <SubRules subRules={subRules} />}
+        </div>
+        <div hidden={activeTab !== 3}>{activeTab === 3 && <OwSubRule />}</div>
       </Stack>
     </Box>
   );
