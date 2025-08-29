@@ -538,11 +538,11 @@ export const DEFAULT_TRANBOX_SETTING = {
 export const DEFAULT_SUBRULES_LIST = [
   {
     url: process.env.REACT_APP_RULESURL,
-    selected: false,
+    selected: true,
   },
   {
     url: process.env.REACT_APP_RULESURL_ON,
-    selected: true,
+    selected: false,
   },
   {
     url: process.env.REACT_APP_RULESURL_OFF,
