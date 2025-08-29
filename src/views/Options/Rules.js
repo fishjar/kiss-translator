@@ -147,6 +147,14 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
     setFormValues(initFormValues);
   };
 
+  const handleRestore = (e) => {
+    e.preventDefault();
+    setFormValues(({ pattern }) => ({
+      ...(pattern === "*" ? GLOBLA_RULE : DEFAULT_RULE),
+      pattern,
+    }));
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     const errors = {};
@@ -664,6 +672,13 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                     startIcon={<CancelIcon />}
                   >
                     {i18n("cancel")}
+                  </Button>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={handleRestore}
+                  >
+                    {i18n("restore_default")}
                   </Button>
                   {ShowMoreButton}
                 </>
