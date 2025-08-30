@@ -152,7 +152,7 @@ export default function Content({ q, keeps, translator, $el }) {
 
     // 翻译完成钩子函数
     interpreter.run(`exports.transEndHook = ${transEndHook}`);
-    return interpreter.exports.transEndHook($el, q, text, keeps);
+    return interpreter.exports.transEndHook($el, text, q, keeps);
   }, [loading, $el, q, text, keeps, transEndHook]);
 
   if (loading) {

@@ -1194,9 +1194,9 @@ export const I18N = {
     zh_TW: `翻譯完成 Hook`,
   },
   translate_end_hook_helper: {
-    zh: `翻译完成时运行，入参为： 翻译节点，原文文本，译文文本，保留元素、术语列表，返回：译文文本。`,
-    en: `Run when the translation is completed, the input parameters are: translation node, original text, translation text, retained elements, and returns: translation text.`,
-    zh_TW: `翻譯完成時執行，入參為：翻譯節點、原文文字、譯文文字、保留元素，返回：譯文文本。`,
+    zh: `翻译完成时运行，入参为： 翻译节点，译文文本，原文文本，保留元素、术语列表，返回：译文文本。`,
+    en: `Run when the translation is completed, the input parameters are: translation node, translation text, original text, retained elements, and returns: translation text.`,
+    zh_TW: `翻譯完成時執行，入參為：翻譯節點、譯文文字、原文文字、保留元素，返回：譯文文本。`,
   },
   translate_remove_hook: {
     zh: `翻译移除钩子函数`,
