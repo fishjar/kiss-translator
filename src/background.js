@@ -2,6 +2,7 @@ import browser from "webextension-polyfill";
 import {
   MSG_FETCH,
   MSG_GET_HTTPCACHE,
+  MSG_PUT_HTTPCACHE,
   MSG_TRANS_TOGGLE,
   MSG_OPEN_OPTIONS,
   MSG_SAVE_RULE,
@@ -21,7 +22,8 @@ import {
 } from "./config";
 import { getSettingWithDefault, tryInitDefaultData } from "./libs/storage";
 import { trySyncSettingAndRules } from "./libs/sync";
-import { fetchHandle, getHttpCache } from "./libs/fetch";
+import { fetchHandle } from "./libs/fetch";
+import { getHttpCache, putHttpCache } from "./libs/cache";
 import { sendTabMsg } from "./libs/msg";
 import { trySyncAllSubRules } from "./libs/subRules";
 import { tryClearCaches } from "./libs";
@@ -190,8 +192,9 @@ browser.runtime.onMessage.addListener(async ({ action, args }) => {
     case MSG_FETCH:
       return await fetchHandle(args);
     case MSG_GET_HTTPCACHE:
-      const { input, init } = args;
-      return await getHttpCache(input, init);
+      return await getHttpCache(args.input, args.init);
+    case MSG_PUT_HTTPCACHE:
+      return await putHttpCache(args.input, args.init, args.data);
     case MSG_OPEN_OPTIONS:
       return await browser.runtime.openOptionsPage();
     case MSG_SAVE_RULE:

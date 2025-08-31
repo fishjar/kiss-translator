@@ -703,9 +703,9 @@ export const I18N = {
     zh_TW: `OpenAI 提示詞`,
   },
   if_clear_cache: {
-    zh: `是否清除缓存`,
-    en: `Whether clear cache`,
-    zh_TW: `是否清除快取`,
+    zh: `是否清除缓存（默认缓存7天）`,
+    en: `Whether clear cache (Default cache is 7 days)`,
+    zh_TW: `是否清除快取（預設快取7天）`,
   },
   clear_cache_never: {
     zh: `不清除缓存`,

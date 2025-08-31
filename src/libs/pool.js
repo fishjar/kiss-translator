@@ -1,3 +1,4 @@
+import { DEFAULT_FETCH_INTERVAL, DEFAULT_FETCH_LIMIT } from "../config";
 import { kissLog } from "./log";
 
 /**
@@ -8,13 +9,7 @@ import { kissLog } from "./log";
  * @param {*} _limit
  * @returns
  */
-export const taskPool = (
-  fn,
-  preFn,
-  _interval = 100,
-  _limit = 100,
-  _retryInteral = 1000
-) => {
+const taskPool = (_interval = 100, _limit = 100, _retryInteral = 1000) => {
   const pool = [];
   const maxRetry = 2; // 最大重试次数
   let maxCount = _limit; // 最大数量
@@ -31,10 +26,9 @@ export const taskPool = (
       const item = pool.shift();
       if (item) {
         curCount++;
-        const { args, resolve, reject, retry } = item;
+        const { fn, args, resolve, reject, retry } = item;
         try {
-          const preArgs = preFn ? await preFn(item.args) : {};
-          const res = await fn({ ...args, ...preArgs });
+          const res = await fn(args);
           resolve(res);
         } catch (err) {
           kissLog(err, "task");
@@ -54,12 +48,12 @@ export const taskPool = (
   };
 
   return {
-    push: async (args) => {
+    push: async (fn, args) => {
       if (!timer) {
         run();
       }
       return new Promise((resolve, reject) => {
-        pool.push({ args, resolve, reject, retry: 0 });
+        pool.push({ fn, args, resolve, reject, retry: 0 });
       });
     },
     update: (_interval = 100, _limit = 100) => {
@@ -77,4 +71,41 @@ export const taskPool = (
       timer = null;
     },
   };
+};
+
+/**
+ * 请求池实例
+ */
+let fetchPool;
+
+/**
+ * 获取请求池实例
+ */
+export const getFetchPool = (interval, limit) => {
+  if (!fetchPool) {
+    fetchPool = taskPool(
+      interval ?? DEFAULT_FETCH_INTERVAL,
+      limit ?? DEFAULT_FETCH_LIMIT
+    );
+  } else if (interval && limit) {
+    updateFetchPool(interval, limit);
+  }
+
+  return fetchPool;
+};
+
+/**
+ * 更新请求池参数
+ * @param {*} interval
+ * @param {*} limit
+ */
+export const updateFetchPool = (interval, limit) => {
+  fetchPool && fetchPool.update(interval, limit);
+};
+
+/**
+ * 清空请求池
+ */
+export const clearFetchPool = () => {
+  fetchPool && fetchPool.clear();
 };

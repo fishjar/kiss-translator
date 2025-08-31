@@ -1,49 +1,19 @@
 import queryString from "query-string";
 import { fetchData } from "../libs/fetch";
 import {
-  OPT_TRANS_GOOGLE,
-  OPT_TRANS_GOOGLE_2,
-  OPT_TRANS_MICROSOFT,
-  OPT_TRANS_DEEPL,
-  OPT_TRANS_DEEPLFREE,
-  OPT_TRANS_DEEPLX,
-  OPT_TRANS_NIUTRANS,
-  OPT_TRANS_BAIDU,
-  OPT_TRANS_TENCENT,
-  OPT_TRANS_VOLCENGINE,
-  OPT_TRANS_OPENAI,
-  OPT_TRANS_OPENAI_2,
-  OPT_TRANS_OPENAI_3,
-  OPT_TRANS_GEMINI,
-  OPT_TRANS_GEMINI_2,
-  OPT_TRANS_CLAUDE,
-  OPT_TRANS_CLOUDFLAREAI,
-  OPT_TRANS_OLLAMA,
-  OPT_TRANS_OLLAMA_2,
-  OPT_TRANS_OLLAMA_3,
-  OPT_TRANS_OPENROUTER,
-  OPT_TRANS_CUSTOMIZE,
-  OPT_TRANS_CUSTOMIZE_2,
-  OPT_TRANS_CUSTOMIZE_3,
-  OPT_TRANS_CUSTOMIZE_4,
-  OPT_TRANS_CUSTOMIZE_5,
   URL_CACHE_TRAN,
   KV_SALT_SYNC,
   URL_GOOGLE_TRAN,
-  URL_MICROSOFT_LANGDETECT,
-  URL_BAIDU_LANGDETECT,
-  URL_BAIDU_SUGGEST,
-  URL_BAIDU_TTS,
   OPT_LANGS_BAIDU,
-  URL_TENCENT_TRANSMART,
   OPT_LANGS_TENCENT,
   OPT_LANGS_SPECIAL,
   OPT_LANGS_MICROSOFT,
 } from "../config";
 import { sha256 } from "../libs/utils";
-import interpreter from "../libs/interpreter";
 import { msAuth } from "../libs/auth";
 import { kissLog } from "../libs/log";
+import { genTransReq, parseTransRes } from "./trans";
+import { getHttpCachePolyfill, putHttpCachePolyfill } from "../libs/cache";
 
 /**
  * 同步数据
@@ -85,14 +55,19 @@ export const apiGoogleLangdetect = async (text) => {
     q: text,
   };
   const input = `${URL_GOOGLE_TRAN}?${queryString.stringify(params)}`;
-  const res = await fetchData(input, {
+  const init = {
     headers: {
       "Content-type": "application/json",
     },
-    useCache: true,
-  });
+  };
+  const res = await fetchData(input, init, { useCache: true });
 
-  return res.src;
+  if (res?.src) {
+    await putHttpCachePolyfill(input, init, res);
+    return res.src;
+  }
+
+  return "";
 };
 
 /**
@@ -102,17 +77,26 @@ export const apiGoogleLangdetect = async (text) => {
  */
 export const apiMicrosoftLangdetect = async (text) => {
   const [token] = await msAuth();
-  const res = await fetchData(URL_MICROSOFT_LANGDETECT, {
+  const input =
+    "https://api-edge.cognitive.microsofttranslator.com/detect?api-version=3.0";
+  const init = {
     headers: {
       "Content-type": "application/json",
       Authorization: `Bearer ${token}`,
     },
     method: "POST",
     body: JSON.stringify([{ Text: text }]),
+  };
+  const res = await fetchData(input, init, {
     useCache: true,
   });
 
-  return OPT_LANGS_MICROSOFT.get(res[0].language) ?? res[0].language;
+  if (res[0].language) {
+    await putHttpCachePolyfill(input, init, res);
+    return OPT_LANGS_MICROSOFT.get(res[0].language) ?? res[0].language;
+  }
+
+  return "";
 };
 
 /**
@@ -121,7 +105,8 @@ export const apiMicrosoftLangdetect = async (text) => {
  * @returns
  */
 export const apiBaiduLangdetect = async (text) => {
-  const res = await fetchData(URL_BAIDU_LANGDETECT, {
+  const input = "https://fanyi.baidu.com/langdetect";
+  const init = {
     headers: {
       "Content-type": "application/json",
     },
@@ -129,10 +114,11 @@ export const apiBaiduLangdetect = async (text) => {
     body: JSON.stringify({
       query: text,
     }),
-    useCache: true,
-  });
+  };
+  const res = await fetchData(input, init, { useCache: true });
 
   if (res.error === 0) {
+    await putHttpCachePolyfill(input, init, res);
     return OPT_LANGS_BAIDU.get(res.lan) ?? res.lan;
   }
 
@@ -145,7 +131,8 @@ export const apiBaiduLangdetect = async (text) => {
  * @returns
  */
 export const apiBaiduSuggest = async (text) => {
-  const res = await fetchData(URL_BAIDU_SUGGEST, {
+  const input = "https://fanyi.baidu.com/sug";
+  const init = {
     headers: {
       "Content-type": "application/json",
     },
@@ -153,10 +140,11 @@ export const apiBaiduSuggest = async (text) => {
     body: JSON.stringify({
       kw: text,
     }),
-    useCache: true,
-  });
+  };
+  const res = await fetchData(input, init, { useCache: true });
 
   if (res.errno === 0) {
+    await putHttpCachePolyfill(input, init, res);
     return res.data;
   }
 
@@ -171,10 +159,8 @@ export const apiBaiduSuggest = async (text) => {
  * @returns
  */
 export const apiBaiduTTS = (text, lan = "uk", spd = 3) => {
-  const url = `${URL_BAIDU_TTS}?${queryString.stringify({ lan, text, spd })}`;
-  return fetchData(url, {
-    useCache: false, // 为避免缓存过快增长，禁用缓存语音数据
-  });
+  const input = `https://fanyi.baidu.com/gettts?${queryString.stringify({ lan, text, spd })}`;
+  return fetchData(input);
 };
 
 /**
@@ -183,23 +169,28 @@ export const apiBaiduTTS = (text, lan = "uk", spd = 3) => {
  * @returns
  */
 export const apiTencentLangdetect = async (text) => {
+  const input = "https://transmart.qq.com/api/imt";
   const body = JSON.stringify({
     header: {
       fn: "text_analysis",
     },
     text,
   });
-
-  const res = await fetchData(URL_TENCENT_TRANSMART, {
+  const init = {
     headers: {
       "Content-type": "application/json",
     },
     method: "POST",
     body,
-    useCache: true,
-  });
+  };
+  const res = await fetchData(input, init, { useCache: true });
 
-  return OPT_LANGS_TENCENT.get(res.language) ?? res.language;
+  if (res.language) {
+    await putHttpCachePolyfill(input, init, res);
+    return OPT_LANGS_TENCENT.get(res.language) ?? res.language;
+  }
+
+  return "";
 };
 
 /**
@@ -216,11 +207,12 @@ export const apiTranslate = async ({
   useCache = true,
   usePool = true,
 }) => {
-  let trText = "";
-  let isSame = false;
+  let cacheInput; // 缓存URL
+  let resCache; // 缓存对象
+  let res; // 翻译接口返回的JSON数据
 
   if (!text) {
-    return [trText, true];
+    return ["", false];
   }
 
   const from =
@@ -229,139 +221,59 @@ export const apiTranslate = async ({
   const to = OPT_LANGS_SPECIAL[translator].get(toLang);
   if (!to) {
     kissLog(`target lang: ${toLang} not support`, "translate");
-    return [trText, isSame];
+    return ["", false];
   }
 
-  // 版本号一/二位升级，旧缓存失效
-  const [v1, v2] = process.env.REACT_APP_VERSION.split(".");
-  const cacheOpts = {
-    translator,
-    text,
-    fromLang,
-    toLang,
-    version: [v1, v2].join("."),
-  };
+  // 查询缓存数据
+  // TODO： 优化缓存失效因素
+  if (useCache) {
+    const [v1, v2] = process.env.REACT_APP_VERSION.split(".");
+    const cacheOpts = {
+      translator,
+      text,
+      fromLang,
+      toLang,
+      userPrompt: apiSetting.userPrompt, // prompt改变，缓存失效
+      model: apiSetting.model, // model改变，缓存失效
+      version: [v1, v2].join("."),
+    };
+    cacheInput = `${URL_CACHE_TRAN}?${queryString.stringify(cacheOpts)}`;
+    resCache = await getHttpCachePolyfill(cacheInput);
+  }
 
-  const transOpts = {
-    translator,
+  // 请求接口数据
+  if (!resCache) {
+    const [input, init] = await genTransReq(translator, {
+      text,
+      from,
+      to,
+      ...apiSetting,
+    });
+    res = await fetchData(input, init, {
+      useCache: false,
+      usePool,
+      fetchInterval: apiSetting.fetchInterval,
+      fetchLimit: apiSetting.fetchLimit,
+      httpTimeout: apiSetting.httpTimeout,
+    });
+  } else {
+    res = resCache;
+  }
+
+  if (!res) {
+    return ["", false];
+  }
+
+  // 解析返回数据
+  const [trText, isSame] = parseTransRes(translator, res, apiSetting, {
     text,
     from,
     to,
-  };
+  });
 
-  const res = await fetchData(
-    `${URL_CACHE_TRAN}?${queryString.stringify(cacheOpts)}`,
-    {
-      useCache,
-      usePool,
-      transOpts,
-      apiSetting,
-    }
-  );
-
-  switch (translator) {
-    case OPT_TRANS_GOOGLE:
-      trText = res.sentences.map((item) => item.trans).join(" ");
-      isSame = to === res.src;
-      break;
-    case OPT_TRANS_GOOGLE_2:
-      trText = res?.[0]?.[0] || "";
-      isSame = to === res.src;
-      break;
-    case OPT_TRANS_MICROSOFT:
-      trText = res
-        .map((item) => item.translations.map((item) => item.text).join(" "))
-        .join(" ");
-      isSame = text === trText;
-      break;
-    case OPT_TRANS_DEEPL:
-      trText = res.translations.map((item) => item.text).join(" ");
-      isSame = to === res.translations[0].detected_source_language;
-      break;
-    case OPT_TRANS_DEEPLFREE:
-      trText = res.result?.texts.map((item) => item.text).join(" ");
-      isSame = to === res.result?.lang;
-      break;
-    case OPT_TRANS_DEEPLX:
-      trText = res.data;
-      isSame = to === res.source_lang;
-      break;
-    case OPT_TRANS_NIUTRANS:
-      const json = JSON.parse(res);
-      if (json.error_msg) {
-        throw new Error(json.error_msg);
-      }
-      trText = json.tgt_text;
-      isSame = to === json.from;
-      break;
-    case OPT_TRANS_BAIDU:
-      // trText = res.trans_result?.data.map((item) => item.dst).join(" ");
-      // isSame = res.trans_result?.to === res.trans_result?.from;
-      if (res.type === 1) {
-        trText = Object.keys(JSON.parse(res.result).content[0].mean[0].cont)[0];
-        isSame = to === res.from;
-      } else if (res.type === 2) {
-        trText = res.data.map((item) => item.dst).join(" ");
-        isSame = to === res.from;
-      }
-      break;
-    case OPT_TRANS_TENCENT:
-      trText = res?.auto_translation?.[0];
-      isSame = text === trText;
-      break;
-    case OPT_TRANS_VOLCENGINE:
-      trText = res?.translation || "";
-      isSame = to === res?.detected_language;
-      break;
-    case OPT_TRANS_OPENAI:
-    case OPT_TRANS_OPENAI_2:
-    case OPT_TRANS_OPENAI_3:
-    case OPT_TRANS_GEMINI_2:
-    case OPT_TRANS_OPENROUTER:
-      trText = res?.choices?.map((item) => item.message.content).join(" ");
-      isSame = text === trText;
-      break;
-    case OPT_TRANS_GEMINI:
-      trText = res?.candidates
-        ?.map((item) => item.content?.parts.map((item) => item.text).join(" "))
-        .join(" ");
-      isSame = text === trText;
-      break;
-    case OPT_TRANS_CLAUDE:
-      trText = res?.content?.map((item) => item.text).join(" ");
-      isSame = text === trText;
-      break;
-    case OPT_TRANS_CLOUDFLAREAI:
-      trText = res?.result?.translated_text;
-      isSame = text === trText;
-      break;
-    case OPT_TRANS_OLLAMA:
-    case OPT_TRANS_OLLAMA_2:
-    case OPT_TRANS_OLLAMA_3:
-      const { thinkIgnore = "" } = apiSetting;
-      const deepModels = thinkIgnore.split(",").filter((model) => model.trim());
-      if (deepModels.some((model) => res?.model?.startsWith(model))) {
-        trText = res?.response.replace(/<think>[\s\S]*<\/think>/i, "");
-      } else {
-        trText = res?.response;
-      }
-      isSame = text === trText;
-      break;
-    case OPT_TRANS_CUSTOMIZE:
-    case OPT_TRANS_CUSTOMIZE_2:
-    case OPT_TRANS_CUSTOMIZE_3:
-    case OPT_TRANS_CUSTOMIZE_4:
-    case OPT_TRANS_CUSTOMIZE_5:
-      const { resHook } = apiSetting;
-      if (resHook?.trim()) {
-        interpreter.run(`exports.resHook = ${resHook}`);
-        [trText, isSame] = interpreter.exports.resHook(res, text, from, to);
-      } else {
-        trText = res.text;
-        isSame = to === res.from;
-      }
-      break;
-    default:
+  // 插入缓存
+  if (useCache && !resCache && trText) {
+    await putHttpCachePolyfill(cacheInput, null, res);
   }
 
   return [trText, isSame, res];

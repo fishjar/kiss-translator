@@ -629,9 +629,7 @@ const genCustom = ({ text, from, to, url, key, reqHook }) => {
  * @param {*}
  * @returns
  */
-export const genTransReq = ({ translator, text, from, to }, apiSetting) => {
-  const args = { text, from, to, ...apiSetting };
-
+export const genTransReq = (translator, args) => {
   switch (translator) {
     case OPT_TRANS_DEEPL:
     case OPT_TRANS_OPENAI:
@@ -707,4 +705,129 @@ export const genTransReq = ({ translator, text, from, to }, apiSetting) => {
     default:
       throw new Error(`[trans] translator: ${translator} not support`);
   }
+};
+
+/**
+ * 解析翻译接口返回数据
+ * @param {*} translator
+ * @param {*} res
+ * @param {*} apiSetting
+ * @param {*} param3
+ * @returns
+ */
+export const parseTransRes = (
+  translator,
+  res,
+  apiSetting,
+  { text, from, to }
+) => {
+  let trText = ""; // 返回的译文
+  let isSame = false; // 译文与原文语言是否相同
+
+  switch (translator) {
+    case OPT_TRANS_GOOGLE:
+      trText = res.sentences.map((item) => item.trans).join(" ");
+      isSame = to === res.src;
+      break;
+    case OPT_TRANS_GOOGLE_2:
+      trText = res?.[0]?.[0] || "";
+      isSame = to === res.src;
+      break;
+    case OPT_TRANS_MICROSOFT:
+      trText = res
+        .map((item) => item.translations.map((item) => item.text).join(" "))
+        .join(" ");
+      isSame = text === trText;
+      break;
+    case OPT_TRANS_DEEPL:
+      trText = res.translations.map((item) => item.text).join(" ");
+      isSame = to === res.translations[0].detected_source_language;
+      break;
+    case OPT_TRANS_DEEPLFREE:
+      trText = res.result?.texts.map((item) => item.text).join(" ");
+      isSame = to === res.result?.lang;
+      break;
+    case OPT_TRANS_DEEPLX:
+      trText = res.data;
+      isSame = to === res.source_lang;
+      break;
+    case OPT_TRANS_NIUTRANS:
+      const json = JSON.parse(res);
+      if (json.error_msg) {
+        throw new Error(json.error_msg);
+      }
+      trText = json.tgt_text;
+      isSame = to === json.from;
+      break;
+    case OPT_TRANS_BAIDU:
+      // trText = res.trans_result?.data.map((item) => item.dst).join(" ");
+      // isSame = res.trans_result?.to === res.trans_result?.from;
+      if (res.type === 1) {
+        trText = Object.keys(JSON.parse(res.result).content[0].mean[0].cont)[0];
+        isSame = to === res.from;
+      } else if (res.type === 2) {
+        trText = res.data.map((item) => item.dst).join(" ");
+        isSame = to === res.from;
+      }
+      break;
+    case OPT_TRANS_TENCENT:
+      trText = res?.auto_translation?.[0];
+      isSame = text === trText;
+      break;
+    case OPT_TRANS_VOLCENGINE:
+      trText = res?.translation || "";
+      isSame = to === res?.detected_language;
+      break;
+    case OPT_TRANS_OPENAI:
+    case OPT_TRANS_OPENAI_2:
+    case OPT_TRANS_OPENAI_3:
+    case OPT_TRANS_GEMINI_2:
+    case OPT_TRANS_OPENROUTER:
+      trText = res?.choices?.map((item) => item.message.content).join(" ");
+      isSame = text === trText;
+      break;
+    case OPT_TRANS_GEMINI:
+      trText = res?.candidates
+        ?.map((item) => item.content?.parts.map((item) => item.text).join(" "))
+        .join(" ");
+      isSame = text === trText;
+      break;
+    case OPT_TRANS_CLAUDE:
+      trText = res?.content?.map((item) => item.text).join(" ");
+      isSame = text === trText;
+      break;
+    case OPT_TRANS_CLOUDFLAREAI:
+      trText = res?.result?.translated_text;
+      isSame = text === trText;
+      break;
+    case OPT_TRANS_OLLAMA:
+    case OPT_TRANS_OLLAMA_2:
+    case OPT_TRANS_OLLAMA_3:
+      const { thinkIgnore = "" } = apiSetting;
+      const deepModels = thinkIgnore.split(",").filter((model) => model.trim());
+      if (deepModels.some((model) => res?.model?.startsWith(model))) {
+        trText = res?.response.replace(/<think>[\s\S]*<\/think>/i, "");
+      } else {
+        trText = res?.response;
+      }
+      isSame = text === trText;
+      break;
+    case OPT_TRANS_CUSTOMIZE:
+    case OPT_TRANS_CUSTOMIZE_2:
+    case OPT_TRANS_CUSTOMIZE_3:
+    case OPT_TRANS_CUSTOMIZE_4:
+    case OPT_TRANS_CUSTOMIZE_5:
+      const { resHook } = apiSetting;
+      if (resHook?.trim()) {
+        interpreter.run(`exports.resHook = ${resHook}`);
+        [trText, isSame] = interpreter.exports.resHook(res, text, from, to);
+      } else {
+        trText = res.text;
+        isSame = to === res.from;
+      }
+      break;
+    default:
+  }
+
+  return [trText, isSame];
 };

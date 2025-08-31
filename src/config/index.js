@@ -58,6 +58,7 @@ export const CACHE_NAME = `${APP_NAME}_cache`;
 
 export const MSG_FETCH = "fetch";
 export const MSG_GET_HTTPCACHE = "get_httpcache";
+export const MSG_PUT_HTTPCACHE = "put_httpcache";
 export const MSG_OPEN_OPTIONS = "open_options";
 export const MSG_SAVE_RULE = "save_rule";
 export const MSG_TRANS_TOGGLE = "trans_toggle";
@@ -551,6 +552,7 @@ export const DEFAULT_SUBRULES_LIST = [
 ];
 
 export const DEFAULT_HTTP_TIMEOUT = 5000; // 调用超时时间
+export const DEFAULT_CACHE_TIMEOUT = 3600 * 24 * 7; // 缓存超时时间(7天)
 
 // 翻译接口
 const defaultCustomApi = {
