@@ -43,14 +43,14 @@ export default function TranCont({
 
         const apiSetting =
           transApis[translator] || DEFAULT_TRANS_APIS[translator];
-        const tranRes = await apiTranslate({
+        const [trText] = await apiTranslate({
           text,
           translator,
           fromLang,
           toLang: to,
           apiSetting,
         });
-        setTrText(tranRes[0]);
+        setTrText(trText);
       } catch (err) {
         setError(err.message);
       } finally {

@@ -1,5 +1,4 @@
 import { getMsauth, setMsauth } from "./storage";
-import { URL_MICROSOFT_AUTH } from "../config";
 import { fetchData } from "./fetch";
 import { kissLog } from "./log";
 
@@ -35,7 +34,7 @@ const _msAuth = () => {
     }
 
     // 缓存没有或失效，查询接口
-    token = await fetchData(URL_MICROSOFT_AUTH);
+    token = await fetchData("https://edge.microsoft.com/translate/auth");
     exp = parseMSToken(token);
     await setMsauth({ token, exp });
     return [token, exp];

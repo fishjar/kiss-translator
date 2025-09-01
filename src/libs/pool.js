@@ -3,10 +3,9 @@ import { kissLog } from "./log";
 
 /**
  * 任务池
- * @param {*} fn
- * @param {*} preFn
  * @param {*} _interval
  * @param {*} _limit
+ * @param {*} _retryInteral
  * @returns
  */
 const taskPool = (_interval = 100, _limit = 100, _retryInteral = 1000) => {
@@ -80,6 +79,9 @@ let fetchPool;
 
 /**
  * 获取请求池实例
+ * @param {*} interval
+ * @param {*} limit
+ * @returns
  */
 export const getFetchPool = (interval, limit) => {
   if (!fetchPool) {

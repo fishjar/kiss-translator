@@ -1,5 +1,5 @@
 import queryString from "query-string";
-import { URL_BAIDU_TRANSAPI, DEFAULT_USER_AGENT } from "../config";
+import { DEFAULT_USER_AGENT } from "../config";
 
 export const genBaidu = async ({ text, from, to }) => {
   const data = {
@@ -9,6 +9,7 @@ export const genBaidu = async ({ text, from, to }) => {
     source: "txt",
   };
 
+  const input = "https://fanyi.baidu.com/transapi";
   const init = {
     headers: {
       // Origin: "https://fanyi.baidu.com",
@@ -19,5 +20,5 @@ export const genBaidu = async ({ text, from, to }) => {
     body: queryString.stringify(data),
   };
 
-  return [URL_BAIDU_TRANSAPI, init];
+  return [input, init];
 };

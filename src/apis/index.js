@@ -3,7 +3,6 @@ import { fetchData } from "../libs/fetch";
 import {
   URL_CACHE_TRAN,
   KV_SALT_SYNC,
-  URL_GOOGLE_TRAN,
   OPT_LANGS_BAIDU,
   OPT_LANGS_TENCENT,
   OPT_LANGS_SPECIAL,
@@ -54,7 +53,7 @@ export const apiGoogleLangdetect = async (text) => {
     tl: "zh-CN",
     q: text,
   };
-  const input = `${URL_GOOGLE_TRAN}?${queryString.stringify(params)}`;
+  const input = `https://translate.googleapis.com/translate_a/single?${queryString.stringify(params)}`;
   const init = {
     headers: {
       "Content-type": "application/json",

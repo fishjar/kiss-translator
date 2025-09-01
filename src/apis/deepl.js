@@ -1,5 +1,3 @@
-import { URL_DEEPLFREE_TRAN } from "../config";
-
 let id = 1e4 * Math.round(1e4 * Math.random());
 
 export const genDeeplFree = ({ text, from, to }) => {
@@ -37,6 +35,7 @@ export const genDeeplFree = ({ text, from, to }) => {
     (id + 3) % 13 === 0 || (id + 5) % 29 === 0 ? 'method" : "' : 'method": "'
   );
 
+  const input = "https://www2.deepl.com/jsonrpc";
   const init = {
     headers: {
       "Content-Type": "application/json",
@@ -54,5 +53,5 @@ export const genDeeplFree = ({ text, from, to }) => {
     body,
   };
 
-  return [URL_DEEPLFREE_TRAN, init];
+  return [input, init];
 };

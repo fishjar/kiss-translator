@@ -26,9 +26,6 @@ import {
   OPT_TRANS_CUSTOMIZE_3,
   OPT_TRANS_CUSTOMIZE_4,
   OPT_TRANS_CUSTOMIZE_5,
-  URL_MICROSOFT_TRAN,
-  URL_TENCENT_TRANSMART,
-  URL_VOLCENGINE_TRAN,
   INPUT_PLACE_URL,
   INPUT_PLACE_FROM,
   INPUT_PLACE_TO,
@@ -107,7 +104,7 @@ const genMicrosoft = async ({ text, from, to }) => {
     to,
     "api-version": "3.0",
   };
-  const input = `${URL_MICROSOFT_TRAN}?${queryString.stringify(params)}`;
+  const input = `https://api-edge.cognitive.microsofttranslator.com/translate?${queryString.stringify(params)}`;
   const init = {
     headers: {
       "Content-type": "application/json",
@@ -199,6 +196,7 @@ const genTencent = ({ text, from, to }) => {
     },
   };
 
+  const input = "https://transmart.qq.com/api/imt";
   const init = {
     headers: {
       "Content-Type": "application/json",
@@ -210,7 +208,7 @@ const genTencent = ({ text, from, to }) => {
     body: JSON.stringify(data),
   };
 
-  return [URL_TENCENT_TRANSMART, init];
+  return [input, init];
 };
 
 const genVolcengine = ({ text, from, to }) => {
@@ -220,6 +218,7 @@ const genVolcengine = ({ text, from, to }) => {
     text: text,
   };
 
+  const input = "https://translate.volcengine.com/crx/translate/v1";
   const init = {
     headers: {
       "Content-type": "application/json",
@@ -228,7 +227,7 @@ const genVolcengine = ({ text, from, to }) => {
     body: JSON.stringify(data),
   };
 
-  return [URL_VOLCENGINE_TRAN, init];
+  return [input, init];
 };
 
 const genOpenAI = ({

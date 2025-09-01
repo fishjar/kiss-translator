@@ -31,7 +31,6 @@ import {
   OPT_TRANS_CUSTOMIZE_4,
   OPT_TRANS_CUSTOMIZE_5,
   OPT_TRANS_NIUTRANS,
-  URL_NIUTRANS_REG,
   DEFAULT_FETCH_LIMIT,
   DEFAULT_FETCH_INTERVAL,
   DEFAULT_HTTP_TIMEOUT,
@@ -201,7 +200,10 @@ function ApiFields({ translator, api, updateApi, resetApi }) {
     translator === OPT_TRANS_NIUTRANS ? (
       <>
         {i18n("mulkeys_help")}
-        <Link href={URL_NIUTRANS_REG} target="_blank">
+        <Link
+          href="https://niutrans.com/login?active=3&userSource=kiss-translator"
+          target="_blank"
+        >
           {i18n("reg_niutrans")}
         </Link>
       </>
