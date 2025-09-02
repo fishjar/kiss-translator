@@ -24,6 +24,7 @@ import { isExt } from "./client";
 import { injectInlineJs, injectInternalCss } from "./injector";
 import { kissLog } from "./log";
 import interpreter from "./interpreter";
+import { clearAllBatchQueue } from "./batchQueue";
 
 /**
  * 翻译类
@@ -54,6 +55,7 @@ export class Translator {
   _keepSelector = "";
   _terms = [];
   _docTitle = "";
+  _docDescription = "";
 
   // 显示
   _interseObserver = new IntersectionObserver(
@@ -95,6 +97,11 @@ export class Translator {
     });
   });
 
+  _getDocDescription = () => {
+    const meta = document.querySelector('meta[name="description"]');
+    return meta ? meta.getAttribute("content") : "";
+  };
+
   // 插入 shadowroot
   _overrideAttachShadow = () => {
     const _this = this;
@@ -110,6 +117,8 @@ export class Translator {
 
     this._setting = setting;
     this._rule = rule;
+    this._docTitle = document.title;
+    this._docDescription = this._getDocDescription();
 
     this._keepSelector = rule.keepSelector || "";
     this._terms = (rule.terms || "")
@@ -124,6 +133,13 @@ export class Translator {
 
   get setting() {
     return this._setting;
+  }
+
+  get docInfo() {
+    return {
+      title: this._docTitle,
+      description: this._docDescription,
+    };
   }
 
   get eventName() {
@@ -426,6 +442,7 @@ export class Translator {
 
     // 清空任务池
     clearFetchPool();
+    clearAllBatchQueue();
   };
 
   _removeInjector = () => {

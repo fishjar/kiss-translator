@@ -12,7 +12,7 @@ import { kissLog } from "../libs/log";
  * @param {*} setting
  * @returns
  */
-export function useTranslate(q, rule, setting) {
+export function useTranslate(q, rule, setting, docInfo) {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
   const [sameLang, setSamelang] = useState(false);
@@ -48,6 +48,7 @@ export function useTranslate(q, rule, setting) {
               ...DEFAULT_TRANS_APIS[translator],
               ...(setting.transApis[translator] || {}),
             },
+            docInfo,
           });
           setText(trText);
           setSamelang(isSame);
@@ -58,7 +59,16 @@ export function useTranslate(q, rule, setting) {
         setLoading(false);
       }
     })();
-  }, [q, translator, fromLang, toLang, detectRemote, skipLangs, setting]);
+  }, [
+    q,
+    translator,
+    fromLang,
+    toLang,
+    detectRemote,
+    skipLangs,
+    setting,
+    docInfo,
+  ]);
 
   return { text, sameLang, loading };
 }

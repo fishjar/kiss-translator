@@ -26,6 +26,7 @@ export default function DictCont({ text }) {
           return;
         }
 
+        // todo
         const dictRes = await apiTranslate({
           text,
           translator: OPT_TRANS_BAIDU,

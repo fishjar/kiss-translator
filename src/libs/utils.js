@@ -289,3 +289,16 @@ export const parseJsonObj = (str) => {
 
   return {};
 };
+
+/**
+ * 提取json内容
+ * @param {*} s
+ * @returns
+ */
+export const extractJson = (raw) => {
+  if (!raw) return "{}";
+
+  let s = raw.replace(/^\s*```(?:json)?\s*/i, "").replace(/\s*```\s*$/i, "");
+  const match = s.match(/\{[\s\S]*\}/);
+  return match ? match[0] : "{}";
+};

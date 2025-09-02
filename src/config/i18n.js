@@ -1228,4 +1228,24 @@ export const I18N = {
     en: `If translate selected`,
     zh_TW: `是否啟用劃詞翻譯`,
   },
+  is_batch_fetch: {
+    zh: `是否聚合发送翻译请求`,
+    en: `Whether to aggregate and send translation requests`,
+    zh_TW: `是否聚合發送翻譯請求`,
+  },
+  batch_interval: {
+    zh: `聚合请求等待时间(100-5000)`,
+    en: `Aggregation request waiting time (100-5000)`,
+    zh_TW: `聚合請求等待時間(100-5000)`,
+  },
+  batch_size: {
+    zh: `聚合请求最大段落数(1-100)`,
+    en: `Maximum number of paragraphs in an aggregation request (1-100)`,
+    zh_TW: `聚合請求最大段落數(1-100)`,
+  },
+  batch_length: {
+    zh: `聚合请求最大文本长度(500-50000)`,
+    en: `Maximum text length for aggregation requests (500-50000)`,
+    zh_TW: `聚合請求最大文字長度(500-50000)`,
+  },
 };

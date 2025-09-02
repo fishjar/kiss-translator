@@ -26,7 +26,6 @@ import {
   OPT_TRANS_CUSTOMIZE_3,
   OPT_TRANS_CUSTOMIZE_4,
   OPT_TRANS_CUSTOMIZE_5,
-  INPUT_PLACE_URL,
   INPUT_PLACE_FROM,
   INPUT_PLACE_TO,
   INPUT_PLACE_TEXT,
@@ -37,7 +36,9 @@ import { msAuth } from "../libs/auth";
 import { genDeeplFree } from "./deepl";
 import { genBaidu } from "./baidu";
 import interpreter from "../libs/interpreter";
-import { parseJsonObj } from "../libs/utils";
+import { parseJsonObj, extractJson } from "../libs/utils";
+import { kissLog } from "../libs/log";
+import { fetchData } from "../libs/fetch";
 
 const keyMap = new Map();
 const urlMap = new Map();
@@ -60,7 +61,48 @@ const keyPick = (translator, key = "", cacheMap) => {
   return keys[curIndex];
 };
 
-const genGoogle = ({ text, from, to, url, key }) => {
+const genSystemPrompt = ({ systemPrompt, from, to }) =>
+  systemPrompt
+    .replaceAll(INPUT_PLACE_FROM, from)
+    .replaceAll(INPUT_PLACE_TO, to);
+
+const genUserPrompt = ({ userPrompt, from, to, texts, docInfo }) => {
+  const prompt = JSON.stringify({
+    targetLanguage: to,
+    title: docInfo.title,
+    description: docInfo.description,
+    segments: texts.map((text, i) => ({ id: i, text })),
+  });
+
+  if (userPrompt.includes(INPUT_PLACE_TEXT)) {
+    return userPrompt
+      .replaceAll(INPUT_PLACE_FROM, from)
+      .replaceAll(INPUT_PLACE_TO, to)
+      .replaceAll(INPUT_PLACE_TEXT, prompt);
+  }
+
+  return prompt;
+};
+
+const parseTranslations = (raw) => {
+  let data;
+
+  try {
+    const jsonString = extractJson(raw);
+    data = JSON.parse(jsonString);
+  } catch (err) {
+    kissLog(err, "parseTranslations");
+    data = { translations: [] };
+  }
+
+  if (!Array.isArray(data.translations)) {
+    data.translations = [];
+  }
+
+  return data.translations.map((item) => [item.text]);
+};
+
+const genGoogle = ({ texts, from, to, url, key }) => {
   const params = {
     client: "gtx",
     dt: "t",
@@ -68,7 +110,7 @@ const genGoogle = ({ text, from, to, url, key }) => {
     ie: "UTF-8",
     sl: from,
     tl: to,
-    q: text,
+    q: texts.join(" "),
   };
   const input = `${url}?${queryString.stringify(params)}`;
   const init = {
@@ -83,8 +125,8 @@ const genGoogle = ({ text, from, to, url, key }) => {
   return [input, init];
 };
 
-const genGoogle2 = ({ text, from, to, url, key }) => {
-  const body = JSON.stringify([[[text], from, to], "wt_lib"]);
+const genGoogle2 = ({ texts, from, to, url, key }) => {
+  const body = JSON.stringify([[texts, from, to], "wt_lib"]);
   const init = {
     method: "POST",
     headers: {
@@ -97,7 +139,7 @@ const genGoogle2 = ({ text, from, to, url, key }) => {
   return [url, init];
 };
 
-const genMicrosoft = async ({ text, from, to }) => {
+const genMicrosoft = async ({ texts, from, to }) => {
   const [token] = await msAuth();
   const params = {
     from,
@@ -111,15 +153,15 @@ const genMicrosoft = async ({ text, from, to }) => {
       Authorization: `Bearer ${token}`,
     },
     method: "POST",
-    body: JSON.stringify([{ Text: text }]),
+    body: JSON.stringify(texts.map((text) => ({ Text: text }))),
   };
 
   return [input, init];
 };
 
-const genDeepl = ({ text, from, to, url, key }) => {
+const genDeepl = ({ texts, from, to, url, key }) => {
   const data = {
-    text: [text],
+    text: texts,
     target_lang: to,
     source_lang: from,
     // split_sentences: "0",
@@ -136,9 +178,9 @@ const genDeepl = ({ text, from, to, url, key }) => {
   return [url, init];
 };
 
-const genDeeplX = ({ text, from, to, url, key }) => {
+const genDeeplX = ({ texts, from, to, url, key }) => {
   const data = {
-    text,
+    text: texts.join(" "),
     target_lang: to,
     source_lang: from,
   };
@@ -157,12 +199,12 @@ const genDeeplX = ({ text, from, to, url, key }) => {
   return [url, init];
 };
 
-const genNiuTrans = ({ text, from, to, url, key, dictNo, memoryNo }) => {
+const genNiuTrans = ({ texts, from, to, url, key, dictNo, memoryNo }) => {
   const data = {
     from,
     to,
     apikey: key,
-    src_text: text,
+    src_text: texts.join(" "),
     dictNo,
     memoryNo,
   };
@@ -178,7 +220,7 @@ const genNiuTrans = ({ text, from, to, url, key, dictNo, memoryNo }) => {
   return [url, init];
 };
 
-const genTencent = ({ text, from, to }) => {
+const genTencent = ({ texts, from, to }) => {
   const data = {
     header: {
       fn: "auto_translation",
@@ -188,7 +230,7 @@ const genTencent = ({ text, from, to }) => {
     type: "plain",
     model_category: "normal",
     source: {
-      text_list: [text],
+      text_list: texts,
       lang: from,
     },
     target: {
@@ -211,11 +253,11 @@ const genTencent = ({ text, from, to }) => {
   return [input, init];
 };
 
-const genVolcengine = ({ text, from, to }) => {
+const genVolcengine = ({ texts, from, to }) => {
   const data = {
     source_language: from,
     target_language: to,
-    text: text,
+    text: texts.join(" "),
   };
 
   const input = "https://translate.volcengine.com/crx/translate/v1";
@@ -231,7 +273,7 @@ const genVolcengine = ({ text, from, to }) => {
 };
 
 const genOpenAI = ({
-  text,
+  texts,
   from,
   to,
   url,
@@ -243,21 +285,10 @@ const genOpenAI = ({
   maxTokens,
   customHeader,
   customBody,
+  docInfo,
 }) => {
-  // 兼容历史上作为systemPrompt的prompt，如果prompt中不包含带翻译文本，则添加文本到prompt末尾
-  // if (!prompt.includes(INPUT_PLACE_TEXT)) {
-  //   prompt += `\nSource Text: ${INPUT_PLACE_TEXT}`;
-  // }
-  systemPrompt = systemPrompt
-    .replaceAll(INPUT_PLACE_FROM, from)
-    .replaceAll(INPUT_PLACE_TO, to)
-    .replaceAll(INPUT_PLACE_TEXT, text);
-  userPrompt = userPrompt
-    .replaceAll(INPUT_PLACE_FROM, from)
-    .replaceAll(INPUT_PLACE_TO, to)
-    .replaceAll(INPUT_PLACE_TEXT, text);
-
-  // TODO: 同时支持json对象和hook函数
+  systemPrompt = genSystemPrompt({ systemPrompt, from, to });
+  userPrompt = genUserPrompt({ userPrompt, from, to, texts, docInfo });
   customHeader = parseJsonObj(customHeader);
   customBody = parseJsonObj(customBody);
 
@@ -293,7 +324,7 @@ const genOpenAI = ({
 };
 
 const genGemini = ({
-  text,
+  texts,
   from,
   to,
   url,
@@ -305,19 +336,13 @@ const genGemini = ({
   maxTokens,
   customHeader,
   customBody,
+  docInfo,
 }) => {
   url = url
     .replaceAll(INPUT_PLACE_MODEL, model)
     .replaceAll(INPUT_PLACE_KEY, key);
-  systemPrompt = systemPrompt
-    .replaceAll(INPUT_PLACE_FROM, from)
-    .replaceAll(INPUT_PLACE_TO, to)
-    .replaceAll(INPUT_PLACE_TEXT, text);
-  userPrompt = userPrompt
-    .replaceAll(INPUT_PLACE_FROM, from)
-    .replaceAll(INPUT_PLACE_TO, to)
-    .replaceAll(INPUT_PLACE_TEXT, text);
-
+  systemPrompt = genSystemPrompt({ systemPrompt, from, to });
+  userPrompt = genUserPrompt({ userPrompt, from, to, texts, docInfo });
   customHeader = parseJsonObj(customHeader);
   customBody = parseJsonObj(customBody);
 
@@ -355,7 +380,7 @@ const genGemini = ({
 };
 
 const genGemini2 = ({
-  text,
+  texts,
   from,
   to,
   url,
@@ -367,16 +392,10 @@ const genGemini2 = ({
   maxTokens,
   customHeader,
   customBody,
+  docInfo,
 }) => {
-  systemPrompt = systemPrompt
-    .replaceAll(INPUT_PLACE_FROM, from)
-    .replaceAll(INPUT_PLACE_TO, to)
-    .replaceAll(INPUT_PLACE_TEXT, text);
-  userPrompt = userPrompt
-    .replaceAll(INPUT_PLACE_FROM, from)
-    .replaceAll(INPUT_PLACE_TO, to)
-    .replaceAll(INPUT_PLACE_TEXT, text);
-
+  systemPrompt = genSystemPrompt({ systemPrompt, from, to });
+  userPrompt = genUserPrompt({ userPrompt, from, to, texts, docInfo });
   customHeader = parseJsonObj(customHeader);
   customBody = parseJsonObj(customBody);
 
@@ -411,7 +430,7 @@ const genGemini2 = ({
 };
 
 const genClaude = ({
-  text,
+  texts,
   from,
   to,
   url,
@@ -423,16 +442,10 @@ const genClaude = ({
   maxTokens,
   customHeader,
   customBody,
+  docInfo,
 }) => {
-  systemPrompt = systemPrompt
-    .replaceAll(INPUT_PLACE_FROM, from)
-    .replaceAll(INPUT_PLACE_TO, to)
-    .replaceAll(INPUT_PLACE_TEXT, text);
-  userPrompt = userPrompt
-    .replaceAll(INPUT_PLACE_FROM, from)
-    .replaceAll(INPUT_PLACE_TO, to)
-    .replaceAll(INPUT_PLACE_TEXT, text);
-
+  systemPrompt = genSystemPrompt({ systemPrompt, from, to });
+  userPrompt = genUserPrompt({ userPrompt, from, to, texts, docInfo });
   customHeader = parseJsonObj(customHeader);
   customBody = parseJsonObj(customBody);
 
@@ -466,7 +479,7 @@ const genClaude = ({
 };
 
 const genOpenRouter = ({
-  text,
+  texts,
   from,
   to,
   url,
@@ -478,16 +491,10 @@ const genOpenRouter = ({
   maxTokens,
   customHeader,
   customBody,
+  docInfo,
 }) => {
-  systemPrompt = systemPrompt
-    .replaceAll(INPUT_PLACE_FROM, from)
-    .replaceAll(INPUT_PLACE_TO, to)
-    .replaceAll(INPUT_PLACE_TEXT, text);
-  userPrompt = userPrompt
-    .replaceAll(INPUT_PLACE_FROM, from)
-    .replaceAll(INPUT_PLACE_TO, to)
-    .replaceAll(INPUT_PLACE_TEXT, text);
-
+  systemPrompt = genSystemPrompt({ systemPrompt, from, to });
+  userPrompt = genUserPrompt({ userPrompt, from, to, texts, docInfo });
   customHeader = parseJsonObj(customHeader);
   customBody = parseJsonObj(customBody);
 
@@ -522,7 +529,7 @@ const genOpenRouter = ({
 };
 
 const genOllama = ({
-  text,
+  texts,
   from,
   to,
   think,
@@ -533,16 +540,10 @@ const genOllama = ({
   model,
   customHeader,
   customBody,
+  docInfo,
 }) => {
-  systemPrompt = systemPrompt
-    .replaceAll(INPUT_PLACE_FROM, from)
-    .replaceAll(INPUT_PLACE_TO, to)
-    .replaceAll(INPUT_PLACE_TEXT, text);
-  userPrompt = userPrompt
-    .replaceAll(INPUT_PLACE_FROM, from)
-    .replaceAll(INPUT_PLACE_TO, to)
-    .replaceAll(INPUT_PLACE_TEXT, text);
-
+  systemPrompt = genSystemPrompt({ systemPrompt, from, to });
+  userPrompt = genUserPrompt({ userPrompt, from, to, texts, docInfo });
   customHeader = parseJsonObj(customHeader);
   customBody = parseJsonObj(customBody);
 
@@ -570,9 +571,9 @@ const genOllama = ({
   return [url, init];
 };
 
-const genCloudflareAI = ({ text, from, to, url, key }) => {
+const genCloudflareAI = ({ texts, from, to, url, key }) => {
   const data = {
-    text,
+    text: texts.join(" "),
     source_lang: from,
     target_lang: to,
   };
@@ -589,36 +590,21 @@ const genCloudflareAI = ({ text, from, to, url, key }) => {
   return [url, init];
 };
 
-const genCustom = ({ text, from, to, url, key, reqHook }) => {
-  url = url
-    .replaceAll(INPUT_PLACE_URL, url)
-    .replaceAll(INPUT_PLACE_FROM, from)
-    .replaceAll(INPUT_PLACE_TO, to)
-    .replaceAll(INPUT_PLACE_TEXT, text)
-    .replaceAll(INPUT_PLACE_KEY, key);
-  let init = {};
-
+const genCustom = ({ texts, from, to, url, key, reqHook, docInfo }) => {
   if (reqHook?.trim()) {
     interpreter.run(`exports.reqHook = ${reqHook}`);
-    [url, init] = interpreter.exports.reqHook(text, from, to, url, key);
-    return [url, init];
+    return interpreter.exports.reqHook({ texts, from, to, url, key, docInfo });
   }
 
-  const data = {
-    text,
-    from,
-    to,
-  };
-  init = {
+  const data = { texts, from, to };
+  const init = {
     headers: {
       "Content-type": "application/json",
+      Authorization: `Bearer ${key}`,
     },
     method: "POST",
     body: JSON.stringify(data),
   };
-  if (key) {
-    init.headers.Authorization = `Bearer ${key}`;
-  }
 
   return [url, init];
 };
@@ -710,123 +696,138 @@ export const genTransReq = (translator, args) => {
  * 解析翻译接口返回数据
  * @param {*} translator
  * @param {*} res
- * @param {*} apiSetting
  * @param {*} param3
  * @returns
  */
 export const parseTransRes = (
   translator,
   res,
-  apiSetting,
-  { text, from, to }
+  { texts, from, to, resHook }
 ) => {
-  let trText = ""; // 返回的译文
-  let isSame = false; // 译文与原文语言是否相同
-
   switch (translator) {
     case OPT_TRANS_GOOGLE:
-      trText = res.sentences.map((item) => item.trans).join(" ");
-      isSame = to === res.src;
-      break;
+      return [[res?.sentences?.map((item) => item.trans).join(" "), res?.src]];
     case OPT_TRANS_GOOGLE_2:
-      trText = res?.[0]?.[0] || "";
-      isSame = to === res.src;
-      break;
+      return res?.[0]?.map((_, i) => [res?.[0]?.[i], res?.[1]?.[i]]);
     case OPT_TRANS_MICROSOFT:
-      trText = res
-        .map((item) => item.translations.map((item) => item.text).join(" "))
-        .join(" ");
-      isSame = text === trText;
-      break;
+      return res?.map((item) => [
+        item.translations.map((item) => item.text).join(" "),
+        item.detectedLanguage.language,
+      ]);
     case OPT_TRANS_DEEPL:
-      trText = res.translations.map((item) => item.text).join(" ");
-      isSame = to === res.translations[0].detected_source_language;
-      break;
+      return res?.translations?.map((item) => [
+        item.text,
+        item.detected_source_language,
+      ]);
     case OPT_TRANS_DEEPLFREE:
-      trText = res.result?.texts.map((item) => item.text).join(" ");
-      isSame = to === res.result?.lang;
-      break;
+      return [
+        [
+          res?.result?.texts?.map((item) => item.text).join(" "),
+          res?.result?.lang,
+        ],
+      ];
     case OPT_TRANS_DEEPLX:
-      trText = res.data;
-      isSame = to === res.source_lang;
-      break;
+      return [[res?.data, res?.source_lang]];
     case OPT_TRANS_NIUTRANS:
       const json = JSON.parse(res);
       if (json.error_msg) {
         throw new Error(json.error_msg);
       }
-      trText = json.tgt_text;
-      isSame = to === json.from;
-      break;
+      return [[json.tgt_text, json.from]];
     case OPT_TRANS_BAIDU:
-      // trText = res.trans_result?.data.map((item) => item.dst).join(" ");
-      // isSame = res.trans_result?.to === res.trans_result?.from;
       if (res.type === 1) {
-        trText = Object.keys(JSON.parse(res.result).content[0].mean[0].cont)[0];
-        isSame = to === res.from;
+        return [
+          [
+            Object.keys(JSON.parse(res.result).content[0].mean[0].cont)[0],
+            res.from,
+          ],
+        ];
       } else if (res.type === 2) {
-        trText = res.data.map((item) => item.dst).join(" ");
-        isSame = to === res.from;
+        return [[res.data.map((item) => item.dst).join(" "), res.from]];
       }
       break;
     case OPT_TRANS_TENCENT:
-      trText = res?.auto_translation?.[0];
-      isSame = text === trText;
-      break;
+      return res?.auto_translation?.map((text) => [text, res?.src_lang]);
     case OPT_TRANS_VOLCENGINE:
-      trText = res?.translation || "";
-      isSame = to === res?.detected_language;
-      break;
+      return new Map([[0, [res?.translation, res?.detected_language]]]);
     case OPT_TRANS_OPENAI:
     case OPT_TRANS_OPENAI_2:
     case OPT_TRANS_OPENAI_3:
     case OPT_TRANS_GEMINI_2:
     case OPT_TRANS_OPENROUTER:
-      trText = res?.choices?.map((item) => item.message.content).join(" ");
-      isSame = text === trText;
-      break;
+      return parseTranslations(res?.choices?.[0]?.message?.content ?? "");
     case OPT_TRANS_GEMINI:
-      trText = res?.candidates
-        ?.map((item) => item.content?.parts.map((item) => item.text).join(" "))
-        .join(" ");
-      isSame = text === trText;
-      break;
+      return parseTranslations(
+        res?.candidates?.[0]?.content?.parts?.[0]?.text ?? ""
+      );
     case OPT_TRANS_CLAUDE:
-      trText = res?.content?.map((item) => item.text).join(" ");
-      isSame = text === trText;
-      break;
+      return parseTranslations(res?.content?.[0]?.text ?? "");
     case OPT_TRANS_CLOUDFLAREAI:
-      trText = res?.result?.translated_text;
-      isSame = text === trText;
-      break;
+      return [[res?.result?.translated_text]];
     case OPT_TRANS_OLLAMA:
     case OPT_TRANS_OLLAMA_2:
     case OPT_TRANS_OLLAMA_3:
-      const { thinkIgnore = "" } = apiSetting;
-      const deepModels = thinkIgnore.split(",").filter((model) => model.trim());
-      if (deepModels.some((model) => res?.model?.startsWith(model))) {
-        trText = res?.response.replace(/<think>[\s\S]*<\/think>/i, "");
-      } else {
-        trText = res?.response;
-      }
-      isSame = text === trText;
-      break;
+      // const deepModels = thinkIgnore.split(",").filter((model) => model.trim());
+      // if (deepModels.some((model) => res?.model?.startsWith(model))) {
+      //   trText = res?.response.replace(/<think>[\s\S]*<\/think>/i, "");
+      // } else {
+      //   trText = res?.response;
+      // }
+      return parseTranslations(res?.response ?? "");
     case OPT_TRANS_CUSTOMIZE:
     case OPT_TRANS_CUSTOMIZE_2:
     case OPT_TRANS_CUSTOMIZE_3:
     case OPT_TRANS_CUSTOMIZE_4:
     case OPT_TRANS_CUSTOMIZE_5:
-      const { resHook } = apiSetting;
       if (resHook?.trim()) {
         interpreter.run(`exports.resHook = ${resHook}`);
-        [trText, isSame] = interpreter.exports.resHook(res, text, from, to);
+        return interpreter.exports.resHook({ res, texts, from, to });
       } else {
-        trText = res.text;
-        isSame = to === res.from;
+        return res?.map((item) => [item.text, item.src]);
       }
-      break;
     default:
   }
 
-  return [trText, isSame];
+  return [];
+};
+
+/**
+ * 发送翻译请求并解析
+ * @param {*} param0
+ * @returns
+ */
+export const fetchTranslate = async ({
+  translator,
+  texts,
+  from,
+  to,
+  docInfo,
+  apiSetting,
+  usePool,
+}) => {
+  const [input, init] = await genTransReq(translator, {
+    texts,
+    from,
+    to,
+    docInfo,
+    ...apiSetting,
+  });
+
+  const res = await fetchData(input, init, {
+    useCache: false,
+    usePool,
+    fetchInterval: apiSetting.fetchInterval,
+    fetchLimit: apiSetting.fetchLimit,
+    httpTimeout: apiSetting.httpTimeout,
+  });
+  if (!res) {
+    throw new Error("tranlate got empty response");
+  }
+
+  return parseTransRes(translator, res, {
+    texts,
+    from,
+    to,
+    ...apiSetting,
+  });
 };

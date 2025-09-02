@@ -71,6 +71,7 @@ export default function FavWords() {
     const tranList = [];
     for (const text of downloadList) {
       try {
+        // todo
         const dictRes = await apiTranslate({
           text,
           translator: OPT_TRANS_BAIDU,

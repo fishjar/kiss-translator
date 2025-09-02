@@ -7,12 +7,14 @@ import {
   OPT_LANGS_TENCENT,
   OPT_LANGS_SPECIAL,
   OPT_LANGS_MICROSOFT,
+  OPT_TRANS_BATCH,
 } from "../config";
 import { sha256 } from "../libs/utils";
 import { msAuth } from "../libs/auth";
 import { kissLog } from "../libs/log";
-import { genTransReq, parseTransRes } from "./trans";
+import { fetchTranslate } from "./trans";
 import { getHttpCachePolyfill, putHttpCachePolyfill } from "../libs/cache";
+import { getBatchQueue } from "../libs/batchQueue";
 
 /**
  * 同步数据
@@ -203,13 +205,10 @@ export const apiTranslate = async ({
   fromLang,
   toLang,
   apiSetting = {},
+  docInfo = {},
   useCache = true,
   usePool = true,
 }) => {
-  let cacheInput; // 缓存URL
-  let resCache; // 缓存对象
-  let res; // 翻译接口返回的JSON数据
-
   if (!text) {
     return ["", false];
   }
@@ -223,57 +222,59 @@ export const apiTranslate = async ({
     return ["", false];
   }
 
+  // TODO: 优化缓存失效因素
+  const [v1, v2] = process.env.REACT_APP_VERSION.split(".");
+  const cacheOpts = {
+    translator,
+    text,
+    fromLang,
+    toLang,
+    model: apiSetting.model, // model改变，缓存失效
+    version: [v1, v2].join("."),
+  };
+  const cacheInput = `${URL_CACHE_TRAN}?${queryString.stringify(cacheOpts)}`;
+
   // 查询缓存数据
-  // TODO： 优化缓存失效因素
   if (useCache) {
-    const [v1, v2] = process.env.REACT_APP_VERSION.split(".");
-    const cacheOpts = {
-      translator,
-      text,
-      fromLang,
-      toLang,
-      userPrompt: apiSetting.userPrompt, // prompt改变，缓存失效
-      model: apiSetting.model, // model改变，缓存失效
-      version: [v1, v2].join("."),
-    };
-    cacheInput = `${URL_CACHE_TRAN}?${queryString.stringify(cacheOpts)}`;
-    resCache = await getHttpCachePolyfill(cacheInput);
+    const cache = (await getHttpCachePolyfill(cacheInput)) || {};
+    if (cache.trText) {
+      return [cache.trText, cache.isSame];
+    }
   }
 
   // 请求接口数据
-  if (!resCache) {
-    const [input, init] = await genTransReq(translator, {
-      text,
+  let trText = "";
+  let srLang = "";
+  if (apiSetting.isBatchFetch && OPT_TRANS_BATCH.has(translator)) {
+    const queue = getBatchQueue(
+      { translator, from, to, docInfo, apiSetting, usePool },
+      apiSetting
+    );
+    const tranlation = await queue.addTask({ text });
+    if (Array.isArray(tranlation)) {
+      [trText, srLang = ""] = tranlation;
+    }
+  } else {
+    const translations = await fetchTranslate({
+      translator,
+      texts: [text],
       from,
       to,
-      ...apiSetting,
-    });
-    res = await fetchData(input, init, {
-      useCache: false,
+      docInfo,
+      apiSetting,
       usePool,
-      fetchInterval: apiSetting.fetchInterval,
-      fetchLimit: apiSetting.fetchLimit,
-      httpTimeout: apiSetting.httpTimeout,
     });
-  } else {
-    res = resCache;
+    if (Array.isArray(translations?.[0])) {
+      [trText, srLang = ""] = translations[0];
+    }
   }
 
-  if (!res) {
-    return ["", false];
-  }
-
-  // 解析返回数据
-  const [trText, isSame] = parseTransRes(translator, res, apiSetting, {
-    text,
-    from,
-    to,
-  });
+  const isSame = srLang && (to.includes(srLang) || srLang.includes(to));
 
   // 插入缓存
-  if (useCache && !resCache && trText) {
-    await putHttpCachePolyfill(cacheInput, null, res);
+  if (useCache && trText) {
+    await putHttpCachePolyfill(cacheInput, null, { trText, isSame, srLang });
   }
 
-  return [trText, isSame, res];
+  return [trText, isSame];
 };

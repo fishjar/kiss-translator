@@ -1,6 +1,9 @@
 export const DEFAULT_HTTP_TIMEOUT = 10000; // 调用超时时间
 export const DEFAULT_FETCH_LIMIT = 10; // 默认最大任务数量
 export const DEFAULT_FETCH_INTERVAL = 100; // 默认任务间隔时间
+export const DEFAULT_BATCH_INTERVAL = 1000; // 批处理请求间隔时间
+export const DEFAULT_BATCH_SIZE = 10; // 每次最多发送段落数量
+export const DEFAULT_BATCH_LENGTH = 10000; // 每次发送最大文字数量
 
 export const INPUT_PLACE_URL = "{{url}}"; // 占位符
 export const INPUT_PLACE_FROM = "{{from}}"; // 占位符
@@ -65,6 +68,28 @@ export const OPT_TRANS_ALL = [
   OPT_TRANS_CUSTOMIZE_4,
   OPT_TRANS_CUSTOMIZE_5,
 ];
+
+export const OPT_TRANS_BATCH = new Set([
+  OPT_TRANS_GOOGLE_2,
+  OPT_TRANS_MICROSOFT,
+  OPT_TRANS_TENCENT,
+  OPT_TRANS_DEEPL,
+  OPT_TRANS_OPENAI,
+  OPT_TRANS_OPENAI_2,
+  OPT_TRANS_OPENAI_3,
+  OPT_TRANS_GEMINI,
+  OPT_TRANS_GEMINI_2,
+  OPT_TRANS_CLAUDE,
+  OPT_TRANS_OLLAMA,
+  OPT_TRANS_OLLAMA_2,
+  OPT_TRANS_OLLAMA_3,
+  OPT_TRANS_OPENROUTER,
+  OPT_TRANS_CUSTOMIZE,
+  OPT_TRANS_CUSTOMIZE_2,
+  OPT_TRANS_CUSTOMIZE_3,
+  OPT_TRANS_CUSTOMIZE_4,
+  OPT_TRANS_CUSTOMIZE_5,
+]);
 
 export const OPT_LANGDETECTOR_ALL = [
   OPT_TRANS_GOOGLE,
@@ -247,23 +272,18 @@ export const OPT_LANGS_SPECIAL = {
   ]),
   [OPT_TRANS_CUSTOMIZE]: new Map([
     ...OPT_LANGS_FROM.map(([key]) => [key, key]),
-    ["auto", ""],
   ]),
   [OPT_TRANS_CUSTOMIZE_2]: new Map([
     ...OPT_LANGS_FROM.map(([key]) => [key, key]),
-    ["auto", ""],
   ]),
   [OPT_TRANS_CUSTOMIZE_3]: new Map([
     ...OPT_LANGS_FROM.map(([key]) => [key, key]),
-    ["auto", ""],
   ]),
   [OPT_TRANS_CUSTOMIZE_4]: new Map([
     ...OPT_LANGS_FROM.map(([key]) => [key, key]),
-    ["auto", ""],
   ]),
   [OPT_TRANS_CUSTOMIZE_5]: new Map([
     ...OPT_LANGS_FROM.map(([key]) => [key, key]),
-    ["auto", ""],
   ]),
 };
 export const OPT_LANGS_LIST = OPT_LANGS_TO.map(([lang]) => lang);
@@ -294,8 +314,30 @@ const defaultApi = {
   url: "",
   key: "",
   model: "", // 模型名称
-  systemPrompt: `You are a professional, authentic machine translation engine.`,
-  userPrompt: `Translate the following source text from ${INPUT_PLACE_FROM} to ${INPUT_PLACE_TO}. Output translation directly without any additional text.\n\nSource Text: ${INPUT_PLACE_TEXT}\n\nTranslated Text:`,
+  systemPrompt: `You are a translation API.
+
+Output:
+- Return one raw JSON object only.
+- Start with "{" and end with "}".
+- No fences or extra text.
+
+Input JSON:
+{"targetLanguage":"<lang>","title":"<title>","description":"<desc>","segments":[{"id":1,"text":"..."}]}
+
+Output JSON:
+{"translations":[{"id":1,"text":"...","sourceLanguage":"<detected-language>"}]}
+
+Rules:
+1. Use title/description as context only, do not output them.
+2. Keep ids/order/count.
+3. Translate inner text only, not HTML tags.
+4. Do not translate <code>, <pre>, backticks, or terms like React, Docker, JavaScript, API.
+5. Preserve whitespace & entities.
+6. Automatically detect the source language of each segment and add it in the "sourceLanguage" field.
+7. Empty/unchanged input → unchanged.
+
+Fail-safe: {"translations":[]}`,
+  userPrompt: `${INPUT_PLACE_TEXT}`,
   customHeader: "",
   customBody: "",
   reqHook: "", // request 钩子函数
@@ -303,28 +345,31 @@ const defaultApi = {
   fetchLimit: DEFAULT_FETCH_LIMIT, // 最大请求数量
   fetchInterval: DEFAULT_FETCH_INTERVAL, // 请求间隔时间
   httpTimeout: DEFAULT_HTTP_TIMEOUT, // 请求超时时间
+  batchInterval: DEFAULT_BATCH_INTERVAL, // 批处理请求间隔时间
+  batchSize: DEFAULT_BATCH_SIZE, // 每次最多发送段落数量
+  batchLength: DEFAULT_BATCH_LENGTH, // 每次发送最大文字数量
+  isBatchFetch: false, // 是否启用聚合发送请求
+  isRichText: false, // 是否启用富文本翻译
+  isContext: false, // 是否启用智能上下文
   temperature: 0,
-  maxTokens: 2048,
+  maxTokens: 20480,
   think: false,
   thinkIgnore: "qwen3,deepseek-r1",
   isDisabled: false, // 是否不显示
 };
 const defaultCustomApi = {
   ...defaultApi,
+  url: "https://translate.googleapis.com/translate_a/single?client=gtx&dj=1&dt=t&ie=UTF-8&q={{text}}&sl=en&tl=zh-CN",
   reqHook: `// Request Hook
-(text, from, to, url, key) => [
-  url,
-  {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: \`Bearer \${key}\`,
-    },
-    method: "GET",
-    body: JSON.stringify({ text, from, to }),
+(text, from, to, url, key) => [url, {
+  headers: {
+      "Content-type": "application/json",
   },
-];`,
+  method: "GET",
+  body: null,
+}]`,
   resHook: `// Response Hook
-(res, text, from, to) => [res.text, to === res.src];`,
+(res, text, from, to) => [res.sentences.map((item) => item.trans).join(" "), to === res.src]`,
 };
 const defaultOpenaiApi = {
   ...defaultApi,
@@ -350,11 +395,13 @@ export const DEFAULT_TRANS_APIS = {
     apiName: OPT_TRANS_GOOGLE_2,
     url: "https://translate-pa.googleapis.com/v1/translateHtml",
     key: "AIzaSyATBXajvzQLTDHEQbcpq0Ihe0vWDHmO520",
+    isBatchFetch: true,
   },
   [OPT_TRANS_MICROSOFT]: {
     ...defaultApi,
     apiSlug: OPT_TRANS_MICROSOFT,
     apiName: OPT_TRANS_MICROSOFT,
+    isBatchFetch: true,
   },
   [OPT_TRANS_BAIDU]: {
     ...defaultApi,
@@ -365,6 +412,7 @@ export const DEFAULT_TRANS_APIS = {
     ...defaultApi,
     apiSlug: OPT_TRANS_TENCENT,
     apiName: OPT_TRANS_TENCENT,
+    isBatchFetch: true,
   },
   [OPT_TRANS_VOLCENGINE]: {
     ...defaultApi,
@@ -376,7 +424,7 @@ export const DEFAULT_TRANS_APIS = {
     apiSlug: OPT_TRANS_DEEPL,
     apiName: OPT_TRANS_DEEPL,
     url: "https://api-free.deepl.com/v2/translate",
-    fetchLimit: 1,
+    isBatchFetch: true,
   },
   [OPT_TRANS_DEEPLFREE]: {
     ...defaultApi,

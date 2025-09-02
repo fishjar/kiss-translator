@@ -34,6 +34,10 @@ import {
   DEFAULT_FETCH_LIMIT,
   DEFAULT_FETCH_INTERVAL,
   DEFAULT_HTTP_TIMEOUT,
+  OPT_TRANS_BATCH,
+  DEFAULT_BATCH_INTERVAL,
+  DEFAULT_BATCH_SIZE,
+  DEFAULT_BATCH_LENGTH,
 } from "../../config";
 import { useState } from "react";
 import { useI18n } from "../../hooks/I18n";
@@ -140,6 +144,10 @@ function ApiFields({ translator, api, updateApi, resetApi }) {
     maxTokens = 256,
     apiName = "",
     isDisabled = false,
+    isBatchFetch = false,
+    batchInterval = DEFAULT_BATCH_INTERVAL,
+    batchSize = DEFAULT_BATCH_SIZE,
+    batchLength = DEFAULT_BATCH_LENGTH,
   } = api;
 
   const handleChange = (e) => {
@@ -159,6 +167,15 @@ function ApiFields({ translator, api, updateApi, resetApi }) {
         break;
       case "maxTokens":
         value = limitNumber(value, 0, 2 ** 15);
+        break;
+      case "batchInterval":
+        value = limitNumber(value, 100, 5000);
+        break;
+      case "batchSize":
+        value = limitNumber(value, 1, 100);
+        break;
+      case "batchLength":
+        value = limitNumber(value, 500, 50000);
         break;
       default:
     }
@@ -391,6 +408,50 @@ function ApiFields({ translator, api, updateApi, resetApi }) {
             multiline
             maxRows={10}
           />
+        </>
+      )}
+
+      {OPT_TRANS_BATCH.has(translator) && (
+        <>
+          <TextField
+            select
+            size="small"
+            name="isBatchFetch"
+            value={isBatchFetch}
+            label={i18n("is_batch_fetch")}
+            onChange={handleChange}
+          >
+            <MenuItem value={false}>{i18n("disable")}</MenuItem>
+            <MenuItem value={true}>{i18n("enable")}</MenuItem>
+          </TextField>
+          {isBatchFetch && (
+            <>
+              <TextField
+                size="small"
+                label={i18n("batch_interval")}
+                type="number"
+                name="batchInterval"
+                value={batchInterval}
+                onChange={handleChange}
+              />
+              <TextField
+                size="small"
+                label={i18n("batch_size")}
+                type="number"
+                name="batchSize"
+                value={batchSize}
+                onChange={handleChange}
+              />
+              <TextField
+                size="small"
+                label={i18n("batch_length")}
+                type="number"
+                name="batchLength"
+                value={batchLength}
+                onChange={handleChange}
+              />
+            </>
+          )}
         </>
       )}
 

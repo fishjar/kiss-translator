@@ -1,11 +1,11 @@
 import queryString from "query-string";
 import { DEFAULT_USER_AGENT } from "../config";
 
-export const genBaidu = async ({ text, from, to }) => {
+export const genBaidu = async ({ texts, from, to }) => {
   const data = {
     from,
     to,
-    query: text,
+    query: texts.join(" "),
     source: "txt",
   };
 

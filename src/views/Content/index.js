@@ -98,7 +98,12 @@ const StyledSpan = styled("span")`
 
 export default function Content({ q, keeps, translator, $el }) {
   const [rule, setRule] = useState(translator.rule);
-  const { text, sameLang, loading } = useTranslate(q, rule, translator.setting);
+  const { text, sameLang, loading } = useTranslate(
+    q,
+    rule,
+    translator.setting,
+    translator.docInfo
+  );
   const {
     transOpen,
     textStyle,

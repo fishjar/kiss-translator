@@ -1,6 +1,7 @@
 let id = 1e4 * Math.round(1e4 * Math.random());
 
-export const genDeeplFree = ({ text, from, to }) => {
+export const genDeeplFree = ({ texts, from, to }) => {
+  const text = texts.join(" ");
   const iCount = (text.match(/[i]/g) || []).length + 1;
   let timestamp = Date.now();
   timestamp = timestamp + (iCount - (timestamp % iCount));
