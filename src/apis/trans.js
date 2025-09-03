@@ -84,14 +84,14 @@ const genUserPrompt = ({ userPrompt, from, to, texts, docInfo }) => {
   return prompt;
 };
 
-const parseTranslations = (raw) => {
+const parseAIRes = (raw) => {
   let data;
 
   try {
     const jsonString = extractJson(raw);
     data = JSON.parse(jsonString);
   } catch (err) {
-    kissLog(err, "parseTranslations");
+    kissLog(err, "parseAIRes");
     data = { translations: [] };
   }
 
@@ -755,13 +755,11 @@ export const parseTransRes = (
     case OPT_TRANS_OPENAI_3:
     case OPT_TRANS_GEMINI_2:
     case OPT_TRANS_OPENROUTER:
-      return parseTranslations(res?.choices?.[0]?.message?.content ?? "");
+      return parseAIRes(res?.choices?.[0]?.message?.content ?? "");
     case OPT_TRANS_GEMINI:
-      return parseTranslations(
-        res?.candidates?.[0]?.content?.parts?.[0]?.text ?? ""
-      );
+      return parseAIRes(res?.candidates?.[0]?.content?.parts?.[0]?.text ?? "");
     case OPT_TRANS_CLAUDE:
-      return parseTranslations(res?.content?.[0]?.text ?? "");
+      return parseAIRes(res?.content?.[0]?.text ?? "");
     case OPT_TRANS_CLOUDFLAREAI:
       return [[res?.result?.translated_text]];
     case OPT_TRANS_OLLAMA:
@@ -773,7 +771,7 @@ export const parseTransRes = (
       // } else {
       //   trText = res?.response;
       // }
-      return parseTranslations(res?.response ?? "");
+      return parseAIRes(res?.response ?? "");
     case OPT_TRANS_CUSTOMIZE:
     case OPT_TRANS_CUSTOMIZE_2:
     case OPT_TRANS_CUSTOMIZE_3:
