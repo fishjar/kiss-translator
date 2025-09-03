@@ -1234,9 +1234,9 @@ export const I18N = {
     zh_TW: `是否聚合發送翻譯請求`,
   },
   batch_interval: {
-    zh: `聚合请求等待时间(100-5000)`,
-    en: `Aggregation request waiting time (100-5000)`,
-    zh_TW: `聚合請求等待時間(100-5000)`,
+    zh: `聚合请求等待时间(100-10000)`,
+    en: `Aggregation request waiting time (100-10000)`,
+    zh_TW: `聚合請求等待時間(100-10000)`,
   },
   batch_size: {
     zh: `聚合请求最大段落数(1-100)`,
@@ -1244,8 +1244,8 @@ export const I18N = {
     zh_TW: `聚合請求最大段落數(1-100)`,
   },
   batch_length: {
-    zh: `聚合请求最大文本长度(500-50000)`,
-    en: `Maximum text length for aggregation requests (500-50000)`,
-    zh_TW: `聚合請求最大文字長度(500-50000)`,
+    zh: `聚合请求最大文本长度(1000-100000)`,
+    en: `Maximum text length for aggregation requests (1000-100000)`,
+    zh_TW: `聚合請求最大文字長度(1000-100000)`,
   },
 };

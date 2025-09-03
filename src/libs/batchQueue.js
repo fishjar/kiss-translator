@@ -1,3 +1,9 @@
+import {
+  DEFAULT_BATCH_INTERVAL,
+  DEFAULT_BATCH_SIZE,
+  DEFAULT_BATCH_LENGTH,
+} from "../../config";
+
 /**
  * 批处理队列
  * @param {*} args
@@ -6,7 +12,11 @@
  */
 const batchQueue = (
   { taskFn, ...args },
-  { batchInterval = 1000, batchSize = 10, batchLength = 10000 } = {}
+  {
+    batchInterval = DEFAULT_BATCH_INTERVAL,
+    batchSize = DEFAULT_BATCH_SIZE,
+    batchLength = DEFAULT_BATCH_LENGTH,
+  } = {}
 ) => {
   const queue = [];
   let isProcessing = false;

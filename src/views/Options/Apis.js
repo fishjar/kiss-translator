@@ -169,13 +169,13 @@ function ApiFields({ translator, api, updateApi, resetApi }) {
         value = limitNumber(value, 0, 2 ** 15);
         break;
       case "batchInterval":
-        value = limitNumber(value, 100, 5000);
+        value = limitNumber(value, 100, 10000);
         break;
       case "batchSize":
         value = limitNumber(value, 1, 100);
         break;
       case "batchLength":
-        value = limitNumber(value, 500, 50000);
+        value = limitNumber(value, 1000, 100000);
         break;
       default:
     }
