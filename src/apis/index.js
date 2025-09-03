@@ -247,7 +247,15 @@ export const apiTranslate = async ({
   let srLang = "";
   if (apiSetting.isBatchFetch && OPT_TRANS_BATCH.has(translator)) {
     const queue = getBatchQueue(
-      { translator, from, to, docInfo, apiSetting, usePool },
+      {
+        translator,
+        from,
+        to,
+        docInfo,
+        apiSetting,
+        usePool,
+        taskFn: fetchTranslate,
+      },
       apiSetting
     );
     const tranlation = await queue.addTask({ text });

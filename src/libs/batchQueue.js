@@ -1,13 +1,11 @@
-import { fetchTranslate } from "../apis/trans";
-
 /**
  * 批处理队列
- * @param {*} translator
+ * @param {*} args
  * @param {*} param1
  * @returns
  */
 const batchQueue = (
-  { translator, from, to, docInfo, apiSetting, usePool },
+  { taskFn, ...args },
   { batchInterval = 1000, batchSize = 10, batchLength = 10000 } = {}
 ) => {
   const queue = [];
@@ -16,14 +14,9 @@ const batchQueue = (
 
   const sendBatchRequest = async (payloads) => {
     const texts = payloads.map((item) => item.text);
-    return fetchTranslate({
-      translator,
+    return taskFn({
+      ...args,
       texts,
-      from,
-      to,
-      docInfo,
-      apiSetting,
-      usePool,
     });
   };
 
