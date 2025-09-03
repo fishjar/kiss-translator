@@ -379,7 +379,7 @@ const defaultOpenaiApi = {
 };
 const defaultOllamaApi = {
   ...defaultApi,
-  url: "http://localhost:11434/api/generate",
+  url: "http://localhost:11434/v1/chat/completions",
   model: "llama3.1",
 };
 export const DEFAULT_TRANS_APIS = {

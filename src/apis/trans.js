@@ -554,6 +554,8 @@ const genOllama = ({
   systemPrompt,
   userPrompt,
   model,
+  temperature,
+  maxTokens,
   customHeader,
   customBody,
   docInfo,
@@ -565,9 +567,19 @@ const genOllama = ({
 
   const data = {
     model,
-    system: systemPrompt,
-    prompt: userPrompt,
-    think: think,
+    messages: [
+      {
+        role: "system",
+        content: systemPrompt,
+      },
+      {
+        role: "user",
+        content: userPrompt,
+      },
+    ],
+    temperature,
+    max_tokens: maxTokens,
+    think,
     stream: false,
     ...customBody,
   };
