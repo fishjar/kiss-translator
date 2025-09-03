@@ -4,6 +4,7 @@ export const DEFAULT_FETCH_INTERVAL = 100; // 默认任务间隔时间
 export const DEFAULT_BATCH_INTERVAL = 1000; // 批处理请求间隔时间
 export const DEFAULT_BATCH_SIZE = 10; // 每次最多发送段落数量
 export const DEFAULT_BATCH_LENGTH = 10000; // 每次发送最大文字数量
+export const DEFAULT_CONTEXT_SIZE = 3; // 上下文会话数量
 
 export const INPUT_PLACE_URL = "{{url}}"; // 占位符
 export const INPUT_PLACE_FROM = "{{from}}"; // 占位符
@@ -69,11 +70,31 @@ export const OPT_TRANS_ALL = [
   OPT_TRANS_CUSTOMIZE_5,
 ];
 
+// 可使用批处理的翻译引擎
 export const OPT_TRANS_BATCH = new Set([
   OPT_TRANS_GOOGLE_2,
   OPT_TRANS_MICROSOFT,
   OPT_TRANS_TENCENT,
   OPT_TRANS_DEEPL,
+  OPT_TRANS_OPENAI,
+  OPT_TRANS_OPENAI_2,
+  OPT_TRANS_OPENAI_3,
+  OPT_TRANS_GEMINI,
+  OPT_TRANS_GEMINI_2,
+  OPT_TRANS_CLAUDE,
+  OPT_TRANS_OLLAMA,
+  OPT_TRANS_OLLAMA_2,
+  OPT_TRANS_OLLAMA_3,
+  OPT_TRANS_OPENROUTER,
+  OPT_TRANS_CUSTOMIZE,
+  OPT_TRANS_CUSTOMIZE_2,
+  OPT_TRANS_CUSTOMIZE_3,
+  OPT_TRANS_CUSTOMIZE_4,
+  OPT_TRANS_CUSTOMIZE_5,
+]);
+
+// 可使用上下文的翻译引擎
+export const OPT_TRANS_CONTEXT = new Set([
   OPT_TRANS_OPENAI,
   OPT_TRANS_OPENAI_2,
   OPT_TRANS_OPENAI_3,
@@ -344,13 +365,14 @@ Fail-safe: {"translations":[]}`,
   resHook: "", // response 钩子函数
   fetchLimit: DEFAULT_FETCH_LIMIT, // 最大请求数量
   fetchInterval: DEFAULT_FETCH_INTERVAL, // 请求间隔时间
-  httpTimeout: DEFAULT_HTTP_TIMEOUT, // 请求超时时间
+  httpTimeout: DEFAULT_HTTP_TIMEOUT * 30, // 请求超时时间
   batchInterval: DEFAULT_BATCH_INTERVAL, // 批处理请求间隔时间
   batchSize: DEFAULT_BATCH_SIZE, // 每次最多发送段落数量
   batchLength: DEFAULT_BATCH_LENGTH, // 每次发送最大文字数量
   useBatchFetch: false, // 是否启用聚合发送请求
   useRichText: false, // 是否启用富文本翻译
   useContext: false, // 是否启用智能上下文
+  contextSize: DEFAULT_CONTEXT_SIZE, // 智能上下文保留会话数
   temperature: 0,
   maxTokens: 20480,
   think: false,

@@ -67,13 +67,13 @@ export default function Settings() {
         value = limitNumber(value, 1, 100);
         break;
       case "maxLength":
-        value = limitNumber(value, 100, 10000);
+        value = limitNumber(value, 100, 100000);
         break;
       case "newlineLength":
         value = limitNumber(value, 1, 1000);
         break;
       case "httpTimeout":
-        value = limitNumber(value, 5000, 30000);
+        value = limitNumber(value, 5000, 60000);
         break;
       case "touchTranslate":
         value = limitNumber(value, 0, 4);

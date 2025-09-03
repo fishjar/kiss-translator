@@ -2,7 +2,7 @@ import {
   DEFAULT_BATCH_INTERVAL,
   DEFAULT_BATCH_SIZE,
   DEFAULT_BATCH_LENGTH,
-} from "../../config";
+} from "../config";
 
 /**
  * 批处理队列
@@ -10,7 +10,7 @@ import {
  * @param {*} param1
  * @returns
  */
-const batchQueue = (
+const BatchQueue = (
   { taskFn, ...args },
   {
     batchInterval = DEFAULT_BATCH_INTERVAL,
@@ -141,7 +141,7 @@ export const getBatchQueue = (args, opts) => {
     return queueMap.get(key);
   }
 
-  const queue = batchQueue(args, opts);
+  const queue = BatchQueue(args, opts);
   queueMap.set(key, queue);
   return queue;
 };
@@ -150,7 +150,7 @@ export const getBatchQueue = (args, opts) => {
  * 清除所有任务
  */
 export const clearAllBatchQueue = () => {
-  for (const queue of queueMap.entries()) {
+  for (const queue of queueMap.values()) {
     queue.destroy();
   }
 };

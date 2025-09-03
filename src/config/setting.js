@@ -19,7 +19,7 @@ export const DEFAULT_SHORTCUTS = {
 };
 
 export const TRANS_MIN_LENGTH = 5; // 最短翻译长度
-export const TRANS_MAX_LENGTH = 5000; // 最长翻译长度
+export const TRANS_MAX_LENGTH = 10000; // 最长翻译长度
 export const TRANS_NEWLINE_LENGTH = 20; // 换行字符数
 export const DEFAULT_BLACKLIST = [
   "https://fishjar.github.io/kiss-translator/options.html",

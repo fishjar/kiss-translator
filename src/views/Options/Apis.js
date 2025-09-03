@@ -35,9 +35,11 @@ import {
   DEFAULT_FETCH_INTERVAL,
   DEFAULT_HTTP_TIMEOUT,
   OPT_TRANS_BATCH,
+  OPT_TRANS_CONTEXT,
   DEFAULT_BATCH_INTERVAL,
   DEFAULT_BATCH_SIZE,
   DEFAULT_BATCH_LENGTH,
+  DEFAULT_CONTEXT_SIZE,
 } from "../../config";
 import { useState } from "react";
 import { useI18n } from "../../hooks/I18n";
@@ -148,6 +150,8 @@ function ApiFields({ translator, api, updateApi, resetApi }) {
     batchInterval = DEFAULT_BATCH_INTERVAL,
     batchSize = DEFAULT_BATCH_SIZE,
     batchLength = DEFAULT_BATCH_LENGTH,
+    useContext = false,
+    contextSize = DEFAULT_CONTEXT_SIZE,
   } = api;
 
   const handleChange = (e) => {
@@ -160,7 +164,7 @@ function ApiFields({ translator, api, updateApi, resetApi }) {
         value = limitNumber(value, 0, 5000);
         break;
       case "httpTimeout":
-        value = limitNumber(value, 5000, 30000);
+        value = limitNumber(value, 5000, 60000);
         break;
       case "temperature":
         value = limitFloat(value, 0, 2);
@@ -176,6 +180,9 @@ function ApiFields({ translator, api, updateApi, resetApi }) {
         break;
       case "batchLength":
         value = limitNumber(value, 1000, 100000);
+        break;
+      case "contextSize":
+        value = limitNumber(value, 1, 20);
         break;
       default:
     }
@@ -451,6 +458,32 @@ function ApiFields({ translator, api, updateApi, resetApi }) {
                 onChange={handleChange}
               />
             </>
+          )}
+        </>
+      )}
+
+      {OPT_TRANS_CONTEXT.has(translator) && (
+        <>
+          <TextField
+            select
+            size="small"
+            name="useContext"
+            value={useContext}
+            label={i18n("use_context")}
+            onChange={handleChange}
+          >
+            <MenuItem value={false}>{i18n("disable")}</MenuItem>
+            <MenuItem value={true}>{i18n("enable")}</MenuItem>
+          </TextField>
+          {useBatchFetch && (
+            <TextField
+              size="small"
+              label={i18n("context_size")}
+              type="number"
+              name="contextSize"
+              value={contextSize}
+              onChange={handleChange}
+            />
           )}
         </>
       )}

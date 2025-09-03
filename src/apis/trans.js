@@ -26,6 +26,7 @@ import {
   OPT_TRANS_CUSTOMIZE_3,
   OPT_TRANS_CUSTOMIZE_4,
   OPT_TRANS_CUSTOMIZE_5,
+  OPT_TRANS_CONTEXT,
   INPUT_PLACE_FROM,
   INPUT_PLACE_TO,
   INPUT_PLACE_TEXT,
@@ -39,6 +40,7 @@ import interpreter from "../libs/interpreter";
 import { parseJsonObj, extractJson } from "../libs/utils";
 import { kissLog } from "../libs/log";
 import { fetchData } from "../libs/fetch";
+import { getMsgHistory } from "./history";
 
 const keyMap = new Map();
 const urlMap = new Map();
@@ -286,12 +288,17 @@ const genOpenAI = ({
   customHeader,
   customBody,
   docInfo,
+  hisMsgs,
 }) => {
   systemPrompt = genSystemPrompt({ systemPrompt, from, to });
   userPrompt = genUserPrompt({ userPrompt, from, to, texts, docInfo });
   customHeader = parseJsonObj(customHeader);
   customBody = parseJsonObj(customBody);
 
+  const userMsg = {
+    role: "user",
+    content: userPrompt,
+  };
   const data = {
     model,
     messages: [
@@ -299,10 +306,8 @@ const genOpenAI = ({
         role: "system",
         content: systemPrompt,
       },
-      {
-        role: "user",
-        content: userPrompt,
-      },
+      ...hisMsgs,
+      userMsg,
     ],
     temperature,
     max_completion_tokens: maxTokens,
@@ -320,7 +325,7 @@ const genOpenAI = ({
     body: JSON.stringify(data),
   };
 
-  return [url, init];
+  return [url, init, userMsg];
 };
 
 const genGemini = ({
@@ -337,6 +342,7 @@ const genGemini = ({
   customHeader,
   customBody,
   docInfo,
+  hisMsgs,
 }) => {
   url = url
     .replaceAll(INPUT_PLACE_MODEL, model)
@@ -346,13 +352,14 @@ const genGemini = ({
   customHeader = parseJsonObj(customHeader);
   customBody = parseJsonObj(customBody);
 
+  const userMsg = { role: "user", parts: [{ text: userPrompt }] };
   const data = {
     system_instruction: {
       parts: {
         text: systemPrompt,
       },
     },
-    contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+    contents: [...hisMsgs, userMsg],
     generationConfig: {
       maxOutputTokens: maxTokens,
       temperature,
@@ -392,7 +399,7 @@ const genGemini = ({
     body: JSON.stringify(data),
   };
 
-  return [url, init];
+  return [url, init, userMsg];
 };
 
 const genGemini2 = ({
@@ -409,12 +416,17 @@ const genGemini2 = ({
   customHeader,
   customBody,
   docInfo,
+  hisMsgs,
 }) => {
   systemPrompt = genSystemPrompt({ systemPrompt, from, to });
   userPrompt = genUserPrompt({ userPrompt, from, to, texts, docInfo });
   customHeader = parseJsonObj(customHeader);
   customBody = parseJsonObj(customBody);
 
+  const userMsg = {
+    role: "user",
+    content: userPrompt,
+  };
   const data = {
     model,
     messages: [
@@ -422,10 +434,8 @@ const genGemini2 = ({
         role: "system",
         content: systemPrompt,
       },
-      {
-        role: "user",
-        content: userPrompt,
-      },
+      ...hisMsgs,
+      userMsg,
     ],
     temperature,
     max_tokens: maxTokens,
@@ -442,7 +452,7 @@ const genGemini2 = ({
     body: JSON.stringify(data),
   };
 
-  return [url, init];
+  return [url, init, userMsg];
 };
 
 const genClaude = ({
@@ -459,21 +469,21 @@ const genClaude = ({
   customHeader,
   customBody,
   docInfo,
+  hisMsgs,
 }) => {
   systemPrompt = genSystemPrompt({ systemPrompt, from, to });
   userPrompt = genUserPrompt({ userPrompt, from, to, texts, docInfo });
   customHeader = parseJsonObj(customHeader);
   customBody = parseJsonObj(customBody);
 
+  const userMsg = {
+    role: "user",
+    content: userPrompt,
+  };
   const data = {
     model,
     system: systemPrompt,
-    messages: [
-      {
-        role: "user",
-        content: userPrompt,
-      },
-    ],
+    messages: [...hisMsgs, userMsg],
     temperature,
     max_tokens: maxTokens,
     ...customBody,
@@ -491,7 +501,7 @@ const genClaude = ({
     body: JSON.stringify(data),
   };
 
-  return [url, init];
+  return [url, init, userMsg];
 };
 
 const genOpenRouter = ({
@@ -508,12 +518,17 @@ const genOpenRouter = ({
   customHeader,
   customBody,
   docInfo,
+  hisMsgs,
 }) => {
   systemPrompt = genSystemPrompt({ systemPrompt, from, to });
   userPrompt = genUserPrompt({ userPrompt, from, to, texts, docInfo });
   customHeader = parseJsonObj(customHeader);
   customBody = parseJsonObj(customBody);
 
+  const userMsg = {
+    role: "user",
+    content: userPrompt,
+  };
   const data = {
     model,
     messages: [
@@ -521,10 +536,8 @@ const genOpenRouter = ({
         role: "system",
         content: systemPrompt,
       },
-      {
-        role: "user",
-        content: userPrompt,
-      },
+      ...hisMsgs,
+      userMsg,
     ],
     temperature,
     max_tokens: maxTokens,
@@ -541,7 +554,7 @@ const genOpenRouter = ({
     body: JSON.stringify(data),
   };
 
-  return [url, init];
+  return [url, init, userMsg];
 };
 
 const genOllama = ({
@@ -559,12 +572,17 @@ const genOllama = ({
   customHeader,
   customBody,
   docInfo,
+  hisMsgs,
 }) => {
   systemPrompt = genSystemPrompt({ systemPrompt, from, to });
   userPrompt = genUserPrompt({ userPrompt, from, to, texts, docInfo });
   customHeader = parseJsonObj(customHeader);
   customBody = parseJsonObj(customBody);
 
+  const userMsg = {
+    role: "user",
+    content: userPrompt,
+  };
   const data = {
     model,
     messages: [
@@ -572,10 +590,8 @@ const genOllama = ({
         role: "system",
         content: systemPrompt,
       },
-      {
-        role: "user",
-        content: userPrompt,
-      },
+      ...hisMsgs,
+      userMsg,
     ],
     temperature,
     max_tokens: maxTokens,
@@ -596,7 +612,7 @@ const genOllama = ({
     init.headers.Authorization = `Bearer ${key}`;
   }
 
-  return [url, init];
+  return [url, init, userMsg];
 };
 
 const genCloudflareAI = ({ texts, from, to, url, key }) => {
@@ -618,10 +634,27 @@ const genCloudflareAI = ({ texts, from, to, url, key }) => {
   return [url, init];
 };
 
-const genCustom = ({ texts, from, to, url, key, reqHook, docInfo }) => {
+const genCustom = ({
+  texts,
+  from,
+  to,
+  url,
+  key,
+  reqHook,
+  docInfo,
+  hisMsgs,
+}) => {
   if (reqHook?.trim()) {
     interpreter.run(`exports.reqHook = ${reqHook}`);
-    return interpreter.exports.reqHook({ texts, from, to, url, key, docInfo });
+    return interpreter.exports.reqHook({
+      texts,
+      from,
+      to,
+      url,
+      key,
+      docInfo,
+      hisMsgs,
+    });
   }
 
   const data = { texts, from, to };
@@ -730,8 +763,10 @@ export const genTransReq = (translator, args) => {
 export const parseTransRes = (
   translator,
   res,
-  { texts, from, to, resHook, thinkIgnore }
+  { texts, from, to, resHook, thinkIgnore, history, userMsg }
 ) => {
+  let modelMsg = "";
+
   switch (translator) {
     case OPT_TRANS_GOOGLE:
       return [[res?.sentences?.map((item) => item.trans).join(" "), res?.src]];
@@ -783,22 +818,48 @@ export const parseTransRes = (
     case OPT_TRANS_OPENAI_3:
     case OPT_TRANS_GEMINI_2:
     case OPT_TRANS_OPENROUTER:
+      modelMsg = res?.choices?.[0]?.message;
+      if (history && userMsg && modelMsg) {
+        history.add(userMsg, {
+          role: modelMsg.role,
+          content: modelMsg.content,
+        });
+      }
       return parseAIRes(res?.choices?.[0]?.message?.content ?? "");
     case OPT_TRANS_GEMINI:
+      modelMsg = res?.candidates?.[0]?.content;
+      if (history && userMsg && modelMsg) {
+        history.add(userMsg, modelMsg);
+      }
       return parseAIRes(res?.candidates?.[0]?.content?.parts?.[0]?.text ?? "");
     case OPT_TRANS_CLAUDE:
+      modelMsg = { role: res?.role, content: res?.content?.text };
+      if (history && userMsg && modelMsg) {
+        history.add(userMsg, {
+          role: modelMsg.role,
+          content: modelMsg.content,
+        });
+      }
       return parseAIRes(res?.content?.[0]?.text ?? "");
     case OPT_TRANS_CLOUDFLAREAI:
       return [[res?.result?.translated_text]];
     case OPT_TRANS_OLLAMA:
     case OPT_TRANS_OLLAMA_2:
     case OPT_TRANS_OLLAMA_3:
-      let resText = res?.response ?? "";
+      modelMsg = res?.choices?.[0]?.message;
+
       const deepModels = thinkIgnore.split(",").filter((model) => model.trim());
       if (deepModels.some((model) => res?.model?.startsWith(model))) {
-        resText = res?.response.replace(/<think>[\s\S]*<\/think>/i, "");
+        modelMsg?.content.replace(/<think>[\s\S]*<\/think>/i, "");
       }
-      return parseAIRes(resText);
+
+      if (history && userMsg && modelMsg) {
+        history.add(userMsg, {
+          role: modelMsg.role,
+          content: modelMsg.content,
+        });
+      }
+      return parseAIRes(modelMsg?.content);
     case OPT_TRANS_CUSTOMIZE:
     case OPT_TRANS_CUSTOMIZE_2:
     case OPT_TRANS_CUSTOMIZE_3:
@@ -806,7 +867,18 @@ export const parseTransRes = (
     case OPT_TRANS_CUSTOMIZE_5:
       if (resHook?.trim()) {
         interpreter.run(`exports.resHook = ${resHook}`);
-        return interpreter.exports.resHook({ res, texts, from, to });
+        if (history) {
+          const [translations, modelMsg] = interpreter.exports.resHook({
+            res,
+            texts,
+            from,
+            to,
+          });
+          userMsg && modelMsg && history.add(userMsg, modelMsg);
+          return translations;
+        } else {
+          return interpreter.exports.resHook({ res, texts, from, to });
+        }
       } else {
         return res?.map((item) => [item.text, item.src]);
       }
@@ -830,11 +902,19 @@ export const handleTranslate = async ({
   apiSetting,
   usePool,
 }) => {
-  const [input, init] = await genTransReq(translator, {
+  let history = null;
+  let hisMsgs = [];
+  if (apiSetting.useContext && OPT_TRANS_CONTEXT.has(translator)) {
+    history = getMsgHistory(translator, apiSetting.contextSize);
+    hisMsgs = history.getAll();
+  }
+
+  const [input, init, userMsg] = await genTransReq(translator, {
     texts,
     from,
     to,
     docInfo,
+    hisMsgs,
     ...apiSetting,
   });
 
@@ -853,6 +933,8 @@ export const handleTranslate = async ({
     texts,
     from,
     to,
+    history,
+    userMsg,
     ...apiSetting,
   });
 };

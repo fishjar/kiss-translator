@@ -8,7 +8,7 @@ import { kissLog } from "./log";
  * @param {*} _retryInteral
  * @returns
  */
-const taskPool = (_interval = 100, _limit = 100, _retryInteral = 1000) => {
+const TaskPool = (_interval = 100, _limit = 100, _retryInteral = 1000) => {
   const pool = [];
   const maxRetry = 2; // 最大重试次数
   let maxCount = _limit; // 最大数量
@@ -34,7 +34,7 @@ const taskPool = (_interval = 100, _limit = 100, _retryInteral = 1000) => {
           if (retry < maxRetry) {
             const retryTimer = setTimeout(() => {
               clearTimeout(retryTimer);
-              pool.push({ args, resolve, reject, retry: retry + 1 });
+              pool.push({ fn, args, resolve, reject, retry: retry + 1 });
             }, _retryInteral);
           } else {
             reject(err);
@@ -85,7 +85,7 @@ let fetchPool;
  */
 export const getFetchPool = (interval, limit) => {
   if (!fetchPool) {
-    fetchPool = taskPool(
+    fetchPool = TaskPool(
       interval ?? DEFAULT_FETCH_INTERVAL,
       limit ?? DEFAULT_FETCH_LIMIT
     );

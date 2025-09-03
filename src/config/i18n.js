@@ -248,9 +248,9 @@ export const I18N = {
     zh_TW: `重新翻譯間隔時間 (100-5000ms)`,
   },
   http_timeout: {
-    zh: `请求超时时间 (5000-30000ms)`,
-    en: `Request Timeout Time (5000-30000ms)`,
-    zh_TW: `請求逾時時間 (5000-30000ms)`,
+    zh: `请求超时时间 (5000-60000ms)`,
+    en: `Request Timeout Time (5000-60000ms)`,
+    zh_TW: `請求逾時時間 (5000-60000ms)`,
   },
   custom_header: {
     zh: `自定义Header参数`,
@@ -274,9 +274,9 @@ export const I18N = {
     zh_TW: `最小翻譯字元數 (1-100)`,
   },
   max_translate_length: {
-    zh: `最大翻译字符数 (100-10000)`,
-    en: `Maximum number Of Translated Characters (100-10000)`,
-    zh_TW: `最大翻譯字元數 (100-10000)`,
+    zh: `最大翻译字符数 (100-100000)`,
+    en: `Maximum number Of Translated Characters (100-100000)`,
+    zh_TW: `最大翻譯字元數 (100-100000)`,
   },
   num_of_newline_characters: {
     zh: `换行字符数 (1-1000)`,
@@ -1247,5 +1247,15 @@ export const I18N = {
     zh: `聚合请求最大文本长度(1000-100000)`,
     en: `Maximum text length for aggregation requests (1000-100000)`,
     zh_TW: `聚合請求最大文字長度(1000-100000)`,
+  },
+  use_context: {
+    zh: `是否启用智能上下文`,
+    en: `Whether to enable AI context`,
+    zh_TW: `是否啟用智慧上下文`,
+  },
+  context_size: {
+    zh: `上下文会话数量(1-20)`,
+    en: `Number of context sessions(1-20)`,
+    zh_TW: `上下文會話數量(1-20)`,
   },
 };
