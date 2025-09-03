@@ -12,7 +12,7 @@ import {
 import { sha256 } from "../libs/utils";
 import { msAuth } from "../libs/auth";
 import { kissLog } from "../libs/log";
-import { fetchTranslate } from "./trans";
+import { handleTranslate } from "./trans";
 import { getHttpCachePolyfill, putHttpCachePolyfill } from "../libs/cache";
 import { getBatchQueue } from "../libs/batchQueue";
 
@@ -254,7 +254,7 @@ export const apiTranslate = async ({
         docInfo,
         apiSetting,
         usePool,
-        taskFn: fetchTranslate,
+        taskFn: handleTranslate,
       },
       apiSetting
     );
@@ -263,7 +263,7 @@ export const apiTranslate = async ({
       [trText, srLang = ""] = tranlation;
     }
   } else {
-    const translations = await fetchTranslate({
+    const translations = await handleTranslate({
       translator,
       texts: [text],
       from,

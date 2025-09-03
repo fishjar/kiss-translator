@@ -809,7 +809,7 @@ export const parseTransRes = (
  * @param {*} param0
  * @returns
  */
-export const fetchTranslate = async ({
+export const handleTranslate = async ({
   translator,
   texts,
   from,
