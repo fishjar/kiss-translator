@@ -352,18 +352,34 @@ const genGemini = ({
         text: systemPrompt,
       },
     },
-    contents: {
-      role: "user",
-      parts: {
-        text: userPrompt,
-      },
-    },
+    contents: [{ role: "user", parts: [{ text: userPrompt }] }],
     generationConfig: {
       maxOutputTokens: maxTokens,
       temperature,
       // topP: 0.8,
       // topK: 10,
     },
+    // thinkingConfig: {
+    //   thinkingBudget: 0,
+    // },
+    safetySettings: [
+      {
+        category: "HARM_CATEGORY_HARASSMENT",
+        threshold: "BLOCK_NONE",
+      },
+      {
+        category: "HARM_CATEGORY_HATE_SPEECH",
+        threshold: "BLOCK_NONE",
+      },
+      {
+        category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+        threshold: "BLOCK_NONE",
+      },
+      {
+        category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+        threshold: "BLOCK_NONE",
+      },
+    ],
     ...customBody,
   };
 
@@ -702,7 +718,7 @@ export const genTransReq = (translator, args) => {
 export const parseTransRes = (
   translator,
   res,
-  { texts, from, to, resHook }
+  { texts, from, to, resHook, thinkIgnore }
 ) => {
   switch (translator) {
     case OPT_TRANS_GOOGLE:
@@ -765,13 +781,12 @@ export const parseTransRes = (
     case OPT_TRANS_OLLAMA:
     case OPT_TRANS_OLLAMA_2:
     case OPT_TRANS_OLLAMA_3:
-      // const deepModels = thinkIgnore.split(",").filter((model) => model.trim());
-      // if (deepModels.some((model) => res?.model?.startsWith(model))) {
-      //   trText = res?.response.replace(/<think>[\s\S]*<\/think>/i, "");
-      // } else {
-      //   trText = res?.response;
-      // }
-      return parseAIRes(res?.response ?? "");
+      let resText = res?.response ?? "";
+      const deepModels = thinkIgnore.split(",").filter((model) => model.trim());
+      if (deepModels.some((model) => res?.model?.startsWith(model))) {
+        resText = res?.response.replace(/<think>[\s\S]*<\/think>/i, "");
+      }
+      return parseAIRes(resText);
     case OPT_TRANS_CUSTOMIZE:
     case OPT_TRANS_CUSTOMIZE_2:
     case OPT_TRANS_CUSTOMIZE_3:
