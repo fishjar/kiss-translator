@@ -348,9 +348,9 @@ Fail-safe: {"translations":[]}`,
   batchInterval: DEFAULT_BATCH_INTERVAL, // 批处理请求间隔时间
   batchSize: DEFAULT_BATCH_SIZE, // 每次最多发送段落数量
   batchLength: DEFAULT_BATCH_LENGTH, // 每次发送最大文字数量
-  isBatchFetch: false, // 是否启用聚合发送请求
-  isRichText: false, // 是否启用富文本翻译
-  isContext: false, // 是否启用智能上下文
+  useBatchFetch: false, // 是否启用聚合发送请求
+  useRichText: false, // 是否启用富文本翻译
+  useContext: false, // 是否启用智能上下文
   temperature: 0,
   maxTokens: 20480,
   think: false,
@@ -395,13 +395,13 @@ export const DEFAULT_TRANS_APIS = {
     apiName: OPT_TRANS_GOOGLE_2,
     url: "https://translate-pa.googleapis.com/v1/translateHtml",
     key: "AIzaSyATBXajvzQLTDHEQbcpq0Ihe0vWDHmO520",
-    isBatchFetch: true,
+    useBatchFetch: true,
   },
   [OPT_TRANS_MICROSOFT]: {
     ...defaultApi,
     apiSlug: OPT_TRANS_MICROSOFT,
     apiName: OPT_TRANS_MICROSOFT,
-    isBatchFetch: true,
+    useBatchFetch: true,
   },
   [OPT_TRANS_BAIDU]: {
     ...defaultApi,
@@ -412,7 +412,7 @@ export const DEFAULT_TRANS_APIS = {
     ...defaultApi,
     apiSlug: OPT_TRANS_TENCENT,
     apiName: OPT_TRANS_TENCENT,
-    isBatchFetch: true,
+    useBatchFetch: true,
   },
   [OPT_TRANS_VOLCENGINE]: {
     ...defaultApi,
@@ -424,7 +424,7 @@ export const DEFAULT_TRANS_APIS = {
     apiSlug: OPT_TRANS_DEEPL,
     apiName: OPT_TRANS_DEEPL,
     url: "https://api-free.deepl.com/v2/translate",
-    isBatchFetch: true,
+    useBatchFetch: true,
   },
   [OPT_TRANS_DEEPLFREE]: {
     ...defaultApi,

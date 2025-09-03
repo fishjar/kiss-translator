@@ -144,7 +144,7 @@ function ApiFields({ translator, api, updateApi, resetApi }) {
     maxTokens = 256,
     apiName = "",
     isDisabled = false,
-    isBatchFetch = false,
+    useBatchFetch = false,
     batchInterval = DEFAULT_BATCH_INTERVAL,
     batchSize = DEFAULT_BATCH_SIZE,
     batchLength = DEFAULT_BATCH_LENGTH,
@@ -416,15 +416,15 @@ function ApiFields({ translator, api, updateApi, resetApi }) {
           <TextField
             select
             size="small"
-            name="isBatchFetch"
-            value={isBatchFetch}
-            label={i18n("is_batch_fetch")}
+            name="useBatchFetch"
+            value={useBatchFetch}
+            label={i18n("use_batch_fetch")}
             onChange={handleChange}
           >
             <MenuItem value={false}>{i18n("disable")}</MenuItem>
             <MenuItem value={true}>{i18n("enable")}</MenuItem>
           </TextField>
-          {isBatchFetch && (
+          {useBatchFetch && (
             <>
               <TextField
                 size="small"

@@ -245,7 +245,7 @@ export const apiTranslate = async ({
   // 请求接口数据
   let trText = "";
   let srLang = "";
-  if (apiSetting.isBatchFetch && OPT_TRANS_BATCH.has(translator)) {
+  if (apiSetting.useBatchFetch && OPT_TRANS_BATCH.has(translator)) {
     const queue = getBatchQueue(
       {
         translator,

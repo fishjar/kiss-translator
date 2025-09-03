@@ -1228,7 +1228,7 @@ export const I18N = {
     en: `If translate selected`,
     zh_TW: `是否啟用劃詞翻譯`,
   },
-  is_batch_fetch: {
+  use_batch_fetch: {
     zh: `是否聚合发送翻译请求`,
     en: `Whether to aggregate and send translation requests`,
     zh_TW: `是否聚合發送翻譯請求`,
