@@ -33,6 +33,7 @@ export const DEFAULT_CSPLIST = ["https://github.com"]; // 禁用CSP名单
 // 同步设置
 export const OPT_SYNCTYPE_WORKER = "KISS-Worker";
 export const OPT_SYNCTYPE_WEBDAV = "WebDAV";
+export const OPT_SYNCTOKEN_PERFIX = "kt_";
 export const OPT_SYNCTYPE_ALL = [OPT_SYNCTYPE_WORKER, OPT_SYNCTYPE_WEBDAV];
 export const DEFAULT_SYNC = {
   syncType: OPT_SYNCTYPE_WORKER, // 同步方式
