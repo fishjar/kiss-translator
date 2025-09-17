@@ -852,6 +852,16 @@ export const I18N = {
     en: `Single Click Fab Action`,
     zh_TW: `單擊懸浮按钮動作`,
   },
+  fab_click_menu: {
+    zh: `弹出菜单`,
+    en: `Popup Menu`,
+    zh_TW: `彈出選單`,
+  },
+  fab_click_translate: {
+    zh: `直接翻译`,
+    en: `Translate`,
+    zh_TW: `直接翻譯`,
+  },
   hide_tran_button: {
     zh: `隐藏翻译按钮`,
     en: `Hide Translate Button`,
