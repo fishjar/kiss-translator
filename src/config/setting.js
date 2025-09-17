@@ -120,6 +120,7 @@ export const DEFAULT_SETTING = {
   httpTimeout: DEFAULT_HTTP_TIMEOUT,
   clearCache: false, // 是否在浏览器下次启动时清除缓存
   injectRules: true, // 是否注入订阅规则
+  fabClickAction: 0, // 悬浮按钮点击行为
   // injectWebfix: true, // 是否注入修复补丁(作废)
   // detectRemote: false, // 是否使用远程语言检测(移至rule，作废)
   // contextMenus: true, // 是否添加右键菜单(作废)

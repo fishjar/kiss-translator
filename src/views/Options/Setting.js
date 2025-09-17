@@ -122,7 +122,7 @@ export default function Settings() {
     transInterval = 500,
     langDetector = OPT_TRANS_MICROSOFT,
   } = setting;
-  const { isHide = false } = fab || {};
+  const { isHide = false, fabClickAction = 0  } = fab || {};
 
   return (
     <Box>
@@ -229,6 +229,19 @@ export default function Settings() {
           >
             <MenuItem value={false}>{i18n("show")}</MenuItem>
             <MenuItem value={true}>{i18n("hide")}</MenuItem>
+          </Select>
+        </FormControl>
+
+        <FormControl size="small">
+          <InputLabel>{i18n("fab_click_action")}</InputLabel>
+          <Select
+            name="fabClickAction"
+            value={fabClickAction}  
+            label={i18n("fab_click_action")}
+            onChange= {(e) => updateFab({ fabClickAction: e.target.value })}
+          >
+            <MenuItem value={0}>{i18n("fab_click_menu")}</MenuItem>
+            <MenuItem value={1}>{i18n("fab_click_translate")}</MenuItem>
           </Select>
         </FormControl>
 
