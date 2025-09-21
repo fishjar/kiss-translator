@@ -976,7 +976,8 @@ export class Translator {
       if (node.nodeType === Node.ELEMENT_NODE) {
         if (
           Translator.TAGS.REPLACE.has(node.tagName) ||
-          node.matches(this.#rule.keepSelector)
+          node.matches(this.#rule.keepSelector) ||
+          !node.textContent.trim()
         ) {
           if (node.tagName === "IMG" || node.tagName === "SVG") {
             node.style.width = `${node.offsetWidth}px`;
@@ -991,10 +992,6 @@ export class Translator {
         });
 
         if (Translator.TAGS.WARP.has(node.tagName)) {
-          if (this.#isInvalidText(innerContent)) {
-            return pushReplace(node.outerHTML);
-          }
-
           wrapCounter++;
           const startPlaceholder = `<${Translator.PLACEHOLDER.tagName}${wrapCounter}>`;
           const endPlaceholder = `</${Translator.PLACEHOLDER.tagName}${wrapCounter}>`;
