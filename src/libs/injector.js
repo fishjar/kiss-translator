@@ -1,7 +1,7 @@
 // Function to inject inline JavaScript code
 export const injectInlineJs = (code) => {
   const el = document.createElement("script");
-  el.setAttribute("data-source", "KISS-Calendar injectInlineJs");
+  el.setAttribute("data-source", "kiss-inject injectInlineJs");
   el.setAttribute("type", "text/javascript");
   el.textContent = code;
   document.body?.appendChild(el);
@@ -10,7 +10,7 @@ export const injectInlineJs = (code) => {
 // Function to inject external JavaScript file
 export const injectExternalJs = (src) => {
   const el = document.createElement("script");
-  el.setAttribute("data-source", "KISS-Calendar injectExternalJs");
+  el.setAttribute("data-source", "kiss-inject injectExternalJs");
   el.setAttribute("type", "text/javascript");
   el.setAttribute("src", src);
   document.body?.appendChild(el);
@@ -19,7 +19,7 @@ export const injectExternalJs = (src) => {
 // Function to inject internal CSS code
 export const injectInternalCss = (styles) => {
   const el = document.createElement("style");
-  el.setAttribute("data-source", "KISS-Calendar injectInternalCss");
+  el.setAttribute("data-source", "kiss-inject injectInternalCss");
   el.textContent = styles;
   document.head?.appendChild(el);
 };
@@ -27,7 +27,7 @@ export const injectInternalCss = (styles) => {
 // Function to inject external CSS file
 export const injectExternalCss = (href) => {
   const el = document.createElement("link");
-  el.setAttribute("data-source", "KISS-Calendar injectExternalCss");
+  el.setAttribute("data-source", "kiss-inject injectExternalCss");
   el.setAttribute("rel", "stylesheet");
   el.setAttribute("type", "text/css");
   el.setAttribute("href", href);

@@ -21,6 +21,7 @@ import Apis from "./Apis";
 import InputSetting from "./InputSetting";
 import Tranbox from "./Tranbox";
 import FavWords from "./FavWords";
+import MouseHoverSetting from "./MouseHover";
 
 export default function Options() {
   const [error, setError] = useState("");
@@ -113,6 +114,7 @@ export default function Options() {
                 <Route path="rules" element={<Rules />} />
                 <Route path="input" element={<InputSetting />} />
                 <Route path="tranbox" element={<Tranbox />} />
+                <Route path="mousehover" element={<MouseHoverSetting />} />
                 <Route path="apis" element={<Apis />} />
                 <Route path="sync" element={<SyncSetting />} />
                 <Route path="words" element={<FavWords />} />

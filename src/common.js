@@ -9,7 +9,7 @@ import {
   MSG_TRANS_GETRULE,
   MSG_TRANS_PUTRULE,
   MSG_OPEN_TRANBOX,
-  APP_LCNAME,
+  APP_CONSTS,
   DEFAULT_TRANBOX_SETTING,
 } from "./config";
 import { getFabWithDefault, getSettingWithDefault } from "./libs/storage";
@@ -106,7 +106,7 @@ function runIframe(translator) {
 async function showFab(translator) {
   const fab = await getFabWithDefault();
   const $action = document.createElement("div");
-  $action.setAttribute("id", APP_LCNAME);
+  $action.setAttribute("id", APP_CONSTS.fabID);
   $action.style.fontSize = "0";
   $action.style.width = "0";
   $action.style.height = "0";
@@ -114,10 +114,11 @@ async function showFab(translator) {
   const shadowContainer = $action.attachShadow({ mode: "closed" });
   const emotionRoot = document.createElement("style");
   const shadowRootElement = document.createElement("div");
+  shadowRootElement.classList.add(`${APP_CONSTS.fabID}_warpper`);
   shadowContainer.appendChild(emotionRoot);
   shadowContainer.appendChild(shadowRootElement);
   const cache = createCache({
-    key: APP_LCNAME,
+    key: APP_CONSTS.fabID,
     prepend: true,
     container: emotionRoot,
   });
@@ -151,7 +152,7 @@ function showTransbox(
   }
 
   const $tranbox = document.createElement("div");
-  $tranbox.setAttribute("id", "kiss-transbox");
+  $tranbox.setAttribute("id", APP_CONSTS.boxID);
   $tranbox.style.fontSize = "0";
   $tranbox.style.width = "0";
   $tranbox.style.height = "0";
@@ -159,12 +160,14 @@ function showTransbox(
   const shadowContainer = $tranbox.attachShadow({ mode: "closed" });
   const emotionRoot = document.createElement("style");
   const shadowRootElement = document.createElement("div");
-  shadowRootElement.classList.add(`KT-transbox`);
-  shadowRootElement.classList.add(`KT-transbox_${darkMode ? "dark" : "light"}`);
+  shadowRootElement.classList.add(`${APP_CONSTS.boxID}_warpper`);
+  shadowRootElement.classList.add(
+    `${APP_CONSTS.boxID}_${darkMode ? "dark" : "light"}`
+  );
   shadowContainer.appendChild(emotionRoot);
   shadowContainer.appendChild(shadowRootElement);
   const cache = createCache({
-    key: "kiss-transbox",
+    key: APP_CONSTS.boxID,
     prepend: true,
     container: emotionRoot,
   });

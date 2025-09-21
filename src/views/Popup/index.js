@@ -5,6 +5,7 @@ import MenuItem from "@mui/material/MenuItem";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import Button from "@mui/material/Button";
+import Grid from "@mui/material/Grid";
 import { sendBgMsg, sendTabMsg, getCurTab } from "../../libs/msg";
 import { browser } from "../../libs/browser";
 import { isExt } from "../../libs/client";
@@ -30,6 +31,8 @@ import { saveRule } from "../../libs/rules";
 import { tryClearCaches } from "../../libs";
 import { kissLog } from "../../libs/log";
 
+// 插件popup没有参数
+// 网页弹框有
 export default function Popup({ setShowPopup, translator: tran }) {
   const i18n = useI18n();
   const [rule, setRule] = useState(tran?.rule);
@@ -173,10 +176,20 @@ export default function Popup({ setShowPopup, translator: tran }) {
     );
   }
 
-  const { transOpen, translator, fromLang, toLang, textStyle } = rule;
+  const {
+    transOpen,
+    translator,
+    fromLang,
+    toLang,
+    textStyle,
+    autoScan,
+    transOnly,
+    hasRichText,
+    hasShadowroot,
+  } = rule;
 
   return (
-    <Box minWidth={300}>
+    <Box width={320}>
       {!tran && (
         <>
           <Header />
@@ -184,26 +197,79 @@ export default function Popup({ setShowPopup, translator: tran }) {
         </>
       )}
       <Stack sx={{ p: 2 }} spacing={2}>
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          alignItems="center"
-          spacing={2}
-        >
-          <FormControlLabel
-            control={
-              <Switch
-                checked={transOpen === "true"}
-                onChange={handleTransToggle}
-              />
-            }
-            label={
-              commands["toggleTranslate"]
-                ? `${i18n("translate_alt")}(${commands["toggleTranslate"]})`
-                : i18n("translate_alt")
-            }
-          />
-        </Stack>
+        <Grid container columns={12} spacing={1}>
+          <Grid item xs={12}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={transOpen === "true"}
+                  onChange={handleTransToggle}
+                />
+              }
+              label={
+                commands["toggleTranslate"]
+                  ? `${i18n("translate_alt")}(${commands["toggleTranslate"]})`
+                  : i18n("translate_alt")
+              }
+            />
+          </Grid>
+          <Grid item xs={6}>
+            <FormControlLabel
+              control={
+                <Switch
+                  size="small"
+                  name="autoScan"
+                  value={autoScan === "true" ? "false" : "true"}
+                  checked={autoScan === "true"}
+                  onChange={handleChange}
+                />
+              }
+              label={i18n("autoscan_alt")}
+            />
+          </Grid>
+          <Grid item xs={6}>
+            <FormControlLabel
+              control={
+                <Switch
+                  size="small"
+                  name="hasShadowroot"
+                  value={hasShadowroot === "true" ? "false" : "true"}
+                  checked={hasShadowroot === "true"}
+                  onChange={handleChange}
+                />
+              }
+              label={i18n("shadowroot_alt")}
+            />
+          </Grid>
+          <Grid item xs={6}>
+            <FormControlLabel
+              control={
+                <Switch
+                  size="small"
+                  name="transOnly"
+                  value={transOnly === "true" ? "false" : "true"}
+                  checked={transOnly === "true"}
+                  onChange={handleChange}
+                />
+              }
+              label={i18n("transonly_alt")}
+            />
+          </Grid>
+          <Grid item xs={6}>
+            <FormControlLabel
+              control={
+                <Switch
+                  size="small"
+                  name="hasRichText"
+                  value={hasRichText === "true" ? "false" : "true"}
+                  checked={hasRichText === "true"}
+                  onChange={handleChange}
+                />
+              }
+              label={i18n("richtext_alt")}
+            />
+          </Grid>
+        </Grid>
 
         <TextField
           select

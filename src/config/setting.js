@@ -18,8 +18,8 @@ export const DEFAULT_SHORTCUTS = {
   [OPT_SHORTCUT_SETTING]: ["AltLeft", "KeyO"],
 };
 
-export const TRANS_MIN_LENGTH = 5; // 最短翻译长度
-export const TRANS_MAX_LENGTH = 10000; // 最长翻译长度
+export const TRANS_MIN_LENGTH = 2; // 最短翻译长度
+export const TRANS_MAX_LENGTH = 100000; // 最长翻译长度
 export const TRANS_NEWLINE_LENGTH = 20; // 换行字符数
 export const DEFAULT_BLACKLIST = [
   "https://fishjar.github.io/kiss-translator/options.html",
@@ -108,6 +108,12 @@ export const DEFAULT_SUBRULES_LIST = [
   },
 ];
 
+export const DEFAULT__MOUSEHOVER_KEY = ["ControlLeft"];
+export const DEFAULT_MOUSE_HOVER_SETTING = {
+  useMouseHover: true, // 是否启用鼠标悬停翻译
+  mouseHoverKey: DEFAULT__MOUSEHOVER_KEY, // 鼠标悬停翻译组合键
+};
+
 export const DEFAULT_SETTING = {
   darkMode: false, // 深色模式
   uiLang: "en", // 界面语言
@@ -137,6 +143,7 @@ export const DEFAULT_SETTING = {
   blacklist: DEFAULT_BLACKLIST.join(",\n"), // 禁用翻译名单
   csplist: DEFAULT_CSPLIST.join(",\n"), // 禁用CSP名单
   // disableLangs: [], // 不翻译的语言(移至rule，作废)
-  transInterval: 500, // 翻译间隔时间
+  transInterval: 200, // 翻译等待时间
   langDetector: OPT_TRANS_MICROSOFT, // 远程语言识别服务
+  mouseHoverSetting: DEFAULT_MOUSE_HOVER_SETTING, // 鼠标悬停翻译
 };

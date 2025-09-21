@@ -812,7 +812,7 @@ export const parseTransRes = (
     case OPT_TRANS_TENCENT:
       return res?.auto_translation?.map((text) => [text, res?.src_lang]);
     case OPT_TRANS_VOLCENGINE:
-      return new Map([[0, [res?.translation, res?.detected_language]]]);
+      return [[res?.translation, res?.detected_language]];
     case OPT_TRANS_OPENAI:
     case OPT_TRANS_OPENAI_2:
     case OPT_TRANS_OPENAI_3:

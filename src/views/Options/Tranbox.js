@@ -16,6 +16,7 @@ import { useCallback } from "react";
 import { limitNumber } from "../../libs/utils";
 import { useTranbox } from "../../hooks/Tranbox";
 import { isExt } from "../../libs/client";
+import Alert from "@mui/material/Alert";
 
 export default function Tranbox() {
   const i18n = useI18n();
@@ -67,6 +68,7 @@ export default function Tranbox() {
   return (
     <Box>
       <Stack spacing={3}>
+        <Alert severity="info">{i18n("selected_translation_alert")}</Alert>
         <TextField
           select
           size="small"

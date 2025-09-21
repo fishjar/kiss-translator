@@ -58,7 +58,10 @@ export const OPT_TIMING_ALL = [
   OPT_TIMING_ALT,
 ];
 
-export const DEFAULT_SELECTOR = `:is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote, .kiss-p)`;
+export const DEFAULT_SELECTOR =
+  "h1, h2, h3, h4, h5, h6, li, p, dd, blockquote, figcaption, label, legend";
+export const DEFAULT_IGNORE_SELECTOR =
+  "button, code, footer, form, header, mark, nav, pre";
 export const DEFAULT_KEEP_SELECTOR = `code, img, svg, pre`;
 export const DEFAULT_RULE = {
   pattern: "", // 匹配网址
@@ -77,17 +80,22 @@ export const DEFAULT_RULE = {
   injectJs: "", // 注入JS
   injectCss: "", // 注入CSS
   transOnly: GLOBAL_KEY, // 是否仅显示译文
-  transTiming: GLOBAL_KEY, // 翻译时机/鼠标悬停翻译
+  // transTiming: GLOBAL_KEY, // 翻译时机/鼠标悬停翻译  (暂时作废)
   transTag: GLOBAL_KEY, // 译文元素标签
   transTitle: GLOBAL_KEY, // 是否同时翻译页面标题
   transSelected: GLOBAL_KEY, // 是否启用划词翻译
   detectRemote: GLOBAL_KEY, // 是否使用远程语言检测
   skipLangs: [], // 不翻译的语言
-  fixerSelector: "", // 修复函数选择器
-  fixerFunc: GLOBAL_KEY, // 修复函数
+  // fixerSelector: "", // 修复函数选择器 (暂时作废)
+  // fixerFunc: GLOBAL_KEY, // 修复函数 (暂时作废)
   transStartHook: "", // 钩子函数
   transEndHook: "", // 钩子函数
-  transRemoveHook: "", // 钩子函数
+  // transRemoveHook: "", // 钩子函数 (暂时作废)
+  autoScan: GLOBAL_KEY, // 是否自动识别文本节点
+  hasRichText: GLOBAL_KEY, // 是否启用富文本翻译
+  hasShadowroot: GLOBAL_KEY, // 是否包含shadowroot
+  rootsSelector: "", // 翻译范围选择器
+  ignoreSelector: "", // 不翻译的选择器
 };
 
 // 全局规则
@@ -99,7 +107,7 @@ export const GLOBLA_RULE = {
   translator: OPT_TRANS_MICROSOFT, // 翻译服务
   fromLang: "auto", // 源语言
   toLang: "zh-CN", // 目标语言
-  textStyle: OPT_STYLE_DASHLINE, // 译文样式
+  textStyle: OPT_STYLE_NONE, // 译文样式
   transOpen: "false", // 开启翻译
   bgColor: "", // 译文颜色
   textDiyStyle: "", // 自定义译文样式
@@ -108,17 +116,22 @@ export const GLOBLA_RULE = {
   injectJs: "", // 注入JS
   injectCss: "", // 注入CSS
   transOnly: "false", // 是否仅显示译文
-  transTiming: OPT_TIMING_PAGESCROLL, // 翻译时机/鼠标悬停翻译
+  // transTiming: OPT_TIMING_PAGESCROLL, // 翻译时机/鼠标悬停翻译 (暂时作废)
   transTag: DEFAULT_TRANS_TAG, // 译文元素标签
   transTitle: "false", // 是否同时翻译页面标题
   transSelected: "true", // 是否启用划词翻译
   detectRemote: "false", // 是否使用远程语言检测
   skipLangs: [], // 不翻译的语言
-  fixerSelector: "", // 修复函数选择器
-  fixerFunc: "-", // 修复函数
+  // fixerSelector: "", // 修复函数选择器 (暂时作废)
+  // fixerFunc: "-", // 修复函数 (暂时作废)
   transStartHook: "", // 钩子函数
   transEndHook: "", // 钩子函数
-  transRemoveHook: "", // 钩子函数
+  // transRemoveHook: "", // 钩子函数 (暂时作废)
+  autoScan: "true", // 是否自动识别文本节点
+  hasRichText: "true", // 是否启用富文本翻译
+  hasShadowroot: "false", // 是否包含shadowroot
+  rootsSelector: "body", // 翻译范围选择器
+  ignoreSelector: DEFAULT_IGNORE_SELECTOR, // 不翻译的选择器
 };
 
 export const DEFAULT_RULES = [GLOBLA_RULE];

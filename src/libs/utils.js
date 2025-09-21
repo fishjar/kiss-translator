@@ -177,7 +177,7 @@ export const sha256 = async (text, salt) => {
  * 生成随机事件名称
  * @returns
  */
-export const genEventName = () => btoa(Math.random()).slice(3, 11);
+export const genEventName = () => `kiss-${btoa(Math.random()).slice(3, 11)}`;
 
 /**
  * 判断两个 Set 是否相同
@@ -301,4 +301,17 @@ export const extractJson = (raw) => {
   let s = raw.replace(/^\s*```(?:json)?\s*/i, "").replace(/\s*```\s*$/i, "");
   const match = s.match(/\{[\s\S]*\}/);
   return match ? match[0] : "{}";
+};
+
+/**
+ * 空闲执行
+ * @param {*} cb
+ * @param {*} timeout
+ * @returns
+ */
+export const scheduleIdle = (cb, timeout = 200) => {
+  if (window.requestIdleCallback) {
+    return requestIdleCallback(cb, { timeout });
+  }
+  return setTimeout(cb, timeout);
 };

@@ -243,9 +243,9 @@ export const I18N = {
     zh_TW: `每次請求間隔時間 (0-5000ms)`,
   },
   translate_interval: {
-    zh: `重新翻译间隔时间 (100-5000ms)`,
-    en: `Retranslation Interval (100-5000ms)`,
-    zh_TW: `重新翻譯間隔時間 (100-5000ms)`,
+    zh: `翻译间隔时间 (10-2000ms)`,
+    en: `Translation Interval (10-2000ms)`,
+    zh_TW: `翻譯間隔時間 (10-2000ms)`,
   },
   http_timeout: {
     zh: `请求超时时间 (5000-60000ms)`,
@@ -543,9 +543,9 @@ export const I18N = {
     zh_TW: `1. 支援星號 (*) 萬用字元。2. 多個 URL 請以換行或英文逗號「,」分隔。`,
   },
   selector_helper: {
-    zh: `1、遵循CSS选择器语法。2、多个CSS选择器之间用“;”隔开。3、“shadow root”选择器和内部选择器用“>>>”隔开。`,
-    en: `1. Follow CSS selector syntax. 2. Separate multiple CSS selectors with ";". 3. The "shadow root" selector and the internal selector are separated by ">>>".`,
-    zh_TW: `1. 遵循 CSS 選擇器語法。2. 多個 CSS 選擇器以「;」分隔。3.「shadow root」與內部選擇器以「>>>」分隔。`,
+    zh: `1、需要翻译的目标元素。2、开启自动扫描页面后，本设置无效。3、遵循CSS选择器语法。`,
+    en: `1. The target element to be translated. 2. This setting is invalid when automatic page scanning is enabled. 3. Follow the CSS selector syntax.`,
+    zh_TW: `1、需要翻譯的目標元素。 2.開啟自動掃描頁面後，本設定無效。 3.遵循CSS選擇器語法。`,
   },
   translate_switch: {
     zh: `开启翻译`,
@@ -573,9 +573,29 @@ export const I18N = {
     zh_TW: `保留元素選擇器`,
   },
   keep_selector_helper: {
-    zh: `1、遵循CSS选择器语法。`,
-    en: `1. Follow CSS selector syntax.`,
-    zh_TW: `1. 遵循 CSS 選擇器語法。`,
+    zh: `1、目标元素下面需要原样保留的子节点。2、遵循CSS选择器语法。`,
+    en: `1. The child nodes under the target element need to remain intact. 2. Follow the CSS selector syntax.`,
+    zh_TW: `1. 目標元素下的子節點需要保持原樣。 2. 遵循 CSS 選擇器語法。`,
+  },
+  root_selector: {
+    zh: `根节点选择器`,
+    en: `Root node selector`,
+    zh_TW: `根節點選擇器`,
+  },
+  root_selector_helper: {
+    zh: `1、用于缩小页面翻译范围。2、遵循CSS选择器语法。`,
+    en: `1. Used to narrow the translation scope of the page. 2. Follow the CSS selector syntax.`,
+    zh_TW: `1.用於縮小頁面翻譯範圍。 2、遵循CSS選擇器語法。`,
+  },
+  ignore_selector: {
+    zh: `不翻译节点选择器`,
+    en: `Ignore node selectors`,
+    zh_TW: `不翻譯節點選擇器`,
+  },
+  ignore_selector_helper: {
+    zh: `1、需要忽略的节点。2、遵循CSS选择器语法。`,
+    en: `1. Nodes to be ignored. 2. Follow CSS selector syntax.`,
+    zh_TW: `1、需要忽略的節點。 2、遵循CSS選擇器語法。`,
   },
   terms: {
     zh: `专业术语`,
@@ -608,9 +628,9 @@ export const I18N = {
     zh_TW: `注入 JS`,
   },
   inject_js_helper: {
-    zh: `1、开启翻译时注入运行，关闭翻译时移除。2、随着页面变化，可能会多次注入运行。`,
-    en: `1. Inject and run when translation is turned on, and removed when translation is turned off. 2. As the page changes, it may be injected and run multiple times.`,
-    zh_TW: `1. 開啟翻譯時注入並執行，關閉翻譯時移除。2. 隨頁面變化，可能多次注入與執行。`,
+    zh: `初始化时注入运行，一个页面仅运行一次。`,
+    en: `Injected and run at initialization, and only run once per page.`,
+    zh_TW: `初始化時注入運行，一個頁面僅運行一次。`,
   },
   inject_css: {
     zh: `注入CSS`,
@@ -618,14 +638,9 @@ export const I18N = {
     zh_TW: `注入 CSS`,
   },
   inject_css_helper: {
-    zh: `开启翻译时注入，关闭翻译时将移除。`,
-    en: `Injected when translation is enabled and removed when translation is disabled.`,
-    zh_TW: `開啟翻譯時注入，關閉翻譯時會移除。`,
-  },
-  root_selector: {
-    zh: `根选择器`,
-    en: `Root Selector`,
-    zh_TW: `根選擇器`,
+    zh: `初始化时注入运行，一个页面仅运行一次。`,
+    en: `Injected and run at initialization, and only run once per page.`,
+    zh_TW: `初始化時注入運行，一個頁面僅運行一次。`,
   },
   fixer_function: {
     zh: `修复函数`,
@@ -1184,9 +1199,9 @@ export const I18N = {
     zh_TW: `翻譯開始 Hook`,
   },
   translate_start_hook_helper: {
-    zh: `翻译开始时运行，入参为： 翻译节点，原文文本，返回：待译文本。`,
-    en: `Run when translation starts, the input parameters are: translation node, original text, and returns: text to be translated.`,
-    zh_TW: `翻譯開始時執行，入參為：翻譯節點、原文文字，回傳：待譯文本。`,
+    zh: `翻译前时运行，入参为： 翻译节点列表。`,
+    en: `Run before translation, input parameters are: translation node list.`,
+    zh_TW: `翻譯前時運行，入參為： 翻譯節點清單。`,
   },
   translate_end_hook: {
     zh: `翻译完成钩子函数`,
@@ -1194,9 +1209,9 @@ export const I18N = {
     zh_TW: `翻譯完成 Hook`,
   },
   translate_end_hook_helper: {
-    zh: `翻译完成时运行，入参为： 翻译节点，译文文本，原文文本，保留元素、术语列表，返回：译文文本。`,
-    en: `Run when the translation is completed, the input parameters are: translation node, translation text, original text, retained elements, and returns: translation text.`,
-    zh_TW: `翻譯完成時執行，入參為：翻譯節點、譯文文字、原文文字、保留元素，返回：譯文文本。`,
+    zh: `翻译完成时运行，入参为： 翻译节点列表。`,
+    en: `Run when translation is complete, input parameters are: translation node list.`,
+    zh_TW: `翻譯完成時運行，入參為： 翻譯節點清單。`,
   },
   translate_remove_hook: {
     zh: `翻译移除钩子函数`,
@@ -1257,5 +1272,60 @@ export const I18N = {
     zh: `上下文会话数量(1-20)`,
     en: `Number of context sessions(1-20)`,
     zh_TW: `上下文會話數量(1-20)`,
+  },
+  auto_scan_page: {
+    zh: `自动扫描页面`,
+    en: `Auto scan page`,
+    zh_TW: `自動掃描頁面`,
+  },
+  has_rich_text: {
+    zh: `启用富文本翻译`,
+    en: `Enable rich text translation`,
+    zh_TW: `啟用富文本翻譯`,
+  },
+  has_shadowroot: {
+    zh: `扫描Shadowroot`,
+    en: `Scan Shadowroot`,
+    zh_TW: `掃描Shadowroot`,
+  },
+  mousehover_translate: {
+    zh: `鼠标悬停翻译`,
+    en: `Mouseover Translation`,
+    zh_TW: `滑鼠懸停翻譯`,
+  },
+  use_mousehover_translation: {
+    zh: `启用鼠标悬停翻译`,
+    en: `Enable mouseover translation`,
+    zh_TW: `啟用滑鼠懸停翻譯`,
+  },
+  selected_translation_alert: {
+    zh: `划词翻译的开启和关闭请到“规则设置”里面设置。`,
+    en: `To turn selected translation on or off, please go to "Rule Settings".`,
+    zh_TW: `劃詞翻譯的開啟和關閉請到「規則設定」裡面設定。`,
+  },
+  mousehover_key_help: {
+    zh: `默认为“ControlLeft”`,
+    en: `Defaults is "ControlLeft"`,
+    zh_TW: `預設為“ControlLeft”`,
+  },
+  autoscan_alt: {
+    zh: `自动扫描`,
+    en: `Auto Scan`,
+    zh_TW: `自動掃描`,
+  },
+  shadowroot_alt: {
+    zh: `ShadowRoot`,
+    en: `ShadowRoot`,
+    zh_TW: `ShadowRoot`,
+  },
+  richtext_alt: {
+    zh: `富文本`,
+    en: `Rich Text`,
+    zh_TW: `富文本`,
+  },
+  transonly_alt: {
+    zh: `隐藏原文`,
+    en: `Hide Original`,
+    zh_TW: `隱藏原文`,
   },
 };

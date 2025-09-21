@@ -6,13 +6,13 @@ import {
   OPT_STYLE_ALL,
   OPT_LANGS_FROM,
   OPT_LANGS_TO,
-  OPT_TIMING_ALL,
+  // OPT_TIMING_ALL,
   GLOBLA_RULE,
 } from "../config";
 import { loadOrFetchSubRules } from "./subRules";
 import { getRulesWithDefault, setRules } from "./storage";
 import { trySyncRules } from "./sync";
-import { FIXER_ALL } from "./webfix";
+// import { FIXER_ALL } from "./webfix";
 import { kissLog } from "./log";
 
 /**
@@ -68,15 +68,17 @@ export const matchRule = async (
   [
     "selector",
     "keepSelector",
+    "rootsSelector",
+    "ignoreSelector",
     "terms",
     "selectStyle",
     "parentStyle",
     "injectJs",
     "injectCss",
-    "fixerSelector",
+    // "fixerSelector",
     "transStartHook",
     "transEndHook",
-    "transRemoveHook",
+    // "transRemoveHook",
   ].forEach((key) => {
     if (!rule[key]?.trim()) {
       rule[key] = globalRule[key];
@@ -89,12 +91,15 @@ export const matchRule = async (
     "toLang",
     "transOpen",
     "transOnly",
-    "transTiming",
+    // "transTiming",
+    "autoScan",
+    "hasRichText",
+    "hasShadowroot",
     "transTag",
     "transTitle",
     "transSelected",
     "detectRemote",
-    "fixerFunc",
+    // "fixerFunc",
   ].forEach((key) => {
     if (rule[key] === undefined || rule[key] === GLOBAL_KEY) {
       rule[key] = globalRule[key];
@@ -146,6 +151,8 @@ export const checkRules = (rules) => {
         pattern,
         selector,
         keepSelector,
+        rootsSelector,
+        ignoreSelector,
         terms,
         selectStyle,
         parentStyle,
@@ -159,21 +166,26 @@ export const checkRules = (rules) => {
         bgColor,
         textDiyStyle,
         transOnly,
-        transTiming,
+        autoScan,
+        hasRichText,
+        hasShadowroot,
+        // transTiming,
         transTag,
         transTitle,
         transSelected,
         detectRemote,
         skipLangs,
-        fixerSelector,
-        fixerFunc,
+        // fixerSelector,
+        // fixerFunc,
         transStartHook,
         transEndHook,
-        transRemoveHook,
+        // transRemoveHook,
       }) => ({
         pattern: pattern.trim(),
         selector: type(selector) === "string" ? selector : "",
         keepSelector: type(keepSelector) === "string" ? keepSelector : "",
+        rootsSelector: type(rootsSelector) === "string" ? rootsSelector : "",
+        ignoreSelector: type(ignoreSelector) === "string" ? ignoreSelector : "",
         terms: type(terms) === "string" ? terms : "",
         selectStyle: type(selectStyle) === "string" ? selectStyle : "",
         parentStyle: type(parentStyle) === "string" ? parentStyle : "",
@@ -187,18 +199,21 @@ export const checkRules = (rules) => {
         textStyle: matchValue([GLOBAL_KEY, ...OPT_STYLE_ALL], textStyle),
         transOpen: matchValue([GLOBAL_KEY, "true", "false"], transOpen),
         transOnly: matchValue([GLOBAL_KEY, "true", "false"], transOnly),
-        transTiming: matchValue([GLOBAL_KEY, ...OPT_TIMING_ALL], transTiming),
+        autoScan: matchValue([GLOBAL_KEY, "true", "false"], autoScan),
+        hasRichText: matchValue([GLOBAL_KEY, "true", "false"], hasRichText),
+        hasShadowroot: matchValue([GLOBAL_KEY, "true", "false"], hasShadowroot),
+        // transTiming: matchValue([GLOBAL_KEY, ...OPT_TIMING_ALL], transTiming),
         transTag: matchValue([GLOBAL_KEY, "span", "font"], transTag),
         transTitle: matchValue([GLOBAL_KEY, "true", "false"], transTitle),
         transSelected: matchValue([GLOBAL_KEY, "true", "false"], transSelected),
         detectRemote: matchValue([GLOBAL_KEY, "true", "false"], detectRemote),
         skipLangs: type(skipLangs) === "array" ? skipLangs : [],
-        fixerSelector: type(fixerSelector) === "string" ? fixerSelector : "",
+        // fixerSelector: type(fixerSelector) === "string" ? fixerSelector : "",
         transStartHook: type(transStartHook) === "string" ? transStartHook : "",
         transEndHook: type(transEndHook) === "string" ? transEndHook : "",
-        transRemoveHook:
-          type(transRemoveHook) === "string" ? transRemoveHook : "",
-        fixerFunc: matchValue([GLOBAL_KEY, ...FIXER_ALL], fixerFunc),
+        // transRemoveHook:
+        //   type(transRemoveHook) === "string" ? transRemoveHook : "",
+        // fixerFunc: matchValue([GLOBAL_KEY, ...FIXER_ALL], fixerFunc),
       })
     );
 

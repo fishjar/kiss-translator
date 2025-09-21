@@ -61,7 +61,7 @@ export default function Settings() {
         value = limitNumber(value, 0, 5000);
         break;
       case "transInterval":
-        value = limitNumber(value, 100, 5000);
+        value = limitNumber(value, 10, 2000);
         break;
       case "minLength":
         value = limitNumber(value, 1, 100);
@@ -119,7 +119,7 @@ export default function Settings() {
     touchTranslate = 2,
     blacklist = DEFAULT_BLACKLIST.join(",\n"),
     csplist = DEFAULT_CSPLIST.join(",\n"),
-    transInterval = 500,
+    transInterval = 200,
     langDetector = OPT_TRANS_MICROSOFT,
   } = setting;
   const { isHide = false } = fab || {};

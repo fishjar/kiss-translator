@@ -560,7 +560,12 @@ function ApiAccordion({ translator }) {
   return (
     <Accordion expanded={expanded} onChange={handleChange}>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Typography>
+        <Typography
+          sx={{
+            opacity: api.isDisabled ? 0.5 : 1,
+            overflowWrap: "anywhere",
+          }}
+        >
           {api.apiName ? `${translator} (${api.apiName})` : translator}
         </Typography>
       </AccordionSummary>

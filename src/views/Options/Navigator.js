@@ -14,6 +14,7 @@ import ApiIcon from "@mui/icons-material/Api";
 import InputIcon from "@mui/icons-material/Input";
 import SelectAllIcon from "@mui/icons-material/SelectAll";
 import EventNoteIcon from "@mui/icons-material/EventNote";
+import MouseIcon from '@mui/icons-material/Mouse';
 
 function LinkItem({ label, url, icon }) {
   const match = useMatch(url);
@@ -51,6 +52,12 @@ export default function Navigator(props) {
       label: i18n("selection_translate"),
       url: "/tranbox",
       icon: <SelectAllIcon />,
+    },
+    {
+      id: "mousehover_translate",
+      label: i18n("mousehover_translate"),
+      url: "/mousehover",
+      icon: <MouseIcon />,
     },
     {
       id: "apis_setting",

@@ -16,9 +16,7 @@ import {
   OPT_STYLE_USE_COLOR,
   URL_KISS_RULES_NEW_ISSUE,
   OPT_SYNCTYPE_WORKER,
-  OPT_TIMING_PAGESCROLL,
   DEFAULT_TRANS_TAG,
-  OPT_TIMING_ALL,
 } from "../../config";
 import { useState, useEffect, useMemo } from "react";
 import { useI18n } from "../../hooks/I18n";
@@ -55,7 +53,6 @@ import HelpButton from "./HelpButton";
 import { useSyncCaches } from "../../hooks/Sync";
 import DownloadButton from "./DownloadButton";
 import UploadButton from "./UploadButton";
-import { FIXER_ALL } from "../../libs/webfix";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import CancelIcon from "@mui/icons-material/Cancel";
@@ -78,6 +75,8 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
     pattern,
     selector,
     keepSelector = "",
+    rootsSelector = "",
+    ignoreSelector = "",
     terms = "",
     selectStyle = "",
     parentStyle = "",
@@ -91,17 +90,20 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
     bgColor,
     textDiyStyle,
     transOnly = "false",
-    transTiming = OPT_TIMING_PAGESCROLL,
+    autoScan = "true",
+    hasRichText = "true",
+    hasShadowroot = "false",
+    // transTiming = OPT_TIMING_PAGESCROLL,
     transTag = DEFAULT_TRANS_TAG,
     transTitle = "false",
     transSelected = "true",
     detectRemote = "false",
     skipLangs = [],
-    fixerSelector = "",
-    fixerFunc = "-",
+    // fixerSelector = "",
+    // fixerFunc = "-",
     transStartHook = "",
     transEndHook = "",
-    transRemoveHook = "",
+    // transRemoveHook = "",
   } = formValues;
 
   const hasSamePattern = (str) => {
@@ -236,7 +238,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
           helperText={errors.selector || i18n("selector_helper")}
           name="selector"
           value={selector}
-          disabled={disabled}
+          disabled={autoScan === "true" || disabled}
           onChange={handleChange}
           onFocus={handleFocus}
           multiline
@@ -247,6 +249,26 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
           helperText={i18n("keep_selector_helper")}
           name="keepSelector"
           value={keepSelector}
+          disabled={disabled}
+          onChange={handleChange}
+          multiline
+        />
+        <TextField
+          size="small"
+          label={i18n("root_selector")}
+          helperText={i18n("root_selector_helper")}
+          name="rootsSelector"
+          value={rootsSelector}
+          disabled={disabled}
+          onChange={handleChange}
+          multiline
+        />
+        <TextField
+          size="small"
+          label={i18n("ignore_selector")}
+          helperText={i18n("ignore_selector_helper")}
+          name="ignoreSelector"
+          value={ignoreSelector}
           disabled={disabled}
           onChange={handleChange}
           multiline
@@ -268,6 +290,126 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 {GlobalItem}
                 <MenuItem value={"true"}>{i18n("default_enabled")}</MenuItem>
                 <MenuItem value={"false"}>{i18n("default_disabled")}</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3} lg={2}>
+              <TextField
+                select
+                size="small"
+                fullWidth
+                name="autoScan"
+                value={autoScan}
+                label={i18n("auto_scan_page")}
+                disabled={disabled}
+                onChange={handleChange}
+              >
+                {GlobalItem}
+                <MenuItem value={"false"}>{i18n("disable")}</MenuItem>
+                <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3} lg={2}>
+              <TextField
+                select
+                size="small"
+                fullWidth
+                name="hasRichText"
+                value={hasRichText}
+                label={i18n("has_rich_text")}
+                disabled={disabled}
+                onChange={handleChange}
+              >
+                {GlobalItem}
+                <MenuItem value={"false"}>{i18n("disable")}</MenuItem>
+                <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3} lg={2}>
+              <TextField
+                select
+                size="small"
+                fullWidth
+                name="hasShadowroot"
+                value={hasShadowroot}
+                label={i18n("has_shadowroot")}
+                disabled={disabled}
+                onChange={handleChange}
+              >
+                {GlobalItem}
+                <MenuItem value={"false"}>{i18n("disable")}</MenuItem>
+                <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3} lg={2}>
+              <TextField
+                select
+                size="small"
+                fullWidth
+                name="transSelected"
+                value={transSelected}
+                label={i18n("translate_selected")}
+                disabled={disabled}
+                onChange={handleChange}
+              >
+                {GlobalItem}
+                <MenuItem value={"false"}>{i18n("disable")}</MenuItem>
+                <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3} lg={2}>
+              <TextField
+                select
+                size="small"
+                fullWidth
+                name="transOnly"
+                value={transOnly}
+                label={i18n("show_only_translations")}
+                disabled={disabled}
+                onChange={handleChange}
+              >
+                {GlobalItem}
+                <MenuItem value={"false"}>{i18n("disable")}</MenuItem>
+                <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
+              </TextField>
+            </Grid>
+          </Grid>
+        </Box>
+
+        <Box>
+          <Grid container spacing={2} columns={12}>
+            {/* <Grid item xs={12} sm={6} md={3} lg={2}>
+              <TextField
+                select
+                size="small"
+                fullWidth
+                name="transTiming"
+                value={transTiming}
+                label={i18n("trigger_mode")}
+                disabled={disabled}
+                onChange={handleChange}
+              >
+                {GlobalItem}
+                {OPT_TIMING_ALL.map((item) => (
+                  <MenuItem key={item} value={item}>
+                    {i18n(item)}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid> */}
+            <Grid item xs={12} sm={6} md={3} lg={2}>
+              <TextField
+                select
+                size="small"
+                fullWidth
+                name="transTitle"
+                value={transTitle}
+                label={i18n("translate_page_title")}
+                disabled={disabled}
+                onChange={handleChange}
+              >
+                {GlobalItem}
+                <MenuItem value={"false"}>{i18n("disable")}</MenuItem>
+                <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
               </TextField>
             </Grid>
             <Grid item xs={12} sm={6} md={3} lg={2}>
@@ -383,41 +525,6 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 select
                 size="small"
                 fullWidth
-                name="transOnly"
-                value={transOnly}
-                label={i18n("show_only_translations")}
-                disabled={disabled}
-                onChange={handleChange}
-              >
-                {GlobalItem}
-                <MenuItem value={"false"}>{i18n("disable")}</MenuItem>
-                <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
-              </TextField>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3} lg={2}>
-              <TextField
-                select
-                size="small"
-                fullWidth
-                name="transTiming"
-                value={transTiming}
-                label={i18n("trigger_mode")}
-                disabled={disabled}
-                onChange={handleChange}
-              >
-                {GlobalItem}
-                {OPT_TIMING_ALL.map((item) => (
-                  <MenuItem key={item} value={item}>
-                    {i18n(item)}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3} lg={2}>
-              <TextField
-                select
-                size="small"
-                fullWidth
                 name="transTag"
                 value={transTag}
                 label={i18n("translation_element_tag")}
@@ -427,38 +534,6 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 {GlobalItem}
                 <MenuItem value={"span"}>{`<span>`}</MenuItem>
                 <MenuItem value={"font"}>{`<font>`}</MenuItem>
-              </TextField>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3} lg={2}>
-              <TextField
-                select
-                size="small"
-                fullWidth
-                name="transTitle"
-                value={transTitle}
-                label={i18n("translate_page_title")}
-                disabled={disabled}
-                onChange={handleChange}
-              >
-                {GlobalItem}
-                <MenuItem value={"false"}>{i18n("disable")}</MenuItem>
-                <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
-              </TextField>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3} lg={2}>
-              <TextField
-                select
-                size="small"
-                fullWidth
-                name="transSelected"
-                value={transSelected}
-                label={i18n("translate_selected")}
-                disabled={disabled}
-                onChange={handleChange}
-              >
-                {GlobalItem}
-                <MenuItem value={"false"}>{i18n("disable")}</MenuItem>
-                <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
               </TextField>
             </Grid>
             <Grid item xs={12} sm={6} md={3} lg={2}>
@@ -482,7 +557,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
 
         {showMore && (
           <>
-            <TextField
+            {/* <TextField
               size="small"
               label={i18n("fixer_selector")}
               name="fixerSelector"
@@ -508,7 +583,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                   {item}
                 </MenuItem>
               ))}
-            </TextField>
+            </TextField> */}
 
             <TextField
               select
@@ -544,40 +619,6 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
 
             <TextField
               size="small"
-              label={i18n("translate_start_hook")}
-              helperText={i18n("translate_start_hook_helper")}
-              name="transStartHook"
-              value={transStartHook}
-              disabled={disabled}
-              onChange={handleChange}
-              multiline
-              maxRows={10}
-            />
-            <TextField
-              size="small"
-              label={i18n("translate_end_hook")}
-              helperText={i18n("translate_end_hook_helper")}
-              name="transEndHook"
-              value={transEndHook}
-              disabled={disabled}
-              onChange={handleChange}
-              multiline
-              maxRows={10}
-            />
-            <TextField
-              size="small"
-              label={i18n("translate_remove_hook")}
-              helperText={i18n("translate_remove_hook_helper")}
-              name="transRemoveHook"
-              value={transRemoveHook}
-              disabled={disabled}
-              onChange={handleChange}
-              multiline
-              maxRows={10}
-            />
-
-            <TextField
-              size="small"
               label={i18n("selector_style")}
               helperText={i18n("selector_style_helper")}
               name="selectStyle"
@@ -598,6 +639,41 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
               maxRows={10}
               multiline
             />
+
+            <TextField
+              size="small"
+              label={i18n("translate_start_hook")}
+              helperText={i18n("translate_start_hook_helper")}
+              name="transStartHook"
+              value={transStartHook}
+              disabled={disabled}
+              onChange={handleChange}
+              multiline
+              maxRows={10}
+            />
+            <TextField
+              size="small"
+              label={i18n("translate_end_hook")}
+              helperText={i18n("translate_end_hook_helper")}
+              name="transEndHook"
+              value={transEndHook}
+              disabled={disabled}
+              onChange={handleChange}
+              multiline
+              maxRows={10}
+            />
+            {/* <TextField
+              size="small"
+              label={i18n("translate_remove_hook")}
+              helperText={i18n("translate_remove_hook_helper")}
+              name="transRemoveHook"
+              value={transRemoveHook}
+              disabled={disabled}
+              onChange={handleChange}
+              multiline
+              maxRows={10}
+            /> */}
+
             <TextField
               size="small"
               label={i18n("inject_css")}
