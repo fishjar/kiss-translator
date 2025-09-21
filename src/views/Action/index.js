@@ -33,6 +33,8 @@ export default function Action({ translator, fab }) {
   });
   const [moved, setMoved] = useState(false);
 
+  const { fabClickAction = 0 } = fab || {};
+
   const handleWindowResize = useMemo(
     () =>
       debounce(() => {
@@ -215,7 +217,14 @@ export default function Action({ translator, fab }) {
               color="primary"
               onClick={(e) => {
                 if (!moved) {
-                  setShowPopup((pre) => !pre);
+                  if (fabClickAction === 1) {
+                    translator.toggle();
+                    sendIframeMsg(MSG_TRANS_TOGGLE);
+                    setShowPopup(false);
+                  } 
+                  else {
+                    setShowPopup((pre) => !pre);
+                  }
                 }
               }}
             >

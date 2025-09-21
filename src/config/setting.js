@@ -33,6 +33,7 @@ export const DEFAULT_CSPLIST = ["https://github.com"]; // 禁用CSP名单
 // 同步设置
 export const OPT_SYNCTYPE_WORKER = "KISS-Worker";
 export const OPT_SYNCTYPE_WEBDAV = "WebDAV";
+export const OPT_SYNCTOKEN_PERFIX = "kt_";
 export const OPT_SYNCTYPE_ALL = [OPT_SYNCTYPE_WORKER, OPT_SYNCTYPE_WEBDAV];
 export const DEFAULT_SYNC = {
   syncType: OPT_SYNCTYPE_WORKER, // 同步方式
@@ -125,6 +126,7 @@ export const DEFAULT_SETTING = {
   httpTimeout: DEFAULT_HTTP_TIMEOUT,
   clearCache: false, // 是否在浏览器下次启动时清除缓存
   injectRules: true, // 是否注入订阅规则
+  fabClickAction: 0, // 悬浮按钮点击行为
   // injectWebfix: true, // 是否注入修复补丁(作废)
   // detectRemote: false, // 是否使用远程语言检测(移至rule，作废)
   // contextMenus: true, // 是否添加右键菜单(作废)
