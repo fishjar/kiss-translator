@@ -14,8 +14,8 @@ import {
 } from "../config";
 
 const genLineStyle = (style, color) => `
-  opacity: 0.6;
-  -webkit-opacity: 0.6;
+  opacity: 0.8;
+  -webkit-opacity: 0.8;
   text-decoration-line: underline;
   text-decoration-style: ${style};
   text-decoration-color: ${color};
@@ -45,7 +45,6 @@ const genStyles = ({ textDiyStyle, bgColor = DEFAULT_COLOR }) => ({
   [OPT_STYLE_WAVYLINE]: genLineStyle("wavy", bgColor),
   // 虚线框
   [OPT_STYLE_DASHBOX]: `
-    color: ${bgColor || DEFAULT_COLOR};
     border: 1px dashed ${bgColor || DEFAULT_COLOR};
     background: transparent;
     display: block;
@@ -68,11 +67,12 @@ const genStyles = ({ textDiyStyle, bgColor = DEFAULT_COLOR }) => ({
   `,
   // 引用
   [OPT_STYLE_BLOCKQUOTE]: `
-    opacity: 0.6;
-    -webkit-opacity: 0.6;
+    opacity: 0.8;
+    -webkit-opacity: 0.8;
     display: block;
-    padding: 0 0.75em;
-    border-left: 0.25em solid ${bgColor || DEFAULT_COLOR};
+    padding: 0.25em 0.75em;
+    border-left: 0.5em solid ${bgColor || DEFAULT_COLOR};
+    background: rgb(32, 156, 238, 0.2);
     &:hover {
       opacity: 1;
       -webkit-opacity: 1;

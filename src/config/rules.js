@@ -57,7 +57,7 @@ export const OPT_TIMING_ALL = [
   OPT_TIMING_ALT,
 ];
 
-const DEFAULT_DIY_STYLE = `color: #666;
+const DEFAULT_DIY_STYLE = `color: #333;
 background: linear-gradient(
   45deg,
   LightGreen 20%,
@@ -67,7 +67,7 @@ background: linear-gradient(
   LightSkyBlue 80%
 );
 &:hover {
-  color: #333;
+  color: #111;
 };`;
 
 export const DEFAULT_SELECTOR =
@@ -86,7 +86,7 @@ export const DEFAULT_RULE = {
   textStyle: GLOBAL_KEY, // 译文样式
   transOpen: GLOBAL_KEY, // 开启翻译
   bgColor: "", // 译文颜色
-  textDiyStyle: DEFAULT_DIY_STYLE, // 自定义译文样式
+  textDiyStyle: "", // 自定义译文样式
   selectStyle: "", // 选择器节点样式
   parentStyle: "", // 选择器父节点样式
   injectJs: "", // 注入JS
@@ -122,7 +122,7 @@ export const GLOBLA_RULE = {
   textStyle: OPT_STYLE_NONE, // 译文样式
   transOpen: "false", // 开启翻译
   bgColor: "", // 译文颜色
-  textDiyStyle: "", // 自定义译文样式
+  textDiyStyle: DEFAULT_DIY_STYLE, // 自定义译文样式
   selectStyle: DEFAULT_SELECT_STYLE, // 选择器节点样式
   parentStyle: DEFAULT_SELECT_STYLE, // 选择器父节点样式
   injectJs: "", // 注入JS
