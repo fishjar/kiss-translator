@@ -70,7 +70,7 @@ const genStyles = ({ textDiyStyle, bgColor = DEFAULT_COLOR }) => ({
     opacity: 0.8;
     -webkit-opacity: 0.8;
     display: block;
-    padding: 0.25em 0.75em;
+    padding: 0.25em 0.5em;
     border-left: 0.5em solid ${bgColor || DEFAULT_COLOR};
     background: rgb(32, 156, 238, 0.2);
     &:hover {
