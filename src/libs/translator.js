@@ -430,9 +430,14 @@ export class Translator {
   }
 
   #getDocDescription() {
-    const meta = document.querySelector('meta[name="description"]');
-    const description = meta ? meta.getAttribute("content") : "";
-    return description.slice(0, 200);
+    try {
+      const meta = document.querySelector('meta[name="description"]');
+      const description = meta ? meta.getAttribute("content") : "";
+      return description.slice(0, 200);
+    } catch (err) {
+      kissLog("get description", err);
+    }
+    return "";
   }
 
   // 监控翻译单元的可见性

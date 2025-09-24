@@ -198,6 +198,8 @@ export const isSameSet = (a, b) => {
  * @returns
  */
 export const removeEndchar = (s, c, count = 1) => {
+  if (!s) return "";
+
   let i = s.length;
   while (i > s.length - count && s[i - 1] === c) {
     i--;
