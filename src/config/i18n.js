@@ -1318,9 +1318,9 @@ export const I18N = {
     zh_TW: `劃詞翻譯的開啟和關閉請到「規則設定」裡面設定。`,
   },
   mousehover_key_help: {
-    zh: `默认为“ControlLeft”`,
-    en: `Defaults is "ControlLeft"`,
-    zh_TW: `預設為“ControlLeft”`,
+    zh: `当快捷键置空时表示鼠标悬停直接翻译`,
+    en: `When the shortcut key is empty, it means that the mouse hovers to translate directly`,
+    zh_TW: `當快捷鍵置空時表示滑鼠懸停直接翻譯`,
   },
   autoscan_alt: {
     zh: `自动扫描`,

@@ -7,7 +7,7 @@ import {
   OPT_STYLE_FUZZY,
   GLOBLA_RULE,
   DEFAULT_SETTING,
-  DEFAULT_MOUSEHOVER_KEY,
+  // DEFAULT_MOUSEHOVER_KEY,
   OPT_STYLE_NONE,
   DEFAULT_API_SETTING,
 } from "../config";
@@ -511,7 +511,15 @@ export class Translator {
         targetNode = targetNode.parentElement;
       }
       this.#hoveredNode = foundNode || startNode;
-    }, 200);
+
+      const { mouseHoverKey } = this.#setting.mouseHoverSetting;
+      if (mouseHoverKey.length === 0 && !this.#isInitialized) {
+        this.#init();
+      }
+      if (mouseHoverKey.length === 0 && foundNode) {
+        this.#processNode(foundNode);
+      }
+    }, 100);
   }
 
   // 创建shadowroot的回调
@@ -535,7 +543,11 @@ export class Translator {
     let targetNode = this.#hoveredNode;
     if (!targetNode || !this.#observedNodes.has(targetNode)) return;
 
-    // 切换该节点翻译状态
+    this.#toggleTargetNode(targetNode);
+  }
+
+  // 切换节点翻译状态
+  #toggleTargetNode(targetNode) {
     if (this.#processedNodes.has(targetNode)) {
       this.#cleanupDirectTranslations(targetNode);
     } else {
@@ -598,7 +610,7 @@ export class Translator {
         this.#rescanQueue.forEach((t) => this.#rescanContainer(t));
         this.#rescanQueue.clear();
         this.#isQueueProcessing = false;
-      }, 200);
+      }, 100);
     }
   }
 
@@ -700,8 +712,8 @@ export class Translator {
   // 处理一个待翻译的节点
   async #processNode(node) {
     if (
-      !Translator.isElementOrFragment(node) ||
-      this.#processedNodes.has(node)
+      this.#processedNodes.has(node) ||
+      !Translator.isElementOrFragment(node)
     ) {
       return;
     }
@@ -1202,9 +1214,10 @@ export class Translator {
     this.#setting.mouseHoverSetting.useMouseHover = true;
 
     document.addEventListener("mousemove", this.#boundMouseMoveHandler);
-    let { mouseHoverKey } = this.#setting.mouseHoverSetting;
+    const { mouseHoverKey } = this.#setting.mouseHoverSetting;
     if (mouseHoverKey.length === 0) {
-      mouseHoverKey = DEFAULT_MOUSEHOVER_KEY;
+      // mouseHoverKey = DEFAULT_MOUSEHOVER_KEY;
+      return;
     }
     this.#removeKeydownHandler = shortcutRegister(
       mouseHoverKey,

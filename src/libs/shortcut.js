@@ -48,7 +48,7 @@ export const shortcutRegister = (targetKeys = [], fn, target = document) => {
 
   const targetKeySet = new Set(targetKeys);
   const onKeyDown = (pressedKeys, event) => {
-    if (targetKeySet.size > 0 && isSameSet(targetKeySet, pressedKeys)) {
+    if (isSameSet(targetKeySet, pressedKeys)) {
       event.preventDefault();
       event.stopPropagation();
       fn();

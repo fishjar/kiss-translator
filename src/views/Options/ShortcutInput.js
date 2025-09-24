@@ -19,9 +19,10 @@ export default function ShortcutInput({
   const i18n = useI18n();
 
   const commitChanges = () => {
-    if (editingKeys.length > 0) {
-      onChange(editingKeys);
-    }
+    // if (editingKeys.length > 0) {
+    //   onChange(editingKeys);
+    // }
+    onChange(editingKeys);
     setIsEditing(false);
   };
 
