@@ -1,90 +1,88 @@
 import { STOKEY_RULES, DEFAULT_RULES, KV_RULES_KEY } from "../config";
 import { useStorage } from "./Storage";
-import { trySyncRules } from "../libs/sync";
 import { checkRules } from "../libs/rules";
 import { useCallback } from "react";
-import { useSyncMeta } from "./Sync";
 
 /**
  * 规则 hook
  * @returns
  */
 export function useRules() {
-  const { data: list, save } = useStorage(STOKEY_RULES, DEFAULT_RULES);
-  const { updateSyncMeta } = useSyncMeta();
-
-  const updateRules = useCallback(
-    async (rules) => {
-      await save(rules);
-      await updateSyncMeta(KV_RULES_KEY);
-      trySyncRules();
-    },
-    [save, updateSyncMeta]
+  const { data: list, save } = useStorage(
+    STOKEY_RULES,
+    DEFAULT_RULES,
+    KV_RULES_KEY
   );
 
   const add = useCallback(
-    async (rule) => {
-      const rules = [...list];
-      if (rule.pattern === "*") {
-        return;
-      }
-      if (rules.map((item) => item.pattern).includes(rule.pattern)) {
-        return;
-      }
-      rules.unshift(rule);
-      await updateRules(rules);
+    (rule) => {
+      save((prev) => {
+        if (
+          rule.pattern === "*" ||
+          prev.some((item) => item.pattern === rule.pattern)
+        ) {
+          return prev;
+        }
+        return [rule, ...prev];
+      });
     },
-    [list, updateRules]
+    [save]
   );
 
   const del = useCallback(
-    async (pattern) => {
-      let rules = [...list];
-      if (pattern === "*") {
-        return;
-      }
-      rules = rules.filter((item) => item.pattern !== pattern);
-      await updateRules(rules);
+    (pattern) => {
+      save((prev) => {
+        if (pattern === "*") {
+          return prev;
+        }
+        return prev.filter((item) => item.pattern !== pattern);
+      });
     },
-    [list, updateRules]
+    [save]
   );
 
-  const clear = useCallback(async () => {
-    let rules = [...list];
-    rules = rules.filter((item) => item.pattern === "*");
-    await updateRules(rules);
-  }, [list, updateRules]);
+  const clear = useCallback(() => {
+    save((prev) => prev.filter((item) => item.pattern === "*"));
+  }, [save]);
 
   const put = useCallback(
-    async (pattern, obj) => {
-      const rules = [...list];
-      if (pattern === "*") {
-        obj.pattern = "*";
-      }
-      const rule = rules.find((r) => r.pattern === pattern);
-      rule && Object.assign(rule, obj);
-      await updateRules(rules);
+    (pattern, obj) => {
+      save((prev) => {
+        if (
+          prev.some(
+            (item) => item.pattern === obj.pattern && item.pattern !== pattern
+          )
+        ) {
+          return prev;
+        }
+        return prev.map((item) =>
+          item.pattern === pattern ? { ...item, ...obj } : item
+        );
+      });
     },
-    [list, updateRules]
+    [save]
   );
 
   const merge = useCallback(
-    async (newRules) => {
-      const rules = [...list];
-      newRules = checkRules(newRules);
-      newRules.forEach((newRule) => {
-        const rule = rules.find(
-          (oldRule) => oldRule.pattern === newRule.pattern
-        );
-        if (rule) {
-          Object.assign(rule, newRule);
-        } else {
-          rules.unshift(newRule);
+    (rules) => {
+      save((prev) => {
+        const adds = checkRules(rules);
+        if (adds.length === 0) {
+          return prev;
         }
+
+        const map = new Map();
+        // 不进行深度合并
+        // [...prev, ...adds].forEach((item) => {
+        //   const k = item.pattern;
+        //   map.set(k, { ...(map.get(k) || {}), ...item });
+        // });
+        prev.forEach((item) => map.set(item.pattern, item));
+        adds.forEach((item) => map.set(item.pattern, item));
+        return [...map.values()];
       });
-      await updateRules(rules);
     },
-    [list, updateRules]
+    [save]
   );
 
   return { list, add, del, clear, put, merge };

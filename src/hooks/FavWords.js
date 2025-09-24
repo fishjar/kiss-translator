@@ -1,68 +1,55 @@
-import { KV_WORDS_KEY } from "../config";
-import { useCallback, useEffect, useState } from "react";
-import { trySyncWords } from "../libs/sync";
-import { getWordsWithDefault, setWords } from "../libs/storage";
-import { useSyncMeta } from "./Sync";
-import { kissLog } from "../libs/log";
+import { STOKEY_WORDS, KV_WORDS_KEY } from "../config";
+import { useCallback, useMemo } from "react";
+import { useStorage } from "./Storage";
+
+const DEFAULT_FAVWORDS = {};
 
 export function useFavWords() {
-  const [loading, setLoading] = useState(false);
-  const [favWords, setFavWords] = useState({});
-  const { updateSyncMeta } = useSyncMeta();
+  const { data: favWords, save } = useStorage(
+    STOKEY_WORDS,
+    DEFAULT_FAVWORDS,
+    KV_WORDS_KEY
+  );
 
   const toggleFav = useCallback(
-    async (word) => {
-      const favs = { ...favWords };
-      if (favs[word]) {
+    (word) => {
+      save((prev) => {
+        if (!prev[word]) {
+          return { ...prev, [word]: { createdAt: Date.now() } };
+        }
+
+        const favs = { ...prev };
         delete favs[word];
-      } else {
-        favs[word] = { createdAt: Date.now() };
-      }
-      await setWords(favs);
-      await updateSyncMeta(KV_WORDS_KEY);
-      await trySyncWords();
-      setFavWords(favs);
+        return favs;
+      });
     },
-    [updateSyncMeta, favWords]
+    [save]
   );
 
   const mergeWords = useCallback(
-    async (newWords) => {
-      const favs = { ...favWords };
-      newWords.forEach((word) => {
-        if (!favs[word]) {
-          favs[word] = { createdAt: Date.now() };
-        }
-      });
-      await setWords(favs);
-      await updateSyncMeta(KV_WORDS_KEY);
-      await trySyncWords();
-      setFavWords(favs);
+    (words) => {
+      save((prev) => ({
+        ...words.reduce((acc, key) => {
+          acc[key] = { createdAt: Date.now() };
+          return acc;
+        }, {}),
+        ...prev,
+      }));
     },
-    [updateSyncMeta, favWords]
+    [save]
   );
 
-  const clearWords = useCallback(async () => {
-    await setWords({});
-    await updateSyncMeta(KV_WORDS_KEY);
-    await trySyncWords();
-    setFavWords({});
-  }, [updateSyncMeta]);
+  const clearWords = useCallback(() => {
+    save({});
+  }, [save]);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        setLoading(true);
-        await trySyncWords();
-        const favWords = await getWordsWithDefault();
-        setFavWords(favWords);
-      } catch (err) {
-        kissLog(err, "query fav");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
+  const favList = useMemo(
+    () =>
+      Object.entries(favWords || {}).sort((a, b) => a[0].localeCompare(b[0])),
+    [favWords]
+  );
 
-  return { loading, favWords, toggleFav, mergeWords, clearWords };
+  const wordList = useMemo(() => favList.map(([word]) => word), [favList]);
+
+  return { favWords, favList, wordList, toggleFav, mergeWords, clearWords };
 }

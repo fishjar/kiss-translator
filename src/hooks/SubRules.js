@@ -2,7 +2,6 @@ import { DEFAULT_SUBRULES_LIST, DEFAULT_OW_RULE } from "../config";
 import { useSetting } from "./Setting";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { loadOrFetchSubRules } from "../libs/subRules";
-import { delSubRules } from "../libs/storage";
 import { kissLog } from "../libs/log";
 
 /**
@@ -19,50 +18,36 @@ export function useSubRules() {
   const selectedUrl = selectedSub.url;
 
   const selectSub = useCallback(
-    async (url) => {
-      const subrulesList = [...list];
-      subrulesList.forEach((item) => {
-        if (item.url === url) {
-          item.selected = true;
-        } else {
-          item.selected = false;
-        }
-      });
-      await updateSetting({ subrulesList });
+    (url) => {
+      updateSetting((prev) => ({
+        ...prev,
+        subrulesList: prev.subrulesList.map((item) => ({
+          ...item,
+          selected: item.url === url,
+        })),
+      }));
     },
-    [list, updateSetting]
-  );
-
-  const updateSub = useCallback(
-    async (url, obj) => {
-      const subrulesList = [...list];
-      subrulesList.forEach((item) => {
-        if (item.url === url) {
-          Object.assign(item, obj);
-        }
-      });
-      await updateSetting({ subrulesList });
-    },
-    [list, updateSetting]
+    [updateSetting]
   );
 
   const addSub = useCallback(
-    async (url) => {
-      const subrulesList = [...list];
-      subrulesList.push({ url, selected: false });
-      await updateSetting({ subrulesList });
+    (url) => {
+      updateSetting((prev) => ({
+        ...prev,
+        subrulesList: [...prev.subrulesList, { url, selected: false }],
+      }));
     },
-    [list, updateSetting]
+    [updateSetting]
   );
 
   const delSub = useCallback(
-    async (url) => {
-      let subrulesList = [...list];
-      subrulesList = subrulesList.filter((item) => item.url !== url);
-      await updateSetting({ subrulesList });
-      await delSubRules(url);
+    (url) => {
+      updateSetting((prev) => ({
+        ...prev,
+        subrulesList: prev.subrulesList.filter((item) => item.url !== url),
+      }));
     },
-    [list, updateSetting]
+    [updateSetting]
   );
 
   useEffect(() => {
@@ -73,7 +58,7 @@ export function useSubRules() {
           const rules = await loadOrFetchSubRules(selectedUrl);
           setSelectedRules(rules);
         } catch (err) {
-          kissLog(err, "loadOrFetchSubRules");
+          kissLog("loadOrFetchSubRules", err);
         } finally {
           setLoading(false);
         }
@@ -84,7 +69,6 @@ export function useSubRules() {
   return {
     subList: list,
     selectSub,
-    updateSub,
     addSub,
     delSub,
     selectedSub,
@@ -100,15 +84,9 @@ export function useSubRules() {
  * @returns
  */
 export function useOwSubRule() {
-  const { setting, updateSetting } = useSetting();
-  const { owSubrule = DEFAULT_OW_RULE } = setting;
-
-  const updateOwSubrule = useCallback(
-    async (obj) => {
-      await updateSetting({ owSubrule: { ...owSubrule, ...obj } });
-    },
-    [owSubrule, updateSetting]
-  );
+  const { setting, updateChild } = useSetting();
+  const owSubrule = setting?.owSubrule || DEFAULT_OW_RULE;
+  const updateOwSubrule = updateChild("owSubrule");
 
   return { owSubrule, updateOwSubrule };
 }

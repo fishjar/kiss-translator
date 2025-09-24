@@ -18,12 +18,7 @@ import LockIcon from "@mui/icons-material/Lock";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 import CloseIcon from "@mui/icons-material/Close";
 import { useI18n } from "../../hooks/I18n";
-import {
-  OPT_TRANS_ALL,
-  OPT_LANGS_FROM,
-  OPT_LANGS_TO,
-  DEFAULT_TRANS_APIS,
-} from "../../config";
+import { OPT_LANGS_FROM, OPT_LANGS_TO } from "../../config";
 import { useState, useRef, useMemo } from "react";
 import TranCont from "./TranCont";
 import DictCont from "./DictCont";
@@ -119,21 +114,18 @@ function TranForm({
 
   const [editMode, setEditMode] = useState(false);
   const [editText, setEditText] = useState("");
-  const [translator, setTranslator] = useState(tranboxSetting.translator);
+  const [apiSlug, setApiSlug] = useState(tranboxSetting.apiSlug);
   const [fromLang, setFromLang] = useState(tranboxSetting.fromLang);
   const [toLang, setToLang] = useState(tranboxSetting.toLang);
   const inputRef = useRef(null);
 
   const optApis = useMemo(
     () =>
-      OPT_TRANS_ALL.map((key) => ({
-        ...(transApis[key] || DEFAULT_TRANS_APIS[key]),
-        apiKey: key,
-      }))
-        .filter((item) => !item.isDisabled)
-        .map(({ apiKey, apiName }) => ({
-          key: apiKey,
-          name: apiName?.trim() || apiKey,
+      transApis
+        .filter((api) => !api.isDisabled)
+        .map((api) => ({
+          key: api.apiSlug,
+          name: api.apiName || api.apiSlug,
         })),
     [transApis]
   );
@@ -194,11 +186,11 @@ function TranForm({
                   SelectProps={{ MenuProps: { disablePortal: true } }}
                   fullWidth
                   size="small"
-                  value={translator}
-                  name="translator"
+                  value={apiSlug}
+                  name="apiSlug"
                   label={i18n("translate_service")}
                   onChange={(e) => {
-                    setTranslator(e.target.value);
+                    setApiSlug(e.target.value);
                   }}
                 >
                   {optApis.map(({ key, name }) => (
@@ -266,7 +258,7 @@ function TranForm({
         enDict === "-") && (
         <TranCont
           text={text}
-          translator={translator}
+          apiSlug={apiSlug}
           fromLang={fromLang}
           toLang={toLang}
           toLang2={tranboxSetting.toLang2}
@@ -307,6 +299,7 @@ export default function TranBox({
   enDict,
 }) {
   const [mouseHover, setMouseHover] = useState(false);
+  // todo: 这里的 SettingProvider 不应和 background 的共用
   return (
     <SettingProvider>
       <ThemeProvider styles={extStyles}>

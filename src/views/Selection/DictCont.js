@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Stack from "@mui/material/Stack";
 import FavBtn from "./FavBtn";
 import Typography from "@mui/material/Typography";
@@ -26,10 +26,10 @@ export default function DictCont({ text }) {
           return;
         }
 
-        // todo
+        // todo: 修复
         const dictRes = await apiTranslate({
           text,
-          translator: OPT_TRANS_BAIDU,
+          apiSlug: OPT_TRANS_BAIDU,
           fromLang: "en",
           toLang: "zh-CN",
         });
@@ -45,70 +45,74 @@ export default function DictCont({ text }) {
     })();
   }, [text]);
 
-  if (error) {
-    return <Alert severity="error">{error}</Alert>;
-  }
+  const copyText = useMemo(() => {
+    if (!dictResult) {
+      return text;
+    }
+
+    return [
+      dictResult.src,
+      dictResult.voice
+        ?.map(Object.entries)
+        .map((item) => item[0])
+        .map(([key, val]) => `${PHONIC_MAP[key]?.[0] || key} ${val}`)
+        .join(" "),
+      dictResult.content[0].mean
+        .map(({ pre, cont }) => {
+          return `${pre ? `[${pre}] ` : ""}${Object.keys(cont).join("; ")}`;
+        })
+        .join("\n"),
+    ].join("\n");
+  }, [text, dictResult]);
 
   if (loading) {
     return <CircularProgress size={16} />;
   }
 
-  if (!text || !dictResult) {
-    return;
-  }
-
-  const copyText = [
-    dictResult.src,
-    dictResult.voice
-      ?.map(Object.entries)
-      .map((item) => item[0])
-      .map(([key, val]) => `${PHONIC_MAP[key]?.[0] || key} ${val}`)
-      .join(" "),
-    dictResult.content[0].mean
-      .map(({ pre, cont }) => {
-        return `${pre ? `[${pre}] ` : ""}${Object.keys(cont).join("; ")}`;
-      })
-      .join("\n"),
-  ].join("\n");
-
   return (
     <Stack className="KT-transbox-dict" spacing={1}>
-      <Stack direction="row" justifyContent="space-between">
-        <Typography variant="subtitle1" style={{ fontWeight: "bold" }}>
-          {dictResult.src}
-        </Typography>
+      {text && (
         <Stack direction="row" justifyContent="space-between">
-          <CopyBtn text={copyText} />
-          <FavBtn word={dictResult.src} />
+          <Typography variant="subtitle1" style={{ fontWeight: "bold" }}>
+            {dictResult?.src || text}
+          </Typography>
+          <Stack direction="row" justifyContent="space-between">
+            <CopyBtn text={copyText} />
+            <FavBtn word={dictResult?.src || text} />
+          </Stack>
         </Stack>
-      </Stack>
+      )}
 
-      <Typography component="div">
+      {error && <Alert severity="error">{error}</Alert>}
+
+      {dictResult && (
         <Typography component="div">
-          {dictResult.voice
-            ?.map(Object.entries)
-            .map((item) => item[0])
-            .map(([key, val]) => (
-              <Typography
-                component="div"
-                key={key}
-                style={{ display: "inline-block" }}
-              >
-                <Typography component="span">{`${PHONIC_MAP[key]?.[0] || key} ${val}`}</Typography>
-                <AudioBtn text={dictResult.src} lan={PHONIC_MAP[key]?.[1]} />
+          <Typography component="div">
+            {dictResult.voice
+              ?.map(Object.entries)
+              .map((item) => item[0])
+              .map(([key, val]) => (
+                <Typography
+                  component="div"
+                  key={key}
+                  style={{ display: "inline-block" }}
+                >
+                  <Typography component="span">{`${PHONIC_MAP[key]?.[0] || key} ${val}`}</Typography>
+                  <AudioBtn text={dictResult.src} lan={PHONIC_MAP[key]?.[1]} />
+                </Typography>
+              ))}
+          </Typography>
+
+          <Typography component="ul">
+            {dictResult.content[0].mean.map(({ pre, cont }, idx) => (
+              <Typography component="li" key={idx}>
+                {pre && `[${pre}] `}
+                {Object.keys(cont).join("; ")}
               </Typography>
             ))}
+          </Typography>
         </Typography>
-
-        <Typography component="ul">
-          {dictResult.content[0].mean.map(({ pre, cont }, idx) => (
-            <Typography component="li" key={idx}>
-              {pre && `[${pre}] `}
-              {Object.keys(cont).join("; ")}
-            </Typography>
-          ))}
-        </Typography>
-      </Typography>
+      )}
     </Stack>
   );
 }

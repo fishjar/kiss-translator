@@ -4,7 +4,6 @@ import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import { useI18n } from "../../hooks/I18n";
 import {
-  OPT_TRANS_ALL,
   OPT_LANGS_FROM,
   OPT_LANGS_TO,
   OPT_INPUT_TRANS_SIGNS,
@@ -16,10 +15,12 @@ import { useInputRule } from "../../hooks/InputRule";
 import { useCallback } from "react";
 import Grid from "@mui/material/Grid";
 import { limitNumber } from "../../libs/utils";
+import { useApiList } from "../../hooks/Api";
 
 export default function InputSetting() {
   const i18n = useI18n();
   const { inputRule, updateInputRule } = useInputRule();
+  const { enabledApis } = useApiList();
 
   const handleChange = (e) => {
     e.preventDefault();
@@ -44,7 +45,7 @@ export default function InputSetting() {
 
   const {
     transOpen,
-    translator,
+    apiSlug,
     fromLang,
     toLang,
     triggerShortcut,
@@ -73,14 +74,14 @@ export default function InputSetting() {
         <TextField
           select
           size="small"
-          name="translator"
-          value={translator}
+          name="apiSlug"
+          value={apiSlug}
           label={i18n("translate_service")}
           onChange={handleChange}
         >
-          {OPT_TRANS_ALL.map((item) => (
-            <MenuItem key={item} value={item}>
-              {item}
+          {enabledApis.map((api) => (
+            <MenuItem key={api.apiSlug} value={api.apiSlug}>
+              {api.apiName}
             </MenuItem>
           ))}
         </TextField>
@@ -166,7 +167,7 @@ export default function InputSetting() {
                 label={i18n("combo_timeout")}
                 type="number"
                 name="triggerTime"
-                defaultValue={triggerTime}
+                value={triggerTime}
                 onChange={handleChange}
               />
             </Grid>

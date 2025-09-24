@@ -4,7 +4,6 @@ import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import { useI18n } from "../../hooks/I18n";
 import {
-  OPT_TRANS_ALL,
   OPT_LANGS_FROM,
   OPT_LANGS_TO,
   OPT_TRANBOX_TRIGGER_CLICK,
@@ -16,11 +15,13 @@ import { useCallback } from "react";
 import { limitNumber } from "../../libs/utils";
 import { useTranbox } from "../../hooks/Tranbox";
 import { isExt } from "../../libs/client";
+import { useApiList } from "../../hooks/Api";
 import Alert from "@mui/material/Alert";
 
 export default function Tranbox() {
   const i18n = useI18n();
   const { tranboxSetting, updateTranbox } = useTranbox();
+  const { enabledApis } = useApiList();
 
   const handleChange = (e) => {
     e.preventDefault();
@@ -47,7 +48,7 @@ export default function Tranbox() {
   );
 
   const {
-    translator,
+    apiSlug,
     fromLang,
     toLang,
     toLang2 = "en",
@@ -72,14 +73,14 @@ export default function Tranbox() {
         <TextField
           select
           size="small"
-          name="translator"
-          value={translator}
+          name="apiSlug"
+          value={apiSlug}
           label={i18n("translate_service")}
           onChange={handleChange}
         >
-          {OPT_TRANS_ALL.map((item) => (
-            <MenuItem key={item} value={item}>
-              {item}
+          {enabledApis.map((api) => (
+            <MenuItem key={api.apiSlug} value={api.apiSlug}>
+              {api.apiName}
             </MenuItem>
           ))}
         </TextField>
@@ -147,7 +148,7 @@ export default function Tranbox() {
           label={i18n("tranbtn_offset_x")}
           type="number"
           name="btnOffsetX"
-          defaultValue={btnOffsetX}
+          value={btnOffsetX}
           onChange={handleChange}
         />
 
@@ -156,7 +157,7 @@ export default function Tranbox() {
           label={i18n("tranbtn_offset_y")}
           type="number"
           name="btnOffsetY"
-          defaultValue={btnOffsetY}
+          value={btnOffsetY}
           onChange={handleChange}
         />
 
@@ -165,7 +166,7 @@ export default function Tranbox() {
           label={i18n("tranbox_offset_x")}
           type="number"
           name="boxOffsetX"
-          defaultValue={boxOffsetX}
+          value={boxOffsetX}
           onChange={handleChange}
         />
 
@@ -174,7 +175,7 @@ export default function Tranbox() {
           label={i18n("tranbox_offset_y")}
           type="number"
           name="boxOffsetY"
-          defaultValue={boxOffsetY}
+          value={boxOffsetY}
           onChange={handleChange}
         />
 
@@ -245,7 +246,7 @@ export default function Tranbox() {
           size="small"
           label={i18n("extend_styles")}
           name="extStyles"
-          defaultValue={extStyles}
+          value={extStyles}
           onChange={handleChange}
           maxRows={10}
           multiline

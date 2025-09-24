@@ -96,7 +96,7 @@ export default function Settings() {
       caches.delete(CACHE_NAME);
       alert.success(i18n("clear_success"));
     } catch (err) {
-      kissLog(err, "clear cache");
+      kissLog("clear cache", err);
     }
   };
 
@@ -104,7 +104,7 @@ export default function Settings() {
     try {
       await updateSetting(JSON.parse(data));
     } catch (err) {
-      kissLog(err, "import setting");
+      kissLog("import setting", err);
     }
   };
 
@@ -119,10 +119,10 @@ export default function Settings() {
     touchTranslate = 2,
     blacklist = DEFAULT_BLACKLIST.join(",\n"),
     csplist = DEFAULT_CSPLIST.join(",\n"),
-    transInterval = 200,
+    transInterval = 100,
     langDetector = OPT_TRANS_MICROSOFT,
   } = setting;
-  const { isHide = false, fabClickAction = 0  } = fab || {};
+  const { isHide = false, fabClickAction = 0 } = fab || {};
 
   return (
     <Box>
@@ -163,7 +163,7 @@ export default function Settings() {
           label={i18n("min_translate_length")}
           type="number"
           name="minLength"
-          defaultValue={minLength}
+          value={minLength}
           onChange={handleChange}
         />
 
@@ -172,7 +172,7 @@ export default function Settings() {
           label={i18n("max_translate_length")}
           type="number"
           name="maxLength"
-          defaultValue={maxLength}
+          value={maxLength}
           onChange={handleChange}
         />
 
@@ -181,7 +181,7 @@ export default function Settings() {
           label={i18n("num_of_newline_characters")}
           type="number"
           name="newlineLength"
-          defaultValue={newlineLength}
+          value={newlineLength}
           onChange={handleChange}
         />
 
@@ -190,7 +190,7 @@ export default function Settings() {
           label={i18n("translate_interval")}
           type="number"
           name="transInterval"
-          defaultValue={transInterval}
+          value={transInterval}
           onChange={handleChange}
         />
         <TextField
@@ -198,7 +198,7 @@ export default function Settings() {
           label={i18n("http_timeout")}
           type="number"
           name="httpTimeout"
-          defaultValue={httpTimeout}
+          value={httpTimeout}
           onChange={handleChange}
         />
         <FormControl size="small">
@@ -236,9 +236,9 @@ export default function Settings() {
           <InputLabel>{i18n("fab_click_action")}</InputLabel>
           <Select
             name="fabClickAction"
-            value={fabClickAction}  
+            value={fabClickAction}
             label={i18n("fab_click_action")}
-            onChange= {(e) => updateFab({ fabClickAction: e.target.value })}
+            onChange={(e) => updateFab({ fabClickAction: e.target.value })}
           >
             <MenuItem value={0}>{i18n("fab_click_menu")}</MenuItem>
             <MenuItem value={1}>{i18n("fab_click_translate")}</MenuItem>
@@ -302,7 +302,7 @@ export default function Settings() {
                 i18n("pattern_helper") + " " + i18n("disabled_csplist_helper")
               }
               name="csplist"
-              defaultValue={csplist}
+              value={csplist}
               onChange={handleChange}
               multiline
             />
@@ -345,7 +345,7 @@ export default function Settings() {
           label={i18n("translate_blacklist")}
           helperText={i18n("pattern_helper")}
           name="blacklist"
-          defaultValue={blacklist}
+          value={blacklist}
           onChange={handleChange}
           maxRows={10}
           multiline

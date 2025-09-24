@@ -1342,4 +1342,59 @@ export const I18N = {
     en: `Hide Original`,
     zh_TW: `隱藏原文`,
   },
+  confirm_title: {
+    zh: `确认`,
+    en: `Confirm`,
+    zh_TW: `確認`,
+  },
+  confirm_message: {
+    zh: `确定操作吗？`,
+    en: `Are you sure you want to proceed?`,
+    zh_TW: `確定操作嗎？`,
+  },
+  confirm_action: {
+    zh: `确定`,
+    en: `Confirm`,
+    zh_TW: `確定`,
+  },
+  cancel_action: {
+    zh: `取消`,
+    en: `Cancel`,
+    zh_TW: `取消`,
+  },
+  pls_press_shortcut: {
+    zh: `请按下快捷键组合`,
+    en: `Please press the shortcut key combination`,
+    zh_TW: `請按下快速鍵組合`,
+  },
+  load_setting_err: {
+    zh: `数据加载出错，请刷新页面或卸载后重新安装。`,
+    en: `Please press the shortcut key combination`,
+    zh_TW: `請按下快速鍵組合`,
+  },
+  translation_style: {
+    zh: `翻译风格`,
+    en: `Translation style`,
+    zh_TW: `翻譯風格`,
+  },
+  placeholder: {
+    zh: `占位符`,
+    en: `Placeholder`,
+    zh_TW: `佔位符`,
+  },
+  tag_name: {
+    zh: `占位标签名`,
+    en: `Placeholder tag name`,
+    zh_TW: `佔位標名`,
+  },
+  ai_terms: {
+    zh: `AI识别术语表`,
+    en: `AI Identification Glossary`,
+    zh_TW: `AI辨識術語表`,
+  },
+  system_prompt_helper: {
+    zh: `在未完全理解默认Prompt的情况下，请勿随意修改，否则可能翻译失败。`,
+    en: `If you do not fully understand the default prompt, please do not modify it at will, otherwise the translation may fail.`,
+    zh_TW: `在未完全理解預設Prompt的情況下，請勿隨意修改，否則可能翻譯失敗。`,
+  },
 };

@@ -9,12 +9,12 @@ export default function FavBtn({ word }) {
   const { favWords, toggleFav } = useFavWords();
   const [loading, setLoading] = useState(false);
 
-  const handleClick = async () => {
+  const handleClick = () => {
     try {
       setLoading(true);
-      await toggleFav(word);
+      toggleFav(word);
     } catch (err) {
-      kissLog(err, "set fav");
+      kissLog("set fav", err);
     } finally {
       setLoading(false);
     }

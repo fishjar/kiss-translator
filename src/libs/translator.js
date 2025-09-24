@@ -7,9 +7,9 @@ import {
   OPT_STYLE_FUZZY,
   GLOBLA_RULE,
   DEFAULT_SETTING,
-  DEFAULT_TRANS_APIS,
-  DEFAULT__MOUSEHOVER_KEY,
+  DEFAULT_MOUSEHOVER_KEY,
   OPT_STYLE_NONE,
+  DEFAULT_API_SETTING,
 } from "../config";
 import interpreter from "./interpreter";
 import { ShadowRootMonitor } from "./shadowroot";
@@ -356,7 +356,7 @@ export class Translator {
           this.#startObserveShadowRoot(shadowRoot);
         });
       } catch (err) {
-        kissLog(err, "findAllShadowRoots");
+        kissLog("findAllShadowRoots", err);
       }
     }
   }
@@ -419,7 +419,7 @@ export class Translator {
           termPatterns.push(`(${key})`);
           this.#termValues.push(value);
         } catch (err) {
-          kissLog(err, `Invalid RegExp for term: "${key}"`);
+          kissLog(`Invalid RegExp for term: "${key}"`, err);
         }
       }
     }
@@ -556,7 +556,7 @@ export class Translator {
         }
       }
     } catch (err) {
-      kissLog(err, "无法访问某个 shadowRoot");
+      kissLog("无法访问某个 shadowRoot", err);
     }
     // const end = performance.now();
     // const duration = end - start;
@@ -839,7 +839,7 @@ export class Translator {
           nodes,
         });
       } catch (err) {
-        kissLog(err, "transStartHook");
+        kissLog("transStartHook", err);
       }
     }
 
@@ -913,14 +913,14 @@ export class Translator {
             innerNode: inner,
           });
         } catch (err) {
-          kissLog(err, "transEndHook");
+          kissLog("transEndHook", err);
         }
       }
     } catch (err) {
       // inner.textContent = `[失败]...`;
       // todo: 失败重试按钮
       wrapper.remove();
-      kissLog(err, "translateNodeGroup");
+      kissLog("translateNodeGroup", err);
     }
   }
 
@@ -1037,16 +1037,13 @@ export class Translator {
 
   // 发起翻译请求
   #translateFetch(text) {
-    const { translator, fromLang, toLang } = this.#rule;
-    // const apiSetting = this.#setting.transApis[translator];
-    const apiSetting = {
-      ...DEFAULT_TRANS_APIS[translator],
-      ...(this.#setting.transApis[translator] || {}),
-    };
+    const { apiSlug, fromLang, toLang } = this.#rule;
+    const apiSetting =
+      this.#setting.transApis.find((api) => api.apiSlug === apiSlug) ||
+      DEFAULT_API_SETTING;
 
     return apiTranslate({
       text,
-      translator,
       fromLang,
       toLang,
       apiSetting,
@@ -1150,11 +1147,11 @@ export class Translator {
       return;
     }
 
-    const { translator, fromLang, toLang, hasRichText, textStyle, transOnly } =
+    const { apiSlug, fromLang, toLang, hasRichText, textStyle, transOnly } =
       this.#rule;
 
     const needsRefresh =
-      appliedRule.translator !== translator ||
+      appliedRule.apiSlug !== apiSlug ||
       appliedRule.fromLang !== fromLang ||
       appliedRule.toLang !== toLang ||
       appliedRule.hasRichText !== hasRichText;
@@ -1162,7 +1159,7 @@ export class Translator {
     // 需要重新翻译
     if (needsRefresh) {
       Object.assign(appliedRule, {
-        translator,
+        apiSlug,
         fromLang,
         toLang,
         hasRichText,
@@ -1207,7 +1204,7 @@ export class Translator {
     document.addEventListener("mousemove", this.#boundMouseMoveHandler);
     let { mouseHoverKey } = this.#setting.mouseHoverSetting;
     if (mouseHoverKey.length === 0) {
-      mouseHoverKey = DEFAULT__MOUSEHOVER_KEY;
+      mouseHoverKey = DEFAULT_MOUSEHOVER_KEY;
     }
     this.#removeKeydownHandler = shortcutRegister(
       mouseHoverKey,
@@ -1273,7 +1270,7 @@ export class Translator {
           document.title = trText || title;
         })
         .catch((err) => {
-          kissLog(err, "tanslate title");
+          kissLog("tanslate title", err);
         });
     }
   }

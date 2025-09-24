@@ -11,8 +11,8 @@ export function useDarkMode() {
     updateSetting,
   } = useSetting();
 
-  const toggleDarkMode = useCallback(async () => {
-    await updateSetting({ darkMode: !darkMode });
+  const toggleDarkMode = useCallback(() => {
+    updateSetting({ darkMode: !darkMode });
   }, [darkMode, updateSetting]);
 
   return { darkMode, toggleDarkMode };

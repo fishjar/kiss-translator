@@ -26,22 +26,16 @@ export const OPT_TRANS_BAIDU = "Baidu";
 export const OPT_TRANS_TENCENT = "Tencent";
 export const OPT_TRANS_VOLCENGINE = "Volcengine";
 export const OPT_TRANS_OPENAI = "OpenAI";
-export const OPT_TRANS_OPENAI_2 = "OpenAI2";
-export const OPT_TRANS_OPENAI_3 = "OpenAI3";
 export const OPT_TRANS_GEMINI = "Gemini";
 export const OPT_TRANS_GEMINI_2 = "Gemini2";
 export const OPT_TRANS_CLAUDE = "Claude";
 export const OPT_TRANS_CLOUDFLAREAI = "CloudflareAI";
 export const OPT_TRANS_OLLAMA = "Ollama";
-export const OPT_TRANS_OLLAMA_2 = "Ollama2";
-export const OPT_TRANS_OLLAMA_3 = "Ollama3";
 export const OPT_TRANS_OPENROUTER = "OpenRouter";
 export const OPT_TRANS_CUSTOMIZE = "Custom";
-export const OPT_TRANS_CUSTOMIZE_2 = "Custom2";
-export const OPT_TRANS_CUSTOMIZE_3 = "Custom3";
-export const OPT_TRANS_CUSTOMIZE_4 = "Custom4";
-export const OPT_TRANS_CUSTOMIZE_5 = "Custom5";
-export const OPT_TRANS_ALL = [
+
+// 内置支持的翻译引擎
+export const OPT_ALL_TYPES = [
   OPT_TRANS_GOOGLE,
   OPT_TRANS_GOOGLE_2,
   OPT_TRANS_MICROSOFT,
@@ -53,64 +47,74 @@ export const OPT_TRANS_ALL = [
   OPT_TRANS_DEEPLX,
   OPT_TRANS_NIUTRANS,
   OPT_TRANS_OPENAI,
-  OPT_TRANS_OPENAI_2,
-  OPT_TRANS_OPENAI_3,
   OPT_TRANS_GEMINI,
   OPT_TRANS_GEMINI_2,
   OPT_TRANS_CLAUDE,
   OPT_TRANS_CLOUDFLAREAI,
   OPT_TRANS_OLLAMA,
-  OPT_TRANS_OLLAMA_2,
-  OPT_TRANS_OLLAMA_3,
   OPT_TRANS_OPENROUTER,
   OPT_TRANS_CUSTOMIZE,
-  OPT_TRANS_CUSTOMIZE_2,
-  OPT_TRANS_CUSTOMIZE_3,
-  OPT_TRANS_CUSTOMIZE_4,
-  OPT_TRANS_CUSTOMIZE_5,
 ];
 
-// 可使用批处理的翻译引擎
-export const OPT_TRANS_BATCH = new Set([
-  OPT_TRANS_GOOGLE_2,
-  OPT_TRANS_MICROSOFT,
-  OPT_TRANS_TENCENT,
-  OPT_TRANS_DEEPL,
-  OPT_TRANS_OPENAI,
-  OPT_TRANS_OPENAI_2,
-  OPT_TRANS_OPENAI_3,
-  OPT_TRANS_GEMINI,
-  OPT_TRANS_GEMINI_2,
-  OPT_TRANS_CLAUDE,
-  OPT_TRANS_OLLAMA,
-  OPT_TRANS_OLLAMA_2,
-  OPT_TRANS_OLLAMA_3,
-  OPT_TRANS_OPENROUTER,
-  OPT_TRANS_CUSTOMIZE,
-  OPT_TRANS_CUSTOMIZE_2,
-  OPT_TRANS_CUSTOMIZE_3,
-  OPT_TRANS_CUSTOMIZE_4,
-  OPT_TRANS_CUSTOMIZE_5,
-]);
-
-// 可使用上下文的翻译引擎
-export const OPT_TRANS_CONTEXT = new Set([
-  OPT_TRANS_OPENAI,
-  OPT_TRANS_OPENAI_2,
-  OPT_TRANS_OPENAI_3,
-  OPT_TRANS_GEMINI,
-  OPT_TRANS_GEMINI_2,
-  OPT_TRANS_CLAUDE,
-  OPT_TRANS_OLLAMA,
-  OPT_TRANS_OLLAMA_2,
-  OPT_TRANS_OLLAMA_3,
-  OPT_TRANS_OPENROUTER,
-  OPT_TRANS_CUSTOMIZE,
-  OPT_TRANS_CUSTOMIZE_2,
-  OPT_TRANS_CUSTOMIZE_3,
-  OPT_TRANS_CUSTOMIZE_4,
-  OPT_TRANS_CUSTOMIZE_5,
-]);
+// 翻译引擎特殊集合
+export const API_SPE_TYPES = {
+  // 内置翻译
+  builtin: new Set(OPT_ALL_TYPES),
+  // 机器翻译
+  machine: new Set([
+    OPT_TRANS_MICROSOFT,
+    OPT_TRANS_DEEPLFREE,
+    OPT_TRANS_BAIDU,
+    OPT_TRANS_TENCENT,
+    OPT_TRANS_VOLCENGINE,
+  ]),
+  // AI翻译
+  ai: new Set([
+    OPT_TRANS_OPENAI,
+    OPT_TRANS_GEMINI,
+    OPT_TRANS_GEMINI_2,
+    OPT_TRANS_CLAUDE,
+    OPT_TRANS_OLLAMA,
+    OPT_TRANS_OPENROUTER,
+  ]),
+  // 支持多key
+  mulkeys: new Set([
+    OPT_TRANS_DEEPL,
+    OPT_TRANS_OPENAI,
+    OPT_TRANS_GEMINI,
+    OPT_TRANS_GEMINI_2,
+    OPT_TRANS_CLAUDE,
+    OPT_TRANS_CLOUDFLAREAI,
+    OPT_TRANS_OLLAMA,
+    OPT_TRANS_OPENROUTER,
+    OPT_TRANS_NIUTRANS,
+    OPT_TRANS_CUSTOMIZE,
+  ]),
+  // 支持批处理
+  batch: new Set([
+    OPT_TRANS_GOOGLE_2,
+    OPT_TRANS_MICROSOFT,
+    OPT_TRANS_TENCENT,
+    OPT_TRANS_DEEPL,
+    OPT_TRANS_OPENAI,
+    OPT_TRANS_GEMINI,
+    OPT_TRANS_GEMINI_2,
+    OPT_TRANS_CLAUDE,
+    OPT_TRANS_OLLAMA,
+    OPT_TRANS_OPENROUTER,
+    OPT_TRANS_CUSTOMIZE,
+  ]),
+  // 支持上下文
+  context: new Set([
+    OPT_TRANS_OPENAI,
+    OPT_TRANS_GEMINI,
+    OPT_TRANS_GEMINI_2,
+    OPT_TRANS_CLAUDE,
+    OPT_TRANS_OLLAMA,
+    OPT_TRANS_OPENROUTER,
+    OPT_TRANS_CUSTOMIZE,
+  ]),
+};
 
 export const OPT_LANGDETECTOR_ALL = [
   OPT_TRANS_GOOGLE,
@@ -118,6 +122,24 @@ export const OPT_LANGDETECTOR_ALL = [
   OPT_TRANS_BAIDU,
   OPT_TRANS_TENCENT,
 ];
+
+export const BUILTIN_STONES = [
+  "formal", // 正式风格
+  "casual", // 口语风格
+  "neutral", // 中性风格
+  "technical", // 技术风格
+  "marketing", // 营销风格
+  "Literary", // 文学风格
+  "academic", // 学术风格
+  "legal", // 法律风格
+  "literal", // 直译风格
+  "ldiomatic", // 意译风格
+  "transcreation", // 创译风格
+  "machine-like", // 机器风格
+  "concise", // 简明风格
+];
+export const BUILTIN_PLACEHOULDERS = ["{ }", "{{ }}", "[ ]", "[[ ]]"];
+export const BUILTIN_TAG_NAMES = ["i", "a", "span"];
 
 export const OPT_LANGS_TO = [
   ["en", "English - English"],
@@ -250,12 +272,6 @@ export const OPT_LANGS_SPECIAL = {
   [OPT_TRANS_OPENAI]: new Map(
     OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
   ),
-  [OPT_TRANS_OPENAI_2]: new Map(
-    OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
-  ),
-  [OPT_TRANS_OPENAI_3]: new Map(
-    OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
-  ),
   [OPT_TRANS_GEMINI]: new Map(
     OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
   ),
@@ -266,12 +282,6 @@ export const OPT_LANGS_SPECIAL = {
     OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
   ),
   [OPT_TRANS_OLLAMA]: new Map(
-    OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
-  ),
-  [OPT_TRANS_OLLAMA_2]: new Map(
-    OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
-  ),
-  [OPT_TRANS_OLLAMA_3]: new Map(
     OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
   ),
   [OPT_TRANS_OPENROUTER]: new Map(
@@ -292,18 +302,6 @@ export const OPT_LANGS_SPECIAL = {
     ["hi", "hindi"],
   ]),
   [OPT_TRANS_CUSTOMIZE]: new Map([
-    ...OPT_LANGS_FROM.map(([key]) => [key, key]),
-  ]),
-  [OPT_TRANS_CUSTOMIZE_2]: new Map([
-    ...OPT_LANGS_FROM.map(([key]) => [key, key]),
-  ]),
-  [OPT_TRANS_CUSTOMIZE_3]: new Map([
-    ...OPT_LANGS_FROM.map(([key]) => [key, key]),
-  ]),
-  [OPT_TRANS_CUSTOMIZE_4]: new Map([
-    ...OPT_LANGS_FROM.map(([key]) => [key, key]),
-  ]),
-  [OPT_TRANS_CUSTOMIZE_5]: new Map([
     ...OPT_LANGS_FROM.map(([key]) => [key, key]),
   ]),
 };
@@ -328,37 +326,44 @@ export const OPT_LANGS_TENCENT = new Map(
 );
 OPT_LANGS_TENCENT.set("zh", "zh-CN");
 
-// 翻译接口
+const defaultSystemPrompt = `Act as a translation API. Output a single raw JSON object only. No extra text or fences.
+
+Input:
+{"targetLanguage":"<lang>","title":"<context>","description":"<context>","segments":[{"id":1,"text":"..."}],"glossary":{"sourceTerm":"targetTerm"},"tone":"<formal|casual>"}
+
+Output:
+{"translations":[{"id":1,"text":"...","sourceLanguage":"<detected>"}]}
+
+Rules:
+1.  Use title/description for context only; do not output them.
+2.  Keep id, order, and count of segments.
+3.  Preserve whitespace, HTML entities, and all HTML-like tags (e.g., <i1>, <a1>). Translate inner text only.
+4.  Highest priority: Follow 'glossary'. Use value for translation; if value is "", keep the key.
+5.  Do not translate: content in <code>, <pre>, text enclosed in backticks, or placeholders like {1}, {{1}}, [1], [[1]].
+6.  Apply the specified tone to the translation.
+7.  Detect sourceLanguage for each segment.
+8.  Return empty or unchanged inputs as is.
+
+Example:
+Input: {"targetLanguage":"zh-CN","segments":[{"id":1,"text":"A <b>React</b> component."}],"glossary":{"component":"组件","React":""}}
+Output: {"translations":[{"id":1,"text":"一个<b>React</b>组件","sourceLanguage":"en"}]}
+
+Fail-safe: On any error, return {"translations":[]}.`;
+
+// 翻译接口默认参数
 const defaultApi = {
   apiSlug: "", // 唯一标识
   apiName: "", // 接口名称
+  apiType: "", // 接口类型
   url: "",
   key: "",
   model: "", // 模型名称
-  systemPrompt: `You are a translation API.
-
-Output:
-- Return one raw JSON object only.
-- Start with "{" and end with "}".
-- No fences or extra text.
-
-Input JSON:
-{"targetLanguage":"<lang>","title":"<title>","description":"<desc>","segments":[{"id":1,"text":"..."}]}
-
-Output JSON:
-{"translations":[{"id":1,"text":"...","sourceLanguage":"<detected-language>"}]}
-
-Rules:
-1. Use title/description as context only, do not output them.
-2. Keep ids/order/count.
-3. Translate inner text only, not HTML tags.
-4. Do not translate <code>, <pre>, backticks, or terms like React, Docker, JavaScript, API.
-5. Preserve whitespace & entities.
-6. Automatically detect the source language of each segment and add it in the "sourceLanguage" field.
-7. Empty/unchanged input → unchanged.
-
-Fail-safe: {"translations":[]}`,
-  userPrompt: `${INPUT_PLACE_TEXT}`,
+  systemPrompt: defaultSystemPrompt,
+  userPrompt: "",
+  tone: "neutral", // 翻译风格
+  placeholder: "{ }", // 占位符（todo: 备用）
+  tagName: "i", // 标签符 （todo: 备用）
+  aiTerms: false, // AI智能专业术语 （todo: 备用）
   customHeader: "",
   customBody: "",
   reqHook: "", // request 钩子函数
@@ -370,7 +375,6 @@ Fail-safe: {"translations":[]}`,
   batchSize: DEFAULT_BATCH_SIZE, // 每次最多发送段落数量
   batchLength: DEFAULT_BATCH_LENGTH, // 每次发送最大文字数量
   useBatchFetch: false, // 是否启用聚合发送请求
-  useRichText: false, // 是否启用富文本翻译
   useContext: false, // 是否启用智能上下文
   contextSize: DEFAULT_CONTEXT_SIZE, // 智能上下文保留会话数
   temperature: 0,
@@ -379,10 +383,97 @@ Fail-safe: {"translations":[]}`,
   thinkIgnore: "qwen3,deepseek-r1",
   isDisabled: false, // 是否不显示
 };
-const defaultCustomApi = {
-  ...defaultApi,
-  url: "https://translate.googleapis.com/translate_a/single?client=gtx&dj=1&dt=t&ie=UTF-8&q={{text}}&sl=en&tl=zh-CN",
-  reqHook: `// Request Hook
+
+const defaultApiOpts = {
+  [OPT_TRANS_GOOGLE]: {
+    ...defaultApi,
+    url: "https://translate.googleapis.com/translate_a/single",
+  },
+  [OPT_TRANS_GOOGLE_2]: {
+    ...defaultApi,
+    url: "https://translate-pa.googleapis.com/v1/translateHtml",
+    key: "AIzaSyATBXajvzQLTDHEQbcpq0Ihe0vWDHmO520",
+    useBatchFetch: true,
+  },
+  [OPT_TRANS_MICROSOFT]: {
+    ...defaultApi,
+    useBatchFetch: true,
+  },
+  [OPT_TRANS_BAIDU]: {
+    ...defaultApi,
+  },
+  [OPT_TRANS_TENCENT]: {
+    ...defaultApi,
+    useBatchFetch: true,
+  },
+  [OPT_TRANS_VOLCENGINE]: {
+    ...defaultApi,
+  },
+  [OPT_TRANS_DEEPL]: {
+    ...defaultApi,
+    url: "https://api-free.deepl.com/v2/translate",
+    useBatchFetch: true,
+  },
+  [OPT_TRANS_DEEPLFREE]: {
+    ...defaultApi,
+    fetchLimit: 1,
+  },
+  [OPT_TRANS_DEEPLX]: {
+    ...defaultApi,
+    url: "http://localhost:1188/translate",
+    fetchLimit: 1,
+  },
+  [OPT_TRANS_NIUTRANS]: {
+    ...defaultApi,
+    url: "https://api.niutrans.com/NiuTransServer/translation",
+    dictNo: "",
+    memoryNo: "",
+  },
+  [OPT_TRANS_OPENAI]: {
+    ...defaultApi,
+    url: "https://api.openai.com/v1/chat/completions",
+    model: "gpt-4",
+    useBatchFetch: true,
+    fetchLimit: 1,
+  },
+  [OPT_TRANS_GEMINI]: {
+    ...defaultApi,
+    url: `https://generativelanguage.googleapis.com/v1/models/${INPUT_PLACE_MODEL}:generateContent?key=${INPUT_PLACE_KEY}`,
+    model: "gemini-2.5-flash",
+    useBatchFetch: true,
+  },
+  [OPT_TRANS_GEMINI_2]: {
+    ...defaultApi,
+    url: `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions`,
+    model: "gemini-2.0-flash",
+    useBatchFetch: true,
+  },
+  [OPT_TRANS_CLAUDE]: {
+    ...defaultApi,
+    url: "https://api.anthropic.com/v1/messages",
+    model: "claude-3-haiku-20240307",
+    useBatchFetch: true,
+  },
+  [OPT_TRANS_CLOUDFLAREAI]: {
+    ...defaultApi,
+    url: "https://api.cloudflare.com/client/v4/accounts/{{ACCOUNT_ID}}/ai/run/@cf/meta/m2m100-1.2b",
+  },
+  [OPT_TRANS_OLLAMA]: {
+    ...defaultApi,
+    url: "http://localhost:11434/v1/chat/completions",
+    model: "llama3.1",
+    useBatchFetch: true,
+  },
+  [OPT_TRANS_OPENROUTER]: {
+    ...defaultApi,
+    url: "https://openrouter.ai/api/v1/chat/completions",
+    model: "openai/gpt-4o",
+    useBatchFetch: true,
+  },
+  [OPT_TRANS_CUSTOMIZE]: {
+    ...defaultApi,
+    url: "https://translate.googleapis.com/translate_a/single?client=gtx&dj=1&dt=t&ie=UTF-8&q={{text}}&sl=en&tl=zh-CN",
+    reqHook: `// Request Hook
 (text, from, to, url, key) => [url, {
   headers: {
       "Content-type": "application/json",
@@ -390,172 +481,18 @@ const defaultCustomApi = {
   method: "GET",
   body: null,
 }]`,
-  resHook: `// Response Hook
+    resHook: `// Response Hook
 (res, text, from, to) => [res.sentences.map((item) => item.trans).join(" "), to === res.src]`,
-};
-const defaultOpenaiApi = {
-  ...defaultApi,
-  url: "https://api.openai.com/v1/chat/completions",
-  model: "gpt-4",
-  fetchLimit: 1,
-};
-const defaultOllamaApi = {
-  ...defaultApi,
-  url: "http://localhost:11434/v1/chat/completions",
-  model: "llama3.1",
-};
-export const DEFAULT_TRANS_APIS = {
-  [OPT_TRANS_GOOGLE]: {
-    ...defaultApi,
-    apiSlug: OPT_TRANS_GOOGLE,
-    apiName: OPT_TRANS_GOOGLE,
-    url: "https://translate.googleapis.com/translate_a/single",
-  },
-  [OPT_TRANS_GOOGLE_2]: {
-    ...defaultApi,
-    apiSlug: OPT_TRANS_GOOGLE_2,
-    apiName: OPT_TRANS_GOOGLE_2,
-    url: "https://translate-pa.googleapis.com/v1/translateHtml",
-    key: "AIzaSyATBXajvzQLTDHEQbcpq0Ihe0vWDHmO520",
-    useBatchFetch: true,
-  },
-  [OPT_TRANS_MICROSOFT]: {
-    ...defaultApi,
-    apiSlug: OPT_TRANS_MICROSOFT,
-    apiName: OPT_TRANS_MICROSOFT,
-    useBatchFetch: true,
-  },
-  [OPT_TRANS_BAIDU]: {
-    ...defaultApi,
-    apiSlug: OPT_TRANS_BAIDU,
-    apiName: OPT_TRANS_BAIDU,
-  },
-  [OPT_TRANS_TENCENT]: {
-    ...defaultApi,
-    apiSlug: OPT_TRANS_TENCENT,
-    apiName: OPT_TRANS_TENCENT,
-    useBatchFetch: true,
-  },
-  [OPT_TRANS_VOLCENGINE]: {
-    ...defaultApi,
-    apiSlug: OPT_TRANS_VOLCENGINE,
-    apiName: OPT_TRANS_VOLCENGINE,
-  },
-  [OPT_TRANS_DEEPL]: {
-    ...defaultApi,
-    apiSlug: OPT_TRANS_DEEPL,
-    apiName: OPT_TRANS_DEEPL,
-    url: "https://api-free.deepl.com/v2/translate",
-    useBatchFetch: true,
-  },
-  [OPT_TRANS_DEEPLFREE]: {
-    ...defaultApi,
-    apiSlug: OPT_TRANS_DEEPLFREE,
-    apiName: OPT_TRANS_DEEPLFREE,
-    fetchLimit: 1,
-  },
-  [OPT_TRANS_DEEPLX]: {
-    ...defaultApi,
-    apiSlug: OPT_TRANS_DEEPLX,
-    apiName: OPT_TRANS_DEEPLX,
-    url: "http://localhost:1188/translate",
-    fetchLimit: 1,
-  },
-  [OPT_TRANS_NIUTRANS]: {
-    ...defaultApi,
-    apiSlug: OPT_TRANS_NIUTRANS,
-    apiName: OPT_TRANS_NIUTRANS,
-    url: "https://api.niutrans.com/NiuTransServer/translation",
-    dictNo: "",
-    memoryNo: "",
-  },
-  [OPT_TRANS_OPENAI]: {
-    ...defaultOpenaiApi,
-    apiSlug: OPT_TRANS_OPENAI,
-    apiName: OPT_TRANS_OPENAI,
-  },
-  [OPT_TRANS_OPENAI_2]: {
-    ...defaultOpenaiApi,
-    apiSlug: OPT_TRANS_OPENAI_2,
-    apiName: OPT_TRANS_OPENAI_2,
-  },
-  [OPT_TRANS_OPENAI_3]: {
-    ...defaultOpenaiApi,
-    apiSlug: OPT_TRANS_OPENAI_3,
-    apiName: OPT_TRANS_OPENAI_3,
-  },
-  [OPT_TRANS_GEMINI]: {
-    ...defaultApi,
-    apiSlug: OPT_TRANS_GEMINI,
-    apiName: OPT_TRANS_GEMINI,
-    url: `https://generativelanguage.googleapis.com/v1/models/${INPUT_PLACE_MODEL}:generateContent?key=${INPUT_PLACE_KEY}`,
-    model: "gemini-2.5-flash",
-  },
-  [OPT_TRANS_GEMINI_2]: {
-    ...defaultApi,
-    apiSlug: OPT_TRANS_GEMINI_2,
-    apiName: OPT_TRANS_GEMINI_2,
-    url: `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions`,
-    model: "gemini-2.0-flash",
-  },
-  [OPT_TRANS_CLAUDE]: {
-    ...defaultApi,
-    apiSlug: OPT_TRANS_CLAUDE,
-    apiName: OPT_TRANS_CLAUDE,
-    url: "https://api.anthropic.com/v1/messages",
-    model: "claude-3-haiku-20240307",
-  },
-  [OPT_TRANS_CLOUDFLAREAI]: {
-    ...defaultApi,
-    apiSlug: OPT_TRANS_CLOUDFLAREAI,
-    apiName: OPT_TRANS_CLOUDFLAREAI,
-    url: "https://api.cloudflare.com/client/v4/accounts/{{ACCOUNT_ID}}/ai/run/@cf/meta/m2m100-1.2b",
-  },
-  [OPT_TRANS_OLLAMA]: {
-    ...defaultOllamaApi,
-    apiSlug: OPT_TRANS_OLLAMA,
-    apiName: OPT_TRANS_OLLAMA,
-  },
-  [OPT_TRANS_OLLAMA_2]: {
-    ...defaultOllamaApi,
-    apiSlug: OPT_TRANS_OLLAMA_2,
-    apiName: OPT_TRANS_OLLAMA_2,
-  },
-  [OPT_TRANS_OLLAMA_3]: {
-    ...defaultOllamaApi,
-    apiSlug: OPT_TRANS_OLLAMA_3,
-    apiName: OPT_TRANS_OLLAMA_3,
-  },
-  [OPT_TRANS_OPENROUTER]: {
-    ...defaultApi,
-    apiSlug: OPT_TRANS_OPENROUTER,
-    apiName: "",
-    url: "https://openrouter.ai/api/v1/chat/completions",
-    model: "openai/gpt-4o",
-  },
-  [OPT_TRANS_CUSTOMIZE]: {
-    ...defaultCustomApi,
-    apiSlug: OPT_TRANS_CUSTOMIZE,
-    apiName: OPT_TRANS_CUSTOMIZE,
-  },
-  [OPT_TRANS_CUSTOMIZE_2]: {
-    ...defaultCustomApi,
-    apiSlug: OPT_TRANS_CUSTOMIZE_2,
-    apiName: OPT_TRANS_CUSTOMIZE_2,
-  },
-  [OPT_TRANS_CUSTOMIZE_3]: {
-    ...defaultCustomApi,
-    apiSlug: OPT_TRANS_CUSTOMIZE_3,
-    apiName: OPT_TRANS_CUSTOMIZE_3,
-  },
-  [OPT_TRANS_CUSTOMIZE_4]: {
-    ...defaultCustomApi,
-    apiSlug: OPT_TRANS_CUSTOMIZE_4,
-    apiName: OPT_TRANS_CUSTOMIZE_4,
-  },
-  [OPT_TRANS_CUSTOMIZE_5]: {
-    ...defaultCustomApi,
-    apiSlug: OPT_TRANS_CUSTOMIZE_5,
-    apiName: OPT_TRANS_CUSTOMIZE_5,
   },
 };
+
+// 内置翻译接口列表（带参数）
+export const DEFAULT_API_LIST = OPT_ALL_TYPES.map((apiType) => ({
+  ...defaultApiOpts[apiType],
+  apiSlug: apiType,
+  apiName: apiType,
+  apiType,
+}));
+
+export const DEFAULT_API_TYPE = OPT_TRANS_MICROSOFT;
+export const DEFAULT_API_SETTING = DEFAULT_API_LIST[DEFAULT_API_TYPE];

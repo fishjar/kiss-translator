@@ -1,3 +1,4 @@
+import { useState, useEffect, useMemo } from "react";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
@@ -5,58 +6,44 @@ import LoadingButton from "@mui/lab/LoadingButton";
 import MenuItem from "@mui/material/MenuItem";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
-import {
-  OPT_TRANS_ALL,
-  OPT_TRANS_MICROSOFT,
-  OPT_TRANS_DEEPL,
-  OPT_TRANS_DEEPLX,
-  OPT_TRANS_DEEPLFREE,
-  OPT_TRANS_BAIDU,
-  OPT_TRANS_TENCENT,
-  OPT_TRANS_VOLCENGINE,
-  OPT_TRANS_OPENAI,
-  OPT_TRANS_OPENAI_2,
-  OPT_TRANS_OPENAI_3,
-  OPT_TRANS_GEMINI,
-  OPT_TRANS_GEMINI_2,
-  OPT_TRANS_CLAUDE,
-  OPT_TRANS_CLOUDFLAREAI,
-  OPT_TRANS_OLLAMA,
-  OPT_TRANS_OLLAMA_2,
-  OPT_TRANS_OLLAMA_3,
-  OPT_TRANS_OPENROUTER,
-  OPT_TRANS_CUSTOMIZE,
-  OPT_TRANS_CUSTOMIZE_2,
-  OPT_TRANS_CUSTOMIZE_3,
-  OPT_TRANS_CUSTOMIZE_4,
-  OPT_TRANS_CUSTOMIZE_5,
-  OPT_TRANS_NIUTRANS,
-  DEFAULT_FETCH_LIMIT,
-  DEFAULT_FETCH_INTERVAL,
-  DEFAULT_HTTP_TIMEOUT,
-  OPT_TRANS_BATCH,
-  OPT_TRANS_CONTEXT,
-  DEFAULT_BATCH_INTERVAL,
-  DEFAULT_BATCH_SIZE,
-  DEFAULT_BATCH_LENGTH,
-  DEFAULT_CONTEXT_SIZE,
-} from "../../config";
-import { useState } from "react";
 import { useI18n } from "../../hooks/I18n";
 import Typography from "@mui/material/Typography";
 import Accordion from "@mui/material/Accordion";
 import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import AddIcon from "@mui/icons-material/Add";
 import Alert from "@mui/material/Alert";
+import Menu from "@mui/material/Menu";
+import Grid from "@mui/material/Grid";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import { useAlert } from "../../hooks/Alert";
-import { useApi } from "../../hooks/Api";
+import { useApiList, useApiItem } from "../../hooks/Api";
+import { useConfirm } from "../../hooks/Confirm";
 import { apiTranslate } from "../../apis";
 import Box from "@mui/material/Box";
-import Link from "@mui/material/Link";
 import { limitNumber, limitFloat } from "../../libs/utils";
+import ReusableAutocomplete from "./ReusableAutocomplete";
+import {
+  OPT_TRANS_DEEPLX,
+  OPT_TRANS_OLLAMA,
+  OPT_TRANS_CUSTOMIZE,
+  OPT_TRANS_NIUTRANS,
+  DEFAULT_FETCH_LIMIT,
+  DEFAULT_FETCH_INTERVAL,
+  DEFAULT_HTTP_TIMEOUT,
+  DEFAULT_BATCH_INTERVAL,
+  DEFAULT_BATCH_SIZE,
+  DEFAULT_BATCH_LENGTH,
+  DEFAULT_CONTEXT_SIZE,
+  OPT_ALL_TYPES,
+  API_SPE_TYPES,
+  BUILTIN_STONES,
+  // BUILTIN_PLACEHOULDERS,
+  // BUILTIN_TAG_NAMES,
+} from "../../config";
 
-function TestButton({ translator, api }) {
+function TestButton({ apiSlug, api }) {
   const i18n = useI18n();
   const alert = useAlert();
   const [loading, setLoading] = useState(false);
@@ -64,7 +51,7 @@ function TestButton({ translator, api }) {
     try {
       setLoading(true);
       const [text] = await apiTranslate({
-        translator,
+        apiSlug,
         text: "hello world",
         fromLang: "en",
         toLang: "zh-CN",
@@ -114,7 +101,7 @@ function TestButton({ translator, api }) {
   return (
     <LoadingButton
       size="small"
-      variant="contained"
+      variant="outlined"
       onClick={handleApiTest}
       loading={loading}
     >
@@ -123,39 +110,34 @@ function TestButton({ translator, api }) {
   );
 }
 
-function ApiFields({ translator, api, updateApi, resetApi }) {
+function ApiFields({ apiSlug, isUserApi, deleteApi }) {
+  const { api, update, reset } = useApiItem(apiSlug);
   const i18n = useI18n();
-  const {
-    url = "",
-    key = "",
-    model = "",
-    systemPrompt = "",
-    userPrompt = "",
-    customHeader = "",
-    customBody = "",
-    think = false,
-    thinkIgnore = "",
-    fetchLimit = DEFAULT_FETCH_LIMIT,
-    fetchInterval = DEFAULT_FETCH_INTERVAL,
-    httpTimeout = DEFAULT_HTTP_TIMEOUT,
-    dictNo = "",
-    memoryNo = "",
-    reqHook = "",
-    resHook = "",
-    temperature = 0,
-    maxTokens = 256,
-    apiName = "",
-    isDisabled = false,
-    useBatchFetch = false,
-    batchInterval = DEFAULT_BATCH_INTERVAL,
-    batchSize = DEFAULT_BATCH_SIZE,
-    batchLength = DEFAULT_BATCH_LENGTH,
-    useContext = false,
-    contextSize = DEFAULT_CONTEXT_SIZE,
-  } = api;
+  const [formData, setFormData] = useState({});
+  const [isModified, setIsModified] = useState(false);
+  const confirm = useConfirm();
+
+  useEffect(() => {
+    if (api) {
+      setFormData(api);
+    }
+  }, [api]);
+
+  useEffect(() => {
+    if (!api) return;
+    const hasChanged = JSON.stringify(api) !== JSON.stringify(formData);
+    setIsModified(hasChanged);
+  }, [api, formData]);
 
   const handleChange = (e) => {
-    let { name, value } = e.target;
+    let { name, value, type, checked } = e.target;
+
+    if (type === "checkbox" || type === "switch") {
+      value = checked;
+    }
+    // if (value === "true") value = true;
+    // if (value === "false") value = false;
+
     switch (name) {
       case "fetchLimit":
         value = limitNumber(value, 1, 100);
@@ -186,56 +168,78 @@ function ApiFields({ translator, api, updateApi, resetApi }) {
         break;
       default:
     }
-    updateApi({
+
+    setFormData((prevData) => ({
+      ...prevData,
       [name]: value,
-    });
+    }));
   };
 
-  const builtinTranslators = [
-    OPT_TRANS_MICROSOFT,
-    OPT_TRANS_DEEPLFREE,
-    OPT_TRANS_BAIDU,
-    OPT_TRANS_TENCENT,
-    OPT_TRANS_VOLCENGINE,
-  ];
+  const handleSave = () => {
+    // 过滤掉 api 对象中不存在的字段
+    // const updatedFields = Object.keys(formData).reduce((acc, key) => {
+    //   if (api && Object.keys(api).includes(key)) {
+    //     acc[key] = formData[key];
+    //   }
+    //   return acc;
+    // }, {});
+    // update(updatedFields);
+    update(formData);
+  };
 
-  const mulkeysTranslators = [
-    OPT_TRANS_DEEPL,
-    OPT_TRANS_OPENAI,
-    OPT_TRANS_OPENAI_2,
-    OPT_TRANS_OPENAI_3,
-    OPT_TRANS_GEMINI,
-    OPT_TRANS_GEMINI_2,
-    OPT_TRANS_CLAUDE,
-    OPT_TRANS_CLOUDFLAREAI,
-    OPT_TRANS_OLLAMA,
-    OPT_TRANS_OLLAMA_2,
-    OPT_TRANS_OLLAMA_3,
-    OPT_TRANS_OPENROUTER,
-    OPT_TRANS_NIUTRANS,
-    OPT_TRANS_CUSTOMIZE,
-    OPT_TRANS_CUSTOMIZE_2,
-    OPT_TRANS_CUSTOMIZE_3,
-    OPT_TRANS_CUSTOMIZE_4,
-    OPT_TRANS_CUSTOMIZE_5,
-  ];
+  const handleReset = () => {
+    reset();
+  };
 
-  const keyHelper =
-    translator === OPT_TRANS_NIUTRANS ? (
-      <>
-        {i18n("mulkeys_help")}
-        <Link
-          href="https://niutrans.com/login?active=3&userSource=kiss-translator"
-          target="_blank"
-        >
-          {i18n("reg_niutrans")}
-        </Link>
-      </>
-    ) : mulkeysTranslators.includes(translator) ? (
-      i18n("mulkeys_help")
-    ) : (
-      ""
-    );
+  const handleDelete = async () => {
+    const isConfirmed = await confirm({
+      confirmText: i18n("delete"),
+      cancelText: i18n("cancel"),
+    });
+
+    if (isConfirmed) {
+      deleteApi(apiSlug);
+    }
+  };
+
+  const {
+    url = "",
+    key = "",
+    model = "",
+    apiType,
+    systemPrompt = "",
+    // userPrompt = "",
+    customHeader = "",
+    customBody = "",
+    think = false,
+    thinkIgnore = "",
+    fetchLimit = DEFAULT_FETCH_LIMIT,
+    fetchInterval = DEFAULT_FETCH_INTERVAL,
+    httpTimeout = DEFAULT_HTTP_TIMEOUT,
+    dictNo = "",
+    memoryNo = "",
+    reqHook = "",
+    resHook = "",
+    temperature = 0,
+    maxTokens = 256,
+    apiName = "",
+    isDisabled = false,
+    useBatchFetch = false,
+    batchInterval = DEFAULT_BATCH_INTERVAL,
+    batchSize = DEFAULT_BATCH_SIZE,
+    batchLength = DEFAULT_BATCH_LENGTH,
+    useContext = false,
+    contextSize = DEFAULT_CONTEXT_SIZE,
+    tone = "neutral",
+    // placeholder = "{ }",
+    // tagName = "i",
+    // aiTerms = false,
+  } = formData;
+
+  const keyHelper = useMemo(
+    () => (API_SPE_TYPES.mulkeys.has(apiType) ? i18n("mulkeys_help") : ""),
+    [apiType, i18n]
+  );
 
   return (
     <Stack spacing={3}>
@@ -247,7 +251,7 @@ function ApiFields({ translator, api, updateApi, resetApi }) {
         onChange={handleChange}
       />
 
-      {!builtinTranslators.includes(translator) && (
+      {!API_SPE_TYPES.machine.has(apiType) && (
         <>
           <TextField
             size="small"
@@ -255,10 +259,10 @@ function ApiFields({ translator, api, updateApi, resetApi }) {
             name="url"
             value={url}
             onChange={handleChange}
-            multiline={translator === OPT_TRANS_DEEPLX}
+            multiline={apiType === OPT_TRANS_DEEPLX}
             maxRows={10}
             helperText={
-              translator === OPT_TRANS_DEEPLX ? i18n("mulkeys_help") : ""
+              apiType === OPT_TRANS_DEEPLX ? i18n("mulkeys_help") : ""
             }
           />
           <TextField
@@ -267,26 +271,66 @@ function ApiFields({ translator, api, updateApi, resetApi }) {
             name="key"
             value={key}
             onChange={handleChange}
-            multiline={mulkeysTranslators.includes(translator)}
+            multiline={API_SPE_TYPES.mulkeys.has(apiType)}
             maxRows={10}
             helperText={keyHelper}
           />
         </>
       )}
 
-      {(translator.startsWith(OPT_TRANS_OPENAI) ||
-        translator.startsWith(OPT_TRANS_OLLAMA) ||
-        translator === OPT_TRANS_CLAUDE ||
-        translator === OPT_TRANS_OPENROUTER ||
-        translator.startsWith(OPT_TRANS_GEMINI)) && (
+      {API_SPE_TYPES.ai.has(apiType) && (
         <>
-          <TextField
-            size="small"
-            label={"MODEL"}
-            name="model"
-            value={model}
-            onChange={handleChange}
-          />
+          <Box>
+            <Grid container spacing={2} columns={12}>
+              <Grid item xs={6} sm={6} md={6} lg={3}>
+                {/* todo： 改成 ReusableAutocomplete 可选择和填写模型 */}
+                <TextField
+                  size="small"
+                  fullWidth
+                  label={"MODEL"}
+                  name="model"
+                  value={model}
+                  onChange={handleChange}
+                />
+              </Grid>
+              <Grid item xs={6} sm={6} md={6} lg={3}>
+                <ReusableAutocomplete
+                  freeSolo
+                  size="small"
+                  fullWidth
+                  options={BUILTIN_STONES}
+                  name="tone"
+                  label={i18n("translation_style")}
+                  value={tone}
+                  onChange={handleChange}
+                />
+              </Grid>
+              <Grid item xs={6} sm={6} md={6} lg={3}>
+                <TextField
+                  size="small"
+                  fullWidth
+                  label={"Temperature"}
+                  type="number"
+                  name="temperature"
+                  value={temperature}
+                  onChange={handleChange}
+                />
+              </Grid>
+              <Grid item xs={6} sm={6} md={6} lg={3}>
+                <TextField
+                  size="small"
+                  fullWidth
+                  label={"Max Tokens"}
+                  type="number"
+                  name="maxTokens"
+                  value={maxTokens}
+                  onChange={handleChange}
+                />
+              </Grid>
+              <Grid item xs={6} sm={6} md={6} lg={3}></Grid>
+            </Grid>
+          </Box>
+
           <TextField
             size="small"
             label={"SYSTEM PROMPT"}
@@ -295,8 +339,9 @@ function ApiFields({ translator, api, updateApi, resetApi }) {
             onChange={handleChange}
             multiline
             maxRows={10}
+            helperText={i18n("system_prompt_helper")}
           />
-          <TextField
+          {/* <TextField
             size="small"
             label={"USER PROMPT"}
             name="userPrompt"
@@ -304,7 +349,51 @@ function ApiFields({ translator, api, updateApi, resetApi }) {
             onChange={handleChange}
             multiline
             maxRows={10}
-          />
+          /> */}
+
+          {/* <Box>
+            <Grid container spacing={2} columns={12}>
+              <Grid item xs={6} sm={6} md={6} lg={3}>
+                <ReusableAutocomplete
+                  freeSolo
+                  size="small"
+                  fullWidth
+                  options={BUILTIN_PLACEHOULDERS}
+                  name="placeholder"
+                  label={i18n("placeholder")}
+                  value={placeholder}
+                  onChange={handleChange}
+                />
+              </Grid>
+              <Grid item xs={6} sm={6} md={6} lg={3}>
+                <ReusableAutocomplete
+                  freeSolo
+                  size="small"
+                  fullWidth
+                  options={BUILTIN_TAG_NAMES}
+                  name="tagName"
+                  label={i18n("tag_name")}
+                  value={tagName}
+                  onChange={handleChange}
+                />
+              </Grid>
+              <Grid item xs={6} sm={6} md={6} lg={3}>
+                <TextField
+                  select
+                  size="small"
+                  fullWidth
+                  name="aiTerms"
+                  value={aiTerms}
+                  label={i18n("ai_terms")}
+                  onChange={handleChange}
+                >
+                  <MenuItem value={true}>{i18n("enable")}</MenuItem>
+                  <MenuItem value={false}>{i18n("disable")}</MenuItem>
+                </TextField>
+              </Grid>
+            </Grid>
+          </Box> */}
+
           <TextField
             size="small"
             label={i18n("custom_header")}
@@ -328,7 +417,7 @@ function ApiFields({ translator, api, updateApi, resetApi }) {
         </>
       )}
 
-      {translator.startsWith(OPT_TRANS_OLLAMA) && (
+      {apiType === OPT_TRANS_OLLAMA && (
         <>
           <TextField
             select
@@ -351,32 +440,7 @@ function ApiFields({ translator, api, updateApi, resetApi }) {
         </>
       )}
 
-      {(translator.startsWith(OPT_TRANS_OPENAI) ||
-        translator === OPT_TRANS_CLAUDE ||
-        translator === OPT_TRANS_OPENROUTER ||
-        translator === OPT_TRANS_GEMINI ||
-        translator === OPT_TRANS_GEMINI_2) && (
-        <>
-          <TextField
-            size="small"
-            label={"Temperature"}
-            type="number"
-            name="temperature"
-            value={temperature}
-            onChange={handleChange}
-          />
-          <TextField
-            size="small"
-            label={"Max Tokens"}
-            type="number"
-            name="maxTokens"
-            value={maxTokens}
-            onChange={handleChange}
-          />
-        </>
-      )}
-
-      {translator === OPT_TRANS_NIUTRANS && (
+      {apiType === OPT_TRANS_NIUTRANS && (
         <>
           <TextField
             size="small"
@@ -395,7 +459,7 @@ function ApiFields({ translator, api, updateApi, resetApi }) {
         </>
       )}
 
-      {translator.startsWith(OPT_TRANS_CUSTOMIZE) && (
+      {apiType === OPT_TRANS_CUSTOMIZE && (
         <>
           <TextField
             size="small"
@@ -418,140 +482,180 @@ function ApiFields({ translator, api, updateApi, resetApi }) {
         </>
       )}
 
-      {OPT_TRANS_BATCH.has(translator) && (
-        <>
-          <TextField
-            select
-            size="small"
-            name="useBatchFetch"
-            value={useBatchFetch}
-            label={i18n("use_batch_fetch")}
-            onChange={handleChange}
-          >
-            <MenuItem value={false}>{i18n("disable")}</MenuItem>
-            <MenuItem value={true}>{i18n("enable")}</MenuItem>
-          </TextField>
-          {useBatchFetch && (
-            <>
+      {API_SPE_TYPES.batch.has(api.apiType) && (
+        <Box>
+          <Grid container spacing={2} columns={12}>
+            <Grid item xs={6} sm={6} md={6} lg={3}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                name="useBatchFetch"
+                value={useBatchFetch}
+                label={i18n("use_batch_fetch")}
+                onChange={handleChange}
+              >
+                <MenuItem value={false}>{i18n("disable")}</MenuItem>
+                <MenuItem value={true}>{i18n("enable")}</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={6} sm={6} md={6} lg={3}>
               <TextField
                 size="small"
+                fullWidth
                 label={i18n("batch_interval")}
                 type="number"
                 name="batchInterval"
                 value={batchInterval}
                 onChange={handleChange}
               />
+            </Grid>
+            <Grid item xs={6} sm={6} md={6} lg={3}>
               <TextField
                 size="small"
+                fullWidth
                 label={i18n("batch_size")}
                 type="number"
                 name="batchSize"
                 value={batchSize}
                 onChange={handleChange}
               />
+            </Grid>
+            <Grid item xs={6} sm={6} md={6} lg={3}>
               <TextField
                 size="small"
+                fullWidth
                 label={i18n("batch_length")}
                 type="number"
                 name="batchLength"
                 value={batchLength}
                 onChange={handleChange}
               />
-            </>
-          )}
+            </Grid>
+          </Grid>
+        </Box>
+      )}
+
+      {API_SPE_TYPES.context.has(api.apiType) && (
+        <>
+          <Box>
+            <Grid container spacing={2} columns={12}>
+              <Grid item xs={6} sm={6} md={6} lg={3}>
+                {" "}
+                <TextField
+                  select
+                  size="small"
+                  fullWidth
+                  name="useContext"
+                  value={useContext}
+                  label={i18n("use_context")}
+                  onChange={handleChange}
+                >
+                  <MenuItem value={false}>{i18n("disable")}</MenuItem>
+                  <MenuItem value={true}>{i18n("enable")}</MenuItem>
+                </TextField>
+              </Grid>
+              <Grid item xs={6} sm={6} md={6} lg={3}>
+                {" "}
+                <TextField
+                  size="small"
+                  fullWidth
+                  label={i18n("context_size")}
+                  type="number"
+                  name="contextSize"
+                  value={contextSize}
+                  onChange={handleChange}
+                />
+              </Grid>
+            </Grid>
+          </Box>
         </>
       )}
 
-      {OPT_TRANS_CONTEXT.has(translator) && (
-        <>
-          <TextField
-            select
-            size="small"
-            name="useContext"
-            value={useContext}
-            label={i18n("use_context")}
-            onChange={handleChange}
-          >
-            <MenuItem value={false}>{i18n("disable")}</MenuItem>
-            <MenuItem value={true}>{i18n("enable")}</MenuItem>
-          </TextField>
-          {useBatchFetch && (
+      <Box>
+        <Grid container spacing={2} columns={12}>
+          <Grid item xs={6} sm={6} md={6} lg={3}>
             <TextField
               size="small"
-              label={i18n("context_size")}
+              fullWidth
+              label={i18n("fetch_limit")}
               type="number"
-              name="contextSize"
-              value={contextSize}
+              name="fetchLimit"
+              value={fetchLimit}
               onChange={handleChange}
             />
-          )}
-        </>
-      )}
-
-      <TextField
-        size="small"
-        label={i18n("fetch_limit")}
-        type="number"
-        name="fetchLimit"
-        value={fetchLimit}
-        onChange={handleChange}
-      />
-
-      <TextField
-        size="small"
-        label={i18n("fetch_interval")}
-        type="number"
-        name="fetchInterval"
-        value={fetchInterval}
-        onChange={handleChange}
-      />
-
-      <TextField
-        size="small"
-        label={i18n("http_timeout")}
-        type="number"
-        name="httpTimeout"
-        defaultValue={httpTimeout}
-        onChange={handleChange}
-      />
-
-      <FormControlLabel
-        control={
-          <Switch
-            size="small"
-            name="isDisabled"
-            checked={isDisabled}
-            onChange={() => {
-              updateApi({ isDisabled: !isDisabled });
-            }}
-          />
-        }
-        label={i18n("is_disabled")}
-      />
+          </Grid>
+          <Grid item xs={6} sm={6} md={6} lg={3}>
+            <TextField
+              size="small"
+              fullWidth
+              label={i18n("fetch_interval")}
+              type="number"
+              name="fetchInterval"
+              value={fetchInterval}
+              onChange={handleChange}
+            />
+          </Grid>
+          <Grid item xs={6} sm={6} md={6} lg={3}>
+            <TextField
+              size="small"
+              fullWidth
+              label={i18n("http_timeout")}
+              type="number"
+              name="httpTimeout"
+              value={httpTimeout}
+              onChange={handleChange}
+            />
+          </Grid>
+          <Grid item xs={6} sm={6} md={6} lg={3}></Grid>
+        </Grid>
+      </Box>
 
       <Stack direction="row" spacing={2}>
-        <TestButton translator={translator} api={api} />
         <Button
           size="small"
-          variant="outlined"
-          onClick={() => {
-            resetApi();
-          }}
+          variant="contained"
+          onClick={handleSave}
+          disabled={!isModified}
         >
+          {i18n("save")}
+        </Button>
+        <TestButton apiSlug={apiSlug} api={api} />
+        <Button size="small" variant="outlined" onClick={handleReset}>
           {i18n("restore_default")}
         </Button>
+        {isUserApi && (
+          <Button
+            size="small"
+            variant="outlined"
+            color="error"
+            onClick={handleDelete}
+          >
+            {i18n("delete")}
+          </Button>
+        )}
+
+        <FormControlLabel
+          control={
+            <Switch
+              size="small"
+              fullWidth
+              name="isDisabled"
+              checked={isDisabled}
+              onChange={handleChange}
+            />
+          }
+          label={i18n("is_disabled")}
+        />
       </Stack>
 
-      {translator.startsWith(OPT_TRANS_CUSTOMIZE) && (
-        <pre>{i18n("custom_api_help")}</pre>
-      )}
+      {apiType === OPT_TRANS_CUSTOMIZE && <pre>{i18n("custom_api_help")}</pre>}
     </Stack>
   );
 }
 
-function ApiAccordion({ translator }) {
+function ApiAccordion({ api, isUserApi, deleteApi }) {
   const [expanded, setExpanded] = useState(false);
-  const { api, updateApi, resetApi } = useApi(translator);
 
   const handleChange = (e) => {
     setExpanded((pre) => !pre);
@@ -566,16 +670,15 @@ function ApiAccordion({ translator }) {
             overflowWrap: "anywhere",
           }}
         >
-          {api.apiName ? `${translator} (${api.apiName})` : translator}
+          {`[${api.apiType}] ${api.apiName}`}
         </Typography>
       </AccordionSummary>
       <AccordionDetails>
         {expanded && (
           <ApiFields
-            translator={translator}
-            api={api}
-            updateApi={updateApi}
-            resetApi={resetApi}
+            apiSlug={api.apiSlug}
+            isUserApi={isUserApi}
+            deleteApi={deleteApi}
           />
         )}
       </AccordionDetails>
@@ -585,14 +688,85 @@ function ApiAccordion({ translator }) {
 
 export default function Apis() {
   const i18n = useI18n();
+  const { userApis, builtinApis, addApi, deleteApi } = useApiList();
+
+  const apiTypes = useMemo(
+    () =>
+      OPT_ALL_TYPES.map((type) => ({
+        type,
+        label: type,
+      })),
+    []
+  );
+
+  const [anchorEl, setAnchorEl] = useState(null);
+  const open = Boolean(anchorEl);
+
+  const handleClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleMenuItemClick = (apiType) => {
+    addApi(apiType);
+    handleClose();
+  };
+
   return (
     <Box>
       <Stack spacing={3}>
         <Alert severity="info">{i18n("about_api")}</Alert>
 
         <Box>
-          {OPT_TRANS_ALL.map((translator) => (
-            <ApiAccordion key={translator} translator={translator} />
+          <Button
+            size="small"
+            id="add-api-button"
+            variant="contained"
+            onClick={handleClick}
+            aria-controls={open ? "add-api-menu" : undefined}
+            aria-haspopup="true"
+            aria-expanded={open ? "true" : undefined}
+            endIcon={<KeyboardArrowDownIcon />}
+            startIcon={<AddIcon />}
+          >
+            {i18n("add")}
+          </Button>
+          <Menu
+            id="add-api-menu"
+            anchorEl={anchorEl}
+            open={open}
+            onClose={handleClose}
+            MenuListProps={{
+              "aria-labelledby": "add-api-button",
+            }}
+          >
+            {apiTypes.map((apiOption) => (
+              <MenuItem
+                key={apiOption.type}
+                onClick={() => handleMenuItemClick(apiOption.type)}
+              >
+                {apiOption.label}
+              </MenuItem>
+            ))}
+          </Menu>
+        </Box>
+
+        <Box>
+          {userApis.map((api) => (
+            <ApiAccordion
+              key={api.apiSlug}
+              api={api}
+              isUserApi={true}
+              deleteApi={deleteApi}
+            />
+          ))}
+        </Box>
+        <Box>
+          {builtinApis.map((api) => (
+            <ApiAccordion key={api.apiSlug} api={api} />
           ))}
         </Box>
       </Stack>

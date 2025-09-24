@@ -131,17 +131,15 @@ const queueMap = new Map();
 
 /**
  * 获取批处理实例
- * @param {*} translator
- * @returns
  */
-export const getBatchQueue = (args, opts) => {
-  const { translator, from, to } = args;
-  const key = `${translator}_${from}_${to}`;
+export const getBatchQueue = (args) => {
+  const { from, to, apiSetting } = args;
+  const key = `${apiSetting.apiSlug}_${from}_${to}`;
   if (queueMap.has(key)) {
     return queueMap.get(key);
   }
 
-  const queue = BatchQueue(args, opts);
+  const queue = BatchQueue(args, apiSetting);
   queueMap.set(key, queue);
   return queue;
 };

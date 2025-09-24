@@ -1,7 +1,7 @@
 import { GLOBAL_KEY } from "../config";
 import {
   getSyncWithDefault,
-  updateSync,
+  putSync,
   setSubRules,
   getSubRules,
 } from "./storage";
@@ -17,7 +17,7 @@ import { kissLog } from "./log";
 const updateSyncDataCache = async (url) => {
   const { dataCaches = {} } = await getSyncWithDefault();
   dataCaches[url] = Date.now();
-  await updateSync({ dataCaches });
+  await putSync({ dataCaches });
 };
 
 /**
@@ -47,7 +47,7 @@ export const syncAllSubRules = async (subrulesList) => {
       await syncSubRules(subrules.url);
       await updateSyncDataCache(subrules.url);
     } catch (err) {
-      kissLog(err, `sync subrule error: ${subrules.url}`);
+      kissLog(`sync subrule error: ${subrules.url}`, err);
     }
   }
 };
@@ -65,10 +65,10 @@ export const trySyncAllSubRules = async ({ subrulesList }) => {
     if (now - subRulesSyncAt > interval) {
       // 同步订阅规则
       await syncAllSubRules(subrulesList);
-      await updateSync({ subRulesSyncAt: now });
+      await putSync({ subRulesSyncAt: now });
     }
   } catch (err) {
-    kissLog(err, "try sync all subrules");
+    kissLog("try sync all subrules", err);
   }
 };
 

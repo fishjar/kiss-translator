@@ -15,6 +15,7 @@ import {
 import { isExt, isGm } from "./client";
 import { browser } from "./browser";
 import { kissLog } from "./log";
+import { debounce } from "./utils";
 
 async function set(key, val) {
   if (isExt) {
@@ -90,7 +91,7 @@ export const getSettingWithDefault = async () => ({
   ...((await getSetting()) || {}),
 });
 export const setSetting = (val) => setObj(STOKEY_SETTING, val);
-export const updateSetting = (obj) => putObj(STOKEY_SETTING, obj);
+export const putSetting = (obj) => putObj(STOKEY_SETTING, obj);
 
 /**
  * 规则列表
@@ -122,14 +123,20 @@ export const setSubRules = (url, val) =>
 export const getFab = () => getObj(STOKEY_FAB);
 export const getFabWithDefault = async () => (await getFab()) || {};
 export const setFab = (obj) => setObj(STOKEY_FAB, obj);
-export const updateFab = (obj) => putObj(STOKEY_FAB, obj);
+export const putFab = (obj) => putObj(STOKEY_FAB, obj);
 
 /**
  * 数据同步
  */
 export const getSync = () => getObj(STOKEY_SYNC);
 export const getSyncWithDefault = async () => (await getSync()) || DEFAULT_SYNC;
-export const updateSync = (obj) => putObj(STOKEY_SYNC, obj);
+export const putSync = (obj) => putObj(STOKEY_SYNC, obj);
+export const putSyncMeta = async (key) => {
+  const { syncMeta = {} } = await getSyncWithDefault();
+  syncMeta[key] = { ...(syncMeta[key] || {}), updateAt: Date.now() };
+  await putSync({ syncMeta });
+};
+export const debounceSyncMeta = debounce(putSyncMeta, 300);
 
 /**
  * ms auth
@@ -156,6 +163,6 @@ export const tryInitDefaultData = async () => {
       BUILTIN_RULES
     );
   } catch (err) {
-    kissLog(err, "init default");
+    kissLog("init default", err);
   }
 };

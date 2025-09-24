@@ -28,7 +28,7 @@ export const tryClearCaches = async () => {
   try {
     caches.delete(CACHE_NAME);
   } catch (err) {
-    kissLog(err, "clean caches");
+    kissLog("clean caches", err);
   }
 };
 
@@ -48,7 +48,7 @@ export const tryDetectLang = async (
     try {
       lang = await langdetectMap[langDetector](q);
     } catch (err) {
-      kissLog(err, "detect lang remote");
+      kissLog("detect lang remote", err);
     }
   }
 
@@ -57,7 +57,7 @@ export const tryDetectLang = async (
       const res = await browser?.i18n?.detectLanguage(q);
       lang = res?.languages?.[0]?.language;
     } catch (err) {
-      kissLog(err, "detect lang local");
+      kissLog("detect lang local", err);
     }
   }
 

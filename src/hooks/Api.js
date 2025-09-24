@@ -1,34 +1,107 @@
-import { useCallback } from "react";
-import { DEFAULT_TRANS_APIS } from "../config";
+import { useCallback, useMemo } from "react";
+import { DEFAULT_API_LIST, API_SPE_TYPES } from "../config";
 import { useSetting } from "./Setting";
 
-export function useApi(translator) {
+function useApiState() {
   const { setting, updateSetting } = useSetting();
-  const transApis = setting?.transApis || DEFAULT_TRANS_APIS;
+  const transApis = setting?.transApis || [];
 
-  const updateApi = useCallback(
-    async (obj) => {
-      const api = {
-        ...DEFAULT_TRANS_APIS[translator],
-        ...(transApis[translator] || {}),
-      };
-      Object.assign(transApis, { [translator]: { ...api, ...obj } });
-      await updateSetting({ transApis });
-    },
-    [translator, transApis, updateSetting]
+  return { transApis, updateSetting };
+}
+
+export function useApiList() {
+  const { transApis, updateSetting } = useApiState();
+
+  const userApis = useMemo(
+    () =>
+      transApis
+        .filter((api) => !API_SPE_TYPES.builtin.has(api.apiSlug))
+        .sort((a, b) => a.apiSlug.localeCompare(b.apiSlug)),
+    [transApis]
   );
 
-  const resetApi = useCallback(async () => {
-    Object.assign(transApis, { [translator]: DEFAULT_TRANS_APIS[translator] });
-    await updateSetting({ transApis });
-  }, [translator, transApis, updateSetting]);
+  const builtinApis = useMemo(
+    () => transApis.filter((api) => API_SPE_TYPES.builtin.has(api.apiSlug)),
+    [transApis]
+  );
 
-  return {
-    api: {
-      ...DEFAULT_TRANS_APIS[translator],
-      ...(transApis[translator] || {}),
+  const enabledApis = useMemo(
+    () => transApis.filter((api) => !api.isDisabled),
+    [transApis]
+  );
+
+  const addApi = useCallback(
+    (apiType) => {
+      const defaultApiOpt =
+        DEFAULT_API_LIST.find((da) => da.apiType === apiType) || {};
+      const uuid = crypto.randomUUID();
+      const apiSlug = `${apiType}_${crypto.randomUUID()}`;
+      const apiName = `${apiType}_${uuid.slice(0, 8)}`;
+      const newApi = {
+        ...defaultApiOpt,
+        apiSlug,
+        apiName,
+        apiType,
+      };
+      updateSetting((prev) => ({
+        ...prev,
+        transApis: [...(prev?.transApis || []), newApi],
+      }));
     },
-    updateApi,
-    resetApi,
-  };
+    [updateSetting]
+  );
+
+  const deleteApi = useCallback(
+    (apiSlug) => {
+      updateSetting((prev) => ({
+        ...prev,
+        transApis: (prev?.transApis || []).filter((api) => api.apiSlug !== apiSlug),
+      }));
+    },
+    [updateSetting]
+  );
+
+  return { transApis, userApis, builtinApis, enabledApis, addApi, deleteApi };
+}
+
+export function useApiItem(apiSlug) {
+  const { transApis, updateSetting } = useApiState();
+
+  const api = useMemo(
+    () => transApis.find((a) => a.apiSlug === apiSlug),
+    [transApis, apiSlug]
+  );
+
+  const update = useCallback(
+    (updateData) => {
+      updateSetting((prev) => ({
+        ...prev,
+        transApis: (prev?.transApis || []).map((item) =>
+          item.apiSlug === apiSlug ? { ...item, ...updateData, apiSlug } : item
+        ),
+      }));
+    },
+    [apiSlug, updateSetting]
+  );
+
+  const reset = useCallback(() => {
+    updateSetting((prev) => ({
+      ...prev,
+      transApis: (prev?.transApis || []).map((item) => {
+        if (item.apiSlug === apiSlug) {
+          const defaultApiOpt =
+            DEFAULT_API_LIST.find((da) => da.apiType === item.apiType) || {};
+          return {
+            ...defaultApiOpt,
+            apiSlug: item.apiSlug,
+            apiName: item.apiName,
+            apiType: item.apiType,
+          };
+        }
+        return item;
+      }),
+    }));
+  }, [apiSlug, updateSetting]);
+
+  return { api, update, reset };
 }

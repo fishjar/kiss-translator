@@ -7,7 +7,8 @@ import {
   OPT_LANGS_TENCENT,
   OPT_LANGS_SPECIAL,
   OPT_LANGS_MICROSOFT,
-  OPT_TRANS_BATCH,
+  API_SPE_TYPES,
+  DEFAULT_API_SETTING,
 } from "../config";
 import { sha256 } from "../libs/utils";
 import { msAuth } from "../libs/auth";
@@ -200,11 +201,10 @@ export const apiTencentLangdetect = async (text) => {
  * @returns
  */
 export const apiTranslate = async ({
-  translator,
   text,
   fromLang,
   toLang,
-  apiSetting = {},
+  apiSetting = DEFAULT_API_SETTING,
   docInfo = {},
   useCache = true,
   usePool = true,
@@ -213,23 +213,23 @@ export const apiTranslate = async ({
     return ["", false];
   }
 
+  const { apiType, apiSlug, useBatchFetch } = apiSetting;
   const from =
-    OPT_LANGS_SPECIAL[translator].get(fromLang) ??
-    OPT_LANGS_SPECIAL[translator].get("auto");
-  const to = OPT_LANGS_SPECIAL[translator].get(toLang);
+    OPT_LANGS_SPECIAL[apiType].get(fromLang) ??
+    OPT_LANGS_SPECIAL[apiType].get("auto");
+  const to = OPT_LANGS_SPECIAL[apiType].get(toLang);
   if (!to) {
-    kissLog(`target lang: ${toLang} not support`, "translate");
+    kissLog(`target lang: ${toLang} not support`);
     return ["", false];
   }
 
-  // TODO: 优化缓存失效因素
+  // todo: 优化缓存失效因素
   const [v1, v2] = process.env.REACT_APP_VERSION.split(".");
   const cacheOpts = {
-    translator,
+    apiSlug,
     text,
     fromLang,
     toLang,
-    model: apiSetting.model, // model改变，缓存失效
     version: [v1, v2].join("."),
   };
   const cacheInput = `${URL_CACHE_TRAN}?${queryString.stringify(cacheOpts)}`;
@@ -245,26 +245,21 @@ export const apiTranslate = async ({
   // 请求接口数据
   let trText = "";
   let srLang = "";
-  if (apiSetting.useBatchFetch && OPT_TRANS_BATCH.has(translator)) {
-    const queue = getBatchQueue(
-      {
-        translator,
-        from,
-        to,
-        docInfo,
-        apiSetting,
-        usePool,
-        taskFn: handleTranslate,
-      },
-      apiSetting
-    );
+  if (useBatchFetch && API_SPE_TYPES.batch.has(apiType)) {
+    const queue = getBatchQueue({
+      from,
+      to,
+      docInfo,
+      apiSetting,
+      usePool,
+      taskFn: handleTranslate,
+    });
     const tranlation = await queue.addTask({ text });
     if (Array.isArray(tranlation)) {
       [trText, srLang = ""] = tranlation;
     }
   } else {
     const translations = await handleTranslate({
-      translator,
       texts: [text],
       from,
       to,
@@ -281,7 +276,7 @@ export const apiTranslate = async ({
 
   // 插入缓存
   if (useCache && trText) {
-    await putHttpCachePolyfill(cacheInput, null, { trText, isSame, srLang });
+    putHttpCachePolyfill(cacheInput, null, { trText, isSame, srLang });
   }
 
   return [trText, isSame];

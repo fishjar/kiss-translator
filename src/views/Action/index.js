@@ -142,7 +142,7 @@ export default function Action({ translator, fab }) {
         });
       };
     } catch (err) {
-      kissLog(err, "registerMenuCommand");
+      kissLog("registerMenuCommand", err);
     }
   }, [translator]);
 

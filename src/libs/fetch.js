@@ -57,7 +57,7 @@ export const fetchPatcher = async (input, init = {}, opts) => {
     try {
       timeout = (await getSettingWithDefault()).httpTimeout;
     } catch (err) {
-      kissLog(err, "getSettingWithDefault");
+      kissLog("getSettingWithDefault", err);
     }
   }
   if (!timeout) {

@@ -2,12 +2,12 @@ import { matchValue, type, isMatch } from "./utils";
 import {
   GLOBAL_KEY,
   REMAIN_KEY,
-  OPT_TRANS_ALL,
   OPT_STYLE_ALL,
   OPT_LANGS_FROM,
   OPT_LANGS_TO,
   // OPT_TIMING_ALL,
   GLOBLA_RULE,
+  DEFAULT_API_TYPE,
 } from "../config";
 import { loadOrFetchSubRules } from "./subRules";
 import { getRulesWithDefault, setRules } from "./storage";
@@ -50,7 +50,7 @@ export const matchRule = async (
         rules.splice(-1, 0, ...subRules);
       }
     } catch (err) {
-      kissLog(err, "load injectRules");
+      kissLog("load injectRules", err);
     }
   }
 
@@ -86,7 +86,7 @@ export const matchRule = async (
   });
 
   [
-    "translator",
+    "apiSlug",
     "fromLang",
     "toLang",
     "transOpen",
@@ -158,7 +158,7 @@ export const checkRules = (rules) => {
         parentStyle,
         injectJs,
         injectCss,
-        translator,
+        apiSlug,
         fromLang,
         toLang,
         textStyle,
@@ -193,7 +193,7 @@ export const checkRules = (rules) => {
         injectCss: type(injectCss) === "string" ? injectCss : "",
         bgColor: type(bgColor) === "string" ? bgColor : "",
         textDiyStyle: type(textDiyStyle) === "string" ? textDiyStyle : "",
-        translator: matchValue([GLOBAL_KEY, ...OPT_TRANS_ALL], translator),
+        apiSlug: apiSlug?.trim() || DEFAULT_API_TYPE,
         fromLang: matchValue([GLOBAL_KEY, ...fromLangs], fromLang),
         toLang: matchValue([GLOBAL_KEY, ...toLangs], toLang),
         textStyle: matchValue([GLOBAL_KEY, ...OPT_STYLE_ALL], textStyle),

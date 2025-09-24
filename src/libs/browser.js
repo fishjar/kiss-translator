@@ -8,7 +8,7 @@ function _browser() {
   try {
     return require("webextension-polyfill");
   } catch (err) {
-    // kissLog(err, "browser");
+    // kissLog("browser", err);
   }
 }
 

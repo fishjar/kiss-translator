@@ -10,7 +10,6 @@ import {
   GLOBLA_RULE,
   OPT_LANGS_FROM,
   OPT_LANGS_TO,
-  OPT_TRANS_ALL,
   OPT_STYLE_ALL,
   OPT_STYLE_DIY,
   OPT_STYLE_USE_COLOR,
@@ -58,19 +57,26 @@ import EditIcon from "@mui/icons-material/Edit";
 import CancelIcon from "@mui/icons-material/Cancel";
 import SaveIcon from "@mui/icons-material/Save";
 import { kissLog } from "../../libs/log";
+import { useApiList } from "../../hooks/Api";
 
 function RuleFields({ rule, rules, setShow, setKeyword }) {
-  const initFormValues = {
-    ...(rule?.pattern === "*" ? GLOBLA_RULE : DEFAULT_RULE),
-    ...(rule || {}),
-  };
-  const editMode = !!rule;
+  const initFormValues = useMemo(
+    () => ({
+      ...(rule?.pattern === "*" ? GLOBLA_RULE : DEFAULT_RULE),
+      ...(rule || {}),
+    }),
+    [rule]
+  );
+  const editMode = useMemo(() => !!rule, [rule]);
 
   const i18n = useI18n();
   const [disabled, setDisabled] = useState(editMode);
   const [errors, setErrors] = useState({});
   const [formValues, setFormValues] = useState(initFormValues);
   const [showMore, setShowMore] = useState(!rules);
+  const [isModified, setIsModified] = useState(false);
+  const { enabledApis } = useApiList();
+
   const {
     pattern,
     selector,
@@ -82,7 +88,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
     parentStyle = "",
     injectJs = "",
     injectCss = "",
-    translator,
+    apiSlug,
     fromLang,
     toLang,
     textStyle,
@@ -105,6 +111,13 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
     transEndHook = "",
     // transRemoveHook = "",
   } = formValues;
+
+  useEffect(() => {
+    if (!initFormValues) return;
+    const hasChanged =
+      JSON.stringify(initFormValues) !== JSON.stringify(formValues);
+    setIsModified(hasChanged);
+  }, [initFormValues, formValues]);
 
   const hasSamePattern = (str) => {
     for (const item of rules.list) {
@@ -417,16 +430,16 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 select
                 size="small"
                 fullWidth
-                name="translator"
-                value={translator}
+                name="apiSlug"
+                value={apiSlug}
                 label={i18n("translate_service")}
                 disabled={disabled}
                 onChange={handleChange}
               >
                 {GlobalItem}
-                {OPT_TRANS_ALL.map((item) => (
-                  <MenuItem key={item} value={item}>
-                    {item}
+                {enabledApis.map((api) => (
+                  <MenuItem key={api.apiSlug} value={api.apiSlug}>
+                    {api.apiName}
                   </MenuItem>
                 ))}
               </TextField>
@@ -738,6 +751,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                     variant="contained"
                     type="submit"
                     startIcon={<SaveIcon />}
+                    disabled={!isModified}
                   >
                     {i18n("save")}
                   </Button>
@@ -842,7 +856,7 @@ function ShareButton({ rules, injectRules, selectedUrl }) {
       window.open(url, "_blank");
     } catch (err) {
       alert.warning(i18n("error_got_some_wrong"));
-      kissLog(err, "share rules");
+      kissLog("share rules", err);
     }
   };
 
@@ -871,7 +885,7 @@ function UserRules({ subRules, rules }) {
     try {
       await rules.merge(JSON.parse(data));
     } catch (err) {
-      kissLog(err, "import rules");
+      kissLog("import rules", err);
     }
   };
 
@@ -1004,7 +1018,7 @@ function SubRulesItem({
       await delSubRules(url);
       await deleteDataCache(url);
     } catch (err) {
-      kissLog(err, "del subrules");
+      kissLog("del subrules", err);
     }
   };
 
@@ -1017,7 +1031,7 @@ function SubRulesItem({
       }
       await updateDataCache(url);
     } catch (err) {
-      kissLog(err, "sync sub rules");
+      kissLog("sync sub rules", err);
     } finally {
       setLoading(false);
     }
@@ -1096,7 +1110,7 @@ function SubRulesEdit({ subList, addSub, updateDataCache }) {
       setShowInput(false);
       setInputText("");
     } catch (err) {
-      kissLog(err, "fetch rules");
+      kissLog("fetch rules", err);
       setInputError(i18n("error_fetch_url"));
     } finally {
       setLoading(false);

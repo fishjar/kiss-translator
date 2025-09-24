@@ -11,25 +11,17 @@ import {
   OPT_TRANS_TENCENT,
   OPT_TRANS_VOLCENGINE,
   OPT_TRANS_OPENAI,
-  OPT_TRANS_OPENAI_2,
-  OPT_TRANS_OPENAI_3,
   OPT_TRANS_GEMINI,
   OPT_TRANS_GEMINI_2,
   OPT_TRANS_CLAUDE,
   OPT_TRANS_CLOUDFLAREAI,
   OPT_TRANS_OLLAMA,
-  OPT_TRANS_OLLAMA_2,
-  OPT_TRANS_OLLAMA_3,
   OPT_TRANS_OPENROUTER,
   OPT_TRANS_CUSTOMIZE,
-  OPT_TRANS_CUSTOMIZE_2,
-  OPT_TRANS_CUSTOMIZE_3,
-  OPT_TRANS_CUSTOMIZE_4,
-  OPT_TRANS_CUSTOMIZE_5,
-  OPT_TRANS_CONTEXT,
+  API_SPE_TYPES,
   INPUT_PLACE_FROM,
   INPUT_PLACE_TO,
-  INPUT_PLACE_TEXT,
+  // INPUT_PLACE_TEXT,
   INPUT_PLACE_KEY,
   INPUT_PLACE_MODEL,
 } from "../config";
@@ -46,7 +38,7 @@ const keyMap = new Map();
 const urlMap = new Map();
 
 // 轮询key/url
-const keyPick = (translator, key = "", cacheMap) => {
+const keyPick = (apiSlug, key = "", cacheMap) => {
   const keys = key
     .split(/\n|,/)
     .map((item) => item.trim())
@@ -56,9 +48,9 @@ const keyPick = (translator, key = "", cacheMap) => {
     return "";
   }
 
-  const preIndex = cacheMap.get(translator) ?? -1;
+  const preIndex = cacheMap.get(apiSlug) ?? -1;
   const curIndex = (preIndex + 1) % keys.length;
-  cacheMap.set(translator, curIndex);
+  cacheMap.set(apiSlug, curIndex);
 
   return keys[curIndex];
 };
@@ -68,20 +60,30 @@ const genSystemPrompt = ({ systemPrompt, from, to }) =>
     .replaceAll(INPUT_PLACE_FROM, from)
     .replaceAll(INPUT_PLACE_TO, to);
 
-const genUserPrompt = ({ userPrompt, from, to, texts, docInfo }) => {
+const genUserPrompt = ({
+  // userPrompt,
+  tone,
+  glossary = {},
+  // from,
+  to,
+  texts,
+  docInfo,
+}) => {
   const prompt = JSON.stringify({
     targetLanguage: to,
     title: docInfo.title,
     description: docInfo.description,
     segments: texts.map((text, i) => ({ id: i, text })),
+    glossary,
+    tone,
   });
 
-  if (userPrompt.includes(INPUT_PLACE_TEXT)) {
-    return userPrompt
-      .replaceAll(INPUT_PLACE_FROM, from)
-      .replaceAll(INPUT_PLACE_TO, to)
-      .replaceAll(INPUT_PLACE_TEXT, prompt);
-  }
+  // if (userPrompt.includes(INPUT_PLACE_TEXT)) {
+  //   return userPrompt
+  //     .replaceAll(INPUT_PLACE_FROM, from)
+  //     .replaceAll(INPUT_PLACE_TO, to)
+  //     .replaceAll(INPUT_PLACE_TEXT, prompt);
+  // }
 
   return prompt;
 };
@@ -93,15 +95,19 @@ const parseAIRes = (raw) => {
     const jsonString = extractJson(raw);
     data = JSON.parse(jsonString);
   } catch (err) {
-    kissLog(err, "parseAIRes");
-    data = { translations: [] };
+    kissLog("parseAIRes", err);
+    return [];
   }
 
   if (!Array.isArray(data.translations)) {
-    data.translations = [];
+    return [];
   }
 
-  return data.translations.map((item) => [item.text]);
+  // todo: 考虑序号id可能会打乱
+  return data.translations.map((item) => [
+    item?.text ?? "",
+    item?.sourceLanguage ?? "",
+  ]);
 };
 
 const genGoogle = ({ texts, from, to, url, key }) => {
@@ -675,35 +681,27 @@ const genCustom = ({
  * @param {*}
  * @returns
  */
-export const genTransReq = (translator, args) => {
-  switch (translator) {
+export const genTransReq = ({ apiType, apiSlug, ...args }) => {
+  switch (apiType) {
     case OPT_TRANS_DEEPL:
     case OPT_TRANS_OPENAI:
-    case OPT_TRANS_OPENAI_2:
-    case OPT_TRANS_OPENAI_3:
     case OPT_TRANS_GEMINI:
     case OPT_TRANS_GEMINI_2:
     case OPT_TRANS_CLAUDE:
     case OPT_TRANS_CLOUDFLAREAI:
     case OPT_TRANS_OLLAMA:
-    case OPT_TRANS_OLLAMA_2:
-    case OPT_TRANS_OLLAMA_3:
     case OPT_TRANS_OPENROUTER:
     case OPT_TRANS_NIUTRANS:
     case OPT_TRANS_CUSTOMIZE:
-    case OPT_TRANS_CUSTOMIZE_2:
-    case OPT_TRANS_CUSTOMIZE_3:
-    case OPT_TRANS_CUSTOMIZE_4:
-    case OPT_TRANS_CUSTOMIZE_5:
-      args.key = keyPick(translator, args.key, keyMap);
+      args.key = keyPick(apiSlug, args.key, keyMap);
       break;
     case OPT_TRANS_DEEPLX:
-      args.url = keyPick(translator, args.url, urlMap);
+      args.url = keyPick(apiSlug, args.url, urlMap);
       break;
     default:
   }
 
-  switch (translator) {
+  switch (apiType) {
     case OPT_TRANS_GOOGLE:
       return genGoogle(args);
     case OPT_TRANS_GOOGLE_2:
@@ -725,8 +723,6 @@ export const genTransReq = (translator, args) => {
     case OPT_TRANS_VOLCENGINE:
       return genVolcengine(args);
     case OPT_TRANS_OPENAI:
-    case OPT_TRANS_OPENAI_2:
-    case OPT_TRANS_OPENAI_3:
       return genOpenAI(args);
     case OPT_TRANS_GEMINI:
       return genGemini(args);
@@ -737,37 +733,29 @@ export const genTransReq = (translator, args) => {
     case OPT_TRANS_CLOUDFLAREAI:
       return genCloudflareAI(args);
     case OPT_TRANS_OLLAMA:
-    case OPT_TRANS_OLLAMA_2:
-    case OPT_TRANS_OLLAMA_3:
       return genOllama(args);
     case OPT_TRANS_OPENROUTER:
       return genOpenRouter(args);
     case OPT_TRANS_CUSTOMIZE:
-    case OPT_TRANS_CUSTOMIZE_2:
-    case OPT_TRANS_CUSTOMIZE_3:
-    case OPT_TRANS_CUSTOMIZE_4:
-    case OPT_TRANS_CUSTOMIZE_5:
       return genCustom(args);
     default:
-      throw new Error(`[trans] translator: ${translator} not support`);
+      throw new Error(`[trans] ${apiType} not support`);
   }
 };
 
 /**
  * 解析翻译接口返回数据
- * @param {*} translator
  * @param {*} res
  * @param {*} param3
  * @returns
  */
 export const parseTransRes = (
-  translator,
   res,
-  { texts, from, to, resHook, thinkIgnore, history, userMsg }
+  { texts, from, to, resHook, thinkIgnore, history, userMsg, apiType }
 ) => {
   let modelMsg = "";
 
-  switch (translator) {
+  switch (apiType) {
     case OPT_TRANS_GOOGLE:
       return [[res?.sentences?.map((item) => item.trans).join(" "), res?.src]];
     case OPT_TRANS_GOOGLE_2:
@@ -814,8 +802,6 @@ export const parseTransRes = (
     case OPT_TRANS_VOLCENGINE:
       return [[res?.translation, res?.detected_language]];
     case OPT_TRANS_OPENAI:
-    case OPT_TRANS_OPENAI_2:
-    case OPT_TRANS_OPENAI_3:
     case OPT_TRANS_GEMINI_2:
     case OPT_TRANS_OPENROUTER:
       modelMsg = res?.choices?.[0]?.message;
@@ -844,8 +830,6 @@ export const parseTransRes = (
     case OPT_TRANS_CLOUDFLAREAI:
       return [[res?.result?.translated_text]];
     case OPT_TRANS_OLLAMA:
-    case OPT_TRANS_OLLAMA_2:
-    case OPT_TRANS_OLLAMA_3:
       modelMsg = res?.choices?.[0]?.message;
 
       const deepModels = thinkIgnore.split(",").filter((model) => model.trim());
@@ -861,10 +845,6 @@ export const parseTransRes = (
       }
       return parseAIRes(modelMsg?.content);
     case OPT_TRANS_CUSTOMIZE:
-    case OPT_TRANS_CUSTOMIZE_2:
-    case OPT_TRANS_CUSTOMIZE_3:
-    case OPT_TRANS_CUSTOMIZE_4:
-    case OPT_TRANS_CUSTOMIZE_5:
       if (resHook?.trim()) {
         interpreter.run(`exports.resHook = ${resHook}`);
         if (history) {
@@ -894,7 +874,6 @@ export const parseTransRes = (
  * @returns
  */
 export const handleTranslate = async ({
-  translator,
   texts,
   from,
   to,
@@ -904,12 +883,21 @@ export const handleTranslate = async ({
 }) => {
   let history = null;
   let hisMsgs = [];
-  if (apiSetting.useContext && OPT_TRANS_CONTEXT.has(translator)) {
-    history = getMsgHistory(translator, apiSetting.contextSize);
+  const {
+    apiType,
+    apiSlug,
+    contextSize,
+    useContext,
+    fetchInterval,
+    fetchLimit,
+    httpTimeout,
+  } = apiSetting;
+  if (useContext && API_SPE_TYPES.context.has(apiType)) {
+    history = getMsgHistory(apiSlug, contextSize);
     hisMsgs = history.getAll();
   }
 
-  const [input, init, userMsg] = await genTransReq(translator, {
+  const [input, init, userMsg] = await genTransReq({
     texts,
     from,
     to,
@@ -921,15 +909,15 @@ export const handleTranslate = async ({
   const res = await fetchData(input, init, {
     useCache: false,
     usePool,
-    fetchInterval: apiSetting.fetchInterval,
-    fetchLimit: apiSetting.fetchLimit,
-    httpTimeout: apiSetting.httpTimeout,
+    fetchInterval,
+    fetchLimit,
+    httpTimeout,
   });
   if (!res) {
     throw new Error("tranlate got empty response");
   }
 
-  return parseTransRes(translator, res, {
+  return parseTransRes(res, {
     texts,
     from,
     to,

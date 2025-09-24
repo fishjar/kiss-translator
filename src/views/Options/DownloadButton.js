@@ -18,7 +18,7 @@ export default function DownloadButton({ handleData, text, fileName }) {
       link.click();
       link.remove();
     } catch (err) {
-      kissLog(err, "download");
+      kissLog("download", err);
     } finally {
       setLoading(false);
     }

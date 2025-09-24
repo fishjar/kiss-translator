@@ -3,7 +3,7 @@ import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
 import { useI18n } from "../../hooks/I18n";
-import { DEFAULT_TRANS_APIS } from "../../config";
+import { DEFAULT_API_SETTING } from "../../config";
 import { useEffect, useState } from "react";
 import { apiTranslate } from "../../apis";
 import CopyBtn from "./CopyBtn";
@@ -13,7 +13,7 @@ import { tryDetectLang } from "../../libs";
 
 export default function TranCont({
   text,
-  translator,
+  apiSlug,
   fromLang,
   toLang,
   toLang2 = "en",
@@ -42,10 +42,11 @@ export default function TranCont({
         }
 
         const apiSetting =
-          transApis[translator] || DEFAULT_TRANS_APIS[translator];
+          transApis.find((api) => api.apiSlug === apiSlug) ||
+          DEFAULT_API_SETTING;
         const [trText] = await apiTranslate({
           text,
-          translator,
+          apiSlug,
           fromLang,
           toLang: to,
           apiSetting,
@@ -57,7 +58,7 @@ export default function TranCont({
         setLoading(false);
       }
     })();
-  }, [text, translator, fromLang, toLang, toLang2, transApis, langDetector]);
+  }, [text, apiSlug, fromLang, toLang, toLang2, transApis, langDetector]);
 
   if (simpleStyle) {
     return (

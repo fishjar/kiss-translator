@@ -33,7 +33,7 @@ export class ShadowRootMonitor {
         try {
           monitorInstance.callback(shadowRoot);
         } catch (error) {
-          kissLog(error, "Error in ShadowRootMonitor callback");
+          kissLog("Error in ShadowRootMonitor callback", error);
         }
       }
       return shadowRoot;

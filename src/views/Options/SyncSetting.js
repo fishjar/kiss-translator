@@ -21,8 +21,8 @@ import { useAlert } from "../../hooks/Alert";
 import { useSetting } from "../../hooks/Setting";
 import { kissLog } from "../../libs/log";
 import SyncIcon from "@mui/icons-material/Sync";
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import ContentPasteIcon from '@mui/icons-material/ContentPaste';
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import ContentPasteIcon from "@mui/icons-material/ContentPaste";
 
 export default function SyncSetting() {
   const i18n = useI18n();
@@ -44,10 +44,10 @@ export default function SyncSetting() {
     try {
       setLoading(true);
       await syncSettingAndRules();
-      await reloadSetting();
+      reloadSetting();
       alert.success(i18n("sync_success"));
     } catch (err) {
-      kissLog(err, "sync all");
+      kissLog("sync all", err);
       alert.error(i18n("sync_failed"));
     } finally {
       setLoading(false);
@@ -56,37 +56,37 @@ export default function SyncSetting() {
 
   const handleGenerateShareString = async () => {
     try {
-      const base64Config = btoa(JSON.stringify({
-        syncType: syncType,
-        syncUrl: syncUrl,
-        syncUser: syncUser,
-        syncKey: syncKey,
-      }));
+      const base64Config = btoa(
+        JSON.stringify({
+          syncType: syncType,
+          syncUrl: syncUrl,
+          syncUser: syncUser,
+          syncKey: syncKey,
+        })
+      );
       const shareString = `${OPT_SYNCTOKEN_PERFIX}${base64Config}`;
       await navigator.clipboard.writeText(shareString);
-      console.debug("Share string copied to clipboard", shareString);
+      kissLog("Share string copied to clipboard", shareString);
     } catch (error) {
-      console.error("Failed to copy share string to clipboard", error);
+      kissLog("Failed to copy share string to clipboard", error);
     }
   };
 
   const handleImportFromClipboard = async () => {
     try {
       const text = await navigator.clipboard.readText();
-      console.debug('read_clipboard', text)
+      kissLog("read_clipboard", text);
       if (text.startsWith(OPT_SYNCTOKEN_PERFIX)) {
         const base64Config = text.slice(OPT_SYNCTOKEN_PERFIX.length);
         const jsonString = atob(base64Config);
         const updatedConfig = JSON.parse(jsonString);
 
         if (!OPT_SYNCTYPE_ALL.includes(updatedConfig.syncType)) {
-          console.error('error syncType', updatedConfig.syncType)
+          kissLog("error syncType", updatedConfig.syncType);
           return;
         }
 
-        if (
-          updatedConfig.syncUrl
-        ) {
+        if (updatedConfig.syncUrl) {
           updateSync({
             syncType: updatedConfig.syncType,
             syncUrl: updatedConfig.syncUrl,
@@ -94,16 +94,15 @@ export default function SyncSetting() {
             syncKey: updatedConfig.syncKey,
           });
         } else {
-          console.error("Invalid config structure");
+          kissLog("Invalid config structure");
         }
       } else {
-        console.error("Invalid share string", text);
+        kissLog("Invalid share string", text);
       }
     } catch (error) {
-      console.error("Failed to read from clipboard or parse JSON", error);
+      kissLog("Failed to read from clipboard or parse JSON", error);
     }
   };
-
 
   if (!sync) {
     return;

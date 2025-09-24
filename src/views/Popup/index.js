@@ -20,11 +20,9 @@ import {
   MSG_OPEN_OPTIONS,
   MSG_SAVE_RULE,
   MSG_COMMAND_SHORTCUTS,
-  OPT_TRANS_ALL,
   OPT_LANGS_FROM,
   OPT_LANGS_TO,
   OPT_STYLE_ALL,
-  DEFAULT_TRANS_APIS,
 } from "../../config";
 import { sendIframeMsg } from "../../libs/iframe";
 import { saveRule } from "../../libs/rules";
@@ -33,14 +31,14 @@ import { kissLog } from "../../libs/log";
 
 // 插件popup没有参数
 // 网页弹框有
-export default function Popup({ setShowPopup, translator: tran }) {
+export default function Popup({ setShowPopup, translator }) {
   const i18n = useI18n();
-  const [rule, setRule] = useState(tran?.rule);
-  const [transApis, setTransApis] = useState(tran?.setting?.transApis || []);
+  const [rule, setRule] = useState(translator?.rule);
+  const [transApis, setTransApis] = useState(translator?.setting?.transApis || []);
   const [commands, setCommands] = useState({});
 
   const handleOpenSetting = () => {
-    if (!tran) {
+    if (!translator) {
       browser?.runtime.openOptionsPage();
     } else if (isExt) {
       sendBgMsg(MSG_OPEN_OPTIONS);
@@ -54,14 +52,14 @@ export default function Popup({ setShowPopup, translator: tran }) {
     try {
       setRule({ ...rule, transOpen: e.target.checked ? "true" : "false" });
 
-      if (!tran) {
+      if (!translator) {
         await sendTabMsg(MSG_TRANS_TOGGLE);
       } else {
-        tran.toggle();
+        translator.toggle();
         sendIframeMsg(MSG_TRANS_TOGGLE);
       }
     } catch (err) {
-      kissLog(err, "toggle trans");
+      kissLog("toggle trans", err);
     }
   };
 
@@ -70,14 +68,14 @@ export default function Popup({ setShowPopup, translator: tran }) {
       const { name, value } = e.target;
       setRule((pre) => ({ ...pre, [name]: value }));
 
-      if (!tran) {
+      if (!translator) {
         await sendTabMsg(MSG_TRANS_PUTRULE, { [name]: value });
       } else {
-        tran.updateRule({ [name]: value });
+        translator.updateRule({ [name]: value });
         sendIframeMsg(MSG_TRANS_PUTRULE, { [name]: value });
       }
     } catch (err) {
-      kissLog(err, "update rule");
+      kissLog("update rule", err);
     }
   };
 
@@ -88,23 +86,23 @@ export default function Popup({ setShowPopup, translator: tran }) {
   const handleSaveRule = async () => {
     try {
       let href = window.location.href;
-      if (!tran) {
+      if (!translator) {
         const tab = await getCurTab();
         href = tab.url;
       }
       const newRule = { ...rule, pattern: href.split("/")[2] };
-      if (isExt && tran) {
+      if (isExt && translator) {
         sendBgMsg(MSG_SAVE_RULE, newRule);
       } else {
         saveRule(newRule);
       }
     } catch (err) {
-      kissLog(err, "save rule");
+      kissLog("save rule", err);
     }
   };
 
   useEffect(() => {
-    if (tran) {
+    if (translator) {
       return;
     }
     (async () => {
@@ -115,10 +113,10 @@ export default function Popup({ setShowPopup, translator: tran }) {
           setTransApis(res.setting.transApis);
         }
       } catch (err) {
-        kissLog(err, "query rule");
+        kissLog("query rule", err);
       }
     })();
-  }, [tran]);
+  }, [translator]);
 
   useEffect(() => {
     (async () => {
@@ -130,7 +128,7 @@ export default function Popup({ setShowPopup, translator: tran }) {
             commands[name] = shortcut;
           });
         } else {
-          const shortcuts = tran.setting.shortcuts;
+          const shortcuts = translator.setting.shortcuts;
           if (shortcuts) {
             Object.entries(shortcuts).forEach(([key, val]) => {
               commands[key] = val.join("+");
@@ -139,21 +137,18 @@ export default function Popup({ setShowPopup, translator: tran }) {
         }
         setCommands(commands);
       } catch (err) {
-        kissLog(err, "query cmds");
+        kissLog("query cmds", err);
       }
     })();
-  }, [tran]);
+  }, [translator]);
 
   const optApis = useMemo(
     () =>
-      OPT_TRANS_ALL.map((key) => ({
-        ...(transApis[key] || DEFAULT_TRANS_APIS[key]),
-        apiKey: key,
-      }))
-        .filter((item) => !item.isDisabled)
-        .map(({ apiKey, apiName }) => ({
-          key: apiKey,
-          name: apiName?.trim() || apiKey,
+      transApis
+        .filter((api) => !api.isDisabled)
+        .map((api) => ({
+          key: api.apiSlug,
+          name: api.apiName || api.apiSlug,
         })),
     [transApis]
   );
@@ -161,7 +156,7 @@ export default function Popup({ setShowPopup, translator: tran }) {
   if (!rule) {
     return (
       <Box minWidth={300}>
-        {!tran && (
+        {!translator && (
           <>
             <Header />
             <Divider />
@@ -178,7 +173,7 @@ export default function Popup({ setShowPopup, translator: tran }) {
 
   const {
     transOpen,
-    translator,
+    apiSlug,
     fromLang,
     toLang,
     textStyle,
@@ -190,7 +185,7 @@ export default function Popup({ setShowPopup, translator: tran }) {
 
   return (
     <Box width={320}>
-      {!tran && (
+      {!translator && (
         <>
           <Header />
           <Divider />
@@ -275,8 +270,8 @@ export default function Popup({ setShowPopup, translator: tran }) {
           select
           SelectProps={{ MenuProps: { disablePortal: true } }}
           size="small"
-          value={translator}
-          name="translator"
+          value={apiSlug}
+          name="apiSlug"
           label={i18n("translate_service")}
           onChange={handleChange}
         >

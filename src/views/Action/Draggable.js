@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { limitNumber } from "../../libs/utils";
 import { isMobile } from "../../libs/mobile";
-import { updateFab } from "../../libs/storage";
+import { putFab } from "../../libs/storage";
 import { debounce } from "../../libs/utils";
 import Paper from "@mui/material/Paper";
 
@@ -61,7 +61,7 @@ export default function Draggable({
   const [hover, setHover] = useState(false);
   const [origin, setOrigin] = useState(null);
   const [position, setPosition] = useState({ x: left, y: top });
-  const setFabPosition = useMemo(() => debounce(updateFab, 500), []);
+  const setFabPosition = useMemo(() => debounce(putFab, 500), []);
 
   const handlePointerDown = (e) => {
     !isMobile && e.target.setPointerCapture(e.pointerId);

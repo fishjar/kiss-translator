@@ -5,7 +5,7 @@ import Accordion from "@mui/material/Accordion";
 import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import CircularProgress from "@mui/material/CircularProgress";
+// import CircularProgress from "@mui/material/CircularProgress";
 import { useI18n } from "../../hooks/I18n";
 import Box from "@mui/material/Box";
 import { useFavWords } from "../../hooks/FavWords";
@@ -49,29 +49,25 @@ function FavAccordion({ word, index }) {
 
 export default function FavWords() {
   const i18n = useI18n();
-  const { loading, favWords, mergeWords, clearWords } = useFavWords();
-  const favList = Object.entries(favWords).sort((a, b) =>
-    a[0].localeCompare(b[0])
-  );
-  const downloadList = favList.map(([word]) => word);
+  const { favList, wordList, mergeWords, clearWords } = useFavWords();
 
-  const handleImport = async (data) => {
+  const handleImport = (data) => {
     try {
       const newWords = data
         .split("\n")
         .map((line) => line.split(",")[0].trim())
         .filter(isValidWord);
-      await mergeWords(newWords);
+      mergeWords(newWords);
     } catch (err) {
-      kissLog(err, "import rules");
+      kissLog("import rules", err);
     }
   };
 
   const handleTranslation = async () => {
     const tranList = [];
-    for (const text of downloadList) {
+    for (const text of wordList) {
       try {
-        // todo
+        // todo: 修复
         const dictRes = await apiTranslate({
           text,
           translator: OPT_TRANS_BAIDU,
@@ -122,7 +118,7 @@ export default function FavWords() {
             fileExts={[".txt", ".csv"]}
           />
           <DownloadButton
-            handleData={() => downloadList.join("\n")}
+            handleData={() => wordList.join("\n")}
             text={i18n("export")}
             fileName={`kiss-words_${Date.now()}.txt`}
           />
@@ -144,18 +140,14 @@ export default function FavWords() {
         </Stack>
 
         <Box>
-          {loading ? (
-            <CircularProgress size={24} />
-          ) : (
-            favList.map(([word, { createdAt }], index) => (
-              <FavAccordion
-                key={word}
-                index={index}
-                word={word}
-                createdAt={createdAt}
-              />
-            ))
-          )}
+          {favList.map(([word, { createdAt }], index) => (
+            <FavAccordion
+              key={word}
+              index={index}
+              word={word}
+              createdAt={createdAt}
+            />
+          ))}
         </Box>
       </Stack>
     </Box>

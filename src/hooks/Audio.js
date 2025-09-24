@@ -52,7 +52,7 @@ export function useTextAudio(text, lan = "uk", spd = 3) {
       try {
         setSrc(await apiBaiduTTS(text, lan, spd));
       } catch (err) {
-        kissLog(err, "baidu tts");
+        kissLog("baidu tts", err);
       }
     })();
   }, [text, lan, spd]);

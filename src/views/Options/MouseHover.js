@@ -7,6 +7,7 @@ import Switch from "@mui/material/Switch";
 import { useMouseHoverSetting } from "../../hooks/MouseHover";
 import { useCallback } from "react";
 import Grid from "@mui/material/Grid";
+import { DEFAULT_MOUSEHOVER_KEY } from "../../config";
 
 export default function MouseHoverSetting() {
   const i18n = useI18n();
@@ -19,7 +20,7 @@ export default function MouseHoverSetting() {
     [updateMouseHoverSetting]
   );
 
-  const { useMouseHover = true, mouseHoverKey = ["ControlLeft"] } =
+  const { useMouseHover = true, mouseHoverKey = DEFAULT_MOUSEHOVER_KEY } =
     mouseHoverSetting;
 
   return (

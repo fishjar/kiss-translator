@@ -1,51 +1,70 @@
+import { createContext, useCallback, useContext, useMemo } from "react";
+import Alert from "@mui/material/Alert";
 import { STOKEY_SETTING, DEFAULT_SETTING, KV_SETTING_KEY } from "../config";
 import { useStorage } from "./Storage";
-import { trySyncSetting } from "../libs/sync";
-import { createContext, useCallback, useContext, useMemo } from "react";
-import { debounce } from "../libs/utils";
-import { useSyncMeta } from "./Sync";
+import { debounceSyncMeta } from "../libs/storage";
+import Loading from "./Loading";
 
 const SettingContext = createContext({
-  setting: null,
-  updateSetting: async () => {},
-  reloadSetting: async () => {},
+  setting: DEFAULT_SETTING,
+  updateSetting: () => {},
+  reloadSetting: () => {},
 });
 
 export function SettingProvider({ children }) {
-  const { data, update, reload } = useStorage(STOKEY_SETTING, DEFAULT_SETTING);
-  const { updateSyncMeta } = useSyncMeta();
-
-  const syncSetting = useMemo(
-    () =>
-      debounce(() => {
-        trySyncSetting();
-      }, [2000]),
-    []
-  );
+  const {
+    data: setting,
+    isLoading,
+    update,
+    reload,
+  } = useStorage(STOKEY_SETTING, DEFAULT_SETTING, KV_SETTING_KEY);
 
   const updateSetting = useCallback(
-    async (obj) => {
-      await update(obj);
-      await updateSyncMeta(KV_SETTING_KEY);
-      syncSetting();
+    (objOrFn) => {
+      update(objOrFn);
+      debounceSyncMeta(KV_SETTING_KEY);
     },
-    [update, syncSetting, updateSyncMeta]
+    [update]
   );
 
-  if (!data) {
-    return;
+  const updateChild = useCallback(
+    (key) => async (obj) => {
+      updateSetting((prev) => ({
+        ...prev,
+        [key]: { ...(prev?.[key] || {}), ...obj },
+      }));
+    },
+    [updateSetting]
+  );
+
+  const value = useMemo(
+    () => ({
+      setting,
+      updateSetting,
+      updateChild,
+      reloadSetting: reload,
+    }),
+    [setting, updateSetting, updateChild, reload]
+  );
+
+  if (isLoading) {
+    return <Loading />;
+  }
+
+  if (!setting) {
+    <center>
+      <Alert severity="error" sx={{ maxWidth: 600, margin: "60px auto" }}>
+        <p>数据加载出错，请刷新页面或卸载后重新安装。</p>
+        <p>
+          Data loading error, please refresh the page or uninstall and
+          reinstall.
+        </p>
+      </Alert>
+    </center>;
   }
 
   return (
-    <SettingContext.Provider
-      value={{
-        setting: data,
-        updateSetting,
-        reloadSetting: reload,
-      }}
-    >
-      {children}
-    </SettingContext.Provider>
+    <SettingContext.Provider value={value}>{children}</SettingContext.Provider>
   );
 }
 

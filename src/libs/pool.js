@@ -70,7 +70,7 @@ class TaskPool {
       const res = await fn(args);
       resolve(res);
     } catch (err) {
-      kissLog(err, "task");
+      kissLog("task pool", err);
       if (retry < this.#maxRetry) {
         setTimeout(() => {
           this.#pool.unshift({ ...task, retry: retry + 1 }); // unshift 保证重试任务优先

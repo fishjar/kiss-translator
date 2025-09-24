@@ -201,7 +201,7 @@ export default function Slection({
         });
       };
     } catch (err) {
-      kissLog(err, "registerMenuCommand");
+      kissLog("registerMenuCommand", err);
     }
   }, [handleTranbox, contextMenuType, langMap]);
 

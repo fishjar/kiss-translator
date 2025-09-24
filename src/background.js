@@ -49,7 +49,7 @@ async function addContextMenus(contextMenuType = 1) {
   try {
     await browser.contextMenus.removeAll();
   } catch (err) {
-    kissLog(err, "remove contextMenus");
+    kissLog("remove contextMenus", err);
   }
 
   switch (contextMenuType) {
@@ -122,7 +122,7 @@ async function updateCspRules(csplist = DEFAULT_CSPLIST.join(",\n")) {
       addRules: newRules,
     });
   } catch (err) {
-    kissLog(err, "update csp rules");
+    kissLog("update csp rules", err);
   }
 }
 

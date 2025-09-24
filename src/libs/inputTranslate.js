@@ -1,8 +1,8 @@
 import {
   DEFAULT_INPUT_RULE,
-  DEFAULT_TRANS_APIS,
   DEFAULT_INPUT_SHORTCUT,
   OPT_LANGS_LIST,
+  DEFAULT_API_SETTING,
 } from "../config";
 import { genEventName, removeEndchar, matchInputStr, sleep } from "./utils";
 import { stepShortcutRegister } from "./shortcut";
@@ -87,7 +87,7 @@ export default function inputTranslate({
   inputRule: {
     transOpen,
     triggerShortcut,
-    translator,
+    apiSlug,
     fromLang,
     toLang,
     triggerCount,
@@ -100,7 +100,8 @@ export default function inputTranslate({
     return;
   }
 
-  const apiSetting = transApis?.[translator] || DEFAULT_TRANS_APIS[translator];
+  const apiSetting =
+    transApis.find((api) => api.apiSlug === apiSlug) || DEFAULT_API_SETTING;
   if (triggerShortcut.length === 0) {
     triggerShortcut = DEFAULT_INPUT_SHORTCUT;
     triggerCount = 1;
@@ -156,7 +157,7 @@ export default function inputTranslate({
         addLoading(node, loadingId);
 
         const [trText, isSame] = await apiTranslate({
-          translator,
+          apiSlug,
           text,
           fromLang,
           toLang,
@@ -188,7 +189,7 @@ export default function inputTranslate({
           collapseToEnd(node);
         }
       } catch (err) {
-        kissLog(err, "translate input");
+        kissLog("translate input", err);
       } finally {
         removeLoading(node, loadingId);
       }

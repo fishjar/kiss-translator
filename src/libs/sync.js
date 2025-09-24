@@ -9,7 +9,7 @@ import {
 } from "../config";
 import {
   getSyncWithDefault,
-  updateSync,
+  putSync,
   getSettingWithDefault,
   getRulesWithDefault,
   getWordsWithDefault,
@@ -61,7 +61,7 @@ const syncByWorker = async (data, { syncUrl, syncKey }) => {
   return await apiSyncData(`${syncUrl}/sync`, syncKey, data);
 };
 
-const syncData = async (key, valueFn) => {
+export const syncData = async (key, value) => {
   const {
     syncType,
     syncUrl,
@@ -70,13 +70,14 @@ const syncData = async (key, valueFn) => {
     syncMeta = {},
   } = await getSyncWithDefault();
   if (!syncUrl || !syncKey || (syncType === OPT_SYNCTYPE_WEBDAV && !syncUser)) {
-    return;
+    throw new Error("sync args err");
   }
 
   let { updateAt = 0, syncAt = 0 } = syncMeta[key] || {};
-  syncAt === 0 && (updateAt = 0);
+  if (syncAt === 0) {
+    updateAt = 0; // 没有同步过，更新时间置零
+  }
 
-  const value = await valueFn();
   const data = {
     key,
     value: JSON.stringify(value),
@@ -93,13 +94,20 @@ const syncData = async (key, valueFn) => {
       ? await syncByWebdav(data, args)
       : await syncByWorker(data, args);
 
+  if (!res) {
+    throw new Error("sync data got err", key);
+  }
+
+  const newVal = JSON.parse(res.value);
+  const isNew = res.updateAt > updateAt;
+
   syncMeta[key] = {
     updateAt: res.updateAt,
     syncAt: Date.now(),
   };
-  await updateSync({ syncMeta });
+  await putSync({ syncMeta });
 
-  return { value: JSON.parse(res.value), isNew: res.updateAt > updateAt };
+  return { value: newVal, isNew };
 };
 
 /**
@@ -107,7 +115,8 @@ const syncData = async (key, valueFn) => {
  * @returns
  */
 const syncSetting = async () => {
-  const res = await syncData(KV_SETTING_KEY, getSettingWithDefault);
+  const value = await getSettingWithDefault();
+  const res = await syncData(KV_SETTING_KEY, value);
   if (res?.isNew) {
     await setSetting(res.value);
   }
@@ -117,7 +126,7 @@ export const trySyncSetting = async () => {
   try {
     await syncSetting();
   } catch (err) {
-    kissLog(err, "sync setting");
+    kissLog("sync setting", err.message);
   }
 };
 
@@ -126,7 +135,8 @@ export const trySyncSetting = async () => {
  * @returns
  */
 const syncRules = async () => {
-  const res = await syncData(KV_RULES_KEY, getRulesWithDefault);
+  const value = await getRulesWithDefault();
+  const res = await syncData(KV_RULES_KEY, value);
   if (res?.isNew) {
     await setRules(res.value);
   }
@@ -136,7 +146,7 @@ export const trySyncRules = async () => {
   try {
     await syncRules();
   } catch (err) {
-    kissLog(err, "sync user rules");
+    kissLog("sync user rules", err.message);
   }
 };
 
@@ -145,7 +155,8 @@ export const trySyncRules = async () => {
  * @returns
  */
 const syncWords = async () => {
-  const res = await syncData(KV_WORDS_KEY, getWordsWithDefault);
+  const value = await getWordsWithDefault();
+  const res = await syncData(KV_WORDS_KEY, value);
   if (res?.isNew) {
     await setWords(res.value);
   }
@@ -155,7 +166,7 @@ export const trySyncWords = async () => {
   try {
     await syncWords();
   } catch (err) {
-    kissLog(err, "sync fav words");
+    kissLog("sync fav words", err.message);
   }
 };
 

@@ -43,7 +43,7 @@ export const getHttpCache = async (input, init) => {
       return await parseResponse(res);
     }
   } catch (err) {
-    kissLog(err, "get cache");
+    kissLog("get cache", err);
   }
   return null;
 };
@@ -54,7 +54,12 @@ export const getHttpCache = async (input, init) => {
  * @param {*} init
  * @param {*} data
  */
-export const putHttpCache = async (input, init, data) => {
+export const putHttpCache = async (
+  input,
+  init,
+  data,
+  maxAge = DEFAULT_CACHE_TIMEOUT // todo: 从设置里面读取最大缓存时间
+) => {
   try {
     const req = await newCacheReq(input, init);
     const cache = await caches.open(CACHE_NAME);
@@ -62,13 +67,13 @@ export const putHttpCache = async (input, init, data) => {
       status: 200,
       headers: {
         "Content-Type": "application/json",
-        "Cache-Control": `max-age=${DEFAULT_CACHE_TIMEOUT}`,
+        "Cache-Control": `max-age=${maxAge}`,
       },
     });
-    // res.headers.set("Cache-Control", `max-age=${DEFAULT_CACHE_TIMEOUT}`);
+    // res.headers.set("Cache-Control", `max-age=${maxAge}`);
     await cache.put(req, res);
   } catch (err) {
-    kissLog(err, "put cache");
+    kissLog("put cache", err);
   }
 };
 

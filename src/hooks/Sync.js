@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { STOKEY_SYNC, DEFAULT_SYNC } from "../config";
 import { useStorage } from "./Storage";
 
@@ -16,15 +16,24 @@ export function useSync() {
  * @returns
  */
 export function useSyncMeta() {
-  const { sync, updateSync } = useSync();
+  const { updateSync } = useSync();
+
   const updateSyncMeta = useCallback(
-    async (key) => {
-      const syncMeta = sync?.syncMeta || {};
-      syncMeta[key] = { ...(syncMeta[key] || {}), updateAt: Date.now() };
-      await updateSync({ syncMeta });
+    (key) => {
+      updateSync((prevSync) => {
+        const newSyncMeta = {
+          ...(prevSync?.syncMeta || {}),
+          [key]: {
+            ...(prevSync?.syncMeta?.[key] || {}),
+            updateAt: Date.now(),
+          },
+        };
+        return { syncMeta: newSyncMeta };
+      });
     },
-    [sync?.syncMeta, updateSync]
+    [updateSync]
   );
+
   return { updateSyncMeta };
 }
 
@@ -37,25 +46,32 @@ export function useSyncCaches() {
   const { sync, updateSync, reloadSync } = useSync();
 
   const updateDataCache = useCallback(
-    async (url) => {
-      const dataCaches = sync?.dataCaches || {};
-      dataCaches[url] = Date.now();
-      await updateSync({ dataCaches });
+    (url) => {
+      updateSync((prevSync) => ({
+        dataCaches: {
+          ...(prevSync?.dataCaches || {}),
+          [url]: Date.now(),
+        },
+      }));
     },
-    [sync, updateSync]
+    [updateSync]
   );
 
   const deleteDataCache = useCallback(
-    async (url) => {
-      const dataCaches = sync?.dataCaches || {};
-      delete dataCaches[url];
-      await updateSync({ dataCaches });
+    (url) => {
+      updateSync((prevSync) => {
+        const newDataCaches = { ...(prevSync?.dataCaches || {}) };
+        delete newDataCaches[url];
+        return { dataCaches: newDataCaches };
+      });
     },
-    [sync, updateSync]
+    [updateSync]
   );
 
+  const dataCaches = useMemo(() => sync?.dataCaches || {}, [sync?.dataCaches]);
+
   return {
-    dataCaches: sync?.dataCaches || {},
+    dataCaches,
     updateDataCache,
     deleteDataCache,
     reloadSync,

@@ -6,7 +6,6 @@ import {
   REMAIN_KEY,
   OPT_LANGS_FROM,
   OPT_LANGS_TO,
-  OPT_TRANS_ALL,
   OPT_STYLE_ALL,
   OPT_STYLE_DIY,
   OPT_STYLE_USE_COLOR,
@@ -15,10 +14,12 @@ import { useI18n } from "../../hooks/I18n";
 import MenuItem from "@mui/material/MenuItem";
 import Grid from "@mui/material/Grid";
 import { useOwSubRule } from "../../hooks/SubRules";
+import { useApiList } from "../../hooks/Api";
 
 export default function OwSubRule() {
   const i18n = useI18n();
   const { owSubrule, updateOwSubrule } = useOwSubRule();
+  const { enabledApis } = useApiList();
 
   const handleChange = (e) => {
     e.preventDefault();
@@ -27,7 +28,7 @@ export default function OwSubRule() {
   };
 
   const {
-    translator,
+    apiSlug,
     fromLang,
     toLang,
     textStyle,
@@ -73,16 +74,16 @@ export default function OwSubRule() {
               select
               size="small"
               fullWidth
-              name="translator"
-              value={translator}
+              name="apiSlug"
+              value={apiSlug}
               label={i18n("translate_service")}
               onChange={handleChange}
             >
               {RemainItem}
               {GlobalItem}
-              {OPT_TRANS_ALL.map((item) => (
-                <MenuItem key={item} value={item}>
-                  {item}
+              {enabledApis.map((api) => (
+                <MenuItem key={api.apiSlug} value={api.apiSlug}>
+                  {api.apiName}
                 </MenuItem>
               ))}
             </TextField>

@@ -28,12 +28,12 @@ const MsgHistory = (maxSize = DEFAULT_CONTEXT_SIZE) => {
   };
 };
 
-export const getMsgHistory = (translator, maxSize) => {
-  if (historyMap.has(translator)) {
-    return historyMap.get(translator);
+export const getMsgHistory = (apiSlug, maxSize) => {
+  if (historyMap.has(apiSlug)) {
+    return historyMap.get(apiSlug);
   }
 
   const msgHistory = MsgHistory(maxSize);
-  historyMap.set(translator, msgHistory);
+  historyMap.set(apiSlug, msgHistory);
   return msgHistory;
 };

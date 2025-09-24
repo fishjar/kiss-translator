@@ -2,7 +2,7 @@ import {
   OPT_DICT_BAIDU,
   DEFAULT_HTTP_TIMEOUT,
   OPT_TRANS_MICROSOFT,
-  DEFAULT_TRANS_APIS,
+  DEFAULT_API_LIST,
 } from "./api";
 import { DEFAULT_OW_RULE } from "./rules";
 
@@ -50,7 +50,7 @@ export const OPT_INPUT_TRANS_SIGNS = ["/", "//", "\\", "\\\\", ">", ">>"];
 export const DEFAULT_INPUT_SHORTCUT = ["AltLeft", "KeyI"];
 export const DEFAULT_INPUT_RULE = {
   transOpen: true,
-  translator: OPT_TRANS_MICROSOFT,
+  apiSlug: OPT_TRANS_MICROSOFT,
   fromLang: "auto",
   toLang: "en",
   triggerShortcut: DEFAULT_INPUT_SHORTCUT,
@@ -75,7 +75,7 @@ export const OPT_TRANBOX_TRIGGER_ALL = [
 export const DEFAULT_TRANBOX_SHORTCUT = ["AltLeft", "KeyS"];
 export const DEFAULT_TRANBOX_SETTING = {
   // transOpen: true, // 是否启用划词翻译（作废，移至rule）
-  translator: OPT_TRANS_MICROSOFT,
+  apiSlug: OPT_TRANS_MICROSOFT,
   fromLang: "auto",
   toLang: "zh-CN",
   toLang2: "en",
@@ -109,17 +109,17 @@ export const DEFAULT_SUBRULES_LIST = [
   },
 ];
 
-export const DEFAULT__MOUSEHOVER_KEY = ["ControlLeft"];
+export const DEFAULT_MOUSEHOVER_KEY = ["ControlLeft"];
 export const DEFAULT_MOUSE_HOVER_SETTING = {
   useMouseHover: true, // 是否启用鼠标悬停翻译
-  mouseHoverKey: DEFAULT__MOUSEHOVER_KEY, // 鼠标悬停翻译组合键
+  mouseHoverKey: DEFAULT_MOUSEHOVER_KEY, // 鼠标悬停翻译组合键
 };
 
 export const DEFAULT_SETTING = {
   darkMode: false, // 深色模式
   uiLang: "en", // 界面语言
-  // fetchLimit: DEFAULT_FETCH_LIMIT, // 最大任务数量(移至transApis，作废)
-  // fetchInterval: DEFAULT_FETCH_INTERVAL, // 任务间隔时间(移至transApis，作废)
+  // fetchLimit: DEFAULT_FETCH_LIMIT, // 最大任务数量(移至rule，作废)
+  // fetchInterval: DEFAULT_FETCH_INTERVAL, // 任务间隔时间(移至rule，作废)
   minLength: TRANS_MIN_LENGTH,
   maxLength: TRANS_MAX_LENGTH,
   newlineLength: TRANS_NEWLINE_LENGTH,
@@ -136,7 +136,7 @@ export const DEFAULT_SETTING = {
   // transTitle: false, // 是否同时翻译页面标题(移至rule，作废)
   subrulesList: DEFAULT_SUBRULES_LIST, // 订阅列表
   owSubrule: DEFAULT_OW_RULE, // 覆写订阅规则
-  transApis: DEFAULT_TRANS_APIS, // 翻译接口
+  transApis: DEFAULT_API_LIST, // 翻译接口 (v2.0 对象改为数组)
   // mouseKey: OPT_TIMING_PAGESCROLL, // 翻译时机/鼠标悬停翻译(移至rule，作废)
   shortcuts: DEFAULT_SHORTCUTS, // 快捷键
   inputRule: DEFAULT_INPUT_RULE, // 输入框设置
@@ -145,7 +145,7 @@ export const DEFAULT_SETTING = {
   blacklist: DEFAULT_BLACKLIST.join(",\n"), // 禁用翻译名单
   csplist: DEFAULT_CSPLIST.join(",\n"), // 禁用CSP名单
   // disableLangs: [], // 不翻译的语言(移至rule，作废)
-  transInterval: 200, // 翻译等待时间
+  transInterval: 100, // 翻译等待时间
   langDetector: OPT_TRANS_MICROSOFT, // 远程语言识别服务
   mouseHoverSetting: DEFAULT_MOUSE_HOVER_SETTING, // 鼠标悬停翻译
 };
