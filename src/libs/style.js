@@ -47,7 +47,7 @@ const genStyles = ({ textDiyStyle, bgColor = DEFAULT_COLOR }) => ({
   [OPT_STYLE_DASHBOX]: `
     border: 1px dashed ${bgColor || DEFAULT_COLOR};
     background: transparent;
-    display: block;
+    display: inline-block;
     padding: 0.2em 0.5em;
     box-sizing: border-box;
   `,

@@ -161,29 +161,35 @@ export const DEFAULT_OW_RULE = {
 // todo: 校验几个内置规则
 const RULES_MAP = {
   "www.google.com/search": {
-    selector: `h3, .IsZvec, .VwiC3b`,
+    rootsSelector: `#rcnt`,
+    textStyle: OPT_STYLE_BLOCKQUOTE,
   },
   "en.wikipedia.org": {
-    selector: `h1, .mw-parser-output ${DEFAULT_SELECTOR}`,
-    keepSelector: `.mwe-math-element`,
+    ignoreSelector: `.button, code, footer, form, mark, pre, .mwe-math-element, .mw-editsection`,
+    textStyle: OPT_STYLE_BLOCKQUOTE,
   },
   "news.ycombinator.com": {
-    selector: `.title, p`,
-    fixerSelector: `.toptext, .commtext`,
+    selector: `p, .titleline, .commtext`,
+    rootsSelector: `#bigbox`,
+    keepSelector: `code, img, svg, pre, .sitebit`,
+    ignoreSelector: `button, code, footer, form, header, mark, nav, pre, .reply`,
+    autoScan: `false`,
+    textStyle: OPT_STYLE_BLOCKQUOTE,
   },
-  "github.com": {
-    selector: `.markdown-body ${DEFAULT_SELECTOR}, .repo-description p, .Layout-sidebar .f4, .container-lg .py-4 .f5, .container-lg .my-4 .f5, .Box-row .pr-4, .Box-row article .mt-1, [itemprop="description"], .markdown-title, bdi, .ws-pre-wrap, .status-meta, span.status-meta, .col-10.color-fg-muted, .TimelineItem-body, .pinned-item-list-item-content .color-fg-muted, .markdown-body td, .markdown-body th`,
-    keepSelector: DEFAULT_KEEP_SELECTOR,
-  },
+  // "github.com": {
+  //   selector: `.markdown-body ${DEFAULT_SELECTOR}, .repo-description p, .Layout-sidebar .f4, .container-lg .py-4 .f5, .container-lg .my-4 .f5, .Box-row .pr-4, .Box-row article .mt-1, [itemprop="description"], .markdown-title, bdi, .ws-pre-wrap, .status-meta, span.status-meta, .col-10.color-fg-muted, .TimelineItem-body, .pinned-item-list-item-content .color-fg-muted, .markdown-body td, .markdown-body th`,
+  //   keepSelector: DEFAULT_KEEP_SELECTOR,
+  // },
   "twitter.com, https://x.com": {
-    selector: `[data-testid="tweetText"], [data-testid="birdwatch-pivot"]>div.css-1rynq56`,
-    keepSelector: `img, a, .r-18u37iz, .css-175oi2r`,
+    selector: `[data-testid='tweetText']`,
+    keepSelector: `img, svg, span:has(a), div:has(a)`,
+    autoScan: `false`,
+    textStyle: OPT_STYLE_DASHBOX,
   },
   "www.youtube.com": {
-    selector: `h1, #video-title, #content-text, #title, yt-attributed-string>span>span, #ytp-caption-window-container .ytp-caption-segment`,
-    selectStyle: `-webkit-line-clamp: unset; max-height: none; height: auto;`,
-    parentStyle: `-webkit-line-clamp: unset; max-height: none; height: auto;`,
-    keepSelector: `img, #content-text>a`,
+    rootsSelector: `ytd-page-manager`,
+    transEndHook: `({ parentNode }) => {parentNode.parentElement.style.cssText += "-webkit-line-clamp: unset; max-height: none; height: auto;";}`,
+    textStyle: OPT_STYLE_DASHBOX,
   },
 };
 
