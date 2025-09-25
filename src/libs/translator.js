@@ -255,6 +255,7 @@ export class Translator {
   #setting; // 设置选项
   #rule; // 规则
   #isInitialized = false; // 初始化状态
+  #isJsInjected = false; // 注入用户JS
   #mouseHoverEnabled = false; // 鼠标悬停翻译
   #enabled = false; // 全局默认状态
   #runId = 0; // 用于中止过期的异步请求
@@ -1248,6 +1249,11 @@ export class Translator {
 
   // 注入JS/CSS
   #initInjector() {
+    if (this.#isJsInjected) {
+      return;
+    }
+    this.#isJsInjected = true;
+
     try {
       const { injectJs, injectCss } = this.#rule;
       if (isExt) {
@@ -1258,7 +1264,7 @@ export class Translator {
         injectCss && injectInternalCss(injectCss);
       }
     } catch (err) {
-      kissLog("inject js");
+      kissLog("inject js", err);
     }
   }
 

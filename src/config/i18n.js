@@ -136,6 +136,52 @@ https://translate.googleapis.com/translate_a/single?client=gtx&dj=1&dt=t&ie=UTF-
 ${customApiLangs}
 `;
 
+const requestHookHelperZH = `1、第一个参数包含如下字段：'texts', 'from', 'to', 'url', 'key', 'model', 'systemPrompt', ...
+2、返回值必须是包含以下字段的对象： 'url', 'data', 'headers', 'userMsg', 'method'
+3、如返回空值，则hook函数不会产生任何效果。
+
+// 示例
+async (args, { url, data, headers, userMsg, method } = {}) => {
+  console.log("request hook args:", args);
+  return { url, data, headers, userMsg, method };
+}`;
+
+const requestHookHelperEN = `1. The first parameter contains the following fields: 'texts', 'from', 'to', 'url', 'key', 'model', 'systemPrompt', ...
+2. The return value must be an object containing the following fields: 'url', 'data', 'headers', 'userMsg', 'method'
+3. If a null value is returned, the hook function will have no effect.
+
+// Example
+async (args, { url, data, headers, userMsg, method } = {}) => {
+  console.log("request hook args:", args);
+  return { url, data, headers, userMsg, method };
+}`;
+
+const responsetHookHelperZH = `1、第一个参数包含如下字段：'res', ...
+2、返回值必须是包含以下字段的对象： 'translations', 'modelMsg' 
+  （'translations' 应为一个二维数组，表示 [译文，源语言] 的列表）
+3、如返回空值，则hook函数不会产生任何效果。
+
+// 示例
+async ({ res, ...args }) => {
+  console.log("reaponse hook args:", res, args);
+  const translations = [["你好", "zh"]];
+  const modelMsg = "";
+  return { translations, modelMsg };
+}`;
+
+const responsetHookHelperEN = `1. The first parameter contains the following fields: 'res', ...
+2. The return value must be an object containing the following fields: 'translations', 'modelMsg'
+  ('translations' should be a two-dimensional array representing a list of [translation, source language]).
+3. If a null value is returned, the hook function will have no effect.
+
+// Example
+async ({ res, ...args }) => {
+  console.log("reaponse hook args:", res, args);
+  const translations = [["你好", "zh"]];
+  const modelMsg = "";
+  return { translations, modelMsg };
+}`;
+
 export const I18N = {
   app_name: {
     zh: `简约翻译`,
@@ -151,6 +197,16 @@ export const I18N = {
     zh: customApiHelpZH,
     en: customApiHelpEN,
     zh_TW: customApiHelpZH,
+  },
+  request_hook_helper: {
+    zh: requestHookHelperZH,
+    en: requestHookHelperEN,
+    zh_TW: requestHookHelperZH,
+  },
+  response_hook_helper: {
+    zh: responsetHookHelperZH,
+    en: responsetHookHelperEN,
+    zh_TW: responsetHookHelperZH,
   },
   translate_alt: {
     zh: `翻译`,
@@ -613,9 +669,9 @@ export const I18N = {
     zh_TW: `選擇器節點樣式`,
   },
   selector_style_helper: {
-    zh: `开启翻译时注入，关闭翻译时不会移除。`,
-    en: `It is injected when translation is turned on and will not be removed when translation is turned off.`,
-    zh_TW: `在開啟翻譯時注入，關閉翻譯時不會移除。`,
+    zh: `开启翻译时注入。`,
+    en: `It is injected when translation is turned on.`,
+    zh_TW: `在開啟翻譯時注入。`,
   },
   selector_parent_style: {
     zh: `选择器父节点样式`,
@@ -1213,9 +1269,9 @@ export const I18N = {
     zh_TW: `翻譯開始 Hook`,
   },
   translate_start_hook_helper: {
-    zh: `翻译前时运行，入参为： 翻译节点列表。`,
-    en: `Run before translation, input parameters are: translation node list.`,
-    zh_TW: `翻譯前時運行，入參為： 翻譯節點清單。`,
+    zh: `翻译前时运行，入参为： ({hostNode, parentNode, nodes})`,
+    en: `Run before translation, input parameters are: ({hostNode, parentNode, nodes})`,
+    zh_TW: `翻譯前時運行，入參為： ({hostNode, parentNode, nodes})`,
   },
   translate_end_hook: {
     zh: `翻译完成钩子函数`,
@@ -1223,9 +1279,9 @@ export const I18N = {
     zh_TW: `翻譯完成 Hook`,
   },
   translate_end_hook_helper: {
-    zh: `翻译完成时运行，入参为： 翻译节点列表。`,
-    en: `Run when translation is complete, input parameters are: translation node list.`,
-    zh_TW: `翻譯完成時運行，入參為： 翻譯節點清單。`,
+    zh: `翻译完成时运行，入参为： ({hostNode, parentNode, nodes, wrapperNode, innerNode})`,
+    en: `Run when translation is complete, input parameters are: ({hostNode, parentNode, nodes, wrapperNode, innerNode})`,
+    zh_TW: `翻譯完成時運行，入參為： ({hostNode, parentNode, nodes, wrapperNode, innerNode})`,
   },
   translate_remove_hook: {
     zh: `翻译移除钩子函数`,

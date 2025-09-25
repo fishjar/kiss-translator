@@ -24,6 +24,7 @@ import { apiTranslate } from "../../apis";
 import Box from "@mui/material/Box";
 import { limitNumber, limitFloat } from "../../libs/utils";
 import ReusableAutocomplete from "./ReusableAutocomplete";
+import ShowMoreButton from "./ShowMoreButton";
 import {
   OPT_TRANS_DEEPLX,
   OPT_TRANS_OLLAMA,
@@ -115,6 +116,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
   const i18n = useI18n();
   const [formData, setFormData] = useState({});
   const [isModified, setIsModified] = useState(false);
+  const [showMore, setShowMore] = useState(false);
   const confirm = useConfirm();
 
   useEffect(() => {
@@ -282,7 +284,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
         <>
           <Box>
             <Grid container spacing={2} columns={12}>
-              <Grid item xs={12} sm={6} md={6} lg={3}>
+              <Grid item xs={12} sm={12} md={6} lg={3}>
                 {/* todo： 改成 ReusableAutocomplete 可选择和填写模型 */}
                 <TextField
                   size="small"
@@ -293,7 +295,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
                   onChange={handleChange}
                 />
               </Grid>
-              <Grid item xs={12} sm={6} md={6} lg={3}>
+              <Grid item xs={12} sm={12} md={6} lg={3}>
                 <ReusableAutocomplete
                   freeSolo
                   size="small"
@@ -305,7 +307,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
                   onChange={handleChange}
                 />
               </Grid>
-              <Grid item xs={12} sm={6} md={6} lg={3}>
+              <Grid item xs={12} sm={12} md={6} lg={3}>
                 <TextField
                   size="small"
                   fullWidth
@@ -316,7 +318,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
                   onChange={handleChange}
                 />
               </Grid>
-              <Grid item xs={12} sm={6} md={6} lg={3}>
+              <Grid item xs={12} sm={12} md={6} lg={3}>
                 <TextField
                   size="small"
                   fullWidth
@@ -327,7 +329,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
                   onChange={handleChange}
                 />
               </Grid>
-              <Grid item xs={12} sm={6} md={6} lg={3}></Grid>
+              <Grid item xs={12} sm={12} md={6} lg={3}></Grid>
             </Grid>
           </Box>
 
@@ -393,27 +395,6 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
               </Grid>
             </Grid>
           </Box> */}
-
-          <TextField
-            size="small"
-            label={i18n("custom_header")}
-            name="customHeader"
-            value={customHeader}
-            onChange={handleChange}
-            multiline
-            maxRows={10}
-            helperText={i18n("custom_header_help")}
-          />
-          <TextField
-            size="small"
-            label={i18n("custom_body")}
-            name="customBody"
-            value={customBody}
-            onChange={handleChange}
-            multiline
-            maxRows={10}
-            helperText={i18n("custom_body_help")}
-          />
         </>
       )}
 
@@ -469,6 +450,14 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
             onChange={handleChange}
             multiline
             maxRows={10}
+            FormHelperTextProps={{
+              component: "div",
+            }}
+            helperText={
+              <Box component="pre" sx={{ overflowX: "auto" }}>
+                {i18n("request_hook_helper")}
+              </Box>
+            }
           />
           <TextField
             size="small"
@@ -478,6 +467,14 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
             onChange={handleChange}
             multiline
             maxRows={10}
+            FormHelperTextProps={{
+              component: "div",
+            }}
+            helperText={
+              <Box component="pre" sx={{ overflowX: "auto" }}>
+                {i18n("response_hook_helper")}
+              </Box>
+            }
           />
         </>
       )}
@@ -485,7 +482,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
       {API_SPE_TYPES.batch.has(api.apiType) && (
         <Box>
           <Grid container spacing={2} columns={12}>
-            <Grid item xs={12} sm={6} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
                 fullWidth
@@ -499,7 +496,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
                 <MenuItem value={true}>{i18n("enable")}</MenuItem>
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={6} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 size="small"
                 fullWidth
@@ -510,7 +507,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
                 onChange={handleChange}
               />
             </Grid>
-            <Grid item xs={12} sm={6} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 size="small"
                 fullWidth
@@ -521,7 +518,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
                 onChange={handleChange}
               />
             </Grid>
-            <Grid item xs={12} sm={6} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 size="small"
                 fullWidth
@@ -540,7 +537,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
         <>
           <Box>
             <Grid container spacing={2} columns={12}>
-              <Grid item xs={12} sm={6} md={6} lg={3}>
+              <Grid item xs={12} sm={12} md={6} lg={3}>
                 {" "}
                 <TextField
                   select
@@ -555,7 +552,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
                   <MenuItem value={true}>{i18n("enable")}</MenuItem>
                 </TextField>
               </Grid>
-              <Grid item xs={12} sm={6} md={6} lg={3}>
+              <Grid item xs={12} sm={12} md={6} lg={3}>
                 {" "}
                 <TextField
                   size="small"
@@ -574,7 +571,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
 
       <Box>
         <Grid container spacing={2} columns={12}>
-          <Grid item xs={12} sm={6} md={6} lg={3}>
+          <Grid item xs={12} sm={12} md={6} lg={3}>
             <TextField
               size="small"
               fullWidth
@@ -585,7 +582,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
               onChange={handleChange}
             />
           </Grid>
-          <Grid item xs={12} sm={6} md={6} lg={3}>
+          <Grid item xs={12} sm={12} md={6} lg={3}>
             <TextField
               size="small"
               fullWidth
@@ -596,7 +593,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
               onChange={handleChange}
             />
           </Grid>
-          <Grid item xs={12} sm={6} md={6} lg={3}>
+          <Grid item xs={12} sm={12} md={6} lg={3}>
             <TextField
               size="small"
               fullWidth
@@ -607,9 +604,73 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
               onChange={handleChange}
             />
           </Grid>
-          <Grid item xs={12} sm={6} md={6} lg={3}></Grid>
+          <Grid item xs={12} sm={12} md={6} lg={3}></Grid>
         </Grid>
       </Box>
+
+      {showMore && (
+        <>
+          <TextField
+            size="small"
+            label={i18n("custom_header")}
+            name="customHeader"
+            value={customHeader}
+            onChange={handleChange}
+            multiline
+            maxRows={10}
+            helperText={i18n("custom_header_help")}
+          />
+          <TextField
+            size="small"
+            label={i18n("custom_body")}
+            name="customBody"
+            value={customBody}
+            onChange={handleChange}
+            multiline
+            maxRows={10}
+            helperText={i18n("custom_body_help")}
+          />
+
+          {apiType !== OPT_TRANS_CUSTOMIZE && (
+            <>
+              <TextField
+                size="small"
+                label={"Request Hook"}
+                name="reqHook"
+                value={reqHook}
+                onChange={handleChange}
+                multiline
+                maxRows={10}
+                FormHelperTextProps={{
+                  component: "div",
+                }}
+                helperText={
+                  <Box component="pre" sx={{ overflowX: "auto" }}>
+                    {i18n("request_hook_helper")}
+                  </Box>
+                }
+              />
+              <TextField
+                size="small"
+                label={"Response Hook"}
+                name="resHook"
+                value={resHook}
+                onChange={handleChange}
+                multiline
+                maxRows={10}
+                FormHelperTextProps={{
+                  component: "div",
+                }}
+                helperText={
+                  <Box component="pre" sx={{ overflowX: "auto" }}>
+                    {i18n("response_hook_helper")}
+                  </Box>
+                }
+              />
+            </>
+          )}
+        </>
+      )}
 
       <Stack
         direction="row"
@@ -652,9 +713,11 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
           }
           label={i18n("is_disabled")}
         />
+
+        <ShowMoreButton showMore={showMore} onChange={setShowMore} />
       </Stack>
 
-      {apiType === OPT_TRANS_CUSTOMIZE && <pre>{i18n("custom_api_help")}</pre>}
+      {/* {apiType === OPT_TRANS_CUSTOMIZE && <pre>{i18n("custom_api_help")}</pre>} */}
     </Stack>
   );
 }

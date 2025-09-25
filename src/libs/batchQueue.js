@@ -70,6 +70,9 @@ const BatchQueue = (
     try {
       const payloads = tasksToProcess.map((item) => item.payload);
       const responses = await sendBatchRequest(payloads);
+      if (!Array.isArray(responses)) {
+        throw new Error("responses format error");
+      }
 
       tasksToProcess.forEach((taskItem, index) => {
         const response = responses[index];

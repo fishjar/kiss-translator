@@ -111,7 +111,7 @@ const parseAIRes = (raw) => {
 };
 
 const genGoogle = ({ texts, from, to, url, key }) => {
-  const params = {
+  const params = queryString.stringify({
     client: "gtx",
     dt: "t",
     dj: 1,
@@ -119,52 +119,42 @@ const genGoogle = ({ texts, from, to, url, key }) => {
     sl: from,
     tl: to,
     q: texts.join(" "),
-  };
-  const input = `${url}?${queryString.stringify(params)}`;
-  const init = {
-    headers: {
-      "Content-type": "application/json",
-    },
+  });
+  url = `${url}?${params}`;
+  const headers = {
+    "Content-type": "application/json",
   };
   if (key) {
-    init.headers.Authorization = `Bearer ${key}`;
+    headers.Authorization = `Bearer ${key}`;
   }
 
-  return [input, init];
+  return { url, headers, method: "GET" };
 };
 
 const genGoogle2 = ({ texts, from, to, url, key }) => {
-  const body = JSON.stringify([[texts, from, to], "wt_lib"]);
-  const init = {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json+protobuf",
-      "X-Goog-API-Key": key,
-    },
-    body,
+  const data = [[texts, from, to], "wt_lib"];
+  const headers = {
+    "Content-Type": "application/json+protobuf",
+    "X-Goog-API-Key": key,
   };
 
-  return [url, init];
+  return { url, data, headers };
 };
 
-const genMicrosoft = async ({ texts, from, to }) => {
-  const [token] = await msAuth();
-  const params = {
+const genMicrosoft = ({ texts, from, to, token }) => {
+  const params = queryString.stringify({
     from,
     to,
     "api-version": "3.0",
+  });
+  const url = `https://api-edge.cognitive.microsofttranslator.com/translate?${params}`;
+  const headers = {
+    "Content-type": "application/json",
+    Authorization: `Bearer ${token}`,
   };
-  const input = `https://api-edge.cognitive.microsofttranslator.com/translate?${queryString.stringify(params)}`;
-  const init = {
-    headers: {
-      "Content-type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    method: "POST",
-    body: JSON.stringify(texts.map((text) => ({ Text: text }))),
-  };
+  const data = texts.map((text) => ({ Text: text }));
 
-  return [input, init];
+  return { url, data, headers };
 };
 
 const genDeepl = ({ texts, from, to, url, key }) => {
@@ -174,16 +164,12 @@ const genDeepl = ({ texts, from, to, url, key }) => {
     source_lang: from,
     // split_sentences: "0",
   };
-  const init = {
-    headers: {
-      "Content-type": "application/json",
-      Authorization: `DeepL-Auth-Key ${key}`,
-    },
-    method: "POST",
-    body: JSON.stringify(data),
+  const headers = {
+    "Content-type": "application/json",
+    Authorization: `DeepL-Auth-Key ${key}`,
   };
 
-  return [url, init];
+  return { url, data, headers };
 };
 
 const genDeeplX = ({ texts, from, to, url, key }) => {
@@ -193,18 +179,14 @@ const genDeeplX = ({ texts, from, to, url, key }) => {
     source_lang: from,
   };
 
-  const init = {
-    headers: {
-      "Content-type": "application/json",
-    },
-    method: "POST",
-    body: JSON.stringify(data),
+  const headers = {
+    "Content-type": "application/json",
   };
   if (key) {
-    init.headers.Authorization = `Bearer ${key}`;
+    headers.Authorization = `Bearer ${key}`;
   }
 
-  return [url, init];
+  return { url, data, headers };
 };
 
 const genNiuTrans = ({ texts, from, to, url, key, dictNo, memoryNo }) => {
@@ -217,15 +199,11 @@ const genNiuTrans = ({ texts, from, to, url, key, dictNo, memoryNo }) => {
     memoryNo,
   };
 
-  const init = {
-    headers: {
-      "Content-type": "application/json",
-    },
-    method: "POST",
-    body: JSON.stringify(data),
+  const headers = {
+    "Content-type": "application/json",
   };
 
-  return [url, init];
+  return { url, data, headers };
 };
 
 const genTencent = ({ texts, from, to }) => {
@@ -246,19 +224,15 @@ const genTencent = ({ texts, from, to }) => {
     },
   };
 
-  const input = "https://transmart.qq.com/api/imt";
-  const init = {
-    headers: {
-      "Content-Type": "application/json",
-      "user-agent":
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36",
-      referer: "https://transmart.qq.com/zh-CN/index",
-    },
-    method: "POST",
-    body: JSON.stringify(data),
+  const url = "https://transmart.qq.com/api/imt";
+  const headers = {
+    "Content-Type": "application/json",
+    "user-agent":
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36",
+    referer: "https://transmart.qq.com/zh-CN/index",
   };
 
-  return [input, init];
+  return { url, data, headers };
 };
 
 const genVolcengine = ({ texts, from, to }) => {
@@ -268,22 +242,15 @@ const genVolcengine = ({ texts, from, to }) => {
     text: texts.join(" "),
   };
 
-  const input = "https://translate.volcengine.com/crx/translate/v1";
-  const init = {
-    headers: {
-      "Content-type": "application/json",
-    },
-    method: "POST",
-    body: JSON.stringify(data),
+  const url = "https://translate.volcengine.com/crx/translate/v1";
+  const headers = {
+    "Content-type": "application/json",
   };
 
-  return [input, init];
+  return { url, data, headers };
 };
 
 const genOpenAI = ({
-  texts,
-  from,
-  to,
   url,
   key,
   systemPrompt,
@@ -291,16 +258,8 @@ const genOpenAI = ({
   model,
   temperature,
   maxTokens,
-  customHeader,
-  customBody,
-  docInfo,
   hisMsgs,
 }) => {
-  systemPrompt = genSystemPrompt({ systemPrompt, from, to });
-  userPrompt = genUserPrompt({ userPrompt, from, to, texts, docInfo });
-  customHeader = parseJsonObj(customHeader);
-  customBody = parseJsonObj(customBody);
-
   const userMsg = {
     role: "user",
     content: userPrompt,
@@ -317,27 +276,18 @@ const genOpenAI = ({
     ],
     temperature,
     max_completion_tokens: maxTokens,
-    ...customBody,
   };
 
-  const init = {
-    headers: {
-      "Content-type": "application/json",
-      Authorization: `Bearer ${key}`, // OpenAI
-      "api-key": key, // Azure OpenAI
-      ...customHeader,
-    },
-    method: "POST",
-    body: JSON.stringify(data),
+  const headers = {
+    "Content-type": "application/json",
+    Authorization: `Bearer ${key}`, // OpenAI
+    // "api-key": key, // Azure OpenAI
   };
 
-  return [url, init, userMsg];
+  return { url, data, headers, userMsg };
 };
 
 const genGemini = ({
-  texts,
-  from,
-  to,
   url,
   key,
   systemPrompt,
@@ -345,18 +295,11 @@ const genGemini = ({
   model,
   temperature,
   maxTokens,
-  customHeader,
-  customBody,
-  docInfo,
   hisMsgs,
 }) => {
   url = url
     .replaceAll(INPUT_PLACE_MODEL, model)
     .replaceAll(INPUT_PLACE_KEY, key);
-  systemPrompt = genSystemPrompt({ systemPrompt, from, to });
-  userPrompt = genUserPrompt({ userPrompt, from, to, texts, docInfo });
-  customHeader = parseJsonObj(customHeader);
-  customBody = parseJsonObj(customBody);
 
   const userMsg = { role: "user", parts: [{ text: userPrompt }] };
   const data = {
@@ -393,25 +336,15 @@ const genGemini = ({
         threshold: "BLOCK_NONE",
       },
     ],
-    ...customBody,
+  };
+  const headers = {
+    "Content-type": "application/json",
   };
 
-  const init = {
-    headers: {
-      "Content-type": "application/json",
-      ...customHeader,
-    },
-    method: "POST",
-    body: JSON.stringify(data),
-  };
-
-  return [url, init, userMsg];
+  return { url, data, headers, userMsg };
 };
 
 const genGemini2 = ({
-  texts,
-  from,
-  to,
   url,
   key,
   systemPrompt,
@@ -419,16 +352,8 @@ const genGemini2 = ({
   model,
   temperature,
   maxTokens,
-  customHeader,
-  customBody,
-  docInfo,
   hisMsgs,
 }) => {
-  systemPrompt = genSystemPrompt({ systemPrompt, from, to });
-  userPrompt = genUserPrompt({ userPrompt, from, to, texts, docInfo });
-  customHeader = parseJsonObj(customHeader);
-  customBody = parseJsonObj(customBody);
-
   const userMsg = {
     role: "user",
     content: userPrompt,
@@ -445,26 +370,17 @@ const genGemini2 = ({
     ],
     temperature,
     max_tokens: maxTokens,
-    ...customBody,
   };
 
-  const init = {
-    headers: {
-      "Content-type": "application/json",
-      Authorization: `Bearer ${key}`,
-      ...customHeader,
-    },
-    method: "POST",
-    body: JSON.stringify(data),
+  const headers = {
+    "Content-type": "application/json",
+    Authorization: `Bearer ${key}`,
   };
 
-  return [url, init, userMsg];
+  return { url, data, headers, userMsg };
 };
 
 const genClaude = ({
-  texts,
-  from,
-  to,
   url,
   key,
   systemPrompt,
@@ -472,16 +388,8 @@ const genClaude = ({
   model,
   temperature,
   maxTokens,
-  customHeader,
-  customBody,
-  docInfo,
   hisMsgs,
 }) => {
-  systemPrompt = genSystemPrompt({ systemPrompt, from, to });
-  userPrompt = genUserPrompt({ userPrompt, from, to, texts, docInfo });
-  customHeader = parseJsonObj(customHeader);
-  customBody = parseJsonObj(customBody);
-
   const userMsg = {
     role: "user",
     content: userPrompt,
@@ -492,28 +400,19 @@ const genClaude = ({
     messages: [...hisMsgs, userMsg],
     temperature,
     max_tokens: maxTokens,
-    ...customBody,
   };
 
-  const init = {
-    headers: {
-      "Content-type": "application/json",
-      "anthropic-version": "2023-06-01",
-      "anthropic-dangerous-direct-browser-access": "true",
-      "x-api-key": key,
-      ...customHeader,
-    },
-    method: "POST",
-    body: JSON.stringify(data),
+  const headers = {
+    "Content-type": "application/json",
+    "anthropic-version": "2023-06-01",
+    "anthropic-dangerous-direct-browser-access": "true",
+    "x-api-key": key,
   };
 
-  return [url, init, userMsg];
+  return { url, data, headers, userMsg };
 };
 
 const genOpenRouter = ({
-  texts,
-  from,
-  to,
   url,
   key,
   systemPrompt,
@@ -521,16 +420,8 @@ const genOpenRouter = ({
   model,
   temperature,
   maxTokens,
-  customHeader,
-  customBody,
-  docInfo,
   hisMsgs,
 }) => {
-  systemPrompt = genSystemPrompt({ systemPrompt, from, to });
-  userPrompt = genUserPrompt({ userPrompt, from, to, texts, docInfo });
-  customHeader = parseJsonObj(customHeader);
-  customBody = parseJsonObj(customBody);
-
   const userMsg = {
     role: "user",
     content: userPrompt,
@@ -547,26 +438,17 @@ const genOpenRouter = ({
     ],
     temperature,
     max_tokens: maxTokens,
-    ...customBody,
   };
 
-  const init = {
-    headers: {
-      "Content-type": "application/json",
-      Authorization: `Bearer ${key}`,
-      ...customHeader,
-    },
-    method: "POST",
-    body: JSON.stringify(data),
+  const headers = {
+    "Content-type": "application/json",
+    Authorization: `Bearer ${key}`,
   };
 
-  return [url, init, userMsg];
+  return { url, data, headers, userMsg };
 };
 
 const genOllama = ({
-  texts,
-  from,
-  to,
   think,
   url,
   key,
@@ -575,16 +457,8 @@ const genOllama = ({
   model,
   temperature,
   maxTokens,
-  customHeader,
-  customBody,
-  docInfo,
   hisMsgs,
 }) => {
-  systemPrompt = genSystemPrompt({ systemPrompt, from, to });
-  userPrompt = genUserPrompt({ userPrompt, from, to, texts, docInfo });
-  customHeader = parseJsonObj(customHeader);
-  customBody = parseJsonObj(customBody);
-
   const userMsg = {
     role: "user",
     content: userPrompt,
@@ -603,22 +477,16 @@ const genOllama = ({
     max_tokens: maxTokens,
     think,
     stream: false,
-    ...customBody,
   };
 
-  const init = {
-    headers: {
-      "Content-type": "application/json",
-      ...customHeader,
-    },
-    method: "POST",
-    body: JSON.stringify(data),
+  const headers = {
+    "Content-type": "application/json",
   };
   if (key) {
-    init.headers.Authorization = `Bearer ${key}`;
+    headers.Authorization = `Bearer ${key}`;
   }
 
-  return [url, init, userMsg];
+  return { url, data, headers, userMsg };
 };
 
 const genCloudflareAI = ({ texts, from, to, url, key }) => {
@@ -628,52 +496,65 @@ const genCloudflareAI = ({ texts, from, to, url, key }) => {
     target_lang: to,
   };
 
-  const init = {
-    headers: {
-      "Content-type": "application/json",
-      Authorization: `Bearer ${key}`,
-    },
-    method: "POST",
-    body: JSON.stringify(data),
+  const headers = {
+    "Content-type": "application/json",
+    Authorization: `Bearer ${key}`,
   };
 
-  return [url, init];
+  return { url, data, headers };
 };
 
-const genCustom = ({
-  texts,
-  from,
-  to,
-  url,
-  key,
-  reqHook,
-  docInfo,
-  hisMsgs,
-}) => {
-  if (reqHook?.trim()) {
-    interpreter.run(`exports.reqHook = ${reqHook}`);
-    return interpreter.exports.reqHook({
-      texts,
-      from,
-      to,
-      url,
-      key,
-      docInfo,
-      hisMsgs,
-    });
-  }
-
+const genCustom = ({ texts, from, to, url, key }) => {
   const data = { texts, from, to };
-  const init = {
-    headers: {
-      "Content-type": "application/json",
-      Authorization: `Bearer ${key}`,
-    },
-    method: "POST",
-    body: JSON.stringify(data),
+  const headers = {
+    "Content-type": "application/json",
+    Authorization: `Bearer ${key}`,
   };
 
-  return [url, init];
+  return { url, data, headers };
+};
+
+const genReqFuncs = {
+  [OPT_TRANS_GOOGLE]: genGoogle,
+  [OPT_TRANS_GOOGLE_2]: genGoogle2,
+  [OPT_TRANS_MICROSOFT]: genMicrosoft,
+  [OPT_TRANS_DEEPL]: genDeepl,
+  [OPT_TRANS_DEEPLFREE]: genDeeplFree,
+  [OPT_TRANS_DEEPLX]: genDeeplX,
+  [OPT_TRANS_NIUTRANS]: genNiuTrans,
+  [OPT_TRANS_BAIDU]: genBaidu,
+  [OPT_TRANS_TENCENT]: genTencent,
+  [OPT_TRANS_VOLCENGINE]: genVolcengine,
+  [OPT_TRANS_OPENAI]: genOpenAI,
+  [OPT_TRANS_GEMINI]: genGemini,
+  [OPT_TRANS_GEMINI_2]: genGemini2,
+  [OPT_TRANS_CLAUDE]: genClaude,
+  [OPT_TRANS_CLOUDFLAREAI]: genCloudflareAI,
+  [OPT_TRANS_OLLAMA]: genOllama,
+  [OPT_TRANS_OPENROUTER]: genOpenRouter,
+  [OPT_TRANS_CUSTOMIZE]: genCustom,
+};
+
+const genInit = ({
+  url = "",
+  data = null,
+  headers = {},
+  userMsg = null,
+  method = "POST",
+}) => {
+  if (!url) {
+    throw new Error("genInit: url is empty");
+  }
+
+  const init = {
+    method,
+    headers,
+  };
+  if (method !== "GET" && method !== "HEAD" && data) {
+    Object.assign(init, { body: JSON.stringify(data) });
+  }
+
+  return [url, init, userMsg];
 };
 
 /**
@@ -681,66 +562,70 @@ const genCustom = ({
  * @param {*}
  * @returns
  */
-export const genTransReq = ({ apiType, apiSlug, ...args }) => {
-  switch (apiType) {
-    case OPT_TRANS_DEEPL:
-    case OPT_TRANS_OPENAI:
-    case OPT_TRANS_GEMINI:
-    case OPT_TRANS_GEMINI_2:
-    case OPT_TRANS_CLAUDE:
-    case OPT_TRANS_CLOUDFLAREAI:
-    case OPT_TRANS_OLLAMA:
-    case OPT_TRANS_OPENROUTER:
-    case OPT_TRANS_NIUTRANS:
-    case OPT_TRANS_CUSTOMIZE:
-      args.key = keyPick(apiSlug, args.key, keyMap);
-      break;
-    case OPT_TRANS_DEEPLX:
-      args.url = keyPick(apiSlug, args.url, urlMap);
-      break;
-    default:
+export const genTransReq = async ({ reqHook, resHook, ...args }) => {
+  const {
+    apiType,
+    apiSlug,
+    key,
+    systemPrompt,
+    userPrompt,
+    from,
+    to,
+    texts,
+    docInfo,
+    customHeader,
+    customBody,
+  } = args;
+
+  if (API_SPE_TYPES.mulkeys.has(apiType)) {
+    args.key = keyPick(apiSlug, key, keyMap);
   }
 
-  switch (apiType) {
-    case OPT_TRANS_GOOGLE:
-      return genGoogle(args);
-    case OPT_TRANS_GOOGLE_2:
-      return genGoogle2(args);
-    case OPT_TRANS_MICROSOFT:
-      return genMicrosoft(args);
-    case OPT_TRANS_DEEPL:
-      return genDeepl(args);
-    case OPT_TRANS_DEEPLFREE:
-      return genDeeplFree(args);
-    case OPT_TRANS_DEEPLX:
-      return genDeeplX(args);
-    case OPT_TRANS_NIUTRANS:
-      return genNiuTrans(args);
-    case OPT_TRANS_BAIDU:
-      return genBaidu(args);
-    case OPT_TRANS_TENCENT:
-      return genTencent(args);
-    case OPT_TRANS_VOLCENGINE:
-      return genVolcengine(args);
-    case OPT_TRANS_OPENAI:
-      return genOpenAI(args);
-    case OPT_TRANS_GEMINI:
-      return genGemini(args);
-    case OPT_TRANS_GEMINI_2:
-      return genGemini2(args);
-    case OPT_TRANS_CLAUDE:
-      return genClaude(args);
-    case OPT_TRANS_CLOUDFLAREAI:
-      return genCloudflareAI(args);
-    case OPT_TRANS_OLLAMA:
-      return genOllama(args);
-    case OPT_TRANS_OPENROUTER:
-      return genOpenRouter(args);
-    case OPT_TRANS_CUSTOMIZE:
-      return genCustom(args);
-    default:
-      throw new Error(`[trans] ${apiType} not support`);
+  if (apiType === OPT_TRANS_DEEPLX) {
+    args.url = keyPick(apiSlug, args.url, urlMap);
   }
+
+  if (API_SPE_TYPES.ai.has(apiType)) {
+    args.systemPrompt = genSystemPrompt({ systemPrompt, from, to });
+    args.userPrompt = genUserPrompt({ userPrompt, from, to, texts, docInfo });
+  }
+
+  const {
+    url = "",
+    data = null,
+    headers = {},
+    userMsg = null,
+    method = "POST",
+  } = genReqFuncs[apiType](args);
+
+  // 合并用户自定义headers和body
+  if (customHeader?.trim()) {
+    Object.assign(headers, parseJsonObj(customHeader));
+  }
+  if (customBody?.trim()) {
+    Object.assign(data, parseJsonObj(customBody));
+  }
+
+  // 执行 request hook
+  if (reqHook?.trim()) {
+    try {
+      interpreter.run(`exports.reqHook = ${reqHook}`);
+      const hookResult = await interpreter.exports.reqHook(args, {
+        url,
+        data,
+        headers,
+        userMsg,
+        method,
+      });
+      if (hookResult && hookResult.url) {
+        return genInit(hookResult);
+      }
+    } catch (err) {
+      kissLog("run req hook", err);
+    }
+  }
+
+  return genInit({ url, data, headers, userMsg, method });
 };
 
 /**
@@ -749,10 +634,48 @@ export const genTransReq = ({ apiType, apiSlug, ...args }) => {
  * @param {*} param3
  * @returns
  */
-export const parseTransRes = (
+export const parseTransRes = async (
   res,
-  { texts, from, to, resHook, thinkIgnore, history, userMsg, apiType }
+  {
+    texts,
+    from,
+    to,
+    fromLang,
+    toLang,
+    langMap,
+    resHook,
+    thinkIgnore,
+    history,
+    userMsg,
+    apiType,
+  }
 ) => {
+  // 执行 response hook
+  if (resHook?.trim()) {
+    try {
+      interpreter.run(`exports.resHook = ${resHook}`);
+      const hookResult = await interpreter.exports.resHook({
+        apiType,
+        userMsg,
+        res,
+        texts,
+        from,
+        to,
+        fromLang,
+        toLang,
+        langMap,
+      });
+      if (hookResult && Array.isArray(hookResult.translations)) {
+        if (history && userMsg && hookResult.modelMsg) {
+          history.add(userMsg, hookResult.modelMsg);
+        }
+        return hookResult.translations;
+      }
+    } catch (err) {
+      kissLog("run res hook", err);
+    }
+  }
+
   let modelMsg = "";
 
   switch (apiType) {
@@ -832,7 +755,9 @@ export const parseTransRes = (
     case OPT_TRANS_OLLAMA:
       modelMsg = res?.choices?.[0]?.message;
 
-      const deepModels = thinkIgnore.split(",").filter((model) => model.trim());
+      const deepModels = thinkIgnore
+        .split(",")
+        .filter((model) => model?.trim());
       if (deepModels.some((model) => res?.model?.startsWith(model))) {
         modelMsg?.content.replace(/<think>[\s\S]*<\/think>/i, "");
       }
@@ -845,23 +770,7 @@ export const parseTransRes = (
       }
       return parseAIRes(modelMsg?.content);
     case OPT_TRANS_CUSTOMIZE:
-      if (resHook?.trim()) {
-        interpreter.run(`exports.resHook = ${resHook}`);
-        if (history) {
-          const [translations, modelMsg] = interpreter.exports.resHook({
-            res,
-            texts,
-            from,
-            to,
-          });
-          userMsg && modelMsg && history.add(userMsg, modelMsg);
-          return translations;
-        } else {
-          return interpreter.exports.resHook({ res, texts, from, to });
-        }
-      } else {
-        return res?.map((item) => [item.text, item.src]);
-      }
+      return res?.map((item) => [item.text, item.src]);
     default:
   }
 
@@ -877,6 +786,9 @@ export const handleTranslate = async ({
   texts,
   from,
   to,
+  fromLang,
+  toLang,
+  langMap,
   docInfo,
   apiSetting,
   usePool,
@@ -897,12 +809,21 @@ export const handleTranslate = async ({
     hisMsgs = history.getAll();
   }
 
+  let token = "";
+  if (apiType === OPT_TRANS_MICROSOFT) {
+    [token] = await msAuth();
+  }
+
   const [input, init, userMsg] = await genTransReq({
     texts,
     from,
     to,
+    fromLang,
+    toLang,
+    langMap,
     docInfo,
     hisMsgs,
+    token,
     ...apiSetting,
   });
 
@@ -921,6 +842,9 @@ export const handleTranslate = async ({
     texts,
     from,
     to,
+    fromLang,
+    toLang,
+    langMap,
     history,
     userMsg,
     ...apiSetting,

@@ -149,7 +149,7 @@ export default function Settings() {
 
         <Box>
           <Grid container spacing={2} columns={12}>
-            <Grid item xs={12} sm={6} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
                 fullWidth
@@ -166,7 +166,7 @@ export default function Settings() {
                 ))}
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={6} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
                 fullWidth
@@ -180,7 +180,7 @@ export default function Settings() {
                 <MenuItem value={false}>{i18n("disable")}</MenuItem>
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={6} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
                 fullWidth
@@ -196,7 +196,7 @@ export default function Settings() {
                 <MenuItem value={true}>{i18n("hide")}</MenuItem>
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={6} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
                 fullWidth
@@ -210,7 +210,7 @@ export default function Settings() {
                 <MenuItem value={1}>{i18n("fab_click_translate")}</MenuItem>
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={6} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 fullWidth
                 size="small"
@@ -221,7 +221,7 @@ export default function Settings() {
                 onChange={handleChange}
               />
             </Grid>
-            <Grid item xs={12} sm={6} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 fullWidth
                 size="small"
@@ -232,7 +232,7 @@ export default function Settings() {
                 onChange={handleChange}
               />
             </Grid>
-            <Grid item xs={12} sm={6} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 fullWidth
                 size="small"
@@ -243,7 +243,7 @@ export default function Settings() {
                 onChange={handleChange}
               />
             </Grid>
-            <Grid item xs={12} sm={6} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 fullWidth
                 size="small"
@@ -254,7 +254,7 @@ export default function Settings() {
                 onChange={handleChange}
               />
             </Grid>
-            <Grid item xs={12} sm={6} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 fullWidth
                 size="small"
@@ -265,7 +265,7 @@ export default function Settings() {
                 onChange={handleChange}
               />
             </Grid>
-            <Grid item xs={12} sm={6} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
                 fullWidth
@@ -282,7 +282,7 @@ export default function Settings() {
                 ))}
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={6} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
                 fullWidth
@@ -297,7 +297,7 @@ export default function Settings() {
                 <MenuItem value={2}>{i18n("secondary_context_menus")}</MenuItem>
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={6} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
                 fullWidth
@@ -353,25 +353,25 @@ export default function Settings() {
           <>
             <Box>
               <Grid container spacing={2} columns={12}>
-                <Grid item xs={12} sm={6} md={6} lg={3}>
+                <Grid item xs={12} sm={12} md={6} lg={3}>
                   <ShortcutItem
                     action={OPT_SHORTCUT_TRANSLATE}
                     label={i18n("toggle_translate_shortcut")}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6} md={6} lg={3}>
+                <Grid item xs={12} sm={12} md={6} lg={3}>
                   <ShortcutItem
                     action={OPT_SHORTCUT_STYLE}
                     label={i18n("toggle_style_shortcut")}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6} md={6} lg={3}>
+                <Grid item xs={12} sm={12} md={6} lg={3}>
                   <ShortcutItem
                     action={OPT_SHORTCUT_POPUP}
                     label={i18n("toggle_popup_shortcut")}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6} md={6} lg={3}>
+                <Grid item xs={12} sm={12} md={6} lg={3}>
                   <ShortcutItem
                     action={OPT_SHORTCUT_SETTING}
                     label={i18n("open_setting_shortcut")}

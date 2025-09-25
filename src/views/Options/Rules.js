@@ -24,7 +24,6 @@ import Accordion from "@mui/material/Accordion";
 import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import { useRules } from "../../hooks/Rules";
 import MenuItem from "@mui/material/MenuItem";
 import Grid from "@mui/material/Grid";
@@ -62,6 +61,7 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import SaveIcon from "@mui/icons-material/Save";
 import { kissLog } from "../../libs/log";
 import { useApiList } from "../../hooks/Api";
+import ShowMoreButton from "./ShowMoreButton";
 
 function RuleFields({ rule, rules, setShow, setKeyword }) {
   const initFormValues = useMemo(
@@ -209,30 +209,6 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
     </MenuItem>
   );
 
-  const ShowMoreButton = showMore ? (
-    <Button
-      size="small"
-      variant="text"
-      onClick={() => {
-        setShowMore(false);
-      }}
-      startIcon={<ExpandLessIcon />}
-    >
-      {i18n("less")}
-    </Button>
-  ) : (
-    <Button
-      size="small"
-      variant="text"
-      onClick={() => {
-        setShowMore(true);
-      }}
-      startIcon={<ExpandMoreIcon />}
-    >
-      {i18n("more")}
-    </Button>
-  );
-
   return (
     <form onSubmit={handleSubmit}>
       <Stack spacing={2}>
@@ -293,7 +269,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
 
         <Box>
           <Grid container spacing={2} columns={12}>
-            <Grid item xs={12} sm={6} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
                 size="small"
@@ -309,7 +285,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 <MenuItem value={"false"}>{i18n("default_disabled")}</MenuItem>
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={6} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
                 size="small"
@@ -325,7 +301,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={6} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
                 size="small"
@@ -341,7 +317,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={6} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
                 size="small"
@@ -358,7 +334,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
               </TextField>
             </Grid>
 
-            <Grid item xs={12} sm={6} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
                 size="small"
@@ -374,7 +350,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={6} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
                 size="small"
@@ -390,7 +366,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={6} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
                 size="small"
@@ -406,7 +382,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 <MenuItem value={"font"}>{`<font>`}</MenuItem>
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={6} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
                 size="small"
@@ -423,7 +399,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
               </TextField>
             </Grid>
 
-            <Grid item xs={12} sm={6} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
                 size="small"
@@ -442,7 +418,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 ))}
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={6} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
                 size="small"
@@ -461,7 +437,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 ))}
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={6} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
                 size="small"
@@ -480,7 +456,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 ))}
               </TextField>
             </Grid>
-            {/* <Grid item xs={12} sm={6} md={6} lg={3}>
+            {/* <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
                 size="small"
@@ -500,7 +476,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
               </TextField>
             </Grid> */}
 
-            <Grid item xs={12} sm={6} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
                 size="small"
@@ -521,7 +497,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
 
         <Box>
           <Grid container spacing={2} columns={12}>
-            <Grid item xs={12} sm={6} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
                 size="small"
@@ -540,7 +516,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 ))}
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={6} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 size="small"
                 fullWidth
@@ -714,7 +690,6 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                       {i18n("delete")}
                     </Button>
                   )}
-                  {ShowMoreButton}
                 </>
               ) : (
                 <>
@@ -742,9 +717,9 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                   >
                     {i18n("restore_default")}
                   </Button>
-                  {ShowMoreButton}
                 </>
               )}
+              <ShowMoreButton showMore={showMore} onChange={setShowMore} />
             </Stack>
           ) : (
             // 添加
@@ -765,7 +740,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
               >
                 {i18n("cancel")}
               </Button>
-              {ShowMoreButton}
+              <ShowMoreButton showMore={showMore} onChange={setShowMore} />
             </Stack>
           ))}
       </Stack>
@@ -1078,7 +1053,7 @@ function SubRulesEdit({ subList, addSub, updateDataCache }) {
       return;
     }
 
-    if (subList.find((item) => item.url === url)) {
+    if (subList.some((item) => item.url === url)) {
       setInputError(i18n("error_duplicate_values"));
       return;
     }

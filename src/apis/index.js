@@ -214,10 +214,9 @@ export const apiTranslate = async ({
   }
 
   const { apiType, apiSlug, useBatchFetch } = apiSetting;
-  const from =
-    OPT_LANGS_SPECIAL[apiType].get(fromLang) ??
-    OPT_LANGS_SPECIAL[apiType].get("auto");
-  const to = OPT_LANGS_SPECIAL[apiType].get(toLang);
+  const langMap = OPT_LANGS_SPECIAL[apiType];
+  const from = langMap.get(fromLang) ?? langMap.get("auto");
+  const to = langMap.get(toLang);
   if (!to) {
     kissLog(`target lang: ${toLang} not support`);
     return ["", false];
@@ -249,6 +248,9 @@ export const apiTranslate = async ({
     const queue = getBatchQueue({
       from,
       to,
+      fromLang,
+      toLang,
+      langMap,
       docInfo,
       apiSetting,
       usePool,
@@ -257,22 +259,32 @@ export const apiTranslate = async ({
     const tranlation = await queue.addTask({ text });
     if (Array.isArray(tranlation)) {
       [trText, srLang = ""] = tranlation;
+    } else if (typeof tranlation === "string") {
+      trText = tranlation;
     }
   } else {
     const translations = await handleTranslate({
       texts: [text],
       from,
       to,
+      fromLang,
+      toLang,
+      langMap,
       docInfo,
       apiSetting,
       usePool,
     });
-    if (Array.isArray(translations?.[0])) {
-      [trText, srLang = ""] = translations[0];
+    if (Array.isArray(translations)) {
+      if (Array.isArray(translations[0])) {
+        [trText, srLang = ""] = translations[0];
+      } else {
+        [trText, srLang = ""] = translations;
+      }
     }
   }
 
-  const isSame = srLang && (to.includes(srLang) || srLang.includes(to));
+  // const isSame = srLang && (to.includes(srLang) || srLang.includes(to));
+  const isSame = srLang && srLang.slice(0, 2) === to.slice(0, 2);
 
   // 插入缓存
   if (useCache && trText) {

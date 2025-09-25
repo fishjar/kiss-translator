@@ -350,6 +350,18 @@ Output: {"translations":[{"id":1,"text":"一个<b>React</b>组件","sourceLangua
 
 Fail-safe: On any error, return {"translations":[]}.`;
 
+const defaultRequestHook = `async (args, { url, data, headers, userMsg, method } = {}) => {
+  console.log("request hook args:", args);
+  // return { url, data, headers, userMsg, method };
+}`;
+
+const defaultResponseHook = `async ({ res, ...args }) => {
+  console.log("reaponse hook args:", res, args);
+  // const translations = [["你好", "zh"]];
+  // const modelMsg = "";
+  // return { translations, modelMsg };
+}`;
+
 // 翻译接口默认参数
 const defaultApi = {
   apiSlug: "", // 唯一标识
@@ -473,16 +485,8 @@ const defaultApiOpts = {
   [OPT_TRANS_CUSTOMIZE]: {
     ...defaultApi,
     url: "https://translate.googleapis.com/translate_a/single?client=gtx&dj=1&dt=t&ie=UTF-8&q={{text}}&sl=en&tl=zh-CN",
-    reqHook: `// Request Hook
-(text, from, to, url, key) => [url, {
-  headers: {
-      "Content-type": "application/json",
-  },
-  method: "GET",
-  body: null,
-}]`,
-    resHook: `// Response Hook
-(res, text, from, to) => [res.sentences.map((item) => item.trans).join(" "), to === res.src]`,
+    reqHook: defaultRequestHook,
+    resHook: defaultResponseHook,
   },
 };
 

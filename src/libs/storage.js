@@ -62,10 +62,11 @@ async function trySetObj(key, obj) {
 
 async function getObj(key) {
   const val = await get(key);
+  if (val === null || val === undefined) return null;
   try {
     return JSON.parse(val);
   } catch (err) {
-    kissLog("parse json: ", key);
+    kissLog("parse json in storage err: ", key);
   }
   return null;
 }
