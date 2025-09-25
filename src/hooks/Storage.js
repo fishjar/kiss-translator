@@ -53,9 +53,9 @@ export function useStorage(key, defaultVal = null, syncKey = "") {
   // 远端同步
   const runSync = useCallback(async (keyToSync, valueToSync) => {
     try {
-      const { value, isNew } = await syncData(keyToSync, valueToSync);
-      if (isNew) {
-        setData(value);
+      const res = await syncData(keyToSync, valueToSync);
+      if (res?.isNew) {
+        setData(res.value);
       }
     } catch (error) {
       kissLog("Sync failed", keyToSync);

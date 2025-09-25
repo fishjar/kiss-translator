@@ -71,71 +71,84 @@ export default function InputSetting() {
           label={i18n("use_input_box_translation")}
         />
 
-        <TextField
-          select
-          size="small"
-          name="apiSlug"
-          value={apiSlug}
-          label={i18n("translate_service")}
-          onChange={handleChange}
-        >
-          {enabledApis.map((api) => (
-            <MenuItem key={api.apiSlug} value={api.apiSlug}>
-              {api.apiName}
-            </MenuItem>
-          ))}
-        </TextField>
-
-        <TextField
-          select
-          size="small"
-          name="fromLang"
-          value={fromLang}
-          label={i18n("from_lang")}
-          onChange={handleChange}
-        >
-          {OPT_LANGS_FROM.map(([lang, name]) => (
-            <MenuItem key={lang} value={lang}>
-              {name}
-            </MenuItem>
-          ))}
-        </TextField>
-
-        <TextField
-          select
-          size="small"
-          name="toLang"
-          value={toLang}
-          label={i18n("to_lang")}
-          onChange={handleChange}
-        >
-          {OPT_LANGS_TO.map(([lang, name]) => (
-            <MenuItem key={lang} value={lang}>
-              {name}
-            </MenuItem>
-          ))}
-        </TextField>
-
-        <TextField
-          select
-          size="small"
-          name="transSign"
-          value={transSign}
-          label={i18n("input_trans_start_sign")}
-          onChange={handleChange}
-          helperText={i18n("input_trans_start_sign_help")}
-        >
-          <MenuItem value={""}>{i18n("style_none")}</MenuItem>
-          {OPT_INPUT_TRANS_SIGNS.map((item) => (
-            <MenuItem key={item} value={item}>
-              {item}
-            </MenuItem>
-          ))}
-        </TextField>
+        <Box>
+          <Grid container spacing={2} columns={12}>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                name="apiSlug"
+                value={apiSlug}
+                label={i18n("translate_service")}
+                onChange={handleChange}
+              >
+                {enabledApis.map((api) => (
+                  <MenuItem key={api.apiSlug} value={api.apiSlug}>
+                    {api.apiName}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                name="fromLang"
+                value={fromLang}
+                label={i18n("from_lang")}
+                onChange={handleChange}
+              >
+                {OPT_LANGS_FROM.map(([lang, name]) => (
+                  <MenuItem key={lang} value={lang}>
+                    {name}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                name="toLang"
+                value={toLang}
+                label={i18n("to_lang")}
+                onChange={handleChange}
+              >
+                {OPT_LANGS_TO.map(([lang, name]) => (
+                  <MenuItem key={lang} value={lang}>
+                    {name}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                name="transSign"
+                value={transSign}
+                label={i18n("input_trans_start_sign")}
+                onChange={handleChange}
+                helperText={i18n("input_trans_start_sign_help")}
+              >
+                <MenuItem value={""}>{i18n("style_none")}</MenuItem>
+                {OPT_INPUT_TRANS_SIGNS.map((item) => (
+                  <MenuItem key={item} value={item}>
+                    {item}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+          </Grid>
+        </Box>
 
         <Box>
           <Grid container spacing={2} columns={12}>
-            <Grid item xs={12} sm={12} md={4} lg={4}>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
               <ShortcutInput
                 value={triggerShortcut}
                 onChange={handleShortcutInput}
@@ -143,7 +156,7 @@ export default function InputSetting() {
                 helperText={i18n("trigger_trans_shortcut_help")}
               />
             </Grid>
-            <Grid item xs={12} sm={12} md={4} lg={4}>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
                 fullWidth
@@ -160,7 +173,7 @@ export default function InputSetting() {
                 ))}
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={12} md={4} lg={4}>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 fullWidth
                 size="small"

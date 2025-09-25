@@ -2,6 +2,7 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
+import Grid from "@mui/material/Grid";
 import { useI18n } from "../../hooks/I18n";
 import {
   OPT_LANGS_FROM,
@@ -70,177 +71,222 @@ export default function Tranbox() {
     <Box>
       <Stack spacing={3}>
         <Alert severity="info">{i18n("selected_translation_alert")}</Alert>
-        <TextField
-          select
-          size="small"
-          name="apiSlug"
-          value={apiSlug}
-          label={i18n("translate_service")}
-          onChange={handleChange}
-        >
-          {enabledApis.map((api) => (
-            <MenuItem key={api.apiSlug} value={api.apiSlug}>
-              {api.apiName}
-            </MenuItem>
-          ))}
-        </TextField>
 
-        <TextField
-          select
-          size="small"
-          name="fromLang"
-          value={fromLang}
-          label={i18n("from_lang")}
-          onChange={handleChange}
-        >
-          {OPT_LANGS_FROM.map(([lang, name]) => (
-            <MenuItem key={lang} value={lang}>
-              {name}
-            </MenuItem>
-          ))}
-        </TextField>
+        <Box>
+          <Grid container spacing={2} columns={12}>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                name="apiSlug"
+                value={apiSlug}
+                label={i18n("translate_service")}
+                onChange={handleChange}
+              >
+                {enabledApis.map((api) => (
+                  <MenuItem key={api.apiSlug} value={api.apiSlug}>
+                    {api.apiName}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                fullWidth
+                select
+                size="small"
+                name="fromLang"
+                value={fromLang}
+                label={i18n("from_lang")}
+                onChange={handleChange}
+              >
+                {OPT_LANGS_FROM.map(([lang, name]) => (
+                  <MenuItem key={lang} value={lang}>
+                    {name}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                fullWidth
+                select
+                size="small"
+                name="toLang"
+                value={toLang}
+                label={i18n("to_lang")}
+                onChange={handleChange}
+              >
+                {OPT_LANGS_TO.map(([lang, name]) => (
+                  <MenuItem key={lang} value={lang}>
+                    {name}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                fullWidth
+                select
+                size="small"
+                name="toLang2"
+                value={toLang2}
+                label={i18n("to_lang2")}
+                helperText={i18n("to_lang2_helper")}
+                onChange={handleChange}
+              >
+                {[["none", "None"], ...OPT_LANGS_TO].map(([lang, name]) => (
+                  <MenuItem key={lang} value={lang}>
+                    {name}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
 
-        <TextField
-          select
-          size="small"
-          name="toLang"
-          value={toLang}
-          label={i18n("to_lang")}
-          onChange={handleChange}
-        >
-          {OPT_LANGS_TO.map(([lang, name]) => (
-            <MenuItem key={lang} value={lang}>
-              {name}
-            </MenuItem>
-          ))}
-        </TextField>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                fullWidth
+                select
+                size="small"
+                name="enDict"
+                value={enDict}
+                label={i18n("english_dict")}
+                onChange={handleChange}
+              >
+                <MenuItem value={"-"}>{i18n("disable")}</MenuItem>
+                <MenuItem value={OPT_DICT_BAIDU}>{OPT_DICT_BAIDU}</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                fullWidth
+                select
+                size="small"
+                name="triggerMode"
+                value={triggerMode}
+                label={i18n("trigger_mode")}
+                onChange={handleChange}
+              >
+                {OPT_TRANBOX_TRIGGER_ALL.map((item) => (
+                  <MenuItem key={item} value={item}>
+                    {i18n(`trigger_${item}`)}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                fullWidth
+                select
+                size="small"
+                name="hideTranBtn"
+                value={hideTranBtn}
+                label={i18n("hide_tran_button")}
+                onChange={handleChange}
+              >
+                <MenuItem value={false}>{i18n("show")}</MenuItem>
+                <MenuItem value={true}>{i18n("hide")}</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                fullWidth
+                select
+                size="small"
+                name="hideClickAway"
+                value={hideClickAway}
+                label={i18n("hide_click_away")}
+                onChange={handleChange}
+              >
+                <MenuItem value={false}>{i18n("disable")}</MenuItem>
+                <MenuItem value={true}>{i18n("enable")}</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                fullWidth
+                select
+                size="small"
+                name="simpleStyle"
+                value={simpleStyle}
+                label={i18n("use_simple_style")}
+                onChange={handleChange}
+              >
+                <MenuItem value={false}>{i18n("disable")}</MenuItem>
+                <MenuItem value={true}>{i18n("enable")}</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                fullWidth
+                select
+                size="small"
+                name="followSelection"
+                value={followSelection}
+                label={i18n("follow_selection")}
+                onChange={handleChange}
+              >
+                <MenuItem value={false}>{i18n("disable")}</MenuItem>
+                <MenuItem value={true}>{i18n("enable")}</MenuItem>
+              </TextField>
+            </Grid>
 
-        <TextField
-          select
-          size="small"
-          name="toLang2"
-          value={toLang2}
-          label={i18n("to_lang2")}
-          helperText={i18n("to_lang2_helper")}
-          onChange={handleChange}
-        >
-          {[["none", "None"], ...OPT_LANGS_TO].map(([lang, name]) => (
-            <MenuItem key={lang} value={lang}>
-              {name}
-            </MenuItem>
-          ))}
-        </TextField>
-
-        <TextField
-          select
-          size="small"
-          name="enDict"
-          value={enDict}
-          label={i18n("english_dict")}
-          onChange={handleChange}
-        >
-          <MenuItem value={"-"}>{i18n("disable")}</MenuItem>
-          <MenuItem value={OPT_DICT_BAIDU}>{OPT_DICT_BAIDU}</MenuItem>
-        </TextField>
-
-        <TextField
-          size="small"
-          label={i18n("tranbtn_offset_x")}
-          type="number"
-          name="btnOffsetX"
-          value={btnOffsetX}
-          onChange={handleChange}
-        />
-
-        <TextField
-          size="small"
-          label={i18n("tranbtn_offset_y")}
-          type="number"
-          name="btnOffsetY"
-          value={btnOffsetY}
-          onChange={handleChange}
-        />
-
-        <TextField
-          size="small"
-          label={i18n("tranbox_offset_x")}
-          type="number"
-          name="boxOffsetX"
-          value={boxOffsetX}
-          onChange={handleChange}
-        />
-
-        <TextField
-          size="small"
-          label={i18n("tranbox_offset_y")}
-          type="number"
-          name="boxOffsetY"
-          value={boxOffsetY}
-          onChange={handleChange}
-        />
-
-        <TextField
-          select
-          size="small"
-          name="hideTranBtn"
-          value={hideTranBtn}
-          label={i18n("hide_tran_button")}
-          onChange={handleChange}
-        >
-          <MenuItem value={false}>{i18n("show")}</MenuItem>
-          <MenuItem value={true}>{i18n("hide")}</MenuItem>
-        </TextField>
-
-        <TextField
-          select
-          size="small"
-          name="hideClickAway"
-          value={hideClickAway}
-          label={i18n("hide_click_away")}
-          onChange={handleChange}
-        >
-          <MenuItem value={false}>{i18n("disable")}</MenuItem>
-          <MenuItem value={true}>{i18n("enable")}</MenuItem>
-        </TextField>
-
-        <TextField
-          select
-          size="small"
-          name="simpleStyle"
-          value={simpleStyle}
-          label={i18n("use_simple_style")}
-          onChange={handleChange}
-        >
-          <MenuItem value={false}>{i18n("disable")}</MenuItem>
-          <MenuItem value={true}>{i18n("enable")}</MenuItem>
-        </TextField>
-
-        <TextField
-          select
-          size="small"
-          name="followSelection"
-          value={followSelection}
-          label={i18n("follow_selection")}
-          onChange={handleChange}
-        >
-          <MenuItem value={false}>{i18n("disable")}</MenuItem>
-          <MenuItem value={true}>{i18n("enable")}</MenuItem>
-        </TextField>
-
-        <TextField
-          select
-          size="small"
-          name="triggerMode"
-          value={triggerMode}
-          label={i18n("trigger_mode")}
-          onChange={handleChange}
-        >
-          {OPT_TRANBOX_TRIGGER_ALL.map((item) => (
-            <MenuItem key={item} value={item}>
-              {i18n(`trigger_${item}`)}
-            </MenuItem>
-          ))}
-        </TextField>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                fullWidth
+                size="small"
+                label={i18n("tranbtn_offset_x")}
+                type="number"
+                name="btnOffsetX"
+                value={btnOffsetX}
+                onChange={handleChange}
+              />
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                fullWidth
+                size="small"
+                label={i18n("tranbtn_offset_y")}
+                type="number"
+                name="btnOffsetY"
+                value={btnOffsetY}
+                onChange={handleChange}
+              />
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                fullWidth
+                size="small"
+                label={i18n("tranbox_offset_x")}
+                type="number"
+                name="boxOffsetX"
+                value={boxOffsetX}
+                onChange={handleChange}
+              />
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                fullWidth
+                size="small"
+                label={i18n("tranbox_offset_y")}
+                type="number"
+                name="boxOffsetY"
+                value={boxOffsetY}
+                onChange={handleChange}
+              />
+            </Grid>
+            {!isExt && (
+              <Grid item xs={12} sm={12} md={6} lg={3}>
+                <ShortcutInput
+                  value={tranboxShortcut}
+                  onChange={handleShortcutInput}
+                  label={i18n("trigger_tranbox_shortcut")}
+                />
+              </Grid>
+            )}
+          </Grid>
+        </Box>
 
         <TextField
           size="small"
@@ -251,14 +297,6 @@ export default function Tranbox() {
           maxRows={10}
           multiline
         />
-
-        {!isExt && (
-          <ShortcutInput
-            value={tranboxShortcut}
-            onChange={handleShortcutInput}
-            label={i18n("trigger_tranbox_shortcut")}
-          />
-        )}
       </Stack>
     </Box>
   );

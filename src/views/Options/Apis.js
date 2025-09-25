@@ -282,7 +282,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
         <>
           <Box>
             <Grid container spacing={2} columns={12}>
-              <Grid item xs={6} sm={6} md={6} lg={3}>
+              <Grid item xs={12} sm={6} md={6} lg={3}>
                 {/* todo： 改成 ReusableAutocomplete 可选择和填写模型 */}
                 <TextField
                   size="small"
@@ -293,7 +293,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
                   onChange={handleChange}
                 />
               </Grid>
-              <Grid item xs={6} sm={6} md={6} lg={3}>
+              <Grid item xs={12} sm={6} md={6} lg={3}>
                 <ReusableAutocomplete
                   freeSolo
                   size="small"
@@ -305,7 +305,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
                   onChange={handleChange}
                 />
               </Grid>
-              <Grid item xs={6} sm={6} md={6} lg={3}>
+              <Grid item xs={12} sm={6} md={6} lg={3}>
                 <TextField
                   size="small"
                   fullWidth
@@ -316,7 +316,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
                   onChange={handleChange}
                 />
               </Grid>
-              <Grid item xs={6} sm={6} md={6} lg={3}>
+              <Grid item xs={12} sm={6} md={6} lg={3}>
                 <TextField
                   size="small"
                   fullWidth
@@ -327,7 +327,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
                   onChange={handleChange}
                 />
               </Grid>
-              <Grid item xs={6} sm={6} md={6} lg={3}></Grid>
+              <Grid item xs={12} sm={6} md={6} lg={3}></Grid>
             </Grid>
           </Box>
 
@@ -485,7 +485,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
       {API_SPE_TYPES.batch.has(api.apiType) && (
         <Box>
           <Grid container spacing={2} columns={12}>
-            <Grid item xs={6} sm={6} md={6} lg={3}>
+            <Grid item xs={12} sm={6} md={6} lg={3}>
               <TextField
                 select
                 fullWidth
@@ -499,7 +499,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
                 <MenuItem value={true}>{i18n("enable")}</MenuItem>
               </TextField>
             </Grid>
-            <Grid item xs={6} sm={6} md={6} lg={3}>
+            <Grid item xs={12} sm={6} md={6} lg={3}>
               <TextField
                 size="small"
                 fullWidth
@@ -510,7 +510,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
                 onChange={handleChange}
               />
             </Grid>
-            <Grid item xs={6} sm={6} md={6} lg={3}>
+            <Grid item xs={12} sm={6} md={6} lg={3}>
               <TextField
                 size="small"
                 fullWidth
@@ -521,7 +521,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
                 onChange={handleChange}
               />
             </Grid>
-            <Grid item xs={6} sm={6} md={6} lg={3}>
+            <Grid item xs={12} sm={6} md={6} lg={3}>
               <TextField
                 size="small"
                 fullWidth
@@ -540,7 +540,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
         <>
           <Box>
             <Grid container spacing={2} columns={12}>
-              <Grid item xs={6} sm={6} md={6} lg={3}>
+              <Grid item xs={12} sm={6} md={6} lg={3}>
                 {" "}
                 <TextField
                   select
@@ -555,7 +555,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
                   <MenuItem value={true}>{i18n("enable")}</MenuItem>
                 </TextField>
               </Grid>
-              <Grid item xs={6} sm={6} md={6} lg={3}>
+              <Grid item xs={12} sm={6} md={6} lg={3}>
                 {" "}
                 <TextField
                   size="small"
@@ -574,7 +574,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
 
       <Box>
         <Grid container spacing={2} columns={12}>
-          <Grid item xs={6} sm={6} md={6} lg={3}>
+          <Grid item xs={12} sm={6} md={6} lg={3}>
             <TextField
               size="small"
               fullWidth
@@ -585,7 +585,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
               onChange={handleChange}
             />
           </Grid>
-          <Grid item xs={6} sm={6} md={6} lg={3}>
+          <Grid item xs={12} sm={6} md={6} lg={3}>
             <TextField
               size="small"
               fullWidth
@@ -596,7 +596,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
               onChange={handleChange}
             />
           </Grid>
-          <Grid item xs={6} sm={6} md={6} lg={3}>
+          <Grid item xs={12} sm={6} md={6} lg={3}>
             <TextField
               size="small"
               fullWidth
@@ -607,11 +607,17 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
               onChange={handleChange}
             />
           </Grid>
-          <Grid item xs={6} sm={6} md={6} lg={3}></Grid>
+          <Grid item xs={12} sm={6} md={6} lg={3}></Grid>
         </Grid>
       </Box>
 
-      <Stack direction="row" spacing={2}>
+      <Stack
+        direction="row"
+        alignItems="center"
+        spacing={2}
+        useFlexGap
+        flexWrap="wrap"
+      >
         <Button
           size="small"
           variant="contained"
@@ -639,7 +645,6 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
           control={
             <Switch
               size="small"
-              fullWidth
               name="isDisabled"
               checked={isDisabled}
               onChange={handleChange}

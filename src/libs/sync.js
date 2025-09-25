@@ -70,7 +70,8 @@ export const syncData = async (key, value) => {
     syncMeta = {},
   } = await getSyncWithDefault();
   if (!syncUrl || !syncKey || (syncType === OPT_SYNCTYPE_WEBDAV && !syncUser)) {
-    throw new Error("sync args err");
+    // throw new Error("sync args err");
+    return;
   }
 
   let { updateAt = 0, syncAt = 0 } = syncMeta[key] || {};

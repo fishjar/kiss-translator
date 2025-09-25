@@ -325,13 +325,19 @@ export class Translator {
       this.#enableMouseHover();
     }
 
-    // 是否默认启动
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", () => this.#run());
+    } else {
+      this.#run();
+    }
+  }
+
+  // 启动
+  #run() {
     if (this.#rule.transOpen === "true") {
-      if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", () => this.enable());
-      } else {
-        this.enable();
-      }
+      this.enable();
+    } else if (this.#setting.preInit) {
+      this.#init();
     }
   }
 
@@ -1242,13 +1248,17 @@ export class Translator {
 
   // 注入JS/CSS
   #initInjector() {
-    const { injectJs, injectCss } = this.#rule;
-    if (isExt) {
-      injectJs && sendBgMsg(MSG_INJECT_JS, injectJs);
-      injectCss && sendBgMsg(MSG_INJECT_CSS, injectCss);
-    } else {
-      injectJs && injectInlineJs(injectJs);
-      injectCss && injectInternalCss(injectCss);
+    try {
+      const { injectJs, injectCss } = this.#rule;
+      if (isExt) {
+        injectJs && sendBgMsg(MSG_INJECT_JS, injectJs);
+        injectCss && sendBgMsg(MSG_INJECT_CSS, injectCss);
+      } else {
+        injectJs && injectInlineJs(injectJs);
+        injectCss && injectInternalCss(injectCss);
+      }
+    } catch (err) {
+      kissLog("inject js");
     }
   }
 

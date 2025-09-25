@@ -1,12 +1,8 @@
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
-import InputLabel from "@mui/material/InputLabel";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
-import FormControl from "@mui/material/FormControl";
-import Select from "@mui/material/Select";
 import Link from "@mui/material/Link";
-import FormHelperText from "@mui/material/FormHelperText";
 import { useSetting } from "../../hooks/Setting";
 import { limitNumber } from "../../libs/utils";
 import { useI18n } from "../../hooks/I18n";
@@ -102,7 +98,7 @@ export default function Settings() {
 
   const handleImport = async (data) => {
     try {
-      await updateSetting(JSON.parse(data));
+      updateSetting(JSON.parse(data));
     } catch (err) {
       kissLog("import setting", err);
     }
@@ -121,6 +117,7 @@ export default function Settings() {
     csplist = DEFAULT_CSPLIST.join(",\n"),
     transInterval = 100,
     langDetector = OPT_TRANS_MICROSOFT,
+    preInit = true,
   } = setting;
   const { isHide = false, fabClickAction = 0 } = fab || {};
 
@@ -142,158 +139,195 @@ export default function Settings() {
           />
         </Stack>
 
-        <FormControl size="small">
-          <InputLabel>{i18n("ui_lang")}</InputLabel>
-          <Select
-            name="uiLang"
-            value={uiLang}
-            label={i18n("ui_lang")}
-            onChange={handleChange}
-          >
-            {UI_LANGS.map(([lang, name]) => (
-              <MenuItem key={lang} value={lang}>
-                {name}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-        <TextField
-          size="small"
-          label={i18n("min_translate_length")}
-          type="number"
-          name="minLength"
-          value={minLength}
-          onChange={handleChange}
-        />
-
-        <TextField
-          size="small"
-          label={i18n("max_translate_length")}
-          type="number"
-          name="maxLength"
-          value={maxLength}
-          onChange={handleChange}
-        />
-
-        <TextField
-          size="small"
-          label={i18n("num_of_newline_characters")}
-          type="number"
-          name="newlineLength"
-          value={newlineLength}
-          onChange={handleChange}
-        />
-
-        <TextField
-          size="small"
-          label={i18n("translate_interval")}
-          type="number"
-          name="transInterval"
-          value={transInterval}
-          onChange={handleChange}
-        />
-        <TextField
-          size="small"
-          label={i18n("http_timeout")}
-          type="number"
-          name="httpTimeout"
-          value={httpTimeout}
-          onChange={handleChange}
-        />
-        <FormControl size="small">
-          <InputLabel>{i18n("touch_translate_shortcut")}</InputLabel>
-          <Select
-            name="touchTranslate"
-            value={touchTranslate}
-            label={i18n("touch_translate_shortcut")}
-            onChange={handleChange}
-          >
-            {[0, 2, 3, 4].map((item) => (
-              <MenuItem key={item} value={item}>
-                {i18n(`touch_tap_${item}`)}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-        <FormControl size="small">
-          <InputLabel>{i18n("hide_fab_button")}</InputLabel>
-          <Select
-            name="isHide"
-            value={isHide}
-            label={i18n("hide_fab_button")}
-            onChange={(e) => {
-              updateFab({ isHide: e.target.value });
-            }}
-          >
-            <MenuItem value={false}>{i18n("show")}</MenuItem>
-            <MenuItem value={true}>{i18n("hide")}</MenuItem>
-          </Select>
-        </FormControl>
-
-        <FormControl size="small">
-          <InputLabel>{i18n("fab_click_action")}</InputLabel>
-          <Select
-            name="fabClickAction"
-            value={fabClickAction}
-            label={i18n("fab_click_action")}
-            onChange={(e) => updateFab({ fabClickAction: e.target.value })}
-          >
-            <MenuItem value={0}>{i18n("fab_click_menu")}</MenuItem>
-            <MenuItem value={1}>{i18n("fab_click_translate")}</MenuItem>
-          </Select>
-        </FormControl>
-
-        <FormControl size="small">
-          <InputLabel>{i18n("context_menus")}</InputLabel>
-          <Select
-            name="contextMenuType"
-            value={contextMenuType}
-            label={i18n("context_menus")}
-            onChange={handleChange}
-          >
-            <MenuItem value={0}>{i18n("hide_context_menus")}</MenuItem>
-            <MenuItem value={1}>{i18n("simple_context_menus")}</MenuItem>
-            <MenuItem value={2}>{i18n("secondary_context_menus")}</MenuItem>
-          </Select>
-        </FormControl>
-
-        <FormControl size="small">
-          <InputLabel>{i18n("detect_lang_remote")}</InputLabel>
-          <Select
-            name="langDetector"
-            value={langDetector}
-            label={i18n("detect_lang_remote")}
-            onChange={handleChange}
-          >
-            {OPT_LANGDETECTOR_ALL.map((item) => (
-              <MenuItem value={item} key={item}>
-                {item}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        <Box>
+          <Grid container spacing={2} columns={12}>
+            <Grid item xs={12} sm={6} md={6} lg={3}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                name="uiLang"
+                value={uiLang}
+                label={i18n("ui_lang")}
+                onChange={handleChange}
+              >
+                {UI_LANGS.map(([lang, name]) => (
+                  <MenuItem key={lang} value={lang}>
+                    {name}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={6} md={6} lg={3}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                name="preInit"
+                value={preInit}
+                label={i18n("if_pre_init")}
+                onChange={handleChange}
+              >
+                <MenuItem value={true}>{i18n("enable")}</MenuItem>
+                <MenuItem value={false}>{i18n("disable")}</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={6} md={6} lg={3}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                name="isHide"
+                value={isHide}
+                label={i18n("hide_fab_button")}
+                onChange={(e) => {
+                  updateFab({ isHide: e.target.value });
+                }}
+              >
+                <MenuItem value={false}>{i18n("show")}</MenuItem>
+                <MenuItem value={true}>{i18n("hide")}</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={6} md={6} lg={3}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                name="fabClickAction"
+                value={fabClickAction}
+                label={i18n("fab_click_action")}
+                onChange={(e) => updateFab({ fabClickAction: e.target.value })}
+              >
+                <MenuItem value={0}>{i18n("fab_click_menu")}</MenuItem>
+                <MenuItem value={1}>{i18n("fab_click_translate")}</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={6} md={6} lg={3}>
+              <TextField
+                fullWidth
+                size="small"
+                label={i18n("min_translate_length")}
+                type="number"
+                name="minLength"
+                value={minLength}
+                onChange={handleChange}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={6} lg={3}>
+              <TextField
+                fullWidth
+                size="small"
+                label={i18n("max_translate_length")}
+                type="number"
+                name="maxLength"
+                value={maxLength}
+                onChange={handleChange}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={6} lg={3}>
+              <TextField
+                fullWidth
+                size="small"
+                label={i18n("num_of_newline_characters")}
+                type="number"
+                name="newlineLength"
+                value={newlineLength}
+                onChange={handleChange}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={6} lg={3}>
+              <TextField
+                fullWidth
+                size="small"
+                label={i18n("translate_interval")}
+                type="number"
+                name="transInterval"
+                value={transInterval}
+                onChange={handleChange}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={6} lg={3}>
+              <TextField
+                fullWidth
+                size="small"
+                label={i18n("http_timeout")}
+                type="number"
+                name="httpTimeout"
+                value={httpTimeout}
+                onChange={handleChange}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={6} lg={3}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                name="touchTranslate"
+                value={touchTranslate}
+                label={i18n("touch_translate_shortcut")}
+                onChange={handleChange}
+              >
+                {[0, 2, 3, 4].map((item) => (
+                  <MenuItem key={item} value={item}>
+                    {i18n(`touch_tap_${item}`)}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={6} md={6} lg={3}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                name="contextMenuType"
+                value={contextMenuType}
+                label={i18n("context_menus")}
+                onChange={handleChange}
+              >
+                <MenuItem value={0}>{i18n("hide_context_menus")}</MenuItem>
+                <MenuItem value={1}>{i18n("simple_context_menus")}</MenuItem>
+                <MenuItem value={2}>{i18n("secondary_context_menus")}</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={6} md={6} lg={3}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                name="langDetector"
+                value={langDetector}
+                label={i18n("detect_lang_remote")}
+                onChange={handleChange}
+              >
+                {OPT_LANGDETECTOR_ALL.map((item) => (
+                  <MenuItem value={item} key={item}>
+                    {item}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+          </Grid>
+        </Box>
 
         {isExt ? (
           <>
-            <FormControl size="small">
-              <InputLabel>{i18n("if_clear_cache")}</InputLabel>
-              <Select
-                name="clearCache"
-                value={clearCache}
-                label={i18n("if_clear_cache")}
-                onChange={handleChange}
-              >
-                <MenuItem value={false}>{i18n("clear_cache_never")}</MenuItem>
-                <MenuItem value={true}>{i18n("clear_cache_restart")}</MenuItem>
-              </Select>
-              <FormHelperText>
+            <TextField
+              select
+              fullWidth
+              size="small"
+              name="clearCache"
+              value={clearCache}
+              label={i18n("if_clear_cache")}
+              onChange={handleChange}
+              helperText={
                 <Link component="button" onClick={handleClearCache}>
                   {i18n("clear_all_cache_now")}
                 </Link>
-              </FormHelperText>
-            </FormControl>
+              }
+            >
+              <MenuItem value={false}>{i18n("clear_cache_never")}</MenuItem>
+              <MenuItem value={true}>{i18n("clear_cache_restart")}</MenuItem>
+            </TextField>
 
             <TextField
               size="small"
@@ -311,25 +345,25 @@ export default function Settings() {
           <>
             <Box>
               <Grid container spacing={2} columns={12}>
-                <Grid item xs={12} sm={12} md={3} lg={3}>
+                <Grid item xs={12} sm={6} md={6} lg={3}>
                   <ShortcutItem
                     action={OPT_SHORTCUT_TRANSLATE}
                     label={i18n("toggle_translate_shortcut")}
                   />
                 </Grid>
-                <Grid item xs={12} sm={12} md={3} lg={3}>
+                <Grid item xs={12} sm={6} md={6} lg={3}>
                   <ShortcutItem
                     action={OPT_SHORTCUT_STYLE}
                     label={i18n("toggle_style_shortcut")}
                   />
                 </Grid>
-                <Grid item xs={12} sm={12} md={3} lg={3}>
+                <Grid item xs={12} sm={6} md={6} lg={3}>
                   <ShortcutItem
                     action={OPT_SHORTCUT_POPUP}
                     label={i18n("toggle_popup_shortcut")}
                   />
                 </Grid>
-                <Grid item xs={12} sm={12} md={3} lg={3}>
+                <Grid item xs={12} sm={6} md={6} lg={3}>
                   <ShortcutItem
                     action={OPT_SHORTCUT_SETTING}
                     label={i18n("open_setting_shortcut")}

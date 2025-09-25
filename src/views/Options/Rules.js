@@ -12,7 +12,7 @@ import {
   OPT_LANGS_TO,
   OPT_STYLE_ALL,
   OPT_STYLE_DIY,
-  OPT_STYLE_USE_COLOR,
+  // OPT_STYLE_USE_COLOR,
   URL_KISS_RULES_NEW_ISSUE,
   OPT_SYNCTYPE_WORKER,
   DEFAULT_TRANS_TAG,
@@ -289,7 +289,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
 
         <Box>
           <Grid container spacing={2} columns={12}>
-            <Grid item xs={12} sm={6} md={3} lg={2}>
+            <Grid item xs={12} sm={6} md={6} lg={3}>
               <TextField
                 select
                 size="small"
@@ -305,7 +305,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 <MenuItem value={"false"}>{i18n("default_disabled")}</MenuItem>
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={6} md={3} lg={2}>
+            <Grid item xs={12} sm={6} md={6} lg={3}>
               <TextField
                 select
                 size="small"
@@ -321,7 +321,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={6} md={3} lg={2}>
+            <Grid item xs={12} sm={6} md={6} lg={3}>
               <TextField
                 select
                 size="small"
@@ -337,7 +337,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={6} md={3} lg={2}>
+            <Grid item xs={12} sm={6} md={6} lg={3}>
               <TextField
                 select
                 size="small"
@@ -353,7 +353,8 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={6} md={3} lg={2}>
+
+            <Grid item xs={12} sm={6} md={6} lg={3}>
               <TextField
                 select
                 size="small"
@@ -369,7 +370,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={6} md={3} lg={2}>
+            <Grid item xs={12} sm={6} md={6} lg={3}>
               <TextField
                 select
                 size="small"
@@ -385,31 +386,23 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
               </TextField>
             </Grid>
-          </Grid>
-        </Box>
-
-        <Box>
-          <Grid container spacing={2} columns={12}>
-            {/* <Grid item xs={12} sm={6} md={3} lg={2}>
+            <Grid item xs={12} sm={6} md={6} lg={3}>
               <TextField
                 select
                 size="small"
                 fullWidth
-                name="transTiming"
-                value={transTiming}
-                label={i18n("trigger_mode")}
+                name="transTag"
+                value={transTag}
+                label={i18n("translation_element_tag")}
                 disabled={disabled}
                 onChange={handleChange}
               >
                 {GlobalItem}
-                {OPT_TIMING_ALL.map((item) => (
-                  <MenuItem key={item} value={item}>
-                    {i18n(item)}
-                  </MenuItem>
-                ))}
+                <MenuItem value={"span"}>{`<span>`}</MenuItem>
+                <MenuItem value={"font"}>{`<font>`}</MenuItem>
               </TextField>
-            </Grid> */}
-            <Grid item xs={12} sm={6} md={3} lg={2}>
+            </Grid>
+            <Grid item xs={12} sm={6} md={6} lg={3}>
               <TextField
                 select
                 size="small"
@@ -425,7 +418,8 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={6} md={3} lg={2}>
+
+            <Grid item xs={12} sm={6} md={6} lg={3}>
               <TextField
                 select
                 size="small"
@@ -444,7 +438,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 ))}
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={6} md={3} lg={2}>
+            <Grid item xs={12} sm={6} md={6} lg={3}>
               <TextField
                 select
                 size="small"
@@ -463,7 +457,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 ))}
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={6} md={3} lg={2}>
+            <Grid item xs={12} sm={6} md={6} lg={3}>
               <TextField
                 select
                 size="small"
@@ -482,74 +476,27 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 ))}
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={6} md={3} lg={2}>
+            {/* <Grid item xs={12} sm={6} md={6} lg={3}>
               <TextField
                 select
                 size="small"
                 fullWidth
-                name="textStyle"
-                value={textStyle}
-                label={i18n("text_style")}
+                name="transTiming"
+                value={transTiming}
+                label={i18n("trigger_mode")}
                 disabled={disabled}
                 onChange={handleChange}
               >
                 {GlobalItem}
-                {OPT_STYLE_ALL.map((item) => (
+                {OPT_TIMING_ALL.map((item) => (
                   <MenuItem key={item} value={item}>
                     {i18n(item)}
                   </MenuItem>
                 ))}
               </TextField>
-            </Grid>
-            {OPT_STYLE_USE_COLOR.includes(textStyle) && (
-              <Grid item xs={12} sm={6} md={3} lg={2}>
-                <TextField
-                  size="small"
-                  fullWidth
-                  name="bgColor"
-                  value={bgColor}
-                  label={i18n("bg_color")}
-                  disabled={disabled}
-                  onChange={handleChange}
-                />
-              </Grid>
-            )}
-          </Grid>
-        </Box>
+            </Grid> */}
 
-        {textStyle === OPT_STYLE_DIY && (
-          <TextField
-            size="small"
-            label={i18n("diy_style")}
-            helperText={i18n("diy_style_helper")}
-            name="textDiyStyle"
-            value={textDiyStyle}
-            disabled={disabled}
-            onChange={handleChange}
-            maxRows={10}
-            multiline
-          />
-        )}
-
-        <Box>
-          <Grid container spacing={2} columns={12}>
-            <Grid item xs={12} sm={6} md={3} lg={2}>
-              <TextField
-                select
-                size="small"
-                fullWidth
-                name="transTag"
-                value={transTag}
-                label={i18n("translation_element_tag")}
-                disabled={disabled}
-                onChange={handleChange}
-              >
-                {GlobalItem}
-                <MenuItem value={"span"}>{`<span>`}</MenuItem>
-                <MenuItem value={"font"}>{`<font>`}</MenuItem>
-              </TextField>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3} lg={2}>
+            <Grid item xs={12} sm={6} md={6} lg={3}>
               <TextField
                 select
                 size="small"
@@ -568,36 +515,57 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
           </Grid>
         </Box>
 
+        <Box>
+          <Grid container spacing={2} columns={12}>
+            <Grid item xs={12} sm={6} md={6} lg={3}>
+              <TextField
+                select
+                size="small"
+                fullWidth
+                name="textStyle"
+                value={textStyle}
+                label={i18n("text_style")}
+                disabled={disabled}
+                onChange={handleChange}
+              >
+                {GlobalItem}
+                {OPT_STYLE_ALL.map((item) => (
+                  <MenuItem key={item} value={item}>
+                    {i18n(item)}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={6} md={6} lg={3}>
+              <TextField
+                size="small"
+                fullWidth
+                name="bgColor"
+                value={bgColor}
+                label={i18n("bg_color")}
+                disabled={disabled}
+                onChange={handleChange}
+              />
+            </Grid>
+          </Grid>
+        </Box>
+
+        {textStyle === OPT_STYLE_DIY && (
+          <TextField
+            size="small"
+            label={i18n("diy_style")}
+            helperText={i18n("diy_style_helper")}
+            name="textDiyStyle"
+            value={textDiyStyle}
+            disabled={disabled}
+            onChange={handleChange}
+            maxRows={10}
+            multiline
+          />
+        )}
+
         {showMore && (
           <>
-            {/* <TextField
-              size="small"
-              label={i18n("fixer_selector")}
-              name="fixerSelector"
-              value={fixerSelector}
-              disabled={disabled}
-              onChange={handleChange}
-              multiline
-              maxRows={10}
-            />
-            <TextField
-              select
-              size="small"
-              name="fixerFunc"
-              value={fixerFunc}
-              label={i18n("fixer_function")}
-              helperText={i18n("fixer_function_helper")}
-              disabled={disabled}
-              onChange={handleChange}
-            >
-              {GlobalItem}
-              {FIXER_ALL.map((item) => (
-                <MenuItem key={item} value={item}>
-                  {item}
-                </MenuItem>
-              ))}
-            </TextField> */}
-
             <TextField
               select
               size="small"

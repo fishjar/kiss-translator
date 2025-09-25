@@ -1397,4 +1397,9 @@ export const I18N = {
     en: `If you do not fully understand the default prompt, please do not modify it at will, otherwise the translation may fail.`,
     zh_TW: `在未完全理解預設Prompt的情況下，請勿隨意修改，否則可能翻譯失敗。`,
   },
+  if_pre_init: {
+    zh: `是否预初始化`,
+    en: `Whether to pre-initialize`,
+    zh_TW: `是否預初始化`,
+  },
 };
