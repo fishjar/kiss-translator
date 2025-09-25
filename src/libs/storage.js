@@ -1,6 +1,8 @@
 import {
   STOKEY_SETTING,
+  STOKEY_SETTING_OLD,
   STOKEY_RULES,
+  STOKEY_RULES_OLD,
   STOKEY_WORDS,
   STOKEY_FAB,
   STOKEY_SYNC,
@@ -60,7 +62,12 @@ async function trySetObj(key, obj) {
 
 async function getObj(key) {
   const val = await get(key);
-  return val && JSON.parse(val);
+  try {
+    return JSON.parse(val);
+  } catch (err) {
+    kissLog("parse json: ", key);
+  }
+  return null;
 }
 
 async function putObj(key, obj) {
@@ -86,6 +93,7 @@ export const storage = {
  * 设置信息
  */
 export const getSetting = () => getObj(STOKEY_SETTING);
+export const getSettingOld = () => getObj(STOKEY_SETTING_OLD);
 export const getSettingWithDefault = async () => ({
   ...DEFAULT_SETTING,
   ...((await getSetting()) || {}),
@@ -97,6 +105,7 @@ export const putSetting = (obj) => putObj(STOKEY_SETTING, obj);
  * 规则列表
  */
 export const getRules = () => getObj(STOKEY_RULES);
+export const getRulesOld = () => getObj(STOKEY_RULES_OLD);
 export const getRulesWithDefault = async () =>
   (await getRules()) || DEFAULT_RULES;
 export const setRules = (val) => setObj(STOKEY_RULES, val);

@@ -7,5 +7,7 @@ export const APP_CONSTS = {
   boxID: `${APP_LCNAME}-box`,
 };
 
+export const APP_VERSION = process.env.REACT_APP_VERSION.split(".");
+
 export const THEME_LIGHT = "light";
 export const THEME_DARK = "dark";

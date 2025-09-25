@@ -45,7 +45,11 @@ import { loadOrFetchSubRules } from "../../libs/subRules";
 import { useAlert } from "../../hooks/Alert";
 import { syncShareRules } from "../../libs/sync";
 import { debounce } from "../../libs/utils";
-import { delSubRules, getSyncWithDefault } from "../../libs/storage";
+import {
+  delSubRules,
+  getSyncWithDefault,
+  getRulesOld,
+} from "../../libs/storage";
 import OwSubRule from "./OwSubRule";
 import ClearAllIcon from "@mui/icons-material/ClearAll";
 import HelpButton from "./HelpButton";
@@ -901,6 +905,11 @@ function UserRules({ subRules, rules }) {
           text={i18n("export")}
           fileName={`kiss-rules_${Date.now()}.json`}
         />
+        <DownloadButton
+          handleData={async () => JSON.stringify(await getRulesOld(), null, 2)}
+          text={i18n("export_old")}
+          fileName={`kiss-rules_v1_${Date.now()}.json`}
+        />
 
         <ShareButton
           rules={rules}
@@ -979,6 +988,7 @@ function SubRulesItem({
   deleteDataCache,
 }) {
   const [loading, setLoading] = useState(false);
+  const alert = useAlert();
 
   const handleDel = async () => {
     try {
@@ -1000,6 +1010,12 @@ function SubRulesItem({
       await updateDataCache(url);
     } catch (err) {
       kissLog("sync sub rules", err);
+      alert.error(
+        <>
+          <p>Sync Error:</p>
+          <pre>{err.message}</pre>
+        </>
+      );
     } finally {
       setLoading(false);
     }

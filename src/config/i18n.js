@@ -1402,4 +1402,9 @@ export const I18N = {
     en: `Whether to pre-initialize`,
     zh_TW: `是否預初始化`,
   },
+  export_old: {
+    zh: `导出旧版`,
+    en: `Export old version`,
+    zh_TW: `匯出舊版`,
+  },
 };

@@ -1,4 +1,11 @@
-import { createContext, useContext, useState, forwardRef } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  forwardRef,
+  useCallback,
+  useMemo,
+} from "react";
 import Snackbar from "@mui/material/Snackbar";
 import MuiAlert from "@mui/material/Alert";
 
@@ -18,32 +25,37 @@ export function AlertProvider({ children }) {
   const horizontal = "center";
   const [open, setOpen] = useState(false);
   const [severity, setSeverity] = useState("info");
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(null);
 
-  const showAlert = (msg, type) => {
+  const showAlert = useCallback((msg, type) => {
     setOpen(true);
     setMessage(msg);
     setSeverity(type);
-  };
+  }, []);
 
-  const handleClose = (_, reason) => {
+  const handleClose = useCallback((_, reason) => {
     if (reason === "clickaway") {
       return;
     }
     setOpen(false);
-  };
+  }, []);
 
-  const error = (msg) => showAlert(msg, "error");
-  const warning = (msg) => showAlert(msg, "warning");
-  const info = (msg) => showAlert(msg, "info");
-  const success = (msg) => showAlert(msg, "success");
+  const value = useMemo(
+    () => ({
+      error: (msg) => showAlert(msg, "error"),
+      warning: (msg) => showAlert(msg, "warning"),
+      info: (msg) => showAlert(msg, "info"),
+      success: (msg) => showAlert(msg, "success"),
+    }),
+    [showAlert]
+  );
 
   return (
-    <AlertContext.Provider value={{ error, warning, info, success }}>
+    <AlertContext.Provider value={value}>
       {children}
       <Snackbar
         open={open}
-        autoHideDuration={3000}
+        autoHideDuration={10000}
         onClose={handleClose}
         anchorOrigin={{ vertical, horizontal }}
       >

@@ -32,6 +32,7 @@ import { sendBgMsg } from "../../libs/msg";
 import { kissLog } from "../../libs/log";
 import UploadButton from "./UploadButton";
 import DownloadButton from "./DownloadButton";
+import { getSettingOld } from "../../libs/storage";
 
 function ShortcutItem({ action, label }) {
   const { shortcut, setShortcut } = useShortcut(action);
@@ -136,6 +137,13 @@ export default function Settings() {
             handleData={() => JSON.stringify(setting, null, 2)}
             text={i18n("export")}
             fileName={`kiss-setting_${Date.now()}.json`}
+          />
+          <DownloadButton
+            handleData={async () =>
+              JSON.stringify(await getSettingOld(), null, 2)
+            }
+            text={i18n("export_old")}
+            fileName={`kiss-setting_v1_${Date.now()}.json`}
           />
         </Stack>
 

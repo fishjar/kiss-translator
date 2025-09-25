@@ -1,16 +1,18 @@
-import { APP_NAME } from "./app";
+import { APP_NAME, APP_VERSION } from "./app";
 
-export const KV_RULES_KEY = "kiss-rules.json";
+export const KV_RULES_KEY = `kiss-rules_v${APP_VERSION[0]}.json`;
 export const KV_WORDS_KEY = "kiss-words.json";
-export const KV_RULES_SHARE_KEY = "kiss-rules-share.json";
-export const KV_SETTING_KEY = "kiss-setting.json";
+export const KV_RULES_SHARE_KEY = `kiss-rules-share_v${APP_VERSION[0]}.json`;
+export const KV_SETTING_KEY = `kiss-setting_v${APP_VERSION[0]}.json`;
 export const KV_SALT_SYNC = "KISS-Translator-SYNC";
 export const KV_SALT_SHARE = "KISS-Translator-SHARE";
 
 export const STOKEY_MSAUTH = `${APP_NAME}_msauth`;
 export const STOKEY_BDAUTH = `${APP_NAME}_bdauth`;
-export const STOKEY_SETTING = `${APP_NAME}_setting`;
-export const STOKEY_RULES = `${APP_NAME}_rules`;
+export const STOKEY_SETTING_OLD = `${APP_NAME}_setting`;
+export const STOKEY_RULES_OLD = `${APP_NAME}_rules`;
+export const STOKEY_SETTING = `${APP_NAME}_setting_v${APP_VERSION[0]}`;
+export const STOKEY_RULES = `${APP_NAME}_rules_v${APP_VERSION[0]}`;
 export const STOKEY_WORDS = `${APP_NAME}_words`;
 export const STOKEY_SYNC = `${APP_NAME}_sync`;
 export const STOKEY_FAB = `${APP_NAME}_fab`;

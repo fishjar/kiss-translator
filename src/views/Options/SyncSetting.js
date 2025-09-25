@@ -189,7 +189,7 @@ export default function SyncSetting() {
           </LoadingButton>
           <Button
             size="small"
-            variant="contained"
+            variant="outlined"
             onClick={handleGenerateShareString}
             startIcon={<ContentCopyIcon />}
           >
@@ -198,7 +198,7 @@ export default function SyncSetting() {
           <Button
             onClick={handleImportFromClipboard}
             size="small"
-            variant="contained"
+            variant="outlined"
             startIcon={<ContentPasteIcon />}
           >
             {i18n("import", "import")}
