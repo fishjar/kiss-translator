@@ -6,6 +6,7 @@ import {
   OPT_LANGS_FROM,
   OPT_LANGS_TO,
   // OPT_TIMING_ALL,
+  DEFAULT_RULE,
   GLOBLA_RULE,
   DEFAULT_API_TYPE,
 } from "../config";
@@ -222,16 +223,28 @@ export const checkRules = (rules) => {
 
 /**
  * 保存或更新rule
- * @param {*} newRule
+ * @param {*} curRule
  */
-export const saveRule = async (newRule) => {
+export const saveRule = async (curRule) => {
   const rules = await getRulesWithDefault();
-  const rule = rules.find((item) => isMatch(newRule.pattern, item.pattern));
-  if (rule && rule.pattern !== GLOBAL_KEY) {
-    Object.assign(rule, { ...newRule, pattern: rule.pattern });
-  } else {
-    rules.unshift(newRule);
+
+  const index = rules.findIndex(
+    (item) =>
+      item.pattern !== GLOBAL_KEY && isMatch(curRule.pattern, item.pattern)
+  );
+  if (index !== -1) {
+    const rule = rules.splice(index, 1)[0];
+    curRule = { ...rule, ...curRule, pattern: rule.pattern };
   }
+
+  const newRule = {};
+  Object.entries(GLOBLA_RULE).forEach(([key, val]) => {
+    newRule[key] =
+      !curRule[key] || curRule[key] === val ? DEFAULT_RULE[key] : curRule[key];
+  });
+
+  rules.unshift(newRule);
   await setRules(rules);
+
   trySyncRules();
 };

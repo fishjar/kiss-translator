@@ -1,3 +1,5 @@
 import { run } from "./common";
 
-run();
+if (document.documentElement && document.documentElement.tagName === "HTML") {
+  run();
+}

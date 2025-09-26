@@ -317,3 +317,19 @@ export const scheduleIdle = (cb, timeout = 200) => {
   }
   return setTimeout(cb, timeout);
 };
+
+/**
+ * 截取url部分
+ * @param {*} href
+ * @returns
+ */
+export const parseUrlPattern = (href) => {
+  if (href.startsWith("file")) {
+    const filename = href.substring(href.lastIndexOf("/") + 1);
+    return filename;
+  } else if (href.startsWith("http")) {
+    const url = new URL(href);
+    return url.host;
+  }
+  return href;
+};

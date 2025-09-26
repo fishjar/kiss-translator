@@ -28,13 +28,16 @@ import { sendIframeMsg } from "../../libs/iframe";
 import { saveRule } from "../../libs/rules";
 import { tryClearCaches } from "../../libs";
 import { kissLog } from "../../libs/log";
+import { parseUrlPattern } from "../../libs/utils";
 
 // 插件popup没有参数
 // 网页弹框有
 export default function Popup({ setShowPopup, translator }) {
   const i18n = useI18n();
   const [rule, setRule] = useState(translator?.rule);
-  const [transApis, setTransApis] = useState(translator?.setting?.transApis || []);
+  const [transApis, setTransApis] = useState(
+    translator?.setting?.transApis || []
+  );
   const [commands, setCommands] = useState({});
 
   const handleOpenSetting = () => {
@@ -85,16 +88,24 @@ export default function Popup({ setShowPopup, translator }) {
 
   const handleSaveRule = async () => {
     try {
-      let href = window.location.href;
+      let href = "";
       if (!translator) {
         const tab = await getCurTab();
         href = tab.url;
-      }
-      const newRule = { ...rule, pattern: href.split("/")[2] };
-      if (isExt && translator) {
-        sendBgMsg(MSG_SAVE_RULE, newRule);
       } else {
-        saveRule(newRule);
+        href = window.location?.href;
+      }
+
+      if (!href || typeof href !== "string") {
+        return;
+      }
+
+      const pattern = parseUrlPattern(href);
+      const curRule = { ...rule, pattern };
+      if (isExt && translator) {
+        sendBgMsg(MSG_SAVE_RULE, curRule);
+      } else {
+        saveRule(curRule);
       }
     } catch (err) {
       kissLog("save rule", err);
