@@ -1468,4 +1468,9 @@ export const I18N = {
     en: `Export old version`,
     zh_TW: `匯出舊版`,
   },
+  favorite_words_helper: {
+    zh: `导入词汇请使用txt文件，每一行一个单词。`,
+    en: `To import vocabulary, please use a txt file with one word per line.`,
+    zh_TW: `匯入詞彙請使用txt文件，每一行一個單字。`,
+  },
 };

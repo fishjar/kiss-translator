@@ -15,6 +15,7 @@ import DownloadButton from "./DownloadButton";
 import UploadButton from "./UploadButton";
 import Button from "@mui/material/Button";
 import ClearAllIcon from "@mui/icons-material/ClearAll";
+import Alert from "@mui/material/Alert";
 import { isValidWord } from "../../libs/utils";
 import { kissLog } from "../../libs/log";
 import { apiTranslate } from "../../apis";
@@ -104,6 +105,8 @@ export default function FavWords() {
   return (
     <Box>
       <Stack spacing={3}>
+        <Alert severity="info">{i18n("favorite_words_helper")}</Alert>
+
         <Stack
           direction="row"
           alignItems="center"
