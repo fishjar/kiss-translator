@@ -244,9 +244,9 @@ export class Translator {
   }
 
   // 内置忽略元素
-  static BUILTIN_IGNORE_SELECTOR = `abbr, address, area, audio, br, canvas, 
+  static BUILTIN_IGNORE_SELECTOR = `abbr, address, area, audio, br, canvas, code,
   data, datalist, dfn, embed, head, iframe, img, input, kbd, noscript, map, 
-  object, option, output, param, picture, progress, 
+  object, option, output, param, picture, progress,
   samp, select, script, style, sub, sup, svg, track, time, textarea, template, 
   var, video, wbr, .notranslate, [contenteditable], [translate='no'], 
   ${APP_LCNAME}, #${APP_CONSTS.fabID}, #${APP_CONSTS.boxID}, 

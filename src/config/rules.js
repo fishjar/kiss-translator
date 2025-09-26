@@ -73,8 +73,8 @@ background: linear-gradient(
 export const DEFAULT_SELECTOR =
   "h1, h2, h3, h4, h5, h6, li, p, dd, blockquote, figcaption, label, legend";
 export const DEFAULT_IGNORE_SELECTOR =
-  "button, code, footer, form, header, mark, nav, pre";
-export const DEFAULT_KEEP_SELECTOR = `code, img, svg, pre, a:has(code)`;
+  "aside, button, footer, form, header, pre, mark, nav";
+export const DEFAULT_KEEP_SELECTOR = `a:has(code)`;
 export const DEFAULT_RULE = {
   pattern: "", // 匹配网址
   selector: "", // 选择器

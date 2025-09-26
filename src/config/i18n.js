@@ -623,6 +623,11 @@ export const I18N = {
     en: `Selector`,
     zh_TW: `選擇器`,
   },
+  target_selector: {
+    zh: `目标元素选择器`,
+    en: `Target element selector`,
+    zh_TW: `目標元素選擇器`,
+  },
   keep_selector: {
     zh: `保留元素选择器`,
     en: `Keep unchanged selector`,

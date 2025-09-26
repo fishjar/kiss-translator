@@ -226,7 +226,27 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
         />
         <TextField
           size="small"
-          label={i18n("selector")}
+          label={i18n("root_selector")}
+          helperText={i18n("root_selector_helper")}
+          name="rootsSelector"
+          value={rootsSelector}
+          disabled={disabled}
+          onChange={handleChange}
+          multiline
+        />
+        <TextField
+          size="small"
+          label={i18n("ignore_selector")}
+          helperText={i18n("ignore_selector_helper")}
+          name="ignoreSelector"
+          value={ignoreSelector}
+          disabled={disabled}
+          onChange={handleChange}
+          multiline
+        />
+        <TextField
+          size="small"
+          label={i18n("target_selector")}
           error={!!errors.selector}
           helperText={errors.selector || i18n("selector_helper")}
           name="selector"
@@ -242,26 +262,6 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
           helperText={i18n("keep_selector_helper")}
           name="keepSelector"
           value={keepSelector}
-          disabled={disabled}
-          onChange={handleChange}
-          multiline
-        />
-        <TextField
-          size="small"
-          label={i18n("root_selector")}
-          helperText={i18n("root_selector_helper")}
-          name="rootsSelector"
-          value={rootsSelector}
-          disabled={disabled}
-          onChange={handleChange}
-          multiline
-        />
-        <TextField
-          size="small"
-          label={i18n("ignore_selector")}
-          helperText={i18n("ignore_selector_helper")}
-          name="ignoreSelector"
-          value={ignoreSelector}
           disabled={disabled}
           onChange={handleChange}
           multiline
@@ -929,7 +929,8 @@ function UserRules({ subRules, rules }) {
         {rules.list
           .filter(
             (rule) =>
-              rule.pattern.includes(keyword) || keyword.includes(rule.pattern)
+              rule.pattern !== "*" &&
+              (rule.pattern.includes(keyword) || keyword.includes(rule.pattern))
           )
           .map((rule) => (
             <RuleAccordion key={rule.pattern} rule={rule} rules={rules} />
