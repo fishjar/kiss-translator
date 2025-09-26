@@ -17,6 +17,7 @@ import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
 import LockIcon from "@mui/icons-material/Lock";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 import CloseIcon from "@mui/icons-material/Close";
+import Typography from "@mui/material/Typography";
 import { useI18n } from "../../hooks/I18n";
 import { OPT_LANGS_FROM, OPT_LANGS_TO } from "../../config";
 import { useState, useRef, useMemo } from "react";
@@ -48,7 +49,20 @@ function Header({
       onTouchEnd={(e) => e.stopPropagation()}
     >
       <Stack direction="row" justifyContent="space-between" alignItems="center">
-        <DragIndicatorIcon fontSize="small" />
+        <Stack direction="row" alignItems="center">
+          <DragIndicatorIcon fontSize="small" />
+          <Typography
+            variant="body2"
+            sx={{
+              userSelect: "none",
+              WebkitUserSelect: "none",
+              fontWeight: "bold",
+            }}
+          >
+            {`${process.env.REACT_APP_NAME} v${process.env.REACT_APP_VERSION}`}
+          </Typography>
+        </Stack>
+
         <Stack direction="row" alignItems="center">
           <IconButton
             size="small"
