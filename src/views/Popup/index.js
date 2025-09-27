@@ -26,7 +26,7 @@ import {
 } from "../../config";
 import { sendIframeMsg } from "../../libs/iframe";
 import { saveRule } from "../../libs/rules";
-import { tryClearCaches } from "../../libs";
+import { tryClearCaches } from "../../libs/cache";
 import { kissLog } from "../../libs/log";
 import { parseUrlPattern } from "../../libs/utils";
 

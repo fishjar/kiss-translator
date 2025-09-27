@@ -23,10 +23,9 @@ import {
 import { getSettingWithDefault, tryInitDefaultData } from "./libs/storage";
 import { trySyncSettingAndRules } from "./libs/sync";
 import { fetchHandle } from "./libs/fetch";
-import { getHttpCache, putHttpCache } from "./libs/cache";
+import { tryClearCaches, getHttpCache, putHttpCache } from "./libs/cache";
 import { sendTabMsg } from "./libs/msg";
 import { trySyncAllSubRules } from "./libs/subRules";
-import { tryClearCaches } from "./libs";
 import { saveRule } from "./libs/rules";
 import { getCurTabId } from "./libs/msg";
 import { injectInlineJs, injectInternalCss } from "./libs/injector";

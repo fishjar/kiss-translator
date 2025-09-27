@@ -11,6 +11,17 @@ import { sendBgMsg } from "./msg";
 import { blobToBase64 } from "./utils";
 
 /**
+ * 清除缓存数据
+ */
+export const tryClearCaches = async () => {
+  try {
+    caches.delete(CACHE_NAME);
+  } catch (err) {
+    kissLog("clean caches", err);
+  }
+};
+
+/**
  * 构造缓存 request
  * @param {*} input
  * @param {*} init

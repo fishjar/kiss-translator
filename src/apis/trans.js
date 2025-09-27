@@ -686,7 +686,7 @@ export const parseTransRes = async (
     case OPT_TRANS_MICROSOFT:
       return res?.map((item) => [
         item.translations.map((item) => item.text).join(" "),
-        item.detectedLanguage.language,
+        item.detectedLanguage?.language,
       ]);
     case OPT_TRANS_DEEPL:
       return res?.translations?.map((item) => [
@@ -811,7 +811,7 @@ export const handleTranslate = async ({
 
   let token = "";
   if (apiType === OPT_TRANS_MICROSOFT) {
-    [token] = await msAuth();
+    token = await msAuth();
   }
 
   const [input, init, userMsg] = await genTransReq({

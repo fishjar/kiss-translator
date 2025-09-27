@@ -9,7 +9,7 @@ import { apiTranslate } from "../../apis";
 import CopyBtn from "./CopyBtn";
 import Typography from "@mui/material/Typography";
 import Alert from "@mui/material/Alert";
-import { tryDetectLang } from "../../libs";
+import { tryDetectLang } from "../../libs/detect";
 
 export default function TranCont({
   text,
@@ -35,7 +35,7 @@ export default function TranCont({
 
         let to = toLang;
         if (fromLang === "auto" && toLang !== toLang2 && toLang2 !== "none") {
-          const detectLang = await tryDetectLang(text, true, langDetector);
+          const detectLang = await tryDetectLang(text, "true", langDetector);
           if (detectLang === toLang) {
             to = toLang2;
           }

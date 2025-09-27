@@ -8,7 +8,7 @@ import { useCallback } from "react";
  * @returns
  */
 export function useRules() {
-  const { data: list, save } = useStorage(
+  const { data: list = [], save } = useStorage(
     STOKEY_RULES,
     DEFAULT_RULES,
     KV_RULES_KEY

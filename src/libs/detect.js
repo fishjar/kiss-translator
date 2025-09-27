@@ -1,9 +1,10 @@
 import {
-  CACHE_NAME,
   OPT_TRANS_GOOGLE,
   OPT_TRANS_MICROSOFT,
   OPT_TRANS_BAIDU,
   OPT_TRANS_TENCENT,
+  OPT_LANGS_TO_CODE,
+  OPT_LANGS_MAP,
 } from "../config";
 import { browser } from "./browser";
 import {
@@ -14,7 +15,7 @@ import {
 } from "../apis";
 import { kissLog } from "./log";
 
-const langdetectMap = {
+const langdetectFns = {
   [OPT_TRANS_GOOGLE]: apiGoogleLangdetect,
   [OPT_TRANS_MICROSOFT]: apiMicrosoftLangdetect,
   [OPT_TRANS_BAIDU]: apiBaiduLangdetect,
@@ -22,44 +23,43 @@ const langdetectMap = {
 };
 
 /**
- * 清除缓存数据
- */
-export const tryClearCaches = async () => {
-  try {
-    caches.delete(CACHE_NAME);
-  } catch (err) {
-    kissLog("clean caches", err);
-  }
-};
-
-/**
  * 语言识别
- * @param {*} q
+ * @param {*} text
  * @returns
  */
 export const tryDetectLang = async (
-  q,
-  useRemote = false,
+  text,
+  useRemote = "false",
   langDetector = OPT_TRANS_MICROSOFT
 ) => {
-  let lang = "";
+  let deLang = "";
 
-  if (useRemote) {
+  // 远程识别
+  if (useRemote === "true" && langDetector) {
     try {
-      lang = await langdetectMap[langDetector](q);
+      const lang = await langdetectFns[langDetector](text);
+      if (lang) {
+        deLang = OPT_LANGS_TO_CODE[langDetector].get(lang) || "";
+      }
     } catch (err) {
       kissLog("detect lang remote", err);
     }
   }
 
-  if (!lang) {
+  // 本地识别
+  if (!deLang) {
     try {
-      const res = await browser?.i18n?.detectLanguage(q);
-      lang = res?.languages?.[0]?.language;
+      const res = await browser?.i18n?.detectLanguage(text);
+      const lang = res?.languages?.[0]?.language;
+      if (OPT_LANGS_MAP.has(lang)) {
+        deLang = lang;
+      } else if (lang.startsWith("zh")) {
+        deLang = "zh-CN";
+      }
     } catch (err) {
       kissLog("detect lang local", err);
     }
   }
 
-  return lang;
+  return deLang;
 };

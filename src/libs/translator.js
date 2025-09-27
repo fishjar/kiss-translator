@@ -24,7 +24,7 @@ import { clearAllBatchQueue } from "./batchQueue";
 import { genTextClass } from "./style";
 import { loadingSvg } from "./svg";
 import { shortcutRegister } from "./shortcut";
-import { tryDetectLang } from ".";
+import { tryDetectLang } from "./detect";
 
 /**
  * @class Translator
@@ -436,6 +436,7 @@ export class Translator {
     }
   }
 
+  // todo: 利用AI总结
   #getDocDescription() {
     try {
       const meta = document.querySelector('meta[name="description"]');
@@ -738,19 +739,29 @@ export class Translator {
     }
 
     // 提前进行语言检测
-    const { detectRemote, toLang, skipLangs = [] } = this.#rule;
-    const { langDetector } = this.#setting;
-    const deLang = await tryDetectLang(
-      node.textContent,
+    let deLang = "";
+    const {
       detectRemote,
-      langDetector
-    );
-    // console.log("deLang", deLang, toLang);
-    if (
-      deLang &&
-      (toLang.slice(0, 2) === deLang.slice(0, 2) || skipLangs.includes(deLang))
-    ) {
-      return;
+      fromLang = "auto",
+      toLang,
+      skipLangs = [],
+    } = this.#rule;
+    if (fromLang === "auto") {
+      const { langDetector } = this.#setting;
+      deLang = await tryDetectLang(
+        node.textContent,
+        detectRemote,
+        langDetector
+      );
+      if (
+        deLang &&
+        (toLang.slice(0, 2) === deLang.slice(0, 2) ||
+          skipLangs.includes(deLang))
+      ) {
+        // 保留处理状态，不做删除
+        // this.#processedNodes.delete(node);
+        return;
+      }
     }
 
     let nodeGroup = [];
@@ -762,13 +773,13 @@ export class Translator {
       if (!shouldBreak && shouldGroup) {
         nodeGroup.push(child);
       } else if (shouldBreak && nodeGroup.length) {
-        this.#translateNodeGroup(nodeGroup, node);
+        this.#translateNodeGroup(nodeGroup, node, deLang);
         nodeGroup = [];
       }
     });
 
     if (nodeGroup.length) {
-      this.#translateNodeGroup(nodeGroup, node);
+      this.#translateNodeGroup(nodeGroup, node, deLang);
     }
   }
 
@@ -834,7 +845,7 @@ export class Translator {
   }
 
   // 翻译内联节点
-  async #translateNodeGroup(nodes, hostNode) {
+  async #translateNodeGroup(nodes, hostNode, deLang) {
     const {
       transTag,
       textStyle,
@@ -901,8 +912,10 @@ export class Translator {
       //   return;
       // }
 
-      const [translatedText, isSameLang] =
-        await this.#translateFetch(processedString);
+      const [translatedText, isSameLang] = await this.#translateFetch(
+        processedString,
+        deLang
+      );
       // console.log("translatedText", translatedText);
       if (isSameLang || this.#runId !== currentRunId) {
         wrapper.remove();
@@ -1060,7 +1073,7 @@ export class Translator {
   }
 
   // 发起翻译请求
-  #translateFetch(text) {
+  #translateFetch(text, deLang = "") {
     const { apiSlug, fromLang, toLang } = this.#rule;
     const apiSetting =
       this.#setting.transApis.find((api) => api.apiSlug === apiSlug) ||
@@ -1068,7 +1081,7 @@ export class Translator {
 
     return apiTranslate({
       text,
-      fromLang,
+      fromLang: deLang || fromLang,
       toLang,
       apiSetting,
       docInfo: this.#docInfo,
@@ -1295,17 +1308,23 @@ export class Translator {
       this.#init();
     }
 
-    // 翻译页面标题
     if (this.#rule.transTitle === "true") {
-      const title = document.title;
-      this.#docInfo.title = title;
-      this.#translateFetch(title)
-        .then(([trText]) => {
-          document.title = trText || title;
-        })
-        .catch((err) => {
-          kissLog("tanslate title", err);
-        });
+      this.#translateTitle();
+    }
+  }
+
+  // 翻译页面标题
+  async #translateTitle() {
+    const title = document.title;
+    this.#docInfo.title = title;
+    if (!title) return;
+
+    try {
+      const deLang = await tryDetectLang(title);
+      const [translatedTitle] = await this.#translateFetch(title, deLang);
+      document.title = translatedTitle || title;
+    } catch (err) {
+      kissLog("tanslate title", err);
     }
   }
 

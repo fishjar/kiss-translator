@@ -180,48 +180,61 @@ export const OPT_LANGS_TO = [
   ["uk", "Ukrainian - Українська"],
   ["vi", "Vietnamese - Tiếng Việt"],
 ];
+export const OPT_LANGS_LIST = OPT_LANGS_TO.map(([lang]) => lang);
 export const OPT_LANGS_FROM = [["auto", "Auto-detect"], ...OPT_LANGS_TO];
-export const OPT_LANGS_SPECIAL = {
-  [OPT_TRANS_GOOGLE]: new Map(OPT_LANGS_FROM.map(([key]) => [key, key])),
-  [OPT_TRANS_GOOGLE_2]: new Map(OPT_LANGS_FROM.map(([key]) => [key, key])),
+export const OPT_LANGS_MAP = new Map(OPT_LANGS_TO);
+
+// CODE->名称
+export const OPT_LANGS_SPEC_NAME = new Map(
+  OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
+);
+export const OPT_LANGS_SPEC_DEFAULT = new Map(
+  OPT_LANGS_FROM.map(([key]) => [key, key])
+);
+export const OPT_LANGS_SPEC_DEFAULT_UC = new Map(
+  OPT_LANGS_FROM.map(([key]) => [key, key.toUpperCase()])
+);
+export const OPT_LANGS_TO_SPEC = {
+  [OPT_TRANS_GOOGLE]: OPT_LANGS_SPEC_DEFAULT,
+  [OPT_TRANS_GOOGLE_2]: OPT_LANGS_SPEC_DEFAULT,
   [OPT_TRANS_MICROSOFT]: new Map([
-    ...OPT_LANGS_FROM.map(([key]) => [key, key]),
+    ...OPT_LANGS_SPEC_DEFAULT,
     ["auto", ""],
     ["zh-CN", "zh-Hans"],
     ["zh-TW", "zh-Hant"],
   ]),
   [OPT_TRANS_DEEPL]: new Map([
-    ...OPT_LANGS_FROM.map(([key]) => [key, key.toUpperCase()]),
+    ...OPT_LANGS_SPEC_DEFAULT_UC,
     ["auto", ""],
     ["zh-CN", "ZH"],
     ["zh-TW", "ZH"],
   ]),
   [OPT_TRANS_DEEPLFREE]: new Map([
-    ...OPT_LANGS_FROM.map(([key]) => [key, key.toUpperCase()]),
+    ...OPT_LANGS_SPEC_DEFAULT_UC,
     ["auto", "auto"],
     ["zh-CN", "ZH"],
     ["zh-TW", "ZH"],
   ]),
   [OPT_TRANS_DEEPLX]: new Map([
-    ...OPT_LANGS_FROM.map(([key]) => [key, key.toUpperCase()]),
+    ...OPT_LANGS_SPEC_DEFAULT_UC,
     ["auto", "auto"],
     ["zh-CN", "ZH"],
     ["zh-TW", "ZH"],
   ]),
   [OPT_TRANS_NIUTRANS]: new Map([
-    ...OPT_LANGS_FROM.map(([key]) => [key, key]),
+    ...OPT_LANGS_SPEC_DEFAULT,
     ["auto", "auto"],
     ["zh-CN", "zh"],
     ["zh-TW", "cht"],
   ]),
   [OPT_TRANS_VOLCENGINE]: new Map([
-    ...OPT_LANGS_FROM.map(([key]) => [key, key]),
+    ...OPT_LANGS_SPEC_DEFAULT,
     ["auto", "auto"],
     ["zh-CN", "zh"],
     ["zh-TW", "zh-Hant"],
   ]),
   [OPT_TRANS_BAIDU]: new Map([
-    ...OPT_LANGS_FROM.map(([key]) => [key, key]),
+    ...OPT_LANGS_SPEC_DEFAULT,
     ["zh-CN", "zh"],
     ["zh-TW", "cht"],
     ["ar", "ara"],
@@ -269,62 +282,34 @@ export const OPT_LANGS_SPECIAL = {
     ["id", "id"],
     ["vi", "vi"],
   ]),
-  [OPT_TRANS_OPENAI]: new Map(
-    OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
-  ),
-  [OPT_TRANS_GEMINI]: new Map(
-    OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
-  ),
-  [OPT_TRANS_GEMINI_2]: new Map(
-    OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
-  ),
-  [OPT_TRANS_CLAUDE]: new Map(
-    OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
-  ),
-  [OPT_TRANS_OLLAMA]: new Map(
-    OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
-  ),
-  [OPT_TRANS_OPENROUTER]: new Map(
-    OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
-  ),
-  [OPT_TRANS_CLOUDFLAREAI]: new Map([
-    ["auto", ""],
-    ["zh-CN", "chinese"],
-    ["zh-TW", "chinese"],
-    ["en", "english"],
-    ["ar", "arabic"],
-    ["de", "german"],
-    ["ru", "russian"],
-    ["fr", "french"],
-    ["pt", "portuguese"],
-    ["ja", "japanese"],
-    ["es", "spanish"],
-    ["hi", "hindi"],
-  ]),
-  [OPT_TRANS_CUSTOMIZE]: new Map([
-    ...OPT_LANGS_FROM.map(([key]) => [key, key]),
-  ]),
+  [OPT_TRANS_OPENAI]: OPT_LANGS_SPEC_DEFAULT,
+  [OPT_TRANS_GEMINI]: OPT_LANGS_SPEC_DEFAULT,
+  [OPT_TRANS_GEMINI_2]: OPT_LANGS_SPEC_DEFAULT,
+  [OPT_TRANS_CLAUDE]: OPT_LANGS_SPEC_DEFAULT,
+  [OPT_TRANS_OLLAMA]: OPT_LANGS_SPEC_DEFAULT,
+  [OPT_TRANS_OPENROUTER]: OPT_LANGS_SPEC_DEFAULT,
+  [OPT_TRANS_CLOUDFLAREAI]: OPT_LANGS_SPEC_DEFAULT,
+  [OPT_TRANS_CUSTOMIZE]: OPT_LANGS_SPEC_DEFAULT,
 };
-export const OPT_LANGS_LIST = OPT_LANGS_TO.map(([lang]) => lang);
-export const OPT_LANGS_MICROSOFT = new Map(
-  Array.from(OPT_LANGS_SPECIAL[OPT_TRANS_MICROSOFT].entries()).map(([k, v]) => [
-    v,
-    k,
-  ])
-);
-export const OPT_LANGS_BAIDU = new Map(
-  Array.from(OPT_LANGS_SPECIAL[OPT_TRANS_BAIDU].entries()).map(([k, v]) => [
-    v,
-    k,
-  ])
-);
-export const OPT_LANGS_TENCENT = new Map(
-  Array.from(OPT_LANGS_SPECIAL[OPT_TRANS_TENCENT].entries()).map(([k, v]) => [
-    v,
-    k,
-  ])
-);
-OPT_LANGS_TENCENT.set("zh", "zh-CN");
+
+const specToCode = (m) =>
+  new Map(
+    Array.from(m.entries()).map(([k, v]) => {
+      if (v === "") {
+        return ["auto", "auto"];
+      }
+      if (v === "zh" || v === "ZH") {
+        return [v, "zh-CN"];
+      }
+      return [v, k];
+    })
+  );
+
+// 名称->CODE
+export const OPT_LANGS_TO_CODE = {};
+Object.entries(OPT_LANGS_TO_SPEC).forEach(([t, m]) => {
+  OPT_LANGS_TO_CODE[t] = specToCode(m);
+});
 
 const defaultSystemPrompt = `Act as a translation API. Output a single raw JSON object only. No extra text or fences.
 

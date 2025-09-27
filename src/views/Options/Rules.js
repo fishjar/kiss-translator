@@ -63,23 +63,29 @@ import { kissLog } from "../../libs/log";
 import { useApiList } from "../../hooks/Api";
 import ShowMoreButton from "./ShowMoreButton";
 
+const calculateInitialValues = (rule) => {
+  const base = rule?.pattern === "*" ? GLOBLA_RULE : DEFAULT_RULE;
+  return { ...base, ...(rule || {}) };
+};
+
 function RuleFields({ rule, rules, setShow, setKeyword }) {
-  const initFormValues = useMemo(
-    () => ({
-      ...(rule?.pattern === "*" ? GLOBLA_RULE : DEFAULT_RULE),
-      ...(rule || {}),
-    }),
-    [rule]
-  );
   const editMode = useMemo(() => !!rule, [rule]);
 
   const i18n = useI18n();
   const [disabled, setDisabled] = useState(editMode);
   const [errors, setErrors] = useState({});
-  const [formValues, setFormValues] = useState(initFormValues);
+  const [initialFormValues, setInitialFormValues] = useState(() =>
+    calculateInitialValues(rule)
+  );
+  const [formValues, setFormValues] = useState(initialFormValues);
   const [showMore, setShowMore] = useState(!rules);
-  const [isModified, setIsModified] = useState(false);
   const { enabledApis } = useApiList();
+
+  useEffect(() => {
+    const newInitialValues = calculateInitialValues(rule);
+    setInitialFormValues(newInitialValues);
+    setFormValues(newInitialValues);
+  }, [rule]);
 
   const {
     pattern,
@@ -116,12 +122,9 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
     // transRemoveHook = "",
   } = formValues;
 
-  useEffect(() => {
-    if (!initFormValues) return;
-    const hasChanged =
-      JSON.stringify(initFormValues) !== JSON.stringify(formValues);
-    setIsModified(hasChanged);
-  }, [initFormValues, formValues]);
+  const isModified = useMemo(() => {
+    return JSON.stringify(initialFormValues) !== JSON.stringify(formValues);
+  }, [initialFormValues, formValues]);
 
   const hasSamePattern = (str) => {
     for (const item of rules.list) {
@@ -163,7 +166,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
       setShow(false);
     }
     setErrors({});
-    setFormValues(initFormValues);
+    setFormValues(initialFormValues);
   };
 
   const handleRestore = (e) => {
@@ -199,7 +202,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
       // 添加
       rules.add(formValues);
       setShow(false);
-      setFormValues(initFormValues);
+      setFormValues(initialFormValues);
     }
   };
 
@@ -1205,11 +1208,15 @@ function SubRules({ subRules }) {
 }
 
 function GlobalRule({ rules }) {
-  if (!rules.list) {
+  const globalRule = useMemo(
+    () => rules.list[rules.list.length - 1],
+    [rules.list]
+  );
+
+  if (!globalRule) {
     return;
   }
 
-  const globalRule = rules.list[rules.list.length - 1];
   return (
     <Stack spacing={3}>
       <RuleAccordion

@@ -3,10 +3,8 @@ import { fetchData } from "../libs/fetch";
 import {
   URL_CACHE_TRAN,
   KV_SALT_SYNC,
-  OPT_LANGS_BAIDU,
-  OPT_LANGS_TENCENT,
-  OPT_LANGS_SPECIAL,
-  OPT_LANGS_MICROSOFT,
+  OPT_LANGS_TO_SPEC,
+  OPT_LANGS_SPEC_DEFAULT,
   API_SPE_TYPES,
   DEFAULT_API_SETTING,
 } from "../config";
@@ -40,6 +38,13 @@ export const apiSyncData = async (url, key, data) =>
  * @returns
  */
 export const apiFetch = (url) => fetchData(url);
+
+/**
+ * Microsoft token
+ * @returns
+ */
+export const apiMsAuth = async () =>
+  fetchData("https://edge.microsoft.com/translate/auth");
 
 /**
  * Google语言识别
@@ -78,7 +83,7 @@ export const apiGoogleLangdetect = async (text) => {
  * @returns
  */
 export const apiMicrosoftLangdetect = async (text) => {
-  const [token] = await msAuth();
+  const token = await msAuth();
   const input =
     "https://api-edge.cognitive.microsofttranslator.com/detect?api-version=3.0";
   const init = {
@@ -93,9 +98,9 @@ export const apiMicrosoftLangdetect = async (text) => {
     useCache: true,
   });
 
-  if (res[0].language) {
+  if (res?.[0]?.language) {
     await putHttpCachePolyfill(input, init, res);
-    return OPT_LANGS_MICROSOFT.get(res[0].language) ?? res[0].language;
+    return res[0].language;
   }
 
   return "";
@@ -119,9 +124,9 @@ export const apiBaiduLangdetect = async (text) => {
   };
   const res = await fetchData(input, init, { useCache: true });
 
-  if (res.error === 0) {
+  if (res?.error === 0) {
     await putHttpCachePolyfill(input, init, res);
-    return OPT_LANGS_BAIDU.get(res.lan) ?? res.lan;
+    return res.lan;
   }
 
   return "";
@@ -145,7 +150,7 @@ export const apiBaiduSuggest = async (text) => {
   };
   const res = await fetchData(input, init, { useCache: true });
 
-  if (res.errno === 0) {
+  if (res?.errno === 0) {
     await putHttpCachePolyfill(input, init, res);
     return res.data;
   }
@@ -175,21 +180,26 @@ export const apiTencentLangdetect = async (text) => {
   const body = JSON.stringify({
     header: {
       fn: "text_analysis",
+      client_key:
+        "browser-chrome-110.0.0-Mac OS-df4bd4c5-a65d-44b2-a40f-42f34f3535f2-1677486696487",
     },
     text,
   });
   const init = {
     headers: {
       "Content-type": "application/json",
+      "user-agent":
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36",
+      referer: "https://transmart.qq.com/zh-CN/index",
     },
     method: "POST",
     body,
   };
   const res = await fetchData(input, init, { useCache: true });
 
-  if (res.language) {
+  if (res?.language) {
     await putHttpCachePolyfill(input, init, res);
-    return OPT_LANGS_TENCENT.get(res.language) ?? res.language;
+    return res.language;
   }
 
   return "";
@@ -202,7 +212,7 @@ export const apiTencentLangdetect = async (text) => {
  */
 export const apiTranslate = async ({
   text,
-  fromLang,
+  fromLang = "auto",
   toLang,
   apiSetting = DEFAULT_API_SETTING,
   docInfo = {},
@@ -214,8 +224,8 @@ export const apiTranslate = async ({
   }
 
   const { apiType, apiSlug, useBatchFetch } = apiSetting;
-  const langMap = OPT_LANGS_SPECIAL[apiType];
-  const from = langMap.get(fromLang) ?? langMap.get("auto");
+  const langMap = OPT_LANGS_TO_SPEC[apiType] || OPT_LANGS_SPEC_DEFAULT;
+  const from = langMap.get(fromLang);
   const to = langMap.get(toLang);
   if (!to) {
     kissLog(`target lang: ${toLang} not support`);
@@ -283,8 +293,7 @@ export const apiTranslate = async ({
     }
   }
 
-  // const isSame = srLang && (to.includes(srLang) || srLang.includes(to));
-  const isSame = srLang && srLang.slice(0, 2) === to.slice(0, 2);
+  const isSame = fromLang !== "auto" && srLang === to;
 
   // 插入缓存
   if (useCache && trText) {
