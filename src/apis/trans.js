@@ -782,17 +782,10 @@ export const parseTransRes = async (
  * @param {*} param0
  * @returns
  */
-export const handleTranslate = async ({
-  texts,
-  from,
-  to,
-  fromLang,
-  toLang,
-  langMap,
-  docInfo,
-  apiSetting,
-  usePool,
-}) => {
+export const handleTranslate = async (
+  texts = [],
+  { from, to, fromLang, toLang, langMap, docInfo, apiSetting, usePool }
+) => {
   let history = null;
   let hisMsgs = [];
   const {
@@ -849,4 +842,33 @@ export const handleTranslate = async ({
     userMsg,
     ...apiSetting,
   });
+};
+
+/**
+ * Microsoft语言识别聚合及解析
+ * @param {*} texts
+ * @returns
+ */
+export const handleMicrosoftLangdetect = async (texts = []) => {
+  const token = await msAuth();
+  const input =
+    "https://api-edge.cognitive.microsofttranslator.com/detect?api-version=3.0";
+  const init = {
+    headers: {
+      "Content-type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    method: "POST",
+    body: JSON.stringify(texts.map((text) => ({ Text: text }))),
+  };
+
+  const res = await fetchData(input, init, {
+    useCache: false,
+  });
+
+  if (Array.isArray(res)) {
+    return res.map((r) => r.language);
+  }
+
+  return [];
 };

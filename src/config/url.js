@@ -1,6 +1,7 @@
 import { APP_LCNAME } from "./app";
 
 export const URL_CACHE_TRAN = `https://${APP_LCNAME}/translate`;
+export const URL_CACHE_DELANG = `https://${APP_LCNAME}/detectlang`;
 
 export const URL_KISS_WORKER = "https://github.com/fishjar/kiss-worker";
 export const URL_KISS_PROXY = "https://github.com/fishjar/kiss-proxy";

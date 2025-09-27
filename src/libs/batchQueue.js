@@ -11,11 +11,12 @@ import {
  * @returns
  */
 const BatchQueue = (
-  { taskFn, ...args },
+  taskFn,
   {
     batchInterval = DEFAULT_BATCH_INTERVAL,
     batchSize = DEFAULT_BATCH_SIZE,
     batchLength = DEFAULT_BATCH_LENGTH,
+    ...args
   } = {}
 ) => {
   const queue = [];
@@ -23,11 +24,7 @@ const BatchQueue = (
   let timer = null;
 
   const sendBatchRequest = async (payloads) => {
-    const texts = payloads.map((item) => item.text);
-    return taskFn({
-      ...args,
-      texts,
-    });
+    return taskFn(payloads, args);
   };
 
   const processQueue = async () => {
@@ -47,7 +44,7 @@ const BatchQueue = (
     let endIndex = 0;
 
     for (const task of queue) {
-      const textLength = task.payload.text?.length || 0;
+      const textLength = task.payload?.length || 0;
       if (
         endIndex >= batchSize ||
         (currentBatchLength + textLength > batchLength && endIndex > 0)
@@ -135,14 +132,12 @@ const queueMap = new Map();
 /**
  * 获取批处理实例
  */
-export const getBatchQueue = (args) => {
-  const { from, to, apiSetting } = args;
-  const key = `${apiSetting.apiSlug}_${from}_${to}`;
+export const getBatchQueue = (key, taskFn, args) => {
   if (queueMap.has(key)) {
     return queueMap.get(key);
   }
 
-  const queue = BatchQueue(args, apiSetting);
+  const queue = BatchQueue(taskFn, args);
   queueMap.set(key, queue);
   return queue;
 };

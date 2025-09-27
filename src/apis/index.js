@@ -2,16 +2,17 @@ import queryString from "query-string";
 import { fetchData } from "../libs/fetch";
 import {
   URL_CACHE_TRAN,
+  URL_CACHE_DELANG,
   KV_SALT_SYNC,
   OPT_LANGS_TO_SPEC,
   OPT_LANGS_SPEC_DEFAULT,
   API_SPE_TYPES,
   DEFAULT_API_SETTING,
+  OPT_TRANS_MICROSOFT,
 } from "../config";
 import { sha256 } from "../libs/utils";
-import { msAuth } from "../libs/auth";
 import { kissLog } from "../libs/log";
-import { handleTranslate } from "./trans";
+import { handleTranslate, handleMicrosoftLangdetect } from "./trans";
 import { getHttpCachePolyfill, putHttpCachePolyfill } from "../libs/cache";
 import { getBatchQueue } from "../libs/batchQueue";
 
@@ -83,24 +84,25 @@ export const apiGoogleLangdetect = async (text) => {
  * @returns
  */
 export const apiMicrosoftLangdetect = async (text) => {
-  const token = await msAuth();
-  const input =
-    "https://api-edge.cognitive.microsofttranslator.com/detect?api-version=3.0";
-  const init = {
-    headers: {
-      "Content-type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    method: "POST",
-    body: JSON.stringify([{ Text: text }]),
-  };
-  const res = await fetchData(input, init, {
-    useCache: true,
-  });
+  const cacheOpts = { text, detector: OPT_TRANS_MICROSOFT };
+  const cacheInput = `${URL_CACHE_DELANG}?${queryString.stringify(cacheOpts)}`;
+  const cache = await getHttpCachePolyfill(cacheInput);
+  if (cache) {
+    return cache;
+  }
 
-  if (res?.[0]?.language) {
-    await putHttpCachePolyfill(input, init, res);
-    return res[0].language;
+  const key = `${URL_CACHE_DELANG}_${OPT_TRANS_MICROSOFT}`;
+  const queue = getBatchQueue(key, handleMicrosoftLangdetect, {
+    batchInterval: 500,
+    batchSize: 20,
+    batchLength: 100000,
+  });
+  const lang = await queue.addTask(text);
+
+  if (lang) {
+    putHttpCachePolyfill(cacheInput, null, lang);
+    console.log("handleMicrosoftLangdetect", { text, lang });
+    return lang;
   }
 
   return "";
@@ -255,7 +257,9 @@ export const apiTranslate = async ({
   let trText = "";
   let srLang = "";
   if (useBatchFetch && API_SPE_TYPES.batch.has(apiType)) {
-    const queue = getBatchQueue({
+    const { apiSlug, batchInterval, batchSize, batchLength } = apiSetting;
+    const key = `${apiSlug}_${fromLang}_${toLang}`;
+    const queue = getBatchQueue(key, handleTranslate, {
       from,
       to,
       fromLang,
@@ -264,17 +268,18 @@ export const apiTranslate = async ({
       docInfo,
       apiSetting,
       usePool,
-      taskFn: handleTranslate,
+      batchInterval,
+      batchSize,
+      batchLength,
     });
-    const tranlation = await queue.addTask({ text });
+    const tranlation = await queue.addTask(text);
     if (Array.isArray(tranlation)) {
       [trText, srLang = ""] = tranlation;
     } else if (typeof tranlation === "string") {
       trText = tranlation;
     }
   } else {
-    const translations = await handleTranslate({
-      texts: [text],
+    const translations = await handleTranslate([text], {
       from,
       to,
       fromLang,

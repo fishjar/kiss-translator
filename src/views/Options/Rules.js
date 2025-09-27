@@ -113,7 +113,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
     transTag = DEFAULT_TRANS_TAG,
     transTitle = "false",
     transSelected = "true",
-    detectRemote = "false",
+    detectRemote = "true",
     skipLangs = [],
     // fixerSelector = "",
     // fixerFunc = "-",

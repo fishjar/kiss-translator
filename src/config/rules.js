@@ -132,7 +132,7 @@ export const GLOBLA_RULE = {
   transTag: DEFAULT_TRANS_TAG, // 译文元素标签
   transTitle: "false", // 是否同时翻译页面标题
   transSelected: "true", // 是否启用划词翻译
-  detectRemote: "false", // 是否使用远程语言检测
+  detectRemote: "true", // 是否使用远程语言检测
   skipLangs: [], // 不翻译的语言
   // fixerSelector: "", // 修复函数选择器 (暂时作废)
   // fixerFunc: "-", // 修复函数 (暂时作废)
