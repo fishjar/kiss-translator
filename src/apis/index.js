@@ -101,7 +101,6 @@ export const apiMicrosoftLangdetect = async (text) => {
 
   if (lang) {
     putHttpCachePolyfill(cacheInput, null, lang);
-    console.log("handleMicrosoftLangdetect", { text, lang });
     return lang;
   }
 
