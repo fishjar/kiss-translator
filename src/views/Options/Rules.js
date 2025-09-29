@@ -49,7 +49,7 @@ import {
   getSyncWithDefault,
   getRulesOld,
 } from "../../libs/storage";
-import OwSubRule from "./OwSubRule";
+// import OwSubRule from "./OwSubRule";
 import ClearAllIcon from "@mui/icons-material/ClearAll";
 import HelpButton from "./HelpButton";
 import { useSyncCaches } from "../../hooks/Sync";
@@ -1255,7 +1255,7 @@ export default function Rules() {
             <Tab label={i18n("global_rule")} />
             <Tab label={i18n("personal_rules")} />
             <Tab label={i18n("subscribe_rules")} />
-            <Tab label={i18n("overwrite_subscribe_rules")} />
+            {/* <Tab label={i18n("overwrite_subscribe_rules")} /> */}
           </Tabs>
         </Box>
         <div hidden={activeTab !== 0}>
@@ -1267,7 +1267,7 @@ export default function Rules() {
         <div hidden={activeTab !== 2}>
           {activeTab === 2 && <SubRules subRules={subRules} />}
         </div>
-        <div hidden={activeTab !== 3}>{activeTab === 3 && <OwSubRule />}</div>
+        {/* <div hidden={activeTab !== 3}>{activeTab === 3 && <OwSubRule />}</div> */}
       </Stack>
     </Box>
   );

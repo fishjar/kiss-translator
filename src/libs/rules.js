@@ -22,32 +22,13 @@ import { kissLog } from "./log";
  * @param {string} href
  * @returns
  */
-export const matchRule = async (
-  href,
-  { injectRules, subrulesList, owSubrule }
-) => {
+export const matchRule = async (href, { injectRules, subrulesList }) => {
   const rules = await getRulesWithDefault();
   if (injectRules) {
     try {
       const selectedSub = subrulesList.find((item) => item.selected);
       if (selectedSub?.url) {
-        const mixRule = {};
-        Object.entries(owSubrule)
-          .filter(([key, val]) => {
-            if (
-              owSubrule.textStyle === REMAIN_KEY &&
-              (key === "bgColor" || key === "textDiyStyle")
-            ) {
-              return false;
-            }
-            return val !== REMAIN_KEY;
-          })
-          .forEach(([key, val]) => {
-            mixRule[key] = val;
-          });
-
-        let subRules = await loadOrFetchSubRules(selectedSub.url);
-        subRules = subRules.map((item) => ({ ...item, ...mixRule }));
+        const subRules = await loadOrFetchSubRules(selectedSub.url);
         rules.splice(-1, 0, ...subRules);
       }
     } catch (err) {

@@ -135,7 +135,7 @@ export const DEFAULT_SETTING = {
   // transOnly: false, // 是否仅显示译文(移至rule，作废)
   // transTitle: false, // 是否同时翻译页面标题(移至rule，作废)
   subrulesList: DEFAULT_SUBRULES_LIST, // 订阅列表
-  owSubrule: DEFAULT_OW_RULE, // 覆写订阅规则
+  // owSubrule: DEFAULT_OW_RULE, // 覆写订阅规则 (作废)
   transApis: DEFAULT_API_LIST, // 翻译接口 (v2.0 对象改为数组)
   // mouseKey: OPT_TIMING_PAGESCROLL, // 翻译时机/鼠标悬停翻译(移至rule，作废)
   shortcuts: DEFAULT_SHORTCUTS, // 快捷键
