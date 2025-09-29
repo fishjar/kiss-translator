@@ -113,8 +113,8 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
     transTag = DEFAULT_TRANS_TAG,
     transTitle = "false",
     transSelected = "true",
-    detectRemote = "true",
-    skipLangs = [],
+    // detectRemote = "true",
+    // skipLangs = [],
     // fixerSelector = "",
     // fixerFunc = "-",
     transStartHook = "",
@@ -478,23 +478,6 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 ))}
               </TextField>
             </Grid> */}
-
-            <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
-                select
-                size="small"
-                fullWidth
-                name="detectRemote"
-                value={detectRemote}
-                label={i18n("detect_lang_remote")}
-                disabled={disabled}
-                onChange={handleChange}
-              >
-                {GlobalItem}
-                <MenuItem value={"false"}>{i18n("disable")}</MenuItem>
-                <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
-              </TextField>
-            </Grid>
           </Grid>
         </Box>
 
@@ -549,26 +532,6 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
 
         {showMore && (
           <>
-            <TextField
-              select
-              size="small"
-              label={i18n("skip_langs")}
-              helperText={i18n("skip_langs_helper")}
-              name="skipLangs"
-              value={skipLangs}
-              disabled={disabled}
-              onChange={handleChange}
-              SelectProps={{
-                multiple: true,
-              }}
-            >
-              {OPT_LANGS_TO.map(([langKey, langName]) => (
-                <MenuItem key={langKey} value={langKey}>
-                  {langName}
-                </MenuItem>
-              ))}
-            </TextField>
-
             <TextField
               size="small"
               label={i18n("terms")}

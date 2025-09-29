@@ -1,7 +1,6 @@
 import { matchValue, type, isMatch } from "./utils";
 import {
   GLOBAL_KEY,
-  REMAIN_KEY,
   OPT_STYLE_ALL,
   OPT_LANGS_FROM,
   OPT_LANGS_TO,
@@ -80,7 +79,7 @@ export const matchRule = async (href, { injectRules, subrulesList }) => {
     "transTag",
     "transTitle",
     "transSelected",
-    "detectRemote",
+    // "detectRemote",
     // "fixerFunc",
   ].forEach((key) => {
     if (rule[key] === undefined || rule[key] === GLOBAL_KEY) {
@@ -88,9 +87,9 @@ export const matchRule = async (href, { injectRules, subrulesList }) => {
     }
   });
 
-  if (!rule.skipLangs || rule.skipLangs.length === 0) {
-    rule.skipLangs = globalRule.skipLangs;
-  }
+  // if (!rule.skipLangs || rule.skipLangs.length === 0) {
+  //   rule.skipLangs = globalRule.skipLangs;
+  // }
   if (rule.textStyle === GLOBAL_KEY) {
     rule.textStyle = globalRule.textStyle;
     rule.bgColor = globalRule.bgColor;
@@ -155,8 +154,8 @@ export const checkRules = (rules) => {
         transTag,
         transTitle,
         transSelected,
-        detectRemote,
-        skipLangs,
+        // detectRemote,
+        // skipLangs,
         // fixerSelector,
         // fixerFunc,
         transStartHook,
@@ -188,8 +187,8 @@ export const checkRules = (rules) => {
         transTag: matchValue([GLOBAL_KEY, "span", "font"], transTag),
         transTitle: matchValue([GLOBAL_KEY, "true", "false"], transTitle),
         transSelected: matchValue([GLOBAL_KEY, "true", "false"], transSelected),
-        detectRemote: matchValue([GLOBAL_KEY, "true", "false"], detectRemote),
-        skipLangs: type(skipLangs) === "array" ? skipLangs : [],
+        // detectRemote: matchValue([GLOBAL_KEY, "true", "false"], detectRemote),
+        // skipLangs: type(skipLangs) === "array" ? skipLangs : [],
         // fixerSelector: type(fixerSelector) === "string" ? fixerSelector : "",
         transStartHook: type(transStartHook) === "string" ? transStartHook : "",
         transEndHook: type(transEndHook) === "string" ? transEndHook : "",

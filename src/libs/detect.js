@@ -29,13 +29,13 @@ const langdetectFns = {
  */
 export const tryDetectLang = async (
   text,
-  useRemote = "false",
+  detectRemote = true,
   langDetector = OPT_TRANS_MICROSOFT
 ) => {
   let deLang = "";
 
   // 远程识别
-  if (useRemote === "true" && langDetector) {
+  if (detectRemote && langDetector) {
     try {
       const lang = await langdetectFns[langDetector](text);
       if (lang) {

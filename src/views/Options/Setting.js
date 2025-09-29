@@ -24,6 +24,7 @@ import {
   MSG_CONTEXT_MENUS,
   MSG_UPDATE_CSP,
   DEFAULT_HTTP_TIMEOUT,
+  OPT_LANGS_TO,
 } from "../../config";
 import { useShortcut } from "../../hooks/Shortcut";
 import ShortcutInput from "./ShortcutInput";
@@ -119,6 +120,8 @@ export default function Settings() {
     transInterval = 100,
     langDetector = OPT_TRANS_MICROSOFT,
     preInit = true,
+    skipLangs = [],
+    detectRemote = true,
   } = setting;
   const { isHide = false, fabClickAction = 0 } = fab || {};
 
@@ -300,11 +303,25 @@ export default function Settings() {
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
+                size="small"
+                fullWidth
+                name="detectRemote"
+                value={detectRemote}
+                label={i18n("detect_lang_remote")}
+                onChange={handleChange}
+              >
+                <MenuItem value={true}>{i18n("enable")}</MenuItem>
+                <MenuItem value={false}>{i18n("disable")}</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                select
                 fullWidth
                 size="small"
                 name="langDetector"
                 value={langDetector}
-                label={i18n("detect_lang_remote")}
+                label={i18n("detect_lang_serve")}
                 onChange={handleChange}
               >
                 {OPT_LANGDETECTOR_ALL.map((item) => (
@@ -316,6 +333,25 @@ export default function Settings() {
             </Grid>
           </Grid>
         </Box>
+
+        <TextField
+          select
+          size="small"
+          label={i18n("skip_langs")}
+          helperText={i18n("skip_langs_helper")}
+          name="skipLangs"
+          value={skipLangs}
+          onChange={handleChange}
+          SelectProps={{
+            multiple: true,
+          }}
+        >
+          {OPT_LANGS_TO.map(([langKey, langName]) => (
+            <MenuItem key={langKey} value={langKey}>
+              {langName}
+            </MenuItem>
+          ))}
+        </TextField>
 
         {isExt ? (
           <>

@@ -4,7 +4,6 @@ import {
   OPT_TRANS_MICROSOFT,
   DEFAULT_API_LIST,
 } from "./api";
-import { DEFAULT_OW_RULE } from "./rules";
 
 // 默认快捷键
 export const OPT_SHORTCUT_TRANSLATE = "toggleTranslate";
@@ -128,7 +127,7 @@ export const DEFAULT_SETTING = {
   injectRules: true, // 是否注入订阅规则
   fabClickAction: 0, // 悬浮按钮点击行为
   // injectWebfix: true, // 是否注入修复补丁(作废)
-  // detectRemote: false, // 是否使用远程语言检测(移至rule，作废)
+  detectRemote: false, // 是否使用远程语言检测 （从rule移回）
   // contextMenus: true, // 是否添加右键菜单(作废)
   contextMenuType: 1, // 右键菜单类型(0不显示，1简单菜单，2多级菜单)
   // transTag: DEFAULT_TRANS_TAG, // 译文元素标签(移至rule，作废)
@@ -145,6 +144,7 @@ export const DEFAULT_SETTING = {
   blacklist: DEFAULT_BLACKLIST.join(",\n"), // 禁用翻译名单
   csplist: DEFAULT_CSPLIST.join(",\n"), // 禁用CSP名单
   // disableLangs: [], // 不翻译的语言(移至rule，作废)
+  skipLangs: [], // 不翻译的语言（从rule移回）
   transInterval: 100, // 翻译等待时间
   langDetector: OPT_TRANS_MICROSOFT, // 远程语言识别服务
   mouseHoverSetting: DEFAULT_MOUSE_HOVER_SETTING, // 鼠标悬停翻译

@@ -1033,6 +1033,11 @@ export const I18N = {
     en: `After enabling, the detection accuracy will increase, but it will reduce the translation speed. Please enable it as appropriate.`,
     zh_TW: `啟用後可提升偵測準確度，但會降低翻譯速度，請視需要開啟。`,
   },
+  detect_lang_service: {
+    zh: `语言检测服务`,
+    en: `Language detect service`,
+    zh_TW: `語言檢測服務`,
+  },
   disable: {
     zh: `禁用`,
     en: `Disable`,
