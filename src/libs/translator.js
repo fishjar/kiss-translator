@@ -10,6 +10,14 @@ import {
   // DEFAULT_MOUSEHOVER_KEY,
   OPT_STYLE_NONE,
   DEFAULT_API_SETTING,
+  MSG_TRANS_TOGGLE,
+  MSG_TRANS_TOGGLE_STYLE,
+  MSG_TRANS_GETRULE,
+  MSG_TRANS_PUTRULE,
+  MSG_OPEN_TRANBOX,
+  MSG_TRANSBOX_TOGGLE,
+  MSG_MOUSEHOVER_TOGGLE,
+  MSG_TRANSINPUT_TOGGLE,
 } from "../config";
 import interpreter from "./interpreter";
 import { ShadowRootMonitor } from "./shadowroot";
@@ -25,6 +33,10 @@ import { genTextClass } from "./style";
 import { loadingSvg } from "./svg";
 import { shortcutRegister } from "./shortcut";
 import { tryDetectLang } from "./detect";
+import { browser } from "./browser";
+import { isIframe, sendIframeMsg } from "./iframe";
+import { TransboxManager } from "./tranbox";
+import { InputTranslator } from "./inputTranslate";
 
 /**
  * @class Translator
@@ -269,6 +281,10 @@ export class Translator {
   #textClass = {}; // 译文样式class
   #textSheet = ""; // 译文样式字典
 
+  #isUserscript = false;
+  #transboxManager = null; // 划词翻译
+  #inputTranslator = null; // 输入框翻译
+
   #observedNodes = new WeakSet(); // 存储所有被识别出的、可翻译的 DOM 节点单元
   #translationNodes = new WeakMap(); // 存储所有插入到页面的译文节点
   #viewNodes = new Set(); // 当前在可视范围内的单元
@@ -293,9 +309,10 @@ export class Translator {
     return `${Translator.BUILTIN_IGNORE_SELECTOR}, ${this.#rule.ignoreSelector}`;
   }
 
-  constructor(rule = {}, setting = {}) {
+  constructor(rule = {}, setting = {}, isUserscript) {
     this.#setting = { ...Translator.DEFAULT_OPTIONS, ...setting };
     this.#rule = { ...Translator.DEFAULT_RULE, ...rule };
+    this.#isUserscript = isUserscript;
     this.#eventName = genEventName();
     this.#docInfo = {
       title: document.title,
@@ -324,6 +341,19 @@ export class Translator {
     // 鼠标悬停翻译
     if (this.#setting.mouseHoverSetting.useMouseHover) {
       this.#enableMouseHover();
+    }
+
+    if (!isIframe) {
+      // 监听后端事件
+      if (!isUserscript) {
+        this.#runtimeListener();
+      }
+
+      // 划词翻译
+      this.#transboxManager = new TransboxManager(this.setting);
+
+      // 输入框翻译
+      this.#inputTranslator = new InputTranslator(this.setting);
     }
 
     if (document.readyState === "loading") {
@@ -366,6 +396,43 @@ export class Translator {
         kissLog("findAllShadowRoots", err);
       }
     }
+  }
+
+  // 监听后端事件
+  #runtimeListener() {
+    browser?.runtime.onMessage.addListener(async ({ action, args }) => {
+      switch (action) {
+        case MSG_TRANS_TOGGLE:
+          this.toggle();
+          sendIframeMsg(MSG_TRANS_TOGGLE);
+          break;
+        case MSG_TRANS_TOGGLE_STYLE:
+          this.toggleStyle();
+          sendIframeMsg(MSG_TRANS_TOGGLE_STYLE);
+          break;
+        case MSG_TRANS_GETRULE:
+          break;
+        case MSG_TRANS_PUTRULE:
+          this.updateRule(args);
+          sendIframeMsg(MSG_TRANS_PUTRULE, args);
+          break;
+        case MSG_OPEN_TRANBOX:
+          window.dispatchEvent(new CustomEvent(MSG_OPEN_TRANBOX));
+          break;
+        case MSG_TRANSBOX_TOGGLE:
+          this.toggleTransbox();
+          break;
+        case MSG_MOUSEHOVER_TOGGLE:
+          this.toggleMouseHover();
+          break;
+        case MSG_TRANSINPUT_TOGGLE:
+          this.toggleInputTranslate();
+          break;
+        default:
+          return { error: `message action is unavailable: ${action}` };
+      }
+      return { rule: this.rule, setting: this.setting };
+    });
   }
 
   #createPlaceholderRegex() {
@@ -671,14 +738,16 @@ export class Translator {
 
   // 开始/重新监控节点
   #startObserveNode(node) {
-    if (this.#observedNodes.has(node)) {
-      // 已监控，但未处理状态，且在可视范围
-      if (!this.#processedNodes.has(node) && this.#viewNodes.has(node)) {
-        this.#reIO(node);
-      }
-    } else {
+    // 未监控
+    if (!this.#observedNodes.has(node)) {
       this.#observedNodes.add(node);
       this.#io.observe(node);
+      return;
+    }
+
+    // 已监控，但未处理状态，且在可视范围
+    if (!this.#processedNodes.has(node) && this.#viewNodes.has(node)) {
+      this.#reIO(node);
     }
   }
 
@@ -1367,6 +1436,19 @@ export class Translator {
         ? OPT_STYLE_NONE
         : OPT_STYLE_FUZZY;
     this.updateRule({ textStyle });
+  }
+
+  // 切换划词翻译
+  toggleTransbox() {
+    this.#setting.tranboxSetting.transOpen =
+      !this.#setting.tranboxSetting.transOpen;
+    this.#transboxManager?.toggle();
+  }
+
+  // 切换输入框翻译
+  toggleInputTranslate() {
+    this.#setting.inputRule.transOpen = !this.#setting.inputRule.transOpen;
+    this.#inputTranslator?.toggle();
   }
 
   // 停止运行

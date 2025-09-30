@@ -112,7 +112,6 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
     // transTiming = OPT_TIMING_PAGESCROLL,
     transTag = DEFAULT_TRANS_TAG,
     transTitle = "false",
-    transSelected = "true",
     // detectRemote = "true",
     // skipLangs = [],
     // fixerSelector = "",
@@ -337,22 +336,6 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
               </TextField>
             </Grid>
 
-            <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
-                select
-                size="small"
-                fullWidth
-                name="transSelected"
-                value={transSelected}
-                label={i18n("translate_selected")}
-                disabled={disabled}
-                onChange={handleChange}
-              >
-                {GlobalItem}
-                <MenuItem value={"false"}>{i18n("disable")}</MenuItem>
-                <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
-              </TextField>
-            </Grid>
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select

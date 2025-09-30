@@ -95,7 +95,7 @@ export const DEFAULT_RULE = {
   // transTiming: GLOBAL_KEY, // 翻译时机/鼠标悬停翻译  (暂时作废)
   transTag: GLOBAL_KEY, // 译文元素标签
   transTitle: GLOBAL_KEY, // 是否同时翻译页面标题
-  transSelected: GLOBAL_KEY, // 是否启用划词翻译
+  // transSelected: GLOBAL_KEY, // 是否启用划词翻译 (移回setting)
   // detectRemote: GLOBAL_KEY, // 是否使用远程语言检测 (移回setting)
   // skipLangs: [], // 不翻译的语言 (移回setting)
   // fixerSelector: "", // 修复函数选择器 (暂时作废)
@@ -131,7 +131,7 @@ export const GLOBLA_RULE = {
   // transTiming: OPT_TIMING_PAGESCROLL, // 翻译时机/鼠标悬停翻译 (暂时作废)
   transTag: DEFAULT_TRANS_TAG, // 译文元素标签
   transTitle: "false", // 是否同时翻译页面标题
-  transSelected: "true", // 是否启用划词翻译
+  // transSelected: "true", // 是否启用划词翻译 (移回setting)
   // detectRemote: "true", // 是否使用远程语言检测 (移回setting)
   // skipLangs: [], // 不翻译的语言 (移回setting)
   // fixerSelector: "", // 修复函数选择器 (暂时作废)

@@ -73,7 +73,7 @@ export const OPT_TRANBOX_TRIGGER_ALL = [
 ];
 export const DEFAULT_TRANBOX_SHORTCUT = ["AltLeft", "KeyS"];
 export const DEFAULT_TRANBOX_SETTING = {
-  // transOpen: true, // 是否启用划词翻译（作废，移至rule）
+  transOpen: true, // 是否启用划词翻译
   apiSlug: OPT_TRANS_MICROSOFT,
   fromLang: "auto",
   toLang: "zh-CN",

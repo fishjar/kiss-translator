@@ -12,12 +12,13 @@ import {
   OPT_DICT_BAIDU,
 } from "../../config";
 import ShortcutInput from "./ShortcutInput";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Switch from "@mui/material/Switch";
 import { useCallback } from "react";
 import { limitNumber } from "../../libs/utils";
 import { useTranbox } from "../../hooks/Tranbox";
 import { isExt } from "../../libs/client";
 import { useApiList } from "../../hooks/Api";
-import Alert from "@mui/material/Alert";
 
 export default function Tranbox() {
   const i18n = useI18n();
@@ -49,6 +50,7 @@ export default function Tranbox() {
   );
 
   const {
+    transOpen,
     apiSlug,
     fromLang,
     toLang,
@@ -70,7 +72,19 @@ export default function Tranbox() {
   return (
     <Box>
       <Stack spacing={3}>
-        <Alert severity="info">{i18n("selected_translation_alert")}</Alert>
+        <FormControlLabel
+          control={
+            <Switch
+              size="small"
+              name="transOpen"
+              checked={transOpen}
+              onChange={() => {
+                updateTranbox({ transOpen: !transOpen });
+              }}
+            />
+          }
+          label={i18n("toggle_selection_translate")}
+        />
 
         <Box>
           <Grid container spacing={2} columns={12}>

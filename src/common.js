@@ -6,24 +6,18 @@ import { CacheProvider } from "@emotion/react";
 import {
   MSG_TRANS_TOGGLE,
   MSG_TRANS_TOGGLE_STYLE,
-  MSG_TRANS_GETRULE,
   MSG_TRANS_PUTRULE,
-  MSG_OPEN_TRANBOX,
   APP_CONSTS,
-  DEFAULT_TRANBOX_SETTING,
 } from "./config";
 import { getFabWithDefault, getSettingWithDefault } from "./libs/storage";
 import { Translator } from "./libs/translator";
 import { isIframe, sendIframeMsg } from "./libs/iframe";
-import Slection from "./views/Selection";
 import { touchTapListener } from "./libs/touch";
 import { debounce, genEventName } from "./libs/utils";
 import { handlePing, injectScript } from "./libs/gm";
-import { browser } from "./libs/browser";
 import { matchRule } from "./libs/rules";
 import { trySyncAllSubRules } from "./libs/subRules";
 import { isInBlacklist } from "./libs/blacklist";
-import inputTranslate from "./libs/inputTranslate";
 
 /**
  * 油猴脚本设置页面
@@ -43,37 +37,6 @@ function runSettingPage() {
     script.textContent = `(${injectScript})("${ping}")`;
     document.head.append(script);
   }
-}
-
-/**
- * 插件监听后端事件
- * @param {*} translator
- */
-function runtimeListener(translator) {
-  browser?.runtime.onMessage.addListener(async ({ action, args }) => {
-    switch (action) {
-      case MSG_TRANS_TOGGLE:
-        translator.toggle();
-        sendIframeMsg(MSG_TRANS_TOGGLE);
-        break;
-      case MSG_TRANS_TOGGLE_STYLE:
-        translator.toggleStyle();
-        sendIframeMsg(MSG_TRANS_TOGGLE_STYLE);
-        break;
-      case MSG_TRANS_GETRULE:
-        break;
-      case MSG_TRANS_PUTRULE:
-        translator.updateRule(args);
-        sendIframeMsg(MSG_TRANS_PUTRULE, args);
-        break;
-      case MSG_OPEN_TRANBOX:
-        window.dispatchEvent(new CustomEvent(MSG_OPEN_TRANBOX));
-        break;
-      default:
-        return { error: `message action is unavailable: ${action}` };
-    }
-    return { rule: translator.rule, setting: translator.setting };
-  });
 }
 
 /**
@@ -126,61 +89,6 @@ async function showFab(translator) {
     <React.StrictMode>
       <CacheProvider value={cache}>
         <Action translator={translator} fab={fab} />
-      </CacheProvider>
-    </React.StrictMode>
-  );
-}
-
-/**
- * 划词翻译
- * @param {*} param0
- * @returns
- */
-function showTransbox(
-  {
-    contextMenuType,
-    tranboxSetting = DEFAULT_TRANBOX_SETTING,
-    transApis,
-    darkMode,
-    uiLang,
-    langDetector,
-  },
-  { transSelected }
-) {
-  if (transSelected === "false") {
-    return;
-  }
-
-  const $tranbox = document.createElement("div");
-  $tranbox.setAttribute("id", APP_CONSTS.boxID);
-  $tranbox.style.fontSize = "0";
-  $tranbox.style.width = "0";
-  $tranbox.style.height = "0";
-  document.body.parentElement.appendChild($tranbox);
-  const shadowContainer = $tranbox.attachShadow({ mode: "closed" });
-  const emotionRoot = document.createElement("style");
-  const shadowRootElement = document.createElement("div");
-  shadowRootElement.classList.add(`${APP_CONSTS.boxID}_warpper`);
-  shadowRootElement.classList.add(
-    `${APP_CONSTS.boxID}_${darkMode ? "dark" : "light"}`
-  );
-  shadowContainer.appendChild(emotionRoot);
-  shadowContainer.appendChild(shadowRootElement);
-  const cache = createCache({
-    key: APP_CONSTS.boxID,
-    prepend: true,
-    container: emotionRoot,
-  });
-  ReactDOM.createRoot(shadowRootElement).render(
-    <React.StrictMode>
-      <CacheProvider value={cache}>
-        <Slection
-          contextMenuType={contextMenuType}
-          tranboxSetting={tranboxSetting}
-          transApis={transApis}
-          uiLang={uiLang}
-          langDetector={langDetector}
-        />
       </CacheProvider>
     </React.StrictMode>
   );
@@ -251,13 +159,13 @@ export async function run(isUserscript = false) {
     }
 
     // 监听消息
-    !isUserscript && runtimeListener(translator);
+    // !isUserscript && runtimeListener(translator);
 
     // 输入框翻译
-    inputTranslate(setting);
+    // inputTranslate(setting);
 
     // 划词翻译
-    showTransbox(setting, rule);
+    // showTransbox(setting, rule);
 
     // 浮球按钮
     await showFab(translator);

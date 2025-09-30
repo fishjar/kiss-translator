@@ -20,6 +20,9 @@ import {
   MSG_OPEN_OPTIONS,
   MSG_SAVE_RULE,
   MSG_COMMAND_SHORTCUTS,
+  MSG_TRANSBOX_TOGGLE,
+  MSG_MOUSEHOVER_TOGGLE,
+  MSG_TRANSINPUT_TOGGLE,
   OPT_LANGS_FROM,
   OPT_LANGS_TO,
   OPT_STYLE_ALL,
@@ -35,9 +38,7 @@ import { parseUrlPattern } from "../../libs/utils";
 export default function Popup({ setShowPopup, translator }) {
   const i18n = useI18n();
   const [rule, setRule] = useState(translator?.rule);
-  const [transApis, setTransApis] = useState(
-    translator?.setting?.transApis || []
-  );
+  const [setting, setSetting] = useState(translator?.setting);
   const [commands, setCommands] = useState({});
 
   const handleOpenSetting = () => {
@@ -63,6 +64,66 @@ export default function Popup({ setShowPopup, translator }) {
       }
     } catch (err) {
       kissLog("toggle trans", err);
+    }
+  };
+
+  const handleTransboxToggle = async (e) => {
+    try {
+      setSetting((pre) => ({
+        ...pre,
+        tranboxSetting: { ...pre.tranboxSetting, transOpen: e.target.checked },
+      }));
+
+      if (!translator) {
+        await sendTabMsg(MSG_TRANSBOX_TOGGLE);
+      } else {
+        translator.toggleTransbox();
+        sendIframeMsg(MSG_TRANSBOX_TOGGLE);
+      }
+    } catch (err) {
+      kissLog("toggle transbox", err);
+    }
+  };
+
+  const handleMousehoverToggle = async (e) => {
+    try {
+      setSetting((pre) => ({
+        ...pre,
+        mouseHoverSetting: {
+          ...pre.mouseHoverSetting,
+          useMouseHover: e.target.checked,
+        },
+      }));
+
+      if (!translator) {
+        await sendTabMsg(MSG_MOUSEHOVER_TOGGLE);
+      } else {
+        translator.toggleMouseHover();
+        sendIframeMsg(MSG_MOUSEHOVER_TOGGLE);
+      }
+    } catch (err) {
+      kissLog("toggle mousehover", err);
+    }
+  };
+
+  const handleInputTransToggle = async (e) => {
+    try {
+      setSetting((pre) => ({
+        ...pre,
+        inputRule: {
+          ...pre.inputRule,
+          transOpen: e.target.checked,
+        },
+      }));
+
+      if (!translator) {
+        await sendTabMsg(MSG_TRANSINPUT_TOGGLE);
+      } else {
+        translator.toggleInputTranslate();
+        sendIframeMsg(MSG_TRANSINPUT_TOGGLE);
+      }
+    } catch (err) {
+      kissLog("toggle inputtrans", err);
     }
   };
 
@@ -121,7 +182,7 @@ export default function Popup({ setShowPopup, translator }) {
         const res = await sendTabMsg(MSG_TRANS_GETRULE);
         if (!res.error) {
           setRule(res.rule);
-          setTransApis(res.setting.transApis);
+          setSetting(res.setting);
         }
       } catch (err) {
         kissLog("query rule", err);
@@ -155,14 +216,18 @@ export default function Popup({ setShowPopup, translator }) {
 
   const optApis = useMemo(
     () =>
-      transApis
+      setting?.transApis
         .filter((api) => !api.isDisabled)
         .map((api) => ({
           key: api.apiSlug,
           name: api.apiName || api.apiSlug,
         })),
-    [transApis]
+    [setting]
   );
+
+  const tranboxEnabled = setting?.tranboxSetting.transOpen;
+  const mouseHoverEnabled = setting?.mouseHoverSetting.useMouseHover;
+  const inputTransEnabled = setting?.inputRule.transOpen;
 
   if (!rule) {
     return (
@@ -195,7 +260,7 @@ export default function Popup({ setShowPopup, translator }) {
   } = rule;
 
   return (
-    <Box width={320}>
+    <Box width={360}>
       {!translator && (
         <>
           <Header />
@@ -273,6 +338,48 @@ export default function Popup({ setShowPopup, translator }) {
                 />
               }
               label={i18n("richtext_alt")}
+            />
+          </Grid>
+          <Grid item xs={6}>
+            <FormControlLabel
+              control={
+                <Switch
+                  size="small"
+                  name="tranboxEnabled"
+                  value={!tranboxEnabled}
+                  checked={tranboxEnabled}
+                  onChange={handleTransboxToggle}
+                />
+              }
+              label={i18n("selection_translate")}
+            />
+          </Grid>
+          <Grid item xs={6}>
+            <FormControlLabel
+              control={
+                <Switch
+                  size="small"
+                  name="mouseHoverEnabled"
+                  value={!mouseHoverEnabled}
+                  checked={mouseHoverEnabled}
+                  onChange={handleMousehoverToggle}
+                />
+              }
+              label={i18n("mousehover_translate")}
+            />
+          </Grid>
+          <Grid item xs={6}>
+            <FormControlLabel
+              control={
+                <Switch
+                  size="small"
+                  name="inputTransEnabled"
+                  value={!inputTransEnabled}
+                  checked={inputTransEnabled}
+                  onChange={handleInputTransToggle}
+                />
+              }
+              label={i18n("input_translate")}
             />
           </Grid>
         </Grid>

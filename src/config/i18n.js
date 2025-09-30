@@ -1399,9 +1399,9 @@ export const I18N = {
     zh_TW: `ShadowRoot`,
   },
   richtext_alt: {
-    zh: `富文本`,
+    zh: `保留富文本`,
     en: `Rich Text`,
-    zh_TW: `富文本`,
+    zh_TW: `保留富文本`,
   },
   transonly_alt: {
     zh: `隐藏原文`,
