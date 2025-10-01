@@ -20,6 +20,7 @@ import { isValidWord } from "../../libs/utils";
 import { kissLog } from "../../libs/log";
 import { apiTranslate } from "../../apis";
 import { OPT_TRANS_BAIDU, PHONIC_MAP } from "../../config";
+import { useConfirm } from "../../hooks/Confirm";
 
 function FavAccordion({ word, index }) {
   const [expanded, setExpanded] = useState(false);
@@ -51,6 +52,7 @@ function FavAccordion({ word, index }) {
 export default function FavWords() {
   const i18n = useI18n();
   const { favList, wordList, mergeWords, clearWords } = useFavWords();
+  const confirm = useConfirm();
 
   const handleImport = (data) => {
     try {
@@ -61,6 +63,16 @@ export default function FavWords() {
       mergeWords(newWords);
     } catch (err) {
       kissLog("import rules", err);
+    }
+  };
+
+  const handleClearWords = async () => {
+    const isConfirmed = await confirm({
+      confirmText: i18n("confirm_title"),
+      cancelText: i18n("cancel"),
+    });
+    if (isConfirmed) {
+      clearWords();
     }
   };
 
@@ -133,9 +145,7 @@ export default function FavWords() {
           <Button
             size="small"
             variant="outlined"
-            onClick={() => {
-              clearWords();
-            }}
+            onClick={handleClearWords}
             startIcon={<ClearAllIcon />}
           >
             {i18n("clear_all")}

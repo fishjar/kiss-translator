@@ -62,6 +62,7 @@ import SaveIcon from "@mui/icons-material/Save";
 import { kissLog } from "../../libs/log";
 import { useApiList } from "../../hooks/Api";
 import ShowMoreButton from "./ShowMoreButton";
+import { useConfirm } from "../../hooks/Confirm";
 
 const calculateInitialValues = (rule) => {
   const base = rule?.pattern === "*" ? GLOBLA_RULE : DEFAULT_RULE;
@@ -773,6 +774,7 @@ function UserRules({ subRules, rules }) {
   const [showAdd, setShowAdd] = useState(false);
   const { setting, updateSetting } = useSetting();
   const [keyword, setKeyword] = useState("");
+  const confirm = useConfirm();
 
   const injectRules = !!setting?.injectRules;
   const { selectedUrl, selectedRules } = subRules;
@@ -789,6 +791,16 @@ function UserRules({ subRules, rules }) {
     updateSetting({
       injectRules: !injectRules,
     });
+  };
+
+  const handleClearAll = async () => {
+    const isConfirmed = await confirm({
+      confirmText: i18n("confirm_title"),
+      cancelText: i18n("cancel"),
+    });
+    if (isConfirmed) {
+      rules.clear();
+    }
   };
 
   useEffect(() => {
@@ -844,9 +856,7 @@ function UserRules({ subRules, rules }) {
         <Button
           size="small"
           variant="outlined"
-          onClick={() => {
-            rules.clear();
-          }}
+          onClick={handleClearAll}
           startIcon={<ClearAllIcon />}
         >
           {i18n("clear_all")}
