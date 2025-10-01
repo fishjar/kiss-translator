@@ -271,6 +271,7 @@ export class Translator {
   #translationTagName = APP_NAME; // 翻译容器的标签名
   #eventName = ""; // 通信事件名称
   #docInfo = {}; // 网页信息
+  #glossary = {}; // AI词典
   #textClass = {}; // 译文样式class
   #textSheet = ""; // 译文样式字典
   #apiSetting = null;
@@ -334,6 +335,7 @@ export class Translator {
     );
     this.#placeholderRegex = this.#createPlaceholderRegex();
     this.#parseTerms(this.#rule.terms);
+    this.#parseAITerms(this.#rule.aiTerms);
     this.#createTextStyles();
 
     this.#boundMouseMoveHandler = this.#handleMouseMove.bind(this);
@@ -509,6 +511,24 @@ export class Translator {
 
     if (termPatterns.length > 0) {
       this.#combinedTermsRegex = new RegExp(termPatterns.join("|"), "g");
+    }
+  }
+
+  #parseAITerms(termsString) {
+    if (!termsString || typeof termsString !== "string") return;
+
+    try {
+      this.#glossary = Object.fromEntries(
+        termsString
+          .split(/\n|;/)
+          .map((line) => {
+            const [k = "", v = ""] = line.split(",").map((s) => s.trim());
+            return [k, v];
+          })
+          .filter(([k]) => k)
+      );
+    } catch (err) {
+      kissLog("parse aiterms", err);
     }
   }
 
@@ -1157,6 +1177,7 @@ export class Translator {
       toLang,
       apiSetting: this.#apiSetting,
       docInfo: this.#docInfo,
+      glossary: this.#glossary,
     });
   }
 

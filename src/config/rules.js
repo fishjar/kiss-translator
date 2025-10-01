@@ -80,6 +80,7 @@ export const DEFAULT_RULE = {
   selector: "", // 选择器
   keepSelector: "", // 保留元素选择器
   terms: "", // 专业术语
+  aiTerms: "", // AI专业术语
   apiSlug: GLOBAL_KEY, // 翻译服务
   fromLang: GLOBAL_KEY, // 源语言
   toLang: GLOBAL_KEY, // 目标语言
@@ -116,6 +117,7 @@ export const GLOBLA_RULE = {
   selector: DEFAULT_SELECTOR, // 选择器
   keepSelector: DEFAULT_KEEP_SELECTOR, // 保留元素选择器
   terms: "", // 专业术语
+  aiTerms: "", // AI专业术语
   apiSlug: OPT_TRANS_MICROSOFT, // 翻译服务
   fromLang: "auto", // 源语言
   toLang: "zh-CN", // 目标语言

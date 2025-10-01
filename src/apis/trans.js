@@ -573,6 +573,7 @@ export const genTransReq = async ({ reqHook, resHook, ...args }) => {
     to,
     texts,
     docInfo,
+    glossary,
     customHeader,
     customBody,
   } = args;
@@ -587,7 +588,14 @@ export const genTransReq = async ({ reqHook, resHook, ...args }) => {
 
   if (API_SPE_TYPES.ai.has(apiType)) {
     args.systemPrompt = genSystemPrompt({ systemPrompt, from, to });
-    args.userPrompt = genUserPrompt({ userPrompt, from, to, texts, docInfo });
+    args.userPrompt = genUserPrompt({
+      userPrompt,
+      from,
+      to,
+      texts,
+      docInfo,
+      glossary,
+    });
   }
 
   const {
@@ -784,7 +792,17 @@ export const parseTransRes = async (
  */
 export const handleTranslate = async (
   texts = [],
-  { from, to, fromLang, toLang, langMap, docInfo, apiSetting, usePool }
+  {
+    from,
+    to,
+    fromLang,
+    toLang,
+    langMap,
+    docInfo,
+    glossary,
+    apiSetting,
+    usePool,
+  }
 ) => {
   let history = null;
   let hisMsgs = [];
@@ -815,6 +833,7 @@ export const handleTranslate = async (
     toLang,
     langMap,
     docInfo,
+    glossary,
     hisMsgs,
     token,
     ...apiSetting,

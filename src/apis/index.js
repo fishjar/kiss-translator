@@ -217,6 +217,7 @@ export const apiTranslate = async ({
   toLang,
   apiSetting = DEFAULT_API_SETTING,
   docInfo = {},
+  glossary = {},
   useCache = true,
   usePool = true,
 }) => {
@@ -265,6 +266,7 @@ export const apiTranslate = async ({
       toLang,
       langMap,
       docInfo,
+      glossary,
       apiSetting,
       usePool,
       batchInterval,
@@ -285,6 +287,7 @@ export const apiTranslate = async ({
       toLang,
       langMap,
       docInfo,
+      glossary,
       apiSetting,
       usePool,
     });

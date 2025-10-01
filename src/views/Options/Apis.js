@@ -352,49 +352,6 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
             multiline
             maxRows={10}
           /> */}
-
-          {/* <Box>
-            <Grid container spacing={2} columns={12}>
-              <Grid item xs={6} sm={6} md={6} lg={3}>
-                <ReusableAutocomplete
-                  freeSolo
-                  size="small"
-                  fullWidth
-                  options={BUILTIN_PLACEHOLDERS}
-                  name="placeholder"
-                  label={i18n("placeholder")}
-                  value={placeholder}
-                  onChange={handleChange}
-                />
-              </Grid>
-              <Grid item xs={6} sm={6} md={6} lg={3}>
-                <ReusableAutocomplete
-                  freeSolo
-                  size="small"
-                  fullWidth
-                  options={BUILTIN_TAG_NAMES}
-                  name="tagName"
-                  label={i18n("tag_name")}
-                  value={tagName}
-                  onChange={handleChange}
-                />
-              </Grid>
-              <Grid item xs={6} sm={6} md={6} lg={3}>
-                <TextField
-                  select
-                  size="small"
-                  fullWidth
-                  name="aiTerms"
-                  value={aiTerms}
-                  label={i18n("ai_terms")}
-                  onChange={handleChange}
-                >
-                  <MenuItem value={true}>{i18n("enable")}</MenuItem>
-                  <MenuItem value={false}>{i18n("disable")}</MenuItem>
-                </TextField>
-              </Grid>
-            </Grid>
-          </Box> */}
         </>
       )}
 

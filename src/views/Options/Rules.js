@@ -95,6 +95,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
     rootsSelector = "",
     ignoreSelector = "",
     terms = "",
+    aiTerms = "",
     selectStyle = "",
     parentStyle = "",
     injectJs = "",
@@ -443,30 +444,6 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 ))}
               </TextField>
             </Grid>
-            {/* <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
-                select
-                size="small"
-                fullWidth
-                name="transTiming"
-                value={transTiming}
-                label={i18n("trigger_mode")}
-                disabled={disabled}
-                onChange={handleChange}
-              >
-                {GlobalItem}
-                {OPT_TIMING_ALL.map((item) => (
-                  <MenuItem key={item} value={item}>
-                    {i18n(item)}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid> */}
-          </Grid>
-        </Box>
-
-        <Box>
-          <Grid container spacing={2} columns={12}>
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
@@ -497,6 +474,25 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 onChange={handleChange}
               />
             </Grid>
+            {/* <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                select
+                size="small"
+                fullWidth
+                name="transTiming"
+                value={transTiming}
+                label={i18n("trigger_mode")}
+                disabled={disabled}
+                onChange={handleChange}
+              >
+                {GlobalItem}
+                {OPT_TIMING_ALL.map((item) => (
+                  <MenuItem key={item} value={item}>
+                    {i18n(item)}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid> */}
           </Grid>
         </Box>
 
@@ -522,6 +518,17 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
               helperText={i18n("terms_helper")}
               name="terms"
               value={terms}
+              disabled={disabled}
+              onChange={handleChange}
+              multiline
+              maxRows={10}
+            />
+            <TextField
+              size="small"
+              label={i18n("ai_terms")}
+              helperText={i18n("ai_terms_helper")}
+              name="aiTerms"
+              value={aiTerms}
               disabled={disabled}
               onChange={handleChange}
               multiline

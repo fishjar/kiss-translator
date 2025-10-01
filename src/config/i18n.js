@@ -668,6 +668,16 @@ export const I18N = {
     en: `1. Supports regular expression matching, no slash required, and no modifiers are supported. 2. Separate multiple terms with newlines or semicolons ";". 3. Terms and translations are separated by English commas ",". 4. If there is no translation, the term will be deemed not to be translated.`,
     zh_TW: `1. 支援正則表達式比對，無需斜線，且不支援修飾符。2. 多條術語以換行或分號「;」分隔。3. 術語與譯文以英文逗號「,」分隔。4. 無譯文者視為不翻譯該術語。`,
   },
+  ai_terms: {
+    zh: `AI专业术语`,
+    en: `AI Terms`,
+    zh_TW: `AI專業術語`,
+  },
+  ai_terms_helper: {
+    zh: `1、AI智能替换，不支持正则表达式。2、多条术语用换行或分号“;”隔开。3、术语和译文用英文逗号“,”隔开。4、没有译文视为不翻译术语。`,
+    en: `1. AI intelligent replacement does not support regular expressions.2. Separate multiple terms with newlines or semicolons ";". 3. Terms and translations are separated by English commas ",". 4. If there is no translation, the term will be deemed not to be translated.`,
+    zh_TW: `1.AI智能替換，不支援正規表示式。2. 多條術語以換行或分號「;」分隔。3. 術語與譯文以英文逗號「,」分隔。4. 無譯文者視為不翻譯該術語。`,
+  },
   selector_style: {
     zh: `选择器节点样式`,
     en: `Selector Style`,
@@ -1452,11 +1462,6 @@ export const I18N = {
     zh: `占位标签名`,
     en: `Placeholder tag name`,
     zh_TW: `佔位標名`,
-  },
-  ai_terms: {
-    zh: `AI识别术语表`,
-    en: `AI Identification Glossary`,
-    zh_TW: `AI辨識術語表`,
   },
   system_prompt_helper: {
     zh: `在未完全理解默认Prompt的情况下，请勿随意修改，否则可能翻译失败。`,
