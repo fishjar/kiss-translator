@@ -198,7 +198,7 @@ const RULES_MAP = {
 export const BUILTIN_RULES = Object.entries(RULES_MAP)
   .sort((a, b) => a[0].localeCompare(b[0]))
   .map(([pattern, rule]) => ({
-    ...DEFAULT_RULE,
+    // ...DEFAULT_RULE,
     ...rule,
     pattern,
   }));

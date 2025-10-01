@@ -82,7 +82,7 @@ export const matchRule = async (href, { injectRules, subrulesList }) => {
     // "detectRemote",
     // "fixerFunc",
   ].forEach((key) => {
-    if (rule[key] === undefined || rule[key] === GLOBAL_KEY) {
+    if (!rule[key] || rule[key] === GLOBAL_KEY) {
       rule[key] = globalRule[key];
     }
   });
@@ -90,7 +90,7 @@ export const matchRule = async (href, { injectRules, subrulesList }) => {
   // if (!rule.skipLangs || rule.skipLangs.length === 0) {
   //   rule.skipLangs = globalRule.skipLangs;
   // }
-  if (rule.textStyle === GLOBAL_KEY) {
+  if (!rule.textStyle || rule.textStyle === GLOBAL_KEY) {
     rule.textStyle = globalRule.textStyle;
     rule.bgColor = globalRule.bgColor;
     rule.textDiyStyle = globalRule.textDiyStyle;
