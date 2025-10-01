@@ -99,10 +99,61 @@ async function showFab(translator) {
  * @param {*} message
  */
 function showErr(message) {
-  const $err = document.createElement("div");
-  $err.innerText = `KISS-Translator: ${message}`;
-  $err.style.cssText = "background:red; color:#fff;";
-  document.body.prepend($err);
+  const bannerId = "KISS-Translator-Message";
+  const existingBanner = document.getElementById(bannerId);
+  if (existingBanner) {
+    existingBanner.remove();
+  }
+
+  const banner = document.createElement("div");
+  banner.id = bannerId;
+
+  Object.assign(banner.style, {
+    position: "fixed",
+    top: "0",
+    left: "0",
+    width: "100%",
+    backgroundColor: "#f44336",
+    color: "white",
+    textAlign: "center",
+    padding: "8px 16px",
+    zIndex: "1001",
+    boxSizing: "border-box",
+    fontSize: "16px",
+    boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
+  });
+
+  const closeButton = document.createElement("span");
+  closeButton.innerHTML = "&times;";
+
+  Object.assign(closeButton.style, {
+    position: "absolute",
+    top: "50%",
+    right: "20px",
+    transform: "translateY(-50%)",
+    cursor: "pointer",
+    fontSize: "22px",
+    fontWeight: "bold",
+  });
+
+  const messageText = document.createTextNode(`KISS-Translator: ${message}`);
+  banner.appendChild(messageText);
+  banner.appendChild(closeButton);
+
+  document.body.appendChild(banner);
+
+  const removeBanner = () => {
+    banner.style.transition = "opacity 0.5s ease";
+    banner.style.opacity = "0";
+    setTimeout(() => {
+      if (banner && banner.parentNode) {
+        banner.parentNode.removeChild(banner);
+      }
+    }, 500);
+  };
+
+  closeButton.onclick = removeBanner;
+  setTimeout(removeBanner, 10000);
 }
 
 /**

@@ -321,7 +321,7 @@ export default function Settings() {
                 size="small"
                 name="langDetector"
                 value={langDetector}
-                label={i18n("detect_lang_serve")}
+                label={i18n("detect_lang_service")}
                 onChange={handleChange}
               >
                 {OPT_LANGDETECTOR_ALL.map((item) => (
