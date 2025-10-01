@@ -139,7 +139,7 @@ export const BUILTIN_STONES = [
   "concise", // 简明风格
 ];
 export const BUILTIN_PLACEHOLDERS = ["{ }", "{{ }}", "[ ]", "[[ ]]"];
-export const BUILTIN_PLACETAGS = ["i", "a", "x", "span"];
+export const BUILTIN_PLACETAGS = ["i", "a", "b", "x"];
 
 export const OPT_LANGS_TO = [
   ["en", "English - English"],

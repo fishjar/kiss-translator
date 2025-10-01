@@ -641,7 +641,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
                 >
                   {BUILTIN_PLACETAGS.map((item) => (
                     <MenuItem key={item} value={item}>
-                      {`<${item}N>`}
+                      {`<${item}>`}
                     </MenuItem>
                   ))}
                 </TextField>
