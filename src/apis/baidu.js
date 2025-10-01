@@ -1,7 +1,6 @@
-import queryString from "query-string";
 import { DEFAULT_USER_AGENT } from "../config";
 
-export const genBaidu = async ({ texts, from, to }) => {
+export const genBaidu = ({ texts, from, to }) => {
   const data = {
     from,
     to,
@@ -9,16 +8,12 @@ export const genBaidu = async ({ texts, from, to }) => {
     source: "txt",
   };
 
-  const input = "https://fanyi.baidu.com/transapi";
-  const init = {
-    headers: {
-      // Origin: "https://fanyi.baidu.com",
-      "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
-      "User-Agent": DEFAULT_USER_AGENT,
-    },
-    method: "POST",
-    body: queryString.stringify(data),
+  const url = "https://fanyi.baidu.com/transapi";
+  const headers = {
+    // Origin: "https://fanyi.baidu.com",
+    "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+    "User-Agent": DEFAULT_USER_AGENT,
   };
 
-  return [input, init];
+  return { url, data, headers };
 };

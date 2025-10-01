@@ -24,6 +24,7 @@ import {
   // INPUT_PLACE_TEXT,
   INPUT_PLACE_KEY,
   INPUT_PLACE_MODEL,
+  DEFAULT_USER_AGENT,
 } from "../config";
 import { msAuth } from "../libs/auth";
 import { genDeeplFree } from "./deepl";
@@ -227,8 +228,7 @@ const genTencent = ({ texts, from, to }) => {
   const url = "https://transmart.qq.com/api/imt";
   const headers = {
     "Content-Type": "application/json",
-    "user-agent":
-      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36",
+    "user-agent": DEFAULT_USER_AGENT,
     referer: "https://transmart.qq.com/zh-CN/index",
   };
 
@@ -551,7 +551,17 @@ const genInit = ({
     headers,
   };
   if (method !== "GET" && method !== "HEAD" && data) {
-    Object.assign(init, { body: JSON.stringify(data) });
+    let body = JSON.stringify(data);
+    const id = data?.params?.id;
+    if (id) {
+      body = body.replace(
+        'method":"',
+        (id + 3) % 13 === 0 || (id + 5) % 29 === 0
+          ? 'method" : "'
+          : 'method": "'
+      );
+    }
+    Object.assign(init, { body });
   }
 
   return [url, init, userMsg];
