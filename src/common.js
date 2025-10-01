@@ -201,7 +201,7 @@ export async function run(isUserscript = false) {
 
     // 翻译网页
     const rule = await matchRule(href, setting);
-    const translator = new Translator(rule, setting);
+    const translator = new Translator(rule, setting, isUserscript);
 
     // 适配iframe
     if (isIframe) {

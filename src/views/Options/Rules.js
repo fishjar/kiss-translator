@@ -474,25 +474,6 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 onChange={handleChange}
               />
             </Grid>
-            {/* <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
-                select
-                size="small"
-                fullWidth
-                name="transTiming"
-                value={transTiming}
-                label={i18n("trigger_mode")}
-                disabled={disabled}
-                onChange={handleChange}
-              >
-                {GlobalItem}
-                {OPT_TIMING_ALL.map((item) => (
-                  <MenuItem key={item} value={item}>
-                    {i18n(item)}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid> */}
           </Grid>
         </Box>
 

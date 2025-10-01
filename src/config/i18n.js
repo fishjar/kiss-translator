@@ -355,9 +355,9 @@ export const I18N = {
     zh_TW: `滾動載入翻譯（建議）`,
   },
   mk_pageopen: {
-    zh: `页面打开全部翻译`,
-    en: `Page Open`,
-    zh_TW: `頁面開啟全部翻譯`,
+    zh: `立即全部翻译`,
+    en: `Translate all now`,
+    zh_TW: `立即全部翻譯`,
   },
   mk_mouseover: {
     zh: `鼠标悬停翻译`,

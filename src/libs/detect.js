@@ -51,9 +51,9 @@ export const tryDetectLang = async (
     try {
       const res = await browser?.i18n?.detectLanguage(text);
       const lang = res?.languages?.[0]?.language;
-      if (OPT_LANGS_MAP.has(lang)) {
+      if (lang && OPT_LANGS_MAP.has(lang)) {
         deLang = lang;
-      } else if (lang.startsWith("zh")) {
+      } else if (lang?.startsWith("zh")) {
         deLang = "zh-CN";
       }
     } catch (err) {

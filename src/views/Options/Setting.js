@@ -122,6 +122,7 @@ export default function Settings() {
     preInit = true,
     skipLangs = [],
     detectRemote = true,
+    transAllnow = false,
   } = setting;
   const { isHide = false, fabClickAction = 0 } = fab || {};
 
@@ -298,6 +299,20 @@ export default function Settings() {
                 <MenuItem value={0}>{i18n("hide_context_menus")}</MenuItem>
                 <MenuItem value={1}>{i18n("simple_context_menus")}</MenuItem>
                 <MenuItem value={2}>{i18n("secondary_context_menus")}</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                select
+                size="small"
+                fullWidth
+                name="transAllnow"
+                value={transAllnow}
+                label={i18n("trigger_mode")}
+                onChange={handleChange}
+              >
+                <MenuItem value={false}>{i18n("mk_pagescroll")}</MenuItem>
+                <MenuItem value={true}>{i18n("mk_pageopen")}</MenuItem>
               </TextField>
             </Grid>
             <Grid item xs={12} sm={12} md={6} lg={3}>

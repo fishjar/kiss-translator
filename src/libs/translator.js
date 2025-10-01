@@ -309,7 +309,7 @@ export class Translator {
     return `${Translator.BUILTIN_IGNORE_SELECTOR}, ${this.#rule.ignoreSelector}`;
   }
 
-  constructor(rule = {}, setting = {}, isUserscript) {
+  constructor(rule = {}, setting = {}, isUserscript = false) {
     this.#setting = { ...Translator.DEFAULT_OPTIONS, ...setting };
     this.#rule = { ...Translator.DEFAULT_RULE, ...rule };
     this.#apiSetting =
@@ -767,6 +767,16 @@ export class Translator {
 
   // 开始/重新监控节点
   #startObserveNode(node) {
+    if (
+      !this.#observedNodes.has(node) &&
+      this.#enabled &&
+      this.#setting.transAllnow
+    ) {
+      this.#observedNodes.add(node);
+      this.#processNode(node);
+      return;
+    }
+
     // 未监控
     if (!this.#observedNodes.has(node)) {
       this.#observedNodes.add(node);
@@ -992,7 +1002,10 @@ export class Translator {
     wrapper.appendChild(inner);
     nodes[nodes.length - 1].after(wrapper);
 
-    this.#translationNodes.set(wrapper, nodes);
+    this.#translationNodes.set(wrapper, {
+      nodes,
+      isHide: transOnly === "true",
+    });
     const currentRunId = this.#runId;
 
     try {
@@ -1210,8 +1223,9 @@ export class Translator {
     this.#processedNodes.delete(el.parentElement);
 
     // 如果是仅显示译文模式，先恢复原文
-    if (this.#rule.transOnly === "true") {
-      this.#restoreOriginal(el);
+    const { nodes, isHide } = this.#translationNodes.get(el) || {};
+    if (isHide) {
+      this.#restoreOriginal(el, nodes);
     }
 
     this.#translationNodes.delete(el);
@@ -1219,8 +1233,7 @@ export class Translator {
   }
 
   // 恢复原文
-  #restoreOriginal(el) {
-    const nodes = this.#translationNodes.get(el);
+  #restoreOriginal(el, nodes) {
     if (nodes) {
       const frag = document.createDocumentFragment();
       nodes.forEach((n) => frag.appendChild(n));
@@ -1231,23 +1244,27 @@ export class Translator {
 
   // 移除多个节点
   #removeNodes(nodes) {
-    const frag = document.createDocumentFragment();
-    nodes.forEach((n) => frag.appendChild(n));
+    if (nodes) {
+      const frag = document.createDocumentFragment();
+      nodes.forEach((n) => frag.appendChild(n));
+    }
   }
 
   // 切换译文和双语显示
   #toggleTranslationOnly(node, transOnly) {
     this.#findTranslationWrappers(node).forEach((el) => {
       const br = el.querySelector(":scope > br");
+      const { nodes } = this.#translationNodes.get(el) || {};
       if (transOnly === "true") {
         // 双语变为仅译文
         if (br) br.hidden = true;
-        const nodes = this.#translationNodes.get(el) || [];
         this.#removeNodes(nodes);
+        this.#translationNodes.set(el, { nodes, isHide: true });
       } else {
         // 仅译文变为双语
-        this.#restoreOriginal(el);
         if (br) br.hidden = false;
+        this.#restoreOriginal(el, nodes);
+        this.#translationNodes.set(el, { nodes, isHide: false });
       }
     });
   }
@@ -1396,7 +1413,11 @@ export class Translator {
     this.#runId++;
 
     if (this.#isInitialized) {
-      this.#reIOViewNodes();
+      if (this.#setting.transAllnow) {
+        this.rescan();
+      } else {
+        this.#reIOViewNodes();
+      }
     } else {
       this.#init();
     }
@@ -1507,7 +1528,7 @@ export class Translator {
       }
     }
 
-    if (needsRescan) {
+    if (needsRescan || (this.#enabled && this.#setting.transAllnow)) {
       this.rescan();
       return;
     }

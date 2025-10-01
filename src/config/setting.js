@@ -149,4 +149,5 @@ export const DEFAULT_SETTING = {
   langDetector: OPT_TRANS_MICROSOFT, // 远程语言识别服务
   mouseHoverSetting: DEFAULT_MOUSE_HOVER_SETTING, // 鼠标悬停翻译
   preInit: true, // 是否预加载脚本
+  transAllnow: false, // 是否立即全部翻译
 };
