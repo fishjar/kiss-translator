@@ -40,8 +40,8 @@ import {
   OPT_ALL_TYPES,
   API_SPE_TYPES,
   BUILTIN_STONES,
-  // BUILTIN_PLACEHOULDERS,
-  // BUILTIN_TAG_NAMES,
+  BUILTIN_PLACEHOLDERS,
+  BUILTIN_PLACETAGS,
 } from "../../config";
 
 function TestButton({ apiSlug, api }) {
@@ -233,8 +233,8 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
     useContext = false,
     contextSize = DEFAULT_CONTEXT_SIZE,
     tone = "neutral",
-    // placeholder = "{ }",
-    // tagName = "i",
+    placeholder = BUILTIN_PLACEHOLDERS[0],
+    placetag = BUILTIN_PLACETAGS[0],
     // aiTerms = false,
   } = formData;
 
@@ -360,7 +360,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
                   freeSolo
                   size="small"
                   fullWidth
-                  options={BUILTIN_PLACEHOULDERS}
+                  options={BUILTIN_PLACEHOLDERS}
                   name="placeholder"
                   label={i18n("placeholder")}
                   value={placeholder}
@@ -610,6 +610,45 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
 
       {showMore && (
         <>
+          <Box>
+            <Grid container spacing={2} columns={12}>
+              <Grid item xs={12} sm={12} md={6} lg={3}>
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  name="placeholder"
+                  value={placeholder}
+                  label={i18n("api_placeholder")}
+                  onChange={handleChange}
+                >
+                  {BUILTIN_PLACEHOLDERS.map((item) => (
+                    <MenuItem key={item} value={item}>
+                      {item}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+              <Grid item xs={12} sm={12} md={6} lg={3}>
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  name="placetag"
+                  value={placetag}
+                  label={i18n("api_placetag")}
+                  onChange={handleChange}
+                >
+                  {BUILTIN_PLACETAGS.map((item) => (
+                    <MenuItem key={item} value={item}>
+                      {`<${item}N>`}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+            </Grid>
+          </Box>
+
           <TextField
             size="small"
             label={i18n("custom_header")}

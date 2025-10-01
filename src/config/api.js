@@ -138,8 +138,8 @@ export const BUILTIN_STONES = [
   "machine-like", // 机器风格
   "concise", // 简明风格
 ];
-export const BUILTIN_PLACEHOULDERS = ["{ }", "{{ }}", "[ ]", "[[ ]]"];
-export const BUILTIN_TAG_NAMES = ["i", "a", "span"];
+export const BUILTIN_PLACEHOLDERS = ["{ }", "{{ }}", "[ ]", "[[ ]]"];
+export const BUILTIN_PLACETAGS = ["i", "a", "x", "span"];
 
 export const OPT_LANGS_TO = [
   ["en", "English - English"],
@@ -357,10 +357,10 @@ const defaultApi = {
   model: "", // 模型名称
   systemPrompt: defaultSystemPrompt,
   userPrompt: "",
-  tone: "neutral", // 翻译风格
-  placeholder: "{ }", // 占位符（todo: 备用）
-  tagName: "i", // 标签符 （todo: 备用）
-  aiTerms: false, // AI智能专业术语 （todo: 备用）
+  tone: BUILTIN_STONES[0], // 翻译风格
+  placeholder: BUILTIN_PLACEHOLDERS[0], // 占位符
+  placetag: [BUILTIN_PLACETAGS[0]], // 占位标签
+  // aiTerms: false, // AI智能专业术语 （todo: 备用）
   customHeader: "",
   customBody: "",
   reqHook: "", // request 钩子函数

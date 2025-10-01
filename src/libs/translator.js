@@ -209,13 +209,6 @@ export class Translator {
     /^\d{1,2}:\d{2}(:\d{2})?$/,
   ];
 
-  // 占位符
-  static PLACEHOLDER = {
-    startDelimiter: "{",
-    endDelimiter: "}",
-    tagName: "i",
-  };
-
   static DEFAULT_OPTIONS = DEFAULT_SETTING; // 默认配置
   static DEFAULT_RULE = GLOBLA_RULE; // 默认规则
 
@@ -280,6 +273,12 @@ export class Translator {
   #docInfo = {}; // 网页信息
   #textClass = {}; // 译文样式class
   #textSheet = ""; // 译文样式字典
+  #apiSetting = null;
+  #placeholder = {
+    startDelimiter: "{",
+    endDelimiter: "}",
+    tagName: "i",
+  };
 
   #isUserscript = false;
   #transboxManager = null; // 划词翻译
@@ -312,6 +311,18 @@ export class Translator {
   constructor(rule = {}, setting = {}, isUserscript) {
     this.#setting = { ...Translator.DEFAULT_OPTIONS, ...setting };
     this.#rule = { ...Translator.DEFAULT_RULE, ...rule };
+    this.#apiSetting =
+      this.#setting.transApis.find(
+        (api) => api.apiSlug === this.#rule.apiSlug
+      ) || DEFAULT_API_SETTING;
+    const [startDelimiter, endDelimiter] =
+      this.#apiSetting.placeholder.split(" ");
+    this.#placeholder = {
+      startDelimiter,
+      endDelimiter,
+      tagName: this.#apiSetting.placetag,
+    };
+
     this.#isUserscript = isUserscript;
     this.#eventName = genEventName();
     this.#docInfo = {
@@ -437,11 +448,9 @@ export class Translator {
 
   #createPlaceholderRegex() {
     const escapedStart = Translator.escapeRegex(
-      Translator.PLACEHOLDER.startDelimiter
+      this.#placeholder.startDelimiter
     );
-    const escapedEnd = Translator.escapeRegex(
-      Translator.PLACEHOLDER.endDelimiter
-    );
+    const escapedEnd = Translator.escapeRegex(this.#placeholder.endDelimiter);
     const patternString = `(${escapedStart}\\d+${escapedEnd}|<\\/?\\w+\\d+>)`;
     const flags = "g";
     return new RegExp(patternString, flags);
@@ -1031,10 +1040,11 @@ export class Translator {
     let replaceCounter = 0; // {{n}}
     let wrapCounter = 0; // <tagn>
     const placeholderMap = new Map();
+    const { startDelimiter, endDelimiter } = this.#placeholder;
 
     const pushReplace = (html) => {
       replaceCounter++;
-      const placeholder = `${Translator.PLACEHOLDER.startDelimiter}${replaceCounter}${Translator.PLACEHOLDER.endDelimiter}`;
+      const placeholder = `${startDelimiter}${replaceCounter}${endDelimiter}`;
       placeholderMap.set(placeholder, html);
       return placeholder;
     };
@@ -1095,8 +1105,8 @@ export class Translator {
 
         if (Translator.TAGS.WARP.has(node.tagName)) {
           wrapCounter++;
-          const startPlaceholder = `<${Translator.PLACEHOLDER.tagName}${wrapCounter}>`;
-          const endPlaceholder = `</${Translator.PLACEHOLDER.tagName}${wrapCounter}>`;
+          const startPlaceholder = `<${this.#placeholder.tagName}${wrapCounter}>`;
+          const endPlaceholder = `</${this.#placeholder.tagName}${wrapCounter}>`;
           placeholderMap.set(startPlaceholder, buildOpeningTag(node));
           placeholderMap.set(endPlaceholder, `</${node.localName}>`);
           return `${startPlaceholder}${innerContent}${endPlaceholder}`;
@@ -1139,16 +1149,13 @@ export class Translator {
 
   // 发起翻译请求
   #translateFetch(text, deLang = "") {
-    const { apiSlug, fromLang, toLang } = this.#rule;
-    const apiSetting =
-      this.#setting.transApis.find((api) => api.apiSlug === apiSlug) ||
-      DEFAULT_API_SETTING;
+    const { fromLang, toLang } = this.#rule;
 
     return apiTranslate({
       text,
       fromLang: deLang || fromLang,
       toLang,
-      apiSetting,
+      apiSetting: this.#apiSetting,
       docInfo: this.#docInfo,
     });
   }

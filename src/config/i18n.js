@@ -1493,4 +1493,14 @@ export const I18N = {
     en: `Mini/Regular Mode`,
     zh_TW: `迷你/常規模式`,
   },
+  api_placeholder: {
+    zh: `占位符`,
+    en: `Placeholder`,
+    zh_TW: `佔位符`,
+  },
+  api_placetag: {
+    zh: `占位标签`,
+    en: `Placeholder tags`,
+    zh_TW: `佔位標`,
+  },
 };
