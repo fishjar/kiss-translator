@@ -1478,4 +1478,19 @@ export const I18N = {
     en: `To import vocabulary, please use a txt file with one word per line.`,
     zh_TW: `匯入詞彙請使用txt文件，每一行一個單字。`,
   },
+  btn_tip_click_away: {
+    zh: `失焦隐藏/显示`,
+    en: `Loss of focus hide/show`,
+    zh_TW: `失焦隱藏/顯示`,
+  },
+  btn_tip_follow_selection: {
+    zh: `跟随/固定模式`,
+    en: `Follow/Fixed Mode`,
+    zh_TW: `跟隨/固定模式`,
+  },
+  btn_tip_simple_style: {
+    zh: `迷你/常规模式`,
+    en: `Mini/Regular Mode`,
+    zh_TW: `迷你/常規模式`,
+  },
 };

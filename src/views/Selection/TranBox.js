@@ -38,6 +38,8 @@ function Header({
   setFollowSelection,
   mouseHover,
 }) {
+  const i18n = useI18n();
+
   if (!isMobile && simpleStyle && !mouseHover) {
     return;
   }
@@ -66,6 +68,7 @@ function Header({
         <Stack direction="row" alignItems="center">
           <IconButton
             size="small"
+            title={i18n("btn_tip_click_away")}
             onClick={() => {
               setHideClickAway((pre) => !pre);
             }}
@@ -78,6 +81,7 @@ function Header({
           </IconButton>
           <IconButton
             size="small"
+            title={i18n("btn_tip_follow_selection")}
             onClick={() => {
               setFollowSelection((pre) => !pre);
             }}
@@ -90,6 +94,7 @@ function Header({
           </IconButton>
           <IconButton
             size="small"
+            title={i18n("btn_tip_simple_style")}
             onClick={() => {
               setSimpleStyle((pre) => !pre);
             }}
