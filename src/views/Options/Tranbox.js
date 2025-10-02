@@ -51,7 +51,7 @@ export default function Tranbox() {
 
   const {
     transOpen,
-    apiSlug,
+    apiSlugs,
     fromLang,
     toLang,
     toLang2 = "en",
@@ -88,15 +88,18 @@ export default function Tranbox() {
 
         <Box>
           <Grid container spacing={2} columns={12}>
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={12} lg={6}>
               <TextField
                 select
                 fullWidth
                 size="small"
-                name="apiSlug"
-                value={apiSlug}
-                label={i18n("translate_service")}
+                name="apiSlugs"
+                value={apiSlugs}
+                label={i18n("translate_service_multiple")}
                 onChange={handleChange}
+                SelectProps={{
+                  multiple: true,
+                }}
               >
                 {enabledApis.map((api) => (
                   <MenuItem key={api.apiSlug} value={api.apiSlug}>

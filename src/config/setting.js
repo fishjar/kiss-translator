@@ -74,7 +74,7 @@ export const OPT_TRANBOX_TRIGGER_ALL = [
 export const DEFAULT_TRANBOX_SHORTCUT = ["AltLeft", "KeyS"];
 export const DEFAULT_TRANBOX_SETTING = {
   transOpen: true, // 是否启用划词翻译
-  apiSlug: OPT_TRANS_MICROSOFT,
+  apiSlugs: [OPT_TRANS_MICROSOFT],
   fromLang: "auto",
   toLang: "zh-CN",
   toLang2: "en",
@@ -127,7 +127,7 @@ export const DEFAULT_SETTING = {
   injectRules: true, // 是否注入订阅规则
   fabClickAction: 0, // 悬浮按钮点击行为
   // injectWebfix: true, // 是否注入修复补丁(作废)
-  detectRemote: false, // 是否使用远程语言检测 （从rule移回）
+  // detectRemote: false, // 是否使用远程语言检测 （从rule移回）
   // contextMenus: true, // 是否添加右键菜单(作废)
   contextMenuType: 1, // 右键菜单类型(0不显示，1简单菜单，2多级菜单)
   // transTag: DEFAULT_TRANS_TAG, // 译文元素标签(移至rule，作废)
@@ -146,7 +146,7 @@ export const DEFAULT_SETTING = {
   // disableLangs: [], // 不翻译的语言(移至rule，作废)
   skipLangs: [], // 不翻译的语言（从rule移回）
   transInterval: 100, // 翻译等待时间
-  langDetector: OPT_TRANS_MICROSOFT, // 远程语言识别服务
+  langDetector: "-", // 远程语言识别服务
   mouseHoverSetting: DEFAULT_MOUSE_HOVER_SETTING, // 鼠标悬停翻译
   preInit: true, // 是否预加载脚本
   transAllnow: false, // 是否立即全部翻译

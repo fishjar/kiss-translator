@@ -849,14 +849,9 @@ export class Translator {
     // 提前进行语言检测
     let deLang = "";
     const { fromLang = "auto", toLang } = this.#rule;
-    const { detectRemote, skipLangs = [] } = this.#setting;
+    const { langDetector, skipLangs = [] } = this.#setting;
     if (fromLang === "auto") {
-      const { langDetector } = this.#setting;
-      deLang = await tryDetectLang(
-        node.textContent,
-        detectRemote,
-        langDetector
-      );
+      deLang = await tryDetectLang(node.textContent, langDetector);
       if (
         deLang &&
         (toLang.slice(0, 2) === deLang.slice(0, 2) ||

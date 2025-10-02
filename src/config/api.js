@@ -56,6 +56,13 @@ export const OPT_ALL_TYPES = [
   OPT_TRANS_CUSTOMIZE,
 ];
 
+export const OPT_LANGDETECTOR_ALL = [
+  OPT_TRANS_GOOGLE,
+  OPT_TRANS_MICROSOFT,
+  OPT_TRANS_BAIDU,
+  OPT_TRANS_TENCENT,
+];
+
 // 翻译引擎特殊集合
 export const API_SPE_TYPES = {
   // 内置翻译
@@ -114,14 +121,8 @@ export const API_SPE_TYPES = {
     OPT_TRANS_OPENROUTER,
     OPT_TRANS_CUSTOMIZE,
   ]),
+  detector: new Set(OPT_LANGDETECTOR_ALL),
 };
-
-export const OPT_LANGDETECTOR_ALL = [
-  OPT_TRANS_GOOGLE,
-  OPT_TRANS_MICROSOFT,
-  OPT_TRANS_BAIDU,
-  OPT_TRANS_TENCENT,
-];
 
 export const BUILTIN_STONES = [
   "formal", // 正式风格

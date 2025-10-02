@@ -344,6 +344,11 @@ export const I18N = {
     en: `Translate Service`,
     zh_TW: `翻譯服務`,
   },
+  translate_service_multiple: {
+    zh: `翻译服务 (支持多选)`,
+    en: `Translation service (multiple supported)`,
+    zh_TW: `翻譯服務 (支援多選)`,
+  },
   translate_timing: {
     zh: `翻译时机`,
     en: `Translate Timing`,

@@ -5,6 +5,7 @@ import {
   OPT_TRANS_TENCENT,
   OPT_LANGS_TO_CODE,
   OPT_LANGS_MAP,
+  API_SPE_TYPES,
 } from "../config";
 import { browser } from "./browser";
 import {
@@ -27,15 +28,11 @@ const langdetectFns = {
  * @param {*} text
  * @returns
  */
-export const tryDetectLang = async (
-  text,
-  detectRemote = true,
-  langDetector = OPT_TRANS_MICROSOFT
-) => {
+export const tryDetectLang = async (text, langDetector = "-") => {
   let deLang = "";
 
   // 远程识别
-  if (detectRemote && langDetector) {
+  if (API_SPE_TYPES.detector.has(langDetector)) {
     try {
       const lang = await langdetectFns[langDetector](text);
       if (lang) {

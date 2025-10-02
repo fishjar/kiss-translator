@@ -18,7 +18,7 @@ export default function TranCont({
   toLang,
   toLang2 = "en",
   transApis,
-  simpleStyle,
+  simpleStyle = false,
   langDetector,
 }) {
   const i18n = useI18n();
@@ -27,6 +27,10 @@ export default function TranCont({
   const [error, setError] = useState("");
 
   useEffect(() => {
+    if (!text?.trim()) {
+      return;
+    }
+
     (async () => {
       try {
         setLoading(true);

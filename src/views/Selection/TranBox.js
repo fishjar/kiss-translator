@@ -287,7 +287,7 @@ function TranForm({
         />
       )}
 
-      {enDict !== "-" && (
+      {enDict !== "-" && isValidWord(text) && (
         <>
           <DictCont text={text} />
           <SugCont text={text} />

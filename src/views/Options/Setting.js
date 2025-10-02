@@ -13,7 +13,6 @@ import {
   UI_LANGS,
   TRANS_NEWLINE_LENGTH,
   CACHE_NAME,
-  OPT_TRANS_MICROSOFT,
   OPT_LANGDETECTOR_ALL,
   OPT_SHORTCUT_TRANSLATE,
   OPT_SHORTCUT_STYLE,
@@ -118,10 +117,10 @@ export default function Settings() {
     blacklist = DEFAULT_BLACKLIST.join(",\n"),
     csplist = DEFAULT_CSPLIST.join(",\n"),
     transInterval = 100,
-    langDetector = OPT_TRANS_MICROSOFT,
+    langDetector = "-",
     preInit = true,
     skipLangs = [],
-    detectRemote = true,
+    // detectRemote = true,
     transAllnow = false,
   } = setting;
   const { isHide = false, fabClickAction = 0 } = fab || {};
@@ -315,7 +314,7 @@ export default function Settings() {
                 <MenuItem value={true}>{i18n("mk_pageopen")}</MenuItem>
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            {/* <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
                 size="small"
@@ -328,7 +327,7 @@ export default function Settings() {
                 <MenuItem value={true}>{i18n("enable")}</MenuItem>
                 <MenuItem value={false}>{i18n("disable")}</MenuItem>
               </TextField>
-            </Grid>
+            </Grid> */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
@@ -336,9 +335,10 @@ export default function Settings() {
                 size="small"
                 name="langDetector"
                 value={langDetector}
-                label={i18n("detect_lang_service")}
+                label={i18n("detect_lang_remote")}
                 onChange={handleChange}
               >
+                <MenuItem value={"-"}>{i18n("disable")}</MenuItem>
                 {OPT_LANGDETECTOR_ALL.map((item) => (
                   <MenuItem value={item} key={item}>
                     {item}
