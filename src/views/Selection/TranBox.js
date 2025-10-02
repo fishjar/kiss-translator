@@ -2,13 +2,9 @@ import { SettingProvider } from "../../hooks/Setting";
 import ThemeProvider from "../../hooks/Theme";
 import DraggableResizable from "./DraggableResizable";
 import Stack from "@mui/material/Stack";
-import TextField from "@mui/material/TextField";
-import MenuItem from "@mui/material/MenuItem";
-import Grid from "@mui/material/Grid";
 import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
-import DoneIcon from "@mui/icons-material/Done";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
 import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
@@ -19,14 +15,9 @@ import LockOpenIcon from "@mui/icons-material/LockOpen";
 import CloseIcon from "@mui/icons-material/Close";
 import Typography from "@mui/material/Typography";
 import { useI18n } from "../../hooks/I18n";
-import { OPT_LANGS_FROM, OPT_LANGS_TO } from "../../config";
-import { useState, useRef, useMemo } from "react";
-import TranCont from "./TranCont";
-import DictCont from "./DictCont";
-import SugCont from "./SugCont";
-import CopyBtn from "./CopyBtn";
-import { isValidWord } from "../../libs/utils";
+import { useState } from "react";
 import { isMobile } from "../../libs/mobile";
+import TranForm from "./TranForm.js";
 
 function Header({
   setShowPopup,
@@ -46,7 +37,6 @@ function Header({
 
   return (
     <Box
-      className="KT-transbox-header"
       onMouseUp={(e) => e.stopPropagation()}
       onTouchEnd={(e) => e.stopPropagation()}
     >
@@ -120,188 +110,11 @@ function Header({
   );
 }
 
-function TranForm({
-  text,
-  setText,
-  tranboxSetting,
-  transApis,
-  simpleStyle,
-  langDetector,
-  enDict,
-}) {
-  const i18n = useI18n();
-
-  const [editMode, setEditMode] = useState(false);
-  const [editText, setEditText] = useState("");
-  const [apiSlug, setApiSlug] = useState(tranboxSetting.apiSlug);
-  const [fromLang, setFromLang] = useState(tranboxSetting.fromLang);
-  const [toLang, setToLang] = useState(tranboxSetting.toLang);
-  const inputRef = useRef(null);
-
-  const optApis = useMemo(
-    () =>
-      transApis
-        .filter((api) => !api.isDisabled)
-        .map((api) => ({
-          key: api.apiSlug,
-          name: api.apiName || api.apiSlug,
-        })),
-    [transApis]
-  );
-
-  return (
-    <Stack
-      className="KT-transbox-container"
-      sx={{ p: simpleStyle ? 1 : 2 }}
-      spacing={simpleStyle ? 1 : 2}
-    >
-      {!simpleStyle && (
-        <>
-          <Box className="KT-transbox-select">
-            <Grid container spacing={simpleStyle ? 1 : 2} columns={12}>
-              <Grid item xs={4} sm={4} md={4} lg={4}>
-                <TextField
-                  select
-                  SelectProps={{ MenuProps: { disablePortal: true } }}
-                  fullWidth
-                  size="small"
-                  name="fromLang"
-                  value={fromLang}
-                  label={i18n("from_lang")}
-                  onChange={(e) => {
-                    setFromLang(e.target.value);
-                  }}
-                >
-                  {OPT_LANGS_FROM.map(([lang, name]) => (
-                    <MenuItem key={lang} value={lang}>
-                      {name}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
-              <Grid item xs={4} sm={4} md={4} lg={4}>
-                <TextField
-                  select
-                  SelectProps={{ MenuProps: { disablePortal: true } }}
-                  fullWidth
-                  size="small"
-                  name="toLang"
-                  value={toLang}
-                  label={i18n("to_lang")}
-                  onChange={(e) => {
-                    setToLang(e.target.value);
-                  }}
-                >
-                  {OPT_LANGS_TO.map(([lang, name]) => (
-                    <MenuItem key={lang} value={lang}>
-                      {name}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
-              <Grid item xs={4} sm={4} md={4} lg={4}>
-                <TextField
-                  select
-                  SelectProps={{ MenuProps: { disablePortal: true } }}
-                  fullWidth
-                  size="small"
-                  value={apiSlug}
-                  name="apiSlug"
-                  label={i18n("translate_service")}
-                  onChange={(e) => {
-                    setApiSlug(e.target.value);
-                  }}
-                >
-                  {optApis.map(({ key, name }) => (
-                    <MenuItem key={key} value={key}>
-                      {name}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
-            </Grid>
-          </Box>
-
-          <Box className="KT-transbox-origin">
-            <TextField
-              size="small"
-              label={i18n("original_text")}
-              inputRef={inputRef}
-              fullWidth
-              multiline
-              value={editMode ? editText : text}
-              onChange={(e) => {
-                setEditText(e.target.value);
-              }}
-              onFocus={() => {
-                setEditMode(true);
-                setEditText(text);
-              }}
-              onBlur={() => {
-                setEditMode(false);
-                setText(editText.trim());
-              }}
-              InputProps={{
-                endAdornment: (
-                  <Stack
-                    direction="row"
-                    sx={{
-                      position: "absolute",
-                      right: 0,
-                      top: 0,
-                    }}
-                  >
-                    {editMode ? (
-                      <IconButton
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                        }}
-                      >
-                        <DoneIcon fontSize="inherit" />
-                      </IconButton>
-                    ) : (
-                      <CopyBtn text={text} />
-                    )}
-                  </Stack>
-                ),
-              }}
-            />
-          </Box>
-        </>
-      )}
-
-      {(!simpleStyle ||
-        !isValidWord(text) ||
-        !toLang.startsWith("zh") ||
-        enDict === "-") && (
-        <TranCont
-          text={text}
-          apiSlug={apiSlug}
-          fromLang={fromLang}
-          toLang={toLang}
-          toLang2={tranboxSetting.toLang2}
-          transApis={transApis}
-          simpleStyle={simpleStyle}
-          langDetector={langDetector}
-        />
-      )}
-
-      {enDict !== "-" && isValidWord(text) && (
-        <>
-          <DictCont text={text} />
-          <SugCont text={text} />
-        </>
-      )}
-    </Stack>
-  );
-}
-
 export default function TranBox({
   text,
   setText,
   setShowBox,
-  tranboxSetting,
+  tranboxSetting: { apiSlugs, fromLang, toLang, toLang2 },
   transApis,
   boxSize,
   setBoxSize,
@@ -313,7 +126,7 @@ export default function TranBox({
   setHideClickAway,
   followSelection,
   setFollowSelection,
-  extStyles,
+  extStyles = "",
   langDetector,
   enDict,
 }) {
@@ -343,15 +156,20 @@ export default function TranBox({
           onMouseEnter={() => setMouseHover(true)}
           onMouseLeave={() => setMouseHover(false)}
         >
-          <TranForm
-            text={text}
-            setText={setText}
-            tranboxSetting={tranboxSetting}
-            transApis={transApis}
-            simpleStyle={simpleStyle}
-            langDetector={langDetector}
-            enDict={enDict}
-          />
+          <Box sx={{ p: simpleStyle ? 1 : 2 }}>
+            <TranForm
+              text={text}
+              setText={setText}
+              apiSlugs={apiSlugs}
+              fromLang={fromLang}
+              toLang={toLang}
+              toLang2={toLang2}
+              transApis={transApis}
+              simpleStyle={simpleStyle}
+              langDetector={langDetector}
+              enDict={enDict}
+            />
+          </Box>
         </DraggableResizable>
       </ThemeProvider>
     </SettingProvider>

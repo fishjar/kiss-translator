@@ -1513,4 +1513,14 @@ export const I18N = {
     en: `Placeholder tags`,
     zh_TW: `佔位標`,
   },
+  detected_lang: {
+    zh: `语言检测`,
+    en: `Language detection`,
+    zh_TW: `語言偵測`,
+  },
+  detected_result: {
+    zh: `检测结果`,
+    en: `Detect result`,
+    zh_TW: `檢測結果`,
+  },
 };

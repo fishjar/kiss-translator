@@ -63,6 +63,9 @@ export const OPT_LANGDETECTOR_ALL = [
   OPT_TRANS_TENCENT,
 ];
 
+export const OPT_DICT_ALL = [OPT_TRANS_BAIDU];
+export const OPT_DICT_MAP = new Set(OPT_DICT_ALL);
+
 // 翻译引擎特殊集合
 export const API_SPE_TYPES = {
   // 内置翻译

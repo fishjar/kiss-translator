@@ -14,7 +14,7 @@ import ApiIcon from "@mui/icons-material/Api";
 import InputIcon from "@mui/icons-material/Input";
 import SelectAllIcon from "@mui/icons-material/SelectAll";
 import EventNoteIcon from "@mui/icons-material/EventNote";
-import MouseIcon from '@mui/icons-material/Mouse';
+import MouseIcon from "@mui/icons-material/Mouse";
 
 function LinkItem({ label, url, icon }) {
   const match = useMatch(url);
@@ -75,6 +75,12 @@ export default function Navigator(props) {
       id: "words",
       label: i18n("favorite_words"),
       url: "/words",
+      icon: <EventNoteIcon />,
+    },
+    {
+      id: "playground",
+      label: "Playground",
+      url: "/playground",
       icon: <EventNoteIcon />,
     },
     { id: "about", label: i18n("about"), url: "/about", icon: <InfoIcon /> },

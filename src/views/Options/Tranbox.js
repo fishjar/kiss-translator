@@ -10,6 +10,7 @@ import {
   OPT_TRANBOX_TRIGGER_CLICK,
   OPT_TRANBOX_TRIGGER_ALL,
   OPT_DICT_BAIDU,
+  OPT_DICT_ALL,
 } from "../../config";
 import ShortcutInput from "./ShortcutInput";
 import FormControlLabel from "@mui/material/FormControlLabel";
@@ -65,7 +66,7 @@ export default function Tranbox() {
     simpleStyle = false,
     followSelection = false,
     triggerMode = OPT_TRANBOX_TRIGGER_CLICK,
-    extStyles = "",
+    // extStyles = "",
     enDict = OPT_DICT_BAIDU,
   } = tranboxSetting;
 
@@ -153,7 +154,8 @@ export default function Tranbox() {
                 helperText={i18n("to_lang2_helper")}
                 onChange={handleChange}
               >
-                {[["none", "None"], ...OPT_LANGS_TO].map(([lang, name]) => (
+                <MenuItem value={"-"}>{i18n("disable")}</MenuItem>
+                {OPT_LANGS_TO.map(([lang, name]) => (
                   <MenuItem key={lang} value={lang}>
                     {name}
                   </MenuItem>
@@ -172,7 +174,11 @@ export default function Tranbox() {
                 onChange={handleChange}
               >
                 <MenuItem value={"-"}>{i18n("disable")}</MenuItem>
-                <MenuItem value={OPT_DICT_BAIDU}>{OPT_DICT_BAIDU}</MenuItem>
+                {OPT_DICT_ALL.map((item) => (
+                  <MenuItem value={item} key={item}>
+                    {item}
+                  </MenuItem>
+                ))}
               </TextField>
             </Grid>
             <Grid item xs={12} sm={12} md={6} lg={3}>
@@ -305,7 +311,7 @@ export default function Tranbox() {
           </Grid>
         </Box>
 
-        <TextField
+        {/* <TextField
           size="small"
           label={i18n("extend_styles")}
           name="extStyles"
@@ -313,7 +319,7 @@ export default function Tranbox() {
           onChange={handleChange}
           maxRows={10}
           multiline
-        />
+        /> */}
       </Stack>
     </Box>
   );

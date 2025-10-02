@@ -30,7 +30,7 @@ export default function Slection({
     followSelection: initFollowMouse = false,
     tranboxShortcut = DEFAULT_TRANBOX_SHORTCUT,
     triggerMode = OPT_TRANBOX_TRIGGER_CLICK,
-    extStyles,
+    // extStyles,
     btnOffsetX,
     btnOffsetY,
     boxOffsetX = 0,
@@ -236,7 +236,7 @@ export default function Slection({
           setHideClickAway={setHideClickAway}
           followSelection={followSelection}
           setFollowSelection={setFollowSelection}
-          extStyles={extStyles}
+          // extStyles={extStyles}
           langDetector={langDetector}
           enDict={enDict}
         />

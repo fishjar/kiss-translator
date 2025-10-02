@@ -88,7 +88,7 @@ export const DEFAULT_TRANBOX_SETTING = {
   simpleStyle: false, // 是否简洁界面
   followSelection: false, // 翻译框是否跟随选中文本
   triggerMode: OPT_TRANBOX_TRIGGER_CLICK, // 触发翻译方式
-  extStyles: "", // 附加样式
+  // extStyles: "", // 附加样式
   enDict: OPT_DICT_BAIDU, // 英文词典
 };
 

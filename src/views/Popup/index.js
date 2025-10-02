@@ -317,20 +317,6 @@ export default function Popup({ setShowPopup, translator }) {
               control={
                 <Switch
                   size="small"
-                  name="transOnly"
-                  value={transOnly === "true" ? "false" : "true"}
-                  checked={transOnly === "true"}
-                  onChange={handleChange}
-                />
-              }
-              label={i18n("transonly_alt")}
-            />
-          </Grid>
-          <Grid item xs={6}>
-            <FormControlLabel
-              control={
-                <Switch
-                  size="small"
                   name="hasRichText"
                   value={hasRichText === "true" ? "false" : "true"}
                   checked={hasRichText === "true"}
@@ -338,6 +324,20 @@ export default function Popup({ setShowPopup, translator }) {
                 />
               }
               label={i18n("richtext_alt")}
+            />
+          </Grid>
+          <Grid item xs={6}>
+            <FormControlLabel
+              control={
+                <Switch
+                  size="small"
+                  name="transOnly"
+                  value={transOnly === "true" ? "false" : "true"}
+                  checked={transOnly === "true"}
+                  onChange={handleChange}
+                />
+              }
+              label={i18n("transonly_alt")}
             />
           </Grid>
           <Grid item xs={6}>
