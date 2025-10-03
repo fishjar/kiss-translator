@@ -1,9 +1,9 @@
 import IconButton from "@mui/material/IconButton";
 import VolumeUpIcon from "@mui/icons-material/VolumeUp";
-import { useTextAudio } from "../../hooks/Audio";
+import { useAudio } from "../../hooks/Audio";
 
-export default function AudioBtn({ text, lan = "uk" }) {
-  const { error, ready, playing, onPlay } = useTextAudio(text, lan);
+export default function AudioBtn({ src }) {
+  const { error, ready, playing, onPlay } = useAudio(src);
 
   if (error || !ready) {
     return (

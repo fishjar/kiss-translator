@@ -22,6 +22,7 @@ import { apiTranslate } from "../../apis";
 import { OPT_TRANS_BAIDU, PHONIC_MAP } from "../../config";
 import { useConfirm } from "../../hooks/Confirm";
 import { useSetting } from "../../hooks/Setting";
+import { DICT_MAP } from "../Selection/DictMap";
 
 function FavAccordion({ word, index }) {
   const [expanded, setExpanded] = useState(false);
@@ -55,6 +56,7 @@ function FavAccordion({ word, index }) {
 export default function FavWords() {
   const i18n = useI18n();
   const { favList, wordList, mergeWords, clearWords } = useFavWords();
+  const { setting } = useSetting();
   const confirm = useConfirm();
 
   const handleImport = (data) => {
@@ -80,41 +82,22 @@ export default function FavWords() {
   };
 
   const handleTranslation = async () => {
+    const { enDict } = setting?.tranboxSetting;
+    const dict = DICT_MAP[enDict];
+    if (!dict) return "";
+
     const tranList = [];
-    for (const text of wordList) {
+    for (const word of wordList) {
       try {
-        // todo: 修复
-        const dictRes = await apiTranslate({
-          text,
-          translator: OPT_TRANS_BAIDU,
-          fromLang: "en",
-          toLang: "zh-CN",
-        });
-        if (dictRes[2]?.type === 1) {
-          tranList.push(JSON.parse(dictRes[2].result));
-        }
+        const data = await dict.apiFn(word);
+        const tran = dict.toText(data);
+        tranList.push([word, tran].join("\n"));
       } catch (err) {
         // skip
       }
     }
 
-    return tranList
-      .map((dictResult) =>
-        [
-          `## ${dictResult.src}`,
-          dictResult.voice
-            ?.map(Object.entries)
-            .map((item) => item[0])
-            .map(([key, val]) => `${PHONIC_MAP[key]?.[0] || key} ${val}`)
-            .join(" "),
-          dictResult.content[0].mean
-            .map(({ pre, cont }) => {
-              return `  - ${pre ? `[${pre}] ` : ""}${Object.keys(cont).join("; ")}`;
-            })
-            .join("\n"),
-        ].join("\n\n")
-      )
-      .join("\n\n");
+    return tranList.join("\n\n");
   };
 
   return (

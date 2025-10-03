@@ -14,8 +14,9 @@ export const INPUT_PLACE_KEY = "{{key}}"; // 占位符
 export const INPUT_PLACE_MODEL = "{{model}}"; // 占位符
 
 export const OPT_DICT_BAIDU = "Baidu";
+export const OPT_DICT_BING = "Bing";
 export const OPT_DICT_YOUDAO = "Youdao";
-export const OPT_DICT_ALL = [OPT_DICT_BAIDU, OPT_DICT_YOUDAO];
+export const OPT_DICT_ALL = [OPT_DICT_BING, OPT_DICT_YOUDAO];
 export const OPT_DICT_MAP = new Set(OPT_DICT_ALL);
 
 export const OPT_SUG_BAIDU = "Baidu";

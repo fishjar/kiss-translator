@@ -1,90 +1,28 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Stack from "@mui/material/Stack";
 import FavBtn from "./FavBtn";
 import Typography from "@mui/material/Typography";
-import AudioBtn from "./AudioBtn";
 import CircularProgress from "@mui/material/CircularProgress";
 import Divider from "@mui/material/Divider";
 import Alert from "@mui/material/Alert";
-import { OPT_DICT_BAIDU, OPT_DICT_YOUDAO, PHONIC_MAP } from "../../config";
 import CopyBtn from "./CopyBtn";
 import { useAsyncNow } from "../../hooks/Fetch";
-import { apiYoudaoDict } from "../../apis";
+import { DICT_MAP } from "./DictMap";
 
-function DictBaidu({ text, setCopyText }) {
-  // useEffect(() => {
-  //   if (!data) {
-  //     return;
-  //   }
-
-  //   const copyText = [
-  //     data.src,
-  //     data.voice
-  //       ?.map(Object.entries)
-  //       .map((item) => item[0])
-  //       .map(([key, val]) => `${PHONIC_MAP[key]?.[0] || key} ${val}`)
-  //       .join(" "),
-  //     data.content[0].mean
-  //       .map(({ pre, cont }) => {
-  //         return `${pre ? `[${pre}] ` : ""}${Object.keys(cont).join("; ")}`;
-  //       })
-  //       .join("\n"),
-  //   ].join("\n");
-
-  //   setCopyText(copyText);
-  // }, [data, setCopyText]);
-
-  return <Typography>baidu dict not supported yet</Typography>;
-
-  {
-    /* {dictResult && (
-        <Typography component="div">
-          <Typography component="div">
-            {dictResult.voice
-              ?.map(Object.entries)
-              .map((item) => item[0])
-              .map(([key, val]) => (
-                <Typography
-                  component="div"
-                  key={key}
-                  style={{ display: "inline-block" }}
-                >
-                  <Typography component="span">{`${PHONIC_MAP[key]?.[0] || key} ${val}`}</Typography>
-                  <AudioBtn text={dictResult.src} lan={PHONIC_MAP[key]?.[1]} />
-                </Typography>
-              ))}
-          </Typography>
-
-          <Typography component="ul">
-            {dictResult.content[0].mean.map(({ pre, cont }, idx) => (
-              <Typography component="li" key={idx}>
-                {pre && `[${pre}] `}
-                {Object.keys(cont).join("; ")}
-              </Typography>
-            ))}
-          </Typography>
-        </Typography>
-      )} */
-  }
-}
-
-function DictYoudao({ text, setCopyText }) {
-  const { loading, error, data } = useAsyncNow(apiYoudaoDict, text);
+function DictBody({ text, setCopyText, dict }) {
+  const { loading, error, data } = useAsyncNow(dict.apiFn, text);
 
   useEffect(() => {
     if (!data) {
       return;
     }
 
-    const copyText = [
-      text,
-      data?.ec?.word?.trs
-        ?.map(({ pos, tran }) => `${pos ? `[${pos}] ` : ""}${tran}`)
-        .join("\n"),
-    ].join("\n");
-
+    const copyText = [text, dict.toText(data)].join("\n");
     setCopyText(copyText);
-  }, [data, setCopyText]);
+  }, [data, text, dict, setCopyText]);
+
+  const uiAudio = useMemo(() => dict.uiAudio(data), [data, dict]);
+  const uiTrans = useMemo(() => dict.uiTrans(data), [data, dict]);
 
   if (loading) {
     return <CircularProgress size={16} />;
@@ -95,30 +33,20 @@ function DictYoudao({ text, setCopyText }) {
   }
 
   if (!data) {
-    return;
+    return <Typography>Empty result</Typography>;
   }
 
   return (
     <Typography component="div">
-      <Typography component="ul">
-        {data?.ec?.word?.trs?.map(({ pos, tran }, idx) => (
-          <Typography component="li" key={idx}>
-            {pos && `[${pos}] `}
-            {tran}
-          </Typography>
-        ))}
-      </Typography>
+      {uiAudio}
+      {uiTrans}
     </Typography>
   );
 }
 
 export default function DictCont({ text, enDict }) {
   const [copyText, setCopyText] = useState(text);
-
-  const dictMap = {
-    [OPT_DICT_BAIDU]: <DictBaidu text={text} setCopyText={setCopyText} />,
-    [OPT_DICT_YOUDAO]: <DictYoudao text={text} setCopyText={setCopyText} />,
-  };
+  const dict = DICT_MAP[enDict];
 
   return (
     <Stack spacing={1}>
@@ -136,7 +64,7 @@ export default function DictCont({ text, enDict }) {
 
       <Divider />
 
-      {dictMap[enDict] || <Typography>Dict not support</Typography>}
+      {dict && <DictBody text={text} setCopyText={setCopyText} dict={dict} />}
     </Stack>
   );
 }

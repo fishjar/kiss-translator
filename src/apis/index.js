@@ -3,6 +3,7 @@ import { fetchData } from "../libs/fetch";
 import {
   URL_CACHE_TRAN,
   URL_CACHE_DELANG,
+  URL_CACHE_BINGDICT,
   KV_SALT_SYNC,
   OPT_LANGS_TO_SPEC,
   OPT_LANGS_SPEC_DEFAULT,
@@ -105,6 +106,60 @@ export const apiMicrosoftLangdetect = async (text) => {
   }
 
   return "";
+};
+
+/**
+ * Microsoft词典
+ * @param {*} text
+ * @returns
+ */
+export const apiMicrosoftDict = async (text) => {
+  const cacheOpts = { text };
+  const cacheInput = `${URL_CACHE_BINGDICT}?${queryString.stringify(cacheOpts)}`;
+  const cache = await getHttpCachePolyfill(cacheInput);
+  if (cache) {
+    return cache;
+  }
+
+  const host = "https://cn.bing.com";
+  const url = `${host}/dict/search?q=${text}`;
+  const str = await fetchData(url, {}, { useCache: false });
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(str, "text/html");
+
+  const word = doc.querySelector("#headword > h1").textContent.trim();
+  if (!word) {
+    return null;
+  }
+
+  const trs = [];
+  doc.querySelectorAll("div.qdef > ul > li").forEach(($li) => {
+    const pos = $li.querySelector(".pos")?.textContent?.trim();
+    const def = $li.querySelector(".def")?.textContent?.trim();
+    trs.push({ pos, def });
+  });
+
+  const aus = [];
+  const $audioUS = doc.querySelector("#bigaud_us");
+  const $audioUK = doc.querySelector("#bigaud_uk");
+  if ($audioUS) {
+    const audioUS = host + $audioUS?.dataset?.mp3link;
+    const $phoneticUS = $audioUS.parentElement?.previousElementSibling;
+    const phoneticUS = $phoneticUS?.textContent?.trim();
+    aus.push({ key: "US", audio: audioUS, phonetic: phoneticUS });
+  }
+  if ($audioUK) {
+    const audioUK = host + $audioUK?.dataset?.mp3link;
+    const $phoneticUK = $audioUK.parentElement?.previousElementSibling;
+    const phoneticUK = $phoneticUK?.textContent?.trim();
+    aus.push({ key: "UK", audio: audioUK, phonetic: phoneticUK });
+  }
+
+  const res = { word, trs, aus };
+  putHttpCachePolyfill(cacheInput, null, res);
+
+  return res;
 };
 
 /**
