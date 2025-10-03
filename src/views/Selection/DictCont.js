@@ -1,81 +1,40 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import Stack from "@mui/material/Stack";
 import FavBtn from "./FavBtn";
 import Typography from "@mui/material/Typography";
 import AudioBtn from "./AudioBtn";
 import CircularProgress from "@mui/material/CircularProgress";
+import Divider from "@mui/material/Divider";
 import Alert from "@mui/material/Alert";
-import { OPT_TRANS_BAIDU, PHONIC_MAP } from "../../config";
-import { apiTranslate } from "../../apis";
-import { isValidWord } from "../../libs/utils";
+import { OPT_DICT_BAIDU, OPT_DICT_YOUDAO, PHONIC_MAP } from "../../config";
 import CopyBtn from "./CopyBtn";
+import { useAsyncNow } from "../../hooks/Fetch";
+import { apiYoudaoDict } from "../../apis";
 
 function DictBaidu({ text, setCopyText }) {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [dictResult, setDictResult] = useState(null);
+  // useEffect(() => {
+  //   if (!data) {
+  //     return;
+  //   }
 
-  useEffect(() => {
-    (async () => {
-      try {
-        setLoading(true);
-        setError("");
-        setDictResult(null);
+  //   const copyText = [
+  //     data.src,
+  //     data.voice
+  //       ?.map(Object.entries)
+  //       .map((item) => item[0])
+  //       .map(([key, val]) => `${PHONIC_MAP[key]?.[0] || key} ${val}`)
+  //       .join(" "),
+  //     data.content[0].mean
+  //       .map(({ pre, cont }) => {
+  //         return `${pre ? `[${pre}] ` : ""}${Object.keys(cont).join("; ")}`;
+  //       })
+  //       .join("\n"),
+  //   ].join("\n");
 
-        // if (!isValidWord(text)) {
-        //   return;
-        // }
+  //   setCopyText(copyText);
+  // }, [data, setCopyText]);
 
-        // // todo: 修复
-        // const dictRes = await apiTranslate({
-        //   text,
-        //   apiSlug: OPT_TRANS_BAIDU,
-        //   fromLang: "en",
-        //   toLang: "zh-CN",
-        // });
-
-        // if (dictRes[2]?.type === 1) {
-        //   setDictResult(JSON.parse(dictRes[2].result));
-        // }
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [text]);
-
-  useEffect(() => {
-    if (!dictResult) {
-      return;
-    }
-
-    const copyText = [
-      dictResult.src,
-      dictResult.voice
-        ?.map(Object.entries)
-        .map((item) => item[0])
-        .map(([key, val]) => `${PHONIC_MAP[key]?.[0] || key} ${val}`)
-        .join(" "),
-      dictResult.content[0].mean
-        .map(({ pre, cont }) => {
-          return `${pre ? `[${pre}] ` : ""}${Object.keys(cont).join("; ")}`;
-        })
-        .join("\n"),
-    ].join("\n");
-
-    setCopyText(copyText);
-  }, [dictResult, setCopyText]);
-
-  if (loading) {
-    return <CircularProgress size={16} />;
-  }
-
-  if (error) {
-    return <Alert severity="error">{error}</Alert>;
-  }
-
-  return <Typography>baidu: {text}</Typography>;
+  return <Typography>baidu dict not supported yet</Typography>;
 
   {
     /* {dictResult && (
@@ -109,11 +68,56 @@ function DictBaidu({ text, setCopyText }) {
   }
 }
 
+function DictYoudao({ text, setCopyText }) {
+  const { loading, error, data } = useAsyncNow(apiYoudaoDict, text);
+
+  useEffect(() => {
+    if (!data) {
+      return;
+    }
+
+    const copyText = [
+      text,
+      data?.ec?.word?.trs
+        ?.map(({ pos, tran }) => `${pos ? `[${pos}] ` : ""}${tran}`)
+        .join("\n"),
+    ].join("\n");
+
+    setCopyText(copyText);
+  }, [data, setCopyText]);
+
+  if (loading) {
+    return <CircularProgress size={16} />;
+  }
+
+  if (error) {
+    return <Alert severity="error">{error}</Alert>;
+  }
+
+  if (!data) {
+    return;
+  }
+
+  return (
+    <Typography component="div">
+      <Typography component="ul">
+        {data?.ec?.word?.trs?.map(({ pos, tran }, idx) => (
+          <Typography component="li" key={idx}>
+            {pos && `[${pos}] `}
+            {tran}
+          </Typography>
+        ))}
+      </Typography>
+    </Typography>
+  );
+}
+
 export default function DictCont({ text, enDict }) {
   const [copyText, setCopyText] = useState(text);
 
   const dictMap = {
-    [OPT_TRANS_BAIDU]: <DictBaidu text={text} setCopyText={setCopyText} />,
+    [OPT_DICT_BAIDU]: <DictBaidu text={text} setCopyText={setCopyText} />,
+    [OPT_DICT_YOUDAO]: <DictYoudao text={text} setCopyText={setCopyText} />,
   };
 
   return (
@@ -129,6 +133,8 @@ export default function DictCont({ text, enDict }) {
           </Stack>
         </Stack>
       )}
+
+      <Divider />
 
       {dictMap[enDict] || <Typography>Dict not support</Typography>}
     </Stack>

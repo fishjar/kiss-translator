@@ -5,7 +5,7 @@ import { useI18n, useI18nMd } from "../../hooks/I18n";
 
 export default function About() {
   const i18n = useI18n();
-  const [data, loading, error] = useI18nMd("about_md");
+  const { data, loading, error } = useI18nMd("about_md");
   return (
     <Box>
       {loading ? (

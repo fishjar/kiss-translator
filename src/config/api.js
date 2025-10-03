@@ -14,6 +14,14 @@ export const INPUT_PLACE_KEY = "{{key}}"; // 占位符
 export const INPUT_PLACE_MODEL = "{{model}}"; // 占位符
 
 export const OPT_DICT_BAIDU = "Baidu";
+export const OPT_DICT_YOUDAO = "Youdao";
+export const OPT_DICT_ALL = [OPT_DICT_BAIDU, OPT_DICT_YOUDAO];
+export const OPT_DICT_MAP = new Set(OPT_DICT_ALL);
+
+export const OPT_SUG_BAIDU = "Baidu";
+export const OPT_SUG_YOUDAO = "Youdao";
+export const OPT_SUG_ALL = [OPT_SUG_BAIDU, OPT_SUG_YOUDAO];
+export const OPT_SUG_MAP = new Set(OPT_SUG_ALL);
 
 export const OPT_TRANS_GOOGLE = "Google";
 export const OPT_TRANS_GOOGLE_2 = "Google2";
@@ -62,9 +70,6 @@ export const OPT_LANGDETECTOR_ALL = [
   OPT_TRANS_BAIDU,
   OPT_TRANS_TENCENT,
 ];
-
-export const OPT_DICT_ALL = [OPT_TRANS_BAIDU];
-export const OPT_DICT_MAP = new Set(OPT_DICT_ALL);
 
 // 翻译引擎特殊集合
 export const API_SPE_TYPES = {

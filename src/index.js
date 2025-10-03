@@ -7,14 +7,15 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
 import Link from "@mui/material/Link";
-import { useFetch } from "./hooks/Fetch";
+import { useGet } from "./hooks/Fetch";
 import { I18N, URL_RAW_PREFIX } from "./config";
 
 function App() {
   const [lang, setLang] = useState("zh");
-  const [data, loading, error] = useFetch(
+  const { data, loading, error } = useGet(
     `${URL_RAW_PREFIX}/${I18N?.["about_md"]?.[lang]}`
   );
+
   return (
     <Paper sx={{ padding: 2, margin: 2 }}>
       <Stack spacing={2} direction="row" justifyContent="flex-end">
@@ -47,7 +48,7 @@ function App() {
           <CircularProgress />
         </center>
       ) : (
-        <ReactMarkdown children={error ? error.message : data} />
+        <ReactMarkdown children={error || data} />
       )}
     </Paper>
   );

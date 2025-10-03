@@ -12,8 +12,10 @@ import {
   OPT_LANGS_TO,
   OPT_LANGDETECTOR_ALL,
   OPT_DICT_ALL,
+  OPT_SUG_ALL,
   OPT_LANGS_MAP,
   OPT_DICT_MAP,
+  OPT_SUG_MAP,
 } from "../../config";
 import { useState, useMemo, useEffect } from "react";
 import TranCont from "./TranCont";
@@ -30,11 +32,12 @@ export default function TranForm({
   apiSlugs: initApiSlugs,
   fromLang: initFromLang,
   toLang: initToLang,
-  toLang2,
+  toLang2: initToLang2,
   transApis,
   simpleStyle = false,
   langDetector: initLangDetector = "-",
   enDict: initEnDict = "-",
+  enSug: initEnSug = "-",
   isPlaygound = false,
 }) {
   const i18n = useI18n();
@@ -44,10 +47,18 @@ export default function TranForm({
   const [apiSlugs, setApiSlugs] = useState(initApiSlugs);
   const [fromLang, setFromLang] = useState(initFromLang);
   const [toLang, setToLang] = useState(initToLang);
+  const [toLang2, setToLang2] = useState(initToLang2);
   const [langDetector, setLangDetector] = useState(initLangDetector);
   const [enDict, setEnDict] = useState(initEnDict);
+  const [enSug, setEnSug] = useState(initEnSug);
   const [deLang, setDeLang] = useState("");
   const [deLoading, setDeLoading] = useState(false);
+
+  useEffect(() => {
+    if (!editMode) {
+      setEditText(text);
+    }
+  }, [text, editMode]);
 
   useEffect(() => {
     if (!text.trim()) {
@@ -96,6 +107,7 @@ export default function TranForm({
   );
 
   const isWord = useMemo(() => isValidWord(text), [text]);
+  const xs = useMemo(() => (isPlaygound ? 3 : 4), [isPlaygound]);
 
   return (
     <Stack spacing={simpleStyle ? 1 : 2}>
@@ -103,18 +115,18 @@ export default function TranForm({
         <>
           <Box>
             <Grid container spacing={2} columns={12}>
-              <Grid item xs={4} sm={4} md={4} lg={4}>
+              <Grid item xs={xs}>
                 <TextField
                   select
                   SelectProps={{
                     multiple: true,
-                    MenuProps: { disablePortal: true },
+                    MenuProps: { disablePortal: !isPlaygound },
                   }}
                   fullWidth
                   size="small"
                   value={apiSlugs}
                   name="apiSlugs"
-                  label={i18n("translate_service")}
+                  label={i18n("translate_service_multiple")}
                   onChange={(e) => {
                     setApiSlugs(e.target.value);
                   }}
@@ -126,10 +138,10 @@ export default function TranForm({
                   ))}
                 </TextField>
               </Grid>
-              <Grid item xs={4} sm={4} md={4} lg={4}>
+              <Grid item xs={xs}>
                 <TextField
                   select
-                  SelectProps={{ MenuProps: { disablePortal: true } }}
+                  SelectProps={{ MenuProps: { disablePortal: !isPlaygound } }}
                   fullWidth
                   size="small"
                   name="fromLang"
@@ -146,10 +158,10 @@ export default function TranForm({
                   ))}
                 </TextField>
               </Grid>
-              <Grid item xs={4} sm={4} md={4} lg={4}>
+              <Grid item xs={xs}>
                 <TextField
                   select
-                  SelectProps={{ MenuProps: { disablePortal: true } }}
+                  SelectProps={{ MenuProps: { disablePortal: !isPlaygound } }}
                   fullWidth
                   size="small"
                   name="toLang"
@@ -166,72 +178,119 @@ export default function TranForm({
                   ))}
                 </TextField>
               </Grid>
+
+              {isPlaygound && (
+                <>
+                  <Grid item xs={xs}>
+                    <TextField
+                      select
+                      SelectProps={{
+                        MenuProps: { disablePortal: !isPlaygound },
+                      }}
+                      fullWidth
+                      size="small"
+                      name="toLang2"
+                      value={toLang2}
+                      label={i18n("to_lang2")}
+                      onChange={(e) => {
+                        setToLang2(e.target.value);
+                      }}
+                    >
+                      {OPT_LANGS_TO.map(([lang, name]) => (
+                        <MenuItem key={lang} value={lang}>
+                          {name}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  </Grid>
+                  <Grid item xs={xs}>
+                    <TextField
+                      select
+                      SelectProps={{
+                        MenuProps: { disablePortal: !isPlaygound },
+                      }}
+                      fullWidth
+                      size="small"
+                      name="enDict"
+                      value={enDict}
+                      label={i18n("english_dict")}
+                      onChange={(e) => {
+                        setEnDict(e.target.value);
+                      }}
+                    >
+                      <MenuItem value={"-"}>{i18n("disable")}</MenuItem>
+                      {OPT_DICT_ALL.map((item) => (
+                        <MenuItem value={item} key={item}>
+                          {item}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  </Grid>
+                  <Grid item xs={xs}>
+                    <TextField
+                      select
+                      SelectProps={{
+                        MenuProps: { disablePortal: !isPlaygound },
+                      }}
+                      fullWidth
+                      size="small"
+                      name="enSug"
+                      value={enSug}
+                      label={i18n("english_suggest")}
+                      onChange={(e) => {
+                        setEnSug(e.target.value);
+                      }}
+                    >
+                      <MenuItem value={"-"}>{i18n("disable")}</MenuItem>
+                      {OPT_SUG_ALL.map((item) => (
+                        <MenuItem value={item} key={item}>
+                          {item}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  </Grid>
+                  <Grid item xs={xs}>
+                    <TextField
+                      select
+                      SelectProps={{
+                        MenuProps: { disablePortal: !isPlaygound },
+                      }}
+                      fullWidth
+                      size="small"
+                      name="langDetector"
+                      value={langDetector}
+                      label={i18n("detected_lang")}
+                      onChange={(e) => {
+                        setLangDetector(e.target.value);
+                      }}
+                    >
+                      <MenuItem value={"-"}>{i18n("disable")}</MenuItem>
+                      {OPT_LANGDETECTOR_ALL.map((item) => (
+                        <MenuItem value={item} key={item}>
+                          {item}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  </Grid>
+                  <Grid item xs={xs}>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      name="deLang"
+                      value={deLang && OPT_LANGS_MAP.get(deLang)}
+                      label={i18n("detected_result")}
+                      disabled
+                      InputProps={{
+                        startAdornment: deLoading ? (
+                          <CircularProgress size={16} />
+                        ) : null,
+                      }}
+                    />
+                  </Grid>
+                </>
+              )}
             </Grid>
           </Box>
-
-          {isPlaygound && (
-            <Box>
-              <Grid container spacing={2} columns={12}>
-                <Grid item xs={4} sm={4} md={4} lg={4}>
-                  <TextField
-                    select
-                    SelectProps={{ MenuProps: { disablePortal: true } }}
-                    fullWidth
-                    size="small"
-                    name="enDict"
-                    value={enDict}
-                    label={i18n("english_dict")}
-                    onChange={(e) => {
-                      setEnDict(e.target.value);
-                    }}
-                  >
-                    <MenuItem value={"-"}>{i18n("disable")}</MenuItem>
-                    {OPT_DICT_ALL.map((item) => (
-                      <MenuItem value={item} key={item}>
-                        {item}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </Grid>
-                <Grid item xs={4} sm={4} md={4} lg={4}>
-                  <TextField
-                    select
-                    SelectProps={{ MenuProps: { disablePortal: true } }}
-                    fullWidth
-                    size="small"
-                    name="langDetector"
-                    value={langDetector}
-                    label={i18n("detected_lang")}
-                    onChange={(e) => {
-                      setLangDetector(e.target.value);
-                    }}
-                  >
-                    <MenuItem value={"-"}>{i18n("disable")}</MenuItem>
-                    {OPT_LANGDETECTOR_ALL.map((item) => (
-                      <MenuItem value={item} key={item}>
-                        {item}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </Grid>
-                <Grid item xs={4} sm={4} md={4} lg={4}>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    name="deLang"
-                    value={deLang && OPT_LANGS_MAP.get(deLang)}
-                    label={i18n("detected_result")}
-                    disabled
-                    InputProps={{
-                      startAdornment: deLoading ? (
-                        <CircularProgress size={16} />
-                      ) : null,
-                    }}
-                  />
-                </Grid>
-              </Grid>
-            </Box>
-          )}
 
           <Box>
             <TextField
@@ -267,6 +326,8 @@ export default function TranForm({
                         size="small"
                         onClick={(e) => {
                           e.stopPropagation();
+                          setEditMode(false);
+                          setText(editText.trim());
                         }}
                       >
                         <DoneIcon fontSize="inherit" />
@@ -295,10 +356,11 @@ export default function TranForm({
       ))}
 
       {isWord && OPT_DICT_MAP.has(enDict) && (
-        <>
-          <DictCont text={text} enDict={enDict} />
-          <SugCont text={text} />
-        </>
+        <DictCont text={text} enDict={enDict} />
+      )}
+
+      {isWord && OPT_SUG_MAP.has(enSug) && (
+        <SugCont text={text} enSug={enSug} />
       )}
     </Stack>
   );

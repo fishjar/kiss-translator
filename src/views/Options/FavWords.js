@@ -21,9 +21,12 @@ import { kissLog } from "../../libs/log";
 import { apiTranslate } from "../../apis";
 import { OPT_TRANS_BAIDU, PHONIC_MAP } from "../../config";
 import { useConfirm } from "../../hooks/Confirm";
+import { useSetting } from "../../hooks/Setting";
 
 function FavAccordion({ word, index }) {
   const [expanded, setExpanded] = useState(false);
+  const { setting } = useSetting();
+  const { enDict, enSug } = setting?.tranboxSetting || {};
 
   const handleChange = (e) => {
     setExpanded((pre) => !pre);
@@ -40,8 +43,8 @@ function FavAccordion({ word, index }) {
       <AccordionDetails>
         {expanded && (
           <Stack spacing={2}>
-            <DictCont text={word} />
-            <SugCont text={word} />
+            <DictCont text={word} enDict={enDict} />
+            <SugCont text={word} enSug={enSug} />
           </Stack>
         )}
       </AccordionDetails>

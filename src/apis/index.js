@@ -160,6 +160,77 @@ export const apiBaiduSuggest = async (text) => {
 };
 
 /**
+ * 有道翻译建议
+ * @param {*} text
+ * @returns
+ */
+export const apiYoudaoSuggest = async (text) => {
+  const params = {
+    num: 5,
+    ver: 3.0,
+    doctype: "json",
+    cache: false,
+    le: "en",
+    q: text,
+  };
+  const input = `https://dict.youdao.com/suggest?${queryString.stringify(params)}`;
+  const init = {
+    headers: {
+      accept: "application/json, text/plain, */*",
+      "accept-language": "en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7,ja;q=0.6",
+      "content-type": "application/x-www-form-urlencoded",
+    },
+    method: "GET",
+  };
+  const res = await fetchData(input, init, { useCache: true });
+
+  if (res?.result?.code === 200) {
+    await putHttpCachePolyfill(input, init, res);
+    return res.data.entries;
+  }
+
+  return [];
+};
+
+/**
+ * 有道词典
+ * @param {*} text
+ * @returns
+ */
+export const apiYoudaoDict = async (text) => {
+  const params = {
+    doctype: "json",
+    jsonversion: 4,
+  };
+  const input = `https://dict.youdao.com/jsonapi_s?${queryString.stringify(params)}`;
+  const body = queryString.stringify({
+    q: "search",
+    le: "en",
+    t: 3,
+    client: "web",
+    // sign: "",
+    keyfrom: "webdict",
+  });
+  const init = {
+    headers: {
+      accept: "application/json, text/plain, */*",
+      "accept-language": "en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7,ja;q=0.6",
+      "content-type": "application/x-www-form-urlencoded",
+    },
+    method: "POST",
+    body,
+  };
+  const res = await fetchData(input, init, { useCache: true });
+
+  if (res) {
+    await putHttpCachePolyfill(input, init, res);
+    return res;
+  }
+
+  return null;
+};
+
+/**
  * 百度语音
  * @param {*} text
  * @param {*} lan

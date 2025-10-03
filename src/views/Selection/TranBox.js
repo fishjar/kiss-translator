@@ -114,7 +114,7 @@ export default function TranBox({
   text,
   setText,
   setShowBox,
-  tranboxSetting: { apiSlugs, fromLang, toLang, toLang2 },
+  tranboxSetting: { enDict, enSug, apiSlugs, fromLang, toLang, toLang2 },
   transApis,
   boxSize,
   setBoxSize,
@@ -128,7 +128,6 @@ export default function TranBox({
   setFollowSelection,
   extStyles = "",
   langDetector,
-  enDict,
 }) {
   const [mouseHover, setMouseHover] = useState(false);
   // todo: 这里的 SettingProvider 不应和 background 的共用
@@ -168,6 +167,7 @@ export default function TranBox({
               simpleStyle={simpleStyle}
               langDetector={langDetector}
               enDict={enDict}
+              enSug={enSug}
             />
           </Box>
         </DraggableResizable>

@@ -11,6 +11,8 @@ import {
   OPT_TRANBOX_TRIGGER_ALL,
   OPT_DICT_BAIDU,
   OPT_DICT_ALL,
+  OPT_SUG_ALL,
+  OPT_SUG_BAIDU,
 } from "../../config";
 import ShortcutInput from "./ShortcutInput";
 import FormControlLabel from "@mui/material/FormControlLabel";
@@ -68,6 +70,7 @@ export default function Tranbox() {
     triggerMode = OPT_TRANBOX_TRIGGER_CLICK,
     // extStyles = "",
     enDict = OPT_DICT_BAIDU,
+    enSug = OPT_SUG_BAIDU,
   } = tranboxSetting;
 
   return (
@@ -89,7 +92,7 @@ export default function Tranbox() {
 
         <Box>
           <Grid container spacing={2} columns={12}>
-            <Grid item xs={12} sm={12} md={12} lg={6}>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
                 fullWidth
@@ -175,6 +178,24 @@ export default function Tranbox() {
               >
                 <MenuItem value={"-"}>{i18n("disable")}</MenuItem>
                 {OPT_DICT_ALL.map((item) => (
+                  <MenuItem value={item} key={item}>
+                    {item}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                fullWidth
+                select
+                size="small"
+                name="enSug"
+                value={enSug}
+                label={i18n("english_suggest")}
+                onChange={handleChange}
+              >
+                <MenuItem value={"-"}>{i18n("disable")}</MenuItem>
+                {OPT_SUG_ALL.map((item) => (
                   <MenuItem value={item} key={item}>
                     {item}
                   </MenuItem>

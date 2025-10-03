@@ -10,7 +10,6 @@ import {
   OPT_TRANBOX_TRIGGER_CLICK,
   OPT_TRANBOX_TRIGGER_HOVER,
   OPT_TRANBOX_TRIGGER_SELECT,
-  OPT_DICT_BAIDU,
 } from "../../config";
 import { isMobile } from "../../libs/mobile";
 import { kissLog } from "../../libs/log";
@@ -35,7 +34,6 @@ export default function Slection({
     btnOffsetY,
     boxOffsetX = 0,
     boxOffsetY = 10,
-    enDict = OPT_DICT_BAIDU,
   } = tranboxSetting;
 
   const boxWidth =
@@ -238,7 +236,6 @@ export default function Slection({
           setFollowSelection={setFollowSelection}
           // extStyles={extStyles}
           langDetector={langDetector}
-          enDict={enDict}
         />
       )}
 

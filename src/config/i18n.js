@@ -1148,6 +1148,11 @@ export const I18N = {
     en: `Translate Blacklist`,
     zh_TW: `停用翻譯名單`,
   },
+  disabled_orilist: {
+    zh: `禁用Origin名单`,
+    en: `Disabled Origin List`,
+    zh_TW: `停用 Origin 名單`,
+  },
   disabled_csplist: {
     zh: `禁用CSP名单`,
     en: `Disabled CSP List`,
@@ -1322,6 +1327,11 @@ export const I18N = {
     zh: `英文词典`,
     en: `English Dictionary`,
     zh_TW: `英文字典`,
+  },
+  english_suggest: {
+    zh: `英文建议`,
+    en: `English Suggest`,
+    zh_TW: `英文建議`,
   },
   api_name: {
     zh: `接口名称`,

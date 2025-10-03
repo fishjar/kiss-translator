@@ -8,7 +8,7 @@ export default function Playgound() {
   const { setting } = useSetting();
   const { transApis, langDetector, tranboxSetting } =
     setting || DEFAULT_SETTING;
-  const { apiSlugs, fromLang, toLang, toLang2, enDict } =
+  const { apiSlugs, fromLang, toLang, toLang2, enDict, enSug } =
     tranboxSetting || DEFAULT_TRANBOX_SETTING;
   return (
     <TranForm
@@ -22,6 +22,7 @@ export default function Playgound() {
       simpleStyle={false}
       langDetector={langDetector}
       enDict={enDict}
+      enSug={enSug}
       isPlaygound={true}
     />
   );

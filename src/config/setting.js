@@ -1,5 +1,6 @@
 import {
   OPT_DICT_BAIDU,
+  OPT_SUG_BAIDU,
   DEFAULT_HTTP_TIMEOUT,
   OPT_TRANS_MICROSOFT,
   DEFAULT_API_LIST,
@@ -28,6 +29,7 @@ export const DEFAULT_BLACKLIST = [
   "login.dingtalk.com",
 ]; // 禁用翻译名单
 export const DEFAULT_CSPLIST = ["https://github.com"]; // 禁用CSP名单
+export const DEFAULT_ORILIST = ["https://dict.youdao.com"]; // 移除Origin名单
 
 // 同步设置
 export const OPT_SYNCTYPE_WORKER = "KISS-Worker";
@@ -90,6 +92,7 @@ export const DEFAULT_TRANBOX_SETTING = {
   triggerMode: OPT_TRANBOX_TRIGGER_CLICK, // 触发翻译方式
   // extStyles: "", // 附加样式
   enDict: OPT_DICT_BAIDU, // 英文词典
+  enSug: OPT_SUG_BAIDU, // 英文建议
 };
 
 // 订阅列表
@@ -143,6 +146,7 @@ export const DEFAULT_SETTING = {
   touchTranslate: 2, // 触屏翻译
   blacklist: DEFAULT_BLACKLIST.join(",\n"), // 禁用翻译名单
   csplist: DEFAULT_CSPLIST.join(",\n"), // 禁用CSP名单
+  orilist: DEFAULT_ORILIST.join(",\n"), // 禁用CSP名单
   // disableLangs: [], // 不翻译的语言(移至rule，作废)
   skipLangs: [], // 不翻译的语言（从rule移回）
   transInterval: 100, // 翻译等待时间

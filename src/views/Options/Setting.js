@@ -20,6 +20,7 @@ import {
   OPT_SHORTCUT_SETTING,
   DEFAULT_BLACKLIST,
   DEFAULT_CSPLIST,
+  DEFAULT_ORILIST,
   MSG_CONTEXT_MENUS,
   MSG_UPDATE_CSP,
   DEFAULT_HTTP_TIMEOUT,
@@ -79,7 +80,10 @@ export default function Settings() {
         isExt && sendBgMsg(MSG_CONTEXT_MENUS, value);
         break;
       case "csplist":
-        isExt && sendBgMsg(MSG_UPDATE_CSP, value);
+        isExt && sendBgMsg(MSG_UPDATE_CSP, { csplist: value });
+        break;
+      case "orilist":
+        isExt && sendBgMsg(MSG_UPDATE_CSP, { orilist: value });
         break;
       default:
     }
@@ -116,6 +120,7 @@ export default function Settings() {
     touchTranslate = 2,
     blacklist = DEFAULT_BLACKLIST.join(",\n"),
     csplist = DEFAULT_CSPLIST.join(",\n"),
+    orilist = DEFAULT_ORILIST.join(",\n"),
     transInterval = 100,
     langDetector = "-",
     preInit = true,
@@ -396,6 +401,15 @@ export default function Settings() {
               }
               name="csplist"
               value={csplist}
+              onChange={handleChange}
+              multiline
+            />
+            <TextField
+              size="small"
+              label={i18n("disabled_orilist")}
+              helperText={i18n("pattern_helper")}
+              name="orilist"
+              value={orilist}
               onChange={handleChange}
               multiline
             />

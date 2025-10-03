@@ -14,6 +14,7 @@ import {
   MSG_INJECT_CSS,
   MSG_UPDATE_CSP,
   DEFAULT_CSPLIST,
+  DEFAULT_ORILIST,
   CMD_TOGGLE_TRANSLATE,
   CMD_TOGGLE_STYLE,
   CMD_OPEN_OPTIONS,
@@ -33,7 +34,9 @@ import { kissLog } from "./libs/log";
 
 globalThis.ContextType = "BACKGROUND";
 
-const REMOVE_HEADERS = [
+const CSP_RULE_START_ID = 1;
+const ORI_RULE_START_ID = 10000;
+const CSP_REMOVE_HEADERS = [
   `content-security-policy`,
   `content-security-policy-report-only`,
   `x-webkit-csp`,
@@ -94,17 +97,34 @@ async function addContextMenus(contextMenuType = 1) {
  * 更新CSP策略
  * @param {*} csplist
  */
-async function updateCspRules(csplist = DEFAULT_CSPLIST.join(",\n")) {
+async function updateCspRules({ csplist, orilist }) {
   try {
-    const newRules = csplist
-      .split(/\n|,/)
-      .map((url) => url.trim())
-      .filter(Boolean)
-      .map((url, idx) => ({
-        id: idx + 1,
+    const oldRules = await browser.declarativeNetRequest.getDynamicRules();
+
+    const rulesToAdd = [];
+    const idsToRemove = [];
+
+    if (csplist !== undefined) {
+      let processedCspList = csplist;
+      if (typeof processedCspList === "string") {
+        processedCspList = processedCspList
+          .split(/\n|,/)
+          .map((url) => url.trim())
+          .filter(Boolean);
+      }
+
+      const oldCspRuleIds = oldRules
+        .filter(
+          (rule) => rule.id >= CSP_RULE_START_ID && rule.id < ORI_RULE_START_ID
+        )
+        .map((rule) => rule.id);
+      idsToRemove.push(...oldCspRuleIds);
+
+      const newCspRules = processedCspList.map((url, index) => ({
+        id: CSP_RULE_START_ID + index,
         action: {
           type: "modifyHeaders",
-          responseHeaders: REMOVE_HEADERS.map((header) => ({
+          responseHeaders: CSP_REMOVE_HEADERS.map((header) => ({
             operation: "remove",
             header,
           })),
@@ -114,12 +134,43 @@ async function updateCspRules(csplist = DEFAULT_CSPLIST.join(",\n")) {
           resourceTypes: ["main_frame", "sub_frame"],
         },
       }));
-    const oldRules = await browser.declarativeNetRequest.getDynamicRules();
-    const oldRuleIds = oldRules.map((rule) => rule.id);
-    await browser.declarativeNetRequest.updateDynamicRules({
-      removeRuleIds: oldRuleIds,
-      addRules: newRules,
-    });
+      rulesToAdd.push(...newCspRules);
+    }
+
+    if (orilist !== undefined) {
+      let processedOriList = orilist;
+      if (typeof processedOriList === "string") {
+        processedOriList = processedOriList
+          .split(/\n|,/)
+          .map((url) => url.trim())
+          .filter(Boolean);
+      }
+
+      const oldOriRuleIds = oldRules
+        .filter((rule) => rule.id >= ORI_RULE_START_ID)
+        .map((rule) => rule.id);
+      idsToRemove.push(...oldOriRuleIds);
+
+      const newOriRules = processedOriList.map((url, index) => ({
+        id: ORI_RULE_START_ID + index,
+        action: {
+          type: "modifyHeaders",
+          requestHeaders: [{ header: "Origin", operation: "remove" }],
+        },
+        condition: {
+          urlFilter: url,
+          resourceTypes: ["xmlhttprequest"],
+        },
+      }));
+      rulesToAdd.push(...newOriRules);
+    }
+
+    if (idsToRemove.length > 0 || rulesToAdd.length > 0) {
+      await browser.declarativeNetRequest.updateDynamicRules({
+        removeRuleIds: idsToRemove,
+        addRules: rulesToAdd,
+      });
+    }
   } catch (err) {
     kissLog("update csp rules", err);
   }
@@ -149,7 +200,7 @@ browser.runtime.onInstalled.addListener(() => {
   addContextMenus();
 
   // 禁用CSP
-  updateCspRules();
+  updateCspRules({ csplist: DEFAULT_CSPLIST, orilist: DEFAULT_ORILIST });
 });
 
 /**
@@ -159,7 +210,7 @@ browser.runtime.onStartup.addListener(async () => {
   // 同步数据
   await trySyncSettingAndRules();
 
-  const { clearCache, contextMenuType, subrulesList, csplist } =
+  const { clearCache, contextMenuType, subrulesList, csplist, orilist } =
     await getSettingWithDefault();
 
   // 清除缓存
@@ -177,7 +228,7 @@ browser.runtime.onStartup.addListener(async () => {
   addContextMenus(contextMenuType);
 
   // 禁用CSP
-  updateCspRules(csplist);
+  updateCspRules({ csplist, orilist });
 
   // 同步订阅规则
   trySyncAllSubRules({ subrulesList });
