@@ -13,7 +13,7 @@ export const INPUT_PLACE_TEXT = "{{text}}"; // 占位符
 export const INPUT_PLACE_KEY = "{{key}}"; // 占位符
 export const INPUT_PLACE_MODEL = "{{model}}"; // 占位符
 
-export const OPT_DICT_BAIDU = "Baidu";
+// export const OPT_DICT_BAIDU = "Baidu";
 export const OPT_DICT_BING = "Bing";
 export const OPT_DICT_YOUDAO = "Youdao";
 export const OPT_DICT_ALL = [OPT_DICT_BING, OPT_DICT_YOUDAO];
@@ -24,6 +24,7 @@ export const OPT_SUG_YOUDAO = "Youdao";
 export const OPT_SUG_ALL = [OPT_SUG_BAIDU, OPT_SUG_YOUDAO];
 export const OPT_SUG_MAP = new Set(OPT_SUG_ALL);
 
+export const OPT_TRANS_BUILTINAI = "BuiltinAI";
 export const OPT_TRANS_GOOGLE = "Google";
 export const OPT_TRANS_GOOGLE_2 = "Google2";
 export const OPT_TRANS_MICROSOFT = "Microsoft";
@@ -45,10 +46,11 @@ export const OPT_TRANS_CUSTOMIZE = "Custom";
 
 // 内置支持的翻译引擎
 export const OPT_ALL_TYPES = [
+  OPT_TRANS_BUILTINAI,
   OPT_TRANS_GOOGLE,
   OPT_TRANS_GOOGLE_2,
   OPT_TRANS_MICROSOFT,
-  OPT_TRANS_BAIDU,
+  // OPT_TRANS_BAIDU,
   OPT_TRANS_TENCENT,
   OPT_TRANS_VOLCENGINE,
   OPT_TRANS_DEEPL,
@@ -66,11 +68,14 @@ export const OPT_ALL_TYPES = [
 ];
 
 export const OPT_LANGDETECTOR_ALL = [
+  OPT_TRANS_BUILTINAI,
   OPT_TRANS_GOOGLE,
   OPT_TRANS_MICROSOFT,
   OPT_TRANS_BAIDU,
   OPT_TRANS_TENCENT,
 ];
+
+export const OPT_LANGDETECTOR_MAP = new Set(OPT_LANGDETECTOR_ALL);
 
 // 翻译引擎特殊集合
 export const API_SPE_TYPES = {
@@ -130,7 +135,6 @@ export const API_SPE_TYPES = {
     OPT_TRANS_OPENROUTER,
     OPT_TRANS_CUSTOMIZE,
   ]),
-  detector: new Set(OPT_LANGDETECTOR_ALL),
 };
 
 export const BUILTIN_STONES = [
@@ -205,6 +209,11 @@ export const OPT_LANGS_SPEC_DEFAULT_UC = new Map(
   OPT_LANGS_FROM.map(([key]) => [key, key.toUpperCase()])
 );
 export const OPT_LANGS_TO_SPEC = {
+  [OPT_TRANS_BUILTINAI]: new Map([
+    ...OPT_LANGS_SPEC_DEFAULT,
+    ["zh-CN", "zh"],
+    ["zh-TW", "zh"],
+  ]),
   [OPT_TRANS_GOOGLE]: OPT_LANGS_SPEC_DEFAULT,
   [OPT_TRANS_GOOGLE_2]: OPT_LANGS_SPEC_DEFAULT,
   [OPT_TRANS_MICROSOFT]: new Map([
@@ -392,6 +401,7 @@ const defaultApi = {
 };
 
 const defaultApiOpts = {
+  [OPT_TRANS_BUILTINAI]: defaultApi,
   [OPT_TRANS_GOOGLE]: {
     ...defaultApi,
     url: "https://translate.googleapis.com/translate_a/single",

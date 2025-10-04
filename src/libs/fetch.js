@@ -101,14 +101,14 @@ export const fetchHandle = async ({ input, init, opts }) => {
  * @param {*} args
  * @returns
  */
-const fetchPolyfill = (args) => {
+export const fnPolyfill = ({ fn, msg = MSG_FETCH, ...args }) => {
   // 插件
   if (isExt && !isBg()) {
-    return sendBgMsg(MSG_FETCH, args);
+    return sendBgMsg(msg, { ...args });
   }
 
   // 油猴/网页/BackgroundPage
-  return fetchHandle(args);
+  return fn({ ...args });
 };
 
 /**
@@ -138,9 +138,9 @@ export const fetchData = async (
   // 通过任务池发送请求
   if (usePool) {
     const fetchPool = getFetchPool(fetchInterval, fetchLimit);
-    return fetchPool.push(fetchPolyfill, { input, init, opts });
+    return fetchPool.push(fnPolyfill, { fn: fetchHandle, input, init, opts });
   }
 
   // 直接请求
-  return fetchPolyfill({ input, init, opts });
+  return fnPolyfill({ fn: fetchHandle, input, init, opts });
 };

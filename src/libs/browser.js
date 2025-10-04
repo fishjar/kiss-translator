@@ -15,3 +15,6 @@ function _browser() {
 export const browser = _browser();
 
 export const isBg = () => globalThis?.ContextType === "BACKGROUND";
+
+export const isBuiltinAIAvailable =
+  "LanguageDetector" in globalThis && "Translator" in globalThis;

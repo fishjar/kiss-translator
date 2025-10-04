@@ -10,12 +10,19 @@ import {
   API_SPE_TYPES,
   DEFAULT_API_SETTING,
   OPT_TRANS_MICROSOFT,
+  MSG_BUILTINAI_DETECT,
+  MSG_BUILTINAI_TRANSLATE,
+  OPT_TRANS_BUILTINAI,
 } from "../config";
-import { sha256 } from "../libs/utils";
+import { sha256, withTimeout } from "../libs/utils";
 import { kissLog } from "../libs/log";
 import { handleTranslate, handleMicrosoftLangdetect } from "./trans";
 import { getHttpCachePolyfill, putHttpCachePolyfill } from "../libs/cache";
 import { getBatchQueue } from "../libs/batchQueue";
+import { isBuiltinAIAvailable } from "../libs/browser";
+import { chromeDetect, chromeTranslate } from "../libs/builtinAI";
+import { fnPolyfill } from "../libs/fetch";
+import { getFetchPool } from "../libs/pool";
 
 /**
  * 同步数据
@@ -333,6 +340,52 @@ export const apiTencentLangdetect = async (text) => {
 };
 
 /**
+ * 浏览器内置AI语言识别
+ * @param {*} text
+ * @returns
+ */
+export const apiBuiltinAIDetect = async (text) => {
+  if (!isBuiltinAIAvailable) {
+    return "";
+  }
+
+  const [lang, error] = await fnPolyfill({
+    fn: chromeDetect,
+    msg: MSG_BUILTINAI_DETECT,
+    text,
+  });
+  if (!error) {
+    return lang;
+  }
+
+  return "";
+};
+
+/**
+ * 浏览器内置AI翻译
+ * @param {*} param0
+ * @returns
+ */
+const apiBuiltinAITranslate = ({ text, from, to, apiSetting }) => {
+  if (!isBuiltinAIAvailable) {
+    return ["", true];
+  }
+
+  const { fetchInterval, fetchLimit, httpTimeout } = apiSetting;
+  const fetchPool = getFetchPool(fetchInterval, fetchLimit);
+  return withTimeout(
+    fetchPool.push(fnPolyfill, {
+      fn: chromeTranslate,
+      msg: MSG_BUILTINAI_TRANSLATE,
+      text,
+      from,
+      to,
+    }),
+    httpTimeout
+  );
+};
+
+/**
  * 统一翻译接口
  * @param {*} param0
  * @returns
@@ -382,7 +435,14 @@ export const apiTranslate = async ({
   // 请求接口数据
   let trText = "";
   let srLang = "";
-  if (useBatchFetch && API_SPE_TYPES.batch.has(apiType)) {
+  if (apiType === OPT_TRANS_BUILTINAI) {
+    [trText, srLang] = await apiBuiltinAITranslate({
+      text,
+      from,
+      to,
+      apiSetting,
+    });
+  } else if (useBatchFetch && API_SPE_TYPES.batch.has(apiType)) {
     const { apiSlug, batchInterval, batchSize, batchLength } = apiSetting;
     const key = `${apiSlug}_${fromLang}_${toLang}`;
     const queue = getBatchQueue(key, handleTranslate, {
@@ -426,7 +486,7 @@ export const apiTranslate = async ({
     }
   }
 
-  const isSame = fromLang !== "auto" && srLang === to;
+  const isSame = fromLang === "auto" && srLang === to;
 
   // 插入缓存
   if (useCache && trText) {

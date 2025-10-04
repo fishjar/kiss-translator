@@ -45,7 +45,7 @@ const newCacheReq = async (input, init) => {
  * @param {*} init
  * @returns
  */
-export const getHttpCache = async (input, init) => {
+export const getHttpCache = async ({ input, init }) => {
   try {
     const req = await newCacheReq(input, init);
     const cache = await caches.open(CACHE_NAME);
@@ -65,12 +65,12 @@ export const getHttpCache = async (input, init) => {
  * @param {*} init
  * @param {*} data
  */
-export const putHttpCache = async (
+export const putHttpCache = async ({
   input,
   init,
   data,
-  maxAge = DEFAULT_CACHE_TIMEOUT // todo: 从设置里面读取最大缓存时间
-) => {
+  maxAge = DEFAULT_CACHE_TIMEOUT, // todo: 从设置里面读取最大缓存时间
+}) => {
   try {
     const req = await newCacheReq(input, init);
     const cache = await caches.open(CACHE_NAME);
@@ -132,7 +132,7 @@ export const getHttpCachePolyfill = (input, init) => {
   }
 
   // 油猴/网页/BackgroundPage
-  return getHttpCache(input, init);
+  return getHttpCache({ input, init });
 };
 
 /**
@@ -149,5 +149,5 @@ export const putHttpCachePolyfill = (input, init, data) => {
   }
 
   // 油猴/网页/BackgroundPage
-  return putHttpCache(input, init, data);
+  return putHttpCache({ input, init, data });
 };

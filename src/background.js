@@ -13,6 +13,8 @@ import {
   MSG_INJECT_JS,
   MSG_INJECT_CSS,
   MSG_UPDATE_CSP,
+  MSG_BUILTINAI_DETECT,
+  MSG_BUILTINAI_TRANSLATE,
   DEFAULT_CSPLIST,
   DEFAULT_ORILIST,
   CMD_TOGGLE_TRANSLATE,
@@ -31,6 +33,7 @@ import { saveRule } from "./libs/rules";
 import { getCurTabId } from "./libs/msg";
 import { injectInlineJs, injectInternalCss } from "./libs/injector";
 import { kissLog } from "./libs/log";
+import { chromeDetect, chromeTranslate } from "./libs/builtinAI";
 
 globalThis.ContextType = "BACKGROUND";
 
@@ -235,42 +238,53 @@ browser.runtime.onStartup.addListener(async () => {
 });
 
 /**
+ * 向当前活动标签页注入脚本或CSS
+ */
+const injectToCurrentTab = async (func, args) => {
+  const tabId = await getCurTabId();
+  return browser.scripting.executeScript({
+    target: { tabId, allFrames: true },
+    func: func,
+    args: [args],
+    world: "MAIN",
+  });
+};
+
+// 动作处理器映射表
+const messageHandlers = {
+  [MSG_FETCH]: (args) => fetchHandle(args),
+  [MSG_GET_HTTPCACHE]: (args) => getHttpCache(args),
+  [MSG_PUT_HTTPCACHE]: (args) => putHttpCache(args),
+  [MSG_OPEN_OPTIONS]: () => browser.runtime.openOptionsPage(),
+  [MSG_SAVE_RULE]: (args) => saveRule(args),
+  [MSG_INJECT_JS]: (args) => injectToCurrentTab(injectInlineJs, args),
+  [MSG_INJECT_CSS]: (args) => injectToCurrentTab(injectInternalCss, args),
+  [MSG_UPDATE_CSP]: (args) => updateCspRules(args),
+  [MSG_CONTEXT_MENUS]: (args) => addContextMenus(args),
+  [MSG_COMMAND_SHORTCUTS]: () => browser.commands.getAll(),
+  [MSG_BUILTINAI_DETECT]: (args) => chromeDetect(args),
+  [MSG_BUILTINAI_TRANSLATE]: (args) => chromeTranslate(args),
+};
+
+/**
  * 监听消息
+ * todo: 返回含错误的结构化信息
  */
 browser.runtime.onMessage.addListener(async ({ action, args }) => {
-  switch (action) {
-    case MSG_FETCH:
-      return await fetchHandle(args);
-    case MSG_GET_HTTPCACHE:
-      return await getHttpCache(args.input, args.init);
-    case MSG_PUT_HTTPCACHE:
-      return await putHttpCache(args.input, args.init, args.data);
-    case MSG_OPEN_OPTIONS:
-      return await browser.runtime.openOptionsPage();
-    case MSG_SAVE_RULE:
-      return await saveRule(args);
-    case MSG_INJECT_JS:
-      return await browser.scripting.executeScript({
-        target: { tabId: await getCurTabId(), allFrames: true },
-        func: injectInlineJs,
-        args: [args],
-        world: "MAIN",
-      });
-    case MSG_INJECT_CSS:
-      return await browser.scripting.executeScript({
-        target: { tabId: await getCurTabId(), allFrames: true },
-        func: injectInternalCss,
-        args: [args],
-        world: "MAIN",
-      });
-    case MSG_UPDATE_CSP:
-      return await updateCspRules(args);
-    case MSG_CONTEXT_MENUS:
-      return await addContextMenus(args);
-    case MSG_COMMAND_SHORTCUTS:
-      return await browser.commands.getAll();
-    default:
-      throw new Error(`message action is unavailable: ${action}`);
+  const handler = messageHandlers[action];
+
+  if (!handler) {
+    const errorMessage = `Message action is unavailable: ${action}`;
+    kissLog("runtime onMessage", action, new Error(errorMessage));
+    return null;
+  }
+
+  try {
+    const result = await handler(args);
+    return result;
+  } catch (err) {
+    kissLog("runtime onMessage", action, err);
+    return null;
   }
 });
 

@@ -7,7 +7,7 @@ import Divider from "@mui/material/Divider";
 import Alert from "@mui/material/Alert";
 import CopyBtn from "./CopyBtn";
 import { useAsyncNow } from "../../hooks/Fetch";
-import { DICT_MAP } from "./DictMap";
+import { dictHandlers } from "./DictHandler";
 
 function DictBody({ text, setCopyText, dict }) {
   const { loading, error, data } = useAsyncNow(dict.apiFn, text);
@@ -17,7 +17,7 @@ function DictBody({ text, setCopyText, dict }) {
       return;
     }
 
-    const copyText = [text, dict.toText(data)].join("\n");
+    const copyText = [text, dict.toText(data).join("\n")].join("\n");
     setCopyText(copyText);
   }, [data, text, dict, setCopyText]);
 
@@ -46,7 +46,7 @@ function DictBody({ text, setCopyText, dict }) {
 
 export default function DictCont({ text, enDict }) {
   const [copyText, setCopyText] = useState(text);
-  const dict = DICT_MAP[enDict];
+  const dict = dictHandlers[enDict];
 
   return (
     <Stack spacing={1}>

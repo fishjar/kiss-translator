@@ -51,7 +51,9 @@
       "GM": true,
       "unsafeWindow": true,
       "globalThis": true,
-      "messenger": true
+      "messenger": true,
+      "LanguageDetector": true,
+      "Translator": true
     }
   },
   "browserslist": {

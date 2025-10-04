@@ -3,13 +3,11 @@ import AudioBtn from "./AudioBtn";
 import { OPT_DICT_BING, OPT_DICT_YOUDAO } from "../../config";
 import { apiMicrosoftDict, apiYoudaoDict } from "../../apis";
 
-export const DICT_MAP = {
+export const dictHandlers = {
   [OPT_DICT_BING]: {
     apiFn: apiMicrosoftDict,
     toText: (data) =>
-      data.trs
-        ?.map(({ pos, def }) => `${pos ? `[${pos}] ` : ""}${def}`)
-        .join("\n"),
+      data.trs?.map(({ pos, def }) => `${pos ? `[${pos}] ` : ""}${def}`) || [],
     uiAudio: (data) => (
       <Typography component="div">
         {data?.aus.map(({ key, audio, phonetic }) => (
@@ -38,9 +36,9 @@ export const DICT_MAP = {
   [OPT_DICT_YOUDAO]: {
     apiFn: apiYoudaoDict,
     toText: (data) =>
-      data?.ec?.word?.trs
-        ?.map(({ pos, tran }) => `${pos ? `[${pos}] ` : ""}${tran}`)
-        .join("\n"),
+      data?.ec?.word?.trs?.map(
+        ({ pos, tran }) => `${pos ? `[${pos}] ` : ""}${tran}`
+      ) || [],
     uiAudio: () => null,
     uiTrans: (data) => (
       <Typography component="ul">

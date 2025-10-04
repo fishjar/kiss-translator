@@ -274,12 +274,6 @@ export class Translator {
   #glossary = {}; // AI词典
   #textClass = {}; // 译文样式class
   #textSheet = ""; // 译文样式字典
-  #apiSetting = null;
-  #placeholder = {
-    startDelimiter: "{",
-    endDelimiter: "}",
-    tagName: "i",
-  };
 
   #isUserscript = false;
   #transboxManager = null; // 划词翻译
@@ -309,20 +303,30 @@ export class Translator {
     return `${Translator.BUILTIN_IGNORE_SELECTOR}, ${this.#rule.ignoreSelector}`;
   }
 
-  constructor(rule = {}, setting = {}, isUserscript = false) {
-    this.#setting = { ...Translator.DEFAULT_OPTIONS, ...setting };
-    this.#rule = { ...Translator.DEFAULT_RULE, ...rule };
-    this.#apiSetting =
+  // 接口参数
+  // todo: 不用频繁查找计算
+  get #apiSetting() {
+    return (
       this.#setting.transApis.find(
         (api) => api.apiSlug === this.#rule.apiSlug
-      ) || DEFAULT_API_SETTING;
+      ) || DEFAULT_API_SETTING
+    );
+  }
+
+  // 占位符
+  get #placeholder() {
     const [startDelimiter, endDelimiter] =
       this.#apiSetting.placeholder.split(" ");
-    this.#placeholder = {
+    return {
       startDelimiter,
       endDelimiter,
       tagName: this.#apiSetting.placetag,
     };
+  }
+
+  constructor(rule = {}, setting = {}, isUserscript = false) {
+    this.#setting = { ...Translator.DEFAULT_OPTIONS, ...setting };
+    this.#rule = { ...Translator.DEFAULT_RULE, ...rule };
 
     this.#isUserscript = isUserscript;
     this.#eventName = genEventName();

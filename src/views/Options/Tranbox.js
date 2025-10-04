@@ -9,10 +9,10 @@ import {
   OPT_LANGS_TO,
   OPT_TRANBOX_TRIGGER_CLICK,
   OPT_TRANBOX_TRIGGER_ALL,
-  OPT_DICT_BAIDU,
+  OPT_DICT_BING,
   OPT_DICT_ALL,
   OPT_SUG_ALL,
-  OPT_SUG_BAIDU,
+  OPT_SUG_YOUDAO,
 } from "../../config";
 import ShortcutInput from "./ShortcutInput";
 import FormControlLabel from "@mui/material/FormControlLabel";
@@ -69,8 +69,8 @@ export default function Tranbox() {
     followSelection = false,
     triggerMode = OPT_TRANBOX_TRIGGER_CLICK,
     // extStyles = "",
-    enDict = OPT_DICT_BAIDU,
-    enSug = OPT_SUG_BAIDU,
+    enDict = OPT_DICT_BING,
+    enSug = OPT_SUG_YOUDAO,
   } = tranboxSetting;
 
   return (

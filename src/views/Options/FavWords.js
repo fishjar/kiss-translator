@@ -5,7 +5,6 @@ import Accordion from "@mui/material/Accordion";
 import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-// import CircularProgress from "@mui/material/CircularProgress";
 import { useI18n } from "../../hooks/I18n";
 import Box from "@mui/material/Box";
 import { useFavWords } from "../../hooks/FavWords";
@@ -18,11 +17,9 @@ import ClearAllIcon from "@mui/icons-material/ClearAll";
 import Alert from "@mui/material/Alert";
 import { isValidWord } from "../../libs/utils";
 import { kissLog } from "../../libs/log";
-import { apiTranslate } from "../../apis";
-import { OPT_TRANS_BAIDU, PHONIC_MAP } from "../../config";
 import { useConfirm } from "../../hooks/Confirm";
 import { useSetting } from "../../hooks/Setting";
-import { DICT_MAP } from "../Selection/DictMap";
+import { dictHandlers } from "../Selection/DictHandler";
 
 function FavAccordion({ word, index }) {
   const [expanded, setExpanded] = useState(false);
@@ -83,17 +80,20 @@ export default function FavWords() {
 
   const handleTranslation = async () => {
     const { enDict } = setting?.tranboxSetting;
-    const dict = DICT_MAP[enDict];
+    const dict = dictHandlers[enDict];
     if (!dict) return "";
 
     const tranList = [];
     for (const word of wordList) {
       try {
         const data = await dict.apiFn(word);
-        const tran = dict.toText(data);
-        tranList.push([word, tran].join("\n"));
+        const tran = dict
+          .toText(data)
+          .map((line) => `- ${line}`)
+          .join("\n");
+        tranList.push([`## ${word}`, tran].join("\n"));
       } catch (err) {
-        // skip
+        kissLog("export translation", err);
       }
     }
 

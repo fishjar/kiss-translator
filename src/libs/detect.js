@@ -5,7 +5,8 @@ import {
   OPT_TRANS_TENCENT,
   OPT_LANGS_TO_CODE,
   OPT_LANGS_MAP,
-  API_SPE_TYPES,
+  OPT_TRANS_BUILTINAI,
+  OPT_LANGDETECTOR_MAP,
 } from "../config";
 import { browser } from "./browser";
 import {
@@ -13,6 +14,7 @@ import {
   apiMicrosoftLangdetect,
   apiBaiduLangdetect,
   apiTencentLangdetect,
+  apiBuiltinAIDetect,
 } from "../apis";
 import { kissLog } from "./log";
 
@@ -21,6 +23,7 @@ const langdetectFns = {
   [OPT_TRANS_MICROSOFT]: apiMicrosoftLangdetect,
   [OPT_TRANS_BAIDU]: apiBaiduLangdetect,
   [OPT_TRANS_TENCENT]: apiTencentLangdetect,
+  [OPT_TRANS_BUILTINAI]: apiBuiltinAIDetect,
 };
 
 /**
@@ -31,8 +34,8 @@ const langdetectFns = {
 export const tryDetectLang = async (text, langDetector = "-") => {
   let deLang = "";
 
-  // 远程识别
-  if (API_SPE_TYPES.detector.has(langDetector)) {
+  // 内置AI/远程识别
+  if (OPT_LANGDETECTOR_MAP.has(langDetector)) {
     try {
       const lang = await langdetectFns[langDetector](text);
       if (lang) {

@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { DEFAULT_API_LIST, API_SPE_TYPES } from "../config";
 import { useSetting } from "./Setting";
 
@@ -11,6 +11,19 @@ function useApiState() {
 
 export function useApiList() {
   const { transApis, updateSetting } = useApiState();
+
+  useEffect(() => {
+    const curSlugs = new Set(transApis.map((api) => api.apiSlug));
+    const missApis = DEFAULT_API_LIST.filter(
+      (api) => !curSlugs.has(api.apiSlug)
+    );
+    if (missApis.length > 0) {
+      updateSetting((prev) => ({
+        ...prev,
+        transApis: [...(prev?.transApis || []), ...missApis],
+      }));
+    }
+  }, [transApis, updateSetting]);
 
   const userApis = useMemo(
     () =>
@@ -55,7 +68,9 @@ export function useApiList() {
     (apiSlug) => {
       updateSetting((prev) => ({
         ...prev,
-        transApis: (prev?.transApis || []).filter((api) => api.apiSlug !== apiSlug),
+        transApis: (prev?.transApis || []).filter(
+          (api) => api.apiSlug !== apiSlug
+        ),
       }));
     },
     [updateSetting]

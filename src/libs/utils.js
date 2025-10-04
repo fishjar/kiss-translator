@@ -333,3 +333,20 @@ export const parseUrlPattern = (href) => {
   }
   return href;
 };
+
+/**
+ * 带超时的任务
+ * @param {Promise|Function} task - 任务
+ * @param {number} timeout - 超时时间 (毫秒)
+ * @param {string} [timeoutMsg] - 超时错误提示
+ * @returns {Promise}
+ */
+export const withTimeout = (task, timeout, timeoutMsg = "Task timed out") => {
+  const promise = typeof task === "function" ? task() : task;
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(timeoutMsg)), timeout)
+    ),
+  ]);
+};

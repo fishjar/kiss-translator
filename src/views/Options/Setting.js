@@ -340,7 +340,7 @@ export default function Settings() {
                 size="small"
                 name="langDetector"
                 value={langDetector}
-                label={i18n("detect_lang_remote")}
+                label={i18n("detected_lang")}
                 onChange={handleChange}
               >
                 <MenuItem value={"-"}>{i18n("disable")}</MenuItem>

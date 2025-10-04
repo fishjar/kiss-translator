@@ -294,6 +294,64 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 select
                 size="small"
                 fullWidth
+                name="apiSlug"
+                value={apiSlug}
+                label={i18n("translate_service")}
+                disabled={disabled}
+                onChange={handleChange}
+              >
+                {GlobalItem}
+                {enabledApis.map((api) => (
+                  <MenuItem key={api.apiSlug} value={api.apiSlug}>
+                    {api.apiName}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                select
+                size="small"
+                fullWidth
+                name="fromLang"
+                value={fromLang}
+                label={i18n("from_lang")}
+                disabled={disabled}
+                onChange={handleChange}
+              >
+                {GlobalItem}
+                {OPT_LANGS_FROM.map(([lang, name]) => (
+                  <MenuItem key={lang} value={lang}>
+                    {name}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                select
+                size="small"
+                fullWidth
+                name="toLang"
+                value={toLang}
+                label={i18n("to_lang")}
+                disabled={disabled}
+                onChange={handleChange}
+              >
+                {GlobalItem}
+                {OPT_LANGS_TO.map(([lang, name]) => (
+                  <MenuItem key={lang} value={lang}>
+                    {name}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                select
+                size="small"
+                fullWidth
                 name="autoScan"
                 value={autoScan}
                 label={i18n("auto_scan_page")}
@@ -354,22 +412,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
-                select
-                size="small"
-                fullWidth
-                name="transTag"
-                value={transTag}
-                label={i18n("translation_element_tag")}
-                disabled={disabled}
-                onChange={handleChange}
-              >
-                {GlobalItem}
-                <MenuItem value={"span"}>{`<span>`}</MenuItem>
-                <MenuItem value={"font"}>{`<font>`}</MenuItem>
-              </TextField>
-            </Grid>
+
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
@@ -386,64 +429,23 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
               </TextField>
             </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                select
+                size="small"
+                fullWidth
+                name="transTag"
+                value={transTag}
+                label={i18n("translation_element_tag")}
+                disabled={disabled}
+                onChange={handleChange}
+              >
+                {GlobalItem}
+                <MenuItem value={"span"}>{`<span>`}</MenuItem>
+                <MenuItem value={"font"}>{`<font>`}</MenuItem>
+              </TextField>
+            </Grid>
 
-            <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
-                select
-                size="small"
-                fullWidth
-                name="apiSlug"
-                value={apiSlug}
-                label={i18n("translate_service")}
-                disabled={disabled}
-                onChange={handleChange}
-              >
-                {GlobalItem}
-                {enabledApis.map((api) => (
-                  <MenuItem key={api.apiSlug} value={api.apiSlug}>
-                    {api.apiName}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-            <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
-                select
-                size="small"
-                fullWidth
-                name="fromLang"
-                value={fromLang}
-                label={i18n("from_lang")}
-                disabled={disabled}
-                onChange={handleChange}
-              >
-                {GlobalItem}
-                {OPT_LANGS_FROM.map(([lang, name]) => (
-                  <MenuItem key={lang} value={lang}>
-                    {name}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-            <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
-                select
-                size="small"
-                fullWidth
-                name="toLang"
-                value={toLang}
-                label={i18n("to_lang")}
-                disabled={disabled}
-                onChange={handleChange}
-              >
-                {GlobalItem}
-                {OPT_LANGS_TO.map(([lang, name]) => (
-                  <MenuItem key={lang} value={lang}>
-                    {name}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select

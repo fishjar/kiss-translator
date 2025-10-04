@@ -30,6 +30,7 @@ import {
   OPT_TRANS_OLLAMA,
   OPT_TRANS_CUSTOMIZE,
   OPT_TRANS_NIUTRANS,
+  OPT_TRANS_BUILTINAI,
   DEFAULT_FETCH_LIMIT,
   DEFAULT_FETCH_INTERVAL,
   DEFAULT_HTTP_TIMEOUT,
@@ -253,32 +254,33 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
         onChange={handleChange}
       />
 
-      {!API_SPE_TYPES.machine.has(apiType) && (
-        <>
-          <TextField
-            size="small"
-            label={"URL"}
-            name="url"
-            value={url}
-            onChange={handleChange}
-            multiline={apiType === OPT_TRANS_DEEPLX}
-            maxRows={10}
-            helperText={
-              apiType === OPT_TRANS_DEEPLX ? i18n("mulkeys_help") : ""
-            }
-          />
-          <TextField
-            size="small"
-            label={"KEY"}
-            name="key"
-            value={key}
-            onChange={handleChange}
-            multiline={API_SPE_TYPES.mulkeys.has(apiType)}
-            maxRows={10}
-            helperText={keyHelper}
-          />
-        </>
-      )}
+      {!API_SPE_TYPES.machine.has(apiType) &&
+        apiType !== OPT_TRANS_BUILTINAI && (
+          <>
+            <TextField
+              size="small"
+              label={"URL"}
+              name="url"
+              value={url}
+              onChange={handleChange}
+              multiline={apiType === OPT_TRANS_DEEPLX}
+              maxRows={10}
+              helperText={
+                apiType === OPT_TRANS_DEEPLX ? i18n("mulkeys_help") : ""
+              }
+            />
+            <TextField
+              size="small"
+              label={"KEY"}
+              name="key"
+              value={key}
+              onChange={handleChange}
+              multiline={API_SPE_TYPES.mulkeys.has(apiType)}
+              maxRows={10}
+              helperText={keyHelper}
+            />
+          </>
+        )}
 
       {API_SPE_TYPES.ai.has(apiType) && (
         <>
@@ -606,65 +608,71 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
             </Grid>
           </Box>
 
-          <TextField
-            size="small"
-            label={i18n("custom_header")}
-            name="customHeader"
-            value={customHeader}
-            onChange={handleChange}
-            multiline
-            maxRows={10}
-            helperText={i18n("custom_header_help")}
-          />
-          <TextField
-            size="small"
-            label={i18n("custom_body")}
-            name="customBody"
-            value={customBody}
-            onChange={handleChange}
-            multiline
-            maxRows={10}
-            helperText={i18n("custom_body_help")}
-          />
-
-          {apiType !== OPT_TRANS_CUSTOMIZE && (
+          {apiType !== OPT_TRANS_BUILTINAI && (
             <>
+              {" "}
               <TextField
                 size="small"
-                label={"Request Hook"}
-                name="reqHook"
-                value={reqHook}
+                label={i18n("custom_header")}
+                name="customHeader"
+                value={customHeader}
                 onChange={handleChange}
                 multiline
                 maxRows={10}
-                FormHelperTextProps={{
-                  component: "div",
-                }}
-                helperText={
-                  <Box component="pre" sx={{ overflowX: "auto" }}>
-                    {i18n("request_hook_helper")}
-                  </Box>
-                }
+                helperText={i18n("custom_header_help")}
               />
               <TextField
                 size="small"
-                label={"Response Hook"}
-                name="resHook"
-                value={resHook}
+                label={i18n("custom_body")}
+                name="customBody"
+                value={customBody}
                 onChange={handleChange}
                 multiline
                 maxRows={10}
-                FormHelperTextProps={{
-                  component: "div",
-                }}
-                helperText={
-                  <Box component="pre" sx={{ overflowX: "auto" }}>
-                    {i18n("response_hook_helper")}
-                  </Box>
-                }
+                helperText={i18n("custom_body_help")}
               />
             </>
           )}
+
+          {apiType !== OPT_TRANS_CUSTOMIZE &&
+            apiType !== OPT_TRANS_BUILTINAI && (
+              <>
+                <TextField
+                  size="small"
+                  label={"Request Hook"}
+                  name="reqHook"
+                  value={reqHook}
+                  onChange={handleChange}
+                  multiline
+                  maxRows={10}
+                  FormHelperTextProps={{
+                    component: "div",
+                  }}
+                  helperText={
+                    <Box component="pre" sx={{ overflowX: "auto" }}>
+                      {i18n("request_hook_helper")}
+                    </Box>
+                  }
+                />
+                <TextField
+                  size="small"
+                  label={"Response Hook"}
+                  name="resHook"
+                  value={resHook}
+                  onChange={handleChange}
+                  multiline
+                  maxRows={10}
+                  FormHelperTextProps={{
+                    component: "div",
+                  }}
+                  helperText={
+                    <Box component="pre" sx={{ overflowX: "auto" }}>
+                      {i18n("response_hook_helper")}
+                    </Box>
+                  }
+                />
+              </>
+            )}
         </>
       )}
 
@@ -782,7 +790,11 @@ export default function Apis() {
   return (
     <Box>
       <Stack spacing={3}>
-        <Alert severity="info">{i18n("about_api")}</Alert>
+        <Alert severity="info">
+          {i18n("about_api")}
+          <br />
+          {i18n("about_api_2")}
+        </Alert>
 
         <Box>
           <Button

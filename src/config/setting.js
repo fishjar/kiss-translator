@@ -1,6 +1,6 @@
 import {
-  OPT_DICT_BAIDU,
-  OPT_SUG_BAIDU,
+  OPT_DICT_BING,
+  OPT_SUG_YOUDAO,
   DEFAULT_HTTP_TIMEOUT,
   OPT_TRANS_MICROSOFT,
   DEFAULT_API_LIST,
@@ -91,8 +91,8 @@ export const DEFAULT_TRANBOX_SETTING = {
   followSelection: false, // 翻译框是否跟随选中文本
   triggerMode: OPT_TRANBOX_TRIGGER_CLICK, // 触发翻译方式
   // extStyles: "", // 附加样式
-  enDict: OPT_DICT_BAIDU, // 英文词典
-  enSug: OPT_SUG_BAIDU, // 英文建议
+  enDict: OPT_DICT_BING, // 英文词典
+  enSug: OPT_SUG_YOUDAO, // 英文建议
 };
 
 // 订阅列表

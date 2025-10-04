@@ -22,3 +22,5 @@ export const MSG_COMMAND_SHORTCUTS = "command_shortcuts";
 export const MSG_INJECT_JS = "inject_js";
 export const MSG_INJECT_CSS = "inject_css";
 export const MSG_UPDATE_CSP = "update_csp";
+export const MSG_BUILTINAI_DETECT = "builtinai_detect";
+export const MSG_BUILTINAI_TRANSLATE = "builtinai_translte";
