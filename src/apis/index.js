@@ -148,19 +148,19 @@ export const apiMicrosoftDict = async (text) => {
   });
 
   const aus = [];
-  const $audioUS = doc.querySelector("#bigaud_us");
   const $audioUK = doc.querySelector("#bigaud_uk");
-  if ($audioUS) {
-    const audioUS = host + $audioUS?.dataset?.mp3link;
-    const $phoneticUS = $audioUS.parentElement?.previousElementSibling;
-    const phoneticUS = $phoneticUS?.textContent?.trim();
-    aus.push({ key: "US", audio: audioUS, phonetic: phoneticUS });
-  }
+  const $audioUS = doc.querySelector("#bigaud_us");
   if ($audioUK) {
     const audioUK = host + $audioUK?.dataset?.mp3link;
     const $phoneticUK = $audioUK.parentElement?.previousElementSibling;
     const phoneticUK = $phoneticUK?.textContent?.trim();
     aus.push({ key: "UK", audio: audioUK, phonetic: phoneticUK });
+  }
+  if ($audioUS) {
+    const audioUS = host + $audioUS?.dataset?.mp3link;
+    const $phoneticUS = $audioUS.parentElement?.previousElementSibling;
+    const phoneticUS = $phoneticUS?.textContent?.trim();
+    aus.push({ key: "US", audio: audioUS, phonetic: phoneticUS });
   }
 
   const res = { word, trs, aus };
@@ -266,7 +266,7 @@ export const apiYoudaoDict = async (text) => {
   };
   const input = `https://dict.youdao.com/jsonapi_s?${queryString.stringify(params)}`;
   const body = queryString.stringify({
-    q: "search",
+    q: text,
     le: "en",
     t: 3,
     client: "web",

@@ -530,9 +530,9 @@ export const I18N = {
     zh_TW: `1.其中 BuiltinAI 為瀏覽器內建AI翻譯，目前僅 Chrome 138 以上版本支援。`,
   },
   about_api_2: {
-    zh: `2、暂未列出的接口，理论上都可以通过自定义接口的形式支持。`,
+    zh: `2、暂未列出的接口，理论上都可以通过自定义接口 (Custom) 的形式支持。`,
     en: `2. Interfaces that have not yet been launched can theoretically be supported through custom interfaces.`,
-    zh_TW: `2、暫未列出的介面，理論上都可透過自訂介面的形式支援。`,
+    zh_TW: `2、暫未列出的介面，理論上都可透過自訂介面  (Custom)  的形式支援。`,
   },
   about_api_proxy: {
     zh: `查看自建一个翻译接口代理`,

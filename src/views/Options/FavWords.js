@@ -87,11 +87,12 @@ export default function FavWords() {
     for (const word of wordList) {
       try {
         const data = await dict.apiFn(word);
+        const title = `## ${dict.reWord(data) || word}`;
         const tran = dict
           .toText(data)
           .map((line) => `- ${line}`)
           .join("\n");
-        tranList.push([`## ${word}`, tran].join("\n"));
+        tranList.push([title, tran].join("\n"));
       } catch (err) {
         kissLog("export translation", err);
       }

@@ -158,7 +158,7 @@ async function updateCspRules({ csplist, orilist }) {
         id: ORI_RULE_START_ID + index,
         action: {
           type: "modifyHeaders",
-          requestHeaders: [{ header: "Origin", operation: "remove" }],
+          requestHeaders: [{ header: "Origin", operation: "set", value: url }],
         },
         condition: {
           urlFilter: url,

@@ -9,7 +9,7 @@ import CopyBtn from "./CopyBtn";
 import { useAsyncNow } from "../../hooks/Fetch";
 import { dictHandlers } from "./DictHandler";
 
-function DictBody({ text, setCopyText, dict }) {
+function DictBody({ text, setCopyText, setRealWord, dict }) {
   const { loading, error, data } = useAsyncNow(dict.apiFn, text);
 
   useEffect(() => {
@@ -17,9 +17,11 @@ function DictBody({ text, setCopyText, dict }) {
       return;
     }
 
-    const copyText = [text, dict.toText(data).join("\n")].join("\n");
+    const realWord = dict.reWord(data) || text;
+    const copyText = [realWord, dict.toText(data).join("\n")].join("\n");
+    setRealWord(realWord);
     setCopyText(copyText);
-  }, [data, text, dict, setCopyText]);
+  }, [data, text, dict, setCopyText, setRealWord]);
 
   const uiAudio = useMemo(() => dict.uiAudio(data), [data, dict]);
   const uiTrans = useMemo(() => dict.uiTrans(data), [data, dict]);
@@ -46,6 +48,7 @@ function DictBody({ text, setCopyText, dict }) {
 
 export default function DictCont({ text, enDict }) {
   const [copyText, setCopyText] = useState(text);
+  const [realWord, setRealWord] = useState(text);
   const dict = dictHandlers[enDict];
 
   return (
@@ -53,18 +56,25 @@ export default function DictCont({ text, enDict }) {
       {text && (
         <Stack direction="row" justifyContent="space-between">
           <Typography variant="subtitle1" style={{ fontWeight: "bold" }}>
-            {text}
+            {realWord}
           </Typography>
           <Stack direction="row" justifyContent="space-between">
             <CopyBtn text={copyText} />
-            <FavBtn word={text} />
+            <FavBtn word={realWord} />
           </Stack>
         </Stack>
       )}
 
       <Divider />
 
-      {dict && <DictBody text={text} setCopyText={setCopyText} dict={dict} />}
+      {dict && (
+        <DictBody
+          text={text}
+          setCopyText={setCopyText}
+          setRealWord={setRealWord}
+          dict={dict}
+        />
+      )}
     </Stack>
   );
 }
