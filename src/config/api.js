@@ -354,9 +354,9 @@ Output: {"translations":[{"id":1,"text":"一个<b>React</b>组件","sourceLangua
 
 Fail-safe: On any error, return {"translations":[]}.`;
 
-const defaultRequestHook = `async (args, { url, data, headers, userMsg, method } = {}) => {
+const defaultRequestHook = `async (args, { url, body, headers, userMsg, method } = {}) => {
   console.log("request hook args:", args);
-  // return { url, data, headers, userMsg, method };
+  // return { url, body, headers, userMsg, method };
 }`;
 
 const defaultResponseHook = `async ({ res, ...args }) => {

@@ -1,7 +1,7 @@
 import { DEFAULT_USER_AGENT } from "../config";
 
 export const genBaidu = ({ texts, from, to }) => {
-  const data = {
+  const body = {
     from,
     to,
     query: texts.join(" "),
@@ -15,5 +15,5 @@ export const genBaidu = ({ texts, from, to }) => {
     "User-Agent": DEFAULT_USER_AGENT,
   };
 
-  return { url, data, headers };
+  return { url, body, headers };
 };

@@ -133,13 +133,13 @@ const genGoogle = ({ texts, from, to, url, key }) => {
 };
 
 const genGoogle2 = ({ texts, from, to, url, key }) => {
-  const data = [[texts, from, to], "wt_lib"];
+  const body = [[texts, from, to], "wt_lib"];
   const headers = {
     "Content-Type": "application/json+protobuf",
     "X-Goog-API-Key": key,
   };
 
-  return { url, data, headers };
+  return { url, body, headers };
 };
 
 const genMicrosoft = ({ texts, from, to, token }) => {
@@ -153,13 +153,13 @@ const genMicrosoft = ({ texts, from, to, token }) => {
     "Content-type": "application/json",
     Authorization: `Bearer ${token}`,
   };
-  const data = texts.map((text) => ({ Text: text }));
+  const body = texts.map((text) => ({ Text: text }));
 
-  return { url, data, headers };
+  return { url, body, headers };
 };
 
 const genDeepl = ({ texts, from, to, url, key }) => {
-  const data = {
+  const body = {
     text: texts,
     target_lang: to,
     source_lang: from,
@@ -170,11 +170,11 @@ const genDeepl = ({ texts, from, to, url, key }) => {
     Authorization: `DeepL-Auth-Key ${key}`,
   };
 
-  return { url, data, headers };
+  return { url, body, headers };
 };
 
 const genDeeplX = ({ texts, from, to, url, key }) => {
-  const data = {
+  const body = {
     text: texts.join(" "),
     target_lang: to,
     source_lang: from,
@@ -187,11 +187,11 @@ const genDeeplX = ({ texts, from, to, url, key }) => {
     headers.Authorization = `Bearer ${key}`;
   }
 
-  return { url, data, headers };
+  return { url, body, headers };
 };
 
 const genNiuTrans = ({ texts, from, to, url, key, dictNo, memoryNo }) => {
-  const data = {
+  const body = {
     from,
     to,
     apikey: key,
@@ -204,11 +204,11 @@ const genNiuTrans = ({ texts, from, to, url, key, dictNo, memoryNo }) => {
     "Content-type": "application/json",
   };
 
-  return { url, data, headers };
+  return { url, body, headers };
 };
 
 const genTencent = ({ texts, from, to }) => {
-  const data = {
+  const body = {
     header: {
       fn: "auto_translation",
       client_key:
@@ -232,11 +232,11 @@ const genTencent = ({ texts, from, to }) => {
     referer: "https://transmart.qq.com/zh-CN/index",
   };
 
-  return { url, data, headers };
+  return { url, body, headers };
 };
 
 const genVolcengine = ({ texts, from, to }) => {
-  const data = {
+  const body = {
     source_language: from,
     target_language: to,
     text: texts.join(" "),
@@ -247,7 +247,7 @@ const genVolcengine = ({ texts, from, to }) => {
     "Content-type": "application/json",
   };
 
-  return { url, data, headers };
+  return { url, body, headers };
 };
 
 const genOpenAI = ({
@@ -264,7 +264,7 @@ const genOpenAI = ({
     role: "user",
     content: userPrompt,
   };
-  const data = {
+  const body = {
     model,
     messages: [
       {
@@ -284,7 +284,7 @@ const genOpenAI = ({
     // "api-key": key, // Azure OpenAI
   };
 
-  return { url, data, headers, userMsg };
+  return { url, body, headers, userMsg };
 };
 
 const genGemini = ({
@@ -302,7 +302,7 @@ const genGemini = ({
     .replaceAll(INPUT_PLACE_KEY, key);
 
   const userMsg = { role: "user", parts: [{ text: userPrompt }] };
-  const data = {
+  const body = {
     system_instruction: {
       parts: {
         text: systemPrompt,
@@ -341,7 +341,7 @@ const genGemini = ({
     "Content-type": "application/json",
   };
 
-  return { url, data, headers, userMsg };
+  return { url, body, headers, userMsg };
 };
 
 const genGemini2 = ({
@@ -358,7 +358,7 @@ const genGemini2 = ({
     role: "user",
     content: userPrompt,
   };
-  const data = {
+  const body = {
     model,
     messages: [
       {
@@ -377,7 +377,7 @@ const genGemini2 = ({
     Authorization: `Bearer ${key}`,
   };
 
-  return { url, data, headers, userMsg };
+  return { url, body, headers, userMsg };
 };
 
 const genClaude = ({
@@ -394,7 +394,7 @@ const genClaude = ({
     role: "user",
     content: userPrompt,
   };
-  const data = {
+  const body = {
     model,
     system: systemPrompt,
     messages: [...hisMsgs, userMsg],
@@ -409,7 +409,7 @@ const genClaude = ({
     "x-api-key": key,
   };
 
-  return { url, data, headers, userMsg };
+  return { url, body, headers, userMsg };
 };
 
 const genOpenRouter = ({
@@ -426,7 +426,7 @@ const genOpenRouter = ({
     role: "user",
     content: userPrompt,
   };
-  const data = {
+  const body = {
     model,
     messages: [
       {
@@ -445,7 +445,7 @@ const genOpenRouter = ({
     Authorization: `Bearer ${key}`,
   };
 
-  return { url, data, headers, userMsg };
+  return { url, body, headers, userMsg };
 };
 
 const genOllama = ({
@@ -463,7 +463,7 @@ const genOllama = ({
     role: "user",
     content: userPrompt,
   };
-  const data = {
+  const body = {
     model,
     messages: [
       {
@@ -486,11 +486,11 @@ const genOllama = ({
     headers.Authorization = `Bearer ${key}`;
   }
 
-  return { url, data, headers, userMsg };
+  return { url, body, headers, userMsg };
 };
 
 const genCloudflareAI = ({ texts, from, to, url, key }) => {
-  const data = {
+  const body = {
     text: texts.join(" "),
     source_lang: from,
     target_lang: to,
@@ -501,17 +501,17 @@ const genCloudflareAI = ({ texts, from, to, url, key }) => {
     Authorization: `Bearer ${key}`,
   };
 
-  return { url, data, headers };
+  return { url, body, headers };
 };
 
 const genCustom = ({ texts, from, to, url, key }) => {
-  const data = { texts, from, to };
+  const body = { texts, from, to };
   const headers = {
     "Content-type": "application/json",
     Authorization: `Bearer ${key}`,
   };
 
-  return { url, data, headers };
+  return { url, body, headers };
 };
 
 const genReqFuncs = {
@@ -537,7 +537,7 @@ const genReqFuncs = {
 
 const genInit = ({
   url = "",
-  data = null,
+  body = null,
   headers = {},
   userMsg = null,
   method = "POST",
@@ -550,18 +550,18 @@ const genInit = ({
     method,
     headers,
   };
-  if (method !== "GET" && method !== "HEAD" && data) {
-    let body = JSON.stringify(data);
-    const id = data?.params?.id;
+  if (method !== "GET" && method !== "HEAD" && body) {
+    let payload = JSON.stringify(body);
+    const id = body?.params?.id;
     if (id) {
-      body = body.replace(
+      payload = payload.replace(
         'method":"',
         (id + 3) % 13 === 0 || (id + 5) % 29 === 0
           ? 'method" : "'
           : 'method": "'
       );
     }
-    Object.assign(init, { body });
+    Object.assign(init, { body: payload });
   }
 
   return [url, init, userMsg];
@@ -610,7 +610,7 @@ export const genTransReq = async ({ reqHook, resHook, ...args }) => {
 
   const {
     url = "",
-    data = null,
+    body = null,
     headers = {},
     userMsg = null,
     method = "POST",
@@ -621,7 +621,7 @@ export const genTransReq = async ({ reqHook, resHook, ...args }) => {
     Object.assign(headers, parseJsonObj(customHeader));
   }
   if (customBody?.trim()) {
-    Object.assign(data, parseJsonObj(customBody));
+    Object.assign(body, parseJsonObj(customBody));
   }
 
   // 执行 request hook
@@ -630,7 +630,7 @@ export const genTransReq = async ({ reqHook, resHook, ...args }) => {
       interpreter.run(`exports.reqHook = ${reqHook}`);
       const hookResult = await interpreter.exports.reqHook(args, {
         url,
-        data,
+        body,
         headers,
         userMsg,
         method,
@@ -643,7 +643,7 @@ export const genTransReq = async ({ reqHook, resHook, ...args }) => {
     }
   }
 
-  return genInit({ url, data, headers, userMsg, method });
+  return genInit({ url, body, headers, userMsg, method });
 };
 
 /**

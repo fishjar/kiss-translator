@@ -9,7 +9,7 @@ export const genDeeplFree = ({ texts, from, to }) => {
 
   const url = "https://www2.deepl.com/jsonrpc";
 
-  const data = {
+  const body = {
     jsonrpc: "2.0",
     method: "LMT_handle_texts",
     params: {
@@ -46,5 +46,5 @@ export const genDeeplFree = ({ texts, from, to }) => {
     "x-app-version": "2.9.1",
   };
 
-  return { url, data, headers };
+  return { url, body, headers };
 };
