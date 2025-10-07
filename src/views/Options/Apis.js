@@ -45,7 +45,7 @@ import {
   BUILTIN_PLACETAGS,
 } from "../../config";
 
-function TestButton({ apiSlug, api }) {
+function TestButton({ api }) {
   const i18n = useI18n();
   const alert = useAlert();
   const [loading, setLoading] = useState(false);
@@ -53,11 +53,10 @@ function TestButton({ apiSlug, api }) {
     try {
       setLoading(true);
       const [text] = await apiTranslate({
-        apiSlug,
         text: "hello world",
         fromLang: "en",
         toLang: "zh-CN",
-        apiSetting: api,
+        apiSetting: { ...api },
         useCache: false,
       });
       if (!text) {
@@ -691,7 +690,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
         >
           {i18n("save")}
         </Button>
-        <TestButton apiSlug={apiSlug} api={api} />
+        <TestButton api={api} />
         <Button size="small" variant="outlined" onClick={handleReset}>
           {i18n("restore_default")}
         </Button>

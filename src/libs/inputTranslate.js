@@ -197,7 +197,6 @@ export class InputTranslator {
         text,
         fromLang,
         toLang,
-        apiSlug,
         apiSetting,
       });
 

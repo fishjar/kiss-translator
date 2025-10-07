@@ -303,12 +303,19 @@ const genGemini = ({
 
   const userMsg = { role: "user", parts: [{ text: userPrompt }] };
   const body = {
-    system_instruction: {
-      parts: {
-        text: systemPrompt,
+    // system_instruction: {
+    //   parts: {
+    //     text: systemPrompt,
+    //   },
+    // },
+    contents: [
+      {
+        role: "model",
+        parts: [{ text: systemPrompt }],
       },
-    },
-    contents: [...hisMsgs, userMsg],
+      ...hisMsgs,
+      userMsg,
+    ],
     generationConfig: {
       maxOutputTokens: maxTokens,
       temperature,
