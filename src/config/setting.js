@@ -116,12 +116,12 @@ transition: opacity 0.2s ease-in-out;`;
 const SUBTITLE_ORIGIN_STYLE = `margin:0;
 padding: 0;
 opacity: 0.8;
-font-size: clamp(2rem, 4cqw, 4rem);`;
+font-size: clamp(1.5rem, 3cqw, 3rem);`;
 
 const SUBTITLE_TRANSLATION_STYLE = `margin:0;
 padding: 0;
 opacity: 1;
-font-size: clamp(2rem, 4.5cqw, 4rem);`;
+font-size: clamp(1.5rem, 3cqw, 3rem);`;
 
 export const DEFAULT_SUBTITLE_SETTING = {
   enabled: true, // 是否开启
