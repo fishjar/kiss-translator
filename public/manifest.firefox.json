@@ -16,6 +16,12 @@
       "all_frames": true
     }
   ],
+  "web_accessible_resources": [
+    {
+      "resources": ["injector.js"],
+      "matches": ["https://www.youtube.com/*"]
+    }
+  ],
   "commands": {
     "_execute_browser_action": {
       "suggested_key": {

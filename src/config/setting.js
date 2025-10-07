@@ -95,6 +95,45 @@ export const DEFAULT_TRANBOX_SETTING = {
   enSug: OPT_SUG_YOUDAO, // 英文建议
 };
 
+const SUBTITLE_WINDOW_STYLE = `container-type: inline-size;
+position: absolute;
+bottom: 10%;
+left: 50%;
+transform: translateX(-50%);
+width: 80%;
+padding: 10px;
+background-color: rgba(0, 0, 0, 0.7);
+color: white;
+text-align: center;
+line-height: 1.2;
+text-shadow: 1px 1px 2px black;
+pointer-events: none;
+z-index: 2147483647;
+opacity: 0;
+cursor: grab;
+transition: opacity 0.2s ease-in-out;`;
+
+const SUBTITLE_ORIGIN_STYLE = `margin:0;
+padding: 0;
+opacity: 0.8;
+font-size: clamp(2rem, 4cqw, 4rem);`;
+
+const SUBTITLE_TRANSLATION_STYLE = `margin:0;
+padding: 0;
+opacity: 1;
+font-size: clamp(2rem, 4.5cqw, 4rem);`;
+
+export const DEFAULT_SUBTITLE_SETTING = {
+  enabled: true, // 是否开启
+  apiSlug: OPT_TRANS_MICROSOFT,
+  // fromLang: "en",
+  toLang: "zh-CN",
+  isBilingual: true, // 是否双语显示
+  windowStyle: SUBTITLE_WINDOW_STYLE, // 背景样式
+  originStyle: SUBTITLE_ORIGIN_STYLE, // 原文样式
+  translationStyle: SUBTITLE_TRANSLATION_STYLE, // 译文样式
+};
+
 // 订阅列表
 export const DEFAULT_SUBRULES_LIST = [
   {
@@ -154,4 +193,5 @@ export const DEFAULT_SETTING = {
   mouseHoverSetting: DEFAULT_MOUSE_HOVER_SETTING, // 鼠标悬停翻译
   preInit: true, // 是否预加载脚本
   transAllnow: false, // 是否立即全部翻译
+  subtitleSetting: DEFAULT_SUBTITLE_SETTING, // 字幕设置
 };

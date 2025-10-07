@@ -32,6 +32,7 @@ const extWebpack = (config, env) => {
     options: paths.appSrc + "/options.js",
     background: paths.appSrc + "/background.js",
     content: paths.appSrc + "/content.js",
+    injector: paths.appSrc + "/injector.js",
   };
 
   config.output.filename = "[name].js";
@@ -123,6 +124,7 @@ const userscriptWebpack = (config, env) => {
   config.entry = {
     main: paths.appIndexJs,
     options: paths.appSrc + "/options.js",
+    injector: paths.appSrc + "/injector.js",
     "kiss-translator.user": paths.appSrc + "/userscript.js",
   };
 

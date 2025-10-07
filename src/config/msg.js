@@ -24,3 +24,7 @@ export const MSG_INJECT_CSS = "inject_css";
 export const MSG_UPDATE_CSP = "update_csp";
 export const MSG_BUILTINAI_DETECT = "builtinai_detect";
 export const MSG_BUILTINAI_TRANSLATE = "builtinai_translte";
+
+export const MSG_XHR_DATA_YOUTUBE = "KISS_XHR_DATA_YOUTUBE";
+export const MSG_GLOBAL_VAR_FETCH = "KISS_GLOBAL_VAR_FETCH";
+export const MSG_GLOBAL_VAR_BACK = "KISS_GLOBAL_VAR_BACK";

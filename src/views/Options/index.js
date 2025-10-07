@@ -23,6 +23,7 @@ import Tranbox from "./Tranbox";
 import FavWords from "./FavWords";
 import Playgound from "./Playground";
 import MouseHoverSetting from "./MouseHover";
+import SubtitleSetting from "./Subtitle";
 import Loading from "../../hooks/Loading";
 
 export default function Options() {
@@ -109,6 +110,7 @@ export default function Options() {
                   <Route path="input" element={<InputSetting />} />
                   <Route path="tranbox" element={<Tranbox />} />
                   <Route path="mousehover" element={<MouseHoverSetting />} />
+                  <Route path="subtitle" element={<SubtitleSetting />} />
                   <Route path="apis" element={<Apis />} />
                   <Route path="sync" element={<SyncSetting />} />
                   <Route path="words" element={<FavWords />} />

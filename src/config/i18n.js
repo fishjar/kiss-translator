@@ -1538,4 +1538,34 @@ export const I18N = {
     en: `Detect result`,
     zh_TW: `檢測結果`,
   },
+  subtitle_translate: {
+    zh: `字幕翻译`,
+    en: `Subtitle translate`,
+    zh_TW: `字幕翻譯`,
+  },
+  toggle_subtitle_translate: {
+    zh: `启用字幕翻译`,
+    en: `Enable subtitle translation`,
+    zh_TW: `啟用字幕翻譯`,
+  },
+  is_bilingual_view: {
+    zh: `启用双语显示`,
+    en: `DEnable bilingual display`,
+    zh_TW: `啟用雙語顯示`,
+  },
+  background_styles: {
+    zh: `背景样式`,
+    en: `DBackground Style`,
+    zh_TW: `背景樣式`,
+  },
+  origin_styles: {
+    zh: `原文样式`,
+    en: `Original style`,
+    zh_TW: `原文樣式`,
+  },
+  translation_styles: {
+    zh: `译文样式`,
+    en: `Translation style`,
+    zh_TW: `譯文樣式`,
+  },
 };

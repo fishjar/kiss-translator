@@ -18,6 +18,7 @@ import { handlePing, injectScript } from "./libs/gm";
 import { matchRule } from "./libs/rules";
 import { trySyncAllSubRules } from "./libs/subRules";
 import { isInBlacklist } from "./libs/blacklist";
+import { runSubtitle } from "./subtitle/subtitle";
 
 /**
  * 油猴脚本设置页面
@@ -208,6 +209,9 @@ export async function run(isUserscript = false) {
       runIframe(translator);
       return;
     }
+
+    // 字幕翻译
+    runSubtitle({ href, setting, rule });
 
     // 监听消息
     // !isUserscript && runtimeListener(translator);

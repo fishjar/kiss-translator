@@ -15,6 +15,7 @@ import InputIcon from "@mui/icons-material/Input";
 import SelectAllIcon from "@mui/icons-material/SelectAll";
 import EventNoteIcon from "@mui/icons-material/EventNote";
 import MouseIcon from "@mui/icons-material/Mouse";
+import SubtitlesIcon from "@mui/icons-material/Subtitles";
 
 function LinkItem({ label, url, icon }) {
   const match = useMatch(url);
@@ -58,6 +59,12 @@ export default function Navigator(props) {
       label: i18n("mousehover_translate"),
       url: "/mousehover",
       icon: <MouseIcon />,
+    },
+    {
+      id: "subtitle_translate",
+      label: i18n("subtitle_translate"),
+      url: "/subtitle",
+      icon: <SubtitlesIcon />,
     },
     {
       id: "apis_setting",

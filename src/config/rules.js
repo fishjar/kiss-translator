@@ -190,6 +190,7 @@ const RULES_MAP = {
   },
   "www.youtube.com": {
     rootsSelector: `ytd-page-manager`,
+    ignoreSelector: `aside, button, footer, form, header, pre, mark, nav, #ytp-caption-window-container`,
     transEndHook: `({ parentNode }) => {parentNode.parentElement.style.cssText += "-webkit-line-clamp: unset; max-height: none; height: auto;";}`,
     textStyle: OPT_STYLE_DASHBOX,
   },

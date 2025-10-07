@@ -207,6 +207,9 @@ export class Translator {
 
     // 13. 简单时间格式 (例如 12:30, 9:45:30) - [新增]
     /^\d{1,2}:\d{2}(:\d{2})?$/,
+
+    // 14. 包含常见扩展名的文件名 (例如: document.pdf, image.jpeg)
+    /^[^\s\\/:]+?\.[a-zA-Z0-9]{2,5}$/,
   ];
 
   static DEFAULT_OPTIONS = DEFAULT_SETTING; // 默认配置
