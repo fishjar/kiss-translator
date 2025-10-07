@@ -97,9 +97,13 @@ class YouTubeCaptionProvider {
   #findCaptionTrack(ytPlayer) {
     const captionTracks =
       ytPlayer?.captions?.playerCaptionsTracklistRenderer?.captionTracks || [];
-    let captionTrack = captionTracks.find((item) => item.vssId === ".en");
+    let captionTrack = captionTracks.find((item) =>
+      item.vssId?.startsWith(".en")
+    );
     if (!captionTrack) {
-      captionTrack = captionTracks.find((item) => item.vssId === "a.en");
+      captionTrack = captionTracks.find((item) =>
+        item.vssId?.startsWith("a.en")
+      );
     }
     return captionTrack;
   }
@@ -107,7 +111,7 @@ class YouTubeCaptionProvider {
   async #getSubtitleEvents(captionTrack, potUrl, responseText) {
     if (potUrl.searchParams.get("lang") === captionTrack.languageCode) {
       try {
-        return JSON.parse(responseText)?.events;
+        return JSON.parse(responseText);
       } catch (err) {
         logger.error("parse responseText", err);
         return null;
@@ -126,8 +130,7 @@ class YouTubeCaptionProvider {
 
       const res = await fetch(baseUrl);
       if (res.ok) {
-        const json = await res.json();
-        return json?.events;
+        return res.json();
       }
       logger.error(
         `Youtube Provider: Failed to fetch subtitles: ${res.status}`
@@ -170,14 +173,20 @@ class YouTubeCaptionProvider {
         return;
       }
 
-      this.#onCaptionsReady(videoId, subtitleEvents);
+      const subtitles = this.#formatSubtitles(subtitleEvents);
+      if (subtitles.length === 0) {
+        logger.warn("Youtube Provider: No subtitles after format.");
+        return;
+      }
+
+      this.#onCaptionsReady(videoId, subtitles);
     } catch (error) {
       logger.error("Youtube Provider: unknow error", error);
     }
   }
 
-  #onCaptionsReady(videoId, subtitleEvents) {
-    this.#subtitles = this.#formatSubtitles(subtitleEvents);
+  #onCaptionsReady(videoId, subtitles) {
+    this.#subtitles = subtitles;
     this.#videoId = videoId;
 
     this.#destroyManager();
@@ -231,7 +240,8 @@ class YouTubeCaptionProvider {
   }
 
   // todo: 没有标点断句的处理
-  #formatSubtitles(events) {
+  #formatSubtitles(data) {
+    const events = data?.events;
     if (!Array.isArray(events)) return [];
 
     const lines = [];
@@ -263,7 +273,9 @@ class YouTubeCaptionProvider {
         }
 
         const isEndOfSentence = /[.?!\]]$/.test(trimmedText);
-        if (currentLine && trimmedText && isEndOfSentence) {
+        const isEnoughLong =
+          (currentLine?.text.length ?? 0) > 50 && /[,]\s*$/.test(trimmedText);
+        if (currentLine && trimmedText && (isEndOfSentence || isEnoughLong)) {
           const isLastSegmentInEvent =
             segIndex === (event.segs?.length ?? 0) - 1;
           if (isLastSegmentInEvent && event.dDurationMs) {
