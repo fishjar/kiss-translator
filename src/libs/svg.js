@@ -21,7 +21,8 @@ export const loadingSvg = `
 export const createLogoSvg = ({
   width = "100%",
   height = "100%",
-  viewBox = "-13 -14 60 60",
+  viewBox = "-20 -20 70 70",
+  isSelected = false,
 } = {}) => {
   const svgNS = "http://www.w3.org/2000/svg";
   const svgElement = document.createElementNS(svgNS, "svg");
@@ -50,6 +51,15 @@ export const createLogoSvg = ({
 
   svgElement.appendChild(path1);
   svgElement.appendChild(path2);
+
+  if (isSelected) {
+    const redLine = document.createElementNS(svgNS, "path");
+    redLine.setAttribute("d", "M0 36 L32 36");
+    redLine.setAttribute("stroke", "red");
+    redLine.setAttribute("stroke-width", "3");
+    redLine.setAttribute("stroke-linecap", "round");
+    svgElement.appendChild(redLine);
+  }
 
   return svgElement;
 };

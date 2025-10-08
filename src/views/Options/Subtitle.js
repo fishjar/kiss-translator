@@ -106,16 +106,6 @@ export default function SubtitleSetting() {
 
         <TextField
           size="small"
-          label={i18n("background_styles")}
-          name="windowStyle"
-          value={windowStyle}
-          onChange={handleChange}
-          maxRows={10}
-          multiline
-          fullWidth
-        />
-        <TextField
-          size="small"
           label={i18n("origin_styles")}
           name="originStyle"
           value={originStyle}
@@ -129,6 +119,16 @@ export default function SubtitleSetting() {
           label={i18n("translation_styles")}
           name="translationStyle"
           value={translationStyle}
+          onChange={handleChange}
+          maxRows={10}
+          multiline
+          fullWidth
+        />
+        <TextField
+          size="small"
+          label={i18n("background_styles")}
+          name="windowStyle"
+          value={windowStyle}
           onChange={handleChange}
           maxRows={10}
           multiline

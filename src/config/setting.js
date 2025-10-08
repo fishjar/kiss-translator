@@ -95,33 +95,18 @@ export const DEFAULT_TRANBOX_SETTING = {
   enSug: OPT_SUG_YOUDAO, // 英文建议
 };
 
-const SUBTITLE_WINDOW_STYLE = `container-type: inline-size;
-position: absolute;
-bottom: 10%;
-left: 50%;
-transform: translateX(-50%);
-width: 80%;
-padding: 10px;
-background-color: rgba(0, 0, 0, 0.7);
+const SUBTITLE_WINDOW_STYLE = `padding: 0.5em 1em;
+background-color: rgba(0, 0, 0, 0.5);
 color: white;
-text-align: center;
 line-height: 1.2;
 text-shadow: 1px 1px 2px black;
-pointer-events: none;
-z-index: 2147483647;
 opacity: 0;
-cursor: grab;
-transition: opacity 0.2s ease-in-out;`;
+transition: opacity 0.2s ease-in-out;
+display: inline-block`;
 
-const SUBTITLE_ORIGIN_STYLE = `margin:0;
-padding: 0;
-opacity: 0.8;
-font-size: clamp(1.5rem, 3cqw, 3rem);`;
+const SUBTITLE_ORIGIN_STYLE = `font-size: clamp(1.5rem, 3cqw, 3rem);`;
 
-const SUBTITLE_TRANSLATION_STYLE = `margin:0;
-padding: 0;
-opacity: 1;
-font-size: clamp(1.5rem, 3cqw, 3rem);`;
+const SUBTITLE_TRANSLATION_STYLE = `font-size: clamp(1.5rem, 3cqw, 3rem);`;
 
 export const DEFAULT_SUBTITLE_SETTING = {
   enabled: true, // 是否开启

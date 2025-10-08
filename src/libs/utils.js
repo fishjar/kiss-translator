@@ -362,3 +362,15 @@ export const truncateWords = (str, maxLength) => {
   const truncated = str.slice(0, maxLength);
   return truncated.slice(0, truncated.lastIndexOf(" ")) + " …";
 };
+
+/**
+ * 生成随机数
+ * @param {*} min
+ * @param {*} max
+ * @param {*} integer
+ * @returns
+ */
+export const randomBetween = (min, max, integer = true) => {
+  const value = Math.random() * (max - min) + min;
+  return integer ? Math.floor(value) : value;
+};

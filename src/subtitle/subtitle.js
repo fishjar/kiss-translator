@@ -12,6 +12,11 @@ const providers = [
 
 export function runSubtitle({ href, setting, rule }) {
   try {
+    const subtitleSetting = setting.subtitleSetting || DEFAULT_SUBTITLE_SETTING;
+    if (!subtitleSetting.enabled) {
+      return;
+    }
+
     const provider = providers.find((item) => isMatch(href, item.pattern));
     if (provider) {
       const id = "kiss-translator-injector";
@@ -22,7 +27,7 @@ export function runSubtitle({ href, setting, rule }) {
         setting.transApis.find((api) => api.apiSlug === rule.apiSlug) ||
         DEFAULT_API_SETTING;
       provider.start({
-        ...(setting.subtitleSetting || DEFAULT_SUBTITLE_SETTING),
+        ...subtitleSetting,
         apiSetting,
       });
     }

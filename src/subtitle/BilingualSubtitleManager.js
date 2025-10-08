@@ -51,7 +51,7 @@ export class BilingualSubtitleManager {
   destroy() {
     logger.info("Bilingual Subtitle Manager: Destroying...");
     this.#removeEventListeners();
-    this.#captionWindowEl?.parentElement?.remove();
+    this.#captionWindowEl?.parentElement?.parentElement?.remove();
     this.#formattedSubtitles = [];
   }
 
@@ -60,14 +60,36 @@ export class BilingualSubtitleManager {
    */
   #createCaptionWindow() {
     const container = document.createElement("div");
-    container.className = `kiss-caption-window-container notranslate`;
-    container.style.cssText = `position:absolute; width:100%; height:100%; left:0; top:0;`;
+    container.className = `kiss-caption-container notranslate`;
+    Object.assign(container.style, {
+      position: "absolute",
+      width: "100%",
+      height: "100%",
+      left: "0",
+      top: "0",
+    });
+
+    const paper = document.createElement("div");
+    paper.className = `kiss-caption-paper`;
+    Object.assign(paper.style, {
+      position: "absolute",
+      width: "80%",
+      left: "50%",
+      bottom: "10%",
+      transform: "translateX(-50%)",
+      textAlign: "center",
+      cursor: "grab",
+      containerType: "inline-size",
+      pointerEvents: "none",
+      zIndex: "2147483647",
+    });
 
     this.#captionWindowEl = document.createElement("div");
     this.#captionWindowEl.className = `kiss-caption-window`;
     this.#captionWindowEl.style.cssText = this.#setting.windowStyle;
 
-    container.appendChild(this.#captionWindowEl);
+    paper.appendChild(this.#captionWindowEl);
+    container.appendChild(paper);
 
     const videoContainer = this.#videoEl.parentElement?.parentElement;
     if (!videoContainer) {
