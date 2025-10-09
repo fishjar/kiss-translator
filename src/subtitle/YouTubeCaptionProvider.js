@@ -134,17 +134,18 @@ class YouTubeCaptionProvider {
 
     try {
       const baseUrl = new URL(captionTrack.baseUrl);
-      baseUrl.searchParams.set("potc", potUrl.searchParams.get("potc"));
-      baseUrl.searchParams.set("pot", potUrl.searchParams.get("pot"));
-      baseUrl.searchParams.set("fmt", "json3");
-      baseUrl.searchParams.set("c", potUrl.searchParams.get("c"));
-      if (potUrl.searchParams.get("kind")) {
-        baseUrl.searchParams.set("kind", potUrl.searchParams.get("kind"));
+      potUrl.searchParams.set("lang", baseUrl.searchParams.get("lang"));
+      potUrl.searchParams.set("fmt", "json3");
+      if (baseUrl.searchParams.get("kind")) {
+        potUrl.searchParams.set("kind", baseUrl.searchParams.get("kind"));
+      } else {
+        potUrl.searchParams.delete("kind");
       }
 
-      const res = await fetch(baseUrl);
+      const res = await fetch(potUrl);
       if (res.ok) {
-        return res.json();
+        const json = await res.json();
+        return json;
       }
       logger.error(
         `Youtube Provider: Failed to fetch subtitles: ${res.status}`
