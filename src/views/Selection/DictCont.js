@@ -35,7 +35,7 @@ function DictBody({ text, setCopyText, setRealWord, dict }) {
   }
 
   if (!data) {
-    return <Typography>Empty result</Typography>;
+    return <Typography>Not found!</Typography>;
   }
 
   return (

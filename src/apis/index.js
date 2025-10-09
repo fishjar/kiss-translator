@@ -140,7 +140,7 @@ export const apiMicrosoftDict = async (text) => {
   const parser = new DOMParser();
   const doc = parser.parseFromString(str, "text/html");
 
-  const word = doc.querySelector("#headword > h1").textContent.trim();
+  const word = doc.querySelector("#headword > h1")?.textContent.trim();
   if (!word) {
     return null;
   }
