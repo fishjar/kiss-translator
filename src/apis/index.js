@@ -13,10 +13,15 @@ import {
   MSG_BUILTINAI_DETECT,
   MSG_BUILTINAI_TRANSLATE,
   OPT_TRANS_BUILTINAI,
+  URL_CACHE_SUBTITLE,
 } from "../config";
 import { sha256, withTimeout } from "../libs/utils";
 import { kissLog } from "../libs/log";
-import { handleTranslate, handleMicrosoftLangdetect } from "./trans";
+import {
+  handleTranslate,
+  handleSubtitle,
+  handleMicrosoftLangdetect,
+} from "./trans";
 import { getHttpCachePolyfill, putHttpCachePolyfill } from "../libs/cache";
 import { getBatchQueue } from "../libs/batchQueue";
 import { isBuiltinAIAvailable } from "../libs/browser";
@@ -494,4 +499,37 @@ export const apiTranslate = async ({
   }
 
   return [trText, isSame];
+};
+
+// 字幕处理/翻译
+export const apiSubtitle = async ({
+  videoId,
+  fromLang = "en",
+  toLang,
+  events = [],
+  apiSetting,
+}) => {
+  const cacheOpts = {
+    videoId,
+    fromLang,
+    toLang,
+  };
+  const cacheInput = `${URL_CACHE_SUBTITLE}?${queryString.stringify(cacheOpts)}`;
+  const cache = await getHttpCachePolyfill(cacheInput);
+  if (cache) {
+    return cache;
+  }
+
+  const subtitles = await handleSubtitle({
+    events,
+    from: fromLang,
+    to: toLang,
+    apiSetting,
+  });
+  if (subtitles?.length) {
+    putHttpCachePolyfill(cacheInput, null, subtitles);
+    return subtitles;
+  }
+
+  return [];
 };

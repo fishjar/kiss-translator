@@ -1,10 +1,11 @@
 import { logger } from "../libs/log.js";
-import { apiTranslate } from "../apis/index.js";
+import { apiSubtitle, apiTranslate } from "../apis/index.js";
 import { BilingualSubtitleManager } from "./BilingualSubtitleManager.js";
 import { MSG_XHR_DATA_YOUTUBE, APP_NAME } from "../config";
 import { truncateWords, sleep } from "../libs/utils.js";
 import { createLogoSvg } from "../libs/svg.js";
 import { randomBetween } from "../libs/utils.js";
+import { fetchData } from "../libs/fetch.js";
 
 const VIDEO_SELECT = "#container video";
 const CONTORLS_SELECT = ".ytp-right-controls";
@@ -114,7 +115,12 @@ class YouTubeCaptionProvider {
     this.#ytControls.before(kissControls);
   }
 
+  // todo: 优化逻辑
   #findCaptionTrack(captionTracks) {
+    if (!captionTracks.length) {
+      return null;
+    }
+
     let captionTrack = captionTracks.find((item) =>
       item.vssId?.startsWith(".en")
     );
@@ -123,6 +129,10 @@ class YouTubeCaptionProvider {
         item.vssId?.startsWith("a.en")
       );
     }
+
+    captionTrack = captionTracks[0];
+    captionTrack.baseUrl += "&tlang=en";
+
     return captionTrack;
   }
 
@@ -144,7 +154,8 @@ class YouTubeCaptionProvider {
   async #getSubtitleEvents(captionTrack, potUrl, responseText) {
     if (potUrl.searchParams.get("lang") === captionTrack.languageCode) {
       try {
-        return JSON.parse(responseText);
+        const json = JSON.parse(responseText);
+        return json;
       } catch (err) {
         logger.error("Youtube Provider: parse responseText", err);
         return null;
@@ -161,7 +172,7 @@ class YouTubeCaptionProvider {
         potUrl.searchParams.delete("kind");
       }
 
-      const res = await fetch(potUrl);
+      const res = await fetchData(potUrl, null, { useCache: true });
       if (res.ok) {
         const json = await res.json();
         return json;
@@ -179,6 +190,24 @@ class YouTubeCaptionProvider {
   #getVideoId() {
     const docUrl = new URL(document.location.href);
     return docUrl.searchParams.get("v");
+  }
+
+  async #aiSegment({ videoId, toLang, events, segApiSetting }) {
+    try {
+      const subtitles = await apiSubtitle({
+        videoId,
+        toLang,
+        events,
+        apiSetting: segApiSetting,
+      });
+      if (Array.isArray(subtitles)) {
+        return subtitles;
+      }
+    } catch (err) {
+      logger.info("Youtube Provider: ai segmentation", err);
+    }
+
+    return [];
   }
 
   async #handleInterceptedRequest(url, responseText) {
@@ -216,12 +245,27 @@ class YouTubeCaptionProvider {
         potUrl,
         responseText
       );
-      if (!subtitleEvents) {
+      const events = subtitleEvents?.events;
+      if (!Array.isArray(events)) {
         logger.info("Youtube Provider: SubtitleEvents not got.");
         return;
       }
 
-      const subtitles = this.#formatSubtitles(subtitleEvents);
+      let subtitles = [];
+
+      const { segApiSetting, toLang } = this.#setting;
+      if (captionTrack.kind === "asr" && segApiSetting) {
+        // todo: 提示用户等待中
+        subtitles = await this.#aiSegment({
+          videoId,
+          events,
+          toLang,
+          segApiSetting,
+        });
+      }
+      if (subtitles.length === 0) {
+        subtitles = this.#formatSubtitles(events);
+      }
       if (subtitles.length === 0) {
         logger.info("Youtube Provider: No subtitles after format.");
         return;
@@ -300,8 +344,7 @@ class YouTubeCaptionProvider {
     }
   }
 
-  #formatSubtitles(data) {
-    const events = data?.events;
+  #formatSubtitles(events) {
     if (!Array.isArray(events)) return [];
 
     const lines = [];
@@ -362,7 +405,7 @@ class YouTubeCaptionProvider {
 
     const isPoor = this.#isQualityPoor(lines);
     if (isPoor) {
-      return this.#processSubtitles(data);
+      return this.#processSubtitles(events);
     }
 
     return lines.map((item) => ({
@@ -380,7 +423,7 @@ class YouTubeCaptionProvider {
     return longLinesCount / lines.length > percentageThreshold;
   }
 
-  #processSubtitles(data, { timeout = 1500, maxWords = 15 } = {}) {
+  #processSubtitles(events, { timeout = 1500, maxWords = 15 } = {}) {
     const groupedPauseWords = {
       1: new Set([
         "actually",
@@ -483,7 +526,7 @@ class YouTubeCaptionProvider {
       bufferWordCount = 0;
     };
 
-    data.events?.forEach((event) => {
+    events?.forEach((event) => {
       event.segs?.forEach((seg, j) => {
         const text = seg.utf8?.trim() || "";
         if (!text) return;

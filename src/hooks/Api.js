@@ -43,6 +43,11 @@ export function useApiList() {
     [transApis]
   );
 
+  const aiEnabledApis = useMemo(
+    () => enabledApis.filter((api) => API_SPE_TYPES.ai.has(api.apiSlug)),
+    [enabledApis]
+  );
+
   const addApi = useCallback(
     (apiType) => {
       const defaultApiOpt =
@@ -76,7 +81,15 @@ export function useApiList() {
     [updateSetting]
   );
 
-  return { transApis, userApis, builtinApis, enabledApis, addApi, deleteApi };
+  return {
+    transApis,
+    userApis,
+    builtinApis,
+    enabledApis,
+    aiEnabledApis,
+    addApi,
+    deleteApi,
+  };
 }
 
 export function useApiItem(apiSlug) {

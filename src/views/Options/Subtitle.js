@@ -6,6 +6,7 @@ import Grid from "@mui/material/Grid";
 import { useI18n } from "../../hooks/I18n";
 import { OPT_LANGS_TO } from "../../config";
 import FormControlLabel from "@mui/material/FormControlLabel";
+import Alert from "@mui/material/Alert";
 import Switch from "@mui/material/Switch";
 import { useSubtitle } from "../../hooks/Subtitle";
 import { useApiList } from "../../hooks/Api";
@@ -13,7 +14,7 @@ import { useApiList } from "../../hooks/Api";
 export default function SubtitleSetting() {
   const i18n = useI18n();
   const { subtitleSetting, updateSubtitle } = useSubtitle();
-  const { enabledApis } = useApiList();
+  const { enabledApis, aiEnabledApis } = useApiList();
 
   const handleChange = (e) => {
     e.preventDefault();
@@ -26,6 +27,7 @@ export default function SubtitleSetting() {
   const {
     enabled,
     apiSlug,
+    segSlug,
     toLang,
     isBilingual,
     windowStyle,
@@ -36,6 +38,12 @@ export default function SubtitleSetting() {
   return (
     <Box>
       <Stack spacing={3}>
+        <Alert severity="info">
+          {i18n("subtitle_helper_1")}
+          <br />
+          {i18n("subtitle_helper_2")}
+        </Alert>
+
         <FormControlLabel
           control={
             <Switch
@@ -63,6 +71,24 @@ export default function SubtitleSetting() {
                 onChange={handleChange}
               >
                 {enabledApis.map((api) => (
+                  <MenuItem key={api.apiSlug} value={api.apiSlug}>
+                    {api.apiName}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                name="segSlug"
+                value={segSlug}
+                label={i18n("ai_segmentation")}
+                onChange={handleChange}
+              >
+                <MenuItem value={"-"}>{i18n("disable")}</MenuItem>
+                {aiEnabledApis.map((api) => (
                   <MenuItem key={api.apiSlug} value={api.apiSlug}>
                     {api.apiName}
                   </MenuItem>

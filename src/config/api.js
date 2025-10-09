@@ -354,6 +354,24 @@ Output: {"translations":[{"id":1,"text":"一个<b>React</b>组件","sourceLangua
 
 Fail-safe: On any error, return {"translations":[]}.`;
 
+const defaultSubtitlePrompt = `Goal: Convert raw subtitle event JSON into a clean, sentence-based JSON array.
+
+Output (valid JSON array, output ONLY this array):
+[{
+  "text": "string",        // Full sentence with correct punctuation
+  "translation": "string", // Translation in ${INPUT_PLACE_TO}
+  "start": int,            // Start time (ms)
+  "end": int,              // End time (ms)
+  "duration": int          // end - start
+}]
+
+Guidelines:
+1. **Segmentation**: Merge sequential 'utf8' strings from 'segs' into full sentences, merging groups logically.
+2. **Punctuation**: Ensure proper sentence-final punctuation (., ?, !); add if missing.
+3. **Translation**: Translate 'text' into ${INPUT_PLACE_TO}, place result in 'translation'.
+4. **Special Cases**: '[Music]' (and similar cues) are standalone entries. Translate appropriately (e.g., '[音乐]', '[Musique]').
+`;
+
 const defaultRequestHook = `async (args, { url, body, headers, userMsg, method } = {}) => {
   console.log("request hook args:", args);
   // return { url, body, headers, userMsg, method };
@@ -375,6 +393,7 @@ const defaultApi = {
   key: "",
   model: "", // 模型名称
   systemPrompt: defaultSystemPrompt,
+  subtitlePrompt: defaultSubtitlePrompt,
   userPrompt: "",
   tone: BUILTIN_STONES[0], // 翻译风格
   placeholder: BUILTIN_PLACEHOLDERS[0], // 占位符

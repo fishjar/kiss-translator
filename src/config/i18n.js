@@ -1484,9 +1484,9 @@ export const I18N = {
     zh_TW: `佔位標名`,
   },
   system_prompt_helper: {
-    zh: `在未完全理解默认Prompt的情况下，请勿随意修改，否则可能翻译失败。`,
-    en: `If you do not fully understand the default prompt, please do not modify it at will, otherwise the translation may fail.`,
-    zh_TW: `在未完全理解預設Prompt的情況下，請勿隨意修改，否則可能翻譯失敗。`,
+    zh: `在未完全理解默认Prompt的情况下，请勿随意修改，否则可能无法工作。`,
+    en: `Do not modify the default prompt without fully understanding it, otherwise it may not work.`,
+    zh_TW: `在未完全理解預設Prompt的情況下，請勿隨意修改，否則可能無法運作。`,
   },
   if_pre_init: {
     zh: `是否预初始化`,
@@ -1567,5 +1567,20 @@ export const I18N = {
     zh: `译文样式`,
     en: `Translation style`,
     zh_TW: `譯文樣式`,
+  },
+  ai_segmentation: {
+    zh: `AI智能断句`,
+    en: `AI intelligent punctuation`,
+    zh_TW: `AI智慧斷句`,
+  },
+  subtitle_helper_1: {
+    zh: `1、目前仅支持Youtube英文字幕双语翻译，且仅支持浏览器扩展。`,
+    en: `1. Currently only supports bilingual translation of Youtube English subtitles, and only supports browser extensions.`,
+    zh_TW: `1.目前僅支援Youtube英文字幕雙語翻譯，且僅支援瀏覽器擴充功能。`,
+  },
+  subtitle_helper_2: {
+    zh: `2、插件内置基础断句逻辑，如不理想，可以启用AI智能断句，但需考虑视频长度与AI接口的处理能力，可能等待的时间会很长，甚至失败。`,
+    en: `2. The plug-in has built-in basic segmentation logic. If it is not ideal, you can enable AI intelligent segmentation. However, you need to consider the video length and the processing power of the AI ​​interface. The waiting time may be very long or even fail.`,
+    zh_TW: `2.插件內建基礎斷句邏輯，如不理想，可以啟用AI智能斷句，但需考慮視訊長度與AI介面的處理能力，可能等待的時間會很長，甚至失敗。`,
   },
 };

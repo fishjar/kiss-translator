@@ -10,7 +10,7 @@ const providers = [
   { pattern: "https://www.youtube.com/watch", start: YouTubeInitializer },
 ];
 
-export function runSubtitle({ href, setting, rule }) {
+export function runSubtitle({ href, setting }) {
   try {
     const subtitleSetting = setting.subtitleSetting || DEFAULT_SUBTITLE_SETTING;
     if (!subtitleSetting.enabled) {
@@ -24,11 +24,16 @@ export function runSubtitle({ href, setting, rule }) {
       injectExternalJs(src, id);
 
       const apiSetting =
-        setting.transApis.find((api) => api.apiSlug === rule.apiSlug) ||
-        DEFAULT_API_SETTING;
+        setting.transApis.find(
+          (api) => api.apiSlug === subtitleSetting.apiSlug
+        ) || DEFAULT_API_SETTING;
+      const segApiSetting = setting.transApis.find(
+        (api) => api.apiSlug === subtitleSetting.segSlug
+      );
       provider.start({
         ...subtitleSetting,
         apiSetting,
+        segApiSetting,
       });
     }
   } catch (err) {

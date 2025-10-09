@@ -111,6 +111,7 @@ const SUBTITLE_TRANSLATION_STYLE = `font-size: clamp(1.5rem, 3cqw, 3rem);`;
 export const DEFAULT_SUBTITLE_SETTING = {
   enabled: true, // 是否开启
   apiSlug: OPT_TRANS_MICROSOFT,
+  segSlug: "-", // AI智能断句
   // fromLang: "en",
   toLang: "zh-CN",
   isBilingual: true, // 是否双语显示

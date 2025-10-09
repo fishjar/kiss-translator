@@ -210,6 +210,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
     model = "",
     apiType,
     systemPrompt = "",
+    subtitlePrompt = "",
     // userPrompt = "",
     customHeader = "",
     customBody = "",
@@ -339,6 +340,16 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
             label={"SYSTEM PROMPT"}
             name="systemPrompt"
             value={systemPrompt}
+            onChange={handleChange}
+            multiline
+            maxRows={10}
+            helperText={i18n("system_prompt_helper")}
+          />
+          <TextField
+            size="small"
+            label={"SUBTITLE PROMPT"}
+            name="subtitlePrompt"
+            value={subtitlePrompt}
             onChange={handleChange}
             multiline
             maxRows={10}

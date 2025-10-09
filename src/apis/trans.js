@@ -90,25 +90,44 @@ const genUserPrompt = ({
 };
 
 const parseAIRes = (raw) => {
-  let data;
+  if (!raw) {
+    return [];
+  }
 
   try {
     const jsonString = extractJson(raw);
-    data = JSON.parse(jsonString);
+    const data = JSON.parse(jsonString);
+
+    if (Array.isArray(data.translations)) {
+      // todo: 考虑序号id可能会打乱
+      return data.translations.map((item) => [
+        item?.text ?? "",
+        item?.sourceLanguage ?? "",
+      ]);
+    }
   } catch (err) {
     kissLog("parseAIRes", err);
+  }
+
+  return [];
+};
+
+const parseSTRes = (raw) => {
+  if (!raw) {
     return [];
   }
 
-  if (!Array.isArray(data.translations)) {
-    return [];
+  try {
+    const jsonString = extractJson(raw);
+    const data = JSON.parse(jsonString);
+    if (Array.isArray(data)) {
+      return data;
+    }
+  } catch (err) {
+    kissLog("parseAIRes: subtitle", err);
   }
 
-  // todo: 考虑序号id可能会打乱
-  return data.translations.map((item) => [
-    item?.text ?? "",
-    item?.sourceLanguage ?? "",
-  ]);
+  return [];
 };
 
 const genGoogle = ({ texts, from, to, url, key }) => {
@@ -258,7 +277,7 @@ const genOpenAI = ({
   model,
   temperature,
   maxTokens,
-  hisMsgs,
+  hisMsgs = [],
 }) => {
   const userMsg = {
     role: "user",
@@ -295,7 +314,7 @@ const genGemini = ({
   model,
   temperature,
   maxTokens,
-  hisMsgs,
+  hisMsgs = [],
 }) => {
   url = url
     .replaceAll(INPUT_PLACE_MODEL, model)
@@ -359,7 +378,7 @@ const genGemini2 = ({
   model,
   temperature,
   maxTokens,
-  hisMsgs,
+  hisMsgs = [],
 }) => {
   const userMsg = {
     role: "user",
@@ -395,7 +414,7 @@ const genClaude = ({
   model,
   temperature,
   maxTokens,
-  hisMsgs,
+  hisMsgs = [],
 }) => {
   const userMsg = {
     role: "user",
@@ -427,7 +446,7 @@ const genOpenRouter = ({
   model,
   temperature,
   maxTokens,
-  hisMsgs,
+  hisMsgs = [],
 }) => {
   const userMsg = {
     role: "user",
@@ -464,7 +483,7 @@ const genOllama = ({
   model,
   temperature,
   maxTokens,
-  hisMsgs,
+  hisMsgs = [],
 }) => {
   const userMsg = {
     role: "user",
@@ -579,7 +598,7 @@ const genInit = ({
  * @param {*}
  * @returns
  */
-export const genTransReq = async ({ reqHook, resHook, ...args }) => {
+export const genTransReq = async ({ reqHook, ...args }) => {
   const {
     apiType,
     apiSlug,
@@ -593,6 +612,7 @@ export const genTransReq = async ({ reqHook, resHook, ...args }) => {
     glossary,
     customHeader,
     customBody,
+    events,
   } = args;
 
   if (API_SPE_TYPES.mulkeys.has(apiType)) {
@@ -605,14 +625,16 @@ export const genTransReq = async ({ reqHook, resHook, ...args }) => {
 
   if (API_SPE_TYPES.ai.has(apiType)) {
     args.systemPrompt = genSystemPrompt({ systemPrompt, from, to });
-    args.userPrompt = genUserPrompt({
-      userPrompt,
-      from,
-      to,
-      texts,
-      docInfo,
-      glossary,
-    });
+    args.userPrompt = !!events
+      ? JSON.stringify(events)
+      : genUserPrompt({
+          userPrompt,
+          from,
+          to,
+          texts,
+          docInfo,
+          glossary,
+        });
   }
 
   const {
@@ -632,7 +654,7 @@ export const genTransReq = async ({ reqHook, resHook, ...args }) => {
   }
 
   // 执行 request hook
-  if (reqHook?.trim()) {
+  if (reqHook?.trim() && !events) {
     try {
       interpreter.run(`exports.reqHook = ${reqHook}`);
       const hookResult = await interpreter.exports.reqHook(args, {
@@ -864,7 +886,8 @@ export const handleTranslate = async (
     httpTimeout,
   });
   if (!res) {
-    throw new Error("tranlate got empty response");
+    kissLog("tranlate got empty response");
+    return [];
   }
 
   return parseTransRes(res, {
@@ -904,6 +927,57 @@ export const handleMicrosoftLangdetect = async (texts = []) => {
 
   if (Array.isArray(res)) {
     return res.map((r) => r.language);
+  }
+
+  return [];
+};
+
+/**
+ * 字幕翻译
+ * @param {*} param0
+ * @returns
+ */
+export const handleSubtitle = async ({
+  events,
+  from = "en",
+  to,
+  apiSetting,
+}) => {
+  const { apiType, fetchInterval, fetchLimit, httpTimeout } = apiSetting;
+
+  const [input, init] = await genTransReq({
+    ...apiSetting,
+    events,
+    from,
+    to,
+    systemPrompt: apiSetting.subtitlePrompt,
+  });
+
+  const res = await fetchData(input, init, {
+    useCache: false,
+    usePool: true,
+    fetchInterval,
+    fetchLimit,
+    httpTimeout,
+  });
+  if (!res) {
+    kissLog("subtitle got empty response");
+    return [];
+  }
+
+  switch (apiType) {
+    case OPT_TRANS_OPENAI:
+    case OPT_TRANS_GEMINI_2:
+    case OPT_TRANS_OPENROUTER:
+    case OPT_TRANS_OLLAMA:
+      return parseSTRes(res?.choices?.[0]?.message?.content ?? "");
+    case OPT_TRANS_GEMINI:
+      return parseSTRes(res?.candidates?.[0]?.content?.parts?.[0]?.text ?? "");
+    case OPT_TRANS_CLAUDE:
+      return parseSTRes(res?.content?.[0]?.text ?? "");
+    case OPT_TRANS_CUSTOMIZE:
+      return res;
+    default:
   }
 
   return [];
