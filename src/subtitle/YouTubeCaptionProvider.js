@@ -1,7 +1,6 @@
 import { logger } from "../libs/log.js";
 import { apiTranslate } from "../apis/index.js";
 import { BilingualSubtitleManager } from "./BilingualSubtitleManager.js";
-import { getGlobalVariable } from "./globalVariable.js";
 import { MSG_XHR_DATA_YOUTUBE, APP_NAME } from "../config";
 import { truncateWords, sleep } from "../libs/utils.js";
 import { createLogoSvg } from "../libs/svg.js";
@@ -31,6 +30,15 @@ class YouTubeCaptionProvider {
         const { url, response } = event.data;
         this.#handleInterceptedRequest(url, response);
       }
+    });
+    document.body.addEventListener("yt-navigate-finish", () => {
+      setTimeout(() => {
+        if (this.#toggleButton) {
+          this.#toggleButton.style.opacity = "0.5";
+        }
+        this.#destroyManager();
+        this.#doubleClick();
+      }, 1000);
     });
     this.#waitForElement(CONTORLS_SELECT, () => this.#injectToggleButton());
   }
@@ -104,13 +112,9 @@ class YouTubeCaptionProvider {
     };
     this.#toggleButton = toggleButton;
     this.#ytControls.before(kissControls);
-
-    this.#doubleClick();
   }
 
-  #findCaptionTrack(ytPlayer) {
-    const captionTracks =
-      ytPlayer?.captions?.playerCaptionsTracklistRenderer?.captionTracks || [];
+  #findCaptionTrack(captionTracks) {
     let captionTrack = captionTracks.find((item) =>
       item.vssId?.startsWith(".en")
     );
@@ -122,12 +126,27 @@ class YouTubeCaptionProvider {
     return captionTrack;
   }
 
+  async #getCaptionTracks(videoId) {
+    try {
+      const url = `https://www.youtube.com/watch?v=${videoId}`;
+      const html = await fetch(url).then((r) => r.text());
+      const match = html.match(/ytInitialPlayerResponse\s*=\s*(\{.*?\});/s);
+      if (!match) return [];
+      const data = JSON.parse(match[1]);
+      return (
+        data.captions?.playerCaptionsTracklistRenderer?.captionTracks || []
+      );
+    } catch (err) {
+      logger.info("Youtube Provider: get captionTracks", err);
+    }
+  }
+
   async #getSubtitleEvents(captionTrack, potUrl, responseText) {
     if (potUrl.searchParams.get("lang") === captionTrack.languageCode) {
       try {
         return JSON.parse(responseText);
       } catch (err) {
-        logger.error("parse responseText", err);
+        logger.error("Youtube Provider: parse responseText", err);
         return null;
       }
     }
@@ -157,28 +176,38 @@ class YouTubeCaptionProvider {
     }
   }
 
+  #getVideoId() {
+    const docUrl = new URL(document.location.href);
+    return docUrl.searchParams.get("v");
+  }
+
   async #handleInterceptedRequest(url, responseText) {
     try {
       if (!responseText) {
         return;
       }
 
-      const ytPlayer = await getGlobalVariable("ytInitialPlayerResponse");
-      const captionTrack = this.#findCaptionTrack(ytPlayer);
-      if (!captionTrack) {
-        logger.warn("Youtube Provider: CaptionTrack not found.");
-        return;
-      }
-
-      const potUrl = new URL(url);
-      const { videoId } = ytPlayer.videoDetails || {};
-      if (videoId !== potUrl.searchParams.get("v")) {
-        logger.info("Youtube Provider: skip other timedtext.");
+      const videoId = this.#getVideoId();
+      if (!videoId) {
+        logger.info("Youtube Provider: can't get doc videoId");
         return;
       }
 
       if (videoId === this.#videoId) {
         logger.info("Youtube Provider: skip fetched timedtext.");
+        return;
+      }
+
+      const potUrl = new URL(url);
+      if (videoId !== potUrl.searchParams.get("v")) {
+        logger.info("Youtube Provider: skip other timedtext.");
+        return;
+      }
+
+      const captionTracks = await this.#getCaptionTracks(videoId);
+      const captionTrack = this.#findCaptionTrack(captionTracks);
+      if (!captionTrack) {
+        logger.info("Youtube Provider: CaptionTrack not found.");
         return;
       }
 
@@ -200,7 +229,7 @@ class YouTubeCaptionProvider {
 
       this.#onCaptionsReady(videoId, subtitles);
     } catch (error) {
-      logger.error("Youtube Provider: unknow error", error);
+      logger.warn("Youtube Provider: unknow error", error);
     }
   }
 
@@ -231,7 +260,8 @@ class YouTubeCaptionProvider {
       return;
     }
 
-    if (this.#subtitles?.length === 0) {
+    const videoId = this.#getVideoId();
+    if (!this.#subtitles?.length || this.#videoId !== videoId) {
       // todo: 等待并给出用户提示
       logger.info("Youtube Provider: No subtitles");
       this.#doubleClick();
