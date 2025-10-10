@@ -451,6 +451,11 @@ export const apiTranslate = async ({
     const { apiSlug, batchInterval, batchSize, batchLength } = apiSetting;
     const key = `${apiSlug}_${fromLang}_${toLang}`;
     const queue = getBatchQueue(key, handleTranslate, {
+      batchInterval,
+      batchSize,
+      batchLength,
+    });
+    const tranlation = await queue.addTask(text, {
       from,
       to,
       fromLang,
@@ -460,11 +465,7 @@ export const apiTranslate = async ({
       glossary,
       apiSetting,
       usePool,
-      batchInterval,
-      batchSize,
-      batchLength,
     });
-    const tranlation = await queue.addTask(text);
     if (Array.isArray(tranlation)) {
       [trText, srLang = ""] = tranlation;
     } else if (typeof tranlation === "string") {

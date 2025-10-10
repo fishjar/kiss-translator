@@ -58,6 +58,7 @@ function TestButton({ api }) {
         toLang: "zh-CN",
         apiSetting: { ...api },
         useCache: false,
+        usePool: false,
       });
       if (!text) {
         throw new Error("empty result");
@@ -701,7 +702,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
         >
           {i18n("save")}
         </Button>
-        <TestButton api={api} />
+        <TestButton api={formData} />
         <Button size="small" variant="outlined" onClick={handleReset}>
           {i18n("restore_default")}
         </Button>
