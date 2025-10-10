@@ -960,6 +960,7 @@ export class Translator {
       transOnly,
       selectStyle,
       parentStyle,
+      grandStyle,
       // detectRemote,
       // toLang,
       // skipLangs = [],
@@ -1045,6 +1046,9 @@ export class Translator {
       }
       if (parentStyle && parentNode && parentNode.style) {
         parentNode.style.cssText += parentStyle;
+      }
+      if (grandStyle && parentNode && parentNode.parentElement) {
+        parentNode.parentElement.style.cssText += grandStyle;
       }
 
       // 翻译完成钩子函数

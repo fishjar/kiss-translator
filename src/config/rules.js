@@ -90,6 +90,7 @@ export const DEFAULT_RULE = {
   textDiyStyle: "", // 自定义译文样式
   selectStyle: "", // 选择器节点样式
   parentStyle: "", // 选择器父节点样式
+  grandStyle: "", // 选择器父节点样式
   injectJs: "", // 注入JS
   injectCss: "", // 注入CSS
   transOnly: GLOBAL_KEY, // 是否仅显示译文
@@ -127,6 +128,7 @@ export const GLOBLA_RULE = {
   textDiyStyle: DEFAULT_DIY_STYLE, // 自定义译文样式
   selectStyle: DEFAULT_SELECT_STYLE, // 选择器节点样式
   parentStyle: DEFAULT_SELECT_STYLE, // 选择器父节点样式
+  grandStyle: DEFAULT_SELECT_STYLE, // 选择器祖节点样式
   injectJs: "", // 注入JS
   injectCss: "", // 注入CSS
   transOnly: "false", // 是否仅显示译文
@@ -178,10 +180,6 @@ const RULES_MAP = {
     autoScan: `false`,
     textStyle: OPT_STYLE_BLOCKQUOTE,
   },
-  // "github.com": {
-  //   selector: `.markdown-body ${DEFAULT_SELECTOR}, .repo-description p, .Layout-sidebar .f4, .container-lg .py-4 .f5, .container-lg .my-4 .f5, .Box-row .pr-4, .Box-row article .mt-1, [itemprop="description"], .markdown-title, bdi, .ws-pre-wrap, .status-meta, span.status-meta, .col-10.color-fg-muted, .TimelineItem-body, .pinned-item-list-item-content .color-fg-muted, .markdown-body td, .markdown-body th`,
-  //   keepSelector: DEFAULT_KEEP_SELECTOR,
-  // },
   "twitter.com, https://x.com": {
     selector: `[data-testid='tweetText']`,
     keepSelector: `img, svg, span:has(a), div:has(a)`,
@@ -191,7 +189,6 @@ const RULES_MAP = {
   "www.youtube.com": {
     rootsSelector: `ytd-page-manager`,
     ignoreSelector: `aside, button, footer, form, header, pre, mark, nav, #player`,
-    transEndHook: `({ parentNode }) => {parentNode?.parentElement?.style.cssText += "-webkit-line-clamp: unset; max-height: none; height: auto;";}`,
     textStyle: OPT_STYLE_DASHBOX,
   },
 };

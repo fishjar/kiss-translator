@@ -700,8 +700,13 @@ export const I18N = {
   },
   selector_parent_style: {
     zh: `选择器父节点样式`,
-    en: `Selector Parent Style`,
+    en: `Parent Selector Style`,
     zh_TW: `選擇器父節點樣式`,
+  },
+  selector_grand_style: {
+    zh: `选择器祖节点样式`,
+    en: `Grand Selector Style`,
+    zh_TW: `選擇器祖節點樣式`,
   },
   inject_js: {
     zh: `注入JS`,

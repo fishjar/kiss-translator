@@ -98,6 +98,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
     aiTerms = "",
     selectStyle = "",
     parentStyle = "",
+    grandStyle = "",
     injectJs = "",
     injectCss = "",
     apiSlug,
@@ -535,6 +536,17 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
               helperText={i18n("selector_style_helper")}
               name="parentStyle"
               value={parentStyle}
+              disabled={disabled}
+              onChange={handleChange}
+              maxRows={10}
+              multiline
+            />
+            <TextField
+              size="small"
+              label={i18n("selector_grand_style")}
+              helperText={i18n("selector_style_helper")}
+              name="grandStyle"
+              value={grandStyle}
               disabled={disabled}
               onChange={handleChange}
               maxRows={10}

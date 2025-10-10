@@ -278,7 +278,10 @@ class YouTubeCaptionProvider {
 
       const { segApiSetting, toLang } = this.#setting;
       const lang = potUrl.searchParams.get("lang");
-      const fromLang = OPT_LANGS_TO_CODE[OPT_TRANS_MICROSOFT].get(lang) || lang;
+      const fromLang =
+        OPT_LANGS_TO_CODE[OPT_TRANS_MICROSOFT].get(lang) ||
+        OPT_LANGS_TO_CODE[OPT_TRANS_MICROSOFT].get(lang.slice(0, 2)) ||
+        "auto";
       if (potUrl.searchParams.get("kind") === "asr" && segApiSetting) {
         subtitles = await this.#aiSegment({
           videoId,
