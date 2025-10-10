@@ -355,7 +355,8 @@ export const withTimeout = (task, timeout, timeoutMsg = "Task timed out") => {
  * @param {*} maxLength
  * @returns
  */
-export const truncateWords = (str, maxLength) => {
+export const truncateWords = (str, maxLength = 200) => {
+  if (typeof str !== "string") return "";
   if (str.length <= maxLength) return str;
   const truncated = str.slice(0, maxLength);
   return truncated.slice(0, truncated.lastIndexOf(" ")) + " …";

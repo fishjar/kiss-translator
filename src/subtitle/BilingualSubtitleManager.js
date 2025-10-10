@@ -1,4 +1,5 @@
 import { logger } from "../libs/log.js";
+import { truncateWords } from "../libs/utils.js";
 
 /**
  * @class BilingualSubtitleManager
@@ -163,11 +164,11 @@ export class BilingualSubtitleManager {
     if (subtitle) {
       const p1 = document.createElement("p");
       p1.style.cssText = this.#setting.originStyle;
-      p1.textContent = subtitle.text;
+      p1.textContent = truncateWords(subtitle.text);
 
       const p2 = document.createElement("p");
       p2.style.cssText = this.#setting.originStyle;
-      p2.textContent = subtitle.translation || "...";
+      p2.textContent = truncateWords(subtitle.translation) || "...";
 
       if (this.#setting.isBilingual) {
         this.#captionWindowEl.replaceChildren(p1, p2);
@@ -207,16 +208,16 @@ export class BilingualSubtitleManager {
   async #translateAndStore(subtitle) {
     subtitle.isTranslating = true;
     try {
-      const { toLang, apiSetting } = this.#setting;
+      const { fromLang, toLang, apiSetting } = this.#setting;
       const [translatedText] = await this.#translationService({
         text: subtitle.text,
-        fromLang: "en",
+        fromLang,
         toLang,
         apiSetting,
       });
       subtitle.translation = translatedText;
     } catch (error) {
-      logger.error("Translation failed for:", subtitle.text, error);
+      logger.info("Translation failed for:", subtitle.text, error);
       subtitle.translation = "[Translation failed]";
     } finally {
       subtitle.isTranslating = false;

@@ -504,7 +504,7 @@ export const apiTranslate = async ({
 // 字幕处理/翻译
 export const apiSubtitle = async ({
   videoId,
-  fromLang = "en",
+  fromLang = "auto",
   toLang,
   events = [],
   apiSetting,

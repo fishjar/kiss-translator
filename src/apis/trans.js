@@ -937,12 +937,7 @@ export const handleMicrosoftLangdetect = async (texts = []) => {
  * @param {*} param0
  * @returns
  */
-export const handleSubtitle = async ({
-  events,
-  from = "en",
-  to,
-  apiSetting,
-}) => {
+export const handleSubtitle = async ({ events, from, to, apiSetting }) => {
   const { apiType, fetchInterval, fetchLimit, httpTimeout } = apiSetting;
 
   const [input, init] = await genTransReq({

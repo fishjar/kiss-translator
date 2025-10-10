@@ -151,7 +151,7 @@ class ChromeTranslator {
         error.message &&
         error.message.includes("Other generic failures occurred")
       ) {
-        logger.error("Generic failure detected, resetting translator cache.");
+        logger.info("Generic failure detected, resetting translator cache.");
         this.#translatorMap.clear();
       }
 
