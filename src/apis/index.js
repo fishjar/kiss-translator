@@ -510,6 +510,7 @@ export const apiSubtitle = async ({
   apiSetting,
 }) => {
   const cacheOpts = {
+    apiSlug: apiSetting.apiSlug,
     videoId,
     fromLang,
     toLang,

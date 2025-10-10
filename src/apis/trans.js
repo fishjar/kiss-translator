@@ -34,6 +34,7 @@ import { parseJsonObj, extractJson } from "../libs/utils";
 import { kissLog } from "../libs/log";
 import { fetchData } from "../libs/fetch";
 import { getMsgHistory } from "./history";
+import { parseBilingualVtt } from "../subtitle/vtt";
 
 const keyMap = new Map();
 const urlMap = new Map();
@@ -118,8 +119,9 @@ const parseSTRes = (raw) => {
   }
 
   try {
-    const jsonString = extractJson(raw);
-    const data = JSON.parse(jsonString);
+    // const jsonString = extractJson(raw);
+    // const data = JSON.parse(jsonString);
+    const data = parseBilingualVtt(raw);
     if (Array.isArray(data)) {
       return data;
     }

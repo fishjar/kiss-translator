@@ -111,6 +111,11 @@ class YouTubeCaptionProvider {
     kissControls.appendChild(toggleButton);
 
     toggleButton.onclick = () => {
+      if (this.#isBusy) {
+        logger.info(`Youtube Provider: It's budy now...`);
+        return;
+      }
+
       if (!this.#enabled) {
         logger.info(`Youtube Provider: Feature toggled ON.`);
         this.#startManager();
@@ -283,9 +288,10 @@ class YouTubeCaptionProvider {
         OPT_LANGS_TO_CODE[OPT_TRANS_MICROSOFT].get(lang.slice(0, 2)) ||
         "auto";
       if (potUrl.searchParams.get("kind") === "asr" && segApiSetting) {
+        // todo: 切分多次发送接受以适应接口处理能力
         subtitles = await this.#aiSegment({
           videoId,
-          events,
+          events: this.#flatEvents(events),
           fromLang,
           toLang,
           segApiSetting,
@@ -408,10 +414,7 @@ class YouTubeCaptionProvider {
       lines = this.#processSubtitles({ events, usePause: true });
     }
 
-    return lines.map((item) => ({
-      ...item,
-      duration: Math.max(0, item.end - item.start),
-    }));
+    return lines;
   }
 
   #isQualityPoor(lines, lengthThreshold = 250, percentageThreshold = 0.1) {
@@ -579,6 +582,39 @@ class YouTubeCaptionProvider {
     flushBuffer();
 
     return sentences;
+  }
+
+  #flatEvents(events = []) {
+    const segments = [];
+    let buffer = null;
+
+    events.forEach(({ segs = [], tStartMs = 0, dDurationMs = 0 }) => {
+      segs.forEach(({ utf8 = "", tOffsetMs = 0 }, j) => {
+        const text = utf8.trim().replace(/\s+/g, " ");
+        const start = tStartMs + tOffsetMs;
+
+        if (buffer) {
+          if (!buffer.end || buffer.end > start) {
+            buffer.end = start;
+          }
+          segments.push(buffer);
+          buffer = null;
+        }
+
+        buffer = {
+          text,
+          start,
+        };
+
+        if (j === segs.length - 1) {
+          buffer.end = tStartMs + dDurationMs;
+        }
+      });
+    });
+
+    segments.push(buffer);
+
+    return segments.filter((item) => item.text);
   }
 }
 

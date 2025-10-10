@@ -354,23 +354,49 @@ Output: {"translations":[{"id":1,"text":"一个<b>React</b>组件","sourceLangua
 
 Fail-safe: On any error, return {"translations":[]}.`;
 
-const defaultSubtitlePrompt = `Goal: Convert raw subtitle event JSON into a clean, sentence-based JSON array.
+// const defaultSubtitlePrompt = `Goal: Convert raw subtitle event JSON into a clean, sentence-based JSON array.
 
-Output (valid JSON array, output ONLY this array):
-[{
-  "text": "string",        // Full sentence with correct punctuation
-  "translation": "string", // Translation in ${INPUT_PLACE_TO}
-  "start": int,            // Start time (ms)
-  "end": int,              // End time (ms)
-  "duration": int          // end - start
-}]
+// Output (valid JSON array, output ONLY this array):
+// [{
+//   "text": "string",        // Full sentence with correct punctuation
+//   "translation": "string", // Translation in ${INPUT_PLACE_TO}
+//   "start": int,            // Start time (ms)
+//   "end": int,              // End time (ms)
+// }]
 
-Guidelines:
-1. **Segmentation**: Merge sequential 'utf8' strings from 'segs' into full sentences, merging groups logically.
-2. **Punctuation**: Ensure proper sentence-final punctuation (., ?, !); add if missing.
-3. **Translation**: Translate 'text' into ${INPUT_PLACE_TO}, place result in 'translation'.
-4. **Special Cases**: '[Music]' (and similar cues) are standalone entries. Translate appropriately (e.g., '[音乐]', '[Musique]').
-`;
+// Guidelines:
+// 1. **Segmentation**: Merge sequential 'utf8' strings from 'segs' into full sentences, merging groups logically.
+// 2. **Punctuation**: Ensure proper sentence-final punctuation (., ?, !); add if missing.
+// 3. **Translation**: Translate 'text' into ${INPUT_PLACE_TO}, place result in 'translation'.
+// 4. **Special Cases**: '[Music]' (and similar cues) are standalone entries. Translate appropriately (e.g., '[音乐]', '[Musique]').
+// `;
+
+const defaultSubtitlePrompt = `You are an expert AI for subtitle generation. Convert a JSON array of word-level timestamps into a bilingual VTT file.
+
+**Workflow:**
+1. Merge \`text\` fields into complete sentences; ignore empty text.
+2. Split long sentences into smaller, manageable subtitle cues (one sentence per cue).
+3. Translate each cue into ${INPUT_PLACE_TO}.
+4. Format as VTT:
+   - Start with \`WEBVTT\`.
+   - Each cue: timestamps (\`start --> end\` in milliseconds), original text, translated text.
+   - Keep non-speech text (e.g., \`[Music]\`) untranslated.
+   - Separate cues with a blank line.
+
+**Output:** Only the pure VTT content.
+
+**Example:**
+\`\`\`vtt
+WEBVTT
+
+1000 --> 3500
+Hello world!
+你好，世界！
+
+4000 --> 6000
+Good morning.
+早上好。
+\`\`\``;
 
 const defaultRequestHook = `async (args, { url, body, headers, userMsg, method } = {}) => {
   console.log("request hook args:", args);

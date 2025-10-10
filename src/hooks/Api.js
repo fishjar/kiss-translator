@@ -44,7 +44,7 @@ export function useApiList() {
   );
 
   const aiEnabledApis = useMemo(
-    () => enabledApis.filter((api) => API_SPE_TYPES.ai.has(api.apiSlug)),
+    () => enabledApis.filter((api) => API_SPE_TYPES.ai.has(api.apiType)),
     [enabledApis]
   );
 
@@ -124,6 +124,7 @@ export function useApiItem(apiSlug) {
             apiSlug: item.apiSlug,
             apiName: item.apiName,
             apiType: item.apiType,
+            key: item.key,
           };
         }
         return item;
