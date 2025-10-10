@@ -7,7 +7,7 @@ import {
 import { genEventName, removeEndchar, matchInputStr } from "./utils";
 import { stepShortcutRegister } from "./shortcut";
 import { apiTranslate } from "../apis";
-import { loadingSvg } from "./svg";
+import { createLoadingSVG } from "./svg";
 import { kissLog } from "./log";
 
 function isInputNode(node) {
@@ -46,7 +46,7 @@ function addLoading(node, loadingId) {
   const rect = node.getBoundingClientRect();
   const div = document.createElement("div");
   div.id = loadingId;
-  div.innerHTML = loadingSvg;
+  div.appendChild(createLoadingSVG());
   div.style.cssText = `
         position: fixed;
         left: ${rect.left}px;

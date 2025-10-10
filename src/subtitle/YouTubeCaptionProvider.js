@@ -8,7 +8,7 @@ import {
   OPT_TRANS_MICROSOFT,
 } from "../config";
 import { sleep } from "../libs/utils.js";
-import { createLogoSvg } from "../libs/svg.js";
+import { createLogoSVG } from "../libs/svg.js";
 import { randomBetween } from "../libs/utils.js";
 
 const VIDEO_SELECT = "#container video";
@@ -107,7 +107,7 @@ class YouTubeCaptionProvider {
       opacity: "0.5",
     });
 
-    toggleButton.appendChild(createLogoSvg());
+    toggleButton.appendChild(createLogoSVG());
     kissControls.appendChild(toggleButton);
 
     toggleButton.onclick = () => {
@@ -334,7 +334,7 @@ class YouTubeCaptionProvider {
       return;
     }
     this.#enabled = true;
-    this.#toggleButton?.replaceChildren(createLogoSvg({ isSelected: true }));
+    this.#toggleButton?.replaceChildren(createLogoSVG({ isSelected: true }));
 
     const videoEl = document.querySelector(VIDEO_SELECT);
     if (!videoEl) {
@@ -369,7 +369,7 @@ class YouTubeCaptionProvider {
       return;
     }
     this.#enabled = false;
-    this.#toggleButton?.replaceChildren(createLogoSvg());
+    this.#toggleButton?.replaceChildren(createLogoSVG());
 
     logger.info("Youtube Provider: Destroying manager...");
 

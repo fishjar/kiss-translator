@@ -30,7 +30,7 @@ import { injectInlineJs, injectInternalCss } from "./injector";
 import { kissLog } from "./log";
 import { clearAllBatchQueue } from "./batchQueue";
 import { genTextClass } from "./style";
-import { loadingSvg } from "./svg";
+import { createLoadingSVG } from "./svg";
 import { shortcutRegister } from "./shortcut";
 import { tryDetectLang } from "./detect";
 import { browser } from "./browser";
@@ -1001,7 +1001,7 @@ export class Translator {
 
     const inner = document.createElement(transTag);
     inner.className = `${Translator.KISS_CLASS.inner} ${this.#textClass[textStyle]}`;
-    inner.innerHTML = loadingSvg;
+    inner.appendChild(createLoadingSVG());
     wrapper.appendChild(inner);
     nodes[nodes.length - 1].after(wrapper);
 
