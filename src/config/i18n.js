@@ -1574,9 +1574,9 @@ export const I18N = {
     zh_TW: `AI智慧斷句`,
   },
   subtitle_helper_1: {
-    zh: `1、目前仅支持Youtube英文字幕双语翻译，且仅支持浏览器扩展。`,
-    en: `1. Currently only supports bilingual translation of Youtube English subtitles, and only supports browser extensions.`,
-    zh_TW: `1.目前僅支援Youtube英文字幕雙語翻譯，且僅支援瀏覽器擴充功能。`,
+    zh: `1、目前仅支持Youtube，且仅支持浏览器扩展。`,
+    en: `1. Currently only supports Youtube and browser extensions.`,
+    zh_TW: `1.目前僅支援Youtube，且僅支援瀏覽器擴充功能。`,
   },
   subtitle_helper_2: {
     zh: `2、插件内置基础断句逻辑，如不理想，可以启用AI智能断句，但需考虑视频长度与AI接口的处理能力，可能等待的时间会很长，甚至失败。`,
