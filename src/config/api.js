@@ -28,6 +28,7 @@ export const OPT_TRANS_BUILTINAI = "BuiltinAI";
 export const OPT_TRANS_GOOGLE = "Google";
 export const OPT_TRANS_GOOGLE_2 = "Google2";
 export const OPT_TRANS_MICROSOFT = "Microsoft";
+export const OPT_TRANS_AZUREAI = "AzureAI";
 export const OPT_TRANS_DEEPL = "DeepL";
 export const OPT_TRANS_DEEPLX = "DeepLX";
 export const OPT_TRANS_DEEPLFREE = "DeepLFree";
@@ -50,6 +51,7 @@ export const OPT_ALL_TYPES = [
   OPT_TRANS_GOOGLE,
   OPT_TRANS_GOOGLE_2,
   OPT_TRANS_MICROSOFT,
+  OPT_TRANS_AZUREAI,
   // OPT_TRANS_BAIDU,
   OPT_TRANS_TENCENT,
   OPT_TRANS_VOLCENGINE,
@@ -100,6 +102,7 @@ export const API_SPE_TYPES = {
   ]),
   // 支持多key
   mulkeys: new Set([
+    OPT_TRANS_AZUREAI,
     OPT_TRANS_DEEPL,
     OPT_TRANS_OPENAI,
     OPT_TRANS_GEMINI,
@@ -113,6 +116,7 @@ export const API_SPE_TYPES = {
   ]),
   // 支持批处理
   batch: new Set([
+    OPT_TRANS_AZUREAI,
     OPT_TRANS_GOOGLE_2,
     OPT_TRANS_MICROSOFT,
     OPT_TRANS_TENCENT,
@@ -217,6 +221,12 @@ export const OPT_LANGS_TO_SPEC = {
   [OPT_TRANS_GOOGLE]: OPT_LANGS_SPEC_DEFAULT,
   [OPT_TRANS_GOOGLE_2]: OPT_LANGS_SPEC_DEFAULT,
   [OPT_TRANS_MICROSOFT]: new Map([
+    ...OPT_LANGS_SPEC_DEFAULT,
+    ["auto", ""],
+    ["zh-CN", "zh-Hans"],
+    ["zh-TW", "zh-Hant"],
+  ]),
+  [OPT_TRANS_AZUREAI]: new Map([
     ...OPT_LANGS_SPEC_DEFAULT,
     ["auto", ""],
     ["zh-CN", "zh-Hans"],
@@ -442,7 +452,8 @@ const defaultApi = {
   maxTokens: 20480,
   think: false,
   thinkIgnore: "qwen3,deepseek-r1",
-  isDisabled: false, // 是否不显示
+  isDisabled: false, // 是否不显示,
+  region: "", // Azure 专用
 };
 
 const defaultApiOpts = {
@@ -459,6 +470,11 @@ const defaultApiOpts = {
   },
   [OPT_TRANS_MICROSOFT]: {
     ...defaultApi,
+    useBatchFetch: true,
+  },
+  [OPT_TRANS_AZUREAI]: {
+    ...defaultApi,
+    url: "https://api.cognitive.microsofttranslator.com/translate?api-version=3.0",
     useBatchFetch: true,
   },
   [OPT_TRANS_BAIDU]: {

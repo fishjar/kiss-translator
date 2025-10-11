@@ -3,6 +3,7 @@ import {
   OPT_TRANS_GOOGLE,
   OPT_TRANS_GOOGLE_2,
   OPT_TRANS_MICROSOFT,
+  OPT_TRANS_AZUREAI,
   OPT_TRANS_DEEPL,
   OPT_TRANS_DEEPLFREE,
   OPT_TRANS_DEEPLX,
@@ -173,6 +174,22 @@ const genMicrosoft = ({ texts, from, to, token }) => {
   const headers = {
     "Content-type": "application/json",
     Authorization: `Bearer ${token}`,
+  };
+  const body = texts.map((text) => ({ Text: text }));
+
+  return { url, body, headers };
+};
+
+const genAzureAI = ({ texts, from, to, url, key, region }) => {
+  const params = queryString.stringify({
+    from,
+    to,
+  });
+  url = url.endsWith("&") ? `${url}${params}` : `${url}&${params}`;
+  const headers = {
+    "Content-type": "application/json",
+    "Ocp-Apim-Subscription-Key": key,
+    "Ocp-Apim-Subscription-Region": region,
   };
   const body = texts.map((text) => ({ Text: text }));
 
@@ -546,6 +563,7 @@ const genReqFuncs = {
   [OPT_TRANS_GOOGLE]: genGoogle,
   [OPT_TRANS_GOOGLE_2]: genGoogle2,
   [OPT_TRANS_MICROSOFT]: genMicrosoft,
+  [OPT_TRANS_AZUREAI]: genAzureAI,
   [OPT_TRANS_DEEPL]: genDeepl,
   [OPT_TRANS_DEEPLFREE]: genDeeplFree,
   [OPT_TRANS_DEEPLX]: genDeeplX,
@@ -733,6 +751,7 @@ export const parseTransRes = async (
     case OPT_TRANS_GOOGLE_2:
       return res?.[0]?.map((_, i) => [res?.[0]?.[i], res?.[1]?.[i]]);
     case OPT_TRANS_MICROSOFT:
+    case OPT_TRANS_AZUREAI:
       return res?.map((item) => [
         item.translations.map((item) => item.text).join(" "),
         item.detectedLanguage?.language,

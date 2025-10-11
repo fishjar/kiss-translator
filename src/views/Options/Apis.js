@@ -43,6 +43,7 @@ import {
   BUILTIN_STONES,
   BUILTIN_PLACEHOLDERS,
   BUILTIN_PLACETAGS,
+  OPT_TRANS_AZUREAI,
 } from "../../config";
 
 function TestButton({ api }) {
@@ -237,6 +238,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
     tone = "neutral",
     placeholder = BUILTIN_PLACEHOLDERS[0],
     placetag = BUILTIN_PLACETAGS[0],
+    region = "",
     // aiTerms = false,
   } = formData;
 
@@ -282,6 +284,16 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
             />
           </>
         )}
+
+      {apiType === OPT_TRANS_AZUREAI && (
+        <TextField
+          size="small"
+          label={"Region"}
+          name="region"
+          value={region}
+          onChange={handleChange}
+        />
+      )}
 
       {API_SPE_TYPES.ai.has(apiType) && (
         <>
