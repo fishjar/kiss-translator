@@ -78,7 +78,7 @@ class YouTubeCaptionProvider {
   }
 
   async #doubleClick() {
-    const button = this.#ytControls.querySelector(
+    const button = this.#ytControls?.querySelector(
       "button.ytp-subtitles-button"
     );
     if (button) {
@@ -135,7 +135,7 @@ class YouTubeCaptionProvider {
       }
     };
     this.#toggleButton = toggleButton;
-    this.#ytControls.before(kissControls);
+    this.#ytControls?.before(kissControls);
   }
 
   #isSameLang(lang1, lang2) {
@@ -754,7 +754,7 @@ class YouTubeCaptionProvider {
       const chunkEvents = chunks[i];
       const chunkNum = i + 2;
       logger.info(
-        `Youtube Provider: Processing subtitle chunk ${chunkNum}/${chunks.length + 1}...`
+        `Youtube Provider: Processing subtitle chunk ${chunkNum}/${chunks.length + 1}: ${chunkEvents[0]?.start} --> ${chunkEvents[chunkEvents.length - 1]?.start}`
       );
 
       let subtitlesForThisChunk = [];
@@ -780,7 +780,7 @@ class YouTubeCaptionProvider {
         subtitlesForThisChunk = this.#formatSubtitles(chunkEvents, fromLang);
       }
 
-      if (this.#videoId !== videoId) {
+      if (this.#getVideoId() !== videoId) {
         logger.info("Youtube Provider: videoId changed!");
         break;
       }
