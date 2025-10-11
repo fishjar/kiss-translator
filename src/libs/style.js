@@ -10,6 +10,7 @@ import {
   OPT_STYLE_HIGHLIGHT,
   OPT_STYLE_BLOCKQUOTE,
   OPT_STYLE_DIY,
+  DEFAULT_DIY_STYLE,
   DEFAULT_COLOR,
 } from "../config";
 
@@ -32,7 +33,10 @@ const genLineStyle = (style, color) => `
   }
 `;
 
-const genStyles = ({ textDiyStyle, bgColor = DEFAULT_COLOR }) => ({
+export const genStyles = ({
+  textDiyStyle = DEFAULT_DIY_STYLE,
+  bgColor = DEFAULT_COLOR,
+}) => ({
   // 无样式
   [OPT_STYLE_NONE]: ``,
   // 下划线
@@ -46,9 +50,8 @@ const genStyles = ({ textDiyStyle, bgColor = DEFAULT_COLOR }) => ({
   // 虚线框
   [OPT_STYLE_DASHBOX]: `
     border: 1px dashed ${bgColor || DEFAULT_COLOR};
-    background: transparent;
     display: inline-block;
-    padding: 0.2em 0.5em;
+    padding: 0.2em 0.4em;
     box-sizing: border-box;
   `,
   // 模糊

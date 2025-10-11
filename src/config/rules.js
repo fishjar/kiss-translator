@@ -57,7 +57,7 @@ export const OPT_TIMING_ALL = [
   OPT_TIMING_ALT,
 ];
 
-const DEFAULT_DIY_STYLE = `color: #333;
+export const DEFAULT_DIY_STYLE = `color: #333;
 background: linear-gradient(
   45deg,
   LightGreen 20%,

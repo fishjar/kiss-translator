@@ -221,8 +221,7 @@ export default function Action({ translator, fab }) {
                     translator.toggle();
                     sendIframeMsg(MSG_TRANS_TOGGLE);
                     setShowPopup(false);
-                  } 
-                  else {
+                  } else {
                     setShowPopup((pre) => !pre);
                   }
                 }

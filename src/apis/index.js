@@ -28,6 +28,7 @@ import { isBuiltinAIAvailable } from "../libs/browser";
 import { chromeDetect, chromeTranslate } from "../libs/builtinAI";
 import { fnPolyfill } from "../libs/fetch";
 import { getFetchPool } from "../libs/pool";
+import { isFirefox } from "../libs/client";
 
 /**
  * 同步数据
@@ -135,7 +136,18 @@ export const apiMicrosoftDict = async (text) => {
 
   const host = "https://cn.bing.com";
   const url = `${host}/dict/search?q=${text}`;
-  const str = await fetchData(url, {}, { useCache: false });
+  let str = "";
+  if (isFirefox) {
+    const response = await fetch(url);
+    if (response.ok) {
+      str = await response.text();
+    }
+  } else {
+    str = await fetchData(url, {}, { useCache: false });
+  }
+  if (!str) {
+    return null;
+  }
 
   const parser = new DOMParser();
   const doc = parser.parseFromString(str, "text/html");

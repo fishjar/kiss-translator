@@ -17,10 +17,7 @@
     }
   ],
   "web_accessible_resources": [
-    {
-      "resources": ["injector.js"],
-      "matches": ["https://www.youtube.com/*"]
-    }
+    "injector.js"
   ],
   "commands": {
     "_execute_browser_action": {

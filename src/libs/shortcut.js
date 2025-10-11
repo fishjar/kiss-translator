@@ -15,12 +15,20 @@ export const shortcutListener = (
   const pressedKeys = new Set();
 
   const handleKeyDown = (e) => {
+    if (!e.code) {
+      return;
+    }
+
     if (pressedKeys.has(e.code)) return;
     pressedKeys.add(e.code);
     onKeyDown(new Set(pressedKeys), e);
   };
 
   const handleKeyUp = (e) => {
+    if (!e.code) {
+      return;
+    }
+
     // onKeyUp 应该在 key 从集合中移除前触发，以便判断组合键
     onKeyUp(new Set(pressedKeys), e);
     pressedKeys.delete(e.code);
