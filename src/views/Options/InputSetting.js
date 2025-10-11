@@ -14,8 +14,8 @@ import Switch from "@mui/material/Switch";
 import { useInputRule } from "../../hooks/InputRule";
 import { useCallback } from "react";
 import Grid from "@mui/material/Grid";
-import { limitNumber } from "../../libs/utils";
 import { useApiList } from "../../hooks/Api";
+import ValidationInput from "../../hooks/ValidationInput";
 
 export default function InputSetting() {
   const i18n = useI18n();
@@ -25,12 +25,6 @@ export default function InputSetting() {
   const handleChange = (e) => {
     e.preventDefault();
     let { name, value } = e.target;
-    switch (name) {
-      case "triggerTime":
-        value = limitNumber(value, 10, 1000);
-        break;
-      default:
-    }
     updateInputRule({
       [name]: value,
     });
@@ -175,7 +169,7 @@ export default function InputSetting() {
               </TextField>
             </Grid>
             <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
+              <ValidationInput
                 fullWidth
                 size="small"
                 label={i18n("combo_timeout")}
@@ -183,6 +177,8 @@ export default function InputSetting() {
                 name="triggerTime"
                 value={triggerTime}
                 onChange={handleChange}
+                min={10}
+                max={1000}
               />
             </Grid>
           </Grid>

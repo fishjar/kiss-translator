@@ -22,6 +22,7 @@ import { limitNumber } from "../../libs/utils";
 import { useTranbox } from "../../hooks/Tranbox";
 import { isExt } from "../../libs/client";
 import { useApiList } from "../../hooks/Api";
+import ValidationInput from "../../hooks/ValidationInput";
 
 export default function Tranbox() {
   const i18n = useI18n();
@@ -278,7 +279,7 @@ export default function Tranbox() {
             </Grid>
 
             <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
+              <ValidationInput
                 fullWidth
                 size="small"
                 label={i18n("tranbtn_offset_x")}
@@ -286,10 +287,12 @@ export default function Tranbox() {
                 name="btnOffsetX"
                 value={btnOffsetX}
                 onChange={handleChange}
+                min={-200}
+                max={200}
               />
             </Grid>
             <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
+              <ValidationInput
                 fullWidth
                 size="small"
                 label={i18n("tranbtn_offset_y")}
@@ -297,10 +300,12 @@ export default function Tranbox() {
                 name="btnOffsetY"
                 value={btnOffsetY}
                 onChange={handleChange}
+                min={-200}
+                max={200}
               />
             </Grid>
             <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
+              <ValidationInput
                 fullWidth
                 size="small"
                 label={i18n("tranbox_offset_x")}
@@ -308,10 +313,12 @@ export default function Tranbox() {
                 name="boxOffsetX"
                 value={boxOffsetX}
                 onChange={handleChange}
+                min={-200}
+                max={200}
               />
             </Grid>
             <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
+              <ValidationInput
                 fullWidth
                 size="small"
                 label={i18n("tranbox_offset_y")}
@@ -319,6 +326,8 @@ export default function Tranbox() {
                 name="boxOffsetY"
                 value={boxOffsetY}
                 onChange={handleChange}
+                min={-200}
+                max={200}
               />
             </Grid>
             {!isExt && (

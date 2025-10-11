@@ -22,7 +22,6 @@ import { useApiList, useApiItem } from "../../hooks/Api";
 import { useConfirm } from "../../hooks/Confirm";
 import { apiTranslate } from "../../apis";
 import Box from "@mui/material/Box";
-import { limitNumber, limitFloat } from "../../libs/utils";
 import ReusableAutocomplete from "./ReusableAutocomplete";
 import ShowMoreButton from "./ShowMoreButton";
 import {
@@ -45,6 +44,7 @@ import {
   BUILTIN_PLACETAGS,
   OPT_TRANS_AZUREAI,
 } from "../../config";
+import ValidationInput from "../../hooks/ValidationInput";
 
 function TestButton({ api }) {
   const i18n = useI18n();
@@ -134,43 +134,11 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
   }, [api, formData]);
 
   const handleChange = (e) => {
+    e.preventDefault();
     let { name, value, type, checked } = e.target;
 
     if (type === "checkbox" || type === "switch") {
       value = checked;
-    }
-    // if (value === "true") value = true;
-    // if (value === "false") value = false;
-
-    switch (name) {
-      case "fetchLimit":
-        value = limitNumber(value, 1, 100);
-        break;
-      case "fetchInterval":
-        value = limitNumber(value, 0, 5000);
-        break;
-      case "httpTimeout":
-        value = limitNumber(value, 5000, 60000);
-        break;
-      case "temperature":
-        value = limitFloat(value, 0, 2);
-        break;
-      case "maxTokens":
-        value = limitNumber(value, 0, 2 ** 15);
-        break;
-      case "batchInterval":
-        value = limitNumber(value, 100, 10000);
-        break;
-      case "batchSize":
-        value = limitNumber(value, 1, 100);
-        break;
-      case "batchLength":
-        value = limitNumber(value, 1000, 100000);
-        break;
-      case "contextSize":
-        value = limitNumber(value, 1, 20);
-        break;
-      default:
     }
 
     setFormData((prevData) => ({
@@ -323,7 +291,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
                 />
               </Grid>
               <Grid item xs={12} sm={12} md={6} lg={3}>
-                <TextField
+                <ValidationInput
                   size="small"
                   fullWidth
                   label={"Temperature"}
@@ -331,10 +299,12 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
                   name="temperature"
                   value={temperature}
                   onChange={handleChange}
+                  min={0}
+                  max={2}
                 />
               </Grid>
               <Grid item xs={12} sm={12} md={6} lg={3}>
-                <TextField
+                <ValidationInput
                   size="small"
                   fullWidth
                   label={"Max Tokens"}
@@ -342,6 +312,8 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
                   name="maxTokens"
                   value={maxTokens}
                   onChange={handleChange}
+                  min={0}
+                  max={2 ** 15}
                 />
               </Grid>
               <Grid item xs={12} sm={12} md={6} lg={3}></Grid>
@@ -479,7 +451,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
               </TextField>
             </Grid>
             <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
+              <ValidationInput
                 size="small"
                 fullWidth
                 label={i18n("batch_interval")}
@@ -487,10 +459,12 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
                 name="batchInterval"
                 value={batchInterval}
                 onChange={handleChange}
+                min={100}
+                max={10000}
               />
             </Grid>
             <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
+              <ValidationInput
                 size="small"
                 fullWidth
                 label={i18n("batch_size")}
@@ -498,10 +472,12 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
                 name="batchSize"
                 value={batchSize}
                 onChange={handleChange}
+                min={1}
+                max={100}
               />
             </Grid>
             <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
+              <ValidationInput
                 size="small"
                 fullWidth
                 label={i18n("batch_length")}
@@ -509,6 +485,8 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
                 name="batchLength"
                 value={batchLength}
                 onChange={handleChange}
+                min={1000}
+                max={100000}
               />
             </Grid>
           </Grid>
@@ -544,6 +522,8 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
                   name="contextSize"
                   value={contextSize}
                   onChange={handleChange}
+                  min={1}
+                  max={20}
                 />
               </Grid>
             </Grid>
@@ -554,7 +534,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
       <Box>
         <Grid container spacing={2} columns={12}>
           <Grid item xs={12} sm={12} md={6} lg={3}>
-            <TextField
+            <ValidationInput
               size="small"
               fullWidth
               label={i18n("fetch_limit")}
@@ -562,10 +542,12 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
               name="fetchLimit"
               value={fetchLimit}
               onChange={handleChange}
+              min={1}
+              max={100}
             />
           </Grid>
           <Grid item xs={12} sm={12} md={6} lg={3}>
-            <TextField
+            <ValidationInput
               size="small"
               fullWidth
               label={i18n("fetch_interval")}
@@ -573,10 +555,12 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
               name="fetchInterval"
               value={fetchInterval}
               onChange={handleChange}
+              min={0}
+              max={5000}
             />
           </Grid>
           <Grid item xs={12} sm={12} md={6} lg={3}>
-            <TextField
+            <ValidationInput
               size="small"
               fullWidth
               label={i18n("http_timeout")}
@@ -584,6 +568,8 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
               name="httpTimeout"
               value={httpTimeout}
               onChange={handleChange}
+              min={5000}
+              max={60000}
             />
           </Grid>
           <Grid item xs={12} sm={12} md={6} lg={3}></Grid>

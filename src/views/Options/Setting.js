@@ -4,7 +4,6 @@ import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import Link from "@mui/material/Link";
 import { useSetting } from "../../hooks/Setting";
-import { limitNumber } from "../../libs/utils";
 import { useI18n } from "../../hooks/I18n";
 import { useAlert } from "../../hooks/Alert";
 import { isExt } from "../../libs/client";
@@ -34,6 +33,7 @@ import { kissLog } from "../../libs/log";
 import UploadButton from "./UploadButton";
 import DownloadButton from "./DownloadButton";
 import { getSettingOld } from "../../libs/storage";
+import ValidationInput from "../../hooks/ValidationInput";
 
 function ShortcutItem({ action, label }) {
   const { shortcut, setShortcut } = useShortcut(action);
@@ -52,30 +52,6 @@ export default function Settings() {
     e.preventDefault();
     let { name, value } = e.target;
     switch (name) {
-      case "fetchLimit":
-        value = limitNumber(value, 1, 100);
-        break;
-      case "fetchInterval":
-        value = limitNumber(value, 0, 5000);
-        break;
-      case "transInterval":
-        value = limitNumber(value, 10, 2000);
-        break;
-      case "minLength":
-        value = limitNumber(value, 1, 100);
-        break;
-      case "maxLength":
-        value = limitNumber(value, 100, 100000);
-        break;
-      case "newlineLength":
-        value = limitNumber(value, 1, 1000);
-        break;
-      case "httpTimeout":
-        value = limitNumber(value, 5000, 60000);
-        break;
-      case "touchTranslate":
-        value = limitNumber(value, 0, 4);
-        break;
       case "contextMenuType":
         isExt && sendBgMsg(MSG_CONTEXT_MENUS, value);
         break;
@@ -219,7 +195,7 @@ export default function Settings() {
               </TextField>
             </Grid>
             <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
+              <ValidationInput
                 fullWidth
                 size="small"
                 label={i18n("min_translate_length")}
@@ -227,10 +203,12 @@ export default function Settings() {
                 name="minLength"
                 value={minLength}
                 onChange={handleChange}
+                min={1}
+                max={100}
               />
             </Grid>
             <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
+              <ValidationInput
                 fullWidth
                 size="small"
                 label={i18n("max_translate_length")}
@@ -238,10 +216,12 @@ export default function Settings() {
                 name="maxLength"
                 value={maxLength}
                 onChange={handleChange}
+                min={100}
+                max={100000}
               />
             </Grid>
             <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
+              <ValidationInput
                 fullWidth
                 size="small"
                 label={i18n("num_of_newline_characters")}
@@ -249,10 +229,12 @@ export default function Settings() {
                 name="newlineLength"
                 value={newlineLength}
                 onChange={handleChange}
+                min={1}
+                max={1000}
               />
             </Grid>
             <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
+              <ValidationInput
                 fullWidth
                 size="small"
                 label={i18n("translate_interval")}
@@ -260,10 +242,12 @@ export default function Settings() {
                 name="transInterval"
                 value={transInterval}
                 onChange={handleChange}
+                min={10}
+                max={2000}
               />
             </Grid>
             <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
+              <ValidationInput
                 fullWidth
                 size="small"
                 label={i18n("http_timeout")}
@@ -271,6 +255,8 @@ export default function Settings() {
                 name="httpTimeout"
                 value={httpTimeout}
                 onChange={handleChange}
+                min={5000}
+                max={60000}
               />
             </Grid>
             <Grid item xs={12} sm={12} md={6} lg={3}>

@@ -1579,9 +1579,9 @@ export const I18N = {
     zh_TW: `AI智慧斷句`,
   },
   ai_chunk_length: {
-    zh: `AI处理切割长度`,
-    en: `AI processing chunk length`,
-    zh_TW: `AI处理切割长度`,
+    zh: `AI处理切割长度(200-20000)`,
+    en: `AI processing chunk length(200-20000)`,
+    zh_TW: `AI处理切割长度(200-20000)`,
   },
   subtitle_helper_1: {
     zh: `1、目前仅支持Youtube，且仅支持浏览器扩展。`,
