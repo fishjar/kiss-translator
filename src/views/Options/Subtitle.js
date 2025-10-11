@@ -56,6 +56,7 @@ export default function SubtitleSetting() {
             />
           }
           label={i18n("toggle_subtitle_translate")}
+          sx={{ width: "fit-content" }}
         />
 
         <Box>

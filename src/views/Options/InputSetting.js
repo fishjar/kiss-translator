@@ -69,6 +69,7 @@ export default function InputSetting() {
             />
           }
           label={i18n("use_input_box_translation")}
+          sx={{ width: "fit-content" }}
         />
 
         <Box>

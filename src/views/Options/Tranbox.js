@@ -88,6 +88,7 @@ export default function Tranbox() {
             />
           }
           label={i18n("toggle_selection_translate")}
+          sx={{ width: "fit-content" }}
         />
 
         <Box>

@@ -38,6 +38,7 @@ export default function MouseHoverSetting() {
             />
           }
           label={i18n("use_mousehover_translation")}
+          sx={{ width: "fit-content" }}
         />
 
         <Box>
