@@ -10,6 +10,7 @@ import {
 import { sleep } from "../libs/utils.js";
 import { createLogoSVG } from "../libs/svg.js";
 import { randomBetween } from "../libs/utils.js";
+import { i18n } from "../config";
 
 const VIDEO_SELECT = "#container video";
 const CONTORLS_SELECT = ".ytp-right-controls";
@@ -25,9 +26,13 @@ class YouTubeCaptionProvider {
   #ytControls = null;
   #isBusy = false;
   #fromLang = "auto";
+  #notificationEl = null;
+  #notificationTimeout = null;
+  #i18n = () => "";
 
   constructor(setting = {}) {
     this.#setting = setting;
+    this.#i18n = i18n(setting.uiLang || "zh");
   }
 
   initialize() {
@@ -45,7 +50,6 @@ class YouTubeCaptionProvider {
         if (this.#toggleButton) {
           this.#toggleButton.style.opacity = "0.5";
         }
-        this.#destroyManager();
         this.#doubleClick();
       }, 1000);
     });
@@ -113,14 +117,20 @@ class YouTubeCaptionProvider {
     toggleButton.onclick = () => {
       if (this.#isBusy) {
         logger.info(`Youtube Provider: It's budy now...`);
-        return;
+        this.#showNotification(this.#i18n("subtitle_data_processing"));
       }
 
       if (!this.#enabled) {
         logger.info(`Youtube Provider: Feature toggled ON.`);
+        this.#enabled = true;
+        this.#toggleButton?.replaceChildren(
+          createLogoSVG({ isSelected: true })
+        );
         this.#startManager();
       } else {
         logger.info(`Youtube Provider: Feature toggled OFF.`);
+        this.#enabled = false;
+        this.#toggleButton?.replaceChildren(createLogoSVG());
         this.#destroyManager();
       }
     };
@@ -245,7 +255,7 @@ class YouTubeCaptionProvider {
       logger.info("Youtube Provider is busy...");
       return;
     }
-    this.#isBusy = true; // todo: 提示用户等待中
+    this.#isBusy = true;
 
     try {
       const videoId = this.#getVideoId();
@@ -264,6 +274,8 @@ class YouTubeCaptionProvider {
         logger.info("Youtube Provider: skip other timedtext.");
         return;
       }
+
+      this.#showNotification(this.#i18n("starting_to_process_subtitle"));
 
       const captionTracks = await this.#getCaptionTracks(videoId);
       const captionTrack = this.#findCaptionTrack(captionTracks);
@@ -365,6 +377,7 @@ class YouTubeCaptionProvider {
       }
     } catch (error) {
       logger.warn("Youtube Provider: unknow error", error);
+      this.#showNotification(this.#i18n("subtitle_load_failed"));
     } finally {
       this.#isBusy = false;
     }
@@ -386,11 +399,9 @@ class YouTubeCaptionProvider {
   }
 
   #startManager() {
-    if (this.#enabled || this.#managerInstance) {
+    if (this.#managerInstance) {
       return;
     }
-    this.#enabled = true;
-    this.#toggleButton?.replaceChildren(createLogoSVG({ isSelected: true }));
 
     const videoEl = document.querySelector(VIDEO_SELECT);
     if (!videoEl) {
@@ -400,8 +411,8 @@ class YouTubeCaptionProvider {
 
     const videoId = this.#getVideoId();
     if (!this.#subtitles?.length || this.#videoId !== videoId) {
-      // todo: 等待并给出用户提示
       logger.info("Youtube Provider: No subtitles");
+      this.#showNotification(this.#i18n("try_get_subtitle_data"));
       this.#doubleClick();
       return;
     }
@@ -416,26 +427,24 @@ class YouTubeCaptionProvider {
     });
     this.#managerInstance.start();
 
+    this.#showNotification(this.#i18n("subtitle_load_succeed"));
+
     const ytCaption = document.querySelector(YT_CAPTION_SELECT);
     ytCaption && (ytCaption.style.display = "none");
   }
 
   #destroyManager() {
-    if (!this.#enabled) {
+    if (!this.#managerInstance) {
       return;
     }
-    this.#enabled = false;
-    this.#toggleButton?.replaceChildren(createLogoSVG());
 
     logger.info("Youtube Provider: Destroying manager...");
 
+    this.#managerInstance.destroy();
+    this.#managerInstance = null;
+
     const ytCaption = document.querySelector(YT_CAPTION_SELECT);
     ytCaption && (ytCaption.style.display = "block");
-
-    if (this.#managerInstance) {
-      this.#managerInstance.destroy();
-      this.#managerInstance = null;
-    }
   }
 
   #formatSubtitles(flatEvents, lang) {
@@ -789,6 +798,45 @@ class YouTubeCaptionProvider {
     }
 
     logger.info("Youtube Provider: All subtitle chunks processed.");
+  }
+
+  #createNotificationElement() {
+    const notificationEl = document.createElement("div");
+    notificationEl.className = "kiss-notification";
+    Object.assign(notificationEl.style, {
+      position: "absolute",
+      top: "40%",
+      left: "50%",
+      transform: "translateX(-50%)",
+      background: "rgba(0,0,0,0.7)",
+      color: "red",
+      padding: "0.5em 1em",
+      borderRadius: "4px",
+      zIndex: "2147483647",
+      opacity: "0",
+      transition: "opacity 0.3s ease-in-out",
+      pointerEvents: "none",
+      fontSize: "2em",
+      width: "50%",
+      textAlign: "center",
+    });
+
+    const videoEl = document.querySelector(VIDEO_SELECT);
+    const videoContainer = videoEl?.parentElement?.parentElement;
+    if (videoContainer) {
+      videoContainer.appendChild(notificationEl);
+      this.#notificationEl = notificationEl;
+    }
+  }
+
+  #showNotification(message, duration = 3000) {
+    if (!this.#notificationEl) this.#createNotificationElement();
+    this.#notificationEl.textContent = message;
+    this.#notificationEl.style.opacity = "1";
+    clearTimeout(this.#notificationTimeout);
+    this.#notificationTimeout = setTimeout(() => {
+      this.#notificationEl.style.opacity = "0";
+    }, duration);
   }
 }
 

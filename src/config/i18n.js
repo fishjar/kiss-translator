@@ -1598,4 +1598,31 @@ export const I18N = {
     en: `Default styles reference:`,
     zh_TW: `認樣式參考：`,
   },
+  subtitle_load_succeed: {
+    zh: `双语字幕加载成功！`,
+    en: `Bilingual subtitles loaded successfully!`,
+    zh_TW: `双语字幕加载成功！`,
+  },
+  subtitle_load_failed: {
+    zh: `双语字幕加载失败！`,
+    en: `Failed to load bilingual subtitles!`,
+    zh_TW: `双语字幕加载失败！`,
+  },
+  try_get_subtitle_data: {
+    zh: `尝试获取字幕数据，请稍候...`,
+    en: `Trying to get subtitle data, please wait...`,
+    zh_TW: `尝试获取字幕数据，请稍候...`,
+  },
+  subtitle_data_processing: {
+    zh: `字幕数据处理中...`,
+    en: `Subtitle data processing...`,
+    zh_TW: `字幕数据处理中...`,
+  },
+  starting_to_process_subtitle: {
+    zh: `开始处理字幕数据...`,
+    en: `Starting to process subtitle data...`,
+    zh_TW: `开始处理字幕数据...`,
+  },
 };
+
+export const i18n = (lang) => (key) => I18N[key]?.[lang] || "";

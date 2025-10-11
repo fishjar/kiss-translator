@@ -34,6 +34,7 @@ export function runSubtitle({ href, setting }) {
         ...subtitleSetting,
         apiSetting,
         segApiSetting,
+        uiLang: setting.uiLang,
       });
     }
   } catch (err) {
