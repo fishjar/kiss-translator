@@ -1554,9 +1554,9 @@ export const I18N = {
     zh_TW: `啟用字幕翻譯`,
   },
   is_bilingual_view: {
-    zh: `启用双语显示`,
-    en: `DEnable bilingual display`,
-    zh_TW: `啟用雙語顯示`,
+    zh: `双语显示`,
+    en: `Enable bilingual display`,
+    zh_TW: `雙語顯示`,
   },
   background_styles: {
     zh: `背景样式`,
@@ -1577,6 +1577,11 @@ export const I18N = {
     zh: `AI智能断句`,
     en: `AI intelligent punctuation`,
     zh_TW: `AI智慧斷句`,
+  },
+  ai_chunk_length: {
+    zh: `AI处理切割长度`,
+    en: `AI processing chunk length`,
+    zh_TW: `AI处理切割长度`,
   },
   subtitle_helper_1: {
     zh: `1、目前仅支持Youtube，且仅支持浏览器扩展。`,

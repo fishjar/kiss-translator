@@ -517,6 +517,7 @@ export const apiTranslate = async ({
 // 字幕处理/翻译
 export const apiSubtitle = async ({
   videoId,
+  chunkSign,
   fromLang = "auto",
   toLang,
   events = [],
@@ -525,6 +526,7 @@ export const apiSubtitle = async ({
   const cacheOpts = {
     apiSlug: apiSetting.apiSlug,
     videoId,
+    chunkSign,
     fromLang,
     toLang,
   };

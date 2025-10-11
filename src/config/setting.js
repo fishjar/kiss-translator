@@ -112,6 +112,7 @@ export const DEFAULT_SUBTITLE_SETTING = {
   enabled: true, // 是否开启
   apiSlug: OPT_TRANS_MICROSOFT,
   segSlug: "-", // AI智能断句
+  chunkLength: 1000, // AI处理切割长度
   // fromLang: "en",
   toLang: "zh-CN",
   isBilingual: true, // 是否双语显示

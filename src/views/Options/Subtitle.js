@@ -10,6 +10,7 @@ import Alert from "@mui/material/Alert";
 import Switch from "@mui/material/Switch";
 import { useSubtitle } from "../../hooks/Subtitle";
 import { useApiList } from "../../hooks/Api";
+import { limitNumber } from "../../libs/utils";
 
 export default function SubtitleSetting() {
   const i18n = useI18n();
@@ -19,6 +20,12 @@ export default function SubtitleSetting() {
   const handleChange = (e) => {
     e.preventDefault();
     let { name, value } = e.target;
+    switch (name) {
+      case "chunkLength":
+        value = limitNumber(value, 200, 20000);
+        break;
+      default:
+    }
     updateSubtitle({
       [name]: value,
     });
@@ -28,6 +35,7 @@ export default function SubtitleSetting() {
     enabled,
     apiSlug,
     segSlug,
+    chunkLength,
     toLang,
     isBilingual,
     windowStyle,
@@ -95,6 +103,17 @@ export default function SubtitleSetting() {
                   </MenuItem>
                 ))}
               </TextField>
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                fullWidth
+                size="small"
+                label={i18n("ai_chunk_length")}
+                type="number"
+                name="chunkLength"
+                value={chunkLength}
+                onChange={handleChange}
+              />
             </Grid>
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField

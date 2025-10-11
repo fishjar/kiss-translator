@@ -218,10 +218,14 @@ class YouTubeCaptionProvider {
     return docUrl.searchParams.get("v");
   }
 
-  async #aiSegment({ videoId, toLang, events, segApiSetting }) {
+  async #aiSegment({ videoId, fromLang, toLang, chunkEvents, segApiSetting }) {
     try {
+      const events = chunkEvents.filter((item) => item.text);
+      const chunkSign = `${events[0].start} --> ${events[events.length - 1].end}`;
       const subtitles = await apiSubtitle({
         videoId,
+        chunkSign,
+        fromLang,
         toLang,
         events,
         apiSetting: segApiSetting,
@@ -279,7 +283,8 @@ class YouTubeCaptionProvider {
         return;
       }
 
-      let subtitles = [];
+      const flatEvents = this.#flatEvents(events);
+      if (!flatEvents.length) return;
 
       const { segApiSetting, toLang } = this.#setting;
       const lang = potUrl.searchParams.get("lang");
@@ -287,26 +292,77 @@ class YouTubeCaptionProvider {
         OPT_LANGS_TO_CODE[OPT_TRANS_MICROSOFT].get(lang) ||
         OPT_LANGS_TO_CODE[OPT_TRANS_MICROSOFT].get(lang.slice(0, 2)) ||
         "auto";
+
       if (potUrl.searchParams.get("kind") === "asr" && segApiSetting) {
-        // todo: 切分多次发送接受以适应接口处理能力
-        subtitles = await this.#aiSegment({
+        logger.info("Youtube Provider: Starting AI ...");
+
+        const eventChunks = this.#splitEventsIntoChunks(
+          flatEvents,
+          segApiSetting.chunkLength
+        );
+        const subtitlesFallback = () =>
+          this.#formatSubtitles(flatEvents, fromLang);
+
+        if (eventChunks.length === 0) {
+          this.#onCaptionsReady({
+            videoId,
+            subtitles: subtitlesFallback(),
+            fromLang,
+            isInitialLoad: true,
+          });
+          return;
+        }
+
+        const firstChunkEvents = eventChunks[0];
+        const firstBatchSubtitles = await this.#aiSegment({
           videoId,
-          events: this.#flatEvents(events),
+          chunkEvents: firstChunkEvents,
           fromLang,
           toLang,
           segApiSetting,
         });
-      }
 
-      if (!subtitles?.length) {
-        subtitles = this.#formatSubtitles(events, fromLang);
-      }
-      if (!subtitles?.length) {
-        logger.info("Youtube Provider: No subtitles after format.");
-        return;
-      }
+        if (!firstBatchSubtitles?.length) {
+          this.#onCaptionsReady({
+            videoId,
+            subtitles: subtitlesFallback(),
+            fromLang,
+            isInitialLoad: true,
+          });
+          return;
+        }
 
-      this.#onCaptionsReady({ videoId, subtitles, fromLang });
+        this.#onCaptionsReady({
+          videoId,
+          subtitles: firstBatchSubtitles,
+          fromLang,
+          isInitialLoad: true,
+        });
+
+        if (eventChunks.length > 1) {
+          const remainingChunks = eventChunks.slice(1);
+          this.#processRemainingChunksAsync({
+            chunks: remainingChunks,
+            videoId,
+            fromLang,
+            toLang,
+            segApiSetting,
+          });
+        }
+      } else {
+        const subtitles = this.#formatSubtitles(flatEvents, fromLang);
+        if (!subtitles?.length) {
+          logger.info("Youtube Provider: No subtitles after format.");
+          return;
+        }
+
+        this.#onCaptionsReady({
+          videoId,
+          subtitles,
+          fromLang,
+          isInitialLoad: true,
+        });
+      }
     } catch (error) {
       logger.warn("Youtube Provider: unknow error", error);
     } finally {
@@ -382,8 +438,8 @@ class YouTubeCaptionProvider {
     }
   }
 
-  #formatSubtitles(events, lang) {
-    if (!events?.length) return [];
+  #formatSubtitles(flatEvents, lang) {
+    if (!flatEvents?.length) return [];
 
     const noSpaceLanguages = [
       "zh", // 中文
@@ -396,25 +452,49 @@ class YouTubeCaptionProvider {
     ];
 
     if (noSpaceLanguages.some((l) => lang?.startsWith(l))) {
-      return events
-        .map(({ segs = [], tStartMs = 0, dDurationMs = 0 }) => ({
-          text: segs
-            .map(({ utf8 = "" }) => utf8)
-            .join("")
-            ?.trim(),
-          start: tStartMs,
-          end: tStartMs + dDurationMs,
-        }))
-        .filter((item) => item.text);
+      const subtitles = [];
+      let currentLine = null;
+      const MAX_LENGTH = 100;
+
+      for (const segment of flatEvents) {
+        if (segment.text) {
+          if (!currentLine) {
+            currentLine = {
+              text: segment.text,
+              start: segment.start,
+              end: segment.end,
+            };
+          } else {
+            currentLine.text += segment.text;
+            currentLine.end = segment.end;
+          }
+
+          if (currentLine.text.length >= MAX_LENGTH) {
+            subtitles.push(currentLine);
+            currentLine = null;
+          }
+        } else {
+          if (currentLine) {
+            subtitles.push(currentLine);
+            currentLine = null;
+          }
+        }
+      }
+
+      if (currentLine) {
+        subtitles.push(currentLine);
+      }
+
+      return subtitles;
     }
 
-    let lines = this.#processSubtitles({ events });
-    const isPoor = this.#isQualityPoor(lines);
+    let subtitles = this.#processSubtitles({ flatEvents });
+    const isPoor = this.#isQualityPoor(subtitles);
     if (isPoor) {
-      lines = this.#processSubtitles({ events, usePause: true });
+      subtitles = this.#processSubtitles({ flatEvents, usePause: true });
     }
 
-    return lines;
+    return subtitles;
   }
 
   #isQualityPoor(lines, lengthThreshold = 250, percentageThreshold = 0.1) {
@@ -426,9 +506,9 @@ class YouTubeCaptionProvider {
   }
 
   #processSubtitles({
-    events,
+    flatEvents,
     usePause = false,
-    timeout = 1500,
+    timeout = 1000,
     maxWords = 15,
   } = {}) {
     const groupedPauseWords = {
@@ -516,67 +596,54 @@ class YouTubeCaptionProvider {
     let currentBuffer = [];
     let bufferWordCount = 0;
 
-    const joinSegs = (segs) => ({
-      text: segs
-        .map((s) => s.text)
-        .join(" ")
-        .trim(),
-      start: segs[0].start,
-      end: segs[segs.length - 1].end,
-    });
-
     const flushBuffer = () => {
       if (currentBuffer.length > 0) {
-        sentences.push(joinSegs(currentBuffer));
+        sentences.push({
+          text: currentBuffer
+            .map((s) => s.text)
+            .join(" ")
+            .trim(),
+          start: currentBuffer[0].start,
+          end: currentBuffer[currentBuffer.length - 1].end,
+        });
       }
       currentBuffer = [];
       bufferWordCount = 0;
     };
 
-    events.forEach(({ segs = [], tStartMs = 0, dDurationMs = 0 }) => {
-      segs.forEach(({ utf8 = "", tOffsetMs = 0 }, j) => {
-        const text = utf8?.trim().replace(/\s+/g, " ") || "";
-        if (!text) return;
+    flatEvents.forEach((segment) => {
+      if (!segment.text) return;
 
-        const start = tStartMs + tOffsetMs;
-        const lastSegment = currentBuffer[currentBuffer.length - 1];
+      const lastSegment = currentBuffer[currentBuffer.length - 1];
 
-        if (lastSegment) {
-          if (!lastSegment.end || lastSegment.end > start) {
-            lastSegment.end = start;
-          }
+      if (lastSegment) {
+        const isEndOfSentence = /[.?!…\])]$/.test(lastSegment.text);
+        const isPauseOfSentence = /[,]$/.test(lastSegment.text);
+        const isTimeout = segment.start - lastSegment.end > timeout;
+        const isWordLimitExceeded =
+          (usePause || isPauseOfSentence) && bufferWordCount >= maxWords;
 
-          const isEndOfSentence = /[.?!…\])]$/.test(lastSegment.text);
-          const isPauseOfSentence = /[,]$/.test(lastSegment.text);
-          const isTimeout = start - lastSegment.end > timeout;
-          const isWordLimitExceeded =
-            (usePause || isPauseOfSentence) && bufferWordCount >= maxWords;
+        const startsWithSign = /^[[(♪]/.test(segment.text);
+        const startsWithPauseWord =
+          usePause &&
+          groupedPauseWords["1"].has(
+            segment.text.toLowerCase().split(" ")[0]
+          ) &&
+          currentBuffer.length > 1;
 
-          const startsWithSign = /^[[(♪]/.test(text);
-          const startsWithPauseWord =
-            usePause &&
-            groupedPauseWords["1"].has(text.toLowerCase().split(" ")[0]) && // todo: 考虑连词开头
-            currentBuffer.length > 1;
-
-          if (
-            isEndOfSentence ||
-            isTimeout ||
-            isWordLimitExceeded ||
-            startsWithSign ||
-            startsWithPauseWord
-          ) {
-            flushBuffer();
-          }
+        if (
+          isEndOfSentence ||
+          isTimeout ||
+          isWordLimitExceeded ||
+          startsWithSign ||
+          startsWithPauseWord
+        ) {
+          flushBuffer();
         }
+      }
 
-        const currentSegment = { text, start };
-        if (j === segs.length - 1) {
-          currentSegment.end = tStartMs + dDurationMs;
-        }
-
-        currentBuffer.push(currentSegment);
-        bufferWordCount += text.split(/\s+/).length;
-      });
+      currentBuffer.push(segment);
+      bufferWordCount += segment.text.split(/\s+/).length;
     });
 
     flushBuffer();
@@ -614,7 +681,114 @@ class YouTubeCaptionProvider {
 
     segments.push(buffer);
 
-    return segments.filter((item) => item.text);
+    return segments;
+  }
+
+  #splitEventsIntoChunks(flatEvents, chunkLength = 1000) {
+    if (!flatEvents || flatEvents.length === 0) {
+      return [];
+    }
+
+    const eventChunks = [];
+    let currentChunk = [];
+    let currentChunkTextLength = 0;
+    const MAX_CHUNK_LENGTH = chunkLength + 500;
+    const PAUSE_THRESHOLD_MS = 1000;
+
+    for (let i = 0; i < flatEvents.length; i++) {
+      const event = flatEvents[i];
+      currentChunk.push(event);
+      currentChunkTextLength += event.text.length;
+
+      const isLastEvent = i === flatEvents.length - 1;
+      if (isLastEvent) {
+        continue;
+      }
+
+      let shouldSplit = false;
+
+      if (currentChunkTextLength >= MAX_CHUNK_LENGTH) {
+        shouldSplit = true;
+      } else if (currentChunkTextLength >= chunkLength) {
+        const isEndOfSentence = /[.?!…\])]$/.test(event.text);
+        const nextEvent = flatEvents[i + 1];
+        const pauseDuration = nextEvent.start - event.end;
+        if (isEndOfSentence || pauseDuration > PAUSE_THRESHOLD_MS) {
+          shouldSplit = true;
+        }
+      }
+
+      if (shouldSplit) {
+        eventChunks.push(currentChunk);
+        currentChunk = [];
+        currentChunkTextLength = 0;
+      }
+    }
+
+    if (currentChunk.length > 0) {
+      eventChunks.push(currentChunk);
+    }
+
+    return eventChunks;
+  }
+
+  async #processRemainingChunksAsync({
+    chunks,
+    videoId,
+    fromLang,
+    toLang,
+    segApiSetting,
+  }) {
+    logger.info(`Youtube Provider: Starting for ${chunks.length} chunks.`);
+
+    for (let i = 0; i < chunks.length; i++) {
+      const chunkEvents = chunks[i];
+      const chunkNum = i + 2;
+      logger.info(
+        `Youtube Provider: Processing subtitle chunk ${chunkNum}/${chunks.length + 1}...`
+      );
+
+      let subtitlesForThisChunk = [];
+
+      try {
+        const aiSubtitles = await this.#aiSegment({
+          videoId,
+          chunkEvents,
+          fromLang,
+          toLang,
+          segApiSetting,
+        });
+
+        if (aiSubtitles?.length > 0) {
+          subtitlesForThisChunk = aiSubtitles;
+        } else {
+          logger.info(
+            `Youtube Provider: AI segmentation for chunk ${chunkNum} returned no data.`
+          );
+          subtitlesForThisChunk = this.#formatSubtitles(chunkEvents, fromLang);
+        }
+      } catch (chunkError) {
+        subtitlesForThisChunk = this.#formatSubtitles(chunkEvents, fromLang);
+      }
+
+      if (this.#videoId !== videoId) {
+        logger.info("Youtube Provider: videoId changed!");
+        break;
+      }
+
+      if (subtitlesForThisChunk.length > 0 && this.#managerInstance) {
+        logger.info(
+          `Youtube Provider: Appending ${subtitlesForThisChunk.length} subtitles from chunk ${chunkNum}.`
+        );
+        this.#managerInstance.appendSubtitles(subtitlesForThisChunk);
+      } else {
+        logger.info(`Youtube Provider: Chunk ${chunkNum} no subtitles.`);
+      }
+
+      await sleep(randomBetween(500, 1000));
+    }
+
+    logger.info("Youtube Provider: All subtitle chunks processed.");
   }
 }
 

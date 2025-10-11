@@ -230,4 +230,23 @@ export class BilingualSubtitleManager {
       }
     }
   }
+
+  /**
+   * 追加新的字幕
+   * @param {Array<object>} newSubtitlesChunk - 新的、要追加的字幕数据块。
+   */
+  appendSubtitles(newSubtitlesChunk) {
+    if (!newSubtitlesChunk || newSubtitlesChunk.length === 0) {
+      return;
+    }
+
+    logger.info(
+      `Bilingual Subtitle Manager: Appending ${newSubtitlesChunk.length} new subtitles...`
+    );
+
+    this.#formattedSubtitles.push(...newSubtitlesChunk);
+    this.#formattedSubtitles.sort((a, b) => a.start - b.start);
+    this.#currentSubtitleIndex = -1;
+    this.onTimeUpdate();
+  }
 }
