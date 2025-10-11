@@ -1588,4 +1588,9 @@ export const I18N = {
     en: `2. The plug-in has built-in basic segmentation logic. If it is not ideal, you can enable AI intelligent segmentation. However, you need to consider the video length and the processing power of the AI ​​interface. The waiting time may be very long or even fail.`,
     zh_TW: `2.插件內建基礎斷句邏輯，如不理想，可以啟用AI智能斷句，但需考慮視訊長度與AI介面的處理能力，可能等待的時間會很長，甚至失敗。`,
   },
+  default_styles_example: {
+    zh: `默认样式参考：`,
+    en: `Default styles reference:`,
+    zh_TW: `認樣式參考：`,
+  },
 };

@@ -63,6 +63,7 @@ import { kissLog } from "../../libs/log";
 import { useApiList } from "../../hooks/Api";
 import ShowMoreButton from "./ShowMoreButton";
 import { useConfirm } from "../../hooks/Confirm";
+import { defaultStyles } from "../../libs/style";
 
 const calculateInitialValues = (rule) => {
   const base = rule?.pattern === "*" ? GLOBLA_RULE : DEFAULT_RULE;
@@ -127,6 +128,13 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
   const isModified = useMemo(() => {
     return JSON.stringify(initialFormValues) !== JSON.stringify(formValues);
   }, [initialFormValues, formValues]);
+
+  const stylesExample = useMemo(() => {
+    return Object.entries(defaultStyles)
+      .filter(([_, v]) => v)
+      .map(([k, v]) => `${i18n(k)}:${v}`)
+      .join("\n");
+  }, [i18n]);
 
   const hasSamePattern = (str) => {
     for (const item of rules.list) {
@@ -484,7 +492,27 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
           <TextField
             size="small"
             label={i18n("diy_style")}
-            helperText={i18n("diy_style_helper")}
+            FormHelperTextProps={{
+              component: "div",
+            }}
+            helperText={
+              <Box>
+                <Box component="div">{i18n("default_styles_example")}</Box>
+                <Box
+                  component="pre"
+                  sx={{
+                    overflowX: "auto",
+                    height: 200,
+                    resize: "vertical",
+                    minHeight: 100,
+                    margin: 0,
+                    // border: "1px solid #ccc",
+                  }}
+                >
+                  {stylesExample}
+                </Box>
+              </Box>
+            }
             name="textDiyStyle"
             value={textDiyStyle}
             disabled={disabled}

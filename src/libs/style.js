@@ -33,10 +33,10 @@ const genLineStyle = (style, color) => `
   }
 `;
 
-export const genStyles = ({
+const genStyles = ({
   textDiyStyle = DEFAULT_DIY_STYLE,
   bgColor = DEFAULT_COLOR,
-}) => ({
+} = {}) => ({
   // 无样式
   [OPT_STYLE_NONE]: ``,
   // 下划线
@@ -82,7 +82,9 @@ export const genStyles = ({
     }
   `,
   // 自定义
-  [OPT_STYLE_DIY]: textDiyStyle,
+  [OPT_STYLE_DIY]: `
+${textDiyStyle}
+`,
 });
 
 export const genTextClass = ({ textDiyStyle, bgColor = DEFAULT_COLOR }) => {
@@ -103,3 +105,5 @@ export const genTextClass = ({ textDiyStyle, bgColor = DEFAULT_COLOR }) => {
   });
   return [textClass, textStyles];
 };
+
+export const defaultStyles = genStyles();
