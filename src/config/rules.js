@@ -188,7 +188,7 @@ const RULES_MAP = {
   },
   "www.youtube.com": {
     rootsSelector: `ytd-page-manager`,
-    ignoreSelector: `aside, button, footer, form, header, pre, mark, nav, #player`,
+    ignoreSelector: `aside, button, footer, form, header, pre, mark, nav, #player, #container, .caption-window, .ytp-settings-menu`,
     textStyle: OPT_STYLE_DASHBOX,
   },
 };
