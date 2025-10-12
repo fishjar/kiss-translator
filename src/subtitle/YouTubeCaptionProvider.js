@@ -274,6 +274,20 @@ class YouTubeCaptionProvider {
         return;
       }
 
+      const { segApiSetting, toLang } = this.#setting;
+      const lang = potUrl.searchParams.get("lang");
+      const fromLang =
+        OPT_LANGS_TO_CODE[OPT_TRANS_MICROSOFT].get(lang) ||
+        OPT_LANGS_TO_CODE[OPT_TRANS_MICROSOFT].get(lang.slice(0, 2)) ||
+        "auto";
+
+      if (this.#isSameLang(fromLang, toLang)) {
+        logger.info("Youtube Provider: skip same lang", fromLang, toLang);
+        return;
+      }
+
+      this.#showNotification(this.#i18n("starting_to_process_subtitle"));
+
       const captionTracks = await this.#getCaptionTracks(videoId);
       const captionTrack = this.#findCaptionTrack(captionTracks);
       if (!captionTrack) {
@@ -291,20 +305,6 @@ class YouTubeCaptionProvider {
         logger.info("Youtube Provider: SubtitleEvents not got.");
         return;
       }
-
-      const { segApiSetting, toLang } = this.#setting;
-      const lang = potUrl.searchParams.get("lang");
-      const fromLang =
-        OPT_LANGS_TO_CODE[OPT_TRANS_MICROSOFT].get(lang) ||
-        OPT_LANGS_TO_CODE[OPT_TRANS_MICROSOFT].get(lang.slice(0, 2)) ||
-        "auto";
-
-      if (this.#isSameLang(fromLang, toLang)) {
-        logger.info("Youtube Provider: skip same lang", fromLang, toLang);
-        return;
-      }
-
-      this.#showNotification(this.#i18n("starting_to_process_subtitle"));
 
       const flatEvents = this.#flatEvents(events);
       if (!flatEvents.length) return;
