@@ -45,15 +45,18 @@ class YouTubeCaptionProvider {
         }
       }
     });
-    document.body.addEventListener("yt-navigate-finish", () => {
+    window.addEventListener("yt-navigate-finish", () => {
       setTimeout(() => {
         if (this.#toggleButton) {
           this.#toggleButton.style.opacity = "0.5";
         }
+        this.#destroyManager();
         this.#doubleClick();
       }, 1000);
     });
-    this.#waitForElement(CONTORLS_SELECT, () => this.#injectToggleButton());
+    this.#waitForElement(CONTORLS_SELECT, (ytControls) =>
+      this.#injectToggleButton(ytControls)
+    );
   }
 
   #waitForElement(selector, callback) {
@@ -89,12 +92,8 @@ class YouTubeCaptionProvider {
     }
   }
 
-  #injectToggleButton() {
-    this.#ytControls = document.querySelector(CONTORLS_SELECT);
-    if (!this.#ytControls) {
-      logger.warn("Youtube Provider: Could not find YouTube player controls.");
-      return;
-    }
+  #injectToggleButton(ytControls) {
+    this.#ytControls = ytControls;
 
     const kissControls = document.createElement("div");
     kissControls.className = "kiss-bilingual-subtitle-controls";
@@ -392,8 +391,8 @@ class YouTubeCaptionProvider {
       this.#toggleButton.style.opacity = subtitles.length ? "1" : "0.5";
     }
 
+    this.#destroyManager();
     if (this.#enabled) {
-      this.#destroyManager();
       this.#startManager();
     }
   }
@@ -403,17 +402,17 @@ class YouTubeCaptionProvider {
       return;
     }
 
-    const videoEl = document.querySelector(VIDEO_SELECT);
-    if (!videoEl) {
-      logger.warn("Youtube Provider: No video element found");
-      return;
-    }
-
     const videoId = this.#getVideoId();
     if (!this.#subtitles?.length || this.#videoId !== videoId) {
       logger.info("Youtube Provider: No subtitles");
       this.#showNotification(this.#i18n("try_get_subtitle_data"));
       this.#doubleClick();
+      return;
+    }
+
+    const videoEl = document.querySelector(VIDEO_SELECT);
+    if (!videoEl) {
+      logger.warn("Youtube Provider: No video element found");
       return;
     }
 

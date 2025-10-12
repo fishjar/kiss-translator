@@ -7,7 +7,7 @@ import { injectExternalJs } from "../libs/injector.js";
 import { logger } from "../libs/log.js";
 
 const providers = [
-  { pattern: "https://www.youtube.com/", start: YouTubeInitializer },
+  { pattern: "https://www.youtube.com", start: YouTubeInitializer },
 ];
 
 export function runSubtitle({ href, setting }) {
