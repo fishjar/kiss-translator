@@ -1628,6 +1628,11 @@ export const I18N = {
     en: `The subtitle data is ready, please click the KT button to load it`,
     zh_TW: `字幕資料已準備就緒，請點擊KT按鈕加載`,
   },
+  log_level: {
+    zh: `日志级别`,
+    en: `Log Level`,
+    zh_TW: `日誌等級`,
+  },
 };
 
 export const i18n = (lang) => (key) => I18N[key]?.[lang] || "";

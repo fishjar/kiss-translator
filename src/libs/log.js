@@ -7,6 +7,16 @@ export const LogLevel = {
   SILENT: { value: 4, name: "SILENT" }, // 特殊级别，用于关闭所有日志
 };
 
+function findLogLevelByValue(value) {
+  return Object.values(LogLevel).find((level) => level.value === value);
+}
+
+function findLogLevelByName(name) {
+  if (typeof name !== "string" || name.length === 0) return undefined;
+  const upperCaseName = name.toUpperCase();
+  return Object.values(LogLevel).find((level) => level.name === upperCaseName);
+}
+
 class Logger {
   /**
    * @param {object} [options={}] 配置选项
@@ -25,10 +35,37 @@ class Logger {
    * @param {LogLevel} level - 新的日志级别
    */
   setLevel(level) {
-    if (level && typeof level.value === "number") {
-      this.config.level = level;
-      console.log(`[${this.config.prefix}] Log level set to ${level.name}`);
+    let newLevelObject;
+
+    if (typeof level === "string") {
+      newLevelObject = findLogLevelByName(level);
+      if (!newLevelObject) {
+        this.warn(
+          `Invalid log level name provided: "${level}". Keeping current level.`
+        );
+        return;
+      }
+    } else if (typeof level === "number") {
+      newLevelObject = findLogLevelByValue(level);
+      if (!newLevelObject) {
+        this.warn(
+          `Invalid log level value provided: ${level}. Keeping current level.`
+        );
+        return;
+      }
+    } else if (level && typeof level.value === "number") {
+      newLevelObject = level;
+    } else {
+      this.warn(
+        "Invalid argument passed to setLevel. Must be a LogLevel object, number, or string."
+      );
+      return;
     }
+
+    this.config.level = newLevelObject;
+    console.log(
+      `[${this.config.prefix}] Log level dynamically set to ${this.config.level.name}`
+    );
   }
 
   /**
@@ -118,9 +155,7 @@ class Logger {
   }
 }
 
-const isDevelopment =
-  typeof process === "undefined" || process.env.NODE_ENV !== "development";
-const defaultLevel = isDevelopment ? LogLevel.DEBUG : LogLevel.INFO;
-
-export const logger = new Logger({ level: defaultLevel });
+export const logger = new Logger();
 export const kissLog = logger.info.bind(logger);
+
+// todo：debug日志埋点

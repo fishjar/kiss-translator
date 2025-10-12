@@ -29,7 +29,7 @@ import { useShortcut } from "../../hooks/Shortcut";
 import ShortcutInput from "./ShortcutInput";
 import { useFab } from "../../hooks/Fab";
 import { sendBgMsg } from "../../libs/msg";
-import { kissLog } from "../../libs/log";
+import { kissLog, LogLevel } from "../../libs/log";
 import UploadButton from "./UploadButton";
 import DownloadButton from "./DownloadButton";
 import { getSettingOld } from "../../libs/storage";
@@ -99,6 +99,7 @@ export default function Settings() {
     orilist = DEFAULT_ORILIST.join(",\n"),
     transInterval = 100,
     langDetector = "-",
+    logLevel = 1,
     preInit = true,
     skipLangs = [],
     // detectRemote = true,
@@ -333,6 +334,23 @@ export default function Settings() {
                 {OPT_LANGDETECTOR_ALL.map((item) => (
                   <MenuItem value={item} key={item}>
                     {item}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                name="logLevel"
+                value={logLevel}
+                label={i18n("log_level")}
+                onChange={handleChange}
+              >
+                {Object.values(LogLevel).map(({ value, name }) => (
+                  <MenuItem value={value} key={value}>
+                    {name}
                   </MenuItem>
                 ))}
               </TextField>

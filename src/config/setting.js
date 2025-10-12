@@ -1,3 +1,4 @@
+import { LogLevel } from "../libs/log";
 import {
   OPT_DICT_BING,
   OPT_SUG_YOUDAO,
@@ -181,4 +182,5 @@ export const DEFAULT_SETTING = {
   preInit: true, // 是否预加载脚本
   transAllnow: false, // 是否立即全部翻译
   subtitleSetting: DEFAULT_SUBTITLE_SETTING, // 字幕设置
+  logLevel: LogLevel.INFO.value, // 日志级别
 };

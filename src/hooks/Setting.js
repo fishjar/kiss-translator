@@ -1,9 +1,16 @@
-import { createContext, useCallback, useContext, useMemo } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useEffect,
+} from "react";
 import Alert from "@mui/material/Alert";
 import { STOKEY_SETTING, DEFAULT_SETTING, KV_SETTING_KEY } from "../config";
 import { useStorage } from "./Storage";
 import { debounceSyncMeta } from "../libs/storage";
 import Loading from "./Loading";
+import { logger } from "../libs/log";
 
 const SettingContext = createContext({
   setting: DEFAULT_SETTING,
@@ -18,6 +25,16 @@ export function SettingProvider({ children }) {
     update,
     reload,
   } = useStorage(STOKEY_SETTING, DEFAULT_SETTING, KV_SETTING_KEY);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        logger.setLevel(setting?.logLevel);
+      } catch (error) {
+        logger.error("Failed to fetch log level, using default.", error);
+      }
+    })();
+  }, [setting]);
 
   const updateSetting = useCallback(
     (objOrFn) => {

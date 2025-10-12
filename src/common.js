@@ -19,6 +19,7 @@ import { matchRule } from "./libs/rules";
 import { trySyncAllSubRules } from "./libs/subRules";
 import { isInBlacklist } from "./libs/blacklist";
 import { runSubtitle } from "./subtitle/subtitle";
+import { logger } from "./libs/log";
 
 /**
  * 油猴脚本设置页面
@@ -180,6 +181,12 @@ function touchOperation(translator) {
  */
 export async function run(isUserscript = false) {
   try {
+    // 读取设置信息
+    const setting = await getSettingWithDefault();
+
+    // 日志
+    logger.setLevel(setting.logLevel);
+
     const href = document.location.href;
 
     // 设置页面
@@ -191,9 +198,6 @@ export async function run(isUserscript = false) {
       runSettingPage();
       return;
     }
-
-    // 读取设置信息
-    const setting = await getSettingWithDefault();
 
     // 黑名单
     if (isInBlacklist(href, setting)) {

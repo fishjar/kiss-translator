@@ -231,6 +231,13 @@ class YouTubeCaptionProvider {
     try {
       const events = chunkEvents.filter((item) => item.text);
       const chunkSign = `${events[0].start} --> ${events[events.length - 1].end}`;
+      logger.debug("Youtube Provider: aiSegment events", {
+        videoId,
+        chunkSign,
+        fromLang,
+        toLang,
+        events,
+      });
       const subtitles = await apiSubtitle({
         videoId,
         chunkSign,
@@ -239,6 +246,7 @@ class YouTubeCaptionProvider {
         events,
         apiSetting: segApiSetting,
       });
+      logger.debug("Youtube Provider: aiSegment subtitles", subtitles);
       if (Array.isArray(subtitles)) {
         return subtitles;
       }
@@ -300,6 +308,9 @@ class YouTubeCaptionProvider {
         OPT_LANGS_TO_CODE[OPT_TRANS_MICROSOFT].get(lang.slice(0, 2)) ||
         "auto";
 
+      logger.debug(
+        `Youtube Provider: fromLang: ${fromLang}, toLang: ${toLang}`
+      );
       if (this.#isSameLang(fromLang, toLang)) {
         logger.info("Youtube Provider: skip same lang", fromLang, toLang);
         return;

@@ -32,7 +32,7 @@ import { trySyncAllSubRules } from "./libs/subRules";
 import { saveRule } from "./libs/rules";
 import { getCurTabId } from "./libs/msg";
 import { injectInlineJs, injectInternalCss } from "./libs/injector";
-import { kissLog } from "./libs/log";
+import { kissLog, logger } from "./libs/log";
 import { chromeDetect, chromeTranslate } from "./libs/builtinAI";
 
 globalThis.ContextType = "BACKGROUND";
@@ -210,11 +210,17 @@ browser.runtime.onInstalled.addListener(() => {
  * 浏览器启动
  */
 browser.runtime.onStartup.addListener(async () => {
-  // 同步数据
-  await trySyncSettingAndRules();
+  const {
+    clearCache,
+    contextMenuType,
+    subrulesList,
+    csplist,
+    orilist,
+    logLevel,
+  } = await getSettingWithDefault();
 
-  const { clearCache, contextMenuType, subrulesList, csplist, orilist } =
-    await getSettingWithDefault();
+  // 设置日志
+  logger.setLevel(logLevel);
 
   // 清除缓存
   if (clearCache) {
@@ -232,6 +238,9 @@ browser.runtime.onStartup.addListener(async () => {
 
   // 禁用CSP
   updateCspRules({ csplist, orilist });
+
+  // 同步数据
+  trySyncSettingAndRules();
 
   // 同步订阅规则
   trySyncAllSubRules({ subrulesList });
