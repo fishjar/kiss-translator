@@ -1,5 +1,34 @@
 # 简约翻译
 
+> **新版预告**：
+>
+> 经过一段时间断续开发，新版的预期功能已基本完成，主要引入的新特性如下：
+>
+>   - 核心翻译逻辑重构：
+>     - 支持自动识别文本与手动选择两种模式。
+>     - 自动识别文本模式使得绝大部分网站无需编写规则也能翻译完整。
+>     - 保留之前的手动规则模式，可以针对特定网站极致优化。
+>     - 支持富文本翻译，能够尽量保留原文中的链接及其他文本样式。
+>   - 接口重构：
+>     - 支持添加、删除任意数量的接口。
+>     - 支持聚合发送文本，减少翻译接口调用次数，提升性能。
+>     - 支持chrome内置AI翻译接口，无需通过网络即可实现AI翻译。
+>     - 支持AI上下文会话记忆功能，提升翻译效果。
+>     - 所有接口均支持Hook和自定义参数等高级功能。
+>   - 优化 YouTube 字幕支持：
+>     - 支持任意翻译服务对视频字幕进行翻译并双语显示。
+>     - 内置基础的字幕合并与断句算法，提升翻译效果。
+>     - 支持AI断句功能，可进一步提升翻译质量。
+>   - 英文词典备灾：
+>     - 新增bing、有道词典。
+>     - 修复词汇收藏功能。
+>   - 用户操作优化：
+>     - 划词翻译框支持多种翻译服务同时翻译。
+>     - 翻译控制面板新增许多快捷切换功能。
+>     - 新增Playground页面，方便调试接口。
+>
+> 注意：由于经过大量重构，使得新版配置文件很难与旧版兼容，因此在升级前请手动备份相关数据。并且，**升级新版后，勿再导入旧版配置**。
+
 [English](README.en.md) | 简体中文
 
 一个简约、开源的 [双语对照翻译扩展 & 油猴脚本](https://github.com/fishjar/kiss-translator)。
@@ -58,9 +87,9 @@
     - [x] Orion (iOS)
   - [x] Edge [安装地址](https://microsoftedge.microsoft.com/addons/detail/%E7%AE%80%E7%BA%A6%E7%BF%BB%E8%AF%91/jemckldkclkinpjighnoilpbldbdmmlh?hl=zh-CN)
   - [x] Firefox [安装地址](https://addons.mozilla.org/zh-CN/firefox/addon/kiss-translator/)
-  - [x] Safari
-    - [x] Safari (Mac)
-    - [x] Safari (iOS) 
+  - [ ] Safari
+    - [ ] Safari (Mac)
+    - [ ] Safari (iOS) 
   - [x] Thunderbird [下载地址](https://github.com/fishjar/kiss-translator/releases)
 - [x] 油猴脚本
   - [x] Chrome/Edge/Firefox ([Tampermonkey](https://www.tampermonkey.net/)/[Violentmonkey](https://violentmonkey.github.io/)) [安装链接](https://fishjar.github.io/kiss-translator/kiss-translator.user.js)
@@ -182,11 +211,11 @@ Response Hook 函数示例如下：
 
  本项目为业余开发，无严格时间表，欢迎社区共建。以下为初步设想的功能方向：
 
-- [ ] **聚合发送文本**：优化请求策略，减少翻译接口调用次数，提升性能。
-- [ ] **增强富文本翻译**：支持更复杂的页面结构和富文本内容的准确翻译。
-- [ ] **强化自定义/AI 接口**：支持上下文记忆、多轮对话等高级 AI 功能。
-- [ ] **英文词典备灾机制**：当翻译服务失效时，可切换其他词典或 fallback 到本地词典查询。
-- [ ] **优化 YouTube 字幕支持**：改进流式字幕的合并与翻译体验，减少断句。
+- [x] **聚合发送文本**：优化请求策略，减少翻译接口调用次数，提升性能。
+- [x] **增强富文本翻译**：支持更复杂的页面结构和富文本内容的准确翻译。
+- [x] **强化自定义/AI 接口**：支持上下文记忆、多轮对话等高级 AI 功能。
+- [x] **英文词典备灾机制**：当翻译服务失效时，可切换其他词典或 fallback 到本地词典查询。
+- [x] **优化 YouTube 字幕支持**：改进流式字幕的合并与翻译体验，减少断句。
 - [ ] **规则共建机制升级**：引入更灵活的规则分享、版本管理与社区评审流程。
  
  如果你对某个方向感兴趣，欢迎在 [Issues](https://github.com/fishjar/kiss-translator/issues) 中讨论或提交 PR！

@@ -1,5 +1,38 @@
 # KISS Translator
 
+**New Version Preview:**
+
+After a period of intermittent development, the planned features for the new version are essentially complete. The main new features are as follows:
+
+* **Core Translation Logic Refactoring:**
+    * Supports both automatic text detection and manual selection modes.
+    * The automatic text detection mode enables complete translation for the vast majority of websites without the need to write specific rules.
+    * The previous manual rule mode has been retained for meticulous optimization on specific websites.
+    * Supports rich text translation, preserving links and other text styles from the original content as much as possible.
+
+* **API Refactoring:**
+    * Supports adding and deleting an arbitrary number of APIs.
+    * Supports aggregating text for sending, reducing the number of calls to the translation API and improving performance.
+    * Supports the built-in Chrome AI translation API, enabling AI-powered translation without an internet connection.
+    * Supports AI contextual conversation memory to enhance translation quality.
+    * All APIs support advanced features such as hooks and custom parameters.
+
+* **Optimized YouTube Subtitle Support:**
+    * Supports translating video subtitles with any translation service and displaying them bilingually.
+    * Includes a built-in basic algorithm for subtitle merging and sentence splitting to improve translation results.
+    * Supports an AI-powered sentence splitting function to further enhance translation quality.
+
+* **English Dictionary Redundancy:**
+    * Added Bing and Youdao dictionaries.
+    * Fixed the vocabulary collection feature.
+
+* **User Experience Optimization:**
+    * The pop-up translation box for selected text now supports simultaneous translation by multiple services.
+    * The translation control panel has been updated with many new quick-toggle functions.
+    * Added a Playground page for convenient API debugging.
+
+**Note:** Due to extensive refactoring, the configuration file for the new version is not backward compatible with the old version. Therefore, please back up your data manually before upgrading. Furthermore, **do not import old configuration files after upgrading to the new version.**
+
 English | [简体中文](README.md)
 
 A simple, open source [bilingual translation extension & Greasemonkey script](https://github.com/fishjar/kiss-translator).

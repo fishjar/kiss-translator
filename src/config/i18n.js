@@ -1589,9 +1589,9 @@ export const I18N = {
     zh_TW: `1.目前僅支援Youtube，且僅支援瀏覽器擴充功能。`,
   },
   subtitle_helper_2: {
-    zh: `2、插件内置基础断句逻辑，如不理想，可以启用AI智能断句，但需考虑视频长度与AI接口的处理能力，可能等待的时间会很长，甚至失败。`,
-    en: `2. The plug-in has built-in basic segmentation logic. If it is not ideal, you can enable AI intelligent segmentation. However, you need to consider the video length and the processing power of the AI ​​interface. The waiting time may be very long or even fail.`,
-    zh_TW: `2.插件內建基礎斷句邏輯，如不理想，可以啟用AI智能斷句，但需考慮視訊長度與AI介面的處理能力，可能等待的時間會很長，甚至失敗。`,
+    zh: `2、插件内置基础的合并、断句算法，如不理想，可以启用AI智能断句，但需考虑切割长度与AI接口的处理能力，可能等待的时间会很长，甚至失败。`,
+    en: `2. The plug-in has built-in basic merging and segmentation algorithms. If the results are not ideal, you can enable AI intelligent segmentation. However, you need to consider the cutting length and the processing capacity of the AI ​​interface. The waiting time may be very long or even fail.`,
+    zh_TW: `2.插件內建基礎的合併、斷句演算法，如不理想，可以啟用AI智慧斷句，但需考慮切割長度與AI介面的處理能力，可能等待的時間會很長，甚至失敗。`,
   },
   default_styles_example: {
     zh: `默认样式参考：`,
