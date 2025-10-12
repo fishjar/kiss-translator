@@ -158,7 +158,7 @@ async (args, { url, body, headers, userMsg, method } = {}) => {
 
 const responsetHookHelperZH = `1、第一个参数包含如下字段：'res', ...
 2、返回值必须是包含以下字段的对象： 'translations', 'modelMsg' 
-  （'translations' 应为一个二维数组，表示 [译文，源语言] 的列表）
+  （'translations' 应为一个二维数组：[[译文, 源语言]]）
 3、如返回空值，则hook函数不会产生任何效果。
 
 // 示例
@@ -171,7 +171,7 @@ async ({ res, ...args }) => {
 
 const responsetHookHelperEN = `1. The first parameter contains the following fields: 'res', ...
 2. The return value must be an object containing the following fields: 'translations', 'modelMsg'
-  ('translations' should be a two-dimensional array representing a list of [translation, source language]).
+  ('translations' should be a two-dimensional array: [[translation, source language]]).
 3. If a null value is returned, the hook function will have no effect.
 
 // Example
@@ -495,14 +495,14 @@ export const I18N = {
     zh_TW: `訂閱網址`,
   },
   rules_warn_1: {
-    zh: `1、“个人规则”一直生效，选择“注入订阅规则”后，“订阅规则”才会生效。`,
-    en: `1. The "Personal Rules" are always in effect. After selecting "Inject Subscription Rules", the "Subscription Rules" will take effect.`,
-    zh_TW: `1.「個人規則」會一直生效；選擇「注入訂閱規則」後，「訂閱規則」才會生效。`,
+    zh: `1、规则生效的优先级依次为：个人规则 > 订阅规则 > 全局规则。"全局规则"相当于兜底规则。`,
+    en: `1. The priority of rules is: personal rules > subscription rules > global rules. "Global rules" are like a fallback rule.`,
+    zh_TW: `1.規則生效的優先順序依序為：個人規則 > 訂閱規則 > 全域規則。 "全域規則"相當於兜底規則。`,
   },
   rules_warn_2: {
-    zh: `2、“订阅规则”的注入位置是倒数第二的位置，因此除全局规则(*)外，“个人规则”优先级比“订阅规则”高，“个人规则”填写同样的网址会覆盖”订阅规则“的条目。`,
-    en: `2. The injection position of "Subscription Rules" is the penultimate position. Therefore, except for the global rules (*), the priority of "Personal Rules" is higher than that of "Subscription Rules". Filling in the same url in "Personal Rules" will overwrite "Subscription Rules" entry.`,
-    zh_TW: `2.「訂閱規則」的注入位置為倒數第二位，故除全域規則 (*) 外，「個人規則」優先於「訂閱規則」。在「個人規則」填入相同網址時會覆蓋「訂閱規則」的條目。`,
+    zh: `2、“订阅规则”选择注入后才会生效。`,
+    en: `2. "Subscription rules" will take effect only after injection is selected.`,
+    zh_TW: `2、「訂閱規則」選擇注入後才會生效。`,
   },
   rules_warn_3: {
     zh: `3、关于规则填写：输入框留空或下拉框选“*”表示采用全局规则。`,
@@ -530,6 +530,11 @@ export const I18N = {
     zh_TW: `1.其中 BuiltinAI 為瀏覽器內建AI翻譯，目前僅 Chrome 138 以上版本支援。`,
   },
   about_api_2: {
+    zh: `2、大部分AI接口都与OpenAI兼容，因此选择添加OpenAI类型即可。`,
+    en: `2. Most AI interfaces are compatible with OpenAI, so just choose to add the OpenAI type.`,
+    zh_TW: `2.大部分AI介面都與OpenAI相容，因此選擇新增OpenAI類型即可。`,
+  },
+  about_api_3: {
     zh: `2、暂未列出的接口，理论上都可以通过自定义接口 (Custom) 的形式支持。`,
     en: `2. Interfaces that have not yet been launched can theoretically be supported through custom interfaces.`,
     zh_TW: `2、暫未列出的介面，理論上都可透過自訂介面  (Custom)  的形式支援。`,
@@ -538,6 +543,11 @@ export const I18N = {
     zh: `查看自建一个翻译接口代理`,
     en: `Check out the self-built translation interface proxy`,
     zh_TW: `查看如何自建翻譯介面 Proxy`,
+  },
+  setting_helper: {
+    zh: `新旧配置并不兼容，导出的旧版配置，勿再次导入。`,
+    en: `The old and new configurations are not compatible. Do not import the exported old configuration again.`,
+    zh_TW: `新舊配置並不相容，匯出的舊版配置，勿再次匯入。`,
   },
   style_none: {
     zh: `无`,
@@ -1584,14 +1594,19 @@ export const I18N = {
     zh_TW: `AI处理切割长度(200-20000)`,
   },
   subtitle_helper_1: {
-    zh: `1、目前仅支持Youtube，且仅支持浏览器扩展。`,
-    en: `1. Currently only supports Youtube and browser extensions.`,
-    zh_TW: `1.目前僅支援Youtube，且僅支援瀏覽器擴充功能。`,
+    zh: `1、目前仅支持Youtube桌面网站，且仅支持浏览器扩展。`,
+    en: `1. Currently only supports Youtube desktop website and browser extension.`,
+    zh_TW: `1.目前僅支援Youtube桌面網站，且僅支援瀏覽器擴充功能。`,
   },
   subtitle_helper_2: {
-    zh: `2、插件内置基础的合并、断句算法，如不理想，可以启用AI智能断句，但需考虑切割长度与AI接口的处理能力，可能等待的时间会很长，甚至失败。`,
-    en: `2. The plug-in has built-in basic merging and segmentation algorithms. If the results are not ideal, you can enable AI intelligent segmentation. However, you need to consider the cutting length and the processing capacity of the AI ​​interface. The waiting time may be very long or even fail.`,
-    zh_TW: `2.插件內建基礎的合併、斷句演算法，如不理想，可以啟用AI智慧斷句，但需考慮切割長度與AI介面的處理能力，可能等待的時間會很長，甚至失敗。`,
+    zh: `2、插件内置基础的字幕合并、断句算法，可满足大部分情况。`,
+    en: `2. The plug-in has built-in basic subtitle merging and sentence segmentation algorithms, which can meet most situations.`,
+    zh_TW: `2.插件內建基礎的字幕合併、斷句演算法，可滿足大部分情況。`,
+  },
+  subtitle_helper_3: {
+    zh: `3、亦可以启用AI智能断句，但需考虑切割长度及AI接口能力，可能处理时间会很长，甚至处理失败，导致无法看到字幕。`,
+    en: `3. You can also enable AI intelligent segmentation, but you need to consider the segmentation length and AI interface capabilities. The processing time may be very long or even fail, resulting in the inability to see subtitles.`,
+    zh_TW: `3.亦可啟用AI智能斷句，但需考慮切割長度及AI介面能力，可能處理時間會很長，甚至處理失敗，導致無法看到字幕。`,
   },
   default_styles_example: {
     zh: `默认样式参考：`,

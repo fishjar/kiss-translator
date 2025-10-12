@@ -22,7 +22,7 @@ import {
 import interpreter from "./interpreter";
 import { ShadowRootMonitor } from "./shadowroot";
 import { clearFetchPool } from "./pool";
-import { debounce, scheduleIdle, genEventName } from "./utils";
+import { debounce, scheduleIdle, genEventName, truncateWords } from "./utils";
 import { apiTranslate } from "../apis";
 import { sendBgMsg } from "./msg";
 import { isExt } from "./client";
@@ -543,8 +543,8 @@ export class Translator {
   #getDocDescription() {
     try {
       const meta = document.querySelector('meta[name="description"]');
-      const description = meta ? meta.getAttribute("content") : "";
-      return description.slice(0, 200);
+      const description = meta?.getAttribute("content") || "";
+      return truncateWords(description);
     } catch (err) {
       kissLog("get description", err);
     }

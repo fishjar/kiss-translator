@@ -803,6 +803,8 @@ export default function Apis() {
           {i18n("about_api")}
           <br />
           {i18n("about_api_2")}
+          <br />
+          {i18n("about_api_3")}
         </Alert>
 
         <Box>

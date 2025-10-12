@@ -44,6 +44,8 @@ export default function SubtitleSetting() {
           {i18n("subtitle_helper_1")}
           <br />
           {i18n("subtitle_helper_2")}
+          <br />
+          {i18n("subtitle_helper_3")}
         </Alert>
 
         <FormControlLabel

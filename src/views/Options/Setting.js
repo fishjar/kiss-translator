@@ -8,6 +8,7 @@ import { useI18n } from "../../hooks/I18n";
 import { useAlert } from "../../hooks/Alert";
 import { isExt } from "../../libs/client";
 import Grid from "@mui/material/Grid";
+import Alert from "@mui/material/Alert";
 import {
   UI_LANGS,
   TRANS_NEWLINE_LENGTH,
@@ -110,6 +111,8 @@ export default function Settings() {
   return (
     <Box>
       <Stack spacing={3}>
+        <Alert severity="info">{i18n("setting_helper")}</Alert>
+
         <Stack
           direction="row"
           alignItems="center"

@@ -9,12 +9,14 @@
 >     - 自动识别文本模式使得绝大部分网站无需编写规则也能翻译完整。
 >     - 保留之前的手动规则模式，可以针对特定网站极致优化。
 >     - 支持富文本翻译，能够尽量保留原文中的链接及其他文本样式。
+>     - 优化仅显示译文（隐藏原文）显示效果。
 >   - 接口重构：
 >     - 支持添加、删除任意数量的接口。
 >     - 支持聚合发送文本，减少翻译接口调用次数，提升性能。
 >     - 支持chrome内置AI翻译接口，无需通过网络即可实现AI翻译。
 >     - 支持AI上下文会话记忆功能，提升翻译效果。
 >     - 所有接口均支持Hook和自定义参数等高级功能。
+>     - 新增Azure AI翻译接口支持
 >   - 优化 YouTube 字幕支持：
 >     - 支持任意翻译服务对视频字幕进行翻译并双语显示。
 >     - 内置基础的字幕合并与断句算法，提升翻译效果。
@@ -48,24 +50,36 @@
   - [x] Thunderbird
 - [x] 支持多种翻译服务
   - [x] Google/Microsoft
-  - [x] Baidu/Tencent/Volcengine
-  - [x] OpenAI/Gemini/Claude/Ollama/DeepSeek/CloudflareAI
+  - [x] Tencent/Volcengine
+  - [x] OpenAI/Gemini/Claude/Ollama/DeepSeek/OpenRouter
   - [x] DeepL/DeepLX/NiuTrans
+  - [x] BuiltinAI/AzureAI/CloudflareAI
   - [x] 自定义翻译接口
 - [x] 覆盖常见翻译场景
   - [x] 网页双语对照翻译
   - [x] 输入框翻译
   - [x] 划词翻译
+    - [x] 任意页面打开翻译框
     - [x] 收藏词汇
   - [x] 鼠标悬停翻译
   - [x] YouTube 字幕翻译
+- [x] 支持多样翻译效果
+  - [x] 自定识别文本，全文翻译
+  - [x] 自定义译文样式
+  - [x] 支持富文本翻译及显示
+  - [x] 支持仅显示译文（隐藏原文）
+- [x] 翻译接口高级功能
+  - [x] 聚合批量发送翻译文本
+  - [x] AI上下文会话记忆
+  - [x] 自定义AI术语词典
+  - [x] 字幕文本AI智能断句及翻译
+  - [x] 自定义Hook，自定义参数
 - [x] 跨客户端数据同步
   - [x] KISS-Worker（cloudflare/docker）
   - [x] WebDAV
 - [x] 自定义翻译规则
   - [x] 规则订阅/规则分享
   - [x] 自定义专业术语
-- [x] 自定义译文样式
 - [x] 自定义快捷键
   - `Alt+Q` 开启翻译
   - `Alt+C` 切换样式
@@ -78,7 +92,7 @@
 
 > 注：基于以下原因，建议优先使用浏览器扩展
 >
-> - 浏览器扩展的功能更完整（本地语言识别、右键菜单等）
+> - 浏览器扩展的功能更完整（字幕翻译、本地语言识别、右键菜单等）
 > - 油猴脚本会遇到更多使用上的问题（跨域问题、脚本冲突等）
 
 - [x] 浏览器扩展
@@ -105,9 +119,6 @@
 - 社区订阅规则: [https://github.com/fishjar/kiss-rules](https://github.com/fishjar/kiss-rules)
   - 提供社区维护的，最新最全的订阅规则列表。
   - 求助规则相关的问题。
-- 翻译接口代理: [https://github.com/fishjar/kiss-proxy](https://github.com/fishjar/kiss-proxy)
-  - 如果访问某个翻译接口遇到网络问题，这个代理服务也许可以帮到你。
-  - 自己部署，自己管理。
 
 ## 常见问题
 
@@ -115,9 +126,8 @@
 
 通过规则设置，以下方法均可实现：
 
-- 个人规则：全局规则 -> 开启翻译 -> 默认关闭
-- 订阅规则：选择第三个 `kiss-rules-off.json`
-- 覆写订阅规则：开启翻译 -> 默认关闭
+- 全局规则 -> 开启翻译 -> 默认关闭
+- 订阅规则选择第三个 `kiss-rules-off_v2.json`
 - 添加一条针对某个网站的个人规则：开启翻译 -> 默认关闭
 
 ### 如何设置快捷键
@@ -127,33 +137,15 @@
 - chrome [chrome://extensions/shortcuts](chrome://extensions/shortcuts)
 - firefox [about:addons](about:addons)
 
-### 如何关闭划词翻译
-
-通过规则设置：个人规则 -> 全局规则 -> 是否启用划词翻译 -> 禁用
-
 ### 如何设置仅显示译文
 
-通过规则设置：个人规则 -> 全局规则 -> 仅显示译文 -> 启用
-
-### 如何设置鼠标悬停翻译
-
-通过规则设置：个人规则 -> 全局规则 -> 触发方式
-
-### 为什么有些网页翻译不全
-
-本插件的网页翻译是基于CSS选择器的，通用规则不能适配所有网页，有时需要自行添加相应网站的单独规则。如果不会写规则，可以到这里求助： https://github.com/fishjar/kiss-rules/issues
+规则设置：仅显示译文 -> 启用
 
 ### 规则设置的优先级是如何的
 
-个人规则 > 覆写订阅规则 > 订阅规则 > 全局规则
+个人规则 > 订阅规则 > 全局规则
 
-其中全局规则优先级最低，但非常重要，相当于默认规则。
-
-### 为什么油管字幕一句话会断开翻译
-
-本插件目前没有针对视频做特殊开发，对油管的支持也是当做网页翻译看待，自动生成字幕是流式生成并输出的，所以支持较差。
-
-如果需要关闭本插件的字幕翻译，增加一条规则即可，参考：https://github.com/fishjar/kiss-translator/issues/62
+其中全局规则优先级最低，但非常重要，相当于兜底规则。
 
 ### 本地的Ollama接口不能使用
 
@@ -166,46 +158,6 @@
 ### 如何设置自定义接口的hook函数
 
 自定义接口功能非常灵活，理论可以接入任何翻译接口。
-
-Request Hook 函数示例如下：
-
-```js
-/**
- * Request Hook
- * @param {string} text 需要翻译的原文
- * @param {string} from 原文语言
- * @param {string} to   译文语言
- * @param {string} url  翻译接口地址
- * @param {string} key  翻译接口密钥
- * @returns {Array[string, object]} [接口地址, 请求参数对象]
- */
-(text, from, to, url, key) => [url, {
-  headers: {
-    "Content-type": "application/json",
-    "Authorization": `Bearer ${key}`
-  },
-  method: "POST",
-  body: { text, to },
-}]
-```
-
-Response Hook 函数示例如下：
-
-```js
-/**
- * Request Hook
- * @param {string} res  接口返回的json数据
- * @param {string} text 需要翻译的原文
- * @param {string} from 原文语言
- * @param {string} to   译文语言
- * @returns {Array[string, boolean]} [译文, 译文语言与原文语言是否相同]
- * 注：如果返回值第二个值为true（译文语言与原文语言相同）则译文不会在页面显示，
- *     参数不全的情况建议直接返回false
- */
-(res, text, from, to) => [res.text, to === res.src]
-```
-
-更多的自定义接口示例，请参考： [custom-api.md](https://github.com/fishjar/kiss-translator/blob/master/custom-api.md)
 
 ## 未来规划 
 
