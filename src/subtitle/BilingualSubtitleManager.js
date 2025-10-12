@@ -79,15 +79,15 @@ export class BilingualSubtitleManager {
       bottom: "10%",
       transform: "translateX(-50%)",
       textAlign: "center",
-      cursor: "grab",
       containerType: "inline-size",
-      pointerEvents: "none",
       zIndex: "2147483647",
     });
 
     this.#captionWindowEl = document.createElement("div");
     this.#captionWindowEl.className = `kiss-caption-window`;
     this.#captionWindowEl.style.cssText = this.#setting.windowStyle;
+    this.#captionWindowEl.style.pointerEvents = "auto";
+    this.#captionWindowEl.style.cursor = "grab";
 
     paper.appendChild(this.#captionWindowEl);
     container.appendChild(paper);
@@ -100,6 +100,77 @@ export class BilingualSubtitleManager {
 
     videoContainer.style.position = "relative";
     videoContainer.appendChild(container);
+
+    this.#enableDragging(paper, container, this.#captionWindowEl);
+  }
+
+  /**
+   * 为指定的元素启用垂直拖动功能。
+   */
+  #enableDragging(dragElement, boundaryContainer, handleElement) {
+    let isDragging = false;
+    let startY;
+    let initialBottom;
+    let dragElementHeight;
+
+    const onMouseDown = (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+
+      if (e.button !== 0) return;
+
+      isDragging = true;
+      handleElement.style.cursor = "grabbing";
+      startY = e.clientY;
+
+      initialBottom =
+        boundaryContainer.getBoundingClientRect().bottom -
+        dragElement.getBoundingClientRect().bottom;
+
+      dragElementHeight = dragElement.offsetHeight;
+
+      document.addEventListener("mousemove", onMouseMove, { capture: true });
+      document.addEventListener("mouseup", onMouseUp, { capture: true });
+    };
+
+    const onMouseMove = (e) => {
+      if (!isDragging) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const deltaY = e.clientY - startY;
+      let newBottom = initialBottom - deltaY;
+
+      const containerHeight = boundaryContainer.clientHeight;
+      newBottom = Math.max(0, newBottom);
+      newBottom = Math.min(containerHeight - dragElementHeight, newBottom);
+      if (dragElementHeight > containerHeight) {
+        newBottom = Math.max(0, newBottom);
+      }
+
+      dragElement.style.bottom = `${newBottom}px`;
+    };
+
+    const onMouseUp = (e) => {
+      if (!isDragging) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      isDragging = false;
+      handleElement.style.cursor = "grab";
+
+      document.removeEventListener("mousemove", onMouseMove, { capture: true });
+      document.removeEventListener("mouseup", onMouseUp, { capture: true });
+
+      const finalBottomPx = dragElement.style.bottom;
+      setTimeout(() => {
+        dragElement.style.bottom = finalBottomPx;
+      }, 50);
+    };
+
+    handleElement.addEventListener("mousedown", onMouseDown);
   }
 
   /**
