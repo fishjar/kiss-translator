@@ -394,6 +394,8 @@ class YouTubeCaptionProvider {
     this.#destroyManager();
     if (this.#enabled) {
       this.#startManager();
+    } else {
+      this.#showNotification(this.#i18n("subtitle_data_is_ready"));
     }
   }
 

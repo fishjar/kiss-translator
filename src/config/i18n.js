@@ -1623,6 +1623,11 @@ export const I18N = {
     en: `Starting to process subtitle data...`,
     zh_TW: `开始处理字幕数据...`,
   },
+  subtitle_data_is_ready: {
+    zh: `字幕数据已准备就绪，请点击KT按钮加载`,
+    en: `The subtitle data is ready, please click the KT button to load it`,
+    zh_TW: `字幕資料已準備就緒，請點擊KT按鈕加載`,
+  },
 };
 
 export const i18n = (lang) => (key) => I18N[key]?.[lang] || "";
