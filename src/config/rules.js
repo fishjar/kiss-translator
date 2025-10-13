@@ -172,11 +172,9 @@ export const DEFAULT_OW_RULE = {
 const RULES_MAP = {
   "www.google.com/search": {
     rootsSelector: `#rcnt`,
-    textStyle: OPT_STYLE_BLOCKQUOTE,
   },
   "en.wikipedia.org": {
     ignoreSelector: `.button, code, footer, form, mark, pre, .mwe-math-element, .mw-editsection`,
-    textStyle: OPT_STYLE_BLOCKQUOTE,
   },
   "news.ycombinator.com": {
     selector: `p, .titleline, .commtext`,
@@ -184,18 +182,15 @@ const RULES_MAP = {
     keepSelector: `code, img, svg, pre, .sitebit`,
     ignoreSelector: `button, code, footer, form, header, mark, nav, pre, .reply`,
     autoScan: `false`,
-    textStyle: OPT_STYLE_BLOCKQUOTE,
   },
   "twitter.com, https://x.com": {
     selector: `[data-testid='tweetText']`,
     keepSelector: `img, svg, span:has(a), div:has(a)`,
     autoScan: `false`,
-    textStyle: OPT_STYLE_DASHBOX,
   },
   "www.youtube.com": {
     rootsSelector: `ytd-page-manager`,
     ignoreSelector: `aside, button, footer, form, header, pre, mark, nav, #player, #container, .caption-window, .ytp-settings-menu`,
-    textStyle: OPT_STYLE_DASHBOX,
   },
 };
 

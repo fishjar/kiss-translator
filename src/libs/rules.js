@@ -178,7 +178,10 @@ export const checkRules = (rules) => {
         injectCss: type(injectCss) === "string" ? injectCss : "",
         bgColor: type(bgColor) === "string" ? bgColor : "",
         textDiyStyle: type(textDiyStyle) === "string" ? textDiyStyle : "",
-        apiSlug: apiSlug?.trim() || DEFAULT_API_TYPE,
+        apiSlug:
+          type(apiSlug) === "string" && apiSlug.trim() !== ""
+            ? apiSlug.trim()
+            : GLOBAL_KEY,
         fromLang: matchValue([GLOBAL_KEY, ...fromLangs], fromLang),
         toLang: matchValue([GLOBAL_KEY, ...toLangs], toLang),
         textStyle: matchValue([GLOBAL_KEY, ...OPT_STYLE_ALL], textStyle),
