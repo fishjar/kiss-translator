@@ -593,6 +593,21 @@ export const I18N = {
     en: `Blockquote`,
     zh_TW: `引用`,
   },
+  gradient: {
+    zh: `渐变`,
+    en: `Gradient`,
+    zh_TW: `漸變`,
+  },
+  blink: {
+    zh: `闪现`,
+    en: `Blink`,
+    zh_TW: `閃現`,
+  },
+  glow: {
+    zh: `发光`,
+    en: `Glow`,
+    zh_TW: `發光`,
+  },
   diy_style: {
     zh: `自定义样式`,
     en: `Custom Style`,

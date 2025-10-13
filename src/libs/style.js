@@ -1,4 +1,4 @@
-import { css } from "@emotion/css";
+import { css, keyframes } from "@emotion/css";
 import {
   OPT_STYLE_NONE,
   OPT_STYLE_LINE,
@@ -9,10 +9,43 @@ import {
   OPT_STYLE_FUZZY,
   OPT_STYLE_HIGHLIGHT,
   OPT_STYLE_BLOCKQUOTE,
+  OPT_STYLE_GRADIENT,
+  OPT_STYLE_BLINK,
+  OPT_STYLE_GLOW,
   OPT_STYLE_DIY,
   DEFAULT_DIY_STYLE,
   DEFAULT_COLOR,
 } from "../config";
+
+const gradientFlow = keyframes`
+  to {
+    background-position: 200% center;
+  }
+`;
+
+const blink = keyframes`
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+`;
+
+const glow = keyframes`
+  from {
+    text-shadow: 0 0 10px #fff, 
+    0 0 20px #fff, 
+    0 0 30px #0073e6, 
+    0 0 40px #0073e6;
+  }
+  to {
+    text-shadow: 0 0 20px #fff, 
+    0 0 30px #ff4da6, 
+    0 0 40px #ff4da6, 
+    0 0 50px #ff4da6;
+  }
+`
 
 const genLineStyle = (style, color) => `
   opacity: 0.8;
@@ -49,7 +82,7 @@ const genStyles = ({
   [OPT_STYLE_WAVYLINE]: genLineStyle("wavy", bgColor),
   // 虚线框
   [OPT_STYLE_DASHBOX]: `
-    border: 1px dashed ${bgColor || DEFAULT_COLOR};
+    border: 2px dashed ${bgColor || DEFAULT_COLOR};
     display: inline-block;
     padding: 0.2em 0.4em;
     box-sizing: border-box;
@@ -80,6 +113,29 @@ const genStyles = ({
       opacity: 1;
       -webkit-opacity: 1;
     }
+  `,
+  // 渐变
+  [OPT_STYLE_GRADIENT]: `
+    background-image: linear-gradient(
+      90deg,
+      #3b82f6,
+      #9333ea,
+      #ec4899,
+      #3b82f6
+    );
+    background-size: 200% auto;
+    color: transparent;
+    -webkit-background-clip: text;
+    background-clip: text;
+    animation: ${gradientFlow} 4s linear infinite;
+  `,
+  // 闪现
+  [OPT_STYLE_BLINK]: `
+    animation: ${blink} 1s infinite;
+  `,
+  // 发光
+  [OPT_STYLE_GLOW]: `
+    animation: ${glow} 2s ease-in-out infinite alternate;
   `,
   // 自定义
   [OPT_STYLE_DIY]: `

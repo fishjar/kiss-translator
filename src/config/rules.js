@@ -19,6 +19,9 @@ export const OPT_STYLE_WAVYLINE = "wavy_line"; // 波浪线
 export const OPT_STYLE_FUZZY = "fuzzy"; // 模糊
 export const OPT_STYLE_HIGHLIGHT = "highlight"; // 高亮
 export const OPT_STYLE_BLOCKQUOTE = "blockquote"; // 引用
+export const OPT_STYLE_GRADIENT = "gradient"; // 渐变
+export const OPT_STYLE_BLINK = "blink"; // 闪现
+export const OPT_STYLE_GLOW = "glow"; // 发光
 export const OPT_STYLE_DIY = "diy_style"; // 自定义样式
 export const OPT_STYLE_ALL = [
   OPT_STYLE_NONE,
@@ -30,6 +33,9 @@ export const OPT_STYLE_ALL = [
   OPT_STYLE_FUZZY,
   OPT_STYLE_HIGHLIGHT,
   OPT_STYLE_BLOCKQUOTE,
+  OPT_STYLE_GRADIENT,
+  OPT_STYLE_BLINK,
+  OPT_STYLE_GLOW,
   OPT_STYLE_DIY,
 ];
 export const OPT_STYLE_USE_COLOR = [
