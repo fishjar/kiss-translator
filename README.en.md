@@ -126,24 +126,12 @@ A simple, open source [bilingual translation extension & Greasemonkey script](ht
 
 ## Frequently Asked Questions
 
-### How to Turn Off Automatic Translation
-
-You can achieve this through `Rules Setting` with the following methods:
-
-- Global Rule -> Translate Switch -> Disaabled
-- Subscription Rules: Select the third option `kiss-rules-off_v2.json`
-- Add a Personal Rule for a Specific Website: Translate Switch -> Disaabled
-
 ### How to Set Keyboard Shortcuts
 
 Set this in the extension management page, for example:
 
 - chrome [chrome://extensions/shortcuts](chrome://extensions/shortcuts)
 - firefox [about:addons](about:addons)
-
-### How to Set it to Show Only the Translation
-
-`Rules Setting`: Show Only Translations -> Enable
 
 ### What is the priority order of rule settings?
 
@@ -158,10 +146,6 @@ If encountering a 403 error, refer to: https://github.com/fishjar/kiss-translato
 ### Custom API doesn't work in Tampermonkey scripts
 
 Tampermonkey scripts require adding domains to the whitelist; otherwise, requests cannot be sent.
-
-### How to Set Up Hook Functions for Custom Interfaces
-
-The custom interface feature is highly flexible and can theoretically integrate with any translation interface.
 
 ## Future Plans 
 
