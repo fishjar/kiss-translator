@@ -7,7 +7,6 @@ import {
   // OPT_TIMING_ALL,
   DEFAULT_RULE,
   GLOBLA_RULE,
-  DEFAULT_API_TYPE,
 } from "../config";
 import { loadOrFetchSubRules } from "./subRules";
 import { getRulesWithDefault, setRules } from "./storage";
