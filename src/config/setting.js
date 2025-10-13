@@ -26,10 +26,8 @@ export const DEFAULT_BLACKLIST = [
   "https://fishjar.github.io/kiss-translator/options.html",
   "https://translate.google.com",
   "https://www.deepl.com/translator",
-  "oapi.dingtalk.com",
-  "login.dingtalk.com",
 ]; // 禁用翻译名单
-export const DEFAULT_CSPLIST = ["https://github.com"]; // 禁用CSP名单
+export const DEFAULT_CSPLIST = []; // 禁用CSP名单
 export const DEFAULT_ORILIST = ["https://dict.youdao.com"]; // 移除Origin名单
 
 // 同步设置

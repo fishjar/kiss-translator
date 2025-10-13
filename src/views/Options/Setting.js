@@ -383,6 +383,15 @@ export default function Settings() {
         {isExt ? (
           <>
             <TextField
+              size="small"
+              label={i18n("disabled_orilist")}
+              helperText={i18n("pattern_helper")}
+              name="orilist"
+              value={orilist}
+              onChange={handleChange}
+              multiline
+            />
+            <TextField
               select
               fullWidth
               size="small"
@@ -408,15 +417,6 @@ export default function Settings() {
               }
               name="csplist"
               value={csplist}
-              onChange={handleChange}
-              multiline
-            />
-            <TextField
-              size="small"
-              label={i18n("disabled_orilist")}
-              helperText={i18n("pattern_helper")}
-              name="orilist"
-              value={orilist}
               onChange={handleChange}
               multiline
             />
