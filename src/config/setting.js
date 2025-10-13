@@ -101,8 +101,6 @@ background-color: rgba(0, 0, 0, 0.5);
 color: white;
 line-height: 1.3;
 text-shadow: 1px 1px 2px black;
-opacity: 0;
-transition: opacity 0.3s ease-in-out;
 display: inline-block`;
 
 const SUBTITLE_ORIGIN_STYLE = `font-size: clamp(1.5rem, 3cqw, 3rem);`;

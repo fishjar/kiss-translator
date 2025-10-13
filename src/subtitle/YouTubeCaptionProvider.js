@@ -15,6 +15,7 @@ import { i18n } from "../config";
 const VIDEO_SELECT = "#container video";
 const CONTORLS_SELECT = ".ytp-right-controls";
 const YT_CAPTION_SELECT = "#ytp-caption-window-container";
+const YT_AD_SELECT = ".video-ads";
 
 class YouTubeCaptionProvider {
   #setting = {};
@@ -45,6 +46,7 @@ class YouTubeCaptionProvider {
         }
       }
     });
+
     window.addEventListener("yt-navigate-finish", () => {
       setTimeout(() => {
         if (this.#toggleButton) {
@@ -54,9 +56,46 @@ class YouTubeCaptionProvider {
         this.#doubleClick();
       }, 1000);
     });
+
     this.#waitForElement(CONTORLS_SELECT, (ytControls) =>
       this.#injectToggleButton(ytControls)
     );
+
+    this.#waitForElement(YT_AD_SELECT, (adContainer) => {
+      this.#moAds(adContainer);
+    });
+  }
+
+  #moAds(adContainer) {
+    const adSlector = ".ytp-ad-player-overlay-layout";
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.type === "childList") {
+          mutation.addedNodes.forEach((node) => {
+            if (node.nodeType === 1 && node.matches(adSlector)) {
+              logger.debug("Youtube Provider: AD start playing!", node);
+              // todo: 顺带把广告快速跳过
+              if (this.#managerInstance) {
+                this.#managerInstance.setIsAdPlaying(true);
+              }
+            }
+          });
+          mutation.removedNodes.forEach((node) => {
+            if (node.nodeType === 1 && node.matches(adSlector)) {
+              logger.debug("Youtube Provider: Ad ends!");
+              if (this.#managerInstance) {
+                this.#managerInstance.setIsAdPlaying(false);
+              }
+            }
+          });
+        }
+      }
+    });
+
+    observer.observe(adContainer, {
+      childList: true,
+      subtree: true,
+    });
   }
 
   #waitForElement(selector, callback) {
@@ -517,6 +556,7 @@ class YouTubeCaptionProvider {
 
     let subtitles = this.#processSubtitles({ flatEvents });
     const isPoor = this.#isQualityPoor(subtitles);
+    logger.debug("Youtube Provider: isQualityPoor", { isPoor, subtitles });
     if (isPoor) {
       subtitles = this.#processSubtitles({ flatEvents, usePause: true });
     }

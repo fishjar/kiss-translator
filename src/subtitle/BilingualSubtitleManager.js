@@ -10,9 +10,11 @@ export class BilingualSubtitleManager {
   #formattedSubtitles = [];
   #translationService;
   #captionWindowEl = null;
+  #paperEl = null;
   #currentSubtitleIndex = -1;
   #preTranslateSeconds = 100;
   #setting = {};
+  #isAdPlaying = false;
 
   /**
    * @param {object} options
@@ -57,6 +59,14 @@ export class BilingualSubtitleManager {
   }
 
   /**
+   * 更新广告播放状态。
+   */
+  setIsAdPlaying(isPlaying) {
+    this.#isAdPlaying = isPlaying;
+    this.onTimeUpdate();
+  }
+
+  /**
    * 创建并配置用于显示字幕的 DOM 元素。
    */
   #createCaptionWindow() {
@@ -68,6 +78,7 @@ export class BilingualSubtitleManager {
       height: "100%",
       left: "0",
       top: "0",
+      pointerEvents: "none",
     });
 
     const paper = document.createElement("div");
@@ -81,16 +92,20 @@ export class BilingualSubtitleManager {
       textAlign: "center",
       containerType: "inline-size",
       zIndex: "2147483647",
+      pointerEvents: "auto",
+      display: "none",
     });
+    this.#paperEl = paper;
 
     this.#captionWindowEl = document.createElement("div");
     this.#captionWindowEl.className = `kiss-caption-window`;
     this.#captionWindowEl.style.cssText = this.#setting.windowStyle;
     this.#captionWindowEl.style.pointerEvents = "auto";
     this.#captionWindowEl.style.cursor = "grab";
+    this.#captionWindowEl.style.opacity = "1";
 
-    paper.appendChild(this.#captionWindowEl);
-    container.appendChild(paper);
+    this.#paperEl.appendChild(this.#captionWindowEl);
+    container.appendChild(this.#paperEl);
 
     const videoContainer = this.#videoEl.parentElement?.parentElement;
     if (!videoContainer) {
@@ -101,7 +116,7 @@ export class BilingualSubtitleManager {
     videoContainer.style.position = "relative";
     videoContainer.appendChild(container);
 
-    this.#enableDragging(paper, container, this.#captionWindowEl);
+    this.#enableDragging(this.#paperEl, container, this.#captionWindowEl);
   }
 
   /**
@@ -230,7 +245,12 @@ export class BilingualSubtitleManager {
    * @param {object | null} subtitle - 字幕对象，或 null 用于清空。
    */
   #updateCaptionDisplay(subtitle) {
-    if (!this.#captionWindowEl) return;
+    if (!this.#paperEl || !this.#captionWindowEl) return;
+
+    if (this.#isAdPlaying) {
+      this.#paperEl.style.display = "none";
+      return;
+    }
 
     if (subtitle) {
       const p1 = document.createElement("p");
@@ -247,9 +267,9 @@ export class BilingualSubtitleManager {
         this.#captionWindowEl.replaceChildren(p2);
       }
 
-      this.#captionWindowEl.style.opacity = "1";
+      this.#paperEl.style.display = "block";
     } else {
-      this.#captionWindowEl.style.opacity = "0";
+      this.#paperEl.style.display = "none";
     }
   }
 
