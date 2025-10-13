@@ -28,7 +28,6 @@ import { isBuiltinAIAvailable } from "../libs/browser";
 import { chromeDetect, chromeTranslate } from "../libs/builtinAI";
 import { fnPolyfill } from "../libs/fetch";
 import { getFetchPool } from "../libs/pool";
-import { isFirefox } from "../libs/client";
 
 /**
  * 同步数据
@@ -134,17 +133,13 @@ export const apiMicrosoftDict = async (text) => {
     return cache;
   }
 
-  const host = "https://cn.bing.com";
-  const url = `${host}/dict/search?q=${text}`;
-  let str = "";
-  if (isFirefox) {
-    const response = await fetch(url);
-    if (response.ok) {
-      str = await response.text();
-    }
-  } else {
-    str = await fetchData(url, {}, { useCache: false });
-  }
+  const host = "https://www.bing.com";
+  const url = `${host}/dict/search?q=${text}&FORM=BDVSP6&cc=cn`;
+  const str = await fetchData(
+    url,
+    { credentials: "include" },
+    { useCache: false }
+  );
   if (!str) {
     return null;
   }

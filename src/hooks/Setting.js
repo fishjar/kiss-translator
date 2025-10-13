@@ -6,11 +6,17 @@ import {
   useEffect,
 } from "react";
 import Alert from "@mui/material/Alert";
-import { STOKEY_SETTING, DEFAULT_SETTING, KV_SETTING_KEY } from "../config";
+import {
+  STOKEY_SETTING,
+  DEFAULT_SETTING,
+  KV_SETTING_KEY,
+  MSG_SET_LOGLEVEL,
+} from "../config";
 import { useStorage } from "./Storage";
 import { debounceSyncMeta } from "../libs/storage";
 import Loading from "./Loading";
 import { logger } from "../libs/log";
+import { sendBgMsg } from "../libs/msg";
 
 const SettingContext = createContext({
   setting: DEFAULT_SETTING,
@@ -30,6 +36,7 @@ export function SettingProvider({ children }) {
     (async () => {
       try {
         logger.setLevel(setting?.logLevel);
+        await sendBgMsg(MSG_SET_LOGLEVEL, setting?.logLevel);
       } catch (error) {
         logger.error("Failed to fetch log level, using default.", error);
       }

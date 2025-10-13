@@ -22,6 +22,7 @@ import {
   CMD_OPEN_OPTIONS,
   CMD_OPEN_TRANBOX,
   CLIENT_THUNDERBIRD,
+  MSG_SET_LOGLEVEL,
 } from "./config";
 import { getSettingWithDefault, tryInitDefaultData } from "./libs/storage";
 import { trySyncSettingAndRules } from "./libs/sync";
@@ -273,6 +274,7 @@ const messageHandlers = {
   [MSG_COMMAND_SHORTCUTS]: () => browser.commands.getAll(),
   [MSG_BUILTINAI_DETECT]: (args) => chromeDetect(args),
   [MSG_BUILTINAI_TRANSLATE]: (args) => chromeTranslate(args),
+  [MSG_SET_LOGLEVEL]: (args) => logger.setLevel(args),
 };
 
 /**
