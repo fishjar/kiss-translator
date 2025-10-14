@@ -45,11 +45,9 @@ const glow = keyframes`
     0 0 40px #ff4da6, 
     0 0 50px #ff4da6;
   }
-`
+`;
 
 const genLineStyle = (style, color) => `
-  opacity: 0.8;
-  -webkit-opacity: 0.8;
   text-decoration-line: underline;
   text-decoration-style: ${style};
   text-decoration-color: ${color};
@@ -60,10 +58,13 @@ const genLineStyle = (style, color) => `
   -webkit-text-decoration-color: ${color};
   -webkit-text-decoration-thickness: 2px;
   -webkit-text-underline-offset: 0.3em;
+
+  /* opacity: 0.8;
+  -webkit-opacity: 0.8;
   &:hover {
     opacity: 1;
     -webkit-opacity: 1;
-  }
+  } */
 `;
 
 const genStyles = ({
