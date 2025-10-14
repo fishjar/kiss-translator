@@ -216,7 +216,7 @@ export async function run(isUserscript = false) {
     }
 
     // 字幕翻译
-    runSubtitle({ href, setting, rule });
+    runSubtitle({ href, setting, rule, isUserscript });
 
     // 监听消息
     // !isUserscript && runtimeListener(translator);

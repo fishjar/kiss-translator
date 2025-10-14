@@ -1,5 +1,3 @@
-import { MSG_XHR_DATA_YOUTUBE } from "./config";
-
 (function () {
   const originalOpen = XMLHttpRequest.prototype.open;
   XMLHttpRequest.prototype.open = function (...args) {
@@ -8,7 +6,7 @@ import { MSG_XHR_DATA_YOUTUBE } from "./config";
       this.addEventListener("load", function () {
         window.postMessage(
           {
-            type: MSG_XHR_DATA_YOUTUBE,
+            type: "KISS_XHR_DATA_YOUTUBE",
             url: this.responseURL,
             response: this.responseText,
           },

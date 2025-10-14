@@ -91,6 +91,7 @@ const userscriptWebpack = (config, env) => {
 // @grant         GM.getValue
 // @grant         GM.deleteValue
 // @grant         GM.info
+// @grant         GM.addElement
 // @grant         unsafeWindow
 // @connect       translate.googleapis.com
 // @connect       translate-pa.googleapis.com
@@ -106,6 +107,7 @@ const userscriptWebpack = (config, env) => {
 // @connect       openai.azure.com
 // @connect       workers.dev
 // @connect       github.io
+// @connect       github.com
 // @connect       githubusercontent.com
 // @connect       kiss-translator.rayjar.com
 // @connect       ghproxy.com

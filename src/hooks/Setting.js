@@ -17,6 +17,7 @@ import { debounceSyncMeta } from "../libs/storage";
 import Loading from "./Loading";
 import { logger } from "../libs/log";
 import { sendBgMsg } from "../libs/msg";
+import { isExt } from "../libs/client";
 
 const SettingContext = createContext({
   setting: DEFAULT_SETTING,
@@ -36,7 +37,9 @@ export function SettingProvider({ children }) {
     (async () => {
       try {
         logger.setLevel(setting?.logLevel);
-        await sendBgMsg(MSG_SET_LOGLEVEL, setting?.logLevel);
+        if (isExt) {
+          await sendBgMsg(MSG_SET_LOGLEVEL, setting?.logLevel);
+        }
       } catch (error) {
         logger.error("Failed to fetch log level, using default.", error);
       }

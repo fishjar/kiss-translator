@@ -10,7 +10,7 @@ const providers = [
   { pattern: "https://www.youtube.com", start: YouTubeInitializer },
 ];
 
-export function runSubtitle({ href, setting }) {
+export function runSubtitle({ href, setting, isUserscript }) {
   try {
     const subtitleSetting = setting.subtitleSetting || DEFAULT_SUBTITLE_SETTING;
     if (!subtitleSetting.enabled) {
@@ -19,9 +19,21 @@ export function runSubtitle({ href, setting }) {
 
     const provider = providers.find((item) => isMatch(href, item.pattern));
     if (provider) {
-      const id = "kiss-translator-injector";
-      const src = browser.runtime.getURL("injector.js");
-      injectExternalJs(src, id);
+      if (isUserscript) {
+        GM.addElement("script", {
+          src: "https://github.com/fishjar/kiss-translator/blob/gh-pages/injector.js",
+          // src: "http://127.0.0.1:8000/injector.js",
+          type: "text/javascript",
+        }).onload = function () {
+          console.log(
+            "Script successfully injected and loaded via GM_addElement."
+          );
+        };
+      } else {
+        const id = "kiss-translator-injector";
+        const src = browser.runtime.getURL("injector.js");
+        injectExternalJs(src, id);
+      }
 
       const apiSetting =
         setting.transApis.find(
