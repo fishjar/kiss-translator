@@ -15,6 +15,7 @@ export class BilingualSubtitleManager {
   #preTranslateSeconds = 100;
   #setting = {};
   #isAdPlaying = false;
+  #FAILED_TEXT = "[Translation failed]";
 
   /**
    * @param {object} options
@@ -284,7 +285,9 @@ export class BilingualSubtitleManager {
       const isCurrent = sub.start <= currentTimeMs && sub.end >= currentTimeMs;
       const isUpcoming =
         sub.start > currentTimeMs && sub.start <= currentTimeMs + lookAheadMs;
-      const needsTranslation = !sub.translation && !sub.isTranslating;
+      const needsTranslation =
+        (!sub.translation || sub.translation === this.this.#FAILED_TEXT) &&
+        !sub.isTranslating;
 
       if ((isCurrent || isUpcoming) && needsTranslation) {
         this.#translateAndStore(sub);
@@ -309,7 +312,7 @@ export class BilingualSubtitleManager {
       subtitle.translation = translatedText;
     } catch (error) {
       logger.info("Translation failed for:", subtitle.text, error);
-      subtitle.translation = "[Translation failed]";
+      subtitle.translation = this.#FAILED_TEXT;
     } finally {
       subtitle.isTranslating = false;
 
