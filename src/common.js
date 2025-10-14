@@ -71,7 +71,8 @@ function runIframe(translator) {
 async function showFab(translator) {
   const fab = await getFabWithDefault();
   const $action = document.createElement("div");
-  $action.setAttribute("id", APP_CONSTS.fabID);
+  $action.id = APP_CONSTS.fabID;
+  $action.className = "notranslate";
   $action.style.fontSize = "0";
   $action.style.width = "0";
   $action.style.height = "0";
@@ -79,7 +80,7 @@ async function showFab(translator) {
   const shadowContainer = $action.attachShadow({ mode: "closed" });
   const emotionRoot = document.createElement("style");
   const shadowRootElement = document.createElement("div");
-  shadowRootElement.classList.add(`${APP_CONSTS.fabID}_warpper`);
+  shadowRootElement.classList.add(`${APP_CONSTS.fabID}_warpper notranslate`);
   shadowContainer.appendChild(emotionRoot);
   shadowContainer.appendChild(shadowRootElement);
   const cache = createCache({

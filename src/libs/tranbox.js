@@ -29,7 +29,8 @@ export class TransboxManager {
   enable() {
     if (!this.isEnabled()) {
       this.#container = document.createElement("div");
-      this.#container.setAttribute("id", APP_CONSTS.boxID);
+      this.#container.id = APP_CONSTS.boxID;
+      this.#container.className = "notranslate";
       this.#container.style.cssText =
         "font-size: 0; width: 0; height: 0; border: 0; padding: 0; margin: 0;";
       document.body.parentElement.appendChild(this.#container);
@@ -37,7 +38,7 @@ export class TransboxManager {
       this.#shadowContainer = this.#container.attachShadow({ mode: "closed" });
       const emotionRoot = document.createElement("style");
       const shadowRootElement = document.createElement("div");
-      shadowRootElement.classList.add(`${APP_CONSTS.boxID}_warpper`);
+      shadowRootElement.classList.add(`${APP_CONSTS.boxID}_warpper notranslate`);
       this.#shadowContainer.appendChild(emotionRoot);
       this.#shadowContainer.appendChild(shadowRootElement);
       const cache = createCache({

@@ -160,7 +160,7 @@ export class Translator {
 
   // 译文相关class
   static KISS_CLASS = {
-    warpper: `${APP_LCNAME}-wrapper`,
+    warpper: `${APP_LCNAME}-wrapper notranslate`,
     inner: `${APP_LCNAME}-inner`,
     term: `${APP_LCNAME}-term`,
   };
