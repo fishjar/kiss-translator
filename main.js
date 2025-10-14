@@ -1,7 +1,7 @@
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 3029:
+/***/ 3347:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -130,730 +130,18 @@ var StyleSheet = /*#__PURE__*/function () {
   return StyleSheet;
 }();
 
-;// CONCATENATED MODULE: ./node_modules/.pnpm/stylis@4.2.0/node_modules/stylis/src/Utility.js
-/**
- * @param {number}
- * @return {number}
- */
-var abs = Math.abs;
-
-/**
- * @param {number}
- * @return {string}
- */
-var Utility_from = String.fromCharCode;
-
-/**
- * @param {object}
- * @return {object}
- */
-var Utility_assign = Object.assign;
-
-/**
- * @param {string} value
- * @param {number} length
- * @return {number}
- */
-function hash(value, length) {
-  return Utility_charat(value, 0) ^ 45 ? (((length << 2 ^ Utility_charat(value, 0)) << 2 ^ Utility_charat(value, 1)) << 2 ^ Utility_charat(value, 2)) << 2 ^ Utility_charat(value, 3) : 0;
-}
-
-/**
- * @param {string} value
- * @return {string}
- */
-function trim(value) {
-  return value.trim();
-}
-
-/**
- * @param {string} value
- * @param {RegExp} pattern
- * @return {string?}
- */
-function Utility_match(value, pattern) {
-  return (value = pattern.exec(value)) ? value[0] : value;
-}
-
-/**
- * @param {string} value
- * @param {(string|RegExp)} pattern
- * @param {string} replacement
- * @return {string}
- */
-function Utility_replace(value, pattern, replacement) {
-  return value.replace(pattern, replacement);
-}
-
-/**
- * @param {string} value
- * @param {string} search
- * @return {number}
- */
-function indexof(value, search) {
-  return value.indexOf(search);
-}
-
-/**
- * @param {string} value
- * @param {number} index
- * @return {number}
- */
-function Utility_charat(value, index) {
-  return value.charCodeAt(index) | 0;
-}
-
-/**
- * @param {string} value
- * @param {number} begin
- * @param {number} end
- * @return {string}
- */
-function Utility_substr(value, begin, end) {
-  return value.slice(begin, end);
-}
-
-/**
- * @param {string} value
- * @return {number}
- */
-function Utility_strlen(value) {
-  return value.length;
-}
-
-/**
- * @param {any[]} value
- * @return {number}
- */
-function Utility_sizeof(value) {
-  return value.length;
-}
-
-/**
- * @param {any} value
- * @param {any[]} array
- * @return {any}
- */
-function Utility_append(value, array) {
-  return array.push(value), value;
-}
-
-/**
- * @param {string[]} array
- * @param {function} callback
- * @return {string}
- */
-function Utility_combine(array, callback) {
-  return array.map(callback).join('');
-}
-;// CONCATENATED MODULE: ./node_modules/.pnpm/stylis@4.2.0/node_modules/stylis/src/Tokenizer.js
-
-var line = 1;
-var column = 1;
-var Tokenizer_length = 0;
-var position = 0;
-var character = 0;
-var characters = '';
-
-/**
- * @param {string} value
- * @param {object | null} root
- * @param {object | null} parent
- * @param {string} type
- * @param {string[] | string} props
- * @param {object[] | string} children
- * @param {number} length
- */
-function node(value, root, parent, type, props, children, length) {
-  return {
-    value: value,
-    root: root,
-    parent: parent,
-    type: type,
-    props: props,
-    children: children,
-    line: line,
-    column: column,
-    length: length,
-    return: ''
-  };
-}
-
-/**
- * @param {object} root
- * @param {object} props
- * @return {object}
- */
-function Tokenizer_copy(root, props) {
-  return Utility_assign(node('', null, null, '', null, null, 0), root, {
-    length: -root.length
-  }, props);
-}
-
-/**
- * @return {number}
- */
-function Tokenizer_char() {
-  return character;
-}
-
-/**
- * @return {number}
- */
-function prev() {
-  character = position > 0 ? Utility_charat(characters, --position) : 0;
-  if (column--, character === 10) column = 1, line--;
-  return character;
-}
-
-/**
- * @return {number}
- */
-function next() {
-  character = position < Tokenizer_length ? Utility_charat(characters, position++) : 0;
-  if (column++, character === 10) column = 1, line++;
-  return character;
-}
-
-/**
- * @return {number}
- */
-function peek() {
-  return Utility_charat(characters, position);
-}
-
-/**
- * @return {number}
- */
-function caret() {
-  return position;
-}
-
-/**
- * @param {number} begin
- * @param {number} end
- * @return {string}
- */
-function slice(begin, end) {
-  return Utility_substr(characters, begin, end);
-}
-
-/**
- * @param {number} type
- * @return {number}
- */
-function token(type) {
-  switch (type) {
-    // \0 \t \n \r \s whitespace token
-    case 0:
-    case 9:
-    case 10:
-    case 13:
-    case 32:
-      return 5;
-    // ! + , / > @ ~ isolate token
-    case 33:
-    case 43:
-    case 44:
-    case 47:
-    case 62:
-    case 64:
-    case 126:
-    // ; { } breakpoint token
-    case 59:
-    case 123:
-    case 125:
-      return 4;
-    // : accompanied token
-    case 58:
-      return 3;
-    // " ' ( [ opening delimit token
-    case 34:
-    case 39:
-    case 40:
-    case 91:
-      return 2;
-    // ) ] closing delimit token
-    case 41:
-    case 93:
-      return 1;
-  }
-  return 0;
-}
-
-/**
- * @param {string} value
- * @return {any[]}
- */
-function alloc(value) {
-  return line = column = 1, Tokenizer_length = Utility_strlen(characters = value), position = 0, [];
-}
-
-/**
- * @param {any} value
- * @return {any}
- */
-function dealloc(value) {
-  return characters = '', value;
-}
-
-/**
- * @param {number} type
- * @return {string}
- */
-function delimit(type) {
-  return trim(slice(position - 1, delimiter(type === 91 ? type + 2 : type === 40 ? type + 1 : type)));
-}
-
-/**
- * @param {string} value
- * @return {string[]}
- */
-function Tokenizer_tokenize(value) {
-  return dealloc(tokenizer(alloc(value)));
-}
-
-/**
- * @param {number} type
- * @return {string}
- */
-function whitespace(type) {
-  while (character = peek()) if (character < 33) next();else break;
-  return token(type) > 2 || token(character) > 3 ? '' : ' ';
-}
-
-/**
- * @param {string[]} children
- * @return {string[]}
- */
-function tokenizer(children) {
-  while (next()) switch (token(character)) {
-    case 0:
-      append(identifier(position - 1), children);
-      break;
-    case 2:
-      append(delimit(character), children);
-      break;
-    default:
-      append(from(character), children);
-  }
-  return children;
-}
-
-/**
- * @param {number} index
- * @param {number} count
- * @return {string}
- */
-function escaping(index, count) {
-  while (--count && next())
-  // not 0-9 A-F a-f
-  if (character < 48 || character > 102 || character > 57 && character < 65 || character > 70 && character < 97) break;
-  return slice(index, caret() + (count < 6 && peek() == 32 && next() == 32));
-}
-
-/**
- * @param {number} type
- * @return {number}
- */
-function delimiter(type) {
-  while (next()) switch (character) {
-    // ] ) " '
-    case type:
-      return position;
-    // " '
-    case 34:
-    case 39:
-      if (type !== 34 && type !== 39) delimiter(character);
-      break;
-    // (
-    case 40:
-      if (type === 41) delimiter(type);
-      break;
-    // \
-    case 92:
-      next();
-      break;
-  }
-  return position;
-}
-
-/**
- * @param {number} type
- * @param {number} index
- * @return {number}
- */
-function commenter(type, index) {
-  while (next())
-  // //
-  if (type + character === 47 + 10) break;
-  // /*
-  else if (type + character === 42 + 42 && peek() === 47) break;
-  return '/*' + slice(index, position - 1) + '*' + Utility_from(type === 47 ? type : next());
-}
-
-/**
- * @param {number} index
- * @return {string}
- */
-function identifier(index) {
-  while (!token(peek())) next();
-  return slice(index, position);
-}
-;// CONCATENATED MODULE: ./node_modules/.pnpm/stylis@4.2.0/node_modules/stylis/src/Enum.js
-var Enum_MS = '-ms-';
-var Enum_MOZ = '-moz-';
-var Enum_WEBKIT = '-webkit-';
-var COMMENT = 'comm';
-var Enum_RULESET = 'rule';
-var Enum_DECLARATION = 'decl';
-var PAGE = '@page';
-var MEDIA = '@media';
-var IMPORT = '@import';
-var CHARSET = '@charset';
-var VIEWPORT = '@viewport';
-var SUPPORTS = '@supports';
-var DOCUMENT = '@document';
-var NAMESPACE = '@namespace';
-var Enum_KEYFRAMES = '@keyframes';
-var FONT_FACE = '@font-face';
-var COUNTER_STYLE = '@counter-style';
-var FONT_FEATURE_VALUES = '@font-feature-values';
-var LAYER = '@layer';
-;// CONCATENATED MODULE: ./node_modules/.pnpm/stylis@4.2.0/node_modules/stylis/src/Serializer.js
-
-
-
-/**
- * @param {object[]} children
- * @param {function} callback
- * @return {string}
- */
-function Serializer_serialize(children, callback) {
-  var output = '';
-  var length = Utility_sizeof(children);
-  for (var i = 0; i < length; i++) output += callback(children[i], i, children, callback) || '';
-  return output;
-}
-
-/**
- * @param {object} element
- * @param {number} index
- * @param {object[]} children
- * @param {function} callback
- * @return {string}
- */
-function stringify(element, index, children, callback) {
-  switch (element.type) {
-    case LAYER:
-      if (element.children.length) break;
-    case IMPORT:
-    case Enum_DECLARATION:
-      return element.return = element.return || element.value;
-    case COMMENT:
-      return '';
-    case Enum_KEYFRAMES:
-      return element.return = element.value + '{' + Serializer_serialize(element.children, callback) + '}';
-    case Enum_RULESET:
-      element.value = element.props.join(',');
-  }
-  return Utility_strlen(children = Serializer_serialize(element.children, callback)) ? element.return = element.value + '{' + children + '}' : '';
-}
-;// CONCATENATED MODULE: ./node_modules/.pnpm/stylis@4.2.0/node_modules/stylis/src/Middleware.js
-
-
-
-
-
-
-/**
- * @param {function[]} collection
- * @return {function}
- */
-function middleware(collection) {
-  var length = Utility_sizeof(collection);
-  return function (element, index, children, callback) {
-    var output = '';
-    for (var i = 0; i < length; i++) output += collection[i](element, index, children, callback) || '';
-    return output;
-  };
-}
-
-/**
- * @param {function} callback
- * @return {function}
- */
-function rulesheet(callback) {
-  return function (element) {
-    if (!element.root) if (element = element.return) callback(element);
-  };
-}
-
-/**
- * @param {object} element
- * @param {number} index
- * @param {object[]} children
- * @param {function} callback
- */
-function prefixer(element, index, children, callback) {
-  if (element.length > -1) if (!element.return) switch (element.type) {
-    case DECLARATION:
-      element.return = prefix(element.value, element.length, children);
-      return;
-    case KEYFRAMES:
-      return serialize([copy(element, {
-        value: replace(element.value, '@', '@' + WEBKIT)
-      })], callback);
-    case RULESET:
-      if (element.length) return combine(element.props, function (value) {
-        switch (match(value, /(::plac\w+|:read-\w+)/)) {
-          // :read-(only|write)
-          case ':read-only':
-          case ':read-write':
-            return serialize([copy(element, {
-              props: [replace(value, /:(read-\w+)/, ':' + MOZ + '$1')]
-            })], callback);
-          // :placeholder
-          case '::placeholder':
-            return serialize([copy(element, {
-              props: [replace(value, /:(plac\w+)/, ':' + WEBKIT + 'input-$1')]
-            }), copy(element, {
-              props: [replace(value, /:(plac\w+)/, ':' + MOZ + '$1')]
-            }), copy(element, {
-              props: [replace(value, /:(plac\w+)/, MS + 'input-$1')]
-            })], callback);
-        }
-        return '';
-      });
-  }
-}
-
-/**
- * @param {object} element
- * @param {number} index
- * @param {object[]} children
- */
-function namespace(element) {
-  switch (element.type) {
-    case RULESET:
-      element.props = element.props.map(function (value) {
-        return combine(tokenize(value), function (value, index, children) {
-          switch (charat(value, 0)) {
-            // \f
-            case 12:
-              return substr(value, 1, strlen(value));
-            // \0 ( + > ~
-            case 0:
-            case 40:
-            case 43:
-            case 62:
-            case 126:
-              return value;
-            // :
-            case 58:
-              if (children[++index] === 'global') children[index] = '', children[++index] = '\f' + substr(children[index], index = 1, -1);
-            // \s
-            case 32:
-              return index === 1 ? '' : value;
-            default:
-              switch (index) {
-                case 0:
-                  element = value;
-                  return sizeof(children) > 1 ? '' : value;
-                case index = sizeof(children) - 1:
-                case 2:
-                  return index === 2 ? value + element + element : value + element;
-                default:
-                  return value;
-              }
-          }
-        });
-      });
-  }
-}
-;// CONCATENATED MODULE: ./node_modules/.pnpm/stylis@4.2.0/node_modules/stylis/src/Parser.js
-
-
-
-
-/**
- * @param {string} value
- * @return {object[]}
- */
-function compile(value) {
-  return dealloc(parse('', null, null, null, [''], value = alloc(value), 0, [0], value));
-}
-
-/**
- * @param {string} value
- * @param {object} root
- * @param {object?} parent
- * @param {string[]} rule
- * @param {string[]} rules
- * @param {string[]} rulesets
- * @param {number[]} pseudo
- * @param {number[]} points
- * @param {string[]} declarations
- * @return {object}
- */
-function parse(value, root, parent, rule, rules, rulesets, pseudo, points, declarations) {
-  var index = 0;
-  var offset = 0;
-  var length = pseudo;
-  var atrule = 0;
-  var property = 0;
-  var previous = 0;
-  var variable = 1;
-  var scanning = 1;
-  var ampersand = 1;
-  var character = 0;
-  var type = '';
-  var props = rules;
-  var children = rulesets;
-  var reference = rule;
-  var characters = type;
-  while (scanning) switch (previous = character, character = next()) {
-    // (
-    case 40:
-      if (previous != 108 && Utility_charat(characters, length - 1) == 58) {
-        if (indexof(characters += Utility_replace(delimit(character), '&', '&\f'), '&\f') != -1) ampersand = -1;
-        break;
-      }
-    // " ' [
-    case 34:
-    case 39:
-    case 91:
-      characters += delimit(character);
-      break;
-    // \t \n \r \s
-    case 9:
-    case 10:
-    case 13:
-    case 32:
-      characters += whitespace(previous);
-      break;
-    // \
-    case 92:
-      characters += escaping(caret() - 1, 7);
-      continue;
-    // /
-    case 47:
-      switch (peek()) {
-        case 42:
-        case 47:
-          Utility_append(comment(commenter(next(), caret()), root, parent), declarations);
-          break;
-        default:
-          characters += '/';
-      }
-      break;
-    // {
-    case 123 * variable:
-      points[index++] = Utility_strlen(characters) * ampersand;
-    // } ; \0
-    case 125 * variable:
-    case 59:
-    case 0:
-      switch (character) {
-        // \0 }
-        case 0:
-        case 125:
-          scanning = 0;
-        // ;
-        case 59 + offset:
-          if (ampersand == -1) characters = Utility_replace(characters, /\f/g, '');
-          if (property > 0 && Utility_strlen(characters) - length) Utility_append(property > 32 ? declaration(characters + ';', rule, parent, length - 1) : declaration(Utility_replace(characters, ' ', '') + ';', rule, parent, length - 2), declarations);
-          break;
-        // @ ;
-        case 59:
-          characters += ';';
-        // { rule/at-rule
-        default:
-          Utility_append(reference = ruleset(characters, root, parent, index, offset, rules, points, type, props = [], children = [], length), rulesets);
-          if (character === 123) if (offset === 0) parse(characters, root, reference, reference, props, rulesets, length, points, children);else switch (atrule === 99 && Utility_charat(characters, 3) === 110 ? 100 : atrule) {
-            // d l m s
-            case 100:
-            case 108:
-            case 109:
-            case 115:
-              parse(value, reference, reference, rule && Utility_append(ruleset(value, reference, reference, 0, 0, rules, points, type, rules, props = [], length), children), rules, children, length, points, rule ? props : children);
-              break;
-            default:
-              parse(characters, reference, reference, reference, [''], children, 0, points, children);
-          }
-      }
-      index = offset = property = 0, variable = ampersand = 1, type = characters = '', length = pseudo;
-      break;
-    // :
-    case 58:
-      length = 1 + Utility_strlen(characters), property = previous;
-    default:
-      if (variable < 1) if (character == 123) --variable;else if (character == 125 && variable++ == 0 && prev() == 125) continue;
-      switch (characters += Utility_from(character), character * variable) {
-        // &
-        case 38:
-          ampersand = offset > 0 ? 1 : (characters += '\f', -1);
-          break;
-        // ,
-        case 44:
-          points[index++] = (Utility_strlen(characters) - 1) * ampersand, ampersand = 1;
-          break;
-        // @
-        case 64:
-          // -
-          if (peek() === 45) characters += delimit(next());
-          atrule = peek(), offset = length = Utility_strlen(type = characters += identifier(caret())), character++;
-          break;
-        // -
-        case 45:
-          if (previous === 45 && Utility_strlen(characters) == 2) variable = 0;
-      }
-  }
-  return rulesets;
-}
-
-/**
- * @param {string} value
- * @param {object} root
- * @param {object?} parent
- * @param {number} index
- * @param {number} offset
- * @param {string[]} rules
- * @param {number[]} points
- * @param {string} type
- * @param {string[]} props
- * @param {string[]} children
- * @param {number} length
- * @return {object}
- */
-function ruleset(value, root, parent, index, offset, rules, points, type, props, children, length) {
-  var post = offset - 1;
-  var rule = offset === 0 ? rules : [''];
-  var size = Utility_sizeof(rule);
-  for (var i = 0, j = 0, k = 0; i < index; ++i) for (var x = 0, y = Utility_substr(value, post + 1, post = abs(j = points[i])), z = value; x < size; ++x) if (z = trim(j > 0 ? rule[x] + ' ' + y : Utility_replace(y, /&\f/g, rule[x]))) props[k++] = z;
-  return node(value, root, parent, offset === 0 ? Enum_RULESET : type, props, children, length);
-}
-
-/**
- * @param {number} value
- * @param {object} root
- * @param {object?} parent
- * @return {object}
- */
-function comment(value, root, parent) {
-  return node(value, root, parent, COMMENT, Utility_from(Tokenizer_char()), Utility_substr(value, 2, -2), 0);
-}
-
-/**
- * @param {string} value
- * @param {object} root
- * @param {object?} parent
- * @param {number} length
- * @return {object}
- */
-function declaration(value, root, parent, length) {
-  return node(value, root, parent, Enum_DECLARATION, Utility_substr(value, 0, length), Utility_substr(value, length + 1, -1), length);
-}
+// EXTERNAL MODULE: ./node_modules/.pnpm/stylis@4.2.0/node_modules/stylis/src/Tokenizer.js
+var Tokenizer = __webpack_require__(7650);
+// EXTERNAL MODULE: ./node_modules/.pnpm/stylis@4.2.0/node_modules/stylis/src/Utility.js
+var Utility = __webpack_require__(7279);
+// EXTERNAL MODULE: ./node_modules/.pnpm/stylis@4.2.0/node_modules/stylis/src/Enum.js
+var Enum = __webpack_require__(3724);
+// EXTERNAL MODULE: ./node_modules/.pnpm/stylis@4.2.0/node_modules/stylis/src/Serializer.js
+var Serializer = __webpack_require__(903);
+// EXTERNAL MODULE: ./node_modules/.pnpm/stylis@4.2.0/node_modules/stylis/src/Middleware.js
+var Middleware = __webpack_require__(7033);
+// EXTERNAL MODULE: ./node_modules/.pnpm/stylis@4.2.0/node_modules/stylis/src/Parser.js
+var Parser = __webpack_require__(3963);
 ;// CONCATENATED MODULE: ./node_modules/.pnpm/@emotion+cache@11.11.0/node_modules/@emotion/cache/dist/emotion-cache.browser.esm.js
 
 
@@ -864,43 +152,43 @@ var identifierWithPointTracking = function identifierWithPointTracking(begin, po
   var character = 0;
   while (true) {
     previous = character;
-    character = peek(); // &\f
+    character = (0,Tokenizer/* peek */.fj)(); // &\f
 
     if (previous === 38 && character === 12) {
       points[index] = 1;
     }
-    if (token(character)) {
+    if ((0,Tokenizer/* token */.r)(character)) {
       break;
     }
-    next();
+    (0,Tokenizer/* next */.lp)();
   }
-  return slice(begin, position);
+  return (0,Tokenizer/* slice */.tP)(begin, Tokenizer/* position */.FK);
 };
 var toRules = function toRules(parsed, points) {
   // pretend we've started with a comma
   var index = -1;
   var character = 44;
   do {
-    switch (token(character)) {
+    switch ((0,Tokenizer/* token */.r)(character)) {
       case 0:
         // &\f
-        if (character === 38 && peek() === 12) {
+        if (character === 38 && (0,Tokenizer/* peek */.fj)() === 12) {
           // this is not 100% correct, we don't account for literal sequences here - like for example quoted strings
           // stylis inserts \f after & to know when & where it should replace this sequence with the context selector
           // and when it should just concatenate the outer and inner selectors
           // it's very unlikely for this sequence to actually appear in a different context, so we just leverage this fact here
           points[index] = 1;
         }
-        parsed[index] += identifierWithPointTracking(position - 1, points, index);
+        parsed[index] += identifierWithPointTracking(Tokenizer/* position */.FK - 1, points, index);
         break;
       case 2:
-        parsed[index] += delimit(character);
+        parsed[index] += (0,Tokenizer/* delimit */.iF)(character);
         break;
       case 4:
         // comma
         if (character === 44) {
           // colon
-          parsed[++index] = peek() === 58 ? '&\f' : '';
+          parsed[++index] = (0,Tokenizer/* peek */.fj)() === 58 ? '&\f' : '';
           points[index] = parsed[index].length;
           break;
         }
@@ -908,13 +196,13 @@ var toRules = function toRules(parsed, points) {
       // fallthrough
 
       default:
-        parsed[index] += Utility_from(character);
+        parsed[index] += (0,Utility/* from */.Dp)(character);
     }
-  } while (character = next());
+  } while (character = (0,Tokenizer/* next */.lp)());
   return parsed;
 };
 var getRules = function getRules(value, points) {
-  return dealloc(toRules(alloc(value), points));
+  return (0,Tokenizer/* dealloc */.cE)(toRules((0,Tokenizer/* alloc */.un)(value), points));
 }; // WeakSet would be more appropriate, but only WeakMap is supported in IE11
 
 var fixedElements = /* #__PURE__ */new WeakMap();
@@ -1064,11 +352,11 @@ var incorrectImportAlarm = function incorrectImportAlarm(element, index, childre
 
 /* eslint-disable no-fallthrough */
 
-function emotion_cache_browser_esm_prefix(value, length) {
-  switch (hash(value, length)) {
+function prefix(value, length) {
+  switch ((0,Utility/* hash */.vp)(value, length)) {
     // color-adjust
     case 5103:
-      return Enum_WEBKIT + 'print-' + value + value;
+      return Enum/* WEBKIT */.G$ + 'print-' + value + value;
     // animation, animation-(delay|direction|duration|fill-mode|iteration-count|name|play-state|timing-function)
 
     case 5737:
@@ -1099,7 +387,7 @@ function emotion_cache_browser_esm_prefix(value, length) {
     case 5365:
     case 5621:
     case 3829:
-      return Enum_WEBKIT + value + value;
+      return Enum/* WEBKIT */.G$ + value + value;
     // appearance, user-select, transform, hyphens, text-size-adjust
 
     case 5349:
@@ -1107,64 +395,64 @@ function emotion_cache_browser_esm_prefix(value, length) {
     case 4810:
     case 6968:
     case 2756:
-      return Enum_WEBKIT + value + Enum_MOZ + value + Enum_MS + value + value;
+      return Enum/* WEBKIT */.G$ + value + Enum/* MOZ */.uj + value + Enum.MS + value + value;
     // flex, flex-direction
 
     case 6828:
     case 4268:
-      return Enum_WEBKIT + value + Enum_MS + value + value;
+      return Enum/* WEBKIT */.G$ + value + Enum.MS + value + value;
     // order
 
     case 6165:
-      return Enum_WEBKIT + value + Enum_MS + 'flex-' + value + value;
+      return Enum/* WEBKIT */.G$ + value + Enum.MS + 'flex-' + value + value;
     // align-items
 
     case 5187:
-      return Enum_WEBKIT + value + Utility_replace(value, /(\w+).+(:[^]+)/, Enum_WEBKIT + 'box-$1$2' + Enum_MS + 'flex-$1$2') + value;
+      return Enum/* WEBKIT */.G$ + value + (0,Utility/* replace */.gx)(value, /(\w+).+(:[^]+)/, Enum/* WEBKIT */.G$ + 'box-$1$2' + Enum.MS + 'flex-$1$2') + value;
     // align-self
 
     case 5443:
-      return Enum_WEBKIT + value + Enum_MS + 'flex-item-' + Utility_replace(value, /flex-|-self/, '') + value;
+      return Enum/* WEBKIT */.G$ + value + Enum.MS + 'flex-item-' + (0,Utility/* replace */.gx)(value, /flex-|-self/, '') + value;
     // align-content
 
     case 4675:
-      return Enum_WEBKIT + value + Enum_MS + 'flex-line-pack' + Utility_replace(value, /align-content|flex-|-self/, '') + value;
+      return Enum/* WEBKIT */.G$ + value + Enum.MS + 'flex-line-pack' + (0,Utility/* replace */.gx)(value, /align-content|flex-|-self/, '') + value;
     // flex-shrink
 
     case 5548:
-      return Enum_WEBKIT + value + Enum_MS + Utility_replace(value, 'shrink', 'negative') + value;
+      return Enum/* WEBKIT */.G$ + value + Enum.MS + (0,Utility/* replace */.gx)(value, 'shrink', 'negative') + value;
     // flex-basis
 
     case 5292:
-      return Enum_WEBKIT + value + Enum_MS + Utility_replace(value, 'basis', 'preferred-size') + value;
+      return Enum/* WEBKIT */.G$ + value + Enum.MS + (0,Utility/* replace */.gx)(value, 'basis', 'preferred-size') + value;
     // flex-grow
 
     case 6060:
-      return Enum_WEBKIT + 'box-' + Utility_replace(value, '-grow', '') + Enum_WEBKIT + value + Enum_MS + Utility_replace(value, 'grow', 'positive') + value;
+      return Enum/* WEBKIT */.G$ + 'box-' + (0,Utility/* replace */.gx)(value, '-grow', '') + Enum/* WEBKIT */.G$ + value + Enum.MS + (0,Utility/* replace */.gx)(value, 'grow', 'positive') + value;
     // transition
 
     case 4554:
-      return Enum_WEBKIT + Utility_replace(value, /([^-])(transform)/g, '$1' + Enum_WEBKIT + '$2') + value;
+      return Enum/* WEBKIT */.G$ + (0,Utility/* replace */.gx)(value, /([^-])(transform)/g, '$1' + Enum/* WEBKIT */.G$ + '$2') + value;
     // cursor
 
     case 6187:
-      return Utility_replace(Utility_replace(Utility_replace(value, /(zoom-|grab)/, Enum_WEBKIT + '$1'), /(image-set)/, Enum_WEBKIT + '$1'), value, '') + value;
+      return (0,Utility/* replace */.gx)((0,Utility/* replace */.gx)((0,Utility/* replace */.gx)(value, /(zoom-|grab)/, Enum/* WEBKIT */.G$ + '$1'), /(image-set)/, Enum/* WEBKIT */.G$ + '$1'), value, '') + value;
     // background, background-image
 
     case 5495:
     case 3959:
-      return Utility_replace(value, /(image-set\([^]*)/, Enum_WEBKIT + '$1' + '$`$1');
+      return (0,Utility/* replace */.gx)(value, /(image-set\([^]*)/, Enum/* WEBKIT */.G$ + '$1' + '$`$1');
     // justify-content
 
     case 4968:
-      return Utility_replace(Utility_replace(value, /(.+:)(flex-)?(.*)/, Enum_WEBKIT + 'box-pack:$3' + Enum_MS + 'flex-pack:$3'), /s.+-b[^;]+/, 'justify') + Enum_WEBKIT + value + value;
+      return (0,Utility/* replace */.gx)((0,Utility/* replace */.gx)(value, /(.+:)(flex-)?(.*)/, Enum/* WEBKIT */.G$ + 'box-pack:$3' + Enum.MS + 'flex-pack:$3'), /s.+-b[^;]+/, 'justify') + Enum/* WEBKIT */.G$ + value + value;
     // (margin|padding)-inline-(start|end)
 
     case 4095:
     case 3583:
     case 4068:
     case 2532:
-      return Utility_replace(value, /(.+)-inline(.+)/, Enum_WEBKIT + '$1$2') + value;
+      return (0,Utility/* replace */.gx)(value, /(.+)-inline(.+)/, Enum/* WEBKIT */.G$ + '$1$2') + value;
     // (min|max)?(width|height|inline-size|block-size)
 
     case 8116:
@@ -1180,93 +468,93 @@ function emotion_cache_browser_esm_prefix(value, length) {
     case 5021:
     case 4765:
       // stretch, max-content, min-content, fill-available
-      if (Utility_strlen(value) - 1 - length > 6) switch (Utility_charat(value, length + 1)) {
+      if ((0,Utility/* strlen */.to)(value) - 1 - length > 6) switch ((0,Utility/* charat */.uO)(value, length + 1)) {
         // (m)ax-content, (m)in-content
         case 109:
           // -
-          if (Utility_charat(value, length + 4) !== 45) break;
+          if ((0,Utility/* charat */.uO)(value, length + 4) !== 45) break;
         // (f)ill-available, (f)it-content
 
         case 102:
-          return Utility_replace(value, /(.+:)(.+)-([^]+)/, '$1' + Enum_WEBKIT + '$2-$3' + '$1' + Enum_MOZ + (Utility_charat(value, length + 3) == 108 ? '$3' : '$2-$3')) + value;
+          return (0,Utility/* replace */.gx)(value, /(.+:)(.+)-([^]+)/, '$1' + Enum/* WEBKIT */.G$ + '$2-$3' + '$1' + Enum/* MOZ */.uj + ((0,Utility/* charat */.uO)(value, length + 3) == 108 ? '$3' : '$2-$3')) + value;
         // (s)tretch
 
         case 115:
-          return ~indexof(value, 'stretch') ? emotion_cache_browser_esm_prefix(Utility_replace(value, 'stretch', 'fill-available'), length) + value : value;
+          return ~(0,Utility/* indexof */.Cw)(value, 'stretch') ? prefix((0,Utility/* replace */.gx)(value, 'stretch', 'fill-available'), length) + value : value;
       }
       break;
     // position: sticky
 
     case 4949:
       // (s)ticky?
-      if (Utility_charat(value, length + 1) !== 115) break;
+      if ((0,Utility/* charat */.uO)(value, length + 1) !== 115) break;
     // display: (flex|inline-flex)
 
     case 6444:
-      switch (Utility_charat(value, Utility_strlen(value) - 3 - (~indexof(value, '!important') && 10))) {
+      switch ((0,Utility/* charat */.uO)(value, (0,Utility/* strlen */.to)(value) - 3 - (~(0,Utility/* indexof */.Cw)(value, '!important') && 10))) {
         // stic(k)y
         case 107:
-          return Utility_replace(value, ':', ':' + Enum_WEBKIT) + value;
+          return (0,Utility/* replace */.gx)(value, ':', ':' + Enum/* WEBKIT */.G$) + value;
         // (inline-)?fl(e)x
 
         case 101:
-          return Utility_replace(value, /(.+:)([^;!]+)(;|!.+)?/, '$1' + Enum_WEBKIT + (Utility_charat(value, 14) === 45 ? 'inline-' : '') + 'box$3' + '$1' + Enum_WEBKIT + '$2$3' + '$1' + Enum_MS + '$2box$3') + value;
+          return (0,Utility/* replace */.gx)(value, /(.+:)([^;!]+)(;|!.+)?/, '$1' + Enum/* WEBKIT */.G$ + ((0,Utility/* charat */.uO)(value, 14) === 45 ? 'inline-' : '') + 'box$3' + '$1' + Enum/* WEBKIT */.G$ + '$2$3' + '$1' + Enum.MS + '$2box$3') + value;
       }
       break;
     // writing-mode
 
     case 5936:
-      switch (Utility_charat(value, length + 11)) {
+      switch ((0,Utility/* charat */.uO)(value, length + 11)) {
         // vertical-l(r)
         case 114:
-          return Enum_WEBKIT + value + Enum_MS + Utility_replace(value, /[svh]\w+-[tblr]{2}/, 'tb') + value;
+          return Enum/* WEBKIT */.G$ + value + Enum.MS + (0,Utility/* replace */.gx)(value, /[svh]\w+-[tblr]{2}/, 'tb') + value;
         // vertical-r(l)
 
         case 108:
-          return Enum_WEBKIT + value + Enum_MS + Utility_replace(value, /[svh]\w+-[tblr]{2}/, 'tb-rl') + value;
+          return Enum/* WEBKIT */.G$ + value + Enum.MS + (0,Utility/* replace */.gx)(value, /[svh]\w+-[tblr]{2}/, 'tb-rl') + value;
         // horizontal(-)tb
 
         case 45:
-          return Enum_WEBKIT + value + Enum_MS + Utility_replace(value, /[svh]\w+-[tblr]{2}/, 'lr') + value;
+          return Enum/* WEBKIT */.G$ + value + Enum.MS + (0,Utility/* replace */.gx)(value, /[svh]\w+-[tblr]{2}/, 'lr') + value;
       }
-      return Enum_WEBKIT + value + Enum_MS + value + value;
+      return Enum/* WEBKIT */.G$ + value + Enum.MS + value + value;
   }
   return value;
 }
-var emotion_cache_browser_esm_prefixer = function prefixer(element, index, children, callback) {
+var prefixer = function prefixer(element, index, children, callback) {
   if (element.length > -1) if (!element["return"]) switch (element.type) {
-    case Enum_DECLARATION:
-      element["return"] = emotion_cache_browser_esm_prefix(element.value, element.length);
+    case Enum/* DECLARATION */.h5:
+      element["return"] = prefix(element.value, element.length);
       break;
-    case Enum_KEYFRAMES:
-      return Serializer_serialize([Tokenizer_copy(element, {
-        value: Utility_replace(element.value, '@', '@' + Enum_WEBKIT)
+    case Enum/* KEYFRAMES */.lK:
+      return (0,Serializer/* serialize */.q)([(0,Tokenizer/* copy */.JG)(element, {
+        value: (0,Utility/* replace */.gx)(element.value, '@', '@' + Enum/* WEBKIT */.G$)
       })], callback);
-    case Enum_RULESET:
-      if (element.length) return Utility_combine(element.props, function (value) {
-        switch (Utility_match(value, /(::plac\w+|:read-\w+)/)) {
+    case Enum/* RULESET */.Fr:
+      if (element.length) return (0,Utility/* combine */.$e)(element.props, function (value) {
+        switch ((0,Utility/* match */.EQ)(value, /(::plac\w+|:read-\w+)/)) {
           // :read-(only|write)
           case ':read-only':
           case ':read-write':
-            return Serializer_serialize([Tokenizer_copy(element, {
-              props: [Utility_replace(value, /:(read-\w+)/, ':' + Enum_MOZ + '$1')]
+            return (0,Serializer/* serialize */.q)([(0,Tokenizer/* copy */.JG)(element, {
+              props: [(0,Utility/* replace */.gx)(value, /:(read-\w+)/, ':' + Enum/* MOZ */.uj + '$1')]
             })], callback);
           // :placeholder
 
           case '::placeholder':
-            return Serializer_serialize([Tokenizer_copy(element, {
-              props: [Utility_replace(value, /:(plac\w+)/, ':' + Enum_WEBKIT + 'input-$1')]
-            }), Tokenizer_copy(element, {
-              props: [Utility_replace(value, /:(plac\w+)/, ':' + Enum_MOZ + '$1')]
-            }), Tokenizer_copy(element, {
-              props: [Utility_replace(value, /:(plac\w+)/, Enum_MS + 'input-$1')]
+            return (0,Serializer/* serialize */.q)([(0,Tokenizer/* copy */.JG)(element, {
+              props: [(0,Utility/* replace */.gx)(value, /:(plac\w+)/, ':' + Enum/* WEBKIT */.G$ + 'input-$1')]
+            }), (0,Tokenizer/* copy */.JG)(element, {
+              props: [(0,Utility/* replace */.gx)(value, /:(plac\w+)/, ':' + Enum/* MOZ */.uj + '$1')]
+            }), (0,Tokenizer/* copy */.JG)(element, {
+              props: [(0,Utility/* replace */.gx)(value, /:(plac\w+)/, Enum.MS + 'input-$1')]
             })], callback);
         }
         return '';
       });
   }
 };
-var defaultStylisPlugins = [emotion_cache_browser_esm_prefixer];
+var defaultStylisPlugins = [prefixer];
 var createCache = function createCache(options) {
   var key = options.key;
   if (false) {}
@@ -1315,12 +603,12 @@ var createCache = function createCache(options) {
   if (false) {}
   {
     var currentSheet;
-    var finalizingPlugins = [stringify,  false ? 0 : rulesheet(function (rule) {
+    var finalizingPlugins = [Serializer/* stringify */.P,  false ? 0 : (0,Middleware/* rulesheet */.cD)(function (rule) {
       currentSheet.insert(rule);
     })];
-    var serializer = middleware(omnipresentPlugins.concat(stylisPlugins, finalizingPlugins));
+    var serializer = (0,Middleware/* middleware */.qR)(omnipresentPlugins.concat(stylisPlugins, finalizingPlugins));
     var stylis = function stylis(styles) {
-      return Serializer_serialize(compile(styles), serializer);
+      return (0,Serializer/* serialize */.q)((0,Parser/* compile */.MY)(styles), serializer);
     };
     _insert = function insert(selector, serialized, sheet, shouldCache) {
       currentSheet = sheet;
@@ -1383,7 +671,7 @@ function memoize(fn) {
 /* harmony export */ });
 /* unused harmony exports E, _, a, b, c, h, u */
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(7948);
-/* harmony import */ var _emotion_cache__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(3029);
+/* harmony import */ var _emotion_cache__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(3347);
 /* harmony import */ var _emotion_serialize__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(7073);
 /* harmony import */ var _emotion_use_insertion_effect_with_fallbacks__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(122);
 
@@ -1601,7 +889,7 @@ var Emotion$1 = (/* unused pure expression or super */ null && (Emotion));
 /* harmony import */ var _emotion_utils__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(1443);
 /* harmony import */ var _emotion_use_insertion_effect_with_fallbacks__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(122);
 /* harmony import */ var _emotion_serialize__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(7073);
-/* harmony import */ var _emotion_cache__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(3029);
+/* harmony import */ var _emotion_cache__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(3347);
 /* harmony import */ var hoist_non_react_statics__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(9761);
 /* harmony import */ var hoist_non_react_statics__WEBPACK_IMPORTED_MODULE_4___default = /*#__PURE__*/__webpack_require__.n(hoist_non_react_statics__WEBPACK_IMPORTED_MODULE_4__);
 
@@ -2575,8 +1863,8 @@ tags.forEach(function (tagName) {
 
 // EXTERNAL MODULE: ./node_modules/.pnpm/@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0/node_modules/@emotion/react/dist/emotion-react.browser.esm.js
 var emotion_react_browser_esm = __webpack_require__(2150);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@emotion+cache@11.11.0/node_modules/@emotion/cache/dist/emotion-cache.browser.esm.js + 7 modules
-var emotion_cache_browser_esm = __webpack_require__(3029);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@emotion+cache@11.11.0/node_modules/@emotion/cache/dist/emotion-cache.browser.esm.js + 1 modules
+var emotion_cache_browser_esm = __webpack_require__(3347);
 // EXTERNAL MODULE: ./node_modules/.pnpm/react@18.2.0/node_modules/react/jsx-runtime.js
 var jsx_runtime = __webpack_require__(7394);
 ;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+styled-engine@5.15.14_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@e_38b353972d011fd8524090cbc8c519bf/node_modules/@mui/styled-engine/StyledEngineProvider/StyledEngineProvider.js
@@ -13969,6 +13257,834 @@ function _objectWithoutPropertiesLoose(source, excluded) {
     target[key] = source[key];
   }
   return target;
+}
+
+/***/ }),
+
+/***/ 3724:
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   Ab: () => (/* binding */ COMMENT),
+/* harmony export */   Fr: () => (/* binding */ RULESET),
+/* harmony export */   G$: () => (/* binding */ WEBKIT),
+/* harmony export */   JM: () => (/* binding */ LAYER),
+/* harmony export */   K$: () => (/* binding */ IMPORT),
+/* harmony export */   MS: () => (/* binding */ MS),
+/* harmony export */   h5: () => (/* binding */ DECLARATION),
+/* harmony export */   lK: () => (/* binding */ KEYFRAMES),
+/* harmony export */   uj: () => (/* binding */ MOZ)
+/* harmony export */ });
+/* unused harmony exports PAGE, MEDIA, CHARSET, VIEWPORT, SUPPORTS, DOCUMENT, NAMESPACE, FONT_FACE, COUNTER_STYLE, FONT_FEATURE_VALUES */
+var MS = '-ms-';
+var MOZ = '-moz-';
+var WEBKIT = '-webkit-';
+var COMMENT = 'comm';
+var RULESET = 'rule';
+var DECLARATION = 'decl';
+var PAGE = '@page';
+var MEDIA = '@media';
+var IMPORT = '@import';
+var CHARSET = '@charset';
+var VIEWPORT = '@viewport';
+var SUPPORTS = '@supports';
+var DOCUMENT = '@document';
+var NAMESPACE = '@namespace';
+var KEYFRAMES = '@keyframes';
+var FONT_FACE = '@font-face';
+var COUNTER_STYLE = '@counter-style';
+var FONT_FEATURE_VALUES = '@font-feature-values';
+var LAYER = '@layer';
+
+/***/ }),
+
+/***/ 7033:
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   cD: () => (/* binding */ rulesheet),
+/* harmony export */   qR: () => (/* binding */ middleware)
+/* harmony export */ });
+/* unused harmony exports prefixer, namespace */
+/* harmony import */ var _Utility_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(7279);
+
+
+
+
+
+
+/**
+ * @param {function[]} collection
+ * @return {function}
+ */
+function middleware(collection) {
+  var length = (0,_Utility_js__WEBPACK_IMPORTED_MODULE_0__/* .sizeof */ .Ei)(collection);
+  return function (element, index, children, callback) {
+    var output = '';
+    for (var i = 0; i < length; i++) output += collection[i](element, index, children, callback) || '';
+    return output;
+  };
+}
+
+/**
+ * @param {function} callback
+ * @return {function}
+ */
+function rulesheet(callback) {
+  return function (element) {
+    if (!element.root) if (element = element.return) callback(element);
+  };
+}
+
+/**
+ * @param {object} element
+ * @param {number} index
+ * @param {object[]} children
+ * @param {function} callback
+ */
+function prefixer(element, index, children, callback) {
+  if (element.length > -1) if (!element.return) switch (element.type) {
+    case DECLARATION:
+      element.return = prefix(element.value, element.length, children);
+      return;
+    case KEYFRAMES:
+      return serialize([copy(element, {
+        value: replace(element.value, '@', '@' + WEBKIT)
+      })], callback);
+    case RULESET:
+      if (element.length) return combine(element.props, function (value) {
+        switch (match(value, /(::plac\w+|:read-\w+)/)) {
+          // :read-(only|write)
+          case ':read-only':
+          case ':read-write':
+            return serialize([copy(element, {
+              props: [replace(value, /:(read-\w+)/, ':' + MOZ + '$1')]
+            })], callback);
+          // :placeholder
+          case '::placeholder':
+            return serialize([copy(element, {
+              props: [replace(value, /:(plac\w+)/, ':' + WEBKIT + 'input-$1')]
+            }), copy(element, {
+              props: [replace(value, /:(plac\w+)/, ':' + MOZ + '$1')]
+            }), copy(element, {
+              props: [replace(value, /:(plac\w+)/, MS + 'input-$1')]
+            })], callback);
+        }
+        return '';
+      });
+  }
+}
+
+/**
+ * @param {object} element
+ * @param {number} index
+ * @param {object[]} children
+ */
+function namespace(element) {
+  switch (element.type) {
+    case RULESET:
+      element.props = element.props.map(function (value) {
+        return combine(tokenize(value), function (value, index, children) {
+          switch (charat(value, 0)) {
+            // \f
+            case 12:
+              return substr(value, 1, strlen(value));
+            // \0 ( + > ~
+            case 0:
+            case 40:
+            case 43:
+            case 62:
+            case 126:
+              return value;
+            // :
+            case 58:
+              if (children[++index] === 'global') children[index] = '', children[++index] = '\f' + substr(children[index], index = 1, -1);
+            // \s
+            case 32:
+              return index === 1 ? '' : value;
+            default:
+              switch (index) {
+                case 0:
+                  element = value;
+                  return sizeof(children) > 1 ? '' : value;
+                case index = sizeof(children) - 1:
+                case 2:
+                  return index === 2 ? value + element + element : value + element;
+                default:
+                  return value;
+              }
+          }
+        });
+      });
+  }
+}
+
+/***/ }),
+
+/***/ 3963:
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   MY: () => (/* binding */ compile)
+/* harmony export */ });
+/* unused harmony exports parse, ruleset, comment, declaration */
+/* harmony import */ var _Enum_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(3724);
+/* harmony import */ var _Utility_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7279);
+/* harmony import */ var _Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(7650);
+
+
+
+
+/**
+ * @param {string} value
+ * @return {object[]}
+ */
+function compile(value) {
+  return (0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .dealloc */ .cE)(parse('', null, null, null, [''], value = (0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .alloc */ .un)(value), 0, [0], value));
+}
+
+/**
+ * @param {string} value
+ * @param {object} root
+ * @param {object?} parent
+ * @param {string[]} rule
+ * @param {string[]} rules
+ * @param {string[]} rulesets
+ * @param {number[]} pseudo
+ * @param {number[]} points
+ * @param {string[]} declarations
+ * @return {object}
+ */
+function parse(value, root, parent, rule, rules, rulesets, pseudo, points, declarations) {
+  var index = 0;
+  var offset = 0;
+  var length = pseudo;
+  var atrule = 0;
+  var property = 0;
+  var previous = 0;
+  var variable = 1;
+  var scanning = 1;
+  var ampersand = 1;
+  var character = 0;
+  var type = '';
+  var props = rules;
+  var children = rulesets;
+  var reference = rule;
+  var characters = type;
+  while (scanning) switch (previous = character, character = (0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .next */ .lp)()) {
+    // (
+    case 40:
+      if (previous != 108 && (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .charat */ .uO)(characters, length - 1) == 58) {
+        if ((0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .indexof */ .Cw)(characters += (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .replace */ .gx)((0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .delimit */ .iF)(character), '&', '&\f'), '&\f') != -1) ampersand = -1;
+        break;
+      }
+    // " ' [
+    case 34:
+    case 39:
+    case 91:
+      characters += (0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .delimit */ .iF)(character);
+      break;
+    // \t \n \r \s
+    case 9:
+    case 10:
+    case 13:
+    case 32:
+      characters += (0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .whitespace */ .Qb)(previous);
+      break;
+    // \
+    case 92:
+      characters += (0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .escaping */ .kq)((0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .caret */ .Ud)() - 1, 7);
+      continue;
+    // /
+    case 47:
+      switch ((0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .peek */ .fj)()) {
+        case 42:
+        case 47:
+          (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .append */ .R3)(comment((0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .commenter */ .q6)((0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .next */ .lp)(), (0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .caret */ .Ud)()), root, parent), declarations);
+          break;
+        default:
+          characters += '/';
+      }
+      break;
+    // {
+    case 123 * variable:
+      points[index++] = (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .strlen */ .to)(characters) * ampersand;
+    // } ; \0
+    case 125 * variable:
+    case 59:
+    case 0:
+      switch (character) {
+        // \0 }
+        case 0:
+        case 125:
+          scanning = 0;
+        // ;
+        case 59 + offset:
+          if (ampersand == -1) characters = (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .replace */ .gx)(characters, /\f/g, '');
+          if (property > 0 && (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .strlen */ .to)(characters) - length) (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .append */ .R3)(property > 32 ? declaration(characters + ';', rule, parent, length - 1) : declaration((0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .replace */ .gx)(characters, ' ', '') + ';', rule, parent, length - 2), declarations);
+          break;
+        // @ ;
+        case 59:
+          characters += ';';
+        // { rule/at-rule
+        default:
+          (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .append */ .R3)(reference = ruleset(characters, root, parent, index, offset, rules, points, type, props = [], children = [], length), rulesets);
+          if (character === 123) if (offset === 0) parse(characters, root, reference, reference, props, rulesets, length, points, children);else switch (atrule === 99 && (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .charat */ .uO)(characters, 3) === 110 ? 100 : atrule) {
+            // d l m s
+            case 100:
+            case 108:
+            case 109:
+            case 115:
+              parse(value, reference, reference, rule && (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .append */ .R3)(ruleset(value, reference, reference, 0, 0, rules, points, type, rules, props = [], length), children), rules, children, length, points, rule ? props : children);
+              break;
+            default:
+              parse(characters, reference, reference, reference, [''], children, 0, points, children);
+          }
+      }
+      index = offset = property = 0, variable = ampersand = 1, type = characters = '', length = pseudo;
+      break;
+    // :
+    case 58:
+      length = 1 + (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .strlen */ .to)(characters), property = previous;
+    default:
+      if (variable < 1) if (character == 123) --variable;else if (character == 125 && variable++ == 0 && (0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .prev */ .mp)() == 125) continue;
+      switch (characters += (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .from */ .Dp)(character), character * variable) {
+        // &
+        case 38:
+          ampersand = offset > 0 ? 1 : (characters += '\f', -1);
+          break;
+        // ,
+        case 44:
+          points[index++] = ((0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .strlen */ .to)(characters) - 1) * ampersand, ampersand = 1;
+          break;
+        // @
+        case 64:
+          // -
+          if ((0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .peek */ .fj)() === 45) characters += (0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .delimit */ .iF)((0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .next */ .lp)());
+          atrule = (0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .peek */ .fj)(), offset = length = (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .strlen */ .to)(type = characters += (0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .identifier */ .QU)((0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .caret */ .Ud)())), character++;
+          break;
+        // -
+        case 45:
+          if (previous === 45 && (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .strlen */ .to)(characters) == 2) variable = 0;
+      }
+  }
+  return rulesets;
+}
+
+/**
+ * @param {string} value
+ * @param {object} root
+ * @param {object?} parent
+ * @param {number} index
+ * @param {number} offset
+ * @param {string[]} rules
+ * @param {number[]} points
+ * @param {string} type
+ * @param {string[]} props
+ * @param {string[]} children
+ * @param {number} length
+ * @return {object}
+ */
+function ruleset(value, root, parent, index, offset, rules, points, type, props, children, length) {
+  var post = offset - 1;
+  var rule = offset === 0 ? rules : [''];
+  var size = (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .sizeof */ .Ei)(rule);
+  for (var i = 0, j = 0, k = 0; i < index; ++i) for (var x = 0, y = (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .substr */ .tb)(value, post + 1, post = (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .abs */ .Wn)(j = points[i])), z = value; x < size; ++x) if (z = (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .trim */ .fy)(j > 0 ? rule[x] + ' ' + y : (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .replace */ .gx)(y, /&\f/g, rule[x]))) props[k++] = z;
+  return (0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .node */ .dH)(value, root, parent, offset === 0 ? _Enum_js__WEBPACK_IMPORTED_MODULE_2__/* .RULESET */ .Fr : type, props, children, length);
+}
+
+/**
+ * @param {number} value
+ * @param {object} root
+ * @param {object?} parent
+ * @return {object}
+ */
+function comment(value, root, parent) {
+  return (0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .node */ .dH)(value, root, parent, _Enum_js__WEBPACK_IMPORTED_MODULE_2__/* .COMMENT */ .Ab, (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .from */ .Dp)((0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .char */ .Tb)()), (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .substr */ .tb)(value, 2, -2), 0);
+}
+
+/**
+ * @param {string} value
+ * @param {object} root
+ * @param {object?} parent
+ * @param {number} length
+ * @return {object}
+ */
+function declaration(value, root, parent, length) {
+  return (0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .node */ .dH)(value, root, parent, _Enum_js__WEBPACK_IMPORTED_MODULE_2__/* .DECLARATION */ .h5, (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .substr */ .tb)(value, 0, length), (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .substr */ .tb)(value, length + 1, -1), length);
+}
+
+/***/ }),
+
+/***/ 903:
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   P: () => (/* binding */ stringify),
+/* harmony export */   q: () => (/* binding */ serialize)
+/* harmony export */ });
+/* harmony import */ var _Enum_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(3724);
+/* harmony import */ var _Utility_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(7279);
+
+
+
+/**
+ * @param {object[]} children
+ * @param {function} callback
+ * @return {string}
+ */
+function serialize(children, callback) {
+  var output = '';
+  var length = (0,_Utility_js__WEBPACK_IMPORTED_MODULE_0__/* .sizeof */ .Ei)(children);
+  for (var i = 0; i < length; i++) output += callback(children[i], i, children, callback) || '';
+  return output;
+}
+
+/**
+ * @param {object} element
+ * @param {number} index
+ * @param {object[]} children
+ * @param {function} callback
+ * @return {string}
+ */
+function stringify(element, index, children, callback) {
+  switch (element.type) {
+    case _Enum_js__WEBPACK_IMPORTED_MODULE_1__/* .LAYER */ .JM:
+      if (element.children.length) break;
+    case _Enum_js__WEBPACK_IMPORTED_MODULE_1__/* .IMPORT */ .K$:
+    case _Enum_js__WEBPACK_IMPORTED_MODULE_1__/* .DECLARATION */ .h5:
+      return element.return = element.return || element.value;
+    case _Enum_js__WEBPACK_IMPORTED_MODULE_1__/* .COMMENT */ .Ab:
+      return '';
+    case _Enum_js__WEBPACK_IMPORTED_MODULE_1__/* .KEYFRAMES */ .lK:
+      return element.return = element.value + '{' + serialize(element.children, callback) + '}';
+    case _Enum_js__WEBPACK_IMPORTED_MODULE_1__/* .RULESET */ .Fr:
+      element.value = element.props.join(',');
+  }
+  return (0,_Utility_js__WEBPACK_IMPORTED_MODULE_0__/* .strlen */ .to)(children = serialize(element.children, callback)) ? element.return = element.value + '{' + children + '}' : '';
+}
+
+/***/ }),
+
+/***/ 7650:
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   FK: () => (/* binding */ position),
+/* harmony export */   JG: () => (/* binding */ copy),
+/* harmony export */   QU: () => (/* binding */ identifier),
+/* harmony export */   Qb: () => (/* binding */ whitespace),
+/* harmony export */   Tb: () => (/* binding */ char),
+/* harmony export */   Ud: () => (/* binding */ caret),
+/* harmony export */   cE: () => (/* binding */ dealloc),
+/* harmony export */   dH: () => (/* binding */ node),
+/* harmony export */   fj: () => (/* binding */ peek),
+/* harmony export */   iF: () => (/* binding */ delimit),
+/* harmony export */   kq: () => (/* binding */ escaping),
+/* harmony export */   lp: () => (/* binding */ next),
+/* harmony export */   mp: () => (/* binding */ prev),
+/* harmony export */   q6: () => (/* binding */ commenter),
+/* harmony export */   r: () => (/* binding */ token),
+/* harmony export */   tP: () => (/* binding */ slice),
+/* harmony export */   un: () => (/* binding */ alloc)
+/* harmony export */ });
+/* unused harmony exports line, column, length, character, characters, tokenize, tokenizer, delimiter */
+/* harmony import */ var _Utility_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(7279);
+
+var line = 1;
+var column = 1;
+var length = 0;
+var position = 0;
+var character = 0;
+var characters = '';
+
+/**
+ * @param {string} value
+ * @param {object | null} root
+ * @param {object | null} parent
+ * @param {string} type
+ * @param {string[] | string} props
+ * @param {object[] | string} children
+ * @param {number} length
+ */
+function node(value, root, parent, type, props, children, length) {
+  return {
+    value: value,
+    root: root,
+    parent: parent,
+    type: type,
+    props: props,
+    children: children,
+    line: line,
+    column: column,
+    length: length,
+    return: ''
+  };
+}
+
+/**
+ * @param {object} root
+ * @param {object} props
+ * @return {object}
+ */
+function copy(root, props) {
+  return (0,_Utility_js__WEBPACK_IMPORTED_MODULE_0__/* .assign */ .f0)(node('', null, null, '', null, null, 0), root, {
+    length: -root.length
+  }, props);
+}
+
+/**
+ * @return {number}
+ */
+function char() {
+  return character;
+}
+
+/**
+ * @return {number}
+ */
+function prev() {
+  character = position > 0 ? (0,_Utility_js__WEBPACK_IMPORTED_MODULE_0__/* .charat */ .uO)(characters, --position) : 0;
+  if (column--, character === 10) column = 1, line--;
+  return character;
+}
+
+/**
+ * @return {number}
+ */
+function next() {
+  character = position < length ? (0,_Utility_js__WEBPACK_IMPORTED_MODULE_0__/* .charat */ .uO)(characters, position++) : 0;
+  if (column++, character === 10) column = 1, line++;
+  return character;
+}
+
+/**
+ * @return {number}
+ */
+function peek() {
+  return (0,_Utility_js__WEBPACK_IMPORTED_MODULE_0__/* .charat */ .uO)(characters, position);
+}
+
+/**
+ * @return {number}
+ */
+function caret() {
+  return position;
+}
+
+/**
+ * @param {number} begin
+ * @param {number} end
+ * @return {string}
+ */
+function slice(begin, end) {
+  return (0,_Utility_js__WEBPACK_IMPORTED_MODULE_0__/* .substr */ .tb)(characters, begin, end);
+}
+
+/**
+ * @param {number} type
+ * @return {number}
+ */
+function token(type) {
+  switch (type) {
+    // \0 \t \n \r \s whitespace token
+    case 0:
+    case 9:
+    case 10:
+    case 13:
+    case 32:
+      return 5;
+    // ! + , / > @ ~ isolate token
+    case 33:
+    case 43:
+    case 44:
+    case 47:
+    case 62:
+    case 64:
+    case 126:
+    // ; { } breakpoint token
+    case 59:
+    case 123:
+    case 125:
+      return 4;
+    // : accompanied token
+    case 58:
+      return 3;
+    // " ' ( [ opening delimit token
+    case 34:
+    case 39:
+    case 40:
+    case 91:
+      return 2;
+    // ) ] closing delimit token
+    case 41:
+    case 93:
+      return 1;
+  }
+  return 0;
+}
+
+/**
+ * @param {string} value
+ * @return {any[]}
+ */
+function alloc(value) {
+  return line = column = 1, length = (0,_Utility_js__WEBPACK_IMPORTED_MODULE_0__/* .strlen */ .to)(characters = value), position = 0, [];
+}
+
+/**
+ * @param {any} value
+ * @return {any}
+ */
+function dealloc(value) {
+  return characters = '', value;
+}
+
+/**
+ * @param {number} type
+ * @return {string}
+ */
+function delimit(type) {
+  return (0,_Utility_js__WEBPACK_IMPORTED_MODULE_0__/* .trim */ .fy)(slice(position - 1, delimiter(type === 91 ? type + 2 : type === 40 ? type + 1 : type)));
+}
+
+/**
+ * @param {string} value
+ * @return {string[]}
+ */
+function tokenize(value) {
+  return dealloc(tokenizer(alloc(value)));
+}
+
+/**
+ * @param {number} type
+ * @return {string}
+ */
+function whitespace(type) {
+  while (character = peek()) if (character < 33) next();else break;
+  return token(type) > 2 || token(character) > 3 ? '' : ' ';
+}
+
+/**
+ * @param {string[]} children
+ * @return {string[]}
+ */
+function tokenizer(children) {
+  while (next()) switch (token(character)) {
+    case 0:
+      append(identifier(position - 1), children);
+      break;
+    case 2:
+      append(delimit(character), children);
+      break;
+    default:
+      append(from(character), children);
+  }
+  return children;
+}
+
+/**
+ * @param {number} index
+ * @param {number} count
+ * @return {string}
+ */
+function escaping(index, count) {
+  while (--count && next())
+  // not 0-9 A-F a-f
+  if (character < 48 || character > 102 || character > 57 && character < 65 || character > 70 && character < 97) break;
+  return slice(index, caret() + (count < 6 && peek() == 32 && next() == 32));
+}
+
+/**
+ * @param {number} type
+ * @return {number}
+ */
+function delimiter(type) {
+  while (next()) switch (character) {
+    // ] ) " '
+    case type:
+      return position;
+    // " '
+    case 34:
+    case 39:
+      if (type !== 34 && type !== 39) delimiter(character);
+      break;
+    // (
+    case 40:
+      if (type === 41) delimiter(type);
+      break;
+    // \
+    case 92:
+      next();
+      break;
+  }
+  return position;
+}
+
+/**
+ * @param {number} type
+ * @param {number} index
+ * @return {number}
+ */
+function commenter(type, index) {
+  while (next())
+  // //
+  if (type + character === 47 + 10) break;
+  // /*
+  else if (type + character === 42 + 42 && peek() === 47) break;
+  return '/*' + slice(index, position - 1) + '*' + (0,_Utility_js__WEBPACK_IMPORTED_MODULE_0__/* .from */ .Dp)(type === 47 ? type : next());
+}
+
+/**
+ * @param {number} index
+ * @return {string}
+ */
+function identifier(index) {
+  while (!token(peek())) next();
+  return slice(index, position);
+}
+
+/***/ }),
+
+/***/ 7279:
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   $e: () => (/* binding */ combine),
+/* harmony export */   Cw: () => (/* binding */ indexof),
+/* harmony export */   Dp: () => (/* binding */ from),
+/* harmony export */   EQ: () => (/* binding */ match),
+/* harmony export */   Ei: () => (/* binding */ sizeof),
+/* harmony export */   R3: () => (/* binding */ append),
+/* harmony export */   Wn: () => (/* binding */ abs),
+/* harmony export */   f0: () => (/* binding */ assign),
+/* harmony export */   fy: () => (/* binding */ trim),
+/* harmony export */   gx: () => (/* binding */ replace),
+/* harmony export */   tb: () => (/* binding */ substr),
+/* harmony export */   to: () => (/* binding */ strlen),
+/* harmony export */   uO: () => (/* binding */ charat),
+/* harmony export */   vp: () => (/* binding */ hash)
+/* harmony export */ });
+/**
+ * @param {number}
+ * @return {number}
+ */
+var abs = Math.abs;
+
+/**
+ * @param {number}
+ * @return {string}
+ */
+var from = String.fromCharCode;
+
+/**
+ * @param {object}
+ * @return {object}
+ */
+var assign = Object.assign;
+
+/**
+ * @param {string} value
+ * @param {number} length
+ * @return {number}
+ */
+function hash(value, length) {
+  return charat(value, 0) ^ 45 ? (((length << 2 ^ charat(value, 0)) << 2 ^ charat(value, 1)) << 2 ^ charat(value, 2)) << 2 ^ charat(value, 3) : 0;
+}
+
+/**
+ * @param {string} value
+ * @return {string}
+ */
+function trim(value) {
+  return value.trim();
+}
+
+/**
+ * @param {string} value
+ * @param {RegExp} pattern
+ * @return {string?}
+ */
+function match(value, pattern) {
+  return (value = pattern.exec(value)) ? value[0] : value;
+}
+
+/**
+ * @param {string} value
+ * @param {(string|RegExp)} pattern
+ * @param {string} replacement
+ * @return {string}
+ */
+function replace(value, pattern, replacement) {
+  return value.replace(pattern, replacement);
+}
+
+/**
+ * @param {string} value
+ * @param {string} search
+ * @return {number}
+ */
+function indexof(value, search) {
+  return value.indexOf(search);
+}
+
+/**
+ * @param {string} value
+ * @param {number} index
+ * @return {number}
+ */
+function charat(value, index) {
+  return value.charCodeAt(index) | 0;
+}
+
+/**
+ * @param {string} value
+ * @param {number} begin
+ * @param {number} end
+ * @return {string}
+ */
+function substr(value, begin, end) {
+  return value.slice(begin, end);
+}
+
+/**
+ * @param {string} value
+ * @return {number}
+ */
+function strlen(value) {
+  return value.length;
+}
+
+/**
+ * @param {any[]} value
+ * @return {number}
+ */
+function sizeof(value) {
+  return value.length;
+}
+
+/**
+ * @param {any} value
+ * @param {any[]} array
+ * @return {any}
+ */
+function append(value, array) {
+  return array.push(value), value;
+}
+
+/**
+ * @param {string[]} array
+ * @param {function} callback
+ * @return {string}
+ */
+function combine(array, callback) {
+  return array.map(callback).join('');
 }
 
 /***/ })
@@ -34687,41 +34803,110 @@ const Link = /*#__PURE__*/react.forwardRef(function Link(inProps, ref) {
  false ? 0 : void 0;
 /* harmony default export */ const Link_Link = (Link);
 ;// CONCATENATED MODULE: ./src/hooks/Fetch.js
-/**
- * fetch data hook
- * @returns
- */const useFetch=url=>{const[data,setData]=(0,react.useState)(null);const[loading,setLoading]=(0,react.useState)(false);const[error,setError]=(0,react.useState)(null);(0,react.useEffect)(()=>{if(!url){return;}(async()=>{setLoading(true);try{var _res$headers$get;const res=await fetch(url);if(!res.ok){throw new Error("[".concat(res.status,"] ").concat(res.statusText));}let data;if((_res$headers$get=res.headers.get("Content-Type"))!==null&&_res$headers$get!==void 0&&_res$headers$get.includes("json")){data=await res.json();}else{data=await res.text();}setData(data);}catch(err){setError(err);}finally{setLoading(false);}})();},[url]);return[data,loading,error];};
-;// CONCATENATED MODULE: ./src/libs/webfix.js
-/**
- * 修复程序类型
- */const FIXER_NONE="-";const FIXER_BR="br";const FIXER_BN="bn";const FIXER_BR_DIV="brToDiv";const FIXER_BN_DIV="bnToDiv";const FIXER_ALL=[FIXER_NONE,FIXER_BR,FIXER_BN,FIXER_BR_DIV,FIXER_BN_DIV];/**
- * 修复过的标记
- */const fixedSign="kiss-fixed";/**
- * 采用 `br` 换行网站的修复函数
- * 目标是将 `br` 替换成 `p`
- * @param {*} node
- * @returns
- */function brFixer(node){let tag=arguments.length>1&&arguments[1]!==undefined?arguments[1]:"p";if(node.hasAttribute(fixedSign)){return;}node.setAttribute(fixedSign,"true");const gapTags=["BR","WBR"];const newlineTags=["DIV","UL","OL","LI","H1","H2","H3","H4","H5","H6","P","HR","PRE","TABLE","BLOCKQUOTE"];let html="";node.childNodes.forEach(function(child,index){if(index===0){html+="<".concat(tag," class=\"kiss-p\">");}if(gapTags.indexOf(child.nodeName)!==-1){html+="</".concat(tag,"><").concat(tag," class=\"kiss-p\">");}else if(newlineTags.indexOf(child.nodeName)!==-1){html+="</".concat(tag,">").concat(child.outerHTML,"<").concat(tag," class=\"kiss-p\">");}else if(child.outerHTML){html+=child.outerHTML;}else if(child.textContent){html+=child.textContent;}if(index===node.childNodes.length-1){html+="</".concat(tag,">");}});node.innerHTML=html;}function brDivFixer(node){return brFixer(node,"div");}/**
- * 目标是将 `\n` 替换成 `p`
- * @param {*} node
- * @returns
- */function bnFixer(node){let tag=arguments.length>1&&arguments[1]!==undefined?arguments[1]:"p";if(node.hasAttribute(fixedSign)){return;}node.setAttribute(fixedSign,"true");node.innerHTML=node.innerHTML.split("\n").map(item=>"<".concat(tag," class=\"kiss-p\">").concat(item||"&nbsp;","</").concat(tag,">")).join("");}function bnDivFixer(node){return bnFixer(node,"div");}/**
- * 查找、监听节点，并执行修复函数
- * @param {*} selector
- * @param {*} fixer
- * @param {*} rootSelector
- */function run(selector,fixer,rootSelector){const mutaObserver=new MutationObserver(function(mutations){mutations.forEach(function(mutation){mutation.addedNodes.forEach(function(addNode){if(addNode&&addNode.querySelectorAll){addNode.querySelectorAll(selector).forEach(function(node){fixer(node);});}});});});let rootNodes=[document];if(rootSelector){rootNodes=document.querySelectorAll(rootSelector);}rootNodes.forEach(function(rootNode){rootNode.querySelectorAll(selector).forEach(function(node){fixer(node);});mutaObserver.observe(rootNode,{childList:true,subtree:true});});}/**
- * 修复程序映射
- */const fixerMap={[FIXER_BR]:brFixer,[FIXER_BN]:bnFixer,[FIXER_BR_DIV]:brDivFixer,[FIXER_BN_DIV]:bnDivFixer};/**
- * 执行fixer
- * @param {*} param0
- */function runFixer(selector){let fixer=arguments.length>1&&arguments[1]!==undefined?arguments[1]:"-";let rootSelector=arguments.length>2?arguments[2]:undefined;try{if(Object.keys(fixerMap).includes(fixer)){run(selector,fixerMap[fixer],rootSelector);}}catch(err){console.error("[kiss-webfix run]: ".concat(err.message));}}
+const useAsync=()=>{const[data,setData]=(0,react.useState)(null);const[loading,setLoading]=(0,react.useState)(false);const[error,setError]=(0,react.useState)(null);const execute=(0,react.useCallback)(async function(fn){if(!fn){return;}setLoading(true);setError(null);try{for(var _len=arguments.length,args=new Array(_len>1?_len-1:0),_key=1;_key<_len;_key++){args[_key-1]=arguments[_key];}const res=await fn(...args);setData(res);setLoading(false);return res;}catch(err){setError((err===null||err===void 0?void 0:err.message)||"An unknown error occurred");setLoading(false);// throw err;
+}},[]);const reset=(0,react.useCallback)(()=>{setData(null);setLoading(false);setError(null);},[]);return{data,loading,error,execute,reset};};const useAsyncNow=(fn,arg)=>{const{execute,...asyncState}=useAsync();useEffect(()=>{if(fn){execute(fn,arg);}},[execute,fn,arg]);return{...asyncState};};const useFetch=()=>{const{execute,...asyncState}=useAsync();const requester=(0,react.useCallback)(async(url,options)=>{var _response$headers$get;const response=await fetch(url,options);if(!response.ok){const errorInfo=await response.text();throw new Error("Request failed: ".concat(response.status," ").concat(response.statusText," - ").concat(errorInfo));}if(response.status===204){return null;}if((_response$headers$get=response.headers.get("Content-Type"))!==null&&_response$headers$get!==void 0&&_response$headers$get.includes("json")){return response.json();}return response.text();},[]);const get=(0,react.useCallback)(async function(url){let options=arguments.length>1&&arguments[1]!==undefined?arguments[1]:{};try{const result=await execute(requester,url,{...options,method:"GET"});return result;}catch(err){return null;}},[execute,requester]);const post=(0,react.useCallback)(async function(url,body){let options=arguments.length>2&&arguments[2]!==undefined?arguments[2]:{};try{const result=await execute(requester,url,{...options,method:"POST",headers:{"Content-Type":"application/json",...options.headers},body:JSON.stringify(body)});return result;}catch(err){return null;}},[execute,requester]);const put=(0,react.useCallback)(async function(url,body){let options=arguments.length>2&&arguments[2]!==undefined?arguments[2]:{};try{const result=await execute(requester,url,{...options,method:"PUT",headers:{"Content-Type":"application/json",...options.headers},body:JSON.stringify(body)});return result;}catch(err){return null;}},[execute,requester]);const del=(0,react.useCallback)(async function(url){let options=arguments.length>1&&arguments[1]!==undefined?arguments[1]:{};try{const result=await execute(requester,url,{...options,method:"DELETE"});return result;}catch(err){return null;}},[execute,requester]);return{...asyncState,get,post,put,del};};const useGet=url=>{const{get,...fetchState}=useFetch();(0,react.useEffect)(()=>{if(url)get(url);},[url,get]);return{...fetchState};};
+;// CONCATENATED MODULE: ./src/config/app.js
+const APP_NAME="KISS Translator".trim().split(/\s+/).join("-");const APP_LCNAME=APP_NAME.toLowerCase();const APP_CONSTS={fabID:"".concat(APP_LCNAME,"-fab"),boxID:"".concat(APP_LCNAME,"-box")};const APP_VERSION="2.0.0".split(".");const THEME_LIGHT="light";const THEME_DARK="dark";
+;// CONCATENATED MODULE: ./src/config/api.js
+const DEFAULT_HTTP_TIMEOUT=10000;// 调用超时时间
+const DEFAULT_FETCH_LIMIT=10;// 默认最大任务数量
+const DEFAULT_FETCH_INTERVAL=100;// 默认任务间隔时间
+const DEFAULT_BATCH_INTERVAL=1000;// 批处理请求间隔时间
+const DEFAULT_BATCH_SIZE=10;// 每次最多发送段落数量
+const DEFAULT_BATCH_LENGTH=10000;// 每次发送最大文字数量
+const DEFAULT_CONTEXT_SIZE=3;// 上下文会话数量
+const INPUT_PLACE_URL="{{url}}";// 占位符
+const INPUT_PLACE_FROM="{{from}}";// 占位符
+const INPUT_PLACE_TO="{{to}}";// 占位符
+const INPUT_PLACE_TEXT="{{text}}";// 占位符
+const INPUT_PLACE_KEY="{{key}}";// 占位符
+const INPUT_PLACE_MODEL="{{model}}";// 占位符
+// export const OPT_DICT_BAIDU = "Baidu";
+const OPT_DICT_BING="Bing";const OPT_DICT_YOUDAO="Youdao";const OPT_DICT_ALL=[OPT_DICT_BING,OPT_DICT_YOUDAO];const OPT_DICT_MAP=new Set(OPT_DICT_ALL);const OPT_SUG_BAIDU="Baidu";const OPT_SUG_YOUDAO="Youdao";const OPT_SUG_ALL=[OPT_SUG_BAIDU,OPT_SUG_YOUDAO];const OPT_SUG_MAP=new Set(OPT_SUG_ALL);const OPT_TRANS_BUILTINAI="BuiltinAI";const OPT_TRANS_GOOGLE="Google";const OPT_TRANS_GOOGLE_2="Google2";const OPT_TRANS_MICROSOFT="Microsoft";const OPT_TRANS_AZUREAI="AzureAI";const OPT_TRANS_DEEPL="DeepL";const OPT_TRANS_DEEPLX="DeepLX";const OPT_TRANS_DEEPLFREE="DeepLFree";const OPT_TRANS_NIUTRANS="NiuTrans";const OPT_TRANS_BAIDU="Baidu";const OPT_TRANS_TENCENT="Tencent";const OPT_TRANS_VOLCENGINE="Volcengine";const OPT_TRANS_OPENAI="OpenAI";const OPT_TRANS_GEMINI="Gemini";const OPT_TRANS_GEMINI_2="Gemini2";const OPT_TRANS_CLAUDE="Claude";const OPT_TRANS_CLOUDFLAREAI="CloudflareAI";const OPT_TRANS_OLLAMA="Ollama";const OPT_TRANS_OPENROUTER="OpenRouter";const OPT_TRANS_CUSTOMIZE="Custom";// 内置支持的翻译引擎
+const OPT_ALL_TYPES=[OPT_TRANS_BUILTINAI,OPT_TRANS_GOOGLE,OPT_TRANS_GOOGLE_2,OPT_TRANS_MICROSOFT,OPT_TRANS_AZUREAI,// OPT_TRANS_BAIDU,
+OPT_TRANS_TENCENT,OPT_TRANS_VOLCENGINE,OPT_TRANS_DEEPL,OPT_TRANS_DEEPLFREE,OPT_TRANS_DEEPLX,OPT_TRANS_NIUTRANS,OPT_TRANS_OPENAI,OPT_TRANS_GEMINI,OPT_TRANS_GEMINI_2,OPT_TRANS_CLAUDE,OPT_TRANS_CLOUDFLAREAI,OPT_TRANS_OLLAMA,OPT_TRANS_OPENROUTER,OPT_TRANS_CUSTOMIZE];const OPT_LANGDETECTOR_ALL=[OPT_TRANS_BUILTINAI,OPT_TRANS_GOOGLE,OPT_TRANS_MICROSOFT,OPT_TRANS_BAIDU,OPT_TRANS_TENCENT];const OPT_LANGDETECTOR_MAP=new Set(OPT_LANGDETECTOR_ALL);// 翻译引擎特殊集合
+const API_SPE_TYPES={// 内置翻译
+builtin:new Set(OPT_ALL_TYPES),// 机器翻译
+machine:new Set([OPT_TRANS_MICROSOFT,OPT_TRANS_DEEPLFREE,OPT_TRANS_BAIDU,OPT_TRANS_TENCENT,OPT_TRANS_VOLCENGINE]),// AI翻译
+ai:new Set([OPT_TRANS_OPENAI,OPT_TRANS_GEMINI,OPT_TRANS_GEMINI_2,OPT_TRANS_CLAUDE,OPT_TRANS_OLLAMA,OPT_TRANS_OPENROUTER]),// 支持多key
+mulkeys:new Set([OPT_TRANS_AZUREAI,OPT_TRANS_DEEPL,OPT_TRANS_OPENAI,OPT_TRANS_GEMINI,OPT_TRANS_GEMINI_2,OPT_TRANS_CLAUDE,OPT_TRANS_CLOUDFLAREAI,OPT_TRANS_OLLAMA,OPT_TRANS_OPENROUTER,OPT_TRANS_NIUTRANS,OPT_TRANS_CUSTOMIZE]),// 支持批处理
+batch:new Set([OPT_TRANS_AZUREAI,OPT_TRANS_GOOGLE_2,OPT_TRANS_MICROSOFT,OPT_TRANS_TENCENT,OPT_TRANS_DEEPL,OPT_TRANS_OPENAI,OPT_TRANS_GEMINI,OPT_TRANS_GEMINI_2,OPT_TRANS_CLAUDE,OPT_TRANS_OLLAMA,OPT_TRANS_OPENROUTER,OPT_TRANS_CUSTOMIZE]),// 支持上下文
+context:new Set([OPT_TRANS_OPENAI,OPT_TRANS_GEMINI,OPT_TRANS_GEMINI_2,OPT_TRANS_CLAUDE,OPT_TRANS_OLLAMA,OPT_TRANS_OPENROUTER,OPT_TRANS_CUSTOMIZE])};const BUILTIN_STONES=["formal",// 正式风格
+"casual",// 口语风格
+"neutral",// 中性风格
+"technical",// 技术风格
+"marketing",// 营销风格
+"Literary",// 文学风格
+"academic",// 学术风格
+"legal",// 法律风格
+"literal",// 直译风格
+"ldiomatic",// 意译风格
+"transcreation",// 创译风格
+"machine-like",// 机器风格
+"concise"// 简明风格
+];const BUILTIN_PLACEHOLDERS=["{ }","{{ }}","[ ]","[[ ]]"];const BUILTIN_PLACETAGS=["i","a","b","x"];const OPT_LANGS_TO=[["en","English - English"],["zh-CN","Simplified Chinese - 简体中文"],["zh-TW","Traditional Chinese - 繁體中文"],["ar","Arabic - العربية"],["bg","Bulgarian - Български"],["ca","Catalan - Català"],["hr","Croatian - Hrvatski"],["cs","Czech - Čeština"],["da","Danish - Dansk"],["nl","Dutch - Nederlands"],["fi","Finnish - Suomi"],["fr","French - Français"],["de","German - Deutsch"],["el","Greek - Ελληνικά"],["hi","Hindi - हिन्दी"],["hu","Hungarian - Magyar"],["id","Indonesian - Indonesia"],["it","Italian - Italiano"],["ja","Japanese - 日本語"],["ko","Korean - 한국어"],["ms","Malay - Melayu"],["mt","Maltese - Malti"],["nb","Norwegian - Norsk Bokmål"],["pl","Polish - Polski"],["pt","Portuguese - Português"],["ro","Romanian - Română"],["ru","Russian - Русский"],["sk","Slovak - Slovenčina"],["sl","Slovenian - Slovenščina"],["es","Spanish - Español"],["sv","Swedish - Svenska"],["ta","Tamil - தமிழ்"],["te","Telugu - తెలుగు"],["th","Thai - ไทย"],["tr","Turkish - Türkçe"],["uk","Ukrainian - Українська"],["vi","Vietnamese - Tiếng Việt"]];const OPT_LANGS_LIST=OPT_LANGS_TO.map(_ref=>{let[lang]=_ref;return lang;});const OPT_LANGS_FROM=[["auto","Auto-detect"],...OPT_LANGS_TO];const OPT_LANGS_MAP=new Map(OPT_LANGS_TO);// CODE->名称
+const OPT_LANGS_SPEC_NAME=new Map(OPT_LANGS_FROM.map(_ref2=>{let[key,val]=_ref2;return[key,val.split(" - ")[0]];}));const OPT_LANGS_SPEC_DEFAULT=new Map(OPT_LANGS_FROM.map(_ref3=>{let[key]=_ref3;return[key,key];}));const OPT_LANGS_SPEC_DEFAULT_UC=new Map(OPT_LANGS_FROM.map(_ref4=>{let[key]=_ref4;return[key,key.toUpperCase()];}));const OPT_LANGS_TO_SPEC={[OPT_TRANS_BUILTINAI]:new Map([...OPT_LANGS_SPEC_DEFAULT,["zh-CN","zh"],["zh-TW","zh"]]),[OPT_TRANS_GOOGLE]:OPT_LANGS_SPEC_DEFAULT,[OPT_TRANS_GOOGLE_2]:OPT_LANGS_SPEC_DEFAULT,[OPT_TRANS_MICROSOFT]:new Map([...OPT_LANGS_SPEC_DEFAULT,["auto",""],["zh-CN","zh-Hans"],["zh-TW","zh-Hant"]]),[OPT_TRANS_AZUREAI]:new Map([...OPT_LANGS_SPEC_DEFAULT,["auto",""],["zh-CN","zh-Hans"],["zh-TW","zh-Hant"]]),[OPT_TRANS_DEEPL]:new Map([...OPT_LANGS_SPEC_DEFAULT_UC,["auto",""],["zh-CN","ZH"],["zh-TW","ZH"]]),[OPT_TRANS_DEEPLFREE]:new Map([...OPT_LANGS_SPEC_DEFAULT_UC,["auto","auto"],["zh-CN","ZH"],["zh-TW","ZH"]]),[OPT_TRANS_DEEPLX]:new Map([...OPT_LANGS_SPEC_DEFAULT_UC,["auto","auto"],["zh-CN","ZH"],["zh-TW","ZH"]]),[OPT_TRANS_NIUTRANS]:new Map([...OPT_LANGS_SPEC_DEFAULT,["auto","auto"],["zh-CN","zh"],["zh-TW","cht"]]),[OPT_TRANS_VOLCENGINE]:new Map([...OPT_LANGS_SPEC_DEFAULT,["auto","auto"],["zh-CN","zh"],["zh-TW","zh-Hant"]]),[OPT_TRANS_BAIDU]:new Map([...OPT_LANGS_SPEC_DEFAULT,["zh-CN","zh"],["zh-TW","cht"],["ar","ara"],["bg","bul"],["ca","cat"],["hr","hrv"],["da","dan"],["fi","fin"],["fr","fra"],["hi","mai"],["ja","jp"],["ko","kor"],["ms","may"],["mt","mlt"],["nb","nor"],["ro","rom"],["ru","ru"],["sl","slo"],["es","spa"],["sv","swe"],["ta","tam"],["te","tel"],["uk","ukr"],["vi","vie"]]),[OPT_TRANS_TENCENT]:new Map([["auto","auto"],["zh-CN","zh"],["zh-TW","zh"],["en","en"],["ar","ar"],["de","de"],["ru","ru"],["fr","fr"],["fi","fil"],["ko","ko"],["ms","ms"],["pt","pt"],["ja","ja"],["th","th"],["tr","tr"],["es","es"],["it","it"],["hi","hi"],["id","id"],["vi","vi"]]),[OPT_TRANS_OPENAI]:OPT_LANGS_SPEC_DEFAULT,[OPT_TRANS_GEMINI]:OPT_LANGS_SPEC_DEFAULT,[OPT_TRANS_GEMINI_2]:OPT_LANGS_SPEC_DEFAULT,[OPT_TRANS_CLAUDE]:OPT_LANGS_SPEC_DEFAULT,[OPT_TRANS_OLLAMA]:OPT_LANGS_SPEC_DEFAULT,[OPT_TRANS_OPENROUTER]:OPT_LANGS_SPEC_DEFAULT,[OPT_TRANS_CLOUDFLAREAI]:OPT_LANGS_SPEC_DEFAULT,[OPT_TRANS_CUSTOMIZE]:OPT_LANGS_SPEC_DEFAULT};const specToCode=m=>new Map(Array.from(m.entries()).map(_ref5=>{let[k,v]=_ref5;if(v===""){return["auto","auto"];}if(v==="zh"||v==="ZH"){return[v,"zh-CN"];}return[v,k];}));// 名称->CODE
+const OPT_LANGS_TO_CODE={};Object.entries(OPT_LANGS_TO_SPEC).forEach(_ref6=>{let[t,m]=_ref6;OPT_LANGS_TO_CODE[t]=specToCode(m);});const defaultSystemPrompt="Act as a translation API. Output a single raw JSON object only. No extra text or fences.\n\nInput:\n{\"targetLanguage\":\"<lang>\",\"title\":\"<context>\",\"description\":\"<context>\",\"segments\":[{\"id\":1,\"text\":\"...\"}],\"glossary\":{\"sourceTerm\":\"targetTerm\"},\"tone\":\"<formal|casual>\"}\n\nOutput:\n{\"translations\":[{\"id\":1,\"text\":\"...\",\"sourceLanguage\":\"<detected>\"}]}\n\nRules:\n1.  Use title/description for context only; do not output them.\n2.  Keep id, order, and count of segments.\n3.  Preserve whitespace, HTML entities, and all HTML-like tags (e.g., <i1>, <a1>). Translate inner text only.\n4.  Highest priority: Follow 'glossary'. Use value for translation; if value is \"\", keep the key.\n5.  Do not translate: content in <code>, <pre>, text enclosed in backticks, or placeholders like {1}, {{1}}, [1], [[1]].\n6.  Apply the specified tone to the translation.\n7.  Detect sourceLanguage for each segment.\n8.  Return empty or unchanged inputs as is.\n\nExample:\nInput: {\"targetLanguage\":\"zh-CN\",\"segments\":[{\"id\":1,\"text\":\"A <b>React</b> component.\"}],\"glossary\":{\"component\":\"\u7EC4\u4EF6\",\"React\":\"\"}}\nOutput: {\"translations\":[{\"id\":1,\"text\":\"\u4E00\u4E2A<b>React</b>\u7EC4\u4EF6\",\"sourceLanguage\":\"en\"}]}\n\nFail-safe: On any error, return {\"translations\":[]}.";// const defaultSubtitlePrompt = `Goal: Convert raw subtitle event JSON into a clean, sentence-based JSON array.
+// Output (valid JSON array, output ONLY this array):
+// [{
+//   "text": "string",        // Full sentence with correct punctuation
+//   "translation": "string", // Translation in ${INPUT_PLACE_TO}
+//   "start": int,            // Start time (ms)
+//   "end": int,              // End time (ms)
+// }]
+// Guidelines:
+// 1. **Segmentation**: Merge sequential 'utf8' strings from 'segs' into full sentences, merging groups logically.
+// 2. **Punctuation**: Ensure proper sentence-final punctuation (., ?, !); add if missing.
+// 3. **Translation**: Translate 'text' into ${INPUT_PLACE_TO}, place result in 'translation'.
+// 4. **Special Cases**: '[Music]' (and similar cues) are standalone entries. Translate appropriately (e.g., '[音乐]', '[Musique]').
+// `;
+const defaultSubtitlePrompt="You are an expert AI for subtitle generation. Convert a JSON array of word-level timestamps into a bilingual VTT file.\n\n**Workflow:**\n1. Merge `text` fields into complete sentences; ignore empty text.\n2. Split long sentences into smaller, manageable subtitle cues (one sentence per cue).\n3. Translate each cue into ".concat(INPUT_PLACE_TO,".\n4. Format as VTT:\n   - Start with `WEBVTT`.\n   - Each cue: timestamps (`start --> end` in milliseconds), original text, translated text.\n   - Keep non-speech text (e.g., `[Music]`) untranslated.\n   - Separate cues with a blank line.\n\n**Output:** Only the pure VTT content.\n\n**Example:**\n```vtt\nWEBVTT\n\n1000 --> 3500\nHello world!\n\u4F60\u597D\uFF0C\u4E16\u754C\uFF01\n\n4000 --> 6000\nGood morning.\n\u65E9\u4E0A\u597D\u3002\n```");const defaultRequestHook="async (args, { url, body, headers, userMsg, method } = {}) => {\n  console.log(\"request hook args:\", args);\n  // return { url, body, headers, userMsg, method };\n}";const defaultResponseHook="async ({ res, ...args }) => {\n  console.log(\"reaponse hook args:\", res, args);\n  // const translations = [[\"\u4F60\u597D\", \"zh\"]];\n  // const modelMsg = \"\";\n  // return { translations, modelMsg };\n}";// 翻译接口默认参数
+const defaultApi={apiSlug:"",// 唯一标识
+apiName:"",// 接口名称
+apiType:"",// 接口类型
+url:"",key:"",model:"",// 模型名称
+systemPrompt:defaultSystemPrompt,subtitlePrompt:defaultSubtitlePrompt,userPrompt:"",tone:BUILTIN_STONES[0],// 翻译风格
+placeholder:BUILTIN_PLACEHOLDERS[0],// 占位符
+placetag:[BUILTIN_PLACETAGS[0]],// 占位标签
+// aiTerms: false, // AI智能专业术语 （todo: 备用）
+customHeader:"",customBody:"",reqHook:"",// request 钩子函数
+resHook:"",// response 钩子函数
+fetchLimit:DEFAULT_FETCH_LIMIT,// 最大请求数量
+fetchInterval:DEFAULT_FETCH_INTERVAL,// 请求间隔时间
+httpTimeout:DEFAULT_HTTP_TIMEOUT*30,// 请求超时时间
+batchInterval:DEFAULT_BATCH_INTERVAL,// 批处理请求间隔时间
+batchSize:DEFAULT_BATCH_SIZE,// 每次最多发送段落数量
+batchLength:DEFAULT_BATCH_LENGTH,// 每次发送最大文字数量
+useBatchFetch:false,// 是否启用聚合发送请求
+useContext:false,// 是否启用智能上下文
+contextSize:DEFAULT_CONTEXT_SIZE,// 智能上下文保留会话数
+temperature:0,maxTokens:20480,think:false,thinkIgnore:"qwen3,deepseek-r1",isDisabled:false,// 是否不显示,
+region:""// Azure 专用
+};const defaultApiOpts={[OPT_TRANS_BUILTINAI]:defaultApi,[OPT_TRANS_GOOGLE]:{...defaultApi,url:"https://translate.googleapis.com/translate_a/single"},[OPT_TRANS_GOOGLE_2]:{...defaultApi,url:"https://translate-pa.googleapis.com/v1/translateHtml",key:"AIzaSyATBXajvzQLTDHEQbcpq0Ihe0vWDHmO520",useBatchFetch:true},[OPT_TRANS_MICROSOFT]:{...defaultApi,useBatchFetch:true},[OPT_TRANS_AZUREAI]:{...defaultApi,url:"https://api.cognitive.microsofttranslator.com/translate?api-version=3.0",useBatchFetch:true},[OPT_TRANS_BAIDU]:{...defaultApi},[OPT_TRANS_TENCENT]:{...defaultApi,useBatchFetch:true},[OPT_TRANS_VOLCENGINE]:{...defaultApi},[OPT_TRANS_DEEPL]:{...defaultApi,url:"https://api-free.deepl.com/v2/translate",useBatchFetch:true},[OPT_TRANS_DEEPLFREE]:{...defaultApi,fetchLimit:1},[OPT_TRANS_DEEPLX]:{...defaultApi,url:"http://localhost:1188/translate",fetchLimit:1},[OPT_TRANS_NIUTRANS]:{...defaultApi,url:"https://api.niutrans.com/NiuTransServer/translation",dictNo:"",memoryNo:""},[OPT_TRANS_OPENAI]:{...defaultApi,url:"https://api.openai.com/v1/chat/completions",model:"gpt-4",useBatchFetch:true,fetchLimit:1},[OPT_TRANS_GEMINI]:{...defaultApi,url:"https://generativelanguage.googleapis.com/v1/models/".concat(INPUT_PLACE_MODEL,":generateContent?key=").concat(INPUT_PLACE_KEY),model:"gemini-2.5-flash",useBatchFetch:true},[OPT_TRANS_GEMINI_2]:{...defaultApi,url:"https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",model:"gemini-2.0-flash",useBatchFetch:true},[OPT_TRANS_CLAUDE]:{...defaultApi,url:"https://api.anthropic.com/v1/messages",model:"claude-3-haiku-20240307",useBatchFetch:true},[OPT_TRANS_CLOUDFLAREAI]:{...defaultApi,url:"https://api.cloudflare.com/client/v4/accounts/{{ACCOUNT_ID}}/ai/run/@cf/meta/m2m100-1.2b"},[OPT_TRANS_OLLAMA]:{...defaultApi,url:"http://localhost:11434/v1/chat/completions",model:"llama3.1",useBatchFetch:true},[OPT_TRANS_OPENROUTER]:{...defaultApi,url:"https://openrouter.ai/api/v1/chat/completions",model:"openai/gpt-4o",useBatchFetch:true},[OPT_TRANS_CUSTOMIZE]:{...defaultApi,url:"https://translate.googleapis.com/translate_a/single?client=gtx&dj=1&dt=t&ie=UTF-8&q={{text}}&sl=en&tl=zh-CN",reqHook:defaultRequestHook,resHook:defaultResponseHook}};// 内置翻译接口列表（带参数）
+const DEFAULT_API_LIST=OPT_ALL_TYPES.map(apiType=>({...defaultApiOpts[apiType],apiSlug:apiType,apiName:apiType,apiType}));const DEFAULT_API_TYPE=OPT_TRANS_MICROSOFT;const DEFAULT_API_SETTING=DEFAULT_API_LIST[DEFAULT_API_TYPE];
 ;// CONCATENATED MODULE: ./src/config/rules.js
-const GLOBAL_KEY="*";const REMAIN_KEY="-";const SHADOW_KEY=">>>";const DEFAULT_SELECTOR=":is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote, .kiss-p)";const DEFAULT_KEEP_SELECTOR="code, img, svg, pre";const DEFAULT_RULE={pattern:"",// 匹配网址
+const GLOBAL_KEY="*";const REMAIN_KEY="-";const SHADOW_KEY=">>>";const DEFAULT_COLOR="#209CEE";// 默认高亮背景色/线条颜色
+const DEFAULT_TRANS_TAG="font";const DEFAULT_SELECT_STYLE="-webkit-line-clamp: unset; max-height: none; height: auto;";const OPT_STYLE_NONE="style_none";// 无
+const OPT_STYLE_LINE="under_line";// 下划线
+const OPT_STYLE_DOTLINE="dot_line";// 点状线
+const OPT_STYLE_DASHLINE="dash_line";// 虚线
+const OPT_STYLE_DASHBOX="dash_box";// 虚线框
+const OPT_STYLE_WAVYLINE="wavy_line";// 波浪线
+const OPT_STYLE_FUZZY="fuzzy";// 模糊
+const OPT_STYLE_HIGHLIGHT="highlight";// 高亮
+const OPT_STYLE_BLOCKQUOTE="blockquote";// 引用
+const OPT_STYLE_GRADIENT="gradient";// 渐变
+const OPT_STYLE_BLINK="blink";// 闪现
+const OPT_STYLE_GLOW="glow";// 发光
+const OPT_STYLE_DIY="diy_style";// 自定义样式
+const OPT_STYLE_ALL=[OPT_STYLE_NONE,OPT_STYLE_LINE,OPT_STYLE_DOTLINE,OPT_STYLE_DASHLINE,OPT_STYLE_WAVYLINE,OPT_STYLE_DASHBOX,OPT_STYLE_FUZZY,OPT_STYLE_HIGHLIGHT,OPT_STYLE_BLOCKQUOTE,OPT_STYLE_GRADIENT,OPT_STYLE_BLINK,OPT_STYLE_GLOW,OPT_STYLE_DIY];const OPT_STYLE_USE_COLOR=[OPT_STYLE_LINE,OPT_STYLE_DOTLINE,OPT_STYLE_DASHLINE,OPT_STYLE_DASHBOX,OPT_STYLE_WAVYLINE,OPT_STYLE_HIGHLIGHT,OPT_STYLE_BLOCKQUOTE];const OPT_TIMING_PAGESCROLL="mk_pagescroll";// 滚动加载翻译
+const OPT_TIMING_PAGEOPEN="mk_pageopen";// 直接翻译到底
+const OPT_TIMING_MOUSEOVER="mk_mouseover";const OPT_TIMING_CONTROL="mk_ctrlKey";const OPT_TIMING_SHIFT="mk_shiftKey";const OPT_TIMING_ALT="mk_altKey";const OPT_TIMING_ALL=[OPT_TIMING_PAGESCROLL,OPT_TIMING_PAGEOPEN,OPT_TIMING_MOUSEOVER,OPT_TIMING_CONTROL,OPT_TIMING_SHIFT,OPT_TIMING_ALT];const DEFAULT_DIY_STYLE="color: #333;\nbackground: linear-gradient(\n  45deg,\n  LightGreen 20%,\n  LightPink 20% 40%,\n  LightSalmon 40% 60%,\n  LightSeaGreen 60% 80%,\n  LightSkyBlue 80%\n);\n&:hover {\n  color: #111;\n};";const DEFAULT_SELECTOR="h1, h2, h3, h4, h5, h6, li, p, dd, blockquote, figcaption, label, legend";const DEFAULT_IGNORE_SELECTOR="aside, button, footer, form, pre, mark, nav";const DEFAULT_KEEP_SELECTOR="a:has(code)";const DEFAULT_RULE={pattern:"",// 匹配网址
 selector:"",// 选择器
 keepSelector:"",// 保留元素选择器
 terms:"",// 专业术语
-translator:GLOBAL_KEY,// 翻译服务
+aiTerms:"",// AI专业术语
+apiSlug:GLOBAL_KEY,// 翻译服务
 fromLang:GLOBAL_KEY,// 源语言
 toLang:GLOBAL_KEY,// 目标语言
 textStyle:GLOBAL_KEY,// 译文样式
@@ -34730,118 +34915,161 @@ bgColor:"",// 译文颜色
 textDiyStyle:"",// 自定义译文样式
 selectStyle:"",// 选择器节点样式
 parentStyle:"",// 选择器父节点样式
+grandStyle:"",// 选择器父节点样式
 injectJs:"",// 注入JS
 injectCss:"",// 注入CSS
 transOnly:GLOBAL_KEY,// 是否仅显示译文
-transTiming:GLOBAL_KEY,// 翻译时机/鼠标悬停翻译
+// transTiming: GLOBAL_KEY, // 翻译时机/鼠标悬停翻译  (暂时作废)
 transTag:GLOBAL_KEY,// 译文元素标签
 transTitle:GLOBAL_KEY,// 是否同时翻译页面标题
-transSelected:GLOBAL_KEY,// 是否启用划词翻译
-detectRemote:GLOBAL_KEY,// 是否使用远程语言检测
-skipLangs:[],// 不翻译的语言
-fixerSelector:"",// 修复函数选择器
-fixerFunc:GLOBAL_KEY,// 修复函数
+// transSelected: GLOBAL_KEY, // 是否启用划词翻译 (移回setting)
+// detectRemote: GLOBAL_KEY, // 是否使用远程语言检测 (移回setting)
+// skipLangs: [], // 不翻译的语言 (移回setting)
+// fixerSelector: "", // 修复函数选择器 (暂时作废)
+// fixerFunc: GLOBAL_KEY, // 修复函数 (暂时作废)
 transStartHook:"",// 钩子函数
 transEndHook:"",// 钩子函数
-transRemoveHook:""// 钩子函数
-};const DEFAULT_DIY_STYLE="color: #666;\nbackground: linear-gradient(\n  45deg,\n  LightGreen 20%,\n  LightPink 20% 40%,\n  LightSalmon 40% 60%,\n  LightSeaGreen 60% 80%,\n  LightSkyBlue 80%\n);\n&:hover {\n  color: #333;\n};";const DEFAULT_OW_RULE={translator:REMAIN_KEY,fromLang:REMAIN_KEY,toLang:REMAIN_KEY,textStyle:REMAIN_KEY,transOpen:REMAIN_KEY,bgColor:"",textDiyStyle:DEFAULT_DIY_STYLE};const RULES_MAP={"www.google.com/search":{selector:"h3, .IsZvec, .VwiC3b"},"news.google.com":{selector:"[data-n-tid], ".concat(DEFAULT_SELECTOR)},"www.foxnews.com":{selector:"h1, h2, .title, .sidebar [data-type=\"Title\"], .article-content ".concat(DEFAULT_SELECTOR,"; [data-spotim-module=\"conversation\"]>div >>> [data-spot-im-class=\"message-text\"] p,  [data-spot-im-class=\"message-text\"]")},"bearblog.dev, www.theverge.com, www.tampermonkey.net/documentation.php":{selector:"".concat(DEFAULT_SELECTOR)},"themessenger.com":{selector:".leading-tight, .leading-tighter, .my-2 p, .font-body p, article ".concat(DEFAULT_SELECTOR)},"www.telegraph.co.uk, go.dev/doc/":{selector:"article ".concat(DEFAULT_SELECTOR)},"www.theguardian.com":{selector:".show-underline, .dcr-hup5wm div, .dcr-7vl6y8 div, .dcr-12evv1c, figcaption, article ".concat(DEFAULT_SELECTOR,", [data-cy=\"mostviewed-footer\"] h4")},"www.semafor.com":{selector:"".concat(DEFAULT_SELECTOR,", .styles_intro__IYj__, [class*=\"styles_description\"]")},"www.noemamag.com":{selector:".splash__title, .single-card__title, .single-card__type, .single-card__topic, .highlighted-content__title, .single-card__author, article ".concat(DEFAULT_SELECTOR,", .quote__text, .wp-caption-text div")},"restofworld.org":{selector:"".concat(DEFAULT_SELECTOR,", .recirc-story__headline, .recirc-story__dek")},"www.axios.com":{selector:".h7, ".concat(DEFAULT_SELECTOR)},"www.newyorker.com":{selector:".summary-item__hed, .summary-item__dek, .summary-collection-grid__dek, .dqtvfu, .rubric__link, .caption, article ".concat(DEFAULT_SELECTOR,", .HEhan ").concat(DEFAULT_SELECTOR,", .ContributorBioBio-fBolsO, .BaseText-ewhhUZ")},"time.com":{selector:"h1, h3, .summary, .video-title, #article-body ".concat(DEFAULT_SELECTOR,", .image-wrap-container .credit.body-caption, .media-heading")},"www.dw.com":{selector:".ts-teaser-title a, .news-title a, .title a, .teaser-description a, .hbudab h3, .hbudab p, figcaption ,article ".concat(DEFAULT_SELECTOR)},"www.bbc.com":{selector:"h1, h2, .media__link, .media__summary, article ".concat(DEFAULT_SELECTOR,", .ssrcss-y7krbn-Stack, .ssrcss-17zglt8-PromoHeadline, .ssrcss-18cjaf3-Headline, .gs-c-promo-heading__title, .gs-c-promo-summary, .media__content h3, .article__intro, .lx-c-summary-points>li")},"www.chinadaily.com.cn":{selector:"h1, .tMain [shape=\"rect\"], .cMain [shape=\"rect\"], .photo_art [shape=\"rect\"], .mai_r [shape=\"rect\"], .lisBox li, #Content ".concat(DEFAULT_SELECTOR)},"www.facebook.com":{selector:"[role=\"main\"] [dir=\"auto\"]"},"www.reddit.com, new.reddit.com, sh.reddit.com":{selector:":is(#AppRouter-main-content, #overlayScrollContainer) :is([class^=tbIA],[class^=_1zP],[class^=ULWj],[class^=_2Jj], [class^=_334],[class^=_2Gr],[class^=_7T4],[class^=_1WO], ".concat(DEFAULT_SELECTOR,"); [id^=\"post-title\"], :is([slot=\"text-body\"], [slot=\"comment\"]) ").concat(DEFAULT_SELECTOR,", recent-posts h3, aside :is(span:has(>h2), p); shreddit-subreddit-header >>> :is(#title, #description)")},"www.quora.com":{selector:".qu-wordBreak--break-word"},"edition.cnn.com":{selector:".container__title, .container__headline, .headline__text, .image__caption, [data-type=\"Title\"], .article__content ".concat(DEFAULT_SELECTOR)},"www.reuters.com":{selector:"#main-content [data-testid=\"Heading\"], #main-content [data-testid=\"Body\"], .article-body__content__17Yit ".concat(DEFAULT_SELECTOR)},"www.bloomberg.com":{selector:"[data-component=\"headline\"], [data-component=\"related-item-headline\"], [data-component=\"title\"], article ".concat(DEFAULT_SELECTOR)},"deno.land, docs.github.com":{selector:"main ".concat(DEFAULT_SELECTOR),keepSelector:DEFAULT_KEEP_SELECTOR},"doc.rust-lang.org":{selector:".content ".concat(DEFAULT_SELECTOR),keepSelector:DEFAULT_KEEP_SELECTOR},"www.indiehackers.com":{selector:"h1, h3, .content ".concat(DEFAULT_SELECTOR,", .feed-item__title-link")},"platform.openai.com/docs":{selector:".docs-body ".concat(DEFAULT_SELECTOR),keepSelector:DEFAULT_KEEP_SELECTOR},"en.wikipedia.org":{selector:"h1, .mw-parser-output ".concat(DEFAULT_SELECTOR),keepSelector:".mwe-math-element"},"stackoverflow.com, serverfault.com, superuser.com, stackexchange.com, askubuntu.com, stackapps.com, mathoverflow.net":{selector:".s-prose ".concat(DEFAULT_SELECTOR,", .comment-copy, .question-hyperlink, .s-post-summary--content-title, .s-post-summary--content-excerpt"),keepSelector:"".concat(DEFAULT_KEEP_SELECTOR,", .math-container")},"www.npmjs.com/package, developer.chrome.com/docs, medium.com, react.dev, create-react-app.dev, pytorch.org":{selector:"article ".concat(DEFAULT_SELECTOR)},"news.ycombinator.com":{selector:".title, p",fixerSelector:".toptext, .commtext",fixerFunc:FIXER_BR},"github.com":{selector:".markdown-body ".concat(DEFAULT_SELECTOR,", .repo-description p, .Layout-sidebar .f4, .container-lg .py-4 .f5, .container-lg .my-4 .f5, .Box-row .pr-4, .Box-row article .mt-1, [itemprop=\"description\"], .markdown-title, bdi, .ws-pre-wrap, .status-meta, span.status-meta, .col-10.color-fg-muted, .TimelineItem-body, .pinned-item-list-item-content .color-fg-muted, .markdown-body td, .markdown-body th"),keepSelector:DEFAULT_KEEP_SELECTOR},"twitter.com":{selector:"[data-testid=\"tweetText\"], [data-testid=\"birdwatch-pivot\"]>div.css-1rynq56",keepSelector:"img, a, .r-18u37iz, .css-175oi2r"},"m.youtube.com":{selector:".slim-video-information-title .yt-core-attributed-string, .media-item-headline .yt-core-attributed-string, .comment-text .yt-core-attributed-string, .typography-body-2b .yt-core-attributed-string, #ytp-caption-window-container .ytp-caption-segment",selectStyle:"-webkit-line-clamp: unset; max-height: none; height: auto;",parentStyle:"-webkit-line-clamp: unset; max-height: none; height: auto;",keepSelector:"img, #content-text>a"},"www.youtube.com":{selector:"h1, #video-title, #content-text, #title, yt-attributed-string>span>span, #ytp-caption-window-container .ytp-caption-segment",selectStyle:"-webkit-line-clamp: unset; max-height: none; height: auto;",parentStyle:"-webkit-line-clamp: unset; max-height: none; height: auto;",keepSelector:"img, #content-text>a"},"bard.google.com":{selector:".query-content ".concat(DEFAULT_SELECTOR,", message-content ").concat(DEFAULT_SELECTOR)},"www.bing.com, copilot.microsoft.com":{selector:".b_algoSlug, .rwrl_padref; .cib-serp-main >>> .ac-textBlock ".concat(DEFAULT_SELECTOR,", .text-message-content div")},"www.phoronix.com":{selector:"article ".concat(DEFAULT_SELECTOR),fixerSelector:".content",fixerFunc:FIXER_BR},"wx2.qq.com":{selector:".js_message_plain"},"app.slack.com/client/":{selector:".p-rich_text_section, .c-message_attachment__text, .p-rich_text_list li"},"discord.com/channels/":{selector:"div[class^=message], div[class^=headerText], div[class^=name_], section[aria-label='Search Results'] div[id^=message-content], div[id^=message]",keepSelector:"li[class^='card'] div[class^='message'], [class^='embedFieldValue'], [data-list-item-id^='forum-channel-list'] div[class^='headerText']"},"t.me/s/":{selector:".js-message_text ".concat(DEFAULT_SELECTOR),fixerSelector:".tgme_widget_message_text",fixerFunc:FIXER_BR},"web.telegram.org/k":{selector:"div.kiss-p",keepSelector:"div[class^=time], .peer-title, .document-wrapper, .message.spoilers-container custom-emoji-element, reactions-element",fixerSelector:".message",fixerFunc:FIXER_BN_DIV},"web.telegram.org/a":{selector:".text-content > .kiss-p",keepSelector:".Reactions, .time, .peer-title, .document-wrapper, .message.spoilers-container custom-emoji-element",fixerSelector:".text-content",fixerFunc:FIXER_BR_DIV},"www.instagram.com/":{selector:"h1, article span[dir=auto] > span[dir=auto], ._ab1y"},"www.instagram.com/p/,www.instagram.com/reels/":{selector:"h1, div[class='x9f619 xjbqb8w x78zum5 x168nmei x13lgxp2 x5pf9jr xo71vjh x1uhb9sk x1plvlek xryxfnj x1c4vz4f x2lah0s xdt5ytf xqjyukv x1cy8zhl x1oa3qoh x1nhvcw1'] > span[class='x1lliihq x1plvlek xryxfnj x1n2onr6 x193iq5w xeuugli x1fj9vlw x13faqbe x1vvkbs x1s928wv xhkezso x1gmr53x x1cpjm7i x1fgarty x1943h6x x1i0vuye xvs91rp xo1l8bm x5n08af x10wh9bi x1wdrske x8viiok x18hxmgj'], span[class='x193iq5w xeuugli x1fj9vlw x13faqbe x1vvkbs xt0psk2 x1i0vuye xvs91rp xo1l8bm x5n08af x10wh9bi x1wdrske x8viiok x18hxmgj']"},"mail.google.com":{selector:".a3s.aiL ".concat(DEFAULT_SELECTOR,", span[data-thread-id]"),fixerSelector:".a3s.aiL",fixerFunc:FIXER_BR},"web.whatsapp.com":{selector:".copyable-text > span"},"chat.openai.com":{selector:"div[data-message-author-role] > div ".concat(DEFAULT_SELECTOR),fixerSelector:"div[data-message-author-role='user'] > div",fixerFunc:FIXER_BN},"forum.ru-board.com":{selector:".tit, .dats, .kiss-p, .lgf ".concat(DEFAULT_SELECTOR),fixerSelector:"span.post",fixerFunc:FIXER_BR},"education.github.com":{selector:"".concat(DEFAULT_SELECTOR,", a, summary, span.Button-content")},"blogs.windows.com":{selector:"".concat(DEFAULT_SELECTOR,", .c-uhf-nav-link, figcaption"),fixerSelector:".t-content>div>ul>li",fixerFunc:FIXER_BR},"developer.apple.com/documentation/":{selector:"#main ".concat(DEFAULT_SELECTOR,", #main .abstract .content, #main .abstract.content, #main .link span"),keepSelector:DEFAULT_KEEP_SELECTOR},"greasyfork.org":{selector:"h2, .script-link, .script-description, #additional-info ".concat(DEFAULT_SELECTOR)},"www.fmkorea.com":{selector:"#container ".concat(DEFAULT_SELECTOR)},"forum.arduino.cc":{selector:".top-row>.title, .featured-topic>.title, .link-top-line>.title, .category-description, .topic-excerpt, .fancy-title, .cooked ".concat(DEFAULT_SELECTOR)},"docs.arduino.cc":{selector:"[class^=\"tutorial-module--left\"] ".concat(DEFAULT_SELECTOR)},"www.historydefined.net":{selector:".wp-element-caption, ".concat(DEFAULT_SELECTOR)},"gobyexample.com":{selector:".docs p",keepSelector:"code"},"go.dev/tour":{selector:"#left-side ".concat(DEFAULT_SELECTOR),keepSelector:"code, img, svg >>> code"},"pkg.go.dev":{selector:".Documentation-content ".concat(DEFAULT_SELECTOR),keepSelector:"".concat(DEFAULT_KEEP_SELECTOR,", a, span")},"docs.rs":{selector:".docblock ".concat(DEFAULT_SELECTOR,", .docblock-short"),keepSelector:"code >>> code"},"randomnerdtutorials.com":{selector:"article ".concat(DEFAULT_SELECTOR)},"notebooks.githubusercontent.com/view/ipynb":{selector:"#notebook-container ".concat(DEFAULT_SELECTOR),keepSelector:DEFAULT_KEEP_SELECTOR},"developers.cloudflare.com":{selector:"article ".concat(DEFAULT_SELECTOR,", .WorkerStarter--description"),keepSelector:"a[rel='noopener'], code"},"ubuntuforums.org":{fixerSelector:".postcontent",fixerFunc:FIXER_BR},"play.google.com/store/apps/details":{fixerSelector:"[data-g-id=\"description\"]",fixerFunc:FIXER_BR},"news.yahoo.co.jp/articles/":{fixerSelector:".sc-cTsKDU",fixerFunc:FIXER_BN},"chromereleases.googleblog.com":{fixerSelector:".post-content, .post-content > span, li > span",fixerFunc:FIXER_BR}};const BUILTIN_RULES=Object.entries(RULES_MAP).sort((a,b)=>a[0].localeCompare(b[0])).map(_ref=>{let[pattern,rule]=_ref;return{...DEFAULT_RULE,...rule,pattern};});
-;// CONCATENATED MODULE: ./src/config/app.js
-const APP_NAME="KISS Translator".trim().split(/\s+/).join("-");const APP_LCNAME=APP_NAME.toLowerCase();
-;// CONCATENATED MODULE: ./src/config/i18n.js
-const UI_LANGS=(/* unused pure expression or super */ null && ([["en","English"],["zh","中文"]]));const customApiLangs="[\"en\", \"English - English\"],\n[\"zh-CN\", \"Simplified Chinese - \u7B80\u4F53\u4E2D\u6587\"],\n[\"zh-TW\", \"Traditional Chinese - \u7E41\u9AD4\u4E2D\u6587\"],\n[\"ar\", \"Arabic - \u0627\u0644\u0639\u0631\u0628\u064A\u0629\"],\n[\"bg\", \"Bulgarian - \u0411\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438\"],\n[\"ca\", \"Catalan - Catal\xE0\"],\n[\"hr\", \"Croatian - Hrvatski\"],\n[\"cs\", \"Czech - \u010Ce\u0161tina\"],\n[\"da\", \"Danish - Dansk\"],\n[\"nl\", \"Dutch - Nederlands\"],\n[\"fi\", \"Finnish - Suomi\"],\n[\"fr\", \"French - Fran\xE7ais\"],\n[\"de\", \"German - Deutsch\"],\n[\"el\", \"Greek - \u0395\u03BB\u03BB\u03B7\u03BD\u03B9\u03BA\u03AC\"],\n[\"hi\", \"Hindi - \u0939\u093F\u0928\u094D\u0926\u0940\"],\n[\"hu\", \"Hungarian - Magyar\"],\n[\"id\", \"Indonesian - Indonesia\"],\n[\"it\", \"Italian - Italiano\"],\n[\"ja\", \"Japanese - \u65E5\u672C\u8A9E\"],\n[\"ko\", \"Korean - \uD55C\uAD6D\uC5B4\"],\n[\"ms\", \"Malay - Melayu\"],\n[\"mt\", \"Maltese - Malti\"],\n[\"nb\", \"Norwegian - Norsk Bokm\xE5l\"],\n[\"pl\", \"Polish - Polski\"],\n[\"pt\", \"Portuguese - Portugu\xEAs\"],\n[\"ro\", \"Romanian - Rom\xE2n\u0103\"],\n[\"ru\", \"Russian - \u0420\u0443\u0441\u0441\u043A\u0438\u0439\"],\n[\"sk\", \"Slovak - Sloven\u010Dina\"],\n[\"sl\", \"Slovenian - Sloven\u0161\u010Dina\"],\n[\"es\", \"Spanish - Espa\xF1ol\"],\n[\"sv\", \"Swedish - Svenska\"],\n[\"ta\", \"Tamil - \u0BA4\u0BAE\u0BBF\u0BB4\u0BCD\"],\n[\"te\", \"Telugu - \u0C24\u0C46\u0C32\u0C41\u0C17\u0C41\"],\n[\"th\", \"Thai - \u0E44\u0E17\u0E22\"],\n[\"tr\", \"Turkish - T\xFCrk\xE7e\"],\n[\"uk\", \"Ukrainian - \u0423\u043A\u0440\u0430\u0457\u043D\u0441\u044C\u043A\u0430\"],\n[\"vi\", \"Vietnamese - Ti\u1EBFng Vi\u1EC7t\"],\n";const customApiHelpZH="// \u8BF7\u6C42\u6570\u636E\u9ED8\u8BA4\u683C\u5F0F\n{\n  \"url\": \"{{url}}\",\n  \"method\": \"POST\",\n  \"headers\": {\n    \"Content-type\": \"application/json\",\n    \"Authorization\": \"Bearer {{key}}\"\n  },\n  \"body\": {\n    \"text\": \"{{text}}\", // \u5F85\u7FFB\u8BD1\u6587\u5B57\n    \"from\": \"{{from}}\", // \u6587\u5B57\u7684\u8BED\u8A00\uFF08\u53EF\u80FD\u4E3A\u7A7A\uFF09\n    \"to\": \"{{to}}\",     // \u76EE\u6807\u8BED\u8A00\n  },\n}\n\n\n// \u8FD4\u56DE\u6570\u636E\u9ED8\u8BA4\u683C\u5F0F\n{\n  text: \"\", // \u7FFB\u8BD1\u540E\u7684\u6587\u5B57\n  from: \"\", // \u8BC6\u522B\u7684\u6E90\u8BED\u8A00\n  to: \"\",   // \u76EE\u6807\u8BED\u8A00\uFF08\u53EF\u9009\uFF09\n}\n\n\n// Hook \u8303\u4F8B\n// URL\nhttps://translate.googleapis.com/translate_a/single?client=gtx&dj=1&dt=t&ie=UTF-8&q={{text}}&sl=en&tl=zh-CN\n\n// Request Hook\n(text, from, to, url, key) => [url, {\n  headers: {\n      \"Content-type\": \"application/json\",\n  },\n  method: \"GET\",\n  body: null,\n}]\n\n// Response Hook\n// \u5176\u4E2D\u8FD4\u56DE\u6570\u7EC4\u7B2C\u4E00\u4E2A\u503C\u8868\u793A\u8BD1\u6587\u5B57\u7B26\u4E32\uFF0C\u7B2C\u4E8C\u4E2A\u503C\u4E3A\u5E03\u5C14\u503C\uFF0C\u8868\u793A\u539F\u6587\u8BED\u8A00\u4E0E\u76EE\u6807\u8BED\u8A00\u662F\u5426\u76F8\u540C\n(res, text, from, to) => [res.sentences.map((item) => item.trans).join(\" \"), to === res.src]\n\n\n// \u652F\u6301\u7684\u8BED\u8A00\u4EE3\u7801\u5982\u4E0B\n".concat(customApiLangs,"\n");const customApiHelpEN="// Default request\n{\n  \"url\": \"{{url}}\",\n  \"method\": \"POST\",\n  \"headers\": {\n    \"Content-type\": \"application/json\",\n    \"Authorization\": \"Bearer {{key}}\"\n  },\n  \"body\": {\n    \"text\": \"{{text}}\", // Text to be translated\n    \"from\": \"{{from}}\", // The language of the text (may be empty)\n    \"to\": \"{{to}}\",     // Target language\n  },\n}\n\n\n// Default response\n{\n  text: \"\", // translated text\n  from: \"\", // Recognized source language\n  to: \"\",   // Target language (optional)\n}\n\n\n/// Hook Example\n// URL\nhttps://translate.googleapis.com/translate_a/single?client=gtx&dj=1&dt=t&ie=UTF-8&q={{text}}&sl=en&tl=zh-CN\n\n// Request Hook\n(text, from, to, url, key) => [url, {\n  headers: {\n      \"Content-type\": \"application/json\",\n  },\n  method: \"GET\",\n  body: null,\n}]\n\n// Response Hook\n// In the returned array, the first value is the translated string, while the second value is a boolean\n// that indicates whether the source language is the same as the target language.\n(res, text, from, to) => [res.sentences.map((item) => item.trans).join(\" \"), to === res.src]\n\n\n// The supported language codes are as follows\n".concat(customApiLangs,"\n");const I18N={app_name:{zh:"\u7B80\u7EA6\u7FFB\u8BD1",en:"KISS Translator"},translate:{zh:"\u7FFB\u8BD1",en:"Translate"},custom_api_help:{zh:customApiHelpZH,en:customApiHelpEN},translate_alt:{zh:"\u7FFB\u8BD1",en:"Translate"},basic_setting:{zh:"\u57FA\u672C\u8BBE\u7F6E",en:"Basic Setting"},rules_setting:{zh:"\u89C4\u5219\u8BBE\u7F6E",en:"Rules Setting"},apis_setting:{zh:"\u63A5\u53E3\u8BBE\u7F6E",en:"Apis Setting"},sync_setting:{zh:"\u540C\u6B65\u8BBE\u7F6E",en:"Sync Setting"},patch_setting:{zh:"\u8865\u4E01\u8BBE\u7F6E",en:"Patch Setting"},patch_setting_help:{zh:"\u9488\u5BF9\u4E00\u4E9B\u7279\u6B8A\u7F51\u7AD9\u7684\u4FEE\u6B63\u811A\u672C\uFF0C\u4EE5\u4FBF\u7FFB\u8BD1\u8F6F\u4EF6\u5F97\u5230\u66F4\u597D\u7684\u5C55\u793A\u6548\u679C\u3002",en:"Corrected scripts for some special websites so that the translation software can get better display results."},inject_webfix:{zh:"\u6CE8\u5165\u4FEE\u590D\u8865\u4E01",en:"Inject Webfix"},about:{zh:"\u5173\u4E8E",en:"About"},about_md:{zh:"README.md",en:"README.en.md"},about_md_local:{zh:"\u8BF7 [\u70B9\u51FB\u8FD9\u91CC](".concat("https://github.com/fishjar/kiss-translator",") \u67E5\u770B\u8BE6\u60C5\u3002"),en:"Please [click here](".concat("https://github.com/fishjar/kiss-translator",") for details.")},ui_lang:{zh:"\u754C\u9762\u8BED\u8A00",en:"Interface Language"},fetch_limit:{zh:"\u6700\u5927\u5E76\u53D1\u8BF7\u6C42\u6570\u91CF (1-100)",en:"Maximum Number Of Concurrent Requests (1-100)"},if_think:{zh:"\u542F\u7528\u6216\u7981\u7528\u6A21\u578B\u7684\u6DF1\u5EA6\u601D\u8003\u80FD\u529B",en:"Enable or disable the model\u2019s thinking behavior "},think:{zh:"\u542F\u7528\u6DF1\u5EA6\u601D\u8003",en:"enable thinking"},nothink:{zh:"\u7981\u7528\u6DF1\u5EA6\u601D\u8003",en:"disable thinking"},think_ignore:{zh:"\u5FFD\u7565\u4EE5\u4E0B\u6A21\u578B\u7684<think>\u8F93\u51FA,\u9017\u53F7(,)\u5206\u5272,\u5F53\u6A21\u578B\u652F\u6301\u601D\u8003\u4F46ollama\u4E0D\u652F\u6301\u65F6\u9700\u8981\u586B\u5199\u672C\u53C2\u6570",en:"Ignore the <think> block for the following models, comma (,) separated"},fetch_interval:{zh:"\u6BCF\u6B21\u8BF7\u6C42\u95F4\u9694\u65F6\u95F4 (0-5000ms)",en:"Time Between Requests (0-5000ms)"},translate_interval:{zh:"\u91CD\u65B0\u7FFB\u8BD1\u95F4\u9694\u65F6\u95F4 (100-5000ms)",en:"Retranslation Interval (100-5000ms)"},http_timeout:{zh:"\u8BF7\u6C42\u8D85\u65F6\u65F6\u95F4 (5000-30000ms)",en:"Request Timeout Time (5000-30000ms)"},min_translate_length:{zh:"\u6700\u5C0F\u7FFB\u8BD1\u5B57\u7B26\u6570 (1-100)",en:"Minimum number Of Translated Characters (1-100)"},max_translate_length:{zh:"\u6700\u5927\u7FFB\u8BD1\u5B57\u7B26\u6570 (100-10000)",en:"Maximum number Of Translated Characters (100-10000)"},num_of_newline_characters:{zh:"\u6362\u884C\u5B57\u7B26\u6570 (1-1000)",en:"Number of Newline Characters (1-1000)"},translate_service:{zh:"\u7FFB\u8BD1\u670D\u52A1",en:"Translate Service"},translate_timing:{zh:"\u7FFB\u8BD1\u65F6\u673A",en:"Translate Timing"},mk_pagescroll:{zh:"\u6EDA\u52A8\u52A0\u8F7D\u7FFB\u8BD1\uFF08\u63A8\u8350\uFF09",en:"Rolling Loading (Suggested)"},mk_pageopen:{zh:"\u9875\u9762\u6253\u5F00\u5168\u90E8\u7FFB\u8BD1",en:"Page Open"},mk_mouseover:{zh:"\u9F20\u6807\u60AC\u505C\u7FFB\u8BD1",en:"Mouseover"},mk_ctrlKey:{zh:"Control + \u9F20\u6807\u60AC\u505C",en:"Control + Mouseover"},mk_shiftKey:{zh:"Shift + \u9F20\u6807\u60AC\u505C",en:"Shift + Mouseover"},mk_altKey:{zh:"Alt + \u9F20\u6807\u60AC\u505C",en:"Alt + Mouseover"},from_lang:{zh:"\u539F\u6587\u8BED\u8A00",en:"Source Language"},to_lang:{zh:"\u76EE\u6807\u8BED\u8A00",en:"Target Language"},to_lang2:{zh:"\u7B2C\u4E8C\u76EE\u6807\u8BED\u8A00",en:"Target Language 2"},to_lang2_helper:{zh:"\u8BBE\u5B9A\u540E\uFF0C\u4E0E\u76EE\u6807\u8BED\u8A00\u4EA7\u751F\u4E92\u8BD1\u6548\u679C\uFF0C\u4F46\u4F9D\u8D56\u8FDC\u7A0B\u8BED\u8A00\u8BC6\u522B\u3002",en:"After setting, it will produce mutual translation effect with the target language, but it relies on remote language recognition."},text_style:{zh:"\u8BD1\u6587\u6837\u5F0F",en:"Text Style"},text_style_alt:{zh:"\u8BD1\u6587\u6837\u5F0F",en:"Text Style"},bg_color:{zh:"\u6837\u5F0F\u989C\u8272",en:"Style Color"},remain_unchanged:{zh:"\u4FDD\u7559\u4E0D\u53D8",en:"Remain Unchanged"},google_api:{zh:"\u8C37\u6B4C\u7FFB\u8BD1\u63A5\u53E3",en:"Google Translate API"},default_selector:{zh:"\u9ED8\u8BA4\u9009\u62E9\u5668",en:"Default selector"},selector_rules:{zh:"\u9009\u62E9\u5668\u89C4\u5219",en:"Selector Rules"},save:{zh:"\u4FDD\u5B58",en:"Save"},edit:{zh:"\u7F16\u8F91",en:"Edit"},cancel:{zh:"\u53D6\u6D88",en:"Cancel"},delete:{zh:"\u5220\u9664",en:"Delete"},reset:{zh:"\u91CD\u7F6E",en:"Reset"},add:{zh:"\u6DFB\u52A0",en:"Add"},inject_rules:{zh:"\u6CE8\u5165\u8BA2\u9605\u89C4\u5219",en:"Inject Subscribe Rules"},personal_rules:{zh:"\u4E2A\u4EBA\u89C4\u5219",en:"Rules"},subscribe_rules:{zh:"\u8BA2\u9605\u89C4\u5219",en:"Subscribe"},overwrite_subscribe_rules:{zh:"\u8986\u5199\u8BA2\u9605\u89C4\u5219",en:"Overwrite"},subscribe_url:{zh:"\u8BA2\u9605\u5730\u5740",en:"Subscribe URL"},rules_warn_1:{zh:"1\u3001\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u4E00\u76F4\u751F\u6548\uFF0C\u9009\u62E9\u201C\u6CE8\u5165\u8BA2\u9605\u89C4\u5219\u201D\u540E\uFF0C\u201C\u8BA2\u9605\u89C4\u5219\u201D\u624D\u4F1A\u751F\u6548\u3002",en:"1. The \"Personal Rules\" are always in effect. After selecting \"Inject Subscription Rules\", the \"Subscription Rules\" will take effect."},rules_warn_2:{zh:"2\u3001\u201C\u8BA2\u9605\u89C4\u5219\u201D\u7684\u6CE8\u5165\u4F4D\u7F6E\u662F\u5012\u6570\u7B2C\u4E8C\u7684\u4F4D\u7F6E\uFF0C\u56E0\u6B64\u9664\u5168\u5C40\u89C4\u5219(*)\u5916\uFF0C\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u4F18\u5148\u7EA7\u6BD4\u201C\u8BA2\u9605\u89C4\u5219\u201D\u9AD8\uFF0C\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u586B\u5199\u540C\u6837\u7684\u7F51\u5740\u4F1A\u8986\u76D6\u201D\u8BA2\u9605\u89C4\u5219\u201C\u7684\u6761\u76EE\u3002",en:"2. The injection position of \"Subscription Rules\" is the penultimate position. Therefore, except for the global rules (*), the priority of \"Personal Rules\" is higher than that of \"Subscription Rules\". Filling in the same url in \"Personal Rules\" will overwrite \"Subscription Rules\" entry."},rules_warn_3:{zh:"3\u3001\u5173\u4E8E\u89C4\u5219\u586B\u5199\uFF1A\u8F93\u5165\u6846\u7559\u7A7A\u6216\u4E0B\u62C9\u6846\u9009\u201C*\u201D\u8868\u793A\u91C7\u7528\u5168\u5C40\u89C4\u5219\u3002",en:"3. Regarding filling in the rules: Leave the input box blank or select \"*\" in the drop-down box to use global rule."},sync_warn:{zh:"\u6D89\u53CA\u9690\u79C1\u6570\u636E\u7684\u540C\u6B65\u8BF7\u8C28\u614E\u9009\u62E9\u7B2C\u4E09\u65B9\u540C\u6B65\u670D\u52A1\uFF0C\u5EFA\u8BAE\u81EA\u884C\u642D\u5EFA kiss-worker \u6216 WebDAV \u670D\u52A1\u3002",en:"When synchronizing data that involves privacy, please be cautious about choosing third-party sync services. It is recommended to set up your own sync service using kiss-worker or WebDAV."},sync_warn_2:{zh:"\u5982\u679C\u670D\u52A1\u5668\u5B58\u5728\u5176\u4ED6\u5BA2\u6237\u7AEF\u540C\u6B65\u7684\u6570\u636E\uFF0C\u7B2C\u4E00\u6B21\u540C\u6B65\u5C06\u76F4\u63A5\u8986\u76D6\u672C\u5730\u914D\u7F6E\uFF0C\u540E\u9762\u5219\u6839\u636E\u4FEE\u6539\u65F6\u95F4\uFF0C\u65B0\u7684\u8986\u76D6\u65E7\u7684\u3002",en:"If the server has data synchronized by other clients, the first synchronization will directly overwrite the local configuration, and later, according to the modification time, the new one will overwrite the old one."},about_sync_api:{zh:"\u81EA\u5EFAkiss-wroker\u6570\u636E\u540C\u6B65\u670D\u52A1",en:"Self-hosting a Kiss-worker data sync service"},about_api:{zh:"\u6682\u672A\u5217\u51FA\u7684\u63A5\u53E3\uFF0C\u7406\u8BBA\u4E0A\u90FD\u53EF\u4EE5\u901A\u8FC7\u81EA\u5B9A\u4E49\u63A5\u53E3\u7684\u5F62\u5F0F\u652F\u6301\u3002",en:"Interfaces that have not yet been launched can theoretically be supported through custom interfaces."},about_api_proxy:{zh:"\u67E5\u770B\u81EA\u5EFA\u4E00\u4E2A\u7FFB\u8BD1\u63A5\u53E3\u4EE3\u7406",en:"Check out the self-built translation interface proxy"},style_none:{zh:"\u65E0",en:"None"},under_line:{zh:"\u4E0B\u5212\u76F4\u7EBF",en:"Underline"},dot_line:{zh:"\u4E0B\u5212\u70B9\u72B6\u7EBF",en:"Dotted Underline"},dash_line:{zh:"\u4E0B\u5212\u865A\u7EBF",en:"Dashed Underline"},wavy_line:{zh:"\u4E0B\u5212\u6CE2\u6D6A\u7EBF",en:"Wavy Underline"},fuzzy:{zh:"\u6A21\u7CCA",en:"Fuzzy"},highlight:{zh:"\u9AD8\u4EAE",en:"Highlight"},blockquote:{zh:"\u5F15\u7528",en:"Blockquote"},diy_style:{zh:"\u81EA\u5B9A\u4E49\u6837\u5F0F",en:"Custom Style"},diy_style_helper:{zh:"\u9075\u5FAA\u201CCSS\u201D\u7684\u8BED\u6CD5",en:"Follow the syntax of \"CSS\""},setting:{zh:"\u8BBE\u7F6E",en:"Setting"},pattern:{zh:"\u5339\u914D\u7F51\u5740",en:"URL pattern"},pattern_helper:{zh:"1\u3001\u652F\u6301\u661F\u53F7(*)\u901A\u914D\u7B26\u30022\u3001\u591A\u4E2AURL\u7528\u6362\u884C\u6216\u82F1\u6587\u9017\u53F7\u201C,\u201D\u5206\u9694\u3002",en:"1. Supports the asterisk (*) wildcard character. 2. Separate multiple URLs with newlines or English commas \",\"."},selector_helper:{zh:"1\u3001\u9075\u5FAACSS\u9009\u62E9\u5668\u8BED\u6CD5\u30022\u3001\u591A\u4E2ACSS\u9009\u62E9\u5668\u4E4B\u95F4\u7528\u201C;\u201D\u9694\u5F00\u30023\u3001\u201Cshadow root\u201D\u9009\u62E9\u5668\u548C\u5185\u90E8\u9009\u62E9\u5668\u7528\u201C>>>\u201D\u9694\u5F00\u3002",en:"1. Follow CSS selector syntax. 2. Separate multiple CSS selectors with \";\". 3. The \"shadow root\" selector and the internal selector are separated by \">>>\"."},translate_switch:{zh:"\u5F00\u542F\u7FFB\u8BD1",en:"Translate Switch"},default_enabled:{zh:"\u9ED8\u8BA4\u5F00\u542F",en:"Enabled"},default_disabled:{zh:"\u9ED8\u8BA4\u5173\u95ED",en:"Disabled"},selector:{zh:"\u9009\u62E9\u5668",en:"Selector"},keep_selector:{zh:"\u4FDD\u7559\u5143\u7D20\u9009\u62E9\u5668",en:"Keep unchanged selector"},keep_selector_helper:{zh:"1\u3001\u9075\u5FAACSS\u9009\u62E9\u5668\u8BED\u6CD5\u3002",en:"1. Follow CSS selector syntax."},terms:{zh:"\u4E13\u4E1A\u672F\u8BED",en:"Terms"},terms_helper:{zh:"1\u3001\u652F\u6301\u6B63\u5219\u8868\u8FBE\u5F0F\u5339\u914D\uFF0C\u65E0\u9700\u659C\u6746\uFF0C\u4E0D\u652F\u6301\u4FEE\u9970\u7B26\u30022\u3001\u591A\u6761\u672F\u8BED\u7528\u6362\u884C\u6216\u5206\u53F7\u201C;\u201D\u9694\u5F00\u30023\u3001\u672F\u8BED\u548C\u8BD1\u6587\u7528\u82F1\u6587\u9017\u53F7\u201C,\u201D\u9694\u5F00\u30024\u3001\u6CA1\u6709\u8BD1\u6587\u89C6\u4E3A\u4E0D\u7FFB\u8BD1\u672F\u8BED\u3002",en:"1. Supports regular expression matching, no slash required, and no modifiers are supported. 2. Separate multiple terms with newlines or semicolons \";\". 3. Terms and translations are separated by English commas \",\". 4. If there is no translation, the term will be deemed not to be translated."},selector_style:{zh:"\u9009\u62E9\u5668\u8282\u70B9\u6837\u5F0F",en:"Selector Style"},selector_style_helper:{zh:"\u5F00\u542F\u7FFB\u8BD1\u65F6\u6CE8\u5165\uFF0C\u5173\u95ED\u7FFB\u8BD1\u65F6\u4E0D\u4F1A\u79FB\u9664\u3002",en:"It is injected when translation is turned on and will not be removed when translation is turned off."},selector_parent_style:{zh:"\u9009\u62E9\u5668\u7236\u8282\u70B9\u6837\u5F0F",en:"Selector Parent Style"},inject_js:{zh:"\u6CE8\u5165JS",en:"Inject JS"},inject_js_helper:{zh:"1\u3001\u5F00\u542F\u7FFB\u8BD1\u65F6\u6CE8\u5165\u8FD0\u884C\uFF0C\u5173\u95ED\u7FFB\u8BD1\u65F6\u79FB\u9664\u30022\u3001\u968F\u7740\u9875\u9762\u53D8\u5316\uFF0C\u53EF\u80FD\u4F1A\u591A\u6B21\u6CE8\u5165\u8FD0\u884C\u3002",en:"1. Inject and run when translation is turned on, and removed when translation is turned off. 2. As the page changes, it may be injected and run multiple times."},inject_css:{zh:"\u6CE8\u5165CSS",en:"Inject CSS"},inject_css_helper:{zh:"\u5F00\u542F\u7FFB\u8BD1\u65F6\u6CE8\u5165\uFF0C\u5173\u95ED\u7FFB\u8BD1\u65F6\u5C06\u79FB\u9664\u3002",en:"Injected when translation is enabled and removed when translation is disabled."},root_selector:{zh:"\u6839\u9009\u62E9\u5668",en:"Root Selector"},fixer_function:{zh:"\u4FEE\u590D\u51FD\u6570",en:"Fixer Function"},fixer_function_helper:{zh:"1\u3001br\u662F\u5C06<br>\u6362\u884C\u66FF\u6362\u6210<p \"kiss-p\">\u30022\u3001bn\u662F\u5C06\\n\u6362\u884C\u66FF\u6362\u6210<p \"kiss-p\">\u30023\u3001brToDiv\u548CbnToDiv\u662F\u66FF\u6362\u6210<div class=\"kiss-p\">\u3002",en:"1. br replaces <br> line breaks with <p \"kiss-p\">. 2. bn replaces \\n newline with <p \"kiss-p\">. 3. brToDiv and bnToDiv are replaced with <div class=\"kiss-p\">."},import:{zh:"\u5BFC\u5165",en:"Import"},export:{zh:"\u5BFC\u51FA",en:"Export"},export_translation:{zh:"\u5BFC\u51FA\u91CA\u4E49",en:"Export Translation"},error_cant_be_blank:{zh:"\u4E0D\u80FD\u4E3A\u7A7A",en:"Can not be blank"},error_duplicate_values:{zh:"\u5B58\u5728\u91CD\u590D\u7684\u503C",en:"There are duplicate values"},error_wrong_file_type:{zh:"\u9519\u8BEF\u7684\u6587\u4EF6\u7C7B\u578B",en:"Wrong file type"},error_fetch_url:{zh:"\u8BF7\u68C0\u67E5url\u5730\u5740\u662F\u5426\u6B63\u786E\u6216\u7A0D\u540E\u518D\u8BD5\u3002",en:"Please check if the url address is correct or try again later."},deepl_api:{zh:"DeepL \u63A5\u53E3",en:"DeepL API"},deepl_key:{zh:"DeepL \u5BC6\u94A5",en:"DeepL Key"},openai_api:{zh:"OpenAI \u63A5\u53E3",en:"OpenAI API"},openai_key:{zh:"OpenAI \u5BC6\u94A5",en:"OpenAI Key"},openai_model:{zh:"OpenAI \u6A21\u578B",en:"OpenAI Model"},openai_prompt:{zh:"OpenAI \u63D0\u793A\u8BCD",en:"OpenAI Prompt"},if_clear_cache:{zh:"\u662F\u5426\u6E05\u9664\u7F13\u5B58",en:"Whether clear cache"},clear_cache_never:{zh:"\u4E0D\u6E05\u9664\u7F13\u5B58",en:"Never clear cache"},clear_cache_restart:{zh:"\u91CD\u542F\u6D4F\u89C8\u5668\u65F6\u6E05\u9664\u7F13\u5B58",en:"Clear cache when restarting browser"},data_sync_type:{zh:"\u6570\u636E\u540C\u6B65\u65B9\u5F0F",en:"Data Sync Type"},data_sync_url:{zh:"\u6570\u636E\u540C\u6B65\u63A5\u53E3",en:"Data Sync API"},data_sync_user:{zh:"\u6570\u636E\u540C\u6B65\u8D26\u6237",en:"Data Sync User"},data_sync_key:{zh:"\u6570\u636E\u540C\u6B65\u5BC6\u94A5",en:"Data Sync Key"},sync_now:{zh:"\u7ACB\u5373\u540C\u6B65",en:"Sync Now"},sync_success:{zh:"\u540C\u6B65\u6210\u529F\uFF01",en:"Sync Success"},sync_failed:{zh:"\u540C\u6B65\u5931\u8D25\uFF01",en:"Sync Error"},error_got_some_wrong:{zh:"\u62B1\u6B49\uFF0C\u51FA\u9519\u4E86\uFF01",en:"Sorry, something went wrong!"},error_sync_setting:{zh:"\u60A8\u7684\u540C\u6B65\u7C7B\u578B\u5FC5\u987B\u4E3A\u201CKISS-Worker\u201D\uFF0C\u4E14\u9700\u586B\u5199\u5B8C\u6574",en:"Your sync type must be \"KISS-Worker\" and must be filled in completely"},click_test:{zh:"\u70B9\u51FB\u6D4B\u8BD5",en:"Click Test"},test_success:{zh:"\u6D4B\u8BD5\u6210\u529F",en:"Test success"},test_failed:{zh:"\u6D4B\u8BD5\u5931\u8D25",en:"Test failed"},clear_all_cache_now:{zh:"\u7ACB\u5373\u6E05\u9664\u5168\u90E8\u7F13\u5B58",en:"Clear all cache now"},clear_cache:{zh:"\u6E05\u9664\u7F13\u5B58",en:"Clear Cache"},clear_success:{zh:"\u6E05\u9664\u6210\u529F",en:"Clear success"},clear_failed:{zh:"\u6E05\u9664\u5931\u8D25",en:"Clear failed"},share:{zh:"\u5206\u4EAB",en:"Share"},clear_all:{zh:"\u6E05\u7A7A",en:"Clear All"},help:{zh:"\u6C42\u52A9",en:"Help"},restore_default:{zh:"\u6062\u590D\u9ED8\u8BA4",en:"Restore Default"},shortcuts_setting:{zh:"\u5FEB\u6377\u952E\u8BBE\u7F6E",en:"Shortcuts Setting"},toggle_translate_shortcut:{zh:"\"\u5F00\u542F\u7FFB\u8BD1\"\u5FEB\u6377\u952E",en:"\"Toggle Translate\" Shortcut"},toggle_style_shortcut:{zh:"\"\u5207\u6362\u6837\u5F0F\"\u5FEB\u6377\u952E",en:"\"Toggle Style\" Shortcut"},toggle_popup_shortcut:{zh:"\"\u6253\u5F00\u5F39\u7A97\"\u5FEB\u6377\u952E",en:"\"Open Popup\" Shortcut"},open_setting_shortcut:{zh:"\"\u6253\u5F00\u8BBE\u7F6E\"\u5FEB\u6377\u952E",en:"\"Open Setting\" Shortcut"},hide_fab_button:{zh:"\u9690\u85CF\u60AC\u6D6E\u6309\u94AE",en:"Hide Fab Button"},hide_tran_button:{zh:"\u9690\u85CF\u7FFB\u8BD1\u6309\u94AE",en:"Hide Translate Button"},hide_click_away:{zh:"\u70B9\u51FB\u5916\u90E8\u5173\u95ED\u5F39\u7A97",en:"Click outside to close the pop-up window"},use_simple_style:{zh:"\u4F7F\u7528\u7B80\u6D01\u754C\u9762",en:"Use a simple interface"},show:{zh:"\u663E\u793A",en:"Show"},hide:{zh:"\u9690\u85CF",en:"Hide"},save_rule:{zh:"\u4FDD\u5B58\u89C4\u5219",en:"Save Rule"},global_rule:{zh:"\u5168\u5C40\u89C4\u5219",en:"Global Rule"},input_translate:{zh:"\u8F93\u5165\u6846\u7FFB\u8BD1",en:"Input Box Translation"},use_input_box_translation:{zh:"\u542F\u7528\u8F93\u5165\u6846\u7FFB\u8BD1",en:"Input Box Translation"},input_selector:{zh:"\u8F93\u5165\u6846\u9009\u62E9\u5668",en:"Input Selector"},input_selector_helper:{zh:"\u7528\u4E8E\u8F93\u5165\u6846\u7FFB\u8BD1\u3002",en:"Used for input box translation."},trigger_trans_shortcut:{zh:"\u89E6\u53D1\u7FFB\u8BD1\u5FEB\u6377\u952E",en:"Trigger Translation Shortcut Keys"},trigger_trans_shortcut_help:{zh:"\u9ED8\u8BA4\u4E3A\u5355\u51FB\u201CAltLeft+KeyI\u201D",en:"Default is \"AltLeft+KeyI\""},shortcut_press_count:{zh:"\u5FEB\u6377\u952E\u8FDE\u51FB\u6B21\u6570",en:"Shortcut Press Number"},combo_timeout:{zh:"\u8FDE\u51FB\u8D85\u65F6\u65F6\u95F4 (10-1000ms)",en:"Combo Timeout (10-1000ms)"},input_trans_start_sign:{zh:"\u7FFB\u8BD1\u8D77\u59CB\u6807\u8BC6",en:"Translation Start Sign"},input_trans_start_sign_help:{zh:"\u6807\u8BC6\u540E\u9762\u53EF\u4EE5\u52A0\u76EE\u6807\u8BED\u8A00\u4EE3\u7801\uFF0C\u5982\uFF1A \u201C/en \u4F60\u597D\u201D\u3001\u201C/zh hello\u201D",en:"The target language code can be added after the sign, such as: \"/en \u4F60\u597D\", \"/zh hello\""},detect_lang_remote:{zh:"\u8FDC\u7A0B\u8BED\u8A00\u68C0\u6D4B",en:"Remote language detection"},detect_lang_remote_help:{zh:"\u542F\u7528\u540E\u68C0\u6D4B\u51C6\u786E\u5EA6\u589E\u52A0\uFF0C\u4F46\u4F1A\u964D\u4F4E\u7FFB\u8BD1\u901F\u5EA6\uFF0C\u8BF7\u914C\u60C5\u5F00\u542F",en:"After enabling, the detection accuracy will increase, but it will reduce the translation speed. Please enable it as appropriate."},disable:{zh:"\u7981\u7528",en:"Disable"},enable:{zh:"\u542F\u7528",en:"Enable"},selection_translate:{zh:"\u5212\u8BCD\u7FFB\u8BD1",en:"Selection Translate"},toggle_selection_translate:{zh:"\u542F\u7528\u5212\u8BCD\u7FFB\u8BD1",en:"Use Selection Translate"},trigger_tranbox_shortcut:{zh:"\u663E\u793A\u7FFB\u8BD1\u6846/\u7FFB\u8BD1\u9009\u4E2D\u6587\u5B57\u5FEB\u6377\u952E",en:"Open Translate Popup/Translate Selected Shortcut"},tranbtn_offset_x:{zh:"\u7FFB\u8BD1\u6309\u94AE\u504F\u79FBX\uFF08\xB1200\uFF09",en:"Translate Button Offset X (\xB1200)"},tranbtn_offset_y:{zh:"\u7FFB\u8BD1\u6309\u94AE\u504F\u79FBY\uFF08\xB1200\uFF09",en:"Translate Button Offset Y (\xB1200)"},tranbox_offset_x:{zh:"\u7FFB\u8BD1\u6846\u504F\u79FBX\uFF08\xB1200\uFF09",en:"Translate Box Offset X (\xB1200)"},tranbox_offset_y:{zh:"\u7FFB\u8BD1\u6846\u504F\u79FBY\uFF08\xB1200\uFF09",en:"Translate Box Offset Y (\xB1200)"},translated_text:{zh:"\u8BD1\u6587",en:"Translated Text"},original_text:{zh:"\u539F\u6587",en:"Original Text"},favorite_words:{zh:"\u6536\u85CF\u8BCD\u6C47",en:"Favorite Words"},touch_setting:{zh:"\u89E6\u5C4F\u8BBE\u7F6E",en:"Touch Setting"},touch_translate_shortcut:{zh:"\u89E6\u5C4F\u7FFB\u8BD1\u5FEB\u6377\u65B9\u5F0F",en:"Touch Translate Shortcut"},touch_tap_0:{zh:"\u7981\u7528",en:"Disable"},touch_tap_2:{zh:"\u53CC\u6307\u8F7B\u89E6",en:"Two finger tap"},touch_tap_3:{zh:"\u4E09\u6307\u8F7B\u89E6",en:"Three finger tap"},touch_tap_4:{zh:"\u56DB\u6307\u8F7B\u89E6",en:"Four finger tap"},translate_blacklist:{zh:"\u7981\u7528\u7FFB\u8BD1\u540D\u5355",en:"Translate Blacklist"},disabled_csplist:{zh:"\u7981\u7528CSP\u540D\u5355",en:"Disabled CSP List"},disabled_csplist_helper:{zh:"3\u3001\u901A\u8FC7\u8C03\u6574CSP\u7B56\u7565\uFF0C\u4F7F\u5F97\u67D0\u4E9B\u9875\u9762\u80FD\u591F\u6CE8\u5165JS/CSS/Media\uFF0C\u8BF7\u8C28\u614E\u4F7F\u7528\uFF0C\u9664\u975E\u60A8\u5DF2\u77E5\u6653\u76F8\u5173\u98CE\u9669\u3002",en:"3. By adjusting the CSP policy, some pages can inject JS/CSS/Media. Please use it with caution unless you are aware of the related risks."},skip_langs:{zh:"\u4E0D\u7FFB\u8BD1\u7684\u8BED\u8A00",en:"Disable Languages"},skip_langs_helper:{zh:"\u6B64\u529F\u80FD\u4F9D\u8D56\u51C6\u786E\u7684\u8BED\u8A00\u68C0\u6D4B\uFF0C\u5EFA\u8BAE\u542F\u7528\u8FDC\u7A0B\u8BED\u8A00\u68C0\u6D4B\u3002",en:"This feature relies on accurate language detection. It is recommended to enable remote language detection."},context_menus:{zh:"\u53F3\u952E\u83DC\u5355",en:"Context Menus"},hide_context_menus:{zh:"\u9690\u85CF\u53F3\u952E\u83DC\u5355",en:"Hide Context Menus"},simple_context_menus:{zh:"\u7B80\u5355\u53F3\u952E\u83DC\u5355",en:"Simple_context_menus Context Menus"},secondary_context_menus:{zh:"\u4E8C\u7EA7\u53F3\u952E\u83DC\u5355",en:"Secondary Context Menus"},mulkeys_help:{zh:"\u652F\u6301\u7528\u6362\u884C\u6216\u82F1\u6587\u9017\u53F7\u201C,\u201D\u5206\u9694\uFF0C\u8F6E\u8BE2\u8C03\u7528\u3002",en:"Supports polling calls separated by newlines or English commas \",\"."},translation_element_tag:{zh:"\u8BD1\u6587\u5143\u7D20\u6807\u7B7E",en:"Translation Element Tag"},show_only_translations:{zh:"\u4EC5\u663E\u793A\u8BD1\u6587",en:"Show Only Translations"},show_only_translations_help:{zh:"\u975E\u5B8C\u7F8E\u5B9E\u73B0\uFF0C\u67D0\u4E9B\u9875\u9762\u53EF\u80FD\u6709\u6837\u5F0F\u7B49\u95EE\u9898\u3002",en:"It is not a perfect implementation and some pages may have style issues."},translate_page_title:{zh:"\u662F\u5426\u7FFB\u8BD1\u9875\u9762\u6807\u9898",en:"Translate Page Title"},more:{zh:"\u66F4\u591A",en:"More"},less:{zh:"\u66F4\u5C11",en:"Less"},fixer_selector:{zh:"\u7F51\u9875\u4FEE\u590D\u9009\u62E9\u5668",en:"Fixer Selector"},reg_niutrans:{zh:"\u83B7\u53D6\u5C0F\u725B\u7FFB\u8BD1\u5BC6\u94A5\u3010\u7B80\u7EA6\u7FFB\u8BD1\u4E13\u5C5E\u65B0\u7528\u6237\u6CE8\u518C\u8D60\u9001300\u4E07\u5B57\u7B26\u3011",en:"Get NiuTrans APIKey [KISS Translator Exclusive New User Registration Free 3 Million Characters]"},trigger_mode:{zh:"\u89E6\u53D1\u65B9\u5F0F",en:"Trigger Mode"},trigger_click:{zh:"\u70B9\u51FB\u89E6\u53D1",en:"Click Trigger"},trigger_hover:{zh:"\u9F20\u6807\u60AC\u505C\u89E6\u53D1",en:"Hover Trigger"},trigger_select:{zh:"\u9009\u4E2D\u89E6\u53D1",en:"Select Trigger"},extend_styles:{zh:"\u9644\u52A0\u6837\u5F0F",en:"Extend Styles"},custom_option:{zh:"\u81EA\u5B9A\u4E49\u9009\u9879",en:"Custom Option"},translate_selected_text:{zh:"\u7FFB\u8BD1\u9009\u4E2D\u6587\u5B57",en:"Translate Selected Text"},toggle_style:{zh:"\u5207\u6362\u6837\u5F0F",en:"Toggle Style"},open_menu:{zh:"\u6253\u5F00\u5F39\u7A97\u83DC\u5355",en:"Open Popup Menu"},open_setting:{zh:"\u6253\u5F00\u8BBE\u7F6E",en:"Open Setting"},follow_selection:{zh:"\u7FFB\u8BD1\u6846\u8DDF\u968F\u9009\u4E2D\u6587\u672C",en:"Transbox Follow Selection"},translate_start_hook:{zh:"\u7FFB\u8BD1\u5F00\u59CB\u94A9\u5B50\u51FD\u6570",en:"Translate Start Hook"},translate_start_hook_helper:{zh:"\u7FFB\u8BD1\u5F00\u59CB\u65F6\u8FD0\u884C\uFF0C\u5165\u53C2\u4E3A\uFF1A \u7FFB\u8BD1\u8282\u70B9\uFF0C\u539F\u6587\u6587\u672C\u3002",en:"Run when translation starts, the input parameters are: translation node, original text."},translate_end_hook:{zh:"\u7FFB\u8BD1\u5B8C\u6210\u94A9\u5B50\u51FD\u6570",en:"Translate End Hook"},translate_end_hook_helper:{zh:"\u7FFB\u8BD1\u5B8C\u6210\u65F6\u8FD0\u884C\uFF0C\u5165\u53C2\u4E3A\uFF1A \u7FFB\u8BD1\u8282\u70B9\uFF0C\u539F\u6587\u6587\u672C\uFF0C\u8BD1\u6587\u6587\u672C\uFF0C\u4FDD\u7559\u5143\u7D20\u3002",en:"Run when the translation is completed, the input parameters are: translation node, original text, translation text, retained elements."},translate_remove_hook:{zh:"\u7FFB\u8BD1\u79FB\u9664\u94A9\u5B50\u51FD\u6570",en:"Translate Removed Hook"},translate_remove_hook_helper:{zh:"\u7FFB\u8BD1\u79FB\u9664\u65F6\u8FD0\u884C\uFF0C\u5165\u53C2\u4E3A\uFF1A \u7FFB\u8BD1\u8282\u70B9\u3002",en:"Run when translation is removed, the input parameters are: translation node."},english_dict:{zh:"\u82F1\u6587\u8BCD\u5178",en:"English Dictionary"},api_name:{zh:"\u63A5\u53E3\u540D\u79F0",en:"API Name"},is_disabled:{zh:"\u662F\u5426\u7981\u7528",en:"Is Disabled"},translate_selected:{zh:"\u662F\u5426\u542F\u7528\u5212\u8BCD\u7FFB\u8BD1",en:"If translate selected"}};
-;// CONCATENATED MODULE: ./src/config/index.js
-const STOKEY_MSAUTH="".concat(APP_NAME,"_msauth");const STOKEY_BDAUTH="".concat(APP_NAME,"_bdauth");const STOKEY_SETTING="".concat(APP_NAME,"_setting");const STOKEY_RULES="".concat(APP_NAME,"_rules");const STOKEY_WORDS="".concat(APP_NAME,"_words");const STOKEY_SYNC="".concat(APP_NAME,"_sync");const STOKEY_FAB="".concat(APP_NAME,"_fab");const STOKEY_RULESCACHE_PREFIX="".concat(APP_NAME,"_rulescache_");const CMD_TOGGLE_TRANSLATE="toggleTranslate";const CMD_TOGGLE_STYLE="toggleStyle";const CMD_OPEN_OPTIONS="openOptions";const CMD_OPEN_TRANBOX="openTranbox";const CLIENT_WEB="web";const CLIENT_CHROME="chrome";const CLIENT_EDGE="edge";const CLIENT_FIREFOX="firefox";const CLIENT_USERSCRIPT="userscript";const CLIENT_THUNDERBIRD="thunderbird";const CLIENT_EXTS=[CLIENT_CHROME,CLIENT_EDGE,CLIENT_FIREFOX,CLIENT_THUNDERBIRD];const KV_RULES_KEY="kiss-rules.json";const KV_WORDS_KEY="kiss-words.json";const KV_RULES_SHARE_KEY="kiss-rules-share.json";const KV_SETTING_KEY="kiss-setting.json";const KV_SALT_SYNC="KISS-Translator-SYNC";const KV_SALT_SHARE="KISS-Translator-SHARE";const CACHE_NAME="".concat(APP_NAME,"_cache");const MSG_FETCH="fetch";const MSG_GET_HTTPCACHE="get_httpcache";const MSG_OPEN_OPTIONS="open_options";const MSG_SAVE_RULE="save_rule";const MSG_TRANS_TOGGLE="trans_toggle";const MSG_TRANS_TOGGLE_STYLE="trans_toggle_style";const MSG_OPEN_TRANBOX="open_tranbox";const MSG_TRANS_GETRULE="trans_getrule";const MSG_TRANS_PUTRULE="trans_putrule";const MSG_TRANS_CURRULE="trans_currule";const MSG_CONTEXT_MENUS="context_menus";const MSG_COMMAND_SHORTCUTS="command_shortcuts";const MSG_INJECT_JS="inject_js";const MSG_INJECT_CSS="inject_css";const MSG_UPDATE_CSP="update_csp";const THEME_LIGHT="light";const THEME_DARK="dark";const URL_KISS_WORKER="https://github.com/fishjar/kiss-worker";const URL_KISS_PROXY="https://github.com/fishjar/kiss-proxy";const URL_KISS_RULES="https://github.com/fishjar/kiss-rules";const URL_KISS_RULES_NEW_ISSUE="https://github.com/fishjar/kiss-rules/issues/new";const URL_RAW_PREFIX="https://raw.githubusercontent.com/fishjar/kiss-translator/master";const URL_CACHE_TRAN="https://".concat(APP_LCNAME,"/translate");// api.cognitive.microsofttranslator.com
-const URL_MICROSOFT_TRAN="https://api-edge.cognitive.microsofttranslator.com/translate";const URL_MICROSOFT_AUTH="https://edge.microsoft.com/translate/auth";const URL_MICROSOFT_LANGDETECT="https://api-edge.cognitive.microsofttranslator.com/detect?api-version=3.0";const URL_GOOGLE_TRAN="https://translate.googleapis.com/translate_a/single";const URL_GOOGLE_TRAN2="https://translate-pa.googleapis.com/v1/translateHtml";const DEFAULT_GOOGLE_API_KEY="AIzaSyATBXajvzQLTDHEQbcpq0Ihe0vWDHmO520";const URL_BAIDU_LANGDETECT="https://fanyi.baidu.com/langdetect";const URL_BAIDU_SUGGEST="https://fanyi.baidu.com/sug";const URL_BAIDU_TTS="https://fanyi.baidu.com/gettts";const URL_BAIDU_WEB="https://fanyi.baidu.com/";const URL_BAIDU_TRANSAPI="https://fanyi.baidu.com/transapi";const URL_BAIDU_TRANSAPI_V2="https://fanyi.baidu.com/v2transapi";const URL_DEEPLFREE_TRAN="https://www2.deepl.com/jsonrpc";const URL_TENCENT_TRANSMART="https://transmart.qq.com/api/imt";const URL_VOLCENGINE_TRAN="https://translate.volcengine.com/crx/translate/v1";const URL_NIUTRANS_REG="https://niutrans.com/login?active=3&userSource=kiss-translator";const DEFAULT_USER_AGENT="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36";const OPT_DICT_BAIDU="Baidu";const OPT_TRANS_GOOGLE="Google";const OPT_TRANS_GOOGLE_2="Google2";const OPT_TRANS_MICROSOFT="Microsoft";const OPT_TRANS_DEEPL="DeepL";const OPT_TRANS_DEEPLX="DeepLX";const OPT_TRANS_DEEPLFREE="DeepLFree";const OPT_TRANS_NIUTRANS="NiuTrans";const OPT_TRANS_BAIDU="Baidu";const OPT_TRANS_TENCENT="Tencent";const OPT_TRANS_VOLCENGINE="Volcengine";const OPT_TRANS_OPENAI="OpenAI";const OPT_TRANS_OPENAI_2="OpenAI2";const OPT_TRANS_OPENAI_3="OpenAI3";const OPT_TRANS_GEMINI="Gemini";const OPT_TRANS_GEMINI_2="Gemini2";const OPT_TRANS_CLAUDE="Claude";const OPT_TRANS_CLOUDFLAREAI="CloudflareAI";const OPT_TRANS_OLLAMA="Ollama";const OPT_TRANS_OLLAMA_2="Ollama2";const OPT_TRANS_OLLAMA_3="Ollama3";const OPT_TRANS_CUSTOMIZE="Custom";const OPT_TRANS_CUSTOMIZE_2="Custom2";const OPT_TRANS_CUSTOMIZE_3="Custom3";const OPT_TRANS_CUSTOMIZE_4="Custom4";const OPT_TRANS_CUSTOMIZE_5="Custom5";const OPT_TRANS_ALL=[OPT_TRANS_GOOGLE,OPT_TRANS_GOOGLE_2,OPT_TRANS_MICROSOFT,OPT_TRANS_BAIDU,OPT_TRANS_TENCENT,OPT_TRANS_VOLCENGINE,OPT_TRANS_DEEPL,OPT_TRANS_DEEPLFREE,OPT_TRANS_DEEPLX,OPT_TRANS_NIUTRANS,OPT_TRANS_OPENAI,OPT_TRANS_OPENAI_2,OPT_TRANS_OPENAI_3,OPT_TRANS_GEMINI,OPT_TRANS_GEMINI_2,OPT_TRANS_CLAUDE,OPT_TRANS_CLOUDFLAREAI,OPT_TRANS_OLLAMA,OPT_TRANS_OLLAMA_2,OPT_TRANS_OLLAMA_3,OPT_TRANS_CUSTOMIZE,OPT_TRANS_CUSTOMIZE_2,OPT_TRANS_CUSTOMIZE_3,OPT_TRANS_CUSTOMIZE_4,OPT_TRANS_CUSTOMIZE_5];const OPT_LANGDETECTOR_ALL=[OPT_TRANS_GOOGLE,OPT_TRANS_MICROSOFT,OPT_TRANS_BAIDU,OPT_TRANS_TENCENT];const OPT_LANGS_TO=[["en","English - English"],["zh-CN","Simplified Chinese - 简体中文"],["zh-TW","Traditional Chinese - 繁體中文"],["ar","Arabic - العربية"],["bg","Bulgarian - Български"],["ca","Catalan - Català"],["hr","Croatian - Hrvatski"],["cs","Czech - Čeština"],["da","Danish - Dansk"],["nl","Dutch - Nederlands"],["fi","Finnish - Suomi"],["fr","French - Français"],["de","German - Deutsch"],["el","Greek - Ελληνικά"],["hi","Hindi - हिन्दी"],["hu","Hungarian - Magyar"],["id","Indonesian - Indonesia"],["it","Italian - Italiano"],["ja","Japanese - 日本語"],["ko","Korean - 한국어"],["ms","Malay - Melayu"],["mt","Maltese - Malti"],["nb","Norwegian - Norsk Bokmål"],["pl","Polish - Polski"],["pt","Portuguese - Português"],["ro","Romanian - Română"],["ru","Russian - Русский"],["sk","Slovak - Slovenčina"],["sl","Slovenian - Slovenščina"],["es","Spanish - Español"],["sv","Swedish - Svenska"],["ta","Tamil - தமிழ்"],["te","Telugu - తెలుగు"],["th","Thai - ไทย"],["tr","Turkish - Türkçe"],["uk","Ukrainian - Українська"],["vi","Vietnamese - Tiếng Việt"]];const OPT_LANGS_FROM=[["auto","Auto-detect"],...OPT_LANGS_TO];const OPT_LANGS_SPECIAL={[OPT_TRANS_GOOGLE]:new Map(OPT_LANGS_FROM.map(_ref=>{let[key]=_ref;return[key,key];})),[OPT_TRANS_GOOGLE_2]:new Map(OPT_LANGS_FROM.map(_ref2=>{let[key]=_ref2;return[key,key];})),[OPT_TRANS_MICROSOFT]:new Map([...OPT_LANGS_FROM.map(_ref3=>{let[key]=_ref3;return[key,key];}),["auto",""],["zh-CN","zh-Hans"],["zh-TW","zh-Hant"]]),[OPT_TRANS_DEEPL]:new Map([...OPT_LANGS_FROM.map(_ref4=>{let[key]=_ref4;return[key,key.toUpperCase()];}),["auto",""],["zh-CN","ZH"],["zh-TW","ZH"]]),[OPT_TRANS_DEEPLFREE]:new Map([...OPT_LANGS_FROM.map(_ref5=>{let[key]=_ref5;return[key,key.toUpperCase()];}),["auto","auto"],["zh-CN","ZH"],["zh-TW","ZH"]]),[OPT_TRANS_DEEPLX]:new Map([...OPT_LANGS_FROM.map(_ref6=>{let[key]=_ref6;return[key,key.toUpperCase()];}),["auto","auto"],["zh-CN","ZH"],["zh-TW","ZH"]]),[OPT_TRANS_NIUTRANS]:new Map([...OPT_LANGS_FROM.map(_ref7=>{let[key]=_ref7;return[key,key];}),["auto","auto"],["zh-CN","zh"],["zh-TW","cht"]]),[OPT_TRANS_VOLCENGINE]:new Map([...OPT_LANGS_FROM.map(_ref8=>{let[key]=_ref8;return[key,key];}),["auto","auto"],["zh-CN","zh"],["zh-TW","zh-Hant"]]),[OPT_TRANS_BAIDU]:new Map([...OPT_LANGS_FROM.map(_ref9=>{let[key]=_ref9;return[key,key];}),["zh-CN","zh"],["zh-TW","cht"],["ar","ara"],["bg","bul"],["ca","cat"],["hr","hrv"],["da","dan"],["fi","fin"],["fr","fra"],["hi","mai"],["ja","jp"],["ko","kor"],["ms","may"],["mt","mlt"],["nb","nor"],["ro","rom"],["ru","ru"],["sl","slo"],["es","spa"],["sv","swe"],["ta","tam"],["te","tel"],["uk","ukr"],["vi","vie"]]),[OPT_TRANS_TENCENT]:new Map([["auto","auto"],["zh-CN","zh"],["zh-TW","zh"],["en","en"],["ar","ar"],["de","de"],["ru","ru"],["fr","fr"],["fi","fil"],["ko","ko"],["ms","ms"],["pt","pt"],["ja","ja"],["th","th"],["tr","tr"],["es","es"],["it","it"],["hi","hi"],["id","id"],["vi","vi"]]),[OPT_TRANS_OPENAI]:new Map(OPT_LANGS_FROM.map(_ref10=>{let[key,val]=_ref10;return[key,val.split(" - ")[0]];})),[OPT_TRANS_OPENAI_2]:new Map(OPT_LANGS_FROM.map(_ref11=>{let[key,val]=_ref11;return[key,val.split(" - ")[0]];})),[OPT_TRANS_OPENAI_3]:new Map(OPT_LANGS_FROM.map(_ref12=>{let[key,val]=_ref12;return[key,val.split(" - ")[0]];})),[OPT_TRANS_GEMINI]:new Map(OPT_LANGS_FROM.map(_ref13=>{let[key,val]=_ref13;return[key,val.split(" - ")[0]];})),[OPT_TRANS_GEMINI_2]:new Map(OPT_LANGS_FROM.map(_ref14=>{let[key,val]=_ref14;return[key,val.split(" - ")[0]];})),[OPT_TRANS_CLAUDE]:new Map(OPT_LANGS_FROM.map(_ref15=>{let[key,val]=_ref15;return[key,val.split(" - ")[0]];})),[OPT_TRANS_OLLAMA]:new Map(OPT_LANGS_FROM.map(_ref16=>{let[key,val]=_ref16;return[key,val.split(" - ")[0]];})),[OPT_TRANS_OLLAMA_2]:new Map(OPT_LANGS_FROM.map(_ref17=>{let[key,val]=_ref17;return[key,val.split(" - ")[0]];})),[OPT_TRANS_OLLAMA_3]:new Map(OPT_LANGS_FROM.map(_ref18=>{let[key,val]=_ref18;return[key,val.split(" - ")[0]];})),[OPT_TRANS_CLOUDFLAREAI]:new Map([["auto",""],["zh-CN","chinese"],["zh-TW","chinese"],["en","english"],["ar","arabic"],["de","german"],["ru","russian"],["fr","french"],["pt","portuguese"],["ja","japanese"],["es","spanish"],["hi","hindi"]]),[OPT_TRANS_CUSTOMIZE]:new Map([...OPT_LANGS_FROM.map(_ref19=>{let[key]=_ref19;return[key,key];}),["auto",""]]),[OPT_TRANS_CUSTOMIZE_2]:new Map([...OPT_LANGS_FROM.map(_ref20=>{let[key]=_ref20;return[key,key];}),["auto",""]]),[OPT_TRANS_CUSTOMIZE_3]:new Map([...OPT_LANGS_FROM.map(_ref21=>{let[key]=_ref21;return[key,key];}),["auto",""]]),[OPT_TRANS_CUSTOMIZE_4]:new Map([...OPT_LANGS_FROM.map(_ref22=>{let[key]=_ref22;return[key,key];}),["auto",""]]),[OPT_TRANS_CUSTOMIZE_5]:new Map([...OPT_LANGS_FROM.map(_ref23=>{let[key]=_ref23;return[key,key];}),["auto",""]])};const OPT_LANGS_LIST=OPT_LANGS_TO.map(_ref24=>{let[lang]=_ref24;return lang;});const OPT_LANGS_MICROSOFT=new Map(Array.from(OPT_LANGS_SPECIAL[OPT_TRANS_MICROSOFT].entries()).map(_ref25=>{let[k,v]=_ref25;return[v,k];}));const OPT_LANGS_BAIDU=new Map(Array.from(OPT_LANGS_SPECIAL[OPT_TRANS_BAIDU].entries()).map(_ref26=>{let[k,v]=_ref26;return[v,k];}));const OPT_LANGS_TENCENT=new Map(Array.from(OPT_LANGS_SPECIAL[OPT_TRANS_TENCENT].entries()).map(_ref27=>{let[k,v]=_ref27;return[v,k];}));OPT_LANGS_TENCENT.set("zh","zh-CN");const OPT_STYLE_NONE="style_none";// 无
-const OPT_STYLE_LINE="under_line";// 下划线
-const OPT_STYLE_DOTLINE="dot_line";// 点状线
-const OPT_STYLE_DASHLINE="dash_line";// 虚线
-const OPT_STYLE_WAVYLINE="wavy_line";// 波浪线
-const OPT_STYLE_FUZZY="fuzzy";// 模糊
-const OPT_STYLE_HIGHLIGHT="highlight";// 高亮
-const OPT_STYLE_BLOCKQUOTE="blockquote";// 引用
-const OPT_STYLE_DIY="diy_style";// 自定义样式
-const OPT_STYLE_ALL=[OPT_STYLE_NONE,OPT_STYLE_LINE,OPT_STYLE_DOTLINE,OPT_STYLE_DASHLINE,OPT_STYLE_WAVYLINE,OPT_STYLE_FUZZY,OPT_STYLE_HIGHLIGHT,OPT_STYLE_BLOCKQUOTE,OPT_STYLE_DIY];const OPT_STYLE_USE_COLOR=[OPT_STYLE_LINE,OPT_STYLE_DOTLINE,OPT_STYLE_DASHLINE,OPT_STYLE_WAVYLINE,OPT_STYLE_HIGHLIGHT,OPT_STYLE_BLOCKQUOTE];const OPT_TIMING_PAGESCROLL="mk_pagescroll";// 滚动加载翻译
-const OPT_TIMING_PAGEOPEN="mk_pageopen";// 直接翻译到底
-const OPT_TIMING_MOUSEOVER="mk_mouseover";const OPT_TIMING_CONTROL="mk_ctrlKey";const OPT_TIMING_SHIFT="mk_shiftKey";const OPT_TIMING_ALT="mk_altKey";const OPT_TIMING_ALL=[OPT_TIMING_PAGESCROLL,OPT_TIMING_PAGEOPEN,OPT_TIMING_MOUSEOVER,OPT_TIMING_CONTROL,OPT_TIMING_SHIFT,OPT_TIMING_ALT];const DEFAULT_FETCH_LIMIT=10;// 默认最大任务数量
-const DEFAULT_FETCH_INTERVAL=100;// 默认任务间隔时间
-const INPUT_PLACE_URL="{{url}}";// 占位符
-const INPUT_PLACE_FROM="{{from}}";// 占位符
-const INPUT_PLACE_TO="{{to}}";// 占位符
-const INPUT_PLACE_TEXT="{{text}}";// 占位符
-const INPUT_PLACE_KEY="{{key}}";// 占位符
-const INPUT_PLACE_MODEL="{{model}}";// 占位符
-const DEFAULT_COLOR="#209CEE";// 默认高亮背景色/线条颜色
-const DEFAULT_TRANS_TAG="font";const DEFAULT_SELECT_STYLE="-webkit-line-clamp: unset; max-height: none; height: auto;";// 全局规则
+// transRemoveHook: "", // 钩子函数 (暂时作废)
+autoScan:GLOBAL_KEY,// 是否自动识别文本节点
+hasRichText:GLOBAL_KEY,// 是否启用富文本翻译
+hasShadowroot:GLOBAL_KEY,// 是否包含shadowroot
+rootsSelector:"",// 翻译范围选择器
+ignoreSelector:""// 不翻译的选择器
+};// 全局规则
 const GLOBLA_RULE={pattern:"*",// 匹配网址
 selector:DEFAULT_SELECTOR,// 选择器
 keepSelector:DEFAULT_KEEP_SELECTOR,// 保留元素选择器
 terms:"",// 专业术语
-translator:OPT_TRANS_MICROSOFT,// 翻译服务
+aiTerms:"",// AI专业术语
+apiSlug:OPT_TRANS_MICROSOFT,// 翻译服务
 fromLang:"auto",// 源语言
 toLang:"zh-CN",// 目标语言
-textStyle:OPT_STYLE_DASHLINE,// 译文样式
+textStyle:OPT_STYLE_NONE,// 译文样式
 transOpen:"false",// 开启翻译
 bgColor:"",// 译文颜色
-textDiyStyle:"",// 自定义译文样式
+textDiyStyle:DEFAULT_DIY_STYLE,// 自定义译文样式
 selectStyle:DEFAULT_SELECT_STYLE,// 选择器节点样式
 parentStyle:DEFAULT_SELECT_STYLE,// 选择器父节点样式
+grandStyle:DEFAULT_SELECT_STYLE,// 选择器祖节点样式
 injectJs:"",// 注入JS
 injectCss:"",// 注入CSS
 transOnly:"false",// 是否仅显示译文
-transTiming:OPT_TIMING_PAGESCROLL,// 翻译时机/鼠标悬停翻译
+// transTiming: OPT_TIMING_PAGESCROLL, // 翻译时机/鼠标悬停翻译 (暂时作废)
 transTag:DEFAULT_TRANS_TAG,// 译文元素标签
 transTitle:"false",// 是否同时翻译页面标题
-transSelected:"true",// 是否启用划词翻译
-detectRemote:"false",// 是否使用远程语言检测
-skipLangs:[],// 不翻译的语言
-fixerSelector:"",// 修复函数选择器
-fixerFunc:"-",// 修复函数
+// transSelected: "true", // 是否启用划词翻译 (移回setting)
+// detectRemote: "true", // 是否使用远程语言检测 (移回setting)
+// skipLangs: [], // 不翻译的语言 (移回setting)
+// fixerSelector: "", // 修复函数选择器 (暂时作废)
+// fixerFunc: "-", // 修复函数 (暂时作废)
 transStartHook:"",// 钩子函数
 transEndHook:"",// 钩子函数
-transRemoveHook:""// 钩子函数
+// transRemoveHook: "", // 钩子函数 (暂时作废)
+autoScan:"true",// 是否自动识别文本节点
+hasRichText:"true",// 是否启用富文本翻译
+hasShadowroot:"false",// 是否包含shadowroot
+rootsSelector:"body",// 翻译范围选择器
+ignoreSelector:DEFAULT_IGNORE_SELECTOR// 不翻译的选择器
+};const DEFAULT_RULES=[GLOBLA_RULE];const DEFAULT_OW_RULE={apiSlug:REMAIN_KEY,fromLang:REMAIN_KEY,toLang:REMAIN_KEY,textStyle:REMAIN_KEY,transOpen:REMAIN_KEY,bgColor:"",textDiyStyle:DEFAULT_DIY_STYLE};// todo: 校验几个内置规则
+const RULES_MAP={"www.google.com/search":{rootsSelector:"#rcnt"},"en.wikipedia.org":{ignoreSelector:".button, code, footer, form, mark, pre, .mwe-math-element, .mw-editsection"},"news.ycombinator.com":{selector:"p, .titleline, .commtext",rootsSelector:"#bigbox",keepSelector:"code, img, svg, pre, .sitebit",ignoreSelector:"button, code, footer, form, header, mark, nav, pre, .reply",autoScan:"false"},"twitter.com, https://x.com":{selector:"[data-testid='tweetText']",keepSelector:"img, svg, span:has(a), div:has(a)",autoScan:"false"},"www.youtube.com":{rootsSelector:"ytd-page-manager",ignoreSelector:"aside, button, footer, form, header, pre, mark, nav, #player, #container, .caption-window, .ytp-settings-menu"}};const BUILTIN_RULES=Object.entries(RULES_MAP).sort((a,b)=>a[0].localeCompare(b[0])).map(_ref=>{let[pattern,rule]=_ref;return{// ...DEFAULT_RULE,
+...rule,pattern};});
+;// CONCATENATED MODULE: ./src/libs/log.js
+// 定义日志级别
+const LogLevel={DEBUG:{value:0,name:"DEBUG",color:"#6495ED"},// 宝蓝色
+INFO:{value:1,name:"INFO",color:"#4CAF50"},// 绿色
+WARN:{value:2,name:"WARN",color:"#FFC107"},// 琥珀色
+ERROR:{value:3,name:"ERROR",color:"#F44336"},// 红色
+SILENT:{value:4,name:"SILENT"}// 特殊级别，用于关闭所有日志
+};function findLogLevelByValue(value){return Object.values(LogLevel).find(level=>level.value===value);}function findLogLevelByName(name){if(typeof name!=="string"||name.length===0)return undefined;const upperCaseName=name.toUpperCase();return Object.values(LogLevel).find(level=>level.name===upperCaseName);}class Logger{/**
+   * @param {object} [options={}] 配置选项
+   * @param {LogLevel} [options.level=LogLevel.INFO]  要显示的最低日志级别
+   * @param {string}   [options.prefix='App']         日志前缀，用于区分模块
+   */constructor(){let options=arguments.length>0&&arguments[0]!==undefined?arguments[0]:{};this.config={level:options.level||LogLevel.INFO,prefix:options.prefix||"KISS-Translator"};}/**
+   * 动态设置日志级别
+   * @param {LogLevel} level - 新的日志级别
+   */setLevel(level){let newLevelObject;if(typeof level==="string"){newLevelObject=findLogLevelByName(level);if(!newLevelObject){this.warn("Invalid log level name provided: \"".concat(level,"\". Keeping current level."));return;}}else if(typeof level==="number"){newLevelObject=findLogLevelByValue(level);if(!newLevelObject){this.warn("Invalid log level value provided: ".concat(level,". Keeping current level."));return;}}else if(level&&typeof level.value==="number"){newLevelObject=level;}else{this.warn("Invalid argument passed to setLevel. Must be a LogLevel object, number, or string.");return;}this.config.level=newLevelObject;console.log("[".concat(this.config.prefix,"] Log level dynamically set to ").concat(this.config.level.name));}/**
+   * 核心日志记录方法
+   * @private
+   * @param {LogLevel} level - 当前消息的日志级别
+   * @param {...any} args - 要记录的多个参数，可以是任何类型
+   */_log(level){// 如果当前级别低于配置的最低级别，则不打印
+if(level.value<this.config.level.value){return;}const timestamp=new Date().toISOString();const prefixStr="[".concat(this.config.prefix,"]");const levelStr="[".concat(level.name,"]");// 判断是否在浏览器环境并且浏览器支持 console 样式
+const isBrowser=typeof window!=="undefined"&&typeof window.document!=="undefined";for(var _len=arguments.length,args=new Array(_len>1?_len-1:0),_key=1;_key<_len;_key++){args[_key-1]=arguments[_key];}if(isBrowser){// 在浏览器中使用颜色高亮
+const consoleMethod=this._getConsoleMethod(level);consoleMethod("%c".concat(timestamp," %c").concat(prefixStr," %c").concat(levelStr),"color: gray; font-weight: lighter;",// 时间戳样式
+"color: #7c57e0; font-weight: bold;",// 前缀样式 (紫色)
+"color: ".concat(level.color,"; font-weight: bold;"),// 日志级别样式
+...args);}else{// 在 Node.js 或不支持样式的环境中，输出纯文本
+const consoleMethod=this._getConsoleMethod(level);consoleMethod(timestamp,prefixStr,levelStr,...args);}}/**
+   * 根据日志级别获取对应的 console 方法
+   * @private
+   */_getConsoleMethod(level){switch(level){case LogLevel.ERROR:return console.error;case LogLevel.WARN:return console.warn;case LogLevel.INFO:return console.info;default:return console.log;}}/**
+   * 记录 DEBUG 级别的日志
+   * @param {...any} args
+   */debug(){for(var _len2=arguments.length,args=new Array(_len2),_key2=0;_key2<_len2;_key2++){args[_key2]=arguments[_key2];}this._log(LogLevel.DEBUG,...args);}/**
+   * 记录 INFO 级别的日志
+   * @param {...any} args
+   */info(){for(var _len3=arguments.length,args=new Array(_len3),_key3=0;_key3<_len3;_key3++){args[_key3]=arguments[_key3];}this._log(LogLevel.INFO,...args);}/**
+   * 记录 WARN 级别的日志
+   * @param {...any} args
+   */warn(){for(var _len4=arguments.length,args=new Array(_len4),_key4=0;_key4<_len4;_key4++){args[_key4]=arguments[_key4];}this._log(LogLevel.WARN,...args);}/**
+   * 记录 ERROR 级别的日志
+   * @param {...any} args
+   */error(){for(var _len5=arguments.length,args=new Array(_len5),_key5=0;_key5<_len5;_key5++){args[_key5]=arguments[_key5];}this._log(LogLevel.ERROR,...args);}}const logger=new Logger();const kissLog=logger.info.bind(logger);// todo：debug日志埋点
+;// CONCATENATED MODULE: ./src/config/setting.js
+// 默认快捷键
+const OPT_SHORTCUT_TRANSLATE="toggleTranslate";const OPT_SHORTCUT_STYLE="toggleStyle";const OPT_SHORTCUT_POPUP="togglePopup";const OPT_SHORTCUT_SETTING="openSetting";const DEFAULT_SHORTCUTS={[OPT_SHORTCUT_TRANSLATE]:["AltLeft","KeyQ"],[OPT_SHORTCUT_STYLE]:["AltLeft","KeyC"],[OPT_SHORTCUT_POPUP]:["AltLeft","KeyK"],[OPT_SHORTCUT_SETTING]:["AltLeft","KeyO"]};const TRANS_MIN_LENGTH=2;// 最短翻译长度
+const TRANS_MAX_LENGTH=100000;// 最长翻译长度
+const TRANS_NEWLINE_LENGTH=20;// 换行字符数
+const DEFAULT_BLACKLIST=["https://fishjar.github.io/kiss-translator/options.html","https://translate.google.com","https://www.deepl.com/translator"];// 禁用翻译名单
+const DEFAULT_CSPLIST=[];// 禁用CSP名单
+const DEFAULT_ORILIST=["https://dict.youdao.com"];// 移除Origin名单
+// 同步设置
+const OPT_SYNCTYPE_WORKER="KISS-Worker";const OPT_SYNCTYPE_WEBDAV="WebDAV";const OPT_SYNCTOKEN_PERFIX="kt_";const OPT_SYNCTYPE_ALL=[OPT_SYNCTYPE_WORKER,OPT_SYNCTYPE_WEBDAV];const DEFAULT_SYNC={syncType:OPT_SYNCTYPE_WORKER,// 同步方式
+syncUrl:"",// 数据同步接口
+syncUser:"",// 数据同步用户名
+syncKey:"",// 数据同步密钥
+syncMeta:{},// 数据更新及同步信息
+subRulesSyncAt:0,// 订阅规则同步时间
+dataCaches:{}// 缓存同步时间
 };// 输入框翻译
-const OPT_INPUT_TRANS_SIGNS=["/","//","\\","\\\\",">",">>"];const DEFAULT_INPUT_SHORTCUT=["AltLeft","KeyI"];const DEFAULT_INPUT_RULE={transOpen:true,translator:OPT_TRANS_MICROSOFT,fromLang:"auto",toLang:"en",triggerShortcut:DEFAULT_INPUT_SHORTCUT,triggerCount:1,triggerTime:200,transSign:OPT_INPUT_TRANS_SIGNS[0]};// 划词翻译
-const PHONIC_MAP={en_phonic:["英","uk"],us_phonic:["美","en"]};const OPT_TRANBOX_TRIGGER_CLICK="click";const OPT_TRANBOX_TRIGGER_HOVER="hover";const OPT_TRANBOX_TRIGGER_SELECT="select";const OPT_TRANBOX_TRIGGER_ALL=[OPT_TRANBOX_TRIGGER_CLICK,OPT_TRANBOX_TRIGGER_HOVER,OPT_TRANBOX_TRIGGER_SELECT];const DEFAULT_TRANBOX_SHORTCUT=["AltLeft","KeyS"];const DEFAULT_TRANBOX_SETTING={// transOpen: true, // 是否启用划词翻译（作废，移至rule）
-translator:OPT_TRANS_MICROSOFT,fromLang:"auto",toLang:"zh-CN",toLang2:"en",tranboxShortcut:DEFAULT_TRANBOX_SHORTCUT,btnOffsetX:10,btnOffsetY:10,boxOffsetX:0,boxOffsetY:10,hideTranBtn:false,// 是否隐藏翻译按钮
+const OPT_INPUT_TRANS_SIGNS=["/","//","\\","\\\\",">",">>"];const DEFAULT_INPUT_SHORTCUT=["AltLeft","KeyI"];const DEFAULT_INPUT_RULE={transOpen:true,apiSlug:OPT_TRANS_MICROSOFT,fromLang:"auto",toLang:"en",triggerShortcut:DEFAULT_INPUT_SHORTCUT,triggerCount:1,triggerTime:200,transSign:OPT_INPUT_TRANS_SIGNS[0]};// 划词翻译
+const PHONIC_MAP={en_phonic:["英","uk"],us_phonic:["美","en"]};const OPT_TRANBOX_TRIGGER_CLICK="click";const OPT_TRANBOX_TRIGGER_HOVER="hover";const OPT_TRANBOX_TRIGGER_SELECT="select";const OPT_TRANBOX_TRIGGER_ALL=[OPT_TRANBOX_TRIGGER_CLICK,OPT_TRANBOX_TRIGGER_HOVER,OPT_TRANBOX_TRIGGER_SELECT];const DEFAULT_TRANBOX_SHORTCUT=["AltLeft","KeyS"];const DEFAULT_TRANBOX_SETTING={transOpen:true,// 是否启用划词翻译
+apiSlugs:[OPT_TRANS_MICROSOFT],fromLang:"auto",toLang:"zh-CN",toLang2:"en",tranboxShortcut:DEFAULT_TRANBOX_SHORTCUT,btnOffsetX:10,btnOffsetY:10,boxOffsetX:0,boxOffsetY:10,hideTranBtn:false,// 是否隐藏翻译按钮
 hideClickAway:false,// 是否点击外部关闭弹窗
 simpleStyle:false,// 是否简洁界面
 followSelection:false,// 翻译框是否跟随选中文本
 triggerMode:OPT_TRANBOX_TRIGGER_CLICK,// 触发翻译方式
-extStyles:"",// 附加样式
-enDict:OPT_DICT_BAIDU// 英文词典
+// extStyles: "", // 附加样式
+enDict:OPT_DICT_BING,// 英文词典
+enSug:OPT_SUG_YOUDAO// 英文建议
+};const SUBTITLE_WINDOW_STYLE="padding: 0.5em 1em;\nbackground-color: rgba(0, 0, 0, 0.5);\ncolor: white;\nline-height: 1.3;\ntext-shadow: 1px 1px 2px black;\ndisplay: inline-block";const SUBTITLE_ORIGIN_STYLE="font-size: clamp(1.5rem, 3cqw, 3rem);";const SUBTITLE_TRANSLATION_STYLE="font-size: clamp(1.5rem, 3cqw, 3rem);";const DEFAULT_SUBTITLE_SETTING={enabled:true,// 是否开启
+apiSlug:OPT_TRANS_MICROSOFT,segSlug:"-",// AI智能断句
+chunkLength:1000,// AI处理切割长度
+// fromLang: "en",
+toLang:"zh-CN",isBilingual:true,// 是否双语显示
+windowStyle:SUBTITLE_WINDOW_STYLE,// 背景样式
+originStyle:SUBTITLE_ORIGIN_STYLE,// 原文样式
+translationStyle:SUBTITLE_TRANSLATION_STYLE// 译文样式
 };// 订阅列表
-const DEFAULT_SUBRULES_LIST=[{url:"https://fishjar.github.io/kiss-rules/kiss-rules.json",selected:false},{url:"https://fishjar.github.io/kiss-rules/kiss-rules-on.json",selected:true},{url:"https://fishjar.github.io/kiss-rules/kiss-rules-off.json",selected:false}];const DEFAULT_HTTP_TIMEOUT=5000;// 调用超时时间
-// 翻译接口
-const defaultCustomApi={url:"",key:"",customOption:"",// (作废)
-reqHook:"",// request 钩子函数
-resHook:"",// response 钩子函数
-fetchLimit:DEFAULT_FETCH_LIMIT,fetchInterval:DEFAULT_FETCH_INTERVAL,apiName:"",isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT};const defaultOpenaiApi={url:"https://api.openai.com/v1/chat/completions",key:"",model:"gpt-4",systemPrompt:"You are a professional, authentic machine translation engine.",userPrompt:"Translate the following source text from ".concat(INPUT_PLACE_FROM," to ").concat(INPUT_PLACE_TO,". Output translation directly without any additional text.\n\nSource Text: ").concat(INPUT_PLACE_TEXT,"\n\nTranslated Text:"),temperature:0,maxTokens:256,fetchLimit:1,fetchInterval:500,apiName:"",isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT*2};const defaultOllamaApi={url:"http://localhost:11434/api/generate",key:"",model:"llama3.1",systemPrompt:"You are a professional, authentic machine translation engine.",userPrompt:"Translate the following source text from ".concat(INPUT_PLACE_FROM," to ").concat(INPUT_PLACE_TO,". Output translation directly without any additional text.\n\nSource Text: ").concat(INPUT_PLACE_TEXT,"\n\nTranslated Text:"),think:false,thinkIgnore:"qwen3,deepseek-r1",fetchLimit:1,fetchInterval:500,apiName:"",isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT*2};const DEFAULT_TRANS_APIS={[OPT_TRANS_GOOGLE]:{url:URL_GOOGLE_TRAN,key:"",fetchLimit:DEFAULT_FETCH_LIMIT,// 最大任务数量
-fetchInterval:DEFAULT_FETCH_INTERVAL,// 任务间隔时间
-apiName:OPT_TRANS_GOOGLE,// 接口自定义名称
-isDisabled:false,// 是否禁用
-httpTimeout:DEFAULT_HTTP_TIMEOUT// 超时时间
-},[OPT_TRANS_GOOGLE_2]:{url:URL_GOOGLE_TRAN2,key:DEFAULT_GOOGLE_API_KEY,fetchLimit:DEFAULT_FETCH_LIMIT,fetchInterval:DEFAULT_FETCH_INTERVAL,apiName:OPT_TRANS_GOOGLE_2,isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT},[OPT_TRANS_MICROSOFT]:{fetchLimit:DEFAULT_FETCH_LIMIT,fetchInterval:DEFAULT_FETCH_INTERVAL,apiName:OPT_TRANS_MICROSOFT,isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT},[OPT_TRANS_BAIDU]:{fetchLimit:DEFAULT_FETCH_LIMIT,fetchInterval:DEFAULT_FETCH_INTERVAL,apiName:OPT_TRANS_BAIDU,isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT},[OPT_TRANS_TENCENT]:{fetchLimit:DEFAULT_FETCH_LIMIT,fetchInterval:DEFAULT_FETCH_INTERVAL,apiName:OPT_TRANS_TENCENT,isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT},[OPT_TRANS_VOLCENGINE]:{fetchLimit:DEFAULT_FETCH_LIMIT,fetchInterval:DEFAULT_FETCH_INTERVAL,apiName:OPT_TRANS_VOLCENGINE,isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT},[OPT_TRANS_DEEPL]:{url:"https://api-free.deepl.com/v2/translate",key:"",fetchLimit:1,fetchInterval:500,apiName:OPT_TRANS_DEEPL,isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT},[OPT_TRANS_DEEPLFREE]:{fetchLimit:1,fetchInterval:500,apiName:OPT_TRANS_DEEPLFREE,isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT},[OPT_TRANS_DEEPLX]:{url:"http://localhost:1188/translate",key:"",fetchLimit:1,fetchInterval:500,apiName:OPT_TRANS_DEEPLX,isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT},[OPT_TRANS_NIUTRANS]:{url:"https://api.niutrans.com/NiuTransServer/translation",key:"",dictNo:"",memoryNo:"",fetchLimit:DEFAULT_FETCH_LIMIT,fetchInterval:DEFAULT_FETCH_INTERVAL,apiName:OPT_TRANS_NIUTRANS,isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT},[OPT_TRANS_OPENAI]:defaultOpenaiApi,[OPT_TRANS_OPENAI_2]:defaultOpenaiApi,[OPT_TRANS_OPENAI_3]:defaultOpenaiApi,[OPT_TRANS_GEMINI]:{url:"https://generativelanguage.googleapis.com/v1/models/".concat(INPUT_PLACE_MODEL,":generateContent?key=").concat(INPUT_PLACE_KEY),key:"",model:"gemini-2.5-flash",systemPrompt:"You are a professional, authentic machine translation engine.",userPrompt:"Translate the following source text from ".concat(INPUT_PLACE_FROM," to ").concat(INPUT_PLACE_TO,". Output translation directly without any additional text.\n\nSource Text: ").concat(INPUT_PLACE_TEXT,"\n\nTranslated Text:"),temperature:0,maxTokens:2048,fetchLimit:1,fetchInterval:500,apiName:OPT_TRANS_GEMINI,isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT*2},[OPT_TRANS_GEMINI_2]:{url:"https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",key:"",model:"gemini-2.0-flash",systemPrompt:"You are a professional, authentic machine translation engine.",userPrompt:"Translate the following source text from ".concat(INPUT_PLACE_FROM," to ").concat(INPUT_PLACE_TO,". Output translation directly without any additional text.\n\nSource Text: ").concat(INPUT_PLACE_TEXT,"\n\nTranslated Text:"),temperature:0,maxTokens:2048,fetchLimit:1,fetchInterval:500,apiName:OPT_TRANS_GEMINI_2,isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT*2},[OPT_TRANS_CLAUDE]:{url:"https://api.anthropic.com/v1/messages",key:"",model:"claude-3-haiku-20240307",systemPrompt:"You are a professional, authentic machine translation engine.",userPrompt:"Translate the following source text from ".concat(INPUT_PLACE_FROM," to ").concat(INPUT_PLACE_TO,". Output translation directly without any additional text.\n\nSource Text: ").concat(INPUT_PLACE_TEXT,"\n\nTranslated Text:"),temperature:0,maxTokens:1024,fetchLimit:1,fetchInterval:500,apiName:OPT_TRANS_CLAUDE,isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT*2},[OPT_TRANS_CLOUDFLAREAI]:{url:"https://api.cloudflare.com/client/v4/accounts/{{ACCOUNT_ID}}/ai/run/@cf/meta/m2m100-1.2b",key:"",fetchLimit:1,fetchInterval:500,apiName:OPT_TRANS_CLOUDFLAREAI,isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT*2},[OPT_TRANS_OLLAMA]:defaultOllamaApi,[OPT_TRANS_OLLAMA_2]:defaultOllamaApi,[OPT_TRANS_OLLAMA_3]:defaultOllamaApi,[OPT_TRANS_CUSTOMIZE]:defaultCustomApi,[OPT_TRANS_CUSTOMIZE_2]:defaultCustomApi,[OPT_TRANS_CUSTOMIZE_3]:defaultCustomApi,[OPT_TRANS_CUSTOMIZE_4]:defaultCustomApi,[OPT_TRANS_CUSTOMIZE_5]:defaultCustomApi};// 默认快捷键
-const OPT_SHORTCUT_TRANSLATE="toggleTranslate";const OPT_SHORTCUT_STYLE="toggleStyle";const OPT_SHORTCUT_POPUP="togglePopup";const OPT_SHORTCUT_SETTING="openSetting";const DEFAULT_SHORTCUTS={[OPT_SHORTCUT_TRANSLATE]:["AltLeft","KeyQ"],[OPT_SHORTCUT_STYLE]:["AltLeft","KeyC"],[OPT_SHORTCUT_POPUP]:["AltLeft","KeyK"],[OPT_SHORTCUT_SETTING]:["AltLeft","KeyO"]};const TRANS_MIN_LENGTH=5;// 最短翻译长度
-const TRANS_MAX_LENGTH=5000;// 最长翻译长度
-const TRANS_NEWLINE_LENGTH=20;// 换行字符数
-const DEFAULT_BLACKLIST=["https://fishjar.github.io/kiss-translator/options.html","https://translate.google.com","https://www.deepl.com/translator","oapi.dingtalk.com","login.dingtalk.com"];// 禁用翻译名单
-const DEFAULT_CSPLIST=["https://github.com"];// 禁用CSP名单
-const DEFAULT_SETTING={darkMode:false,// 深色模式
+const DEFAULT_SUBRULES_LIST=[{url:"https://fishjar.github.io/kiss-rules/kiss-rules_v2.json",selected:true},{url:"https://fishjar.github.io/kiss-rules/kiss-rules-on_v2.json",selected:false},{url:"https://fishjar.github.io/kiss-rules/kiss-rules-off_v2.json",selected:false}];const DEFAULT_MOUSEHOVER_KEY=["KeyQ"];const DEFAULT_MOUSE_HOVER_SETTING={useMouseHover:true,// 是否启用鼠标悬停翻译
+mouseHoverKey:DEFAULT_MOUSEHOVER_KEY// 鼠标悬停翻译组合键
+};const DEFAULT_SETTING={darkMode:false,// 深色模式
 uiLang:"en",// 界面语言
-// fetchLimit: DEFAULT_FETCH_LIMIT, // 最大任务数量(移至transApis，作废)
-// fetchInterval: DEFAULT_FETCH_INTERVAL, // 任务间隔时间(移至transApis，作废)
+// fetchLimit: DEFAULT_FETCH_LIMIT, // 最大任务数量(移至rule，作废)
+// fetchInterval: DEFAULT_FETCH_INTERVAL, // 任务间隔时间(移至rule，作废)
 minLength:TRANS_MIN_LENGTH,maxLength:TRANS_MAX_LENGTH,newlineLength:TRANS_NEWLINE_LENGTH,httpTimeout:DEFAULT_HTTP_TIMEOUT,clearCache:false,// 是否在浏览器下次启动时清除缓存
 injectRules:true,// 是否注入订阅规则
+fabClickAction:0,// 悬浮按钮点击行为
 // injectWebfix: true, // 是否注入修复补丁(作废)
-// detectRemote: false, // 是否使用远程语言检测(移至rule，作废)
+// detectRemote: false, // 是否使用远程语言检测 （从rule移回）
 // contextMenus: true, // 是否添加右键菜单(作废)
 contextMenuType:1,// 右键菜单类型(0不显示，1简单菜单，2多级菜单)
 // transTag: DEFAULT_TRANS_TAG, // 译文元素标签(移至rule，作废)
 // transOnly: false, // 是否仅显示译文(移至rule，作废)
 // transTitle: false, // 是否同时翻译页面标题(移至rule，作废)
 subrulesList:DEFAULT_SUBRULES_LIST,// 订阅列表
-owSubrule:DEFAULT_OW_RULE,// 覆写订阅规则
-transApis:DEFAULT_TRANS_APIS,// 翻译接口
+// owSubrule: DEFAULT_OW_RULE, // 覆写订阅规则 (作废)
+transApis:DEFAULT_API_LIST,// 翻译接口 (v2.0 对象改为数组)
 // mouseKey: OPT_TIMING_PAGESCROLL, // 翻译时机/鼠标悬停翻译(移至rule，作废)
 shortcuts:DEFAULT_SHORTCUTS,// 快捷键
 inputRule:DEFAULT_INPUT_RULE,// 输入框设置
@@ -34849,19 +35077,29 @@ tranboxSetting:DEFAULT_TRANBOX_SETTING,// 划词翻译设置
 touchTranslate:2,// 触屏翻译
 blacklist:DEFAULT_BLACKLIST.join(",\n"),// 禁用翻译名单
 csplist:DEFAULT_CSPLIST.join(",\n"),// 禁用CSP名单
+orilist:DEFAULT_ORILIST.join(",\n"),// 禁用CSP名单
 // disableLangs: [], // 不翻译的语言(移至rule，作废)
-transInterval:500,// 翻译间隔时间
-langDetector:OPT_TRANS_MICROSOFT// 远程语言识别服务
-};const DEFAULT_RULES=[GLOBLA_RULE];const OPT_SYNCTYPE_WORKER="KISS-Worker";const OPT_SYNCTYPE_WEBDAV="WebDAV";const OPT_SYNCTYPE_ALL=[OPT_SYNCTYPE_WORKER,OPT_SYNCTYPE_WEBDAV];const DEFAULT_SYNC={syncType:OPT_SYNCTYPE_WORKER,// 同步方式
-syncUrl:"",// 数据同步接口
-syncUser:"",// 数据同步用户名
-syncKey:"",// 数据同步密钥
-syncMeta:{},// 数据更新及同步信息
-subRulesSyncAt:0,// 订阅规则同步时间
-dataCaches:{}// 缓存同步时间
+skipLangs:[],// 不翻译的语言（从rule移回）
+transInterval:100,// 翻译等待时间
+langDetector:"-",// 远程语言识别服务
+mouseHoverSetting:DEFAULT_MOUSE_HOVER_SETTING,// 鼠标悬停翻译
+preInit:true,// 是否预加载脚本
+transAllnow:false,// 是否立即全部翻译
+subtitleSetting:DEFAULT_SUBTITLE_SETTING,// 字幕设置
+logLevel:LogLevel.INFO.value// 日志级别
 };
+;// CONCATENATED MODULE: ./src/config/i18n.js
+const UI_LANGS=(/* unused pure expression or super */ null && ([["en","English"],["zh","简体中文"],["zh_TW","繁體中文"]]));const customApiLangs="[\"en\", \"English - English\"],\n[\"zh-CN\", \"Simplified Chinese - \u7B80\u4F53\u4E2D\u6587\"],\n[\"zh-TW\", \"Traditional Chinese - \u7E41\u9AD4\u4E2D\u6587\"],\n[\"ar\", \"Arabic - \u0627\u0644\u0639\u0631\u0628\u064A\u0629\"],\n[\"bg\", \"Bulgarian - \u0411\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438\"],\n[\"ca\", \"Catalan - Catal\xE0\"],\n[\"hr\", \"Croatian - Hrvatski\"],\n[\"cs\", \"Czech - \u010Ce\u0161tina\"],\n[\"da\", \"Danish - Dansk\"],\n[\"nl\", \"Dutch - Nederlands\"],\n[\"fi\", \"Finnish - Suomi\"],\n[\"fr\", \"French - Fran\xE7ais\"],\n[\"de\", \"German - Deutsch\"],\n[\"el\", \"Greek - \u0395\u03BB\u03BB\u03B7\u03BD\u03B9\u03BA\u03AC\"],\n[\"hi\", \"Hindi - \u0939\u093F\u0928\u094D\u0926\u0940\"],\n[\"hu\", \"Hungarian - Magyar\"],\n[\"id\", \"Indonesian - Indonesia\"],\n[\"it\", \"Italian - Italiano\"],\n[\"ja\", \"Japanese - \u65E5\u672C\u8A9E\"],\n[\"ko\", \"Korean - \uD55C\uAD6D\uC5B4\"],\n[\"ms\", \"Malay - Melayu\"],\n[\"mt\", \"Maltese - Malti\"],\n[\"nb\", \"Norwegian - Norsk Bokm\xE5l\"],\n[\"pl\", \"Polish - Polski\"],\n[\"pt\", \"Portuguese - Portugu\xEAs\"],\n[\"ro\", \"Romanian - Rom\xE2n\u0103\"],\n[\"ru\", \"Russian - \u0420\u0443\u0441\u0441\u043A\u0438\u0439\"],\n[\"sk\", \"Slovak - Sloven\u010Dina\"],\n[\"sl\", \"Slovenian - Sloven\u0161\u010Dina\"],\n[\"es\", \"Spanish - Espa\xF1ol\"],\n[\"sv\", \"Swedish - Svenska\"],\n[\"ta\", \"Tamil - \u0BA4\u0BAE\u0BBF\u0BB4\u0BCD\"],\n[\"te\", \"Telugu - \u0C24\u0C46\u0C32\u0C41\u0C17\u0C41\"],\n[\"th\", \"Thai - \u0E44\u0E17\u0E22\"],\n[\"tr\", \"Turkish - T\xFCrk\xE7e\"],\n[\"uk\", \"Ukrainian - \u0423\u043A\u0440\u0430\u0457\u043D\u0441\u044C\u043A\u0430\"],\n[\"vi\", \"Vietnamese - Ti\u1EBFng Vi\u1EC7t\"],\n";const customApiHelpZH="// \u8BF7\u6C42\u6570\u636E\u9ED8\u8BA4\u683C\u5F0F\n{\n  \"url\": \"{{url}}\",\n  \"method\": \"POST\",\n  \"headers\": {\n    \"Content-type\": \"application/json\",\n    \"Authorization\": \"Bearer {{key}}\"\n  },\n  \"body\": {\n    \"text\": \"{{text}}\", // \u5F85\u7FFB\u8BD1\u6587\u5B57\n    \"from\": \"{{from}}\", // \u6587\u5B57\u7684\u8BED\u8A00\uFF08\u53EF\u80FD\u4E3A\u7A7A\uFF09\n    \"to\": \"{{to}}\",     // \u76EE\u6807\u8BED\u8A00\n  },\n}\n\n\n// \u8FD4\u56DE\u6570\u636E\u9ED8\u8BA4\u683C\u5F0F\n{\n  text: \"\", // \u7FFB\u8BD1\u540E\u7684\u6587\u5B57\n  from: \"\", // \u8BC6\u522B\u7684\u6E90\u8BED\u8A00\n  to: \"\",   // \u76EE\u6807\u8BED\u8A00\uFF08\u53EF\u9009\uFF09\n}\n\n\n// Hook \u8303\u4F8B\n// URL\nhttps://translate.googleapis.com/translate_a/single?client=gtx&dj=1&dt=t&ie=UTF-8&q={{text}}&sl=en&tl=zh-CN\n\n// Request Hook\n(text, from, to, url, key) => [url, {\n  headers: {\n      \"Content-type\": \"application/json\",\n  },\n  method: \"GET\",\n  body: null,\n}]\n\n// Response Hook\n// \u5176\u4E2D\u8FD4\u56DE\u6570\u7EC4\u7B2C\u4E00\u4E2A\u503C\u8868\u793A\u8BD1\u6587\u5B57\u7B26\u4E32\uFF0C\u7B2C\u4E8C\u4E2A\u503C\u4E3A\u5E03\u5C14\u503C\uFF0C\u8868\u793A\u539F\u6587\u8BED\u8A00\u4E0E\u76EE\u6807\u8BED\u8A00\u662F\u5426\u76F8\u540C\n(res, text, from, to) => [res.sentences.map((item) => item.trans).join(\" \"), to === res.src]\n\n\n// \u652F\u6301\u7684\u8BED\u8A00\u4EE3\u7801\u5982\u4E0B\n".concat(customApiLangs,"\n");const customApiHelpEN="// Default request\n{\n  \"url\": \"{{url}}\",\n  \"method\": \"POST\",\n  \"headers\": {\n    \"Content-type\": \"application/json\",\n    \"Authorization\": \"Bearer {{key}}\"\n  },\n  \"body\": {\n    \"text\": \"{{text}}\", // Text to be translated\n    \"from\": \"{{from}}\", // The language of the text (may be empty)\n    \"to\": \"{{to}}\",     // Target language\n  },\n}\n\n\n// Default response\n{\n  text: \"\", // translated text\n  from: \"\", // Recognized source language\n  to: \"\",   // Target language (optional)\n}\n\n\n/// Hook Example\n// URL\nhttps://translate.googleapis.com/translate_a/single?client=gtx&dj=1&dt=t&ie=UTF-8&q={{text}}&sl=en&tl=zh-CN\n\n// Request Hook\n(text, from, to, url, key) => [url, {\n  headers: {\n      \"Content-type\": \"application/json\",\n  },\n  method: \"GET\",\n  body: null,\n}]\n\n// Response Hook\n// In the returned array, the first value is the translated string, while the second value is a boolean\n// that indicates whether the source language is the same as the target language.\n(res, text, from, to) => [res.sentences.map((item) => item.trans).join(\" \"), to === res.src]\n\n\n// The supported language codes are as follows\n".concat(customApiLangs,"\n");const requestHookHelperZH="1\u3001\u7B2C\u4E00\u4E2A\u53C2\u6570\u5305\u542B\u5982\u4E0B\u5B57\u6BB5\uFF1A'texts', 'from', 'to', 'url', 'key', 'model', 'systemPrompt', ...\n2\u3001\u8FD4\u56DE\u503C\u5FC5\u987B\u662F\u5305\u542B\u4EE5\u4E0B\u5B57\u6BB5\u7684\u5BF9\u8C61\uFF1A 'url', 'body', 'headers', 'userMsg', 'method'\n3\u3001\u5982\u8FD4\u56DE\u7A7A\u503C\uFF0C\u5219hook\u51FD\u6570\u4E0D\u4F1A\u4EA7\u751F\u4EFB\u4F55\u6548\u679C\u3002\n\n// \u793A\u4F8B\nasync (args, { url, body, headers, userMsg, method } = {}) => {\n  console.log(\"request hook args:\", args);\n  return { url, body, headers, userMsg, method };\n}";const requestHookHelperEN="1. The first parameter contains the following fields: 'texts', 'from', 'to', 'url', 'key', 'model', 'systemPrompt', ...\n2. The return value must be an object containing the following fields: 'url', 'body', 'headers', 'userMsg', 'method'\n3. If a null value is returned, the hook function will have no effect.\n\n// Example\nasync (args, { url, body, headers, userMsg, method } = {}) => {\n  console.log(\"request hook args:\", args);\n  return { url, body, headers, userMsg, method };\n}";const responsetHookHelperZH="1\u3001\u7B2C\u4E00\u4E2A\u53C2\u6570\u5305\u542B\u5982\u4E0B\u5B57\u6BB5\uFF1A'res', ...\n2\u3001\u8FD4\u56DE\u503C\u5FC5\u987B\u662F\u5305\u542B\u4EE5\u4E0B\u5B57\u6BB5\u7684\u5BF9\u8C61\uFF1A 'translations', 'modelMsg' \n  \uFF08'translations' \u5E94\u4E3A\u4E00\u4E2A\u4E8C\u7EF4\u6570\u7EC4\uFF1A[[\u8BD1\u6587, \u6E90\u8BED\u8A00]]\uFF09\n3\u3001\u5982\u8FD4\u56DE\u7A7A\u503C\uFF0C\u5219hook\u51FD\u6570\u4E0D\u4F1A\u4EA7\u751F\u4EFB\u4F55\u6548\u679C\u3002\n\n// \u793A\u4F8B\nasync ({ res, ...args }) => {\n  console.log(\"reaponse hook args:\", res, args);\n  const translations = [[\"\u4F60\u597D\", \"zh\"]];\n  const modelMsg = \"\";\n  return { translations, modelMsg };\n}";const responsetHookHelperEN="1. The first parameter contains the following fields: 'res', ...\n2. The return value must be an object containing the following fields: 'translations', 'modelMsg'\n  ('translations' should be a two-dimensional array: [[translation, source language]]).\n3. If a null value is returned, the hook function will have no effect.\n\n// Example\nasync ({ res, ...args }) => {\n  console.log(\"reaponse hook args:\", res, args);\n  const translations = [[\"\u4F60\u597D\", \"zh\"]];\n  const modelMsg = \"\";\n  return { translations, modelMsg };\n}";const I18N={app_name:{zh:"\u7B80\u7EA6\u7FFB\u8BD1",en:"KISS Translator",zh_TW:"\u7C21\u7D04\u7FFB\u8B6F"},translate:{zh:"\u7FFB\u8BD1",en:"Translate",zh_TW:"\u7FFB\u8B6F"},custom_api_help:{zh:customApiHelpZH,en:customApiHelpEN,zh_TW:customApiHelpZH},request_hook_helper:{zh:requestHookHelperZH,en:requestHookHelperEN,zh_TW:requestHookHelperZH},response_hook_helper:{zh:responsetHookHelperZH,en:responsetHookHelperEN,zh_TW:responsetHookHelperZH},translate_alt:{zh:"\u7FFB\u8BD1",en:"Translate",zh_TW:"\u7FFB\u8B6F"},basic_setting:{zh:"\u57FA\u672C\u8BBE\u7F6E",en:"Basic Setting",zh_TW:"\u57FA\u672C\u8A2D\u5B9A"},rules_setting:{zh:"\u89C4\u5219\u8BBE\u7F6E",en:"Rules Setting",zh_TW:"\u898F\u5247\u8A2D\u5B9A"},apis_setting:{zh:"\u63A5\u53E3\u8BBE\u7F6E",en:"Apis Setting",zh_TW:"API\u8A2D\u5B9A"},sync_setting:{zh:"\u540C\u6B65\u8BBE\u7F6E",en:"Sync Setting",zh_TW:"\u540C\u6B65\u8A2D\u5B9A"},patch_setting:{zh:"\u8865\u4E01\u8BBE\u7F6E",en:"Patch Setting",zh_TW:"\u4FEE\u88DC\u8A2D\u5B9A"},patch_setting_help:{zh:"\u9488\u5BF9\u4E00\u4E9B\u7279\u6B8A\u7F51\u7AD9\u7684\u4FEE\u6B63\u811A\u672C\uFF0C\u4EE5\u4FBF\u7FFB\u8BD1\u8F6F\u4EF6\u5F97\u5230\u66F4\u597D\u7684\u5C55\u793A\u6548\u679C\u3002",en:"Corrected scripts for some special websites so that the translation software can get better display results.",zh_TW:"\u91DD\u5C0D\u67D0\u4E9B\u7279\u6B8A\u7DB2\u7AD9\u7684\u4FEE\u6B63\u8173\u672C\uFF0C\u8B93\u7FFB\u8B6F\u8EDF\u9AD4\u6709\u66F4\u597D\u7684\u986F\u793A\u6548\u679C\u3002"},inject_webfix:{zh:"\u6CE8\u5165\u4FEE\u590D\u8865\u4E01",en:"Inject Webfix",zh_TW:"\u6CE8\u5165\u4FEE\u6B63\u88DC\u4E01"},about:{zh:"\u5173\u4E8E",en:"About",zh_TW:"\u95DC\u65BC"},about_md:{zh:"README.md",en:"README.en.md",zh_TW:"README.md"},about_md_local:{zh:"\u8BF7 [\u70B9\u51FB\u8FD9\u91CC](".concat("https://github.com/fishjar/kiss-translator",") \u67E5\u770B\u8BE6\u60C5\u3002"),en:"Please [click here](".concat("https://github.com/fishjar/kiss-translator",") for details."),zh_TW:"\u8ACB\u3010\u9EDE\u9019\u88E1\u3011\u67E5\u770B\u8A73\u7D30\u5167\u5BB9\u3002"},ui_lang:{zh:"\u754C\u9762\u8BED\u8A00",en:"Interface Language",zh_TW:"\u4ECB\u9762\u8A9E\u8A00"},fetch_limit:{zh:"\u6700\u5927\u5E76\u53D1\u8BF7\u6C42\u6570\u91CF (1-100)",en:"Maximum Number Of Concurrent Requests (1-100)",zh_TW:"\u6700\u5927\u540C\u6642\u8ACB\u6C42\u6578\u91CF (1-100)"},if_think:{zh:"\u542F\u7528\u6216\u7981\u7528\u6A21\u578B\u7684\u6DF1\u5EA6\u601D\u8003\u80FD\u529B",en:"Enable or disable the model\u2019s thinking behavior ",zh_TW:"\u555F\u7528\u6216\u505C\u7528\u6A21\u578B\u7684\u6DF1\u5EA6\u601D\u8003\u80FD\u529B"},think:{zh:"\u542F\u7528\u6DF1\u5EA6\u601D\u8003",en:"enable thinking",zh_TW:"\u555F\u7528\u6DF1\u5EA6\u601D\u8003"},nothink:{zh:"\u7981\u7528\u6DF1\u5EA6\u601D\u8003",en:"disable thinking",zh_TW:"\u505C\u7528\u6DF1\u5EA6\u601D\u8003"},think_ignore:{zh:"\u5FFD\u7565\u4EE5\u4E0B\u6A21\u578B\u7684<think>\u8F93\u51FA,\u9017\u53F7(,)\u5206\u5272,\u5F53\u6A21\u578B\u652F\u6301\u601D\u8003\u4F46ollama\u4E0D\u652F\u6301\u65F6\u9700\u8981\u586B\u5199\u672C\u53C2\u6570",en:"Ignore the <think> block for the following models, comma (,) separated",zh_TW:"\u5FFD\u7565\u4EE5\u4E0B\u6A21\u578B\u7684 <think> \u8F38\u51FA\uFF0C\u4EE5\u9017\u865F (,) \u5206\u9694\uFF1B\u7576\u6A21\u578B\u652F\u63F4\u601D\u8003\u4F46 ollama \u4E0D\u652F\u63F4\u6642\u9700\u8981\u586B\u5BEB\u6B64\u53C3\u6578"},fetch_interval:{zh:"\u6BCF\u6B21\u8BF7\u6C42\u95F4\u9694\u65F6\u95F4 (0-5000ms)",en:"Time Between Requests (0-5000ms)",zh_TW:"\u6BCF\u6B21\u8ACB\u6C42\u9593\u9694\u6642\u9593 (0-5000ms)"},translate_interval:{zh:"\u7FFB\u8BD1\u95F4\u9694\u65F6\u95F4 (10-2000ms)",en:"Translation Interval (10-2000ms)",zh_TW:"\u7FFB\u8B6F\u9593\u9694\u6642\u9593 (10-2000ms)"},http_timeout:{zh:"\u8BF7\u6C42\u8D85\u65F6\u65F6\u95F4 (5000-60000ms)",en:"Request Timeout Time (5000-60000ms)",zh_TW:"\u8ACB\u6C42\u903E\u6642\u6642\u9593 (5000-60000ms)"},custom_header:{zh:"\u81EA\u5B9A\u4E49Header\u53C2\u6570",en:"Custom Header Params"},custom_header_help:{zh:"\u4F7F\u7528JSON\u683C\u5F0F\uFF0C\u4F8B\u5982 \"User-Agent\": \"Mozilla/5.0 (X11; Linux x86_64; rv:141.0) Gecko/20100101 Firefox/141.0\"",en:"Use JSON format, for example \"User-Agent\": \"Mozilla/5.0 (X11; Linux x86_64; rv:141.0) Gecko/20100101 Firefox/141.0\""},custom_body:{zh:"\u81EA\u5B9A\u4E49Body\u53C2\u6570",en:"Custom Body Params"},custom_body_help:{zh:"\u4F7F\u7528JSON\u683C\u5F0F\uFF0C\u4F8B\u5982 \"top_p\": 0.7",en:"Use JSON format, for example \"top_p\": 0.7"},min_translate_length:{zh:"\u6700\u5C0F\u7FFB\u8BD1\u5B57\u7B26\u6570 (1-100)",en:"Minimum number Of Translated Characters (1-100)",zh_TW:"\u6700\u5C0F\u7FFB\u8B6F\u5B57\u5143\u6578 (1-100)"},max_translate_length:{zh:"\u6700\u5927\u7FFB\u8BD1\u5B57\u7B26\u6570 (100-100000)",en:"Maximum number Of Translated Characters (100-100000)",zh_TW:"\u6700\u5927\u7FFB\u8B6F\u5B57\u5143\u6578 (100-100000)"},num_of_newline_characters:{zh:"\u6362\u884C\u5B57\u7B26\u6570 (1-1000)",en:"Number of Newline Characters (1-1000)",zh_TW:"\u63DB\u884C\u5B57\u5143\u6578 (1-1000)"},translate_service:{zh:"\u7FFB\u8BD1\u670D\u52A1",en:"Translate Service",zh_TW:"\u7FFB\u8B6F\u670D\u52D9"},translate_service_multiple:{zh:"\u7FFB\u8BD1\u670D\u52A1 (\u652F\u6301\u591A\u9009)",en:"Translation service (multiple supported)",zh_TW:"\u7FFB\u8B6F\u670D\u52D9 (\u652F\u63F4\u591A\u9078)"},translate_timing:{zh:"\u7FFB\u8BD1\u65F6\u673A",en:"Translate Timing",zh_TW:"\u7FFB\u8B6F\u6642\u6A5F"},mk_pagescroll:{zh:"\u6EDA\u52A8\u52A0\u8F7D\u7FFB\u8BD1\uFF08\u63A8\u8350\uFF09",en:"Rolling Loading (Suggested)",zh_TW:"\u6EFE\u52D5\u8F09\u5165\u7FFB\u8B6F\uFF08\u5EFA\u8B70\uFF09"},mk_pageopen:{zh:"\u7ACB\u5373\u5168\u90E8\u7FFB\u8BD1",en:"Translate all now",zh_TW:"\u7ACB\u5373\u5168\u90E8\u7FFB\u8B6F"},mk_mouseover:{zh:"\u9F20\u6807\u60AC\u505C\u7FFB\u8BD1",en:"Mouseover",zh_TW:"\u6ED1\u9F20\u61F8\u505C\u7FFB\u8B6F"},mk_ctrlKey:{zh:"Control + \u9F20\u6807\u60AC\u505C",en:"Control + Mouseover",zh_TW:"Control + \u6ED1\u9F20\u61F8\u505C"},mk_shiftKey:{zh:"Shift + \u9F20\u6807\u60AC\u505C",en:"Shift + Mouseover",zh_TW:"Shift + \u6ED1\u9F20\u61F8\u505C"},mk_altKey:{zh:"Alt + \u9F20\u6807\u60AC\u505C",en:"Alt + Mouseover",zh_TW:"Alt + \u6ED1\u9F20\u61F8\u505C"},from_lang:{zh:"\u539F\u6587\u8BED\u8A00",en:"Source Language",zh_TW:"\u539F\u6587\u8A9E\u8A00"},to_lang:{zh:"\u76EE\u6807\u8BED\u8A00",en:"Target Language",zh_TW:"\u76EE\u6A19\u8A9E\u8A00"},to_lang2:{zh:"\u7B2C\u4E8C\u76EE\u6807\u8BED\u8A00",en:"Target Language 2",zh_TW:"\u7B2C\u4E8C\u76EE\u6A19\u8A9E\u8A00"},to_lang2_helper:{zh:"\u8BBE\u5B9A\u540E\uFF0C\u4E0E\u76EE\u6807\u8BED\u8A00\u4EA7\u751F\u4E92\u8BD1\u6548\u679C\uFF0C\u4F46\u4F9D\u8D56\u8FDC\u7A0B\u8BED\u8A00\u8BC6\u522B\u3002",en:"After setting, it will produce mutual translation effect with the target language, but it relies on remote language recognition.",zh_TW:"\u8A2D\u5B9A\u5F8C\u6703\u8207\u76EE\u6A19\u8A9E\u8A00\u4E92\u8B6F\uFF0C\u4F46\u4F9D\u8CF4\u9060\u7AEF\u8A9E\u8A00\u8B58\u5225\u3002"},text_style:{zh:"\u8BD1\u6587\u6837\u5F0F",en:"Text Style",zh_TW:"\u8B6F\u6587\u6A23\u5F0F"},text_style_alt:{zh:"\u8BD1\u6587\u6837\u5F0F",en:"Text Style",zh_TW:"\u8B6F\u6587\u6A23\u5F0F"},bg_color:{zh:"\u6837\u5F0F\u989C\u8272",en:"Style Color",zh_TW:"\u6A23\u5F0F\u984F\u8272"},remain_unchanged:{zh:"\u4FDD\u7559\u4E0D\u53D8",en:"Remain Unchanged",zh_TW:"\u4FDD\u7559\u4E0D\u8B8A"},google_api:{zh:"\u8C37\u6B4C\u7FFB\u8BD1\u63A5\u53E3",en:"Google Translate API",zh_TW:"Google \u7FFB\u8B6F\u4ECB\u9762"},default_selector:{zh:"\u9ED8\u8BA4\u9009\u62E9\u5668",en:"Default selector",zh_TW:"\u9810\u8A2D\u9078\u64C7\u5668"},selector_rules:{zh:"\u9009\u62E9\u5668\u89C4\u5219",en:"Selector Rules",zh_TW:"\u9078\u64C7\u5668\u898F\u5247"},save:{zh:"\u4FDD\u5B58",en:"Save",zh_TW:"\u5132\u5B58"},edit:{zh:"\u7F16\u8F91",en:"Edit",zh_TW:"\u7DE8\u8F2F"},cancel:{zh:"\u53D6\u6D88",en:"Cancel",zh_TW:"\u53D6\u6D88"},delete:{zh:"\u5220\u9664",en:"Delete",zh_TW:"\u522A\u9664"},reset:{zh:"\u91CD\u7F6E",en:"Reset",zh_TW:"\u91CD\u8A2D"},add:{zh:"\u6DFB\u52A0",en:"Add",zh_TW:"\u65B0\u589E"},inject_rules:{zh:"\u6CE8\u5165\u8BA2\u9605\u89C4\u5219",en:"Inject Subscribe Rules",zh_TW:"\u6CE8\u5165\u8A02\u95B1\u898F\u5247"},personal_rules:{zh:"\u4E2A\u4EBA\u89C4\u5219",en:"Rules",zh_TW:"\u500B\u4EBA\u898F\u5247"},subscribe_rules:{zh:"\u8BA2\u9605\u89C4\u5219",en:"Subscribe",zh_TW:"\u8A02\u95B1\u898F\u5247"},overwrite_subscribe_rules:{zh:"\u8986\u5199\u8BA2\u9605\u89C4\u5219",en:"Overwrite",zh_TW:"\u8986\u5BEB\u8A02\u95B1\u898F\u5247"},subscribe_url:{zh:"\u8BA2\u9605\u5730\u5740",en:"Subscribe URL",zh_TW:"\u8A02\u95B1\u7DB2\u5740"},rules_warn_1:{zh:"1\u3001\u89C4\u5219\u751F\u6548\u7684\u4F18\u5148\u7EA7\u4F9D\u6B21\u4E3A\uFF1A\u4E2A\u4EBA\u89C4\u5219 > \u8BA2\u9605\u89C4\u5219 > \u5168\u5C40\u89C4\u5219\u3002\"\u5168\u5C40\u89C4\u5219\"\u76F8\u5F53\u4E8E\u515C\u5E95\u89C4\u5219\u3002",en:"1. The priority of rules is: personal rules > subscription rules > global rules. \"Global rules\" are like a fallback rule.",zh_TW:"1.\u898F\u5247\u751F\u6548\u7684\u512A\u5148\u9806\u5E8F\u4F9D\u5E8F\u70BA\uFF1A\u500B\u4EBA\u898F\u5247 > \u8A02\u95B1\u898F\u5247 > \u5168\u57DF\u898F\u5247\u3002 \"\u5168\u57DF\u898F\u5247\"\u76F8\u7576\u65BC\u515C\u5E95\u898F\u5247\u3002"},rules_warn_2:{zh:"2\u3001\u201C\u8BA2\u9605\u89C4\u5219\u201D\u9009\u62E9\u6CE8\u5165\u540E\u624D\u4F1A\u751F\u6548\u3002",en:"2. \"Subscription rules\" will take effect only after injection is selected.",zh_TW:"2\u3001\u300C\u8A02\u95B1\u898F\u5247\u300D\u9078\u64C7\u6CE8\u5165\u5F8C\u624D\u6703\u751F\u6548\u3002"},rules_warn_3:{zh:"3\u3001\u5173\u4E8E\u89C4\u5219\u586B\u5199\uFF1A\u8F93\u5165\u6846\u7559\u7A7A\u6216\u4E0B\u62C9\u6846\u9009\u201C*\u201D\u8868\u793A\u91C7\u7528\u5168\u5C40\u89C4\u5219\u3002",en:"3. Regarding filling in the rules: Leave the input box blank or select \"*\" in the drop-down box to use global rule.",zh_TW:"3. \u898F\u5247\u586B\u5BEB\u8AAA\u660E\uFF1A\u8F38\u5165\u6846\u7559\u7A7A\u6216\u4E0B\u62C9\u9078\u64C7\u300C*\u300D\u8868\u793A\u4F7F\u7528\u5168\u57DF\u898F\u5247\u3002"},sync_warn:{zh:"\u6D89\u53CA\u9690\u79C1\u6570\u636E\u7684\u540C\u6B65\u8BF7\u8C28\u614E\u9009\u62E9\u7B2C\u4E09\u65B9\u540C\u6B65\u670D\u52A1\uFF0C\u5EFA\u8BAE\u81EA\u884C\u642D\u5EFA kiss-worker \u6216 WebDAV \u670D\u52A1\u3002",en:"When synchronizing data that involves privacy, please be cautious about choosing third-party sync services. It is recommended to set up your own sync service using kiss-worker or WebDAV.",zh_TW:"\u540C\u6B65\u6D89\u53CA\u96B1\u79C1\u8CC7\u6599\u6642\uFF0C\u8ACB\u8B39\u614E\u9078\u64C7\u7B2C\u4E09\u65B9\u540C\u6B65\u670D\u52D9\uFF1B\u5EFA\u8B70\u81EA\u5EFA kiss-worker \u6216 WebDAV \u670D\u52D9\u3002"},sync_warn_2:{zh:"\u5982\u679C\u670D\u52A1\u5668\u5B58\u5728\u5176\u4ED6\u5BA2\u6237\u7AEF\u540C\u6B65\u7684\u6570\u636E\uFF0C\u7B2C\u4E00\u6B21\u540C\u6B65\u5C06\u76F4\u63A5\u8986\u76D6\u672C\u5730\u914D\u7F6E\uFF0C\u540E\u9762\u5219\u6839\u636E\u4FEE\u6539\u65F6\u95F4\uFF0C\u65B0\u7684\u8986\u76D6\u65E7\u7684\u3002",en:"If the server has data synchronized by other clients, the first synchronization will directly overwrite the local configuration, and later, according to the modification time, the new one will overwrite the old one.",zh_TW:"\u82E5\u4F3A\u670D\u5668\u4E0A\u5B58\u5728\u5176\u4ED6\u7528\u6236\u7AEF\u540C\u6B65\u7684\u8CC7\u6599\uFF0C\u7B2C\u4E00\u6B21\u540C\u6B65\u6703\u76F4\u63A5\u8986\u84CB\u672C\u6A5F\u8A2D\u5B9A\uFF1B\u4E4B\u5F8C\u5247\u4F9D\u4FEE\u6539\u6642\u9593\uFF0C\u7531\u65B0\u7684\u8986\u84CB\u820A\u7684\u3002"},about_sync_api:{zh:"\u81EA\u5EFAkiss-wroker\u6570\u636E\u540C\u6B65\u670D\u52A1",en:"Self-hosting a Kiss-worker data sync service",zh_TW:"\u81EA\u5EFA kiss-wroker \u8CC7\u6599\u540C\u6B65\u670D\u52D9"},about_api:{zh:"1\u3001\u5176\u4E2D BuiltinAI \u4E3A\u6D4F\u89C8\u5668\u5185\u7F6EAI\u7FFB\u8BD1\uFF0C\u76EE\u524D\u4EC5 Chrome 138 \u53CA\u4EE5\u4E0A\u7248\u672C\u5F97\u5230\u652F\u6301\u3002",en:"1. BuiltinAI is the browser's built-in AI translation, which is currently only supported by Chrome 138 and above.",zh_TW:"1.\u5176\u4E2D BuiltinAI \u70BA\u700F\u89BD\u5668\u5167\u5EFAAI\u7FFB\u8B6F\uFF0C\u76EE\u524D\u50C5 Chrome 138 \u4EE5\u4E0A\u7248\u672C\u652F\u63F4\u3002"},about_api_2:{zh:"2\u3001\u5927\u90E8\u5206AI\u63A5\u53E3\u90FD\u4E0EOpenAI\u517C\u5BB9\uFF0C\u56E0\u6B64\u9009\u62E9\u6DFB\u52A0OpenAI\u7C7B\u578B\u5373\u53EF\u3002",en:"2. Most AI interfaces are compatible with OpenAI, so just choose to add the OpenAI type.",zh_TW:"2.\u5927\u90E8\u5206AI\u4ECB\u9762\u90FD\u8207OpenAI\u76F8\u5BB9\uFF0C\u56E0\u6B64\u9078\u64C7\u65B0\u589EOpenAI\u985E\u578B\u5373\u53EF\u3002"},about_api_3:{zh:"2\u3001\u6682\u672A\u5217\u51FA\u7684\u63A5\u53E3\uFF0C\u7406\u8BBA\u4E0A\u90FD\u53EF\u4EE5\u901A\u8FC7\u81EA\u5B9A\u4E49\u63A5\u53E3 (Custom) \u7684\u5F62\u5F0F\u652F\u6301\u3002",en:"2. Interfaces that have not yet been launched can theoretically be supported through custom interfaces.",zh_TW:"2\u3001\u66AB\u672A\u5217\u51FA\u7684\u4ECB\u9762\uFF0C\u7406\u8AD6\u4E0A\u90FD\u53EF\u900F\u904E\u81EA\u8A02\u4ECB\u9762  (Custom)  \u7684\u5F62\u5F0F\u652F\u63F4\u3002"},about_api_proxy:{zh:"\u67E5\u770B\u81EA\u5EFA\u4E00\u4E2A\u7FFB\u8BD1\u63A5\u53E3\u4EE3\u7406",en:"Check out the self-built translation interface proxy",zh_TW:"\u67E5\u770B\u5982\u4F55\u81EA\u5EFA\u7FFB\u8B6F\u4ECB\u9762 Proxy"},setting_helper:{zh:"\u65B0\u65E7\u914D\u7F6E\u5E76\u4E0D\u517C\u5BB9\uFF0C\u5BFC\u51FA\u7684\u65E7\u7248\u914D\u7F6E\uFF0C\u52FF\u518D\u6B21\u5BFC\u5165\u3002",en:"The old and new configurations are not compatible. Do not import the exported old configuration again.",zh_TW:"\u65B0\u820A\u914D\u7F6E\u4E26\u4E0D\u76F8\u5BB9\uFF0C\u532F\u51FA\u7684\u820A\u7248\u914D\u7F6E\uFF0C\u52FF\u518D\u6B21\u532F\u5165\u3002"},style_none:{zh:"\u65E0",en:"None",zh_TW:"\u7121"},under_line:{zh:"\u4E0B\u5212\u76F4\u7EBF",en:"Underline",zh_TW:"\u4E0B\u5283\u76F4\u7DDA"},dot_line:{zh:"\u4E0B\u5212\u70B9\u72B6\u7EBF",en:"Dotted Underline",zh_TW:"\u4E0B\u5283\u9EDE\u72C0\u7DDA"},dash_line:{zh:"\u4E0B\u5212\u865A\u7EBF",en:"Dashed Underline",zh_TW:"\u4E0B\u5283\u865B\u7DDA"},dash_box:{zh:"\u865A\u7EBF\u6846",en:"Dashed Box"},wavy_line:{zh:"\u4E0B\u5212\u6CE2\u6D6A\u7EBF",en:"Wavy Underline",zh_TW:"\u4E0B\u5283\u6CE2\u6D6A\u7DDA"},fuzzy:{zh:"\u6A21\u7CCA",en:"Fuzzy",zh_TW:"\u6A21\u7CCA"},highlight:{zh:"\u9AD8\u4EAE",en:"Highlight",zh_TW:"\u53CD\u767D\u6A19\u793A"},blockquote:{zh:"\u5F15\u7528",en:"Blockquote",zh_TW:"\u5F15\u7528"},gradient:{zh:"\u6E10\u53D8",en:"Gradient",zh_TW:"\u6F38\u8B8A"},blink:{zh:"\u95EA\u73B0",en:"Blink",zh_TW:"\u9583\u73FE"},glow:{zh:"\u53D1\u5149",en:"Glow",zh_TW:"\u767C\u5149"},diy_style:{zh:"\u81EA\u5B9A\u4E49\u6837\u5F0F",en:"Custom Style",zh_TW:"\u81EA\u8A02\u6A23\u5F0F"},diy_style_helper:{zh:"\u9075\u5FAA\u201CCSS\u201D\u7684\u8BED\u6CD5",en:"Follow the syntax of \"CSS\"",zh_TW:"\u9075\u5FAA CSS \u8A9E\u6CD5"},setting:{zh:"\u8BBE\u7F6E",en:"Setting",zh_TW:"\u8A2D\u5B9A"},pattern:{zh:"\u5339\u914D\u7F51\u5740",en:"URL pattern",zh_TW:"\u5339\u914D\u7DB2\u5740"},pattern_helper:{zh:"1\u3001\u652F\u6301\u661F\u53F7(*)\u901A\u914D\u7B26\u30022\u3001\u591A\u4E2AURL\u7528\u6362\u884C\u6216\u82F1\u6587\u9017\u53F7\u201C,\u201D\u5206\u9694\u3002",en:"1. Supports the asterisk (*) wildcard character. 2. Separate multiple URLs with newlines or English commas \",\".",zh_TW:"1. \u652F\u63F4\u661F\u865F (*) \u842C\u7528\u5B57\u5143\u30022. \u591A\u500B URL \u8ACB\u4EE5\u63DB\u884C\u6216\u82F1\u6587\u9017\u865F\u300C,\u300D\u5206\u9694\u3002"},selector_helper:{zh:"1\u3001\u9700\u8981\u7FFB\u8BD1\u7684\u76EE\u6807\u5143\u7D20\u30022\u3001\u5F00\u542F\u81EA\u52A8\u626B\u63CF\u9875\u9762\u540E\uFF0C\u672C\u8BBE\u7F6E\u65E0\u6548\u30023\u3001\u9075\u5FAACSS\u9009\u62E9\u5668\u8BED\u6CD5\u3002",en:"1. The target element to be translated. 2. This setting is invalid when automatic page scanning is enabled. 3. Follow the CSS selector syntax.",zh_TW:"1\u3001\u9700\u8981\u7FFB\u8B6F\u7684\u76EE\u6A19\u5143\u7D20\u3002 2.\u958B\u555F\u81EA\u52D5\u6383\u63CF\u9801\u9762\u5F8C\uFF0C\u672C\u8A2D\u5B9A\u7121\u6548\u3002 3.\u9075\u5FAACSS\u9078\u64C7\u5668\u8A9E\u6CD5\u3002"},translate_switch:{zh:"\u5F00\u542F\u7FFB\u8BD1",en:"Translate Switch",zh_TW:"\u958B\u555F\u7FFB\u8B6F"},default_enabled:{zh:"\u9ED8\u8BA4\u5F00\u542F",en:"Enabled",zh_TW:"\u9810\u8A2D\u958B\u555F"},default_disabled:{zh:"\u9ED8\u8BA4\u5173\u95ED",en:"Disabled",zh_TW:"\u9810\u8A2D\u95DC\u9589"},selector:{zh:"\u9009\u62E9\u5668",en:"Selector",zh_TW:"\u9078\u64C7\u5668"},target_selector:{zh:"\u76EE\u6807\u5143\u7D20\u9009\u62E9\u5668",en:"Target element selector",zh_TW:"\u76EE\u6A19\u5143\u7D20\u9078\u64C7\u5668"},keep_selector:{zh:"\u4FDD\u7559\u5143\u7D20\u9009\u62E9\u5668",en:"Keep unchanged selector",zh_TW:"\u4FDD\u7559\u5143\u7D20\u9078\u64C7\u5668"},keep_selector_helper:{zh:"1\u3001\u76EE\u6807\u5143\u7D20\u4E0B\u9762\u9700\u8981\u539F\u6837\u4FDD\u7559\u7684\u5B50\u8282\u70B9\u30022\u3001\u9075\u5FAACSS\u9009\u62E9\u5668\u8BED\u6CD5\u3002",en:"1. The child nodes under the target element need to remain intact. 2. Follow the CSS selector syntax.",zh_TW:"1. \u76EE\u6A19\u5143\u7D20\u4E0B\u7684\u5B50\u7BC0\u9EDE\u9700\u8981\u4FDD\u6301\u539F\u6A23\u3002 2. \u9075\u5FAA CSS \u9078\u64C7\u5668\u8A9E\u6CD5\u3002"},root_selector:{zh:"\u6839\u8282\u70B9\u9009\u62E9\u5668",en:"Root node selector",zh_TW:"\u6839\u7BC0\u9EDE\u9078\u64C7\u5668"},root_selector_helper:{zh:"1\u3001\u7528\u4E8E\u7F29\u5C0F\u9875\u9762\u7FFB\u8BD1\u8303\u56F4\u30022\u3001\u9075\u5FAACSS\u9009\u62E9\u5668\u8BED\u6CD5\u3002",en:"1. Used to narrow the translation scope of the page. 2. Follow the CSS selector syntax.",zh_TW:"1.\u7528\u65BC\u7E2E\u5C0F\u9801\u9762\u7FFB\u8B6F\u7BC4\u570D\u3002 2\u3001\u9075\u5FAACSS\u9078\u64C7\u5668\u8A9E\u6CD5\u3002"},ignore_selector:{zh:"\u4E0D\u7FFB\u8BD1\u8282\u70B9\u9009\u62E9\u5668",en:"Ignore node selectors",zh_TW:"\u4E0D\u7FFB\u8B6F\u7BC0\u9EDE\u9078\u64C7\u5668"},ignore_selector_helper:{zh:"1\u3001\u9700\u8981\u5FFD\u7565\u7684\u8282\u70B9\u30022\u3001\u9075\u5FAACSS\u9009\u62E9\u5668\u8BED\u6CD5\u3002",en:"1. Nodes to be ignored. 2. Follow CSS selector syntax.",zh_TW:"1\u3001\u9700\u8981\u5FFD\u7565\u7684\u7BC0\u9EDE\u3002 2\u3001\u9075\u5FAACSS\u9078\u64C7\u5668\u8A9E\u6CD5\u3002"},terms:{zh:"\u4E13\u4E1A\u672F\u8BED",en:"Terms",zh_TW:"\u5C08\u696D\u8853\u8A9E"},terms_helper:{zh:"1\u3001\u652F\u6301\u6B63\u5219\u8868\u8FBE\u5F0F\u5339\u914D\uFF0C\u65E0\u9700\u659C\u6746\uFF0C\u4E0D\u652F\u6301\u4FEE\u9970\u7B26\u30022\u3001\u591A\u6761\u672F\u8BED\u7528\u6362\u884C\u6216\u5206\u53F7\u201C;\u201D\u9694\u5F00\u30023\u3001\u672F\u8BED\u548C\u8BD1\u6587\u7528\u82F1\u6587\u9017\u53F7\u201C,\u201D\u9694\u5F00\u30024\u3001\u6CA1\u6709\u8BD1\u6587\u89C6\u4E3A\u4E0D\u7FFB\u8BD1\u672F\u8BED\u3002",en:"1. Supports regular expression matching, no slash required, and no modifiers are supported. 2. Separate multiple terms with newlines or semicolons \";\". 3. Terms and translations are separated by English commas \",\". 4. If there is no translation, the term will be deemed not to be translated.",zh_TW:"1. \u652F\u63F4\u6B63\u5247\u8868\u9054\u5F0F\u6BD4\u5C0D\uFF0C\u7121\u9700\u659C\u7DDA\uFF0C\u4E14\u4E0D\u652F\u63F4\u4FEE\u98FE\u7B26\u30022. \u591A\u689D\u8853\u8A9E\u4EE5\u63DB\u884C\u6216\u5206\u865F\u300C;\u300D\u5206\u9694\u30023. \u8853\u8A9E\u8207\u8B6F\u6587\u4EE5\u82F1\u6587\u9017\u865F\u300C,\u300D\u5206\u9694\u30024. \u7121\u8B6F\u6587\u8005\u8996\u70BA\u4E0D\u7FFB\u8B6F\u8A72\u8853\u8A9E\u3002"},ai_terms:{zh:"AI\u4E13\u4E1A\u672F\u8BED",en:"AI Terms",zh_TW:"AI\u5C08\u696D\u8853\u8A9E"},ai_terms_helper:{zh:"1\u3001AI\u667A\u80FD\u66FF\u6362\uFF0C\u4E0D\u652F\u6301\u6B63\u5219\u8868\u8FBE\u5F0F\u30022\u3001\u591A\u6761\u672F\u8BED\u7528\u6362\u884C\u6216\u5206\u53F7\u201C;\u201D\u9694\u5F00\u30023\u3001\u672F\u8BED\u548C\u8BD1\u6587\u7528\u82F1\u6587\u9017\u53F7\u201C,\u201D\u9694\u5F00\u30024\u3001\u6CA1\u6709\u8BD1\u6587\u89C6\u4E3A\u4E0D\u7FFB\u8BD1\u672F\u8BED\u3002",en:"1. AI intelligent replacement does not support regular expressions.2. Separate multiple terms with newlines or semicolons \";\". 3. Terms and translations are separated by English commas \",\". 4. If there is no translation, the term will be deemed not to be translated.",zh_TW:"1.AI\u667A\u80FD\u66FF\u63DB\uFF0C\u4E0D\u652F\u63F4\u6B63\u898F\u8868\u793A\u5F0F\u30022. \u591A\u689D\u8853\u8A9E\u4EE5\u63DB\u884C\u6216\u5206\u865F\u300C;\u300D\u5206\u9694\u30023. \u8853\u8A9E\u8207\u8B6F\u6587\u4EE5\u82F1\u6587\u9017\u865F\u300C,\u300D\u5206\u9694\u30024. \u7121\u8B6F\u6587\u8005\u8996\u70BA\u4E0D\u7FFB\u8B6F\u8A72\u8853\u8A9E\u3002"},selector_style:{zh:"\u9009\u62E9\u5668\u8282\u70B9\u6837\u5F0F",en:"Selector Style",zh_TW:"\u9078\u64C7\u5668\u7BC0\u9EDE\u6A23\u5F0F"},selector_style_helper:{zh:"\u5F00\u542F\u7FFB\u8BD1\u65F6\u6CE8\u5165\u3002",en:"It is injected when translation is turned on.",zh_TW:"\u5728\u958B\u555F\u7FFB\u8B6F\u6642\u6CE8\u5165\u3002"},selector_parent_style:{zh:"\u9009\u62E9\u5668\u7236\u8282\u70B9\u6837\u5F0F",en:"Parent Selector Style",zh_TW:"\u9078\u64C7\u5668\u7236\u7BC0\u9EDE\u6A23\u5F0F"},selector_grand_style:{zh:"\u9009\u62E9\u5668\u7956\u8282\u70B9\u6837\u5F0F",en:"Grand Selector Style",zh_TW:"\u9078\u64C7\u5668\u7956\u7BC0\u9EDE\u6A23\u5F0F"},inject_js:{zh:"\u6CE8\u5165JS",en:"Inject JS",zh_TW:"\u6CE8\u5165 JS"},inject_js_helper:{zh:"\u521D\u59CB\u5316\u65F6\u6CE8\u5165\u8FD0\u884C\uFF0C\u4E00\u4E2A\u9875\u9762\u4EC5\u8FD0\u884C\u4E00\u6B21\u3002",en:"Injected and run at initialization, and only run once per page.",zh_TW:"\u521D\u59CB\u5316\u6642\u6CE8\u5165\u904B\u884C\uFF0C\u4E00\u500B\u9801\u9762\u50C5\u904B\u884C\u4E00\u6B21\u3002"},inject_css:{zh:"\u6CE8\u5165CSS",en:"Inject CSS",zh_TW:"\u6CE8\u5165 CSS"},inject_css_helper:{zh:"\u521D\u59CB\u5316\u65F6\u6CE8\u5165\u8FD0\u884C\uFF0C\u4E00\u4E2A\u9875\u9762\u4EC5\u8FD0\u884C\u4E00\u6B21\u3002",en:"Injected and run at initialization, and only run once per page.",zh_TW:"\u521D\u59CB\u5316\u6642\u6CE8\u5165\u904B\u884C\uFF0C\u4E00\u500B\u9801\u9762\u50C5\u904B\u884C\u4E00\u6B21\u3002"},fixer_function:{zh:"\u4FEE\u590D\u51FD\u6570",en:"Fixer Function",zh_TW:"\u4FEE\u5FA9\u51FD\u5F0F"},fixer_function_helper:{zh:"1\u3001br\u662F\u5C06<br>\u6362\u884C\u66FF\u6362\u6210<p \"kiss-p\">\u30022\u3001bn\u662F\u5C06\\n\u6362\u884C\u66FF\u6362\u6210<p \"kiss-p\">\u30023\u3001brToDiv\u548CbnToDiv\u662F\u66FF\u6362\u6210<div class=\"kiss-p\">\u3002",en:"1. br replaces <br> line breaks with <p \"kiss-p\">. 2. bn replaces \\n newline with <p \"kiss-p\">. 3. brToDiv and bnToDiv are replaced with <div class=\"kiss-p\">.",zh_TW:"1. br \u6703\u5C07 <br> \u63DB\u884C\u66FF\u63DB\u70BA <p \"kiss-p\">\u30022. bn \u6703\u5C07 \\n \u63DB\u884C\u66FF\u63DB\u70BA <p \"kiss-p\">\u30023. brToDiv \u8207 bnToDiv \u6703\u66FF\u63DB\u70BA <div class=\"kiss-p\">\u3002"},import:{zh:"\u5BFC\u5165",en:"Import",zh_TW:"\u532F\u5165"},export:{zh:"\u5BFC\u51FA",en:"Export",zh_TW:"\u532F\u51FA"},export_translation:{zh:"\u5BFC\u51FA\u91CA\u4E49",en:"Export Translation",zh_TW:"\u532F\u51FA\u91CB\u7FA9"},error_cant_be_blank:{zh:"\u4E0D\u80FD\u4E3A\u7A7A",en:"Can not be blank",zh_TW:"\u4E0D\u53EF\u70BA\u7A7A"},error_duplicate_values:{zh:"\u5B58\u5728\u91CD\u590D\u7684\u503C",en:"There are duplicate values",zh_TW:"\u5B58\u5728\u91CD\u8907\u7684\u503C"},error_wrong_file_type:{zh:"\u9519\u8BEF\u7684\u6587\u4EF6\u7C7B\u578B",en:"Wrong file type",zh_TW:"\u6A94\u6848\u985E\u578B\u932F\u8AA4"},error_fetch_url:{zh:"\u8BF7\u68C0\u67E5url\u5730\u5740\u662F\u5426\u6B63\u786E\u6216\u7A0D\u540E\u518D\u8BD5\u3002",en:"Please check if the url address is correct or try again later.",zh_TW:"\u8ACB\u6AA2\u67E5 URL \u662F\u5426\u6B63\u78BA\u6216\u7A0D\u5F8C\u518D\u8A66\u3002"},deepl_api:{zh:"DeepL \u63A5\u53E3",en:"DeepL API",zh_TW:"DeepL \u4ECB\u9762"},deepl_key:{zh:"DeepL \u5BC6\u94A5",en:"DeepL Key",zh_TW:"DeepL \u91D1\u9470"},openai_api:{zh:"OpenAI \u63A5\u53E3",en:"OpenAI API",zh_TW:"OpenAI \u4ECB\u9762"},openai_key:{zh:"OpenAI \u5BC6\u94A5",en:"OpenAI Key",zh_TW:"OpenAI \u91D1\u9470"},openai_model:{zh:"OpenAI \u6A21\u578B",en:"OpenAI Model",zh_TW:"OpenAI \u6A21\u578B"},openai_prompt:{zh:"OpenAI \u63D0\u793A\u8BCD",en:"OpenAI Prompt",zh_TW:"OpenAI \u63D0\u793A\u8A5E"},if_clear_cache:{zh:"\u662F\u5426\u6E05\u9664\u7F13\u5B58\uFF08\u9ED8\u8BA4\u7F13\u5B587\u5929\uFF09",en:"Whether clear cache (Default cache is 7 days)",zh_TW:"\u662F\u5426\u6E05\u9664\u5FEB\u53D6\uFF08\u9810\u8A2D\u5FEB\u53D67\u5929\uFF09"},clear_cache_never:{zh:"\u4E0D\u6E05\u9664\u7F13\u5B58",en:"Never clear cache",zh_TW:"\u4E0D\u6E05\u9664\u5FEB\u53D6"},clear_cache_restart:{zh:"\u91CD\u542F\u6D4F\u89C8\u5668\u65F6\u6E05\u9664\u7F13\u5B58",en:"Clear cache when restarting browser",zh_TW:"\u91CD\u65B0\u555F\u52D5\u700F\u89BD\u5668\u6642\u6E05\u9664\u5FEB\u53D6"},data_sync_type:{zh:"\u6570\u636E\u540C\u6B65\u65B9\u5F0F",en:"Data Sync Type",zh_TW:"\u8CC7\u6599\u540C\u6B65\u65B9\u5F0F"},data_sync_url:{zh:"\u6570\u636E\u540C\u6B65\u63A5\u53E3",en:"Data Sync API",zh_TW:"\u8CC7\u6599\u540C\u6B65\u4ECB\u9762"},data_sync_user:{zh:"\u6570\u636E\u540C\u6B65\u8D26\u6237",en:"Data Sync User",zh_TW:"\u8CC7\u6599\u540C\u6B65\u5E33\u865F"},data_sync_key:{zh:"\u6570\u636E\u540C\u6B65\u5BC6\u94A5",en:"Data Sync Key",zh_TW:"\u8CC7\u6599\u540C\u6B65\u91D1\u9470"},sync_now:{zh:"\u7ACB\u5373\u540C\u6B65",en:"Sync Now",zh_TW:"\u7ACB\u5373\u540C\u6B65"},sync_success:{zh:"\u540C\u6B65\u6210\u529F\uFF01",en:"Sync Success",zh_TW:"\u540C\u6B65\u6210\u529F\uFF01"},sync_failed:{zh:"\u540C\u6B65\u5931\u8D25\uFF01",en:"Sync Error",zh_TW:"\u540C\u6B65\u5931\u6557\uFF01"},error_got_some_wrong:{zh:"\u62B1\u6B49\uFF0C\u51FA\u9519\u4E86\uFF01",en:"Sorry, something went wrong!",zh_TW:"\u62B1\u6B49\uFF0C\u767C\u751F\u932F\u8AA4\uFF01"},error_sync_setting:{zh:"\u60A8\u7684\u540C\u6B65\u7C7B\u578B\u5FC5\u987B\u4E3A\u201CKISS-Worker\u201D\uFF0C\u4E14\u9700\u586B\u5199\u5B8C\u6574",en:"Your sync type must be \"KISS-Worker\" and must be filled in completely",zh_TW:"\u60A8\u7684\u540C\u6B65\u578B\u614B\u5FC5\u9808\u70BA\u300CKISS-Worker\u300D\uFF0C\u4E14\u9700\u586B\u5BEB\u5B8C\u6574\u3002"},click_test:{zh:"\u70B9\u51FB\u6D4B\u8BD5",en:"Click Test",zh_TW:"\u9EDE\u64CA\u6E2C\u8A66"},test_success:{zh:"\u6D4B\u8BD5\u6210\u529F",en:"Test success",zh_TW:"\u6E2C\u8A66\u6210\u529F"},test_failed:{zh:"\u6D4B\u8BD5\u5931\u8D25",en:"Test failed",zh_TW:"\u6E2C\u8A66\u5931\u6557"},clear_all_cache_now:{zh:"\u7ACB\u5373\u6E05\u9664\u5168\u90E8\u7F13\u5B58",en:"Clear all cache now",zh_TW:"\u7ACB\u5373\u6E05\u9664\u5168\u90E8\u5FEB\u53D6"},clear_cache:{zh:"\u6E05\u9664\u7F13\u5B58",en:"Clear Cache",zh_TW:"\u6E05\u9664\u5FEB\u53D6"},clear_success:{zh:"\u6E05\u9664\u6210\u529F",en:"Clear success",zh_TW:"\u6E05\u9664\u6210\u529F"},clear_failed:{zh:"\u6E05\u9664\u5931\u8D25",en:"Clear failed",zh_TW:"\u6E05\u9664\u5931\u6557"},share:{zh:"\u5206\u4EAB",en:"Share",zh_TW:"\u5206\u4EAB"},clear_all:{zh:"\u6E05\u7A7A",en:"Clear All",zh_TW:"\u6E05\u7A7A"},help:{zh:"\u6C42\u52A9",en:"Help",zh_TW:"\u6C42\u52A9"},restore_default:{zh:"\u6062\u590D\u9ED8\u8BA4",en:"Restore Default",zh_TW:"\u6062\u5FA9\u9810\u8A2D"},shortcuts_setting:{zh:"\u5FEB\u6377\u952E\u8BBE\u7F6E",en:"Shortcuts Setting",zh_TW:"\u5FEB\u6377\u9375\u8A2D\u5B9A"},toggle_translate_shortcut:{zh:"\"\u5F00\u542F\u7FFB\u8BD1\"\u5FEB\u6377\u952E",en:"\"Toggle Translate\" Shortcut",zh_TW:"\u300C\u958B\u555F\u7FFB\u8B6F\u300D\u5FEB\u6377\u9375"},toggle_style_shortcut:{zh:"\"\u5207\u6362\u6837\u5F0F\"\u5FEB\u6377\u952E",en:"\"Toggle Style\" Shortcut",zh_TW:"\u300C\u5207\u63DB\u6A23\u5F0F\u300D\u5FEB\u6377\u9375"},toggle_popup_shortcut:{zh:"\"\u6253\u5F00\u5F39\u7A97\"\u5FEB\u6377\u952E",en:"\"Open Popup\" Shortcut",zh_TW:"\u300C\u958B\u555F\u5F48\u7A97\u300D\u5FEB\u6377\u9375"},open_setting_shortcut:{zh:"\"\u6253\u5F00\u8BBE\u7F6E\"\u5FEB\u6377\u952E",en:"\"Open Setting\" Shortcut",zh_TW:"\u300C\u958B\u555F\u8A2D\u5B9A\u300D\u5FEB\u6377\u9375"},hide_fab_button:{zh:"\u9690\u85CF\u60AC\u6D6E\u6309\u94AE",en:"Hide Fab Button",zh_TW:"\u96B1\u85CF\u61F8\u6D6E\u6309\u9215"},fab_click_action:{zh:"\u5355\u51FB\u60AC\u6D6E\u6309\u94AE\u52A8\u4F5C",en:"Single Click Fab Action",zh_TW:"\u55AE\u64CA\u61F8\u6D6E\u6309\u94AE\u52D5\u4F5C"},fab_click_menu:{zh:"\u5F39\u51FA\u83DC\u5355",en:"Popup Menu",zh_TW:"\u5F48\u51FA\u9078\u55AE"},fab_click_translate:{zh:"\u76F4\u63A5\u7FFB\u8BD1",en:"Translate",zh_TW:"\u76F4\u63A5\u7FFB\u8B6F"},hide_tran_button:{zh:"\u9690\u85CF\u7FFB\u8BD1\u6309\u94AE",en:"Hide Translate Button",zh_TW:"\u96B1\u85CF\u7FFB\u8B6F\u6309\u9215"},hide_click_away:{zh:"\u70B9\u51FB\u5916\u90E8\u5173\u95ED\u5F39\u7A97",en:"Click outside to close the pop-up window",zh_TW:"\u9EDE\u64CA\u5916\u90E8\u95DC\u9589\u5F48\u7A97"},use_simple_style:{zh:"\u4F7F\u7528\u7B80\u6D01\u754C\u9762",en:"Use a simple interface",zh_TW:"\u4F7F\u7528\u7C21\u6F54\u4ECB\u9762"},show:{zh:"\u663E\u793A",en:"Show",zh_TW:"\u986F\u793A"},hide:{zh:"\u9690\u85CF",en:"Hide",zh_TW:"\u96B1\u85CF"},save_rule:{zh:"\u4FDD\u5B58\u89C4\u5219",en:"Save Rule",zh_TW:"\u5132\u5B58\u898F\u5247"},global_rule:{zh:"\u5168\u5C40\u89C4\u5219",en:"Global Rule",zh_TW:"\u5168\u57DF\u898F\u5247"},input_translate:{zh:"\u8F93\u5165\u6846\u7FFB\u8BD1",en:"Input Box Translation",zh_TW:"\u8F38\u5165\u6846\u7FFB\u8B6F"},use_input_box_translation:{zh:"\u542F\u7528\u8F93\u5165\u6846\u7FFB\u8BD1",en:"Input Box Translation",zh_TW:"\u555F\u7528\u8F38\u5165\u6846\u7FFB\u8B6F"},input_selector:{zh:"\u8F93\u5165\u6846\u9009\u62E9\u5668",en:"Input Selector",zh_TW:"\u8F38\u5165\u6846\u9078\u64C7\u5668"},input_selector_helper:{zh:"\u7528\u4E8E\u8F93\u5165\u6846\u7FFB\u8BD1\u3002",en:"Used for input box translation.",zh_TW:"\u7528\u65BC\u8F38\u5165\u6846\u7FFB\u8B6F\u3002"},trigger_trans_shortcut:{zh:"\u89E6\u53D1\u7FFB\u8BD1\u5FEB\u6377\u952E",en:"Trigger Translation Shortcut Keys",zh_TW:"\u89F8\u767C\u7FFB\u8B6F\u5FEB\u6377\u9375"},trigger_trans_shortcut_help:{zh:"\u9ED8\u8BA4\u4E3A\u5355\u51FB\u201CAltLeft+KeyI\u201D",en:"Default is \"AltLeft+KeyI\"",zh_TW:"\u9810\u8A2D\u70BA\u6309\u4E0B\u300CAltLeft+KeyI\u300D"},shortcut_press_count:{zh:"\u5FEB\u6377\u952E\u8FDE\u51FB\u6B21\u6570",en:"Shortcut Press Number",zh_TW:"\u5FEB\u6377\u9375\u9023\u64CA\u6B21\u6578"},combo_timeout:{zh:"\u8FDE\u51FB\u8D85\u65F6\u65F6\u95F4 (10-1000ms)",en:"Combo Timeout (10-1000ms)",zh_TW:"\u9023\u64CA\u903E\u6642 (10-1000ms)"},input_trans_start_sign:{zh:"\u7FFB\u8BD1\u8D77\u59CB\u6807\u8BC6",en:"Translation Start Sign",zh_TW:"\u7FFB\u8B6F\u8D77\u59CB\u6A19\u8A18"},input_trans_start_sign_help:{zh:"\u6807\u8BC6\u540E\u9762\u53EF\u4EE5\u52A0\u76EE\u6807\u8BED\u8A00\u4EE3\u7801\uFF0C\u5982\uFF1A \u201C/en \u4F60\u597D\u201D\u3001\u201C/zh hello\u201D",en:"The target language code can be added after the sign, such as: \"/en \u4F60\u597D\", \"/zh hello\"",zh_TW:"\u6A19\u8A18\u5F8C\u53EF\u52A0\u4E0A\u76EE\u6A19\u8A9E\u8A00\u4EE3\u78BC\uFF0C\u4F8B\u5982\uFF1A\u300C/en \u4F60\u597D\u300D\u3001\u300C/zh hello\u300D"},detect_lang_remote:{zh:"\u8FDC\u7A0B\u8BED\u8A00\u68C0\u6D4B",en:"Remote language detection",zh_TW:"\u9060\u7AEF\u8A9E\u8A00\u5075\u6E2C"},detect_lang_remote_help:{zh:"\u542F\u7528\u540E\u68C0\u6D4B\u51C6\u786E\u5EA6\u589E\u52A0\uFF0C\u4F46\u4F1A\u964D\u4F4E\u7FFB\u8BD1\u901F\u5EA6\uFF0C\u8BF7\u914C\u60C5\u5F00\u542F",en:"After enabling, the detection accuracy will increase, but it will reduce the translation speed. Please enable it as appropriate.",zh_TW:"\u555F\u7528\u5F8C\u53EF\u63D0\u5347\u5075\u6E2C\u6E96\u78BA\u5EA6\uFF0C\u4F46\u6703\u964D\u4F4E\u7FFB\u8B6F\u901F\u5EA6\uFF0C\u8ACB\u8996\u9700\u8981\u958B\u555F\u3002"},detect_lang_service:{zh:"\u8BED\u8A00\u68C0\u6D4B\u670D\u52A1",en:"Language detect service",zh_TW:"\u8A9E\u8A00\u6AA2\u6E2C\u670D\u52D9"},disable:{zh:"\u7981\u7528",en:"Disable",zh_TW:"\u505C\u7528"},enable:{zh:"\u542F\u7528",en:"Enable",zh_TW:"\u555F\u7528"},selection_translate:{zh:"\u5212\u8BCD\u7FFB\u8BD1",en:"Selection Translate",zh_TW:"\u5283\u8A5E\u7FFB\u8B6F"},toggle_selection_translate:{zh:"\u542F\u7528\u5212\u8BCD\u7FFB\u8BD1",en:"Use Selection Translate",zh_TW:"\u555F\u7528\u5283\u8A5E\u7FFB\u8B6F"},trigger_tranbox_shortcut:{zh:"\u663E\u793A\u7FFB\u8BD1\u6846/\u7FFB\u8BD1\u9009\u4E2D\u6587\u5B57\u5FEB\u6377\u952E",en:"Open Translate Popup/Translate Selected Shortcut",zh_TW:"\u986F\u793A\u7FFB\u8B6F\u6846\uFF0F\u7FFB\u8B6F\u9078\u4E2D\u6587\u5B57\u5FEB\u6377\u9375"},tranbtn_offset_x:{zh:"\u7FFB\u8BD1\u6309\u94AE\u504F\u79FBX\uFF08\xB1200\uFF09",en:"Translate Button Offset X (\xB1200)",zh_TW:"\u7FFB\u8B6F\u6309\u9215\u4F4D\u79FB X\uFF08\xB1200\uFF09"},tranbtn_offset_y:{zh:"\u7FFB\u8BD1\u6309\u94AE\u504F\u79FBY\uFF08\xB1200\uFF09",en:"Translate Button Offset Y (\xB1200)",zh_TW:"\u7FFB\u8B6F\u6309\u9215\u4F4D\u79FB Y\uFF08\xB1200\uFF09"},tranbox_offset_x:{zh:"\u7FFB\u8BD1\u6846\u504F\u79FBX\uFF08\xB1200\uFF09",en:"Translate Box Offset X (\xB1200)",zh_TW:"\u7FFB\u8B6F\u6846\u4F4D\u79FB X\uFF08\xB1200\uFF09"},tranbox_offset_y:{zh:"\u7FFB\u8BD1\u6846\u504F\u79FBY\uFF08\xB1200\uFF09",en:"Translate Box Offset Y (\xB1200)",zh_TW:"\u7FFB\u8B6F\u6846\u4F4D\u79FB Y\uFF08\xB1200\uFF09"},translated_text:{zh:"\u8BD1\u6587",en:"Translated Text",zh_TW:"\u8B6F\u6587"},original_text:{zh:"\u539F\u6587",en:"Original Text",zh_TW:"\u539F\u6587"},favorite_words:{zh:"\u6536\u85CF\u8BCD\u6C47",en:"Favorite Words",zh_TW:"\u6536\u85CF\u8A5E\u5F59"},touch_setting:{zh:"\u89E6\u5C4F\u8BBE\u7F6E",en:"Touch Setting",zh_TW:"\u89F8\u63A7\u8A2D\u5B9A"},touch_translate_shortcut:{zh:"\u89E6\u5C4F\u7FFB\u8BD1\u5FEB\u6377\u65B9\u5F0F",en:"Touch Translate Shortcut",zh_TW:"\u89F8\u63A7\u7FFB\u8B6F\u6377\u5F91"},touch_tap_0:{zh:"\u7981\u7528",en:"Disable",zh_TW:"\u505C\u7528"},touch_tap_2:{zh:"\u53CC\u6307\u8F7B\u89E6",en:"Two finger tap",zh_TW:"\u96D9\u6307\u8F15\u89F8"},touch_tap_3:{zh:"\u4E09\u6307\u8F7B\u89E6",en:"Three finger tap",zh_TW:"\u4E09\u6307\u8F15\u89F8"},touch_tap_4:{zh:"\u56DB\u6307\u8F7B\u89E6",en:"Four finger tap",zh_TW:"\u56DB\u6307\u8F15\u89F8"},translate_blacklist:{zh:"\u7981\u7528\u7FFB\u8BD1\u540D\u5355",en:"Translate Blacklist",zh_TW:"\u505C\u7528\u7FFB\u8B6F\u540D\u55AE"},disabled_orilist:{zh:"\u7981\u7528Origin\u540D\u5355",en:"Disabled Origin List",zh_TW:"\u505C\u7528 Origin \u540D\u55AE"},disabled_csplist:{zh:"\u7981\u7528CSP\u540D\u5355",en:"Disabled CSP List",zh_TW:"\u505C\u7528 CSP \u540D\u55AE"},disabled_csplist_helper:{zh:"3\u3001\u901A\u8FC7\u8C03\u6574CSP\u7B56\u7565\uFF0C\u4F7F\u5F97\u67D0\u4E9B\u9875\u9762\u80FD\u591F\u6CE8\u5165JS/CSS/Media\uFF0C\u8BF7\u8C28\u614E\u4F7F\u7528\uFF0C\u9664\u975E\u60A8\u5DF2\u77E5\u6653\u76F8\u5173\u98CE\u9669\u3002",en:"3. By adjusting the CSP policy, some pages can inject JS/CSS/Media. Please use it with caution unless you are aware of the related risks.",zh_TW:"3. \u900F\u904E\u8ABF\u6574 CSP \u653F\u7B56\uFF0C\u4F7F\u90E8\u5206\u9801\u9762\u53EF\u6CE8\u5165 JS/CSS/Media\u3002\u8ACB\u8B39\u614E\u4F7F\u7528\uFF0C\u9664\u975E\u60A8\u5DF2\u77E5\u6089\u76F8\u95DC\u98A8\u96AA\u3002"},skip_langs:{zh:"\u4E0D\u7FFB\u8BD1\u7684\u8BED\u8A00",en:"Disable Languages",zh_TW:"\u4E0D\u7FFB\u8B6F\u7684\u8A9E\u8A00"},skip_langs_helper:{zh:"\u6B64\u529F\u80FD\u4F9D\u8D56\u51C6\u786E\u7684\u8BED\u8A00\u68C0\u6D4B\uFF0C\u5EFA\u8BAE\u542F\u7528\u8FDC\u7A0B\u8BED\u8A00\u68C0\u6D4B\u3002",en:"This feature relies on accurate language detection. It is recommended to enable remote language detection.",zh_TW:"\u6B64\u529F\u80FD\u4EF0\u8CF4\u6E96\u78BA\u7684\u8A9E\u8A00\u5075\u6E2C\uFF0C\u5EFA\u8B70\u555F\u7528\u9060\u7AEF\u8A9E\u8A00\u5075\u6E2C\u3002"},context_menus:{zh:"\u53F3\u952E\u83DC\u5355",en:"Context Menus",zh_TW:"\u53F3\u9375\u9078\u55AE"},hide_context_menus:{zh:"\u9690\u85CF\u53F3\u952E\u83DC\u5355",en:"Hide Context Menus",zh_TW:"\u96B1\u85CF\u53F3\u9375\u9078\u55AE"},simple_context_menus:{zh:"\u7B80\u5355\u53F3\u952E\u83DC\u5355",en:"Simple_context_menus Context Menus",zh_TW:"\u7C21\u6613\u53F3\u9375\u9078\u55AE"},secondary_context_menus:{zh:"\u4E8C\u7EA7\u53F3\u952E\u83DC\u5355",en:"Secondary Context Menus",zh_TW:"\u6B21\u7D1A\u53F3\u9375\u9078\u55AE"},mulkeys_help:{zh:"\u652F\u6301\u7528\u6362\u884C\u6216\u82F1\u6587\u9017\u53F7\u201C,\u201D\u5206\u9694\uFF0C\u8F6E\u8BE2\u8C03\u7528\u3002",en:"Supports polling calls separated by newlines or English commas \",\".",zh_TW:"\u652F\u63F4\u4EE5\u63DB\u884C\u6216\u82F1\u6587\u9017\u865F\u300C,\u300D\u5206\u9694\uFF0C\u8F2A\u8A62\u547C\u53EB\u3002"},translation_element_tag:{zh:"\u8BD1\u6587\u5143\u7D20\u6807\u7B7E",en:"Translation Element Tag",zh_TW:"\u8B6F\u6587\u5143\u7D20\u6A19\u7C64"},show_only_translations:{zh:"\u4EC5\u663E\u793A\u8BD1\u6587",en:"Show Only Translations",zh_TW:"\u50C5\u986F\u793A\u8B6F\u6587"},show_only_translations_help:{zh:"\u975E\u5B8C\u7F8E\u5B9E\u73B0\uFF0C\u67D0\u4E9B\u9875\u9762\u53EF\u80FD\u6709\u6837\u5F0F\u7B49\u95EE\u9898\u3002",en:"It is not a perfect implementation and some pages may have style issues.",zh_TW:"\u6B64\u70BA\u975E\u5B8C\u7F8E\u5BE6\u4F5C\uFF0C\u90E8\u5206\u9801\u9762\u53EF\u80FD\u51FA\u73FE\u6A23\u5F0F\u7B49\u554F\u984C\u3002"},translate_page_title:{zh:"\u662F\u5426\u7FFB\u8BD1\u9875\u9762\u6807\u9898",en:"Translate Page Title",zh_TW:"\u662F\u5426\u7FFB\u8B6F\u9801\u9762\u6A19\u984C"},more:{zh:"\u66F4\u591A",en:"More",zh_TW:"\u66F4\u591A"},less:{zh:"\u66F4\u5C11",en:"Less",zh_TW:"\u66F4\u5C11"},fixer_selector:{zh:"\u7F51\u9875\u4FEE\u590D\u9009\u62E9\u5668",en:"Fixer Selector",zh_TW:"\u7DB2\u9801\u4FEE\u5FA9\u9078\u64C7\u5668"},reg_niutrans:{zh:"\u83B7\u53D6\u5C0F\u725B\u7FFB\u8BD1\u5BC6\u94A5\u3010\u7B80\u7EA6\u7FFB\u8BD1\u4E13\u5C5E\u65B0\u7528\u6237\u6CE8\u518C\u8D60\u9001300\u4E07\u5B57\u7B26\u3011",en:"Get NiuTrans APIKey [KISS Translator Exclusive New User Registration Free 3 Million Characters]",zh_TW:"\u53D6\u5F97\u5C0F\u725B\u7FFB\u8B6F\u91D1\u9470\u3010\u7C21\u7D04\u7FFB\u8B6F\u5C08\u5C6C\u65B0\u7528\u6236\u8A3B\u518A\u8D08\u9001 300 \u842C\u5B57\u5143\u3011"},trigger_mode:{zh:"\u89E6\u53D1\u65B9\u5F0F",en:"Trigger Mode",zh_TW:"\u89F8\u767C\u65B9\u5F0F"},trigger_click:{zh:"\u70B9\u51FB\u89E6\u53D1",en:"Click Trigger",zh_TW:"\u9EDE\u64CA\u89F8\u767C"},trigger_hover:{zh:"\u9F20\u6807\u60AC\u505C\u89E6\u53D1",en:"Hover Trigger",zh_TW:"\u6ED1\u9F20\u61F8\u505C\u89F8\u767C"},trigger_select:{zh:"\u9009\u4E2D\u89E6\u53D1",en:"Select Trigger",zh_TW:"\u9078\u53D6\u89F8\u767C"},extend_styles:{zh:"\u9644\u52A0\u6837\u5F0F",en:"Extend Styles",zh_TW:"\u9644\u52A0\u6A23\u5F0F"},custom_option:{zh:"\u81EA\u5B9A\u4E49\u9009\u9879",en:"Custom Option",zh_TW:"\u81EA\u8A02\u9078\u9805"},translate_selected_text:{zh:"\u7FFB\u8BD1\u9009\u4E2D\u6587\u5B57",en:"Translate Selected Text",zh_TW:"\u7FFB\u8B6F\u9078\u53D6\u6587\u5B57"},toggle_style:{zh:"\u5207\u6362\u6837\u5F0F",en:"Toggle Style",zh_TW:"\u5207\u63DB\u6A23\u5F0F"},open_menu:{zh:"\u6253\u5F00\u5F39\u7A97\u83DC\u5355",en:"Open Popup Menu",zh_TW:"\u958B\u555F\u5F48\u7A97\u9078\u55AE"},open_setting:{zh:"\u6253\u5F00\u8BBE\u7F6E",en:"Open Setting",zh_TW:"\u958B\u555F\u8A2D\u5B9A"},follow_selection:{zh:"\u7FFB\u8BD1\u6846\u8DDF\u968F\u9009\u4E2D\u6587\u672C",en:"Transbox Follow Selection",zh_TW:"\u7FFB\u8B6F\u6846\u8DDF\u96A8\u9078\u53D6\u6587\u5B57"},translate_start_hook:{zh:"\u7FFB\u8BD1\u5F00\u59CB\u94A9\u5B50\u51FD\u6570",en:"Translate Start Hook",zh_TW:"\u7FFB\u8B6F\u958B\u59CB Hook"},translate_start_hook_helper:{zh:"\u7FFB\u8BD1\u524D\u65F6\u8FD0\u884C\uFF0C\u5165\u53C2\u4E3A\uFF1A ({hostNode, parentNode, nodes})",en:"Run before translation, input parameters are: ({hostNode, parentNode, nodes})",zh_TW:"\u7FFB\u8B6F\u524D\u6642\u904B\u884C\uFF0C\u5165\u53C3\u70BA\uFF1A ({hostNode, parentNode, nodes})"},translate_end_hook:{zh:"\u7FFB\u8BD1\u5B8C\u6210\u94A9\u5B50\u51FD\u6570",en:"Translate End Hook",zh_TW:"\u7FFB\u8B6F\u5B8C\u6210 Hook"},translate_end_hook_helper:{zh:"\u7FFB\u8BD1\u5B8C\u6210\u65F6\u8FD0\u884C\uFF0C\u5165\u53C2\u4E3A\uFF1A ({hostNode, parentNode, nodes, wrapperNode, innerNode})",en:"Run when translation is complete, input parameters are: ({hostNode, parentNode, nodes, wrapperNode, innerNode})",zh_TW:"\u7FFB\u8B6F\u5B8C\u6210\u6642\u904B\u884C\uFF0C\u5165\u53C3\u70BA\uFF1A ({hostNode, parentNode, nodes, wrapperNode, innerNode})"},translate_remove_hook:{zh:"\u7FFB\u8BD1\u79FB\u9664\u94A9\u5B50\u51FD\u6570",en:"Translate Removed Hook",zh_TW:"\u7FFB\u8B6F\u79FB\u9664 Hook"},translate_remove_hook_helper:{zh:"\u7FFB\u8BD1\u79FB\u9664\u65F6\u8FD0\u884C\uFF0C\u5165\u53C2\u4E3A\uFF1A \u7FFB\u8BD1\u8282\u70B9\u3002",en:"Run when translation is removed, the input parameters are: translation node.",zh_TW:"\u79FB\u9664\u7FFB\u8B6F\u6642\u57F7\u884C\uFF0C\u5165\u53C3\u70BA\uFF1A\u7FFB\u8B6F\u7BC0\u9EDE\u3002"},english_dict:{zh:"\u82F1\u6587\u8BCD\u5178",en:"English Dictionary",zh_TW:"\u82F1\u6587\u5B57\u5178"},english_suggest:{zh:"\u82F1\u6587\u5EFA\u8BAE",en:"English Suggest",zh_TW:"\u82F1\u6587\u5EFA\u8B70"},api_name:{zh:"\u63A5\u53E3\u540D\u79F0",en:"API Name",zh_TW:"\u4ECB\u9762\u540D\u7A31"},is_disabled:{zh:"\u662F\u5426\u7981\u7528",en:"Is Disabled",zh_TW:"\u662F\u5426\u505C\u7528"},translate_selected:{zh:"\u662F\u5426\u542F\u7528\u5212\u8BCD\u7FFB\u8BD1",en:"If translate selected",zh_TW:"\u662F\u5426\u555F\u7528\u5283\u8A5E\u7FFB\u8B6F"},use_batch_fetch:{zh:"\u662F\u5426\u805A\u5408\u53D1\u9001\u7FFB\u8BD1\u8BF7\u6C42",en:"Whether to aggregate and send translation requests",zh_TW:"\u662F\u5426\u805A\u5408\u767C\u9001\u7FFB\u8B6F\u8ACB\u6C42"},batch_interval:{zh:"\u805A\u5408\u8BF7\u6C42\u7B49\u5F85\u65F6\u95F4(100-10000)",en:"Aggregation request waiting time (100-10000)",zh_TW:"\u805A\u5408\u8ACB\u6C42\u7B49\u5F85\u6642\u9593(100-10000)"},batch_size:{zh:"\u805A\u5408\u8BF7\u6C42\u6700\u5927\u6BB5\u843D\u6570(1-100)",en:"Maximum number of paragraphs in an aggregation request (1-100)",zh_TW:"\u805A\u5408\u8ACB\u6C42\u6700\u5927\u6BB5\u843D\u6578(1-100)"},batch_length:{zh:"\u805A\u5408\u8BF7\u6C42\u6700\u5927\u6587\u672C\u957F\u5EA6(1000-100000)",en:"Maximum text length for aggregation requests (1000-100000)",zh_TW:"\u805A\u5408\u8ACB\u6C42\u6700\u5927\u6587\u5B57\u9577\u5EA6(1000-100000)"},use_context:{zh:"\u662F\u5426\u542F\u7528\u667A\u80FD\u4E0A\u4E0B\u6587",en:"Whether to enable AI context",zh_TW:"\u662F\u5426\u555F\u7528\u667A\u6167\u4E0A\u4E0B\u6587"},context_size:{zh:"\u4E0A\u4E0B\u6587\u4F1A\u8BDD\u6570\u91CF(1-20)",en:"Number of context sessions(1-20)",zh_TW:"\u4E0A\u4E0B\u6587\u6703\u8A71\u6578\u91CF(1-20)"},auto_scan_page:{zh:"\u81EA\u52A8\u626B\u63CF\u9875\u9762",en:"Auto scan page",zh_TW:"\u81EA\u52D5\u6383\u63CF\u9801\u9762"},has_rich_text:{zh:"\u542F\u7528\u5BCC\u6587\u672C\u7FFB\u8BD1",en:"Enable rich text translation",zh_TW:"\u555F\u7528\u5BCC\u6587\u672C\u7FFB\u8B6F"},has_shadowroot:{zh:"\u626B\u63CFShadowroot",en:"Scan Shadowroot",zh_TW:"\u6383\u63CFShadowroot"},mousehover_translate:{zh:"\u9F20\u6807\u60AC\u505C\u7FFB\u8BD1",en:"Mouseover Translation",zh_TW:"\u6ED1\u9F20\u61F8\u505C\u7FFB\u8B6F"},use_mousehover_translation:{zh:"\u542F\u7528\u9F20\u6807\u60AC\u505C\u7FFB\u8BD1",en:"Enable mouseover translation",zh_TW:"\u555F\u7528\u6ED1\u9F20\u61F8\u505C\u7FFB\u8B6F"},selected_translation_alert:{zh:"\u5212\u8BCD\u7FFB\u8BD1\u7684\u5F00\u542F\u548C\u5173\u95ED\u8BF7\u5230\u201C\u89C4\u5219\u8BBE\u7F6E\u201D\u91CC\u9762\u8BBE\u7F6E\u3002",en:"To turn selected translation on or off, please go to \"Rule Settings\".",zh_TW:"\u5283\u8A5E\u7FFB\u8B6F\u7684\u958B\u555F\u548C\u95DC\u9589\u8ACB\u5230\u300C\u898F\u5247\u8A2D\u5B9A\u300D\u88E1\u9762\u8A2D\u5B9A\u3002"},mousehover_key_help:{zh:"\u5F53\u5FEB\u6377\u952E\u7F6E\u7A7A\u65F6\u8868\u793A\u9F20\u6807\u60AC\u505C\u76F4\u63A5\u7FFB\u8BD1",en:"When the shortcut key is empty, it means that the mouse hovers to translate directly",zh_TW:"\u7576\u5FEB\u6377\u9375\u7F6E\u7A7A\u6642\u8868\u793A\u6ED1\u9F20\u61F8\u505C\u76F4\u63A5\u7FFB\u8B6F"},autoscan_alt:{zh:"\u81EA\u52A8\u626B\u63CF",en:"Auto Scan",zh_TW:"\u81EA\u52D5\u6383\u63CF"},shadowroot_alt:{zh:"ShadowRoot",en:"ShadowRoot",zh_TW:"ShadowRoot"},richtext_alt:{zh:"\u4FDD\u7559\u5BCC\u6587\u672C",en:"Rich Text",zh_TW:"\u4FDD\u7559\u5BCC\u6587\u672C"},transonly_alt:{zh:"\u9690\u85CF\u539F\u6587",en:"Hide Original",zh_TW:"\u96B1\u85CF\u539F\u6587"},confirm_title:{zh:"\u786E\u8BA4",en:"Confirm",zh_TW:"\u78BA\u8A8D"},confirm_message:{zh:"\u786E\u5B9A\u64CD\u4F5C\u5417\uFF1F",en:"Are you sure you want to proceed?",zh_TW:"\u78BA\u5B9A\u64CD\u4F5C\u55CE\uFF1F"},confirm_action:{zh:"\u786E\u5B9A",en:"Confirm",zh_TW:"\u78BA\u5B9A"},cancel_action:{zh:"\u53D6\u6D88",en:"Cancel",zh_TW:"\u53D6\u6D88"},pls_press_shortcut:{zh:"\u8BF7\u6309\u4E0B\u5FEB\u6377\u952E\u7EC4\u5408",en:"Please press the shortcut key combination",zh_TW:"\u8ACB\u6309\u4E0B\u5FEB\u901F\u9375\u7D44\u5408"},load_setting_err:{zh:"\u6570\u636E\u52A0\u8F7D\u51FA\u9519\uFF0C\u8BF7\u5237\u65B0\u9875\u9762\u6216\u5378\u8F7D\u540E\u91CD\u65B0\u5B89\u88C5\u3002",en:"Please press the shortcut key combination",zh_TW:"\u8ACB\u6309\u4E0B\u5FEB\u901F\u9375\u7D44\u5408"},translation_style:{zh:"\u7FFB\u8BD1\u98CE\u683C",en:"Translation style",zh_TW:"\u7FFB\u8B6F\u98A8\u683C"},placeholder:{zh:"\u5360\u4F4D\u7B26",en:"Placeholder",zh_TW:"\u4F54\u4F4D\u7B26"},tag_name:{zh:"\u5360\u4F4D\u6807\u7B7E\u540D",en:"Placeholder tag name",zh_TW:"\u4F54\u4F4D\u6A19\u540D"},system_prompt_helper:{zh:"\u5728\u672A\u5B8C\u5168\u7406\u89E3\u9ED8\u8BA4Prompt\u7684\u60C5\u51B5\u4E0B\uFF0C\u8BF7\u52FF\u968F\u610F\u4FEE\u6539\uFF0C\u5426\u5219\u53EF\u80FD\u65E0\u6CD5\u5DE5\u4F5C\u3002",en:"Do not modify the default prompt without fully understanding it, otherwise it may not work.",zh_TW:"\u5728\u672A\u5B8C\u5168\u7406\u89E3\u9810\u8A2DPrompt\u7684\u60C5\u6CC1\u4E0B\uFF0C\u8ACB\u52FF\u96A8\u610F\u4FEE\u6539\uFF0C\u5426\u5247\u53EF\u80FD\u7121\u6CD5\u904B\u4F5C\u3002"},if_pre_init:{zh:"\u662F\u5426\u9884\u521D\u59CB\u5316",en:"Whether to pre-initialize",zh_TW:"\u662F\u5426\u9810\u521D\u59CB\u5316"},export_old:{zh:"\u5BFC\u51FA\u65E7\u7248",en:"Export old version",zh_TW:"\u532F\u51FA\u820A\u7248"},favorite_words_helper:{zh:"\u5BFC\u5165\u8BCD\u6C47\u8BF7\u4F7F\u7528txt\u6587\u4EF6\uFF0C\u6BCF\u4E00\u884C\u4E00\u4E2A\u5355\u8BCD\u3002",en:"To import vocabulary, please use a txt file with one word per line.",zh_TW:"\u532F\u5165\u8A5E\u5F59\u8ACB\u4F7F\u7528txt\u6587\u4EF6\uFF0C\u6BCF\u4E00\u884C\u4E00\u500B\u55AE\u5B57\u3002"},btn_tip_click_away:{zh:"\u5931\u7126\u9690\u85CF/\u663E\u793A",en:"Loss of focus hide/show",zh_TW:"\u5931\u7126\u96B1\u85CF/\u986F\u793A"},btn_tip_follow_selection:{zh:"\u8DDF\u968F/\u56FA\u5B9A\u6A21\u5F0F",en:"Follow/Fixed Mode",zh_TW:"\u8DDF\u96A8/\u56FA\u5B9A\u6A21\u5F0F"},btn_tip_simple_style:{zh:"\u8FF7\u4F60/\u5E38\u89C4\u6A21\u5F0F",en:"Mini/Regular Mode",zh_TW:"\u8FF7\u4F60/\u5E38\u898F\u6A21\u5F0F"},api_placeholder:{zh:"\u5360\u4F4D\u7B26",en:"Placeholder",zh_TW:"\u4F54\u4F4D\u7B26"},api_placetag:{zh:"\u5360\u4F4D\u6807\u7B7E",en:"Placeholder tags",zh_TW:"\u4F54\u4F4D\u6A19"},detected_lang:{zh:"\u8BED\u8A00\u68C0\u6D4B",en:"Language detection",zh_TW:"\u8A9E\u8A00\u5075\u6E2C"},detected_result:{zh:"\u68C0\u6D4B\u7ED3\u679C",en:"Detect result",zh_TW:"\u6AA2\u6E2C\u7D50\u679C"},subtitle_translate:{zh:"\u5B57\u5E55\u7FFB\u8BD1",en:"Subtitle translate",zh_TW:"\u5B57\u5E55\u7FFB\u8B6F"},toggle_subtitle_translate:{zh:"\u542F\u7528\u5B57\u5E55\u7FFB\u8BD1",en:"Enable subtitle translation",zh_TW:"\u555F\u7528\u5B57\u5E55\u7FFB\u8B6F"},is_bilingual_view:{zh:"\u53CC\u8BED\u663E\u793A",en:"Enable bilingual display",zh_TW:"\u96D9\u8A9E\u986F\u793A"},background_styles:{zh:"\u80CC\u666F\u6837\u5F0F",en:"DBackground Style",zh_TW:"\u80CC\u666F\u6A23\u5F0F"},origin_styles:{zh:"\u539F\u6587\u6837\u5F0F",en:"Original style",zh_TW:"\u539F\u6587\u6A23\u5F0F"},translation_styles:{zh:"\u8BD1\u6587\u6837\u5F0F",en:"Translation style",zh_TW:"\u8B6F\u6587\u6A23\u5F0F"},ai_segmentation:{zh:"AI\u667A\u80FD\u65AD\u53E5",en:"AI intelligent punctuation",zh_TW:"AI\u667A\u6167\u65B7\u53E5"},ai_chunk_length:{zh:"AI\u5904\u7406\u5207\u5272\u957F\u5EA6(200-20000)",en:"AI processing chunk length(200-20000)",zh_TW:"AI\u5904\u7406\u5207\u5272\u957F\u5EA6(200-20000)"},subtitle_helper_1:{zh:"1\u3001\u76EE\u524D\u4EC5\u652F\u6301Youtube\u684C\u9762\u7F51\u7AD9\uFF0C\u4E14\u4EC5\u652F\u6301\u6D4F\u89C8\u5668\u6269\u5C55\u3002",en:"1. Currently only supports Youtube desktop website and browser extension.",zh_TW:"1.\u76EE\u524D\u50C5\u652F\u63F4Youtube\u684C\u9762\u7DB2\u7AD9\uFF0C\u4E14\u50C5\u652F\u63F4\u700F\u89BD\u5668\u64F4\u5145\u529F\u80FD\u3002"},subtitle_helper_2:{zh:"2\u3001\u63D2\u4EF6\u5185\u7F6E\u57FA\u7840\u7684\u5B57\u5E55\u5408\u5E76\u3001\u65AD\u53E5\u7B97\u6CD5\uFF0C\u53EF\u6EE1\u8DB3\u5927\u90E8\u5206\u60C5\u51B5\u3002",en:"2. The plug-in has built-in basic subtitle merging and sentence segmentation algorithms, which can meet most situations.",zh_TW:"2.\u63D2\u4EF6\u5167\u5EFA\u57FA\u790E\u7684\u5B57\u5E55\u5408\u4F75\u3001\u65B7\u53E5\u6F14\u7B97\u6CD5\uFF0C\u53EF\u6EFF\u8DB3\u5927\u90E8\u5206\u60C5\u6CC1\u3002"},subtitle_helper_3:{zh:"3\u3001\u4EA6\u53EF\u4EE5\u542F\u7528AI\u667A\u80FD\u65AD\u53E5\uFF0C\u4F46\u9700\u8003\u8651\u5207\u5272\u957F\u5EA6\u53CAAI\u63A5\u53E3\u80FD\u529B\uFF0C\u53EF\u80FD\u5904\u7406\u65F6\u95F4\u4F1A\u5F88\u957F\uFF0C\u751A\u81F3\u5904\u7406\u5931\u8D25\uFF0C\u5BFC\u81F4\u65E0\u6CD5\u770B\u5230\u5B57\u5E55\u3002",en:"3. You can also enable AI intelligent segmentation, but you need to consider the segmentation length and AI interface capabilities. The processing time may be very long or even fail, resulting in the inability to see subtitles.",zh_TW:"3.\u4EA6\u53EF\u555F\u7528AI\u667A\u80FD\u65B7\u53E5\uFF0C\u4F46\u9700\u8003\u616E\u5207\u5272\u9577\u5EA6\u53CAAI\u4ECB\u9762\u80FD\u529B\uFF0C\u53EF\u80FD\u8655\u7406\u6642\u9593\u6703\u5F88\u9577\uFF0C\u751A\u81F3\u8655\u7406\u5931\u6557\uFF0C\u5C0E\u81F4\u7121\u6CD5\u770B\u5230\u5B57\u5E55\u3002"},default_styles_example:{zh:"\u9ED8\u8BA4\u6837\u5F0F\u53C2\u8003\uFF1A",en:"Default styles reference:",zh_TW:"\u8A8D\u6A23\u5F0F\u53C3\u8003\uFF1A"},subtitle_load_succeed:{zh:"\u53CC\u8BED\u5B57\u5E55\u52A0\u8F7D\u6210\u529F\uFF01",en:"Bilingual subtitles loaded successfully!",zh_TW:"\u53CC\u8BED\u5B57\u5E55\u52A0\u8F7D\u6210\u529F\uFF01"},subtitle_load_failed:{zh:"\u53CC\u8BED\u5B57\u5E55\u52A0\u8F7D\u5931\u8D25\uFF01",en:"Failed to load bilingual subtitles!",zh_TW:"\u53CC\u8BED\u5B57\u5E55\u52A0\u8F7D\u5931\u8D25\uFF01"},try_get_subtitle_data:{zh:"\u5C1D\u8BD5\u83B7\u53D6\u5B57\u5E55\u6570\u636E\uFF0C\u8BF7\u7A0D\u5019...",en:"Trying to get subtitle data, please wait...",zh_TW:"\u5C1D\u8BD5\u83B7\u53D6\u5B57\u5E55\u6570\u636E\uFF0C\u8BF7\u7A0D\u5019..."},subtitle_data_processing:{zh:"\u5B57\u5E55\u6570\u636E\u5904\u7406\u4E2D...",en:"Subtitle data processing...",zh_TW:"\u5B57\u5E55\u6570\u636E\u5904\u7406\u4E2D..."},starting_to_process_subtitle:{zh:"\u5F00\u59CB\u5904\u7406\u5B57\u5E55\u6570\u636E...",en:"Starting to process subtitle data...",zh_TW:"\u5F00\u59CB\u5904\u7406\u5B57\u5E55\u6570\u636E..."},subtitle_data_is_ready:{zh:"\u5B57\u5E55\u6570\u636E\u5DF2\u51C6\u5907\u5C31\u7EEA\uFF0C\u8BF7\u70B9\u51FBKT\u6309\u94AE\u52A0\u8F7D",en:"The subtitle data is ready, please click the KT button to load it",zh_TW:"\u5B57\u5E55\u8CC7\u6599\u5DF2\u6E96\u5099\u5C31\u7DD2\uFF0C\u8ACB\u9EDE\u64CAKT\u6309\u9215\u52A0\u8F09"},log_level:{zh:"\u65E5\u5FD7\u7EA7\u522B",en:"Log Level",zh_TW:"\u65E5\u8A8C\u7B49\u7D1A"}};const i18n=lang=>key=>{var _I18N$key;return((_I18N$key=I18N[key])===null||_I18N$key===void 0?void 0:_I18N$key[lang])||"";};
+;// CONCATENATED MODULE: ./src/config/storage.js
+const KV_RULES_KEY="kiss-rules_v".concat(APP_VERSION[0],".json");const KV_WORDS_KEY="kiss-words.json";const KV_RULES_SHARE_KEY="kiss-rules-share_v".concat(APP_VERSION[0],".json");const KV_SETTING_KEY="kiss-setting_v".concat(APP_VERSION[0],".json");const KV_SALT_SYNC="KISS-Translator-SYNC";const KV_SALT_SHARE="KISS-Translator-SHARE";const STOKEY_MSAUTH="".concat(APP_NAME,"_msauth");const STOKEY_BDAUTH="".concat(APP_NAME,"_bdauth");const STOKEY_SETTING_OLD="".concat(APP_NAME,"_setting");const STOKEY_RULES_OLD="".concat(APP_NAME,"_rules");const STOKEY_SETTING="".concat(APP_NAME,"_setting_v").concat(APP_VERSION[0]);const STOKEY_RULES="".concat(APP_NAME,"_rules_v").concat(APP_VERSION[0]);const STOKEY_WORDS="".concat(APP_NAME,"_words");const STOKEY_SYNC="".concat(APP_NAME,"_sync");const STOKEY_FAB="".concat(APP_NAME,"_fab");const STOKEY_RULESCACHE_PREFIX="".concat(APP_NAME,"_rulescache_");const CACHE_NAME="".concat(APP_NAME,"_cache");const DEFAULT_CACHE_TIMEOUT=(/* unused pure expression or super */ null && (3600*24*7));// 缓存超时时间(7天)
+;// CONCATENATED MODULE: ./src/config/url.js
+const URL_CACHE_TRAN="https://".concat(APP_LCNAME,"/translate");const URL_CACHE_SUBTITLE="https://".concat(APP_LCNAME,"/subtitle");const URL_CACHE_DELANG="https://".concat(APP_LCNAME,"/detectlang");const URL_CACHE_BINGDICT="https://".concat(APP_LCNAME,"/bingdict");const URL_KISS_WORKER="https://github.com/fishjar/kiss-worker";const URL_KISS_PROXY="https://github.com/fishjar/kiss-proxy";const URL_KISS_RULES="https://github.com/fishjar/kiss-rules";const URL_KISS_RULES_NEW_ISSUE="https://github.com/fishjar/kiss-rules/issues/new";const URL_RAW_PREFIX="https://raw.githubusercontent.com/fishjar/kiss-translator/master";
+;// CONCATENATED MODULE: ./src/config/client.js
+const CLIENT_WEB="web";const CLIENT_CHROME="chrome";const CLIENT_EDGE="edge";const CLIENT_FIREFOX="firefox";const CLIENT_USERSCRIPT="userscript";const CLIENT_THUNDERBIRD="thunderbird";const CLIENT_EXTS=[CLIENT_CHROME,CLIENT_EDGE,CLIENT_FIREFOX,CLIENT_THUNDERBIRD];const DEFAULT_USER_AGENT="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36";
+;// CONCATENATED MODULE: ./src/config/index.js
+
 ;// CONCATENATED MODULE: ./src/index.js
-function App(){var _I18N$about_md;const[lang,setLang]=(0,react.useState)("zh");const[data,loading,error]=useFetch("".concat(URL_RAW_PREFIX,"/").concat(I18N===null||I18N===void 0?void 0:(_I18N$about_md=I18N["about_md"])===null||_I18N$about_md===void 0?void 0:_I18N$about_md[lang]));return/*#__PURE__*/(0,jsx_runtime.jsxs)(Paper_Paper,{sx:{padding:2,margin:2},children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Stack_Stack,{spacing:2,direction:"row",justifyContent:"flex-end",children:/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{variant:"text",onClick:()=>{setLang(pre=>pre==="zh"?"en":"zh");},children:lang==="zh"?"ENGLISH":"中文"})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Divider_Divider,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(Link_Link,{href:"https://github.com/fishjar/kiss-translator",children:"KISS Translator v".concat("1.9.2")})}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Link_Link,{href:"https://fishjar.github.io/kiss-translator/kiss-translator.user.js",children:"Install/Update Userscript for Tampermonkey/Violentmonkey"}),/*#__PURE__*/(0,jsx_runtime.jsx)(Link_Link,{href:"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js",children:"Install/Update Userscript for iOS Safari"}),/*#__PURE__*/(0,jsx_runtime.jsx)(Link_Link,{href:"https://fishjar.github.io/kiss-translator/options.html",children:"Open Options Page"})]}),loading?/*#__PURE__*/(0,jsx_runtime.jsx)("center",{children:/*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgress_CircularProgress,{})}):/*#__PURE__*/(0,jsx_runtime.jsx)(ReactMarkdown,{children:error?error.message:data})]});}const src_root=client.createRoot(document.getElementById("root"));src_root.render(/*#__PURE__*/(0,jsx_runtime.jsx)(react.StrictMode,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(App,{})}));
+function App(){var _I18N$about_md;const[lang,setLang]=(0,react.useState)("zh");const{data,loading,error}=useGet("".concat(URL_RAW_PREFIX,"/").concat(I18N===null||I18N===void 0?void 0:(_I18N$about_md=I18N["about_md"])===null||_I18N$about_md===void 0?void 0:_I18N$about_md[lang]));return/*#__PURE__*/(0,jsx_runtime.jsxs)(Paper_Paper,{sx:{padding:2,margin:2},children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Stack_Stack,{spacing:2,direction:"row",justifyContent:"flex-end",children:/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{variant:"text",onClick:()=>{setLang(pre=>pre==="zh"?"en":"zh");},children:lang==="zh"?"ENGLISH":"中文"})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Divider_Divider,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(Link_Link,{href:"https://github.com/fishjar/kiss-translator",children:"KISS Translator v".concat("2.0.0")})}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Link_Link,{href:"https://fishjar.github.io/kiss-translator/kiss-translator.user.js",children:"Install/Update Userscript for Tampermonkey/Violentmonkey"}),/*#__PURE__*/(0,jsx_runtime.jsx)(Link_Link,{href:"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js",children:"Install/Update Userscript for iOS Safari"}),/*#__PURE__*/(0,jsx_runtime.jsx)(Link_Link,{href:"https://fishjar.github.io/kiss-translator/options.html",children:"Open Options Page"})]}),loading?/*#__PURE__*/(0,jsx_runtime.jsx)("center",{children:/*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgress_CircularProgress,{})}):/*#__PURE__*/(0,jsx_runtime.jsx)(ReactMarkdown,{children:error||data})]});}const src_root=client.createRoot(document.getElementById("root"));src_root.render(/*#__PURE__*/(0,jsx_runtime.jsx)(react.StrictMode,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(App,{})}));
 })();
 
 /******/ })()

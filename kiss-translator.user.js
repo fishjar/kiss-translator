@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name          KISS Translator
 // @namespace     https://github.com/fishjar/kiss-translator
-// @version       1.9.2
+// @version       2.0.0
 // @description   A simple bilingual translation extension & Greasemonkey script (一个简约的双语对照翻译扩展 & 油猴脚本)
 // @author        Gabe<yugang2002@gmail.com>
 // @homepageURL   https://github.com/fishjar/kiss-translator
@@ -20,8 +20,10 @@
 // @grant         unsafeWindow
 // @connect       translate.googleapis.com
 // @connect       translate-pa.googleapis.com
+// @connect       generativelanguage.googleapis.com
 // @connect       api-edge.cognitive.microsofttranslator.com
 // @connect       edge.microsoft.com
+// @connect       bing.com
 // @connect       api-free.deepl.com
 // @connect       api.deepl.com
 // @connect       www2.deepl.com
@@ -38,6 +40,10 @@
 // @connect       transmart.qq.com
 // @connect       niutrans.com
 // @connect       translate.volcengine.com
+// @connect       dict.youdao.com
+// @connect       api.anthropic.com
+// @connect       api.cloudflare.com
+// @connect       openrouter.ai
 // @connect       localhost
 // @connect       127.0.0.1
 // @run-at        document-end
@@ -47,7 +53,7 @@
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 3029:
+/***/ 3347:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -176,730 +182,18 @@ var StyleSheet = /*#__PURE__*/function () {
   return StyleSheet;
 }();
 
-;// CONCATENATED MODULE: ./node_modules/.pnpm/stylis@4.2.0/node_modules/stylis/src/Utility.js
-/**
- * @param {number}
- * @return {number}
- */
-var abs = Math.abs;
-
-/**
- * @param {number}
- * @return {string}
- */
-var Utility_from = String.fromCharCode;
-
-/**
- * @param {object}
- * @return {object}
- */
-var Utility_assign = Object.assign;
-
-/**
- * @param {string} value
- * @param {number} length
- * @return {number}
- */
-function hash(value, length) {
-  return Utility_charat(value, 0) ^ 45 ? (((length << 2 ^ Utility_charat(value, 0)) << 2 ^ Utility_charat(value, 1)) << 2 ^ Utility_charat(value, 2)) << 2 ^ Utility_charat(value, 3) : 0;
-}
-
-/**
- * @param {string} value
- * @return {string}
- */
-function trim(value) {
-  return value.trim();
-}
-
-/**
- * @param {string} value
- * @param {RegExp} pattern
- * @return {string?}
- */
-function Utility_match(value, pattern) {
-  return (value = pattern.exec(value)) ? value[0] : value;
-}
-
-/**
- * @param {string} value
- * @param {(string|RegExp)} pattern
- * @param {string} replacement
- * @return {string}
- */
-function Utility_replace(value, pattern, replacement) {
-  return value.replace(pattern, replacement);
-}
-
-/**
- * @param {string} value
- * @param {string} search
- * @return {number}
- */
-function indexof(value, search) {
-  return value.indexOf(search);
-}
-
-/**
- * @param {string} value
- * @param {number} index
- * @return {number}
- */
-function Utility_charat(value, index) {
-  return value.charCodeAt(index) | 0;
-}
-
-/**
- * @param {string} value
- * @param {number} begin
- * @param {number} end
- * @return {string}
- */
-function Utility_substr(value, begin, end) {
-  return value.slice(begin, end);
-}
-
-/**
- * @param {string} value
- * @return {number}
- */
-function Utility_strlen(value) {
-  return value.length;
-}
-
-/**
- * @param {any[]} value
- * @return {number}
- */
-function Utility_sizeof(value) {
-  return value.length;
-}
-
-/**
- * @param {any} value
- * @param {any[]} array
- * @return {any}
- */
-function Utility_append(value, array) {
-  return array.push(value), value;
-}
-
-/**
- * @param {string[]} array
- * @param {function} callback
- * @return {string}
- */
-function Utility_combine(array, callback) {
-  return array.map(callback).join('');
-}
-;// CONCATENATED MODULE: ./node_modules/.pnpm/stylis@4.2.0/node_modules/stylis/src/Tokenizer.js
-
-var line = 1;
-var column = 1;
-var Tokenizer_length = 0;
-var position = 0;
-var character = 0;
-var characters = '';
-
-/**
- * @param {string} value
- * @param {object | null} root
- * @param {object | null} parent
- * @param {string} type
- * @param {string[] | string} props
- * @param {object[] | string} children
- * @param {number} length
- */
-function node(value, root, parent, type, props, children, length) {
-  return {
-    value: value,
-    root: root,
-    parent: parent,
-    type: type,
-    props: props,
-    children: children,
-    line: line,
-    column: column,
-    length: length,
-    return: ''
-  };
-}
-
-/**
- * @param {object} root
- * @param {object} props
- * @return {object}
- */
-function Tokenizer_copy(root, props) {
-  return Utility_assign(node('', null, null, '', null, null, 0), root, {
-    length: -root.length
-  }, props);
-}
-
-/**
- * @return {number}
- */
-function Tokenizer_char() {
-  return character;
-}
-
-/**
- * @return {number}
- */
-function prev() {
-  character = position > 0 ? Utility_charat(characters, --position) : 0;
-  if (column--, character === 10) column = 1, line--;
-  return character;
-}
-
-/**
- * @return {number}
- */
-function next() {
-  character = position < Tokenizer_length ? Utility_charat(characters, position++) : 0;
-  if (column++, character === 10) column = 1, line++;
-  return character;
-}
-
-/**
- * @return {number}
- */
-function peek() {
-  return Utility_charat(characters, position);
-}
-
-/**
- * @return {number}
- */
-function caret() {
-  return position;
-}
-
-/**
- * @param {number} begin
- * @param {number} end
- * @return {string}
- */
-function slice(begin, end) {
-  return Utility_substr(characters, begin, end);
-}
-
-/**
- * @param {number} type
- * @return {number}
- */
-function token(type) {
-  switch (type) {
-    // \0 \t \n \r \s whitespace token
-    case 0:
-    case 9:
-    case 10:
-    case 13:
-    case 32:
-      return 5;
-    // ! + , / > @ ~ isolate token
-    case 33:
-    case 43:
-    case 44:
-    case 47:
-    case 62:
-    case 64:
-    case 126:
-    // ; { } breakpoint token
-    case 59:
-    case 123:
-    case 125:
-      return 4;
-    // : accompanied token
-    case 58:
-      return 3;
-    // " ' ( [ opening delimit token
-    case 34:
-    case 39:
-    case 40:
-    case 91:
-      return 2;
-    // ) ] closing delimit token
-    case 41:
-    case 93:
-      return 1;
-  }
-  return 0;
-}
-
-/**
- * @param {string} value
- * @return {any[]}
- */
-function alloc(value) {
-  return line = column = 1, Tokenizer_length = Utility_strlen(characters = value), position = 0, [];
-}
-
-/**
- * @param {any} value
- * @return {any}
- */
-function dealloc(value) {
-  return characters = '', value;
-}
-
-/**
- * @param {number} type
- * @return {string}
- */
-function delimit(type) {
-  return trim(slice(position - 1, delimiter(type === 91 ? type + 2 : type === 40 ? type + 1 : type)));
-}
-
-/**
- * @param {string} value
- * @return {string[]}
- */
-function Tokenizer_tokenize(value) {
-  return dealloc(tokenizer(alloc(value)));
-}
-
-/**
- * @param {number} type
- * @return {string}
- */
-function whitespace(type) {
-  while (character = peek()) if (character < 33) next();else break;
-  return token(type) > 2 || token(character) > 3 ? '' : ' ';
-}
-
-/**
- * @param {string[]} children
- * @return {string[]}
- */
-function tokenizer(children) {
-  while (next()) switch (token(character)) {
-    case 0:
-      append(identifier(position - 1), children);
-      break;
-    case 2:
-      append(delimit(character), children);
-      break;
-    default:
-      append(from(character), children);
-  }
-  return children;
-}
-
-/**
- * @param {number} index
- * @param {number} count
- * @return {string}
- */
-function escaping(index, count) {
-  while (--count && next())
-  // not 0-9 A-F a-f
-  if (character < 48 || character > 102 || character > 57 && character < 65 || character > 70 && character < 97) break;
-  return slice(index, caret() + (count < 6 && peek() == 32 && next() == 32));
-}
-
-/**
- * @param {number} type
- * @return {number}
- */
-function delimiter(type) {
-  while (next()) switch (character) {
-    // ] ) " '
-    case type:
-      return position;
-    // " '
-    case 34:
-    case 39:
-      if (type !== 34 && type !== 39) delimiter(character);
-      break;
-    // (
-    case 40:
-      if (type === 41) delimiter(type);
-      break;
-    // \
-    case 92:
-      next();
-      break;
-  }
-  return position;
-}
-
-/**
- * @param {number} type
- * @param {number} index
- * @return {number}
- */
-function commenter(type, index) {
-  while (next())
-  // //
-  if (type + character === 47 + 10) break;
-  // /*
-  else if (type + character === 42 + 42 && peek() === 47) break;
-  return '/*' + slice(index, position - 1) + '*' + Utility_from(type === 47 ? type : next());
-}
-
-/**
- * @param {number} index
- * @return {string}
- */
-function identifier(index) {
-  while (!token(peek())) next();
-  return slice(index, position);
-}
-;// CONCATENATED MODULE: ./node_modules/.pnpm/stylis@4.2.0/node_modules/stylis/src/Enum.js
-var Enum_MS = '-ms-';
-var Enum_MOZ = '-moz-';
-var Enum_WEBKIT = '-webkit-';
-var COMMENT = 'comm';
-var Enum_RULESET = 'rule';
-var Enum_DECLARATION = 'decl';
-var PAGE = '@page';
-var MEDIA = '@media';
-var IMPORT = '@import';
-var CHARSET = '@charset';
-var VIEWPORT = '@viewport';
-var SUPPORTS = '@supports';
-var DOCUMENT = '@document';
-var NAMESPACE = '@namespace';
-var Enum_KEYFRAMES = '@keyframes';
-var FONT_FACE = '@font-face';
-var COUNTER_STYLE = '@counter-style';
-var FONT_FEATURE_VALUES = '@font-feature-values';
-var LAYER = '@layer';
-;// CONCATENATED MODULE: ./node_modules/.pnpm/stylis@4.2.0/node_modules/stylis/src/Serializer.js
-
-
-
-/**
- * @param {object[]} children
- * @param {function} callback
- * @return {string}
- */
-function Serializer_serialize(children, callback) {
-  var output = '';
-  var length = Utility_sizeof(children);
-  for (var i = 0; i < length; i++) output += callback(children[i], i, children, callback) || '';
-  return output;
-}
-
-/**
- * @param {object} element
- * @param {number} index
- * @param {object[]} children
- * @param {function} callback
- * @return {string}
- */
-function stringify(element, index, children, callback) {
-  switch (element.type) {
-    case LAYER:
-      if (element.children.length) break;
-    case IMPORT:
-    case Enum_DECLARATION:
-      return element.return = element.return || element.value;
-    case COMMENT:
-      return '';
-    case Enum_KEYFRAMES:
-      return element.return = element.value + '{' + Serializer_serialize(element.children, callback) + '}';
-    case Enum_RULESET:
-      element.value = element.props.join(',');
-  }
-  return Utility_strlen(children = Serializer_serialize(element.children, callback)) ? element.return = element.value + '{' + children + '}' : '';
-}
-;// CONCATENATED MODULE: ./node_modules/.pnpm/stylis@4.2.0/node_modules/stylis/src/Middleware.js
-
-
-
-
-
-
-/**
- * @param {function[]} collection
- * @return {function}
- */
-function middleware(collection) {
-  var length = Utility_sizeof(collection);
-  return function (element, index, children, callback) {
-    var output = '';
-    for (var i = 0; i < length; i++) output += collection[i](element, index, children, callback) || '';
-    return output;
-  };
-}
-
-/**
- * @param {function} callback
- * @return {function}
- */
-function rulesheet(callback) {
-  return function (element) {
-    if (!element.root) if (element = element.return) callback(element);
-  };
-}
-
-/**
- * @param {object} element
- * @param {number} index
- * @param {object[]} children
- * @param {function} callback
- */
-function prefixer(element, index, children, callback) {
-  if (element.length > -1) if (!element.return) switch (element.type) {
-    case DECLARATION:
-      element.return = prefix(element.value, element.length, children);
-      return;
-    case KEYFRAMES:
-      return serialize([copy(element, {
-        value: replace(element.value, '@', '@' + WEBKIT)
-      })], callback);
-    case RULESET:
-      if (element.length) return combine(element.props, function (value) {
-        switch (match(value, /(::plac\w+|:read-\w+)/)) {
-          // :read-(only|write)
-          case ':read-only':
-          case ':read-write':
-            return serialize([copy(element, {
-              props: [replace(value, /:(read-\w+)/, ':' + MOZ + '$1')]
-            })], callback);
-          // :placeholder
-          case '::placeholder':
-            return serialize([copy(element, {
-              props: [replace(value, /:(plac\w+)/, ':' + WEBKIT + 'input-$1')]
-            }), copy(element, {
-              props: [replace(value, /:(plac\w+)/, ':' + MOZ + '$1')]
-            }), copy(element, {
-              props: [replace(value, /:(plac\w+)/, MS + 'input-$1')]
-            })], callback);
-        }
-        return '';
-      });
-  }
-}
-
-/**
- * @param {object} element
- * @param {number} index
- * @param {object[]} children
- */
-function namespace(element) {
-  switch (element.type) {
-    case RULESET:
-      element.props = element.props.map(function (value) {
-        return combine(tokenize(value), function (value, index, children) {
-          switch (charat(value, 0)) {
-            // \f
-            case 12:
-              return substr(value, 1, strlen(value));
-            // \0 ( + > ~
-            case 0:
-            case 40:
-            case 43:
-            case 62:
-            case 126:
-              return value;
-            // :
-            case 58:
-              if (children[++index] === 'global') children[index] = '', children[++index] = '\f' + substr(children[index], index = 1, -1);
-            // \s
-            case 32:
-              return index === 1 ? '' : value;
-            default:
-              switch (index) {
-                case 0:
-                  element = value;
-                  return sizeof(children) > 1 ? '' : value;
-                case index = sizeof(children) - 1:
-                case 2:
-                  return index === 2 ? value + element + element : value + element;
-                default:
-                  return value;
-              }
-          }
-        });
-      });
-  }
-}
-;// CONCATENATED MODULE: ./node_modules/.pnpm/stylis@4.2.0/node_modules/stylis/src/Parser.js
-
-
-
-
-/**
- * @param {string} value
- * @return {object[]}
- */
-function compile(value) {
-  return dealloc(parse('', null, null, null, [''], value = alloc(value), 0, [0], value));
-}
-
-/**
- * @param {string} value
- * @param {object} root
- * @param {object?} parent
- * @param {string[]} rule
- * @param {string[]} rules
- * @param {string[]} rulesets
- * @param {number[]} pseudo
- * @param {number[]} points
- * @param {string[]} declarations
- * @return {object}
- */
-function parse(value, root, parent, rule, rules, rulesets, pseudo, points, declarations) {
-  var index = 0;
-  var offset = 0;
-  var length = pseudo;
-  var atrule = 0;
-  var property = 0;
-  var previous = 0;
-  var variable = 1;
-  var scanning = 1;
-  var ampersand = 1;
-  var character = 0;
-  var type = '';
-  var props = rules;
-  var children = rulesets;
-  var reference = rule;
-  var characters = type;
-  while (scanning) switch (previous = character, character = next()) {
-    // (
-    case 40:
-      if (previous != 108 && Utility_charat(characters, length - 1) == 58) {
-        if (indexof(characters += Utility_replace(delimit(character), '&', '&\f'), '&\f') != -1) ampersand = -1;
-        break;
-      }
-    // " ' [
-    case 34:
-    case 39:
-    case 91:
-      characters += delimit(character);
-      break;
-    // \t \n \r \s
-    case 9:
-    case 10:
-    case 13:
-    case 32:
-      characters += whitespace(previous);
-      break;
-    // \
-    case 92:
-      characters += escaping(caret() - 1, 7);
-      continue;
-    // /
-    case 47:
-      switch (peek()) {
-        case 42:
-        case 47:
-          Utility_append(comment(commenter(next(), caret()), root, parent), declarations);
-          break;
-        default:
-          characters += '/';
-      }
-      break;
-    // {
-    case 123 * variable:
-      points[index++] = Utility_strlen(characters) * ampersand;
-    // } ; \0
-    case 125 * variable:
-    case 59:
-    case 0:
-      switch (character) {
-        // \0 }
-        case 0:
-        case 125:
-          scanning = 0;
-        // ;
-        case 59 + offset:
-          if (ampersand == -1) characters = Utility_replace(characters, /\f/g, '');
-          if (property > 0 && Utility_strlen(characters) - length) Utility_append(property > 32 ? declaration(characters + ';', rule, parent, length - 1) : declaration(Utility_replace(characters, ' ', '') + ';', rule, parent, length - 2), declarations);
-          break;
-        // @ ;
-        case 59:
-          characters += ';';
-        // { rule/at-rule
-        default:
-          Utility_append(reference = ruleset(characters, root, parent, index, offset, rules, points, type, props = [], children = [], length), rulesets);
-          if (character === 123) if (offset === 0) parse(characters, root, reference, reference, props, rulesets, length, points, children);else switch (atrule === 99 && Utility_charat(characters, 3) === 110 ? 100 : atrule) {
-            // d l m s
-            case 100:
-            case 108:
-            case 109:
-            case 115:
-              parse(value, reference, reference, rule && Utility_append(ruleset(value, reference, reference, 0, 0, rules, points, type, rules, props = [], length), children), rules, children, length, points, rule ? props : children);
-              break;
-            default:
-              parse(characters, reference, reference, reference, [''], children, 0, points, children);
-          }
-      }
-      index = offset = property = 0, variable = ampersand = 1, type = characters = '', length = pseudo;
-      break;
-    // :
-    case 58:
-      length = 1 + Utility_strlen(characters), property = previous;
-    default:
-      if (variable < 1) if (character == 123) --variable;else if (character == 125 && variable++ == 0 && prev() == 125) continue;
-      switch (characters += Utility_from(character), character * variable) {
-        // &
-        case 38:
-          ampersand = offset > 0 ? 1 : (characters += '\f', -1);
-          break;
-        // ,
-        case 44:
-          points[index++] = (Utility_strlen(characters) - 1) * ampersand, ampersand = 1;
-          break;
-        // @
-        case 64:
-          // -
-          if (peek() === 45) characters += delimit(next());
-          atrule = peek(), offset = length = Utility_strlen(type = characters += identifier(caret())), character++;
-          break;
-        // -
-        case 45:
-          if (previous === 45 && Utility_strlen(characters) == 2) variable = 0;
-      }
-  }
-  return rulesets;
-}
-
-/**
- * @param {string} value
- * @param {object} root
- * @param {object?} parent
- * @param {number} index
- * @param {number} offset
- * @param {string[]} rules
- * @param {number[]} points
- * @param {string} type
- * @param {string[]} props
- * @param {string[]} children
- * @param {number} length
- * @return {object}
- */
-function ruleset(value, root, parent, index, offset, rules, points, type, props, children, length) {
-  var post = offset - 1;
-  var rule = offset === 0 ? rules : [''];
-  var size = Utility_sizeof(rule);
-  for (var i = 0, j = 0, k = 0; i < index; ++i) for (var x = 0, y = Utility_substr(value, post + 1, post = abs(j = points[i])), z = value; x < size; ++x) if (z = trim(j > 0 ? rule[x] + ' ' + y : Utility_replace(y, /&\f/g, rule[x]))) props[k++] = z;
-  return node(value, root, parent, offset === 0 ? Enum_RULESET : type, props, children, length);
-}
-
-/**
- * @param {number} value
- * @param {object} root
- * @param {object?} parent
- * @return {object}
- */
-function comment(value, root, parent) {
-  return node(value, root, parent, COMMENT, Utility_from(Tokenizer_char()), Utility_substr(value, 2, -2), 0);
-}
-
-/**
- * @param {string} value
- * @param {object} root
- * @param {object?} parent
- * @param {number} length
- * @return {object}
- */
-function declaration(value, root, parent, length) {
-  return node(value, root, parent, Enum_DECLARATION, Utility_substr(value, 0, length), Utility_substr(value, length + 1, -1), length);
-}
+// EXTERNAL MODULE: ./node_modules/.pnpm/stylis@4.2.0/node_modules/stylis/src/Tokenizer.js
+var Tokenizer = __webpack_require__(7650);
+// EXTERNAL MODULE: ./node_modules/.pnpm/stylis@4.2.0/node_modules/stylis/src/Utility.js
+var Utility = __webpack_require__(7279);
+// EXTERNAL MODULE: ./node_modules/.pnpm/stylis@4.2.0/node_modules/stylis/src/Enum.js
+var Enum = __webpack_require__(3724);
+// EXTERNAL MODULE: ./node_modules/.pnpm/stylis@4.2.0/node_modules/stylis/src/Serializer.js
+var Serializer = __webpack_require__(903);
+// EXTERNAL MODULE: ./node_modules/.pnpm/stylis@4.2.0/node_modules/stylis/src/Middleware.js
+var Middleware = __webpack_require__(7033);
+// EXTERNAL MODULE: ./node_modules/.pnpm/stylis@4.2.0/node_modules/stylis/src/Parser.js
+var Parser = __webpack_require__(3963);
 ;// CONCATENATED MODULE: ./node_modules/.pnpm/@emotion+cache@11.11.0/node_modules/@emotion/cache/dist/emotion-cache.browser.esm.js
 
 
@@ -910,43 +204,43 @@ var identifierWithPointTracking = function identifierWithPointTracking(begin, po
   var character = 0;
   while (true) {
     previous = character;
-    character = peek(); // &\f
+    character = (0,Tokenizer/* peek */.fj)(); // &\f
 
     if (previous === 38 && character === 12) {
       points[index] = 1;
     }
-    if (token(character)) {
+    if ((0,Tokenizer/* token */.r)(character)) {
       break;
     }
-    next();
+    (0,Tokenizer/* next */.lp)();
   }
-  return slice(begin, position);
+  return (0,Tokenizer/* slice */.tP)(begin, Tokenizer/* position */.FK);
 };
 var toRules = function toRules(parsed, points) {
   // pretend we've started with a comma
   var index = -1;
   var character = 44;
   do {
-    switch (token(character)) {
+    switch ((0,Tokenizer/* token */.r)(character)) {
       case 0:
         // &\f
-        if (character === 38 && peek() === 12) {
+        if (character === 38 && (0,Tokenizer/* peek */.fj)() === 12) {
           // this is not 100% correct, we don't account for literal sequences here - like for example quoted strings
           // stylis inserts \f after & to know when & where it should replace this sequence with the context selector
           // and when it should just concatenate the outer and inner selectors
           // it's very unlikely for this sequence to actually appear in a different context, so we just leverage this fact here
           points[index] = 1;
         }
-        parsed[index] += identifierWithPointTracking(position - 1, points, index);
+        parsed[index] += identifierWithPointTracking(Tokenizer/* position */.FK - 1, points, index);
         break;
       case 2:
-        parsed[index] += delimit(character);
+        parsed[index] += (0,Tokenizer/* delimit */.iF)(character);
         break;
       case 4:
         // comma
         if (character === 44) {
           // colon
-          parsed[++index] = peek() === 58 ? '&\f' : '';
+          parsed[++index] = (0,Tokenizer/* peek */.fj)() === 58 ? '&\f' : '';
           points[index] = parsed[index].length;
           break;
         }
@@ -954,13 +248,13 @@ var toRules = function toRules(parsed, points) {
       // fallthrough
 
       default:
-        parsed[index] += Utility_from(character);
+        parsed[index] += (0,Utility/* from */.Dp)(character);
     }
-  } while (character = next());
+  } while (character = (0,Tokenizer/* next */.lp)());
   return parsed;
 };
 var getRules = function getRules(value, points) {
-  return dealloc(toRules(alloc(value), points));
+  return (0,Tokenizer/* dealloc */.cE)(toRules((0,Tokenizer/* alloc */.un)(value), points));
 }; // WeakSet would be more appropriate, but only WeakMap is supported in IE11
 
 var fixedElements = /* #__PURE__ */new WeakMap();
@@ -1110,11 +404,11 @@ var incorrectImportAlarm = function incorrectImportAlarm(element, index, childre
 
 /* eslint-disable no-fallthrough */
 
-function emotion_cache_browser_esm_prefix(value, length) {
-  switch (hash(value, length)) {
+function prefix(value, length) {
+  switch ((0,Utility/* hash */.vp)(value, length)) {
     // color-adjust
     case 5103:
-      return Enum_WEBKIT + 'print-' + value + value;
+      return Enum/* WEBKIT */.G$ + 'print-' + value + value;
     // animation, animation-(delay|direction|duration|fill-mode|iteration-count|name|play-state|timing-function)
 
     case 5737:
@@ -1145,7 +439,7 @@ function emotion_cache_browser_esm_prefix(value, length) {
     case 5365:
     case 5621:
     case 3829:
-      return Enum_WEBKIT + value + value;
+      return Enum/* WEBKIT */.G$ + value + value;
     // appearance, user-select, transform, hyphens, text-size-adjust
 
     case 5349:
@@ -1153,64 +447,64 @@ function emotion_cache_browser_esm_prefix(value, length) {
     case 4810:
     case 6968:
     case 2756:
-      return Enum_WEBKIT + value + Enum_MOZ + value + Enum_MS + value + value;
+      return Enum/* WEBKIT */.G$ + value + Enum/* MOZ */.uj + value + Enum.MS + value + value;
     // flex, flex-direction
 
     case 6828:
     case 4268:
-      return Enum_WEBKIT + value + Enum_MS + value + value;
+      return Enum/* WEBKIT */.G$ + value + Enum.MS + value + value;
     // order
 
     case 6165:
-      return Enum_WEBKIT + value + Enum_MS + 'flex-' + value + value;
+      return Enum/* WEBKIT */.G$ + value + Enum.MS + 'flex-' + value + value;
     // align-items
 
     case 5187:
-      return Enum_WEBKIT + value + Utility_replace(value, /(\w+).+(:[^]+)/, Enum_WEBKIT + 'box-$1$2' + Enum_MS + 'flex-$1$2') + value;
+      return Enum/* WEBKIT */.G$ + value + (0,Utility/* replace */.gx)(value, /(\w+).+(:[^]+)/, Enum/* WEBKIT */.G$ + 'box-$1$2' + Enum.MS + 'flex-$1$2') + value;
     // align-self
 
     case 5443:
-      return Enum_WEBKIT + value + Enum_MS + 'flex-item-' + Utility_replace(value, /flex-|-self/, '') + value;
+      return Enum/* WEBKIT */.G$ + value + Enum.MS + 'flex-item-' + (0,Utility/* replace */.gx)(value, /flex-|-self/, '') + value;
     // align-content
 
     case 4675:
-      return Enum_WEBKIT + value + Enum_MS + 'flex-line-pack' + Utility_replace(value, /align-content|flex-|-self/, '') + value;
+      return Enum/* WEBKIT */.G$ + value + Enum.MS + 'flex-line-pack' + (0,Utility/* replace */.gx)(value, /align-content|flex-|-self/, '') + value;
     // flex-shrink
 
     case 5548:
-      return Enum_WEBKIT + value + Enum_MS + Utility_replace(value, 'shrink', 'negative') + value;
+      return Enum/* WEBKIT */.G$ + value + Enum.MS + (0,Utility/* replace */.gx)(value, 'shrink', 'negative') + value;
     // flex-basis
 
     case 5292:
-      return Enum_WEBKIT + value + Enum_MS + Utility_replace(value, 'basis', 'preferred-size') + value;
+      return Enum/* WEBKIT */.G$ + value + Enum.MS + (0,Utility/* replace */.gx)(value, 'basis', 'preferred-size') + value;
     // flex-grow
 
     case 6060:
-      return Enum_WEBKIT + 'box-' + Utility_replace(value, '-grow', '') + Enum_WEBKIT + value + Enum_MS + Utility_replace(value, 'grow', 'positive') + value;
+      return Enum/* WEBKIT */.G$ + 'box-' + (0,Utility/* replace */.gx)(value, '-grow', '') + Enum/* WEBKIT */.G$ + value + Enum.MS + (0,Utility/* replace */.gx)(value, 'grow', 'positive') + value;
     // transition
 
     case 4554:
-      return Enum_WEBKIT + Utility_replace(value, /([^-])(transform)/g, '$1' + Enum_WEBKIT + '$2') + value;
+      return Enum/* WEBKIT */.G$ + (0,Utility/* replace */.gx)(value, /([^-])(transform)/g, '$1' + Enum/* WEBKIT */.G$ + '$2') + value;
     // cursor
 
     case 6187:
-      return Utility_replace(Utility_replace(Utility_replace(value, /(zoom-|grab)/, Enum_WEBKIT + '$1'), /(image-set)/, Enum_WEBKIT + '$1'), value, '') + value;
+      return (0,Utility/* replace */.gx)((0,Utility/* replace */.gx)((0,Utility/* replace */.gx)(value, /(zoom-|grab)/, Enum/* WEBKIT */.G$ + '$1'), /(image-set)/, Enum/* WEBKIT */.G$ + '$1'), value, '') + value;
     // background, background-image
 
     case 5495:
     case 3959:
-      return Utility_replace(value, /(image-set\([^]*)/, Enum_WEBKIT + '$1' + '$`$1');
+      return (0,Utility/* replace */.gx)(value, /(image-set\([^]*)/, Enum/* WEBKIT */.G$ + '$1' + '$`$1');
     // justify-content
 
     case 4968:
-      return Utility_replace(Utility_replace(value, /(.+:)(flex-)?(.*)/, Enum_WEBKIT + 'box-pack:$3' + Enum_MS + 'flex-pack:$3'), /s.+-b[^;]+/, 'justify') + Enum_WEBKIT + value + value;
+      return (0,Utility/* replace */.gx)((0,Utility/* replace */.gx)(value, /(.+:)(flex-)?(.*)/, Enum/* WEBKIT */.G$ + 'box-pack:$3' + Enum.MS + 'flex-pack:$3'), /s.+-b[^;]+/, 'justify') + Enum/* WEBKIT */.G$ + value + value;
     // (margin|padding)-inline-(start|end)
 
     case 4095:
     case 3583:
     case 4068:
     case 2532:
-      return Utility_replace(value, /(.+)-inline(.+)/, Enum_WEBKIT + '$1$2') + value;
+      return (0,Utility/* replace */.gx)(value, /(.+)-inline(.+)/, Enum/* WEBKIT */.G$ + '$1$2') + value;
     // (min|max)?(width|height|inline-size|block-size)
 
     case 8116:
@@ -1226,93 +520,93 @@ function emotion_cache_browser_esm_prefix(value, length) {
     case 5021:
     case 4765:
       // stretch, max-content, min-content, fill-available
-      if (Utility_strlen(value) - 1 - length > 6) switch (Utility_charat(value, length + 1)) {
+      if ((0,Utility/* strlen */.to)(value) - 1 - length > 6) switch ((0,Utility/* charat */.uO)(value, length + 1)) {
         // (m)ax-content, (m)in-content
         case 109:
           // -
-          if (Utility_charat(value, length + 4) !== 45) break;
+          if ((0,Utility/* charat */.uO)(value, length + 4) !== 45) break;
         // (f)ill-available, (f)it-content
 
         case 102:
-          return Utility_replace(value, /(.+:)(.+)-([^]+)/, '$1' + Enum_WEBKIT + '$2-$3' + '$1' + Enum_MOZ + (Utility_charat(value, length + 3) == 108 ? '$3' : '$2-$3')) + value;
+          return (0,Utility/* replace */.gx)(value, /(.+:)(.+)-([^]+)/, '$1' + Enum/* WEBKIT */.G$ + '$2-$3' + '$1' + Enum/* MOZ */.uj + ((0,Utility/* charat */.uO)(value, length + 3) == 108 ? '$3' : '$2-$3')) + value;
         // (s)tretch
 
         case 115:
-          return ~indexof(value, 'stretch') ? emotion_cache_browser_esm_prefix(Utility_replace(value, 'stretch', 'fill-available'), length) + value : value;
+          return ~(0,Utility/* indexof */.Cw)(value, 'stretch') ? prefix((0,Utility/* replace */.gx)(value, 'stretch', 'fill-available'), length) + value : value;
       }
       break;
     // position: sticky
 
     case 4949:
       // (s)ticky?
-      if (Utility_charat(value, length + 1) !== 115) break;
+      if ((0,Utility/* charat */.uO)(value, length + 1) !== 115) break;
     // display: (flex|inline-flex)
 
     case 6444:
-      switch (Utility_charat(value, Utility_strlen(value) - 3 - (~indexof(value, '!important') && 10))) {
+      switch ((0,Utility/* charat */.uO)(value, (0,Utility/* strlen */.to)(value) - 3 - (~(0,Utility/* indexof */.Cw)(value, '!important') && 10))) {
         // stic(k)y
         case 107:
-          return Utility_replace(value, ':', ':' + Enum_WEBKIT) + value;
+          return (0,Utility/* replace */.gx)(value, ':', ':' + Enum/* WEBKIT */.G$) + value;
         // (inline-)?fl(e)x
 
         case 101:
-          return Utility_replace(value, /(.+:)([^;!]+)(;|!.+)?/, '$1' + Enum_WEBKIT + (Utility_charat(value, 14) === 45 ? 'inline-' : '') + 'box$3' + '$1' + Enum_WEBKIT + '$2$3' + '$1' + Enum_MS + '$2box$3') + value;
+          return (0,Utility/* replace */.gx)(value, /(.+:)([^;!]+)(;|!.+)?/, '$1' + Enum/* WEBKIT */.G$ + ((0,Utility/* charat */.uO)(value, 14) === 45 ? 'inline-' : '') + 'box$3' + '$1' + Enum/* WEBKIT */.G$ + '$2$3' + '$1' + Enum.MS + '$2box$3') + value;
       }
       break;
     // writing-mode
 
     case 5936:
-      switch (Utility_charat(value, length + 11)) {
+      switch ((0,Utility/* charat */.uO)(value, length + 11)) {
         // vertical-l(r)
         case 114:
-          return Enum_WEBKIT + value + Enum_MS + Utility_replace(value, /[svh]\w+-[tblr]{2}/, 'tb') + value;
+          return Enum/* WEBKIT */.G$ + value + Enum.MS + (0,Utility/* replace */.gx)(value, /[svh]\w+-[tblr]{2}/, 'tb') + value;
         // vertical-r(l)
 
         case 108:
-          return Enum_WEBKIT + value + Enum_MS + Utility_replace(value, /[svh]\w+-[tblr]{2}/, 'tb-rl') + value;
+          return Enum/* WEBKIT */.G$ + value + Enum.MS + (0,Utility/* replace */.gx)(value, /[svh]\w+-[tblr]{2}/, 'tb-rl') + value;
         // horizontal(-)tb
 
         case 45:
-          return Enum_WEBKIT + value + Enum_MS + Utility_replace(value, /[svh]\w+-[tblr]{2}/, 'lr') + value;
+          return Enum/* WEBKIT */.G$ + value + Enum.MS + (0,Utility/* replace */.gx)(value, /[svh]\w+-[tblr]{2}/, 'lr') + value;
       }
-      return Enum_WEBKIT + value + Enum_MS + value + value;
+      return Enum/* WEBKIT */.G$ + value + Enum.MS + value + value;
   }
   return value;
 }
-var emotion_cache_browser_esm_prefixer = function prefixer(element, index, children, callback) {
+var prefixer = function prefixer(element, index, children, callback) {
   if (element.length > -1) if (!element["return"]) switch (element.type) {
-    case Enum_DECLARATION:
-      element["return"] = emotion_cache_browser_esm_prefix(element.value, element.length);
+    case Enum/* DECLARATION */.h5:
+      element["return"] = prefix(element.value, element.length);
       break;
-    case Enum_KEYFRAMES:
-      return Serializer_serialize([Tokenizer_copy(element, {
-        value: Utility_replace(element.value, '@', '@' + Enum_WEBKIT)
+    case Enum/* KEYFRAMES */.lK:
+      return (0,Serializer/* serialize */.q)([(0,Tokenizer/* copy */.JG)(element, {
+        value: (0,Utility/* replace */.gx)(element.value, '@', '@' + Enum/* WEBKIT */.G$)
       })], callback);
-    case Enum_RULESET:
-      if (element.length) return Utility_combine(element.props, function (value) {
-        switch (Utility_match(value, /(::plac\w+|:read-\w+)/)) {
+    case Enum/* RULESET */.Fr:
+      if (element.length) return (0,Utility/* combine */.$e)(element.props, function (value) {
+        switch ((0,Utility/* match */.EQ)(value, /(::plac\w+|:read-\w+)/)) {
           // :read-(only|write)
           case ':read-only':
           case ':read-write':
-            return Serializer_serialize([Tokenizer_copy(element, {
-              props: [Utility_replace(value, /:(read-\w+)/, ':' + Enum_MOZ + '$1')]
+            return (0,Serializer/* serialize */.q)([(0,Tokenizer/* copy */.JG)(element, {
+              props: [(0,Utility/* replace */.gx)(value, /:(read-\w+)/, ':' + Enum/* MOZ */.uj + '$1')]
             })], callback);
           // :placeholder
 
           case '::placeholder':
-            return Serializer_serialize([Tokenizer_copy(element, {
-              props: [Utility_replace(value, /:(plac\w+)/, ':' + Enum_WEBKIT + 'input-$1')]
-            }), Tokenizer_copy(element, {
-              props: [Utility_replace(value, /:(plac\w+)/, ':' + Enum_MOZ + '$1')]
-            }), Tokenizer_copy(element, {
-              props: [Utility_replace(value, /:(plac\w+)/, Enum_MS + 'input-$1')]
+            return (0,Serializer/* serialize */.q)([(0,Tokenizer/* copy */.JG)(element, {
+              props: [(0,Utility/* replace */.gx)(value, /:(plac\w+)/, ':' + Enum/* WEBKIT */.G$ + 'input-$1')]
+            }), (0,Tokenizer/* copy */.JG)(element, {
+              props: [(0,Utility/* replace */.gx)(value, /:(plac\w+)/, ':' + Enum/* MOZ */.uj + '$1')]
+            }), (0,Tokenizer/* copy */.JG)(element, {
+              props: [(0,Utility/* replace */.gx)(value, /:(plac\w+)/, Enum.MS + 'input-$1')]
             })], callback);
         }
         return '';
       });
   }
 };
-var defaultStylisPlugins = [emotion_cache_browser_esm_prefixer];
+var defaultStylisPlugins = [prefixer];
 var createCache = function createCache(options) {
   var key = options.key;
   if (false) {}
@@ -1361,12 +655,12 @@ var createCache = function createCache(options) {
   if (false) {}
   {
     var currentSheet;
-    var finalizingPlugins = [stringify,  false ? 0 : rulesheet(function (rule) {
+    var finalizingPlugins = [Serializer/* stringify */.P,  false ? 0 : (0,Middleware/* rulesheet */.cD)(function (rule) {
       currentSheet.insert(rule);
     })];
-    var serializer = middleware(omnipresentPlugins.concat(stylisPlugins, finalizingPlugins));
+    var serializer = (0,Middleware/* middleware */.qR)(omnipresentPlugins.concat(stylisPlugins, finalizingPlugins));
     var stylis = function stylis(styles) {
-      return Serializer_serialize(compile(styles), serializer);
+      return (0,Serializer/* serialize */.q)((0,Parser/* compile */.MY)(styles), serializer);
     };
     _insert = function insert(selector, serialized, sheet, shouldCache) {
       currentSheet = sheet;
@@ -1429,7 +723,7 @@ function memoize(fn) {
 /* harmony export */ });
 /* unused harmony exports E, _, a, b, c, h, u */
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(7948);
-/* harmony import */ var _emotion_cache__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(3029);
+/* harmony import */ var _emotion_cache__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(3347);
 /* harmony import */ var _emotion_serialize__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(7073);
 /* harmony import */ var _emotion_use_insertion_effect_with_fallbacks__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(122);
 
@@ -1647,7 +941,7 @@ var Emotion$1 = (/* unused pure expression or super */ null && (Emotion));
 /* harmony import */ var _emotion_utils__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(1443);
 /* harmony import */ var _emotion_use_insertion_effect_with_fallbacks__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(122);
 /* harmony import */ var _emotion_serialize__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(7073);
-/* harmony import */ var _emotion_cache__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(3029);
+/* harmony import */ var _emotion_cache__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(3347);
 /* harmony import */ var hoist_non_react_statics__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(9761);
 /* harmony import */ var hoist_non_react_statics__WEBPACK_IMPORTED_MODULE_4___default = /*#__PURE__*/__webpack_require__.n(hoist_non_react_statics__WEBPACK_IMPORTED_MODULE_4__);
 
@@ -4074,8 +3368,8 @@ function unsupportedProp(props, propName, componentName, location, propFullName)
 ;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/unsupportedProp.js
 
 /* harmony default export */ const utils_unsupportedProp = (unsupportedProp);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/useControlled.js + 1 modules
-var useControlled = __webpack_require__(6559);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/useControlled.js
+var useControlled = __webpack_require__(6258);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/useEventCallback.js
 var useEventCallback = __webpack_require__(1469);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/useForkRef.js
@@ -4168,49 +3462,18 @@ function isMuiElement(element, muiNames) {
 
 /***/ }),
 
-/***/ 6559:
+/***/ 6258:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
-
-// EXPORTS
-__webpack_require__.d(__webpack_exports__, {
-  Z: () => (/* binding */ utils_useControlled)
-});
-
-// EXTERNAL MODULE: ./node_modules/.pnpm/react@18.2.0/node_modules/react/index.js
-var react = __webpack_require__(7948);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+utils@5.15.14_@types+react@18.2.79_react@18.2.0/node_modules/@mui/utils/useControlled/useControlled.js
-'use client';
-
-/* eslint-disable react-hooks/rules-of-hooks, react-hooks/exhaustive-deps */
-
-function useControlled(_ref) {
-  let {
-    controlled,
-    default: defaultProp,
-    name,
-    state = 'value'
-  } = _ref;
-  // isControlled is ignored in the hook dependency lists as it should never change.
-  const {
-    current: isControlled
-  } = react.useRef(controlled !== undefined);
-  const [valueState, setValue] = react.useState(defaultProp);
-  const value = isControlled ? controlled : valueState;
-  if (false) {}
-  const setValueIfUncontrolled = react.useCallback(newValue => {
-    if (!isControlled) {
-      setValue(newValue);
-    }
-  }, []);
-  return [value, setValueIfUncontrolled];
-}
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/useControlled.js
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   Z: () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var _mui_utils_useControlled__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(5143);
 'use client';
 
 
-/* harmony default export */ const utils_useControlled = (useControlled);
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (_mui_utils_useControlled__WEBPACK_IMPORTED_MODULE_0__/* ["default"] */ .Z);
 
 /***/ }),
 
@@ -4536,8 +3799,8 @@ tags.forEach(function (tagName) {
 
 // EXTERNAL MODULE: ./node_modules/.pnpm/@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0/node_modules/@emotion/react/dist/emotion-react.browser.esm.js
 var emotion_react_browser_esm = __webpack_require__(2150);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@emotion+cache@11.11.0/node_modules/@emotion/cache/dist/emotion-cache.browser.esm.js + 7 modules
-var emotion_cache_browser_esm = __webpack_require__(3029);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@emotion+cache@11.11.0/node_modules/@emotion/cache/dist/emotion-cache.browser.esm.js + 1 modules
+var emotion_cache_browser_esm = __webpack_require__(3347);
 // EXTERNAL MODULE: ./node_modules/.pnpm/react@18.2.0/node_modules/react/jsx-runtime.js
 var jsx_runtime = __webpack_require__(7394);
 ;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+styled-engine@5.15.14_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@e_38b353972d011fd8524090cbc8c519bf/node_modules/@mui/styled-engine/StyledEngineProvider/StyledEngineProvider.js
@@ -7420,6 +6683,42 @@ function setRef(ref, value) {
   } else if (ref) {
     ref.current = value;
   }
+}
+
+/***/ }),
+
+/***/ 5143:
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   Z: () => (/* binding */ useControlled)
+/* harmony export */ });
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(7948);
+'use client';
+
+/* eslint-disable react-hooks/rules-of-hooks, react-hooks/exhaustive-deps */
+
+function useControlled(_ref) {
+  let {
+    controlled,
+    default: defaultProp,
+    name,
+    state = 'value'
+  } = _ref;
+  // isControlled is ignored in the hook dependency lists as it should never change.
+  const {
+    current: isControlled
+  } = react__WEBPACK_IMPORTED_MODULE_0__.useRef(controlled !== undefined);
+  const [valueState, setValue] = react__WEBPACK_IMPORTED_MODULE_0__.useState(defaultProp);
+  const value = isControlled ? controlled : valueState;
+  if (false) {}
+  const setValueIfUncontrolled = react__WEBPACK_IMPORTED_MODULE_0__.useCallback(newValue => {
+    if (!isControlled) {
+      setValue(newValue);
+    }
+  }, []);
+  return [value, setValueIfUncontrolled];
 }
 
 /***/ }),
@@ -29127,6 +28426,834 @@ function clsx() {
 }
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (clsx);
 
+/***/ }),
+
+/***/ 3724:
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   Ab: () => (/* binding */ COMMENT),
+/* harmony export */   Fr: () => (/* binding */ RULESET),
+/* harmony export */   G$: () => (/* binding */ WEBKIT),
+/* harmony export */   JM: () => (/* binding */ LAYER),
+/* harmony export */   K$: () => (/* binding */ IMPORT),
+/* harmony export */   MS: () => (/* binding */ MS),
+/* harmony export */   h5: () => (/* binding */ DECLARATION),
+/* harmony export */   lK: () => (/* binding */ KEYFRAMES),
+/* harmony export */   uj: () => (/* binding */ MOZ)
+/* harmony export */ });
+/* unused harmony exports PAGE, MEDIA, CHARSET, VIEWPORT, SUPPORTS, DOCUMENT, NAMESPACE, FONT_FACE, COUNTER_STYLE, FONT_FEATURE_VALUES */
+var MS = '-ms-';
+var MOZ = '-moz-';
+var WEBKIT = '-webkit-';
+var COMMENT = 'comm';
+var RULESET = 'rule';
+var DECLARATION = 'decl';
+var PAGE = '@page';
+var MEDIA = '@media';
+var IMPORT = '@import';
+var CHARSET = '@charset';
+var VIEWPORT = '@viewport';
+var SUPPORTS = '@supports';
+var DOCUMENT = '@document';
+var NAMESPACE = '@namespace';
+var KEYFRAMES = '@keyframes';
+var FONT_FACE = '@font-face';
+var COUNTER_STYLE = '@counter-style';
+var FONT_FEATURE_VALUES = '@font-feature-values';
+var LAYER = '@layer';
+
+/***/ }),
+
+/***/ 7033:
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   cD: () => (/* binding */ rulesheet),
+/* harmony export */   qR: () => (/* binding */ middleware)
+/* harmony export */ });
+/* unused harmony exports prefixer, namespace */
+/* harmony import */ var _Utility_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(7279);
+
+
+
+
+
+
+/**
+ * @param {function[]} collection
+ * @return {function}
+ */
+function middleware(collection) {
+  var length = (0,_Utility_js__WEBPACK_IMPORTED_MODULE_0__/* .sizeof */ .Ei)(collection);
+  return function (element, index, children, callback) {
+    var output = '';
+    for (var i = 0; i < length; i++) output += collection[i](element, index, children, callback) || '';
+    return output;
+  };
+}
+
+/**
+ * @param {function} callback
+ * @return {function}
+ */
+function rulesheet(callback) {
+  return function (element) {
+    if (!element.root) if (element = element.return) callback(element);
+  };
+}
+
+/**
+ * @param {object} element
+ * @param {number} index
+ * @param {object[]} children
+ * @param {function} callback
+ */
+function prefixer(element, index, children, callback) {
+  if (element.length > -1) if (!element.return) switch (element.type) {
+    case DECLARATION:
+      element.return = prefix(element.value, element.length, children);
+      return;
+    case KEYFRAMES:
+      return serialize([copy(element, {
+        value: replace(element.value, '@', '@' + WEBKIT)
+      })], callback);
+    case RULESET:
+      if (element.length) return combine(element.props, function (value) {
+        switch (match(value, /(::plac\w+|:read-\w+)/)) {
+          // :read-(only|write)
+          case ':read-only':
+          case ':read-write':
+            return serialize([copy(element, {
+              props: [replace(value, /:(read-\w+)/, ':' + MOZ + '$1')]
+            })], callback);
+          // :placeholder
+          case '::placeholder':
+            return serialize([copy(element, {
+              props: [replace(value, /:(plac\w+)/, ':' + WEBKIT + 'input-$1')]
+            }), copy(element, {
+              props: [replace(value, /:(plac\w+)/, ':' + MOZ + '$1')]
+            }), copy(element, {
+              props: [replace(value, /:(plac\w+)/, MS + 'input-$1')]
+            })], callback);
+        }
+        return '';
+      });
+  }
+}
+
+/**
+ * @param {object} element
+ * @param {number} index
+ * @param {object[]} children
+ */
+function namespace(element) {
+  switch (element.type) {
+    case RULESET:
+      element.props = element.props.map(function (value) {
+        return combine(tokenize(value), function (value, index, children) {
+          switch (charat(value, 0)) {
+            // \f
+            case 12:
+              return substr(value, 1, strlen(value));
+            // \0 ( + > ~
+            case 0:
+            case 40:
+            case 43:
+            case 62:
+            case 126:
+              return value;
+            // :
+            case 58:
+              if (children[++index] === 'global') children[index] = '', children[++index] = '\f' + substr(children[index], index = 1, -1);
+            // \s
+            case 32:
+              return index === 1 ? '' : value;
+            default:
+              switch (index) {
+                case 0:
+                  element = value;
+                  return sizeof(children) > 1 ? '' : value;
+                case index = sizeof(children) - 1:
+                case 2:
+                  return index === 2 ? value + element + element : value + element;
+                default:
+                  return value;
+              }
+          }
+        });
+      });
+  }
+}
+
+/***/ }),
+
+/***/ 3963:
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   MY: () => (/* binding */ compile)
+/* harmony export */ });
+/* unused harmony exports parse, ruleset, comment, declaration */
+/* harmony import */ var _Enum_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(3724);
+/* harmony import */ var _Utility_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7279);
+/* harmony import */ var _Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(7650);
+
+
+
+
+/**
+ * @param {string} value
+ * @return {object[]}
+ */
+function compile(value) {
+  return (0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .dealloc */ .cE)(parse('', null, null, null, [''], value = (0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .alloc */ .un)(value), 0, [0], value));
+}
+
+/**
+ * @param {string} value
+ * @param {object} root
+ * @param {object?} parent
+ * @param {string[]} rule
+ * @param {string[]} rules
+ * @param {string[]} rulesets
+ * @param {number[]} pseudo
+ * @param {number[]} points
+ * @param {string[]} declarations
+ * @return {object}
+ */
+function parse(value, root, parent, rule, rules, rulesets, pseudo, points, declarations) {
+  var index = 0;
+  var offset = 0;
+  var length = pseudo;
+  var atrule = 0;
+  var property = 0;
+  var previous = 0;
+  var variable = 1;
+  var scanning = 1;
+  var ampersand = 1;
+  var character = 0;
+  var type = '';
+  var props = rules;
+  var children = rulesets;
+  var reference = rule;
+  var characters = type;
+  while (scanning) switch (previous = character, character = (0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .next */ .lp)()) {
+    // (
+    case 40:
+      if (previous != 108 && (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .charat */ .uO)(characters, length - 1) == 58) {
+        if ((0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .indexof */ .Cw)(characters += (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .replace */ .gx)((0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .delimit */ .iF)(character), '&', '&\f'), '&\f') != -1) ampersand = -1;
+        break;
+      }
+    // " ' [
+    case 34:
+    case 39:
+    case 91:
+      characters += (0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .delimit */ .iF)(character);
+      break;
+    // \t \n \r \s
+    case 9:
+    case 10:
+    case 13:
+    case 32:
+      characters += (0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .whitespace */ .Qb)(previous);
+      break;
+    // \
+    case 92:
+      characters += (0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .escaping */ .kq)((0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .caret */ .Ud)() - 1, 7);
+      continue;
+    // /
+    case 47:
+      switch ((0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .peek */ .fj)()) {
+        case 42:
+        case 47:
+          (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .append */ .R3)(comment((0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .commenter */ .q6)((0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .next */ .lp)(), (0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .caret */ .Ud)()), root, parent), declarations);
+          break;
+        default:
+          characters += '/';
+      }
+      break;
+    // {
+    case 123 * variable:
+      points[index++] = (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .strlen */ .to)(characters) * ampersand;
+    // } ; \0
+    case 125 * variable:
+    case 59:
+    case 0:
+      switch (character) {
+        // \0 }
+        case 0:
+        case 125:
+          scanning = 0;
+        // ;
+        case 59 + offset:
+          if (ampersand == -1) characters = (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .replace */ .gx)(characters, /\f/g, '');
+          if (property > 0 && (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .strlen */ .to)(characters) - length) (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .append */ .R3)(property > 32 ? declaration(characters + ';', rule, parent, length - 1) : declaration((0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .replace */ .gx)(characters, ' ', '') + ';', rule, parent, length - 2), declarations);
+          break;
+        // @ ;
+        case 59:
+          characters += ';';
+        // { rule/at-rule
+        default:
+          (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .append */ .R3)(reference = ruleset(characters, root, parent, index, offset, rules, points, type, props = [], children = [], length), rulesets);
+          if (character === 123) if (offset === 0) parse(characters, root, reference, reference, props, rulesets, length, points, children);else switch (atrule === 99 && (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .charat */ .uO)(characters, 3) === 110 ? 100 : atrule) {
+            // d l m s
+            case 100:
+            case 108:
+            case 109:
+            case 115:
+              parse(value, reference, reference, rule && (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .append */ .R3)(ruleset(value, reference, reference, 0, 0, rules, points, type, rules, props = [], length), children), rules, children, length, points, rule ? props : children);
+              break;
+            default:
+              parse(characters, reference, reference, reference, [''], children, 0, points, children);
+          }
+      }
+      index = offset = property = 0, variable = ampersand = 1, type = characters = '', length = pseudo;
+      break;
+    // :
+    case 58:
+      length = 1 + (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .strlen */ .to)(characters), property = previous;
+    default:
+      if (variable < 1) if (character == 123) --variable;else if (character == 125 && variable++ == 0 && (0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .prev */ .mp)() == 125) continue;
+      switch (characters += (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .from */ .Dp)(character), character * variable) {
+        // &
+        case 38:
+          ampersand = offset > 0 ? 1 : (characters += '\f', -1);
+          break;
+        // ,
+        case 44:
+          points[index++] = ((0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .strlen */ .to)(characters) - 1) * ampersand, ampersand = 1;
+          break;
+        // @
+        case 64:
+          // -
+          if ((0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .peek */ .fj)() === 45) characters += (0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .delimit */ .iF)((0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .next */ .lp)());
+          atrule = (0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .peek */ .fj)(), offset = length = (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .strlen */ .to)(type = characters += (0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .identifier */ .QU)((0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .caret */ .Ud)())), character++;
+          break;
+        // -
+        case 45:
+          if (previous === 45 && (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .strlen */ .to)(characters) == 2) variable = 0;
+      }
+  }
+  return rulesets;
+}
+
+/**
+ * @param {string} value
+ * @param {object} root
+ * @param {object?} parent
+ * @param {number} index
+ * @param {number} offset
+ * @param {string[]} rules
+ * @param {number[]} points
+ * @param {string} type
+ * @param {string[]} props
+ * @param {string[]} children
+ * @param {number} length
+ * @return {object}
+ */
+function ruleset(value, root, parent, index, offset, rules, points, type, props, children, length) {
+  var post = offset - 1;
+  var rule = offset === 0 ? rules : [''];
+  var size = (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .sizeof */ .Ei)(rule);
+  for (var i = 0, j = 0, k = 0; i < index; ++i) for (var x = 0, y = (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .substr */ .tb)(value, post + 1, post = (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .abs */ .Wn)(j = points[i])), z = value; x < size; ++x) if (z = (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .trim */ .fy)(j > 0 ? rule[x] + ' ' + y : (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .replace */ .gx)(y, /&\f/g, rule[x]))) props[k++] = z;
+  return (0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .node */ .dH)(value, root, parent, offset === 0 ? _Enum_js__WEBPACK_IMPORTED_MODULE_2__/* .RULESET */ .Fr : type, props, children, length);
+}
+
+/**
+ * @param {number} value
+ * @param {object} root
+ * @param {object?} parent
+ * @return {object}
+ */
+function comment(value, root, parent) {
+  return (0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .node */ .dH)(value, root, parent, _Enum_js__WEBPACK_IMPORTED_MODULE_2__/* .COMMENT */ .Ab, (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .from */ .Dp)((0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .char */ .Tb)()), (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .substr */ .tb)(value, 2, -2), 0);
+}
+
+/**
+ * @param {string} value
+ * @param {object} root
+ * @param {object?} parent
+ * @param {number} length
+ * @return {object}
+ */
+function declaration(value, root, parent, length) {
+  return (0,_Tokenizer_js__WEBPACK_IMPORTED_MODULE_0__/* .node */ .dH)(value, root, parent, _Enum_js__WEBPACK_IMPORTED_MODULE_2__/* .DECLARATION */ .h5, (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .substr */ .tb)(value, 0, length), (0,_Utility_js__WEBPACK_IMPORTED_MODULE_1__/* .substr */ .tb)(value, length + 1, -1), length);
+}
+
+/***/ }),
+
+/***/ 903:
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   P: () => (/* binding */ stringify),
+/* harmony export */   q: () => (/* binding */ serialize)
+/* harmony export */ });
+/* harmony import */ var _Enum_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(3724);
+/* harmony import */ var _Utility_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(7279);
+
+
+
+/**
+ * @param {object[]} children
+ * @param {function} callback
+ * @return {string}
+ */
+function serialize(children, callback) {
+  var output = '';
+  var length = (0,_Utility_js__WEBPACK_IMPORTED_MODULE_0__/* .sizeof */ .Ei)(children);
+  for (var i = 0; i < length; i++) output += callback(children[i], i, children, callback) || '';
+  return output;
+}
+
+/**
+ * @param {object} element
+ * @param {number} index
+ * @param {object[]} children
+ * @param {function} callback
+ * @return {string}
+ */
+function stringify(element, index, children, callback) {
+  switch (element.type) {
+    case _Enum_js__WEBPACK_IMPORTED_MODULE_1__/* .LAYER */ .JM:
+      if (element.children.length) break;
+    case _Enum_js__WEBPACK_IMPORTED_MODULE_1__/* .IMPORT */ .K$:
+    case _Enum_js__WEBPACK_IMPORTED_MODULE_1__/* .DECLARATION */ .h5:
+      return element.return = element.return || element.value;
+    case _Enum_js__WEBPACK_IMPORTED_MODULE_1__/* .COMMENT */ .Ab:
+      return '';
+    case _Enum_js__WEBPACK_IMPORTED_MODULE_1__/* .KEYFRAMES */ .lK:
+      return element.return = element.value + '{' + serialize(element.children, callback) + '}';
+    case _Enum_js__WEBPACK_IMPORTED_MODULE_1__/* .RULESET */ .Fr:
+      element.value = element.props.join(',');
+  }
+  return (0,_Utility_js__WEBPACK_IMPORTED_MODULE_0__/* .strlen */ .to)(children = serialize(element.children, callback)) ? element.return = element.value + '{' + children + '}' : '';
+}
+
+/***/ }),
+
+/***/ 7650:
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   FK: () => (/* binding */ position),
+/* harmony export */   JG: () => (/* binding */ copy),
+/* harmony export */   QU: () => (/* binding */ identifier),
+/* harmony export */   Qb: () => (/* binding */ whitespace),
+/* harmony export */   Tb: () => (/* binding */ char),
+/* harmony export */   Ud: () => (/* binding */ caret),
+/* harmony export */   cE: () => (/* binding */ dealloc),
+/* harmony export */   dH: () => (/* binding */ node),
+/* harmony export */   fj: () => (/* binding */ peek),
+/* harmony export */   iF: () => (/* binding */ delimit),
+/* harmony export */   kq: () => (/* binding */ escaping),
+/* harmony export */   lp: () => (/* binding */ next),
+/* harmony export */   mp: () => (/* binding */ prev),
+/* harmony export */   q6: () => (/* binding */ commenter),
+/* harmony export */   r: () => (/* binding */ token),
+/* harmony export */   tP: () => (/* binding */ slice),
+/* harmony export */   un: () => (/* binding */ alloc)
+/* harmony export */ });
+/* unused harmony exports line, column, length, character, characters, tokenize, tokenizer, delimiter */
+/* harmony import */ var _Utility_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(7279);
+
+var line = 1;
+var column = 1;
+var length = 0;
+var position = 0;
+var character = 0;
+var characters = '';
+
+/**
+ * @param {string} value
+ * @param {object | null} root
+ * @param {object | null} parent
+ * @param {string} type
+ * @param {string[] | string} props
+ * @param {object[] | string} children
+ * @param {number} length
+ */
+function node(value, root, parent, type, props, children, length) {
+  return {
+    value: value,
+    root: root,
+    parent: parent,
+    type: type,
+    props: props,
+    children: children,
+    line: line,
+    column: column,
+    length: length,
+    return: ''
+  };
+}
+
+/**
+ * @param {object} root
+ * @param {object} props
+ * @return {object}
+ */
+function copy(root, props) {
+  return (0,_Utility_js__WEBPACK_IMPORTED_MODULE_0__/* .assign */ .f0)(node('', null, null, '', null, null, 0), root, {
+    length: -root.length
+  }, props);
+}
+
+/**
+ * @return {number}
+ */
+function char() {
+  return character;
+}
+
+/**
+ * @return {number}
+ */
+function prev() {
+  character = position > 0 ? (0,_Utility_js__WEBPACK_IMPORTED_MODULE_0__/* .charat */ .uO)(characters, --position) : 0;
+  if (column--, character === 10) column = 1, line--;
+  return character;
+}
+
+/**
+ * @return {number}
+ */
+function next() {
+  character = position < length ? (0,_Utility_js__WEBPACK_IMPORTED_MODULE_0__/* .charat */ .uO)(characters, position++) : 0;
+  if (column++, character === 10) column = 1, line++;
+  return character;
+}
+
+/**
+ * @return {number}
+ */
+function peek() {
+  return (0,_Utility_js__WEBPACK_IMPORTED_MODULE_0__/* .charat */ .uO)(characters, position);
+}
+
+/**
+ * @return {number}
+ */
+function caret() {
+  return position;
+}
+
+/**
+ * @param {number} begin
+ * @param {number} end
+ * @return {string}
+ */
+function slice(begin, end) {
+  return (0,_Utility_js__WEBPACK_IMPORTED_MODULE_0__/* .substr */ .tb)(characters, begin, end);
+}
+
+/**
+ * @param {number} type
+ * @return {number}
+ */
+function token(type) {
+  switch (type) {
+    // \0 \t \n \r \s whitespace token
+    case 0:
+    case 9:
+    case 10:
+    case 13:
+    case 32:
+      return 5;
+    // ! + , / > @ ~ isolate token
+    case 33:
+    case 43:
+    case 44:
+    case 47:
+    case 62:
+    case 64:
+    case 126:
+    // ; { } breakpoint token
+    case 59:
+    case 123:
+    case 125:
+      return 4;
+    // : accompanied token
+    case 58:
+      return 3;
+    // " ' ( [ opening delimit token
+    case 34:
+    case 39:
+    case 40:
+    case 91:
+      return 2;
+    // ) ] closing delimit token
+    case 41:
+    case 93:
+      return 1;
+  }
+  return 0;
+}
+
+/**
+ * @param {string} value
+ * @return {any[]}
+ */
+function alloc(value) {
+  return line = column = 1, length = (0,_Utility_js__WEBPACK_IMPORTED_MODULE_0__/* .strlen */ .to)(characters = value), position = 0, [];
+}
+
+/**
+ * @param {any} value
+ * @return {any}
+ */
+function dealloc(value) {
+  return characters = '', value;
+}
+
+/**
+ * @param {number} type
+ * @return {string}
+ */
+function delimit(type) {
+  return (0,_Utility_js__WEBPACK_IMPORTED_MODULE_0__/* .trim */ .fy)(slice(position - 1, delimiter(type === 91 ? type + 2 : type === 40 ? type + 1 : type)));
+}
+
+/**
+ * @param {string} value
+ * @return {string[]}
+ */
+function tokenize(value) {
+  return dealloc(tokenizer(alloc(value)));
+}
+
+/**
+ * @param {number} type
+ * @return {string}
+ */
+function whitespace(type) {
+  while (character = peek()) if (character < 33) next();else break;
+  return token(type) > 2 || token(character) > 3 ? '' : ' ';
+}
+
+/**
+ * @param {string[]} children
+ * @return {string[]}
+ */
+function tokenizer(children) {
+  while (next()) switch (token(character)) {
+    case 0:
+      append(identifier(position - 1), children);
+      break;
+    case 2:
+      append(delimit(character), children);
+      break;
+    default:
+      append(from(character), children);
+  }
+  return children;
+}
+
+/**
+ * @param {number} index
+ * @param {number} count
+ * @return {string}
+ */
+function escaping(index, count) {
+  while (--count && next())
+  // not 0-9 A-F a-f
+  if (character < 48 || character > 102 || character > 57 && character < 65 || character > 70 && character < 97) break;
+  return slice(index, caret() + (count < 6 && peek() == 32 && next() == 32));
+}
+
+/**
+ * @param {number} type
+ * @return {number}
+ */
+function delimiter(type) {
+  while (next()) switch (character) {
+    // ] ) " '
+    case type:
+      return position;
+    // " '
+    case 34:
+    case 39:
+      if (type !== 34 && type !== 39) delimiter(character);
+      break;
+    // (
+    case 40:
+      if (type === 41) delimiter(type);
+      break;
+    // \
+    case 92:
+      next();
+      break;
+  }
+  return position;
+}
+
+/**
+ * @param {number} type
+ * @param {number} index
+ * @return {number}
+ */
+function commenter(type, index) {
+  while (next())
+  // //
+  if (type + character === 47 + 10) break;
+  // /*
+  else if (type + character === 42 + 42 && peek() === 47) break;
+  return '/*' + slice(index, position - 1) + '*' + (0,_Utility_js__WEBPACK_IMPORTED_MODULE_0__/* .from */ .Dp)(type === 47 ? type : next());
+}
+
+/**
+ * @param {number} index
+ * @return {string}
+ */
+function identifier(index) {
+  while (!token(peek())) next();
+  return slice(index, position);
+}
+
+/***/ }),
+
+/***/ 7279:
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   $e: () => (/* binding */ combine),
+/* harmony export */   Cw: () => (/* binding */ indexof),
+/* harmony export */   Dp: () => (/* binding */ from),
+/* harmony export */   EQ: () => (/* binding */ match),
+/* harmony export */   Ei: () => (/* binding */ sizeof),
+/* harmony export */   R3: () => (/* binding */ append),
+/* harmony export */   Wn: () => (/* binding */ abs),
+/* harmony export */   f0: () => (/* binding */ assign),
+/* harmony export */   fy: () => (/* binding */ trim),
+/* harmony export */   gx: () => (/* binding */ replace),
+/* harmony export */   tb: () => (/* binding */ substr),
+/* harmony export */   to: () => (/* binding */ strlen),
+/* harmony export */   uO: () => (/* binding */ charat),
+/* harmony export */   vp: () => (/* binding */ hash)
+/* harmony export */ });
+/**
+ * @param {number}
+ * @return {number}
+ */
+var abs = Math.abs;
+
+/**
+ * @param {number}
+ * @return {string}
+ */
+var from = String.fromCharCode;
+
+/**
+ * @param {object}
+ * @return {object}
+ */
+var assign = Object.assign;
+
+/**
+ * @param {string} value
+ * @param {number} length
+ * @return {number}
+ */
+function hash(value, length) {
+  return charat(value, 0) ^ 45 ? (((length << 2 ^ charat(value, 0)) << 2 ^ charat(value, 1)) << 2 ^ charat(value, 2)) << 2 ^ charat(value, 3) : 0;
+}
+
+/**
+ * @param {string} value
+ * @return {string}
+ */
+function trim(value) {
+  return value.trim();
+}
+
+/**
+ * @param {string} value
+ * @param {RegExp} pattern
+ * @return {string?}
+ */
+function match(value, pattern) {
+  return (value = pattern.exec(value)) ? value[0] : value;
+}
+
+/**
+ * @param {string} value
+ * @param {(string|RegExp)} pattern
+ * @param {string} replacement
+ * @return {string}
+ */
+function replace(value, pattern, replacement) {
+  return value.replace(pattern, replacement);
+}
+
+/**
+ * @param {string} value
+ * @param {string} search
+ * @return {number}
+ */
+function indexof(value, search) {
+  return value.indexOf(search);
+}
+
+/**
+ * @param {string} value
+ * @param {number} index
+ * @return {number}
+ */
+function charat(value, index) {
+  return value.charCodeAt(index) | 0;
+}
+
+/**
+ * @param {string} value
+ * @param {number} begin
+ * @param {number} end
+ * @return {string}
+ */
+function substr(value, begin, end) {
+  return value.slice(begin, end);
+}
+
+/**
+ * @param {string} value
+ * @return {number}
+ */
+function strlen(value) {
+  return value.length;
+}
+
+/**
+ * @param {any[]} value
+ * @return {number}
+ */
+function sizeof(value) {
+  return value.length;
+}
+
+/**
+ * @param {any} value
+ * @param {any[]} array
+ * @return {any}
+ */
+function append(value, array) {
+  return array.push(value), value;
+}
+
+/**
+ * @param {string[]} array
+ * @param {function} callback
+ * @return {string}
+ */
+function combine(array, callback) {
+  return array.map(callback).join('');
+}
+
 /***/ })
 
 /******/ 	});
@@ -30724,37 +30851,946 @@ function CssBaseline(inProps) {
 }
  false ? 0 : void 0;
 /* harmony default export */ const CssBaseline_CssBaseline = (CssBaseline);
-;// CONCATENATED MODULE: ./src/libs/webfix.js
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/colorManipulator.js
+var colorManipulator = __webpack_require__(2686);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/zero-styled/index.js
+
+
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function createUseThemeProps(name) {
+  return useThemeProps/* default */.Z;
+}
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+utils@5.15.14_@types+react@18.2.79_react@18.2.0/node_modules/@mui/utils/useForkRef/useForkRef.js
+var useForkRef_useForkRef = __webpack_require__(4114);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+base@5.0.0-beta.40_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/@mui/base/utils/resolveComponentProps.js
 /**
- * 修复程序类型
- */const FIXER_NONE="-";const FIXER_BR="br";const FIXER_BN="bn";const FIXER_BR_DIV="brToDiv";const FIXER_BN_DIV="bnToDiv";const FIXER_ALL=[FIXER_NONE,FIXER_BR,FIXER_BN,FIXER_BR_DIV,FIXER_BN_DIV];/**
- * 修复过的标记
- */const fixedSign="kiss-fixed";/**
- * 采用 `br` 换行网站的修复函数
- * 目标是将 `br` 替换成 `p`
- * @param {*} node
+ * If `componentProps` is a function, calls it with the provided `ownerState`.
+ * Otherwise, just returns `componentProps`.
+ */
+function resolveComponentProps(componentProps, ownerState, slotState) {
+  if (typeof componentProps === 'function') {
+    return componentProps(ownerState, slotState);
+  }
+  return componentProps;
+}
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+base@5.0.0-beta.40_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/@mui/base/utils/extractEventHandlers.js
+/**
+ * Extracts event handlers from a given object.
+ * A prop is considered an event handler if it is a function and its name starts with `on`.
+ *
+ * @param object An object to extract event handlers from.
+ * @param excludeKeys An array of keys to exclude from the returned object.
+ */
+function extractEventHandlers(object) {
+  let excludeKeys = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : [];
+  if (object === undefined) {
+    return {};
+  }
+  const result = {};
+  Object.keys(object).filter(prop => prop.match(/^on[A-Z]/) && typeof object[prop] === 'function' && !excludeKeys.includes(prop)).forEach(prop => {
+    result[prop] = object[prop];
+  });
+  return result;
+}
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+base@5.0.0-beta.40_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/@mui/base/utils/omitEventHandlers.js
+/**
+ * Removes event handlers from the given object.
+ * A field is considered an event handler if it is a function with a name beginning with `on`.
+ *
+ * @param object Object to remove event handlers from.
+ * @returns Object with event handlers removed.
+ */
+function omitEventHandlers(object) {
+  if (object === undefined) {
+    return {};
+  }
+  const result = {};
+  Object.keys(object).filter(prop => !(prop.match(/^on[A-Z]/) && typeof object[prop] === 'function')).forEach(prop => {
+    result[prop] = object[prop];
+  });
+  return result;
+}
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+base@5.0.0-beta.40_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/@mui/base/utils/mergeSlotProps.js
+
+
+
+
+/**
+ * Merges the slot component internal props (usually coming from a hook)
+ * with the externally provided ones.
+ *
+ * The merge order is (the latter overrides the former):
+ * 1. The internal props (specified as a getter function to work with get*Props hook result)
+ * 2. Additional props (specified internally on a Base UI component)
+ * 3. External props specified on the owner component. These should only be used on a root slot.
+ * 4. External props specified in the `slotProps.*` prop.
+ * 5. The `className` prop - combined from all the above.
+ * @param parameters
  * @returns
- */function brFixer(node){let tag=arguments.length>1&&arguments[1]!==undefined?arguments[1]:"p";if(node.hasAttribute(fixedSign)){return;}node.setAttribute(fixedSign,"true");const gapTags=["BR","WBR"];const newlineTags=["DIV","UL","OL","LI","H1","H2","H3","H4","H5","H6","P","HR","PRE","TABLE","BLOCKQUOTE"];let html="";node.childNodes.forEach(function(child,index){if(index===0){html+="<".concat(tag," class=\"kiss-p\">");}if(gapTags.indexOf(child.nodeName)!==-1){html+="</".concat(tag,"><").concat(tag," class=\"kiss-p\">");}else if(newlineTags.indexOf(child.nodeName)!==-1){html+="</".concat(tag,">").concat(child.outerHTML,"<").concat(tag," class=\"kiss-p\">");}else if(child.outerHTML){html+=child.outerHTML;}else if(child.textContent){html+=child.textContent;}if(index===node.childNodes.length-1){html+="</".concat(tag,">");}});node.innerHTML=html;}function brDivFixer(node){return brFixer(node,"div");}/**
- * 目标是将 `\n` 替换成 `p`
- * @param {*} node
- * @returns
- */function bnFixer(node){let tag=arguments.length>1&&arguments[1]!==undefined?arguments[1]:"p";if(node.hasAttribute(fixedSign)){return;}node.setAttribute(fixedSign,"true");node.innerHTML=node.innerHTML.split("\n").map(item=>"<".concat(tag," class=\"kiss-p\">").concat(item||"&nbsp;","</").concat(tag,">")).join("");}function bnDivFixer(node){return bnFixer(node,"div");}/**
- * 查找、监听节点，并执行修复函数
- * @param {*} selector
- * @param {*} fixer
- * @param {*} rootSelector
- */function run(selector,fixer,rootSelector){const mutaObserver=new MutationObserver(function(mutations){mutations.forEach(function(mutation){mutation.addedNodes.forEach(function(addNode){if(addNode&&addNode.querySelectorAll){addNode.querySelectorAll(selector).forEach(function(node){fixer(node);});}});});});let rootNodes=[document];if(rootSelector){rootNodes=document.querySelectorAll(rootSelector);}rootNodes.forEach(function(rootNode){rootNode.querySelectorAll(selector).forEach(function(node){fixer(node);});mutaObserver.observe(rootNode,{childList:true,subtree:true});});}/**
- * 修复程序映射
- */const fixerMap={[FIXER_BR]:brFixer,[FIXER_BN]:bnFixer,[FIXER_BR_DIV]:brDivFixer,[FIXER_BN_DIV]:bnDivFixer};/**
- * 执行fixer
- * @param {*} param0
- */function runFixer(selector){let fixer=arguments.length>1&&arguments[1]!==undefined?arguments[1]:"-";let rootSelector=arguments.length>2?arguments[2]:undefined;try{if(Object.keys(fixerMap).includes(fixer)){run(selector,fixerMap[fixer],rootSelector);}}catch(err){console.error("[kiss-webfix run]: ".concat(err.message));}}
+ */
+function mergeSlotProps(parameters) {
+  const {
+    getSlotProps,
+    additionalProps,
+    externalSlotProps,
+    externalForwardedProps,
+    className
+  } = parameters;
+  if (!getSlotProps) {
+    // The simpler case - getSlotProps is not defined, so no internal event handlers are defined,
+    // so we can simply merge all the props without having to worry about extracting event handlers.
+    const joinedClasses = (0,clsx/* default */.Z)(additionalProps == null ? void 0 : additionalProps.className, className, externalForwardedProps == null ? void 0 : externalForwardedProps.className, externalSlotProps == null ? void 0 : externalSlotProps.className);
+    const mergedStyle = (0,esm_extends/* default */.Z)({}, additionalProps == null ? void 0 : additionalProps.style, externalForwardedProps == null ? void 0 : externalForwardedProps.style, externalSlotProps == null ? void 0 : externalSlotProps.style);
+    const props = (0,esm_extends/* default */.Z)({}, additionalProps, externalForwardedProps, externalSlotProps);
+    if (joinedClasses.length > 0) {
+      props.className = joinedClasses;
+    }
+    if (Object.keys(mergedStyle).length > 0) {
+      props.style = mergedStyle;
+    }
+    return {
+      props,
+      internalRef: undefined
+    };
+  }
+
+  // In this case, getSlotProps is responsible for calling the external event handlers.
+  // We don't need to include them in the merged props because of this.
+
+  const eventHandlers = extractEventHandlers((0,esm_extends/* default */.Z)({}, externalForwardedProps, externalSlotProps));
+  const componentsPropsWithoutEventHandlers = omitEventHandlers(externalSlotProps);
+  const otherPropsWithoutEventHandlers = omitEventHandlers(externalForwardedProps);
+  const internalSlotProps = getSlotProps(eventHandlers);
+
+  // The order of classes is important here.
+  // Emotion (that we use in libraries consuming Base UI) depends on this order
+  // to properly override style. It requires the most important classes to be last
+  // (see https://github.com/mui/material-ui/pull/33205) for the related discussion.
+  const joinedClasses = (0,clsx/* default */.Z)(internalSlotProps == null ? void 0 : internalSlotProps.className, additionalProps == null ? void 0 : additionalProps.className, className, externalForwardedProps == null ? void 0 : externalForwardedProps.className, externalSlotProps == null ? void 0 : externalSlotProps.className);
+  const mergedStyle = (0,esm_extends/* default */.Z)({}, internalSlotProps == null ? void 0 : internalSlotProps.style, additionalProps == null ? void 0 : additionalProps.style, externalForwardedProps == null ? void 0 : externalForwardedProps.style, externalSlotProps == null ? void 0 : externalSlotProps.style);
+  const props = (0,esm_extends/* default */.Z)({}, internalSlotProps, additionalProps, otherPropsWithoutEventHandlers, componentsPropsWithoutEventHandlers);
+  if (joinedClasses.length > 0) {
+    props.className = joinedClasses;
+  }
+  if (Object.keys(mergedStyle).length > 0) {
+    props.style = mergedStyle;
+  }
+  return {
+    props,
+    internalRef: internalSlotProps.ref
+  };
+}
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+base@5.0.0-beta.40_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/@mui/base/utils/isHostComponent.js
+/**
+ * Determines if a given element is a DOM element name (i.e. not a React component).
+ */
+function isHostComponent(element) {
+  return typeof element === 'string';
+}
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+base@5.0.0-beta.40_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/@mui/base/utils/appendOwnerState.js
+
+
+
+/**
+ * Type of the ownerState based on the type of an element it applies to.
+ * This resolves to the provided OwnerState for React components and `undefined` for host components.
+ * Falls back to `OwnerState | undefined` when the exact type can't be determined in development time.
+ */
+
+/**
+ * Appends the ownerState object to the props, merging with the existing one if necessary.
+ *
+ * @param elementType Type of the element that owns the `existingProps`. If the element is a DOM node or undefined, `ownerState` is not applied.
+ * @param otherProps Props of the element.
+ * @param ownerState
+ */
+function appendOwnerState(elementType, otherProps, ownerState) {
+  if (elementType === undefined || isHostComponent(elementType)) {
+    return otherProps;
+  }
+  return (0,esm_extends/* default */.Z)({}, otherProps, {
+    ownerState: (0,esm_extends/* default */.Z)({}, otherProps.ownerState, ownerState)
+  });
+}
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/useSlot.js
+'use client';
+
+
+
+const useSlot_excluded = ["className", "elementType", "ownerState", "externalForwardedProps", "getSlotOwnerState", "internalForwardedProps"],
+  _excluded2 = ["component", "slots", "slotProps"],
+  _excluded3 = ["component"];
+
+
+/**
+ * An internal function to create a Material UI slot.
+ *
+ * This is an advanced version of Base UI `useSlotProps` because Material UI allows leaf component to be customized via `component` prop
+ * while Base UI does not need to support leaf component customization.
+ *
+ * @param {string} name: name of the slot
+ * @param {object} parameters
+ * @returns {[Slot, slotProps]} The slot's React component and the slot's props
+ *
+ * Note: the returned slot's props
+ * - will never contain `component` prop.
+ * - might contain `as` prop.
+ */
+function useSlot(
+/**
+ * The slot's name. All Material UI components should have `root` slot.
+ *
+ * If the name is `root`, the logic behaves differently from other slots,
+ * e.g. the `externalForwardedProps` are spread to `root` slot but not other slots.
+ */
+name, parameters) {
+  const {
+      className,
+      elementType: initialElementType,
+      ownerState,
+      externalForwardedProps,
+      getSlotOwnerState,
+      internalForwardedProps
+    } = parameters,
+    useSlotPropsParams = (0,objectWithoutPropertiesLoose/* default */.Z)(parameters, useSlot_excluded);
+  const {
+      component: rootComponent,
+      slots = {
+        [name]: undefined
+      },
+      slotProps = {
+        [name]: undefined
+      }
+    } = externalForwardedProps,
+    other = (0,objectWithoutPropertiesLoose/* default */.Z)(externalForwardedProps, _excluded2);
+  const elementType = slots[name] || initialElementType;
+
+  // `slotProps[name]` can be a callback that receives the component's ownerState.
+  // `resolvedComponentsProps` is always a plain object.
+  const resolvedComponentsProps = resolveComponentProps(slotProps[name], ownerState);
+  const _mergeSlotProps = mergeSlotProps((0,esm_extends/* default */.Z)({
+      className
+    }, useSlotPropsParams, {
+      externalForwardedProps: name === 'root' ? other : undefined,
+      externalSlotProps: resolvedComponentsProps
+    })),
+    {
+      props: {
+        component: slotComponent
+      },
+      internalRef
+    } = _mergeSlotProps,
+    mergedProps = (0,objectWithoutPropertiesLoose/* default */.Z)(_mergeSlotProps.props, _excluded3);
+  const ref = (0,useForkRef_useForkRef/* default */.Z)(internalRef, resolvedComponentsProps == null ? void 0 : resolvedComponentsProps.ref, parameters.ref);
+  const slotOwnerState = getSlotOwnerState ? getSlotOwnerState(mergedProps) : {};
+  const finalOwnerState = (0,esm_extends/* default */.Z)({}, ownerState, slotOwnerState);
+  const LeafComponent = name === 'root' ? slotComponent || rootComponent : slotComponent;
+  const props = appendOwnerState(elementType, (0,esm_extends/* default */.Z)({}, name === 'root' && !rootComponent && !slots[name] && internalForwardedProps, name !== 'root' && !slots[name] && internalForwardedProps, mergedProps, LeafComponent && {
+    as: LeafComponent
+  }, {
+    ref
+  }), finalOwnerState);
+  Object.keys(slotOwnerState).forEach(propName => {
+    delete props[propName];
+  });
+  return [elementType, props];
+}
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/styles/getOverlayAlpha.js
+// Inspired by https://github.com/material-components/material-components-ios/blob/bca36107405594d5b7b16265a5b0ed698f85a5ee/components/Elevation/src/UIColor%2BMaterialElevation.m#L61
+const getOverlayAlpha = elevation => {
+  let alphaValue;
+  if (elevation < 1) {
+    alphaValue = 5.11916 * elevation ** 2;
+  } else {
+    alphaValue = 4.5 * Math.log(elevation + 1) + 2;
+  }
+  return (alphaValue / 100).toFixed(2);
+};
+/* harmony default export */ const styles_getOverlayAlpha = (getOverlayAlpha);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Paper/paperClasses.js
+
+
+function getPaperUtilityClass(slot) {
+  return (0,generateUtilityClass_generateUtilityClass/* default */.ZP)('MuiPaper', slot);
+}
+const paperClasses = (0,generateUtilityClasses/* default */.Z)('MuiPaper', ['root', 'rounded', 'outlined', 'elevation', 'elevation0', 'elevation1', 'elevation2', 'elevation3', 'elevation4', 'elevation5', 'elevation6', 'elevation7', 'elevation8', 'elevation9', 'elevation10', 'elevation11', 'elevation12', 'elevation13', 'elevation14', 'elevation15', 'elevation16', 'elevation17', 'elevation18', 'elevation19', 'elevation20', 'elevation21', 'elevation22', 'elevation23', 'elevation24']);
+/* harmony default export */ const Paper_paperClasses = ((/* unused pure expression or super */ null && (paperClasses)));
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Paper/Paper.js
+'use client';
+
+
+
+const Paper_excluded = ["className", "component", "elevation", "square", "variant"];
+
+
+
+
+
+
+
+
+
+
+
+
+
+const Paper_useUtilityClasses = ownerState => {
+  const {
+    square,
+    elevation,
+    variant,
+    classes
+  } = ownerState;
+  const slots = {
+    root: ['root', variant, !square && 'rounded', variant === 'elevation' && "elevation".concat(elevation)]
+  };
+  return (0,composeClasses/* default */.Z)(slots, getPaperUtilityClass, classes);
+};
+const PaperRoot = (0,styled/* default */.ZP)('div', {
+  name: 'MuiPaper',
+  slot: 'Root',
+  overridesResolver: (props, styles) => {
+    const {
+      ownerState
+    } = props;
+    return [styles.root, styles[ownerState.variant], !ownerState.square && styles.rounded, ownerState.variant === 'elevation' && styles["elevation".concat(ownerState.elevation)]];
+  }
+})(_ref => {
+  let {
+    theme,
+    ownerState
+  } = _ref;
+  var _theme$vars$overlays;
+  return (0,esm_extends/* default */.Z)({
+    backgroundColor: (theme.vars || theme).palette.background.paper,
+    color: (theme.vars || theme).palette.text.primary,
+    transition: theme.transitions.create('box-shadow')
+  }, !ownerState.square && {
+    borderRadius: theme.shape.borderRadius
+  }, ownerState.variant === 'outlined' && {
+    border: "1px solid ".concat((theme.vars || theme).palette.divider)
+  }, ownerState.variant === 'elevation' && (0,esm_extends/* default */.Z)({
+    boxShadow: (theme.vars || theme).shadows[ownerState.elevation]
+  }, !theme.vars && theme.palette.mode === 'dark' && {
+    backgroundImage: "linear-gradient(".concat((0,colorManipulator/* alpha */.Fq)('#fff', styles_getOverlayAlpha(ownerState.elevation)), ", ").concat((0,colorManipulator/* alpha */.Fq)('#fff', styles_getOverlayAlpha(ownerState.elevation)), ")")
+  }, theme.vars && {
+    backgroundImage: (_theme$vars$overlays = theme.vars.overlays) == null ? void 0 : _theme$vars$overlays[ownerState.elevation]
+  }));
+});
+const Paper = /*#__PURE__*/react.forwardRef(function Paper(inProps, ref) {
+  const props = (0,useThemeProps/* default */.Z)({
+    props: inProps,
+    name: 'MuiPaper'
+  });
+  const {
+      className,
+      component = 'div',
+      elevation = 1,
+      square = false,
+      variant = 'elevation'
+    } = props,
+    other = (0,objectWithoutPropertiesLoose/* default */.Z)(props, Paper_excluded);
+  const ownerState = (0,esm_extends/* default */.Z)({}, props, {
+    component,
+    elevation,
+    square,
+    variant
+  });
+  const classes = Paper_useUtilityClasses(ownerState);
+  if (false) {}
+  return /*#__PURE__*/(0,jsx_runtime.jsx)(PaperRoot, (0,esm_extends/* default */.Z)({
+    as: component,
+    ownerState: ownerState,
+    className: (0,clsx/* default */.Z)(classes.root, className),
+    ref: ref
+  }, other));
+});
+ false ? 0 : void 0;
+/* harmony default export */ const Paper_Paper = (Paper);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Alert/alertClasses.js
+
+
+function getAlertUtilityClass(slot) {
+  return (0,generateUtilityClass_generateUtilityClass/* default */.ZP)('MuiAlert', slot);
+}
+const alertClasses = (0,generateUtilityClasses/* default */.Z)('MuiAlert', ['root', 'action', 'icon', 'message', 'filled', 'colorSuccess', 'colorInfo', 'colorWarning', 'colorError', 'filledSuccess', 'filledInfo', 'filledWarning', 'filledError', 'outlined', 'outlinedSuccess', 'outlinedInfo', 'outlinedWarning', 'outlinedError', 'standard', 'standardSuccess', 'standardInfo', 'standardWarning', 'standardError']);
+/* harmony default export */ const Alert_alertClasses = (alertClasses);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/IconButton/iconButtonClasses.js
+
+
+function getIconButtonUtilityClass(slot) {
+  return (0,generateUtilityClass_generateUtilityClass/* default */.ZP)('MuiIconButton', slot);
+}
+const iconButtonClasses = (0,generateUtilityClasses/* default */.Z)('MuiIconButton', ['root', 'disabled', 'colorInherit', 'colorPrimary', 'colorSecondary', 'colorError', 'colorInfo', 'colorSuccess', 'colorWarning', 'edgeStart', 'edgeEnd', 'sizeSmall', 'sizeMedium', 'sizeLarge']);
+/* harmony default export */ const IconButton_iconButtonClasses = (iconButtonClasses);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/IconButton/IconButton.js
+'use client';
+
+
+
+const IconButton_excluded = ["edge", "children", "className", "color", "disabled", "disableFocusRipple", "size"];
+
+
+
+
+
+
+
+
+
+
+
+
+const IconButton_useUtilityClasses = ownerState => {
+  const {
+    classes,
+    disabled,
+    color,
+    edge,
+    size
+  } = ownerState;
+  const slots = {
+    root: ['root', disabled && 'disabled', color !== 'default' && "color".concat((0,capitalize/* default */.Z)(color)), edge && "edge".concat((0,capitalize/* default */.Z)(edge)), "size".concat((0,capitalize/* default */.Z)(size))]
+  };
+  return (0,composeClasses/* default */.Z)(slots, getIconButtonUtilityClass, classes);
+};
+const IconButtonRoot = (0,styled/* default */.ZP)(ButtonBase_ButtonBase, {
+  name: 'MuiIconButton',
+  slot: 'Root',
+  overridesResolver: (props, styles) => {
+    const {
+      ownerState
+    } = props;
+    return [styles.root, ownerState.color !== 'default' && styles["color".concat((0,capitalize/* default */.Z)(ownerState.color))], ownerState.edge && styles["edge".concat((0,capitalize/* default */.Z)(ownerState.edge))], styles["size".concat((0,capitalize/* default */.Z)(ownerState.size))]];
+  }
+})(_ref => {
+  let {
+    theme,
+    ownerState
+  } = _ref;
+  return (0,esm_extends/* default */.Z)({
+    textAlign: 'center',
+    flex: '0 0 auto',
+    fontSize: theme.typography.pxToRem(24),
+    padding: 8,
+    borderRadius: '50%',
+    overflow: 'visible',
+    // Explicitly set the default value to solve a bug on IE11.
+    color: (theme.vars || theme).palette.action.active,
+    transition: theme.transitions.create('background-color', {
+      duration: theme.transitions.duration.shortest
+    })
+  }, !ownerState.disableRipple && {
+    '&:hover': {
+      backgroundColor: theme.vars ? "rgba(".concat(theme.vars.palette.action.activeChannel, " / ").concat(theme.vars.palette.action.hoverOpacity, ")") : (0,colorManipulator/* alpha */.Fq)(theme.palette.action.active, theme.palette.action.hoverOpacity),
+      // Reset on touch devices, it doesn't add specificity
+      '@media (hover: none)': {
+        backgroundColor: 'transparent'
+      }
+    }
+  }, ownerState.edge === 'start' && {
+    marginLeft: ownerState.size === 'small' ? -3 : -12
+  }, ownerState.edge === 'end' && {
+    marginRight: ownerState.size === 'small' ? -3 : -12
+  });
+}, _ref2 => {
+  let {
+    theme,
+    ownerState
+  } = _ref2;
+  var _palette;
+  const palette = (_palette = (theme.vars || theme).palette) == null ? void 0 : _palette[ownerState.color];
+  return (0,esm_extends/* default */.Z)({}, ownerState.color === 'inherit' && {
+    color: 'inherit'
+  }, ownerState.color !== 'inherit' && ownerState.color !== 'default' && (0,esm_extends/* default */.Z)({
+    color: palette == null ? void 0 : palette.main
+  }, !ownerState.disableRipple && {
+    '&:hover': (0,esm_extends/* default */.Z)({}, palette && {
+      backgroundColor: theme.vars ? "rgba(".concat(palette.mainChannel, " / ").concat(theme.vars.palette.action.hoverOpacity, ")") : (0,colorManipulator/* alpha */.Fq)(palette.main, theme.palette.action.hoverOpacity)
+    }, {
+      // Reset on touch devices, it doesn't add specificity
+      '@media (hover: none)': {
+        backgroundColor: 'transparent'
+      }
+    })
+  }), ownerState.size === 'small' && {
+    padding: 5,
+    fontSize: theme.typography.pxToRem(18)
+  }, ownerState.size === 'large' && {
+    padding: 12,
+    fontSize: theme.typography.pxToRem(28)
+  }, {
+    ["&.".concat(IconButton_iconButtonClasses.disabled)]: {
+      backgroundColor: 'transparent',
+      color: (theme.vars || theme).palette.action.disabled
+    }
+  });
+});
+
+/**
+ * Refer to the [Icons](/material-ui/icons/) section of the documentation
+ * regarding the available icon options.
+ */
+const IconButton = /*#__PURE__*/react.forwardRef(function IconButton(inProps, ref) {
+  const props = (0,useThemeProps/* default */.Z)({
+    props: inProps,
+    name: 'MuiIconButton'
+  });
+  const {
+      edge = false,
+      children,
+      className,
+      color = 'default',
+      disabled = false,
+      disableFocusRipple = false,
+      size = 'medium'
+    } = props,
+    other = (0,objectWithoutPropertiesLoose/* default */.Z)(props, IconButton_excluded);
+  const ownerState = (0,esm_extends/* default */.Z)({}, props, {
+    edge,
+    color,
+    disabled,
+    disableFocusRipple,
+    size
+  });
+  const classes = IconButton_useUtilityClasses(ownerState);
+  return /*#__PURE__*/(0,jsx_runtime.jsx)(IconButtonRoot, (0,esm_extends/* default */.Z)({
+    className: (0,clsx/* default */.Z)(classes.root, className),
+    centerRipple: true,
+    focusRipple: !disableFocusRipple,
+    disabled: disabled,
+    ref: ref
+  }, other, {
+    ownerState: ownerState,
+    children: children
+  }));
+});
+ false ? 0 : void 0;
+/* harmony default export */ const IconButton_IconButton = (IconButton);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/createSvgIcon.js + 2 modules
+var createSvgIcon = __webpack_require__(174);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/internal/svg-icons/SuccessOutlined.js
+'use client';
+
+
+
+
+/**
+ * @ignore - internal component.
+ */
+
+/* harmony default export */ const SuccessOutlined = ((0,createSvgIcon/* default */.Z)( /*#__PURE__*/(0,jsx_runtime.jsx)("path", {
+  d: "M20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4C12.76,4 13.5,4.11 14.2, 4.31L15.77,2.74C14.61,2.26 13.34,2 12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0, 0 22,12M7.91,10.08L6.5,11.5L11,16L21,6L19.59,4.58L11,13.17L7.91,10.08Z"
+}), 'SuccessOutlined'));
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/internal/svg-icons/ReportProblemOutlined.js
+'use client';
+
+
+
+
+/**
+ * @ignore - internal component.
+ */
+
+/* harmony default export */ const ReportProblemOutlined = ((0,createSvgIcon/* default */.Z)( /*#__PURE__*/(0,jsx_runtime.jsx)("path", {
+  d: "M12 5.99L19.53 19H4.47L12 5.99M12 2L1 21h22L12 2zm1 14h-2v2h2v-2zm0-6h-2v4h2v-4z"
+}), 'ReportProblemOutlined'));
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/internal/svg-icons/ErrorOutline.js
+'use client';
+
+
+
+
+/**
+ * @ignore - internal component.
+ */
+
+/* harmony default export */ const ErrorOutline = ((0,createSvgIcon/* default */.Z)( /*#__PURE__*/(0,jsx_runtime.jsx)("path", {
+  d: "M11 15h2v2h-2zm0-8h2v6h-2zm.99-5C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
+}), 'ErrorOutline'));
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/internal/svg-icons/InfoOutlined.js
+'use client';
+
+
+
+
+/**
+ * @ignore - internal component.
+ */
+
+/* harmony default export */ const InfoOutlined = ((0,createSvgIcon/* default */.Z)( /*#__PURE__*/(0,jsx_runtime.jsx)("path", {
+  d: "M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20, 12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10, 10 0 0,0 12,2M11,17H13V11H11V17Z"
+}), 'InfoOutlined'));
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/internal/svg-icons/Close.js
+'use client';
+
+
+
+
+/**
+ * @ignore - internal component.
+ *
+ * Alias to `Clear`.
+ */
+
+/* harmony default export */ const Close = ((0,createSvgIcon/* default */.Z)( /*#__PURE__*/(0,jsx_runtime.jsx)("path", {
+  d: "M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+}), 'Close'));
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Alert/Alert.js
+'use client';
+
+
+
+const Alert_excluded = ["action", "children", "className", "closeText", "color", "components", "componentsProps", "icon", "iconMapping", "onClose", "role", "severity", "slotProps", "slots", "variant"];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const Alert_useThemeProps = createUseThemeProps('MuiAlert');
+const Alert_useUtilityClasses = ownerState => {
+  const {
+    variant,
+    color,
+    severity,
+    classes
+  } = ownerState;
+  const slots = {
+    root: ['root', "color".concat((0,capitalize/* default */.Z)(color || severity)), "".concat(variant).concat((0,capitalize/* default */.Z)(color || severity)), "".concat(variant)],
+    icon: ['icon'],
+    message: ['message'],
+    action: ['action']
+  };
+  return (0,composeClasses/* default */.Z)(slots, getAlertUtilityClass, classes);
+};
+const AlertRoot = (0,styled/* default */.ZP)(Paper_Paper, {
+  name: 'MuiAlert',
+  slot: 'Root',
+  overridesResolver: (props, styles) => {
+    const {
+      ownerState
+    } = props;
+    return [styles.root, styles[ownerState.variant], styles["".concat(ownerState.variant).concat((0,capitalize/* default */.Z)(ownerState.color || ownerState.severity))]];
+  }
+})(_ref => {
+  let {
+    theme
+  } = _ref;
+  const getColor = theme.palette.mode === 'light' ? colorManipulator/* darken */._j : colorManipulator/* lighten */.$n;
+  const getBackgroundColor = theme.palette.mode === 'light' ? colorManipulator/* lighten */.$n : colorManipulator/* darken */._j;
+  return (0,esm_extends/* default */.Z)({}, theme.typography.body2, {
+    backgroundColor: 'transparent',
+    display: 'flex',
+    padding: '6px 16px',
+    variants: [...Object.entries(theme.palette).filter(_ref2 => {
+      let [, value] = _ref2;
+      return value.main && value.light;
+    }).map(_ref3 => {
+      let [color] = _ref3;
+      return {
+        props: {
+          colorSeverity: color,
+          variant: 'standard'
+        },
+        style: {
+          color: theme.vars ? theme.vars.palette.Alert["".concat(color, "Color")] : getColor(theme.palette[color].light, 0.6),
+          backgroundColor: theme.vars ? theme.vars.palette.Alert["".concat(color, "StandardBg")] : getBackgroundColor(theme.palette[color].light, 0.9),
+          ["& .".concat(Alert_alertClasses.icon)]: theme.vars ? {
+            color: theme.vars.palette.Alert["".concat(color, "IconColor")]
+          } : {
+            color: theme.palette[color].main
+          }
+        }
+      };
+    }), ...Object.entries(theme.palette).filter(_ref4 => {
+      let [, value] = _ref4;
+      return value.main && value.light;
+    }).map(_ref5 => {
+      let [color] = _ref5;
+      return {
+        props: {
+          colorSeverity: color,
+          variant: 'outlined'
+        },
+        style: {
+          color: theme.vars ? theme.vars.palette.Alert["".concat(color, "Color")] : getColor(theme.palette[color].light, 0.6),
+          border: "1px solid ".concat((theme.vars || theme).palette[color].light),
+          ["& .".concat(Alert_alertClasses.icon)]: theme.vars ? {
+            color: theme.vars.palette.Alert["".concat(color, "IconColor")]
+          } : {
+            color: theme.palette[color].main
+          }
+        }
+      };
+    }), ...Object.entries(theme.palette).filter(_ref6 => {
+      let [, value] = _ref6;
+      return value.main && value.dark;
+    }).map(_ref7 => {
+      let [color] = _ref7;
+      return {
+        props: {
+          colorSeverity: color,
+          variant: 'filled'
+        },
+        style: (0,esm_extends/* default */.Z)({
+          fontWeight: theme.typography.fontWeightMedium
+        }, theme.vars ? {
+          color: theme.vars.palette.Alert["".concat(color, "FilledColor")],
+          backgroundColor: theme.vars.palette.Alert["".concat(color, "FilledBg")]
+        } : {
+          backgroundColor: theme.palette.mode === 'dark' ? theme.palette[color].dark : theme.palette[color].main,
+          color: theme.palette.getContrastText(theme.palette[color].main)
+        })
+      };
+    })]
+  });
+});
+const AlertIcon = (0,styled/* default */.ZP)('div', {
+  name: 'MuiAlert',
+  slot: 'Icon',
+  overridesResolver: (props, styles) => styles.icon
+})({
+  marginRight: 12,
+  padding: '7px 0',
+  display: 'flex',
+  fontSize: 22,
+  opacity: 0.9
+});
+const AlertMessage = (0,styled/* default */.ZP)('div', {
+  name: 'MuiAlert',
+  slot: 'Message',
+  overridesResolver: (props, styles) => styles.message
+})({
+  padding: '8px 0',
+  minWidth: 0,
+  overflow: 'auto'
+});
+const AlertAction = (0,styled/* default */.ZP)('div', {
+  name: 'MuiAlert',
+  slot: 'Action',
+  overridesResolver: (props, styles) => styles.action
+})({
+  display: 'flex',
+  alignItems: 'flex-start',
+  padding: '4px 0 0 16px',
+  marginLeft: 'auto',
+  marginRight: -8
+});
+const defaultIconMapping = {
+  success: /*#__PURE__*/(0,jsx_runtime.jsx)(SuccessOutlined, {
+    fontSize: "inherit"
+  }),
+  warning: /*#__PURE__*/(0,jsx_runtime.jsx)(ReportProblemOutlined, {
+    fontSize: "inherit"
+  }),
+  error: /*#__PURE__*/(0,jsx_runtime.jsx)(ErrorOutline, {
+    fontSize: "inherit"
+  }),
+  info: /*#__PURE__*/(0,jsx_runtime.jsx)(InfoOutlined, {
+    fontSize: "inherit"
+  })
+};
+const Alert = /*#__PURE__*/react.forwardRef(function Alert(inProps, ref) {
+  const props = Alert_useThemeProps({
+    props: inProps,
+    name: 'MuiAlert'
+  });
+  const {
+      action,
+      children,
+      className,
+      closeText = 'Close',
+      color,
+      components = {},
+      componentsProps = {},
+      icon,
+      iconMapping = defaultIconMapping,
+      onClose,
+      role = 'alert',
+      severity = 'success',
+      slotProps = {},
+      slots = {},
+      variant = 'standard'
+    } = props,
+    other = (0,objectWithoutPropertiesLoose/* default */.Z)(props, Alert_excluded);
+  const ownerState = (0,esm_extends/* default */.Z)({}, props, {
+    color,
+    severity,
+    variant,
+    colorSeverity: color || severity
+  });
+  const classes = Alert_useUtilityClasses(ownerState);
+  const externalForwardedProps = {
+    slots: (0,esm_extends/* default */.Z)({
+      closeButton: components.CloseButton,
+      closeIcon: components.CloseIcon
+    }, slots),
+    slotProps: (0,esm_extends/* default */.Z)({}, componentsProps, slotProps)
+  };
+  const [CloseButtonSlot, closeButtonProps] = useSlot('closeButton', {
+    elementType: IconButton_IconButton,
+    externalForwardedProps,
+    ownerState
+  });
+  const [CloseIconSlot, closeIconProps] = useSlot('closeIcon', {
+    elementType: Close,
+    externalForwardedProps,
+    ownerState
+  });
+  return /*#__PURE__*/(0,jsx_runtime.jsxs)(AlertRoot, (0,esm_extends/* default */.Z)({
+    role: role,
+    elevation: 0,
+    ownerState: ownerState,
+    className: (0,clsx/* default */.Z)(classes.root, className),
+    ref: ref
+  }, other, {
+    children: [icon !== false ? /*#__PURE__*/(0,jsx_runtime.jsx)(AlertIcon, {
+      ownerState: ownerState,
+      className: classes.icon,
+      children: icon || iconMapping[severity] || defaultIconMapping[severity]
+    }) : null, /*#__PURE__*/(0,jsx_runtime.jsx)(AlertMessage, {
+      ownerState: ownerState,
+      className: classes.message,
+      children: children
+    }), action != null ? /*#__PURE__*/(0,jsx_runtime.jsx)(AlertAction, {
+      ownerState: ownerState,
+      className: classes.action,
+      children: action
+    }) : null, action == null && onClose ? /*#__PURE__*/(0,jsx_runtime.jsx)(AlertAction, {
+      ownerState: ownerState,
+      className: classes.action,
+      children: /*#__PURE__*/(0,jsx_runtime.jsx)(CloseButtonSlot, (0,esm_extends/* default */.Z)({
+        size: "small",
+        "aria-label": closeText,
+        title: closeText,
+        color: "inherit",
+        onClick: onClose
+      }, closeButtonProps, {
+        children: /*#__PURE__*/(0,jsx_runtime.jsx)(CloseIconSlot, (0,esm_extends/* default */.Z)({
+          fontSize: "small"
+        }, closeIconProps))
+      }))
+    }) : null]
+  }));
+});
+ false ? 0 : void 0;
+/* harmony default export */ const Alert_Alert = (Alert);
+;// CONCATENATED MODULE: ./src/config/app.js
+const APP_NAME="KISS Translator".trim().split(/\s+/).join("-");const APP_LCNAME=APP_NAME.toLowerCase();const APP_CONSTS={fabID:"".concat(APP_LCNAME,"-fab"),boxID:"".concat(APP_LCNAME,"-box")};const APP_VERSION="2.0.0".split(".");const THEME_LIGHT="light";const THEME_DARK="dark";
+;// CONCATENATED MODULE: ./src/config/api.js
+const DEFAULT_HTTP_TIMEOUT=10000;// 调用超时时间
+const DEFAULT_FETCH_LIMIT=10;// 默认最大任务数量
+const DEFAULT_FETCH_INTERVAL=100;// 默认任务间隔时间
+const DEFAULT_BATCH_INTERVAL=1000;// 批处理请求间隔时间
+const DEFAULT_BATCH_SIZE=10;// 每次最多发送段落数量
+const DEFAULT_BATCH_LENGTH=10000;// 每次发送最大文字数量
+const DEFAULT_CONTEXT_SIZE=3;// 上下文会话数量
+const INPUT_PLACE_URL="{{url}}";// 占位符
+const INPUT_PLACE_FROM="{{from}}";// 占位符
+const INPUT_PLACE_TO="{{to}}";// 占位符
+const INPUT_PLACE_TEXT="{{text}}";// 占位符
+const INPUT_PLACE_KEY="{{key}}";// 占位符
+const INPUT_PLACE_MODEL="{{model}}";// 占位符
+// export const OPT_DICT_BAIDU = "Baidu";
+const OPT_DICT_BING="Bing";const OPT_DICT_YOUDAO="Youdao";const OPT_DICT_ALL=[OPT_DICT_BING,OPT_DICT_YOUDAO];const OPT_DICT_MAP=new Set(OPT_DICT_ALL);const OPT_SUG_BAIDU="Baidu";const OPT_SUG_YOUDAO="Youdao";const OPT_SUG_ALL=[OPT_SUG_BAIDU,OPT_SUG_YOUDAO];const OPT_SUG_MAP=new Set(OPT_SUG_ALL);const OPT_TRANS_BUILTINAI="BuiltinAI";const OPT_TRANS_GOOGLE="Google";const OPT_TRANS_GOOGLE_2="Google2";const OPT_TRANS_MICROSOFT="Microsoft";const OPT_TRANS_AZUREAI="AzureAI";const OPT_TRANS_DEEPL="DeepL";const OPT_TRANS_DEEPLX="DeepLX";const OPT_TRANS_DEEPLFREE="DeepLFree";const OPT_TRANS_NIUTRANS="NiuTrans";const OPT_TRANS_BAIDU="Baidu";const OPT_TRANS_TENCENT="Tencent";const OPT_TRANS_VOLCENGINE="Volcengine";const OPT_TRANS_OPENAI="OpenAI";const OPT_TRANS_GEMINI="Gemini";const OPT_TRANS_GEMINI_2="Gemini2";const OPT_TRANS_CLAUDE="Claude";const OPT_TRANS_CLOUDFLAREAI="CloudflareAI";const OPT_TRANS_OLLAMA="Ollama";const OPT_TRANS_OPENROUTER="OpenRouter";const OPT_TRANS_CUSTOMIZE="Custom";// 内置支持的翻译引擎
+const OPT_ALL_TYPES=[OPT_TRANS_BUILTINAI,OPT_TRANS_GOOGLE,OPT_TRANS_GOOGLE_2,OPT_TRANS_MICROSOFT,OPT_TRANS_AZUREAI,// OPT_TRANS_BAIDU,
+OPT_TRANS_TENCENT,OPT_TRANS_VOLCENGINE,OPT_TRANS_DEEPL,OPT_TRANS_DEEPLFREE,OPT_TRANS_DEEPLX,OPT_TRANS_NIUTRANS,OPT_TRANS_OPENAI,OPT_TRANS_GEMINI,OPT_TRANS_GEMINI_2,OPT_TRANS_CLAUDE,OPT_TRANS_CLOUDFLAREAI,OPT_TRANS_OLLAMA,OPT_TRANS_OPENROUTER,OPT_TRANS_CUSTOMIZE];const OPT_LANGDETECTOR_ALL=[OPT_TRANS_BUILTINAI,OPT_TRANS_GOOGLE,OPT_TRANS_MICROSOFT,OPT_TRANS_BAIDU,OPT_TRANS_TENCENT];const OPT_LANGDETECTOR_MAP=new Set(OPT_LANGDETECTOR_ALL);// 翻译引擎特殊集合
+const API_SPE_TYPES={// 内置翻译
+builtin:new Set(OPT_ALL_TYPES),// 机器翻译
+machine:new Set([OPT_TRANS_MICROSOFT,OPT_TRANS_DEEPLFREE,OPT_TRANS_BAIDU,OPT_TRANS_TENCENT,OPT_TRANS_VOLCENGINE]),// AI翻译
+ai:new Set([OPT_TRANS_OPENAI,OPT_TRANS_GEMINI,OPT_TRANS_GEMINI_2,OPT_TRANS_CLAUDE,OPT_TRANS_OLLAMA,OPT_TRANS_OPENROUTER]),// 支持多key
+mulkeys:new Set([OPT_TRANS_AZUREAI,OPT_TRANS_DEEPL,OPT_TRANS_OPENAI,OPT_TRANS_GEMINI,OPT_TRANS_GEMINI_2,OPT_TRANS_CLAUDE,OPT_TRANS_CLOUDFLAREAI,OPT_TRANS_OLLAMA,OPT_TRANS_OPENROUTER,OPT_TRANS_NIUTRANS,OPT_TRANS_CUSTOMIZE]),// 支持批处理
+batch:new Set([OPT_TRANS_AZUREAI,OPT_TRANS_GOOGLE_2,OPT_TRANS_MICROSOFT,OPT_TRANS_TENCENT,OPT_TRANS_DEEPL,OPT_TRANS_OPENAI,OPT_TRANS_GEMINI,OPT_TRANS_GEMINI_2,OPT_TRANS_CLAUDE,OPT_TRANS_OLLAMA,OPT_TRANS_OPENROUTER,OPT_TRANS_CUSTOMIZE]),// 支持上下文
+context:new Set([OPT_TRANS_OPENAI,OPT_TRANS_GEMINI,OPT_TRANS_GEMINI_2,OPT_TRANS_CLAUDE,OPT_TRANS_OLLAMA,OPT_TRANS_OPENROUTER,OPT_TRANS_CUSTOMIZE])};const BUILTIN_STONES=["formal",// 正式风格
+"casual",// 口语风格
+"neutral",// 中性风格
+"technical",// 技术风格
+"marketing",// 营销风格
+"Literary",// 文学风格
+"academic",// 学术风格
+"legal",// 法律风格
+"literal",// 直译风格
+"ldiomatic",// 意译风格
+"transcreation",// 创译风格
+"machine-like",// 机器风格
+"concise"// 简明风格
+];const BUILTIN_PLACEHOLDERS=["{ }","{{ }}","[ ]","[[ ]]"];const BUILTIN_PLACETAGS=["i","a","b","x"];const OPT_LANGS_TO=[["en","English - English"],["zh-CN","Simplified Chinese - 简体中文"],["zh-TW","Traditional Chinese - 繁體中文"],["ar","Arabic - العربية"],["bg","Bulgarian - Български"],["ca","Catalan - Català"],["hr","Croatian - Hrvatski"],["cs","Czech - Čeština"],["da","Danish - Dansk"],["nl","Dutch - Nederlands"],["fi","Finnish - Suomi"],["fr","French - Français"],["de","German - Deutsch"],["el","Greek - Ελληνικά"],["hi","Hindi - हिन्दी"],["hu","Hungarian - Magyar"],["id","Indonesian - Indonesia"],["it","Italian - Italiano"],["ja","Japanese - 日本語"],["ko","Korean - 한국어"],["ms","Malay - Melayu"],["mt","Maltese - Malti"],["nb","Norwegian - Norsk Bokmål"],["pl","Polish - Polski"],["pt","Portuguese - Português"],["ro","Romanian - Română"],["ru","Russian - Русский"],["sk","Slovak - Slovenčina"],["sl","Slovenian - Slovenščina"],["es","Spanish - Español"],["sv","Swedish - Svenska"],["ta","Tamil - தமிழ்"],["te","Telugu - తెలుగు"],["th","Thai - ไทย"],["tr","Turkish - Türkçe"],["uk","Ukrainian - Українська"],["vi","Vietnamese - Tiếng Việt"]];const OPT_LANGS_LIST=OPT_LANGS_TO.map(_ref=>{let[lang]=_ref;return lang;});const OPT_LANGS_FROM=[["auto","Auto-detect"],...OPT_LANGS_TO];const OPT_LANGS_MAP=new Map(OPT_LANGS_TO);// CODE->名称
+const OPT_LANGS_SPEC_NAME=new Map(OPT_LANGS_FROM.map(_ref2=>{let[key,val]=_ref2;return[key,val.split(" - ")[0]];}));const OPT_LANGS_SPEC_DEFAULT=new Map(OPT_LANGS_FROM.map(_ref3=>{let[key]=_ref3;return[key,key];}));const OPT_LANGS_SPEC_DEFAULT_UC=new Map(OPT_LANGS_FROM.map(_ref4=>{let[key]=_ref4;return[key,key.toUpperCase()];}));const OPT_LANGS_TO_SPEC={[OPT_TRANS_BUILTINAI]:new Map([...OPT_LANGS_SPEC_DEFAULT,["zh-CN","zh"],["zh-TW","zh"]]),[OPT_TRANS_GOOGLE]:OPT_LANGS_SPEC_DEFAULT,[OPT_TRANS_GOOGLE_2]:OPT_LANGS_SPEC_DEFAULT,[OPT_TRANS_MICROSOFT]:new Map([...OPT_LANGS_SPEC_DEFAULT,["auto",""],["zh-CN","zh-Hans"],["zh-TW","zh-Hant"]]),[OPT_TRANS_AZUREAI]:new Map([...OPT_LANGS_SPEC_DEFAULT,["auto",""],["zh-CN","zh-Hans"],["zh-TW","zh-Hant"]]),[OPT_TRANS_DEEPL]:new Map([...OPT_LANGS_SPEC_DEFAULT_UC,["auto",""],["zh-CN","ZH"],["zh-TW","ZH"]]),[OPT_TRANS_DEEPLFREE]:new Map([...OPT_LANGS_SPEC_DEFAULT_UC,["auto","auto"],["zh-CN","ZH"],["zh-TW","ZH"]]),[OPT_TRANS_DEEPLX]:new Map([...OPT_LANGS_SPEC_DEFAULT_UC,["auto","auto"],["zh-CN","ZH"],["zh-TW","ZH"]]),[OPT_TRANS_NIUTRANS]:new Map([...OPT_LANGS_SPEC_DEFAULT,["auto","auto"],["zh-CN","zh"],["zh-TW","cht"]]),[OPT_TRANS_VOLCENGINE]:new Map([...OPT_LANGS_SPEC_DEFAULT,["auto","auto"],["zh-CN","zh"],["zh-TW","zh-Hant"]]),[OPT_TRANS_BAIDU]:new Map([...OPT_LANGS_SPEC_DEFAULT,["zh-CN","zh"],["zh-TW","cht"],["ar","ara"],["bg","bul"],["ca","cat"],["hr","hrv"],["da","dan"],["fi","fin"],["fr","fra"],["hi","mai"],["ja","jp"],["ko","kor"],["ms","may"],["mt","mlt"],["nb","nor"],["ro","rom"],["ru","ru"],["sl","slo"],["es","spa"],["sv","swe"],["ta","tam"],["te","tel"],["uk","ukr"],["vi","vie"]]),[OPT_TRANS_TENCENT]:new Map([["auto","auto"],["zh-CN","zh"],["zh-TW","zh"],["en","en"],["ar","ar"],["de","de"],["ru","ru"],["fr","fr"],["fi","fil"],["ko","ko"],["ms","ms"],["pt","pt"],["ja","ja"],["th","th"],["tr","tr"],["es","es"],["it","it"],["hi","hi"],["id","id"],["vi","vi"]]),[OPT_TRANS_OPENAI]:OPT_LANGS_SPEC_DEFAULT,[OPT_TRANS_GEMINI]:OPT_LANGS_SPEC_DEFAULT,[OPT_TRANS_GEMINI_2]:OPT_LANGS_SPEC_DEFAULT,[OPT_TRANS_CLAUDE]:OPT_LANGS_SPEC_DEFAULT,[OPT_TRANS_OLLAMA]:OPT_LANGS_SPEC_DEFAULT,[OPT_TRANS_OPENROUTER]:OPT_LANGS_SPEC_DEFAULT,[OPT_TRANS_CLOUDFLAREAI]:OPT_LANGS_SPEC_DEFAULT,[OPT_TRANS_CUSTOMIZE]:OPT_LANGS_SPEC_DEFAULT};const specToCode=m=>new Map(Array.from(m.entries()).map(_ref5=>{let[k,v]=_ref5;if(v===""){return["auto","auto"];}if(v==="zh"||v==="ZH"){return[v,"zh-CN"];}return[v,k];}));// 名称->CODE
+const OPT_LANGS_TO_CODE={};Object.entries(OPT_LANGS_TO_SPEC).forEach(_ref6=>{let[t,m]=_ref6;OPT_LANGS_TO_CODE[t]=specToCode(m);});const defaultSystemPrompt="Act as a translation API. Output a single raw JSON object only. No extra text or fences.\n\nInput:\n{\"targetLanguage\":\"<lang>\",\"title\":\"<context>\",\"description\":\"<context>\",\"segments\":[{\"id\":1,\"text\":\"...\"}],\"glossary\":{\"sourceTerm\":\"targetTerm\"},\"tone\":\"<formal|casual>\"}\n\nOutput:\n{\"translations\":[{\"id\":1,\"text\":\"...\",\"sourceLanguage\":\"<detected>\"}]}\n\nRules:\n1.  Use title/description for context only; do not output them.\n2.  Keep id, order, and count of segments.\n3.  Preserve whitespace, HTML entities, and all HTML-like tags (e.g., <i1>, <a1>). Translate inner text only.\n4.  Highest priority: Follow 'glossary'. Use value for translation; if value is \"\", keep the key.\n5.  Do not translate: content in <code>, <pre>, text enclosed in backticks, or placeholders like {1}, {{1}}, [1], [[1]].\n6.  Apply the specified tone to the translation.\n7.  Detect sourceLanguage for each segment.\n8.  Return empty or unchanged inputs as is.\n\nExample:\nInput: {\"targetLanguage\":\"zh-CN\",\"segments\":[{\"id\":1,\"text\":\"A <b>React</b> component.\"}],\"glossary\":{\"component\":\"\u7EC4\u4EF6\",\"React\":\"\"}}\nOutput: {\"translations\":[{\"id\":1,\"text\":\"\u4E00\u4E2A<b>React</b>\u7EC4\u4EF6\",\"sourceLanguage\":\"en\"}]}\n\nFail-safe: On any error, return {\"translations\":[]}.";// const defaultSubtitlePrompt = `Goal: Convert raw subtitle event JSON into a clean, sentence-based JSON array.
+// Output (valid JSON array, output ONLY this array):
+// [{
+//   "text": "string",        // Full sentence with correct punctuation
+//   "translation": "string", // Translation in ${INPUT_PLACE_TO}
+//   "start": int,            // Start time (ms)
+//   "end": int,              // End time (ms)
+// }]
+// Guidelines:
+// 1. **Segmentation**: Merge sequential 'utf8' strings from 'segs' into full sentences, merging groups logically.
+// 2. **Punctuation**: Ensure proper sentence-final punctuation (., ?, !); add if missing.
+// 3. **Translation**: Translate 'text' into ${INPUT_PLACE_TO}, place result in 'translation'.
+// 4. **Special Cases**: '[Music]' (and similar cues) are standalone entries. Translate appropriately (e.g., '[音乐]', '[Musique]').
+// `;
+const defaultSubtitlePrompt="You are an expert AI for subtitle generation. Convert a JSON array of word-level timestamps into a bilingual VTT file.\n\n**Workflow:**\n1. Merge `text` fields into complete sentences; ignore empty text.\n2. Split long sentences into smaller, manageable subtitle cues (one sentence per cue).\n3. Translate each cue into ".concat(INPUT_PLACE_TO,".\n4. Format as VTT:\n   - Start with `WEBVTT`.\n   - Each cue: timestamps (`start --> end` in milliseconds), original text, translated text.\n   - Keep non-speech text (e.g., `[Music]`) untranslated.\n   - Separate cues with a blank line.\n\n**Output:** Only the pure VTT content.\n\n**Example:**\n```vtt\nWEBVTT\n\n1000 --> 3500\nHello world!\n\u4F60\u597D\uFF0C\u4E16\u754C\uFF01\n\n4000 --> 6000\nGood morning.\n\u65E9\u4E0A\u597D\u3002\n```");const defaultRequestHook="async (args, { url, body, headers, userMsg, method } = {}) => {\n  console.log(\"request hook args:\", args);\n  // return { url, body, headers, userMsg, method };\n}";const defaultResponseHook="async ({ res, ...args }) => {\n  console.log(\"reaponse hook args:\", res, args);\n  // const translations = [[\"\u4F60\u597D\", \"zh\"]];\n  // const modelMsg = \"\";\n  // return { translations, modelMsg };\n}";// 翻译接口默认参数
+const defaultApi={apiSlug:"",// 唯一标识
+apiName:"",// 接口名称
+apiType:"",// 接口类型
+url:"",key:"",model:"",// 模型名称
+systemPrompt:defaultSystemPrompt,subtitlePrompt:defaultSubtitlePrompt,userPrompt:"",tone:BUILTIN_STONES[0],// 翻译风格
+placeholder:BUILTIN_PLACEHOLDERS[0],// 占位符
+placetag:[BUILTIN_PLACETAGS[0]],// 占位标签
+// aiTerms: false, // AI智能专业术语 （todo: 备用）
+customHeader:"",customBody:"",reqHook:"",// request 钩子函数
+resHook:"",// response 钩子函数
+fetchLimit:DEFAULT_FETCH_LIMIT,// 最大请求数量
+fetchInterval:DEFAULT_FETCH_INTERVAL,// 请求间隔时间
+httpTimeout:DEFAULT_HTTP_TIMEOUT*30,// 请求超时时间
+batchInterval:DEFAULT_BATCH_INTERVAL,// 批处理请求间隔时间
+batchSize:DEFAULT_BATCH_SIZE,// 每次最多发送段落数量
+batchLength:DEFAULT_BATCH_LENGTH,// 每次发送最大文字数量
+useBatchFetch:false,// 是否启用聚合发送请求
+useContext:false,// 是否启用智能上下文
+contextSize:DEFAULT_CONTEXT_SIZE,// 智能上下文保留会话数
+temperature:0,maxTokens:20480,think:false,thinkIgnore:"qwen3,deepseek-r1",isDisabled:false,// 是否不显示,
+region:""// Azure 专用
+};const defaultApiOpts={[OPT_TRANS_BUILTINAI]:defaultApi,[OPT_TRANS_GOOGLE]:{...defaultApi,url:"https://translate.googleapis.com/translate_a/single"},[OPT_TRANS_GOOGLE_2]:{...defaultApi,url:"https://translate-pa.googleapis.com/v1/translateHtml",key:"AIzaSyATBXajvzQLTDHEQbcpq0Ihe0vWDHmO520",useBatchFetch:true},[OPT_TRANS_MICROSOFT]:{...defaultApi,useBatchFetch:true},[OPT_TRANS_AZUREAI]:{...defaultApi,url:"https://api.cognitive.microsofttranslator.com/translate?api-version=3.0",useBatchFetch:true},[OPT_TRANS_BAIDU]:{...defaultApi},[OPT_TRANS_TENCENT]:{...defaultApi,useBatchFetch:true},[OPT_TRANS_VOLCENGINE]:{...defaultApi},[OPT_TRANS_DEEPL]:{...defaultApi,url:"https://api-free.deepl.com/v2/translate",useBatchFetch:true},[OPT_TRANS_DEEPLFREE]:{...defaultApi,fetchLimit:1},[OPT_TRANS_DEEPLX]:{...defaultApi,url:"http://localhost:1188/translate",fetchLimit:1},[OPT_TRANS_NIUTRANS]:{...defaultApi,url:"https://api.niutrans.com/NiuTransServer/translation",dictNo:"",memoryNo:""},[OPT_TRANS_OPENAI]:{...defaultApi,url:"https://api.openai.com/v1/chat/completions",model:"gpt-4",useBatchFetch:true,fetchLimit:1},[OPT_TRANS_GEMINI]:{...defaultApi,url:"https://generativelanguage.googleapis.com/v1/models/".concat(INPUT_PLACE_MODEL,":generateContent?key=").concat(INPUT_PLACE_KEY),model:"gemini-2.5-flash",useBatchFetch:true},[OPT_TRANS_GEMINI_2]:{...defaultApi,url:"https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",model:"gemini-2.0-flash",useBatchFetch:true},[OPT_TRANS_CLAUDE]:{...defaultApi,url:"https://api.anthropic.com/v1/messages",model:"claude-3-haiku-20240307",useBatchFetch:true},[OPT_TRANS_CLOUDFLAREAI]:{...defaultApi,url:"https://api.cloudflare.com/client/v4/accounts/{{ACCOUNT_ID}}/ai/run/@cf/meta/m2m100-1.2b"},[OPT_TRANS_OLLAMA]:{...defaultApi,url:"http://localhost:11434/v1/chat/completions",model:"llama3.1",useBatchFetch:true},[OPT_TRANS_OPENROUTER]:{...defaultApi,url:"https://openrouter.ai/api/v1/chat/completions",model:"openai/gpt-4o",useBatchFetch:true},[OPT_TRANS_CUSTOMIZE]:{...defaultApi,url:"https://translate.googleapis.com/translate_a/single?client=gtx&dj=1&dt=t&ie=UTF-8&q={{text}}&sl=en&tl=zh-CN",reqHook:defaultRequestHook,resHook:defaultResponseHook}};// 内置翻译接口列表（带参数）
+const DEFAULT_API_LIST=OPT_ALL_TYPES.map(apiType=>({...defaultApiOpts[apiType],apiSlug:apiType,apiName:apiType,apiType}));const DEFAULT_API_TYPE=OPT_TRANS_MICROSOFT;const DEFAULT_API_SETTING=DEFAULT_API_LIST[DEFAULT_API_TYPE];
 ;// CONCATENATED MODULE: ./src/config/rules.js
-const GLOBAL_KEY="*";const REMAIN_KEY="-";const SHADOW_KEY=">>>";const DEFAULT_SELECTOR=":is(li, p, h1, h2, h3, h4, h5, h6, dd, blockquote, .kiss-p)";const DEFAULT_KEEP_SELECTOR="code, img, svg, pre";const DEFAULT_RULE={pattern:"",// 匹配网址
+const GLOBAL_KEY="*";const REMAIN_KEY="-";const SHADOW_KEY=">>>";const DEFAULT_COLOR="#209CEE";// 默认高亮背景色/线条颜色
+const DEFAULT_TRANS_TAG="font";const DEFAULT_SELECT_STYLE="-webkit-line-clamp: unset; max-height: none; height: auto;";const OPT_STYLE_NONE="style_none";// 无
+const OPT_STYLE_LINE="under_line";// 下划线
+const OPT_STYLE_DOTLINE="dot_line";// 点状线
+const OPT_STYLE_DASHLINE="dash_line";// 虚线
+const OPT_STYLE_DASHBOX="dash_box";// 虚线框
+const OPT_STYLE_WAVYLINE="wavy_line";// 波浪线
+const OPT_STYLE_FUZZY="fuzzy";// 模糊
+const OPT_STYLE_HIGHLIGHT="highlight";// 高亮
+const OPT_STYLE_BLOCKQUOTE="blockquote";// 引用
+const OPT_STYLE_GRADIENT="gradient";// 渐变
+const OPT_STYLE_BLINK="blink";// 闪现
+const OPT_STYLE_GLOW="glow";// 发光
+const OPT_STYLE_DIY="diy_style";// 自定义样式
+const OPT_STYLE_ALL=[OPT_STYLE_NONE,OPT_STYLE_LINE,OPT_STYLE_DOTLINE,OPT_STYLE_DASHLINE,OPT_STYLE_WAVYLINE,OPT_STYLE_DASHBOX,OPT_STYLE_FUZZY,OPT_STYLE_HIGHLIGHT,OPT_STYLE_BLOCKQUOTE,OPT_STYLE_GRADIENT,OPT_STYLE_BLINK,OPT_STYLE_GLOW,OPT_STYLE_DIY];const OPT_STYLE_USE_COLOR=[OPT_STYLE_LINE,OPT_STYLE_DOTLINE,OPT_STYLE_DASHLINE,OPT_STYLE_DASHBOX,OPT_STYLE_WAVYLINE,OPT_STYLE_HIGHLIGHT,OPT_STYLE_BLOCKQUOTE];const OPT_TIMING_PAGESCROLL="mk_pagescroll";// 滚动加载翻译
+const OPT_TIMING_PAGEOPEN="mk_pageopen";// 直接翻译到底
+const OPT_TIMING_MOUSEOVER="mk_mouseover";const OPT_TIMING_CONTROL="mk_ctrlKey";const OPT_TIMING_SHIFT="mk_shiftKey";const OPT_TIMING_ALT="mk_altKey";const OPT_TIMING_ALL=[OPT_TIMING_PAGESCROLL,OPT_TIMING_PAGEOPEN,OPT_TIMING_MOUSEOVER,OPT_TIMING_CONTROL,OPT_TIMING_SHIFT,OPT_TIMING_ALT];const DEFAULT_DIY_STYLE="color: #333;\nbackground: linear-gradient(\n  45deg,\n  LightGreen 20%,\n  LightPink 20% 40%,\n  LightSalmon 40% 60%,\n  LightSeaGreen 60% 80%,\n  LightSkyBlue 80%\n);\n&:hover {\n  color: #111;\n};";const DEFAULT_SELECTOR="h1, h2, h3, h4, h5, h6, li, p, dd, blockquote, figcaption, label, legend";const DEFAULT_IGNORE_SELECTOR="aside, button, footer, form, pre, mark, nav";const DEFAULT_KEEP_SELECTOR="a:has(code)";const DEFAULT_RULE={pattern:"",// 匹配网址
 selector:"",// 选择器
 keepSelector:"",// 保留元素选择器
 terms:"",// 专业术语
-translator:GLOBAL_KEY,// 翻译服务
+aiTerms:"",// AI专业术语
+apiSlug:GLOBAL_KEY,// 翻译服务
 fromLang:GLOBAL_KEY,// 源语言
 toLang:GLOBAL_KEY,// 目标语言
 textStyle:GLOBAL_KEY,// 译文样式
@@ -30763,118 +31799,161 @@ bgColor:"",// 译文颜色
 textDiyStyle:"",// 自定义译文样式
 selectStyle:"",// 选择器节点样式
 parentStyle:"",// 选择器父节点样式
+grandStyle:"",// 选择器父节点样式
 injectJs:"",// 注入JS
 injectCss:"",// 注入CSS
 transOnly:GLOBAL_KEY,// 是否仅显示译文
-transTiming:GLOBAL_KEY,// 翻译时机/鼠标悬停翻译
+// transTiming: GLOBAL_KEY, // 翻译时机/鼠标悬停翻译  (暂时作废)
 transTag:GLOBAL_KEY,// 译文元素标签
 transTitle:GLOBAL_KEY,// 是否同时翻译页面标题
-transSelected:GLOBAL_KEY,// 是否启用划词翻译
-detectRemote:GLOBAL_KEY,// 是否使用远程语言检测
-skipLangs:[],// 不翻译的语言
-fixerSelector:"",// 修复函数选择器
-fixerFunc:GLOBAL_KEY,// 修复函数
+// transSelected: GLOBAL_KEY, // 是否启用划词翻译 (移回setting)
+// detectRemote: GLOBAL_KEY, // 是否使用远程语言检测 (移回setting)
+// skipLangs: [], // 不翻译的语言 (移回setting)
+// fixerSelector: "", // 修复函数选择器 (暂时作废)
+// fixerFunc: GLOBAL_KEY, // 修复函数 (暂时作废)
 transStartHook:"",// 钩子函数
 transEndHook:"",// 钩子函数
-transRemoveHook:""// 钩子函数
-};const DEFAULT_DIY_STYLE="color: #666;\nbackground: linear-gradient(\n  45deg,\n  LightGreen 20%,\n  LightPink 20% 40%,\n  LightSalmon 40% 60%,\n  LightSeaGreen 60% 80%,\n  LightSkyBlue 80%\n);\n&:hover {\n  color: #333;\n};";const DEFAULT_OW_RULE={translator:REMAIN_KEY,fromLang:REMAIN_KEY,toLang:REMAIN_KEY,textStyle:REMAIN_KEY,transOpen:REMAIN_KEY,bgColor:"",textDiyStyle:DEFAULT_DIY_STYLE};const RULES_MAP={"www.google.com/search":{selector:"h3, .IsZvec, .VwiC3b"},"news.google.com":{selector:"[data-n-tid], ".concat(DEFAULT_SELECTOR)},"www.foxnews.com":{selector:"h1, h2, .title, .sidebar [data-type=\"Title\"], .article-content ".concat(DEFAULT_SELECTOR,"; [data-spotim-module=\"conversation\"]>div >>> [data-spot-im-class=\"message-text\"] p,  [data-spot-im-class=\"message-text\"]")},"bearblog.dev, www.theverge.com, www.tampermonkey.net/documentation.php":{selector:"".concat(DEFAULT_SELECTOR)},"themessenger.com":{selector:".leading-tight, .leading-tighter, .my-2 p, .font-body p, article ".concat(DEFAULT_SELECTOR)},"www.telegraph.co.uk, go.dev/doc/":{selector:"article ".concat(DEFAULT_SELECTOR)},"www.theguardian.com":{selector:".show-underline, .dcr-hup5wm div, .dcr-7vl6y8 div, .dcr-12evv1c, figcaption, article ".concat(DEFAULT_SELECTOR,", [data-cy=\"mostviewed-footer\"] h4")},"www.semafor.com":{selector:"".concat(DEFAULT_SELECTOR,", .styles_intro__IYj__, [class*=\"styles_description\"]")},"www.noemamag.com":{selector:".splash__title, .single-card__title, .single-card__type, .single-card__topic, .highlighted-content__title, .single-card__author, article ".concat(DEFAULT_SELECTOR,", .quote__text, .wp-caption-text div")},"restofworld.org":{selector:"".concat(DEFAULT_SELECTOR,", .recirc-story__headline, .recirc-story__dek")},"www.axios.com":{selector:".h7, ".concat(DEFAULT_SELECTOR)},"www.newyorker.com":{selector:".summary-item__hed, .summary-item__dek, .summary-collection-grid__dek, .dqtvfu, .rubric__link, .caption, article ".concat(DEFAULT_SELECTOR,", .HEhan ").concat(DEFAULT_SELECTOR,", .ContributorBioBio-fBolsO, .BaseText-ewhhUZ")},"time.com":{selector:"h1, h3, .summary, .video-title, #article-body ".concat(DEFAULT_SELECTOR,", .image-wrap-container .credit.body-caption, .media-heading")},"www.dw.com":{selector:".ts-teaser-title a, .news-title a, .title a, .teaser-description a, .hbudab h3, .hbudab p, figcaption ,article ".concat(DEFAULT_SELECTOR)},"www.bbc.com":{selector:"h1, h2, .media__link, .media__summary, article ".concat(DEFAULT_SELECTOR,", .ssrcss-y7krbn-Stack, .ssrcss-17zglt8-PromoHeadline, .ssrcss-18cjaf3-Headline, .gs-c-promo-heading__title, .gs-c-promo-summary, .media__content h3, .article__intro, .lx-c-summary-points>li")},"www.chinadaily.com.cn":{selector:"h1, .tMain [shape=\"rect\"], .cMain [shape=\"rect\"], .photo_art [shape=\"rect\"], .mai_r [shape=\"rect\"], .lisBox li, #Content ".concat(DEFAULT_SELECTOR)},"www.facebook.com":{selector:"[role=\"main\"] [dir=\"auto\"]"},"www.reddit.com, new.reddit.com, sh.reddit.com":{selector:":is(#AppRouter-main-content, #overlayScrollContainer) :is([class^=tbIA],[class^=_1zP],[class^=ULWj],[class^=_2Jj], [class^=_334],[class^=_2Gr],[class^=_7T4],[class^=_1WO], ".concat(DEFAULT_SELECTOR,"); [id^=\"post-title\"], :is([slot=\"text-body\"], [slot=\"comment\"]) ").concat(DEFAULT_SELECTOR,", recent-posts h3, aside :is(span:has(>h2), p); shreddit-subreddit-header >>> :is(#title, #description)")},"www.quora.com":{selector:".qu-wordBreak--break-word"},"edition.cnn.com":{selector:".container__title, .container__headline, .headline__text, .image__caption, [data-type=\"Title\"], .article__content ".concat(DEFAULT_SELECTOR)},"www.reuters.com":{selector:"#main-content [data-testid=\"Heading\"], #main-content [data-testid=\"Body\"], .article-body__content__17Yit ".concat(DEFAULT_SELECTOR)},"www.bloomberg.com":{selector:"[data-component=\"headline\"], [data-component=\"related-item-headline\"], [data-component=\"title\"], article ".concat(DEFAULT_SELECTOR)},"deno.land, docs.github.com":{selector:"main ".concat(DEFAULT_SELECTOR),keepSelector:DEFAULT_KEEP_SELECTOR},"doc.rust-lang.org":{selector:".content ".concat(DEFAULT_SELECTOR),keepSelector:DEFAULT_KEEP_SELECTOR},"www.indiehackers.com":{selector:"h1, h3, .content ".concat(DEFAULT_SELECTOR,", .feed-item__title-link")},"platform.openai.com/docs":{selector:".docs-body ".concat(DEFAULT_SELECTOR),keepSelector:DEFAULT_KEEP_SELECTOR},"en.wikipedia.org":{selector:"h1, .mw-parser-output ".concat(DEFAULT_SELECTOR),keepSelector:".mwe-math-element"},"stackoverflow.com, serverfault.com, superuser.com, stackexchange.com, askubuntu.com, stackapps.com, mathoverflow.net":{selector:".s-prose ".concat(DEFAULT_SELECTOR,", .comment-copy, .question-hyperlink, .s-post-summary--content-title, .s-post-summary--content-excerpt"),keepSelector:"".concat(DEFAULT_KEEP_SELECTOR,", .math-container")},"www.npmjs.com/package, developer.chrome.com/docs, medium.com, react.dev, create-react-app.dev, pytorch.org":{selector:"article ".concat(DEFAULT_SELECTOR)},"news.ycombinator.com":{selector:".title, p",fixerSelector:".toptext, .commtext",fixerFunc:FIXER_BR},"github.com":{selector:".markdown-body ".concat(DEFAULT_SELECTOR,", .repo-description p, .Layout-sidebar .f4, .container-lg .py-4 .f5, .container-lg .my-4 .f5, .Box-row .pr-4, .Box-row article .mt-1, [itemprop=\"description\"], .markdown-title, bdi, .ws-pre-wrap, .status-meta, span.status-meta, .col-10.color-fg-muted, .TimelineItem-body, .pinned-item-list-item-content .color-fg-muted, .markdown-body td, .markdown-body th"),keepSelector:DEFAULT_KEEP_SELECTOR},"twitter.com":{selector:"[data-testid=\"tweetText\"], [data-testid=\"birdwatch-pivot\"]>div.css-1rynq56",keepSelector:"img, a, .r-18u37iz, .css-175oi2r"},"m.youtube.com":{selector:".slim-video-information-title .yt-core-attributed-string, .media-item-headline .yt-core-attributed-string, .comment-text .yt-core-attributed-string, .typography-body-2b .yt-core-attributed-string, #ytp-caption-window-container .ytp-caption-segment",selectStyle:"-webkit-line-clamp: unset; max-height: none; height: auto;",parentStyle:"-webkit-line-clamp: unset; max-height: none; height: auto;",keepSelector:"img, #content-text>a"},"www.youtube.com":{selector:"h1, #video-title, #content-text, #title, yt-attributed-string>span>span, #ytp-caption-window-container .ytp-caption-segment",selectStyle:"-webkit-line-clamp: unset; max-height: none; height: auto;",parentStyle:"-webkit-line-clamp: unset; max-height: none; height: auto;",keepSelector:"img, #content-text>a"},"bard.google.com":{selector:".query-content ".concat(DEFAULT_SELECTOR,", message-content ").concat(DEFAULT_SELECTOR)},"www.bing.com, copilot.microsoft.com":{selector:".b_algoSlug, .rwrl_padref; .cib-serp-main >>> .ac-textBlock ".concat(DEFAULT_SELECTOR,", .text-message-content div")},"www.phoronix.com":{selector:"article ".concat(DEFAULT_SELECTOR),fixerSelector:".content",fixerFunc:FIXER_BR},"wx2.qq.com":{selector:".js_message_plain"},"app.slack.com/client/":{selector:".p-rich_text_section, .c-message_attachment__text, .p-rich_text_list li"},"discord.com/channels/":{selector:"div[class^=message], div[class^=headerText], div[class^=name_], section[aria-label='Search Results'] div[id^=message-content], div[id^=message]",keepSelector:"li[class^='card'] div[class^='message'], [class^='embedFieldValue'], [data-list-item-id^='forum-channel-list'] div[class^='headerText']"},"t.me/s/":{selector:".js-message_text ".concat(DEFAULT_SELECTOR),fixerSelector:".tgme_widget_message_text",fixerFunc:FIXER_BR},"web.telegram.org/k":{selector:"div.kiss-p",keepSelector:"div[class^=time], .peer-title, .document-wrapper, .message.spoilers-container custom-emoji-element, reactions-element",fixerSelector:".message",fixerFunc:FIXER_BN_DIV},"web.telegram.org/a":{selector:".text-content > .kiss-p",keepSelector:".Reactions, .time, .peer-title, .document-wrapper, .message.spoilers-container custom-emoji-element",fixerSelector:".text-content",fixerFunc:FIXER_BR_DIV},"www.instagram.com/":{selector:"h1, article span[dir=auto] > span[dir=auto], ._ab1y"},"www.instagram.com/p/,www.instagram.com/reels/":{selector:"h1, div[class='x9f619 xjbqb8w x78zum5 x168nmei x13lgxp2 x5pf9jr xo71vjh x1uhb9sk x1plvlek xryxfnj x1c4vz4f x2lah0s xdt5ytf xqjyukv x1cy8zhl x1oa3qoh x1nhvcw1'] > span[class='x1lliihq x1plvlek xryxfnj x1n2onr6 x193iq5w xeuugli x1fj9vlw x13faqbe x1vvkbs x1s928wv xhkezso x1gmr53x x1cpjm7i x1fgarty x1943h6x x1i0vuye xvs91rp xo1l8bm x5n08af x10wh9bi x1wdrske x8viiok x18hxmgj'], span[class='x193iq5w xeuugli x1fj9vlw x13faqbe x1vvkbs xt0psk2 x1i0vuye xvs91rp xo1l8bm x5n08af x10wh9bi x1wdrske x8viiok x18hxmgj']"},"mail.google.com":{selector:".a3s.aiL ".concat(DEFAULT_SELECTOR,", span[data-thread-id]"),fixerSelector:".a3s.aiL",fixerFunc:FIXER_BR},"web.whatsapp.com":{selector:".copyable-text > span"},"chat.openai.com":{selector:"div[data-message-author-role] > div ".concat(DEFAULT_SELECTOR),fixerSelector:"div[data-message-author-role='user'] > div",fixerFunc:FIXER_BN},"forum.ru-board.com":{selector:".tit, .dats, .kiss-p, .lgf ".concat(DEFAULT_SELECTOR),fixerSelector:"span.post",fixerFunc:FIXER_BR},"education.github.com":{selector:"".concat(DEFAULT_SELECTOR,", a, summary, span.Button-content")},"blogs.windows.com":{selector:"".concat(DEFAULT_SELECTOR,", .c-uhf-nav-link, figcaption"),fixerSelector:".t-content>div>ul>li",fixerFunc:FIXER_BR},"developer.apple.com/documentation/":{selector:"#main ".concat(DEFAULT_SELECTOR,", #main .abstract .content, #main .abstract.content, #main .link span"),keepSelector:DEFAULT_KEEP_SELECTOR},"greasyfork.org":{selector:"h2, .script-link, .script-description, #additional-info ".concat(DEFAULT_SELECTOR)},"www.fmkorea.com":{selector:"#container ".concat(DEFAULT_SELECTOR)},"forum.arduino.cc":{selector:".top-row>.title, .featured-topic>.title, .link-top-line>.title, .category-description, .topic-excerpt, .fancy-title, .cooked ".concat(DEFAULT_SELECTOR)},"docs.arduino.cc":{selector:"[class^=\"tutorial-module--left\"] ".concat(DEFAULT_SELECTOR)},"www.historydefined.net":{selector:".wp-element-caption, ".concat(DEFAULT_SELECTOR)},"gobyexample.com":{selector:".docs p",keepSelector:"code"},"go.dev/tour":{selector:"#left-side ".concat(DEFAULT_SELECTOR),keepSelector:"code, img, svg >>> code"},"pkg.go.dev":{selector:".Documentation-content ".concat(DEFAULT_SELECTOR),keepSelector:"".concat(DEFAULT_KEEP_SELECTOR,", a, span")},"docs.rs":{selector:".docblock ".concat(DEFAULT_SELECTOR,", .docblock-short"),keepSelector:"code >>> code"},"randomnerdtutorials.com":{selector:"article ".concat(DEFAULT_SELECTOR)},"notebooks.githubusercontent.com/view/ipynb":{selector:"#notebook-container ".concat(DEFAULT_SELECTOR),keepSelector:DEFAULT_KEEP_SELECTOR},"developers.cloudflare.com":{selector:"article ".concat(DEFAULT_SELECTOR,", .WorkerStarter--description"),keepSelector:"a[rel='noopener'], code"},"ubuntuforums.org":{fixerSelector:".postcontent",fixerFunc:FIXER_BR},"play.google.com/store/apps/details":{fixerSelector:"[data-g-id=\"description\"]",fixerFunc:FIXER_BR},"news.yahoo.co.jp/articles/":{fixerSelector:".sc-cTsKDU",fixerFunc:FIXER_BN},"chromereleases.googleblog.com":{fixerSelector:".post-content, .post-content > span, li > span",fixerFunc:FIXER_BR}};const rules_BUILTIN_RULES=Object.entries(RULES_MAP).sort((a,b)=>a[0].localeCompare(b[0])).map(_ref=>{let[pattern,rule]=_ref;return{...DEFAULT_RULE,...rule,pattern};});
-;// CONCATENATED MODULE: ./src/config/app.js
-const APP_NAME="KISS Translator".trim().split(/\s+/).join("-");const APP_LCNAME=APP_NAME.toLowerCase();
-;// CONCATENATED MODULE: ./src/config/i18n.js
-const UI_LANGS=(/* unused pure expression or super */ null && ([["en","English"],["zh","中文"]]));const customApiLangs="[\"en\", \"English - English\"],\n[\"zh-CN\", \"Simplified Chinese - \u7B80\u4F53\u4E2D\u6587\"],\n[\"zh-TW\", \"Traditional Chinese - \u7E41\u9AD4\u4E2D\u6587\"],\n[\"ar\", \"Arabic - \u0627\u0644\u0639\u0631\u0628\u064A\u0629\"],\n[\"bg\", \"Bulgarian - \u0411\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438\"],\n[\"ca\", \"Catalan - Catal\xE0\"],\n[\"hr\", \"Croatian - Hrvatski\"],\n[\"cs\", \"Czech - \u010Ce\u0161tina\"],\n[\"da\", \"Danish - Dansk\"],\n[\"nl\", \"Dutch - Nederlands\"],\n[\"fi\", \"Finnish - Suomi\"],\n[\"fr\", \"French - Fran\xE7ais\"],\n[\"de\", \"German - Deutsch\"],\n[\"el\", \"Greek - \u0395\u03BB\u03BB\u03B7\u03BD\u03B9\u03BA\u03AC\"],\n[\"hi\", \"Hindi - \u0939\u093F\u0928\u094D\u0926\u0940\"],\n[\"hu\", \"Hungarian - Magyar\"],\n[\"id\", \"Indonesian - Indonesia\"],\n[\"it\", \"Italian - Italiano\"],\n[\"ja\", \"Japanese - \u65E5\u672C\u8A9E\"],\n[\"ko\", \"Korean - \uD55C\uAD6D\uC5B4\"],\n[\"ms\", \"Malay - Melayu\"],\n[\"mt\", \"Maltese - Malti\"],\n[\"nb\", \"Norwegian - Norsk Bokm\xE5l\"],\n[\"pl\", \"Polish - Polski\"],\n[\"pt\", \"Portuguese - Portugu\xEAs\"],\n[\"ro\", \"Romanian - Rom\xE2n\u0103\"],\n[\"ru\", \"Russian - \u0420\u0443\u0441\u0441\u043A\u0438\u0439\"],\n[\"sk\", \"Slovak - Sloven\u010Dina\"],\n[\"sl\", \"Slovenian - Sloven\u0161\u010Dina\"],\n[\"es\", \"Spanish - Espa\xF1ol\"],\n[\"sv\", \"Swedish - Svenska\"],\n[\"ta\", \"Tamil - \u0BA4\u0BAE\u0BBF\u0BB4\u0BCD\"],\n[\"te\", \"Telugu - \u0C24\u0C46\u0C32\u0C41\u0C17\u0C41\"],\n[\"th\", \"Thai - \u0E44\u0E17\u0E22\"],\n[\"tr\", \"Turkish - T\xFCrk\xE7e\"],\n[\"uk\", \"Ukrainian - \u0423\u043A\u0440\u0430\u0457\u043D\u0441\u044C\u043A\u0430\"],\n[\"vi\", \"Vietnamese - Ti\u1EBFng Vi\u1EC7t\"],\n";const customApiHelpZH="// \u8BF7\u6C42\u6570\u636E\u9ED8\u8BA4\u683C\u5F0F\n{\n  \"url\": \"{{url}}\",\n  \"method\": \"POST\",\n  \"headers\": {\n    \"Content-type\": \"application/json\",\n    \"Authorization\": \"Bearer {{key}}\"\n  },\n  \"body\": {\n    \"text\": \"{{text}}\", // \u5F85\u7FFB\u8BD1\u6587\u5B57\n    \"from\": \"{{from}}\", // \u6587\u5B57\u7684\u8BED\u8A00\uFF08\u53EF\u80FD\u4E3A\u7A7A\uFF09\n    \"to\": \"{{to}}\",     // \u76EE\u6807\u8BED\u8A00\n  },\n}\n\n\n// \u8FD4\u56DE\u6570\u636E\u9ED8\u8BA4\u683C\u5F0F\n{\n  text: \"\", // \u7FFB\u8BD1\u540E\u7684\u6587\u5B57\n  from: \"\", // \u8BC6\u522B\u7684\u6E90\u8BED\u8A00\n  to: \"\",   // \u76EE\u6807\u8BED\u8A00\uFF08\u53EF\u9009\uFF09\n}\n\n\n// Hook \u8303\u4F8B\n// URL\nhttps://translate.googleapis.com/translate_a/single?client=gtx&dj=1&dt=t&ie=UTF-8&q={{text}}&sl=en&tl=zh-CN\n\n// Request Hook\n(text, from, to, url, key) => [url, {\n  headers: {\n      \"Content-type\": \"application/json\",\n  },\n  method: \"GET\",\n  body: null,\n}]\n\n// Response Hook\n// \u5176\u4E2D\u8FD4\u56DE\u6570\u7EC4\u7B2C\u4E00\u4E2A\u503C\u8868\u793A\u8BD1\u6587\u5B57\u7B26\u4E32\uFF0C\u7B2C\u4E8C\u4E2A\u503C\u4E3A\u5E03\u5C14\u503C\uFF0C\u8868\u793A\u539F\u6587\u8BED\u8A00\u4E0E\u76EE\u6807\u8BED\u8A00\u662F\u5426\u76F8\u540C\n(res, text, from, to) => [res.sentences.map((item) => item.trans).join(\" \"), to === res.src]\n\n\n// \u652F\u6301\u7684\u8BED\u8A00\u4EE3\u7801\u5982\u4E0B\n".concat(customApiLangs,"\n");const customApiHelpEN="// Default request\n{\n  \"url\": \"{{url}}\",\n  \"method\": \"POST\",\n  \"headers\": {\n    \"Content-type\": \"application/json\",\n    \"Authorization\": \"Bearer {{key}}\"\n  },\n  \"body\": {\n    \"text\": \"{{text}}\", // Text to be translated\n    \"from\": \"{{from}}\", // The language of the text (may be empty)\n    \"to\": \"{{to}}\",     // Target language\n  },\n}\n\n\n// Default response\n{\n  text: \"\", // translated text\n  from: \"\", // Recognized source language\n  to: \"\",   // Target language (optional)\n}\n\n\n/// Hook Example\n// URL\nhttps://translate.googleapis.com/translate_a/single?client=gtx&dj=1&dt=t&ie=UTF-8&q={{text}}&sl=en&tl=zh-CN\n\n// Request Hook\n(text, from, to, url, key) => [url, {\n  headers: {\n      \"Content-type\": \"application/json\",\n  },\n  method: \"GET\",\n  body: null,\n}]\n\n// Response Hook\n// In the returned array, the first value is the translated string, while the second value is a boolean\n// that indicates whether the source language is the same as the target language.\n(res, text, from, to) => [res.sentences.map((item) => item.trans).join(\" \"), to === res.src]\n\n\n// The supported language codes are as follows\n".concat(customApiLangs,"\n");const I18N={app_name:{zh:"\u7B80\u7EA6\u7FFB\u8BD1",en:"KISS Translator"},translate:{zh:"\u7FFB\u8BD1",en:"Translate"},custom_api_help:{zh:customApiHelpZH,en:customApiHelpEN},translate_alt:{zh:"\u7FFB\u8BD1",en:"Translate"},basic_setting:{zh:"\u57FA\u672C\u8BBE\u7F6E",en:"Basic Setting"},rules_setting:{zh:"\u89C4\u5219\u8BBE\u7F6E",en:"Rules Setting"},apis_setting:{zh:"\u63A5\u53E3\u8BBE\u7F6E",en:"Apis Setting"},sync_setting:{zh:"\u540C\u6B65\u8BBE\u7F6E",en:"Sync Setting"},patch_setting:{zh:"\u8865\u4E01\u8BBE\u7F6E",en:"Patch Setting"},patch_setting_help:{zh:"\u9488\u5BF9\u4E00\u4E9B\u7279\u6B8A\u7F51\u7AD9\u7684\u4FEE\u6B63\u811A\u672C\uFF0C\u4EE5\u4FBF\u7FFB\u8BD1\u8F6F\u4EF6\u5F97\u5230\u66F4\u597D\u7684\u5C55\u793A\u6548\u679C\u3002",en:"Corrected scripts for some special websites so that the translation software can get better display results."},inject_webfix:{zh:"\u6CE8\u5165\u4FEE\u590D\u8865\u4E01",en:"Inject Webfix"},about:{zh:"\u5173\u4E8E",en:"About"},about_md:{zh:"README.md",en:"README.en.md"},about_md_local:{zh:"\u8BF7 [\u70B9\u51FB\u8FD9\u91CC](".concat("https://github.com/fishjar/kiss-translator",") \u67E5\u770B\u8BE6\u60C5\u3002"),en:"Please [click here](".concat("https://github.com/fishjar/kiss-translator",") for details.")},ui_lang:{zh:"\u754C\u9762\u8BED\u8A00",en:"Interface Language"},fetch_limit:{zh:"\u6700\u5927\u5E76\u53D1\u8BF7\u6C42\u6570\u91CF (1-100)",en:"Maximum Number Of Concurrent Requests (1-100)"},if_think:{zh:"\u542F\u7528\u6216\u7981\u7528\u6A21\u578B\u7684\u6DF1\u5EA6\u601D\u8003\u80FD\u529B",en:"Enable or disable the model\u2019s thinking behavior "},think:{zh:"\u542F\u7528\u6DF1\u5EA6\u601D\u8003",en:"enable thinking"},nothink:{zh:"\u7981\u7528\u6DF1\u5EA6\u601D\u8003",en:"disable thinking"},think_ignore:{zh:"\u5FFD\u7565\u4EE5\u4E0B\u6A21\u578B\u7684<think>\u8F93\u51FA,\u9017\u53F7(,)\u5206\u5272,\u5F53\u6A21\u578B\u652F\u6301\u601D\u8003\u4F46ollama\u4E0D\u652F\u6301\u65F6\u9700\u8981\u586B\u5199\u672C\u53C2\u6570",en:"Ignore the <think> block for the following models, comma (,) separated"},fetch_interval:{zh:"\u6BCF\u6B21\u8BF7\u6C42\u95F4\u9694\u65F6\u95F4 (0-5000ms)",en:"Time Between Requests (0-5000ms)"},translate_interval:{zh:"\u91CD\u65B0\u7FFB\u8BD1\u95F4\u9694\u65F6\u95F4 (100-5000ms)",en:"Retranslation Interval (100-5000ms)"},http_timeout:{zh:"\u8BF7\u6C42\u8D85\u65F6\u65F6\u95F4 (5000-30000ms)",en:"Request Timeout Time (5000-30000ms)"},min_translate_length:{zh:"\u6700\u5C0F\u7FFB\u8BD1\u5B57\u7B26\u6570 (1-100)",en:"Minimum number Of Translated Characters (1-100)"},max_translate_length:{zh:"\u6700\u5927\u7FFB\u8BD1\u5B57\u7B26\u6570 (100-10000)",en:"Maximum number Of Translated Characters (100-10000)"},num_of_newline_characters:{zh:"\u6362\u884C\u5B57\u7B26\u6570 (1-1000)",en:"Number of Newline Characters (1-1000)"},translate_service:{zh:"\u7FFB\u8BD1\u670D\u52A1",en:"Translate Service"},translate_timing:{zh:"\u7FFB\u8BD1\u65F6\u673A",en:"Translate Timing"},mk_pagescroll:{zh:"\u6EDA\u52A8\u52A0\u8F7D\u7FFB\u8BD1\uFF08\u63A8\u8350\uFF09",en:"Rolling Loading (Suggested)"},mk_pageopen:{zh:"\u9875\u9762\u6253\u5F00\u5168\u90E8\u7FFB\u8BD1",en:"Page Open"},mk_mouseover:{zh:"\u9F20\u6807\u60AC\u505C\u7FFB\u8BD1",en:"Mouseover"},mk_ctrlKey:{zh:"Control + \u9F20\u6807\u60AC\u505C",en:"Control + Mouseover"},mk_shiftKey:{zh:"Shift + \u9F20\u6807\u60AC\u505C",en:"Shift + Mouseover"},mk_altKey:{zh:"Alt + \u9F20\u6807\u60AC\u505C",en:"Alt + Mouseover"},from_lang:{zh:"\u539F\u6587\u8BED\u8A00",en:"Source Language"},to_lang:{zh:"\u76EE\u6807\u8BED\u8A00",en:"Target Language"},to_lang2:{zh:"\u7B2C\u4E8C\u76EE\u6807\u8BED\u8A00",en:"Target Language 2"},to_lang2_helper:{zh:"\u8BBE\u5B9A\u540E\uFF0C\u4E0E\u76EE\u6807\u8BED\u8A00\u4EA7\u751F\u4E92\u8BD1\u6548\u679C\uFF0C\u4F46\u4F9D\u8D56\u8FDC\u7A0B\u8BED\u8A00\u8BC6\u522B\u3002",en:"After setting, it will produce mutual translation effect with the target language, but it relies on remote language recognition."},text_style:{zh:"\u8BD1\u6587\u6837\u5F0F",en:"Text Style"},text_style_alt:{zh:"\u8BD1\u6587\u6837\u5F0F",en:"Text Style"},bg_color:{zh:"\u6837\u5F0F\u989C\u8272",en:"Style Color"},remain_unchanged:{zh:"\u4FDD\u7559\u4E0D\u53D8",en:"Remain Unchanged"},google_api:{zh:"\u8C37\u6B4C\u7FFB\u8BD1\u63A5\u53E3",en:"Google Translate API"},default_selector:{zh:"\u9ED8\u8BA4\u9009\u62E9\u5668",en:"Default selector"},selector_rules:{zh:"\u9009\u62E9\u5668\u89C4\u5219",en:"Selector Rules"},save:{zh:"\u4FDD\u5B58",en:"Save"},edit:{zh:"\u7F16\u8F91",en:"Edit"},cancel:{zh:"\u53D6\u6D88",en:"Cancel"},delete:{zh:"\u5220\u9664",en:"Delete"},reset:{zh:"\u91CD\u7F6E",en:"Reset"},add:{zh:"\u6DFB\u52A0",en:"Add"},inject_rules:{zh:"\u6CE8\u5165\u8BA2\u9605\u89C4\u5219",en:"Inject Subscribe Rules"},personal_rules:{zh:"\u4E2A\u4EBA\u89C4\u5219",en:"Rules"},subscribe_rules:{zh:"\u8BA2\u9605\u89C4\u5219",en:"Subscribe"},overwrite_subscribe_rules:{zh:"\u8986\u5199\u8BA2\u9605\u89C4\u5219",en:"Overwrite"},subscribe_url:{zh:"\u8BA2\u9605\u5730\u5740",en:"Subscribe URL"},rules_warn_1:{zh:"1\u3001\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u4E00\u76F4\u751F\u6548\uFF0C\u9009\u62E9\u201C\u6CE8\u5165\u8BA2\u9605\u89C4\u5219\u201D\u540E\uFF0C\u201C\u8BA2\u9605\u89C4\u5219\u201D\u624D\u4F1A\u751F\u6548\u3002",en:"1. The \"Personal Rules\" are always in effect. After selecting \"Inject Subscription Rules\", the \"Subscription Rules\" will take effect."},rules_warn_2:{zh:"2\u3001\u201C\u8BA2\u9605\u89C4\u5219\u201D\u7684\u6CE8\u5165\u4F4D\u7F6E\u662F\u5012\u6570\u7B2C\u4E8C\u7684\u4F4D\u7F6E\uFF0C\u56E0\u6B64\u9664\u5168\u5C40\u89C4\u5219(*)\u5916\uFF0C\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u4F18\u5148\u7EA7\u6BD4\u201C\u8BA2\u9605\u89C4\u5219\u201D\u9AD8\uFF0C\u201C\u4E2A\u4EBA\u89C4\u5219\u201D\u586B\u5199\u540C\u6837\u7684\u7F51\u5740\u4F1A\u8986\u76D6\u201D\u8BA2\u9605\u89C4\u5219\u201C\u7684\u6761\u76EE\u3002",en:"2. The injection position of \"Subscription Rules\" is the penultimate position. Therefore, except for the global rules (*), the priority of \"Personal Rules\" is higher than that of \"Subscription Rules\". Filling in the same url in \"Personal Rules\" will overwrite \"Subscription Rules\" entry."},rules_warn_3:{zh:"3\u3001\u5173\u4E8E\u89C4\u5219\u586B\u5199\uFF1A\u8F93\u5165\u6846\u7559\u7A7A\u6216\u4E0B\u62C9\u6846\u9009\u201C*\u201D\u8868\u793A\u91C7\u7528\u5168\u5C40\u89C4\u5219\u3002",en:"3. Regarding filling in the rules: Leave the input box blank or select \"*\" in the drop-down box to use global rule."},sync_warn:{zh:"\u6D89\u53CA\u9690\u79C1\u6570\u636E\u7684\u540C\u6B65\u8BF7\u8C28\u614E\u9009\u62E9\u7B2C\u4E09\u65B9\u540C\u6B65\u670D\u52A1\uFF0C\u5EFA\u8BAE\u81EA\u884C\u642D\u5EFA kiss-worker \u6216 WebDAV \u670D\u52A1\u3002",en:"When synchronizing data that involves privacy, please be cautious about choosing third-party sync services. It is recommended to set up your own sync service using kiss-worker or WebDAV."},sync_warn_2:{zh:"\u5982\u679C\u670D\u52A1\u5668\u5B58\u5728\u5176\u4ED6\u5BA2\u6237\u7AEF\u540C\u6B65\u7684\u6570\u636E\uFF0C\u7B2C\u4E00\u6B21\u540C\u6B65\u5C06\u76F4\u63A5\u8986\u76D6\u672C\u5730\u914D\u7F6E\uFF0C\u540E\u9762\u5219\u6839\u636E\u4FEE\u6539\u65F6\u95F4\uFF0C\u65B0\u7684\u8986\u76D6\u65E7\u7684\u3002",en:"If the server has data synchronized by other clients, the first synchronization will directly overwrite the local configuration, and later, according to the modification time, the new one will overwrite the old one."},about_sync_api:{zh:"\u81EA\u5EFAkiss-wroker\u6570\u636E\u540C\u6B65\u670D\u52A1",en:"Self-hosting a Kiss-worker data sync service"},about_api:{zh:"\u6682\u672A\u5217\u51FA\u7684\u63A5\u53E3\uFF0C\u7406\u8BBA\u4E0A\u90FD\u53EF\u4EE5\u901A\u8FC7\u81EA\u5B9A\u4E49\u63A5\u53E3\u7684\u5F62\u5F0F\u652F\u6301\u3002",en:"Interfaces that have not yet been launched can theoretically be supported through custom interfaces."},about_api_proxy:{zh:"\u67E5\u770B\u81EA\u5EFA\u4E00\u4E2A\u7FFB\u8BD1\u63A5\u53E3\u4EE3\u7406",en:"Check out the self-built translation interface proxy"},style_none:{zh:"\u65E0",en:"None"},under_line:{zh:"\u4E0B\u5212\u76F4\u7EBF",en:"Underline"},dot_line:{zh:"\u4E0B\u5212\u70B9\u72B6\u7EBF",en:"Dotted Underline"},dash_line:{zh:"\u4E0B\u5212\u865A\u7EBF",en:"Dashed Underline"},wavy_line:{zh:"\u4E0B\u5212\u6CE2\u6D6A\u7EBF",en:"Wavy Underline"},fuzzy:{zh:"\u6A21\u7CCA",en:"Fuzzy"},highlight:{zh:"\u9AD8\u4EAE",en:"Highlight"},blockquote:{zh:"\u5F15\u7528",en:"Blockquote"},diy_style:{zh:"\u81EA\u5B9A\u4E49\u6837\u5F0F",en:"Custom Style"},diy_style_helper:{zh:"\u9075\u5FAA\u201CCSS\u201D\u7684\u8BED\u6CD5",en:"Follow the syntax of \"CSS\""},setting:{zh:"\u8BBE\u7F6E",en:"Setting"},pattern:{zh:"\u5339\u914D\u7F51\u5740",en:"URL pattern"},pattern_helper:{zh:"1\u3001\u652F\u6301\u661F\u53F7(*)\u901A\u914D\u7B26\u30022\u3001\u591A\u4E2AURL\u7528\u6362\u884C\u6216\u82F1\u6587\u9017\u53F7\u201C,\u201D\u5206\u9694\u3002",en:"1. Supports the asterisk (*) wildcard character. 2. Separate multiple URLs with newlines or English commas \",\"."},selector_helper:{zh:"1\u3001\u9075\u5FAACSS\u9009\u62E9\u5668\u8BED\u6CD5\u30022\u3001\u591A\u4E2ACSS\u9009\u62E9\u5668\u4E4B\u95F4\u7528\u201C;\u201D\u9694\u5F00\u30023\u3001\u201Cshadow root\u201D\u9009\u62E9\u5668\u548C\u5185\u90E8\u9009\u62E9\u5668\u7528\u201C>>>\u201D\u9694\u5F00\u3002",en:"1. Follow CSS selector syntax. 2. Separate multiple CSS selectors with \";\". 3. The \"shadow root\" selector and the internal selector are separated by \">>>\"."},translate_switch:{zh:"\u5F00\u542F\u7FFB\u8BD1",en:"Translate Switch"},default_enabled:{zh:"\u9ED8\u8BA4\u5F00\u542F",en:"Enabled"},default_disabled:{zh:"\u9ED8\u8BA4\u5173\u95ED",en:"Disabled"},selector:{zh:"\u9009\u62E9\u5668",en:"Selector"},keep_selector:{zh:"\u4FDD\u7559\u5143\u7D20\u9009\u62E9\u5668",en:"Keep unchanged selector"},keep_selector_helper:{zh:"1\u3001\u9075\u5FAACSS\u9009\u62E9\u5668\u8BED\u6CD5\u3002",en:"1. Follow CSS selector syntax."},terms:{zh:"\u4E13\u4E1A\u672F\u8BED",en:"Terms"},terms_helper:{zh:"1\u3001\u652F\u6301\u6B63\u5219\u8868\u8FBE\u5F0F\u5339\u914D\uFF0C\u65E0\u9700\u659C\u6746\uFF0C\u4E0D\u652F\u6301\u4FEE\u9970\u7B26\u30022\u3001\u591A\u6761\u672F\u8BED\u7528\u6362\u884C\u6216\u5206\u53F7\u201C;\u201D\u9694\u5F00\u30023\u3001\u672F\u8BED\u548C\u8BD1\u6587\u7528\u82F1\u6587\u9017\u53F7\u201C,\u201D\u9694\u5F00\u30024\u3001\u6CA1\u6709\u8BD1\u6587\u89C6\u4E3A\u4E0D\u7FFB\u8BD1\u672F\u8BED\u3002",en:"1. Supports regular expression matching, no slash required, and no modifiers are supported. 2. Separate multiple terms with newlines or semicolons \";\". 3. Terms and translations are separated by English commas \",\". 4. If there is no translation, the term will be deemed not to be translated."},selector_style:{zh:"\u9009\u62E9\u5668\u8282\u70B9\u6837\u5F0F",en:"Selector Style"},selector_style_helper:{zh:"\u5F00\u542F\u7FFB\u8BD1\u65F6\u6CE8\u5165\uFF0C\u5173\u95ED\u7FFB\u8BD1\u65F6\u4E0D\u4F1A\u79FB\u9664\u3002",en:"It is injected when translation is turned on and will not be removed when translation is turned off."},selector_parent_style:{zh:"\u9009\u62E9\u5668\u7236\u8282\u70B9\u6837\u5F0F",en:"Selector Parent Style"},inject_js:{zh:"\u6CE8\u5165JS",en:"Inject JS"},inject_js_helper:{zh:"1\u3001\u5F00\u542F\u7FFB\u8BD1\u65F6\u6CE8\u5165\u8FD0\u884C\uFF0C\u5173\u95ED\u7FFB\u8BD1\u65F6\u79FB\u9664\u30022\u3001\u968F\u7740\u9875\u9762\u53D8\u5316\uFF0C\u53EF\u80FD\u4F1A\u591A\u6B21\u6CE8\u5165\u8FD0\u884C\u3002",en:"1. Inject and run when translation is turned on, and removed when translation is turned off. 2. As the page changes, it may be injected and run multiple times."},inject_css:{zh:"\u6CE8\u5165CSS",en:"Inject CSS"},inject_css_helper:{zh:"\u5F00\u542F\u7FFB\u8BD1\u65F6\u6CE8\u5165\uFF0C\u5173\u95ED\u7FFB\u8BD1\u65F6\u5C06\u79FB\u9664\u3002",en:"Injected when translation is enabled and removed when translation is disabled."},root_selector:{zh:"\u6839\u9009\u62E9\u5668",en:"Root Selector"},fixer_function:{zh:"\u4FEE\u590D\u51FD\u6570",en:"Fixer Function"},fixer_function_helper:{zh:"1\u3001br\u662F\u5C06<br>\u6362\u884C\u66FF\u6362\u6210<p \"kiss-p\">\u30022\u3001bn\u662F\u5C06\\n\u6362\u884C\u66FF\u6362\u6210<p \"kiss-p\">\u30023\u3001brToDiv\u548CbnToDiv\u662F\u66FF\u6362\u6210<div class=\"kiss-p\">\u3002",en:"1. br replaces <br> line breaks with <p \"kiss-p\">. 2. bn replaces \\n newline with <p \"kiss-p\">. 3. brToDiv and bnToDiv are replaced with <div class=\"kiss-p\">."},import:{zh:"\u5BFC\u5165",en:"Import"},export:{zh:"\u5BFC\u51FA",en:"Export"},export_translation:{zh:"\u5BFC\u51FA\u91CA\u4E49",en:"Export Translation"},error_cant_be_blank:{zh:"\u4E0D\u80FD\u4E3A\u7A7A",en:"Can not be blank"},error_duplicate_values:{zh:"\u5B58\u5728\u91CD\u590D\u7684\u503C",en:"There are duplicate values"},error_wrong_file_type:{zh:"\u9519\u8BEF\u7684\u6587\u4EF6\u7C7B\u578B",en:"Wrong file type"},error_fetch_url:{zh:"\u8BF7\u68C0\u67E5url\u5730\u5740\u662F\u5426\u6B63\u786E\u6216\u7A0D\u540E\u518D\u8BD5\u3002",en:"Please check if the url address is correct or try again later."},deepl_api:{zh:"DeepL \u63A5\u53E3",en:"DeepL API"},deepl_key:{zh:"DeepL \u5BC6\u94A5",en:"DeepL Key"},openai_api:{zh:"OpenAI \u63A5\u53E3",en:"OpenAI API"},openai_key:{zh:"OpenAI \u5BC6\u94A5",en:"OpenAI Key"},openai_model:{zh:"OpenAI \u6A21\u578B",en:"OpenAI Model"},openai_prompt:{zh:"OpenAI \u63D0\u793A\u8BCD",en:"OpenAI Prompt"},if_clear_cache:{zh:"\u662F\u5426\u6E05\u9664\u7F13\u5B58",en:"Whether clear cache"},clear_cache_never:{zh:"\u4E0D\u6E05\u9664\u7F13\u5B58",en:"Never clear cache"},clear_cache_restart:{zh:"\u91CD\u542F\u6D4F\u89C8\u5668\u65F6\u6E05\u9664\u7F13\u5B58",en:"Clear cache when restarting browser"},data_sync_type:{zh:"\u6570\u636E\u540C\u6B65\u65B9\u5F0F",en:"Data Sync Type"},data_sync_url:{zh:"\u6570\u636E\u540C\u6B65\u63A5\u53E3",en:"Data Sync API"},data_sync_user:{zh:"\u6570\u636E\u540C\u6B65\u8D26\u6237",en:"Data Sync User"},data_sync_key:{zh:"\u6570\u636E\u540C\u6B65\u5BC6\u94A5",en:"Data Sync Key"},sync_now:{zh:"\u7ACB\u5373\u540C\u6B65",en:"Sync Now"},sync_success:{zh:"\u540C\u6B65\u6210\u529F\uFF01",en:"Sync Success"},sync_failed:{zh:"\u540C\u6B65\u5931\u8D25\uFF01",en:"Sync Error"},error_got_some_wrong:{zh:"\u62B1\u6B49\uFF0C\u51FA\u9519\u4E86\uFF01",en:"Sorry, something went wrong!"},error_sync_setting:{zh:"\u60A8\u7684\u540C\u6B65\u7C7B\u578B\u5FC5\u987B\u4E3A\u201CKISS-Worker\u201D\uFF0C\u4E14\u9700\u586B\u5199\u5B8C\u6574",en:"Your sync type must be \"KISS-Worker\" and must be filled in completely"},click_test:{zh:"\u70B9\u51FB\u6D4B\u8BD5",en:"Click Test"},test_success:{zh:"\u6D4B\u8BD5\u6210\u529F",en:"Test success"},test_failed:{zh:"\u6D4B\u8BD5\u5931\u8D25",en:"Test failed"},clear_all_cache_now:{zh:"\u7ACB\u5373\u6E05\u9664\u5168\u90E8\u7F13\u5B58",en:"Clear all cache now"},clear_cache:{zh:"\u6E05\u9664\u7F13\u5B58",en:"Clear Cache"},clear_success:{zh:"\u6E05\u9664\u6210\u529F",en:"Clear success"},clear_failed:{zh:"\u6E05\u9664\u5931\u8D25",en:"Clear failed"},share:{zh:"\u5206\u4EAB",en:"Share"},clear_all:{zh:"\u6E05\u7A7A",en:"Clear All"},help:{zh:"\u6C42\u52A9",en:"Help"},restore_default:{zh:"\u6062\u590D\u9ED8\u8BA4",en:"Restore Default"},shortcuts_setting:{zh:"\u5FEB\u6377\u952E\u8BBE\u7F6E",en:"Shortcuts Setting"},toggle_translate_shortcut:{zh:"\"\u5F00\u542F\u7FFB\u8BD1\"\u5FEB\u6377\u952E",en:"\"Toggle Translate\" Shortcut"},toggle_style_shortcut:{zh:"\"\u5207\u6362\u6837\u5F0F\"\u5FEB\u6377\u952E",en:"\"Toggle Style\" Shortcut"},toggle_popup_shortcut:{zh:"\"\u6253\u5F00\u5F39\u7A97\"\u5FEB\u6377\u952E",en:"\"Open Popup\" Shortcut"},open_setting_shortcut:{zh:"\"\u6253\u5F00\u8BBE\u7F6E\"\u5FEB\u6377\u952E",en:"\"Open Setting\" Shortcut"},hide_fab_button:{zh:"\u9690\u85CF\u60AC\u6D6E\u6309\u94AE",en:"Hide Fab Button"},hide_tran_button:{zh:"\u9690\u85CF\u7FFB\u8BD1\u6309\u94AE",en:"Hide Translate Button"},hide_click_away:{zh:"\u70B9\u51FB\u5916\u90E8\u5173\u95ED\u5F39\u7A97",en:"Click outside to close the pop-up window"},use_simple_style:{zh:"\u4F7F\u7528\u7B80\u6D01\u754C\u9762",en:"Use a simple interface"},show:{zh:"\u663E\u793A",en:"Show"},hide:{zh:"\u9690\u85CF",en:"Hide"},save_rule:{zh:"\u4FDD\u5B58\u89C4\u5219",en:"Save Rule"},global_rule:{zh:"\u5168\u5C40\u89C4\u5219",en:"Global Rule"},input_translate:{zh:"\u8F93\u5165\u6846\u7FFB\u8BD1",en:"Input Box Translation"},use_input_box_translation:{zh:"\u542F\u7528\u8F93\u5165\u6846\u7FFB\u8BD1",en:"Input Box Translation"},input_selector:{zh:"\u8F93\u5165\u6846\u9009\u62E9\u5668",en:"Input Selector"},input_selector_helper:{zh:"\u7528\u4E8E\u8F93\u5165\u6846\u7FFB\u8BD1\u3002",en:"Used for input box translation."},trigger_trans_shortcut:{zh:"\u89E6\u53D1\u7FFB\u8BD1\u5FEB\u6377\u952E",en:"Trigger Translation Shortcut Keys"},trigger_trans_shortcut_help:{zh:"\u9ED8\u8BA4\u4E3A\u5355\u51FB\u201CAltLeft+KeyI\u201D",en:"Default is \"AltLeft+KeyI\""},shortcut_press_count:{zh:"\u5FEB\u6377\u952E\u8FDE\u51FB\u6B21\u6570",en:"Shortcut Press Number"},combo_timeout:{zh:"\u8FDE\u51FB\u8D85\u65F6\u65F6\u95F4 (10-1000ms)",en:"Combo Timeout (10-1000ms)"},input_trans_start_sign:{zh:"\u7FFB\u8BD1\u8D77\u59CB\u6807\u8BC6",en:"Translation Start Sign"},input_trans_start_sign_help:{zh:"\u6807\u8BC6\u540E\u9762\u53EF\u4EE5\u52A0\u76EE\u6807\u8BED\u8A00\u4EE3\u7801\uFF0C\u5982\uFF1A \u201C/en \u4F60\u597D\u201D\u3001\u201C/zh hello\u201D",en:"The target language code can be added after the sign, such as: \"/en \u4F60\u597D\", \"/zh hello\""},detect_lang_remote:{zh:"\u8FDC\u7A0B\u8BED\u8A00\u68C0\u6D4B",en:"Remote language detection"},detect_lang_remote_help:{zh:"\u542F\u7528\u540E\u68C0\u6D4B\u51C6\u786E\u5EA6\u589E\u52A0\uFF0C\u4F46\u4F1A\u964D\u4F4E\u7FFB\u8BD1\u901F\u5EA6\uFF0C\u8BF7\u914C\u60C5\u5F00\u542F",en:"After enabling, the detection accuracy will increase, but it will reduce the translation speed. Please enable it as appropriate."},disable:{zh:"\u7981\u7528",en:"Disable"},enable:{zh:"\u542F\u7528",en:"Enable"},selection_translate:{zh:"\u5212\u8BCD\u7FFB\u8BD1",en:"Selection Translate"},toggle_selection_translate:{zh:"\u542F\u7528\u5212\u8BCD\u7FFB\u8BD1",en:"Use Selection Translate"},trigger_tranbox_shortcut:{zh:"\u663E\u793A\u7FFB\u8BD1\u6846/\u7FFB\u8BD1\u9009\u4E2D\u6587\u5B57\u5FEB\u6377\u952E",en:"Open Translate Popup/Translate Selected Shortcut"},tranbtn_offset_x:{zh:"\u7FFB\u8BD1\u6309\u94AE\u504F\u79FBX\uFF08\xB1200\uFF09",en:"Translate Button Offset X (\xB1200)"},tranbtn_offset_y:{zh:"\u7FFB\u8BD1\u6309\u94AE\u504F\u79FBY\uFF08\xB1200\uFF09",en:"Translate Button Offset Y (\xB1200)"},tranbox_offset_x:{zh:"\u7FFB\u8BD1\u6846\u504F\u79FBX\uFF08\xB1200\uFF09",en:"Translate Box Offset X (\xB1200)"},tranbox_offset_y:{zh:"\u7FFB\u8BD1\u6846\u504F\u79FBY\uFF08\xB1200\uFF09",en:"Translate Box Offset Y (\xB1200)"},translated_text:{zh:"\u8BD1\u6587",en:"Translated Text"},original_text:{zh:"\u539F\u6587",en:"Original Text"},favorite_words:{zh:"\u6536\u85CF\u8BCD\u6C47",en:"Favorite Words"},touch_setting:{zh:"\u89E6\u5C4F\u8BBE\u7F6E",en:"Touch Setting"},touch_translate_shortcut:{zh:"\u89E6\u5C4F\u7FFB\u8BD1\u5FEB\u6377\u65B9\u5F0F",en:"Touch Translate Shortcut"},touch_tap_0:{zh:"\u7981\u7528",en:"Disable"},touch_tap_2:{zh:"\u53CC\u6307\u8F7B\u89E6",en:"Two finger tap"},touch_tap_3:{zh:"\u4E09\u6307\u8F7B\u89E6",en:"Three finger tap"},touch_tap_4:{zh:"\u56DB\u6307\u8F7B\u89E6",en:"Four finger tap"},translate_blacklist:{zh:"\u7981\u7528\u7FFB\u8BD1\u540D\u5355",en:"Translate Blacklist"},disabled_csplist:{zh:"\u7981\u7528CSP\u540D\u5355",en:"Disabled CSP List"},disabled_csplist_helper:{zh:"3\u3001\u901A\u8FC7\u8C03\u6574CSP\u7B56\u7565\uFF0C\u4F7F\u5F97\u67D0\u4E9B\u9875\u9762\u80FD\u591F\u6CE8\u5165JS/CSS/Media\uFF0C\u8BF7\u8C28\u614E\u4F7F\u7528\uFF0C\u9664\u975E\u60A8\u5DF2\u77E5\u6653\u76F8\u5173\u98CE\u9669\u3002",en:"3. By adjusting the CSP policy, some pages can inject JS/CSS/Media. Please use it with caution unless you are aware of the related risks."},skip_langs:{zh:"\u4E0D\u7FFB\u8BD1\u7684\u8BED\u8A00",en:"Disable Languages"},skip_langs_helper:{zh:"\u6B64\u529F\u80FD\u4F9D\u8D56\u51C6\u786E\u7684\u8BED\u8A00\u68C0\u6D4B\uFF0C\u5EFA\u8BAE\u542F\u7528\u8FDC\u7A0B\u8BED\u8A00\u68C0\u6D4B\u3002",en:"This feature relies on accurate language detection. It is recommended to enable remote language detection."},context_menus:{zh:"\u53F3\u952E\u83DC\u5355",en:"Context Menus"},hide_context_menus:{zh:"\u9690\u85CF\u53F3\u952E\u83DC\u5355",en:"Hide Context Menus"},simple_context_menus:{zh:"\u7B80\u5355\u53F3\u952E\u83DC\u5355",en:"Simple_context_menus Context Menus"},secondary_context_menus:{zh:"\u4E8C\u7EA7\u53F3\u952E\u83DC\u5355",en:"Secondary Context Menus"},mulkeys_help:{zh:"\u652F\u6301\u7528\u6362\u884C\u6216\u82F1\u6587\u9017\u53F7\u201C,\u201D\u5206\u9694\uFF0C\u8F6E\u8BE2\u8C03\u7528\u3002",en:"Supports polling calls separated by newlines or English commas \",\"."},translation_element_tag:{zh:"\u8BD1\u6587\u5143\u7D20\u6807\u7B7E",en:"Translation Element Tag"},show_only_translations:{zh:"\u4EC5\u663E\u793A\u8BD1\u6587",en:"Show Only Translations"},show_only_translations_help:{zh:"\u975E\u5B8C\u7F8E\u5B9E\u73B0\uFF0C\u67D0\u4E9B\u9875\u9762\u53EF\u80FD\u6709\u6837\u5F0F\u7B49\u95EE\u9898\u3002",en:"It is not a perfect implementation and some pages may have style issues."},translate_page_title:{zh:"\u662F\u5426\u7FFB\u8BD1\u9875\u9762\u6807\u9898",en:"Translate Page Title"},more:{zh:"\u66F4\u591A",en:"More"},less:{zh:"\u66F4\u5C11",en:"Less"},fixer_selector:{zh:"\u7F51\u9875\u4FEE\u590D\u9009\u62E9\u5668",en:"Fixer Selector"},reg_niutrans:{zh:"\u83B7\u53D6\u5C0F\u725B\u7FFB\u8BD1\u5BC6\u94A5\u3010\u7B80\u7EA6\u7FFB\u8BD1\u4E13\u5C5E\u65B0\u7528\u6237\u6CE8\u518C\u8D60\u9001300\u4E07\u5B57\u7B26\u3011",en:"Get NiuTrans APIKey [KISS Translator Exclusive New User Registration Free 3 Million Characters]"},trigger_mode:{zh:"\u89E6\u53D1\u65B9\u5F0F",en:"Trigger Mode"},trigger_click:{zh:"\u70B9\u51FB\u89E6\u53D1",en:"Click Trigger"},trigger_hover:{zh:"\u9F20\u6807\u60AC\u505C\u89E6\u53D1",en:"Hover Trigger"},trigger_select:{zh:"\u9009\u4E2D\u89E6\u53D1",en:"Select Trigger"},extend_styles:{zh:"\u9644\u52A0\u6837\u5F0F",en:"Extend Styles"},custom_option:{zh:"\u81EA\u5B9A\u4E49\u9009\u9879",en:"Custom Option"},translate_selected_text:{zh:"\u7FFB\u8BD1\u9009\u4E2D\u6587\u5B57",en:"Translate Selected Text"},toggle_style:{zh:"\u5207\u6362\u6837\u5F0F",en:"Toggle Style"},open_menu:{zh:"\u6253\u5F00\u5F39\u7A97\u83DC\u5355",en:"Open Popup Menu"},open_setting:{zh:"\u6253\u5F00\u8BBE\u7F6E",en:"Open Setting"},follow_selection:{zh:"\u7FFB\u8BD1\u6846\u8DDF\u968F\u9009\u4E2D\u6587\u672C",en:"Transbox Follow Selection"},translate_start_hook:{zh:"\u7FFB\u8BD1\u5F00\u59CB\u94A9\u5B50\u51FD\u6570",en:"Translate Start Hook"},translate_start_hook_helper:{zh:"\u7FFB\u8BD1\u5F00\u59CB\u65F6\u8FD0\u884C\uFF0C\u5165\u53C2\u4E3A\uFF1A \u7FFB\u8BD1\u8282\u70B9\uFF0C\u539F\u6587\u6587\u672C\u3002",en:"Run when translation starts, the input parameters are: translation node, original text."},translate_end_hook:{zh:"\u7FFB\u8BD1\u5B8C\u6210\u94A9\u5B50\u51FD\u6570",en:"Translate End Hook"},translate_end_hook_helper:{zh:"\u7FFB\u8BD1\u5B8C\u6210\u65F6\u8FD0\u884C\uFF0C\u5165\u53C2\u4E3A\uFF1A \u7FFB\u8BD1\u8282\u70B9\uFF0C\u539F\u6587\u6587\u672C\uFF0C\u8BD1\u6587\u6587\u672C\uFF0C\u4FDD\u7559\u5143\u7D20\u3002",en:"Run when the translation is completed, the input parameters are: translation node, original text, translation text, retained elements."},translate_remove_hook:{zh:"\u7FFB\u8BD1\u79FB\u9664\u94A9\u5B50\u51FD\u6570",en:"Translate Removed Hook"},translate_remove_hook_helper:{zh:"\u7FFB\u8BD1\u79FB\u9664\u65F6\u8FD0\u884C\uFF0C\u5165\u53C2\u4E3A\uFF1A \u7FFB\u8BD1\u8282\u70B9\u3002",en:"Run when translation is removed, the input parameters are: translation node."},english_dict:{zh:"\u82F1\u6587\u8BCD\u5178",en:"English Dictionary"},api_name:{zh:"\u63A5\u53E3\u540D\u79F0",en:"API Name"},is_disabled:{zh:"\u662F\u5426\u7981\u7528",en:"Is Disabled"},translate_selected:{zh:"\u662F\u5426\u542F\u7528\u5212\u8BCD\u7FFB\u8BD1",en:"If translate selected"}};
-;// CONCATENATED MODULE: ./src/config/index.js
-const STOKEY_MSAUTH="".concat(APP_NAME,"_msauth");const config_STOKEY_BDAUTH="".concat(APP_NAME,"_bdauth");const config_STOKEY_SETTING="".concat(APP_NAME,"_setting");const config_STOKEY_RULES="".concat(APP_NAME,"_rules");const STOKEY_WORDS="".concat(APP_NAME,"_words");const config_STOKEY_SYNC="".concat(APP_NAME,"_sync");const config_STOKEY_FAB="".concat(APP_NAME,"_fab");const config_STOKEY_RULESCACHE_PREFIX="".concat(APP_NAME,"_rulescache_");const CMD_TOGGLE_TRANSLATE="toggleTranslate";const CMD_TOGGLE_STYLE="toggleStyle";const CMD_OPEN_OPTIONS="openOptions";const CMD_OPEN_TRANBOX="openTranbox";const CLIENT_WEB="web";const CLIENT_CHROME="chrome";const CLIENT_EDGE="edge";const CLIENT_FIREFOX="firefox";const CLIENT_USERSCRIPT="userscript";const CLIENT_THUNDERBIRD="thunderbird";const CLIENT_EXTS=[CLIENT_CHROME,CLIENT_EDGE,CLIENT_FIREFOX,CLIENT_THUNDERBIRD];const KV_RULES_KEY="kiss-rules.json";const KV_WORDS_KEY="kiss-words.json";const config_KV_RULES_SHARE_KEY="kiss-rules-share.json";const KV_SETTING_KEY="kiss-setting.json";const KV_SALT_SYNC="KISS-Translator-SYNC";const config_KV_SALT_SHARE="KISS-Translator-SHARE";const CACHE_NAME="".concat(APP_NAME,"_cache");const MSG_FETCH="fetch";const MSG_GET_HTTPCACHE="get_httpcache";const MSG_OPEN_OPTIONS="open_options";const MSG_SAVE_RULE="save_rule";const MSG_TRANS_TOGGLE="trans_toggle";const MSG_TRANS_TOGGLE_STYLE="trans_toggle_style";const MSG_OPEN_TRANBOX="open_tranbox";const MSG_TRANS_GETRULE="trans_getrule";const MSG_TRANS_PUTRULE="trans_putrule";const MSG_TRANS_CURRULE="trans_currule";const MSG_CONTEXT_MENUS="context_menus";const MSG_COMMAND_SHORTCUTS="command_shortcuts";const MSG_INJECT_JS="inject_js";const MSG_INJECT_CSS="inject_css";const MSG_UPDATE_CSP="update_csp";const THEME_LIGHT="light";const THEME_DARK="dark";const URL_KISS_WORKER="https://github.com/fishjar/kiss-worker";const URL_KISS_PROXY="https://github.com/fishjar/kiss-proxy";const URL_KISS_RULES="https://github.com/fishjar/kiss-rules";const URL_KISS_RULES_NEW_ISSUE="https://github.com/fishjar/kiss-rules/issues/new";const config_URL_RAW_PREFIX="https://raw.githubusercontent.com/fishjar/kiss-translator/master";const URL_CACHE_TRAN="https://".concat(APP_LCNAME,"/translate");// api.cognitive.microsofttranslator.com
-const URL_MICROSOFT_TRAN="https://api-edge.cognitive.microsofttranslator.com/translate";const URL_MICROSOFT_AUTH="https://edge.microsoft.com/translate/auth";const URL_MICROSOFT_LANGDETECT="https://api-edge.cognitive.microsofttranslator.com/detect?api-version=3.0";const URL_GOOGLE_TRAN="https://translate.googleapis.com/translate_a/single";const URL_GOOGLE_TRAN2="https://translate-pa.googleapis.com/v1/translateHtml";const DEFAULT_GOOGLE_API_KEY="AIzaSyATBXajvzQLTDHEQbcpq0Ihe0vWDHmO520";const URL_BAIDU_LANGDETECT="https://fanyi.baidu.com/langdetect";const URL_BAIDU_SUGGEST="https://fanyi.baidu.com/sug";const URL_BAIDU_TTS="https://fanyi.baidu.com/gettts";const URL_BAIDU_WEB="https://fanyi.baidu.com/";const URL_BAIDU_TRANSAPI="https://fanyi.baidu.com/transapi";const URL_BAIDU_TRANSAPI_V2="https://fanyi.baidu.com/v2transapi";const URL_DEEPLFREE_TRAN="https://www2.deepl.com/jsonrpc";const URL_TENCENT_TRANSMART="https://transmart.qq.com/api/imt";const URL_VOLCENGINE_TRAN="https://translate.volcengine.com/crx/translate/v1";const URL_NIUTRANS_REG="https://niutrans.com/login?active=3&userSource=kiss-translator";const DEFAULT_USER_AGENT="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36";const OPT_DICT_BAIDU="Baidu";const OPT_TRANS_GOOGLE="Google";const OPT_TRANS_GOOGLE_2="Google2";const OPT_TRANS_MICROSOFT="Microsoft";const OPT_TRANS_DEEPL="DeepL";const OPT_TRANS_DEEPLX="DeepLX";const OPT_TRANS_DEEPLFREE="DeepLFree";const OPT_TRANS_NIUTRANS="NiuTrans";const OPT_TRANS_BAIDU="Baidu";const OPT_TRANS_TENCENT="Tencent";const OPT_TRANS_VOLCENGINE="Volcengine";const OPT_TRANS_OPENAI="OpenAI";const OPT_TRANS_OPENAI_2="OpenAI2";const OPT_TRANS_OPENAI_3="OpenAI3";const OPT_TRANS_GEMINI="Gemini";const OPT_TRANS_GEMINI_2="Gemini2";const OPT_TRANS_CLAUDE="Claude";const OPT_TRANS_CLOUDFLAREAI="CloudflareAI";const OPT_TRANS_OLLAMA="Ollama";const OPT_TRANS_OLLAMA_2="Ollama2";const OPT_TRANS_OLLAMA_3="Ollama3";const OPT_TRANS_CUSTOMIZE="Custom";const OPT_TRANS_CUSTOMIZE_2="Custom2";const OPT_TRANS_CUSTOMIZE_3="Custom3";const OPT_TRANS_CUSTOMIZE_4="Custom4";const OPT_TRANS_CUSTOMIZE_5="Custom5";const OPT_TRANS_ALL=[OPT_TRANS_GOOGLE,OPT_TRANS_GOOGLE_2,OPT_TRANS_MICROSOFT,OPT_TRANS_BAIDU,OPT_TRANS_TENCENT,OPT_TRANS_VOLCENGINE,OPT_TRANS_DEEPL,OPT_TRANS_DEEPLFREE,OPT_TRANS_DEEPLX,OPT_TRANS_NIUTRANS,OPT_TRANS_OPENAI,OPT_TRANS_OPENAI_2,OPT_TRANS_OPENAI_3,OPT_TRANS_GEMINI,OPT_TRANS_GEMINI_2,OPT_TRANS_CLAUDE,OPT_TRANS_CLOUDFLAREAI,OPT_TRANS_OLLAMA,OPT_TRANS_OLLAMA_2,OPT_TRANS_OLLAMA_3,OPT_TRANS_CUSTOMIZE,OPT_TRANS_CUSTOMIZE_2,OPT_TRANS_CUSTOMIZE_3,OPT_TRANS_CUSTOMIZE_4,OPT_TRANS_CUSTOMIZE_5];const OPT_LANGDETECTOR_ALL=[OPT_TRANS_GOOGLE,OPT_TRANS_MICROSOFT,OPT_TRANS_BAIDU,OPT_TRANS_TENCENT];const OPT_LANGS_TO=[["en","English - English"],["zh-CN","Simplified Chinese - 简体中文"],["zh-TW","Traditional Chinese - 繁體中文"],["ar","Arabic - العربية"],["bg","Bulgarian - Български"],["ca","Catalan - Català"],["hr","Croatian - Hrvatski"],["cs","Czech - Čeština"],["da","Danish - Dansk"],["nl","Dutch - Nederlands"],["fi","Finnish - Suomi"],["fr","French - Français"],["de","German - Deutsch"],["el","Greek - Ελληνικά"],["hi","Hindi - हिन्दी"],["hu","Hungarian - Magyar"],["id","Indonesian - Indonesia"],["it","Italian - Italiano"],["ja","Japanese - 日本語"],["ko","Korean - 한국어"],["ms","Malay - Melayu"],["mt","Maltese - Malti"],["nb","Norwegian - Norsk Bokmål"],["pl","Polish - Polski"],["pt","Portuguese - Português"],["ro","Romanian - Română"],["ru","Russian - Русский"],["sk","Slovak - Slovenčina"],["sl","Slovenian - Slovenščina"],["es","Spanish - Español"],["sv","Swedish - Svenska"],["ta","Tamil - தமிழ்"],["te","Telugu - తెలుగు"],["th","Thai - ไทย"],["tr","Turkish - Türkçe"],["uk","Ukrainian - Українська"],["vi","Vietnamese - Tiếng Việt"]];const OPT_LANGS_FROM=[["auto","Auto-detect"],...OPT_LANGS_TO];const OPT_LANGS_SPECIAL={[OPT_TRANS_GOOGLE]:new Map(OPT_LANGS_FROM.map(_ref=>{let[key]=_ref;return[key,key];})),[OPT_TRANS_GOOGLE_2]:new Map(OPT_LANGS_FROM.map(_ref2=>{let[key]=_ref2;return[key,key];})),[OPT_TRANS_MICROSOFT]:new Map([...OPT_LANGS_FROM.map(_ref3=>{let[key]=_ref3;return[key,key];}),["auto",""],["zh-CN","zh-Hans"],["zh-TW","zh-Hant"]]),[OPT_TRANS_DEEPL]:new Map([...OPT_LANGS_FROM.map(_ref4=>{let[key]=_ref4;return[key,key.toUpperCase()];}),["auto",""],["zh-CN","ZH"],["zh-TW","ZH"]]),[OPT_TRANS_DEEPLFREE]:new Map([...OPT_LANGS_FROM.map(_ref5=>{let[key]=_ref5;return[key,key.toUpperCase()];}),["auto","auto"],["zh-CN","ZH"],["zh-TW","ZH"]]),[OPT_TRANS_DEEPLX]:new Map([...OPT_LANGS_FROM.map(_ref6=>{let[key]=_ref6;return[key,key.toUpperCase()];}),["auto","auto"],["zh-CN","ZH"],["zh-TW","ZH"]]),[OPT_TRANS_NIUTRANS]:new Map([...OPT_LANGS_FROM.map(_ref7=>{let[key]=_ref7;return[key,key];}),["auto","auto"],["zh-CN","zh"],["zh-TW","cht"]]),[OPT_TRANS_VOLCENGINE]:new Map([...OPT_LANGS_FROM.map(_ref8=>{let[key]=_ref8;return[key,key];}),["auto","auto"],["zh-CN","zh"],["zh-TW","zh-Hant"]]),[OPT_TRANS_BAIDU]:new Map([...OPT_LANGS_FROM.map(_ref9=>{let[key]=_ref9;return[key,key];}),["zh-CN","zh"],["zh-TW","cht"],["ar","ara"],["bg","bul"],["ca","cat"],["hr","hrv"],["da","dan"],["fi","fin"],["fr","fra"],["hi","mai"],["ja","jp"],["ko","kor"],["ms","may"],["mt","mlt"],["nb","nor"],["ro","rom"],["ru","ru"],["sl","slo"],["es","spa"],["sv","swe"],["ta","tam"],["te","tel"],["uk","ukr"],["vi","vie"]]),[OPT_TRANS_TENCENT]:new Map([["auto","auto"],["zh-CN","zh"],["zh-TW","zh"],["en","en"],["ar","ar"],["de","de"],["ru","ru"],["fr","fr"],["fi","fil"],["ko","ko"],["ms","ms"],["pt","pt"],["ja","ja"],["th","th"],["tr","tr"],["es","es"],["it","it"],["hi","hi"],["id","id"],["vi","vi"]]),[OPT_TRANS_OPENAI]:new Map(OPT_LANGS_FROM.map(_ref10=>{let[key,val]=_ref10;return[key,val.split(" - ")[0]];})),[OPT_TRANS_OPENAI_2]:new Map(OPT_LANGS_FROM.map(_ref11=>{let[key,val]=_ref11;return[key,val.split(" - ")[0]];})),[OPT_TRANS_OPENAI_3]:new Map(OPT_LANGS_FROM.map(_ref12=>{let[key,val]=_ref12;return[key,val.split(" - ")[0]];})),[OPT_TRANS_GEMINI]:new Map(OPT_LANGS_FROM.map(_ref13=>{let[key,val]=_ref13;return[key,val.split(" - ")[0]];})),[OPT_TRANS_GEMINI_2]:new Map(OPT_LANGS_FROM.map(_ref14=>{let[key,val]=_ref14;return[key,val.split(" - ")[0]];})),[OPT_TRANS_CLAUDE]:new Map(OPT_LANGS_FROM.map(_ref15=>{let[key,val]=_ref15;return[key,val.split(" - ")[0]];})),[OPT_TRANS_OLLAMA]:new Map(OPT_LANGS_FROM.map(_ref16=>{let[key,val]=_ref16;return[key,val.split(" - ")[0]];})),[OPT_TRANS_OLLAMA_2]:new Map(OPT_LANGS_FROM.map(_ref17=>{let[key,val]=_ref17;return[key,val.split(" - ")[0]];})),[OPT_TRANS_OLLAMA_3]:new Map(OPT_LANGS_FROM.map(_ref18=>{let[key,val]=_ref18;return[key,val.split(" - ")[0]];})),[OPT_TRANS_CLOUDFLAREAI]:new Map([["auto",""],["zh-CN","chinese"],["zh-TW","chinese"],["en","english"],["ar","arabic"],["de","german"],["ru","russian"],["fr","french"],["pt","portuguese"],["ja","japanese"],["es","spanish"],["hi","hindi"]]),[OPT_TRANS_CUSTOMIZE]:new Map([...OPT_LANGS_FROM.map(_ref19=>{let[key]=_ref19;return[key,key];}),["auto",""]]),[OPT_TRANS_CUSTOMIZE_2]:new Map([...OPT_LANGS_FROM.map(_ref20=>{let[key]=_ref20;return[key,key];}),["auto",""]]),[OPT_TRANS_CUSTOMIZE_3]:new Map([...OPT_LANGS_FROM.map(_ref21=>{let[key]=_ref21;return[key,key];}),["auto",""]]),[OPT_TRANS_CUSTOMIZE_4]:new Map([...OPT_LANGS_FROM.map(_ref22=>{let[key]=_ref22;return[key,key];}),["auto",""]]),[OPT_TRANS_CUSTOMIZE_5]:new Map([...OPT_LANGS_FROM.map(_ref23=>{let[key]=_ref23;return[key,key];}),["auto",""]])};const OPT_LANGS_LIST=OPT_LANGS_TO.map(_ref24=>{let[lang]=_ref24;return lang;});const OPT_LANGS_MICROSOFT=new Map(Array.from(OPT_LANGS_SPECIAL[OPT_TRANS_MICROSOFT].entries()).map(_ref25=>{let[k,v]=_ref25;return[v,k];}));const OPT_LANGS_BAIDU=new Map(Array.from(OPT_LANGS_SPECIAL[OPT_TRANS_BAIDU].entries()).map(_ref26=>{let[k,v]=_ref26;return[v,k];}));const OPT_LANGS_TENCENT=new Map(Array.from(OPT_LANGS_SPECIAL[OPT_TRANS_TENCENT].entries()).map(_ref27=>{let[k,v]=_ref27;return[v,k];}));OPT_LANGS_TENCENT.set("zh","zh-CN");const OPT_STYLE_NONE="style_none";// 无
-const OPT_STYLE_LINE="under_line";// 下划线
-const OPT_STYLE_DOTLINE="dot_line";// 点状线
-const OPT_STYLE_DASHLINE="dash_line";// 虚线
-const OPT_STYLE_WAVYLINE="wavy_line";// 波浪线
-const OPT_STYLE_FUZZY="fuzzy";// 模糊
-const OPT_STYLE_HIGHLIGHT="highlight";// 高亮
-const OPT_STYLE_BLOCKQUOTE="blockquote";// 引用
-const OPT_STYLE_DIY="diy_style";// 自定义样式
-const OPT_STYLE_ALL=[OPT_STYLE_NONE,OPT_STYLE_LINE,OPT_STYLE_DOTLINE,OPT_STYLE_DASHLINE,OPT_STYLE_WAVYLINE,OPT_STYLE_FUZZY,OPT_STYLE_HIGHLIGHT,OPT_STYLE_BLOCKQUOTE,OPT_STYLE_DIY];const OPT_STYLE_USE_COLOR=[OPT_STYLE_LINE,OPT_STYLE_DOTLINE,OPT_STYLE_DASHLINE,OPT_STYLE_WAVYLINE,OPT_STYLE_HIGHLIGHT,OPT_STYLE_BLOCKQUOTE];const OPT_TIMING_PAGESCROLL="mk_pagescroll";// 滚动加载翻译
-const OPT_TIMING_PAGEOPEN="mk_pageopen";// 直接翻译到底
-const OPT_TIMING_MOUSEOVER="mk_mouseover";const OPT_TIMING_CONTROL="mk_ctrlKey";const OPT_TIMING_SHIFT="mk_shiftKey";const OPT_TIMING_ALT="mk_altKey";const OPT_TIMING_ALL=[OPT_TIMING_PAGESCROLL,OPT_TIMING_PAGEOPEN,OPT_TIMING_MOUSEOVER,OPT_TIMING_CONTROL,OPT_TIMING_SHIFT,OPT_TIMING_ALT];const DEFAULT_FETCH_LIMIT=10;// 默认最大任务数量
-const DEFAULT_FETCH_INTERVAL=100;// 默认任务间隔时间
-const INPUT_PLACE_URL="{{url}}";// 占位符
-const INPUT_PLACE_FROM="{{from}}";// 占位符
-const INPUT_PLACE_TO="{{to}}";// 占位符
-const INPUT_PLACE_TEXT="{{text}}";// 占位符
-const INPUT_PLACE_KEY="{{key}}";// 占位符
-const INPUT_PLACE_MODEL="{{model}}";// 占位符
-const DEFAULT_COLOR="#209CEE";// 默认高亮背景色/线条颜色
-const DEFAULT_TRANS_TAG="font";const DEFAULT_SELECT_STYLE="-webkit-line-clamp: unset; max-height: none; height: auto;";// 全局规则
+// transRemoveHook: "", // 钩子函数 (暂时作废)
+autoScan:GLOBAL_KEY,// 是否自动识别文本节点
+hasRichText:GLOBAL_KEY,// 是否启用富文本翻译
+hasShadowroot:GLOBAL_KEY,// 是否包含shadowroot
+rootsSelector:"",// 翻译范围选择器
+ignoreSelector:""// 不翻译的选择器
+};// 全局规则
 const GLOBLA_RULE={pattern:"*",// 匹配网址
 selector:DEFAULT_SELECTOR,// 选择器
 keepSelector:DEFAULT_KEEP_SELECTOR,// 保留元素选择器
 terms:"",// 专业术语
-translator:OPT_TRANS_MICROSOFT,// 翻译服务
+aiTerms:"",// AI专业术语
+apiSlug:OPT_TRANS_MICROSOFT,// 翻译服务
 fromLang:"auto",// 源语言
 toLang:"zh-CN",// 目标语言
-textStyle:OPT_STYLE_DASHLINE,// 译文样式
+textStyle:OPT_STYLE_NONE,// 译文样式
 transOpen:"false",// 开启翻译
 bgColor:"",// 译文颜色
-textDiyStyle:"",// 自定义译文样式
+textDiyStyle:DEFAULT_DIY_STYLE,// 自定义译文样式
 selectStyle:DEFAULT_SELECT_STYLE,// 选择器节点样式
 parentStyle:DEFAULT_SELECT_STYLE,// 选择器父节点样式
+grandStyle:DEFAULT_SELECT_STYLE,// 选择器祖节点样式
 injectJs:"",// 注入JS
 injectCss:"",// 注入CSS
 transOnly:"false",// 是否仅显示译文
-transTiming:OPT_TIMING_PAGESCROLL,// 翻译时机/鼠标悬停翻译
+// transTiming: OPT_TIMING_PAGESCROLL, // 翻译时机/鼠标悬停翻译 (暂时作废)
 transTag:DEFAULT_TRANS_TAG,// 译文元素标签
 transTitle:"false",// 是否同时翻译页面标题
-transSelected:"true",// 是否启用划词翻译
-detectRemote:"false",// 是否使用远程语言检测
-skipLangs:[],// 不翻译的语言
-fixerSelector:"",// 修复函数选择器
-fixerFunc:"-",// 修复函数
+// transSelected: "true", // 是否启用划词翻译 (移回setting)
+// detectRemote: "true", // 是否使用远程语言检测 (移回setting)
+// skipLangs: [], // 不翻译的语言 (移回setting)
+// fixerSelector: "", // 修复函数选择器 (暂时作废)
+// fixerFunc: "-", // 修复函数 (暂时作废)
 transStartHook:"",// 钩子函数
 transEndHook:"",// 钩子函数
-transRemoveHook:""// 钩子函数
+// transRemoveHook: "", // 钩子函数 (暂时作废)
+autoScan:"true",// 是否自动识别文本节点
+hasRichText:"true",// 是否启用富文本翻译
+hasShadowroot:"false",// 是否包含shadowroot
+rootsSelector:"body",// 翻译范围选择器
+ignoreSelector:DEFAULT_IGNORE_SELECTOR// 不翻译的选择器
+};const rules_DEFAULT_RULES=[GLOBLA_RULE];const DEFAULT_OW_RULE={apiSlug:REMAIN_KEY,fromLang:REMAIN_KEY,toLang:REMAIN_KEY,textStyle:REMAIN_KEY,transOpen:REMAIN_KEY,bgColor:"",textDiyStyle:DEFAULT_DIY_STYLE};// todo: 校验几个内置规则
+const RULES_MAP={"www.google.com/search":{rootsSelector:"#rcnt"},"en.wikipedia.org":{ignoreSelector:".button, code, footer, form, mark, pre, .mwe-math-element, .mw-editsection"},"news.ycombinator.com":{selector:"p, .titleline, .commtext",rootsSelector:"#bigbox",keepSelector:"code, img, svg, pre, .sitebit",ignoreSelector:"button, code, footer, form, header, mark, nav, pre, .reply",autoScan:"false"},"twitter.com, https://x.com":{selector:"[data-testid='tweetText']",keepSelector:"img, svg, span:has(a), div:has(a)",autoScan:"false"},"www.youtube.com":{rootsSelector:"ytd-page-manager",ignoreSelector:"aside, button, footer, form, header, pre, mark, nav, #player, #container, .caption-window, .ytp-settings-menu"}};const rules_BUILTIN_RULES=Object.entries(RULES_MAP).sort((a,b)=>a[0].localeCompare(b[0])).map(_ref=>{let[pattern,rule]=_ref;return{// ...DEFAULT_RULE,
+...rule,pattern};});
+;// CONCATENATED MODULE: ./src/libs/log.js
+// 定义日志级别
+const LogLevel={DEBUG:{value:0,name:"DEBUG",color:"#6495ED"},// 宝蓝色
+INFO:{value:1,name:"INFO",color:"#4CAF50"},// 绿色
+WARN:{value:2,name:"WARN",color:"#FFC107"},// 琥珀色
+ERROR:{value:3,name:"ERROR",color:"#F44336"},// 红色
+SILENT:{value:4,name:"SILENT"}// 特殊级别，用于关闭所有日志
+};function findLogLevelByValue(value){return Object.values(LogLevel).find(level=>level.value===value);}function findLogLevelByName(name){if(typeof name!=="string"||name.length===0)return undefined;const upperCaseName=name.toUpperCase();return Object.values(LogLevel).find(level=>level.name===upperCaseName);}class Logger{/**
+   * @param {object} [options={}] 配置选项
+   * @param {LogLevel} [options.level=LogLevel.INFO]  要显示的最低日志级别
+   * @param {string}   [options.prefix='App']         日志前缀，用于区分模块
+   */constructor(){let options=arguments.length>0&&arguments[0]!==undefined?arguments[0]:{};this.config={level:options.level||LogLevel.INFO,prefix:options.prefix||"KISS-Translator"};}/**
+   * 动态设置日志级别
+   * @param {LogLevel} level - 新的日志级别
+   */setLevel(level){let newLevelObject;if(typeof level==="string"){newLevelObject=findLogLevelByName(level);if(!newLevelObject){this.warn("Invalid log level name provided: \"".concat(level,"\". Keeping current level."));return;}}else if(typeof level==="number"){newLevelObject=findLogLevelByValue(level);if(!newLevelObject){this.warn("Invalid log level value provided: ".concat(level,". Keeping current level."));return;}}else if(level&&typeof level.value==="number"){newLevelObject=level;}else{this.warn("Invalid argument passed to setLevel. Must be a LogLevel object, number, or string.");return;}this.config.level=newLevelObject;console.log("[".concat(this.config.prefix,"] Log level dynamically set to ").concat(this.config.level.name));}/**
+   * 核心日志记录方法
+   * @private
+   * @param {LogLevel} level - 当前消息的日志级别
+   * @param {...any} args - 要记录的多个参数，可以是任何类型
+   */_log(level){// 如果当前级别低于配置的最低级别，则不打印
+if(level.value<this.config.level.value){return;}const timestamp=new Date().toISOString();const prefixStr="[".concat(this.config.prefix,"]");const levelStr="[".concat(level.name,"]");// 判断是否在浏览器环境并且浏览器支持 console 样式
+const isBrowser=typeof window!=="undefined"&&typeof window.document!=="undefined";for(var _len=arguments.length,args=new Array(_len>1?_len-1:0),_key=1;_key<_len;_key++){args[_key-1]=arguments[_key];}if(isBrowser){// 在浏览器中使用颜色高亮
+const consoleMethod=this._getConsoleMethod(level);consoleMethod("%c".concat(timestamp," %c").concat(prefixStr," %c").concat(levelStr),"color: gray; font-weight: lighter;",// 时间戳样式
+"color: #7c57e0; font-weight: bold;",// 前缀样式 (紫色)
+"color: ".concat(level.color,"; font-weight: bold;"),// 日志级别样式
+...args);}else{// 在 Node.js 或不支持样式的环境中，输出纯文本
+const consoleMethod=this._getConsoleMethod(level);consoleMethod(timestamp,prefixStr,levelStr,...args);}}/**
+   * 根据日志级别获取对应的 console 方法
+   * @private
+   */_getConsoleMethod(level){switch(level){case LogLevel.ERROR:return console.error;case LogLevel.WARN:return console.warn;case LogLevel.INFO:return console.info;default:return console.log;}}/**
+   * 记录 DEBUG 级别的日志
+   * @param {...any} args
+   */debug(){for(var _len2=arguments.length,args=new Array(_len2),_key2=0;_key2<_len2;_key2++){args[_key2]=arguments[_key2];}this._log(LogLevel.DEBUG,...args);}/**
+   * 记录 INFO 级别的日志
+   * @param {...any} args
+   */info(){for(var _len3=arguments.length,args=new Array(_len3),_key3=0;_key3<_len3;_key3++){args[_key3]=arguments[_key3];}this._log(LogLevel.INFO,...args);}/**
+   * 记录 WARN 级别的日志
+   * @param {...any} args
+   */warn(){for(var _len4=arguments.length,args=new Array(_len4),_key4=0;_key4<_len4;_key4++){args[_key4]=arguments[_key4];}this._log(LogLevel.WARN,...args);}/**
+   * 记录 ERROR 级别的日志
+   * @param {...any} args
+   */error(){for(var _len5=arguments.length,args=new Array(_len5),_key5=0;_key5<_len5;_key5++){args[_key5]=arguments[_key5];}this._log(LogLevel.ERROR,...args);}}const logger=new Logger();const log_kissLog=logger.info.bind(logger);// todo：debug日志埋点
+;// CONCATENATED MODULE: ./src/config/setting.js
+// 默认快捷键
+const OPT_SHORTCUT_TRANSLATE="toggleTranslate";const OPT_SHORTCUT_STYLE="toggleStyle";const OPT_SHORTCUT_POPUP="togglePopup";const OPT_SHORTCUT_SETTING="openSetting";const DEFAULT_SHORTCUTS={[OPT_SHORTCUT_TRANSLATE]:["AltLeft","KeyQ"],[OPT_SHORTCUT_STYLE]:["AltLeft","KeyC"],[OPT_SHORTCUT_POPUP]:["AltLeft","KeyK"],[OPT_SHORTCUT_SETTING]:["AltLeft","KeyO"]};const TRANS_MIN_LENGTH=2;// 最短翻译长度
+const TRANS_MAX_LENGTH=100000;// 最长翻译长度
+const TRANS_NEWLINE_LENGTH=20;// 换行字符数
+const DEFAULT_BLACKLIST=["https://fishjar.github.io/kiss-translator/options.html","https://translate.google.com","https://www.deepl.com/translator"];// 禁用翻译名单
+const DEFAULT_CSPLIST=[];// 禁用CSP名单
+const DEFAULT_ORILIST=["https://dict.youdao.com"];// 移除Origin名单
+// 同步设置
+const OPT_SYNCTYPE_WORKER="KISS-Worker";const OPT_SYNCTYPE_WEBDAV="WebDAV";const OPT_SYNCTOKEN_PERFIX="kt_";const OPT_SYNCTYPE_ALL=[OPT_SYNCTYPE_WORKER,OPT_SYNCTYPE_WEBDAV];const setting_DEFAULT_SYNC={syncType:OPT_SYNCTYPE_WORKER,// 同步方式
+syncUrl:"",// 数据同步接口
+syncUser:"",// 数据同步用户名
+syncKey:"",// 数据同步密钥
+syncMeta:{},// 数据更新及同步信息
+subRulesSyncAt:0,// 订阅规则同步时间
+dataCaches:{}// 缓存同步时间
 };// 输入框翻译
-const OPT_INPUT_TRANS_SIGNS=["/","//","\\","\\\\",">",">>"];const DEFAULT_INPUT_SHORTCUT=["AltLeft","KeyI"];const DEFAULT_INPUT_RULE={transOpen:true,translator:OPT_TRANS_MICROSOFT,fromLang:"auto",toLang:"en",triggerShortcut:DEFAULT_INPUT_SHORTCUT,triggerCount:1,triggerTime:200,transSign:OPT_INPUT_TRANS_SIGNS[0]};// 划词翻译
-const PHONIC_MAP={en_phonic:["英","uk"],us_phonic:["美","en"]};const OPT_TRANBOX_TRIGGER_CLICK="click";const OPT_TRANBOX_TRIGGER_HOVER="hover";const OPT_TRANBOX_TRIGGER_SELECT="select";const OPT_TRANBOX_TRIGGER_ALL=[OPT_TRANBOX_TRIGGER_CLICK,OPT_TRANBOX_TRIGGER_HOVER,OPT_TRANBOX_TRIGGER_SELECT];const DEFAULT_TRANBOX_SHORTCUT=["AltLeft","KeyS"];const DEFAULT_TRANBOX_SETTING={// transOpen: true, // 是否启用划词翻译（作废，移至rule）
-translator:OPT_TRANS_MICROSOFT,fromLang:"auto",toLang:"zh-CN",toLang2:"en",tranboxShortcut:DEFAULT_TRANBOX_SHORTCUT,btnOffsetX:10,btnOffsetY:10,boxOffsetX:0,boxOffsetY:10,hideTranBtn:false,// 是否隐藏翻译按钮
+const OPT_INPUT_TRANS_SIGNS=["/","//","\\","\\\\",">",">>"];const DEFAULT_INPUT_SHORTCUT=["AltLeft","KeyI"];const DEFAULT_INPUT_RULE={transOpen:true,apiSlug:OPT_TRANS_MICROSOFT,fromLang:"auto",toLang:"en",triggerShortcut:DEFAULT_INPUT_SHORTCUT,triggerCount:1,triggerTime:200,transSign:OPT_INPUT_TRANS_SIGNS[0]};// 划词翻译
+const PHONIC_MAP={en_phonic:["英","uk"],us_phonic:["美","en"]};const OPT_TRANBOX_TRIGGER_CLICK="click";const OPT_TRANBOX_TRIGGER_HOVER="hover";const OPT_TRANBOX_TRIGGER_SELECT="select";const OPT_TRANBOX_TRIGGER_ALL=[OPT_TRANBOX_TRIGGER_CLICK,OPT_TRANBOX_TRIGGER_HOVER,OPT_TRANBOX_TRIGGER_SELECT];const DEFAULT_TRANBOX_SHORTCUT=["AltLeft","KeyS"];const DEFAULT_TRANBOX_SETTING={transOpen:true,// 是否启用划词翻译
+apiSlugs:[OPT_TRANS_MICROSOFT],fromLang:"auto",toLang:"zh-CN",toLang2:"en",tranboxShortcut:DEFAULT_TRANBOX_SHORTCUT,btnOffsetX:10,btnOffsetY:10,boxOffsetX:0,boxOffsetY:10,hideTranBtn:false,// 是否隐藏翻译按钮
 hideClickAway:false,// 是否点击外部关闭弹窗
 simpleStyle:false,// 是否简洁界面
 followSelection:false,// 翻译框是否跟随选中文本
 triggerMode:OPT_TRANBOX_TRIGGER_CLICK,// 触发翻译方式
-extStyles:"",// 附加样式
-enDict:OPT_DICT_BAIDU// 英文词典
+// extStyles: "", // 附加样式
+enDict:OPT_DICT_BING,// 英文词典
+enSug:OPT_SUG_YOUDAO// 英文建议
+};const SUBTITLE_WINDOW_STYLE="padding: 0.5em 1em;\nbackground-color: rgba(0, 0, 0, 0.5);\ncolor: white;\nline-height: 1.3;\ntext-shadow: 1px 1px 2px black;\ndisplay: inline-block";const SUBTITLE_ORIGIN_STYLE="font-size: clamp(1.5rem, 3cqw, 3rem);";const SUBTITLE_TRANSLATION_STYLE="font-size: clamp(1.5rem, 3cqw, 3rem);";const DEFAULT_SUBTITLE_SETTING={enabled:true,// 是否开启
+apiSlug:OPT_TRANS_MICROSOFT,segSlug:"-",// AI智能断句
+chunkLength:1000,// AI处理切割长度
+// fromLang: "en",
+toLang:"zh-CN",isBilingual:true,// 是否双语显示
+windowStyle:SUBTITLE_WINDOW_STYLE,// 背景样式
+originStyle:SUBTITLE_ORIGIN_STYLE,// 原文样式
+translationStyle:SUBTITLE_TRANSLATION_STYLE// 译文样式
 };// 订阅列表
-const DEFAULT_SUBRULES_LIST=[{url:"https://fishjar.github.io/kiss-rules/kiss-rules.json",selected:false},{url:"https://fishjar.github.io/kiss-rules/kiss-rules-on.json",selected:true},{url:"https://fishjar.github.io/kiss-rules/kiss-rules-off.json",selected:false}];const DEFAULT_HTTP_TIMEOUT=5000;// 调用超时时间
-// 翻译接口
-const defaultCustomApi={url:"",key:"",customOption:"",// (作废)
-reqHook:"",// request 钩子函数
-resHook:"",// response 钩子函数
-fetchLimit:DEFAULT_FETCH_LIMIT,fetchInterval:DEFAULT_FETCH_INTERVAL,apiName:"",isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT};const defaultOpenaiApi={url:"https://api.openai.com/v1/chat/completions",key:"",model:"gpt-4",systemPrompt:"You are a professional, authentic machine translation engine.",userPrompt:"Translate the following source text from ".concat(INPUT_PLACE_FROM," to ").concat(INPUT_PLACE_TO,". Output translation directly without any additional text.\n\nSource Text: ").concat(INPUT_PLACE_TEXT,"\n\nTranslated Text:"),temperature:0,maxTokens:256,fetchLimit:1,fetchInterval:500,apiName:"",isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT*2};const defaultOllamaApi={url:"http://localhost:11434/api/generate",key:"",model:"llama3.1",systemPrompt:"You are a professional, authentic machine translation engine.",userPrompt:"Translate the following source text from ".concat(INPUT_PLACE_FROM," to ").concat(INPUT_PLACE_TO,". Output translation directly without any additional text.\n\nSource Text: ").concat(INPUT_PLACE_TEXT,"\n\nTranslated Text:"),think:false,thinkIgnore:"qwen3,deepseek-r1",fetchLimit:1,fetchInterval:500,apiName:"",isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT*2};const DEFAULT_TRANS_APIS={[OPT_TRANS_GOOGLE]:{url:URL_GOOGLE_TRAN,key:"",fetchLimit:DEFAULT_FETCH_LIMIT,// 最大任务数量
-fetchInterval:DEFAULT_FETCH_INTERVAL,// 任务间隔时间
-apiName:OPT_TRANS_GOOGLE,// 接口自定义名称
-isDisabled:false,// 是否禁用
-httpTimeout:DEFAULT_HTTP_TIMEOUT// 超时时间
-},[OPT_TRANS_GOOGLE_2]:{url:URL_GOOGLE_TRAN2,key:DEFAULT_GOOGLE_API_KEY,fetchLimit:DEFAULT_FETCH_LIMIT,fetchInterval:DEFAULT_FETCH_INTERVAL,apiName:OPT_TRANS_GOOGLE_2,isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT},[OPT_TRANS_MICROSOFT]:{fetchLimit:DEFAULT_FETCH_LIMIT,fetchInterval:DEFAULT_FETCH_INTERVAL,apiName:OPT_TRANS_MICROSOFT,isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT},[OPT_TRANS_BAIDU]:{fetchLimit:DEFAULT_FETCH_LIMIT,fetchInterval:DEFAULT_FETCH_INTERVAL,apiName:OPT_TRANS_BAIDU,isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT},[OPT_TRANS_TENCENT]:{fetchLimit:DEFAULT_FETCH_LIMIT,fetchInterval:DEFAULT_FETCH_INTERVAL,apiName:OPT_TRANS_TENCENT,isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT},[OPT_TRANS_VOLCENGINE]:{fetchLimit:DEFAULT_FETCH_LIMIT,fetchInterval:DEFAULT_FETCH_INTERVAL,apiName:OPT_TRANS_VOLCENGINE,isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT},[OPT_TRANS_DEEPL]:{url:"https://api-free.deepl.com/v2/translate",key:"",fetchLimit:1,fetchInterval:500,apiName:OPT_TRANS_DEEPL,isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT},[OPT_TRANS_DEEPLFREE]:{fetchLimit:1,fetchInterval:500,apiName:OPT_TRANS_DEEPLFREE,isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT},[OPT_TRANS_DEEPLX]:{url:"http://localhost:1188/translate",key:"",fetchLimit:1,fetchInterval:500,apiName:OPT_TRANS_DEEPLX,isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT},[OPT_TRANS_NIUTRANS]:{url:"https://api.niutrans.com/NiuTransServer/translation",key:"",dictNo:"",memoryNo:"",fetchLimit:DEFAULT_FETCH_LIMIT,fetchInterval:DEFAULT_FETCH_INTERVAL,apiName:OPT_TRANS_NIUTRANS,isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT},[OPT_TRANS_OPENAI]:defaultOpenaiApi,[OPT_TRANS_OPENAI_2]:defaultOpenaiApi,[OPT_TRANS_OPENAI_3]:defaultOpenaiApi,[OPT_TRANS_GEMINI]:{url:"https://generativelanguage.googleapis.com/v1/models/".concat(INPUT_PLACE_MODEL,":generateContent?key=").concat(INPUT_PLACE_KEY),key:"",model:"gemini-2.5-flash",systemPrompt:"You are a professional, authentic machine translation engine.",userPrompt:"Translate the following source text from ".concat(INPUT_PLACE_FROM," to ").concat(INPUT_PLACE_TO,". Output translation directly without any additional text.\n\nSource Text: ").concat(INPUT_PLACE_TEXT,"\n\nTranslated Text:"),temperature:0,maxTokens:2048,fetchLimit:1,fetchInterval:500,apiName:OPT_TRANS_GEMINI,isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT*2},[OPT_TRANS_GEMINI_2]:{url:"https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",key:"",model:"gemini-2.0-flash",systemPrompt:"You are a professional, authentic machine translation engine.",userPrompt:"Translate the following source text from ".concat(INPUT_PLACE_FROM," to ").concat(INPUT_PLACE_TO,". Output translation directly without any additional text.\n\nSource Text: ").concat(INPUT_PLACE_TEXT,"\n\nTranslated Text:"),temperature:0,maxTokens:2048,fetchLimit:1,fetchInterval:500,apiName:OPT_TRANS_GEMINI_2,isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT*2},[OPT_TRANS_CLAUDE]:{url:"https://api.anthropic.com/v1/messages",key:"",model:"claude-3-haiku-20240307",systemPrompt:"You are a professional, authentic machine translation engine.",userPrompt:"Translate the following source text from ".concat(INPUT_PLACE_FROM," to ").concat(INPUT_PLACE_TO,". Output translation directly without any additional text.\n\nSource Text: ").concat(INPUT_PLACE_TEXT,"\n\nTranslated Text:"),temperature:0,maxTokens:1024,fetchLimit:1,fetchInterval:500,apiName:OPT_TRANS_CLAUDE,isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT*2},[OPT_TRANS_CLOUDFLAREAI]:{url:"https://api.cloudflare.com/client/v4/accounts/{{ACCOUNT_ID}}/ai/run/@cf/meta/m2m100-1.2b",key:"",fetchLimit:1,fetchInterval:500,apiName:OPT_TRANS_CLOUDFLAREAI,isDisabled:false,httpTimeout:DEFAULT_HTTP_TIMEOUT*2},[OPT_TRANS_OLLAMA]:defaultOllamaApi,[OPT_TRANS_OLLAMA_2]:defaultOllamaApi,[OPT_TRANS_OLLAMA_3]:defaultOllamaApi,[OPT_TRANS_CUSTOMIZE]:defaultCustomApi,[OPT_TRANS_CUSTOMIZE_2]:defaultCustomApi,[OPT_TRANS_CUSTOMIZE_3]:defaultCustomApi,[OPT_TRANS_CUSTOMIZE_4]:defaultCustomApi,[OPT_TRANS_CUSTOMIZE_5]:defaultCustomApi};// 默认快捷键
-const OPT_SHORTCUT_TRANSLATE="toggleTranslate";const OPT_SHORTCUT_STYLE="toggleStyle";const OPT_SHORTCUT_POPUP="togglePopup";const OPT_SHORTCUT_SETTING="openSetting";const DEFAULT_SHORTCUTS={[OPT_SHORTCUT_TRANSLATE]:["AltLeft","KeyQ"],[OPT_SHORTCUT_STYLE]:["AltLeft","KeyC"],[OPT_SHORTCUT_POPUP]:["AltLeft","KeyK"],[OPT_SHORTCUT_SETTING]:["AltLeft","KeyO"]};const TRANS_MIN_LENGTH=5;// 最短翻译长度
-const TRANS_MAX_LENGTH=5000;// 最长翻译长度
-const TRANS_NEWLINE_LENGTH=20;// 换行字符数
-const DEFAULT_BLACKLIST=["https://fishjar.github.io/kiss-translator/options.html","https://translate.google.com","https://www.deepl.com/translator","oapi.dingtalk.com","login.dingtalk.com"];// 禁用翻译名单
-const DEFAULT_CSPLIST=["https://github.com"];// 禁用CSP名单
-const config_DEFAULT_SETTING={darkMode:false,// 深色模式
+const DEFAULT_SUBRULES_LIST=[{url:"https://fishjar.github.io/kiss-rules/kiss-rules_v2.json",selected:true},{url:"https://fishjar.github.io/kiss-rules/kiss-rules-on_v2.json",selected:false},{url:"https://fishjar.github.io/kiss-rules/kiss-rules-off_v2.json",selected:false}];const DEFAULT_MOUSEHOVER_KEY=["KeyQ"];const DEFAULT_MOUSE_HOVER_SETTING={useMouseHover:true,// 是否启用鼠标悬停翻译
+mouseHoverKey:DEFAULT_MOUSEHOVER_KEY// 鼠标悬停翻译组合键
+};const setting_DEFAULT_SETTING={darkMode:false,// 深色模式
 uiLang:"en",// 界面语言
-// fetchLimit: DEFAULT_FETCH_LIMIT, // 最大任务数量(移至transApis，作废)
-// fetchInterval: DEFAULT_FETCH_INTERVAL, // 任务间隔时间(移至transApis，作废)
+// fetchLimit: DEFAULT_FETCH_LIMIT, // 最大任务数量(移至rule，作废)
+// fetchInterval: DEFAULT_FETCH_INTERVAL, // 任务间隔时间(移至rule，作废)
 minLength:TRANS_MIN_LENGTH,maxLength:TRANS_MAX_LENGTH,newlineLength:TRANS_NEWLINE_LENGTH,httpTimeout:DEFAULT_HTTP_TIMEOUT,clearCache:false,// 是否在浏览器下次启动时清除缓存
 injectRules:true,// 是否注入订阅规则
+fabClickAction:0,// 悬浮按钮点击行为
 // injectWebfix: true, // 是否注入修复补丁(作废)
-// detectRemote: false, // 是否使用远程语言检测(移至rule，作废)
+// detectRemote: false, // 是否使用远程语言检测 （从rule移回）
 // contextMenus: true, // 是否添加右键菜单(作废)
 contextMenuType:1,// 右键菜单类型(0不显示，1简单菜单，2多级菜单)
 // transTag: DEFAULT_TRANS_TAG, // 译文元素标签(移至rule，作废)
 // transOnly: false, // 是否仅显示译文(移至rule，作废)
 // transTitle: false, // 是否同时翻译页面标题(移至rule，作废)
 subrulesList:DEFAULT_SUBRULES_LIST,// 订阅列表
-owSubrule:DEFAULT_OW_RULE,// 覆写订阅规则
-transApis:DEFAULT_TRANS_APIS,// 翻译接口
+// owSubrule: DEFAULT_OW_RULE, // 覆写订阅规则 (作废)
+transApis:DEFAULT_API_LIST,// 翻译接口 (v2.0 对象改为数组)
 // mouseKey: OPT_TIMING_PAGESCROLL, // 翻译时机/鼠标悬停翻译(移至rule，作废)
 shortcuts:DEFAULT_SHORTCUTS,// 快捷键
 inputRule:DEFAULT_INPUT_RULE,// 输入框设置
@@ -30882,62 +31961,175 @@ tranboxSetting:DEFAULT_TRANBOX_SETTING,// 划词翻译设置
 touchTranslate:2,// 触屏翻译
 blacklist:DEFAULT_BLACKLIST.join(",\n"),// 禁用翻译名单
 csplist:DEFAULT_CSPLIST.join(",\n"),// 禁用CSP名单
+orilist:DEFAULT_ORILIST.join(",\n"),// 禁用CSP名单
 // disableLangs: [], // 不翻译的语言(移至rule，作废)
-transInterval:500,// 翻译间隔时间
-langDetector:OPT_TRANS_MICROSOFT// 远程语言识别服务
-};const config_DEFAULT_RULES=[GLOBLA_RULE];const OPT_SYNCTYPE_WORKER="KISS-Worker";const OPT_SYNCTYPE_WEBDAV="WebDAV";const OPT_SYNCTYPE_ALL=[OPT_SYNCTYPE_WORKER,OPT_SYNCTYPE_WEBDAV];const config_DEFAULT_SYNC={syncType:OPT_SYNCTYPE_WORKER,// 同步方式
-syncUrl:"",// 数据同步接口
-syncUser:"",// 数据同步用户名
-syncKey:"",// 数据同步密钥
-syncMeta:{},// 数据更新及同步信息
-subRulesSyncAt:0,// 订阅规则同步时间
-dataCaches:{}// 缓存同步时间
+skipLangs:[],// 不翻译的语言（从rule移回）
+transInterval:100,// 翻译等待时间
+langDetector:"-",// 远程语言识别服务
+mouseHoverSetting:DEFAULT_MOUSE_HOVER_SETTING,// 鼠标悬停翻译
+preInit:true,// 是否预加载脚本
+transAllnow:false,// 是否立即全部翻译
+subtitleSetting:DEFAULT_SUBTITLE_SETTING,// 字幕设置
+logLevel:LogLevel.INFO.value// 日志级别
 };
+;// CONCATENATED MODULE: ./src/config/i18n.js
+const UI_LANGS=(/* unused pure expression or super */ null && ([["en","English"],["zh","简体中文"],["zh_TW","繁體中文"]]));const customApiLangs="[\"en\", \"English - English\"],\n[\"zh-CN\", \"Simplified Chinese - \u7B80\u4F53\u4E2D\u6587\"],\n[\"zh-TW\", \"Traditional Chinese - \u7E41\u9AD4\u4E2D\u6587\"],\n[\"ar\", \"Arabic - \u0627\u0644\u0639\u0631\u0628\u064A\u0629\"],\n[\"bg\", \"Bulgarian - \u0411\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438\"],\n[\"ca\", \"Catalan - Catal\xE0\"],\n[\"hr\", \"Croatian - Hrvatski\"],\n[\"cs\", \"Czech - \u010Ce\u0161tina\"],\n[\"da\", \"Danish - Dansk\"],\n[\"nl\", \"Dutch - Nederlands\"],\n[\"fi\", \"Finnish - Suomi\"],\n[\"fr\", \"French - Fran\xE7ais\"],\n[\"de\", \"German - Deutsch\"],\n[\"el\", \"Greek - \u0395\u03BB\u03BB\u03B7\u03BD\u03B9\u03BA\u03AC\"],\n[\"hi\", \"Hindi - \u0939\u093F\u0928\u094D\u0926\u0940\"],\n[\"hu\", \"Hungarian - Magyar\"],\n[\"id\", \"Indonesian - Indonesia\"],\n[\"it\", \"Italian - Italiano\"],\n[\"ja\", \"Japanese - \u65E5\u672C\u8A9E\"],\n[\"ko\", \"Korean - \uD55C\uAD6D\uC5B4\"],\n[\"ms\", \"Malay - Melayu\"],\n[\"mt\", \"Maltese - Malti\"],\n[\"nb\", \"Norwegian - Norsk Bokm\xE5l\"],\n[\"pl\", \"Polish - Polski\"],\n[\"pt\", \"Portuguese - Portugu\xEAs\"],\n[\"ro\", \"Romanian - Rom\xE2n\u0103\"],\n[\"ru\", \"Russian - \u0420\u0443\u0441\u0441\u043A\u0438\u0439\"],\n[\"sk\", \"Slovak - Sloven\u010Dina\"],\n[\"sl\", \"Slovenian - Sloven\u0161\u010Dina\"],\n[\"es\", \"Spanish - Espa\xF1ol\"],\n[\"sv\", \"Swedish - Svenska\"],\n[\"ta\", \"Tamil - \u0BA4\u0BAE\u0BBF\u0BB4\u0BCD\"],\n[\"te\", \"Telugu - \u0C24\u0C46\u0C32\u0C41\u0C17\u0C41\"],\n[\"th\", \"Thai - \u0E44\u0E17\u0E22\"],\n[\"tr\", \"Turkish - T\xFCrk\xE7e\"],\n[\"uk\", \"Ukrainian - \u0423\u043A\u0440\u0430\u0457\u043D\u0441\u044C\u043A\u0430\"],\n[\"vi\", \"Vietnamese - Ti\u1EBFng Vi\u1EC7t\"],\n";const customApiHelpZH="// \u8BF7\u6C42\u6570\u636E\u9ED8\u8BA4\u683C\u5F0F\n{\n  \"url\": \"{{url}}\",\n  \"method\": \"POST\",\n  \"headers\": {\n    \"Content-type\": \"application/json\",\n    \"Authorization\": \"Bearer {{key}}\"\n  },\n  \"body\": {\n    \"text\": \"{{text}}\", // \u5F85\u7FFB\u8BD1\u6587\u5B57\n    \"from\": \"{{from}}\", // \u6587\u5B57\u7684\u8BED\u8A00\uFF08\u53EF\u80FD\u4E3A\u7A7A\uFF09\n    \"to\": \"{{to}}\",     // \u76EE\u6807\u8BED\u8A00\n  },\n}\n\n\n// \u8FD4\u56DE\u6570\u636E\u9ED8\u8BA4\u683C\u5F0F\n{\n  text: \"\", // \u7FFB\u8BD1\u540E\u7684\u6587\u5B57\n  from: \"\", // \u8BC6\u522B\u7684\u6E90\u8BED\u8A00\n  to: \"\",   // \u76EE\u6807\u8BED\u8A00\uFF08\u53EF\u9009\uFF09\n}\n\n\n// Hook \u8303\u4F8B\n// URL\nhttps://translate.googleapis.com/translate_a/single?client=gtx&dj=1&dt=t&ie=UTF-8&q={{text}}&sl=en&tl=zh-CN\n\n// Request Hook\n(text, from, to, url, key) => [url, {\n  headers: {\n      \"Content-type\": \"application/json\",\n  },\n  method: \"GET\",\n  body: null,\n}]\n\n// Response Hook\n// \u5176\u4E2D\u8FD4\u56DE\u6570\u7EC4\u7B2C\u4E00\u4E2A\u503C\u8868\u793A\u8BD1\u6587\u5B57\u7B26\u4E32\uFF0C\u7B2C\u4E8C\u4E2A\u503C\u4E3A\u5E03\u5C14\u503C\uFF0C\u8868\u793A\u539F\u6587\u8BED\u8A00\u4E0E\u76EE\u6807\u8BED\u8A00\u662F\u5426\u76F8\u540C\n(res, text, from, to) => [res.sentences.map((item) => item.trans).join(\" \"), to === res.src]\n\n\n// \u652F\u6301\u7684\u8BED\u8A00\u4EE3\u7801\u5982\u4E0B\n".concat(customApiLangs,"\n");const customApiHelpEN="// Default request\n{\n  \"url\": \"{{url}}\",\n  \"method\": \"POST\",\n  \"headers\": {\n    \"Content-type\": \"application/json\",\n    \"Authorization\": \"Bearer {{key}}\"\n  },\n  \"body\": {\n    \"text\": \"{{text}}\", // Text to be translated\n    \"from\": \"{{from}}\", // The language of the text (may be empty)\n    \"to\": \"{{to}}\",     // Target language\n  },\n}\n\n\n// Default response\n{\n  text: \"\", // translated text\n  from: \"\", // Recognized source language\n  to: \"\",   // Target language (optional)\n}\n\n\n/// Hook Example\n// URL\nhttps://translate.googleapis.com/translate_a/single?client=gtx&dj=1&dt=t&ie=UTF-8&q={{text}}&sl=en&tl=zh-CN\n\n// Request Hook\n(text, from, to, url, key) => [url, {\n  headers: {\n      \"Content-type\": \"application/json\",\n  },\n  method: \"GET\",\n  body: null,\n}]\n\n// Response Hook\n// In the returned array, the first value is the translated string, while the second value is a boolean\n// that indicates whether the source language is the same as the target language.\n(res, text, from, to) => [res.sentences.map((item) => item.trans).join(\" \"), to === res.src]\n\n\n// The supported language codes are as follows\n".concat(customApiLangs,"\n");const requestHookHelperZH="1\u3001\u7B2C\u4E00\u4E2A\u53C2\u6570\u5305\u542B\u5982\u4E0B\u5B57\u6BB5\uFF1A'texts', 'from', 'to', 'url', 'key', 'model', 'systemPrompt', ...\n2\u3001\u8FD4\u56DE\u503C\u5FC5\u987B\u662F\u5305\u542B\u4EE5\u4E0B\u5B57\u6BB5\u7684\u5BF9\u8C61\uFF1A 'url', 'body', 'headers', 'userMsg', 'method'\n3\u3001\u5982\u8FD4\u56DE\u7A7A\u503C\uFF0C\u5219hook\u51FD\u6570\u4E0D\u4F1A\u4EA7\u751F\u4EFB\u4F55\u6548\u679C\u3002\n\n// \u793A\u4F8B\nasync (args, { url, body, headers, userMsg, method } = {}) => {\n  console.log(\"request hook args:\", args);\n  return { url, body, headers, userMsg, method };\n}";const requestHookHelperEN="1. The first parameter contains the following fields: 'texts', 'from', 'to', 'url', 'key', 'model', 'systemPrompt', ...\n2. The return value must be an object containing the following fields: 'url', 'body', 'headers', 'userMsg', 'method'\n3. If a null value is returned, the hook function will have no effect.\n\n// Example\nasync (args, { url, body, headers, userMsg, method } = {}) => {\n  console.log(\"request hook args:\", args);\n  return { url, body, headers, userMsg, method };\n}";const responsetHookHelperZH="1\u3001\u7B2C\u4E00\u4E2A\u53C2\u6570\u5305\u542B\u5982\u4E0B\u5B57\u6BB5\uFF1A'res', ...\n2\u3001\u8FD4\u56DE\u503C\u5FC5\u987B\u662F\u5305\u542B\u4EE5\u4E0B\u5B57\u6BB5\u7684\u5BF9\u8C61\uFF1A 'translations', 'modelMsg' \n  \uFF08'translations' \u5E94\u4E3A\u4E00\u4E2A\u4E8C\u7EF4\u6570\u7EC4\uFF1A[[\u8BD1\u6587, \u6E90\u8BED\u8A00]]\uFF09\n3\u3001\u5982\u8FD4\u56DE\u7A7A\u503C\uFF0C\u5219hook\u51FD\u6570\u4E0D\u4F1A\u4EA7\u751F\u4EFB\u4F55\u6548\u679C\u3002\n\n// \u793A\u4F8B\nasync ({ res, ...args }) => {\n  console.log(\"reaponse hook args:\", res, args);\n  const translations = [[\"\u4F60\u597D\", \"zh\"]];\n  const modelMsg = \"\";\n  return { translations, modelMsg };\n}";const responsetHookHelperEN="1. The first parameter contains the following fields: 'res', ...\n2. The return value must be an object containing the following fields: 'translations', 'modelMsg'\n  ('translations' should be a two-dimensional array: [[translation, source language]]).\n3. If a null value is returned, the hook function will have no effect.\n\n// Example\nasync ({ res, ...args }) => {\n  console.log(\"reaponse hook args:\", res, args);\n  const translations = [[\"\u4F60\u597D\", \"zh\"]];\n  const modelMsg = \"\";\n  return { translations, modelMsg };\n}";const I18N={app_name:{zh:"\u7B80\u7EA6\u7FFB\u8BD1",en:"KISS Translator",zh_TW:"\u7C21\u7D04\u7FFB\u8B6F"},translate:{zh:"\u7FFB\u8BD1",en:"Translate",zh_TW:"\u7FFB\u8B6F"},custom_api_help:{zh:customApiHelpZH,en:customApiHelpEN,zh_TW:customApiHelpZH},request_hook_helper:{zh:requestHookHelperZH,en:requestHookHelperEN,zh_TW:requestHookHelperZH},response_hook_helper:{zh:responsetHookHelperZH,en:responsetHookHelperEN,zh_TW:responsetHookHelperZH},translate_alt:{zh:"\u7FFB\u8BD1",en:"Translate",zh_TW:"\u7FFB\u8B6F"},basic_setting:{zh:"\u57FA\u672C\u8BBE\u7F6E",en:"Basic Setting",zh_TW:"\u57FA\u672C\u8A2D\u5B9A"},rules_setting:{zh:"\u89C4\u5219\u8BBE\u7F6E",en:"Rules Setting",zh_TW:"\u898F\u5247\u8A2D\u5B9A"},apis_setting:{zh:"\u63A5\u53E3\u8BBE\u7F6E",en:"Apis Setting",zh_TW:"API\u8A2D\u5B9A"},sync_setting:{zh:"\u540C\u6B65\u8BBE\u7F6E",en:"Sync Setting",zh_TW:"\u540C\u6B65\u8A2D\u5B9A"},patch_setting:{zh:"\u8865\u4E01\u8BBE\u7F6E",en:"Patch Setting",zh_TW:"\u4FEE\u88DC\u8A2D\u5B9A"},patch_setting_help:{zh:"\u9488\u5BF9\u4E00\u4E9B\u7279\u6B8A\u7F51\u7AD9\u7684\u4FEE\u6B63\u811A\u672C\uFF0C\u4EE5\u4FBF\u7FFB\u8BD1\u8F6F\u4EF6\u5F97\u5230\u66F4\u597D\u7684\u5C55\u793A\u6548\u679C\u3002",en:"Corrected scripts for some special websites so that the translation software can get better display results.",zh_TW:"\u91DD\u5C0D\u67D0\u4E9B\u7279\u6B8A\u7DB2\u7AD9\u7684\u4FEE\u6B63\u8173\u672C\uFF0C\u8B93\u7FFB\u8B6F\u8EDF\u9AD4\u6709\u66F4\u597D\u7684\u986F\u793A\u6548\u679C\u3002"},inject_webfix:{zh:"\u6CE8\u5165\u4FEE\u590D\u8865\u4E01",en:"Inject Webfix",zh_TW:"\u6CE8\u5165\u4FEE\u6B63\u88DC\u4E01"},about:{zh:"\u5173\u4E8E",en:"About",zh_TW:"\u95DC\u65BC"},about_md:{zh:"README.md",en:"README.en.md",zh_TW:"README.md"},about_md_local:{zh:"\u8BF7 [\u70B9\u51FB\u8FD9\u91CC](".concat("https://github.com/fishjar/kiss-translator",") \u67E5\u770B\u8BE6\u60C5\u3002"),en:"Please [click here](".concat("https://github.com/fishjar/kiss-translator",") for details."),zh_TW:"\u8ACB\u3010\u9EDE\u9019\u88E1\u3011\u67E5\u770B\u8A73\u7D30\u5167\u5BB9\u3002"},ui_lang:{zh:"\u754C\u9762\u8BED\u8A00",en:"Interface Language",zh_TW:"\u4ECB\u9762\u8A9E\u8A00"},fetch_limit:{zh:"\u6700\u5927\u5E76\u53D1\u8BF7\u6C42\u6570\u91CF (1-100)",en:"Maximum Number Of Concurrent Requests (1-100)",zh_TW:"\u6700\u5927\u540C\u6642\u8ACB\u6C42\u6578\u91CF (1-100)"},if_think:{zh:"\u542F\u7528\u6216\u7981\u7528\u6A21\u578B\u7684\u6DF1\u5EA6\u601D\u8003\u80FD\u529B",en:"Enable or disable the model\u2019s thinking behavior ",zh_TW:"\u555F\u7528\u6216\u505C\u7528\u6A21\u578B\u7684\u6DF1\u5EA6\u601D\u8003\u80FD\u529B"},think:{zh:"\u542F\u7528\u6DF1\u5EA6\u601D\u8003",en:"enable thinking",zh_TW:"\u555F\u7528\u6DF1\u5EA6\u601D\u8003"},nothink:{zh:"\u7981\u7528\u6DF1\u5EA6\u601D\u8003",en:"disable thinking",zh_TW:"\u505C\u7528\u6DF1\u5EA6\u601D\u8003"},think_ignore:{zh:"\u5FFD\u7565\u4EE5\u4E0B\u6A21\u578B\u7684<think>\u8F93\u51FA,\u9017\u53F7(,)\u5206\u5272,\u5F53\u6A21\u578B\u652F\u6301\u601D\u8003\u4F46ollama\u4E0D\u652F\u6301\u65F6\u9700\u8981\u586B\u5199\u672C\u53C2\u6570",en:"Ignore the <think> block for the following models, comma (,) separated",zh_TW:"\u5FFD\u7565\u4EE5\u4E0B\u6A21\u578B\u7684 <think> \u8F38\u51FA\uFF0C\u4EE5\u9017\u865F (,) \u5206\u9694\uFF1B\u7576\u6A21\u578B\u652F\u63F4\u601D\u8003\u4F46 ollama \u4E0D\u652F\u63F4\u6642\u9700\u8981\u586B\u5BEB\u6B64\u53C3\u6578"},fetch_interval:{zh:"\u6BCF\u6B21\u8BF7\u6C42\u95F4\u9694\u65F6\u95F4 (0-5000ms)",en:"Time Between Requests (0-5000ms)",zh_TW:"\u6BCF\u6B21\u8ACB\u6C42\u9593\u9694\u6642\u9593 (0-5000ms)"},translate_interval:{zh:"\u7FFB\u8BD1\u95F4\u9694\u65F6\u95F4 (10-2000ms)",en:"Translation Interval (10-2000ms)",zh_TW:"\u7FFB\u8B6F\u9593\u9694\u6642\u9593 (10-2000ms)"},http_timeout:{zh:"\u8BF7\u6C42\u8D85\u65F6\u65F6\u95F4 (5000-60000ms)",en:"Request Timeout Time (5000-60000ms)",zh_TW:"\u8ACB\u6C42\u903E\u6642\u6642\u9593 (5000-60000ms)"},custom_header:{zh:"\u81EA\u5B9A\u4E49Header\u53C2\u6570",en:"Custom Header Params"},custom_header_help:{zh:"\u4F7F\u7528JSON\u683C\u5F0F\uFF0C\u4F8B\u5982 \"User-Agent\": \"Mozilla/5.0 (X11; Linux x86_64; rv:141.0) Gecko/20100101 Firefox/141.0\"",en:"Use JSON format, for example \"User-Agent\": \"Mozilla/5.0 (X11; Linux x86_64; rv:141.0) Gecko/20100101 Firefox/141.0\""},custom_body:{zh:"\u81EA\u5B9A\u4E49Body\u53C2\u6570",en:"Custom Body Params"},custom_body_help:{zh:"\u4F7F\u7528JSON\u683C\u5F0F\uFF0C\u4F8B\u5982 \"top_p\": 0.7",en:"Use JSON format, for example \"top_p\": 0.7"},min_translate_length:{zh:"\u6700\u5C0F\u7FFB\u8BD1\u5B57\u7B26\u6570 (1-100)",en:"Minimum number Of Translated Characters (1-100)",zh_TW:"\u6700\u5C0F\u7FFB\u8B6F\u5B57\u5143\u6578 (1-100)"},max_translate_length:{zh:"\u6700\u5927\u7FFB\u8BD1\u5B57\u7B26\u6570 (100-100000)",en:"Maximum number Of Translated Characters (100-100000)",zh_TW:"\u6700\u5927\u7FFB\u8B6F\u5B57\u5143\u6578 (100-100000)"},num_of_newline_characters:{zh:"\u6362\u884C\u5B57\u7B26\u6570 (1-1000)",en:"Number of Newline Characters (1-1000)",zh_TW:"\u63DB\u884C\u5B57\u5143\u6578 (1-1000)"},translate_service:{zh:"\u7FFB\u8BD1\u670D\u52A1",en:"Translate Service",zh_TW:"\u7FFB\u8B6F\u670D\u52D9"},translate_service_multiple:{zh:"\u7FFB\u8BD1\u670D\u52A1 (\u652F\u6301\u591A\u9009)",en:"Translation service (multiple supported)",zh_TW:"\u7FFB\u8B6F\u670D\u52D9 (\u652F\u63F4\u591A\u9078)"},translate_timing:{zh:"\u7FFB\u8BD1\u65F6\u673A",en:"Translate Timing",zh_TW:"\u7FFB\u8B6F\u6642\u6A5F"},mk_pagescroll:{zh:"\u6EDA\u52A8\u52A0\u8F7D\u7FFB\u8BD1\uFF08\u63A8\u8350\uFF09",en:"Rolling Loading (Suggested)",zh_TW:"\u6EFE\u52D5\u8F09\u5165\u7FFB\u8B6F\uFF08\u5EFA\u8B70\uFF09"},mk_pageopen:{zh:"\u7ACB\u5373\u5168\u90E8\u7FFB\u8BD1",en:"Translate all now",zh_TW:"\u7ACB\u5373\u5168\u90E8\u7FFB\u8B6F"},mk_mouseover:{zh:"\u9F20\u6807\u60AC\u505C\u7FFB\u8BD1",en:"Mouseover",zh_TW:"\u6ED1\u9F20\u61F8\u505C\u7FFB\u8B6F"},mk_ctrlKey:{zh:"Control + \u9F20\u6807\u60AC\u505C",en:"Control + Mouseover",zh_TW:"Control + \u6ED1\u9F20\u61F8\u505C"},mk_shiftKey:{zh:"Shift + \u9F20\u6807\u60AC\u505C",en:"Shift + Mouseover",zh_TW:"Shift + \u6ED1\u9F20\u61F8\u505C"},mk_altKey:{zh:"Alt + \u9F20\u6807\u60AC\u505C",en:"Alt + Mouseover",zh_TW:"Alt + \u6ED1\u9F20\u61F8\u505C"},from_lang:{zh:"\u539F\u6587\u8BED\u8A00",en:"Source Language",zh_TW:"\u539F\u6587\u8A9E\u8A00"},to_lang:{zh:"\u76EE\u6807\u8BED\u8A00",en:"Target Language",zh_TW:"\u76EE\u6A19\u8A9E\u8A00"},to_lang2:{zh:"\u7B2C\u4E8C\u76EE\u6807\u8BED\u8A00",en:"Target Language 2",zh_TW:"\u7B2C\u4E8C\u76EE\u6A19\u8A9E\u8A00"},to_lang2_helper:{zh:"\u8BBE\u5B9A\u540E\uFF0C\u4E0E\u76EE\u6807\u8BED\u8A00\u4EA7\u751F\u4E92\u8BD1\u6548\u679C\uFF0C\u4F46\u4F9D\u8D56\u8FDC\u7A0B\u8BED\u8A00\u8BC6\u522B\u3002",en:"After setting, it will produce mutual translation effect with the target language, but it relies on remote language recognition.",zh_TW:"\u8A2D\u5B9A\u5F8C\u6703\u8207\u76EE\u6A19\u8A9E\u8A00\u4E92\u8B6F\uFF0C\u4F46\u4F9D\u8CF4\u9060\u7AEF\u8A9E\u8A00\u8B58\u5225\u3002"},text_style:{zh:"\u8BD1\u6587\u6837\u5F0F",en:"Text Style",zh_TW:"\u8B6F\u6587\u6A23\u5F0F"},text_style_alt:{zh:"\u8BD1\u6587\u6837\u5F0F",en:"Text Style",zh_TW:"\u8B6F\u6587\u6A23\u5F0F"},bg_color:{zh:"\u6837\u5F0F\u989C\u8272",en:"Style Color",zh_TW:"\u6A23\u5F0F\u984F\u8272"},remain_unchanged:{zh:"\u4FDD\u7559\u4E0D\u53D8",en:"Remain Unchanged",zh_TW:"\u4FDD\u7559\u4E0D\u8B8A"},google_api:{zh:"\u8C37\u6B4C\u7FFB\u8BD1\u63A5\u53E3",en:"Google Translate API",zh_TW:"Google \u7FFB\u8B6F\u4ECB\u9762"},default_selector:{zh:"\u9ED8\u8BA4\u9009\u62E9\u5668",en:"Default selector",zh_TW:"\u9810\u8A2D\u9078\u64C7\u5668"},selector_rules:{zh:"\u9009\u62E9\u5668\u89C4\u5219",en:"Selector Rules",zh_TW:"\u9078\u64C7\u5668\u898F\u5247"},save:{zh:"\u4FDD\u5B58",en:"Save",zh_TW:"\u5132\u5B58"},edit:{zh:"\u7F16\u8F91",en:"Edit",zh_TW:"\u7DE8\u8F2F"},cancel:{zh:"\u53D6\u6D88",en:"Cancel",zh_TW:"\u53D6\u6D88"},delete:{zh:"\u5220\u9664",en:"Delete",zh_TW:"\u522A\u9664"},reset:{zh:"\u91CD\u7F6E",en:"Reset",zh_TW:"\u91CD\u8A2D"},add:{zh:"\u6DFB\u52A0",en:"Add",zh_TW:"\u65B0\u589E"},inject_rules:{zh:"\u6CE8\u5165\u8BA2\u9605\u89C4\u5219",en:"Inject Subscribe Rules",zh_TW:"\u6CE8\u5165\u8A02\u95B1\u898F\u5247"},personal_rules:{zh:"\u4E2A\u4EBA\u89C4\u5219",en:"Rules",zh_TW:"\u500B\u4EBA\u898F\u5247"},subscribe_rules:{zh:"\u8BA2\u9605\u89C4\u5219",en:"Subscribe",zh_TW:"\u8A02\u95B1\u898F\u5247"},overwrite_subscribe_rules:{zh:"\u8986\u5199\u8BA2\u9605\u89C4\u5219",en:"Overwrite",zh_TW:"\u8986\u5BEB\u8A02\u95B1\u898F\u5247"},subscribe_url:{zh:"\u8BA2\u9605\u5730\u5740",en:"Subscribe URL",zh_TW:"\u8A02\u95B1\u7DB2\u5740"},rules_warn_1:{zh:"1\u3001\u89C4\u5219\u751F\u6548\u7684\u4F18\u5148\u7EA7\u4F9D\u6B21\u4E3A\uFF1A\u4E2A\u4EBA\u89C4\u5219 > \u8BA2\u9605\u89C4\u5219 > \u5168\u5C40\u89C4\u5219\u3002\"\u5168\u5C40\u89C4\u5219\"\u76F8\u5F53\u4E8E\u515C\u5E95\u89C4\u5219\u3002",en:"1. The priority of rules is: personal rules > subscription rules > global rules. \"Global rules\" are like a fallback rule.",zh_TW:"1.\u898F\u5247\u751F\u6548\u7684\u512A\u5148\u9806\u5E8F\u4F9D\u5E8F\u70BA\uFF1A\u500B\u4EBA\u898F\u5247 > \u8A02\u95B1\u898F\u5247 > \u5168\u57DF\u898F\u5247\u3002 \"\u5168\u57DF\u898F\u5247\"\u76F8\u7576\u65BC\u515C\u5E95\u898F\u5247\u3002"},rules_warn_2:{zh:"2\u3001\u201C\u8BA2\u9605\u89C4\u5219\u201D\u9009\u62E9\u6CE8\u5165\u540E\u624D\u4F1A\u751F\u6548\u3002",en:"2. \"Subscription rules\" will take effect only after injection is selected.",zh_TW:"2\u3001\u300C\u8A02\u95B1\u898F\u5247\u300D\u9078\u64C7\u6CE8\u5165\u5F8C\u624D\u6703\u751F\u6548\u3002"},rules_warn_3:{zh:"3\u3001\u5173\u4E8E\u89C4\u5219\u586B\u5199\uFF1A\u8F93\u5165\u6846\u7559\u7A7A\u6216\u4E0B\u62C9\u6846\u9009\u201C*\u201D\u8868\u793A\u91C7\u7528\u5168\u5C40\u89C4\u5219\u3002",en:"3. Regarding filling in the rules: Leave the input box blank or select \"*\" in the drop-down box to use global rule.",zh_TW:"3. \u898F\u5247\u586B\u5BEB\u8AAA\u660E\uFF1A\u8F38\u5165\u6846\u7559\u7A7A\u6216\u4E0B\u62C9\u9078\u64C7\u300C*\u300D\u8868\u793A\u4F7F\u7528\u5168\u57DF\u898F\u5247\u3002"},sync_warn:{zh:"\u6D89\u53CA\u9690\u79C1\u6570\u636E\u7684\u540C\u6B65\u8BF7\u8C28\u614E\u9009\u62E9\u7B2C\u4E09\u65B9\u540C\u6B65\u670D\u52A1\uFF0C\u5EFA\u8BAE\u81EA\u884C\u642D\u5EFA kiss-worker \u6216 WebDAV \u670D\u52A1\u3002",en:"When synchronizing data that involves privacy, please be cautious about choosing third-party sync services. It is recommended to set up your own sync service using kiss-worker or WebDAV.",zh_TW:"\u540C\u6B65\u6D89\u53CA\u96B1\u79C1\u8CC7\u6599\u6642\uFF0C\u8ACB\u8B39\u614E\u9078\u64C7\u7B2C\u4E09\u65B9\u540C\u6B65\u670D\u52D9\uFF1B\u5EFA\u8B70\u81EA\u5EFA kiss-worker \u6216 WebDAV \u670D\u52D9\u3002"},sync_warn_2:{zh:"\u5982\u679C\u670D\u52A1\u5668\u5B58\u5728\u5176\u4ED6\u5BA2\u6237\u7AEF\u540C\u6B65\u7684\u6570\u636E\uFF0C\u7B2C\u4E00\u6B21\u540C\u6B65\u5C06\u76F4\u63A5\u8986\u76D6\u672C\u5730\u914D\u7F6E\uFF0C\u540E\u9762\u5219\u6839\u636E\u4FEE\u6539\u65F6\u95F4\uFF0C\u65B0\u7684\u8986\u76D6\u65E7\u7684\u3002",en:"If the server has data synchronized by other clients, the first synchronization will directly overwrite the local configuration, and later, according to the modification time, the new one will overwrite the old one.",zh_TW:"\u82E5\u4F3A\u670D\u5668\u4E0A\u5B58\u5728\u5176\u4ED6\u7528\u6236\u7AEF\u540C\u6B65\u7684\u8CC7\u6599\uFF0C\u7B2C\u4E00\u6B21\u540C\u6B65\u6703\u76F4\u63A5\u8986\u84CB\u672C\u6A5F\u8A2D\u5B9A\uFF1B\u4E4B\u5F8C\u5247\u4F9D\u4FEE\u6539\u6642\u9593\uFF0C\u7531\u65B0\u7684\u8986\u84CB\u820A\u7684\u3002"},about_sync_api:{zh:"\u81EA\u5EFAkiss-wroker\u6570\u636E\u540C\u6B65\u670D\u52A1",en:"Self-hosting a Kiss-worker data sync service",zh_TW:"\u81EA\u5EFA kiss-wroker \u8CC7\u6599\u540C\u6B65\u670D\u52D9"},about_api:{zh:"1\u3001\u5176\u4E2D BuiltinAI \u4E3A\u6D4F\u89C8\u5668\u5185\u7F6EAI\u7FFB\u8BD1\uFF0C\u76EE\u524D\u4EC5 Chrome 138 \u53CA\u4EE5\u4E0A\u7248\u672C\u5F97\u5230\u652F\u6301\u3002",en:"1. BuiltinAI is the browser's built-in AI translation, which is currently only supported by Chrome 138 and above.",zh_TW:"1.\u5176\u4E2D BuiltinAI \u70BA\u700F\u89BD\u5668\u5167\u5EFAAI\u7FFB\u8B6F\uFF0C\u76EE\u524D\u50C5 Chrome 138 \u4EE5\u4E0A\u7248\u672C\u652F\u63F4\u3002"},about_api_2:{zh:"2\u3001\u5927\u90E8\u5206AI\u63A5\u53E3\u90FD\u4E0EOpenAI\u517C\u5BB9\uFF0C\u56E0\u6B64\u9009\u62E9\u6DFB\u52A0OpenAI\u7C7B\u578B\u5373\u53EF\u3002",en:"2. Most AI interfaces are compatible with OpenAI, so just choose to add the OpenAI type.",zh_TW:"2.\u5927\u90E8\u5206AI\u4ECB\u9762\u90FD\u8207OpenAI\u76F8\u5BB9\uFF0C\u56E0\u6B64\u9078\u64C7\u65B0\u589EOpenAI\u985E\u578B\u5373\u53EF\u3002"},about_api_3:{zh:"2\u3001\u6682\u672A\u5217\u51FA\u7684\u63A5\u53E3\uFF0C\u7406\u8BBA\u4E0A\u90FD\u53EF\u4EE5\u901A\u8FC7\u81EA\u5B9A\u4E49\u63A5\u53E3 (Custom) \u7684\u5F62\u5F0F\u652F\u6301\u3002",en:"2. Interfaces that have not yet been launched can theoretically be supported through custom interfaces.",zh_TW:"2\u3001\u66AB\u672A\u5217\u51FA\u7684\u4ECB\u9762\uFF0C\u7406\u8AD6\u4E0A\u90FD\u53EF\u900F\u904E\u81EA\u8A02\u4ECB\u9762  (Custom)  \u7684\u5F62\u5F0F\u652F\u63F4\u3002"},about_api_proxy:{zh:"\u67E5\u770B\u81EA\u5EFA\u4E00\u4E2A\u7FFB\u8BD1\u63A5\u53E3\u4EE3\u7406",en:"Check out the self-built translation interface proxy",zh_TW:"\u67E5\u770B\u5982\u4F55\u81EA\u5EFA\u7FFB\u8B6F\u4ECB\u9762 Proxy"},setting_helper:{zh:"\u65B0\u65E7\u914D\u7F6E\u5E76\u4E0D\u517C\u5BB9\uFF0C\u5BFC\u51FA\u7684\u65E7\u7248\u914D\u7F6E\uFF0C\u52FF\u518D\u6B21\u5BFC\u5165\u3002",en:"The old and new configurations are not compatible. Do not import the exported old configuration again.",zh_TW:"\u65B0\u820A\u914D\u7F6E\u4E26\u4E0D\u76F8\u5BB9\uFF0C\u532F\u51FA\u7684\u820A\u7248\u914D\u7F6E\uFF0C\u52FF\u518D\u6B21\u532F\u5165\u3002"},style_none:{zh:"\u65E0",en:"None",zh_TW:"\u7121"},under_line:{zh:"\u4E0B\u5212\u76F4\u7EBF",en:"Underline",zh_TW:"\u4E0B\u5283\u76F4\u7DDA"},dot_line:{zh:"\u4E0B\u5212\u70B9\u72B6\u7EBF",en:"Dotted Underline",zh_TW:"\u4E0B\u5283\u9EDE\u72C0\u7DDA"},dash_line:{zh:"\u4E0B\u5212\u865A\u7EBF",en:"Dashed Underline",zh_TW:"\u4E0B\u5283\u865B\u7DDA"},dash_box:{zh:"\u865A\u7EBF\u6846",en:"Dashed Box"},wavy_line:{zh:"\u4E0B\u5212\u6CE2\u6D6A\u7EBF",en:"Wavy Underline",zh_TW:"\u4E0B\u5283\u6CE2\u6D6A\u7DDA"},fuzzy:{zh:"\u6A21\u7CCA",en:"Fuzzy",zh_TW:"\u6A21\u7CCA"},highlight:{zh:"\u9AD8\u4EAE",en:"Highlight",zh_TW:"\u53CD\u767D\u6A19\u793A"},blockquote:{zh:"\u5F15\u7528",en:"Blockquote",zh_TW:"\u5F15\u7528"},gradient:{zh:"\u6E10\u53D8",en:"Gradient",zh_TW:"\u6F38\u8B8A"},blink:{zh:"\u95EA\u73B0",en:"Blink",zh_TW:"\u9583\u73FE"},glow:{zh:"\u53D1\u5149",en:"Glow",zh_TW:"\u767C\u5149"},diy_style:{zh:"\u81EA\u5B9A\u4E49\u6837\u5F0F",en:"Custom Style",zh_TW:"\u81EA\u8A02\u6A23\u5F0F"},diy_style_helper:{zh:"\u9075\u5FAA\u201CCSS\u201D\u7684\u8BED\u6CD5",en:"Follow the syntax of \"CSS\"",zh_TW:"\u9075\u5FAA CSS \u8A9E\u6CD5"},setting:{zh:"\u8BBE\u7F6E",en:"Setting",zh_TW:"\u8A2D\u5B9A"},pattern:{zh:"\u5339\u914D\u7F51\u5740",en:"URL pattern",zh_TW:"\u5339\u914D\u7DB2\u5740"},pattern_helper:{zh:"1\u3001\u652F\u6301\u661F\u53F7(*)\u901A\u914D\u7B26\u30022\u3001\u591A\u4E2AURL\u7528\u6362\u884C\u6216\u82F1\u6587\u9017\u53F7\u201C,\u201D\u5206\u9694\u3002",en:"1. Supports the asterisk (*) wildcard character. 2. Separate multiple URLs with newlines or English commas \",\".",zh_TW:"1. \u652F\u63F4\u661F\u865F (*) \u842C\u7528\u5B57\u5143\u30022. \u591A\u500B URL \u8ACB\u4EE5\u63DB\u884C\u6216\u82F1\u6587\u9017\u865F\u300C,\u300D\u5206\u9694\u3002"},selector_helper:{zh:"1\u3001\u9700\u8981\u7FFB\u8BD1\u7684\u76EE\u6807\u5143\u7D20\u30022\u3001\u5F00\u542F\u81EA\u52A8\u626B\u63CF\u9875\u9762\u540E\uFF0C\u672C\u8BBE\u7F6E\u65E0\u6548\u30023\u3001\u9075\u5FAACSS\u9009\u62E9\u5668\u8BED\u6CD5\u3002",en:"1. The target element to be translated. 2. This setting is invalid when automatic page scanning is enabled. 3. Follow the CSS selector syntax.",zh_TW:"1\u3001\u9700\u8981\u7FFB\u8B6F\u7684\u76EE\u6A19\u5143\u7D20\u3002 2.\u958B\u555F\u81EA\u52D5\u6383\u63CF\u9801\u9762\u5F8C\uFF0C\u672C\u8A2D\u5B9A\u7121\u6548\u3002 3.\u9075\u5FAACSS\u9078\u64C7\u5668\u8A9E\u6CD5\u3002"},translate_switch:{zh:"\u5F00\u542F\u7FFB\u8BD1",en:"Translate Switch",zh_TW:"\u958B\u555F\u7FFB\u8B6F"},default_enabled:{zh:"\u9ED8\u8BA4\u5F00\u542F",en:"Enabled",zh_TW:"\u9810\u8A2D\u958B\u555F"},default_disabled:{zh:"\u9ED8\u8BA4\u5173\u95ED",en:"Disabled",zh_TW:"\u9810\u8A2D\u95DC\u9589"},selector:{zh:"\u9009\u62E9\u5668",en:"Selector",zh_TW:"\u9078\u64C7\u5668"},target_selector:{zh:"\u76EE\u6807\u5143\u7D20\u9009\u62E9\u5668",en:"Target element selector",zh_TW:"\u76EE\u6A19\u5143\u7D20\u9078\u64C7\u5668"},keep_selector:{zh:"\u4FDD\u7559\u5143\u7D20\u9009\u62E9\u5668",en:"Keep unchanged selector",zh_TW:"\u4FDD\u7559\u5143\u7D20\u9078\u64C7\u5668"},keep_selector_helper:{zh:"1\u3001\u76EE\u6807\u5143\u7D20\u4E0B\u9762\u9700\u8981\u539F\u6837\u4FDD\u7559\u7684\u5B50\u8282\u70B9\u30022\u3001\u9075\u5FAACSS\u9009\u62E9\u5668\u8BED\u6CD5\u3002",en:"1. The child nodes under the target element need to remain intact. 2. Follow the CSS selector syntax.",zh_TW:"1. \u76EE\u6A19\u5143\u7D20\u4E0B\u7684\u5B50\u7BC0\u9EDE\u9700\u8981\u4FDD\u6301\u539F\u6A23\u3002 2. \u9075\u5FAA CSS \u9078\u64C7\u5668\u8A9E\u6CD5\u3002"},root_selector:{zh:"\u6839\u8282\u70B9\u9009\u62E9\u5668",en:"Root node selector",zh_TW:"\u6839\u7BC0\u9EDE\u9078\u64C7\u5668"},root_selector_helper:{zh:"1\u3001\u7528\u4E8E\u7F29\u5C0F\u9875\u9762\u7FFB\u8BD1\u8303\u56F4\u30022\u3001\u9075\u5FAACSS\u9009\u62E9\u5668\u8BED\u6CD5\u3002",en:"1. Used to narrow the translation scope of the page. 2. Follow the CSS selector syntax.",zh_TW:"1.\u7528\u65BC\u7E2E\u5C0F\u9801\u9762\u7FFB\u8B6F\u7BC4\u570D\u3002 2\u3001\u9075\u5FAACSS\u9078\u64C7\u5668\u8A9E\u6CD5\u3002"},ignore_selector:{zh:"\u4E0D\u7FFB\u8BD1\u8282\u70B9\u9009\u62E9\u5668",en:"Ignore node selectors",zh_TW:"\u4E0D\u7FFB\u8B6F\u7BC0\u9EDE\u9078\u64C7\u5668"},ignore_selector_helper:{zh:"1\u3001\u9700\u8981\u5FFD\u7565\u7684\u8282\u70B9\u30022\u3001\u9075\u5FAACSS\u9009\u62E9\u5668\u8BED\u6CD5\u3002",en:"1. Nodes to be ignored. 2. Follow CSS selector syntax.",zh_TW:"1\u3001\u9700\u8981\u5FFD\u7565\u7684\u7BC0\u9EDE\u3002 2\u3001\u9075\u5FAACSS\u9078\u64C7\u5668\u8A9E\u6CD5\u3002"},terms:{zh:"\u4E13\u4E1A\u672F\u8BED",en:"Terms",zh_TW:"\u5C08\u696D\u8853\u8A9E"},terms_helper:{zh:"1\u3001\u652F\u6301\u6B63\u5219\u8868\u8FBE\u5F0F\u5339\u914D\uFF0C\u65E0\u9700\u659C\u6746\uFF0C\u4E0D\u652F\u6301\u4FEE\u9970\u7B26\u30022\u3001\u591A\u6761\u672F\u8BED\u7528\u6362\u884C\u6216\u5206\u53F7\u201C;\u201D\u9694\u5F00\u30023\u3001\u672F\u8BED\u548C\u8BD1\u6587\u7528\u82F1\u6587\u9017\u53F7\u201C,\u201D\u9694\u5F00\u30024\u3001\u6CA1\u6709\u8BD1\u6587\u89C6\u4E3A\u4E0D\u7FFB\u8BD1\u672F\u8BED\u3002",en:"1. Supports regular expression matching, no slash required, and no modifiers are supported. 2. Separate multiple terms with newlines or semicolons \";\". 3. Terms and translations are separated by English commas \",\". 4. If there is no translation, the term will be deemed not to be translated.",zh_TW:"1. \u652F\u63F4\u6B63\u5247\u8868\u9054\u5F0F\u6BD4\u5C0D\uFF0C\u7121\u9700\u659C\u7DDA\uFF0C\u4E14\u4E0D\u652F\u63F4\u4FEE\u98FE\u7B26\u30022. \u591A\u689D\u8853\u8A9E\u4EE5\u63DB\u884C\u6216\u5206\u865F\u300C;\u300D\u5206\u9694\u30023. \u8853\u8A9E\u8207\u8B6F\u6587\u4EE5\u82F1\u6587\u9017\u865F\u300C,\u300D\u5206\u9694\u30024. \u7121\u8B6F\u6587\u8005\u8996\u70BA\u4E0D\u7FFB\u8B6F\u8A72\u8853\u8A9E\u3002"},ai_terms:{zh:"AI\u4E13\u4E1A\u672F\u8BED",en:"AI Terms",zh_TW:"AI\u5C08\u696D\u8853\u8A9E"},ai_terms_helper:{zh:"1\u3001AI\u667A\u80FD\u66FF\u6362\uFF0C\u4E0D\u652F\u6301\u6B63\u5219\u8868\u8FBE\u5F0F\u30022\u3001\u591A\u6761\u672F\u8BED\u7528\u6362\u884C\u6216\u5206\u53F7\u201C;\u201D\u9694\u5F00\u30023\u3001\u672F\u8BED\u548C\u8BD1\u6587\u7528\u82F1\u6587\u9017\u53F7\u201C,\u201D\u9694\u5F00\u30024\u3001\u6CA1\u6709\u8BD1\u6587\u89C6\u4E3A\u4E0D\u7FFB\u8BD1\u672F\u8BED\u3002",en:"1. AI intelligent replacement does not support regular expressions.2. Separate multiple terms with newlines or semicolons \";\". 3. Terms and translations are separated by English commas \",\". 4. If there is no translation, the term will be deemed not to be translated.",zh_TW:"1.AI\u667A\u80FD\u66FF\u63DB\uFF0C\u4E0D\u652F\u63F4\u6B63\u898F\u8868\u793A\u5F0F\u30022. \u591A\u689D\u8853\u8A9E\u4EE5\u63DB\u884C\u6216\u5206\u865F\u300C;\u300D\u5206\u9694\u30023. \u8853\u8A9E\u8207\u8B6F\u6587\u4EE5\u82F1\u6587\u9017\u865F\u300C,\u300D\u5206\u9694\u30024. \u7121\u8B6F\u6587\u8005\u8996\u70BA\u4E0D\u7FFB\u8B6F\u8A72\u8853\u8A9E\u3002"},selector_style:{zh:"\u9009\u62E9\u5668\u8282\u70B9\u6837\u5F0F",en:"Selector Style",zh_TW:"\u9078\u64C7\u5668\u7BC0\u9EDE\u6A23\u5F0F"},selector_style_helper:{zh:"\u5F00\u542F\u7FFB\u8BD1\u65F6\u6CE8\u5165\u3002",en:"It is injected when translation is turned on.",zh_TW:"\u5728\u958B\u555F\u7FFB\u8B6F\u6642\u6CE8\u5165\u3002"},selector_parent_style:{zh:"\u9009\u62E9\u5668\u7236\u8282\u70B9\u6837\u5F0F",en:"Parent Selector Style",zh_TW:"\u9078\u64C7\u5668\u7236\u7BC0\u9EDE\u6A23\u5F0F"},selector_grand_style:{zh:"\u9009\u62E9\u5668\u7956\u8282\u70B9\u6837\u5F0F",en:"Grand Selector Style",zh_TW:"\u9078\u64C7\u5668\u7956\u7BC0\u9EDE\u6A23\u5F0F"},inject_js:{zh:"\u6CE8\u5165JS",en:"Inject JS",zh_TW:"\u6CE8\u5165 JS"},inject_js_helper:{zh:"\u521D\u59CB\u5316\u65F6\u6CE8\u5165\u8FD0\u884C\uFF0C\u4E00\u4E2A\u9875\u9762\u4EC5\u8FD0\u884C\u4E00\u6B21\u3002",en:"Injected and run at initialization, and only run once per page.",zh_TW:"\u521D\u59CB\u5316\u6642\u6CE8\u5165\u904B\u884C\uFF0C\u4E00\u500B\u9801\u9762\u50C5\u904B\u884C\u4E00\u6B21\u3002"},inject_css:{zh:"\u6CE8\u5165CSS",en:"Inject CSS",zh_TW:"\u6CE8\u5165 CSS"},inject_css_helper:{zh:"\u521D\u59CB\u5316\u65F6\u6CE8\u5165\u8FD0\u884C\uFF0C\u4E00\u4E2A\u9875\u9762\u4EC5\u8FD0\u884C\u4E00\u6B21\u3002",en:"Injected and run at initialization, and only run once per page.",zh_TW:"\u521D\u59CB\u5316\u6642\u6CE8\u5165\u904B\u884C\uFF0C\u4E00\u500B\u9801\u9762\u50C5\u904B\u884C\u4E00\u6B21\u3002"},fixer_function:{zh:"\u4FEE\u590D\u51FD\u6570",en:"Fixer Function",zh_TW:"\u4FEE\u5FA9\u51FD\u5F0F"},fixer_function_helper:{zh:"1\u3001br\u662F\u5C06<br>\u6362\u884C\u66FF\u6362\u6210<p \"kiss-p\">\u30022\u3001bn\u662F\u5C06\\n\u6362\u884C\u66FF\u6362\u6210<p \"kiss-p\">\u30023\u3001brToDiv\u548CbnToDiv\u662F\u66FF\u6362\u6210<div class=\"kiss-p\">\u3002",en:"1. br replaces <br> line breaks with <p \"kiss-p\">. 2. bn replaces \\n newline with <p \"kiss-p\">. 3. brToDiv and bnToDiv are replaced with <div class=\"kiss-p\">.",zh_TW:"1. br \u6703\u5C07 <br> \u63DB\u884C\u66FF\u63DB\u70BA <p \"kiss-p\">\u30022. bn \u6703\u5C07 \\n \u63DB\u884C\u66FF\u63DB\u70BA <p \"kiss-p\">\u30023. brToDiv \u8207 bnToDiv \u6703\u66FF\u63DB\u70BA <div class=\"kiss-p\">\u3002"},import:{zh:"\u5BFC\u5165",en:"Import",zh_TW:"\u532F\u5165"},export:{zh:"\u5BFC\u51FA",en:"Export",zh_TW:"\u532F\u51FA"},export_translation:{zh:"\u5BFC\u51FA\u91CA\u4E49",en:"Export Translation",zh_TW:"\u532F\u51FA\u91CB\u7FA9"},error_cant_be_blank:{zh:"\u4E0D\u80FD\u4E3A\u7A7A",en:"Can not be blank",zh_TW:"\u4E0D\u53EF\u70BA\u7A7A"},error_duplicate_values:{zh:"\u5B58\u5728\u91CD\u590D\u7684\u503C",en:"There are duplicate values",zh_TW:"\u5B58\u5728\u91CD\u8907\u7684\u503C"},error_wrong_file_type:{zh:"\u9519\u8BEF\u7684\u6587\u4EF6\u7C7B\u578B",en:"Wrong file type",zh_TW:"\u6A94\u6848\u985E\u578B\u932F\u8AA4"},error_fetch_url:{zh:"\u8BF7\u68C0\u67E5url\u5730\u5740\u662F\u5426\u6B63\u786E\u6216\u7A0D\u540E\u518D\u8BD5\u3002",en:"Please check if the url address is correct or try again later.",zh_TW:"\u8ACB\u6AA2\u67E5 URL \u662F\u5426\u6B63\u78BA\u6216\u7A0D\u5F8C\u518D\u8A66\u3002"},deepl_api:{zh:"DeepL \u63A5\u53E3",en:"DeepL API",zh_TW:"DeepL \u4ECB\u9762"},deepl_key:{zh:"DeepL \u5BC6\u94A5",en:"DeepL Key",zh_TW:"DeepL \u91D1\u9470"},openai_api:{zh:"OpenAI \u63A5\u53E3",en:"OpenAI API",zh_TW:"OpenAI \u4ECB\u9762"},openai_key:{zh:"OpenAI \u5BC6\u94A5",en:"OpenAI Key",zh_TW:"OpenAI \u91D1\u9470"},openai_model:{zh:"OpenAI \u6A21\u578B",en:"OpenAI Model",zh_TW:"OpenAI \u6A21\u578B"},openai_prompt:{zh:"OpenAI \u63D0\u793A\u8BCD",en:"OpenAI Prompt",zh_TW:"OpenAI \u63D0\u793A\u8A5E"},if_clear_cache:{zh:"\u662F\u5426\u6E05\u9664\u7F13\u5B58\uFF08\u9ED8\u8BA4\u7F13\u5B587\u5929\uFF09",en:"Whether clear cache (Default cache is 7 days)",zh_TW:"\u662F\u5426\u6E05\u9664\u5FEB\u53D6\uFF08\u9810\u8A2D\u5FEB\u53D67\u5929\uFF09"},clear_cache_never:{zh:"\u4E0D\u6E05\u9664\u7F13\u5B58",en:"Never clear cache",zh_TW:"\u4E0D\u6E05\u9664\u5FEB\u53D6"},clear_cache_restart:{zh:"\u91CD\u542F\u6D4F\u89C8\u5668\u65F6\u6E05\u9664\u7F13\u5B58",en:"Clear cache when restarting browser",zh_TW:"\u91CD\u65B0\u555F\u52D5\u700F\u89BD\u5668\u6642\u6E05\u9664\u5FEB\u53D6"},data_sync_type:{zh:"\u6570\u636E\u540C\u6B65\u65B9\u5F0F",en:"Data Sync Type",zh_TW:"\u8CC7\u6599\u540C\u6B65\u65B9\u5F0F"},data_sync_url:{zh:"\u6570\u636E\u540C\u6B65\u63A5\u53E3",en:"Data Sync API",zh_TW:"\u8CC7\u6599\u540C\u6B65\u4ECB\u9762"},data_sync_user:{zh:"\u6570\u636E\u540C\u6B65\u8D26\u6237",en:"Data Sync User",zh_TW:"\u8CC7\u6599\u540C\u6B65\u5E33\u865F"},data_sync_key:{zh:"\u6570\u636E\u540C\u6B65\u5BC6\u94A5",en:"Data Sync Key",zh_TW:"\u8CC7\u6599\u540C\u6B65\u91D1\u9470"},sync_now:{zh:"\u7ACB\u5373\u540C\u6B65",en:"Sync Now",zh_TW:"\u7ACB\u5373\u540C\u6B65"},sync_success:{zh:"\u540C\u6B65\u6210\u529F\uFF01",en:"Sync Success",zh_TW:"\u540C\u6B65\u6210\u529F\uFF01"},sync_failed:{zh:"\u540C\u6B65\u5931\u8D25\uFF01",en:"Sync Error",zh_TW:"\u540C\u6B65\u5931\u6557\uFF01"},error_got_some_wrong:{zh:"\u62B1\u6B49\uFF0C\u51FA\u9519\u4E86\uFF01",en:"Sorry, something went wrong!",zh_TW:"\u62B1\u6B49\uFF0C\u767C\u751F\u932F\u8AA4\uFF01"},error_sync_setting:{zh:"\u60A8\u7684\u540C\u6B65\u7C7B\u578B\u5FC5\u987B\u4E3A\u201CKISS-Worker\u201D\uFF0C\u4E14\u9700\u586B\u5199\u5B8C\u6574",en:"Your sync type must be \"KISS-Worker\" and must be filled in completely",zh_TW:"\u60A8\u7684\u540C\u6B65\u578B\u614B\u5FC5\u9808\u70BA\u300CKISS-Worker\u300D\uFF0C\u4E14\u9700\u586B\u5BEB\u5B8C\u6574\u3002"},click_test:{zh:"\u70B9\u51FB\u6D4B\u8BD5",en:"Click Test",zh_TW:"\u9EDE\u64CA\u6E2C\u8A66"},test_success:{zh:"\u6D4B\u8BD5\u6210\u529F",en:"Test success",zh_TW:"\u6E2C\u8A66\u6210\u529F"},test_failed:{zh:"\u6D4B\u8BD5\u5931\u8D25",en:"Test failed",zh_TW:"\u6E2C\u8A66\u5931\u6557"},clear_all_cache_now:{zh:"\u7ACB\u5373\u6E05\u9664\u5168\u90E8\u7F13\u5B58",en:"Clear all cache now",zh_TW:"\u7ACB\u5373\u6E05\u9664\u5168\u90E8\u5FEB\u53D6"},clear_cache:{zh:"\u6E05\u9664\u7F13\u5B58",en:"Clear Cache",zh_TW:"\u6E05\u9664\u5FEB\u53D6"},clear_success:{zh:"\u6E05\u9664\u6210\u529F",en:"Clear success",zh_TW:"\u6E05\u9664\u6210\u529F"},clear_failed:{zh:"\u6E05\u9664\u5931\u8D25",en:"Clear failed",zh_TW:"\u6E05\u9664\u5931\u6557"},share:{zh:"\u5206\u4EAB",en:"Share",zh_TW:"\u5206\u4EAB"},clear_all:{zh:"\u6E05\u7A7A",en:"Clear All",zh_TW:"\u6E05\u7A7A"},help:{zh:"\u6C42\u52A9",en:"Help",zh_TW:"\u6C42\u52A9"},restore_default:{zh:"\u6062\u590D\u9ED8\u8BA4",en:"Restore Default",zh_TW:"\u6062\u5FA9\u9810\u8A2D"},shortcuts_setting:{zh:"\u5FEB\u6377\u952E\u8BBE\u7F6E",en:"Shortcuts Setting",zh_TW:"\u5FEB\u6377\u9375\u8A2D\u5B9A"},toggle_translate_shortcut:{zh:"\"\u5F00\u542F\u7FFB\u8BD1\"\u5FEB\u6377\u952E",en:"\"Toggle Translate\" Shortcut",zh_TW:"\u300C\u958B\u555F\u7FFB\u8B6F\u300D\u5FEB\u6377\u9375"},toggle_style_shortcut:{zh:"\"\u5207\u6362\u6837\u5F0F\"\u5FEB\u6377\u952E",en:"\"Toggle Style\" Shortcut",zh_TW:"\u300C\u5207\u63DB\u6A23\u5F0F\u300D\u5FEB\u6377\u9375"},toggle_popup_shortcut:{zh:"\"\u6253\u5F00\u5F39\u7A97\"\u5FEB\u6377\u952E",en:"\"Open Popup\" Shortcut",zh_TW:"\u300C\u958B\u555F\u5F48\u7A97\u300D\u5FEB\u6377\u9375"},open_setting_shortcut:{zh:"\"\u6253\u5F00\u8BBE\u7F6E\"\u5FEB\u6377\u952E",en:"\"Open Setting\" Shortcut",zh_TW:"\u300C\u958B\u555F\u8A2D\u5B9A\u300D\u5FEB\u6377\u9375"},hide_fab_button:{zh:"\u9690\u85CF\u60AC\u6D6E\u6309\u94AE",en:"Hide Fab Button",zh_TW:"\u96B1\u85CF\u61F8\u6D6E\u6309\u9215"},fab_click_action:{zh:"\u5355\u51FB\u60AC\u6D6E\u6309\u94AE\u52A8\u4F5C",en:"Single Click Fab Action",zh_TW:"\u55AE\u64CA\u61F8\u6D6E\u6309\u94AE\u52D5\u4F5C"},fab_click_menu:{zh:"\u5F39\u51FA\u83DC\u5355",en:"Popup Menu",zh_TW:"\u5F48\u51FA\u9078\u55AE"},fab_click_translate:{zh:"\u76F4\u63A5\u7FFB\u8BD1",en:"Translate",zh_TW:"\u76F4\u63A5\u7FFB\u8B6F"},hide_tran_button:{zh:"\u9690\u85CF\u7FFB\u8BD1\u6309\u94AE",en:"Hide Translate Button",zh_TW:"\u96B1\u85CF\u7FFB\u8B6F\u6309\u9215"},hide_click_away:{zh:"\u70B9\u51FB\u5916\u90E8\u5173\u95ED\u5F39\u7A97",en:"Click outside to close the pop-up window",zh_TW:"\u9EDE\u64CA\u5916\u90E8\u95DC\u9589\u5F48\u7A97"},use_simple_style:{zh:"\u4F7F\u7528\u7B80\u6D01\u754C\u9762",en:"Use a simple interface",zh_TW:"\u4F7F\u7528\u7C21\u6F54\u4ECB\u9762"},show:{zh:"\u663E\u793A",en:"Show",zh_TW:"\u986F\u793A"},hide:{zh:"\u9690\u85CF",en:"Hide",zh_TW:"\u96B1\u85CF"},save_rule:{zh:"\u4FDD\u5B58\u89C4\u5219",en:"Save Rule",zh_TW:"\u5132\u5B58\u898F\u5247"},global_rule:{zh:"\u5168\u5C40\u89C4\u5219",en:"Global Rule",zh_TW:"\u5168\u57DF\u898F\u5247"},input_translate:{zh:"\u8F93\u5165\u6846\u7FFB\u8BD1",en:"Input Box Translation",zh_TW:"\u8F38\u5165\u6846\u7FFB\u8B6F"},use_input_box_translation:{zh:"\u542F\u7528\u8F93\u5165\u6846\u7FFB\u8BD1",en:"Input Box Translation",zh_TW:"\u555F\u7528\u8F38\u5165\u6846\u7FFB\u8B6F"},input_selector:{zh:"\u8F93\u5165\u6846\u9009\u62E9\u5668",en:"Input Selector",zh_TW:"\u8F38\u5165\u6846\u9078\u64C7\u5668"},input_selector_helper:{zh:"\u7528\u4E8E\u8F93\u5165\u6846\u7FFB\u8BD1\u3002",en:"Used for input box translation.",zh_TW:"\u7528\u65BC\u8F38\u5165\u6846\u7FFB\u8B6F\u3002"},trigger_trans_shortcut:{zh:"\u89E6\u53D1\u7FFB\u8BD1\u5FEB\u6377\u952E",en:"Trigger Translation Shortcut Keys",zh_TW:"\u89F8\u767C\u7FFB\u8B6F\u5FEB\u6377\u9375"},trigger_trans_shortcut_help:{zh:"\u9ED8\u8BA4\u4E3A\u5355\u51FB\u201CAltLeft+KeyI\u201D",en:"Default is \"AltLeft+KeyI\"",zh_TW:"\u9810\u8A2D\u70BA\u6309\u4E0B\u300CAltLeft+KeyI\u300D"},shortcut_press_count:{zh:"\u5FEB\u6377\u952E\u8FDE\u51FB\u6B21\u6570",en:"Shortcut Press Number",zh_TW:"\u5FEB\u6377\u9375\u9023\u64CA\u6B21\u6578"},combo_timeout:{zh:"\u8FDE\u51FB\u8D85\u65F6\u65F6\u95F4 (10-1000ms)",en:"Combo Timeout (10-1000ms)",zh_TW:"\u9023\u64CA\u903E\u6642 (10-1000ms)"},input_trans_start_sign:{zh:"\u7FFB\u8BD1\u8D77\u59CB\u6807\u8BC6",en:"Translation Start Sign",zh_TW:"\u7FFB\u8B6F\u8D77\u59CB\u6A19\u8A18"},input_trans_start_sign_help:{zh:"\u6807\u8BC6\u540E\u9762\u53EF\u4EE5\u52A0\u76EE\u6807\u8BED\u8A00\u4EE3\u7801\uFF0C\u5982\uFF1A \u201C/en \u4F60\u597D\u201D\u3001\u201C/zh hello\u201D",en:"The target language code can be added after the sign, such as: \"/en \u4F60\u597D\", \"/zh hello\"",zh_TW:"\u6A19\u8A18\u5F8C\u53EF\u52A0\u4E0A\u76EE\u6A19\u8A9E\u8A00\u4EE3\u78BC\uFF0C\u4F8B\u5982\uFF1A\u300C/en \u4F60\u597D\u300D\u3001\u300C/zh hello\u300D"},detect_lang_remote:{zh:"\u8FDC\u7A0B\u8BED\u8A00\u68C0\u6D4B",en:"Remote language detection",zh_TW:"\u9060\u7AEF\u8A9E\u8A00\u5075\u6E2C"},detect_lang_remote_help:{zh:"\u542F\u7528\u540E\u68C0\u6D4B\u51C6\u786E\u5EA6\u589E\u52A0\uFF0C\u4F46\u4F1A\u964D\u4F4E\u7FFB\u8BD1\u901F\u5EA6\uFF0C\u8BF7\u914C\u60C5\u5F00\u542F",en:"After enabling, the detection accuracy will increase, but it will reduce the translation speed. Please enable it as appropriate.",zh_TW:"\u555F\u7528\u5F8C\u53EF\u63D0\u5347\u5075\u6E2C\u6E96\u78BA\u5EA6\uFF0C\u4F46\u6703\u964D\u4F4E\u7FFB\u8B6F\u901F\u5EA6\uFF0C\u8ACB\u8996\u9700\u8981\u958B\u555F\u3002"},detect_lang_service:{zh:"\u8BED\u8A00\u68C0\u6D4B\u670D\u52A1",en:"Language detect service",zh_TW:"\u8A9E\u8A00\u6AA2\u6E2C\u670D\u52D9"},disable:{zh:"\u7981\u7528",en:"Disable",zh_TW:"\u505C\u7528"},enable:{zh:"\u542F\u7528",en:"Enable",zh_TW:"\u555F\u7528"},selection_translate:{zh:"\u5212\u8BCD\u7FFB\u8BD1",en:"Selection Translate",zh_TW:"\u5283\u8A5E\u7FFB\u8B6F"},toggle_selection_translate:{zh:"\u542F\u7528\u5212\u8BCD\u7FFB\u8BD1",en:"Use Selection Translate",zh_TW:"\u555F\u7528\u5283\u8A5E\u7FFB\u8B6F"},trigger_tranbox_shortcut:{zh:"\u663E\u793A\u7FFB\u8BD1\u6846/\u7FFB\u8BD1\u9009\u4E2D\u6587\u5B57\u5FEB\u6377\u952E",en:"Open Translate Popup/Translate Selected Shortcut",zh_TW:"\u986F\u793A\u7FFB\u8B6F\u6846\uFF0F\u7FFB\u8B6F\u9078\u4E2D\u6587\u5B57\u5FEB\u6377\u9375"},tranbtn_offset_x:{zh:"\u7FFB\u8BD1\u6309\u94AE\u504F\u79FBX\uFF08\xB1200\uFF09",en:"Translate Button Offset X (\xB1200)",zh_TW:"\u7FFB\u8B6F\u6309\u9215\u4F4D\u79FB X\uFF08\xB1200\uFF09"},tranbtn_offset_y:{zh:"\u7FFB\u8BD1\u6309\u94AE\u504F\u79FBY\uFF08\xB1200\uFF09",en:"Translate Button Offset Y (\xB1200)",zh_TW:"\u7FFB\u8B6F\u6309\u9215\u4F4D\u79FB Y\uFF08\xB1200\uFF09"},tranbox_offset_x:{zh:"\u7FFB\u8BD1\u6846\u504F\u79FBX\uFF08\xB1200\uFF09",en:"Translate Box Offset X (\xB1200)",zh_TW:"\u7FFB\u8B6F\u6846\u4F4D\u79FB X\uFF08\xB1200\uFF09"},tranbox_offset_y:{zh:"\u7FFB\u8BD1\u6846\u504F\u79FBY\uFF08\xB1200\uFF09",en:"Translate Box Offset Y (\xB1200)",zh_TW:"\u7FFB\u8B6F\u6846\u4F4D\u79FB Y\uFF08\xB1200\uFF09"},translated_text:{zh:"\u8BD1\u6587",en:"Translated Text",zh_TW:"\u8B6F\u6587"},original_text:{zh:"\u539F\u6587",en:"Original Text",zh_TW:"\u539F\u6587"},favorite_words:{zh:"\u6536\u85CF\u8BCD\u6C47",en:"Favorite Words",zh_TW:"\u6536\u85CF\u8A5E\u5F59"},touch_setting:{zh:"\u89E6\u5C4F\u8BBE\u7F6E",en:"Touch Setting",zh_TW:"\u89F8\u63A7\u8A2D\u5B9A"},touch_translate_shortcut:{zh:"\u89E6\u5C4F\u7FFB\u8BD1\u5FEB\u6377\u65B9\u5F0F",en:"Touch Translate Shortcut",zh_TW:"\u89F8\u63A7\u7FFB\u8B6F\u6377\u5F91"},touch_tap_0:{zh:"\u7981\u7528",en:"Disable",zh_TW:"\u505C\u7528"},touch_tap_2:{zh:"\u53CC\u6307\u8F7B\u89E6",en:"Two finger tap",zh_TW:"\u96D9\u6307\u8F15\u89F8"},touch_tap_3:{zh:"\u4E09\u6307\u8F7B\u89E6",en:"Three finger tap",zh_TW:"\u4E09\u6307\u8F15\u89F8"},touch_tap_4:{zh:"\u56DB\u6307\u8F7B\u89E6",en:"Four finger tap",zh_TW:"\u56DB\u6307\u8F15\u89F8"},translate_blacklist:{zh:"\u7981\u7528\u7FFB\u8BD1\u540D\u5355",en:"Translate Blacklist",zh_TW:"\u505C\u7528\u7FFB\u8B6F\u540D\u55AE"},disabled_orilist:{zh:"\u7981\u7528Origin\u540D\u5355",en:"Disabled Origin List",zh_TW:"\u505C\u7528 Origin \u540D\u55AE"},disabled_csplist:{zh:"\u7981\u7528CSP\u540D\u5355",en:"Disabled CSP List",zh_TW:"\u505C\u7528 CSP \u540D\u55AE"},disabled_csplist_helper:{zh:"3\u3001\u901A\u8FC7\u8C03\u6574CSP\u7B56\u7565\uFF0C\u4F7F\u5F97\u67D0\u4E9B\u9875\u9762\u80FD\u591F\u6CE8\u5165JS/CSS/Media\uFF0C\u8BF7\u8C28\u614E\u4F7F\u7528\uFF0C\u9664\u975E\u60A8\u5DF2\u77E5\u6653\u76F8\u5173\u98CE\u9669\u3002",en:"3. By adjusting the CSP policy, some pages can inject JS/CSS/Media. Please use it with caution unless you are aware of the related risks.",zh_TW:"3. \u900F\u904E\u8ABF\u6574 CSP \u653F\u7B56\uFF0C\u4F7F\u90E8\u5206\u9801\u9762\u53EF\u6CE8\u5165 JS/CSS/Media\u3002\u8ACB\u8B39\u614E\u4F7F\u7528\uFF0C\u9664\u975E\u60A8\u5DF2\u77E5\u6089\u76F8\u95DC\u98A8\u96AA\u3002"},skip_langs:{zh:"\u4E0D\u7FFB\u8BD1\u7684\u8BED\u8A00",en:"Disable Languages",zh_TW:"\u4E0D\u7FFB\u8B6F\u7684\u8A9E\u8A00"},skip_langs_helper:{zh:"\u6B64\u529F\u80FD\u4F9D\u8D56\u51C6\u786E\u7684\u8BED\u8A00\u68C0\u6D4B\uFF0C\u5EFA\u8BAE\u542F\u7528\u8FDC\u7A0B\u8BED\u8A00\u68C0\u6D4B\u3002",en:"This feature relies on accurate language detection. It is recommended to enable remote language detection.",zh_TW:"\u6B64\u529F\u80FD\u4EF0\u8CF4\u6E96\u78BA\u7684\u8A9E\u8A00\u5075\u6E2C\uFF0C\u5EFA\u8B70\u555F\u7528\u9060\u7AEF\u8A9E\u8A00\u5075\u6E2C\u3002"},context_menus:{zh:"\u53F3\u952E\u83DC\u5355",en:"Context Menus",zh_TW:"\u53F3\u9375\u9078\u55AE"},hide_context_menus:{zh:"\u9690\u85CF\u53F3\u952E\u83DC\u5355",en:"Hide Context Menus",zh_TW:"\u96B1\u85CF\u53F3\u9375\u9078\u55AE"},simple_context_menus:{zh:"\u7B80\u5355\u53F3\u952E\u83DC\u5355",en:"Simple_context_menus Context Menus",zh_TW:"\u7C21\u6613\u53F3\u9375\u9078\u55AE"},secondary_context_menus:{zh:"\u4E8C\u7EA7\u53F3\u952E\u83DC\u5355",en:"Secondary Context Menus",zh_TW:"\u6B21\u7D1A\u53F3\u9375\u9078\u55AE"},mulkeys_help:{zh:"\u652F\u6301\u7528\u6362\u884C\u6216\u82F1\u6587\u9017\u53F7\u201C,\u201D\u5206\u9694\uFF0C\u8F6E\u8BE2\u8C03\u7528\u3002",en:"Supports polling calls separated by newlines or English commas \",\".",zh_TW:"\u652F\u63F4\u4EE5\u63DB\u884C\u6216\u82F1\u6587\u9017\u865F\u300C,\u300D\u5206\u9694\uFF0C\u8F2A\u8A62\u547C\u53EB\u3002"},translation_element_tag:{zh:"\u8BD1\u6587\u5143\u7D20\u6807\u7B7E",en:"Translation Element Tag",zh_TW:"\u8B6F\u6587\u5143\u7D20\u6A19\u7C64"},show_only_translations:{zh:"\u4EC5\u663E\u793A\u8BD1\u6587",en:"Show Only Translations",zh_TW:"\u50C5\u986F\u793A\u8B6F\u6587"},show_only_translations_help:{zh:"\u975E\u5B8C\u7F8E\u5B9E\u73B0\uFF0C\u67D0\u4E9B\u9875\u9762\u53EF\u80FD\u6709\u6837\u5F0F\u7B49\u95EE\u9898\u3002",en:"It is not a perfect implementation and some pages may have style issues.",zh_TW:"\u6B64\u70BA\u975E\u5B8C\u7F8E\u5BE6\u4F5C\uFF0C\u90E8\u5206\u9801\u9762\u53EF\u80FD\u51FA\u73FE\u6A23\u5F0F\u7B49\u554F\u984C\u3002"},translate_page_title:{zh:"\u662F\u5426\u7FFB\u8BD1\u9875\u9762\u6807\u9898",en:"Translate Page Title",zh_TW:"\u662F\u5426\u7FFB\u8B6F\u9801\u9762\u6A19\u984C"},more:{zh:"\u66F4\u591A",en:"More",zh_TW:"\u66F4\u591A"},less:{zh:"\u66F4\u5C11",en:"Less",zh_TW:"\u66F4\u5C11"},fixer_selector:{zh:"\u7F51\u9875\u4FEE\u590D\u9009\u62E9\u5668",en:"Fixer Selector",zh_TW:"\u7DB2\u9801\u4FEE\u5FA9\u9078\u64C7\u5668"},reg_niutrans:{zh:"\u83B7\u53D6\u5C0F\u725B\u7FFB\u8BD1\u5BC6\u94A5\u3010\u7B80\u7EA6\u7FFB\u8BD1\u4E13\u5C5E\u65B0\u7528\u6237\u6CE8\u518C\u8D60\u9001300\u4E07\u5B57\u7B26\u3011",en:"Get NiuTrans APIKey [KISS Translator Exclusive New User Registration Free 3 Million Characters]",zh_TW:"\u53D6\u5F97\u5C0F\u725B\u7FFB\u8B6F\u91D1\u9470\u3010\u7C21\u7D04\u7FFB\u8B6F\u5C08\u5C6C\u65B0\u7528\u6236\u8A3B\u518A\u8D08\u9001 300 \u842C\u5B57\u5143\u3011"},trigger_mode:{zh:"\u89E6\u53D1\u65B9\u5F0F",en:"Trigger Mode",zh_TW:"\u89F8\u767C\u65B9\u5F0F"},trigger_click:{zh:"\u70B9\u51FB\u89E6\u53D1",en:"Click Trigger",zh_TW:"\u9EDE\u64CA\u89F8\u767C"},trigger_hover:{zh:"\u9F20\u6807\u60AC\u505C\u89E6\u53D1",en:"Hover Trigger",zh_TW:"\u6ED1\u9F20\u61F8\u505C\u89F8\u767C"},trigger_select:{zh:"\u9009\u4E2D\u89E6\u53D1",en:"Select Trigger",zh_TW:"\u9078\u53D6\u89F8\u767C"},extend_styles:{zh:"\u9644\u52A0\u6837\u5F0F",en:"Extend Styles",zh_TW:"\u9644\u52A0\u6A23\u5F0F"},custom_option:{zh:"\u81EA\u5B9A\u4E49\u9009\u9879",en:"Custom Option",zh_TW:"\u81EA\u8A02\u9078\u9805"},translate_selected_text:{zh:"\u7FFB\u8BD1\u9009\u4E2D\u6587\u5B57",en:"Translate Selected Text",zh_TW:"\u7FFB\u8B6F\u9078\u53D6\u6587\u5B57"},toggle_style:{zh:"\u5207\u6362\u6837\u5F0F",en:"Toggle Style",zh_TW:"\u5207\u63DB\u6A23\u5F0F"},open_menu:{zh:"\u6253\u5F00\u5F39\u7A97\u83DC\u5355",en:"Open Popup Menu",zh_TW:"\u958B\u555F\u5F48\u7A97\u9078\u55AE"},open_setting:{zh:"\u6253\u5F00\u8BBE\u7F6E",en:"Open Setting",zh_TW:"\u958B\u555F\u8A2D\u5B9A"},follow_selection:{zh:"\u7FFB\u8BD1\u6846\u8DDF\u968F\u9009\u4E2D\u6587\u672C",en:"Transbox Follow Selection",zh_TW:"\u7FFB\u8B6F\u6846\u8DDF\u96A8\u9078\u53D6\u6587\u5B57"},translate_start_hook:{zh:"\u7FFB\u8BD1\u5F00\u59CB\u94A9\u5B50\u51FD\u6570",en:"Translate Start Hook",zh_TW:"\u7FFB\u8B6F\u958B\u59CB Hook"},translate_start_hook_helper:{zh:"\u7FFB\u8BD1\u524D\u65F6\u8FD0\u884C\uFF0C\u5165\u53C2\u4E3A\uFF1A ({hostNode, parentNode, nodes})",en:"Run before translation, input parameters are: ({hostNode, parentNode, nodes})",zh_TW:"\u7FFB\u8B6F\u524D\u6642\u904B\u884C\uFF0C\u5165\u53C3\u70BA\uFF1A ({hostNode, parentNode, nodes})"},translate_end_hook:{zh:"\u7FFB\u8BD1\u5B8C\u6210\u94A9\u5B50\u51FD\u6570",en:"Translate End Hook",zh_TW:"\u7FFB\u8B6F\u5B8C\u6210 Hook"},translate_end_hook_helper:{zh:"\u7FFB\u8BD1\u5B8C\u6210\u65F6\u8FD0\u884C\uFF0C\u5165\u53C2\u4E3A\uFF1A ({hostNode, parentNode, nodes, wrapperNode, innerNode})",en:"Run when translation is complete, input parameters are: ({hostNode, parentNode, nodes, wrapperNode, innerNode})",zh_TW:"\u7FFB\u8B6F\u5B8C\u6210\u6642\u904B\u884C\uFF0C\u5165\u53C3\u70BA\uFF1A ({hostNode, parentNode, nodes, wrapperNode, innerNode})"},translate_remove_hook:{zh:"\u7FFB\u8BD1\u79FB\u9664\u94A9\u5B50\u51FD\u6570",en:"Translate Removed Hook",zh_TW:"\u7FFB\u8B6F\u79FB\u9664 Hook"},translate_remove_hook_helper:{zh:"\u7FFB\u8BD1\u79FB\u9664\u65F6\u8FD0\u884C\uFF0C\u5165\u53C2\u4E3A\uFF1A \u7FFB\u8BD1\u8282\u70B9\u3002",en:"Run when translation is removed, the input parameters are: translation node.",zh_TW:"\u79FB\u9664\u7FFB\u8B6F\u6642\u57F7\u884C\uFF0C\u5165\u53C3\u70BA\uFF1A\u7FFB\u8B6F\u7BC0\u9EDE\u3002"},english_dict:{zh:"\u82F1\u6587\u8BCD\u5178",en:"English Dictionary",zh_TW:"\u82F1\u6587\u5B57\u5178"},english_suggest:{zh:"\u82F1\u6587\u5EFA\u8BAE",en:"English Suggest",zh_TW:"\u82F1\u6587\u5EFA\u8B70"},api_name:{zh:"\u63A5\u53E3\u540D\u79F0",en:"API Name",zh_TW:"\u4ECB\u9762\u540D\u7A31"},is_disabled:{zh:"\u662F\u5426\u7981\u7528",en:"Is Disabled",zh_TW:"\u662F\u5426\u505C\u7528"},translate_selected:{zh:"\u662F\u5426\u542F\u7528\u5212\u8BCD\u7FFB\u8BD1",en:"If translate selected",zh_TW:"\u662F\u5426\u555F\u7528\u5283\u8A5E\u7FFB\u8B6F"},use_batch_fetch:{zh:"\u662F\u5426\u805A\u5408\u53D1\u9001\u7FFB\u8BD1\u8BF7\u6C42",en:"Whether to aggregate and send translation requests",zh_TW:"\u662F\u5426\u805A\u5408\u767C\u9001\u7FFB\u8B6F\u8ACB\u6C42"},batch_interval:{zh:"\u805A\u5408\u8BF7\u6C42\u7B49\u5F85\u65F6\u95F4(100-10000)",en:"Aggregation request waiting time (100-10000)",zh_TW:"\u805A\u5408\u8ACB\u6C42\u7B49\u5F85\u6642\u9593(100-10000)"},batch_size:{zh:"\u805A\u5408\u8BF7\u6C42\u6700\u5927\u6BB5\u843D\u6570(1-100)",en:"Maximum number of paragraphs in an aggregation request (1-100)",zh_TW:"\u805A\u5408\u8ACB\u6C42\u6700\u5927\u6BB5\u843D\u6578(1-100)"},batch_length:{zh:"\u805A\u5408\u8BF7\u6C42\u6700\u5927\u6587\u672C\u957F\u5EA6(1000-100000)",en:"Maximum text length for aggregation requests (1000-100000)",zh_TW:"\u805A\u5408\u8ACB\u6C42\u6700\u5927\u6587\u5B57\u9577\u5EA6(1000-100000)"},use_context:{zh:"\u662F\u5426\u542F\u7528\u667A\u80FD\u4E0A\u4E0B\u6587",en:"Whether to enable AI context",zh_TW:"\u662F\u5426\u555F\u7528\u667A\u6167\u4E0A\u4E0B\u6587"},context_size:{zh:"\u4E0A\u4E0B\u6587\u4F1A\u8BDD\u6570\u91CF(1-20)",en:"Number of context sessions(1-20)",zh_TW:"\u4E0A\u4E0B\u6587\u6703\u8A71\u6578\u91CF(1-20)"},auto_scan_page:{zh:"\u81EA\u52A8\u626B\u63CF\u9875\u9762",en:"Auto scan page",zh_TW:"\u81EA\u52D5\u6383\u63CF\u9801\u9762"},has_rich_text:{zh:"\u542F\u7528\u5BCC\u6587\u672C\u7FFB\u8BD1",en:"Enable rich text translation",zh_TW:"\u555F\u7528\u5BCC\u6587\u672C\u7FFB\u8B6F"},has_shadowroot:{zh:"\u626B\u63CFShadowroot",en:"Scan Shadowroot",zh_TW:"\u6383\u63CFShadowroot"},mousehover_translate:{zh:"\u9F20\u6807\u60AC\u505C\u7FFB\u8BD1",en:"Mouseover Translation",zh_TW:"\u6ED1\u9F20\u61F8\u505C\u7FFB\u8B6F"},use_mousehover_translation:{zh:"\u542F\u7528\u9F20\u6807\u60AC\u505C\u7FFB\u8BD1",en:"Enable mouseover translation",zh_TW:"\u555F\u7528\u6ED1\u9F20\u61F8\u505C\u7FFB\u8B6F"},selected_translation_alert:{zh:"\u5212\u8BCD\u7FFB\u8BD1\u7684\u5F00\u542F\u548C\u5173\u95ED\u8BF7\u5230\u201C\u89C4\u5219\u8BBE\u7F6E\u201D\u91CC\u9762\u8BBE\u7F6E\u3002",en:"To turn selected translation on or off, please go to \"Rule Settings\".",zh_TW:"\u5283\u8A5E\u7FFB\u8B6F\u7684\u958B\u555F\u548C\u95DC\u9589\u8ACB\u5230\u300C\u898F\u5247\u8A2D\u5B9A\u300D\u88E1\u9762\u8A2D\u5B9A\u3002"},mousehover_key_help:{zh:"\u5F53\u5FEB\u6377\u952E\u7F6E\u7A7A\u65F6\u8868\u793A\u9F20\u6807\u60AC\u505C\u76F4\u63A5\u7FFB\u8BD1",en:"When the shortcut key is empty, it means that the mouse hovers to translate directly",zh_TW:"\u7576\u5FEB\u6377\u9375\u7F6E\u7A7A\u6642\u8868\u793A\u6ED1\u9F20\u61F8\u505C\u76F4\u63A5\u7FFB\u8B6F"},autoscan_alt:{zh:"\u81EA\u52A8\u626B\u63CF",en:"Auto Scan",zh_TW:"\u81EA\u52D5\u6383\u63CF"},shadowroot_alt:{zh:"ShadowRoot",en:"ShadowRoot",zh_TW:"ShadowRoot"},richtext_alt:{zh:"\u4FDD\u7559\u5BCC\u6587\u672C",en:"Rich Text",zh_TW:"\u4FDD\u7559\u5BCC\u6587\u672C"},transonly_alt:{zh:"\u9690\u85CF\u539F\u6587",en:"Hide Original",zh_TW:"\u96B1\u85CF\u539F\u6587"},confirm_title:{zh:"\u786E\u8BA4",en:"Confirm",zh_TW:"\u78BA\u8A8D"},confirm_message:{zh:"\u786E\u5B9A\u64CD\u4F5C\u5417\uFF1F",en:"Are you sure you want to proceed?",zh_TW:"\u78BA\u5B9A\u64CD\u4F5C\u55CE\uFF1F"},confirm_action:{zh:"\u786E\u5B9A",en:"Confirm",zh_TW:"\u78BA\u5B9A"},cancel_action:{zh:"\u53D6\u6D88",en:"Cancel",zh_TW:"\u53D6\u6D88"},pls_press_shortcut:{zh:"\u8BF7\u6309\u4E0B\u5FEB\u6377\u952E\u7EC4\u5408",en:"Please press the shortcut key combination",zh_TW:"\u8ACB\u6309\u4E0B\u5FEB\u901F\u9375\u7D44\u5408"},load_setting_err:{zh:"\u6570\u636E\u52A0\u8F7D\u51FA\u9519\uFF0C\u8BF7\u5237\u65B0\u9875\u9762\u6216\u5378\u8F7D\u540E\u91CD\u65B0\u5B89\u88C5\u3002",en:"Please press the shortcut key combination",zh_TW:"\u8ACB\u6309\u4E0B\u5FEB\u901F\u9375\u7D44\u5408"},translation_style:{zh:"\u7FFB\u8BD1\u98CE\u683C",en:"Translation style",zh_TW:"\u7FFB\u8B6F\u98A8\u683C"},placeholder:{zh:"\u5360\u4F4D\u7B26",en:"Placeholder",zh_TW:"\u4F54\u4F4D\u7B26"},tag_name:{zh:"\u5360\u4F4D\u6807\u7B7E\u540D",en:"Placeholder tag name",zh_TW:"\u4F54\u4F4D\u6A19\u540D"},system_prompt_helper:{zh:"\u5728\u672A\u5B8C\u5168\u7406\u89E3\u9ED8\u8BA4Prompt\u7684\u60C5\u51B5\u4E0B\uFF0C\u8BF7\u52FF\u968F\u610F\u4FEE\u6539\uFF0C\u5426\u5219\u53EF\u80FD\u65E0\u6CD5\u5DE5\u4F5C\u3002",en:"Do not modify the default prompt without fully understanding it, otherwise it may not work.",zh_TW:"\u5728\u672A\u5B8C\u5168\u7406\u89E3\u9810\u8A2DPrompt\u7684\u60C5\u6CC1\u4E0B\uFF0C\u8ACB\u52FF\u96A8\u610F\u4FEE\u6539\uFF0C\u5426\u5247\u53EF\u80FD\u7121\u6CD5\u904B\u4F5C\u3002"},if_pre_init:{zh:"\u662F\u5426\u9884\u521D\u59CB\u5316",en:"Whether to pre-initialize",zh_TW:"\u662F\u5426\u9810\u521D\u59CB\u5316"},export_old:{zh:"\u5BFC\u51FA\u65E7\u7248",en:"Export old version",zh_TW:"\u532F\u51FA\u820A\u7248"},favorite_words_helper:{zh:"\u5BFC\u5165\u8BCD\u6C47\u8BF7\u4F7F\u7528txt\u6587\u4EF6\uFF0C\u6BCF\u4E00\u884C\u4E00\u4E2A\u5355\u8BCD\u3002",en:"To import vocabulary, please use a txt file with one word per line.",zh_TW:"\u532F\u5165\u8A5E\u5F59\u8ACB\u4F7F\u7528txt\u6587\u4EF6\uFF0C\u6BCF\u4E00\u884C\u4E00\u500B\u55AE\u5B57\u3002"},btn_tip_click_away:{zh:"\u5931\u7126\u9690\u85CF/\u663E\u793A",en:"Loss of focus hide/show",zh_TW:"\u5931\u7126\u96B1\u85CF/\u986F\u793A"},btn_tip_follow_selection:{zh:"\u8DDF\u968F/\u56FA\u5B9A\u6A21\u5F0F",en:"Follow/Fixed Mode",zh_TW:"\u8DDF\u96A8/\u56FA\u5B9A\u6A21\u5F0F"},btn_tip_simple_style:{zh:"\u8FF7\u4F60/\u5E38\u89C4\u6A21\u5F0F",en:"Mini/Regular Mode",zh_TW:"\u8FF7\u4F60/\u5E38\u898F\u6A21\u5F0F"},api_placeholder:{zh:"\u5360\u4F4D\u7B26",en:"Placeholder",zh_TW:"\u4F54\u4F4D\u7B26"},api_placetag:{zh:"\u5360\u4F4D\u6807\u7B7E",en:"Placeholder tags",zh_TW:"\u4F54\u4F4D\u6A19"},detected_lang:{zh:"\u8BED\u8A00\u68C0\u6D4B",en:"Language detection",zh_TW:"\u8A9E\u8A00\u5075\u6E2C"},detected_result:{zh:"\u68C0\u6D4B\u7ED3\u679C",en:"Detect result",zh_TW:"\u6AA2\u6E2C\u7D50\u679C"},subtitle_translate:{zh:"\u5B57\u5E55\u7FFB\u8BD1",en:"Subtitle translate",zh_TW:"\u5B57\u5E55\u7FFB\u8B6F"},toggle_subtitle_translate:{zh:"\u542F\u7528\u5B57\u5E55\u7FFB\u8BD1",en:"Enable subtitle translation",zh_TW:"\u555F\u7528\u5B57\u5E55\u7FFB\u8B6F"},is_bilingual_view:{zh:"\u53CC\u8BED\u663E\u793A",en:"Enable bilingual display",zh_TW:"\u96D9\u8A9E\u986F\u793A"},background_styles:{zh:"\u80CC\u666F\u6837\u5F0F",en:"DBackground Style",zh_TW:"\u80CC\u666F\u6A23\u5F0F"},origin_styles:{zh:"\u539F\u6587\u6837\u5F0F",en:"Original style",zh_TW:"\u539F\u6587\u6A23\u5F0F"},translation_styles:{zh:"\u8BD1\u6587\u6837\u5F0F",en:"Translation style",zh_TW:"\u8B6F\u6587\u6A23\u5F0F"},ai_segmentation:{zh:"AI\u667A\u80FD\u65AD\u53E5",en:"AI intelligent punctuation",zh_TW:"AI\u667A\u6167\u65B7\u53E5"},ai_chunk_length:{zh:"AI\u5904\u7406\u5207\u5272\u957F\u5EA6(200-20000)",en:"AI processing chunk length(200-20000)",zh_TW:"AI\u5904\u7406\u5207\u5272\u957F\u5EA6(200-20000)"},subtitle_helper_1:{zh:"1\u3001\u76EE\u524D\u4EC5\u652F\u6301Youtube\u684C\u9762\u7F51\u7AD9\uFF0C\u4E14\u4EC5\u652F\u6301\u6D4F\u89C8\u5668\u6269\u5C55\u3002",en:"1. Currently only supports Youtube desktop website and browser extension.",zh_TW:"1.\u76EE\u524D\u50C5\u652F\u63F4Youtube\u684C\u9762\u7DB2\u7AD9\uFF0C\u4E14\u50C5\u652F\u63F4\u700F\u89BD\u5668\u64F4\u5145\u529F\u80FD\u3002"},subtitle_helper_2:{zh:"2\u3001\u63D2\u4EF6\u5185\u7F6E\u57FA\u7840\u7684\u5B57\u5E55\u5408\u5E76\u3001\u65AD\u53E5\u7B97\u6CD5\uFF0C\u53EF\u6EE1\u8DB3\u5927\u90E8\u5206\u60C5\u51B5\u3002",en:"2. The plug-in has built-in basic subtitle merging and sentence segmentation algorithms, which can meet most situations.",zh_TW:"2.\u63D2\u4EF6\u5167\u5EFA\u57FA\u790E\u7684\u5B57\u5E55\u5408\u4F75\u3001\u65B7\u53E5\u6F14\u7B97\u6CD5\uFF0C\u53EF\u6EFF\u8DB3\u5927\u90E8\u5206\u60C5\u6CC1\u3002"},subtitle_helper_3:{zh:"3\u3001\u4EA6\u53EF\u4EE5\u542F\u7528AI\u667A\u80FD\u65AD\u53E5\uFF0C\u4F46\u9700\u8003\u8651\u5207\u5272\u957F\u5EA6\u53CAAI\u63A5\u53E3\u80FD\u529B\uFF0C\u53EF\u80FD\u5904\u7406\u65F6\u95F4\u4F1A\u5F88\u957F\uFF0C\u751A\u81F3\u5904\u7406\u5931\u8D25\uFF0C\u5BFC\u81F4\u65E0\u6CD5\u770B\u5230\u5B57\u5E55\u3002",en:"3. You can also enable AI intelligent segmentation, but you need to consider the segmentation length and AI interface capabilities. The processing time may be very long or even fail, resulting in the inability to see subtitles.",zh_TW:"3.\u4EA6\u53EF\u555F\u7528AI\u667A\u80FD\u65B7\u53E5\uFF0C\u4F46\u9700\u8003\u616E\u5207\u5272\u9577\u5EA6\u53CAAI\u4ECB\u9762\u80FD\u529B\uFF0C\u53EF\u80FD\u8655\u7406\u6642\u9593\u6703\u5F88\u9577\uFF0C\u751A\u81F3\u8655\u7406\u5931\u6557\uFF0C\u5C0E\u81F4\u7121\u6CD5\u770B\u5230\u5B57\u5E55\u3002"},default_styles_example:{zh:"\u9ED8\u8BA4\u6837\u5F0F\u53C2\u8003\uFF1A",en:"Default styles reference:",zh_TW:"\u8A8D\u6A23\u5F0F\u53C3\u8003\uFF1A"},subtitle_load_succeed:{zh:"\u53CC\u8BED\u5B57\u5E55\u52A0\u8F7D\u6210\u529F\uFF01",en:"Bilingual subtitles loaded successfully!",zh_TW:"\u53CC\u8BED\u5B57\u5E55\u52A0\u8F7D\u6210\u529F\uFF01"},subtitle_load_failed:{zh:"\u53CC\u8BED\u5B57\u5E55\u52A0\u8F7D\u5931\u8D25\uFF01",en:"Failed to load bilingual subtitles!",zh_TW:"\u53CC\u8BED\u5B57\u5E55\u52A0\u8F7D\u5931\u8D25\uFF01"},try_get_subtitle_data:{zh:"\u5C1D\u8BD5\u83B7\u53D6\u5B57\u5E55\u6570\u636E\uFF0C\u8BF7\u7A0D\u5019...",en:"Trying to get subtitle data, please wait...",zh_TW:"\u5C1D\u8BD5\u83B7\u53D6\u5B57\u5E55\u6570\u636E\uFF0C\u8BF7\u7A0D\u5019..."},subtitle_data_processing:{zh:"\u5B57\u5E55\u6570\u636E\u5904\u7406\u4E2D...",en:"Subtitle data processing...",zh_TW:"\u5B57\u5E55\u6570\u636E\u5904\u7406\u4E2D..."},starting_to_process_subtitle:{zh:"\u5F00\u59CB\u5904\u7406\u5B57\u5E55\u6570\u636E...",en:"Starting to process subtitle data...",zh_TW:"\u5F00\u59CB\u5904\u7406\u5B57\u5E55\u6570\u636E..."},subtitle_data_is_ready:{zh:"\u5B57\u5E55\u6570\u636E\u5DF2\u51C6\u5907\u5C31\u7EEA\uFF0C\u8BF7\u70B9\u51FBKT\u6309\u94AE\u52A0\u8F7D",en:"The subtitle data is ready, please click the KT button to load it",zh_TW:"\u5B57\u5E55\u8CC7\u6599\u5DF2\u6E96\u5099\u5C31\u7DD2\uFF0C\u8ACB\u9EDE\u64CAKT\u6309\u9215\u52A0\u8F09"},log_level:{zh:"\u65E5\u5FD7\u7EA7\u522B",en:"Log Level",zh_TW:"\u65E5\u8A8C\u7B49\u7D1A"}};const i18n=lang=>key=>{var _I18N$key;return((_I18N$key=I18N[key])===null||_I18N$key===void 0?void 0:_I18N$key[lang])||"";};
+;// CONCATENATED MODULE: ./src/config/storage.js
+const KV_RULES_KEY="kiss-rules_v".concat(APP_VERSION[0],".json");const storage_KV_WORDS_KEY="kiss-words.json";const storage_KV_RULES_SHARE_KEY="kiss-rules-share_v".concat(APP_VERSION[0],".json");const storage_KV_SETTING_KEY="kiss-setting_v".concat(APP_VERSION[0],".json");const KV_SALT_SYNC="KISS-Translator-SYNC";const storage_KV_SALT_SHARE="KISS-Translator-SHARE";const STOKEY_MSAUTH="".concat(APP_NAME,"_msauth");const storage_STOKEY_BDAUTH="".concat(APP_NAME,"_bdauth");const storage_STOKEY_SETTING_OLD="".concat(APP_NAME,"_setting");const storage_STOKEY_RULES_OLD="".concat(APP_NAME,"_rules");const storage_STOKEY_SETTING="".concat(APP_NAME,"_setting_v").concat(APP_VERSION[0]);const storage_STOKEY_RULES="".concat(APP_NAME,"_rules_v").concat(APP_VERSION[0]);const storage_STOKEY_WORDS="".concat(APP_NAME,"_words");const storage_STOKEY_SYNC="".concat(APP_NAME,"_sync");const storage_STOKEY_FAB="".concat(APP_NAME,"_fab");const storage_STOKEY_RULESCACHE_PREFIX="".concat(APP_NAME,"_rulescache_");const CACHE_NAME="".concat(APP_NAME,"_cache");const DEFAULT_CACHE_TIMEOUT=3600*24*7;// 缓存超时时间(7天)
+;// CONCATENATED MODULE: ./src/config/url.js
+const URL_CACHE_TRAN="https://".concat(APP_LCNAME,"/translate");const URL_CACHE_SUBTITLE="https://".concat(APP_LCNAME,"/subtitle");const URL_CACHE_DELANG="https://".concat(APP_LCNAME,"/detectlang");const URL_CACHE_BINGDICT="https://".concat(APP_LCNAME,"/bingdict");const URL_KISS_WORKER="https://github.com/fishjar/kiss-worker";const URL_KISS_PROXY="https://github.com/fishjar/kiss-proxy";const URL_KISS_RULES="https://github.com/fishjar/kiss-rules";const URL_KISS_RULES_NEW_ISSUE="https://github.com/fishjar/kiss-rules/issues/new";const url_URL_RAW_PREFIX="https://raw.githubusercontent.com/fishjar/kiss-translator/master";
+;// CONCATENATED MODULE: ./src/config/msg.js
+const CMD_TOGGLE_TRANSLATE="toggleTranslate";const CMD_TOGGLE_STYLE="toggleStyle";const CMD_OPEN_OPTIONS="openOptions";const CMD_OPEN_TRANBOX="openTranbox";const MSG_FETCH="fetch";const MSG_GET_HTTPCACHE="get_httpcache";const MSG_PUT_HTTPCACHE="put_httpcache";const MSG_OPEN_OPTIONS="open_options";const MSG_SAVE_RULE="save_rule";const MSG_TRANS_TOGGLE="trans_toggle";const MSG_TRANS_TOGGLE_STYLE="trans_toggle_style";const MSG_OPEN_TRANBOX="open_tranbox";const MSG_TRANS_GETRULE="trans_getrule";const MSG_TRANS_PUTRULE="trans_putrule";const MSG_TRANS_CURRULE="trans_currule";const MSG_TRANSBOX_TOGGLE="transbox_toggle";const MSG_MOUSEHOVER_TOGGLE="mousehover_toggle";const MSG_TRANSINPUT_TOGGLE="transinput_toggle";const MSG_CONTEXT_MENUS="context_menus";const MSG_COMMAND_SHORTCUTS="command_shortcuts";const MSG_INJECT_JS="inject_js";const MSG_INJECT_CSS="inject_css";const MSG_UPDATE_CSP="update_csp";const MSG_BUILTINAI_DETECT="builtinai_detect";const MSG_BUILTINAI_TRANSLATE="builtinai_translte";const MSG_SET_LOGLEVEL="set_loglevel";const MSG_XHR_DATA_YOUTUBE="KISS_XHR_DATA_YOUTUBE";// export const MSG_GLOBAL_VAR_FETCH = "KISS_GLOBAL_VAR_FETCH";
+// export const MSG_GLOBAL_VAR_BACK = "KISS_GLOBAL_VAR_BACK";
+;// CONCATENATED MODULE: ./src/config/client.js
+const CLIENT_WEB="web";const CLIENT_CHROME="chrome";const CLIENT_EDGE="edge";const CLIENT_FIREFOX="firefox";const CLIENT_USERSCRIPT="userscript";const CLIENT_THUNDERBIRD="thunderbird";const CLIENT_EXTS=[CLIENT_CHROME,CLIENT_EDGE,CLIENT_FIREFOX,CLIENT_THUNDERBIRD];const DEFAULT_USER_AGENT="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36";
+;// CONCATENATED MODULE: ./src/config/index.js
+
 ;// CONCATENATED MODULE: ./src/libs/client.js
-const client_client="userscript";const isExt=CLIENT_EXTS.includes(client_client);const isGm=client_client===CLIENT_USERSCRIPT;const isWeb=client_client===CLIENT_WEB;
+const client_client="userscript";const isExt=CLIENT_EXTS.includes(client_client);const isGm=client_client===CLIENT_USERSCRIPT;const isWeb=client_client===CLIENT_WEB;const isFirefox=client_client===CLIENT_FIREFOX;
 ;// CONCATENATED MODULE: ./src/libs/browser.js
 // import { CLIENT_EXTS, CLIENT_USERSCRIPT, CLIENT_WEB } from "../config";
 /**
  * 浏览器兼容插件，另可用于判断是插件模式还是网页模式，方便开发
  * @returns
- */function _browser(){try{return __webpack_require__(2465);}catch(err){// kissLog(err, "browser");
-}}const browser=_browser();const isBg=()=>(globalThis===null||globalThis===void 0?void 0:globalThis.ContextType)==="BACKGROUND";
+ */function _browser(){try{return __webpack_require__(2465);}catch(err){// kissLog("browser", err);
+}}const browser=_browser();const isBg=()=>(globalThis===null||globalThis===void 0?void 0:globalThis.ContextType)==="BACKGROUND";const isBuiltinAIAvailable="LanguageDetector"in globalThis&&"Translator"in globalThis;
+;// CONCATENATED MODULE: ./src/libs/utils.js
+/**
+ * 限制数字大小
+ * @param {*} num
+ * @param {*} min
+ * @param {*} max
+ * @returns
+ */const limitNumber=function(num){let min=arguments.length>1&&arguments[1]!==undefined?arguments[1]:0;let max=arguments.length>2&&arguments[2]!==undefined?arguments[2]:100;const number=parseInt(num);if(Number.isNaN(number)||number<min){return min;}else if(number>max){return max;}return number;};const limitFloat=function(num){let min=arguments.length>1&&arguments[1]!==undefined?arguments[1]:0;let max=arguments.length>2&&arguments[2]!==undefined?arguments[2]:100;const number=parseFloat(num);if(Number.isNaN(number)||number<min){return min;}else if(number>max){return max;}return number;};/**
+ * 匹配是否为数组中的值
+ * @param {*} arr
+ * @param {*} val
+ * @returns
+ */const matchValue=(arr,val)=>{if(arr.length===0||arr.includes(val)){return val;}return arr[0];};/**
+ * 等待
+ * @param {*} delay
+ * @returns
+ */const sleep=delay=>new Promise(resolve=>{const timer=setTimeout(()=>{clearTimeout(timer);resolve();},delay);});/**
+ * 防抖函数
+ * @param {*} func
+ * @param {*} delay
+ * @returns
+ */const debounce=function(func){let delay=arguments.length>1&&arguments[1]!==undefined?arguments[1]:200;let timer=null;return function(){for(var _len=arguments.length,args=new Array(_len),_key=0;_key<_len;_key++){args[_key]=arguments[_key];}timer&&clearTimeout(timer);timer=setTimeout(()=>{func(...args);clearTimeout(timer);timer=null;},delay);};};/**
+ * 节流函数
+ * @param {*} func
+ * @param {*} delay
+ * @returns
+ */const throttle=function(func){let delay=arguments.length>1&&arguments[1]!==undefined?arguments[1]:200;let timer=null;let cache=null;return function(){for(var _len2=arguments.length,args=new Array(_len2),_key2=0;_key2<_len2;_key2++){args[_key2]=arguments[_key2];}if(!timer){func(...args);cache=null;timer=setTimeout(()=>{if(cache){func(...cache);cache=null;}clearTimeout(timer);timer=null;},delay);}else{cache=args;}};};/**
+ * 判断字符串全是某个字符
+ * @param {*} s
+ * @param {*} c
+ * @param {*} i
+ * @returns
+ */const isAllchar=function(s,c){let i=arguments.length>2&&arguments[2]!==undefined?arguments[2]:0;while(i<s.length){if(s[i]!==c){return false;}i++;}return true;};/**
+ * 字符串通配符(*)匹配
+ * @param {*} s
+ * @param {*} p
+ * @returns
+ */const isMatch=(s,p)=>{if(s.length===0||p.length===0){return false;}p="*"+p+"*";let[sIndex,pIndex]=[0,0];let[sRecord,pRecord]=[-1,-1];while(sIndex<s.length&&pRecord<p.length){if(p[pIndex]==="*"){pIndex++;[sRecord,pRecord]=[sIndex,pIndex];}else if(s[sIndex]===p[pIndex]){sIndex++;pIndex++;}else if(sRecord+1<s.length){sRecord++;[sIndex,pIndex]=[sRecord,pRecord];}else{return false;}}if(p.length===pIndex){return true;}return isAllchar(p,"*",pIndex);};/**
+ * 类型检查
+ * @param {*} o
+ * @returns
+ */const type=o=>{const s=Object.prototype.toString.call(o);return s.match(/\[object (.*?)\]/)[1].toLowerCase();};/**
+ * sha256
+ * @param {*} text
+ * @returns
+ */const utils_sha256=async(text,salt)=>{const data=new TextEncoder().encode(text+salt);const digest=await crypto.subtle.digest({name:"SHA-256"},data);return[...new Uint8Array(digest)].map(b=>b.toString(16).padStart(2,"0")).join("");};/**
+ * 生成随机事件名称
+ * @returns
+ */const utils_genEventName=()=>"kiss-".concat(btoa(Math.random()).slice(3,11));/**
+ * 判断两个 Set 是否相同
+ * @param {*} a
+ * @param {*} b
+ * @returns
+ */const isSameSet=(a,b)=>{const s=new Set([...a,...b]);return s.size===a.size&&s.size===b.size;};/**
+ * 去掉字符串末尾某个字符
+ * @param {*} s
+ * @param {*} c
+ * @param {*} count
+ * @returns
+ */const removeEndchar=function(s,c){let count=arguments.length>2&&arguments[2]!==undefined?arguments[2]:1;if(!s)return"";let i=s.length;while(i>s.length-count&&s[i-1]===c){i--;}return s.slice(0,i);};/**
+ * 匹配字符串及语言标识
+ * @param {*} str
+ * @param {*} sign
+ * @returns
+ */const matchInputStr=(str,sign)=>{switch(sign){case"//":return str.match(/\/\/([\w-]+)\s+([^]+)/);case"\\":return str.match(/\\([\w-]+)\s+([^]+)/);case"\\\\":return str.match(/\\\\([\w-]+)\s+([^]+)/);case">":return str.match(/>([\w-]+)\s+([^]+)/);case">>":return str.match(/>>([\w-]+)\s+([^]+)/);default:}return str.match(/\/([\w-]+)\s+([^]+)/);};/**
+ * 判断是否英文单词
+ * @param {*} str
+ * @returns
+ */const isValidWord=str=>{const regex=/^[a-zA-Z-]+$/;return regex.test(str);};/**
+ * blob转为base64
+ * @param {*} blob
+ * @returns
+ */const blobToBase64=blob=>{return new Promise(resolve=>{const reader=new FileReader();reader.onloadend=()=>resolve(reader.result);reader.readAsDataURL(blob);});};/**
+ * 获取html内的文本
+ * @param {*} htmlStr
+ * @param {*} skipTag
+ * @returns
+ */const getHtmlText=function(htmlStr){let skipTag=arguments.length>1&&arguments[1]!==undefined?arguments[1]:"";const parser=new DOMParser();const doc=parser.parseFromString(htmlStr,"text/html");if(skipTag){doc.querySelectorAll(skipTag).forEach(el=>el.remove());}return doc.body.innerText.trim();};/**
+ * 解析JSON字符串对象
+ * @param {*} str
+ * @returns
+ */const parseJsonObj=str=>{if(!str||type(str)!=="string"){return{};}try{if(str.trim()[0]!=="{"){str="{".concat(str,"}");}return JSON.parse(str);}catch(err){//
+}return{};};/**
+ * 提取json内容
+ * @param {*} s
+ * @returns
+ */const extractJson=raw=>{const jsonRegex=/({.*}|\[.*\])/s;const match=raw.match(jsonRegex);return match?match[0]:null;};/**
+ * 空闲执行
+ * @param {*} cb
+ * @param {*} timeout
+ * @returns
+ */const scheduleIdle=function(cb){let timeout=arguments.length>1&&arguments[1]!==undefined?arguments[1]:200;if(window.requestIdleCallback){return requestIdleCallback(cb,{timeout});}return setTimeout(cb,timeout);};/**
+ * 截取url部分
+ * @param {*} href
+ * @returns
+ */const parseUrlPattern=href=>{if(href.startsWith("file")){const filename=href.substring(href.lastIndexOf("/")+1);return filename;}else if(href.startsWith("http")){const url=new URL(href);return url.host;}return href;};/**
+ * 带超时的任务
+ * @param {Promise|Function} task - 任务
+ * @param {number} timeout - 超时时间 (毫秒)
+ * @param {string} [timeoutMsg] - 超时错误提示
+ * @returns {Promise}
+ */const withTimeout=function(task,timeout){let timeoutMsg=arguments.length>2&&arguments[2]!==undefined?arguments[2]:"Task timed out";const promise=typeof task==="function"?task():task;return Promise.race([promise,new Promise((_,reject)=>setTimeout(()=>reject(new Error(timeoutMsg)),timeout))]);};/**
+ * 截短字符串
+ * @param {*} str
+ * @param {*} maxLength
+ * @returns
+ */const truncateWords=function(str){let maxLength=arguments.length>1&&arguments[1]!==undefined?arguments[1]:200;if(typeof str!=="string")return"";if(str.length<=maxLength)return str;const truncated=str.slice(0,maxLength);return truncated.slice(0,truncated.lastIndexOf(" "))+" …";};/**
+ * 生成随机数
+ * @param {*} min
+ * @param {*} max
+ * @param {*} integer
+ * @returns
+ */const randomBetween=function(min,max){let integer=arguments.length>2&&arguments[2]!==undefined?arguments[2]:true;const value=Math.random()*(max-min)+min;return integer?Math.floor(value):value;};
 ;// CONCATENATED MODULE: ./src/libs/storage.js
-async function set(key,val){if(isExt){await browser.storage.local.set({[key]:val});}else if(isGm){await(window.KISS_GM||GM).setValue(key,val);}else{window.localStorage.setItem(key,val);}}async function get(key){if(isExt){const val=await browser.storage.local.get([key]);return val[key];}else if(isGm){const val=await(window.KISS_GM||GM).getValue(key);return val;}return window.localStorage.getItem(key);}async function del(key){if(isExt){await browser.storage.local.remove([key]);}else if(isGm){await(window.KISS_GM||GM).deleteValue(key);}else{window.localStorage.removeItem(key);}}async function setObj(key,obj){await set(key,JSON.stringify(obj));}async function trySetObj(key,obj){if(!(await get(key))){await setObj(key,obj);}}async function getObj(key){const val=await get(key);return val&&JSON.parse(val);}async function putObj(key,obj){var _await$getObj;const cur=(_await$getObj=await getObj(key))!==null&&_await$getObj!==void 0?_await$getObj:{};await setObj(key,{...cur,...obj});}/**
+async function set(key,val){if(isExt){await browser.storage.local.set({[key]:val});}else if(isGm){await(window.KISS_GM||GM).setValue(key,val);}else{window.localStorage.setItem(key,val);}}async function get(key){if(isExt){const val=await browser.storage.local.get([key]);return val[key];}else if(isGm){const val=await(window.KISS_GM||GM).getValue(key);return val;}return window.localStorage.getItem(key);}async function del(key){if(isExt){await browser.storage.local.remove([key]);}else if(isGm){await(window.KISS_GM||GM).deleteValue(key);}else{window.localStorage.removeItem(key);}}async function setObj(key,obj){await set(key,JSON.stringify(obj));}async function trySetObj(key,obj){if(!(await get(key))){await setObj(key,obj);}}async function getObj(key){const val=await get(key);if(val===null||val===undefined)return null;try{return JSON.parse(val);}catch(err){log_kissLog("parse json in storage err: ",key);}return null;}async function putObj(key,obj){var _await$getObj;const cur=(_await$getObj=await getObj(key))!==null&&_await$getObj!==void 0?_await$getObj:{};await setObj(key,{...cur,...obj});}/**
  * 对storage的封装
  */const storage={get,set,del,setObj,trySetObj,getObj,putObj// onChanged,
 };/**
  * 设置信息
- */const getSetting=()=>getObj(config_STOKEY_SETTING);const getSettingWithDefault=async()=>({...config_DEFAULT_SETTING,...((await getSetting())||{})});const setSetting=val=>setObj(config_STOKEY_SETTING,val);const updateSetting=obj=>putObj(STOKEY_SETTING,obj);/**
+ */const getSetting=()=>getObj(storage_STOKEY_SETTING);const getSettingOld=()=>getObj(STOKEY_SETTING_OLD);const storage_getSettingWithDefault=async()=>({...setting_DEFAULT_SETTING,...((await getSetting())||{})});const storage_setSetting=val=>setObj(STOKEY_SETTING,val);const putSetting=obj=>putObj(STOKEY_SETTING,obj);/**
  * 规则列表
- */const getRules=()=>getObj(config_STOKEY_RULES);const getRulesWithDefault=async()=>(await getRules())||config_DEFAULT_RULES;const setRules=val=>setObj(config_STOKEY_RULES,val);/**
+ */const getRules=()=>getObj(storage_STOKEY_RULES);const getRulesOld=()=>getObj(STOKEY_RULES_OLD);const getRulesWithDefault=async()=>(await getRules())||rules_DEFAULT_RULES;const setRules=val=>setObj(storage_STOKEY_RULES,val);/**
  * 词汇列表
- */const getWords=()=>getObj(STOKEY_WORDS);const getWordsWithDefault=async()=>(await getWords())||{};const setWords=val=>setObj(STOKEY_WORDS,val);/**
+ */const getWords=()=>getObj(STOKEY_WORDS);const storage_getWordsWithDefault=async()=>(await getWords())||{};const storage_setWords=val=>setObj(STOKEY_WORDS,val);/**
  * 订阅规则
- */const getSubRules=url=>getObj(config_STOKEY_RULESCACHE_PREFIX+url);const getSubRulesWithDefault=async()=>(await getSubRules())||[];const delSubRules=url=>del(STOKEY_RULESCACHE_PREFIX+url);const setSubRules=(url,val)=>setObj(config_STOKEY_RULESCACHE_PREFIX+url,val);/**
+ */const getSubRules=url=>getObj(storage_STOKEY_RULESCACHE_PREFIX+url);const getSubRulesWithDefault=async()=>(await getSubRules())||[];const delSubRules=url=>del(STOKEY_RULESCACHE_PREFIX+url);const setSubRules=(url,val)=>setObj(storage_STOKEY_RULESCACHE_PREFIX+url,val);/**
  * fab位置
- */const getFab=()=>getObj(config_STOKEY_FAB);const getFabWithDefault=async()=>(await getFab())||{};const setFab=obj=>setObj(STOKEY_FAB,obj);const updateFab=obj=>putObj(config_STOKEY_FAB,obj);/**
+ */const getFab=()=>getObj(storage_STOKEY_FAB);const getFabWithDefault=async()=>(await getFab())||{};const setFab=obj=>setObj(STOKEY_FAB,obj);const putFab=obj=>putObj(storage_STOKEY_FAB,obj);/**
  * 数据同步
- */const getSync=()=>getObj(config_STOKEY_SYNC);const getSyncWithDefault=async()=>(await getSync())||config_DEFAULT_SYNC;const updateSync=obj=>putObj(config_STOKEY_SYNC,obj);/**
+ */const getSync=()=>getObj(storage_STOKEY_SYNC);const getSyncWithDefault=async()=>(await getSync())||setting_DEFAULT_SYNC;const putSync=obj=>putObj(storage_STOKEY_SYNC,obj);const putSyncMeta=async key=>{const{syncMeta={}}=await getSyncWithDefault();syncMeta[key]={...(syncMeta[key]||{}),updateAt:Date.now()};await putSync({syncMeta});};const debounceSyncMeta=debounce(putSyncMeta,300);/**
  * ms auth
  */const getMsauth=()=>getObj(STOKEY_MSAUTH);const setMsauth=val=>setObj(STOKEY_MSAUTH,val);/**
  * baidu auth
  */const getBdauth=()=>getObj(STOKEY_BDAUTH);const setBdauth=val=>setObj(STOKEY_BDAUTH,val);/**
  * 存入默认数据
- */const tryInitDefaultData=async()=>{try{await trySetObj(STOKEY_SETTING,DEFAULT_SETTING);await trySetObj(STOKEY_RULES,DEFAULT_RULES);await trySetObj(STOKEY_SYNC,DEFAULT_SYNC);await trySetObj("".concat(STOKEY_RULESCACHE_PREFIX).concat("https://fishjar.github.io/kiss-rules/kiss-rules.json"),BUILTIN_RULES);}catch(err){kissLog(err,"init default");}};
-;// CONCATENATED MODULE: ./src/libs/log.js
-/**
- * 日志函数
- * @param {*} msg
- * @param {*} type
- */const log_kissLog=(msg,type)=>{let prefix="[KISS-Translator]";if(type){prefix+="[".concat(type,"]");}console.log("".concat(prefix," ").concat(msg));};
-;// CONCATENATED MODULE: ./src/hooks/Storage.js
-/**
- *
- * @param {*} key
- * @param {*} defaultVal 需为调用hook外的常量
- * @returns
- */function useStorage(key,defaultVal){const[loading,setLoading]=(0,react.useState)(false);const[data,setData]=(0,react.useState)(null);const save=(0,react.useCallback)(async val=>{setData(val);await storage.setObj(key,val);},[key]);const update=(0,react.useCallback)(async obj=>{setData(function(){let pre=arguments.length>0&&arguments[0]!==undefined?arguments[0]:{};return{...pre,...obj};});await storage.putObj(key,obj);},[key]);const remove=(0,react.useCallback)(async()=>{setData(null);await storage.del(key);},[key]);const reload=(0,react.useCallback)(async()=>{try{setLoading(true);const val=await storage.getObj(key);if(val){setData(val);}}catch(err){log_kissLog(err,"storage reload");}finally{setLoading(false);}},[key]);(0,react.useEffect)(()=>{(async()=>{try{setLoading(true);const val=await storage.getObj(key);if(val){setData(val);}else if(defaultVal){setData(defaultVal);await storage.setObj(key,defaultVal);}}catch(err){log_kissLog(err,"storage load");}finally{setLoading(false);}})();},[key,defaultVal]);return{data,save,update,remove,reload,loading};}
+ */const tryInitDefaultData=async()=>{try{await trySetObj(STOKEY_SETTING,DEFAULT_SETTING);await trySetObj(STOKEY_RULES,DEFAULT_RULES);await trySetObj(STOKEY_SYNC,DEFAULT_SYNC);await trySetObj("".concat(STOKEY_RULESCACHE_PREFIX).concat("https://fishjar.github.io/kiss-rules/kiss-rules_v2.json"),BUILTIN_RULES);}catch(err){kissLog("init default",err);}};
 ;// CONCATENATED MODULE: ./node_modules/.pnpm/decode-uri-component@0.4.1/node_modules/decode-uri-component/index.js
 const token = '%[a-f0-9]{2}';
 const singleMatcher = new RegExp('(' + token + ')|([^%]+?)', 'gi');
@@ -31472,33 +32664,147 @@ function exclude(input, filter, options) {
  * @param {*} args
  * @returns
  */const sendTabMsg=async(action,args)=>{const tabId=await getCurTabId();return browser.tabs.sendMessage(tabId,{action,args});};
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@babel+runtime@7.24.4/node_modules/@babel/runtime/helpers/esm/classPrivateFieldLooseBase.js
+function _classPrivateFieldBase(receiver, privateKey) {
+  if (!Object.prototype.hasOwnProperty.call(receiver, privateKey)) {
+    throw new TypeError("attempted to use private field on non-instance");
+  }
+  return receiver;
+}
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@babel+runtime@7.24.4/node_modules/@babel/runtime/helpers/esm/classPrivateFieldLooseKey.js
+var id = 0;
+function _classPrivateFieldKey(name) {
+  return "__private_" + id++ + "_" + name;
+}
 ;// CONCATENATED MODULE: ./src/libs/pool.js
 /**
  * 任务池
- * @param {*} fn
- * @param {*} preFn
- * @param {*} _interval
- * @param {*} _limit
+ */var _pool=/*#__PURE__*/_classPrivateFieldKey("pool");var _maxRetry=/*#__PURE__*/_classPrivateFieldKey("maxRetry");var _retryInterval=/*#__PURE__*/_classPrivateFieldKey("retryInterval");var _limit=/*#__PURE__*/_classPrivateFieldKey("limit");var _interval=/*#__PURE__*/_classPrivateFieldKey("interval");var _currentConcurrent=/*#__PURE__*/_classPrivateFieldKey("currentConcurrent");var _lastExecutionTime=/*#__PURE__*/_classPrivateFieldKey("lastExecutionTime");var _schedulerTimer=/*#__PURE__*/_classPrivateFieldKey("schedulerTimer");var _scheduleNext=/*#__PURE__*/_classPrivateFieldKey("scheduleNext");var _execute=/*#__PURE__*/_classPrivateFieldKey("execute");class TaskPool{// 用于调度下一个任务的定时器
+constructor(){let interval=arguments.length>0&&arguments[0]!==undefined?arguments[0]:DEFAULT_FETCH_INTERVAL;let limit=arguments.length>1&&arguments[1]!==undefined?arguments[1]:DEFAULT_FETCH_LIMIT;let retryInterval=arguments.length>2&&arguments[2]!==undefined?arguments[2]:1000;/**
+   * 执行单个任务
+   * @param {object} task - 任务对象
+   */Object.defineProperty(this,_execute,{value:_execute2});/**
+   * 调度器
+   */Object.defineProperty(this,_scheduleNext,{value:_scheduleNext2});Object.defineProperty(this,_pool,{writable:true,value:[]});Object.defineProperty(this,_maxRetry,{writable:true,value:2});// 最大重试次数
+Object.defineProperty(this,_retryInterval,{writable:true,value:1000});// 重试间隔时间
+Object.defineProperty(this,_limit,{writable:true,value:void 0});// 最大并发数
+Object.defineProperty(this,_interval,{writable:true,value:void 0});// 任务最小启动间隔
+Object.defineProperty(this,_currentConcurrent,{writable:true,value:0});// 当前正在执行的任务数
+Object.defineProperty(this,_lastExecutionTime,{writable:true,value:0});// 上一个任务的启动时间
+Object.defineProperty(this,_schedulerTimer,{writable:true,value:null});_classPrivateFieldBase(this,_interval)[_interval]=interval;_classPrivateFieldBase(this,_limit)[_limit]=limit;_classPrivateFieldBase(this,_retryInterval)[_retryInterval]=retryInterval;}/**
+   * 向任务池中添加一个新任务
+   * @param {Function} fn - 要执行的异步函数
+   * @param {*} args - 函数的参数
+   * @returns {Promise}
+   */push(fn,args){return new Promise((resolve,reject)=>{_classPrivateFieldBase(this,_pool)[_pool].push({fn,args,resolve,reject,retry:0});_classPrivateFieldBase(this,_scheduleNext)[_scheduleNext]();});}/**
+   * 更新任务池的配置
+   * @param {number} interval - 新的最小任务间隔
+   * @param {number} limit - 新的最大并发数
+   */update(interval,limit){if(interval>=0){_classPrivateFieldBase(this,_interval)[_interval]=interval;}if(limit>=1){_classPrivateFieldBase(this,_limit)[_limit]=limit;}_classPrivateFieldBase(this,_scheduleNext)[_scheduleNext]();}/**
+   * 清空任务池
+   */clear(){for(const task of _classPrivateFieldBase(this,_pool)[_pool]){task.reject("the task pool was cleared");}_classPrivateFieldBase(this,_pool)[_pool].length=0;if(_classPrivateFieldBase(this,_schedulerTimer)[_schedulerTimer]){clearTimeout(_classPrivateFieldBase(this,_schedulerTimer)[_schedulerTimer]);_classPrivateFieldBase(this,_schedulerTimer)[_schedulerTimer]=null;}}}/**
+ * 请求池实例
+ */function _scheduleNext2(){if(_classPrivateFieldBase(this,_schedulerTimer)[_schedulerTimer]){return;}if(_classPrivateFieldBase(this,_currentConcurrent)[_currentConcurrent]>=_classPrivateFieldBase(this,_limit)[_limit]||_classPrivateFieldBase(this,_pool)[_pool].length===0){return;}const now=Date.now();const timeSinceLast=now-_classPrivateFieldBase(this,_lastExecutionTime)[_lastExecutionTime];const delay=Math.max(0,_classPrivateFieldBase(this,_interval)[_interval]-timeSinceLast);_classPrivateFieldBase(this,_schedulerTimer)[_schedulerTimer]=setTimeout(()=>{_classPrivateFieldBase(this,_schedulerTimer)[_schedulerTimer]=null;if(_classPrivateFieldBase(this,_currentConcurrent)[_currentConcurrent]<_classPrivateFieldBase(this,_limit)[_limit]&&_classPrivateFieldBase(this,_pool)[_pool].length>0){const task=_classPrivateFieldBase(this,_pool)[_pool].shift();if(task){_classPrivateFieldBase(this,_lastExecutionTime)[_lastExecutionTime]=Date.now();_classPrivateFieldBase(this,_execute)[_execute](task);}}if(_classPrivateFieldBase(this,_pool)[_pool].length>0){_classPrivateFieldBase(this,_scheduleNext)[_scheduleNext]();}},delay);}async function _execute2(task){_classPrivateFieldBase(this,_currentConcurrent)[_currentConcurrent]++;const{fn,args,resolve,reject,retry}=task;try{const res=await fn(args);resolve(res);}catch(err){log_kissLog("task pool",err);if(retry<_classPrivateFieldBase(this,_maxRetry)[_maxRetry]){setTimeout(()=>{_classPrivateFieldBase(this,_pool)[_pool].unshift({...task,retry:retry+1});// unshift 保证重试任务优先
+_classPrivateFieldBase(this,_scheduleNext)[_scheduleNext]();},_classPrivateFieldBase(this,_retryInterval)[_retryInterval]);}else{reject(err);}}finally{_classPrivateFieldBase(this,_currentConcurrent)[_currentConcurrent]--;_classPrivateFieldBase(this,_scheduleNext)[_scheduleNext]();}}let fetchPool;/**
+ * 获取请求池实例
+ * @param interval
+ * @param limit
  * @returns
- */const taskPool=function(fn,preFn){let _interval=arguments.length>2&&arguments[2]!==undefined?arguments[2]:100;let _limit=arguments.length>3&&arguments[3]!==undefined?arguments[3]:100;let _retryInteral=arguments.length>4&&arguments[4]!==undefined?arguments[4]:1000;const pool=[];const maxRetry=2;// 最大重试次数
-let maxCount=_limit;// 最大数量
-let curCount=0;// 当前数量
-let interval=_interval;// 间隔时间
-let timer=null;const run=async()=>{// console.log("timer", timer);
-timer&&clearTimeout(timer);timer=setTimeout(run,interval);if(curCount<maxCount){const item=pool.shift();if(item){curCount++;const{args,resolve,reject,retry}=item;try{const preArgs=preFn?await preFn(item.args):{};const res=await fn({...args,...preArgs});resolve(res);}catch(err){log_kissLog(err,"task");if(retry<maxRetry){const retryTimer=setTimeout(()=>{clearTimeout(retryTimer);pool.push({args,resolve,reject,retry:retry+1});},_retryInteral);}else{reject(err);}}finally{curCount--;}}}};return{push:async args=>{if(!timer){run();}return new Promise((resolve,reject)=>{pool.push({args,resolve,reject,retry:0});});},update:function(){let _interval=arguments.length>0&&arguments[0]!==undefined?arguments[0]:100;let _limit=arguments.length>1&&arguments[1]!==undefined?arguments[1]:100;if(_interval>=0&&_interval<=5000&&_interval!==interval){interval=_interval;}if(_limit>=1&&_limit<=100&&_limit!==maxCount){maxCount=_limit;}},clear:()=>{pool.length=0;curCount=0;timer&&clearTimeout(timer);timer=null;}};};
+ */const getFetchPool=(interval,limit)=>{if(!fetchPool){fetchPool=new TaskPool(interval!==null&&interval!==void 0?interval:DEFAULT_FETCH_INTERVAL,limit!==null&&limit!==void 0?limit:DEFAULT_FETCH_LIMIT);}else if(interval&&limit){updateFetchPool(interval,limit);}return fetchPool;};/**
+ * 更新请求池参数
+ * @param {*} interval
+ * @param {*} limit
+ */const updateFetchPool=(interval,limit)=>{var _fetchPool;(_fetchPool=fetchPool)===null||_fetchPool===void 0?void 0:_fetchPool.update(interval,limit);};/**
+ * 清空请求池
+ */const clearFetchPool=()=>{var _fetchPool2;(_fetchPool2=fetchPool)===null||_fetchPool2===void 0?void 0:_fetchPool2.clear();};
+;// CONCATENATED MODULE: ./src/libs/cache.js
+/**
+ * 清除缓存数据
+ */const tryClearCaches=async()=>{try{caches.delete(CACHE_NAME);}catch(err){log_kissLog("clean caches",err);}};/**
+ * 构造缓存 request
+ * @param {*} input
+ * @param {*} init
+ * @returns
+ */const newCacheReq=async(input,init)=>{let request=new Request(input,init);if(request.method!=="GET"){const body=await request.text();const cacheUrl=new URL(request.url);cacheUrl.pathname+=body;request=new Request(cacheUrl.toString(),{method:"GET"});}return request;};/**
+ * 查询 caches
+ * @param {*} input
+ * @param {*} init
+ * @returns
+ */const getHttpCache=async _ref=>{let{input,init}=_ref;try{const request=await newCacheReq(input,init);const cache=await caches.open(CACHE_NAME);const response=await cache.match(request);if(response){const res=await parseResponse(response);return res;}}catch(err){log_kissLog("get cache",err);}return null;};/**
+ * 插入 caches
+ * @param {*} input
+ * @param {*} init
+ * @param {*} data
+ */const putHttpCache=async _ref2=>{let{input,init,data,maxAge=DEFAULT_CACHE_TIMEOUT// todo: 从设置里面读取最大缓存时间
+}=_ref2;try{const req=await newCacheReq(input,init);const cache=await caches.open(CACHE_NAME);const res=new Response(JSON.stringify(data),{status:200,headers:{"Content-Type":"application/json","Cache-Control":"max-age=".concat(maxAge)}});// res.headers.set("Cache-Control", `max-age=${maxAge}`);
+await cache.put(req,res);}catch(err){log_kissLog("put cache",err);}};/**
+ * 解析 response
+ * @param {*} res
+ * @returns
+ */const parseResponse=async res=>{if(!res){throw new Error("Response object does not exist");}if(!res.ok){var _res$headers$get;const msg={url:res.url,status:res.status};if((_res$headers$get=res.headers.get("Content-Type"))!==null&&_res$headers$get!==void 0&&_res$headers$get.includes("json")){msg.response=await res.json();}throw new Error(JSON.stringify(msg));}const contentType=res.headers.get("Content-Type");if(contentType!==null&&contentType!==void 0&&contentType.includes("json")){return res.json();}else if(contentType!==null&&contentType!==void 0&&contentType.includes("audio")){const blob=await res.blob();return blobToBase64(blob);}return res.text();};/**
+ * getHttpCache 兼容性封装
+ * @param {*} input
+ * @param {*} init
+ * @returns
+ */const getHttpCachePolyfill=(input,init)=>{// 插件
+if(isExt&&!isBg()){return sendBgMsg(MSG_GET_HTTPCACHE,{input,init});}// 油猴/网页/BackgroundPage
+return getHttpCache({input,init});};/**
+ * putHttpCache 兼容性封装
+ * @param {*} input
+ * @param {*} init
+ * @param {*} data
+ * @returns
+ */const putHttpCachePolyfill=(input,init,data)=>{// 插件
+if(isExt&&!isBg()){return sendBgMsg(MSG_PUT_HTTPCACHE,{input,init,data});}// 油猴/网页/BackgroundPage
+return putHttpCache({input,init,data});};
+;// CONCATENATED MODULE: ./src/libs/fetch.js
+/**
+ * 油猴脚本的请求封装
+ * @param {*} input
+ * @param {*} init
+ * @returns
+ */const fetchGM=async function(input){let{method="GET",headers,body,timeout}=arguments.length>1&&arguments[1]!==undefined?arguments[1]:{};return new Promise((resolve,reject)=>{GM.xmlHttpRequest({method,url:input,headers,data:body,// withCredentials: true,
+timeout,onload:_ref=>{let{response,responseHeaders,status,statusText}=_ref;const headers={};responseHeaders.split("\n").forEach(line=>{const[name,value]=line.split(":").map(item=>item.trim());if(name&&value){headers[name]=value;}});resolve({body:response,headers,status,statusText});},onerror:reject});});};/**
+ * 发起请求
+ * @param {*} input
+ * @param {*} init
+ * @param {*} opts
+ * @returns
+ */const fetchPatcher=async function(input){var _AbortSignal;let init=arguments.length>1&&arguments[1]!==undefined?arguments[1]:{};let opts=arguments.length>2?arguments[2]:undefined;let timeout=opts===null||opts===void 0?void 0:opts.httpTimeout;if(!timeout){try{timeout=(await storage_getSettingWithDefault()).httpTimeout;}catch(err){log_kissLog("getSettingWithDefault",err);}}if(!timeout){timeout=DEFAULT_HTTP_TIMEOUT;}if(isGm){// todo: 自定义接口 init 可能包含了 signal
+Object.assign(init,{timeout});const{body,headers,status,statusText}=window.KISS_GM?await window.KISS_GM.fetch(input,init):await fetchGM(input,init);return new Response(body,{headers:new Headers(headers),status,statusText});}if((_AbortSignal=AbortSignal)!==null&&_AbortSignal!==void 0&&_AbortSignal.timeout&&!init.signal){Object.assign(init,{signal:AbortSignal.timeout(timeout)});}return fetch(input,init);};/**
+ * 处理请求
+ * @param {*} param0
+ * @returns
+ */const fetchHandle=async _ref2=>{let{input,init,opts}=_ref2;const res=await fetchPatcher(input,init,opts);return parseResponse(res);};/**
+ * fetch 兼容性封装
+ * @param {*} args
+ * @returns
+ */const fnPolyfill=_ref3=>{let{fn,msg=MSG_FETCH,...args}=_ref3;// 插件
+if(isExt&&!isBg()){return sendBgMsg(msg,{...args});}// 油猴/网页/BackgroundPage
+return fn({...args});};/**
+ * 数据请求
+ * @param {*} input
+ * @param {*} init
+ * @param {*} param1
+ * @returns
+ */const fetch_fetchData=async function(input,init){let{useCache,usePool,fetchInterval,fetchLimit,...opts}=arguments.length>2&&arguments[2]!==undefined?arguments[2]:{};if(!(input!==null&&input!==void 0&&input.trim())){throw new Error("URL is empty");}// 使用缓存数据
+if(useCache){const resCache=await getHttpCachePolyfill(input,init);if(resCache){return resCache;}}// 通过任务池发送请求
+if(usePool){const fetchPool=getFetchPool(fetchInterval,fetchLimit);return fetchPool.push(fnPolyfill,{fn:fetchHandle,input,init,opts});}// 直接请求
+return fnPolyfill({fn:fetchHandle,input,init,opts});};
 ;// CONCATENATED MODULE: ./src/libs/auth.js
-const parseMSToken=token=>{try{return JSON.parse(atob(token.split(".")[1])).exp;}catch(err){log_kissLog(err,"parseMSToken");}return 0;};/**
+const parseMSToken=token=>{try{return JSON.parse(atob(token.split(".")[1])).exp;}catch(err){log_kissLog("parseMSToken",err);}return 0;};/**
  * 闭包缓存token，减少对storage查询
  * @returns
- */const _msAuth=()=>{let{token,exp}={};return async()=>{// 查询内存缓存
-const now=Date.now();if(token&&exp*1000>now+1000){return[token,exp];}// 查询storage缓存
-const res=await getMsauth();token=res===null||res===void 0?void 0:res.token;exp=res===null||res===void 0?void 0:res.exp;if(token&&exp*1000>now+1000){return[token,exp];}// 缓存没有或失效，查询接口
-token=await fetchHandle({input:URL_MICROSOFT_AUTH});exp=parseMSToken(token);await setMsauth({token,exp});return[token,exp];};};const msAuth=_msAuth();
+ */const _msAuth=()=>{let tokenPromise=null;const EXPIRATION_MS=1000;const fetchNewToken=async()=>{try{const now=Date.now();// 1. 查询storage缓存
+const storageToken=await getMsauth();if(storageToken){const storageExp=parseMSToken(storageToken);const storageExpiresAt=storageExp*1000;if(storageExpiresAt>now+EXPIRATION_MS){return{token:storageToken,expiresAt:storageExpiresAt};}}// 2. 缓存没有或失效，查询接口
+const apiToken=await apiMsAuth();if(!apiToken){throw new Error("Failed to fetch ms token");}const apiExp=parseMSToken(apiToken);const apiExpiresAt=apiExp*1000;await setMsauth(apiToken);return{token:apiToken,expiresAt:apiExpiresAt};}catch(error){log_kissLog("get msauth failed",error);throw error;}};return async()=>{// 检查是否有缓存的 Promise
+if(tokenPromise){try{const cachedResult=await tokenPromise;if(cachedResult.expiresAt>Date.now()+EXPIRATION_MS){return cachedResult.token;}}catch(error){//
+}}tokenPromise=fetchNewToken();const result=await tokenPromise;return result.token;};};const msAuth=_msAuth();
 ;// CONCATENATED MODULE: ./src/apis/deepl.js
-let id=1e4*Math.round(1e4*Math.random());const genDeeplFree=_ref=>{let{text,from,to}=_ref;const iCount=(text.match(/[i]/g)||[]).length+1;let timestamp=Date.now();timestamp=timestamp+(iCount-timestamp%iCount);id++;let body=JSON.stringify({jsonrpc:"2.0",method:"LMT_handle_texts",params:{splitting:"newlines",lang:{target_lang:to,source_lang_user_selected:from},commonJobParams:{wasSpoken:false,transcribe_as:""},id,timestamp,texts:[{text,requestAlternatives:3}]}});body=body.replace('method":"',(id+3)%13===0||(id+5)%29===0?'method" : "':'method": "');const init={headers:{"Content-Type":"application/json",Accept:"*/*","x-app-os-name":"iOS","x-app-os-version":"16.3.0","Accept-Language":"en-US,en;q=0.9","Accept-Encoding":"gzip, deflate, br","x-app-device":"iPhone13,2","User-Agent":"DeepL-iOS/2.9.1 iOS 16.3.0 (iPhone13,2)","x-app-build":"510265","x-app-version":"2.9.1"},method:"POST",body};return[URL_DEEPLFREE_TRAN,init];};
+let deepl_id=1e4*Math.round(1e4*Math.random());const genDeeplFree=_ref=>{let{texts,from,to}=_ref;const text=texts.join(" ");const iCount=(text.match(/[i]/g)||[]).length+1;let timestamp=Date.now();timestamp=timestamp+(iCount-timestamp%iCount);deepl_id++;const url="https://www2.deepl.com/jsonrpc";const body={jsonrpc:"2.0",method:"LMT_handle_texts",params:{splitting:"newlines",lang:{target_lang:to,source_lang_user_selected:from},commonJobParams:{wasSpoken:false,transcribe_as:""},id: deepl_id,timestamp,texts:[{text,requestAlternatives:3}]}};const headers={"Content-Type":"application/json",Accept:"*/*","x-app-os-name":"iOS","x-app-os-version":"16.3.0","Accept-Language":"en-US,en;q=0.9","Accept-Encoding":"gzip, deflate, br","x-app-device":"iPhone13,2","User-Agent":"DeepL-iOS/2.9.1 iOS 16.3.0 (iPhone13,2)","x-app-build":"510265","x-app-version":"2.9.1"};return{url,body,headers};};
 ;// CONCATENATED MODULE: ./src/apis/baidu.js
-const genBaidu=async _ref=>{let{text,from,to}=_ref;const data={from,to,query:text,source:"txt"};const init={headers:{// Origin: "https://fanyi.baidu.com",
-"content-type":"application/x-www-form-urlencoded; charset=UTF-8","User-Agent":DEFAULT_USER_AGENT},method:"POST",body:query_string.stringify(data)};return[URL_BAIDU_TRANSAPI,init];};
+const genBaidu=_ref=>{let{texts,from,to}=_ref;const body={from,to,query:texts.join(" "),source:"txt"};const url="https://fanyi.baidu.com/transapi";const headers={// Origin: "https://fanyi.baidu.com",
+"content-type":"application/x-www-form-urlencoded; charset=UTF-8","User-Agent":DEFAULT_USER_AGENT};return{url,body,headers};};
 // EXTERNAL MODULE: ./node_modules/.pnpm/sval@0.5.2/node_modules/sval/dist/sval.js
 var sval = __webpack_require__(5021);
 var sval_default = /*#__PURE__*/__webpack_require__.n(sval);
@@ -31511,191 +32817,78 @@ ecmaVer:"latest",// Code source type
 // "script" or "module"
 sourceType:"script",// Whether the code runs in a sandbox
 sandBox:true});/* harmony default export */ const libs_interpreter = (interpreter);
+;// CONCATENATED MODULE: ./src/apis/history.js
+const historyMap=new Map();const MsgHistory=function(){let maxSize=arguments.length>0&&arguments[0]!==undefined?arguments[0]:DEFAULT_CONTEXT_SIZE;const messages=[];const add=function(){for(var _len=arguments.length,msgs=new Array(_len),_key=0;_key<_len;_key++){msgs[_key]=arguments[_key];}messages.push(...msgs.filter(Boolean));const extra=messages.length-maxSize;if(extra>0){messages.splice(0,extra);}};const getAll=()=>{return[...messages];};const clear=()=>{messages.length=0;};return{add,getAll,clear};};const getMsgHistory=(apiSlug,maxSize)=>{if(historyMap.has(apiSlug)){return historyMap.get(apiSlug);}const msgHistory=MsgHistory(maxSize);historyMap.set(apiSlug,msgHistory);return msgHistory;};
+;// CONCATENATED MODULE: ./src/subtitle/vtt.js
+function millisecondsStringToNumber(msString){const cleanString=msString.trim();const milliseconds=parseInt(cleanString,10);if(isNaN(milliseconds)){return 0;}return milliseconds;}function parseBilingualVtt(vttText){const cleanText=vttText.replace(/^\uFEFF/,"").trim();const cues=cleanText.split(/\n\n+/);const result=[];for(const cue of cues){if(!cue.includes("-->"))continue;const lines=cue.split("\n");const timestampLineIndex=lines.findIndex(line=>line.includes("-->"));if(timestampLineIndex===-1)continue;const[startTimeString,endTimeString]=lines[timestampLineIndex].split(" --> ");const textLines=lines.slice(timestampLineIndex+1);if(startTimeString&&endTimeString&&textLines.length>0){const originalText=textLines[0].trim();const translatedText=(textLines[1]||"").trim();result.push({start:millisecondsStringToNumber(startTimeString),end:millisecondsStringToNumber(endTimeString),text:originalText,translation:translatedText});}}return result;}
 ;// CONCATENATED MODULE: ./src/apis/trans.js
 const keyMap=new Map();const urlMap=new Map();// 轮询key/url
-const keyPick=function(translator){var _cacheMap$get;let key=arguments.length>1&&arguments[1]!==undefined?arguments[1]:"";let cacheMap=arguments.length>2?arguments[2]:undefined;const keys=key.split(/\n|,/).map(item=>item.trim()).filter(Boolean);if(keys.length===0){return"";}const preIndex=(_cacheMap$get=cacheMap.get(translator))!==null&&_cacheMap$get!==void 0?_cacheMap$get:-1;const curIndex=(preIndex+1)%keys.length;cacheMap.set(translator,curIndex);return keys[curIndex];};const genGoogle=_ref=>{let{text,from,to,url,key}=_ref;const params={client:"gtx",dt:"t",dj:1,ie:"UTF-8",sl:from,tl:to,q:text};const input="".concat(url,"?").concat(query_string.stringify(params));const init={headers:{"Content-type":"application/json"}};if(key){init.headers.Authorization="Bearer ".concat(key);}return[input,init];};const genGoogle2=_ref2=>{let{text,from,to,url,key}=_ref2;const body=JSON.stringify([[[text],from,to],"wt_lib"]);const init={method:"POST",headers:{"Content-Type":"application/json+protobuf","X-Goog-API-Key":key},body};return[url,init];};const genMicrosoft=async _ref3=>{let{text,from,to}=_ref3;const[token]=await msAuth();const params={from,to,"api-version":"3.0"};const input="".concat(URL_MICROSOFT_TRAN,"?").concat(query_string.stringify(params));const init={headers:{"Content-type":"application/json",Authorization:"Bearer ".concat(token)},method:"POST",body:JSON.stringify([{Text:text}])};return[input,init];};const genDeepl=_ref4=>{let{text,from,to,url,key}=_ref4;const data={text:[text],target_lang:to,source_lang:from// split_sentences: "0",
-};const init={headers:{"Content-type":"application/json",Authorization:"DeepL-Auth-Key ".concat(key)},method:"POST",body:JSON.stringify(data)};return[url,init];};const genDeeplX=_ref5=>{let{text,from,to,url,key}=_ref5;const data={text,target_lang:to,source_lang:from};const init={headers:{"Content-type":"application/json"},method:"POST",body:JSON.stringify(data)};if(key){init.headers.Authorization="Bearer ".concat(key);}return[url,init];};const genNiuTrans=_ref6=>{let{text,from,to,url,key,dictNo,memoryNo}=_ref6;const data={from,to,apikey:key,src_text:text,dictNo,memoryNo};const init={headers:{"Content-type":"application/json"},method:"POST",body:JSON.stringify(data)};return[url,init];};const genTencent=_ref7=>{let{text,from,to}=_ref7;const data={header:{fn:"auto_translation",client_key:"browser-chrome-110.0.0-Mac OS-df4bd4c5-a65d-44b2-a40f-42f34f3535f2-1677486696487"},type:"plain",model_category:"normal",source:{text_list:[text],lang:from},target:{lang:to}};const init={headers:{"Content-Type":"application/json","user-agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36",referer:"https://transmart.qq.com/zh-CN/index"},method:"POST",body:JSON.stringify(data)};return[URL_TENCENT_TRANSMART,init];};const genVolcengine=_ref8=>{let{text,from,to}=_ref8;const data={source_language:from,target_language:to,text:text};const init={headers:{"Content-type":"application/json"},method:"POST",body:JSON.stringify(data)};return[URL_VOLCENGINE_TRAN,init];};const genOpenAI=_ref9=>{let{text,from,to,url,key,systemPrompt,userPrompt,model,temperature,maxTokens}=_ref9;// 兼容历史上作为systemPrompt的prompt，如果prompt中不包含带翻译文本，则添加文本到prompt末尾
-// if (!prompt.includes(INPUT_PLACE_TEXT)) {
-//   prompt += `\nSource Text: ${INPUT_PLACE_TEXT}`;
+const keyPick=function(apiSlug){var _cacheMap$get;let key=arguments.length>1&&arguments[1]!==undefined?arguments[1]:"";let cacheMap=arguments.length>2?arguments[2]:undefined;const keys=key.split(/\n|,/).map(item=>item.trim()).filter(Boolean);if(keys.length===0){return"";}const preIndex=(_cacheMap$get=cacheMap.get(apiSlug))!==null&&_cacheMap$get!==void 0?_cacheMap$get:-1;const curIndex=(preIndex+1)%keys.length;cacheMap.set(apiSlug,curIndex);return keys[curIndex];};const genSystemPrompt=_ref=>{let{systemPrompt,from,to}=_ref;return systemPrompt.replaceAll(INPUT_PLACE_FROM,from).replaceAll(INPUT_PLACE_TO,to);};const genUserPrompt=_ref2=>{let{// userPrompt,
+tone,glossary={},// from,
+to,texts,docInfo}=_ref2;const prompt=JSON.stringify({targetLanguage:to,title:docInfo.title,description:docInfo.description,segments:texts.map((text,i)=>({id:i,text})),glossary,tone});// if (userPrompt.includes(INPUT_PLACE_TEXT)) {
+//   return userPrompt
+//     .replaceAll(INPUT_PLACE_FROM, from)
+//     .replaceAll(INPUT_PLACE_TO, to)
+//     .replaceAll(INPUT_PLACE_TEXT, prompt);
 // }
-systemPrompt=systemPrompt.replaceAll(INPUT_PLACE_FROM,from).replaceAll(INPUT_PLACE_TO,to).replaceAll(INPUT_PLACE_TEXT,text);userPrompt=userPrompt.replaceAll(INPUT_PLACE_FROM,from).replaceAll(INPUT_PLACE_TO,to).replaceAll(INPUT_PLACE_TEXT,text);const data={model,messages:[{role:"system",content:systemPrompt},{role:"user",content:userPrompt}],temperature,max_completion_tokens:maxTokens};const init={headers:{"Content-type":"application/json",Authorization:"Bearer ".concat(key),// OpenAI
-"api-key":key// Azure OpenAI
-},method:"POST",body:JSON.stringify(data)};return[url,init];};const genGemini=_ref10=>{let{text,from,to,url,key,systemPrompt,userPrompt,model,temperature,maxTokens}=_ref10;url=url.replaceAll(INPUT_PLACE_MODEL,model).replaceAll(INPUT_PLACE_KEY,key);systemPrompt=systemPrompt.replaceAll(INPUT_PLACE_FROM,from).replaceAll(INPUT_PLACE_TO,to).replaceAll(INPUT_PLACE_TEXT,text);userPrompt=userPrompt.replaceAll(INPUT_PLACE_FROM,from).replaceAll(INPUT_PLACE_TO,to).replaceAll(INPUT_PLACE_TEXT,text);const data={system_instruction:{parts:{text:systemPrompt}},contents:{role:"user",parts:{text:userPrompt}},generationConfig:{maxOutputTokens:maxTokens,temperature// topP: 0.8,
+return prompt;};const parseAIRes=raw=>{if(!raw){return[];}try{const jsonString=extractJson(raw);const data=JSON.parse(jsonString);if(Array.isArray(data.translations)){// todo: 考虑序号id可能会打乱
+return data.translations.map(item=>{var _item$text,_item$sourceLanguage;return[(_item$text=item===null||item===void 0?void 0:item.text)!==null&&_item$text!==void 0?_item$text:"",(_item$sourceLanguage=item===null||item===void 0?void 0:item.sourceLanguage)!==null&&_item$sourceLanguage!==void 0?_item$sourceLanguage:""];});}}catch(err){log_kissLog("parseAIRes",err);}return[];};const parseSTRes=raw=>{if(!raw){return[];}try{// const jsonString = extractJson(raw);
+// const data = JSON.parse(jsonString);
+const data=parseBilingualVtt(raw);if(Array.isArray(data)){return data;}}catch(err){log_kissLog("parseAIRes: subtitle",err);}return[];};const genGoogle=_ref3=>{let{texts,from,to,url,key}=_ref3;const params=query_string.stringify({client:"gtx",dt:"t",dj:1,ie:"UTF-8",sl:from,tl:to,q:texts.join(" ")});url="".concat(url,"?").concat(params);const headers={"Content-type":"application/json"};if(key){headers.Authorization="Bearer ".concat(key);}return{url,headers,method:"GET"};};const genGoogle2=_ref4=>{let{texts,from,to,url,key}=_ref4;const body=[[texts,from,to],"wt_lib"];const headers={"Content-Type":"application/json+protobuf","X-Goog-API-Key":key};return{url,body,headers};};const genMicrosoft=_ref5=>{let{texts,from,to,token}=_ref5;const params=query_string.stringify({from,to,"api-version":"3.0"});const url="https://api-edge.cognitive.microsofttranslator.com/translate?".concat(params);const headers={"Content-type":"application/json",Authorization:"Bearer ".concat(token)};const body=texts.map(text=>({Text:text}));return{url,body,headers};};const genAzureAI=_ref6=>{let{texts,from,to,url,key,region}=_ref6;const params=query_string.stringify({from,to});url=url.endsWith("&")?"".concat(url).concat(params):"".concat(url,"&").concat(params);const headers={"Content-type":"application/json","Ocp-Apim-Subscription-Key":key,"Ocp-Apim-Subscription-Region":region};const body=texts.map(text=>({Text:text}));return{url,body,headers};};const genDeepl=_ref7=>{let{texts,from,to,url,key}=_ref7;const body={text:texts,target_lang:to,source_lang:from// split_sentences: "0",
+};const headers={"Content-type":"application/json",Authorization:"DeepL-Auth-Key ".concat(key)};return{url,body,headers};};const genDeeplX=_ref8=>{let{texts,from,to,url,key}=_ref8;const body={text:texts.join(" "),target_lang:to,source_lang:from};const headers={"Content-type":"application/json"};if(key){headers.Authorization="Bearer ".concat(key);}return{url,body,headers};};const genNiuTrans=_ref9=>{let{texts,from,to,url,key,dictNo,memoryNo}=_ref9;const body={from,to,apikey:key,src_text:texts.join(" "),dictNo,memoryNo};const headers={"Content-type":"application/json"};return{url,body,headers};};const genTencent=_ref10=>{let{texts,from,to}=_ref10;const body={header:{fn:"auto_translation",client_key:"browser-chrome-110.0.0-Mac OS-df4bd4c5-a65d-44b2-a40f-42f34f3535f2-1677486696487"},type:"plain",model_category:"normal",source:{text_list:texts,lang:from},target:{lang:to}};const url="https://transmart.qq.com/api/imt";const headers={"Content-Type":"application/json","user-agent":DEFAULT_USER_AGENT,referer:"https://transmart.qq.com/zh-CN/index"};return{url,body,headers};};const genVolcengine=_ref11=>{let{texts,from,to}=_ref11;const body={source_language:from,target_language:to,text:texts.join(" ")};const url="https://translate.volcengine.com/crx/translate/v1";const headers={"Content-type":"application/json"};return{url,body,headers};};const genOpenAI=_ref12=>{let{url,key,systemPrompt,userPrompt,model,temperature,maxTokens,hisMsgs=[]}=_ref12;const userMsg={role:"user",content:userPrompt};const body={model,messages:[{role:"system",content:systemPrompt},...hisMsgs,userMsg],temperature,max_completion_tokens:maxTokens};const headers={"Content-type":"application/json",Authorization:"Bearer ".concat(key)// OpenAI
+// "api-key": key, // Azure OpenAI
+};return{url,body,headers,userMsg};};const genGemini=_ref13=>{let{url,key,systemPrompt,userPrompt,model,temperature,maxTokens,hisMsgs=[]}=_ref13;url=url.replaceAll(INPUT_PLACE_MODEL,model).replaceAll(INPUT_PLACE_KEY,key);const userMsg={role:"user",parts:[{text:userPrompt}]};const body={// system_instruction: {
+//   parts: {
+//     text: systemPrompt,
+//   },
+// },
+contents:[{role:"model",parts:[{text:systemPrompt}]},...hisMsgs,userMsg],generationConfig:{maxOutputTokens:maxTokens,temperature// topP: 0.8,
 // topK: 10,
-}};const init={headers:{"Content-type":"application/json"},method:"POST",body:JSON.stringify(data)};return[url,init];};const genGemini2=_ref11=>{let{text,from,to,url,key,systemPrompt,userPrompt,model,temperature,maxTokens}=_ref11;systemPrompt=systemPrompt.replaceAll(INPUT_PLACE_FROM,from).replaceAll(INPUT_PLACE_TO,to).replaceAll(INPUT_PLACE_TEXT,text);userPrompt=userPrompt.replaceAll(INPUT_PLACE_FROM,from).replaceAll(INPUT_PLACE_TO,to).replaceAll(INPUT_PLACE_TEXT,text);const data={model,messages:[{role:"system",content:systemPrompt},{role:"user",content:userPrompt}],temperature,max_tokens:maxTokens};const init={headers:{"Content-type":"application/json",Authorization:"Bearer ".concat(key)},method:"POST",body:JSON.stringify(data)};return[url,init];};const genClaude=_ref12=>{let{text,from,to,url,key,systemPrompt,userPrompt,model,temperature,maxTokens}=_ref12;systemPrompt=systemPrompt.replaceAll(INPUT_PLACE_FROM,from).replaceAll(INPUT_PLACE_TO,to).replaceAll(INPUT_PLACE_TEXT,text);userPrompt=userPrompt.replaceAll(INPUT_PLACE_FROM,from).replaceAll(INPUT_PLACE_TO,to).replaceAll(INPUT_PLACE_TEXT,text);const data={model,system:systemPrompt,messages:[{role:"user",content:userPrompt}],temperature,max_tokens:maxTokens};const init={headers:{"Content-type":"application/json","anthropic-version":"2023-06-01","x-api-key":key},method:"POST",body:JSON.stringify(data)};return[url,init];};const genOllama=_ref13=>{let{text,from,to,think,url,key,systemPrompt,userPrompt,model}=_ref13;systemPrompt=systemPrompt.replaceAll(INPUT_PLACE_FROM,from).replaceAll(INPUT_PLACE_TO,to).replaceAll(INPUT_PLACE_TEXT,text);userPrompt=userPrompt.replaceAll(INPUT_PLACE_FROM,from).replaceAll(INPUT_PLACE_TO,to).replaceAll(INPUT_PLACE_TEXT,text);const data={model,system:systemPrompt,prompt:userPrompt,think:think,stream:false};const init={headers:{"Content-type":"application/json"},method:"POST",body:JSON.stringify(data)};if(key){init.headers.Authorization="Bearer ".concat(key);}return[url,init];};const genCloudflareAI=_ref14=>{let{text,from,to,url,key}=_ref14;const data={text,source_lang:from,target_lang:to};const init={headers:{"Content-type":"application/json",Authorization:"Bearer ".concat(key)},method:"POST",body:JSON.stringify(data)};return[url,init];};const genCustom=_ref15=>{let{text,from,to,url,key,reqHook}=_ref15;url=url.replaceAll(INPUT_PLACE_URL,url).replaceAll(INPUT_PLACE_FROM,from).replaceAll(INPUT_PLACE_TO,to).replaceAll(INPUT_PLACE_TEXT,text).replaceAll(INPUT_PLACE_KEY,key);let init={};if(reqHook!==null&&reqHook!==void 0&&reqHook.trim()){libs_interpreter.run("exports.reqHook = ".concat(reqHook));[url,init]=libs_interpreter.exports.reqHook(text,from,to,url,key);return[url,init];}const data={text,from,to};init={headers:{"Content-type":"application/json"},method:"POST",body:JSON.stringify(data)};if(key){init.headers.Authorization="Bearer ".concat(key);}return[url,init];};/**
+},// thinkingConfig: {
+//   thinkingBudget: 0,
+// },
+safetySettings:[{category:"HARM_CATEGORY_HARASSMENT",threshold:"BLOCK_NONE"},{category:"HARM_CATEGORY_HATE_SPEECH",threshold:"BLOCK_NONE"},{category:"HARM_CATEGORY_SEXUALLY_EXPLICIT",threshold:"BLOCK_NONE"},{category:"HARM_CATEGORY_DANGEROUS_CONTENT",threshold:"BLOCK_NONE"}]};const headers={"Content-type":"application/json"};return{url,body,headers,userMsg};};const genGemini2=_ref14=>{let{url,key,systemPrompt,userPrompt,model,temperature,maxTokens,hisMsgs=[]}=_ref14;const userMsg={role:"user",content:userPrompt};const body={model,messages:[{role:"system",content:systemPrompt},...hisMsgs,userMsg],temperature,max_tokens:maxTokens};const headers={"Content-type":"application/json",Authorization:"Bearer ".concat(key)};return{url,body,headers,userMsg};};const genClaude=_ref15=>{let{url,key,systemPrompt,userPrompt,model,temperature,maxTokens,hisMsgs=[]}=_ref15;const userMsg={role:"user",content:userPrompt};const body={model,system:systemPrompt,messages:[...hisMsgs,userMsg],temperature,max_tokens:maxTokens};const headers={"Content-type":"application/json","anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true","x-api-key":key};return{url,body,headers,userMsg};};const genOpenRouter=_ref16=>{let{url,key,systemPrompt,userPrompt,model,temperature,maxTokens,hisMsgs=[]}=_ref16;const userMsg={role:"user",content:userPrompt};const body={model,messages:[{role:"system",content:systemPrompt},...hisMsgs,userMsg],temperature,max_tokens:maxTokens};const headers={"Content-type":"application/json",Authorization:"Bearer ".concat(key)};return{url,body,headers,userMsg};};const genOllama=_ref17=>{let{think,url,key,systemPrompt,userPrompt,model,temperature,maxTokens,hisMsgs=[]}=_ref17;const userMsg={role:"user",content:userPrompt};const body={model,messages:[{role:"system",content:systemPrompt},...hisMsgs,userMsg],temperature,max_tokens:maxTokens,think,stream:false};const headers={"Content-type":"application/json"};if(key){headers.Authorization="Bearer ".concat(key);}return{url,body,headers,userMsg};};const genCloudflareAI=_ref18=>{let{texts,from,to,url,key}=_ref18;const body={text:texts.join(" "),source_lang:from,target_lang:to};const headers={"Content-type":"application/json",Authorization:"Bearer ".concat(key)};return{url,body,headers};};const genCustom=_ref19=>{let{texts,from,to,url,key}=_ref19;const body={texts,from,to};const headers={"Content-type":"application/json",Authorization:"Bearer ".concat(key)};return{url,body,headers};};const genReqFuncs={[OPT_TRANS_GOOGLE]:genGoogle,[OPT_TRANS_GOOGLE_2]:genGoogle2,[OPT_TRANS_MICROSOFT]:genMicrosoft,[OPT_TRANS_AZUREAI]:genAzureAI,[OPT_TRANS_DEEPL]:genDeepl,[OPT_TRANS_DEEPLFREE]:genDeeplFree,[OPT_TRANS_DEEPLX]:genDeeplX,[OPT_TRANS_NIUTRANS]:genNiuTrans,[OPT_TRANS_BAIDU]:genBaidu,[OPT_TRANS_TENCENT]:genTencent,[OPT_TRANS_VOLCENGINE]:genVolcengine,[OPT_TRANS_OPENAI]:genOpenAI,[OPT_TRANS_GEMINI]:genGemini,[OPT_TRANS_GEMINI_2]:genGemini2,[OPT_TRANS_CLAUDE]:genClaude,[OPT_TRANS_CLOUDFLAREAI]:genCloudflareAI,[OPT_TRANS_OLLAMA]:genOllama,[OPT_TRANS_OPENROUTER]:genOpenRouter,[OPT_TRANS_CUSTOMIZE]:genCustom};const genInit=_ref20=>{let{url="",body=null,headers={},userMsg=null,method="POST"}=_ref20;if(!url){throw new Error("genInit: url is empty");}const init={method,headers};if(method!=="GET"&&method!=="HEAD"&&body){var _body$params;let payload=JSON.stringify(body);const id=body===null||body===void 0?void 0:(_body$params=body.params)===null||_body$params===void 0?void 0:_body$params.id;if(id){payload=payload.replace('method":"',(id+3)%13===0||(id+5)%29===0?'method" : "':'method": "');}Object.assign(init,{body:payload});}return[url,init,userMsg];};/**
  * 构造翻译接口请求参数
  * @param {*}
  * @returns
- */const genTransReq=(_ref16,apiSetting)=>{let{translator,text,from,to}=_ref16;const args={text,from,to,...apiSetting};switch(translator){case OPT_TRANS_DEEPL:case OPT_TRANS_OPENAI:case OPT_TRANS_OPENAI_2:case OPT_TRANS_OPENAI_3:case OPT_TRANS_GEMINI:case OPT_TRANS_GEMINI_2:case OPT_TRANS_CLAUDE:case OPT_TRANS_CLOUDFLAREAI:case OPT_TRANS_OLLAMA:case OPT_TRANS_OLLAMA_2:case OPT_TRANS_OLLAMA_3:case OPT_TRANS_NIUTRANS:case OPT_TRANS_CUSTOMIZE:case OPT_TRANS_CUSTOMIZE_2:case OPT_TRANS_CUSTOMIZE_3:case OPT_TRANS_CUSTOMIZE_4:case OPT_TRANS_CUSTOMIZE_5:args.key=keyPick(translator,args.key,keyMap);break;case OPT_TRANS_DEEPLX:args.url=keyPick(translator,args.url,urlMap);break;default:}switch(translator){case OPT_TRANS_GOOGLE:return genGoogle(args);case OPT_TRANS_GOOGLE_2:return genGoogle2(args);case OPT_TRANS_MICROSOFT:return genMicrosoft(args);case OPT_TRANS_DEEPL:return genDeepl(args);case OPT_TRANS_DEEPLFREE:return genDeeplFree(args);case OPT_TRANS_DEEPLX:return genDeeplX(args);case OPT_TRANS_NIUTRANS:return genNiuTrans(args);case OPT_TRANS_BAIDU:return genBaidu(args);case OPT_TRANS_TENCENT:return genTencent(args);case OPT_TRANS_VOLCENGINE:return genVolcengine(args);case OPT_TRANS_OPENAI:case OPT_TRANS_OPENAI_2:case OPT_TRANS_OPENAI_3:return genOpenAI(args);case OPT_TRANS_GEMINI:return genGemini(args);case OPT_TRANS_GEMINI_2:return genGemini2(args);case OPT_TRANS_CLAUDE:return genClaude(args);case OPT_TRANS_CLOUDFLAREAI:return genCloudflareAI(args);case OPT_TRANS_OLLAMA:case OPT_TRANS_OLLAMA_2:case OPT_TRANS_OLLAMA_3:return genOllama(args);case OPT_TRANS_CUSTOMIZE:case OPT_TRANS_CUSTOMIZE_2:case OPT_TRANS_CUSTOMIZE_3:case OPT_TRANS_CUSTOMIZE_4:case OPT_TRANS_CUSTOMIZE_5:return genCustom(args);default:throw new Error("[trans] translator: ".concat(translator," not support"));}};
-;// CONCATENATED MODULE: ./src/libs/utils.js
-/**
- * 限制数字大小
- * @param {*} num
- * @param {*} min
- * @param {*} max
+ */const genTransReq=async _ref21=>{let{reqHook,...args}=_ref21;const{apiType,apiSlug,key,systemPrompt,userPrompt,from,to,texts,docInfo,glossary,customHeader,customBody,events}=args;if(API_SPE_TYPES.mulkeys.has(apiType)){args.key=keyPick(apiSlug,key,keyMap);}if(apiType===OPT_TRANS_DEEPLX){args.url=keyPick(apiSlug,args.url,urlMap);}if(API_SPE_TYPES.ai.has(apiType)){args.systemPrompt=genSystemPrompt({systemPrompt,from,to});args.userPrompt=!!events?JSON.stringify(events):genUserPrompt({userPrompt,from,to,texts,docInfo,glossary});}const{url="",body=null,headers={},userMsg=null,method="POST"}=genReqFuncs[apiType](args);// 合并用户自定义headers和body
+if(customHeader!==null&&customHeader!==void 0&&customHeader.trim()){Object.assign(headers,parseJsonObj(customHeader));}if(customBody!==null&&customBody!==void 0&&customBody.trim()){Object.assign(body,parseJsonObj(customBody));}// 执行 request hook
+if(reqHook!==null&&reqHook!==void 0&&reqHook.trim()&&!events){try{libs_interpreter.run("exports.reqHook = ".concat(reqHook));const hookResult=await libs_interpreter.exports.reqHook(args,{url,body,headers,userMsg,method});if(hookResult&&hookResult.url){return genInit(hookResult);}}catch(err){log_kissLog("run req hook",err);}}return genInit({url,body,headers,userMsg,method});};/**
+ * 解析翻译接口返回数据
+ * @param {*} res
+ * @param {*} param3
  * @returns
- */const limitNumber=function(num){let min=arguments.length>1&&arguments[1]!==undefined?arguments[1]:0;let max=arguments.length>2&&arguments[2]!==undefined?arguments[2]:100;const number=parseInt(num);if(Number.isNaN(number)||number<min){return min;}else if(number>max){return max;}return number;};const limitFloat=function(num){let min=arguments.length>1&&arguments[1]!==undefined?arguments[1]:0;let max=arguments.length>2&&arguments[2]!==undefined?arguments[2]:100;const number=parseFloat(num);if(Number.isNaN(number)||number<min){return min;}else if(number>max){return max;}return number;};/**
- * 匹配是否为数组中的值
- * @param {*} arr
- * @param {*} val
- * @returns
- */const matchValue=(arr,val)=>{if(arr.length===0||arr.includes(val)){return val;}return arr[0];};/**
- * 等待
- * @param {*} delay
- * @returns
- */const sleep=delay=>new Promise(resolve=>{const timer=setTimeout(()=>{clearTimeout(timer);resolve();},delay);});/**
- * 防抖函数
- * @param {*} func
- * @param {*} delay
- * @returns
- */const debounce=function(func){let delay=arguments.length>1&&arguments[1]!==undefined?arguments[1]:200;let timer=null;return function(){for(var _len=arguments.length,args=new Array(_len),_key=0;_key<_len;_key++){args[_key]=arguments[_key];}timer&&clearTimeout(timer);timer=setTimeout(()=>{func(...args);clearTimeout(timer);timer=null;},delay);};};/**
- * 节流函数
- * @param {*} func
- * @param {*} delay
- * @returns
- */const throttle=function(func){let delay=arguments.length>1&&arguments[1]!==undefined?arguments[1]:200;let timer=null;let cache=null;return function(){for(var _len2=arguments.length,args=new Array(_len2),_key2=0;_key2<_len2;_key2++){args[_key2]=arguments[_key2];}if(!timer){func(...args);cache=null;timer=setTimeout(()=>{if(cache){func(...cache);cache=null;}clearTimeout(timer);timer=null;},delay);}else{cache=args;}};};/**
- * 判断字符串全是某个字符
- * @param {*} s
- * @param {*} c
- * @param {*} i
- * @returns
- */const isAllchar=function(s,c){let i=arguments.length>2&&arguments[2]!==undefined?arguments[2]:0;while(i<s.length){if(s[i]!==c){return false;}i++;}return true;};/**
- * 字符串通配符(*)匹配
- * @param {*} s
- * @param {*} p
- * @returns
- */const isMatch=(s,p)=>{if(s.length===0||p.length===0){return false;}p="*"+p+"*";let[sIndex,pIndex]=[0,0];let[sRecord,pRecord]=[-1,-1];while(sIndex<s.length&&pRecord<p.length){if(p[pIndex]==="*"){pIndex++;[sRecord,pRecord]=[sIndex,pIndex];}else if(s[sIndex]===p[pIndex]){sIndex++;pIndex++;}else if(sRecord+1<s.length){sRecord++;[sIndex,pIndex]=[sRecord,pRecord];}else{return false;}}if(p.length===pIndex){return true;}return isAllchar(p,"*",pIndex);};/**
- * 类型检查
- * @param {*} o
- * @returns
- */const type=o=>{const s=Object.prototype.toString.call(o);return s.match(/\[object (.*?)\]/)[1].toLowerCase();};/**
- * sha256
- * @param {*} text
- * @returns
- */const utils_sha256=async(text,salt)=>{const data=new TextEncoder().encode(text+salt);const digest=await crypto.subtle.digest({name:"SHA-256"},data);return[...new Uint8Array(digest)].map(b=>b.toString(16).padStart(2,"0")).join("");};/**
- * 生成随机事件名称
- * @returns
- */const utils_genEventName=()=>btoa(Math.random()).slice(3,11);/**
- * 判断两个 Set 是否相同
- * @param {*} a
- * @param {*} b
- * @returns
- */const isSameSet=(a,b)=>{const s=new Set([...a,...b]);return s.size===a.size&&s.size===b.size;};/**
- * 去掉字符串末尾某个字符
- * @param {*} s
- * @param {*} c
- * @param {*} count
- * @returns
- */const removeEndchar=function(s,c){let count=arguments.length>2&&arguments[2]!==undefined?arguments[2]:1;let i=s.length;while(i>s.length-count&&s[i-1]===c){i--;}return s.slice(0,i);};/**
- * 匹配字符串及语言标识
- * @param {*} str
- * @param {*} sign
- * @returns
- */const matchInputStr=(str,sign)=>{switch(sign){case"//":return str.match(/\/\/([\w-]+)\s+([^]+)/);case"\\":return str.match(/\\([\w-]+)\s+([^]+)/);case"\\\\":return str.match(/\\\\([\w-]+)\s+([^]+)/);case">":return str.match(/>([\w-]+)\s+([^]+)/);case">>":return str.match(/>>([\w-]+)\s+([^]+)/);default:}return str.match(/\/([\w-]+)\s+([^]+)/);};/**
- * 判断是否英文单词
- * @param {*} str
- * @returns
- */const isValidWord=str=>{const regex=/^[a-zA-Z-]+$/;return regex.test(str);};/**
- * blob转为base64
- * @param {*} blob
- * @returns
- */const blobToBase64=blob=>{return new Promise(resolve=>{const reader=new FileReader();reader.onloadend=()=>resolve(reader.result);reader.readAsDataURL(blob);});};/**
- * 获取html内的文本
- * @param {*} htmlStr
- * @param {*} skipTag
- * @returns
- */const getHtmlText=function(htmlStr){let skipTag=arguments.length>1&&arguments[1]!==undefined?arguments[1]:"";const parser=new DOMParser();const doc=parser.parseFromString(htmlStr,"text/html");if(skipTag){doc.querySelectorAll(skipTag).forEach(el=>el.remove());}return doc.body.innerText.trim();};
-;// CONCATENATED MODULE: ./src/libs/fetch.js
-/**
- * 构造缓存 request
- * @param {*} input
- * @param {*} init
- * @returns
- */const newCacheReq=async(input,init)=>{let request=new Request(input,init);if(request.method!=="GET"){const body=await request.text();const cacheUrl=new URL(request.url);cacheUrl.pathname+=body;request=new Request(cacheUrl.toString(),{method:"GET"});}return request;};/**
- * 油猴脚本的请求封装
- * @param {*} input
- * @param {*} init
- * @returns
- */const fetchGM=async function(input){let{method="GET",headers,body,timeout}=arguments.length>1&&arguments[1]!==undefined?arguments[1]:{};return new Promise((resolve,reject)=>{GM.xmlHttpRequest({method,url:input,headers,data:body,// withCredentials: true,
-timeout,onload:_ref=>{let{response,responseHeaders,status,statusText}=_ref;const headers={};responseHeaders.split("\n").forEach(line=>{const[name,value]=line.split(":").map(item=>item.trim());if(name&&value){headers[name]=value;}});resolve({body:response,headers,status,statusText});},onerror:reject});});};/**
- * 发起请求
+ */const parseTransRes=async(res,_ref22)=>{var _res$sentences,_res$,_res$translations,_res$result,_res$result$texts,_res$result2,_res$auto_translation,_res$choices,_res$choices$,_res$choices$0$messag,_res$choices2,_res$choices2$,_res$choices2$$messag,_res$candidates,_res$candidates$,_res$candidates$0$con,_res$candidates2,_res$candidates2$,_res$candidates2$$con,_res$candidates2$$con2,_res$candidates2$$con3,_res$content,_res$content$0$text,_res$content2,_res$content2$,_res$result3,_res$choices3,_res$choices3$,_modelMsg2;let{texts,from,to,fromLang,toLang,langMap,resHook,thinkIgnore,history,userMsg,apiType}=_ref22;// 执行 response hook
+if(resHook!==null&&resHook!==void 0&&resHook.trim()){try{libs_interpreter.run("exports.resHook = ".concat(resHook));const hookResult=await libs_interpreter.exports.resHook({apiType,userMsg,res,texts,from,to,fromLang,toLang,langMap});if(hookResult&&Array.isArray(hookResult.translations)){if(history&&userMsg&&hookResult.modelMsg){history.add(userMsg,hookResult.modelMsg);}return hookResult.translations;}}catch(err){log_kissLog("run res hook",err);}}let modelMsg="";// todo: 根据结果抛出实际异常信息
+switch(apiType){case OPT_TRANS_GOOGLE:return[[res===null||res===void 0?void 0:(_res$sentences=res.sentences)===null||_res$sentences===void 0?void 0:_res$sentences.map(item=>item.trans).join(" "),res===null||res===void 0?void 0:res.src]];case OPT_TRANS_GOOGLE_2:return res===null||res===void 0?void 0:(_res$=res[0])===null||_res$===void 0?void 0:_res$.map((_,i)=>{var _res$2,_res$3;return[res===null||res===void 0?void 0:(_res$2=res[0])===null||_res$2===void 0?void 0:_res$2[i],res===null||res===void 0?void 0:(_res$3=res[1])===null||_res$3===void 0?void 0:_res$3[i]];});case OPT_TRANS_MICROSOFT:case OPT_TRANS_AZUREAI:return res===null||res===void 0?void 0:res.map(item=>{var _item$detectedLanguag;return[item.translations.map(item=>item.text).join(" "),(_item$detectedLanguag=item.detectedLanguage)===null||_item$detectedLanguag===void 0?void 0:_item$detectedLanguag.language];});case OPT_TRANS_DEEPL:return res===null||res===void 0?void 0:(_res$translations=res.translations)===null||_res$translations===void 0?void 0:_res$translations.map(item=>[item.text,item.detected_source_language]);case OPT_TRANS_DEEPLFREE:return[[res===null||res===void 0?void 0:(_res$result=res.result)===null||_res$result===void 0?void 0:(_res$result$texts=_res$result.texts)===null||_res$result$texts===void 0?void 0:_res$result$texts.map(item=>item.text).join(" "),res===null||res===void 0?void 0:(_res$result2=res.result)===null||_res$result2===void 0?void 0:_res$result2.lang]];case OPT_TRANS_DEEPLX:return[[res===null||res===void 0?void 0:res.data,res===null||res===void 0?void 0:res.source_lang]];case OPT_TRANS_NIUTRANS:const json=JSON.parse(res);if(json.error_msg){throw new Error(json.error_msg);}return[[json.tgt_text,json.from]];case OPT_TRANS_BAIDU:if(res.type===1){return[[Object.keys(JSON.parse(res.result).content[0].mean[0].cont)[0],res.from]];}else if(res.type===2){return[[res.data.map(item=>item.dst).join(" "),res.from]];}break;case OPT_TRANS_TENCENT:return res===null||res===void 0?void 0:(_res$auto_translation=res.auto_translation)===null||_res$auto_translation===void 0?void 0:_res$auto_translation.map(text=>[text,res===null||res===void 0?void 0:res.src_lang]);case OPT_TRANS_VOLCENGINE:return[[res===null||res===void 0?void 0:res.translation,res===null||res===void 0?void 0:res.detected_language]];case OPT_TRANS_OPENAI:case OPT_TRANS_GEMINI_2:case OPT_TRANS_OPENROUTER:modelMsg=res===null||res===void 0?void 0:(_res$choices=res.choices)===null||_res$choices===void 0?void 0:(_res$choices$=_res$choices[0])===null||_res$choices$===void 0?void 0:_res$choices$.message;if(history&&userMsg&&modelMsg){history.add(userMsg,{role:modelMsg.role,content:modelMsg.content});}return parseAIRes((_res$choices$0$messag=res===null||res===void 0?void 0:(_res$choices2=res.choices)===null||_res$choices2===void 0?void 0:(_res$choices2$=_res$choices2[0])===null||_res$choices2$===void 0?void 0:(_res$choices2$$messag=_res$choices2$.message)===null||_res$choices2$$messag===void 0?void 0:_res$choices2$$messag.content)!==null&&_res$choices$0$messag!==void 0?_res$choices$0$messag:"");case OPT_TRANS_GEMINI:modelMsg=res===null||res===void 0?void 0:(_res$candidates=res.candidates)===null||_res$candidates===void 0?void 0:(_res$candidates$=_res$candidates[0])===null||_res$candidates$===void 0?void 0:_res$candidates$.content;if(history&&userMsg&&modelMsg){history.add(userMsg,modelMsg);}return parseAIRes((_res$candidates$0$con=res===null||res===void 0?void 0:(_res$candidates2=res.candidates)===null||_res$candidates2===void 0?void 0:(_res$candidates2$=_res$candidates2[0])===null||_res$candidates2$===void 0?void 0:(_res$candidates2$$con=_res$candidates2$.content)===null||_res$candidates2$$con===void 0?void 0:(_res$candidates2$$con2=_res$candidates2$$con.parts)===null||_res$candidates2$$con2===void 0?void 0:(_res$candidates2$$con3=_res$candidates2$$con2[0])===null||_res$candidates2$$con3===void 0?void 0:_res$candidates2$$con3.text)!==null&&_res$candidates$0$con!==void 0?_res$candidates$0$con:"");case OPT_TRANS_CLAUDE:modelMsg={role:res===null||res===void 0?void 0:res.role,content:res===null||res===void 0?void 0:(_res$content=res.content)===null||_res$content===void 0?void 0:_res$content.text};if(history&&userMsg&&modelMsg){history.add(userMsg,{role:modelMsg.role,content:modelMsg.content});}return parseAIRes((_res$content$0$text=res===null||res===void 0?void 0:(_res$content2=res.content)===null||_res$content2===void 0?void 0:(_res$content2$=_res$content2[0])===null||_res$content2$===void 0?void 0:_res$content2$.text)!==null&&_res$content$0$text!==void 0?_res$content$0$text:"");case OPT_TRANS_CLOUDFLAREAI:return[[res===null||res===void 0?void 0:(_res$result3=res.result)===null||_res$result3===void 0?void 0:_res$result3.translated_text]];case OPT_TRANS_OLLAMA:modelMsg=res===null||res===void 0?void 0:(_res$choices3=res.choices)===null||_res$choices3===void 0?void 0:(_res$choices3$=_res$choices3[0])===null||_res$choices3$===void 0?void 0:_res$choices3$.message;const deepModels=thinkIgnore.split(",").filter(model=>model===null||model===void 0?void 0:model.trim());if(deepModels.some(model=>{var _res$model;return res===null||res===void 0?void 0:(_res$model=res.model)===null||_res$model===void 0?void 0:_res$model.startsWith(model);})){var _modelMsg;(_modelMsg=modelMsg)===null||_modelMsg===void 0?void 0:_modelMsg.content.replace(/<think>[\s\S]*<\/think>/i,"");}if(history&&userMsg&&modelMsg){history.add(userMsg,{role:modelMsg.role,content:modelMsg.content});}return parseAIRes((_modelMsg2=modelMsg)===null||_modelMsg2===void 0?void 0:_modelMsg2.content);case OPT_TRANS_CUSTOMIZE:return res===null||res===void 0?void 0:res.map(item=>[item.text,item.src]);default:}throw new Error("parse translate result: apiType not matched",apiType);};/**
+ * 发送翻译请求并解析
  * @param {*} param0
  * @returns
- */const fetchPatcher=async(input,init,transOpts,apiSetting)=>{var _AbortSignal;if(transOpts!==null&&transOpts!==void 0&&transOpts.translator){[input,init]=await genTransReq(transOpts,apiSetting);}if(!input){throw new Error("url is empty");}let timeout=(apiSetting===null||apiSetting===void 0?void 0:apiSetting.httpTimeout)||DEFAULT_HTTP_TIMEOUT;if(!apiSetting){try{timeout=(await getSettingWithDefault()).httpTimeout;}catch(err){//
-}}if(isGm){// let info;
-// if (window.KISS_GM) {
-//   info = await window.KISS_GM.getInfo();
-// } else {
-//   info = GM.info;
-// }
-// Tampermonkey --> .connects
-// Violentmonkey --> .connect
-// const connects = info?.script?.connects || info?.script?.connect || [];
-// const url = new URL(input);
-// const isSafe = connects.find((item) => url.hostname.endsWith(item));
-// if (isSafe) {
-//   // todo: 自定义接口 init 可能包含了 signal
-//   Object.assign(init, { timeout });
-//   const { body, headers, status, statusText } = window.KISS_GM
-//     ? await window.KISS_GM.fetch(input, init)
-//     : await fetchGM(input, init);
-//   return new Response(body, {
-//     headers: new Headers(headers),
-//     status,
-//     statusText,
-//   });
-// }
-// todo: 自定义接口 init 可能包含了 signal
-Object.assign(init,{timeout});const{body,headers,status,statusText}=window.KISS_GM?await window.KISS_GM.fetch(input,init):await fetchGM(input,init);return new Response(body,{headers:new Headers(headers),status,statusText});}if((_AbortSignal=AbortSignal)!==null&&_AbortSignal!==void 0&&_AbortSignal.timeout&&!init.signal){Object.assign(init,{signal:AbortSignal.timeout(timeout)});}return fetch(input,init);};/**
- * 解析 response
- * @param {*} res
+ */const handleTranslate=async function(){let texts=arguments.length>0&&arguments[0]!==undefined?arguments[0]:[];let{from,to,fromLang,toLang,langMap,docInfo,glossary,apiSetting,usePool}=arguments.length>1?arguments[1]:undefined;let history=null;let hisMsgs=[];const{apiType,apiSlug,contextSize,useContext,fetchInterval,fetchLimit,httpTimeout}=apiSetting;if(useContext&&API_SPE_TYPES.context.has(apiType)){history=getMsgHistory(apiSlug,contextSize);hisMsgs=history.getAll();}let token="";if(apiType===OPT_TRANS_MICROSOFT){token=await msAuth();if(!token){throw new Error("got msauth error");}}const[input,init,userMsg]=await genTransReq({texts,from,to,fromLang,toLang,langMap,docInfo,glossary,hisMsgs,token,...apiSetting});const response=await fetch_fetchData(input,init,{useCache:false,usePool,fetchInterval,fetchLimit,httpTimeout});if(!response){throw new Error("tranlate got empty response");}const result=await parseTransRes(response,{texts,from,to,fromLang,toLang,langMap,history,userMsg,...apiSetting});if(!Array.isArray(result)){throw new Error("tranlate got an unexpected result");}return result;};/**
+ * Microsoft语言识别聚合及解析
+ * @param {*} texts
  * @returns
- */const parseResponse=async res=>{if(!res){return null;}const contentType=res.headers.get("Content-Type");if(contentType!==null&&contentType!==void 0&&contentType.includes("json")){return await res.json();}else if(contentType!==null&&contentType!==void 0&&contentType.includes("audio")){const blob=await res.blob();return await blobToBase64(blob);}return await res.text();};/**
- * 查询 caches
- * @param {*} input
- * @param {*} param1
- * @returns
- */const getHttpCache=async(input,_ref2)=>{let{method,headers,body}=_ref2;try{const req=await newCacheReq(input,{method,headers,body});const cache=await caches.open(CACHE_NAME);const res=await cache.match(req);return parseResponse(res);}catch(err){log_kissLog(err,"get cache");}return null;};/**
- * 插入 caches
- * @param {*} input
- * @param {*} param1
- * @param {*} res
- */const putHttpCache=async(input,_ref3,res)=>{let{method,headers,body}=_ref3;try{const req=await newCacheReq(input,{method,headers,body});const cache=await caches.open(CACHE_NAME);await cache.put(req,res);}catch(err){log_kissLog(err,"put cache");}};/**
- * 处理请求
+ */const handleMicrosoftLangdetect=async function(){let texts=arguments.length>0&&arguments[0]!==undefined?arguments[0]:[];const token=await msAuth();const input="https://api-edge.cognitive.microsofttranslator.com/detect?api-version=3.0";const init={headers:{"Content-type":"application/json",Authorization:"Bearer ".concat(token)},method:"POST",body:JSON.stringify(texts.map(text=>({Text:text})))};const res=await fetch_fetchData(input,init,{useCache:false});if(Array.isArray(res)){return res.map(r=>r.language);}return[];};/**
+ * 字幕翻译
  * @param {*} param0
  * @returns
- */const fetchHandle=async _ref4=>{let{input,useCache,transOpts,apiSetting,...init}=_ref4;// 发送请求
-const res=await fetchPatcher(input,init,transOpts,apiSetting);if(!res){throw new Error("Unknow error");}else if(!res.ok){var _res$headers$get;const msg={url:res.url,status:res.status};if((_res$headers$get=res.headers.get("Content-Type"))!==null&&_res$headers$get!==void 0&&_res$headers$get.includes("json")){msg.response=await res.json();}throw new Error(JSON.stringify(msg));}// 插入缓存
-if(useCache){await putHttpCache(input,init,res.clone());}return parseResponse(res);};/**
- * fetch 兼容性封装
+ */const handleSubtitle=async _ref23=>{var _res$choices$0$messag2,_res$choices4,_res$choices4$,_res$choices4$$messag,_res$candidates$0$con2,_res$candidates3,_res$candidates3$,_res$candidates3$$con,_res$candidates3$$con2,_res$candidates3$$con3,_res$content$0$text2,_res$content3,_res$content3$;let{events,from,to,apiSetting}=_ref23;const{apiType,fetchInterval,fetchLimit,httpTimeout}=apiSetting;const[input,init]=await genTransReq({...apiSetting,events,from,to,systemPrompt:apiSetting.subtitlePrompt});const res=await fetch_fetchData(input,init,{useCache:false,usePool:true,fetchInterval,fetchLimit,httpTimeout});if(!res){log_kissLog("subtitle got empty response");return[];}switch(apiType){case OPT_TRANS_OPENAI:case OPT_TRANS_GEMINI_2:case OPT_TRANS_OPENROUTER:case OPT_TRANS_OLLAMA:return parseSTRes((_res$choices$0$messag2=res===null||res===void 0?void 0:(_res$choices4=res.choices)===null||_res$choices4===void 0?void 0:(_res$choices4$=_res$choices4[0])===null||_res$choices4$===void 0?void 0:(_res$choices4$$messag=_res$choices4$.message)===null||_res$choices4$$messag===void 0?void 0:_res$choices4$$messag.content)!==null&&_res$choices$0$messag2!==void 0?_res$choices$0$messag2:"");case OPT_TRANS_GEMINI:return parseSTRes((_res$candidates$0$con2=res===null||res===void 0?void 0:(_res$candidates3=res.candidates)===null||_res$candidates3===void 0?void 0:(_res$candidates3$=_res$candidates3[0])===null||_res$candidates3$===void 0?void 0:(_res$candidates3$$con=_res$candidates3$.content)===null||_res$candidates3$$con===void 0?void 0:(_res$candidates3$$con2=_res$candidates3$$con.parts)===null||_res$candidates3$$con2===void 0?void 0:(_res$candidates3$$con3=_res$candidates3$$con2[0])===null||_res$candidates3$$con3===void 0?void 0:_res$candidates3$$con3.text)!==null&&_res$candidates$0$con2!==void 0?_res$candidates$0$con2:"");case OPT_TRANS_CLAUDE:return parseSTRes((_res$content$0$text2=res===null||res===void 0?void 0:(_res$content3=res.content)===null||_res$content3===void 0?void 0:(_res$content3$=_res$content3[0])===null||_res$content3$===void 0?void 0:_res$content3$.text)!==null&&_res$content$0$text2!==void 0?_res$content$0$text2:"");case OPT_TRANS_CUSTOMIZE:return res;default:}return[];};
+;// CONCATENATED MODULE: ./src/libs/batchQueue.js
+/**
+ * 批处理队列
  * @param {*} args
- * @returns
- */const fetchPolyfill=args=>{// 插件
-if(isExt&&!isBg()){return sendBgMsg(MSG_FETCH,args);}// 油猴/网页/BackgroundPage
-return fetchHandle(args);};/**
- * getHttpCache 兼容性封装
- * @param {*} input
- * @param {*} init
- * @returns
- */const getHttpCachePolyfill=(input,init)=>{// 插件
-if(isExt&&!isBg()){return sendBgMsg(MSG_GET_HTTPCACHE,{input,init});}// 油猴/网页/BackgroundPage
-return getHttpCache(input,init);};/**
- * 请求池实例
- */const fetchPool=taskPool(fetchPolyfill,null,DEFAULT_FETCH_INTERVAL,DEFAULT_FETCH_LIMIT);/**
- * 数据请求
- * @param {*} input
  * @param {*} param1
  * @returns
- */const fetchData=async function(input){let{useCache,usePool,...args}=arguments.length>1&&arguments[1]!==undefined?arguments[1]:{};if(!(input!==null&&input!==void 0&&input.trim())){throw new Error("URL is empty");}// 查询缓存
-if(useCache){const cache=await getHttpCachePolyfill(input,args);if(cache){return cache;}}// 通过任务池发送请求
-if(usePool){return fetchPool.push({input,useCache,...args});}// 直接请求
-return fetchPolyfill({input,useCache,...args});};/**
- * 更新 fetch pool 参数
- * @param {*} interval
- * @param {*} limit
- */const updateFetchPool=(interval,limit)=>{fetchPool.update(interval,limit);};/**
- * 清空任务池
- */const clearFetchPool=()=>{fetchPool.clear();};
+ */const BatchQueue=function(taskFn){let{batchInterval=DEFAULT_BATCH_INTERVAL,batchSize=DEFAULT_BATCH_SIZE,batchLength=DEFAULT_BATCH_LENGTH}=arguments.length>1&&arguments[1]!==undefined?arguments[1]:{};const queue=[];let isProcessing=false;let timer=null;const sendBatchRequest=async(payloads,batchArgs)=>{return taskFn(payloads,batchArgs);};const processQueue=async()=>{if(timer){clearTimeout(timer);timer=null;}if(queue.length===0||isProcessing){return;}isProcessing=true;let tasksToProcess=[];let currentBatchLength=0;let endIndex=0;for(const task of queue){var _task$payload;const textLength=((_task$payload=task.payload)===null||_task$payload===void 0?void 0:_task$payload.length)||0;if(endIndex>=batchSize||currentBatchLength+textLength>batchLength&&endIndex>0){break;}currentBatchLength+=textLength;endIndex++;}if(endIndex>0){tasksToProcess=queue.splice(0,endIndex);}if(tasksToProcess.length===0){isProcessing=false;return;}try{const payloads=tasksToProcess.map(item=>item.payload);const batchArgs=tasksToProcess[0].args;const responses=await sendBatchRequest(payloads,batchArgs);if(!Array.isArray(responses)){throw new Error("responses format error");}tasksToProcess.forEach((taskItem,index)=>{const response=responses[index];if(response){taskItem.resolve(response);}else{taskItem.reject(new Error("No response for item at index ".concat(index)));}});}catch(error){tasksToProcess.forEach(taskItem=>taskItem.reject(error));}finally{isProcessing=false;if(queue.length>0){if(queue.length>=batchSize){setTimeout(processQueue,0);}else{scheduleProcessing();}}}};const scheduleProcessing=()=>{if(!isProcessing&&!timer&&queue.length>0){timer=setTimeout(processQueue,batchInterval);}};const addTask=(data,args)=>{return new Promise((resolve,reject)=>{const payload=data;queue.push({payload,resolve,reject,args});if(queue.length>=batchSize){processQueue();}else{scheduleProcessing();}});};const destroy=()=>{if(timer){clearTimeout(timer);timer=null;}queue.forEach(task=>task.reject(new Error("Queue instance was destroyed.")));queue.length=0;};return{addTask,destroy};};// 实例字典
+const queueMap=new Map();/**
+ * 获取批处理实例
+ */const getBatchQueue=(key,taskFn,options)=>{if(queueMap.has(key)){return queueMap.get(key);}const queue=BatchQueue(taskFn,options);queueMap.set(key,queue);return queue;};/**
+ * 清除所有任务
+ */const clearAllBatchQueue=()=>{for(const queue of queueMap.values()){queue.destroy();}};
+;// CONCATENATED MODULE: ./src/libs/builtinAI.js
+/**
+ * Chrome 浏览器内置翻译
+ */var _translatorMap=/*#__PURE__*/_classPrivateFieldKey("translatorMap");var _detectorPromise=/*#__PURE__*/_classPrivateFieldKey("detectorPromise");var _defaultProgressHandler=/*#__PURE__*/_classPrivateFieldKey("defaultProgressHandler");var _getDetectorPromise=/*#__PURE__*/_classPrivateFieldKey("getDetectorPromise");var _createTranslator=/*#__PURE__*/_classPrivateFieldKey("createTranslator");class ChromeTranslator{constructor(){let options=arguments.length>0&&arguments[0]!==undefined?arguments[0]:{};Object.defineProperty(this,_createTranslator,{value:_createTranslator2});Object.defineProperty(this,_getDetectorPromise,{value:_getDetectorPromise2});Object.defineProperty(this,_defaultProgressHandler,{value:_defaultProgressHandler2});Object.defineProperty(this,_translatorMap,{writable:true,value:new Map()});Object.defineProperty(this,_detectorPromise,{writable:true,value:null});this.onProgress=options.onProgress||_classPrivateFieldBase(this,_defaultProgressHandler)[_defaultProgressHandler];}_monitorProgress(monitorable,type){monitorable.addEventListener("downloadprogress",e=>{const progress=e.total>0?Math.round(e.loaded/e.total*100):0;this.onProgress(type,progress);});}async detectLanguage(text){let confidenceThreshold=arguments.length>1&&arguments[1]!==undefined?arguments[1]:0.4;if(!text){return["","Input text cannot be empty."];}try{const detector=await _classPrivateFieldBase(this,_getDetectorPromise)[_getDetectorPromise]();const results=await detector.detect(text);if(!results||results.length===0){return["","No language could be detected."];}const{detectedLanguage,confidence}=results[0];if(confidence<confidenceThreshold){return["","Confidence of test results (".concat(detectedLanguage," ").concat(confidence.toFixed(2),") below the set threshold ").concat(confidenceThreshold,"\u3002")];}return[detectedLanguage,""];}catch(error){log_kissLog("detectLanguage",error,"(".concat(text,")"));return["",error.message];}}async translateText(text,targetLanguage){let sourceLanguage=arguments.length>2&&arguments[2]!==undefined?arguments[2]:"auto";if(!text||!targetLanguage||typeof text!=="string"){return["",sourceLanguage,"Input text cannot be empty."];}try{let finalSourceLanguage=sourceLanguage;if(sourceLanguage==="auto"){const[detectedLanguage,detectionError]=await this.detectLanguage(text);if(detectionError||!detectedLanguage){const reason=detectionError||"Unable to determine source language.";return["",finalSourceLanguage,"Automatic detection of source language failed: ".concat(reason)];}finalSourceLanguage=detectedLanguage;}if(finalSourceLanguage===targetLanguage){return["",finalSourceLanguage,"Same lang"];}const translator=await _classPrivateFieldBase(this,_createTranslator)[_createTranslator](finalSourceLanguage,targetLanguage);const translatedText=await translator.translate(text);return[translatedText,finalSourceLanguage,""];}catch(error){log_kissLog("translateText",error,"(".concat(text,")"));if(error&&error.message&&error.message.includes("Other generic failures occurred")){logger.info("Generic failure detected, resetting translator cache.");_classPrivateFieldBase(this,_translatorMap)[_translatorMap].clear();}return["",sourceLanguage,error.message];}}}function _defaultProgressHandler2(type,progress){log_kissLog("Downloading ".concat(type," model: ").concat(progress,"%"));}function _getDetectorPromise2(){if(!_classPrivateFieldBase(this,_detectorPromise)[_detectorPromise]){_classPrivateFieldBase(this,_detectorPromise)[_detectorPromise]=(async()=>{try{const availability=await LanguageDetector.availability();if(availability==="unavailable"){throw new Error("LanguageDetector unavailable");}return await LanguageDetector.create({monitor:m=>this._monitorProgress(m,"detector")});}catch(error){_classPrivateFieldBase(this,_detectorPromise)[_detectorPromise]=null;throw error;}})();}return _classPrivateFieldBase(this,_detectorPromise)[_detectorPromise];}function _createTranslator2(sourceLanguage,targetLanguage){const key="".concat(sourceLanguage,"_").concat(targetLanguage);if(_classPrivateFieldBase(this,_translatorMap)[_translatorMap].has(key)){return _classPrivateFieldBase(this,_translatorMap)[_translatorMap].get(key);}const translatorPromise=(async()=>{try{const avail=await Translator.availability({sourceLanguage,targetLanguage});if(avail==="unavailable"){throw new Error("Translator ".concat(sourceLanguage,"_").concat(targetLanguage," unavailable"));}const translator=await Translator.create({sourceLanguage,targetLanguage,monitor:m=>this._monitorProgress(m,"translator (".concat(key,")"))});_classPrivateFieldBase(this,_translatorMap)[_translatorMap].set(key,translator);return translator;}catch(error){_classPrivateFieldBase(this,_translatorMap)[_translatorMap].delete(key);throw error;}})();_classPrivateFieldBase(this,_translatorMap)[_translatorMap].set(key,translatorPromise);return translatorPromise;}const chromeTranslator=new ChromeTranslator();const chromeDetect=args=>chromeTranslator.detectLanguage(args.text);const chromeTranslate=args=>chromeTranslator.translateText(args.text,args.to,args.from);
 ;// CONCATENATED MODULE: ./src/apis/index.js
 /**
  * 同步数据
@@ -31703,45 +32896,70 @@ return fetchPolyfill({input,useCache,...args});};/**
  * @param {*} key
  * @param {*} data
  * @returns
- */const apiSyncData=async(url,key,data)=>fetchData(url,{headers:{"Content-type":"application/json",Authorization:"Bearer ".concat(await utils_sha256(key,KV_SALT_SYNC))},method:"POST",body:JSON.stringify(data)});/**
+ */const apiSyncData=async(url,key,data)=>fetch_fetchData(url,{headers:{"Content-type":"application/json",Authorization:"Bearer ".concat(await utils_sha256(key,KV_SALT_SYNC))},method:"POST",body:JSON.stringify(data)});/**
  * 下载数据
  * @param {*} url
  * @returns
- */const apiFetch=url=>fetchData(url);/**
+ */const apiFetch=url=>fetch_fetchData(url);/**
+ * Microsoft token
+ * @returns
+ */const apiMsAuth=async()=>fetch_fetchData("https://edge.microsoft.com/translate/auth");/**
  * Google语言识别
  * @param {*} text
  * @returns
- */const apiGoogleLangdetect=async text=>{const params={client:"gtx",dt:"t",dj:1,ie:"UTF-8",sl:"auto",tl:"zh-CN",q:text};const input="".concat(URL_GOOGLE_TRAN,"?").concat(query_string.stringify(params));const res=await fetchData(input,{headers:{"Content-type":"application/json"},useCache:true});return res.src;};/**
+ */const apiGoogleLangdetect=async text=>{const params={client:"gtx",dt:"t",dj:1,ie:"UTF-8",sl:"auto",tl:"zh-CN",q:text};const input="https://translate.googleapis.com/translate_a/single?".concat(query_string.stringify(params));const init={headers:{"Content-type":"application/json"}};const res=await fetch_fetchData(input,init,{useCache:true});if(res!==null&&res!==void 0&&res.src){await putHttpCachePolyfill(input,init,res);return res.src;}return"";};/**
  * Microsoft语言识别
  * @param {*} text
  * @returns
- */const apiMicrosoftLangdetect=async text=>{var _OPT_LANGS_MICROSOFT$;const[token]=await msAuth();const res=await fetchData(URL_MICROSOFT_LANGDETECT,{headers:{"Content-type":"application/json",Authorization:"Bearer ".concat(token)},method:"POST",body:JSON.stringify([{Text:text}]),useCache:true});return(_OPT_LANGS_MICROSOFT$=OPT_LANGS_MICROSOFT.get(res[0].language))!==null&&_OPT_LANGS_MICROSOFT$!==void 0?_OPT_LANGS_MICROSOFT$:res[0].language;};/**
+ */const apiMicrosoftLangdetect=async text=>{const cacheOpts={text,detector:OPT_TRANS_MICROSOFT};const cacheInput="".concat(URL_CACHE_DELANG,"?").concat(query_string.stringify(cacheOpts));const cache=await getHttpCachePolyfill(cacheInput);if(cache){return cache;}const key="".concat(URL_CACHE_DELANG,"_").concat(OPT_TRANS_MICROSOFT);const queue=getBatchQueue(key,handleMicrosoftLangdetect,{batchInterval:500,batchSize:20,batchLength:100000});const lang=await queue.addTask(text);if(lang){putHttpCachePolyfill(cacheInput,null,lang);return lang;}return"";};/**
+ * Microsoft词典
+ * @param {*} text
+ * @returns
+ */const apiMicrosoftDict=async text=>{var _doc$querySelector;const cacheOpts={text};const cacheInput="".concat(URL_CACHE_BINGDICT,"?").concat(query_string.stringify(cacheOpts));const cache=await getHttpCachePolyfill(cacheInput);if(cache){return cache;}const host="https://www.bing.com";const url="".concat(host,"/dict/search?q=").concat(text,"&FORM=BDVSP6&cc=cn");const str=await fetch_fetchData(url,{credentials:"include"},{useCache:false});if(!str){return null;}const parser=new DOMParser();const doc=parser.parseFromString(str,"text/html");const word=(_doc$querySelector=doc.querySelector("#headword > h1"))===null||_doc$querySelector===void 0?void 0:_doc$querySelector.textContent.trim();if(!word){return null;}const trs=[];doc.querySelectorAll("div.qdef > ul > li").forEach($li=>{var _$li$querySelector,_$li$querySelector$te,_$li$querySelector2,_$li$querySelector2$t;const pos=(_$li$querySelector=$li.querySelector(".pos"))===null||_$li$querySelector===void 0?void 0:(_$li$querySelector$te=_$li$querySelector.textContent)===null||_$li$querySelector$te===void 0?void 0:_$li$querySelector$te.trim();const def=(_$li$querySelector2=$li.querySelector(".def"))===null||_$li$querySelector2===void 0?void 0:(_$li$querySelector2$t=_$li$querySelector2.textContent)===null||_$li$querySelector2$t===void 0?void 0:_$li$querySelector2$t.trim();trs.push({pos,def});});const aus=[];const $audioUK=doc.querySelector("#bigaud_uk");const $audioUS=doc.querySelector("#bigaud_us");if($audioUK){var _$audioUK$dataset,_$audioUK$parentEleme,_$phoneticUK$textCont;const audioUK=host+($audioUK===null||$audioUK===void 0?void 0:(_$audioUK$dataset=$audioUK.dataset)===null||_$audioUK$dataset===void 0?void 0:_$audioUK$dataset.mp3link);const $phoneticUK=(_$audioUK$parentEleme=$audioUK.parentElement)===null||_$audioUK$parentEleme===void 0?void 0:_$audioUK$parentEleme.previousElementSibling;const phoneticUK=$phoneticUK===null||$phoneticUK===void 0?void 0:(_$phoneticUK$textCont=$phoneticUK.textContent)===null||_$phoneticUK$textCont===void 0?void 0:_$phoneticUK$textCont.trim();aus.push({key:"UK",audio:audioUK,phonetic:phoneticUK});}if($audioUS){var _$audioUS$dataset,_$audioUS$parentEleme,_$phoneticUS$textCont;const audioUS=host+($audioUS===null||$audioUS===void 0?void 0:(_$audioUS$dataset=$audioUS.dataset)===null||_$audioUS$dataset===void 0?void 0:_$audioUS$dataset.mp3link);const $phoneticUS=(_$audioUS$parentEleme=$audioUS.parentElement)===null||_$audioUS$parentEleme===void 0?void 0:_$audioUS$parentEleme.previousElementSibling;const phoneticUS=$phoneticUS===null||$phoneticUS===void 0?void 0:(_$phoneticUS$textCont=$phoneticUS.textContent)===null||_$phoneticUS$textCont===void 0?void 0:_$phoneticUS$textCont.trim();aus.push({key:"US",audio:audioUS,phonetic:phoneticUS});}const res={word,trs,aus};putHttpCachePolyfill(cacheInput,null,res);return res;};/**
  * 百度语言识别
  * @param {*} text
  * @returns
- */const apiBaiduLangdetect=async text=>{const res=await fetchData(URL_BAIDU_LANGDETECT,{headers:{"Content-type":"application/json"},method:"POST",body:JSON.stringify({query:text}),useCache:true});if(res.error===0){var _OPT_LANGS_BAIDU$get;return(_OPT_LANGS_BAIDU$get=OPT_LANGS_BAIDU.get(res.lan))!==null&&_OPT_LANGS_BAIDU$get!==void 0?_OPT_LANGS_BAIDU$get:res.lan;}return"";};/**
+ */const apiBaiduLangdetect=async text=>{const input="https://fanyi.baidu.com/langdetect";const init={headers:{"Content-type":"application/json"},method:"POST",body:JSON.stringify({query:text})};const res=await fetch_fetchData(input,init,{useCache:true});if((res===null||res===void 0?void 0:res.error)===0){await putHttpCachePolyfill(input,init,res);return res.lan;}return"";};/**
  * 百度翻译建议
  * @param {*} text
  * @returns
- */const apiBaiduSuggest=async text=>{const res=await fetchData(URL_BAIDU_SUGGEST,{headers:{"Content-type":"application/json"},method:"POST",body:JSON.stringify({kw:text}),useCache:true});if(res.errno===0){return res.data;}return[];};/**
+ */const apiBaiduSuggest=async text=>{const input="https://fanyi.baidu.com/sug";const init={headers:{"Content-type":"application/json"},method:"POST",body:JSON.stringify({kw:text})};const res=await fetch_fetchData(input,init,{useCache:true});if((res===null||res===void 0?void 0:res.errno)===0){await putHttpCachePolyfill(input,init,res);return res.data;}return[];};/**
+ * 有道翻译建议
+ * @param {*} text
+ * @returns
+ */const apiYoudaoSuggest=async text=>{var _res$result;const params={num:5,ver:3.0,doctype:"json",cache:false,le:"en",q:text};const input="https://dict.youdao.com/suggest?".concat(query_string.stringify(params));const init={headers:{accept:"application/json, text/plain, */*","accept-language":"en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7,ja;q=0.6","content-type":"application/x-www-form-urlencoded"},method:"GET"};const res=await fetch_fetchData(input,init,{useCache:true});if((res===null||res===void 0?void 0:(_res$result=res.result)===null||_res$result===void 0?void 0:_res$result.code)===200){await putHttpCachePolyfill(input,init,res);return res.data.entries;}return[];};/**
+ * 有道词典
+ * @param {*} text
+ * @returns
+ */const apiYoudaoDict=async text=>{const params={doctype:"json",jsonversion:4};const input="https://dict.youdao.com/jsonapi_s?".concat(query_string.stringify(params));const body=query_string.stringify({q:text,le:"en",t:3,client:"web",// sign: "",
+keyfrom:"webdict"});const init={headers:{accept:"application/json, text/plain, */*","accept-language":"en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7,ja;q=0.6","content-type":"application/x-www-form-urlencoded"},method:"POST",body};const res=await fetch_fetchData(input,init,{useCache:true});if(res){await putHttpCachePolyfill(input,init,res);return res;}return null;};/**
  * 百度语音
  * @param {*} text
  * @param {*} lan
  * @param {*} spd
  * @returns
- */const apiBaiduTTS=function(text){let lan=arguments.length>1&&arguments[1]!==undefined?arguments[1]:"uk";let spd=arguments.length>2&&arguments[2]!==undefined?arguments[2]:3;const url="".concat(URL_BAIDU_TTS,"?").concat(query_string.stringify({lan,text,spd}));return fetchData(url,{useCache:false// 为避免缓存过快增长，禁用缓存语音数据
-});};/**
+ */const apis_apiBaiduTTS=function(text){let lan=arguments.length>1&&arguments[1]!==undefined?arguments[1]:"uk";let spd=arguments.length>2&&arguments[2]!==undefined?arguments[2]:3;const input="https://fanyi.baidu.com/gettts?".concat(queryString.stringify({lan,text,spd}));return fetchData(input);};/**
  * 腾讯语言识别
  * @param {*} text
  * @returns
- */const apiTencentLangdetect=async text=>{var _OPT_LANGS_TENCENT$ge;const body=JSON.stringify({header:{fn:"text_analysis"},text});const res=await fetchData(URL_TENCENT_TRANSMART,{headers:{"Content-type":"application/json"},method:"POST",body,useCache:true});return(_OPT_LANGS_TENCENT$ge=OPT_LANGS_TENCENT.get(res.language))!==null&&_OPT_LANGS_TENCENT$ge!==void 0?_OPT_LANGS_TENCENT$ge:res.language;};/**
+ */const apiTencentLangdetect=async text=>{const input="https://transmart.qq.com/api/imt";const body=JSON.stringify({header:{fn:"text_analysis",client_key:"browser-chrome-110.0.0-Mac OS-df4bd4c5-a65d-44b2-a40f-42f34f3535f2-1677486696487"},text});const init={headers:{"Content-type":"application/json","user-agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36",referer:"https://transmart.qq.com/zh-CN/index"},method:"POST",body};const res=await fetch_fetchData(input,init,{useCache:true});if(res!==null&&res!==void 0&&res.language){await putHttpCachePolyfill(input,init,res);return res.language;}return"";};/**
+ * 浏览器内置AI语言识别
+ * @param {*} text
+ * @returns
+ */const apiBuiltinAIDetect=async text=>{if(!isBuiltinAIAvailable){return"";}const[lang,error]=await fnPolyfill({fn:chromeDetect,msg:MSG_BUILTINAI_DETECT,text});if(!error){return lang;}return"";};/**
+ * 浏览器内置AI翻译
+ * @param {*} param0
+ * @returns
+ */const apiBuiltinAITranslate=async _ref=>{let{text,from,to,apiSetting}=_ref;if(!isBuiltinAIAvailable){return["",true];}const{fetchInterval,fetchLimit,httpTimeout}=apiSetting;const fetchPool=getFetchPool(fetchInterval,fetchLimit);const result=await withTimeout(fetchPool.push(fnPolyfill,{fn:chromeTranslate,msg:MSG_BUILTINAI_TRANSLATE,text,from,to}),httpTimeout);if(!result){throw new Error("apiBuiltinAITranslate got null reault");}const[trText,srLang,error]=result;if(error){throw new Error("apiBuiltinAITranslate got error",error);}return[trText,srLang];};/**
  * 统一翻译接口
  * @param {*} param0
  * @returns
- */const apiTranslate=async _ref=>{var _OPT_LANGS_SPECIAL$tr,_res$,_res$result,_res$result2,_res$auto_translation,_res$choices,_res$candidates,_res$content,_res$result3;let{translator,text,fromLang,toLang,apiSetting={},useCache=true,usePool=true}=_ref;let trText="";let isSame=false;if(!text){return[trText,true];}const from=(_OPT_LANGS_SPECIAL$tr=OPT_LANGS_SPECIAL[translator].get(fromLang))!==null&&_OPT_LANGS_SPECIAL$tr!==void 0?_OPT_LANGS_SPECIAL$tr:OPT_LANGS_SPECIAL[translator].get("auto");const to=OPT_LANGS_SPECIAL[translator].get(toLang);if(!to){log_kissLog("target lang: ".concat(toLang," not support"),"translate");return[trText,isSame];}// 版本号一/二位升级，旧缓存失效
-const[v1,v2]="1.9.2".split(".");const cacheOpts={translator,text,fromLang,toLang,version:[v1,v2].join(".")};const transOpts={translator,text,from,to};const res=await fetchData("".concat(URL_CACHE_TRAN,"?").concat(query_string.stringify(cacheOpts)),{useCache,usePool,transOpts,apiSetting});switch(translator){case OPT_TRANS_GOOGLE:trText=res.sentences.map(item=>item.trans).join(" ");isSame=to===res.src;break;case OPT_TRANS_GOOGLE_2:trText=(res===null||res===void 0?void 0:(_res$=res[0])===null||_res$===void 0?void 0:_res$[0])||"";isSame=to===res.src;break;case OPT_TRANS_MICROSOFT:trText=res.map(item=>item.translations.map(item=>item.text).join(" ")).join(" ");isSame=text===trText;break;case OPT_TRANS_DEEPL:trText=res.translations.map(item=>item.text).join(" ");isSame=to===res.translations[0].detected_source_language;break;case OPT_TRANS_DEEPLFREE:trText=(_res$result=res.result)===null||_res$result===void 0?void 0:_res$result.texts.map(item=>item.text).join(" ");isSame=to===((_res$result2=res.result)===null||_res$result2===void 0?void 0:_res$result2.lang);break;case OPT_TRANS_DEEPLX:trText=res.data;isSame=to===res.source_lang;break;case OPT_TRANS_NIUTRANS:const json=JSON.parse(res);if(json.error_msg){throw new Error(json.error_msg);}trText=json.tgt_text;isSame=to===json.from;break;case OPT_TRANS_BAIDU:// trText = res.trans_result?.data.map((item) => item.dst).join(" ");
-// isSame = res.trans_result?.to === res.trans_result?.from;
-if(res.type===1){trText=Object.keys(JSON.parse(res.result).content[0].mean[0].cont)[0];isSame=to===res.from;}else if(res.type===2){trText=res.data.map(item=>item.dst).join(" ");isSame=to===res.from;}break;case OPT_TRANS_TENCENT:trText=res===null||res===void 0?void 0:(_res$auto_translation=res.auto_translation)===null||_res$auto_translation===void 0?void 0:_res$auto_translation[0];isSame=text===trText;break;case OPT_TRANS_VOLCENGINE:trText=(res===null||res===void 0?void 0:res.translation)||"";isSame=to===(res===null||res===void 0?void 0:res.detected_language);break;case OPT_TRANS_OPENAI:case OPT_TRANS_OPENAI_2:case OPT_TRANS_OPENAI_3:case OPT_TRANS_GEMINI_2:trText=res===null||res===void 0?void 0:(_res$choices=res.choices)===null||_res$choices===void 0?void 0:_res$choices.map(item=>item.message.content).join(" ");isSame=text===trText;break;case OPT_TRANS_GEMINI:trText=res===null||res===void 0?void 0:(_res$candidates=res.candidates)===null||_res$candidates===void 0?void 0:_res$candidates.map(item=>{var _item$content;return(_item$content=item.content)===null||_item$content===void 0?void 0:_item$content.parts.map(item=>item.text).join(" ");}).join(" ");isSame=text===trText;break;case OPT_TRANS_CLAUDE:trText=res===null||res===void 0?void 0:(_res$content=res.content)===null||_res$content===void 0?void 0:_res$content.map(item=>item.text).join(" ");isSame=text===trText;break;case OPT_TRANS_CLOUDFLAREAI:trText=res===null||res===void 0?void 0:(_res$result3=res.result)===null||_res$result3===void 0?void 0:_res$result3.translated_text;isSame=text===trText;break;case OPT_TRANS_OLLAMA:case OPT_TRANS_OLLAMA_2:case OPT_TRANS_OLLAMA_3:const{thinkIgnore=""}=apiSetting;const deepModels=thinkIgnore.split(",").filter(model=>model.trim());if(deepModels.some(model=>{var _res$model;return res===null||res===void 0?void 0:(_res$model=res.model)===null||_res$model===void 0?void 0:_res$model.startsWith(model);})){trText=res===null||res===void 0?void 0:res.response.replace(/<think>[\s\S]*<\/think>/i,"");}else{trText=res===null||res===void 0?void 0:res.response;}isSame=text===trText;break;case OPT_TRANS_CUSTOMIZE:case OPT_TRANS_CUSTOMIZE_2:case OPT_TRANS_CUSTOMIZE_3:case OPT_TRANS_CUSTOMIZE_4:case OPT_TRANS_CUSTOMIZE_5:const{resHook}=apiSetting;if(resHook!==null&&resHook!==void 0&&resHook.trim()){libs_interpreter.run("exports.resHook = ".concat(resHook));[trText,isSame]=libs_interpreter.exports.resHook(res,text,from,to);}else{trText=res.text;isSame=to===res.from;}break;default:}return[trText,isSame,res];};
+ */const apiTranslate=async _ref2=>{let{text,fromLang="auto",toLang,apiSetting=DEFAULT_API_SETTING,docInfo={},glossary={},useCache=true,usePool=true}=_ref2;if(!text){return["",false];}const{apiType,apiSlug,useBatchFetch}=apiSetting;const langMap=OPT_LANGS_TO_SPEC[apiType]||OPT_LANGS_SPEC_DEFAULT;const from=langMap.get(fromLang);const to=langMap.get(toLang);if(!to){log_kissLog("target lang: ".concat(toLang," not support"));return["",false];}// todo: 优化缓存失效因素
+const[v1,v2]="2.0.0".split(".");const cacheOpts={apiSlug,text,fromLang,toLang,version:[v1,v2].join(".")};const cacheInput="".concat(URL_CACHE_TRAN,"?").concat(query_string.stringify(cacheOpts));// 查询缓存数据
+if(useCache){const cache=await getHttpCachePolyfill(cacheInput);if(cache!==null&&cache!==void 0&&cache.trText){return[cache.trText,cache.isSame];}}// 请求接口数据
+let tranlation=[];if(apiType===OPT_TRANS_BUILTINAI){tranlation=await apiBuiltinAITranslate({text,from,to,apiSetting});}else if(useBatchFetch&&API_SPE_TYPES.batch.has(apiType)){const{apiSlug,batchInterval,batchSize,batchLength}=apiSetting;const key="".concat(apiSlug,"_").concat(fromLang,"_").concat(toLang);const queue=getBatchQueue(key,handleTranslate,{batchInterval,batchSize,batchLength});tranlation=await queue.addTask(text,{from,to,fromLang,toLang,langMap,docInfo,glossary,apiSetting,usePool});}else{[tranlation]=await handleTranslate([text],{from,to,fromLang,toLang,langMap,docInfo,glossary,apiSetting,usePool});}let trText="";let srLang="";if(Array.isArray(tranlation)){[trText,srLang=""]=tranlation;}else if(typeof tranlation==="string"){trText=tranlation;}if(!trText){throw new Error("tanslate api got empty trtext");}const isSame=fromLang==="auto"&&srLang===to;// 插入缓存
+if(useCache){putHttpCachePolyfill(cacheInput,null,{trText,isSame,srLang});}return[trText,isSame];};// 字幕处理/翻译
+const apiSubtitle=async _ref3=>{let{videoId,chunkSign,fromLang="auto",toLang,events=[],apiSetting}=_ref3;const cacheOpts={apiSlug:apiSetting.apiSlug,videoId,chunkSign,fromLang,toLang};const cacheInput="".concat(URL_CACHE_SUBTITLE,"?").concat(query_string.stringify(cacheOpts));const cache=await getHttpCachePolyfill(cacheInput);if(cache){return cache;}const subtitles=await handleSubtitle({events,from:fromLang,to:toLang,apiSetting});if(subtitles!==null&&subtitles!==void 0&&subtitles.length){putHttpCachePolyfill(cacheInput,null,subtitles);return subtitles;}return[];};
 ;// CONCATENATED MODULE: ./node_modules/.pnpm/webdav@5.3.0/node_modules/webdav/dist/web/index.js
 /*! For license information please see index.js.LICENSE.txt */
 var t = {
@@ -34554,7 +35772,7 @@ var n = {};
         return t.length === e && "." !== t && ".." !== t;
       };
     },
-    te = "object" === ("undefined" == typeof process ? "undefined" : Nt(process)) && process ? "object" === Nt(({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.9.2","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-rules/kiss-rules.json","REACT_APP_RULESURL_ON":"https://fishjar.github.io/kiss-rules/kiss-rules-on.json","REACT_APP_RULESURL_OFF":"https://fishjar.github.io/kiss-rules/kiss-rules-off.json","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js"})) && ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.9.2","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-rules/kiss-rules.json","REACT_APP_RULESURL_ON":"https://fishjar.github.io/kiss-rules/kiss-rules-on.json","REACT_APP_RULESURL_OFF":"https://fishjar.github.io/kiss-rules/kiss-rules-off.json","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js"}) && ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"1.9.2","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-rules/kiss-rules.json","REACT_APP_RULESURL_ON":"https://fishjar.github.io/kiss-rules/kiss-rules-on.json","REACT_APP_RULESURL_OFF":"https://fishjar.github.io/kiss-rules/kiss-rules-off.json","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js"}).__MINIMATCH_TESTING_PLATFORM__ || process.platform : "posix";
+    te = "object" === ("undefined" == typeof process ? "undefined" : Nt(process)) && process ? "object" === Nt(({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"2.0.0","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-rules/kiss-rules_v2.json","REACT_APP_RULESURL_ON":"https://fishjar.github.io/kiss-rules/kiss-rules-on_v2.json","REACT_APP_RULESURL_OFF":"https://fishjar.github.io/kiss-rules/kiss-rules-off_v2.json","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js"})) && ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"2.0.0","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-rules/kiss-rules_v2.json","REACT_APP_RULESURL_ON":"https://fishjar.github.io/kiss-rules/kiss-rules-on_v2.json","REACT_APP_RULESURL_OFF":"https://fishjar.github.io/kiss-rules/kiss-rules-off_v2.json","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js"}) && ({"NODE_ENV":"production","PUBLIC_URL":"","WDS_SOCKET_HOST":undefined,"WDS_SOCKET_PATH":undefined,"WDS_SOCKET_PORT":undefined,"FAST_REFRESH":true,"REACT_APP_CLIENT":"userscript","REACT_APP_NAME":"KISS Translator","REACT_APP_NAME_CN":"简约翻译","REACT_APP_VERSION":"2.0.0","REACT_APP_HOMEPAGE":"https://github.com/fishjar/kiss-translator","REACT_APP_OPTIONSPAGE":"https://fishjar.github.io/kiss-translator/options.html","REACT_APP_OPTIONSPAGE_DEV":"http://localhost:3000/options.html","REACT_APP_LOGOURL":"https://fishjar.github.io/kiss-translator/images/logo192.png","REACT_APP_RULESURL":"https://fishjar.github.io/kiss-rules/kiss-rules_v2.json","REACT_APP_RULESURL_ON":"https://fishjar.github.io/kiss-rules/kiss-rules-on_v2.json","REACT_APP_RULESURL_OFF":"https://fishjar.github.io/kiss-rules/kiss-rules-off_v2.json","REACT_APP_USERSCRIPT_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator.user.js","REACT_APP_USERSCRIPT_IOS_DOWNLOADURL":"https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js"}).__MINIMATCH_TESTING_PLATFORM__ || process.platform : "posix";
   It.sep = "win32" === te ? "\\" : "/";
   var ee = Symbol("globstar **");
   It.GLOBSTAR = ee;
@@ -36332,16 +37550,18 @@ var o = n.Gr,
   p = n._M;
 
 ;// CONCATENATED MODULE: ./src/libs/sync.js
-c().patch("request",opts=>{return fetchPatcher(opts.url,{method:opts.method,headers:opts.headers,body:opts.data});});const syncByWebdav=async(data,_ref)=>{let{syncUrl,syncUser,syncKey}=_ref;const client=u(syncUrl,{username:syncUser,password:syncKey});const pathname="/".concat(APP_LCNAME);const filename="/".concat(APP_LCNAME,"/").concat(data.key);if((await client.exists(pathname))===false){await client.createDirectory(pathname);}const isExist=await client.exists(filename);if(isExist){const cont=await client.getFileContents(filename,{format:"text"});const webData=JSON.parse(cont);if(webData.updateAt>=data.updateAt){return webData;}}await client.putFileContents(filename,JSON.stringify(data,null,2));return data;};const syncByWorker=async(data,_ref2)=>{let{syncUrl,syncKey}=_ref2;syncUrl=removeEndchar(syncUrl,"/");return await apiSyncData("".concat(syncUrl,"/sync"),syncKey,data);};const syncData=async(key,valueFn)=>{const{syncType,syncUrl,syncUser,syncKey,syncMeta={}}=await getSyncWithDefault();if(!syncUrl||!syncKey||syncType===OPT_SYNCTYPE_WEBDAV&&!syncUser){return;}let{updateAt=0,syncAt=0}=syncMeta[key]||{};syncAt===0&&(updateAt=0);const value=await valueFn();const data={key,value:JSON.stringify(value),updateAt};const args={syncUrl,syncUser,syncKey};const res=syncType===OPT_SYNCTYPE_WEBDAV?await syncByWebdav(data,args):await syncByWorker(data,args);syncMeta[key]={updateAt:res.updateAt,syncAt:Date.now()};await updateSync({syncMeta});return{value:JSON.parse(res.value),isNew:res.updateAt>updateAt};};/**
+c().patch("request",opts=>{return fetchPatcher(opts.url,{method:opts.method,headers:opts.headers,body:opts.data});});const syncByWebdav=async(data,_ref)=>{let{syncUrl,syncUser,syncKey}=_ref;const client=u(syncUrl,{username:syncUser,password:syncKey});const pathname="/".concat(APP_LCNAME);const filename="/".concat(APP_LCNAME,"/").concat(data.key);if((await client.exists(pathname))===false){await client.createDirectory(pathname);}const isExist=await client.exists(filename);if(isExist){const cont=await client.getFileContents(filename,{format:"text"});const webData=JSON.parse(cont);if(webData.updateAt>=data.updateAt){return webData;}}await client.putFileContents(filename,JSON.stringify(data,null,2));return data;};const syncByWorker=async(data,_ref2)=>{let{syncUrl,syncKey}=_ref2;syncUrl=removeEndchar(syncUrl,"/");return await apiSyncData("".concat(syncUrl,"/sync"),syncKey,data);};const syncData=async(key,value)=>{const{syncType,syncUrl,syncUser,syncKey,syncMeta={}}=await getSyncWithDefault();if(!syncUrl||!syncKey||syncType===OPT_SYNCTYPE_WEBDAV&&!syncUser){// throw new Error("sync args err");
+return;}let{updateAt=0,syncAt=0}=syncMeta[key]||{};if(syncAt===0){updateAt=0;// 没有同步过，更新时间置零
+}const data={key,value:JSON.stringify(value),updateAt};const args={syncUrl,syncUser,syncKey};const res=syncType===OPT_SYNCTYPE_WEBDAV?await syncByWebdav(data,args):await syncByWorker(data,args);if(!res){throw new Error("sync data got err",key);}const newVal=JSON.parse(res.value);const isNew=res.updateAt>updateAt;syncMeta[key]={updateAt:res.updateAt,syncAt:Date.now()};await putSync({syncMeta});return{value:newVal,isNew};};/**
  * 同步设置
  * @returns
- */const syncSetting=async()=>{const res=await syncData(KV_SETTING_KEY,getSettingWithDefault);if(res!==null&&res!==void 0&&res.isNew){await setSetting(res.value);}};const trySyncSetting=async()=>{try{await syncSetting();}catch(err){log_kissLog(err,"sync setting");}};/**
+ */const syncSetting=async()=>{const value=await getSettingWithDefault();const res=await syncData(KV_SETTING_KEY,value);if(res!==null&&res!==void 0&&res.isNew){await setSetting(res.value);}};const trySyncSetting=async()=>{try{await syncSetting();}catch(err){kissLog("sync setting",err.message);}};/**
  * 同步规则
  * @returns
- */const syncRules=async()=>{const res=await syncData(KV_RULES_KEY,getRulesWithDefault);if(res!==null&&res!==void 0&&res.isNew){await setRules(res.value);}};const trySyncRules=async()=>{try{await syncRules();}catch(err){log_kissLog(err,"sync user rules");}};/**
+ */const syncRules=async()=>{const value=await getRulesWithDefault();const res=await syncData(KV_RULES_KEY,value);if(res!==null&&res!==void 0&&res.isNew){await setRules(res.value);}};const trySyncRules=async()=>{try{await syncRules();}catch(err){log_kissLog("sync user rules",err.message);}};/**
  * 同步词汇
  * @returns
- */const syncWords=async()=>{const res=await syncData(KV_WORDS_KEY,getWordsWithDefault);if(res!==null&&res!==void 0&&res.isNew){await setWords(res.value);}};const trySyncWords=async()=>{try{await syncWords();}catch(err){log_kissLog(err,"sync fav words");}};/**
+ */const syncWords=async()=>{const value=await getWordsWithDefault();const res=await syncData(KV_WORDS_KEY,value);if(res!==null&&res!==void 0&&res.isNew){await setWords(res.value);}};const trySyncWords=async()=>{try{await syncWords();}catch(err){kissLog("sync fav words",err.message);}};/**
  * 同步分享规则
  * @param {*} param0
  * @returns
@@ -36349,20 +37569,784 @@ c().patch("request",opts=>{return fetchPatcher(opts.url,{method:opts.method,head
  * 同步个人设置和规则
  * @returns
  */const syncSettingAndRules=async()=>{await syncSetting();await syncRules();await syncWords();};const trySyncSettingAndRules=async()=>{await trySyncSetting();await trySyncRules();await trySyncWords();};
-;// CONCATENATED MODULE: ./src/hooks/Sync.js
+;// CONCATENATED MODULE: ./src/hooks/DebouncedCallback.js
+function useDebouncedCallback(callback,delay){const callbackRef=(0,react.useRef)(callback);(0,react.useEffect)(()=>{callbackRef.current=callback;},[callback]);const debouncedCallback=(0,react.useMemo)(()=>debounce(function(){return callbackRef.current(...arguments);},delay),[delay]);return debouncedCallback;}
+;// CONCATENATED MODULE: ./src/hooks/Storage.js
 /**
- * sync hook
- * @returns
- */function useSync(){const{data,update,reload}=useStorage(config_STOKEY_SYNC,config_DEFAULT_SYNC);return{sync:data,updateSync:update,reloadSync:reload};}/**
- * update syncmeta hook
- * @returns
- */function useSyncMeta(){const{sync,updateSync}=useSync();const updateSyncMeta=(0,react.useCallback)(async key=>{const syncMeta=(sync===null||sync===void 0?void 0:sync.syncMeta)||{};syncMeta[key]={...(syncMeta[key]||{}),updateAt:Date.now()};await updateSync({syncMeta});},[sync===null||sync===void 0?void 0:sync.syncMeta,updateSync]);return{updateSyncMeta};}/**
- * caches sync hook
- * @param {*} url
- * @returns
- */function useSyncCaches(){const{sync,updateSync,reloadSync}=useSync();const updateDataCache=useCallback(async url=>{const dataCaches=(sync===null||sync===void 0?void 0:sync.dataCaches)||{};dataCaches[url]=Date.now();await updateSync({dataCaches});},[sync,updateSync]);const deleteDataCache=useCallback(async url=>{const dataCaches=(sync===null||sync===void 0?void 0:sync.dataCaches)||{};delete dataCaches[url];await updateSync({dataCaches});},[sync,updateSync]);return{dataCaches:(sync===null||sync===void 0?void 0:sync.dataCaches)||{},updateDataCache,deleteDataCache,reloadSync};}
+ * 用于将组件状态与 Storage 同步
+ *
+ * @param {string} key 用于在 Storage 中存取值的键
+ * @param {*} defaultVal 默认值。建议在组件外定义为常量。
+ * @param {string} [syncKey=""] 用于远端同步的可选键名
+ * @returns {{
+ * data: *,
+ * save: (valueOrFn: any | ((prevData: any) => any)) => void,
+ * update: (partialDataOrFn: object | ((prevData: object) => object)) => void,
+ * remove: () => Promise<void>,
+ * reload: () => Promise<void>
+ * }}
+ */function useStorage(key){let defaultVal=arguments.length>1&&arguments[1]!==undefined?arguments[1]:null;let syncKey=arguments.length>2&&arguments[2]!==undefined?arguments[2]:"";const[isLoading,setIsLoading]=(0,react.useState)(true);const[data,setData]=(0,react.useState)(defaultVal);// 首次加载数据
+(0,react.useEffect)(()=>{let isMounted=true;const loadInitialData=async()=>{try{const storedVal=await storage.getObj(key);if(storedVal===undefined||storedVal===null){await storage.setObj(key,defaultVal);}else if(isMounted){setData(storedVal);}}catch(err){log_kissLog("storage load error for key: ".concat(key),err);}finally{if(isMounted){setIsLoading(false);}}};loadInitialData();return()=>{isMounted=false;};},[key,defaultVal]);// 远端同步
+const runSync=(0,react.useCallback)(async(keyToSync,valueToSync)=>{try{const res=await syncData(keyToSync,valueToSync);if(res!==null&&res!==void 0&&res.isNew){setData(res.value);}}catch(error){log_kissLog("Sync failed",keyToSync);}},[]);const debouncedSync=useDebouncedCallback(runSync,3000);// 持久化
+(0,react.useEffect)(()=>{if(isLoading){return;}if(data===null){return;}storage.setObj(key,data).catch(err=>{log_kissLog("storage save error for key: ".concat(key),err);});// 触发远端同步
+if(syncKey){debouncedSync(syncKey,data);}},[key,syncKey,isLoading,data,debouncedSync]);/**
+   * 全量替换状态值
+   * @param {any | ((prevData: any) => any)} valueOrFn 新的值或一个返回新值的函数。
+   */const save=(0,react.useCallback)(valueOrFn=>{// kissLog("save storage:", valueOrFn);
+setData(prevData=>typeof valueOrFn==="function"?valueOrFn(prevData):valueOrFn);},[]);/**
+   * 合并对象到当前状态（假设状态是一个对象）。
+   * @param {object | ((prevData: object) => object)} partialDataOrFn 要合并的对象或一个返回该对象的函数。
+   */const update=(0,react.useCallback)(partialDataOrFn=>{// kissLog("update storage:", partialDataOrFn);
+setData(prevData=>{const partialData=typeof partialDataOrFn==="function"?partialDataOrFn(prevData):partialDataOrFn;// 确保 preData 是一个对象，避免展开 null 或 undefined
+const baseObj=typeof prevData==="object"&&prevData!==null?prevData:{};return{...baseObj,...partialData};});},[]);/**
+   * 从 Storage 中删除该值，并将状态重置为 null。
+   */const remove=(0,react.useCallback)(async()=>{// kissLog("remove storage:");
+try{await storage.del(key);setData(null);}catch(err){log_kissLog("storage remove error for key: ".concat(key),err);}},[key]);/**
+   * 从 Storage 重新加载数据以覆盖当前状态。
+   */const reload=(0,react.useCallback)(async()=>{// kissLog("reload storage:");
+try{const storedVal=await storage.getObj(key);setData(storedVal!==null&&storedVal!==void 0?storedVal:defaultVal);}catch(err){log_kissLog("storage reload error for key: ".concat(key),err);// setData(defaultVal);
+}},[key,defaultVal]);return{data,save,update,remove,reload,isLoading};}
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/CircularProgress/circularProgressClasses.js
+
+
+function getCircularProgressUtilityClass(slot) {
+  return (0,generateUtilityClass_generateUtilityClass/* default */.ZP)('MuiCircularProgress', slot);
+}
+const circularProgressClasses = (0,generateUtilityClasses/* default */.Z)('MuiCircularProgress', ['root', 'determinate', 'indeterminate', 'colorPrimary', 'colorSecondary', 'svg', 'circle', 'circleDeterminate', 'circleIndeterminate', 'circleDisableShrink']);
+/* harmony default export */ const CircularProgress_circularProgressClasses = ((/* unused pure expression or super */ null && (circularProgressClasses)));
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/CircularProgress/CircularProgress.js
+'use client';
+
+
+var CircularProgress_templateObject, CircularProgress_templateObject2, CircularProgress_templateObject3, CircularProgress_templateObject4;
+
+
+const CircularProgress_excluded = ["className", "color", "disableShrink", "size", "style", "thickness", "value", "variant"];
+let CircularProgress_ = t => t,
+  CircularProgress_t,
+  CircularProgress_t2,
+  CircularProgress_t3,
+  CircularProgress_t4;
+
+
+
+
+
+
+
+
+
+
+
+const SIZE = 44;
+const circularRotateKeyframe = (0,emotion_react_browser_esm/* keyframes */.F4)(CircularProgress_t || (CircularProgress_t = CircularProgress_(CircularProgress_templateObject || (CircularProgress_templateObject = _taggedTemplateLiteral(["\n  0% {\n    transform: rotate(0deg);\n  }\n\n  100% {\n    transform: rotate(360deg);\n  }\n"])))));
+const circularDashKeyframe = (0,emotion_react_browser_esm/* keyframes */.F4)(CircularProgress_t2 || (CircularProgress_t2 = CircularProgress_(CircularProgress_templateObject2 || (CircularProgress_templateObject2 = _taggedTemplateLiteral(["\n  0% {\n    stroke-dasharray: 1px, 200px;\n    stroke-dashoffset: 0;\n  }\n\n  50% {\n    stroke-dasharray: 100px, 200px;\n    stroke-dashoffset: -15px;\n  }\n\n  100% {\n    stroke-dasharray: 100px, 200px;\n    stroke-dashoffset: -125px;\n  }\n"])))));
+const CircularProgress_useUtilityClasses = ownerState => {
+  const {
+    classes,
+    variant,
+    color,
+    disableShrink
+  } = ownerState;
+  const slots = {
+    root: ['root', variant, "color".concat((0,capitalize/* default */.Z)(color))],
+    svg: ['svg'],
+    circle: ['circle', "circle".concat((0,capitalize/* default */.Z)(variant)), disableShrink && 'circleDisableShrink']
+  };
+  return (0,composeClasses/* default */.Z)(slots, getCircularProgressUtilityClass, classes);
+};
+const CircularProgressRoot = (0,styled/* default */.ZP)('span', {
+  name: 'MuiCircularProgress',
+  slot: 'Root',
+  overridesResolver: (props, styles) => {
+    const {
+      ownerState
+    } = props;
+    return [styles.root, styles[ownerState.variant], styles["color".concat((0,capitalize/* default */.Z)(ownerState.color))]];
+  }
+})(_ref => {
+  let {
+    ownerState,
+    theme
+  } = _ref;
+  return (0,esm_extends/* default */.Z)({
+    display: 'inline-block'
+  }, ownerState.variant === 'determinate' && {
+    transition: theme.transitions.create('transform')
+  }, ownerState.color !== 'inherit' && {
+    color: (theme.vars || theme).palette[ownerState.color].main
+  });
+}, _ref2 => {
+  let {
+    ownerState
+  } = _ref2;
+  return ownerState.variant === 'indeterminate' && (0,emotion_react_browser_esm/* css */.iv)(CircularProgress_t3 || (CircularProgress_t3 = CircularProgress_(CircularProgress_templateObject3 || (CircularProgress_templateObject3 = _taggedTemplateLiteral(["\n      animation: ", " 1.4s linear infinite;\n    "])), 0)), circularRotateKeyframe);
+});
+const CircularProgressSVG = (0,styled/* default */.ZP)('svg', {
+  name: 'MuiCircularProgress',
+  slot: 'Svg',
+  overridesResolver: (props, styles) => styles.svg
+})({
+  display: 'block' // Keeps the progress centered
+});
+
+const CircularProgressCircle = (0,styled/* default */.ZP)('circle', {
+  name: 'MuiCircularProgress',
+  slot: 'Circle',
+  overridesResolver: (props, styles) => {
+    const {
+      ownerState
+    } = props;
+    return [styles.circle, styles["circle".concat((0,capitalize/* default */.Z)(ownerState.variant))], ownerState.disableShrink && styles.circleDisableShrink];
+  }
+})(_ref3 => {
+  let {
+    ownerState,
+    theme
+  } = _ref3;
+  return (0,esm_extends/* default */.Z)({
+    stroke: 'currentColor'
+  }, ownerState.variant === 'determinate' && {
+    transition: theme.transitions.create('stroke-dashoffset')
+  }, ownerState.variant === 'indeterminate' && {
+    // Some default value that looks fine waiting for the animation to kicks in.
+    strokeDasharray: '80px, 200px',
+    strokeDashoffset: 0 // Add the unit to fix a Edge 16 and below bug.
+  });
+}, _ref4 => {
+  let {
+    ownerState
+  } = _ref4;
+  return ownerState.variant === 'indeterminate' && !ownerState.disableShrink && (0,emotion_react_browser_esm/* css */.iv)(CircularProgress_t4 || (CircularProgress_t4 = CircularProgress_(CircularProgress_templateObject4 || (CircularProgress_templateObject4 = _taggedTemplateLiteral(["\n      animation: ", " 1.4s ease-in-out infinite;\n    "])), 0)), circularDashKeyframe);
+});
+
+/**
+ * ## ARIA
+ *
+ * If the progress bar is describing the loading progress of a particular region of a page,
+ * you should use `aria-describedby` to point to the progress bar, and set the `aria-busy`
+ * attribute to `true` on that region until it has finished loading.
+ */
+const CircularProgress = /*#__PURE__*/react.forwardRef(function CircularProgress(inProps, ref) {
+  const props = (0,useThemeProps/* default */.Z)({
+    props: inProps,
+    name: 'MuiCircularProgress'
+  });
+  const {
+      className,
+      color = 'primary',
+      disableShrink = false,
+      size = 40,
+      style,
+      thickness = 3.6,
+      value = 0,
+      variant = 'indeterminate'
+    } = props,
+    other = (0,objectWithoutPropertiesLoose/* default */.Z)(props, CircularProgress_excluded);
+  const ownerState = (0,esm_extends/* default */.Z)({}, props, {
+    color,
+    disableShrink,
+    size,
+    thickness,
+    value,
+    variant
+  });
+  const classes = CircularProgress_useUtilityClasses(ownerState);
+  const circleStyle = {};
+  const rootStyle = {};
+  const rootProps = {};
+  if (variant === 'determinate') {
+    const circumference = 2 * Math.PI * ((SIZE - thickness) / 2);
+    circleStyle.strokeDasharray = circumference.toFixed(3);
+    rootProps['aria-valuenow'] = Math.round(value);
+    circleStyle.strokeDashoffset = "".concat(((100 - value) / 100 * circumference).toFixed(3), "px");
+    rootStyle.transform = 'rotate(-90deg)';
+  }
+  return /*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgressRoot, (0,esm_extends/* default */.Z)({
+    className: (0,clsx/* default */.Z)(classes.root, className),
+    style: (0,esm_extends/* default */.Z)({
+      width: size,
+      height: size
+    }, rootStyle, style),
+    ownerState: ownerState,
+    ref: ref,
+    role: "progressbar"
+  }, rootProps, other, {
+    children: /*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgressSVG, {
+      className: classes.svg,
+      ownerState: ownerState,
+      viewBox: "".concat(SIZE / 2, " ").concat(SIZE / 2, " ").concat(SIZE, " ").concat(SIZE),
+      children: /*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgressCircle, {
+        className: classes.circle,
+        style: circleStyle,
+        ownerState: ownerState,
+        cx: SIZE,
+        cy: SIZE,
+        r: (SIZE - thickness) / 2,
+        fill: "none",
+        strokeWidth: thickness
+      })
+    })
+  }));
+});
+ false ? 0 : void 0;
+/* harmony default export */ const CircularProgress_CircularProgress = (CircularProgress);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/styleFunctionSx/extendSxProp.js
+var extendSxProp = __webpack_require__(416);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Typography/typographyClasses.js
+
+
+function getTypographyUtilityClass(slot) {
+  return (0,generateUtilityClass_generateUtilityClass/* default */.ZP)('MuiTypography', slot);
+}
+const typographyClasses = (0,generateUtilityClasses/* default */.Z)('MuiTypography', ['root', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'subtitle1', 'subtitle2', 'body1', 'body2', 'inherit', 'button', 'caption', 'overline', 'alignLeft', 'alignRight', 'alignCenter', 'alignJustify', 'noWrap', 'gutterBottom', 'paragraph']);
+/* harmony default export */ const Typography_typographyClasses = ((/* unused pure expression or super */ null && (typographyClasses)));
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Typography/Typography.js
+'use client';
+
+
+
+const Typography_excluded = ["align", "className", "component", "gutterBottom", "noWrap", "paragraph", "variant", "variantMapping"];
+
+
+
+
+
+
+
+
+
+
+const Typography_useUtilityClasses = ownerState => {
+  const {
+    align,
+    gutterBottom,
+    noWrap,
+    paragraph,
+    variant,
+    classes
+  } = ownerState;
+  const slots = {
+    root: ['root', variant, ownerState.align !== 'inherit' && "align".concat((0,capitalize/* default */.Z)(align)), gutterBottom && 'gutterBottom', noWrap && 'noWrap', paragraph && 'paragraph']
+  };
+  return (0,composeClasses/* default */.Z)(slots, getTypographyUtilityClass, classes);
+};
+const TypographyRoot = (0,styled/* default */.ZP)('span', {
+  name: 'MuiTypography',
+  slot: 'Root',
+  overridesResolver: (props, styles) => {
+    const {
+      ownerState
+    } = props;
+    return [styles.root, ownerState.variant && styles[ownerState.variant], ownerState.align !== 'inherit' && styles["align".concat((0,capitalize/* default */.Z)(ownerState.align))], ownerState.noWrap && styles.noWrap, ownerState.gutterBottom && styles.gutterBottom, ownerState.paragraph && styles.paragraph];
+  }
+})(_ref => {
+  let {
+    theme,
+    ownerState
+  } = _ref;
+  return (0,esm_extends/* default */.Z)({
+    margin: 0
+  }, ownerState.variant === 'inherit' && {
+    // Some elements, like <button> on Chrome have default font that doesn't inherit, reset this.
+    font: 'inherit'
+  }, ownerState.variant !== 'inherit' && theme.typography[ownerState.variant], ownerState.align !== 'inherit' && {
+    textAlign: ownerState.align
+  }, ownerState.noWrap && {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap'
+  }, ownerState.gutterBottom && {
+    marginBottom: '0.35em'
+  }, ownerState.paragraph && {
+    marginBottom: 16
+  });
+});
+const defaultVariantMapping = {
+  h1: 'h1',
+  h2: 'h2',
+  h3: 'h3',
+  h4: 'h4',
+  h5: 'h5',
+  h6: 'h6',
+  subtitle1: 'h6',
+  subtitle2: 'h6',
+  body1: 'p',
+  body2: 'p',
+  inherit: 'p'
+};
+
+// TODO v6: deprecate these color values in v5.x and remove the transformation in v6
+const colorTransformations = {
+  primary: 'primary.main',
+  textPrimary: 'text.primary',
+  secondary: 'secondary.main',
+  textSecondary: 'text.secondary',
+  error: 'error.main'
+};
+const transformDeprecatedColors = color => {
+  return colorTransformations[color] || color;
+};
+const Typography = /*#__PURE__*/react.forwardRef(function Typography(inProps, ref) {
+  const themeProps = (0,useThemeProps/* default */.Z)({
+    props: inProps,
+    name: 'MuiTypography'
+  });
+  const color = transformDeprecatedColors(themeProps.color);
+  const props = (0,extendSxProp/* default */.Z)((0,esm_extends/* default */.Z)({}, themeProps, {
+    color
+  }));
+  const {
+      align = 'inherit',
+      className,
+      component,
+      gutterBottom = false,
+      noWrap = false,
+      paragraph = false,
+      variant = 'body1',
+      variantMapping = defaultVariantMapping
+    } = props,
+    other = (0,objectWithoutPropertiesLoose/* default */.Z)(props, Typography_excluded);
+  const ownerState = (0,esm_extends/* default */.Z)({}, props, {
+    align,
+    color,
+    className,
+    component,
+    gutterBottom,
+    noWrap,
+    paragraph,
+    variant,
+    variantMapping
+  });
+  const Component = component || (paragraph ? 'p' : variantMapping[variant] || defaultVariantMapping[variant]) || 'span';
+  const classes = Typography_useUtilityClasses(ownerState);
+  return /*#__PURE__*/(0,jsx_runtime.jsx)(TypographyRoot, (0,esm_extends/* default */.Z)({
+    as: Component,
+    ref: ref,
+    ownerState: ownerState,
+    className: (0,clsx/* default */.Z)(classes.root, className)
+  }, other));
+});
+ false ? 0 : void 0;
+/* harmony default export */ const Typography_Typography = (Typography);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Link/linkClasses.js
+
+
+function getLinkUtilityClass(slot) {
+  return (0,generateUtilityClass_generateUtilityClass/* default */.ZP)('MuiLink', slot);
+}
+const linkClasses = (0,generateUtilityClasses/* default */.Z)('MuiLink', ['root', 'underlineNone', 'underlineHover', 'underlineAlways', 'button', 'focusVisible']);
+/* harmony default export */ const Link_linkClasses = (linkClasses);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/style.js
+var style = __webpack_require__(6634);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Link/getTextDecoration.js
+
+
+const getTextDecoration_colorTransformations = {
+  primary: 'primary.main',
+  textPrimary: 'text.primary',
+  secondary: 'secondary.main',
+  textSecondary: 'text.secondary',
+  error: 'error.main'
+};
+const getTextDecoration_transformDeprecatedColors = color => {
+  return getTextDecoration_colorTransformations[color] || color;
+};
+const getTextDecoration = _ref => {
+  let {
+    theme,
+    ownerState
+  } = _ref;
+  const transformedColor = getTextDecoration_transformDeprecatedColors(ownerState.color);
+  const color = (0,style/* getPath */.DW)(theme, "palette.".concat(transformedColor), false) || ownerState.color;
+  const channelColor = (0,style/* getPath */.DW)(theme, "palette.".concat(transformedColor, "Channel"));
+  if ('vars' in theme && channelColor) {
+    return "rgba(".concat(channelColor, " / 0.4)");
+  }
+  return (0,colorManipulator/* alpha */.Fq)(color, 0.4);
+};
+/* harmony default export */ const Link_getTextDecoration = (getTextDecoration);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Link/Link.js
+'use client';
+
+
+
+const Link_excluded = ["className", "color", "component", "onBlur", "onFocus", "TypographyClasses", "underline", "variant", "sx"];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const Link_useUtilityClasses = ownerState => {
+  const {
+    classes,
+    component,
+    focusVisible,
+    underline
+  } = ownerState;
+  const slots = {
+    root: ['root', "underline".concat((0,capitalize/* default */.Z)(underline)), component === 'button' && 'button', focusVisible && 'focusVisible']
+  };
+  return (0,composeClasses/* default */.Z)(slots, getLinkUtilityClass, classes);
+};
+const LinkRoot = (0,styled/* default */.ZP)(Typography_Typography, {
+  name: 'MuiLink',
+  slot: 'Root',
+  overridesResolver: (props, styles) => {
+    const {
+      ownerState
+    } = props;
+    return [styles.root, styles["underline".concat((0,capitalize/* default */.Z)(ownerState.underline))], ownerState.component === 'button' && styles.button];
+  }
+})(_ref => {
+  let {
+    theme,
+    ownerState
+  } = _ref;
+  return (0,esm_extends/* default */.Z)({}, ownerState.underline === 'none' && {
+    textDecoration: 'none'
+  }, ownerState.underline === 'hover' && {
+    textDecoration: 'none',
+    '&:hover': {
+      textDecoration: 'underline'
+    }
+  }, ownerState.underline === 'always' && (0,esm_extends/* default */.Z)({
+    textDecoration: 'underline'
+  }, ownerState.color !== 'inherit' && {
+    textDecorationColor: Link_getTextDecoration({
+      theme,
+      ownerState
+    })
+  }, {
+    '&:hover': {
+      textDecorationColor: 'inherit'
+    }
+  }), ownerState.component === 'button' && {
+    position: 'relative',
+    WebkitTapHighlightColor: 'transparent',
+    backgroundColor: 'transparent',
+    // Reset default value
+    // We disable the focus ring for mouse, touch and keyboard users.
+    outline: 0,
+    border: 0,
+    margin: 0,
+    // Remove the margin in Safari
+    borderRadius: 0,
+    padding: 0,
+    // Remove the padding in Firefox
+    cursor: 'pointer',
+    userSelect: 'none',
+    verticalAlign: 'middle',
+    MozAppearance: 'none',
+    // Reset
+    WebkitAppearance: 'none',
+    // Reset
+    '&::-moz-focus-inner': {
+      borderStyle: 'none' // Remove Firefox dotted outline.
+    },
+
+    ["&.".concat(Link_linkClasses.focusVisible)]: {
+      outline: 'auto'
+    }
+  });
+});
+const Link = /*#__PURE__*/react.forwardRef(function Link(inProps, ref) {
+  const props = (0,useThemeProps/* default */.Z)({
+    props: inProps,
+    name: 'MuiLink'
+  });
+  const {
+      className,
+      color = 'primary',
+      component = 'a',
+      onBlur,
+      onFocus,
+      TypographyClasses,
+      underline = 'always',
+      variant = 'inherit',
+      sx
+    } = props,
+    other = (0,objectWithoutPropertiesLoose/* default */.Z)(props, Link_excluded);
+  const {
+    isFocusVisibleRef,
+    onBlur: handleBlurVisible,
+    onFocus: handleFocusVisible,
+    ref: focusVisibleRef
+  } = (0,useIsFocusVisible/* default */.Z)();
+  const [focusVisible, setFocusVisible] = react.useState(false);
+  const handlerRef = (0,useForkRef/* default */.Z)(ref, focusVisibleRef);
+  const handleBlur = event => {
+    handleBlurVisible(event);
+    if (isFocusVisibleRef.current === false) {
+      setFocusVisible(false);
+    }
+    if (onBlur) {
+      onBlur(event);
+    }
+  };
+  const handleFocus = event => {
+    handleFocusVisible(event);
+    if (isFocusVisibleRef.current === true) {
+      setFocusVisible(true);
+    }
+    if (onFocus) {
+      onFocus(event);
+    }
+  };
+  const ownerState = (0,esm_extends/* default */.Z)({}, props, {
+    color,
+    component,
+    focusVisible,
+    underline,
+    variant
+  });
+  const classes = Link_useUtilityClasses(ownerState);
+  return /*#__PURE__*/(0,jsx_runtime.jsx)(LinkRoot, (0,esm_extends/* default */.Z)({
+    color: color,
+    className: (0,clsx/* default */.Z)(classes.root, className),
+    classes: TypographyClasses,
+    component: component,
+    onBlur: handleBlur,
+    onFocus: handleFocus,
+    ref: handlerRef,
+    ownerState: ownerState,
+    variant: variant,
+    sx: [...(!Object.keys(getTextDecoration_colorTransformations).includes(color) ? [{
+      color
+    }] : []), ...(Array.isArray(sx) ? sx : [sx])]
+  }, other));
+});
+ false ? 0 : void 0;
+/* harmony default export */ const Link_Link = (Link);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Divider/dividerClasses.js
+
+
+function getDividerUtilityClass(slot) {
+  return (0,generateUtilityClass_generateUtilityClass/* default */.ZP)('MuiDivider', slot);
+}
+const dividerClasses = (0,generateUtilityClasses/* default */.Z)('MuiDivider', ['root', 'absolute', 'fullWidth', 'inset', 'middle', 'flexItem', 'light', 'vertical', 'withChildren', 'withChildrenVertical', 'textAlignRight', 'textAlignLeft', 'wrapper', 'wrapperVertical']);
+/* harmony default export */ const Divider_dividerClasses = (dividerClasses);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Divider/Divider.js
+'use client';
+
+
+
+const Divider_excluded = ["absolute", "children", "className", "component", "flexItem", "light", "orientation", "role", "textAlign", "variant"];
+
+
+
+
+
+
+
+
+
+const Divider_useUtilityClasses = ownerState => {
+  const {
+    absolute,
+    children,
+    classes,
+    flexItem,
+    light,
+    orientation,
+    textAlign,
+    variant
+  } = ownerState;
+  const slots = {
+    root: ['root', absolute && 'absolute', variant, light && 'light', orientation === 'vertical' && 'vertical', flexItem && 'flexItem', children && 'withChildren', children && orientation === 'vertical' && 'withChildrenVertical', textAlign === 'right' && orientation !== 'vertical' && 'textAlignRight', textAlign === 'left' && orientation !== 'vertical' && 'textAlignLeft'],
+    wrapper: ['wrapper', orientation === 'vertical' && 'wrapperVertical']
+  };
+  return (0,composeClasses/* default */.Z)(slots, getDividerUtilityClass, classes);
+};
+const DividerRoot = (0,styled/* default */.ZP)('div', {
+  name: 'MuiDivider',
+  slot: 'Root',
+  overridesResolver: (props, styles) => {
+    const {
+      ownerState
+    } = props;
+    return [styles.root, ownerState.absolute && styles.absolute, styles[ownerState.variant], ownerState.light && styles.light, ownerState.orientation === 'vertical' && styles.vertical, ownerState.flexItem && styles.flexItem, ownerState.children && styles.withChildren, ownerState.children && ownerState.orientation === 'vertical' && styles.withChildrenVertical, ownerState.textAlign === 'right' && ownerState.orientation !== 'vertical' && styles.textAlignRight, ownerState.textAlign === 'left' && ownerState.orientation !== 'vertical' && styles.textAlignLeft];
+  }
+})(_ref => {
+  let {
+    theme,
+    ownerState
+  } = _ref;
+  return (0,esm_extends/* default */.Z)({
+    margin: 0,
+    // Reset browser default style.
+    flexShrink: 0,
+    borderWidth: 0,
+    borderStyle: 'solid',
+    borderColor: (theme.vars || theme).palette.divider,
+    borderBottomWidth: 'thin'
+  }, ownerState.absolute && {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    width: '100%'
+  }, ownerState.light && {
+    borderColor: theme.vars ? "rgba(".concat(theme.vars.palette.dividerChannel, " / 0.08)") : (0,colorManipulator/* alpha */.Fq)(theme.palette.divider, 0.08)
+  }, ownerState.variant === 'inset' && {
+    marginLeft: 72
+  }, ownerState.variant === 'middle' && ownerState.orientation === 'horizontal' && {
+    marginLeft: theme.spacing(2),
+    marginRight: theme.spacing(2)
+  }, ownerState.variant === 'middle' && ownerState.orientation === 'vertical' && {
+    marginTop: theme.spacing(1),
+    marginBottom: theme.spacing(1)
+  }, ownerState.orientation === 'vertical' && {
+    height: '100%',
+    borderBottomWidth: 0,
+    borderRightWidth: 'thin'
+  }, ownerState.flexItem && {
+    alignSelf: 'stretch',
+    height: 'auto'
+  });
+}, _ref2 => {
+  let {
+    ownerState
+  } = _ref2;
+  return (0,esm_extends/* default */.Z)({}, ownerState.children && {
+    display: 'flex',
+    whiteSpace: 'nowrap',
+    textAlign: 'center',
+    border: 0,
+    '&::before, &::after': {
+      content: '""',
+      alignSelf: 'center'
+    }
+  });
+}, _ref3 => {
+  let {
+    theme,
+    ownerState
+  } = _ref3;
+  return (0,esm_extends/* default */.Z)({}, ownerState.children && ownerState.orientation !== 'vertical' && {
+    '&::before, &::after': {
+      width: '100%',
+      borderTop: "thin solid ".concat((theme.vars || theme).palette.divider)
+    }
+  });
+}, _ref4 => {
+  let {
+    theme,
+    ownerState
+  } = _ref4;
+  return (0,esm_extends/* default */.Z)({}, ownerState.children && ownerState.orientation === 'vertical' && {
+    flexDirection: 'column',
+    '&::before, &::after': {
+      height: '100%',
+      borderLeft: "thin solid ".concat((theme.vars || theme).palette.divider)
+    }
+  });
+}, _ref5 => {
+  let {
+    ownerState
+  } = _ref5;
+  return (0,esm_extends/* default */.Z)({}, ownerState.textAlign === 'right' && ownerState.orientation !== 'vertical' && {
+    '&::before': {
+      width: '90%'
+    },
+    '&::after': {
+      width: '10%'
+    }
+  }, ownerState.textAlign === 'left' && ownerState.orientation !== 'vertical' && {
+    '&::before': {
+      width: '10%'
+    },
+    '&::after': {
+      width: '90%'
+    }
+  });
+});
+const DividerWrapper = (0,styled/* default */.ZP)('span', {
+  name: 'MuiDivider',
+  slot: 'Wrapper',
+  overridesResolver: (props, styles) => {
+    const {
+      ownerState
+    } = props;
+    return [styles.wrapper, ownerState.orientation === 'vertical' && styles.wrapperVertical];
+  }
+})(_ref6 => {
+  let {
+    theme,
+    ownerState
+  } = _ref6;
+  return (0,esm_extends/* default */.Z)({
+    display: 'inline-block',
+    paddingLeft: "calc(".concat(theme.spacing(1), " * 1.2)"),
+    paddingRight: "calc(".concat(theme.spacing(1), " * 1.2)")
+  }, ownerState.orientation === 'vertical' && {
+    paddingTop: "calc(".concat(theme.spacing(1), " * 1.2)"),
+    paddingBottom: "calc(".concat(theme.spacing(1), " * 1.2)")
+  });
+});
+const Divider = /*#__PURE__*/react.forwardRef(function Divider(inProps, ref) {
+  const props = (0,useThemeProps/* default */.Z)({
+    props: inProps,
+    name: 'MuiDivider'
+  });
+  const {
+      absolute = false,
+      children,
+      className,
+      component = children ? 'div' : 'hr',
+      flexItem = false,
+      light = false,
+      orientation = 'horizontal',
+      role = component !== 'hr' ? 'separator' : undefined,
+      textAlign = 'center',
+      variant = 'fullWidth'
+    } = props,
+    other = (0,objectWithoutPropertiesLoose/* default */.Z)(props, Divider_excluded);
+  const ownerState = (0,esm_extends/* default */.Z)({}, props, {
+    absolute,
+    component,
+    flexItem,
+    light,
+    orientation,
+    role,
+    textAlign,
+    variant
+  });
+  const classes = Divider_useUtilityClasses(ownerState);
+  return /*#__PURE__*/(0,jsx_runtime.jsx)(DividerRoot, (0,esm_extends/* default */.Z)({
+    as: component,
+    className: (0,clsx/* default */.Z)(classes.root, className),
+    role: role,
+    ref: ref,
+    ownerState: ownerState
+  }, other, {
+    children: children ? /*#__PURE__*/(0,jsx_runtime.jsx)(DividerWrapper, {
+      className: classes.wrapper,
+      ownerState: ownerState,
+      children: children
+    }) : null
+  }));
+});
+
+/**
+ * The following flag is used to ensure that this component isn't tabbable i.e.
+ * does not get highlight/focus inside of MUI List.
+ */
+Divider.muiSkipListHighlight = true;
+ false ? 0 : void 0;
+/* harmony default export */ const Divider_Divider = (Divider);
+;// CONCATENATED MODULE: ./src/hooks/Loading.js
+function Loading(){return/*#__PURE__*/(0,jsx_runtime.jsxs)("center",{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Divider_Divider,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(Link_Link,{href:"https://github.com/fishjar/kiss-translator",children:"KISS Translator v".concat("2.0.0")})}),/*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgress_CircularProgress,{})]});}
 ;// CONCATENATED MODULE: ./src/hooks/Setting.js
-const SettingContext=/*#__PURE__*/(0,react.createContext)({setting:null,updateSetting:async()=>{},reloadSetting:async()=>{}});function SettingProvider(_ref){let{children}=_ref;const{data,update,reload}=useStorage(config_STOKEY_SETTING,config_DEFAULT_SETTING);const{updateSyncMeta}=useSyncMeta();const syncSetting=(0,react.useMemo)(()=>debounce(()=>{trySyncSetting();},[2000]),[]);const updateSetting=(0,react.useCallback)(async obj=>{await update(obj);await updateSyncMeta(KV_SETTING_KEY);syncSetting();},[update,syncSetting,updateSyncMeta]);if(!data){return;}return/*#__PURE__*/(0,jsx_runtime.jsx)(SettingContext.Provider,{value:{setting:data,updateSetting,reloadSetting:reload},children:children});}/**
+const SettingContext=/*#__PURE__*/(0,react.createContext)({setting:setting_DEFAULT_SETTING,updateSetting:()=>{},reloadSetting:()=>{}});function SettingProvider(_ref){let{children}=_ref;const{data:setting,isLoading,update,reload}=useStorage(storage_STOKEY_SETTING,setting_DEFAULT_SETTING,storage_KV_SETTING_KEY);(0,react.useEffect)(()=>{(async()=>{try{logger.setLevel(setting===null||setting===void 0?void 0:setting.logLevel);await sendBgMsg(MSG_SET_LOGLEVEL,setting===null||setting===void 0?void 0:setting.logLevel);}catch(error){logger.error("Failed to fetch log level, using default.",error);}})();},[setting]);const updateSetting=(0,react.useCallback)(objOrFn=>{update(objOrFn);debounceSyncMeta(storage_KV_SETTING_KEY);},[update]);const updateChild=(0,react.useCallback)(key=>async obj=>{updateSetting(prev=>({...prev,[key]:{...((prev===null||prev===void 0?void 0:prev[key])||{}),...obj}}));},[updateSetting]);const value=(0,react.useMemo)(()=>({setting,updateSetting,updateChild,reloadSetting:reload}),[setting,updateSetting,updateChild,reload]);if(isLoading){return/*#__PURE__*/(0,jsx_runtime.jsx)(Loading,{});}if(!setting){/*#__PURE__*/(0,jsx_runtime.jsx)("center",{children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Alert_Alert,{severity:"error",sx:{maxWidth:600,margin:"60px auto"},children:[/*#__PURE__*/(0,jsx_runtime.jsx)("p",{children:"\u6570\u636E\u52A0\u8F7D\u51FA\u9519\uFF0C\u8BF7\u5237\u65B0\u9875\u9762\u6216\u5378\u8F7D\u540E\u91CD\u65B0\u5B89\u88C5\u3002"}),/*#__PURE__*/(0,jsx_runtime.jsx)("p",{children:"Data loading error, please refresh the page or uninstall and reinstall."})]})});}return/*#__PURE__*/(0,jsx_runtime.jsx)(SettingContext.Provider,{value:value,children:children});}/**
  * 设置 hook
  * @returns
  */function useSetting(){return (0,react.useContext)(SettingContext);}
@@ -36370,7 +38354,7 @@ const SettingContext=/*#__PURE__*/(0,react.createContext)({setting:null,updateSe
 /**
  * 深色模式hook
  * @returns
- */function useDarkMode(){const{setting:{darkMode},updateSetting}=useSetting();const toggleDarkMode=(0,react.useCallback)(async()=>{await updateSetting({darkMode:!darkMode});},[darkMode,updateSetting]);return{darkMode,toggleDarkMode};}
+ */function useDarkMode(){const{setting:{darkMode},updateSetting}=useSetting();const toggleDarkMode=(0,react.useCallback)(()=>{updateSetting({darkMode:!darkMode});},[darkMode,updateSetting]);return{darkMode,toggleDarkMode};}
 ;// CONCATENATED MODULE: ./src/hooks/Theme.js
 /**
  * mui 主题配置
@@ -36380,128 +38364,12 @@ const SettingContext=/*#__PURE__*/(0,react.createContext)({setting:null,updateSe
 }return (0,createTheme/* default */.Z)({palette:{mode:darkMode?THEME_DARK:THEME_LIGHT},typography:{htmlFontSize},...options});},[darkMode,options]);return/*#__PURE__*/(0,jsx_runtime.jsxs)(styles_ThemeProvider_ThemeProvider,{theme:theme,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(CssBaseline_CssBaseline,{}),/*#__PURE__*/(0,jsx_runtime.jsx)(material_GlobalStyles_GlobalStyles,{styles:styles}),children]});}
 ;// CONCATENATED MODULE: ./src/libs/mobile.js
 const isMobile=("ontouchstart"in document.documentElement);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/colorManipulator.js
-var colorManipulator = __webpack_require__(2686);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/styles/getOverlayAlpha.js
-// Inspired by https://github.com/material-components/material-components-ios/blob/bca36107405594d5b7b16265a5b0ed698f85a5ee/components/Elevation/src/UIColor%2BMaterialElevation.m#L61
-const getOverlayAlpha = elevation => {
-  let alphaValue;
-  if (elevation < 1) {
-    alphaValue = 5.11916 * elevation ** 2;
-  } else {
-    alphaValue = 4.5 * Math.log(elevation + 1) + 2;
-  }
-  return (alphaValue / 100).toFixed(2);
-};
-/* harmony default export */ const styles_getOverlayAlpha = (getOverlayAlpha);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Paper/paperClasses.js
-
-
-function getPaperUtilityClass(slot) {
-  return (0,generateUtilityClass_generateUtilityClass/* default */.ZP)('MuiPaper', slot);
-}
-const paperClasses = (0,generateUtilityClasses/* default */.Z)('MuiPaper', ['root', 'rounded', 'outlined', 'elevation', 'elevation0', 'elevation1', 'elevation2', 'elevation3', 'elevation4', 'elevation5', 'elevation6', 'elevation7', 'elevation8', 'elevation9', 'elevation10', 'elevation11', 'elevation12', 'elevation13', 'elevation14', 'elevation15', 'elevation16', 'elevation17', 'elevation18', 'elevation19', 'elevation20', 'elevation21', 'elevation22', 'elevation23', 'elevation24']);
-/* harmony default export */ const Paper_paperClasses = ((/* unused pure expression or super */ null && (paperClasses)));
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Paper/Paper.js
-'use client';
-
-
-
-const Paper_excluded = ["className", "component", "elevation", "square", "variant"];
-
-
-
-
-
-
-
-
-
-
-
-
-
-const Paper_useUtilityClasses = ownerState => {
-  const {
-    square,
-    elevation,
-    variant,
-    classes
-  } = ownerState;
-  const slots = {
-    root: ['root', variant, !square && 'rounded', variant === 'elevation' && "elevation".concat(elevation)]
-  };
-  return (0,composeClasses/* default */.Z)(slots, getPaperUtilityClass, classes);
-};
-const PaperRoot = (0,styled/* default */.ZP)('div', {
-  name: 'MuiPaper',
-  slot: 'Root',
-  overridesResolver: (props, styles) => {
-    const {
-      ownerState
-    } = props;
-    return [styles.root, styles[ownerState.variant], !ownerState.square && styles.rounded, ownerState.variant === 'elevation' && styles["elevation".concat(ownerState.elevation)]];
-  }
-})(_ref => {
-  let {
-    theme,
-    ownerState
-  } = _ref;
-  var _theme$vars$overlays;
-  return (0,esm_extends/* default */.Z)({
-    backgroundColor: (theme.vars || theme).palette.background.paper,
-    color: (theme.vars || theme).palette.text.primary,
-    transition: theme.transitions.create('box-shadow')
-  }, !ownerState.square && {
-    borderRadius: theme.shape.borderRadius
-  }, ownerState.variant === 'outlined' && {
-    border: "1px solid ".concat((theme.vars || theme).palette.divider)
-  }, ownerState.variant === 'elevation' && (0,esm_extends/* default */.Z)({
-    boxShadow: (theme.vars || theme).shadows[ownerState.elevation]
-  }, !theme.vars && theme.palette.mode === 'dark' && {
-    backgroundImage: "linear-gradient(".concat((0,colorManipulator/* alpha */.Fq)('#fff', styles_getOverlayAlpha(ownerState.elevation)), ", ").concat((0,colorManipulator/* alpha */.Fq)('#fff', styles_getOverlayAlpha(ownerState.elevation)), ")")
-  }, theme.vars && {
-    backgroundImage: (_theme$vars$overlays = theme.vars.overlays) == null ? void 0 : _theme$vars$overlays[ownerState.elevation]
-  }));
-});
-const Paper = /*#__PURE__*/react.forwardRef(function Paper(inProps, ref) {
-  const props = (0,useThemeProps/* default */.Z)({
-    props: inProps,
-    name: 'MuiPaper'
-  });
-  const {
-      className,
-      component = 'div',
-      elevation = 1,
-      square = false,
-      variant = 'elevation'
-    } = props,
-    other = (0,objectWithoutPropertiesLoose/* default */.Z)(props, Paper_excluded);
-  const ownerState = (0,esm_extends/* default */.Z)({}, props, {
-    component,
-    elevation,
-    square,
-    variant
-  });
-  const classes = Paper_useUtilityClasses(ownerState);
-  if (false) {}
-  return /*#__PURE__*/(0,jsx_runtime.jsx)(PaperRoot, (0,esm_extends/* default */.Z)({
-    as: component,
-    ownerState: ownerState,
-    className: (0,clsx/* default */.Z)(classes.root, className),
-    ref: ref
-  }, other));
-});
- false ? 0 : void 0;
-/* harmony default export */ const Paper_Paper = (Paper);
 ;// CONCATENATED MODULE: ./src/views/Action/Draggable.js
-const getEdgePosition=_ref=>{let{x:left,y:top,width,height,windowWidth,windowHeight,hover}=_ref;const right=windowWidth-left-width;const bottom=windowHeight-top-height;const min=Math.min(left,top,right,bottom);switch(min){case right:left=hover?windowWidth-width:windowWidth-width/2;break;case left:left=hover?0:-width/2;break;case bottom:top=hover?windowHeight-height:windowHeight-height/2;break;default:top=hover?0:-height/2;}return{x:left,y:top};};function DraggableWrapper(_ref2){let{children,usePaper,...props}=_ref2;if(usePaper){return/*#__PURE__*/(0,jsx_runtime.jsx)(Paper_Paper,{...props,elevation:4,children:children});}return/*#__PURE__*/(0,jsx_runtime.jsx)("div",{...props,children:children});}function Draggable(_ref3){let{windowSize:{w:windowWidth,h:windowHeight},width,height,left,top,show,snapEdge,onStart,onMove,handler,children,usePaper}=_ref3;const[hover,setHover]=(0,react.useState)(false);const[origin,setOrigin]=(0,react.useState)(null);const[position,setPosition]=(0,react.useState)({x:left,y:top});const setFabPosition=(0,react.useMemo)(()=>debounce(updateFab,500),[]);const handlePointerDown=e=>{!isMobile&&e.target.setPointerCapture(e.pointerId);onStart&&onStart();const{x,y}=position;const{clientX,clientY}=isMobile?e.targetTouches[0]:e;setOrigin({x,y,clientX,clientY});};const handlePointerMove=e=>{onMove&&onMove();const{clientX,clientY}=isMobile?e.targetTouches[0]:e;if(origin){const dx=clientX-origin.clientX;const dy=clientY-origin.clientY;let x=origin.x+dx;let y=origin.y+dy;x=limitNumber(x,-width/2,windowWidth-width/2);y=limitNumber(y,0,windowHeight-height/2);setPosition({x,y});}};const handlePointerUp=e=>{e.stopPropagation();setOrigin(null);};const handleClick=e=>{e.stopPropagation();};const handleMouseEnter=e=>{e.stopPropagation();setHover(true);};const handleMouseLeave=e=>{e.stopPropagation();setHover(false);};(0,react.useEffect)(()=>{if(!snapEdge||!!origin){return;}setPosition(pre=>{const edgePosition=getEdgePosition({...pre,width,height,windowWidth,windowHeight,hover});setFabPosition(edgePosition);return edgePosition;});},[origin,hover,width,height,windowWidth,windowHeight,snapEdge,setFabPosition]);const opacity=(0,react.useMemo)(()=>{if(snapEdge){return hover||origin?1:0.2;}return origin?0.8:1;},[origin,snapEdge,hover]);const touchProps=isMobile?{onTouchStart:handlePointerDown,onTouchMove:handlePointerMove,onTouchEnd:handlePointerUp}:{onPointerDown:handlePointerDown,onPointerMove:handlePointerMove,onPointerUp:handlePointerUp};return/*#__PURE__*/(0,jsx_runtime.jsxs)(DraggableWrapper,{usePaper:usePaper,style:{opacity,position:"fixed",left:position.x,top:position.y,zIndex:2147483647,display:show?"block":"none"},onMouseEnter:handleMouseEnter,onMouseLeave:handleMouseLeave,onClick:handleClick,children:[/*#__PURE__*/(0,jsx_runtime.jsx)("div",{style:{touchAction:"none"},...touchProps,children:handler}),/*#__PURE__*/(0,jsx_runtime.jsx)("div",{children:children})]});}
+const getEdgePosition=_ref=>{let{x:left,y:top,width,height,windowWidth,windowHeight,hover}=_ref;const right=windowWidth-left-width;const bottom=windowHeight-top-height;const min=Math.min(left,top,right,bottom);switch(min){case right:left=hover?windowWidth-width:windowWidth-width/2;break;case left:left=hover?0:-width/2;break;case bottom:top=hover?windowHeight-height:windowHeight-height/2;break;default:top=hover?0:-height/2;}return{x:left,y:top};};function DraggableWrapper(_ref2){let{children,usePaper,...props}=_ref2;if(usePaper){return/*#__PURE__*/(0,jsx_runtime.jsx)(Paper_Paper,{...props,elevation:4,children:children});}return/*#__PURE__*/(0,jsx_runtime.jsx)("div",{...props,children:children});}function Draggable(_ref3){let{windowSize:{w:windowWidth,h:windowHeight},width,height,left,top,show,snapEdge,onStart,onMove,handler,children,usePaper}=_ref3;const[hover,setHover]=(0,react.useState)(false);const[origin,setOrigin]=(0,react.useState)(null);const[position,setPosition]=(0,react.useState)({x:left,y:top});const setFabPosition=(0,react.useMemo)(()=>debounce(putFab,500),[]);const handlePointerDown=e=>{!isMobile&&e.target.setPointerCapture(e.pointerId);onStart&&onStart();const{x,y}=position;const{clientX,clientY}=isMobile?e.targetTouches[0]:e;setOrigin({x,y,clientX,clientY});};const handlePointerMove=e=>{onMove&&onMove();const{clientX,clientY}=isMobile?e.targetTouches[0]:e;if(origin){const dx=clientX-origin.clientX;const dy=clientY-origin.clientY;let x=origin.x+dx;let y=origin.y+dy;x=limitNumber(x,-width/2,windowWidth-width/2);y=limitNumber(y,0,windowHeight-height/2);setPosition({x,y});}};const handlePointerUp=e=>{e.stopPropagation();setOrigin(null);};const handleClick=e=>{e.stopPropagation();};const handleMouseEnter=e=>{e.stopPropagation();setHover(true);};const handleMouseLeave=e=>{e.stopPropagation();setHover(false);};(0,react.useEffect)(()=>{if(!snapEdge||!!origin){return;}setPosition(pre=>{const edgePosition=getEdgePosition({...pre,width,height,windowWidth,windowHeight,hover});setFabPosition(edgePosition);return edgePosition;});},[origin,hover,width,height,windowWidth,windowHeight,snapEdge,setFabPosition]);const opacity=(0,react.useMemo)(()=>{if(snapEdge){return hover||origin?1:0.2;}return origin?0.8:1;},[origin,snapEdge,hover]);const touchProps=isMobile?{onTouchStart:handlePointerDown,onTouchMove:handlePointerMove,onTouchEnd:handlePointerUp}:{onPointerDown:handlePointerDown,onPointerMove:handlePointerMove,onPointerUp:handlePointerUp};return/*#__PURE__*/(0,jsx_runtime.jsxs)(DraggableWrapper,{usePaper:usePaper,style:{opacity,position:"fixed",left:position.x,top:position.y,zIndex:2147483647,display:show?"block":"none"},onMouseEnter:handleMouseEnter,onMouseLeave:handleMouseLeave,onClick:handleClick,children:[/*#__PURE__*/(0,jsx_runtime.jsx)("div",{style:{touchAction:"none"},...touchProps,children:handler}),/*#__PURE__*/(0,jsx_runtime.jsx)("div",{children:children})]});}
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mui+styled-engine@5.15.14_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@e_38b353972d011fd8524090cbc8c519bf/node_modules/@mui/styled-engine/index.js + 5 modules
 var styled_engine = __webpack_require__(5190);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/styleFunctionSx/styleFunctionSx.js
 var styleFunctionSx = __webpack_require__(1048);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/styleFunctionSx/extendSxProp.js
-var extendSxProp = __webpack_require__(416);
 ;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+system@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotion+_c57ab6d9ade3633fb3ee97c5c0a1d690/node_modules/@mui/system/esm/createBox.js
 'use client';
 
@@ -36574,8 +38442,8 @@ var createTheme_createTheme = __webpack_require__(3985);
 
 
 const createStyled_excluded = ["ownerState"],
-  _excluded2 = ["variants"],
-  _excluded3 = ["name", "slot", "skipVariantsResolver", "skipSx", "overridesResolver"];
+  createStyled_excluded2 = ["variants"],
+  createStyled_excluded3 = ["name", "slot", "skipVariantsResolver", "skipSx", "overridesResolver"];
 /* eslint-disable no-underscore-dangle */
 
 
@@ -36638,7 +38506,7 @@ function processStyleArg(callableStyle, _ref) {
     const {
         variants = []
       } = resolvedStylesArg,
-      otherStyles = (0,objectWithoutPropertiesLoose/* default */.Z)(resolvedStylesArg, _excluded2);
+      otherStyles = (0,objectWithoutPropertiesLoose/* default */.Z)(resolvedStylesArg, createStyled_excluded2);
     let result = otherStyles;
     variants.forEach(variant => {
       let isMatch = true;
@@ -36696,7 +38564,7 @@ function createStyled() {
         // For more details: https://github.com/mui/material-ui/pull/37908
         overridesResolver = defaultOverridesResolver(lowercaseFirstLetter(componentSlot))
       } = inputOptions,
-      options = (0,objectWithoutPropertiesLoose/* default */.Z)(inputOptions, _excluded3);
+      options = (0,objectWithoutPropertiesLoose/* default */.Z)(inputOptions, createStyled_excluded3);
 
     // if skipVariantsResolver option is defined, take the value, otherwise, true for root and false for other slots.
     const skipVariantsResolver = inputSkipVariantsResolver !== undefined ? inputSkipVariantsResolver :
@@ -36872,7 +38740,7 @@ const getSideFromDirection = direction => {
     'column-reverse': 'Bottom'
   }[direction];
 };
-const style = _ref => {
+const createStack_style = _ref => {
   let {
     ownerState,
     theme
@@ -36951,7 +38819,7 @@ function createStack() {
     };
     return (0,composeClasses/* default */.Z)(slots, slot => (0,generateUtilityClass_generateUtilityClass/* default */.ZP)(componentName, slot), {});
   };
-  const StackRoot = createStyledComponent(style);
+  const StackRoot = createStyledComponent(createStack_style);
   const Stack = /*#__PURE__*/react.forwardRef(function Grid(inProps, ref) {
     const themeProps = useThemeProps(inProps);
     const props = (0,extendSxProp/* default */.Z)(themeProps); // `color` type conflicts with html color attribute.
@@ -37016,14 +38884,6 @@ if (false) {}
 /* harmony default export */ const List_ListContext = (ListContext);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/useEnhancedEffect.js
 var useEnhancedEffect = __webpack_require__(2754);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Divider/dividerClasses.js
-
-
-function getDividerUtilityClass(slot) {
-  return (0,generateUtilityClass_generateUtilityClass/* default */.ZP)('MuiDivider', slot);
-}
-const dividerClasses = (0,generateUtilityClasses/* default */.Z)('MuiDivider', ['root', 'absolute', 'fullWidth', 'inset', 'middle', 'flexItem', 'light', 'vertical', 'withChildren', 'withChildrenVertical', 'textAlignRight', 'textAlignLeft', 'wrapper', 'wrapperVertical']);
-/* harmony default export */ const Divider_dividerClasses = (dividerClasses);
 ;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/ListItemIcon/listItemIconClasses.js
 
 
@@ -37252,142 +39112,6 @@ if (false) {}
 function useFormControl() {
   return react.useContext(FormControl_FormControlContext);
 }
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Typography/typographyClasses.js
-
-
-function getTypographyUtilityClass(slot) {
-  return (0,generateUtilityClass_generateUtilityClass/* default */.ZP)('MuiTypography', slot);
-}
-const typographyClasses = (0,generateUtilityClasses/* default */.Z)('MuiTypography', ['root', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'subtitle1', 'subtitle2', 'body1', 'body2', 'inherit', 'button', 'caption', 'overline', 'alignLeft', 'alignRight', 'alignCenter', 'alignJustify', 'noWrap', 'gutterBottom', 'paragraph']);
-/* harmony default export */ const Typography_typographyClasses = ((/* unused pure expression or super */ null && (typographyClasses)));
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Typography/Typography.js
-'use client';
-
-
-
-const Typography_excluded = ["align", "className", "component", "gutterBottom", "noWrap", "paragraph", "variant", "variantMapping"];
-
-
-
-
-
-
-
-
-
-
-const Typography_useUtilityClasses = ownerState => {
-  const {
-    align,
-    gutterBottom,
-    noWrap,
-    paragraph,
-    variant,
-    classes
-  } = ownerState;
-  const slots = {
-    root: ['root', variant, ownerState.align !== 'inherit' && "align".concat((0,capitalize/* default */.Z)(align)), gutterBottom && 'gutterBottom', noWrap && 'noWrap', paragraph && 'paragraph']
-  };
-  return (0,composeClasses/* default */.Z)(slots, getTypographyUtilityClass, classes);
-};
-const TypographyRoot = (0,styled/* default */.ZP)('span', {
-  name: 'MuiTypography',
-  slot: 'Root',
-  overridesResolver: (props, styles) => {
-    const {
-      ownerState
-    } = props;
-    return [styles.root, ownerState.variant && styles[ownerState.variant], ownerState.align !== 'inherit' && styles["align".concat((0,capitalize/* default */.Z)(ownerState.align))], ownerState.noWrap && styles.noWrap, ownerState.gutterBottom && styles.gutterBottom, ownerState.paragraph && styles.paragraph];
-  }
-})(_ref => {
-  let {
-    theme,
-    ownerState
-  } = _ref;
-  return (0,esm_extends/* default */.Z)({
-    margin: 0
-  }, ownerState.variant === 'inherit' && {
-    // Some elements, like <button> on Chrome have default font that doesn't inherit, reset this.
-    font: 'inherit'
-  }, ownerState.variant !== 'inherit' && theme.typography[ownerState.variant], ownerState.align !== 'inherit' && {
-    textAlign: ownerState.align
-  }, ownerState.noWrap && {
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap'
-  }, ownerState.gutterBottom && {
-    marginBottom: '0.35em'
-  }, ownerState.paragraph && {
-    marginBottom: 16
-  });
-});
-const defaultVariantMapping = {
-  h1: 'h1',
-  h2: 'h2',
-  h3: 'h3',
-  h4: 'h4',
-  h5: 'h5',
-  h6: 'h6',
-  subtitle1: 'h6',
-  subtitle2: 'h6',
-  body1: 'p',
-  body2: 'p',
-  inherit: 'p'
-};
-
-// TODO v6: deprecate these color values in v5.x and remove the transformation in v6
-const colorTransformations = {
-  primary: 'primary.main',
-  textPrimary: 'text.primary',
-  secondary: 'secondary.main',
-  textSecondary: 'text.secondary',
-  error: 'error.main'
-};
-const transformDeprecatedColors = color => {
-  return colorTransformations[color] || color;
-};
-const Typography = /*#__PURE__*/react.forwardRef(function Typography(inProps, ref) {
-  const themeProps = (0,useThemeProps/* default */.Z)({
-    props: inProps,
-    name: 'MuiTypography'
-  });
-  const color = transformDeprecatedColors(themeProps.color);
-  const props = (0,extendSxProp/* default */.Z)((0,esm_extends/* default */.Z)({}, themeProps, {
-    color
-  }));
-  const {
-      align = 'inherit',
-      className,
-      component,
-      gutterBottom = false,
-      noWrap = false,
-      paragraph = false,
-      variant = 'body1',
-      variantMapping = defaultVariantMapping
-    } = props,
-    other = (0,objectWithoutPropertiesLoose/* default */.Z)(props, Typography_excluded);
-  const ownerState = (0,esm_extends/* default */.Z)({}, props, {
-    align,
-    color,
-    className,
-    component,
-    gutterBottom,
-    noWrap,
-    paragraph,
-    variant,
-    variantMapping
-  });
-  const Component = component || (paragraph ? 'p' : variantMapping[variant] || defaultVariantMapping[variant]) || 'span';
-  const classes = Typography_useUtilityClasses(ownerState);
-  return /*#__PURE__*/(0,jsx_runtime.jsx)(TypographyRoot, (0,esm_extends/* default */.Z)({
-    as: Component,
-    ref: ref,
-    ownerState: ownerState,
-    className: (0,clsx/* default */.Z)(classes.root, className)
-  }, other));
-});
- false ? 0 : void 0;
-/* harmony default export */ const Typography_Typography = (Typography);
 ;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/FormControlLabel/formControlLabelClasses.js
 
 
@@ -37586,8 +39310,8 @@ const FormControlLabel = /*#__PURE__*/react.forwardRef(function FormControlLabel
 });
  false ? 0 : void 0;
 /* harmony default export */ const FormControlLabel_FormControlLabel = (FormControlLabel);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/useControlled.js + 1 modules
-var useControlled = __webpack_require__(6559);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/useControlled.js
+var useControlled = __webpack_require__(6258);
 ;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/internal/switchBaseClasses.js
 
 
@@ -37771,14 +39495,6 @@ const SwitchBase = /*#__PURE__*/react.forwardRef(function SwitchBase(props, ref)
 // so that the API documentation is updated.
  false ? 0 : void 0;
 /* harmony default export */ const internal_SwitchBase = (SwitchBase);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/zero-styled/index.js
-
-
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function createUseThemeProps(name) {
-  return useThemeProps/* default */.Z;
-}
 ;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Switch/switchClasses.js
 
 
@@ -38375,22 +40091,500 @@ const Button = /*#__PURE__*/react.forwardRef(function Button(inProps, ref) {
 });
  false ? 0 : void 0;
 /* harmony default export */ const Button_Button = (Button);
-;// CONCATENATED MODULE: ./src/hooks/Fetch.js
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/styles/useTheme.js
+'use client';
+
+
+
+
+
+function useTheme_useTheme() {
+  const theme = (0,esm_useTheme/* default */.Z)(defaultTheme/* default */.Z);
+  if (false) {}
+  return theme[identifier/* default */.Z] || theme;
+}
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Grid/GridContext.js
+'use client';
+
+
+
 /**
- * fetch data hook
- * @returns
- */const Fetch_useFetch=url=>{const[data,setData]=useState(null);const[loading,setLoading]=useState(false);const[error,setError]=useState(null);useEffect(()=>{if(!url){return;}(async()=>{setLoading(true);try{var _res$headers$get;const res=await fetch(url);if(!res.ok){throw new Error("[".concat(res.status,"] ").concat(res.statusText));}let data;if((_res$headers$get=res.headers.get("Content-Type"))!==null&&_res$headers$get!==void 0&&_res$headers$get.includes("json")){data=await res.json();}else{data=await res.text();}setData(data);}catch(err){setError(err);}finally{setLoading(false);}})();},[url]);return[data,loading,error];};
+ * @ignore - internal component.
+ */
+const GridContext = /*#__PURE__*/react.createContext();
+if (false) {}
+/* harmony default export */ const Grid_GridContext = (GridContext);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Grid/gridClasses.js
+
+
+function getGridUtilityClass(slot) {
+  return (0,generateUtilityClass_generateUtilityClass/* default */.ZP)('MuiGrid', slot);
+}
+const SPACINGS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+const DIRECTIONS = ['column-reverse', 'column', 'row-reverse', 'row'];
+const WRAPS = ['nowrap', 'wrap-reverse', 'wrap'];
+const GRID_SIZES = ['auto', true, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+const gridClasses = (0,generateUtilityClasses/* default */.Z)('MuiGrid', ['root', 'container', 'item', 'zeroMinWidth',
+// spacings
+...SPACINGS.map(spacing => "spacing-xs-".concat(spacing)),
+// direction values
+...DIRECTIONS.map(direction => "direction-xs-".concat(direction)),
+// wrap values
+...WRAPS.map(wrap => "wrap-xs-".concat(wrap)),
+// grid sizes for all breakpoints
+...GRID_SIZES.map(size => "grid-xs-".concat(size)), ...GRID_SIZES.map(size => "grid-sm-".concat(size)), ...GRID_SIZES.map(size => "grid-md-".concat(size)), ...GRID_SIZES.map(size => "grid-lg-".concat(size)), ...GRID_SIZES.map(size => "grid-xl-".concat(size))]);
+/* harmony default export */ const Grid_gridClasses = (gridClasses);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Grid/Grid.js
+'use client';
+
+// A grid component using the following libs as inspiration.
+//
+// For the implementation:
+// - https://getbootstrap.com/docs/4.3/layout/grid/
+// - https://github.com/kristoferjoseph/flexboxgrid/blob/master/src/css/flexboxgrid.css
+// - https://github.com/roylee0704/react-flexbox-grid
+// - https://material.angularjs.org/latest/layout/introduction
+//
+// Follow this flexbox Guide to better understand the underlying model:
+// - https://css-tricks.com/snippets/css/a-guide-to-flexbox/
+
+
+const Grid_excluded = ["className", "columns", "columnSpacing", "component", "container", "direction", "item", "rowSpacing", "spacing", "wrap", "zeroMinWidth"];
+
+
+
+
+
+
+
+
+
+
+
+
+
+function getOffset(val) {
+  const parse = parseFloat(val);
+  return "".concat(parse).concat(String(val).replace(String(parse), '') || 'px');
+}
+function generateGrid(_ref) {
+  let {
+    theme,
+    ownerState
+  } = _ref;
+  let size;
+  return theme.breakpoints.keys.reduce((globalStyles, breakpoint) => {
+    // Use side effect over immutability for better performance.
+    let styles = {};
+    if (ownerState[breakpoint]) {
+      size = ownerState[breakpoint];
+    }
+    if (!size) {
+      return globalStyles;
+    }
+    if (size === true) {
+      // For the auto layouting
+      styles = {
+        flexBasis: 0,
+        flexGrow: 1,
+        maxWidth: '100%'
+      };
+    } else if (size === 'auto') {
+      styles = {
+        flexBasis: 'auto',
+        flexGrow: 0,
+        flexShrink: 0,
+        maxWidth: 'none',
+        width: 'auto'
+      };
+    } else {
+      const columnsBreakpointValues = (0,breakpoints/* resolveBreakpointValues */.P$)({
+        values: ownerState.columns,
+        breakpoints: theme.breakpoints.values
+      });
+      const columnValue = typeof columnsBreakpointValues === 'object' ? columnsBreakpointValues[breakpoint] : columnsBreakpointValues;
+      if (columnValue === undefined || columnValue === null) {
+        return globalStyles;
+      }
+      // Keep 7 significant numbers.
+      const width = "".concat(Math.round(size / columnValue * 10e7) / 10e5, "%");
+      let more = {};
+      if (ownerState.container && ownerState.item && ownerState.columnSpacing !== 0) {
+        const themeSpacing = theme.spacing(ownerState.columnSpacing);
+        if (themeSpacing !== '0px') {
+          const fullWidth = "calc(".concat(width, " + ").concat(getOffset(themeSpacing), ")");
+          more = {
+            flexBasis: fullWidth,
+            maxWidth: fullWidth
+          };
+        }
+      }
+
+      // Close to the bootstrap implementation:
+      // https://github.com/twbs/bootstrap/blob/8fccaa2439e97ec72a4b7dc42ccc1f649790adb0/scss/mixins/_grid.scss#L41
+      styles = (0,esm_extends/* default */.Z)({
+        flexBasis: width,
+        flexGrow: 0,
+        maxWidth: width
+      }, more);
+    }
+
+    // No need for a media query for the first size.
+    if (theme.breakpoints.values[breakpoint] === 0) {
+      Object.assign(globalStyles, styles);
+    } else {
+      globalStyles[theme.breakpoints.up(breakpoint)] = styles;
+    }
+    return globalStyles;
+  }, {});
+}
+function generateDirection(_ref2) {
+  let {
+    theme,
+    ownerState
+  } = _ref2;
+  const directionValues = (0,breakpoints/* resolveBreakpointValues */.P$)({
+    values: ownerState.direction,
+    breakpoints: theme.breakpoints.values
+  });
+  return (0,breakpoints/* handleBreakpoints */.k9)({
+    theme
+  }, directionValues, propValue => {
+    const output = {
+      flexDirection: propValue
+    };
+    if (propValue.indexOf('column') === 0) {
+      output["& > .".concat(Grid_gridClasses.item)] = {
+        maxWidth: 'none'
+      };
+    }
+    return output;
+  });
+}
+
+/**
+ * Extracts zero value breakpoint keys before a non-zero value breakpoint key.
+ * @example { xs: 0, sm: 0, md: 2, lg: 0, xl: 0 } or [0, 0, 2, 0, 0]
+ * @returns [xs, sm]
+ */
+function extractZeroValueBreakpointKeys(_ref3) {
+  let {
+    breakpoints,
+    values
+  } = _ref3;
+  let nonZeroKey = '';
+  Object.keys(values).forEach(key => {
+    if (nonZeroKey !== '') {
+      return;
+    }
+    if (values[key] !== 0) {
+      nonZeroKey = key;
+    }
+  });
+  const sortedBreakpointKeysByValue = Object.keys(breakpoints).sort((a, b) => {
+    return breakpoints[a] - breakpoints[b];
+  });
+  return sortedBreakpointKeysByValue.slice(0, sortedBreakpointKeysByValue.indexOf(nonZeroKey));
+}
+function generateRowGap(_ref4) {
+  let {
+    theme,
+    ownerState
+  } = _ref4;
+  const {
+    container,
+    rowSpacing
+  } = ownerState;
+  let styles = {};
+  if (container && rowSpacing !== 0) {
+    const rowSpacingValues = (0,breakpoints/* resolveBreakpointValues */.P$)({
+      values: rowSpacing,
+      breakpoints: theme.breakpoints.values
+    });
+    let zeroValueBreakpointKeys;
+    if (typeof rowSpacingValues === 'object') {
+      zeroValueBreakpointKeys = extractZeroValueBreakpointKeys({
+        breakpoints: theme.breakpoints.values,
+        values: rowSpacingValues
+      });
+    }
+    styles = (0,breakpoints/* handleBreakpoints */.k9)({
+      theme
+    }, rowSpacingValues, (propValue, breakpoint) => {
+      var _zeroValueBreakpointK;
+      const themeSpacing = theme.spacing(propValue);
+      if (themeSpacing !== '0px') {
+        return {
+          marginTop: "-".concat(getOffset(themeSpacing)),
+          ["& > .".concat(Grid_gridClasses.item)]: {
+            paddingTop: getOffset(themeSpacing)
+          }
+        };
+      }
+      if ((_zeroValueBreakpointK = zeroValueBreakpointKeys) != null && _zeroValueBreakpointK.includes(breakpoint)) {
+        return {};
+      }
+      return {
+        marginTop: 0,
+        ["& > .".concat(Grid_gridClasses.item)]: {
+          paddingTop: 0
+        }
+      };
+    });
+  }
+  return styles;
+}
+function generateColumnGap(_ref5) {
+  let {
+    theme,
+    ownerState
+  } = _ref5;
+  const {
+    container,
+    columnSpacing
+  } = ownerState;
+  let styles = {};
+  if (container && columnSpacing !== 0) {
+    const columnSpacingValues = (0,breakpoints/* resolveBreakpointValues */.P$)({
+      values: columnSpacing,
+      breakpoints: theme.breakpoints.values
+    });
+    let zeroValueBreakpointKeys;
+    if (typeof columnSpacingValues === 'object') {
+      zeroValueBreakpointKeys = extractZeroValueBreakpointKeys({
+        breakpoints: theme.breakpoints.values,
+        values: columnSpacingValues
+      });
+    }
+    styles = (0,breakpoints/* handleBreakpoints */.k9)({
+      theme
+    }, columnSpacingValues, (propValue, breakpoint) => {
+      var _zeroValueBreakpointK2;
+      const themeSpacing = theme.spacing(propValue);
+      if (themeSpacing !== '0px') {
+        return {
+          width: "calc(100% + ".concat(getOffset(themeSpacing), ")"),
+          marginLeft: "-".concat(getOffset(themeSpacing)),
+          ["& > .".concat(Grid_gridClasses.item)]: {
+            paddingLeft: getOffset(themeSpacing)
+          }
+        };
+      }
+      if ((_zeroValueBreakpointK2 = zeroValueBreakpointKeys) != null && _zeroValueBreakpointK2.includes(breakpoint)) {
+        return {};
+      }
+      return {
+        width: '100%',
+        marginLeft: 0,
+        ["& > .".concat(Grid_gridClasses.item)]: {
+          paddingLeft: 0
+        }
+      };
+    });
+  }
+  return styles;
+}
+function resolveSpacingStyles(spacing, breakpoints) {
+  let styles = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+  // undefined/null or `spacing` <= 0
+  if (!spacing || spacing <= 0) {
+    return [];
+  }
+  // in case of string/number `spacing`
+  if (typeof spacing === 'string' && !Number.isNaN(Number(spacing)) || typeof spacing === 'number') {
+    return [styles["spacing-xs-".concat(String(spacing))]];
+  }
+  // in case of object `spacing`
+  const spacingStyles = [];
+  breakpoints.forEach(breakpoint => {
+    const value = spacing[breakpoint];
+    if (Number(value) > 0) {
+      spacingStyles.push(styles["spacing-".concat(breakpoint, "-").concat(String(value))]);
+    }
+  });
+  return spacingStyles;
+}
+
+// Default CSS values
+// flex: '0 1 auto',
+// flexDirection: 'row',
+// alignItems: 'flex-start',
+// flexWrap: 'nowrap',
+// justifyContent: 'flex-start',
+const GridRoot = (0,styled/* default */.ZP)('div', {
+  name: 'MuiGrid',
+  slot: 'Root',
+  overridesResolver: (props, styles) => {
+    const {
+      ownerState
+    } = props;
+    const {
+      container,
+      direction,
+      item,
+      spacing,
+      wrap,
+      zeroMinWidth,
+      breakpoints
+    } = ownerState;
+    let spacingStyles = [];
+
+    // in case of grid item
+    if (container) {
+      spacingStyles = resolveSpacingStyles(spacing, breakpoints, styles);
+    }
+    const breakpointsStyles = [];
+    breakpoints.forEach(breakpoint => {
+      const value = ownerState[breakpoint];
+      if (value) {
+        breakpointsStyles.push(styles["grid-".concat(breakpoint, "-").concat(String(value))]);
+      }
+    });
+    return [styles.root, container && styles.container, item && styles.item, zeroMinWidth && styles.zeroMinWidth, ...spacingStyles, direction !== 'row' && styles["direction-xs-".concat(String(direction))], wrap !== 'wrap' && styles["wrap-xs-".concat(String(wrap))], ...breakpointsStyles];
+  }
+})(_ref6 => {
+  let {
+    ownerState
+  } = _ref6;
+  return (0,esm_extends/* default */.Z)({
+    boxSizing: 'border-box'
+  }, ownerState.container && {
+    display: 'flex',
+    flexWrap: 'wrap',
+    width: '100%'
+  }, ownerState.item && {
+    margin: 0 // For instance, it's useful when used with a `figure` element.
+  }, ownerState.zeroMinWidth && {
+    minWidth: 0
+  }, ownerState.wrap !== 'wrap' && {
+    flexWrap: ownerState.wrap
+  });
+}, generateDirection, generateRowGap, generateColumnGap, generateGrid);
+function resolveSpacingClasses(spacing, breakpoints) {
+  // undefined/null or `spacing` <= 0
+  if (!spacing || spacing <= 0) {
+    return [];
+  }
+  // in case of string/number `spacing`
+  if (typeof spacing === 'string' && !Number.isNaN(Number(spacing)) || typeof spacing === 'number') {
+    return ["spacing-xs-".concat(String(spacing))];
+  }
+  // in case of object `spacing`
+  const classes = [];
+  breakpoints.forEach(breakpoint => {
+    const value = spacing[breakpoint];
+    if (Number(value) > 0) {
+      const className = "spacing-".concat(breakpoint, "-").concat(String(value));
+      classes.push(className);
+    }
+  });
+  return classes;
+}
+const Grid_useUtilityClasses = ownerState => {
+  const {
+    classes,
+    container,
+    direction,
+    item,
+    spacing,
+    wrap,
+    zeroMinWidth,
+    breakpoints
+  } = ownerState;
+  let spacingClasses = [];
+
+  // in case of grid item
+  if (container) {
+    spacingClasses = resolveSpacingClasses(spacing, breakpoints);
+  }
+  const breakpointsClasses = [];
+  breakpoints.forEach(breakpoint => {
+    const value = ownerState[breakpoint];
+    if (value) {
+      breakpointsClasses.push("grid-".concat(breakpoint, "-").concat(String(value)));
+    }
+  });
+  const slots = {
+    root: ['root', container && 'container', item && 'item', zeroMinWidth && 'zeroMinWidth', ...spacingClasses, direction !== 'row' && "direction-xs-".concat(String(direction)), wrap !== 'wrap' && "wrap-xs-".concat(String(wrap)), ...breakpointsClasses]
+  };
+  return (0,composeClasses/* default */.Z)(slots, getGridUtilityClass, classes);
+};
+const Grid = /*#__PURE__*/react.forwardRef(function Grid(inProps, ref) {
+  const themeProps = (0,useThemeProps/* default */.Z)({
+    props: inProps,
+    name: 'MuiGrid'
+  });
+  const {
+    breakpoints
+  } = useTheme_useTheme();
+  const props = (0,extendSxProp/* default */.Z)(themeProps);
+  const {
+      className,
+      columns: columnsProp,
+      columnSpacing: columnSpacingProp,
+      component = 'div',
+      container = false,
+      direction = 'row',
+      item = false,
+      rowSpacing: rowSpacingProp,
+      spacing = 0,
+      wrap = 'wrap',
+      zeroMinWidth = false
+    } = props,
+    other = (0,objectWithoutPropertiesLoose/* default */.Z)(props, Grid_excluded);
+  const rowSpacing = rowSpacingProp || spacing;
+  const columnSpacing = columnSpacingProp || spacing;
+  const columnsContext = react.useContext(Grid_GridContext);
+
+  // columns set with default breakpoint unit of 12
+  const columns = container ? columnsProp || 12 : columnsContext;
+  const breakpointsValues = {};
+  const otherFiltered = (0,esm_extends/* default */.Z)({}, other);
+  breakpoints.keys.forEach(breakpoint => {
+    if (other[breakpoint] != null) {
+      breakpointsValues[breakpoint] = other[breakpoint];
+      delete otherFiltered[breakpoint];
+    }
+  });
+  const ownerState = (0,esm_extends/* default */.Z)({}, props, {
+    columns,
+    container,
+    direction,
+    item,
+    rowSpacing,
+    columnSpacing,
+    wrap,
+    zeroMinWidth,
+    spacing
+  }, breakpointsValues, {
+    breakpoints: breakpoints.keys
+  });
+  const classes = Grid_useUtilityClasses(ownerState);
+  return /*#__PURE__*/(0,jsx_runtime.jsx)(Grid_GridContext.Provider, {
+    value: columns,
+    children: /*#__PURE__*/(0,jsx_runtime.jsx)(GridRoot, (0,esm_extends/* default */.Z)({
+      ownerState: ownerState,
+      className: (0,clsx/* default */.Z)(classes.root, className),
+      as: component,
+      ref: ref
+    }, otherFiltered))
+  });
+});
+ false ? 0 : void 0;
+if (false) {}
+/* harmony default export */ const Grid_Grid = (Grid);
+;// CONCATENATED MODULE: ./src/hooks/Fetch.js
+const useAsync=()=>{const[data,setData]=(0,react.useState)(null);const[loading,setLoading]=(0,react.useState)(false);const[error,setError]=(0,react.useState)(null);const execute=(0,react.useCallback)(async function(fn){if(!fn){return;}setLoading(true);setError(null);try{for(var _len=arguments.length,args=new Array(_len>1?_len-1:0),_key=1;_key<_len;_key++){args[_key-1]=arguments[_key];}const res=await fn(...args);setData(res);setLoading(false);return res;}catch(err){setError((err===null||err===void 0?void 0:err.message)||"An unknown error occurred");setLoading(false);// throw err;
+}},[]);const reset=(0,react.useCallback)(()=>{setData(null);setLoading(false);setError(null);},[]);return{data,loading,error,execute,reset};};const useAsyncNow=(fn,arg)=>{const{execute,...asyncState}=useAsync();(0,react.useEffect)(()=>{if(fn){execute(fn,arg);}},[execute,fn,arg]);return{...asyncState};};const useFetch=()=>{const{execute,...asyncState}=useAsync();const requester=useCallback(async(url,options)=>{var _response$headers$get;const response=await fetch(url,options);if(!response.ok){const errorInfo=await response.text();throw new Error("Request failed: ".concat(response.status," ").concat(response.statusText," - ").concat(errorInfo));}if(response.status===204){return null;}if((_response$headers$get=response.headers.get("Content-Type"))!==null&&_response$headers$get!==void 0&&_response$headers$get.includes("json")){return response.json();}return response.text();},[]);const get=useCallback(async function(url){let options=arguments.length>1&&arguments[1]!==undefined?arguments[1]:{};try{const result=await execute(requester,url,{...options,method:"GET"});return result;}catch(err){return null;}},[execute,requester]);const post=useCallback(async function(url,body){let options=arguments.length>2&&arguments[2]!==undefined?arguments[2]:{};try{const result=await execute(requester,url,{...options,method:"POST",headers:{"Content-Type":"application/json",...options.headers},body:JSON.stringify(body)});return result;}catch(err){return null;}},[execute,requester]);const put=useCallback(async function(url,body){let options=arguments.length>2&&arguments[2]!==undefined?arguments[2]:{};try{const result=await execute(requester,url,{...options,method:"PUT",headers:{"Content-Type":"application/json",...options.headers},body:JSON.stringify(body)});return result;}catch(err){return null;}},[execute,requester]);const del=useCallback(async function(url){let options=arguments.length>1&&arguments[1]!==undefined?arguments[1]:{};try{const result=await execute(requester,url,{...options,method:"DELETE"});return result;}catch(err){return null;}},[execute,requester]);return{...asyncState,get,post,put,del};};const Fetch_useGet=url=>{const{get,...fetchState}=useFetch();useEffect(()=>{if(url)get(url);},[url,get]);return{...fetchState};};
 ;// CONCATENATED MODULE: ./src/hooks/I18n.js
 const getI18n=function(uiLang,key){var _I18N$key$uiLang,_I18N$key;let defaultText=arguments.length>2&&arguments[2]!==undefined?arguments[2]:"";return(_I18N$key$uiLang=I18N===null||I18N===void 0?void 0:(_I18N$key=I18N[key])===null||_I18N$key===void 0?void 0:_I18N$key[uiLang])!==null&&_I18N$key$uiLang!==void 0?_I18N$key$uiLang:defaultText;};const useLangMap=uiLang=>{return function(key){let defaultText=arguments.length>1&&arguments[1]!==undefined?arguments[1]:"";return getI18n(uiLang,key,defaultText);};};/**
  * 多语言 hook
  * @returns
- */const useI18n=()=>{const{setting:{uiLang}}=useSetting();return useLangMap(uiLang);};const useI18nMd=key=>{const i18n=useI18n();const fileName=i18n(key);const url=fileName?"".concat(URL_RAW_PREFIX,"/").concat(fileName):"";return useFetch(url);};
+ */const useI18n=()=>{const{setting:{uiLang}}=useSetting();return useLangMap(uiLang);};const useI18nMd=key=>{const i18n=useI18n();const fileName=i18n(key);const url=fileName?"".concat(URL_RAW_PREFIX,"/").concat(fileName):"";return useGet(url);};
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mui+utils@5.15.14_@types+react@18.2.79_react@18.2.0/node_modules/@mui/utils/useId/useId.js
 var useId = __webpack_require__(2179);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mui+utils@5.15.14_@types+react@18.2.79_react@18.2.0/node_modules/@mui/utils/formatMuiErrorMessage/formatMuiErrorMessage.js
 var formatMuiErrorMessage = __webpack_require__(4451);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+utils@5.15.14_@types+react@18.2.79_react@18.2.0/node_modules/@mui/utils/useForkRef/useForkRef.js
-var useForkRef_useForkRef = __webpack_require__(4114);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mui+utils@5.15.14_@types+react@18.2.79_react@18.2.0/node_modules/@mui/utils/ownerWindow/ownerWindow.js
 var ownerWindow = __webpack_require__(6029);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mui+utils@5.15.14_@types+react@18.2.79_react@18.2.0/node_modules/@mui/utils/useEnhancedEffect/useEnhancedEffect.js
@@ -38584,13 +40778,6 @@ const TextareaAutosize = /*#__PURE__*/react.forwardRef(function TextareaAutosize
 });
  false ? 0 : void 0;
 
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+base@5.0.0-beta.40_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/@mui/base/utils/isHostComponent.js
-/**
- * Determines if a given element is a DOM element name (i.e. not a React component).
- */
-function isHostComponent(element) {
-  return typeof element === 'string';
-}
 ;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/InputBase/utils.js
 // Supports determination of isControlled().
 // Controlled input accepts its current value as a prop.
@@ -40478,149 +42665,6 @@ const FormHelperText = /*#__PURE__*/react.forwardRef(function FormHelperText(inP
 var react_is = __webpack_require__(8890);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/ownerDocument.js
 var ownerDocument = __webpack_require__(9259);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+base@5.0.0-beta.40_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/@mui/base/utils/appendOwnerState.js
-
-
-
-/**
- * Type of the ownerState based on the type of an element it applies to.
- * This resolves to the provided OwnerState for React components and `undefined` for host components.
- * Falls back to `OwnerState | undefined` when the exact type can't be determined in development time.
- */
-
-/**
- * Appends the ownerState object to the props, merging with the existing one if necessary.
- *
- * @param elementType Type of the element that owns the `existingProps`. If the element is a DOM node or undefined, `ownerState` is not applied.
- * @param otherProps Props of the element.
- * @param ownerState
- */
-function appendOwnerState(elementType, otherProps, ownerState) {
-  if (elementType === undefined || isHostComponent(elementType)) {
-    return otherProps;
-  }
-  return (0,esm_extends/* default */.Z)({}, otherProps, {
-    ownerState: (0,esm_extends/* default */.Z)({}, otherProps.ownerState, ownerState)
-  });
-}
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+base@5.0.0-beta.40_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/@mui/base/utils/extractEventHandlers.js
-/**
- * Extracts event handlers from a given object.
- * A prop is considered an event handler if it is a function and its name starts with `on`.
- *
- * @param object An object to extract event handlers from.
- * @param excludeKeys An array of keys to exclude from the returned object.
- */
-function extractEventHandlers(object) {
-  let excludeKeys = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : [];
-  if (object === undefined) {
-    return {};
-  }
-  const result = {};
-  Object.keys(object).filter(prop => prop.match(/^on[A-Z]/) && typeof object[prop] === 'function' && !excludeKeys.includes(prop)).forEach(prop => {
-    result[prop] = object[prop];
-  });
-  return result;
-}
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+base@5.0.0-beta.40_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/@mui/base/utils/omitEventHandlers.js
-/**
- * Removes event handlers from the given object.
- * A field is considered an event handler if it is a function with a name beginning with `on`.
- *
- * @param object Object to remove event handlers from.
- * @returns Object with event handlers removed.
- */
-function omitEventHandlers(object) {
-  if (object === undefined) {
-    return {};
-  }
-  const result = {};
-  Object.keys(object).filter(prop => !(prop.match(/^on[A-Z]/) && typeof object[prop] === 'function')).forEach(prop => {
-    result[prop] = object[prop];
-  });
-  return result;
-}
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+base@5.0.0-beta.40_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/@mui/base/utils/mergeSlotProps.js
-
-
-
-
-/**
- * Merges the slot component internal props (usually coming from a hook)
- * with the externally provided ones.
- *
- * The merge order is (the latter overrides the former):
- * 1. The internal props (specified as a getter function to work with get*Props hook result)
- * 2. Additional props (specified internally on a Base UI component)
- * 3. External props specified on the owner component. These should only be used on a root slot.
- * 4. External props specified in the `slotProps.*` prop.
- * 5. The `className` prop - combined from all the above.
- * @param parameters
- * @returns
- */
-function mergeSlotProps(parameters) {
-  const {
-    getSlotProps,
-    additionalProps,
-    externalSlotProps,
-    externalForwardedProps,
-    className
-  } = parameters;
-  if (!getSlotProps) {
-    // The simpler case - getSlotProps is not defined, so no internal event handlers are defined,
-    // so we can simply merge all the props without having to worry about extracting event handlers.
-    const joinedClasses = (0,clsx/* default */.Z)(additionalProps == null ? void 0 : additionalProps.className, className, externalForwardedProps == null ? void 0 : externalForwardedProps.className, externalSlotProps == null ? void 0 : externalSlotProps.className);
-    const mergedStyle = (0,esm_extends/* default */.Z)({}, additionalProps == null ? void 0 : additionalProps.style, externalForwardedProps == null ? void 0 : externalForwardedProps.style, externalSlotProps == null ? void 0 : externalSlotProps.style);
-    const props = (0,esm_extends/* default */.Z)({}, additionalProps, externalForwardedProps, externalSlotProps);
-    if (joinedClasses.length > 0) {
-      props.className = joinedClasses;
-    }
-    if (Object.keys(mergedStyle).length > 0) {
-      props.style = mergedStyle;
-    }
-    return {
-      props,
-      internalRef: undefined
-    };
-  }
-
-  // In this case, getSlotProps is responsible for calling the external event handlers.
-  // We don't need to include them in the merged props because of this.
-
-  const eventHandlers = extractEventHandlers((0,esm_extends/* default */.Z)({}, externalForwardedProps, externalSlotProps));
-  const componentsPropsWithoutEventHandlers = omitEventHandlers(externalSlotProps);
-  const otherPropsWithoutEventHandlers = omitEventHandlers(externalForwardedProps);
-  const internalSlotProps = getSlotProps(eventHandlers);
-
-  // The order of classes is important here.
-  // Emotion (that we use in libraries consuming Base UI) depends on this order
-  // to properly override style. It requires the most important classes to be last
-  // (see https://github.com/mui/material-ui/pull/33205) for the related discussion.
-  const joinedClasses = (0,clsx/* default */.Z)(internalSlotProps == null ? void 0 : internalSlotProps.className, additionalProps == null ? void 0 : additionalProps.className, className, externalForwardedProps == null ? void 0 : externalForwardedProps.className, externalSlotProps == null ? void 0 : externalSlotProps.className);
-  const mergedStyle = (0,esm_extends/* default */.Z)({}, internalSlotProps == null ? void 0 : internalSlotProps.style, additionalProps == null ? void 0 : additionalProps.style, externalForwardedProps == null ? void 0 : externalForwardedProps.style, externalSlotProps == null ? void 0 : externalSlotProps.style);
-  const props = (0,esm_extends/* default */.Z)({}, internalSlotProps, additionalProps, otherPropsWithoutEventHandlers, componentsPropsWithoutEventHandlers);
-  if (joinedClasses.length > 0) {
-    props.className = joinedClasses;
-  }
-  if (Object.keys(mergedStyle).length > 0) {
-    props.style = mergedStyle;
-  }
-  return {
-    props,
-    internalRef: internalSlotProps.ref
-  };
-}
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+base@5.0.0-beta.40_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/@mui/base/utils/resolveComponentProps.js
-/**
- * If `componentProps` is a function, calls it with the provided `ownerState`.
- * Otherwise, just returns `componentProps`.
- */
-function resolveComponentProps(componentProps, ownerState, slotState) {
-  if (typeof componentProps === 'function') {
-    return componentProps(ownerState, slotState);
-  }
-  return componentProps;
-}
 ;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+base@5.0.0-beta.40_@types+react@18.2.79_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/@mui/base/utils/useSlotProps.js
 'use client';
 
@@ -41412,18 +43456,6 @@ Transition.ENTERING = ENTERING;
 Transition.ENTERED = ENTERED;
 Transition.EXITING = EXITING;
 /* harmony default export */ const esm_Transition = (Transition);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/styles/useTheme.js
-'use client';
-
-
-
-
-
-function useTheme_useTheme() {
-  const theme = (0,esm_useTheme/* default */.Z)(defaultTheme/* default */.Z);
-  if (false) {}
-  return theme[identifier/* default */.Z] || theme;
-}
 ;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/transitions/utils.js
 const reflow = node => node.scrollTop;
 function getTransitionProps(props, options) {
@@ -44104,8 +46136,6 @@ const SelectInput = /*#__PURE__*/react.forwardRef(function SelectInput(props, re
 });
  false ? 0 : void 0;
 /* harmony default export */ const Select_SelectInput = (SelectInput);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/createSvgIcon.js + 2 modules
-var createSvgIcon = __webpack_require__(174);
 ;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/internal/svg-icons/ArrowDropDown.js
 'use client';
 
@@ -44466,368 +46496,8 @@ const TextField = /*#__PURE__*/react.forwardRef(function TextField(inProps, ref)
 });
  false ? 0 : void 0;
 /* harmony default export */ const TextField_TextField = (TextField);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Divider/Divider.js
-'use client';
-
-
-
-const Divider_excluded = ["absolute", "children", "className", "component", "flexItem", "light", "orientation", "role", "textAlign", "variant"];
-
-
-
-
-
-
-
-
-
-const Divider_useUtilityClasses = ownerState => {
-  const {
-    absolute,
-    children,
-    classes,
-    flexItem,
-    light,
-    orientation,
-    textAlign,
-    variant
-  } = ownerState;
-  const slots = {
-    root: ['root', absolute && 'absolute', variant, light && 'light', orientation === 'vertical' && 'vertical', flexItem && 'flexItem', children && 'withChildren', children && orientation === 'vertical' && 'withChildrenVertical', textAlign === 'right' && orientation !== 'vertical' && 'textAlignRight', textAlign === 'left' && orientation !== 'vertical' && 'textAlignLeft'],
-    wrapper: ['wrapper', orientation === 'vertical' && 'wrapperVertical']
-  };
-  return (0,composeClasses/* default */.Z)(slots, getDividerUtilityClass, classes);
-};
-const DividerRoot = (0,styled/* default */.ZP)('div', {
-  name: 'MuiDivider',
-  slot: 'Root',
-  overridesResolver: (props, styles) => {
-    const {
-      ownerState
-    } = props;
-    return [styles.root, ownerState.absolute && styles.absolute, styles[ownerState.variant], ownerState.light && styles.light, ownerState.orientation === 'vertical' && styles.vertical, ownerState.flexItem && styles.flexItem, ownerState.children && styles.withChildren, ownerState.children && ownerState.orientation === 'vertical' && styles.withChildrenVertical, ownerState.textAlign === 'right' && ownerState.orientation !== 'vertical' && styles.textAlignRight, ownerState.textAlign === 'left' && ownerState.orientation !== 'vertical' && styles.textAlignLeft];
-  }
-})(_ref => {
-  let {
-    theme,
-    ownerState
-  } = _ref;
-  return (0,esm_extends/* default */.Z)({
-    margin: 0,
-    // Reset browser default style.
-    flexShrink: 0,
-    borderWidth: 0,
-    borderStyle: 'solid',
-    borderColor: (theme.vars || theme).palette.divider,
-    borderBottomWidth: 'thin'
-  }, ownerState.absolute && {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    width: '100%'
-  }, ownerState.light && {
-    borderColor: theme.vars ? "rgba(".concat(theme.vars.palette.dividerChannel, " / 0.08)") : (0,colorManipulator/* alpha */.Fq)(theme.palette.divider, 0.08)
-  }, ownerState.variant === 'inset' && {
-    marginLeft: 72
-  }, ownerState.variant === 'middle' && ownerState.orientation === 'horizontal' && {
-    marginLeft: theme.spacing(2),
-    marginRight: theme.spacing(2)
-  }, ownerState.variant === 'middle' && ownerState.orientation === 'vertical' && {
-    marginTop: theme.spacing(1),
-    marginBottom: theme.spacing(1)
-  }, ownerState.orientation === 'vertical' && {
-    height: '100%',
-    borderBottomWidth: 0,
-    borderRightWidth: 'thin'
-  }, ownerState.flexItem && {
-    alignSelf: 'stretch',
-    height: 'auto'
-  });
-}, _ref2 => {
-  let {
-    ownerState
-  } = _ref2;
-  return (0,esm_extends/* default */.Z)({}, ownerState.children && {
-    display: 'flex',
-    whiteSpace: 'nowrap',
-    textAlign: 'center',
-    border: 0,
-    '&::before, &::after': {
-      content: '""',
-      alignSelf: 'center'
-    }
-  });
-}, _ref3 => {
-  let {
-    theme,
-    ownerState
-  } = _ref3;
-  return (0,esm_extends/* default */.Z)({}, ownerState.children && ownerState.orientation !== 'vertical' && {
-    '&::before, &::after': {
-      width: '100%',
-      borderTop: "thin solid ".concat((theme.vars || theme).palette.divider)
-    }
-  });
-}, _ref4 => {
-  let {
-    theme,
-    ownerState
-  } = _ref4;
-  return (0,esm_extends/* default */.Z)({}, ownerState.children && ownerState.orientation === 'vertical' && {
-    flexDirection: 'column',
-    '&::before, &::after': {
-      height: '100%',
-      borderLeft: "thin solid ".concat((theme.vars || theme).palette.divider)
-    }
-  });
-}, _ref5 => {
-  let {
-    ownerState
-  } = _ref5;
-  return (0,esm_extends/* default */.Z)({}, ownerState.textAlign === 'right' && ownerState.orientation !== 'vertical' && {
-    '&::before': {
-      width: '90%'
-    },
-    '&::after': {
-      width: '10%'
-    }
-  }, ownerState.textAlign === 'left' && ownerState.orientation !== 'vertical' && {
-    '&::before': {
-      width: '10%'
-    },
-    '&::after': {
-      width: '90%'
-    }
-  });
-});
-const DividerWrapper = (0,styled/* default */.ZP)('span', {
-  name: 'MuiDivider',
-  slot: 'Wrapper',
-  overridesResolver: (props, styles) => {
-    const {
-      ownerState
-    } = props;
-    return [styles.wrapper, ownerState.orientation === 'vertical' && styles.wrapperVertical];
-  }
-})(_ref6 => {
-  let {
-    theme,
-    ownerState
-  } = _ref6;
-  return (0,esm_extends/* default */.Z)({
-    display: 'inline-block',
-    paddingLeft: "calc(".concat(theme.spacing(1), " * 1.2)"),
-    paddingRight: "calc(".concat(theme.spacing(1), " * 1.2)")
-  }, ownerState.orientation === 'vertical' && {
-    paddingTop: "calc(".concat(theme.spacing(1), " * 1.2)"),
-    paddingBottom: "calc(".concat(theme.spacing(1), " * 1.2)")
-  });
-});
-const Divider = /*#__PURE__*/react.forwardRef(function Divider(inProps, ref) {
-  const props = (0,useThemeProps/* default */.Z)({
-    props: inProps,
-    name: 'MuiDivider'
-  });
-  const {
-      absolute = false,
-      children,
-      className,
-      component = children ? 'div' : 'hr',
-      flexItem = false,
-      light = false,
-      orientation = 'horizontal',
-      role = component !== 'hr' ? 'separator' : undefined,
-      textAlign = 'center',
-      variant = 'fullWidth'
-    } = props,
-    other = (0,objectWithoutPropertiesLoose/* default */.Z)(props, Divider_excluded);
-  const ownerState = (0,esm_extends/* default */.Z)({}, props, {
-    absolute,
-    component,
-    flexItem,
-    light,
-    orientation,
-    role,
-    textAlign,
-    variant
-  });
-  const classes = Divider_useUtilityClasses(ownerState);
-  return /*#__PURE__*/(0,jsx_runtime.jsx)(DividerRoot, (0,esm_extends/* default */.Z)({
-    as: component,
-    className: (0,clsx/* default */.Z)(classes.root, className),
-    role: role,
-    ref: ref,
-    ownerState: ownerState
-  }, other, {
-    children: children ? /*#__PURE__*/(0,jsx_runtime.jsx)(DividerWrapper, {
-      className: classes.wrapper,
-      ownerState: ownerState,
-      children: children
-    }) : null
-  }));
-});
-
-/**
- * The following flag is used to ensure that this component isn't tabbable i.e.
- * does not get highlight/focus inside of MUI List.
- */
-Divider.muiSkipListHighlight = true;
- false ? 0 : void 0;
-/* harmony default export */ const Divider_Divider = (Divider);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/IconButton/iconButtonClasses.js
-
-
-function getIconButtonUtilityClass(slot) {
-  return (0,generateUtilityClass_generateUtilityClass/* default */.ZP)('MuiIconButton', slot);
-}
-const iconButtonClasses = (0,generateUtilityClasses/* default */.Z)('MuiIconButton', ['root', 'disabled', 'colorInherit', 'colorPrimary', 'colorSecondary', 'colorError', 'colorInfo', 'colorSuccess', 'colorWarning', 'edgeStart', 'edgeEnd', 'sizeSmall', 'sizeMedium', 'sizeLarge']);
-/* harmony default export */ const IconButton_iconButtonClasses = (iconButtonClasses);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/IconButton/IconButton.js
-'use client';
-
-
-
-const IconButton_excluded = ["edge", "children", "className", "color", "disabled", "disableFocusRipple", "size"];
-
-
-
-
-
-
-
-
-
-
-
-
-const IconButton_useUtilityClasses = ownerState => {
-  const {
-    classes,
-    disabled,
-    color,
-    edge,
-    size
-  } = ownerState;
-  const slots = {
-    root: ['root', disabled && 'disabled', color !== 'default' && "color".concat((0,capitalize/* default */.Z)(color)), edge && "edge".concat((0,capitalize/* default */.Z)(edge)), "size".concat((0,capitalize/* default */.Z)(size))]
-  };
-  return (0,composeClasses/* default */.Z)(slots, getIconButtonUtilityClass, classes);
-};
-const IconButtonRoot = (0,styled/* default */.ZP)(ButtonBase_ButtonBase, {
-  name: 'MuiIconButton',
-  slot: 'Root',
-  overridesResolver: (props, styles) => {
-    const {
-      ownerState
-    } = props;
-    return [styles.root, ownerState.color !== 'default' && styles["color".concat((0,capitalize/* default */.Z)(ownerState.color))], ownerState.edge && styles["edge".concat((0,capitalize/* default */.Z)(ownerState.edge))], styles["size".concat((0,capitalize/* default */.Z)(ownerState.size))]];
-  }
-})(_ref => {
-  let {
-    theme,
-    ownerState
-  } = _ref;
-  return (0,esm_extends/* default */.Z)({
-    textAlign: 'center',
-    flex: '0 0 auto',
-    fontSize: theme.typography.pxToRem(24),
-    padding: 8,
-    borderRadius: '50%',
-    overflow: 'visible',
-    // Explicitly set the default value to solve a bug on IE11.
-    color: (theme.vars || theme).palette.action.active,
-    transition: theme.transitions.create('background-color', {
-      duration: theme.transitions.duration.shortest
-    })
-  }, !ownerState.disableRipple && {
-    '&:hover': {
-      backgroundColor: theme.vars ? "rgba(".concat(theme.vars.palette.action.activeChannel, " / ").concat(theme.vars.palette.action.hoverOpacity, ")") : (0,colorManipulator/* alpha */.Fq)(theme.palette.action.active, theme.palette.action.hoverOpacity),
-      // Reset on touch devices, it doesn't add specificity
-      '@media (hover: none)': {
-        backgroundColor: 'transparent'
-      }
-    }
-  }, ownerState.edge === 'start' && {
-    marginLeft: ownerState.size === 'small' ? -3 : -12
-  }, ownerState.edge === 'end' && {
-    marginRight: ownerState.size === 'small' ? -3 : -12
-  });
-}, _ref2 => {
-  let {
-    theme,
-    ownerState
-  } = _ref2;
-  var _palette;
-  const palette = (_palette = (theme.vars || theme).palette) == null ? void 0 : _palette[ownerState.color];
-  return (0,esm_extends/* default */.Z)({}, ownerState.color === 'inherit' && {
-    color: 'inherit'
-  }, ownerState.color !== 'inherit' && ownerState.color !== 'default' && (0,esm_extends/* default */.Z)({
-    color: palette == null ? void 0 : palette.main
-  }, !ownerState.disableRipple && {
-    '&:hover': (0,esm_extends/* default */.Z)({}, palette && {
-      backgroundColor: theme.vars ? "rgba(".concat(palette.mainChannel, " / ").concat(theme.vars.palette.action.hoverOpacity, ")") : (0,colorManipulator/* alpha */.Fq)(palette.main, theme.palette.action.hoverOpacity)
-    }, {
-      // Reset on touch devices, it doesn't add specificity
-      '@media (hover: none)': {
-        backgroundColor: 'transparent'
-      }
-    })
-  }), ownerState.size === 'small' && {
-    padding: 5,
-    fontSize: theme.typography.pxToRem(18)
-  }, ownerState.size === 'large' && {
-    padding: 12,
-    fontSize: theme.typography.pxToRem(28)
-  }, {
-    ["&.".concat(IconButton_iconButtonClasses.disabled)]: {
-      backgroundColor: 'transparent',
-      color: (theme.vars || theme).palette.action.disabled
-    }
-  });
-});
-
-/**
- * Refer to the [Icons](/material-ui/icons/) section of the documentation
- * regarding the available icon options.
- */
-const IconButton = /*#__PURE__*/react.forwardRef(function IconButton(inProps, ref) {
-  const props = (0,useThemeProps/* default */.Z)({
-    props: inProps,
-    name: 'MuiIconButton'
-  });
-  const {
-      edge = false,
-      children,
-      className,
-      color = 'default',
-      disabled = false,
-      disableFocusRipple = false,
-      size = 'medium'
-    } = props,
-    other = (0,objectWithoutPropertiesLoose/* default */.Z)(props, IconButton_excluded);
-  const ownerState = (0,esm_extends/* default */.Z)({}, props, {
-    edge,
-    color,
-    disabled,
-    disableFocusRipple,
-    size
-  });
-  const classes = IconButton_useUtilityClasses(ownerState);
-  return /*#__PURE__*/(0,jsx_runtime.jsx)(IconButtonRoot, (0,esm_extends/* default */.Z)({
-    className: (0,clsx/* default */.Z)(classes.root, className),
-    centerRipple: true,
-    focusRipple: !disableFocusRipple,
-    disabled: disabled,
-    ref: ref
-  }, other, {
-    ownerState: ownerState,
-    children: children
-  }));
-});
- false ? 0 : void 0;
-/* harmony default export */ const IconButton_IconButton = (IconButton);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@1_1e29dcefa4691dc57f2acd9f73947cfd/node_modules/@mui/icons-material/Close.js
-var Close = __webpack_require__(8373);
+var icons_material_Close = __webpack_require__(8373);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@1_1e29dcefa4691dc57f2acd9f73947cfd/node_modules/@mui/icons-material/Home.js
 var Home = __webpack_require__(1088);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@1_1e29dcefa4691dc57f2acd9f73947cfd/node_modules/@mui/icons-material/LightMode.js
@@ -44837,14 +46507,14 @@ var DarkMode = __webpack_require__(7415);
 ;// CONCATENATED MODULE: ./src/views/Options/DarkModeButton.js
 function DarkModeButton(){const{darkMode,toggleDarkMode}=useDarkMode();return/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{onClick:toggleDarkMode,color:"inherit",children:darkMode?/*#__PURE__*/(0,jsx_runtime.jsx)(LightMode/* default */.Z,{}):/*#__PURE__*/(0,jsx_runtime.jsx)(DarkMode/* default */.Z,{})});}
 ;// CONCATENATED MODULE: ./src/views/Popup/Header.js
-function Header(_ref){let{setShowPopup}=_ref;const handleHomepage=()=>{window.open("https://github.com/fishjar/kiss-translator","_blank");};return/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",justifyContent:"space-between",alignItems:"center",spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",justifyContent:"flex-start",alignItems:"center",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{onClick:handleHomepage,children:/*#__PURE__*/(0,jsx_runtime.jsx)(Home/* default */.Z,{})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{component:"div",sx:{userSelect:"none",WebkitUserSelect:"none",fontWeight:"bold"},children:"".concat("KISS Translator"," v").concat("1.9.2")})]}),setShowPopup?/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{onClick:()=>{setShowPopup(false);},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Close/* default */.Z,{})}):/*#__PURE__*/(0,jsx_runtime.jsx)(DarkModeButton,{})]});}
+function Header(_ref){let{setShowPopup}=_ref;const handleHomepage=()=>{window.open("https://github.com/fishjar/kiss-translator","_blank");};return/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",justifyContent:"space-between",alignItems:"center",spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",justifyContent:"flex-start",alignItems:"center",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{onClick:handleHomepage,children:/*#__PURE__*/(0,jsx_runtime.jsx)(Home/* default */.Z,{})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{component:"div",sx:{userSelect:"none",WebkitUserSelect:"none",fontWeight:"bold"},children:"".concat("KISS Translator"," v").concat("2.0.0")})]}),setShowPopup?/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{onClick:()=>{setShowPopup(false);},children:/*#__PURE__*/(0,jsx_runtime.jsx)(icons_material_Close/* default */.Z,{})}):/*#__PURE__*/(0,jsx_runtime.jsx)(DarkModeButton,{})]});}
 ;// CONCATENATED MODULE: ./src/libs/iframe.js
 const isIframe=window.self!==window.top;const sendIframeMsg=(action,args)=>{document.querySelectorAll("iframe").forEach(iframe=>{iframe.contentWindow.postMessage({action,args},"*");});};const sendParentMsg=(action,args)=>{window.parent.postMessage({action,args},"*");};
 ;// CONCATENATED MODULE: ./src/libs/subRules.js
 /**
  * 更新缓存同步时间
  * @param {*} url
- */const updateSyncDataCache=async url=>{const{dataCaches={}}=await getSyncWithDefault();dataCaches[url]=Date.now();await updateSync({dataCaches});};/**
+ */const updateSyncDataCache=async url=>{const{dataCaches={}}=await getSyncWithDefault();dataCaches[url]=Date.now();await putSync({dataCaches});};/**
  * 同步订阅规则
  * @param {*} url
  * @returns
@@ -44852,639 +46522,1149 @@ const isIframe=window.self!==window.top;const sendIframeMsg=(action,args)=>{docu
  * 同步所有订阅规则
  * @param {*} url
  * @returns
- */const syncAllSubRules=async subrulesList=>{for(const subrules of subrulesList){try{await syncSubRules(subrules.url);await updateSyncDataCache(subrules.url);}catch(err){log_kissLog(err,"sync subrule error: ".concat(subrules.url));}}};/**
+ */const syncAllSubRules=async subrulesList=>{for(const subrules of subrulesList){try{await syncSubRules(subrules.url);await updateSyncDataCache(subrules.url);}catch(err){log_kissLog("sync subrule error: ".concat(subrules.url),err);}}};/**
  * 根据时间同步所有订阅规则
  * @param {*} url
  * @returns
  */const trySyncAllSubRules=async _ref2=>{let{subrulesList}=_ref2;try{const{subRulesSyncAt}=await getSyncWithDefault();const now=Date.now();const interval=24*60*60*1000;// 间隔一天
 if(now-subRulesSyncAt>interval){// 同步订阅规则
-await syncAllSubRules(subrulesList);await updateSync({subRulesSyncAt:now});}}catch(err){log_kissLog(err,"try sync all subrules");}};/**
+await syncAllSubRules(subrulesList);await putSync({subRulesSyncAt:now});}}catch(err){log_kissLog("try sync all subrules",err);}};/**
  * 从缓存或远程加载订阅规则
  * @param {*} url
  * @returns
  */const loadOrFetchSubRules=async url=>{let rules=await getSubRules(url);if(!rules||rules.length===0){rules=await syncSubRules(url);await updateSyncDataCache(url);}return rules||[];};
 ;// CONCATENATED MODULE: ./src/libs/rules.js
+// import { FIXER_ALL } from "./webfix";
 /**
  * 根据href匹配规则
  * @param {*} rules
  * @param {string} href
  * @returns
- */const matchRule=async(href,_ref)=>{let{injectRules,subrulesList,owSubrule}=_ref;const rules=await getRulesWithDefault();if(injectRules){try{const selectedSub=subrulesList.find(item=>item.selected);if(selectedSub!==null&&selectedSub!==void 0&&selectedSub.url){const mixRule={};Object.entries(owSubrule).filter(_ref2=>{let[key,val]=_ref2;if(owSubrule.textStyle===REMAIN_KEY&&(key==="bgColor"||key==="textDiyStyle")){return false;}return val!==REMAIN_KEY;}).forEach(_ref3=>{let[key,val]=_ref3;mixRule[key]=val;});let subRules=await loadOrFetchSubRules(selectedSub.url);subRules=subRules.map(item=>({...item,...mixRule}));rules.splice(-1,0,...subRules);}}catch(err){log_kissLog(err,"load injectRules");}}const rule=rules.find(r=>r.pattern.split(",").some(p=>isMatch(href,p.trim())));const globalRule={...GLOBLA_RULE,...(rules.find(r=>r.pattern===GLOBAL_KEY)||{})};if(!rule){return globalRule;}["selector","keepSelector","terms","selectStyle","parentStyle","injectJs","injectCss","fixerSelector","transStartHook","transEndHook","transRemoveHook"].forEach(key=>{var _rule$key;if(!((_rule$key=rule[key])!==null&&_rule$key!==void 0&&_rule$key.trim())){rule[key]=globalRule[key];}});["translator","fromLang","toLang","transOpen","transOnly","transTiming","transTag","transTitle","transSelected","detectRemote","fixerFunc"].forEach(key=>{if(rule[key]===undefined||rule[key]===GLOBAL_KEY){rule[key]=globalRule[key];}});if(!rule.skipLangs||rule.skipLangs.length===0){rule.skipLangs=globalRule.skipLangs;}if(rule.textStyle===GLOBAL_KEY){rule.textStyle=globalRule.textStyle;rule.bgColor=globalRule.bgColor;rule.textDiyStyle=globalRule.textDiyStyle;}else{var _rule$bgColor,_rule$textDiyStyle;rule.bgColor=((_rule$bgColor=rule.bgColor)===null||_rule$bgColor===void 0?void 0:_rule$bgColor.trim())||globalRule.bgColor;rule.textDiyStyle=((_rule$textDiyStyle=rule.textDiyStyle)===null||_rule$textDiyStyle===void 0?void 0:_rule$textDiyStyle.trim())||globalRule.textDiyStyle;}return rule;};/**
+ */const matchRule=async(href,_ref)=>{let{injectRules,subrulesList}=_ref;const rules=await getRulesWithDefault();if(injectRules){try{const selectedSub=subrulesList.find(item=>item.selected);if(selectedSub!==null&&selectedSub!==void 0&&selectedSub.url){const subRules=await loadOrFetchSubRules(selectedSub.url);rules.splice(-1,0,...subRules);}}catch(err){log_kissLog("load injectRules",err);}}const rule=rules.find(r=>r.pattern.split(",").some(p=>isMatch(href,p.trim())));const globalRule={...GLOBLA_RULE,...(rules.find(r=>r.pattern===GLOBAL_KEY)||{})};if(!rule){return globalRule;}["selector","keepSelector","rootsSelector","ignoreSelector","terms","aiTerms","selectStyle","parentStyle","grandStyle","injectJs","injectCss",// "fixerSelector",
+"transStartHook","transEndHook"// "transRemoveHook",
+].forEach(key=>{var _rule$key;if(!((_rule$key=rule[key])!==null&&_rule$key!==void 0&&_rule$key.trim())){rule[key]=globalRule[key];}});["apiSlug","fromLang","toLang","transOpen","transOnly",// "transTiming",
+"autoScan","hasRichText","hasShadowroot","transTag","transTitle"// "detectRemote",
+// "fixerFunc",
+].forEach(key=>{if(!rule[key]||rule[key]===GLOBAL_KEY){rule[key]=globalRule[key];}});// if (!rule.skipLangs || rule.skipLangs.length === 0) {
+//   rule.skipLangs = globalRule.skipLangs;
+// }
+if(!rule.textStyle||rule.textStyle===GLOBAL_KEY){rule.textStyle=globalRule.textStyle;rule.bgColor=globalRule.bgColor;rule.textDiyStyle=globalRule.textDiyStyle;}else{var _rule$bgColor,_rule$textDiyStyle;rule.bgColor=((_rule$bgColor=rule.bgColor)===null||_rule$bgColor===void 0?void 0:_rule$bgColor.trim())||globalRule.bgColor;rule.textDiyStyle=((_rule$textDiyStyle=rule.textDiyStyle)===null||_rule$textDiyStyle===void 0?void 0:_rule$textDiyStyle.trim())||globalRule.textDiyStyle;}return rule;};/**
  * 检查过滤rules
  * @param {*} rules
  * @returns
- */const checkRules=rules=>{if(type(rules)==="string"){rules=JSON.parse(rules);}if(type(rules)!=="array"){throw new Error("data error");}const fromLangs=OPT_LANGS_FROM.map(item=>item[0]);const toLangs=OPT_LANGS_TO.map(item=>item[0]);const patternSet=new Set();rules=rules.filter(rule=>type(rule)==="object").filter(_ref4=>{let{pattern}=_ref4;if(type(pattern)!=="string"||patternSet.has(pattern.trim())){return false;}patternSet.add(pattern.trim());return true;}).map(_ref5=>{let{pattern,selector,keepSelector,terms,selectStyle,parentStyle,injectJs,injectCss,translator,fromLang,toLang,textStyle,transOpen,bgColor,textDiyStyle,transOnly,transTiming,transTag,transTitle,transSelected,detectRemote,skipLangs,fixerSelector,fixerFunc,transStartHook,transEndHook,transRemoveHook}=_ref5;return{pattern:pattern.trim(),selector:type(selector)==="string"?selector:"",keepSelector:type(keepSelector)==="string"?keepSelector:"",terms:type(terms)==="string"?terms:"",selectStyle:type(selectStyle)==="string"?selectStyle:"",parentStyle:type(parentStyle)==="string"?parentStyle:"",injectJs:type(injectJs)==="string"?injectJs:"",injectCss:type(injectCss)==="string"?injectCss:"",bgColor:type(bgColor)==="string"?bgColor:"",textDiyStyle:type(textDiyStyle)==="string"?textDiyStyle:"",translator:matchValue([GLOBAL_KEY,...OPT_TRANS_ALL],translator),fromLang:matchValue([GLOBAL_KEY,...fromLangs],fromLang),toLang:matchValue([GLOBAL_KEY,...toLangs],toLang),textStyle:matchValue([GLOBAL_KEY,...OPT_STYLE_ALL],textStyle),transOpen:matchValue([GLOBAL_KEY,"true","false"],transOpen),transOnly:matchValue([GLOBAL_KEY,"true","false"],transOnly),transTiming:matchValue([GLOBAL_KEY,...OPT_TIMING_ALL],transTiming),transTag:matchValue([GLOBAL_KEY,"span","font"],transTag),transTitle:matchValue([GLOBAL_KEY,"true","false"],transTitle),transSelected:matchValue([GLOBAL_KEY,"true","false"],transSelected),detectRemote:matchValue([GLOBAL_KEY,"true","false"],detectRemote),skipLangs:type(skipLangs)==="array"?skipLangs:[],fixerSelector:type(fixerSelector)==="string"?fixerSelector:"",transStartHook:type(transStartHook)==="string"?transStartHook:"",transEndHook:type(transEndHook)==="string"?transEndHook:"",transRemoveHook:type(transRemoveHook)==="string"?transRemoveHook:"",fixerFunc:matchValue([GLOBAL_KEY,...FIXER_ALL],fixerFunc)};});return rules;};/**
+ */const checkRules=rules=>{if(type(rules)==="string"){rules=JSON.parse(rules);}if(type(rules)!=="array"){throw new Error("data error");}const fromLangs=OPT_LANGS_FROM.map(item=>item[0]);const toLangs=OPT_LANGS_TO.map(item=>item[0]);const patternSet=new Set();rules=rules.filter(rule=>type(rule)==="object").filter(_ref2=>{let{pattern}=_ref2;if(type(pattern)!=="string"||patternSet.has(pattern.trim())){return false;}patternSet.add(pattern.trim());return true;}).map(_ref3=>{let{pattern,selector,keepSelector,rootsSelector,ignoreSelector,terms,aiTerms,selectStyle,parentStyle,grandStyle,injectJs,injectCss,apiSlug,fromLang,toLang,textStyle,transOpen,bgColor,textDiyStyle,transOnly,autoScan,hasRichText,hasShadowroot,// transTiming,
+transTag,transTitle,// detectRemote,
+// skipLangs,
+// fixerSelector,
+// fixerFunc,
+transStartHook,transEndHook// transRemoveHook,
+}=_ref3;return{pattern:pattern.trim(),selector:type(selector)==="string"?selector:"",keepSelector:type(keepSelector)==="string"?keepSelector:"",rootsSelector:type(rootsSelector)==="string"?rootsSelector:"",ignoreSelector:type(ignoreSelector)==="string"?ignoreSelector:"",terms:type(terms)==="string"?terms:"",aiTerms:type(aiTerms)==="string"?aiTerms:"",selectStyle:type(selectStyle)==="string"?selectStyle:"",parentStyle:type(parentStyle)==="string"?parentStyle:"",grandStyle:type(grandStyle)==="string"?grandStyle:"",injectJs:type(injectJs)==="string"?injectJs:"",injectCss:type(injectCss)==="string"?injectCss:"",bgColor:type(bgColor)==="string"?bgColor:"",textDiyStyle:type(textDiyStyle)==="string"?textDiyStyle:"",apiSlug:type(apiSlug)==="string"&&apiSlug.trim()!==""?apiSlug.trim():GLOBAL_KEY,fromLang:matchValue([GLOBAL_KEY,...fromLangs],fromLang),toLang:matchValue([GLOBAL_KEY,...toLangs],toLang),textStyle:matchValue([GLOBAL_KEY,...OPT_STYLE_ALL],textStyle),transOpen:matchValue([GLOBAL_KEY,"true","false"],transOpen),transOnly:matchValue([GLOBAL_KEY,"true","false"],transOnly),autoScan:matchValue([GLOBAL_KEY,"true","false"],autoScan),hasRichText:matchValue([GLOBAL_KEY,"true","false"],hasRichText),hasShadowroot:matchValue([GLOBAL_KEY,"true","false"],hasShadowroot),// transTiming: matchValue([GLOBAL_KEY, ...OPT_TIMING_ALL], transTiming),
+transTag:matchValue([GLOBAL_KEY,"span","font"],transTag),transTitle:matchValue([GLOBAL_KEY,"true","false"],transTitle),// detectRemote: matchValue([GLOBAL_KEY, "true", "false"], detectRemote),
+// skipLangs: type(skipLangs) === "array" ? skipLangs : [],
+// fixerSelector: type(fixerSelector) === "string" ? fixerSelector : "",
+transStartHook:type(transStartHook)==="string"?transStartHook:"",transEndHook:type(transEndHook)==="string"?transEndHook:""// transRemoveHook:
+//   type(transRemoveHook) === "string" ? transRemoveHook : "",
+// fixerFunc: matchValue([GLOBAL_KEY, ...FIXER_ALL], fixerFunc),
+};});return rules;};/**
  * 保存或更新rule
- * @param {*} newRule
- */const saveRule=async newRule=>{const rules=await getRulesWithDefault();const rule=rules.find(item=>isMatch(newRule.pattern,item.pattern));if(rule&&rule.pattern!==GLOBAL_KEY){Object.assign(rule,{...newRule,pattern:rule.pattern});}else{rules.unshift(newRule);}await setRules(rules);trySyncRules();};
-;// CONCATENATED MODULE: ./src/libs/index.js
-const langdetectMap={[OPT_TRANS_GOOGLE]:apiGoogleLangdetect,[OPT_TRANS_MICROSOFT]:apiMicrosoftLangdetect,[OPT_TRANS_BAIDU]:apiBaiduLangdetect,[OPT_TRANS_TENCENT]:apiTencentLangdetect};/**
- * 清除缓存数据
- */const tryClearCaches=async()=>{try{caches.delete(CACHE_NAME);}catch(err){log_kissLog(err,"clean caches");}};/**
- * 语言识别
- * @param {*} q
- * @returns
- */const tryDetectLang=async function(q){let useRemote=arguments.length>1&&arguments[1]!==undefined?arguments[1]:false;let langDetector=arguments.length>2&&arguments[2]!==undefined?arguments[2]:OPT_TRANS_MICROSOFT;let lang="";if(useRemote){try{lang=await langdetectMap[langDetector](q);}catch(err){log_kissLog(err,"detect lang remote");}}if(!lang){try{var _browser$i18n,_res$languages,_res$languages$;const res=await(browser===null||browser===void 0?void 0:(_browser$i18n=browser.i18n)===null||_browser$i18n===void 0?void 0:_browser$i18n.detectLanguage(q));lang=res===null||res===void 0?void 0:(_res$languages=res.languages)===null||_res$languages===void 0?void 0:(_res$languages$=_res$languages[0])===null||_res$languages$===void 0?void 0:_res$languages$.language;}catch(err){log_kissLog(err,"detect lang local");}}return lang;};
+ * @param {*} curRule
+ */const saveRule=async curRule=>{const rules=await getRulesWithDefault();const index=rules.findIndex(item=>item.pattern!==GLOBAL_KEY&&isMatch(curRule.pattern,item.pattern));if(index!==-1){const rule=rules.splice(index,1)[0];curRule={...rule,...curRule,pattern:rule.pattern};}const newRule={};Object.entries(GLOBLA_RULE).forEach(_ref4=>{let[key,val]=_ref4;newRule[key]=!curRule[key]||curRule[key]===val?DEFAULT_RULE[key]:curRule[key];});rules.unshift(newRule);await setRules(rules);trySyncRules();};
 ;// CONCATENATED MODULE: ./src/views/Popup/index.js
-function Popup(_ref){var _tran$setting;let{setShowPopup,translator:tran}=_ref;const i18n=useI18n();const[rule,setRule]=(0,react.useState)(tran===null||tran===void 0?void 0:tran.rule);const[transApis,setTransApis]=(0,react.useState)((tran===null||tran===void 0?void 0:(_tran$setting=tran.setting)===null||_tran$setting===void 0?void 0:_tran$setting.transApis)||[]);const[commands,setCommands]=(0,react.useState)({});const handleOpenSetting=()=>{if(!tran){browser===null||browser===void 0?void 0:browser.runtime.openOptionsPage();}else if(isExt){sendBgMsg(MSG_OPEN_OPTIONS);}else{window.open("https://fishjar.github.io/kiss-translator/options.html","_blank");}setShowPopup&&setShowPopup(false);};const handleTransToggle=async e=>{try{setRule({...rule,transOpen:e.target.checked?"true":"false"});if(!tran){await sendTabMsg(MSG_TRANS_TOGGLE);}else{tran.toggle();sendIframeMsg(MSG_TRANS_TOGGLE);}}catch(err){log_kissLog(err,"toggle trans");}};const handleChange=async e=>{try{const{name,value}=e.target;setRule(pre=>({...pre,[name]:value}));if(!tran){await sendTabMsg(MSG_TRANS_PUTRULE,{[name]:value});}else{tran.updateRule({[name]:value});sendIframeMsg(MSG_TRANS_PUTRULE,{[name]:value});}}catch(err){log_kissLog(err,"update rule");}};const handleClearCache=()=>{tryClearCaches();};const handleSaveRule=async()=>{try{let href=window.location.href;if(!tran){const tab=await getCurTab();href=tab.url;}const newRule={...rule,pattern:href.split("/")[2]};if(isExt&&tran){sendBgMsg(MSG_SAVE_RULE,newRule);}else{saveRule(newRule);}}catch(err){log_kissLog(err,"save rule");}};(0,react.useEffect)(()=>{if(tran){return;}(async()=>{try{const res=await sendTabMsg(MSG_TRANS_GETRULE);if(!res.error){setRule(res.rule);setTransApis(res.setting.transApis);}}catch(err){log_kissLog(err,"query rule");}})();},[tran]);(0,react.useEffect)(()=>{(async()=>{try{const commands={};if(isExt){const res=await sendBgMsg(MSG_COMMAND_SHORTCUTS);res.forEach(_ref2=>{let{name,shortcut}=_ref2;commands[name]=shortcut;});}else{const shortcuts=tran.setting.shortcuts;if(shortcuts){Object.entries(shortcuts).forEach(_ref3=>{let[key,val]=_ref3;commands[key]=val.join("+");});}}setCommands(commands);}catch(err){log_kissLog(err,"query cmds");}})();},[tran]);const optApis=(0,react.useMemo)(()=>OPT_TRANS_ALL.map(key=>({...(transApis[key]||DEFAULT_TRANS_APIS[key]),apiKey:key})).filter(item=>!item.isDisabled).map(_ref4=>{let{apiKey,apiName}=_ref4;return{key:apiKey,name:(apiName===null||apiName===void 0?void 0:apiName.trim())||apiKey};}),[transApis]);if(!rule){return/*#__PURE__*/(0,jsx_runtime.jsxs)(Box_Box,{minWidth:300,children:[!tran&&/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Header,{}),/*#__PURE__*/(0,jsx_runtime.jsx)(Divider_Divider,{})]}),/*#__PURE__*/(0,jsx_runtime.jsx)(Stack_Stack,{sx:{p:2},spacing:3,children:/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{variant:"text",onClick:handleOpenSetting,children:i18n("setting")})})]});}const{transOpen,translator,fromLang,toLang,textStyle}=rule;return/*#__PURE__*/(0,jsx_runtime.jsxs)(Box_Box,{minWidth:300,children:[!tran&&/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Header,{}),/*#__PURE__*/(0,jsx_runtime.jsx)(Divider_Divider,{})]}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{sx:{p:2},spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Stack_Stack,{direction:"row",justifyContent:"space-between",alignItems:"center",spacing:2,children:/*#__PURE__*/(0,jsx_runtime.jsx)(FormControlLabel_FormControlLabel,{control:/*#__PURE__*/(0,jsx_runtime.jsx)(Switch_Switch,{checked:transOpen==="true",onChange:handleTransToggle}),label:commands["toggleTranslate"]?"".concat(i18n("translate_alt"),"(").concat(commands["toggleTranslate"],")"):i18n("translate_alt")})}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},size:"small",value:translator,name:"translator",label:i18n("translate_service"),onChange:handleChange,children:optApis.map(_ref5=>{let{key,name}=_ref5;return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:key,children:name},key);})}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},size:"small",value:fromLang,name:"fromLang",label:i18n("from_lang"),onChange:handleChange,children:OPT_LANGS_FROM.map(_ref6=>{let[lang,name]=_ref6;return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:lang,children:name},lang);})}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},size:"small",value:toLang,name:"toLang",label:i18n("to_lang"),onChange:handleChange,children:OPT_LANGS_TO.map(_ref7=>{let[lang,name]=_ref7;return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:lang,children:name},lang);})}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},size:"small",value:textStyle,name:"textStyle",label:commands["toggleStyle"]?"".concat(i18n("text_style_alt"),"(").concat(commands["toggleStyle"],")"):i18n("text_style_alt"),onChange:handleChange,children:OPT_STYLE_ALL.map(item=>/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:item,children:i18n(item)},item))}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",justifyContent:"space-between",alignItems:"center",spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{variant:"text",onClick:handleSaveRule,children:i18n("save_rule")}),!isExt&&/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{variant:"text",onClick:handleClearCache,children:i18n("clear_cache")}),/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{variant:"text",onClick:handleOpenSetting,children:i18n("setting")})]})]})]});}
+// 插件popup没有参数
+// 网页弹框有
+function Popup(_ref){let{setShowPopup,translator}=_ref;const i18n=useI18n();const[rule,setRule]=(0,react.useState)(translator===null||translator===void 0?void 0:translator.rule);const[setting,setSetting]=(0,react.useState)(translator===null||translator===void 0?void 0:translator.setting);const[commands,setCommands]=(0,react.useState)({});const handleOpenSetting=()=>{if(!translator){browser===null||browser===void 0?void 0:browser.runtime.openOptionsPage();}else if(isExt){sendBgMsg(MSG_OPEN_OPTIONS);}else{window.open("https://fishjar.github.io/kiss-translator/options.html","_blank");}setShowPopup&&setShowPopup(false);};const handleTransToggle=async e=>{try{setRule({...rule,transOpen:e.target.checked?"true":"false"});if(!translator){await sendTabMsg(MSG_TRANS_TOGGLE);}else{translator.toggle();sendIframeMsg(MSG_TRANS_TOGGLE);}}catch(err){log_kissLog("toggle trans",err);}};const handleTransboxToggle=async e=>{try{setSetting(pre=>({...pre,tranboxSetting:{...pre.tranboxSetting,transOpen:e.target.checked}}));if(!translator){await sendTabMsg(MSG_TRANSBOX_TOGGLE);}else{translator.toggleTransbox();sendIframeMsg(MSG_TRANSBOX_TOGGLE);}}catch(err){log_kissLog("toggle transbox",err);}};const handleMousehoverToggle=async e=>{try{setSetting(pre=>({...pre,mouseHoverSetting:{...pre.mouseHoverSetting,useMouseHover:e.target.checked}}));if(!translator){await sendTabMsg(MSG_MOUSEHOVER_TOGGLE);}else{translator.toggleMouseHover();sendIframeMsg(MSG_MOUSEHOVER_TOGGLE);}}catch(err){log_kissLog("toggle mousehover",err);}};const handleInputTransToggle=async e=>{try{setSetting(pre=>({...pre,inputRule:{...pre.inputRule,transOpen:e.target.checked}}));if(!translator){await sendTabMsg(MSG_TRANSINPUT_TOGGLE);}else{translator.toggleInputTranslate();sendIframeMsg(MSG_TRANSINPUT_TOGGLE);}}catch(err){log_kissLog("toggle inputtrans",err);}};const handleChange=async e=>{try{const{name,value}=e.target;setRule(pre=>({...pre,[name]:value}));if(!translator){await sendTabMsg(MSG_TRANS_PUTRULE,{[name]:value});}else{translator.updateRule({[name]:value});sendIframeMsg(MSG_TRANS_PUTRULE,{[name]:value});}}catch(err){log_kissLog("update rule",err);}};const handleClearCache=()=>{tryClearCaches();};const handleSaveRule=async()=>{try{let href="";if(!translator){const tab=await getCurTab();href=tab.url;}else{var _window$location;href=(_window$location=window.location)===null||_window$location===void 0?void 0:_window$location.href;}if(!href||typeof href!=="string"){return;}const pattern=parseUrlPattern(href);const curRule={...rule,pattern};if(isExt&&translator){sendBgMsg(MSG_SAVE_RULE,curRule);}else{saveRule(curRule);}}catch(err){log_kissLog("save rule",err);}};(0,react.useEffect)(()=>{if(translator){return;}(async()=>{try{const res=await sendTabMsg(MSG_TRANS_GETRULE);if(!res.error){setRule(res.rule);setSetting(res.setting);}}catch(err){log_kissLog("query rule",err);}})();},[translator]);(0,react.useEffect)(()=>{(async()=>{try{const commands={};if(isExt){const res=await sendBgMsg(MSG_COMMAND_SHORTCUTS);res.forEach(_ref2=>{let{name,shortcut}=_ref2;commands[name]=shortcut;});}else{const shortcuts=translator.setting.shortcuts;if(shortcuts){Object.entries(shortcuts).forEach(_ref3=>{let[key,val]=_ref3;commands[key]=val.join("+");});}}setCommands(commands);}catch(err){log_kissLog("query cmds",err);}})();},[translator]);const optApis=(0,react.useMemo)(()=>setting===null||setting===void 0?void 0:setting.transApis.filter(api=>!api.isDisabled).map(api=>({key:api.apiSlug,name:api.apiName||api.apiSlug})),[setting]);const tranboxEnabled=setting===null||setting===void 0?void 0:setting.tranboxSetting.transOpen;const mouseHoverEnabled=setting===null||setting===void 0?void 0:setting.mouseHoverSetting.useMouseHover;const inputTransEnabled=setting===null||setting===void 0?void 0:setting.inputRule.transOpen;if(!rule){return/*#__PURE__*/(0,jsx_runtime.jsxs)(Box_Box,{minWidth:300,children:[!translator&&/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Header,{}),/*#__PURE__*/(0,jsx_runtime.jsx)(Divider_Divider,{})]}),/*#__PURE__*/(0,jsx_runtime.jsx)(Stack_Stack,{sx:{p:2},spacing:3,children:/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{variant:"text",onClick:handleOpenSetting,children:i18n("setting")})})]});}const{transOpen,apiSlug,fromLang,toLang,textStyle,autoScan,transOnly,hasRichText,hasShadowroot}=rule;return/*#__PURE__*/(0,jsx_runtime.jsxs)(Box_Box,{width:360,children:[!translator&&/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Header,{}),/*#__PURE__*/(0,jsx_runtime.jsx)(Divider_Divider,{})]}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{sx:{p:2},spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsxs)(Grid_Grid,{container:true,columns:12,spacing:1,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:12,children:/*#__PURE__*/(0,jsx_runtime.jsx)(FormControlLabel_FormControlLabel,{control:/*#__PURE__*/(0,jsx_runtime.jsx)(Switch_Switch,{checked:transOpen==="true",onChange:handleTransToggle}),label:commands["toggleTranslate"]?"".concat(i18n("translate_alt"),"(").concat(commands["toggleTranslate"],")"):i18n("translate_alt")})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:6,children:/*#__PURE__*/(0,jsx_runtime.jsx)(FormControlLabel_FormControlLabel,{control:/*#__PURE__*/(0,jsx_runtime.jsx)(Switch_Switch,{size:"small",name:"autoScan",value:autoScan==="true"?"false":"true",checked:autoScan==="true",onChange:handleChange}),label:i18n("autoscan_alt")})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:6,children:/*#__PURE__*/(0,jsx_runtime.jsx)(FormControlLabel_FormControlLabel,{control:/*#__PURE__*/(0,jsx_runtime.jsx)(Switch_Switch,{size:"small",name:"hasShadowroot",value:hasShadowroot==="true"?"false":"true",checked:hasShadowroot==="true",onChange:handleChange}),label:i18n("shadowroot_alt")})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:6,children:/*#__PURE__*/(0,jsx_runtime.jsx)(FormControlLabel_FormControlLabel,{control:/*#__PURE__*/(0,jsx_runtime.jsx)(Switch_Switch,{size:"small",name:"hasRichText",value:hasRichText==="true"?"false":"true",checked:hasRichText==="true",onChange:handleChange}),label:i18n("richtext_alt")})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:6,children:/*#__PURE__*/(0,jsx_runtime.jsx)(FormControlLabel_FormControlLabel,{control:/*#__PURE__*/(0,jsx_runtime.jsx)(Switch_Switch,{size:"small",name:"transOnly",value:transOnly==="true"?"false":"true",checked:transOnly==="true",onChange:handleChange}),label:i18n("transonly_alt")})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:6,children:/*#__PURE__*/(0,jsx_runtime.jsx)(FormControlLabel_FormControlLabel,{control:/*#__PURE__*/(0,jsx_runtime.jsx)(Switch_Switch,{size:"small",name:"tranboxEnabled",value:!tranboxEnabled,checked:tranboxEnabled,onChange:handleTransboxToggle}),label:i18n("selection_translate")})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:6,children:/*#__PURE__*/(0,jsx_runtime.jsx)(FormControlLabel_FormControlLabel,{control:/*#__PURE__*/(0,jsx_runtime.jsx)(Switch_Switch,{size:"small",name:"mouseHoverEnabled",value:!mouseHoverEnabled,checked:mouseHoverEnabled,onChange:handleMousehoverToggle}),label:i18n("mousehover_translate")})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:6,children:/*#__PURE__*/(0,jsx_runtime.jsx)(FormControlLabel_FormControlLabel,{control:/*#__PURE__*/(0,jsx_runtime.jsx)(Switch_Switch,{size:"small",name:"inputTransEnabled",value:!inputTransEnabled,checked:inputTransEnabled,onChange:handleInputTransToggle}),label:i18n("input_translate")})})]}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},size:"small",value:apiSlug,name:"apiSlug",label:i18n("translate_service"),onChange:handleChange,children:optApis.map(_ref4=>{let{key,name}=_ref4;return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:key,children:name},key);})}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},size:"small",value:fromLang,name:"fromLang",label:i18n("from_lang"),onChange:handleChange,children:OPT_LANGS_FROM.map(_ref5=>{let[lang,name]=_ref5;return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:lang,children:name},lang);})}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},size:"small",value:toLang,name:"toLang",label:i18n("to_lang"),onChange:handleChange,children:OPT_LANGS_TO.map(_ref6=>{let[lang,name]=_ref6;return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:lang,children:name},lang);})}),/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},size:"small",value:textStyle,name:"textStyle",label:commands["toggleStyle"]?"".concat(i18n("text_style_alt"),"(").concat(commands["toggleStyle"],")"):i18n("text_style_alt"),onChange:handleChange,children:OPT_STYLE_ALL.map(item=>/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:item,children:i18n(item)},item))}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",justifyContent:"space-between",alignItems:"center",spacing:2,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{variant:"text",onClick:handleSaveRule,children:i18n("save_rule")}),!isExt&&/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{variant:"text",onClick:handleClearCache,children:i18n("clear_cache")}),/*#__PURE__*/(0,jsx_runtime.jsx)(Button_Button,{variant:"text",onClick:handleOpenSetting,children:i18n("setting")})]})]})]});}
 ;// CONCATENATED MODULE: ./src/libs/shortcut.js
 /**
- * 键盘快捷键监听
- * @param {*} fn
- * @param {*} target
- * @param {*} timeout
- * @returns
- */const shortcutListener=function(fn){let target=arguments.length>1&&arguments[1]!==undefined?arguments[1]:document;let timeout=arguments.length>2&&arguments[2]!==undefined?arguments[2]:3000;const allkeys=new Set();const curkeys=new Set();let timer=null;const handleKeydown=e=>{timer&&clearTimeout(timer);timer=setTimeout(()=>{allkeys.clear();curkeys.clear();clearTimeout(timer);timer=null;},timeout);if(e.code){allkeys.add(e.code);curkeys.add(e.code);fn([...curkeys],[...allkeys]);}};const handleKeyup=e=>{curkeys.delete(e.code);if(curkeys.size===0){fn([...curkeys],[...allkeys]);allkeys.clear();}};target.addEventListener("keydown",handleKeydown,true);target.addEventListener("keyup",handleKeyup,true);return()=>{if(timer){clearTimeout(timer);timer=null;}target.removeEventListener("keydown",handleKeydown);target.removeEventListener("keyup",handleKeyup);};};/**
+ * 键盘快捷键监听器
+ * @param {(pressedKeys: Set<string>, event: KeyboardEvent) => void} onKeyDown - Keydown 回调
+ * @param {(pressedKeys: Set<string>, event: KeyboardEvent) => void} onKeyUp - Keyup 回调
+ * @param {EventTarget} target - 监听的目标元素
+ * @returns {() => void} - 用于注销监听的函数
+ */const shortcutListener=function(){let onKeyDown=arguments.length>0&&arguments[0]!==undefined?arguments[0]:()=>{};let onKeyUp=arguments.length>1&&arguments[1]!==undefined?arguments[1]:()=>{};let target=arguments.length>2&&arguments[2]!==undefined?arguments[2]:document;const pressedKeys=new Set();const handleKeyDown=e=>{if(!e.code){return;}if(pressedKeys.has(e.code))return;pressedKeys.add(e.code);onKeyDown(new Set(pressedKeys),e);};const handleKeyUp=e=>{if(!e.code){return;}// onKeyUp 应该在 key 从集合中移除前触发，以便判断组合键
+onKeyUp(new Set(pressedKeys),e);pressedKeys.delete(e.code);};target.addEventListener("keydown",handleKeyDown);target.addEventListener("keyup",handleKeyUp);return()=>{target.removeEventListener("keydown",handleKeyDown);target.removeEventListener("keyup",handleKeyUp);pressedKeys.clear();};};/**
  * 注册键盘快捷键
- * @param {*} targetKeys
- * @param {*} fn
- * @param {*} target
- * @returns
- */const shortcutRegister=function(){let targetKeys=arguments.length>0&&arguments[0]!==undefined?arguments[0]:[];let fn=arguments.length>1?arguments[1]:undefined;let target=arguments.length>2&&arguments[2]!==undefined?arguments[2]:document;return shortcutListener(curkeys=>{if(targetKeys.length>0&&isSameSet(new Set(targetKeys),new Set(curkeys))){fn();}},target);};/**
+ * @param {string[]} targetKeys - 目标快捷键数组
+ * @param {() => void} fn - 匹配成功后执行的回调
+ * @param {EventTarget} target - 监听目标
+ * @returns {() => void} - 注销函数
+ */const shortcutRegister=function(){let targetKeys=arguments.length>0&&arguments[0]!==undefined?arguments[0]:[];let fn=arguments.length>1?arguments[1]:undefined;let target=arguments.length>2&&arguments[2]!==undefined?arguments[2]:document;if(targetKeys.length===0)return()=>{};const targetKeySet=new Set(targetKeys);const onKeyDown=(pressedKeys,event)=>{if(isSameSet(targetKeySet,pressedKeys)){event.preventDefault();event.stopPropagation();fn();}};const onKeyUp=()=>{};return shortcutListener(onKeyDown,onKeyUp,target);};/**
+ * 高阶函数：为目标函数增加计次和超时重置功能
+ * @param {() => void} fn - 需要被包装的函数
+ * @param {number} step - 需要触发的次数
+ * @param {number} timeout - 超时毫秒数
+ * @returns {() => void} - 包装后的新函数
+ */const withStepCounter=(fn,step,timeout)=>{let count=0;let timer=null;return()=>{timer&&clearTimeout(timer);timer=setTimeout(()=>{count=0;},timeout);count++;if(count===step){count=0;clearTimeout(timer);fn();}};};/**
  * 注册连续快捷键
- * @param {*} targetKeys
- * @param {*} fn
- * @param {*} step
- * @param {*} timeout
- * @param {*} target
- * @returns
- */const stepShortcutRegister=function(){let targetKeys=arguments.length>0&&arguments[0]!==undefined?arguments[0]:[];let fn=arguments.length>1?arguments[1]:undefined;let step=arguments.length>2&&arguments[2]!==undefined?arguments[2]:3;let timeout=arguments.length>3&&arguments[3]!==undefined?arguments[3]:500;let target=arguments.length>4&&arguments[4]!==undefined?arguments[4]:document;let count=0;let pre=Date.now();let timer;return shortcutListener((curkeys,allkeys)=>{timer&&clearTimeout(timer);timer=setTimeout(()=>{clearTimeout(timer);count=0;},timeout);if(targetKeys.length>0&&curkeys.length===0){const now=Date.now();if((count===0||now-pre<timeout)&&isSameSet(new Set(targetKeys),new Set(allkeys))){count++;if(count===step){count=0;fn();}}else{count=0;}pre=now;}},target);};
+ * @param {string[]} targetKeys - 目标快捷键数组
+ * @param {() => void} fn - 成功回调
+ * @param {number} step - 连续触发次数
+ * @param {number} timeout - 每次触发的间隔超时
+ * @param {EventTarget} target - 监听目标
+ * @returns {() => void} - 注销函数
+ */const stepShortcutRegister=function(){let targetKeys=arguments.length>0&&arguments[0]!==undefined?arguments[0]:[];let fn=arguments.length>1?arguments[1]:undefined;let step=arguments.length>2&&arguments[2]!==undefined?arguments[2]:2;let timeout=arguments.length>3&&arguments[3]!==undefined?arguments[3]:500;let target=arguments.length>4&&arguments[4]!==undefined?arguments[4]:document;const steppedFn=withStepCounter(fn,step,timeout);return shortcutRegister(targetKeys,steppedFn,target);};
 ;// CONCATENATED MODULE: ./src/views/Action/index.js
-function Action(_ref){var _fab$x,_fab$y;let{translator,fab}=_ref;const fabWidth=40;const[showPopup,setShowPopup]=(0,react.useState)(false);const[windowSize,setWindowSize]=(0,react.useState)({w:window.innerWidth,h:window.innerHeight});const[moved,setMoved]=(0,react.useState)(false);const handleWindowResize=(0,react.useMemo)(()=>debounce(()=>{setWindowSize({w:window.innerWidth,h:window.innerHeight});}),[]);const handleWindowClick=e=>{setShowPopup(false);};const handleStart=(0,react.useCallback)(()=>{setMoved(false);},[]);const handleMove=(0,react.useCallback)(()=>{setMoved(true);},[]);(0,react.useEffect)(()=>{if(!isGm){return;}// 注册快捷键
+function Action(_ref){var _fab$x,_fab$y;let{translator,fab}=_ref;const fabWidth=40;const[showPopup,setShowPopup]=(0,react.useState)(false);const[windowSize,setWindowSize]=(0,react.useState)({w:window.innerWidth,h:window.innerHeight});const[moved,setMoved]=(0,react.useState)(false);const{fabClickAction=0}=fab||{};const handleWindowResize=(0,react.useMemo)(()=>debounce(()=>{setWindowSize({w:window.innerWidth,h:window.innerHeight});}),[]);const handleWindowClick=e=>{setShowPopup(false);};const handleStart=(0,react.useCallback)(()=>{setMoved(false);},[]);const handleMove=(0,react.useCallback)(()=>{setMoved(true);},[]);(0,react.useEffect)(()=>{if(!isGm){return;}// 注册快捷键
 const shortcuts=translator.setting.shortcuts||DEFAULT_SHORTCUTS;const clearShortcuts=[shortcutRegister(shortcuts[OPT_SHORTCUT_TRANSLATE],()=>{translator.toggle();sendIframeMsg(MSG_TRANS_TOGGLE);setShowPopup(false);}),shortcutRegister(shortcuts[OPT_SHORTCUT_STYLE],()=>{translator.toggleStyle();sendIframeMsg(MSG_TRANS_TOGGLE_STYLE);setShowPopup(false);}),shortcutRegister(shortcuts[OPT_SHORTCUT_POPUP],()=>{setShowPopup(pre=>!pre);}),shortcutRegister(shortcuts[OPT_SHORTCUT_SETTING],()=>{window.open("https://fishjar.github.io/kiss-translator/options.html","_blank");})];return()=>{clearShortcuts.forEach(fn=>{fn();});};},[translator]);(0,react.useEffect)(()=>{if(!isGm){return;}// 注册菜单
-try{const menuCommandIds=[];const{contextMenuType,uiLang}=translator.setting;contextMenuType!==0&&menuCommandIds.push(GM.registerMenuCommand(getI18n(uiLang,"translate_switch"),event=>{translator.toggle();sendIframeMsg(MSG_TRANS_TOGGLE);setShowPopup(false);},"Q"),GM.registerMenuCommand(getI18n(uiLang,"toggle_style"),event=>{translator.toggleStyle();sendIframeMsg(MSG_TRANS_TOGGLE_STYLE);setShowPopup(false);},"C"),GM.registerMenuCommand(getI18n(uiLang,"open_menu"),event=>{setShowPopup(pre=>!pre);},"K"),GM.registerMenuCommand(getI18n(uiLang,"open_setting"),event=>{window.open("https://fishjar.github.io/kiss-translator/options.html","_blank");},"O"));return()=>{menuCommandIds.forEach(id=>{GM.unregisterMenuCommand(id);});};}catch(err){log_kissLog(err,"registerMenuCommand");}},[translator]);(0,react.useEffect)(()=>{window.addEventListener("resize",handleWindowResize);return()=>{window.removeEventListener("resize",handleWindowResize);};},[handleWindowResize]);(0,react.useEffect)(()=>{window.addEventListener("click",handleWindowClick);return()=>{window.removeEventListener("click",handleWindowClick);};},[]);const popProps=(0,react.useMemo)(()=>{const width=Math.min(windowSize.w,300);const height=Math.min(windowSize.h,442);const left=(windowSize.w-width)/2;const top=(windowSize.h-height)/2;return{windowSize,width,height,left,top};},[windowSize]);const fabProps={windowSize,width:fabWidth,height:fabWidth,left:(_fab$x=fab.x)!==null&&_fab$x!==void 0?_fab$x:-fabWidth,top:(_fab$y=fab.y)!==null&&_fab$y!==void 0?_fab$y:windowSize.h/2};return/*#__PURE__*/(0,jsx_runtime.jsx)(SettingProvider,{children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Theme,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Draggable,{...popProps,show:showPopup,onStart:handleStart,onMove:handleMove,usePaper:true,handler:/*#__PURE__*/(0,jsx_runtime.jsxs)(Box_Box,{style:{cursor:"move"},children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Header,{setShowPopup:setShowPopup}),/*#__PURE__*/(0,jsx_runtime.jsx)(Divider_Divider,{})]}),children:showPopup&&/*#__PURE__*/(0,jsx_runtime.jsx)(Popup,{setShowPopup:setShowPopup,translator:translator})},"pop"),/*#__PURE__*/(0,jsx_runtime.jsx)(Draggable,{snapEdge:true,...fabProps,show:fab.isHide?false:!showPopup,onStart:handleStart,onMove:handleMove,handler:/*#__PURE__*/(0,jsx_runtime.jsx)(Fab_Fab,{size:"small",color:"primary",onClick:e=>{if(!moved){setShowPopup(pre=>!pre);}},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Translate/* default */.Z,{sx:{width:24,height:24}})})},"fab")]})});}
-// EXTERNAL MODULE: ./node_modules/.pnpm/@emotion+cache@11.11.0/node_modules/@emotion/cache/dist/emotion-cache.browser.esm.js + 7 modules
-var emotion_cache_browser_esm = __webpack_require__(3029);
-;// CONCATENATED MODULE: ./src/libs/svg.js
-const loadingSvg="\n<svg viewBox=\"0 0 100 100\" style=\"display:inline-block; width:100%; height: 100%; max-width: 24; max-height: 24;\">\n    <circle fill=\"#209CEE\" stroke=\"none\" cx=\"6\" cy=\"50\" r=\"6\">\n    <animateTransform\n        attributeName=\"transform\"\n        dur=\"1s\"\n        type=\"translate\"\n        values=\"0 15 ; 0 -15; 0 15\"\n        repeatCount=\"indefinite\"\n        begin=\"0.1\"\n    />\n    </circle>\n    <circle fill=\"#209CEE\" stroke=\"none\" cx=\"30\" cy=\"50\" r=\"6\">\n    <animateTransform\n        attributeName=\"transform\"\n        dur=\"1s\"\n        type=\"translate\"\n        values=\"0 10 ; 0 -10; 0 10\"\n        repeatCount=\"indefinite\"\n        begin=\"0.2\"\n    />\n    </circle>\n    <circle fill=\"#209CEE\" stroke=\"none\" cx=\"54\" cy=\"50\" r=\"6\">\n    <animateTransform\n        attributeName=\"transform\"\n        dur=\"1s\"\n        type=\"translate\"\n        values=\"0 5 ; 0 -5; 0 5\"\n        repeatCount=\"indefinite\"\n        begin=\"0.3\"\n    />\n    </circle>\n</svg>\n";
-;// CONCATENATED MODULE: ./src/views/Content/LoadingIcon.js
-function LoadingIcon(){return/*#__PURE__*/(0,jsx_runtime.jsx)("span",{style:{display:"inline-block",width:"1.2em",height:"1em"},dangerouslySetInnerHTML:{__html:loadingSvg}});}
-;// CONCATENATED MODULE: ./src/hooks/Translate.js
+try{const menuCommandIds=[];const{contextMenuType,uiLang}=translator.setting;contextMenuType!==0&&menuCommandIds.push(GM.registerMenuCommand(getI18n(uiLang,"translate_switch"),event=>{translator.toggle();sendIframeMsg(MSG_TRANS_TOGGLE);setShowPopup(false);},"Q"),GM.registerMenuCommand(getI18n(uiLang,"toggle_style"),event=>{translator.toggleStyle();sendIframeMsg(MSG_TRANS_TOGGLE_STYLE);setShowPopup(false);},"C"),GM.registerMenuCommand(getI18n(uiLang,"open_menu"),event=>{setShowPopup(pre=>!pre);},"K"),GM.registerMenuCommand(getI18n(uiLang,"open_setting"),event=>{window.open("https://fishjar.github.io/kiss-translator/options.html","_blank");},"O"));return()=>{menuCommandIds.forEach(id=>{GM.unregisterMenuCommand(id);});};}catch(err){log_kissLog("registerMenuCommand",err);}},[translator]);(0,react.useEffect)(()=>{window.addEventListener("resize",handleWindowResize);return()=>{window.removeEventListener("resize",handleWindowResize);};},[handleWindowResize]);(0,react.useEffect)(()=>{window.addEventListener("click",handleWindowClick);return()=>{window.removeEventListener("click",handleWindowClick);};},[]);const popProps=(0,react.useMemo)(()=>{const width=Math.min(windowSize.w,300);const height=Math.min(windowSize.h,442);const left=(windowSize.w-width)/2;const top=(windowSize.h-height)/2;return{windowSize,width,height,left,top};},[windowSize]);const fabProps={windowSize,width:fabWidth,height:fabWidth,left:(_fab$x=fab.x)!==null&&_fab$x!==void 0?_fab$x:-fabWidth,top:(_fab$y=fab.y)!==null&&_fab$y!==void 0?_fab$y:windowSize.h/2};return/*#__PURE__*/(0,jsx_runtime.jsx)(SettingProvider,{children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Theme,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Draggable,{...popProps,show:showPopup,onStart:handleStart,onMove:handleMove,usePaper:true,handler:/*#__PURE__*/(0,jsx_runtime.jsxs)(Box_Box,{style:{cursor:"move"},children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Header,{setShowPopup:setShowPopup}),/*#__PURE__*/(0,jsx_runtime.jsx)(Divider_Divider,{})]}),children:showPopup&&/*#__PURE__*/(0,jsx_runtime.jsx)(Popup,{setShowPopup:setShowPopup,translator:translator})},"pop"),/*#__PURE__*/(0,jsx_runtime.jsx)(Draggable,{snapEdge:true,...fabProps,show:fab.isHide?false:!showPopup,onStart:handleStart,onMove:handleMove,handler:/*#__PURE__*/(0,jsx_runtime.jsx)(Fab_Fab,{size:"small",color:"primary",onClick:e=>{if(!moved){if(fabClickAction===1){translator.toggle();sendIframeMsg(MSG_TRANS_TOGGLE);setShowPopup(false);}else{setShowPopup(pre=>!pre);}}},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Translate/* default */.Z,{sx:{width:24,height:24}})})},"fab")]})});}
+// EXTERNAL MODULE: ./node_modules/.pnpm/@emotion+cache@11.11.0/node_modules/@emotion/cache/dist/emotion-cache.browser.esm.js + 1 modules
+var emotion_cache_browser_esm = __webpack_require__(3347);
+;// CONCATENATED MODULE: ./src/libs/shadowroot.js
 /**
- * 翻译hook
- * @param {*} q
- * @param {*} rule
- * @param {*} setting
- * @returns
- */function useTranslate(q,rule,setting){const[text,setText]=(0,react.useState)("");const[loading,setLoading]=(0,react.useState)(false);const[sameLang,setSamelang]=(0,react.useState)(false);const{translator,fromLang,toLang,detectRemote,skipLangs=[]}=rule;(0,react.useEffect)(()=>{(async()=>{try{setLoading(true);if(!q.replace(/\[(\d+)\]/g,"").trim()){setText(q);setSamelang(false);return;}let deLang="";if(fromLang==="auto"){deLang=await tryDetectLang(q,detectRemote==="true",setting.langDetector);}if(deLang&&(toLang.includes(deLang)||skipLangs.includes(deLang))){setSamelang(true);}else{const[trText,isSame]=await apiTranslate({translator,text:q,fromLang,toLang,apiSetting:{...DEFAULT_TRANS_APIS[translator],...(setting.transApis[translator]||{})}});setText(trText);setSamelang(isSame);}}catch(err){log_kissLog(err,"translate");}finally{setLoading(false);}})();},[q,translator,fromLang,toLang,detectRemote,skipLangs,setting]);return{text,sameLang,loading};}
-;// CONCATENATED MODULE: ./src/views/Content/index.js
-var Content_templateObject,Content_templateObject2,Content_templateObject3,Content_templateObject4,_templateObject5;const LINE_STYLES={[OPT_STYLE_LINE]:"solid",[OPT_STYLE_DOTLINE]:"dotted",[OPT_STYLE_DASHLINE]:"dashed",[OPT_STYLE_WAVYLINE]:"wavy"};const StyledSpan=(0,styled/* default */.ZP)("span")(Content_templateObject||(Content_templateObject=_taggedTemplateLiteral(["\n  ","\n"])),_ref=>{let{textStyle,textDiyStyle,bgColor}=_ref;switch(textStyle){case OPT_STYLE_LINE:// 下划线
-case OPT_STYLE_DOTLINE:// 点状线
-case OPT_STYLE_DASHLINE:// 虚线
-case OPT_STYLE_WAVYLINE:// 波浪线
-return (0,emotion_react_browser_esm/* css */.iv)(Content_templateObject2||(Content_templateObject2=_taggedTemplateLiteral(["\n          opacity: 0.6;\n          -webkit-opacity: 0.6;\n          text-decoration-line: underline;\n          text-decoration-style: ",";\n          text-decoration-color: ",";\n          text-decoration-thickness: 2px;\n          text-underline-offset: 0.3em;\n          -webkit-text-decoration-line: underline;\n          -webkit-text-decoration-style: ",";\n          -webkit-text-decoration-color: ",";\n          -webkit-text-decoration-thickness: 2px;\n          -webkit-text-underline-offset: 0.3em;\n          &:hover {\n            opacity: 1;\n            -webkit-opacity: 1;\n          }\n        "])),LINE_STYLES[textStyle],bgColor,LINE_STYLES[textStyle],bgColor);case OPT_STYLE_FUZZY:// 模糊
-return (0,emotion_react_browser_esm/* css */.iv)(Content_templateObject3||(Content_templateObject3=_taggedTemplateLiteral(["\n          filter: blur(0.2em);\n          -webkit-filter: blur(0.2em);\n          &:hover {\n            filter: none;\n            -webkit-filter: none;\n          }\n        "])));case OPT_STYLE_HIGHLIGHT:// 高亮
-return (0,emotion_react_browser_esm/* css */.iv)(Content_templateObject4||(Content_templateObject4=_taggedTemplateLiteral(["\n          color: #fff;\n          background-color: ",";\n        "])),bgColor||DEFAULT_COLOR);case OPT_STYLE_BLOCKQUOTE:// 引用
-return (0,emotion_react_browser_esm/* css */.iv)(_templateObject5||(_templateObject5=_taggedTemplateLiteral(["\n          opacity: 0.6;\n          -webkit-opacity: 0.6;\n          display: block;\n          padding: 0 0.75em;\n          border-left: 0.25em solid ",";\n          &:hover {\n            opacity: 1;\n            -webkit-opacity: 1;\n          }\n        "])),bgColor||DEFAULT_COLOR);case OPT_STYLE_DIY:// 自定义
-return textDiyStyle;default:return"";}});function Content(_ref2){let{q,keeps,translator,$el}=_ref2;const[rule,setRule]=(0,react.useState)(translator.rule);const{text,sameLang,loading}=useTranslate(q,rule,translator.setting);const{transOpen,textStyle,bgColor,textDiyStyle,transOnly,transTag,transEndHook}=rule;const{newlineLength}=translator.setting;const handleKissEvent=e=>{const{action,args}=e.detail;switch(action){case MSG_TRANS_CURRULE:setRule(args);break;default:}};(0,react.useEffect)(()=>{window.addEventListener(translator.eventName,handleKissEvent);return()=>{window.removeEventListener(translator.eventName,handleKissEvent);};},[translator.eventName]);(0,react.useEffect)(()=>{// 运行钩子函数
-if(text&&transEndHook!==null&&transEndHook!==void 0&&transEndHook.trim()){libs_interpreter.run("exports.transEndHook = ".concat(transEndHook));libs_interpreter.exports.transEndHook($el,q,text,keeps);}},[$el,q,text,keeps,transEndHook]);const gap=(0,react.useMemo)(()=>{if(transOnly==="true"){return"";}return q.length>=newlineLength?/*#__PURE__*/(0,jsx_runtime.jsx)("br",{}):" ";},[q,transOnly,newlineLength]);const styles=(0,react.useMemo)(()=>({textStyle,textDiyStyle,bgColor,as:transTag}),[textStyle,textDiyStyle,bgColor,transTag]);if(loading){return/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[gap,/*#__PURE__*/(0,jsx_runtime.jsx)(LoadingIcon,{})]});}if(!text||sameLang){return;}if(transOnly==="true"&&transOpen==="true"&&$el.querySelector(APP_LCNAME)){Array.from($el.childNodes).forEach(el=>{if(el.localName!==APP_LCNAME){el.remove();}});}if(keeps.length>0){return/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[gap,/*#__PURE__*/(0,jsx_runtime.jsx)(StyledSpan,{...styles,dangerouslySetInnerHTML:{__html:text.replace(/\[(\d+)\]/g,(_,p)=>keeps[parseInt(p)])}})]});}return/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[gap,/*#__PURE__*/(0,jsx_runtime.jsx)(StyledSpan,{...styles,children:text})]});}
+ * @class ShadowRootMonitor
+ * @description 通过覆写 Element.prototype.attachShadow 来监控页面上所有新创建的 Shadow DOM
+ */class ShadowRootMonitor{/**
+   * @param {function(ShadowRoot): void} callback - 当一个新的 shadowRoot 被创建时调用的回调函数。
+   */constructor(callback){if(typeof callback!=="function"){throw new Error("Callback must be a function.");}this.callback=callback;this.isMonitoring=false;this.originalAttachShadow=Element.prototype.attachShadow;}/**
+   * 开始监控 shadowRoot 的创建。
+   */start(){if(this.isMonitoring){return;}const monitorInstance=this;Element.prototype.attachShadow=function(){for(var _len=arguments.length,args=new Array(_len),_key=0;_key<_len;_key++){args[_key]=arguments[_key];}const shadowRoot=monitorInstance.originalAttachShadow.apply(this,args);if(shadowRoot){try{monitorInstance.callback(shadowRoot);}catch(error){log_kissLog("Error in ShadowRootMonitor callback",error);}}return shadowRoot;};this.isMonitoring=true;}/**
+   * 停止监控，并恢复原始的 attachShadow 方法。
+   */stop(){if(!this.isMonitoring){return;}Element.prototype.attachShadow=this.originalAttachShadow;this.isMonitoring=false;}}
 ;// CONCATENATED MODULE: ./src/libs/injector.js
 // Function to inject inline JavaScript code
-const injectInlineJs=code=>{var _document$body;const el=document.createElement("script");el.setAttribute("data-source","KISS-Calendar injectInlineJs");el.setAttribute("type","text/javascript");el.textContent=code;(_document$body=document.body)===null||_document$body===void 0?void 0:_document$body.appendChild(el);};// Function to inject external JavaScript file
-const injectExternalJs=src=>{var _document$body2;const el=document.createElement("script");el.setAttribute("data-source","KISS-Calendar injectExternalJs");el.setAttribute("type","text/javascript");el.setAttribute("src",src);(_document$body2=document.body)===null||_document$body2===void 0?void 0:_document$body2.appendChild(el);};// Function to inject internal CSS code
-const injectInternalCss=styles=>{var _document$head;const el=document.createElement("style");el.setAttribute("data-source","KISS-Calendar injectInternalCss");el.textContent=styles;(_document$head=document.head)===null||_document$head===void 0?void 0:_document$head.appendChild(el);};// Function to inject external CSS file
-const injectExternalCss=href=>{var _document$head2;const el=document.createElement("link");el.setAttribute("data-source","KISS-Calendar injectExternalCss");el.setAttribute("rel","stylesheet");el.setAttribute("type","text/css");el.setAttribute("href",href);(_document$head2=document.head)===null||_document$head2===void 0?void 0:_document$head2.appendChild(el);};
-;// CONCATENATED MODULE: ./src/libs/translator.js
-/**
- * 翻译类
- */class Translator{_updatePool(translator){if(!translator){return;}const{fetchInterval=DEFAULT_FETCH_INTERVAL,fetchLimit=DEFAULT_FETCH_LIMIT}=this._setting.transApis[translator]||{};updateFetchPool(fetchInterval,fetchLimit);}constructor(rule,setting){var _this2=this;this._rule={};this._setting={};this._rootNodes=new Set();this._tranNodes=new Map();this._skipNodeNames=[APP_LCNAME,"style","svg","img","audio","video","textarea","input","button","select","option","head","script","iframe"];this._eventName=utils_genEventName();this._mouseoverNode=null;this._keepSelector="";this._terms=[];this._docTitle="";// 显示
-this._interseObserver=new IntersectionObserver((entries,observer)=>{entries.forEach(entry=>{if(entry.isIntersecting){observer.unobserve(entry.target);this._render(entry.target);}});},{threshold:0.1});// 变化
-this._mutaObserver=new MutationObserver(mutations=>{mutations.forEach(mutation=>{if(!this._skipNodeNames.includes(mutation.target.localName)&&mutation.addedNodes.length>0){const nodes=Array.from(mutation.addedNodes).filter(node=>{if(this._skipNodeNames.includes(node.localName)||node.id===APP_LCNAME){return false;}return true;});if(nodes.length>0){// const rootNode = mutation.target.getRootNode();
-// todo
-this._reTranslate();}}});});// 插入 shadowroot
-this._overrideAttachShadow=()=>{const _this=this;const _attachShadow=HTMLElement.prototype.attachShadow;HTMLElement.prototype.attachShadow=function(){_this._reTranslate();return _attachShadow.apply(this,arguments);};};this.updateRule=obj=>{this.rule={...this.rule,...obj};this._updatePool(obj.translator);};this.toggle=()=>{if(this.rule.transOpen==="true"){this.rule={...this.rule,transOpen:"false"};this._unRegister();}else{this.rule={...this.rule,transOpen:"true"};this._register();}};this.toggleStyle=()=>{const textStyle=this.rule.textStyle===OPT_STYLE_FUZZY?OPT_STYLE_DASHLINE:OPT_STYLE_FUZZY;this.rule={...this.rule,textStyle};};this.translateText=async text=>{var _this$_setting$transA;const{translator,fromLang,toLang}=this._rule;const apiSetting=((_this$_setting$transA=this._setting.transApis)===null||_this$_setting$transA===void 0?void 0:_this$_setting$transA[translator])||DEFAULT_TRANS_APIS[translator];const[trText]=await apiTranslate({text,translator,fromLang,toLang,apiSetting});return trText;};this._querySelectorAll=(selector,node)=>{try{return Array.from(node.querySelectorAll(selector));}catch(err){log_kissLog(selector,"querySelectorAll err");}return[];};this._queryFilter=(selector,rootNode)=>{return this._querySelectorAll(selector,rootNode).filter(node=>this._queryFilter(selector,node).length===0);};this._queryShadowNodes=(selector,rootNode)=>{this._rootNodes.add(rootNode);this._queryFilter(selector,rootNode).forEach(item=>{if(!this._tranNodes.has(item)){this._tranNodes.set(item,"");}});Array.from(rootNode.querySelectorAll("*")).map(item=>item.shadowRoot).filter(Boolean).forEach(item=>{this._queryShadowNodes(selector,item);});};this._queryNodes=function(){let rootNode=arguments.length>0&&arguments[0]!==undefined?arguments[0]:document;// const childRoots = Array.from(rootNode.querySelectorAll("*"))
-//   .map((item) => item.shadowRoot)
-//   .filter(Boolean);
-// const childNodes = childRoots.map((item) => this._queryNodes(item));
-// const nodes = Array.from(rootNode.querySelectorAll(this.rule.selector));
-// return nodes.concat(childNodes).flat();
-_this2._rootNodes.add(rootNode);_this2._rule.selector.split(";").map(item=>item.trim()).filter(Boolean).forEach(selector=>{if(selector.includes(SHADOW_KEY)){const[outSelector,inSelector]=selector.split(SHADOW_KEY).map(item=>item.trim());if(outSelector&&inSelector){const outNodes=_this2._querySelectorAll(outSelector,rootNode);outNodes.forEach(outNode=>{if(outNode.shadowRoot){// this._rootNodes.add(outNode.shadowRoot);
-// this._queryFilter(inSelector, outNode.shadowRoot).forEach(
-//   (item) => {
-//     if (!this._tranNodes.has(item)) {
-//       this._tranNodes.set(item, "");
-//     }
-//   }
-// );
-_this2._queryShadowNodes(inSelector,outNode.shadowRoot);}});}}else{_this2._queryFilter(selector,rootNode).forEach(item=>{if(!_this2._tranNodes.has(item)){_this2._tranNodes.set(item,"");}});}});};this._register=()=>{const{fromLang,toLang,injectJs,injectCss,fixerSelector,fixerFunc}=this._rule;if(fromLang===toLang){return;}// webfix
-if(fixerSelector&&fixerFunc!=="-"){runFixer(fixerSelector,fixerFunc);}// 注入用户JS/CSS
-if(isExt){injectJs&&sendBgMsg(MSG_INJECT_JS,injectJs);injectCss&&sendBgMsg(MSG_INJECT_CSS,injectCss);}else{injectJs&&injectInlineJs(injectJs);injectCss&&injectInternalCss(injectCss);}// 搜索节点
-this._queryNodes();this._rootNodes.forEach(node=>{// 监听节点变化;
-this._mutaObserver.observe(node,{childList:true,subtree:true// characterData: true,
-});});if(!this._rule.transTiming||this._rule.transTiming===OPT_TIMING_PAGESCROLL){// 监听节点显示
-this._tranNodes.forEach((_,node)=>{this._interseObserver.observe(node);});}else if(this._rule.transTiming===OPT_TIMING_PAGEOPEN){// 全文直接翻译
-this._tranNodes.forEach((_,node)=>{this._render(node);});}else{// 监听鼠标悬停
-window.addEventListener("keydown",this._handleKeydown);this._tranNodes.forEach((_,node)=>{node.addEventListener("mouseenter",this._handleMouseover);node.addEventListener("mouseleave",this._handleMouseout);});}// 翻译页面标题
-if(this._rule.transTitle==="true"&&!this._docTitle){const title=document.title;this._docTitle=title;this.translateText(title).then(trText=>{document.title="".concat(trText," | ").concat(title);});}};this._handleMouseover=e=>{// console.log("mouseenter", e);
-if(!this._tranNodes.has(e.target)){return;}const key=this._rule.transTiming.slice(3);if(this._rule.transTiming===OPT_TIMING_MOUSEOVER||e[key]){e.target.removeEventListener("mouseenter",this._handleMouseover);e.target.removeEventListener("mouseleave",this._handleMouseout);this._render(e.target);}else{this._mouseoverNode=e.target;}};this._handleMouseout=e=>{// console.log("mouseleave", e);
-if(!this._tranNodes.has(e.target)){return;}this._mouseoverNode=null;};this._handleKeydown=e=>{// console.log("keydown", e);
-const key=this._rule.transTiming.slice(3);if(e[key]&&this._mouseoverNode){this._mouseoverNode.removeEventListener("mouseenter",this._handleMouseover);this._mouseoverNode.removeEventListener("mouseleave",this._handleMouseout);const node=this._mouseoverNode;this._render(node);this._mouseoverNode=null;}};this._unRegister=()=>{// 恢复页面标题
-if(this._docTitle){document.title=this._docTitle;this._docTitle="";}// 解除节点变化监听
-this._mutaObserver.disconnect();// 解除节点显示监听
-// this._interseObserver.disconnect();
-// 移除键盘监听
-window.removeEventListener("keydown",this._handleKeydown);const{transRemoveHook}=this._rule;this._tranNodes.forEach((innerHTML,node)=>{if(!this._rule.transTiming||this._rule.transTiming===OPT_TIMING_PAGESCROLL){// 解除节点显示监听
-this._interseObserver.unobserve(node);}else if(this._rule.transTiming!==OPT_TIMING_PAGEOPEN){// 移除鼠标悬停监听
-// node.style.pointerEvents = "none";
-node.removeEventListener("mouseenter",this._handleMouseover);node.removeEventListener("mouseleave",this._handleMouseout);}// 移除/恢复元素
-if(innerHTML){if(this._rule.transOnly==="true"){node.innerHTML=innerHTML;}else{var _node$querySelector;(_node$querySelector=node.querySelector(APP_LCNAME))===null||_node$querySelector===void 0?void 0:_node$querySelector.remove();}// 钩子函数
-if(transRemoveHook!==null&&transRemoveHook!==void 0&&transRemoveHook.trim()){libs_interpreter.run("exports.transRemoveHook = ".concat(transRemoveHook));libs_interpreter.exports.transRemoveHook(node);}}});// 移除用户JS/CSS
-this._removeInjector();// 清空节点集合
-this._rootNodes.clear();this._tranNodes.clear();// 清空任务池
-clearFetchPool();};this._removeInjector=()=>{var _document$querySelect;(_document$querySelect=document.querySelectorAll("[data-source^=\"KISS-Calendar\"]"))===null||_document$querySelect===void 0?void 0:_document$querySelect.forEach(el=>el.remove());};this._reTranslate=debounce(()=>{if(this._rule.transOpen==="true"){window.removeEventListener("keydown",this._handleKeydown);this._mutaObserver.disconnect();this._interseObserver.disconnect();this._removeInjector();this._register();}},this._setting.transInterval);this._invalidLength=q=>{var _this$_setting$minLen,_this$_setting$maxLen;return!q||q.length<((_this$_setting$minLen=this._setting.minLength)!==null&&_this$_setting$minLen!==void 0?_this$_setting$minLen:TRANS_MIN_LENGTH)||q.length>((_this$_setting$maxLen=this._setting.maxLength)!==null&&_this$_setting$maxLen!==void 0?_this$_setting$maxLen:TRANS_MAX_LENGTH);};this._render=el=>{let traEl=el.querySelector(APP_LCNAME);// 已翻译
-if(traEl){if(this._rule.transOnly==="true"){return;}const preText=getHtmlText(this._tranNodes.get(el));const curText=getHtmlText(el.innerHTML,APP_LCNAME);if(preText===curText){return;}traEl.remove();}// 缓存已翻译元素
-this._tranNodes.set(el,el.innerHTML);let q=el.innerText.trim();const keeps=[];// 翻译开始钩子函数
-const{transStartHook}=this._rule;if(transStartHook!==null&&transStartHook!==void 0&&transStartHook.trim()){libs_interpreter.run("exports.transStartHook = ".concat(transStartHook));libs_interpreter.exports.transStartHook(el,q);}// 保留元素
-const keepSelector=this._keepSelector.trim();if(keepSelector){let text="";el.childNodes.forEach(child=>{if(child.nodeType===1&&child.matches(keepSelector)){if(child.nodeName==="IMG"){child.style.cssText+="width: ".concat(child.width,"px;");child.style.cssText+="height: ".concat(child.height,"px;");}text+="[".concat(keeps.length,"]");keeps.push(child.outerHTML);}else if(child.nodeType===1||child.nodeType===3){text+=child.textContent;}});if(keeps.length>0){// textContent会保留些无用的换行符，严重影响翻译质量
-if(q.includes("\n")){q=text;}else{q=text.replaceAll("\n"," ");}}}// 太长或太短
-if(this._invalidLength(q.replace(/\[(\d+)\]/g,"").trim())){return;}// 专业术语
-if(this._terms.length>0){for(const term of this._terms){const re=new RegExp(term[0],"g");q=q.replace(re,t=>{const text="[".concat(keeps.length,"]");keeps.push("<i class=\"kiss-trem\">".concat(term[1]||t,"</i>"));return text;});}}// 附加样式
-const{selectStyle,parentStyle}=this._rule;el.style.cssText+=selectStyle;if(el.parentElement){el.parentElement.style.cssText+=parentStyle;}// 插入译文节点
-traEl=document.createElement(APP_LCNAME);traEl.style.visibility="visible";// if (this._rule.transOnly === "true") {
-//   el.innerHTML = "";
-// }
-el.appendChild(traEl);// 渲染译文节点
-const root=(0,client.createRoot)(traEl);root.render(/*#__PURE__*/(0,jsx_runtime.jsx)(Content,{q:q,keeps:keeps,translator:this,$el:el}));};this._overrideAttachShadow();this._setting=setting;this._rule=rule;this._keepSelector=rule.keepSelector||"";this._terms=(rule.terms||"").split(/\n|;/).map(item=>item.split(",").map(item=>item.trim())).filter(_ref=>{let[term]=_ref;return Boolean(term);});this._updatePool(rule.translator);if(rule.transOpen==="true"){this._register();}}get setting(){return this._setting;}get eventName(){return this._eventName;}get rule(){// console.log("get rule", this._rule);
-return this._rule;}set rule(rule){// console.log("set rule", rule);
-this._rule=rule;// 广播消息
-const eventName=this._eventName;window.dispatchEvent(new CustomEvent(eventName,{detail:{action:MSG_TRANS_CURRULE,args:rule}}));}}
+const injectInlineJs=code=>{var _document$body;const el=document.createElement("script");el.setAttribute("data-source","kiss-inject injectInlineJs");el.setAttribute("type","text/javascript");el.textContent=code;(_document$body=document.body)===null||_document$body===void 0?void 0:_document$body.appendChild(el);};// Function to inject external JavaScript file
+const injectExternalJs=function(src){let id=arguments.length>1&&arguments[1]!==undefined?arguments[1]:"kiss-translator-injector";if(document.getElementById(id)){return;}// const el = document.createElement("script");
+// el.setAttribute("data-source", "kiss-inject injectExternalJs");
+// el.setAttribute("type", "text/javascript");
+// el.setAttribute("src", src);
+// el.setAttribute("id", id);
+// document.body?.appendChild(el);
+const script=document.createElement("script");script.id=id;script.src=src;(document.head||document.documentElement).appendChild(script);};// Function to inject internal CSS code
+const injectInternalCss=styles=>{var _document$head;const el=document.createElement("style");el.setAttribute("data-source","kiss-inject injectInternalCss");el.textContent=styles;(_document$head=document.head)===null||_document$head===void 0?void 0:_document$head.appendChild(el);};// Function to inject external CSS file
+const injectExternalCss=href=>{var _document$head2;const el=document.createElement("link");el.setAttribute("data-source","kiss-inject injectExternalCss");el.setAttribute("rel","stylesheet");el.setAttribute("type","text/css");el.setAttribute("href",href);(_document$head2=document.head)===null||_document$head2===void 0?void 0:_document$head2.appendChild(el);};
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@emotion+sheet@1.4.0/node_modules/@emotion/sheet/dist/emotion-sheet.esm.js
+var isDevelopment = false;
+
+/*
+
+Based off glamor's StyleSheet, thanks Sunil ❤️
+
+high performance StyleSheet for css-in-js systems
+
+- uses multiple style tags behind the scenes for millions of rules
+- uses `insertRule` for appending in production for *much* faster performance
+
+// usage
+
+import { StyleSheet } from '@emotion/sheet'
+
+let styleSheet = new StyleSheet({ key: '', container: document.head })
+
+styleSheet.insert('#box { border: 1px solid red; }')
+- appends a css rule into the stylesheet
+
+styleSheet.flush()
+- empties the stylesheet of all its contents
+
+*/
+
+function sheetForTag(tag) {
+  if (tag.sheet) {
+    return tag.sheet;
+  } // this weirdness brought to you by firefox
+
+  /* istanbul ignore next */
+
+  for (var i = 0; i < document.styleSheets.length; i++) {
+    if (document.styleSheets[i].ownerNode === tag) {
+      return document.styleSheets[i];
+    }
+  } // this function should always return with a value
+  // TS can't understand it though so we make it stop complaining here
+
+  return undefined;
+}
+function createStyleElement(options) {
+  var tag = document.createElement('style');
+  tag.setAttribute('data-emotion', options.key);
+  if (options.nonce !== undefined) {
+    tag.setAttribute('nonce', options.nonce);
+  }
+  tag.appendChild(document.createTextNode(''));
+  tag.setAttribute('data-s', '');
+  return tag;
+}
+var StyleSheet = /*#__PURE__*/function () {
+  // Using Node instead of HTMLElement since container may be a ShadowRoot
+  function StyleSheet(options) {
+    var _this = this;
+    this._insertTag = function (tag) {
+      var before;
+      if (_this.tags.length === 0) {
+        if (_this.insertionPoint) {
+          before = _this.insertionPoint.nextSibling;
+        } else if (_this.prepend) {
+          before = _this.container.firstChild;
+        } else {
+          before = _this.before;
+        }
+      } else {
+        before = _this.tags[_this.tags.length - 1].nextSibling;
+      }
+      _this.container.insertBefore(tag, before);
+      _this.tags.push(tag);
+    };
+    this.isSpeedy = options.speedy === undefined ? !isDevelopment : options.speedy;
+    this.tags = [];
+    this.ctr = 0;
+    this.nonce = options.nonce; // key is the value of the data-emotion attribute, it's used to identify different sheets
+
+    this.key = options.key;
+    this.container = options.container;
+    this.prepend = options.prepend;
+    this.insertionPoint = options.insertionPoint;
+    this.before = null;
+  }
+  var _proto = StyleSheet.prototype;
+  _proto.hydrate = function hydrate(nodes) {
+    nodes.forEach(this._insertTag);
+  };
+  _proto.insert = function insert(rule) {
+    // the max length is how many rules we have per style tag, it's 65000 in speedy mode
+    // it's 1 in dev because we insert source maps that map a single rule to a location
+    // and you can only have one source map per style tag
+    if (this.ctr % (this.isSpeedy ? 65000 : 1) === 0) {
+      this._insertTag(createStyleElement(this));
+    }
+    var tag = this.tags[this.tags.length - 1];
+    if (this.isSpeedy) {
+      var sheet = sheetForTag(tag);
+      try {
+        // this is the ultrafast version, works across browsers
+        // the big drawback is that the css won't be editable in devtools
+        sheet.insertRule(rule, sheet.cssRules.length);
+      } catch (e) {}
+    } else {
+      tag.appendChild(document.createTextNode(rule));
+    }
+    this.ctr++;
+  };
+  _proto.flush = function flush() {
+    this.tags.forEach(function (tag) {
+      var _tag$parentNode;
+      return (_tag$parentNode = tag.parentNode) == null ? void 0 : _tag$parentNode.removeChild(tag);
+    });
+    this.tags = [];
+    this.ctr = 0;
+  };
+  return StyleSheet;
+}();
+
+// EXTERNAL MODULE: ./node_modules/.pnpm/stylis@4.2.0/node_modules/stylis/src/Tokenizer.js
+var Tokenizer = __webpack_require__(7650);
+// EXTERNAL MODULE: ./node_modules/.pnpm/stylis@4.2.0/node_modules/stylis/src/Utility.js
+var Utility = __webpack_require__(7279);
+// EXTERNAL MODULE: ./node_modules/.pnpm/stylis@4.2.0/node_modules/stylis/src/Enum.js
+var Enum = __webpack_require__(3724);
+// EXTERNAL MODULE: ./node_modules/.pnpm/stylis@4.2.0/node_modules/stylis/src/Serializer.js
+var Serializer = __webpack_require__(903);
+// EXTERNAL MODULE: ./node_modules/.pnpm/stylis@4.2.0/node_modules/stylis/src/Middleware.js
+var Middleware = __webpack_require__(7033);
+// EXTERNAL MODULE: ./node_modules/.pnpm/stylis@4.2.0/node_modules/stylis/src/Parser.js
+var Parser = __webpack_require__(3963);
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@emotion+cache@11.14.0/node_modules/@emotion/cache/dist/emotion-cache.browser.esm.js
+
+
+
+
+var identifierWithPointTracking = function identifierWithPointTracking(begin, points, index) {
+  var previous = 0;
+  var character = 0;
+  while (true) {
+    previous = character;
+    character = (0,Tokenizer/* peek */.fj)(); // &\f
+
+    if (previous === 38 && character === 12) {
+      points[index] = 1;
+    }
+    if ((0,Tokenizer/* token */.r)(character)) {
+      break;
+    }
+    (0,Tokenizer/* next */.lp)();
+  }
+  return (0,Tokenizer/* slice */.tP)(begin, Tokenizer/* position */.FK);
+};
+var toRules = function toRules(parsed, points) {
+  // pretend we've started with a comma
+  var index = -1;
+  var character = 44;
+  do {
+    switch ((0,Tokenizer/* token */.r)(character)) {
+      case 0:
+        // &\f
+        if (character === 38 && (0,Tokenizer/* peek */.fj)() === 12) {
+          // this is not 100% correct, we don't account for literal sequences here - like for example quoted strings
+          // stylis inserts \f after & to know when & where it should replace this sequence with the context selector
+          // and when it should just concatenate the outer and inner selectors
+          // it's very unlikely for this sequence to actually appear in a different context, so we just leverage this fact here
+          points[index] = 1;
+        }
+        parsed[index] += identifierWithPointTracking(Tokenizer/* position */.FK - 1, points, index);
+        break;
+      case 2:
+        parsed[index] += (0,Tokenizer/* delimit */.iF)(character);
+        break;
+      case 4:
+        // comma
+        if (character === 44) {
+          // colon
+          parsed[++index] = (0,Tokenizer/* peek */.fj)() === 58 ? '&\f' : '';
+          points[index] = parsed[index].length;
+          break;
+        }
+
+      // fallthrough
+
+      default:
+        parsed[index] += (0,Utility/* from */.Dp)(character);
+    }
+  } while (character = (0,Tokenizer/* next */.lp)());
+  return parsed;
+};
+var emotion_cache_browser_esm_getRules = function getRules(value, points) {
+  return (0,Tokenizer/* dealloc */.cE)(toRules((0,Tokenizer/* alloc */.un)(value), points));
+}; // WeakSet would be more appropriate, but only WeakMap is supported in IE11
+
+var fixedElements = /* #__PURE__ */new WeakMap();
+var compat = function compat(element) {
+  if (element.type !== 'rule' || !element.parent ||
+  // positive .length indicates that this rule contains pseudo
+  // negative .length indicates that this rule has been already prefixed
+  element.length < 1) {
+    return;
+  }
+  var value = element.value;
+  var parent = element.parent;
+  var isImplicitRule = element.column === parent.column && element.line === parent.line;
+  while (parent.type !== 'rule') {
+    parent = parent.parent;
+    if (!parent) return;
+  } // short-circuit for the simplest case
+
+  if (element.props.length === 1 && value.charCodeAt(0) !== 58
+  /* colon */ && !fixedElements.get(parent)) {
+    return;
+  } // if this is an implicitly inserted rule (the one eagerly inserted at the each new nested level)
+  // then the props has already been manipulated beforehand as they that array is shared between it and its "rule parent"
+
+  if (isImplicitRule) {
+    return;
+  }
+  fixedElements.set(element, true);
+  var points = [];
+  var rules = emotion_cache_browser_esm_getRules(value, points);
+  var parentRules = parent.props;
+  for (var i = 0, k = 0; i < rules.length; i++) {
+    for (var j = 0; j < parentRules.length; j++, k++) {
+      element.props[k] = points[i] ? rules[i].replace(/&\f/g, parentRules[j]) : parentRules[j] + " " + rules[i];
+    }
+  }
+};
+var removeLabel = function removeLabel(element) {
+  if (element.type === 'decl') {
+    var value = element.value;
+    if (
+    // charcode for l
+    value.charCodeAt(0) === 108 &&
+    // charcode for b
+    value.charCodeAt(2) === 98) {
+      // this ignores label
+      element["return"] = '';
+      element.value = '';
+    }
+  }
+};
+
+/* eslint-disable no-fallthrough */
+
+function prefix(value, length) {
+  switch ((0,Utility/* hash */.vp)(value, length)) {
+    // color-adjust
+    case 5103:
+      return Enum/* WEBKIT */.G$ + 'print-' + value + value;
+    // animation, animation-(delay|direction|duration|fill-mode|iteration-count|name|play-state|timing-function)
+
+    case 5737:
+    case 4201:
+    case 3177:
+    case 3433:
+    case 1641:
+    case 4457:
+    case 2921: // text-decoration, filter, clip-path, backface-visibility, column, box-decoration-break
+
+    case 5572:
+    case 6356:
+    case 5844:
+    case 3191:
+    case 6645:
+    case 3005: // mask, mask-image, mask-(mode|clip|size), mask-(repeat|origin), mask-position, mask-composite,
+
+    case 6391:
+    case 5879:
+    case 5623:
+    case 6135:
+    case 4599:
+    case 4855: // background-clip, columns, column-(count|fill|gap|rule|rule-color|rule-style|rule-width|span|width)
+
+    case 4215:
+    case 6389:
+    case 5109:
+    case 5365:
+    case 5621:
+    case 3829:
+      return Enum/* WEBKIT */.G$ + value + value;
+    // appearance, user-select, transform, hyphens, text-size-adjust
+
+    case 5349:
+    case 4246:
+    case 4810:
+    case 6968:
+    case 2756:
+      return Enum/* WEBKIT */.G$ + value + Enum/* MOZ */.uj + value + Enum.MS + value + value;
+    // flex, flex-direction
+
+    case 6828:
+    case 4268:
+      return Enum/* WEBKIT */.G$ + value + Enum.MS + value + value;
+    // order
+
+    case 6165:
+      return Enum/* WEBKIT */.G$ + value + Enum.MS + 'flex-' + value + value;
+    // align-items
+
+    case 5187:
+      return Enum/* WEBKIT */.G$ + value + (0,Utility/* replace */.gx)(value, /(\w+).+(:[^]+)/, Enum/* WEBKIT */.G$ + 'box-$1$2' + Enum.MS + 'flex-$1$2') + value;
+    // align-self
+
+    case 5443:
+      return Enum/* WEBKIT */.G$ + value + Enum.MS + 'flex-item-' + (0,Utility/* replace */.gx)(value, /flex-|-self/, '') + value;
+    // align-content
+
+    case 4675:
+      return Enum/* WEBKIT */.G$ + value + Enum.MS + 'flex-line-pack' + (0,Utility/* replace */.gx)(value, /align-content|flex-|-self/, '') + value;
+    // flex-shrink
+
+    case 5548:
+      return Enum/* WEBKIT */.G$ + value + Enum.MS + (0,Utility/* replace */.gx)(value, 'shrink', 'negative') + value;
+    // flex-basis
+
+    case 5292:
+      return Enum/* WEBKIT */.G$ + value + Enum.MS + (0,Utility/* replace */.gx)(value, 'basis', 'preferred-size') + value;
+    // flex-grow
+
+    case 6060:
+      return Enum/* WEBKIT */.G$ + 'box-' + (0,Utility/* replace */.gx)(value, '-grow', '') + Enum/* WEBKIT */.G$ + value + Enum.MS + (0,Utility/* replace */.gx)(value, 'grow', 'positive') + value;
+    // transition
+
+    case 4554:
+      return Enum/* WEBKIT */.G$ + (0,Utility/* replace */.gx)(value, /([^-])(transform)/g, '$1' + Enum/* WEBKIT */.G$ + '$2') + value;
+    // cursor
+
+    case 6187:
+      return (0,Utility/* replace */.gx)((0,Utility/* replace */.gx)((0,Utility/* replace */.gx)(value, /(zoom-|grab)/, Enum/* WEBKIT */.G$ + '$1'), /(image-set)/, Enum/* WEBKIT */.G$ + '$1'), value, '') + value;
+    // background, background-image
+
+    case 5495:
+    case 3959:
+      return (0,Utility/* replace */.gx)(value, /(image-set\([^]*)/, Enum/* WEBKIT */.G$ + '$1' + '$`$1');
+    // justify-content
+
+    case 4968:
+      return (0,Utility/* replace */.gx)((0,Utility/* replace */.gx)(value, /(.+:)(flex-)?(.*)/, Enum/* WEBKIT */.G$ + 'box-pack:$3' + Enum.MS + 'flex-pack:$3'), /s.+-b[^;]+/, 'justify') + Enum/* WEBKIT */.G$ + value + value;
+    // (margin|padding)-inline-(start|end)
+
+    case 4095:
+    case 3583:
+    case 4068:
+    case 2532:
+      return (0,Utility/* replace */.gx)(value, /(.+)-inline(.+)/, Enum/* WEBKIT */.G$ + '$1$2') + value;
+    // (min|max)?(width|height|inline-size|block-size)
+
+    case 8116:
+    case 7059:
+    case 5753:
+    case 5535:
+    case 5445:
+    case 5701:
+    case 4933:
+    case 4677:
+    case 5533:
+    case 5789:
+    case 5021:
+    case 4765:
+      // stretch, max-content, min-content, fill-available
+      if ((0,Utility/* strlen */.to)(value) - 1 - length > 6) switch ((0,Utility/* charat */.uO)(value, length + 1)) {
+        // (m)ax-content, (m)in-content
+        case 109:
+          // -
+          if ((0,Utility/* charat */.uO)(value, length + 4) !== 45) break;
+        // (f)ill-available, (f)it-content
+
+        case 102:
+          return (0,Utility/* replace */.gx)(value, /(.+:)(.+)-([^]+)/, '$1' + Enum/* WEBKIT */.G$ + '$2-$3' + '$1' + Enum/* MOZ */.uj + ((0,Utility/* charat */.uO)(value, length + 3) == 108 ? '$3' : '$2-$3')) + value;
+        // (s)tretch
+
+        case 115:
+          return ~(0,Utility/* indexof */.Cw)(value, 'stretch') ? prefix((0,Utility/* replace */.gx)(value, 'stretch', 'fill-available'), length) + value : value;
+      }
+      break;
+    // position: sticky
+
+    case 4949:
+      // (s)ticky?
+      if ((0,Utility/* charat */.uO)(value, length + 1) !== 115) break;
+    // display: (flex|inline-flex)
+
+    case 6444:
+      switch ((0,Utility/* charat */.uO)(value, (0,Utility/* strlen */.to)(value) - 3 - (~(0,Utility/* indexof */.Cw)(value, '!important') && 10))) {
+        // stic(k)y
+        case 107:
+          return (0,Utility/* replace */.gx)(value, ':', ':' + Enum/* WEBKIT */.G$) + value;
+        // (inline-)?fl(e)x
+
+        case 101:
+          return (0,Utility/* replace */.gx)(value, /(.+:)([^;!]+)(;|!.+)?/, '$1' + Enum/* WEBKIT */.G$ + ((0,Utility/* charat */.uO)(value, 14) === 45 ? 'inline-' : '') + 'box$3' + '$1' + Enum/* WEBKIT */.G$ + '$2$3' + '$1' + Enum.MS + '$2box$3') + value;
+      }
+      break;
+    // writing-mode
+
+    case 5936:
+      switch ((0,Utility/* charat */.uO)(value, length + 11)) {
+        // vertical-l(r)
+        case 114:
+          return Enum/* WEBKIT */.G$ + value + Enum.MS + (0,Utility/* replace */.gx)(value, /[svh]\w+-[tblr]{2}/, 'tb') + value;
+        // vertical-r(l)
+
+        case 108:
+          return Enum/* WEBKIT */.G$ + value + Enum.MS + (0,Utility/* replace */.gx)(value, /[svh]\w+-[tblr]{2}/, 'tb-rl') + value;
+        // horizontal(-)tb
+
+        case 45:
+          return Enum/* WEBKIT */.G$ + value + Enum.MS + (0,Utility/* replace */.gx)(value, /[svh]\w+-[tblr]{2}/, 'lr') + value;
+      }
+      return Enum/* WEBKIT */.G$ + value + Enum.MS + value + value;
+  }
+  return value;
+}
+var prefixer = function prefixer(element, index, children, callback) {
+  if (element.length > -1) if (!element["return"]) switch (element.type) {
+    case Enum/* DECLARATION */.h5:
+      element["return"] = prefix(element.value, element.length);
+      break;
+    case Enum/* KEYFRAMES */.lK:
+      return (0,Serializer/* serialize */.q)([(0,Tokenizer/* copy */.JG)(element, {
+        value: (0,Utility/* replace */.gx)(element.value, '@', '@' + Enum/* WEBKIT */.G$)
+      })], callback);
+    case Enum/* RULESET */.Fr:
+      if (element.length) return (0,Utility/* combine */.$e)(element.props, function (value) {
+        switch ((0,Utility/* match */.EQ)(value, /(::plac\w+|:read-\w+)/)) {
+          // :read-(only|write)
+          case ':read-only':
+          case ':read-write':
+            return (0,Serializer/* serialize */.q)([(0,Tokenizer/* copy */.JG)(element, {
+              props: [(0,Utility/* replace */.gx)(value, /:(read-\w+)/, ':' + Enum/* MOZ */.uj + '$1')]
+            })], callback);
+          // :placeholder
+
+          case '::placeholder':
+            return (0,Serializer/* serialize */.q)([(0,Tokenizer/* copy */.JG)(element, {
+              props: [(0,Utility/* replace */.gx)(value, /:(plac\w+)/, ':' + Enum/* WEBKIT */.G$ + 'input-$1')]
+            }), (0,Tokenizer/* copy */.JG)(element, {
+              props: [(0,Utility/* replace */.gx)(value, /:(plac\w+)/, ':' + Enum/* MOZ */.uj + '$1')]
+            }), (0,Tokenizer/* copy */.JG)(element, {
+              props: [(0,Utility/* replace */.gx)(value, /:(plac\w+)/, Enum.MS + 'input-$1')]
+            })], callback);
+        }
+        return '';
+      });
+  }
+};
+var defaultStylisPlugins = [prefixer];
+var createCache = function createCache(options) {
+  var key = options.key;
+  if (key === 'css') {
+    var ssrStyles = document.querySelectorAll("style[data-emotion]:not([data-s])"); // get SSRed styles out of the way of React's hydration
+    // document.head is a safe place to move them to(though note document.head is not necessarily the last place they will be)
+    // note this very very intentionally targets all style elements regardless of the key to ensure
+    // that creating a cache works inside of render of a React component
+
+    Array.prototype.forEach.call(ssrStyles, function (node) {
+      // we want to only move elements which have a space in the data-emotion attribute value
+      // because that indicates that it is an Emotion 11 server-side rendered style elements
+      // while we will already ignore Emotion 11 client-side inserted styles because of the :not([data-s]) part in the selector
+      // Emotion 10 client-side inserted styles did not have data-s (but importantly did not have a space in their data-emotion attributes)
+      // so checking for the space ensures that loading Emotion 11 after Emotion 10 has inserted some styles
+      // will not result in the Emotion 10 styles being destroyed
+      var dataEmotionAttribute = node.getAttribute('data-emotion');
+      if (dataEmotionAttribute.indexOf(' ') === -1) {
+        return;
+      }
+      document.head.appendChild(node);
+      node.setAttribute('data-s', '');
+    });
+  }
+  var stylisPlugins = options.stylisPlugins || defaultStylisPlugins;
+  var inserted = {};
+  var container;
+  var nodesToHydrate = [];
+  {
+    container = options.container || document.head;
+    Array.prototype.forEach.call(
+    // this means we will ignore elements which don't have a space in them which
+    // means that the style elements we're looking at are only Emotion 11 server-rendered style elements
+    document.querySelectorAll("style[data-emotion^=\"" + key + " \"]"), function (node) {
+      var attrib = node.getAttribute("data-emotion").split(' ');
+      for (var i = 1; i < attrib.length; i++) {
+        inserted[attrib[i]] = true;
+      }
+      nodesToHydrate.push(node);
+    });
+  }
+  var _insert;
+  var omnipresentPlugins = [compat, removeLabel];
+  {
+    var currentSheet;
+    var finalizingPlugins = [Serializer/* stringify */.P, (0,Middleware/* rulesheet */.cD)(function (rule) {
+      currentSheet.insert(rule);
+    })];
+    var serializer = (0,Middleware/* middleware */.qR)(omnipresentPlugins.concat(stylisPlugins, finalizingPlugins));
+    var stylis = function stylis(styles) {
+      return (0,Serializer/* serialize */.q)((0,Parser/* compile */.MY)(styles), serializer);
+    };
+    _insert = function insert(selector, serialized, sheet, shouldCache) {
+      currentSheet = sheet;
+      stylis(selector ? selector + "{" + serialized.styles + "}" : serialized.styles);
+      if (shouldCache) {
+        cache.inserted[serialized.name] = true;
+      }
+    };
+  }
+  var cache = {
+    key: key,
+    sheet: new StyleSheet({
+      key: key,
+      container: container,
+      nonce: options.nonce,
+      speedy: options.speedy,
+      prepend: options.prepend,
+      insertionPoint: options.insertionPoint
+    }),
+    nonce: options.nonce,
+    inserted: inserted,
+    registered: {},
+    insert: _insert
+  };
+  cache.sheet.hydrate(nodesToHydrate);
+  return cache;
+};
+
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@emotion+hash@0.9.2/node_modules/@emotion/hash/dist/emotion-hash.esm.js
+/* eslint-disable */
+// Inspired by https://github.com/garycourt/murmurhash-js
+// Ported from https://github.com/aappleby/smhasher/blob/61a0530f28277f2e850bfc39600ce61d02b518de/src/MurmurHash2.cpp#L37-L86
+function murmur2(str) {
+  // 'm' and 'r' are mixing constants generated offline.
+  // They're not really 'magic', they just happen to work well.
+  // const m = 0x5bd1e995;
+  // const r = 24;
+  // Initialize the hash
+  var h = 0; // Mix 4 bytes at a time into the hash
+
+  var k,
+    i = 0,
+    len = str.length;
+  for (; len >= 4; ++i, len -= 4) {
+    k = str.charCodeAt(i) & 0xff | (str.charCodeAt(++i) & 0xff) << 8 | (str.charCodeAt(++i) & 0xff) << 16 | (str.charCodeAt(++i) & 0xff) << 24;
+    k = /* Math.imul(k, m): */
+    (k & 0xffff) * 0x5bd1e995 + ((k >>> 16) * 0xe995 << 16);
+    k ^= /* k >>> r: */
+    k >>> 24;
+    h = /* Math.imul(k, m): */
+    (k & 0xffff) * 0x5bd1e995 + ((k >>> 16) * 0xe995 << 16) ^ /* Math.imul(h, m): */
+    (h & 0xffff) * 0x5bd1e995 + ((h >>> 16) * 0xe995 << 16);
+  } // Handle the last few bytes of the input array
+
+  switch (len) {
+    case 3:
+      h ^= (str.charCodeAt(i + 2) & 0xff) << 16;
+    case 2:
+      h ^= (str.charCodeAt(i + 1) & 0xff) << 8;
+    case 1:
+      h ^= str.charCodeAt(i) & 0xff;
+      h = /* Math.imul(h, m): */
+      (h & 0xffff) * 0x5bd1e995 + ((h >>> 16) * 0xe995 << 16);
+  } // Do a few final mixes of the hash to ensure the last few
+  // bytes are well-incorporated.
+
+  h ^= h >>> 13;
+  h = /* Math.imul(h, m): */
+  (h & 0xffff) * 0x5bd1e995 + ((h >>> 16) * 0xe995 << 16);
+  return ((h ^ h >>> 15) >>> 0).toString(36);
+}
+
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@emotion+unitless@0.10.0/node_modules/@emotion/unitless/dist/emotion-unitless.esm.js
+var unitlessKeys = {
+  animationIterationCount: 1,
+  aspectRatio: 1,
+  borderImageOutset: 1,
+  borderImageSlice: 1,
+  borderImageWidth: 1,
+  boxFlex: 1,
+  boxFlexGroup: 1,
+  boxOrdinalGroup: 1,
+  columnCount: 1,
+  columns: 1,
+  flex: 1,
+  flexGrow: 1,
+  flexPositive: 1,
+  flexShrink: 1,
+  flexNegative: 1,
+  flexOrder: 1,
+  gridRow: 1,
+  gridRowEnd: 1,
+  gridRowSpan: 1,
+  gridRowStart: 1,
+  gridColumn: 1,
+  gridColumnEnd: 1,
+  gridColumnSpan: 1,
+  gridColumnStart: 1,
+  msGridRow: 1,
+  msGridRowSpan: 1,
+  msGridColumn: 1,
+  msGridColumnSpan: 1,
+  fontWeight: 1,
+  lineHeight: 1,
+  opacity: 1,
+  order: 1,
+  orphans: 1,
+  scale: 1,
+  tabSize: 1,
+  widows: 1,
+  zIndex: 1,
+  zoom: 1,
+  WebkitLineClamp: 1,
+  // SVG-related properties
+  fillOpacity: 1,
+  floodOpacity: 1,
+  stopOpacity: 1,
+  strokeDasharray: 1,
+  strokeDashoffset: 1,
+  strokeMiterlimit: 1,
+  strokeOpacity: 1,
+  strokeWidth: 1
+};
+
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@emotion+memoize@0.9.0/node_modules/@emotion/memoize/dist/emotion-memoize.esm.js
+function memoize(fn) {
+  var cache = Object.create(null);
+  return function (arg) {
+    if (cache[arg] === undefined) cache[arg] = fn(arg);
+    return cache[arg];
+  };
+}
+
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@emotion+serialize@1.3.3/node_modules/@emotion/serialize/dist/emotion-serialize.esm.js
+
+
+
+var emotion_serialize_esm_isDevelopment = false;
+var hyphenateRegex = /[A-Z]|^ms/g;
+var animationRegex = /_EMO_([^_]+?)_([^]*?)_EMO_/g;
+var isCustomProperty = function isCustomProperty(property) {
+  return property.charCodeAt(1) === 45;
+};
+var isProcessableValue = function isProcessableValue(value) {
+  return value != null && typeof value !== 'boolean';
+};
+var processStyleName = /* #__PURE__ */memoize(function (styleName) {
+  return isCustomProperty(styleName) ? styleName : styleName.replace(hyphenateRegex, '-$&').toLowerCase();
+});
+var processStyleValue = function processStyleValue(key, value) {
+  switch (key) {
+    case 'animation':
+    case 'animationName':
+      {
+        if (typeof value === 'string') {
+          return value.replace(animationRegex, function (match, p1, p2) {
+            cursor = {
+              name: p1,
+              styles: p2,
+              next: cursor
+            };
+            return p1;
+          });
+        }
+      }
+  }
+  if (unitlessKeys[key] !== 1 && !isCustomProperty(key) && typeof value === 'number' && value !== 0) {
+    return value + 'px';
+  }
+  return value;
+};
+var noComponentSelectorMessage = 'Component selectors can only be used in conjunction with ' + '@emotion/babel-plugin, the swc Emotion plugin, or another Emotion-aware ' + 'compiler transform.';
+function handleInterpolation(mergedProps, registered, interpolation) {
+  if (interpolation == null) {
+    return '';
+  }
+  var componentSelector = interpolation;
+  if (componentSelector.__emotion_styles !== undefined) {
+    return componentSelector;
+  }
+  switch (typeof interpolation) {
+    case 'boolean':
+      {
+        return '';
+      }
+    case 'object':
+      {
+        var keyframes = interpolation;
+        if (keyframes.anim === 1) {
+          cursor = {
+            name: keyframes.name,
+            styles: keyframes.styles,
+            next: cursor
+          };
+          return keyframes.name;
+        }
+        var serializedStyles = interpolation;
+        if (serializedStyles.styles !== undefined) {
+          var next = serializedStyles.next;
+          if (next !== undefined) {
+            // not the most efficient thing ever but this is a pretty rare case
+            // and there will be very few iterations of this generally
+            while (next !== undefined) {
+              cursor = {
+                name: next.name,
+                styles: next.styles,
+                next: cursor
+              };
+              next = next.next;
+            }
+          }
+          var styles = serializedStyles.styles + ";";
+          return styles;
+        }
+        return createStringFromObject(mergedProps, registered, interpolation);
+      }
+    case 'function':
+      {
+        if (mergedProps !== undefined) {
+          var previousCursor = cursor;
+          var result = interpolation(mergedProps);
+          cursor = previousCursor;
+          return handleInterpolation(mergedProps, registered, result);
+        }
+        break;
+      }
+  } // finalize string values (regular strings and functions interpolated into css calls)
+
+  var asString = interpolation;
+  if (registered == null) {
+    return asString;
+  }
+  var cached = registered[asString];
+  return cached !== undefined ? cached : asString;
+}
+function createStringFromObject(mergedProps, registered, obj) {
+  var string = '';
+  if (Array.isArray(obj)) {
+    for (var i = 0; i < obj.length; i++) {
+      string += handleInterpolation(mergedProps, registered, obj[i]) + ";";
+    }
+  } else {
+    for (var key in obj) {
+      var value = obj[key];
+      if (typeof value !== 'object') {
+        var asString = value;
+        if (registered != null && registered[asString] !== undefined) {
+          string += key + "{" + registered[asString] + "}";
+        } else if (isProcessableValue(asString)) {
+          string += processStyleName(key) + ":" + processStyleValue(key, asString) + ";";
+        }
+      } else {
+        if (key === 'NO_COMPONENT_SELECTOR' && emotion_serialize_esm_isDevelopment) {
+          throw new Error(noComponentSelectorMessage);
+        }
+        if (Array.isArray(value) && typeof value[0] === 'string' && (registered == null || registered[value[0]] === undefined)) {
+          for (var _i = 0; _i < value.length; _i++) {
+            if (isProcessableValue(value[_i])) {
+              string += processStyleName(key) + ":" + processStyleValue(key, value[_i]) + ";";
+            }
+          }
+        } else {
+          var interpolated = handleInterpolation(mergedProps, registered, value);
+          switch (key) {
+            case 'animation':
+            case 'animationName':
+              {
+                string += processStyleName(key) + ":" + interpolated + ";";
+                break;
+              }
+            default:
+              {
+                string += key + "{" + interpolated + "}";
+              }
+          }
+        }
+      }
+    }
+  }
+  return string;
+}
+var labelPattern = /label:\s*([^\s;{]+)\s*(;|$)/g; // this is the cursor for keyframes
+// keyframes are stored on the SerializedStyles object as a linked list
+
+var cursor;
+function serializeStyles(args, registered, mergedProps) {
+  if (args.length === 1 && typeof args[0] === 'object' && args[0] !== null && args[0].styles !== undefined) {
+    return args[0];
+  }
+  var stringMode = true;
+  var styles = '';
+  cursor = undefined;
+  var strings = args[0];
+  if (strings == null || strings.raw === undefined) {
+    stringMode = false;
+    styles += handleInterpolation(mergedProps, registered, strings);
+  } else {
+    var asTemplateStringsArr = strings;
+    styles += asTemplateStringsArr[0];
+  } // we start at 1 since we've already handled the first arg
+
+  for (var i = 1; i < args.length; i++) {
+    styles += handleInterpolation(mergedProps, registered, args[i]);
+    if (stringMode) {
+      var templateStringsArr = strings;
+      styles += templateStringsArr[i];
+    }
+  } // using a global regex with .exec is stateful so lastIndex has to be reset each time
+
+  labelPattern.lastIndex = 0;
+  var identifierName = '';
+  var match; // https://esbench.com/bench/5b809c2cf2949800a0f61fb5
+
+  while ((match = labelPattern.exec(styles)) !== null) {
+    identifierName += '-' + match[1];
+  }
+  var name = murmur2(styles) + identifierName;
+  return {
+    name: name,
+    styles: styles,
+    next: cursor
+  };
+}
+
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@emotion+utils@1.4.2/node_modules/@emotion/utils/dist/emotion-utils.browser.esm.js
+var isBrowser = true;
+function getRegisteredStyles(registered, registeredStyles, classNames) {
+  var rawClassName = '';
+  classNames.split(' ').forEach(function (className) {
+    if (registered[className] !== undefined) {
+      registeredStyles.push(registered[className] + ";");
+    } else if (className) {
+      rawClassName += className + " ";
+    }
+  });
+  return rawClassName;
+}
+var registerStyles = function registerStyles(cache, serialized, isStringTag) {
+  var className = cache.key + "-" + serialized.name;
+  if (
+  // we only need to add the styles to the registered cache if the
+  // class name could be used further down
+  // the tree but if it's a string tag, we know it won't
+  // so we don't have to add it to registered cache.
+  // this improves memory usage since we can avoid storing the whole style string
+  (isStringTag === false ||
+  // we need to always store it if we're in compat mode and
+  // in node since emotion-server relies on whether a style is in
+  // the registered cache to know whether a style is global or not
+  // also, note that this check will be dead code eliminated in the browser
+  isBrowser === false) && cache.registered[className] === undefined) {
+    cache.registered[className] = serialized.styles;
+  }
+};
+var insertStyles = function insertStyles(cache, serialized, isStringTag) {
+  registerStyles(cache, serialized, isStringTag);
+  var className = cache.key + "-" + serialized.name;
+  if (cache.inserted[serialized.name] === undefined) {
+    var current = serialized;
+    do {
+      cache.insert(serialized === current ? "." + className : '', current, cache.sheet, true);
+      current = current.next;
+    } while (current !== undefined);
+  }
+};
+
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@emotion+css@11.13.5/node_modules/@emotion/css/create-instance/dist/emotion-css-create-instance.esm.js
+
+
+
+function insertWithoutScoping(cache, serialized) {
+  if (cache.inserted[serialized.name] === undefined) {
+    return cache.insert('', serialized, cache.sheet, true);
+  }
+}
+function merge(registered, css, className) {
+  var registeredStyles = [];
+  var rawClassName = getRegisteredStyles(registered, registeredStyles, className);
+  if (registeredStyles.length < 2) {
+    return className;
+  }
+  return rawClassName + css(registeredStyles);
+}
+var createEmotion = function createEmotion(options) {
+  var cache = createCache(options);
+  cache.sheet.speedy = function (value) {
+    this.isSpeedy = value;
+  };
+  cache.compat = true;
+  var css = function css() {
+    for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
+      args[_key] = arguments[_key];
+    }
+    var serialized = serializeStyles(args, cache.registered, undefined);
+    insertStyles(cache, serialized, false);
+    return cache.key + "-" + serialized.name;
+  };
+  var keyframes = function keyframes() {
+    for (var _len2 = arguments.length, args = new Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
+      args[_key2] = arguments[_key2];
+    }
+    var serialized = serializeStyles(args, cache.registered);
+    var animation = "animation-" + serialized.name;
+    insertWithoutScoping(cache, {
+      name: serialized.name,
+      styles: "@keyframes " + animation + "{" + serialized.styles + "}"
+    });
+    return animation;
+  };
+  var injectGlobal = function injectGlobal() {
+    for (var _len3 = arguments.length, args = new Array(_len3), _key3 = 0; _key3 < _len3; _key3++) {
+      args[_key3] = arguments[_key3];
+    }
+    var serialized = serializeStyles(args, cache.registered);
+    insertWithoutScoping(cache, serialized);
+  };
+  var cx = function cx() {
+    for (var _len4 = arguments.length, args = new Array(_len4), _key4 = 0; _key4 < _len4; _key4++) {
+      args[_key4] = arguments[_key4];
+    }
+    return merge(cache.registered, css, classnames(args));
+  };
+  return {
+    css: css,
+    cx: cx,
+    injectGlobal: injectGlobal,
+    keyframes: keyframes,
+    hydrate: function hydrate(ids) {
+      ids.forEach(function (key) {
+        cache.inserted[key] = true;
+      });
+    },
+    flush: function flush() {
+      cache.registered = {};
+      cache.inserted = {};
+      cache.sheet.flush();
+    },
+    sheet: cache.sheet,
+    cache: cache,
+    getRegisteredStyles: getRegisteredStyles.bind(null, cache.registered),
+    merge: merge.bind(null, cache.registered, css)
+  };
+};
+var classnames = function classnames(args) {
+  var cls = '';
+  for (var i = 0; i < args.length; i++) {
+    var arg = args[i];
+    if (arg == null) continue;
+    var toAdd = void 0;
+    switch (typeof arg) {
+      case 'boolean':
+        break;
+      case 'object':
+        {
+          if (Array.isArray(arg)) {
+            toAdd = classnames(arg);
+          } else {
+            toAdd = '';
+            for (var k in arg) {
+              if (arg[k] && k) {
+                toAdd && (toAdd += ' ');
+                toAdd += k;
+              }
+            }
+          }
+          break;
+        }
+      default:
+        {
+          toAdd = arg;
+        }
+    }
+    if (toAdd) {
+      cls && (cls += ' ');
+      cls += toAdd;
+    }
+  }
+  return cls;
+};
+
+;// CONCATENATED MODULE: ./node_modules/.pnpm/@emotion+css@11.13.5/node_modules/@emotion/css/dist/emotion-css.esm.js
+
+
+
+
+var _createEmotion = createEmotion({
+    key: 'css'
+  }),
+  flush = _createEmotion.flush,
+  hydrate = _createEmotion.hydrate,
+  cx = _createEmotion.cx,
+  emotion_css_esm_merge = _createEmotion.merge,
+  emotion_css_esm_getRegisteredStyles = _createEmotion.getRegisteredStyles,
+  injectGlobal = _createEmotion.injectGlobal,
+  keyframes = _createEmotion.keyframes,
+  css = _createEmotion.css,
+  sheet = _createEmotion.sheet,
+  cache = _createEmotion.cache;
+
+;// CONCATENATED MODULE: ./src/libs/style.js
+var style_templateObject,style_templateObject2,style_templateObject3,style_templateObject4;const gradientFlow=keyframes(style_templateObject||(style_templateObject=_taggedTemplateLiteral(["\n  to {\n    background-position: 200% center;\n  }\n"])));const blink=keyframes(style_templateObject2||(style_templateObject2=_taggedTemplateLiteral(["\n  0%, 100% {\n    opacity: 1;\n  }\n  50% {\n    opacity: 0;\n  }\n"])));const glow=keyframes(style_templateObject3||(style_templateObject3=_taggedTemplateLiteral(["\n  from {\n    text-shadow: 0 0 10px #fff, \n    0 0 20px #fff, \n    0 0 30px #0073e6, \n    0 0 40px #0073e6;\n  }\n  to {\n    text-shadow: 0 0 20px #fff, \n    0 0 30px #ff4da6, \n    0 0 40px #ff4da6, \n    0 0 50px #ff4da6;\n  }\n"])));const genLineStyle=(style,color)=>"\n  text-decoration-line: underline;\n  text-decoration-style: ".concat(style,";\n  text-decoration-color: ").concat(color,";\n  text-decoration-thickness: 2px;\n  text-underline-offset: 0.3em;\n  -webkit-text-decoration-line: underline;\n  -webkit-text-decoration-style: ").concat(style,";\n  -webkit-text-decoration-color: ").concat(color,";\n  -webkit-text-decoration-thickness: 2px;\n  -webkit-text-underline-offset: 0.3em;\n\n  /* opacity: 0.8;\n  -webkit-opacity: 0.8;\n  &:hover {\n    opacity: 1;\n    -webkit-opacity: 1;\n  } */\n");const genStyles=function(){let{textDiyStyle=DEFAULT_DIY_STYLE,bgColor=DEFAULT_COLOR}=arguments.length>0&&arguments[0]!==undefined?arguments[0]:{};return{// 无样式
+[OPT_STYLE_NONE]:"",// 下划线
+[OPT_STYLE_LINE]:genLineStyle("solid",bgColor),// 点状线
+[OPT_STYLE_DOTLINE]:genLineStyle("dotted",bgColor),// 虚线
+[OPT_STYLE_DASHLINE]:genLineStyle("dashed",bgColor),// 波浪线
+[OPT_STYLE_WAVYLINE]:genLineStyle("wavy",bgColor),// 虚线框
+[OPT_STYLE_DASHBOX]:"\n    border: 2px dashed ".concat(bgColor||DEFAULT_COLOR,";\n    display: inline-block;\n    padding: 0.2em 0.4em;\n    box-sizing: border-box;\n  "),// 模糊
+[OPT_STYLE_FUZZY]:"\n    filter: blur(0.2em);\n    -webkit-filter: blur(0.2em);\n    &:hover {\n      filter: none;\n      -webkit-filter: none;\n    }\n  ",// 高亮
+[OPT_STYLE_HIGHLIGHT]:"\n    color: #fff;\n    background-color: ".concat(bgColor||DEFAULT_COLOR,";\n  "),// 引用
+[OPT_STYLE_BLOCKQUOTE]:"\n    opacity: 0.8;\n    -webkit-opacity: 0.8;\n    display: block;\n    padding: 0.25em 0.5em;\n    border-left: 0.5em solid ".concat(bgColor||DEFAULT_COLOR,";\n    background: rgb(32, 156, 238, 0.2);\n    &:hover {\n      opacity: 1;\n      -webkit-opacity: 1;\n    }\n  "),// 渐变
+[OPT_STYLE_GRADIENT]:"\n    background-image: linear-gradient(\n      90deg,\n      #3b82f6,\n      #9333ea,\n      #ec4899,\n      #3b82f6\n    );\n    background-size: 200% auto;\n    color: transparent;\n    -webkit-background-clip: text;\n    background-clip: text;\n    animation: ".concat(gradientFlow," 4s linear infinite;\n  "),// 闪现
+[OPT_STYLE_BLINK]:"\n    animation: ".concat(blink," 1s infinite;\n  "),// 发光
+[OPT_STYLE_GLOW]:"\n    animation: ".concat(glow," 2s ease-in-out infinite alternate;\n  "),// 自定义
+[OPT_STYLE_DIY]:"\n".concat(textDiyStyle,"\n")};};const genTextClass=_ref=>{let{textDiyStyle,bgColor=DEFAULT_COLOR}=_ref;const styles=genStyles({textDiyStyle,bgColor});const textClass={};let textStyles="";Object.entries(styles).forEach(_ref2=>{let[k,v]=_ref2;textClass[k]=css(style_templateObject4||(style_templateObject4=_taggedTemplateLiteral(["\n      ","\n    "])),v);});Object.entries(styles).forEach(_ref3=>{let[k,v]=_ref3;textStyles+="\n      .".concat(textClass[k]," {\n        ").concat(v,"\n      }\n    ");});return[textClass,textStyles];};const defaultStyles=genStyles();
+;// CONCATENATED MODULE: ./src/libs/svg.js
+const loadingSvg="<svg viewBox=\"-20 0 100 100\" \n     style=\"display: inline-block; width: 1em; height: 1em; vertical-align: middle;\">\n  <circle fill=\"#209CEE\" stroke=\"none\" cx=\"6\" cy=\"50\" r=\"6\">\n    <animateTransform attributeName=\"transform\" dur=\"1s\" type=\"translate\" values=\"0 15 ; 0 -15; 0 15\" repeatCount=\"indefinite\" begin=\"0.1\"/>\n  </circle>\n  <circle fill=\"#209CEE\" stroke=\"none\" cx=\"30\" cy=\"50\" r=\"6\">\n    <animateTransform attributeName=\"transform\" dur=\"1s\" type=\"translate\" values=\"0 10 ; 0 -10; 0 10\" repeatCount=\"indefinite\" begin=\"0.2\"/>\n  </circle>\n  <circle fill=\"#209CEE\" stroke=\"none\" cx=\"54\" cy=\"50\" r=\"6\">\n    <animateTransform attributeName=\"transform\" dur=\"1s\" type=\"translate\" values=\"0 5 ; 0 -5; 0 5\" repeatCount=\"indefinite\" begin=\"0.3\"/>\n  </circle>\n</svg>\n";function createSVGElement(tag,attributes){const svgNS="http://www.w3.org/2000/svg";const el=document.createElementNS(svgNS,tag);for(const key in attributes){el.setAttribute(key,attributes[key]);}return el;}/**
+ * 创建loding动画
+ * @returns
+ */function createLoadingSVG(){const svg=createSVGElement("svg",{viewBox:"-20 0 100 100",style:"display: inline-block; width: 1em; height: 1em; vertical-align: middle;"});const circleData=[{cx:"6",begin:"0.1",values:"0 15 ; 0 -15; 0 15"},{cx:"30",begin:"0.2",values:"0 10 ; 0 -10; 0 10"},{cx:"54",begin:"0.3",values:"0 5 ; 0 -5; 0 5"}];circleData.forEach(data=>{const circle=createSVGElement("circle",{fill:"#209CEE",stroke:"none",cx:data.cx,cy:"50",r:"6"});const animation=createSVGElement("animateTransform",{attributeName:"transform",dur:"1s",type:"translate",values:data.values,repeatCount:"indefinite",begin:data.begin});circle.appendChild(animation);svg.appendChild(circle);});return svg;}/**
+ * 创建logo
+ * @param {*} param0
+ * @returns
+ */function createLogoSVG(){let{width="100%",height="100%",viewBox="-20 -20 70 70",isSelected=false}=arguments.length>0&&arguments[0]!==undefined?arguments[0]:{};const svg=createSVGElement("svg",{xmlns:"http://www.w3.org/2000/svg",width,height,viewBox,version:"1.1"});const path1=createSVGElement("path",{d:"M0 0 C10.56 0 21.12 0 32 0 C32 10.56 32 21.12 32 32 C21.44 32 10.88 32 0 32 C0 21.44 0 10.88 0 0 Z ",fill:"#209CEE",transform:"translate(0,0)"});const path2=createSVGElement("path",{d:"M0 0 C0.66 0 1.32 0 2 0 C2 2.97 2 5.94 2 9 C2.969375 8.2575 3.93875 7.515 4.9375 6.75 C5.48277344 6.33234375 6.02804688 5.9146875 6.58984375 5.484375 C8.39053593 3.83283924 8.39053593 3.83283924 9 0 C13.95 0 18.9 0 24 0 C24 0.99 24 1.98 24 3 C22.68 3 21.36 3 20 3 C20 9.27 20 15.54 20 22 C19.01 22 18.02 22 17 22 C17 15.73 17 9.46 17 3 C15.35 3 13.7 3 12 3 C11.731875 3.598125 11.46375 4.19625 11.1875 4.8125 C10.01506533 6.97224808 8.80630718 8.35790256 7 10 C8.01790655 12.27071461 8.77442829 13.80784632 10.6875 15.4375 C11.120625 15.953125 11.55375 16.46875 12 17 C11.6875 19.6875 11.6875 19.6875 11 22 C10.34 22 9.68 22 9 22 C8.773125 21.236875 8.54625 20.47375 8.3125 19.6875 C6.73268318 16.45263699 5.16717283 15.58358642 2 14 C2 16.64 2 19.28 2 22 C1.34 22 0.68 22 0 22 C0 14.74 0 7.48 0 0 Z ",fill:"#E9F5FD",transform:"translate(4,5)"});svg.appendChild(path1);svg.appendChild(path2);if(isSelected){const redLine=createSVGElement("path",{d:"M0 36 L32 36",stroke:"red","stroke-width":"3","stroke-linecap":"round"});svg.appendChild(redLine);}return svg;}
+;// CONCATENATED MODULE: ./src/libs/detect.js
+const langdetectFns={[OPT_TRANS_GOOGLE]:apiGoogleLangdetect,[OPT_TRANS_MICROSOFT]:apiMicrosoftLangdetect,[OPT_TRANS_BAIDU]:apiBaiduLangdetect,[OPT_TRANS_TENCENT]:apiTencentLangdetect,[OPT_TRANS_BUILTINAI]:apiBuiltinAIDetect};/**
+ * 语言识别
+ * @param {*} text
+ * @returns
+ */const tryDetectLang=async function(text){let langDetector=arguments.length>1&&arguments[1]!==undefined?arguments[1]:"-";let deLang="";// 内置AI/远程识别
+if(OPT_LANGDETECTOR_MAP.has(langDetector)){try{const lang=await langdetectFns[langDetector](text);if(lang){deLang=OPT_LANGS_TO_CODE[langDetector].get(lang)||"";}}catch(err){log_kissLog("detect lang remote",err);}}// 本地识别
+if(!deLang){try{var _browser$i18n,_res$languages,_res$languages$;const res=await(browser===null||browser===void 0?void 0:(_browser$i18n=browser.i18n)===null||_browser$i18n===void 0?void 0:_browser$i18n.detectLanguage(text));const lang=res===null||res===void 0?void 0:(_res$languages=res.languages)===null||_res$languages===void 0?void 0:(_res$languages$=_res$languages[0])===null||_res$languages$===void 0?void 0:_res$languages$.language;if(lang&&OPT_LANGS_MAP.has(lang)){deLang=lang;}else if(lang!==null&&lang!==void 0&&lang.startsWith("zh")){deLang="zh-CN";}}catch(err){log_kissLog("detect lang local",err);}}return deLang;};
 ;// CONCATENATED MODULE: ./src/views/Selection/TranBtn.js
 function TranBtn(_ref){let{onTrigger,btnEvent,position,btnOffsetX,btnOffsetY}=_ref;const left=limitNumber(position.x+btnOffsetX,0,window.innerWidth-32);const top=limitNumber(position.y+btnOffsetY,0,window.innerHeight-32);return/*#__PURE__*/(0,jsx_runtime.jsx)("div",{className:"KT-tranbtn",style:{cursor:"pointer",// position: "absolute",
 position:"fixed",left,top,zIndex:2147483647},[btnEvent]:onTrigger,children:/*#__PURE__*/(0,jsx_runtime.jsxs)("svg",{xmlns:"http://www.w3.org/2000/svg",width:isMobile?"32":"20",height:isMobile?"32":"20",viewBox:"0 0 32 32",version:"1.1",children:[/*#__PURE__*/(0,jsx_runtime.jsx)("path",{d:"M0 0 C10.56 0 21.12 0 32 0 C32 10.56 32 21.12 32 32 C21.44 32 10.88 32 0 32 C0 21.44 0 10.88 0 0 Z ",fill:"#209CEE",transform:"translate(0,0)"}),/*#__PURE__*/(0,jsx_runtime.jsx)("path",{d:"M0 0 C0.66 0 1.32 0 2 0 C2 2.97 2 5.94 2 9 C2.969375 8.2575 3.93875 7.515 4.9375 6.75 C5.48277344 6.33234375 6.02804688 5.9146875 6.58984375 5.484375 C8.39053593 3.83283924 8.39053593 3.83283924 9 0 C13.95 0 18.9 0 24 0 C24 0.99 24 1.98 24 3 C22.68 3 21.36 3 20 3 C20 9.27 20 15.54 20 22 C19.01 22 18.02 22 17 22 C17 15.73 17 9.46 17 3 C15.35 3 13.7 3 12 3 C11.731875 3.598125 11.46375 4.19625 11.1875 4.8125 C10.01506533 6.97224808 8.80630718 8.35790256 7 10 C8.01790655 12.27071461 8.77442829 13.80784632 10.6875 15.4375 C11.120625 15.953125 11.55375 16.46875 12 17 C11.6875 19.6875 11.6875 19.6875 11 22 C10.34 22 9.68 22 9 22 C8.773125 21.236875 8.54625 20.47375 8.3125 19.6875 C6.73268318 16.45263699 5.16717283 15.58358642 2 14 C2 16.64 2 19.28 2 22 C1.34 22 0.68 22 0 22 C0 14.74 0 7.48 0 0 Z ",fill:"#E9F5FD",transform:"translate(4,5)"})]})});}
 ;// CONCATENATED MODULE: ./src/views/Selection/DraggableResizable.js
 function Pointer(_ref){let{direction,size,setSize,position,setPosition,children,minSize,maxSize,...props}=_ref;const[origin,setOrigin]=(0,react.useState)(null);function handlePointerDown(e){!isMobile&&e.target.setPointerCapture(e.pointerId);const{clientX,clientY}=isMobile?e.targetTouches[0]:e;setOrigin({x:position.x,y:position.y,w:size.w,h:size.h,clientX,clientY});}function handlePointerMove(e){const{clientX,clientY}=isMobile?e.targetTouches[0]:e;if(origin){const dx=clientX-origin.clientX;const dy=clientY-origin.clientY;let x=position.x;let y=position.y;let w=size.w;let h=size.h;switch(direction){case"Header":x=origin.x+dx;y=origin.y+dy;break;case"TopLeft":x=origin.x+dx;y=origin.y+dy;w=origin.w-dx;h=origin.h-dy;break;case"Top":y=origin.y+dy;h=origin.h-dy;break;case"TopRight":y=origin.y+dy;w=origin.w+dx;h=origin.h-dy;break;case"Left":x=origin.x+dx;w=origin.w-dx;break;case"Right":w=origin.w+dx;break;case"BottomLeft":x=origin.x+dx;w=origin.w-dx;h=origin.h+dy;break;case"Bottom":h=origin.h+dy;break;case"BottomRight":w=origin.w+dx;h=origin.h+dy;break;default:}if(w<minSize.w){w=minSize.w;x=position.x;}if(w>maxSize.w){w=maxSize.w;x=position.x;}if(h<minSize.h){h=minSize.h;y=position.y;}if(h>maxSize.h){h=maxSize.h;y=position.y;}setPosition({x,y});setSize({w,h});}}function handlePointerUp(e){e.stopPropagation();setOrigin(null);}const touchProps=isMobile?{onTouchStart:handlePointerDown,onTouchMove:handlePointerMove,onTouchEnd:handlePointerUp}:{onPointerDown:handlePointerDown,onPointerMove:handlePointerMove,onPointerUp:handlePointerUp};return/*#__PURE__*/(0,jsx_runtime.jsx)("div",{...props,...touchProps,children:children});}function DraggableResizable(_ref2){let{header,children,position={x:0,y:0},size={w:600,h:400},minSize={w:300,h:200},maxSize={w:1200,h:1200},setSize,setPosition,onChangeSize,onChangePosition,...props}=_ref2;const lineWidth=4;const opts={size,setSize,position,setPosition,minSize,maxSize};return/*#__PURE__*/(0,jsx_runtime.jsxs)(Box_Box,{className:"KT-draggable",style:{touchAction:"none",position:"fixed",left:position.x,top:position.y,display:"grid",gridTemplateColumns:"".concat(lineWidth*2,"px auto ").concat(lineWidth*2,"px"),gridTemplateRows:"".concat(lineWidth*2,"px auto ").concat(lineWidth*2,"px"),zIndex:2147483647},...props,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Pointer,{direction:"TopLeft",style:{transform:"translate(".concat(lineWidth,"px, ").concat(lineWidth,"px)"),cursor:"nw-resize"},...opts}),/*#__PURE__*/(0,jsx_runtime.jsx)(Pointer,{direction:"Top",style:{margin:"0 ".concat(lineWidth,"px"),transform:"translate(0px, ".concat(lineWidth,"px)"),cursor:"row-resize"},...opts}),/*#__PURE__*/(0,jsx_runtime.jsx)(Pointer,{direction:"TopRight",style:{transform:"translate(-".concat(lineWidth,"px, ").concat(lineWidth,"px)"),cursor:"ne-resize"},...opts}),/*#__PURE__*/(0,jsx_runtime.jsx)(Pointer,{direction:"Left",style:{margin:"".concat(lineWidth,"px 0"),transform:"translate(".concat(lineWidth,"px, 0px)"),cursor:"col-resize"},...opts}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Paper_Paper,{className:"KT-draggable-body",elevation:4,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Pointer,{className:"KT-draggable-header",direction:"Header",style:{cursor:"move"},...opts,children:header}),/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{className:"KT-draggable-container",style:{width:size.w,height:size.h,overflow:"hidden auto"},children:children})]}),/*#__PURE__*/(0,jsx_runtime.jsx)(Pointer,{direction:"Right",style:{margin:"".concat(lineWidth,"px 0"),transform:"translate(-".concat(lineWidth,"px, 0px)"),cursor:"col-resize"},...opts}),/*#__PURE__*/(0,jsx_runtime.jsx)(Pointer,{direction:"BottomLeft",style:{transform:"translate(".concat(lineWidth,"px, -").concat(lineWidth,"px)"),cursor:"ne-resize"},...opts}),/*#__PURE__*/(0,jsx_runtime.jsx)(Pointer,{direction:"Bottom",style:{margin:"0 ".concat(lineWidth,"px"),transform:"translate(0px, -".concat(lineWidth,"px)"),cursor:"row-resize"},...opts}),/*#__PURE__*/(0,jsx_runtime.jsx)(Pointer,{direction:"BottomRight",style:{transform:"translate(-".concat(lineWidth,"px, -").concat(lineWidth,"px)"),cursor:"nw-resize"},...opts})]});}
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Grid/GridContext.js
-'use client';
-
-
-
-/**
- * @ignore - internal component.
- */
-const GridContext = /*#__PURE__*/react.createContext();
-if (false) {}
-/* harmony default export */ const Grid_GridContext = (GridContext);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Grid/gridClasses.js
-
-
-function getGridUtilityClass(slot) {
-  return (0,generateUtilityClass_generateUtilityClass/* default */.ZP)('MuiGrid', slot);
-}
-const SPACINGS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-const DIRECTIONS = ['column-reverse', 'column', 'row-reverse', 'row'];
-const WRAPS = ['nowrap', 'wrap-reverse', 'wrap'];
-const GRID_SIZES = ['auto', true, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-const gridClasses = (0,generateUtilityClasses/* default */.Z)('MuiGrid', ['root', 'container', 'item', 'zeroMinWidth',
-// spacings
-...SPACINGS.map(spacing => "spacing-xs-".concat(spacing)),
-// direction values
-...DIRECTIONS.map(direction => "direction-xs-".concat(direction)),
-// wrap values
-...WRAPS.map(wrap => "wrap-xs-".concat(wrap)),
-// grid sizes for all breakpoints
-...GRID_SIZES.map(size => "grid-xs-".concat(size)), ...GRID_SIZES.map(size => "grid-sm-".concat(size)), ...GRID_SIZES.map(size => "grid-md-".concat(size)), ...GRID_SIZES.map(size => "grid-lg-".concat(size)), ...GRID_SIZES.map(size => "grid-xl-".concat(size))]);
-/* harmony default export */ const Grid_gridClasses = (gridClasses);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Grid/Grid.js
-'use client';
-
-// A grid component using the following libs as inspiration.
-//
-// For the implementation:
-// - https://getbootstrap.com/docs/4.3/layout/grid/
-// - https://github.com/kristoferjoseph/flexboxgrid/blob/master/src/css/flexboxgrid.css
-// - https://github.com/roylee0704/react-flexbox-grid
-// - https://material.angularjs.org/latest/layout/introduction
-//
-// Follow this flexbox Guide to better understand the underlying model:
-// - https://css-tricks.com/snippets/css/a-guide-to-flexbox/
-
-
-const Grid_excluded = ["className", "columns", "columnSpacing", "component", "container", "direction", "item", "rowSpacing", "spacing", "wrap", "zeroMinWidth"];
-
-
-
-
-
-
-
-
-
-
-
-
-
-function getOffset(val) {
-  const parse = parseFloat(val);
-  return "".concat(parse).concat(String(val).replace(String(parse), '') || 'px');
-}
-function generateGrid(_ref) {
-  let {
-    theme,
-    ownerState
-  } = _ref;
-  let size;
-  return theme.breakpoints.keys.reduce((globalStyles, breakpoint) => {
-    // Use side effect over immutability for better performance.
-    let styles = {};
-    if (ownerState[breakpoint]) {
-      size = ownerState[breakpoint];
-    }
-    if (!size) {
-      return globalStyles;
-    }
-    if (size === true) {
-      // For the auto layouting
-      styles = {
-        flexBasis: 0,
-        flexGrow: 1,
-        maxWidth: '100%'
-      };
-    } else if (size === 'auto') {
-      styles = {
-        flexBasis: 'auto',
-        flexGrow: 0,
-        flexShrink: 0,
-        maxWidth: 'none',
-        width: 'auto'
-      };
-    } else {
-      const columnsBreakpointValues = (0,breakpoints/* resolveBreakpointValues */.P$)({
-        values: ownerState.columns,
-        breakpoints: theme.breakpoints.values
-      });
-      const columnValue = typeof columnsBreakpointValues === 'object' ? columnsBreakpointValues[breakpoint] : columnsBreakpointValues;
-      if (columnValue === undefined || columnValue === null) {
-        return globalStyles;
-      }
-      // Keep 7 significant numbers.
-      const width = "".concat(Math.round(size / columnValue * 10e7) / 10e5, "%");
-      let more = {};
-      if (ownerState.container && ownerState.item && ownerState.columnSpacing !== 0) {
-        const themeSpacing = theme.spacing(ownerState.columnSpacing);
-        if (themeSpacing !== '0px') {
-          const fullWidth = "calc(".concat(width, " + ").concat(getOffset(themeSpacing), ")");
-          more = {
-            flexBasis: fullWidth,
-            maxWidth: fullWidth
-          };
-        }
-      }
-
-      // Close to the bootstrap implementation:
-      // https://github.com/twbs/bootstrap/blob/8fccaa2439e97ec72a4b7dc42ccc1f649790adb0/scss/mixins/_grid.scss#L41
-      styles = (0,esm_extends/* default */.Z)({
-        flexBasis: width,
-        flexGrow: 0,
-        maxWidth: width
-      }, more);
-    }
-
-    // No need for a media query for the first size.
-    if (theme.breakpoints.values[breakpoint] === 0) {
-      Object.assign(globalStyles, styles);
-    } else {
-      globalStyles[theme.breakpoints.up(breakpoint)] = styles;
-    }
-    return globalStyles;
-  }, {});
-}
-function generateDirection(_ref2) {
-  let {
-    theme,
-    ownerState
-  } = _ref2;
-  const directionValues = (0,breakpoints/* resolveBreakpointValues */.P$)({
-    values: ownerState.direction,
-    breakpoints: theme.breakpoints.values
-  });
-  return (0,breakpoints/* handleBreakpoints */.k9)({
-    theme
-  }, directionValues, propValue => {
-    const output = {
-      flexDirection: propValue
-    };
-    if (propValue.indexOf('column') === 0) {
-      output["& > .".concat(Grid_gridClasses.item)] = {
-        maxWidth: 'none'
-      };
-    }
-    return output;
-  });
-}
-
-/**
- * Extracts zero value breakpoint keys before a non-zero value breakpoint key.
- * @example { xs: 0, sm: 0, md: 2, lg: 0, xl: 0 } or [0, 0, 2, 0, 0]
- * @returns [xs, sm]
- */
-function extractZeroValueBreakpointKeys(_ref3) {
-  let {
-    breakpoints,
-    values
-  } = _ref3;
-  let nonZeroKey = '';
-  Object.keys(values).forEach(key => {
-    if (nonZeroKey !== '') {
-      return;
-    }
-    if (values[key] !== 0) {
-      nonZeroKey = key;
-    }
-  });
-  const sortedBreakpointKeysByValue = Object.keys(breakpoints).sort((a, b) => {
-    return breakpoints[a] - breakpoints[b];
-  });
-  return sortedBreakpointKeysByValue.slice(0, sortedBreakpointKeysByValue.indexOf(nonZeroKey));
-}
-function generateRowGap(_ref4) {
-  let {
-    theme,
-    ownerState
-  } = _ref4;
-  const {
-    container,
-    rowSpacing
-  } = ownerState;
-  let styles = {};
-  if (container && rowSpacing !== 0) {
-    const rowSpacingValues = (0,breakpoints/* resolveBreakpointValues */.P$)({
-      values: rowSpacing,
-      breakpoints: theme.breakpoints.values
-    });
-    let zeroValueBreakpointKeys;
-    if (typeof rowSpacingValues === 'object') {
-      zeroValueBreakpointKeys = extractZeroValueBreakpointKeys({
-        breakpoints: theme.breakpoints.values,
-        values: rowSpacingValues
-      });
-    }
-    styles = (0,breakpoints/* handleBreakpoints */.k9)({
-      theme
-    }, rowSpacingValues, (propValue, breakpoint) => {
-      var _zeroValueBreakpointK;
-      const themeSpacing = theme.spacing(propValue);
-      if (themeSpacing !== '0px') {
-        return {
-          marginTop: "-".concat(getOffset(themeSpacing)),
-          ["& > .".concat(Grid_gridClasses.item)]: {
-            paddingTop: getOffset(themeSpacing)
-          }
-        };
-      }
-      if ((_zeroValueBreakpointK = zeroValueBreakpointKeys) != null && _zeroValueBreakpointK.includes(breakpoint)) {
-        return {};
-      }
-      return {
-        marginTop: 0,
-        ["& > .".concat(Grid_gridClasses.item)]: {
-          paddingTop: 0
-        }
-      };
-    });
-  }
-  return styles;
-}
-function generateColumnGap(_ref5) {
-  let {
-    theme,
-    ownerState
-  } = _ref5;
-  const {
-    container,
-    columnSpacing
-  } = ownerState;
-  let styles = {};
-  if (container && columnSpacing !== 0) {
-    const columnSpacingValues = (0,breakpoints/* resolveBreakpointValues */.P$)({
-      values: columnSpacing,
-      breakpoints: theme.breakpoints.values
-    });
-    let zeroValueBreakpointKeys;
-    if (typeof columnSpacingValues === 'object') {
-      zeroValueBreakpointKeys = extractZeroValueBreakpointKeys({
-        breakpoints: theme.breakpoints.values,
-        values: columnSpacingValues
-      });
-    }
-    styles = (0,breakpoints/* handleBreakpoints */.k9)({
-      theme
-    }, columnSpacingValues, (propValue, breakpoint) => {
-      var _zeroValueBreakpointK2;
-      const themeSpacing = theme.spacing(propValue);
-      if (themeSpacing !== '0px') {
-        return {
-          width: "calc(100% + ".concat(getOffset(themeSpacing), ")"),
-          marginLeft: "-".concat(getOffset(themeSpacing)),
-          ["& > .".concat(Grid_gridClasses.item)]: {
-            paddingLeft: getOffset(themeSpacing)
-          }
-        };
-      }
-      if ((_zeroValueBreakpointK2 = zeroValueBreakpointKeys) != null && _zeroValueBreakpointK2.includes(breakpoint)) {
-        return {};
-      }
-      return {
-        width: '100%',
-        marginLeft: 0,
-        ["& > .".concat(Grid_gridClasses.item)]: {
-          paddingLeft: 0
-        }
-      };
-    });
-  }
-  return styles;
-}
-function resolveSpacingStyles(spacing, breakpoints) {
-  let styles = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
-  // undefined/null or `spacing` <= 0
-  if (!spacing || spacing <= 0) {
-    return [];
-  }
-  // in case of string/number `spacing`
-  if (typeof spacing === 'string' && !Number.isNaN(Number(spacing)) || typeof spacing === 'number') {
-    return [styles["spacing-xs-".concat(String(spacing))]];
-  }
-  // in case of object `spacing`
-  const spacingStyles = [];
-  breakpoints.forEach(breakpoint => {
-    const value = spacing[breakpoint];
-    if (Number(value) > 0) {
-      spacingStyles.push(styles["spacing-".concat(breakpoint, "-").concat(String(value))]);
-    }
-  });
-  return spacingStyles;
-}
-
-// Default CSS values
-// flex: '0 1 auto',
-// flexDirection: 'row',
-// alignItems: 'flex-start',
-// flexWrap: 'nowrap',
-// justifyContent: 'flex-start',
-const GridRoot = (0,styled/* default */.ZP)('div', {
-  name: 'MuiGrid',
-  slot: 'Root',
-  overridesResolver: (props, styles) => {
-    const {
-      ownerState
-    } = props;
-    const {
-      container,
-      direction,
-      item,
-      spacing,
-      wrap,
-      zeroMinWidth,
-      breakpoints
-    } = ownerState;
-    let spacingStyles = [];
-
-    // in case of grid item
-    if (container) {
-      spacingStyles = resolveSpacingStyles(spacing, breakpoints, styles);
-    }
-    const breakpointsStyles = [];
-    breakpoints.forEach(breakpoint => {
-      const value = ownerState[breakpoint];
-      if (value) {
-        breakpointsStyles.push(styles["grid-".concat(breakpoint, "-").concat(String(value))]);
-      }
-    });
-    return [styles.root, container && styles.container, item && styles.item, zeroMinWidth && styles.zeroMinWidth, ...spacingStyles, direction !== 'row' && styles["direction-xs-".concat(String(direction))], wrap !== 'wrap' && styles["wrap-xs-".concat(String(wrap))], ...breakpointsStyles];
-  }
-})(_ref6 => {
-  let {
-    ownerState
-  } = _ref6;
-  return (0,esm_extends/* default */.Z)({
-    boxSizing: 'border-box'
-  }, ownerState.container && {
-    display: 'flex',
-    flexWrap: 'wrap',
-    width: '100%'
-  }, ownerState.item && {
-    margin: 0 // For instance, it's useful when used with a `figure` element.
-  }, ownerState.zeroMinWidth && {
-    minWidth: 0
-  }, ownerState.wrap !== 'wrap' && {
-    flexWrap: ownerState.wrap
-  });
-}, generateDirection, generateRowGap, generateColumnGap, generateGrid);
-function resolveSpacingClasses(spacing, breakpoints) {
-  // undefined/null or `spacing` <= 0
-  if (!spacing || spacing <= 0) {
-    return [];
-  }
-  // in case of string/number `spacing`
-  if (typeof spacing === 'string' && !Number.isNaN(Number(spacing)) || typeof spacing === 'number') {
-    return ["spacing-xs-".concat(String(spacing))];
-  }
-  // in case of object `spacing`
-  const classes = [];
-  breakpoints.forEach(breakpoint => {
-    const value = spacing[breakpoint];
-    if (Number(value) > 0) {
-      const className = "spacing-".concat(breakpoint, "-").concat(String(value));
-      classes.push(className);
-    }
-  });
-  return classes;
-}
-const Grid_useUtilityClasses = ownerState => {
-  const {
-    classes,
-    container,
-    direction,
-    item,
-    spacing,
-    wrap,
-    zeroMinWidth,
-    breakpoints
-  } = ownerState;
-  let spacingClasses = [];
-
-  // in case of grid item
-  if (container) {
-    spacingClasses = resolveSpacingClasses(spacing, breakpoints);
-  }
-  const breakpointsClasses = [];
-  breakpoints.forEach(breakpoint => {
-    const value = ownerState[breakpoint];
-    if (value) {
-      breakpointsClasses.push("grid-".concat(breakpoint, "-").concat(String(value)));
-    }
-  });
-  const slots = {
-    root: ['root', container && 'container', item && 'item', zeroMinWidth && 'zeroMinWidth', ...spacingClasses, direction !== 'row' && "direction-xs-".concat(String(direction)), wrap !== 'wrap' && "wrap-xs-".concat(String(wrap)), ...breakpointsClasses]
-  };
-  return (0,composeClasses/* default */.Z)(slots, getGridUtilityClass, classes);
-};
-const Grid = /*#__PURE__*/react.forwardRef(function Grid(inProps, ref) {
-  const themeProps = (0,useThemeProps/* default */.Z)({
-    props: inProps,
-    name: 'MuiGrid'
-  });
-  const {
-    breakpoints
-  } = useTheme_useTheme();
-  const props = (0,extendSxProp/* default */.Z)(themeProps);
-  const {
-      className,
-      columns: columnsProp,
-      columnSpacing: columnSpacingProp,
-      component = 'div',
-      container = false,
-      direction = 'row',
-      item = false,
-      rowSpacing: rowSpacingProp,
-      spacing = 0,
-      wrap = 'wrap',
-      zeroMinWidth = false
-    } = props,
-    other = (0,objectWithoutPropertiesLoose/* default */.Z)(props, Grid_excluded);
-  const rowSpacing = rowSpacingProp || spacing;
-  const columnSpacing = columnSpacingProp || spacing;
-  const columnsContext = react.useContext(Grid_GridContext);
-
-  // columns set with default breakpoint unit of 12
-  const columns = container ? columnsProp || 12 : columnsContext;
-  const breakpointsValues = {};
-  const otherFiltered = (0,esm_extends/* default */.Z)({}, other);
-  breakpoints.keys.forEach(breakpoint => {
-    if (other[breakpoint] != null) {
-      breakpointsValues[breakpoint] = other[breakpoint];
-      delete otherFiltered[breakpoint];
-    }
-  });
-  const ownerState = (0,esm_extends/* default */.Z)({}, props, {
-    columns,
-    container,
-    direction,
-    item,
-    rowSpacing,
-    columnSpacing,
-    wrap,
-    zeroMinWidth,
-    spacing
-  }, breakpointsValues, {
-    breakpoints: breakpoints.keys
-  });
-  const classes = Grid_useUtilityClasses(ownerState);
-  return /*#__PURE__*/(0,jsx_runtime.jsx)(Grid_GridContext.Provider, {
-    value: columns,
-    children: /*#__PURE__*/(0,jsx_runtime.jsx)(GridRoot, (0,esm_extends/* default */.Z)({
-      ownerState: ownerState,
-      className: (0,clsx/* default */.Z)(classes.root, className),
-      as: component,
-      ref: ref
-    }, otherFiltered))
-  });
-});
- false ? 0 : void 0;
-if (false) {}
-/* harmony default export */ const Grid_Grid = (Grid);
-// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@1_1e29dcefa4691dc57f2acd9f73947cfd/node_modules/@mui/icons-material/Done.js
-var Done = __webpack_require__(5813);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@1_1e29dcefa4691dc57f2acd9f73947cfd/node_modules/@mui/icons-material/DragIndicator.js
 var DragIndicator = __webpack_require__(5908);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@1_1e29dcefa4691dc57f2acd9f73947cfd/node_modules/@mui/icons-material/UnfoldLess.js
@@ -45499,618 +47679,25 @@ var PushPinOutlined = __webpack_require__(1457);
 var Lock = __webpack_require__(2227);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@1_1e29dcefa4691dc57f2acd9f73947cfd/node_modules/@mui/icons-material/LockOpen.js
 var LockOpen = __webpack_require__(2386);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/CircularProgress/circularProgressClasses.js
-
-
-function getCircularProgressUtilityClass(slot) {
-  return (0,generateUtilityClass_generateUtilityClass/* default */.ZP)('MuiCircularProgress', slot);
-}
-const circularProgressClasses = (0,generateUtilityClasses/* default */.Z)('MuiCircularProgress', ['root', 'determinate', 'indeterminate', 'colorPrimary', 'colorSecondary', 'svg', 'circle', 'circleDeterminate', 'circleIndeterminate', 'circleDisableShrink']);
-/* harmony default export */ const CircularProgress_circularProgressClasses = ((/* unused pure expression or super */ null && (circularProgressClasses)));
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/CircularProgress/CircularProgress.js
-'use client';
-
-
-var CircularProgress_templateObject, CircularProgress_templateObject2, CircularProgress_templateObject3, CircularProgress_templateObject4;
-
-
-const CircularProgress_excluded = ["className", "color", "disableShrink", "size", "style", "thickness", "value", "variant"];
-let CircularProgress_ = t => t,
-  CircularProgress_t,
-  CircularProgress_t2,
-  CircularProgress_t3,
-  CircularProgress_t4;
-
-
-
-
-
-
-
-
-
-
-
-const SIZE = 44;
-const circularRotateKeyframe = (0,emotion_react_browser_esm/* keyframes */.F4)(CircularProgress_t || (CircularProgress_t = CircularProgress_(CircularProgress_templateObject || (CircularProgress_templateObject = _taggedTemplateLiteral(["\n  0% {\n    transform: rotate(0deg);\n  }\n\n  100% {\n    transform: rotate(360deg);\n  }\n"])))));
-const circularDashKeyframe = (0,emotion_react_browser_esm/* keyframes */.F4)(CircularProgress_t2 || (CircularProgress_t2 = CircularProgress_(CircularProgress_templateObject2 || (CircularProgress_templateObject2 = _taggedTemplateLiteral(["\n  0% {\n    stroke-dasharray: 1px, 200px;\n    stroke-dashoffset: 0;\n  }\n\n  50% {\n    stroke-dasharray: 100px, 200px;\n    stroke-dashoffset: -15px;\n  }\n\n  100% {\n    stroke-dasharray: 100px, 200px;\n    stroke-dashoffset: -125px;\n  }\n"])))));
-const CircularProgress_useUtilityClasses = ownerState => {
-  const {
-    classes,
-    variant,
-    color,
-    disableShrink
-  } = ownerState;
-  const slots = {
-    root: ['root', variant, "color".concat((0,capitalize/* default */.Z)(color))],
-    svg: ['svg'],
-    circle: ['circle', "circle".concat((0,capitalize/* default */.Z)(variant)), disableShrink && 'circleDisableShrink']
-  };
-  return (0,composeClasses/* default */.Z)(slots, getCircularProgressUtilityClass, classes);
-};
-const CircularProgressRoot = (0,styled/* default */.ZP)('span', {
-  name: 'MuiCircularProgress',
-  slot: 'Root',
-  overridesResolver: (props, styles) => {
-    const {
-      ownerState
-    } = props;
-    return [styles.root, styles[ownerState.variant], styles["color".concat((0,capitalize/* default */.Z)(ownerState.color))]];
-  }
-})(_ref => {
-  let {
-    ownerState,
-    theme
-  } = _ref;
-  return (0,esm_extends/* default */.Z)({
-    display: 'inline-block'
-  }, ownerState.variant === 'determinate' && {
-    transition: theme.transitions.create('transform')
-  }, ownerState.color !== 'inherit' && {
-    color: (theme.vars || theme).palette[ownerState.color].main
-  });
-}, _ref2 => {
-  let {
-    ownerState
-  } = _ref2;
-  return ownerState.variant === 'indeterminate' && (0,emotion_react_browser_esm/* css */.iv)(CircularProgress_t3 || (CircularProgress_t3 = CircularProgress_(CircularProgress_templateObject3 || (CircularProgress_templateObject3 = _taggedTemplateLiteral(["\n      animation: ", " 1.4s linear infinite;\n    "])), 0)), circularRotateKeyframe);
-});
-const CircularProgressSVG = (0,styled/* default */.ZP)('svg', {
-  name: 'MuiCircularProgress',
-  slot: 'Svg',
-  overridesResolver: (props, styles) => styles.svg
-})({
-  display: 'block' // Keeps the progress centered
-});
-
-const CircularProgressCircle = (0,styled/* default */.ZP)('circle', {
-  name: 'MuiCircularProgress',
-  slot: 'Circle',
-  overridesResolver: (props, styles) => {
-    const {
-      ownerState
-    } = props;
-    return [styles.circle, styles["circle".concat((0,capitalize/* default */.Z)(ownerState.variant))], ownerState.disableShrink && styles.circleDisableShrink];
-  }
-})(_ref3 => {
-  let {
-    ownerState,
-    theme
-  } = _ref3;
-  return (0,esm_extends/* default */.Z)({
-    stroke: 'currentColor'
-  }, ownerState.variant === 'determinate' && {
-    transition: theme.transitions.create('stroke-dashoffset')
-  }, ownerState.variant === 'indeterminate' && {
-    // Some default value that looks fine waiting for the animation to kicks in.
-    strokeDasharray: '80px, 200px',
-    strokeDashoffset: 0 // Add the unit to fix a Edge 16 and below bug.
-  });
-}, _ref4 => {
-  let {
-    ownerState
-  } = _ref4;
-  return ownerState.variant === 'indeterminate' && !ownerState.disableShrink && (0,emotion_react_browser_esm/* css */.iv)(CircularProgress_t4 || (CircularProgress_t4 = CircularProgress_(CircularProgress_templateObject4 || (CircularProgress_templateObject4 = _taggedTemplateLiteral(["\n      animation: ", " 1.4s ease-in-out infinite;\n    "])), 0)), circularDashKeyframe);
-});
-
-/**
- * ## ARIA
- *
- * If the progress bar is describing the loading progress of a particular region of a page,
- * you should use `aria-describedby` to point to the progress bar, and set the `aria-busy`
- * attribute to `true` on that region until it has finished loading.
- */
-const CircularProgress = /*#__PURE__*/react.forwardRef(function CircularProgress(inProps, ref) {
-  const props = (0,useThemeProps/* default */.Z)({
-    props: inProps,
-    name: 'MuiCircularProgress'
-  });
-  const {
-      className,
-      color = 'primary',
-      disableShrink = false,
-      size = 40,
-      style,
-      thickness = 3.6,
-      value = 0,
-      variant = 'indeterminate'
-    } = props,
-    other = (0,objectWithoutPropertiesLoose/* default */.Z)(props, CircularProgress_excluded);
-  const ownerState = (0,esm_extends/* default */.Z)({}, props, {
-    color,
-    disableShrink,
-    size,
-    thickness,
-    value,
-    variant
-  });
-  const classes = CircularProgress_useUtilityClasses(ownerState);
-  const circleStyle = {};
-  const rootStyle = {};
-  const rootProps = {};
-  if (variant === 'determinate') {
-    const circumference = 2 * Math.PI * ((SIZE - thickness) / 2);
-    circleStyle.strokeDasharray = circumference.toFixed(3);
-    rootProps['aria-valuenow'] = Math.round(value);
-    circleStyle.strokeDashoffset = "".concat(((100 - value) / 100 * circumference).toFixed(3), "px");
-    rootStyle.transform = 'rotate(-90deg)';
-  }
-  return /*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgressRoot, (0,esm_extends/* default */.Z)({
-    className: (0,clsx/* default */.Z)(classes.root, className),
-    style: (0,esm_extends/* default */.Z)({
-      width: size,
-      height: size
-    }, rootStyle, style),
-    ownerState: ownerState,
-    ref: ref,
-    role: "progressbar"
-  }, rootProps, other, {
-    children: /*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgressSVG, {
-      className: classes.svg,
-      ownerState: ownerState,
-      viewBox: "".concat(SIZE / 2, " ").concat(SIZE / 2, " ").concat(SIZE, " ").concat(SIZE),
-      children: /*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgressCircle, {
-        className: classes.circle,
-        style: circleStyle,
-        ownerState: ownerState,
-        cx: SIZE,
-        cy: SIZE,
-        r: (SIZE - thickness) / 2,
-        fill: "none",
-        strokeWidth: thickness
-      })
-    })
-  }));
-});
- false ? 0 : void 0;
-/* harmony default export */ const CircularProgress_CircularProgress = (CircularProgress);
+// EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@1_1e29dcefa4691dc57f2acd9f73947cfd/node_modules/@mui/icons-material/Done.js
+var Done = __webpack_require__(5813);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@1_1e29dcefa4691dc57f2acd9f73947cfd/node_modules/@mui/icons-material/ContentCopy.js
 var ContentCopy = __webpack_require__(6409);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@1_1e29dcefa4691dc57f2acd9f73947cfd/node_modules/@mui/icons-material/LibraryAddCheck.js
 var LibraryAddCheck = __webpack_require__(1064);
 ;// CONCATENATED MODULE: ./src/views/Selection/CopyBtn.js
 function CopyBtn(_ref){let{text}=_ref;const[copied,setCopied]=(0,react.useState)(false);const handleClick=async e=>{e.stopPropagation();await navigator.clipboard.writeText(text);setCopied(true);const timer=setTimeout(()=>{clearTimeout(timer);setCopied(false);},500);};return/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{size:"small",sx:{opacity:0.5,"&:hover":{opacity:1}},onClick:handleClick,children:copied?/*#__PURE__*/(0,jsx_runtime.jsx)(LibraryAddCheck/* default */.Z,{fontSize:"inherit"}):/*#__PURE__*/(0,jsx_runtime.jsx)(ContentCopy/* default */.Z,{fontSize:"inherit"})});}
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/utils/useSlot.js
-'use client';
-
-
-
-const useSlot_excluded = ["className", "elementType", "ownerState", "externalForwardedProps", "getSlotOwnerState", "internalForwardedProps"],
-  useSlot_excluded2 = ["component", "slots", "slotProps"],
-  useSlot_excluded3 = ["component"];
-
-
-/**
- * An internal function to create a Material UI slot.
- *
- * This is an advanced version of Base UI `useSlotProps` because Material UI allows leaf component to be customized via `component` prop
- * while Base UI does not need to support leaf component customization.
- *
- * @param {string} name: name of the slot
- * @param {object} parameters
- * @returns {[Slot, slotProps]} The slot's React component and the slot's props
- *
- * Note: the returned slot's props
- * - will never contain `component` prop.
- * - might contain `as` prop.
- */
-function useSlot(
-/**
- * The slot's name. All Material UI components should have `root` slot.
- *
- * If the name is `root`, the logic behaves differently from other slots,
- * e.g. the `externalForwardedProps` are spread to `root` slot but not other slots.
- */
-name, parameters) {
-  const {
-      className,
-      elementType: initialElementType,
-      ownerState,
-      externalForwardedProps,
-      getSlotOwnerState,
-      internalForwardedProps
-    } = parameters,
-    useSlotPropsParams = (0,objectWithoutPropertiesLoose/* default */.Z)(parameters, useSlot_excluded);
-  const {
-      component: rootComponent,
-      slots = {
-        [name]: undefined
-      },
-      slotProps = {
-        [name]: undefined
-      }
-    } = externalForwardedProps,
-    other = (0,objectWithoutPropertiesLoose/* default */.Z)(externalForwardedProps, useSlot_excluded2);
-  const elementType = slots[name] || initialElementType;
-
-  // `slotProps[name]` can be a callback that receives the component's ownerState.
-  // `resolvedComponentsProps` is always a plain object.
-  const resolvedComponentsProps = resolveComponentProps(slotProps[name], ownerState);
-  const _mergeSlotProps = mergeSlotProps((0,esm_extends/* default */.Z)({
-      className
-    }, useSlotPropsParams, {
-      externalForwardedProps: name === 'root' ? other : undefined,
-      externalSlotProps: resolvedComponentsProps
-    })),
-    {
-      props: {
-        component: slotComponent
-      },
-      internalRef
-    } = _mergeSlotProps,
-    mergedProps = (0,objectWithoutPropertiesLoose/* default */.Z)(_mergeSlotProps.props, useSlot_excluded3);
-  const ref = (0,useForkRef_useForkRef/* default */.Z)(internalRef, resolvedComponentsProps == null ? void 0 : resolvedComponentsProps.ref, parameters.ref);
-  const slotOwnerState = getSlotOwnerState ? getSlotOwnerState(mergedProps) : {};
-  const finalOwnerState = (0,esm_extends/* default */.Z)({}, ownerState, slotOwnerState);
-  const LeafComponent = name === 'root' ? slotComponent || rootComponent : slotComponent;
-  const props = appendOwnerState(elementType, (0,esm_extends/* default */.Z)({}, name === 'root' && !rootComponent && !slots[name] && internalForwardedProps, name !== 'root' && !slots[name] && internalForwardedProps, mergedProps, LeafComponent && {
-    as: LeafComponent
-  }, {
-    ref
-  }), finalOwnerState);
-  Object.keys(slotOwnerState).forEach(propName => {
-    delete props[propName];
-  });
-  return [elementType, props];
-}
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Alert/alertClasses.js
-
-
-function getAlertUtilityClass(slot) {
-  return (0,generateUtilityClass_generateUtilityClass/* default */.ZP)('MuiAlert', slot);
-}
-const alertClasses = (0,generateUtilityClasses/* default */.Z)('MuiAlert', ['root', 'action', 'icon', 'message', 'filled', 'colorSuccess', 'colorInfo', 'colorWarning', 'colorError', 'filledSuccess', 'filledInfo', 'filledWarning', 'filledError', 'outlined', 'outlinedSuccess', 'outlinedInfo', 'outlinedWarning', 'outlinedError', 'standard', 'standardSuccess', 'standardInfo', 'standardWarning', 'standardError']);
-/* harmony default export */ const Alert_alertClasses = (alertClasses);
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/internal/svg-icons/SuccessOutlined.js
-'use client';
-
-
-
-
-/**
- * @ignore - internal component.
- */
-
-/* harmony default export */ const SuccessOutlined = ((0,createSvgIcon/* default */.Z)( /*#__PURE__*/(0,jsx_runtime.jsx)("path", {
-  d: "M20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4C12.76,4 13.5,4.11 14.2, 4.31L15.77,2.74C14.61,2.26 13.34,2 12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0, 0 22,12M7.91,10.08L6.5,11.5L11,16L21,6L19.59,4.58L11,13.17L7.91,10.08Z"
-}), 'SuccessOutlined'));
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/internal/svg-icons/ReportProblemOutlined.js
-'use client';
-
-
-
-
-/**
- * @ignore - internal component.
- */
-
-/* harmony default export */ const ReportProblemOutlined = ((0,createSvgIcon/* default */.Z)( /*#__PURE__*/(0,jsx_runtime.jsx)("path", {
-  d: "M12 5.99L19.53 19H4.47L12 5.99M12 2L1 21h22L12 2zm1 14h-2v2h2v-2zm0-6h-2v4h2v-4z"
-}), 'ReportProblemOutlined'));
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/internal/svg-icons/ErrorOutline.js
-'use client';
-
-
-
-
-/**
- * @ignore - internal component.
- */
-
-/* harmony default export */ const ErrorOutline = ((0,createSvgIcon/* default */.Z)( /*#__PURE__*/(0,jsx_runtime.jsx)("path", {
-  d: "M11 15h2v2h-2zm0-8h2v6h-2zm.99-5C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
-}), 'ErrorOutline'));
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/internal/svg-icons/InfoOutlined.js
-'use client';
-
-
-
-
-/**
- * @ignore - internal component.
- */
-
-/* harmony default export */ const InfoOutlined = ((0,createSvgIcon/* default */.Z)( /*#__PURE__*/(0,jsx_runtime.jsx)("path", {
-  d: "M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20, 12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10, 10 0 0,0 12,2M11,17H13V11H11V17Z"
-}), 'InfoOutlined'));
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/internal/svg-icons/Close.js
-'use client';
-
-
-
-
-/**
- * @ignore - internal component.
- *
- * Alias to `Clear`.
- */
-
-/* harmony default export */ const svg_icons_Close = ((0,createSvgIcon/* default */.Z)( /*#__PURE__*/(0,jsx_runtime.jsx)("path", {
-  d: "M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
-}), 'Close'));
-;// CONCATENATED MODULE: ./node_modules/.pnpm/@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@18.2.79_react@18.2.0__@emotio_d9048b84de05bb23a91868a7ef37c0cc/node_modules/@mui/material/Alert/Alert.js
-'use client';
-
-
-
-const Alert_excluded = ["action", "children", "className", "closeText", "color", "components", "componentsProps", "icon", "iconMapping", "onClose", "role", "severity", "slotProps", "slots", "variant"];
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-const Alert_useThemeProps = createUseThemeProps('MuiAlert');
-const Alert_useUtilityClasses = ownerState => {
-  const {
-    variant,
-    color,
-    severity,
-    classes
-  } = ownerState;
-  const slots = {
-    root: ['root', "color".concat((0,capitalize/* default */.Z)(color || severity)), "".concat(variant).concat((0,capitalize/* default */.Z)(color || severity)), "".concat(variant)],
-    icon: ['icon'],
-    message: ['message'],
-    action: ['action']
-  };
-  return (0,composeClasses/* default */.Z)(slots, getAlertUtilityClass, classes);
-};
-const AlertRoot = (0,styled/* default */.ZP)(Paper_Paper, {
-  name: 'MuiAlert',
-  slot: 'Root',
-  overridesResolver: (props, styles) => {
-    const {
-      ownerState
-    } = props;
-    return [styles.root, styles[ownerState.variant], styles["".concat(ownerState.variant).concat((0,capitalize/* default */.Z)(ownerState.color || ownerState.severity))]];
-  }
-})(_ref => {
-  let {
-    theme
-  } = _ref;
-  const getColor = theme.palette.mode === 'light' ? colorManipulator/* darken */._j : colorManipulator/* lighten */.$n;
-  const getBackgroundColor = theme.palette.mode === 'light' ? colorManipulator/* lighten */.$n : colorManipulator/* darken */._j;
-  return (0,esm_extends/* default */.Z)({}, theme.typography.body2, {
-    backgroundColor: 'transparent',
-    display: 'flex',
-    padding: '6px 16px',
-    variants: [...Object.entries(theme.palette).filter(_ref2 => {
-      let [, value] = _ref2;
-      return value.main && value.light;
-    }).map(_ref3 => {
-      let [color] = _ref3;
-      return {
-        props: {
-          colorSeverity: color,
-          variant: 'standard'
-        },
-        style: {
-          color: theme.vars ? theme.vars.palette.Alert["".concat(color, "Color")] : getColor(theme.palette[color].light, 0.6),
-          backgroundColor: theme.vars ? theme.vars.palette.Alert["".concat(color, "StandardBg")] : getBackgroundColor(theme.palette[color].light, 0.9),
-          ["& .".concat(Alert_alertClasses.icon)]: theme.vars ? {
-            color: theme.vars.palette.Alert["".concat(color, "IconColor")]
-          } : {
-            color: theme.palette[color].main
-          }
-        }
-      };
-    }), ...Object.entries(theme.palette).filter(_ref4 => {
-      let [, value] = _ref4;
-      return value.main && value.light;
-    }).map(_ref5 => {
-      let [color] = _ref5;
-      return {
-        props: {
-          colorSeverity: color,
-          variant: 'outlined'
-        },
-        style: {
-          color: theme.vars ? theme.vars.palette.Alert["".concat(color, "Color")] : getColor(theme.palette[color].light, 0.6),
-          border: "1px solid ".concat((theme.vars || theme).palette[color].light),
-          ["& .".concat(Alert_alertClasses.icon)]: theme.vars ? {
-            color: theme.vars.palette.Alert["".concat(color, "IconColor")]
-          } : {
-            color: theme.palette[color].main
-          }
-        }
-      };
-    }), ...Object.entries(theme.palette).filter(_ref6 => {
-      let [, value] = _ref6;
-      return value.main && value.dark;
-    }).map(_ref7 => {
-      let [color] = _ref7;
-      return {
-        props: {
-          colorSeverity: color,
-          variant: 'filled'
-        },
-        style: (0,esm_extends/* default */.Z)({
-          fontWeight: theme.typography.fontWeightMedium
-        }, theme.vars ? {
-          color: theme.vars.palette.Alert["".concat(color, "FilledColor")],
-          backgroundColor: theme.vars.palette.Alert["".concat(color, "FilledBg")]
-        } : {
-          backgroundColor: theme.palette.mode === 'dark' ? theme.palette[color].dark : theme.palette[color].main,
-          color: theme.palette.getContrastText(theme.palette[color].main)
-        })
-      };
-    })]
-  });
-});
-const AlertIcon = (0,styled/* default */.ZP)('div', {
-  name: 'MuiAlert',
-  slot: 'Icon',
-  overridesResolver: (props, styles) => styles.icon
-})({
-  marginRight: 12,
-  padding: '7px 0',
-  display: 'flex',
-  fontSize: 22,
-  opacity: 0.9
-});
-const AlertMessage = (0,styled/* default */.ZP)('div', {
-  name: 'MuiAlert',
-  slot: 'Message',
-  overridesResolver: (props, styles) => styles.message
-})({
-  padding: '8px 0',
-  minWidth: 0,
-  overflow: 'auto'
-});
-const AlertAction = (0,styled/* default */.ZP)('div', {
-  name: 'MuiAlert',
-  slot: 'Action',
-  overridesResolver: (props, styles) => styles.action
-})({
-  display: 'flex',
-  alignItems: 'flex-start',
-  padding: '4px 0 0 16px',
-  marginLeft: 'auto',
-  marginRight: -8
-});
-const defaultIconMapping = {
-  success: /*#__PURE__*/(0,jsx_runtime.jsx)(SuccessOutlined, {
-    fontSize: "inherit"
-  }),
-  warning: /*#__PURE__*/(0,jsx_runtime.jsx)(ReportProblemOutlined, {
-    fontSize: "inherit"
-  }),
-  error: /*#__PURE__*/(0,jsx_runtime.jsx)(ErrorOutline, {
-    fontSize: "inherit"
-  }),
-  info: /*#__PURE__*/(0,jsx_runtime.jsx)(InfoOutlined, {
-    fontSize: "inherit"
-  })
-};
-const Alert = /*#__PURE__*/react.forwardRef(function Alert(inProps, ref) {
-  const props = Alert_useThemeProps({
-    props: inProps,
-    name: 'MuiAlert'
-  });
-  const {
-      action,
-      children,
-      className,
-      closeText = 'Close',
-      color,
-      components = {},
-      componentsProps = {},
-      icon,
-      iconMapping = defaultIconMapping,
-      onClose,
-      role = 'alert',
-      severity = 'success',
-      slotProps = {},
-      slots = {},
-      variant = 'standard'
-    } = props,
-    other = (0,objectWithoutPropertiesLoose/* default */.Z)(props, Alert_excluded);
-  const ownerState = (0,esm_extends/* default */.Z)({}, props, {
-    color,
-    severity,
-    variant,
-    colorSeverity: color || severity
-  });
-  const classes = Alert_useUtilityClasses(ownerState);
-  const externalForwardedProps = {
-    slots: (0,esm_extends/* default */.Z)({
-      closeButton: components.CloseButton,
-      closeIcon: components.CloseIcon
-    }, slots),
-    slotProps: (0,esm_extends/* default */.Z)({}, componentsProps, slotProps)
-  };
-  const [CloseButtonSlot, closeButtonProps] = useSlot('closeButton', {
-    elementType: IconButton_IconButton,
-    externalForwardedProps,
-    ownerState
-  });
-  const [CloseIconSlot, closeIconProps] = useSlot('closeIcon', {
-    elementType: svg_icons_Close,
-    externalForwardedProps,
-    ownerState
-  });
-  return /*#__PURE__*/(0,jsx_runtime.jsxs)(AlertRoot, (0,esm_extends/* default */.Z)({
-    role: role,
-    elevation: 0,
-    ownerState: ownerState,
-    className: (0,clsx/* default */.Z)(classes.root, className),
-    ref: ref
-  }, other, {
-    children: [icon !== false ? /*#__PURE__*/(0,jsx_runtime.jsx)(AlertIcon, {
-      ownerState: ownerState,
-      className: classes.icon,
-      children: icon || iconMapping[severity] || defaultIconMapping[severity]
-    }) : null, /*#__PURE__*/(0,jsx_runtime.jsx)(AlertMessage, {
-      ownerState: ownerState,
-      className: classes.message,
-      children: children
-    }), action != null ? /*#__PURE__*/(0,jsx_runtime.jsx)(AlertAction, {
-      ownerState: ownerState,
-      className: classes.action,
-      children: action
-    }) : null, action == null && onClose ? /*#__PURE__*/(0,jsx_runtime.jsx)(AlertAction, {
-      ownerState: ownerState,
-      className: classes.action,
-      children: /*#__PURE__*/(0,jsx_runtime.jsx)(CloseButtonSlot, (0,esm_extends/* default */.Z)({
-        size: "small",
-        "aria-label": closeText,
-        title: closeText,
-        color: "inherit",
-        onClick: onClose
-      }, closeButtonProps, {
-        children: /*#__PURE__*/(0,jsx_runtime.jsx)(CloseIconSlot, (0,esm_extends/* default */.Z)({
-          fontSize: "small"
-        }, closeIconProps))
-      }))
-    }) : null]
-  }));
-});
- false ? 0 : void 0;
-/* harmony default export */ const Alert_Alert = (Alert);
 ;// CONCATENATED MODULE: ./src/views/Selection/TranCont.js
-function TranCont(_ref){let{text,translator,fromLang,toLang,toLang2="en",transApis,simpleStyle,langDetector}=_ref;const i18n=useI18n();const[trText,setTrText]=(0,react.useState)("");const[loading,setLoading]=(0,react.useState)(true);const[error,setError]=(0,react.useState)("");(0,react.useEffect)(()=>{(async()=>{try{setLoading(true);setTrText("");setError("");let to=toLang;if(fromLang==="auto"&&toLang!==toLang2&&toLang2!=="none"){const detectLang=await tryDetectLang(text,true,langDetector);if(detectLang===toLang){to=toLang2;}}const apiSetting=transApis[translator]||DEFAULT_TRANS_APIS[translator];const tranRes=await apiTranslate({text,translator,fromLang,toLang:to,apiSetting});setTrText(tranRes[0]);}catch(err){setError(err.message);}finally{setLoading(false);}})();},[text,translator,fromLang,toLang,toLang2,transApis,langDetector]);if(simpleStyle){return/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{className:"KT-transbox-target KT-transbox-target_simple",children:error?/*#__PURE__*/(0,jsx_runtime.jsx)(Alert_Alert,{severity:"error",children:error}):loading?/*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgress_CircularProgress,{size:16}):/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{style:{whiteSpace:"pre-line"},children:trText})});}return/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{className:"KT-transbox-target KT-transbox-target_default",children:/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("translated_text")// disabled
+function TranCont(_ref){let{text,fromLang,toLang,apiSlug,transApis,simpleStyle=false}=_ref;const i18n=useI18n();const[trText,setTrText]=(0,react.useState)("");const[loading,setLoading]=(0,react.useState)(false);const[error,setError]=(0,react.useState)("");const apiSetting=(0,react.useMemo)(()=>transApis.find(api=>api.apiSlug===apiSlug),[transApis,apiSlug]);(0,react.useEffect)(()=>{if(!(text!==null&&text!==void 0&&text.trim())||!apiSetting){return;}(async()=>{try{setLoading(true);setTrText("");setError("");const[trText]=await apiTranslate({text,fromLang,toLang,apiSetting});setTrText(trText);}catch(err){setError(err.message);}finally{setLoading(false);}})();},[text,fromLang,toLang,apiSetting]);if(simpleStyle){return/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:error?/*#__PURE__*/(0,jsx_runtime.jsx)(Alert_Alert,{severity:"error",children:error}):loading?/*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgress_CircularProgress,{size:16}):/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{style:{whiteSpace:"pre-line"},children:trText})});}return/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:"".concat(i18n("translated_text")," - ").concat(apiSetting.apiSlug)// disabled
 ,fullWidth:true,multiline:true,value:trText,helperText:error,InputProps:{startAdornment:loading?/*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgress_CircularProgress,{size:16}):null,endAdornment:/*#__PURE__*/(0,jsx_runtime.jsx)(Stack_Stack,{direction:"row",sx:{position:"absolute",right:0,top:0},children:/*#__PURE__*/(0,jsx_runtime.jsx)(CopyBtn,{text:trText})})}})});}
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@1_1e29dcefa4691dc57f2acd9f73947cfd/node_modules/@mui/icons-material/Favorite.js
 var Favorite = __webpack_require__(6510);
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@1_1e29dcefa4691dc57f2acd9f73947cfd/node_modules/@mui/icons-material/FavoriteBorder.js
 var FavoriteBorder = __webpack_require__(111);
 ;// CONCATENATED MODULE: ./src/hooks/FavWords.js
-function useFavWords(){const[loading,setLoading]=(0,react.useState)(false);const[favWords,setFavWords]=(0,react.useState)({});const{updateSyncMeta}=useSyncMeta();const toggleFav=(0,react.useCallback)(async word=>{const favs={...favWords};if(favs[word]){delete favs[word];}else{favs[word]={createdAt:Date.now()};}await setWords(favs);await updateSyncMeta(KV_WORDS_KEY);await trySyncWords();setFavWords(favs);},[updateSyncMeta,favWords]);const mergeWords=(0,react.useCallback)(async newWords=>{const favs={...favWords};newWords.forEach(word=>{if(!favs[word]){favs[word]={createdAt:Date.now()};}});await setWords(favs);await updateSyncMeta(KV_WORDS_KEY);await trySyncWords();setFavWords(favs);},[updateSyncMeta,favWords]);const clearWords=(0,react.useCallback)(async()=>{await setWords({});await updateSyncMeta(KV_WORDS_KEY);await trySyncWords();setFavWords({});},[updateSyncMeta]);(0,react.useEffect)(()=>{(async()=>{try{setLoading(true);await trySyncWords();const favWords=await getWordsWithDefault();setFavWords(favWords);}catch(err){log_kissLog(err,"query fav");}finally{setLoading(false);}})();},[]);return{loading,favWords,toggleFav,mergeWords,clearWords};}
+const DEFAULT_FAVWORDS={};function useFavWords(){const{data:favWords,save}=useStorage(storage_STOKEY_WORDS,DEFAULT_FAVWORDS,storage_KV_WORDS_KEY);const toggleFav=(0,react.useCallback)(word=>{save(prev=>{if(!prev[word]){return{...prev,[word]:{createdAt:Date.now()}};}const favs={...prev};delete favs[word];return favs;});},[save]);const mergeWords=(0,react.useCallback)(words=>{save(prev=>({...words.reduce((acc,key)=>{acc[key]={createdAt:Date.now()};return acc;},{}),...prev}));},[save]);const clearWords=(0,react.useCallback)(()=>{save({});},[save]);const favList=(0,react.useMemo)(()=>Object.entries(favWords||{}).sort((a,b)=>a[0].localeCompare(b[0])),[favWords]);const wordList=(0,react.useMemo)(()=>favList.map(_ref=>{let[word]=_ref;return word;}),[favList]);return{favWords,favList,wordList,toggleFav,mergeWords,clearWords};}
 ;// CONCATENATED MODULE: ./src/views/Selection/FavBtn.js
-function FavBtn(_ref){let{word}=_ref;const{favWords,toggleFav}=useFavWords();const[loading,setLoading]=(0,react.useState)(false);const handleClick=async()=>{try{setLoading(true);await toggleFav(word);}catch(err){log_kissLog(err,"set fav");}finally{setLoading(false);}};return/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{disabled:loading,size:"small",onClick:handleClick,children:favWords[word]?/*#__PURE__*/(0,jsx_runtime.jsx)(Favorite/* default */.Z,{fontSize:"inherit"}):/*#__PURE__*/(0,jsx_runtime.jsx)(FavoriteBorder/* default */.Z,{fontSize:"inherit"})});}
+function FavBtn(_ref){let{word}=_ref;const{favWords,toggleFav}=useFavWords();const[loading,setLoading]=(0,react.useState)(false);const handleClick=()=>{try{setLoading(true);toggleFav(word);}catch(err){log_kissLog("set fav",err);}finally{setLoading(false);}};return/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{disabled:loading,size:"small",onClick:handleClick,children:favWords[word]?/*#__PURE__*/(0,jsx_runtime.jsx)(Favorite/* default */.Z,{fontSize:"inherit"}):/*#__PURE__*/(0,jsx_runtime.jsx)(FavoriteBorder/* default */.Z,{fontSize:"inherit"})});}
 // EXTERNAL MODULE: ./node_modules/.pnpm/@mui+icons-material@5.15.15_@mui+material@5.15.15_@emotion+react@11.11.1_@types+react@1_1e29dcefa4691dc57f2acd9f73947cfd/node_modules/@mui/icons-material/VolumeUp.js
 var VolumeUp = __webpack_require__(1777);
 ;// CONCATENATED MODULE: ./src/hooks/Audio.js
@@ -46124,28 +47711,230 @@ var VolumeUp = __webpack_require__(1777);
  * @param {*} lan
  * @param {*} spd
  * @returns
- */function useTextAudio(text){let lan=arguments.length>1&&arguments[1]!==undefined?arguments[1]:"uk";let spd=arguments.length>2&&arguments[2]!==undefined?arguments[2]:3;const[src,setSrc]=(0,react.useState)("");(0,react.useEffect)(()=>{(async()=>{try{setSrc(await apiBaiduTTS(text,lan,spd));}catch(err){log_kissLog(err,"baidu tts");}})();},[text,lan,spd]);return useAudio(src);}
+ */function useTextAudio(text){let lan=arguments.length>1&&arguments[1]!==undefined?arguments[1]:"uk";let spd=arguments.length>2&&arguments[2]!==undefined?arguments[2]:3;const[src,setSrc]=useState("");useEffect(()=>{(async()=>{try{setSrc(await apiBaiduTTS(text,lan,spd));}catch(err){kissLog("baidu tts",err);}})();},[text,lan,spd]);return useAudio(src);}
 ;// CONCATENATED MODULE: ./src/views/Selection/AudioBtn.js
-function AudioBtn(_ref){let{text,lan="uk"}=_ref;const{error,ready,playing,onPlay}=useTextAudio(text,lan);if(error||!ready){return/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{disabled:true,size:"small",children:/*#__PURE__*/(0,jsx_runtime.jsx)(VolumeUp/* default */.Z,{fontSize:"inherit"})});}if(playing){return/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{color:"primary",size:"small",children:/*#__PURE__*/(0,jsx_runtime.jsx)(VolumeUp/* default */.Z,{fontSize:"inherit"})});}return/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{onClick:onPlay,size:"small",children:/*#__PURE__*/(0,jsx_runtime.jsx)(VolumeUp/* default */.Z,{fontSize:"inherit"})});}
+function AudioBtn(_ref){let{src}=_ref;const{error,ready,playing,onPlay}=useAudio(src);if(error||!ready){return/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{disabled:true,size:"small",children:/*#__PURE__*/(0,jsx_runtime.jsx)(VolumeUp/* default */.Z,{fontSize:"inherit"})});}if(playing){return/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{color:"primary",size:"small",children:/*#__PURE__*/(0,jsx_runtime.jsx)(VolumeUp/* default */.Z,{fontSize:"inherit"})});}return/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{onClick:onPlay,size:"small",children:/*#__PURE__*/(0,jsx_runtime.jsx)(VolumeUp/* default */.Z,{fontSize:"inherit"})});}
+;// CONCATENATED MODULE: ./src/views/Selection/DictHandler.js
+const dictHandlers={[OPT_DICT_BING]:{apiFn:apiMicrosoftDict,reWord:data=>data===null||data===void 0?void 0:data.word,toText:data=>{var _data$trs;return(data===null||data===void 0?void 0:(_data$trs=data.trs)===null||_data$trs===void 0?void 0:_data$trs.map(_ref=>{let{pos,def}=_ref;return"".concat(pos?"[".concat(pos,"] "):"").concat(def);}))||[];},uiAudio:data=>{var _data$aus;return/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{component:"div",children:data===null||data===void 0?void 0:(_data$aus=data.aus)===null||_data$aus===void 0?void 0:_data$aus.map(_ref2=>{let{key,audio,phonetic}=_ref2;return/*#__PURE__*/(0,jsx_runtime.jsxs)(Typography_Typography,{component:"div",style:{display:"inline-block",paddingRight:"1em"},children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{component:"span",children:phonetic}),/*#__PURE__*/(0,jsx_runtime.jsx)(AudioBtn,{src:audio})]},key);})});},uiTrans:data=>{var _data$trs2;return/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{component:"ul",children:data===null||data===void 0?void 0:(_data$trs2=data.trs)===null||_data$trs2===void 0?void 0:_data$trs2.map((_ref3,idx)=>{let{pos,def}=_ref3;return/*#__PURE__*/(0,jsx_runtime.jsxs)(Typography_Typography,{component:"li",children:[pos&&"[".concat(pos,"] "),def]},idx);})});}},[OPT_DICT_YOUDAO]:{apiFn:apiYoudaoDict,reWord:data=>{var _data$ec,_data$ec$word;return data===null||data===void 0?void 0:(_data$ec=data.ec)===null||_data$ec===void 0?void 0:(_data$ec$word=_data$ec.word)===null||_data$ec$word===void 0?void 0:_data$ec$word["return-phrase"];},toText:data=>{var _data$ec2,_data$ec2$word,_data$ec2$word$trs;return(data===null||data===void 0?void 0:(_data$ec2=data.ec)===null||_data$ec2===void 0?void 0:(_data$ec2$word=_data$ec2.word)===null||_data$ec2$word===void 0?void 0:(_data$ec2$word$trs=_data$ec2$word.trs)===null||_data$ec2$word$trs===void 0?void 0:_data$ec2$word$trs.map(_ref4=>{let{pos,tran}=_ref4;return"".concat(pos?"[".concat(pos,"] "):"").concat(tran);}))||[];},uiAudio:data=>{var _data$ec3,_data$ec3$word,_data$ec4,_data$ec4$word;return/*#__PURE__*/(0,jsx_runtime.jsxs)(Typography_Typography,{component:"div",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{component:"div",style:{display:"inline-block",paddingRight:"1em"},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{component:"span",children:"UK [".concat(data===null||data===void 0?void 0:(_data$ec3=data.ec)===null||_data$ec3===void 0?void 0:(_data$ec3$word=_data$ec3.word)===null||_data$ec3$word===void 0?void 0:_data$ec3$word.ukphone,"]")})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{component:"div",style:{display:"inline-block",paddingRight:"1em"},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{component:"span",children:"US [".concat(data===null||data===void 0?void 0:(_data$ec4=data.ec)===null||_data$ec4===void 0?void 0:(_data$ec4$word=_data$ec4.word)===null||_data$ec4$word===void 0?void 0:_data$ec4$word.usphone,"]")})})]});},uiTrans:data=>{var _data$ec5,_data$ec5$word,_data$ec5$word$trs;return/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{component:"ul",children:data===null||data===void 0?void 0:(_data$ec5=data.ec)===null||_data$ec5===void 0?void 0:(_data$ec5$word=_data$ec5.word)===null||_data$ec5$word===void 0?void 0:(_data$ec5$word$trs=_data$ec5$word.trs)===null||_data$ec5$word$trs===void 0?void 0:_data$ec5$word$trs.map((_ref5,idx)=>{let{pos,tran}=_ref5;return/*#__PURE__*/(0,jsx_runtime.jsxs)(Typography_Typography,{component:"li",children:[pos&&"[".concat(pos,"] "),tran]},idx);})});}}};
 ;// CONCATENATED MODULE: ./src/views/Selection/DictCont.js
-function DictCont(_ref){var _dictResult$voice,_dictResult$voice2;let{text}=_ref;const[loading,setLoading]=(0,react.useState)(true);const[error,setError]=(0,react.useState)("");const[dictResult,setDictResult]=(0,react.useState)(null);(0,react.useEffect)(()=>{(async()=>{try{var _dictRes$;setLoading(true);setError("");setDictResult(null);if(!isValidWord(text)){return;}const dictRes=await apiTranslate({text,translator:OPT_TRANS_BAIDU,fromLang:"en",toLang:"zh-CN"});if(((_dictRes$=dictRes[2])===null||_dictRes$===void 0?void 0:_dictRes$.type)===1){setDictResult(JSON.parse(dictRes[2].result));}}catch(err){setError(err.message);}finally{setLoading(false);}})();},[text]);if(error){return/*#__PURE__*/(0,jsx_runtime.jsx)(Alert_Alert,{severity:"error",children:error});}if(loading){return/*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgress_CircularProgress,{size:16});}if(!text||!dictResult){return;}const copyText=[dictResult.src,(_dictResult$voice=dictResult.voice)===null||_dictResult$voice===void 0?void 0:_dictResult$voice.map(Object.entries).map(item=>item[0]).map(_ref2=>{var _PHONIC_MAP$key;let[key,val]=_ref2;return"".concat(((_PHONIC_MAP$key=PHONIC_MAP[key])===null||_PHONIC_MAP$key===void 0?void 0:_PHONIC_MAP$key[0])||key," ").concat(val);}).join(" "),dictResult.content[0].mean.map(_ref3=>{let{pre,cont}=_ref3;return"".concat(pre?"[".concat(pre,"] "):"").concat(Object.keys(cont).join("; "));}).join("\n")].join("\n");return/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{className:"KT-transbox-dict",spacing:1,children:[/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",justifyContent:"space-between",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{variant:"subtitle1",style:{fontWeight:"bold"},children:dictResult.src}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",justifyContent:"space-between",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(CopyBtn,{text:copyText}),/*#__PURE__*/(0,jsx_runtime.jsx)(FavBtn,{word:dictResult.src})]})]}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Typography_Typography,{component:"div",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{component:"div",children:(_dictResult$voice2=dictResult.voice)===null||_dictResult$voice2===void 0?void 0:_dictResult$voice2.map(Object.entries).map(item=>item[0]).map(_ref4=>{var _PHONIC_MAP$key2,_PHONIC_MAP$key3;let[key,val]=_ref4;return/*#__PURE__*/(0,jsx_runtime.jsxs)(Typography_Typography,{component:"div",style:{display:"inline-block"},children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{component:"span",children:"".concat(((_PHONIC_MAP$key2=PHONIC_MAP[key])===null||_PHONIC_MAP$key2===void 0?void 0:_PHONIC_MAP$key2[0])||key," ").concat(val)}),/*#__PURE__*/(0,jsx_runtime.jsx)(AudioBtn,{text:dictResult.src,lan:(_PHONIC_MAP$key3=PHONIC_MAP[key])===null||_PHONIC_MAP$key3===void 0?void 0:_PHONIC_MAP$key3[1]})]},key);})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{component:"ul",children:dictResult.content[0].mean.map((_ref5,idx)=>{let{pre,cont}=_ref5;return/*#__PURE__*/(0,jsx_runtime.jsxs)(Typography_Typography,{component:"li",children:[pre&&"[".concat(pre,"] "),Object.keys(cont).join("; ")]},idx);})})]})]});}
+function DictBody(_ref){let{text,setCopyText,setRealWord,dict}=_ref;const{loading,error,data}=useAsyncNow(dict.apiFn,text);(0,react.useEffect)(()=>{if(!data){return;}const realWord=dict.reWord(data)||text;const copyText=[realWord,dict.toText(data).join("\n")].join("\n");setRealWord(realWord);setCopyText(copyText);},[data,text,dict,setCopyText,setRealWord]);const uiAudio=(0,react.useMemo)(()=>dict.uiAudio(data),[data,dict]);const uiTrans=(0,react.useMemo)(()=>dict.uiTrans(data),[data,dict]);if(loading){return/*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgress_CircularProgress,{size:16});}if(error){return/*#__PURE__*/(0,jsx_runtime.jsx)(Alert_Alert,{severity:"error",children:error});}if(!data){return/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{children:"Not found!"});}return/*#__PURE__*/(0,jsx_runtime.jsxs)(Typography_Typography,{component:"div",children:[uiAudio,uiTrans]});}function DictCont(_ref2){let{text,enDict}=_ref2;const[copyText,setCopyText]=(0,react.useState)(text);const[realWord,setRealWord]=(0,react.useState)(text);const dict=dictHandlers[enDict];return/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:1,children:[text&&/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",justifyContent:"space-between",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{variant:"subtitle1",style:{fontWeight:"bold"},children:realWord}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",justifyContent:"space-between",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(CopyBtn,{text:copyText}),/*#__PURE__*/(0,jsx_runtime.jsx)(FavBtn,{word:realWord})]})]}),/*#__PURE__*/(0,jsx_runtime.jsx)(Divider_Divider,{}),dict&&/*#__PURE__*/(0,jsx_runtime.jsx)(DictBody,{text:text,setCopyText:setCopyText,setRealWord:setRealWord,dict:dict})]});}
 ;// CONCATENATED MODULE: ./src/views/Selection/SugCont.js
-function SugCont(_ref){let{text}=_ref;const[sugs,setSugs]=(0,react.useState)([]);(0,react.useEffect)(()=>{(async()=>{try{setSugs(await apiBaiduSuggest(text));}catch(err){// skip
-}})();},[text]);if(sugs.length===0){return;}return/*#__PURE__*/(0,jsx_runtime.jsx)(Stack_Stack,{className:"KT-transbox-sug",spacing:1,children:sugs.map(_ref2=>{let{k,v}=_ref2;return/*#__PURE__*/(0,jsx_runtime.jsxs)(Typography_Typography,{component:"div",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{children:k}),/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{component:"ul",style:{margin:"0"},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{component:"li",children:v})})]},k);})});}
+function SugBaidu(_ref){let{text}=_ref;const{loading,error,data}=useAsyncNow(apiBaiduSuggest,text);if(loading){return/*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgress_CircularProgress,{size:16});}if(error){return/*#__PURE__*/(0,jsx_runtime.jsx)(Alert_Alert,{severity:"error",children:error});}if(!data){return null;}return/*#__PURE__*/(0,jsx_runtime.jsx)(jsx_runtime.Fragment,{children:data.map(_ref2=>{let{k,v}=_ref2;return/*#__PURE__*/(0,jsx_runtime.jsxs)(Typography_Typography,{component:"div",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{children:k}),/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{component:"ul",style:{margin:"0"},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{component:"li",children:v})})]},k);})});}function SugYoudao(_ref3){let{text}=_ref3;const{loading,error,data}=useAsyncNow(apiYoudaoSuggest,text);if(loading){return/*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgress_CircularProgress,{size:16});}if(error){return/*#__PURE__*/(0,jsx_runtime.jsx)(Alert_Alert,{severity:"error",children:error});}if(!data){return null;}return/*#__PURE__*/(0,jsx_runtime.jsx)(jsx_runtime.Fragment,{children:data.map(_ref4=>{let{entry,explain}=_ref4;return/*#__PURE__*/(0,jsx_runtime.jsxs)(Typography_Typography,{component:"div",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{children:entry}),/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{component:"ul",style:{margin:"0"},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{component:"li",children:explain})})]},entry);})});}function SugCont(_ref5){let{text,enSug}=_ref5;const sugMap={[OPT_SUG_BAIDU]:/*#__PURE__*/(0,jsx_runtime.jsx)(SugBaidu,{text:text}),[OPT_SUG_YOUDAO]:/*#__PURE__*/(0,jsx_runtime.jsx)(SugYoudao,{text:text})};return/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:1,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Divider_Divider,{}),sugMap[enSug]||/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{children:"Sug not support"})]});}
+;// CONCATENATED MODULE: ./src/views/Selection/TranForm.js
+function TranForm(_ref){let{text,setText,apiSlugs:initApiSlugs,fromLang:initFromLang,toLang:initToLang,toLang2:initToLang2,transApis,simpleStyle=false,langDetector:initLangDetector="-",enDict:initEnDict="-",enSug:initEnSug="-",isPlaygound=false}=_ref;const i18n=useI18n();const[editMode,setEditMode]=(0,react.useState)(false);const[editText,setEditText]=(0,react.useState)(text);const[apiSlugs,setApiSlugs]=(0,react.useState)(initApiSlugs);const[fromLang,setFromLang]=(0,react.useState)(initFromLang);const[toLang,setToLang]=(0,react.useState)(initToLang);const[toLang2,setToLang2]=(0,react.useState)(initToLang2);const[langDetector,setLangDetector]=(0,react.useState)(initLangDetector);const[enDict,setEnDict]=(0,react.useState)(initEnDict);const[enSug,setEnSug]=(0,react.useState)(initEnSug);const[deLang,setDeLang]=(0,react.useState)("");const[deLoading,setDeLoading]=(0,react.useState)(false);(0,react.useEffect)(()=>{if(!editMode){setEditText(text);}},[text,editMode]);(0,react.useEffect)(()=>{if(!text.trim()){setDeLang("");return;}(async()=>{try{setDeLoading(true);const deLang=await tryDetectLang(text,langDetector);if(deLang){setDeLang(deLang);}}catch(err){log_kissLog("tranbox: detect lang",err);}finally{setDeLoading(false);}})();},[text,langDetector,setDeLang,setDeLoading]);// todo: 语言变化后，realToLang引发二次翻译请求
+const realToLang=(0,react.useMemo)(()=>{if(fromLang==="auto"&&toLang!==toLang2&&toLang2!=="-"&&deLang===toLang){return toLang2;}return toLang;},[fromLang,toLang,toLang2,deLang]);const optApis=(0,react.useMemo)(()=>transApis.filter(api=>!api.isDisabled).map(api=>({key:api.apiSlug,name:api.apiName||api.apiSlug})),[transApis]);const isWord=(0,react.useMemo)(()=>isValidWord(text),[text]);const xs=(0,react.useMemo)(()=>isPlaygound?3:4,[isPlaygound]);return/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{spacing:simpleStyle?1:2,children:[!simpleStyle&&/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Grid_Grid,{container:true,spacing:2,columns:12,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:xs,children:/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{multiple:true,MenuProps:{disablePortal:!isPlaygound}},fullWidth:true,size:"small",value:apiSlugs,name:"apiSlugs",label:i18n("translate_service_multiple"),onChange:e=>{setApiSlugs(e.target.value);},children:optApis.map(_ref2=>{let{key,name}=_ref2;return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:key,children:name},key);})})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:xs,children:/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:!isPlaygound}},fullWidth:true,size:"small",name:"fromLang",value:fromLang,label:i18n("from_lang"),onChange:e=>{setFromLang(e.target.value);},children:OPT_LANGS_FROM.map(_ref3=>{let[lang,name]=_ref3;return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:lang,children:name},lang);})})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:xs,children:/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:!isPlaygound}},fullWidth:true,size:"small",name:"toLang",value:toLang,label:i18n("to_lang"),onChange:e=>{setToLang(e.target.value);},children:OPT_LANGS_TO.map(_ref4=>{let[lang,name]=_ref4;return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:lang,children:name},lang);})})}),isPlaygound&&/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:xs,children:/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:!isPlaygound}},fullWidth:true,size:"small",name:"toLang2",value:toLang2,label:i18n("to_lang2"),onChange:e=>{setToLang2(e.target.value);},children:OPT_LANGS_TO.map(_ref5=>{let[lang,name]=_ref5;return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:lang,children:name},lang);})})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:xs,children:/*#__PURE__*/(0,jsx_runtime.jsxs)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:!isPlaygound}},fullWidth:true,size:"small",name:"enDict",value:enDict,label:i18n("english_dict"),onChange:e=>{setEnDict(e.target.value);},children:[/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:"-",children:i18n("disable")}),OPT_DICT_ALL.map(item=>/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:item,children:item},item))]})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:xs,children:/*#__PURE__*/(0,jsx_runtime.jsxs)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:!isPlaygound}},fullWidth:true,size:"small",name:"enSug",value:enSug,label:i18n("english_suggest"),onChange:e=>{setEnSug(e.target.value);},children:[/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:"-",children:i18n("disable")}),OPT_SUG_ALL.map(item=>/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:item,children:item},item))]})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:xs,children:/*#__PURE__*/(0,jsx_runtime.jsxs)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:!isPlaygound}},fullWidth:true,size:"small",name:"langDetector",value:langDetector,label:i18n("detected_lang"),onChange:e=>{setLangDetector(e.target.value);},children:[/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:"-",children:i18n("disable")}),OPT_LANGDETECTOR_ALL.map(item=>/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:item,children:item},item))]})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:xs,children:/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{fullWidth:true,size:"small",name:"deLang",value:deLang&&OPT_LANGS_MAP.get(deLang),label:i18n("detected_result"),disabled:true,InputProps:{startAdornment:deLoading?/*#__PURE__*/(0,jsx_runtime.jsx)(CircularProgress_CircularProgress,{size:16}):null}})})]})]})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("original_text"),fullWidth:true,multiline:true,minRows:isPlaygound?2:1,maxRows:10,value:editText,onChange:e=>{setEditText(e.target.value);},onFocus:()=>{setEditMode(true);},onBlur:()=>{setEditMode(false);setText(editText.trim());},InputProps:{endAdornment:/*#__PURE__*/(0,jsx_runtime.jsx)(Stack_Stack,{direction:"row",sx:{position:"absolute",right:0,top:0},children:editMode?/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{size:"small",onClick:e=>{e.stopPropagation();setEditMode(false);setText(editText.trim());},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Done/* default */.Z,{fontSize:"inherit"})}):/*#__PURE__*/(0,jsx_runtime.jsx)(CopyBtn,{text:text})})}})})]}),apiSlugs.map(slug=>/*#__PURE__*/(0,jsx_runtime.jsx)(TranCont,{text:text,fromLang:fromLang,toLang:realToLang,simpleStyle:simpleStyle,apiSlug:slug,transApis:transApis},slug)),isWord&&OPT_DICT_MAP.has(enDict)&&/*#__PURE__*/(0,jsx_runtime.jsx)(DictCont,{text:text,enDict:enDict}),isWord&&OPT_SUG_MAP.has(enSug)&&/*#__PURE__*/(0,jsx_runtime.jsx)(SugCont,{text:text,enSug:enSug})]});}
 ;// CONCATENATED MODULE: ./src/views/Selection/TranBox.js
-function TranBox_Header(_ref){let{setShowPopup,simpleStyle,setSimpleStyle,hideClickAway,setHideClickAway,followSelection,setFollowSelection,mouseHover}=_ref;if(!isMobile&&simpleStyle&&!mouseHover){return;}return/*#__PURE__*/(0,jsx_runtime.jsxs)(Box_Box,{className:"KT-transbox-header",onMouseUp:e=>e.stopPropagation(),onTouchEnd:e=>e.stopPropagation(),children:[/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",justifyContent:"space-between",alignItems:"center",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(DragIndicator/* default */.Z,{fontSize:"small"}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",alignItems:"center",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{size:"small",onClick:()=>{setHideClickAway(pre=>!pre);},children:hideClickAway?/*#__PURE__*/(0,jsx_runtime.jsx)(LockOpen/* default */.Z,{fontSize:"small"}):/*#__PURE__*/(0,jsx_runtime.jsx)(Lock/* default */.Z,{fontSize:"small"})}),/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{size:"small",onClick:()=>{setFollowSelection(pre=>!pre);},children:followSelection?/*#__PURE__*/(0,jsx_runtime.jsx)(PushPinOutlined/* default */.Z,{fontSize:"small"}):/*#__PURE__*/(0,jsx_runtime.jsx)(PushPin/* default */.Z,{fontSize:"small"})}),/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{size:"small",onClick:()=>{setSimpleStyle(pre=>!pre);},children:simpleStyle?/*#__PURE__*/(0,jsx_runtime.jsx)(UnfoldMore/* default */.Z,{fontSize:"small"}):/*#__PURE__*/(0,jsx_runtime.jsx)(UnfoldLess/* default */.Z,{fontSize:"small"})}),/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{size:"small",onClick:()=>{setShowPopup(false);},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Close/* default */.Z,{fontSize:"small"})})]})]}),/*#__PURE__*/(0,jsx_runtime.jsx)(Divider_Divider,{})]});}function TranForm(_ref2){let{text,setText,tranboxSetting,transApis,simpleStyle,langDetector,enDict}=_ref2;const i18n=useI18n();const[editMode,setEditMode]=(0,react.useState)(false);const[editText,setEditText]=(0,react.useState)("");const[translator,setTranslator]=(0,react.useState)(tranboxSetting.translator);const[fromLang,setFromLang]=(0,react.useState)(tranboxSetting.fromLang);const[toLang,setToLang]=(0,react.useState)(tranboxSetting.toLang);const inputRef=(0,react.useRef)(null);const optApis=(0,react.useMemo)(()=>OPT_TRANS_ALL.map(key=>({...(transApis[key]||DEFAULT_TRANS_APIS[key]),apiKey:key})).filter(item=>!item.isDisabled).map(_ref3=>{let{apiKey,apiName}=_ref3;return{key:apiKey,name:(apiName===null||apiName===void 0?void 0:apiName.trim())||apiKey};}),[transApis]);return/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{className:"KT-transbox-container",sx:{p:simpleStyle?1:2},spacing:simpleStyle?1:2,children:[!simpleStyle&&/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{className:"KT-transbox-select",children:/*#__PURE__*/(0,jsx_runtime.jsxs)(Grid_Grid,{container:true,spacing:simpleStyle?1:2,columns:12,children:[/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:4,sm:4,md:4,lg:4,children:/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},fullWidth:true,size:"small",name:"fromLang",value:fromLang,label:i18n("from_lang"),onChange:e=>{setFromLang(e.target.value);},children:OPT_LANGS_FROM.map(_ref4=>{let[lang,name]=_ref4;return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:lang,children:name},lang);})})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:4,sm:4,md:4,lg:4,children:/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},fullWidth:true,size:"small",name:"toLang",value:toLang,label:i18n("to_lang"),onChange:e=>{setToLang(e.target.value);},children:OPT_LANGS_TO.map(_ref5=>{let[lang,name]=_ref5;return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:lang,children:name},lang);})})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Grid_Grid,{item:true,xs:4,sm:4,md:4,lg:4,children:/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{select:true,SelectProps:{MenuProps:{disablePortal:true}},fullWidth:true,size:"small",value:translator,name:"translator",label:i18n("translate_service"),onChange:e=>{setTranslator(e.target.value);},children:optApis.map(_ref6=>{let{key,name}=_ref6;return/*#__PURE__*/(0,jsx_runtime.jsx)(MenuItem_MenuItem,{value:key,children:name},key);})})})]})}),/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{className:"KT-transbox-origin",children:/*#__PURE__*/(0,jsx_runtime.jsx)(TextField_TextField,{size:"small",label:i18n("original_text"),inputRef:inputRef,fullWidth:true,multiline:true,value:editMode?editText:text,onChange:e=>{setEditText(e.target.value);},onFocus:()=>{setEditMode(true);setEditText(text);},onBlur:()=>{setEditMode(false);setText(editText.trim());},InputProps:{endAdornment:/*#__PURE__*/(0,jsx_runtime.jsx)(Stack_Stack,{direction:"row",sx:{position:"absolute",right:0,top:0},children:editMode?/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{size:"small",onClick:e=>{e.stopPropagation();},children:/*#__PURE__*/(0,jsx_runtime.jsx)(Done/* default */.Z,{fontSize:"inherit"})}):/*#__PURE__*/(0,jsx_runtime.jsx)(CopyBtn,{text:text})})}})})]}),(!simpleStyle||!isValidWord(text)||!toLang.startsWith("zh")||enDict==="-")&&/*#__PURE__*/(0,jsx_runtime.jsx)(TranCont,{text:text,translator:translator,fromLang:fromLang,toLang:toLang,toLang2:tranboxSetting.toLang2,transApis:transApis,simpleStyle:simpleStyle,langDetector:langDetector}),enDict!=="-"&&/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[/*#__PURE__*/(0,jsx_runtime.jsx)(DictCont,{text:text}),/*#__PURE__*/(0,jsx_runtime.jsx)(SugCont,{text:text})]})]});}function TranBox(_ref7){let{text,setText,setShowBox,tranboxSetting,transApis,boxSize,setBoxSize,boxPosition,setBoxPosition,simpleStyle,setSimpleStyle,hideClickAway,setHideClickAway,followSelection,setFollowSelection,extStyles,langDetector,enDict}=_ref7;const[mouseHover,setMouseHover]=(0,react.useState)(false);return/*#__PURE__*/(0,jsx_runtime.jsx)(SettingProvider,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(Theme,{styles:extStyles,children:/*#__PURE__*/(0,jsx_runtime.jsx)(DraggableResizable,{position:boxPosition,size:boxSize,setSize:setBoxSize,setPosition:setBoxPosition,header:/*#__PURE__*/(0,jsx_runtime.jsx)(TranBox_Header,{setShowPopup:setShowBox,simpleStyle:simpleStyle,setSimpleStyle:setSimpleStyle,hideClickAway:hideClickAway,setHideClickAway:setHideClickAway,followSelection:followSelection,setFollowSelection:setFollowSelection,mouseHover:mouseHover}),onClick:e=>e.stopPropagation(),onMouseEnter:()=>setMouseHover(true),onMouseLeave:()=>setMouseHover(false),children:/*#__PURE__*/(0,jsx_runtime.jsx)(TranForm,{text:text,setText:setText,tranboxSetting:tranboxSetting,transApis:transApis,simpleStyle:simpleStyle,langDetector:langDetector,enDict:enDict})})})});}
+function TranBox_Header(_ref){let{setShowPopup,simpleStyle,setSimpleStyle,hideClickAway,setHideClickAway,followSelection,setFollowSelection,mouseHover}=_ref;const i18n=useI18n();if(!isMobile&&simpleStyle&&!mouseHover){return;}return/*#__PURE__*/(0,jsx_runtime.jsxs)(Box_Box,{onMouseUp:e=>e.stopPropagation(),onTouchEnd:e=>e.stopPropagation(),children:[/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",justifyContent:"space-between",alignItems:"center",children:[/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",alignItems:"center",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(DragIndicator/* default */.Z,{fontSize:"small"}),/*#__PURE__*/(0,jsx_runtime.jsx)(Typography_Typography,{variant:"body2",sx:{userSelect:"none",WebkitUserSelect:"none",fontWeight:"bold"},children:"".concat("KISS Translator"," v").concat("2.0.0")})]}),/*#__PURE__*/(0,jsx_runtime.jsxs)(Stack_Stack,{direction:"row",alignItems:"center",children:[/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{size:"small",title:i18n("btn_tip_click_away"),onClick:()=>{setHideClickAway(pre=>!pre);},children:hideClickAway?/*#__PURE__*/(0,jsx_runtime.jsx)(LockOpen/* default */.Z,{fontSize:"small"}):/*#__PURE__*/(0,jsx_runtime.jsx)(Lock/* default */.Z,{fontSize:"small"})}),/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{size:"small",title:i18n("btn_tip_follow_selection"),onClick:()=>{setFollowSelection(pre=>!pre);},children:followSelection?/*#__PURE__*/(0,jsx_runtime.jsx)(PushPinOutlined/* default */.Z,{fontSize:"small"}):/*#__PURE__*/(0,jsx_runtime.jsx)(PushPin/* default */.Z,{fontSize:"small"})}),/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{size:"small",title:i18n("btn_tip_simple_style"),onClick:()=>{setSimpleStyle(pre=>!pre);},children:simpleStyle?/*#__PURE__*/(0,jsx_runtime.jsx)(UnfoldMore/* default */.Z,{fontSize:"small"}):/*#__PURE__*/(0,jsx_runtime.jsx)(UnfoldLess/* default */.Z,{fontSize:"small"})}),/*#__PURE__*/(0,jsx_runtime.jsx)(IconButton_IconButton,{size:"small",onClick:()=>{setShowPopup(false);},children:/*#__PURE__*/(0,jsx_runtime.jsx)(icons_material_Close/* default */.Z,{fontSize:"small"})})]})]}),/*#__PURE__*/(0,jsx_runtime.jsx)(Divider_Divider,{})]});}function TranBox(_ref2){let{text,setText,setShowBox,tranboxSetting:{enDict,enSug,apiSlugs,fromLang,toLang,toLang2},transApis,boxSize,setBoxSize,boxPosition,setBoxPosition,simpleStyle,setSimpleStyle,hideClickAway,setHideClickAway,followSelection,setFollowSelection,extStyles="",langDetector}=_ref2;const[mouseHover,setMouseHover]=(0,react.useState)(false);// todo: 这里的 SettingProvider 不应和 background 的共用
+return/*#__PURE__*/(0,jsx_runtime.jsx)(SettingProvider,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(Theme,{styles:extStyles,children:/*#__PURE__*/(0,jsx_runtime.jsx)(DraggableResizable,{position:boxPosition,size:boxSize,setSize:setBoxSize,setPosition:setBoxPosition,header:/*#__PURE__*/(0,jsx_runtime.jsx)(TranBox_Header,{setShowPopup:setShowBox,simpleStyle:simpleStyle,setSimpleStyle:setSimpleStyle,hideClickAway:hideClickAway,setHideClickAway:setHideClickAway,followSelection:followSelection,setFollowSelection:setFollowSelection,mouseHover:mouseHover}),onClick:e=>e.stopPropagation(),onMouseEnter:()=>setMouseHover(true),onMouseLeave:()=>setMouseHover(false),children:/*#__PURE__*/(0,jsx_runtime.jsx)(Box_Box,{sx:{p:simpleStyle?1:2},children:/*#__PURE__*/(0,jsx_runtime.jsx)(TranForm,{text:text,setText:setText,apiSlugs:apiSlugs,fromLang:fromLang,toLang:toLang,toLang2:toLang2,transApis:transApis,simpleStyle:simpleStyle,langDetector:langDetector,enDict:enDict,enSug:enSug})})})})});}
 ;// CONCATENATED MODULE: ./src/views/Selection/index.js
-function Slection(_ref){let{contextMenuType,tranboxSetting,transApis,uiLang,langDetector}=_ref;const{hideTranBtn=false,simpleStyle:initSimpleStyle=false,hideClickAway:initHideClickAway=false,followSelection:initFollowMouse=false,tranboxShortcut=DEFAULT_TRANBOX_SHORTCUT,triggerMode=OPT_TRANBOX_TRIGGER_CLICK,extStyles,btnOffsetX,btnOffsetY,boxOffsetX=0,boxOffsetY=10,enDict=OPT_DICT_BAIDU}=tranboxSetting;const boxWidth=isMobile||initSimpleStyle?300:limitNumber(window.innerWidth,300,600);const boxHeight=isMobile||initSimpleStyle?200:limitNumber(window.innerHeight,200,400);const langMap=useLangMap(uiLang);const[showBox,setShowBox]=(0,react.useState)(false);const[showBtn,setShowBtn]=(0,react.useState)(false);const[selectedText,setSelText]=(0,react.useState)("");const[text,setText]=(0,react.useState)("");const[position,setPosition]=(0,react.useState)({x:0,y:0});const[boxSize,setBoxSize]=(0,react.useState)({w:boxWidth,h:boxHeight});const[boxPosition,setBoxPosition]=(0,react.useState)({x:(window.innerWidth-boxWidth)/2,y:(window.innerHeight-boxHeight)/2});const[simpleStyle,setSimpleStyle]=(0,react.useState)(initSimpleStyle);const[hideClickAway,setHideClickAway]=(0,react.useState)(initHideClickAway);const[followSelection,setFollowSelection]=(0,react.useState)(initFollowMouse);const handleTrigger=(0,react.useCallback)(text=>{setShowBtn(false);setText(text||selectedText);setShowBox(true);},[selectedText]);const handleTranbox=(0,react.useCallback)(()=>{var _selection$toString,_selection$getRangeAt;setShowBtn(false);const selection=window.getSelection();const selectedText=(selection===null||selection===void 0?void 0:(_selection$toString=selection.toString())===null||_selection$toString===void 0?void 0:_selection$toString.trim())||"";if(!selectedText){setShowBox(pre=>!pre);return;}const rect=selection===null||selection===void 0?void 0:(_selection$getRangeAt=selection.getRangeAt(0))===null||_selection$getRangeAt===void 0?void 0:_selection$getRangeAt.getBoundingClientRect();if(rect&&followSelection){const x=(rect.left+rect.right)/2+boxOffsetX;const y=rect.bottom+boxOffsetY;setBoxPosition({x:limitNumber(x,0,window.innerWidth-300),y:limitNumber(y,0,window.innerHeight-200)});}setSelText(selectedText);setText(selectedText);setShowBox(true);},[followSelection,boxOffsetX,boxOffsetY]);const btnEvent=(0,react.useMemo)(()=>{if(isMobile){return"onTouchEnd";}else if(triggerMode===OPT_TRANBOX_TRIGGER_HOVER){return"onMouseOver";}return"onMouseUp";},[triggerMode]);(0,react.useEffect)(()=>{async function handleMouseup(e){var _selection$toString2,_selection$getRangeAt2;e.stopPropagation();await sleep(200);const selection=window.getSelection();const selectedText=(selection===null||selection===void 0?void 0:(_selection$toString2=selection.toString())===null||_selection$toString2===void 0?void 0:_selection$toString2.trim())||"";setSelText(selectedText);if(!selectedText){setShowBtn(false);return;}const rect=selection===null||selection===void 0?void 0:(_selection$getRangeAt2=selection.getRangeAt(0))===null||_selection$getRangeAt2===void 0?void 0:_selection$getRangeAt2.getBoundingClientRect();if(rect&&followSelection){const x=(rect.left+rect.right)/2+boxOffsetX;const y=rect.bottom+boxOffsetY;setBoxPosition({x:limitNumber(x,0,window.innerWidth-300),y:limitNumber(y,0,window.innerHeight-200)});}if(triggerMode===OPT_TRANBOX_TRIGGER_SELECT){handleTrigger(selectedText);return;}const{clientX,clientY}=isMobile?e.changedTouches[0]:e;setShowBtn(!hideTranBtn);setPosition({x:clientX,y:clientY});}// todo: mobile support
+function Slection(_ref){let{contextMenuType,tranboxSetting,transApis,uiLang,langDetector}=_ref;const{hideTranBtn=false,simpleStyle:initSimpleStyle=false,hideClickAway:initHideClickAway=false,followSelection:initFollowMouse=false,tranboxShortcut=DEFAULT_TRANBOX_SHORTCUT,triggerMode=OPT_TRANBOX_TRIGGER_CLICK,// extStyles,
+btnOffsetX,btnOffsetY,boxOffsetX=0,boxOffsetY=10}=tranboxSetting;const boxWidth=isMobile||initSimpleStyle?300:limitNumber(window.innerWidth,300,600);const boxHeight=isMobile||initSimpleStyle?200:limitNumber(window.innerHeight,200,400);const langMap=useLangMap(uiLang);const[showBox,setShowBox]=(0,react.useState)(false);const[showBtn,setShowBtn]=(0,react.useState)(false);const[selectedText,setSelText]=(0,react.useState)("");const[text,setText]=(0,react.useState)("");const[position,setPosition]=(0,react.useState)({x:0,y:0});const[boxSize,setBoxSize]=(0,react.useState)({w:boxWidth,h:boxHeight});const[boxPosition,setBoxPosition]=(0,react.useState)({x:(window.innerWidth-boxWidth)/2,y:(window.innerHeight-boxHeight)/2});const[simpleStyle,setSimpleStyle]=(0,react.useState)(initSimpleStyle);const[hideClickAway,setHideClickAway]=(0,react.useState)(initHideClickAway);const[followSelection,setFollowSelection]=(0,react.useState)(initFollowMouse);const handleTrigger=(0,react.useCallback)(text=>{setShowBtn(false);setText(text||selectedText);setShowBox(true);},[selectedText]);const handleTranbox=(0,react.useCallback)(()=>{var _selection$toString,_selection$getRangeAt;setShowBtn(false);const selection=window.getSelection();const selectedText=(selection===null||selection===void 0?void 0:(_selection$toString=selection.toString())===null||_selection$toString===void 0?void 0:_selection$toString.trim())||"";if(!selectedText){setShowBox(pre=>!pre);return;}const rect=selection===null||selection===void 0?void 0:(_selection$getRangeAt=selection.getRangeAt(0))===null||_selection$getRangeAt===void 0?void 0:_selection$getRangeAt.getBoundingClientRect();if(rect&&followSelection){const x=(rect.left+rect.right)/2+boxOffsetX;const y=rect.bottom+boxOffsetY;setBoxPosition({x:limitNumber(x,0,window.innerWidth-300),y:limitNumber(y,0,window.innerHeight-200)});}setSelText(selectedText);setText(selectedText);setShowBox(true);},[followSelection,boxOffsetX,boxOffsetY]);const btnEvent=(0,react.useMemo)(()=>{if(isMobile){return"onTouchEnd";}else if(triggerMode===OPT_TRANBOX_TRIGGER_HOVER){return"onMouseOver";}return"onMouseUp";},[triggerMode]);(0,react.useEffect)(()=>{async function handleMouseup(e){var _selection$toString2,_selection$getRangeAt2;e.stopPropagation();await sleep(200);const selection=window.getSelection();const selectedText=(selection===null||selection===void 0?void 0:(_selection$toString2=selection.toString())===null||_selection$toString2===void 0?void 0:_selection$toString2.trim())||"";setSelText(selectedText);if(!selectedText){setShowBtn(false);return;}const rect=selection===null||selection===void 0?void 0:(_selection$getRangeAt2=selection.getRangeAt(0))===null||_selection$getRangeAt2===void 0?void 0:_selection$getRangeAt2.getBoundingClientRect();if(rect&&followSelection){const x=(rect.left+rect.right)/2+boxOffsetX;const y=rect.bottom+boxOffsetY;setBoxPosition({x:limitNumber(x,0,window.innerWidth-300),y:limitNumber(y,0,window.innerHeight-200)});}if(triggerMode===OPT_TRANBOX_TRIGGER_SELECT){handleTrigger(selectedText);return;}const{clientX,clientY}=isMobile?e.changedTouches[0]:e;setShowBtn(!hideTranBtn);setPosition({x:clientX,y:clientY});}// todo: mobile support
 // window.addEventListener("mouseup", handleMouseup);
 window.addEventListener(isMobile?"touchend":"mouseup",handleMouseup);return()=>{window.removeEventListener(isMobile?"touchend":"mouseup",handleMouseup);};},[hideTranBtn,triggerMode,followSelection,boxOffsetX,boxOffsetY,handleTrigger]);(0,react.useEffect)(()=>{if(isExt){return;}const clearShortcut=shortcutRegister(tranboxShortcut,handleTranbox);return()=>{clearShortcut();};},[tranboxShortcut,handleTranbox]);(0,react.useEffect)(()=>{window.addEventListener(MSG_OPEN_TRANBOX,handleTranbox);return()=>{window.removeEventListener(MSG_OPEN_TRANBOX,handleTranbox);};},[handleTranbox]);(0,react.useEffect)(()=>{if(!isGm){return;}// 注册菜单
-try{const menuCommandIds=[];contextMenuType!==0&&menuCommandIds.push(GM.registerMenuCommand(langMap("translate_selected_text"),event=>{handleTranbox();},"S"));return()=>{menuCommandIds.forEach(id=>{GM.unregisterMenuCommand(id);});};}catch(err){log_kissLog(err,"registerMenuCommand");}},[handleTranbox,contextMenuType,langMap]);(0,react.useEffect)(()=>{if(hideClickAway){const handleHideBox=()=>{setShowBox(false);};window.addEventListener("click",handleHideBox);return()=>{window.removeEventListener("click",handleHideBox);};}},[hideClickAway]);return/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[showBox&&/*#__PURE__*/(0,jsx_runtime.jsx)(TranBox,{text:text,setText:setText,boxSize:boxSize,setBoxSize:setBoxSize,boxPosition:boxPosition,setBoxPosition:setBoxPosition,tranboxSetting:tranboxSetting,transApis:transApis,setShowBox:setShowBox,simpleStyle:simpleStyle,setSimpleStyle:setSimpleStyle,hideClickAway:hideClickAway,setHideClickAway:setHideClickAway,followSelection:followSelection,setFollowSelection:setFollowSelection,extStyles:extStyles,langDetector:langDetector,enDict:enDict}),showBtn&&/*#__PURE__*/(0,jsx_runtime.jsx)(TranBtn,{position:position,btnOffsetX:btnOffsetX,btnOffsetY:btnOffsetY,btnEvent:btnEvent,onTrigger:e=>{e.stopPropagation();handleTrigger();}})]});}
+try{const menuCommandIds=[];contextMenuType!==0&&menuCommandIds.push(GM.registerMenuCommand(langMap("translate_selected_text"),event=>{handleTranbox();},"S"));return()=>{menuCommandIds.forEach(id=>{GM.unregisterMenuCommand(id);});};}catch(err){log_kissLog("registerMenuCommand",err);}},[handleTranbox,contextMenuType,langMap]);(0,react.useEffect)(()=>{if(hideClickAway){const handleHideBox=()=>{setShowBox(false);};window.addEventListener("click",handleHideBox);return()=>{window.removeEventListener("click",handleHideBox);};}},[hideClickAway]);return/*#__PURE__*/(0,jsx_runtime.jsxs)(jsx_runtime.Fragment,{children:[showBox&&/*#__PURE__*/(0,jsx_runtime.jsx)(TranBox,{text:text,setText:setText,boxSize:boxSize,setBoxSize:setBoxSize,boxPosition:boxPosition,setBoxPosition:setBoxPosition,tranboxSetting:tranboxSetting,transApis:transApis,setShowBox:setShowBox,simpleStyle:simpleStyle,setSimpleStyle:setSimpleStyle,hideClickAway:hideClickAway,setHideClickAway:setHideClickAway,followSelection:followSelection,setFollowSelection:setFollowSelection// extStyles={extStyles}
+,langDetector:langDetector}),showBtn&&/*#__PURE__*/(0,jsx_runtime.jsx)(TranBtn,{position:position,btnOffsetX:btnOffsetX,btnOffsetY:btnOffsetY,btnEvent:btnEvent,onTrigger:e=>{e.stopPropagation();handleTrigger();}})]});}
+;// CONCATENATED MODULE: ./src/libs/tranbox.js
+var _container=/*#__PURE__*/_classPrivateFieldKey("container");var _reactRoot=/*#__PURE__*/_classPrivateFieldKey("reactRoot");var _shadowContainer=/*#__PURE__*/_classPrivateFieldKey("shadowContainer");var _props=/*#__PURE__*/_classPrivateFieldKey("props");class TransboxManager{constructor(){let initialProps=arguments.length>0&&arguments[0]!==undefined?arguments[0]:{};Object.defineProperty(this,_container,{writable:true,value:null});Object.defineProperty(this,_reactRoot,{writable:true,value:null});Object.defineProperty(this,_shadowContainer,{writable:true,value:null});Object.defineProperty(this,_props,{writable:true,value:{}});_classPrivateFieldBase(this,_props)[_props]=initialProps;const{tranboxSetting=DEFAULT_TRANBOX_SETTING}=_classPrivateFieldBase(this,_props)[_props];if(tranboxSetting!==null&&tranboxSetting!==void 0&&tranboxSetting.transOpen){this.enable();}}isEnabled(){return!!_classPrivateFieldBase(this,_container)[_container]&&document.body.parentElement.contains(_classPrivateFieldBase(this,_container)[_container]);}enable(){if(!this.isEnabled()){_classPrivateFieldBase(this,_container)[_container]=document.createElement("div");_classPrivateFieldBase(this,_container)[_container].id=APP_CONSTS.boxID;_classPrivateFieldBase(this,_container)[_container].className="notranslate";_classPrivateFieldBase(this,_container)[_container].style.cssText="font-size: 0; width: 0; height: 0; border: 0; padding: 0; margin: 0;";document.body.parentElement.appendChild(_classPrivateFieldBase(this,_container)[_container]);_classPrivateFieldBase(this,_shadowContainer)[_shadowContainer]=_classPrivateFieldBase(this,_container)[_container].attachShadow({mode:"closed"});const emotionRoot=document.createElement("style");const shadowRootElement=document.createElement("div");shadowRootElement.className="".concat(APP_CONSTS.boxID,"_warpper notranslate");_classPrivateFieldBase(this,_shadowContainer)[_shadowContainer].appendChild(emotionRoot);_classPrivateFieldBase(this,_shadowContainer)[_shadowContainer].appendChild(shadowRootElement);const cache=(0,emotion_cache_browser_esm/* default */.Z)({key:APP_CONSTS.boxID,prepend:true,container:emotionRoot});_classPrivateFieldBase(this,_reactRoot)[_reactRoot]=client.createRoot(shadowRootElement);this.CacheProvider=_ref=>{let{children}=_ref;return/*#__PURE__*/(0,jsx_runtime.jsx)(emotion_element_c39617d8_browser_esm.C,{value:cache,children:children});};}const AppProvider=this.CacheProvider;_classPrivateFieldBase(this,_reactRoot)[_reactRoot].render(/*#__PURE__*/(0,jsx_runtime.jsx)(react.StrictMode,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(AppProvider,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(Slection,{..._classPrivateFieldBase(this,_props)[_props]})})}));}disable(){if(!this.isEnabled()||!_classPrivateFieldBase(this,_reactRoot)[_reactRoot]){return;}_classPrivateFieldBase(this,_reactRoot)[_reactRoot].unmount();_classPrivateFieldBase(this,_container)[_container].remove();_classPrivateFieldBase(this,_container)[_container]=null;_classPrivateFieldBase(this,_reactRoot)[_reactRoot]=null;_classPrivateFieldBase(this,_shadowContainer)[_shadowContainer]=null;this.CacheProvider=null;}toggle(){if(this.isEnabled()){this.disable();}else{this.enable();}}update(newProps){_classPrivateFieldBase(this,_props)[_props]={..._classPrivateFieldBase(this,_props)[_props],...newProps};if(this.isEnabled()){var _classPrivateFieldLoo;if(!((_classPrivateFieldLoo=_classPrivateFieldBase(this,_props)[_props].tranboxSetting)!==null&&_classPrivateFieldLoo!==void 0&&_classPrivateFieldLoo.transOpen)){this.disable();}else{this.enable();}}}}
+;// CONCATENATED MODULE: ./src/libs/inputTranslate.js
+function isInputNode(node){return node.nodeName==="INPUT"||node.nodeName==="TEXTAREA";}function isEditAbleNode(node){return node.hasAttribute("contenteditable");}function replaceContentEditableText(node,newText){node.focus();const selection=window.getSelection();if(!selection)return;const range=document.createRange();range.selectNodeContents(node);selection.removeAllRanges();selection.addRange(range);range.deleteContents();const textNode=document.createTextNode(newText);range.insertNode(textNode);selection.collapseToEnd();}function getNodeText(node){if(isInputNode(node)){return node.value;}return node.innerText||node.textContent||"";}function addLoading(node,loadingId){const rect=node.getBoundingClientRect();const div=document.createElement("div");div.id=loadingId;div.appendChild(createLoadingSVG());div.style.cssText="\n        position: fixed;\n        left: ".concat(rect.left,"px;\n        top: ").concat(rect.top,"px;\n        width: ").concat(rect.width,"px;\n        height: ").concat(rect.height,"px;\n        line-height: ").concat(rect.height,"px;\n        text-align: center;\n        z-index: 2147483647;\n        pointer-events: none; /* \u5141\u8BB8\u70B9\u51FB\u7A7F\u900F */\n    ");document.body.appendChild(div);}function removeLoading(loadingId){const div=document.getElementById(loadingId);if(div)div.remove();}/**
+ * 输入框翻译
+ */var _config=/*#__PURE__*/_classPrivateFieldKey("config");var _unregisterShortcut=/*#__PURE__*/_classPrivateFieldKey("unregisterShortcut");var _isEnabled=/*#__PURE__*/_classPrivateFieldKey("isEnabled");var _triggerShortcut=/*#__PURE__*/_classPrivateFieldKey("triggerShortcut");var _handleTranslate=/*#__PURE__*/_classPrivateFieldKey("handleTranslate");class InputTranslator{// 用于缓存快捷键
+constructor(){let{inputRule=DEFAULT_INPUT_RULE,transApis=[]}=arguments.length>0&&arguments[0]!==undefined?arguments[0]:{};/**
+   * 翻译核心逻辑
+   * @private
+   */Object.defineProperty(this,_handleTranslate,{value:_handleTranslate2});Object.defineProperty(this,_config,{writable:true,value:void 0});Object.defineProperty(this,_unregisterShortcut,{writable:true,value:null});Object.defineProperty(this,_isEnabled,{writable:true,value:false});Object.defineProperty(this,_triggerShortcut,{writable:true,value:void 0});_classPrivateFieldBase(this,_config)[_config]={inputRule,transApis};const{triggerShortcut:initialTriggerShortcut}=_classPrivateFieldBase(this,_config)[_config].inputRule;if(initialTriggerShortcut&&initialTriggerShortcut.length>0){_classPrivateFieldBase(this,_triggerShortcut)[_triggerShortcut]=initialTriggerShortcut;}else{_classPrivateFieldBase(this,_triggerShortcut)[_triggerShortcut]=DEFAULT_INPUT_SHORTCUT;}if(_classPrivateFieldBase(this,_config)[_config].inputRule.transOpen){this.enable();}}/**
+   * 启用输入翻译功能
+   */enable(){if(_classPrivateFieldBase(this,_isEnabled)[_isEnabled]||!_classPrivateFieldBase(this,_config)[_config].inputRule.transOpen){return;}const{triggerCount,triggerTime}=_classPrivateFieldBase(this,_config)[_config].inputRule;_classPrivateFieldBase(this,_unregisterShortcut)[_unregisterShortcut]=stepShortcutRegister(_classPrivateFieldBase(this,_triggerShortcut)[_triggerShortcut],_classPrivateFieldBase(this,_handleTranslate)[_handleTranslate].bind(this),triggerCount,triggerTime);_classPrivateFieldBase(this,_isEnabled)[_isEnabled]=true;log_kissLog("Input Translator enabled.");}/**
+   * 禁用输入翻译功能
+   */disable(){if(!_classPrivateFieldBase(this,_isEnabled)[_isEnabled]){return;}if(_classPrivateFieldBase(this,_unregisterShortcut)[_unregisterShortcut]){_classPrivateFieldBase(this,_unregisterShortcut)[_unregisterShortcut]();_classPrivateFieldBase(this,_unregisterShortcut)[_unregisterShortcut]=null;}_classPrivateFieldBase(this,_isEnabled)[_isEnabled]=false;log_kissLog("Input Translator disabled.");}/**
+   * 切换启用/禁用状态
+   */toggle(){if(_classPrivateFieldBase(this,_isEnabled)[_isEnabled]){this.disable();}else{this.enable();}}/**
+   * 更新配置
+   */updateConfig(_ref){let{inputRule,transApis}=_ref;const wasEnabled=_classPrivateFieldBase(this,_isEnabled)[_isEnabled];if(wasEnabled){this.disable();}if(inputRule){_classPrivateFieldBase(this,_config)[_config].inputRule=inputRule;}if(transApis){_classPrivateFieldBase(this,_config)[_config].transApis=transApis;}const{triggerShortcut:initialTriggerShortcut}=_classPrivateFieldBase(this,_config)[_config].inputRule;_classPrivateFieldBase(this,_triggerShortcut)[_triggerShortcut]=initialTriggerShortcut&&initialTriggerShortcut.length>0?initialTriggerShortcut:DEFAULT_INPUT_SHORTCUT;if(wasEnabled){this.enable();}}}async function _handleTranslate2(){let node=document.activeElement;if(!node)return;while(node.shadowRoot&&node.shadowRoot.activeElement){node=node.shadowRoot.activeElement;}if(!isInputNode(node)&&!isEditAbleNode(node)){return;}const{apiSlug,transSign,triggerCount}=_classPrivateFieldBase(this,_config)[_config].inputRule;let{fromLang,toLang}=_classPrivateFieldBase(this,_config)[_config].inputRule;let initText=getNodeText(node);if(_classPrivateFieldBase(this,_triggerShortcut)[_triggerShortcut].length===1&&_classPrivateFieldBase(this,_triggerShortcut)[_triggerShortcut][0].length===1){initText=removeEndchar(initText,_classPrivateFieldBase(this,_triggerShortcut)[_triggerShortcut][0],triggerCount);}if(!initText.trim())return;let text=initText;if(transSign){const res=matchInputStr(text,transSign);if(res){let lang=res[1];if(lang==="zh"||lang==="cn")lang="zh-CN";else if(lang==="tw"||lang==="hk")lang="zh-TW";if(lang&&OPT_LANGS_LIST.includes(lang)){toLang=lang;}text=res[2];}}const apiSetting=_classPrivateFieldBase(this,_config)[_config].transApis.find(api=>api.apiSlug===apiSlug)||DEFAULT_API_SETTING;const loadingId="kiss-loading-"+utils_genEventName();try{addLoading(node,loadingId);const[trText,isSame]=await apiTranslate({text,fromLang,toLang,apiSetting});if(!trText||isSame)return;if(isInputNode(node)){node.value=trText;node.dispatchEvent(new Event("input",{bubbles:true,cancelable:true}));}else{replaceContentEditableText(node,trText);}}catch(err){log_kissLog("Translate input error:",err);}finally{removeLoading(loadingId);}}
+;// CONCATENATED MODULE: ./src/libs/translator.js
+var _class;/**
+ * @class Translator
+ * @description 翻译核心逻辑封装
+ */var _setting=/*#__PURE__*/_classPrivateFieldKey("setting");var _rule=/*#__PURE__*/_classPrivateFieldKey("rule");var _isInitialized=/*#__PURE__*/_classPrivateFieldKey("isInitialized");var _isJsInjected=/*#__PURE__*/_classPrivateFieldKey("isJsInjected");var _mouseHoverEnabled=/*#__PURE__*/_classPrivateFieldKey("mouseHoverEnabled");var _enabled=/*#__PURE__*/_classPrivateFieldKey("enabled");var _runId=/*#__PURE__*/_classPrivateFieldKey("runId");var _termValues=/*#__PURE__*/_classPrivateFieldKey("termValues");var _combinedTermsRegex=/*#__PURE__*/_classPrivateFieldKey("combinedTermsRegex");var _combinedSkipsRegex=/*#__PURE__*/_classPrivateFieldKey("combinedSkipsRegex");var _placeholderRegex=/*#__PURE__*/_classPrivateFieldKey("placeholderRegex");var _translationTagName=/*#__PURE__*/_classPrivateFieldKey("translationTagName");var _eventName=/*#__PURE__*/_classPrivateFieldKey("eventName");var _docInfo=/*#__PURE__*/_classPrivateFieldKey("docInfo");var _glossary=/*#__PURE__*/_classPrivateFieldKey("glossary");var _textClass=/*#__PURE__*/_classPrivateFieldKey("textClass");var _textSheet=/*#__PURE__*/_classPrivateFieldKey("textSheet");var _isUserscript=/*#__PURE__*/_classPrivateFieldKey("isUserscript");var _transboxManager=/*#__PURE__*/_classPrivateFieldKey("transboxManager");var _inputTranslator=/*#__PURE__*/_classPrivateFieldKey("inputTranslator");var _observedNodes=/*#__PURE__*/_classPrivateFieldKey("observedNodes");var _translationNodes=/*#__PURE__*/_classPrivateFieldKey("translationNodes");var _viewNodes=/*#__PURE__*/_classPrivateFieldKey("viewNodes");var _processedNodes=/*#__PURE__*/_classPrivateFieldKey("processedNodes");var _rootNodes=/*#__PURE__*/_classPrivateFieldKey("rootNodes");var _removeKeydownHandler=/*#__PURE__*/_classPrivateFieldKey("removeKeydownHandler");var _hoveredNode=/*#__PURE__*/_classPrivateFieldKey("hoveredNode");var _boundMouseMoveHandler=/*#__PURE__*/_classPrivateFieldKey("boundMouseMoveHandler");var _boundKeyDownHandler=/*#__PURE__*/_classPrivateFieldKey("boundKeyDownHandler");var _io=/*#__PURE__*/_classPrivateFieldKey("io");var _mo=/*#__PURE__*/_classPrivateFieldKey("mo");var _dmm=/*#__PURE__*/_classPrivateFieldKey("dmm");var _srm=/*#__PURE__*/_classPrivateFieldKey("srm");var _rescanQueue=/*#__PURE__*/_classPrivateFieldKey("rescanQueue");var _isQueueProcessing=/*#__PURE__*/_classPrivateFieldKey("isQueueProcessing");var _ignoreSelector=/*#__PURE__*/_classPrivateFieldKey("ignoreSelector");var _apiSetting=/*#__PURE__*/_classPrivateFieldKey("apiSetting");var _placeholder=/*#__PURE__*/_classPrivateFieldKey("placeholder");var _run=/*#__PURE__*/_classPrivateFieldKey("run");var _init=/*#__PURE__*/_classPrivateFieldKey("init");var _runtimeListener=/*#__PURE__*/_classPrivateFieldKey("runtimeListener");var _createPlaceholderRegex=/*#__PURE__*/_classPrivateFieldKey("createPlaceholderRegex");var _createTextStyles=/*#__PURE__*/_classPrivateFieldKey("createTextStyles");var _injectSheet=/*#__PURE__*/_classPrivateFieldKey("injectSheet");var _parseTerms=/*#__PURE__*/_classPrivateFieldKey("parseTerms");var _parseAITerms=/*#__PURE__*/_classPrivateFieldKey("parseAITerms");var _getDocDescription=/*#__PURE__*/_classPrivateFieldKey("getDocDescription");var _createIntersectionObserver=/*#__PURE__*/_classPrivateFieldKey("createIntersectionObserver");var _createMutationObserver=/*#__PURE__*/_classPrivateFieldKey("createMutationObserver");var _createDebounceMouseMover=/*#__PURE__*/_classPrivateFieldKey("createDebounceMouseMover");var _createShadowRootMonitor=/*#__PURE__*/_classPrivateFieldKey("createShadowRootMonitor");var _handleMouseMove=/*#__PURE__*/_classPrivateFieldKey("handleMouseMove");var _handleKeyDown=/*#__PURE__*/_classPrivateFieldKey("handleKeyDown");var _toggleTargetNode=/*#__PURE__*/_classPrivateFieldKey("toggleTargetNode");var _findAllShadowRoots=/*#__PURE__*/_classPrivateFieldKey("findAllShadowRoots");var _findChangeContainer=/*#__PURE__*/_classPrivateFieldKey("findChangeContainer");var _queueForRescan=/*#__PURE__*/_classPrivateFieldKey("queueForRescan");var _rescanContainer=/*#__PURE__*/_classPrivateFieldKey("rescanContainer");var _reIO=/*#__PURE__*/_classPrivateFieldKey("reIO");var _reIOViewNodes=/*#__PURE__*/_classPrivateFieldKey("reIOViewNodes");var _startObserveShadowRoot=/*#__PURE__*/_classPrivateFieldKey("startObserveShadowRoot");var _startObserveRoot=/*#__PURE__*/_classPrivateFieldKey("startObserveRoot");var _startObserveNode=/*#__PURE__*/_classPrivateFieldKey("startObserveNode");var _queryNode=/*#__PURE__*/_classPrivateFieldKey("queryNode");var _scanNode=/*#__PURE__*/_classPrivateFieldKey("scanNode");var _processNode=/*#__PURE__*/_classPrivateFieldKey("processNode");var _shouldBreak=/*#__PURE__*/_classPrivateFieldKey("shouldBreak");var _isInvalidText=/*#__PURE__*/_classPrivateFieldKey("isInvalidText");var _translateNodeGroup=/*#__PURE__*/_classPrivateFieldKey("translateNodeGroup");var _serializeForTranslation=/*#__PURE__*/_classPrivateFieldKey("serializeForTranslation");var _restoreFromTranslation=/*#__PURE__*/_classPrivateFieldKey("restoreFromTranslation");var _translateFetch=/*#__PURE__*/_classPrivateFieldKey("translateFetch");var _findTranslationWrappers=/*#__PURE__*/_classPrivateFieldKey("findTranslationWrappers");var _cleanupAllNodes=/*#__PURE__*/_classPrivateFieldKey("cleanupAllNodes");var _cleanupAllTranslations=/*#__PURE__*/_classPrivateFieldKey("cleanupAllTranslations");var _cleanupDirectTranslations=/*#__PURE__*/_classPrivateFieldKey("cleanupDirectTranslations");var _removeTranslationElement=/*#__PURE__*/_classPrivateFieldKey("removeTranslationElement");var _restoreOriginal=/*#__PURE__*/_classPrivateFieldKey("restoreOriginal");var _removeNodes=/*#__PURE__*/_classPrivateFieldKey("removeNodes");var _toggleTranslationOnly=/*#__PURE__*/_classPrivateFieldKey("toggleTranslationOnly");var _updateStyle=/*#__PURE__*/_classPrivateFieldKey("updateStyle");var _refreshNode=/*#__PURE__*/_classPrivateFieldKey("refreshNode");var _performSyncNode=/*#__PURE__*/_classPrivateFieldKey("performSyncNode");var _resetOptions=/*#__PURE__*/_classPrivateFieldKey("resetOptions");var _enableMouseHover=/*#__PURE__*/_classPrivateFieldKey("enableMouseHover");var _disableMouseHover=/*#__PURE__*/_classPrivateFieldKey("disableMouseHover");var _initInjector=/*#__PURE__*/_classPrivateFieldKey("initInjector");var _removeInjector=/*#__PURE__*/_classPrivateFieldKey("removeInjector");var _translateTitle=/*#__PURE__*/_classPrivateFieldKey("translateTitle");class translator_Translator{// 默认规则
+static isElementOrFragment(el){return el instanceof Element||el instanceof DocumentFragment;}// 判断是否块级元素
+static isBlockNode(el){if(!translator_Translator.isElementOrFragment(el))return false;if(translator_Translator.TAGS.INLINE.has(el.nodeName))return false;if(translator_Translator.TAGS.BLOCK.has(el.nodeName))return true;if(translator_Translator.displayCache.has(el)){return translator_Translator.displayCache.get(el);}const isBlock=!window.getComputedStyle(el).display.startsWith("inline");translator_Translator.displayCache.set(el,isBlock);return isBlock;}// 判断是否直接包含非空文本节点
+static hasTextNode(el){if(!translator_Translator.isElementOrFragment(el))return false;for(const node of el.childNodes){if(node.nodeType===Node.TEXT_NODE&&/\S/.test(node.nodeValue)){return true;}}return false;}// 特殊字符转义
+static escapeRegex(str){return str.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");}// 内置忽略元素
+constructor(){let rule=arguments.length>0&&arguments[0]!==undefined?arguments[0]:{};let setting=arguments.length>1&&arguments[1]!==undefined?arguments[1]:{};let isUserscript=arguments.length>2&&arguments[2]!==undefined?arguments[2]:false;// 翻译页面标题
+Object.defineProperty(this,_translateTitle,{value:_translateTitle2});// 移除JS/CSS
+Object.defineProperty(this,_removeInjector,{value:_removeInjector2});// 注入JS/CSS
+Object.defineProperty(this,_initInjector,{value:_initInjector2});// 禁用鼠标悬停翻译
+Object.defineProperty(this,_disableMouseHover,{value:_disableMouseHover2});// 开启鼠标悬停翻译
+Object.defineProperty(this,_enableMouseHover,{value:_enableMouseHover2});// 停止监听，重置参数
+Object.defineProperty(this,_resetOptions,{value:_resetOptions2});// 使指定节点的状态与当前的全局同步
+Object.defineProperty(this,_performSyncNode,{value:_performSyncNode2});// 刷新节点翻译
+Object.defineProperty(this,_refreshNode,{value:_refreshNode2});// 更新样式
+Object.defineProperty(this,_updateStyle,{value:_updateStyle2});// 切换译文和双语显示
+Object.defineProperty(this,_toggleTranslationOnly,{value:_toggleTranslationOnly2});// 移除多个节点
+Object.defineProperty(this,_removeNodes,{value:_removeNodes2});// 恢复原文
+Object.defineProperty(this,_restoreOriginal,{value:_restoreOriginal2});// 清理译文
+Object.defineProperty(this,_removeTranslationElement,{value:_removeTranslationElement2});// 清理子节点译文dom
+Object.defineProperty(this,_cleanupDirectTranslations,{value:_cleanupDirectTranslations2});// 清理节点下面所有译文dom
+Object.defineProperty(this,_cleanupAllTranslations,{value:_cleanupAllTranslations2});// 清理所有插入的译文dom
+Object.defineProperty(this,_cleanupAllNodes,{value:_cleanupAllNodes2});// 查找指定节点下所有译文节点
+Object.defineProperty(this,_findTranslationWrappers,{value:_findTranslationWrappers2});// 发起翻译请求
+Object.defineProperty(this,_translateFetch,{value:_translateFetch2});// 组装恢复html字符串
+Object.defineProperty(this,_restoreFromTranslation,{value:_restoreFromTranslation2});// 处理节点转为翻译字符串
+Object.defineProperty(this,_serializeForTranslation,{value:_serializeForTranslation2});// 翻译内联节点
+Object.defineProperty(this,_translateNodeGroup,{value:_translateNodeGroup2});// 过滤文本
+Object.defineProperty(this,_isInvalidText,{value:_isInvalidText2});// 判断是否需要换行
+Object.defineProperty(this,_shouldBreak,{value:_shouldBreak2});// 处理一个待翻译的节点
+Object.defineProperty(this,_processNode,{value:_processNode2});// 寻找需要被监控的文本节点
+Object.defineProperty(this,_scanNode,{value:_scanNode2});// 非自动识别文本模式下，快速查询目标节点
+Object.defineProperty(this,_queryNode,{value:_queryNode2});// 开始/重新监控节点
+Object.defineProperty(this,_startObserveNode,{value:_startObserveNode2});// 监控根节点
+Object.defineProperty(this,_startObserveRoot,{value:_startObserveRoot2});// 监控shadowroot
+Object.defineProperty(this,_startObserveShadowRoot,{value:_startObserveShadowRoot2});// 重新观察可视范围内全部节点
+Object.defineProperty(this,_reIOViewNodes,{value:_reIOViewNodes2});// 重新观察
+Object.defineProperty(this,_reIO,{value:_reIO2});// 处理“脏容器”
+Object.defineProperty(this,_rescanContainer,{value:_rescanContainer2});// “脏容器”队列
+Object.defineProperty(this,_queueForRescan,{value:_queueForRescan2});// 向上查找发生变化的块级元素
+Object.defineProperty(this,_findChangeContainer,{value:_findChangeContainer2});// 找页面所有 ShadowRoot
+Object.defineProperty(this,_findAllShadowRoots,{value:_findAllShadowRoots2});// 切换节点翻译状态
+Object.defineProperty(this,_toggleTargetNode,{value:_toggleTargetNode2});// 快捷键按下时的处理器
+Object.defineProperty(this,_handleKeyDown,{value:_handleKeyDown2});// 跟踪鼠标下的可翻译节点
+Object.defineProperty(this,_handleMouseMove,{value:_handleMouseMove2});// 创建shadowroot的回调
+Object.defineProperty(this,_createShadowRootMonitor,{value:_createShadowRootMonitor2});// 节流的鼠标悬停事件
+Object.defineProperty(this,_createDebounceMouseMover,{value:_createDebounceMouseMover2});// 监控页面动态变化
+Object.defineProperty(this,_createMutationObserver,{value:_createMutationObserver2});// 监控翻译单元的可见性
+Object.defineProperty(this,_createIntersectionObserver,{value:_createIntersectionObserver2});// todo: 利用AI总结
+Object.defineProperty(this,_getDocDescription,{value:_getDocDescription2});Object.defineProperty(this,_parseAITerms,{value:_parseAITerms2});// 解析专业术语字符串
+Object.defineProperty(this,_parseTerms,{value:_parseTerms2});// 注入样式
+Object.defineProperty(this,_injectSheet,{value:_injectSheet2});// 创建样式
+Object.defineProperty(this,_createTextStyles,{value:_createTextStyles2});Object.defineProperty(this,_createPlaceholderRegex,{value:_createPlaceholderRegex2});// 监听后端事件
+Object.defineProperty(this,_runtimeListener,{value:_runtimeListener2});// 初始化
+Object.defineProperty(this,_init,{value:_init2});// 启动
+Object.defineProperty(this,_run,{value:_run2});// 占位符
+Object.defineProperty(this,_placeholder,{get:_get_placeholder,set:void 0});// 接口参数
+// todo: 不用频繁查找计算
+Object.defineProperty(this,_apiSetting,{get:_get_apiSetting,set:void 0});// 队列处理状态标志
+// 忽略元素
+Object.defineProperty(this,_ignoreSelector,{get:_get_ignoreSelector,set:void 0});Object.defineProperty(this,_setting,{writable:true,value:void 0});// 设置选项
+Object.defineProperty(this,_rule,{writable:true,value:void 0});// 规则
+Object.defineProperty(this,_isInitialized,{writable:true,value:false});// 初始化状态
+Object.defineProperty(this,_isJsInjected,{writable:true,value:false});// 注入用户JS
+Object.defineProperty(this,_mouseHoverEnabled,{writable:true,value:false});// 鼠标悬停翻译
+Object.defineProperty(this,_enabled,{writable:true,value:false});// 全局默认状态
+Object.defineProperty(this,_runId,{writable:true,value:0});// 用于中止过期的异步请求
+Object.defineProperty(this,_termValues,{writable:true,value:[]});// 按顺序存储术语的替换值
+Object.defineProperty(this,_combinedTermsRegex,{writable:true,value:void 0});// 专业术语正则表达式
+Object.defineProperty(this,_combinedSkipsRegex,{writable:true,value:void 0});// 跳过文本正则表达式
+Object.defineProperty(this,_placeholderRegex,{writable:true,value:void 0});// 恢复htnml正则表达式
+Object.defineProperty(this,_translationTagName,{writable:true,value:APP_NAME});// 翻译容器的标签名
+Object.defineProperty(this,_eventName,{writable:true,value:""});// 通信事件名称
+Object.defineProperty(this,_docInfo,{writable:true,value:{}});// 网页信息
+Object.defineProperty(this,_glossary,{writable:true,value:{}});// AI词典
+Object.defineProperty(this,_textClass,{writable:true,value:{}});// 译文样式class
+Object.defineProperty(this,_textSheet,{writable:true,value:""});// 译文样式字典
+Object.defineProperty(this,_isUserscript,{writable:true,value:false});Object.defineProperty(this,_transboxManager,{writable:true,value:null});// 划词翻译
+Object.defineProperty(this,_inputTranslator,{writable:true,value:null});// 输入框翻译
+Object.defineProperty(this,_observedNodes,{writable:true,value:new WeakSet()});// 存储所有被识别出的、可翻译的 DOM 节点单元
+Object.defineProperty(this,_translationNodes,{writable:true,value:new WeakMap()});// 存储所有插入到页面的译文节点
+Object.defineProperty(this,_viewNodes,{writable:true,value:new Set()});// 当前在可视范围内的单元
+Object.defineProperty(this,_processedNodes,{writable:true,value:new WeakMap()});// 已处理（已执行翻译DOM操作）的单元
+Object.defineProperty(this,_rootNodes,{writable:true,value:new Set()});// 已监控的根节点
+Object.defineProperty(this,_removeKeydownHandler,{writable:true,value:void 0});// 快捷键清理函数
+Object.defineProperty(this,_hoveredNode,{writable:true,value:null});// 存储当前悬停的可翻译节点
+Object.defineProperty(this,_boundMouseMoveHandler,{writable:true,value:void 0});// 鼠标事件
+Object.defineProperty(this,_boundKeyDownHandler,{writable:true,value:void 0});// 键盘事件
+Object.defineProperty(this,_io,{writable:true,value:void 0});// IntersectionObserver
+Object.defineProperty(this,_mo,{writable:true,value:void 0});// MutationObserver
+Object.defineProperty(this,_dmm,{writable:true,value:void 0});// DebounceMouseMover
+Object.defineProperty(this,_srm,{writable:true,value:void 0});// ShadowRootMonitor
+Object.defineProperty(this,_rescanQueue,{writable:true,value:new Set()});// “脏容器”队列
+Object.defineProperty(this,_isQueueProcessing,{writable:true,value:false});_classPrivateFieldBase(this,_setting)[_setting]={...translator_Translator.DEFAULT_OPTIONS,...setting};_classPrivateFieldBase(this,_rule)[_rule]={...translator_Translator.DEFAULT_RULE,...rule};_classPrivateFieldBase(this,_isUserscript)[_isUserscript]=isUserscript;_classPrivateFieldBase(this,_eventName)[_eventName]=utils_genEventName();_classPrivateFieldBase(this,_docInfo)[_docInfo]={title:document.title,description:_classPrivateFieldBase(this,_getDocDescription)[_getDocDescription]()};_classPrivateFieldBase(this,_combinedSkipsRegex)[_combinedSkipsRegex]=new RegExp(translator_Translator.BUILTIN_SKIP_PATTERNS.map(r=>"(".concat(r.source,")")).join("|"));_classPrivateFieldBase(this,_placeholderRegex)[_placeholderRegex]=_classPrivateFieldBase(this,_createPlaceholderRegex)[_createPlaceholderRegex]();_classPrivateFieldBase(this,_parseTerms)[_parseTerms](_classPrivateFieldBase(this,_rule)[_rule].terms);_classPrivateFieldBase(this,_parseAITerms)[_parseAITerms](_classPrivateFieldBase(this,_rule)[_rule].aiTerms);_classPrivateFieldBase(this,_createTextStyles)[_createTextStyles]();_classPrivateFieldBase(this,_boundMouseMoveHandler)[_boundMouseMoveHandler]=_classPrivateFieldBase(this,_handleMouseMove)[_handleMouseMove].bind(this);_classPrivateFieldBase(this,_boundKeyDownHandler)[_boundKeyDownHandler]=_classPrivateFieldBase(this,_handleKeyDown)[_handleKeyDown].bind(this);_classPrivateFieldBase(this,_io)[_io]=_classPrivateFieldBase(this,_createIntersectionObserver)[_createIntersectionObserver]();_classPrivateFieldBase(this,_mo)[_mo]=_classPrivateFieldBase(this,_createMutationObserver)[_createMutationObserver]();_classPrivateFieldBase(this,_dmm)[_dmm]=_classPrivateFieldBase(this,_createDebounceMouseMover)[_createDebounceMouseMover]();_classPrivateFieldBase(this,_srm)[_srm]=_classPrivateFieldBase(this,_createShadowRootMonitor)[_createShadowRootMonitor]();// 监控shadowroot
+if(_classPrivateFieldBase(this,_rule)[_rule].hasShadowroot==="true"){_classPrivateFieldBase(this,_srm)[_srm].start();}// 鼠标悬停翻译
+if(_classPrivateFieldBase(this,_setting)[_setting].mouseHoverSetting.useMouseHover){_classPrivateFieldBase(this,_enableMouseHover)[_enableMouseHover]();}if(!isIframe){// 监听后端事件
+if(!isUserscript){_classPrivateFieldBase(this,_runtimeListener)[_runtimeListener]();}// 划词翻译
+_classPrivateFieldBase(this,_transboxManager)[_transboxManager]=new TransboxManager(this.setting);// 输入框翻译
+_classPrivateFieldBase(this,_inputTranslator)[_inputTranslator]=new InputTranslator(this.setting);}if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",()=>_classPrivateFieldBase(this,_run)[_run]());}else{_classPrivateFieldBase(this,_run)[_run]();}}// 切换鼠标悬停翻译
+toggleMouseHover(){_classPrivateFieldBase(this,_mouseHoverEnabled)[_mouseHoverEnabled]?_classPrivateFieldBase(this,_disableMouseHover)[_disableMouseHover]():_classPrivateFieldBase(this,_enableMouseHover)[_enableMouseHover]();}// 开启翻译
+enable(){if(_classPrivateFieldBase(this,_enabled)[_enabled])return;_classPrivateFieldBase(this,_enabled)[_enabled]=true;_classPrivateFieldBase(this,_rule)[_rule].transOpen="true";_classPrivateFieldBase(this,_runId)[_runId]++;if(_classPrivateFieldBase(this,_isInitialized)[_isInitialized]){if(_classPrivateFieldBase(this,_setting)[_setting].transAllnow){this.rescan();}else{_classPrivateFieldBase(this,_reIOViewNodes)[_reIOViewNodes]();}}else{_classPrivateFieldBase(this,_init)[_init]();}if(_classPrivateFieldBase(this,_rule)[_rule].transTitle==="true"){_classPrivateFieldBase(this,_translateTitle)[_translateTitle]();}}// 关闭翻译
+disable(){if(!_classPrivateFieldBase(this,_enabled)[_enabled])return;_classPrivateFieldBase(this,_enabled)[_enabled]=false;_classPrivateFieldBase(this,_rule)[_rule].transOpen="false";_classPrivateFieldBase(this,_runId)[_runId]++;_classPrivateFieldBase(this,_cleanupAllNodes)[_cleanupAllNodes]();clearFetchPool();clearAllBatchQueue();// 恢复页面标题
+if(_classPrivateFieldBase(this,_docInfo)[_docInfo].title){document.title=_classPrivateFieldBase(this,_docInfo)[_docInfo].title;}}// 重新扫描页面
+rescan(){if(!_classPrivateFieldBase(this,_isInitialized)[_isInitialized])return;_classPrivateFieldBase(this,_runId)[_runId]++;_classPrivateFieldBase(this,_cleanupAllNodes)[_cleanupAllNodes]();_classPrivateFieldBase(this,_resetOptions)[_resetOptions]();clearFetchPool();clearAllBatchQueue();// 重新初始化
+_classPrivateFieldBase(this,_init)[_init]();}// 切换是否翻译
+toggle(){_classPrivateFieldBase(this,_enabled)[_enabled]?this.disable():this.enable();}// 快速切换模糊样式
+toggleStyle(){const textStyle=_classPrivateFieldBase(this,_rule)[_rule].textStyle===OPT_STYLE_FUZZY?OPT_STYLE_NONE:OPT_STYLE_FUZZY;this.updateRule({textStyle});}// 切换划词翻译
+toggleTransbox(){var _classPrivateFieldLoo;_classPrivateFieldBase(this,_setting)[_setting].tranboxSetting.transOpen=!_classPrivateFieldBase(this,_setting)[_setting].tranboxSetting.transOpen;(_classPrivateFieldLoo=_classPrivateFieldBase(this,_transboxManager)[_transboxManager])===null||_classPrivateFieldLoo===void 0?void 0:_classPrivateFieldLoo.toggle();}// 切换输入框翻译
+toggleInputTranslate(){var _classPrivateFieldLoo2;_classPrivateFieldBase(this,_setting)[_setting].inputRule.transOpen=!_classPrivateFieldBase(this,_setting)[_setting].inputRule.transOpen;(_classPrivateFieldLoo2=_classPrivateFieldBase(this,_inputTranslator)[_inputTranslator])===null||_classPrivateFieldLoo2===void 0?void 0:_classPrivateFieldLoo2.toggle();}// 停止运行
+stop(){this.disable();_classPrivateFieldBase(this,_resetOptions)[_resetOptions]();_classPrivateFieldBase(this,_srm)[_srm].stop();_classPrivateFieldBase(this,_disableMouseHover)[_disableMouseHover]();_classPrivateFieldBase(this,_removeInjector)[_removeInjector]();_classPrivateFieldBase(this,_isInitialized)[_isInitialized]=false;}// 更新规则
+updateRule(newRule){let hasChanged=false;let needsRescan=false;for(const key in newRule){if(Object.prototype.hasOwnProperty.call(_classPrivateFieldBase(this,_rule)[_rule],key)&&_classPrivateFieldBase(this,_rule)[_rule][key]!==newRule[key]){_classPrivateFieldBase(this,_rule)[_rule][key]=newRule[key];if(key==="autoScan"||key==="hasShadowroot"){needsRescan=true;}else{hasChanged=true;}}}if(needsRescan||_classPrivateFieldBase(this,_enabled)[_enabled]&&_classPrivateFieldBase(this,_setting)[_setting].transAllnow){this.rescan();return;}if(hasChanged){_classPrivateFieldBase(this,_reIOViewNodes)[_reIOViewNodes]();}}get setting(){return{..._classPrivateFieldBase(this,_setting)[_setting]};}get rule(){return{..._classPrivateFieldBase(this,_rule)[_rule]};}get docInfo(){return{..._classPrivateFieldBase(this,_docInfo)[_docInfo]};}get eventName(){return _classPrivateFieldBase(this,_eventName)[_eventName];}}_class=translator_Translator;function _get_ignoreSelector(){return"".concat(_class.BUILTIN_IGNORE_SELECTOR,", ").concat(_classPrivateFieldBase(this,_rule)[_rule].ignoreSelector);}function _get_apiSetting(){return _classPrivateFieldBase(this,_setting)[_setting].transApis.find(api=>api.apiSlug===_classPrivateFieldBase(this,_rule)[_rule].apiSlug)||DEFAULT_API_SETTING;}function _get_placeholder(){const[startDelimiter,endDelimiter]=_classPrivateFieldBase(this,_apiSetting)[_apiSetting].placeholder.split(" ");return{startDelimiter,endDelimiter,tagName:_classPrivateFieldBase(this,_apiSetting)[_apiSetting].placetag};}function _run2(){if(_classPrivateFieldBase(this,_rule)[_rule].transOpen==="true"){this.enable();}else if(_classPrivateFieldBase(this,_setting)[_setting].preInit){_classPrivateFieldBase(this,_init)[_init]();}}function _init2(){_classPrivateFieldBase(this,_isInitialized)[_isInitialized]=true;// 注入JS/CSS
+_classPrivateFieldBase(this,_initInjector)[_initInjector]();// 查找根节点并扫描
+document.querySelectorAll(_classPrivateFieldBase(this,_rule)[_rule].rootsSelector||"body").forEach(root=>{_classPrivateFieldBase(this,_startObserveRoot)[_startObserveRoot](root);});// 查找现有的所有shadowroot
+if(_classPrivateFieldBase(this,_rule)[_rule].hasShadowroot==="true"){try{_classPrivateFieldBase(this,_findAllShadowRoots)[_findAllShadowRoots]().forEach(shadowRoot=>{_classPrivateFieldBase(this,_startObserveShadowRoot)[_startObserveShadowRoot](shadowRoot);});}catch(err){log_kissLog("findAllShadowRoots",err);}}}function _runtimeListener2(){browser===null||browser===void 0?void 0:browser.runtime.onMessage.addListener(async _ref=>{let{action,args}=_ref;switch(action){case MSG_TRANS_TOGGLE:this.toggle();sendIframeMsg(MSG_TRANS_TOGGLE);break;case MSG_TRANS_TOGGLE_STYLE:this.toggleStyle();sendIframeMsg(MSG_TRANS_TOGGLE_STYLE);break;case MSG_TRANS_GETRULE:break;case MSG_TRANS_PUTRULE:this.updateRule(args);sendIframeMsg(MSG_TRANS_PUTRULE,args);break;case MSG_OPEN_TRANBOX:window.dispatchEvent(new CustomEvent(MSG_OPEN_TRANBOX));break;case MSG_TRANSBOX_TOGGLE:this.toggleTransbox();break;case MSG_MOUSEHOVER_TOGGLE:this.toggleMouseHover();break;case MSG_TRANSINPUT_TOGGLE:this.toggleInputTranslate();break;default:return{error:"message action is unavailable: ".concat(action)};}return{rule:this.rule,setting:this.setting};});}function _createPlaceholderRegex2(){const escapedStart=_class.escapeRegex(_classPrivateFieldBase(this,_placeholder)[_placeholder].startDelimiter);const escapedEnd=_class.escapeRegex(_classPrivateFieldBase(this,_placeholder)[_placeholder].endDelimiter);const patternString="(".concat(escapedStart,"\\d+").concat(escapedEnd,"|<\\/?\\w+\\d+>)");const flags="g";return new RegExp(patternString,flags);}function _createTextStyles2(){const[textClass,textStyles]=genTextClass({..._classPrivateFieldBase(this,_rule)[_rule]});const textSheet=new CSSStyleSheet();textSheet.replaceSync(textStyles);_classPrivateFieldBase(this,_textClass)[_textClass]=textClass;_classPrivateFieldBase(this,_textSheet)[_textSheet]=textSheet;}function _injectSheet2(shadowRoot){if(!shadowRoot.adoptedStyleSheets.includes(_classPrivateFieldBase(this,_textSheet)[_textSheet])){shadowRoot.adoptedStyleSheets=[...shadowRoot.adoptedStyleSheets,_classPrivateFieldBase(this,_textSheet)[_textSheet]];}}function _parseTerms2(termsString){_classPrivateFieldBase(this,_termValues)[_termValues]=[];_classPrivateFieldBase(this,_combinedTermsRegex)[_combinedTermsRegex]=null;if(!termsString||typeof termsString!=="string")return;const termPatterns=[];const lines=termsString.split(/\n|;/);// 按换行或分号分割
+for(const line of lines){const trimmedLine=line.trim();if(!trimmedLine)continue;let lastCommaIndex=trimmedLine.lastIndexOf(",");if(lastCommaIndex===-1){lastCommaIndex=trimmedLine.length;}const key=trimmedLine.substring(0,lastCommaIndex).trim();const value=trimmedLine.substring(lastCommaIndex+1).trim();if(key){try{new RegExp(key);termPatterns.push("(".concat(key,")"));_classPrivateFieldBase(this,_termValues)[_termValues].push(value);}catch(err){log_kissLog("Invalid RegExp for term: \"".concat(key,"\""),err);}}}if(termPatterns.length>0){_classPrivateFieldBase(this,_combinedTermsRegex)[_combinedTermsRegex]=new RegExp(termPatterns.join("|"),"g");}}function _parseAITerms2(termsString){if(!termsString||typeof termsString!=="string")return;try{_classPrivateFieldBase(this,_glossary)[_glossary]=Object.fromEntries(termsString.split(/\n|;/).map(line=>{const[k="",v=""]=line.split(",").map(s=>s.trim());return[k,v];}).filter(_ref2=>{let[k]=_ref2;return k;}));}catch(err){log_kissLog("parse aiterms",err);}}function _getDocDescription2(){try{const meta=document.querySelector('meta[name="description"]');const description=(meta===null||meta===void 0?void 0:meta.getAttribute("content"))||"";return truncateWords(description);}catch(err){log_kissLog("get description",err);}return"";}function _createIntersectionObserver2(){const pending=new Set();const flush=debounce(()=>{pending.forEach(node=>_classPrivateFieldBase(this,_performSyncNode)[_performSyncNode](node));pending.clear();},_classPrivateFieldBase(this,_setting)[_setting].transInterval);return new IntersectionObserver(entries=>{entries.forEach(entry=>{if(entry.isIntersecting){_classPrivateFieldBase(this,_viewNodes)[_viewNodes].add(entry.target);pending.add(entry.target);flush();}else{_classPrivateFieldBase(this,_viewNodes)[_viewNodes].delete(entry.target);}});},{threshold:0.01});}function _createMutationObserver2(){return new MutationObserver(mutations=>{for(const mutation of mutations){if(mutation.type==="characterData"&&mutation.oldValue!==mutation.target.nodeValue){_classPrivateFieldBase(this,_queueForRescan)[_queueForRescan](mutation.target.parentElement);}else if(mutation.type==="childList"){var _mutation$nextSibling;if(((_mutation$nextSibling=mutation.nextSibling)===null||_mutation$nextSibling===void 0?void 0:_mutation$nextSibling.tagName)===_classPrivateFieldBase(this,_translationTagName)[_translationTagName]){// 恢复原文时插入元素，忽略
+continue;}let nodes=new Set();let hasText=false;mutation.addedNodes.forEach(node=>{if(/\S/.test(node.nodeValue)){if(node.nodeType===Node.TEXT_NODE){hasText=true;}else if(_class.isElementOrFragment(node)&&node.nodeName!==_classPrivateFieldBase(this,_translationTagName)[_translationTagName]){nodes.add(node);}}});if(hasText){_classPrivateFieldBase(this,_queueForRescan)[_queueForRescan](mutation.target);}else{nodes.forEach(node=>_classPrivateFieldBase(this,_queueForRescan)[_queueForRescan](node));}}}});}function _createDebounceMouseMover2(){return debounce(targetNode=>{const startNode=targetNode;let foundNode=null;while(targetNode&&targetNode!==document.body){if(_classPrivateFieldBase(this,_observedNodes)[_observedNodes].has(targetNode)){foundNode=targetNode;break;}targetNode=targetNode.parentElement;}_classPrivateFieldBase(this,_hoveredNode)[_hoveredNode]=foundNode||startNode;const{mouseHoverKey}=_classPrivateFieldBase(this,_setting)[_setting].mouseHoverSetting;if(mouseHoverKey.length===0&&!_classPrivateFieldBase(this,_isInitialized)[_isInitialized]){_classPrivateFieldBase(this,_init)[_init]();}if(mouseHoverKey.length===0&&foundNode){_classPrivateFieldBase(this,_processNode)[_processNode](foundNode);}},100);}function _createShadowRootMonitor2(){return new ShadowRootMonitor(shadowRoot=>{_classPrivateFieldBase(this,_startObserveShadowRoot)[_startObserveShadowRoot](shadowRoot);});}function _handleMouseMove2(event){let targetNode=event.composedPath()[0];_classPrivateFieldBase(this,_dmm)[_dmm](targetNode);}function _handleKeyDown2(){if(!_classPrivateFieldBase(this,_isInitialized)[_isInitialized]){_classPrivateFieldBase(this,_init)[_init]();}let targetNode=_classPrivateFieldBase(this,_hoveredNode)[_hoveredNode];if(!targetNode||!_classPrivateFieldBase(this,_observedNodes)[_observedNodes].has(targetNode))return;_classPrivateFieldBase(this,_toggleTargetNode)[_toggleTargetNode](targetNode);}function _toggleTargetNode2(targetNode){if(_classPrivateFieldBase(this,_processedNodes)[_processedNodes].has(targetNode)){_classPrivateFieldBase(this,_cleanupDirectTranslations)[_cleanupDirectTranslations](targetNode);}else{_classPrivateFieldBase(this,_processNode)[_processNode](targetNode);}}function _findAllShadowRoots2(){let root=arguments.length>0&&arguments[0]!==undefined?arguments[0]:document.body;let results=arguments.length>1&&arguments[1]!==undefined?arguments[1]:new Set();// const start = performance.now();
+try{const walker=document.createTreeWalker(root,NodeFilter.SHOW_ELEMENT);while(walker.nextNode()){const node=walker.currentNode;if(node.shadowRoot){results.add(node.shadowRoot);_classPrivateFieldBase(this,_findAllShadowRoots)[_findAllShadowRoots](node.shadowRoot,results);}}}catch(err){log_kissLog("无法访问某个 shadowRoot",err);}// const end = performance.now();
+// const duration = end - start;
+// console.log(`findAllShadowRoots 耗时：${duration} 毫秒`);
+return results;}function _findChangeContainer2(startNode){var _startNode$closest;if(!_class.isElementOrFragment(startNode)||(_startNode$closest=startNode.closest)!==null&&_startNode$closest!==void 0&&_startNode$closest.call(startNode,_classPrivateFieldBase(this,_ignoreSelector)[_ignoreSelector])){return null;}let current=startNode;while(current&&current!==document.body){if(_class.isBlockNode(current)||_classPrivateFieldBase(this,_observedNodes)[_observedNodes].has(current)){// 确保找到的容器在我们监控的根节点内
+for(const root of _classPrivateFieldBase(this,_rootNodes)[_rootNodes]){if(root.contains(current)){return current;}}}current=current.parentElement;}return null;}function _queueForRescan2(target){_classPrivateFieldBase(this,_rescanQueue)[_rescanQueue].add(target);if(!_classPrivateFieldBase(this,_isQueueProcessing)[_isQueueProcessing]){_classPrivateFieldBase(this,_isQueueProcessing)[_isQueueProcessing]=true;scheduleIdle(()=>{_classPrivateFieldBase(this,_rescanQueue)[_rescanQueue].forEach(t=>_classPrivateFieldBase(this,_rescanContainer)[_rescanContainer](t));_classPrivateFieldBase(this,_rescanQueue)[_rescanQueue].clear();_classPrivateFieldBase(this,_isQueueProcessing)[_isQueueProcessing]=false;},100);}}function _rescanContainer2(changedNode){const container=_classPrivateFieldBase(this,_findChangeContainer)[_findChangeContainer](changedNode);if(!container)return;_classPrivateFieldBase(this,_cleanupAllTranslations)[_cleanupAllTranslations](container);_classPrivateFieldBase(this,_scanNode)[_scanNode](container);}function _reIO2(node){_classPrivateFieldBase(this,_io)[_io].unobserve(node);_classPrivateFieldBase(this,_io)[_io].observe(node);}function _reIOViewNodes2(){_classPrivateFieldBase(this,_viewNodes)[_viewNodes].forEach(n=>_classPrivateFieldBase(this,_reIO)[_reIO](n));}function _startObserveShadowRoot2(shadowRoot){if(shadowRoot.host.matches("#".concat(APP_CONSTS.fabID,", #").concat(APP_CONSTS.boxID))){return;}_classPrivateFieldBase(this,_startObserveRoot)[_startObserveRoot](shadowRoot);_classPrivateFieldBase(this,_injectSheet)[_injectSheet](shadowRoot);}function _startObserveRoot2(root){if(_classPrivateFieldBase(this,_rootNodes)[_rootNodes].has(root))return;_classPrivateFieldBase(this,_rootNodes)[_rootNodes].add(root);_classPrivateFieldBase(this,_mo)[_mo].observe(root,{childList:true,subtree:true,characterData:true,characterDataOldValue:true});_classPrivateFieldBase(this,_scanNode)[_scanNode](root);}function _startObserveNode2(node){if(!_classPrivateFieldBase(this,_observedNodes)[_observedNodes].has(node)&&_classPrivateFieldBase(this,_enabled)[_enabled]&&_classPrivateFieldBase(this,_setting)[_setting].transAllnow){_classPrivateFieldBase(this,_observedNodes)[_observedNodes].add(node);_classPrivateFieldBase(this,_processNode)[_processNode](node);return;}// 未监控
+if(!_classPrivateFieldBase(this,_observedNodes)[_observedNodes].has(node)){_classPrivateFieldBase(this,_observedNodes)[_observedNodes].add(node);_classPrivateFieldBase(this,_io)[_io].observe(node);return;}// 已监控，但未处理状态，且在可视范围
+if(!_classPrivateFieldBase(this,_processedNodes)[_processedNodes].has(node)&&_classPrivateFieldBase(this,_viewNodes)[_viewNodes].has(node)){_classPrivateFieldBase(this,_reIO)[_reIO](node);}}function _queryNode2(rootNode){var _rootNode$matches;// root 也可能是目标节点
+if((_rootNode$matches=rootNode.matches)!==null&&_rootNode$matches!==void 0&&_rootNode$matches.call(rootNode,_classPrivateFieldBase(this,_rule)[_rule].selector)){_classPrivateFieldBase(this,_startObserveNode)[_startObserveNode](rootNode);}rootNode.querySelectorAll(_classPrivateFieldBase(this,_rule)[_rule].selector).forEach(node=>{var _node$closest;if(!((_node$closest=node.closest)!==null&&_node$closest!==void 0&&_node$closest.call(node,_classPrivateFieldBase(this,_ignoreSelector)[_ignoreSelector]))){_classPrivateFieldBase(this,_startObserveNode)[_startObserveNode](node);}});}function _scanNode2(rootNode){var _rootNode$matches2;if(!_class.isElementOrFragment(rootNode)||(_rootNode$matches2=rootNode.matches)!==null&&_rootNode$matches2!==void 0&&_rootNode$matches2.call(rootNode,_classPrivateFieldBase(this,_ignoreSelector)[_ignoreSelector])){return;}if(_classPrivateFieldBase(this,_rule)[_rule].autoScan==="false"){_classPrivateFieldBase(this,_queryNode)[_queryNode](rootNode);return;}const hasText=_class.hasTextNode(rootNode);if(hasText){_classPrivateFieldBase(this,_startObserveNode)[_startObserveNode](rootNode);}for(const child of rootNode.children){if(!hasText||_class.isBlockNode(child)){_classPrivateFieldBase(this,_scanNode)[_scanNode](child);}}}async function _processNode2(node){if(_classPrivateFieldBase(this,_processedNodes)[_processedNodes].has(node)||!_class.isElementOrFragment(node)){return;}_classPrivateFieldBase(this,_processedNodes)[_processedNodes].set(node,{..._classPrivateFieldBase(this,_rule)[_rule]});// 提前检测文本
+if(_classPrivateFieldBase(this,_isInvalidText)[_isInvalidText](node.textContent)){return;}// 提前进行语言检测
+let deLang="";const{fromLang="auto",toLang}=_classPrivateFieldBase(this,_rule)[_rule];const{langDetector,skipLangs=[]}=_classPrivateFieldBase(this,_setting)[_setting];if(fromLang==="auto"){deLang=await tryDetectLang(node.textContent,langDetector);if(deLang&&(toLang.slice(0,2)===deLang.slice(0,2)||skipLangs.includes(deLang))){// 保留处理状态，不做删除
+// this.#processedNodes.delete(node);
+return;}}let nodeGroup=[];[...node.childNodes].forEach(child=>{const shouldBreak=_classPrivateFieldBase(this,_shouldBreak)[_shouldBreak](child);const shouldGroup=child.nodeType===Node.ELEMENT_NODE||child.nodeType===Node.TEXT_NODE;if(!shouldBreak&&shouldGroup){nodeGroup.push(child);}else if(shouldBreak&&nodeGroup.length){_classPrivateFieldBase(this,_translateNodeGroup)[_translateNodeGroup](nodeGroup,node,deLang);nodeGroup=[];}});if(nodeGroup.length){_classPrivateFieldBase(this,_translateNodeGroup)[_translateNodeGroup](nodeGroup,node,deLang);}}function _shouldBreak2(node){if(!_class.isElementOrFragment(node))return false;if(node.matches(_classPrivateFieldBase(this,_rule)[_rule].keepSelector))return false;if(_class.TAGS.BREAK_LINE.has(node.nodeName)||node.nodeName===_classPrivateFieldBase(this,_translationTagName)[_translationTagName]){return true;}if(_classPrivateFieldBase(this,_rule)[_rule].autoScan&&_class.isBlockNode(node)){return true;}if(!_classPrivateFieldBase(this,_rule)[_rule].autoScan&&(node.matches(_classPrivateFieldBase(this,_rule)[_rule].selector)||node.querySelector(_classPrivateFieldBase(this,_rule)[_rule].selector))){return true;}return false;}function _isInvalidText2(text){if(typeof text!=="string"){return true;}const trimmedText=text.trim();// 文本长度
+if(trimmedText.length<_classPrivateFieldBase(this,_setting)[_setting].minLength||trimmedText.length>_classPrivateFieldBase(this,_setting)[_setting].maxLength){return true;}// 单个非字母数字字符。
+if(trimmedText.length===1&&!trimmedText.match(/[a-zA-Z]/)){return true;}// 只是一个数字
+if(!isNaN(parseFloat(trimmedText))&&isFinite(trimmedText)){return true;}// 正则匹配
+if(_classPrivateFieldBase(this,_combinedSkipsRegex)[_combinedSkipsRegex].test(trimmedText)){return true;}return false;}async function _translateNodeGroup2(nodes,hostNode,deLang){const{transTag,textStyle,transStartHook,transEndHook,transOnly,selectStyle,parentStyle,grandStyle// detectRemote,
+// toLang,
+// skipLangs = [],
+}=_classPrivateFieldBase(this,_rule)[_rule];const{newlineLength// langDetector，
+}=_classPrivateFieldBase(this,_setting)[_setting];const parentNode=hostNode.parentElement;const hideOrigin=transOnly==="true";// 翻译开始钩子函数
+if(transStartHook!==null&&transStartHook!==void 0&&transStartHook.trim()){try{libs_interpreter.run("exports.transStartHook = ".concat(transStartHook));libs_interpreter.exports.transStartHook({hostNode,parentNode,nodes});}catch(err){log_kissLog("transStartHook",err);}}try{const[processedString,placeholderMap]=_classPrivateFieldBase(this,_serializeForTranslation)[_serializeForTranslation](nodes);// console.log("processedString", processedString);
+if(_classPrivateFieldBase(this,_isInvalidText)[_isInvalidText](processedString))return;const wrapper=document.createElement(_classPrivateFieldBase(this,_translationTagName)[_translationTagName]);wrapper.className=_class.KISS_CLASS.warpper;if(processedString.length>newlineLength){const br=document.createElement("br");br.hidden=hideOrigin;wrapper.appendChild(br);}const inner=document.createElement(transTag);inner.className="".concat(_class.KISS_CLASS.inner," ").concat(_classPrivateFieldBase(this,_textClass)[_textClass][textStyle]);inner.appendChild(createLoadingSVG());wrapper.appendChild(inner);nodes[nodes.length-1].after(wrapper);const currentRunId=_classPrivateFieldBase(this,_runId)[_runId];const[translatedText,isSameLang]=await _classPrivateFieldBase(this,_translateFetch)[_translateFetch](processedString,deLang);if(_classPrivateFieldBase(this,_runId)[_runId]!==currentRunId){throw new Error("Request terminated");}if(!translatedText||isSameLang){wrapper.remove();return;}inner.innerHTML=_classPrivateFieldBase(this,_restoreFromTranslation)[_restoreFromTranslation](translatedText,placeholderMap);_classPrivateFieldBase(this,_translationNodes)[_translationNodes].set(wrapper,{nodes,isHide:hideOrigin});if(hideOrigin){_classPrivateFieldBase(this,_removeNodes)[_removeNodes](nodes);}// 附加样式
+if(selectStyle&&hostNode.style){hostNode.style.cssText+=selectStyle;}if(parentStyle&&parentNode&&parentNode.style){parentNode.style.cssText+=parentStyle;}if(grandStyle&&parentNode&&parentNode.parentElement){parentNode.parentElement.style.cssText+=grandStyle;}// 翻译完成钩子函数
+if(transEndHook!==null&&transEndHook!==void 0&&transEndHook.trim()){try{libs_interpreter.run("exports.transEndHook = ".concat(transEndHook));libs_interpreter.exports.transEndHook({hostNode,parentNode,nodes,wrapperNode:wrapper,innerNode:inner});}catch(err){log_kissLog("transEndHook",err);}}}catch(err){// inner.textContent = `[失败]...`;
+// todo: 失败重试按钮
+log_kissLog("translate group error: ",err.message);_classPrivateFieldBase(this,_cleanupDirectTranslations)[_cleanupDirectTranslations](hostNode);}}function _serializeForTranslation2(nodes){var _this=this;let replaceCounter=0;// {{n}}
+let wrapCounter=0;// <tagn>
+const placeholderMap=new Map();const{startDelimiter,endDelimiter}=_classPrivateFieldBase(this,_placeholder)[_placeholder];const pushReplace=html=>{replaceCounter++;const placeholder="".concat(startDelimiter).concat(replaceCounter).concat(endDelimiter);placeholderMap.set(placeholder,html);return placeholder;};const traverse=node=>{if(node.nodeType!==Node.ELEMENT_NODE&&node.nodeType!==Node.TEXT_NODE){return"";}// 文本节点
+if(_classPrivateFieldBase(this,_rule)[_rule].hasRichText==="false"||node.nodeType===Node.TEXT_NODE){let text=node.textContent;// 专业术语替换
+if(_classPrivateFieldBase(this,_combinedTermsRegex)[_combinedTermsRegex]){_classPrivateFieldBase(this,_combinedTermsRegex)[_combinedTermsRegex].lastIndex=0;text=text.replace(_classPrivateFieldBase(this,_combinedTermsRegex)[_combinedTermsRegex],function(){for(var _len=arguments.length,args=new Array(_len),_key=0;_key<_len;_key++){args[_key]=arguments[_key];}const groups=args.slice(1,-2);const matchedIndex=groups.findIndex(group=>group!==undefined);const fullMatch=args[0];const termValue=_classPrivateFieldBase(_this,_termValues)[_termValues][matchedIndex];return pushReplace("<i class=\"".concat(_class.KISS_CLASS.term,"\">").concat(termValue||fullMatch,"</i>"));});}return text;}// 元素节点
+if(node.nodeType===Node.ELEMENT_NODE){if(_class.TAGS.REPLACE.has(node.tagName)||node.matches(_classPrivateFieldBase(this,_rule)[_rule].keepSelector)||!node.textContent.trim()){if(node.tagName==="IMG"||node.tagName==="SVG"){node.style.width="".concat(node.offsetWidth,"px");node.style.height="".concat(node.offsetHeight,"px");}return pushReplace(node.outerHTML);}let innerContent="";node.childNodes.forEach(child=>{innerContent+=traverse(child);});if(_class.TAGS.WARP.has(node.tagName)){wrapCounter++;const startPlaceholder="<".concat(_classPrivateFieldBase(this,_placeholder)[_placeholder].tagName).concat(wrapCounter,">");const endPlaceholder="</".concat(_classPrivateFieldBase(this,_placeholder)[_placeholder].tagName).concat(wrapCounter,">");placeholderMap.set(startPlaceholder,buildOpeningTag(node));placeholderMap.set(endPlaceholder,"</".concat(node.localName,">"));return"".concat(startPlaceholder).concat(innerContent).concat(endPlaceholder);}return innerContent;}return"";};function buildOpeningTag(node){const escapeAttr=str=>str.replace(/"/g,"&quot;");let tag="<".concat(node.tagName.toLowerCase());for(const attr of node.attributes){tag+=" ".concat(attr.name,"=\"").concat(escapeAttr(attr.value),"\"");}tag+=">";return tag;}const processedString=nodes.map(traverse).join("").trim();return[processedString,placeholderMap];}function _restoreFromTranslation2(translatedText,placeholderMap){if(!placeholderMap.size){return translatedText;}if(!translatedText)return"";return translatedText.replace(_classPrivateFieldBase(this,_placeholderRegex)[_placeholderRegex],match=>placeholderMap.get(match)||match);}function _translateFetch2(text){let deLang=arguments.length>1&&arguments[1]!==undefined?arguments[1]:"";const{fromLang,toLang}=_classPrivateFieldBase(this,_rule)[_rule];return apiTranslate({text,fromLang:deLang||fromLang,toLang,apiSetting:_classPrivateFieldBase(this,_apiSetting)[_apiSetting],docInfo:_classPrivateFieldBase(this,_docInfo)[_docInfo],glossary:_classPrivateFieldBase(this,_glossary)[_glossary]});}function _findTranslationWrappers2(parentNode){return parentNode.querySelectorAll(":scope > ".concat(APP_LCNAME));}function _cleanupAllNodes2(){_classPrivateFieldBase(this,_rootNodes)[_rootNodes].forEach(root=>_classPrivateFieldBase(this,_cleanupAllTranslations)[_cleanupAllTranslations](root));}function _cleanupAllTranslations2(root){root.querySelectorAll(APP_LCNAME).forEach(el=>_classPrivateFieldBase(this,_removeTranslationElement)[_removeTranslationElement](el));}function _cleanupDirectTranslations2(node){_classPrivateFieldBase(this,_findTranslationWrappers)[_findTranslationWrappers](node).forEach(el=>{_classPrivateFieldBase(this,_removeTranslationElement)[_removeTranslationElement](el);});}function _removeTranslationElement2(el){_classPrivateFieldBase(this,_processedNodes)[_processedNodes].delete(el.parentElement);// 如果是仅显示译文模式，先恢复原文
+const{nodes,isHide}=_classPrivateFieldBase(this,_translationNodes)[_translationNodes].get(el)||{};if(isHide){_classPrivateFieldBase(this,_restoreOriginal)[_restoreOriginal](el,nodes);}_classPrivateFieldBase(this,_translationNodes)[_translationNodes].delete(el);el.remove();}function _restoreOriginal2(el,nodes){if(nodes){const frag=document.createDocumentFragment();nodes.forEach(n=>frag.appendChild(n));const parent=el.parentElement;parent===null||parent===void 0?void 0:parent.insertBefore(frag,el);}}function _removeNodes2(nodes){if(nodes){const frag=document.createDocumentFragment();nodes.forEach(n=>frag.appendChild(n));}}function _toggleTranslationOnly2(node,transOnly){_classPrivateFieldBase(this,_findTranslationWrappers)[_findTranslationWrappers](node).forEach(el=>{const br=el.querySelector(":scope > br");const{nodes}=_classPrivateFieldBase(this,_translationNodes)[_translationNodes].get(el)||{};if(transOnly==="true"){// 双语变为仅译文
+if(br)br.hidden=true;_classPrivateFieldBase(this,_removeNodes)[_removeNodes](nodes);_classPrivateFieldBase(this,_translationNodes)[_translationNodes].set(el,{nodes,isHide:true});}else{// 仅译文变为双语
+if(br)br.hidden=false;_classPrivateFieldBase(this,_restoreOriginal)[_restoreOriginal](el,nodes);_classPrivateFieldBase(this,_translationNodes)[_translationNodes].set(el,{nodes,isHide:false});}});}function _updateStyle2(node,oldStyle,newStyle){_classPrivateFieldBase(this,_findTranslationWrappers)[_findTranslationWrappers](node).forEach(el=>{const inner=el.querySelector(":scope > .".concat(_class.KISS_CLASS.inner));inner.classList.remove(_classPrivateFieldBase(this,_textClass)[_textClass][oldStyle]);inner.classList.add(_classPrivateFieldBase(this,_textClass)[_textClass][newStyle]);});}function _refreshNode2(node){_classPrivateFieldBase(this,_cleanupDirectTranslations)[_cleanupDirectTranslations](node);_classPrivateFieldBase(this,_processNode)[_processNode](node);}function _performSyncNode2(node){const appliedRule=_classPrivateFieldBase(this,_processedNodes)[_processedNodes].get(node);if(!appliedRule){_classPrivateFieldBase(this,_enabled)[_enabled]&&_classPrivateFieldBase(this,_processNode)[_processNode](node);return;}const{apiSlug,fromLang,toLang,hasRichText,textStyle,transOnly}=_classPrivateFieldBase(this,_rule)[_rule];const needsRefresh=appliedRule.apiSlug!==apiSlug||appliedRule.fromLang!==fromLang||appliedRule.toLang!==toLang||appliedRule.hasRichText!==hasRichText;// 需要重新翻译
+if(needsRefresh){Object.assign(appliedRule,{apiSlug,fromLang,toLang,hasRichText,textStyle,transOnly});_classPrivateFieldBase(this,_refreshNode)[_refreshNode](node);// 会自动应用新样式
+return;}// 样式规则过时
+if(appliedRule.textStyle!==textStyle){const oldStyle=appliedRule.textStyle;appliedRule.textStyle=textStyle;_classPrivateFieldBase(this,_updateStyle)[_updateStyle](node,oldStyle,textStyle);}// 切换原文显示
+if(appliedRule.transOnly!==transOnly){appliedRule.transOnly=transOnly;_classPrivateFieldBase(this,_toggleTranslationOnly)[_toggleTranslationOnly](node,transOnly);}}function _resetOptions2(){_classPrivateFieldBase(this,_io)[_io].disconnect();_classPrivateFieldBase(this,_mo)[_mo].disconnect();_classPrivateFieldBase(this,_viewNodes)[_viewNodes].clear();_classPrivateFieldBase(this,_rootNodes)[_rootNodes].clear();_classPrivateFieldBase(this,_observedNodes)[_observedNodes]=new WeakSet();_classPrivateFieldBase(this,_translationNodes)[_translationNodes]=new WeakMap();_classPrivateFieldBase(this,_processedNodes)[_processedNodes]=new WeakMap();}function _enableMouseHover2(){if(_classPrivateFieldBase(this,_mouseHoverEnabled)[_mouseHoverEnabled])return;_classPrivateFieldBase(this,_mouseHoverEnabled)[_mouseHoverEnabled]=true;_classPrivateFieldBase(this,_setting)[_setting].mouseHoverSetting.useMouseHover=true;document.addEventListener("mousemove",_classPrivateFieldBase(this,_boundMouseMoveHandler)[_boundMouseMoveHandler]);const{mouseHoverKey}=_classPrivateFieldBase(this,_setting)[_setting].mouseHoverSetting;if(mouseHoverKey.length===0){// mouseHoverKey = DEFAULT_MOUSEHOVER_KEY;
+return;}_classPrivateFieldBase(this,_removeKeydownHandler)[_removeKeydownHandler]=shortcutRegister(mouseHoverKey,_classPrivateFieldBase(this,_boundKeyDownHandler)[_boundKeyDownHandler]);}function _disableMouseHover2(){var _classPrivateFieldLoo3,_classPrivateFieldLoo4;if(!_classPrivateFieldBase(this,_mouseHoverEnabled)[_mouseHoverEnabled])return;_classPrivateFieldBase(this,_mouseHoverEnabled)[_mouseHoverEnabled]=false;_classPrivateFieldBase(this,_setting)[_setting].mouseHoverSetting.useMouseHover=false;document.removeEventListener("mousemove",_classPrivateFieldBase(this,_boundMouseMoveHandler)[_boundMouseMoveHandler]);(_classPrivateFieldLoo3=(_classPrivateFieldLoo4=_classPrivateFieldBase(this,_removeKeydownHandler))[_removeKeydownHandler])===null||_classPrivateFieldLoo3===void 0?void 0:_classPrivateFieldLoo3.call(_classPrivateFieldLoo4);}function _initInjector2(){if(_classPrivateFieldBase(this,_isJsInjected)[_isJsInjected]){return;}_classPrivateFieldBase(this,_isJsInjected)[_isJsInjected]=true;try{const{injectJs,injectCss}=_classPrivateFieldBase(this,_rule)[_rule];if(isExt){injectJs&&sendBgMsg(MSG_INJECT_JS,injectJs);injectCss&&sendBgMsg(MSG_INJECT_CSS,injectCss);}else{injectJs&&injectInlineJs(injectJs);injectCss&&injectInternalCss(injectCss);}}catch(err){log_kissLog("inject js",err);}}function _removeInjector2(){var _document$querySelect;(_document$querySelect=document.querySelectorAll("[data-source^=\"kiss-inject\"]"))===null||_document$querySelect===void 0?void 0:_document$querySelect.forEach(el=>el.remove());}async function _translateTitle2(){const title=document.title;_classPrivateFieldBase(this,_docInfo)[_docInfo].title=title;if(!title)return;try{const deLang=await tryDetectLang(title);const[translatedTitle]=await _classPrivateFieldBase(this,_translateFetch)[_translateFetch](title,deLang);document.title=translatedTitle||title;}catch(err){log_kissLog("tanslate title",err);}}translator_Translator.displayCache=new WeakMap();translator_Translator.TAGS={BREAK_LINE:new Set(["BR","WBR"]),BLOCK:new Set(["ADDRESS","ARTICLE","ASIDE","BLOCKQUOTE","CANVAS","DD","DIV","DL","DT","FIELDSET","FIGCAPTION","FIGURE","FOOTER","FORM","H1","H2","H3","H4","H5","H6","HEADER","HR","LI","MAIN","NAV","NOSCRIPT","OL","P","PRE","SECTION","TABLE","TFOOT","UL","VIDEO"]),INLINE:new Set(["A","ABBR","ACRONYM","B","BDO","BIG","BR","BUTTON","CITE","CODE","DFN","DEL","FONT","EM","I","IMG","INPUT","INS","KBD","LABEL","MAP","MARK","OBJECT","OUTPUT","Q","SAMP","SCRIPT","SELECT","SMALL","SPAN","STRONG","SUB","SUP","TEXTAREA","TIME","TT","U","VAR"]),REPLACE:new Set(["ABBR","CODE","DFN","IMG","KBD","OUTPUT","SAMP","SUB","SUP","SVG","TIME","VAR"]),WARP:new Set(["A","B","BDO","BDI","BIG","CITE","DEL","EM","FONT","I","INS","MARK","Q","S","SMALL","SPAN","STRONG","U"])};// 译文相关class
+translator_Translator.KISS_CLASS={warpper:"".concat(APP_LCNAME,"-wrapper notranslate"),inner:"".concat(APP_LCNAME,"-inner"),term:"".concat(APP_LCNAME,"-term")};// 内置跳过翻译文本
+// todo: 验证有效性
+translator_Translator.BUILTIN_SKIP_PATTERNS=[// 1. URL (覆盖 http, https, ftp, file 协议)
+/^(?:(?:https?|ftp|file):\/\/|www\.)[^\s/$.?#].[^\s]*$/i,// 2. 邮箱地址
+/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,// 3. 文件路径 (为 Unix 和 Windows 做了简化)
+/^(?:[a-zA-Z]:\\|\/|\\)(?:[\w\-. ]+\/|[\w\-. ]+\\)*[\w\-. ]*\.?[\w\-. ]*$/,// 4. UUID (通用唯一标识符)
+/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/,// 5. 纯数字字符串 (整数, 浮点数, 包含常见分隔符)
+// 同时也处理单位 (如 px, %, em, rem 等) 和货币符号。
+/^[$\u00A2-\u00A5\u20A0-\u20CF]?\s?-?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?\s?(?:px|%|em|rem|pt|vw|vh|deg|s|ms)?$/,// 6. 版本号 (例如 v1.2.3, 10.0.1)
+/^v?\d+(\.\d+){1,3}$/,// 7. ISO 8601 日期/时间格式
+/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})?)?$/,// 8. 模板占位符 (例如 {{var}}, ${var}, __VAR__)
+/^({{[^}]+}}|\${[^}]+}|__\w+__|%\w+)$/,// 9. CSS 选择器 (简单的 class/ID) 和十六进制颜色值
+/^(?:\.|#)[\w-]+$|^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/,// 10. 用户名 (例如 @username, @user.name, @user-name) - [已修改]
+/^@[\w.-]+$/,// 11. HTML 实体
+/^&\w+;$/,// 12. 中括号包裹的序号 (例如 [1], [99])
+/^\[\d+\]$/,// 13. 简单时间格式 (例如 12:30, 9:45:30) - [新增]
+/^\d{1,2}:\d{2}(:\d{2})?$/,// 14. 包含常见扩展名的文件名 (例如: document.pdf, image.jpeg)
+/^[^\s\\/:]+?\.[a-zA-Z0-9]{2,5}$/];translator_Translator.DEFAULT_OPTIONS=setting_DEFAULT_SETTING;// 默认配置
+translator_Translator.DEFAULT_RULE=GLOBLA_RULE;translator_Translator.BUILTIN_IGNORE_SELECTOR="abbr, address, area, audio, br, canvas, code,\n  data, datalist, dfn, embed, head, iframe, img, input, kbd, noscript, map, \n  object, option, output, param, picture, progress,\n  samp, select, script, style, sub, sup, svg, track, time, textarea, template, \n  var, video, wbr, .notranslate, [contenteditable], [translate='no'], \n  ".concat(APP_LCNAME,", #").concat(APP_CONSTS.fabID,", #").concat(APP_CONSTS.boxID,", \n  .").concat(APP_CONSTS.fabID,"_warpper, .").concat(APP_CONSTS.boxID,"_warpper");
 ;// CONCATENATED MODULE: ./src/libs/touch.js
 function touchTapListener(fn,touchsLength){const handleTouchend=e=>{if(e.touches.length===touchsLength){fn();}};document.addEventListener("touchstart",handleTouchend);return()=>{document.removeEventListener("touchstart",handleTouchend);};}
 ;// CONCATENATED MODULE: ./src/libs/gm.js
 const MSG_GM_xmlHttpRequest="xmlHttpRequest";const MSG_GM_setValue="setValue";const MSG_GM_getValue="getValue";const MSG_GM_deleteValue="deleteValue";const MSG_GM_info="info";/**
  * 注入页面的脚本，请求并接受GM接口信息
  * @param {*} param0
- */const injectScript=ping=>{window.APP_INFO={name:"KISS Translator",version:"1.9.2",eventName:ping};};/**
+ */const injectScript=ping=>{window.APP_INFO={name:"KISS Translator",version:"2.0.0",eventName:ping};};/**
  * 适配GM脚本
  */const adaptScript=ping=>{const promiseGM=function(action,args){let timeout=arguments.length>2&&arguments[2]!==undefined?arguments[2]:5000;return new Promise((resolve,reject)=>{const pong=genEventName();const handleEvent=e=>{window.removeEventListener(pong,handleEvent);const{data,error}=e.detail;if(error){reject(new Error(error));}else{resolve(data);}};window.addEventListener(pong,handleEvent);window.dispatchEvent(new CustomEvent(ping,{detail:{action,args,pong}}));setTimeout(()=>{window.removeEventListener(pong,handleEvent);reject(new Error("timeout"));},timeout);});};window.KISS_GM={fetch:(input,init)=>promiseGM(MSG_GM_xmlHttpRequest,{input,init}),setValue:(key,val)=>promiseGM(MSG_GM_setValue,{key,val}),getValue:key=>promiseGM(MSG_GM_getValue,{key}),deleteValue:key=>promiseGM(MSG_GM_deleteValue,{key}),getInfo:async()=>{if(!window.GM_info){window.GM_info=await promiseGM(MSG_GM_info);}return window.GM_info;}};};/**
  * 监听并回应页面对GM接口的请求
@@ -46158,54 +47947,103 @@ const MSG_GM_xmlHttpRequest="xmlHttpRequest";const MSG_GM_setValue="setValue";co
  * @param {*} param1
  * @returns
  */const isInBlacklist=(href,_ref)=>{let{blacklist}=_ref;return blacklist.split(/\n|,/).some(url=>isMatch(href,url.trim()));};
-;// CONCATENATED MODULE: ./src/libs/inputTranslate.js
-function isInputNode(node){return node.nodeName==="INPUT"||node.nodeName==="TEXTAREA";}function isEditAbleNode(node){return node.hasAttribute("contenteditable");}function selectContent(node){node.focus();const range=document.createRange();range.selectNodeContents(node);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);}function pasteContentEvent(node,text){node.focus();const data=new DataTransfer();data.setData("text/plain",text);const event=new ClipboardEvent("paste",{clipboardData:data});document.dispatchEvent(event);data.clearData();}function pasteContentCommand(node,text){node.focus();document.execCommand("insertText",false,text);}function collapseToEnd(node){node.focus();const selection=window.getSelection();selection.collapseToEnd();}function getNodeText(node){if(isInputNode(node)){return node.value;}return node.innerText||node.textContent||"";}function addLoading(node,loadingId){var _node$offsetParent;const div=document.createElement("div");div.id=loadingId;div.innerHTML=loadingSvg;div.style.cssText="\n      width: ".concat(node.offsetWidth,"px;\n      height: ").concat(node.offsetHeight,"px;\n      line-height: ").concat(node.offsetHeight,"px;\n      position: absolute;\n      text-align: center;\n      left: ").concat(node.offsetLeft,"px;\n      top: ").concat(node.offsetTop,"px;\n      z-index: 2147483647;\n    ");(_node$offsetParent=node.offsetParent)===null||_node$offsetParent===void 0?void 0:_node$offsetParent.appendChild(div);}function removeLoading(node,loadingId){const div=node.offsetParent.querySelector("#".concat(loadingId));if(div){div.remove();}}/**
- * 输入框翻译
- */function inputTranslate(_ref){let{inputRule:{transOpen,triggerShortcut,translator,fromLang,toLang,triggerCount,triggerTime,transSign}=DEFAULT_INPUT_RULE,transApis}=_ref;if(!transOpen){return;}const apiSetting=(transApis===null||transApis===void 0?void 0:transApis[translator])||DEFAULT_TRANS_APIS[translator];if(triggerShortcut.length===0){triggerShortcut=DEFAULT_INPUT_SHORTCUT;triggerCount=1;}stepShortcutRegister(triggerShortcut,async()=>{let node=document.activeElement;if(!node){return;}while(node.shadowRoot){node=node.shadowRoot.activeElement;}if(!isInputNode(node)&&!isEditAbleNode(node)){return;}let initText=getNodeText(node);if(triggerShortcut.length===1&&triggerShortcut[0].length===1){// todo: remove multiple char
-initText=removeEndchar(initText,triggerShortcut[0],triggerCount);}if(!initText.trim()){return;}let text=initText;if(transSign){const res=matchInputStr(text,transSign);if(res){let lang=res[1];if(lang==="zh"||lang==="cn"){lang="zh-CN";}else if(lang==="tw"||lang==="hk"){lang="zh-TW";}if(lang&&OPT_LANGS_LIST.includes(lang)){toLang=lang;}text=res[2];}}// console.log("input -->", text);
-const loadingId="kiss-"+utils_genEventName();try{addLoading(node,loadingId);const[trText,isSame]=await apiTranslate({translator,text,fromLang,toLang,apiSetting});if(!trText||isSame){return;}if(isInputNode(node)){node.value=trText;node.dispatchEvent(new Event("input",{bubbles:true,cancelable:true}));return;}selectContent(node);await sleep(200);pasteContentEvent(node,trText);await sleep(200);// todo: use includes?
-if(getNodeText(node).startsWith(initText)){pasteContentCommand(node,trText);await sleep(100);}else{collapseToEnd(node);}}catch(err){log_kissLog(err,"translate input");}finally{removeLoading(node,loadingId);}},triggerCount,triggerTime);}
+;// CONCATENATED MODULE: ./src/subtitle/BilingualSubtitleManager.js
+/**
+ * @class BilingualSubtitleManager
+ * @description 负责在视频上显示和翻译字幕的核心逻辑
+ */var _videoEl=/*#__PURE__*/_classPrivateFieldKey("videoEl");var _formattedSubtitles=/*#__PURE__*/_classPrivateFieldKey("formattedSubtitles");var _translationService=/*#__PURE__*/_classPrivateFieldKey("translationService");var _captionWindowEl=/*#__PURE__*/_classPrivateFieldKey("captionWindowEl");var _paperEl=/*#__PURE__*/_classPrivateFieldKey("paperEl");var _currentSubtitleIndex=/*#__PURE__*/_classPrivateFieldKey("currentSubtitleIndex");var _preTranslateSeconds=/*#__PURE__*/_classPrivateFieldKey("preTranslateSeconds");var BilingualSubtitleManager_setting=/*#__PURE__*/_classPrivateFieldKey("setting");var _isAdPlaying=/*#__PURE__*/_classPrivateFieldKey("isAdPlaying");var _createCaptionWindow=/*#__PURE__*/_classPrivateFieldKey("createCaptionWindow");var _enableDragging=/*#__PURE__*/_classPrivateFieldKey("enableDragging");var _attachEventListeners=/*#__PURE__*/_classPrivateFieldKey("attachEventListeners");var _removeEventListeners=/*#__PURE__*/_classPrivateFieldKey("removeEventListeners");var _findSubtitleIndexForTime=/*#__PURE__*/_classPrivateFieldKey("findSubtitleIndexForTime");var _updateCaptionDisplay=/*#__PURE__*/_classPrivateFieldKey("updateCaptionDisplay");var _triggerTranslations=/*#__PURE__*/_classPrivateFieldKey("triggerTranslations");var _translateAndStore=/*#__PURE__*/_classPrivateFieldKey("translateAndStore");class BilingualSubtitleManager{/**
+   * @param {object} options
+   * @param {HTMLVideoElement} options.videoEl - 页面上的 video 元素。
+   * @param {Array<object>} options.formattedSubtitles - 已格式化好的字幕数组。
+   * @param {(text: string, toLang: string) => Promise<string>} options.translationService - 外部翻译函数。
+   * @param {object} options.setting - 配置对象，如目标翻译语言。
+   */constructor(_ref){let{videoEl,formattedSubtitles,translationService,setting}=_ref;/**
+   * 执行单个字幕的翻译并更新其状态。
+   * @param {object} subtitle - 需要翻译的字幕对象。
+   */Object.defineProperty(this,_translateAndStore,{value:_translateAndStore2});/**
+   * 提前翻译指定时间范围内的字幕。
+   * @param {number} currentTimeMs
+   */Object.defineProperty(this,_triggerTranslations,{value:_triggerTranslations2});/**
+   * 更新字幕窗口的显示内容。
+   * @param {object | null} subtitle - 字幕对象，或 null 用于清空。
+   */Object.defineProperty(this,_updateCaptionDisplay,{value:_updateCaptionDisplay2});/**
+   * 根据时间（毫秒）查找对应的字幕索引。
+   * @param {number} currentTimeMs
+   * @returns {number} 找到的字幕索引，-1 表示没找到。
+   */Object.defineProperty(this,_findSubtitleIndexForTime,{value:_findSubtitleIndexForTime2});/**
+   * 移除事件监听器。
+   */Object.defineProperty(this,_removeEventListeners,{value:_removeEventListeners2});/**
+   * 绑定视频元素的 timeupdate 和 seeked 事件监听器。
+   */Object.defineProperty(this,_attachEventListeners,{value:_attachEventListeners2});/**
+   * 为指定的元素启用垂直拖动功能。
+   */Object.defineProperty(this,_enableDragging,{value:_enableDragging2});/**
+   * 创建并配置用于显示字幕的 DOM 元素。
+   */Object.defineProperty(this,_createCaptionWindow,{value:_createCaptionWindow2});Object.defineProperty(this,_videoEl,{writable:true,value:void 0});Object.defineProperty(this,_formattedSubtitles,{writable:true,value:[]});Object.defineProperty(this,_translationService,{writable:true,value:void 0});Object.defineProperty(this,_captionWindowEl,{writable:true,value:null});Object.defineProperty(this,_paperEl,{writable:true,value:null});Object.defineProperty(this,_currentSubtitleIndex,{writable:true,value:-1});Object.defineProperty(this,_preTranslateSeconds,{writable:true,value:100});Object.defineProperty(this,BilingualSubtitleManager_setting,{writable:true,value:{}});Object.defineProperty(this,_isAdPlaying,{writable:true,value:false});_classPrivateFieldBase(this,BilingualSubtitleManager_setting)[BilingualSubtitleManager_setting]=setting;_classPrivateFieldBase(this,_videoEl)[_videoEl]=videoEl;_classPrivateFieldBase(this,_formattedSubtitles)[_formattedSubtitles]=formattedSubtitles;_classPrivateFieldBase(this,_translationService)[_translationService]=translationService;this.onTimeUpdate=this.onTimeUpdate.bind(this);this.onSeek=this.onSeek.bind(this);}/**
+   * 启动字幕显示和翻译。
+   */start(){if(_classPrivateFieldBase(this,_formattedSubtitles)[_formattedSubtitles].length===0){logger.warn("Bilingual Subtitles: No subtitles to display.");return;}logger.info("Bilingual Subtitle Manager: Starting...");_classPrivateFieldBase(this,_createCaptionWindow)[_createCaptionWindow]();_classPrivateFieldBase(this,_attachEventListeners)[_attachEventListeners]();this.onTimeUpdate();}/**
+   * 销毁实例，清理资源。
+   */destroy(){var _classPrivateFieldLoo,_classPrivateFieldLoo2,_classPrivateFieldLoo3;logger.info("Bilingual Subtitle Manager: Destroying...");_classPrivateFieldBase(this,_removeEventListeners)[_removeEventListeners]();(_classPrivateFieldLoo=_classPrivateFieldBase(this,_captionWindowEl)[_captionWindowEl])===null||_classPrivateFieldLoo===void 0?void 0:(_classPrivateFieldLoo2=_classPrivateFieldLoo.parentElement)===null||_classPrivateFieldLoo2===void 0?void 0:(_classPrivateFieldLoo3=_classPrivateFieldLoo2.parentElement)===null||_classPrivateFieldLoo3===void 0?void 0:_classPrivateFieldLoo3.remove();_classPrivateFieldBase(this,_formattedSubtitles)[_formattedSubtitles]=[];}/**
+   * 更新广告播放状态。
+   */setIsAdPlaying(isPlaying){_classPrivateFieldBase(this,_isAdPlaying)[_isAdPlaying]=isPlaying;this.onTimeUpdate();}/**
+   * 视频播放时间更新时的回调，负责更新字幕和触发预翻译。
+   */onTimeUpdate(){const currentTimeMs=_classPrivateFieldBase(this,_videoEl)[_videoEl].currentTime*1000;const subtitleIndex=_classPrivateFieldBase(this,_findSubtitleIndexForTime)[_findSubtitleIndexForTime](currentTimeMs);if(subtitleIndex!==_classPrivateFieldBase(this,_currentSubtitleIndex)[_currentSubtitleIndex]){_classPrivateFieldBase(this,_currentSubtitleIndex)[_currentSubtitleIndex]=subtitleIndex;const subtitle=subtitleIndex!==-1?_classPrivateFieldBase(this,_formattedSubtitles)[_formattedSubtitles][subtitleIndex]:null;_classPrivateFieldBase(this,_updateCaptionDisplay)[_updateCaptionDisplay](subtitle);}_classPrivateFieldBase(this,_triggerTranslations)[_triggerTranslations](currentTimeMs);}/**
+   * 用户拖动进度条后的回调。
+   */onSeek(){_classPrivateFieldBase(this,_currentSubtitleIndex)[_currentSubtitleIndex]=-1;this.onTimeUpdate();}/**
+   * 追加新的字幕
+   * @param {Array<object>} newSubtitlesChunk - 新的、要追加的字幕数据块。
+   */appendSubtitles(newSubtitlesChunk){if(!newSubtitlesChunk||newSubtitlesChunk.length===0){return;}logger.info("Bilingual Subtitle Manager: Appending ".concat(newSubtitlesChunk.length," new subtitles..."));_classPrivateFieldBase(this,_formattedSubtitles)[_formattedSubtitles].push(...newSubtitlesChunk);_classPrivateFieldBase(this,_formattedSubtitles)[_formattedSubtitles].sort((a,b)=>a.start-b.start);_classPrivateFieldBase(this,_currentSubtitleIndex)[_currentSubtitleIndex]=-1;this.onTimeUpdate();}}function _createCaptionWindow2(){var _classPrivateFieldLoo4;const container=document.createElement("div");container.className="kiss-caption-container notranslate";Object.assign(container.style,{position:"absolute",width:"100%",height:"100%",left:"0",top:"0",pointerEvents:"none"});const paper=document.createElement("div");paper.className="kiss-caption-paper";Object.assign(paper.style,{position:"absolute",width:"80%",left:"50%",bottom:"10%",transform:"translateX(-50%)",textAlign:"center",containerType:"inline-size",zIndex:"2147483647",pointerEvents:"auto",display:"none"});_classPrivateFieldBase(this,_paperEl)[_paperEl]=paper;_classPrivateFieldBase(this,_captionWindowEl)[_captionWindowEl]=document.createElement("div");_classPrivateFieldBase(this,_captionWindowEl)[_captionWindowEl].className="kiss-caption-window";_classPrivateFieldBase(this,_captionWindowEl)[_captionWindowEl].style.cssText=_classPrivateFieldBase(this,BilingualSubtitleManager_setting)[BilingualSubtitleManager_setting].windowStyle;_classPrivateFieldBase(this,_captionWindowEl)[_captionWindowEl].style.pointerEvents="auto";_classPrivateFieldBase(this,_captionWindowEl)[_captionWindowEl].style.cursor="grab";_classPrivateFieldBase(this,_captionWindowEl)[_captionWindowEl].style.opacity="1";_classPrivateFieldBase(this,_paperEl)[_paperEl].appendChild(_classPrivateFieldBase(this,_captionWindowEl)[_captionWindowEl]);container.appendChild(_classPrivateFieldBase(this,_paperEl)[_paperEl]);const videoContainer=(_classPrivateFieldLoo4=_classPrivateFieldBase(this,_videoEl)[_videoEl].parentElement)===null||_classPrivateFieldLoo4===void 0?void 0:_classPrivateFieldLoo4.parentElement;if(!videoContainer){logger.warn("could not find videoContainer");return;}videoContainer.style.position="relative";videoContainer.appendChild(container);_classPrivateFieldBase(this,_enableDragging)[_enableDragging](_classPrivateFieldBase(this,_paperEl)[_paperEl],container,_classPrivateFieldBase(this,_captionWindowEl)[_captionWindowEl]);}function _enableDragging2(dragElement,boundaryContainer,handleElement){let isDragging=false;let startY;let initialBottom;let dragElementHeight;const onMouseDown=e=>{e.stopPropagation();e.preventDefault();if(e.button!==0)return;isDragging=true;handleElement.style.cursor="grabbing";startY=e.clientY;initialBottom=boundaryContainer.getBoundingClientRect().bottom-dragElement.getBoundingClientRect().bottom;dragElementHeight=dragElement.offsetHeight;document.addEventListener("mousemove",onMouseMove,{capture:true});document.addEventListener("mouseup",onMouseUp,{capture:true});};const onMouseMove=e=>{if(!isDragging)return;e.preventDefault();e.stopPropagation();const deltaY=e.clientY-startY;let newBottom=initialBottom-deltaY;const containerHeight=boundaryContainer.clientHeight;newBottom=Math.max(0,newBottom);newBottom=Math.min(containerHeight-dragElementHeight,newBottom);if(dragElementHeight>containerHeight){newBottom=Math.max(0,newBottom);}dragElement.style.bottom="".concat(newBottom,"px");};const onMouseUp=e=>{if(!isDragging)return;e.preventDefault();e.stopPropagation();isDragging=false;handleElement.style.cursor="grab";document.removeEventListener("mousemove",onMouseMove,{capture:true});document.removeEventListener("mouseup",onMouseUp,{capture:true});const finalBottomPx=dragElement.style.bottom;setTimeout(()=>{dragElement.style.bottom=finalBottomPx;},50);};handleElement.addEventListener("mousedown",onMouseDown);}function _attachEventListeners2(){_classPrivateFieldBase(this,_videoEl)[_videoEl].addEventListener("timeupdate",this.onTimeUpdate);_classPrivateFieldBase(this,_videoEl)[_videoEl].addEventListener("seeked",this.onSeek);}function _removeEventListeners2(){_classPrivateFieldBase(this,_videoEl)[_videoEl].removeEventListener("timeupdate",this.onTimeUpdate);_classPrivateFieldBase(this,_videoEl)[_videoEl].removeEventListener("seeked",this.onSeek);}function _findSubtitleIndexForTime2(currentTimeMs){return _classPrivateFieldBase(this,_formattedSubtitles)[_formattedSubtitles].findIndex(sub=>currentTimeMs>=sub.start&&currentTimeMs<=sub.end);}function _updateCaptionDisplay2(subtitle){if(!_classPrivateFieldBase(this,_paperEl)[_paperEl]||!_classPrivateFieldBase(this,_captionWindowEl)[_captionWindowEl])return;if(_classPrivateFieldBase(this,_isAdPlaying)[_isAdPlaying]){_classPrivateFieldBase(this,_paperEl)[_paperEl].style.display="none";return;}if(subtitle){const p1=document.createElement("p");p1.style.cssText=_classPrivateFieldBase(this,BilingualSubtitleManager_setting)[BilingualSubtitleManager_setting].originStyle;p1.textContent=truncateWords(subtitle.text);const p2=document.createElement("p");p2.style.cssText=_classPrivateFieldBase(this,BilingualSubtitleManager_setting)[BilingualSubtitleManager_setting].originStyle;p2.textContent=truncateWords(subtitle.translation)||"...";if(_classPrivateFieldBase(this,BilingualSubtitleManager_setting)[BilingualSubtitleManager_setting].isBilingual){_classPrivateFieldBase(this,_captionWindowEl)[_captionWindowEl].replaceChildren(p1,p2);}else{_classPrivateFieldBase(this,_captionWindowEl)[_captionWindowEl].replaceChildren(p2);}_classPrivateFieldBase(this,_paperEl)[_paperEl].style.display="block";}else{_classPrivateFieldBase(this,_paperEl)[_paperEl].style.display="none";}}function _triggerTranslations2(currentTimeMs){const lookAheadMs=_classPrivateFieldBase(this,_preTranslateSeconds)[_preTranslateSeconds]*1000;for(const sub of _classPrivateFieldBase(this,_formattedSubtitles)[_formattedSubtitles]){const isCurrent=sub.start<=currentTimeMs&&sub.end>=currentTimeMs;const isUpcoming=sub.start>currentTimeMs&&sub.start<=currentTimeMs+lookAheadMs;const needsTranslation=!sub.translation&&!sub.isTranslating;if((isCurrent||isUpcoming)&&needsTranslation){_classPrivateFieldBase(this,_translateAndStore)[_translateAndStore](sub);}}}async function _translateAndStore2(subtitle){subtitle.isTranslating=true;try{const{fromLang,toLang,apiSetting}=_classPrivateFieldBase(this,BilingualSubtitleManager_setting)[BilingualSubtitleManager_setting];const[translatedText]=await _classPrivateFieldBase(this,_translationService)[_translationService]({text:subtitle.text,fromLang,toLang,apiSetting});subtitle.translation=translatedText;}catch(error){logger.info("Translation failed for:",subtitle.text,error);subtitle.translation="[Translation failed]";}finally{subtitle.isTranslating=false;const currentSubtitleIndexNow=_classPrivateFieldBase(this,_findSubtitleIndexForTime)[_findSubtitleIndexForTime](_classPrivateFieldBase(this,_videoEl)[_videoEl].currentTime*1000);if(_classPrivateFieldBase(this,_formattedSubtitles)[_formattedSubtitles][currentSubtitleIndexNow]===subtitle){_classPrivateFieldBase(this,_updateCaptionDisplay)[_updateCaptionDisplay](subtitle);}}}
+;// CONCATENATED MODULE: ./src/subtitle/YouTubeCaptionProvider.js
+const VIDEO_SELECT="#container video";const CONTORLS_SELECT=".ytp-right-controls";const YT_CAPTION_SELECT="#ytp-caption-window-container";const YT_AD_SELECT=".video-ads";var YouTubeCaptionProvider_setting=/*#__PURE__*/_classPrivateFieldKey("setting");var _videoId=/*#__PURE__*/_classPrivateFieldKey("videoId");var _subtitles=/*#__PURE__*/_classPrivateFieldKey("subtitles");var _managerInstance=/*#__PURE__*/_classPrivateFieldKey("managerInstance");var _toggleButton=/*#__PURE__*/_classPrivateFieldKey("toggleButton");var YouTubeCaptionProvider_enabled=/*#__PURE__*/_classPrivateFieldKey("enabled");var _ytControls=/*#__PURE__*/_classPrivateFieldKey("ytControls");var _isBusy=/*#__PURE__*/_classPrivateFieldKey("isBusy");var _fromLang=/*#__PURE__*/_classPrivateFieldKey("fromLang");var _notificationEl=/*#__PURE__*/_classPrivateFieldKey("notificationEl");var _notificationTimeout=/*#__PURE__*/_classPrivateFieldKey("notificationTimeout");var _i18n=/*#__PURE__*/_classPrivateFieldKey("i18n");var _moAds=/*#__PURE__*/_classPrivateFieldKey("moAds");var _waitForElement=/*#__PURE__*/_classPrivateFieldKey("waitForElement");var _doubleClick=/*#__PURE__*/_classPrivateFieldKey("doubleClick");var _injectToggleButton=/*#__PURE__*/_classPrivateFieldKey("injectToggleButton");var _isSameLang=/*#__PURE__*/_classPrivateFieldKey("isSameLang");var _findCaptionTrack=/*#__PURE__*/_classPrivateFieldKey("findCaptionTrack");var _getCaptionTracks=/*#__PURE__*/_classPrivateFieldKey("getCaptionTracks");var _getSubtitleEvents=/*#__PURE__*/_classPrivateFieldKey("getSubtitleEvents");var _getVideoId=/*#__PURE__*/_classPrivateFieldKey("getVideoId");var _aiSegment=/*#__PURE__*/_classPrivateFieldKey("aiSegment");var _handleInterceptedRequest=/*#__PURE__*/_classPrivateFieldKey("handleInterceptedRequest");var _onCaptionsReady=/*#__PURE__*/_classPrivateFieldKey("onCaptionsReady");var _startManager=/*#__PURE__*/_classPrivateFieldKey("startManager");var _destroyManager=/*#__PURE__*/_classPrivateFieldKey("destroyManager");var _formatSubtitles=/*#__PURE__*/_classPrivateFieldKey("formatSubtitles");var _isQualityPoor=/*#__PURE__*/_classPrivateFieldKey("isQualityPoor");var _processSubtitles=/*#__PURE__*/_classPrivateFieldKey("processSubtitles");var _flatEvents=/*#__PURE__*/_classPrivateFieldKey("flatEvents");var _splitEventsIntoChunks=/*#__PURE__*/_classPrivateFieldKey("splitEventsIntoChunks");var _processRemainingChunksAsync=/*#__PURE__*/_classPrivateFieldKey("processRemainingChunksAsync");var _createNotificationElement=/*#__PURE__*/_classPrivateFieldKey("createNotificationElement");var _showNotification=/*#__PURE__*/_classPrivateFieldKey("showNotification");class YouTubeCaptionProvider{constructor(){let setting=arguments.length>0&&arguments[0]!==undefined?arguments[0]:{};Object.defineProperty(this,_showNotification,{value:_showNotification2});Object.defineProperty(this,_createNotificationElement,{value:_createNotificationElement2});Object.defineProperty(this,_processRemainingChunksAsync,{value:_processRemainingChunksAsync2});Object.defineProperty(this,_splitEventsIntoChunks,{value:_splitEventsIntoChunks2});Object.defineProperty(this,_flatEvents,{value:_flatEvents2});Object.defineProperty(this,_processSubtitles,{value:_processSubtitles2});Object.defineProperty(this,_isQualityPoor,{value:_isQualityPoor2});Object.defineProperty(this,_formatSubtitles,{value:_formatSubtitles2});Object.defineProperty(this,_destroyManager,{value:_destroyManager2});Object.defineProperty(this,_startManager,{value:_startManager2});Object.defineProperty(this,_onCaptionsReady,{value:_onCaptionsReady2});Object.defineProperty(this,_handleInterceptedRequest,{value:_handleInterceptedRequest2});Object.defineProperty(this,_aiSegment,{value:_aiSegment2});Object.defineProperty(this,_getVideoId,{value:_getVideoId2});Object.defineProperty(this,_getSubtitleEvents,{value:_getSubtitleEvents2});Object.defineProperty(this,_getCaptionTracks,{value:_getCaptionTracks2});// todo: 优化逻辑
+Object.defineProperty(this,_findCaptionTrack,{value:_findCaptionTrack2});Object.defineProperty(this,_isSameLang,{value:_isSameLang2});Object.defineProperty(this,_injectToggleButton,{value:_injectToggleButton2});Object.defineProperty(this,_doubleClick,{value:_doubleClick2});Object.defineProperty(this,_waitForElement,{value:_waitForElement2});Object.defineProperty(this,_moAds,{value:_moAds2});Object.defineProperty(this,YouTubeCaptionProvider_setting,{writable:true,value:{}});Object.defineProperty(this,_videoId,{writable:true,value:""});Object.defineProperty(this,_subtitles,{writable:true,value:[]});Object.defineProperty(this,_managerInstance,{writable:true,value:null});Object.defineProperty(this,_toggleButton,{writable:true,value:null});Object.defineProperty(this,YouTubeCaptionProvider_enabled,{writable:true,value:false});Object.defineProperty(this,_ytControls,{writable:true,value:null});Object.defineProperty(this,_isBusy,{writable:true,value:false});Object.defineProperty(this,_fromLang,{writable:true,value:"auto"});Object.defineProperty(this,_notificationEl,{writable:true,value:null});Object.defineProperty(this,_notificationTimeout,{writable:true,value:null});Object.defineProperty(this,_i18n,{writable:true,value:()=>""});_classPrivateFieldBase(this,YouTubeCaptionProvider_setting)[YouTubeCaptionProvider_setting]=setting;_classPrivateFieldBase(this,_i18n)[_i18n]=i18n(setting.uiLang||"zh");}initialize(){window.addEventListener("message",event=>{var _event$data;if(event.source!==window)return;if(((_event$data=event.data)===null||_event$data===void 0?void 0:_event$data.type)===MSG_XHR_DATA_YOUTUBE){const{url,response}=event.data;if(url&&response){_classPrivateFieldBase(this,_handleInterceptedRequest)[_handleInterceptedRequest](url,response);}}});window.addEventListener("yt-navigate-finish",()=>{setTimeout(()=>{if(_classPrivateFieldBase(this,_toggleButton)[_toggleButton]){_classPrivateFieldBase(this,_toggleButton)[_toggleButton].style.opacity="0.5";}_classPrivateFieldBase(this,_destroyManager)[_destroyManager]();_classPrivateFieldBase(this,_doubleClick)[_doubleClick]();},1000);});_classPrivateFieldBase(this,_waitForElement)[_waitForElement](CONTORLS_SELECT,ytControls=>_classPrivateFieldBase(this,_injectToggleButton)[_injectToggleButton](ytControls));_classPrivateFieldBase(this,_waitForElement)[_waitForElement](YT_AD_SELECT,adContainer=>{_classPrivateFieldBase(this,_moAds)[_moAds](adContainer);});}}function _moAds2(adContainer){const adSlector=".ytp-ad-player-overlay-layout";const observer=new MutationObserver(mutations=>{for(const mutation of mutations){if(mutation.type==="childList"){mutation.addedNodes.forEach(node=>{if(node.nodeType===1&&node.matches(adSlector)){logger.debug("Youtube Provider: AD start playing!",node);// todo: 顺带把广告快速跳过
+if(_classPrivateFieldBase(this,_managerInstance)[_managerInstance]){_classPrivateFieldBase(this,_managerInstance)[_managerInstance].setIsAdPlaying(true);}}});mutation.removedNodes.forEach(node=>{if(node.nodeType===1&&node.matches(adSlector)){logger.debug("Youtube Provider: Ad ends!");if(_classPrivateFieldBase(this,_managerInstance)[_managerInstance]){_classPrivateFieldBase(this,_managerInstance)[_managerInstance].setIsAdPlaying(false);}}});}}});observer.observe(adContainer,{childList:true,subtree:true});}function _waitForElement2(selector,callback){const element=document.querySelector(selector);if(element){callback(element);return;}const observer=new MutationObserver((mutations,obs)=>{const targetNode=document.querySelector(selector);if(targetNode){obs.disconnect();callback(targetNode);}});observer.observe(document.body,{childList:true,subtree:true});}async function _doubleClick2(){var _classPrivateFieldLoo;const button=(_classPrivateFieldLoo=_classPrivateFieldBase(this,_ytControls)[_ytControls])===null||_classPrivateFieldLoo===void 0?void 0:_classPrivateFieldLoo.querySelector("button.ytp-subtitles-button");if(button){await sleep(randomBetween(50,100));button.click();await sleep(randomBetween(500,1000));button.click();}}function _injectToggleButton2(ytControls){var _classPrivateFieldLoo4;_classPrivateFieldBase(this,_ytControls)[_ytControls]=ytControls;const kissControls=document.createElement("div");kissControls.className="kiss-bilingual-subtitle-controls";Object.assign(kissControls.style,{height:"100%"});const toggleButton=document.createElement("button");toggleButton.className="ytp-button notranslate kiss-bilingual-subtitle-button";toggleButton.title=APP_NAME;Object.assign(toggleButton.style,{color:"white",opacity:"0.5"});toggleButton.appendChild(createLogoSVG());kissControls.appendChild(toggleButton);toggleButton.onclick=()=>{if(_classPrivateFieldBase(this,_isBusy)[_isBusy]){logger.info("Youtube Provider: It's budy now...");_classPrivateFieldBase(this,_showNotification)[_showNotification](_classPrivateFieldBase(this,_i18n)[_i18n]("subtitle_data_processing"));}if(!_classPrivateFieldBase(this,YouTubeCaptionProvider_enabled)[YouTubeCaptionProvider_enabled]){var _classPrivateFieldLoo2;logger.info("Youtube Provider: Feature toggled ON.");_classPrivateFieldBase(this,YouTubeCaptionProvider_enabled)[YouTubeCaptionProvider_enabled]=true;(_classPrivateFieldLoo2=_classPrivateFieldBase(this,_toggleButton)[_toggleButton])===null||_classPrivateFieldLoo2===void 0?void 0:_classPrivateFieldLoo2.replaceChildren(createLogoSVG({isSelected:true}));_classPrivateFieldBase(this,_startManager)[_startManager]();}else{var _classPrivateFieldLoo3;logger.info("Youtube Provider: Feature toggled OFF.");_classPrivateFieldBase(this,YouTubeCaptionProvider_enabled)[YouTubeCaptionProvider_enabled]=false;(_classPrivateFieldLoo3=_classPrivateFieldBase(this,_toggleButton)[_toggleButton])===null||_classPrivateFieldLoo3===void 0?void 0:_classPrivateFieldLoo3.replaceChildren(createLogoSVG());_classPrivateFieldBase(this,_destroyManager)[_destroyManager]();}};_classPrivateFieldBase(this,_toggleButton)[_toggleButton]=toggleButton;(_classPrivateFieldLoo4=_classPrivateFieldBase(this,_ytControls)[_ytControls])===null||_classPrivateFieldLoo4===void 0?void 0:_classPrivateFieldLoo4.before(kissControls);}function _isSameLang2(lang1,lang2){return lang1.slice(0,2)===lang2.slice(0,2);}function _findCaptionTrack2(captionTracks){if(!(captionTracks!==null&&captionTracks!==void 0&&captionTracks.length)){return null;}let captionTrack=null;const asrTrack=captionTracks.find(item=>item.kind==="asr");if(asrTrack){captionTrack=captionTracks.find(item=>item.kind!=="asr"&&_classPrivateFieldBase(this,_isSameLang)[_isSameLang](item.languageCode,asrTrack.languageCode));if(!captionTrack){captionTrack=asrTrack;}}if(!captionTrack){captionTrack=captionTracks.pop();}return captionTrack;}async function _getCaptionTracks2(videoId){try{var _data$captions,_data$captions$player;const url="https://www.youtube.com/watch?v=".concat(videoId);const html=await fetch(url).then(r=>r.text());const match=html.match(/ytInitialPlayerResponse\s*=\s*(\{.*?\});/s);if(!match)return[];const data=JSON.parse(match[1]);return(_data$captions=data.captions)===null||_data$captions===void 0?void 0:(_data$captions$player=_data$captions.playerCaptionsTracklistRenderer)===null||_data$captions$player===void 0?void 0:_data$captions$player.captionTracks;}catch(err){logger.info("Youtube Provider: get captionTracks",err);}}async function _getSubtitleEvents2(capUrl,potUrl,responseText){if(!potUrl.searchParams.get("tlang")&&potUrl.searchParams.get("kind")===capUrl.searchParams.get("kind")&&_classPrivateFieldBase(this,_isSameLang)[_isSameLang](potUrl.searchParams.get("lang"),capUrl.searchParams.get("lang"))){try{const json=JSON.parse(responseText);return json===null||json===void 0?void 0:json.events;}catch(err){logger.info("Youtube Provider: parse responseText",err);return null;}}try{potUrl.searchParams.delete("tlang");potUrl.searchParams.set("lang",capUrl.searchParams.get("lang"));potUrl.searchParams.set("fmt","json3");if(capUrl.searchParams.get("kind")){potUrl.searchParams.set("kind",capUrl.searchParams.get("kind"));}else{potUrl.searchParams.delete("kind");}const res=await fetch(potUrl.href);if(res!==null&&res!==void 0&&res.ok){const json=await res.json();return json===null||json===void 0?void 0:json.events;}logger.info("Youtube Provider: Failed to fetch subtitles: ".concat(res.status));return null;}catch(error){logger.info("Youtube Provider: fetching subtitles error",error);return null;}}function _getVideoId2(){const docUrl=new URL(document.location.href);return docUrl.searchParams.get("v");}async function _aiSegment2(_ref){let{videoId,fromLang,toLang,chunkEvents,segApiSetting}=_ref;try{const events=chunkEvents.filter(item=>item.text);const chunkSign="".concat(events[0].start," --> ").concat(events[events.length-1].end);logger.debug("Youtube Provider: aiSegment events",{videoId,chunkSign,fromLang,toLang,events});const subtitles=await apiSubtitle({videoId,chunkSign,fromLang,toLang,events,apiSetting:segApiSetting});logger.debug("Youtube Provider: aiSegment subtitles",subtitles);if(Array.isArray(subtitles)){return subtitles;}}catch(err){logger.info("Youtube Provider: ai segmentation",err);}return[];}async function _handleInterceptedRequest2(url,responseText){if(_classPrivateFieldBase(this,_isBusy)[_isBusy]){logger.info("Youtube Provider is busy...");return;}_classPrivateFieldBase(this,_isBusy)[_isBusy]=true;try{const videoId=_classPrivateFieldBase(this,_getVideoId)[_getVideoId]();if(!videoId){logger.info("Youtube Provider: videoId not found.");return;}if(videoId===_classPrivateFieldBase(this,_videoId)[_videoId]){logger.info("Youtube Provider: videoId already processed.");return;}const potUrl=new URL(url);if(videoId!==potUrl.searchParams.get("v")){logger.info("Youtube Provider: skip other timedtext.");return;}const{segApiSetting,toLang}=_classPrivateFieldBase(this,YouTubeCaptionProvider_setting)[YouTubeCaptionProvider_setting];const captionTracks=await _classPrivateFieldBase(this,_getCaptionTracks)[_getCaptionTracks](videoId);const captionTrack=_classPrivateFieldBase(this,_findCaptionTrack)[_findCaptionTrack](captionTracks);if(!captionTrack){logger.info("Youtube Provider: CaptionTrack not found.");return;}const capUrl=new URL(captionTrack.baseUrl);const events=await _classPrivateFieldBase(this,_getSubtitleEvents)[_getSubtitleEvents](capUrl,potUrl,responseText);if(!(events!==null&&events!==void 0&&events.length)){logger.info("Youtube Provider: SubtitleEvents not got.");return;}const lang=potUrl.searchParams.get("lang");const fromLang=OPT_LANGS_TO_CODE[OPT_TRANS_MICROSOFT].get(lang)||OPT_LANGS_TO_CODE[OPT_TRANS_MICROSOFT].get(lang.slice(0,2))||"auto";logger.debug("Youtube Provider: fromLang: ".concat(fromLang,", toLang: ").concat(toLang));if(_classPrivateFieldBase(this,_isSameLang)[_isSameLang](fromLang,toLang)){logger.info("Youtube Provider: skip same lang",fromLang,toLang);return;}_classPrivateFieldBase(this,_showNotification)[_showNotification](_classPrivateFieldBase(this,_i18n)[_i18n]("starting_to_process_subtitle"));const flatEvents=_classPrivateFieldBase(this,_flatEvents)[_flatEvents](events);if(!flatEvents.length)return;if(potUrl.searchParams.get("kind")==="asr"&&segApiSetting){logger.info("Youtube Provider: Starting AI ...");const eventChunks=_classPrivateFieldBase(this,_splitEventsIntoChunks)[_splitEventsIntoChunks](flatEvents,segApiSetting.chunkLength);const subtitlesFallback=()=>_classPrivateFieldBase(this,_formatSubtitles)[_formatSubtitles](flatEvents,fromLang);if(eventChunks.length===0){_classPrivateFieldBase(this,_onCaptionsReady)[_onCaptionsReady]({videoId,subtitles:subtitlesFallback(),fromLang,isInitialLoad:true});return;}const firstChunkEvents=eventChunks[0];const firstBatchSubtitles=await _classPrivateFieldBase(this,_aiSegment)[_aiSegment]({videoId,chunkEvents:firstChunkEvents,fromLang,toLang,segApiSetting});if(!(firstBatchSubtitles!==null&&firstBatchSubtitles!==void 0&&firstBatchSubtitles.length)){_classPrivateFieldBase(this,_onCaptionsReady)[_onCaptionsReady]({videoId,subtitles:subtitlesFallback(),fromLang,isInitialLoad:true});return;}_classPrivateFieldBase(this,_onCaptionsReady)[_onCaptionsReady]({videoId,subtitles:firstBatchSubtitles,fromLang,isInitialLoad:true});if(eventChunks.length>1){const remainingChunks=eventChunks.slice(1);_classPrivateFieldBase(this,_processRemainingChunksAsync)[_processRemainingChunksAsync]({chunks:remainingChunks,videoId,fromLang,toLang,segApiSetting});}}else{const subtitles=_classPrivateFieldBase(this,_formatSubtitles)[_formatSubtitles](flatEvents,fromLang);if(!(subtitles!==null&&subtitles!==void 0&&subtitles.length)){logger.info("Youtube Provider: No subtitles after format.");return;}_classPrivateFieldBase(this,_onCaptionsReady)[_onCaptionsReady]({videoId,subtitles,fromLang,isInitialLoad:true});}}catch(error){logger.warn("Youtube Provider: unknow error",error);_classPrivateFieldBase(this,_showNotification)[_showNotification](_classPrivateFieldBase(this,_i18n)[_i18n]("subtitle_load_failed"));}finally{_classPrivateFieldBase(this,_isBusy)[_isBusy]=false;}}function _onCaptionsReady2(_ref2){let{videoId,subtitles,fromLang}=_ref2;_classPrivateFieldBase(this,_subtitles)[_subtitles]=subtitles;_classPrivateFieldBase(this,_videoId)[_videoId]=videoId;_classPrivateFieldBase(this,_fromLang)[_fromLang]=fromLang;if(_classPrivateFieldBase(this,_toggleButton)[_toggleButton]){_classPrivateFieldBase(this,_toggleButton)[_toggleButton].style.opacity=subtitles.length?"1":"0.5";}_classPrivateFieldBase(this,_destroyManager)[_destroyManager]();if(_classPrivateFieldBase(this,YouTubeCaptionProvider_enabled)[YouTubeCaptionProvider_enabled]){_classPrivateFieldBase(this,_startManager)[_startManager]();}else{_classPrivateFieldBase(this,_showNotification)[_showNotification](_classPrivateFieldBase(this,_i18n)[_i18n]("subtitle_data_is_ready"));}}function _startManager2(){var _classPrivateFieldLoo5;if(_classPrivateFieldBase(this,_managerInstance)[_managerInstance]){return;}const videoId=_classPrivateFieldBase(this,_getVideoId)[_getVideoId]();if(!((_classPrivateFieldLoo5=_classPrivateFieldBase(this,_subtitles)[_subtitles])!==null&&_classPrivateFieldLoo5!==void 0&&_classPrivateFieldLoo5.length)||_classPrivateFieldBase(this,_videoId)[_videoId]!==videoId){logger.info("Youtube Provider: No subtitles");_classPrivateFieldBase(this,_showNotification)[_showNotification](_classPrivateFieldBase(this,_i18n)[_i18n]("try_get_subtitle_data"));_classPrivateFieldBase(this,_doubleClick)[_doubleClick]();return;}const videoEl=document.querySelector(VIDEO_SELECT);if(!videoEl){logger.warn("Youtube Provider: No video element found");return;}logger.info("Youtube Provider: Starting manager...");_classPrivateFieldBase(this,_managerInstance)[_managerInstance]=new BilingualSubtitleManager({videoEl,formattedSubtitles:_classPrivateFieldBase(this,_subtitles)[_subtitles],translationService:apiTranslate,setting:{..._classPrivateFieldBase(this,YouTubeCaptionProvider_setting)[YouTubeCaptionProvider_setting],fromLang:_classPrivateFieldBase(this,_fromLang)[_fromLang]}});_classPrivateFieldBase(this,_managerInstance)[_managerInstance].start();_classPrivateFieldBase(this,_showNotification)[_showNotification](_classPrivateFieldBase(this,_i18n)[_i18n]("subtitle_load_succeed"));const ytCaption=document.querySelector(YT_CAPTION_SELECT);ytCaption&&(ytCaption.style.display="none");}function _destroyManager2(){if(!_classPrivateFieldBase(this,_managerInstance)[_managerInstance]){return;}logger.info("Youtube Provider: Destroying manager...");_classPrivateFieldBase(this,_managerInstance)[_managerInstance].destroy();_classPrivateFieldBase(this,_managerInstance)[_managerInstance]=null;const ytCaption=document.querySelector(YT_CAPTION_SELECT);ytCaption&&(ytCaption.style.display="block");}function _formatSubtitles2(flatEvents,lang){if(!(flatEvents!==null&&flatEvents!==void 0&&flatEvents.length))return[];const noSpaceLanguages=["zh",// 中文
+"ja",// 日文
+"ko",// 韩文（现代用空格，但结构上仍可连写）
+"th",// 泰文
+"lo",// 老挝文
+"km",// 高棉文
+"my"// 缅文
+];if(noSpaceLanguages.some(l=>lang===null||lang===void 0?void 0:lang.startsWith(l))){const subtitles=[];let currentLine=null;const MAX_LENGTH=100;for(const segment of flatEvents){if(segment.text){if(!currentLine){currentLine={text:segment.text,start:segment.start,end:segment.end};}else{currentLine.text+=segment.text;currentLine.end=segment.end;}if(currentLine.text.length>=MAX_LENGTH){subtitles.push(currentLine);currentLine=null;}}else{if(currentLine){subtitles.push(currentLine);currentLine=null;}}}if(currentLine){subtitles.push(currentLine);}return subtitles;}let subtitles=_classPrivateFieldBase(this,_processSubtitles)[_processSubtitles]({flatEvents});const isPoor=_classPrivateFieldBase(this,_isQualityPoor)[_isQualityPoor](subtitles);logger.debug("Youtube Provider: isQualityPoor",{isPoor,subtitles});if(isPoor){subtitles=_classPrivateFieldBase(this,_processSubtitles)[_processSubtitles]({flatEvents,usePause:true});}return subtitles;}function _isQualityPoor2(lines){let lengthThreshold=arguments.length>1&&arguments[1]!==undefined?arguments[1]:250;let percentageThreshold=arguments.length>2&&arguments[2]!==undefined?arguments[2]:0.1;if(lines.length===0)return false;const longLinesCount=lines.filter(line=>line.text.length>lengthThreshold).length;return longLinesCount/lines.length>percentageThreshold;}function _processSubtitles2(){let{flatEvents,usePause=false,timeout=1000,maxWords=15}=arguments.length>0&&arguments[0]!==undefined?arguments[0]:{};const groupedPauseWords={1:new Set(["actually","also","although","and","anyway","as","basically","because","but","eventually","frankly","honestly","hopefully","however","if","instead","it's","just","let's","like","literally","maybe","meanwhile","nevertheless","nonetheless","now","okay","or","otherwise","perhaps","personally","probably","right","since","so","suddenly","that's","then","there's","therefore","though","thus","unless","until","well","while"]),2:new Set(["after all","at first","at least","even if","even though","for example","for instance","i believe","i guess","i mean","i suppose","i think","in fact","in the end","of course","then again","to be fair","you know","you see"]),3:new Set(["as a result","by the way","in other words","in that case","in this case","to be clear","to be honest"])};const sentences=[];let currentBuffer=[];let bufferWordCount=0;const flushBuffer=()=>{if(currentBuffer.length>0){sentences.push({text:currentBuffer.map(s=>s.text).join(" ").trim(),start:currentBuffer[0].start,end:currentBuffer[currentBuffer.length-1].end});}currentBuffer=[];bufferWordCount=0;};flatEvents.forEach(segment=>{if(!segment.text)return;const lastSegment=currentBuffer[currentBuffer.length-1];if(lastSegment){const isEndOfSentence=/[.?!…\])]$/.test(lastSegment.text);const isPauseOfSentence=/[,]$/.test(lastSegment.text);const isTimeout=segment.start-lastSegment.end>timeout;const isWordLimitExceeded=(usePause||isPauseOfSentence)&&bufferWordCount>=maxWords;const startsWithSign=/^[[(♪]/.test(segment.text);const startsWithPauseWord=usePause&&groupedPauseWords["1"].has(segment.text.toLowerCase().split(" ")[0])&&currentBuffer.length>1;if(isEndOfSentence||isTimeout||isWordLimitExceeded||startsWithSign||startsWithPauseWord){flushBuffer();}}currentBuffer.push(segment);bufferWordCount+=segment.text.split(/\s+/).length;});flushBuffer();return sentences;}function _flatEvents2(){let events=arguments.length>0&&arguments[0]!==undefined?arguments[0]:[];const segments=[];let buffer=null;events.forEach(_ref3=>{let{segs=[],tStartMs=0,dDurationMs=0}=_ref3;segs.forEach((_ref4,j)=>{let{utf8="",tOffsetMs=0}=_ref4;const text=utf8.trim().replace(/\s+/g," ");const start=tStartMs+tOffsetMs;if(buffer){if(!buffer.end||buffer.end>start){buffer.end=start;}segments.push(buffer);buffer=null;}buffer={text,start};if(j===segs.length-1){buffer.end=tStartMs+dDurationMs;}});});segments.push(buffer);return segments;}function _splitEventsIntoChunks2(flatEvents){let chunkLength=arguments.length>1&&arguments[1]!==undefined?arguments[1]:1000;if(!flatEvents||flatEvents.length===0){return[];}const eventChunks=[];let currentChunk=[];let currentChunkTextLength=0;const MAX_CHUNK_LENGTH=chunkLength+500;const PAUSE_THRESHOLD_MS=1000;for(let i=0;i<flatEvents.length;i++){const event=flatEvents[i];currentChunk.push(event);currentChunkTextLength+=event.text.length;const isLastEvent=i===flatEvents.length-1;if(isLastEvent){continue;}let shouldSplit=false;if(currentChunkTextLength>=MAX_CHUNK_LENGTH){shouldSplit=true;}else if(currentChunkTextLength>=chunkLength){const isEndOfSentence=/[.?!…\])]$/.test(event.text);const nextEvent=flatEvents[i+1];const pauseDuration=nextEvent.start-event.end;if(isEndOfSentence||pauseDuration>PAUSE_THRESHOLD_MS){shouldSplit=true;}}if(shouldSplit){eventChunks.push(currentChunk);currentChunk=[];currentChunkTextLength=0;}}if(currentChunk.length>0){eventChunks.push(currentChunk);}return eventChunks;}async function _processRemainingChunksAsync2(_ref5){let{chunks,videoId,fromLang,toLang,segApiSetting}=_ref5;logger.info("Youtube Provider: Starting for ".concat(chunks.length," chunks."));for(let i=0;i<chunks.length;i++){var _chunkEvents$,_chunkEvents;const chunkEvents=chunks[i];const chunkNum=i+2;logger.info("Youtube Provider: Processing subtitle chunk ".concat(chunkNum,"/").concat(chunks.length+1,": ").concat((_chunkEvents$=chunkEvents[0])===null||_chunkEvents$===void 0?void 0:_chunkEvents$.start," --> ").concat((_chunkEvents=chunkEvents[chunkEvents.length-1])===null||_chunkEvents===void 0?void 0:_chunkEvents.start));let subtitlesForThisChunk=[];try{const aiSubtitles=await _classPrivateFieldBase(this,_aiSegment)[_aiSegment]({videoId,chunkEvents,fromLang,toLang,segApiSetting});if((aiSubtitles===null||aiSubtitles===void 0?void 0:aiSubtitles.length)>0){subtitlesForThisChunk=aiSubtitles;}else{logger.info("Youtube Provider: AI segmentation for chunk ".concat(chunkNum," returned no data."));subtitlesForThisChunk=_classPrivateFieldBase(this,_formatSubtitles)[_formatSubtitles](chunkEvents,fromLang);}}catch(chunkError){subtitlesForThisChunk=_classPrivateFieldBase(this,_formatSubtitles)[_formatSubtitles](chunkEvents,fromLang);}if(_classPrivateFieldBase(this,_getVideoId)[_getVideoId]()!==videoId){logger.info("Youtube Provider: videoId changed!");break;}if(subtitlesForThisChunk.length>0&&_classPrivateFieldBase(this,_managerInstance)[_managerInstance]){logger.info("Youtube Provider: Appending ".concat(subtitlesForThisChunk.length," subtitles from chunk ").concat(chunkNum,"."));_classPrivateFieldBase(this,_managerInstance)[_managerInstance].appendSubtitles(subtitlesForThisChunk);}else{logger.info("Youtube Provider: Chunk ".concat(chunkNum," no subtitles."));}await sleep(randomBetween(500,1000));}logger.info("Youtube Provider: All subtitle chunks processed.");}function _createNotificationElement2(){var _videoEl$parentElemen;const notificationEl=document.createElement("div");notificationEl.className="kiss-notification";Object.assign(notificationEl.style,{position:"absolute",top:"40%",left:"50%",transform:"translateX(-50%)",background:"rgba(0,0,0,0.7)",color:"red",padding:"0.5em 1em",borderRadius:"4px",zIndex:"2147483647",opacity:"0",transition:"opacity 0.3s ease-in-out",pointerEvents:"none",fontSize:"2em",width:"50%",textAlign:"center"});const videoEl=document.querySelector(VIDEO_SELECT);const videoContainer=videoEl===null||videoEl===void 0?void 0:(_videoEl$parentElemen=videoEl.parentElement)===null||_videoEl$parentElemen===void 0?void 0:_videoEl$parentElemen.parentElement;if(videoContainer){videoContainer.appendChild(notificationEl);_classPrivateFieldBase(this,_notificationEl)[_notificationEl]=notificationEl;}}function _showNotification2(message){let duration=arguments.length>1&&arguments[1]!==undefined?arguments[1]:3000;if(!_classPrivateFieldBase(this,_notificationEl)[_notificationEl])_classPrivateFieldBase(this,_createNotificationElement)[_createNotificationElement]();_classPrivateFieldBase(this,_notificationEl)[_notificationEl].textContent=message;_classPrivateFieldBase(this,_notificationEl)[_notificationEl].style.opacity="1";clearTimeout(_classPrivateFieldBase(this,_notificationTimeout)[_notificationTimeout]);_classPrivateFieldBase(this,_notificationTimeout)[_notificationTimeout]=setTimeout(()=>{_classPrivateFieldBase(this,_notificationEl)[_notificationEl].style.opacity="0";},duration);}const YouTubeInitializer=(()=>{let initialized=false;return async setting=>{if(initialized){return;}initialized=true;logger.info("Bilingual Subtitle Extension: Initializing...");const provider=new YouTubeCaptionProvider(setting);provider.initialize();};})();
+;// CONCATENATED MODULE: ./src/subtitle/subtitle.js
+const providers=[{pattern:"https://www.youtube.com",start:YouTubeInitializer}];function runSubtitle(_ref){let{href,setting}=_ref;try{const subtitleSetting=setting.subtitleSetting||DEFAULT_SUBTITLE_SETTING;if(!subtitleSetting.enabled){return;}const provider=providers.find(item=>isMatch(href,item.pattern));if(provider){const id="kiss-translator-injector";const src=browser.runtime.getURL("injector.js");injectExternalJs(src,id);const apiSetting=setting.transApis.find(api=>api.apiSlug===subtitleSetting.apiSlug)||DEFAULT_API_SETTING;const segApiSetting=setting.transApis.find(api=>api.apiSlug===subtitleSetting.segSlug);provider.start({...subtitleSetting,apiSetting,segApiSetting,uiLang:setting.uiLang});}}catch(err){logger.error("start subtitle provider",err);}}
 ;// CONCATENATED MODULE: ./src/common.js
 /**
  * 油猴脚本设置页面
- */function runSettingPage(){var _GM,_GM$info,_GM$info$script,_GM$info$script$grant;if((_GM=GM)!==null&&_GM!==void 0&&(_GM$info=_GM.info)!==null&&_GM$info!==void 0&&(_GM$info$script=_GM$info.script)!==null&&_GM$info$script!==void 0&&(_GM$info$script$grant=_GM$info$script.grant)!==null&&_GM$info$script$grant!==void 0&&_GM$info$script$grant.includes("unsafeWindow")){unsafeWindow.GM=GM;unsafeWindow.APP_INFO={name:"KISS Translator",version:"1.9.2"};}else{const ping=utils_genEventName();window.addEventListener(ping,handlePing);// window.eval(`(${injectScript})("${ping}")`); // eslint-disable-line
+ */function runSettingPage(){var _GM,_GM$info,_GM$info$script,_GM$info$script$grant;if((_GM=GM)!==null&&_GM!==void 0&&(_GM$info=_GM.info)!==null&&_GM$info!==void 0&&(_GM$info$script=_GM$info.script)!==null&&_GM$info$script!==void 0&&(_GM$info$script$grant=_GM$info$script.grant)!==null&&_GM$info$script$grant!==void 0&&_GM$info$script$grant.includes("unsafeWindow")){unsafeWindow.GM=GM;unsafeWindow.APP_INFO={name:"KISS Translator",version:"2.0.0"};}else{const ping=utils_genEventName();window.addEventListener(ping,handlePing);// window.eval(`(${injectScript})("${ping}")`); // eslint-disable-line
 const script=document.createElement("script");script.textContent="(".concat(injectScript,")(\"").concat(ping,"\")");document.head.append(script);}}/**
- * 插件监听后端事件
- * @param {*} translator
- */function runtimeListener(translator){browser===null||browser===void 0?void 0:browser.runtime.onMessage.addListener(async _ref=>{let{action,args}=_ref;switch(action){case MSG_TRANS_TOGGLE:translator.toggle();sendIframeMsg(MSG_TRANS_TOGGLE);break;case MSG_TRANS_TOGGLE_STYLE:translator.toggleStyle();sendIframeMsg(MSG_TRANS_TOGGLE_STYLE);break;case MSG_TRANS_GETRULE:break;case MSG_TRANS_PUTRULE:translator.updateRule(args);sendIframeMsg(MSG_TRANS_PUTRULE,args);break;case MSG_OPEN_TRANBOX:window.dispatchEvent(new CustomEvent(MSG_OPEN_TRANBOX));break;default:return{error:"message action is unavailable: ".concat(action)};}return{rule:translator.rule,setting:translator.setting};});}/**
  * iframe 页面执行
  * @param {*} translator
  */function runIframe(translator){window.addEventListener("message",e=>{const{action,args}=e.data||{};switch(action){case MSG_TRANS_TOGGLE:translator===null||translator===void 0?void 0:translator.toggle();break;case MSG_TRANS_TOGGLE_STYLE:translator===null||translator===void 0?void 0:translator.toggleStyle();break;case MSG_TRANS_PUTRULE:translator.updateRule(args||{});break;default:}});}/**
  * 悬浮按钮
  * @param {*} translator
  * @returns
- */async function showFab(translator){const fab=await getFabWithDefault();const $action=document.createElement("div");$action.setAttribute("id",APP_LCNAME);$action.style.fontSize="0";$action.style.width="0";$action.style.height="0";document.body.parentElement.appendChild($action);const shadowContainer=$action.attachShadow({mode:"closed"});const emotionRoot=document.createElement("style");const shadowRootElement=document.createElement("div");shadowContainer.appendChild(emotionRoot);shadowContainer.appendChild(shadowRootElement);const cache=(0,emotion_cache_browser_esm/* default */.Z)({key:APP_LCNAME,prepend:true,container:emotionRoot});client.createRoot(shadowRootElement).render(/*#__PURE__*/(0,jsx_runtime.jsx)(react.StrictMode,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(emotion_element_c39617d8_browser_esm.C,{value:cache,children:/*#__PURE__*/(0,jsx_runtime.jsx)(Action,{translator:translator,fab:fab})})}));}/**
- * 划词翻译
- * @param {*} param0
- * @returns
- */function showTransbox(_ref2,_ref3){let{contextMenuType,tranboxSetting=DEFAULT_TRANBOX_SETTING,transApis,darkMode,uiLang,langDetector}=_ref2;let{transSelected}=_ref3;if(transSelected==="false"){return;}const $tranbox=document.createElement("div");$tranbox.setAttribute("id","kiss-transbox");$tranbox.style.fontSize="0";$tranbox.style.width="0";$tranbox.style.height="0";document.body.parentElement.appendChild($tranbox);const shadowContainer=$tranbox.attachShadow({mode:"closed"});const emotionRoot=document.createElement("style");const shadowRootElement=document.createElement("div");shadowRootElement.classList.add("KT-transbox");shadowRootElement.classList.add("KT-transbox_".concat(darkMode?"dark":"light"));shadowContainer.appendChild(emotionRoot);shadowContainer.appendChild(shadowRootElement);const cache=(0,emotion_cache_browser_esm/* default */.Z)({key:"kiss-transbox",prepend:true,container:emotionRoot});client.createRoot(shadowRootElement).render(/*#__PURE__*/(0,jsx_runtime.jsx)(react.StrictMode,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(emotion_element_c39617d8_browser_esm.C,{value:cache,children:/*#__PURE__*/(0,jsx_runtime.jsx)(Slection,{contextMenuType:contextMenuType,tranboxSetting:tranboxSetting,transApis:transApis,uiLang:uiLang,langDetector:langDetector})})}));}/**
+ */async function showFab(translator){const fab=await getFabWithDefault();const $action=document.createElement("div");$action.id=APP_CONSTS.fabID;$action.className="notranslate";$action.style.fontSize="0";$action.style.width="0";$action.style.height="0";document.body.parentElement.appendChild($action);const shadowContainer=$action.attachShadow({mode:"closed"});const emotionRoot=document.createElement("style");const shadowRootElement=document.createElement("div");shadowRootElement.className="".concat(APP_CONSTS.fabID,"_warpper notranslate");shadowContainer.appendChild(emotionRoot);shadowContainer.appendChild(shadowRootElement);const cache=(0,emotion_cache_browser_esm/* default */.Z)({key:APP_CONSTS.fabID,prepend:true,container:emotionRoot});client.createRoot(shadowRootElement).render(/*#__PURE__*/(0,jsx_runtime.jsx)(react.StrictMode,{children:/*#__PURE__*/(0,jsx_runtime.jsx)(emotion_element_c39617d8_browser_esm.C,{value:cache,children:/*#__PURE__*/(0,jsx_runtime.jsx)(Action,{translator:translator,fab:fab})})}));}/**
  * 显示错误信息到页面顶部
  * @param {*} message
- */function showErr(message){const $err=document.createElement("div");$err.innerText="KISS-Translator: ".concat(message);$err.style.cssText="background:red; color:#fff;";document.body.prepend($err);}/**
+ */function showErr(message){const bannerId="KISS-Translator-Message";const existingBanner=document.getElementById(bannerId);if(existingBanner){existingBanner.remove();}const banner=document.createElement("div");banner.id=bannerId;Object.assign(banner.style,{position:"fixed",top:"0",left:"0",width:"100%",backgroundColor:"#f44336",color:"white",textAlign:"center",padding:"8px 16px",zIndex:"1001",boxSizing:"border-box",fontSize:"16px",boxShadow:"0 2px 5px rgba(0,0,0,0.2)"});const closeButton=document.createElement("span");closeButton.innerHTML="&times;";Object.assign(closeButton.style,{position:"absolute",top:"50%",right:"20px",transform:"translateY(-50%)",cursor:"pointer",fontSize:"22px",fontWeight:"bold"});const messageText=document.createTextNode("KISS-Translator: ".concat(message));banner.appendChild(messageText);banner.appendChild(closeButton);document.body.appendChild(banner);const removeBanner=()=>{banner.style.transition="opacity 0.5s ease";banner.style.opacity="0";setTimeout(()=>{if(banner&&banner.parentNode){banner.parentNode.removeChild(banner);}},500);};closeButton.onclick=removeBanner;setTimeout(removeBanner,10000);}/**
  * 监听触屏操作
  * @param {*} translator
  * @returns
  */function touchOperation(translator){const{touchTranslate=2}=translator.setting;if(touchTranslate===0){return;}const handleTap=debounce(()=>{translator.toggle();sendIframeMsg(MSG_TRANS_TOGGLE);});touchTapListener(handleTap,touchTranslate);}/**
  * 入口函数
- */async function common_run(){let isUserscript=arguments.length>0&&arguments[0]!==undefined?arguments[0]:false;try{const href=document.location.href;// 设置页面
-if(isUserscript&&(href.includes("http://localhost:3000/options.html")||href.includes("https://fishjar.github.io/kiss-translator/options.html"))){runSettingPage();return;}// 读取设置信息
-const setting=await getSettingWithDefault();// 黑名单
+ */async function run(){let isUserscript=arguments.length>0&&arguments[0]!==undefined?arguments[0]:false;try{// 读取设置信息
+const setting=await storage_getSettingWithDefault();// 日志
+logger.setLevel(setting.logLevel);const href=document.location.href;// 设置页面
+if(isUserscript&&(href.includes("http://localhost:3000/options.html")||href.includes("https://fishjar.github.io/kiss-translator/options.html"))){runSettingPage();return;}// 黑名单
 if(isInBlacklist(href,setting)){return;}// 翻译网页
-const rule=await matchRule(href,setting);const translator=new Translator(rule,setting);// 适配iframe
-if(isIframe){runIframe(translator);return;}// 监听消息
-!isUserscript&&runtimeListener(translator);// 输入框翻译
-inputTranslate(setting);// 划词翻译
-showTransbox(setting,rule);// 浮球按钮
+const rule=await matchRule(href,setting);const translator=new translator_Translator(rule,setting,isUserscript);// 适配iframe
+if(isIframe){runIframe(translator);return;}// 字幕翻译
+runSubtitle({href,setting,rule});// 监听消息
+// !isUserscript && runtimeListener(translator);
+// 输入框翻译
+// inputTranslate(setting);
+// 划词翻译
+// showTransbox(setting, rule);
+// 浮球按钮
 await showFab(translator);// 触屏操作
 touchOperation(translator);// 同步订阅规则
 isUserscript&&(await trySyncAllSubRules(setting));}catch(err){console.error("[KISS-Translator]",err);showErr(err.message);}}
 ;// CONCATENATED MODULE: ./src/userscript.js
-common_run(true);
+run(true);
 })();
 
 /******/ })()
