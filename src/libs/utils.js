@@ -15,7 +15,7 @@ export const limitNumber = (num, min = 0, max = 100) => {
   return number;
 };
 
-export const limitFloat = (num, min = 0, max = 100) => {
+export const limitFloat = (num, min = 0.0, max = 100.0) => {
   const number = parseFloat(num);
   if (Number.isNaN(number) || number < min) {
     return min;

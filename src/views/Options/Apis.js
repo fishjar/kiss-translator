@@ -299,8 +299,9 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
                   name="temperature"
                   value={temperature}
                   onChange={handleChange}
-                  min={0}
-                  max={2}
+                  min={0.0}
+                  max={2.0}
+                  isFloat={true}
                 />
               </Grid>
               <Grid item xs={12} sm={12} md={6} lg={3}>

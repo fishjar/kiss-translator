@@ -448,7 +448,7 @@ const defaultApi = {
   useBatchFetch: false, // 是否启用聚合发送请求
   useContext: false, // 是否启用智能上下文
   contextSize: DEFAULT_CONTEXT_SIZE, // 智能上下文保留会话数
-  temperature: 0,
+  temperature: 0.0,
   maxTokens: 20480,
   think: false,
   thinkIgnore: "qwen3,deepseek-r1",

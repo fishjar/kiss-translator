@@ -1,8 +1,16 @@
 import { useState, useEffect } from "react";
 import TextField from "@mui/material/TextField";
-import { limitNumber } from "../libs/utils";
+import { limitNumber, limitFloat } from "../libs/utils";
 
-function ValidationInput({ value, onChange, name, min, max, ...props }) {
+function ValidationInput({
+  value,
+  onChange,
+  name,
+  min,
+  max,
+  isFloat = false,
+  ...props
+}) {
   const [localValue, setLocalValue] = useState(value);
 
   useEffect(() => {
@@ -21,7 +29,9 @@ function ValidationInput({ value, onChange, name, min, max, ...props }) {
       return;
     }
 
-    const validatedValue = limitNumber(numValue, min, max);
+    const validatedValue = isFloat
+      ? limitFloat(numValue, min, max)
+      : limitNumber(numValue, min, max);
 
     if (validatedValue !== numValue) {
       setLocalValue(validatedValue);
