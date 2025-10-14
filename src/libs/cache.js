@@ -47,11 +47,12 @@ const newCacheReq = async (input, init) => {
  */
 export const getHttpCache = async ({ input, init }) => {
   try {
-    const req = await newCacheReq(input, init);
+    const request = await newCacheReq(input, init);
     const cache = await caches.open(CACHE_NAME);
-    const res = await cache.match(req);
-    if (res) {
-      return await parseResponse(res);
+    const response = await cache.match(request);
+    if (response) {
+      const res = await parseResponse(response);
+      return res;
     }
   } catch (err) {
     kissLog("get cache", err);

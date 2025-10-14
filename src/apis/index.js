@@ -378,14 +378,14 @@ export const apiBuiltinAIDetect = async (text) => {
  * @param {*} param0
  * @returns
  */
-const apiBuiltinAITranslate = ({ text, from, to, apiSetting }) => {
+const apiBuiltinAITranslate = async ({ text, from, to, apiSetting }) => {
   if (!isBuiltinAIAvailable) {
     return ["", true];
   }
 
   const { fetchInterval, fetchLimit, httpTimeout } = apiSetting;
   const fetchPool = getFetchPool(fetchInterval, fetchLimit);
-  return withTimeout(
+  const result = await withTimeout(
     fetchPool.push(fnPolyfill, {
       fn: chromeTranslate,
       msg: MSG_BUILTINAI_TRANSLATE,
@@ -395,6 +395,17 @@ const apiBuiltinAITranslate = ({ text, from, to, apiSetting }) => {
     }),
     httpTimeout
   );
+
+  if (!result) {
+    throw new Error("apiBuiltinAITranslate got null reault");
+  }
+
+  const [trText, srLang, error] = result;
+  if (error) {
+    throw new Error("apiBuiltinAITranslate got error", error);
+  }
+
+  return [trText, srLang];
 };
 
 /**
@@ -438,17 +449,16 @@ export const apiTranslate = async ({
 
   // 查询缓存数据
   if (useCache) {
-    const cache = (await getHttpCachePolyfill(cacheInput)) || {};
-    if (cache.trText) {
+    const cache = await getHttpCachePolyfill(cacheInput);
+    if (cache?.trText) {
       return [cache.trText, cache.isSame];
     }
   }
 
   // 请求接口数据
-  let trText = "";
-  let srLang = "";
+  let tranlation = [];
   if (apiType === OPT_TRANS_BUILTINAI) {
-    [trText, srLang] = await apiBuiltinAITranslate({
+    tranlation = await apiBuiltinAITranslate({
       text,
       from,
       to,
@@ -462,7 +472,7 @@ export const apiTranslate = async ({
       batchSize,
       batchLength,
     });
-    const tranlation = await queue.addTask(text, {
+    tranlation = await queue.addTask(text, {
       from,
       to,
       fromLang,
@@ -473,13 +483,8 @@ export const apiTranslate = async ({
       apiSetting,
       usePool,
     });
-    if (Array.isArray(tranlation)) {
-      [trText, srLang = ""] = tranlation;
-    } else if (typeof tranlation === "string") {
-      trText = tranlation;
-    }
   } else {
-    const translations = await handleTranslate([text], {
+    [tranlation] = await handleTranslate([text], {
       from,
       to,
       fromLang,
@@ -490,19 +495,24 @@ export const apiTranslate = async ({
       apiSetting,
       usePool,
     });
-    if (Array.isArray(translations)) {
-      if (Array.isArray(translations[0])) {
-        [trText, srLang = ""] = translations[0];
-      } else {
-        [trText, srLang = ""] = translations;
-      }
-    }
+  }
+
+  let trText = "";
+  let srLang = "";
+  if (Array.isArray(tranlation)) {
+    [trText, srLang = ""] = tranlation;
+  } else if (typeof tranlation === "string") {
+    trText = tranlation;
+  }
+
+  if (!trText) {
+    throw new Error("tanslate api got empty trtext");
   }
 
   const isSame = fromLang === "auto" && srLang === to;
 
   // 插入缓存
-  if (useCache && trText) {
+  if (useCache) {
     putHttpCachePolyfill(cacheInput, null, { trText, isSame, srLang });
   }
 

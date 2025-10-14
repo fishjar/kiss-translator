@@ -745,6 +745,7 @@ export const parseTransRes = async (
 
   let modelMsg = "";
 
+  // todo: 根据结果抛出实际异常信息
   switch (apiType) {
     case OPT_TRANS_GOOGLE:
       return [[res?.sentences?.map((item) => item.trans).join(" "), res?.src]];
@@ -842,7 +843,7 @@ export const parseTransRes = async (
     default:
   }
 
-  return [];
+  throw new Error("parse translate result: apiType not matched", apiType);
 };
 
 /**
@@ -883,6 +884,9 @@ export const handleTranslate = async (
   let token = "";
   if (apiType === OPT_TRANS_MICROSOFT) {
     token = await msAuth();
+    if (!token) {
+      throw new Error("got msauth error");
+    }
   }
 
   const [input, init, userMsg] = await genTransReq({
@@ -899,19 +903,18 @@ export const handleTranslate = async (
     ...apiSetting,
   });
 
-  const res = await fetchData(input, init, {
+  const response = await fetchData(input, init, {
     useCache: false,
     usePool,
     fetchInterval,
     fetchLimit,
     httpTimeout,
   });
-  if (!res) {
-    kissLog("tranlate got empty response");
-    return [];
+  if (!response) {
+    throw new Error("tranlate got empty response");
   }
 
-  return parseTransRes(res, {
+  const result = await parseTransRes(response, {
     texts,
     from,
     to,
@@ -922,6 +925,11 @@ export const handleTranslate = async (
     userMsg,
     ...apiSetting,
   });
+  if (!Array.isArray(result)) {
+    throw new Error("tranlate got an unexpected result");
+  }
+
+  return result;
 };
 
 /**

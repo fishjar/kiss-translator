@@ -970,6 +970,7 @@ export class Translator {
       // langDetector，
     } = this.#setting;
     const parentNode = hostNode.parentElement;
+    const hideOrigin = transOnly === "true";
 
     // 翻译开始钩子函数
     if (transStartHook?.trim()) {
@@ -985,49 +986,37 @@ export class Translator {
       }
     }
 
-    const [processedString, placeholderMap] =
-      this.#serializeForTranslation(nodes);
-    // console.log("processedString", processedString);
-    if (this.#isInvalidText(processedString)) return;
-
-    const wrapper = document.createElement(this.#translationTagName);
-    wrapper.className = Translator.KISS_CLASS.warpper;
-
-    if (processedString.length > newlineLength) {
-      const br = document.createElement("br");
-      br.hidden = transOnly === "true";
-      wrapper.appendChild(br);
-    }
-
-    const inner = document.createElement(transTag);
-    inner.className = `${Translator.KISS_CLASS.inner} ${this.#textClass[textStyle]}`;
-    inner.appendChild(createLoadingSVG());
-    wrapper.appendChild(inner);
-    nodes[nodes.length - 1].after(wrapper);
-
-    this.#translationNodes.set(wrapper, {
-      nodes,
-      isHide: transOnly === "true",
-    });
-    const currentRunId = this.#runId;
-
     try {
-      // const deLang = await tryDetectLang(
-      //   processedString,
-      //   detectRemote,
-      //   langDetector
-      // );
-      // if (deLang && (toLang.includes(deLang) || skipLangs.includes(deLang))) {
-      //   wrapper.remove();
-      //   return;
-      // }
+      const [processedString, placeholderMap] =
+        this.#serializeForTranslation(nodes);
+      // console.log("processedString", processedString);
+      if (this.#isInvalidText(processedString)) return;
 
+      const wrapper = document.createElement(this.#translationTagName);
+      wrapper.className = Translator.KISS_CLASS.warpper;
+
+      if (processedString.length > newlineLength) {
+        const br = document.createElement("br");
+        br.hidden = hideOrigin;
+        wrapper.appendChild(br);
+      }
+
+      const inner = document.createElement(transTag);
+      inner.className = `${Translator.KISS_CLASS.inner} ${this.#textClass[textStyle]}`;
+      inner.appendChild(createLoadingSVG());
+      wrapper.appendChild(inner);
+      nodes[nodes.length - 1].after(wrapper);
+
+      const currentRunId = this.#runId;
       const [translatedText, isSameLang] = await this.#translateFetch(
         processedString,
         deLang
       );
-      // console.log("translatedText", translatedText);
-      if (isSameLang || this.#runId !== currentRunId) {
+      if (this.#runId !== currentRunId) {
+        throw new Error("Request terminated");
+      }
+
+      if (!translatedText || isSameLang) {
         wrapper.remove();
         return;
       }
@@ -1036,7 +1025,11 @@ export class Translator {
         translatedText,
         placeholderMap
       );
-      if (transOnly === "true") {
+      this.#translationNodes.set(wrapper, {
+        nodes,
+        isHide: hideOrigin,
+      });
+      if (hideOrigin) {
         this.#removeNodes(nodes);
       }
 
@@ -1069,8 +1062,8 @@ export class Translator {
     } catch (err) {
       // inner.textContent = `[失败]...`;
       // todo: 失败重试按钮
-      wrapper.remove();
-      kissLog("translateNodeGroup", err);
+      kissLog("translate group error: ", err.message);
+      this.#cleanupDirectTranslations(hostNode);
     }
   }
 
