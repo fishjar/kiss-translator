@@ -258,7 +258,7 @@ export class BilingualSubtitleManager {
       p1.textContent = truncateWords(subtitle.text);
 
       const p2 = document.createElement("p");
-      p2.style.cssText = this.#setting.originStyle;
+      p2.style.cssText = this.#setting.translationStyle;
       p2.textContent = truncateWords(subtitle.translation) || "...";
 
       if (this.#setting.isBilingual) {
