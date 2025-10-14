@@ -38,7 +38,7 @@ export class TransboxManager {
       this.#shadowContainer = this.#container.attachShadow({ mode: "closed" });
       const emotionRoot = document.createElement("style");
       const shadowRootElement = document.createElement("div");
-      shadowRootElement.classList.add(`${APP_CONSTS.boxID}_warpper notranslate`);
+      shadowRootElement.className = `${APP_CONSTS.boxID}_warpper notranslate`;
       this.#shadowContainer.appendChild(emotionRoot);
       this.#shadowContainer.appendChild(shadowRootElement);
       const cache = createCache({

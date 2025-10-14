@@ -80,7 +80,7 @@ async function showFab(translator) {
   const shadowContainer = $action.attachShadow({ mode: "closed" });
   const emotionRoot = document.createElement("style");
   const shadowRootElement = document.createElement("div");
-  shadowRootElement.classList.add(`${APP_CONSTS.fabID}_warpper notranslate`);
+  shadowRootElement.className = `${APP_CONSTS.fabID}_warpper notranslate`;
   shadowContainer.appendChild(emotionRoot);
   shadowContainer.appendChild(shadowRootElement);
   const cache = createCache({
