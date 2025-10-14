@@ -1021,10 +1021,19 @@ export class Translator {
         return;
       }
 
-      inner.innerHTML = this.#restoreFromTranslation(
+      const htmlString = this.#restoreFromTranslation(
         translatedText,
         placeholderMap
       );
+      const trustedHTML = this.#createTrustedHTML(htmlString);
+
+      // const parser = new DOMParser();
+      // const doc = parser.parseFromString(trustedHTML, "text/html");
+      // const innerElement = doc.body.firstChild;
+      // inner.replaceChildren(innerElement);
+
+      inner.innerHTML = trustedHTML;
+
       this.#translationNodes.set(wrapper, {
         nodes,
         isHide: hideOrigin,
@@ -1065,6 +1074,19 @@ export class Translator {
       kissLog("translate group error: ", err.message);
       this.#cleanupDirectTranslations(hostNode);
     }
+  }
+
+  #createTrustedHTML(html) {
+    if (window.trustedTypes && window.trustedTypes.createPolicy) {
+      const policy = window.trustedTypes.createPolicy(
+        "kiss-translator-policy#html",
+        {
+          createHTML: (input) => input,
+        }
+      );
+      return policy.createHTML(html);
+    }
+    return html;
   }
 
   // 处理节点转为翻译字符串

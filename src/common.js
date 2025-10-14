@@ -127,7 +127,7 @@ function showErr(message) {
   });
 
   const closeButton = document.createElement("span");
-  closeButton.innerHTML = "&times;";
+  closeButton.textContent = "×";
 
   Object.assign(closeButton.style, {
     position: "absolute",
