@@ -72,7 +72,7 @@ export default function TranCont({
     <Box>
       <TextField
         size="small"
-        label={`${i18n("translated_text")} - ${apiSetting.apiSlug}`}
+        label={`${i18n("translated_text")} - ${apiSetting.apiName}`}
         // disabled
         fullWidth
         multiline
