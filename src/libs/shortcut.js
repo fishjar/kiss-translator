@@ -34,12 +34,18 @@ export const shortcutListener = (
     pressedKeys.delete(e.code);
   };
 
+  const handleBlur = () => {
+    pressedKeys.clear();
+  };
+
   target.addEventListener("keydown", handleKeyDown);
   target.addEventListener("keyup", handleKeyUp);
+  window.addEventListener("blur", handleBlur);
 
   return () => {
     target.removeEventListener("keydown", handleKeyDown);
     target.removeEventListener("keyup", handleKeyUp);
+    window.removeEventListener("blur", handleBlur);
     pressedKeys.clear();
   };
 };
