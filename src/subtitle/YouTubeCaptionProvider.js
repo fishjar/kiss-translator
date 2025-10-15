@@ -70,8 +70,8 @@ class YouTubeCaptionProvider {
   }
 
   #moAds(adContainer) {
-    const adLayout = ".ytp-ad-player-overlay-layout";
-    const skipBtn =
+    const adLayoutSelector = ".ytp-ad-player-overlay-layout";
+    const skipBtnSelector =
       ".ytp-skip-ad-button, .ytp-ad-skip-button, .ytp-ad-skip-button-modern";
     const observer = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
@@ -80,7 +80,7 @@ class YouTubeCaptionProvider {
           mutation.addedNodes.forEach((node) => {
             if (node.nodeType !== Node.ELEMENT_NODE) return;
 
-            if (node.matches(adLayout)) {
+            if (node.matches(adLayoutSelector)) {
               logger.debug("Youtube Provider: AD start playing!", node);
               // todo: 顺带把广告快速跳过
               if (videoEl) {
@@ -90,15 +90,21 @@ class YouTubeCaptionProvider {
               if (this.#managerInstance) {
                 this.#managerInstance.setIsAdPlaying(true);
               }
-            } else if (node.matches(skipBtn)) {
+            } else if (node.matches(skipBtnSelector)) {
               logger.debug("Youtube Provider: AD skip button!", node);
               node.click();
+            }
+
+            const skipBtn = node?.querySelector(skipBtnSelector);
+            if (skipBtn) {
+              logger.debug("Youtube Provider: AD skip button!!", skipBtn);
+              skipBtn.click();
             }
           });
           mutation.removedNodes.forEach((node) => {
             if (node.nodeType !== Node.ELEMENT_NODE) return;
 
-            if (node.matches(adLayout)) {
+            if (node.matches(adLayoutSelector)) {
               logger.debug("Youtube Provider: Ad ends!");
               if (videoEl) {
                 videoEl.playbackRate = 1;
