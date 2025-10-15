@@ -12,7 +12,12 @@ export function useDarkMode() {
   } = useSetting();
 
   const toggleDarkMode = useCallback(() => {
-    updateSetting({ darkMode: !darkMode });
+    const nextMode = {
+      light: "dark",
+      dark: "auto",
+      auto: "light",
+    };
+    updateSetting({ darkMode: nextMode[darkMode] || "light" });
   }, [darkMode, updateSetting]);
 
   return { darkMode, toggleDarkMode };

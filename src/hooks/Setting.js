@@ -34,6 +34,15 @@ export function SettingProvider({ children }) {
   } = useStorage(STOKEY_SETTING, DEFAULT_SETTING, KV_SETTING_KEY);
 
   useEffect(() => {
+    if (typeof setting?.darkMode === "boolean") {
+      update((currentSetting) => ({
+        ...currentSetting,
+        darkMode: currentSetting.darkMode ? "dark" : "light",
+      }));
+    }
+  }, [setting?.darkMode, update]);
+
+  useEffect(() => {
     (async () => {
       try {
         logger.setLevel(setting?.logLevel);
