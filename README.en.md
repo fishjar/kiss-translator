@@ -96,7 +96,7 @@ A simple, open source [bilingual translation extension & Greasemonkey script](ht
 
 > Note: For the following reasons, it is recommended to use browser extensions first
 >
-> - Browser extensions have more complete functions (subtitle translation, local language recognition, context menu, etc.)
+> - Browser extensions have more complete functions (local language recognition, context menu, etc.)
 > - Grease Monkey script will encounter more usage problems (cross domain issues, script conflicts, etc.)
 
 - [x] Browser extension

@@ -1609,8 +1609,8 @@ export const I18N = {
     zh_TW: `AI处理切割长度(200-20000)`,
   },
   subtitle_helper_1: {
-    zh: `1、目前仅支持Youtube桌面网站，且仅支持浏览器扩展。`,
-    en: `1. Currently only supports Youtube desktop website and browser extension.`,
+    zh: `1、目前仅支持Youtube桌面网站。`,
+    en: `1. Currently only supports Youtube desktop website.`,
     zh_TW: `1.目前僅支援Youtube桌面網站，且僅支援瀏覽器擴充功能。`,
   },
   subtitle_helper_2: {
