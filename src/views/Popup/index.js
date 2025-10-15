@@ -471,11 +471,9 @@ export default function Popup({ setShowPopup, translator }) {
           <Button variant="text" onClick={handleSaveRule}>
             {i18n("save_rule")}
           </Button>
-          {!isExt && (
-            <Button variant="text" onClick={handleClearCache}>
-              {i18n("clear_cache")}
-            </Button>
-          )}
+          <Button variant="text" onClick={handleClearCache}>
+            {i18n("clear_cache")}
+          </Button>
           <Button variant="text" onClick={handleOpenSetting}>
             {i18n("setting")}
           </Button>

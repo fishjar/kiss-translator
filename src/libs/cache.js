@@ -1,6 +1,7 @@
 import {
   CACHE_NAME,
   DEFAULT_CACHE_TIMEOUT,
+  MSG_CLEAR_CACHES,
   MSG_GET_HTTPCACHE,
   MSG_PUT_HTTPCACHE,
 } from "../config";
@@ -15,7 +16,11 @@ import { blobToBase64 } from "./utils";
  */
 export const tryClearCaches = async () => {
   try {
-    caches.delete(CACHE_NAME);
+    if (isExt && !isBg) {
+      await sendBgMsg(MSG_CLEAR_CACHES);
+    } else {
+      await caches.delete(CACHE_NAME);
+    }
   } catch (err) {
     kissLog("clean caches", err);
   }

@@ -23,6 +23,7 @@ import {
   CMD_OPEN_TRANBOX,
   CLIENT_THUNDERBIRD,
   MSG_SET_LOGLEVEL,
+  MSG_CLEAR_CACHES,
 } from "./config";
 import { getSettingWithDefault, tryInitDefaultData } from "./libs/storage";
 import { trySyncSettingAndRules } from "./libs/sync";
@@ -275,6 +276,7 @@ const messageHandlers = {
   [MSG_BUILTINAI_DETECT]: (args) => chromeDetect(args),
   [MSG_BUILTINAI_TRANSLATE]: (args) => chromeTranslate(args),
   [MSG_SET_LOGLEVEL]: (args) => logger.setLevel(args),
+  [MSG_CLEAR_CACHES]: () => tryClearCaches(),
 };
 
 /**

@@ -3,7 +3,7 @@ export const CMD_TOGGLE_STYLE = "toggleStyle";
 export const CMD_OPEN_OPTIONS = "openOptions";
 export const CMD_OPEN_TRANBOX = "openTranbox";
 
-export const MSG_FETCH = "fetch";
+export const MSG_FETCH = "kiss_fetch";
 export const MSG_GET_HTTPCACHE = "get_httpcache";
 export const MSG_PUT_HTTPCACHE = "put_httpcache";
 export const MSG_OPEN_OPTIONS = "open_options";
@@ -25,6 +25,7 @@ export const MSG_UPDATE_CSP = "update_csp";
 export const MSG_BUILTINAI_DETECT = "builtinai_detect";
 export const MSG_BUILTINAI_TRANSLATE = "builtinai_translte";
 export const MSG_SET_LOGLEVEL = "set_loglevel";
+export const MSG_CLEAR_CACHES = "clear_caches";
 
 export const MSG_XHR_DATA_YOUTUBE = "KISS_XHR_DATA_YOUTUBE";
 // export const MSG_GLOBAL_VAR_FETCH = "KISS_GLOBAL_VAR_FETCH";
