@@ -1,28 +1,29 @@
-// Function to inject inline JavaScript code
-export const injectInlineJs = (code) => {
-  const el = document.createElement("script");
-  el.setAttribute("data-source", "kiss-inject injectInlineJs");
-  el.setAttribute("type", "text/javascript");
-  el.textContent = code;
-  document.body?.appendChild(el);
-};
+import { trustedTypesHelper } from "./trustedTypes";
 
-// Function to inject external JavaScript file
-export const injectExternalJs = (src, id = "kiss-translator-injector") => {
+// Function to inject inline JavaScript code
+export const injectInlineJs = (code, id = "kiss-translator-inline-js") => {
   if (document.getElementById(id)) {
     return;
   }
 
-  // const el = document.createElement("script");
-  // el.setAttribute("data-source", "kiss-inject injectExternalJs");
-  // el.setAttribute("type", "text/javascript");
-  // el.setAttribute("src", src);
-  // el.setAttribute("id", id);
-  // document.body?.appendChild(el);
-  const script = document.createElement("script");
-  script.id = id;
-  script.src = src;
-  (document.head || document.documentElement).appendChild(script);
+  const el = document.createElement("script");
+  el.type = "text/javascript";
+  el.id = id;
+  el.textContent = trustedTypesHelper.createScript(code);
+  (document.head || document.documentElement).appendChild(el);
+};
+
+// Function to inject external JavaScript file
+export const injectExternalJs = (src, id = "kiss-translator-external-js") => {
+  if (document.getElementById(id)) {
+    return;
+  }
+
+  const el = document.createElement("script");
+  el.type = "text/javascript";
+  el.id = id;
+  el.src = trustedTypesHelper.createScriptURL(src);
+  (document.head || document.documentElement).appendChild(el);
 };
 
 // Function to inject internal CSS code

@@ -37,6 +37,7 @@ import { browser } from "./browser";
 import { isIframe, sendIframeMsg } from "./iframe";
 import { TransboxManager } from "./tranbox";
 import { InputTranslator } from "./inputTranslate";
+import { trustedTypesHelper } from "./trustedTypes";
 
 /**
  * @class Translator
@@ -1025,7 +1026,7 @@ export class Translator {
         translatedText,
         placeholderMap
       );
-      const trustedHTML = this.#createTrustedHTML(htmlString);
+      const trustedHTML = trustedTypesHelper.createHTML(htmlString);
 
       // const parser = new DOMParser();
       // const doc = parser.parseFromString(trustedHTML, "text/html");
@@ -1074,19 +1075,6 @@ export class Translator {
       kissLog("translate group error: ", err.message);
       this.#cleanupDirectTranslations(hostNode);
     }
-  }
-
-  #createTrustedHTML(html) {
-    if (window.trustedTypes && window.trustedTypes.createPolicy) {
-      const policy = window.trustedTypes.createPolicy(
-        "kiss-translator-policy#html",
-        {
-          createHTML: (input) => input,
-        }
-      );
-      return policy.createHTML(html);
-    }
-    return html;
   }
 
   // 处理节点转为翻译字符串
@@ -1404,7 +1392,8 @@ export class Translator {
         injectJs && sendBgMsg(MSG_INJECT_JS, injectJs);
         injectCss && sendBgMsg(MSG_INJECT_CSS, injectCss);
       } else {
-        injectJs && injectInlineJs(injectJs);
+        injectJs &&
+          injectInlineJs(injectJs, "kiss-translator-userinit-injector");
         injectCss && injectInternalCss(injectCss);
       }
     } catch (err) {

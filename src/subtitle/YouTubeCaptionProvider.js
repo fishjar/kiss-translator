@@ -38,7 +38,6 @@ class YouTubeCaptionProvider {
 
   initialize() {
     window.addEventListener("message", (event) => {
-      if (event.source !== window) return;
       if (event.data?.type === MSG_XHR_DATA_YOUTUBE) {
         const { url, response } = event.data;
         if (url && response) {

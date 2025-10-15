@@ -91,7 +91,6 @@ const userscriptWebpack = (config, env) => {
 // @grant         GM.getValue
 // @grant         GM.deleteValue
 // @grant         GM.info
-// @grant         GM.addElement
 // @grant         unsafeWindow
 // @connect       translate.googleapis.com
 // @connect       translate-pa.googleapis.com
@@ -132,7 +131,6 @@ const userscriptWebpack = (config, env) => {
   config.entry = {
     main: paths.appIndexJs,
     options: paths.appSrc + "/options.js",
-    injector: paths.appSrc + "/injector.js",
     "kiss-translator.user": paths.appSrc + "/userscript.js",
   };
 
