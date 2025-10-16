@@ -134,9 +134,9 @@ export const DEFAULT_SUBRULES_LIST = [
   },
 ];
 
-export const DEFAULT_MOUSEHOVER_KEY = ["KeyQ"];
+export const DEFAULT_MOUSEHOVER_KEY = ["ControlLeft"];
 export const DEFAULT_MOUSE_HOVER_SETTING = {
-  useMouseHover: true, // 是否启用鼠标悬停翻译
+  useMouseHover: false, // 是否启用鼠标悬停翻译
   mouseHoverKey: DEFAULT_MOUSEHOVER_KEY, // 鼠标悬停翻译组合键
 };
 

@@ -106,7 +106,7 @@ export const apiMicrosoftLangdetect = async (text) => {
 
   const key = `${URL_CACHE_DELANG}_${OPT_TRANS_MICROSOFT}`;
   const queue = getBatchQueue(key, handleMicrosoftLangdetect, {
-    batchInterval: 500,
+    batchInterval: 200,
     batchSize: 20,
     batchLength: 100000,
   });
