@@ -98,8 +98,9 @@ const parseAIRes = (raw) => {
 
   try {
     const jsonString = extractJson(raw);
-    const data = JSON.parse(jsonString);
+    if (!jsonString) return [];
 
+    const data = JSON.parse(jsonString);
     if (Array.isArray(data.translations)) {
       // todo: 考虑序号id可能会打乱
       return data.translations.map((item) => [
@@ -925,7 +926,7 @@ export const handleTranslate = async (
     userMsg,
     ...apiSetting,
   });
-  if (!Array.isArray(result)) {
+  if (!result?.length) {
     throw new Error("tranlate got an unexpected result");
   }
 

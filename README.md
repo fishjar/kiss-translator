@@ -143,6 +143,12 @@
 
 油猴脚本需要增加域名白名单，否则不能发出请求。
 
+### 如何设置自定义接口的hook函数
+
+自定义接口功能非常强大、灵活，理论可以接入任何翻译接口。
+
+示例参考： [custom-api_v2.md](https://github.com/fishjar/kiss-translator/blob/master/custom-api_v2.md)
+
 ## 未来规划 
 
  本项目为业余开发，无严格时间表，欢迎社区共建。以下为初步设想的功能方向：

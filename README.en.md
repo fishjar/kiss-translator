@@ -147,6 +147,12 @@ If encountering a 403 error, refer to: https://github.com/fishjar/kiss-translato
 
 Tampermonkey scripts require adding domains to the whitelist; otherwise, requests cannot be sent.
 
+### How to set up a hook function for a custom API
+
+Custom APIs are very powerful and flexible, and can theoretically connect to any translation API.
+
+Example reference: [custom-api_v2.md](https://github.com/fishjar/kiss-translator/blob/master/custom-api_v2.md)
+
 ## Future Plans 
 
  This is a side project with no strict timeline. Community contributions are welcome. The following are preliminary feature directions:

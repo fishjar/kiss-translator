@@ -1,5 +1,7 @@
 # 自定义接口示例（本文档已过期，新版不再适用）
 
+V2版的示例请查看这里：[custom-api_v2.md](https://github.com/fishjar/kiss-translator/blob/master/custom-api_v2.md)
+
 以下示例为网友提供，仅供学习参考。
 
 ## 本地运行 Seed-X-PPO-7B 量化模型
