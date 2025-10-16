@@ -2,16 +2,25 @@ import { STOKEY_RULES, DEFAULT_RULES, KV_RULES_KEY } from "../config";
 import { useStorage } from "./Storage";
 import { checkRules } from "../libs/rules";
 import { useCallback } from "react";
+import { debounceSyncMeta } from "../libs/storage";
 
 /**
  * 规则 hook
  * @returns
  */
 export function useRules() {
-  const { data: list = [], save } = useStorage(
+  const { data: list = [], save: saveRules } = useStorage(
     STOKEY_RULES,
     DEFAULT_RULES,
     KV_RULES_KEY
+  );
+
+  const save = useCallback(
+    (objOrFn) => {
+      saveRules(objOrFn);
+      debounceSyncMeta(KV_RULES_KEY);
+    },
+    [saveRules]
   );
 
   const add = useCallback(
