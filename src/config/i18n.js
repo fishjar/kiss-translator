@@ -718,6 +718,11 @@ export const I18N = {
     en: `Selector Style`,
     zh_TW: `選擇器節點樣式`,
   },
+  terms_style: {
+    zh: `专业术语样式`,
+    en: `Terms Style`,
+    zh_TW: `專業術語樣式`,
+  },
   selector_style_helper: {
     zh: `开启翻译时注入。`,
     en: `It is injected when translation is turned on.`,

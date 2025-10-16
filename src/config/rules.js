@@ -78,8 +78,7 @@ background: linear-gradient(
 
 export const DEFAULT_SELECTOR =
   "h1, h2, h3, h4, h5, h6, li, p, dd, blockquote, figcaption, label, legend";
-export const DEFAULT_IGNORE_SELECTOR =
-  "aside, button, footer, pre, mark, nav";
+export const DEFAULT_IGNORE_SELECTOR = "aside, button, footer, pre, mark, nav";
 export const DEFAULT_KEEP_SELECTOR = `a:has(code)`;
 export const DEFAULT_RULE = {
   pattern: "", // 匹配网址
@@ -94,6 +93,7 @@ export const DEFAULT_RULE = {
   transOpen: GLOBAL_KEY, // 开启翻译
   bgColor: "", // 译文颜色
   textDiyStyle: "", // 自定义译文样式
+  termsStyle: "", // 专业术语样式
   selectStyle: "", // 选择器节点样式
   parentStyle: "", // 选择器父节点样式
   grandStyle: "", // 选择器父节点样式
@@ -132,6 +132,7 @@ export const GLOBLA_RULE = {
   transOpen: "false", // 开启翻译
   bgColor: "", // 译文颜色
   textDiyStyle: DEFAULT_DIY_STYLE, // 自定义译文样式
+  termsStyle: "font-weight: bold;", // 专业术语样式
   selectStyle: DEFAULT_SELECT_STYLE, // 选择器节点样式
   parentStyle: DEFAULT_SELECT_STYLE, // 选择器父节点样式
   grandStyle: DEFAULT_SELECT_STYLE, // 选择器祖节点样式

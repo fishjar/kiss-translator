@@ -959,6 +959,7 @@ export class Translator {
       transStartHook,
       transEndHook,
       transOnly,
+      termsStyle,
       selectStyle,
       parentStyle,
       grandStyle,
@@ -988,8 +989,10 @@ export class Translator {
     }
 
     try {
-      const [processedString, placeholderMap] =
-        this.#serializeForTranslation(nodes);
+      const [processedString, placeholderMap] = this.#serializeForTranslation(
+        nodes,
+        termsStyle
+      );
       // console.log("processedString", processedString);
       if (this.#isInvalidText(processedString)) return;
 
@@ -1078,7 +1081,7 @@ export class Translator {
   }
 
   // 处理节点转为翻译字符串
-  #serializeForTranslation(nodes) {
+  #serializeForTranslation(nodes, termsStyle) {
     let replaceCounter = 0; // {{n}}
     let wrapCounter = 0; // <tagn>
     const placeholderMap = new Map();
@@ -1118,7 +1121,7 @@ export class Translator {
             const termValue = this.#termValues[matchedIndex];
 
             return pushReplace(
-              `<i class="${Translator.KISS_CLASS.term}">${termValue || fullMatch}</i>`
+              `<i class="${Translator.KISS_CLASS.term}" style="${termsStyle}">${termValue || fullMatch}</i>`
             );
           });
         }
