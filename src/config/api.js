@@ -340,7 +340,7 @@ Object.entries(OPT_LANGS_TO_SPEC).forEach(([t, m]) => {
   OPT_LANGS_TO_CODE[t] = specToCode(m);
 });
 
-const defaultSystemPrompt = `Act as a translation API. Output a single raw JSON object only. No extra text or fences.
+export const defaultSystemPrompt = `Act as a translation API. Output a single raw JSON object only. No extra text or fences.
 
 Input:
 {"targetLanguage":"<lang>","title":"<context>","description":"<context>","segments":[{"id":1,"text":"..."}],"glossary":{"sourceTerm":"targetTerm"},"tone":"<formal|casual>"}
@@ -381,7 +381,7 @@ Fail-safe: On any error, return {"translations":[]}.`;
 // 4. **Special Cases**: '[Music]' (and similar cues) are standalone entries. Translate appropriately (e.g., '[音乐]', '[Musique]').
 // `;
 
-const defaultSubtitlePrompt = `You are an expert AI for subtitle generation. Convert a JSON array of word-level timestamps into a bilingual VTT file.
+export const defaultSubtitlePrompt = `You are an expert AI for subtitle generation. Convert a JSON array of word-level timestamps into a bilingual VTT file.
 
 **Workflow:**
 1. Merge \`text\` fields into complete sentences; ignore empty text.

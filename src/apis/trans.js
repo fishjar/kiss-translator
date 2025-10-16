@@ -26,6 +26,8 @@ import {
   INPUT_PLACE_KEY,
   INPUT_PLACE_MODEL,
   DEFAULT_USER_AGENT,
+  defaultSystemPrompt,
+  defaultSubtitlePrompt,
 } from "../config";
 import { msAuth } from "../libs/auth";
 import { genDeeplFree } from "./deepl";
@@ -678,13 +680,16 @@ export const genTransReq = async ({ reqHook, ...args }) => {
   if (reqHook?.trim() && !events) {
     try {
       interpreter.run(`exports.reqHook = ${reqHook}`);
-      const hookResult = await interpreter.exports.reqHook(args, {
-        url,
-        body,
-        headers,
-        userMsg,
-        method,
-      });
+      const hookResult = await interpreter.exports.reqHook(
+        { ...args, defaultSystemPrompt, defaultSubtitlePrompt },
+        {
+          url,
+          body,
+          headers,
+          userMsg,
+          method,
+        }
+      );
       if (hookResult && hookResult.url) {
         return genInit(hookResult);
       }
@@ -732,6 +737,8 @@ export const parseTransRes = async (
         fromLang,
         toLang,
         langMap,
+        extractJson,
+        parseAIRes,
       });
       if (hookResult && Array.isArray(hookResult.translations)) {
         if (history && userMsg && hookResult.modelMsg) {

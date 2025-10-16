@@ -72,6 +72,39 @@ async (args) => {
 };
 ```
 
+v2.0.2 Request Hook 可以简化为：
+
+```js
+async (args) => {
+  const url = args.url;
+  const method = "POST";
+  const headers = { "Content-type": "application/json" };
+  const body = {
+    model: "gemma3",
+    messages: [
+      {
+        role: "system",
+        content: args.defaultSystemPrompt,
+      },
+      {
+        role: "user",
+        content: JSON.stringify({
+          targetLanguage: args.to,
+          segments: args.texts.map((text, id) => ({ id, text })),
+          glossary: {},
+        }),
+      },
+    ],
+    temperature: 0,
+    max_tokens: 20480,
+    think: false,
+    stream: false,
+  };
+
+  return { url, body, headers, method };
+};
+```
+
 Response Hook
 
 ```js
@@ -105,6 +138,15 @@ async ({ res }) => {
 
   const translations = parseAIRes(res?.choices?.[0]?.message?.content);
 
+  return { translations };
+};
+```
+
+v2.0.2 版后内置`parseAIRes`函数，Response Hook 可以简化为：
+
+```js
+async ({ res,  parseAIRes, }) => {
+  const translations = parseAIRes(res?.choices?.[0]?.message?.content);
   return { translations };
 };
 ```
