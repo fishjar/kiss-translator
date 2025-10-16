@@ -48,11 +48,7 @@ export function useRules() {
   const put = useCallback(
     (pattern, obj) => {
       save((prev) => {
-        if (
-          prev.some(
-            (item) => item.pattern === obj.pattern && item.pattern !== pattern
-          )
-        ) {
+        if (pattern !== obj.pattern) {
           return prev;
         }
         return prev.map((item) =>
@@ -71,15 +67,26 @@ export function useRules() {
           return prev;
         }
 
-        const map = new Map();
-        // 不进行深度合并
-        // [...prev, ...adds].forEach((item) => {
-        //   const k = item.pattern;
-        //   map.set(k, { ...(map.get(k) || {}), ...item });
-        // });
-        prev.forEach((item) => map.set(item.pattern, item));
-        adds.forEach((item) => map.set(item.pattern, item));
-        return [...map.values()];
+        // const map = new Map();
+        // // 不进行深度合并
+        // // [...prev, ...adds].forEach((item) => {
+        // //   const k = item.pattern;
+        // //   map.set(k, { ...(map.get(k) || {}), ...item });
+        // // });
+        // prev.forEach((item) => map.set(item.pattern, item));
+        // adds.forEach((item) => map.set(item.pattern, item));
+        // return [...map.values()];
+
+        const addsMap = new Map(adds.map((item) => [item.pattern, item]));
+        const prevPatterns = new Set(prev.map((item) => item.pattern));
+        const updatedPrev = prev.map(
+          (prevItem) => addsMap.get(prevItem.pattern) || prevItem
+        );
+        const newItems = adds.filter(
+          (addItem) => !prevPatterns.has(addItem.pattern)
+        );
+
+        return [...newItems, ...updatedPrev];
       });
     },
     [save]
