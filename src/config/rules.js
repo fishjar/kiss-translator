@@ -189,21 +189,21 @@ const RULES_MAP = {
     keepSelector: `img, svg, span:has(a), div:has(a)`,
     autoScan: `false`,
   },
-  "www.youtube.com": {
-    rootsSelector: `ytd-page-manager`,
-    ignoreSelector: `aside, button, footer, form, header, pre, mark, nav, #player, #container, .caption-window, .ytp-settings-menu`,
-  },
   "www.youtube.com/live_chat": {
     rootsSelector: `div#items`,
     selector: `span.yt-live-chat-text-message-renderer`,
     autoScan: `false`,
   },
+  "www.youtube.com": {
+    rootsSelector: `ytd-page-manager`,
+    ignoreSelector: `aside, button, footer, form, header, pre, mark, nav, #player, #container, .caption-window, .ytp-settings-menu`,
+  },
 };
 
-export const BUILTIN_RULES = Object.entries(RULES_MAP)
-  .sort((a, b) => a[0].localeCompare(b[0]))
-  .map(([pattern, rule]) => ({
+export const BUILTIN_RULES = Object.entries(RULES_MAP).map(
+  ([pattern, rule]) => ({
     // ...DEFAULT_RULE,
     ...rule,
     pattern,
-  }));
+  })
+);
