@@ -2,6 +2,8 @@
 
 ## 谷歌翻译接口
 
+> 此接口不支持聚合
+
 URL
 
 ```
@@ -28,6 +30,8 @@ async ({ res }) => {
 
 
 ## Ollama
+
+> 此示例为支持聚合的模型类（要支持上下文，需进一步改动）
 
 * 注意 ollama 启动参数需要添加环境变量 `OLLAMA_ORIGINS=*`
 * 检查环境变量生效命令：`systemctl show ollama | grep OLLAMA_ORIGINS`
@@ -80,11 +84,11 @@ async (args) => {
   const method = "POST";
   const headers = { "Content-type": "application/json" };
   const body = {
-    model: "gemma3",
+    model: "gemma3", // v2.0.2 版后此处可填 args.model
     messages: [
       {
         role: "system",
-        content: args.defaultSystemPrompt,
+        content: args.defaultSystemPrompt, // 或者 args.systemPrompt
       },
       {
         role: "user",
@@ -148,5 +152,55 @@ v2.0.2 版后内置`parseAIRes`函数，Response Hook 可以简化为：
 async ({ res,  parseAIRes, }) => {
   const translations = parseAIRes(res?.choices?.[0]?.message?.content);
   return { translations };
+};
+```
+
+
+## 硅基流动
+
+> 此示例为不支持聚合模型类，支持聚合的模型类参考上面 Ollama 的写法
+
+URL
+
+```
+https://api.siliconflow.cn/v1/chat/completions
+```
+
+Request Hook
+
+```js
+async (args) => {
+  const url = args.url;
+  const method = "POST";
+  const headers = {
+    "Content-type": "application/json",
+    Authorization: `Bearer ${args.key}`,
+  };
+  const body = {
+    model: "tencent/Hunyuan-MT-7B", // v2.0.2 版后此处可填 args.model
+    messages: [
+      {
+        role: "system",
+        content:
+          "You are a professional, authentic machine translation engine.",
+      },
+      {
+        role: "user",
+        content: `Translate the following source text from to ${args.to}. Output translation directly without any additional text.\n\nSource Text: ${args.texts[0]}\n\nTranslated Text:`,
+      },
+    ],
+    temperature: 0,
+    max_tokens: 20480,
+  };
+
+  return { url, body, headers, method };
+};
+```
+
+Response Hook
+
+```js
+async ({ res }) => {
+  return { translations: [res?.choices?.[0]?.message?.content || ""] };
 };
 ```
