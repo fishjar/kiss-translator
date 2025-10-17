@@ -178,8 +178,7 @@ const RULES_MAP = {
     ignoreSelector: `.button, code, footer, form, mark, pre, .mwe-math-element, .mw-editsection`,
   },
   "news.ycombinator.com": {
-    selector: `p, .titleline, .commtext`,
-    rootsSelector: `#bigbox`,
+    selector: `p, .titleline, .commtext, .hn-item-title, .hn-comment-text, .hn-story-title`,
     keepSelector: `code, img, svg, pre, .sitebit`,
     ignoreSelector: `button, code, footer, form, header, mark, nav, pre, .reply`,
     autoScan: `false`,
