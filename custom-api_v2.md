@@ -186,7 +186,7 @@ async (args) => {
       },
       {
         role: "user",
-        content: `Translate the following source text from to ${args.to}. Output translation directly without any additional text.\n\nSource Text: ${args.texts[0]}\n\nTranslated Text:`,
+        content: `Translate the following source text to ${args.to}. Output translation directly without any additional text.\n\nSource Text: ${args.texts[0]}\n\nTranslated Text:`,
       },
     ],
     temperature: 0,
