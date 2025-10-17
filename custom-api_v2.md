@@ -149,7 +149,7 @@ async ({ res }) => {
 v2.0.2 版后内置`parseAIRes`函数，Response Hook 可以简化为：
 
 ```js
-async ({ res,  parseAIRes, }) => {
+async ({ res, parseAIRes }) => {
   const translations = parseAIRes(res?.choices?.[0]?.message?.content);
   return { translations };
 };
