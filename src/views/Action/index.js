@@ -162,7 +162,7 @@ export default function Action({ translator, fab }) {
   }, []);
 
   const popProps = useMemo(() => {
-    const width = Math.min(windowSize.w, 300);
+    const width = Math.min(windowSize.w, 360);
     const height = Math.min(windowSize.h, 442);
     const left = (windowSize.w - width) / 2;
     const top = (windowSize.h - height) / 2;

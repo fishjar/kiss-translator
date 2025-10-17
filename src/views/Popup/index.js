@@ -231,7 +231,7 @@ export default function Popup({ setShowPopup, translator }) {
 
   if (!rule) {
     return (
-      <Box minWidth={300}>
+      <Box minWidth={360}>
         {!translator && (
           <>
             <Header />
