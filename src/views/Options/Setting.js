@@ -379,18 +379,19 @@ export default function Settings() {
             </MenuItem>
           ))}
         </TextField>
+        <TextField
+          size="small"
+          label={i18n("translate_blacklist")}
+          helperText={i18n("pattern_helper")}
+          name="blacklist"
+          value={blacklist}
+          onChange={handleChange}
+          maxRows={10}
+          multiline
+        />
 
         {isExt ? (
           <>
-            <TextField
-              size="small"
-              label={i18n("disabled_orilist")}
-              helperText={i18n("pattern_helper")}
-              name="orilist"
-              value={orilist}
-              onChange={handleChange}
-              multiline
-            />
             <TextField
               select
               fullWidth
@@ -409,6 +410,15 @@ export default function Settings() {
               <MenuItem value={true}>{i18n("clear_cache_restart")}</MenuItem>
             </TextField>
 
+            <TextField
+              size="small"
+              label={i18n("disabled_orilist")}
+              helperText={i18n("pattern_helper")}
+              name="orilist"
+              value={orilist}
+              onChange={handleChange}
+              multiline
+            />
             <TextField
               size="small"
               label={i18n("disabled_csplist")}
@@ -453,17 +463,6 @@ export default function Settings() {
             </Box>
           </>
         )}
-
-        <TextField
-          size="small"
-          label={i18n("translate_blacklist")}
-          helperText={i18n("pattern_helper")}
-          name="blacklist"
-          value={blacklist}
-          onChange={handleChange}
-          maxRows={10}
-          multiline
-        />
       </Stack>
     </Box>
   );

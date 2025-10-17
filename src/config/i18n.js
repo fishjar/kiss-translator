@@ -531,9 +531,9 @@ export const I18N = {
     zh_TW: `2.大部分AI介面都與OpenAI相容，因此選擇新增OpenAI類型即可。`,
   },
   about_api_3: {
-    zh: `2、暂未列出的接口，理论上都可以通过自定义接口 (Custom) 的形式支持。`,
-    en: `2. Interfaces that have not yet been launched can theoretically be supported through custom interfaces.`,
-    zh_TW: `2、暫未列出的介面，理論上都可透過自訂介面  (Custom)  的形式支援。`,
+    zh: `3、暂未列出的接口，理论上都可以通过自定义接口 (Custom) 的形式支持。`,
+    en: `3. Interfaces that have not yet been launched can theoretically be supported through custom interfaces.`,
+    zh_TW: `3、暫未列出的介面，理論上都可透過自訂介面  (Custom)  的形式支援。`,
   },
   about_api_proxy: {
     zh: `查看自建一个翻译接口代理`,
