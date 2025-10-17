@@ -17,6 +17,7 @@ import Alert from "@mui/material/Alert";
 import Menu from "@mui/material/Menu";
 import Grid from "@mui/material/Grid";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import Link from "@mui/material/Link";
 import { useAlert } from "../../hooks/Alert";
 import { useApiList, useApiItem } from "../../hooks/Api";
 import { useConfirm } from "../../hooks/Confirm";
@@ -806,6 +807,12 @@ export default function Apis() {
           {i18n("about_api_2")}
           <br />
           {i18n("about_api_3")}
+          <Link
+            href="https://github.com/fishjar/kiss-translator/blob/master/custom-api_v2.md"
+            target="_blank"
+          >
+            {i18n("goto_custom_api_example")}
+          </Link>
         </Alert>
 
         <Box>

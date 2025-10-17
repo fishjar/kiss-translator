@@ -1664,6 +1664,11 @@ export const I18N = {
     en: `Log Level`,
     zh_TW: `日誌等級`,
   },
+  goto_custom_api_example: {
+    zh: `点击查看【自定义接口示例】`,
+    en: `Click to view [Custom Interface Example]`,
+    zh_TW: `點選查看【自訂介面範例】`,
+  },
 };
 
 export const i18n = (lang) => (key) => I18N[key]?.[lang] || "";
