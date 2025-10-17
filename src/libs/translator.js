@@ -278,6 +278,7 @@ export class Translator {
   #glossary = {}; // AI词典
   #textClass = {}; // 译文样式class
   #textSheet = ""; // 译文样式字典
+  #apisMap = new Map(); // 用于接口快速查找
 
   #isUserscript = false;
   #transboxManager = null; // 划词翻译
@@ -310,11 +311,12 @@ export class Translator {
   // 接口参数
   // todo: 不用频繁查找计算
   get #apiSetting() {
-    return (
-      this.#setting.transApis.find(
-        (api) => api.apiSlug === this.#rule.apiSlug
-      ) || DEFAULT_API_SETTING
-    );
+    // return (
+    //   this.#setting.transApis.find(
+    //     (api) => api.apiSlug === this.#rule.apiSlug
+    //   ) || DEFAULT_API_SETTING
+    // );
+    return this.#apisMap.get(this.#rule.apiSlug) || DEFAULT_API_SETTING;
   }
 
   // 占位符
@@ -331,6 +333,9 @@ export class Translator {
   constructor(rule = {}, setting = {}, isUserscript = false) {
     this.#setting = { ...Translator.DEFAULT_OPTIONS, ...setting };
     this.#rule = { ...Translator.DEFAULT_RULE, ...rule };
+    this.#apisMap = new Map(
+      this.#setting.transApis.map((api) => [api.apiSlug, api])
+    );
 
     this.#isUserscript = isUserscript;
     this.#eventName = genEventName();
