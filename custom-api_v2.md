@@ -24,7 +24,7 @@ Response Hook
 
 ```js
 async ({ res }) => {
-  return { translations: [[res.sentences[0].trans]] };
+  return { translations: [[res?.sentences?.[0]?.trans || "", res?.src]] };
 };
 ```
 
@@ -201,6 +201,6 @@ Response Hook
 
 ```js
 async ({ res }) => {
-  return { translations: [res?.choices?.[0]?.message?.content || ""] };
+  return { translations: [[res?.choices?.[0]?.message?.content || ""]] };
 };
 ```
