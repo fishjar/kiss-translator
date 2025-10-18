@@ -156,13 +156,13 @@ async (args, { url, body, headers, userMsg, method } = {}) => {
 
 const responsetHookHelperZH = `1、第一个参数包含如下字段：'res', ...
 2、返回值必须是包含以下字段的对象： 'translations'
-  （'translations' 应为一个二维数组：[[译文, 源语言]]）
+  （'translations' 应为一个二维数组：[[译文, 原文语言]]）
 3、如返回空值，则hook函数不会产生任何效果。
 
 // 示例
 async ({ res, ...args }) => {
-  const translations = [["你好", "zh"]];
-  const modelMsg = "";
+  const translations = [["你好", "en"]];
+  const modelMsg = {}; // 用于AI上下文
   return { translations, modelMsg };
 }`;
 
@@ -173,8 +173,8 @@ const responsetHookHelperEN = `1. The first parameter contains the following fie
 
 // Example
 async ({ res, ...args }) => {
-  const translations = [["你好", "zh"]];
-  const modelMsg = "";
+  const translations = [["你好", "en"]];
+  const modelMsg = {}; // For AI context
   return { translations, modelMsg };
 }`;
 

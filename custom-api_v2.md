@@ -204,3 +204,53 @@ async ({ res }) => {
   return { translations: [[res?.choices?.[0]?.message?.content || ""]] };
 };
 ```
+
+
+## 语言代码表及说明
+
+Hook参数里面的语言含义说明：
+
+- `toLang`, `fromLang` 是本插件支持的标准语言代码
+- `to`, `from` 是转换后的适用于特定接口的语言代码
+
+如果你的自定义接口与下面的标准语言代码不匹配，需要自行映射转换。
+
+```
+["en", "English - English"],
+["zh-CN", "Simplified Chinese - 简体中文"],
+["zh-TW", "Traditional Chinese - 繁體中文"],
+["ar", "Arabic - العربية"],
+["bg", "Bulgarian - Български"],
+["ca", "Catalan - Català"],
+["hr", "Croatian - Hrvatski"],
+["cs", "Czech - Čeština"],
+["da", "Danish - Dansk"],
+["nl", "Dutch - Nederlands"],
+["fi", "Finnish - Suomi"],
+["fr", "French - Français"],
+["de", "German - Deutsch"],
+["el", "Greek - Ελληνικά"],
+["hi", "Hindi - हिन्दी"],
+["hu", "Hungarian - Magyar"],
+["id", "Indonesian - Indonesia"],
+["it", "Italian - Italiano"],
+["ja", "Japanese - 日本語"],
+["ko", "Korean - 한국어"],
+["ms", "Malay - Melayu"],
+["mt", "Maltese - Malti"],
+["nb", "Norwegian - Norsk Bokmål"],
+["pl", "Polish - Polski"],
+["pt", "Portuguese - Português"],
+["ro", "Romanian - Română"],
+["ru", "Russian - Русский"],
+["sk", "Slovak - Slovenčina"],
+["sl", "Slovenian - Slovenščina"],
+["es", "Spanish - Español"],
+["sv", "Swedish - Svenska"],
+["ta", "Tamil - தமிழ்"],
+["te", "Telugu - తెలుగు"],
+["th", "Thai - ไทย"],
+["tr", "Turkish - Türkçe"],
+["uk", "Ukrainian - Українська"],
+["vi", "Vietnamese - Tiếng Việt"],
+```
