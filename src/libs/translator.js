@@ -1068,9 +1068,7 @@ export class Translator {
 
   // 清除高亮
   #removeHighlights(parentNode) {
-    if (!parentNode) {
-      return;
-    }
+    if (!parentNode) return;
 
     const highlightedElements = parentNode.querySelectorAll(
       `.${Translator.KISS_CLASS.highlight}`
@@ -1080,6 +1078,17 @@ export class Translator {
       const textNode = document.createTextNode(element.textContent);
       element.replaceWith(textNode);
     });
+
+    parentNode.normalize();
+  }
+
+  // 移除br
+  #removeBrTags(parentNode) {
+    if (!parentNode) return;
+
+    parentNode
+      .querySelectorAll(`.${Translator.KISS_CLASS.br}`)
+      .forEach((br) => br.remove());
 
     parentNode.normalize();
   }
@@ -1421,10 +1430,6 @@ export class Translator {
     root
       .querySelectorAll(APP_LCNAME)
       .forEach((el) => this.#removeTranslationElement(el));
-
-    root
-      .querySelectorAll(Translator.KISS_CLASS.br)
-      .forEach((br) => br.remove());
   }
 
   // 清理子节点译文dom
@@ -1448,10 +1453,11 @@ export class Translator {
     this.#translationNodes.delete(el);
     el.remove();
 
-    // 清除高亮
+    // todo: 可能不应深度清除
     if (this.#rule.highlightWords === OPT_HIGHLIGHT_WORDS_AFTERTRANS) {
       this.#removeHighlights(parentElement);
     }
+    this.#removeBrTags(parentElement);
   }
 
   // 恢复原文
