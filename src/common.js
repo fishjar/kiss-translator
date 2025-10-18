@@ -8,8 +8,13 @@ import {
   MSG_TRANS_TOGGLE_STYLE,
   MSG_TRANS_PUTRULE,
   APP_CONSTS,
+  OPT_HIGHLIGHT_WORDS_DISABLE,
 } from "./config";
-import { getFabWithDefault, getSettingWithDefault } from "./libs/storage";
+import {
+  getFabWithDefault,
+  getSettingWithDefault,
+  getWordsWithDefault,
+} from "./libs/storage";
 import { Translator } from "./libs/translator";
 import { isIframe, sendIframeMsg } from "./libs/iframe";
 import { touchTapListener } from "./libs/touch";
@@ -209,7 +214,19 @@ export async function run(isUserscript = false) {
 
     // 翻译网页
     const rule = await matchRule(href, setting);
-    const translator = new Translator(rule, setting, isUserscript);
+    let favWords = [];
+    if (
+      rule.highlightWords &&
+      rule.highlightWords !== OPT_HIGHLIGHT_WORDS_DISABLE
+    ) {
+      favWords = Object.keys(await getWordsWithDefault());
+    }
+    const translator = new Translator({
+      rule,
+      setting,
+      favWords,
+      isUserscript,
+    });
 
     // 适配iframe
     if (isIframe) {

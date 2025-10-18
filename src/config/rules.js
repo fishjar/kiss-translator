@@ -63,6 +63,24 @@ export const OPT_TIMING_ALL = [
   OPT_TIMING_ALT,
 ];
 
+export const OPT_SPLIT_PARAGRAPH_DISABLE = "split_disable";
+export const OPT_SPLIT_PARAGRAPH_TEXTLENGTH = "split_textlength";
+export const OPT_SPLIT_PARAGRAPH_PUNCTUATION = "split_punctuation";
+export const OPT_SPLIT_PARAGRAPH_ALL = [
+  OPT_SPLIT_PARAGRAPH_DISABLE,
+  OPT_SPLIT_PARAGRAPH_PUNCTUATION,
+  OPT_SPLIT_PARAGRAPH_TEXTLENGTH,
+];
+
+export const OPT_HIGHLIGHT_WORDS_DISABLE = "highlight_disable";
+export const OPT_HIGHLIGHT_WORDS_BEFORETRANS = "highlight_beforetrans";
+export const OPT_HIGHLIGHT_WORDS_AFTERTRANS = "highlight_aftertrans";
+export const OPT_HIGHLIGHT_WORDS_ALL = [
+  OPT_HIGHLIGHT_WORDS_DISABLE,
+  OPT_HIGHLIGHT_WORDS_BEFORETRANS,
+  OPT_HIGHLIGHT_WORDS_AFTERTRANS,
+];
+
 export const DEFAULT_DIY_STYLE = `color: #333;
 background: linear-gradient(
   45deg,
@@ -94,6 +112,7 @@ export const DEFAULT_RULE = {
   bgColor: "", // 译文颜色
   textDiyStyle: "", // 自定义译文样式
   termsStyle: "", // 专业术语样式
+  highlightStyle: "", // 高亮词汇样式
   selectStyle: "", // 选择器节点样式
   parentStyle: "", // 选择器父节点样式
   grandStyle: "", // 选择器父节点样式
@@ -116,6 +135,9 @@ export const DEFAULT_RULE = {
   hasShadowroot: GLOBAL_KEY, // 是否包含shadowroot
   rootsSelector: "", // 翻译范围选择器
   ignoreSelector: "", // 不翻译的选择器
+  splitParagraph: GLOBAL_KEY, // 切分段落
+  splitLength: 0, // 切分段落长度
+  highlightWords: GLOBAL_KEY, // 高亮词汇
 };
 
 // 全局规则
@@ -133,6 +155,7 @@ export const GLOBLA_RULE = {
   bgColor: "", // 译文颜色
   textDiyStyle: DEFAULT_DIY_STYLE, // 自定义译文样式
   termsStyle: "font-weight: bold;", // 专业术语样式
+  highlightStyle: "color: red;", // 高亮词汇样式
   selectStyle: DEFAULT_SELECT_STYLE, // 选择器节点样式
   parentStyle: DEFAULT_SELECT_STYLE, // 选择器父节点样式
   grandStyle: DEFAULT_SELECT_STYLE, // 选择器祖节点样式
@@ -155,6 +178,9 @@ export const GLOBLA_RULE = {
   hasShadowroot: "false", // 是否包含shadowroot
   rootsSelector: "body", // 翻译范围选择器
   ignoreSelector: DEFAULT_IGNORE_SELECTOR, // 不翻译的选择器
+  splitParagraph: OPT_SPLIT_PARAGRAPH_DISABLE, // 切分段落
+  splitLength: 100, // 切分段落长度
+  highlightWords: OPT_HIGHLIGHT_WORDS_DISABLE, // 高亮词汇
 };
 
 export const DEFAULT_RULES = [GLOBLA_RULE];

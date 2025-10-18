@@ -719,6 +719,11 @@ export const I18N = {
     en: `Terms Style`,
     zh_TW: `專業術語樣式`,
   },
+  highlight_style: {
+    zh: `词汇高亮样式`,
+    en: `Fav Words highlight style`,
+    zh_TW: `詞彙高亮樣式`,
+  },
   selector_style_helper: {
     zh: `开启翻译时注入。`,
     en: `It is injected when translation is turned on.`,
@@ -1668,6 +1673,52 @@ export const I18N = {
     zh: `点击查看【自定义接口示例】`,
     en: `Click to view [Custom Interface Example]`,
     zh_TW: `點選查看【自訂介面範例】`,
+  },
+  split_paragraph: {
+    zh: `切分长段落`,
+    en: `Split long paragraph`,
+    zh_TW: `切分長段落`,
+  },
+  split_length: {
+    zh: `切分长度 (0-10000)`,
+    en: `Segmentation length(0-10000)`,
+    zh_TW: `切分長度(0-10000)`,
+  },
+  highlight_words: {
+    zh: `高亮收藏词汇`,
+    en: `Highlight favorite words`,
+    zh_TW: `高亮收藏詞彙`,
+  },
+
+  split_disable: {
+    zh: `禁用`,
+    en: `Disable`,
+    zh_TW: `停用`,
+  },
+  split_textlength: {
+    zh: `按照长度切分`,
+    en: `Split by length`,
+    zh_TW: `依長度切分`,
+  },
+  split_punctuation: {
+    zh: `按照句子切分`,
+    en: `Split by sentence`,
+    zh_TW: `按照句子切分`,
+  },
+  highlight_disable: {
+    zh: `禁用`,
+    en: `Disable`,
+    zh_TW: `停用`,
+  },
+  highlight_beforetrans: {
+    zh: `翻译前高亮`,
+    en: `Highlight before translation`,
+    zh_TW: `翻譯前高亮`,
+  },
+  highlight_aftertrans: {
+    zh: `翻译后高亮`,
+    en: `Highlight after translation`,
+    zh_TW: `翻譯後高亮`,
   },
 };
 

@@ -919,7 +919,7 @@ export const handleTranslate = async (
     httpTimeout,
   });
   if (!response) {
-    throw new Error("tranlate got empty response");
+    throw new Error("translate got empty response");
   }
 
   const result = await parseTransRes(response, {
@@ -934,7 +934,7 @@ export const handleTranslate = async (
     ...apiSetting,
   });
   if (!result?.length) {
-    throw new Error("tranlate got an unexpected result");
+    throw new Error("translate got an unexpected result");
   }
 
   return result;

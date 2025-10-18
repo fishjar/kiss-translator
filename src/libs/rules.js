@@ -7,6 +7,8 @@ import {
   // OPT_TIMING_ALL,
   DEFAULT_RULE,
   GLOBLA_RULE,
+  OPT_SPLIT_PARAGRAPH_ALL,
+  OPT_HIGHLIGHT_WORDS_ALL,
 } from "../config";
 import { loadOrFetchSubRules } from "./subRules";
 import { getRulesWithDefault, setRules } from "./storage";
@@ -53,6 +55,7 @@ export const matchRule = async (href, { injectRules, subrulesList }) => {
     "terms",
     "aiTerms",
     "termsStyle",
+    "highlightStyle",
     "selectStyle",
     "parentStyle",
     "grandStyle",
@@ -82,8 +85,16 @@ export const matchRule = async (href, { injectRules, subrulesList }) => {
     "transTitle",
     // "detectRemote",
     // "fixerFunc",
+    "splitParagraph",
+    "highlightWords",
   ].forEach((key) => {
     if (!rule[key] || rule[key] === GLOBAL_KEY) {
+      rule[key] = globalRule[key];
+    }
+  });
+
+  ["splitLength"].forEach((key) => {
+    if (!rule[key]) {
       rule[key] = globalRule[key];
     }
   });
@@ -138,6 +149,7 @@ export const checkRules = (rules) => {
         terms,
         aiTerms,
         termsStyle,
+        highlightStyle,
         selectStyle,
         parentStyle,
         grandStyle,
@@ -164,6 +176,9 @@ export const checkRules = (rules) => {
         transStartHook,
         transEndHook,
         // transRemoveHook,
+        splitParagraph,
+        splitLength,
+        highlightWords,
       }) => ({
         pattern: pattern.trim(),
         selector: type(selector) === "string" ? selector : "",
@@ -173,6 +188,7 @@ export const checkRules = (rules) => {
         terms: type(terms) === "string" ? terms : "",
         aiTerms: type(aiTerms) === "string" ? aiTerms : "",
         termsStyle: type(termsStyle) === "string" ? termsStyle : "",
+        highlightStyle: type(highlightStyle) === "string" ? highlightStyle : "",
         selectStyle: type(selectStyle) === "string" ? selectStyle : "",
         parentStyle: type(parentStyle) === "string" ? parentStyle : "",
         grandStyle: type(grandStyle) === "string" ? grandStyle : "",
@@ -203,6 +219,15 @@ export const checkRules = (rules) => {
         // transRemoveHook:
         //   type(transRemoveHook) === "string" ? transRemoveHook : "",
         // fixerFunc: matchValue([GLOBAL_KEY, ...FIXER_ALL], fixerFunc),
+        splitParagraph: matchValue(
+          [GLOBAL_KEY, ...OPT_SPLIT_PARAGRAPH_ALL],
+          splitParagraph
+        ),
+        splitLength: Number.isInteger(splitLength) ? splitLength : 0,
+        highlightWords: matchValue(
+          [GLOBAL_KEY, ...OPT_HIGHLIGHT_WORDS_ALL],
+          highlightWords
+        ),
       })
     );
 

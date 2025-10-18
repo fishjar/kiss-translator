@@ -16,6 +16,10 @@ import {
   URL_KISS_RULES_NEW_ISSUE,
   OPT_SYNCTYPE_WORKER,
   DEFAULT_TRANS_TAG,
+  OPT_SPLIT_PARAGRAPH_DISABLE,
+  OPT_HIGHLIGHT_WORDS_DISABLE,
+  OPT_SPLIT_PARAGRAPH_ALL,
+  OPT_HIGHLIGHT_WORDS_ALL,
 } from "../../config";
 import { useState, useEffect, useMemo } from "react";
 import { useI18n } from "../../hooks/I18n";
@@ -59,6 +63,7 @@ import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import CancelIcon from "@mui/icons-material/Cancel";
 import SaveIcon from "@mui/icons-material/Save";
+import ValidationInput from "../../hooks/ValidationInput";
 import { kissLog } from "../../libs/log";
 import { useApiList } from "../../hooks/Api";
 import ShowMoreButton from "./ShowMoreButton";
@@ -98,6 +103,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
     terms = "",
     aiTerms = "",
     termsStyle = "",
+    highlightStyle = "color: red;",
     selectStyle = "",
     parentStyle = "",
     grandStyle = "",
@@ -124,6 +130,9 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
     transStartHook = "",
     transEndHook = "",
     // transRemoveHook = "",
+    splitParagraph = OPT_SPLIT_PARAGRAPH_DISABLE,
+    splitLength = 0,
+    highlightWords = OPT_HIGHLIGHT_WORDS_DISABLE,
   } = formValues;
 
   const isModified = useMemo(() => {
@@ -428,6 +437,58 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 select
                 size="small"
                 fullWidth
+                name="splitParagraph"
+                value={splitParagraph}
+                label={i18n("split_paragraph")}
+                disabled={disabled}
+                onChange={handleChange}
+              >
+                {GlobalItem}
+                {OPT_SPLIT_PARAGRAPH_ALL.map((item) => (
+                  <MenuItem key={item} value={item}>
+                    {i18n(item)}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <ValidationInput
+                fullWidth
+                size="small"
+                label={i18n("split_length")}
+                type="number"
+                name="splitLength"
+                value={splitLength}
+                onChange={handleChange}
+                min={0}
+                max={1000}
+              />
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                select
+                size="small"
+                fullWidth
+                name="highlightWords"
+                value={highlightWords}
+                label={i18n("highlight_words")}
+                disabled={disabled}
+                onChange={handleChange}
+              >
+                {GlobalItem}
+                {OPT_HIGHLIGHT_WORDS_ALL.map((item) => (
+                  <MenuItem key={item} value={item}>
+                    {i18n(item)}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                select
+                size="small"
+                fullWidth
                 name="transTitle"
                 value={transTitle}
                 label={i18n("translate_page_title")}
@@ -553,6 +614,16 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
               label={i18n("terms_style")}
               name="termsStyle"
               value={termsStyle}
+              disabled={disabled}
+              onChange={handleChange}
+              maxRows={10}
+              multiline
+            />
+            <TextField
+              size="small"
+              label={i18n("highlight_style")}
+              name="highlightStyle"
+              value={highlightStyle}
               disabled={disabled}
               onChange={handleChange}
               maxRows={10}
