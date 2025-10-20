@@ -50,7 +50,7 @@ export default function Draggable({
   height,
   left,
   top,
-  show,
+  show = true,
   snapEdge,
   onStart,
   onMove,

@@ -1,24 +1,11 @@
-import React from "react";
-import ReactDOM from "react-dom/client";
-import Action from "./views/Action";
-import createCache from "@emotion/cache";
-import { CacheProvider } from "@emotion/react";
-import {
-  MSG_TRANS_TOGGLE,
-  MSG_TRANS_TOGGLE_STYLE,
-  MSG_TRANS_PUTRULE,
-  APP_CONSTS,
-  OPT_HIGHLIGHT_WORDS_DISABLE,
-} from "./config";
+import { OPT_HIGHLIGHT_WORDS_DISABLE } from "./config";
 import {
   getFabWithDefault,
   getSettingWithDefault,
   getWordsWithDefault,
 } from "./libs/storage";
-import { Translator } from "./libs/translator";
-import { isIframe, sendIframeMsg } from "./libs/iframe";
-import { touchTapListener } from "./libs/touch";
-import { debounce, genEventName } from "./libs/utils";
+import { isIframe } from "./libs/iframe";
+import { genEventName } from "./libs/utils";
 import { handlePing, injectScript } from "./libs/gm";
 import { matchRule } from "./libs/rules";
 import { trySyncAllSubRules } from "./libs/subRules";
@@ -26,6 +13,7 @@ import { isInBlacklist } from "./libs/blacklist";
 import { runSubtitle } from "./subtitle/subtitle";
 import { logger } from "./libs/log";
 import { injectInlineJs } from "./libs/injector";
+import TranslatorManager from "./libs/translatorManager";
 
 /**
  * 油猴脚本设置页面
@@ -46,62 +34,6 @@ function runSettingPage() {
       "kiss-translator-options-injector"
     );
   }
-}
-
-/**
- * iframe 页面执行
- * @param {*} translator
- */
-function runIframe(translator) {
-  window.addEventListener("message", (e) => {
-    const { action, args } = e.data || {};
-    switch (action) {
-      case MSG_TRANS_TOGGLE:
-        translator?.toggle();
-        break;
-      case MSG_TRANS_TOGGLE_STYLE:
-        translator?.toggleStyle();
-        break;
-      case MSG_TRANS_PUTRULE:
-        translator.updateRule(args || {});
-        break;
-      default:
-    }
-  });
-}
-
-/**
- * 悬浮按钮
- * @param {*} translator
- * @returns
- */
-async function showFab(translator) {
-  const fab = await getFabWithDefault();
-  const $action = document.createElement("div");
-  $action.id = APP_CONSTS.fabID;
-  $action.className = "notranslate";
-  $action.style.fontSize = "0";
-  $action.style.width = "0";
-  $action.style.height = "0";
-  document.body.parentElement.appendChild($action);
-  const shadowContainer = $action.attachShadow({ mode: "closed" });
-  const emotionRoot = document.createElement("style");
-  const shadowRootElement = document.createElement("div");
-  shadowRootElement.className = `${APP_CONSTS.fabID}_warpper notranslate`;
-  shadowContainer.appendChild(emotionRoot);
-  shadowContainer.appendChild(shadowRootElement);
-  const cache = createCache({
-    key: APP_CONSTS.fabID,
-    prepend: true,
-    container: emotionRoot,
-  });
-  ReactDOM.createRoot(shadowRootElement).render(
-    <React.StrictMode>
-      <CacheProvider value={cache}>
-        <Action translator={translator} fab={fab} />
-      </CacheProvider>
-    </React.StrictMode>
-  );
 }
 
 /**
@@ -166,22 +98,19 @@ function showErr(message) {
   setTimeout(removeBanner, 10000);
 }
 
-/**
- * 监听触屏操作
- * @param {*} translator
- * @returns
- */
-function touchOperation(translator) {
-  const { touchTranslate = 2 } = translator.setting;
-  if (touchTranslate === 0) {
-    return;
+async function getFavWords(rule) {
+  if (
+    rule.highlightWords &&
+    rule.highlightWords !== OPT_HIGHLIGHT_WORDS_DISABLE
+  ) {
+    try {
+      return Object.keys(await getWordsWithDefault());
+    } catch (err) {
+      logger.info("get fav words", err);
+    }
   }
 
-  const handleTap = debounce(() => {
-    translator.toggle();
-    sendIframeMsg(MSG_TRANS_TOGGLE);
-  });
-  touchTapListener(handleTap, touchTranslate);
+  return [];
 }
 
 /**
@@ -214,46 +143,28 @@ export async function run(isUserscript = false) {
 
     // 翻译网页
     const rule = await matchRule(href, setting);
-    let favWords = [];
-    if (
-      rule.highlightWords &&
-      rule.highlightWords !== OPT_HIGHLIGHT_WORDS_DISABLE
-    ) {
-      favWords = Object.keys(await getWordsWithDefault());
-    }
-    const translator = new Translator({
-      rule,
+    const favWords = await getFavWords(rule);
+    const fabConfig = await getFabWithDefault();
+    const translatorManager = new TranslatorManager({
       setting,
+      rule,
+      fabConfig,
       favWords,
+      isIframe,
       isUserscript,
     });
+    translatorManager.start();
 
-    // 适配iframe
     if (isIframe) {
-      runIframe(translator);
       return;
     }
 
     // 字幕翻译
     runSubtitle({ href, setting, rule, isUserscript });
 
-    // 监听消息
-    // !isUserscript && runtimeListener(translator);
-
-    // 输入框翻译
-    // inputTranslate(setting);
-
-    // 划词翻译
-    // showTransbox(setting, rule);
-
-    // 浮球按钮
-    await showFab(translator);
-
-    // 触屏操作
-    touchOperation(translator);
-
-    // 同步订阅规则
-    isUserscript && (await trySyncAllSubRules(setting));
+    if (isUserscript) {
+      trySyncAllSubRules(setting);
+    }
   } catch (err) {
     console.error("[KISS-Translator]", err);
     showErr(err.message);

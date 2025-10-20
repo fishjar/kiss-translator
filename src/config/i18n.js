@@ -1722,4 +1722,4 @@ export const I18N = {
   },
 };
 
-export const i18n = (lang) => (key) => I18N[key]?.[lang] || "";
+export const newI18n = (lang) => (key) => I18N[key]?.[lang] || "";

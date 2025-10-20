@@ -35,7 +35,7 @@ import { parseUrlPattern } from "../../libs/utils";
 
 // 插件popup没有参数
 // 网页弹框有
-export default function Popup({ setShowPopup, translator }) {
+export default function Popup({ translator }) {
   const i18n = useI18n();
   const [rule, setRule] = useState(translator?.rule);
   const [setting, setSetting] = useState(translator?.setting);
@@ -49,7 +49,6 @@ export default function Popup({ setShowPopup, translator }) {
     } else {
       window.open(process.env.REACT_APP_OPTIONSPAGE, "_blank");
     }
-    setShowPopup && setShowPopup(false);
   };
 
   const handleTransToggle = async (e) => {

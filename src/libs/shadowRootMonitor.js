@@ -4,7 +4,7 @@ import { kissLog } from "./log";
  * @class ShadowRootMonitor
  * @description 通过覆写 Element.prototype.attachShadow 来监控页面上所有新创建的 Shadow DOM
  */
-export class ShadowRootMonitor {
+export default class ShadowRootMonitor {
   /**
    * @param {function(ShadowRoot): void} callback - 当一个新的 shadowRoot 被创建时调用的回调函数。
    */

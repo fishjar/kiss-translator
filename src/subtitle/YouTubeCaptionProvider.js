@@ -10,7 +10,7 @@ import {
 import { sleep } from "../libs/utils.js";
 import { createLogoSVG } from "../libs/svg.js";
 import { randomBetween } from "../libs/utils.js";
-import { i18n } from "../config";
+import { newI18n } from "../config";
 
 const VIDEO_SELECT = "#container video";
 const CONTORLS_SELECT = ".ytp-right-controls";
@@ -33,7 +33,7 @@ class YouTubeCaptionProvider {
 
   constructor(setting = {}) {
     this.#setting = setting;
-    this.#i18n = i18n(setting.uiLang || "zh");
+    this.#i18n = newI18n(setting.uiLang || "zh");
   }
 
   initialize() {

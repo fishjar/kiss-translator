@@ -10,14 +10,6 @@ import {
   // DEFAULT_MOUSEHOVER_KEY,
   OPT_STYLE_NONE,
   DEFAULT_API_SETTING,
-  MSG_TRANS_TOGGLE,
-  MSG_TRANS_TOGGLE_STYLE,
-  MSG_TRANS_GETRULE,
-  MSG_TRANS_PUTRULE,
-  MSG_OPEN_TRANBOX,
-  MSG_TRANSBOX_TOGGLE,
-  MSG_MOUSEHOVER_TOGGLE,
-  MSG_TRANSINPUT_TOGGLE,
   OPT_HIGHLIGHT_WORDS_BEFORETRANS,
   OPT_HIGHLIGHT_WORDS_AFTERTRANS,
   OPT_SPLIT_PARAGRAPH_PUNCTUATION,
@@ -25,7 +17,7 @@ import {
   OPT_SPLIT_PARAGRAPH_TEXTLENGTH,
 } from "../config";
 import interpreter from "./interpreter";
-import { ShadowRootMonitor } from "./shadowroot";
+import ShadowRootMonitor from "./shadowRootMonitor";
 import { clearFetchPool } from "./pool";
 import { debounce, scheduleIdle, genEventName, truncateWords } from "./utils";
 import { apiTranslate } from "../apis";
@@ -38,10 +30,6 @@ import { genTextClass } from "./style";
 import { createLoadingSVG } from "./svg";
 import { shortcutRegister } from "./shortcut";
 import { tryDetectLang } from "./detect";
-import { browser } from "./browser";
-import { isIframe, sendIframeMsg } from "./iframe";
-import { TransboxManager } from "./tranbox";
-import { InputTranslator } from "./inputTranslate";
 import { trustedTypesHelper } from "./trustedTypes";
 
 /**
@@ -288,10 +276,6 @@ export class Translator {
   #apisMap = new Map(); // 用于接口快速查找
   #favWords = []; // 收藏词汇
 
-  #isUserscript = false;
-  #transboxManager = null; // 划词翻译
-  #inputTranslator = null; // 输入框翻译
-
   #observedNodes = new WeakSet(); // 存储所有被识别出的、可翻译的 DOM 节点单元
   #translationNodes = new WeakMap(); // 存储所有插入到页面的译文节点
   #viewNodes = new Set(); // 当前在可视范围内的单元
@@ -339,12 +323,7 @@ export class Translator {
     };
   }
 
-  constructor({
-    rule = {},
-    setting = {},
-    favWords = [],
-    isUserscript = false,
-  }) {
+  constructor({ rule = {}, setting = {}, favWords = [] }) {
     this.#setting = { ...Translator.DEFAULT_OPTIONS, ...setting };
     this.#rule = { ...Translator.DEFAULT_RULE, ...rule };
     this.#favWords = favWords;
@@ -352,7 +331,6 @@ export class Translator {
       this.#setting.transApis.map((api) => [api.apiSlug, api])
     );
 
-    this.#isUserscript = isUserscript;
     this.#eventName = genEventName();
     this.#docInfo = {
       title: document.title,
@@ -382,19 +360,6 @@ export class Translator {
     // 鼠标悬停翻译
     if (this.#setting.mouseHoverSetting.useMouseHover) {
       this.#enableMouseHover();
-    }
-
-    if (!isIframe) {
-      // 监听后端事件
-      if (!isUserscript) {
-        this.#runtimeListener();
-      }
-
-      // 划词翻译
-      this.#transboxManager = new TransboxManager(this.setting);
-
-      // 输入框翻译
-      this.#inputTranslator = new InputTranslator(this.setting);
     }
 
     if (document.readyState === "loading") {
@@ -437,43 +402,6 @@ export class Translator {
         kissLog("findAllShadowRoots", err);
       }
     }
-  }
-
-  // 监听后端事件
-  #runtimeListener() {
-    browser?.runtime.onMessage.addListener(async ({ action, args }) => {
-      switch (action) {
-        case MSG_TRANS_TOGGLE:
-          this.toggle();
-          sendIframeMsg(MSG_TRANS_TOGGLE);
-          break;
-        case MSG_TRANS_TOGGLE_STYLE:
-          this.toggleStyle();
-          sendIframeMsg(MSG_TRANS_TOGGLE_STYLE);
-          break;
-        case MSG_TRANS_GETRULE:
-          break;
-        case MSG_TRANS_PUTRULE:
-          this.updateRule(args);
-          sendIframeMsg(MSG_TRANS_PUTRULE, args);
-          break;
-        case MSG_OPEN_TRANBOX:
-          window.dispatchEvent(new CustomEvent(MSG_OPEN_TRANBOX));
-          break;
-        case MSG_TRANSBOX_TOGGLE:
-          this.toggleTransbox();
-          break;
-        case MSG_MOUSEHOVER_TOGGLE:
-          this.toggleMouseHover();
-          break;
-        case MSG_TRANSINPUT_TOGGLE:
-          this.toggleInputTranslate();
-          break;
-        default:
-          return { error: `message action is unavailable: ${action}` };
-      }
-      return { rule: this.rule, setting: this.setting };
-    });
   }
 
   #createPlaceholderRegex() {
@@ -1714,19 +1642,6 @@ export class Translator {
         ? OPT_STYLE_NONE
         : OPT_STYLE_FUZZY;
     this.updateRule({ textStyle });
-  }
-
-  // 切换划词翻译
-  toggleTransbox() {
-    this.#setting.tranboxSetting.transOpen =
-      !this.#setting.tranboxSetting.transOpen;
-    this.#transboxManager?.toggle();
-  }
-
-  // 切换输入框翻译
-  toggleInputTranslate() {
-    this.#setting.inputRule.transOpen = !this.#setting.inputRule.transOpen;
-    this.#inputTranslator?.toggle();
   }
 
   // 停止运行

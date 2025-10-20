@@ -5,7 +5,7 @@ import Stack from "@mui/material/Stack";
 import DarkModeButton from "../Options/DarkModeButton";
 import Typography from "@mui/material/Typography";
 
-export default function Header({ setShowPopup }) {
+export default function Header({ onClose }) {
   const handleHomepage = () => {
     window.open(process.env.REACT_APP_HOMEPAGE, "_blank");
   };
@@ -33,10 +33,10 @@ export default function Header({ setShowPopup }) {
         </Typography>
       </Stack>
 
-      {setShowPopup ? (
+      {onClose ? (
         <IconButton
           onClick={() => {
-            setShowPopup(false);
+            onClose();
           }}
         >
           <CloseIcon />

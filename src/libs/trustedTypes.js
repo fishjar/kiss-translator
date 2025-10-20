@@ -1,3 +1,5 @@
+import { logger } from "./log";
+
 export const trustedTypesHelper = (() => {
   const POLICY_NAME = "kiss-translator-policy";
   let policy = null;
@@ -13,7 +15,7 @@ export const trustedTypesHelper = (() => {
       if (err.message.includes("already exists")) {
         policy = globalThis.trustedTypes.policies.get(POLICY_NAME);
       } else {
-        console.error("cont create Trusted Types", err);
+        logger.info("cont create Trusted Types", err);
       }
     }
   }
