@@ -3,12 +3,16 @@ import { APP_CONSTS } from "../config";
 import ContentFab from "../views/Action/ContentFab";
 
 export class FabManager extends ShadowDomManager {
-  constructor({ translator, popupManager, fabConfig }) {
+  constructor({ translator, processActions, fabConfig }) {
     super({
       id: APP_CONSTS.fabID,
       className: "notranslate",
       reactComponent: ContentFab,
-      props: { translator, popupManager, fabConfig },
+      props: { translator, processActions, fabConfig },
     });
+
+    if (!fabConfig?.isHide) {
+      this.show();
+    }
   }
 }

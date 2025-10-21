@@ -10,6 +10,7 @@ import {
   OPT_TRANBOX_TRIGGER_CLICK,
   OPT_TRANBOX_TRIGGER_HOVER,
   OPT_TRANBOX_TRIGGER_SELECT,
+  EVENT_KISS,
 } from "../../config";
 import { isMobile } from "../../libs/mobile";
 import { kissLog } from "../../libs/log";
@@ -167,12 +168,26 @@ export default function Slection({
     };
   }, [tranboxShortcut, handleTranbox]);
 
+  const handleToggle = useCallback(() => {
+    if (showBox) {
+      setShowBox(false);
+    } else {
+      handleTranbox();
+    }
+  }, [showBox, handleTranbox]);
+
   useEffect(() => {
-    window.addEventListener(MSG_OPEN_TRANBOX, handleTranbox);
-    return () => {
-      window.removeEventListener(MSG_OPEN_TRANBOX, handleTranbox);
+    const handleStatusUpdate = (event) => {
+      if (event.detail?.action === MSG_OPEN_TRANBOX) {
+        handleToggle();
+      }
     };
-  }, [handleTranbox]);
+
+    document.addEventListener(EVENT_KISS, handleStatusUpdate);
+    return () => {
+      document.removeEventListener(EVENT_KISS, handleStatusUpdate);
+    };
+  }, [handleToggle]);
 
   useEffect(() => {
     if (!isGm) {
@@ -217,8 +232,9 @@ export default function Slection({
 
   return (
     <>
-      {showBox && (
+      {
         <TranBox
+          showBox={showBox}
           text={text}
           setText={setText}
           boxSize={boxSize}
@@ -237,7 +253,7 @@ export default function Slection({
           // extStyles={extStyles}
           langDetector={langDetector}
         />
-      )}
+      }
 
       {showBtn && (
         <TranBtn

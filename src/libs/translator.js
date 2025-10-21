@@ -1644,6 +1644,17 @@ export class Translator {
     this.updateRule({ textStyle });
   }
 
+  // 切换划词翻译
+  toggleTransbox() {
+    this.#setting.tranboxSetting.transOpen =
+      !this.#setting.tranboxSetting.transOpen;
+  }
+
+  // 切换输入框翻译
+  toggleInputTranslate() {
+    this.#setting.inputRule.transOpen = !this.#setting.inputRule.transOpen;
+  }
+
   // 停止运行
   stop() {
     this.disable();

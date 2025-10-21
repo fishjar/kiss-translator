@@ -4,14 +4,14 @@ import ThemeProvider from "../../hooks/Theme";
 import Draggable from "./Draggable";
 import { useState, useMemo, useCallback } from "react";
 import { SettingProvider } from "../../hooks/Setting";
-import { MSG_TRANS_TOGGLE } from "../../config";
+import { MSG_TRANS_TOGGLE, MSG_POPUP_TOGGLE } from "../../config";
 import { sendIframeMsg } from "../../libs/iframe";
 import useWindowSize from "../../hooks/WindowSize";
 
 export default function ContentFab({
   translator,
   fabConfig: { x: fabX, y: fabY, fabClickAction = 0 } = {},
-  popupManager,
+  processActions,
 }) {
   const fabWidth = 40;
   const windowSize = useWindowSize();
@@ -31,10 +31,10 @@ export default function ContentFab({
         translator.toggle();
         sendIframeMsg(MSG_TRANS_TOGGLE);
       } else {
-        popupManager.toggle();
+        processActions({ action: MSG_POPUP_TOGGLE });
       }
     }
-  }, [moved, translator, popupManager, fabClickAction]);
+  }, [moved, translator, fabClickAction, processActions]);
 
   const fabProps = useMemo(
     () => ({

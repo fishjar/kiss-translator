@@ -15,6 +15,7 @@ export const MSG_TRANS_GETRULE = "trans_getrule";
 export const MSG_TRANS_PUTRULE = "trans_putrule";
 export const MSG_TRANS_CURRULE = "trans_currule";
 export const MSG_TRANSBOX_TOGGLE = "transbox_toggle";
+export const MSG_POPUP_TOGGLE = "popup_toggle";
 export const MSG_MOUSEHOVER_TOGGLE = "mousehover_toggle";
 export const MSG_TRANSINPUT_TOGGLE = "transinput_toggle";
 export const MSG_CONTEXT_MENUS = "context_menus";
@@ -26,6 +27,8 @@ export const MSG_BUILTINAI_DETECT = "builtinai_detect";
 export const MSG_BUILTINAI_TRANSLATE = "builtinai_translte";
 export const MSG_SET_LOGLEVEL = "set_loglevel";
 export const MSG_CLEAR_CACHES = "clear_caches";
+
+export const EVENT_KISS = "event_kiss_translate";
 
 export const MSG_XHR_DATA_YOUTUBE = "KISS_XHR_DATA_YOUTUBE";
 // export const MSG_GLOBAL_VAR_FETCH = "KISS_GLOBAL_VAR_FETCH";

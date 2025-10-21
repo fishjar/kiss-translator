@@ -20,7 +20,7 @@ import { isMobile } from "../../libs/mobile";
 import TranForm from "./TranForm.js";
 
 function Header({
-  setShowPopup,
+  setShowBox,
   simpleStyle,
   setSimpleStyle,
   hideClickAway,
@@ -98,7 +98,7 @@ function Header({
           <IconButton
             size="small"
             onClick={() => {
-              setShowPopup(false);
+              setShowBox(false);
             }}
           >
             <CloseIcon fontSize="small" />
@@ -111,6 +111,7 @@ function Header({
 }
 
 export default function TranBox({
+  showBox,
   text,
   setText,
   setShowBox,
@@ -134,43 +135,45 @@ export default function TranBox({
   return (
     <SettingProvider>
       <ThemeProvider styles={extStyles}>
-        <DraggableResizable
-          position={boxPosition}
-          size={boxSize}
-          setSize={setBoxSize}
-          setPosition={setBoxPosition}
-          header={
-            <Header
-              setShowPopup={setShowBox}
-              simpleStyle={simpleStyle}
-              setSimpleStyle={setSimpleStyle}
-              hideClickAway={hideClickAway}
-              setHideClickAway={setHideClickAway}
-              followSelection={followSelection}
-              setFollowSelection={setFollowSelection}
-              mouseHover={mouseHover}
-            />
-          }
-          onClick={(e) => e.stopPropagation()}
-          onMouseEnter={() => setMouseHover(true)}
-          onMouseLeave={() => setMouseHover(false)}
-        >
-          <Box sx={{ p: simpleStyle ? 1 : 2 }}>
-            <TranForm
-              text={text}
-              setText={setText}
-              apiSlugs={apiSlugs}
-              fromLang={fromLang}
-              toLang={toLang}
-              toLang2={toLang2}
-              transApis={transApis}
-              simpleStyle={simpleStyle}
-              langDetector={langDetector}
-              enDict={enDict}
-              enSug={enSug}
-            />
-          </Box>
-        </DraggableResizable>
+        {showBox && (
+          <DraggableResizable
+            position={boxPosition}
+            size={boxSize}
+            setSize={setBoxSize}
+            setPosition={setBoxPosition}
+            header={
+              <Header
+                setShowBox={setShowBox}
+                simpleStyle={simpleStyle}
+                setSimpleStyle={setSimpleStyle}
+                hideClickAway={hideClickAway}
+                setHideClickAway={setHideClickAway}
+                followSelection={followSelection}
+                setFollowSelection={setFollowSelection}
+                mouseHover={mouseHover}
+              />
+            }
+            onClick={(e) => e.stopPropagation()}
+            onMouseEnter={() => setMouseHover(true)}
+            onMouseLeave={() => setMouseHover(false)}
+          >
+            <Box sx={{ p: simpleStyle ? 1 : 2 }}>
+              <TranForm
+                text={text}
+                setText={setText}
+                apiSlugs={apiSlugs}
+                fromLang={fromLang}
+                toLang={toLang}
+                toLang2={toLang2}
+                transApis={transApis}
+                simpleStyle={simpleStyle}
+                langDetector={langDetector}
+                enDict={enDict}
+                enSug={enSug}
+              />
+            </Box>
+          </DraggableResizable>
+        )}
       </ThemeProvider>
     </SettingProvider>
   );

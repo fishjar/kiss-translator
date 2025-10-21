@@ -166,7 +166,7 @@ export const DEFAULT_SETTING = {
   shortcuts: DEFAULT_SHORTCUTS, // 快捷键
   inputRule: DEFAULT_INPUT_RULE, // 输入框设置
   tranboxSetting: DEFAULT_TRANBOX_SETTING, // 划词翻译设置
-  touchTranslate: 2, // 触屏翻译
+  touchTranslate: 2, // 触屏翻译 {5:单指双击，6:单指三击，7:双指双击}
   blacklist: DEFAULT_BLACKLIST.join(",\n"), // 禁用翻译名单
   csplist: DEFAULT_CSPLIST.join(",\n"), // 禁用CSP名单
   orilist: DEFAULT_ORILIST.join(",\n"), // 禁用CSP名单

@@ -1184,6 +1184,21 @@ export const I18N = {
     en: `Four finger tap`,
     zh_TW: `四指輕觸`,
   },
+  touch_tap_5: {
+    zh: `单指双击`,
+    en: `Double-click`,
+    zh_TW: `單指雙擊`,
+  },
+  touch_tap_6: {
+    zh: `单指三击`,
+    en: `Triple-click`,
+    zh_TW: `單指三擊`,
+  },
+  touch_tap_7: {
+    zh: `双指双击`,
+    en: `Two-finger double-click`,
+    zh_TW: `雙指雙擊`,
+  },
   translate_blacklist: {
     zh: `禁用翻译名单`,
     en: `Translate Blacklist`,

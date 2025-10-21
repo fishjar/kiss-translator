@@ -4,9 +4,8 @@ import { InputTranslator } from "./inputTranslate";
 import { TransboxManager } from "./tranbox";
 import { shortcutRegister } from "./shortcut";
 import { sendIframeMsg } from "./iframe";
-import { newI18n } from "../config";
+import { EVENT_KISS, newI18n } from "../config";
 import { touchTapListener } from "./touch";
-import { debounce } from "./utils";
 import { PopupManager } from "./popupManager";
 import { FabManager } from "./fabManager";
 import {
@@ -20,6 +19,7 @@ import {
   MSG_TRANS_PUTRULE,
   MSG_OPEN_TRANBOX,
   MSG_TRANSBOX_TOGGLE,
+  MSG_POPUP_TOGGLE,
   MSG_MOUSEHOVER_TOGGLE,
   MSG_TRANSINPUT_TOGGLE,
 } from "../config";
@@ -57,16 +57,15 @@ export default class TranslatorManager {
     if (!isIframe) {
       this._transboxManager = new TransboxManager(setting);
       this._inputTranslator = new InputTranslator(setting);
-      this._popupManager = new PopupManager({ translator: this._translator });
-
-      if (fabConfig && !fabConfig.isHide) {
-        this._fabManager = new FabManager({
-          translator: this._translator,
-          popupManager: this._popupManager,
-          fabConfig,
-        });
-        this._fabManager.show();
-      }
+      this._popupManager = new PopupManager({
+        translator: this._translator,
+        processActions: this.#processActions.bind(this),
+      });
+      this._fabManager = new FabManager({
+        translator: this._translator,
+        processActions: this.#processActions.bind(this),
+        fabConfig,
+      });
     }
 
     this.#windowMessageHandler = this.#handleWindowMessage.bind(this);
@@ -125,8 +124,8 @@ export default class TranslatorManager {
     }
 
     // 子模块
-    this._popupManager?.hide();
-    this._fabManager?.hide();
+    this._popupManager?.destroy();
+    this._fabManager?.destroy();
     this._transboxManager?.disable();
     this._inputTranslator?.disable();
     this._translator.stop();
@@ -151,11 +150,39 @@ export default class TranslatorManager {
       return;
     }
 
-    const handleTap = debounce(() => {
+    const handleTap = () => {
       this.#processActions({ action: MSG_TRANS_TOGGLE });
-    }, 300);
+    };
 
-    this.#clearTouchListener = touchTapListener(handleTap, touchTranslate);
+    switch (touchTranslate) {
+      case 2:
+      case 3:
+      case 4:
+        this.#clearTouchListener = touchTapListener(handleTap, {
+          taps: 1,
+          fingers: touchTranslate,
+        });
+        break;
+      case 5:
+        this.#clearTouchListener = touchTapListener(handleTap, {
+          taps: 2,
+          fingers: 1,
+        });
+        break;
+      case 6:
+        this.#clearTouchListener = touchTapListener(handleTap, {
+          taps: 3,
+          fingers: 1,
+        });
+        break;
+      case 7:
+        this.#clearTouchListener = touchTapListener(handleTap, {
+          taps: 2,
+          fingers: 2,
+        });
+        break;
+      default:
+    }
   }
 
   #handleWindowMessage(event) {
@@ -182,7 +209,7 @@ export default class TranslatorManager {
         this.#processActions({ action: MSG_TRANS_TOGGLE_STYLE })
       ),
       shortcutRegister(shortcuts[OPT_SHORTCUT_POPUP], () =>
-        this._popupManager.toggle()
+        this.#processActions({ action: MSG_POPUP_TOGGLE })
       ),
       shortcutRegister(shortcuts[OPT_SHORTCUT_SETTING], () =>
         window.open(process.env.REACT_APP_OPTIONSPAGE, "_blank")
@@ -210,7 +237,7 @@ export default class TranslatorManager {
       ),
       GM.registerMenuCommand(
         i18n("open_menu"),
-        () => this._popupManager.toggle(),
+        () => this.#processActions({ action: MSG_POPUP_TOGGLE }),
         "K"
       ),
       GM.registerMenuCommand(
@@ -239,16 +266,25 @@ export default class TranslatorManager {
         this._translator.updateRule(args);
         break;
       case MSG_OPEN_TRANBOX:
-        this._transboxManager?.enable();
+        document.dispatchEvent(
+          new CustomEvent(EVENT_KISS, {
+            detail: { action: MSG_OPEN_TRANBOX },
+          })
+        );
+        break;
+      case MSG_POPUP_TOGGLE:
+        this._popupManager?.toggle();
         break;
       case MSG_TRANSBOX_TOGGLE:
         this._transboxManager?.toggle();
+        this._translator.toggleTransbox();
         break;
       case MSG_MOUSEHOVER_TOGGLE:
         this._translator.toggleMouseHover();
         break;
       case MSG_TRANSINPUT_TOGGLE:
         this._inputTranslator?.toggle();
+        this._translator.toggleInputTranslate();
         break;
       default:
         logger.info(`Message action is unavailable: ${action}`);
