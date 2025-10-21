@@ -197,9 +197,9 @@ export const DEFAULT_OW_RULE = {
 
 // todo: 校验几个内置规则
 const RULES_MAP = {
-  "www.google.com/search": {
-    rootsSelector: `#rcnt`,
-  },
+  // "www.google.com/search": {
+  //   rootsSelector: `#rcnt`,
+  // },
   "en.wikipedia.org": {
     ignoreSelector: `.button, code, footer, form, mark, pre, .mwe-math-element, .mw-editsection`,
   },
