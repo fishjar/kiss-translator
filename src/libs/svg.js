@@ -69,7 +69,7 @@ export function createLoadingSVG() {
 export function createLogoSVG({
   width = "100%",
   height = "100%",
-  viewBox = "-20 -20 70 70",
+  viewBox = "0 -5 70 70",
   isSelected = false,
 } = {}) {
   const svg = createSVGElement("svg", {

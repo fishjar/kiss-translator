@@ -199,7 +199,7 @@ class YouTubeCaptionProvider {
       }
     };
     this.#toggleButton = toggleButton;
-    this.#ytControls?.before(kissControls);
+    this.#ytControls?.prepend(kissControls);
   }
 
   #isSameLang(lang1, lang2) {
