@@ -4,8 +4,7 @@
     "pattern": "en.wikipedia.org"
   },
   {
-    "selector": "p, .titleline, .commtext",
-    "rootsSelector": "#bigbox",
+    "selector": "p, .titleline, .commtext, .hn-item-title, .hn-comment-text, .hn-story-title",
     "keepSelector": "code, img, svg, pre, .sitebit",
     "ignoreSelector": "button, code, footer, form, header, mark, nav, pre, .reply",
     "autoScan": "false",
@@ -18,18 +17,14 @@
     "pattern": "twitter.com, https://x.com"
   },
   {
-    "rootsSelector": "#rcnt",
-    "pattern": "www.google.com/search"
+    "rootsSelector": "div#items",
+    "selector": "span.yt-live-chat-text-message-renderer",
+    "autoScan": "false",
+    "pattern": "www.youtube.com/live_chat"
   },
   {
     "rootsSelector": "ytd-page-manager",
     "ignoreSelector": "aside, button, footer, form, header, pre, mark, nav, #player, #container, .caption-window, .ytp-settings-menu",
     "pattern": "www.youtube.com"
-  },
-  {
-    "rootsSelector": "div#items",
-    "selector": "span.yt-live-chat-text-message-renderer",
-    "autoScan": "false",
-    "pattern": "www.youtube.com/live_chat"
   }
 ]
