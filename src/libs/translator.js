@@ -1,5 +1,5 @@
 import {
-  APP_NAME,
+  APP_UPNAME,
   APP_LCNAME,
   APP_CONSTS,
   MSG_INJECT_JS,
@@ -24,7 +24,7 @@ import { apiTranslate } from "../apis";
 import { sendBgMsg } from "./msg";
 import { isExt } from "./client";
 import { injectInlineJs, injectInternalCss } from "./injector";
-import { kissLog } from "./log";
+import { kissLog, logger } from "./log";
 import { clearAllBatchQueue } from "./batchQueue";
 import { genTextClass } from "./style";
 import { createLoadingSVG } from "./svg";
@@ -267,7 +267,7 @@ export class Translator {
   #combinedTermsRegex; // 专业术语正则表达式
   #combinedSkipsRegex; // 跳过文本正则表达式
   #placeholderRegex; // 恢复htnml正则表达式
-  #translationTagName = APP_NAME; // 翻译容器的标签名
+  #translationTagName = APP_UPNAME; // 翻译容器的标签名
   #eventName = ""; // 通信事件名称
   #docInfo = {}; // 网页信息
   #glossary = {}; // AI词典
