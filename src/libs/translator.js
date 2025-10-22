@@ -24,7 +24,7 @@ import { apiTranslate } from "../apis";
 import { sendBgMsg } from "./msg";
 import { isExt } from "./client";
 import { injectInlineJs, injectInternalCss } from "./injector";
-import { kissLog, logger } from "./log";
+import { kissLog } from "./log";
 import { clearAllBatchQueue } from "./batchQueue";
 import { genTextClass } from "./style";
 import { createLoadingSVG } from "./svg";
