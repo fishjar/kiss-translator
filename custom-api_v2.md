@@ -24,8 +24,11 @@ Response
     "src": "zh-CN"    // 原文语言
   }
 ]
+```
 
-// v2.0.4版后亦支持以下返回格式
+v2.0.4版后亦支持以下 Response 格式
+
+```json
 {
   "translations": [   // 译文列表
     {
