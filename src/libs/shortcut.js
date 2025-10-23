@@ -63,8 +63,8 @@ export const shortcutRegister = (targetKeys = [], fn, target = document) => {
   const targetKeySet = new Set(targetKeys);
   const onKeyDown = (pressedKeys, event) => {
     if (isSameSet(targetKeySet, pressedKeys)) {
-      // event.preventDefault();
-      event.stopPropagation();
+      // event.preventDefault(); // 阻止浏览器的默认行为
+      // event.stopPropagation(); // 阻止事件继续（向父元素）冒泡
       fn();
     }
   };
