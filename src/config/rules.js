@@ -211,7 +211,8 @@ const RULES_MAP = {
   },
   "twitter.com, https://x.com": {
     selector: `[data-testid='tweetText']`,
-    keepSelector: `img, svg, span:has(a), div:has(a)`,
+    keepSelector: `img, svg, a, span:has(a), div:has(a)`,
+    ignoreSelector: `button, [data-testid='videoPlayer'], [role='group']`,
     autoScan: `false`,
   },
   "www.youtube.com/live_chat": {

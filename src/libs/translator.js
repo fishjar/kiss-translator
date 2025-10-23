@@ -206,6 +206,8 @@ export class Translator {
 
     // 14. 包含常见扩展名的文件名 (例如: document.pdf, image.jpeg)
     /^[^\s\\/:]+?\.[a-zA-Z0-9]{2,5}$/,
+
+    // todo: 数字和特殊字符组成的字符串
   ];
 
   static DEFAULT_OPTIONS = DEFAULT_SETTING; // 默认配置
@@ -528,33 +530,36 @@ export class Translator {
   #createMutationObserver() {
     return new MutationObserver((mutations) => {
       for (const mutation of mutations) {
-        if (this.#skipMoNodes.has(mutation.target)) return;
-
         if (
-          mutation.type === "characterData" &&
-          mutation.oldValue !== mutation.target.nodeValue
+          this.#skipMoNodes.has(mutation.target) ||
+          mutation.nextSibling?.tagName === this.#translationTagName
         ) {
-          this.#queueForRescan(mutation.target.parentElement);
-        } else if (mutation.type === "childList") {
-          if (mutation.nextSibling?.tagName === this.#translationTagName) {
-            // 恢复原文时插入元素，忽略
-            continue;
-          }
+          continue;
+        }
 
+        if (mutation.type === "characterData") {
+          if (
+            mutation.oldValue !== mutation.target.nodeValue &&
+            !this.#combinedSkipsRegex.test(mutation.target.nodeValue)
+          ) {
+            this.#queueForRescan(mutation.target.parentElement);
+          }
+        } else if (mutation.type === "childList") {
           let nodes = new Set();
           let hasText = false;
           mutation.addedNodes.forEach((node) => {
-            if (this.#skipMoNodes.has(node)) return;
+            if (
+              this.#skipMoNodes.has(node) ||
+              node.nodeName === this.#translationTagName ||
+              !node.innerText
+            ) {
+              return;
+            }
 
-            if (/\S/.test(node.nodeValue)) {
-              if (node.nodeType === Node.TEXT_NODE) {
-                hasText = true;
-              } else if (
-                Translator.isElementOrFragment(node) &&
-                node.nodeName !== this.#translationTagName
-              ) {
-                nodes.add(node);
-              }
+            if (node.nodeType === Node.TEXT_NODE) {
+              hasText = true;
+            } else if (Translator.isElementOrFragment(node)) {
+              nodes.add(node);
             }
           });
           if (hasText) {
@@ -772,7 +777,7 @@ export class Translator {
   #scanNode(rootNode) {
     if (
       !Translator.isElementOrFragment(rootNode) ||
-      rootNode.matches?.(this.#rule.keepSelector) ||
+      // rootNode.matches?.(this.#rule.keepSelector) ||
       rootNode.matches?.(this.#ignoreSelector)
     ) {
       return;
