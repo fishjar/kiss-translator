@@ -1,3 +1,4 @@
+import { useDarkMode } from "../../hooks/ColorMode";
 import { useState, useEffect, useMemo } from "react";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
@@ -46,6 +47,7 @@ import {
   OPT_TRANS_AZUREAI,
 } from "../../config";
 import ValidationInput from "../../hooks/ValidationInput";
+import CodeEditor from "./CodeEditor";
 
 function TestButton({ api }) {
   const i18n = useI18n();
@@ -121,6 +123,9 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
   const [isModified, setIsModified] = useState(false);
   const [showMore, setShowMore] = useState(false);
   const confirm = useConfirm();
+  const { darkMode } = useDarkMode();
+  const [reqHookHeight, setReqHookHeight] = useState(200);
+  const [resHookHeight, setResHookHeight] = useState(200);
 
   useEffect(() => {
     if (api) {
@@ -142,6 +147,13 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
       value = checked;
     }
 
+    setFormData((prevData) => ({
+      ...prevData,
+      [name]: value,
+    }));
+  };
+
+  const handleCodeChange = (name, value) => {
     setFormData((prevData) => ({
       ...prevData,
       [name]: value,
@@ -398,39 +410,25 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
 
       {apiType === OPT_TRANS_CUSTOMIZE && (
         <>
-          <TextField
-            size="small"
-            label={"Request Hook"}
+          <CodeEditor
+            label="Request Hook"
             name="reqHook"
             value={reqHook}
-            onChange={handleChange}
-            multiline
-            maxRows={10}
-            FormHelperTextProps={{
-              component: "div",
-            }}
-            helperText={
-              <Box component="pre" sx={{ overflowX: "auto" }}>
-                {i18n("request_hook_helper")}
-              </Box>
-            }
+            onChange={(value) => handleCodeChange("reqHook", value)}
+            height={reqHookHeight}
+            onHeightChange={setReqHookHeight}
+            darkMode={darkMode}
+            helperText={i18n("request_hook_helper")}
           />
-          <TextField
-            size="small"
-            label={"Response Hook"}
+          <CodeEditor
+            label="Response Hook"
             name="resHook"
             value={resHook}
-            onChange={handleChange}
-            multiline
-            maxRows={10}
-            FormHelperTextProps={{
-              component: "div",
-            }}
-            helperText={
-              <Box component="pre" sx={{ overflowX: "auto" }}>
-                {i18n("response_hook_helper")}
-              </Box>
-            }
+            onChange={(value) => handleCodeChange("resHook", value)}
+            height={resHookHeight}
+            onHeightChange={setResHookHeight}
+            darkMode={darkMode}
+            helperText={i18n("response_hook_helper")}
           />
         </>
       )}
@@ -648,40 +646,30 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
           {apiType !== OPT_TRANS_CUSTOMIZE &&
             apiType !== OPT_TRANS_BUILTINAI && (
               <>
-                <TextField
-                  size="small"
-                  label={"Request Hook"}
-                  name="reqHook"
-                  value={reqHook}
-                  onChange={handleChange}
-                  multiline
-                  maxRows={10}
-                  FormHelperTextProps={{
-                    component: "div",
-                  }}
-                  helperText={
-                    <Box component="pre" sx={{ overflowX: "auto" }}>
-                      {i18n("request_hook_helper")}
-                    </Box>
-                  }
-                />
-                <TextField
-                  size="small"
-                  label={"Response Hook"}
-                  name="resHook"
-                  value={resHook}
-                  onChange={handleChange}
-                  multiline
-                  maxRows={10}
-                  FormHelperTextProps={{
-                    component: "div",
-                  }}
-                  helperText={
-                    <Box component="pre" sx={{ overflowX: "auto" }}>
-                      {i18n("response_hook_helper")}
-                    </Box>
-                  }
-                />
+                <>
+                  <CodeEditor
+                    label="Request Hook"
+                    name="reqHook"
+                    value={reqHook}
+                    onChange={(value) => handleCodeChange("reqHook", value)}
+                    height={reqHookHeight}
+                    onHeightChange={setReqHookHeight}
+                    darkMode={darkMode}
+                    helperText={i18n("request_hook_helper")}
+                  />
+                </>
+                <>
+                  <CodeEditor
+                    label="Response Hook"
+                    name="resHook"
+                    value={resHook}
+                    onChange={(value) => handleCodeChange("resHook", value)}
+                    height={resHookHeight}
+                    onHeightChange={setResHookHeight}
+                    darkMode={darkMode}
+                    helperText={i18n("response_hook_helper")}
+                  />
+                </>
               </>
             )}
         </>
