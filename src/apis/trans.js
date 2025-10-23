@@ -847,7 +847,7 @@ export const parseTransRes = async (
       }
       return parseAIRes(modelMsg?.content);
     case OPT_TRANS_CUSTOMIZE:
-      return res?.map((item) => [item.text, item.src]);
+      return (res?.translations ?? res)?.map((item) => [item.text, item.src]);
     default:
   }
 
