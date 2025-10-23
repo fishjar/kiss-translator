@@ -1242,10 +1242,7 @@ export class Translator {
       }
 
       // 文本节点
-      if (
-        this.#rule.hasRichText === "false" ||
-        node.nodeType === Node.TEXT_NODE
-      ) {
+      if (node.nodeType === Node.TEXT_NODE) {
         let text = node.textContent;
 
         // 专业术语替换
@@ -1271,7 +1268,8 @@ export class Translator {
       // 元素节点
       if (node.nodeType === Node.ELEMENT_NODE) {
         if (
-          Translator.TAGS.REPLACE.has(node.tagName) ||
+          (this.#rule.hasRichText === "true" &&
+            Translator.TAGS.REPLACE.has(node.tagName)) ||
           node.matches(this.#rule.keepSelector) ||
           node.matches(this.#ignoreSelector) ||
           !node.textContent.trim()
@@ -1288,7 +1286,10 @@ export class Translator {
           innerContent += traverse(child);
         });
 
-        if (Translator.TAGS.WARP.has(node.tagName)) {
+        if (
+          this.#rule.hasRichText === "true" &&
+          Translator.TAGS.WARP.has(node.tagName)
+        ) {
           wrapCounter++;
           const startPlaceholder = `<${this.#placeholder.tagName}${wrapCounter}>`;
           const endPlaceholder = `</${this.#placeholder.tagName}${wrapCounter}>`;
