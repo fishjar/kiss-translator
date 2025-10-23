@@ -248,11 +248,11 @@ export class Translator {
   }
 
   // 内置忽略元素
-  static BUILTIN_IGNORE_SELECTOR = `abbr, address, area, audio, br, canvas, code,
-  data, datalist, dfn, embed, head, iframe, img, input, kbd, noscript, map, 
-  object, option, output, param, picture, progress,
-  samp, select, script, style, sub, sup, svg, track, time, textarea, template, 
-  var, video, wbr, .notranslate, [contenteditable], [translate='no'], 
+  static BUILTIN_IGNORE_SELECTOR = `address, area, audio, br, canvas, 
+  data, datalist, embed, head, iframe, input, noscript, map, 
+  object, option, param, picture, progress, 
+  select, script, style, track, textarea, template, 
+  video, wbr, .notranslate, [contenteditable], [translate='no'], 
   ${APP_LCNAME}, #${APP_CONSTS.fabID}, #${APP_CONSTS.boxID}, 
   .${APP_CONSTS.fabID}_warpper, .${APP_CONSTS.boxID}_warpper`;
 
@@ -772,6 +772,7 @@ export class Translator {
   #scanNode(rootNode) {
     if (
       !Translator.isElementOrFragment(rootNode) ||
+      rootNode.matches?.(this.#rule.keepSelector) ||
       rootNode.matches?.(this.#ignoreSelector)
     ) {
       return;
@@ -1028,6 +1029,7 @@ export class Translator {
 
     if (
       Translator.TAGS.BREAK_LINE.has(node.nodeName) ||
+      node.matches?.(this.#ignoreSelector) ||
       node.nodeName === this.#translationTagName
     ) {
       return true;
@@ -1271,6 +1273,7 @@ export class Translator {
         if (
           Translator.TAGS.REPLACE.has(node.tagName) ||
           node.matches(this.#rule.keepSelector) ||
+          node.matches(this.#ignoreSelector) ||
           !node.textContent.trim()
         ) {
           if (node.tagName === "IMG" || node.tagName === "SVG") {
