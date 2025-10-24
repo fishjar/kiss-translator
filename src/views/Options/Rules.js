@@ -459,6 +459,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 type="number"
                 name="splitLength"
                 value={splitLength}
+                disabled={disabled}
                 onChange={handleChange}
                 min={0}
                 max={1000}
