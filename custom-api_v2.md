@@ -21,7 +21,7 @@ Response
 [
   {
     "text": "你好",    // 译文
-    "src": "zh-CN"    // 原文语言
+    "src": "en"    // 原文语言
   }
 ]
 ```
@@ -33,7 +33,7 @@ v2.0.4版后亦支持以下 Response 格式
   "translations": [   // 译文列表
     {
       "text": "你好",  // 译文
-      "src": "zh-CN"  // 原文语言
+      "src": "en"  // 原文语言
     }
   ]
 }
