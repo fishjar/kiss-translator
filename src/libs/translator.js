@@ -789,14 +789,23 @@ export class Translator {
     }
 
     const hasText = Translator.hasTextNode(rootNode);
-    if (hasText) {
-      this.#startObserveNode(rootNode);
+
+    if (!hasText && rootNode.children.length === 1) {
+      this.#scanNode(rootNode.children[0]);
+      return;
     }
 
+    let hasBlock = false;
     for (const child of rootNode.children) {
-      if (!hasText || Translator.isBlockNode(child)) {
+      const isBlock = Translator.isBlockNode(child);
+      if (isBlock) {
+        hasBlock = true;
         this.#scanNode(child);
       }
+    }
+
+    if (hasText || !hasBlock) {
+      this.#startObserveNode(rootNode);
     }
   }
 
