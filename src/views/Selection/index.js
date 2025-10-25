@@ -15,6 +15,7 @@ import {
 import { isMobile } from "../../libs/mobile";
 import { kissLog } from "../../libs/log";
 import { useLangMap } from "../../hooks/I18n";
+import { debouncePutTranBox, getTranBox } from "../../libs/storage";
 
 export default function Slection({
   contextMenuType,
@@ -106,6 +107,29 @@ export default function Slection({
     }
     return "onMouseUp";
   }, [triggerMode]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { w, h, x, y } = (await getTranBox()) || {};
+        if (w !== undefined && h !== undefined) {
+          setBoxSize({ w, h });
+        }
+        if (x !== undefined && y !== undefined) {
+          setBoxPosition({
+            x: limitNumber(x, 0, window.innerWidth),
+            y: limitNumber(y, 0, window.innerHeight),
+          });
+        }
+      } catch (err) {
+        //
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    debouncePutTranBox({ ...boxSize, ...boxPosition });
+  }, [boxSize, boxPosition]);
 
   useEffect(() => {
     async function handleMouseup(e) {

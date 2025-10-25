@@ -5,6 +5,7 @@ import {
   STOKEY_RULES_OLD,
   STOKEY_WORDS,
   STOKEY_FAB,
+  STOKEY_TRANBOX,
   STOKEY_SYNC,
   STOKEY_MSAUTH,
   STOKEY_BDAUTH,
@@ -134,6 +135,13 @@ export const getFab = () => getObj(STOKEY_FAB);
 export const getFabWithDefault = async () => (await getFab()) || {};
 export const setFab = (obj) => setObj(STOKEY_FAB, obj);
 export const putFab = (obj) => putObj(STOKEY_FAB, obj);
+
+/**
+ * tranbox位置大小
+ */
+export const getTranBox = () => getObj(STOKEY_TRANBOX);
+export const putTranBox = (obj) => putObj(STOKEY_TRANBOX, obj);
+export const debouncePutTranBox = debounce(putTranBox, 300);
 
 /**
  * 数据同步
