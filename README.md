@@ -153,8 +153,6 @@
 
 设置页面地址： https://fishjar.github.io/kiss-translator/options.html
 
-备用地址： https://kiss-translator.rayjar.com/options
-
 ## 未来规划 
 
  本项目为业余开发，无严格时间表，欢迎社区共建。以下为初步设想的功能方向：
