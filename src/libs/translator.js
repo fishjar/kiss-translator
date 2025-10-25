@@ -77,7 +77,7 @@ export class Translator {
       "VIDEO",
     ]),
     INLINE: new Set([
-      "A",
+      // "A",
       "ABBR",
       "ACRONYM",
       "B",
@@ -106,7 +106,7 @@ export class Translator {
       "SCRIPT",
       "SELECT",
       "SMALL",
-      "SPAN",
+      // "SPAN",
       "STRONG",
       "SUB",
       "SUP",
@@ -223,6 +223,7 @@ export class Translator {
 
     if (Translator.TAGS.INLINE.has(el.nodeName)) return false;
     if (Translator.TAGS.BLOCK.has(el.nodeName)) return true;
+    if (el.attributes?.display?.value?.includes("inline")) return false;
 
     if (Translator.displayCache.has(el)) {
       return Translator.displayCache.get(el);
@@ -233,11 +234,22 @@ export class Translator {
     return isBlock;
   }
 
+  // 判断是否包含块级子元素
+  static hasBlockNode(el) {
+    if (!Translator.isElementOrFragment(el)) return false;
+    for (const child of el.childNodes) {
+      if (Translator.isBlockNode(child)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   // 判断是否直接包含非空文本节点
   static hasTextNode(el) {
     if (!Translator.isElementOrFragment(el)) return false;
-    for (const node of el.childNodes) {
-      if (node.nodeType === Node.TEXT_NODE && /\S/.test(node.nodeValue)) {
+    for (const child of el.childNodes) {
+      if (child.nodeType === Node.TEXT_NODE && /\S/.test(child.nodeValue)) {
         return true;
       }
     }
@@ -795,17 +807,19 @@ export class Translator {
       return;
     }
 
-    let hasBlock = false;
-    for (const child of rootNode.children) {
-      const isBlock = Translator.isBlockNode(child);
-      if (isBlock) {
-        hasBlock = true;
-        this.#scanNode(child);
-      }
-    }
+    const hasBlock = Translator.hasBlockNode(rootNode);
 
     if (hasText || !hasBlock) {
       this.#startObserveNode(rootNode);
+    }
+
+    if (hasBlock) {
+      for (const child of rootNode.children) {
+        const isBlock = Translator.isBlockNode(child);
+        if (!hasText || isBlock) {
+          this.#scanNode(child);
+        }
+      }
     }
   }
 
