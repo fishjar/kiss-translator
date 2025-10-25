@@ -153,6 +153,12 @@ Custom APIs are very powerful and flexible, and can theoretically connect to any
 
 Example reference: [custom-api_v2.md](https://github.com/fishjar/kiss-translator/blob/master/custom-api_v2.md)
 
+### How to directly access the Tampermonkey script settings page
+
+Settings page address: https://fishjar.github.io/kiss-translator/options.html
+
+Alternative address: https://kiss-translator.rayjar.com/options
+
 ## Future Plans 
 
  This is a side project with no strict timeline. Community contributions are welcome. The following are preliminary feature directions:
