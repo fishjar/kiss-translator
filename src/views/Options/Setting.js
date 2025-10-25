@@ -94,7 +94,7 @@ export default function Settings() {
     newlineLength = TRANS_NEWLINE_LENGTH,
     httpTimeout = DEFAULT_HTTP_TIMEOUT,
     contextMenuType = 1,
-    touchTranslate = 2,
+    touchModes = [2],
     blacklist = DEFAULT_BLACKLIST.join(",\n"),
     csplist = DEFAULT_CSPLIST.join(",\n"),
     orilist = DEFAULT_ORILIST.join(",\n"),
@@ -268,10 +268,13 @@ export default function Settings() {
                 select
                 fullWidth
                 size="small"
-                name="touchTranslate"
-                value={touchTranslate}
+                name="touchModes"
+                value={touchModes}
                 label={i18n("touch_translate_shortcut")}
                 onChange={handleChange}
+                SelectProps={{
+                  multiple: true,
+                }}
               >
                 {[0, 2, 3, 4, 5, 6, 7].map((item) => (
                   <MenuItem key={item} value={item}>

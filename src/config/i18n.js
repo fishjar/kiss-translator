@@ -1160,9 +1160,9 @@ export const I18N = {
     zh_TW: `觸控設定`,
   },
   touch_translate_shortcut: {
-    zh: `触屏翻译快捷方式`,
-    en: `Touch Translate Shortcut`,
-    zh_TW: `觸控翻譯捷徑`,
+    zh: `触屏翻译快捷方式 (支持多选)`,
+    en: `Touch Translate Shortcut (multiple supported)`,
+    zh_TW: `觸控翻譯捷徑 (支援多選)`,
   },
   touch_tap_0: {
     zh: `禁用`,
