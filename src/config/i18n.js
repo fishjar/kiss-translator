@@ -1349,6 +1349,11 @@ export const I18N = {
     en: `Transbox Follow Selection`,
     zh_TW: `翻譯框跟隨選取文字`,
   },
+  tranbox_auto_height: {
+    zh: `翻译框自适应高度`,
+    en: `Translation box adaptive height`,
+    zh_TW: `翻譯框自適應高度`,
+  },
   translate_start_hook: {
     zh: `翻译开始钩子函数`,
     en: `Translate Start Hook`,

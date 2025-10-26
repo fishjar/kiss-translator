@@ -68,6 +68,7 @@ export default function Tranbox() {
     hideClickAway = false,
     simpleStyle = false,
     followSelection = false,
+    autoHeight = false,
     triggerMode = OPT_TRANBOX_TRIGGER_CLICK,
     // extStyles = "",
     enDict = OPT_DICT_BING,
@@ -329,6 +330,20 @@ export default function Tranbox() {
                 min={-200}
                 max={200}
               />
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                fullWidth
+                select
+                size="small"
+                name="autoHeight"
+                value={autoHeight}
+                label={i18n("tranbox_auto_height")}
+                onChange={handleChange}
+              >
+                <MenuItem value={false}>{i18n("disable")}</MenuItem>
+                <MenuItem value={true}>{i18n("enable")}</MenuItem>
+              </TextField>
             </Grid>
             {!isExt && (
               <Grid item xs={12} sm={12} md={6} lg={3}>

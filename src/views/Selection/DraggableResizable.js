@@ -150,6 +150,7 @@ export default function DraggableResizable({
   setPosition,
   onChangeSize,
   onChangePosition,
+  autoHeight,
   ...props
 }) {
   const lineWidth = 4;
@@ -222,11 +223,19 @@ export default function DraggableResizable({
         </Pointer>
         <Box
           className="KT-draggable-container"
-          style={{
-            width: size.w,
-            height: size.h,
-            overflow: "hidden auto",
-          }}
+          style={
+            autoHeight
+              ? {
+                  width: size.w,
+                  maxHeight: size.h,
+                  overflow: "hidden auto",
+                }
+              : {
+                  width: size.w,
+                  height: size.h,
+                  overflow: "hidden auto",
+                }
+          }
         >
           {children}
         </Box>
