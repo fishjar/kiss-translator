@@ -562,8 +562,7 @@ export class Translator {
           mutation.addedNodes.forEach((node) => {
             if (
               this.#skipMoNodes.has(node) ||
-              node.nodeName === this.#translationTagName ||
-              !node.innerText
+              node.nodeName === this.#translationTagName
             ) {
               return;
             }
