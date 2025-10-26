@@ -913,7 +913,7 @@ class YouTubeCaptionProvider {
     }
   }
 
-  #showNotification(message, duration = 3000) {
+  #showNotification(message, duration = 2000) {
     if (!this.#notificationEl) this.#createNotificationElement();
     this.#notificationEl.textContent = message;
     this.#notificationEl.style.opacity = "1";
