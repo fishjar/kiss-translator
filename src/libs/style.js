@@ -84,7 +84,7 @@ const genStyles = ({
   // 虚线框
   [OPT_STYLE_DASHBOX]: `
     border: 2px dashed ${bgColor || DEFAULT_COLOR};
-    display: inline-block;
+    display: block;
     padding: 0.2em 0.4em;
     box-sizing: border-box;
   `,
