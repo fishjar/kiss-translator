@@ -40,7 +40,7 @@ export default function Layout() {
           />
         </Box>
 
-        <Box component="main" sx={{ flex: 1, p: 2 }}>
+        <Box component="main" sx={{ flex: 1, p: 2, width: "100%" }}>
           <Outlet />
         </Box>
       </Box>
