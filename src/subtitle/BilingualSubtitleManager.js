@@ -128,15 +128,14 @@ export class BilingualSubtitleManager {
     let initialBottom;
     let dragElementHeight;
 
-    const onMouseDown = (e) => {
-      e.stopPropagation();
-      e.preventDefault();
+    const onDragStart = (e) => {
+      if (e.type === "mousedown" && e.button !== 0) return;
 
-      if (e.button !== 0) return;
+      e.preventDefault();
 
       isDragging = true;
       handleElement.style.cursor = "grabbing";
-      startY = e.clientY;
+      startY = e.type === "touchstart" ? e.touches[0].clientY : e.clientY;
 
       initialBottom =
         boundaryContainer.getBoundingClientRect().bottom -
@@ -144,17 +143,23 @@ export class BilingualSubtitleManager {
 
       dragElementHeight = dragElement.offsetHeight;
 
-      document.addEventListener("mousemove", onMouseMove, { capture: true });
-      document.addEventListener("mouseup", onMouseUp, { capture: true });
+      document.addEventListener("mousemove", onDragMove, { capture: true });
+      document.addEventListener("touchmove", onDragMove, {
+        capture: true,
+        passive: false,
+      });
+      document.addEventListener("mouseup", onDragEnd, { capture: true });
+      document.addEventListener("touchend", onDragEnd, { capture: true });
     };
 
-    const onMouseMove = (e) => {
+    const onDragMove = (e) => {
       if (!isDragging) return;
 
       e.preventDefault();
-      e.stopPropagation();
 
-      const deltaY = e.clientY - startY;
+      const currentY =
+        e.type === "touchmove" ? e.touches[0].clientY : e.clientY;
+      const deltaY = currentY - startY;
       let newBottom = initialBottom - deltaY;
 
       const containerHeight = boundaryContainer.clientHeight;
@@ -167,17 +172,18 @@ export class BilingualSubtitleManager {
       dragElement.style.bottom = `${newBottom}px`;
     };
 
-    const onMouseUp = (e) => {
+    const onDragEnd = (e) => {
       if (!isDragging) return;
 
       e.preventDefault();
-      e.stopPropagation();
 
       isDragging = false;
       handleElement.style.cursor = "grab";
 
-      document.removeEventListener("mousemove", onMouseMove, { capture: true });
-      document.removeEventListener("mouseup", onMouseUp, { capture: true });
+      document.removeEventListener("mousemove", onDragMove, { capture: true });
+      document.removeEventListener("touchmove", onDragMove, { capture: true });
+      document.removeEventListener("mouseup", onDragEnd, { capture: true });
+      document.removeEventListener("touchend", onDragEnd, { capture: true });
 
       const finalBottomPx = dragElement.style.bottom;
       setTimeout(() => {
@@ -185,7 +191,10 @@ export class BilingualSubtitleManager {
       }, 50);
     };
 
-    handleElement.addEventListener("mousedown", onMouseDown);
+    handleElement.addEventListener("mousedown", onDragStart);
+    handleElement.addEventListener("touchstart", onDragStart, {
+      passive: false,
+    });
   }
 
   /**
