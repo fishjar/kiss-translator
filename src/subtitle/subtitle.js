@@ -1,18 +1,15 @@
 import { YouTubeInitializer } from "./YouTubeCaptionProvider.js";
-import { browser } from "../libs/browser.js";
 import { isMatch } from "../libs/utils.js";
 import { DEFAULT_API_SETTING } from "../config/api.js";
 import { DEFAULT_SUBTITLE_SETTING } from "../config/setting.js";
-import { injectExternalJs } from "../libs/injector.js";
 import { logger } from "../libs/log.js";
-import { XMLHttpRequestInjector } from "./XMLHttpRequestInjector.js";
-import { injectInlineJs } from "../libs/injector.js";
+import { injectJs, INJECTOR } from "../injectors/index.js";
 
 const providers = [
   { pattern: "https://www.youtube.com", start: YouTubeInitializer },
 ];
 
-export function runSubtitle({ href, setting, isUserscript }) {
+export function runSubtitle({ href, setting }) {
   try {
     const subtitleSetting = setting.subtitleSetting || DEFAULT_SUBTITLE_SETTING;
     if (!subtitleSetting.enabled) {
@@ -21,13 +18,8 @@ export function runSubtitle({ href, setting, isUserscript }) {
 
     const provider = providers.find((item) => isMatch(href, item.pattern));
     if (provider) {
-      const id = "kiss-translator-xmlHttp-injector";
-      if (isUserscript) {
-        injectInlineJs(`(${XMLHttpRequestInjector})()`, id);
-      } else {
-        const src = browser.runtime.getURL("injector.js");
-        injectExternalJs(src, id);
-      }
+      const id = "kiss-translator-inject-subtitle-js";
+      injectJs(INJECTOR.subtitle, id);
 
       const apiSetting =
         setting.transApis.find(

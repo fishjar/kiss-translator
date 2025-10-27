@@ -19,8 +19,12 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["injector.js"],
+      "resources": ["injector-subtitle.js"],
       "matches": ["https://www.youtube.com/*"]
+    },
+    {
+      "resources": ["injector-shadowroot.js"],
+      "matches": ["<all_urls>"]
     }
   ],
   "commands": {

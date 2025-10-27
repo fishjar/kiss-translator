@@ -17,7 +17,8 @@
     }
   ],
   "web_accessible_resources": [
-    "injector.js"
+    "injector-subtitle.js",
+    "injector-shadowroot.js"
   ],
   "commands": {
     "_execute_browser_action": {

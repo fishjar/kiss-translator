@@ -17,7 +17,6 @@ import {
   OPT_SPLIT_PARAGRAPH_TEXTLENGTH,
 } from "../config";
 import interpreter from "./interpreter";
-import ShadowRootMonitor from "./shadowRootMonitor";
 import { clearFetchPool } from "./pool";
 import { debounce, scheduleIdle, genEventName, truncateWords } from "./utils";
 import { apiTranslate } from "../apis";
@@ -31,6 +30,7 @@ import { createLoadingSVG } from "./svg";
 import { shortcutRegister } from "./shortcut";
 import { tryDetectLang } from "./detect";
 import { trustedTypesHelper } from "./trustedTypes";
+import { injectJs, INJECTOR } from "../injectors";
 
 /**
  * @class Translator
@@ -278,6 +278,7 @@ export class Translator {
   #rule; // 规则
   #isInitialized = false; // 初始化状态
   #isJsInjected = false; // 注入用户JS
+  #isShadowRootJsInjected = false; //
   #mouseHoverEnabled = false; // 鼠标悬停翻译
   #enabled = false; // 全局默认状态
   #runId = 0; // 用于中止过期的异步请求
@@ -305,11 +306,13 @@ export class Translator {
   #hoveredNode = null; // 存储当前悬停的可翻译节点
   #boundMouseMoveHandler; // 鼠标事件
   #boundKeyDownHandler; // 键盘事件
+  #windowMessageHandler = null;
+
+  #debouncedFindShadowRoot = null;
 
   #io; // IntersectionObserver
   #mo; // MutationObserver
   #dmm; // DebounceMouseMover
-  #srm; // ShadowRootMonitor
 
   #rescanQueue = new Set(); // “脏容器”队列
   #isQueueProcessing = false; // 队列处理状态标志
@@ -368,12 +371,12 @@ export class Translator {
     this.#io = this.#createIntersectionObserver();
     this.#mo = this.#createMutationObserver();
     this.#dmm = this.#createDebounceMouseMover();
-    this.#srm = this.#createShadowRootMonitor();
 
-    // 监控shadowroot
-    if (this.#rule.hasShadowroot === "true") {
-      this.#srm.start();
-    }
+    this.#windowMessageHandler = this.#handleWindowMessage.bind(this);
+    this.#debouncedFindShadowRoot = debounce(
+      this.#findAndObserveShadowRoot.bind(this),
+      300
+    );
 
     // 鼠标悬停翻译
     if (this.#setting.mouseHoverSetting.useMouseHover) {
@@ -410,15 +413,41 @@ export class Translator {
         this.#startObserveRoot(root);
       });
 
-    // 查找现有的所有shadowroot
     if (this.#rule.hasShadowroot === "true") {
-      try {
-        this.#findAllShadowRoots().forEach((shadowRoot) => {
-          this.#startObserveShadowRoot(shadowRoot);
-        });
-      } catch (err) {
-        kissLog("findAllShadowRoots", err);
-      }
+      this.#attachShadowRootListener();
+      this.#findAndObserveShadowRoot();
+    }
+  }
+
+  #handleWindowMessage(event) {
+    if (event.data?.type === "KISS_SHADOW_ROOT_CREATED") {
+      this.#debouncedFindShadowRoot();
+    }
+  }
+
+  #attachShadowRootListener() {
+    if (!this.#isShadowRootJsInjected) {
+      const id = "kiss-translator-inject-shadowroot-js";
+      injectJs(INJECTOR.shadowroot, id);
+
+      this.#isShadowRootJsInjected = true;
+    }
+
+    window.addEventListener("message", this.#windowMessageHandler);
+  }
+
+  #removeShadowRootListener() {
+    window.removeEventListener("message", this.#windowMessageHandler);
+  }
+
+  // 查找现有的所有shadowroot
+  #findAndObserveShadowRoot() {
+    try {
+      this.#findAllShadowRoots().forEach((shadowRoot) => {
+        this.#startObserveShadowRoot(shadowRoot);
+      });
+    } catch (err) {
+      kissLog("findAllShadowRoots", err);
     }
   }
 
@@ -609,13 +638,6 @@ export class Translator {
         this.#processNode(foundNode);
       }
     }, 100);
-  }
-
-  // 创建shadowroot的回调
-  #createShadowRootMonitor() {
-    return new ShadowRootMonitor((shadowRoot) => {
-      this.#startObserveShadowRoot(shadowRoot);
-    });
   }
 
   // 跟踪鼠标下的可翻译节点
@@ -1527,6 +1549,8 @@ export class Translator {
 
   // 停止监听，重置参数
   #resetOptions() {
+    this.#removeShadowRootListener();
+
     this.#io.disconnect();
     this.#mo.disconnect();
     this.#viewNodes.clear();
@@ -1697,7 +1721,6 @@ export class Translator {
   stop() {
     this.disable();
     this.#resetOptions();
-    this.#srm.stop();
     this.#disableMouseHover();
     this.#removeInjector();
     this.#isInitialized = false;

@@ -32,7 +32,8 @@ const extWebpack = (config, env) => {
     options: paths.appSrc + "/options.js",
     background: paths.appSrc + "/background.js",
     content: paths.appSrc + "/content.js",
-    injector: paths.appSrc + "/injector.js",
+    "injector-subtitle": paths.appSrc + "/injector-subtitle.js",
+    "injector-shadowroot": paths.appSrc + "/injector-shadowroot.js",
   };
 
   config.output.filename = "[name].js";
