@@ -1298,7 +1298,7 @@ export class Translator {
           (this.#rule.hasRichText === "true" &&
             Translator.TAGS.REPLACE.has(node.tagName)) ||
           node.matches(this.#rule.keepSelector) ||
-          node.matches(this.#ignoreSelector) ||
+          // node.matches(this.#ignoreSelector) ||
           !node.textContent.trim()
         ) {
           if (node.tagName === "IMG" || node.tagName === "SVG") {
