@@ -213,6 +213,10 @@ export class Translator {
   static DEFAULT_OPTIONS = DEFAULT_SETTING; // 默认配置
   static DEFAULT_RULE = GLOBLA_RULE; // 默认规则
 
+  static isElement(el) {
+    return el instanceof Element;
+  }
+
   static isElementOrFragment(el) {
     return el instanceof Element || el instanceof DocumentFragment;
   }
@@ -743,6 +747,9 @@ export class Translator {
 
   // 开始/重新监控节点
   #startObserveNode(node) {
+    // todo: DocumentFragment 无法被 this.#io.observe
+    if (!Translator.isElement(node)) return;
+
     if (this.#rule.highlightWords === OPT_HIGHLIGHT_WORDS_BEFORETRANS) {
       this.#highlightWordsDeeply(node);
     }
