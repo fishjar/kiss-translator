@@ -105,6 +105,7 @@ export default function Settings() {
     skipLangs = [],
     // detectRemote = true,
     transAllnow = false,
+    rootMargin = 200,
   } = setting;
   const { isHide = false, fabClickAction = 0 } = fab || {};
 
@@ -301,34 +302,6 @@ export default function Settings() {
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
-                size="small"
-                fullWidth
-                name="transAllnow"
-                value={transAllnow}
-                label={i18n("trigger_mode")}
-                onChange={handleChange}
-              >
-                <MenuItem value={false}>{i18n("mk_pagescroll")}</MenuItem>
-                <MenuItem value={true}>{i18n("mk_pageopen")}</MenuItem>
-              </TextField>
-            </Grid>
-            {/* <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
-                select
-                size="small"
-                fullWidth
-                name="detectRemote"
-                value={detectRemote}
-                label={i18n("detect_lang_remote")}
-                onChange={handleChange}
-              >
-                <MenuItem value={true}>{i18n("enable")}</MenuItem>
-                <MenuItem value={false}>{i18n("disable")}</MenuItem>
-              </TextField>
-            </Grid> */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
-                select
                 fullWidth
                 size="small"
                 name="langDetector"
@@ -344,6 +317,47 @@ export default function Settings() {
                 ))}
               </TextField>
             </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                select
+                size="small"
+                fullWidth
+                name="transAllnow"
+                value={transAllnow}
+                label={i18n("trigger_mode")}
+                onChange={handleChange}
+              >
+                <MenuItem value={false}>{i18n("mk_pagescroll")}</MenuItem>
+                <MenuItem value={true}>{i18n("mk_pageopen")}</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <ValidationInput
+                fullWidth
+                size="small"
+                label={i18n("pagescroll_root_margin")}
+                type="number"
+                name="rootMargin"
+                value={rootMargin}
+                onChange={handleChange}
+                min={0}
+                max={1000}
+              />
+            </Grid>
+            {/* <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                select
+                size="small"
+                fullWidth
+                name="detectRemote"
+                value={detectRemote}
+                label={i18n("detect_lang_remote")}
+                onChange={handleChange}
+              >
+                <MenuItem value={true}>{i18n("enable")}</MenuItem>
+                <MenuItem value={false}>{i18n("disable")}</MenuItem>
+              </TextField>
+            </Grid> */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select

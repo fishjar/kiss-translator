@@ -1784,6 +1784,11 @@ export const I18N = {
     en: `Highlight after translation`,
     zh_TW: `翻譯後高亮`,
   },
+  pagescroll_root_margin: {
+    zh: `滚动加载提前触发 (px)`,
+    en: `Early triggering of scroll loading (px)`,
+    zh_TW: `滾動載入提前觸發 (px)`,
+  }
 };
 
 export const newI18n = (lang) => (key) => I18N[key]?.[lang] || "";

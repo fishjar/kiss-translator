@@ -182,4 +182,5 @@ export const DEFAULT_SETTING = {
   transAllnow: false, // 是否立即全部翻译
   subtitleSetting: DEFAULT_SUBTITLE_SETTING, // 字幕设置
   logLevel: LogLevel.INFO.value, // 日志级别
+  rootMargin: 200, // 提前触发翻译
 };

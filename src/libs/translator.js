@@ -544,11 +544,13 @@ export class Translator {
 
   // 监控翻译单元的可见性
   #createIntersectionObserver() {
+    const { transInterval, rootMargin = 200 } = this.#setting;
+
     const pending = new Set();
     const flush = debounce(() => {
       pending.forEach((node) => this.#performSyncNode(node));
       pending.clear();
-    }, this.#setting.transInterval);
+    }, transInterval);
 
     return new IntersectionObserver(
       (entries) => {
@@ -562,7 +564,7 @@ export class Translator {
           }
         });
       },
-      { threshold: 0.01 }
+      { threshold: 0.01, rootMargin: `${rootMargin}px 0px ${rootMargin}px 0px` }
     );
   }
 
