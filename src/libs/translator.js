@@ -544,7 +544,7 @@ export class Translator {
 
   // 监控翻译单元的可见性
   #createIntersectionObserver() {
-    const { transInterval, rootMargin = 200 } = this.#setting;
+    const { transInterval, rootMargin = 500 } = this.#setting;
 
     const pending = new Set();
     const flush = debounce(() => {

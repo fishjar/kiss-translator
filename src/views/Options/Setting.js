@@ -105,7 +105,7 @@ export default function Settings() {
     skipLangs = [],
     // detectRemote = true,
     transAllnow = false,
-    rootMargin = 200,
+    rootMargin = 500,
   } = setting;
   const { isHide = false, fabClickAction = 0 } = fab || {};
 
@@ -341,7 +341,7 @@ export default function Settings() {
                 value={rootMargin}
                 onChange={handleChange}
                 min={0}
-                max={1000}
+                max={10000}
               />
             </Grid>
             {/* <Grid item xs={12} sm={12} md={6} lg={3}>
