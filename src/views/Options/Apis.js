@@ -38,7 +38,7 @@ import {
   DEFAULT_BATCH_SIZE,
   DEFAULT_BATCH_LENGTH,
   DEFAULT_CONTEXT_SIZE,
-  OPT_ALL_TYPES,
+  OPT_ALL_TRANS_TYPES,
   API_SPE_TYPES,
   BUILTIN_STONES,
   BUILTIN_PLACEHOLDERS,
@@ -54,7 +54,7 @@ function TestButton({ api }) {
   const handleApiTest = async () => {
     try {
       setLoading(true);
-      const [text] = await apiTranslate({
+      const { trText } = await apiTranslate({
         text: "hello world",
         fromLang: "en",
         toLang: "zh-CN",
@@ -62,7 +62,7 @@ function TestButton({ api }) {
         useCache: false,
         usePool: false,
       });
-      if (!text) {
+      if (!trText) {
         throw new Error("empty result");
       }
       alert.success(i18n("test_success"));
@@ -775,7 +775,7 @@ export default function Apis() {
 
   const apiTypes = useMemo(
     () =>
-      OPT_ALL_TYPES.map((type) => ({
+      OPT_ALL_TRANS_TYPES.map((type) => ({
         type,
         label: type,
       })),

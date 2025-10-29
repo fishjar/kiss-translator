@@ -193,7 +193,7 @@ export class InputTranslator {
     try {
       addLoading(node, loadingId);
 
-      const [trText, isSame] = await apiTranslate({
+      const { trText, isSame } = await apiTranslate({
         text,
         fromLang,
         toLang,

@@ -33,7 +33,7 @@ import { sendTabMsg } from "./libs/msg";
 import { trySyncAllSubRules } from "./libs/subRules";
 import { saveRule } from "./libs/rules";
 import { getCurTabId } from "./libs/msg";
-import { injectInlineJs, injectInternalCss } from "./libs/injector";
+import { injectInlineJsBg, injectInternalCss } from "./libs/injector";
 import { kissLog, logger } from "./libs/log";
 import { chromeDetect, chromeTranslate } from "./libs/builtinAI";
 
@@ -268,7 +268,7 @@ const messageHandlers = {
   [MSG_PUT_HTTPCACHE]: (args) => putHttpCache(args),
   [MSG_OPEN_OPTIONS]: () => browser.runtime.openOptionsPage(),
   [MSG_SAVE_RULE]: (args) => saveRule(args),
-  [MSG_INJECT_JS]: (args) => injectToCurrentTab(injectInlineJs, args),
+  [MSG_INJECT_JS]: (args) => injectToCurrentTab(injectInlineJsBg, args),
   [MSG_INJECT_CSS]: (args) => injectToCurrentTab(injectInternalCss, args),
   [MSG_UPDATE_CSP]: (args) => updateCspRules(args),
   [MSG_CONTEXT_MENUS]: (args) => addContextMenus(args),

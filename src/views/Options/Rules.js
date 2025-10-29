@@ -108,7 +108,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
     parentStyle = "",
     grandStyle = "",
     injectJs = "",
-    injectCss = "",
+    // injectCss = "",
     apiSlug,
     fromLang,
     toLang,
@@ -695,7 +695,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
               maxRows={10}
             /> */}
 
-            <TextField
+            {/* <TextField
               size="small"
               label={i18n("inject_css")}
               helperText={i18n("inject_css_helper")}
@@ -705,7 +705,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
               onChange={handleChange}
               maxRows={10}
               multiline
-            />
+            /> */}
             <TextField
               size="small"
               label={i18n("inject_js")}

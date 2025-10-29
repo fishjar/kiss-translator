@@ -2,8 +2,6 @@ import {
   APP_UPNAME,
   APP_LCNAME,
   APP_CONSTS,
-  MSG_INJECT_JS,
-  MSG_INJECT_CSS,
   OPT_STYLE_FUZZY,
   GLOBLA_RULE,
   DEFAULT_SETTING,
@@ -16,13 +14,10 @@ import {
   OPT_SPLIT_PARAGRAPH_DISABLE,
   OPT_SPLIT_PARAGRAPH_TEXTLENGTH,
 } from "../config";
-import interpreter from "./interpreter";
+import { interpreter } from "./interpreter";
 import { clearFetchPool } from "./pool";
 import { debounce, scheduleIdle, genEventName, truncateWords } from "./utils";
 import { apiTranslate } from "../apis";
-import { sendBgMsg } from "./msg";
-import { isExt } from "./client";
-import { injectInlineJs, injectInternalCss } from "./injector";
 import { kissLog } from "./log";
 import { clearAllBatchQueue } from "./batchQueue";
 import { genTextClass } from "./style";
@@ -1145,7 +1140,6 @@ export class Translator {
     const {
       transTag,
       textStyle,
-      transStartHook,
       transEndHook,
       transOnly,
       termsStyle,
@@ -1163,20 +1157,6 @@ export class Translator {
     } = this.#setting;
     const parentNode = hostNode.parentElement;
     const hideOrigin = transOnly === "true";
-
-    // 翻译开始钩子函数
-    if (transStartHook?.trim()) {
-      try {
-        interpreter.run(`exports.transStartHook = ${transStartHook}`);
-        interpreter.exports.transStartHook({
-          hostNode,
-          parentNode,
-          nodes,
-        });
-      } catch (err) {
-        kissLog("transStartHook", err);
-      }
-    }
 
     try {
       const [processedString, placeholderMap] = this.#serializeForTranslation(
@@ -1202,10 +1182,8 @@ export class Translator {
       nodes[nodes.length - 1].after(wrapper);
 
       const currentRunId = this.#runId;
-      const [translatedText, isSameLang] = await this.#translateFetch(
-        processedString,
-        deLang
-      );
+      const { trText: translatedText, isSame: isSameLang } =
+        await this.#translateFetch(processedString, deLang);
       if (this.#runId !== currentRunId) {
         throw new Error("Request terminated");
       }
@@ -1391,16 +1369,39 @@ export class Translator {
 
   // 发起翻译请求
   #translateFetch(text, deLang = "") {
-    const { fromLang, toLang } = this.#rule;
+    const { toLang, transStartHook } = this.#rule;
+    const fromLang = deLang || this.#rule.fromLang;
+    const apiSetting = { ...this.#apiSetting };
+    const docInfo = { ...this.#docInfo };
+    const glossary = { ...this.#glossary };
+    const apisMap = this.#apisMap;
 
-    return apiTranslate({
+    const args = {
       text,
-      fromLang: deLang || fromLang,
+      fromLang,
       toLang,
-      apiSetting: this.#apiSetting,
-      docInfo: this.#docInfo,
-      glossary: this.#glossary,
-    });
+      apiSetting,
+      docInfo,
+      glossary,
+    };
+
+    // 翻译开始钩子函数
+    if (transStartHook?.trim()) {
+      try {
+        interpreter.run(`exports.transStartHook = ${transStartHook}`);
+        const hookResult = interpreter.exports.transStartHook({
+          ...args,
+          apisMap,
+        });
+        if (hookResult) {
+          Object.assign(args, ...hookResult);
+        }
+      } catch (err) {
+        kissLog("transStartHook", err);
+      }
+    }
+
+    return apiTranslate(args);
   }
 
   // 查找指定节点下所有译文节点
@@ -1596,14 +1597,35 @@ export class Translator {
     this.#isJsInjected = true;
 
     try {
-      const { injectJs, injectCss } = this.#rule;
-      if (isExt) {
-        injectJs && sendBgMsg(MSG_INJECT_JS, injectJs);
-        injectCss && sendBgMsg(MSG_INJECT_CSS, injectCss);
-      } else {
-        injectJs &&
-          injectInlineJs(injectJs, "kiss-translator-userinit-injector");
-        injectCss && injectInternalCss(injectCss);
+      // const { injectJs, injectCss } = this.#rule;
+      // if (isExt) {
+      //   injectJs && sendBgMsg(MSG_INJECT_JS, injectJs);
+      //   injectCss && sendBgMsg(MSG_INJECT_CSS, injectCss);
+      // } else {
+      //   injectJs &&
+      //     injectInlineJs(injectJs, "kiss-translator-userinit-injector");
+      //   injectCss && injectInternalCss(injectCss);
+      // }
+
+      const { injectJs, toLang } = this.#rule;
+      if (injectJs?.trim()) {
+        const apiSetting = { ...this.#apiSetting };
+        const docInfo = { ...this.#docInfo };
+        const glossary = { ...this.#glossary };
+        const apisMap = this.#apisMap;
+        const apiDectect = tryDetectLang;
+        interpreter.import({
+          KT: {
+            apiTranslate,
+            apiDectect,
+            apiSetting,
+            apisMap,
+            toLang,
+            docInfo,
+            glossary,
+          },
+        });
+        interpreter.run(injectJs);
       }
     } catch (err) {
       kissLog("inject js", err);
@@ -1654,8 +1676,8 @@ export class Translator {
 
     try {
       const deLang = await tryDetectLang(title);
-      const [translatedTitle] = await this.#translateFetch(title, deLang);
-      document.title = translatedTitle || title;
+      const { trText } = await this.#translateFetch(title, deLang);
+      document.title = trText || title;
     } catch (err) {
       kissLog("tanslate title", err);
     }

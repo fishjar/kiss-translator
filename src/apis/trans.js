@@ -32,7 +32,7 @@ import {
 import { msAuth } from "../libs/auth";
 import { genDeeplFree } from "./deepl";
 import { genBaidu } from "./baidu";
-import interpreter from "../libs/interpreter";
+import { interpreter } from "../libs/interpreter";
 import { parseJsonObj, extractJson } from "../libs/utils";
 import { kissLog } from "../libs/log";
 import { fetchData } from "../libs/fetch";

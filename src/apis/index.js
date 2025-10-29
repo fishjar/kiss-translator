@@ -14,9 +14,9 @@ import {
   MSG_BUILTINAI_TRANSLATE,
   OPT_TRANS_BUILTINAI,
   URL_CACHE_SUBTITLE,
+  OPT_LANGS_TO_CODE,
 } from "../config";
 import { sha256, withTimeout } from "../libs/utils";
-import { kissLog } from "../libs/log";
 import {
   handleTranslate,
   handleSubtitle,
@@ -424,7 +424,7 @@ export const apiTranslate = async ({
   usePool = true,
 }) => {
   if (!text) {
-    return ["", false];
+    throw new Error("The text cannot be empty.");
   }
 
   const { apiType, apiSlug, useBatchFetch } = apiSetting;
@@ -432,8 +432,7 @@ export const apiTranslate = async ({
   const from = langMap.get(fromLang);
   const to = langMap.get(toLang);
   if (!to) {
-    kissLog(`target lang: ${toLang} not support`);
-    return ["", false];
+    throw new Error(`The target lang: ${toLang} not support`);
   }
 
   // todo: 优化缓存失效因素
@@ -451,7 +450,7 @@ export const apiTranslate = async ({
   if (useCache) {
     const cache = await getHttpCachePolyfill(cacheInput);
     if (cache?.trText) {
-      return [cache.trText, cache.isSame];
+      return cache;
     }
   }
 
@@ -499,8 +498,12 @@ export const apiTranslate = async ({
 
   let trText = "";
   let srLang = "";
+  let srCode = "";
   if (Array.isArray(tranlation)) {
     [trText, srLang = ""] = tranlation;
+    if (srLang) {
+      srCode = OPT_LANGS_TO_CODE[apiType].get(srLang) || "";
+    }
   } else if (typeof tranlation === "string") {
     trText = tranlation;
   }
@@ -513,10 +516,10 @@ export const apiTranslate = async ({
 
   // 插入缓存
   if (useCache) {
-    putHttpCachePolyfill(cacheInput, null, { trText, isSame, srLang });
+    putHttpCachePolyfill(cacheInput, null, { trText, isSame, srLang, srCode });
   }
 
-  return [trText, isSame];
+  return { trText, srLang, srCode, isSame };
 };
 
 // 字幕处理/翻译

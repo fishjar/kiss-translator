@@ -13,6 +13,18 @@ export const injectInlineJs = (code, id = "kiss-translator-inline-js") => {
   (document.head || document.documentElement).appendChild(el);
 };
 
+export const injectInlineJsBg = (code, id = "kiss-translator-inline-js") => {
+  if (document.getElementById(id)) {
+    return;
+  }
+
+  const el = document.createElement("script");
+  el.type = "text/javascript";
+  el.id = id;
+  el.textContent = code;
+  (document.head || document.documentElement).appendChild(el);
+};
+
 // Function to inject external JavaScript file
 export const injectExternalJs = (src, id = "kiss-translator-external-js") => {
   if (document.getElementById(id)) {

@@ -38,7 +38,7 @@ export default function TranCont({
         setTrText("");
         setError("");
 
-        const [trText] = await apiTranslate({
+        const { trText } = await apiTranslate({
           text,
           fromLang,
           toLang,

@@ -46,7 +46,7 @@ export const OPT_TRANS_OPENROUTER = "OpenRouter";
 export const OPT_TRANS_CUSTOMIZE = "Custom";
 
 // 内置支持的翻译引擎
-export const OPT_ALL_TYPES = [
+export const OPT_ALL_TRANS_TYPES = [
   OPT_TRANS_BUILTINAI,
   OPT_TRANS_GOOGLE,
   OPT_TRANS_GOOGLE_2,
@@ -82,7 +82,7 @@ export const OPT_LANGDETECTOR_MAP = new Set(OPT_LANGDETECTOR_ALL);
 // 翻译引擎特殊集合
 export const API_SPE_TYPES = {
   // 内置翻译
-  builtin: new Set(OPT_ALL_TYPES),
+  builtin: new Set(OPT_ALL_TRANS_TYPES),
   // 机器翻译
   machine: new Set([
     OPT_TRANS_MICROSOFT,
@@ -557,7 +557,7 @@ const defaultApiOpts = {
 };
 
 // 内置翻译接口列表（带参数）
-export const DEFAULT_API_LIST = OPT_ALL_TYPES.map((apiType) => ({
+export const DEFAULT_API_LIST = OPT_ALL_TRANS_TYPES.map((apiType) => ({
   ...defaultApiOpts[apiType],
   apiSlug: apiType,
   apiName: apiType,
@@ -565,4 +565,6 @@ export const DEFAULT_API_LIST = OPT_ALL_TYPES.map((apiType) => ({
 }));
 
 export const DEFAULT_API_TYPE = OPT_TRANS_MICROSOFT;
-export const DEFAULT_API_SETTING = DEFAULT_API_LIST[DEFAULT_API_TYPE];
+export const DEFAULT_API_SETTING = DEFAULT_API_LIST.find(
+  (a) => a.apiType === DEFAULT_API_TYPE
+);
