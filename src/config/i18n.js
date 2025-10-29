@@ -1648,6 +1648,11 @@ export const I18N = {
     en: `Enable bilingual display`,
     zh_TW: `雙語顯示`,
   },
+  is_skip_ad: {
+    zh: `是否快进广告`,
+    en: `Should I fast forward to the ad?`,
+    zh_TW: `是否快轉廣告`,
+  },
   background_styles: {
     zh: `背景样式`,
     en: `DBackground Style`,

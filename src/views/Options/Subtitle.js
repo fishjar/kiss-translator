@@ -32,6 +32,7 @@ export default function SubtitleSetting() {
     chunkLength,
     toLang,
     isBilingual,
+    skipAd = false,
     windowStyle,
     originStyle,
     translationStyle,
@@ -139,6 +140,20 @@ export default function SubtitleSetting() {
                 name="isBilingual"
                 value={isBilingual}
                 label={i18n("is_bilingual_view")}
+                onChange={handleChange}
+              >
+                <MenuItem value={true}>{i18n("enable")}</MenuItem>
+                <MenuItem value={false}>{i18n("disable")}</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                fullWidth
+                select
+                size="small"
+                name="skipAd"
+                value={skipAd}
+                label={i18n("is_skip_ad")}
                 onChange={handleChange}
               >
                 <MenuItem value={true}>{i18n("enable")}</MenuItem>
