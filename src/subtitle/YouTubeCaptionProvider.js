@@ -165,14 +165,14 @@ class YouTubeCaptionProvider {
     this.#ytControls = ytControls;
 
     const kissControls = document.createElement("div");
-    kissControls.className = "kiss-bilingual-subtitle-controls";
+    kissControls.className = "notranslate kiss-subtitle-controls";
     Object.assign(kissControls.style, {
       height: "100%",
     });
 
     const toggleButton = document.createElement("button");
     toggleButton.className =
-      "ytp-button notranslate kiss-bilingual-subtitle-button";
+      "ytp-button kiss-subtitle-button";
     toggleButton.title = APP_NAME;
     Object.assign(toggleButton.style, {
       color: "white",

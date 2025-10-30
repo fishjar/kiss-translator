@@ -261,13 +261,17 @@ export class Translator {
   }
 
   // 内置忽略元素
+  static KISS_IGNORE_SELECTOR = `${APP_LCNAME}, .kiss-caption-container, .kiss-subtitle-controls
+  #${APP_CONSTS.fabID}, .${APP_CONSTS.fabID}_warpper,
+  #${APP_CONSTS.boxID}, .${APP_CONSTS.boxID}_warpper,
+  #${APP_CONSTS.popupID}, .${APP_CONSTS.popupID}_warpper`;
+
   static BUILTIN_IGNORE_SELECTOR = `address, area, audio, br, canvas, 
   data, datalist, embed, head, iframe, input, noscript, map, 
   object, option, param, picture, progress, 
   select, script, style, track, textarea, template, 
   video, wbr, .notranslate, [contenteditable], [translate='no'], 
-  ${APP_LCNAME}, #${APP_CONSTS.fabID}, #${APP_CONSTS.boxID}, 
-  .${APP_CONSTS.fabID}_warpper, .${APP_CONSTS.boxID}_warpper`;
+  ${Translator.KISS_IGNORE_SELECTOR}`;
 
   #setting; // 设置选项
   #rule; // 规则
@@ -314,6 +318,10 @@ export class Translator {
 
   // 忽略元素
   get #ignoreSelector() {
+    if (this.#rule.autoScan === "false") {
+      return `${Translator.KISS_IGNORE_SELECTOR}, ${this.#rule.ignoreSelector}`;
+    }
+
     return `${Translator.BUILTIN_IGNORE_SELECTOR}, ${this.#rule.ignoreSelector}`;
   }
 
