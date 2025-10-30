@@ -450,8 +450,8 @@ const defaultApi = {
   contextSize: DEFAULT_CONTEXT_SIZE, // 智能上下文保留会话数
   temperature: 0.0,
   maxTokens: 20480,
-  think: false,
-  thinkIgnore: "qwen3,deepseek-r1",
+  // think: false, // (OpenAI 兼容接口未支持，暂时移除)
+  // thinkIgnore: "qwen3,deepseek-r1", // (OpenAI 兼容接口未支持，暂时移除)
   isDisabled: false, // 是否不显示,
   region: "", // Azure 专用
 };

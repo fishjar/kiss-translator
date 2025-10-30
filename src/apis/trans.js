@@ -497,7 +497,7 @@ const genOpenRouter = ({
 };
 
 const genOllama = ({
-  think,
+  // think,
   url,
   key,
   systemPrompt,
@@ -523,7 +523,7 @@ const genOllama = ({
     ],
     temperature,
     max_tokens: maxTokens,
-    think,
+    // think,
     stream: false,
   };
 
@@ -717,7 +717,7 @@ export const parseTransRes = async (
     toLang,
     langMap,
     resHook,
-    thinkIgnore,
+    // thinkIgnore,
     history,
     userMsg,
     apiType,
@@ -811,7 +811,7 @@ export const parseTransRes = async (
           content: modelMsg.content,
         });
       }
-      return parseAIRes(res?.choices?.[0]?.message?.content ?? "");
+      return parseAIRes(modelMsg?.content);
     case OPT_TRANS_GEMINI:
       modelMsg = res?.candidates?.[0]?.content;
       if (history && userMsg && modelMsg) {
@@ -832,12 +832,12 @@ export const parseTransRes = async (
     case OPT_TRANS_OLLAMA:
       modelMsg = res?.choices?.[0]?.message;
 
-      const deepModels = thinkIgnore
-        .split(",")
-        .filter((model) => model?.trim());
-      if (deepModels.some((model) => res?.model?.startsWith(model))) {
-        modelMsg?.content.replace(/<think>[\s\S]*<\/think>/i, "");
-      }
+      // const deepModels = thinkIgnore
+      //   .split(",")
+      //   .filter((model) => model?.trim());
+      // if (deepModels.some((model) => res?.model?.startsWith(model))) {
+      //   modelMsg?.content.replace(/<think>[\s\S]*<\/think>/i, "");
+      // }
 
       if (history && userMsg && modelMsg) {
         history.add(userMsg, {

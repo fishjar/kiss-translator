@@ -27,7 +27,7 @@ import ReusableAutocomplete from "./ReusableAutocomplete";
 import ShowMoreButton from "./ShowMoreButton";
 import {
   OPT_TRANS_DEEPLX,
-  OPT_TRANS_OLLAMA,
+  // OPT_TRANS_OLLAMA,
   OPT_TRANS_CUSTOMIZE,
   OPT_TRANS_NIUTRANS,
   OPT_TRANS_BUILTINAI,
@@ -168,8 +168,8 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
     // userPrompt = "",
     customHeader = "",
     customBody = "",
-    think = false,
-    thinkIgnore = "",
+    // think = false,
+    // thinkIgnore = "",
     fetchLimit = DEFAULT_FETCH_LIMIT,
     fetchInterval = DEFAULT_FETCH_INTERVAL,
     httpTimeout = DEFAULT_HTTP_TIMEOUT,
@@ -337,7 +337,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
         </>
       )}
 
-      {apiType === OPT_TRANS_OLLAMA && (
+      {/* {apiType === OPT_TRANS_OLLAMA && (
         <>
           <TextField
             select
@@ -358,7 +358,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
             onChange={handleChange}
           />
         </>
-      )}
+      )} */}
 
       {apiType === OPT_TRANS_NIUTRANS && (
         <>
