@@ -41,6 +41,12 @@ export const fetchGM = async (
         });
       },
       onerror: reject,
+      onabort: () => {
+        reject(new Error("GM request onabort."));
+      },
+      ontimeout: () => {
+        reject(new Error("GM request timeout."));
+      },
     });
   });
 

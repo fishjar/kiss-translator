@@ -59,7 +59,7 @@ export function AlertProvider({ children }) {
         onClose={handleClose}
         anchorOrigin={{ vertical, horizontal }}
       >
-        <Alert onClose={handleClose} severity={severity} sx={{ width: "100%" }}>
+        <Alert onClose={handleClose} severity={severity} sx={{ maxWidth: "80%" }}>
           {message}
         </Alert>
       </Snackbar>

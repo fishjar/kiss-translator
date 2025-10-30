@@ -77,24 +77,7 @@ function TestButton({ api }) {
       alert.error(
         <>
           <div>{i18n("test_failed")}</div>
-          {msg === err.message ? (
-            <div
-              style={{
-                maxWidth: 400,
-              }}
-            >
-              {msg}
-            </div>
-          ) : (
-            <pre
-              style={{
-                maxWidth: 400,
-                overflow: "auto",
-              }}
-            >
-              {msg}
-            </pre>
-          )}
+          {msg === err.message ? <div>{msg}</div> : <pre>{msg}</pre>}
         </>
       );
     } finally {

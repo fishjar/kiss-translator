@@ -285,20 +285,11 @@ const messageHandlers = {
  */
 browser.runtime.onMessage.addListener(async ({ action, args }) => {
   const handler = messageHandlers[action];
-
   if (!handler) {
-    const errorMessage = `Message action is unavailable: ${action}`;
-    kissLog("runtime onMessage", action, new Error(errorMessage));
-    return null;
+    throw new Error(`Message action is unavailable: ${action}`);
   }
 
-  try {
-    const result = await handler(args);
-    return result;
-  } catch (err) {
-    kissLog("runtime onMessage", action, err);
-    return null;
-  }
+  return handler(args);
 });
 
 /**
