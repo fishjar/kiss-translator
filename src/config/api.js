@@ -499,7 +499,6 @@ const defaultApiOpts = {
   [OPT_TRANS_DEEPLX]: {
     ...defaultApi,
     url: "http://localhost:1188/translate",
-    fetchLimit: 1,
   },
   [OPT_TRANS_NIUTRANS]: {
     ...defaultApi,
@@ -512,7 +511,6 @@ const defaultApiOpts = {
     url: "https://api.openai.com/v1/chat/completions",
     model: "gpt-4",
     useBatchFetch: true,
-    fetchLimit: 1,
   },
   [OPT_TRANS_GEMINI]: {
     ...defaultApi,
