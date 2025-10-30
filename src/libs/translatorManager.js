@@ -54,15 +54,15 @@ export default class TranslatorManager {
       isIframe,
     });
 
+    this._transboxManager = new TransboxManager(setting);
+
     if (!isIframe) {
-      this._transboxManager = new TransboxManager(setting);
       this._inputTranslator = new InputTranslator(setting);
       this._popupManager = new PopupManager({
         translator: this._translator,
         processActions: this.#processActions.bind(this),
       });
       this._fabManager = new FabManager({
-        translator: this._translator,
         processActions: this.#processActions.bind(this),
         fabConfig,
       });
@@ -137,6 +137,9 @@ export default class TranslatorManager {
       window.addEventListener("message", this.#windowMessageHandler);
     } else {
       browser.runtime.onMessage.addListener(this.#browserMessageHandler);
+      if (this.#isIframe) {
+        window.addEventListener("message", this.#windowMessageHandler);
+      }
     }
   }
 
@@ -184,7 +187,7 @@ export default class TranslatorManager {
   }
 
   #handleBrowserMessage(message, sender, sendResponse) {
-    const result = this.#processActions(message);
+    const result = this.#processActions(message, true);
     const response = result || {
       rule: this._translator.rule,
       setting: this._translator.setting,
@@ -242,9 +245,9 @@ export default class TranslatorManager {
     ];
   }
 
-  #processActions({ action, args } = {}) {
-    if (this.#isUserscript) {
-      sendIframeMsg(action);
+  #processActions({ action, args } = {}, fromExt = false) {
+    if (!fromExt) {
+      sendIframeMsg(action, args);
     }
 
     switch (action) {

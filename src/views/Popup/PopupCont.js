@@ -110,6 +110,7 @@ export default function PopupCont({
   };
 
   const handleChange = async (e) => {
+    console.log("handleChange", e);
     try {
       const { name, value } = e.target;
       setRule((pre) => ({ ...pre, [name]: value }));

@@ -1788,7 +1788,7 @@ export const I18N = {
     zh: `滚动加载提前触发 (0-10000px)`,
     en: `Early triggering of scroll loading (0-10000px)`,
     zh_TW: `滾動載入提前觸發 (0-10000px)`,
-  }
+  },
 };
 
 export const newI18n = (lang) => (key) => I18N[key]?.[lang] || "";
