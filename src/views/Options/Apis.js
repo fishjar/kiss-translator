@@ -178,7 +178,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
     reqHook = "",
     resHook = "",
     temperature = 0,
-    maxTokens = 256,
+    maxTokens = 20480,
     apiName = "",
     isDisabled = false,
     useBatchFetch = false,
@@ -292,13 +292,13 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
                 <ValidationInput
                   size="small"
                   fullWidth
-                  label={"Max Tokens"}
+                  label={"Max Tokens (0-1000000)"}
                   type="number"
                   name="maxTokens"
                   value={maxTokens}
                   onChange={handleChange}
                   min={0}
-                  max={2 ** 15}
+                  max={1000000}
                 />
               </Grid>
               <Grid item xs={12} sm={12} md={6} lg={3}></Grid>
