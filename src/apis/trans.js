@@ -22,12 +22,14 @@ import {
   API_SPE_TYPES,
   INPUT_PLACE_FROM,
   INPUT_PLACE_TO,
-  // INPUT_PLACE_TEXT,
+  INPUT_PLACE_TEXT,
   INPUT_PLACE_KEY,
   INPUT_PLACE_MODEL,
   DEFAULT_USER_AGENT,
   defaultSystemPrompt,
   defaultSubtitlePrompt,
+  defaultNobatchPrompt,
+  defaultNobatchUserPrompt,
 } from "../config";
 import { msAuth } from "../libs/auth";
 import { genDeeplFree } from "./deepl";
@@ -66,36 +68,39 @@ const genSystemPrompt = ({ systemPrompt, from, to }) =>
     .replaceAll(INPUT_PLACE_TO, to);
 
 const genUserPrompt = ({
-  // userPrompt,
+  nobatchUserPrompt,
+  useBatchFetch,
   tone,
   glossary = {},
-  // from,
+  from,
   to,
   texts,
   docInfo,
 }) => {
-  const prompt = JSON.stringify({
-    targetLanguage: to,
-    title: docInfo.title,
-    description: docInfo.description,
-    segments: texts.map((text, i) => ({ id: i, text })),
-    glossary,
-    tone,
-  });
+  if (useBatchFetch) {
+    return JSON.stringify({
+      targetLanguage: to,
+      title: docInfo.title,
+      description: docInfo.description,
+      segments: texts.map((text, i) => ({ id: i, text })),
+      glossary,
+      tone,
+    });
+  }
 
-  // if (userPrompt.includes(INPUT_PLACE_TEXT)) {
-  //   return userPrompt
-  //     .replaceAll(INPUT_PLACE_FROM, from)
-  //     .replaceAll(INPUT_PLACE_TO, to)
-  //     .replaceAll(INPUT_PLACE_TEXT, prompt);
-  // }
-
-  return prompt;
+  return nobatchUserPrompt
+    .replaceAll(INPUT_PLACE_FROM, from)
+    .replaceAll(INPUT_PLACE_TO, to)
+    .replaceAll(INPUT_PLACE_TEXT, texts[0]);
 };
 
-const parseAIRes = (raw) => {
+const parseAIRes = (raw, useBatchFetch = true) => {
   if (!raw) {
     return [];
+  }
+
+  if (!useBatchFetch) {
+    return [[raw]];
   }
 
   try {
@@ -627,7 +632,10 @@ export const genTransReq = async ({ reqHook, ...args }) => {
     apiSlug,
     key,
     systemPrompt,
-    userPrompt,
+    // userPrompt,
+    nobatchPrompt = defaultNobatchPrompt,
+    nobatchUserPrompt = defaultNobatchUserPrompt,
+    useBatchFetch,
     from,
     to,
     texts,
@@ -647,11 +655,16 @@ export const genTransReq = async ({ reqHook, ...args }) => {
   }
 
   if (API_SPE_TYPES.ai.has(apiType)) {
-    args.systemPrompt = genSystemPrompt({ systemPrompt, from, to });
+    args.systemPrompt = genSystemPrompt({
+      systemPrompt: useBatchFetch ? systemPrompt : nobatchPrompt,
+      from,
+      to,
+    });
     args.userPrompt = !!events
       ? JSON.stringify(events)
       : genUserPrompt({
-          userPrompt,
+          nobatchUserPrompt,
+          useBatchFetch,
           from,
           to,
           texts,
@@ -721,6 +734,7 @@ export const parseTransRes = async (
     history,
     userMsg,
     apiType,
+    useBatchFetch,
   }
 ) => {
   // 执行 response hook
@@ -811,13 +825,13 @@ export const parseTransRes = async (
           content: modelMsg.content,
         });
       }
-      return parseAIRes(modelMsg?.content);
+      return parseAIRes(modelMsg?.content, useBatchFetch);
     case OPT_TRANS_GEMINI:
       modelMsg = res?.candidates?.[0]?.content;
       if (history && userMsg && modelMsg) {
         history.add(userMsg, modelMsg);
       }
-      return parseAIRes(res?.candidates?.[0]?.content?.parts?.[0]?.text ?? "");
+      return parseAIRes(modelMsg?.parts?.[0]?.text ?? "", useBatchFetch);
     case OPT_TRANS_CLAUDE:
       modelMsg = { role: res?.role, content: res?.content?.text };
       if (history && userMsg && modelMsg) {
@@ -826,7 +840,7 @@ export const parseTransRes = async (
           content: modelMsg.content,
         });
       }
-      return parseAIRes(res?.content?.[0]?.text ?? "");
+      return parseAIRes(res?.content?.[0]?.text ?? "", useBatchFetch);
     case OPT_TRANS_CLOUDFLAREAI:
       return [[res?.result?.translated_text]];
     case OPT_TRANS_OLLAMA:
@@ -845,7 +859,7 @@ export const parseTransRes = async (
           content: modelMsg.content,
         });
       }
-      return parseAIRes(modelMsg?.content);
+      return parseAIRes(modelMsg?.content, useBatchFetch);
     case OPT_TRANS_CUSTOMIZE:
       return (res?.translations ?? res)?.map((item) => [item.text, item.src]);
     default:

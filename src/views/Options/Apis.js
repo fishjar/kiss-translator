@@ -44,6 +44,8 @@ import {
   BUILTIN_PLACEHOLDERS,
   BUILTIN_PLACETAGS,
   OPT_TRANS_AZUREAI,
+  defaultNobatchPrompt,
+  defaultNobatchUserPrompt,
 } from "../../config";
 import ValidationInput from "../../hooks/ValidationInput";
 
@@ -54,8 +56,9 @@ function TestButton({ api }) {
   const handleApiTest = async () => {
     try {
       setLoading(true);
+      const text = "hello world";
       const { trText } = await apiTranslate({
-        text: "hello world",
+        text,
         fromLang: "en",
         toLang: "zh-CN",
         apiSetting: { ...api },
@@ -65,7 +68,13 @@ function TestButton({ api }) {
       if (!trText) {
         throw new Error("empty result");
       }
-      alert.success(i18n("test_success"));
+      alert.success(
+        <>
+          <div>{i18n("test_success")}</div>
+          <div>{text}</div>
+          <div>{trText}</div>
+        </>
+      );
     } catch (err) {
       // alert.error(`${i18n("test_failed")}: ${err.message}`);
       let msg = err.message;
@@ -164,6 +173,8 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
     model = "",
     apiType,
     systemPrompt = "",
+    nobatchPrompt = defaultNobatchPrompt,
+    nobatchUserPrompt = defaultNobatchUserPrompt,
     subtitlePrompt = "",
     // userPrompt = "",
     customHeader = "",
@@ -305,16 +316,40 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
             </Grid>
           </Box>
 
-          <TextField
-            size="small"
-            label={"SYSTEM PROMPT"}
-            name="systemPrompt"
-            value={systemPrompt}
-            onChange={handleChange}
-            multiline
-            maxRows={10}
-            helperText={i18n("system_prompt_helper")}
-          />
+          {useBatchFetch ? (
+            <TextField
+              size="small"
+              label={"BATCH SYSTEM PROMPT"}
+              name="systemPrompt"
+              value={systemPrompt}
+              onChange={handleChange}
+              multiline
+              maxRows={10}
+              helperText={i18n("system_prompt_helper")}
+            />
+          ) : (
+            <>
+              <TextField
+                size="small"
+                label={"SYSTEM PROMPT"}
+                name="nobatchPrompt"
+                value={nobatchPrompt}
+                onChange={handleChange}
+                multiline
+                maxRows={10}
+              />
+              <TextField
+                size="small"
+                label={"USER PROMPT"}
+                name="nobatchUserPrompt"
+                value={nobatchUserPrompt}
+                onChange={handleChange}
+                multiline
+                maxRows={10}
+              />
+            </>
+          )}
+
           <TextField
             size="small"
             label={"SUBTITLE PROMPT"}

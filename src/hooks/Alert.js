@@ -62,7 +62,7 @@ export function AlertProvider({ children }) {
         <Alert
           onClose={handleClose}
           severity={severity}
-          sx={{ maxWidth: "80%" }}
+          sx={{ minWidth: "300px", maxWidth: "80%" }}
         >
           {message}
         </Alert>

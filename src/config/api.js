@@ -340,6 +340,9 @@ Object.entries(OPT_LANGS_TO_SPEC).forEach(([t, m]) => {
   OPT_LANGS_TO_CODE[t] = specToCode(m);
 });
 
+export const defaultNobatchPrompt = `You are a professional, authentic machine translation engine.`;
+export const defaultNobatchUserPrompt = `Translate the following source text from ${INPUT_PLACE_FROM} to ${INPUT_PLACE_TO}. Output translation directly without any additional text.\n\nSource Text: ${INPUT_PLACE_TEXT}\n\nTranslated Text:`;
+
 export const defaultSystemPrompt = `Act as a translation API. Output a single raw JSON object only. No extra text or fences.
 
 Input:
@@ -430,6 +433,8 @@ const defaultApi = {
   model: "", // 模型名称
   systemPrompt: defaultSystemPrompt,
   subtitlePrompt: defaultSubtitlePrompt,
+  nobatchPrompt: defaultNobatchPrompt,
+  nobatchUserPrompt: defaultNobatchUserPrompt,
   userPrompt: "",
   tone: BUILTIN_STONES[0], // 翻译风格
   placeholder: BUILTIN_PLACEHOLDERS[0], // 占位符
