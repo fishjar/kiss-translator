@@ -145,10 +145,10 @@ Common reasons for API test failures include:
 
 - Incorrect address:
   - For example, `Ollama` has a native API address and an `Openai`-compatible address. This plugin currently supports the `Openai`-compatible address and does not support the `Ollama` native API address.
-- The default `Prompt` needs to support `JSON` output, but some AI models do not:
-  - This can be addressed by using `Hook` or a custom API.
-  - For details, refer to: [Custom API Example Documentation](https://github.com/fishjar/kiss-translator/blob/master/custom-api_v2.md)
-- Inconsistent parameters for some AI models
+- Some AI models do not support batch translation:
+  - In this case, you can choose to disable batch translation or use a custom API.
+  - Alternatively, you can use a custom API. For details, please refer to: [Custom API Example Documentation](https://github.com/fishjar/kiss-translator/blob/master/custom-api_v2.md)
+- Some AI models have inconsistent parameters:
   - For example, the parameters of the `Gemini` native API are highly inconsistent. Some model versions do not support certain parameters, leading to errors.
   - In this case, you can modify the request body using a `Hook`, or replace it with `Gemini2` (an OpenAI-compatible address).
 - The server restricts cross-origin access, returning a 403 error:
