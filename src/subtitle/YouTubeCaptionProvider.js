@@ -1,5 +1,5 @@
 import { logger } from "../libs/log.js";
-import { apiSubtitle, apiTranslate } from "../apis/index.js";
+import { apiSubtitle } from "../apis/index.js";
 import { BilingualSubtitleManager } from "./BilingualSubtitleManager.js";
 import {
   MSG_XHR_DATA_YOUTUBE,
@@ -171,8 +171,7 @@ class YouTubeCaptionProvider {
     });
 
     const toggleButton = document.createElement("button");
-    toggleButton.className =
-      "ytp-button kiss-subtitle-button";
+    toggleButton.className = "ytp-button kiss-subtitle-button";
     toggleButton.title = APP_NAME;
     Object.assign(toggleButton.style, {
       color: "white",
@@ -509,7 +508,6 @@ class YouTubeCaptionProvider {
     this.#managerInstance = new BilingualSubtitleManager({
       videoEl,
       formattedSubtitles: this.#subtitles,
-      translationService: apiTranslate,
       setting: { ...this.#setting, fromLang: this.#fromLang },
     });
     this.#managerInstance.start();

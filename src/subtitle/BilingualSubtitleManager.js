@@ -1,5 +1,6 @@
 import { logger } from "../libs/log.js";
 import { truncateWords } from "../libs/utils.js";
+import { apiTranslate } from "../apis/index.js";
 
 /**
  * @class BilingualSubtitleManager
@@ -8,7 +9,6 @@ import { truncateWords } from "../libs/utils.js";
 export class BilingualSubtitleManager {
   #videoEl;
   #formattedSubtitles = [];
-  #translationService;
   #captionWindowEl = null;
   #paperEl = null;
   #currentSubtitleIndex = -1;
@@ -20,14 +20,12 @@ export class BilingualSubtitleManager {
    * @param {object} options
    * @param {HTMLVideoElement} options.videoEl - 页面上的 video 元素。
    * @param {Array<object>} options.formattedSubtitles - 已格式化好的字幕数组。
-   * @param {(text: string, toLang: string) => Promise<string>} options.translationService - 外部翻译函数。
    * @param {object} options.setting - 配置对象，如目标翻译语言。
    */
-  constructor({ videoEl, formattedSubtitles, translationService, setting }) {
+  constructor({ videoEl, formattedSubtitles, setting }) {
     this.#setting = setting;
     this.#videoEl = videoEl;
     this.#formattedSubtitles = formattedSubtitles;
-    this.#translationService = translationService;
 
     this.onTimeUpdate = this.onTimeUpdate.bind(this);
     this.onSeek = this.onSeek.bind(this);
@@ -309,7 +307,7 @@ export class BilingualSubtitleManager {
     subtitle.isTranslating = true;
     try {
       const { fromLang, toLang, apiSetting } = this.#setting;
-      const { trText } = await this.#translationService({
+      const { trText } = await apiTranslate({
         text: subtitle.text,
         fromLang,
         toLang,
