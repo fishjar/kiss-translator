@@ -309,13 +309,13 @@ export class BilingualSubtitleManager {
     subtitle.isTranslating = true;
     try {
       const { fromLang, toLang, apiSetting } = this.#setting;
-      const [translatedText] = await this.#translationService({
+      const { trText } = await this.#translationService({
         text: subtitle.text,
         fromLang,
         toLang,
         apiSetting,
       });
-      subtitle.translation = translatedText;
+      subtitle.translation = trText;
     } catch (error) {
       logger.info("Translation failed for:", subtitle.text, error);
       subtitle.translation = "[Translation failed]";
