@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "__MSG_app_name__",
   "description": "__MSG_app_description__",
-  "version": "2.0.4",
+  "version": "2.0.5",
   "default_locale": "en",
   "author": "Gabe<yugang2002@gmail.com>",
   "homepage_url": "https://github.com/fishjar/kiss-translator",
@@ -19,8 +19,12 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["injector.js"],
+      "resources": ["injector-subtitle.js"],
       "matches": ["https://www.youtube.com/*"]
+    },
+    {
+      "resources": ["injector-shadowroot.js"],
+      "matches": ["<all_urls>"]
     }
   ],
   "commands": {
