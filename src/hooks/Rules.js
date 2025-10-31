@@ -57,9 +57,9 @@ export function useRules() {
   const put = useCallback(
     (pattern, obj) => {
       save((prev) => {
-        if (pattern !== obj.pattern) {
-          return prev;
-        }
+        // if (pattern !== obj.pattern) {
+        //   return prev;
+        // }
         return prev.map((item) =>
           item.pattern === pattern ? { ...item, ...obj } : item
         );
