@@ -135,9 +135,20 @@
 
 其中全局规则优先级最低，但非常重要，相当于兜底规则。
 
-### 本地的Ollama接口不能使用
+### 接口（Ollama等）测试失败
 
-如果出现403的情况，参考：https://github.com/fishjar/kiss-translator/issues/174
+一般接口测试失败常见有以下几种原因：
+
+- 地址填错了：
+  - 比如 `Ollama` 有原生接口地址和 `Openai` 兼容的地址，本插件目前统一支持 `Openai` 兼容的地址，不支持 `Ollama` 原生接口地址
+- 默认的 `Prompt` 需要支持 `JSON` 输出，但某些AI模型不支持：
+  - 此种情况可以通过 `Hook` 或自定义接口的方式来使用。
+  - 详情参考： [自定义接口示例文档](https://github.com/fishjar/kiss-translator/blob/master/custom-api_v2.md)
+- 某些AI模型的参数不一致
+  - 比如 `Gemini` 原生接口参数非常不一致，部分版本的模型不支持某些参数会导致返回错误。
+  - 此种情况可以通过 `Hook` 修改请求 `body` ,或者更换为 `Gemini2` (`Openai` 兼容的地址)
+- 服务器跨域限制访问，返回403错误：
+  - 比如 `Ollama` 启动时须添加环境变量 `OLLAMA_ORIGINS=*`, 参考：https://github.com/fishjar/kiss-translator/issues/174
 
 ### 填写的接口在油猴脚本不能使用
 
