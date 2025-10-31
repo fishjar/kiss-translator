@@ -1,40 +1,5 @@
 # KISS Translator
 
-**New Version Preview:**
-
-After a period of intermittent development, the planned features for the new version are essentially complete. The main new features are as follows:
-
-* **Core Translation Logic Refactoring:**
-    * Supports both automatic text detection and manual selection modes.
-    * The automatic text detection mode enables complete translation for the vast majority of websites without the need to write specific rules.
-    * The previous manual rule mode has been retained for meticulous optimization on specific websites.
-    * Supports rich text translation, preserving links and other text styles from the original content as much as possible.
-    * Optimize the display effect of showing only translated text (hiding original text).
-
-* **API Refactoring:**
-    * Supports adding and deleting an arbitrary number of APIs.
-    * Supports aggregating text for sending, reducing the number of calls to the translation API and improving performance.
-    * Supports the built-in Chrome AI translation API, enabling AI-powered translation without an internet connection.
-    * Supports AI contextual conversation memory to enhance translation quality.
-    * All APIs support advanced features such as hooks and custom parameters.
-    * Added support for Azure AI translation interface.
-
-* **Optimized YouTube Subtitle Support:**
-    * Supports translating video subtitles with any translation service and displaying them bilingually.
-    * Includes a built-in basic algorithm for subtitle merging and sentence splitting to improve translation results.
-    * Supports an AI-powered sentence splitting function to further enhance translation quality.
-
-* **English Dictionary Redundancy:**
-    * Added Bing and Youdao dictionaries.
-    * Fixed the vocabulary collection feature.
-
-* **User Experience Optimization:**
-    * The pop-up translation box for selected text now supports simultaneous translation by multiple services.
-    * The translation control panel has been updated with many new quick-toggle functions.
-    * Added a Playground page for convenient API debugging.
-
-**Note:** Due to extensive refactoring, the configuration file for the new version is not backward compatible with the old version. Therefore, please back up your data manually before upgrading. Furthermore, **do not import old configuration files after upgrading to the new version.**
-
 English | [简体中文](README.md)
 
 A simple, open source [bilingual translation extension & Greasemonkey script](https://github.com/fishjar/kiss-translator).
@@ -57,27 +22,35 @@ A simple, open source [bilingual translation extension & Greasemonkey script](ht
   - [x] Tencent/Volcengine
   - [x] OpenAI/Gemini/Claude/Ollama/DeepSeek/OpenRouter
   - [x] DeepL/DeepLX/NiuTrans
-  - [x] BuiltinAI/AzureAI/CloudflareAI
-  - [x] Custom translation interface
+  - [x] AzureAI / CloudflareAI
+  - [x] Chrome built-in AI translation (BuiltinAI)
 - [x] Covers common translation scenarios
-  - [x] Web bilingual translation
-  - [x] Input box translation
-  - [x] Seletction translation
-    - [x] Open the translation box on any page
-    - [x] Favorite Words
-  - [x] Mouseover translation
+  - [x] Webpage bilingual translation
+  - [x] Input-box translation
+    - Instantly translate text in input fields into other languages via shortcut keys
+  - [x] Text selection translation
+    - [x] Open translation popup on any page, support multiple translation services for comparison
+    - [x] English dictionary lookup
+    - [x] Save vocabulary
+  - [x] Hover translation
   - [x] YouTube subtitle translation
-  - [x] Support for various translation effects
-    - [x] Customizable text recognition and full-text translation
-    - [x] Customizable translation styles
-    - [x] Support for rich text translation and display
-    - [x] Support for displaying only the translated text (hiding the original text)
-  - [x] Advanced translation API features
-    - [x] Aggregate and send translated texts in batches
-    - [x] AI contextual conversation memory
-    - [x] Customizable AI terminology dictionary
-    - [x] AI-powered subtitle segmentation and translation
-    - [x] Customizable hooks and parameters
+    - Support translating video subtitles with any translation service and display bilingually
+    - Built-in basic subtitle merging and sentence-splitting algorithm to improve translation quality
+    - Supports AI-powered sentence segmentation for even better translation
+    - Custom subtitle style
+- [x] Supports diverse translation modes
+  - [x] Supports both automatic text recognition and manual rule modes
+    - Automatic text recognition mode allows most sites to be translated fully without writing rules
+    - Manual rule mode enables extreme optimization for specific sites
+  - [x] Custom translation styling
+  - [x] Supports rich-text translation and rendering, preserving links and other text styles where possible
+  - [x] Option to show only translation (hide original text)
+- [x] Advanced translation API features
+  - [x] With custom API support, theoretically works with any translation service
+  - [x] Batch aggregation of translation requests
+  - [x] Supports AI conversation context memory to improve translation quality
+  - [x] Custom AI terminology dictionary
+  - [x] All APIs support hooks and custom parameters for advanced usage
 - [x] Cross-client data synchronization
   - [x] KISS-Worker（cloudflare/docker）
   - [x] WebDAV
