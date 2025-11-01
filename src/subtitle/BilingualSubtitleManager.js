@@ -12,7 +12,7 @@ export class BilingualSubtitleManager {
   #captionWindowEl = null;
   #paperEl = null;
   #currentSubtitleIndex = -1;
-  #preTranslateSeconds = 120;
+  #preTranslateSeconds = 90;
   #throttleSeconds = 30;
   #setting = {};
   #isAdPlaying = false;
