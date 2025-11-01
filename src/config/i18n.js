@@ -569,6 +569,16 @@ export const I18N = {
     zh: `虚线框`,
     en: `Dashed Box`,
   },
+  marker: {
+    zh: `马克笔`,
+    en: `Marker`,
+    zh_TW: `馬克筆`,
+  },
+  gradient_marker: {
+    zh: `渐变马克笔`,
+    en: `Gradient Marker`,
+    zh_TW: `漸層馬克筆`,
+  },
   wavy_line: {
     zh: `下划波浪线`,
     en: `Wavy Underline`,

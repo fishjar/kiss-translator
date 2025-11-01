@@ -16,6 +16,8 @@ export const OPT_STYLE_DOTLINE = "dot_line"; // 点状线
 export const OPT_STYLE_DASHLINE = "dash_line"; // 虚线
 export const OPT_STYLE_DASHBOX = "dash_box"; // 虚线框
 export const OPT_STYLE_WAVYLINE = "wavy_line"; // 波浪线
+export const OPT_STYLE_MARKER = "marker"; // 马克笔
+export const OPT_STYLE_GRADIENT_MARKER = "gradient_marker"; // 渐变马克笔
 export const OPT_STYLE_FUZZY = "fuzzy"; // 模糊
 export const OPT_STYLE_HIGHLIGHT = "highlight"; // 高亮
 export const OPT_STYLE_BLOCKQUOTE = "blockquote"; // 引用
@@ -30,6 +32,8 @@ export const OPT_STYLE_ALL = [
   OPT_STYLE_DASHLINE,
   OPT_STYLE_WAVYLINE,
   OPT_STYLE_DASHBOX,
+  OPT_STYLE_MARKER,
+  OPT_STYLE_GRADIENT_MARKER,
   OPT_STYLE_FUZZY,
   OPT_STYLE_HIGHLIGHT,
   OPT_STYLE_BLOCKQUOTE,
@@ -152,7 +156,7 @@ export const GLOBLA_RULE = {
   toLang: "zh-CN", // 目标语言
   textStyle: OPT_STYLE_NONE, // 译文样式
   transOpen: "false", // 开启翻译
-  bgColor: "", // 译文颜色
+  bgColor: DEFAULT_COLOR, // 译文颜色
   textDiyStyle: DEFAULT_DIY_STYLE, // 自定义译文样式
   termsStyle: "font-weight: bold;", // 专业术语样式
   highlightStyle: "color: red;", // 高亮词汇样式

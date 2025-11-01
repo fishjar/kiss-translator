@@ -15,6 +15,8 @@ import {
   OPT_STYLE_DIY,
   DEFAULT_DIY_STYLE,
   DEFAULT_COLOR,
+  OPT_STYLE_MARKER,
+  OPT_STYLE_GRADIENT_MARKER,
 } from "../config";
 
 const gradientFlow = keyframes`
@@ -51,42 +53,50 @@ const genLineStyle = (style, color) => `
   text-decoration-line: underline;
   text-decoration-style: ${style};
   text-decoration-color: ${color};
-  text-decoration-thickness: 2px;
+  text-decoration-thickness: 1px;
   text-underline-offset: 0.3em;
   -webkit-text-decoration-line: underline;
   -webkit-text-decoration-style: ${style};
   -webkit-text-decoration-color: ${color};
-  -webkit-text-decoration-thickness: 2px;
+  -webkit-text-decoration-thickness: 1px;
   -webkit-text-underline-offset: 0.3em;
 
-  /* opacity: 0.8;
+  opacity: 0.8;
   -webkit-opacity: 0.8;
   &:hover {
     opacity: 1;
     -webkit-opacity: 1;
-  } */
+  }
 `;
 
 const genStyles = ({
   textDiyStyle = DEFAULT_DIY_STYLE,
-  bgColor = DEFAULT_COLOR,
+  color = DEFAULT_COLOR,
 } = {}) => ({
   // 无样式
   [OPT_STYLE_NONE]: ``,
   // 下划线
-  [OPT_STYLE_LINE]: genLineStyle("solid", bgColor),
+  [OPT_STYLE_LINE]: genLineStyle("solid", color),
   // 点状线
-  [OPT_STYLE_DOTLINE]: genLineStyle("dotted", bgColor),
+  [OPT_STYLE_DOTLINE]: genLineStyle("dotted", color),
   // 虚线
-  [OPT_STYLE_DASHLINE]: genLineStyle("dashed", bgColor),
+  [OPT_STYLE_DASHLINE]: genLineStyle("dashed", color),
   // 波浪线
-  [OPT_STYLE_WAVYLINE]: genLineStyle("wavy", bgColor),
+  [OPT_STYLE_WAVYLINE]: genLineStyle("wavy", color),
   // 虚线框
   [OPT_STYLE_DASHBOX]: `
-    border: 2px dashed ${bgColor || DEFAULT_COLOR};
+    border: 1px dashed ${color};
     display: block;
     padding: 0.2em 0.4em;
     box-sizing: border-box;
+  `,
+  // 马克笔
+  [OPT_STYLE_MARKER]: `
+    background: linear-gradient(to top, ${color} 50%, transparent 50%);
+  `,
+  // 渐变马克笔
+  [OPT_STYLE_GRADIENT_MARKER]: `
+    background: linear-gradient(to top, transparent, ${color} 20%, transparent 60%);
   `,
   // 模糊
   [OPT_STYLE_FUZZY]: `
@@ -100,7 +110,7 @@ const genStyles = ({
   // 高亮
   [OPT_STYLE_HIGHLIGHT]: `
     color: #fff;
-    background-color: ${bgColor || DEFAULT_COLOR};
+    background-color: ${color};
   `,
   // 引用
   [OPT_STYLE_BLOCKQUOTE]: `
@@ -108,7 +118,7 @@ const genStyles = ({
     -webkit-opacity: 0.8;
     display: block;
     padding: 0.25em 0.5em;
-    border-left: 0.5em solid ${bgColor || DEFAULT_COLOR};
+    border-left: 0.5em solid ${color};
     background: rgb(32, 156, 238, 0.2);
     &:hover {
       opacity: 1;
@@ -144,8 +154,8 @@ ${textDiyStyle}
 `,
 });
 
-export const genTextClass = ({ textDiyStyle, bgColor = DEFAULT_COLOR }) => {
-  const styles = genStyles({ textDiyStyle, bgColor });
+export const genTextClass = ({ textDiyStyle, bgColor }) => {
+  const styles = genStyles({ textDiyStyle, color: bgColor || DEFAULT_COLOR });
   const textClass = {};
   let textStyles = "";
   Object.entries(styles).forEach(([k, v]) => {
