@@ -118,7 +118,7 @@ const genStyles = ({
     -webkit-opacity: 0.8;
     display: block;
     padding: 0.25em 0.5em;
-    border-left: 0.5em solid ${color};
+    border-left: 0.25em solid ${color};
     background: rgb(32, 156, 238, 0.2);
     &:hover {
       opacity: 1;
