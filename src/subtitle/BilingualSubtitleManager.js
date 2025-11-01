@@ -1,5 +1,5 @@
 import { logger } from "../libs/log.js";
-import { truncateWords } from "../libs/utils.js";
+import { truncateWords, throttle } from "../libs/utils.js";
 import { apiTranslate } from "../apis/index.js";
 
 /**
@@ -12,9 +12,11 @@ export class BilingualSubtitleManager {
   #captionWindowEl = null;
   #paperEl = null;
   #currentSubtitleIndex = -1;
-  #preTranslateSeconds = 100;
+  #preTranslateSeconds = 120;
+  #throttleSeconds = 30;
   #setting = {};
   #isAdPlaying = false;
+  #throttledTriggerTranslations;
 
   /**
    * @param {object} options
@@ -29,6 +31,11 @@ export class BilingualSubtitleManager {
 
     this.onTimeUpdate = this.onTimeUpdate.bind(this);
     this.onSeek = this.onSeek.bind(this);
+
+    this.#throttledTriggerTranslations = throttle(
+      this.#triggerTranslations.bind(this),
+      this.#throttleSeconds * 1000
+    );
   }
 
   /**
@@ -225,7 +232,7 @@ export class BilingualSubtitleManager {
       this.#updateCaptionDisplay(subtitle);
     }
 
-    this.#triggerTranslations(currentTimeMs);
+    this.#throttledTriggerTranslations(currentTimeMs);
   }
 
   /**

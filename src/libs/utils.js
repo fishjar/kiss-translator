@@ -71,28 +71,55 @@ export const debounce = (func, delay = 200) => {
 
 /**
  * 节流函数
- * @param {*} func
- * @param {*} delay
- * @returns
+ * @param {Function} func 要执行的函数
+ * @param {number} delay 延迟时间
+ * @param {object} options 选项 { leading: boolean, trailing: boolean }
+ * @returns {Function}
  */
-export const throttle = (func, delay = 200) => {
-  let timer = null;
-  let cache = null;
-  return (...args) => {
-    if (!timer) {
-      func(...args);
-      cache = null;
-      timer = setTimeout(() => {
-        if (cache) {
-          func(...cache);
-          cache = null;
-        }
-        clearTimeout(timer);
-        timer = null;
-      }, delay);
-    } else {
-      cache = args;
+export const throttle = (
+  func,
+  delay,
+  options = { leading: true, trailing: true }
+) => {
+  let timeoutId = null;
+  let lastArgs = null;
+  let lastThis = null;
+  let result;
+  let previous = 0;
+
+  function later() {
+    previous = options.leading === false ? 0 : Date.now();
+    timeoutId = null;
+    result = func.apply(lastThis, lastArgs);
+    if (!timeoutId) {
+      lastThis = lastArgs = null;
     }
+  }
+
+  return function (...args) {
+    const now = Date.now();
+    if (!previous && options.leading === false) {
+      previous = now;
+    }
+
+    const remaining = delay - (now - previous);
+    lastArgs = args;
+    lastThis = this;
+
+    if (remaining <= 0 || remaining > delay) {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+      previous = now;
+      result = func.apply(lastThis, lastArgs);
+      if (!timeoutId) {
+        lastThis = lastArgs = null;
+      }
+    } else if (!timeoutId && options.trailing !== false) {
+      timeoutId = setTimeout(later, remaining);
+    }
+    return result;
   };
 };
 
