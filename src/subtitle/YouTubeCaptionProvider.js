@@ -875,6 +875,7 @@ class YouTubeCaptionProvider {
         logger.info(
           `Youtube Provider: Appending ${subtitlesForThisChunk.length} subtitles from chunk ${chunkNum}.`
         );
+        this.#subtitles.push(subtitlesForThisChunk);
         this.#managerInstance.appendSubtitles(subtitlesForThisChunk);
       } else {
         logger.info(`Youtube Provider: Chunk ${chunkNum} no subtitles.`);
