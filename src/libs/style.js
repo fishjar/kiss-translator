@@ -87,7 +87,7 @@ const genStyles = ({
   [OPT_STYLE_DASHBOX]: `
     border: 1px dashed ${color};
     display: block;
-    padding: 0.2em 0.4em;
+    padding: 0.2em 0.3em;
     box-sizing: border-box;
   `,
   // 马克笔
