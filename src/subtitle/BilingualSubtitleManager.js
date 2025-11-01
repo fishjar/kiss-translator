@@ -59,6 +59,7 @@ export class BilingualSubtitleManager {
   destroy() {
     logger.info("Bilingual Subtitle Manager: Destroying...");
     this.#removeEventListeners();
+    this.#throttledTriggerTranslations?.cancel();
     this.#captionWindowEl?.parentElement?.parentElement?.remove();
     this.#formattedSubtitles = [];
   }
