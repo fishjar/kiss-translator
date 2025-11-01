@@ -96,7 +96,7 @@ export const throttle = (
     }
   }
 
-  return function (...args) {
+  const throttled = function (...args) {
     const now = Date.now();
     if (!previous && options.leading === false) {
       previous = now;
@@ -121,6 +121,15 @@ export const throttle = (
     }
     return result;
   };
+
+  throttled.cancel = () => {
+    clearTimeout(timeoutId);
+    previous = 0;
+    timeoutId = null;
+    lastThis = lastArgs = null;
+  };
+
+  return throttled;
 };
 
 /**

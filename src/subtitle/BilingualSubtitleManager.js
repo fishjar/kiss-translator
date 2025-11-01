@@ -240,6 +240,7 @@ export class BilingualSubtitleManager {
    */
   onSeek() {
     this.#currentSubtitleIndex = -1;
+    this.#throttledTriggerTranslations.cancel();
     this.onTimeUpdate();
   }
 
