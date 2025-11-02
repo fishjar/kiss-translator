@@ -31,36 +31,28 @@ export class TransboxManager {
       this.#container = document.createElement("div");
       this.#container.id = APP_CONSTS.boxID;
       this.#container.className = "notranslate";
-      this.#container.style.cssText =
-        "font-size: 0; width: 0; height: 0; border: 0; padding: 0; margin: 0;";
-      document.body.parentElement.appendChild(this.#container);
 
-      this.#shadowContainer = this.#container.attachShadow({ mode: "closed" });
-      const emotionRoot = document.createElement("style");
+      document.body.appendChild(this.#container);
+      this.#shadowContainer = this.#container.attachShadow({ mode: "open" });
       const shadowRootElement = document.createElement("div");
-      shadowRootElement.className = `${APP_CONSTS.boxID}_warpper notranslate`;
-      this.#shadowContainer.appendChild(emotionRoot);
+      shadowRootElement.className = `${APP_CONSTS.boxID}_wrapper notranslate`;
       this.#shadowContainer.appendChild(shadowRootElement);
+
       const cache = createCache({
         key: APP_CONSTS.boxID,
         prepend: true,
-        container: emotionRoot,
+        container: this.#shadowContainer,
       });
 
       this.#reactRoot = ReactDOM.createRoot(shadowRootElement);
-      this.CacheProvider = ({ children }) => (
-        <CacheProvider value={cache}>{children}</CacheProvider>
+      this.#reactRoot.render(
+        <React.StrictMode>
+          <CacheProvider value={cache}>
+            <Slection {...this.#props} />
+          </CacheProvider>
+        </React.StrictMode>
       );
     }
-
-    const AppProvider = this.CacheProvider;
-    this.#reactRoot.render(
-      <React.StrictMode>
-        <AppProvider>
-          <Slection {...this.#props} />
-        </AppProvider>
-      </React.StrictMode>
-    );
   }
 
   disable() {
@@ -72,7 +64,6 @@ export class TransboxManager {
     this.#container = null;
     this.#reactRoot = null;
     this.#shadowContainer = null;
-    this.CacheProvider = null;
   }
 
   toggle() {

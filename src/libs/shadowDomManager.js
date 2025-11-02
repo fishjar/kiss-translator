@@ -92,22 +92,18 @@ export default class ShadowDomManager {
     if (this._className) {
       host.className = this._className;
     }
-    host.style.display = "none";
-    document.body.parentElement.appendChild(host);
-    this.#hostElement = host;
 
-    const shadowContainer = host.attachShadow({ mode: "closed" });
-    const emotionRoot = document.createElement("style");
+    document.body.appendChild(host);
+    this.#hostElement = host;
+    const shadowContainer = host.attachShadow({ mode: "open" });
     const appRoot = document.createElement("div");
     appRoot.className = `${this._id}_wrapper`;
-
-    shadowContainer.appendChild(emotionRoot);
     shadowContainer.appendChild(appRoot);
 
     const cache = createCache({
       key: this._id,
       prepend: true,
-      container: emotionRoot,
+      container: shadowContainer,
     });
 
     const enhancedProps = {
