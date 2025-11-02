@@ -588,7 +588,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
               name="httpTimeout"
               value={httpTimeout}
               onChange={handleChange}
-              min={5000}
+              min={1000}
               max={60000}
             />
           </Grid>
