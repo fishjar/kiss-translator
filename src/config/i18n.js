@@ -719,6 +719,11 @@ export const I18N = {
     en: `1. AI intelligent replacement does not support regular expressions.2. Separate multiple terms with newlines or semicolons ";". 3. Terms and translations are separated by English commas ",". 4. If there is no translation, the term will be deemed not to be translated.`,
     zh_TW: `1.AI智能替換，不支援正規表示式。2. 多條術語以換行或分號「;」分隔。3. 術語與譯文以英文逗號「,」分隔。4. 無譯文者視為不翻譯該術語。`,
   },
+  text_ext_style: {
+    zh: `译文附加样式`,
+    en: `Translation additional styles`,
+    zh_TW: `譯文附加樣式`,
+  },
   selector_style: {
     zh: `选择器节点样式`,
     en: `Selector Style`,

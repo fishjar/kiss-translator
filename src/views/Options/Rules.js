@@ -104,6 +104,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
     aiTerms = "",
     termsStyle = "",
     highlightStyle = "color: red;",
+    textExtStyle = "",
     selectStyle = "",
     parentStyle = "",
     grandStyle = "",
@@ -625,6 +626,16 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
               label={i18n("highlight_style")}
               name="highlightStyle"
               value={highlightStyle}
+              disabled={disabled}
+              onChange={handleChange}
+              maxRows={10}
+              multiline
+            />
+            <TextField
+              size="small"
+              label={i18n("text_ext_style")}
+              name="textExtStyle"
+              value={textExtStyle}
               disabled={disabled}
               onChange={handleChange}
               maxRows={10}

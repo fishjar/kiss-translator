@@ -1153,6 +1153,7 @@ export class Translator {
       transEndHook,
       transOnly,
       termsStyle,
+      textExtStyle,
       selectStyle,
       parentStyle,
       grandStyle,
@@ -1187,6 +1188,9 @@ export class Translator {
 
       const inner = document.createElement(transTag);
       inner.className = `${Translator.KISS_CLASS.inner} ${this.#textClass[textStyle]}`;
+      if (textExtStyle?.trim()) {
+        inner.style.cssText = textExtStyle; // 附加内联样式
+      }
       inner.appendChild(createLoadingSVG());
       wrapper.appendChild(inner);
       nodes[nodes.length - 1].after(wrapper);

@@ -115,6 +115,7 @@ export const DEFAULT_RULE = {
   transOpen: GLOBAL_KEY, // 开启翻译
   bgColor: "", // 译文颜色
   textDiyStyle: "", // 自定义译文样式
+  textExtStyle: "", // 译文附加样式
   termsStyle: "", // 专业术语样式
   highlightStyle: "", // 高亮词汇样式
   selectStyle: "", // 选择器节点样式
@@ -158,6 +159,7 @@ export const GLOBLA_RULE = {
   transOpen: "false", // 开启翻译
   bgColor: DEFAULT_COLOR, // 译文颜色
   textDiyStyle: DEFAULT_DIY_STYLE, // 自定义译文样式
+  textExtStyle: "", // 译文附加样式
   termsStyle: "font-weight: bold;", // 专业术语样式
   highlightStyle: "color: red;", // 高亮词汇样式
   selectStyle: DEFAULT_SELECT_STYLE, // 选择器节点样式
