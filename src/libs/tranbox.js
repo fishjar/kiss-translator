@@ -22,7 +22,7 @@ export class TransboxManager {
 
   isEnabled() {
     return (
-      !!this.#container && document.body.parentElement.contains(this.#container)
+      !!this.#container && document.body.contains(this.#container)
     );
   }
 
