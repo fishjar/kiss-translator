@@ -1404,7 +1404,7 @@ export class Translator {
           apisMap,
         });
         if (hookResult) {
-          Object.assign(args, ...hookResult);
+          Object.assign(args, hookResult);
         }
       } catch (err) {
         kissLog("transStartHook", err);

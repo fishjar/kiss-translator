@@ -526,9 +526,9 @@ export const I18N = {
     zh_TW: `1.其中 BuiltinAI 為瀏覽器內建AI翻譯，目前僅 Chrome 138 以上版本支援。`,
   },
   about_api_2: {
-    zh: `2、大部分AI接口都与OpenAI兼容，因此选择添加OpenAI类型即可。`,
+    zh: `2、大部分AI接口都与OpenAI兼容，因此选择添加OpenAI类型即可。It should be noted that Prompt has two types: batch translation and nobatch translation. Not all interfaces support batch translation.`,
     en: `2. Most AI interfaces are compatible with OpenAI, so just choose to add the OpenAI type.`,
-    zh_TW: `2.大部分AI介面都與OpenAI相容，因此選擇新增OpenAI類型即可。`,
+    zh_TW: `2.大部分AI介面都與OpenAI相容，因此選擇新增OpenAI類型即可。要注意的是Prompt分聚合翻譯和非聚合翻譯兩種，不是所有介面都支援聚合翻譯。`,
   },
   about_api_3: {
     zh: `3、暂未列出的接口，理论上都可以通过自定义接口 (Custom) 的形式支持。`,

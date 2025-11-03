@@ -236,6 +236,36 @@ async (args) => {
 };
 ```
 
+v2.0.6 版后内置默认 prompt，Response Hook 可以简化为：
+
+```js
+async (args) => {
+  const url = args.url;
+  const method = "POST";
+  const headers = {
+    "Content-type": "application/json",
+    Authorization: `Bearer ${args.key}`,
+  };
+  const body = {
+    model: "tencent/Hunyuan-MT-7B", // 或 args.model
+    messages: [
+      {
+        role: "system",
+        content: args.defaultNobatchPrompt, // 或 args.nobatchPrompt
+      },
+      {
+        role: "user",
+        content: args.defaultNobatchUserPrompt, // 或 args.nobatchUserPrompt
+      },
+    ],
+    temperature: 0,
+    max_tokens: 20480,
+  };
+
+  return { url, body, headers, method };
+};
+```
+
 Response Hook
 
 ```js

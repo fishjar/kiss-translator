@@ -694,7 +694,13 @@ export const genTransReq = async ({ reqHook, ...args }) => {
     try {
       interpreter.run(`exports.reqHook = ${reqHook}`);
       const hookResult = await interpreter.exports.reqHook(
-        { ...args, defaultSystemPrompt, defaultSubtitlePrompt },
+        {
+          ...args,
+          defaultSystemPrompt,
+          defaultSubtitlePrompt,
+          defaultNobatchPrompt,
+          defaultNobatchUserPrompt,
+        },
         {
           url,
           body,
