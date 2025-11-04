@@ -16,6 +16,9 @@ import {
   DEFAULT_COLOR,
   OPT_STYLE_MARKER,
   OPT_STYLE_GRADIENT_MARKER,
+  OPT_STYLE_DASHBOX_BOLD,
+  OPT_STYLE_DASHLINE_BOLD,
+  OPT_STYLE_WAVYLINE_BOLD,
 } from "../config";
 
 const gradientFlow = keyframes`
@@ -48,11 +51,11 @@ const glow = keyframes`
   }
 `;
 
-const genLineStyle = (style, color) => `
+const genLineStyle = (style, color, thickness = 1) => `
   text-decoration-line: underline;
   text-decoration-style: ${style};
   text-decoration-color: ${color};
-  text-decoration-thickness: 1px;
+  text-decoration-thickness: ${thickness}px;
   text-underline-offset: 0.3em;
   -webkit-text-decoration-line: underline;
   -webkit-text-decoration-style: ${style};
@@ -77,11 +80,22 @@ const genBuiltinStyles = (color = DEFAULT_COLOR) => ({
   [OPT_STYLE_DOTLINE]: genLineStyle("dotted", color),
   // 虚线
   [OPT_STYLE_DASHLINE]: genLineStyle("dashed", color),
+  // 虚线加粗
+  [OPT_STYLE_DASHLINE_BOLD]: genLineStyle("dashed", color, 2),
   // 波浪线
   [OPT_STYLE_WAVYLINE]: genLineStyle("wavy", color),
+  // 波浪线加粗
+  [OPT_STYLE_WAVYLINE_BOLD]: genLineStyle("wavy", color, 2),
   // 虚线框
   [OPT_STYLE_DASHBOX]: `
     border: 1px dashed ${color};
+    display: block;
+    padding: 0.2em 0.3em;
+    box-sizing: border-box;
+  `,
+  // 虚线框加粗
+  [OPT_STYLE_DASHBOX_BOLD]: `
+    border: 2px dashed ${color};
     display: block;
     padding: 0.2em 0.3em;
     box-sizing: border-box;

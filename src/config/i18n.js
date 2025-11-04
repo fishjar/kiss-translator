@@ -569,6 +569,16 @@ export const I18N = {
     zh: `虚线框`,
     en: `Dashed Box`,
   },
+  dash_line_bold: {
+    zh: `下划虚线加粗`,
+    en: `Dashed Underline Bold`,
+    zh_TW: `下劃虛線`,
+  },
+  dash_box_bold: {
+    zh: `虚线框加粗`,
+    en: `Dashed Box Bold`,
+    zh_TW: `虛線框加粗`,
+  },
   marker: {
     zh: `马克笔`,
     en: `Marker`,
@@ -583,6 +593,11 @@ export const I18N = {
     zh: `下划波浪线`,
     en: `Wavy Underline`,
     zh_TW: `下劃波浪線`,
+  },
+  wavy_line_bold: {
+    zh: `下划波浪线加粗`,
+    en: `Wavy Underline Bold`,
+    zh_TW: `下劃波浪線加粗`,
   },
   fuzzy: {
     zh: `模糊`,
