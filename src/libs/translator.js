@@ -466,7 +466,7 @@ export class Translator {
 
   // 创建样式
   #createTextStyles() {
-    const [textClass, textStyles] = genTextClass({ ...this.#rule });
+    const [textClass, textStyles] = genTextClass(this.#setting.customStyles);
     const textSheet = new CSSStyleSheet();
     textSheet.replaceSync(textStyles);
     this.#textClass = textClass;
@@ -1187,7 +1187,7 @@ export class Translator {
       }
 
       const inner = document.createElement(transTag);
-      inner.className = `${Translator.KISS_CLASS.inner} ${this.#textClass[textStyle]}`;
+      inner.className = `${Translator.KISS_CLASS.inner} ${this.#textClass[textStyle] || ""}`;
       if (textExtStyle?.trim()) {
         inner.style.cssText = textExtStyle; // 附加内联样式
       }

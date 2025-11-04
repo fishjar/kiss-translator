@@ -19,12 +19,12 @@ import {
   MSG_TRANSINPUT_TOGGLE,
   OPT_LANGS_FROM,
   OPT_LANGS_TO,
-  OPT_STYLE_ALL,
 } from "../../config";
 import { saveRule } from "../../libs/rules";
 import { tryClearCaches } from "../../libs/cache";
 import { kissLog } from "../../libs/log";
 import { parseUrlPattern } from "../../libs/utils";
+import { useAllTextStyles } from "../../hooks/CustomStyles";
 
 export default function PopupCont({
   rule,
@@ -37,6 +37,7 @@ export default function PopupCont({
 }) {
   const i18n = useI18n();
   const [commands, setCommands] = useState({});
+  const { allTextStyles } = useAllTextStyles();
 
   const handleTransToggle = async (e) => {
     try {
@@ -384,22 +385,12 @@ export default function PopupCont({
         }
         onChange={handleChange}
       >
-        {OPT_STYLE_ALL.map((item) => (
-          <MenuItem key={item} value={item}>
-            {i18n(item)}
+        {allTextStyles.map((item) => (
+          <MenuItem key={item.styleSlug} value={item.styleSlug}>
+            {item.styleName}
           </MenuItem>
         ))}
       </TextField>
-
-      {/* {OPT_STYLE_USE_COLOR.includes(textStyle) && (
-          <TextField
-            size="small"
-            name="bgColor"
-            value={bgColor}
-            label={i18n("bg_color")}
-            onChange={handleChange}
-          />
-        )} */}
 
       <Stack
         direction="row"

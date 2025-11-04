@@ -12,8 +12,7 @@ import {
   OPT_STYLE_GRADIENT,
   OPT_STYLE_BLINK,
   OPT_STYLE_GLOW,
-  OPT_STYLE_DIY,
-  DEFAULT_DIY_STYLE,
+  OPT_STYLE_COLORFUL,
   DEFAULT_COLOR,
   OPT_STYLE_MARKER,
   OPT_STYLE_GRADIENT_MARKER,
@@ -69,10 +68,7 @@ const genLineStyle = (style, color) => `
   }
 `;
 
-const genStyles = ({
-  textDiyStyle = DEFAULT_DIY_STYLE,
-  color = DEFAULT_COLOR,
-} = {}) => ({
+const genBuiltinStyles = (color = DEFAULT_COLOR) => ({
   // 无样式
   [OPT_STYLE_NONE]: ``,
   // 下划线
@@ -148,14 +144,29 @@ const genStyles = ({
   [OPT_STYLE_GLOW]: `
     animation: ${glow} 2s ease-in-out infinite alternate;
   `,
-  // 自定义
-  [OPT_STYLE_DIY]: `
-${textDiyStyle}
-`,
+  // 多彩
+  [OPT_STYLE_COLORFUL]: `
+    color: #333;
+    background: linear-gradient(
+      45deg,
+      LightGreen 20%,
+      LightPink 20% 40%,
+      LightSalmon 40% 60%,
+      LightSeaGreen 60% 80%,
+      LightSkyBlue 80%
+    );
+    &:hover {
+      color: #111;
+    };
+  `,
 });
 
-export const genTextClass = ({ textDiyStyle, bgColor }) => {
-  const styles = genStyles({ textDiyStyle, color: bgColor || DEFAULT_COLOR });
+export const genTextClass = (customStyles = []) => {
+  const styles = genBuiltinStyles();
+  customStyles.forEach((style) => {
+    styles[style.styleSlug] = style.styleCode;
+  });
+
   const textClass = {};
   let textStyles = "";
   Object.entries(styles).forEach(([k, v]) => {
@@ -173,4 +184,4 @@ export const genTextClass = ({ textDiyStyle, bgColor }) => {
   return [textClass, textStyles];
 };
 
-export const defaultStyles = genStyles();
+export const builtinStylesMap = genBuiltinStyles();

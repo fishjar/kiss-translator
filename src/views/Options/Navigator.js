@@ -16,6 +16,7 @@ import SelectAllIcon from "@mui/icons-material/SelectAll";
 import EventNoteIcon from "@mui/icons-material/EventNote";
 import MouseIcon from "@mui/icons-material/Mouse";
 import SubtitlesIcon from "@mui/icons-material/Subtitles";
+import FormatColorText from "@mui/icons-material/FormatColorText";
 
 function LinkItem({ label, url, icon }) {
   const match = useMatch(url);
@@ -43,6 +44,24 @@ export default function Navigator(props) {
       icon: <DesignServicesIcon />,
     },
     {
+      id: "apis_setting",
+      label: i18n("apis_setting"),
+      url: "/apis",
+      icon: <ApiIcon />,
+    },
+    {
+      id: "styles_setting",
+      label: i18n("styles_setting"),
+      url: "/styles",
+      icon: <FormatColorText />,
+    },
+    {
+      id: "sync",
+      label: i18n("sync_setting"),
+      url: "/sync",
+      icon: <SyncIcon />,
+    },
+    {
       id: "input_translate",
       label: i18n("input_translate"),
       url: "/input",
@@ -65,18 +84,6 @@ export default function Navigator(props) {
       label: i18n("subtitle_translate"),
       url: "/subtitle",
       icon: <SubtitlesIcon />,
-    },
-    {
-      id: "apis_setting",
-      label: i18n("apis_setting"),
-      url: "/apis",
-      icon: <ApiIcon />,
-    },
-    {
-      id: "sync",
-      label: i18n("sync_setting"),
-      url: "/sync",
-      icon: <SyncIcon />,
     },
     {
       id: "words",

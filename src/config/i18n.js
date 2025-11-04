@@ -614,15 +614,10 @@ export const I18N = {
     en: `Glow`,
     zh_TW: `發光`,
   },
-  diy_style: {
-    zh: `自定义样式`,
-    en: `Custom Style`,
-    zh_TW: `自訂樣式`,
-  },
-  diy_style_helper: {
-    zh: `遵循“CSS”的语法`,
-    en: `Follow the syntax of "CSS"`,
-    zh_TW: `遵循 CSS 語法`,
+  colorful: {
+    zh: `多彩`,
+    en: `Colorful`,
+    zh_TW: `多彩`,
   },
   setting: {
     zh: `设置`,
@@ -1803,6 +1798,21 @@ export const I18N = {
     zh: `滚动加载提前触发 (0-10000px)`,
     en: `Early triggering of scroll loading (0-10000px)`,
     zh_TW: `滾動載入提前觸發 (0-10000px)`,
+  },
+  styles_setting: {
+    zh: `样式设置`,
+    en: `Style Setting`,
+    zh_TW: `樣式設定`,
+  },
+  style_name: {
+    zh: `样式名称`,
+    en: `Style Name`,
+    zh_TW: `樣式名稱`,
+  },
+  style_code: {
+    zh: `样式代码`,
+    en: `Style Code`,
+    zh_TW: `樣式程式碼`,
   },
 };
 

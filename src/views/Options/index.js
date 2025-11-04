@@ -25,6 +25,7 @@ import Playgound from "./Playground";
 import MouseHoverSetting from "./MouseHover";
 import SubtitleSetting from "./Subtitle";
 import Loading from "../../hooks/Loading";
+import StylesSetting from "./StylesSetting";
 
 export default function Options() {
   const [error, setError] = useState("");
@@ -107,6 +108,7 @@ export default function Options() {
                 <Route path="/" element={<Layout />}>
                   <Route index element={<Setting />} />
                   <Route path="rules" element={<Rules />} />
+                  <Route path="styles" element={<StylesSetting />} />
                   <Route path="input" element={<InputSetting />} />
                   <Route path="tranbox" element={<Tranbox />} />
                   <Route path="mousehover" element={<MouseHoverSetting />} />

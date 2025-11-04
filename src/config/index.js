@@ -7,3 +7,4 @@ export * from "./storage";
 export * from "./url";
 export * from "./msg";
 export * from "./client";
+export * from "./styles";

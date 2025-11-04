@@ -6,6 +6,7 @@ import {
   OPT_TRANS_MICROSOFT,
   DEFAULT_API_LIST,
 } from "./api";
+import { DEFAULT_CUSTOM_STYLES } from "./styles";
 
 // 默认快捷键
 export const OPT_SHORTCUT_TRANSLATE = "toggleTranslate";
@@ -183,4 +184,5 @@ export const DEFAULT_SETTING = {
   subtitleSetting: DEFAULT_SUBTITLE_SETTING, // 字幕设置
   logLevel: LogLevel.INFO.value, // 日志级别
   rootMargin: 500, // 提前触发翻译
+  customStyles: DEFAULT_CUSTOM_STYLES, // 自定义样式列表
 };

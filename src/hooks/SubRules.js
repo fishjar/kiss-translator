@@ -1,4 +1,4 @@
-import { DEFAULT_SUBRULES_LIST, DEFAULT_OW_RULE } from "../config";
+import { DEFAULT_SUBRULES_LIST } from "../config";
 import { useSetting } from "./Setting";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { loadOrFetchSubRules } from "../libs/subRules";
@@ -77,16 +77,4 @@ export function useSubRules() {
     setSelectedRules,
     loading,
   };
-}
-
-/**
- * 覆写订阅规则
- * @returns
- */
-export function useOwSubRule() {
-  const { setting, updateChild } = useSetting();
-  const owSubrule = setting?.owSubrule || DEFAULT_OW_RULE;
-  const updateOwSubrule = updateChild("owSubrule");
-
-  return { owSubrule, updateOwSubrule };
 }

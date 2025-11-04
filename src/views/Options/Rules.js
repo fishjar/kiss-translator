@@ -10,9 +10,6 @@ import {
   GLOBLA_RULE,
   OPT_LANGS_FROM,
   OPT_LANGS_TO,
-  OPT_STYLE_ALL,
-  OPT_STYLE_DIY,
-  // OPT_STYLE_USE_COLOR,
   URL_KISS_RULES_NEW_ISSUE,
   OPT_SYNCTYPE_WORKER,
   DEFAULT_TRANS_TAG,
@@ -53,7 +50,6 @@ import {
   getSyncWithDefault,
   getRulesOld,
 } from "../../libs/storage";
-// import OwSubRule from "./OwSubRule";
 import ClearAllIcon from "@mui/icons-material/ClearAll";
 import HelpButton from "./HelpButton";
 import { useSyncCaches } from "../../hooks/Sync";
@@ -68,7 +64,7 @@ import { kissLog } from "../../libs/log";
 import { useApiList } from "../../hooks/Api";
 import ShowMoreButton from "./ShowMoreButton";
 import { useConfirm } from "../../hooks/Confirm";
-import { defaultStyles } from "../../libs/style";
+import { useAllTextStyles } from "../../hooks/CustomStyles";
 
 const calculateInitialValues = (rule) => {
   const base = rule?.pattern === "*" ? GLOBLA_RULE : DEFAULT_RULE;
@@ -87,6 +83,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
   const [formValues, setFormValues] = useState(initialFormValues);
   const [showMore, setShowMore] = useState(!rules);
   const { enabledApis } = useApiList();
+  const { allTextStyles } = useAllTextStyles();
 
   useEffect(() => {
     const newInitialValues = calculateInitialValues(rule);
@@ -115,8 +112,8 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
     toLang,
     textStyle,
     transOpen,
-    bgColor,
-    textDiyStyle,
+    // bgColor,
+    // textDiyStyle,
     transOnly = "false",
     autoScan = "true",
     hasRichText = "true",
@@ -139,13 +136,6 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
   const isModified = useMemo(() => {
     return JSON.stringify(initialFormValues) !== JSON.stringify(formValues);
   }, [initialFormValues, formValues]);
-
-  const stylesExample = useMemo(() => {
-    return Object.entries(defaultStyles)
-      .filter(([_, v]) => v)
-      .map(([k, v]) => `${i18n(k)}:${v}`)
-      .join("\n");
-  }, [i18n]);
 
   const hasSamePattern = (str) => {
     for (const item of rules.list) {
@@ -531,60 +521,15 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 onChange={handleChange}
               >
                 {GlobalItem}
-                {OPT_STYLE_ALL.map((item) => (
-                  <MenuItem key={item} value={item}>
-                    {i18n(item)}
+                {allTextStyles.map((item) => (
+                  <MenuItem key={item.styleSlug} value={item.styleSlug}>
+                    {item.styleName}
                   </MenuItem>
                 ))}
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
-                size="small"
-                fullWidth
-                name="bgColor"
-                value={bgColor}
-                label={i18n("bg_color")}
-                disabled={disabled}
-                onChange={handleChange}
-              />
-            </Grid>
           </Grid>
         </Box>
-
-        {textStyle === OPT_STYLE_DIY && (
-          <TextField
-            size="small"
-            label={i18n("diy_style")}
-            FormHelperTextProps={{
-              component: "div",
-            }}
-            helperText={
-              <Box>
-                <Box component="div">{i18n("default_styles_example")}</Box>
-                <Box
-                  component="pre"
-                  sx={{
-                    overflowX: "auto",
-                    height: 200,
-                    resize: "vertical",
-                    minHeight: 100,
-                    margin: 0,
-                    // border: "1px solid #ccc",
-                  }}
-                >
-                  {stylesExample}
-                </Box>
-              </Box>
-            }
-            name="textDiyStyle"
-            value={textDiyStyle}
-            disabled={disabled}
-            onChange={handleChange}
-            maxRows={10}
-            multiline
-          />
-        )}
 
         {showMore && (
           <>
