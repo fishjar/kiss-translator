@@ -170,6 +170,7 @@ export const OPT_LANGS_TO = [
   ["cs", "Czech - Čeština"],
   ["da", "Danish - Dansk"],
   ["nl", "Dutch - Nederlands"],
+  ["fa", "Persian - فارسی"],
   ["fi", "Finnish - Suomi"],
   ["fr", "French - Français"],
   ["de", "German - Deutsch"],
