@@ -152,7 +152,7 @@ const RULES_MAP = {
     autoScan: `false`,
   },
   "twitter.com, https://x.com": {
-    selector: `[data-testid='tweetText']`,
+    selector: `[data-testid='tweetText'], [data-testid='twitter-article-title'], .public-DraftStyleDefault-block`,
     keepSelector: `img, svg, a, span:has(a), div:has(a)`,
     ignoreSelector: `button, [data-testid='videoPlayer'], [role='group']`,
     autoScan: `false`,
