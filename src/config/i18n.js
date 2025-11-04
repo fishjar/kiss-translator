@@ -1155,7 +1155,7 @@ export const I18N = {
   },
   selection_translate: {
     zh: `划词翻译`,
-    en: `Selection Translate`,
+    en: `Selection Translation`,
     zh_TW: `劃詞翻譯`,
   },
   toggle_selection_translate: {
@@ -1660,7 +1660,7 @@ export const I18N = {
   },
   subtitle_translate: {
     zh: `字幕翻译`,
-    en: `Subtitle translate`,
+    en: `Subtitle translation`,
     zh_TW: `字幕翻譯`,
   },
   toggle_subtitle_translate: {
