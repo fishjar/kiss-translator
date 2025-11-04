@@ -99,7 +99,7 @@ async (args) => {
       {
         role: "user",
         content: JSON.stringify({
-          targetLanguage: args.to,
+          targetLanguage: args.toLang,
           segments: args.texts.map((text, id) => ({ id, text })),
           glossary: {},
         }),
@@ -132,7 +132,7 @@ async (args) => {
       {
         role: "user",
         content: JSON.stringify({
-          targetLanguage: args.to,
+          targetLanguage: args.toLang,
           segments: args.texts.map((text, id) => ({ id, text })),
           glossary: {},
         }),

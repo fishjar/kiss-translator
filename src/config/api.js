@@ -312,14 +312,14 @@ export const OPT_LANGS_TO_SPEC = {
     ["id", "id"],
     ["vi", "vi"],
   ]),
-  [OPT_TRANS_OPENAI]: OPT_LANGS_SPEC_DEFAULT,
-  [OPT_TRANS_GEMINI]: OPT_LANGS_SPEC_DEFAULT,
-  [OPT_TRANS_GEMINI_2]: OPT_LANGS_SPEC_DEFAULT,
-  [OPT_TRANS_CLAUDE]: OPT_LANGS_SPEC_DEFAULT,
-  [OPT_TRANS_OLLAMA]: OPT_LANGS_SPEC_DEFAULT,
-  [OPT_TRANS_OPENROUTER]: OPT_LANGS_SPEC_DEFAULT,
-  [OPT_TRANS_CLOUDFLAREAI]: OPT_LANGS_SPEC_DEFAULT,
-  [OPT_TRANS_CUSTOMIZE]: OPT_LANGS_SPEC_DEFAULT,
+  [OPT_TRANS_OPENAI]: OPT_LANGS_SPEC_NAME,
+  [OPT_TRANS_GEMINI]: OPT_LANGS_SPEC_NAME,
+  [OPT_TRANS_GEMINI_2]: OPT_LANGS_SPEC_NAME,
+  [OPT_TRANS_CLAUDE]: OPT_LANGS_SPEC_NAME,
+  [OPT_TRANS_OLLAMA]: OPT_LANGS_SPEC_NAME,
+  [OPT_TRANS_OPENROUTER]: OPT_LANGS_SPEC_NAME,
+  [OPT_TRANS_CLOUDFLAREAI]: OPT_LANGS_SPEC_NAME,
+  [OPT_TRANS_CUSTOMIZE]: OPT_LANGS_SPEC_NAME,
 };
 
 const specToCode = (m) =>
@@ -342,7 +342,7 @@ Object.entries(OPT_LANGS_TO_SPEC).forEach(([t, m]) => {
 });
 
 export const defaultNobatchPrompt = `You are a professional, authentic machine translation engine.`;
-export const defaultNobatchUserPrompt = `Translate the following source text from ${INPUT_PLACE_FROM} to ${INPUT_PLACE_TO}. Output translation directly without any additional text.\n\nSource Text: ${INPUT_PLACE_TEXT}\n\nTranslated Text:`;
+export const defaultNobatchUserPrompt = `Translate the following source text to ${INPUT_PLACE_TO}. Output translation directly without any additional text.\n\nSource Text: ${INPUT_PLACE_TEXT}\n\nTranslated Text:`;
 
 export const defaultSystemPrompt = `Act as a translation API. Output a single raw JSON object only. No extra text or fences.
 

@@ -74,12 +74,13 @@ const genUserPrompt = ({
   glossary = {},
   from,
   to,
+  toLang,
   texts,
   docInfo,
 }) => {
   if (useBatchFetch) {
     return JSON.stringify({
-      targetLanguage: to,
+      targetLanguage: toLang,
       title: docInfo.title,
       description: docInfo.description,
       segments: texts.map((text, i) => ({ id: i, text })),
@@ -557,8 +558,8 @@ const genCloudflareAI = ({ texts, from, to, url, key }) => {
   return { url, body, headers };
 };
 
-const genCustom = ({ texts, from, to, url, key }) => {
-  const body = { texts, from, to };
+const genCustom = ({ texts, fromLang, toLang, url, key }) => {
+  const body = { texts, from: fromLang, to: toLang };
   const headers = {
     "Content-type": "application/json",
     Authorization: `Bearer ${key}`,
@@ -638,6 +639,8 @@ export const genTransReq = async ({ reqHook, ...args }) => {
     useBatchFetch,
     from,
     to,
+    fromLang,
+    toLang,
     texts,
     docInfo,
     glossary,
@@ -667,6 +670,8 @@ export const genTransReq = async ({ reqHook, ...args }) => {
           useBatchFetch,
           from,
           to,
+          fromLang,
+          toLang,
           texts,
           docInfo,
           glossary,
