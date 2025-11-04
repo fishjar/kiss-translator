@@ -94,7 +94,6 @@ export const matchRule = async (href, { injectRules, subrulesList }) => {
     }
   });
 
-
   return rule;
 };
 

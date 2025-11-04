@@ -21,9 +21,7 @@ export class TransboxManager {
   }
 
   isEnabled() {
-    return (
-      !!this.#container && document.body.contains(this.#container)
-    );
+    return !!this.#container && document.body.contains(this.#container);
   }
 
   enable() {
