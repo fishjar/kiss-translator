@@ -141,6 +141,10 @@ Example reference: [custom-api_v2.md](https://github.com/fishjar/kiss-translator
 
 Settings page address: https://fishjar.github.io/kiss-translator/options.html
 
+### Subtitle Translation Tips
+
+As long as the KT button is on (blue background with white text), you don't need to click it multiple times. Just click the original subtitle button in the YouTube player and wait for the bilingual subtitles to appear automatically.
+
 ## Future Plans 
 
  This is a side project with no strict timeline. Community contributions are welcome. The following are preliminary feature directions:
