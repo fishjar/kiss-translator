@@ -1069,9 +1069,9 @@ export const I18N = {
     zh_TW: `隱藏`,
   },
   save_rule: {
-    zh: `保存规则`,
-    en: `Save Rule`,
-    zh_TW: `儲存規則`,
+    zh: `保存本站规则`,
+    en: `Save this site rule`,
+    zh_TW: `保存本站規則`,
   },
   global_rule: {
     zh: `全局规则`,
@@ -1660,7 +1660,7 @@ export const I18N = {
   },
   subtitle_translate: {
     zh: `字幕翻译`,
-    en: `Subtitle translation`,
+    en: `Subtitle Translation`,
     zh_TW: `字幕翻譯`,
   },
   toggle_subtitle_translate: {
