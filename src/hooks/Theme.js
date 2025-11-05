@@ -27,6 +27,14 @@ export default function Theme({ children, options = {}, styles = {} }) {
   }, []);
 
   const theme = useMemo(() => {
+    let htmlFontSize = 16;
+    try {
+      const s = window.getComputedStyle(document.documentElement).fontSize;
+      htmlFontSize = parseInt(s.replace("px", ""));
+    } catch (err) {
+      //
+    }
+
     const isDarkMode =
       darkMode === "dark" || (darkMode === "auto" && systemMode === THEME_DARK);
 
@@ -35,7 +43,7 @@ export default function Theme({ children, options = {}, styles = {} }) {
         mode: isDarkMode ? THEME_DARK : THEME_LIGHT,
       },
       typography: {
-        htmlFontSize: document.documentElement.style.fontSize ? "16px" : 16,
+        htmlFontSize,
       },
       ...options,
     });
