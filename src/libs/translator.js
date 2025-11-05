@@ -1322,7 +1322,10 @@ export class Translator {
           // node.matches(this.#ignoreSelector) ||
           !node.textContent.trim()
         ) {
-          if (node.tagName === "IMG" || node.tagName === "SVG") {
+          if (
+            node.tagName?.toUpperCase() === "IMG" ||
+            node.tagName?.toUpperCase() === "SVG"
+          ) {
             node.style.width = `${node.offsetWidth}px`;
             node.style.height = `${node.offsetHeight}px`;
           }
@@ -1336,7 +1339,7 @@ export class Translator {
 
         if (
           this.#rule.hasRichText === "true" &&
-          Translator.TAGS.WARP.has(node.tagName)
+          Translator.TAGS.WARP.has(node.tagName?.toUpperCase())
         ) {
           wrapCounter++;
           const startPlaceholder = `<${this.#placeholder.tagName}${wrapCounter}>`;
