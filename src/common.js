@@ -118,7 +118,10 @@ async function getFavWords(rule) {
  */
 export async function run(isUserscript = false) {
   try {
-    if (document?.documentElement?.tagName?.toUpperCase() !== "HTML") {
+    // if (document?.documentElement?.tagName?.toUpperCase() !== "HTML") {
+    //   return;
+    // }
+    if (!document?.contentType?.includes("html")) {
       return;
     }
 
