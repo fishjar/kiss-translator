@@ -804,9 +804,9 @@ export const I18N = {
     zh_TW: `注入 CSS`,
   },
   inject_css_helper: {
-    zh: `初始化时注入运行，一个页面仅运行一次。`,
-    en: `Injected and run at initialization, and only run once per page.`,
-    zh_TW: `初始化時注入運行，一個頁面僅運行一次。`,
+    zh: `预加载时注入，一个页面仅运行一次。`,
+    en: `Injected during preload, runs only once per page.`,
+    zh_TW: `預先載入時注入，一個頁面僅運行一次。`,
   },
   fixer_function: {
     zh: `修复函数`,

@@ -58,7 +58,7 @@ export const matchRule = async (href, { injectRules, subrulesList }) => {
     "parentStyle",
     "grandStyle",
     "injectJs",
-    // "injectCss",
+    "injectCss",
     "transStartHook",
     "transEndHook",
     // "transRemoveHook",
@@ -138,7 +138,7 @@ export const checkRules = (rules) => {
         parentStyle,
         grandStyle,
         injectJs,
-        // injectCss,
+        injectCss,
         apiSlug,
         fromLang,
         toLang,
@@ -171,7 +171,7 @@ export const checkRules = (rules) => {
         parentStyle: type(parentStyle) === "string" ? parentStyle : "",
         grandStyle: type(grandStyle) === "string" ? grandStyle : "",
         injectJs: type(injectJs) === "string" ? injectJs : "",
-        // injectCss: type(injectCss) === "string" ? injectCss : "",
+        injectCss: type(injectCss) === "string" ? injectCss : "",
         apiSlug:
           type(apiSlug) === "string" && apiSlug.trim() !== ""
             ? apiSlug.trim()
