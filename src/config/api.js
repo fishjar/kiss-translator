@@ -9,7 +9,12 @@ export const DEFAULT_CONTEXT_SIZE = 3; // 上下文会话数量
 export const INPUT_PLACE_URL = "{{url}}"; // 占位符
 export const INPUT_PLACE_FROM = "{{from}}"; // 占位符
 export const INPUT_PLACE_TO = "{{to}}"; // 占位符
+export const INPUT_PLACE_FROM_LANG = "{{fromLang}}"; // 占位符
+export const INPUT_PLACE_TO_LANG = "{{toLang}}"; // 占位符
 export const INPUT_PLACE_TEXT = "{{text}}"; // 占位符
+export const INPUT_PLACE_TONE = "{{tone}}"; // 占位符
+export const INPUT_PLACE_TITLE = "{{title}}"; // 占位符
+export const INPUT_PLACE_DESCRIPTION = "{{description}}"; // 占位符
 export const INPUT_PLACE_KEY = "{{key}}"; // 占位符
 export const INPUT_PLACE_MODEL = "{{model}}"; // 占位符
 

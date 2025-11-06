@@ -32,6 +32,7 @@ export default function ReusableAutocomplete({
           name: name,
           value: newValue,
         },
+        preventDefault: () => {},
       };
       onChange(syntheticEvent);
     }

@@ -30,6 +30,11 @@ import {
   defaultSubtitlePrompt,
   defaultNobatchPrompt,
   defaultNobatchUserPrompt,
+  INPUT_PLACE_TONE,
+  INPUT_PLACE_TITLE,
+  INPUT_PLACE_DESCRIPTION,
+  INPUT_PLACE_TO_LANG,
+  INPUT_PLACE_FROM_LANG,
 } from "../config";
 import { msAuth } from "../libs/auth";
 import { genDeeplFree } from "./deepl";
@@ -62,36 +67,62 @@ const keyPick = (apiSlug, key = "", cacheMap) => {
   return keys[curIndex];
 };
 
-const genSystemPrompt = ({ systemPrompt, from, to }) =>
+const genSystemPrompt = ({
+  systemPrompt,
+  tone,
+  from,
+  to,
+  fromLang,
+  toLang,
+  texts,
+  docInfo: { title = "", description = "" } = {},
+}) =>
   systemPrompt
+    .replaceAll(INPUT_PLACE_TITLE, title)
+    .replaceAll(INPUT_PLACE_DESCRIPTION, description)
+    .replaceAll(INPUT_PLACE_TONE, tone)
     .replaceAll(INPUT_PLACE_FROM, from)
-    .replaceAll(INPUT_PLACE_TO, to);
+    .replaceAll(INPUT_PLACE_TO, to)
+    .replaceAll(INPUT_PLACE_FROM_LANG, fromLang)
+    .replaceAll(INPUT_PLACE_TO_LANG, toLang)
+    .replaceAll(INPUT_PLACE_TEXT, texts[0]);
 
 const genUserPrompt = ({
   nobatchUserPrompt,
   useBatchFetch,
   tone,
-  glossary = {},
+  glossary,
   from,
   to,
+  fromLang,
   toLang,
   texts,
-  docInfo,
+  docInfo: { title = "", description = "" } = {},
 }) => {
   if (useBatchFetch) {
-    return JSON.stringify({
+    const promptObj = {
       targetLanguage: toLang,
-      title: docInfo.title,
-      description: docInfo.description,
       segments: texts.map((text, i) => ({ id: i, text })),
-      glossary,
-      tone,
-    });
+    };
+
+    title && (promptObj.title = title);
+    description && (promptObj.description = description);
+    glossary &&
+      Object.keys(glossary).length !== 0 &&
+      (promptObj.glossary = glossary);
+    tone && (promptObj.tone = tone);
+
+    return JSON.stringify(promptObj);
   }
 
   return nobatchUserPrompt
+    .replaceAll(INPUT_PLACE_TITLE, title)
+    .replaceAll(INPUT_PLACE_DESCRIPTION, description)
+    .replaceAll(INPUT_PLACE_TONE, tone)
     .replaceAll(INPUT_PLACE_FROM, from)
     .replaceAll(INPUT_PLACE_TO, to)
+    .replaceAll(INPUT_PLACE_FROM_LANG, fromLang)
+    .replaceAll(INPUT_PLACE_TO_LANG, toLang)
     .replaceAll(INPUT_PLACE_TEXT, texts[0]);
 };
 
@@ -647,6 +678,7 @@ export const genTransReq = async ({ reqHook, ...args }) => {
     customHeader,
     customBody,
     events,
+    tone,
   } = args;
 
   if (API_SPE_TYPES.mulkeys.has(apiType)) {
@@ -662,6 +694,11 @@ export const genTransReq = async ({ reqHook, ...args }) => {
       systemPrompt: useBatchFetch ? systemPrompt : nobatchPrompt,
       from,
       to,
+      fromLang,
+      toLang,
+      texts,
+      docInfo,
+      tone,
     });
     args.userPrompt = !!events
       ? JSON.stringify(events)
@@ -674,6 +711,7 @@ export const genTransReq = async ({ reqHook, ...args }) => {
           toLang,
           texts,
           docInfo,
+          tone,
           glossary,
         });
   }

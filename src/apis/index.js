@@ -419,7 +419,7 @@ export const apiTranslate = async ({
   toLang,
   apiSetting = DEFAULT_API_SETTING,
   docInfo = {},
-  glossary = {},
+  glossary,
   useCache = true,
   usePool = true,
 }) => {

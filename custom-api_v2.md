@@ -1,4 +1,4 @@
-# 自定义接口示例
+# 自定义接口说明及示例
 
 ## 默认接口规范
 
@@ -21,7 +21,7 @@ Response
 [
   {
     "text": "你好",    // 译文
-    "src": "en"    // 原文语言
+    "src": "en"       // 原文语言
   }
 ]
 ```
@@ -33,10 +33,34 @@ v2.0.4版后亦支持以下 Response 格式
   "translations": [   // 译文列表
     {
       "text": "你好",  // 译文
-      "src": "en"  // 原文语言
+      "src": "en"     // 原文语言
     }
   ]
 }
+```
+
+## Prompt 相关
+
+`Prompt` 可替换占位符：
+
+```js
+`{{from}}`        // 原文语言名称
+`{{to}}`          // 目标语言名称
+`{{fromLang}}`    // 原文语言代码
+`{{toLang}}`      // 目标语言代码
+`{{text}}`        // 原文
+`{{tone}}`        // 风格
+`{{title}}`       // 页面标题
+`{{description}}` // 页面描述
+```
+
+Hook 中 `Prompt` 类型说明：
+
+```js
+`systemPrompt`      // 聚合翻译 System Prompt
+`nobatchPrompt`     // 非聚合翻译 System Prompt
+`nobatchUserPrompt` // 非聚合翻译 User Prompt
+`subtitlePrompt`    // 字幕翻译 System Prompt
 ```
 
 ## 谷歌翻译接口
@@ -101,7 +125,10 @@ async (args) => {
         content: JSON.stringify({
           targetLanguage: args.toLang,
           segments: args.texts.map((text, id) => ({ id, text })),
-          glossary: {},
+          title: "", // 可省略
+          description: "", // 可省略
+          glossary: {}, // 可省略
+          tone: "", // 可省略
         }),
       },
     ],
@@ -134,7 +161,10 @@ async (args) => {
         content: JSON.stringify({
           targetLanguage: args.toLang,
           segments: args.texts.map((text, id) => ({ id, text })),
-          glossary: {},
+          title: "", // 可省略
+          description: "", // 可省略
+          glossary: {}, // 可省略
+          tone: "", // 可省略
         }),
       },
     ],
@@ -295,6 +325,7 @@ Hook参数里面的语言含义说明：
 ["cs", "Czech - Čeština"],
 ["da", "Danish - Dansk"],
 ["nl", "Dutch - Nederlands"],
+["fa", "Persian - فارسی"],
 ["fi", "Finnish - Suomi"],
 ["fr", "French - Français"],
 ["de", "German - Deutsch"],
