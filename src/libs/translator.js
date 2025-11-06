@@ -361,7 +361,7 @@ export class Translator {
 
     this.#eventName = genEventName();
     this.#docInfo = {
-      title: document.title,
+      title: truncateWords(document.title),
       description: this.#getDocDescription(),
     };
     this.#combinedSkipsRegex = new RegExp(
@@ -1699,7 +1699,7 @@ export class Translator {
   // 翻译页面标题
   async #translateTitle() {
     const title = document.title;
-    this.#docInfo.title = title;
+    this.#docInfo.title = truncateWords(title);
     if (!title) return;
 
     try {
