@@ -34,7 +34,7 @@ export const matchRule = async (href, { injectRules, subrulesList }) => {
   }
 
   const rule = rules.find((r) =>
-    r.pattern.split(",").some((p) => isMatch(href, p.trim()))
+    r.pattern.split(/\n|,/).some((p) => isMatch(href, p.trim()))
   );
   const globalRule = {
     ...GLOBLA_RULE,
