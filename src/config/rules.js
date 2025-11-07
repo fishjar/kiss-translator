@@ -8,8 +8,8 @@ export const SHADOW_KEY = ">>>";
 export const DEFAULT_COLOR = "#209CEE"; // 默认高亮背景色/线条颜色
 
 export const DEFAULT_TRANS_TAG = "font";
-export const DEFAULT_SELECT_STYLE =
-  "-webkit-line-clamp: unset; max-height: none; height: auto;";
+// export const DEFAULT_SELECT_STYLE =
+//   "-webkit-line-clamp: unset; max-height: none; height: auto;";
 
 export const OPT_TIMING_PAGESCROLL = "mk_pagescroll"; // 滚动加载翻译
 export const OPT_TIMING_PAGEOPEN = "mk_pageopen"; // 直接翻译到底
@@ -108,9 +108,9 @@ export const GLOBLA_RULE = {
   textExtStyle: "", // 译文附加样式
   termsStyle: "font-weight: bold;", // 专业术语样式
   highlightStyle: "color: red;", // 高亮词汇样式
-  selectStyle: DEFAULT_SELECT_STYLE, // 选择器节点样式
-  parentStyle: DEFAULT_SELECT_STYLE, // 选择器父节点样式
-  grandStyle: DEFAULT_SELECT_STYLE, // 选择器祖节点样式
+  selectStyle: "", // 选择器节点样式
+  parentStyle: "", // 选择器父节点样式
+  grandStyle: "", // 选择器祖节点样式
   injectJs: "", // 注入JS
   injectCss: "", // 注入CSS
   transOnly: "false", // 是否仅显示译文
@@ -165,6 +165,9 @@ const RULES_MAP = {
   "www.youtube.com": {
     rootsSelector: `ytd-page-manager`,
     ignoreSelector: `aside, button, footer, form, header, pre, mark, nav, #player, #container, .caption-window, .ytp-settings-menu`,
+    selectStyle: `-webkit-line-clamp: unset; max-height: none; height: auto;`,
+    parentStyle: `-webkit-line-clamp: unset; max-height: none; height: auto;`,
+    grandStyle: `-webkit-line-clamp: unset; max-height: none; height: auto;`,
   },
   "web.telegram.org": {
     autoScan: `false`,
