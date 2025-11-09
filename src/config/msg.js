@@ -34,5 +34,5 @@ export const MSG_XHR_DATA_YOUTUBE = "KISS_XHR_DATA_YOUTUBE";
 // export const MSG_GLOBAL_VAR_FETCH = "KISS_GLOBAL_VAR_FETCH";
 // export const MSG_GLOBAL_VAR_BACK = "KISS_GLOBAL_VAR_BACK";
 
-export const MSG_MENUS_PROGRESSED = "progressed"
-export const MSG_MENUS_UPDATEFORM = "updateFormData"
+export const MSG_MENUS_PROGRESSED = "progressed";
+export const MSG_MENUS_UPDATEFORM = "updateFormData";

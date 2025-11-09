@@ -412,8 +412,8 @@ export const randomBetween = (min, max, integer = true) => {
 
 /**
  * 根据文件名自动获取 MIME 类型
- * @param {*} filename 
- * @returns 
+ * @param {*} filename
+ * @returns
  */
 function getMimeTypeFromFilename(filename) {
   const defaultType = "application/octet-stream";
