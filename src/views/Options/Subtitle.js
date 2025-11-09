@@ -30,6 +30,8 @@ export default function SubtitleSetting() {
     apiSlug,
     segSlug,
     chunkLength,
+    preTrans = 90,
+    throttleTrans = 30,
     toLang,
     isBilingual,
     skipAd = false,
@@ -112,6 +114,32 @@ export default function SubtitleSetting() {
                 onChange={handleChange}
                 min={200}
                 max={20000}
+              />
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <ValidationInput
+                fullWidth
+                size="small"
+                label={i18n("pre_trans_seconds")}
+                type="number"
+                name="preTrans"
+                value={preTrans}
+                onChange={handleChange}
+                min={10}
+                max={36000}
+              />
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <ValidationInput
+                fullWidth
+                size="small"
+                label={i18n("throttle_trans_interval")}
+                type="number"
+                name="throttleTrans"
+                value={throttleTrans}
+                onChange={handleChange}
+                min={1}
+                max={3600}
               />
             </Grid>
             <Grid item xs={12} sm={12} md={6} lg={3}>

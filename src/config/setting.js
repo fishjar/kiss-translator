@@ -112,6 +112,8 @@ export const DEFAULT_SUBTITLE_SETTING = {
   apiSlug: OPT_TRANS_MICROSOFT,
   segSlug: "-", // AI智能断句
   chunkLength: 1000, // AI处理切割长度
+  preTrans: 90, // 提前翻译时长
+  throttleTrans: 30, // 节流翻译间隔
   // fromLang: "en",
   toLang: "zh-CN",
   isBilingual: true, // 是否双语显示

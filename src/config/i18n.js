@@ -1864,6 +1864,16 @@ export const I18N = {
     en: `Style Code`,
     zh_TW: `樣式程式碼`,
   },
+  pre_trans_seconds: {
+    zh: `提前翻译时长 (10-36000s)`,
+    en: `Pre translation seconds (10-36000s)`,
+    zh_TW: `提前翻译时长 (10-36000s)`,
+  },
+  throttle_trans_interval: {
+    zh: `节流翻译间隔 (1-3600s)`,
+    en: `Throttling translation interval (1-3600s)`,
+    zh_TW: `节流翻译间隔 (1-3600s)`,
+  },
 };
 
 export const newI18n = (lang) => (key) => I18N[key]?.[lang] || "";

@@ -12,8 +12,8 @@ export class BilingualSubtitleManager {
   #captionWindowEl = null;
   #paperEl = null;
   #currentSubtitleIndex = -1;
-  #preTranslateSeconds = 90;
-  #throttleSeconds = 30;
+  // #preTranslateSeconds = 90;
+  // #throttleSeconds = 30;
   #setting = {};
   #isAdPlaying = false;
   #throttledTriggerTranslations;
@@ -34,7 +34,7 @@ export class BilingualSubtitleManager {
 
     this.#throttledTriggerTranslations = throttle(
       this.#triggerTranslations.bind(this),
-      this.#throttleSeconds * 1000
+      (setting.throttleTrans ?? 30) * 1000
     );
   }
 
@@ -294,7 +294,8 @@ export class BilingualSubtitleManager {
    * @param {number} currentTimeMs
    */
   #triggerTranslations(currentTimeMs) {
-    const lookAheadMs = this.#preTranslateSeconds * 1000;
+    const { preTrans = 90 } = this.#setting;
+    const lookAheadMs = preTrans * 1000;
 
     for (const sub of this.#formattedSubtitles) {
       const isCurrent = sub.start <= currentTimeMs && sub.end >= currentTimeMs;
