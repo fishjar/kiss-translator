@@ -55,6 +55,25 @@ function parseTimestampToMilliseconds(timestamp) {
 }
 
 /**
+ * 将毫秒数转换为VTT时间戳字符串 (HH:MM:SS.mmm).
+ *
+ * @param {number} ms - 总毫秒数.
+ * @returns {string} - 格式化的VTT时间戳 (HH:MM:SS.mmm).
+ */
+function formatMillisecondsToTimestamp(ms) {
+  const totalSeconds = Math.floor(ms / 1000);
+  const milliseconds = String(ms % 1000).padStart(3, "0");
+
+  const totalMinutes = Math.floor(totalSeconds / 60);
+  const seconds = String(totalSeconds % 60).padStart(2, "0");
+
+  const hours = String(Math.floor(totalMinutes / 60)).padStart(2, "0");
+  const minutes = String(totalMinutes % 60).padStart(2, "0");
+
+  return `${hours}:${minutes}:${seconds}.${milliseconds}`;
+}
+
+/**
  * 解析包含双语字幕的VTT文件内容。
  * @param {string} vttText - VTT文件的文本内容。
  * @returns {Array<Object>} 一个包含字幕对象的数组，每个对象包含 start, end, text, 和 translation.
@@ -96,4 +115,32 @@ export function parseBilingualVtt(vttText) {
   }
 
   return result;
+}
+
+/**
+ * 将 parseBilingualVtt 生成的JSON数据转换回标准的VTT字幕字符串。
+ * @param {Array<Object>} cues - 字幕对象数组，
+ * @returns {string} - 格式化的VTT文件内容字符串。
+ */
+export function buildBilingualVtt(cues) {
+  if (!Array.isArray(cues)) {
+    return "WEBVTT";
+  }
+
+  const header = "WEBVTT";
+
+  const cueBlocks = cues.map((cue, index) => {
+    const startTime = formatMillisecondsToTimestamp(cue.start);
+    const endTime = formatMillisecondsToTimestamp(cue.end);
+
+    const cueIndex = index + 1;
+    const timestampLine = `${startTime} --> ${endTime}`;
+
+    const textLine = cue.text || "";
+    const translationLine = cue.translation || "";
+
+    return `${cueIndex}\n${timestampLine}\n${textLine}\n${translationLine}`;
+  });
+
+  return [header, ...cueBlocks].join("\n\n");
 }

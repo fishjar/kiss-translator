@@ -690,17 +690,19 @@ export const genTransReq = async ({ reqHook, ...args }) => {
   }
 
   if (API_SPE_TYPES.ai.has(apiType)) {
-    args.systemPrompt = genSystemPrompt({
-      systemPrompt: useBatchFetch ? systemPrompt : nobatchPrompt,
-      from,
-      to,
-      fromLang,
-      toLang,
-      texts,
-      docInfo,
-      tone,
-    });
-    args.userPrompt = !!events
+    args.systemPrompt = events
+      ? systemPrompt
+      : genSystemPrompt({
+          systemPrompt: useBatchFetch ? systemPrompt : nobatchPrompt,
+          from,
+          to,
+          fromLang,
+          toLang,
+          texts,
+          docInfo,
+          tone,
+        });
+    args.userPrompt = events
       ? JSON.stringify(events)
       : genUserPrompt({
           nobatchUserPrompt,

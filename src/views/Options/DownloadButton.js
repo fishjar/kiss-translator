@@ -2,6 +2,7 @@ import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import LoadingButton from "@mui/lab/LoadingButton";
 import { useState } from "react";
 import { kissLog } from "../../libs/log";
+import { downloadBlobFile } from "../../libs/utils";
 
 export default function DownloadButton({ handleData, text, fileName }) {
   const [loading, setLoading] = useState(false);
@@ -10,13 +11,7 @@ export default function DownloadButton({ handleData, text, fileName }) {
     try {
       setLoading(true);
       const data = await handleData();
-      const url = window.URL.createObjectURL(new Blob([data]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", fileName || `${Date.now()}.json`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      downloadBlobFile(data, fileName);
     } catch (err) {
       kissLog("download", err);
     } finally {

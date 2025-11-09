@@ -356,4 +356,8 @@ export class BilingualSubtitleManager {
     this.#currentSubtitleIndex = -1;
     this.onTimeUpdate();
   }
+
+  updateSetting(obj) {
+    this.#setting = { ...this.#setting, ...obj };
+  }
 }

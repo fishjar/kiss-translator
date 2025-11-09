@@ -409,3 +409,76 @@ export const randomBetween = (min, max, integer = true) => {
   const value = Math.random() * (max - min) + min;
   return integer ? Math.floor(value) : value;
 };
+
+/**
+ * 根据文件名自动获取 MIME 类型
+ * @param {*} filename 
+ * @returns 
+ */
+function getMimeTypeFromFilename(filename) {
+  const defaultType = "application/octet-stream";
+  if (!filename || filename.indexOf(".") === -1) {
+    return defaultType;
+  }
+
+  const extension = filename.split(".").pop().toLowerCase();
+  const mimeMap = {
+    // 文本
+    txt: "text/plain;charset=utf-8",
+    html: "text/html;charset=utf-8",
+    css: "text/css;charset=utf-8",
+    js: "text/javascript;charset=utf-8",
+    json: "application/json;charset=utf-8",
+    xml: "application/xml;charset=utf-8",
+    md: "text/markdown;charset=utf-8",
+    vtt: "text/vtt;charset=utf-8",
+
+    // 图像
+    png: "image/png",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    gif: "image/gif",
+    svg: "image/svg+xml",
+    webp: "image/webp",
+    ico: "image/x-icon",
+
+    // 音频/视频
+    mp3: "audio/mpeg",
+    mp4: "video/mp4",
+    webm: "video/webm",
+    wav: "audio/wav",
+
+    // 应用程序/文档
+    pdf: "application/pdf",
+    zip: "application/zip",
+    doc: "application/msword",
+    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    xls: "application/vnd.ms-excel",
+    xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  };
+
+  // 默认值
+  return mimeMap[extension] || defaultType;
+}
+
+/**
+ * 下载文件
+ * @param {*} str
+ * @param {*} filename
+ */
+export function downloadBlobFile(str, filename = "kiss-file.txt") {
+  const mimeType = getMimeTypeFromFilename(filename);
+  const blob = new Blob([str], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.style.display = "none";
+  a.href = url;
+  a.download = filename || `kiss-file.txt`;
+
+  document.body.appendChild(a);
+  a.click();
+
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}

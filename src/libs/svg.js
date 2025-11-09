@@ -83,8 +83,8 @@ export function createLogoSVG({
   const primaryColor = "#209CEE";
   const secondaryColor = "#E9F5FD";
 
-  const path1Fill = isSelected ? primaryColor : secondaryColor;
-  const path2Fill = isSelected ? secondaryColor : primaryColor;
+  const path1Fill = isSelected ? secondaryColor : primaryColor;
+  const path2Fill = isSelected ? primaryColor : secondaryColor;
 
   const path1 = createSVGElement("path", {
     d: "M0 0 C10.56 0 21.12 0 32 0 C32 10.56 32 21.12 32 32 C21.44 32 10.88 32 0 32 C0 21.44 0 10.88 0 0 Z ",

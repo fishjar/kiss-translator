@@ -15,7 +15,13 @@ export default class ShadowDomManager {
   _ReactComponent;
   _props;
 
-  constructor({ id, className = "", reactComponent, props = {} }) {
+  constructor({
+    id,
+    className = "",
+    reactComponent,
+    props = {},
+    rootElement = document.body,
+  }) {
     if (!id || !reactComponent) {
       throw new Error("ID and a React Component must be provided.");
     }
@@ -23,6 +29,7 @@ export default class ShadowDomManager {
     this._className = className;
     this._ReactComponent = reactComponent;
     this._props = props;
+    this._rootElement = rootElement;
   }
 
   get isVisible() {
@@ -93,7 +100,7 @@ export default class ShadowDomManager {
       host.className = this._className;
     }
 
-    document.body.appendChild(host);
+    this._rootElement.appendChild(host);
     this.#hostElement = host;
     const shadowContainer = host.attachShadow({ mode: "open" });
     const appRoot = document.createElement("div");

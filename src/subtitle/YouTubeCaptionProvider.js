@@ -6,34 +6,63 @@ import {
   APP_NAME,
   OPT_LANGS_TO_CODE,
   OPT_TRANS_MICROSOFT,
+  MSG_MENUS_PROGRESSED,
+  MSG_MENUS_UPDATEFORM,
 } from "../config";
-import { sleep } from "../libs/utils.js";
+import { sleep, genEventName, downloadBlobFile } from "../libs/utils.js";
 import { createLogoSVG } from "../libs/svg.js";
 import { randomBetween } from "../libs/utils.js";
 import { newI18n } from "../config";
+import ShadowDomManager from "../libs/shadowDomManager.js";
+import { Menus } from "./Menus.js";
+import { buildBilingualVtt } from "./vtt.js";
 
 const VIDEO_SELECT = "#container video";
 const CONTORLS_SELECT = ".ytp-right-controls";
 const YT_CAPTION_SELECT = "#ytp-caption-window-container";
 const YT_AD_SELECT = ".video-ads";
+const YT_SUBTITLE_BTN_SELECT = "button.ytp-subtitles-button";
 
 class YouTubeCaptionProvider {
   #setting = {};
-  #videoId = "";
+
   #subtitles = [];
+  #flatEvents = [];
+  #progressedNum = 0;
+  #fromLang = "auto";
+
+  #processingId = null;
+
   #managerInstance = null;
   #toggleButton = null;
-  #enabled = false;
-  #ytControls = null;
-  #isBusy = false;
-  #fromLang = "auto";
+  #isMenuShow = false;
   #notificationEl = null;
   #notificationTimeout = null;
   #i18n = () => "";
+  #menuEventName = "kiss-event";
 
   constructor(setting = {}) {
-    this.#setting = setting;
+    this.#setting = { ...setting, isAISegment: false };
     this.#i18n = newI18n(setting.uiLang || "zh");
+    this.#menuEventName = genEventName();
+  }
+
+  get #videoId() {
+    const docUrl = new URL(document.location.href);
+    return docUrl.searchParams.get("v");
+  }
+
+  get #videoEl() {
+    return document.querySelector(VIDEO_SELECT);
+  }
+
+  set #progressed(num) {
+    this.#progressedNum = num;
+    this.#sendMenusMsg({ action: MSG_MENUS_PROGRESSED, data: num });
+  }
+
+  get #progressed() {
+    return this.#progressedNum;
   }
 
   initialize() {
@@ -47,35 +76,47 @@ class YouTubeCaptionProvider {
     });
 
     window.addEventListener("yt-navigate-finish", () => {
-      setTimeout(() => {
-        if (this.#toggleButton) {
-          this.#toggleButton.style.opacity = "0.5";
-        }
-        this.#destroyManager();
-        this.#doubleClick();
-      }, 1000);
+      logger.debug("Youtube Provider: yt-navigate-finish", this.#videoId);
+
+      this.#destroyManager();
+
+      this.#subtitles = [];
+      this.#flatEvents = [];
+      this.#progressed = 0;
+      this.#fromLang = "auto";
+      this.#setting.isAISegment = false;
+      this.#sendMenusMsg({
+        action: MSG_MENUS_UPDATEFORM,
+        data: { isAISegment: false },
+      });
     });
 
-    this.#waitForElement(CONTORLS_SELECT, (ytControls) =>
-      this.#injectToggleButton(ytControls)
-    );
+    this.#waitForElement(CONTORLS_SELECT, (ytControls) => {
+      const ytSubtitleBtn = ytControls.querySelector(YT_SUBTITLE_BTN_SELECT);
+      if (ytSubtitleBtn) {
+        ytSubtitleBtn.addEventListener("click", () => {
+          if (ytSubtitleBtn.getAttribute("aria-pressed") === "true") {
+            this.#startManager();
+          } else {
+            this.#destroyManager();
+          }
+        });
+      }
+
+      this.#injectToggleButton(ytControls);
+    });
 
     this.#waitForElement(YT_AD_SELECT, (adContainer) => {
       this.#moAds(adContainer);
     });
   }
 
-  get #videoEl() {
-    return document.querySelector(VIDEO_SELECT);
-  }
-
   #moAds(adContainer) {
-    const { skipAd = false } = this.#setting;
-
     const adLayoutSelector = ".ytp-ad-player-overlay-layout";
     const skipBtnSelector =
       ".ytp-skip-ad-button, .ytp-ad-skip-button, .ytp-ad-skip-button-modern";
     const observer = new MutationObserver((mutations) => {
+      const { skipAd = false } = this.#setting;
       for (const mutation of mutations) {
         if (mutation.type === "childList") {
           const videoEl = this.#videoEl;
@@ -149,60 +190,94 @@ class YouTubeCaptionProvider {
     });
   }
 
-  async #doubleClick() {
-    const button = this.#ytControls?.querySelector(
-      "button.ytp-subtitles-button"
-    );
-    if (button) {
-      await sleep(randomBetween(50, 100));
-      button.click();
-      await sleep(randomBetween(500, 1000));
-      button.click();
+  updateSetting({ name, value }) {
+    if (this.#setting[name] === value) return;
+
+    logger.debug("Youtube Provider: update setting", name, value);
+    this.#setting[name] = value;
+
+    if (name === "isBilingual") {
+      this.#managerInstance?.updateSetting({ [name]: value });
+    } else if (name === "isAISegment") {
+      this.#reProcessEvents();
     }
   }
 
-  #injectToggleButton(ytControls) {
-    this.#ytControls = ytControls;
+  downloadSubtitle() {
+    if (!this.#subtitles.length || this.#progressed !== 100) {
+      logger.debug("Youtube Provider: The subtitle is not yet ready.");
+      this.#showNotification(this.#i18n("subtitle_is_not_yet_ready"));
+      return;
+    }
 
+    try {
+      const vtt = buildBilingualVtt(this.#subtitles);
+      downloadBlobFile(
+        vtt,
+        `kiss-subtitles-${this.#videoId}_${Date.now()}.vtt`
+      );
+    } catch (error) {
+      logger.info("Youtube Provider: download subtitles:", error);
+    }
+  }
+
+  #sendMenusMsg({ action, data }) {
+    window.dispatchEvent(
+      new CustomEvent(this.#menuEventName, { detail: { action, data } })
+    );
+  }
+
+  #injectToggleButton(ytControls) {
     const kissControls = document.createElement("div");
     kissControls.className = "notranslate kiss-subtitle-controls";
     Object.assign(kissControls.style, {
       height: "100%",
+      position: "relative",
     });
 
     const toggleButton = document.createElement("button");
     toggleButton.className = "ytp-button kiss-subtitle-button";
     toggleButton.title = APP_NAME;
-    Object.assign(toggleButton.style, {
-      color: "white",
-      opacity: "0.5",
-    });
 
     toggleButton.appendChild(createLogoSVG());
     kissControls.appendChild(toggleButton);
 
-    toggleButton.onclick = () => {
-      if (this.#isBusy) {
-        logger.info(`Youtube Provider: It's budy now...`);
-        this.#showNotification(this.#i18n("subtitle_data_processing"));
-      }
+    const { segApiSetting, isAISegment, skipAd, isBilingual } = this.#setting;
+    const menu = new ShadowDomManager({
+      id: "kiss-subtitle-menus",
+      className: "notranslate",
+      reactComponent: Menus,
+      rootElement: kissControls,
+      props: {
+        i18n: this.#i18n,
+        updateSetting: this.updateSetting.bind(this),
+        downloadSubtitle: this.downloadSubtitle.bind(this),
+        hasSegApi: !!segApiSetting,
+        eventName: this.#menuEventName,
+        initData: {
+          isAISegment,
+          skipAd,
+          isBilingual,
+        },
+      },
+    });
 
-      if (!this.#enabled) {
-        logger.info(`Youtube Provider: Feature toggled ON.`);
-        this.#enabled = true;
+    toggleButton.onclick = () => {
+      if (!this.#isMenuShow) {
+        this.#isMenuShow = true;
         this.#toggleButton?.replaceChildren(
           createLogoSVG({ isSelected: true })
         );
-        this.#startManager();
+        menu.show();
       } else {
-        logger.info(`Youtube Provider: Feature toggled OFF.`);
-        this.#enabled = false;
+        this.#isMenuShow = false;
         this.#toggleButton?.replaceChildren(createLogoSVG());
-        this.#destroyManager();
+        menu.hide();
       }
     };
     this.#toggleButton = toggleButton;
-    this.#ytControls?.prepend(kissControls);
+
+    ytControls?.prepend(kissControls);
   }
 
   #isSameLang(lang1, lang2) {
@@ -290,11 +365,6 @@ class YouTubeCaptionProvider {
     }
   }
 
-  #getVideoId() {
-    const docUrl = new URL(document.location.href);
-    return docUrl.searchParams.get("v");
-  }
-
   async #aiSegment({ videoId, fromLang, toLang, chunkEvents, segApiSetting }) {
     try {
       const events = chunkEvents.filter((item) => item.text);
@@ -326,36 +396,38 @@ class YouTubeCaptionProvider {
   }
 
   async #handleInterceptedRequest(url, responseText) {
-    if (this.#isBusy) {
-      logger.info("Youtube Provider is busy...");
+    const videoId = this.#videoId;
+    if (!videoId) {
+      logger.debug("Youtube Provider: videoId not found.");
       return;
     }
-    this.#isBusy = true;
+
+    const potUrl = new URL(url);
+    if (videoId !== potUrl.searchParams.get("v")) {
+      logger.debug("Youtube Provider: skip other timedtext:", videoId);
+      return;
+    }
+
+    if (this.#flatEvents.length) {
+      logger.debug("Youtube Provider: video was processed:", videoId);
+      return;
+    }
+
+    if (videoId === this.#processingId) {
+      logger.debug("Youtube Provider: video is processing:", videoId);
+      return;
+    }
+
+    this.#processingId = videoId;
 
     try {
-      const videoId = this.#getVideoId();
-      if (!videoId) {
-        logger.info("Youtube Provider: videoId not found.");
-        return;
-      }
+      this.#showNotification(this.#i18n("starting_to_process_subtitle"));
 
-      if (videoId === this.#videoId) {
-        logger.info("Youtube Provider: videoId already processed.");
-        return;
-      }
-
-      const potUrl = new URL(url);
-      if (videoId !== potUrl.searchParams.get("v")) {
-        logger.info("Youtube Provider: skip other timedtext.");
-        return;
-      }
-
-      const { segApiSetting, toLang } = this.#setting;
-
+      const { toLang } = this.#setting;
       const captionTracks = await this.#getCaptionTracks(videoId);
       const captionTrack = this.#findCaptionTrack(captionTracks);
       if (!captionTrack) {
-        logger.info("Youtube Provider: CaptionTrack not found.");
+        logger.debug("Youtube Provider: CaptionTrack not found:", videoId);
         return;
       }
 
@@ -366,7 +438,7 @@ class YouTubeCaptionProvider {
         responseText
       );
       if (!events?.length) {
-        logger.info("Youtube Provider: SubtitleEvents not got.");
+        logger.debug("Youtube Provider: events not got:", videoId);
         return;
       }
 
@@ -380,108 +452,131 @@ class YouTubeCaptionProvider {
         `Youtube Provider: fromLang: ${fromLang}, toLang: ${toLang}`
       );
       if (this.#isSameLang(fromLang, toLang)) {
-        logger.info("Youtube Provider: skip same lang", fromLang, toLang);
+        logger.debug("Youtube Provider: skip same lang", fromLang, toLang);
         return;
       }
 
-      this.#showNotification(this.#i18n("starting_to_process_subtitle"));
+      const flatEvents = this.#genFlatEvents(events);
+      if (!flatEvents?.length) {
+        logger.debug("Youtube Provider: flatEvents not got:", videoId);
+        return;
+      }
 
-      const flatEvents = this.#flatEvents(events);
-      if (!flatEvents.length) return;
+      this.#flatEvents = flatEvents;
+      this.#fromLang = fromLang;
 
-      if (potUrl.searchParams.get("kind") === "asr" && segApiSetting) {
-        logger.info("Youtube Provider: Starting AI ...");
+      this.#processEvents({
+        videoId,
+        flatEvents,
+        fromLang,
+      });
+    } catch (error) {
+      logger.warn("Youtube Provider: handle subtitle", error);
+      this.#showNotification(this.#i18n("subtitle_load_failed"));
+    } finally {
+      this.#processingId = null;
+    }
+  }
 
-        const eventChunks = this.#splitEventsIntoChunks(
-          flatEvents,
-          segApiSetting.chunkLength
+  async #processEvents({ videoId, flatEvents, fromLang }) {
+    try {
+      const [subtitles, progressed] = await this.#eventsToSubtitles({
+        videoId,
+        flatEvents,
+        fromLang,
+      });
+      if (!subtitles?.length) {
+        logger.debug(
+          "Youtube Provider: events to subtitles got empty",
+          videoId
         );
-        const subtitlesFallback = () =>
-          this.#formatSubtitles(flatEvents, fromLang);
+        return;
+      }
 
-        if (eventChunks.length === 0) {
-          this.#onCaptionsReady({
-            videoId,
-            subtitles: subtitlesFallback(),
-            fromLang,
-            isInitialLoad: true,
-          });
-          return;
-        }
-
-        const firstChunkEvents = eventChunks[0];
-        const firstBatchSubtitles = await this.#aiSegment({
+      if (videoId !== this.#videoId) {
+        logger.debug(
+          "Youtube Provider: videoId changed!",
           videoId,
-          chunkEvents: firstChunkEvents,
+          this.#videoId
+        );
+        return;
+      }
+
+      this.#subtitles = subtitles;
+      this.#progressed = progressed;
+
+      this.#startManager();
+    } catch (error) {
+      logger.info("Youtube Provider: process events", error);
+      this.#showNotification(this.#i18n("subtitle_load_failed"));
+    }
+  }
+
+  #reProcessEvents() {
+    const videoId = this.#videoId;
+    const flatEvents = this.#flatEvents;
+    const fromLang = this.#fromLang;
+    if (!videoId || !flatEvents.length) {
+      return;
+    }
+
+    this.#showNotification(this.#i18n("starting_reprocess_events"));
+
+    this.#destroyManager();
+
+    this.#processEvents({ videoId, flatEvents, fromLang });
+  }
+
+  async #eventsToSubtitles({ videoId, flatEvents, fromLang }) {
+    const { isAISegment, segApiSetting, chunkLength, toLang } = this.#setting;
+    const subtitlesFallback = () => [
+      this.#formatSubtitles(flatEvents, fromLang),
+      100,
+    ];
+
+    // potUrl.searchParams.get("kind") === "asr"
+    if (isAISegment && segApiSetting) {
+      logger.info("Youtube Provider: Starting AI ...");
+      this.#showNotification(this.#i18n("ai_processing_pls_wait"));
+
+      const eventChunks = this.#splitEventsIntoChunks(flatEvents, chunkLength);
+
+      if (eventChunks.length === 0) {
+        return subtitlesFallback();
+      }
+
+      const firstChunkEvents = eventChunks[0];
+      const firstBatchSubtitles = await this.#aiSegment({
+        videoId,
+        chunkEvents: firstChunkEvents,
+        fromLang,
+        toLang,
+        segApiSetting,
+      });
+
+      if (!firstBatchSubtitles?.length) {
+        return subtitlesFallback();
+      }
+
+      const chunkCount = eventChunks.length;
+      if (chunkCount > 1) {
+        const remainingChunks = eventChunks.slice(1);
+        this.#processRemainingChunksAsync({
+          chunks: remainingChunks,
+          chunkCount,
+          videoId,
           fromLang,
           toLang,
           segApiSetting,
         });
 
-        if (!firstBatchSubtitles?.length) {
-          this.#onCaptionsReady({
-            videoId,
-            subtitles: subtitlesFallback(),
-            fromLang,
-            isInitialLoad: true,
-          });
-          return;
-        }
-
-        this.#onCaptionsReady({
-          videoId,
-          subtitles: firstBatchSubtitles,
-          fromLang,
-          isInitialLoad: true,
-        });
-
-        if (eventChunks.length > 1) {
-          const remainingChunks = eventChunks.slice(1);
-          this.#processRemainingChunksAsync({
-            chunks: remainingChunks,
-            videoId,
-            fromLang,
-            toLang,
-            segApiSetting,
-          });
-        }
+        return [firstBatchSubtitles, 100 / eventChunks.length];
       } else {
-        const subtitles = this.#formatSubtitles(flatEvents, fromLang);
-        if (!subtitles?.length) {
-          logger.info("Youtube Provider: No subtitles after format.");
-          return;
-        }
-
-        this.#onCaptionsReady({
-          videoId,
-          subtitles,
-          fromLang,
-          isInitialLoad: true,
-        });
+        return [firstBatchSubtitles, 100];
       }
-    } catch (error) {
-      logger.warn("Youtube Provider: unknow error", error);
-      this.#showNotification(this.#i18n("subtitle_load_failed"));
-    } finally {
-      this.#isBusy = false;
-    }
-  }
-
-  #onCaptionsReady({ videoId, subtitles, fromLang }) {
-    this.#subtitles = subtitles;
-    this.#videoId = videoId;
-    this.#fromLang = fromLang;
-
-    if (this.#toggleButton) {
-      this.#toggleButton.style.opacity = subtitles.length ? "1" : "0.5";
     }
 
-    this.#destroyManager();
-    if (this.#enabled) {
-      this.#startManager();
-    } else {
-      this.#showNotification(this.#i18n("subtitle_data_is_ready"));
-    }
+    return subtitlesFallback();
   }
 
   #startManager() {
@@ -489,11 +584,8 @@ class YouTubeCaptionProvider {
       return;
     }
 
-    const videoId = this.#getVideoId();
-    if (!this.#subtitles?.length || this.#videoId !== videoId) {
-      logger.info("Youtube Provider: No subtitles");
-      this.#showNotification(this.#i18n("try_get_subtitle_data"));
-      this.#doubleClick();
+    if (!this.#subtitles.length) {
+      this.#showNotification(this.#i18n("waitting_for_subtitle"));
       return;
     }
 
@@ -746,7 +838,7 @@ class YouTubeCaptionProvider {
     return sentences;
   }
 
-  #flatEvents(events = []) {
+  #genFlatEvents(events = []) {
     const segments = [];
     let buffer = null;
 
@@ -829,6 +921,7 @@ class YouTubeCaptionProvider {
 
   async #processRemainingChunksAsync({
     chunks,
+    chunkCount,
     videoId,
     fromLang,
     toLang,
@@ -839,7 +932,7 @@ class YouTubeCaptionProvider {
     for (let i = 0; i < chunks.length; i++) {
       const chunkEvents = chunks[i];
       const chunkNum = i + 2;
-      logger.info(
+      logger.debug(
         `Youtube Provider: Processing subtitle chunk ${chunkNum}/${chunks.length + 1}: ${chunkEvents[0]?.start} --> ${chunkEvents[chunkEvents.length - 1]?.start}`
       );
 
@@ -857,7 +950,7 @@ class YouTubeCaptionProvider {
         if (aiSubtitles?.length > 0) {
           subtitlesForThisChunk = aiSubtitles;
         } else {
-          logger.info(
+          logger.debug(
             `Youtube Provider: AI segmentation for chunk ${chunkNum} returned no data.`
           );
           subtitlesForThisChunk = this.#formatSubtitles(chunkEvents, fromLang);
@@ -866,19 +959,29 @@ class YouTubeCaptionProvider {
         subtitlesForThisChunk = this.#formatSubtitles(chunkEvents, fromLang);
       }
 
-      if (this.#getVideoId() !== videoId) {
-        logger.info("Youtube Provider: videoId changed!");
+      if (videoId !== this.#videoId) {
+        logger.info(
+          "Youtube Provider: videoId changed!!",
+          videoId,
+          this.#videoId
+        );
         break;
       }
 
-      if (subtitlesForThisChunk.length > 0 && this.#managerInstance) {
-        logger.info(
-          `Youtube Provider: Appending ${subtitlesForThisChunk.length} subtitles from chunk ${chunkNum}.`
+      if (subtitlesForThisChunk.length > 0) {
+        const progressed = (chunkNum * 100) / chunkCount;
+        this.#subtitles.push(...subtitlesForThisChunk);
+        this.#progressed = progressed;
+
+        logger.debug(
+          `Youtube Provider: Appending ${subtitlesForThisChunk.length} subtitles from chunk ${chunkNum} (${this.#progressed}%).`
         );
-        this.#subtitles.push(subtitlesForThisChunk);
-        this.#managerInstance.appendSubtitles(subtitlesForThisChunk);
+
+        if (this.#managerInstance) {
+          this.#managerInstance.appendSubtitles(subtitlesForThisChunk);
+        }
       } else {
-        logger.info(`Youtube Provider: Chunk ${chunkNum} no subtitles.`);
+        logger.debug(`Youtube Provider: Chunk ${chunkNum} no subtitles.`);
       }
 
       await sleep(randomBetween(500, 1000));

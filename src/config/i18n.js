@@ -1674,9 +1674,14 @@ export const I18N = {
     zh_TW: `雙語顯示`,
   },
   is_skip_ad: {
-    zh: `是否快进广告`,
-    en: `Should I fast forward to the ad?`,
-    zh_TW: `是否快轉廣告`,
+    zh: `快进广告`,
+    en: `Skip AD`,
+    zh_TW: `快轉廣告`,
+  },
+  download_subtitles: {
+    zh: `下载字幕`,
+    en: `Download subtitles`,
+    zh_TW: `下载字幕`,
   },
   background_styles: {
     zh: `背景样式`,
@@ -1752,6 +1757,36 @@ export const I18N = {
     zh: `字幕数据已准备就绪，请点击KT按钮加载`,
     en: `The subtitle data is ready, please click the KT button to load it`,
     zh_TW: `字幕資料已準備就緒，請點擊KT按鈕加載`,
+  },
+  starting_reprocess_events: {
+    zh: `重新处理字幕数据...`,
+    en: `Reprocess the subtitle data...`,
+    zh_TW: `重新处理字幕数据...`,
+  },
+  waitting_for_subtitle: {
+    zh: `请等待字幕数据`,
+    en: `Please wait for the subtitle data.`,
+    zh_TW: `请等待字幕数据`,
+  },
+  ai_processing_pls_wait: {
+    zh: `AI处理中，请稍等...`,
+    en: `AI processing in progress, please wait...`,
+    zh_TW: `AI处理中，请稍等...`,
+  },
+  processing_subtitles: {
+    zh: `字幕处理中...`,
+    en: `Subtitle processing...`,
+    zh_TW: `字幕处理中...`,
+  },
+  waiting_subtitles: {
+    zh: `等待字幕中`,
+    en: `Waiting for subtitles`,
+    zh_TW: `等待字幕中`,
+  },
+  subtitle_is_not_yet_ready: {
+    zh: `字幕数据尚未准备好`,
+    en: `Subtitle is not yet ready.`,
+    zh_TW: `字幕数据尚未准备好`,
   },
   log_level: {
     zh: `日志级别`,
