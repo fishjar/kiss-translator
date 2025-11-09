@@ -109,10 +109,6 @@ export function Menus({
     [updateSetting]
   );
 
-  const handleDownload = useCallback(() => {
-    downloadSubtitle();
-  }, [downloadSubtitle]);
-
   useEffect(() => {
     const handler = (e) => {
       const { action, data } = e.detail || {};
@@ -169,7 +165,7 @@ export function Menus({
       />
       <Button
         label={`${status} [${progressed}%] `}
-        onClick={handleDownload}
+        onClick={downloadSubtitle}
         disabled={progressed !== 100}
       />
     </div>

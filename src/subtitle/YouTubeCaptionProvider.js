@@ -206,7 +206,6 @@ class YouTubeCaptionProvider {
   downloadSubtitle() {
     if (!this.#subtitles.length || this.#progressed !== 100) {
       logger.debug("Youtube Provider: The subtitle is not yet ready.");
-      this.#showNotification(this.#i18n("subtitle_is_not_yet_ready"));
       return;
     }
 
