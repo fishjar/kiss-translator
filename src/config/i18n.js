@@ -1874,6 +1874,11 @@ export const I18N = {
     en: `Throttling translation interval (1-3600s)`,
     zh_TW: `节流翻译间隔 (1-3600s)`,
   },
+  show_origin_subtitle: {
+    zh: `显示原字幕`,
+    en: `Show original subtitles`,
+    zh_TW: `显示原字幕`,
+  },
 };
 
 export const newI18n = (lang) => (key) => I18N[key]?.[lang] || "";

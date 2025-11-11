@@ -42,7 +42,7 @@ class YouTubeCaptionProvider {
   #menuEventName = "kiss-event";
 
   constructor(setting = {}) {
-    this.#setting = { ...setting, isAISegment: false };
+    this.#setting = { ...setting, isAISegment: false, showOrigin: false };
     this.#i18n = newI18n(setting.uiLang || "zh");
     this.#menuEventName = genEventName();
   }
@@ -151,6 +151,10 @@ class YouTubeCaptionProvider {
 
             if (node.matches(adLayoutSelector)) {
               logger.debug("Youtube Provider: Ad ends!");
+
+              if (!this.#setting.showOrigin) {
+                this.#hideYtCaption();
+              }
               if (videoEl && skipAd) {
                 videoEl.playbackRate = 1;
               }
@@ -200,6 +204,16 @@ class YouTubeCaptionProvider {
       this.#managerInstance?.updateSetting({ [name]: value });
     } else if (name === "isAISegment") {
       this.#reProcessEvents();
+    } else if (name === "showOrigin") {
+      this.#toggleShowOrigin();
+    }
+  }
+
+  #toggleShowOrigin() {
+    if (this.#setting.showOrigin) {
+      this.#destroyManager();
+    } else {
+      this.#startManager();
     }
   }
 
@@ -241,7 +255,8 @@ class YouTubeCaptionProvider {
     toggleButton.appendChild(createLogoSVG());
     kissControls.appendChild(toggleButton);
 
-    const { segApiSetting, isAISegment, skipAd, isBilingual } = this.#setting;
+    const { segApiSetting, isAISegment, skipAd, isBilingual, showOrigin } =
+      this.#setting;
     const menu = new ShadowDomManager({
       id: "kiss-subtitle-menus",
       className: "notranslate",
@@ -254,9 +269,10 @@ class YouTubeCaptionProvider {
         hasSegApi: !!segApiSetting,
         eventName: this.#menuEventName,
         initData: {
-          isAISegment,
-          skipAd,
-          isBilingual,
+          isAISegment, // AI智能断句
+          skipAd, // 快进广告
+          isBilingual, // 双语显示
+          showOrigin, // 显示原字幕
         },
       },
     });
@@ -268,6 +284,10 @@ class YouTubeCaptionProvider {
           createLogoSVG({ isSelected: true })
         );
         menu.show();
+        this.#sendMenusMsg({
+          action: MSG_MENUS_PROGRESSED,
+          data: this.#progressed,
+        });
       } else {
         this.#isMenuShow = false;
         this.#toggleButton?.replaceChildren(createLogoSVG());
@@ -512,6 +532,9 @@ class YouTubeCaptionProvider {
   }
 
   #reProcessEvents() {
+    this.#progressed = 0;
+    this.#subtitles = [];
+
     const videoId = this.#videoId;
     const flatEvents = this.#flatEvents;
     const fromLang = this.#fromLang;
@@ -557,19 +580,19 @@ class YouTubeCaptionProvider {
         return subtitlesFallback();
       }
 
-      const chunkCount = eventChunks.length;
-      if (chunkCount > 1) {
+      if (eventChunks.length > 1) {
         const remainingChunks = eventChunks.slice(1);
         this.#processRemainingChunksAsync({
           chunks: remainingChunks,
-          chunkCount,
           videoId,
           fromLang,
           toLang,
           segApiSetting,
         });
 
-        return [firstBatchSubtitles, 100 / eventChunks.length];
+        const processed = Math.floor(100 / eventChunks.length);
+
+        return [firstBatchSubtitles, processed];
       } else {
         return [firstBatchSubtitles, 100];
       }
@@ -580,6 +603,10 @@ class YouTubeCaptionProvider {
 
   #startManager() {
     if (this.#managerInstance) {
+      return;
+    }
+
+    if (this.#setting.showOrigin) {
       return;
     }
 
@@ -605,8 +632,7 @@ class YouTubeCaptionProvider {
 
     this.#showNotification(this.#i18n("subtitle_load_succeed"));
 
-    const ytCaption = document.querySelector(YT_CAPTION_SELECT);
-    ytCaption && (ytCaption.style.display = "none");
+    this.#hideYtCaption();
   }
 
   #destroyManager() {
@@ -619,6 +645,15 @@ class YouTubeCaptionProvider {
     this.#managerInstance.destroy();
     this.#managerInstance = null;
 
+    this.#showYtCaption();
+  }
+
+  #hideYtCaption() {
+    const ytCaption = document.querySelector(YT_CAPTION_SELECT);
+    ytCaption && (ytCaption.style.display = "none");
+  }
+
+  #showYtCaption() {
     const ytCaption = document.querySelector(YT_CAPTION_SELECT);
     ytCaption && (ytCaption.style.display = "block");
   }
@@ -920,7 +955,6 @@ class YouTubeCaptionProvider {
 
   async #processRemainingChunksAsync({
     chunks,
-    chunkCount,
     videoId,
     fromLang,
     toLang,
@@ -968,7 +1002,7 @@ class YouTubeCaptionProvider {
       }
 
       if (subtitlesForThisChunk.length > 0) {
-        const progressed = (chunkNum * 100) / chunkCount;
+        const progressed = Math.floor((chunkNum * 100) / (chunks.length + 1));
         this.#subtitles.push(...subtitlesForThisChunk);
         this.#progressed = progressed;
 
