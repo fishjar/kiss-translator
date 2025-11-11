@@ -5,6 +5,37 @@
 如果接口的请求数据和返回数据符合以下规范，
 则无需填写 `Request Hook` 或 `Response Hook`。
 
+
+### 非聚合翻译 (v2.0.9)
+
+Request body
+
+```json
+{
+  "text": "hello",    // 需要翻译的文本列表
+  "from":"auto",      // 原文语言
+  "to": "zh-CN"       // 目标语言
+}
+```
+
+Response
+
+```json
+{
+  "text": "你好",    // 译文
+  "src": "en"       // 原文语言
+}
+
+// 或者
+{
+  "text": "你好",    // 译文
+  "from": "en"       // 原文语言
+}
+```
+
+
+### 聚合翻译
+
 Request body
 
 ```json

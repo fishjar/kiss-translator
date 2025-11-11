@@ -589,8 +589,10 @@ const genCloudflareAI = ({ texts, from, to, url, key }) => {
   return { url, body, headers };
 };
 
-const genCustom = ({ texts, fromLang, toLang, url, key }) => {
-  const body = { texts, from: fromLang, to: toLang };
+const genCustom = ({ texts, fromLang, toLang, url, key, useBatchFetch }) => {
+  const body = useBatchFetch
+    ? { texts, from: fromLang, to: toLang }
+    : { text: texts[0], from: fromLang, to: toLang };
   const headers = {
     "Content-type": "application/json",
     Authorization: `Bearer ${key}`,
@@ -810,6 +812,8 @@ export const parseTransRes = async (
           history.add(userMsg, hookResult.modelMsg);
         }
         return hookResult.translations;
+      } else if (Array.isArray(hookResult)) {
+        return hookResult;
       }
     } catch (err) {
       kissLog("run res hook", err);
@@ -912,7 +916,10 @@ export const parseTransRes = async (
       }
       return parseAIRes(modelMsg?.content, useBatchFetch);
     case OPT_TRANS_CUSTOMIZE:
-      return (res?.translations ?? res)?.map((item) => [item.text, item.src]);
+      if (useBatchFetch) {
+        return (res?.translations ?? res)?.map((item) => [item.text, item.src]);
+      }
+      return [[res.text, res.src || res.from]];
     default:
   }
 

@@ -559,7 +559,6 @@ const defaultApiOpts = {
   },
   [OPT_TRANS_CUSTOMIZE]: {
     ...defaultApi,
-    url: "https://translate.googleapis.com/translate_a/single?client=gtx&dj=1&dt=t&ie=UTF-8&q={{text}}&sl=en&tl=zh-CN",
     reqHook: defaultRequestHook,
     resHook: defaultResponseHook,
   },
