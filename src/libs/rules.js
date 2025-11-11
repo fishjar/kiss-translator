@@ -226,9 +226,15 @@ export const saveRule = async (curRule) => {
   }
 
   const newRule = {};
-  Object.entries(GLOBLA_RULE).forEach(([key, val]) => {
+  const globalRule = {
+    ...GLOBLA_RULE,
+    ...(rules.find((r) => r.pattern === GLOBAL_KEY) || {}),
+  };
+  Object.keys(GLOBLA_RULE).forEach((key) => {
     newRule[key] =
-      !curRule[key] || curRule[key] === val ? DEFAULT_RULE[key] : curRule[key];
+      !curRule[key] || curRule[key] === globalRule[key]
+        ? DEFAULT_RULE[key]
+        : curRule[key];
   });
 
   rules.unshift(newRule);
