@@ -26,7 +26,7 @@ async function set(key, val) {
   } else if (isGm) {
     await (window.KISS_GM || GM).setValue(key, val);
   } else {
-    window?.localStorage.setItem(key, val);
+    window.localStorage.setItem(key, val);
   }
 }
 
@@ -38,7 +38,7 @@ async function get(key) {
     const val = await (window.KISS_GM || GM).getValue(key);
     return val;
   }
-  return window?.localStorage.getItem(key);
+  return window.localStorage.getItem(key);
 }
 
 async function del(key) {
@@ -47,7 +47,7 @@ async function del(key) {
   } else if (isGm) {
     await (window.KISS_GM || GM).deleteValue(key);
   } else {
-    window?.localStorage.removeItem(key);
+    window.localStorage.removeItem(key);
   }
 }
 
