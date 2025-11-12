@@ -7,12 +7,12 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with:
-          version: latest
+        # with:
+        #   version: latest
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -25,7 +25,7 @@ jobs:
           path: build
   deploy-web:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
@@ -38,7 +38,7 @@ jobs:
           folder: build/web
   create-release:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       upload_url: ${{ steps.create-release.outputs.upload_url }}
     steps:
@@ -56,7 +56,7 @@ jobs:
     strategy:
       matrix:
         client: ["chrome", "edge", "firefox", "userscript", "thunderbird"]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
