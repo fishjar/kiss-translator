@@ -2577,6 +2577,13 @@ export const I18N = {
     ja: `原字幕を表示`,
     ko: `원본 자막 표시`,
   },
+  subtitle_same_lang: {
+    zh: `原语言与目标语言相同，字幕不予显示`,
+    en: `The source language is the same as the target language, the subtitles will not be displayed`,
+    zh_TW: `原语言与目标语言相同，字幕不予显示`,
+    ja: `原言語と目標言語が同じ場合、字幕は表示されません`,
+    ko: `원본 언어와 대상 언어가 동일한 경우, 자막은 표시되지 않습니다`,
+  },
 };
 
 export const newI18n = (lang) => (key) => I18N[key]?.[lang] || "";

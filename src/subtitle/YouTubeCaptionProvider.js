@@ -8,6 +8,7 @@ import {
   OPT_TRANS_MICROSOFT,
   MSG_MENUS_PROGRESSED,
   MSG_MENUS_UPDATEFORM,
+  OPT_LANGS_SPEC_DEFAULT,
 } from "../config";
 import { sleep, genEventName, downloadBlobFile } from "../libs/utils.js";
 import { createLogoSVG } from "../libs/svg.js";
@@ -414,6 +415,20 @@ class YouTubeCaptionProvider {
     return [];
   }
 
+  #getFromLang(lang) {
+    if (lang === "zh") {
+      return "zh-CN";
+    }
+
+    return (
+      OPT_LANGS_SPEC_DEFAULT.get(lang) ||
+      OPT_LANGS_SPEC_DEFAULT.get(lang.slice(0, 2)) ||
+      OPT_LANGS_TO_CODE[OPT_TRANS_MICROSOFT].get(lang) ||
+      OPT_LANGS_TO_CODE[OPT_TRANS_MICROSOFT].get(lang.slice(0, 2)) ||
+      "auto"
+    );
+  }
+
   async #handleInterceptedRequest(url, responseText) {
     const videoId = this.#videoId;
     if (!videoId) {
@@ -462,16 +477,14 @@ class YouTubeCaptionProvider {
       }
 
       const lang = potUrl.searchParams.get("lang");
-      const fromLang =
-        OPT_LANGS_TO_CODE[OPT_TRANS_MICROSOFT].get(lang) ||
-        OPT_LANGS_TO_CODE[OPT_TRANS_MICROSOFT].get(lang.slice(0, 2)) ||
-        "auto";
+      const fromLang = this.#getFromLang(lang);
 
       logger.debug(
-        `Youtube Provider: fromLang: ${fromLang}, toLang: ${toLang}`
+        `Youtube Provider: lang: ${lang}, fromLang: ${fromLang}, toLang: ${toLang}`
       );
       if (this.#isSameLang(fromLang, toLang)) {
         logger.debug("Youtube Provider: skip same lang", fromLang, toLang);
+        this.#showNotification(this.#i18n("subtitle_same_lang"));
         return;
       }
 
@@ -673,6 +686,11 @@ class YouTubeCaptionProvider {
 
     if (noSpaceLanguages.some((l) => lang?.startsWith(l))) {
       const subtitles = [];
+
+      if (this.#isQualityPoor(flatEvents, 5, 0.5)) {
+        return flatEvents;
+      }
+
       let currentLine = null;
       const MAX_LENGTH = 100;
 
