@@ -692,7 +692,7 @@ class YouTubeCaptionProvider {
       }
 
       let currentLine = null;
-      const MAX_LENGTH = 100;
+      const MAX_LENGTH = 30;
 
       for (const segment of flatEvents) {
         if (segment.text) {
