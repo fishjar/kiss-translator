@@ -1,0 +1,20 @@
+{
+  "app_name": {
+    "message": "簡約翻譯"
+  },
+  "app_description": {
+    "message": "一個簡約的雙語對照翻譯擴充功能與 Tampermonkey 腳本"
+  },
+  "toggle_translate": {
+    "message": "開啟翻譯"
+  },
+  "toggle_style": {
+    "message": "切換樣式"
+  },
+  "open_options": {
+    "message": "開啟設定"
+  },
+  "open_tranbox": {
+    "message": "開啟彈出視窗"
+  }
+}

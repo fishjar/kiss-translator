@@ -1,0 +1,20 @@
+{
+  "app_name": {
+    "message": "シンプル翻訳"
+  },
+  "app_description": {
+    "message": "シンプルなバイリンガル対訳翻訳拡張機能＆Tampermonkeyスクリプト"
+  },
+  "toggle_translate": {
+    "message": "翻訳の切り替え"
+  },
+  "toggle_style": {
+    "message": "スタイル切り替え"
+  },
+  "open_options": {
+    "message": "設定を開く"
+  },
+  "open_tranbox": {
+    "message": "ポップアップを開く"
+  }
+}

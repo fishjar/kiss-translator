@@ -6,15 +6,15 @@
     "message": "A simple bilingual translation extension & Greasemonkey script"
   },
   "toggle_translate": {
-    "message": "Toggle Translate"
+    "message": "Toggle Translation"
   },
   "toggle_style": {
-    "message": "Toggle Style"
+    "message": "Toggle Styles"
   },
   "open_options": {
-    "message": "Open Options"
+    "message": "Open Setting"
   },
   "open_tranbox": {
-    "message": "Translate Popup/Selected"
+    "message": "Open Popup Box"
   }
 }

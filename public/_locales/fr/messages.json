@@ -1,0 +1,20 @@
+{
+  "app_name": {
+    "message": "KISS Traducteur"
+  },
+  "app_description": {
+    "message": "Une extension et un script Greasemonkey de traduction bilingue simple"
+  },
+  "toggle_translate": {
+    "message": "Activer/désactiver la traduction"
+  },
+  "toggle_style": {
+    "message": "Changer de style"
+  },
+  "open_options": {
+    "message": "Ouvrir les paramètres"
+  },
+  "open_tranbox": {
+    "message": "Ouvrir la fenêtre contextuelle"
+  }
+}

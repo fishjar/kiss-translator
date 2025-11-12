@@ -1,0 +1,20 @@
+{
+  "app_name": {
+    "message": "KISS Traductor"
+  },
+  "app_description": {
+    "message": "Una sencilla extensión y script de Greasemonkey para traducción bilingüe"
+  },
+  "toggle_translate": {
+    "message": "Alternar traducción"
+  },
+  "toggle_style": {
+    "message": "Cambiar estilo"
+  },
+  "open_options": {
+    "message": "Abrir configuración"
+  },
+  "open_tranbox": {
+    "message": "Abrir ventana emergente"
+  }
+}
