@@ -15,7 +15,7 @@ jobs:
           version: latest
       - uses: actions/setup-node@v4
         with:
-          node-version: latest
+          node-version: "25.1.0"
           cache: "pnpm"
       - run: pnpm install
       - run: pnpm build+zip
