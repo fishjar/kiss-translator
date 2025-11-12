@@ -1,4 +1,4 @@
-# KISS Translator
+# KISS Translator 심플 번역
 
 [English](README.en.md) | [中文](README.md) | [日本語](README.ja.md) | [한국어](README.ko.md)
 
