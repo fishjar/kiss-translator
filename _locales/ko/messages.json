@@ -1,0 +1,20 @@
+{
+  "app_name": {
+    "message": "심플 번역"
+  },
+  "app_description": {
+    "message": "심플한 이중 언어 대조 번역 확장 프로그램 & Tampermonkey 스크립트"
+  },
+  "toggle_translate": {
+    "message": "번역 켜기"
+  },
+  "toggle_style": {
+    "message": "스타일 전환"
+  },
+  "open_options": {
+    "message": "설정 열기"
+  },
+  "open_tranbox": {
+    "message": "팝업 열기"
+  }
+}
