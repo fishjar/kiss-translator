@@ -104,7 +104,7 @@ export default class ShadowDomManager {
     this.#hostElement = host;
     const shadowContainer = host.attachShadow({ mode: "open" });
     const appRoot = document.createElement("div");
-    appRoot.className = `${this._id}_wrapper`;
+    appRoot.className = `${this._id}_wrapper notranslate`;
     shadowContainer.appendChild(appRoot);
 
     const cache = createCache({

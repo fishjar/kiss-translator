@@ -274,7 +274,7 @@ export class Translator {
   data, datalist, embed, head, iframe, input, noscript, map, 
   object, option, param, picture, progress, 
   select, script, style, track, textarea, template, 
-  video, wbr, .notranslate, [contenteditable], [translate='no'], 
+  video, wbr, .notranslate, [contenteditable='true'], [translate='no'], 
   ${Translator.KISS_IGNORE_SELECTOR}`;
 
   #setting; // 设置选项
@@ -326,7 +326,7 @@ export class Translator {
       return `${Translator.KISS_IGNORE_SELECTOR}, ${this.#rule.ignoreSelector}`;
     }
 
-    return `${Translator.BUILTIN_IGNORE_SELECTOR}, ${this.#rule.ignoreSelector}`;
+    return `${Translator.KISS_IGNORE_SELECTOR}, ${Translator.BUILTIN_IGNORE_SELECTOR}, ${this.#rule.ignoreSelector}`;
   }
 
   // 接口参数
