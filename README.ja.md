@@ -73,11 +73,11 @@
 > - ユーザースクリプトはより多くの問題（クロスドメイン問題、スクリプトの競合など）に遭遇する可能性があります
 
 - [x] ブラウザ拡張機能
-  - [x] Chrome [インストール](https://chrome.google.com/webstore/detail/kiss-translator/bdiifdefkgmcblbcghdlonllpjhhjgof?hl=zh-CN)
+  - [x] Chrome [インストール](https://chrome.google.com/webstore/detail/kiss-translator/bdiifdefkgmcblbcghdlonllpjhhjgof?hl=ja)
     - [x] Kiwi (Android)
     - [x] Orion (iOS)
-  - [x] Edge [インストール](https://microsoftedge.microsoft.com/addons/detail/%E7%AE%80%E7%BA%A6%E7%BF%BB%E8%AF%91/jemckldkclkinpjighnoilpbldbdmmlh?hl=zh-CN)
-  - [x] Firefox [インストール](https://addons.mozilla.org/zh-CN/firefox/addon/kiss-translator/)
+  - [x] Edge [インストール](https://microsoftedge.microsoft.com/addons/detail/%E7%AE%80%E7%BA%A6%E7%BF%BB%E8%AF%91/jemckldkclkinpjighnoilpbldbdmmlh?hl=ja)
+  - [x] Firefox [インストール](https://addons.mozilla.org/ja/firefox/addon/kiss-translator/)
   - [ ] Safari
     - [ ] Safari (Mac)
     - [ ] Safari (iOS) 

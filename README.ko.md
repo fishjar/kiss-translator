@@ -73,11 +73,11 @@
 > - 유저 스크립트는 사용상 더 많은 문제 (크로스 도메인 문제, 스크립트 충돌 등)를 겪을 수 있습니다.
 
 - [x] 브라우저 확장 프로그램
-  - [x] Chrome [설치 주소](https://chrome.google.com/webstore/detail/kiss-translator/bdiifdefkgmcblbcghdlonllpjhhjgof?hl=zh-CN)
+  - [x] Chrome [설치 주소](https://chrome.google.com/webstore/detail/kiss-translator/bdiifdefkgmcblbcghdlonllpjhhjgof?hl=ko)
     - [x] Kiwi (Android)
     - [x] Orion (iOS)
-  - [x] Edge [설치 주소](https://microsoftedge.microsoft.com/addons/detail/%E7%AE%80%E7%BA%A6%E7%BF%BB%E8%AF%91/jemckldkclkinpjighnoilpbldbdmmlh?hl=zh-CN)
-  - [x] Firefox [설치 주소](https://addons.mozilla.org/zh-CN/firefox/addon/kiss-translator/)
+  - [x] Edge [설치 주소](https://microsoftedge.microsoft.com/addons/detail/%E7%AE%80%E7%BA%A6%E7%BF%BB%E8%AF%91/jemckldkclkinpjighnoilpbldbdmmlh?hl=ko)
+  - [x] Firefox [설치 주소](https://addons.mozilla.org/ko/firefox/addon/kiss-translator/)
   - [ ] Safari
     - [ ] Safari (Mac)
     - [ ] Safari (iOS) 
