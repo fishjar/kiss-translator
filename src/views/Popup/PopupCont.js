@@ -342,73 +342,81 @@ export default function PopupCont({
         </Grid>
       </Grid>
 
-      <TextField
-        select
-        SelectProps={{ MenuProps: { disablePortal: true } }}
-        size="small"
-        value={apiSlug}
-        name="apiSlug"
-        label={i18n("translate_service")}
-        onChange={handleChange}
-      >
-        {optApis.map(({ key, name }) => (
-          <MenuItem key={key} value={key}>
-            {name}
-          </MenuItem>
-        ))}
-      </TextField>
+      <Stack direction="row" spacing={2}>
+        <TextField
+          select
+          SelectProps={{ MenuProps: { disablePortal: true } }}
+          size="small"
+          value={fromLang}
+          name="fromLang"
+          label={i18n("from_lang")}
+          onChange={handleChange}
+          fullWidth
+        >
+          {OPT_LANGS_FROM.map(([lang, name]) => (
+            <MenuItem key={lang} value={lang}>
+              {name}
+            </MenuItem>
+          ))}
+        </TextField>
 
-      <TextField
-        select
-        SelectProps={{ MenuProps: { disablePortal: true } }}
-        size="small"
-        value={fromLang}
-        name="fromLang"
-        label={i18n("from_lang")}
-        onChange={handleChange}
-      >
-        {OPT_LANGS_FROM.map(([lang, name]) => (
-          <MenuItem key={lang} value={lang}>
-            {name}
-          </MenuItem>
-        ))}
-      </TextField>
+        <TextField
+          select
+          SelectProps={{ MenuProps: { disablePortal: true } }}
+          size="small"
+          value={toLang}
+          name="toLang"
+          label={i18n("to_lang")}
+          onChange={handleChange}
+          fullWidth
+        >
+          {OPT_LANGS_TO.map(([lang, name]) => (
+            <MenuItem key={lang} value={lang}>
+              {name}
+            </MenuItem>
+          ))}
+        </TextField>
+      </Stack>
 
-      <TextField
-        select
-        SelectProps={{ MenuProps: { disablePortal: true } }}
-        size="small"
-        value={toLang}
-        name="toLang"
-        label={i18n("to_lang")}
-        onChange={handleChange}
-      >
-        {OPT_LANGS_TO.map(([lang, name]) => (
-          <MenuItem key={lang} value={lang}>
-            {name}
-          </MenuItem>
-        ))}
-      </TextField>
+      <Stack direction="row" spacing={2}>
+        <TextField
+          select
+          SelectProps={{ MenuProps: { disablePortal: true } }}
+          size="small"
+          value={apiSlug}
+          name="apiSlug"
+          label={i18n("translate_service")}
+          onChange={handleChange}
+          fullWidth
+        >
+          {optApis.map(({ key, name }) => (
+            <MenuItem key={key} value={key}>
+              {name}
+            </MenuItem>
+          ))}
+        </TextField>
 
-      <TextField
-        select
-        SelectProps={{ MenuProps: { disablePortal: true } }}
-        size="small"
-        value={textStyle}
-        name="textStyle"
-        label={
-          commands["toggleStyle"]
-            ? `${i18n("text_style_alt")}(${commands["toggleStyle"]})`
-            : i18n("text_style_alt")
-        }
-        onChange={handleChange}
-      >
-        {allTextStyles.map((item) => (
-          <MenuItem key={item.styleSlug} value={item.styleSlug}>
-            {item.styleName}
-          </MenuItem>
-        ))}
-      </TextField>
+        <TextField
+          select
+          SelectProps={{ MenuProps: { disablePortal: true } }}
+          size="small"
+          value={textStyle}
+          name="textStyle"
+          label={
+            commands["toggleStyle"]
+              ? `${i18n("text_style_alt")}(${commands["toggleStyle"]})`
+              : i18n("text_style_alt")
+          }
+          onChange={handleChange}
+          fullWidth
+        >
+          {allTextStyles.map((item) => (
+            <MenuItem key={item.styleSlug} value={item.styleSlug}>
+              {item.styleName}
+            </MenuItem>
+          ))}
+        </TextField>
+      </Stack>
 
       <Stack
         direction="row"
