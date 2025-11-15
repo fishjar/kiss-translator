@@ -2584,6 +2584,13 @@ export const I18N = {
     ja: `原言語と目標言語が同じ場合、字幕は処理されません`,
     ko: `원본 언어와 대상 언어가 동일한 경우, 자막은 처리되지 않습니다`,
   },
+  plain_text_translate: {
+    zh: `纯文本翻译`,
+    en: `Plain text translation`,
+    zh_TW: `純文字翻譯`,
+    ja: `プレーンテキスト翻訳`,
+    ko: `순수 텍스트 번역`,
+  },
 };
 
 export const newI18n = (lang) => (key) => I18N[key]?.[lang] || "";

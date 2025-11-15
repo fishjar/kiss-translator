@@ -274,8 +274,7 @@ export class Translator {
   data, datalist, embed, head, iframe, input, noscript, map, 
   object, option, param, picture, progress, 
   select, script, style, track, textarea, template, 
-  video, wbr, .notranslate, [contenteditable='true'], [translate='no'], 
-  ${Translator.KISS_IGNORE_SELECTOR}`;
+  video, wbr, .notranslate, [contenteditable='true'], [translate='no']`;
 
   #setting; // 设置选项
   #rule; // 规则
@@ -322,6 +321,10 @@ export class Translator {
 
   // 忽略元素
   get #ignoreSelector() {
+    if (this.#rule.isPlainText) {
+      return Translator.KISS_IGNORE_SELECTOR;
+    }
+
     if (this.#rule.autoScan === "false") {
       return `${Translator.KISS_IGNORE_SELECTOR}, ${this.#rule.ignoreSelector}`;
     }
@@ -353,7 +356,7 @@ export class Translator {
 
   constructor({ rule = {}, setting = {}, favWords = [] }) {
     this.#setting = { ...Translator.DEFAULT_OPTIONS, ...setting };
-    this.#rule = { ...Translator.DEFAULT_RULE, ...rule };
+    this.#rule = { ...Translator.DEFAULT_RULE, ...rule, isPlainText: false };
     this.#favWords = favWords;
     this.#apisMap = new Map(
       this.#setting.transApis.map((api) => [api.apiSlug, api])
@@ -412,6 +415,19 @@ export class Translator {
 
     // 注入JS/CSS
     this.#initInjector();
+
+    // 纯文本预处理
+    if (this.#rule.isPlainText) {
+      document
+        .querySelectorAll("pre")
+        .forEach(
+          (pre) =>
+            (pre.innerHTML = pre.innerHTML?.replace(
+              /(?:\r\n|\r|\n)/g,
+              "<br />"
+            ))
+        );
+    }
 
     // 查找根节点并扫描
     document
@@ -1786,7 +1802,11 @@ export class Translator {
         this.#rule[key] !== newRule[key]
       ) {
         this.#rule[key] = newRule[key];
-        if (key === "autoScan" || key === "hasShadowroot") {
+        if (
+          key === "autoScan" ||
+          key === "hasShadowroot" ||
+          key === "isPlainText"
+        ) {
           needsRescan = true;
         } else {
           hasChanged = true;

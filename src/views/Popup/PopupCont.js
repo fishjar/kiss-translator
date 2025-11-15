@@ -112,7 +112,10 @@ export default function PopupCont({
 
   const handleChange = async (e) => {
     try {
-      const { name, value } = e.target;
+      let { name, value, checked } = e.target;
+      if (name === "isPlainText") {
+        value = checked;
+      }
       setRule((pre) => ({ ...pre, [name]: value }));
 
       if (!processActions) {
@@ -204,6 +207,7 @@ export default function PopupCont({
     transOnly,
     hasRichText,
     hasShadowroot,
+    isPlainText = false,
   } = rule;
 
   return (
@@ -320,6 +324,20 @@ export default function PopupCont({
               />
             }
             label={i18n("input_translate")}
+          />
+        </Grid>
+        <Grid item xs={6}>
+          <FormControlLabel
+            control={
+              <Switch
+                size="small"
+                name="isPlainText"
+                value={!isPlainText}
+                checked={isPlainText}
+                onChange={handleChange}
+              />
+            }
+            label={i18n("plain_text_translate")}
           />
         </Grid>
       </Grid>

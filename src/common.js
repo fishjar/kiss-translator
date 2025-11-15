@@ -121,7 +121,7 @@ export async function run(isUserscript = false) {
     // if (document?.documentElement?.tagName?.toUpperCase() !== "HTML") {
     //   return;
     // }
-    if (!document?.contentType?.includes("html")) {
+    if (!document?.contentType?.includes("text")) {
       return;
     }
 
