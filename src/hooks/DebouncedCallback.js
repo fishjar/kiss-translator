@@ -13,5 +13,11 @@ export function useDebouncedCallback(callback, delay) {
     [delay]
   );
 
+  useEffect(() => {
+    return () => {
+      debouncedCallback.cancel();
+    };
+  }, [debouncedCallback]);
+
   return debouncedCallback;
 }

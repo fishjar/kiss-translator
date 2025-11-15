@@ -59,14 +59,21 @@ export const sleep = (delay) =>
  */
 export const debounce = (func, delay = 200) => {
   let timer = null;
-  return (...args) => {
+
+  const debouncedFunc = (...args) => {
     timer && clearTimeout(timer);
     timer = setTimeout(() => {
       func(...args);
-      clearTimeout(timer);
       timer = null;
     }, delay);
   };
+
+  debouncedFunc.cancel = () => {
+    clearTimeout(timer);
+    timer = null;
+  };
+
+  return debouncedFunc;
 };
 
 /**

@@ -25,13 +25,17 @@ const SettingContext = createContext({
   reloadSetting: () => {},
 });
 
-export function SettingProvider({ children }) {
+export function SettingProvider({ children, isSettingPage }) {
   const {
     data: setting,
     isLoading,
     update,
     reload,
-  } = useStorage(STOKEY_SETTING, DEFAULT_SETTING, KV_SETTING_KEY);
+  } = useStorage(
+    STOKEY_SETTING,
+    DEFAULT_SETTING,
+    isSettingPage ? KV_SETTING_KEY : ""
+  );
 
   useEffect(() => {
     if (typeof setting?.darkMode === "boolean") {
@@ -43,6 +47,8 @@ export function SettingProvider({ children }) {
   }, [setting?.darkMode, update]);
 
   useEffect(() => {
+    if (!isSettingPage) return;
+
     (async () => {
       try {
         logger.setLevel(setting?.logLevel);
@@ -53,7 +59,7 @@ export function SettingProvider({ children }) {
         logger.error("Failed to fetch log level, using default.", error);
       }
     })();
-  }, [setting]);
+  }, [isSettingPage, setting?.logLevel]);
 
   const updateSetting = useCallback(
     (objOrFn) => {

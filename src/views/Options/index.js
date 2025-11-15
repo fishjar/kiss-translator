@@ -99,7 +99,7 @@ export default function Options() {
   }
 
   return (
-    <SettingProvider>
+    <SettingProvider isSettingPage={true}>
       <ThemeProvider>
         <AlertProvider>
           <ConfirmProvider>

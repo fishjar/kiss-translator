@@ -62,10 +62,12 @@ class Logger {
       return;
     }
 
-    this.config.level = newLevelObject;
-    console.log(
-      `[${this.config.prefix}] Log level dynamically set to ${this.config.level.name}`
-    );
+    if (this.config.level.value !== newLevelObject.value) {
+      this.config.level = newLevelObject;
+      console.log(
+        `[${this.config.prefix}] Log level dynamically set to ${this.config.level.name}`
+      );
+    }
   }
 
   /**
