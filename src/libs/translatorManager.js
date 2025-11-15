@@ -246,6 +246,8 @@ export default class TranslatorManager {
   }
 
   #processActions({ action, args } = {}, fromExt = false) {
+    if (!action) return;
+
     if (!fromExt) {
       sendIframeMsg(action, args);
     }
