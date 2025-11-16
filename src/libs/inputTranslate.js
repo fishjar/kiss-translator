@@ -11,7 +11,10 @@ import { createLoadingSVG } from "./svg";
 import { logger } from "./log";
 
 function isInputNode(node) {
-  return node.nodeName === "INPUT" || node.nodeName === "TEXTAREA";
+  return (
+    node.nodeName?.toUpperCase() === "INPUT" ||
+    node.nodeName?.toUpperCase() === "TEXTAREA"
+  );
 }
 
 function isEditAbleNode(node) {

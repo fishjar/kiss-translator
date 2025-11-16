@@ -252,6 +252,8 @@ export default class TranslatorManager {
       sendIframeMsg(action, args);
     }
 
+    logger.debug("process action:", action, args);
+
     switch (action) {
       case MSG_TRANS_TOGGLE:
         this._translator.toggle();

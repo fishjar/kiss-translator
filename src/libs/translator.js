@@ -1,5 +1,4 @@
 import {
-  APP_UPNAME,
   APP_LCNAME,
   APP_CONSTS,
   OPT_STYLE_FUZZY,
@@ -153,7 +152,7 @@ export class Translator {
 
   // 译文相关class
   static KISS_CLASS = {
-    warpper: `${APP_LCNAME}-wrapper notranslate`,
+    warpper: `${APP_LCNAME}-wrapper`,
     inner: `${APP_LCNAME}-inner`,
     term: `${APP_LCNAME}-term`,
     br: `${APP_LCNAME}-br`,
@@ -224,8 +223,8 @@ export class Translator {
   static isBlockNode(el) {
     if (!Translator.isElementOrFragment(el)) return false;
 
-    if (Translator.TAGS.INLINE.has(el.nodeName)) return false;
-    if (Translator.TAGS.BLOCK.has(el.nodeName)) return true;
+    if (Translator.TAGS.INLINE.has(el.nodeName?.toUpperCase())) return false;
+    if (Translator.TAGS.BLOCK.has(el.nodeName?.toUpperCase())) return true;
     if (el.attributes?.display?.value?.includes("inline")) return false;
 
     if (Translator.displayCache.has(el)) {
@@ -265,7 +264,7 @@ export class Translator {
   }
 
   // 内置忽略元素
-  static KISS_IGNORE_SELECTOR = `${APP_LCNAME}, .kiss-caption-container, .kiss-subtitle-controls
+  static KISS_IGNORE_SELECTOR = `.${Translator.KISS_CLASS.warpper}, .kiss-caption-container, .kiss-subtitle-controls
   #${APP_CONSTS.fabID}, .${APP_CONSTS.fabID}_warpper,
   #${APP_CONSTS.boxID}, .${APP_CONSTS.boxID}_warpper,
   #${APP_CONSTS.popupID}, .${APP_CONSTS.popupID}_warpper`;
@@ -288,7 +287,7 @@ export class Translator {
   #combinedTermsRegex; // 专业术语正则表达式
   #combinedSkipsRegex; // 跳过文本正则表达式
   #placeholderRegex; // 恢复htnml正则表达式
-  #translationTagName = APP_UPNAME; // 翻译容器的标签名
+  #translationTagName = APP_LCNAME; // 翻译容器的标签名
   #eventName = ""; // 通信事件名称
   #docInfo = {}; // 网页信息
   #glossary = {}; // AI词典
@@ -602,7 +601,8 @@ export class Translator {
       for (const mutation of mutations) {
         if (
           this.#skipMoNodes.has(mutation.target) ||
-          mutation.nextSibling?.tagName === this.#translationTagName
+          mutation.nextSibling?.tagName?.toLowerCase() ===
+            this.#translationTagName
         ) {
           continue;
         }
@@ -620,7 +620,7 @@ export class Translator {
           mutation.addedNodes.forEach((node) => {
             if (
               this.#skipMoNodes.has(node) ||
-              node.nodeName === this.#translationTagName
+              node.nodeName?.toLowerCase() === this.#translationTagName
             ) {
               return;
             }
@@ -1056,7 +1056,10 @@ export class Translator {
       textLength += node.textContent.length;
 
       const isSentenceEnd = sentenceEndRegexForTest.test(node.textContent);
-      if (!isSentenceEnd || node.nextSibling?.nodeName === "BR") {
+      if (
+        !isSentenceEnd ||
+        node.nextSibling?.nodeName?.toUpperCase() === "BR"
+      ) {
         return;
       }
 
@@ -1109,9 +1112,9 @@ export class Translator {
     if (node.matches(this.#rule.keepSelector)) return false;
 
     if (
-      Translator.TAGS.BREAK_LINE.has(node.nodeName) ||
+      Translator.TAGS.BREAK_LINE.has(node.nodeName?.toUpperCase()) ||
       node.matches?.(this.#ignoreSelector) ||
-      node.nodeName === this.#translationTagName
+      node.nodeName?.toLowerCase() === this.#translationTagName
     ) {
       return true;
     }
@@ -1194,11 +1197,10 @@ export class Translator {
         nodes,
         termsStyle
       );
-      // console.log("processedString", processedString);
       if (this.#isInvalidText(processedString)) return;
 
       const wrapper = document.createElement(this.#translationTagName);
-      wrapper.className = Translator.KISS_CLASS.warpper;
+      wrapper.className = `${Translator.KISS_CLASS.warpper} notranslate`;
 
       if (processedString.length > newlineLength) {
         const br = document.createElement("br");
@@ -1443,7 +1445,9 @@ export class Translator {
 
   // 查找指定节点下所有译文节点
   #findTranslationWrappers(parentNode) {
-    return parentNode.querySelectorAll(`:scope > ${APP_LCNAME}`);
+    return parentNode.querySelectorAll(
+      `:scope > .${Translator.KISS_CLASS.warpper}`
+    );
   }
 
   // 清理所有插入的译文dom
@@ -1454,7 +1458,7 @@ export class Translator {
   // 清理节点下面所有译文dom
   #cleanupAllTranslations(root) {
     root
-      .querySelectorAll(APP_LCNAME)
+      .querySelectorAll(`.${Translator.KISS_CLASS.warpper}`)
       .forEach((el) => this.#removeTranslationElement(el));
   }
 

@@ -7,6 +7,7 @@ export const injectInlineJs = (code, id = "kiss-translator-inline-js") => {
   }
 
   const el = document.createElement("script");
+  el.setAttribute("data-source", "kiss-inject injectInlineJs");
   el.type = "text/javascript";
   el.id = id;
   el.textContent = trustedTypesHelper.createScript(code);
@@ -19,6 +20,7 @@ export const injectInlineJsBg = (code, id = "kiss-translator-inline-js") => {
   }
 
   const el = document.createElement("script");
+  el.setAttribute("data-source", "kiss-inject injectInlineJsBg");
   el.type = "text/javascript";
   el.id = id;
   el.textContent = code;
@@ -32,6 +34,7 @@ export const injectExternalJs = (src, id = "kiss-translator-external-js") => {
   }
 
   const el = document.createElement("script");
+  el.setAttribute("data-source", "kiss-inject injectExternalJs");
   el.type = "text/javascript";
   el.id = id;
   el.src = trustedTypesHelper.createScriptURL(src);
