@@ -118,20 +118,22 @@ async function getFavWords(rule) {
  */
 export async function run(isUserscript = false) {
   try {
-    // if (document?.documentElement?.tagName?.toUpperCase() !== "HTML") {
-    //   return;
-    // }
-    if (!document?.contentType?.includes("text")) {
-      return;
-    }
-
     // 读取设置信息
     const setting = await getSettingWithDefault();
 
     // 日志
     logger.setLevel(setting.logLevel);
 
-    const href = document.location.href;
+    // if (document?.documentElement?.tagName?.toUpperCase() !== "HTML") {
+    //   return;
+    // }
+    const contentType = document?.contentType?.toLowerCase() || "";
+    if (!contentType.includes("text") && !contentType.includes("html")) {
+      logger.info("Skip running in document content type: ", contentType);
+      return;
+    }
+
+    const href = document?.location?.href || "";
 
     // 设置页面
     if (
