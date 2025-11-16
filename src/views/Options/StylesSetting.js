@@ -76,7 +76,7 @@ function StyleFields({ customStyle, deleteStyle, updateStyle, isBuiltin }) {
     if (uiLang === "en") {
       return [q.zh, q.en];
     }
-    return [q.en, q.zh];
+    return [q.en, q[uiLang]];
   }, [uiLang]);
 
   return (
