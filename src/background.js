@@ -193,7 +193,7 @@ async function registerMsgDisplayScript() {
 /**
  * 插件安装
  */
-browser.runtime.onInstalled.addListener(() => {
+browser.runtime.onInstalled.addListener(async () => {
   tryInitDefaultData();
 
   //在thunderbird中注册脚本
@@ -201,11 +201,13 @@ browser.runtime.onInstalled.addListener(() => {
     registerMsgDisplayScript();
   }
 
+  const { contextMenuType, csplist, orilist } = await getSettingWithDefault();
+
   // 右键菜单
-  addContextMenus();
+  addContextMenus(contextMenuType);
 
   // 禁用CSP
-  updateCspRules({ csplist: DEFAULT_CSPLIST, orilist: DEFAULT_ORILIST });
+  updateCspRules({ csplist, orilist });
 });
 
 /**
