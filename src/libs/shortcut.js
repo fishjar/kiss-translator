@@ -61,14 +61,25 @@ export const shortcutRegister = (targetKeys = [], fn, target = document) => {
   if (targetKeys.length === 0) return () => {};
 
   const targetKeySet = new Set(targetKeys);
+  let hasInterference = false;
   const onKeyDown = (pressedKeys, event) => {
-    if (isSameSet(targetKeySet, pressedKeys)) {
-      // event.preventDefault(); // 阻止浏览器的默认行为
-      // event.stopPropagation(); // 阻止事件继续（向父元素）冒泡
-      fn();
+    // if (isSameSet(targetKeySet, pressedKeys)) {
+    //   // event.preventDefault(); // 阻止浏览器的默认行为
+    //   // event.stopPropagation(); // 阻止事件继续（向父元素）冒泡
+    //   fn();
+    // }
+    if (!targetKeySet.has(event.code)) {
+      hasInterference = true;
     }
   };
-  const onKeyUp = () => {};
+  const onKeyUp = (pressedKeys, event) => {
+    if (isSameSet(targetKeySet, pressedKeys) && !hasInterference) {
+      fn();
+    }
+    if (pressedKeys.size === 1) {
+      hasInterference = false;
+    }
+  };
 
   return shortcutListener(onKeyDown, onKeyUp, target);
 };
