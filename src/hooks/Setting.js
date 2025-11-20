@@ -90,19 +90,21 @@ export function SettingProvider({ children, isSettingPage }) {
   );
 
   if (isLoading) {
-    return <Loading />;
+    return isSettingPage ? <Loading /> : null;
   }
 
   if (!setting) {
-    <center>
-      <Alert severity="error" sx={{ maxWidth: 600, margin: "60px auto" }}>
-        <p>数据加载出错，请刷新页面或卸载后重新安装。</p>
-        <p>
-          Data loading error, please refresh the page or uninstall and
-          reinstall.
-        </p>
-      </Alert>
-    </center>;
+    return isSettingPage ? (
+      <center>
+        <Alert severity="error" sx={{ maxWidth: 600, margin: "60px auto" }}>
+          <p>数据加载出错，请刷新页面或卸载后重新安装。</p>
+          <p>
+            Data loading error, please refresh the page or uninstall and
+            reinstall.
+          </p>
+        </Alert>
+      </center>
+    ) : null;
   }
 
   return (
