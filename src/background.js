@@ -15,8 +15,6 @@ import {
   MSG_UPDATE_CSP,
   MSG_BUILTINAI_DETECT,
   MSG_BUILTINAI_TRANSLATE,
-  DEFAULT_CSPLIST,
-  DEFAULT_ORILIST,
   CMD_TOGGLE_TRANSLATE,
   CMD_TOGGLE_STYLE,
   CMD_OPEN_OPTIONS,
@@ -194,7 +192,7 @@ async function registerMsgDisplayScript() {
  * 插件安装
  */
 browser.runtime.onInstalled.addListener(async () => {
-  tryInitDefaultData();
+  await tryInitDefaultData();
 
   //在thunderbird中注册脚本
   if (process.env.REACT_APP_CLIENT === CLIENT_THUNDERBIRD) {
