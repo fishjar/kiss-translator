@@ -739,6 +739,13 @@ export const genTransReq = async ({ reqHook, ...args }) => {
   // 执行 request hook
   if (reqHook?.trim() && !events) {
     try {
+      const req = {
+        url,
+        body,
+        headers,
+        userMsg,
+        method,
+      };
       interpreter.run(`exports.reqHook = ${reqHook}`);
       const hookResult = await interpreter.exports.reqHook(
         {
@@ -747,20 +754,16 @@ export const genTransReq = async ({ reqHook, ...args }) => {
           defaultSubtitlePrompt,
           defaultNobatchPrompt,
           defaultNobatchUserPrompt,
+          req,
         },
-        {
-          url,
-          body,
-          headers,
-          userMsg,
-          method,
-        }
+        req
       );
       if (hookResult && hookResult.url) {
         return genInit(hookResult);
       }
     } catch (err) {
       kissLog("run req hook", err);
+      throw new Error(`Request hook error: ${err.message}`);
     }
   }
 
@@ -817,6 +820,7 @@ export const parseTransRes = async (
       }
     } catch (err) {
       kissLog("run res hook", err);
+      throw new Error(`Response hook error: ${err.message}`);
     }
   }
 
