@@ -25,7 +25,7 @@ const SettingContext = createContext({
   reloadSetting: () => {},
 });
 
-export function SettingProvider({ children, isSettingPage }) {
+export function SettingProvider({ children, isSettingPage = false }) {
   const {
     data: setting,
     isLoading,
@@ -81,12 +81,13 @@ export function SettingProvider({ children, isSettingPage }) {
 
   const value = useMemo(
     () => ({
+      isSettingPage,
       setting,
       updateSetting,
       updateChild,
       reloadSetting: reload,
     }),
-    [setting, updateSetting, updateChild, reload]
+    [isSettingPage, setting, updateSetting, updateChild, reload]
   );
 
   if (isLoading) {

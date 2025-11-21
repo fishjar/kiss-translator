@@ -35,7 +35,7 @@ import { injectInlineJsBg, injectInternalCss } from "./libs/injector";
 import { kissLog, logger } from "./libs/log";
 import { chromeDetect, chromeTranslate } from "./libs/builtinAI";
 
-globalThis.ContextType = "BACKGROUND";
+globalThis.__KISS_CONTEXT__ = "background";
 
 const CSP_RULE_START_ID = 1;
 const ORI_RULE_START_ID = 10000;
