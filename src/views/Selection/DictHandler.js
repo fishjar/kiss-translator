@@ -1,5 +1,5 @@
 import Typography from "@mui/material/Typography";
-import AudioBtn from "./AudioBtn";
+import { AudioBtn, BaiduAudioBtn } from "./AudioBtn";
 import { OPT_DICT_BING, OPT_DICT_YOUDAO } from "../../config";
 import { apiMicrosoftDict, apiYoudaoDict } from "../../apis";
 
@@ -48,12 +48,14 @@ export const dictHandlers = {
           style={{ display: "inline-block", paddingRight: "1em" }}
         >
           <Typography component="span">{`UK [${data?.ec?.word?.ukphone}]`}</Typography>
+          <BaiduAudioBtn text={data?.ec?.word?.["return-phrase"]} lan="uk" />
         </Typography>
         <Typography
           component="div"
           style={{ display: "inline-block", paddingRight: "1em" }}
         >
           <Typography component="span">{`US [${data?.ec?.word?.usphone}]`}</Typography>
+          <BaiduAudioBtn text={data?.ec?.word?.["return-phrase"]} lan="en" />
         </Typography>
       </Typography>
     ),

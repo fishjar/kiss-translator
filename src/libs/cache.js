@@ -50,13 +50,13 @@ const newCacheReq = async (input, init) => {
  * @param {*} init
  * @returns
  */
-export const getHttpCache = async ({ input, init }) => {
+export const getHttpCache = async ({ input, init, expect }) => {
   try {
     const request = await newCacheReq(input, init);
     const cache = await caches.open(CACHE_NAME);
     const response = await cache.match(request);
     if (response) {
-      const res = await parseResponse(response);
+      const res = await parseResponse(response, expect);
       return res;
     }
   } catch (err) {
@@ -99,7 +99,7 @@ export const putHttpCache = async ({
  * @param {*} res
  * @returns
  */
-export const parseResponse = async (res) => {
+export const parseResponse = async (res, expect = null) => {
   if (!res) {
     throw new Error("Response object does not exist");
   }
@@ -108,21 +108,45 @@ export const parseResponse = async (res) => {
     const msg = {
       url: res.url,
       status: res.status,
+      statusText: res.statusText,
     };
-    if (res.headers.get("Content-Type")?.includes("json")) {
-      msg.response = await res.json();
+
+    try {
+      const errorText = await res.clone().text();
+      try {
+        msg.response = JSON.parse(errorText);
+      } catch {
+        msg.response = errorText;
+      }
+    } catch (e) {
+      msg.response = "Unable to read error body";
     }
+
     throw new Error(JSON.stringify(msg));
   }
 
-  const contentType = res.headers.get("Content-Type");
-  if (contentType?.includes("json")) {
-    return res.json();
-  } else if (contentType?.includes("audio")) {
+  const contentType = res.headers.get("Content-Type") || "";
+  if (expect === "blob") return res.blob();
+  if (expect === "text") return res.text();
+  if (expect === "json") return res.json();
+  if (
+    expect === "audio" ||
+    contentType.includes("audio") ||
+    contentType.includes("image") ||
+    contentType.includes("video")
+  ) {
     const blob = await res.blob();
     return blobToBase64(blob);
   }
-  return res.text();
+
+  const text = await res.text();
+  if (!text) return null;
+
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    return text;
+  }
 };
 
 /**

@@ -99,7 +99,7 @@ export const fetchPatcher = async (input, init = {}, opts) => {
  */
 export const fetchHandle = async ({ input, init, opts }) => {
   const res = await fetchPatcher(input, init, opts);
-  return parseResponse(res);
+  return parseResponse(res, opts.expect);
 };
 
 /**
