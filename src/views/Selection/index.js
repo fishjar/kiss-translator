@@ -133,7 +133,7 @@ export default function Slection({
 
   useEffect(() => {
     async function handleMouseup(e) {
-      e.stopPropagation();
+      // e.stopPropagation();
       await sleep(200);
 
       const selection = window.getSelection();
