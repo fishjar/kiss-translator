@@ -3,7 +3,7 @@ import { storage } from "../libs/storage";
 import { kissLog } from "../libs/log";
 import { syncData } from "../libs/sync";
 import { useDebouncedCallback } from "./DebouncedCallback";
-import { getContext } from "../libs/browser";
+import { isOptions } from "../libs/browser";
 
 /**
  * 用于将组件状态与 Storage 同步
@@ -80,8 +80,7 @@ export function useStorage(key, defaultVal = null, syncKey = "") {
     });
 
     // 触发远端同步
-    const context = getContext();
-    if (syncKey && context === "options") {
+    if (syncKey && isOptions()) {
       debouncedSync(syncKey, data);
     }
   }, [key, syncKey, isLoading, data, debouncedSync]);

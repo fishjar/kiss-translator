@@ -45,7 +45,7 @@ export default function ContentFab({
   );
 
   return (
-    <SettingProvider>
+    <SettingProvider context="fab">
       <ThemeProvider>
         <Draggable
           key="fab"

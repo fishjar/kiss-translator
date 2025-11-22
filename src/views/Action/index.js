@@ -70,7 +70,7 @@ export default function Action({ translator, processActions }) {
   }, [windowSize]);
 
   return (
-    <SettingProvider>
+    <SettingProvider context="contentPopup">
       <ThemeProvider>
         {showPopup && (
           <Draggable

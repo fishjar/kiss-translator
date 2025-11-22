@@ -25,17 +25,15 @@ const SettingContext = createContext({
   reloadSetting: () => {},
 });
 
-export function SettingProvider({ children, isSettingPage = false }) {
+export function SettingProvider({ children, context }) {
+  const isOptionsPage = useMemo(() => context === "options", [context]);
+
   const {
     data: setting,
     isLoading,
     update,
     reload,
-  } = useStorage(
-    STOKEY_SETTING,
-    DEFAULT_SETTING,
-    isSettingPage ? KV_SETTING_KEY : ""
-  );
+  } = useStorage(STOKEY_SETTING, DEFAULT_SETTING, KV_SETTING_KEY);
 
   useEffect(() => {
     if (typeof setting?.darkMode === "boolean") {
@@ -47,7 +45,7 @@ export function SettingProvider({ children, isSettingPage = false }) {
   }, [setting?.darkMode, update]);
 
   useEffect(() => {
-    if (!isSettingPage) return;
+    if (!isOptionsPage) return;
 
     (async () => {
       try {
@@ -59,7 +57,7 @@ export function SettingProvider({ children, isSettingPage = false }) {
         logger.error("Failed to fetch log level, using default.", error);
       }
     })();
-  }, [isSettingPage, setting?.logLevel]);
+  }, [isOptionsPage, setting?.logLevel]);
 
   const updateSetting = useCallback(
     (objOrFn) => {
@@ -81,21 +79,21 @@ export function SettingProvider({ children, isSettingPage = false }) {
 
   const value = useMemo(
     () => ({
-      isSettingPage,
+      context,
       setting,
       updateSetting,
       updateChild,
       reloadSetting: reload,
     }),
-    [isSettingPage, setting, updateSetting, updateChild, reload]
+    [context, setting, updateSetting, updateChild, reload]
   );
 
   if (isLoading) {
-    return isSettingPage ? <Loading /> : null;
+    return isOptionsPage ? <Loading /> : null;
   }
 
   if (!setting) {
-    return isSettingPage ? (
+    return isOptionsPage ? (
       <center>
         <Alert severity="error" sx={{ maxWidth: 600, margin: "60px auto" }}>
           <p>数据加载出错，请刷新页面或卸载后重新安装。</p>

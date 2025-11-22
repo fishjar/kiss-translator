@@ -141,7 +141,7 @@ export default function TranBox({
   const [mouseHover, setMouseHover] = useState(false);
   // todo: 这里的 SettingProvider 不应和 background 的共用
   return (
-    <SettingProvider>
+    <SettingProvider context="tranbox">
       <ThemeProvider styles={extStyles}>
         {showBox && (
           <DraggableResizable

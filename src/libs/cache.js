@@ -16,7 +16,7 @@ import { blobToBase64 } from "./utils";
  */
 export const tryClearCaches = async () => {
   try {
-    if (isExt && !isBg) {
+    if (isExt && !isBg()) {
       await sendBgMsg(MSG_CLEAR_CACHES);
     } else {
       await caches.delete(CACHE_NAME);

@@ -37,6 +37,7 @@ export const getContext = () => {
 };
 
 export const isBg = () => getContext() === "background";
+export const isOptions = () => getContext() === "options";
 
 export const isBuiltinAIAvailable =
   "LanguageDetector" in globalThis && "Translator" in globalThis;
