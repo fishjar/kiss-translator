@@ -146,15 +146,16 @@ export class YouTubeSubtitleList {
         top: "60px",
         right: "0",
         fontSize: "14px",
-        padding: "16px",
+        padding: "0",
         marginRight: "24px",
-        overflow: "auto",
         border: "1px solid rgba(0, 0, 0, 0.1)",
         borderRadius: "8px",
         minWidth: "320px",
         maxWidth: "400px",
         boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
-        fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif"
+        fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif",
+        display: "flex",
+        flexDirection: "column"
       });
       
       // 插入到secondary区域（YouTube右侧栏）
@@ -171,9 +172,10 @@ export class YouTubeSubtitleList {
       font-size: 16px;
       font-weight: 600;
       color: #333;
-      margin-bottom: 12px;
+      padding: 16px;
       padding-bottom: 8px;
       border-bottom: 1px solid #eee;
+      flex-shrink: 0;
     `;
     
     // 创建字幕列表
@@ -185,6 +187,13 @@ export class YouTubeSubtitleList {
       list-style-type: none;
       padding: 0;
       margin: 0;
+    `;
+    
+    // 设置列表元素样式，使其可以滚动
+    listElement.style.cssText = `
+      overflow: auto;
+      flex-grow: 1;
+      padding: 0 16px 16px 16px;
     `;
     
     // 确定要创建多少个项目
