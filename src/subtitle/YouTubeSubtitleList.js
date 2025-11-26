@@ -53,14 +53,20 @@ export class YouTubeSubtitleList {
   /**
    * 获取最接近的时间点
    * @param {Array} data - 时间点数组
-   * @param {number} value - 当前时间值
+   * @param {number} value - 当前时间值（毫秒）
    * @returns {number} 最接近的时间点
    */
   getClosest(data, value) {
     if (!data || data.length === 0) return 0;
-    const closest = data.reduce(function (prev, curr) {
-      return Math.abs(curr - value) < Math.abs(prev - value) ? curr : prev;
-    });
+    // 查找小于或等于当前时间的最大时间点
+    let closest = data[0];
+    for (let i = 0; i < data.length; i++) {
+      if (data[i] <= value) {
+        closest = data[i];
+      } else {
+        break;
+      }
+    }
     return closest;
   }
 
@@ -115,7 +121,7 @@ export class YouTubeSubtitleList {
     `;
     
     data.forEach((el) => {
-      const { segs = [], tStartMs } = el;
+      const { segs = [], tStartMs, dDurationMs } = el;
       if (!segs.length) return;
       
       const li = document.createElement("li");
@@ -168,6 +174,10 @@ export class YouTubeSubtitleList {
         li.style.backgroundColor = "transparent";
       });
       
+      // 存储时间信息，用于后续比较
+      li.dataset.startTime = tStartMs;
+      li.dataset.endTime = tStartMs + (dDurationMs || 0);
+      
       li.appendChild(timeSpan);
       li.appendChild(textSpan);
       subtitleList.appendChild(li);
@@ -210,38 +220,43 @@ export class YouTubeSubtitleList {
     this.loopAutoScroll = setInterval(() => {
       if (!this.videoEl) return;
       
-      const currentTime = this.videoEl.currentTime;
-      const scrollTo = this.getClosest(this.subtitleDataTime, currentTime * 1000);
+      const currentTimeMs = this.videoEl.currentTime * 1000;
+      const scrollTo = this.getClosest(this.subtitleDataTime, currentTimeMs);
       
       if (this.subtitleListEl) {
+        // 移除之前高亮的项目
+        const allItems = this.subtitleListEl.querySelectorAll('.kiss-youtube-item');
+        allItems.forEach(el => {
+          el.style.color = "black";
+          el.style.fontWeight = "normal";
+          el.style.backgroundColor = "transparent";
+        });
+        
+        // 高亮当前字幕行
         const liElement = this.subtitleListEl.querySelector(`#kiss-youtube-item-${scrollTo}`);
         if (liElement) {
-          // 高亮当前字幕行
-          const allItems = this.subtitleListEl.querySelectorAll('.kiss-youtube-item');
-          allItems.forEach(el => {
-            el.style.color = "black";
-            el.style.fontWeight = "normal";
-          });
-          
           liElement.style.color = "red";
           liElement.style.fontWeight = "bold";
+          liElement.style.backgroundColor = "rgba(255, 0, 0, 0.1)";
           
           // 自动滚动到可视区域
           const container = this.subtitleListEl.parentElement;
           const ofs = liElement.offsetTop;
           if (ofs > 300) {
             container.scrollTop = ofs - 300;
+          } else if (ofs < 100) {
+            container.scrollTop = ofs - 50;
           }
         }
       }
-    }, 150);
+    }, 100); // 提高更新频率以获得更精确的同步
   }
 
   /**
    * 关闭自动滚动字幕
    */
   turnOffAutoSub() {
-    if this.loopAutoScroll) {
+    if (this.loopAutoScroll) {
       clearInterval(this.loopAutoScroll);
       this.loopAutoScroll = null;
     }
