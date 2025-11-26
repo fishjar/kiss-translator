@@ -23,20 +23,20 @@
     "webextension-polyfill": "^0.10.0"
   },
   "scripts": {
-    "start": "REACT_APP_CLIENT=web react-app-rewired start",
-    "start:userscript": "REACT_APP_CLIENT=userscript react-app-rewired start",
-    "build:chrome": "rm -rf build/chrome && BUILD_PATH=./build/chrome REACT_APP_CLIENT=chrome react-app-rewired build && rm build/chrome/content.html",
-    "build:safari-output": "rm -rf build/safari && BUILD_PATH=./build/safari REACT_APP_CLIENT=safari react-app-rewired build && rm build/safari/content.html",
+    "start": "cross-env REACT_APP_CLIENT=web react-app-rewired start",
+    "start:userscript": "cross-env REACT_APP_CLIENT=userscript react-app-rewired start",
+    "build:chrome": "node -e \"require('fs').rmSync('build/chrome', { recursive: true, force: true });\" && cross-env BUILD_PATH=./build/chrome REACT_APP_CLIENT=chrome react-app-rewired build && node -e \"require('fs').rmSync('build/chrome/content.html', { force: true });\"",
+    "build:safari-output": "node -e \"require('fs').rmSync('build/safari', { recursive: true, force: true });\" && cross-env BUILD_PATH=./build/safari REACT_APP_CLIENT=safari react-app-rewired build && node -e \"require('fs').rmSync('build/safari/content.html', { force: true });\"",
     "build:safari": "node src/scripts/build-safari.js",
-    "build:edge": "rm -rf build/edge && cp -r build/chrome build/edge",
-    "build:thunderbird": "rm -rf build/thunderbird && BUILD_PATH=./build/thunderbird REACT_APP_CLIENT=thunderbird react-app-rewired build && rm build/thunderbird/content.html && cp ./build/thunderbird/manifest.thunderbird.json ./build/thunderbird/manifest.json && rm build/*/manifest.thunderbird.json",
-    "build:firefox": "rm -rf build/firefox && BUILD_PATH=./build/firefox REACT_APP_CLIENT=firefox react-app-rewired build && rm build/firefox/content.html && cat ./build/firefox/manifest.firefox.json > ./build/firefox/manifest.json && rm build/*/manifest.firefox.json",
-    "build:web": "rm -rf build/web && BUILD_PATH=./build/web REACT_APP_CLIENT=userscript react-app-rewired build",
-    "build:userscript-ios": "file1=build/web/kiss-translator.user.js file2=build/web/kiss-translator-ios-safari.user.js && cp $file1 $file2 && sed -i 's|// @grant         unsafeWindow|// @inject-into   content|g' $file2",
-    "build:userscript": "rm -rf build/userscript && mkdir build/userscript && cp build/web/*.user.js build/userscript/",
+    "build:edge": "node -e \"require('fs').rmSync('build/edge', { recursive: true, force: true });\" && node -e \"require('fs').cpSync('build/chrome', 'build/edge', { recursive: true });\"",
+    "build:thunderbird": "node -e \"require('fs').rmSync('build/thunderbird', { recursive: true, force: true });\" && cross-env BUILD_PATH=./build/thunderbird REACT_APP_CLIENT=thunderbird react-app-rewired build && node -e \"require('fs').rmSync('build/thunderbird/content.html', { force: true });\" && node -e \"require('fs').cpSync('./build/thunderbird/manifest.thunderbird.json', './build/thunderbird/manifest.json');\" && node -e \"require('fs').rmSync('build/*/manifest.thunderbird.json', { force: true });\"",
+    "build:firefox": "node -e \"require('fs').rmSync('build/firefox', { recursive: true, force: true });\" && cross-env BUILD_PATH=./build/firefox REACT_APP_CLIENT=firefox react-app-rewired build && node -e \"require('fs').rmSync('build/firefox/content.html', { force: true });\" && node -e \"const fs = require('fs'); fs.writeFileSync('./build/firefox/manifest.json', fs.readFileSync('./build/firefox/manifest.firefox.json'));\" && node -e \"require('fs').rmSync('build/*/manifest.firefox.json', { force: true });\"",
+    "build:web": "node -e \"require('fs').rmSync('build/web', { recursive: true, force: true });\" && cross-env BUILD_PATH=./build/web REACT_APP_CLIENT=userscript react-app-rewired build",
+    "build:userscript-ios": "node -e \"const fs = require('fs'); const file1='build/web/kiss-translator.user.js'; const file2='build/web/kiss-translator-ios-safari.user.js'; fs.copyFileSync(file1, file2); let content = fs.readFileSync(file2, 'utf-8'); content = content.replace('// @grant         unsafeWindow', '// @inject-into   content'); fs.writeFileSync(file2, content);\"",
+    "build:userscript": "node -e \"require('fs').rmSync('build/userscript', { recursive: true, force: true });\" && node -e \"require('fs').mkdirSync('build/userscript', { recursive: true });\" && node -e \"const fs = require('fs'); const path = require('path'); const files = fs.readdirSync('build/web'); files.filter(f => f.endsWith('.user.js')).forEach(f => fs.copyFileSync(path.join('build/web', f), path.join('build/userscript', f)));\"",
     "build:rules": "babel-node src/rules.js",
     "build": "pnpm format && pnpm build:chrome && pnpm build:edge && pnpm build:thunderbird && pnpm build:firefox && pnpm build:web && pnpm build:userscript-ios && pnpm build:userscript && pnpm build:rules",
-    "zip": "cd build && rm -f *.zip && zip -r chrome.zip chrome && zip -r edge.zip edge && zip -r userscript.zip userscript && (cd firefox && zip -r ../firefox.zip .) && (cd thunderbird && zip -r ../thunderbird.zip .)",
+    "zip": "node -e \"const fs = require('fs'); const { execSync } = require('child_process'); fs.rmSync('build/*.zip', { force: true }); execSync('cd build && powershell Compress-Archive -Path chrome -DestinationPath chrome.zip -Force'); execSync('cd build && powershell Compress-Archive -Path edge -DestinationPath edge.zip -Force'); execSync('cd build && powershell Compress-Archive -Path userscript -DestinationPath userscript.zip -Force'); execSync('cd build/firefox && powershell Compress-Archive -Path * -DestinationPath ../firefox.zip -Force'); execSync('cd build/thunderbird && powershell Compress-Archive -Path * -DestinationPath ../thunderbird.zip -Force');\"",
     "build+zip": "pnpm build && pnpm zip",
     "format": "prettier --write \"**/*.{js,json,html}\"",
     "test": "react-app-rewired test",
@@ -77,6 +77,7 @@
     "find-up": "^7.0.0",
     "prettier": "3.6.2",
     "react-app-rewired": "^2.2.1",
-    "zx": "^8.8.1"
+    "zx": "^8.8.1",
+    "cross-env": "^7.0.3"
   }
 }

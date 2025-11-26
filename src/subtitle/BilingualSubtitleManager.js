@@ -1,6 +1,85 @@
 import { logger } from "../libs/log.js";
 import { truncateWords, throttle } from "../libs/utils.js";
 import { apiTranslate } from "../apis/index.js";
+import { apiMicrosoftDict } from "../apis/index.js";
+
+// 添加CSS样式用于高亮显示悬停的单词
+const addWordHoverStyles = () => {
+  if (document.getElementById("kiss-word-hover-styles")) return;
+
+  const style = document.createElement("style");
+  style.id = "kiss-word-hover-styles";
+  style.textContent = `
+    .kiss-word-hover {
+      cursor: pointer;
+      text-decoration: underline;
+      text-decoration-color: #4fc3f7;
+      text-decoration-thickness: 2px;
+    }
+    
+    .kiss-word-tooltip {
+      position: fixed;
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      border-radius: 6px;
+      padding: 12px;
+      font-size: 14px;
+      z-index: 2147483647;
+      max-width: 300px;
+      word-wrap: break-word;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      font-family: Arial, sans-serif;
+    }
+    
+    .kiss-word-tooltip-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      font-weight: bold;
+      font-size: 16px;
+      color: #4fc3f7;
+    }
+    
+    .kiss-word-tooltip-close {
+      background: none;
+      border: none;
+      color: #aaa;
+      cursor: pointer;
+      font-size: 18px;
+      padding: 0;
+      margin-left: 10px;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .kiss-word-tooltip-close:hover {
+      color: white;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+    }
+    
+    .kiss-word-loading {
+      color: #bbb;
+      font-style: italic;
+    }
+    
+    .kiss-word-definition {
+      margin: 4px 0;
+    }
+    
+    .kiss-word-pos {
+      color: #4fc3f7;
+      font-weight: bold;
+    }
+  `;
+  document.head.appendChild(style);
+};
 
 /**
  * @class BilingualSubtitleManager
@@ -17,6 +96,8 @@ export class BilingualSubtitleManager {
   #setting = {};
   #isAdPlaying = false;
   #throttledTriggerTranslations;
+  #tooltipEl = null;
+  #hoverTimeout = null; // 用于延迟显示/隐藏tooltip
 
   /**
    * @param {object} options
@@ -36,6 +117,8 @@ export class BilingualSubtitleManager {
       this.#triggerTranslations.bind(this),
       (setting.throttleTrans ?? 30) * 1000
     );
+
+    addWordHoverStyles();
   }
 
   /**
@@ -62,6 +145,17 @@ export class BilingualSubtitleManager {
     this.#throttledTriggerTranslations?.cancel();
     this.#captionWindowEl?.parentElement?.parentElement?.remove();
     this.#formattedSubtitles = [];
+    // 清理tooltip元素
+    if (this.#tooltipEl) {
+      this.#tooltipEl.remove();
+      this.#tooltipEl = null;
+    }
+
+    // 清理定时器
+    if (this.#hoverTimeout) {
+      clearTimeout(this.#hoverTimeout);
+      this.#hoverTimeout = null;
+    }
   }
 
   /**
@@ -123,6 +217,138 @@ export class BilingualSubtitleManager {
     videoContainer.appendChild(container);
 
     this.#enableDragging(this.#paperEl, container, this.#captionWindowEl);
+
+    // 添加鼠标悬停事件监听器
+    this.#captionWindowEl.addEventListener(
+      "mouseover",
+      this.#handleWordHover.bind(this),
+      true
+    );
+    this.#captionWindowEl.addEventListener(
+      "mouseout",
+      this.#handleWordHoverOut.bind(this),
+      true
+    );
+    this.#captionWindowEl.addEventListener(
+      "mousemove",
+      this.#handleWordMouseMove.bind(this)
+    );
+  }
+
+  // 处理单词悬停事件
+  #handleWordHover(event) {
+    const target = event.target;
+    if (target.classList.contains("kiss-subtitle-word")) {
+      // 清除之前的定时器
+      if (this.#hoverTimeout) {
+        clearTimeout(this.#hoverTimeout);
+        this.#hoverTimeout = null;
+      }
+
+      target.classList.add("kiss-word-hover");
+
+      // 延迟显示tooltip，避免误触
+      this.#hoverTimeout = setTimeout(() => {
+        this.#showWordTooltip(
+          target.dataset.word,
+          event.clientX,
+          event.clientY
+        );
+      }, 300);
+    }
+  }
+
+  // 处理鼠标移出事件
+  #handleWordHoverOut(event) {
+    const target = event.target;
+    if (target.classList.contains("kiss-subtitle-word")) {
+      target.classList.remove("kiss-word-hover");
+
+      // 清除显示定时器
+      if (this.#hoverTimeout) {
+        clearTimeout(this.#hoverTimeout);
+        this.#hoverTimeout = null;
+      }
+
+      // 延迟隐藏tooltip
+      this.#hoverTimeout = setTimeout(() => {
+        this.#hideWordTooltip();
+      }, 100);
+    }
+
+    // 如果鼠标移出了整个字幕窗口，也隐藏tooltip
+    if (
+      event.relatedTarget &&
+      !this.#captionWindowEl.contains(event.relatedTarget)
+    ) {
+      this.#hideWordTooltip();
+    }
+  }
+
+  // 处理鼠标移动事件
+  #handleWordMouseMove(event) {
+    // 更新tooltip位置
+    if (this.#tooltipEl) {
+      this.#tooltipEl.style.left = event.clientX + 15 + "px";
+      this.#tooltipEl.style.top = event.clientY - 15 + "px";
+    }
+  }
+
+  // 显示单词提示框
+  async #showWordTooltip(word, x, y) {
+    // 如果已经存在提示框，则先移除
+    if (this.#tooltipEl) {
+      this.#tooltipEl.remove();
+    }
+
+    // 创建提示框
+    this.#tooltipEl = document.createElement("div");
+    this.#tooltipEl.className = "kiss-word-tooltip";
+    this.#tooltipEl.innerHTML =
+      '<div class="kiss-word-loading">Looking up...</div>';
+    this.#tooltipEl.style.left = x + 15 + "px";
+    this.#tooltipEl.style.top = y - 15 + "px";
+
+    document.body.appendChild(this.#tooltipEl);
+
+    try {
+      // 获取单词翻译
+      const dictResult = await apiMicrosoftDict(word);
+
+      if (dictResult && dictResult.trs) {
+        let content = `<div class="kiss-word-tooltip-header">
+          <span>${word}</span>
+          <button class="kiss-word-tooltip-close" onclick="this.closest('.kiss-word-tooltip').remove()">×</button>
+        </div>`;
+
+        dictResult.trs.slice(0, 3).forEach((tr) => {
+          content += `<div class="kiss-word-definition">${tr.pos ? '<span class="kiss-word-pos">' + tr.pos + "</span> " : ""}${tr.def}</div>`;
+        });
+
+        this.#tooltipEl.innerHTML = content;
+      } else {
+        this.#tooltipEl.innerHTML = `<div class="kiss-word-tooltip-header">
+          <span>${word}</span>
+          <button class="kiss-word-tooltip-close" onclick="this.closest('.kiss-word-tooltip').remove()">×</button>
+        </div>
+        <div class="kiss-word-definition">No definition found</div>`;
+      }
+    } catch (error) {
+      logger.info("Dictionary lookup failed for word:", word, error);
+      this.#tooltipEl.innerHTML = `<div class="kiss-word-tooltip-header">
+        <span>${word}</span>
+        <button class="kiss-word-tooltip-close" onclick="this.closest('.kiss-word-tooltip').remove()">×</button>
+      </div>
+      <div class="kiss-word-definition">Failed to load definition</div>`;
+    }
+  }
+
+  // 隐藏单词提示框
+  #hideWordTooltip() {
+    if (this.#tooltipEl) {
+      this.#tooltipEl.remove();
+      this.#tooltipEl = null;
+    }
   }
 
   /**
@@ -269,9 +495,10 @@ export class BilingualSubtitleManager {
     }
 
     if (subtitle) {
+      // 创建带有单词标记的字幕内容
       const p1 = document.createElement("p");
       p1.style.cssText = this.#setting.originStyle;
-      p1.textContent = truncateWords(subtitle.text);
+      p1.innerHTML = this.#wrapWordsWithSpans(subtitle.text);
 
       const p2 = document.createElement("p");
       p2.style.cssText = this.#setting.translationStyle;
@@ -287,6 +514,16 @@ export class BilingualSubtitleManager {
     } else {
       this.#paperEl.style.display = "none";
     }
+  }
+
+  // 将句子中的每个单词包装在span标签中
+  #wrapWordsWithSpans(text) {
+    // 使用正则表达式分割单词，保留空格和标点符号
+    // 这个正则表达式匹配英文单词（包括带撇号的）
+    return text.replace(
+      /\b([a-zA-Z]+(?:'[a-zA-Z]+)?)\b/g,
+      '<span class="kiss-subtitle-word" data-word="$1">$1</span>'
+    );
   }
 
   /**
