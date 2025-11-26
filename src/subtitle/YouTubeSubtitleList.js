@@ -10,7 +10,7 @@ export class YouTubeSubtitleList {
     this.subtitleData = [];
     this.subtitleDataTime = [];
     this.bilingualSubtitles = [];
-    this.vocabulary = [];
+    this.vocabulary = []; // 现在存储 {word, definition} 对象数组
 
     this.container = null;
     this.subtitleListEl = null;
@@ -25,17 +25,29 @@ export class YouTubeSubtitleList {
 
   handleWordAdded(event) {
     if (event.detail && event.detail.word) {
-      this.addWord(event.detail.word);
+      // 现在可以接收 definition 参数
+      this.addWord(event.detail.word, event.detail.definition);
     }
   }
 
   /**
    * Public method to add a word to the vocabulary list.
    * @param {string} word The word to add.
+   * @param {string} definition The definition of the word.
    */
-  addWord(word) {
-    if (word && !this.vocabulary.includes(word)) {
-      this.vocabulary.push(word);
+  addWord(word, definition = "") {
+    if (word) {
+      // 检查单词是否已存在
+      const existingIndex = this.vocabulary.findIndex(item => item.word === word);
+      if (existingIndex !== -1) {
+        // 如果单词已存在且提供了新的释义，则更新释义
+        if (definition && !this.vocabulary[existingIndex].definition) {
+          this.vocabulary[existingIndex].definition = definition;
+        }
+      } else {
+        // 添加新单词
+        this.vocabulary.push({ word, definition });
+      }
       this._renderVocabulary();
     }
   }
@@ -52,9 +64,14 @@ export class YouTubeSubtitleList {
       margin: 0;
     `;
 
-    this.vocabulary.forEach((word) => {
+    this.vocabulary.forEach((item) => {
       const li = document.createElement("li");
-      li.textContent = word;
+      // 显示单词和释义
+      if (item.definition) {
+        li.innerHTML = `<div><strong>${item.word}</strong></div><div style="margin-top: 4px; font-size: 13px; color: #666;">${item.definition}</div>`;
+      } else {
+        li.innerHTML = `<div>${item.word}</div>`;
+      }
       li.style.cssText = `
         padding: 10px 16px;
         border-bottom: 1px solid #f0f0f0;

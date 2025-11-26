@@ -337,10 +337,6 @@ export class BilingualSubtitleManager {
       this.#tooltipEl.remove();
     }
 
-    // 添加单词到生词本
-    const event = new CustomEvent('kiss-add-word', { detail: { word } });
-    document.dispatchEvent(event);
-
     // 创建提示框
     this.#tooltipEl = document.createElement("div");
     this.#tooltipEl.className = "kiss-word-tooltip";
@@ -372,6 +368,24 @@ export class BilingualSubtitleManager {
     try {
       // 获取单词翻译
       const dictResult = await apiMicrosoftDict(word);
+      
+      // 构造释义字符串（不包括音标和例句）
+      let definition = "";
+      if (dictResult && dictResult.trs) {
+        definition = dictResult.trs
+          .slice(0, 3)
+          .map(tr => `${tr.pos ? tr.pos + " " : ""}${tr.def}`)
+          .join("; ");
+      }
+
+      // 添加单词和释义到生词本
+      const event = new CustomEvent('kiss-add-word', { 
+        detail: { 
+          word,
+          definition
+        } 
+      });
+      document.dispatchEvent(event);
 
       if (dictResult && (dictResult.trs || dictResult.aus || dictResult.sentences)) {
         let content = `<div class="kiss-word-tooltip-header">
@@ -418,6 +432,16 @@ export class BilingualSubtitleManager {
       }
     } catch (error) {
       logger.info("Dictionary lookup failed for word:", word, error);
+      
+      // 即使查询失败，也将单词添加到生词本（无释义）
+      const event = new CustomEvent('kiss-add-word', { 
+        detail: { 
+          word,
+          definition: ""
+        } 
+      });
+      document.dispatchEvent(event);
+      
       this.#tooltipEl.innerHTML = `<div class="kiss-word-tooltip-header">
         <span>${word}</span>
         <button class="kiss-word-tooltip-close" onclick="this.closest('.kiss-word-tooltip').remove()">×</button>
