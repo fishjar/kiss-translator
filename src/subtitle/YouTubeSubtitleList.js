@@ -79,6 +79,7 @@ export class YouTubeSubtitleList {
       border-bottom: 1px solid #eee;
       display: flex;
       justify-content: flex-end;
+      flex-shrink: 0;
     `;
 
     if (this.vocabulary.length > 0) {
@@ -101,14 +102,14 @@ export class YouTubeSubtitleList {
       exportContainer.appendChild(exportButton);
     }
 
-    this.vocabularyListEl.appendChild(exportContainer);
-
     // Create vocabulary list with grouped display
     const vocabListContainer = document.createElement("div");
     vocabListContainer.style.cssText = `
-      overflow: auto;
-      max-height: calc(100vh - 350px);
+      overflow-y: auto;
+      overflow-x: hidden;
+      flex: 1;
       padding: 0 16px;
+      min-height: 0; /* 允许flex项目收缩到更小 */
     `;
 
     const vocabList = document.createElement("div");
@@ -117,6 +118,7 @@ export class YouTubeSubtitleList {
       flex-direction: column;
       gap: 16px;
       padding: 16px 0;
+      width: 100%;
     `;
 
     this.vocabulary.forEach((item) => {
@@ -124,6 +126,8 @@ export class YouTubeSubtitleList {
       vocabItem.style.cssText = `
         padding: 12px;
         border-bottom: 1px solid #eee;
+        word-wrap: break-word;
+        word-break: break-word;
       `;
 
       // Word and phonetic line
@@ -133,6 +137,7 @@ export class YouTubeSubtitleList {
         align-items: center;
         gap: 10px;
         margin-bottom: 8px;
+        flex-wrap: wrap;
       `;
 
       const wordElement = document.createElement("div");
@@ -210,6 +215,7 @@ export class YouTubeSubtitleList {
     });
 
     vocabListContainer.appendChild(vocabList);
+    this.vocabularyListEl.appendChild(exportContainer);
     this.vocabularyListEl.appendChild(vocabListContainer);
   }
 
@@ -378,8 +384,11 @@ export class YouTubeSubtitleList {
     
     const tabContentContainer = document.createElement("div");
     tabContentContainer.style.cssText = `
-        overflow: auto;
+        overflow: hidden;
         flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        height: calc(100% - 40px); /* 减去tab header的高度 */
     `;
 
     // --- Subtitle List Panel ---
@@ -398,23 +407,29 @@ export class YouTubeSubtitleList {
     // --- Vocabulary List Panel ---
     this.vocabularyListEl = document.createElement("div");
     this.vocabularyListEl.id = "kiss-youtube-vocabulary-list";
-    this.vocabularyListEl.style.display = this.activeTab === 'vocabulary' ? 'block' : 'none';
-    this.vocabularyListEl.style.padding = "8px 0 16px 0";
+    // 设置词汇表区域为 flex column 布局
+    this.vocabularyListEl.style.cssText = `
+      display: ${this.activeTab === 'vocabulary' ? 'flex' : 'none'};
+      flex-direction: column;
+      height: 100%;
+      max-height: 100%;
+      overflow: hidden;
+    `;
 
     // --- Tab Switching Logic ---
     subtitleTab.addEventListener('click', () => {
         this.activeTab = 'subtitles';
         styleTab(subtitleTab, true);
         styleTab(vocabularyTab, false);
-        this.subtitleListEl.style.display = 'block';
-        this.vocabularyListEl.style.display = 'none';
+        this.subtitleListEl.style.display = 'flex';
+        this.vocabularyListEl.style.display = 'none'; // 保持为 none
     });
     vocabularyTab.addEventListener('click', () => {
         this.activeTab = 'vocabulary';
         styleTab(subtitleTab, false);
         styleTab(vocabularyTab, true);
         this.subtitleListEl.style.display = 'none';
-        this.vocabularyListEl.style.display = 'block';
+        this.vocabularyListEl.style.display = 'flex'; // 改为 flex
     });
 
     tabHeader.appendChild(subtitleTab);
