@@ -247,6 +247,11 @@ export class BilingualSubtitleManager {
 
       target.classList.add("kiss-word-hover");
 
+      // 停止视频播放
+      if (this.#videoEl && !this.#videoEl.paused) {
+        this.#videoEl.pause();
+      }
+
       // 延迟显示tooltip，避免误触
       this.#hoverTimeout = setTimeout(() => {
         this.#showWordTooltip(
@@ -273,6 +278,10 @@ export class BilingualSubtitleManager {
       // 延迟隐藏tooltip
       this.#hoverTimeout = setTimeout(() => {
         this.#hideWordTooltip();
+        // 恢复视频播放
+        if (this.#videoEl && this.#videoEl.paused) {
+          this.#videoEl.play();
+        }
       }, 100);
     }
 
@@ -282,16 +291,17 @@ export class BilingualSubtitleManager {
       !this.#captionWindowEl.contains(event.relatedTarget)
     ) {
       this.#hideWordTooltip();
+      // 恢复视频播放
+      if (this.#videoEl && this.#videoEl.paused) {
+        this.#videoEl.play();
+      }
     }
   }
 
   // 处理鼠标移动事件
   #handleWordMouseMove(event) {
-    // 更新tooltip位置
-    if (this.#tooltipEl) {
-      this.#tooltipEl.style.left = event.clientX + 15 + "px";
-      this.#tooltipEl.style.top = event.clientY - 15 + "px";
-    }
+    // 不再跟随鼠标移动，保持tooltip在固定位置
+    // 移除之前的逻辑
   }
 
   // 显示单词提示框
@@ -306,8 +316,20 @@ export class BilingualSubtitleManager {
     this.#tooltipEl.className = "kiss-word-tooltip";
     this.#tooltipEl.innerHTML =
       '<div class="kiss-word-loading">Looking up...</div>';
-    this.#tooltipEl.style.left = x + 15 + "px";
-    this.#tooltipEl.style.top = y - 15 + "px";
+    
+    // 将提示框定位在字幕区域上方居中显示
+    const captionRect = this.#captionWindowEl.getBoundingClientRect();
+    const tooltipWidth = 300; // 提示框最大宽度
+    const tooltipHeight = 150; // 提示框估计高度
+    
+    // 水平居中于字幕窗口
+    const left = captionRect.left + (captionRect.width - tooltipWidth) / 2;
+    // 垂直位置在字幕窗口上方
+    const top = captionRect.top - tooltipHeight - 10;
+    
+    this.#tooltipEl.style.left = Math.max(10, left) + "px";
+    this.#tooltipEl.style.top = Math.max(10, top) + "px";
+    this.#tooltipEl.style.maxWidth = tooltipWidth + "px";
 
     document.body.appendChild(this.#tooltipEl);
 
