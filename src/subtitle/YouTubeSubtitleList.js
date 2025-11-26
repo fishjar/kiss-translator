@@ -57,6 +57,37 @@ export class YouTubeSubtitleList {
 
     this.vocabularyListEl.innerHTML = ""; // Clear existing words
 
+    // Create export button
+    const exportContainer = document.createElement("div");
+    exportContainer.style.cssText = `
+      padding: 10px 16px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: flex-end;
+    `;
+
+    if (this.vocabulary.length > 0) {
+      const exportButton = document.createElement("button");
+      exportButton.textContent = "导出JSON";
+      exportButton.style.cssText = `
+        padding: 6px 12px;
+        background: #1e88e5;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+      `;
+      
+      exportButton.addEventListener("click", () => {
+        this.exportVocabularyAsJson();
+      });
+      
+      exportContainer.appendChild(exportButton);
+    }
+
+    this.vocabularyListEl.appendChild(exportContainer);
+
     const wordList = document.createElement("ul");
     wordList.style.cssText = `
       list-style-type: none;
@@ -81,6 +112,32 @@ export class YouTubeSubtitleList {
       wordList.appendChild(li);
     });
     this.vocabularyListEl.appendChild(wordList);
+  }
+
+  /**
+   * Export vocabulary list as JSON file
+   */
+  exportVocabularyAsJson() {
+    if (this.vocabulary.length === 0) return;
+
+    // Create JSON data
+    const jsonData = JSON.stringify(this.vocabulary, null, 2);
+    
+    // Create blob and download
+    const blob = new Blob([jsonData], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `kiss-vocabulary-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    
+    // Clean up
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
   }
 
   initialize(subtitleEvents) {
