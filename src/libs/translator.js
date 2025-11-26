@@ -660,7 +660,7 @@ export class Translator {
         this.#init();
       }
       if (mouseHoverKey.length === 0 && foundNode) {
-        this.#processNode(foundNode);
+        this.#toggleTargetNode(foundNode);
       }
     }, 100);
   }
