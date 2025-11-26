@@ -62,33 +62,45 @@ export class YouTubeSubtitleList {
    */
   updateBilingualSubtitles() {
     if (!this.subtitleListEl) return;
-    
-    const items = this.subtitleListEl.querySelectorAll('.kiss-youtube-item');
+
+    const items = this.subtitleListEl.querySelectorAll(".kiss-youtube-item");
     for (let i = 0; i < items.length && i < this.bilingualSubtitles.length; i++) {
       const item = items[i];
-      
-      // 更新原文
-      const textSpan = item.querySelector('.kiss-youtube-original');
-      if (textSpan && this.bilingualSubtitles[i] && this.bilingualSubtitles[i].text) {
-        textSpan.textContent = this.bilingualSubtitles[i].text;
-      }
-      
-      // 更新翻译字幕
-      const translationEl = item.querySelector('.kiss-youtube-translation');
-      if (translationEl && this.bilingualSubtitles[i] && this.bilingualSubtitles[i].translation) {
-        translationEl.textContent = this.bilingualSubtitles[i].translation;
-        translationEl.style.display = 'block';
-      } else if (translationEl) {
-        translationEl.style.display = 'none';
+      const sub = this.bilingualSubtitles[i];
+
+      if (sub) {
+        // 更新时间和数据集
+        if (typeof sub.start === "number") {
+          item.dataset.time = sub.start;
+          const timeSpan = item.querySelector("span:first-child");
+          if (timeSpan) {
+            timeSpan.textContent = `${this.millisToMinutesAndSeconds(sub.start)} `;
+          }
+        }
+
+        // 更新原文
+        const textSpan = item.querySelector(".kiss-youtube-original");
+        if (textSpan && sub.text) {
+          textSpan.textContent = sub.text;
+        }
+
+        // 更新翻译字幕
+        const translationEl = item.querySelector(".kiss-youtube-translation");
+        if (translationEl && sub.translation) {
+          translationEl.textContent = sub.translation;
+          translationEl.style.display = "block";
+        } else if (translationEl) {
+          translationEl.style.display = "none";
+        }
       }
     }
-    
+
     // 如果有更多字幕项而双语字幕数据较少，则隐藏多余的翻译元素
     for (let i = this.bilingualSubtitles.length; i < items.length; i++) {
       const item = items[i];
-      const translationEl = item.querySelector('.kiss-youtube-translation');
+      const translationEl = item.querySelector(".kiss-youtube-translation");
       if (translationEl) {
-        translationEl.style.display = 'none';
+        translationEl.style.display = "none";
       }
     }
   }
@@ -129,13 +141,13 @@ export class YouTubeSubtitleList {
    */
   createSubtitleList() {
     if (!this.videoEl) return;
-    
+
     // 创建或获取字幕列表容器
     this.container = document.getElementById("kiss-youtube-subtitle-list-container");
     if (!this.container) {
       this.container = document.createElement("div");
       this.container.id = "kiss-youtube-subtitle-list-container";
-      
+
       // 设置容器样式
       Object.assign(this.container.style, {
         height: "calc(100vh - 250px)",
@@ -153,18 +165,19 @@ export class YouTubeSubtitleList {
         minWidth: "320px",
         maxWidth: "400px",
         boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
-        fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif",
+        fontFamily:
+          "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif",
         display: "flex",
-        flexDirection: "column"
+        flexDirection: "column",
       });
-      
+
       // 插入到secondary区域（YouTube右侧栏）
       const secondary = document.getElementById("secondary");
       if (secondary) {
         secondary.prepend(this.container);
       }
     }
-    
+
     // 创建标题
     const titleElement = document.createElement("div");
     titleElement.textContent = "双语字幕列表";
@@ -177,33 +190,41 @@ export class YouTubeSubtitleList {
       border-bottom: 1px solid #eee;
       flex-shrink: 0;
     `;
-    
+
     // 创建字幕列表
     const listElement = document.createElement("div");
     listElement.id = "kiss-youtube-subtitle-list";
-    
+
     const subtitleList = document.createElement("ul");
     subtitleList.style.cssText = `
       list-style-type: none;
       padding: 0;
       margin: 0;
     `;
-    
+
+    // 使用事件委托处理点击事件
+    subtitleList.addEventListener("click", (e) => {
+      const li = e.target.closest(".kiss-youtube-item");
+      if (li && li.dataset.time) {
+        this.videoEl.currentTime = parseFloat(li.dataset.time) / 1000;
+      }
+    });
+
     // 设置列表元素样式，使其可以滚动
     listElement.style.cssText = `
       overflow: auto;
       flex-grow: 1;
       padding: 0 16px 16px 16px;
     `;
-    
+
     // 确定要创建多少个项目
     const itemCount = Math.max(this.bilingualSubtitles.length, this.subtitleData.length);
-    
+
     // 创建字幕项目
     for (let i = 0; i < itemCount; i++) {
       const el = this.subtitleData[i];
       const { segs = [], tStartMs, dDurationMs } = el || {};
-      
+
       const li = document.createElement("li");
       li.id = `kiss-youtube-item-${i}`;
       li.className = "kiss-youtube-item";
@@ -217,10 +238,16 @@ export class YouTubeSubtitleList {
         display: flex;
         align-items: flex-start;
       `;
-      
+
+      // 优先使用 bilingualSubtitles 的时间
+      const subTime = this.bilingualSubtitles[i] ? this.bilingualSubtitles[i].start : el ? tStartMs : null;
+      if (subTime !== null) {
+        li.dataset.time = subTime;
+      }
+
       // 添加时间戳
       const timeSpan = document.createElement("span");
-      timeSpan.textContent = el ? `${this.millisToMinutesAndSeconds(tStartMs)} ` : "--:-- ";
+      timeSpan.textContent = subTime !== null ? `${this.millisToMinutesAndSeconds(subTime)} ` : "--:-- ";
       timeSpan.style.cssText = `
         color: #1e88e5;
         font-weight: 600;
@@ -232,31 +259,18 @@ export class YouTubeSubtitleList {
         flex-shrink: 0;
         line-height: 20px;
       `;
-      
-      // 添加点击事件跳转到指定时间
-      if (el) {
-        timeSpan.addEventListener("click", (ev) => {
-          ev.stopPropagation();
-          this.videoEl.currentTime = tStartMs / 1000;
-        });
-        
-        // 添加整个列表项的点击事件
-        li.addEventListener("click", () => {
-          this.videoEl.currentTime = tStartMs / 1000;
-        });
-      }
-      
+
       // 添加字幕文本容器
       const textContainer = document.createElement("div");
       textContainer.style.cssText = `
         flex-grow: 1;
       `;
-      
+
       // 添加字幕文本（原文）
       const textSpan = document.createElement("div");
       textSpan.className = "kiss-youtube-original";
       if (this.bilingualSubtitles[i]) {
-        textSpan.textContent = this.bilingualSubtitles[i].text || '';
+        textSpan.textContent = this.bilingualSubtitles[i].text || "";
       } else if (el) {
         textSpan.textContent = segs
           .map((k) => k.utf8 || "")
@@ -266,24 +280,24 @@ export class YouTubeSubtitleList {
       } else {
         textSpan.textContent = "";
       }
-      
+
       textSpan.style.cssText = `
         color: #333;
         font-size: 14px;
         line-height: 1.4;
         margin-bottom: 4px;
       `;
-      
+
       // 添加翻译字幕
       const translationEl = document.createElement("div");
       translationEl.className = "kiss-youtube-translation";
       if (this.bilingualSubtitles[i] && this.bilingualSubtitles[i].translation) {
         translationEl.textContent = this.bilingualSubtitles[i].translation;
-        translationEl.style.display = 'block';
+        translationEl.style.display = "block";
       } else {
-        translationEl.style.display = 'none';
+        translationEl.style.display = "none";
       }
-      
+
       translationEl.style.cssText = `
         color: #666;
         font-size: 13px;
@@ -291,37 +305,37 @@ export class YouTubeSubtitleList {
         font-style: italic;
         min-height: 18px;
       `;
-      
+
       // 添加悬停效果
       li.addEventListener("mouseenter", () => {
         li.style.backgroundColor = "rgba(30, 136, 229, 0.05)";
         li.style.transform = "translateX(4px)";
       });
-      
+
       li.addEventListener("mouseleave", () => {
         li.style.backgroundColor = "transparent";
         li.style.transform = "translateX(0)";
       });
-      
+
       // 存储时间信息，用于后续比较
       if (el) {
         li.dataset.startTime = tStartMs;
         li.dataset.endTime = tStartMs + (dDurationMs || 0);
       }
-      
+
       textContainer.appendChild(textSpan);
       textContainer.appendChild(translationEl);
-      
+
       li.appendChild(timeSpan);
       li.appendChild(textContainer);
       subtitleList.appendChild(li);
     }
-    
+
     listElement.appendChild(subtitleList);
     this.container.innerHTML = "";
     this.container.appendChild(titleElement);
     this.container.appendChild(listElement);
-    
+
     this.subtitleListEl = listElement;
   }
 
@@ -351,15 +365,15 @@ export class YouTubeSubtitleList {
    */
   turnOnAutoSub() {
     this.turnOffAutoSub();
-    
+
     this.loopAutoScroll = setInterval(() => {
       if (!this.videoEl) return;
-      
+
       const currentTimeMs = this.videoEl.currentTime * 1000;
-      
-      // 如果有双语字幕数据，使用它来确定当前字幕
+
+      // 查找当前字幕的索引
+      let currentIndex = -1;
       if (this.bilingualSubtitles.length > 0) {
-        let currentIndex = -1;
         for (let i = 0; i < this.bilingualSubtitles.length; i++) {
           const sub = this.bilingualSubtitles[i];
           if (currentTimeMs >= sub.start && currentTimeMs <= sub.end) {
@@ -367,9 +381,7 @@ export class YouTubeSubtitleList {
             break;
           }
         }
-        
         if (currentIndex === -1) {
-          // 如果没有精确匹配，找到最近的
           for (let i = this.bilingualSubtitles.length - 1; i >= 0; i--) {
             if (currentTimeMs >= this.bilingualSubtitles[i].start) {
               currentIndex = i;
@@ -377,72 +389,38 @@ export class YouTubeSubtitleList {
             }
           }
         }
-        
-        if (this.subtitleListEl && currentIndex !== -1) {
-          // 移除之前高亮的项目
-          const allItems = this.subtitleListEl.querySelectorAll('.kiss-youtube-item');
-          allItems.forEach(el => {
-            el.style.color = "inherit";
-            el.style.fontWeight = "normal";
-            el.style.backgroundColor = "transparent";
-            el.style.boxShadow = "none";
-            el.style.transform = "translateX(0)";
-          });
-          
-          // 高亮当前字幕行
-          const liElement = this.subtitleListEl.querySelector(`#kiss-youtube-item-${currentIndex}`);
-          if (liElement) {
-            liElement.style.color = "#1e88e5";
-            liElement.style.fontWeight = "600";
-            liElement.style.backgroundColor = "rgba(30, 136, 229, 0.1)";
-            liElement.style.boxShadow = "0 2px 6px rgba(30, 136, 229, 0.2)";
-            
-            // 自动滚动到可视区域
-            const container = this.subtitleListEl.parentElement;
-            const rect = liElement.getBoundingClientRect();
-            const containerRect = container.getBoundingClientRect();
-            
-            if (rect.bottom > containerRect.bottom - 50) {
-              container.scrollTop += rect.bottom - containerRect.bottom + 50;
-            } else if (rect.top < containerRect.top + 50) {
-              container.scrollTop -= containerRect.top - rect.top + 50;
-            }
-          }
-        }
       } else if (this.subtitleDataTime.length > 0) {
-        // 如果没有双语字幕数据，回退到使用原始时间数据
-        const scrollTo = this.getClosest(this.subtitleDataTime, currentTimeMs);
-        
-        if (this.subtitleListEl) {
-          // 移除之前高亮的项目
-          const allItems = this.subtitleListEl.querySelectorAll('.kiss-youtube-item');
-          allItems.forEach(el => {
-            el.style.color = "inherit";
-            el.style.fontWeight = "normal";
-            el.style.backgroundColor = "transparent";
-            el.style.boxShadow = "none";
-            el.style.transform = "translateX(0)";
+        const closestTime = this.getClosest(this.subtitleDataTime, currentTimeMs);
+        currentIndex = this.subtitleDataTime.indexOf(closestTime);
+      }
+
+      if (this.subtitleListEl && currentIndex !== -1) {
+        // 移除之前高亮的项目
+        const allItems = this.subtitleListEl.querySelectorAll(".kiss-youtube-item");
+        allItems.forEach((el) => {
+          el.style.color = "inherit";
+          el.style.fontWeight = "normal";
+          el.style.backgroundColor = "transparent";
+          el.style.boxShadow = "none";
+          el.style.transform = "translateX(0)";
+        });
+
+        // 高亮当前字幕行
+        const liElement = this.subtitleListEl.querySelector(`#kiss-youtube-item-${currentIndex}`);
+        if (liElement) {
+          liElement.style.color = "#1e88e5";
+          liElement.style.fontWeight = "600";
+          liElement.style.backgroundColor = "rgba(30, 136, 229, 0.1)";
+          liElement.style.boxShadow = "0 2px 6px rgba(30, 136, 229, 0.2)";
+
+          // 自动滚动到可视区域中心
+          const container = this.subtitleListEl;
+          const targetScrollTop = liElement.offsetTop - container.clientHeight / 2 + liElement.clientHeight / 2;
+
+          container.scrollTo({
+            top: targetScrollTop,
+            behavior: "smooth",
           });
-          
-          // 高亮当前字幕行
-          const liElement = this.subtitleListEl.querySelector(`#kiss-youtube-item-${scrollTo}`);
-          if (liElement) {
-            liElement.style.color = "#1e88e5";
-            liElement.style.fontWeight = "600";
-            liElement.style.backgroundColor = "rgba(30, 136, 229, 0.1)";
-            liElement.style.boxShadow = "0 2px 6px rgba(30, 136, 229, 0.2)";
-            
-            // 自动滚动到可视区域
-            const container = this.subtitleListEl.parentElement;
-            const rect = liElement.getBoundingClientRect();
-            const containerRect = container.getBoundingClientRect();
-            
-            if (rect.bottom > containerRect.bottom - 50) {
-              container.scrollTop += rect.bottom - containerRect.bottom + 50;
-            } else if (rect.top < containerRect.top + 50) {
-              container.scrollTop -= containerRect.top - rect.top + 50;
-            }
-          }
         }
       }
     }, 100);
