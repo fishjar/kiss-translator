@@ -1,6 +1,7 @@
 import { logger } from "../libs/log.js";
 import { apiSubtitle } from "../apis/index.js";
 import { BilingualSubtitleManager } from "./BilingualSubtitleManager.js";
+import { YouTubeSubtitleList } from "./YouTubeSubtitleList.js";
 import {
   MSG_XHR_DATA_YOUTUBE,
   APP_NAME,
@@ -41,6 +42,9 @@ class YouTubeCaptionProvider {
   #notificationTimeout = null;
   #i18n = () => "";
   #menuEventName = "kiss-event";
+  
+  // 新增：字幕列表管理器实例
+  #subtitleListManager = null;
 
   constructor(setting = {}) {
     this.#setting = { ...setting, isAISegment: false, showOrigin: false };
@@ -476,6 +480,13 @@ class YouTubeCaptionProvider {
         return;
       }
 
+      // 初始化字幕列表管理器
+      const videoEl = this.#videoEl;
+      if (videoEl && events.length > 0) {
+        this.#subtitleListManager = new YouTubeSubtitleList(videoEl);
+        this.#subtitleListManager.initialize(events);
+      }
+
       const lang = potUrl.searchParams.get("lang");
       const fromLang = this.#getFromLang(lang);
 
@@ -646,6 +657,11 @@ class YouTubeCaptionProvider {
     this.#showNotification(this.#i18n("subtitle_load_succeed"));
 
     this.#hideYtCaption();
+    
+    // 启动字幕列表自动滚动
+    if (this.#subtitleListManager) {
+      this.#subtitleListManager.turnOnAutoSub();
+    }
   }
 
   #destroyManager() {
@@ -659,6 +675,12 @@ class YouTubeCaptionProvider {
     this.#managerInstance = null;
 
     this.#showYtCaption();
+    
+    // 销毁字幕列表
+    if (this.#subtitleListManager) {
+      this.#subtitleListManager.destroy();
+      this.#subtitleListManager = null;
+    }
   }
 
   #hideYtCaption() {
