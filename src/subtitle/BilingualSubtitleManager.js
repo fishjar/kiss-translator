@@ -369,7 +369,20 @@ export class BilingualSubtitleManager {
       // 获取单词翻译
       const dictResult = await apiMicrosoftDict(word);
       
-      // 构造释义字符串（不包括音标和例句）
+      // 构造美式音标字符串
+      let phonetic = "";
+      if (dictResult && dictResult.aus) {
+        // 只使用美式音标
+        const usPhonetic = dictResult.aus.find(au => au.key === "美");
+        if (usPhonetic && usPhonetic.phonetic) {
+          phonetic = `[${usPhonetic.phonetic}]`;
+        } else if (dictResult.aus.length > 0 && dictResult.aus[0].phonetic) {
+          // 如果没有明确标记为"美"的音标，使用第一个音标
+          phonetic = `[${dictResult.aus[0].phonetic}]`;
+        }
+      }
+      
+      // 构造释义字符串
       let definition = "";
       if (dictResult && dictResult.trs) {
         definition = dictResult.trs
@@ -377,12 +390,25 @@ export class BilingualSubtitleManager {
           .map(tr => `${tr.pos ? tr.pos + " " : ""}${tr.def}`)
           .join("; ");
       }
+      
+      // 构造例句数组
+      let examples = [];
+      if (dictResult && dictResult.sentences) {
+        examples = dictResult.sentences
+          .slice(0, 2)
+          .map(sentence => ({
+            eng: sentence.eng,
+            chs: sentence.chs
+          }));
+      }
 
-      // 添加单词和释义到生词本
+      // 添加单词和完整信息到生词本
       const event = new CustomEvent('kiss-add-word', { 
         detail: { 
           word,
-          definition
+          phonetic,  // 现在只包含方括号内的音标，如 [ɪnˈkredəb(ə)l]
+          definition,
+          examples
         } 
       });
       document.dispatchEvent(event);
@@ -433,11 +459,13 @@ export class BilingualSubtitleManager {
     } catch (error) {
       logger.info("Dictionary lookup failed for word:", word, error);
       
-      // 即使查询失败，也将单词添加到生词本（无释义）
+      // 即使查询失败，也将单词添加到生词本（无完整信息）
       const event = new CustomEvent('kiss-add-word', { 
         detail: { 
           word,
-          definition: ""
+          phonetic: "",
+          definition: "",
+          examples: []
         } 
       });
       document.dispatchEvent(event);

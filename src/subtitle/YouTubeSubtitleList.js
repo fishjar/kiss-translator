@@ -10,7 +10,8 @@ export class YouTubeSubtitleList {
     this.subtitleData = [];
     this.subtitleDataTime = [];
     this.bilingualSubtitles = [];
-    this.vocabulary = []; // 现在存储 {word, definition} 对象数组
+    // 现在存储包含完整信息的对象数组：{word, phonetic, definition, examples}
+    this.vocabulary = [];
 
     this.container = null;
     this.subtitleListEl = null;
@@ -25,28 +26,42 @@ export class YouTubeSubtitleList {
 
   handleWordAdded(event) {
     if (event.detail && event.detail.word) {
-      // 现在可以接收 definition 参数
-      this.addWord(event.detail.word, event.detail.definition);
+      // 现在可以接收完整的单词信息
+      this.addWord(
+        event.detail.word, 
+        event.detail.phonetic || "", 
+        event.detail.definition || "", 
+        event.detail.examples || []
+      );
     }
   }
 
   /**
    * Public method to add a word to the vocabulary list.
    * @param {string} word The word to add.
+   * @param {string} phonetic The phonetic of the word.
    * @param {string} definition The definition of the word.
+   * @param {Array} examples The examples of the word usage.
    */
-  addWord(word, definition = "") {
+  addWord(word, phonetic = "", definition = "", examples = []) {
     if (word) {
       // 检查单词是否已存在
       const existingIndex = this.vocabulary.findIndex(item => item.word === word);
       if (existingIndex !== -1) {
-        // 如果单词已存在且提供了新的释义，则更新释义
-        if (definition && !this.vocabulary[existingIndex].definition) {
-          this.vocabulary[existingIndex].definition = definition;
+        // 如果单词已存在且提供了新的信息，则更新信息
+        const currentItem = this.vocabulary[existingIndex];
+        if (phonetic && !currentItem.phonetic) {
+          currentItem.phonetic = phonetic;
+        }
+        if (definition && !currentItem.definition) {
+          currentItem.definition = definition;
+        }
+        if (examples.length > 0 && (!currentItem.examples || currentItem.examples.length === 0)) {
+          currentItem.examples = examples;
         }
       } else {
         // 添加新单词
-        this.vocabulary.push({ word, definition });
+        this.vocabulary.push({ word, phonetic, definition, examples });
       }
       this._renderVocabulary();
     }
@@ -88,30 +103,114 @@ export class YouTubeSubtitleList {
 
     this.vocabularyListEl.appendChild(exportContainer);
 
-    const wordList = document.createElement("ul");
-    wordList.style.cssText = `
-      list-style-type: none;
-      padding: 0;
-      margin: 0;
+    // Create vocabulary list with grouped display
+    const vocabListContainer = document.createElement("div");
+    vocabListContainer.style.cssText = `
+      overflow: auto;
+      max-height: calc(100vh - 350px);
+      padding: 0 16px;
+    `;
+
+    const vocabList = document.createElement("div");
+    vocabList.style.cssText = `
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 16px 0;
     `;
 
     this.vocabulary.forEach((item) => {
-      const li = document.createElement("li");
-      // 显示单词和释义
-      if (item.definition) {
-        li.innerHTML = `<div><strong>${item.word}</strong></div><div style="margin-top: 4px; font-size: 13px; color: #666;">${item.definition}</div>`;
-      } else {
-        li.innerHTML = `<div>${item.word}</div>`;
-      }
-      li.style.cssText = `
-        padding: 10px 16px;
-        border-bottom: 1px solid #f0f0f0;
-        font-size: 14px;
-        color: #333;
+      const vocabItem = document.createElement("div");
+      vocabItem.style.cssText = `
+        padding: 12px;
+        border-bottom: 1px solid #eee;
       `;
-      wordList.appendChild(li);
+
+      // Word and phonetic line
+      const wordLine = document.createElement("div");
+      wordLine.style.cssText = `
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+      `;
+
+      const wordElement = document.createElement("div");
+      wordElement.textContent = item.word;
+      wordElement.style.cssText = `
+        font-weight: bold;
+        font-size: 16px;
+      `;
+
+      let phoneticElement = null;
+      if (item.phonetic) {
+        phoneticElement = document.createElement("div");
+        phoneticElement.textContent = item.phonetic;
+        phoneticElement.style.cssText = `
+          color: #666;
+          font-style: italic;
+          font-size: 14px;
+        `;
+      }
+
+      wordLine.appendChild(wordElement);
+      if (phoneticElement) {
+        wordLine.appendChild(phoneticElement);
+      }
+
+      vocabItem.appendChild(wordLine);
+
+      // Definition line
+      if (item.definition) {
+        const definitionElement = document.createElement("div");
+        definitionElement.textContent = item.definition;
+        definitionElement.style.cssText = `
+          color: #333;
+          margin-bottom: 8px;
+          font-size: 14px;
+          line-height: 1.4;
+        `;
+        vocabItem.appendChild(definitionElement);
+      }
+
+      // Examples line
+      if (item.examples && item.examples.length > 0) {
+        const examplesElement = document.createElement("div");
+        examplesElement.style.cssText = `
+          color: #666;
+          font-size: 13px;
+          line-height: 1.4;
+        `;
+        
+        item.examples.forEach((example, index) => {
+          const exampleElement = document.createElement("div");
+          exampleElement.style.cssText = `
+            margin-bottom: 8px;
+          `;
+          
+          const engExample = document.createElement("div");
+          engExample.textContent = example.eng;
+          
+          const chsExample = document.createElement("div");
+          chsExample.textContent = example.chs;
+          chsExample.style.cssText = `
+            color: #888;
+            font-style: italic;
+          `;
+          
+          exampleElement.appendChild(engExample);
+          exampleElement.appendChild(chsExample);
+          examplesElement.appendChild(exampleElement);
+        });
+        
+        vocabItem.appendChild(examplesElement);
+      }
+
+      vocabList.appendChild(vocabItem);
     });
-    this.vocabularyListEl.appendChild(wordList);
+
+    vocabListContainer.appendChild(vocabList);
+    this.vocabularyListEl.appendChild(vocabListContainer);
   }
 
   /**
@@ -120,7 +219,7 @@ export class YouTubeSubtitleList {
   exportVocabularyAsJson() {
     if (this.vocabulary.length === 0) return;
 
-    // Create JSON data
+    // Create JSON data with all fields
     const jsonData = JSON.stringify(this.vocabulary, null, 2);
     
     // Create blob and download
