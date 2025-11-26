@@ -247,7 +247,7 @@ export default function Settings() {
                 name="transInterval"
                 value={transInterval}
                 onChange={handleChange}
-                min={10}
+                min={1}
                 max={2000}
               />
             </Grid>
@@ -261,7 +261,7 @@ export default function Settings() {
                 value={httpTimeout}
                 onChange={handleChange}
                 min={1000}
-                max={60000}
+                max={600000}
               />
             </Grid>
             <Grid item xs={12} sm={12} md={6} lg={3}>
