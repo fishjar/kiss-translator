@@ -98,6 +98,8 @@ export class BilingualSubtitleManager {
   #throttledTriggerTranslations;
   #tooltipEl = null;
   #hoverTimeout = null; // 用于延迟显示/隐藏tooltip
+  // 新增：回调函数，用于通知外部组件字幕更新
+  #onSubtitleUpdate = null;
 
   /**
    * @param {object} options
@@ -121,6 +123,11 @@ export class BilingualSubtitleManager {
     addWordHoverStyles();
   }
 
+  // 新增：设置字幕更新回调
+  set onSubtitleUpdate(callback) {
+    this.#onSubtitleUpdate = callback;
+  }
+
   /**
    * 启动字幕显示和翻译。
    */
@@ -134,6 +141,11 @@ export class BilingualSubtitleManager {
     this.#createCaptionWindow();
     this.#attachEventListeners();
     this.onTimeUpdate();
+    
+    // 通知外部组件初始字幕数据
+    if (this.#onSubtitleUpdate) {
+      this.#onSubtitleUpdate(this.#formattedSubtitles);
+    }
   }
 
   /**
@@ -583,6 +595,11 @@ export class BilingualSubtitleManager {
         apiSetting,
       });
       subtitle.translation = trText;
+      
+      // 当字幕翻译完成时，通知外部组件更新
+      if (this.#onSubtitleUpdate) {
+        this.#onSubtitleUpdate(this.#formattedSubtitles);
+      }
     } catch (error) {
       logger.info("Translation failed for:", subtitle.text, error);
       subtitle.translation = "[Translation failed]";
@@ -615,6 +632,11 @@ export class BilingualSubtitleManager {
     this.#formattedSubtitles.sort((a, b) => a.start - b.start);
     this.#currentSubtitleIndex = -1;
     this.onTimeUpdate();
+    
+    // 通知外部组件字幕数据已更新
+    if (this.#onSubtitleUpdate) {
+      this.#onSubtitleUpdate(this.#formattedSubtitles);
+    }
   }
 
   updateSetting(obj) {

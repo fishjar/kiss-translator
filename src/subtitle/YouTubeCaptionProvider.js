@@ -480,13 +480,6 @@ class YouTubeCaptionProvider {
         return;
       }
 
-      // 初始化字幕列表管理器
-      const videoEl = this.#videoEl;
-      if (videoEl && events.length > 0) {
-        this.#subtitleListManager = new YouTubeSubtitleList(videoEl);
-        this.#subtitleListManager.initialize(events);
-      }
-
       const lang = potUrl.searchParams.get("lang");
       const fromLang = this.#getFromLang(lang);
 
@@ -507,6 +500,13 @@ class YouTubeCaptionProvider {
 
       this.#flatEvents = flatEvents;
       this.#fromLang = fromLang;
+
+      // 初始化字幕列表管理器
+      const videoEl = this.#videoEl;
+      if (videoEl && events.length > 0) {
+        this.#subtitleListManager = new YouTubeSubtitleList(videoEl);
+        this.#subtitleListManager.initialize(events);
+      }
 
       this.#processEvents({
         videoId,
@@ -652,6 +652,14 @@ class YouTubeCaptionProvider {
       formattedSubtitles: this.#subtitles,
       setting: { ...this.#setting, fromLang: this.#fromLang },
     });
+    
+    // 监听字幕更新事件，将翻译后的字幕传递给字幕列表
+    if (this.#subtitleListManager) {
+      this.#managerInstance.onSubtitleUpdate = (subtitles) => {
+        this.#subtitleListManager.setBilingualSubtitles(subtitles);
+      };
+    }
+    
     this.#managerInstance.start();
 
     this.#showNotification(this.#i18n("subtitle_load_succeed"));
