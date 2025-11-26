@@ -655,9 +655,27 @@ class YouTubeCaptionProvider {
     
     // 监听字幕更新事件，将翻译后的字幕传递给字幕列表
     if (this.#subtitleListManager) {
-      this.#managerInstance.onSubtitleUpdate = (subtitles) => {
-        this.#subtitleListManager.setBilingualSubtitles(subtitles);
+      // 监听字幕更新事件，在字幕翻译完成后更新字幕列表
+      this.#managerInstance.onSubtitleUpdate = (updatedSubtitles) => {
+        const updatedBilingualSubtitles = updatedSubtitles.map(sub => ({
+          start: sub.start,
+          end: sub.end,
+          text: sub.text,
+          translation: sub.translation || ''
+        }));
+        this.#subtitleListManager.setBilingualSubtitles(updatedBilingualSubtitles);
       };
+      
+      // 创建包含翻译信息的双语字幕数据（初始可能没有翻译）
+      const bilingualSubtitles = this.#subtitles.map(sub => ({
+        start: sub.start,
+        end: sub.end,
+        text: sub.text,
+        translation: sub.translation || ''
+      }));
+      
+      // 将双语字幕数据传递给字幕列表
+      this.#subtitleListManager.setBilingualSubtitles(bilingualSubtitles);
     }
     
     this.#managerInstance.start();

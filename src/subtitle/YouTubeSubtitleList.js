@@ -61,23 +61,34 @@ export class YouTubeSubtitleList {
    * 更新双语字幕显示（使用与视频播放区域相同的数据）
    */
   updateBilingualSubtitles() {
-    if (!this.subtitleListEl || this.bilingualSubtitles.length === 0) return;
+    if (!this.subtitleListEl) return;
     
     const items = this.subtitleListEl.querySelectorAll('.kiss-youtube-item');
     for (let i = 0; i < items.length && i < this.bilingualSubtitles.length; i++) {
       const item = items[i];
-      const subtitle = this.bilingualSubtitles[i];
       
       // 更新原文
       const textSpan = item.querySelector('.kiss-youtube-original');
-      if (textSpan && subtitle.text) {
-        textSpan.textContent = subtitle.text;
+      if (textSpan && this.bilingualSubtitles[i] && this.bilingualSubtitles[i].text) {
+        textSpan.textContent = this.bilingualSubtitles[i].text;
       }
       
       // 更新翻译字幕
       const translationEl = item.querySelector('.kiss-youtube-translation');
-      if (translationEl && subtitle.translation) {
-        translationEl.textContent = subtitle.translation;
+      if (translationEl && this.bilingualSubtitles[i] && this.bilingualSubtitles[i].translation) {
+        translationEl.textContent = this.bilingualSubtitles[i].translation;
+        translationEl.style.display = 'block';
+      } else if (translationEl) {
+        translationEl.style.display = 'none';
+      }
+    }
+    
+    // 如果有更多字幕项而双语字幕数据较少，则隐藏多余的翻译元素
+    for (let i = this.bilingualSubtitles.length; i < items.length; i++) {
+      const item = items[i];
+      const translationEl = item.querySelector('.kiss-youtube-translation');
+      if (translationEl) {
+        translationEl.style.display = 'none';
       }
     }
   }
@@ -259,6 +270,9 @@ export class YouTubeSubtitleList {
       translationEl.className = "kiss-youtube-translation";
       if (this.bilingualSubtitles[i] && this.bilingualSubtitles[i].translation) {
         translationEl.textContent = this.bilingualSubtitles[i].translation;
+        translationEl.style.display = 'block';
+      } else {
+        translationEl.style.display = 'none';
       }
       
       translationEl.style.cssText = `

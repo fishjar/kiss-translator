@@ -77,6 +77,32 @@ const addWordHoverStyles = () => {
       color: #4fc3f7;
       font-weight: bold;
     }
+    
+    .kiss-word-phonetic {
+      color: #bbb;
+      font-style: italic;
+      margin-right: 10px;
+    }
+    
+    .kiss-word-example {
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid #444;
+    }
+    
+    .kiss-word-example-title {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    
+    .kiss-word-example-sentence {
+      margin-bottom: 3px;
+    }
+    
+    .kiss-word-example-translation {
+      color: #bbb;
+      font-style: italic;
+    }
   `;
   document.head.appendChild(style);
 };
@@ -98,8 +124,6 @@ export class BilingualSubtitleManager {
   #throttledTriggerTranslations;
   #tooltipEl = null;
   #hoverTimeout = null; // 用于延迟显示/隐藏tooltip
-  // 新增：回调函数，用于通知外部组件字幕更新
-  #onSubtitleUpdate = null;
 
   /**
    * @param {object} options
@@ -123,11 +147,6 @@ export class BilingualSubtitleManager {
     addWordHoverStyles();
   }
 
-  // 新增：设置字幕更新回调
-  set onSubtitleUpdate(callback) {
-    this.#onSubtitleUpdate = callback;
-  }
-
   /**
    * 启动字幕显示和翻译。
    */
@@ -141,11 +160,6 @@ export class BilingualSubtitleManager {
     this.#createCaptionWindow();
     this.#attachEventListeners();
     this.onTimeUpdate();
-    
-    // 通知外部组件初始字幕数据
-    if (this.#onSubtitleUpdate) {
-      this.#onSubtitleUpdate(this.#formattedSubtitles);
-    }
   }
 
   /**
@@ -349,15 +363,40 @@ export class BilingualSubtitleManager {
       // 获取单词翻译
       const dictResult = await apiMicrosoftDict(word);
 
-      if (dictResult && dictResult.trs) {
+      if (dictResult && (dictResult.trs || dictResult.aus || dictResult.sentences)) {
         let content = `<div class="kiss-word-tooltip-header">
           <span>${word}</span>
           <button class="kiss-word-tooltip-close" onclick="this.closest('.kiss-word-tooltip').remove()">×</button>
         </div>`;
 
-        dictResult.trs.slice(0, 3).forEach((tr) => {
-          content += `<div class="kiss-word-definition">${tr.pos ? '<span class="kiss-word-pos">' + tr.pos + "</span> " : ""}${tr.def}</div>`;
-        });
+        // 显示音标
+        if (dictResult.aus && dictResult.aus.length > 0) {
+          content += '<div>';
+          dictResult.aus.forEach((au) => {
+            if (au.phonetic) {
+              content += `<span class="kiss-word-phonetic">${au.key} [${au.phonetic}]</span>`;
+            }
+          });
+          content += '</div>';
+        }
+
+        // 显示释义
+        if (dictResult.trs) {
+          dictResult.trs.slice(0, 3).forEach((tr) => {
+            content += `<div class="kiss-word-definition">${tr.pos ? '<span class="kiss-word-pos">' + tr.pos + "</span> " : ""}${tr.def}</div>`;
+          });
+        }
+
+        // 显示例句
+        if (dictResult.sentences && dictResult.sentences.length > 0) {
+          content += `<div class="kiss-word-example">
+            <div class="kiss-word-example-title">例句</div>`;
+          dictResult.sentences.slice(0, 2).forEach((sentence) => {
+            content += `<div class="kiss-word-example-sentence">${sentence.eng}</div>
+              <div class="kiss-word-example-translation">${sentence.chs}</div>`;
+          });
+          content += '</div>';
+        }
 
         this.#tooltipEl.innerHTML = content;
       } else {
@@ -595,11 +634,6 @@ export class BilingualSubtitleManager {
         apiSetting,
       });
       subtitle.translation = trText;
-      
-      // 当字幕翻译完成时，通知外部组件更新
-      if (this.#onSubtitleUpdate) {
-        this.#onSubtitleUpdate(this.#formattedSubtitles);
-      }
     } catch (error) {
       logger.info("Translation failed for:", subtitle.text, error);
       subtitle.translation = "[Translation failed]";
@@ -611,6 +645,11 @@ export class BilingualSubtitleManager {
       );
       if (this.#formattedSubtitles[currentSubtitleIndexNow] === subtitle) {
         this.#updateCaptionDisplay(subtitle);
+      }
+      
+      // 通知外部组件字幕已更新
+      if (this.onSubtitleUpdate) {
+        this.onSubtitleUpdate(this.#formattedSubtitles);
       }
     }
   }
@@ -633,9 +672,9 @@ export class BilingualSubtitleManager {
     this.#currentSubtitleIndex = -1;
     this.onTimeUpdate();
     
-    // 通知外部组件字幕数据已更新
-    if (this.#onSubtitleUpdate) {
-      this.#onSubtitleUpdate(this.#formattedSubtitles);
+    // 通知外部组件字幕已更新
+    if (this.onSubtitleUpdate) {
+      this.onSubtitleUpdate(this.#formattedSubtitles);
     }
   }
 
