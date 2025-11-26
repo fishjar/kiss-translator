@@ -17,6 +17,7 @@ import EventNoteIcon from "@mui/icons-material/EventNote";
 import MouseIcon from "@mui/icons-material/Mouse";
 import SubtitlesIcon from "@mui/icons-material/Subtitles";
 import FormatColorText from "@mui/icons-material/FormatColorText";
+import BugReportIcon from '@mui/icons-material/BugReport';
 
 function LinkItem({ label, url, icon }) {
   const match = useMatch(url);
@@ -95,7 +96,7 @@ export default function Navigator(props) {
       id: "playground",
       label: "Playground",
       url: "/playground",
-      icon: <EventNoteIcon />,
+      icon: <BugReportIcon />,
     },
     { id: "about", label: i18n("about"), url: "/about", icon: <InfoIcon /> },
   ];
