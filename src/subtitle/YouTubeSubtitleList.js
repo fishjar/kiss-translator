@@ -138,12 +138,12 @@ export class YouTubeSubtitleList {
       
       // 设置容器样式
       Object.assign(this.container.style, {
-        height: "100%",
-        maxHeight: "400px",
+        height: "calc(100vh - 250px)",
+        maxHeight: "none",
         zIndex: "999",
         background: "rgba(255, 255, 255, 0.9)",
         backdropFilter: "blur(10px)",
-        top: "0",
+        top: "60px",
         right: "0",
         fontSize: "14px",
         padding: "16px",

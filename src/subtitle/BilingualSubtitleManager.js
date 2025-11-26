@@ -343,19 +343,25 @@ export class BilingualSubtitleManager {
     this.#tooltipEl.innerHTML =
       '<div class="kiss-word-loading">Looking up...</div>';
     
-    // 将提示框定位在字幕区域上方居中显示
-    const captionRect = this.#captionWindowEl.getBoundingClientRect();
-    const tooltipWidth = 300; // 提示框最大宽度
-    const tooltipHeight = 150; // 提示框估计高度
-    
-    // 水平居中于字幕窗口
-    const left = captionRect.left + (captionRect.width - tooltipWidth) / 2;
-    // 垂直位置在字幕窗口上方
-    const top = captionRect.top - tooltipHeight - 10;
-    
-    this.#tooltipEl.style.left = Math.max(10, left) + "px";
-    this.#tooltipEl.style.top = Math.max(10, top) + "px";
-    this.#tooltipEl.style.maxWidth = tooltipWidth + "px";
+    // 将提示框定位在播放器右上角
+    const videoContainer = this.#videoEl.parentElement?.parentElement;
+    if (videoContainer) {
+      const containerRect = videoContainer.getBoundingClientRect();
+      const tooltipWidth = 300;
+      const tooltipHeight = 400;
+      
+      // 定位在播放器右上角，距离右边缘40px，上下边缘各20px
+      const left = containerRect.right - tooltipWidth - 45;
+      const top = containerRect.top + 20;
+      
+      // 确保提示框不会超出浏览器窗口右边界
+      const maxLeft = window.innerWidth - tooltipWidth - 10;
+      this.#tooltipEl.style.left = Math.min(maxLeft, Math.max(10, left)) + "px";
+      this.#tooltipEl.style.top = Math.max(10, top) + "px";
+      this.#tooltipEl.style.maxWidth = tooltipWidth + "px";
+      this.#tooltipEl.style.maxHeight = tooltipHeight + "px";
+      this.#tooltipEl.style.overflow = "auto";
+    }
 
     document.body.appendChild(this.#tooltipEl);
 
