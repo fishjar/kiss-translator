@@ -337,6 +337,10 @@ export class BilingualSubtitleManager {
       this.#tooltipEl.remove();
     }
 
+    // 添加单词到生词本
+    const event = new CustomEvent('kiss-add-word', { detail: { word } });
+    document.dispatchEvent(event);
+
     // 创建提示框
     this.#tooltipEl = document.createElement("div");
     this.#tooltipEl.className = "kiss-word-tooltip";

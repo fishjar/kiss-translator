@@ -55,6 +55,13 @@ export default function TranForm({
   const [deLoading, setDeLoading] = useState(false);
 
   useEffect(() => {
+    if (isValidWord(text)) {
+      const event = new CustomEvent('kiss-add-word', { detail: { word: text } });
+      document.dispatchEvent(event);
+    }
+  }, [text]);
+
+  useEffect(() => {
     if (!editMode) {
       setEditText(text);
     }
