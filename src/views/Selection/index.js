@@ -234,7 +234,7 @@ export default function Slection({
 
       return () => {
         menuCommandIds.forEach((id) => {
-          GM.unregisterMenuCommand(id);
+          GM?.unregisterMenuCommand?.(id);
         });
       };
     } catch (err) {

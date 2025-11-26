@@ -116,7 +116,7 @@ export default class TranslatorManager {
     // 油猴菜单
     if (globalThis.GM && this.#menuCommandIds.length > 0) {
       this.#menuCommandIds.forEach((id) =>
-        globalThis.GM.unregisterMenuCommand(id)
+        globalThis.GM.unregisterMenuCommand?.(id)
       );
       this.#menuCommandIds = [];
     }
