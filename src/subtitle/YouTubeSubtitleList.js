@@ -208,16 +208,23 @@ export class YouTubeSubtitleList {
         word-break: break-word;
       `;
 
-      // Word element
+      // Word and phonetic line
+      const wordLine = document.createElement("div");
+      wordLine.style.cssText = `
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+        flex-wrap: wrap;
+      `;
+
       const wordElement = document.createElement("div");
       wordElement.textContent = item.word;
       wordElement.style.cssText = `
         font-weight: bold;
         font-size: 16px;
-        margin-bottom: 4px;
       `;
 
-      // Phonetic element
       let phoneticElement = null;
       if (item.phonetic) {
         phoneticElement = document.createElement("div");
@@ -226,18 +233,22 @@ export class YouTubeSubtitleList {
           color: #666;
           font-style: italic;
           font-size: 14px;
-          margin-bottom: 4px;
         `;
       }
       
       // 时间戳元素
       let timestampElement = null;
       if (item.timestamp) {
-        timestampElement = document.createElement("div");
+        timestampElement = document.createElement("button");
         timestampElement.textContent = `${this.millisToMinutesAndSeconds(item.timestamp)}`;
         timestampElement.style.cssText = `
           color: #1e88e5;
+          background: none;
+          border: none;
+          padding: 0 4px;
           font-size: 14px;
+          cursor: pointer;
+          text-transform: none;
         `;
         
         // 点击时间戳跳转到对应时间
@@ -251,13 +262,15 @@ export class YouTubeSubtitleList {
         });
       }
 
-      vocabItem.appendChild(wordElement);
+      wordLine.appendChild(wordElement);
       if (phoneticElement) {
-        vocabItem.appendChild(phoneticElement);
+        wordLine.appendChild(phoneticElement);
       }
       if (timestampElement) {
-        vocabItem.appendChild(timestampElement);
+        wordLine.appendChild(timestampElement);
       }
+
+      vocabItem.appendChild(wordLine);
 
       // Definition line
       if (item.definition) {
