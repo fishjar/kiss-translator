@@ -131,12 +131,17 @@ export default function FavWords() {
     }
 
     const lines = [];
+    lines.push("生词本导出文件");
+    lines.push(`导出时间: ${new Date().toLocaleString('zh-CN')}`);
+    lines.push("");
     
     fullWordData.forEach((item, index) => {
       lines.push(`${index + 1}. ${item.word}`);
       
-      if (item.phonetic) {
-        lines.push(`   音标: ${item.phonetic}`);
+      // 清理音标，去除"US"标签和其他方括号，只保留音标本身，并用方括号包裹
+      const cleanPhonetic = item.phonetic ? item.phonetic.replace(/US\s*/g, '').replace(/[\[\]]/g, '') : "";
+      if (cleanPhonetic) {
+        lines.push(`   音标: [${cleanPhonetic}]`);
       }
       
       if (item.definition) {
@@ -156,10 +161,8 @@ export default function FavWords() {
       // 如果有时间戳，也导出时间信息
       if (item.timestamp) {
         const totalSeconds = Math.floor(item.timestamp / 1000);
-        const minutes = Math.floor(totalSeconds / 60);
-        const seconds = totalSeconds % 60;
-        const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-        lines.push(`   时间戳: ${timeStr}`);
+        const videoLink = `https://www.youtube.com/watch?t=${totalSeconds}`;
+        lines.push(`   视频链接: ${videoLink}`);
       }
       
       lines.push(""); // 空行分隔
@@ -186,7 +189,7 @@ export default function FavWords() {
     }
 
     // 创建包含多个例句列的表头
-    const header = "Word,Phonetic,Definition,Example1,Translation1,Example2,Translation2,Timestamp";
+    const header = "Word,Phonetic,Definition,Example1,Translation1,Example2,Translation2,Video Link";
     const rows = fullWordData.map(item => {
       // 转义特殊字符，特别是双引号
       const escapeCSVField = (field) => {
@@ -195,7 +198,9 @@ export default function FavWords() {
         return `"${field.toString().replace(/"/g, '""')}"`;
       };
 
-      const phonetic = item.phonetic || "";
+      // 清理音标，去除"US"标签和其他方括号，只保留音标本身，并用方括号包裹
+      const cleanPhonetic = item.phonetic ? item.phonetic.replace(/US\s*/g, '').replace(/[\[\]]/g, '') : "";
+      const phonetic = cleanPhonetic ? `[${cleanPhonetic}]` : "";
       const definition = item.definition || "";
       
       // 获取前两个例句及其翻译
@@ -214,23 +219,21 @@ export default function FavWords() {
         translation2 = item.examples[1].chs || "";
       }
       
-      // 格式化时间戳
-      let timestamp = "";
+      // 创建YouTube链接
+      let videoLink = "";
       if (item.timestamp) {
+        // 由于在选项页面无法获取具体的视频ID，我们只能提供时间参数
         const totalSeconds = Math.floor(item.timestamp / 1000);
-        const minutes = Math.floor(totalSeconds / 60);
-        const seconds = totalSeconds % 60;
-        timestamp = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        videoLink = `https://www.youtube.com/watch?t=${totalSeconds}`;
       }
 
-      return `${escapeCSVField(item.word)},${escapeCSVField(phonetic)},${escapeCSVField(definition)},${escapeCSVField(example1)},${escapeCSVField(translation1)},${escapeCSVField(example2)},${escapeCSVField(translation2)},${escapeCSVField(timestamp)}`;
+      return `${escapeCSVField(item.word)},${escapeCSVField(phonetic)},${escapeCSVField(definition)},${escapeCSVField(example1)},${escapeCSVField(translation1)},${escapeCSVField(example2)},${escapeCSVField(translation2)},${escapeCSVField(videoLink)}`;
     });
 
     // 创建CSV内容，添加说明行和表头
     const csvContent = [
-      // 添加文件信息
+      // 添加文件信息（在实际使用中，这应该是视频标题和链接）
       `"生词本导出文件",,,,,,,`,
-      `"导出时间: ${new Date().toLocaleString('zh-CN')}",,,,,,,`,
       `,,,,,,,,`,
       // 表头
       header,
@@ -260,14 +263,17 @@ export default function FavWords() {
     }
 
     const lines = [];
-    lines.push("# 生词本 Vocabulary");
+    lines.push("# 生词本导出文件");
+    lines.push(`_导出时间: ${new Date().toLocaleString('zh-CN')}_`);
     lines.push("");
     
     fullWordData.forEach((item, index) => {
       lines.push(`${index + 1}. **${item.word}**`);
       
-      if (item.phonetic) {
-        lines.push(`   *音标 Phonetic:* ${item.phonetic}`);
+      // 清理音标，去除"US"标签和其他方括号，只保留音标本身，并用方括号包裹
+      const cleanPhonetic = item.phonetic ? item.phonetic.replace(/US\s*/g, '').replace(/[\[\]]/g, '') : "";
+      if (cleanPhonetic) {
+        lines.push(`   *音标 Phonetic:* [${cleanPhonetic}]`);
       }
       
       if (item.definition) {
@@ -287,10 +293,8 @@ export default function FavWords() {
       // 如果有时间戳，也导出时间信息
       if (item.timestamp) {
         const totalSeconds = Math.floor(item.timestamp / 1000);
-        const minutes = Math.floor(totalSeconds / 60);
-        const seconds = totalSeconds % 60;
-        const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-        lines.push(`   *时间戳 Timestamp:* ${timeStr}`);
+        const videoLink = `https://www.youtube.com/watch?t=${totalSeconds}`;
+        lines.push(`   *视频链接 Video Link:* [跳转到视频时间点](${videoLink})`);
       }
       
       lines.push(""); // 空行分隔

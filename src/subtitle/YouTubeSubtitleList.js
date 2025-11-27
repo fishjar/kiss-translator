@@ -228,7 +228,9 @@ export class YouTubeSubtitleList {
       let phoneticElement = null;
       if (item.phonetic) {
         phoneticElement = document.createElement("div");
-        phoneticElement.textContent = `[${item.phonetic}]`;
+        // 只显示音标本身，并用方括号包围，去除任何可能存在的"US"标签
+        const cleanPhonetic = item.phonetic.replace(/US\s*/g, '').replace(/[\[\]]/g, '');
+        phoneticElement.textContent = `[${cleanPhonetic}]`;
         phoneticElement.style.cssText = `
           color: #666;
           font-style: italic;
@@ -336,6 +338,20 @@ export class YouTubeSubtitleList {
     // Get the video ID from the current YouTube page
     const videoId = this._getYouTubeVideoId();
     
+    // Process vocabulary data to clean phonetic symbols
+    const processedVocabulary = this.vocabulary.map(item => {
+      // Create a copy of the item
+      const newItem = { ...item };
+      
+      // Clean phonetic - remove "US" label and brackets, then wrap with brackets
+      if (item.phonetic) {
+        const cleanPhonetic = item.phonetic.replace(/US\s*/g, '').replace(/[\[\]]/g, '');
+        newItem.phonetic = cleanPhonetic ? `[${cleanPhonetic}]` : "";
+      }
+      
+      return newItem;
+    });
+
     // Create data with video information
     const exportData = {
       videoInfo: {
@@ -343,7 +359,7 @@ export class YouTubeSubtitleList {
         url: videoId ? `https://www.youtube.com/watch?v=${videoId}` : '',
         exportTime: new Date().toISOString()
       },
-      vocabulary: this.vocabulary
+      vocabulary: processedVocabulary
     };
 
     // Create JSON data with all fields
@@ -387,7 +403,9 @@ export class YouTubeSubtitleList {
         return `"${field.toString().replace(/"/g, '""')}"`;
       };
 
-      const phonetic = item.phonetic || "";
+      // 清理音标，去除"US"标签和其他方括号，只保留音标本身，并用方括号包裹
+      const cleanPhonetic = item.phonetic ? item.phonetic.replace(/US\s*/g, '').replace(/[\[\]]/g, '') : "";
+      const phonetic = cleanPhonetic ? `[${cleanPhonetic}]` : "";
       const definition = item.definition || "";
       
       // 获取前两个例句及其翻译
@@ -474,8 +492,10 @@ export class YouTubeSubtitleList {
     this.vocabulary.forEach((item, index) => {
       lines.push(`${index + 1}. ${item.word}`);
       
-      if (item.phonetic) {
-        lines.push(`   音标: ${item.phonetic}`);
+      // 清理音标，去除"US"标签和其他方括号，只保留音标本身，并用方括号包裹
+      const cleanPhonetic = item.phonetic ? item.phonetic.replace(/US\s*/g, '').replace(/[\[\]]/g, '') : "";
+      if (cleanPhonetic) {
+        lines.push(`   音标: [${cleanPhonetic}]`);
       }
       
       if (item.definition) {
@@ -545,8 +565,10 @@ export class YouTubeSubtitleList {
     this.vocabulary.forEach((item, index) => {
       lines.push(`${index + 1}. **${item.word}**`);
       
-      if (item.phonetic) {
-        lines.push(`   *音标 Phonetic:* ${item.phonetic}`);
+      // 清理音标，去除"US"标签和其他方括号，只保留音标本身，并用方括号包裹
+      const cleanPhonetic = item.phonetic ? item.phonetic.replace(/US\s*/g, '').replace(/[\[\]]/g, '') : "";
+      if (cleanPhonetic) {
+        lines.push(`   *音标 Phonetic:* [${cleanPhonetic}]`);
       }
       
       if (item.definition) {
