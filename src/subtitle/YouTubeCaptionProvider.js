@@ -1,6 +1,7 @@
 import { logger } from "../libs/log.js";
 import { apiSubtitle } from "../apis/index.js";
 import { BilingualSubtitleManager } from "./BilingualSubtitleManager.js";
+import { YouTubeSubtitleList } from "./YouTubeSubtitleList.js";
 import {
   MSG_XHR_DATA_YOUTUBE,
   APP_NAME,
@@ -41,6 +42,9 @@ class YouTubeCaptionProvider {
   #notificationTimeout = null;
   #i18n = () => "";
   #menuEventName = "kiss-event";
+  
+  // 新增：字幕列表管理器实例
+  #subtitleListManager = null;
 
   constructor(setting = {}) {
     this.#setting = { ...setting, isAISegment: false, showOrigin: false };
@@ -497,6 +501,13 @@ class YouTubeCaptionProvider {
       this.#flatEvents = flatEvents;
       this.#fromLang = fromLang;
 
+      // 初始化字幕列表管理器
+      const videoEl = this.#videoEl;
+      if (videoEl && events.length > 0) {
+        this.#subtitleListManager = new YouTubeSubtitleList(videoEl);
+        this.#subtitleListManager.initialize(events);
+      }
+
       this.#processEvents({
         videoId,
         flatEvents,
@@ -641,11 +652,42 @@ class YouTubeCaptionProvider {
       formattedSubtitles: this.#subtitles,
       setting: { ...this.#setting, fromLang: this.#fromLang },
     });
+    
+    // 监听字幕更新事件，将翻译后的字幕传递给字幕列表
+    if (this.#subtitleListManager) {
+      // 监听字幕更新事件，在字幕翻译完成后更新字幕列表
+      this.#managerInstance.onSubtitleUpdate = (updatedSubtitles) => {
+        const updatedBilingualSubtitles = updatedSubtitles.map(sub => ({
+          start: sub.start,
+          end: sub.end,
+          text: sub.text,
+          translation: sub.translation || ''
+        }));
+        this.#subtitleListManager.setBilingualSubtitles(updatedBilingualSubtitles);
+      };
+      
+      // 创建包含翻译信息的双语字幕数据（初始可能没有翻译）
+      const bilingualSubtitles = this.#subtitles.map(sub => ({
+        start: sub.start,
+        end: sub.end,
+        text: sub.text,
+        translation: sub.translation || ''
+      }));
+      
+      // 将双语字幕数据传递给字幕列表
+      this.#subtitleListManager.setBilingualSubtitles(bilingualSubtitles);
+    }
+    
     this.#managerInstance.start();
 
     this.#showNotification(this.#i18n("subtitle_load_succeed"));
 
     this.#hideYtCaption();
+    
+    // 启动字幕列表自动滚动
+    if (this.#subtitleListManager) {
+      this.#subtitleListManager.turnOnAutoSub();
+    }
   }
 
   #destroyManager() {
@@ -659,6 +701,12 @@ class YouTubeCaptionProvider {
     this.#managerInstance = null;
 
     this.#showYtCaption();
+    
+    // 销毁字幕列表
+    if (this.#subtitleListManager) {
+      this.#subtitleListManager.destroy();
+      this.#subtitleListManager = null;
+    }
   }
 
   #hideYtCaption() {
