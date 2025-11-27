@@ -115,9 +115,7 @@ export default class TranslatorManager {
 
     // 油猴菜单
     if (globalThis.GM && this.#menuCommandIds.length > 0) {
-      this.#menuCommandIds.forEach((id) =>
-        globalThis.GM.unregisterMenuCommand?.(id)
-      );
+      this.#menuCommandIds.forEach((id) => GM.unregisterMenuCommand?.(id));
       this.#menuCommandIds = [];
     }
 
@@ -220,24 +218,24 @@ export default class TranslatorManager {
     if (contextMenuType === 0) return;
 
     const i18n = newI18n(uiLang || "zh");
-    const GM = globalThis.GM;
+
     this.#menuCommandIds = [
-      GM.registerMenuCommand(
+      GM.registerMenuCommand?.(
         i18n("translate_switch"),
         () => this.#processActions({ action: MSG_TRANS_TOGGLE }),
         "Q"
       ),
-      GM.registerMenuCommand(
+      GM.registerMenuCommand?.(
         i18n("toggle_style"),
         () => this.#processActions({ action: MSG_TRANS_TOGGLE_STYLE }),
         "C"
       ),
-      GM.registerMenuCommand(
+      GM.registerMenuCommand?.(
         i18n("open_menu"),
         () => this.#processActions({ action: MSG_POPUP_TOGGLE }),
         "K"
       ),
-      GM.registerMenuCommand(
+      GM.registerMenuCommand?.(
         i18n("open_setting"),
         () => window.open(process.env.REACT_APP_OPTIONSPAGE, "_blank"),
         "O"

@@ -2,7 +2,8 @@ const paths = require("react-scripts/config/paths");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const { WebpackManifestPlugin } = require("webpack-manifest-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
-const webpack = require("webpack");
+const TerserPlugin = require("terser-webpack-plugin");
+// const webpack = require("webpack");
 
 console.log("process.env.REACT_APP_CLIENT", process.env.REACT_APP_CLIENT);
 
@@ -86,12 +87,19 @@ const userscriptWebpack = (config, env) => {
 // @downloadURL   ${process.env.REACT_APP_USERSCRIPT_DOWNLOADURL}
 // @updateURL     ${process.env.REACT_APP_USERSCRIPT_DOWNLOADURL}
 // @grant         GM.xmlHttpRequest
+// @grant         GM_xmlhttpRequest
 // @grant         GM.registerMenuCommand
+// @grant         GM_registerMenuCommand
 // @grant         GM.unregisterMenuCommand
+// @grant         GM_unregisterMenuCommand
 // @grant         GM.setValue
+// @grant         GM_setValue
 // @grant         GM.getValue
+// @grant         GM_getValue
 // @grant         GM.deleteValue
+// @grant         GM_deleteValue
 // @grant         GM.info
+// @grant         GM_info
 // @grant         unsafeWindow
 // @connect       translate.googleapis.com
 // @connect       translate-pa.googleapis.com
@@ -139,7 +147,23 @@ const userscriptWebpack = (config, env) => {
   config.output.publicPath = env === "production" ? "./" : "/";
   config.optimization.splitChunks = { cacheGroups: { default: false } };
   config.optimization.runtimeChunk = false;
-  config.optimization.minimize = false;
+  config.optimization.minimize = env === "production";
+
+  if (config.optimization.minimize) {
+    config.optimization.minimizer = [
+      new TerserPlugin({
+        extractComments: false,
+        terserOptions: {
+          format: {
+            comments: false,
+            preamble: banner,
+          },
+        },
+      }),
+    ];
+  }
+
+  if (env === "production") config.devtool = false;
 
   config.plugins = config.plugins.filter(
     (plugin) => !names.includes(plugin.constructor.name)
@@ -157,13 +181,13 @@ const userscriptWebpack = (config, env) => {
       chunks: ["options"],
       template: paths.appHtml,
       filename: "options.html",
-    }),
-    new webpack.BannerPlugin({
-      banner,
-      raw: true,
-      entryOnly: true,
-      include: "kiss-translator.user",
     })
+    // new webpack.BannerPlugin({
+    //   banner,
+    //   raw: true,
+    //   entryOnly: true,
+    //   include: "kiss-translator.user",
+    // })
   );
 
   return config;

@@ -19,7 +19,7 @@ import TranslatorManager from "./libs/translatorManager";
  * 油猴脚本设置页面
  */
 function runSettingPage() {
-  if (GM?.info?.script?.grant?.includes("unsafeWindow")) {
+  if (GM.info?.script?.grant?.includes("unsafeWindow")) {
     unsafeWindow.GM = GM;
     unsafeWindow.APP_INFO = {
       name: process.env.REACT_APP_NAME,
@@ -135,14 +135,28 @@ export async function run(isUserscript = false) {
 
     const href = document?.location?.href || "";
 
-    // 设置页面
-    if (
-      isUserscript &&
-      (href.includes(process.env.REACT_APP_OPTIONSPAGE_DEV) ||
-        href.includes(process.env.REACT_APP_OPTIONSPAGE))
-    ) {
-      runSettingPage();
-      return;
+    // 油猴脚本
+    if (isUserscript) {
+      if (!globalThis.GM) {
+        globalThis.GM = {
+          xmlHttpRequest: globalThis.GM_xmlhttpRequest,
+          registerMenuCommand: globalThis.GM_registerMenuCommand,
+          unregisterMenuCommand: globalThis.GM_unregisterMenuCommand,
+          setValue: globalThis.GM_setValue,
+          getValue: globalThis.GM_getValue,
+          deleteValue: globalThis.GM_deleteValue,
+          info: globalThis.GM_info,
+        };
+      }
+
+      // 设置页面
+      if (
+        href.includes(process.env.REACT_APP_OPTIONSPAGE_DEV) ||
+        href.includes(process.env.REACT_APP_OPTIONSPAGE)
+      ) {
+        runSettingPage();
+        return;
+      }
     }
 
     // 黑名单

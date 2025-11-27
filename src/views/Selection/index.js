@@ -223,7 +223,7 @@ export default function Slection({
       const menuCommandIds = [];
       contextMenuType !== 0 &&
         menuCommandIds.push(
-          GM.registerMenuCommand(
+          GM.registerMenuCommand?.(
             langMap("translate_selected_text"),
             (event) => {
               handleTranbox();
@@ -234,7 +234,7 @@ export default function Slection({
 
       return () => {
         menuCommandIds.forEach((id) => {
-          GM?.unregisterMenuCommand?.(id);
+          GM.unregisterMenuCommand?.(id);
         });
       };
     } catch (err) {
