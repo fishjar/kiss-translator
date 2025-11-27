@@ -186,7 +186,7 @@ export default function FavWords() {
     }
 
     // 创建包含多个例句列的表头
-    const header = "Word,Phonetic,Definition,Example1,Translation1,Example2,Translation2";
+    const header = "Word,Phonetic,Definition,Example1,Translation1,Example2,Translation2,Timestamp";
     const rows = fullWordData.map(item => {
       // 转义特殊字符，特别是双引号
       const escapeCSVField = (field) => {
@@ -213,12 +213,33 @@ export default function FavWords() {
         example2 = item.examples[1].eng || "";
         translation2 = item.examples[1].chs || "";
       }
+      
+      // 格式化时间戳
+      let timestamp = "";
+      if (item.timestamp) {
+        const totalSeconds = Math.floor(item.timestamp / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        timestamp = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+      }
 
-      return `${escapeCSVField(item.word)},${escapeCSVField(phonetic)},${escapeCSVField(definition)},${escapeCSVField(example1)},${escapeCSVField(translation1)},${escapeCSVField(example2)},${escapeCSVField(translation2)}`;
+      return `${escapeCSVField(item.word)},${escapeCSVField(phonetic)},${escapeCSVField(definition)},${escapeCSVField(example1)},${escapeCSVField(translation1)},${escapeCSVField(example2)},${escapeCSVField(translation2)},${escapeCSVField(timestamp)}`;
     });
 
+    // 创建CSV内容，添加说明行和表头
+    const csvContent = [
+      // 添加文件信息
+      `"生词本导出文件",,,,,,,`,
+      `"导出时间: ${new Date().toLocaleString('zh-CN')}",,,,,,,`,
+      `,,,,,,,,`,
+      // 表头
+      header,
+      // 数据行
+      ...rows
+    ].join("\n");
+
     // 添加 BOM 头以支持 Excel 正确显示中文
-    return '\uFEFF' + [header, ...rows].join("\n");
+    return '\uFEFF' + csvContent;
   };
 
   // 导出为 Markdown 格式

@@ -359,7 +359,7 @@ export class YouTubeSubtitleList {
     if (this.vocabulary.length === 0) return;
 
     // Create CSV header with multiple example columns
-    const header = "Word,Phonetic,Definition,Example1,Translation1,Example2,Translation2";
+    const header = "Word,Phonetic,Definition,Example1,Translation1,Example2,Translation2,Timestamp";
     
     // Create CSV rows
     const rows = this.vocabulary.map(item => {
@@ -388,12 +388,33 @@ export class YouTubeSubtitleList {
         example2 = item.examples[1].eng || "";
         translation2 = item.examples[1].chs || "";
       }
+      
+      // 格式化时间戳
+      let timestamp = "";
+      if (item.timestamp) {
+        const totalSeconds = Math.floor(item.timestamp / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        timestamp = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+      }
 
-      return `${escapeCSVField(item.word)},${escapeCSVField(phonetic)},${escapeCSVField(definition)},${escapeCSVField(example1)},${escapeCSVField(translation1)},${escapeCSVField(example2)},${escapeCSVField(translation2)}`;
+      return `${escapeCSVField(item.word)},${escapeCSVField(phonetic)},${escapeCSVField(definition)},${escapeCSVField(example1)},${escapeCSVField(translation1)},${escapeCSVField(example2)},${escapeCSVField(translation2)},${escapeCSVField(timestamp)}`;
     });
 
+    // Create CSV content with info rows and header
+    const csvContent = [
+      // 添加文件信息
+      `"生词本导出文件",,,,,,,`,
+      `"导出时间: ${new Date().toLocaleString('zh-CN')}",,,,,,,`,
+      `,,,,,,,,`,
+      // 表头
+      header,
+      // 数据行
+      ...rows
+    ].join("\n");
+
     // Combine header and rows with BOM to support Chinese characters in Excel
-    const csvData = '\uFEFF' + [header, ...rows].join("\n");
+    const csvData = '\uFEFF' + csvContent;
     
     // Create blob and download
     const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
