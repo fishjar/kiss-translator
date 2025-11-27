@@ -114,8 +114,58 @@ export default function FavWords() {
   };
 
   // 导出为纯文本格式
-  const handleExportTxt = () => {
-    return wordList.join("\n");
+  const handleExportTxt = async () => {
+    // 获取完整的单词信息
+    const fullWordData = [];
+    
+    // 由于选项页面无法直接访问 YouTube 字幕列表中的完整数据，
+    // 我们只能导出已存储在收藏夹中的信息
+    for (const [word, data] of favList) {
+      fullWordData.push({
+        word,
+        phonetic: data.phonetic || "",
+        definition: data.definition || "",
+        examples: data.examples || [],
+        timestamp: data.timestamp || null
+      });
+    }
+
+    const lines = [];
+    
+    fullWordData.forEach((item, index) => {
+      lines.push(`${index + 1}. ${item.word}`);
+      
+      if (item.phonetic) {
+        lines.push(`   音标: ${item.phonetic}`);
+      }
+      
+      if (item.definition) {
+        lines.push(`   释义: ${item.definition}`);
+      }
+      
+      if (item.examples && item.examples.length > 0) {
+        lines.push("   例句:");
+        item.examples.slice(0, 2).forEach((example, exIndex) => {
+          lines.push(`   ${exIndex + 1}. ${example.eng}`);
+          if (example.chs) {
+            lines.push(`      ${example.chs}`);
+          }
+        });
+      }
+      
+      // 如果有时间戳，也导出时间信息
+      if (item.timestamp) {
+        const totalSeconds = Math.floor(item.timestamp / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        lines.push(`   时间戳: ${timeStr}`);
+      }
+      
+      lines.push(""); // 空行分隔
+    });
+    
+    return lines.join("\n");
   };
 
   // 导出为 CSV 格式
@@ -135,7 +185,7 @@ export default function FavWords() {
       });
     }
 
-    const header = "Word,Phonetic,Definition,Example";
+    const header = "Word,Phonetic,Definition,Example,Translation";
     const rows = fullWordData.map(item => {
       // 转义特殊字符，特别是双引号
       const escapeCSVField = (field) => {
@@ -146,16 +196,19 @@ export default function FavWords() {
 
       const phonetic = item.phonetic || "";
       const definition = item.definition || "";
-      // 对于例句，我们只取第一个例句，或者将所有例句合并
+      // 对于例句，我们合并英文和中文
       let example = "";
+      let translation = "";
       if (item.examples && item.examples.length > 0) {
         example = item.examples[0].eng || "";
+        translation = item.examples[0].chs || "";
       }
 
-      return `${escapeCSVField(item.word)},${escapeCSVField(phonetic)},${escapeCSVField(definition)},${escapeCSVField(example)}`;
+      return `${escapeCSVField(item.word)},${escapeCSVField(phonetic)},${escapeCSVField(definition)},${escapeCSVField(example)},${escapeCSVField(translation)}`;
     });
 
-    return [header, ...rows].join("\n");
+    // 添加 BOM 头以支持 Excel 正确显示中文
+    return '\uFEFF' + [header, ...rows].join("\n");
   };
 
   // 导出为 Markdown 格式

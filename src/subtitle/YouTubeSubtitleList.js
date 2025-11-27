@@ -359,7 +359,7 @@ export class YouTubeSubtitleList {
     if (this.vocabulary.length === 0) return;
 
     // Create CSV header
-    const header = "Word,Phonetic,Definition,Example";
+    const header = "Word,Phonetic,Definition,Example,Translation";
     
     // Create CSV rows
     const rows = this.vocabulary.map(item => {
@@ -372,17 +372,19 @@ export class YouTubeSubtitleList {
 
       const phonetic = item.phonetic || "";
       const definition = item.definition || "";
-      // 对于例句，我们只取第一个例句
+      // 对于例句，我们合并英文和中文
       let example = "";
+      let translation = "";
       if (item.examples && item.examples.length > 0) {
         example = item.examples[0].eng || "";
+        translation = item.examples[0].chs || "";
       }
 
-      return `${escapeCSVField(item.word)},${escapeCSVField(phonetic)},${escapeCSVField(definition)},${escapeCSVField(example)}`;
+      return `${escapeCSVField(item.word)},${escapeCSVField(phonetic)},${escapeCSVField(definition)},${escapeCSVField(example)},${escapeCSVField(translation)}`;
     });
 
-    // Combine header and rows
-    const csvData = [header, ...rows].join("\n");
+    // Combine header and rows with BOM to support Chinese characters in Excel
+    const csvData = '\uFEFF' + [header, ...rows].join("\n");
     
     // Create blob and download
     const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
@@ -407,8 +409,43 @@ export class YouTubeSubtitleList {
   exportVocabularyAsTxt() {
     if (this.vocabulary.length === 0) return;
 
-    // Create TXT data with words only
-    const txtData = this.vocabulary.map(item => item.word).join("\n");
+    // Create TXT data with full word information but without markdown symbols
+    const lines = [];
+    
+    this.vocabulary.forEach((item, index) => {
+      lines.push(`${index + 1}. ${item.word}`);
+      
+      if (item.phonetic) {
+        lines.push(`   音标: ${item.phonetic}`);
+      }
+      
+      if (item.definition) {
+        lines.push(`   释义: ${item.definition}`);
+      }
+      
+      if (item.examples && item.examples.length > 0) {
+        lines.push("   例句:");
+        item.examples.slice(0, 2).forEach((example, exIndex) => {
+          lines.push(`   ${exIndex + 1}. ${example.eng}`);
+          if (example.chs) {
+            lines.push(`      ${example.chs}`);
+          }
+        });
+      }
+      
+      // 如果有时间戳，也导出时间信息
+      if (item.timestamp) {
+        const totalSeconds = Math.floor(item.timestamp / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        lines.push(`   时间戳: ${timeStr}`);
+      }
+      
+      lines.push(""); // 空行分隔
+    });
+    
+    const txtData = lines.join("\n");
     
     // Create blob and download
     const blob = new Blob([txtData], { type: 'text/plain;charset=utf-8;' });
