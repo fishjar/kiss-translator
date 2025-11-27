@@ -10,7 +10,7 @@ export class YouTubeSubtitleList {
     this.subtitleData = [];
     this.subtitleDataTime = [];
     this.bilingualSubtitles = [];
-    // 现在存储包含完整信息的对象数组：{word, phonetic, definition, examples}
+    // 现在存储包含完整信息的对象数组：{word, phonetic, definition, examples, timestamp}
     this.vocabulary = [];
 
     this.container = null;
@@ -22,16 +22,29 @@ export class YouTubeSubtitleList {
 
     this.handleWordAdded = this.handleWordAdded.bind(this);
     document.addEventListener("kiss-add-word", this.handleWordAdded);
+    
+    // 监听来自选项页面的跳转消息
+    window.addEventListener("message", (event) => {
+      if (event.data && event.data.type === "KISS_TRANSLATOR_JUMP_TO_TIME") {
+        if (this.videoEl) {
+          this.videoEl.currentTime = event.data.time / 1000;
+          if (this.videoEl.paused) {
+            this.videoEl.play();
+          }
+        }
+      }
+    });
   }
 
   handleWordAdded(event) {
     if (event.detail && event.detail.word) {
-      // 现在可以接收完整的单词信息
+      // 现在可以接收完整的单词信息，包括时间戳
       this.addWord(
         event.detail.word, 
         event.detail.phonetic || "", 
         event.detail.definition || "", 
-        event.detail.examples || []
+        event.detail.examples || [],
+        event.detail.timestamp || null
       );
     }
   }
@@ -42,8 +55,9 @@ export class YouTubeSubtitleList {
    * @param {string} phonetic The phonetic of the word.
    * @param {string} definition The definition of the word.
    * @param {Array} examples The examples of the word usage.
+   * @param {number} timestamp The timestamp when the word appeared in the video.
    */
-  addWord(word, phonetic = "", definition = "", examples = []) {
+  addWord(word, phonetic = "", definition = "", examples = [], timestamp = null) {
     if (word) {
       // 检查单词是否已存在
       const existingIndex = this.vocabulary.findIndex(item => item.word === word);
@@ -59,9 +73,13 @@ export class YouTubeSubtitleList {
         if (examples.length > 0 && (!currentItem.examples || currentItem.examples.length === 0)) {
           currentItem.examples = examples;
         }
+        // 更新时间戳（如果提供）
+        if (timestamp && !currentItem.timestamp) {
+          currentItem.timestamp = timestamp;
+        }
       } else {
         // 添加新单词
-        this.vocabulary.push({ word, phonetic, definition, examples });
+        this.vocabulary.push({ word, phonetic, definition, examples, timestamp });
       }
       this._renderVocabulary();
     }
@@ -157,10 +175,39 @@ export class YouTubeSubtitleList {
           font-size: 14px;
         `;
       }
+      
+      // 时间戳元素
+      let timestampElement = null;
+      if (item.timestamp) {
+        timestampElement = document.createElement("button");
+        timestampElement.textContent = `${this.millisToMinutesAndSeconds(item.timestamp)}`;
+        timestampElement.style.cssText = `
+          color: #1e88e5;
+          background: none;
+          border: none;
+          padding: 0 4px;
+          font-size: 14px;
+          cursor: pointer;
+          text-transform: none;
+        `;
+        
+        // 点击时间戳跳转到对应时间
+        timestampElement.addEventListener("click", () => {
+          if (this.videoEl) {
+            this.videoEl.currentTime = item.timestamp / 1000;
+            if (this.videoEl.paused) {
+              this.videoEl.play();
+            }
+          }
+        });
+      }
 
       wordLine.appendChild(wordElement);
       if (phoneticElement) {
         wordLine.appendChild(phoneticElement);
+      }
+      if (timestampElement) {
+        wordLine.appendChild(timestampElement);
       }
 
       vocabItem.appendChild(wordLine);

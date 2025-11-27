@@ -21,7 +21,7 @@ import { useConfirm } from "../../hooks/Confirm";
 import { useSetting } from "../../hooks/Setting";
 import { dictHandlers } from "../Selection/DictHandler";
 
-function FavAccordion({ word, index }) {
+function FavAccordion({ word, index, createdAt, timestamp }) {
   const [expanded, setExpanded] = useState(false);
   const { setting } = useSetting();
   const { enDict, enSug } = setting?.tranboxSetting || {};
@@ -30,13 +30,48 @@ function FavAccordion({ word, index }) {
     setExpanded((pre) => !pre);
   };
 
+  // 格式化时间为 MM:SS 格式
+  const formatTime = (milliseconds) => {
+    if (!milliseconds) return "";
+    const totalSeconds = Math.floor(milliseconds / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  // 跳转到视频时间点
+  const jumpToTime = (e) => {
+    e.stopPropagation();
+    if (timestamp) {
+      // 发送消息到内容脚本，让视频跳转到指定时间
+      window.postMessage({
+        type: "KISS_TRANSLATOR_JUMP_TO_TIME",
+        time: timestamp
+      }, "*");
+    }
+  };
+
   return (
     <Accordion expanded={expanded} onChange={handleChange}>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        {/* <Typography>{`[${new Date(
-          createdAt
-        ).toLocaleString()}] ${word}`}</Typography> */}
-        <Typography>{`${index + 1}. ${word}`}</Typography>
+        <Typography>{`${index + 1}. ${word}`}
+          {timestamp && (
+            <Button 
+              size="small" 
+              onClick={jumpToTime}
+              style={{ 
+                minWidth: 'auto', 
+                padding: '0 4px', 
+                marginLeft: '10px',
+                fontSize: '0.9rem',
+                color: '#1e88e5',
+                textTransform: 'none'
+              }}
+            >
+              {formatTime(timestamp)}
+            </Button>
+          )}
+        </Typography>
       </AccordionSummary>
       <AccordionDetails>
         {expanded && (
@@ -140,12 +175,13 @@ export default function FavWords() {
         </Stack>
 
         <Box>
-          {favList.map(([word, { createdAt }], index) => (
+          {favList.map(([word, { createdAt, timestamp }], index) => (
             <FavAccordion
               key={word}
               index={index}
               word={word}
               createdAt={createdAt}
+              timestamp={timestamp}
             />
           ))}
         </Box>

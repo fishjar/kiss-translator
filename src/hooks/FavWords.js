@@ -21,10 +21,14 @@ export function useFavWords() {
   );
 
   const toggleFav = useCallback(
-    (word) => {
+    (word, timestamp = null) => {
       save((prev) => {
         if (!prev[word]) {
-          return { ...prev, [word]: { createdAt: Date.now() } };
+          const wordData = { createdAt: Date.now() };
+          if (timestamp) {
+            wordData.timestamp = timestamp;
+          }
+          return { ...prev, [word]: wordData };
         }
 
         const favs = { ...prev };

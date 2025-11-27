@@ -350,7 +350,7 @@ export class BilingualSubtitleManager {
       const tooltipWidth = 300;
       const tooltipHeight = 400;
       
-      // 定位在播放器右上角，距离右边缘40px，上下边缘各20px
+      // 定位在播放器右上角，距离右边缘45px，上下边缘各20px
       const left = containerRect.right - tooltipWidth - 45;
       const top = containerRect.top + 20;
       
@@ -402,13 +402,17 @@ export class BilingualSubtitleManager {
           }));
       }
 
+      // 获取当前字幕的时间戳（使用重新分段后的时间）
+      const currentTimeMs = this.#getCurrentSubtitleStartTime();
+      
       // 添加单词和完整信息到生词本
       const event = new CustomEvent('kiss-add-word', { 
         detail: { 
           word,
           phonetic,  // 现在只包含方括号内的音标，如 [ɪnˈkredəb(ə)l]
           definition,
-          examples
+          examples,
+          timestamp: currentTimeMs // 添加时间戳
         } 
       });
       document.dispatchEvent(event);
@@ -459,13 +463,17 @@ export class BilingualSubtitleManager {
     } catch (error) {
       logger.info("Dictionary lookup failed for word:", word, error);
       
+      // 获取当前字幕的时间戳
+      const currentTimeMs = this.#getCurrentSubtitleStartTime();
+
       // 即使查询失败，也将单词添加到生词本（无完整信息）
       const event = new CustomEvent('kiss-add-word', { 
         detail: { 
           word,
           phonetic: "",
           definition: "",
-          examples: []
+          examples: [],
+          timestamp: currentTimeMs // 添加时间戳
         } 
       });
       document.dispatchEvent(event);
@@ -742,5 +750,17 @@ export class BilingualSubtitleManager {
 
   updateSetting(obj) {
     this.#setting = { ...this.#setting, ...obj };
+  }
+
+  // 获取当前字幕的开始时间（使用重新分段后的时间）
+  #getCurrentSubtitleStartTime() {
+    const currentTimeMs = this.#videoEl.currentTime * 1000;
+    // 查找当前时间对应的字幕
+    const currentSubtitle = this.#formattedSubtitles.find(
+      sub => currentTimeMs >= sub.start && currentTimeMs <= sub.end
+    );
+    
+    // 返回重新分段后的字幕开始时间，如果没有找到则返回当前时间
+    return currentSubtitle ? currentSubtitle.start : currentTimeMs;
   }
 }
