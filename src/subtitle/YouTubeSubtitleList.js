@@ -111,6 +111,7 @@ export class YouTubeSubtitleList {
         border-radius: 4px;
         cursor: pointer;
         font-size: 12px;
+        margin-right: 8px;
       `;
       
       exportButton.addEventListener("click", () => {
@@ -118,6 +119,65 @@ export class YouTubeSubtitleList {
       });
       
       exportContainer.appendChild(exportButton);
+
+      // 添加CSV导出按钮
+      const exportCsvButton = document.createElement("button");
+      exportCsvButton.textContent = "导出CSV";
+      exportCsvButton.style.cssText = `
+        padding: 6px 12px;
+        background: #1e88e5;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        margin-right: 8px;
+      `;
+      
+      exportCsvButton.addEventListener("click", () => {
+        this.exportVocabularyAsCsv();
+      });
+      
+      exportContainer.appendChild(exportCsvButton);
+
+      // 添加TXT导出按钮
+      const exportTxtButton = document.createElement("button");
+      exportTxtButton.textContent = "导出TXT";
+      exportTxtButton.style.cssText = `
+        padding: 6px 12px;
+        background: #1e88e5;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        margin-right: 8px;
+      `;
+      
+      exportTxtButton.addEventListener("click", () => {
+        this.exportVocabularyAsTxt();
+      });
+      
+      exportContainer.appendChild(exportTxtButton);
+
+      // 添加MD导出按钮
+      const exportMdButton = document.createElement("button");
+      exportMdButton.textContent = "导出MD";
+      exportMdButton.style.cssText = `
+        padding: 6px 12px;
+        background: #1e88e5;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+      `;
+      
+      exportMdButton.addEventListener("click", () => {
+        this.exportVocabularyAsMd();
+      });
+      
+      exportContainer.appendChild(exportMdButton);
     }
 
     // Create vocabulary list with grouped display
@@ -282,6 +342,135 @@ export class YouTubeSubtitleList {
     const a = document.createElement('a');
     a.href = url;
     a.download = `kiss-vocabulary-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    
+    // Clean up
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
+  }
+
+  /**
+   * Export vocabulary list as CSV file
+   */
+  exportVocabularyAsCsv() {
+    if (this.vocabulary.length === 0) return;
+
+    // Create CSV header
+    const header = "Word,Phonetic,Definition,Example";
+    
+    // Create CSV rows
+    const rows = this.vocabulary.map(item => {
+      // 转义特殊字符，特别是双引号
+      const escapeCSVField = (field) => {
+        if (!field) return '""';
+        // 替换双引号为两个双引号，然后用双引号包围整个字段
+        return `"${field.toString().replace(/"/g, '""')}"`;
+      };
+
+      const phonetic = item.phonetic || "";
+      const definition = item.definition || "";
+      // 对于例句，我们只取第一个例句
+      let example = "";
+      if (item.examples && item.examples.length > 0) {
+        example = item.examples[0].eng || "";
+      }
+
+      return `${escapeCSVField(item.word)},${escapeCSVField(phonetic)},${escapeCSVField(definition)},${escapeCSVField(example)}`;
+    });
+
+    // Combine header and rows
+    const csvData = [header, ...rows].join("\n");
+    
+    // Create blob and download
+    const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `kiss-vocabulary-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    
+    // Clean up
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
+  }
+
+  /**
+   * Export vocabulary list as TXT file
+   */
+  exportVocabularyAsTxt() {
+    if (this.vocabulary.length === 0) return;
+
+    // Create TXT data with words only
+    const txtData = this.vocabulary.map(item => item.word).join("\n");
+    
+    // Create blob and download
+    const blob = new Blob([txtData], { type: 'text/plain;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `kiss-vocabulary-${new Date().toISOString().slice(0, 10)}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    
+    // Clean up
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
+  }
+
+  /**
+   * Export vocabulary list as MD file
+   */
+  exportVocabularyAsMd() {
+    if (this.vocabulary.length === 0) return;
+
+    // Create MD content
+    const lines = [];
+    lines.push("# 生词本 Vocabulary");
+    lines.push("");
+    
+    this.vocabulary.forEach((item, index) => {
+      lines.push(`${index + 1}. **${item.word}**`);
+      
+      if (item.phonetic) {
+        lines.push(`   *音标 Phonetic:* ${item.phonetic}`);
+      }
+      
+      if (item.definition) {
+        lines.push(`   *释义 Definition:* ${item.definition}`);
+      }
+      
+      if (item.examples && item.examples.length > 0) {
+        lines.push("   *例句 Examples:*");
+        item.examples.slice(0, 2).forEach((example, exIndex) => {
+          lines.push(`   ${exIndex + 1}. ${example.eng}`);
+          if (example.chs) {
+            lines.push(`      ${example.chs}`);
+          }
+        });
+      }
+      
+      lines.push(""); // 空行分隔
+    });
+    
+    const mdData = lines.join("\n");
+    
+    // Create blob and download
+    const blob = new Blob([mdData], { type: 'text/markdown;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `kiss-vocabulary-${new Date().toISOString().slice(0, 10)}.md`;
     document.body.appendChild(a);
     a.click();
     
