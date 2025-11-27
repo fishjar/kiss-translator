@@ -208,47 +208,36 @@ export class YouTubeSubtitleList {
         word-break: break-word;
       `;
 
-      // Word and phonetic line
-      const wordLine = document.createElement("div");
-      wordLine.style.cssText = `
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 8px;
-        flex-wrap: wrap;
-      `;
-
+      // Word element
       const wordElement = document.createElement("div");
       wordElement.textContent = item.word;
       wordElement.style.cssText = `
         font-weight: bold;
         font-size: 16px;
+        margin-bottom: 4px;
       `;
 
+      // Phonetic element
       let phoneticElement = null;
       if (item.phonetic) {
         phoneticElement = document.createElement("div");
-        phoneticElement.textContent = item.phonetic;
+        phoneticElement.textContent = `[${item.phonetic}]`;
         phoneticElement.style.cssText = `
           color: #666;
           font-style: italic;
           font-size: 14px;
+          margin-bottom: 4px;
         `;
       }
       
       // 时间戳元素
       let timestampElement = null;
       if (item.timestamp) {
-        timestampElement = document.createElement("button");
+        timestampElement = document.createElement("div");
         timestampElement.textContent = `${this.millisToMinutesAndSeconds(item.timestamp)}`;
         timestampElement.style.cssText = `
           color: #1e88e5;
-          background: none;
-          border: none;
-          padding: 0 4px;
           font-size: 14px;
-          cursor: pointer;
-          text-transform: none;
         `;
         
         // 点击时间戳跳转到对应时间
@@ -262,15 +251,13 @@ export class YouTubeSubtitleList {
         });
       }
 
-      wordLine.appendChild(wordElement);
+      vocabItem.appendChild(wordElement);
       if (phoneticElement) {
-        wordLine.appendChild(phoneticElement);
+        vocabItem.appendChild(phoneticElement);
       }
       if (timestampElement) {
-        wordLine.appendChild(timestampElement);
+        vocabItem.appendChild(timestampElement);
       }
-
-      vocabItem.appendChild(wordLine);
 
       // Definition line
       if (item.definition) {
@@ -278,6 +265,7 @@ export class YouTubeSubtitleList {
         definitionElement.textContent = item.definition;
         definitionElement.style.cssText = `
           color: #333;
+          margin-top: 8px;
           margin-bottom: 8px;
           font-size: 14px;
           line-height: 1.4;
@@ -332,8 +320,21 @@ export class YouTubeSubtitleList {
   exportVocabularyAsJson() {
     if (this.vocabulary.length === 0) return;
 
+    // Get the video ID from the current YouTube page
+    const videoId = this._getYouTubeVideoId();
+    
+    // Create data with video information
+    const exportData = {
+      videoInfo: {
+        title: this._getYouTubeVideoTitle(),
+        url: videoId ? `https://www.youtube.com/watch?v=${videoId}` : '',
+        exportTime: new Date().toISOString()
+      },
+      vocabulary: this.vocabulary
+    };
+
     // Create JSON data with all fields
-    const jsonData = JSON.stringify(this.vocabulary, null, 2);
+    const jsonData = JSON.stringify(exportData, null, 2);
     
     // Create blob and download
     const blob = new Blob([jsonData], { type: 'application/json' });
@@ -358,8 +359,11 @@ export class YouTubeSubtitleList {
   exportVocabularyAsCsv() {
     if (this.vocabulary.length === 0) return;
 
+    // Get the video ID from the current YouTube page
+    const videoId = this._getYouTubeVideoId();
+    
     // Create CSV header with multiple example columns
-    const header = "Word,Phonetic,Definition,Example1,Translation1,Example2,Translation2,Timestamp";
+    const header = "Word,Phonetic,Definition,Example1,Translation1,Example2,Translation2,Video Link";
     
     // Create CSV rows
     const rows = this.vocabulary.map(item => {
@@ -389,23 +393,21 @@ export class YouTubeSubtitleList {
         translation2 = item.examples[1].chs || "";
       }
       
-      // 格式化时间戳
-      let timestamp = "";
-      if (item.timestamp) {
+      // 创建完整的YouTube链接
+      let videoLink = "";
+      if (item.timestamp && videoId) {
         const totalSeconds = Math.floor(item.timestamp / 1000);
-        const minutes = Math.floor(totalSeconds / 60);
-        const seconds = totalSeconds % 60;
-        timestamp = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        videoLink = `https://www.youtube.com/watch?v=${videoId}&t=${totalSeconds}s`;
       }
 
-      return `${escapeCSVField(item.word)},${escapeCSVField(phonetic)},${escapeCSVField(definition)},${escapeCSVField(example1)},${escapeCSVField(translation1)},${escapeCSVField(example2)},${escapeCSVField(translation2)},${escapeCSVField(timestamp)}`;
+      return `${escapeCSVField(item.word)},${escapeCSVField(phonetic)},${escapeCSVField(definition)},${escapeCSVField(example1)},${escapeCSVField(translation1)},${escapeCSVField(example2)},${escapeCSVField(translation2)},${escapeCSVField(videoLink)}`;
     });
 
     // Create CSV content with info rows and header
     const csvContent = [
-      // 添加文件信息
-      `"生词本导出文件",,,,,,,`,
-      `"导出时间: ${new Date().toLocaleString('zh-CN')}",,,,,,,`,
+      // 添加文件信息（视频标题和链接）
+      `"${this._getYouTubeVideoTitle()}",,,,,,,`,
+      `"${videoId ? `https://www.youtube.com/watch?v=${videoId}` : '生词本导出文件'}",,,,,,,`,
       `,,,,,,,,`,
       // 表头
       header,
@@ -439,8 +441,22 @@ export class YouTubeSubtitleList {
   exportVocabularyAsTxt() {
     if (this.vocabulary.length === 0) return;
 
+    // Get the video ID and title from the current YouTube page
+    const videoId = this._getYouTubeVideoId();
+    const videoTitle = this._getYouTubeVideoTitle();
+    const videoLink = videoId ? `https://www.youtube.com/watch?v=${videoId}` : '';
+
     // Create TXT data with full word information but without markdown symbols
     const lines = [];
+    
+    // Add video title and link at the beginning
+    lines.push("生词本导出文件");
+    lines.push(`视频标题: ${videoTitle}`);
+    if (videoLink) {
+      lines.push(`视频链接: ${videoLink}`);
+    }
+    lines.push(`导出时间: ${new Date().toLocaleString('zh-CN')}`);
+    lines.push('');
     
     this.vocabulary.forEach((item, index) => {
       lines.push(`${index + 1}. ${item.word}`);
@@ -463,13 +479,11 @@ export class YouTubeSubtitleList {
         });
       }
       
-      // 如果有时间戳，也导出时间信息
-      if (item.timestamp) {
+      // 添加视频链接
+      if (item.timestamp && videoId) {
         const totalSeconds = Math.floor(item.timestamp / 1000);
-        const minutes = Math.floor(totalSeconds / 60);
-        const seconds = totalSeconds % 60;
-        const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-        lines.push(`   时间戳: ${timeStr}`);
+        const videoLinkWithTime = `https://www.youtube.com/watch?v=${videoId}&t=${totalSeconds}s`;
+        lines.push(`   视频链接: ${videoLinkWithTime}`);
       }
       
       lines.push(""); // 空行分隔
@@ -500,9 +514,19 @@ export class YouTubeSubtitleList {
   exportVocabularyAsMd() {
     if (this.vocabulary.length === 0) return;
 
+    // Get the video ID and title from the current YouTube page
+    const videoId = this._getYouTubeVideoId();
+    const videoTitle = this._getYouTubeVideoTitle();
+    const videoLink = videoId ? `https://www.youtube.com/watch?v=${videoId}` : '';
+
     // Create MD content
     const lines = [];
-    lines.push("# 生词本 Vocabulary");
+    lines.push("# 生词本导出文件");
+    lines.push(`**视频标题:** ${videoTitle}`);
+    if (videoLink) {
+      lines.push(`**视频链接:** [${videoLink}](${videoLink})`);
+    }
+    lines.push(`**导出时间:** ${new Date().toLocaleString('zh-CN')}`);
     lines.push("");
     
     this.vocabulary.forEach((item, index) => {
@@ -524,6 +548,13 @@ export class YouTubeSubtitleList {
             lines.push(`      ${example.chs}`);
           }
         });
+      }
+      
+      // 添加视频链接
+      if (item.timestamp && videoId) {
+        const totalSeconds = Math.floor(item.timestamp / 1000);
+        const videoLinkWithTime = `https://www.youtube.com/watch?v=${videoId}&t=${totalSeconds}s`;
+        lines.push(`   *视频链接 Video Link:* [跳转到视频时间点](${videoLinkWithTime})`);
       }
       
       lines.push(""); // 空行分隔
@@ -865,5 +896,29 @@ export class YouTubeSubtitleList {
     this.subtitleDataTime = [];
     this.bilingualSubtitles = [];
     this.vocabulary = [];
+  }
+
+  /**
+   * Get YouTube video ID from the current page
+   */
+  _getYouTubeVideoId() {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get('v');
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /**
+   * Get YouTube video title from the current page
+   */
+  _getYouTubeVideoTitle() {
+    try {
+      const titleElement = document.querySelector('h1 yt-formatted-string');
+      return titleElement ? titleElement.textContent : 'YouTube Video';
+    } catch (e) {
+      return 'YouTube Video';
+    }
   }
 }
