@@ -185,7 +185,8 @@ export default function FavWords() {
       });
     }
 
-    const header = "Word,Phonetic,Definition,Example,Translation";
+    // 创建包含多个例句列的表头
+    const header = "Word,Phonetic,Definition,Example1,Translation1,Example2,Translation2";
     const rows = fullWordData.map(item => {
       // 转义特殊字符，特别是双引号
       const escapeCSVField = (field) => {
@@ -196,15 +197,24 @@ export default function FavWords() {
 
       const phonetic = item.phonetic || "";
       const definition = item.definition || "";
-      // 对于例句，我们合并英文和中文
-      let example = "";
-      let translation = "";
+      
+      // 获取前两个例句及其翻译
+      let example1 = "";
+      let translation1 = "";
+      let example2 = "";
+      let translation2 = "";
+      
       if (item.examples && item.examples.length > 0) {
-        example = item.examples[0].eng || "";
-        translation = item.examples[0].chs || "";
+        example1 = item.examples[0].eng || "";
+        translation1 = item.examples[0].chs || "";
+      }
+      
+      if (item.examples && item.examples.length > 1) {
+        example2 = item.examples[1].eng || "";
+        translation2 = item.examples[1].chs || "";
       }
 
-      return `${escapeCSVField(item.word)},${escapeCSVField(phonetic)},${escapeCSVField(definition)},${escapeCSVField(example)},${escapeCSVField(translation)}`;
+      return `${escapeCSVField(item.word)},${escapeCSVField(phonetic)},${escapeCSVField(definition)},${escapeCSVField(example1)},${escapeCSVField(translation1)},${escapeCSVField(example2)},${escapeCSVField(translation2)}`;
     });
 
     // 添加 BOM 头以支持 Excel 正确显示中文
