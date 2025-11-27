@@ -372,13 +372,13 @@ export class BilingualSubtitleManager {
       // 构造美式音标字符串
       let phonetic = "";
       if (dictResult && dictResult.aus) {
-        // 只使用美式音标
+        // 只使用美式音标，去除"美"标签和方括号
         const usPhonetic = dictResult.aus.find(au => au.key === "美");
         if (usPhonetic && usPhonetic.phonetic) {
-          phonetic = `[${usPhonetic.phonetic}]`;
+          phonetic = usPhonetic.phonetic;
         } else if (dictResult.aus.length > 0 && dictResult.aus[0].phonetic) {
           // 如果没有明确标记为"美"的音标，使用第一个音标
-          phonetic = `[${dictResult.aus[0].phonetic}]`;
+          phonetic = dictResult.aus[0].phonetic;
         }
       }
       
@@ -409,7 +409,7 @@ export class BilingualSubtitleManager {
       const event = new CustomEvent('kiss-add-word', { 
         detail: { 
           word,
-          phonetic,  // 现在只包含方括号内的音标，如 [ɪnˈkredəb(ə)l]
+          phonetic,  // 现在只包含音标本身，如 ɪnˈkredəb(ə)l
           definition,
           examples,
           timestamp: currentTimeMs // 添加时间戳
@@ -428,7 +428,7 @@ export class BilingualSubtitleManager {
           content += '<div>';
           dictResult.aus.forEach((au) => {
             if (au.phonetic) {
-              content += `<span class="kiss-word-phonetic">${au.key} [${au.phonetic}]</span>`;
+              content += `<span class="kiss-word-phonetic">${au.phonetic}</span>`;
             }
           });
           content += '</div>';
