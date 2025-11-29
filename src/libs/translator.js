@@ -223,9 +223,9 @@ export class Translator {
   static isBlockNode(el) {
     if (!Translator.isElementOrFragment(el)) return false;
 
+    if (el.attributes?.display?.value?.includes("inline")) return false;
     if (Translator.TAGS.INLINE.has(el.nodeName?.toUpperCase())) return false;
     if (Translator.TAGS.BLOCK.has(el.nodeName?.toUpperCase())) return true;
-    if (el.attributes?.display?.value?.includes("inline")) return false;
 
     if (Translator.displayCache.has(el)) {
       return Translator.displayCache.get(el);
