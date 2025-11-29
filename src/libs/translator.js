@@ -324,11 +324,17 @@ export class Translator {
       return Translator.KISS_IGNORE_SELECTOR;
     }
 
-    if (this.#rule.autoScan === "false") {
-      return `${Translator.KISS_IGNORE_SELECTOR}, ${this.#rule.ignoreSelector}`;
+    const selectors = [Translator.KISS_IGNORE_SELECTOR];
+    if (this.#rule.autoScan !== "false") {
+      selectors.push(Translator.BUILTIN_IGNORE_SELECTOR);
     }
 
-    return `${Translator.KISS_IGNORE_SELECTOR}, ${Translator.BUILTIN_IGNORE_SELECTOR}, ${this.#rule.ignoreSelector}`;
+    const userSelector = this.#rule.ignoreSelector?.trim();
+    if (userSelector) {
+      selectors.push(userSelector);
+    }
+
+    return selectors.join(", ");
   }
 
   // 接口参数
