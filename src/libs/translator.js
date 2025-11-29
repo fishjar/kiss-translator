@@ -1181,7 +1181,7 @@ export class Translator {
       parentStyle,
       grandStyle,
       // detectRemote,
-      // toLang,
+      toLang,
       // skipLangs = [],
       highlightWords,
     } = this.#rule;
@@ -1270,13 +1270,20 @@ export class Translator {
       if (transEndHook?.trim()) {
         try {
           interpreter.run(`exports.transEndHook = ${transEndHook}`);
-          interpreter.exports.transEndHook({
-            hostNode,
-            parentNode,
-            nodes,
-            wrapperNode: wrapper,
-            innerNode: inner,
-          });
+          interpreter.exports.transEndHook(
+            {
+              hostNode,
+              parentNode,
+              nodes,
+              wrapperNode: wrapper,
+              innerNode: inner,
+            },
+            {
+              text: processedString,
+              fromLang: deLang || this.#rule.fromLang,
+              toLang,
+            }
+          );
         } catch (err) {
           kissLog("transEndHook", err);
         }
