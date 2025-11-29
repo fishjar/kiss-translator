@@ -682,6 +682,11 @@ export class Translator {
     this.#toggleTargetNode(targetNode);
   }
 
+  // 触发段落翻译
+  toggleHoverNode() {
+    this.#handleKeyDown();
+  }
+
   // 切换节点翻译状态
   #toggleTargetNode(targetNode) {
     if (this.#processedNodes.has(targetNode)) {

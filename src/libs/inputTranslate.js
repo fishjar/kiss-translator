@@ -177,7 +177,7 @@ export class InputTranslator {
     const { triggerCount, triggerTime } = this.#config.inputRule;
     this.#unregisterShortcut = stepShortcutRegister(
       this.#triggerShortcut,
-      this.#handleTranslate.bind(this),
+      this.handleTranslate.bind(this),
       triggerCount,
       triggerTime
     );
@@ -216,7 +216,7 @@ export class InputTranslator {
    * 翻译核心逻辑
    * @private
    */
-  async #handleTranslate() {
+  async handleTranslate() {
     let node = document.activeElement;
     if (!node) return;
 

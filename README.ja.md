@@ -164,6 +164,18 @@ pnpm install
 pnpm build
 ```
 
+### 外部トリガーの例
+
+```js
+// `toggle_translate`   翻訳を切り替え
+// `toggle_styles`      スタイルを切り替え
+// `toggle_popup`       コントロールパネルを開く／閉じる
+// `toggle_transbox`    翻訳ポップアップを開く／閉じる
+// `toggle_hover_node`  マウスオーバー中の段落を翻訳
+// `input_translate`    入力欄を翻訳
+window.dispatchEvent(new CustomEvent("kiss_translator", {detail: { action: "trans_toggle" }}));
+```
+
 ## コミュニケーション
 
 - [Telegram グループ](https://t.me/+RRCu_4oNwrM2NmFl)に参加

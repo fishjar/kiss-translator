@@ -164,6 +164,18 @@ pnpm install
 pnpm build
 ```
 
+### External Trigger Example
+
+```js
+// `toggle_translate`   Toggle translation
+// `toggle_styles`      Toggle styles
+// `toggle_popup`       Open/close control panel
+// `toggle_transbox`    Open/close translation popup
+// `toggle_hover_node`  Translate hovered paragraph
+// `input_translate`    Translate input box
+window.dispatchEvent(new CustomEvent("kiss_translator", {detail: { action: "trans_toggle" }}));
+```
+
 ## Discussion
 
 - Join [Telegram Group](https://t.me/+RRCu_4oNwrM2NmFl)
