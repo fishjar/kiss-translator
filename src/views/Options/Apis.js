@@ -46,6 +46,9 @@ import {
   OPT_TRANS_AZUREAI,
   defaultNobatchPrompt,
   defaultNobatchUserPrompt,
+  defaultSystemPrompt,
+  defaultSystemPromptXml,
+  defaultSystemPromptLines,
 } from "../../config";
 import ValidationInput from "../../hooks/ValidationInput";
 
@@ -127,7 +130,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
   }, [api, formData]);
 
   const handleChange = (e) => {
-    e.preventDefault();
+    e?.preventDefault();
     let { name, value, type, checked } = e.target;
 
     if (type === "checkbox" || type === "switch") {
@@ -137,6 +140,20 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
     setFormData((prevData) => ({
       ...prevData,
       [name]: value,
+    }));
+  };
+
+  const handleUpdateSystemPrompt = (e) => {
+    const promptMap = {
+      json: defaultSystemPrompt,
+      xml: defaultSystemPromptXml,
+      textlines: defaultSystemPromptLines,
+    };
+    const systemPrompt =
+      promptMap[e.target.dataset.output] || defaultSystemPromptXml;
+    setFormData((prevData) => ({
+      ...prevData,
+      systemPrompt,
     }));
   };
 
@@ -325,7 +342,37 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
               onChange={handleChange}
               multiline
               maxRows={10}
-              helperText={i18n("system_prompt_helper")}
+              helperText={
+                <>
+                  {i18n("system_prompt_helper_1")}
+                  <Link
+                    component="button"
+                    sx={{ margin: "0 1em" }}
+                    data-output="json"
+                    onClick={handleUpdateSystemPrompt}
+                  >
+                    {i18n("json_output")}
+                  </Link>
+                  <Link
+                    component="button"
+                    sx={{ margin: "0 1em" }}
+                    data-output="xml"
+                    onClick={handleUpdateSystemPrompt}
+                  >
+                    {i18n("xml_output")}
+                  </Link>
+                  <Link
+                    component="button"
+                    sx={{ margin: "0 1em" }}
+                    data-output="textlines"
+                    onClick={handleUpdateSystemPrompt}
+                  >
+                    {i18n("textlines_output")}
+                  </Link>
+                  <br />
+                  {i18n("system_prompt_helper_2")}
+                </>
+              }
             />
           ) : (
             <>

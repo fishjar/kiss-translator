@@ -2192,12 +2192,41 @@ export const I18N = {
     ja: `プレースホルダータグ名`,
     ko: `플레이스홀더 태그 이름`,
   },
-  system_prompt_helper: {
-    zh: `在未完全理解默认Prompt的情况下，请勿随意修改，否则可能无法工作。`,
-    en: `Do not modify the default prompt without fully understanding it, otherwise it may not work.`,
-    zh_TW: `在未完全理解預設Prompt的情況下，請勿隨意修改，否則可能無法運作。`,
-    ja: `デフォルトのプロンプトを完全に理解せずに変更しないでください。動作しなくなる可能性があります。`,
-    ko: `기본 프롬프트를 완전히 이해하지 않고 수정하지 마십시오. 작동하지 않을 수 있습니다.`,
+  system_prompt_helper_1: {
+    zh: `1. 根据实际情况选择AI支持的聚合格式：`,
+    en: `1. Select the aggregation format supported by the AI according to your needs:`,
+    zh_TW: `1. 請依實際情況選擇 AI 支援的聚合格式：`,
+    ja: `1. 実際の状況に応じて、AI が対応している集約形式を選択してください：`,
+    ko: `1. 상황에 맞게 AI에서 지원하는 집계 형식을 선택하세요:`,
+  },
+  json_output: {
+    zh: `点击切换 “JSON 输出格式“`,
+    en: `Click to switch to "JSON Output Format"`,
+    zh_TW: `點擊切換「JSON 輸出格式」`,
+    ja: `クリックして「JSON 出力形式」に切り替え`,
+    ko: `클릭하여 "JSON 출력 형식"으로 전환`,
+  },
+  xml_output: {
+    zh: `点击切换 “XML 输出格式“`,
+    en: `Click to switch to "XML Output Format"`,
+    zh_TW: `點擊切換「XML 輸出格式」`,
+    ja: `クリックして「XML 出力形式」に切り替え`,
+    ko: `클릭하여 "XML 출력 형식"으로 전환`,
+  },
+  textlines_output: {
+    zh: `点击切换 “多行文本输出格式“`,
+    en: `Click to switch to "Multi-line Text Output Format"`,
+    zh_TW: `點擊切換「多行文字輸出格式」`,
+    ja: `クリックして「複数行テキスト出力形式」に切り替え`,
+    ko: `클릭하여 "여러 줄 텍스트 출력 형식"으로 전환`,
+  },
+
+  system_prompt_helper_2: {
+    zh: `2. 在未完全理解默认Prompt的情况下，请勿随意修改，否则可能无法工作。`,
+    en: `2. Do not modify the default prompt without fully understanding it, otherwise it may not work.`,
+    zh_TW: `2. 在未完全理解預設Prompt的情況下，請勿隨意修改，否則可能無法運作。`,
+    ja: `2. デフォルトのプロンプトを完全に理解せずに変更しないでください。動作しなくなる可能性があります。`,
+    ko: `2. 기본 프롬프트를 완전히 이해하지 않고 수정하지 마십시오. 작동하지 않을 수 있습니다.`,
   },
   if_pre_init: {
     zh: `是否预初始化`,

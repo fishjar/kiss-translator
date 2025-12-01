@@ -35,6 +35,8 @@ import {
   INPUT_PLACE_DESCRIPTION,
   INPUT_PLACE_TO_LANG,
   INPUT_PLACE_FROM_LANG,
+  defaultSystemPromptXml,
+  defaultSystemPromptLines,
 } from "../config";
 import { msAuth } from "../libs/auth";
 import { genDeeplFree } from "./deepl";
@@ -135,23 +137,84 @@ const parseAIRes = (raw, useBatchFetch = true) => {
     return [[raw]];
   }
 
-  try {
-    const jsonString = extractJson(raw);
-    if (!jsonString) return [];
+  // try {
+  //   const jsonString = extractJson(raw);
+  //   if (!jsonString) return [];
 
-    const data = JSON.parse(jsonString);
-    if (Array.isArray(data.translations)) {
-      // todo: 考虑序号id可能会打乱
-      return data.translations.map((item) => [
-        item?.text ?? "",
-        item?.sourceLanguage ?? "",
-      ]);
+  //   const data = JSON.parse(jsonString);
+  //   if (Array.isArray(data.translations)) {
+  //     // todo: 考虑序号id可能会打乱
+  //     return data.translations.map((item) => [
+  //       item?.text ?? "",
+  //       item?.sourceLanguage ?? "",
+  //     ]);
+  //   }
+  // } catch (err) {
+  //   kissLog("parse AI Res", err);
+  // }
+  // return [];
+
+  let content = raw
+    .replace(/^```[a-z]*\s*\n?/i, "")
+    .replace(/\n?```$/i, "")
+    .trim();
+
+  // JSON
+  try {
+    const start = content.search(/(\{|\[)/);
+    const end = content.lastIndexOf(content.includes("}") ? "}" : "]");
+
+    if (start > -1 && end > -1) {
+      const jsonStr = content.substring(start, end + 1);
+      const parsed = JSON.parse(jsonStr);
+
+      const list = Array.isArray(parsed)
+        ? parsed
+        : parsed.translations || (parsed.result ? [parsed.result] : [parsed]);
+
+      if (
+        list.length > 0 &&
+        (list[0].text !== undefined || list[0].translations)
+      ) {
+        return list.map((item) => [
+          String(item.text || ""),
+          String(item.sourceLanguage || ""),
+        ]);
+      }
     }
-  } catch (err) {
-    kissLog("parseAIRes", err);
+  } catch (e) {
+    //
   }
 
-  return [];
+  // XML
+  const xmlTagPattern = /<(t|item|seg)\b/i;
+  if (xmlTagPattern.test(content)) {
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(content, "text/html");
+      const elements = doc.querySelectorAll("t, item, seg");
+
+      if (elements.length > 0) {
+        return Array.from(elements).map((el) => [
+          el.innerHTML.trim(),
+          el.getAttribute("sourceLanguage") || "",
+        ]);
+      }
+    } catch (e) {
+      //
+    }
+  }
+
+  // 纯文本换行
+  return content.split("\n").map((line) => {
+    const pipeMatch = line.match(/^\d+\s*\|\s*(.*)/);
+    if (pipeMatch) {
+      return [pipeMatch[1].trim(), ""];
+    }
+
+    const text = line.replace(/<br\s*\/?>/gi, "\n").trim();
+    return [text, ""];
+  });
 };
 
 const parseSTRes = (raw) => {
@@ -167,7 +230,7 @@ const parseSTRes = (raw) => {
       return data;
     }
   } catch (err) {
-    kissLog("parseAIRes: subtitle", err);
+    kissLog("parse AI Res: subtitle", err);
   }
 
   return [];
@@ -751,6 +814,8 @@ export const genTransReq = async ({ reqHook, ...args }) => {
         {
           ...args,
           defaultSystemPrompt,
+          defaultSystemPromptXml,
+          defaultSystemPromptLines,
           defaultSubtitlePrompt,
           defaultNobatchPrompt,
           defaultNobatchUserPrompt,
