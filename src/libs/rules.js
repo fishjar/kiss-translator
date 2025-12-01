@@ -13,6 +13,53 @@ import { getRulesWithDefault, setRules } from "./storage";
 import { trySyncRules } from "./sync";
 import { kissLog } from "./log";
 
+function mergeSelectors(defaultStr, userStr) {
+  if (!userStr || !userStr.trim()) {
+    return defaultStr;
+  }
+
+  const defaultList = defaultStr
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const userList = userStr
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const isPatchMode = userList.some(
+    (s) => s.startsWith("+") || s.startsWith("-")
+  );
+
+  if (!isPatchMode) {
+    return [...new Set(userList)].join(", ");
+  }
+
+  let finalSet = new Set(defaultList);
+  let currentMode = "add";
+  userList.forEach((item) => {
+    let selector = item;
+
+    if (item.startsWith("+")) {
+      currentMode = "add";
+      selector = item.slice(1).trim();
+    } else if (item.startsWith("-")) {
+      currentMode = "remove";
+      selector = item.slice(1).trim();
+    }
+
+    if (!selector) return;
+
+    if (currentMode === "remove") {
+      finalSet.delete(selector);
+    } else {
+      finalSet.add(selector);
+    }
+  });
+
+  return [...finalSet].join(", ");
+}
+
 /**
  * 根据href匹配规则
  * @param {*} rules
@@ -44,11 +91,13 @@ export const matchRule = async (href, { injectRules, subrulesList }) => {
     return globalRule;
   }
 
+  ["selector", "keepSelector", "rootsSelector", "ignoreSelector"].forEach(
+    (key) => {
+      rule[key] = mergeSelectors(globalRule[key], rule[key]);
+    }
+  );
+
   [
-    "selector",
-    "keepSelector",
-    "rootsSelector",
-    "ignoreSelector",
     "terms",
     "aiTerms",
     "termsStyle",
@@ -222,7 +271,15 @@ export const saveRule = async (curRule) => {
   );
   if (index !== -1) {
     const rule = rules.splice(index, 1)[0];
-    curRule = { ...rule, ...curRule, pattern: rule.pattern };
+    curRule = {
+      ...rule,
+      ...curRule,
+      pattern: rule.pattern,
+      selector: rule.selector,
+      keepSelector: rule.keepSelector,
+      rootsSelector: rule.rootsSelector,
+      ignoreSelector: rule.ignoreSelector,
+    };
   }
 
   const newRule = {};
