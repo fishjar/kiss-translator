@@ -16,7 +16,13 @@ import {
 } from "../config";
 import { interpreter } from "./interpreter";
 import { clearFetchPool } from "./pool";
-import { debounce, scheduleIdle, genEventName, truncateWords } from "./utils";
+import {
+  debounce,
+  scheduleIdle,
+  genEventName,
+  truncateWords,
+  escapeHTML,
+} from "./utils";
 import { apiTranslate } from "../apis";
 import { kissLog } from "./log";
 import { clearAllBatchQueue } from "./batchQueue";
@@ -1350,7 +1356,7 @@ export class Translator {
           });
         }
 
-        return text;
+        return escapeHTML(text);
       }
 
       // 元素节点

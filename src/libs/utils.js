@@ -489,3 +489,10 @@ export function downloadBlobFile(str, filename = "kiss-file.txt") {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
+// HTML转义
+export function escapeHTML(str) {
+  const div = document.createElement("div");
+  div.innerText = str;
+  return div.innerHTML;
+}
