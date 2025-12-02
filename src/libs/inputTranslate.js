@@ -21,91 +21,53 @@ function isEditAbleNode(node) {
   return node.hasAttribute("contenteditable");
 }
 
+function normalizeText(str) {
+  return str ? str.replace(/[\s\u200B\u00A0\uFEFF]+/g, "").trim() : "";
+}
+
 async function replaceContentEditableText(node, newText) {
-  try {
-    logger.debug("try replace editable 1: pasteEvent");
+  node.focus();
+  await sleep(20);
 
-    node.focus();
-
+  const performSelectAll = () => {
     const selection = window.getSelection();
-    if (!selection) throw new Error("window.getSelection() is not available.");
-
-    const targetNode = node.querySelector("p") || node;
-    const range = document.createRange();
-    range.selectNodeContents(targetNode);
     selection.removeAllRanges();
-    selection.addRange(range);
+    try {
+      selection.selectAllChildren(node);
+    } catch (e) {
+      //
+    }
+    document.execCommand("selectAll", false, null);
+  };
 
-    const dataTransfer = new DataTransfer();
-    dataTransfer.setData("text/plain", newText);
+  performSelectAll();
+  await sleep(50);
 
-    const pasteEvent = new ClipboardEvent("paste", {
-      clipboardData: dataTransfer,
+  try {
+    const dt = new DataTransfer();
+    dt.setData("text/plain", newText);
+
+    const pasteEvt = new ClipboardEvent("paste", {
+      clipboardData: dt,
       bubbles: true,
       cancelable: true,
+      composed: true, // 穿透 Shadow DOM
+      view: window,
     });
-    node.dispatchEvent(pasteEvent);
 
-    await sleep(50);
-    if (node.innerText.trim() === newText) {
+    node.dispatchEvent(pasteEvt);
+    await sleep(200);
+
+    const finalContent = normalizeText(node.innerText);
+    const targetContent = normalizeText(newText);
+    if (
+      finalContent === targetContent ||
+      finalContent.includes(targetContent)
+    ) {
       return true;
     }
-
-    throw new Error("Strategy 1 failed to replace text correctly.");
-  } catch (error) {
-    logger.debug("Strategy 1 Failed:", error.message);
-  }
-
-  try {
-    logger.debug("try replace editable 2: execCommand");
-
-    node.focus();
-
-    const selection = window.getSelection();
-    if (!selection) throw new Error("window.getSelection() is not available.");
-
-    const targetNode = node.querySelector("p") || node;
-    const range = document.createRange();
-    range.selectNodeContents(targetNode);
-    selection.removeAllRanges();
-    selection.addRange(range);
-
-    document.execCommand("insertText", false, newText);
-
-    await sleep(50);
-    if (node.innerText.trim() === newText) {
-      return true;
-    }
-
-    throw new Error("Strategy 2 failed to replace text correctly.");
-  } catch (error) {
-    logger.debug("Strategy 2 Failed:", error.message);
-  }
-
-  try {
-    logger.debug("try replace editable 3: textContent");
-
-    node.focus();
-
-    const targetNode = node.querySelector("p") || node;
-    const textSpan = targetNode.querySelector('span[data-lexical-text="true"]');
-
-    if (textSpan) {
-      textSpan.textContent = newText;
-    } else {
-      targetNode.textContent = newText;
-    }
-
-    node.dispatchEvent(new Event("input", { bubbles: true, cancelable: true }));
-
-    await sleep(50);
-    if (node.innerText.trim() === newText) {
-      return true;
-    }
-
-    throw new Error("Strategy 3 failed to replace text correctly.");
-  } catch (error) {
-    logger.debug("Strategy 3 Failed:", error.message);
+  } catch (e) {
+    logger.debug("Paste error:", e);
   }
 
   return false;
