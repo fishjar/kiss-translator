@@ -113,7 +113,7 @@ export class YouTubeSubtitleList {
       padding: 10px 16px;
       border-bottom: 1px solid #eee;
       display: flex;
-      justify-content: flex-end;
+      justify-content: center;
       flex-shrink: 0;
     `;
 
@@ -751,7 +751,6 @@ export class YouTubeSubtitleList {
         right: "0",
         fontSize: "14px",
         padding: "0",
-        marginRight: "24px",
         border: "1px solid rgba(0, 0, 0, 0.1)",
         borderRadius: "8px",
         minWidth: "320px",
@@ -802,7 +801,8 @@ export class YouTubeSubtitleList {
 
     const tabContentContainer = document.createElement("div");
     tabContentContainer.style.cssText = `
-        overflow: hidden;
+        overflow-y: auto;
+        overflow-x: hidden;
         flex-grow: 1;
         display: flex;
         flex-direction: column;

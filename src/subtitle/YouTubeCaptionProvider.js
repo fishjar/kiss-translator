@@ -29,6 +29,7 @@ class YouTubeCaptionProvider {
   #setting = {};
 
   #subtitles = [];
+  #events = [];
   #flatEvents = [];
   #progressedNum = 0;
   #fromLang = "auto";
@@ -86,6 +87,7 @@ class YouTubeCaptionProvider {
       this.#destroyManager();
 
       this.#subtitles = [];
+      this.#events = [];
       this.#flatEvents = [];
       this.#progressed = 0;
       this.#fromLang = "auto";
@@ -498,15 +500,9 @@ class YouTubeCaptionProvider {
         return;
       }
 
+      this.#events = events;
       this.#flatEvents = flatEvents;
       this.#fromLang = fromLang;
-
-      // 初始化字幕列表管理器
-      const videoEl = this.#videoEl;
-      if (videoEl && events.length > 0) {
-        this.#subtitleListManager = new YouTubeSubtitleList(videoEl);
-        this.#subtitleListManager.initialize(events);
-      }
 
       this.#processEvents({
         videoId,
@@ -653,8 +649,14 @@ class YouTubeCaptionProvider {
       setting: { ...this.#setting, fromLang: this.#fromLang },
     });
 
+    // todo 移到菜单切换
     // 监听字幕更新事件，将翻译后的字幕传递给字幕列表
-    if (this.#subtitleListManager) {
+    if (this.#setting.isEnhance !== false && !this.#subtitleListManager) {
+      // 初始化字幕列表管理器
+      this.#subtitleListManager = new YouTubeSubtitleList(videoEl);
+      this.#subtitleListManager.initialize(this.#events);
+
+      // todo: 将 subtitleListManager 实例传入 managerInstance
       // 监听字幕更新事件，在字幕翻译完成后更新字幕列表
       this.#managerInstance.onSubtitleUpdate = (updatedSubtitles) => {
         const updatedBilingualSubtitles = updatedSubtitles.map((sub) => ({
@@ -678,6 +680,8 @@ class YouTubeCaptionProvider {
 
       // 将双语字幕数据传递给字幕列表
       this.#subtitleListManager.setBilingualSubtitles(bilingualSubtitles);
+      // 启动字幕列表自动滚动
+      this.#subtitleListManager.turnOnAutoSub();
     }
 
     this.#managerInstance.start();
@@ -685,11 +689,6 @@ class YouTubeCaptionProvider {
     this.#showNotification(this.#i18n("subtitle_load_succeed"));
 
     this.#hideYtCaption();
-
-    // 启动字幕列表自动滚动
-    if (this.#subtitleListManager) {
-      this.#subtitleListManager.turnOnAutoSub();
-    }
   }
 
   #destroyManager() {

@@ -121,6 +121,7 @@ export const DEFAULT_SUBTITLE_SETTING = {
   windowStyle: SUBTITLE_WINDOW_STYLE, // 背景样式
   originStyle: SUBTITLE_ORIGIN_STYLE, // 原文样式
   translationStyle: SUBTITLE_TRANSLATION_STYLE, // 译文样式
+  isEnhance: true, // 启用增强功能
 };
 
 // 订阅列表

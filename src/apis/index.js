@@ -159,6 +159,17 @@ export const apiMicrosoftDict = async (text) => {
     trs.push({ pos, def });
   });
 
+  // 英汉双解
+  const ecs = [];
+  doc.querySelectorAll(".each_seg>.li_pos").forEach(($li) => {
+    const pos = $li.querySelector(".pos_lin>.pos")?.textContent?.trim();
+    const lis = [];
+    $li.querySelectorAll(".de_seg>.se_lis").forEach(($l) => {
+      lis.push($l.querySelector(".de_co")?.textContent?.trim());
+    });
+    ecs.push({ pos, lis });
+  });
+
   // 添加例句信息
   const sentences = [];
   doc.querySelectorAll("#sentenceSeg .se_li").forEach(($li) => {
@@ -177,7 +188,9 @@ export const apiMicrosoftDict = async (text) => {
   if ($audioUK) {
     const audioUK = host + $audioUK?.dataset?.mp3link;
     const $phoneticUK = $audioUK.parentElement?.previousElementSibling;
-    const phoneticUK = $phoneticUK?.textContent?.trim();
+    const phoneticUK = $phoneticUK?.textContent
+      ?.trim()
+      ?.match(/\[(.*?)\]/)?.[1];
     aus.push({ key: "英", audio: audioUK, phonetic: phoneticUK });
   }
 
@@ -185,7 +198,9 @@ export const apiMicrosoftDict = async (text) => {
   if ($audioUS) {
     const audioUS = host + $audioUS?.dataset?.mp3link;
     const $phoneticUS = $audioUS.parentElement?.previousElementSibling;
-    const phoneticUS = $phoneticUS?.textContent?.trim();
+    const phoneticUS = $phoneticUS?.textContent
+      ?.trim()
+      ?.match(/\[(.*?)\]/)?.[1];
     aus.push({ key: "美", audio: audioUS, phonetic: phoneticUS });
   }
 
@@ -213,7 +228,7 @@ export const apiMicrosoftDict = async (text) => {
     }
   }
 
-  const res = { word, trs, aus, sentences };
+  const res = { word, trs, aus, ecs, sentences };
   putHttpCachePolyfill(cacheInput, null, res);
 
   return res;

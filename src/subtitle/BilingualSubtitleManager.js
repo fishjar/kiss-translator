@@ -144,7 +144,10 @@ export class BilingualSubtitleManager {
       (setting.throttleTrans ?? 30) * 1000
     );
 
-    addWordHoverStyles();
+    // todo: 使用 @emotion/css
+    if (this.#setting.isEnhance !== false) {
+      addWordHoverStyles();
+    }
   }
 
   /**
@@ -244,21 +247,23 @@ export class BilingualSubtitleManager {
 
     this.#enableDragging(this.#paperEl, container, this.#captionWindowEl);
 
-    // 添加鼠标悬停事件监听器
-    this.#captionWindowEl.addEventListener(
-      "mouseover",
-      this.#handleWordHover.bind(this),
-      true
-    );
-    this.#captionWindowEl.addEventListener(
-      "mouseout",
-      this.#handleWordHoverOut.bind(this),
-      true
-    );
-    this.#captionWindowEl.addEventListener(
-      "mousemove",
-      this.#handleWordMouseMove.bind(this)
-    );
+    if (this.#setting.isEnhance !== false) {
+      // 添加鼠标悬停事件监听器
+      this.#captionWindowEl.addEventListener(
+        "mouseover",
+        this.#handleWordHover.bind(this),
+        true
+      );
+      this.#captionWindowEl.addEventListener(
+        "mouseout",
+        this.#handleWordHoverOut.bind(this),
+        true
+      );
+      this.#captionWindowEl.addEventListener(
+        "mousemove",
+        this.#handleWordMouseMove.bind(this)
+      );
+    }
   }
 
   // 处理单词悬停事件
@@ -453,13 +458,17 @@ export class BilingualSubtitleManager {
           content += "</div>";
         }
 
-        this.#tooltipEl.innerHTML = content;
+        if (this.#tooltipEl) {
+          this.#tooltipEl.innerHTML = content;
+        }
       } else {
-        this.#tooltipEl.innerHTML = `<div class="kiss-word-tooltip-header">
+        if (this.#tooltipEl) {
+          this.#tooltipEl.innerHTML = `<div class="kiss-word-tooltip-header">
           <span>${word}</span>
           <button class="kiss-word-tooltip-close" onclick="this.closest('.kiss-word-tooltip').remove()">×</button>
         </div>
         <div class="kiss-word-definition">No definition found</div>`;
+        }
       }
     } catch (error) {
       logger.info("Dictionary lookup failed for word:", word, error);
@@ -479,11 +488,13 @@ export class BilingualSubtitleManager {
       });
       document.dispatchEvent(event);
 
-      this.#tooltipEl.innerHTML = `<div class="kiss-word-tooltip-header">
+      if (this.#tooltipEl) {
+        this.#tooltipEl.innerHTML = `<div class="kiss-word-tooltip-header">
         <span>${word}</span>
         <button class="kiss-word-tooltip-close" onclick="this.closest('.kiss-word-tooltip').remove()">×</button>
       </div>
       <div class="kiss-word-definition">Failed to load definition</div>`;
+      }
     }
   }
 
@@ -642,7 +653,10 @@ export class BilingualSubtitleManager {
       // 创建带有单词标记的字幕内容
       const p1 = document.createElement("p");
       p1.style.cssText = this.#setting.originStyle;
-      p1.innerHTML = this.#wrapWordsWithSpans(subtitle.text);
+      p1.innerHTML =
+        this.#setting.isEnhance !== false
+          ? this.#wrapWordsWithSpans(subtitle.text)
+          : truncateWords(subtitle.text);
 
       const p2 = document.createElement("p");
       p2.style.cssText = this.#setting.translationStyle;

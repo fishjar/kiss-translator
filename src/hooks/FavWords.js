@@ -24,6 +24,7 @@ export function useFavWords() {
     (word, timestamp = null, phonetic = "", definition = "", examples = []) => {
       save((prev) => {
         if (!prev[word]) {
+          // todo: 除 word 外，其他属性暂无传入
           const wordData = {
             createdAt: Date.now(),
             timestamp,

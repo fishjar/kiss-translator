@@ -34,6 +34,7 @@ export default function SubtitleSetting() {
     throttleTrans = 30,
     toLang,
     isBilingual,
+    isEnhance = true,
     skipAd = false,
     windowStyle,
     originStyle,
@@ -182,6 +183,20 @@ export default function SubtitleSetting() {
                 name="skipAd"
                 value={skipAd}
                 label={i18n("is_skip_ad")}
+                onChange={handleChange}
+              >
+                <MenuItem value={true}>{i18n("enable")}</MenuItem>
+                <MenuItem value={false}>{i18n("disable")}</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                fullWidth
+                select
+                size="small"
+                name="isEnhance"
+                value={isEnhance}
+                label={i18n("is_enable_enhance")}
                 onChange={handleChange}
               >
                 <MenuItem value={true}>{i18n("enable")}</MenuItem>

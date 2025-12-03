@@ -359,6 +359,12 @@ export default function FavWords() {
             fileExts={[".txt", ".csv"]}
           />
 
+          <DownloadButton
+            handleData={() => wordList.join("\n")}
+            text={i18n("export")}
+            fileName={`kiss-words_${Date.now()}.txt`}
+          />
+
           {/* 导出为 TXT 格式 */}
           <DownloadButton
             handleData={handleExportTxt}
