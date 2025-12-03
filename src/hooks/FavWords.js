@@ -24,18 +24,21 @@ export function useFavWords() {
     (word, timestamp = null, phonetic = "", definition = "", examples = []) => {
       save((prev) => {
         if (!prev[word]) {
-          const wordData = { 
+          const wordData = {
             createdAt: Date.now(),
             timestamp,
             phonetic,
             definition,
-            examples
+            examples,
           };
           // 清理空值属性
-          Object.keys(wordData).forEach(key => {
-            if (wordData[key] === null || wordData[key] === undefined || 
-                (Array.isArray(wordData[key]) && wordData[key].length === 0) ||
-                (typeof wordData[key] === 'string' && wordData[key].length === 0)) {
+          Object.keys(wordData).forEach((key) => {
+            if (
+              wordData[key] === null ||
+              wordData[key] === undefined ||
+              (Array.isArray(wordData[key]) && wordData[key].length === 0) ||
+              (typeof wordData[key] === "string" && wordData[key].length === 0)
+            ) {
               delete wordData[key];
             }
           });

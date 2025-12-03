@@ -33,24 +33,38 @@ export const dictHandlers = {
             </Typography>
           ))}
         </Typography>
-        
+
         {/* 显示例句 */}
         {data?.sentences?.length > 0 && (
           <Typography component="div" style={{ marginTop: "10px" }}>
-            <Typography component="div" style={{ fontWeight: "bold", marginBottom: "5px" }}>
+            <Typography
+              component="div"
+              style={{ fontWeight: "bold", marginBottom: "5px" }}
+            >
               例句
             </Typography>
             {data.sentences.slice(0, 2).map((sentence, idx) => (
-              <Typography component="div" key={idx} style={{ marginBottom: "5px" }}>
+              <Typography
+                component="div"
+                key={idx}
+                style={{ marginBottom: "5px" }}
+              >
                 <Typography component="div">
                   {sentence.eng?.split(data.word)?.map((part, i, arr) => (
                     <span key={i}>
-                      {i > 0 && <span style={{ fontWeight: "bold", color: "#1e88e5" }}>{data.word}</span>}
+                      {i > 0 && (
+                        <span style={{ fontWeight: "bold", color: "#1e88e5" }}>
+                          {data.word}
+                        </span>
+                      )}
                       {part}
                     </span>
                   ))}
                 </Typography>
-                <Typography component="div" style={{ color: "#666", fontStyle: "italic" }}>
+                <Typography
+                  component="div"
+                  style={{ color: "#666", fontStyle: "italic" }}
+                >
                   {sentence.chs}
                 </Typography>
               </Typography>
@@ -95,32 +109,48 @@ export const dictHandlers = {
             </Typography>
           ))}
         </Typography>
-        
+
         {/* 显示例句 */}
         {data?.blng_sents_part?.["sentence-pair"]?.length > 0 && (
           <Typography component="div" style={{ marginTop: "10px" }}>
-            <Typography component="div" style={{ fontWeight: "bold", marginBottom: "5px" }}>
+            <Typography
+              component="div"
+              style={{ fontWeight: "bold", marginBottom: "5px" }}
+            >
               例句
             </Typography>
-            {data.blng_sents_part["sentence-pair"].slice(0, 2).map((sentence, idx) => (
-              <Typography component="div" key={idx} style={{ marginBottom: "5px" }}>
-                <Typography component="div">
-                  {sentence.sentence?.split(data.ec?.word?.["return-phrase"])?.map((part, i, arr) => (
-                    <span key={i}>
-                      {i > 0 && data.ec?.word?.["return-phrase"] && (
-                        <span style={{ fontWeight: "bold", color: "#1e88e5" }}>
-                          {data.ec.word["return-phrase"]}
+            {data.blng_sents_part["sentence-pair"]
+              .slice(0, 2)
+              .map((sentence, idx) => (
+                <Typography
+                  component="div"
+                  key={idx}
+                  style={{ marginBottom: "5px" }}
+                >
+                  <Typography component="div">
+                    {sentence.sentence
+                      ?.split(data.ec?.word?.["return-phrase"])
+                      ?.map((part, i, arr) => (
+                        <span key={i}>
+                          {i > 0 && data.ec?.word?.["return-phrase"] && (
+                            <span
+                              style={{ fontWeight: "bold", color: "#1e88e5" }}
+                            >
+                              {data.ec.word["return-phrase"]}
+                            </span>
+                          )}
+                          {part}
                         </span>
-                      )}
-                      {part}
-                    </span>
-                  ))}
+                      ))}
+                  </Typography>
+                  <Typography
+                    component="div"
+                    style={{ color: "#666", fontStyle: "italic" }}
+                  >
+                    {sentence["sentence-translation"]}
+                  </Typography>
                 </Typography>
-                <Typography component="div" style={{ color: "#666", fontStyle: "italic" }}>
-                  {sentence["sentence-translation"]}
-                </Typography>
-              </Typography>
-            ))}
+              ))}
           </Typography>
         )}
       </Typography>

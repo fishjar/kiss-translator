@@ -342,18 +342,18 @@ export class BilingualSubtitleManager {
     this.#tooltipEl.className = "kiss-word-tooltip";
     this.#tooltipEl.innerHTML =
       '<div class="kiss-word-loading">Looking up...</div>';
-    
+
     // 将提示框定位在播放器右上角
     const videoContainer = this.#videoEl.parentElement?.parentElement;
     if (videoContainer) {
       const containerRect = videoContainer.getBoundingClientRect();
       const tooltipWidth = 300;
       const tooltipHeight = 400;
-      
+
       // 定位在播放器右上角，距离右边缘45px，上下边缘各20px
       const left = containerRect.right - tooltipWidth - 45;
       const top = containerRect.top + 20;
-      
+
       // 确保提示框不会超出浏览器窗口右边界
       const maxLeft = window.innerWidth - tooltipWidth - 10;
       this.#tooltipEl.style.left = Math.min(maxLeft, Math.max(10, left)) + "px";
@@ -368,12 +368,12 @@ export class BilingualSubtitleManager {
     try {
       // 获取单词翻译
       const dictResult = await apiMicrosoftDict(word);
-      
+
       // 构造美式音标字符串
       let phonetic = "";
       if (dictResult && dictResult.aus) {
         // 只使用美式音标，去除"美"标签和方括号
-        const usPhonetic = dictResult.aus.find(au => au.key === "美");
+        const usPhonetic = dictResult.aus.find((au) => au.key === "美");
         if (usPhonetic && usPhonetic.phonetic) {
           phonetic = usPhonetic.phonetic;
         } else if (dictResult.aus.length > 0 && dictResult.aus[0].phonetic) {
@@ -381,43 +381,44 @@ export class BilingualSubtitleManager {
           phonetic = dictResult.aus[0].phonetic;
         }
       }
-      
+
       // 构造释义字符串
       let definition = "";
       if (dictResult && dictResult.trs) {
         definition = dictResult.trs
           .slice(0, 3)
-          .map(tr => `${tr.pos ? tr.pos + " " : ""}${tr.def}`)
+          .map((tr) => `${tr.pos ? tr.pos + " " : ""}${tr.def}`)
           .join("; ");
       }
-      
+
       // 构造例句数组
       let examples = [];
       if (dictResult && dictResult.sentences) {
-        examples = dictResult.sentences
-          .slice(0, 2)
-          .map(sentence => ({
-            eng: sentence.eng,
-            chs: sentence.chs
-          }));
+        examples = dictResult.sentences.slice(0, 2).map((sentence) => ({
+          eng: sentence.eng,
+          chs: sentence.chs,
+        }));
       }
 
       // 获取当前字幕的时间戳（使用重新分段后的时间）
       const currentTimeMs = this.#getCurrentSubtitleStartTime();
-      
+
       // 添加单词和完整信息到生词本
-      const event = new CustomEvent('kiss-add-word', { 
-        detail: { 
+      const event = new CustomEvent("kiss-add-word", {
+        detail: {
           word,
-          phonetic,  // 现在只包含音标本身，如 ɪnˈkredəb(ə)l
+          phonetic, // 现在只包含音标本身，如 ɪnˈkredəb(ə)l
           definition,
           examples,
-          timestamp: currentTimeMs // 添加时间戳
-        } 
+          timestamp: currentTimeMs, // 添加时间戳
+        },
       });
       document.dispatchEvent(event);
 
-      if (dictResult && (dictResult.trs || dictResult.aus || dictResult.sentences)) {
+      if (
+        dictResult &&
+        (dictResult.trs || dictResult.aus || dictResult.sentences)
+      ) {
         let content = `<div class="kiss-word-tooltip-header">
           <span>${word}</span>
           <button class="kiss-word-tooltip-close" onclick="this.closest('.kiss-word-tooltip').remove()">×</button>
@@ -425,13 +426,13 @@ export class BilingualSubtitleManager {
 
         // 显示音标
         if (dictResult.aus && dictResult.aus.length > 0) {
-          content += '<div>';
+          content += "<div>";
           dictResult.aus.forEach((au) => {
             if (au.phonetic) {
               content += `<span class="kiss-word-phonetic">${au.phonetic}</span>`;
             }
           });
-          content += '</div>';
+          content += "</div>";
         }
 
         // 显示释义
@@ -449,7 +450,7 @@ export class BilingualSubtitleManager {
             content += `<div class="kiss-word-example-sentence">${sentence.eng}</div>
               <div class="kiss-word-example-translation">${sentence.chs}</div>`;
           });
-          content += '</div>';
+          content += "</div>";
         }
 
         this.#tooltipEl.innerHTML = content;
@@ -462,22 +463,22 @@ export class BilingualSubtitleManager {
       }
     } catch (error) {
       logger.info("Dictionary lookup failed for word:", word, error);
-      
+
       // 获取当前字幕的时间戳
       const currentTimeMs = this.#getCurrentSubtitleStartTime();
 
       // 即使查询失败，也将单词添加到生词本（无完整信息）
-      const event = new CustomEvent('kiss-add-word', { 
-        detail: { 
+      const event = new CustomEvent("kiss-add-word", {
+        detail: {
           word,
           phonetic: "",
           definition: "",
           examples: [],
-          timestamp: currentTimeMs // 添加时间戳
-        } 
+          timestamp: currentTimeMs, // 添加时间戳
+        },
       });
       document.dispatchEvent(event);
-      
+
       this.#tooltipEl.innerHTML = `<div class="kiss-word-tooltip-header">
         <span>${word}</span>
         <button class="kiss-word-tooltip-close" onclick="this.closest('.kiss-word-tooltip').remove()">×</button>
@@ -716,7 +717,7 @@ export class BilingualSubtitleManager {
       if (this.#formattedSubtitles[currentSubtitleIndexNow] === subtitle) {
         this.#updateCaptionDisplay(subtitle);
       }
-      
+
       // 通知外部组件字幕已更新
       if (this.onSubtitleUpdate) {
         this.onSubtitleUpdate(this.#formattedSubtitles);
@@ -741,7 +742,7 @@ export class BilingualSubtitleManager {
     this.#formattedSubtitles.sort((a, b) => a.start - b.start);
     this.#currentSubtitleIndex = -1;
     this.onTimeUpdate();
-    
+
     // 通知外部组件字幕已更新
     if (this.onSubtitleUpdate) {
       this.onSubtitleUpdate(this.#formattedSubtitles);
@@ -757,9 +758,9 @@ export class BilingualSubtitleManager {
     const currentTimeMs = this.#videoEl.currentTime * 1000;
     // 查找当前时间对应的字幕
     const currentSubtitle = this.#formattedSubtitles.find(
-      sub => currentTimeMs >= sub.start && currentTimeMs <= sub.end
+      (sub) => currentTimeMs >= sub.start && currentTimeMs <= sub.end
     );
-    
+
     // 返回重新分段后的字幕开始时间，如果没有找到则返回当前时间
     return currentSubtitle ? currentSubtitle.start : currentTimeMs;
   }

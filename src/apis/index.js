@@ -172,7 +172,7 @@ export const apiMicrosoftDict = async (text) => {
   const aus = [];
   const $audioUK = doc.querySelector("#bigaud_uk");
   const $audioUS = doc.querySelector("#bigaud_us");
-  
+
   // 检查 UK 音频和音标
   if ($audioUK) {
     const audioUK = host + $audioUK?.dataset?.mp3link;
@@ -180,7 +180,7 @@ export const apiMicrosoftDict = async (text) => {
     const phoneticUK = $phoneticUK?.textContent?.trim();
     aus.push({ key: "英", audio: audioUK, phonetic: phoneticUK });
   }
-  
+
   // 检查 US 音频和音标
   if ($audioUS) {
     const audioUS = host + $audioUS?.dataset?.mp3link;
@@ -188,12 +188,12 @@ export const apiMicrosoftDict = async (text) => {
     const phoneticUS = $phoneticUS?.textContent?.trim();
     aus.push({ key: "美", audio: audioUS, phonetic: phoneticUS });
   }
-  
+
   // 如果上面的方法没有获取到音标，尝试其他方式
   if (aus.length === 0) {
     const $pronInfo = doc.querySelector(".hd_pr");
     const $pronInfoUS = doc.querySelector(".hd_prUS");
-    
+
     if ($pronInfo) {
       const phoneticText = $pronInfo.textContent?.trim();
       // 尝试提取音标部分
@@ -202,7 +202,7 @@ export const apiMicrosoftDict = async (text) => {
         aus.push({ key: "英", phonetic: phoneticMatch[1] });
       }
     }
-    
+
     if ($pronInfoUS) {
       const phoneticText = $pronInfoUS.textContent?.trim();
       // 尝试提取音标部分

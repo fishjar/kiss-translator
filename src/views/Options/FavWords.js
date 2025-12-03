@@ -36,7 +36,7 @@ function FavAccordion({ word, index, createdAt, timestamp }) {
     const totalSeconds = Math.floor(milliseconds / 1000);
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   };
 
   // 跳转到视频时间点
@@ -44,28 +44,32 @@ function FavAccordion({ word, index, createdAt, timestamp }) {
     e.stopPropagation();
     if (timestamp) {
       // 发送消息到内容脚本，让视频跳转到指定时间
-      window.postMessage({
-        type: "KISS_TRANSLATOR_JUMP_TO_TIME",
-        time: timestamp
-      }, "*");
+      window.postMessage(
+        {
+          type: "KISS_TRANSLATOR_JUMP_TO_TIME",
+          time: timestamp,
+        },
+        "*"
+      );
     }
   };
 
   return (
     <Accordion expanded={expanded} onChange={handleChange}>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Typography>{`${index + 1}. ${word}`}
+        <Typography>
+          {`${index + 1}. ${word}`}
           {timestamp && (
-            <Button 
-              size="small" 
+            <Button
+              size="small"
               onClick={jumpToTime}
-              style={{ 
-                minWidth: 'auto', 
-                padding: '0 4px', 
-                marginLeft: '10px',
-                fontSize: '0.9rem',
-                color: '#1e88e5',
-                textTransform: 'none'
+              style={{
+                minWidth: "auto",
+                padding: "0 4px",
+                marginLeft: "10px",
+                fontSize: "0.9rem",
+                color: "#1e88e5",
+                textTransform: "none",
               }}
             >
               {formatTime(timestamp)}
@@ -117,7 +121,7 @@ export default function FavWords() {
   const handleExportTxt = async () => {
     // 获取完整的单词信息
     const fullWordData = [];
-    
+
     // 由于选项页面无法直接访问 YouTube 字幕列表中的完整数据，
     // 我们只能导出已存储在收藏夹中的信息
     for (const [word, data] of favList) {
@@ -126,28 +130,30 @@ export default function FavWords() {
         phonetic: data.phonetic || "",
         definition: data.definition || "",
         examples: data.examples || [],
-        timestamp: data.timestamp || null
+        timestamp: data.timestamp || null,
       });
     }
 
     const lines = [];
     lines.push("生词本导出文件");
-    lines.push(`导出时间: ${new Date().toLocaleString('zh-CN')}`);
+    lines.push(`导出时间: ${new Date().toLocaleString("zh-CN")}`);
     lines.push("");
-    
+
     fullWordData.forEach((item, index) => {
       lines.push(`${index + 1}. ${item.word}`);
-      
+
       // 清理音标，去除"US"标签和其他方括号，只保留音标本身，并用方括号包裹
-      const cleanPhonetic = item.phonetic ? item.phonetic.replace(/US\s*/g, '').replace(/[\[\]]/g, '') : "";
+      const cleanPhonetic = item.phonetic
+        ? item.phonetic.replace(/US\s*/g, "").replace(/[\[\]]/g, "")
+        : "";
       if (cleanPhonetic) {
         lines.push(`   音标: [${cleanPhonetic}]`);
       }
-      
+
       if (item.definition) {
         lines.push(`   释义: ${item.definition}`);
       }
-      
+
       if (item.examples && item.examples.length > 0) {
         lines.push("   例句:");
         item.examples.slice(0, 2).forEach((example, exIndex) => {
@@ -157,17 +163,17 @@ export default function FavWords() {
           }
         });
       }
-      
+
       // 如果有时间戳，也导出时间信息
       if (item.timestamp) {
         const totalSeconds = Math.floor(item.timestamp / 1000);
         const videoLink = `https://www.youtube.com/watch?t=${totalSeconds}`;
         lines.push(`   视频链接: ${videoLink}`);
       }
-      
+
       lines.push(""); // 空行分隔
     });
-    
+
     return lines.join("\n");
   };
 
@@ -175,7 +181,7 @@ export default function FavWords() {
   const handleExportCsv = async () => {
     // 获取完整的单词信息（包括音标、释义、例句等）
     const fullWordData = [];
-    
+
     // 由于选项页面无法直接访问 YouTube 字幕列表中的完整数据，
     // 我们只能导出已存储在收藏夹中的信息
     for (const [word, data] of favList) {
@@ -184,13 +190,14 @@ export default function FavWords() {
         phonetic: data.phonetic || "",
         definition: data.definition || "",
         examples: data.examples || [],
-        timestamp: data.timestamp || null
+        timestamp: data.timestamp || null,
       });
     }
 
     // 创建包含多个例句列的表头
-    const header = "Word,Phonetic,Definition,Example1,Translation1,Example2,Translation2,Video Link";
-    const rows = fullWordData.map(item => {
+    const header =
+      "Word,Phonetic,Definition,Example1,Translation1,Example2,Translation2,Video Link";
+    const rows = fullWordData.map((item) => {
       // 转义特殊字符，特别是双引号
       const escapeCSVField = (field) => {
         if (!field) return '""';
@@ -199,26 +206,28 @@ export default function FavWords() {
       };
 
       // 清理音标，去除"US"标签和其他方括号，只保留音标本身，并用方括号包裹
-      const cleanPhonetic = item.phonetic ? item.phonetic.replace(/US\s*/g, '').replace(/[\[\]]/g, '') : "";
+      const cleanPhonetic = item.phonetic
+        ? item.phonetic.replace(/US\s*/g, "").replace(/[\[\]]/g, "")
+        : "";
       const phonetic = cleanPhonetic ? `[${cleanPhonetic}]` : "";
       const definition = item.definition || "";
-      
+
       // 获取前两个例句及其翻译
       let example1 = "";
       let translation1 = "";
       let example2 = "";
       let translation2 = "";
-      
+
       if (item.examples && item.examples.length > 0) {
         example1 = item.examples[0].eng || "";
         translation1 = item.examples[0].chs || "";
       }
-      
+
       if (item.examples && item.examples.length > 1) {
         example2 = item.examples[1].eng || "";
         translation2 = item.examples[1].chs || "";
       }
-      
+
       // 创建YouTube链接
       let videoLink = "";
       if (item.timestamp) {
@@ -238,18 +247,18 @@ export default function FavWords() {
       // 表头
       header,
       // 数据行
-      ...rows
+      ...rows,
     ].join("\n");
 
     // 添加 BOM 头以支持 Excel 正确显示中文
-    return '\uFEFF' + csvContent;
+    return "\uFEFF" + csvContent;
   };
 
   // 导出为 Markdown 格式
   const handleExportMd = async () => {
     // 获取完整的单词信息
     const fullWordData = [];
-    
+
     // 由于选项页面无法直接访问 YouTube 字幕列表中的完整数据，
     // 我们只能导出已存储在收藏夹中的信息
     for (const [word, data] of favList) {
@@ -258,28 +267,30 @@ export default function FavWords() {
         phonetic: data.phonetic || "",
         definition: data.definition || "",
         examples: data.examples || [],
-        timestamp: data.timestamp || null
+        timestamp: data.timestamp || null,
       });
     }
 
     const lines = [];
     lines.push("# 生词本导出文件");
-    lines.push(`_导出时间: ${new Date().toLocaleString('zh-CN')}_`);
+    lines.push(`_导出时间: ${new Date().toLocaleString("zh-CN")}_`);
     lines.push("");
-    
+
     fullWordData.forEach((item, index) => {
       lines.push(`${index + 1}. **${item.word}**`);
-      
+
       // 清理音标，去除"US"标签和其他方括号，只保留音标本身，并用方括号包裹
-      const cleanPhonetic = item.phonetic ? item.phonetic.replace(/US\s*/g, '').replace(/[\[\]]/g, '') : "";
+      const cleanPhonetic = item.phonetic
+        ? item.phonetic.replace(/US\s*/g, "").replace(/[\[\]]/g, "")
+        : "";
       if (cleanPhonetic) {
         lines.push(`   *音标 Phonetic:* [${cleanPhonetic}]`);
       }
-      
+
       if (item.definition) {
         lines.push(`   *释义 Definition:* ${item.definition}`);
       }
-      
+
       if (item.examples && item.examples.length > 0) {
         lines.push("   *例句 Examples:*");
         item.examples.slice(0, 2).forEach((example, exIndex) => {
@@ -289,17 +300,19 @@ export default function FavWords() {
           }
         });
       }
-      
+
       // 如果有时间戳，也导出时间信息
       if (item.timestamp) {
         const totalSeconds = Math.floor(item.timestamp / 1000);
         const videoLink = `https://www.youtube.com/watch?t=${totalSeconds}`;
-        lines.push(`   *视频链接 Video Link:* [跳转到视频时间点](${videoLink})`);
+        lines.push(
+          `   *视频链接 Video Link:* [跳转到视频时间点](${videoLink})`
+        );
       }
-      
+
       lines.push(""); // 空行分隔
     });
-    
+
     return lines.join("\n");
   };
 
@@ -345,28 +358,28 @@ export default function FavWords() {
             fileType="text"
             fileExts={[".txt", ".csv"]}
           />
-          
+
           {/* 导出为 TXT 格式 */}
           <DownloadButton
             handleData={handleExportTxt}
             text={i18n("export") + " (TXT)"}
             fileName={`kiss-words_${Date.now()}.txt`}
           />
-          
+
           {/* 导出为 CSV 格式 */}
           <DownloadButton
             handleData={handleExportCsv}
             text={i18n("export") + " (CSV)"}
             fileName={`kiss-words_${Date.now()}.csv`}
           />
-          
+
           {/* 导出为 Markdown 格式 */}
           <DownloadButton
             handleData={handleExportMd}
             text={i18n("export") + " (MD)"}
             fileName={`kiss-words_${Date.now()}.md`}
           />
-          
+
           <DownloadButton
             handleData={handleTranslation}
             text={i18n("export_translation")}

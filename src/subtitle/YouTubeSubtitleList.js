@@ -22,7 +22,7 @@ export class YouTubeSubtitleList {
 
     this.handleWordAdded = this.handleWordAdded.bind(this);
     document.addEventListener("kiss-add-word", this.handleWordAdded);
-    
+
     // 监听来自选项页面的跳转消息
     window.addEventListener("message", (event) => {
       if (event.data && event.data.type === "KISS_TRANSLATOR_JUMP_TO_TIME") {
@@ -40,9 +40,9 @@ export class YouTubeSubtitleList {
     if (event.detail && event.detail.word) {
       // 现在可以接收完整的单词信息，包括时间戳
       this.addWord(
-        event.detail.word, 
-        event.detail.phonetic || "", 
-        event.detail.definition || "", 
+        event.detail.word,
+        event.detail.phonetic || "",
+        event.detail.definition || "",
         event.detail.examples || [],
         event.detail.timestamp || null
       );
@@ -57,10 +57,18 @@ export class YouTubeSubtitleList {
    * @param {Array} examples The examples of the word usage.
    * @param {number} timestamp The timestamp when the word appeared in the video.
    */
-  addWord(word, phonetic = "", definition = "", examples = [], timestamp = null) {
+  addWord(
+    word,
+    phonetic = "",
+    definition = "",
+    examples = [],
+    timestamp = null
+  ) {
     if (word) {
       // 检查单词是否已存在
-      const existingIndex = this.vocabulary.findIndex(item => item.word === word);
+      const existingIndex = this.vocabulary.findIndex(
+        (item) => item.word === word
+      );
       if (existingIndex !== -1) {
         // 如果单词已存在且提供了新的信息，则更新信息
         const currentItem = this.vocabulary[existingIndex];
@@ -70,7 +78,10 @@ export class YouTubeSubtitleList {
         if (definition && !currentItem.definition) {
           currentItem.definition = definition;
         }
-        if (examples.length > 0 && (!currentItem.examples || currentItem.examples.length === 0)) {
+        if (
+          examples.length > 0 &&
+          (!currentItem.examples || currentItem.examples.length === 0)
+        ) {
           currentItem.examples = examples;
         }
         // 更新时间戳（如果提供）
@@ -79,7 +90,13 @@ export class YouTubeSubtitleList {
         }
       } else {
         // 添加新单词
-        this.vocabulary.push({ word, phonetic, definition, examples, timestamp });
+        this.vocabulary.push({
+          word,
+          phonetic,
+          definition,
+          examples,
+          timestamp,
+        });
       }
       this._renderVocabulary();
     }
@@ -113,11 +130,11 @@ export class YouTubeSubtitleList {
         font-size: 12px;
         margin-right: 8px;
       `;
-      
+
       exportButton.addEventListener("click", () => {
         this.exportVocabularyAsJson();
       });
-      
+
       exportContainer.appendChild(exportButton);
 
       // 添加CSV导出按钮
@@ -133,11 +150,11 @@ export class YouTubeSubtitleList {
         font-size: 12px;
         margin-right: 8px;
       `;
-      
+
       exportCsvButton.addEventListener("click", () => {
         this.exportVocabularyAsCsv();
       });
-      
+
       exportContainer.appendChild(exportCsvButton);
 
       // 添加TXT导出按钮
@@ -153,11 +170,11 @@ export class YouTubeSubtitleList {
         font-size: 12px;
         margin-right: 8px;
       `;
-      
+
       exportTxtButton.addEventListener("click", () => {
         this.exportVocabularyAsTxt();
       });
-      
+
       exportContainer.appendChild(exportTxtButton);
 
       // 添加MD导出按钮
@@ -172,11 +189,11 @@ export class YouTubeSubtitleList {
         cursor: pointer;
         font-size: 12px;
       `;
-      
+
       exportMdButton.addEventListener("click", () => {
         this.exportVocabularyAsMd();
       });
-      
+
       exportContainer.appendChild(exportMdButton);
     }
 
@@ -229,7 +246,9 @@ export class YouTubeSubtitleList {
       if (item.phonetic) {
         phoneticElement = document.createElement("div");
         // 只显示音标本身，并用方括号包围，去除任何可能存在的"US"标签
-        const cleanPhonetic = item.phonetic.replace(/US\s*/g, '').replace(/[\[\]]/g, '');
+        const cleanPhonetic = item.phonetic
+          .replace(/US\s*/g, "")
+          .replace(/[\[\]]/g, "");
         phoneticElement.textContent = `[${cleanPhonetic}]`;
         phoneticElement.style.cssText = `
           color: #666;
@@ -237,7 +256,7 @@ export class YouTubeSubtitleList {
           font-size: 14px;
         `;
       }
-      
+
       // 时间戳元素
       let timestampElement = null;
       if (item.timestamp) {
@@ -252,7 +271,7 @@ export class YouTubeSubtitleList {
           cursor: pointer;
           text-transform: none;
         `;
-        
+
         // 点击时间戳跳转到对应时间
         timestampElement.addEventListener("click", () => {
           if (this.videoEl) {
@@ -296,28 +315,28 @@ export class YouTubeSubtitleList {
           font-size: 13px;
           line-height: 1.4;
         `;
-        
+
         item.examples.forEach((example, index) => {
           const exampleElement = document.createElement("div");
           exampleElement.style.cssText = `
             margin-bottom: 8px;
           `;
-          
+
           const engExample = document.createElement("div");
           engExample.textContent = example.eng;
-          
+
           const chsExample = document.createElement("div");
           chsExample.textContent = example.chs;
           chsExample.style.cssText = `
             color: #888;
             font-style: italic;
           `;
-          
+
           exampleElement.appendChild(engExample);
           exampleElement.appendChild(chsExample);
           examplesElement.appendChild(exampleElement);
         });
-        
+
         vocabItem.appendChild(examplesElement);
       }
 
@@ -337,18 +356,20 @@ export class YouTubeSubtitleList {
 
     // Get the video ID from the current YouTube page
     const videoId = this._getYouTubeVideoId();
-    
+
     // Process vocabulary data to clean phonetic symbols
-    const processedVocabulary = this.vocabulary.map(item => {
+    const processedVocabulary = this.vocabulary.map((item) => {
       // Create a copy of the item
       const newItem = { ...item };
-      
+
       // Clean phonetic - remove "US" label and brackets, then wrap with brackets
       if (item.phonetic) {
-        const cleanPhonetic = item.phonetic.replace(/US\s*/g, '').replace(/[\[\]]/g, '');
+        const cleanPhonetic = item.phonetic
+          .replace(/US\s*/g, "")
+          .replace(/[\[\]]/g, "");
         newItem.phonetic = cleanPhonetic ? `[${cleanPhonetic}]` : "";
       }
-      
+
       return newItem;
     });
 
@@ -356,25 +377,25 @@ export class YouTubeSubtitleList {
     const exportData = {
       videoInfo: {
         title: this._getYouTubeVideoTitle(),
-        url: videoId ? `https://www.youtube.com/watch?v=${videoId}` : '',
-        exportTime: new Date().toISOString()
+        url: videoId ? `https://www.youtube.com/watch?v=${videoId}` : "",
+        exportTime: new Date().toISOString(),
       },
-      vocabulary: processedVocabulary
+      vocabulary: processedVocabulary,
     };
 
     // Create JSON data with all fields
     const jsonData = JSON.stringify(exportData, null, 2);
-    
+
     // Create blob and download
-    const blob = new Blob([jsonData], { type: 'application/json' });
+    const blob = new Blob([jsonData], { type: "application/json" });
     const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
+
+    const a = document.createElement("a");
     a.href = url;
     a.download = `kiss-vocabulary-${new Date().toISOString().slice(0, 10)}.json`;
     document.body.appendChild(a);
     a.click();
-    
+
     // Clean up
     setTimeout(() => {
       document.body.removeChild(a);
@@ -390,12 +411,13 @@ export class YouTubeSubtitleList {
 
     // Get the video ID from the current YouTube page
     const videoId = this._getYouTubeVideoId();
-    
+
     // Create CSV header with multiple example columns
-    const header = "Word,Phonetic,Definition,Example1,Translation1,Example2,Translation2,Video Link";
-    
+    const header =
+      "Word,Phonetic,Definition,Example1,Translation1,Example2,Translation2,Video Link";
+
     // Create CSV rows
-    const rows = this.vocabulary.map(item => {
+    const rows = this.vocabulary.map((item) => {
       // 转义特殊字符，特别是双引号
       const escapeCSVField = (field) => {
         if (!field) return '""';
@@ -404,26 +426,28 @@ export class YouTubeSubtitleList {
       };
 
       // 清理音标，去除"US"标签和其他方括号，只保留音标本身，并用方括号包裹
-      const cleanPhonetic = item.phonetic ? item.phonetic.replace(/US\s*/g, '').replace(/[\[\]]/g, '') : "";
+      const cleanPhonetic = item.phonetic
+        ? item.phonetic.replace(/US\s*/g, "").replace(/[\[\]]/g, "")
+        : "";
       const phonetic = cleanPhonetic ? `[${cleanPhonetic}]` : "";
       const definition = item.definition || "";
-      
+
       // 获取前两个例句及其翻译
       let example1 = "";
       let translation1 = "";
       let example2 = "";
       let translation2 = "";
-      
+
       if (item.examples && item.examples.length > 0) {
         example1 = item.examples[0].eng || "";
         translation1 = item.examples[0].chs || "";
       }
-      
+
       if (item.examples && item.examples.length > 1) {
         example2 = item.examples[1].eng || "";
         translation2 = item.examples[1].chs || "";
       }
-      
+
       // 创建完整的YouTube链接
       let videoLink = "";
       if (item.timestamp && videoId) {
@@ -438,27 +462,27 @@ export class YouTubeSubtitleList {
     const csvContent = [
       // 添加文件信息（视频标题和链接）
       `"${this._getYouTubeVideoTitle()}",,,,,,,`,
-      `"${videoId ? `https://www.youtube.com/watch?v=${videoId}` : '生词本导出文件'}",,,,,,,`,
+      `"${videoId ? `https://www.youtube.com/watch?v=${videoId}` : "生词本导出文件"}",,,,,,,`,
       `,,,,,,,,`,
       // 表头
       header,
       // 数据行
-      ...rows
+      ...rows,
     ].join("\n");
 
     // Combine header and rows with BOM to support Chinese characters in Excel
-    const csvData = '\uFEFF' + csvContent;
-    
+    const csvData = "\uFEFF" + csvContent;
+
     // Create blob and download
-    const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([csvData], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
+
+    const a = document.createElement("a");
     a.href = url;
     a.download = `kiss-vocabulary-${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(a);
     a.click();
-    
+
     // Clean up
     setTimeout(() => {
       document.body.removeChild(a);
@@ -475,33 +499,37 @@ export class YouTubeSubtitleList {
     // Get the video ID and title from the current YouTube page
     const videoId = this._getYouTubeVideoId();
     const videoTitle = this._getYouTubeVideoTitle();
-    const videoLink = videoId ? `https://www.youtube.com/watch?v=${videoId}` : '';
+    const videoLink = videoId
+      ? `https://www.youtube.com/watch?v=${videoId}`
+      : "";
 
     // Create TXT data with full word information but without markdown symbols
     const lines = [];
-    
+
     // Add video title and link at the beginning
     lines.push("生词本导出文件");
     lines.push(`视频标题: ${videoTitle}`);
     if (videoLink) {
       lines.push(`视频链接: ${videoLink}`);
     }
-    lines.push(`导出时间: ${new Date().toLocaleString('zh-CN')}`);
-    lines.push('');
-    
+    lines.push(`导出时间: ${new Date().toLocaleString("zh-CN")}`);
+    lines.push("");
+
     this.vocabulary.forEach((item, index) => {
       lines.push(`${index + 1}. ${item.word}`);
-      
+
       // 清理音标，去除"US"标签和其他方括号，只保留音标本身，并用方括号包裹
-      const cleanPhonetic = item.phonetic ? item.phonetic.replace(/US\s*/g, '').replace(/[\[\]]/g, '') : "";
+      const cleanPhonetic = item.phonetic
+        ? item.phonetic.replace(/US\s*/g, "").replace(/[\[\]]/g, "")
+        : "";
       if (cleanPhonetic) {
         lines.push(`   音标: [${cleanPhonetic}]`);
       }
-      
+
       if (item.definition) {
         lines.push(`   释义: ${item.definition}`);
       }
-      
+
       if (item.examples && item.examples.length > 0) {
         lines.push("   例句:");
         item.examples.slice(0, 2).forEach((example, exIndex) => {
@@ -511,29 +539,29 @@ export class YouTubeSubtitleList {
           }
         });
       }
-      
+
       // 添加视频链接
       if (item.timestamp && videoId) {
         const totalSeconds = Math.floor(item.timestamp / 1000);
         const videoLinkWithTime = `https://www.youtube.com/watch?v=${videoId}&t=${totalSeconds}s`;
         lines.push(`   视频链接: ${videoLinkWithTime}`);
       }
-      
+
       lines.push(""); // 空行分隔
     });
-    
+
     const txtData = lines.join("\n");
-    
+
     // Create blob and download
-    const blob = new Blob([txtData], { type: 'text/plain;charset=utf-8;' });
+    const blob = new Blob([txtData], { type: "text/plain;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
+
+    const a = document.createElement("a");
     a.href = url;
     a.download = `kiss-vocabulary-${new Date().toISOString().slice(0, 10)}.txt`;
     document.body.appendChild(a);
     a.click();
-    
+
     // Clean up
     setTimeout(() => {
       document.body.removeChild(a);
@@ -550,7 +578,9 @@ export class YouTubeSubtitleList {
     // Get the video ID and title from the current YouTube page
     const videoId = this._getYouTubeVideoId();
     const videoTitle = this._getYouTubeVideoTitle();
-    const videoLink = videoId ? `https://www.youtube.com/watch?v=${videoId}` : '';
+    const videoLink = videoId
+      ? `https://www.youtube.com/watch?v=${videoId}`
+      : "";
 
     // Create MD content
     const lines = [];
@@ -559,22 +589,24 @@ export class YouTubeSubtitleList {
     if (videoLink) {
       lines.push(`**视频链接:** [${videoLink}](${videoLink})`);
     }
-    lines.push(`**导出时间:** ${new Date().toLocaleString('zh-CN')}`);
+    lines.push(`**导出时间:** ${new Date().toLocaleString("zh-CN")}`);
     lines.push("");
-    
+
     this.vocabulary.forEach((item, index) => {
       lines.push(`${index + 1}. **${item.word}**`);
-      
+
       // 清理音标，去除"US"标签和其他方括号，只保留音标本身，并用方括号包裹
-      const cleanPhonetic = item.phonetic ? item.phonetic.replace(/US\s*/g, '').replace(/[\[\]]/g, '') : "";
+      const cleanPhonetic = item.phonetic
+        ? item.phonetic.replace(/US\s*/g, "").replace(/[\[\]]/g, "")
+        : "";
       if (cleanPhonetic) {
         lines.push(`   *音标 Phonetic:* [${cleanPhonetic}]`);
       }
-      
+
       if (item.definition) {
         lines.push(`   *释义 Definition:* ${item.definition}`);
       }
-      
+
       if (item.examples && item.examples.length > 0) {
         lines.push("   *例句 Examples:*");
         item.examples.slice(0, 2).forEach((example, exIndex) => {
@@ -584,29 +616,31 @@ export class YouTubeSubtitleList {
           }
         });
       }
-      
+
       // 添加视频链接
       if (item.timestamp && videoId) {
         const totalSeconds = Math.floor(item.timestamp / 1000);
         const videoLinkWithTime = `https://www.youtube.com/watch?v=${videoId}&t=${totalSeconds}s`;
-        lines.push(`   *视频链接 Video Link:* [跳转到视频时间点](${videoLinkWithTime})`);
+        lines.push(
+          `   *视频链接 Video Link:* [跳转到视频时间点](${videoLinkWithTime})`
+        );
       }
-      
+
       lines.push(""); // 空行分隔
     });
-    
+
     const mdData = lines.join("\n");
-    
+
     // Create blob and download
-    const blob = new Blob([mdData], { type: 'text/markdown;charset=utf-8;' });
+    const blob = new Blob([mdData], { type: "text/markdown;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
+
+    const a = document.createElement("a");
     a.href = url;
     a.download = `kiss-vocabulary-${new Date().toISOString().slice(0, 10)}.md`;
     document.body.appendChild(a);
     a.click();
-    
+
     // Clean up
     setTimeout(() => {
       document.body.removeChild(a);
@@ -616,7 +650,15 @@ export class YouTubeSubtitleList {
 
   initialize(subtitleEvents) {
     this.subtitleData = subtitleEvents.filter(
-      (k) => k?.segs && Boolean(k?.segs.map((s) => s.utf8 || "").join("").replace(/\s+/g, " ").trim())
+      (k) =>
+        k?.segs &&
+        Boolean(
+          k?.segs
+            .map((s) => s.utf8 || "")
+            .join("")
+            .replace(/\s+/g, " ")
+            .trim()
+        )
     );
     this.subtitleDataTime = subtitleEvents.map((k) => k.tStartMs);
     if (this.subtitleData.length > 0) {
@@ -638,7 +680,11 @@ export class YouTubeSubtitleList {
   updateBilingualSubtitles() {
     if (!this.subtitleListEl) return;
     const items = this.subtitleListEl.querySelectorAll(".kiss-youtube-item");
-    for (let i = 0; i < items.length && i < this.bilingualSubtitles.length; i++) {
+    for (
+      let i = 0;
+      i < items.length && i < this.bilingualSubtitles.length;
+      i++
+    ) {
       const item = items[i];
       const sub = this.bilingualSubtitles[i];
       if (sub) {
@@ -689,7 +735,9 @@ export class YouTubeSubtitleList {
   createSubtitleList() {
     if (!this.videoEl) return;
 
-    this.container = document.getElementById("kiss-youtube-subtitle-list-container");
+    this.container = document.getElementById(
+      "kiss-youtube-subtitle-list-container"
+    );
     if (!this.container) {
       this.container = document.createElement("div");
       this.container.id = "kiss-youtube-subtitle-list-container";
@@ -709,7 +757,8 @@ export class YouTubeSubtitleList {
         minWidth: "320px",
         maxWidth: "400px",
         boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
-        fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif",
+        fontFamily:
+          "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif",
         display: "flex",
         flexDirection: "column",
       });
@@ -730,27 +779,27 @@ export class YouTubeSubtitleList {
 
     const subtitleTab = document.createElement("button");
     subtitleTab.textContent = "双语字幕";
-    
+
     const vocabularyTab = document.createElement("button");
     vocabularyTab.textContent = "生词本";
 
     const styleTab = (tab, isActive) => {
-        tab.style.cssText = `
+      tab.style.cssText = `
         padding: 12px 16px;
         cursor: pointer;
         border: none;
         background: transparent;
         font-size: 15px;
-        font-weight: ${isActive ? '600' : '500'};
-        color: ${isActive ? '#1e88e5' : '#555'};
-        border-bottom: 2px solid ${isActive ? '#1e88e5' : 'transparent'};
+        font-weight: ${isActive ? "600" : "500"};
+        color: ${isActive ? "#1e88e5" : "#555"};
+        border-bottom: 2px solid ${isActive ? "#1e88e5" : "transparent"};
         margin-bottom: -1px;
       `;
-    }
+    };
 
-    styleTab(subtitleTab, this.activeTab === 'subtitles');
-    styleTab(vocabularyTab, this.activeTab === 'vocabulary');
-    
+    styleTab(subtitleTab, this.activeTab === "subtitles");
+    styleTab(vocabularyTab, this.activeTab === "vocabulary");
+
     const tabContentContainer = document.createElement("div");
     tabContentContainer.style.cssText = `
         overflow: hidden;
@@ -763,12 +812,14 @@ export class YouTubeSubtitleList {
     // --- Subtitle List Panel ---
     this.subtitleListEl = document.createElement("div");
     this.subtitleListEl.id = "kiss-youtube-subtitle-list";
-    this.subtitleListEl.style.display = this.activeTab === 'subtitles' ? 'block' : 'none';
+    this.subtitleListEl.style.display =
+      this.activeTab === "subtitles" ? "block" : "none";
     const subtitleListUl = document.createElement("ul");
     subtitleListUl.style.cssText = `list-style-type: none; padding: 0; margin: 0;`;
     subtitleListUl.addEventListener("click", (e) => {
       const li = e.target.closest(".kiss-youtube-item");
-      if (li && li.dataset.time) this.videoEl.currentTime = parseFloat(li.dataset.time) / 1000;
+      if (li && li.dataset.time)
+        this.videoEl.currentTime = parseFloat(li.dataset.time) / 1000;
     });
     this.subtitleListEl.appendChild(subtitleListUl);
     this.subtitleListEl.style.padding = "8px 16px 16px 16px";
@@ -778,7 +829,7 @@ export class YouTubeSubtitleList {
     this.vocabularyListEl.id = "kiss-youtube-vocabulary-list";
     // 设置词汇表区域为 flex column 布局
     this.vocabularyListEl.style.cssText = `
-      display: ${this.activeTab === 'vocabulary' ? 'flex' : 'none'};
+      display: ${this.activeTab === "vocabulary" ? "flex" : "none"};
       flex-direction: column;
       height: 100%;
       max-height: 100%;
@@ -786,19 +837,19 @@ export class YouTubeSubtitleList {
     `;
 
     // --- Tab Switching Logic ---
-    subtitleTab.addEventListener('click', () => {
-        this.activeTab = 'subtitles';
-        styleTab(subtitleTab, true);
-        styleTab(vocabularyTab, false);
-        this.subtitleListEl.style.display = 'flex';
-        this.vocabularyListEl.style.display = 'none'; // 保持为 none
+    subtitleTab.addEventListener("click", () => {
+      this.activeTab = "subtitles";
+      styleTab(subtitleTab, true);
+      styleTab(vocabularyTab, false);
+      this.subtitleListEl.style.display = "flex";
+      this.vocabularyListEl.style.display = "none"; // 保持为 none
     });
-    vocabularyTab.addEventListener('click', () => {
-        this.activeTab = 'vocabulary';
-        styleTab(subtitleTab, false);
-        styleTab(vocabularyTab, true);
-        this.subtitleListEl.style.display = 'none';
-        this.vocabularyListEl.style.display = 'flex'; // 改为 flex
+    vocabularyTab.addEventListener("click", () => {
+      this.activeTab = "vocabulary";
+      styleTab(subtitleTab, false);
+      styleTab(vocabularyTab, true);
+      this.subtitleListEl.style.display = "none";
+      this.vocabularyListEl.style.display = "flex"; // 改为 flex
     });
 
     tabHeader.appendChild(subtitleTab);
@@ -809,7 +860,10 @@ export class YouTubeSubtitleList {
     this.container.appendChild(tabContentContainer);
 
     // --- Populate Subtitle List ---
-    const itemCount = Math.max(this.bilingualSubtitles.length, this.subtitleData.length);
+    const itemCount = Math.max(
+      this.bilingualSubtitles.length,
+      this.subtitleData.length
+    );
     for (let i = 0; i < itemCount; i++) {
       const el = this.subtitleData[i];
       const { segs = [], tStartMs, dDurationMs } = el || {};
@@ -817,10 +871,17 @@ export class YouTubeSubtitleList {
       li.id = `kiss-youtube-item-${i}`;
       li.className = "kiss-youtube-item";
       li.style.cssText = `cursor: pointer; padding: 12px 16px; border-bottom: 1px solid #f0f0f0; transition: all 0.2s ease; border-radius: 6px; margin-bottom: 4px; display: flex; align-items: flex-start;`;
-      const subTime = this.bilingualSubtitles[i] ? this.bilingualSubtitles[i].start : el ? tStartMs : null;
+      const subTime = this.bilingualSubtitles[i]
+        ? this.bilingualSubtitles[i].start
+        : el
+          ? tStartMs
+          : null;
       if (subTime !== null) li.dataset.time = subTime;
       const timeSpan = document.createElement("span");
-      timeSpan.textContent = subTime !== null ? `${this.millisToMinutesAndSeconds(subTime)} ` : "--:-- ";
+      timeSpan.textContent =
+        subTime !== null
+          ? `${this.millisToMinutesAndSeconds(subTime)} `
+          : "--:-- ";
       timeSpan.style.cssText = `color: #1e88e5; font-weight: 600; margin-right: 10px; font-size: 12px; background: rgba(30, 136, 229, 0.1); padding: 2px 6px; border-radius: 4px; flex-shrink: 0; line-height: 20px;`;
       const textContainer = document.createElement("div");
       textContainer.style.cssText = `flex-grow: 1;`;
@@ -829,22 +890,35 @@ export class YouTubeSubtitleList {
       if (this.bilingualSubtitles[i]) {
         textSpan.textContent = this.bilingualSubtitles[i].text || "";
       } else if (el) {
-        textSpan.textContent = segs.map((k) => k.utf8 || "").join("").replace(/\s+/g, " ").trim();
+        textSpan.textContent = segs
+          .map((k) => k.utf8 || "")
+          .join("")
+          .replace(/\s+/g, " ")
+          .trim();
       } else {
         textSpan.textContent = "";
       }
       textSpan.style.cssText = `color: #333; font-size: 14px; line-height: 1.4; margin-bottom: 4px;`;
       const translationEl = document.createElement("div");
       translationEl.className = "kiss-youtube-translation";
-      if (this.bilingualSubtitles[i] && this.bilingualSubtitles[i].translation) {
+      if (
+        this.bilingualSubtitles[i] &&
+        this.bilingualSubtitles[i].translation
+      ) {
         translationEl.textContent = this.bilingualSubtitles[i].translation;
         translationEl.style.display = "block";
       } else {
         translationEl.style.display = "none";
       }
       translationEl.style.cssText = `color: #666; font-size: 13px; line-height: 1.4; font-style: italic; min-height: 18px;`;
-      li.addEventListener("mouseenter", () => { li.style.backgroundColor = "rgba(30, 136, 229, 0.05)"; li.style.transform = "translateX(4px)"; });
-      li.addEventListener("mouseleave", () => { li.style.backgroundColor = "transparent"; li.style.transform = "translateX(0)"; });
+      li.addEventListener("mouseenter", () => {
+        li.style.backgroundColor = "rgba(30, 136, 229, 0.05)";
+        li.style.transform = "translateX(4px)";
+      });
+      li.addEventListener("mouseleave", () => {
+        li.style.backgroundColor = "transparent";
+        li.style.transform = "translateX(0)";
+      });
       if (el) {
         li.dataset.startTime = tStartMs;
         li.dataset.endTime = tStartMs + (dDurationMs || 0);
@@ -855,7 +929,7 @@ export class YouTubeSubtitleList {
       li.appendChild(textContainer);
       subtitleListUl.appendChild(li);
     }
-    
+
     // Populate initial vocabulary list if any
     this._renderVocabulary();
   }
@@ -870,7 +944,7 @@ export class YouTubeSubtitleList {
   turnOnAutoSub() {
     this.turnOffAutoSub();
     this.loopAutoScroll = setInterval(() => {
-      if (!this.videoEl || this.activeTab !== 'subtitles') return; // Only scroll if subtitle tab is active
+      if (!this.videoEl || this.activeTab !== "subtitles") return; // Only scroll if subtitle tab is active
       const currentTimeMs = this.videoEl.currentTime * 1000;
       let currentIndex = -1;
       if (this.bilingualSubtitles.length > 0) {
@@ -890,21 +964,30 @@ export class YouTubeSubtitleList {
           }
         }
       } else if (this.subtitleDataTime.length > 0) {
-        const closestTime = this.getClosest(this.subtitleDataTime, currentTimeMs);
+        const closestTime = this.getClosest(
+          this.subtitleDataTime,
+          currentTimeMs
+        );
         currentIndex = this.subtitleDataTime.indexOf(closestTime);
       }
       if (this.subtitleListEl && currentIndex !== -1) {
-        const allItems = this.subtitleListEl.querySelectorAll(".kiss-youtube-item");
+        const allItems =
+          this.subtitleListEl.querySelectorAll(".kiss-youtube-item");
         allItems.forEach((el) => {
           el.style.fontWeight = "normal";
           el.style.backgroundColor = "transparent";
         });
-        const liElement = this.subtitleListEl.querySelector(`#kiss-youtube-item-${currentIndex}`);
+        const liElement = this.subtitleListEl.querySelector(
+          `#kiss-youtube-item-${currentIndex}`
+        );
         if (liElement) {
           liElement.style.fontWeight = "600";
           liElement.style.backgroundColor = "rgba(30, 136, 229, 0.1)";
           const container = this.subtitleListEl.parentElement;
-          const targetScrollTop = liElement.offsetTop - container.clientHeight / 2 + liElement.clientHeight / 2;
+          const targetScrollTop =
+            liElement.offsetTop -
+            container.clientHeight / 2 +
+            liElement.clientHeight / 2;
           container.scrollTo({ top: targetScrollTop, behavior: "smooth" });
         }
       }
@@ -939,7 +1022,7 @@ export class YouTubeSubtitleList {
   _getYouTubeVideoId() {
     try {
       const urlParams = new URLSearchParams(window.location.search);
-      return urlParams.get('v');
+      return urlParams.get("v");
     } catch (e) {
       return null;
     }
@@ -950,10 +1033,10 @@ export class YouTubeSubtitleList {
    */
   _getYouTubeVideoTitle() {
     try {
-      const titleElement = document.querySelector('h1 yt-formatted-string');
-      return titleElement ? titleElement.textContent : 'YouTube Video';
+      const titleElement = document.querySelector("h1 yt-formatted-string");
+      return titleElement ? titleElement.textContent : "YouTube Video";
     } catch (e) {
-      return 'YouTube Video';
+      return "YouTube Video";
     }
   }
 }
