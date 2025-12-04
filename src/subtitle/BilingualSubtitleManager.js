@@ -752,8 +752,9 @@ export class BilingualSubtitleManager {
       `Bilingual Subtitle Manager: Appending ${newSubtitlesChunk.length} new subtitles...`
     );
 
-    this.#formattedSubtitles.push(...newSubtitlesChunk);
-    this.#formattedSubtitles.sort((a, b) => a.start - b.start);
+    // 同一个数组引用，此处无需重复添加和排序
+    // this.#formattedSubtitles.push(...newSubtitlesChunk);
+    // this.#formattedSubtitles.sort((a, b) => a.start - b.start);
     this.#currentSubtitleIndex = -1;
     this.onTimeUpdate();
 

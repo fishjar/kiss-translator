@@ -693,7 +693,7 @@ export const genTransReq = async ({ reqHook, ...args }) => {
 
   if (API_SPE_TYPES.ai.has(apiType)) {
     args.systemPrompt = events
-      ? systemPrompt
+      ? systemPrompt.replaceAll(INPUT_PLACE_TO, to)
       : genSystemPrompt({
           systemPrompt: useBatchFetch ? systemPrompt : nobatchPrompt,
           from,

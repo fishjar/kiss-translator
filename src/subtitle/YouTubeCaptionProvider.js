@@ -654,20 +654,12 @@ class YouTubeCaptionProvider {
     if (this.#setting.isEnhance !== false && !this.#subtitleListManager) {
       // 初始化字幕列表管理器
       this.#subtitleListManager = new YouTubeSubtitleList(videoEl);
-      this.#subtitleListManager.initialize(this.#events);
+      this.#subtitleListManager.initialize(this.#subtitles);
 
       // todo: 将 subtitleListManager 实例传入 managerInstance
       // 监听字幕更新事件，在字幕翻译完成后更新字幕列表
       this.#managerInstance.onSubtitleUpdate = (updatedSubtitles) => {
-        const updatedBilingualSubtitles = updatedSubtitles.map((sub) => ({
-          start: sub.start,
-          end: sub.end,
-          text: sub.text,
-          translation: sub.translation || "",
-        }));
-        this.#subtitleListManager.setBilingualSubtitles(
-          updatedBilingualSubtitles
-        );
+        this.#subtitleListManager.setBilingualSubtitles(updatedSubtitles);
       };
 
       // 创建包含翻译信息的双语字幕数据（初始可能没有翻译）
@@ -1071,6 +1063,7 @@ class YouTubeCaptionProvider {
       if (subtitlesForThisChunk.length > 0) {
         const progressed = Math.floor((chunkNum * 100) / (chunks.length + 1));
         this.#subtitles.push(...subtitlesForThisChunk);
+        this.#subtitles.sort((a, b) => a.start - b.start);
         this.#progressed = progressed;
 
         logger.debug(
