@@ -21,10 +21,29 @@ export function useFavWords() {
   );
 
   const toggleFav = useCallback(
-    (word) => {
+    (word, timestamp = null, phonetic = "", definition = "", examples = []) => {
       save((prev) => {
         if (!prev[word]) {
-          return { ...prev, [word]: { createdAt: Date.now() } };
+          // todo: 除 word 外，其他属性暂无传入
+          const wordData = {
+            createdAt: Date.now(),
+            timestamp,
+            phonetic,
+            definition,
+            examples,
+          };
+          // 清理空值属性
+          Object.keys(wordData).forEach((key) => {
+            if (
+              wordData[key] === null ||
+              wordData[key] === undefined ||
+              (Array.isArray(wordData[key]) && wordData[key].length === 0) ||
+              (typeof wordData[key] === "string" && wordData[key].length === 0)
+            ) {
+              delete wordData[key];
+            }
+          });
+          return { ...prev, [word]: wordData };
         }
 
         const favs = { ...prev };

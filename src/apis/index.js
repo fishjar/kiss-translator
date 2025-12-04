@@ -159,23 +159,76 @@ export const apiMicrosoftDict = async (text) => {
     trs.push({ pos, def });
   });
 
+  // 英汉双解
+  const ecs = [];
+  doc.querySelectorAll(".each_seg>.li_pos").forEach(($li) => {
+    const pos = $li.querySelector(".pos_lin>.pos")?.textContent?.trim();
+    const lis = [];
+    $li.querySelectorAll(".de_seg>.se_lis").forEach(($l) => {
+      lis.push($l.querySelector(".de_co")?.textContent?.trim());
+    });
+    ecs.push({ pos, lis });
+  });
+
+  // 添加例句信息
+  const sentences = [];
+  doc.querySelectorAll("#sentenceSeg .se_li").forEach(($li) => {
+    const eng = $li.querySelector(".sen_en")?.textContent?.trim();
+    const chs = $li.querySelector(".sen_cn")?.textContent?.trim();
+    if (eng && chs) {
+      sentences.push({ eng, chs });
+    }
+  });
+
   const aus = [];
   const $audioUK = doc.querySelector("#bigaud_uk");
   const $audioUS = doc.querySelector("#bigaud_us");
+
+  // 检查 UK 音频和音标
   if ($audioUK) {
     const audioUK = host + $audioUK?.dataset?.mp3link;
     const $phoneticUK = $audioUK.parentElement?.previousElementSibling;
-    const phoneticUK = $phoneticUK?.textContent?.trim();
-    aus.push({ key: "UK", audio: audioUK, phonetic: phoneticUK });
+    const phoneticUK = $phoneticUK?.textContent
+      ?.trim()
+      ?.match(/\[(.*?)\]/)?.[1];
+    aus.push({ key: "英", audio: audioUK, phonetic: phoneticUK });
   }
+
+  // 检查 US 音频和音标
   if ($audioUS) {
     const audioUS = host + $audioUS?.dataset?.mp3link;
     const $phoneticUS = $audioUS.parentElement?.previousElementSibling;
-    const phoneticUS = $phoneticUS?.textContent?.trim();
-    aus.push({ key: "US", audio: audioUS, phonetic: phoneticUS });
+    const phoneticUS = $phoneticUS?.textContent
+      ?.trim()
+      ?.match(/\[(.*?)\]/)?.[1];
+    aus.push({ key: "美", audio: audioUS, phonetic: phoneticUS });
   }
 
-  const res = { word, trs, aus };
+  // 如果上面的方法没有获取到音标，尝试其他方式
+  if (aus.length === 0) {
+    const $pronInfo = doc.querySelector(".hd_pr");
+    const $pronInfoUS = doc.querySelector(".hd_prUS");
+
+    if ($pronInfo) {
+      const phoneticText = $pronInfo.textContent?.trim();
+      // 尝试提取音标部分
+      const phoneticMatch = phoneticText?.match(/\[([^\]]+)\]/);
+      if (phoneticMatch) {
+        aus.push({ key: "英", phonetic: phoneticMatch[1] });
+      }
+    }
+
+    if ($pronInfoUS) {
+      const phoneticText = $pronInfoUS.textContent?.trim();
+      // 尝试提取音标部分
+      const phoneticMatch = phoneticText?.match(/\[([^\]]+)\]/);
+      if (phoneticMatch) {
+        aus.push({ key: "美", phonetic: phoneticMatch[1] });
+      }
+    }
+  }
+
+  const res = { word, trs, aus, ecs, sentences };
   putHttpCachePolyfill(cacheInput, null, res);
 
   return res;

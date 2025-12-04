@@ -2620,6 +2620,13 @@ export const I18N = {
     ja: `プレーンテキスト翻訳`,
     ko: `순수 텍스트 번역`,
   },
+  is_enable_enhance: {
+    zh: `启用增强功能`,
+    en: `Enable Enhancement Features`,
+    zh_TW: `啟用增強功能`,
+    ja: `強化機能を有効にする`,
+    ko: `향상 기능 활성화`,
+  },
 };
 
 export const newI18n = (lang) => (key) => I18N[key]?.[lang] || "";

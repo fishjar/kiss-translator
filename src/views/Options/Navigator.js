@@ -17,7 +17,7 @@ import EventNoteIcon from "@mui/icons-material/EventNote";
 import MouseIcon from "@mui/icons-material/Mouse";
 import SubtitlesIcon from "@mui/icons-material/Subtitles";
 import FormatColorText from "@mui/icons-material/FormatColorText";
-import BugReportIcon from '@mui/icons-material/BugReport';
+import BugReportIcon from "@mui/icons-material/BugReport";
 
 function LinkItem({ label, url, icon }) {
   const match = useMatch(url);
