@@ -143,9 +143,7 @@ export default function FavWords() {
       lines.push(`${index + 1}. ${item.word}`);
 
       // 清理音标，去除"US"标签和其他方括号，只保留音标本身，并用方括号包裹
-      const cleanPhonetic = item.phonetic
-        ? item.phonetic.replace(/US\s*/g, "").replace(/[\[\]]/g, "")
-        : "";
+      const cleanPhonetic = item.phonetic;
       if (cleanPhonetic) {
         lines.push(`   音标: [${cleanPhonetic}]`);
       }
@@ -206,9 +204,7 @@ export default function FavWords() {
       };
 
       // 清理音标，去除"US"标签和其他方括号，只保留音标本身，并用方括号包裹
-      const cleanPhonetic = item.phonetic
-        ? item.phonetic.replace(/US\s*/g, "").replace(/[\[\]]/g, "")
-        : "";
+      const cleanPhonetic = item.phonetic;
       const phonetic = cleanPhonetic ? `[${cleanPhonetic}]` : "";
       const definition = item.definition || "";
 
@@ -280,9 +276,7 @@ export default function FavWords() {
       lines.push(`${index + 1}. **${item.word}**`);
 
       // 清理音标，去除"US"标签和其他方括号，只保留音标本身，并用方括号包裹
-      const cleanPhonetic = item.phonetic
-        ? item.phonetic.replace(/US\s*/g, "").replace(/[\[\]]/g, "")
-        : "";
+      const cleanPhonetic = item.phonetic;
       if (cleanPhonetic) {
         lines.push(`   *音标 Phonetic:* [${cleanPhonetic}]`);
       }

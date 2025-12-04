@@ -37,7 +37,7 @@
     "format": "prettier --write \"**/*.{js,json,html}\"",
     "build": "pnpm format && pnpm build:chrome && pnpm build:edge && pnpm build:thunderbird && pnpm build:firefox && pnpm build:web && pnpm build:userscript-ios && pnpm build:rules",
     "zip": "zx src/scripts/archive.mjs",
-    "build+zip": "pnpm build && pnpm zip",
+    "build+zip": "cross-env CI=true pnpm build && pnpm zip",
     "test": "react-app-rewired test",
     "eject": "react-scripts eject"
   },

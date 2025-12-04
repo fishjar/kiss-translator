@@ -530,9 +530,7 @@ export class YouTubeSubtitleList {
 
     if (item.phonetic) {
       const phEl = document.createElement("div");
-      const cleanPhonetic = item.phonetic
-        .replace(/US\s*/g, "")
-        .replace(/[\[\]]/g, "");
+      const cleanPhonetic = item.phonetic;
       phEl.textContent = `[${cleanPhonetic}]`;
       phEl.style.cssText = `color: #666; font-style: italic; font-size: 14px;`;
       wordLine.appendChild(phEl);
@@ -589,9 +587,7 @@ export class YouTubeSubtitleList {
       const newItem = { ...item };
       // 清理音标格式
       if (item.phonetic) {
-        const cleanPhonetic = item.phonetic
-          .replace(/US\s*/g, "")
-          .replace(/[\[\]]/g, "");
+        const cleanPhonetic = item.phonetic;
         newItem.phonetic = cleanPhonetic ? `[${cleanPhonetic}]` : "";
       }
       return newItem;
@@ -625,9 +621,7 @@ export class YouTubeSubtitleList {
         return `"${field.toString().replace(/"/g, '""')}"`;
       };
 
-      const cleanPhonetic = item.phonetic
-        ? item.phonetic.replace(/US\s*/g, "").replace(/[\[\]]/g, "")
-        : "";
+      const cleanPhonetic = item.phonetic;
       const phonetic = cleanPhonetic ? `[${cleanPhonetic}]` : "";
       const ex1 = item.examples?.[0];
       const ex2 = item.examples?.[1];
@@ -677,9 +671,7 @@ export class YouTubeSubtitleList {
 
     this.vocabulary.forEach((item, index) => {
       lines.push(`${index + 1}. ${item.word}`);
-      const cleanPhonetic = item.phonetic
-        ? item.phonetic.replace(/US\s*/g, "").replace(/[\[\]]/g, "")
-        : "";
+      const cleanPhonetic = item.phonetic;
       if (cleanPhonetic) lines.push(`   音标: [${cleanPhonetic}]`);
       if (item.definition) lines.push(`   释义: ${item.definition}`);
 
@@ -717,9 +709,7 @@ export class YouTubeSubtitleList {
 
     this.vocabulary.forEach((item, index) => {
       lines.push(`${index + 1}. **${item.word}**`);
-      const cleanPhonetic = item.phonetic
-        ? item.phonetic.replace(/US\s*/g, "").replace(/[\[\]]/g, "")
-        : "";
+      const cleanPhonetic = item.phonetic;
       if (cleanPhonetic) lines.push(`   *音标 Phonetic:* [${cleanPhonetic}]`);
       if (item.definition)
         lines.push(`   *释义 Definition:* ${item.definition}`);
@@ -780,7 +770,7 @@ export class YouTubeSubtitleList {
         currentIndex !== -1 &&
         this._cachedSubtitleItems[currentIndex]
       ) {
-        // ... (高亮样式处理保持不变) ...
+        // 移除旧高亮
         if (
           this._lastActiveIndex !== -1 &&
           this._cachedSubtitleItems[this._lastActiveIndex]
@@ -791,33 +781,22 @@ export class YouTubeSubtitleList {
           lastEl.classList.remove("active-subtitle");
         }
 
+        // 添加新高亮
         const currentEl = this._cachedSubtitleItems[currentIndex];
         currentEl.style.fontWeight = "600";
         currentEl.style.backgroundColor = "rgba(30, 136, 229, 0.1)";
         currentEl.classList.add("active-subtitle");
         this._lastActiveIndex = currentIndex;
 
-        // 【关键修改】滚动容器变成了 this.subtitleScrollContainer
+        // 【修复点】：移除未使用的 targetScrollTop 变量，使用 clean 的居中计算逻辑
         const container = this.subtitleScrollContainer;
         if (container) {
-          // 计算相对位置：元素距 offsetParent 的顶部的距离 - 容器高度的一半 + 元素高度的一半
-          // 注意：因为 subUl 在 scrollContainer 内部，currentEl.offsetTop 是相对于 subUl 的 (如果 subUl positioned) 或者是 container
-          // 最稳妥的居中计算方式：
-          const targetScrollTop =
-            currentEl.offsetTop -
-            container.offsetTop -
-            container.clientHeight / 2 +
-            currentEl.clientHeight / 2;
-
-          // 修正：因为 container 现在是 scrollable div，currentEl.offsetTop 通常是相对于 ul 的。
-          // 简单计算： currentEl.offsetTop 是元素距离 ul 顶部的距离（假设 ul 没有 relative 定位）。
-          // container.scrollTop 控制滚动。
-          // 更加精确的居中计算：
           const elementTop = currentEl.offsetTop;
           const containerHeight = container.clientHeight;
           const elementHeight = currentEl.clientHeight;
 
           container.scrollTo({
+            // 计算公式：元素顶部位置 - 容器一半高度 + 元素一半高度 = 元素居中
             top: elementTop - containerHeight / 2 + elementHeight / 2,
             behavior: "smooth",
           });
