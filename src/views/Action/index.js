@@ -6,7 +6,11 @@ import Header from "../Popup/Header";
 import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
 import useWindowSize from "../../hooks/WindowSize";
-import { EVENT_KISS_INNER, MSG_OPEN_OPTIONS, MSG_POPUP_TOGGLE } from "../../config";
+import {
+  EVENT_KISS_INNER,
+  MSG_OPEN_OPTIONS,
+  MSG_POPUP_TOGGLE,
+} from "../../config";
 import PopupCont from "../Popup/PopupCont";
 import { isExt } from "../../libs/client";
 import { sendBgMsg } from "../../libs/msg";
