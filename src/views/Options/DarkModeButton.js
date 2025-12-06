@@ -7,7 +7,7 @@ import BrightnessAutoIcon from "@mui/icons-material/BrightnessAuto";
 export default function DarkModeButton() {
   const { darkMode, toggleDarkMode } = useDarkMode();
   return (
-    <IconButton sx={{ ml: 1 }} onClick={toggleDarkMode} color="inherit">
+    <IconButton onClick={toggleDarkMode} color="inherit">
       {darkMode === "dark" ? (
         <DarkModeIcon />
       ) : darkMode === "light" ? (

@@ -6,6 +6,7 @@ import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import DoneIcon from "@mui/icons-material/Done";
 import CircularProgress from "@mui/material/CircularProgress";
+import ContentPasteIcon from "@mui/icons-material/ContentPaste";
 import { useI18n } from "../../hooks/I18n";
 import {
   OPT_LANGS_FROM,
@@ -89,6 +90,15 @@ export default function TranForm({
       }
     })();
   }, [text, langDetector, setDeLang, setDeLoading]);
+
+  const handlePaste = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      setText(text.trim());
+    } catch (err) {
+      //
+    }
+  };
 
   // todo: 语言变化后，realToLang引发二次翻译请求
   const realToLang = useMemo(() => {
@@ -342,8 +352,12 @@ export default function TranForm({
                       >
                         <DoneIcon fontSize="inherit" />
                       </IconButton>
-                    ) : (
+                    ) : text ? (
                       <CopyBtn text={text} />
+                    ) : (
+                      <IconButton size="small" onClick={handlePaste}>
+                        <ContentPasteIcon fontSize="inherit" />
+                      </IconButton>
                     )}
                   </Stack>
                 ),

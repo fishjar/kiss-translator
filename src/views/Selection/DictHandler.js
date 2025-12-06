@@ -35,24 +35,28 @@ export const dictHandlers = {
         </Typography>
 
         {/* 英汉双解 */}
-        <Typography
-          component="div"
-          style={{ fontWeight: "bold", marginBottom: "5px" }}
-        >
-          英汉双解
-        </Typography>
-        {data?.ecs?.map(({ pos, lis }) => (
-          <Typography component="div" key={pos}>
-            <Typography component="div">{pos}</Typography>
-            <Typography component="ul">
-              {lis.map((item, idx) => (
-                <Typography component="li" key={idx}>
-                  {item}
-                </Typography>
-              ))}
+        {data?.ecs?.length > 0 && (
+          <Typography component="div" style={{ marginTop: "10px" }}>
+            <Typography
+              component="div"
+              style={{ fontWeight: "bold", marginBottom: "5px" }}
+            >
+              英汉双解
             </Typography>
+            {data.ecs.map(({ pos, lis }) => (
+              <Typography component="div" key={pos}>
+                <Typography component="div">{pos}</Typography>
+                <Typography component="ul">
+                  {lis.map((item, idx) => (
+                    <Typography component="li" key={idx}>
+                      {item}
+                    </Typography>
+                  ))}
+                </Typography>
+              </Typography>
+            ))}
           </Typography>
-        ))}
+        )}
 
         {/* 显示例句 */}
         {data?.sentences?.length > 0 && (
