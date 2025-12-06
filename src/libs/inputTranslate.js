@@ -89,13 +89,12 @@ function setNativeValue(element, value) {
 // ==========================================
 // 核心逻辑：智能替换文本
 // ==========================================
-
 async function smartReplaceText(node, newText) {
   node.focus();
-  await sleep(10); // 等待焦点稳定
+  await sleep(10);
 
   // ------------------------------------------------
-  // 步骤 1: 全选内容 (兼容各种节点类型)
+  // 步骤 1: 全选内容
   // ------------------------------------------------
   const performSelectAll = () => {
     // 方式 A: 标准输入框
@@ -104,61 +103,64 @@ async function smartReplaceText(node, newText) {
       return;
     }
 
-    // 方式 B: ContentEditable 区域
-    const selection = window.getSelection();
-    selection.removeAllRanges();
-    const range = document.createRange();
+    // 方式 B: ContentEditable 区域 (针对 Discord/Slack/Slatejs 优化)
     try {
+      const success = document.execCommand("selectAll", false, null);
+      if (!success) {
+        throw new Error("execCommand selectAll failed");
+      }
+    } catch (e) {
+      // 降级：手动创建选区
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      const range = document.createRange();
       range.selectNodeContents(node);
       selection.addRange(range);
-    } catch (e) {
-      // 降级: execCommand
-      document.execCommand("selectAll", false, null);
     }
   };
 
   performSelectAll();
-  await sleep(50); // 给浏览器一点时间渲染选中状态
+  await sleep(50);
 
   // ------------------------------------------------
   // 步骤 2: 尝试写入 (多级降级策略)
   // ------------------------------------------------
 
+  // === 策略 1: execCommand 'insertText' (首选) ===
+  // 这是最标准的模拟输入方式，会自动删除选中内容并插入新内容
   try {
-    // === 策略 1: execCommand 'insertText' (最强兼容性) ===
-    // 适用于: Gemini, Gmail, Docs, 以及绝大多数 contenteditable
-    // 它能触发浏览器原生的 input 事件，就像用户在敲键盘一样
     const success = document.execCommand("insertText", false, newText);
-
-    // 如果 execCommand 返回 true，通常意味着成功了，但我们还需要校验
     if (success) {
-      // 额外触发一次 input 以防万一 (某些框架监听很死板)
-      node.dispatchEvent(new Event("input", { bubbles: true, composed: true }));
-      await sleep(100);
-      const currentText = getNodeText(node);
-      // 简单校验：如果内容包含我们写入的文本，算成功
-      if (currentText.includes(newText.trim())) {
-        return true;
-      }
+      // 验证一下
+      await sleep(20);
+      if (checkSuccess(node, newText)) return true;
     }
   } catch (e) {
     logger.debug("Strategy 1 (insertText) failed", e);
+  }
+
+  // === 策略 1.5: textInput 事件 (针对 Discord/Chrome 优化) ===
+  // 如果 insertText 失败，尝试分发 textInput 事件。
+  // 这是一个非标准但被 WebKit/Blink 广泛支持的事件，
+  // 它往往能绕过 React 的合成事件拦截，且不会触发"Paste"警告。
+  try {
+    if (document.implementation.hasFeature("TextEvents", "3.0")) {
+      const textEvent = document.createEvent("TextEvent");
+      textEvent.initTextEvent("textInput", true, true, window, newText);
+      node.dispatchEvent(textEvent);
+
+      await sleep(20);
+      if (checkSuccess(node, newText)) return true;
+    }
+  } catch (e) {
+    logger.debug("Strategy 1.5 (textInput) failed", e);
   }
 
   // === 策略 2: 标准 Input 处理 (React/Vue 兼容) ===
   // 适用于: 标准 <input> 和 <textarea>
   if (node.nodeName === "INPUT" || node.nodeName === "TEXTAREA") {
     try {
-      // 尝试使用 setRangeText (保留撤销历史)
-      if (typeof node.setRangeText === "function") {
-        node.setRangeText(newText);
-        node.dispatchEvent(
-          new Event("input", { bubbles: true, composed: true })
-        );
-      } else {
-        // 降级到 React Hack 赋值
-        setNativeValue(node, newText);
-      }
+      setNativeValue(node, newText);
       return true;
     } catch (e) {
       logger.debug("Strategy 2 (Input Value) failed", e);
@@ -181,14 +183,19 @@ async function smartReplaceText(node, newText) {
     node.dispatchEvent(pasteEvt);
 
     await sleep(100);
-    // 再次检查
-    const finalCheck = getNodeText(node);
-    return finalCheck.includes(newText.trim());
+    if (checkSuccess(node, newText)) return true;
   } catch (e) {
     logger.debug("Strategy 3 (Paste) failed", e);
   }
 
   return false;
+}
+
+// 辅助验证函数
+function checkSuccess(node, targetText) {
+  const currentText = getNodeText(node);
+  // 只要包含了目标文本，就算成功 (避免因为前后空格导致判断失败)
+  return currentText.includes(targetText.trim());
 }
 
 // ==========================================
