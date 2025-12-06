@@ -10,7 +10,7 @@ import { isSameSet } from "./utils";
 export const shortcutListener = (
   onKeyDown = () => {},
   onKeyUp = () => {},
-  target = document
+  target = window
 ) => {
   const pressedKeys = new Set();
 
@@ -38,13 +38,13 @@ export const shortcutListener = (
     pressedKeys.clear();
   };
 
-  target.addEventListener("keydown", handleKeyDown);
-  target.addEventListener("keyup", handleKeyUp);
+  target.addEventListener("keydown", handleKeyDown, true);
+  target.addEventListener("keyup", handleKeyUp, true);
   window.addEventListener("blur", handleBlur);
 
   return () => {
-    target.removeEventListener("keydown", handleKeyDown);
-    target.removeEventListener("keyup", handleKeyUp);
+    target.removeEventListener("keydown", handleKeyDown, true);
+    target.removeEventListener("keyup", handleKeyUp, true);
     window.removeEventListener("blur", handleBlur);
     pressedKeys.clear();
   };
@@ -57,7 +57,7 @@ export const shortcutListener = (
  * @param {EventTarget} target - 监听目标
  * @returns {() => void} - 注销函数
  */
-export const shortcutRegister = (targetKeys = [], fn, target = document) => {
+export const shortcutRegister = (targetKeys = [], fn, target = window) => {
   if (targetKeys.length === 0) return () => {};
 
   const targetKeySet = new Set(targetKeys);
@@ -124,7 +124,7 @@ export const stepShortcutRegister = (
   fn,
   step = 2,
   timeout = 500,
-  target = document
+  target = window
 ) => {
   const steppedFn = withStepCounter(fn, step, timeout);
   return shortcutRegister(targetKeys, steppedFn, target);
