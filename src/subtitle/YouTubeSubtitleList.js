@@ -228,8 +228,9 @@ export class YouTubeSubtitleList {
     if (!this.container) {
       this.container = document.createElement("div");
       this.container.id = "kiss-youtube-subtitle-list-container";
+      this.container.className = "notranslate";
       Object.assign(this.container.style, {
-        height: "calc(100vh - 250px)",
+        height: "calc(100vh - 220px)",
         maxHeight: "none",
         zIndex: "999",
         background: "rgba(255, 255, 255, 0.9)",
