@@ -418,21 +418,50 @@ export default function PopupCont({
         </TextField>
       </Stack>
 
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        alignItems="center"
-        spacing={2}
-      >
-        <Button variant="text" onClick={handleSaveRule}>
-          {i18n("save_rule")}
-        </Button>
-        <Button variant="text" onClick={handleClearCache}>
-          {i18n("clear_cache")}
-        </Button>
-        <Button variant="text" onClick={handleOpenSetting}>
-          {i18n("setting")}
-        </Button>
+      <Stack>
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          alignItems="center"
+        >
+          <Button variant="text" onClick={handleSaveRule}>
+            {i18n("save_rule")}
+          </Button>
+          <Button variant="text" onClick={handleClearCache}>
+            {i18n("clear_cache")}
+          </Button>
+          <Button variant="text" onClick={handleOpenSetting}>
+            {i18n("setting")}
+          </Button>
+        </Stack>
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          alignItems="center"
+        >
+          <Button
+            variant="text"
+            onClick={() => {
+              window.open(
+                "https://chromewebstore.google.com/detail/kiss-translator/bdiifdefkgmcblbcghdlonllpjhhjgof/reviews",
+                "_blank"
+              );
+            }}
+          >
+            {i18n("comment_support")}
+          </Button>
+          <Button
+            variant="text"
+            onClick={() => {
+              window.open(
+                "https://github.com/fishjar/kiss-translator#%E8%B5%9E%E8%B5%8F",
+                "_blank"
+              );
+            }}
+          >
+            {i18n("appreciate_support")}
+          </Button>
+        </Stack>
       </Stack>
     </Stack>
   );

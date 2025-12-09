@@ -2634,6 +2634,20 @@ export const I18N = {
     ja: `別ウィンドウで開く`,
     ko: `별도 창에서 열기`,
   },
+  comment_support: {
+    zh: `好评支持`,
+    en: `Leave a Positive Review`,
+    zh_TW: `好評支持`,
+    ja: `高評価で応援`,
+    ko: `좋은 평가로 응원`,
+  },
+  appreciate_support: {
+    zh: `赞赏支持`,
+    en: `Support with a Tip`,
+    zh_TW: `贊賞支持`,
+    ja: `投げ銭で応援`,
+    ko: `후원하기`,
+  },
 };
 
 export const newI18n = (lang) => (key) => I18N[key]?.[lang] || "";
