@@ -2,11 +2,12 @@ import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
 import HomeIcon from "@mui/icons-material/Home";
 import Stack from "@mui/material/Stack";
-import DarkModeButton from "../Options/DarkModeButton";
+// import DarkModeButton from "../Options/DarkModeButton";
 import Typography from "@mui/material/Typography";
 import SyncAltIcon from "@mui/icons-material/SyncAlt";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 
-export default function Header({ onClose, toggleTab }) {
+export default function Header({ onClose, toggleTab, openSeparateWindow }) {
   const handleHomepage = () => {
     window.open(process.env.REACT_APP_HOMEPAGE, "_blank");
   };
@@ -44,16 +45,17 @@ export default function Header({ onClose, toggleTab }) {
         </IconButton>
       ) : (
         <Stack direction="row" alignItems="center">
-          {toggleTab && (
-            <IconButton
-              onClick={() => {
-                toggleTab();
-              }}
-            >
-              <SyncAltIcon />
-            </IconButton>
-          )}
-          <DarkModeButton />
+          <IconButton
+            onClick={toggleTab}
+          >
+            <SyncAltIcon />
+          </IconButton>
+          {/* <DarkModeButton /> */}
+          <IconButton
+            onClick={openSeparateWindow}
+          >
+            <OpenInNewIcon />
+          </IconButton>
         </Stack>
       )}
     </Stack>

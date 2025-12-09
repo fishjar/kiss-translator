@@ -22,6 +22,7 @@ import {
   CLIENT_THUNDERBIRD,
   MSG_SET_LOGLEVEL,
   MSG_CLEAR_CACHES,
+  MSG_OPEN_SEPARATE_WINDOW,
 } from "./config";
 import { getSettingWithDefault, tryInitDefaultData } from "./libs/storage";
 import { trySyncSettingAndRules } from "./libs/sync";
@@ -277,6 +278,16 @@ const messageHandlers = {
   [MSG_BUILTINAI_TRANSLATE]: (args) => chromeTranslate(args),
   [MSG_SET_LOGLEVEL]: (args) => logger.setLevel(args),
   [MSG_CLEAR_CACHES]: () => tryClearCaches(),
+  [MSG_OPEN_SEPARATE_WINDOW]: () =>
+    browser.windows.create({
+      url: "popup.html#window",
+      type: "popup",
+      width: 400,
+      height: 400,
+      left: 100,
+      top: 100,
+      focused: true,
+    }),
 };
 
 /**

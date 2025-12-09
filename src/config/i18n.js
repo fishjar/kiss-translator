@@ -2627,6 +2627,13 @@ export const I18N = {
     ja: `強化機能を有効にする`,
     ko: `향상 기능 활성화`,
   },
+  open_separate_window: {
+    zh: `独立窗口打开`,
+    en: `Open in Separate Window`,
+    zh_TW: `在獨立視窗中開啟`,
+    ja: `別ウィンドウで開く`,
+    ko: `별도 창에서 열기`,
+  },
 };
 
 export const newI18n = (lang) => (key) => I18N[key]?.[lang] || "";

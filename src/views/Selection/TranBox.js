@@ -8,6 +8,7 @@ import IconButton from "@mui/material/IconButton";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
 import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import PushPinIcon from "@mui/icons-material/PushPin";
 import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
 import LockIcon from "@mui/icons-material/Lock";
@@ -15,9 +16,12 @@ import LockOpenIcon from "@mui/icons-material/LockOpen";
 import CloseIcon from "@mui/icons-material/Close";
 import Typography from "@mui/material/Typography";
 import { useI18n } from "../../hooks/I18n";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { isMobile } from "../../libs/mobile";
 import TranForm from "./TranForm.js";
+import { MSG_OPEN_SEPARATE_WINDOW } from "../../config/msg.js";
+import { sendBgMsg } from "../../libs/msg.js";
+import { isExt } from "../../libs/client.js";
 
 function Header({
   setShowBox,
@@ -30,6 +34,10 @@ function Header({
   mouseHover,
 }) {
   const i18n = useI18n();
+
+  const openSeparateWindow = useCallback(() => {
+    sendBgMsg(MSG_OPEN_SEPARATE_WINDOW);
+  }, []);
 
   if (!isMobile && simpleStyle && !mouseHover) {
     return;
@@ -56,6 +64,15 @@ function Header({
         </Stack>
 
         <Stack direction="row" alignItems="center">
+          {isExt && (
+            <IconButton
+              size="small"
+              title={i18n("open_separate_window")}
+              onClick={openSeparateWindow}
+            >
+              <OpenInNewIcon fontSize="small" />
+            </IconButton>
+          )}
           <IconButton
             size="small"
             title={i18n("btn_tip_click_away")}

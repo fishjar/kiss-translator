@@ -29,6 +29,7 @@ export const MSG_BUILTINAI_DETECT = "builtinai_detect";
 export const MSG_BUILTINAI_TRANSLATE = "builtinai_translte";
 export const MSG_SET_LOGLEVEL = "set_loglevel";
 export const MSG_CLEAR_CACHES = "clear_caches";
+export const MSG_OPEN_SEPARATE_WINDOW = "open_separate_window";
 
 export const EVENT_KISS_INNER = "kiss_translator_inner";
 export const EVENT_KISS_TRANSLATOR = "kiss_translator";
