@@ -104,6 +104,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_CLAUDE,
     OPT_TRANS_OLLAMA,
     OPT_TRANS_OPENROUTER,
+    OPT_TRANS_CUSTOMIZE,
   ]),
   // 支持多key
   mulkeys: new Set([

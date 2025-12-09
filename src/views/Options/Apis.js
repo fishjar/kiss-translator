@@ -275,7 +275,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
         />
       )}
 
-      {(API_SPE_TYPES.ai.has(apiType) || apiType === OPT_TRANS_CUSTOMIZE) && (
+      {API_SPE_TYPES.ai.has(apiType) && (
         <>
           <Box>
             <Grid container spacing={2} columns={12}>
