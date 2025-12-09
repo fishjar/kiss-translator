@@ -18,6 +18,7 @@ import { newI18n } from "../config";
 import ShadowDomManager from "../libs/shadowDomManager.js";
 import { Menus } from "./Menus.js";
 import { buildBilingualVtt } from "./vtt.js";
+import { isMobile } from "../libs/mobile.js";
 
 const VIDEO_SELECT = "#container video";
 const CONTORLS_SELECT = ".ytp-right-controls";
@@ -651,7 +652,11 @@ class YouTubeCaptionProvider {
 
     // todo 移到菜单切换
     // 监听字幕更新事件，将翻译后的字幕传递给字幕列表
-    if (this.#setting.isEnhance !== false && !this.#subtitleListManager) {
+    if (
+      !isMobile &&
+      this.#setting.isEnhance !== false &&
+      !this.#subtitleListManager
+    ) {
       // 初始化字幕列表管理器
       this.#subtitleListManager = new YouTubeSubtitleList(videoEl);
       this.#subtitleListManager.initialize(this.#subtitles);

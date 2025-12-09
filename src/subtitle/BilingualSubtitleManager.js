@@ -3,6 +3,7 @@ import { truncateWords, throttle } from "../libs/utils.js";
 import { apiTranslate } from "../apis/index.js";
 import { apiMicrosoftDict } from "../apis/index.js";
 import { trustedTypesHelper } from "../libs/trustedTypes.js";
+import { isMobile } from "../libs/mobile.js";
 
 // 添加CSS样式用于高亮显示悬停的单词
 const addWordHoverStyles = () => {
@@ -146,7 +147,7 @@ export class BilingualSubtitleManager {
     );
 
     // todo: 使用 @emotion/css
-    if (this.#setting.isEnhance !== false) {
+    if (!isMobile && this.#setting.isEnhance !== false) {
       addWordHoverStyles();
     }
   }
@@ -248,7 +249,7 @@ export class BilingualSubtitleManager {
 
     this.#enableDragging(this.#paperEl, container, this.#captionWindowEl);
 
-    if (this.#setting.isEnhance !== false) {
+    if (!isMobile && this.#setting.isEnhance !== false) {
       // 添加鼠标悬停事件监听器
       this.#captionWindowEl.addEventListener(
         "mouseover",
@@ -658,7 +659,7 @@ export class BilingualSubtitleManager {
       const p1 = document.createElement("p");
       p1.style.cssText = this.#setting.originStyle;
 
-      if (this.#setting.isEnhance !== false) {
+      if (!isMobile && this.#setting.isEnhance !== false) {
         p1.innerHTML = trustedTypesHelper.createHTML(
           this.#wrapWordsWithSpans(subtitle.text)
         );
