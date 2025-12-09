@@ -126,6 +126,7 @@ const userscriptWebpack = (config, env) => {
 // @connect       translate.volcengine.com
 // @connect       dict.youdao.com
 // @connect       api.anthropic.com
+// @connect       api.siliconflow.cn
 // @connect       api.cloudflare.com
 // @connect       openrouter.ai
 // @connect       localhost
