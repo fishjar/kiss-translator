@@ -106,7 +106,34 @@ export default function Popup() {
             handleOpenSetting={handleOpenSetting}
           />
         ) : (
-          <Stack sx={{ p: 2 }} spacing={3}>
+          <Stack
+            sx={{ p: 2 }}
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+          >
+            <Button
+              variant="text"
+              onClick={() => {
+                window.open(
+                  "https://chromewebstore.google.com/detail/kiss-translator/bdiifdefkgmcblbcghdlonllpjhhjgof/reviews",
+                  "_blank"
+                );
+              }}
+            >
+              {i18n("comment_support")}
+            </Button>
+            <Button
+              variant="text"
+              onClick={() => {
+                window.open(
+                  "https://github.com/fishjar/kiss-translator#%E8%B5%9E%E8%B5%8F",
+                  "_blank"
+                );
+              }}
+            >
+              {i18n("appreciate_support")}
+            </Button>
             <Button variant="text" onClick={handleOpenSetting}>
               {i18n("setting")}
             </Button>
