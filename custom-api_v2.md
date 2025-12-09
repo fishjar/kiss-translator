@@ -203,15 +203,15 @@ async (args) => {
     Authorization: `Bearer ${args.key}`,
   };
   const body = {
-    model: "tencent/Hunyuan-MT-7B", // 或 args.model
+    model: "tencent/Hunyuan-MT-7B", // 或 args.model,
     messages: [
       {
         role: "system",
-        content: args.nobatchPrompt,
+        content: args.systemPrompt,
       },
       {
         role: "user",
-        content: args.nobatchUserPrompt,
+        content: args.userPrompt,
       },
     ],
     temperature: 0,

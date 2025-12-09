@@ -59,7 +59,7 @@ function TestButton({ api }) {
   const handleApiTest = async () => {
     try {
       setLoading(true);
-      const text = "hello world";
+      const text = "The quick brown fox jumps over the lazy dog.";
       const { trText } = await apiTranslate({
         text,
         fromLang: "en",
@@ -275,7 +275,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
         />
       )}
 
-      {(API_SPE_TYPES.ai.has(apiType) || apiType === OPT_TRANS_CUSTOMIZE) && (
+      {API_SPE_TYPES.ai.has(apiType) && (
         <>
           <Box>
             <Grid container spacing={2} columns={12}>
