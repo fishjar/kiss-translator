@@ -59,7 +59,7 @@ function TestButton({ api }) {
   const handleApiTest = async () => {
     try {
       setLoading(true);
-      const text = "hello world";
+      const text = "The quick brown fox jumps over the lazy dog.";
       const { trText } = await apiTranslate({
         text,
         fromLang: "en",
