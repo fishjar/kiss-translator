@@ -45,15 +45,11 @@ export default function Header({ onClose, toggleTab, openSeparateWindow }) {
         </IconButton>
       ) : (
         <Stack direction="row" alignItems="center">
-          <IconButton
-            onClick={toggleTab}
-          >
+          <IconButton onClick={toggleTab}>
             <SyncAltIcon />
           </IconButton>
           {/* <DarkModeButton /> */}
-          <IconButton
-            onClick={openSeparateWindow}
-          >
+          <IconButton onClick={openSeparateWindow}>
             <OpenInNewIcon />
           </IconButton>
         </Stack>
