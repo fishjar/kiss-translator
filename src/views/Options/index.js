@@ -32,6 +32,17 @@ export default function Options() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    const isValidVersion = (v1Str, v2Str) => {
+      if (!v1Str || !v2Str) {
+        return false;
+      }
+
+      const v1 = v1Str.split(".");
+      const v2 = v2Str.split(".");
+
+      return v1[0] === v2[0] && v1[1] === v2[1];
+    };
+
     (async () => {
       if (isGm) {
         // 等待GM注入
@@ -40,8 +51,8 @@ export default function Options() {
           if (window?.APP_INFO?.name === process.env.REACT_APP_NAME) {
             const { version, eventName } = window.APP_INFO;
 
-            // 检查版本是否一致
-            if (version !== process.env.REACT_APP_VERSION) {
+            // 检查版本是否一致（只检查前两位）
+            if (!isValidVersion(version, process.env.REACT_APP_VERSION)) {
               setError(
                 `The version of the local script(v${version}) is not the latest version(v${process.env.REACT_APP_VERSION}). 本地脚本之版本(v${version})非最新版(v${process.env.REACT_APP_VERSION})。`
               );
