@@ -1,5 +1,11 @@
 #!/usr/bin/env zx
-import { argv } from "zx";
+import { argv, $ } from "zx";
+
+// 在 Windows 上使用 cmd.exe，避免 zx 默认使用 WSL bash 导致 node not found
+if (process.platform === "win32") {
+  $.shell = "cmd.exe";
+  $.prefix = "";
+}
 
 // 用法: zx src/scripts/build-task.mjs --target=chrome
 const target = argv.target;
