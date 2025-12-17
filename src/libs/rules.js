@@ -61,42 +61,44 @@ function mergeSelectors(defaultStr, userStr) {
 }
 
 /**
- * 根据href匹配规则
- * @param {*} rules
- * @param {string} href
- * @returns
+ * 在规则列表中查找匹配的规则
+ * @param {Array} rules 规则列表
+ * @param {string} href 当前页面URL
+ * @returns {Object|null} 匹配的规则或null
  */
-export const matchRule = async (href, { injectRules, subrulesList }) => {
-  const rules = await getRulesWithDefault();
-  if (injectRules) {
-    try {
-      const selectedSub = subrulesList.find((item) => item.selected);
-      if (selectedSub?.url) {
-        const subRules = await loadOrFetchSubRules(selectedSub.url);
-        rules.splice(-1, 0, ...subRules);
-      }
-    } catch (err) {
-      kissLog("load injectRules", err);
-    }
-  }
-
-  const rule = rules.find((r) =>
-    r.pattern.split(/\n|,/).some((p) => isMatch(href, p.trim()))
+const findMatchingRule = (rules, href) => {
+  return rules.find(
+    (r) =>
+      r.pattern !== GLOBAL_KEY &&
+      r.pattern.split(/\n|,/).some((p) => isMatch(href, p.trim()))
   );
-  const globalRule = {
-    ...GLOBLA_RULE,
-    ...(rules.find((r) => r.pattern === GLOBAL_KEY) || {}),
-  };
-  if (!rule) {
-    return globalRule;
-  }
+};
 
+/**
+ * 合并规则，应用优先级
+ * 对于选择器类型的属性，使用mergeSelectors合并
+ * 对于其他属性，高优先级规则覆盖低优先级规则
+ * @param {Object} baseRule 基准规则（低优先级）
+ * @param {Object} overrideRule 覆盖规则（高优先级）
+ * @returns {Object} 合并后的规则
+ */
+const mergeRules = (baseRule, overrideRule) => {
+  if (!overrideRule) return { ...baseRule };
+  if (!baseRule) return { ...overrideRule };
+
+  const merged = { ...baseRule };
+
+  // 选择器类型的属性需要使用mergeSelectors合并
   ["selector", "keepSelector", "rootsSelector", "ignoreSelector"].forEach(
     (key) => {
-      rule[key] = mergeSelectors(globalRule[key], rule[key]);
+      merged[key] = mergeSelectors(
+        baseRule[key] || "",
+        overrideRule[key] || ""
+      );
     }
   );
 
+  // 字符串类型的属性，非空则覆盖
   [
     "terms",
     "aiTerms",
@@ -112,11 +114,12 @@ export const matchRule = async (href, { injectRules, subrulesList }) => {
     "transEndHook",
     // "transRemoveHook",
   ].forEach((key) => {
-    if (!rule[key]?.trim()) {
-      rule[key] = globalRule[key];
+    if (overrideRule[key]?.trim()) {
+      merged[key] = overrideRule[key];
     }
   });
 
+  // 枚举类型的属性，非全局值则覆盖
   [
     "apiSlug",
     "fromLang",
@@ -132,18 +135,73 @@ export const matchRule = async (href, { injectRules, subrulesList }) => {
     "highlightWords",
     "textStyle",
   ].forEach((key) => {
-    if (!rule[key] || rule[key] === GLOBAL_KEY) {
-      rule[key] = globalRule[key];
+    if (overrideRule[key] && overrideRule[key] !== GLOBAL_KEY) {
+      merged[key] = overrideRule[key];
     }
   });
 
+  // 数字类型的属性
   ["splitLength"].forEach((key) => {
-    if (!rule[key]) {
-      rule[key] = globalRule[key];
+    if (overrideRule[key]) {
+      merged[key] = overrideRule[key];
     }
   });
 
-  return rule;
+  // pattern使用高优先级规则的pattern
+  if (overrideRule.pattern) {
+    merged.pattern = overrideRule.pattern;
+  }
+
+  return merged;
+};
+
+/**
+ * 根据href匹配规则
+ * 合并匹配到的个人规则、订阅规则、全局规则
+ * 优先级：个人规则 > 订阅规则 > 全局规则
+ * @param {*} rules
+ * @param {string} href
+ * @returns
+ */
+export const matchRule = async (href, { injectRules, subrulesList }) => {
+  // 获取个人规则
+  const personalRules = await getRulesWithDefault();
+
+  // 获取全局规则
+  const globalRule = {
+    ...GLOBLA_RULE,
+    ...(personalRules.find((r) => r.pattern === GLOBAL_KEY) || {}),
+  };
+
+  // 查找匹配的个人规则（排除全局规则）
+  const matchedPersonalRule = findMatchingRule(personalRules, href);
+
+  // 获取订阅规则并查找匹配
+  let matchedSubRule = null;
+  if (injectRules) {
+    try {
+      const selectedSub = subrulesList.find((item) => item.selected);
+      if (selectedSub?.url) {
+        const subRules = await loadOrFetchSubRules(selectedSub.url);
+        matchedSubRule = findMatchingRule(subRules, href);
+      }
+    } catch (err) {
+      kissLog("load injectRules", err);
+    }
+  }
+
+  // 如果没有匹配到任何规则，返回全局规则
+  if (!matchedPersonalRule && !matchedSubRule) {
+    return globalRule;
+  }
+
+  // 合并规则：全局规则 <- 订阅规则 <- 个人规则
+  // 优先级：个人规则 > 订阅规则 > 全局规则
+  let finalRule = { ...globalRule };
+  finalRule = mergeRules(finalRule, matchedSubRule);
+  finalRule = mergeRules(finalRule, matchedPersonalRule);
+
+  return finalRule;
 };
 
 /**
