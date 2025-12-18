@@ -18,7 +18,7 @@ import {
   OPT_DICT_MAP,
   OPT_SUG_MAP,
 } from "../../config";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import TranCont from "./TranCont";
 import DictCont from "./DictCont";
 import SugCont from "./SugCont";
@@ -54,6 +54,17 @@ export default function TranForm({
   const [enSug, setEnSug] = useState(initEnSug);
   const [deLang, setDeLang] = useState("");
   const [deLoading, setDeLoading] = useState(false);
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    const input = inputRef.current;
+    if (!input) return;
+
+    input.focus();
+
+    const len = input.value.length;
+    input.setSelectionRange(len, len);
+  }, []);
 
   useEffect(() => {
     if (isValidWord(text)) {
@@ -318,6 +329,7 @@ export default function TranForm({
               label={i18n("original_text")}
               fullWidth
               multiline
+              inputRef={inputRef}
               minRows={isPlaygound ? 2 : 1}
               maxRows={10}
               value={editText}
@@ -349,13 +361,18 @@ export default function TranForm({
                           setEditMode(false);
                           setText(editText.trim());
                         }}
+                        title={i18n("submit")}
                       >
                         <DoneIcon fontSize="inherit" />
                       </IconButton>
                     ) : text ? (
-                      <CopyBtn text={text} />
+                      <CopyBtn text={text} title={i18n("copy")} />
                     ) : (
-                      <IconButton size="small" onClick={handlePaste}>
+                      <IconButton
+                        size="small"
+                        onClick={handlePaste}
+                        title={i18n("paste")}
+                      >
                         <ContentPasteIcon fontSize="inherit" />
                       </IconButton>
                     )}

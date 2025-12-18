@@ -89,7 +89,7 @@ export default function TranCont({
                 top: 0,
               }}
             >
-              <CopyBtn text={trText} />
+              <CopyBtn text={trText} title={i18n("copy")} />
             </Stack>
           ),
         }}

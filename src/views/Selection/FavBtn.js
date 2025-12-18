@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useFavWords } from "../../hooks/FavWords";
 import { kissLog } from "../../libs/log";
 
-export default function FavBtn({ word }) {
+export default function FavBtn({ word, title }) {
   const { favWords, toggleFav } = useFavWords();
   const [loading, setLoading] = useState(false);
 
@@ -21,7 +21,12 @@ export default function FavBtn({ word }) {
   };
 
   return (
-    <IconButton disabled={loading} size="small" onClick={handleClick}>
+    <IconButton
+      disabled={loading}
+      size="small"
+      onClick={handleClick}
+      title={title}
+    >
       {favWords[word] ? (
         <FavoriteIcon fontSize="inherit" />
       ) : (

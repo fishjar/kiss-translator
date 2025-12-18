@@ -8,6 +8,7 @@ import Alert from "@mui/material/Alert";
 import CopyBtn from "./CopyBtn";
 import { useAsyncNow } from "../../hooks/Fetch";
 import { dictHandlers } from "./DictHandler";
+import { useI18n } from "../../hooks/I18n";
 
 function DictBody({ text, setCopyText, setRealWord, dict }) {
   const { loading, error, data } = useAsyncNow(dict.apiFn, text);
@@ -47,6 +48,7 @@ function DictBody({ text, setCopyText, setRealWord, dict }) {
 }
 
 export default function DictCont({ text, enDict }) {
+  const i18n = useI18n();
   const [copyText, setCopyText] = useState(text);
   const [realWord, setRealWord] = useState(text);
   const dict = dictHandlers[enDict];
@@ -59,8 +61,8 @@ export default function DictCont({ text, enDict }) {
             {realWord}
           </Typography>
           <Stack direction="row" justifyContent="space-between">
-            <CopyBtn text={copyText} />
-            <FavBtn word={realWord} />
+            <CopyBtn text={copyText} title={i18n("copy")} />
+            <FavBtn word={realWord} title={i18n("collect")} />
           </Stack>
         </Stack>
       )}

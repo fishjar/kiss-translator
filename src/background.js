@@ -281,7 +281,7 @@ const messageHandlers = {
   [MSG_CLEAR_CACHES]: () => tryClearCaches(),
   [MSG_OPEN_SEPARATE_WINDOW]: () =>
     browser.windows.create({
-      url: "popup.html#window",
+      url: "popup.html#tranbox",
       type: "popup",
       width: 400,
       height: 400,

@@ -3,7 +3,7 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import LibraryAddCheckIcon from "@mui/icons-material/LibraryAddCheck";
 import { useState } from "react";
 
-export default function CopyBtn({ text }) {
+export default function CopyBtn({ text, title = "copy" }) {
   const [copied, setCopied] = useState(false);
   const handleClick = async (e) => {
     e.stopPropagation();
@@ -24,11 +24,12 @@ export default function CopyBtn({ text }) {
         },
       }}
       onClick={handleClick}
+      title={title}
     >
       {copied ? (
         <LibraryAddCheckIcon fontSize="inherit" />
       ) : (
-        <ContentCopyIcon fontSize="inherit" />
+        <ContentCopyIcon fontSize="inherit" t />
       )}
     </IconButton>
   );

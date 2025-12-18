@@ -2647,6 +2647,41 @@ export const I18N = {
     ja: `投げ銭で応援`,
     ko: `후원하기`,
   },
+  toggle_transbox: {
+    zh: `切换翻译窗`,
+    en: `Toggle Translation Box`,
+    zh_TW: `切換翻譯視窗`,
+    ja: `翻訳ウィンドウを切り替え`,
+    ko: `번역 창 전환`,
+  },
+  copy: {
+    zh: `复制`,
+    en: `Copy`,
+    zh_TW: `複製`,
+    ja: `コピー`,
+    ko: `복사`,
+  },
+  paste: {
+    zh: `黏贴`,
+    en: `Paste`,
+    zh_TW: `貼上`,
+    ja: `貼り付け`,
+    ko: `붙여넣기`,
+  },
+  submit: {
+    zh: `提交`,
+    en: `Submit`,
+    zh_TW: `提交`,
+    ja: `送信`,
+    ko: `제출`,
+  },
+  collect: {
+    zh: `收藏`,
+    en: `Save`,
+    zh_TW: `收藏`,
+    ja: `保存`,
+    ko: `저장`,
+  },
 };
 
 export const newI18n = (lang) => (key) => I18N[key]?.[lang] || "";

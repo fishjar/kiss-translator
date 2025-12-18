@@ -57,7 +57,7 @@ export default function Popup() {
     (async () => {
       try {
         const cleanHash = window.location.hash.slice(1);
-        if (cleanHash === "window") {
+        if (cleanHash === "tranbox") {
           setIsSeparate(true);
           return;
         }

@@ -6,8 +6,10 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import SyncAltIcon from "@mui/icons-material/SyncAlt";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import { useI18n } from "../../hooks/I18n";
 
 export default function Header({ onClose, toggleTab, openSeparateWindow }) {
+  const i18n = useI18n();
   const handleHomepage = () => {
     window.open(process.env.REACT_APP_HOMEPAGE, "_blank");
   };
@@ -44,12 +46,19 @@ export default function Header({ onClose, toggleTab, openSeparateWindow }) {
           <CloseIcon />
         </IconButton>
       ) : (
-        <Stack direction="row" alignItems="center">
+        <Stack
+          direction="row"
+          alignItems="center"
+          title={i18n("toggle_transbox")}
+        >
           <IconButton onClick={toggleTab}>
             <SyncAltIcon />
           </IconButton>
           {/* <DarkModeButton /> */}
-          <IconButton onClick={openSeparateWindow}>
+          <IconButton
+            onClick={openSeparateWindow}
+            title={i18n("open_separate_window")}
+          >
             <OpenInNewIcon />
           </IconButton>
         </Stack>
