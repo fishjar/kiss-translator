@@ -19,6 +19,7 @@ import {
   CMD_TOGGLE_STYLE,
   CMD_OPEN_OPTIONS,
   CMD_OPEN_TRANBOX,
+  CMD_OPEN_SEPARATE_WINDOW,
   CLIENT_THUNDERBIRD,
   MSG_SET_LOGLEVEL,
   MSG_CLEAR_CACHES,
@@ -320,6 +321,12 @@ browser.commands.onCommand.addListener((command) => {
       break;
     case CMD_OPEN_OPTIONS:
       browser.runtime.openOptionsPage();
+      break;
+    case CMD_OPEN_SEPARATE_WINDOW:
+      // invoke the handler to open the independent window
+      if (messageHandlers[MSG_OPEN_SEPARATE_WINDOW]) {
+        messageHandlers[MSG_OPEN_SEPARATE_WINDOW]();
+      }
       break;
     default:
   }

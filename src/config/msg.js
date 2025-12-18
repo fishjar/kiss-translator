@@ -2,6 +2,7 @@ export const CMD_TOGGLE_TRANSLATE = "toggleTranslate";
 export const CMD_TOGGLE_STYLE = "toggleStyle";
 export const CMD_OPEN_OPTIONS = "openOptions";
 export const CMD_OPEN_TRANBOX = "openTranbox";
+export const CMD_OPEN_SEPARATE_WINDOW = "openSeparateWindow";
 
 export const MSG_FETCH = "kiss_fetch";
 export const MSG_GET_HTTPCACHE = "get_httpcache";
