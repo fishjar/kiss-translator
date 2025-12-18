@@ -16,5 +16,8 @@
   },
   "open_tranbox": {
     "message": "팝업 열기"
+  },
+  "open_separate_window": {
+    "message": "독립 창으로 열기"
   }
 }

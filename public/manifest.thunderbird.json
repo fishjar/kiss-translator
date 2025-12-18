@@ -44,6 +44,9 @@
       },
       "description": "__MSG_open_tranbox__"
     },
+    "openSeparateWindow": {
+      "description": "__MSG_open_separate_window__"
+    },
     "toggleStyle": {
       "suggested_key": {
         "default": "Alt+C"
