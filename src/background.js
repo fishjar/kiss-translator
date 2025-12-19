@@ -48,6 +48,107 @@ const CSP_REMOVE_HEADERS = [
   `x-content-security-policy`,
 ];
 
+// storage key for separate window bounds
+const STORAGE_KEY_SEPARATE_WINDOW_BOUNDS = "separate_window_bounds";
+
+// track the currently opened separate window id (if any)
+let separateWindowId = null;
+// timers for debouncing bounds saves per window id
+const boundsSaveTimers = new Map();
+
+// default bounds for the separate window
+const DEFAULT_SEPARATE_WINDOW_BOUNDS = { left: 100, top: 100, width: 400, height: 400 };
+
+/**
+ * Persist bounds for the separate window to browser.storage.local
+ */
+async function persistSeparateWindowBounds(bounds) {
+  try {
+    await browser.storage.local.set({ [STORAGE_KEY_SEPARATE_WINDOW_BOUNDS]: bounds });
+    kissLog("saved separate window bounds", bounds);
+  } catch (err) {
+    kissLog("save separate window bounds error", err);
+  }
+}
+
+/**
+ * Open the separate popup window, restoring bounds from storage if present.
+ * Returns the created Window object.
+ */
+async function openSeparateWindowWithSavedBounds() {
+  try {
+    const stored = await browser.storage.local.get(STORAGE_KEY_SEPARATE_WINDOW_BOUNDS);
+    const saved = stored && stored[STORAGE_KEY_SEPARATE_WINDOW_BOUNDS];
+    const bounds = Object.assign({}, DEFAULT_SEPARATE_WINDOW_BOUNDS, saved || {});
+
+    const win = await browser.windows.create({
+      url: "popup.html#tranbox",
+      type: "popup",
+      left: bounds.left,
+      top: bounds.top,
+      width: bounds.width,
+      height: bounds.height,
+      focused: true,
+    });
+
+    // track the opened window id
+    separateWindowId = win.id;
+    return win;
+  } catch (err) {
+    kissLog("open separate window error", err);
+    throw err;
+  }
+}
+
+// listen for bounds changes and save them (debounced)
+browser.windows.onBoundsChanged.addListener((win) => {
+  try {
+    if (!win || win.id !== separateWindowId) return;
+
+    // clear any existing timer
+    const prev = boundsSaveTimers.get(win.id);
+    if (prev) {
+      clearTimeout(prev);
+    }
+
+    // debounce write to storage by 400ms
+    const timer = setTimeout(() => {
+      try {
+        const boundsToSave = {};
+        if (typeof win.left === "number") boundsToSave.left = win.left;
+        if (typeof win.top === "number") boundsToSave.top = win.top;
+        if (typeof win.width === "number") boundsToSave.width = win.width;
+        if (typeof win.height === "number") boundsToSave.height = win.height;
+
+        // only persist if we have at least one dimension
+        if (Object.keys(boundsToSave).length > 0) {
+          persistSeparateWindowBounds(boundsToSave);
+        }
+      } catch (e) {
+        kissLog("onBoundsChanged save failed", e);
+      } finally {
+        boundsSaveTimers.delete(win.id);
+      }
+    }, 400);
+
+    boundsSaveTimers.set(win.id, timer);
+  } catch (e) {
+    kissLog("onBoundsChanged listener error", e);
+  }
+});
+
+// clear tracked id when the window is removed
+browser.windows.onRemoved.addListener((windowId) => {
+  if (windowId === separateWindowId) {
+    separateWindowId = null;
+    const t = boundsSaveTimers.get(windowId);
+    if (t) {
+      clearTimeout(t);
+      boundsSaveTimers.delete(windowId);
+    }
+  }
+});
+
 /**
  * 添加右键菜单
  */
@@ -279,16 +380,10 @@ const messageHandlers = {
   [MSG_BUILTINAI_TRANSLATE]: (args) => chromeTranslate(args),
   [MSG_SET_LOGLEVEL]: (args) => logger.setLevel(args),
   [MSG_CLEAR_CACHES]: () => tryClearCaches(),
-  [MSG_OPEN_SEPARATE_WINDOW]: () =>
-    browser.windows.create({
-      url: "popup.html#tranbox",
-      type: "popup",
-      width: 400,
-      height: 400,
-      left: 100,
-      top: 100,
-      focused: true,
-    }),
+  [MSG_OPEN_SEPARATE_WINDOW]: async () => {
+    // open window using saved bounds and return created window info
+    return await openSeparateWindowWithSavedBounds();
+  },
 };
 
 /**
