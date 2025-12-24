@@ -3,7 +3,7 @@
     "message": "KISS Übersetzer"
   },
   "app_description": {
-    "message": "Eine minimalistische zweisprachige Übersetzungserweiterung und ein Greasemonkey-Skript mit Funktionen wie Webseitenübersetzung, Textauswahl-Übersetzung und Video-Untertitelübersetzung (YouTube). Unterstützt mehrere Übersetzungsdienste und KI-Übersetzungs-APIs sowie umfangreiche und flexible Anpassungsoptionen."
+    "message": "Eine minimalistische zweisprachige Übersetzungserweiterung, die Webseiten-, Textauswahl- und Videountertitel-Übersetzung unterstützt."
   },
   "toggle_translate": {
     "message": "Übersetzung umschalten"

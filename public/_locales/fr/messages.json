@@ -3,7 +3,7 @@
     "message": "KISS Traducteur"
   },
   "app_description": {
-    "message": "Une extension de traduction bilingue minimaliste et un script Greasemonkey, offrant la traduction de pages web, la traduction par sélection de texte et la traduction de sous-titres vidéo (YouTube). Elle prend en charge plusieurs services de traduction et des API de traduction par IA, avec des options de personnalisation riches et flexibles."
+    "message": "Une extension de traduction bilingue minimaliste prenant en charge la traduction de pages web, de texte sélectionné et de sous-titres vidéo."
   },
   "toggle_translate": {
     "message": "Activer/désactiver la traduction"
