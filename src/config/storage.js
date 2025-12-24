@@ -17,6 +17,7 @@ export const STOKEY_WORDS = `${APP_NAME}_words`;
 export const STOKEY_SYNC = `${APP_NAME}_sync`;
 export const STOKEY_FAB = `${APP_NAME}_fab`;
 export const STOKEY_TRANBOX = `${APP_NAME}_tranbox`;
+export const STOKEY_SEPARATE_WINDOW = `${APP_NAME}_separate_window`;
 export const STOKEY_RULESCACHE_PREFIX = `${APP_NAME}_rulescache_`;
 
 export const CACHE_NAME = `${APP_NAME}_cache`;
