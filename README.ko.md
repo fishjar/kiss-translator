@@ -173,7 +173,7 @@ pnpm build
 // `toggle_transbox`    번역 팝업 열기/닫기
 // `toggle_hover_node`  마우스를 올린 문단 번역
 // `input_translate`    입력창 번역
-window.dispatchEvent(new CustomEvent("kiss_translator", {detail: { action: "trans_toggle" }}));
+window.dispatchEvent(new CustomEvent("kiss_translator", {detail: { action: "toggle_translate" }}));
 ```
 
 ## 커뮤니티

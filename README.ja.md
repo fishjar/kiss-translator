@@ -173,7 +173,7 @@ pnpm build
 // `toggle_transbox`    翻訳ポップアップを開く／閉じる
 // `toggle_hover_node`  マウスオーバー中の段落を翻訳
 // `input_translate`    入力欄を翻訳
-window.dispatchEvent(new CustomEvent("kiss_translator", {detail: { action: "trans_toggle" }}));
+window.dispatchEvent(new CustomEvent("kiss_translator", {detail: { action: "toggle_translate" }}));
 ```
 
 ## コミュニケーション

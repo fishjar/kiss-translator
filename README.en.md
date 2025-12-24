@@ -173,7 +173,7 @@ pnpm build
 // `toggle_transbox`    Open/close translation popup
 // `toggle_hover_node`  Translate hovered paragraph
 // `input_translate`    Translate input box
-window.dispatchEvent(new CustomEvent("kiss_translator", {detail: { action: "trans_toggle" }}));
+window.dispatchEvent(new CustomEvent("kiss_translator", {detail: { action: "toggle_translate" }}));
 ```
 
 ## Discussion
