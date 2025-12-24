@@ -3,7 +3,7 @@
     "message": "シンプル翻訳"
   },
   "app_description": {
-    "message": "シンプルなバイリンガル対訳翻訳拡張機能＆Tampermonkeyスクリプト"
+    "message": "シンプルな対訳型翻訳拡張機能および Greasemonkey スクリプトで、ウェブページ翻訳、選択翻訳、動画字幕翻訳（YouTube）などの機能を備えています。複数の翻訳サービスや AI 翻訳 API に対応し、豊富で柔軟なカスタマイズオプションを提供します。"
   },
   "toggle_translate": {
     "message": "翻訳の切り替え"
@@ -16,5 +16,8 @@
   },
   "open_tranbox": {
     "message": "ポップアップを開く"
+  },
+  "open_separate_window": {
+    "message": "独立ウィンドウで開く"
   }
 }

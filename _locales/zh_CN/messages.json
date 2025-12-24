@@ -3,7 +3,7 @@
     "message": "简约翻译"
   },
   "app_description": {
-    "message": "一个简约的双语对照翻译扩展 & 油猴脚本"
+    "message": "一个简约的双语对照翻译扩展、油猴脚本，含网页翻译，划词翻译、视频字幕翻译(Youtube)等功能，支持多种翻译服务及AI翻译接口，拥有丰富灵活的自定义选项。"
   },
   "toggle_translate": {
     "message": "开启翻译"
@@ -16,5 +16,8 @@
   },
   "open_tranbox": {
     "message": "打开弹窗"
+  },
+  "open_separate_window": {
+    "message": "打开独立窗口"
   }
 }

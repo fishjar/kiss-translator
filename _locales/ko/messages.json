@@ -3,7 +3,7 @@
     "message": "심플 번역"
   },
   "app_description": {
-    "message": "심플한 이중 언어 대조 번역 확장 프로그램 & Tampermonkey 스크립트"
+    "message": "웹 페이지 번역, 드래그 번역, 영상 자막 번역(YouTube) 등의 기능을 포함한 간결한 이중 언어 대조 번역 확장 프로그램 및 Greasemonkey 스크립트입니다. 다양한 번역 서비스와 AI 번역 API를 지원하며, 풍부하고 유연한 사용자 정의 옵션을 제공합니다."
   },
   "toggle_translate": {
     "message": "번역 켜기"
@@ -16,5 +16,8 @@
   },
   "open_tranbox": {
     "message": "팝업 열기"
+  },
+  "open_separate_window": {
+    "message": "독립 창으로 열기"
   }
 }

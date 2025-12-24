@@ -3,7 +3,7 @@
     "message": "KISS Übersetzer"
   },
   "app_description": {
-    "message": "Eine einfache zweisprachige Übersetzungs-Erweiterung und Greasemonkey-Skript"
+    "message": "Eine minimalistische zweisprachige Übersetzungserweiterung und ein Greasemonkey-Skript mit Funktionen wie Webseitenübersetzung, Textauswahl-Übersetzung und Video-Untertitelübersetzung (YouTube). Unterstützt mehrere Übersetzungsdienste und KI-Übersetzungs-APIs sowie umfangreiche und flexible Anpassungsoptionen."
   },
   "toggle_translate": {
     "message": "Übersetzung umschalten"
@@ -16,5 +16,8 @@
   },
   "open_tranbox": {
     "message": "Popup-Fenster öffnen"
+  },
+  "open_separate_window": {
+    "message": "In eigenem Fenster öffnen"
   }
 }
