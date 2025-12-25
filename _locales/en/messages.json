@@ -3,7 +3,7 @@
     "message": "KISS Translator"
   },
   "app_description": {
-    "message": "A minimalist bilingual translation extension and Greasemonkey script featuring web page translation, text selection translation, and video subtitle translation (YouTube). It supports multiple translation services and AI translation APIs, with rich and flexible customization options."
+    "message": "A minimalist bilingual translation extension that supports webpage, text selection, and video subtitle translation."
   },
   "toggle_translate": {
     "message": "Toggle Translation"
