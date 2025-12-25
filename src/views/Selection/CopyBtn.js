@@ -29,7 +29,7 @@ export default function CopyBtn({ text, title = "copy" }) {
       {copied ? (
         <LibraryAddCheckIcon fontSize="inherit" />
       ) : (
-        <ContentCopyIcon fontSize="inherit" t />
+        <ContentCopyIcon fontSize="inherit" />
       )}
     </IconButton>
   );

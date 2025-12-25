@@ -144,8 +144,11 @@ async function updateCacheFromActual(windowId) {
   }
 }
 
-// 监听焦点变化(兼容Firefox)
-browser.windows.onFocusChanged.addListener(async (windowId) => {
+/**
+ * 监听焦点变化(兼容桌面Firefox)
+ * Firefox 移动端不支持
+ */
+browser.windows?.onFocusChanged?.addListener(async (windowId) => {
   if (separateWindowId !== null) {
     await updateCacheFromActual(separateWindowId);
   }
@@ -169,8 +172,9 @@ browser.windows?.onBoundsChanged?.addListener((win) => {
 
 /**
  * 监听窗口关闭：此时执行持久化
+ * Firefox 移动端不支持
  */
-browser.windows.onRemoved.addListener(async (windowId) => {
+browser.windows?.onRemoved?.addListener(async (windowId) => {
   if (windowId === separateWindowId) {
     if (lastKnownBounds) {
       await persistSeparateWindowBounds(lastKnownBounds);
@@ -430,8 +434,9 @@ browser.runtime.onMessage.addListener(async ({ action, args }) => {
 
 /**
  * 监听快捷键
+ * Firefox 移动端不支持
  */
-browser.commands.onCommand.addListener((command) => {
+browser.commands?.onCommand?.addListener((command) => {
   // console.log(`Command: ${command}`);
   switch (command) {
     case CMD_TOGGLE_TRANSLATE:
@@ -458,8 +463,9 @@ browser.commands.onCommand.addListener((command) => {
 
 /**
  * 监听右键菜单
+ * Firefox 移动端不支持
  */
-browser.contextMenus.onClicked.addListener(({ menuItemId }) => {
+browser?.contextMenus?.onClicked.addListener(({ menuItemId }) => {
   switch (menuItemId) {
     case CMD_TOGGLE_TRANSLATE:
       sendTabMsg(MSG_TRANS_TOGGLE);
