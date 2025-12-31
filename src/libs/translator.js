@@ -708,6 +708,23 @@ export class Translator {
     }
   }
 
+  // 获取元素的 shadowRoot（支持 closed 模式）
+  #getShadowRoot(element) {
+    // Firefox 原生支持
+    if (element.openOrClosedShadowRoot) {
+      return element.openOrClosedShadowRoot;
+    }
+    // Chrome 扩展 API
+    if (
+      typeof globalThis !== "undefined" &&
+      globalThis.chrome?.dom?.openOrClosedShadowRoot
+    ) {
+      return globalThis.chrome.dom.openOrClosedShadowRoot(element);
+    }
+    // 标准 API（只能获取 open 模式）
+    return element.shadowRoot;
+  }
+
   // 找页面所有 ShadowRoot
   #findAllShadowRoots(root = document.body, results = new Set()) {
     // const start = performance.now();
@@ -715,9 +732,10 @@ export class Translator {
       const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
       while (walker.nextNode()) {
         const node = walker.currentNode;
-        if (node.shadowRoot) {
-          results.add(node.shadowRoot);
-          this.#findAllShadowRoots(node.shadowRoot, results);
+        const shadowRoot = this.#getShadowRoot(node);
+        if (shadowRoot) {
+          results.add(shadowRoot);
+          this.#findAllShadowRoots(shadowRoot, results);
         }
       }
     } catch (err) {
