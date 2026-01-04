@@ -5,6 +5,8 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import Button from "@mui/material/Button";
 import Grid from "@mui/material/Grid";
+import Snackbar from "@mui/material/Snackbar";
+import MuiAlert from "@mui/material/Alert";
 import { sendBgMsg, sendTabMsg, getCurTab } from "../../libs/msg";
 import { isExt } from "../../libs/client";
 import { useI18n } from "../../hooks/I18n";
@@ -23,7 +25,7 @@ import {
 import { saveRule } from "../../libs/rules";
 import { tryClearCaches } from "../../libs/cache";
 import { kissLog } from "../../libs/log";
-import { parseUrlPattern } from "../../libs/utils";
+import { getDomainOptions, truncateMiddle } from "../../libs/url";
 import { useAllTextStyles } from "../../hooks/CustomStyles";
 
 export default function PopupCont({
@@ -37,6 +39,9 @@ export default function PopupCont({
 }) {
   const i18n = useI18n();
   const [commands, setCommands] = useState({});
+  const [domainOptions, setDomainOptions] = useState([]);
+  const [selectedDomain, setSelectedDomain] = useState("");
+  const [snackbar, setSnackbar] = useState({ open: false, message: "" });
   const { allTextStyles } = useAllTextStyles();
 
   const handleTransToggle = async (e) => {
@@ -134,29 +139,48 @@ export default function PopupCont({
 
   const handleSaveRule = async () => {
     try {
-      let href = "";
-      if (!isContent) {
-        const tab = await getCurTab();
-        href = tab.url;
-      } else {
-        href = window.location?.href;
-      }
-
-      if (!href || typeof href !== "string") {
+      if (!selectedDomain) {
         return;
       }
 
-      const pattern = parseUrlPattern(href);
-      const curRule = { ...rule, pattern };
+      const curRule = { ...rule, pattern: selectedDomain };
       if (isExt && isContent) {
         sendBgMsg(MSG_SAVE_RULE, curRule);
       } else {
         saveRule(curRule);
       }
+      setSnackbar({
+        open: true,
+        message: `${i18n("save_rule")}: ${selectedDomain}`,
+      });
     } catch (err) {
       kissLog("save rule", err);
     }
   };
+
+  useEffect(() => {
+    (async () => {
+      try {
+        let href = "";
+        if (!isContent) {
+          const tab = await getCurTab();
+          href = tab.url;
+        } else {
+          href = window.location?.href;
+        }
+
+        if (href && typeof href === "string") {
+          const options = getDomainOptions(href);
+          setDomainOptions(options);
+          if (options.length > 0) {
+            setSelectedDomain(options[0]);
+          }
+        }
+      } catch (err) {
+        kissLog("get domain options", err);
+      }
+    })();
+  }, [isContent]);
 
   useEffect(() => {
     (async () => {
@@ -419,12 +443,32 @@ export default function PopupCont({
       </Stack>
 
       <Stack>
+        <TextField
+          select
+          SelectProps={{ MenuProps: { disablePortal: true } }}
+          size="small"
+          value={selectedDomain}
+          label={i18n("domain")}
+          onChange={(e) => setSelectedDomain(e.target.value)}
+          fullWidth
+          sx={{ mb: 1 }}
+        >
+          {domainOptions.map((domain) => (
+            <MenuItem key={domain} value={domain} title={domain}>
+              {truncateMiddle(domain)}
+            </MenuItem>
+          ))}
+        </TextField>
         <Stack
           direction="row"
           justifyContent="space-between"
           alignItems="center"
         >
-          <Button variant="text" onClick={handleSaveRule}>
+          <Button
+            variant="text"
+            onClick={handleSaveRule}
+            disabled={domainOptions.length === 0}
+          >
             {i18n("save_rule")}
           </Button>
           <Button variant="text" onClick={handleClearCache}>
@@ -463,6 +507,21 @@ export default function PopupCont({
           </Button>
         </Stack>
       </Stack>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar({ open: false, message: "" })}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <MuiAlert
+          onClose={() => setSnackbar({ open: false, message: "" })}
+          severity="success"
+          variant="filled"
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </MuiAlert>
+      </Snackbar>
     </Stack>
   );
 }
