@@ -89,7 +89,8 @@ const getFileOptions = (href) => {
  * "localhost" -> ["localhost"]
  * "example.com" -> ["example.com", "*.example.com"]
  * "foo.example.com" -> ["foo.example.com", "*.example.com"]
- * "bar.foo.example.com" -> ["bar.foo.example.com", "*.example.com", "*.*.example.com"]
+ * "foo.bar.example.com" -> ["foo.bar.example.com", "*.bar.example.com", "*.*.example.com"]
+ * "a.b.c.example.com" -> ["a.b.c.example.com", "*.b.c.example.com", "*.*.c.example.com", "*.*.*.example.com"]
  * "192.168.1.1" -> ["192.168.1.1"]
  */
 const getWildcardOptions = (hostname) => {
@@ -107,11 +108,18 @@ const getWildcardOptions = (hostname) => {
     return [hostname, `*.${hostname}`];
   }
 
+  // 逐層往上替換成 *
+  // foo.bar.example.com -> [foo.bar.example.com, *.bar.example.com, *.*.example.com]
+  const options = [hostname];
   const mainDomain = parts.slice(-2).join(".");
-  const options = [hostname, `*.${mainDomain}`];
 
-  for (let i = 1; i <= parts.length - 3; i++) {
-    options.push(`${"*.".repeat(i + 1)}${mainDomain}`);
+  for (let i = 1; i <= parts.length - 2; i++) {
+    const wildcards = "*.".repeat(i);
+    const remainingParts = parts.slice(i).join(".");
+    // 避免重複：*.example.com 與 *.*.example.com 不同
+    if (remainingParts !== mainDomain || i === 1) {
+      options.push(`${wildcards}${remainingParts}`);
+    }
   }
 
   return options;
@@ -125,7 +133,7 @@ const getWildcardOptions = (hostname) => {
  * "https://example.com/page" -> ["example.com", "*.example.com"]
  * "http://localhost:3000/" -> ["localhost:3000", "localhost:*", "localhost"]
  * "http://192.168.1.1:8080/" -> ["192.168.1.1:8080", "192.168.1.1:*", "192.168.1.1"]
- * "https://foo.bar.example.com/" -> ["foo.bar.example.com", "*.example.com", "*.*.example.com"]
+ * "https://foo.bar.example.com/" -> ["foo.bar.example.com", "*.bar.example.com", "*.*.example.com"]
  * "http://dev.example.com:8080/" -> ["dev.example.com:8080", "dev.example.com:*", "dev.example.com", "*.example.com"]
  * "file:///C:/docs/article.txt" -> ["/C:/docs/article.txt", "/C:/docs/*", "*.txt", "article.txt"]
  * "chrome-extension://xxx/" -> []
