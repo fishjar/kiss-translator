@@ -376,44 +376,6 @@ export const parseUrlPattern = (href) => {
 };
 
 /**
- * 生成網域匹配選項
- * @param {*} href
- * @returns 返回可選的網域模式陣列，第一個為預設值
- */
-export const getDomainOptions = (href) => {
-  if (!href || !href.startsWith("http")) {
-    return [];
-  }
-
-  try {
-    const url = new URL(href);
-    const hostname = url.hostname;
-    const parts = hostname.split(".");
-
-    if (parts.length <= 2) {
-      return [hostname, `*.${hostname}`];
-    }
-
-    const mainDomain = parts.slice(-2).join(".");
-    const options = [hostname, `*.${mainDomain}`];
-
-    // parts.length=3 (foo.example.com) → 無額外選項
-    // parts.length=4 (bar.foo.example.com) → *.*.example.com
-    // parts.length=5 → *.*.example.com, *.*.*.example.com
-    // 依此類推
-    const extraLevels = parts.length - 3;
-    for (let i = 1; i <= extraLevels; i++) {
-      const wildcards = "*.".repeat(i + 1);
-      options.push(`${wildcards}${mainDomain}`);
-    }
-
-    return options;
-  } catch (err) {
-    return [];
-  }
-};
-
-/**
  * 带超时的任务
  * @param {Promise|Function} task - 任务
  * @param {number} timeout - 超时时间 (毫秒)

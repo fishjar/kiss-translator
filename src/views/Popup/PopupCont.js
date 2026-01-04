@@ -25,7 +25,7 @@ import {
 import { saveRule } from "../../libs/rules";
 import { tryClearCaches } from "../../libs/cache";
 import { kissLog } from "../../libs/log";
-import { getDomainOptions } from "../../libs/utils";
+import { getDomainOptions, truncateMiddle } from "../../libs/url";
 import { useAllTextStyles } from "../../hooks/CustomStyles";
 
 export default function PopupCont({
@@ -454,8 +454,8 @@ export default function PopupCont({
           sx={{ mb: 1 }}
         >
           {domainOptions.map((domain) => (
-            <MenuItem key={domain} value={domain}>
-              {domain}
+            <MenuItem key={domain} value={domain} title={domain}>
+              {truncateMiddle(domain)}
             </MenuItem>
           ))}
         </TextField>
@@ -464,7 +464,11 @@ export default function PopupCont({
           justifyContent="space-between"
           alignItems="center"
         >
-          <Button variant="text" onClick={handleSaveRule}>
+          <Button
+            variant="text"
+            onClick={handleSaveRule}
+            disabled={domainOptions.length === 0}
+          >
             {i18n("save_rule")}
           </Button>
           <Button variant="text" onClick={handleClearCache}>
