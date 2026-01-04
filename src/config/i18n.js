@@ -1446,6 +1446,13 @@ export const I18N = {
     ja: `このサイトのルールを保存`,
     ko: `이 사이트 규칙 저장`,
   },
+  domain: {
+    zh: `网域`,
+    en: `Domain`,
+    zh_TW: `網域`,
+    ja: `ドメイン`,
+    ko: `도메인`,
+  },
   global_rule: {
     zh: `全局规则`,
     en: `Global Rule`,
