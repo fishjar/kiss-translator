@@ -145,6 +145,15 @@ export const API_SPE_TYPES = {
     OPT_TRANS_OPENROUTER,
     OPT_TRANS_CUSTOMIZE,
   ]),
+  // 支持流式传输
+  stream: new Set([
+    OPT_TRANS_OPENAI,
+    OPT_TRANS_GEMINI,
+    OPT_TRANS_GEMINI_2,
+    OPT_TRANS_CLAUDE,
+    OPT_TRANS_OLLAMA,
+    OPT_TRANS_OPENROUTER,
+  ]),
 };
 
 export const BUILTIN_STONES = [
@@ -521,6 +530,7 @@ const defaultApi = {
   batchSize: DEFAULT_BATCH_SIZE, // 每次最多发送段落数量
   batchLength: DEFAULT_BATCH_LENGTH, // 每次发送最大文字数量
   useBatchFetch: false, // 是否启用聚合发送请求
+  useStream: false, // 是否启用流式传输
   useContext: false, // 是否启用智能上下文
   contextSize: DEFAULT_CONTEXT_SIZE, // 智能上下文保留会话数
   temperature: 0.0,
@@ -589,7 +599,7 @@ const defaultApiOpts = {
   },
   [OPT_TRANS_GEMINI]: {
     ...defaultApi,
-    url: `https://generativelanguage.googleapis.com/v1/models/${INPUT_PLACE_MODEL}:generateContent?key=${INPUT_PLACE_KEY}`,
+    url: `https://generativelanguage.googleapis.com/v1/models/${INPUT_PLACE_MODEL}:generateContent`,
     model: "gemini-2.5-flash",
     useBatchFetch: true,
   },
