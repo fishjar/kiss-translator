@@ -16,6 +16,8 @@ import { isMobile } from "../../libs/mobile";
 import { kissLog } from "../../libs/log";
 import { useLangMap } from "../../hooks/I18n";
 import { debouncePutTranBox, getTranBox } from "../../libs/storage";
+import useAutoHideTranBtn from "../../hooks/useAutoHideTranBtn";
+
 
 export default function Slection({
   contextMenuType,
@@ -53,6 +55,10 @@ export default function Slection({
   const [selectedText, setSelText] = useState("");
   const [text, setText] = useState("");
   const [position, setPosition] = useState({ x: 0, y: 0 });
+
+  // 划词按钮自动隐藏（5 秒 / 移动 100px / 右键）
+  useAutoHideTranBtn(showBtn, setShowBtn, position);
+
   const [boxSize, setBoxSize] = useState({
     w: boxWidth,
     h: boxHeight,
@@ -134,6 +140,8 @@ export default function Slection({
   useEffect(() => {
     async function handleMouseup(e) {
       // e.stopPropagation();
+      if (e.button === 2) return;
+
       await sleep(200);
 
       const selection = window.getSelection();
