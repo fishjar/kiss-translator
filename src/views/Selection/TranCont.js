@@ -16,16 +16,18 @@ export default function TranCont({
   apiSlug,
   transApis,
   simpleStyle = false,
+  toneInstruction = "",
 }) {
   const i18n = useI18n();
   const [trText, setTrText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const apiSetting = useMemo(
-    () => transApis.find((api) => api.apiSlug === apiSlug),
-    [transApis, apiSlug]
-  );
+  const apiSetting = useMemo(() => {
+    const base = transApis.find((api) => api.apiSlug === apiSlug);
+    if (!base) return null;
+    return { ...base, toneInstruction };
+  }, [transApis, apiSlug, toneInstruction]);
 
   useEffect(() => {
     if (!text?.trim() || !apiSetting) {
