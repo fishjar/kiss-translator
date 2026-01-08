@@ -59,6 +59,7 @@ export const DEFAULT_RULE = {
   toLang: GLOBAL_KEY, // 目标语言
   textStyle: GLOBAL_KEY, // 译文样式
   transOpen: GLOBAL_KEY, // 开启翻译
+  activeToneId: GLOBAL_KEY, // AI 翻譯風格
   // bgColor: "", // 译文颜色 (作废)
   // textDiyStyle: "", // 自定义译文样式 (作废)
   textExtStyle: "", // 译文附加样式
@@ -103,6 +104,7 @@ export const GLOBLA_RULE = {
   toLang: "zh-CN", // 目标语言
   textStyle: OPT_STYLE_NONE, // 译文样式
   transOpen: "false", // 开启翻译
+  activeToneId: "builtin-default", // AI 翻译风格
   // bgColor: DEFAULT_COLOR, // 译文颜色 (作废)
   // textDiyStyle: DEFAULT_DIY_STYLE, // 自定义译文样式 (作废)
   textExtStyle: "", // 译文附加样式
