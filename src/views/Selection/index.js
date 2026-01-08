@@ -12,10 +12,12 @@ import {
   OPT_TRANBOX_TRIGGER_SELECT,
   EVENT_KISS_INNER,
 } from "../../config";
+import { APP_CONSTS } from "../../config";
 import { isMobile } from "../../libs/mobile";
 import { kissLog } from "../../libs/log";
 import { useLangMap } from "../../hooks/I18n";
-import { debouncePutTranBox, getTranBox } from "../../libs/storage";
+import { debouncePutTranBox, getTranBox, putSetting } from "../../libs/storage";
+import { debounce } from "../../libs/utils";
 import useAutoHideTranBtn from "../../hooks/useAutoHideTranBtn";
 
 
@@ -80,6 +82,22 @@ export default function Slection({
     [selectedText]
   );
 
+  const isNodeInsideTransbox = (node) => {
+    if (!node) return false;
+    let cur = node.nodeType === 3 ? node.parentNode : node;
+    while (cur) {
+      if (cur.id === APP_CONSTS.boxID) return true;
+      const root = cur.getRootNode && cur.getRootNode();
+      if (root && root.host) {
+        if (root.host.id === APP_CONSTS.boxID) return true;
+        cur = root.host;
+        continue;
+      }
+      cur = cur.parentNode;
+    }
+    return false;
+  };
+
   const handleTranbox = useCallback(() => {
     setShowBtn(false);
 
@@ -91,7 +109,9 @@ export default function Slection({
     }
 
     const rect = selection?.getRangeAt(0)?.getBoundingClientRect();
-    if (rect && followSelection) {
+    
+    const anchorNode = selection?.anchorNode;
+    if (!isNodeInsideTransbox(anchorNode) && rect && followSelection) {
       const x = (rect.left + rect.right) / 2 + boxOffsetX;
       const y = rect.bottom + boxOffsetY;
       setBoxPosition({
@@ -137,6 +157,27 @@ export default function Slection({
     debouncePutTranBox({ ...boxSize, ...boxPosition });
   }, [boxSize, boxPosition]);
 
+  const saveTranboxSetting = useMemo(
+    () =>
+      debounce((obj) => {
+        try {
+          putSetting({ tranboxSetting: obj });
+        } catch (err) {
+          // ignore
+        }
+      }, 300),
+    []
+  );
+
+  useEffect(() => {
+    saveTranboxSetting({
+      ...(tranboxSetting || {}),
+      simpleStyle,
+      hideClickAway,
+      followSelection,
+    });
+  }, [simpleStyle, hideClickAway, followSelection, tranboxSetting, saveTranboxSetting]);
+
   useEffect(() => {
     async function handleMouseup(e) {
       // e.stopPropagation();
@@ -146,6 +187,23 @@ export default function Slection({
 
       const selection = window.getSelection();
       const selectedText = selection?.toString()?.trim() || "";
+      try {
+        const path = e.composedPath ? e.composedPath() : [];
+        for (const el of path) {
+          if (!el) continue;
+          if (el.id === APP_CONSTS.boxID) {
+            setSelText(selectedText);
+            setShowBtn(false);
+            return;
+          }
+          if (el.host && el.host.id === APP_CONSTS.boxID) {
+            setSelText(selectedText);
+            setShowBtn(false);
+            return;
+          }
+        }
+      } catch (err) {
+      }
       setSelText(selectedText);
       if (!selectedText) {
         setShowBtn(false);
@@ -153,7 +211,19 @@ export default function Slection({
       }
 
       const rect = selection?.getRangeAt(0)?.getBoundingClientRect();
-      if (rect && followSelection) {
+      
+      const anchorNode = selection?.anchorNode;
+      if (anchorNode) {
+        const root = anchorNode.getRootNode && anchorNode.getRootNode();
+        if (!(root && root.host && root.host.id === APP_CONSTS.boxID) && rect && followSelection) {
+          const x = (rect.left + rect.right) / 2 + boxOffsetX;
+          const y = rect.bottom + boxOffsetY;
+          setBoxPosition({
+            x: limitNumber(x, 0, window.innerWidth - 300),
+            y: limitNumber(y, 0, window.innerHeight - 200),
+          });
+        }
+      } else if (rect && followSelection) {
         const x = (rect.left + rect.right) / 2 + boxOffsetX;
         const y = rect.bottom + boxOffsetY;
         setBoxPosition({

@@ -2,6 +2,7 @@ import { useState } from "react";
 import Paper from "@mui/material/Paper";
 import Box from "@mui/material/Box";
 import { isMobile } from "../../libs/mobile";
+import { useTheme, alpha } from "@mui/material/styles";
 
 function Pointer({
   direction,
@@ -110,15 +111,15 @@ function Pointer({
 
   const touchProps = isMobile
     ? {
-        onTouchStart: handlePointerDown,
-        onTouchMove: handlePointerMove,
-        onTouchEnd: handlePointerUp,
-      }
+      onTouchStart: handlePointerDown,
+      onTouchMove: handlePointerMove,
+      onTouchEnd: handlePointerUp,
+    }
     : {
-        onPointerDown: handlePointerDown,
-        onPointerMove: handlePointerMove,
-        onPointerUp: handlePointerUp,
-      };
+      onPointerDown: handlePointerDown,
+      onPointerMove: handlePointerMove,
+      onPointerUp: handlePointerUp,
+    };
 
   return (
     <div {...props} {...touchProps}>
@@ -154,6 +155,18 @@ export default function DraggableResizable({
   ...props
 }) {
   const lineWidth = 4;
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
+  //dark模式日食效果,突出显示翻译小窗口
+  const glowShadow = isDark
+    ? `
+        0 0 0 1px rgba(255,255,255,0.18),
+        0 0 10px 2px rgba(255,255,255,0.18),
+        0 8px 32px rgba(0,0,0,0.35)
+      `
+    : ` 
+        0 4px 18px rgba(0, 0, 0, 0.15)
+      `;
   const opts = {
     size,
     setSize,
@@ -175,6 +188,8 @@ export default function DraggableResizable({
         gridTemplateColumns: `${lineWidth * 2}px auto ${lineWidth * 2}px`,
         gridTemplateRows: `${lineWidth * 2}px auto ${lineWidth * 2}px`,
         zIndex: 2147483647,
+        borderRadius: "12px",
+        overflow: "hidden",
       }}
       {...props}
     >
@@ -212,7 +227,16 @@ export default function DraggableResizable({
         }}
         {...opts}
       />
-      <Paper className="KT-draggable-body" elevation={4}>
+      <Paper
+        className="KT-draggable-body"
+        elevation={4}
+        sx={{
+          borderRadius: 4,
+          overflow: "hidden",
+          backgroundColor: "transparent",
+          boxShadow: glowShadow,
+        }}
+      >
         <Pointer
           className="KT-draggable-header"
           direction="Header"
@@ -223,8 +247,8 @@ export default function DraggableResizable({
         </Pointer>
         <Box
           className="KT-draggable-container"
-          style={
-            autoHeight
+          sx={() => {
+            const containerStyle = autoHeight
               ? {
                   width: size.w,
                   maxHeight: size.h,
@@ -234,8 +258,33 @@ export default function DraggableResizable({
                   width: size.w,
                   height: size.h,
                   overflow: "hidden auto",
-                }
-          }
+                };
+
+            const scrollbarTrackColor = theme.palette.mode === "dark" ? "#1f1f23" : theme.palette.background.paper;
+            const scrollbarThumbColor = theme.palette.mode === "dark" ? alpha(theme.palette.text.primary, 0.28) : alpha(theme.palette.text.primary, 0.24);
+
+            return {
+              ...containerStyle,
+              "&::-webkit-scrollbar": {
+                width: 10,
+                height: 10,
+              },
+              "&::-webkit-scrollbar-track": {
+                background: scrollbarTrackColor,
+              },
+              "&::-webkit-scrollbar-thumb": {
+                backgroundColor: scrollbarThumbColor,
+                borderRadius: 8,
+                border: `2px solid ${theme.palette.background.paper}`,
+              },
+              "&::-webkit-scrollbar-thumb:hover": {
+                backgroundColor: alpha(theme.palette.text.primary, 0.36),
+              },
+              // firefox
+              scrollbarWidth: "thin",
+              scrollbarColor: `${scrollbarThumbColor} ${scrollbarTrackColor}`,
+            };
+          }}
         >
           {children}
         </Box>
