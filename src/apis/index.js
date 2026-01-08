@@ -480,7 +480,7 @@ export const apiTranslate = async ({
     throw new Error("The text cannot be empty.");
   }
 
-  const { apiType, apiSlug, useBatchFetch } = apiSetting;
+  const { apiType, apiSlug, useBatchFetch, activeToneId } = apiSetting;
   const langMap = OPT_LANGS_TO_SPEC[apiType] || OPT_LANGS_SPEC_DEFAULT;
   const from = langMap.get(fromLang);
   const to = langMap.get(toLang);
@@ -497,6 +497,10 @@ export const apiTranslate = async ({
     toLang,
     version: [v1, v2].join("."),
   };
+  // AI API 需要將 activeToneId 加入快取 key，確保切換風格時不會命中舊快取
+  if (API_SPE_TYPES.ai.has(apiType) && activeToneId) {
+    cacheOpts.activeToneId = activeToneId;
+  }
   const cacheInput = `${URL_CACHE_TRAN}?${queryString.stringify(cacheOpts)}`;
 
   // 查询缓存数据
