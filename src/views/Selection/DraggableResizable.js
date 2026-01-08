@@ -233,7 +233,7 @@ export default function DraggableResizable({
         sx={{
           borderRadius: 4,
           overflow: "hidden",
-          backgroundColor: "transparent",
+          backgroundColor: theme.palette.background.paper,
           boxShadow: glowShadow,
         }}
       >
@@ -265,6 +265,7 @@ export default function DraggableResizable({
 
             return {
               ...containerStyle,
+              backgroundColor: theme.palette.background.paper,
               "&::-webkit-scrollbar": {
                 width: 10,
                 height: 10,
