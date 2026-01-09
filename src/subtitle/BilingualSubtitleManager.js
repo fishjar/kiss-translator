@@ -126,6 +126,8 @@ export class BilingualSubtitleManager {
   #throttledTriggerTranslations;
   #tooltipEl = null;
   #hoverTimeout = null; // 用于延迟显示/隐藏tooltip
+  #wasPlayingBeforeHover = false; //记录hover单词前视频是否处于播放状态
+  #hoverTarget = null; 
 
   /**
    * @param {object} options
@@ -250,21 +252,29 @@ export class BilingualSubtitleManager {
     this.#enableDragging(this.#paperEl, container, this.#captionWindowEl);
 
     if (!isMobile && this.#setting.isEnhance !== false) {
-      // 添加鼠标悬停事件监听器
-      this.#captionWindowEl.addEventListener(
-        "mouseover",
-        this.#handleWordHover.bind(this),
-        true
-      );
-      this.#captionWindowEl.addEventListener(
-        "mouseout",
-        this.#handleWordHoverOut.bind(this),
-        true
-      );
-      this.#captionWindowEl.addEventListener(
-        "mousemove",
-        this.#handleWordMouseMove.bind(this)
-      );
+      this.#captionWindowEl.addEventListener("pointerenter", (e) => {
+        if (e.target === this.#captionWindowEl) {
+          this.#wasPlayingBeforeHover =
+            this.#videoEl && !this.#videoEl.paused;
+          if (this.#videoEl && !this.#videoEl.paused) {
+            this.#videoEl.pause();
+          }
+        }
+      });
+
+      this.#captionWindowEl.addEventListener("pointerleave", (e) => {
+        if (e.target === this.#captionWindowEl) {
+          if (
+            this.#wasPlayingBeforeHover &&
+            this.#videoEl &&
+            this.#videoEl.paused
+          ) {
+            this.#videoEl.play();
+          }
+          this.#wasPlayingBeforeHover = false;
+          this.#hoverTarget = null;
+        }
+      });
     }
   }
 
@@ -279,11 +289,6 @@ export class BilingualSubtitleManager {
       }
 
       target.classList.add("kiss-word-hover");
-
-      // 停止视频播放
-      if (this.#videoEl && !this.#videoEl.paused) {
-        this.#videoEl.pause();
-      }
 
       // 延迟显示tooltip，避免误触
       this.#hoverTimeout = setTimeout(() => {
@@ -311,23 +316,7 @@ export class BilingualSubtitleManager {
       // 延迟隐藏tooltip
       this.#hoverTimeout = setTimeout(() => {
         this.#hideWordTooltip();
-        // 恢复视频播放
-        if (this.#videoEl && this.#videoEl.paused) {
-          this.#videoEl.play();
-        }
       }, 100);
-    }
-
-    // 如果鼠标移出了整个字幕窗口，也隐藏tooltip
-    if (
-      event.relatedTarget &&
-      !this.#captionWindowEl.contains(event.relatedTarget)
-    ) {
-      this.#hideWordTooltip();
-      // 恢复视频播放
-      if (this.#videoEl && this.#videoEl.paused) {
-        this.#videoEl.play();
-      }
     }
   }
 
@@ -335,6 +324,21 @@ export class BilingualSubtitleManager {
   #handleWordMouseMove(event) {
     // 不再跟随鼠标移动，保持tooltip在固定位置
     // 移除之前的逻辑
+  }
+
+  #attachSpanListeners() {
+    if (!this.#captionWindowEl) return;
+    const spans = this.#captionWindowEl.querySelectorAll(
+      ".kiss-subtitle-word"
+    );
+    spans.forEach((span) => {
+      if (span.dataset.kissListenerAttached) return;
+      const enterHandler = (e) => this.#handleWordHover(e);
+      const leaveHandler = (e) => this.#handleWordHoverOut(e);
+      span.addEventListener("pointerenter", enterHandler);
+      span.addEventListener("pointerleave", leaveHandler);
+      span.dataset.kissListenerAttached = "1";
+    });
   }
 
   // 显示单词提示框
@@ -669,12 +673,22 @@ export class BilingualSubtitleManager {
 
       const p2 = document.createElement("p");
       p2.style.cssText = this.#setting.translationStyle;
-      p2.textContent = truncateWords(subtitle.translation) || "...";
+      if (!isMobile && this.#setting.isEnhance !== false) {
+        p2.innerHTML = trustedTypesHelper.createHTML(
+          this.#wrapWordsWithSpans(subtitle.translation || "...")
+        );
+      } else {
+        p2.textContent = truncateWords(subtitle.translation) || "...";
+      }
 
       if (this.#setting.isBilingual) {
         this.#captionWindowEl.replaceChildren(p1, p2);
       } else {
         this.#captionWindowEl.replaceChildren(p2);
+      }
+
+      if (!isMobile && this.#setting.isEnhance !== false) {
+        this.#attachSpanListeners();
       }
 
       this.#paperEl.style.display = "block";
