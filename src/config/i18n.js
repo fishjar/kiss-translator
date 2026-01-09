@@ -2766,6 +2766,13 @@ export const I18N = {
     ja: `新しいトーン`,
     ko: `새 톤`,
   },
+  retranslate_subtitle: {
+    zh: `重新翻译`,
+    en: `Retranslate`,
+    zh_TW: `重新翻譯`,
+    ja: `再翻訳`,
+    ko: `다시 번역`,
+  },
 };
 
 export const newI18n = (lang) => (key) => I18N[key]?.[lang] || "";

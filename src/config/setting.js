@@ -223,6 +223,7 @@ export const DEFAULT_SUBTITLE_SETTING = {
   originStyle: SUBTITLE_ORIGIN_STYLE, // 原文样式
   translationStyle: SUBTITLE_TRANSLATION_STYLE, // 译文样式
   isEnhance: true, // 启用增强功能
+  activeToneId: "builtin-default", // AI 翻译风格
 };
 
 // 订阅列表
