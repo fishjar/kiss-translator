@@ -25,6 +25,7 @@ export default function Slection({
   contextMenuType,
   tranboxSetting,
   transApis,
+  tones,
   uiLang,
   langDetector,
 }) {
@@ -385,6 +386,7 @@ export default function Slection({
           setBoxPosition={setBoxPosition}
           tranboxSetting={tranboxSetting}
           transApis={transApis}
+          tones={tones}
           setShowBox={setShowBox}
           simpleStyle={simpleStyle}
           setSimpleStyle={setSimpleStyle}

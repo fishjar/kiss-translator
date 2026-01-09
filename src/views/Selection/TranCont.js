@@ -16,6 +16,7 @@ export default function TranCont({
   apiSlug,
   transApis,
   simpleStyle = false,
+  activeToneId = "",
   toneInstruction = "",
 }) {
   const i18n = useI18n();
@@ -26,8 +27,8 @@ export default function TranCont({
   const apiSetting = useMemo(() => {
     const base = transApis.find((api) => api.apiSlug === apiSlug);
     if (!base) return null;
-    return { ...base, toneInstruction };
-  }, [transApis, apiSlug, toneInstruction]);
+    return { ...base, activeToneId, toneInstruction };
+  }, [transApis, apiSlug, activeToneId, toneInstruction]);
 
   useEffect(() => {
     if (!text?.trim() || !apiSetting) {

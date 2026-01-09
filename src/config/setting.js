@@ -194,6 +194,7 @@ export const DEFAULT_TRANBOX_SETTING = {
   // extStyles: "", // 附加样式
   enDict: OPT_DICT_BING, // 英文词典
   enSug: OPT_SUG_YOUDAO, // 英文建议
+  activeToneId: "builtin-default", // AI 翻译风格
 };
 
 const SUBTITLE_WINDOW_STYLE = `padding: 0.5em 1em;

@@ -13,21 +13,34 @@ import {
   OPT_DICT_ALL,
   OPT_SUG_ALL,
   OPT_SUG_YOUDAO,
+  DEFAULT_TONES,
+  API_SPE_TYPES,
 } from "../../config";
 import ShortcutInput from "./ShortcutInput";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { limitNumber } from "../../libs/utils";
 import { useTranbox } from "../../hooks/Tranbox";
 import { isExt } from "../../libs/client";
 import { useApiList } from "../../hooks/Api";
 import ValidationInput from "../../hooks/ValidationInput";
+import { useSetting } from "../../hooks/Setting";
 
 export default function Tranbox() {
   const i18n = useI18n();
   const { tranboxSetting, updateTranbox } = useTranbox();
   const { enabledApis } = useApiList();
+  const { setting } = useSetting();
+  const tones = setting.tones || DEFAULT_TONES;
+
+  const hasAiApi = useMemo(() => {
+    const { apiSlugs = [] } = tranboxSetting;
+    return apiSlugs.some((slug) => {
+      const api = enabledApis.find((a) => a.apiSlug === slug);
+      return api && API_SPE_TYPES.ai.has(api.apiType);
+    });
+  }, [tranboxSetting, enabledApis]);
 
   const handleChange = (e) => {
     e.preventDefault();
@@ -73,6 +86,7 @@ export default function Tranbox() {
     // extStyles = "",
     enDict = OPT_DICT_BING,
     enSug = OPT_SUG_YOUDAO,
+    activeToneId = "builtin-default",
   } = tranboxSetting;
 
   return (
@@ -205,6 +219,25 @@ export default function Tranbox() {
                 ))}
               </TextField>
             </Grid>
+            {hasAiApi && (
+              <Grid item xs={12} sm={12} md={6} lg={3}>
+                <TextField
+                  fullWidth
+                  select
+                  size="small"
+                  name="activeToneId"
+                  value={activeToneId}
+                  label={i18n("tones")}
+                  onChange={handleChange}
+                >
+                  {tones.map((tone) => (
+                    <MenuItem key={tone.id} value={tone.id}>
+                      {tone.name}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+            )}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 fullWidth
