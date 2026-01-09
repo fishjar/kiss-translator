@@ -2045,6 +2045,13 @@ export const I18N = {
     ja: `一括リクエストの最大テキスト長(1000-100000)`,
     ko: `일괄 요청 최대 텍스트 길이(1000-100000)`,
   },
+  use_stream: {
+    zh: `是否启用流式传输`,
+    en: `Whether to enable streaming`,
+    zh_TW: `是否啟用串流傳輸`,
+    ja: `ストリーミングを有効にする`,
+    ko: `스트리밍 활성화 여부`,
+  },
   use_context: {
     zh: `是否启用智能上下文`,
     en: `Whether to enable AI context`,

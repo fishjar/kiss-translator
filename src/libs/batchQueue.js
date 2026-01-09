@@ -6,8 +6,9 @@ import {
 
 /**
  * 批处理队列
- * @param {*} args
- * @param {*} param1
+ * 支持生成器模式：taskFn 可以是异步生成器，yield {id, result} 逐个返回结果
+ * @param {*} taskFn
+ * @param {*} options
  * @returns
  */
 const BatchQueue = (
@@ -21,10 +22,6 @@ const BatchQueue = (
   const queue = [];
   let isProcessing = false;
   let timer = null;
-
-  const sendBatchRequest = async (payloads, batchArgs) => {
-    return taskFn(payloads, batchArgs);
-  };
 
   const processQueue = async () => {
     if (timer) {
@@ -66,21 +63,51 @@ const BatchQueue = (
     try {
       const payloads = tasksToProcess.map((item) => item.payload);
       const batchArgs = tasksToProcess[0].args;
-      const responses = await sendBatchRequest(payloads, batchArgs);
-      if (!Array.isArray(responses)) {
-        throw new Error("responses format error");
-      }
 
-      tasksToProcess.forEach((taskItem, index) => {
-        const response = responses[index];
-        if (response) {
-          taskItem.resolve(response);
-        } else {
-          taskItem.reject(new Error(`No response for item at index ${index}`));
+      const generator = taskFn(payloads, batchArgs);
+
+      // 检查是否是异步生成器
+      if (generator && typeof generator[Symbol.asyncIterator] === "function") {
+        for await (const { id, result } of generator) {
+          const taskItem = tasksToProcess[id];
+          if (taskItem && !taskItem.resolved) {
+            taskItem.resolved = true;
+            taskItem.resolve(result);
+          }
+        }
+
+        // 处理没有收到结果的 task
+        tasksToProcess.forEach((taskItem, index) => {
+          if (!taskItem.resolved) {
+            taskItem.reject(
+              new Error(`No response for item at index ${index}`)
+            );
+          }
+        });
+      } else {
+        // 非生成器模式（兼容旧的 Promise 模式）
+        const responses = await generator;
+        if (!Array.isArray(responses)) {
+          throw new Error("responses format error");
+        }
+
+        tasksToProcess.forEach((taskItem, index) => {
+          const response = responses[index];
+          if (response) {
+            taskItem.resolve(response);
+          } else {
+            taskItem.reject(
+              new Error(`No response for item at index ${index}`)
+            );
+          }
+        });
+      }
+    } catch (error) {
+      tasksToProcess.forEach((taskItem) => {
+        if (!taskItem.resolved) {
+          taskItem.reject(error);
         }
       });
-    } catch (error) {
-      tasksToProcess.forEach((taskItem) => taskItem.reject(error));
     } finally {
       isProcessing = false;
       if (queue.length > 0) {

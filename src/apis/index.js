@@ -508,23 +508,26 @@ export const apiTranslate = async ({
   }
 
   // 请求接口数据
-  let tranlation = [];
+  let translation = [];
   if (apiType === OPT_TRANS_BUILTINAI) {
-    tranlation = await apiBuiltinAITranslate({
+    translation = await apiBuiltinAITranslate({
       text,
       from,
       to,
       apiSetting,
     });
   } else if (useBatchFetch && API_SPE_TYPES.batch.has(apiType)) {
-    const { apiSlug, batchInterval, batchSize, batchLength } = apiSetting;
-    const key = `${apiSlug}_${fromLang}_${toLang}`;
+    const { apiSlug, batchInterval, batchSize, batchLength, useStream } =
+      apiSetting;
+    const enableStream = useStream && API_SPE_TYPES.stream.has(apiType);
+    const key = `${apiSlug}_${fromLang}_${toLang}_${enableStream ? "stream" : "batch"}`;
     const queue = getBatchQueue(key, handleTranslate, {
       batchInterval,
       batchSize,
       batchLength,
     });
-    tranlation = await queue.addTask(text, {
+
+    translation = await queue.addTask(text, {
       from,
       to,
       fromLang,
@@ -536,7 +539,7 @@ export const apiTranslate = async ({
       usePool,
     });
   } else {
-    [tranlation] = await handleTranslate([text], {
+    const { value } = await handleTranslate([text], {
       from,
       to,
       fromLang,
@@ -546,19 +549,20 @@ export const apiTranslate = async ({
       glossary,
       apiSetting,
       usePool,
-    });
+    }).next();
+    translation = value?.result;
   }
 
   let trText = "";
   let srLang = "";
   let srCode = "";
-  if (Array.isArray(tranlation)) {
-    [trText, srLang = ""] = tranlation;
+  if (Array.isArray(translation)) {
+    [trText, srLang = ""] = translation;
     if (srLang) {
       srCode = OPT_LANGS_TO_CODE[apiType].get(srLang) || "";
     }
-  } else if (typeof tranlation === "string") {
-    trText = tranlation;
+  } else if (typeof translation === "string") {
+    trText = translation;
   }
 
   if (!trText) {
