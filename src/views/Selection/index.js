@@ -20,7 +20,6 @@ import { debouncePutTranBox, getTranBox, putSetting } from "../../libs/storage";
 import { debounce } from "../../libs/utils";
 import useAutoHideTranBtn from "../../hooks/useAutoHideTranBtn";
 
-
 export default function Slection({
   contextMenuType,
   tranboxSetting,
@@ -124,8 +123,7 @@ export default function Slection({
           cur = cur.parentNode;
         }
       }
-    } catch (err) {
-    }
+    } catch (err) {}
     return false;
   };
 
@@ -140,7 +138,7 @@ export default function Slection({
     }
 
     const rect = selection?.getRangeAt(0)?.getBoundingClientRect();
-    
+
     const anchorNode = selection?.anchorNode;
     if (!isNodeInsideTransbox(anchorNode) && rect && followSelection) {
       const x = (rect.left + rect.right) / 2 + boxOffsetX;
@@ -207,7 +205,13 @@ export default function Slection({
       hideClickAway,
       followSelection,
     });
-  }, [simpleStyle, hideClickAway, followSelection, tranboxSetting, saveTranboxSetting]);
+  }, [
+    simpleStyle,
+    hideClickAway,
+    followSelection,
+    tranboxSetting,
+    saveTranboxSetting,
+  ]);
 
   useEffect(() => {
     async function handleMouseup(e) {
@@ -239,8 +243,7 @@ export default function Slection({
             return;
           }
         }
-      } catch (err) {
-      }
+      } catch (err) {}
       setSelText(selectedText);
       if (!selectedText) {
         setShowBtn(false);
@@ -248,11 +251,16 @@ export default function Slection({
       }
 
       const rect = selection?.getRangeAt(0)?.getBoundingClientRect();
-      
+
       const anchorNode = selection?.anchorNode;
       if (anchorNode) {
         const root = anchorNode.getRootNode && anchorNode.getRootNode();
-        if (!(root && root.host && root.host.id === APP_CONSTS.boxID) && rect && followSelection && !showBox) {
+        if (
+          !(root && root.host && root.host.id === APP_CONSTS.boxID) &&
+          rect &&
+          followSelection &&
+          !showBox
+        ) {
           const x = (rect.left + rect.right) / 2 + boxOffsetX;
           const y = rect.bottom + boxOffsetY;
           setBoxPosition({
@@ -261,7 +269,6 @@ export default function Slection({
           });
         }
       } else if (rect && followSelection) {
-        
         const x = (rect.left + rect.right) / 2 + boxOffsetX;
         const y = rect.bottom + boxOffsetY;
         if (followSelection && !showBox) {

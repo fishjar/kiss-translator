@@ -1,12 +1,7 @@
-import React from 'react';
-import { FAVICON_BASE64 } from './icon.base64.js';
+import React from "react";
+import { FAVICON_BASE64 } from "./icon.base64.js";
 
-const Logo = ({ 
-  size = 16, 
-  className = '', 
-  style = {},
-  onClick 
-}) => {
+const Logo = ({ size = 16, className = "", style = {}, onClick }) => {
   return (
     <img
       src={FAVICON_BASE64}
@@ -16,9 +11,9 @@ const Logo = ({
       style={{
         width: `${size}px`,
         height: `${size}px`,
-        objectFit: 'contain',
-        display: 'block',
-        ...style
+        objectFit: "contain",
+        display: "block",
+        ...style,
       }}
     />
   );
