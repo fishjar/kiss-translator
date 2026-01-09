@@ -13,6 +13,7 @@ import {
   OPT_SPLIT_PARAGRAPH_DISABLE,
   OPT_SPLIT_PARAGRAPH_TEXTLENGTH,
   MSG_INJECT_CSS,
+  MSG_UPDATE_ICON,
 } from "../config";
 import { interpreter } from "./interpreter";
 import { clearFetchPool } from "./pool";
@@ -1756,6 +1757,8 @@ export class Translator {
     if (this.#rule.transTitle === "true") {
       this.#translateTitle();
     }
+
+    sendBgMsg(MSG_UPDATE_ICON, true);
   }
 
   // 翻译页面标题
@@ -1788,6 +1791,8 @@ export class Translator {
     if (this.#docInfo.title) {
       document.title = this.#docInfo.title;
     }
+
+    sendBgMsg(MSG_UPDATE_ICON, false);
   }
 
   // 重新扫描页面

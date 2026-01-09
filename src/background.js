@@ -26,6 +26,7 @@ import {
   MSG_OPEN_SEPARATE_WINDOW,
   STOKEY_SEPARATE_WINDOW,
   PORT_STREAM_FETCH,
+  MSG_UPDATE_ICON,
 } from "./config";
 import { getSettingWithDefault, tryInitDefaultData } from "./libs/storage";
 import { trySyncSettingAndRules } from "./libs/sync";
@@ -40,6 +41,22 @@ import { kissLog, logger } from "./libs/log";
 import { chromeDetect, chromeTranslate } from "./libs/builtinAI";
 
 globalThis.__KISS_CONTEXT__ = "background";
+
+async function updateIcon(isActive, tabId) {
+  const suffix = isActive ? "_active" : "";
+  const path = {
+    16: `images/logo16${suffix}.png`,
+    32: `images/logo32${suffix}.png`,
+    48: `images/logo48${suffix}.png`,
+    128: `images/logo128${suffix}.png`,
+    192: `images/logo192${suffix}.png`,
+  };
+  try {
+    await browser.action.setIcon({ path, tabId });
+  } catch (err) {
+    kissLog("updateIcon error", err);
+  }
+}
 
 const CSP_RULE_START_ID = 1;
 const ORI_RULE_START_ID = 10000;
@@ -418,19 +435,20 @@ const messageHandlers = {
   [MSG_SET_LOGLEVEL]: (args) => logger.setLevel(args),
   [MSG_CLEAR_CACHES]: () => tryClearCaches(),
   [MSG_OPEN_SEPARATE_WINDOW]: () => openSeparateWindowWithSavedBounds(),
+  [MSG_UPDATE_ICON]: (args, sender) => updateIcon(args, sender?.tab?.id),
 };
 
 /**
  * 监听消息
  * todo: 返回含错误的结构化信息
  */
-browser.runtime.onMessage.addListener(async ({ action, args }) => {
+browser.runtime.onMessage.addListener(async ({ action, args }, sender) => {
   const handler = messageHandlers[action];
   if (!handler) {
     throw new Error(`Message action is unavailable: ${action}`);
   }
 
-  return handler(args);
+  return handler(args, sender);
 });
 
 /**
