@@ -1,6 +1,7 @@
 import { logger } from "../libs/log.js";
 import { downloadBlobFile } from "../libs/utils.js";
 import { buildBilingualVtt } from "./vtt.js";
+import { getSettingWithDefault } from "../libs/storage.js";
 
 /**
  * YouTube 字幕列表管理器
@@ -233,13 +234,13 @@ export class YouTubeSubtitleList {
         height: "calc(100vh - 220px)",
         maxHeight: "none",
         zIndex: "999",
-        background: "rgba(255, 255, 255, 0.9)",
+        background: "var(--kt-bg, rgba(255, 255, 255, 0.9))",
         backdropFilter: "blur(10px)",
         top: "60px",
         right: "0",
         fontSize: "14px",
         padding: "0",
-        border: "1px solid rgba(0, 0, 0, 0.1)",
+        border: "var(--kt-border, 1px solid rgba(0, 0, 0, 0.1))",
         borderRadius: "8px",
         minWidth: "320px",
         maxWidth: "400px",
@@ -252,6 +253,57 @@ export class YouTubeSubtitleList {
       // 将容器插入到 YouTube 页面右侧栏 (secondary) 的顶部
       const secondary = document.getElementById("secondary");
       if (secondary) secondary.prepend(this.container);
+      
+      (async () => {
+        try {
+          const setting = await getSettingWithDefault();
+          const darkMode = setting?.darkMode;
+          const prefersDark =
+            typeof window.matchMedia === "function" &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches;
+          const isDark =
+            darkMode === "dark" || (darkMode === "auto" && prefersDark);
+
+          const lightVars = {
+            "--kt-bg": "rgba(255, 255, 255, 0.9)",
+            "--kt-border": "1px solid rgba(0, 0, 0, 0.1)",
+            "--kt-text": "#333",
+            "--kt-subtext": "#666",
+            "--kt-primary": "#1e88e5",
+            "--kt-time-bg": "rgba(30, 136, 229, 0.1)",
+            "--kt-divider": "rgba(240,240,240,0.6)",
+            "--kt-item-hover-bg": "rgba(30, 136, 229, 0.05)",
+            "--kt-active-bg": "rgba(30, 136, 229, 0.1)",
+            "--kt-btn-bg": "var(--kt-primary)",
+            "--kt-btn-color": "white",
+            "--kt-btn-border": "none",
+            "--kt-btn-hover-bg": "rgba(30,136,229,0.85)",
+          };
+
+          const darkVars = {
+            "--kt-bg": "rgba(18,18,18,0.85)",
+            "--kt-border": "1px solid rgba(255, 255, 255, 0.06)",
+            "--kt-text": "#e6e6e6",
+            "--kt-subtext": "#bdbdbd",
+            "--kt-primary": "#90caf9",
+            "--kt-time-bg": "rgba(144,202,249,0.08)",
+            "--kt-divider": "rgba(255,255,255,0.06)",
+            "--kt-item-hover-bg": "rgba(255,255,255,0.02)",
+            "--kt-active-bg": "rgba(144,202,249,0.12)",
+            "--kt-btn-bg": "linear-gradient(180deg,#0f0f0f,#1b1b1b)",
+            "--kt-btn-color": "#e6e6e6",
+            "--kt-btn-border": "1px solid rgba(255,255,255,0.04)",
+            "--kt-btn-hover-bg": "linear-gradient(180deg,#141414,#262626)",
+          };
+
+          const vars = isDark ? darkVars : lightVars;
+          Object.keys(vars).forEach((k) =>
+            this.container.style.setProperty(k, vars[k])
+          );
+        } catch (err) {
+          logger.info("failed to apply subtitle list theme vars", err);
+        }
+      })();
     }
   }
 
@@ -261,7 +313,7 @@ export class YouTubeSubtitleList {
   _renderTabsAndStructure() {
     // --- Header & Tabs (保持不变) ---
     const tabHeader = document.createElement("div");
-    tabHeader.style.cssText = `display: flex; border-bottom: 1px solid #eee; padding: 0 16px; flex-shrink: 0;`;
+    tabHeader.style.cssText = `display: flex; border-bottom: 1px solid var(--kt-divider); padding: 0 16px; flex-shrink: 0;`;
 
     const subtitleTab = document.createElement("button");
     subtitleTab.textContent = "双语字幕";
@@ -269,7 +321,7 @@ export class YouTubeSubtitleList {
     vocabularyTab.textContent = "生词本";
 
     const styleTab = (tab, isActive) => {
-      tab.style.cssText = `padding: 12px 16px; cursor: pointer; border: none; background: transparent; font-size: 15px; font-weight: ${isActive ? "600" : "500"}; color: ${isActive ? "#1e88e5" : "#555"}; border-bottom: 2px solid ${isActive ? "#1e88e5" : "transparent"}; margin-bottom: -1px; outline: none;`;
+      tab.style.cssText = `padding: 12px 16px; cursor: pointer; border: none; background: transparent; font-size: 15px; font-weight: ${isActive ? "600" : "500"}; color: ${isActive ? "var(--kt-primary)" : "var(--kt-text)"}; border-bottom: 2px solid ${isActive ? "var(--kt-primary)" : "transparent"}; margin-bottom: -1px; outline: none;`;
     };
 
     // --- Content Area ---
@@ -285,11 +337,32 @@ export class YouTubeSubtitleList {
 
     //    1.1 Subtitle Action Bar (固定在顶部)
     const subActionBar = document.createElement("div");
-    subActionBar.style.cssText = `padding: 10px 16px; border-bottom: 1px solid #eee; display: flex; justify-content: center; flex-shrink: 0;`;
+    subActionBar.style.cssText = `padding: 10px 16px; border-bottom: 1px solid var(--kt-divider); display: flex; justify-content: center; flex-shrink: 0;`;
 
     const downloadBtn = document.createElement("button");
     downloadBtn.textContent = "下载字幕 (VTT)";
-    downloadBtn.style.cssText = `padding: 6px 12px; background: #1e88e5; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;`;
+    downloadBtn.style.cssText = `padding: 6px 12px; background: var(--kt-btn-bg); color: var(--kt-btn-color); border: var(--kt-btn-border); border-radius: 4px; cursor: pointer; font-size: 12px; transition: background 220ms ease, color 200ms ease, transform 160ms ease;`;
+    
+    downloadBtn.addEventListener("mouseenter", () => {
+      try {
+        const hover = getComputedStyle(this.container).getPropertyValue(
+          "--kt-btn-hover-bg"
+        );
+        if (hover) downloadBtn.style.background = hover;
+        downloadBtn.style.transform = "translateY(-1px)";
+      } catch (e) {
+      }
+    });
+    downloadBtn.addEventListener("mouseleave", () => {
+      try {
+        const normal = getComputedStyle(this.container).getPropertyValue(
+          "--kt-btn-bg"
+        );
+        if (normal) downloadBtn.style.background = normal;
+        downloadBtn.style.transform = "translateY(0)";
+      } catch (e) {
+      }
+    });
     downloadBtn.addEventListener("click", this.downloadSubtitles.bind(this));
 
     subActionBar.appendChild(downloadBtn);
@@ -346,12 +419,12 @@ export class YouTubeSubtitleList {
     li.id = `kiss-youtube-item-${index}`;
     li.className = "kiss-youtube-item";
     li.dataset.time = sub.start;
-    li.style.cssText = `cursor: pointer; padding: 12px 16px; border-bottom: 1px solid #f0f0f0; transition: all 0.2s ease; border-radius: 6px; margin-bottom: 4px; display: flex; align-items: flex-start;`;
+    li.style.cssText = `cursor: pointer; padding: 12px 16px; border-bottom: 1px solid var(--kt-divider); transition: all 0.2s ease; border-radius: 6px; margin-bottom: 4px; display: flex; align-items: flex-start;`;
 
     // 时间戳
     const timeSpan = document.createElement("span");
     timeSpan.textContent = `${this.millisToMinutesAndSeconds(sub.start)} `;
-    timeSpan.style.cssText = `color: #1e88e5; font-weight: 600; margin-right: 10px; font-size: 12px; background: rgba(30, 136, 229, 0.1); padding: 2px 6px; border-radius: 4px; flex-shrink: 0; line-height: 20px;`;
+    timeSpan.style.cssText = `color: var(--kt-primary); font-weight: 600; margin-right: 10px; font-size: 12px; background: var(--kt-time-bg); padding: 2px 6px; border-radius: 4px; flex-shrink: 0; line-height: 20px;`;
 
     // 文本容器
     const textContainer = document.createElement("div");
@@ -361,20 +434,20 @@ export class YouTubeSubtitleList {
     const textSpan = document.createElement("div");
     textSpan.className = "kiss-youtube-original";
     textSpan.textContent = sub.text || "";
-    textSpan.style.cssText = `color: #333; font-size: 14px; line-height: 1.4; margin-bottom: 4px;`;
+    textSpan.style.cssText = `color: var(--kt-text); font-size: 14px; line-height: 1.4; margin-bottom: 4px;`;
 
     // 译文
     const translationEl = document.createElement("div");
     translationEl.className = "kiss-youtube-translation";
     translationEl.textContent = sub.translation || "";
     translationEl.style.display = sub.translation ? "block" : "none";
-    translationEl.style.cssText = `color: #666; font-size: 13px; line-height: 1.4; font-style: italic; min-height: 18px;`;
+    translationEl.style.cssText = `color: var(--kt-subtext); font-size: 13px; line-height: 1.4; font-style: italic; min-height: 18px;`;
 
     // 事件
     li.addEventListener("click", () => this.jumpToTime(sub.start));
     li.addEventListener("mouseenter", () => {
       if (!li.classList.contains("active-subtitle"))
-        li.style.backgroundColor = "rgba(30, 136, 229, 0.05)";
+        li.style.backgroundColor = "var(--kt-item-hover-bg)";
     });
     li.addEventListener("mouseleave", () => {
       if (!li.classList.contains("active-subtitle"))
@@ -461,13 +534,13 @@ export class YouTubeSubtitleList {
    */
   _createExportContainer() {
     const exportContainer = document.createElement("div");
-    exportContainer.style.cssText = `padding: 10px 16px; border-bottom: 1px solid #eee; display: flex; justify-content: center; flex-shrink: 0; gap: 8px;`;
+    exportContainer.style.cssText = `padding: 10px 16px; border-bottom: 1px solid var(--kt-divider); display: flex; justify-content: center; flex-shrink: 0; gap: 8px;`;
 
     if (this.vocabulary.length > 0) {
       const createBtn = (text, handler) => {
         const btn = document.createElement("button");
         btn.textContent = text;
-        btn.style.cssText = `padding: 6px 12px; background: #1e88e5; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;`;
+        btn.style.cssText = `padding: 6px 12px; background: var(--kt-primary); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;`;
         if (handler) btn.addEventListener("click", handler.bind(this));
         return btn;
       };
@@ -487,7 +560,7 @@ export class YouTubeSubtitleList {
     } else {
       const emptyTip = document.createElement("span");
       emptyTip.textContent = "暂无生词，在字幕中添加";
-      emptyTip.style.color = "#999";
+      emptyTip.style.color = "var(--kt-subtext)";
       emptyTip.style.fontSize = "12px";
       exportContainer.appendChild(emptyTip);
     }
@@ -518,7 +591,7 @@ export class YouTubeSubtitleList {
    */
   _createVocabItemElement(item) {
     const vocabItem = document.createElement("div");
-    vocabItem.style.cssText = `padding: 12px; border-bottom: 1px solid #eee; word-wrap: break-word; word-break: break-word;`;
+    vocabItem.style.cssText = `padding: 12px; border-bottom: 1px solid var(--kt-divider); word-wrap: break-word; word-break: break-word;`;
 
     // 1. 单词行 (单词 + 音标 + 时间跳转)
     const wordLine = document.createElement("div");
@@ -533,14 +606,14 @@ export class YouTubeSubtitleList {
       const phEl = document.createElement("div");
       const cleanPhonetic = item.phonetic;
       phEl.textContent = `[${cleanPhonetic}]`;
-      phEl.style.cssText = `color: #666; font-style: italic; font-size: 14px;`;
+      phEl.style.cssText = `color: var(--kt-subtext); font-style: italic; font-size: 14px;`;
       wordLine.appendChild(phEl);
     }
 
     if (item.timestamp) {
       const tsBtn = document.createElement("button");
       tsBtn.textContent = `${this.millisToMinutesAndSeconds(item.timestamp)}`;
-      tsBtn.style.cssText = `color: #1e88e5; background: none; border: none; padding: 0 4px; font-size: 14px; cursor: pointer;`;
+      tsBtn.style.cssText = `color: var(--kt-primary); background: none; border: none; padding: 0 4px; font-size: 14px; cursor: pointer;`;
       tsBtn.addEventListener("click", () => this.jumpToTime(item.timestamp));
       wordLine.appendChild(tsBtn);
     }
@@ -550,14 +623,14 @@ export class YouTubeSubtitleList {
     if (item.definition) {
       const defEl = document.createElement("div");
       defEl.textContent = item.definition;
-      defEl.style.cssText = `color: #333; margin: 8px 0; font-size: 14px; line-height: 1.4;`;
+      defEl.style.cssText = `color: var(--kt-text); margin: 8px 0; font-size: 14px; line-height: 1.4;`;
       vocabItem.appendChild(defEl);
     }
 
     // 3. 例句
     if (item.examples && item.examples.length > 0) {
       const exContainer = document.createElement("div");
-      exContainer.style.cssText = `color: #666; font-size: 13px; line-height: 1.4;`;
+      exContainer.style.cssText = `color: var(--kt-subtext); font-size: 13px; line-height: 1.4;`;
       item.examples.forEach((ex) => {
         const exItem = document.createElement("div");
         exItem.style.marginBottom = "8px";
@@ -567,7 +640,7 @@ export class YouTubeSubtitleList {
         if (ex.chs) {
           const chs = document.createElement("div");
           chs.textContent = ex.chs;
-          chs.style.cssText = `color: #888; font-style: italic;`;
+          chs.style.cssText = `color: var(--kt-subtext); font-style: italic;`;
           exItem.appendChild(chs);
         }
         exContainer.appendChild(exItem);
@@ -785,7 +858,7 @@ export class YouTubeSubtitleList {
         // 添加新高亮
         const currentEl = this._cachedSubtitleItems[currentIndex];
         currentEl.style.fontWeight = "600";
-        currentEl.style.backgroundColor = "rgba(30, 136, 229, 0.1)";
+        currentEl.style.backgroundColor = "var(--kt-active-bg)";
         currentEl.classList.add("active-subtitle");
         this._lastActiveIndex = currentIndex;
 
