@@ -25,10 +25,11 @@ import {
   MSG_CLEAR_CACHES,
   MSG_OPEN_SEPARATE_WINDOW,
   STOKEY_SEPARATE_WINDOW,
+  PORT_STREAM_FETCH,
 } from "./config";
 import { getSettingWithDefault, tryInitDefaultData } from "./libs/storage";
 import { trySyncSettingAndRules } from "./libs/sync";
-import { fetchHandle } from "./libs/fetch";
+import { fetchHandle, fetchStreamNative } from "./libs/fetch";
 import { tryClearCaches, getHttpCache, putHttpCache } from "./libs/cache";
 import { sendTabMsg } from "./libs/msg";
 import { trySyncAllSubRules } from "./libs/subRules";
@@ -480,5 +481,41 @@ browser?.contextMenus?.onClicked.addListener(({ menuItemId }) => {
       browser.runtime.openOptionsPage();
       break;
     default:
+  }
+});
+
+/**
+ * 处理通用流式请求
+ * 通过端口连接实现流式数据传输
+ */
+async function handleStreamFetch(port, args) {
+  const { input, init, opts } = args;
+
+  try {
+    for await (const chunk of fetchStreamNative(
+      input,
+      init,
+      opts.httpTimeout
+    )) {
+      port.postMessage({ type: "delta", data: chunk });
+    }
+    port.postMessage({ type: "done" });
+  } catch (error) {
+    if (error.name !== "AbortError") {
+      port.postMessage({ type: "error", error: error.message });
+    }
+  }
+}
+
+/**
+ * 监听端口连接（用于流式请求）
+ */
+browser.runtime.onConnect.addListener((port) => {
+  if (port.name === PORT_STREAM_FETCH) {
+    port.onMessage.addListener((message) => {
+      if (message.action === "start") {
+        handleStreamFetch(port, message.args);
+      }
+    });
   }
 });

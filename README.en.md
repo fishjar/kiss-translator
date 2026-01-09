@@ -48,6 +48,7 @@ A simple, open source [bilingual translation extension & Greasemonkey script](ht
 - [x] Advanced translation API features
   - [x] With custom API support, theoretically works with any translation service
   - [x] Batch aggregation of translation requests
+  - [x] Supports streaming for real-time translation results
   - [x] Supports AI conversation context memory to improve translation quality
   - [x] Custom AI terminology dictionary
   - [x] All APIs support hooks and custom parameters for advanced usage
@@ -147,7 +148,7 @@ Settings page address: https://fishjar.github.io/kiss-translator/options.html
 
 - [x] **Batch Text Requests**: Optimize request strategy to reduce translation API calls and improve performance.
 - [x] **Enhanced Rich Text Translation**: Support accurate translation of complex page structures and rich text content.
-- [x] **Advanced Custom/AI Interfaces**: Add support for context memory, multi-turn conversations, and other advanced AI features.
+- [x] **Advanced Custom/AI Interfaces**: Add support for streaming, context memory, multi-turn conversations, and other advanced AI features.
 - [x] **Fallback English Dictionary**: When translation services fail, fall back to a local dictionary lookup.
 - [x] **Improved YouTube Subtitle Support**: Enhance merging and translation experience for streaming subtitles, reducing sentence fragmentation.
 - [ ] **Upgraded Rule Collaboration System**: Introduce more flexible rule sharing, version management, and community review processes.

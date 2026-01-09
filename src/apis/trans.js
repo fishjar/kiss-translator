@@ -42,9 +42,19 @@ import { msAuth } from "../libs/auth";
 import { genDeeplFree } from "./deepl";
 import { genBaidu } from "./baidu";
 import { interpreter } from "../libs/interpreter";
-import { parseJsonObj, extractJson } from "../libs/utils";
+import {
+  parseJsonObj,
+  extractJson,
+  stripMarkdownCodeBlock,
+} from "../libs/utils";
+import {
+  parseStreamingSegments,
+  createStreamingJsonParser,
+  detectStreamFormat,
+  getStreamDelta,
+} from "../libs/stream";
 import { kissLog } from "../libs/log";
-import { fetchData } from "../libs/fetch";
+import { fetchData, fetchStream } from "../libs/fetch";
 import { getMsgHistory } from "./history";
 import { parseBilingualVtt } from "../subtitle/vtt";
 
@@ -154,10 +164,7 @@ const parseAIRes = (raw, useBatchFetch = true) => {
   // }
   // return [];
 
-  let content = raw
-    .replace(/^```[a-z]*\s*\n?/i, "")
-    .replace(/\n?```$/i, "")
-    .trim();
+  let content = stripMarkdownCodeBlock(raw).trim();
 
   // JSON
   try {
@@ -400,6 +407,7 @@ const genOpenAI = ({
   temperature,
   maxTokens,
   hisMsgs = [],
+  useStream = false,
 }) => {
   const userMsg = {
     role: "user",
@@ -417,6 +425,7 @@ const genOpenAI = ({
     ],
     temperature,
     max_completion_tokens: maxTokens,
+    stream: useStream,
   };
 
   const headers = {
@@ -437,10 +446,17 @@ const genGemini = ({
   temperature,
   maxTokens,
   hisMsgs = [],
+  useStream = false,
 }) => {
   url = url
     .replaceAll(INPUT_PLACE_MODEL, model)
     .replaceAll(INPUT_PLACE_KEY, key);
+
+  // 流式传输使用 streamGenerateContent 端点
+  if (useStream) {
+    url = url.replace(":generateContent", ":streamGenerateContent");
+    url += (url.includes("?") ? "&" : "?") + "alt=sse";
+  }
 
   const userMsg = { role: "user", parts: [{ text: userPrompt }] };
   const body = {
@@ -487,6 +503,7 @@ const genGemini = ({
   };
   const headers = {
     "Content-type": "application/json",
+    "x-goog-api-key": key,
   };
 
   return { url, body, headers, userMsg };
@@ -501,6 +518,7 @@ const genGemini2 = ({
   temperature,
   maxTokens,
   hisMsgs = [],
+  useStream = false,
 }) => {
   const userMsg = {
     role: "user",
@@ -518,6 +536,7 @@ const genGemini2 = ({
     ],
     temperature,
     max_tokens: maxTokens,
+    stream: useStream,
   };
 
   const headers = {
@@ -537,6 +556,7 @@ const genClaude = ({
   temperature,
   maxTokens,
   hisMsgs = [],
+  useStream = false,
 }) => {
   const userMsg = {
     role: "user",
@@ -548,6 +568,7 @@ const genClaude = ({
     messages: [...hisMsgs, userMsg],
     temperature,
     max_tokens: maxTokens,
+    stream: useStream,
   };
 
   const headers = {
@@ -569,6 +590,7 @@ const genOpenRouter = ({
   temperature,
   maxTokens,
   hisMsgs = [],
+  useStream = false,
 }) => {
   const userMsg = {
     role: "user",
@@ -586,6 +608,7 @@ const genOpenRouter = ({
     ],
     temperature,
     max_tokens: maxTokens,
+    stream: useStream,
   };
 
   const headers = {
@@ -606,6 +629,7 @@ const genOllama = ({
   temperature,
   maxTokens,
   hisMsgs = [],
+  useStream = false,
 }) => {
   const userMsg = {
     role: "user",
@@ -624,7 +648,7 @@ const genOllama = ({
     temperature,
     max_tokens: maxTokens,
     // think,
-    stream: false,
+    stream: useStream,
   };
 
   const headers = {
@@ -997,10 +1021,13 @@ export const parseTransRes = async (
 
 /**
  * 发送翻译请求并解析
- * @param {*} param0
- * @returns
+ * 支持流式和非流式两种模式
+ * @param {*} texts 待翻译文本数组
+ * @param {*} options 翻译选项
+ * @yields {{id: number, result: [string, string]}} 流式模式下逐个返回结果
+ * @returns {Promise<Array>} 非流式模式下返回完整结果数组
  */
-export const handleTranslate = async (
+export async function* handleTranslate(
   texts = [],
   {
     from,
@@ -1013,7 +1040,7 @@ export const handleTranslate = async (
     apiSetting,
     usePool,
   }
-) => {
+) {
   let history = null;
   let hisMsgs = [];
   const {
@@ -1024,11 +1051,14 @@ export const handleTranslate = async (
     fetchInterval,
     fetchLimit,
     httpTimeout,
+    useStream,
   } = apiSetting;
   if (useContext && API_SPE_TYPES.context.has(apiType)) {
     history = getMsgHistory(apiSlug, contextSize);
     hisMsgs = history.getAll();
   }
+
+  const enableStream = useStream && API_SPE_TYPES.stream.has(apiType);
 
   let token = "";
   if (apiType === OPT_TRANS_MICROSOFT) {
@@ -1049,37 +1079,155 @@ export const handleTranslate = async (
     glossary,
     hisMsgs,
     token,
+    useStream: enableStream,
     ...apiSetting,
   });
 
-  const response = await fetchData(input, init, {
-    useCache: false,
-    usePool,
-    fetchInterval,
-    fetchLimit,
-    httpTimeout,
-  });
-  if (!response) {
-    throw new Error("translate got empty response");
+  if (enableStream) {
+    yield* handleTranslateStreamInternal(texts, input, init, {
+      apiType,
+      history,
+      userMsg,
+      usePool,
+      fetchInterval,
+      fetchLimit,
+      httpTimeout,
+    });
+  } else {
+    const response = await fetchData(input, init, {
+      useCache: false,
+      usePool,
+      fetchInterval,
+      fetchLimit,
+      httpTimeout,
+    });
+    if (!response) {
+      throw new Error("translate got empty response");
+    }
+
+    const result = await parseTransRes(response, {
+      texts,
+      from,
+      to,
+      fromLang,
+      toLang,
+      langMap,
+      history,
+      userMsg,
+      ...apiSetting,
+    });
+    if (!result?.length) {
+      throw new Error("translate got an unexpected result");
+    }
+
+    for (let i = 0; i < result.length; i++) {
+      yield { id: i, result: result[i] };
+    }
+  }
+}
+
+/**
+ * 内部流式翻译处理
+ */
+async function* handleTranslateStreamInternal(
+  texts,
+  input,
+  init,
+  { apiType, history, userMsg, usePool, fetchInterval, fetchLimit, httpTimeout }
+) {
+  const results = new Array(texts.length).fill(null);
+  let fullContent = "";
+  const processedIds = new Set();
+
+  const jsonParser = createStreamingJsonParser();
+  let isJsonFormat = false;
+  let formatDetected = false;
+
+  try {
+    for await (const rawData of fetchStream(input, init, {
+      useCache: false,
+      usePool,
+      fetchInterval,
+      fetchLimit,
+      httpTimeout,
+    })) {
+      try {
+        const json = JSON.parse(rawData);
+        const delta = getStreamDelta(json, apiType);
+
+        if (delta) {
+          fullContent += delta;
+          fullContent = stripMarkdownCodeBlock(fullContent, true);
+
+          if (!formatDetected) {
+            const { isJson, detected } = detectStreamFormat(fullContent);
+            if (detected) {
+              formatDetected = true;
+              isJsonFormat = isJson;
+              // 格式检测成功后，将累积的内容写入解析器
+              if (isJsonFormat) {
+                for (const { id, translation } of jsonParser.write(
+                  fullContent
+                )) {
+                  results[id] = translation;
+                  yield { id, result: translation };
+                }
+              }
+            }
+          } else if (isJsonFormat) {
+            for (const { id, translation } of jsonParser.write(delta)) {
+              results[id] = translation;
+              yield { id, result: translation };
+            }
+          } else {
+            for (const { id, translation } of parseStreamingSegments(
+              fullContent,
+              processedIds
+            )) {
+              results[id] = translation;
+              yield { id, result: translation };
+            }
+          }
+        }
+      } catch (e) {
+        // 忽略解析错误
+      }
+    }
+
+    if (isJsonFormat) {
+      jsonParser.end();
+    }
+  } catch (error) {
+    kissLog("handleTranslateStream error", error);
+    throw error;
   }
 
-  const result = await parseTransRes(response, {
-    texts,
-    from,
-    to,
-    fromLang,
-    toLang,
-    langMap,
-    history,
-    userMsg,
-    ...apiSetting,
-  });
-  if (!result?.length) {
-    throw new Error("translate got an unexpected result");
+  // 最终再解析一次，捕获可能遗漏的段落
+  const hasEmpty = results.some((r) => !r);
+  if (hasEmpty) {
+    const parsed = parseAIRes(fullContent, true);
+    for (let i = 0; i < texts.length && i < parsed.length; i++) {
+      if (!results[i]) {
+        results[i] = parsed[i];
+        yield { id: i, result: results[i] };
+      }
+    }
   }
 
-  return result;
-};
+  if (history && userMsg) {
+    if (apiType === OPT_TRANS_GEMINI) {
+      history.add(userMsg, {
+        role: "model",
+        parts: [{ text: fullContent }],
+      });
+    } else {
+      history.add(userMsg, {
+        role: "assistant",
+        content: fullContent,
+      });
+    }
+  }
+}
 
 /**
  * Microsoft语言识别聚合及解析

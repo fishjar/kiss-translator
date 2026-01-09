@@ -12,6 +12,7 @@
     "@mui/icons-material": "^5.15.15",
     "@mui/lab": "5.0.0-alpha.170",
     "@mui/material": "^5.15.15",
+    "@streamparser/json": "^0.0.22",
     "query-string": "^8.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

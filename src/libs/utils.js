@@ -1,4 +1,19 @@
 /**
+ * 移除 Markdown 代码块标记
+ * @param {string} text 原始文本
+ * @param {boolean} startOnly 是否只处理开头
+ * @returns {string} 移除代码块标记后的文本
+ */
+export function stripMarkdownCodeBlock(text, startOnly = false) {
+  if (!text) return "";
+  let result = text.replace(/^```[a-z]*\s*\n?/i, "");
+  if (!startOnly) {
+    result = result.replace(/\n?```$/i, "");
+  }
+  return result;
+}
+
+/**
  * 限制数字大小
  * @param {*} num
  * @param {*} min
