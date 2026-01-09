@@ -137,10 +137,19 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
       value = checked;
     }
 
-    setFormData((prevData) => ({
-      ...prevData,
-      [name]: value,
-    }));
+    setFormData((prevData) => {
+      const newData = {
+        ...prevData,
+        [name]: value,
+      };
+
+      // 关闭聚合翻译时，自动关闭流式传输
+      if (name === "useBatchFetch" && value === false) {
+        newData.useStream = false;
+      }
+
+      return newData;
+    });
   };
 
   const handleUpdateSystemPrompt = (e) => {
@@ -210,6 +219,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
     apiName = "",
     isDisabled = false,
     useBatchFetch = false,
+    useStream = false,
     batchInterval = DEFAULT_BATCH_INTERVAL,
     batchSize = DEFAULT_BATCH_SIZE,
     batchLength = DEFAULT_BATCH_LENGTH,
@@ -555,6 +565,27 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
                 min={1000}
                 max={100000}
               />
+            </Grid>
+          </Grid>
+        </Box>
+      )}
+
+      {API_SPE_TYPES.stream.has(api.apiType) && useBatchFetch && (
+        <Box>
+          <Grid container spacing={2} columns={12}>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                name="useStream"
+                value={useStream}
+                label={i18n("use_stream")}
+                onChange={handleChange}
+              >
+                <MenuItem value={false}>{i18n("disable")}</MenuItem>
+                <MenuItem value={true}>{i18n("enable")}</MenuItem>
+              </TextField>
             </Grid>
           </Grid>
         </Box>
