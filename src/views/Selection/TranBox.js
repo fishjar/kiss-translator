@@ -48,16 +48,21 @@ function Header({
   const blurOnLeave = (e) => e.currentTarget.blur();
 
   const baseBtnStyle = {
-    borderRadius: "6px",
-    padding: "5px",
-    minWidth: "30px",
-    minHeight: "30px",
+    borderRadius: "6px",   
+    padding: "3px",  
+    minWidth: "24px",  
+    minHeight: "24px", 
     transition: "all 0.2s ease",
     backgroundColor: "transparent",
     "& svg": {
       color: iconColor,
     },
   };
+  const isDark = theme.palette.mode === "dark";
+
+  const headerBg = isDark
+    ? "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(0,0,0,0.10))"
+    : "none";
 
   // 移动端不显示标题栏
   if (isMobile) {
@@ -70,8 +75,19 @@ function Header({
       onTouchEnd={(e) => e.stopPropagation()}
       sx={{
         backgroundColor: theme.palette.background.default,
-        padding: "4px 8px 4px 12px",
-        height: "36px",
+        backgroundImage: headerBg,
+
+        boxShadow: isDark
+          ? `
+        inset 0 1px 0 rgba(255,255,255,0.06),
+        inset 0 -1px 0 rgba(0,0,0,0.25)
+      `
+          : "none",
+
+        backdropFilter: isDark ? "saturate(120%) blur(0.6px)" : "none",
+
+        padding: "2px 6px",
+        height: "30px",
         display: "flex",
         alignItems: "center",
         minHeight: "auto",
@@ -87,7 +103,14 @@ function Header({
           height: "100%",
         }}
       >
-        <Stack direction="row" alignItems="center" spacing={1}>
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={1}
+          sx={{
+            pl: 1,
+          }}
+        >
           <Box
             sx={{
               width: 18,
@@ -96,17 +119,23 @@ function Header({
               alignItems: "center",
               justifyContent: "center",
               borderRadius: "4px",
-              backgroundColor: theme.palette.background.paper,
-              border: `1px solid ${theme.palette.divider}`,
+              backgroundColor: "transparent",
+              border: 0,
+              boxShadow: isDark
+                ? `
+            inset 0 1px 0 rgba(255,255,255,0.08),
+            0 1px 3px rgba(0,0,0,0.35)
+          `
+                : theme.shadows[1],
               transition: "all 0.2s ease",
               "&:hover": {
                 boxShadow: theme.shadows[2],
-                transform: "translateY(-1px)",
-                backgroundColor: theme.palette.action.hover,
+                filter: "brightness(1.08)",
               },
+              flexShrink: 0,
             }}
           >
-            <Logo size={16} />
+            <Logo size={18} />
           </Box>
 
           {!simpleStyle && (
@@ -116,6 +145,10 @@ function Header({
                 fontWeight: 500,
                 fontSize: "12px",
                 color: theme.palette.text.secondary,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                flex: 1, 
               }}
             >
               {`${process.env.REACT_APP_NAME} v${process.env.REACT_APP_VERSION}`}
@@ -245,7 +278,7 @@ function Header({
               },
             }}
           >
-            <CloseIcon sx={{ width: 16, height: 16 }} />
+            <CloseIcon sx={{width: 16, height: 16 }} />
           </IconButton>
         </Stack>
       </Stack>
@@ -266,19 +299,34 @@ function TranBoxContent({
   enDict,
   enSug,
 }) {
-  const theme = useTheme(); 
+  const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const scrollbarTrackColor =
     theme.palette.mode === "dark" ? "#1f1f23" : theme.palette.background.paper;
   const scrollbarThumbColor = theme.palette.mode === "dark"
     ? alpha(theme.palette.text.primary, 0.28)
     : alpha(theme.palette.text.primary, 0.24);
+  const contentBg = isDark
+    ? "linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06))"
+    : "none";
 
   return (
     <Box
       sx={{
         p: simpleStyle ? 1 : 2,
         backgroundColor: theme.palette.background.paper,
+        backgroundImage: contentBg,
+
+        boxShadow: isDark
+          ? "inset 0 1px 0 rgba(255,255,255,0.04)"
+          : "none",
+
+        color: isDark
+          ? "rgba(255,255,255,0.88)"
+          : theme.palette.text.primary,
+
+        lineHeight: 1.55,
+        backdropFilter: isDark ? "saturate(120%) blur(0.5px)" : "none",
 
         "&::-webkit-scrollbar": {
           width: 10,
@@ -325,7 +373,7 @@ function TranBoxContent({
 
 export default function TranBox(props) {
   const [mouseHover, setMouseHover] = useState(false);
-  
+
   const simpleStyle = props.simpleStyle;
   const setSimpleStyle = props.setSimpleStyle;
   const hideClickAway = props.hideClickAway;
@@ -357,7 +405,7 @@ export default function TranBox(props) {
           <DraggableResizable
             position={props.boxPosition}
             size={props.boxSize}
-            
+
             setSize={props.setBoxSize}
             setPosition={props.setBoxPosition}
             autoHeight={props.tranboxSetting.autoHeight}

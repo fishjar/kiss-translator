@@ -13,10 +13,11 @@ const Logo = ({
       alt="Logo"
       className={className}
       onClick={onClick}
+      draggable={false}
       style={{
         width: `${size}px`,
         height: `${size}px`,
-        objectFit: 'contain',
+        objectFit: 'cover',
         display: 'block',
         ...style
       }}
