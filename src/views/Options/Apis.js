@@ -40,7 +40,6 @@ import {
   DEFAULT_CONTEXT_SIZE,
   OPT_ALL_TRANS_TYPES,
   API_SPE_TYPES,
-  BUILTIN_STONES,
   BUILTIN_PLACEHOLDERS,
   BUILTIN_PLACETAGS,
   OPT_TRANS_AZUREAI,
@@ -225,7 +224,6 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
     batchLength = DEFAULT_BATCH_LENGTH,
     useContext = false,
     contextSize = DEFAULT_CONTEXT_SIZE,
-    tone = "neutral",
     placeholder = BUILTIN_PLACEHOLDERS[0],
     placetag = BUILTIN_PLACETAGS[0],
     region = "",
@@ -297,18 +295,6 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
                   label={"Model"}
                   name="model"
                   value={model}
-                  onChange={handleChange}
-                />
-              </Grid>
-              <Grid item xs={12} sm={12} md={6} lg={3}>
-                <ReusableAutocomplete
-                  freeSolo
-                  size="small"
-                  fullWidth
-                  options={BUILTIN_STONES}
-                  name="tone"
-                  label={i18n("translation_style")}
-                  value={tone}
                   onChange={handleChange}
                 />
               </Grid>

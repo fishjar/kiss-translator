@@ -17,6 +17,8 @@ import {
   OPT_LANGS_MAP,
   OPT_DICT_MAP,
   OPT_SUG_MAP,
+  DEFAULT_TONES,
+  API_SPE_TYPES,
 } from "../../config";
 import { useState, useMemo, useEffect, useRef } from "react";
 import TranCont from "./TranCont";
@@ -40,6 +42,8 @@ export default function TranForm({
   enDict: initEnDict = "-",
   enSug: initEnSug = "-",
   isPlaygound = false,
+  tones: initTones = DEFAULT_TONES,
+  activeToneId: initActiveToneId = "builtin-default",
 }) {
   const i18n = useI18n();
 
@@ -52,6 +56,7 @@ export default function TranForm({
   const [langDetector, setLangDetector] = useState(initLangDetector);
   const [enDict, setEnDict] = useState(initEnDict);
   const [enSug, setEnSug] = useState(initEnSug);
+  const [activeToneId, setActiveToneId] = useState(initActiveToneId);
   const [deLang, setDeLang] = useState("");
   const [deLoading, setDeLoading] = useState(false);
   const inputRef = useRef(null);
@@ -136,9 +141,23 @@ export default function TranForm({
     [transApis]
   );
 
+  const hasAiApi = useMemo(() => {
+    return apiSlugs.some((slug) => {
+      const api = transApis.find((a) => a.apiSlug === slug);
+      return api && API_SPE_TYPES.ai.has(api.apiType);
+    });
+  }, [apiSlugs, transApis]);
+
+  const allTones = useMemo(() => initTones, [initTones]);
+
+  const activeToneInstruction = useMemo(() => {
+    const tone = allTones.find((t) => t.id === activeToneId);
+    return tone?.instruction || "";
+  }, [allTones, activeToneId]);
+
   const isWord = useMemo(() => isValidWord(text), [text]);
-  const xs = useMemo(() => (isPlaygound ? 6 : 4), [isPlaygound]);
-  const md = useMemo(() => (isPlaygound ? 3 : 4), [isPlaygound]);
+  const xs = useMemo(() => (isPlaygound ? 6 : 3), [isPlaygound]);
+  const md = useMemo(() => (isPlaygound ? 3 : 3), [isPlaygound]);
 
   return (
     <Stack spacing={simpleStyle ? 1 : 2}>
@@ -209,6 +228,29 @@ export default function TranForm({
                   ))}
                 </TextField>
               </Grid>
+
+              {!isPlaygound && hasAiApi && (
+                <Grid item xs={xs} md={md}>
+                  <TextField
+                    select
+                    SelectProps={{ MenuProps: { disablePortal: true } }}
+                    fullWidth
+                    size="small"
+                    name="tone"
+                    value={activeToneId}
+                    label={i18n("tones")}
+                    onChange={(e) => {
+                      setActiveToneId(e.target.value);
+                    }}
+                  >
+                    {allTones.map((tone) => (
+                      <MenuItem key={tone.id} value={tone.id}>
+                        {tone.name}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
+              )}
 
               {isPlaygound && (
                 <>
@@ -318,6 +360,30 @@ export default function TranForm({
                       }}
                     />
                   </Grid>
+                  {hasAiApi && (
+                    <Grid item xs={xs} md={md}>
+                      <TextField
+                        select
+                        SelectProps={{
+                          MenuProps: { disablePortal: !isPlaygound },
+                        }}
+                        fullWidth
+                        size="small"
+                        name="tone"
+                        value={activeToneId}
+                        label={i18n("tones")}
+                        onChange={(e) => {
+                          setActiveToneId(e.target.value);
+                        }}
+                      >
+                        {allTones.map((tone) => (
+                          <MenuItem key={tone.id} value={tone.id}>
+                            {tone.name}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    </Grid>
+                  )}
                 </>
               )}
             </Grid>
@@ -393,6 +459,8 @@ export default function TranForm({
           simpleStyle={simpleStyle}
           apiSlug={slug}
           transApis={transApis}
+          activeToneId={activeToneId}
+          toneInstruction={activeToneInstruction}
         />
       ))}
 

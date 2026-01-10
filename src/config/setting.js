@@ -8,6 +8,106 @@ import {
 } from "./api";
 import { DEFAULT_CUSTOM_STYLES } from "./styles";
 
+// Tone 預設（翻譯風格/語氣指令）
+// 內建預設的 id 以 builtin- 開頭，使用者自訂的則使用 uuid
+export const DEFAULT_TONES = [
+  {
+    id: "builtin-default",
+    name: "預設",
+    description: "通用翻譯，不附加額外指示",
+    instruction: "",
+    isBuiltin: true,
+  },
+  {
+    id: "builtin-source-close",
+    name: "貼近原文",
+    description: "偏形式對等；保留原文語序、修辭與限定詞，較少意譯",
+    instruction: `Translate with formal equivalence: stay close to the source wording and structure when it remains grammatical.
+Rules:
+- Keep hedging, modality, qualifiers, and scope exactly accurate (may/might/likely, some/most, unless/only if).
+- Preserve emphasis, contrast, and rhetorical devices where possible.
+- Do not paraphrase, simplify, or reinterpret.
+- Keep terminology consistent; do not substitute with broader or vaguer words.
+Do not:
+- Add explanations or clarifications not present in the source.
+- Summarize or omit any information.`,
+    isBuiltin: true,
+  },
+  {
+    id: "builtin-foreignizing",
+    name: "保留原味",
+    description: "偏異化；保留原文文化詞彙與作者語感，不強行本地化",
+    instruction: `Use a foreignizing translation strategy: preserve the source culture and authorial voice.
+Rules:
+- Keep culture-specific terms, institutions, and proper nouns close to the source; transliterate if needed.
+- Avoid replacing culture-specific references with local equivalents unless the source already explains them.
+- Keep metaphors and idioms close to the original image when understandable.
+- Maintain the author's voice, including formality, humor, or sharpness.
+Do not:
+- Over-domesticate (do not rewrite into local sayings that change cultural flavor).
+- Add explanatory notes or parenthetical explanations (unless the source includes them).`,
+    isBuiltin: true,
+  },
+  {
+    id: "builtin-formal",
+    name: "正式",
+    description: "正式、專業的語氣，適合商業或學術場合",
+    instruction: `Use formal, professional tone appropriate for business, academic, or official contexts.
+Rules:
+- Employ sophisticated vocabulary and structured sentences.
+- Maintain respectful, objective language.
+- Keep technical terms and proper nouns accurate.
+Do not:
+- Use colloquialisms, slang, or casual expressions.
+- Add informal filler words or conversational phrases.`,
+    isBuiltin: true,
+  },
+  {
+    id: "builtin-casual",
+    name: "口語化",
+    description: "輕鬆日常的對話風格，像朋友聊天",
+    instruction: `Use casual, conversational tone as if speaking to a friend.
+Rules:
+- Use everyday vocabulary and natural speech patterns.
+- Keep the friendly, relaxed manner of the original if present.
+- Preserve meaning while making it sound approachable.
+Do not:
+- Use overly formal or stiff expressions.
+- Add slang or idioms that significantly change the original meaning.`,
+    isBuiltin: true,
+  },
+  {
+    id: "builtin-technical",
+    name: "技術文檔",
+    description: "保留程式碼、技術術語、API 名稱不翻譯",
+    instruction: `Translate technical documentation while preserving all technical elements.
+Rules:
+- Keep all code blocks, inline code, and code syntax exactly as they appear.
+- Preserve API names, function names, variable names, and programming keywords unchanged.
+- Keep technical terms, acronyms, and product names in their original form.
+- Maintain formatting, indentation, and structure of technical content.
+Do not:
+- Translate identifiers, function names, or technical jargon.
+- Alter code examples or command-line instructions.`,
+    isBuiltin: true,
+  },
+  {
+    id: "builtin-literary",
+    name: "文學翻譯",
+    description: "優美流暢的文學風格，重視意境與美感",
+    instruction: `Use elegant, flowing literary style that prioritizes aesthetic quality.
+Rules:
+- Prioritize natural expression and readability over literal translation.
+- Preserve the emotional tone, rhythm, and aesthetic quality of the original.
+- Adapt imagery and metaphors to resonate in the target language while keeping their essence.
+- Maintain the author's distinctive voice and style.
+Do not:
+- Produce flat, mechanical translations that lose the literary quality.
+- Over-explain or flatten poetic ambiguity.`,
+    isBuiltin: true,
+  },
+];
+
 // 默认快捷键
 export const OPT_SHORTCUT_TRANSLATE = "toggleTranslate";
 export const OPT_SHORTCUT_STYLE = "toggleStyle";
@@ -94,6 +194,7 @@ export const DEFAULT_TRANBOX_SETTING = {
   // extStyles: "", // 附加样式
   enDict: OPT_DICT_BING, // 英文词典
   enSug: OPT_SUG_YOUDAO, // 英文建议
+  activeToneId: "builtin-default", // AI 翻译风格
 };
 
 const SUBTITLE_WINDOW_STYLE = `padding: 0.5em 1em;
@@ -122,6 +223,7 @@ export const DEFAULT_SUBTITLE_SETTING = {
   originStyle: SUBTITLE_ORIGIN_STYLE, // 原文样式
   translationStyle: SUBTITLE_TRANSLATION_STYLE, // 译文样式
   isEnhance: true, // 启用增强功能
+  activeToneId: "builtin-default", // AI 翻译风格
 };
 
 // 订阅列表
@@ -158,6 +260,8 @@ export const DEFAULT_SETTING = {
   clearCache: false, // 是否在浏览器下次启动时清除缓存
   injectRules: true, // 是否注入订阅规则
   fabClickAction: 0, // 悬浮按钮点击行为
+  tones: DEFAULT_TONES,
+  // activeToneId: "builtin-default", // 移至rule
   // injectWebfix: true, // 是否注入修复补丁(作废)
   // detectRemote: false, // 是否使用远程语言检测 （从rule移回）
   // contextMenus: true, // 是否添加右键菜单(作废)

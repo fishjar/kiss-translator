@@ -19,8 +19,12 @@ import {
   MSG_TRANSBOX_TOGGLE,
   MSG_MOUSEHOVER_TOGGLE,
   MSG_TRANSINPUT_TOGGLE,
+  MSG_UPDATE_ACTIVE_TONE,
   OPT_LANGS_FROM,
   OPT_LANGS_TO,
+  DEFAULT_TONES,
+  API_SPE_TYPES,
+  GLOBAL_KEY,
 } from "../../config";
 import { saveRule } from "../../libs/rules";
 import { tryClearCaches } from "../../libs/cache";
@@ -137,6 +141,21 @@ export default function PopupCont({
     tryClearCaches();
   };
 
+  const handleToneChange = async (e) => {
+    try {
+      const toneId = e.target.value;
+      setRule((pre) => ({ ...pre, activeToneId: toneId }));
+
+      if (!processActions) {
+        await sendTabMsg(MSG_UPDATE_ACTIVE_TONE, toneId);
+      } else {
+        processActions({ action: MSG_UPDATE_ACTIVE_TONE, args: toneId });
+      }
+    } catch (err) {
+      kissLog("update tone", err);
+    }
+  };
+
   const handleSaveRule = async () => {
     try {
       if (!selectedDomain) {
@@ -220,6 +239,7 @@ export default function PopupCont({
   const tranboxEnabled = setting.tranboxSetting.transOpen;
   const mouseHoverEnabled = setting.mouseHoverSetting.useMouseHover;
   const inputTransEnabled = setting.inputRule.transOpen;
+  const tones = setting.tones || DEFAULT_TONES;
 
   const {
     transOpen,
@@ -232,7 +252,16 @@ export default function PopupCont({
     hasRichText,
     hasShadowroot,
     isPlainText = false,
+    activeToneId: ruleActiveToneId,
   } = rule;
+
+  const activeToneId =
+    ruleActiveToneId && ruleActiveToneId !== GLOBAL_KEY
+      ? ruleActiveToneId
+      : "builtin-default";
+
+  const currentApi = setting.transApis.find((api) => api.apiSlug === apiSlug);
+  const isAiApi = currentApi && API_SPE_TYPES.ai.has(currentApi.apiType);
 
   return (
     <Stack sx={{ p: 2 }} spacing={2}>
@@ -441,6 +470,26 @@ export default function PopupCont({
           ))}
         </TextField>
       </Stack>
+
+      {isAiApi && (
+        <Stack direction="row" spacing={2}>
+          <TextField
+            select
+            SelectProps={{ MenuProps: { disablePortal: true } }}
+            size="small"
+            value={activeToneId}
+            label={i18n("tones")}
+            onChange={handleToneChange}
+            fullWidth
+          >
+            {tones.map((tone) => (
+              <MenuItem key={tone.id} value={tone.id}>
+                {tone.name}
+              </MenuItem>
+            ))}
+          </TextField>
+        </Stack>
+      )}
 
       <Stack>
         <TextField

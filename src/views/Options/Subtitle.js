@@ -4,18 +4,22 @@ import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import Grid from "@mui/material/Grid";
 import { useI18n } from "../../hooks/I18n";
-import { OPT_LANGS_TO } from "../../config";
+import { OPT_LANGS_TO, DEFAULT_TONES, API_SPE_TYPES } from "../../config";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Alert from "@mui/material/Alert";
 import Switch from "@mui/material/Switch";
 import { useSubtitle } from "../../hooks/Subtitle";
 import { useApiList } from "../../hooks/Api";
 import ValidationInput from "../../hooks/ValidationInput";
+import { useSetting } from "../../hooks/Setting";
+import { useMemo } from "react";
 
 export default function SubtitleSetting() {
   const i18n = useI18n();
   const { subtitleSetting, updateSubtitle } = useSubtitle();
   const { enabledApis, aiEnabledApis } = useApiList();
+  const { setting } = useSetting();
+  const tones = setting.tones || DEFAULT_TONES;
 
   const handleChange = (e) => {
     e.preventDefault();
@@ -39,7 +43,13 @@ export default function SubtitleSetting() {
     windowStyle,
     originStyle,
     translationStyle,
+    activeToneId = "builtin-default",
   } = subtitleSetting;
+
+  const hasAiApi = useMemo(() => {
+    const api = enabledApis.find((a) => a.apiSlug === apiSlug);
+    return api && API_SPE_TYPES.ai.has(api.apiType);
+  }, [apiSlug, enabledApis]);
 
   return (
     <Box>
@@ -160,6 +170,26 @@ export default function SubtitleSetting() {
                 ))}
               </TextField>
             </Grid>
+
+            {hasAiApi && (
+              <Grid item xs={12} sm={12} md={6} lg={3}>
+                <TextField
+                  fullWidth
+                  select
+                  size="small"
+                  name="activeToneId"
+                  value={activeToneId}
+                  label={i18n("tones")}
+                  onChange={handleChange}
+                >
+                  {tones.map((tone) => (
+                    <MenuItem key={tone.id} value={tone.id}>
+                      {tone.name}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+            )}
 
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField

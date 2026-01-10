@@ -3,6 +3,7 @@ import {
   DEFAULT_INPUT_SHORTCUT,
   OPT_LANGS_LIST,
   DEFAULT_API_SETTING,
+  DEFAULT_TONES,
 } from "../config";
 import { genEventName, removeEndchar, matchInputStr, sleep } from "./utils";
 import { stepShortcutRegister } from "./shortcut";
@@ -245,8 +246,13 @@ export class InputTranslator {
   #isEnabled = false;
   #triggerShortcut;
 
-  constructor({ inputRule = DEFAULT_INPUT_RULE, transApis = [] } = {}) {
-    this.#config = { inputRule, transApis };
+  constructor({
+    inputRule = DEFAULT_INPUT_RULE,
+    transApis = [],
+    tones = DEFAULT_TONES,
+    activeToneId = "builtin-default",
+  } = {}) {
+    this.#config = { inputRule, transApis, tones, activeToneId };
 
     // 初始化快捷键配置
     const { triggerShortcut: initialTriggerShortcut } = this.#config.inputRule;
@@ -342,6 +348,11 @@ export class InputTranslator {
       this.#config.transApis.find((api) => api.apiSlug === apiSlug) ||
       DEFAULT_API_SETTING;
 
+    const { tones, activeToneId } = this.#config;
+    const activeTone = tones.find((t) => t.id === activeToneId);
+    apiSetting.activeToneId = activeToneId;
+    apiSetting.toneInstruction = activeTone?.instruction || "";
+
     const loadingId = "kiss-loading-" + genEventName();
 
     try {
@@ -371,12 +382,14 @@ export class InputTranslator {
     }
   }
 
-  updateConfig({ inputRule, transApis }) {
+  updateConfig({ inputRule, transApis, tones, activeToneId }) {
     const wasEnabled = this.#isEnabled;
     if (wasEnabled) this.disable();
 
     if (inputRule) this.#config.inputRule = inputRule;
     if (transApis) this.#config.transApis = transApis;
+    if (tones) this.#config.tones = tones;
+    if (activeToneId !== undefined) this.#config.activeToneId = activeToneId;
 
     const { triggerShortcut } = this.#config.inputRule;
     this.#triggerShortcut =

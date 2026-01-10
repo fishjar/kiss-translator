@@ -23,7 +23,7 @@ import { MSG_OPEN_SEPARATE_WINDOW } from "../../config/msg.js";
 import { sendBgMsg } from "../../libs/msg.js";
 import { isExt } from "../../libs/client.js";
 import { useTheme, alpha } from "@mui/material/styles";
-import Logo from '../../components/Logo';
+import Logo from "../../components/Logo";
 
 function Header({
   setShowBox,
@@ -168,7 +168,13 @@ function Header({
             }}
           >
             {hideClickAway ? (
-              <LockOpenIcon sx={{ width: 16, height: 16, color: theme.palette.success.main }} />
+              <LockOpenIcon
+                sx={{
+                  width: 16,
+                  height: 16,
+                  color: theme.palette.success.main,
+                }}
+              />
             ) : (
               <LockIcon sx={{ width: 16, height: 16 }} />
             )}
@@ -194,7 +200,13 @@ function Header({
             }}
           >
             {followSelection ? (
-              <PushPinOutlinedIcon sx={{ width: 16, height: 16, color: theme.palette.warning.main }} />
+              <PushPinOutlinedIcon
+                sx={{
+                  width: 16,
+                  height: 16,
+                  color: theme.palette.warning.main,
+                }}
+              />
             ) : (
               <PushPinIcon sx={{ width: 16, height: 16 }} />
             )}
@@ -220,7 +232,9 @@ function Header({
             }}
           >
             {simpleStyle ? (
-              <UnfoldMoreIcon sx={{ width: 16, height: 16, color: theme.palette.info.main }} />
+              <UnfoldMoreIcon
+                sx={{ width: 16, height: 16, color: theme.palette.info.main }}
+              />
             ) : (
               <UnfoldLessIcon sx={{ width: 16, height: 16 }} />
             )}
@@ -262,17 +276,20 @@ function TranBoxContent({
   toLang,
   toLang2,
   transApis,
+  tones,
+  activeToneId,
   langDetector,
   enDict,
   enSug,
 }) {
-  const theme = useTheme(); 
+  const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const scrollbarTrackColor =
     theme.palette.mode === "dark" ? "#1f1f23" : theme.palette.background.paper;
-  const scrollbarThumbColor = theme.palette.mode === "dark"
-    ? alpha(theme.palette.text.primary, 0.28)
-    : alpha(theme.palette.text.primary, 0.24);
+  const scrollbarThumbColor =
+    theme.palette.mode === "dark"
+      ? alpha(theme.palette.text.primary, 0.28)
+      : alpha(theme.palette.text.primary, 0.24);
 
   return (
     <Box
@@ -300,7 +317,7 @@ function TranBoxContent({
         scrollbarColor: `${scrollbarThumbColor} ${scrollbarTrackColor}`,
 
         color: isDark
-          ? "rgba(255,255,255,0.82)"   // 柔白, 避免刺眼
+          ? "rgba(255,255,255,0.82)" // 柔白, 避免刺眼
           : theme.palette.text.primary,
 
         lineHeight: 1.55,
@@ -318,6 +335,8 @@ function TranBoxContent({
         langDetector={langDetector}
         enDict={enDict}
         enSug={enSug}
+        tones={tones}
+        activeToneId={activeToneId}
       />
     </Box>
   );
@@ -325,7 +344,7 @@ function TranBoxContent({
 
 export default function TranBox(props) {
   const [mouseHover, setMouseHover] = useState(false);
-  
+
   const simpleStyle = props.simpleStyle;
   const setSimpleStyle = props.setSimpleStyle;
   const hideClickAway = props.hideClickAway;
@@ -339,7 +358,6 @@ export default function TranBox(props) {
           <DraggableResizable
             position={props.boxPosition}
             size={props.boxSize}
-            
             setSize={props.setBoxSize}
             setPosition={props.setBoxPosition}
             autoHeight={props.tranboxSetting.autoHeight}
@@ -368,6 +386,8 @@ export default function TranBox(props) {
               toLang={props.tranboxSetting.toLang}
               toLang2={props.tranboxSetting.toLang2}
               transApis={props.transApis}
+              tones={props.tones}
+              activeToneId={props.tranboxSetting.activeToneId}
               langDetector={props.langDetector}
               enDict={props.tranboxSetting.enDict}
               enSug={props.tranboxSetting.enSug}

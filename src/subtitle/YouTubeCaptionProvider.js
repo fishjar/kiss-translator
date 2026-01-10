@@ -10,6 +10,7 @@ import {
   MSG_MENUS_PROGRESSED,
   MSG_MENUS_UPDATEFORM,
   OPT_LANGS_SPEC_DEFAULT,
+  API_SPE_TYPES,
 } from "../config";
 import { sleep, genEventName, downloadBlobFile } from "../libs/utils.js";
 import { createLogoSVG } from "../libs/svg.js";
@@ -214,6 +215,9 @@ class YouTubeCaptionProvider {
       this.#reProcessEvents();
     } else if (name === "showOrigin") {
       this.#toggleShowOrigin();
+    } else if (name === "activeToneId") {
+      this.#managerInstance?.updateSetting({ [name]: value });
+      this.#managerInstance?.clearAndRetranslate();
     }
   }
 
@@ -242,6 +246,10 @@ class YouTubeCaptionProvider {
     }
   }
 
+  retranslate() {
+    this.#managerInstance?.clearAndRetranslate();
+  }
+
   #sendMenusMsg({ action, data }) {
     window.dispatchEvent(
       new CustomEvent(this.#menuEventName, { detail: { action, data } })
@@ -263,8 +271,17 @@ class YouTubeCaptionProvider {
     toggleButton.appendChild(createLogoSVG());
     kissControls.appendChild(toggleButton);
 
-    const { segApiSetting, isAISegment, skipAd, isBilingual, showOrigin } =
-      this.#setting;
+    const {
+      segApiSetting,
+      apiSetting,
+      tones = [],
+      activeToneId,
+      isAISegment,
+      skipAd,
+      isBilingual,
+      showOrigin,
+    } = this.#setting;
+    const hasAiApi = apiSetting && API_SPE_TYPES.ai.has(apiSetting.apiType);
     const menu = new ShadowDomManager({
       id: "kiss-subtitle-menus",
       className: "notranslate",
@@ -274,13 +291,17 @@ class YouTubeCaptionProvider {
         i18n: this.#i18n,
         updateSetting: this.updateSetting.bind(this),
         downloadSubtitle: this.downloadSubtitle.bind(this),
+        retranslate: this.retranslate.bind(this),
         hasSegApi: !!segApiSetting,
+        hasAiApi,
+        tones,
         eventName: this.#menuEventName,
         initData: {
           isAISegment, // AI智能断句
           skipAd, // 快进广告
           isBilingual, // 双语显示
           showOrigin, // 显示原字幕
+          activeToneId, // 选中的语气ID
         },
       },
     });

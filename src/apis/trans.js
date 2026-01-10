@@ -81,23 +81,41 @@ const keyPick = (apiSlug, key = "", cacheMap) => {
 
 const genSystemPrompt = ({
   systemPrompt,
-  tone,
   from,
   to,
   fromLang,
   toLang,
   texts,
   docInfo: { title = "", description = "" } = {},
-}) =>
-  systemPrompt
+  toneInstruction = "",
+}) => {
+  let result = systemPrompt
     .replaceAll(INPUT_PLACE_TITLE, title)
     .replaceAll(INPUT_PLACE_DESCRIPTION, description)
-    .replaceAll(INPUT_PLACE_TONE, tone)
     .replaceAll(INPUT_PLACE_FROM, from)
     .replaceAll(INPUT_PLACE_TO, to)
     .replaceAll(INPUT_PLACE_FROM_LANG, fromLang)
     .replaceAll(INPUT_PLACE_TO_LANG, toLang)
     .replaceAll(INPUT_PLACE_TEXT, texts[0]);
+
+  // 處理翻譯風格指令
+  // 使用 XML 標籤包裹，讓 AI 更容易識別這是風格指示
+  if (toneInstruction) {
+    const wrappedInstruction = `<translation_tone>\n${toneInstruction}\n</translation_tone>`;
+    if (result.includes(INPUT_PLACE_TONE)) {
+      // 如果 prompt 中有 {{tone}} 佔位符，替換它
+      result = result.replaceAll(INPUT_PLACE_TONE, wrappedInstruction);
+    } else {
+      // 否則附加到 prompt 末尾
+      result = result.trim() + "\n\n" + wrappedInstruction;
+    }
+  } else {
+    // 沒有指令時清除佔位符
+    result = result.replaceAll(INPUT_PLACE_TONE, "");
+  }
+
+  return result;
+};
 
 const genUserPrompt = ({
   nobatchUserPrompt,
@@ -768,6 +786,7 @@ export const genTransReq = async ({ reqHook, ...args }) => {
     customBody,
     events,
     tone,
+    toneInstruction,
   } = args;
 
   if (API_SPE_TYPES.mulkeys.has(apiType)) {
@@ -789,7 +808,7 @@ export const genTransReq = async ({ reqHook, ...args }) => {
           toLang,
           texts,
           docInfo,
-          tone,
+          toneInstruction,
         });
     args.userPrompt = events
       ? JSON.stringify(events)

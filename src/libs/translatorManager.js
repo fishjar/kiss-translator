@@ -28,6 +28,7 @@ import {
   MSG_POPUP_TOGGLE,
   MSG_MOUSEHOVER_TOGGLE,
   MSG_TRANSINPUT_TOGGLE,
+  MSG_UPDATE_ACTIVE_TONE,
 } from "../config";
 import { logger } from "./log";
 
@@ -312,6 +313,10 @@ export default class TranslatorManager {
         break;
       case MSG_INPUT_TRANSLATE:
         this._inputTranslator.handleTranslate();
+        break;
+      case MSG_UPDATE_ACTIVE_TONE:
+        this._translator.updateActiveToneId(args);
+        this._inputTranslator?.updateConfig({ activeToneId: args });
         break;
       default:
         logger.info(`Message action is unavailable: ${action}`);
