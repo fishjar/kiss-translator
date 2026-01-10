@@ -1,7 +1,7 @@
 import { YouTubeInitializer } from "./YouTubeCaptionProvider.js";
 import { isMatch } from "../libs/utils.js";
 import { DEFAULT_API_SETTING } from "../config/api.js";
-import { DEFAULT_SUBTITLE_SETTING, DEFAULT_TONES } from "../config/setting.js";
+import { DEFAULT_SUBTITLE_SETTING } from "../config/setting.js";
 import { logger } from "../libs/log.js";
 import { injectJs, INJECTOR } from "../injectors/index.js";
 
@@ -28,12 +28,10 @@ export function runSubtitle({ href, setting }) {
       const segApiSetting = setting.transApis.find(
         (api) => api.apiSlug === subtitleSetting.segSlug
       );
-      const tones = setting.tones || DEFAULT_TONES;
       provider.start({
         ...subtitleSetting,
         apiSetting,
         segApiSetting,
-        tones,
         uiLang: setting.uiLang,
       });
     }

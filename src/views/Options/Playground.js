@@ -1,22 +1,13 @@
 import { useState } from "react";
 import TranForm from "../Selection/TranForm";
-import {
-  DEFAULT_SETTING,
-  DEFAULT_TRANBOX_SETTING,
-  DEFAULT_TONES,
-} from "../../config";
+import { DEFAULT_SETTING, DEFAULT_TRANBOX_SETTING } from "../../config";
 import { useSetting } from "../../hooks/Setting";
 
 export default function Playgound() {
   const [text, setText] = useState("");
   const { setting } = useSetting();
-  const {
-    transApis,
-    langDetector,
-    tranboxSetting,
-    tones = DEFAULT_TONES,
-    activeToneId = "builtin-default",
-  } = setting || DEFAULT_SETTING;
+  const { transApis, langDetector, tranboxSetting } =
+    setting || DEFAULT_SETTING;
   const { apiSlugs, fromLang, toLang, toLang2, enDict, enSug } =
     tranboxSetting || DEFAULT_TRANBOX_SETTING;
   return (
@@ -33,8 +24,6 @@ export default function Playgound() {
       enDict={enDict}
       enSug={enSug}
       isPlaygound={true}
-      tones={tones}
-      activeToneId={activeToneId}
     />
   );
 }

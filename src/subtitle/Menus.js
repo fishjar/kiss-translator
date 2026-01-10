@@ -15,7 +15,7 @@ function Label({ children }) {
   );
 }
 
-function MenuItem({ children, onClick, disabled = false, title }) {
+function MenuItem({ children, onClick, disabled = false }) {
   const [hover, setHover] = useState(false);
 
   return (
@@ -34,7 +34,6 @@ function MenuItem({ children, onClick, disabled = false, title }) {
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       onClick={onClick}
-      title={title}
     >
       {children}
     </div>
@@ -77,7 +76,7 @@ function Switch({ label, name, value, onChange, disabled }) {
   );
 }
 
-function Button({ label, onClick, disabled, title }) {
+function Button({ label, onClick, disabled }) {
   const handleClick = useCallback(() => {
     if (disabled) return;
 
@@ -85,123 +84,9 @@ function Button({ label, onClick, disabled, title }) {
   }, [disabled, onClick]);
 
   return (
-    <MenuItem onClick={handleClick} disabled={disabled} title={title}>
+    <MenuItem onClick={handleClick} disabled={disabled}>
       <Label>{label}</Label>
     </MenuItem>
-  );
-}
-
-function RetranslateButton({ label, onClick, title }) {
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleClick = useCallback(() => {
-    if (isLoading) return;
-
-    setIsLoading(true);
-    onClick();
-    setTimeout(() => setIsLoading(false), 1500);
-  }, [isLoading, onClick]);
-
-  return (
-    <MenuItem onClick={handleClick} disabled={isLoading} title={title}>
-      <Label>{label}</Label>
-      {isLoading && (
-        <span
-          style={{
-            display: "inline-block",
-            animation: "kiss-spin 1s linear infinite",
-          }}
-        >
-          ↻
-        </span>
-      )}
-      <style>{`
-        @keyframes kiss-spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
-    </MenuItem>
-  );
-}
-
-function DropdownSelect({ label, name, value, options, onChange }) {
-  const [isOpen, setIsOpen] = useState(false);
-
-  const selectedOption = options.find((opt) => opt.value === value);
-
-  const handleSelect = useCallback(
-    (optValue) => {
-      onChange({ name, value: optValue });
-      setIsOpen(false);
-    },
-    [name, onChange]
-  );
-
-  return (
-    <div style={{ position: "relative" }}>
-      <MenuItem onClick={() => setIsOpen(!isOpen)}>
-        <Label>{label}</Label>
-        <div
-          style={{
-            maxWidth: 80,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-            opacity: 0.8,
-            fontSize: 14,
-          }}
-        >
-          {selectedOption?.label || "-"}
-        </div>
-      </MenuItem>
-      {isOpen && (
-        <div
-          style={{
-            position: "absolute",
-            left: 0,
-            bottom: "100%",
-            marginBottom: 4,
-            background: "rgba(0,0,0,.9)",
-            borderRadius: 5,
-            padding: 4,
-            minWidth: 120,
-            maxHeight: 200,
-            overflowY: "auto",
-            zIndex: 10,
-          }}
-        >
-          {options.map((opt) => (
-            <div
-              key={opt.value}
-              onClick={() => handleSelect(opt.value)}
-              style={{
-                padding: "6px 10px",
-                cursor: "pointer",
-                background:
-                  opt.value === value ? "rgba(32,156,238,.6)" : "transparent",
-                borderRadius: 3,
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-              onMouseEnter={(e) =>
-                (e.target.style.background =
-                  opt.value === value
-                    ? "rgba(32,156,238,.8)"
-                    : "rgba(255,255,255,.1)")
-              }
-              onMouseLeave={(e) =>
-                (e.target.style.background =
-                  opt.value === value ? "rgba(32,156,238,.6)" : "transparent")
-              }
-            >
-              {opt.label}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -210,10 +95,7 @@ export function Menus({
   initData,
   updateSetting,
   downloadSubtitle,
-  retranslate,
   hasSegApi,
-  hasAiApi,
-  tones = [],
   eventName,
 }) {
   const [formData, setFormData] = useState(initData);
@@ -246,13 +128,7 @@ export function Menus({
     return i18n("processing_subtitles");
   }, [progressed, i18n]);
 
-  const { isAISegment, skipAd, isBilingual, showOrigin, activeToneId } =
-    formData;
-
-  const toneOptions = useMemo(
-    () => tones.map((t) => ({ value: t.id, label: t.name })),
-    [tones]
-  );
+  const { isAISegment, skipAd, isBilingual, showOrigin } = formData;
 
   return (
     <div
@@ -292,19 +168,6 @@ export function Menus({
         name="skipAd"
         value={skipAd}
         label={i18n("is_skip_ad")}
-      />
-      {hasAiApi && toneOptions.length > 0 && (
-        <DropdownSelect
-          onChange={handleChange}
-          name="activeToneId"
-          value={activeToneId}
-          options={toneOptions}
-          label={i18n("tones")}
-        />
-      )}
-      <RetranslateButton
-        label={i18n("retranslate_subtitle")}
-        onClick={retranslate}
       />
       <Button
         label={`${status} [${progressed}%] `}

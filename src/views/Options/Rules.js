@@ -17,7 +17,6 @@ import {
   OPT_HIGHLIGHT_WORDS_DISABLE,
   OPT_SPLIT_PARAGRAPH_ALL,
   OPT_HIGHLIGHT_WORDS_ALL,
-  DEFAULT_TONES,
 } from "../../config";
 import { useState, useEffect, useMemo } from "react";
 import { useI18n } from "../../hooks/I18n";
@@ -85,8 +84,6 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
   const [showMore, setShowMore] = useState(!rules);
   const { enabledApis } = useApiList();
   const { allTextStyles } = useAllTextStyles();
-  const { setting } = useSetting();
-  const tones = setting.tones || DEFAULT_TONES;
 
   useEffect(() => {
     const newInitialValues = calculateInitialValues(rule);
@@ -115,7 +112,6 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
     toLang,
     textStyle,
     transOpen,
-    activeToneId,
     // bgColor,
     // textDiyStyle,
     transOnly = "false",
@@ -356,25 +352,6 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 {OPT_LANGS_TO.map(([lang, name]) => (
                   <MenuItem key={lang} value={lang}>
                     {name}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-            <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
-                select
-                size="small"
-                fullWidth
-                name="activeToneId"
-                value={activeToneId}
-                label={i18n("tones")}
-                disabled={disabled}
-                onChange={handleChange}
-              >
-                {GlobalItem}
-                {tones.map((tone) => (
-                  <MenuItem key={tone.id} value={tone.id}>
-                    {tone.name}
                   </MenuItem>
                 ))}
               </TextField>

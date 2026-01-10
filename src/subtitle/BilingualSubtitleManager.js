@@ -127,7 +127,7 @@ export class BilingualSubtitleManager {
   #tooltipEl = null;
   #hoverTimeout = null; // 用于延迟显示/隐藏tooltip
   #wasPlayingBeforeHover = false; //记录hover单词前视频是否处于播放状态
-  #hoverTarget = null;
+  #hoverTarget = null; 
 
   /**
    * @param {object} options
@@ -254,7 +254,8 @@ export class BilingualSubtitleManager {
     if (!isMobile && this.#setting.isEnhance !== false) {
       this.#captionWindowEl.addEventListener("pointerenter", (e) => {
         if (e.target === this.#captionWindowEl) {
-          this.#wasPlayingBeforeHover = this.#videoEl && !this.#videoEl.paused;
+          this.#wasPlayingBeforeHover =
+            this.#videoEl && !this.#videoEl.paused;
           if (this.#videoEl && !this.#videoEl.paused) {
             this.#videoEl.pause();
           }
@@ -327,7 +328,9 @@ export class BilingualSubtitleManager {
 
   #attachSpanListeners() {
     if (!this.#captionWindowEl) return;
-    const spans = this.#captionWindowEl.querySelectorAll(".kiss-subtitle-word");
+    const spans = this.#captionWindowEl.querySelectorAll(
+      ".kiss-subtitle-word"
+    );
     spans.forEach((span) => {
       if (span.dataset.kissListenerAttached) return;
       const enterHandler = (e) => this.#handleWordHover(e);
@@ -705,12 +708,10 @@ export class BilingualSubtitleManager {
   }
 
   /**
-   * 触发字幕翻译（按需翻译当前和即将显示的字幕）
+   * 提前翻译指定时间范围内的字幕。
    * @param {number} currentTimeMs
-   * @param {object} options
-   * @param {boolean} options.skipCache - 是否跳過快取
    */
-  #triggerTranslations(currentTimeMs, { skipCache = false } = {}) {
+  #triggerTranslations(currentTimeMs) {
     const { preTrans = 90 } = this.#setting;
     const lookAheadMs = preTrans * 1000;
 
@@ -721,7 +722,7 @@ export class BilingualSubtitleManager {
       const needsTranslation = !sub.translation && !sub.isTranslating;
 
       if ((isCurrent || isUpcoming) && needsTranslation) {
-        this.#translateAndStore(sub, { skipCache });
+        this.#translateAndStore(sub);
       }
     }
   }
@@ -729,29 +730,16 @@ export class BilingualSubtitleManager {
   /**
    * 执行单个字幕的翻译并更新其状态。
    * @param {object} subtitle - 需要翻译的字幕对象。
-   * @param {object} options
-   * @param {boolean} options.skipCache - 是否跳過快取
    */
-  async #translateAndStore(subtitle, { skipCache = false } = {}) {
+  async #translateAndStore(subtitle) {
     subtitle.isTranslating = true;
     try {
-      const {
-        fromLang,
-        toLang,
-        apiSetting,
-        activeToneId,
-        tones = [],
-      } = this.#setting;
-
-      const activeTone = tones.find((t) => t.id === activeToneId);
-      const toneInstruction = activeTone?.instruction || "";
-
+      const { fromLang, toLang, apiSetting } = this.#setting;
       const { trText } = await apiTranslate({
         text: subtitle.text,
         fromLang,
         toLang,
-        apiSetting: { ...apiSetting, activeToneId, toneInstruction },
-        useCache: !skipCache,
+        apiSetting,
       });
       subtitle.translation = trText;
     } catch (error) {
@@ -801,15 +789,6 @@ export class BilingualSubtitleManager {
 
   updateSetting(obj) {
     this.#setting = { ...this.#setting, ...obj };
-  }
-
-  clearAndRetranslate() {
-    for (const subtitle of this.#formattedSubtitles) {
-      subtitle.translation = null;
-      subtitle.isTranslating = false;
-    }
-    const currentTimeMs = this.#videoEl.currentTime * 1000;
-    this.#triggerTranslations(currentTimeMs, { skipCache: true });
   }
 
   // 获取当前字幕的开始时间（使用重新分段后的时间）

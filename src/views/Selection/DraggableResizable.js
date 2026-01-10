@@ -111,15 +111,15 @@ function Pointer({
 
   const touchProps = isMobile
     ? {
-        onTouchStart: handlePointerDown,
-        onTouchMove: handlePointerMove,
-        onTouchEnd: handlePointerUp,
-      }
+      onTouchStart: handlePointerDown,
+      onTouchMove: handlePointerMove,
+      onTouchEnd: handlePointerUp,
+    }
     : {
-        onPointerDown: handlePointerDown,
-        onPointerMove: handlePointerMove,
-        onPointerUp: handlePointerUp,
-      };
+      onPointerDown: handlePointerDown,
+      onPointerMove: handlePointerMove,
+      onPointerUp: handlePointerUp,
+    };
 
   return (
     <div {...props} {...touchProps}>
@@ -260,14 +260,8 @@ export default function DraggableResizable({
                   overflow: "hidden auto",
                 };
 
-            const scrollbarTrackColor =
-              theme.palette.mode === "dark"
-                ? "#1f1f23"
-                : theme.palette.background.paper;
-            const scrollbarThumbColor =
-              theme.palette.mode === "dark"
-                ? alpha(theme.palette.text.primary, 0.28)
-                : alpha(theme.palette.text.primary, 0.24);
+            const scrollbarTrackColor = theme.palette.mode === "dark" ? "#1f1f23" : theme.palette.background.paper;
+            const scrollbarThumbColor = theme.palette.mode === "dark" ? alpha(theme.palette.text.primary, 0.28) : alpha(theme.palette.text.primary, 0.24);
 
             return {
               ...containerStyle,

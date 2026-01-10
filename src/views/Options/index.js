@@ -26,7 +26,6 @@ import MouseHoverSetting from "./MouseHover";
 import SubtitleSetting from "./Subtitle";
 import Loading from "../../hooks/Loading";
 import StylesSetting from "./StylesSetting";
-import Tones from "./Tones";
 
 export default function Options() {
   const [error, setError] = useState("");
@@ -126,7 +125,6 @@ export default function Options() {
                   <Route path="mousehover" element={<MouseHoverSetting />} />
                   <Route path="subtitle" element={<SubtitleSetting />} />
                   <Route path="apis" element={<Apis />} />
-                  <Route path="tones" element={<Tones />} />
                   <Route path="sync" element={<SyncSetting />} />
                   <Route path="words" element={<FavWords />} />
                   <Route path="playground" element={<Playgound />} />

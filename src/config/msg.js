@@ -21,7 +21,6 @@ export const MSG_MOUSEHOVER_TOGGLE = "toggle_mousehover";
 export const MSG_HOVERNODE_TOGGLE = "toggle_hover_node";
 export const MSG_TRANSINPUT_TOGGLE = "toggle_input_translation";
 export const MSG_INPUT_TRANSLATE = "input_translate";
-export const MSG_UPDATE_ACTIVE_TONE = "update_active_tone";
 export const MSG_CONTEXT_MENUS = "context_menus";
 export const MSG_COMMAND_SHORTCUTS = "command_shortcuts";
 export const MSG_INJECT_JS = "inject_js";

@@ -156,6 +156,21 @@ export const API_SPE_TYPES = {
   ]),
 };
 
+export const BUILTIN_STONES = [
+  "formal", // 正式风格
+  "casual", // 口语风格
+  "neutral", // 中性风格
+  "technical", // 技术风格
+  "marketing", // 营销风格
+  "Literary", // 文学风格
+  "academic", // 学术风格
+  "legal", // 法律风格
+  "literal", // 直译风格
+  "ldiomatic", // 意译风格
+  "transcreation", // 创译风格
+  "machine-like", // 机器风格
+  "concise", // 简明风格
+];
 export const BUILTIN_PLACEHOLDERS = ["{ }", "{{ }}", "[ ]", "[[ ]]"];
 export const BUILTIN_PLACETAGS = ["i", "a", "b", "x"];
 
@@ -346,8 +361,7 @@ Object.entries(OPT_LANGS_TO_SPEC).forEach(([t, m]) => {
   OPT_LANGS_TO_CODE[t] = specToCode(m);
 });
 
-export const defaultNobatchPrompt = `You are a professional, authentic machine translation engine.
-{{tone}}`;
+export const defaultNobatchPrompt = `You are a professional, authentic machine translation engine.`;
 export const defaultNobatchUserPrompt = `Translate the following source text to ${INPUT_PLACE_TO}. Output translation directly without any additional text.\n\nSource Text: ${INPUT_PLACE_TEXT}\n\nTranslated Text:`;
 
 export const defaultSystemPrompt = `Act as a translation API. Output a single raw JSON object only. No extra text or fences.
@@ -367,7 +381,6 @@ Rules:
 6.  Apply the specified tone to the translation.
 7.  Detect sourceLanguage for each segment.
 8.  Return empty or unchanged inputs as is.
-{{tone}}
 
 Example:
 Input: {"targetLanguage":"zh-CN","segments":[{"id":1,"text":"A <b>React</b> component."}],"glossary":{"component":"组件","React":""}}
@@ -394,7 +407,6 @@ Rules:
 5.  **Do Not Translate**: Content inside <code>, <pre>, text in backticks ("code"), and placeholders like {1}, {{1}}, [1], [[1]].
 6.  **Context**: Use the "title" and "description" fields to understand the context for better translation accuracy, but do not output them.
 7.  **Tone**: Apply the specified "tone" (formal/casual).
-{{tone}}
 
 Example:
 Input:
@@ -425,7 +437,6 @@ Rules:
 7.  **Glossary**: Highest priority. Follow 'glossary'. Use value for translation; if value is "", keep the key.
 8.  **Do Not Translate**: content in <code>, <pre>, text enclosed in backticks, or placeholders like {1}, {{1}}, [1].
 9.  **Tone**: Apply the specified tone.
-{{tone}}
 
 Example:
 Input: {"targetLanguage":"zh-CN","segments":[{"id":0,"text":"Hello."},{"id":1,"text":"Line 1\nLine 2"}],"glossary":{}}
@@ -504,6 +515,7 @@ const defaultApi = {
   nobatchPrompt: defaultNobatchPrompt,
   nobatchUserPrompt: defaultNobatchUserPrompt,
   userPrompt: "",
+  tone: BUILTIN_STONES[0], // 翻译风格
   placeholder: BUILTIN_PLACEHOLDERS[0], // 占位符
   placetag: [BUILTIN_PLACETAGS[0]], // 占位标签
   // aiTerms: false, // AI智能专业术语 （todo: 备用）

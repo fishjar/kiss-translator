@@ -253,7 +253,7 @@ export class YouTubeSubtitleList {
       // 将容器插入到 YouTube 页面右侧栏 (secondary) 的顶部
       const secondary = document.getElementById("secondary");
       if (secondary) secondary.prepend(this.container);
-
+      
       (async () => {
         try {
           const setting = await getSettingWithDefault();
@@ -342,7 +342,7 @@ export class YouTubeSubtitleList {
     const downloadBtn = document.createElement("button");
     downloadBtn.textContent = "下载字幕 (VTT)";
     downloadBtn.style.cssText = `padding: 6px 12px; background: var(--kt-btn-bg); color: var(--kt-btn-color); border: var(--kt-btn-border); border-radius: 4px; cursor: pointer; font-size: 12px; transition: background 220ms ease, color 200ms ease, transform 160ms ease;`;
-
+    
     downloadBtn.addEventListener("mouseenter", () => {
       try {
         const hover = getComputedStyle(this.container).getPropertyValue(
@@ -350,7 +350,8 @@ export class YouTubeSubtitleList {
         );
         if (hover) downloadBtn.style.background = hover;
         downloadBtn.style.transform = "translateY(-1px)";
-      } catch (e) {}
+      } catch (e) {
+      }
     });
     downloadBtn.addEventListener("mouseleave", () => {
       try {
@@ -359,7 +360,8 @@ export class YouTubeSubtitleList {
         );
         if (normal) downloadBtn.style.background = normal;
         downloadBtn.style.transform = "translateY(0)";
-      } catch (e) {}
+      } catch (e) {
+      }
     });
     downloadBtn.addEventListener("click", this.downloadSubtitles.bind(this));
 

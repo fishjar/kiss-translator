@@ -18,7 +18,6 @@ import MouseIcon from "@mui/icons-material/Mouse";
 import SubtitlesIcon from "@mui/icons-material/Subtitles";
 import FormatColorText from "@mui/icons-material/FormatColorText";
 import BugReportIcon from "@mui/icons-material/BugReport";
-import PaletteIcon from "@mui/icons-material/Palette";
 
 function LinkItem({ label, url, icon }) {
   const match = useMatch(url);
@@ -50,12 +49,6 @@ export default function Navigator(props) {
       label: i18n("apis_setting"),
       url: "/apis",
       icon: <ApiIcon />,
-    },
-    {
-      id: "tones",
-      label: i18n("tones"),
-      url: "/tones",
-      icon: <PaletteIcon />,
     },
     {
       id: "styles_setting",

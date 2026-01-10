@@ -6,7 +6,10 @@ export default function useAutoHideTranBtn(
   position,
   options = {}
 ) {
-  const { delay = 5000, distance = 100 } = options;
+  const {
+    delay = 5000,
+    distance = 100,
+  } = options;
 
   const timerRef = useRef(null);
   const originRef = useRef({ x: 0, y: 0 });
@@ -39,7 +42,7 @@ export default function useAutoHideTranBtn(
     };
 
     window.addEventListener("mousemove", handleMouseMove);
-
+    
     window.addEventListener("mousedown", handleMouseDown, true);
 
     return () => {

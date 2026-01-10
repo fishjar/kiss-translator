@@ -3,7 +3,6 @@ import {
   APP_CONSTS,
   OPT_STYLE_FUZZY,
   GLOBLA_RULE,
-  GLOBAL_KEY,
   DEFAULT_SETTING,
   // DEFAULT_MOUSEHOVER_KEY,
   OPT_STYLE_NONE,
@@ -14,7 +13,6 @@ import {
   OPT_SPLIT_PARAGRAPH_DISABLE,
   OPT_SPLIT_PARAGRAPH_TEXTLENGTH,
   MSG_INJECT_CSS,
-  DEFAULT_TONES,
 } from "../config";
 import { interpreter } from "./interpreter";
 import { clearFetchPool } from "./pool";
@@ -1459,19 +1457,6 @@ export class Translator {
     const glossary = { ...this.#glossary };
     const apisMap = this.#apisMap;
 
-    // 取得當前 rule 的翻譯風格設定
-    // 如果 rule 沒設定或設為 GLOBAL_KEY，則使用預設風格
-    const { tones = DEFAULT_TONES } = this.#setting;
-    const ruleActiveToneId = this.#rule.activeToneId;
-    const activeToneId =
-      ruleActiveToneId && ruleActiveToneId !== GLOBAL_KEY
-        ? ruleActiveToneId
-        : "builtin-default";
-
-    const activeTone = tones.find((t) => t.id === activeToneId);
-    apiSetting.activeToneId = activeToneId;
-    apiSetting.toneInstruction = activeTone?.instruction || "";
-
     const args = {
       text,
       fromLang,
@@ -1842,14 +1827,6 @@ export class Translator {
   // 切换输入框翻译
   toggleInputTranslate() {
     this.#setting.inputRule.transOpen = !this.#setting.inputRule.transOpen;
-  }
-
-  // 更新 activeToneId
-  updateActiveToneId(toneId) {
-    this.#rule.activeToneId = toneId;
-    if (this.#enabled) {
-      this.rescan();
-    }
   }
 
   // 停止运行
