@@ -32,6 +32,7 @@ export const MSG_SET_LOGLEVEL = "set_loglevel";
 export const MSG_CLEAR_CACHES = "clear_caches";
 export const MSG_OPEN_SEPARATE_WINDOW = "open_separate_window";
 export const PORT_STREAM_FETCH = "kiss_stream_fetch";
+export const MSG_UPDATE_ICON = "update_icon";
 
 export const EVENT_KISS_INNER = "kiss_translator_inner";
 export const EVENT_KISS_TRANSLATOR = "kiss_translator";
