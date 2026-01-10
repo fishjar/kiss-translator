@@ -48,10 +48,10 @@ function Header({
   const blurOnLeave = (e) => e.currentTarget.blur();
 
   const baseBtnStyle = {
-    borderRadius: "6px",   
-    padding: "3px",  
-    minWidth: "24px",  
-    minHeight: "24px", 
+    borderRadius: "6px",
+    padding: "3px",
+    minWidth: "24px",
+    minHeight: "24px",
     transition: "all 0.2s ease",
     backgroundColor: "transparent",
     "& svg": {
@@ -118,7 +118,7 @@ function Header({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              borderRadius: "4px",
+              borderRadius: "6px",
               backgroundColor: "transparent",
               border: 0,
               boxShadow: isDark
@@ -135,7 +135,9 @@ function Header({
               flexShrink: 0,
             }}
           >
-            <Logo size={18} />
+            <Logo style={{
+              borderRadius: "4.5px"
+            }} size={18} />
           </Box>
 
           {!simpleStyle && (
@@ -148,7 +150,7 @@ function Header({
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
-                flex: 1, 
+                flex: 1,
               }}
             >
               {`${process.env.REACT_APP_NAME} v${process.env.REACT_APP_VERSION}`}
@@ -278,7 +280,7 @@ function Header({
               },
             }}
           >
-            <CloseIcon sx={{width: 16, height: 16 }} />
+            <CloseIcon sx={{ width: 16, height: 16 }} />
           </IconButton>
         </Stack>
       </Stack>
