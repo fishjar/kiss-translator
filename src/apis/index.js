@@ -229,6 +229,60 @@ export const apiMicrosoftDict = async (text) => {
   }
 
   const res = { word, trs, aus, ecs, sentences };
+  try {
+    const inflections = [];
+    const infSelectors = [
+      '[class*="hd_if"]',
+      '[class*="infl"]',
+      '[class*="inflect"]',
+      '[class*="inflection"]',
+      '.headword .forms',
+      '.hd_tbl .hd_if'
+    ];
+    const nodes = [];
+    infSelectors.forEach((sel) => {
+      doc.querySelectorAll(sel)?.forEach((n) => nodes.push(n));
+    });
+
+    if (nodes.length === 0) {
+      const head = doc.querySelector('#headword');
+      if (head) {
+        head.parentElement?.querySelectorAll('*')?.forEach((n) => {
+          if (n && n !== head && n.textContent && n.textContent.trim().length > 0 && n.textContent.trim().length < 120) {
+            nodes.push(n);
+          }
+        });
+      }
+    }
+
+    nodes.forEach((n) => {
+      if (n.querySelectorAll) {
+        const anchors = n.querySelectorAll('a');
+        if (anchors && anchors.length > 0) {
+          anchors.forEach((a) => {
+            const t = a.textContent?.trim();
+            if (t && !inflections.includes(t)) inflections.push(t);
+          });
+          return;
+        }
+      }
+
+      const txt = n.textContent?.trim();
+      if (!txt) return;
+
+      const parts = txt.split(/[\s,;\/·|•]+/).map((s) => s.trim()).filter(Boolean);
+      parts.forEach((p) => {
+        if (p.length > 1 && p.length < 60 && !inflections.includes(p)) {
+          inflections.push(p);
+        }
+      });
+    });
+
+    if (inflections.length) {
+      res.inflections = inflections;
+    }
+  } catch (err) {
+  }
   putHttpCachePolyfill(cacheInput, null, res);
 
   return res;

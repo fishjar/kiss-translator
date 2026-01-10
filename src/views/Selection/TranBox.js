@@ -315,7 +315,8 @@ function TranBoxContent({
   return (
     <Box
       sx={{
-        p: simpleStyle ? 1 : 2,
+        px: simpleStyle ? 2 : 3,//稍微增加点内边距,看着舒服点
+        py: simpleStyle ? 1 : 2,
         backgroundColor: theme.palette.background.paper,
         backgroundImage: contentBg,
 

@@ -22,6 +22,17 @@ function DictBody({ text, setCopyText, setRealWord, dict }) {
     const copyText = [realWord, dict.toText(data).join("\n")].join("\n");
     setRealWord(realWord);
     setCopyText(copyText);
+  
+    try {
+      const inflections = data?.inflections || [];
+      if (inflections && inflections.length) {
+        const ev = new CustomEvent("kiss-dict-inflections", {
+          detail: { word: realWord, inflections },
+        });
+        document.dispatchEvent(ev);
+      }
+    } catch (err) {
+    }
   }, [data, text, dict, setCopyText, setRealWord]);
 
   const uiAudio = useMemo(() => dict.uiAudio(data), [data, dict]);

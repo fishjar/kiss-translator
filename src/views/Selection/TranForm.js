@@ -54,6 +54,7 @@ export default function TranForm({
   const [enSug, setEnSug] = useState(initEnSug);
   const [deLang, setDeLang] = useState("");
   const [deLoading, setDeLoading] = useState(false);
+  const [inflectionMap, setInflectionMap] = useState(null);
   const inputRef = useRef(null);
 
   useEffect(() => {
@@ -101,6 +102,39 @@ export default function TranForm({
       }
     })();
   }, [text, langDetector, setDeLang, setDeLoading]);
+
+  useEffect(() => {
+    setInflectionMap(null);
+    const handleInf = (e) => {
+      const { word, inflectionMap, inflections } = e.detail || {};
+      if (!word) return;
+      if (word !== text) return;
+
+      if (inflectionMap) {
+        setInflectionMap(inflectionMap);
+        return;
+      }
+
+      if (inflections && inflections.length) {
+        const raw = inflections;
+        const base = (word || "").toLowerCase();
+        const pick = (pred) => raw.find((f) => pred((f || "").toLowerCase()));
+        const map = {};
+        map.present_participle = pick((s) => s.endsWith("ing"));
+        map.simple_present = pick((s) => s.endsWith("s") && !s.endsWith("ss") && !s.endsWith("ing"));
+        map.past_tense = pick((s) => s.endsWith("ed") || (s !== base && !s.endsWith("ing") && !s.endsWith("s")));
+        const assigned = new Set(Object.values(map).filter(Boolean));
+        const leftovers = raw.filter((f) => !assigned.has(f));
+        if (!map.past_tense && leftovers.length) map.past_tense = leftovers[0];
+        if (!map.present_participle && leftovers[1]) map.present_participle = leftovers[1];
+        if (!map.simple_present && leftovers[2]) map.simple_present = leftovers[2];
+        setInflectionMap(map);
+      }
+    };
+
+    document.addEventListener("kiss-dict-inflections", handleInf);
+    return () => document.removeEventListener("kiss-dict-inflections", handleInf);
+  }, [text]);
 
   const handlePaste = async () => {
     try {
@@ -402,6 +436,23 @@ export default function TranForm({
 
       {isWord && OPT_SUG_MAP.has(enSug) && (
         <SugCont text={text} enSug={enSug} />
+      )}
+      
+      {inflectionMap && (
+        <div style={{ padding: "6px 8px", marginTop: 4 }}>
+          <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 6 }}>词形变化</div>
+          <div style={{ fontSize: 13, color: "", lineHeight: 1.6 }}>
+            {inflectionMap.past_tense && (
+              <span style={{ marginRight: 12 }}>Past Tense：{inflectionMap.past_tense}</span>
+            )}
+            {inflectionMap.present_participle && (
+              <span style={{ marginRight: 12 }}>Present Participle：{inflectionMap.present_participle}</span>
+            )}
+            {inflectionMap.simple_present && (
+              <span style={{ marginRight: 12 }}>Simple Present：{inflectionMap.simple_present}</span>
+            )}
+          </div>
+        </div>
       )}
     </Stack>
   );
