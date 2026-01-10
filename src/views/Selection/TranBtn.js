@@ -21,6 +21,11 @@ export default function TranBtn({
         left,
         top,
         zIndex: 2147483647,
+        borderRadius: "3px",
+        overflow: "hidden",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
       }}
       {...{ [btnEvent]: onTrigger }}
     >

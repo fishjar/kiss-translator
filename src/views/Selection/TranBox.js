@@ -332,6 +332,24 @@ export default function TranBox(props) {
   const setHideClickAway = props.setHideClickAway;
   const followSelection = props.followSelection;
   const setFollowSelection = props.setFollowSelection;
+
+  useEffect(() => {
+    if (!props.showBox) return;
+
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        props.setShowBox(false);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown, true);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown, true);
+    };
+  }, [props.showBox, props.setShowBox]);
+
   return (
     <SettingProvider context="tranbox">
       <ThemeProvider styles={props.extStyles}>

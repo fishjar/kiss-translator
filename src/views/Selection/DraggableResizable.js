@@ -160,13 +160,18 @@ export default function DraggableResizable({
   //dark模式日食效果,突出显示翻译小窗口
   const glowShadow = isDark
     ? `
-        0 0 0 1px rgba(255,255,255,0.18),
-        0 0 10px 2px rgba(255,255,255,0.18),
-        0 8px 32px rgba(0,0,0,0.35)
-      `
-    : ` 
-        0 4px 18px rgba(0, 0, 0, 0.15)
-      `;
+    0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 0 10px 6px rgba(160, 180, 230, 0.2),
+    0 0 28px 16px rgba(100, 140, 220, 0.14),
+    0 12px 40px rgba(0, 0, 0, 0.4)
+  `
+    : `
+    0 0 0 1px rgba(0, 0, 0, 0.06),
+    0 0 10px 6px rgba(0, 0, 0, 0.1),
+    0 0 28px 16px rgba(0, 0, 0, 0.06),
+    0 12px 40px rgba(0, 0, 0, 0.15)
+  `;
+
   const opts = {
     size,
     setSize,
@@ -189,7 +194,7 @@ export default function DraggableResizable({
         gridTemplateRows: `${lineWidth * 2}px auto ${lineWidth * 2}px`,
         zIndex: 2147483647,
         borderRadius: "12px",
-        overflow: "hidden",
+        overflow: "visible",
       }}
       {...props}
     >
@@ -250,15 +255,15 @@ export default function DraggableResizable({
           sx={() => {
             const containerStyle = autoHeight
               ? {
-                  width: size.w,
-                  maxHeight: size.h,
-                  overflow: "hidden auto",
-                }
+                width: size.w,
+                maxHeight: size.h,
+                overflow: "hidden auto",
+              }
               : {
-                  width: size.w,
-                  height: size.h,
-                  overflow: "hidden auto",
-                };
+                width: size.w,
+                height: size.h,
+                overflow: "hidden auto",
+              };
 
             const scrollbarTrackColor = theme.palette.mode === "dark" ? "#1f1f23" : theme.palette.background.paper;
             const scrollbarThumbColor = theme.palette.mode === "dark" ? alpha(theme.palette.text.primary, 0.28) : alpha(theme.palette.text.primary, 0.24);
