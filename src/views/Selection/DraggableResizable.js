@@ -201,7 +201,8 @@ export default function DraggableResizable({
       <Pointer
         direction="TopLeft"
         style={{
-          transform: `translate(${lineWidth}px, ${lineWidth}px)`,
+          marginLeft: lineWidth,
+          marginTop: lineWidth,
           cursor: "nw-resize",
         }}
         {...opts}
@@ -210,7 +211,6 @@ export default function DraggableResizable({
         direction="Top"
         style={{
           margin: `0 ${lineWidth}px`,
-          transform: `translate(0px, ${lineWidth}px)`,
           cursor: "row-resize",
         }}
         {...opts}
@@ -218,7 +218,8 @@ export default function DraggableResizable({
       <Pointer
         direction="TopRight"
         style={{
-          transform: `translate(-${lineWidth}px, ${lineWidth}px)`,
+          marginRight: lineWidth,
+          marginTop: lineWidth,
           cursor: "ne-resize",
         }}
         {...opts}
@@ -227,7 +228,7 @@ export default function DraggableResizable({
         direction="Left"
         style={{
           margin: `${lineWidth}px 0`,
-          transform: `translate(${lineWidth}px, 0px)`,
+          marginLeft: lineWidth,
           cursor: "col-resize",
         }}
         {...opts}
@@ -299,7 +300,7 @@ export default function DraggableResizable({
         direction="Right"
         style={{
           margin: `${lineWidth}px 0`,
-          transform: `translate(-${lineWidth}px, 0px)`,
+          marginRight: lineWidth,
           cursor: "col-resize",
         }}
         {...opts}
@@ -307,7 +308,8 @@ export default function DraggableResizable({
       <Pointer
         direction="BottomLeft"
         style={{
-          transform: `translate(${lineWidth}px, -${lineWidth}px)`,
+          marginLeft: lineWidth,
+          marginBottom: lineWidth,
           cursor: "ne-resize",
         }}
         {...opts}
@@ -316,7 +318,7 @@ export default function DraggableResizable({
         direction="Bottom"
         style={{
           margin: `0 ${lineWidth}px`,
-          transform: `translate(0px, -${lineWidth}px)`,
+          marginBottom: lineWidth,
           cursor: "row-resize",
         }}
         {...opts}
@@ -324,7 +326,8 @@ export default function DraggableResizable({
       <Pointer
         direction="BottomRight"
         style={{
-          transform: `translate(-${lineWidth}px, -${lineWidth}px)`,
+          marginRight: lineWidth,
+          marginBottom: lineWidth,
           cursor: "nw-resize",
         }}
         {...opts}
