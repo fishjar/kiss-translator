@@ -78,7 +78,7 @@ export default function DictCont({ text, enDict }) {
         </Stack>
       )}
 
-      <Divider />
+      {/* <Divider /> */}
 
       {dict && (
         <DictBody

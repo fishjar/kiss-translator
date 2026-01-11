@@ -13,8 +13,8 @@ export const dictHandlers = {
       <Typography component="div" sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap', mb: 1 }}>
         {data?.aus?.map(({ key, audio, phonetic }) => (
           <span key={key} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, paddingRight: 8 }}>
-            <Typography component="span" sx={{ fontSize: 13, color: 'rgba(255,255,255,0.92)', fontWeight: 600 }}>{key}</Typography>
-            <Typography component="span" sx={{ fontSize: 13, color: 'rgba(255,255,255,0.78)' }}>{phonetic ? `[${phonetic}]` : ''}</Typography>
+            <Typography component="span" sx={{ fontSize: 13, color: 'text.primary', fontWeight: 600 }}>{key}</Typography>
+            <Typography component="span" sx={{ fontSize: 13, color: 'text.secondary' }}>{phonetic ? `[${phonetic}]` : ''}</Typography>
             <AudioBtn src={audio} />
           </span>
         ))}
@@ -25,11 +25,11 @@ export const dictHandlers = {
         <Typography component="div" sx={{ mt: 0.5 }}>
           <ul style={{ margin: 0, paddingLeft: 16 }}>
             {data?.trs?.map(({ pos, def }, idx) => (
-              <li key={idx} style={{ marginBottom: 8, lineHeight: 1.45, color: 'rgba(255,255,255,0.92)', fontSize: 14 }}>
+              <li key={idx} style={{ marginBottom: 8, lineHeight: 1.45, color: 'text.primary', fontSize: 14 }}>
                 {pos ? (
                   <span style={{ color: '#93c5fd', fontWeight: 600, marginRight: 6 }}>[{pos}]</span>
                 ) : null}
-                <span style={{ color: 'rgba(255,255,255,0.92)' }}>{def}</span>
+                <span style={{ color: 'text.primary' }}>{def}</span>
               </li>
             ))}
           </ul>
@@ -40,7 +40,7 @@ export const dictHandlers = {
               <div style={{ fontStyle: 'italic', fontSize: 14, fontWeight: 600, marginBottom: 8, color: '#48A3FF' }}>词形变化</div>
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
                 {data.inflections.map((item, idx) => (
-                  <span key={idx} style={{ padding: '6px 14px', borderRadius: 12, background: 'rgba(26,115,232,0.08)', border: '1px solid rgba(26,115,232,0.14)', color: '#48A3FF', fontSize: 13 }}>
+                  <span key={idx} style={{ padding: '6px 14px', borderRadius: 12, backgroundColor: 'action.hover', border: '1px solid rgba(26,115,232,0.14)', color: '#48A3FF', fontSize: 13 }}>
                     {item}
                   </span>
                 ))}
@@ -101,7 +101,7 @@ export const dictHandlers = {
                   </Typography>
                   <Typography
                     component="div"
-                    style={{ opacity: "0.6", fontStyle: "italic" }}
+                    style={{ color: 'text.secondary', fontStyle: "italic" }}
                   >
                     {sentence.chs}
                   </Typography>
@@ -184,7 +184,7 @@ export const dictHandlers = {
                   </Typography>
                   <Typography
                     component="div"
-                    style={{ opacity: "0.6", fontStyle: "italic" }}
+                    style={{ color: 'text.secondary', fontStyle: "italic" }}
                   >
                     {sentence["sentence-translation"]}
                   </Typography>
