@@ -62,7 +62,7 @@ function Header({
 
   const headerBg = isDark
     ? "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(0,0,0,0.10))"
-    : "none";
+    : "linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%)";
 
   // 移动端不显示标题栏
   if (isMobile) {
@@ -84,13 +84,14 @@ function Header({
       `
           : "none",
 
-        backdropFilter: isDark ? "saturate(120%) blur(0.6px)" : "none",
-
+        backdropFilter: isDark ? "saturate(120%) blur(0.6px)" : "blur(10px)",
+        borderBottom: isDark ? "none" : `1px solid ${alpha(theme.palette.divider, 0.06)}`,
         padding: "2px 6px",
-        height: "30px",
+        height: "32px",
         display: "flex",
         alignItems: "center",
         minHeight: "auto",
+        zIndex: 10,
       }}
     >
       <Stack
