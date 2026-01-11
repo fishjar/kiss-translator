@@ -49,7 +49,9 @@ class YouTubeCaptionProvider {
   #subtitleListManager = null;
 
   constructor(setting = {}) {
-    this.#setting = { ...setting, isAISegment: false, showOrigin: false };
+    // 如果设置页面已配置 AI 断句服务 (segSlug !== "-")，则默认启用 AI 断句
+    const defaultIsAISegment = setting.segSlug && setting.segSlug !== "-";
+    this.#setting = { ...setting, isAISegment: defaultIsAISegment, showOrigin: false };
     this.#i18n = newI18n(setting.uiLang || "zh");
     this.#menuEventName = genEventName();
   }
@@ -92,10 +94,12 @@ class YouTubeCaptionProvider {
       this.#flatEvents = [];
       this.#progressed = 0;
       this.#fromLang = "auto";
-      this.#setting.isAISegment = false;
+      // 保持用户在设置页面配置的 AI 断句设置
+      const defaultIsAISegment = this.#setting.segSlug && this.#setting.segSlug !== "-";
+      this.#setting.isAISegment = defaultIsAISegment;
       this.#sendMenusMsg({
         action: MSG_MENUS_UPDATEFORM,
-        data: { isAISegment: false },
+        data: { isAISegment: defaultIsAISegment },
       });
     });
 
