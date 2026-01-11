@@ -9,6 +9,7 @@ import CopyBtn from "./CopyBtn";
 import { useAsyncNow } from "../../hooks/Fetch";
 import { dictHandlers } from "./DictHandler";
 import { useI18n } from "../../hooks/I18n";
+import { useTheme } from '@mui/material/styles';
 
 function DictBody({ text, setCopyText, setRealWord, dict }) {
   const { loading, error, data } = useAsyncNow(dict.apiFn, text);
@@ -22,7 +23,7 @@ function DictBody({ text, setCopyText, setRealWord, dict }) {
     const copyText = [realWord, dict.toText(data).join("\n")].join("\n");
     setRealWord(realWord);
     setCopyText(copyText);
-  
+
     try {
       const inflections = data?.inflections || [];
       if (inflections && inflections.length) {
@@ -34,9 +35,10 @@ function DictBody({ text, setCopyText, setRealWord, dict }) {
     } catch (err) {
     }
   }, [data, text, dict, setCopyText, setRealWord]);
-
-  const uiAudio = useMemo(() => dict.uiAudio(data), [data, dict]);
-  const uiTrans = useMemo(() => dict.uiTrans(data), [data, dict]);
+  const theme = useTheme();
+  const isDarkMode = theme.palette.mode === "dark";
+  const uiAudio = useMemo(() => dict.uiAudio(data, isDarkMode), [data, dict]);
+  const uiTrans = useMemo(() => dict.uiTrans(data, isDarkMode), [data, dict, isDarkMode]);
 
   if (loading) {
     return <CircularProgress size={16} />;
@@ -63,12 +65,14 @@ export default function DictCont({ text, enDict }) {
   const [copyText, setCopyText] = useState(text);
   const [realWord, setRealWord] = useState(text);
   const dict = dictHandlers[enDict];
-
+  const theme = useTheme();
+  const isDarkMode = theme.palette.mode === 'dark';
+  const titleColor = isDarkMode ? '#48A3FF' : '#007BF7';
   return (
     <Stack spacing={1}>
       {text && (
         <Stack direction="row" justifyContent="space-between">
-          <Typography variant="subtitle1" style={{ fontWeight: "bold" }}>
+          <Typography variant="subtitle1" style={{ fontWeight: "bold", color: titleColor }}>
             {realWord}
           </Typography>
           <Stack direction="row" justifyContent="space-between">

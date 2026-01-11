@@ -448,24 +448,15 @@ export default function TranForm({
       )}
 
       {isWord && OPT_SUG_MAP.has(enSug) && (
-        <SugCont text={text} enSug={enSug} />
-      )}
-
-      {inflectionMap && (
-        <div style={{ padding: "6px 8px", marginTop: 4 }}>
-          <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 6 }}>词形变化</div>
-          <div style={{ fontSize: 13, color: "", lineHeight: 1.6 }}>
-            {inflectionMap.past_tense && (
-              <span style={{ marginRight: 12 }}>Past Tense：{inflectionMap.past_tense}</span>
-            )}
-            {inflectionMap.present_participle && (
-              <span style={{ marginRight: 12 }}>Present Participle：{inflectionMap.present_participle}</span>
-            )}
-            {inflectionMap.simple_present && (
-              <span style={{ marginRight: 12 }}>Simple Present：{inflectionMap.simple_present}</span>
-            )}
-          </div>
-        </div>
+        <Box sx={{
+          mt: 0.5, 
+          width: "100%",
+        }}>
+          <SugCont
+            text={text}
+            enSug={enSug}
+          />
+        </Box>
       )}
     </Stack>
   );

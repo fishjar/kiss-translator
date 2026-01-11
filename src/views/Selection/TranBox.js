@@ -325,11 +325,6 @@ function TranBoxContent({
           ? "inset 0 1px 0 rgba(255,255,255,0.04)"
           : "none",
 
-        color: isDark
-          ? "rgba(255,255,255,0.88)"
-          : theme.palette.text.primary,
-
-        lineHeight: 1.55,
         backdropFilter: isDark ? "saturate(120%) blur(0.5px)" : "none",
 
         "&::-webkit-scrollbar": {
@@ -355,7 +350,7 @@ function TranBoxContent({
           ? "rgba(255,255,255,0.82)"   // 柔白, 避免刺眼
           : theme.palette.text.primary,
 
-        lineHeight: 1.55,
+        lineHeight: 1.55
       }}
     >
       <TranForm
