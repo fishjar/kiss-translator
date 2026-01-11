@@ -87,7 +87,7 @@ function Header({
         backdropFilter: isDark ? "saturate(120%) blur(0.6px)" : "blur(10px)",
         borderBottom: isDark ? "none" : `1px solid ${alpha(theme.palette.divider, 0.06)}`,
         padding: "2px 6px",
-        height: "32px",
+        height: isDark ? "32px" : "29px",
         display: "flex",
         alignItems: "center",
         minHeight: "auto",
