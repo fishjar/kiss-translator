@@ -74,9 +74,11 @@
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
     "@babel/preset-env": "^7.22.20",
     "bestzip": "^2.2.1",
+    "chalk": "^5.6.2",
     "cross-env": "^7.0.3",
     "dotenv": "^17.2.1",
     "find-up": "^7.0.0",
+    "fs-extra": "^11.3.3",
     "prettier": "3.6.2",
     "react-app-rewired": "^2.2.1",
     "zx": "^8.8.1"

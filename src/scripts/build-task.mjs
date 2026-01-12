@@ -1,5 +1,12 @@
 #!/usr/bin/env zx
 import { argv, $ } from "zx";
+import chalk from "chalk"; 
+import fs from "fs-extra";
+import path from "path";
+
+if (argv.verbose) {
+  $.verbose = true;
+}
 
 // 在 Windows 上使用 cmd.exe，避免 zx 默认使用 WSL bash 导致 node not found
 if (process.platform === "win32") {
