@@ -2619,6 +2619,13 @@ export const I18N = {
     ja: `原字幕を表示`,
     ko: `원본 자막 표시`,
   },
+  show_side_subtitle: {
+    zh: `显示侧边字幕`,
+    en: `Show side subtitles`,
+    zh_TW: `顯示侧邊字幕`,
+    ja: `サイド字幕を表示`,
+    ko: `사이드 자막 표시`,
+  }, 
   subtitle_same_lang: {
     zh: `原语言与目标语言相同，字幕不予处理`,
     en: `The source language is the same as the target language, subtitles will not be processed`,

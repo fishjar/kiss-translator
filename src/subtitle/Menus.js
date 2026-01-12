@@ -128,7 +128,7 @@ export function Menus({
     return i18n("processing_subtitles");
   }, [progressed, i18n]);
 
-  const { isAISegment, skipAd, isBilingual, showOrigin } = formData;
+  const { isAISegment, skipAd, isBilingual, showOrigin,showSideSubtitle } = formData;
 
   return (
     <div
@@ -162,6 +162,12 @@ export function Menus({
         name="showOrigin"
         value={showOrigin}
         label={i18n("show_origin_subtitle")}
+      />
+      <Switch
+        onChange={handleChange}
+        name="showSideSubtitle"
+        value={showSideSubtitle}
+        label={i18n("show_side_subtitle")}
       />
       <Switch
         onChange={handleChange}

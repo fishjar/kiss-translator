@@ -253,7 +253,7 @@ export class YouTubeSubtitleList {
       // 将容器插入到 YouTube 页面右侧栏 (secondary) 的顶部
       const secondary = document.getElementById("secondary");
       if (secondary) secondary.prepend(this.container);
-      
+
       (async () => {
         try {
           const setting = await getSettingWithDefault();
@@ -313,7 +313,47 @@ export class YouTubeSubtitleList {
   _renderTabsAndStructure() {
     // --- Header & Tabs (保持不变) ---
     const tabHeader = document.createElement("div");
-    tabHeader.style.cssText = `display: flex; border-bottom: 1px solid var(--kt-divider); padding: 0 16px; flex-shrink: 0;`;
+    tabHeader.style.cssText = `
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--kt-divider);
+    padding: 0 8px 0 16px;
+    flex-shrink: 0;
+  `;
+    //侧边字幕添加关闭按钮
+    const closeBtn = document.createElement("button");
+    closeBtn.innerHTML = "✕";
+    closeBtn.title = "关闭";
+    closeBtn.style.cssText = `
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    padding: 6px 10px;
+    color: var(--kt-subtext);
+    border-radius: 6px;
+    transition: background 0.2s ease, color 0.2s ease;
+  `;
+
+    closeBtn.addEventListener("mouseenter", () => {
+      closeBtn.style.background = "var(--kt-item-hover-bg)";
+      closeBtn.style.color = "var(--kt-text)";
+    });
+
+    closeBtn.addEventListener("mouseleave", () => {
+      closeBtn.style.background = "transparent";
+      closeBtn.style.color = "var(--kt-subtext)";
+    });
+
+    closeBtn.addEventListener("click", () => {
+      this.destroy();
+
+      window.dispatchEvent(
+        new CustomEvent("kiss-side-subtitle-close")
+      );
+    });
 
     const subtitleTab = document.createElement("button");
     subtitleTab.textContent = "双语字幕";
@@ -342,7 +382,7 @@ export class YouTubeSubtitleList {
     const downloadBtn = document.createElement("button");
     downloadBtn.textContent = "下载字幕 (VTT)";
     downloadBtn.style.cssText = `padding: 6px 12px; background: var(--kt-btn-bg); color: var(--kt-btn-color); border: var(--kt-btn-border); border-radius: 4px; cursor: pointer; font-size: 12px; transition: background 220ms ease, color 200ms ease, transform 160ms ease;`;
-    
+
     downloadBtn.addEventListener("mouseenter", () => {
       try {
         const hover = getComputedStyle(this.container).getPropertyValue(
@@ -406,7 +446,13 @@ export class YouTubeSubtitleList {
     styleTab(subtitleTab, true);
     styleTab(vocabularyTab, false);
 
-    tabHeader.append(subtitleTab, vocabularyTab);
+    const leftTabs = document.createElement("div");
+    leftTabs.style.display = "flex";
+    leftTabs.append(subtitleTab, vocabularyTab);
+
+    tabHeader.append(leftTabs, closeBtn);
+
+
     tabContentContainer.append(this.subtitleListEl, this.vocabularyListEl);
     this.container.append(tabHeader, tabContentContainer);
   }

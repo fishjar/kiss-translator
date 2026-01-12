@@ -25,6 +25,7 @@ const CONTORLS_SELECT = ".ytp-right-controls";
 const YT_CAPTION_SELECT = "#ytp-caption-window-container";
 const YT_AD_SELECT = ".video-ads";
 const YT_SUBTITLE_BTN_SELECT = "button.ytp-subtitles-button";
+const STORAGE_KEY = "kiss-youtube-setting";
 
 class YouTubeCaptionProvider {
   #setting = {};
@@ -48,11 +49,26 @@ class YouTubeCaptionProvider {
   // 新增：字幕列表管理器实例
   #subtitleListManager = null;
 
-  constructor(setting = {}) {
-    this.#setting = { ...setting, isAISegment: false, showOrigin: false };
-    this.#i18n = newI18n(setting.uiLang || "zh");
+  constructor(setting = {}) { 
+    let storedSetting = {};
+    try {
+      storedSetting = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+    } catch (e) {
+      storedSetting = {};
+    }
+ 
+    this.#setting = {
+      isAISegment: false,
+      showOrigin: false,
+      showSideSubtitle: false,
+      ...storedSetting,
+      ...setting,
+    };
+
+    this.#i18n = newI18n(this.#setting.uiLang || "zh");
     this.#menuEventName = genEventName();
   }
+
 
   get #videoId() {
     const docUrl = new URL(document.location.href);
@@ -73,6 +89,13 @@ class YouTubeCaptionProvider {
   }
 
   initialize() {
+    window.addEventListener("kiss-side-subtitle-close", () => {
+      logger.debug("Youtube Provider: side subtitle closed by user");
+      this.updateSetting({
+        name: "showSideSubtitle",
+        value: false,
+      });
+    });
     window.addEventListener("message", (event) => {
       if (event.data?.type === MSG_XHR_DATA_YOUTUBE) {
         const { url, response } = event.data;
@@ -117,6 +140,10 @@ class YouTubeCaptionProvider {
     this.#waitForElement(YT_AD_SELECT, (adContainer) => {
       this.#moAds(adContainer);
     });
+    //初始化时根据setting自动恢复侧边字幕状态
+    if (this.#setting.showSideSubtitle) {
+      this.#toggleSideSubtitle();
+    }
   }
 
   #moAds(adContainer) {
@@ -214,8 +241,73 @@ class YouTubeCaptionProvider {
       this.#reProcessEvents();
     } else if (name === "showOrigin") {
       this.#toggleShowOrigin();
+    } else if (name === "showSideSubtitle") {
+      this.#toggleSideSubtitle();
+    }
+
+    //保存设置
+    try {
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify(this.#setting)
+      );
+    } catch (e) {
+      logger.warn("Youtube Provider: save setting failed", e);
+    }
+
+    window.dispatchEvent(
+      new CustomEvent("kiss-setting-change", {
+        detail: {
+          name,
+          value,
+          setting: { ...this.#setting },
+        },
+      })
+    );
+  }
+
+
+  #toggleSideSubtitle() {
+    if (this.#setting.showSideSubtitle) {
+      this.#openSideSubtitle();
+    } else {
+      this.#closeSideSubtitle();
     }
   }
+  #openSideSubtitle() {
+    if (isMobile) return;
+    if (this.#subtitleListManager) return;
+    if (!this.#subtitles.length) return;
+
+    const videoEl = this.#videoEl;
+    if (!videoEl) return;
+
+    this.#subtitleListManager = new YouTubeSubtitleList(videoEl);
+    this.#subtitleListManager.initialize(this.#subtitles);
+
+    if (this.#managerInstance) {
+      this.#managerInstance.onSubtitleUpdate = (updatedSubtitles) => {
+        this.#subtitleListManager.setBilingualSubtitles(updatedSubtitles);
+      };
+    }
+
+    const bilingualSubtitles = this.#subtitles.map((sub) => ({
+      start: sub.start,
+      end: sub.end,
+      text: sub.text,
+      translation: sub.translation || "",
+    }));
+
+    this.#subtitleListManager.setBilingualSubtitles(bilingualSubtitles);
+    this.#subtitleListManager.turnOnAutoSub();
+  }
+  #closeSideSubtitle() {
+    if (!this.#subtitleListManager) return;
+
+    this.#subtitleListManager.destroy();
+    this.#subtitleListManager = null;
+  }
+
 
   #toggleShowOrigin() {
     if (this.#setting.showOrigin) {
@@ -263,7 +355,7 @@ class YouTubeCaptionProvider {
     toggleButton.appendChild(createLogoSVG());
     kissControls.appendChild(toggleButton);
 
-    const { segApiSetting, isAISegment, skipAd, isBilingual, showOrigin } =
+    const { segApiSetting, isAISegment, skipAd, isBilingual, showOrigin, showSideSubtitle } =
       this.#setting;
     const menu = new ShadowDomManager({
       id: "kiss-subtitle-menus",
@@ -280,7 +372,8 @@ class YouTubeCaptionProvider {
           isAISegment, // AI智能断句
           skipAd, // 快进广告
           isBilingual, // 双语显示
-          showOrigin, // 显示原字幕
+          showOrigin,// 显示原字幕
+          showSideSubtitle,
         },
       },
     });
@@ -546,6 +639,9 @@ class YouTubeCaptionProvider {
       this.#progressed = progressed;
 
       this.#startManager();
+      if (this.#setting.showSideSubtitle) {
+        this.#openSideSubtitle();
+      }
     } catch (error) {
       logger.info("Youtube Provider: process events", error);
       this.#showNotification(this.#i18n("subtitle_load_failed"));
@@ -654,31 +750,32 @@ class YouTubeCaptionProvider {
     // 监听字幕更新事件，将翻译后的字幕传递给字幕列表
     if (
       !isMobile &&
-      this.#setting.isEnhance !== false &&
+      this.#setting.showSideSubtitle &&     // ✅ 用户控制
       !this.#subtitleListManager
     ) {
-      // 初始化字幕列表管理器
-      this.#subtitleListManager = new YouTubeSubtitleList(videoEl);
-      this.#subtitleListManager.initialize(this.#subtitles);
+      this.#openSideSubtitle();
+      // // 初始化字幕列表管理器
+      // this.#subtitleListManager = new YouTubeSubtitleList(videoEl);
+      // this.#subtitleListManager.initialize(this.#subtitles);
 
-      // todo: 将 subtitleListManager 实例传入 managerInstance
-      // 监听字幕更新事件，在字幕翻译完成后更新字幕列表
-      this.#managerInstance.onSubtitleUpdate = (updatedSubtitles) => {
-        this.#subtitleListManager.setBilingualSubtitles(updatedSubtitles);
-      };
+      // // todo: 将 subtitleListManager 实例传入 managerInstance
+      // // 监听字幕更新事件，在字幕翻译完成后更新字幕列表
+      // this.#managerInstance.onSubtitleUpdate = (updatedSubtitles) => {
+      //   this.#subtitleListManager.setBilingualSubtitles(updatedSubtitles);
+      // };
 
-      // 创建包含翻译信息的双语字幕数据（初始可能没有翻译）
-      const bilingualSubtitles = this.#subtitles.map((sub) => ({
-        start: sub.start,
-        end: sub.end,
-        text: sub.text,
-        translation: sub.translation || "",
-      }));
+      // // 创建包含翻译信息的双语字幕数据（初始可能没有翻译）
+      // const bilingualSubtitles = this.#subtitles.map((sub) => ({
+      //   start: sub.start,
+      //   end: sub.end,
+      //   text: sub.text,
+      //   translation: sub.translation || "",
+      // }));
 
-      // 将双语字幕数据传递给字幕列表
-      this.#subtitleListManager.setBilingualSubtitles(bilingualSubtitles);
-      // 启动字幕列表自动滚动
-      this.#subtitleListManager.turnOnAutoSub();
+      // // 将双语字幕数据传递给字幕列表
+      // this.#subtitleListManager.setBilingualSubtitles(bilingualSubtitles);
+      // // 启动字幕列表自动滚动
+      // this.#subtitleListManager.turnOnAutoSub();
     }
 
     this.#managerInstance.start();
@@ -1087,26 +1184,36 @@ class YouTubeCaptionProvider {
 
     logger.info("Youtube Provider: All subtitle chunks processed.");
   }
-
+  //字幕加载的提醒横幅样式
   #createNotificationElement() {
     const notificationEl = document.createElement("div");
     notificationEl.className = "kiss-notification";
     Object.assign(notificationEl.style, {
+      display: "inline-block",
       position: "absolute",
-      top: "40%",
+      bottom: "25%",
       left: "50%",
       transform: "translateX(-50%)",
-      background: "rgba(0,0,0,0.7)",
-      color: "red",
+
+      color: "#69FF69",
+      textShadow: "0 0 8px rgba(57, 255, 20, 0.2)",
+
+      backgroundColor: "rgba(10, 20, 10, 0.3)",
+      backdropFilter: "blur(10px)",
+      WebkitBackdropFilter: "blur(10px)",
+
+      border: "1px solid rgba(57, 255, 20, 0.4)",
+      borderRadius: "12px",
+
       padding: "0.5em 1em",
-      borderRadius: "4px",
       zIndex: "2147483647",
       opacity: "0",
       transition: "opacity 0.3s ease-in-out",
       pointerEvents: "none",
-      fontSize: "2em",
-      width: "50%",
+      fontSize: "1.8em",
       textAlign: "center",
+      fontFamily: "system-ui, -apple-system, 'Segoe UI', monospace",
+      fontWeight: 550
     });
 
     const videoEl = this.#videoEl;
