@@ -37,10 +37,13 @@ const parseCssToObject = (cssString) => {
 };
 
 const objectToCss = (obj) => {
-  return Object.entries(obj)
-    .filter(([, value]) => value !== undefined && value !== "")
-    .map(([key, value]) => `${key}: ${value}`)
-    .join(";\n");
+  const entries = Object.entries(obj).filter(
+    ([, value]) => value !== undefined && value !== ""
+  );
+  if (entries.length === 0) {
+    return "";
+  }
+  return entries.map(([key, value]) => `${key}: ${value}`).join(";\n") + ";";
 };
 
 // 解析 rgba 颜色
@@ -50,9 +53,9 @@ const parseRgba = (rgbaString) => {
   );
   if (match) {
     return {
-      r: parseInt(match[1]),
-      g: parseInt(match[2]),
-      b: parseInt(match[3]),
+      r: parseInt(match[1], 10),
+      g: parseInt(match[2], 10),
+      b: parseInt(match[3], 10),
       a: match[4] !== undefined ? parseFloat(match[4]) : 1,
     };
   }
@@ -63,7 +66,14 @@ const parseRgba = (rgbaString) => {
 const rgbToHex = (r, g, b) => {
   return (
     "#" +
-    [r, g, b].map((x) => x.toString(16).padStart(2, "0")).join("")
+    [r, g, b]
+      .map((x) => {
+        let v = Number(x);
+        if (Number.isNaN(v)) v = 0;
+        v = Math.min(255, Math.max(0, Math.round(v)));
+        return v.toString(16).padStart(2, "0");
+      })
+      .join("")
   );
 };
 
@@ -93,7 +103,6 @@ const parseFontSize = (fontSizeStr) => {
       preferred: parseFloat(clampMatch[3]),
       max: parseFloat(clampMatch[5]),
       unit: clampMatch[2],
-      preferredUnit: clampMatch[4],
     };
   }
 
@@ -151,11 +160,13 @@ function StyleVisualEditor({ label, cssValue, onChange, type }) {
 
   const updateCss = useCallback(
     (key, value) => {
-      const newObj = { ...cssObj, [key]: value };
-      setCssObj(newObj);
-      onChange(objectToCss(newObj));
+      setCssObj((prevCssObj) => {
+        const newObj = { ...prevCssObj, [key]: value };
+        onChange(objectToCss(newObj));
+        return newObj;
+      });
     },
-    [cssObj, onChange]
+    [onChange]
   );
 
   // 原文/译文样式 - 主要是 font-size
