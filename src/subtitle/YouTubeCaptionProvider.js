@@ -49,8 +49,13 @@ class YouTubeCaptionProvider {
   #subtitleListManager = null;
 
   constructor(setting = {}) {
-    // 如果设置页面已配置 AI 断句服务 (segSlug !== "-")，则默认启用 AI 断句
-    const defaultIsAISegment = setting.segSlug && setting.segSlug !== "-";
+    // 优先从 localStorage 读取 AI 断句开关状态
+    const storedAISegment = localStorage.getItem("KISST_YT_isAISegment");
+    // 如果 localStorage 中有值，则使用存储的值；否则检查设置页面是否配置了 AI 断句服务
+    const defaultIsAISegment = storedAISegment !== null
+      ? storedAISegment === "true"
+      : (setting.segSlug && setting.segSlug !== "-");
+
     this.#setting = { ...setting, isAISegment: defaultIsAISegment, showOrigin: false };
     this.#i18n = newI18n(setting.uiLang || "zh");
     this.#menuEventName = genEventName();
@@ -94,8 +99,12 @@ class YouTubeCaptionProvider {
       this.#flatEvents = [];
       this.#progressed = 0;
       this.#fromLang = "auto";
-      // 保持用户在设置页面配置的 AI 断句设置
-      const defaultIsAISegment = this.#setting.segSlug && this.#setting.segSlug !== "-";
+      // 恢复 AI 断句开关状态
+      const storedAISegment = localStorage.getItem("KISST_YT_isAISegment");
+      const defaultIsAISegment = storedAISegment !== null
+        ? storedAISegment === "true"
+        : (this.#setting.segSlug && this.#setting.segSlug !== "-");
+
       this.#setting.isAISegment = defaultIsAISegment;
       this.#sendMenusMsg({
         action: MSG_MENUS_UPDATEFORM,
@@ -215,6 +224,8 @@ class YouTubeCaptionProvider {
     if (name === "isBilingual") {
       this.#managerInstance?.updateSetting({ [name]: value });
     } else if (name === "isAISegment") {
+      // 保存状态到 localStorage
+      localStorage.setItem("KISST_YT_isAISegment", value);
       this.#reProcessEvents();
     } else if (name === "showOrigin") {
       this.#toggleShowOrigin();
