@@ -1007,9 +1007,14 @@ class YouTubeCaptionProvider {
 
       let shouldSplit = false;
 
-      if (currentChunkTextLength >= MAX_CHUNK_LENGTH) {
+      // 优化：首个分块强制使用较小的长度，以便快速显示结果
+      const FIRST_CHUNK_LENGTH = 500;
+      const currentTargetLength = (eventChunks.length === 0) ? Math.min(chunkLength, FIRST_CHUNK_LENGTH) : chunkLength;
+      const currentMaxLength = currentTargetLength + 500;
+
+      if (currentChunkTextLength >= currentMaxLength) {
         shouldSplit = true;
-      } else if (currentChunkTextLength >= chunkLength) {
+      } else if (currentChunkTextLength >= currentTargetLength) {
         const isEndOfSentence = /[.?!…\])]$/.test(event.text);
         const nextEvent = flatEvents[i + 1];
         const pauseDuration = nextEvent.start - event.end;
