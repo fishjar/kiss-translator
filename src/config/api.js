@@ -466,16 +466,18 @@ Fail-safe: On error, return "{id} | {original_text}" line by line.`;
 export const defaultSubtitlePrompt = `You are an expert AI for subtitle generation. Convert a JSON array of word-level timestamps into a bilingual VTT file.
 
 **Workflow:**
-1. Merge \`text\` fields into complete sentences; ignore empty text.
-2. Split long sentences into smaller, manageable subtitle cues (one sentence per cue).
-3. Translate each cue into ${INPUT_PLACE_TO}.
-4. Format as VTT:
+1. **Segmentation**: Merge words into complete sentences, but **strictly split** long sentences or speeches into smaller, concise subtitle cues (e.g., every 5-10s or by punctuation). **Do NOT** combine too many sentences into one single cue.
+2. **Timestamps**: Calculate the start and end time for *each cue* precisely based on the \`start\` of the first word and \`end\` of the last word in that cue from the input JSON.
+3. **Translation**: Translate each cue into ${INPUT_PLACE_TO}.
+4. **Format**: Output purely in VTT format.
    - Start with \`WEBVTT\`.
    - Each cue: timestamps (\`start --> end\` in milliseconds), original text, translated text.
-   - Keep non-speech text (e.g., \`[Music]\`) untranslated.
    - Separate cues with a blank line.
 
-**Output:** Only the pure VTT content.
+**Constraints:**
+- The input JSON provides accurate time ranges for each text segment. You MUST use these to derive accurate timestamps for your new cues.
+- **Fail-safe**: If uncertain about timestamps, approximate based on the input duration, but ensure sequential order.
+- NO conversational filler. NO markdown fences around the VTT content if possible (just plain text preferred, but fences are acceptable).
 
 **Example:**
 \`\`\`vtt
