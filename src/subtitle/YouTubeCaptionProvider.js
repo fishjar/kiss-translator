@@ -49,14 +49,7 @@ class YouTubeCaptionProvider {
   #subtitleListManager = null;
 
   constructor(setting = {}) {
-    // 优先从 localStorage 读取 AI 断句开关状态
-    const storedAISegment = localStorage.getItem("KISST_YT_isAISegment");
-    // 如果 localStorage 中有值，则使用存储的值；否则检查设置页面是否配置了 AI 断句服务
-    const defaultIsAISegment = storedAISegment !== null
-      ? storedAISegment === "true"
-      : (setting.segSlug && setting.segSlug !== "-");
-
-    this.#setting = { ...setting, isAISegment: defaultIsAISegment, showOrigin: false };
+    this.#setting = { ...setting, isAISegment: false, showOrigin: false };
     this.#i18n = newI18n(setting.uiLang || "zh");
     this.#menuEventName = genEventName();
   }
@@ -99,16 +92,10 @@ class YouTubeCaptionProvider {
       this.#flatEvents = [];
       this.#progressed = 0;
       this.#fromLang = "auto";
-      // 恢复 AI 断句开关状态
-      const storedAISegment = localStorage.getItem("KISST_YT_isAISegment");
-      const defaultIsAISegment = storedAISegment !== null
-        ? storedAISegment === "true"
-        : (this.#setting.segSlug && this.#setting.segSlug !== "-");
-
-      this.#setting.isAISegment = defaultIsAISegment;
+      this.#setting.isAISegment = false;
       this.#sendMenusMsg({
         action: MSG_MENUS_UPDATEFORM,
-        data: { isAISegment: defaultIsAISegment },
+        data: { isAISegment: false },
       });
     });
 
@@ -224,8 +211,6 @@ class YouTubeCaptionProvider {
     if (name === "isBilingual") {
       this.#managerInstance?.updateSetting({ [name]: value });
     } else if (name === "isAISegment") {
-      // 保存状态到 localStorage
-      localStorage.setItem("KISST_YT_isAISegment", value);
       this.#reProcessEvents();
     } else if (name === "showOrigin") {
       this.#toggleShowOrigin();
@@ -1007,14 +992,9 @@ class YouTubeCaptionProvider {
 
       let shouldSplit = false;
 
-      // 优化：首个分块强制使用较小的长度，以便快速显示结果
-      const FIRST_CHUNK_LENGTH = 500;
-      const currentTargetLength = (eventChunks.length === 0) ? Math.min(chunkLength, FIRST_CHUNK_LENGTH) : chunkLength;
-      const currentMaxLength = currentTargetLength + 500;
-
-      if (currentChunkTextLength >= currentMaxLength) {
+      if (currentChunkTextLength >= MAX_CHUNK_LENGTH) {
         shouldSplit = true;
-      } else if (currentChunkTextLength >= currentTargetLength) {
+      } else if (currentChunkTextLength >= chunkLength) {
         const isEndOfSentence = /[.?!…\])]$/.test(event.text);
         const nextEvent = flatEvents[i + 1];
         const pauseDuration = nextEvent.start - event.end;
