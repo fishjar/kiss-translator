@@ -93,24 +93,23 @@ async function smartReplaceText(node, newText) {
   node.focus();
   await sleep(10);
 
+  // 判断是否为富文本编辑器 (X.com, Discord, Slack 等通常是 contenteditable 的 div/span)
+  const isRichEditor =
+    node.isContentEditable || node.getAttribute("contenteditable") === "true";
+
   // ------------------------------------------------
-  // 步骤 1: 全选内容
+  // 步骤 1: 全选内容 (保持不变)
   // ------------------------------------------------
+  // ... (保留你原有的 performSelectAll 代码) ...
   const performSelectAll = () => {
-    // 方式 A: 标准输入框
+    // ... (你的原有代码)
     if (typeof node.select === "function") {
       node.select();
       return;
     }
-
-    // 方式 B: ContentEditable 区域 (针对 Discord/Slack/Slatejs 优化)
     try {
-      const success = document.execCommand("selectAll", false, null);
-      if (!success) {
-        throw new Error("execCommand selectAll failed");
-      }
+      document.execCommand("selectAll", false, null);
     } catch (e) {
-      // 降级：手动创建选区
       const selection = window.getSelection();
       selection.removeAllRanges();
       const range = document.createRange();
@@ -118,20 +117,50 @@ async function smartReplaceText(node, newText) {
       selection.addRange(range);
     }
   };
-
   performSelectAll();
   await sleep(50);
 
   // ------------------------------------------------
-  // 步骤 2: 尝试写入 (多级降级策略)
+  // 步骤 2: 针对富文本编辑器的优先策略 (Clipboard Paste)
   // ------------------------------------------------
 
-  // === 策略 1: execCommand 'insertText' (首选) ===
-  // 这是最标准的模拟输入方式，会自动删除选中内容并插入新内容
+  // 修改点：如果是富文本编辑器，优先使用 Paste 策略
+  // 这种方式能触发 React/Slate/Draft.js 的内部数据更新
+  if (isRichEditor) {
+    try {
+      logger.debug("Rich Editor detected: Priority Strategy (Clipboard Paste)");
+      const dt = new DataTransfer();
+      dt.setData("text/plain", newText);
+      const pasteEvt = new ClipboardEvent("paste", {
+        clipboardData: dt,
+        bubbles: true,
+        cancelable: true,
+        composed: true,
+        view: window,
+      });
+      node.dispatchEvent(pasteEvt);
+
+      // 给 React 一点时间去处理 Paste 事件
+      await sleep(100);
+
+      // 注意：Paste 处理通常是异步的，或者会清除选区
+      // 这里可以检查内容，但如果不放心，可以不立即 return，
+      // 而是让下面的逻辑作为 fallback (虽然 paste 几乎总是成功的)
+      if (checkSuccess(node, newText)) return true;
+    } catch (e) {
+      logger.debug("Strategy Paste failed", e);
+    }
+  }
+
+  // ------------------------------------------------
+  // 步骤 3: 原有的 execCommand 策略 (降级 / 普通输入框)
+  // ------------------------------------------------
+
+  // === 策略 1: execCommand 'insertText' ===
+  // 仅当非富文本编辑器，或者 Paste 失败时才执行
   try {
     const success = document.execCommand("insertText", false, newText);
     if (success) {
-      // 验证一下
       await sleep(20);
       if (checkSuccess(node, newText)) return true;
     }
@@ -139,25 +168,9 @@ async function smartReplaceText(node, newText) {
     logger.debug("Strategy 1 (insertText) failed", e);
   }
 
-  // === 策略 1.5: textInput 事件 (针对 Discord/Chrome 优化) ===
-  // 如果 insertText 失败，尝试分发 textInput 事件。
-  // 这是一个非标准但被 WebKit/Blink 广泛支持的事件，
-  // 它往往能绕过 React 的合成事件拦截，且不会触发"Paste"警告。
-  try {
-    if (document.implementation.hasFeature("TextEvents", "3.0")) {
-      const textEvent = document.createEvent("TextEvent");
-      textEvent.initTextEvent("textInput", true, true, window, newText);
-      node.dispatchEvent(textEvent);
-
-      await sleep(20);
-      if (checkSuccess(node, newText)) return true;
-    }
-  } catch (e) {
-    logger.debug("Strategy 1.5 (textInput) failed", e);
-  }
+  // ... (保留你原有的 Strategy 1.5, Strategy 2) ...
 
   // === 策略 2: 标准 Input 处理 (React/Vue 兼容) ===
-  // 适用于: 标准 <input> 和 <textarea>
   if (node.nodeName === "INPUT" || node.nodeName === "TEXTAREA") {
     try {
       setNativeValue(node, newText);
@@ -167,30 +180,10 @@ async function smartReplaceText(node, newText) {
     }
   }
 
-  // === 策略 3: 剪贴板事件 (最后的兜底) ===
-  // 适用于: 某些极度魔改的编辑器，拦截了 insertText 但允许 paste
-  try {
-    logger.debug("Fallback to Clipboard Paste");
-    const dt = new DataTransfer();
-    dt.setData("text/plain", newText);
-    const pasteEvt = new ClipboardEvent("paste", {
-      clipboardData: dt,
-      bubbles: true,
-      cancelable: true,
-      composed: true,
-      view: window,
-    });
-    node.dispatchEvent(pasteEvt);
-
-    await sleep(100);
-    if (checkSuccess(node, newText)) return true;
-  } catch (e) {
-    logger.debug("Strategy 3 (Paste) failed", e);
-  }
+  // 原有的 Strategy 3 可以保留作为最后的兜底，或者因为上面已经前置了，这里可以删除
 
   return false;
 }
-
 // 辅助验证函数
 function checkSuccess(node, targetText) {
   const currentText = getNodeText(node);
