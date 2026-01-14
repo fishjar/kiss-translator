@@ -46,9 +46,6 @@ function isEditableTarget(node) {
   ) {
     return true;
   }
-
-  // 3. 特殊处理：有些编辑器(如CodeMirror)本身没有 contenteditable，但在其内部
-  // 这种情况通常由 getDeepActiveElement 解决，但做个双重保险
   return false;
 }
 
@@ -98,11 +95,9 @@ async function smartReplaceText(node, newText) {
     node.isContentEditable || node.getAttribute("contenteditable") === "true";
 
   // ------------------------------------------------
-  // 步骤 1: 全选内容 (保持不变)
+  // 步骤 1: 全选内容
   // ------------------------------------------------
-  // ... (保留你原有的 performSelectAll 代码) ...
   const performSelectAll = () => {
-    // ... (你的原有代码)
     if (typeof node.select === "function") {
       node.select();
       return;
@@ -123,9 +118,6 @@ async function smartReplaceText(node, newText) {
   // ------------------------------------------------
   // 步骤 2: 针对富文本编辑器的优先策略 (Clipboard Paste)
   // ------------------------------------------------
-
-  // 修改点：如果是富文本编辑器，优先使用 Paste 策略
-  // 这种方式能触发 React/Slate/Draft.js 的内部数据更新
   if (isRichEditor) {
     try {
       logger.debug("Rich Editor detected: Priority Strategy (Clipboard Paste)");
@@ -143,9 +135,6 @@ async function smartReplaceText(node, newText) {
       // 给 React 一点时间去处理 Paste 事件
       await sleep(100);
 
-      // 注意：Paste 处理通常是异步的，或者会清除选区
-      // 这里可以检查内容，但如果不放心，可以不立即 return，
-      // 而是让下面的逻辑作为 fallback (虽然 paste 几乎总是成功的)
       if (checkSuccess(node, newText)) return true;
     } catch (e) {
       logger.debug("Strategy Paste failed", e);
@@ -155,9 +144,6 @@ async function smartReplaceText(node, newText) {
   // ------------------------------------------------
   // 步骤 3: 原有的 execCommand 策略 (降级 / 普通输入框)
   // ------------------------------------------------
-
-  // === 策略 1: execCommand 'insertText' ===
-  // 仅当非富文本编辑器，或者 Paste 失败时才执行
   try {
     const success = document.execCommand("insertText", false, newText);
     if (success) {
@@ -167,8 +153,6 @@ async function smartReplaceText(node, newText) {
   } catch (e) {
     logger.debug("Strategy 1 (insertText) failed", e);
   }
-
-  // ... (保留你原有的 Strategy 1.5, Strategy 2) ...
 
   // === 策略 2: 标准 Input 处理 (React/Vue 兼容) ===
   if (node.nodeName === "INPUT" || node.nodeName === "TEXTAREA") {
@@ -180,14 +164,12 @@ async function smartReplaceText(node, newText) {
     }
   }
 
-  // 原有的 Strategy 3 可以保留作为最后的兜底，或者因为上面已经前置了，这里可以删除
-
   return false;
 }
+
 // 辅助验证函数
 function checkSuccess(node, targetText) {
   const currentText = getNodeText(node);
-  // 只要包含了目标文本，就算成功 (避免因为前后空格导致判断失败)
   return currentText.includes(targetText.trim());
 }
 
@@ -238,15 +220,29 @@ export class InputTranslator {
   #isEnabled = false;
   #triggerShortcut;
 
+  // 状态管理
+  #activeInput = null; // 当前获得焦点的输入框
+  #floatBtn = null; // 悬浮按钮 DOM
+  #resizeObserver = null; // 监听输入框尺寸变化
+  #blurTimer = null; // 存储失焦隐藏的定时器 ID
+
+  // 绑定的事件处理函数
+  #boundFocusIn;
+  #boundFocusOut;
+  #boundUpdatePos;
+
   constructor({ inputRule = DEFAULT_INPUT_RULE, transApis = [] } = {}) {
     this.#config = { inputRule, transApis };
 
-    // 初始化快捷键配置
     const { triggerShortcut: initialTriggerShortcut } = this.#config.inputRule;
     this.#triggerShortcut =
       initialTriggerShortcut && initialTriggerShortcut.length > 0
         ? initialTriggerShortcut
         : DEFAULT_INPUT_SHORTCUT;
+
+    this.#boundFocusIn = this.handleFocusIn.bind(this);
+    this.#boundFocusOut = this.handleFocusOut.bind(this);
+    this.#boundUpdatePos = this.updateBtnPosition.bind(this);
 
     if (this.#config.inputRule.transOpen) {
       this.enable();
@@ -254,8 +250,9 @@ export class InputTranslator {
   }
 
   enable() {
-    if (this.#isEnabled || !this.#config.inputRule.transOpen) return;
+    if (this.#isEnabled) return; // 避免重复开启
 
+    // 1. 注册快捷键
     const { triggerCount, triggerTime } = this.#config.inputRule;
     this.#unregisterShortcut = stepShortcutRegister(
       this.#triggerShortcut,
@@ -264,16 +261,48 @@ export class InputTranslator {
       triggerTime
     );
 
+    // 2. 注册 DOM 监听
+    document.addEventListener("focusin", this.#boundFocusIn);
+    document.addEventListener("focusout", this.#boundFocusOut);
+    window.addEventListener("scroll", this.#boundUpdatePos, true);
+    window.addEventListener("resize", this.#boundUpdatePos);
+
     this.#isEnabled = true;
+
+    // [修复问题2-B]：开启时，如果当前焦点已经在输入框内，立即触发逻辑
+    const currentFocus = getDeepActiveElement();
+    if (isEditableTarget(currentFocus)) {
+      this.handleFocusIn();
+    }
+
     logger.info("Input Translator enabled.");
   }
 
   disable() {
     if (!this.#isEnabled) return;
+
+    // 1. 移除快捷键
     if (this.#unregisterShortcut) {
       this.#unregisterShortcut();
       this.#unregisterShortcut = null;
     }
+
+    // 2. 移除 DOM 监听
+    document.removeEventListener("focusin", this.#boundFocusIn);
+    document.removeEventListener("focusout", this.#boundFocusOut);
+    window.removeEventListener("scroll", this.#boundUpdatePos, true);
+    window.removeEventListener("resize", this.#boundUpdatePos);
+
+    // 3. 清理 UI 和 观察器
+    // [修复问题2-A]：彻底销毁 DOM，防止僵尸状态
+    this.removeFloatButton();
+
+    if (this.#resizeObserver) {
+      this.#resizeObserver.disconnect();
+      this.#resizeObserver = null;
+    }
+    this.#activeInput = null;
+
     this.#isEnabled = false;
     logger.info("Input Translator disabled.");
   }
@@ -282,13 +311,164 @@ export class InputTranslator {
     this.#isEnabled ? this.disable() : this.enable();
   }
 
-  async handleTranslate() {
+  // ============================
+  // UI 交互事件处理
+  // ============================
+
+  handleFocusIn() {
+    // [修复问题2-C]：如果刚刚触发了 blur 延时还没执行，立刻清除它，防止按钮闪现后消失
+    if (this.#blurTimer) {
+      clearTimeout(this.#blurTimer);
+      this.#blurTimer = null;
+    }
+
+    const target = getDeepActiveElement();
+    if (isEditableTarget(target)) {
+      this.#activeInput = target;
+
+      if (this.#resizeObserver) this.#resizeObserver.disconnect();
+      this.#resizeObserver = new ResizeObserver(() => this.updateBtnPosition());
+      this.#resizeObserver.observe(target);
+
+      this.showFloatButton(target);
+    }
+  }
+
+  handleFocusOut() {
+    // 延时处理，因为点击按钮时会短暂触发 blur
+    this.#blurTimer = setTimeout(() => {
+      const newFocus = getDeepActiveElement();
+      // 如果焦点转移到了我们的按钮上，或者还在原输入框（某些特殊情况），则不隐藏
+      if (
+        newFocus !== this.#activeInput &&
+        !this.#floatBtn?.contains(newFocus)
+      ) {
+        this.hideFloatButton();
+        this.#activeInput = null;
+        if (this.#resizeObserver) {
+          this.#resizeObserver.disconnect();
+          this.#resizeObserver = null;
+        }
+      }
+    }, 150);
+  }
+
+  // [修复问题1]：使用参数 inputNode 确保逻辑闭环
+  showFloatButton(inputNode) {
+    if (!this.#isEnabled) return;
+
+    // 确保 activeInput 与传入的节点一致
+    this.#activeInput = inputNode;
+
+    // 创建按钮 DOM (如果不存在)
+    if (!this.#floatBtn) {
+      this.createFloatButtonDOM();
+    }
+
+    this.#floatBtn.style.display = "flex";
+    this.updateBtnPosition();
+  }
+
+  // 将创建逻辑抽离，保持代码整洁
+  createFloatButtonDOM() {
+    this.#floatBtn = document.createElement("div");
+    // ... 样式代码保持不变 ...
+    this.#floatBtn.style.cssText = `
+        position: fixed;
+        width: 30px; height: 30px;
+        background: #209CEE;
+        border-radius: 50%;
+        z-index: 2147483647;
+        cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        transition: opacity 0.2s;
+        font-size: 12px; color: white;
+        user-select: none; -webkit-user-select: none;
+      `;
+    this.#floatBtn.innerText = "译";
+
+    const preventFocusLoss = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+    // 这里的监听器随 DOM 销毁而销毁，无需手动 removeEventListener
+    this.#floatBtn.addEventListener("mousedown", preventFocusLoss);
+    this.#floatBtn.addEventListener("touchstart", preventFocusLoss, {
+      passive: false,
+    });
+
+    this.#floatBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (this.#activeInput) this.#activeInput.focus();
+      this.handleTranslate({ isBtnTrigger: true });
+    });
+
+    document.body.appendChild(this.#floatBtn);
+  }
+
+  // 仅仅隐藏（失焦时用）
+  hideFloatButton() {
+    if (this.#floatBtn) {
+      this.#floatBtn.style.display = "none";
+    }
+  }
+
+  // 彻底移除（禁用时用）
+  removeFloatButton() {
+    if (this.#floatBtn) {
+      this.#floatBtn.remove(); // 从 DOM 删除
+      this.#floatBtn = null; // 清空引用
+    }
+  }
+
+  updateBtnPosition() {
+    // 增加对 activeInput 是否还在文档中的检查
+    if (
+      !this.#activeInput ||
+      !this.#activeInput.isConnected || // 检查元素是否已被移除
+      !this.#floatBtn ||
+      this.#floatBtn.style.display === "none"
+    ) {
+      // 如果输入框都不在了，直接隐藏按钮
+      if (this.#floatBtn) this.hideFloatButton();
+      return;
+    }
+
+    const rect = this.#activeInput.getBoundingClientRect();
+    // ... 位置计算逻辑保持不变 ...
+    const btnSize = 30;
+    const padding = 5;
+    let top = rect.bottom - btnSize - padding;
+    let left = rect.right - btnSize - padding;
+
+    if (rect.height < 60) top = rect.top - btnSize - 2;
+    if (left + btnSize > window.innerWidth)
+      left = window.innerWidth - btnSize - 2;
+    if (top + btnSize > window.innerHeight)
+      top = window.innerHeight - btnSize - 2;
+
+    this.#floatBtn.style.top = `${top}px`;
+    this.#floatBtn.style.left = `${left}px`;
+  }
+
+  // ============================
+  // 核心业务：翻译处理
+  // ============================
+
+  /**
+   * 执行翻译逻辑
+   * @param {Object} options
+   * @param {boolean} options.isBtnTrigger 是否由悬浮按钮触发
+   */
+  async handleTranslate({ isBtnTrigger = false } = {}) {
     logger.debug("handle input translate");
 
-    // 1. 获取真正的焦点元素 (关键修改)
+    // 1. 获取真正的焦点元素
     const node = getDeepActiveElement();
 
-    // 2. 检查节点是否支持 (关键修改)
+    // 2. 检查节点是否支持
     if (!node || !isEditableTarget(node)) {
       logger.debug("Active node is not editable");
       return;
@@ -301,7 +481,9 @@ export class InputTranslator {
     let initText = getNodeText(node);
 
     // 4. 处理触发字符逻辑
+    // 修改：仅当非按钮触发（即键盘快捷键触发）时，才移除末尾的触发符
     if (
+      !isBtnTrigger &&
       this.#triggerShortcut.length === 1 &&
       this.#triggerShortcut[0].length === 1
     ) {
@@ -321,7 +503,14 @@ export class InputTranslator {
       if (res) {
         let lang = res[1];
         // 简写映射
-        const langMap = { zh: "zh-CN", cn: "zh-CN", tw: "zh-TW", hk: "zh-TW" };
+        const langMap = {
+          zh: "zh-CN",
+          cn: "zh-CN",
+          tw: "zh-TW",
+          hk: "zh-TW",
+          jp: "ja",
+          kr: "ko",
+        };
         if (langMap[lang.toLowerCase()]) lang = langMap[lang.toLowerCase()];
 
         if (lang && OPT_LANGS_LIST.includes(lang)) {
@@ -339,6 +528,7 @@ export class InputTranslator {
 
     try {
       addLoading(node, loadingId);
+      this.hideFloatButton(); // 翻译期间隐藏按钮
 
       // 调用翻译 API
       const { trText, isSame } = await apiTranslate({
@@ -355,12 +545,15 @@ export class InputTranslator {
       const success = await smartReplaceText(node, newText);
       if (!success) {
         logger.warn("Text replacement failed after all strategies.");
-        // 这里可以考虑显示一个 Toast 提示用户手动粘贴
       }
     } catch (err) {
       logger.error("Translate input error:", err);
     } finally {
       removeLoading(loadingId);
+      // 恢复显示按钮
+      if (this.#activeInput === node) {
+        this.showFloatButton(node);
+      }
     }
   }
 
