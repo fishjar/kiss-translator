@@ -698,6 +698,8 @@ class YouTubeCaptionProvider {
   }
 
   #destroyManager() {
+    this.#showYtCaption();
+
     if (!this.#managerInstance) {
       return;
     }
@@ -706,8 +708,6 @@ class YouTubeCaptionProvider {
 
     this.#managerInstance.destroy();
     this.#managerInstance = null;
-
-    this.#showYtCaption();
 
     // 销毁字幕列表
     if (this.#subtitleListManager) {
