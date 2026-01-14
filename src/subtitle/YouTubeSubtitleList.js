@@ -253,7 +253,7 @@ export class YouTubeSubtitleList {
       // 将容器插入到 YouTube 页面右侧栏 (secondary) 的顶部
       const secondary = document.getElementById("secondary");
       if (secondary) secondary.prepend(this.container);
-      
+
       (async () => {
         try {
           const setting = await getSettingWithDefault();
@@ -324,6 +324,40 @@ export class YouTubeSubtitleList {
       tab.style.cssText = `padding: 12px 16px; cursor: pointer; border: none; background: transparent; font-size: 15px; font-weight: ${isActive ? "600" : "500"}; color: ${isActive ? "var(--kt-primary)" : "var(--kt-text)"}; border-bottom: 2px solid ${isActive ? "var(--kt-primary)" : "transparent"}; margin-bottom: -1px; outline: none;`;
     };
 
+    const closeBtn = document.createElement("button");
+    closeBtn.innerHTML = "&times;"; // 使用 HTML 实体 ×
+    closeBtn.title = "Close";
+
+    // 关键样式：margin-left: auto 将按钮推到最右侧
+    closeBtn.style.cssText = `
+      margin-left: auto; 
+      background: transparent; 
+      border: none; 
+      color: var(--kt-subtext); 
+      font-size: 22px; 
+      line-height: 1;
+      cursor: pointer; 
+      padding: 0 8px;
+      display: flex;
+      align-items: center;
+      transition: color 0.2s;
+    `;
+
+    // 绑定销毁事件
+    closeBtn.addEventListener("click", () => {
+      this.destroy(); // 使用 destroy() 可以彻底清理 DOM、定时器和事件监听
+    });
+
+    //简单的 Hover 效果
+    closeBtn.addEventListener(
+      "mouseenter",
+      () => (closeBtn.style.color = "var(--kt-text)")
+    );
+    closeBtn.addEventListener(
+      "mouseleave",
+      () => (closeBtn.style.color = "var(--kt-subtext)")
+    );
+
     // --- Content Area ---
     const tabContentContainer = document.createElement("div");
     // 【修改点 1】这里改为 overflow: hidden，不再让外层滚动
@@ -342,7 +376,7 @@ export class YouTubeSubtitleList {
     const downloadBtn = document.createElement("button");
     downloadBtn.textContent = "下载字幕 (VTT)";
     downloadBtn.style.cssText = `padding: 6px 12px; background: var(--kt-btn-bg); color: var(--kt-btn-color); border: var(--kt-btn-border); border-radius: 4px; cursor: pointer; font-size: 12px; transition: background 220ms ease, color 200ms ease, transform 160ms ease;`;
-    
+
     downloadBtn.addEventListener("mouseenter", () => {
       try {
         const hover = getComputedStyle(this.container).getPropertyValue(
@@ -350,8 +384,7 @@ export class YouTubeSubtitleList {
         );
         if (hover) downloadBtn.style.background = hover;
         downloadBtn.style.transform = "translateY(-1px)";
-      } catch (e) {
-      }
+      } catch (e) {}
     });
     downloadBtn.addEventListener("mouseleave", () => {
       try {
@@ -360,8 +393,7 @@ export class YouTubeSubtitleList {
         );
         if (normal) downloadBtn.style.background = normal;
         downloadBtn.style.transform = "translateY(0)";
-      } catch (e) {
-      }
+      } catch (e) {}
     });
     downloadBtn.addEventListener("click", this.downloadSubtitles.bind(this));
 
@@ -406,7 +438,7 @@ export class YouTubeSubtitleList {
     styleTab(subtitleTab, true);
     styleTab(vocabularyTab, false);
 
-    tabHeader.append(subtitleTab, vocabularyTab);
+    tabHeader.append(subtitleTab, vocabularyTab, closeBtn);
     tabContentContainer.append(this.subtitleListEl, this.vocabularyListEl);
     this.container.append(tabHeader, tabContentContainer);
   }
