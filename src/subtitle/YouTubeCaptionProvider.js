@@ -312,22 +312,29 @@ class YouTubeCaptionProvider {
   }
 
   // todo: 优化逻辑
-  #findCaptionTrack(captionTracks) {
+  #findCaptionTrack(captionTracks, lang) {
+    logger.debug("Youtube Provider: find caption track", {
+      captionTracks,
+      lang,
+    });
+
     if (!captionTracks?.length) {
       return null;
     }
 
-    let captionTrack = null;
-
-    const asrTrack = captionTracks.find((item) => item.kind === "asr");
-    if (asrTrack) {
-      captionTrack = captionTracks.find(
-        (item) =>
-          item.kind !== "asr" &&
-          this.#isSameLang(item.languageCode, asrTrack.languageCode)
-      );
-      if (!captionTrack) {
-        captionTrack = asrTrack;
+    // 优先返回用户选择的字幕轨
+    let captionTrack = captionTracks.find((item) => item.languageCode === lang);
+    if (!captionTrack) {
+      const asrTrack = captionTracks.find((item) => item.kind === "asr");
+      if (asrTrack) {
+        captionTrack = captionTracks.find(
+          (item) =>
+            item.kind !== "asr" &&
+            this.#isSameLang(item.languageCode, asrTrack.languageCode)
+        );
+        if (!captionTrack) {
+          captionTrack = asrTrack;
+        }
       }
     }
 
@@ -449,9 +456,14 @@ class YouTubeCaptionProvider {
       return;
     }
 
+    const lang = potUrl.searchParams.get("lang");
+    const fromLang = this.#getFromLang(lang);
     if (this.#flatEvents.length) {
-      logger.debug("Youtube Provider: video was processed:", videoId);
-      return;
+      if (this.#isSameLang(lang, this.#fromLang)) {
+        logger.debug("Youtube Provider: video was processed:", videoId);
+        return;
+      }
+      this.#destroyManager();
     }
 
     if (videoId === this.#processingId) {
@@ -466,7 +478,7 @@ class YouTubeCaptionProvider {
 
       const { toLang } = this.#setting;
       const captionTracks = await this.#getCaptionTracks(videoId);
-      const captionTrack = this.#findCaptionTrack(captionTracks);
+      const captionTrack = this.#findCaptionTrack(captionTracks, lang);
       if (!captionTrack) {
         logger.debug("Youtube Provider: CaptionTrack not found:", videoId);
         return;
@@ -482,9 +494,6 @@ class YouTubeCaptionProvider {
         logger.debug("Youtube Provider: events not got:", videoId);
         return;
       }
-
-      const lang = potUrl.searchParams.get("lang");
-      const fromLang = this.#getFromLang(lang);
 
       logger.debug(
         `Youtube Provider: lang: ${lang}, fromLang: ${fromLang}, toLang: ${toLang}`
