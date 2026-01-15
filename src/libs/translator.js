@@ -872,9 +872,19 @@ export class Translator {
     }
 
     rootNode.querySelectorAll(this.#rule.selector).forEach((node) => {
-      if (!node.closest?.(this.#ignoreSelector)) {
-        this.#startObserveNode(node);
+      if (node.closest?.(this.#ignoreSelector)) {
+        return;
       }
+
+      // 如果是内联元素，且有祖先也匹配选择器，则跳过（避免重复翻译）
+      if (!Translator.isBlockNode(node)) {
+        const ancestor = node.parentElement?.closest?.(this.#rule.selector);
+        if (ancestor && !ancestor.matches?.(this.#ignoreSelector)) {
+          return;
+        }
+      }
+
+      this.#startObserveNode(node);
     });
   }
 
