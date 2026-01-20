@@ -46,7 +46,7 @@ export default function Popup() {
   const i18n = useI18n();
   const [rule, setRule] = useState(null);
   const [setting, setSetting] = useState(null);
-  const [showTrantab, setShowTrantab] = useState(false);
+  const [showTrantab, setShowTrantab] = useState(true);
   const [isSeparate, setIsSeparate] = useState(false);
 
   const handleOpenSetting = useCallback(() => {

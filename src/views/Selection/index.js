@@ -10,6 +10,7 @@ import {
   OPT_TRANBOX_TRIGGER_CLICK,
   OPT_TRANBOX_TRIGGER_HOVER,
   OPT_TRANBOX_TRIGGER_SELECT,
+  OPT_TRANBOX_TRIGGER_CTRL_SELECT,
   EVENT_KISS_INNER,
 } from "../../config";
 import { APP_CONSTS } from "../../config";
@@ -272,6 +273,11 @@ export default function Slection({
       }
 
       if (triggerMode === OPT_TRANBOX_TRIGGER_SELECT) {
+        handleTrigger(selectedText);
+        return;
+      }
+
+      if (triggerMode === OPT_TRANBOX_TRIGGER_CTRL_SELECT && e.ctrlKey) {
         handleTrigger(selectedText);
         return;
       }

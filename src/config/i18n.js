@@ -1859,6 +1859,13 @@ export const I18N = {
     ja: `選択トリガー`,
     ko: `선택 트리거`,
   },
+  trigger_ctrl_select: {
+    zh: `CTRL+选中触发`,
+    en: `CTRL+Select Trigger`,
+    zh_TW: `CTRL+選取觸發`,
+    ja: `CTRL+選択トリガー`,
+    ko: `CTRL+선택 트리거`,
+  },
   extend_styles: {
     zh: `附加样式`,
     en: `Extend Styles`,
