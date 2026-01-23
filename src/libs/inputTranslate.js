@@ -3,6 +3,9 @@ import {
   DEFAULT_INPUT_SHORTCUT,
   OPT_LANGS_LIST,
   DEFAULT_API_SETTING,
+  OPT_INPUT_DOT_DISABLE,
+  OPT_INPUT_DOT_MOBILE,
+  isMobile,
 } from "../config";
 import { genEventName, removeEndchar, matchInputStr, sleep } from "./utils";
 import { stepShortcutRegister } from "./shortcut";
@@ -356,6 +359,13 @@ export class InputTranslator {
   // [修复问题1]：使用参数 inputNode 确保逻辑闭环
   showFloatButton(inputNode) {
     if (!this.#isEnabled) return;
+
+    const showDot = this.#config.inputRule.showDot || OPT_INPUT_DOT_MOBILE;
+    if (showDot === OPT_INPUT_DOT_DISABLE) return;
+    if (showDot === OPT_INPUT_DOT_MOBILE) {
+      const isTouch = isMobile || navigator.maxTouchPoints > 0;
+      if (!isTouch) return;
+    }
 
     // 确保 activeInput 与传入的节点一致
     this.#activeInput = inputNode;

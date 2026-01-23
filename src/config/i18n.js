@@ -2696,6 +2696,34 @@ export const I18N = {
     ja: `保存`,
     ko: `저장`,
   },
+  show_translation_dot: {
+    zh: `显示翻译圆点`,
+    en: `Show Translation Dot`,
+    zh_TW: `顯示翻譯圓點`,
+    ja: `翻訳ドットを表示`,
+    ko: `번역 점 표시`,
+  },
+  show_dot_mobile: {
+    zh: `仅移动端`,
+    en: `Mobile Only`,
+    zh_TW: `僅移動端`,
+    ja: `モバイルのみ`,
+    ko: `모바일 전용`,
+  },
+  show_dot_always: {
+    zh: `总是显示`,
+    en: `Always`,
+    zh_TW: `總是顯示`,
+    ja: `常に表示`,
+    ko: `항상 표시`,
+  },
+  show_dot_disable: {
+    zh: `禁用`,
+    en: `Disable`,
+    zh_TW: `禁用`,
+    ja: `無効`,
+    ko: `사용 안 함`,
+  },
 };
 
 export const newI18n = (lang) => (key) => I18N[key]?.[lang] || "";

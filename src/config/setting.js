@@ -46,6 +46,11 @@ export const DEFAULT_SYNC = {
   dataCaches: {}, // 缓存同步时间
 };
 
+// 输入框图标显示
+export const OPT_INPUT_DOT_DISABLE = "-";
+export const OPT_INPUT_DOT_MOBILE = "mobile";
+export const OPT_INPUT_DOT_ALWAYS = "always";
+
 // 输入框翻译
 export const OPT_INPUT_TRANS_SIGNS = ["/", "//", "\\", "\\\\", ">", ">>"];
 export const DEFAULT_INPUT_SHORTCUT = ["AltLeft", "KeyI"];
@@ -58,6 +63,7 @@ export const DEFAULT_INPUT_RULE = {
   triggerCount: 1,
   triggerTime: 200,
   transSign: OPT_INPUT_TRANS_SIGNS[0],
+  showDot: OPT_INPUT_DOT_MOBILE,
 };
 
 // 划词翻译

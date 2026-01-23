@@ -7,6 +7,9 @@ import {
   OPT_LANGS_FROM,
   OPT_LANGS_TO,
   OPT_INPUT_TRANS_SIGNS,
+  OPT_INPUT_DOT_DISABLE,
+  OPT_INPUT_DOT_MOBILE,
+  OPT_INPUT_DOT_ALWAYS,
 } from "../../config";
 import ShortcutInput from "./ShortcutInput";
 import FormControlLabel from "@mui/material/FormControlLabel";
@@ -46,6 +49,7 @@ export default function InputSetting() {
     triggerCount,
     triggerTime,
     transSign,
+    showDot,
   } = inputRule;
 
   return (
@@ -180,6 +184,27 @@ export default function InputSetting() {
                 min={10}
                 max={1000}
               />
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                name="showDot"
+                value={showDot || OPT_INPUT_DOT_MOBILE}
+                label={i18n("show_translation_dot")}
+                onChange={handleChange}
+              >
+                <MenuItem value={OPT_INPUT_DOT_MOBILE}>
+                  {i18n("show_dot_mobile")}
+                </MenuItem>
+                <MenuItem value={OPT_INPUT_DOT_ALWAYS}>
+                  {i18n("show_dot_always")}
+                </MenuItem>
+                <MenuItem value={OPT_INPUT_DOT_DISABLE}>
+                  {i18n("show_dot_disable")}
+                </MenuItem>
+              </TextField>
             </Grid>
           </Grid>
         </Box>

@@ -82,10 +82,10 @@ const hexToRgb = (hex) => {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return result
     ? {
-      r: parseInt(result[1], 16),
-      g: parseInt(result[2], 16),
-      b: parseInt(result[3], 16),
-    }
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16),
+      }
     : { r: 0, g: 0, b: 0 };
 };
 
@@ -227,9 +227,18 @@ function StyleVisualEditor({ label, cssValue, onChange, type }) {
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <input
                 type="color"
-                value={cssObj["color"] === "white" ? "#ffffff" : (cssObj["color"] || "#ffffff")}
+                value={
+                  cssObj["color"] === "white"
+                    ? "#ffffff"
+                    : cssObj["color"] || "#ffffff"
+                }
                 onChange={(e) => updateCss("color", e.target.value)}
-                style={{ width: 40, height: 30, border: "none", cursor: "pointer" }}
+                style={{
+                  width: 40,
+                  height: 30,
+                  border: "none",
+                  cursor: "pointer",
+                }}
               />
               <TextField
                 size="small"
@@ -281,7 +290,12 @@ function StyleVisualEditor({ label, cssValue, onChange, type }) {
                     `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${bgRgba.a})`
                   );
                 }}
-                style={{ width: 40, height: 30, border: "none", cursor: "pointer" }}
+                style={{
+                  width: 40,
+                  height: 30,
+                  border: "none",
+                  cursor: "pointer",
+                }}
               />
               <Typography variant="body2" sx={{ minWidth: 60 }}>
                 {i18n("opacity") || "透明度"}
@@ -314,7 +328,9 @@ function StyleVisualEditor({ label, cssValue, onChange, type }) {
           </Grid>
           <Grid item xs={12} sm={8}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-              <Typography variant="body2">{i18n("vertical") || "上下"}</Typography>
+              <Typography variant="body2">
+                {i18n("vertical") || "上下"}
+              </Typography>
               <Slider
                 size="small"
                 value={padding.vertical}
@@ -329,7 +345,9 @@ function StyleVisualEditor({ label, cssValue, onChange, type }) {
                 }}
                 sx={{ width: 100 }}
               />
-              <Typography variant="body2">{i18n("horizontal") || "左右"}</Typography>
+              <Typography variant="body2">
+                {i18n("horizontal") || "左右"}
+              </Typography>
               <Slider
                 size="small"
                 value={padding.horizontal}
@@ -394,7 +412,11 @@ function StyleVisualEditor({ label, cssValue, onChange, type }) {
                   }}
                 />
               }
-              label={hasTextShadow ? (i18n("enabled") || "已启用") : (i18n("disabled") || "已禁用")}
+              label={
+                hasTextShadow
+                  ? i18n("enabled") || "已启用"
+                  : i18n("disabled") || "已禁用"
+              }
             />
           </Grid>
         </Grid>
@@ -604,14 +626,23 @@ export default function SubtitleSetting() {
         </Box>
 
         {/* 原文样式 - 可视化编辑器 */}
-        <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, p: 2 }}>
+        <Box
+          sx={{
+            border: "1px solid",
+            borderColor: "divider",
+            borderRadius: 1,
+            p: 2,
+          }}
+        >
           <StyleVisualEditor
             label={i18n("origin_styles")}
             cssValue={originStyle}
             onChange={handleStyleChange("originStyle")}
             type="text"
           />
-          <Accordion sx={{ boxShadow: "none", "&:before": { display: "none" } }}>
+          <Accordion
+            sx={{ boxShadow: "none", "&:before": { display: "none" } }}
+          >
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
               <Typography variant="body2" color="text.secondary">
                 {i18n("advanced_css") || "高级 CSS 编辑"}
@@ -632,14 +663,23 @@ export default function SubtitleSetting() {
         </Box>
 
         {/* 译文样式 - 可视化编辑器 */}
-        <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, p: 2 }}>
+        <Box
+          sx={{
+            border: "1px solid",
+            borderColor: "divider",
+            borderRadius: 1,
+            p: 2,
+          }}
+        >
           <StyleVisualEditor
             label={i18n("translation_styles")}
             cssValue={translationStyle}
             onChange={handleStyleChange("translationStyle")}
             type="text"
           />
-          <Accordion sx={{ boxShadow: "none", "&:before": { display: "none" } }}>
+          <Accordion
+            sx={{ boxShadow: "none", "&:before": { display: "none" } }}
+          >
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
               <Typography variant="body2" color="text.secondary">
                 {i18n("advanced_css") || "高级 CSS 编辑"}
@@ -660,14 +700,23 @@ export default function SubtitleSetting() {
         </Box>
 
         {/* 背景样式 - 可视化编辑器 */}
-        <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, p: 2 }}>
+        <Box
+          sx={{
+            border: "1px solid",
+            borderColor: "divider",
+            borderRadius: 1,
+            p: 2,
+          }}
+        >
           <StyleVisualEditor
             label={i18n("background_styles")}
             cssValue={windowStyle}
             onChange={handleStyleChange("windowStyle")}
             type="window"
           />
-          <Accordion sx={{ boxShadow: "none", "&:before": { display: "none" } }}>
+          <Accordion
+            sx={{ boxShadow: "none", "&:before": { display: "none" } }}
+          >
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
               <Typography variant="body2" color="text.secondary">
                 {i18n("advanced_css") || "高级 CSS 编辑"}

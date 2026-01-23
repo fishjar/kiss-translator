@@ -127,7 +127,7 @@ export class BilingualSubtitleManager {
   #tooltipEl = null;
   #hoverTimeout = null; // 用于延迟显示/隐藏tooltip
   #wasPlayingBeforeHover = false; //记录hover单词前视频是否处于播放状态
-  #hoverTarget = null; 
+  #hoverTarget = null;
 
   /**
    * @param {object} options
@@ -254,8 +254,7 @@ export class BilingualSubtitleManager {
     if (!isMobile && this.#setting.isEnhance !== false) {
       this.#captionWindowEl.addEventListener("pointerenter", (e) => {
         if (e.target === this.#captionWindowEl) {
-          this.#wasPlayingBeforeHover =
-            this.#videoEl && !this.#videoEl.paused;
+          this.#wasPlayingBeforeHover = this.#videoEl && !this.#videoEl.paused;
           if (this.#videoEl && !this.#videoEl.paused) {
             this.#videoEl.pause();
           }
@@ -328,9 +327,7 @@ export class BilingualSubtitleManager {
 
   #attachSpanListeners() {
     if (!this.#captionWindowEl) return;
-    const spans = this.#captionWindowEl.querySelectorAll(
-      ".kiss-subtitle-word"
-    );
+    const spans = this.#captionWindowEl.querySelectorAll(".kiss-subtitle-word");
     spans.forEach((span) => {
       if (span.dataset.kissListenerAttached) return;
       const enterHandler = (e) => this.#handleWordHover(e);
