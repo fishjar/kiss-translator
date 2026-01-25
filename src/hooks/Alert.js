@@ -28,9 +28,15 @@ export function AlertProvider({ children }) {
   const [message, setMessage] = useState(null);
 
   const showAlert = useCallback((msg, type) => {
-    setOpen(true);
-    setMessage(msg);
-    setSeverity(type);
+    // 先关闭当前的alert，然后再打开新的
+    // 这样可以重置autoHideDuration计时器
+    setOpen(false);
+    // 使用setTimeout确保状态更新完成后再打开新的alert
+    setTimeout(() => {
+      setMessage(msg);
+      setSeverity(type);
+      setOpen(true);
+    }, 0);
   }, []);
 
   const handleClose = useCallback((_, reason) => {
@@ -55,7 +61,7 @@ export function AlertProvider({ children }) {
       {children}
       <Snackbar
         open={open}
-        autoHideDuration={10000}
+        autoHideDuration={5000}
         onClose={handleClose}
         anchorOrigin={{ vertical, horizontal }}
       >
