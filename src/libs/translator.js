@@ -297,7 +297,8 @@ export class Translator {
   #termValues = []; // 按顺序存储术语的替换值
   #combinedTermsRegex; // 专业术语正则表达式
   #combinedSkipsRegex; // 跳过文本正则表达式
-  #placeholderRegex; // 恢复htnml正则表达式
+
+  #placeholderCache = null; // 缓存正则对象
   #translationTagName = APP_LCNAME; // 翻译容器的标签名
   #eventName = ""; // 通信事件名称
   #docInfo = {}; // 网页信息
@@ -359,15 +360,57 @@ export class Translator {
     return this.#apisMap.get(this.#rule.apiSlug) || DEFAULT_API_SETTING;
   }
 
-  // 占位符
-  get #placeholder() {
+  // 占位符配置（包含正则）
+  get #placeholderConfig() {
+    if (this.#placeholderCache) {
+      return this.#placeholderCache;
+    }
+
     const [startDelimiter, endDelimiter] =
       this.#apiSetting.placeholder.split(" ");
-    return {
+
+    // 确保 placetag 始终是字符串（兼容旧配置可能是数组）
+    let tagName = this.#apiSetting.placetag;
+    if (Array.isArray(tagName)) {
+      tagName = tagName[0] || "i";
+    }
+    if (typeof tagName !== "string") {
+      tagName = "i"; // 默认值
+    }
+
+    const format = this.#apiSetting.placetagFormat || "compact"; // 占位符格式
+    const safeTag = "span";
+
+    // 1. 缓存常用还原正则
+    let openRegex, closeRegex;
+    if (format === "attribute") {
+      openRegex = new RegExp(`<${tagName}\\s+i=(\\d+)>`, "gi");
+      closeRegex = new RegExp(`<\\/${tagName}>`, "gi");
+    } else {
+      openRegex = new RegExp(`<${tagName}(\\d+)>`, "gi");
+      closeRegex = new RegExp(`<\\/${tagName}(\\d+)>`, "gi");
+    }
+
+    // 2. 创建普通占位符正则（标签占位符在restoreFromTranslation中单独处理）
+    // 只匹配普通占位符 {{1}}, {{2}} 等
+    const escapedStart = Translator.escapeRegex(startDelimiter);
+    const escapedEnd = Translator.escapeRegex(endDelimiter);
+    const placeholderPattern = `${escapedStart}\\d+${escapedEnd}`;
+    const placeholderRegex = new RegExp(placeholderPattern, "g");
+
+    const result = {
       startDelimiter,
       endDelimiter,
-      tagName: this.#apiSetting.placetag,
+      tagName,
+      format,
+      safeTag,
+      openRegex,
+      closeRegex,
+      placeholderRegex,
     };
+
+    this.#placeholderCache = result;
+    return result;
   }
 
   constructor({ rule = {}, setting = {}, favWords = [] }) {
@@ -386,7 +429,7 @@ export class Translator {
     this.#combinedSkipsRegex = new RegExp(
       Translator.BUILTIN_SKIP_PATTERNS.map((r) => `(${r.source})`).join("|")
     );
-    this.#placeholderRegex = this.#createPlaceholderRegex();
+
     this.#parseTerms(this.#rule.terms);
     this.#parseAITerms(this.#rule.aiTerms);
     this.#createTextStyles();
@@ -438,10 +481,10 @@ export class Translator {
         .querySelectorAll("pre")
         .forEach(
           (pre) =>
-            (pre.innerHTML = pre.innerHTML?.replace(
-              /(?:\r\n|\r|\n)/g,
-              "<br />"
-            ))
+          (pre.innerHTML = pre.innerHTML?.replace(
+            /(?:\r\n|\r|\n)/g,
+            "<br />"
+          ))
         );
     }
 
@@ -488,16 +531,6 @@ export class Translator {
     } catch (err) {
       kissLog("findAllShadowRoots", err);
     }
-  }
-
-  #createPlaceholderRegex() {
-    const escapedStart = Translator.escapeRegex(
-      this.#placeholder.startDelimiter
-    );
-    const escapedEnd = Translator.escapeRegex(this.#placeholder.endDelimiter);
-    const patternString = `(${escapedStart}\\d+${escapedEnd}|<\\/?\\w+\\d+>)`;
-    const flags = "g";
-    return new RegExp(patternString, flags);
   }
 
   // 创建样式
@@ -619,7 +652,7 @@ export class Translator {
         if (
           this.#skipMoNodes.has(mutation.target) ||
           mutation.nextSibling?.tagName?.toLowerCase() ===
-            this.#translationTagName
+          this.#translationTagName
         ) {
           continue;
         }
@@ -1341,7 +1374,7 @@ export class Translator {
     let replaceCounter = 0; // {{n}}
     let wrapCounter = 0; // <tagn>
     const placeholderMap = new Map();
-    const { startDelimiter, endDelimiter } = this.#placeholder;
+    const { startDelimiter, endDelimiter } = this.#placeholderConfig;
 
     const pushReplace = (html) => {
       replaceCounter++;
@@ -1411,10 +1444,26 @@ export class Translator {
           Translator.TAGS.WARP.has(node.tagName?.toUpperCase())
         ) {
           wrapCounter++;
-          const startPlaceholder = `<${this.#placeholder.tagName}${wrapCounter}>`;
-          const endPlaceholder = `</${this.#placeholder.tagName}${wrapCounter}>`;
-          placeholderMap.set(startPlaceholder, buildOpeningTag(node));
-          placeholderMap.set(endPlaceholder, `</${node.localName}>`);
+          const { tagName, format } = this.#placeholderConfig;
+
+          // 存储序号对应的原始标签对（使用TAG_前缀避免与普通占位符{{1}}冲突）
+          placeholderMap.set(`TAG_${wrapCounter}`, {
+            openTag: buildOpeningTag(node),
+            closeTag: `</${node.localName}>`,
+          });
+
+          // 生成占位符
+          let startPlaceholder, endPlaceholder;
+          if (format === "attribute") {
+            // 属性格式：<a i=1>content</a>
+            startPlaceholder = `<${tagName} i=${wrapCounter}>`;
+            endPlaceholder = `</${tagName}>`;
+          } else {
+            // 简洁格式：<a1>content</a1>
+            startPlaceholder = `<${tagName}${wrapCounter}>`;
+            endPlaceholder = `</${tagName}${wrapCounter}>`;
+          }
+
           return `${startPlaceholder}${innerContent}${endPlaceholder}`;
         }
 
@@ -1447,10 +1496,53 @@ export class Translator {
 
     if (!translatedText) return "";
 
-    return translatedText.replace(
-      this.#placeholderRegex,
+    const { safeTag, openRegex, closeRegex } = this.#placeholderConfig;
+    const restoreAttr = "data-kiss-restore";
+    let textToParse = translatedText;
+    let result = translatedText;
+
+    try {
+      // 1. 将所有占位符格式统一替换为 <span data-kiss-restore="index">
+      textToParse = textToParse.replace(
+        openRegex,
+        `<${safeTag} ${restoreAttr}="$1">`
+      );
+      textToParse = textToParse.replace(closeRegex, `</${safeTag}>`);
+
+      // 2. DOM 解析
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(textToParse, "text/html");
+
+      // 3. 查找所有标记节点
+      const selector = `${safeTag}[${restoreAttr}]`;
+      const placeholders = Array.from(doc.querySelectorAll(selector));
+
+      // 4. 倒序还原 (自底向上)
+      placeholders.reverse().forEach((node) => {
+        const index = node.getAttribute(restoreAttr);
+        if (index) {
+          const tagPair = placeholderMap.get(`TAG_${index}`);
+          if (tagPair) {
+            // 使用 outerHTML 替换整个临时节点
+            // node.innerHTML 包含了该节点内部可能已经还原过的原本内容
+            node.outerHTML = `${tagPair.openTag}${node.innerHTML}${tagPair.closeTag}`;
+          }
+        }
+      });
+
+      result = doc.body.innerHTML;
+    } catch (e) {
+      kissLog("DOMParser restore failed, fallback to raw", e);
+      // 如果解析失败，result 仍为 translatedText，继续尝试正则还原其他占位符
+    }
+
+    // 还原普通占位符 {{1}}, {{2}} 等 (保留原有逻辑)
+    result = result.replace(
+      this.#placeholderConfig.placeholderRegex,
       (match) => placeholderMap.get(match) || match
     );
+
+    return result;
   }
 
   // 发起翻译请求
@@ -1868,6 +1960,9 @@ export class Translator {
         }
       }
     }
+
+    // 配置变更时清空正则缓存
+    this.#placeholderCache = null;
 
     if (needsRescan || (this.#enabled && this.#setting.transAllnow)) {
       this.rescan();

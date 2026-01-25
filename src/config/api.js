@@ -173,6 +173,7 @@ export const BUILTIN_STONES = [
 ];
 export const BUILTIN_PLACEHOLDERS = ["{ }", "{{ }}", "[ ]", "[[ ]]"];
 export const BUILTIN_PLACETAGS = ["i", "a", "b", "x"];
+export const PLACETAG_FORMATS = ["compact", "attribute"]; // 占位符格式：简洁格式、属性格式
 
 export const OPT_LANGS_TO = [
   ["en", "English - English"],
@@ -517,7 +518,7 @@ const defaultApi = {
   userPrompt: "",
   tone: BUILTIN_STONES[0], // 翻译风格
   placeholder: BUILTIN_PLACEHOLDERS[0], // 占位符
-  placetag: [BUILTIN_PLACETAGS[0]], // 占位标签
+  placetag: BUILTIN_PLACETAGS[0], // 占位标签
   // aiTerms: false, // AI智能专业术语 （todo: 备用）
   customHeader: "",
   customBody: "",
@@ -540,6 +541,7 @@ const defaultApi = {
   isDisabled: false, // 是否不显示,
   region: "", // Azure 专用
   sortOrder: 0, // 排序权重，数值越小越靠前
+  placetagFormat: "compact", // 占位符格式：compact(<a1>) 或 attribute(<a i=1>)
 };
 
 const defaultApiOpts = {
@@ -553,6 +555,7 @@ const defaultApiOpts = {
     url: "https://translate-pa.googleapis.com/v1/translateHtml",
     key: "AIzaSyATBXajvzQLTDHEQbcpq0Ihe0vWDHmO520",
     useBatchFetch: true,
+    placetagFormat: "attribute",
   },
   [OPT_TRANS_MICROSOFT]: {
     ...defaultApi,

@@ -8,7 +8,8 @@ function useApiState() {
 
   // 统一排序，所有使用transApis的地方都是排序好的
   const transApis = useMemo(
-    () => [...rawTransApis].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)),
+    () =>
+      [...rawTransApis].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)),
     [rawTransApis]
   );
 

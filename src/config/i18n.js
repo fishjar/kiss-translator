@@ -2311,6 +2311,27 @@ export const I18N = {
     ja: `プレースホルダタグ`,
     ko: `플레이스홀더 태그`,
   },
+  placetag_format: {
+    zh: `占位符格式`,
+    en: `Placeholder Format`,
+    zh_TW: `佔位符格式`,
+    ja: `プレースホルダー形式`,
+    ko: `자리 표시자 형식`,
+  },
+  format_compact: {
+    zh: `简洁格式 <a1>`,
+    en: `Compact Format <a1>`,
+    zh_TW: `簡潔格式 <a1>`,
+    ja: `簡潔形式 <a1>`,
+    ko: `간결 형식 <a1>`,
+  },
+  format_attribute: {
+    zh: `属性格式 <a i=1>`,
+    en: `Attribute Format <a i=1>`,
+    zh_TW: `屬性格式 <a i=1>`,
+    ja: `属性形式 <a i=1>`,
+    ko: `속성 형식 <a i=1>`,
+  },
   detected_lang: {
     zh: `语言检测`,
     en: `Language detection`,

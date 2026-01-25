@@ -204,9 +204,7 @@ export function Menus({
 
   // 构建断句服务选项
   const segOptions = useMemo(() => {
-    const options = [
-      { value: "-", label: i18n("disable") || "禁用" },
-    ];
+    const options = [{ value: "-", label: i18n("disable") || "禁用" }];
     aiEnabledApis.forEach((api) => {
       options.push({ value: api.apiSlug, label: api.apiName });
     });

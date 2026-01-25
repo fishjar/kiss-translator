@@ -242,7 +242,8 @@ class YouTubeCaptionProvider {
    * @private
    */
   #getMenuProps() {
-    const { transApis, segSlug, skipAd, isBilingual, showOrigin } = this.#setting;
+    const { transApis, segSlug, skipAd, isBilingual, showOrigin } =
+      this.#setting;
     return {
       i18n: this.#i18n,
       updateSetting: this.updateSetting.bind(this),

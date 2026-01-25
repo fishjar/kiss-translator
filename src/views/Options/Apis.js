@@ -228,6 +228,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
     tone = "neutral",
     placeholder = BUILTIN_PLACEHOLDERS[0],
     placetag = BUILTIN_PLACETAGS[0],
+    placetagFormat = "compact",
     region = "",
     sortOrder = 0,
     // aiTerms = false,
@@ -730,6 +731,24 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
                       {`<${item}>`}
                     </MenuItem>
                   ))}
+                </TextField>
+              </Grid>
+              <Grid item xs={12} sm={12} md={6} lg={3}>
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  name="placetagFormat"
+                  value={placetagFormat}
+                  label={i18n("placetag_format") || "占位符格式"}
+                  onChange={handleChange}
+                >
+                  <MenuItem value="compact">
+                    {i18n("format_compact") || "简洁格式 <a1>"}
+                  </MenuItem>
+                  <MenuItem value="attribute">
+                    {i18n("format_attribute") || "属性格式 <a i=1>"}
+                  </MenuItem>
                 </TextField>
               </Grid>
             </Grid>
