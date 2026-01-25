@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { MSG_MENUS_PROGRESSED, MSG_MENUS_UPDATEFORM } from "../config";
+import { useCallback, useMemo, useState } from "react";
 
 function Label({ children }) {
   return (
@@ -92,35 +91,18 @@ function Button({ label, onClick, disabled }) {
 
 export function Menus({
   i18n,
-  initData,
+  formData,
+  progressed = 0,
   updateSetting,
   downloadSubtitle,
   hasSegApi,
-  eventName,
 }) {
-  const [formData, setFormData] = useState(initData);
-  const [progressed, setProgressed] = useState(0);
-
   const handleChange = useCallback(
     ({ name, value }) => {
-      setFormData((pre) => ({ ...pre, [name]: value }));
       updateSetting({ name, value });
     },
     [updateSetting]
   );
-
-  useEffect(() => {
-    const handler = (e) => {
-      const { action, data } = e.detail || {};
-      if (action === MSG_MENUS_PROGRESSED) {
-        setProgressed(data);
-      } else if (action === MSG_MENUS_UPDATEFORM) {
-        setFormData((pre) => ({ ...pre, ...data }));
-      }
-    };
-    window.addEventListener(eventName, handler);
-    return () => window.removeEventListener(eventName, handler);
-  }, [eventName]);
 
   const status = useMemo(() => {
     if (progressed === 0) return i18n("waiting_subtitles");

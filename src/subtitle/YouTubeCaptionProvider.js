@@ -7,15 +7,13 @@ import {
   APP_NAME,
   OPT_LANGS_TO_CODE,
   OPT_TRANS_MICROSOFT,
-  MSG_MENUS_PROGRESSED,
-  MSG_MENUS_UPDATEFORM,
   OPT_LANGS_SPEC_DEFAULT,
 } from "../config";
-import { sleep, genEventName, downloadBlobFile } from "../libs/utils.js";
+import { sleep, downloadBlobFile } from "../libs/utils.js";
 import { createLogoSVG } from "../libs/svg.js";
 import { randomBetween } from "../libs/utils.js";
 import { newI18n } from "../config";
-import ShadowDomManager from "../libs/shadowDomManager.js";
+import DomManager from "../libs/domManager.js";
 import { Menus } from "./Menus.js";
 import { buildBilingualVtt } from "./vtt.js";
 import { isMobile } from "../libs/mobile.js";
@@ -43,7 +41,7 @@ class YouTubeCaptionProvider {
   #notificationEl = null;
   #notificationTimeout = null;
   #i18n = () => "";
-  #menuEventName = "kiss-event";
+  #menuManager = null; // 菜单管理器实例
 
   // 新增：字幕列表管理器实例
   #subtitleListManager = null;
@@ -51,7 +49,6 @@ class YouTubeCaptionProvider {
   constructor(setting = {}) {
     this.#setting = { ...setting, isAISegment: false, showOrigin: false };
     this.#i18n = newI18n(setting.uiLang || "zh");
-    this.#menuEventName = genEventName();
   }
 
   get #videoId() {
@@ -65,7 +62,7 @@ class YouTubeCaptionProvider {
 
   set #progressed(num) {
     this.#progressedNum = num;
-    this.#sendMenusMsg({ action: MSG_MENUS_PROGRESSED, data: num });
+    this.#updateMenuProps(); // 更新菜单 props
   }
 
   get #progressed() {
@@ -93,10 +90,7 @@ class YouTubeCaptionProvider {
       this.#progressed = 0;
       this.#fromLang = "auto";
       this.#setting.isAISegment = false;
-      this.#sendMenusMsg({
-        action: MSG_MENUS_UPDATEFORM,
-        data: { isAISegment: false },
-      });
+      this.#updateMenuProps(); // 更新菜单 props
     });
 
     this.#waitForElement(CONTORLS_SELECT, (ytControls) => {
@@ -208,6 +202,8 @@ class YouTubeCaptionProvider {
     logger.debug("Youtube Provider: update setting", name, value);
     this.#setting[name] = value;
 
+    this.#updateMenuProps(); // 更新菜单 props
+
     if (name === "isBilingual") {
       this.#managerInstance?.updateSetting({ [name]: value });
     } else if (name === "isAISegment") {
@@ -242,10 +238,35 @@ class YouTubeCaptionProvider {
     }
   }
 
-  #sendMenusMsg({ action, data }) {
-    window.dispatchEvent(
-      new CustomEvent(this.#menuEventName, { detail: { action, data } })
-    );
+  /**
+   * 获取菜单组件的 props
+   * @private
+   */
+  #getMenuProps() {
+    const { segApiSetting, isAISegment, skipAd, isBilingual, showOrigin } = this.#setting;
+    return {
+      i18n: this.#i18n,
+      updateSetting: this.updateSetting.bind(this),
+      downloadSubtitle: this.downloadSubtitle.bind(this),
+      hasSegApi: !!segApiSetting,
+      progressed: this.#progressedNum,
+      formData: {
+        isAISegment,
+        skipAd,
+        isBilingual,
+        showOrigin,
+      },
+    };
+  }
+
+  /**
+   * 更新菜单组件的 props
+   * @private
+   */
+  #updateMenuProps() {
+    if (this.#menuManager && this.#isMenuShow) {
+      this.#menuManager.updateProps(this.#getMenuProps());
+    }
   }
 
   #injectToggleButton(ytControls) {
@@ -263,26 +284,13 @@ class YouTubeCaptionProvider {
     toggleButton.appendChild(createLogoSVG());
     kissControls.appendChild(toggleButton);
 
-    const { segApiSetting, isAISegment, skipAd, isBilingual, showOrigin } =
-      this.#setting;
-    const menu = new ShadowDomManager({
+    // 使用新的 DomManager 替代 ShadowDomManager
+    this.#menuManager = new DomManager({
       id: "kiss-subtitle-menus",
       className: "notranslate",
       reactComponent: Menus,
       rootElement: kissControls,
-      props: {
-        i18n: this.#i18n,
-        updateSetting: this.updateSetting.bind(this),
-        downloadSubtitle: this.downloadSubtitle.bind(this),
-        hasSegApi: !!segApiSetting,
-        eventName: this.#menuEventName,
-        initData: {
-          isAISegment, // AI智能断句
-          skipAd, // 快进广告
-          isBilingual, // 双语显示
-          showOrigin, // 显示原字幕
-        },
-      },
+      props: this.#getMenuProps(), // 获取菜单 props
     });
 
     toggleButton.onclick = () => {
@@ -291,15 +299,12 @@ class YouTubeCaptionProvider {
         this.#toggleButton?.replaceChildren(
           createLogoSVG({ isSelected: true })
         );
-        menu.show();
-        this.#sendMenusMsg({
-          action: MSG_MENUS_PROGRESSED,
-          data: this.#progressed,
-        });
+        this.#menuManager.show();
+        this.#updateMenuProps(); // 显示时更新 props
       } else {
         this.#isMenuShow = false;
         this.#toggleButton?.replaceChildren(createLogoSVG());
-        menu.hide();
+        this.#menuManager.hide();
       }
     };
     this.#toggleButton = toggleButton;

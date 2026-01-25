@@ -5,8 +5,8 @@ import {
   DEFAULT_API_SETTING,
   OPT_INPUT_DOT_DISABLE,
   OPT_INPUT_DOT_MOBILE,
-  isMobile,
 } from "../config";
+import { isMobile } from "./mobile";
 import { genEventName, removeEndchar, matchInputStr, sleep } from "./utils";
 import { stepShortcutRegister } from "./shortcut";
 import { apiTranslate } from "../apis";
