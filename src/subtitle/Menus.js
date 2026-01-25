@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import { API_SPE_TYPES } from "../config";
 
 function Label({ children }) {
   return (
@@ -75,6 +76,91 @@ function Switch({ label, name, value, onChange, disabled }) {
   );
 }
 
+function Select({ label, name, value, options, onChange, disabled }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectedOption = useMemo(
+    () => options.find((opt) => opt.value === value) || options[0],
+    [options, value]
+  );
+
+  const handleToggle = useCallback(() => {
+    if (disabled) return;
+    setIsOpen((prev) => !prev);
+  }, [disabled]);
+
+  const handleSelect = useCallback(
+    (optionValue) => {
+      onChange({ name, value: optionValue });
+      setIsOpen(false);
+    },
+    [onChange, name]
+  );
+
+  return (
+    <div style={{ position: "relative" }}>
+      <MenuItem onClick={handleToggle} disabled={disabled}>
+        <Label>{label}</Label>
+        <div
+          style={{
+            fontSize: 12,
+            opacity: 0.8,
+            maxWidth: 130,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {selectedOption?.label || ""}
+        </div>
+      </MenuItem>
+      {isOpen && (
+        <div
+          style={{
+            position: "absolute",
+            right: 0,
+            top: "100%",
+            background: "rgba(0,0,0,.8)",
+            borderRadius: 5,
+            minWidth: 250,
+            maxHeight: 200,
+            overflow: "auto",
+            zIndex: 1000,
+            marginTop: 4,
+          }}
+        >
+          {options.map((option) => (
+            <div
+              key={option.value}
+              onClick={() => handleSelect(option.value)}
+              style={{
+                padding: "8px 12px",
+                cursor: "pointer",
+                background:
+                  option.value === value
+                    ? "rgba(32,156,238,.3)"
+                    : "transparent",
+                opacity: option.value === value ? 1 : 0.8,
+                transition: "all 0.2s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "rgba(255,255,255,.1)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background =
+                  option.value === value
+                    ? "rgba(32,156,238,.3)"
+                    : "transparent";
+              }}
+            >
+              {option.label}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Button({ label, onClick, disabled }) {
   const handleClick = useCallback(() => {
     if (disabled) return;
@@ -95,7 +181,7 @@ export function Menus({
   progressed = 0,
   updateSetting,
   downloadSubtitle,
-  hasSegApi,
+  transApis,
 }) {
   const handleChange = useCallback(
     ({ name, value }) => {
@@ -104,13 +190,36 @@ export function Menus({
     [updateSetting]
   );
 
+  // 过滤启用的API
+  const enabledApis = useMemo(
+    () => (transApis || []).filter((api) => !api.isDisabled),
+    [transApis]
+  );
+
+  // 过滤AI启用的API
+  const aiEnabledApis = useMemo(
+    () => enabledApis.filter((api) => API_SPE_TYPES.ai.has(api.apiType)),
+    [enabledApis]
+  );
+
+  // 构建断句服务选项
+  const segOptions = useMemo(() => {
+    const options = [
+      { value: "-", label: i18n("disable") || "禁用" },
+    ];
+    aiEnabledApis.forEach((api) => {
+      options.push({ value: api.apiSlug, label: api.apiName });
+    });
+    return options;
+  }, [aiEnabledApis, i18n]);
+
   const status = useMemo(() => {
     if (progressed === 0) return i18n("waiting_subtitles");
     if (progressed === 100) return i18n("download_subtitles");
     return i18n("processing_subtitles");
   }, [progressed, i18n]);
 
-  const { isAISegment, skipAd, isBilingual, showOrigin } = formData;
+  const { segSlug, skipAd, isBilingual, showOrigin } = formData;
 
   return (
     <div
@@ -119,19 +228,20 @@ export function Menus({
         left: 0,
         bottom: 100,
         background: "rgba(0,0,0,.6)",
-        width: 200,
+        width: 250,
         lineHeight: "40px",
         fontSize: 16,
         padding: 8,
         borderRadius: 5,
       }}
     >
-      <Switch
+      <Select
         onChange={handleChange}
-        name="isAISegment"
-        value={isAISegment}
+        name="segSlug"
+        value={segSlug || "-"}
+        options={segOptions}
         label={i18n("ai_segmentation")}
-        disabled={!hasSegApi}
+        disabled={segOptions.length <= 1}
       />
       <Switch
         onChange={handleChange}

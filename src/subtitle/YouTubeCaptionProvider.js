@@ -47,7 +47,7 @@ class YouTubeCaptionProvider {
   #subtitleListManager = null;
 
   constructor(setting = {}) {
-    this.#setting = { ...setting, isAISegment: false, showOrigin: false };
+    this.#setting = { ...setting, showOrigin: false };
     this.#i18n = newI18n(setting.uiLang || "zh");
   }
 
@@ -89,7 +89,6 @@ class YouTubeCaptionProvider {
       this.#flatEvents = [];
       this.#progressed = 0;
       this.#fromLang = "auto";
-      this.#setting.isAISegment = false;
       this.#updateMenuProps(); // 更新菜单 props
     });
 
@@ -206,7 +205,7 @@ class YouTubeCaptionProvider {
 
     if (name === "isBilingual") {
       this.#managerInstance?.updateSetting({ [name]: value });
-    } else if (name === "isAISegment") {
+    } else if (name === "segSlug") {
       this.#reProcessEvents();
     } else if (name === "showOrigin") {
       this.#toggleShowOrigin();
@@ -243,15 +242,15 @@ class YouTubeCaptionProvider {
    * @private
    */
   #getMenuProps() {
-    const { segApiSetting, isAISegment, skipAd, isBilingual, showOrigin } = this.#setting;
+    const { transApis, segSlug, skipAd, isBilingual, showOrigin } = this.#setting;
     return {
       i18n: this.#i18n,
       updateSetting: this.updateSetting.bind(this),
       downloadSubtitle: this.downloadSubtitle.bind(this),
-      hasSegApi: !!segApiSetting,
+      transApis,
       progressed: this.#progressedNum,
       formData: {
-        isAISegment,
+        segSlug,
         skipAd,
         isBilingual,
         showOrigin,
@@ -585,14 +584,18 @@ class YouTubeCaptionProvider {
   }
 
   async #eventsToSubtitles({ videoId, flatEvents, fromLang }) {
-    const { isAISegment, segApiSetting, chunkLength, toLang } = this.#setting;
+    const { segSlug, transApis, chunkLength, toLang } = this.#setting;
     const subtitlesFallback = () => [
       this.#formatSubtitles(flatEvents, fromLang),
       100,
     ];
 
+    // 根据segSlug从transApis中查找对应的API设置
+    const segApiSetting = transApis?.find((api) => api.apiSlug === segSlug);
+
     // potUrl.searchParams.get("kind") === "asr"
-    if (isAISegment && segApiSetting) {
+    // 当segSlug不为"-"且segApiSetting存在时，启用AI断句
+    if (segSlug && segSlug !== "-" && segApiSetting) {
       logger.info("Youtube Provider: Starting AI ...");
       this.#showNotification(this.#i18n("ai_processing_pls_wait"));
 

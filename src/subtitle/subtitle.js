@@ -25,13 +25,10 @@ export function runSubtitle({ href, setting }) {
         setting.transApis.find(
           (api) => api.apiSlug === subtitleSetting.apiSlug
         ) || DEFAULT_API_SETTING;
-      const segApiSetting = setting.transApis.find(
-        (api) => api.apiSlug === subtitleSetting.segSlug
-      );
       provider.start({
         ...subtitleSetting,
         apiSetting,
-        segApiSetting,
+        transApis: setting.transApis,
         uiLang: setting.uiLang,
       });
     }
