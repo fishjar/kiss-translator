@@ -159,6 +159,13 @@ export const apiMicrosoftDict = async (text) => {
     trs.push({ pos, def });
   });
 
+  // 时态
+  const presents = [];
+  doc.querySelectorAll("div.hd_div1>.hd_if>.p1-5").forEach(($li) => {
+    const present = $li.textContent?.trim();
+    presents.push(present);
+  });
+
   // 英汉双解
   const ecs = [];
   doc.querySelectorAll(".each_seg>.li_pos").forEach(($li) => {
@@ -228,7 +235,7 @@ export const apiMicrosoftDict = async (text) => {
     }
   }
 
-  const res = { word, trs, aus, ecs, sentences };
+  const res = { word, trs, aus, ecs, sentences, presents };
   putHttpCachePolyfill(cacheInput, null, res);
 
   return res;

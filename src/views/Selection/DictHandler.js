@@ -34,6 +34,13 @@ export const dictHandlers = {
           ))}
         </Typography>
 
+        {/* 时态 */}
+        {data?.presents?.length > 0 && (
+          <Typography component="div" style={{ marginTop: "10px" }}>
+            {data.presents.join(", ")}
+          </Typography>
+        )}
+
         {/* 英汉双解 */}
         {data?.ecs?.length > 0 && (
           <Typography component="div" style={{ marginTop: "10px" }}>
