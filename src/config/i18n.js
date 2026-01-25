@@ -2003,6 +2003,20 @@ export const I18N = {
     ja: `API名`,
     ko: `API 이름`,
   },
+  sort_order: {
+    zh: `排序权重`,
+    en: `Sort Order`,
+    zh_TW: `排序權重`,
+    ja: `ソート順序`,
+    ko: `정렬 순서`,
+  },
+  sort_order_help: {
+    zh: `数值越小越靠前`,
+    en: `Smaller values appear first`,
+    zh_TW: `數值越小越靠前`,
+    ja: `小さい値が先に表示されます`,
+    ko: `작은 값이 먼저 표시됩니다`,
+  },
   is_disabled: {
     zh: `是否禁用`,
     en: `Is Disabled`,

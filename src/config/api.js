@@ -539,6 +539,7 @@ const defaultApi = {
   // thinkIgnore: "qwen3,deepseek-r1", // (OpenAI 兼容接口未支持，暂时移除)
   isDisabled: false, // 是否不显示,
   region: "", // Azure 专用
+  sortOrder: 0, // 排序权重，数值越小越靠前
 };
 
 const defaultApiOpts = {
