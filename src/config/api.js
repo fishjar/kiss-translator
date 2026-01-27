@@ -173,7 +173,7 @@ export const BUILTIN_STONES = [
   "concise", // 简明风格
 ];
 export const BUILTIN_PLACEHOLDERS = ["{ }", "{{ }}", "[ ]", "[[ ]]"];
-export const BUILTIN_PLACETAGS = ["i", "a", "b", "x"];
+export const BUILTIN_PLACETAGS = ["i", "a", "b", "x", "span"];
 export const PLACETAG_FORMATS = ["compact", "attribute"]; // 占位符格式：简洁格式、属性格式
 
 export const OPT_LANGS_TO = [
