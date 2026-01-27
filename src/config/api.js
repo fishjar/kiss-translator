@@ -13,8 +13,9 @@ export const INPUT_PLACE_FROM_LANG = "{{fromLang}}"; // 占位符
 export const INPUT_PLACE_TO_LANG = "{{toLang}}"; // 占位符
 export const INPUT_PLACE_TEXT = "{{text}}"; // 占位符
 export const INPUT_PLACE_TONE = "{{tone}}"; // 占位符
-export const INPUT_PLACE_TITLE = "{{title}}"; // 占位符
-export const INPUT_PLACE_DESCRIPTION = "{{description}}"; // 占位符
+export const INPUT_PLACE_TITLE = "{{title}}"; // 标题
+export const INPUT_PLACE_DESCRIPTION = "{{description}}"; // 描述
+export const INPUT_PLACE_SUMMARY = "{{summary}}"; // 摘要
 export const INPUT_PLACE_KEY = "{{key}}"; // 占位符
 export const INPUT_PLACE_MODEL = "{{model}}"; // 占位符
 
@@ -363,12 +364,26 @@ Object.entries(OPT_LANGS_TO_SPEC).forEach(([t, m]) => {
 });
 
 export const defaultNobatchPrompt = `You are a professional, authentic machine translation engine.`;
-export const defaultNobatchUserPrompt = `Translate the following source text to ${INPUT_PLACE_TO}. Output translation directly without any additional text.\n\nSource Text: ${INPUT_PLACE_TEXT}\n\nTranslated Text:`;
+export const defaultNobatchUserPrompt = `# Context
+Title: ${INPUT_PLACE_TITLE}
+Description: ${INPUT_PLACE_DESCRIPTION}
+Summary: ${INPUT_PLACE_SUMMARY}
+Tone: ${INPUT_PLACE_TONE}
+
+# Task
+Translate the Source Text below to ${INPUT_PLACE_TO}.
+1. Use the Context to ensure accuracy.
+2. Adapt the wording to match the specified Tone.
+3. Output ONLY the translated text. No markdown, no explanations.
+
+Source Text: ${INPUT_PLACE_TEXT}
+
+Translated Text:`;
 
 export const defaultSystemPrompt = `Act as a translation API. Output a single raw JSON object only. No extra text or fences.
 
 Input:
-{"targetLanguage":"<lang>","title":"<context>","description":"<context>","segments":[{"id":1,"text":"..."}],"glossary":{"sourceTerm":"targetTerm"},"tone":"<formal|casual>"}
+{"targetLanguage":"<lang>","title":"<context>","description":"<context>","summary":"<context>","segments":[{"id":1,"text":"..."}],"glossary":{"sourceTerm":"targetTerm"},"tone":"<formal|casual>"}
 
 Output:
 {"translations":[{"id":1,"text":"...","sourceLanguage":"<detected>"}]}
@@ -392,7 +407,7 @@ Fail-safe: On any error, return {"translations":[]}.`;
 export const defaultSystemPromptXml = `Act as a translation API. Output raw XML-like format only. No Markdown fences (xml). No conversational filler.
 
 Input:
-{"targetLanguage":"<lang>","title":"<context>","description":"<context>","segments":[{"id":1,"text":"..."}],"glossary":{"sourceTerm":"targetTerm"},"tone":"<formal|casual>"}
+{"targetLanguage":"<lang>","title":"<context>","description":"<context>","summary":"<context>","segments":[{"id":1,"text":"..."}],"glossary":{"sourceTerm":"targetTerm"},"tone":"<formal|casual>"}
 
 Output Format:
 <root>
@@ -421,7 +436,7 @@ Output:
 export const defaultSystemPromptLines = `Act as a translation API. Output raw text lines in "ID | Text" format. No Markdown. No conversational filler.
 
 Input:
-{"targetLanguage":"<lang>","title":"<context>","description":"<context>","segments":[{"id":1,"text":"..."}],"glossary":{"sourceTerm":"targetTerm"},"tone":"<formal|casual>"}
+{"targetLanguage":"<lang>","title":"<context>","description":"<context>","summary":"<context>","segments":[{"id":1,"text":"..."}],"glossary":{"sourceTerm":"targetTerm"},"tone":"<formal|casual>"}
 
 Output Format:
 <id> | <Translation for Segment>
@@ -464,22 +479,23 @@ Fail-safe: On error, return "{id} | {original_text}" line by line.`;
 // 4. **Special Cases**: '[Music]' (and similar cues) are standalone entries. Translate appropriately (e.g., '[音乐]', '[Musique]').
 // `;
 
-export const defaultSubtitlePrompt = `You are an expert AI for subtitle generation. Convert a JSON array of word-level timestamps into a bilingual VTT file.
+export const defaultSubtitlePrompt = `# Context
+Title: ${INPUT_PLACE_TITLE}
+Description: ${INPUT_PLACE_DESCRIPTION}
+Summary: ${INPUT_PLACE_SUMMARY}
+Tone: ${INPUT_PLACE_TONE}
 
-**Workflow:**
-1. Merge \`text\` fields into complete sentences; ignore empty text.
-2. Split long sentences into smaller, manageable subtitle cues (one sentence per cue).
-3. Translate each cue into ${INPUT_PLACE_TO}.
-4. Format as VTT:
-   - Start with \`WEBVTT\`.
-   - Each cue: timestamps (\`start --> end\` in milliseconds), original text, translated text.
-   - Keep non-speech text (e.g., \`[Music]\`) untranslated.
-   - Separate cues with a blank line.
+# Task
+Convert the input word-level timestamp JSON into a bilingual VTT file. Target Language: ${INPUT_PLACE_TO}.
 
-**Output:** Only the pure VTT content.
+# Rules
+1. Merge words into complete sentences first.
+2. Split long sentences into readable cues (max 42 chars/line, natural pauses).
+3. Translate using the provided Context and Tone. Keep non-speech sounds (e.g., [Music]) as is.
+4. Convert timestamps to standard VTT format (MM:SS.mmm).
+5. Output ONLY the raw VTT content. No markdown, no notes.
 
-**Example:**
-\`\`\`vtt
+# VTT Format Example
 WEBVTT
 
 1000 --> 3500
@@ -488,8 +504,7 @@ Hello world!
 
 4000 --> 6000
 Good morning.
-早上好。
-\`\`\``;
+早上好。`;
 
 const defaultRequestHook = `async (args, { url, body, headers, userMsg, method } = {}) => {
   console.log("request hook args:", { args, url, body, headers, userMsg, method });

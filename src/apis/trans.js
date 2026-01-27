@@ -37,6 +37,7 @@ import {
   INPUT_PLACE_FROM_LANG,
   defaultSystemPromptXml,
   defaultSystemPromptLines,
+  INPUT_PLACE_SUMMARY,
 } from "../config";
 import { msAuth } from "../libs/auth";
 import { genDeeplFree } from "./deepl";
@@ -57,6 +58,7 @@ import { kissLog } from "../libs/log";
 import { fetchData, fetchStream } from "../libs/fetch";
 import { getMsgHistory } from "./history";
 import { parseBilingualVtt } from "../subtitle/vtt";
+import { getDocInfo } from "../libs/docInfo";
 
 const keyMap = new Map();
 const urlMap = new Map();
@@ -87,11 +89,12 @@ const genSystemPrompt = ({
   fromLang,
   toLang,
   texts,
-  docInfo: { title = "", description = "" } = {},
+  docInfo: { title = "", description = "", summary = "" } = {},
 }) =>
   systemPrompt
     .replaceAll(INPUT_PLACE_TITLE, title)
     .replaceAll(INPUT_PLACE_DESCRIPTION, description)
+    .replaceAll(INPUT_PLACE_SUMMARY, summary)
     .replaceAll(INPUT_PLACE_TONE, tone)
     .replaceAll(INPUT_PLACE_FROM, from)
     .replaceAll(INPUT_PLACE_TO, to)
@@ -109,7 +112,7 @@ const genUserPrompt = ({
   fromLang,
   toLang,
   texts,
-  docInfo: { title = "", description = "" } = {},
+  docInfo: { title = "", description = "", summary = "" } = {},
 }) => {
   if (useBatchFetch) {
     const promptObj = {
@@ -130,6 +133,7 @@ const genUserPrompt = ({
   return nobatchUserPrompt
     .replaceAll(INPUT_PLACE_TITLE, title)
     .replaceAll(INPUT_PLACE_DESCRIPTION, description)
+    .replaceAll(INPUT_PLACE_SUMMARY, summary)
     .replaceAll(INPUT_PLACE_TONE, tone)
     .replaceAll(INPUT_PLACE_FROM, from)
     .replaceAll(INPUT_PLACE_TO, to)
@@ -137,6 +141,25 @@ const genUserPrompt = ({
     .replaceAll(INPUT_PLACE_TO_LANG, toLang)
     .replaceAll(INPUT_PLACE_TEXT, texts[0]);
 };
+
+const genSubtitlePrompt = ({
+  subtitlePrompt,
+  tone,
+  from,
+  to,
+  fromLang,
+  toLang,
+  docInfo: { title = "", description = "", summary = "" } = {},
+}) =>
+  subtitlePrompt
+    .replaceAll(INPUT_PLACE_TITLE, title)
+    .replaceAll(INPUT_PLACE_DESCRIPTION, description)
+    .replaceAll(INPUT_PLACE_SUMMARY, summary)
+    .replaceAll(INPUT_PLACE_TONE, tone)
+    .replaceAll(INPUT_PLACE_FROM, from)
+    .replaceAll(INPUT_PLACE_TO, to)
+    .replaceAll(INPUT_PLACE_FROM_LANG, fromLang)
+    .replaceAll(INPUT_PLACE_TO_LANG, toLang);
 
 const parseAIRes = (raw, useBatchFetch = true) => {
   if (!raw) {
@@ -753,6 +776,7 @@ export const genTransReq = async ({ reqHook, ...args }) => {
     apiSlug,
     key,
     systemPrompt,
+    subtitlePrompt,
     // userPrompt,
     nobatchPrompt = defaultNobatchPrompt,
     nobatchUserPrompt = defaultNobatchUserPrompt,
@@ -762,7 +786,6 @@ export const genTransReq = async ({ reqHook, ...args }) => {
     fromLang,
     toLang,
     texts,
-    docInfo,
     glossary,
     customHeader,
     customBody,
@@ -779,8 +802,19 @@ export const genTransReq = async ({ reqHook, ...args }) => {
   }
 
   if (API_SPE_TYPES.ai.has(apiType)) {
+    const docInfo = getDocInfo();
+
     args.systemPrompt = events
-      ? systemPrompt.replaceAll(INPUT_PLACE_TO, to)
+      ? genSubtitlePrompt({
+          subtitlePrompt,
+          from,
+          to,
+          fromLang,
+          toLang,
+          texts,
+          docInfo,
+          tone,
+        })
       : genSystemPrompt({
           systemPrompt: useBatchFetch ? systemPrompt : nobatchPrompt,
           from,
@@ -1029,17 +1063,7 @@ export const parseTransRes = async (
  */
 export async function* handleTranslate(
   texts = [],
-  {
-    from,
-    to,
-    fromLang,
-    toLang,
-    langMap,
-    docInfo,
-    glossary,
-    apiSetting,
-    usePool,
-  }
+  { from, to, fromLang, toLang, langMap, glossary, apiSetting, usePool }
 ) {
   let history = null;
   let hisMsgs = [];
@@ -1075,7 +1099,6 @@ export async function* handleTranslate(
     fromLang,
     toLang,
     langMap,
-    docInfo,
     glossary,
     hisMsgs,
     token,
@@ -1271,7 +1294,6 @@ export const handleSubtitle = async ({ events, from, to, apiSetting }) => {
     events,
     from,
     to,
-    systemPrompt: apiSetting.subtitlePrompt,
   });
 
   const res = await fetchData(input, init, {

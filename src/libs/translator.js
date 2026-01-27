@@ -36,6 +36,7 @@ import { injectJs, INJECTOR } from "../injectors";
 import { injectInternalCss } from "./injector";
 import { isExt } from "./client";
 import { sendBgMsg } from "./msg";
+import { getDocInfo } from "./docInfo";
 
 /**
  * @class Translator
@@ -422,10 +423,6 @@ export class Translator {
     );
 
     this.#eventName = genEventName();
-    this.#docInfo = {
-      title: truncateWords(document.title),
-      description: this.#getDocDescription(),
-    };
     this.#combinedSkipsRegex = new RegExp(
       Translator.BUILTIN_SKIP_PATTERNS.map((r) => `(${r.source})`).join("|")
     );
@@ -1550,7 +1547,6 @@ export class Translator {
     const { toLang, transStartHook } = this.#rule;
     const fromLang = deLang || this.#rule.fromLang;
     const apiSetting = { ...this.#apiSetting };
-    const docInfo = { ...this.#docInfo };
     const glossary = { ...this.#glossary };
     const apisMap = this.#apisMap;
 
@@ -1559,7 +1555,6 @@ export class Translator {
       fromLang,
       toLang,
       apiSetting,
-      docInfo,
       glossary,
     };
 
@@ -1797,7 +1792,6 @@ export class Translator {
 
       if (injectJs?.trim()) {
         const apiSetting = { ...this.#apiSetting };
-        const docInfo = { ...this.#docInfo };
         const glossary = { ...this.#glossary };
         const apisMap = this.#apisMap;
         const apiDectect = tryDetectLang;
@@ -1808,7 +1802,6 @@ export class Translator {
             apiSetting,
             apisMap,
             toLang,
-            docInfo,
             glossary,
           },
         });
@@ -1859,14 +1852,14 @@ export class Translator {
 
   // 翻译页面标题
   async #translateTitle() {
-    const title = document.title;
-    this.#docInfo.title = truncateWords(title);
-    if (!title) return;
+    const docInfo = getDocInfo();
+    if (!docInfo?.title) return;
 
     try {
-      const deLang = await tryDetectLang(title);
-      const { trText } = await this.#translateFetch(title, deLang);
-      document.title = trText || title;
+      const deLang = await tryDetectLang(docInfo.title);
+      const { trText } = await this.#translateFetch(docInfo.title, deLang);
+      this.#docInfo.title = document.title; // 缓存原标题
+      document.title = trText || docInfo.title;
     } catch (err) {
       kissLog("tanslate title", err);
     }
@@ -1884,7 +1877,7 @@ export class Translator {
     clearAllBatchQueue();
 
     // 恢复页面标题
-    if (this.#docInfo.title) {
+    if (this.#rule.transTitle === "true" && this.#docInfo.title) {
       document.title = this.#docInfo.title;
     }
 
@@ -1980,10 +1973,6 @@ export class Translator {
 
   get rule() {
     return { ...this.#rule };
-  }
-
-  get docInfo() {
-    return { ...this.#docInfo };
   }
 
   get eventName() {
