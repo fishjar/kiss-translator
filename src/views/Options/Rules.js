@@ -45,11 +45,7 @@ import { loadOrFetchSubRules } from "../../libs/subRules";
 import { useAlert } from "../../hooks/Alert";
 import { syncShareRules } from "../../libs/sync";
 import { debounce } from "../../libs/utils";
-import {
-  delSubRules,
-  getSyncWithDefault,
-  getRulesOld,
-} from "../../libs/storage";
+import { delSubRules, getSyncWithDefault } from "../../libs/storage";
 import ClearAllIcon from "@mui/icons-material/ClearAll";
 import HelpButton from "./HelpButton";
 import { useSyncCaches } from "../../hooks/Sync";
@@ -906,11 +902,6 @@ function UserRules({ subRules, rules }) {
           handleData={() => JSON.stringify([...rules.list], null, 2)}
           text={i18n("export")}
           fileName={`kiss-rules_v2_${Date.now()}.json`}
-        />
-        <DownloadButton
-          handleData={async () => JSON.stringify(await getRulesOld(), null, 2)}
-          text={i18n("export_old")}
-          fileName={`kiss-rules_v1_${Date.now()}.json`}
         />
 
         <ShareButton

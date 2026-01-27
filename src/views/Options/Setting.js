@@ -33,7 +33,6 @@ import { sendBgMsg } from "../../libs/msg";
 import { kissLog, LogLevel } from "../../libs/log";
 import UploadButton from "./UploadButton";
 import DownloadButton from "./DownloadButton";
-import { getSettingOld } from "../../libs/storage";
 import ValidationInput from "../../hooks/ValidationInput";
 
 function ShortcutItem({ action, label }) {
@@ -112,7 +111,7 @@ export default function Settings() {
   return (
     <Box>
       <Stack spacing={3}>
-        <Alert severity="info">{i18n("setting_helper")}</Alert>
+        {/* <Alert severity="info">{i18n("setting_helper")}</Alert> */}
 
         <Stack
           direction="row"
@@ -126,13 +125,6 @@ export default function Settings() {
             handleData={() => JSON.stringify(setting, null, 2)}
             text={i18n("export")}
             fileName={`kiss-setting_v2_${Date.now()}.json`}
-          />
-          <DownloadButton
-            handleData={async () =>
-              JSON.stringify(await getSettingOld(), null, 2)
-            }
-            text={i18n("export_old")}
-            fileName={`kiss-setting_v1_${Date.now()}.json`}
           />
         </Stack>
 
