@@ -8,6 +8,8 @@ import {
   OPT_LANGS_TO_CODE,
   OPT_TRANS_MICROSOFT,
   OPT_LANGS_SPEC_DEFAULT,
+  OPT_ENHANCE_ON,
+  OPT_ENHANCE_MOBILE_OFF,
 } from "../config";
 import { sleep, downloadBlobFile } from "../libs/utils.js";
 import { createLogoSVG } from "../libs/svg.js";
@@ -670,11 +672,12 @@ class YouTubeCaptionProvider {
 
     // todo 移到菜单切换
     // 监听字幕更新事件，将翻译后的字幕传递给字幕列表
-    if (
-      !isMobile &&
-      this.#setting.isEnhance !== false &&
-      !this.#subtitleListManager
-    ) {
+    const { enhanceMode } = this.#setting;
+    const isEnhance =
+      enhanceMode === OPT_ENHANCE_ON ||
+      (enhanceMode === OPT_ENHANCE_MOBILE_OFF && !isMobile);
+
+    if (isEnhance && !this.#subtitleListManager) {
       // 初始化字幕列表管理器
       this.#subtitleListManager = new YouTubeSubtitleList(videoEl);
       this.#subtitleListManager.initialize(this.#subtitles);

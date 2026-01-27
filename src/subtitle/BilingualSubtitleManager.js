@@ -149,7 +149,11 @@ export class BilingualSubtitleManager {
     );
 
     // todo: 使用 @emotion/css
-    if (!isMobile && this.#setting.isEnhance !== false) {
+    const { enhanceMode } = this.#setting;
+    const isEnhance =
+      enhanceMode === "on" || (enhanceMode === "mobile_off" && !isMobile);
+
+    if (isEnhance) {
       addWordHoverStyles();
     }
   }
@@ -249,9 +253,13 @@ export class BilingualSubtitleManager {
     videoContainer.style.position = "relative";
     videoContainer.appendChild(container);
 
+    const { enhanceMode } = this.#setting;
+    const isEnhance =
+      enhanceMode === "on" || (enhanceMode === "mobile_off" && !isMobile);
+
     this.#enableDragging(this.#paperEl, container, this.#captionWindowEl);
 
-    if (!isMobile && this.#setting.isEnhance !== false) {
+    if (isEnhance) {
       this.#captionWindowEl.addEventListener("pointerenter", (e) => {
         if (e.target === this.#captionWindowEl) {
           this.#wasPlayingBeforeHover = this.#videoEl && !this.#videoEl.paused;
@@ -660,7 +668,11 @@ export class BilingualSubtitleManager {
       const p1 = document.createElement("p");
       p1.style.cssText = this.#setting.originStyle;
 
-      if (!isMobile && this.#setting.isEnhance !== false) {
+      const { enhanceMode } = this.#setting;
+      const isEnhance =
+        enhanceMode === "on" || (enhanceMode === "mobile_off" && !isMobile);
+
+      if (isEnhance) {
         p1.innerHTML = trustedTypesHelper.createHTML(
           this.#wrapWordsWithSpans(subtitle.text)
         );
@@ -670,7 +682,7 @@ export class BilingualSubtitleManager {
 
       const p2 = document.createElement("p");
       p2.style.cssText = this.#setting.translationStyle;
-      if (!isMobile && this.#setting.isEnhance !== false) {
+      if (isEnhance) {
         p2.innerHTML = trustedTypesHelper.createHTML(
           this.#wrapWordsWithSpans(subtitle.translation || "...")
         );
@@ -684,7 +696,7 @@ export class BilingualSubtitleManager {
         this.#captionWindowEl.replaceChildren(p2);
       }
 
-      if (!isMobile && this.#setting.isEnhance !== false) {
+      if (isEnhance) {
         this.#attachSpanListeners();
       }
 

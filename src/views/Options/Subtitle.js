@@ -10,7 +10,12 @@ import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useI18n } from "../../hooks/I18n";
-import { OPT_LANGS_TO } from "../../config";
+import {
+  OPT_LANGS_TO,
+  OPT_ENHANCE_ON,
+  OPT_ENHANCE_OFF,
+  OPT_ENHANCE_MOBILE_OFF,
+} from "../../config";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Alert from "@mui/material/Alert";
 import Switch from "@mui/material/Switch";
@@ -453,7 +458,7 @@ export default function SubtitleSetting() {
     throttleTrans = 30,
     toLang,
     isBilingual,
-    isEnhance = true,
+    enhanceMode = OPT_ENHANCE_MOBILE_OFF,
     skipAd = false,
     windowStyle,
     originStyle,
@@ -613,13 +618,16 @@ export default function SubtitleSetting() {
                 fullWidth
                 select
                 size="small"
-                name="isEnhance"
-                value={isEnhance}
+                name="enhanceMode"
+                value={enhanceMode}
                 label={i18n("is_enable_enhance")}
                 onChange={handleChange}
               >
-                <MenuItem value={true}>{i18n("enable")}</MenuItem>
-                <MenuItem value={false}>{i18n("disable")}</MenuItem>
+                <MenuItem value={OPT_ENHANCE_ON}>{i18n("enable")}</MenuItem>
+                <MenuItem value={OPT_ENHANCE_OFF}>{i18n("disable")}</MenuItem>
+                <MenuItem value={OPT_ENHANCE_MOBILE_OFF}>
+                  {i18n("disable_on_mobile")}
+                </MenuItem>
               </TextField>
             </Grid>
           </Grid>

@@ -110,8 +110,11 @@ text-shadow: 1px 1px 2px black;
 display: inline-block`;
 
 const SUBTITLE_ORIGIN_STYLE = `font-size: clamp(1rem, 2cqw, 3rem);`;
-
 const SUBTITLE_TRANSLATION_STYLE = `font-size: clamp(1rem, 2cqw, 3rem);`;
+
+export const OPT_ENHANCE_ON = "on";
+export const OPT_ENHANCE_OFF = "off";
+export const OPT_ENHANCE_MOBILE_OFF = "mobile_off";
 
 export const DEFAULT_SUBTITLE_SETTING = {
   enabled: true, // 是否开启
@@ -127,7 +130,7 @@ export const DEFAULT_SUBTITLE_SETTING = {
   windowStyle: SUBTITLE_WINDOW_STYLE, // 背景样式
   originStyle: SUBTITLE_ORIGIN_STYLE, // 原文样式
   translationStyle: SUBTITLE_TRANSLATION_STYLE, // 译文样式
-  isEnhance: true, // 启用增强功能
+  enhanceMode: OPT_ENHANCE_MOBILE_OFF, // 增强功能：on/off/mobile_off
 };
 
 // 订阅列表

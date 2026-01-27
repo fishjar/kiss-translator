@@ -1299,6 +1299,13 @@ export const I18N = {
     ja: `キャッシュをクリア`,
     ko: `캐시 지우기`,
   },
+  disable_on_mobile: {
+    zh: `移动端禁用`,
+    en: `Disable on Mobile`,
+    zh_TW: `行動裝置停用`,
+    ja: `モバイルで無効にする`,
+    ko: `모바일에서 비활성화`,
+  },
   clear_success: {
     zh: `清除成功`,
     en: `Clear success`,
