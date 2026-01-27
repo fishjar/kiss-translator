@@ -42,6 +42,28 @@ jobs:
     outputs:
       upload_url: ${{ steps.create-release.outputs.upload_url }}
     steps:
+      - uses: actions/checkout@v4
+      - name: Extract Release Notes
+        id: extract_notes
+        shell: bash
+        run: |
+          LOG_FILE="CHANGELOG.md"
+          
+          if [ -f "$LOG_FILE" ]; then
+            # 使用 awk 提取：从第一个 "## " 开始，直到遇到下一个 "## " 停止
+            # 这里的逻辑假设最新日志在文件最上方
+            NOTES=$(awk '/^## / {if (p) exit; p=1} p' "$LOG_FILE")
+          else
+            NOTES="Release ${{ github.ref }}"
+          fi
+          
+          # 处理多行文本并写入 GITHUB_OUTPUT
+          {
+            echo "body<<EOF"
+            echo "$NOTES"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - uses: actions/create-release@v1
         id: create-release
         env:
@@ -49,6 +71,7 @@ jobs:
         with:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
+          body: ${{ steps.extract_notes.outputs.body }}
           draft: false
           prerelease: false
   upload-release:
