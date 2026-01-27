@@ -7,7 +7,6 @@ import {
   OPT_TRANS_OLLAMA,
   OPT_TRANS_CLAUDE,
 } from "../config";
-import { stripMarkdownCodeBlock } from "./utils";
 
 /**
  * 创建 SSE 流解析器
@@ -65,13 +64,14 @@ export const createAsyncQueue = () => {
       }
     },
     async *iterate() {
+      const setResolve = (r) => {
+        resolve = r;
+      };
       while (!done || queue.length > 0) {
         if (queue.length > 0) {
           yield queue.shift();
         } else if (!done) {
-          await new Promise((r) => {
-            resolve = r;
-          });
+          await new Promise(setResolve);
         }
       }
       if (error) throw error;
@@ -215,7 +215,7 @@ export function detectStreamFormat(content) {
   const stripped = content.trim();
 
   // 查找第一个有意义的格式标识符位置
-  const jsonStart = stripped.search(/[{\[]/);
+  const jsonStart = stripped.search(/[{[]/);
   const xmlStart = stripped.search(/<(t|item|seg)\s/i);
   const lineStart = stripped.search(/^\d+\s*\|/m);
 

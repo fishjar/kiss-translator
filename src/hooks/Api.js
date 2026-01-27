@@ -4,13 +4,13 @@ import { useSetting } from "./Setting";
 
 function useApiState() {
   const { setting, updateSetting } = useSetting();
-  const rawTransApis = setting?.transApis || [];
-
   // 统一排序，所有使用transApis的地方都是排序好的
   const transApis = useMemo(
     () =>
-      [...rawTransApis].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)),
-    [rawTransApis]
+      [...(setting?.transApis || [])].sort(
+        (a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)
+      ),
+    [setting?.transApis]
   );
 
   return { transApis, updateSetting };

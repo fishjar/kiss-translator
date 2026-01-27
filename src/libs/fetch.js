@@ -262,6 +262,8 @@ async function* fetchStreamViaPort(input, init, opts) {
       case "error":
         asyncQueue.error(new Error(message.error));
         break;
+      default:
+        break;
     }
   });
 

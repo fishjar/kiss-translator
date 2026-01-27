@@ -3,9 +3,7 @@ import ThemeProvider from "../../hooks/Theme";
 import DraggableResizable from "./DraggableResizable";
 import Stack from "@mui/material/Stack";
 import Box from "@mui/material/Box";
-import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
-import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
 import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
@@ -16,7 +14,7 @@ import LockOpenIcon from "@mui/icons-material/LockOpen";
 import CloseIcon from "@mui/icons-material/Close";
 import Typography from "@mui/material/Typography";
 import { useI18n } from "../../hooks/I18n";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { isMobile } from "../../libs/mobile";
 import TranForm from "./TranForm.js";
 import { MSG_OPEN_SEPARATE_WINDOW } from "../../config/msg.js";
@@ -33,13 +31,11 @@ function Header({
   setHideClickAway,
   followSelection,
   setFollowSelection,
-  mouseHover,
 }) {
   const theme = useTheme();
   const i18n = useI18n();
 
   const iconColor = theme.palette.text.secondary;
-  const buttonHoverBg = theme.palette.action.hover;
 
   const openSeparateWindow = useCallback(() => {
     sendBgMsg(MSG_OPEN_SEPARATE_WINDOW);

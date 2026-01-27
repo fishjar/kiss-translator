@@ -8,7 +8,7 @@ import { useI18n } from "../../hooks/I18n";
 import { useAlert } from "../../hooks/Alert";
 import { isExt } from "../../libs/client";
 import Grid from "@mui/material/Grid";
-import Alert from "@mui/material/Alert";
+
 import {
   UI_LANGS,
   TRANS_NEWLINE_LENGTH,
