@@ -570,6 +570,7 @@ const defaultApiOpts = {
     url: "https://translate-pa.googleapis.com/v1/translateHtml",
     key: "AIzaSyATBXajvzQLTDHEQbcpq0Ihe0vWDHmO520",
     useBatchFetch: true,
+    placetag: "a",
     placetagFormat: "attribute",
   },
   [OPT_TRANS_MICROSOFT]: {
