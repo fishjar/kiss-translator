@@ -13,12 +13,19 @@
     }
   },
   "background": {
-    "scripts": ["background.js"]
+    "scripts": [
+      "background.js"
+    ]
   },
   "content_scripts": [
     {
-      "js": ["content.js"],
-      "matches": ["<all_urls>", "file://*/*"],
+      "js": [
+        "content.js"
+      ],
+      "matches": [
+        "<all_urls>",
+        "file://*/*"
+      ],
       "all_frames": true
     }
   ],
