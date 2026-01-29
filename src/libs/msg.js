@@ -24,7 +24,7 @@ export const getCurTabId = async () => {
  * @returns
  */
 export const sendBgMsg = (action, args) =>
-  browser.runtime.sendMessage({ action, args });
+  browser?.runtime.sendMessage({ action, args });
 
 /**
  * 发送消息给当前页面

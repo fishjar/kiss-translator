@@ -1847,7 +1847,7 @@ export class Translator {
       this.#translateTitle();
     }
 
-    sendBgMsg(MSG_UPDATE_ICON, true);
+    isExt && sendBgMsg(MSG_UPDATE_ICON, true);
   }
 
   // 翻译页面标题
@@ -1881,7 +1881,7 @@ export class Translator {
       document.title = this.#docInfo.title;
     }
 
-    sendBgMsg(MSG_UPDATE_ICON, false);
+    isExt && sendBgMsg(MSG_UPDATE_ICON, false);
   }
 
   // 重新扫描页面
