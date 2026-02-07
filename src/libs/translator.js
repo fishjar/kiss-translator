@@ -14,6 +14,7 @@ import {
   OPT_SPLIT_PARAGRAPH_TEXTLENGTH,
   MSG_INJECT_CSS,
   MSG_UPDATE_ICON,
+  OPT_LANGS_TO_SPEC,
 } from "../config";
 import { interpreter } from "./interpreter";
 import { clearFetchPool } from "./pool";
@@ -972,7 +973,13 @@ export class Translator {
     } = this.#rule;
     const { langDetector, skipLangs = [] } = this.#setting;
     if (fromLang === "auto") {
-      deLang = await tryDetectLang(node.textContent, langDetector);
+    // 与 #translateFetch 使用同一翻译服务，均来自 this.#apiSetting（rule.apiSlug + apisMap）
+    const apiType = this.#apiSetting?.apiType;
+    const langMap = apiType ? OPT_LANGS_TO_SPEC[apiType] : null;
+    const apiSupportsAutoDetect = langMap.get("auto");
+    
+    // 还是用检测下  google de auto当翻译zh 到葡萄牙语时有问题
+    deLang = await tryDetectLang(node.textContent, langDetector) || apiSupportsAutoDetect
       if (
         deLang &&
         (toLang.slice(0, 2) === deLang.slice(0, 2) ||
