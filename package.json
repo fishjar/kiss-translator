@@ -37,7 +37,7 @@
     "build:thunderbird": "zx src/scripts/build-task.mjs --target=thunderbird",
     "build:firefox": "zx src/scripts/build-task.mjs --target=firefox",
     "build:web": "zx src/scripts/build-task.mjs --target=web",
-    "build:safari": "node src/scripts/build-safari.js",
+    "build:safari": "node src/scripts/build-safari.mjs",
     "build:userscript-ios": "zx src/scripts/build-ios.mjs",
     "build:rules": "babel-node src/rules.js",
     "format": "prettier --write \"**/*.{js,json,html}\"",
