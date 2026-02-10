@@ -12,13 +12,12 @@ import {
   OPT_TRANBOX_TRIGGER_SELECT,
   EVENT_KISS_INNER,
 } from "../../config";
-import { APP_CONSTS } from "../../config";
 import { isMobile } from "../../libs/mobile";
 import { kissLog } from "../../libs/log";
 import { useLangMap } from "../../hooks/I18n";
-import { debouncePutTranBox, getTranBox, putSetting } from "../../libs/storage";
-import { debounce } from "../../libs/utils";
+import { debouncePutTranBox, getTranBox } from "../../libs/storage";
 import useAutoHideTranBtn from "../../hooks/useAutoHideTranBtn";
+
 
 export default function Slection({
   contextMenuType,
@@ -72,7 +71,7 @@ export default function Slection({
   const [hideClickAway, setHideClickAway] = useState(initHideClickAway);
   const [followSelection, setFollowSelection] = useState(initFollowMouse);
 
-  const handleTrigger = useCallback(
+  const handleOpenTranbox = useCallback(
     (text) => {
       setShowBtn(false);
       setText(text || selectedText);
@@ -81,52 +80,7 @@ export default function Slection({
     [selectedText]
   );
 
-  const isNodeInsideTransbox = (node) => {
-    if (!node) return false;
-    let cur = node.nodeType === 3 ? node.parentNode : node;
-    while (cur) {
-      if (cur.id === APP_CONSTS.boxID) return true;
-      const root = cur.getRootNode && cur.getRootNode();
-      if (root && root.host) {
-        if (root.host.id === APP_CONSTS.boxID) return true;
-        cur = root.host;
-        continue;
-      }
-      cur = cur.parentNode;
-    }
-    return false;
-  };
-
-  const isSelectionInsideTransbox = (selection) => {
-    if (!selection) return false;
-    try {
-      const range = selection.getRangeAt(0);
-      const nodes = [
-        range.commonAncestorContainer,
-        range.startContainer,
-        range.endContainer,
-        selection.anchorNode,
-        selection.focusNode,
-      ];
-      for (const node of nodes) {
-        if (!node) continue;
-        let cur = node.nodeType === 3 ? node.parentNode : node;
-        while (cur) {
-          if (cur.id === APP_CONSTS.boxID) return true;
-          const root = cur.getRootNode && cur.getRootNode();
-          if (root && root.host) {
-            if (root.host.id === APP_CONSTS.boxID) return true;
-            cur = root.host;
-            continue;
-          }
-          cur = cur.parentNode;
-        }
-      }
-    } catch (err) {}
-    return false;
-  };
-
-  const handleTranbox = useCallback(() => {
+  const handleToggleTranbox = useCallback(() => {
     setShowBtn(false);
 
     const selection = window.getSelection();
@@ -137,9 +91,7 @@ export default function Slection({
     }
 
     const rect = selection?.getRangeAt(0)?.getBoundingClientRect();
-
-    const anchorNode = selection?.anchorNode;
-    if (!isNodeInsideTransbox(anchorNode) && rect && followSelection) {
+    if (rect && followSelection) {
       const x = (rect.left + rect.right) / 2 + boxOffsetX;
       const y = rect.bottom + boxOffsetY;
       setBoxPosition({
@@ -185,33 +137,6 @@ export default function Slection({
     debouncePutTranBox({ ...boxSize, ...boxPosition });
   }, [boxSize, boxPosition]);
 
-  const saveTranboxSetting = useMemo(
-    () =>
-      debounce((obj) => {
-        try {
-          putSetting({ tranboxSetting: obj });
-        } catch (err) {
-          // ignore
-        }
-      }, 300),
-    []
-  );
-
-  useEffect(() => {
-    saveTranboxSetting({
-      ...(tranboxSetting || {}),
-      simpleStyle,
-      hideClickAway,
-      followSelection,
-    });
-  }, [
-    simpleStyle,
-    hideClickAway,
-    followSelection,
-    tranboxSetting,
-    saveTranboxSetting,
-  ]);
-
   useEffect(() => {
     async function handleMouseup(e) {
       // e.stopPropagation();
@@ -221,28 +146,6 @@ export default function Slection({
 
       const selection = window.getSelection();
       const selectedText = selection?.toString()?.trim() || "";
-      // 用于解决tranbox 内选中文字时窗口跳到左上角的问题
-      if (isSelectionInsideTransbox(selection)) {
-        setSelText(selectedText);
-        setShowBtn(false);
-        return;
-      }
-      try {
-        const path = e.composedPath ? e.composedPath() : [];
-        for (const el of path) {
-          if (!el) continue;
-          if (el.id === APP_CONSTS.boxID) {
-            setSelText(selectedText);
-            setShowBtn(false);
-            return;
-          }
-          if (el.host && el.host.id === APP_CONSTS.boxID) {
-            setSelText(selectedText);
-            setShowBtn(false);
-            return;
-          }
-        }
-      } catch (err) {}
       setSelText(selectedText);
       if (!selectedText) {
         setShowBtn(false);
@@ -250,36 +153,17 @@ export default function Slection({
       }
 
       const rect = selection?.getRangeAt(0)?.getBoundingClientRect();
-
-      const anchorNode = selection?.anchorNode;
-      if (anchorNode) {
-        const root = anchorNode.getRootNode && anchorNode.getRootNode();
-        if (
-          !(root && root.host && root.host.id === APP_CONSTS.boxID) &&
-          rect &&
-          followSelection &&
-          !showBox
-        ) {
-          const x = (rect.left + rect.right) / 2 + boxOffsetX;
-          const y = rect.bottom + boxOffsetY;
-          setBoxPosition({
-            x: limitNumber(x, 0, window.innerWidth - 300),
-            y: limitNumber(y, 0, window.innerHeight - 200),
-          });
-        }
-      } else if (rect && followSelection) {
+      if (rect && followSelection) {
         const x = (rect.left + rect.right) / 2 + boxOffsetX;
         const y = rect.bottom + boxOffsetY;
-        if (followSelection && !showBox) {
-          setBoxPosition({
-            x: limitNumber(x, 0, window.innerWidth - 300),
-            y: limitNumber(y, 0, window.innerHeight - 200),
-          });
-        }
+        setBoxPosition({
+          x: limitNumber(x, 0, window.innerWidth - 300),
+          y: limitNumber(y, 0, window.innerHeight - 200),
+        });
       }
 
       if (triggerMode === OPT_TRANBOX_TRIGGER_SELECT) {
-        handleTrigger(selectedText);
+        handleOpenTranbox(selectedText);
         return;
       }
 
@@ -303,27 +187,26 @@ export default function Slection({
     followSelection,
     boxOffsetX,
     boxOffsetY,
-    handleTrigger,
-    showBox,
+    handleOpenTranbox,
   ]);
 
   useEffect(() => {
     if (isExt) {
       return;
     }
-    const clearShortcut = shortcutRegister(tranboxShortcut, handleTranbox);
+    const clearShortcut = shortcutRegister(tranboxShortcut, handleToggleTranbox);
     return () => {
       clearShortcut();
     };
-  }, [tranboxShortcut, handleTranbox]);
+  }, [tranboxShortcut, handleToggleTranbox]);
 
   const handleToggle = useCallback(() => {
     if (showBox) {
       setShowBox(false);
     } else {
-      handleTranbox();
+      handleToggleTranbox();
     }
-  }, [showBox, handleTranbox]);
+  }, [showBox, handleToggleTranbox]);
 
   useEffect(() => {
     const handleStatusUpdate = (event) => {
@@ -351,7 +234,7 @@ export default function Slection({
           GM.registerMenuCommand?.(
             langMap("translate_selected_text"),
             (event) => {
-              handleTranbox();
+              handleToggleTranbox();
             },
             "S"
           )
@@ -365,7 +248,7 @@ export default function Slection({
     } catch (err) {
       kissLog("registerMenuCommand", err);
     }
-  }, [handleTranbox, contextMenuType, langMap]);
+  }, [handleToggleTranbox, contextMenuType, langMap]);
 
   useEffect(() => {
     if (hideClickAway) {
@@ -412,7 +295,7 @@ export default function Slection({
           btnEvent={btnEvent}
           onTrigger={(e) => {
             e.stopPropagation();
-            handleTrigger();
+            handleOpenTranbox();
           }}
         />
       )}

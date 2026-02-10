@@ -23,7 +23,7 @@ import { isExt } from "../../libs/client.js";
 import { useTheme, alpha } from "@mui/material/styles";
 import Logo from "../../components/Logo";
 
-function Header({
+function TranBoxHeader({
   setShowBox,
   simpleStyle,
   setSimpleStyle,
@@ -56,9 +56,9 @@ function Header({
   };
 
   // 移动端不显示标题栏
-  if (isMobile) {
-    return null;
-  }
+  // if (isMobile) {
+  //   return null;
+  // }
 
   return (
     <Box
@@ -343,6 +343,7 @@ export default function TranBox(props) {
   const setHideClickAway = props.setHideClickAway;
   const followSelection = props.followSelection;
   const setFollowSelection = props.setFollowSelection;
+  console.log("TranBox render 222", props.showBox);
   return (
     <SettingProvider context="tranbox">
       <ThemeProvider styles={props.extStyles}>
@@ -354,7 +355,7 @@ export default function TranBox(props) {
             setPosition={props.setBoxPosition}
             autoHeight={props.tranboxSetting.autoHeight}
             header={
-              <Header
+              <TranBoxHeader
                 setShowBox={props.setShowBox}
                 simpleStyle={simpleStyle}
                 setSimpleStyle={setSimpleStyle}
