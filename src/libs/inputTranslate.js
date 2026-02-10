@@ -270,6 +270,11 @@ export class InputTranslator {
     window.addEventListener("scroll", this.#boundUpdatePos, true);
     window.addEventListener("resize", this.#boundUpdatePos);
 
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", this.#boundUpdatePos);
+      window.visualViewport.addEventListener("scroll", this.#boundUpdatePos);
+    }
+
     this.#isEnabled = true;
 
     // [修复问题2-B]：开启时，如果当前焦点已经在输入框内，立即触发逻辑
@@ -295,6 +300,11 @@ export class InputTranslator {
     document.removeEventListener("focusout", this.#boundFocusOut);
     window.removeEventListener("scroll", this.#boundUpdatePos, true);
     window.removeEventListener("resize", this.#boundUpdatePos);
+
+    if (window.visualViewport) {
+      window.visualViewport.removeEventListener("resize", this.#boundUpdatePos);
+      window.visualViewport.removeEventListener("scroll", this.#boundUpdatePos);
+    }
 
     // 3. 清理 UI 和 观察器
     // [修复问题2-A]：彻底销毁 DOM，防止僵尸状态
@@ -383,9 +393,12 @@ export class InputTranslator {
   createFloatButtonDOM() {
     this.#floatBtn = document.createElement("div");
     // ... 样式代码保持不变 ...
+    const isTouch = isMobile || navigator.maxTouchPoints > 0;
+    const size = isTouch ? "36px" : "30px";
+
     this.#floatBtn.style.cssText = `
         position: fixed;
-        width: 30px; height: 30px;
+        width: ${size}; height: ${size};
         background: #209CEE;
         border-radius: 50%;
         z-index: 2147483647;
@@ -393,7 +406,7 @@ export class InputTranslator {
         display: flex; align-items: center; justify-content: center;
         box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         transition: opacity 0.2s;
-        font-size: 12px; color: white;
+        font-size: 13px; color: white;
         user-select: none; -webkit-user-select: none;
       `;
     this.#floatBtn.innerText = "译";
@@ -408,12 +421,15 @@ export class InputTranslator {
       passive: false,
     });
 
-    this.#floatBtn.addEventListener("click", (e) => {
+    const handleTrigger = (e) => {
       e.preventDefault();
       e.stopPropagation();
       if (this.#activeInput) this.#activeInput.focus();
       this.handleTranslate({ isBtnTrigger: true });
-    });
+    };
+
+    this.#floatBtn.addEventListener("click", handleTrigger);
+    this.#floatBtn.addEventListener("touchend", handleTrigger);
 
     document.body.appendChild(this.#floatBtn);
   }
@@ -448,16 +464,16 @@ export class InputTranslator {
 
     const rect = this.#activeInput.getBoundingClientRect();
     // ... 位置计算逻辑保持不变 ...
-    const btnSize = 30;
+    const isTouch = isMobile || navigator.maxTouchPoints > 0;
+    const btnSize = isTouch ? 36 : 30;
     const padding = 5;
     let top = rect.bottom - btnSize - padding;
     let left = rect.right - btnSize - padding;
 
     if (rect.height < 60) top = rect.top - btnSize - 2;
-    if (left + btnSize > window.innerWidth)
-      left = window.innerWidth - btnSize - 2;
-    if (top + btnSize > window.innerHeight)
-      top = window.innerHeight - btnSize - 2;
+    // 确保按钮不超出屏幕范围
+    left = Math.max(0, Math.min(left, window.innerWidth - btnSize - 2));
+    top = Math.max(0, Math.min(top, window.innerHeight - btnSize - 2));
 
     this.#floatBtn.style.top = `${top}px`;
     this.#floatBtn.style.left = `${left}px`;
