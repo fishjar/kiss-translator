@@ -677,7 +677,7 @@ class YouTubeCaptionProvider {
       enhanceMode === OPT_ENHANCE_ON ||
       (enhanceMode === OPT_ENHANCE_MOBILE_OFF && !isMobile);
 
-    if (isEnhance && !this.#subtitleListManager) {
+    if (isEnhance && this.#setting.showList && !this.#subtitleListManager) {
       // 初始化字幕列表管理器
       this.#subtitleListManager = new YouTubeSubtitleList(videoEl);
       this.#subtitleListManager.initialize(this.#subtitles);

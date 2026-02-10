@@ -16,13 +16,14 @@ import {
   OPT_ENHANCE_OFF,
   OPT_ENHANCE_MOBILE_OFF,
 } from "../../config";
+import { debounce } from "../../libs/utils";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Alert from "@mui/material/Alert";
 import Switch from "@mui/material/Switch";
 import { useSubtitle } from "../../hooks/Subtitle";
 import { useApiList } from "../../hooks/Api";
 import ValidationInput from "../../hooks/ValidationInput";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 
 // CSS 解析工具函数
 const parseCssToObject = (cssString) => {
@@ -163,15 +164,17 @@ function StyleVisualEditor({ label, cssValue, onChange, type }) {
     setCssObj(parseCssToObject(cssValue));
   }, [cssValue]);
 
+  const debouncedOnChange = useMemo(() => debounce(onChange, 200), [onChange]);
+
   const updateCss = useCallback(
     (key, value) => {
       setCssObj((prevCssObj) => {
         const newObj = { ...prevCssObj, [key]: value };
-        onChange(objectToCss(newObj));
+        debouncedOnChange(objectToCss(newObj));
         return newObj;
       });
     },
-    [onChange]
+    [debouncedOnChange]
   );
 
   // 原文/译文样式 - 主要是 font-size
@@ -459,6 +462,7 @@ export default function SubtitleSetting() {
     toLang,
     isBilingual,
     enhanceMode = OPT_ENHANCE_MOBILE_OFF,
+    showList = true,
     skipAd = false,
     windowStyle,
     originStyle,
@@ -628,6 +632,20 @@ export default function SubtitleSetting() {
                 <MenuItem value={OPT_ENHANCE_MOBILE_OFF}>
                   {i18n("disable_on_mobile")}
                 </MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                fullWidth
+                select
+                size="small"
+                name="showList"
+                value={showList}
+                label={i18n("show_subtitle_list") || "显示字幕列表"}
+                onChange={handleChange}
+              >
+                <MenuItem value={true}>{i18n("enable")}</MenuItem>
+                <MenuItem value={false}>{i18n("disable")}</MenuItem>
               </TextField>
             </Grid>
           </Grid>
