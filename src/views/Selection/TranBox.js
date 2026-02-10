@@ -15,7 +15,6 @@ import CloseIcon from "@mui/icons-material/Close";
 import Typography from "@mui/material/Typography";
 import { useI18n } from "../../hooks/I18n";
 import { useCallback, useState } from "react";
-import { isMobile } from "../../libs/mobile";
 import TranForm from "./TranForm.js";
 import { MSG_OPEN_SEPARATE_WINDOW } from "../../config/msg.js";
 import { sendBgMsg } from "../../libs/msg.js";
@@ -54,11 +53,6 @@ function TranBoxHeader({
       color: iconColor,
     },
   };
-
-  // 移动端不显示标题栏
-  // if (isMobile) {
-  //   return null;
-  // }
 
   return (
     <Box
@@ -343,7 +337,6 @@ export default function TranBox(props) {
   const setHideClickAway = props.setHideClickAway;
   const followSelection = props.followSelection;
   const setFollowSelection = props.setFollowSelection;
-  console.log("TranBox render 222", props.showBox);
   return (
     <SettingProvider context="tranbox">
       <ThemeProvider styles={props.extStyles}>

@@ -3,6 +3,7 @@ import Paper from "@mui/material/Paper";
 import Box from "@mui/material/Box";
 import { isMobile } from "../../libs/mobile";
 import { useTheme, alpha } from "@mui/material/styles";
+import { limitNumber } from "../../libs/utils";
 
 function Pointer({
   direction,
@@ -99,8 +100,14 @@ function Pointer({
         y = position.y;
       }
 
-      setPosition({ x, y });
-      setSize({ w, h });
+      setPosition({
+        x: limitNumber(x, 0, window.innerWidth - w),
+        y: limitNumber(y, 0, window.innerHeight - 50),
+      });
+      setSize({
+        w: limitNumber(w, minSize.w, window.innerWidth),
+        h: limitNumber(h, minSize.h, window.innerHeight),
+      });
     }
   }
 
@@ -250,12 +257,12 @@ export default function DraggableResizable({
           sx={() => {
             const containerStyle = autoHeight
               ? {
-                  width: size.w,
+                  maxWidth: size.w,
                   maxHeight: size.h,
                   overflow: "hidden auto",
                 }
               : {
-                  width: size.w,
+                  maxWidth: size.w,
                   height: size.h,
                   overflow: "hidden auto",
                 };

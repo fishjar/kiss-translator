@@ -1,25 +1,10 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
 import TranBtn from "./TranBtn";
 import TranBox from "./TranBox";
-import { shortcutRegister } from "../../libs/shortcut";
-import { sleep, limitNumber } from "../../libs/utils";
-import { isGm, isExt } from "../../libs/client";
-import {
-  MSG_OPEN_TRANBOX,
-  DEFAULT_TRANBOX_SHORTCUT,
-  OPT_TRANBOX_TRIGGER_CLICK,
-  OPT_TRANBOX_TRIGGER_HOVER,
-  OPT_TRANBOX_TRIGGER_SELECT,
-  EVENT_KISS_INNER,
-} from "../../config";
-import { isMobile } from "../../libs/mobile";
-import { kissLog } from "../../libs/log";
-import { useLangMap } from "../../hooks/I18n";
-import { debouncePutTranBox, getTranBox } from "../../libs/storage";
-import useAutoHideTranBtn from "../../hooks/useAutoHideTranBtn";
+import useTranBoxState from "../../hooks/useTranBoxState";
+import useSelectionController from "../../hooks/useSelectionController";
+import useTranboxShortcuts from "../../hooks/useTranboxShortcuts";
 
-
-export default function Slection({
+export default function Selection({
   contextMenuType,
   tranboxSetting,
   transApis,
@@ -27,240 +12,48 @@ export default function Slection({
   langDetector,
 }) {
   const {
-    hideTranBtn = false,
-    simpleStyle: initSimpleStyle = false,
-    hideClickAway: initHideClickAway = false,
-    followSelection: initFollowMouse = false,
-    tranboxShortcut = DEFAULT_TRANBOX_SHORTCUT,
-    triggerMode = OPT_TRANBOX_TRIGGER_CLICK,
-    // extStyles,
-    btnOffsetX,
-    btnOffsetY,
-    boxOffsetX = 0,
-    boxOffsetY = 10,
-  } = tranboxSetting;
+    boxSize,
+    setBoxSize,
+    boxPosition,
+    setBoxPosition,
+    simpleStyle,
+    setSimpleStyle,
+    hideClickAway,
+    setHideClickAway,
+    followSelection,
+    setFollowSelection,
+    boxOffsetX,
+    boxOffsetY,
+  } = useTranBoxState(tranboxSetting);
 
-  const boxWidth =
-    isMobile || initSimpleStyle
-      ? 300
-      : limitNumber(window.innerWidth, 300, 600);
-  const boxHeight =
-    isMobile || initSimpleStyle
-      ? 200
-      : limitNumber(window.innerHeight, 200, 400);
-
-  const langMap = useLangMap(uiLang);
-  const [showBox, setShowBox] = useState(false);
-  const [showBtn, setShowBtn] = useState(false);
-  const [selectedText, setSelText] = useState("");
-  const [text, setText] = useState("");
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-
-  // 划词按钮自动隐藏（5 秒 / 移动 100px / 右键）
-  useAutoHideTranBtn(showBtn, setShowBtn, position);
-
-  const [boxSize, setBoxSize] = useState({
-    w: boxWidth,
-    h: boxHeight,
-  });
-  const [boxPosition, setBoxPosition] = useState({
-    x: (window.innerWidth - boxWidth) / 2,
-    y: (window.innerHeight - boxHeight) / 2,
-  });
-  const [simpleStyle, setSimpleStyle] = useState(initSimpleStyle);
-  const [hideClickAway, setHideClickAway] = useState(initHideClickAway);
-  const [followSelection, setFollowSelection] = useState(initFollowMouse);
-
-  const handleOpenTranbox = useCallback(
-    (text) => {
-      setShowBtn(false);
-      setText(text || selectedText);
-      setShowBox(true);
-    },
-    [selectedText]
-  );
-
-  const handleToggleTranbox = useCallback(() => {
-    setShowBtn(false);
-
-    const selection = window.getSelection();
-    const selectedText = selection?.toString()?.trim() || "";
-    if (!selectedText) {
-      setShowBox((pre) => !pre);
-      return;
-    }
-
-    const rect = selection?.getRangeAt(0)?.getBoundingClientRect();
-    if (rect && followSelection) {
-      const x = (rect.left + rect.right) / 2 + boxOffsetX;
-      const y = rect.bottom + boxOffsetY;
-      setBoxPosition({
-        x: limitNumber(x, 0, window.innerWidth - 300),
-        y: limitNumber(y, 0, window.innerHeight - 200),
-      });
-    }
-
-    setSelText(selectedText);
-    setText(selectedText);
-    setShowBox(true);
-  }, [followSelection, boxOffsetX, boxOffsetY]);
-
-  const btnEvent = useMemo(() => {
-    if (isMobile) {
-      return "onTouchEnd";
-    } else if (triggerMode === OPT_TRANBOX_TRIGGER_HOVER) {
-      return "onMouseOver";
-    }
-    return "onMouseUp";
-  }, [triggerMode]);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const { w, h, x, y } = (await getTranBox()) || {};
-        if (w !== undefined && h !== undefined) {
-          setBoxSize({ w, h });
-        }
-        if (x !== undefined && y !== undefined) {
-          setBoxPosition({
-            x: limitNumber(x, 0, window.innerWidth),
-            y: limitNumber(y, 0, window.innerHeight),
-          });
-        }
-      } catch (err) {
-        //
-      }
-    })();
-  }, []);
-
-  useEffect(() => {
-    debouncePutTranBox({ ...boxSize, ...boxPosition });
-  }, [boxSize, boxPosition]);
-
-  useEffect(() => {
-    async function handleMouseup(e) {
-      // e.stopPropagation();
-      if (e.button === 2) return;
-
-      await sleep(200);
-
-      const selection = window.getSelection();
-      const selectedText = selection?.toString()?.trim() || "";
-      setSelText(selectedText);
-      if (!selectedText) {
-        setShowBtn(false);
-        return;
-      }
-
-      const rect = selection?.getRangeAt(0)?.getBoundingClientRect();
-      if (rect && followSelection) {
-        const x = (rect.left + rect.right) / 2 + boxOffsetX;
-        const y = rect.bottom + boxOffsetY;
-        setBoxPosition({
-          x: limitNumber(x, 0, window.innerWidth - 300),
-          y: limitNumber(y, 0, window.innerHeight - 200),
-        });
-      }
-
-      if (triggerMode === OPT_TRANBOX_TRIGGER_SELECT) {
-        handleOpenTranbox(selectedText);
-        return;
-      }
-
-      const { clientX, clientY } = isMobile ? e.changedTouches[0] : e;
-      setShowBtn(!hideTranBtn);
-      setPosition({ x: clientX, y: clientY });
-    }
-
-    // todo: mobile support
-    // window.addEventListener("mouseup", handleMouseup);
-    window.addEventListener(isMobile ? "touchend" : "mouseup", handleMouseup);
-    return () => {
-      window.removeEventListener(
-        isMobile ? "touchend" : "mouseup",
-        handleMouseup
-      );
-    };
-  }, [
-    hideTranBtn,
-    triggerMode,
+  const {
+    showBox,
+    setShowBox,
+    showBtn,
+    text,
+    setText,
+    position,
+    handleOpenTranbox,
+    handleToggleTranbox,
+    btnEvent,
+  } = useSelectionController({
+    tranboxSetting,
     followSelection,
     boxOffsetX,
     boxOffsetY,
-    handleOpenTranbox,
-  ]);
+    boxSize,
+    setBoxPosition,
+    hideClickAway,
+  });
 
-  useEffect(() => {
-    if (isExt) {
-      return;
-    }
-    const clearShortcut = shortcutRegister(tranboxShortcut, handleToggleTranbox);
-    return () => {
-      clearShortcut();
-    };
-  }, [tranboxShortcut, handleToggleTranbox]);
-
-  const handleToggle = useCallback(() => {
-    if (showBox) {
-      setShowBox(false);
-    } else {
-      handleToggleTranbox();
-    }
-  }, [showBox, handleToggleTranbox]);
-
-  useEffect(() => {
-    const handleStatusUpdate = (event) => {
-      if (event.detail?.action === MSG_OPEN_TRANBOX) {
-        handleToggle();
-      }
-    };
-
-    document.addEventListener(EVENT_KISS_INNER, handleStatusUpdate);
-    return () => {
-      document.removeEventListener(EVENT_KISS_INNER, handleStatusUpdate);
-    };
-  }, [handleToggle]);
-
-  useEffect(() => {
-    if (!isGm) {
-      return;
-    }
-
-    // 注册菜单
-    try {
-      const menuCommandIds = [];
-      contextMenuType !== 0 &&
-        menuCommandIds.push(
-          GM.registerMenuCommand?.(
-            langMap("translate_selected_text"),
-            (event) => {
-              handleToggleTranbox();
-            },
-            "S"
-          )
-        );
-
-      return () => {
-        menuCommandIds.forEach((id) => {
-          GM.unregisterMenuCommand?.(id);
-        });
-      };
-    } catch (err) {
-      kissLog("registerMenuCommand", err);
-    }
-  }, [handleToggleTranbox, contextMenuType, langMap]);
-
-  useEffect(() => {
-    if (hideClickAway) {
-      const handleHideBox = () => {
-        setShowBox(false);
-      };
-      window.addEventListener("click", handleHideBox);
-      return () => {
-        window.removeEventListener("click", handleHideBox);
-      };
-    }
-  }, [hideClickAway]);
+  useTranboxShortcuts({
+    tranboxSetting,
+    showBox,
+    setShowBox,
+    handleToggleTranbox,
+    contextMenuType,
+    uiLang,
+  });
 
   return (
     <>
@@ -290,8 +83,8 @@ export default function Slection({
       {showBtn && (
         <TranBtn
           position={position}
-          btnOffsetX={btnOffsetX}
-          btnOffsetY={btnOffsetY}
+          btnOffsetX={tranboxSetting.btnOffsetX}
+          btnOffsetY={tranboxSetting.btnOffsetY}
           btnEvent={btnEvent}
           onTrigger={(e) => {
             e.stopPropagation();
