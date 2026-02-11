@@ -595,9 +595,9 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi }) {
         </Box>
       )}
 
-      {API_SPE_TYPES.stream.has(api.apiType) && useBatchFetch && (
-        <Box>
-          <Grid container spacing={2} columns={12}>
+      <Box>
+        <Grid container spacing={2} columns={12}>
+          {API_SPE_TYPES.stream.has(api.apiType) && useBatchFetch && (
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
@@ -612,14 +612,10 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi }) {
                 <MenuItem value={true}>{i18n("enable")}</MenuItem>
               </TextField>
             </Grid>
-          </Grid>
-        </Box>
-      )}
+          )}
 
-      {API_SPE_TYPES.context.has(api.apiType) && (
-        <>
-          <Box>
-            <Grid container spacing={2} columns={12}>
+          {API_SPE_TYPES.context.has(api.apiType) && (
+            <>
               <Grid item xs={12} sm={12} md={6} lg={3}>
                 {" "}
                 <TextField
@@ -649,10 +645,10 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi }) {
                   max={20}
                 />
               </Grid>
-            </Grid>
-          </Box>
-        </>
-      )}
+            </>
+          )}
+        </Grid>
+      </Box>
 
       <Box>
         <Grid container spacing={2} columns={12}>
