@@ -76,6 +76,24 @@ export function useApiList() {
     [updateSetting]
   );
 
+  const copyApi = useCallback(
+    (sourceApi) => {
+      const uuid = crypto.randomUUID();
+      const apiSlug = `${sourceApi.apiType}_${uuid}`;
+      const apiName = `${sourceApi.apiName} - copy`;
+      const newApi = {
+        ...sourceApi,
+        apiSlug,
+        apiName,
+      };
+      updateSetting((prev) => ({
+        ...prev,
+        transApis: [...(prev?.transApis || []), newApi],
+      }));
+    },
+    [updateSetting]
+  );
+
   const deleteApi = useCallback(
     (apiSlug) => {
       updateSetting((prev) => ({
@@ -95,6 +113,7 @@ export function useApiList() {
     enabledApis,
     aiEnabledApis,
     addApi,
+    copyApi,
     deleteApi,
   };
 }

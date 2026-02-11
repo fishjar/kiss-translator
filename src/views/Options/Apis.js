@@ -109,7 +109,7 @@ function TestButton({ api }) {
   );
 }
 
-function ApiFields({ apiSlug, isUserApi, deleteApi }) {
+function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi }) {
   const { api, update, reset } = useApiItem(apiSlug);
   const i18n = useI18n();
   const [formData, setFormData] = useState({});
@@ -180,6 +180,10 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
 
   const handleReset = () => {
     reset();
+  };
+
+  const handleCopy = () => {
+    copyApi(formData);
   };
 
   const handleDelete = async () => {
@@ -841,6 +845,9 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
         <Button size="small" variant="outlined" onClick={handleReset}>
           {i18n("restore_default")}
         </Button>
+        <Button size="small" variant="outlined" onClick={handleCopy}>
+          {i18n("copy_api")}
+        </Button>
         {isUserApi && (
           <Button
             size="small"
@@ -872,7 +879,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi }) {
   );
 }
 
-function ApiAccordion({ api, isUserApi, deleteApi }) {
+function ApiAccordion({ api, isUserApi, deleteApi, copyApi }) {
   const [expanded, setExpanded] = useState(false);
 
   const handleChange = (e) => {
@@ -897,6 +904,7 @@ function ApiAccordion({ api, isUserApi, deleteApi }) {
             apiSlug={api.apiSlug}
             isUserApi={isUserApi}
             deleteApi={deleteApi}
+            copyApi={copyApi}
           />
         )}
       </AccordionDetails>
@@ -906,7 +914,7 @@ function ApiAccordion({ api, isUserApi, deleteApi }) {
 
 export default function Apis() {
   const i18n = useI18n();
-  const { userApis, builtinApis, addApi, deleteApi } = useApiList();
+  const { userApis, builtinApis, addApi, deleteApi, copyApi } = useApiList();
 
   const apiTypes = useMemo(
     () =>
@@ -991,12 +999,13 @@ export default function Apis() {
               api={api}
               isUserApi={true}
               deleteApi={deleteApi}
+              copyApi={copyApi}
             />
           ))}
         </Box>
         <Box>
           {builtinApis.map((api) => (
-            <ApiAccordion key={api.apiSlug} api={api} />
+            <ApiAccordion key={api.apiSlug} api={api} copyApi={copyApi} />
           ))}
         </Box>
       </Stack>

@@ -587,6 +587,13 @@ export const I18N = {
     ja: `追加`,
     ko: `추가`,
   },
+  copy_api: {
+    zh: `复制接口`,
+    en: `Copy Interface`,
+    zh_TW: `複製介面`,
+    ja: `インターフェースをコピー`,
+    ko: `인터페이스 복사`,
+  },
   inject_rules: {
     zh: `注入订阅规则`,
     en: `Inject Subscribe Rules`,
