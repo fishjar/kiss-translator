@@ -60,7 +60,9 @@ export default function useTranBoxState(tranboxSetting) {
 
   // debounce 存储位置和大小状态到 storage
   useEffect(() => {
-    debouncePutTranBox({ ...boxSize, ...boxPosition });
+    if (boxSize.w > 0 && boxSize.h > 0) {
+      debouncePutTranBox({ ...boxSize, ...boxPosition });
+    }
   }, [boxSize, boxPosition]);
 
   return {
