@@ -231,7 +231,7 @@ export default function PopupCont({
     autoScan,
     transOnly,
     hasRichText,
-    hasShadowroot,
+    scanAll,
     isPlainText = false,
   } = rule;
 
@@ -272,13 +272,13 @@ export default function PopupCont({
             control={
               <Switch
                 size="small"
-                name="hasShadowroot"
-                value={hasShadowroot === "true" ? "false" : "true"}
-                checked={hasShadowroot === "true"}
+                name="scanAll"
+                value={scanAll === "true" ? "false" : "true"}
+                checked={scanAll === "true"}
                 onChange={handleChange}
               />
             }
-            label={i18n("shadowroot_alt")}
+            label={i18n("scan_all_nodes")}
           />
         </Grid>
         <Grid item xs={6}>

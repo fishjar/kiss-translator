@@ -2150,6 +2150,13 @@ export const I18N = {
     ja: `自動スキャン`,
     ko: `자동 스캔`,
   },
+  scan_all_nodes: {
+    zh: `扫描全部节点`,
+    en: `Scan All Nodes`,
+    zh_TW: `掃描全部節點`,
+    ja: `すべてのノードをスキャン`,
+    ko: `모든 노드 스캔`,
+  },
   shadowroot_alt: {
     zh: `ShadowRoot`,
     en: `ShadowRoot`,

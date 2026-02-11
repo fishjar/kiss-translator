@@ -334,7 +334,7 @@ export class Translator {
 
   // 忽略元素
   get #ignoreSelector() {
-    if (this.#rule.isPlainText) {
+    if (this.#rule.scanAll === "true" || this.#rule.isPlainText) {
       return Translator.KISS_IGNORE_SELECTOR;
     }
 
@@ -493,7 +493,7 @@ export class Translator {
         this.#startObserveRoot(root);
       });
 
-    if (this.#rule.hasShadowroot === "true") {
+    if (this.#rule.scanAll === "true" || this.#rule.hasShadowroot === "true") {
       this.#attachShadowRootListener();
       this.#findAndObserveShadowRoot();
     }
@@ -1954,6 +1954,7 @@ export class Translator {
         if (
           key === "autoScan" ||
           key === "hasShadowroot" ||
+          key === "scanAll" ||
           key === "isPlainText"
         ) {
           needsRescan = true;

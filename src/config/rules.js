@@ -84,6 +84,7 @@ export const DEFAULT_RULE = {
   autoScan: GLOBAL_KEY, // 是否自动识别文本节点
   hasRichText: GLOBAL_KEY, // 是否启用富文本翻译
   hasShadowroot: GLOBAL_KEY, // 是否包含shadowroot
+  scanAll: GLOBAL_KEY, // 是否扫描全部节点
   rootsSelector: "", // 翻译范围选择器
   ignoreSelector: "", // 不翻译的选择器
   splitParagraph: GLOBAL_KEY, // 切分段落
@@ -128,6 +129,7 @@ export const GLOBLA_RULE = {
   autoScan: "true", // 是否自动识别文本节点
   hasRichText: "true", // 是否启用富文本翻译
   hasShadowroot: "false", // 是否包含shadowroot
+  scanAll: "false", // 是否扫描全部节点
   rootsSelector: "body", // 翻译范围选择器
   ignoreSelector: DEFAULT_IGNORE_SELECTOR, // 不翻译的选择器
   splitParagraph: OPT_SPLIT_PARAGRAPH_DISABLE, // 切分段落

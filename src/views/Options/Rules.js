@@ -114,6 +114,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
     autoScan = "true",
     hasRichText = "true",
     hasShadowroot = "false",
+    scanAll = "false",
     // transTiming = OPT_TIMING_PAGESCROLL,
     transTag = DEFAULT_TRANS_TAG,
     transTitle = "false",
@@ -393,6 +394,22 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 name="hasShadowroot"
                 value={hasShadowroot}
                 label={i18n("has_shadowroot")}
+                disabled={disabled}
+                onChange={handleChange}
+              >
+                {GlobalItem}
+                <MenuItem value={"false"}>{i18n("disable")}</MenuItem>
+                <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                select
+                size="small"
+                fullWidth
+                name="scanAll"
+                value={scanAll}
+                label={i18n("scan_all_nodes")}
                 disabled={disabled}
                 onChange={handleChange}
               >
