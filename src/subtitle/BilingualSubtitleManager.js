@@ -149,7 +149,7 @@ export class BilingualSubtitleManager {
     );
 
     // todo: 使用 @emotion/css
-    const { enhanceMode } = this.#setting;
+    const enhanceMode = this.#setting.enhanceMode ?? "mobile_off";
     const isEnhance =
       enhanceMode === "on" || (enhanceMode === "mobile_off" && !isMobile);
 
@@ -253,7 +253,7 @@ export class BilingualSubtitleManager {
     videoContainer.style.position = "relative";
     videoContainer.appendChild(container);
 
-    const { enhanceMode } = this.#setting;
+    const enhanceMode = this.#setting.enhanceMode ?? "mobile_off";
     const isEnhance =
       enhanceMode === "on" || (enhanceMode === "mobile_off" && !isMobile);
 
@@ -668,7 +668,7 @@ export class BilingualSubtitleManager {
       const p1 = document.createElement("p");
       p1.style.cssText = this.#setting.originStyle;
 
-      const { enhanceMode } = this.#setting;
+      const enhanceMode = this.#setting.enhanceMode ?? "mobile_off";
       const isEnhance =
         enhanceMode === "on" || (enhanceMode === "mobile_off" && !isMobile);
 

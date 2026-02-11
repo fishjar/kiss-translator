@@ -249,9 +249,10 @@ export class YouTubeSubtitleList {
           "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
         display: "flex",
         flexDirection: "column",
+        marginBottom: "12px",
       });
       // 将容器插入到 YouTube 页面右侧栏 (secondary) 的顶部
-      const secondary = document.getElementById("secondary");
+      const secondary = document.getElementById("secondary-inner");
       if (secondary) secondary.prepend(this.container);
 
       (async () => {
@@ -623,7 +624,7 @@ export class YouTubeSubtitleList {
    */
   _createVocabItemElement(item) {
     const vocabItem = document.createElement("div");
-    vocabItem.style.cssText = `padding: 12px; border-bottom: 1px solid var(--kt-divider); word-wrap: break-word; word-break: break-word;`;
+    vocabItem.style.cssText = `border-bottom: 1px solid var(--kt-divider); word-wrap: break-word; word-break: break-word;`;
 
     // 1. 单词行 (单词 + 音标 + 时间跳转)
     const wordLine = document.createElement("div");
@@ -631,7 +632,7 @@ export class YouTubeSubtitleList {
 
     const wordEl = document.createElement("div");
     wordEl.textContent = item.word;
-    wordEl.style.cssText = `font-weight: bold; font-size: 16px;`;
+    wordEl.style.cssText = `color: var(--kt-text); font-weight: bold; font-size: 16px;`;
     wordLine.appendChild(wordEl);
 
     if (item.phonetic) {

@@ -672,12 +672,13 @@ class YouTubeCaptionProvider {
 
     // todo 移到菜单切换
     // 监听字幕更新事件，将翻译后的字幕传递给字幕列表
-    const { enhanceMode } = this.#setting;
+    const enhanceMode = this.#setting.enhanceMode ?? "mobile_off";
     const isEnhance =
       enhanceMode === OPT_ENHANCE_ON ||
       (enhanceMode === OPT_ENHANCE_MOBILE_OFF && !isMobile);
+    const showList = this.#setting.showList ?? true;
 
-    if (isEnhance && this.#setting.showList && !this.#subtitleListManager) {
+    if (isEnhance && showList && !this.#subtitleListManager) {
       // 初始化字幕列表管理器
       this.#subtitleListManager = new YouTubeSubtitleList(videoEl);
       this.#subtitleListManager.initialize(this.#subtitles);
