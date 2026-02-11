@@ -210,6 +210,7 @@ export default function PopupCont({
     () =>
       setting.transApis
         .filter((api) => !api.isDisabled)
+        .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
         .map((api) => ({
           key: api.apiSlug,
           name: api.apiName || api.apiSlug,
