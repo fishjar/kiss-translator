@@ -361,13 +361,17 @@ browser.runtime.onInstalled.addListener(async () => {
     registerMsgDisplayScript();
   }
 
-  const { contextMenuType, csplist, orilist } = await getSettingWithDefault();
+  const { contextMenuType, csplist, orilist, subrulesList } =
+    await getSettingWithDefault();
 
   // 右键菜单
   addContextMenus(contextMenuType);
 
   // 禁用CSP
   updateCspRules({ csplist, orilist });
+
+  // 同步订阅规则
+  trySyncAllSubRules({ subrulesList });
 });
 
 /**
