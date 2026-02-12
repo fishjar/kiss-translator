@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { limitNumber } from "../libs/utils";
 import { isMobile } from "../libs/mobile";
 import { debouncePutTranBox, getTranBox } from "../libs/storage";
+import { isIframe } from "../libs/iframe";
 
 export default function useTranBoxState(tranboxSetting) {
   const {
@@ -60,8 +61,12 @@ export default function useTranBoxState(tranboxSetting) {
 
   // debounce 存储位置和大小状态到 storage
   useEffect(() => {
-    if (boxSize.w > 0 && boxSize.h > 0) {
-      debouncePutTranBox({ ...boxSize, ...boxPosition });
+    // 如果是在iframe中，则不执行
+    if (!isIframe && boxSize.w > 0 && boxSize.h > 0) {
+      debouncePutTranBox({
+        ...boxSize,
+        ...boxPosition,
+      });
     }
   }, [boxSize, boxPosition]);
 
