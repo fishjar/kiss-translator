@@ -154,10 +154,11 @@ const RULES_MAP = {
     autoScan: `false`,
   },
   "twitter.com, https://x.com": {
-    selector: `[data-testid='tweetText'], [data-testid='twitter-article-title'], .public-DraftStyleDefault-block`,
+    selector: `[data-testid='tweetText'], [data-testid='twitter-article-title'], [data-testid='UserDescription'], .public-DraftStyleDefault-block, span.text-body, div.css-175oi2r.r-3pj75a div.css-175oi2r>span, div.css-175oi2r.r-3pj75a li>span, div.r-1s2bzr4>div.r-16dba41, div.r-16y2uox>div.r-1jeg54m`,
     keepSelector: `img, svg, a, span:has(a), div:has(a)`,
-    ignoreSelector: `button, [data-testid='videoPlayer'], [role='group']`,
+    ignoreSelector: `[data-testid='videoPlayer'], [data-testid^='tweetTextarea']`,
     autoScan: `false`,
+    selectStyle: `-webkit-line-clamp: unset; max-height: none; height: auto;`,
   },
   "www.youtube.com/live_chat": {
     rootsSelector: `div#items`,
@@ -166,7 +167,7 @@ const RULES_MAP = {
   },
   "www.youtube.com": {
     rootsSelector: `ytd-page-manager`,
-    ignoreSelector: `aside, button, footer, form, header, pre, mark, nav, #player, #container, .caption-window, .ytp-settings-menu`,
+    ignoreSelector: `aside, button, footer, form, header, pre, mark, nav, #player, #container, .caption-window, .ytp-settings-menu, #kiss-youtube-subtitle-list-container`,
     selectStyle: `-webkit-line-clamp: unset; max-height: none; height: auto;`,
     parentStyle: `-webkit-line-clamp: unset; max-height: none; height: auto;`,
     grandStyle: `-webkit-line-clamp: unset; max-height: none; height: auto;`,
@@ -175,6 +176,11 @@ const RULES_MAP = {
     autoScan: `false`,
     selector: ".text-content, .embedded-text-wrapper",
     rootsSelector: ".Transition",
+  },
+  "github.com": {
+    autoScan: `false`,
+    selector: `h1, h2, h3, h4, h5, h6, .markdown-body li, p, dd, blockquote, figcaption, label, legend, .user-profile-bio>div, [data-testid="results-list"] .search-match, .Subhead-description, [class^="prc-SelectPanel-Subtitle-"], [class^="prc-ActionList-ItemLabel-"], [role="dialog"] .overflow-auto, .h4, .repos-list-description, .discussion-title, [class*="PinnedIssue-module__Link"] span, .js-wiki-sidebar-page-container :is(.Truncate-text, .Link--primary)`,
+    ignoreSelector: `button, p.pinned-item-desc+p`,
   },
 };
 
