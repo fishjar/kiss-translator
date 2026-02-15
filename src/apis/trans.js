@@ -276,9 +276,8 @@ const parseSTRes = (raw) => {
   }
 
   try {
-    // const jsonString = extractJson(raw);
-    // const data = JSON.parse(jsonString);
-    const data = parseBilingualVtt(raw);
+    const cleaned = stripMarkdownCodeBlock(raw);
+    const data = parseBilingualVtt(cleaned);
     if (Array.isArray(data)) {
       return data;
     }
