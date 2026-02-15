@@ -479,6 +479,7 @@ export const apiTranslate = async ({
   toLang,
   apiSetting = DEFAULT_API_SETTING,
   glossary,
+  docInfo,
   useCache = true,
   usePool = true,
 }) => {
@@ -542,6 +543,7 @@ export const apiTranslate = async ({
       glossary,
       apiSetting,
       usePool,
+      docInfo,
     });
   } else {
     const { value } = await handleTranslate([text], {
@@ -553,6 +555,7 @@ export const apiTranslate = async ({
       glossary,
       apiSetting,
       usePool,
+      docInfo,
     }).next();
     translation = value?.result;
   }
@@ -591,6 +594,7 @@ export const apiSubtitle = async ({
   toLang,
   events = [],
   apiSetting,
+  docInfo,
 }) => {
   const cacheOpts = {
     apiSlug: apiSetting.apiSlug,
@@ -610,6 +614,7 @@ export const apiSubtitle = async ({
     from: fromLang,
     to: toLang,
     apiSetting,
+    docInfo,
   });
   if (subtitles?.length) {
     putHttpCachePolyfill(cacheInput, null, subtitles);

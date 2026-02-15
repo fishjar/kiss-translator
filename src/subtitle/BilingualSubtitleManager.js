@@ -743,12 +743,13 @@ export class BilingualSubtitleManager {
   async #translateAndStore(subtitle) {
     subtitle.isTranslating = true;
     try {
-      const { fromLang, toLang, apiSetting } = this.#setting;
+      const { fromLang, toLang, apiSetting, docInfo } = this.#setting;
       const { trText } = await apiTranslate({
         text: subtitle.text,
         fromLang,
         toLang,
         apiSetting,
+        docInfo,
       });
       subtitle.translation = trText;
     } catch (error) {

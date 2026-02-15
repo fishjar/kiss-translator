@@ -19,6 +19,7 @@ import DomManager from "../libs/domManager.js";
 import { Menus } from "./Menus.js";
 import { buildBilingualVtt } from "./vtt.js";
 import { isMobile } from "../libs/mobile.js";
+import { getDocInfo } from "../libs/docInfo.js";
 
 const VIDEO_SELECT = "#container video";
 const CONTORLS_SELECT = ".ytp-right-controls";
@@ -34,6 +35,7 @@ class YouTubeCaptionProvider {
   #flatEvents = [];
   #progressedNum = 0;
   #fromLang = "auto";
+  #docInfo = {};
 
   #processingId = null;
 
@@ -91,6 +93,7 @@ class YouTubeCaptionProvider {
       this.#flatEvents = [];
       this.#progressed = 0;
       this.#fromLang = "auto";
+      this.#docInfo = {};
       this.#updateMenuProps(); // 更新菜单 props
     });
 
@@ -424,6 +427,7 @@ class YouTubeCaptionProvider {
         toLang,
         events,
         apiSetting: segApiSetting,
+        docInfo: this.#docInfo,
       });
       logger.debug("Youtube Provider: aiSegment subtitles", subtitles);
       if (Array.isArray(subtitles)) {
@@ -520,6 +524,7 @@ class YouTubeCaptionProvider {
       this.#events = events;
       this.#flatEvents = flatEvents;
       this.#fromLang = fromLang;
+      this.#docInfo = getDocInfo();
 
       this.#processEvents({
         videoId,
@@ -667,7 +672,11 @@ class YouTubeCaptionProvider {
     this.#managerInstance = new BilingualSubtitleManager({
       videoEl,
       formattedSubtitles: this.#subtitles,
-      setting: { ...this.#setting, fromLang: this.#fromLang },
+      setting: {
+        ...this.#setting,
+        fromLang: this.#fromLang,
+        docInfo: this.#docInfo,
+      },
     });
 
     // todo 移到菜单切换
