@@ -802,6 +802,7 @@ export const genTransReq = async ({ reqHook, ...args }) => {
     customBody,
     events,
     tone,
+    docInfo: externalDocInfo,
   } = args;
 
   if (API_SPE_TYPES.mulkeys.has(apiType)) {
@@ -813,9 +814,18 @@ export const genTransReq = async ({ reqHook, ...args }) => {
   }
 
   if (API_SPE_TYPES.ai.has(apiType)) {
-    const docInfo = getDocInfo();
+    const hasExternalDocInfo =
+      externalDocInfo &&
+      (externalDocInfo.title ||
+        externalDocInfo.description ||
+        externalDocInfo.summary);
+    const docInfo = hasExternalDocInfo ? externalDocInfo : getDocInfo();
 
-    args.systemPrompt = events
+    // 字幕翻译场景：docInfo 由外部显式传入，放入 system prompt，不重复写入 user prompt
+    const systemDocInfo = hasExternalDocInfo ? docInfo : {};
+    const userDocInfo = hasExternalDocInfo ? {} : docInfo;
+
+    let baseSystemPrompt = events
       ? genSubtitlePrompt({
           subtitlePrompt,
           from,
@@ -834,9 +844,24 @@ export const genTransReq = async ({ reqHook, ...args }) => {
           fromLang,
           toLang,
           texts,
-          docInfo,
+          docInfo: userDocInfo,
           tone,
         });
+
+    // 将字幕上下文追加到 system prompt
+    if (!events && hasExternalDocInfo) {
+      const parts = [];
+      if (systemDocInfo.title) parts.push(`Title: ${systemDocInfo.title}`);
+      if (systemDocInfo.description)
+        parts.push(`Description: ${systemDocInfo.description}`);
+      if (systemDocInfo.summary)
+        parts.push(`Summary: ${systemDocInfo.summary}`);
+      if (parts.length) {
+        baseSystemPrompt += `\n\n# Context\n${parts.join("\n")}`;
+      }
+    }
+
+    args.systemPrompt = baseSystemPrompt;
     args.userPrompt = events
       ? JSON.stringify(events)
       : genUserPrompt({
@@ -847,7 +872,7 @@ export const genTransReq = async ({ reqHook, ...args }) => {
           fromLang,
           toLang,
           texts,
-          docInfo,
+          docInfo: userDocInfo,
           tone,
           glossary,
           aiTerms,
@@ -1077,7 +1102,17 @@ export const parseTransRes = async (
  */
 export async function* handleTranslate(
   texts = [],
-  { from, to, fromLang, toLang, langMap, glossary, apiSetting, usePool }
+  {
+    from,
+    to,
+    fromLang,
+    toLang,
+    langMap,
+    glossary,
+    apiSetting,
+    usePool,
+    docInfo,
+  }
 ) {
   let history = null;
   let hisMsgs = [];
@@ -1117,6 +1152,7 @@ export async function* handleTranslate(
     hisMsgs,
     token,
     useStream: enableStream,
+    docInfo,
     ...apiSetting,
   });
 
@@ -1300,7 +1336,13 @@ export const handleMicrosoftLangdetect = async (texts = []) => {
  * @param {*} param0
  * @returns
  */
-export const handleSubtitle = async ({ events, from, to, apiSetting }) => {
+export const handleSubtitle = async ({
+  events,
+  from,
+  to,
+  apiSetting,
+  docInfo,
+}) => {
   const { apiType, fetchInterval, fetchLimit, httpTimeout } = apiSetting;
 
   const [input, init] = await genTransReq({
@@ -1308,6 +1350,7 @@ export const handleSubtitle = async ({ events, from, to, apiSetting }) => {
     events,
     from,
     to,
+    docInfo,
   });
 
   const res = await fetchData(input, init, {
