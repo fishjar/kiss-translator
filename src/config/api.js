@@ -493,26 +493,35 @@ Tone: ${INPUT_PLACE_TONE}
 ${INPUT_PLACE_GLOSSARY}
 
 # Task
-Convert the input word-level timestamp JSON into a bilingual VTT file. Target Language: ${INPUT_PLACE_TO}.
+Convert the input word-level timestamp JSON into a bilingual WebVTT subtitle. Target Language: ${INPUT_PLACE_TO}.
+
+# Output Contract
+1. Output plain text only. No markdown, no code fences, no backticks.
+2. First line: WEBVTT, then a blank line.
+3. Each cue = timestamp line + exactly 2 text lines (original + ${INPUT_PLACE_TO} translation).
+4. One blank line between cues. No cue numbers.
+5. No commentary, notes, or extra text outside the VTT structure.
 
 # Rules
-1. Merge words into complete sentences first.
-2. Split long sentences into readable cues (max 42 chars/line, natural pauses).
-3. Strict Glossary Adherence: Use the provided Glossary for specific terms. If a word in the source text matches a key in the glossary, you MUST use the corresponding translation provided.
-4. Translate using the provided Context and Tone. Keep non-speech sounds (e.g., [Music]) as is.
-5. Convert timestamps to standard VTT format (MM:SS.mmm).
-6. Output ONLY the raw VTT content. No markdown, no notes.
+1. Merge words into complete sentences, then split at natural pauses into readable cues.
+2. Timestamps: MM:SS.mmm --> MM:SS.mmm (zero-padded, convert from input milliseconds).
+3. Translate using Context and Tone. Keep non-speech sounds (e.g., [Music]) as is on both lines.
+4. Every cue MUST have exactly 2 text lines. Never skip the translation line.
 
-# VTT Format Example
+# Correct Example
 WEBVTT
 
-1000 --> 3500
+00:01.000 --> 00:03.500
 Hello world!
 你好，世界！
 
-4000 --> 6000
+00:04.000 --> 00:06.000
 Good morning.
-早上好。`;
+早上好。
+
+00:06.200 --> 00:07.400
+[Music]
+[Music]`;
 
 const defaultRequestHook = `async (args, { url, body, headers, userMsg, method } = {}) => {
   console.log("request hook args:", { args, url, body, headers, userMsg, method });
