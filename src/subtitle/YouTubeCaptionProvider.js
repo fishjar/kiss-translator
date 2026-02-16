@@ -634,19 +634,23 @@ class YouTubeCaptionProvider {
 
     if (transcript.length < 200) return;
 
+    // 捕获快照，防止切换视频时旧结果污染新docInfo
+    const videoId = this.#videoId;
+    const docInfo = this.#docInfo;
+
     try {
       this.#showNotification(this.#i18n("ai_context_analyzing"));
 
       const summary = await apiSummarizeContext({
-        videoId: this.#videoId,
-        title: this.#docInfo.title,
-        description: this.#fullDescription || this.#docInfo.description,
+        videoId,
+        title: docInfo.title,
+        description: this.#fullDescription || docInfo.description,
         transcript,
         apiSetting: contextApiSetting,
       });
 
-      if (summary) {
-        this.#docInfo.summary = summary;
+      if (summary && videoId === this.#videoId) {
+        docInfo.summary = summary;
       }
     } catch (err) {
       logger.info("Youtube Provider: AI context enrichment failed", err);
