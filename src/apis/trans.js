@@ -1450,6 +1450,14 @@ export const handleSummarize = async ({
       return res?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
     case OPT_TRANS_CLAUDE:
       return res?.content?.[0]?.text?.trim() || "";
+    case OPT_TRANS_CUSTOMIZE:
+      if (typeof res === "string") return res.trim();
+      return (
+        res?.choices?.[0]?.message?.content?.trim() ||
+        res?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ||
+        res?.content?.[0]?.text?.trim() ||
+        ""
+      );
     default:
       return "";
   }
