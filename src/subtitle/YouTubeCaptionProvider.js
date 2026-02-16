@@ -1,5 +1,5 @@
 import { logger } from "../libs/log.js";
-import { apiSubtitle } from "../apis/index.js";
+import { apiSubtitle, apiSummarizeContext } from "../apis/index.js";
 import { BilingualSubtitleManager } from "./BilingualSubtitleManager.js";
 import { YouTubeSubtitleList } from "./YouTubeSubtitleList.js";
 import {
@@ -10,6 +10,7 @@ import {
   OPT_LANGS_SPEC_DEFAULT,
   OPT_ENHANCE_ON,
   OPT_ENHANCE_MOBILE_OFF,
+  API_SPE_TYPES,
 } from "../config";
 import { sleep, downloadBlobFile } from "../libs/utils.js";
 import { createLogoSVG } from "../libs/svg.js";
@@ -36,6 +37,7 @@ class YouTubeCaptionProvider {
   #progressedNum = 0;
   #fromLang = "auto";
   #docInfo = {};
+  #fullDescription = "";
 
   #processingId = null;
 
@@ -94,6 +96,7 @@ class YouTubeCaptionProvider {
       this.#progressed = 0;
       this.#fromLang = "auto";
       this.#docInfo = {};
+      this.#fullDescription = "";
       this.#updateMenuProps(); // 更新菜单 props
     });
 
@@ -214,6 +217,8 @@ class YouTubeCaptionProvider {
       this.#reProcessEvents();
     } else if (name === "showOrigin") {
       this.#toggleShowOrigin();
+    } else if (name === "aiContextSlug") {
+      this.#reProcessEventsWithContext();
     }
   }
 
@@ -247,8 +252,14 @@ class YouTubeCaptionProvider {
    * @private
    */
   #getMenuProps() {
-    const { transApis, segSlug, skipAd, isBilingual, showOrigin } =
-      this.#setting;
+    const {
+      transApis,
+      segSlug,
+      skipAd,
+      isBilingual,
+      showOrigin,
+      aiContextSlug,
+    } = this.#setting;
     return {
       i18n: this.#i18n,
       updateSetting: this.updateSetting.bind(this),
@@ -260,6 +271,7 @@ class YouTubeCaptionProvider {
         skipAd,
         isBilingual,
         showOrigin,
+        aiContextSlug,
       },
     };
   }
@@ -362,11 +374,16 @@ class YouTubeCaptionProvider {
       const url = `https://www.youtube.com/watch?v=${videoId}`;
       const html = await fetch(url).then((r) => r.text());
       const match = html.match(/ytInitialPlayerResponse\s*=\s*(\{.*?\});/s);
-      if (!match) return [];
+      if (!match) return {};
       const data = JSON.parse(match[1]);
-      return data.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+      return {
+        captionTracks:
+          data.captions?.playerCaptionsTracklistRenderer?.captionTracks,
+        fullDescription: data.videoDetails?.shortDescription || "",
+      };
     } catch (err) {
       logger.info("Youtube Provider: get captionTracks", err);
+      return {};
     }
   }
 
@@ -490,7 +507,9 @@ class YouTubeCaptionProvider {
       this.#showNotification(this.#i18n("starting_to_process_subtitle"));
 
       const { toLang } = this.#setting;
-      const captionTracks = await this.#getCaptionTracks(videoId);
+      const { captionTracks, fullDescription } =
+        await this.#getCaptionTracks(videoId);
+      this.#fullDescription = fullDescription || "";
       const captionTrack = this.#findCaptionTrack(captionTracks, lang);
       if (!captionTrack) {
         logger.debug("Youtube Provider: CaptionTrack not found:", videoId);
@@ -527,6 +546,7 @@ class YouTubeCaptionProvider {
       this.#flatEvents = flatEvents;
       this.#fromLang = fromLang;
       this.#docInfo = getDocInfo();
+      await this.#enrichDocInfoWithAI(flatEvents);
 
       this.#processEvents({
         videoId,
@@ -591,6 +611,58 @@ class YouTubeCaptionProvider {
     this.#destroyManager();
 
     this.#processEvents({ videoId, flatEvents, fromLang });
+  }
+
+  async #enrichDocInfoWithAI(flatEvents) {
+    const { aiContextSlug, transApis } = this.#setting;
+
+    if (!aiContextSlug || aiContextSlug === "-") return;
+
+    const contextApiSetting = transApis?.find(
+      (api) => api.apiSlug === aiContextSlug
+    );
+    if (!contextApiSetting) return;
+    if (!API_SPE_TYPES.ai.has(contextApiSetting.apiType)) return;
+
+    const transcript = flatEvents
+      .map((e) => e.text)
+      .filter(Boolean)
+      .join(" ")
+      .slice(0, 8000);
+
+    if (transcript.length < 200) return;
+
+    try {
+      this.#showNotification(this.#i18n("ai_context_analyzing"));
+
+      const summary = await apiSummarizeContext({
+        videoId: this.#videoId,
+        title: this.#docInfo.title,
+        description: this.#fullDescription || this.#docInfo.description,
+        transcript,
+        apiSetting: contextApiSetting,
+      });
+
+      if (summary) {
+        this.#docInfo.summary = summary;
+      }
+    } catch (err) {
+      logger.info("Youtube Provider: AI context enrichment failed", err);
+    }
+  }
+
+  async #reProcessEventsWithContext() {
+    this.#progressed = 0;
+    this.#subtitles = [];
+
+    const videoId = this.#videoId;
+    const flatEvents = this.#flatEvents;
+    if (!videoId || !flatEvents.length) return;
+
+    this.#destroyManager();
+    this.#docInfo = getDocInfo();
+    await this.#enrichDocInfoWithAI(flatEvents);
+    this.#processEvents({ videoId, flatEvents, fromLang: this.#fromLang });
   }
 
   async #eventsToSubtitles({ videoId, flatEvents, fromLang }) {

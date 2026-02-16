@@ -135,6 +135,7 @@ export const DEFAULT_SUBTITLE_SETTING = {
   translationStyle: SUBTITLE_TRANSLATION_STYLE, // 译文样式
   enhanceMode: OPT_ENHANCE_MOBILE_OFF, // 增强功能：on/off/mobile_off
   showList: true, // 是否显示滚动字幕
+  aiContextSlug: "-", // 增强智能上下文分析服务
 };
 
 // 订阅列表

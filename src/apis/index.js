@@ -14,12 +14,14 @@ import {
   MSG_BUILTINAI_TRANSLATE,
   OPT_TRANS_BUILTINAI,
   URL_CACHE_SUBTITLE,
+  URL_CACHE_CONTEXT,
   OPT_LANGS_TO_CODE,
 } from "../config";
 import { sha256, withTimeout } from "../libs/utils";
 import {
   handleTranslate,
   handleSubtitle,
+  handleSummarize,
   handleMicrosoftLangdetect,
 } from "./trans";
 import { getHttpCachePolyfill, putHttpCachePolyfill } from "../libs/cache";
@@ -503,6 +505,7 @@ export const apiTranslate = async ({
     fromLang,
     toLang,
     version: [v1, v2].join("."),
+    ...(docInfo?.summary && { ctx: docInfo.summary.slice(0, 50) }),
   };
   const cacheInput = `${URL_CACHE_TRAN}?${queryString.stringify(cacheOpts)}`;
 
@@ -602,6 +605,7 @@ export const apiSubtitle = async ({
     chunkSign,
     fromLang,
     toLang,
+    ctx: docInfo?.summary?.slice(0, 50) || "",
   };
   const cacheInput = `${URL_CACHE_SUBTITLE}?${queryString.stringify(cacheOpts)}`;
   const cache = await getHttpCachePolyfill(cacheInput);
@@ -622,4 +626,34 @@ export const apiSubtitle = async ({
   }
 
   return [];
+};
+
+// 上下文摘要
+export const apiSummarizeContext = async ({
+  videoId,
+  title,
+  description,
+  transcript,
+  apiSetting,
+}) => {
+  const cacheOpts = { apiSlug: apiSetting.apiSlug, videoId };
+  const cacheInput = `${URL_CACHE_CONTEXT}?${queryString.stringify(cacheOpts)}`;
+  const cache = await getHttpCachePolyfill(cacheInput);
+  if (cache) {
+    return cache;
+  }
+
+  const summary = await handleSummarize({
+    title,
+    description,
+    transcript,
+    apiSetting,
+  });
+
+  if (summary) {
+    putHttpCachePolyfill(cacheInput, null, summary);
+    return summary;
+  }
+
+  return "";
 };

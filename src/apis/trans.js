@@ -820,9 +820,6 @@ export const genTransReq = async ({ reqHook, ...args }) => {
         externalDocInfo.description ||
         externalDocInfo.summary);
     const docInfo = hasExternalDocInfo ? externalDocInfo : getDocInfo();
-
-    // 字幕翻译场景：docInfo 由外部显式传入，放入 system prompt，不重复写入 user prompt
-    const systemDocInfo = hasExternalDocInfo ? docInfo : {};
     const userDocInfo = hasExternalDocInfo ? {} : docInfo;
 
     let baseSystemPrompt = events
@@ -844,18 +841,24 @@ export const genTransReq = async ({ reqHook, ...args }) => {
           fromLang,
           toLang,
           texts,
-          docInfo: userDocInfo,
+          docInfo,
           tone,
         });
 
-    // 将字幕上下文追加到 system prompt
-    if (!events && hasExternalDocInfo) {
+    // 上下文回退：当 prompt 模板缺少占位符时，追加 # Context 块
+    if (hasExternalDocInfo) {
+      const template = events
+        ? subtitlePrompt
+        : useBatchFetch
+          ? systemPrompt
+          : nobatchPrompt;
       const parts = [];
-      if (systemDocInfo.title) parts.push(`Title: ${systemDocInfo.title}`);
-      if (systemDocInfo.description)
-        parts.push(`Description: ${systemDocInfo.description}`);
-      if (systemDocInfo.summary)
-        parts.push(`Summary: ${systemDocInfo.summary}`);
+      if (docInfo.title && !template.includes(INPUT_PLACE_TITLE))
+        parts.push(`Title: ${docInfo.title}`);
+      if (docInfo.description && !template.includes(INPUT_PLACE_DESCRIPTION))
+        parts.push(`Description: ${docInfo.description}`);
+      if (docInfo.summary && !template.includes(INPUT_PLACE_SUMMARY))
+        parts.push(`Summary: ${docInfo.summary}`);
       if (parts.length) {
         baseSystemPrompt += `\n\n# Context\n${parts.join("\n")}`;
       }
@@ -1142,6 +1145,7 @@ export async function* handleTranslate(
   }
 
   const [input, init, userMsg] = await genTransReq({
+    ...apiSetting,
     texts,
     from,
     to,
@@ -1153,7 +1157,6 @@ export async function* handleTranslate(
     token,
     useStream: enableStream,
     docInfo,
-    ...apiSetting,
   });
 
   if (enableStream) {
@@ -1381,4 +1384,73 @@ export const handleSubtitle = async ({
   }
 
   return [];
+};
+
+/**
+ * 上下文摘要
+ * @param {*} param0
+ * @returns
+ */
+const summarizeSystemPrompt = `Analyze the video title, description, and transcript below. Produce a concise briefing (max 300 words) to help a subtitle translator understand the content accurately.
+
+Cover these aspects:
+1. Main topic, themes, and subject domain
+2. Key terminology with brief definitions or context
+3. Important proper nouns (people, organizations, products, places)
+4. Speaker's tone and register
+5. Abbreviations, jargon, or ambiguous terms needing consistent handling
+
+Output plain text only. No markdown, no formatting, no headers.`;
+
+export const handleSummarize = async ({
+  title,
+  description,
+  transcript,
+  apiSetting,
+}) => {
+  const { apiType, fetchInterval, fetchLimit, httpTimeout } = apiSetting;
+
+  const userPrompt = [
+    title && `Title: ${title}`,
+    description && `Description: ${description}`,
+    `\nTranscript:\n${transcript}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const [input, init] = await genTransReq({
+    ...apiSetting,
+    texts: [""],
+    from: "auto",
+    to: "en",
+    fromLang: "auto",
+    toLang: "en",
+    useBatchFetch: false,
+    nobatchPrompt: summarizeSystemPrompt,
+    nobatchUserPrompt: userPrompt,
+  });
+
+  const res = await fetchData(input, init, {
+    useCache: false,
+    usePool: true,
+    fetchInterval,
+    fetchLimit,
+    httpTimeout,
+  });
+
+  if (!res) return "";
+
+  switch (apiType) {
+    case OPT_TRANS_OPENAI:
+    case OPT_TRANS_GEMINI_2:
+    case OPT_TRANS_OPENROUTER:
+    case OPT_TRANS_OLLAMA:
+      return res?.choices?.[0]?.message?.content?.trim() || "";
+    case OPT_TRANS_GEMINI:
+      return res?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+    case OPT_TRANS_CLAUDE:
+      return res?.content?.[0]?.text?.trim() || "";
+    default:
+      return "";
+  }
 };

@@ -211,13 +211,22 @@ export function Menus({
     return options;
   }, [aiEnabledApis, i18n]);
 
+  // 构建上下文分析服务选项
+  const aiContextOptions = useMemo(() => {
+    const options = [{ value: "-", label: i18n("disable") || "禁用" }];
+    aiEnabledApis.forEach((api) => {
+      options.push({ value: api.apiSlug, label: api.apiName });
+    });
+    return options;
+  }, [aiEnabledApis, i18n]);
+
   const status = useMemo(() => {
     if (progressed === 0) return i18n("waiting_subtitles");
     if (progressed === 100) return i18n("download_subtitles");
     return i18n("processing_subtitles");
   }, [progressed, i18n]);
 
-  const { segSlug, skipAd, isBilingual, showOrigin } = formData;
+  const { segSlug, skipAd, isBilingual, showOrigin, aiContextSlug } = formData;
 
   return (
     <div
@@ -240,6 +249,14 @@ export function Menus({
         options={segOptions}
         label={i18n("ai_segmentation")}
         disabled={segOptions.length <= 1}
+      />
+      <Select
+        onChange={handleChange}
+        name="aiContextSlug"
+        value={aiContextSlug || "-"}
+        options={aiContextOptions}
+        label={i18n("ai_enhanced_context")}
+        disabled={aiContextOptions.length <= 1}
       />
       <Switch
         onChange={handleChange}

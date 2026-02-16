@@ -2437,6 +2437,20 @@ export const I18N = {
     ja: `AIによるインテリジェントな文分割`,
     ko: `AI 지능형 문장 분리`,
   },
+  ai_enhanced_context: {
+    zh: `增强智能上下文`,
+    en: `Enhanced Intelligent Context`,
+    zh_TW: `增強智慧上下文`,
+    ja: `強化インテリジェントコンテキスト`,
+    ko: `강화 지능형 컨텍스트`,
+  },
+  ai_context_analyzing: {
+    zh: `AI正在分析视频内容...`,
+    en: `AI is analyzing video content...`,
+    zh_TW: `AI正在分析影片內容...`,
+    ja: `AIが動画内容を分析中...`,
+    ko: `AI가 비디오 콘텐츠를 분석 중...`,
+  },
   ai_chunk_length: {
     zh: `AI处理切割长度(200-20000)`,
     en: `AI processing chunk length(200-20000)`,
