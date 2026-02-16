@@ -448,6 +448,10 @@ class YouTubeCaptionProvider {
       });
       logger.debug("Youtube Provider: aiSegment subtitles", subtitles);
       if (Array.isArray(subtitles)) {
+        // 断句服务和翻译服务不同时，清除断句的翻译，由翻译服务重新翻译
+        if (segApiSetting.apiSlug !== this.#setting.apiSlug) {
+          return subtitles.map((sub) => ({ ...sub, translation: "" }));
+        }
         return subtitles;
       }
     } catch (err) {
