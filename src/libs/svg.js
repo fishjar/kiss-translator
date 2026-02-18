@@ -62,6 +62,34 @@ export function createLoadingSVG() {
 }
 
 /**
+ * 创建重试图标
+ * @returns
+ */
+export function createRetrySVG() {
+  const svg = createSVGElement("svg", {
+    viewBox: "0 0 24 24",
+    style:
+      "display: inline-block; width: 1em; height: 1em; vertical-align: middle; cursor: pointer; opacity: 0.7;",
+  });
+
+  svg.addEventListener("mouseenter", () => {
+    svg.style.opacity = "1";
+  });
+  svg.addEventListener("mouseleave", () => {
+    svg.style.opacity = "0.7";
+  });
+
+  // 圆弧箭头路径 (↻)
+  const path = createSVGElement("path", {
+    d: "M17.65 6.35A7.958 7.958 0 0 0 12 4C7.58 4 4.01 7.58 4.01 12S7.58 20 12 20c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z",
+    fill: "#F44336",
+  });
+
+  svg.appendChild(path);
+  return svg;
+}
+
+/**
  * 创建logo
  * @param {*} param0
  * @returns
