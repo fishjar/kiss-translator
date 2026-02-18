@@ -118,15 +118,15 @@ function Pointer({
 
   const touchProps = isMobile
     ? {
-        onTouchStart: handlePointerDown,
-        onTouchMove: handlePointerMove,
-        onTouchEnd: handlePointerUp,
-      }
+      onTouchStart: handlePointerDown,
+      onTouchMove: handlePointerMove,
+      onTouchEnd: handlePointerUp,
+    }
     : {
-        onPointerDown: handlePointerDown,
-        onPointerMove: handlePointerMove,
-        onPointerUp: handlePointerUp,
-      };
+      onPointerDown: handlePointerDown,
+      onPointerMove: handlePointerMove,
+      onPointerUp: handlePointerUp,
+    };
 
   return (
     <div {...props} {...touchProps}>
@@ -257,15 +257,17 @@ export default function DraggableResizable({
           sx={() => {
             const containerStyle = autoHeight
               ? {
-                  maxWidth: size.w,
-                  maxHeight: size.h,
-                  overflow: "hidden auto",
-                }
+                width: size.w,
+                maxHeight: size.h,
+                overflow: "hidden auto",
+                wordBreak: "break-word",
+              }
               : {
-                  maxWidth: size.w,
-                  height: size.h,
-                  overflow: "hidden auto",
-                };
+                width: size.w,
+                height: size.h,
+                overflow: "hidden auto",
+                wordBreak: "break-word",
+              };
 
             const scrollbarTrackColor =
               theme.palette.mode === "dark"

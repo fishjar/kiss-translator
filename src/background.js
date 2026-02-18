@@ -4,6 +4,7 @@ import {
   MSG_GET_HTTPCACHE,
   MSG_PUT_HTTPCACHE,
   MSG_TRANS_TOGGLE,
+  MSG_TRANSBOX_TOGGLE,
   MSG_OPEN_OPTIONS,
   MSG_SAVE_RULE,
   MSG_TRANS_TOGGLE_STYLE,
@@ -20,6 +21,7 @@ import {
   CMD_OPEN_OPTIONS,
   CMD_OPEN_TRANBOX,
   CMD_OPEN_SEPARATE_WINDOW,
+  CMD_TOGGLE_TRANSBOX,
   CLIENT_THUNDERBIRD,
   MSG_SET_LOGLEVEL,
   MSG_CLEAR_CACHES,
@@ -484,6 +486,9 @@ browser.commands?.onCommand?.addListener?.((command) => {
       if (messageHandlers[MSG_OPEN_SEPARATE_WINDOW]) {
         messageHandlers[MSG_OPEN_SEPARATE_WINDOW]();
       }
+      break;
+    case CMD_TOGGLE_TRANSBOX:
+      sendTabMsg(MSG_TRANSBOX_TOGGLE);
       break;
     default:
   }

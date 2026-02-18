@@ -62,6 +62,9 @@
     },
     "openOptions": {
       "description": "__MSG_open_options__"
+    },
+    "toggleTransbox": {
+      "description": "__MSG_toggle_transbox__"
     }
   },
   "permissions": [

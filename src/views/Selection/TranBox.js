@@ -12,6 +12,9 @@ import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
 import LockIcon from "@mui/icons-material/Lock";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 import CloseIcon from "@mui/icons-material/Close";
+import LightModeIcon from "@mui/icons-material/LightMode";
+import DarkModeIcon from "@mui/icons-material/DarkMode";
+import BrightnessAutoIcon from "@mui/icons-material/BrightnessAuto";
 import Typography from "@mui/material/Typography";
 import { useI18n } from "../../hooks/I18n";
 import { useCallback, useState } from "react";
@@ -21,6 +24,7 @@ import { sendBgMsg } from "../../libs/msg.js";
 import { isExt } from "../../libs/client.js";
 import { useTheme, alpha } from "@mui/material/styles";
 import Logo from "../../components/Logo";
+import { useDarkMode } from "../../hooks/ColorMode";
 
 function TranBoxHeader({
   setShowBox,
@@ -33,6 +37,7 @@ function TranBoxHeader({
 }) {
   const theme = useTheme();
   const i18n = useI18n();
+  const { darkMode, toggleDarkMode } = useDarkMode();
 
   const iconColor = theme.palette.text.secondary;
 
@@ -227,6 +232,46 @@ function TranBoxHeader({
               />
             ) : (
               <UnfoldLessIcon sx={{ width: 16, height: 16 }} />
+            )}
+          </IconButton>
+
+          <IconButton
+            size="small"
+            title={i18n("btn_tip_dark_mode")}
+            onMouseLeave={blurOnLeave}
+            onClick={toggleDarkMode}
+            sx={{
+              ...baseBtnStyle,
+              "&:hover": {
+                backgroundColor: theme.palette.warning.light + "20",
+                transform: "scale(1.05)",
+                boxShadow: theme.shadows[2],
+                "& svg": { color: theme.palette.warning.main },
+              },
+              "&:active": {
+                transform: "scale(0.95)",
+                backgroundColor: theme.palette.warning.light + "40",
+              },
+            }}
+          >
+            {darkMode === "dark" ? (
+              <DarkModeIcon
+                sx={{
+                  width: 16,
+                  height: 16,
+                  color: theme.palette.warning.main,
+                }}
+              />
+            ) : darkMode === "auto" ? (
+              <BrightnessAutoIcon
+                sx={{
+                  width: 16,
+                  height: 16,
+                  color: theme.palette.info.main,
+                }}
+              />
+            ) : (
+              <LightModeIcon sx={{ width: 16, height: 16 }} />
             )}
           </IconButton>
 
