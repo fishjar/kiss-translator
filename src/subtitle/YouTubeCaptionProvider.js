@@ -34,6 +34,7 @@ class YouTubeCaptionProvider {
   #flatEvents = [];
   #progressedNum = 0;
   #fromLang = "auto";
+  #selectedCaptionTrack = null;
 
   #processingId = null;
 
@@ -91,6 +92,7 @@ class YouTubeCaptionProvider {
       this.#flatEvents = [];
       this.#progressed = 0;
       this.#fromLang = "auto";
+      this.#selectedCaptionTrack = null;
       this.#updateMenuProps(); // 更新菜单 props
     });
 
@@ -329,10 +331,11 @@ class YouTubeCaptionProvider {
       return null;
     }
 
-    // 优先返回用户选择的 且非自动生成的 字幕轨
-    let captionTrack = captionTracks.find(
-      (item) => item.languageCode === lang && item.kind !== "asr"
-    );
+    // 优先返回用户选择的字幕轨，同语言下优先手动字幕
+    let captionTrack =
+      captionTracks.find(
+        (item) => item.languageCode === lang && item.kind !== "asr"
+      ) || captionTracks.find((item) => item.languageCode === lang);
     if (!captionTrack) {
       const asrTrack = captionTracks.find((item) => item.kind === "asr");
       if (asrTrack) {
@@ -496,6 +499,7 @@ class YouTubeCaptionProvider {
         logger.debug("Youtube Provider: CaptionTrack not found:", videoId);
         return;
       }
+      this.#selectedCaptionTrack = captionTrack;
 
       const capUrl = new URL(captionTrack.baseUrl);
       const events = await this.#getSubtitleEvents(
@@ -602,9 +606,10 @@ class YouTubeCaptionProvider {
     // 根据segSlug从transApis中查找对应的API设置
     const segApiSetting = transApis?.find((api) => api.apiSlug === segSlug);
 
-    // potUrl.searchParams.get("kind") === "asr"
-    // 当segSlug不为"-"且segApiSetting存在时，启用AI断句
-    if (segSlug && segSlug !== "-" && segApiSetting) {
+    const isAutoCaption = this.#selectedCaptionTrack?.kind === "asr";
+
+    // 仅自动字幕(kind=asr)启用AI断句，人工字幕直接使用原字幕分段
+    if (isAutoCaption && segSlug && segSlug !== "-" && segApiSetting) {
       logger.info("Youtube Provider: Starting AI ...");
       this.#showNotification(this.#i18n("ai_processing_pls_wait"));
 
@@ -643,6 +648,12 @@ class YouTubeCaptionProvider {
       } else {
         return [firstBatchSubtitles, 100];
       }
+    }
+
+    if (!isAutoCaption && segSlug && segSlug !== "-") {
+      logger.info(
+        "Youtube Provider: Skipping AI segmentation for manual captions."
+      );
     }
 
     return subtitlesFallback();
