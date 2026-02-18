@@ -21,6 +21,7 @@ import { Menus } from "./Menus.js";
 import { buildBilingualVtt } from "./vtt.js";
 import { isMobile } from "../libs/mobile.js";
 import { getDocInfo } from "../libs/docInfo.js";
+import { clearMsgHistory } from "../apis/history.js";
 
 const VIDEO_SELECT = "#container video";
 const CONTORLS_SELECT = ".ytp-right-controls";
@@ -41,6 +42,8 @@ class YouTubeCaptionProvider {
   #interceptedCaptionKind = null;
 
   #processingId = null;
+  #processingVersion = 0;
+  #activeTrackKey = null;
 
   #managerInstance = null;
   #toggleButton = null;
@@ -90,6 +93,7 @@ class YouTubeCaptionProvider {
       logger.debug("Youtube Provider: yt-navigate-finish", this.#videoId);
 
       this.#destroyManager();
+      clearMsgHistory(this.#setting.apiSlug);
 
       this.#subtitles = [];
       this.#events = [];
@@ -99,6 +103,9 @@ class YouTubeCaptionProvider {
       this.#docInfo = {};
       this.#fullDescription = "";
       this.#interceptedCaptionKind = null;
+      this.#processingId = null;
+      this.#processingVersion += 1;
+      this.#activeTrackKey = null;
       this.#updateMenuProps(); // 更新菜单 props
     });
 
@@ -332,7 +339,22 @@ class YouTubeCaptionProvider {
   }
 
   #isSameLang(lang1, lang2) {
+    if (!lang1 || !lang2) return false;
     return lang1.slice(0, 2) === lang2.slice(0, 2);
+  }
+
+  #buildTrackKey(potUrl) {
+    const p = potUrl.searchParams;
+    return [
+      p.get("v") || "",
+      p.get("lang") || "",
+      p.get("kind") || "",
+      p.get("tlang") || "",
+    ].join("|");
+  }
+
+  #isStaleProcessing(version) {
+    return version !== this.#processingVersion;
   }
 
   // todo: 优化逻辑
@@ -498,25 +520,38 @@ class YouTubeCaptionProvider {
     }
 
     const lang = potUrl.searchParams.get("lang");
-    const interceptedKind = potUrl.searchParams.get("kind") || null;
-    const fromLang = this.#getFromLang(lang);
-    if (this.#flatEvents.length) {
-      if (
-        this.#isSameLang(lang, this.#fromLang) &&
-        interceptedKind === this.#interceptedCaptionKind
-      ) {
-        logger.debug("Youtube Provider: video was processed:", videoId);
-        return;
-      }
-      this.#destroyManager();
-    }
-
-    if (videoId === this.#processingId) {
-      logger.debug("Youtube Provider: video is processing:", videoId);
+    if (!lang) {
+      logger.debug("Youtube Provider: timedtext lang not found:", url);
       return;
     }
 
-    this.#processingId = videoId;
+    const interceptedKind = potUrl.searchParams.get("kind") || null;
+    const trackKey = this.#buildTrackKey(potUrl);
+    const fromLang = this.#getFromLang(lang);
+
+    if (this.#flatEvents.length && trackKey === this.#activeTrackKey) {
+      logger.debug("Youtube Provider: track was processed:", trackKey);
+      return;
+    }
+
+    if (this.#processingId === trackKey) {
+      logger.debug("Youtube Provider: track is processing:", trackKey);
+      return;
+    }
+
+    const processingVersion = (this.#processingVersion += 1);
+    this.#processingId = trackKey;
+
+    if (this.#flatEvents.length) {
+      this.#destroyManager();
+      clearMsgHistory(this.#setting.apiSlug);
+      this.#subtitles = [];
+      this.#events = [];
+      this.#flatEvents = [];
+      this.#progressed = 0;
+      this.#activeTrackKey = null;
+      this.#interceptedCaptionKind = null;
+    }
 
     try {
       this.#showNotification(this.#i18n("starting_to_process_subtitle"));
@@ -524,6 +559,8 @@ class YouTubeCaptionProvider {
       const { toLang } = this.#setting;
       const { captionTracks, fullDescription } =
         await this.#getCaptionTracks(videoId);
+      if (this.#isStaleProcessing(processingVersion)) return;
+
       this.#fullDescription = fullDescription || "";
       const captionTrack = this.#findCaptionTrack(
         captionTracks,
@@ -541,6 +578,8 @@ class YouTubeCaptionProvider {
         potUrl,
         responseText
       );
+      if (this.#isStaleProcessing(processingVersion)) return;
+
       if (!events?.length) {
         logger.debug("Youtube Provider: events not got:", videoId);
         return;
@@ -560,34 +599,46 @@ class YouTubeCaptionProvider {
         logger.debug("Youtube Provider: flatEvents not got:", videoId);
         return;
       }
+      if (this.#isStaleProcessing(processingVersion)) return;
 
       this.#events = events;
       this.#flatEvents = flatEvents;
       this.#fromLang = fromLang;
       this.#interceptedCaptionKind = interceptedKind;
+      this.#activeTrackKey = trackKey;
       this.#docInfo = getDocInfo();
-      await this.#enrichDocInfoWithAI(flatEvents);
+      await this.#enrichDocInfoWithAI(flatEvents, processingVersion);
+      if (this.#isStaleProcessing(processingVersion)) return;
 
       this.#processEvents({
         videoId,
         flatEvents,
         fromLang,
+        processingVersion,
       });
     } catch (error) {
       logger.warn("Youtube Provider: handle subtitle", error);
       this.#showNotification(this.#i18n("subtitle_load_failed"));
     } finally {
-      this.#processingId = null;
+      if (
+        !this.#isStaleProcessing(processingVersion) &&
+        this.#processingId === trackKey
+      ) {
+        this.#processingId = null;
+      }
     }
   }
 
-  async #processEvents({ videoId, flatEvents, fromLang }) {
+  async #processEvents({ videoId, flatEvents, fromLang, processingVersion }) {
     try {
       const [subtitles, progressed] = await this.#eventsToSubtitles({
         videoId,
         flatEvents,
         fromLang,
+        processingVersion,
       });
+      if (this.#isStaleProcessing(processingVersion)) return;
+
       if (!subtitles?.length) {
         logger.debug(
           "Youtube Provider: events to subtitles got empty",
@@ -628,15 +679,18 @@ class YouTubeCaptionProvider {
 
     this.#showNotification(this.#i18n("starting_reprocess_events"));
 
+    const processingVersion = (this.#processingVersion += 1);
     this.#destroyManager();
+    clearMsgHistory(this.#setting.apiSlug);
 
-    this.#processEvents({ videoId, flatEvents, fromLang });
+    this.#processEvents({ videoId, flatEvents, fromLang, processingVersion });
   }
 
-  async #enrichDocInfoWithAI(flatEvents) {
+  async #enrichDocInfoWithAI(flatEvents, processingVersion) {
     const { aiContextSlug, transApis } = this.#setting;
 
     if (!aiContextSlug || aiContextSlug === "-") return;
+    if (this.#isStaleProcessing(processingVersion)) return;
 
     const contextApiSetting = transApis?.find(
       (api) => api.apiSlug === aiContextSlug
@@ -667,7 +721,11 @@ class YouTubeCaptionProvider {
         apiSetting: contextApiSetting,
       });
 
-      if (summary && videoId === this.#videoId) {
+      if (
+        summary &&
+        videoId === this.#videoId &&
+        !this.#isStaleProcessing(processingVersion)
+      ) {
         docInfo.summary = summary;
       }
     } catch (err) {
@@ -683,13 +741,26 @@ class YouTubeCaptionProvider {
     const flatEvents = this.#flatEvents;
     if (!videoId || !flatEvents.length) return;
 
+    const processingVersion = (this.#processingVersion += 1);
     this.#destroyManager();
+    clearMsgHistory(this.#setting.apiSlug);
     this.#docInfo = getDocInfo();
-    await this.#enrichDocInfoWithAI(flatEvents);
-    this.#processEvents({ videoId, flatEvents, fromLang: this.#fromLang });
+    await this.#enrichDocInfoWithAI(flatEvents, processingVersion);
+    if (this.#isStaleProcessing(processingVersion)) return;
+    this.#processEvents({
+      videoId,
+      flatEvents,
+      fromLang: this.#fromLang,
+      processingVersion,
+    });
   }
 
-  async #eventsToSubtitles({ videoId, flatEvents, fromLang }) {
+  async #eventsToSubtitles({
+    videoId,
+    flatEvents,
+    fromLang,
+    processingVersion,
+  }) {
     const { segSlug, transApis, chunkLength, toLang } = this.#setting;
     const subtitlesFallback = () => [
       this.#formatSubtitles(flatEvents, fromLang),
@@ -703,6 +774,7 @@ class YouTubeCaptionProvider {
 
     // 仅自动字幕(kind=asr)启用AI断句，人工字幕直接使用原字幕分段
     if (isAutoCaption && segSlug && segSlug !== "-" && segApiSetting) {
+      if (this.#isStaleProcessing(processingVersion)) return [[], 0];
       logger.info("Youtube Provider: Starting AI ...");
       this.#showNotification(this.#i18n("ai_processing_pls_wait"));
 
@@ -720,6 +792,7 @@ class YouTubeCaptionProvider {
         toLang,
         segApiSetting,
       });
+      if (this.#isStaleProcessing(processingVersion)) return [[], 0];
 
       if (!firstBatchSubtitles?.length) {
         return subtitlesFallback();
@@ -733,6 +806,7 @@ class YouTubeCaptionProvider {
           fromLang,
           toLang,
           segApiSetting,
+          processingVersion,
         });
 
         const processed = Math.floor(100 / eventChunks.length);
@@ -800,7 +874,7 @@ class YouTubeCaptionProvider {
       // todo: 将 subtitleListManager 实例传入 managerInstance
       // 监听字幕更新事件，在字幕翻译完成后更新字幕列表
       this.#managerInstance.onSubtitleUpdate = (updatedSubtitles) => {
-        this.#subtitleListManager.setBilingualSubtitles(updatedSubtitles);
+        this.#subtitleListManager?.setBilingualSubtitles(updatedSubtitles);
       };
 
       // 创建包含翻译信息的双语字幕数据（初始可能没有翻译）
@@ -833,6 +907,7 @@ class YouTubeCaptionProvider {
 
     logger.info("Youtube Provider: Destroying manager...");
 
+    this.#managerInstance.onSubtitleUpdate = null;
     this.#managerInstance.destroy();
     this.#managerInstance = null;
 
@@ -1159,10 +1234,16 @@ class YouTubeCaptionProvider {
     fromLang,
     toLang,
     segApiSetting,
+    processingVersion,
   }) {
     logger.info(`Youtube Provider: Starting for ${chunks.length} chunks.`);
 
     for (let i = 0; i < chunks.length; i++) {
+      if (this.#isStaleProcessing(processingVersion)) {
+        logger.info("Youtube Provider: Skip stale chunk processing.");
+        break;
+      }
+
       const chunkEvents = chunks[i];
       const chunkNum = i + 2;
       logger.debug(
@@ -1179,6 +1260,7 @@ class YouTubeCaptionProvider {
           toLang,
           segApiSetting,
         });
+        if (this.#isStaleProcessing(processingVersion)) break;
 
         if (aiSubtitles?.length > 0) {
           subtitlesForThisChunk = aiSubtitles;
@@ -1192,9 +1274,12 @@ class YouTubeCaptionProvider {
         subtitlesForThisChunk = this.#formatSubtitles(chunkEvents, fromLang);
       }
 
-      if (videoId !== this.#videoId) {
+      if (
+        videoId !== this.#videoId ||
+        this.#isStaleProcessing(processingVersion)
+      ) {
         logger.info(
-          "Youtube Provider: videoId changed!!",
+          "Youtube Provider: videoId changed or track replaced!",
           videoId,
           this.#videoId
         );

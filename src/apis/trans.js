@@ -1096,8 +1096,11 @@ export async function* handleTranslate(
     apiSetting,
     usePool,
     docInfo,
+    signal,
   }
 ) {
+  if (signal?.aborted) return;
+
   let history = null;
   let hisMsgs = [];
   const {

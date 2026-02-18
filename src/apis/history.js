@@ -37,3 +37,7 @@ export const getMsgHistory = (apiSlug, maxSize) => {
   historyMap.set(apiSlug, msgHistory);
   return msgHistory;
 };
+
+export const clearMsgHistory = (apiSlug) => {
+  historyMap.delete(apiSlug);
+};
