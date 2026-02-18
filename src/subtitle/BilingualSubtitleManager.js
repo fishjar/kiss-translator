@@ -128,6 +128,8 @@ export class BilingualSubtitleManager {
   #tooltipEl = null;
   #hoverTimeout = null; // 用于延迟显示/隐藏tooltip
   #seekSyncRafId = null;
+  #translationSessionId = 0;
+  #abortController = null;
   #wasPlayingBeforeHover = false; //记录hover单词前视频是否处于播放状态
   #hoverTarget = null;
 
@@ -141,6 +143,7 @@ export class BilingualSubtitleManager {
     this.#setting = setting;
     this.#videoEl = videoEl;
     this.#formattedSubtitles = formattedSubtitles;
+    this.#abortController = new AbortController();
 
     this.onTimeUpdate = this.onTimeUpdate.bind(this);
     this.onSeeking = this.onSeeking.bind(this);
@@ -183,6 +186,10 @@ export class BilingualSubtitleManager {
    */
   destroy() {
     logger.info("Bilingual Subtitle Manager: Destroying...");
+    this.#translationSessionId += 1;
+    this.#abortController?.abort();
+    this.#abortController = null;
+    this.onSubtitleUpdate = null;
     this.#removeEventListeners();
     this.#throttledTriggerTranslations?.cancel();
     if (this.#seekSyncRafId !== null) {
@@ -864,6 +871,10 @@ export class BilingualSubtitleManager {
    * @param {object} subtitle - 需要翻译的字幕对象。
    */
   async #translateAndStore(subtitle) {
+    const sessionId = this.#translationSessionId;
+    const signal = this.#abortController?.signal;
+    if (signal?.aborted) return;
+
     subtitle.isTranslating = true;
     try {
       const { fromLang, toLang, apiSetting, docInfo } = this.#setting;
@@ -873,12 +884,17 @@ export class BilingualSubtitleManager {
         toLang,
         apiSetting,
         docInfo,
+        signal,
       });
+      if (sessionId !== this.#translationSessionId) return;
       subtitle.translation = decodeHTMLEntities(trText);
     } catch (error) {
+      if (sessionId !== this.#translationSessionId) return;
+      if (error?.name === "AbortError") return;
       logger.info("Translation failed for:", subtitle.text, error);
       subtitle.translation = "[Translation failed]";
     } finally {
+      if (sessionId !== this.#translationSessionId) return;
       subtitle.isTranslating = false;
 
       const currentSubtitleIndexNow = this.#findSubtitleIndexForTime(

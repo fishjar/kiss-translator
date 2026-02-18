@@ -485,9 +485,13 @@ export const apiTranslate = async ({
   docInfo,
   useCache = true,
   usePool = true,
+  signal,
 }) => {
   if (!text) {
     throw new Error("The text cannot be empty.");
+  }
+  if (signal?.aborted) {
+    throw new DOMException("The operation was aborted.", "AbortError");
   }
 
   const { apiType, apiSlug, useBatchFetch } = apiSetting;
@@ -516,6 +520,9 @@ export const apiTranslate = async ({
     if (cache?.trText) {
       return cache;
     }
+  }
+  if (signal?.aborted) {
+    throw new DOMException("The operation was aborted.", "AbortError");
   }
 
   // 请求接口数据
@@ -549,6 +556,7 @@ export const apiTranslate = async ({
       usePool,
       onStreamChunk,
       docInfo,
+      signal,
     });
   } else {
     const { value } = await handleTranslate([text], {
@@ -561,6 +569,7 @@ export const apiTranslate = async ({
       apiSetting,
       usePool,
       docInfo,
+      signal,
     }).next();
     translation = value?.result;
   }
