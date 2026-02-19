@@ -460,6 +460,8 @@ class YouTubeCaptionProvider {
   async #aiSegment({ videoId, fromLang, toLang, chunkEvents, segApiSetting }) {
     try {
       const events = chunkEvents.filter((item) => item.text);
+      if (!events.length) return [];
+
       const chunkSign = `${events[0].start} --> ${events[events.length - 1].end}`;
       logger.debug("Youtube Provider: aiSegment events", {
         videoId,
@@ -1006,6 +1008,7 @@ class YouTubeCaptionProvider {
     usePause = false,
     timeout = 1000,
     maxWords = 15,
+    maxDurationMs = 10000,
   } = {}) {
     const groupedPauseWords = {
       1: new Set([
@@ -1116,6 +1119,8 @@ class YouTubeCaptionProvider {
         const isEndOfSentence = /[.?!…\])]$/.test(lastSegment.text);
         const isPauseOfSentence = /[,]$/.test(lastSegment.text);
         const isTimeout = segment.start - lastSegment.end > timeout;
+        const isDurationExceeded =
+          segment.start - currentBuffer[0].start >= maxDurationMs;
         const isWordLimitExceeded =
           (usePause || isPauseOfSentence) && bufferWordCount >= maxWords;
 
@@ -1130,6 +1135,7 @@ class YouTubeCaptionProvider {
         if (
           isEndOfSentence ||
           isTimeout ||
+          isDurationExceeded ||
           isWordLimitExceeded ||
           startsWithSign ||
           startsWithPauseWord
@@ -1175,9 +1181,13 @@ class YouTubeCaptionProvider {
       });
     });
 
-    segments.push(buffer);
+    if (buffer) {
+      segments.push(buffer);
+    }
 
-    return segments;
+    return segments.filter(
+      (s) => s && typeof s.start === "number" && s.end > s.start
+    );
   }
 
   #splitEventsIntoChunks(flatEvents, chunkLength = 1000) {

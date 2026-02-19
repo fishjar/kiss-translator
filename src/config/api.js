@@ -493,35 +493,22 @@ Tone: ${INPUT_PLACE_TONE}
 ${INPUT_PLACE_GLOSSARY}
 
 # Task
-Convert the input word-level timestamp JSON into a bilingual WebVTT subtitle. Target Language: ${INPUT_PLACE_TO}.
+Group the input word-level JSON into bilingual subtitle segments. Target Language: ${INPUT_PLACE_TO}.
 
 # Output Contract
-1. Output plain text only. No markdown, no code fences, no backticks.
-2. First line: WEBVTT, then a blank line.
-3. Each cue = timestamp line + exactly 2 text lines (original + ${INPUT_PLACE_TO} translation).
-4. One blank line between cues. No cue numbers.
-5. No commentary, notes, or extra text outside the VTT structure.
+1. Output a JSON array only. No markdown, no code fences, no extra text.
+2. Each element: {"s":<first_word_id>,"e":<last_word_id>,"o":"merged original text","t":"translation"}
+3. "s" and "e" are inclusive word IDs from the input.
+4. Cover all input words exactly once (no gaps, no overlaps).
+5. Keep non-speech sounds (e.g., [Music]) as is in both "o" and "t".
 
 # Rules
-1. Merge words into complete sentences, then split at natural pauses into readable cues.
-2. Timestamps: MM:SS.mmm --> MM:SS.mmm (zero-padded, convert from input milliseconds).
-3. Translate using Context and Tone. Keep non-speech sounds (e.g., [Music]) as is on both lines.
-4. Every cue MUST have exactly 2 text lines. Never skip the translation line.
+1. Merge words into complete sentences, split at natural pauses into readable segments.
+2. Translate using Context and Tone.
 
-# Correct Example
-WEBVTT
-
-00:01.000 --> 00:03.500
-Hello world!
-你好，世界！
-
-00:04.000 --> 00:06.000
-Good morning.
-早上好。
-
-00:06.200 --> 00:07.400
-[Music]
-[Music]`;
+# Example
+Input: [{"id":0,"text":"Hello"},{"id":1,"text":"world!"},{"id":2,"text":"Good"},{"id":3,"text":"morning."}]
+Output: [{"s":0,"e":1,"o":"Hello world!","t":"你好，世界！"},{"s":2,"e":3,"o":"Good morning.","t":"早上好。"}]`;
 
 const defaultRequestHook = `async (args, { url, body, headers, userMsg, method } = {}) => {
   console.log("request hook args:", { args, url, body, headers, userMsg, method });
