@@ -819,10 +819,9 @@ class YouTubeCaptionProvider {
       }
     }
 
-    if (!isAutoCaption && segSlug && segSlug !== "-") {
-      logger.info(
-        "Youtube Provider: Skipping AI segmentation for manual captions."
-      );
+    if (!isAutoCaption) {
+      // 人工字幕已是句级分段，直接使用无需合并
+      return [flatEvents.filter((e) => e.text), 100];
     }
 
     return subtitlesFallback();
@@ -1159,7 +1158,10 @@ class YouTubeCaptionProvider {
 
     events.forEach(({ segs = [], tStartMs = 0, dDurationMs = 0 }) => {
       segs.forEach(({ utf8 = "", tOffsetMs = 0 }, j) => {
-        const text = utf8.trim().replace(/\s+/g, " ");
+        const text = utf8
+          .replace(/<[^>]+>/g, "")
+          .trim()
+          .replace(/\s+/g, " ");
         const start = tStartMs + tOffsetMs;
 
         if (buffer) {
