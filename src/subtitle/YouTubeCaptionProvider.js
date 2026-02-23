@@ -469,40 +469,73 @@ class YouTubeCaptionProvider {
   }
 
   async #aiSegment({ videoId, fromLang, toLang, chunkEvents, segApiSetting }) {
-    try {
-      const events = chunkEvents.filter((item) => item.text);
-      if (!events.length) return [];
+    const NON_SPEECH_RE = /^\[.+\]$/i;
+    const speechEvents = [];
+    const nonSpeechEvents = [];
 
-      const chunkSign = `${events[0].start} --> ${events[events.length - 1].end}`;
+    for (const item of chunkEvents) {
+      if (!item.text) continue;
+      if (NON_SPEECH_RE.test(item.text.trim())) {
+        nonSpeechEvents.push(item);
+      } else {
+        speechEvents.push(item);
+      }
+    }
+
+    const toStandaloneSub = (e) => ({
+      start: e.start,
+      end: e.end,
+      text: e.text,
+      translation: e.text,
+    });
+
+    if (!speechEvents.length) return nonSpeechEvents.map(toStandaloneSub);
+
+    try {
+      const chunkSign = `${speechEvents[0].start} --> ${speechEvents[speechEvents.length - 1].end}`;
       logger.debug("Youtube Provider: aiSegment events", {
         videoId,
         chunkSign,
         fromLang,
         toLang,
-        events,
+        speechEvents,
       });
       const subtitles = await apiSubtitle({
         videoId,
         chunkSign,
         fromLang,
         toLang,
-        events,
+        events: speechEvents,
         apiSetting: segApiSetting,
         docInfo: this.#docInfo,
       });
       logger.debug("Youtube Provider: aiSegment subtitles", subtitles);
       if (Array.isArray(subtitles)) {
         // 断句服务和翻译服务不同时，清除断句的翻译，由翻译服务重新翻译
-        if (segApiSetting.apiSlug !== this.#setting.apiSlug) {
-          return subtitles.map((sub) => ({ ...sub, translation: "" }));
-        }
-        return subtitles;
+        const speechSubtitles =
+          segApiSetting.apiSlug !== this.#setting.apiSlug
+            ? subtitles.map((sub) => ({ ...sub, translation: "" }))
+            : subtitles;
+
+        // 仅保留落在语音字幕间隙中的非语音条目，丢弃与语音重叠的
+        const gapCues = nonSpeechEvents
+          .filter(
+            (ns) =>
+              !speechSubtitles.some(
+                (sub) => ns.start < sub.end && ns.end > sub.start
+              )
+          )
+          .map(toStandaloneSub);
+
+        return [...speechSubtitles, ...gapCues].sort(
+          (a, b) => a.start - b.start
+        );
       }
     } catch (err) {
       logger.info("Youtube Provider: ai segmentation", err);
     }
 
-    return [];
+    return nonSpeechEvents.map(toStandaloneSub);
   }
 
   #getFromLang(lang) {
