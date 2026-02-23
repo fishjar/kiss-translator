@@ -500,7 +500,6 @@ Group the input word-level JSON into bilingual subtitle segments. Target Languag
 2. Each element: {"s":<first_word_id>,"e":<last_word_id>,"o":"merged original text","t":"translation"}
 3. "s" and "e" are inclusive word IDs from the input.
 4. Cover all input words exactly once (no gaps, no overlaps).
-5. Keep non-speech sounds (e.g., [Music]) as is in both "o" and "t".
 
 # Rules
 1. Merge words into complete sentences, split at natural pauses into readable segments.
