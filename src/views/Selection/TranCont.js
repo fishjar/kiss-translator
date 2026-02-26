@@ -54,6 +54,10 @@ export default function TranCont({
     })();
   }, [text, fromLang, toLang, apiSetting]);
 
+  if (!apiSetting) {
+    return null;
+  }
+
   if (simpleStyle) {
     return (
       <Box>
