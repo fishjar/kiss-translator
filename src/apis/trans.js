@@ -271,14 +271,87 @@ const parseAIRes = (raw, useBatchFetch = true) => {
   });
 };
 
-const parseSTRes = (raw) => {
+const getPauseLevel = (gapMs) => {
+  if (!Number.isFinite(gapMs) || gapMs <= 300) return 0;
+  if (gapMs <= 600) return 1;
+  if (gapMs <= 1200) return 2;
+  return 3;
+};
+
+const formatIndexSubtitleEvents = (events) =>
+  events.map((e, i) => {
+    const item = { id: i, text: e.text };
+    if (i > 0) {
+      const p = getPauseLevel(e.start - events[i - 1].end);
+      if (p) item.p = p;
+    }
+    return item;
+  });
+
+const usesIndexSubtitleInput = (prompt = "") => {
+  if (/\{\s*["']?s["']?\s*:/.test(prompt) && /\bid\b/i.test(prompt))
+    return true;
+  if (/WEBVTT|MM:SS\.mmm|-->/i.test(prompt)) return false;
+  return false;
+};
+
+const geminiText = (parts) =>
+  Array.isArray(parts)
+    ? parts
+        .filter((p) => !p.thought && p.text)
+        .map((p) => p.text)
+        .join("")
+    : "";
+
+const parseIndexSubtitleRes = (raw, events) => {
+  const buildResult = (data) => {
+    if (!Array.isArray(data) || !data.length) return null;
+    const result = [];
+    for (const seg of data) {
+      const s = Number(seg.s ?? seg.start_id);
+      const e = Number(seg.e ?? seg.end_id);
+      if (!Number.isInteger(s) || !Number.isInteger(e)) continue;
+      const startIdx = Math.max(0, Math.min(s, events.length - 1));
+      const endIdx = Math.max(startIdx, Math.min(e, events.length - 1));
+      result.push({
+        start: events[startIdx].start,
+        end: events[endIdx].end,
+        text: String(seg.o ?? seg.original ?? ""),
+        translation: String(seg.t ?? seg.translation ?? ""),
+      });
+    }
+    return result.length ? result : null;
+  };
+
+  try {
+    return buildResult(JSON.parse(raw));
+  } catch {
+    try {
+      const str = String(raw ?? "");
+      const last = Math.max(
+        str.lastIndexOf("},"),
+        str.lastIndexOf("}\n"),
+        str.lastIndexOf("}\r")
+      );
+      if (last < 0) return null;
+      return buildResult(JSON.parse(str.slice(0, last + 1) + "]"));
+    } catch {
+      return null;
+    }
+  }
+};
+
+const parseSTRes = (raw, events = null) => {
   if (!raw) {
     return [];
   }
 
+  if (events?.length) {
+    const indexed = parseIndexSubtitleRes(raw, events);
+    if (indexed) return indexed;
+  }
+
   try {
-    // const jsonString = extractJson(raw);
-    // const data = JSON.parse(jsonString);
     const data = parseBilingualVtt(raw);
     if (Array.isArray(data)) {
       return data;
@@ -542,6 +615,18 @@ const genGemini = ({
   }
 
   const userMsg = { role: "user", parts: [{ text: userPrompt }] };
+
+  const modelLower = String(model || "").toLowerCase();
+  const geminiMajor = Number(modelLower.match(/gemini[- ]?(\d+)/)?.[1]);
+  const isPro = modelLower.includes("pro");
+  const thinkingConfig = isPro
+    ? null
+    : Number.isFinite(geminiMajor) && geminiMajor >= 3
+      ? { thinkingLevel: "MINIMAL" }
+      : modelLower.includes("gemini-2.5")
+        ? { thinkingBudget: 0 }
+        : null;
+
   const body = {
     // system_instruction: {
     //   parts: {
@@ -559,8 +644,7 @@ const genGemini = ({
     generationConfig: {
       maxOutputTokens: maxTokens,
       temperature,
-      // topP: 0.8,
-      // topK: 10,
+      ...(thinkingConfig ? { thinkingConfig } : {}),
     },
   };
 
@@ -976,6 +1060,10 @@ export const genTransReq = async ({ reqHook, ...args }) => {
     method = "POST",
   } = genReqFuncs[apiType](args);
 
+  if (events && apiType === OPT_TRANS_GEMINI && body?.generationConfig) {
+    body.generationConfig.responseMimeType = "application/json";
+  }
+
   // 合并用户自定义headers和body
   if (customHeader?.trim()) {
     Object.assign(headers, parseJsonObj(customHeader));
@@ -1141,7 +1229,7 @@ export const parseTransRes = async (
       if (history && userMsg && modelMsg) {
         history.add(userMsg, modelMsg);
       }
-      return parseAIRes(modelMsg?.parts?.[0]?.text ?? "", useBatchFetch);
+      return parseAIRes(geminiText(modelMsg?.parts), useBatchFetch);
     case OPT_TRANS_CLAUDE:
       modelMsg = { role: res?.role, content: res?.content?.text };
       if (history && userMsg && modelMsg) {
@@ -1476,7 +1564,10 @@ export const handleSubtitle = async ({
     case OPT_TRANS_OLLAMA:
       return parseSTRes(res?.choices?.[0]?.message?.content ?? "");
     case OPT_TRANS_GEMINI:
-      return parseSTRes(res?.candidates?.[0]?.content?.parts?.[0]?.text ?? "");
+      return parseSTRes(
+        geminiText(res?.candidates?.[0]?.content?.parts),
+        events
+      );
     case OPT_TRANS_CLAUDE:
       return parseSTRes(res?.content?.[0]?.text ?? "");
     case OPT_TRANS_CUSTOMIZE:
@@ -1548,14 +1639,14 @@ export const handleSummarize = async ({
     case OPT_TRANS_OLLAMA:
       return res?.choices?.[0]?.message?.content?.trim() || "";
     case OPT_TRANS_GEMINI:
-      return res?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+      return geminiText(res?.candidates?.[0]?.content?.parts).trim() || "";
     case OPT_TRANS_CLAUDE:
       return res?.content?.[0]?.text?.trim() || "";
     case OPT_TRANS_CUSTOMIZE:
       if (typeof res === "string") return res.trim();
       return (
         res?.choices?.[0]?.message?.content?.trim() ||
-        res?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ||
+        geminiText(res?.candidates?.[0]?.content?.parts).trim() ||
         res?.content?.[0]?.text?.trim() ||
         ""
       );
