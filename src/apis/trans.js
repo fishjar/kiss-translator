@@ -262,20 +262,20 @@ const parseAIRes = (raw, useBatchFetch = true) => {
   });
 };
 
-const parseIndexSubtitleRes = (raw, events) => {
-  try {
-    const data = JSON.parse(raw);
-    if (!Array.isArray(data) || !data.length) return null;
+const geminiText = (parts) =>
+  (Array.isArray(parts) ? parts.find((p) => !p.thought) : undefined)?.text ??
+  "";
 
+const parseIndexSubtitleRes = (raw, events) => {
+  const buildResult = (data) => {
+    if (!Array.isArray(data) || !data.length) return null;
     const result = [];
     for (const seg of data) {
       const s = Number(seg.s ?? seg.start_id);
       const e = Number(seg.e ?? seg.end_id);
       if (!Number.isInteger(s) || !Number.isInteger(e)) continue;
-
       const startIdx = Math.max(0, Math.min(s, events.length - 1));
       const endIdx = Math.max(startIdx, Math.min(e, events.length - 1));
-
       result.push({
         start: events[startIdx].start,
         end: events[endIdx].end,
@@ -283,10 +283,24 @@ const parseIndexSubtitleRes = (raw, events) => {
         translation: String(seg.t ?? seg.translation ?? ""),
       });
     }
-
     return result.length ? result : null;
+  };
+
+  try {
+    return buildResult(JSON.parse(raw));
   } catch {
-    return null;
+    try {
+      const str = String(raw ?? "");
+      const last = Math.max(
+        str.lastIndexOf("},"),
+        str.lastIndexOf("}\n"),
+        str.lastIndexOf("}\r")
+      );
+      if (last < 0) return null;
+      return buildResult(JSON.parse(str.slice(0, last + 1) + "]"));
+    } catch {
+      return null;
+    }
   }
 };
 
@@ -511,6 +525,18 @@ const genGemini = ({
   }
 
   const userMsg = { role: "user", parts: [{ text: userPrompt }] };
+
+  const modelLower = String(model || "").toLowerCase();
+  const geminiMajor = Number(modelLower.match(/gemini[- ]?(\d+)/)?.[1]);
+  const isPro = modelLower.includes("pro");
+  const thinkingConfig = isPro
+    ? null
+    : Number.isFinite(geminiMajor) && geminiMajor >= 3
+      ? { thinkingLevel: "MINIMAL" }
+      : modelLower.includes("gemini-2.5")
+        ? { thinkingBudget: 0 }
+        : null;
+
   const body = {
     // system_instruction: {
     //   parts: {
@@ -528,12 +554,8 @@ const genGemini = ({
     generationConfig: {
       maxOutputTokens: maxTokens,
       temperature,
-      // topP: 0.8,
-      // topK: 10,
+      ...(thinkingConfig ? { thinkingConfig } : {}),
     },
-    // thinkingConfig: {
-    //   thinkingBudget: 0,
-    // },
     safetySettings: [
       {
         category: "HARM_CATEGORY_HARASSMENT",
@@ -909,6 +931,10 @@ export const genTransReq = async ({ reqHook, ...args }) => {
     method = "POST",
   } = genReqFuncs[apiType](args);
 
+  if (events && apiType === OPT_TRANS_GEMINI && body?.generationConfig) {
+    body.generationConfig.responseMimeType = "application/json";
+  }
+
   // 合并用户自定义headers和body
   if (customHeader?.trim()) {
     Object.assign(headers, parseJsonObj(customHeader));
@@ -1068,7 +1094,7 @@ export const parseTransRes = async (
       if (history && userMsg && modelMsg) {
         history.add(userMsg, modelMsg);
       }
-      return parseAIRes(modelMsg?.parts?.[0]?.text ?? "", useBatchFetch);
+      return parseAIRes(geminiText(modelMsg?.parts), useBatchFetch);
     case OPT_TRANS_CLAUDE:
       modelMsg = { role: res?.role, content: res?.content?.text };
       if (history && userMsg && modelMsg) {
@@ -1392,7 +1418,7 @@ export const handleSubtitle = async ({
       return parseSTRes(res?.choices?.[0]?.message?.content ?? "", events);
     case OPT_TRANS_GEMINI:
       return parseSTRes(
-        res?.candidates?.[0]?.content?.parts?.[0]?.text ?? "",
+        geminiText(res?.candidates?.[0]?.content?.parts),
         events
       );
     case OPT_TRANS_CLAUDE:
@@ -1466,14 +1492,14 @@ export const handleSummarize = async ({
     case OPT_TRANS_OLLAMA:
       return res?.choices?.[0]?.message?.content?.trim() || "";
     case OPT_TRANS_GEMINI:
-      return res?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+      return geminiText(res?.candidates?.[0]?.content?.parts).trim() || "";
     case OPT_TRANS_CLAUDE:
       return res?.content?.[0]?.text?.trim() || "";
     case OPT_TRANS_CUSTOMIZE:
       if (typeof res === "string") return res.trim();
       return (
         res?.choices?.[0]?.message?.content?.trim() ||
-        res?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ||
+        geminiText(res?.candidates?.[0]?.content?.parts).trim() ||
         res?.content?.[0]?.text?.trim() ||
         ""
       );
