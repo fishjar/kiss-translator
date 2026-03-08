@@ -167,7 +167,7 @@ export const BUILTIN_STONES = [
   "academic", // 学术风格
   "legal", // 法律风格
   "literal", // 直译风格
-  "ldiomatic", // 意译风格
+  "idiomatic", // 意译风格
   "transcreation", // 创译风格
   "machine-like", // 机器风格
   "concise", // 简明风格
