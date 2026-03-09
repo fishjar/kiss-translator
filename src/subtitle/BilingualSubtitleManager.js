@@ -204,6 +204,36 @@ export class BilingualSubtitleManager {
   }
 
   /**
+   * 监听播放器控制条的显示状态，隐藏时将字幕下移
+   */
+  #observePlayerControlBar() {
+    const player = this.#videoEl.closest(".html5-video-player");
+    if (!player) return;
+
+    const updateBottom = () => {
+      const isHidden = player.classList.contains("ytp-autohide");
+
+      if (isHidden) {
+        this.#paperEl.style.bottom = "2%";
+      } else {
+        this.#paperEl.style.bottom = "10%";
+      }
+    };
+
+    // 初始化一次
+    updateBottom();
+
+    const observer = new MutationObserver(() => {
+      updateBottom();
+    });
+
+    observer.observe(player, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+  }
+
+  /**
    * 创建并配置用于显示字幕的 DOM 元素。
    */
   #createCaptionWindow() {
@@ -283,6 +313,7 @@ export class BilingualSubtitleManager {
         }
       });
     }
+    this.#observePlayerControlBar();
   }
 
   // 处理单词悬停事件
