@@ -14,7 +14,7 @@ export const getCurTab = async () => {
 
 export const getCurTabId = async () => {
   const tab = await getCurTab();
-  return tab.id;
+  return tab?.id;
 };
 
 /**
@@ -34,5 +34,15 @@ export const sendBgMsg = (action, args) =>
  */
 export const sendTabMsg = async (action, args) => {
   const tabId = await getCurTabId();
-  return browser.tabs.sendMessage(tabId, { action, args });
+  if (!tabId) return;
+  return browser.tabs.sendMessage(tabId, { action, args }).catch((err) => {
+    if (
+      err?.message?.includes("Could not establish connection") ||
+      err?.message?.includes("Receiving end does not exist")
+    ) {
+      console.warn("sendTabMsg warning: ", err?.message);
+    } else {
+      throw err;
+    }
+  });
 };
