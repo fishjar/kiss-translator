@@ -83,6 +83,7 @@ export const DEFAULT_TRANBOX_SHORTCUT = ["AltLeft", "KeyS"];
 export const DEFAULT_TRANBOX_SETTING = {
   transOpen: true, // 是否启用划词翻译
   apiSlugs: [OPT_TRANS_MICROSOFT],
+  singleWordNoTrans: false, // 划词为单个单词时仅使用默认翻译服务
   fromLang: "auto",
   toLang: "zh-CN",
   toLang2: "en",

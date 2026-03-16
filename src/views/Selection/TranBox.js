@@ -21,6 +21,8 @@ import { sendBgMsg } from "../../libs/msg.js";
 import { isExt } from "../../libs/client.js";
 import { useTheme, alpha } from "@mui/material/styles";
 import Logo from "../../components/Logo";
+import { isValidWord } from "../../libs/utils";
+import { OPT_TRANS_MICROSOFT } from "../../config";
 
 function TranBoxHeader({
   setShowBox,
@@ -337,6 +339,16 @@ export default function TranBox(props) {
   const setHideClickAway = props.setHideClickAway;
   const followSelection = props.followSelection;
   const setFollowSelection = props.setFollowSelection;
+
+  let realApiSlugs = props.tranboxSetting.apiSlugs;
+  if (
+    props.tranboxSetting.singleWordNoTrans &&
+    isValidWord(props.text)
+  ) {
+    // Do not call any translation APIs, rely solely on dictionaries/suggestions
+    realApiSlugs = [];
+  }
+
   return (
     <SettingProvider context="tranbox">
       <ThemeProvider styles={props.extStyles}>
@@ -367,7 +379,7 @@ export default function TranBox(props) {
               simpleStyle={simpleStyle}
               text={props.text}
               setText={props.setText}
-              apiSlugs={props.tranboxSetting.apiSlugs}
+              apiSlugs={realApiSlugs}
               fromLang={props.tranboxSetting.fromLang}
               toLang={props.tranboxSetting.toLang}
               toLang2={props.tranboxSetting.toLang2}

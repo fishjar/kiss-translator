@@ -419,6 +419,13 @@ export const I18N = {
     ja: `翻訳サービス (複数選択可)`,
     ko: `번역 서비스 (다중 선택 지원)`,
   },
+  single_word_no_trans: {
+    zh: `单个单词划词不调用翻译服务`,
+    en: `Do not use translation services for single word`,
+    zh_TW: `單個單詞劃詞不調用翻譯服務`,
+    ja: `単一単語は翻訳サービスを使用しない`,
+    ko: `단일 단어는 번역 서비스를 사용하지 않음`,
+  },
   translate_timing: {
     zh: `翻译时机`,
     en: `Translate Timing`,

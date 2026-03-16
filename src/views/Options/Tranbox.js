@@ -56,6 +56,7 @@ export default function Tranbox() {
   const {
     transOpen,
     apiSlugs,
+    singleWordNoTrans = false,
     fromLang,
     toLang,
     toLang2 = "en",
@@ -113,6 +114,20 @@ export default function Tranbox() {
                     {api.apiName}
                   </MenuItem>
                 ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                fullWidth
+                select
+                size="small"
+                name="singleWordNoTrans"
+                value={singleWordNoTrans}
+                label={i18n("single_word_no_trans")}
+                onChange={handleChange}
+              >
+                <MenuItem value={false}>{i18n("disable")}</MenuItem>
+                <MenuItem value={true}>{i18n("enable")}</MenuItem>
               </TextField>
             </Grid>
             <Grid item xs={12} sm={12} md={6} lg={3}>

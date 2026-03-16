@@ -76,6 +76,10 @@ export default function TranForm({
   }, [text]);
 
   useEffect(() => {
+    setApiSlugs(initApiSlugs);
+  }, [initApiSlugs]);
+
+  useEffect(() => {
     if (!editMode) {
       setEditText(text);
     }
