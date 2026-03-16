@@ -233,8 +233,8 @@ export const OPT_LANGS_SPEC_DEFAULT_UC = new Map(
 export const OPT_LANGS_TO_SPEC = {
   [OPT_TRANS_BUILTINAI]: new Map([
     ...OPT_LANGS_SPEC_DEFAULT,
-    ["zh-CN", "zh"],
-    ["zh-TW", "zh"],
+    ["zh-CN", "zh-Hans"],
+    ["zh-TW", "zh-Hant"],
   ]),
   [OPT_TRANS_GOOGLE]: OPT_LANGS_SPEC_DEFAULT,
   [OPT_TRANS_GOOGLE_2]: OPT_LANGS_SPEC_DEFAULT,
