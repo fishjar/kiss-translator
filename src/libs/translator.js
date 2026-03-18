@@ -1585,10 +1585,7 @@ export class Translator {
   #translateFetch(text, deLang = "") {
     const { toLang, transStartHook } = this.#rule;
     const fromLang = deLang || this.#rule.fromLang;
-    const apiSetting = {
-      ...this.#apiSetting,
-      httpTimeout: this.#setting.httpTimeout,
-    };
+    const apiSetting = { ...this.#apiSetting };
     const glossary = { ...this.#glossary };
     const apisMap = this.#apisMap;
 
