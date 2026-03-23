@@ -145,7 +145,6 @@ export default function TranForm({
     return apiSlugs.filter((slug) => validSlugs.has(slug));
   }, [apiSlugs, optApis]);
 
-
   return (
     <Stack spacing={simpleStyle ? 1 : 2}>
       {!simpleStyle && (

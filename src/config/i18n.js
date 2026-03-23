@@ -1929,6 +1929,27 @@ export const I18N = {
     ja: `翻訳ボックスの高さ自動調整`,
     ko: `번역 상자 높이 자동 조절`,
   },
+  tranbox_interact_mode: {
+    zh: `翻译框内交互模式`,
+    en: `Transbox Interact Mode`,
+    zh_TW: `翻譯框內互動模式`,
+    ja: `翻訳ボックス内インタラクションモード`,
+    ko: `번역 상자 내 인터랙션 모드`,
+  },
+  tranbox_interact_click: {
+    zh: `单击选中文本触发翻译`,
+    en: `Click selected text to translate`,
+    zh_TW: `單擊選取文字觸發翻譯`,
+    ja: `選択したテキストをクリックして翻訳`,
+    ko: `선택한 텍스트를 클릭하여 번역`,
+  },
+  tranbox_interact_dblclick: {
+    zh: `双击选中文本触发翻译`,
+    en: `Double-click selected text to translate`,
+    zh_TW: `雙擊選取文字觸發翻譯`,
+    ja: `選択したテキストをダブルクリックして翻訳`,
+    ko: `선택한 텍스트를 더블클릭하여 번역`,
+  },
   translate_start_hook: {
     zh: `翻译开始钩子函数`,
     en: `Translate Start Hook`,
