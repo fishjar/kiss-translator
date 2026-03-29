@@ -1,47 +1,47 @@
-# CEFR Original Word Annotation Design
+# CEFR 原文单词标注设计
 
-## Context
+## 背景
 
-Kiss Translator already supports whole-page bilingual translation by leaving the original text in place and inserting a translated wrapper after each translated node group. The repository also already contains a CEFR dictionary asset, a prototype CEFR settings page, and a draft post-processing hook that annotates translated English output. That prototype does not match the intended product behavior.
+Kiss Translator 目前已经支持整页双语翻译：保留原文内容，并在每组被翻译的节点后面插入译文 wrapper。仓库里也已经有 CEFR 词典资源、CEFR 设置页原型，以及一个针对“英文译文结果”做标注的草稿钩子。但这个原型和目标产品行为并不一致。
 
-The desired feature is:
+本次目标功能是：
 
-- ship a built-in common 30k-word CEFR dictionary
-- after installation, guide the user to take an internal CEFR level assessment from A1 to C2
-- during whole-page bilingual translation, when the original page text is English, show a Chinese gloss above words that are harder than the user's current level
-- keep the existing bilingual translation behavior intact
-- keep annotation rendering out of normal document flow so the original page layout is not stretched by the gloss labels
+- 内置常用 3 万英语单词 CEFR 词典
+- 用户安装插件后，引导其完成一个内部 CEFR 等级测试，范围为 A1-C2
+- 在整页双语翻译过程中，当网页原文是英文时，对高于用户当前等级的英文单词在其上方显示中文释义
+- 不影响现有双语翻译功能
+- 标注样式不进入正常文档流，不能因为释义而把原文行高或页面排版撑开
 
-## Goals
+## 目标
 
-- Preserve the existing whole-page bilingual translation pipeline and treat CEFR annotation as an enhancement layer rather than a dependency.
-- Annotate only original English source text in the whole-page translation experience.
-- Render gloss labels above difficult words using absolute positioning so the line box and surrounding document flow are not expanded.
-- Prompt first-time users to take an internal CEFR assessment and keep a persistent entry point in both the popup and settings.
-- Allow users to retake the assessment or manually override the detected CEFR level later.
+- 保留现有整页双语翻译主链路，把 CEFR 标注作为增强层，而不是翻译依赖项。
+- 只对整页翻译场景中的“英文原文”做单词级标注。
+- 通过绝对定位把中文释义显示在生词上方，不扩大行盒，不改变周围文档流。
+- 对首次安装用户提供 CEFR 测级引导，并在 popup 和设置页中保留持续可见的入口。
+- 允许用户后续重新测级，或者手动覆盖自己的 CEFR 等级。
 
-## Non-Goals
+## 非目标
 
-- No support in this phase for selection translation, subtitle translation, input-box translation, or hover translation.
-- No official CEFR certification claim; the assessment is an internal placement quiz for product behavior.
-- No spaced repetition, vocabulary review workflow, or personal word-learning dashboard.
-- No floating global overlay system for clipped labels caused by site-specific `overflow: hidden` containers.
-- No context-sensitive multi-sense word disambiguation beyond the primary built-in Chinese gloss.
+- 本阶段不支持划词翻译、字幕翻译、输入框翻译或鼠标悬停翻译场景。
+- 不把该测试描述为官方 CEFR 认证考试；它只是插件内部的分级测试。
+- 不做间隔重复记忆、词汇复习流程或个人生词学习面板。
+- 不做用于解决 `overflow: hidden` 裁剪问题的全局浮层系统。
+- 不做依赖上下文的多义词语义消歧，先只展示内置词典中的主释义。
 
-## Product Decisions
+## 产品决策
 
-### Onboarding and entry points
+### 首装引导与入口
 
-- On browser install, only the `install` reason triggers CEFR onboarding. Extension updates do not auto-open the CEFR page.
-- The extension opens the options page directly to `options.html#/cefr`.
-- The CEFR settings page shows a dedicated onboarding card when the user has not completed assessment yet. The card explains the built-in dictionary, the purpose of the quiz, and the post-translation word gloss behavior.
-- Popup and settings retain long-term CEFR entry points:
-  - when assessment is incomplete, show a prominent "Take CEFR test" entry
-  - when assessment is complete, show the current level plus actions to retake or adjust manually
+- 仅在浏览器扩展 `install` 安装场景触发 CEFR 首装引导，扩展升级时不自动打开 CEFR 页面。
+- 插件在首次安装时直接打开 `options.html#/cefr`。
+- 当用户尚未完成测级时，CEFR 设置页顶部展示专门的 onboarding 卡片，用于说明内置词典、测试目的以及“整页翻译后对高难度英文词显示中文释义”的功能行为。
+- popup 和设置页都保留长期入口：
+  - 未完成测级时，显示醒目的“去做 CEFR 测试”入口
+  - 已完成测级时，显示当前等级，并提供“重新测试”和“手动调整”入口
 
-### CEFR setting model
+### CEFR 设置模型
 
-The existing CEFR setting shape should be expanded from a minimal `{ enabled, level }` object into a state model that can distinguish between feature enablement, completion status, and the source of the current level:
+当前 CEFR 设置对象只有 `{ enabled, level }`，无法区分“功能是否开启”“用户是否完成测试”“当前等级来源”。建议扩展为如下状态模型：
 
 ```js
 {
@@ -49,51 +49,51 @@ The existing CEFR setting shape should be expanded from a minimal `{ enabled, le
   level: 0,
   assessmentCompleted: false,
   levelSource: "unset", // "unset" | "quiz" | "manual"
-  lastPromptFrom: "" // "", "install", "popup", "settings"
+  lastPromptFrom: "" // "" | "install" | "popup" | "settings"
 }
 ```
 
-This state remains stored in the existing settings storage so sync behavior stays aligned with the rest of extension settings.
+该状态继续放在现有 settings 存储中，以保持和其他插件设置一致的持久化与同步行为。
 
-### Annotation scope
+### 标注范围
 
-- Annotation runs only for whole-page translation.
-- Annotation runs only when the detected source language for the translated node group is English.
-- Annotation never modifies the translated wrapper DOM.
-- Annotation only decorates original source text nodes that remain visible in bilingual mode.
-- Difficulty comparison uses `wordLevelScore > userLevelScore`, not `>=`, because the feature should show words harder than the user's current level.
+- 标注仅在整页翻译场景运行。
+- 标注仅在当前被翻译节点组的原文语言被判定为英文时运行。
+- 标注绝不修改译文 wrapper 的 DOM。
+- 标注只作用在双语模式下仍保留在页面中的原文文本节点。
+- 难度比较采用 `wordLevelScore > userLevelScore`，而不是 `>=`，因为需求是“高于用户等级的词才显示释义”。
 
-## Technical Design
+## 技术设计
 
-### High-level architecture
+### 整体架构
 
-The current whole-page translator flow in `src/libs/translator.js` should remain responsible for:
+当前 [src/libs/translator.js](/Users/kaen/Projects/kiss-translator/src/libs/translator.js) 中的整页翻译流程继续负责：
 
-1. collecting text nodes into a translatable node group
-2. serializing and sending text to the translation service
-3. inserting the translated wrapper next to the original content
+1. 收集文本节点并组成待翻译节点组
+2. 序列化文本并发给翻译服务
+3. 在原文后面插入译文 wrapper
 
-CEFR annotation is added as a post-translation enhancement step that runs only after the translated wrapper has been created successfully. This keeps translation correctness and CEFR rendering decoupled. If CEFR fails, the user still gets the same bilingual translation result they get today.
+CEFR 标注作为“翻译成功后的增强步骤”插入到该流程之后，仅在译文 wrapper 成功创建后才运行。这样翻译正确性和 CEFR 呈现完全解耦：即使 CEFR 失败，用户也仍然拿到和今天一样的双语翻译结果。
 
-### Annotation pipeline
+### 标注流程
 
-For each successfully translated node group:
+对每个成功翻译的节点组，执行以下流程：
 
-1. Reuse the detected source language for that group.
-2. Exit immediately unless:
-   - CEFR is enabled
-   - assessment is complete
-   - the source language is English
-   - original content is still present in the DOM
-3. Walk the original text nodes in the translated group.
-4. Tokenize simple English words using the existing low-risk pattern for first release: `/\\b[a-zA-Z]+\\b/g`
-5. Lookup each normalized token in the CEFR dictionary.
-6. Annotate only words whose CEFR score is strictly greater than the user's level.
-7. Replace the matched text segment with wrapped DOM that keeps the visible English word unchanged and injects a separate gloss label span positioned above it.
+1. 复用该节点组已有的原文语言检测结果。
+2. 如果不满足以下任一条件，则立即退出：
+   - CEFR 功能已启用
+   - 用户已完成测级
+   - 当前节点组原文语言为英文
+   - 原文内容当前仍保留在 DOM 中
+3. 遍历该节点组中的原文文本节点。
+4. 第一版仅使用低风险规则对简单英文单词分词：`/\\b[a-zA-Z]+\\b/g`
+5. 将归一化后的单词到 CEFR 词典中查级别。
+6. 仅对 `单词等级 > 用户等级` 的词执行标注。
+7. 将命中的文本片段替换为包装后的 DOM：英文原词保持不变，额外挂一个位于其上方的中文释义层。
 
-### Annotation DOM shape
+### 标注 DOM 结构
 
-Each annotated word should render as:
+每个被标注的单词应渲染为：
 
 ```html
 <span class="kiss-cefr-word" data-kiss-cefr="1" data-word="ubiquitous">
@@ -102,131 +102,131 @@ Each annotated word should render as:
 </span>
 ```
 
-Key rendering requirements:
+关键样式要求：
 
-- `kiss-cefr-word` uses `position: relative` and `display: inline-block`
-- `kiss-cefr-gloss` uses `position: absolute`, anchored above the word
-- gloss labels use `pointer-events: none`
-- gloss labels use `white-space: nowrap`
-- gloss labels have a small offset and modest z-index so they read clearly without aggressively covering surrounding content
-- English text itself remains selectable and visually unchanged in the first release
+- `kiss-cefr-word` 使用 `position: relative` 和 `display: inline-block`
+- `kiss-cefr-gloss` 使用 `position: absolute`，定位在单词上方
+- 释义层使用 `pointer-events: none`
+- 释义层使用 `white-space: nowrap`
+- 释义层有小幅偏移和适度 `z-index`，保证可读但不过度遮挡周边内容
+- 第一版中英文原词本身保持可选中，视觉上不做额外强调
 
-The implementation must not use `<ruby>` and `<rt>` because those elements participate in layout and can stretch line height, which directly violates the requirement to avoid impacting document flow.
+实现中不得使用 `<ruby>` 和 `<rt>`，因为它们会参与布局并拉高行高，这与“不能影响原文文档流”的要求直接冲突。
 
-### Translator integration
+### 与 Translator 的集成
 
-The existing `maybeAnnotateTranslatedText(...)` hook in `src/libs/cefr.js` is aimed at translated English output and should no longer be the primary behavior for this feature. The CEFR module should instead expose helpers oriented around original DOM annotation, such as:
+[src/libs/cefr.js](/Users/kaen/Projects/kiss-translator/src/libs/cefr.js) 中现有的 `maybeAnnotateTranslatedText(...)` 是围绕“英文译文输出”设计的，不再适合作为本功能的主实现。CEFR 模块应改为面向原文 DOM 标注的辅助能力，例如：
 
-- loading and caching the CEFR dictionary
-- mapping CEFR levels to numeric scores
-- deciding whether a token is harder than the user level
-- annotating a text node or fragment into DOM wrappers
-- removing or restoring CEFR wrappers cleanly
+- 加载并缓存 CEFR 词典
+- 将 CEFR 等级映射为数值分数
+- 判断某个单词是否高于用户等级
+- 将文本节点或片段改写成带释义层的 DOM 包装
+- 可靠地移除或还原 CEFR 包装节点
 
-`src/libs/translator.js` should call a new DOM-oriented CEFR helper after translation success and should register enough bookkeeping to clean those wrappers whenever translated content is removed or rebuilt.
+[src/libs/translator.js](/Users/kaen/Projects/kiss-translator/src/libs/translator.js) 在翻译成功后调用新的 DOM 标注辅助函数，并登记足够的清理信息，以便在译文被重建或移除时同步清理 CEFR 标注。
 
-### Cleanup and lifecycle
+### 清理与生命周期
 
-CEFR annotation must behave like a first-class part of the translation lifecycle:
+CEFR 标注必须作为翻译生命周期的一部分来管理：
 
-- When translation is disabled, CEFR wrappers must be removed together with translated wrappers.
-- When a translated node group is refreshed or retranslated, existing CEFR wrappers for that group must be unwrapped before reapplying annotation.
-- Cleanup should restore plain text nodes and normalize the parent container so the DOM does not accumulate fragmented text nodes.
-- Annotation must be idempotent; rerunning on an already annotated group must not double-wrap the same word.
+- 当整页翻译关闭时，CEFR 包装节点要和译文 wrapper 一起被移除。
+- 当某个节点组被重新翻译或刷新时，必须先还原已有 CEFR 标注，再重新应用新一轮标注。
+- 清理时要恢复纯文本节点，并对父节点执行 `normalize()`，避免 DOM 中残留碎片化的 text node。
+- 标注逻辑必须是幂等的；对同一节点组重复运行不能出现重复包裹同一个词的情况。
 
-The safest implementation is to store CEFR wrapper bookkeeping alongside translator bookkeeping so removal happens from the same cleanup paths already used by whole-page translation.
+最稳妥的做法是把 CEFR 包装节点的清理信息和 translator 当前已有的译文清理机制挂在同一套生命周期里，而不是单独维护一条松散的清理逻辑。
 
-## UI Design
+## UI 设计
 
-### Options page
+### 设置页
 
-`src/views/Options/CEFRSetting.js` should be evolved from the current prototype into a complete CEFR workflow page with three states:
+[src/views/Options/CEFRSetting.js](/Users/kaen/Projects/kiss-translator/src/views/Options/CEFRSetting.js) 需要从当前原型演进成完整的 CEFR 工作流页面，并覆盖 3 个状态：
 
-1. onboarding state
-   - shown after install or whenever assessment has never been completed
-   - explains the feature and presents a primary action to start the quiz
-2. configured state
-   - shows the current CEFR level
-   - lets the user retake the quiz
-   - lets the user manually override the level
-   - lets the user enable or disable original-word annotation
-3. skipped-but-unset state
-   - shown if the user dismissed onboarding without finishing
-   - keeps a strong reminder card and start action visible
+1. onboarding 状态
+   - 首次安装后或从未完成测级时显示
+   - 说明功能目标，并提供主要按钮开始测试
+2. 已配置状态
+   - 展示当前 CEFR 等级
+   - 允许重新测试
+   - 允许手动覆盖等级
+   - 允许开启或关闭原文生词标注功能
+3. 跳过但未设置状态
+   - 用户关闭过引导但没有完成测试
+   - 页面继续保留醒目的提醒卡片和开始测试入口
 
 ### Popup
 
-`src/views/Popup/PopupCont.js` should include a compact CEFR card near the top of the popup:
+[src/views/Popup/PopupCont.js](/Users/kaen/Projects/kiss-translator/src/views/Popup/PopupCont.js) 顶部加入一个紧凑型 CEFR 卡片：
 
-- if no assessment is completed, show a CTA that opens the CEFR settings page
-- if assessment exists, show the current level and quick access to retake or adjust in settings
+- 如果尚未完成测试，显示跳转到 CEFR 设置页的 CTA
+- 如果已完成测试，显示当前等级，并提供去设置页重新测试或调整的入口
 
-This preserves discoverability after the one-time install prompt has been dismissed.
+这样即使用户错过了一次性的首装自动引导，后续也仍然能在 popup 中发现并进入该功能。
 
-## Error Handling and Fallbacks
+## 错误处理与降级
 
-- If the CEFR dictionary asset fails to load, annotation is skipped silently and translation continues normally.
-- If the user's CEFR level is unset or invalid, annotation is skipped.
-- If source language detection is not English, annotation is skipped.
-- If a node cannot be safely tokenized or rewritten, annotation is skipped for that node only.
-- If onboarding auto-open fails on install, the extension still installs normally and the popup/settings entry points remain available.
+- 如果 CEFR 词典资源加载失败，则静默跳过标注，翻译功能照常工作。
+- 如果用户等级未设置或值非法，则跳过标注。
+- 如果原文语言检测结果不是英文，则跳过标注。
+- 如果某个节点无法被安全分词或改写，则仅跳过该节点，不影响其他节点。
+- 如果首次安装自动打开 CEFR 页面失败，插件仍然正常安装，用户仍可以通过 popup 或设置页入口进入 CEFR 页面。
 
-The rule is simple: CEFR failure must never block, alter, or regress the existing translation result.
+核心原则很简单：CEFR 失败绝不能阻塞、污染或回归现有翻译结果。
 
-## Performance Considerations
+## 性能考虑
 
-- Reuse the existing per-node-group translation flow instead of scanning the entire page independently.
-- Reuse the current lazy-loaded dictionary cache from the CEFR module.
-- Restrict first-release tokenization to simple ASCII English words to reduce parsing complexity and DOM churn.
-- Skip annotation entirely for node groups that are too short, non-English, or otherwise filtered out by the existing translator safeguards.
+- 复用当前“按节点组翻译”的流程，不新增一轮独立的整页扫描。
+- 复用 CEFR 模块现有的词典懒加载与内存缓存能力。
+- 第一版只处理简单 ASCII 英文单词，降低解析复杂度与 DOM 改写成本。
+- 对于过短、非英文、或已经被 translator 现有保护条件过滤掉的节点组，直接跳过 CEFR 标注。
 
-This keeps CEFR work proportional to already translated content and avoids adding a second page-wide observer or scanning pass.
+这样可以让 CEFR 处理量和已翻译内容成正比，避免新增第二套整页观察器或扫描通道。
 
-## Testing Strategy
+## 测试策略
 
-### Unit tests
+### 单元测试
 
-Add or revise tests in `src/libs/cefr.test.js` to cover:
+补充或改造 [src/libs/cefr.test.js](/Users/kaen/Projects/kiss-translator/src/libs/cefr.test.js)，覆盖以下行为：
 
-- non-English source language skips annotation
-- words at or below the user level are not annotated
-- words above the user level are annotated
-- generated DOM uses absolute-position gloss wrappers instead of ruby tags
-- cleanup restores original text correctly
+- 非英文原文时跳过标注
+- 小于或等于用户等级的词不标注
+- 高于用户等级的词会被标注
+- 生成的 DOM 使用绝对定位释义层，而不是 ruby 标签
+- 清理逻辑能够正确恢复原始文本
 
-### Translator integration tests
+### Translator 集成测试
 
-Add integration-focused coverage for `src/libs/translator.js` to verify:
+增加围绕 [src/libs/translator.js](/Users/kaen/Projects/kiss-translator/src/libs/translator.js) 的集成覆盖，确认：
 
-- translated wrappers still render normally
-- original English words receive CEFR gloss wrappers when eligible
-- disabling translation removes both translated wrappers and CEFR annotations
-- rerunning translation does not double-wrap words
+- 译文 wrapper 仍然正常生成
+- 满足条件时，英文原文单词会收到 CEFR 释义包装
+- 关闭翻译后，译文 wrapper 和 CEFR 标注都会一起被移除
+- 重跑翻译时，不会重复包裹同一个单词
 
-### UI tests
+### UI 测试
 
-Add coverage for:
+补充以下 UI 行为测试：
 
-- install-time onboarding flag behavior
-- CEFR options page onboarding and configured states
-- popup reminder card visibility for unset vs configured users
-- retake and manual override flows storing the expected CEFR setting values
+- 首装 onboarding 标记与自动引导行为
+- CEFR 设置页在 onboarding 状态和已配置状态之间的切换
+- popup 中提醒卡片在“未设置”和“已设置”两种情况下的显示
+- 重新测试与手动覆盖等级后，设置值被正确写入存储
 
-## Risks and Accepted Trade-offs
+## 风险与接受的权衡
 
-- Some sites may clip gloss labels because of ancestor `overflow: hidden`. This is accepted for the first release to keep the implementation simple and low-risk.
-- Single-word Chinese glosses will sometimes be semantically imperfect because they are dictionary hints, not contextual translations.
-- Restricting first release tokenization to simple English words means contractions, hyphenated words, and named entities may be skipped. This is acceptable for an initial rollout focused on stability.
+- 某些站点的祖先容器可能设置了 `overflow: hidden`，导致上方释义被裁切。第一版接受这一残余风险，以换取实现简单和低风险。
+- 单词级中文释义有时可能不够贴合上下文，因为它本质上是词汇提示，不是上下文精确翻译。
+- 第一版只处理简单英文单词，意味着缩写、含撇号单词、连字符词和专有名词可能被跳过。这是为了先保证稳定性和正确性。
 
-## Implementation Impact
+## 主要影响范围
 
-The expected main touch points are:
+预计主要改动点如下：
 
-- `src/background.js` for install-time onboarding
-- `src/config/setting.js` for CEFR state expansion
-- `src/views/Options/CEFRSetting.js` for onboarding, retake, and manual override UI
-- `src/views/Popup/PopupCont.js` for the persistent reminder card
-- `src/libs/cefr.js` for DOM-oriented annotation helpers and cleanup helpers
-- `src/libs/translator.js` for post-translation annotation and lifecycle cleanup integration
+- [src/background.js](/Users/kaen/Projects/kiss-translator/src/background.js)：处理首次安装时的 CEFR 引导
+- [src/config/setting.js](/Users/kaen/Projects/kiss-translator/src/config/setting.js)：扩展 CEFR 状态模型
+- [src/views/Options/CEFRSetting.js](/Users/kaen/Projects/kiss-translator/src/views/Options/CEFRSetting.js)：实现 onboarding、重测和手动改级 UI
+- [src/views/Popup/PopupCont.js](/Users/kaen/Projects/kiss-translator/src/views/Popup/PopupCont.js)：增加持久提醒入口
+- [src/libs/cefr.js](/Users/kaen/Projects/kiss-translator/src/libs/cefr.js)：提供面向原文 DOM 的标注与清理辅助函数
+- [src/libs/translator.js](/Users/kaen/Projects/kiss-translator/src/libs/translator.js)：在翻译成功后接入 CEFR 原文标注，并纳入现有清理生命周期
 
-This design deliberately builds on the existing partial CEFR prototype in the repository while redirecting it from translated-output annotation to original-English DOM enhancement.
+这个设计方案的核心是：复用仓库中已经存在的 CEFR 原型基础，但把方向从“标注英文译文”调整为“增强英文原文 DOM”，并严格满足“不影响现有双语翻译”和“不影响原文文档流”这两个关键约束。
