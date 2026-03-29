@@ -131,6 +131,11 @@ describe("cefr helpers", () => {
       expect(node.querySelector("ruby")).toBeNull();
       expect(node.querySelector("rt")).toBeNull();
     });
+
+    const styleTag = document.head.querySelector('style[data-kiss-cefr-style="1"]');
+    expect(styleTag).toBeTruthy();
+    expect(styleTag.textContent).toContain("position: absolute;");
+    expect(styleTag.textContent).toContain(".kiss-cefr-gloss");
   });
 
   test("skips annotation when original text is hidden", async () => {
@@ -180,5 +185,46 @@ describe("cefr helpers", () => {
     expect(host.querySelector(".kiss-cefr-word")).toBeNull();
     expect(host.querySelector(".kiss-cefr-gloss")).toBeNull();
     expect(host.innerHTML).toBe("Mitigate ambiguous outcomes.");
+  });
+
+  test("cleanup does not touch sibling translation wrappers", async () => {
+    const { annotateNodeGroupWithCEFR, removeCEFRAnnotations } = await import(
+      "./cefr"
+    );
+    const host = document.createElement("div");
+    const textNode = document.createTextNode("Mitigate ambiguity carefully.");
+    host.appendChild(textNode);
+
+    const translationWrapper = document.createElement("kiss-translator");
+    translationWrapper.className = "kiss-wrapper notranslate";
+    translationWrapper.innerHTML =
+      '<span class="kiss-inner">Translated sibling stays put.</span>';
+    host.appendChild(translationWrapper);
+
+    await annotateNodeGroupWithCEFR({
+      nodes: [textNode],
+      sourceLang: "en",
+      hideOrigin: false,
+      cefrSetting: {
+        enabled: true,
+        assessmentCompleted: true,
+        level: 2,
+      },
+    });
+
+    expect(host.querySelectorAll(".kiss-cefr-word")).toHaveLength(1);
+    expect(host.querySelector(".kiss-wrapper .kiss-inner").textContent).toBe(
+      "Translated sibling stays put."
+    );
+
+    const removed = removeCEFRAnnotations(host);
+
+    expect(removed).toBe(1);
+    expect(host.querySelector(".kiss-cefr-word")).toBeNull();
+    expect(host.querySelector(".kiss-wrapper")).toBe(translationWrapper);
+    expect(host.querySelector(".kiss-wrapper .kiss-inner").textContent).toBe(
+      "Translated sibling stays put."
+    );
+    expect(host.textContent).toContain("Mitigate ambiguity carefully.");
   });
 });

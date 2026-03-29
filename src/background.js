@@ -39,6 +39,7 @@ import { getCurTabId } from "./libs/msg";
 import { injectInlineJsBg, injectInternalCss } from "./libs/injector";
 import { kissLog, logger } from "./libs/log";
 import { chromeDetect, chromeTranslate } from "./libs/builtinAI";
+import { openOptionsHash, shouldOpenCEFROnInstall } from "./libs/optionsPage";
 
 globalThis.__KISS_CONTEXT__ = "background";
 
@@ -353,7 +354,7 @@ async function registerMsgDisplayScript() {
 /**
  * 插件安装
  */
-browser.runtime.onInstalled.addListener(async () => {
+browser.runtime.onInstalled.addListener(async (details) => {
   await tryInitDefaultData();
 
   //在thunderbird中注册脚本
@@ -361,8 +362,8 @@ browser.runtime.onInstalled.addListener(async () => {
     registerMsgDisplayScript();
   }
 
-  const { contextMenuType, csplist, orilist, subrulesList } =
-    await getSettingWithDefault();
+  const setting = await getSettingWithDefault();
+  const { contextMenuType, csplist, orilist, subrulesList } = setting;
 
   // 右键菜单
   addContextMenus(contextMenuType);
@@ -372,6 +373,10 @@ browser.runtime.onInstalled.addListener(async () => {
 
   // 同步订阅规则
   trySyncAllSubRules({ subrulesList });
+
+  if (shouldOpenCEFROnInstall(details, setting)) {
+    await openOptionsHash();
+  }
 });
 
 /**

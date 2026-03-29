@@ -38,6 +38,7 @@ import { injectInternalCss } from "./injector";
 import { isExt } from "./client";
 import { sendBgMsg } from "./msg";
 import { getDocInfo } from "./docInfo";
+import { annotateNodeGroupWithCEFR, removeCEFRAnnotations } from "./cefr";
 
 /**
  * @class Translator
@@ -1324,9 +1325,16 @@ export class Translator {
       this.#translationNodes.set(wrapper, {
         nodes,
         isHide: hideOrigin,
+        sourceLang: deLang || this.#rule.fromLang,
       });
       if (hideOrigin) {
         this.#removeNodes(nodes);
+      } else {
+        void this.#annotateOriginalNodeGroupWithCEFR(
+          nodes,
+          deLang || this.#rule.fromLang,
+          hideOrigin
+        );
       }
 
       // 附加样式
@@ -1598,8 +1606,27 @@ export class Translator {
     this.#rootNodes.forEach((root) => this.#cleanupAllTranslations(root));
   }
 
+  #cleanupCEFRAnnotations(rootNode) {
+    if (!rootNode) return 0;
+    return removeCEFRAnnotations(rootNode);
+  }
+
+  async #annotateOriginalNodeGroupWithCEFR(nodes, sourceLang, hideOrigin) {
+    try {
+      await annotateNodeGroupWithCEFR({
+        nodes,
+        sourceLang,
+        hideOrigin,
+        cefrSetting: this.#setting.cefrSetting,
+      });
+    } catch (err) {
+      kissLog("cefr annotate error:", err?.message || err);
+    }
+  }
+
   // 清理节点下面所有译文dom
   #cleanupAllTranslations(root) {
+    this.#cleanupCEFRAnnotations(root);
     root
       .querySelectorAll(`.${Translator.KISS_CLASS.warpper}`)
       .forEach((el) => this.#removeTranslationElement(el));
@@ -1607,6 +1634,7 @@ export class Translator {
 
   // 清理子节点译文dom
   #cleanupDirectTranslations(node) {
+    this.#cleanupCEFRAnnotations(node);
     this.#findTranslationWrappers(node).forEach((el) => {
       this.#removeTranslationElement(el);
     });
@@ -1616,6 +1644,7 @@ export class Translator {
   #removeTranslationElement(el) {
     const parentElement = el.parentElement;
     this.#processedNodes.delete(parentElement);
+    this.#cleanupCEFRAnnotations(parentElement);
 
     // 如果是仅显示译文模式，先恢复原文
     const { nodes, isHide } = this.#translationNodes.get(el) || {};
@@ -1655,17 +1684,23 @@ export class Translator {
   #toggleTranslationOnly(node, transOnly) {
     this.#findTranslationWrappers(node).forEach((el) => {
       const br = el.querySelector(":scope > br");
-      const { nodes } = this.#translationNodes.get(el) || {};
+      const { nodes, sourceLang } = this.#translationNodes.get(el) || {};
       if (transOnly === "true") {
         // 双语变为仅译文
+        this.#cleanupCEFRAnnotations(node);
         if (br) br.hidden = true;
         this.#removeNodes(nodes);
-        this.#translationNodes.set(el, { nodes, isHide: true });
+        this.#translationNodes.set(el, { nodes, isHide: true, sourceLang });
       } else {
         // 仅译文变为双语
         if (br) br.hidden = false;
         this.#restoreOriginal(el, nodes);
-        this.#translationNodes.set(el, { nodes, isHide: false });
+        this.#translationNodes.set(el, { nodes, isHide: false, sourceLang });
+        void this.#annotateOriginalNodeGroupWithCEFR(
+          nodes,
+          sourceLang,
+          false
+        );
       }
     });
   }

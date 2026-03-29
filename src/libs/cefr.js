@@ -1,5 +1,3 @@
-/* global chrome */
-
 let cefrDict = null;
 let dictPromise = null;
 
@@ -17,9 +15,29 @@ export const CEFR_WORD_CLASS = "kiss-cefr-word";
 export const CEFR_GLOSS_CLASS = "kiss-cefr-gloss";
 export const CEFR_ATTR = "data-kiss-cefr";
 export const CEFR_WORD_ATTR = "data-word";
+export const CEFR_STYLE_ATTR = "data-kiss-cefr-style";
 
 const WORD_REGEX = /\b([a-zA-Z]+)\b/g;
 const CEFR_SELECTOR = `span.${CEFR_WORD_CLASS}[${CEFR_ATTR}="1"]`;
+const CEFR_STYLE_SELECTOR = `style[${CEFR_STYLE_ATTR}="1"]`;
+const CEFR_STYLE_TEXT = `
+.${CEFR_WORD_CLASS} {
+  position: relative;
+}
+
+.${CEFR_WORD_CLASS} > .${CEFR_GLOSS_CLASS} {
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  transform: translate(-50%, -0.2em);
+  white-space: nowrap;
+  pointer-events: none;
+  font-size: 0.72em;
+  line-height: 1;
+  color: currentColor;
+  opacity: 0.72;
+}
+`;
 
 function getAssetURL() {
   if (globalThis.chrome?.runtime?.getURL) {
@@ -34,6 +52,24 @@ function normalizeWord(word = "") {
 
 function getNodeOwnerDocument(node) {
   return node?.ownerDocument || document;
+}
+
+export function ensureCEFRStylesInjected(rootNode) {
+  const doc = getNodeOwnerDocument(rootNode);
+  const styleRoot = doc.head || doc.documentElement;
+
+  if (!styleRoot) return null;
+
+  const existingStyle = styleRoot.querySelector(CEFR_STYLE_SELECTOR);
+  if (existingStyle) {
+    return existingStyle;
+  }
+
+  const styleNode = doc.createElement("style");
+  styleNode.setAttribute(CEFR_STYLE_ATTR, "1");
+  styleNode.textContent = CEFR_STYLE_TEXT.trim();
+  styleRoot.appendChild(styleNode);
+  return styleNode;
 }
 
 function createCEFRFragment(text, dict, userLevel, doc) {
@@ -162,6 +198,8 @@ export async function annotateNodeGroupWithCEFR({
   if (!dict.size) {
     return false;
   }
+
+  ensureCEFRStylesInjected(nodes[0]);
 
   let changed = false;
 
