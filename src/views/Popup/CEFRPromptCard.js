@@ -11,6 +11,8 @@ export default function CEFRPromptCard({ cefrSetting, onOpenCEFR }) {
   const i18n = useI18n();
   const normalizedCEFR = normalizeCEFRSetting(cefrSetting);
   const currentLevelLabel = getCEFRLabel(normalizedCEFR.level, i18n);
+  const isConfiguredAndPaused =
+    normalizedCEFR.assessmentCompleted && !normalizedCEFR.enabled;
 
   const handleOpen = () => {
     if (typeof onOpenCEFR === "function") {
@@ -24,11 +26,26 @@ export default function CEFRPromptCard({ cefrSetting, onOpenCEFR }) {
         {normalizedCEFR.assessmentCompleted ? (
           <>
             <Typography variant="subtitle1" fontWeight={600}>
-              {i18n("cefr_prompt_configured_title", "CEFR level ready")}
+              {isConfiguredAndPaused
+                ? i18n(
+                    "cefr_prompt_disabled_title",
+                    "CEFR level saved, currently paused"
+                  )
+                : i18n("cefr_prompt_configured_title", "CEFR level ready")}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              {`${i18n("cefr_current_level", "Current level")}: ${currentLevelLabel}`}
+              {isConfiguredAndPaused
+                ? i18n(
+                    "cefr_prompt_disabled_desc",
+                    "Your level is saved, but CEFR personalization is paused."
+                  )
+                : `${i18n("cefr_current_level", "Current level")}: ${currentLevelLabel}`}
             </Typography>
+            {!isConfiguredAndPaused && (
+              <Typography variant="body2" color="text.secondary">
+                {`${i18n("cefr_current_level", "Current level")}: ${currentLevelLabel}`}
+              </Typography>
+            )}
           </>
         ) : (
           <>
@@ -47,7 +64,9 @@ export default function CEFRPromptCard({ cefrSetting, onOpenCEFR }) {
       <CardActions>
         <Button variant="text" onClick={handleOpen}>
           {normalizedCEFR.assessmentCompleted
-            ? i18n("cefr_prompt_configured_cta", "Retake or adjust")
+            ? isConfiguredAndPaused
+              ? i18n("cefr_prompt_disabled_cta", "Review settings")
+              : i18n("cefr_prompt_configured_cta", "Retake or adjust")
             : i18n("cefr_prompt_incomplete_cta", "Take quick quiz")}
         </Button>
       </CardActions>

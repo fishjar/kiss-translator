@@ -14,6 +14,7 @@ import {
 import PopupCont from "../Popup/PopupCont";
 import { isExt } from "../../libs/client";
 import { sendBgMsg } from "../../libs/msg";
+import { openOptionsHash } from "../../libs/optionsPage";
 
 export default function Action({ translator, processActions }) {
   const [showPopup, setShowPopup] = useState(true);
@@ -27,6 +28,10 @@ export default function Action({ translator, processActions }) {
     } else {
       window.open(process.env.REACT_APP_OPTIONSPAGE, "_blank");
     }
+  }, []);
+
+  const handleOpenCEFR = useCallback(() => {
+    openOptionsHash();
   }, []);
 
   useEffect(() => {
@@ -99,6 +104,7 @@ export default function Action({ translator, processActions }) {
                 setRule={setRule}
                 setSetting={setSetting}
                 handleOpenSetting={handleOpenSetting}
+                handleOpenCEFR={handleOpenCEFR}
                 processActions={processActions}
                 isContent={true}
               />

@@ -62,7 +62,6 @@ export default function CEFRSetting() {
     updateSetting({
       cefrSetting: {
         ...cefrSetting,
-        enabled: level > 0,
         level,
         assessmentCompleted: true,
         levelSource,
@@ -88,6 +87,15 @@ export default function CEFRSetting() {
 
     setAnswers(nextAnswers);
   };
+
+  const isConfiguredAndPaused =
+    cefrSetting.assessmentCompleted && !cefrSetting.enabled;
+  const configuredTitle = isConfiguredAndPaused
+    ? i18n("cefr_configured_disabled_title", "CEFR is configured but paused")
+    : i18n("cefr_configured_title", "CEFR is configured");
+  const statusLabel = isConfiguredAndPaused
+    ? i18n("cefr_status_paused", "Paused")
+    : i18n("cefr_status_active", "Active");
 
   return (
     <Box>
@@ -135,14 +143,30 @@ export default function CEFRSetting() {
                 gap={1}
               >
                 <Typography variant="h6">
-                  {i18n("cefr_configured_title", "CEFR is configured")}
+                  {configuredTitle}
                 </Typography>
-                <Chip
-                  label={`${i18n("cefr_current_level", "Current level")}: ${currentLevelLabel}`}
-                  color="primary"
-                  variant="outlined"
-                />
+                <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                  <Chip
+                    label={statusLabel}
+                    color={isConfiguredAndPaused ? "default" : "success"}
+                    variant="outlined"
+                  />
+                  <Chip
+                    label={`${i18n("cefr_current_level", "Current level")}: ${currentLevelLabel}`}
+                    color="primary"
+                    variant="outlined"
+                  />
+                </Stack>
               </Stack>
+
+              {isConfiguredAndPaused && (
+                <Typography color="text.secondary">
+                  {i18n(
+                    "cefr_configured_disabled_desc",
+                    "Your level is saved, but CEFR personalization is currently paused."
+                  )}
+                </Typography>
+              )}
 
               <Typography>
                 {`${i18n("cefr_current_level", "Current level")}: ${currentLevelLabel}`}

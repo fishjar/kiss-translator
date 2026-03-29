@@ -28,12 +28,13 @@ export async function openOptionsHash(hash = CEFR_OPTIONS_HASH) {
     return browser.tabs.create({ url });
   }
 
-  if (browser?.runtime?.openOptionsPage) {
-    return browser.runtime.openOptionsPage();
-  }
-
   if (typeof window !== "undefined" && typeof window.open === "function") {
     window.open(url, "_blank");
+    return undefined;
+  }
+
+  if (browser?.runtime?.openOptionsPage) {
+    return browser.runtime.openOptionsPage();
   }
 
   return undefined;

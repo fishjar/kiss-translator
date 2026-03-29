@@ -19,11 +19,18 @@ import {
 } from "./optionsPage";
 
 describe("optionsPage helpers", () => {
+  const originalWindowOpen = window.open;
+
   beforeEach(() => {
     browser.runtime.getURL.mockReset();
     browser.runtime.openOptionsPage.mockReset();
     browser.runtime.getURL.mockReturnValue("moz-extension://abc/options.html");
     browser.tabs = { create: jest.fn() };
+    window.open = jest.fn();
+  });
+
+  afterAll(() => {
+    window.open = originalWindowOpen;
   });
 
   test("buildOptionsHashUrl appends CEFR hash", () => {
@@ -67,13 +74,16 @@ describe("optionsPage helpers", () => {
     expect(created).toEqual({ id: 1 });
   });
 
-  test("openOptionsHash falls back to runtime.openOptionsPage", async () => {
+  test("openOptionsHash falls back to opening the hash URL when tabs.create is unavailable", async () => {
     browser.tabs = undefined;
-    browser.runtime.openOptionsPage.mockResolvedValue();
 
     const opened = await openOptionsHash();
 
-    expect(browser.runtime.openOptionsPage).toHaveBeenCalledTimes(1);
+    expect(window.open).toHaveBeenCalledWith(
+      "moz-extension://abc/options.html#/cefr",
+      "_blank"
+    );
+    expect(browser.runtime.openOptionsPage).not.toHaveBeenCalled();
     expect(opened).toBeUndefined();
   });
 });

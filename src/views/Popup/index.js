@@ -143,6 +143,9 @@ export default function Popup() {
             <Button variant="text" onClick={handleOpenSetting}>
               {i18n("setting")}
             </Button>
+            <Button variant="text" onClick={handleOpenCEFR}>
+              {i18n("cefr_setting_nav", "CEFR")}
+            </Button>
           </Stack>
         )}
       </Box>

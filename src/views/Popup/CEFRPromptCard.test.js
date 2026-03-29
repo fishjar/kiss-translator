@@ -8,6 +8,10 @@ const mockI18nMap = {
   cefr_prompt_incomplete_cta: "Take quick quiz",
   cefr_prompt_configured_title: "CEFR level ready",
   cefr_prompt_configured_cta: "Retake or adjust",
+  cefr_prompt_disabled_title: "CEFR level saved, currently paused",
+  cefr_prompt_disabled_desc:
+    "Your level is saved, but CEFR personalization is paused.",
+  cefr_prompt_disabled_cta: "Review settings",
   cefr_current_level: "Current level",
   cefr_level_c1: "C1 localized",
   cefr_level_not_set: "Not set localized",
@@ -75,6 +79,26 @@ describe("CEFRPromptCard", () => {
     expect(container.textContent).toContain("CEFR level ready");
     expect(container.textContent).toContain("Current level: C1 localized");
     expect(container.textContent).toContain("Retake or adjust");
+
+    unmount();
+  });
+
+  test("shows a distinct paused state when CEFR is completed but disabled", () => {
+    const { container, unmount } = renderUI({
+      cefrSetting: {
+        enabled: false,
+        level: 5,
+        assessmentCompleted: true,
+      },
+      onOpenCEFR: jest.fn(),
+    });
+
+    expect(container.textContent).toContain("CEFR level saved, currently paused");
+    expect(container.textContent).toContain(
+      "Your level is saved, but CEFR personalization is paused."
+    );
+    expect(container.textContent).toContain("Review settings");
+    expect(container.textContent).not.toContain("Retake or adjust");
 
     unmount();
   });
