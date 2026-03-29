@@ -12,6 +12,7 @@ import {
   STOKEY_RULESCACHE_PREFIX,
   DEFAULT_SETTING,
   normalizeSetting,
+  normalizeCEFRSetting,
   DEFAULT_RULES,
   DEFAULT_SYNC,
   BUILTIN_RULES,
@@ -97,8 +98,22 @@ export const storage = {
  */
 export const getSetting = () => getObj(STOKEY_SETTING);
 export const getSettingOld = () => getObj(STOKEY_SETTING_OLD);
-export const getSettingWithDefault = async () =>
-  normalizeSetting(await getSetting());
+export const getSettingWithDefault = async () => {
+  const setting = await getSetting();
+  const normalizedSetting = normalizeSetting(setting);
+
+  if (setting && typeof setting === "object") {
+    const normalizedCEFRSetting = normalizeCEFRSetting(setting.cefrSetting);
+    const originalCEFR = JSON.stringify(setting.cefrSetting);
+    const normalizedCEFR = JSON.stringify(normalizedCEFRSetting);
+
+    if (originalCEFR !== normalizedCEFR) {
+      await setSetting(normalizedSetting);
+    }
+  }
+
+  return normalizedSetting;
+};
 export const setSetting = (val) => setObj(STOKEY_SETTING, val);
 export const putSetting = (obj) => putObj(STOKEY_SETTING, obj);
 

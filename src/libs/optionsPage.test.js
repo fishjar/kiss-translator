@@ -15,7 +15,7 @@ import {
   CEFR_OPTIONS_HASH,
   buildOptionsHashUrl,
   shouldOpenCEFROnInstall,
-  openOptionsHashUrl,
+  openOptionsHash,
 } from "./optionsPage";
 
 describe("optionsPage helpers", () => {
@@ -55,10 +55,10 @@ describe("optionsPage helpers", () => {
     ).toBe(false);
   });
 
-  test("openOptionsHashUrl uses tabs.create when available", async () => {
+  test("openOptionsHash uses tabs.create when available", async () => {
     browser.tabs.create.mockResolvedValue({ id: 1 });
 
-    const created = await openOptionsHashUrl();
+    const created = await openOptionsHash();
 
     expect(browser.tabs.create).toHaveBeenCalledWith({
       url: "moz-extension://abc/options.html#/cefr",
@@ -67,11 +67,11 @@ describe("optionsPage helpers", () => {
     expect(created).toEqual({ id: 1 });
   });
 
-  test("openOptionsHashUrl falls back to runtime.openOptionsPage", async () => {
+  test("openOptionsHash falls back to runtime.openOptionsPage", async () => {
     browser.tabs = undefined;
     browser.runtime.openOptionsPage.mockResolvedValue();
 
-    const opened = await openOptionsHashUrl();
+    const opened = await openOptionsHash();
 
     expect(browser.runtime.openOptionsPage).toHaveBeenCalledTimes(1);
     expect(opened).toBeUndefined();

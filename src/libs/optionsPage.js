@@ -21,7 +21,7 @@ export function shouldOpenCEFROnInstall(details, setting) {
   return !cefrSetting.assessmentCompleted;
 }
 
-export async function openOptionsHashUrl(hash = CEFR_OPTIONS_HASH) {
+export async function openOptionsHash(hash = CEFR_OPTIONS_HASH) {
   const url = buildOptionsHashUrl(hash);
 
   if (browser?.tabs?.create) {
@@ -38,3 +38,5 @@ export async function openOptionsHashUrl(hash = CEFR_OPTIONS_HASH) {
 
   return undefined;
 }
+
+export const openOptionsHashUrl = openOptionsHash;
