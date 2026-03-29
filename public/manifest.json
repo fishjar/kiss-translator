@@ -33,7 +33,8 @@
     },
     {
       "resources": [
-        "injector-shadowroot.js"
+        "injector-shadowroot.js",
+        "assets/cefr_dict.json"
       ],
       "matches": [
         "<all_urls>"

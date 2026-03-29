@@ -1,0 +1,19 @@
+{
+  "hello": { "level": "A1", "zh": "你好" },
+  "world": { "level": "A1", "zh": "世界" },
+  "apple": { "level": "A1", "zh": "苹果" },
+  "book": { "level": "A1", "zh": "书" },
+  "cat": { "level": "A1", "zh": "猫" },
+  "beautiful": { "level": "A2", "zh": "美丽的" },
+  "expensive": { "level": "A2", "zh": "昂贵的" },
+  "understand": { "level": "A2", "zh": "明白" },
+  "ubiquitous": { "level": "C2", "zh": "无所不在的" },
+  "ephemeral": { "level": "C2", "zh": "短暂的" },
+  "idiosyncrasy": { "level": "C2", "zh": "特性，癖好" },
+  "mitigate": { "level": "C1", "zh": "减轻，缓和" },
+  "ambiguous": { "level": "B2", "zh": "模棱两可的" },
+  "innovate": { "level": "B2", "zh": "创新" },
+  "fascinating": { "level": "B2", "zh": "迷人的" },
+  "advantage": { "level": "B1", "zh": "优点" },
+  "community": { "level": "B1", "zh": "社区" }
+}
