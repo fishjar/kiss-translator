@@ -11,6 +11,8 @@ import {
   DEFAULT_SETTING,
   KV_SETTING_KEY,
   MSG_SET_LOGLEVEL,
+  normalizeCEFRSetting,
+  normalizeSetting,
 } from "../config";
 import { useStorage } from "./Storage";
 import { debounceSyncMeta } from "../libs/storage";
@@ -25,6 +27,21 @@ const SettingContext = createContext({
   reloadSetting: () => {},
 });
 
+const CEFR_SETTING_FIELDS = [
+  "enabled",
+  "level",
+  "assessmentCompleted",
+  "levelSource",
+  "lastPromptFrom",
+];
+
+const hasOwn = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
+
+const needsCEFRBackfill = (cefrSetting) => {
+  if (typeof cefrSetting !== "object" || cefrSetting === null) return true;
+  return CEFR_SETTING_FIELDS.some((field) => !hasOwn(cefrSetting, field));
+};
+
 export function SettingProvider({ children, context }) {
   const isOptionsPage = useMemo(() => context === "options", [context]);
 
@@ -34,30 +51,44 @@ export function SettingProvider({ children, context }) {
     update,
     reload,
   } = useStorage(STOKEY_SETTING, DEFAULT_SETTING, KV_SETTING_KEY);
+  const normalizedSetting = useMemo(() => {
+    if (setting === null || setting === undefined) return setting;
+    return normalizeSetting(setting);
+  }, [setting]);
 
   useEffect(() => {
-    if (typeof setting?.darkMode === "boolean") {
+    if (isLoading || !setting || !needsCEFRBackfill(setting?.cefrSetting)) {
+      return;
+    }
+
+    update({
+      cefrSetting: normalizeCEFRSetting(setting?.cefrSetting),
+    });
+  }, [isLoading, setting, update]);
+
+  useEffect(() => {
+    if (typeof normalizedSetting?.darkMode === "boolean") {
       update((currentSetting) => ({
         ...currentSetting,
         darkMode: currentSetting.darkMode ? "dark" : "light",
       }));
     }
-  }, [setting?.darkMode, update]);
+  }, [normalizedSetting?.darkMode, update]);
 
   useEffect(() => {
     if (!isOptionsPage) return;
 
     (async () => {
       try {
-        logger.setLevel(setting?.logLevel);
+        logger.setLevel(normalizedSetting?.logLevel);
         if (isExt) {
-          await sendBgMsg(MSG_SET_LOGLEVEL, setting?.logLevel);
+          await sendBgMsg(MSG_SET_LOGLEVEL, normalizedSetting?.logLevel);
         }
       } catch (error) {
         logger.error("Failed to fetch log level, using default.", error);
       }
     })();
-  }, [isOptionsPage, setting?.logLevel]);
+  }, [isOptionsPage, normalizedSetting?.logLevel]);
 
   const updateSetting = useCallback(
     (objOrFn) => {
@@ -80,19 +111,19 @@ export function SettingProvider({ children, context }) {
   const value = useMemo(
     () => ({
       context,
-      setting,
+      setting: normalizedSetting,
       updateSetting,
       updateChild,
       reloadSetting: reload,
     }),
-    [context, setting, updateSetting, updateChild, reload]
+    [context, normalizedSetting, updateSetting, updateChild, reload]
   );
 
   if (isLoading) {
     return isOptionsPage ? <Loading /> : null;
   }
 
-  if (!setting) {
+  if (!normalizedSetting) {
     return isOptionsPage ? (
       <center>
         <Alert severity="error" sx={{ maxWidth: 600, margin: "60px auto" }}>

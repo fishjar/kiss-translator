@@ -156,6 +156,14 @@ export const DEFAULT_MOUSE_HOVER_SETTING = {
   mouseHoverKey: DEFAULT_MOUSEHOVER_KEY, // 鼠标悬停翻译组合键
 };
 
+export const DEFAULT_CEFR_SETTING = {
+  enabled: false,
+  level: 0,
+  assessmentCompleted: false,
+  levelSource: "unset",
+  lastPromptFrom: "",
+};
+
 export const DEFAULT_SETTING = {
   darkMode: "auto", // 深色模式
   uiLang: "en", // 界面语言
@@ -195,7 +203,25 @@ export const DEFAULT_SETTING = {
   preInit: true, // 是否预加载脚本
   transAllnow: false, // 是否立即全部翻译
   subtitleSetting: DEFAULT_SUBTITLE_SETTING, // 字幕设置
+  cefrSetting: { ...DEFAULT_CEFR_SETTING }, // CEFR 设置
   logLevel: LogLevel.INFO.value, // 日志级别
   rootMargin: 500, // 提前触发翻译
   customStyles: DEFAULT_CUSTOM_STYLES, // 自定义样式列表
+};
+
+const isObject = (value) =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+export const normalizeCEFRSetting = (cefrSetting) => {
+  const setting = isObject(cefrSetting) ? cefrSetting : {};
+  return { ...DEFAULT_CEFR_SETTING, ...setting };
+};
+
+export const normalizeSetting = (setting) => {
+  const baseSetting = isObject(setting) ? setting : {};
+  return {
+    ...DEFAULT_SETTING,
+    ...baseSetting,
+    cefrSetting: normalizeCEFRSetting(baseSetting.cefrSetting),
+  };
 };

@@ -11,6 +11,7 @@ import {
   STOKEY_BDAUTH,
   STOKEY_RULESCACHE_PREFIX,
   DEFAULT_SETTING,
+  normalizeSetting,
   DEFAULT_RULES,
   DEFAULT_SYNC,
   BUILTIN_RULES,
@@ -96,10 +97,8 @@ export const storage = {
  */
 export const getSetting = () => getObj(STOKEY_SETTING);
 export const getSettingOld = () => getObj(STOKEY_SETTING_OLD);
-export const getSettingWithDefault = async () => ({
-  ...DEFAULT_SETTING,
-  ...((await getSetting()) || {}),
-});
+export const getSettingWithDefault = async () =>
+  normalizeSetting(await getSetting());
 export const setSetting = (val) => setObj(STOKEY_SETTING, val);
 export const putSetting = (obj) => putObj(STOKEY_SETTING, obj);
 
