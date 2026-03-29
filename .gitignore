@@ -28,3 +28,4 @@ package-lock.json
 *.crx
 *.pem
 *.zip
+.worktrees/
