@@ -13,6 +13,10 @@ const mockI18nMap = {
   cefr_manual_adjust_label: "Adjust manually",
   cefr_quiz_progress: "Question",
   cefr_apply_level: "Apply level",
+  cefr_quiz_q1_prompt: "Localized quiz prompt 1",
+  cefr_quiz_q1_choice_1: "Localized quiz choice 1",
+  cefr_level_b2: "B2",
+  cefr_level_c1: "C1",
 };
 
 const mockUseSetting = jest.fn();
@@ -76,6 +80,8 @@ describe("CEFRSetting", () => {
     });
 
     expect(container.textContent).toContain("Question");
+    expect(container.textContent).toContain("Localized quiz prompt 1");
+    expect(container.textContent).toContain("Localized quiz choice 1");
     unmount();
   });
 

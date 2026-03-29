@@ -9,6 +9,8 @@ const mockI18nMap = {
   cefr_prompt_configured_title: "CEFR level ready",
   cefr_prompt_configured_cta: "Retake or adjust",
   cefr_current_level: "Current level",
+  cefr_level_c1: "C1 localized",
+  cefr_level_not_set: "Not set localized",
 };
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -71,7 +73,7 @@ describe("CEFRPromptCard", () => {
     });
 
     expect(container.textContent).toContain("CEFR level ready");
-    expect(container.textContent).toContain("Current level: C1");
+    expect(container.textContent).toContain("Current level: C1 localized");
     expect(container.textContent).toContain("Retake or adjust");
 
     unmount();

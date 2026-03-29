@@ -10,7 +10,7 @@ import { getCEFRLabel } from "../Options/cefrQuiz";
 export default function CEFRPromptCard({ cefrSetting, onOpenCEFR }) {
   const i18n = useI18n();
   const normalizedCEFR = normalizeCEFRSetting(cefrSetting);
-  const currentLevelLabel = getCEFRLabel(normalizedCEFR.level);
+  const currentLevelLabel = getCEFRLabel(normalizedCEFR.level, i18n);
 
   const handleOpen = () => {
     if (typeof onOpenCEFR === "function") {

@@ -11,13 +11,14 @@ import { useI18n } from "../../hooks/I18n";
 import { useSetting } from "../../hooks/Setting";
 import {
   CEFR_LEVEL_OPTIONS,
-  CEFR_QUIZ_QUESTIONS,
   calculateQuizLevel,
+  getLocalizedQuizQuestion,
   getCEFRLabel,
+  CEFR_QUIZ_QUESTIONS,
 } from "./cefrQuiz";
 
 function QuizView({ i18n, questionIndex, onSelectChoice }) {
-  const question = CEFR_QUIZ_QUESTIONS[questionIndex];
+  const question = getLocalizedQuizQuestion(questionIndex, i18n);
   if (!question) return null;
 
   return (
@@ -53,8 +54,8 @@ export default function CEFRSetting() {
   const [answers, setAnswers] = useState([]);
 
   const currentLevelLabel = useMemo(
-    () => getCEFRLabel(cefrSetting.level),
-    [cefrSetting.level]
+    () => getCEFRLabel(cefrSetting.level, i18n),
+    [cefrSetting.level, i18n]
   );
 
   const persistCEFRLevel = (level, levelSource) => {
@@ -158,13 +159,13 @@ export default function CEFRSetting() {
               </Typography>
 
               <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                {CEFR_LEVEL_OPTIONS.map(({ level, label }) => (
+                {CEFR_LEVEL_OPTIONS.map(({ level }) => (
                   <Button
-                    key={label}
+                    key={level}
                     variant={cefrSetting.level === level ? "contained" : "outlined"}
                     onClick={() => persistCEFRLevel(level, "manual")}
                   >
-                    {label}
+                    {getCEFRLabel(level, i18n)}
                   </Button>
                 ))}
               </Stack>
