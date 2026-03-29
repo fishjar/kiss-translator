@@ -22,6 +22,7 @@ const CEFR_SELECTOR = `span.${CEFR_WORD_CLASS}[${CEFR_ATTR}="1"]`;
 const CEFR_STYLE_SELECTOR = `style[${CEFR_STYLE_ATTR}="1"]`;
 const CEFR_STYLE_TEXT = `
 .${CEFR_WORD_CLASS} {
+  display: inline-block;
   position: relative;
 }
 
@@ -237,6 +238,8 @@ export function removeCEFRAnnotations(rootNode) {
     );
     wrapper.replaceWith(textNode);
   });
+
+  root.normalize();
 
   return wrappers.length;
 }

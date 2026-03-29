@@ -135,6 +135,7 @@ describe("cefr helpers", () => {
     const styleTag = document.head.querySelector('style[data-kiss-cefr-style="1"]');
     expect(styleTag).toBeTruthy();
     expect(styleTag.textContent).toContain("position: absolute;");
+    expect(styleTag.textContent).toContain("display: inline-block;");
     expect(styleTag.textContent).toContain(".kiss-cefr-gloss");
   });
 
@@ -185,6 +186,8 @@ describe("cefr helpers", () => {
     expect(host.querySelector(".kiss-cefr-word")).toBeNull();
     expect(host.querySelector(".kiss-cefr-gloss")).toBeNull();
     expect(host.innerHTML).toBe("Mitigate ambiguous outcomes.");
+    expect(host.childNodes).toHaveLength(1);
+    expect(host.firstChild.nodeType).toBe(Node.TEXT_NODE);
   });
 
   test("cleanup does not touch sibling translation wrappers", async () => {
