@@ -27,6 +27,7 @@ import { tryClearCaches } from "../../libs/cache";
 import { kissLog } from "../../libs/log";
 import { getDomainOptions, truncateMiddle } from "../../libs/url";
 import { useAllTextStyles } from "../../hooks/CustomStyles";
+import CEFRPromptCard from "./CEFRPromptCard";
 
 export default function PopupCont({
   rule,
@@ -34,6 +35,7 @@ export default function PopupCont({
   setRule,
   setSetting,
   handleOpenSetting,
+  handleOpenCEFR,
   processActions,
   isContent = false,
 }) {
@@ -237,6 +239,11 @@ export default function PopupCont({
 
   return (
     <Stack sx={{ p: 2 }} spacing={2}>
+      <CEFRPromptCard
+        cefrSetting={setting?.cefrSetting}
+        onOpenCEFR={handleOpenCEFR}
+      />
+
       <Grid container columns={12} spacing={1}>
         <Grid item xs={12}>
           <FormControlLabel

@@ -26,6 +26,7 @@ import MouseHoverSetting from "./MouseHover";
 import SubtitleSetting from "./Subtitle";
 import Loading from "../../hooks/Loading";
 import StylesSetting from "./StylesSetting";
+import CEFRSetting from "./CEFRSetting";
 
 export default function Options() {
   const [error, setError] = useState("");
@@ -127,6 +128,7 @@ export default function Options() {
                   <Route path="apis" element={<Apis />} />
                   <Route path="sync" element={<SyncSetting />} />
                   <Route path="words" element={<FavWords />} />
+                  <Route path="cefr" element={<CEFRSetting />} />
                   <Route path="playground" element={<Playgound />} />
                   <Route path="about" element={<About />} />
                 </Route>

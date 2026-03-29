@@ -12,6 +12,7 @@ import { kissLog } from "../../libs/log";
 import PopupCont from "./PopupCont";
 import TranForm from "../Selection/TranForm";
 import { useSetting } from "../../hooks/Setting";
+import { openOptionsHash } from "../../libs/optionsPage";
 
 function Trantab() {
   const [text, setText] = useState("");
@@ -51,6 +52,10 @@ export default function Popup() {
 
   const handleOpenSetting = useCallback(() => {
     browser?.runtime.openOptionsPage();
+  }, []);
+
+  const handleOpenCEFR = useCallback(() => {
+    openOptionsHash();
   }, []);
 
   useEffect(() => {
@@ -104,6 +109,7 @@ export default function Popup() {
             setRule={setRule}
             setSetting={setSetting}
             handleOpenSetting={handleOpenSetting}
+            handleOpenCEFR={handleOpenCEFR}
           />
         ) : (
           <Stack

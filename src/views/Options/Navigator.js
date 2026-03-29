@@ -18,6 +18,7 @@ import MouseIcon from "@mui/icons-material/Mouse";
 import SubtitlesIcon from "@mui/icons-material/Subtitles";
 import FormatColorText from "@mui/icons-material/FormatColorText";
 import BugReportIcon from "@mui/icons-material/BugReport";
+import SchoolIcon from "@mui/icons-material/School";
 
 function LinkItem({ label, url, icon }) {
   const match = useMatch(url);
@@ -91,6 +92,12 @@ export default function Navigator(props) {
       label: i18n("favorite_words"),
       url: "/words",
       icon: <EventNoteIcon />,
+    },
+    {
+      id: "cefr_setting",
+      label: i18n("cefr_setting_nav", "CEFR"),
+      url: "/cefr",
+      icon: <SchoolIcon />,
     },
     {
       id: "playground",
