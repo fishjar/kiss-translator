@@ -103,11 +103,13 @@ export const getSettingWithDefault = async () => {
   const normalizedSetting = normalizeSetting(setting);
 
   if (setting && typeof setting === "object") {
-    const normalizedCEFRSetting = normalizeCEFRSetting(setting.cefrSetting);
-    const originalCEFR = JSON.stringify(setting.cefrSetting);
-    const normalizedCEFR = JSON.stringify(normalizedCEFRSetting);
+    const originalSetting = JSON.stringify({
+      ...setting,
+      cefrSetting: normalizeCEFRSetting(setting.cefrSetting),
+    });
+    const nextSetting = JSON.stringify(normalizedSetting);
 
-    if (originalCEFR !== normalizedCEFR) {
+    if (originalSetting !== nextSetting) {
       await setSetting(normalizedSetting);
     }
   }

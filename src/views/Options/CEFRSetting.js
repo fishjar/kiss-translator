@@ -33,9 +33,9 @@ function QuizView({ i18n, questionIndex, onSelectChoice }) {
         <Stack spacing={1}>
           {question.choices.map((choice) => (
             <Button
-              key={`${question.id}-${choice.score}`}
+              key={`${question.id}-${choice.labelKey}`}
               variant="outlined"
-              onClick={() => onSelectChoice(choice.score)}
+              onClick={() => onSelectChoice(choice.isCorrect)}
             >
               {choice.label}
             </Button>
@@ -58,14 +58,28 @@ export default function CEFRSetting() {
     [cefrSetting.level, i18n]
   );
 
-  const persistCEFRLevel = (level, levelSource) => {
+  const updateCEFRSetting = (patch) => {
     updateSetting({
       cefrSetting: {
         ...cefrSetting,
-        level,
-        assessmentCompleted: true,
-        levelSource,
+        ...patch,
       },
+    });
+  };
+
+  const persistCEFRLevel = (level, levelSource) => {
+    updateCEFRSetting({
+      level,
+      assessmentCompleted: true,
+      levelSource,
+      enabled:
+        cefrSetting.assessmentCompleted === true ? cefrSetting.enabled : true,
+    });
+  };
+
+  const toggleCEFRPersonalization = () => {
+    updateCEFRSetting({
+      enabled: !cefrSetting.enabled,
     });
   };
 
@@ -74,10 +88,10 @@ export default function CEFRSetting() {
     setQuizVisible(true);
   };
 
-  const handleSelectChoice = (score) => {
-    const nextAnswers = [...answers, score];
+  const handleSelectChoice = (isCorrect) => {
+    const nextAnswers = [...answers, Boolean(isCorrect)];
 
-    if (nextAnswers.length >= CEFR_QUIZ_QUESTIONS.length) {
+    if (!isCorrect || nextAnswers.length >= CEFR_QUIZ_QUESTIONS.length) {
       const resultLevel = calculateQuizLevel(nextAnswers);
       persistCEFRLevel(resultLevel, "quiz");
       setQuizVisible(false);
@@ -142,9 +156,7 @@ export default function CEFRSetting() {
                 flexWrap="wrap"
                 gap={1}
               >
-                <Typography variant="h6">
-                  {configuredTitle}
-                </Typography>
+                <Typography variant="h6">{configuredTitle}</Typography>
                 <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
                   <Chip
                     label={statusLabel}
@@ -171,6 +183,21 @@ export default function CEFRSetting() {
               <Typography>
                 {`${i18n("cefr_current_level", "Current level")}: ${currentLevelLabel}`}
               </Typography>
+
+              <Button
+                variant={isConfiguredAndPaused ? "contained" : "outlined"}
+                onClick={toggleCEFRPersonalization}
+              >
+                {isConfiguredAndPaused
+                  ? i18n(
+                      "cefr_enable_personalization",
+                      "Enable CEFR personalization"
+                    )
+                  : i18n(
+                      "cefr_pause_personalization",
+                      "Pause CEFR personalization"
+                    )}
+              </Button>
 
               <Button variant="outlined" onClick={startQuiz}>
                 {i18n("cefr_quiz_restart", "Retake quick quiz")}

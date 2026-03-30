@@ -32,6 +32,7 @@
     "version:major": "zx src/scripts/update-version.mjs major",
     "version:set": "zx src/scripts/update-version.mjs set",
     "build:chrome": "zx src/scripts/build-task.mjs --target=chrome",
+    "build:cefr-dict": "node src/scripts/build-cefr-dict.mjs",
     "build:edge": "zx src/scripts/build-task.mjs --target=edge",
     "build:safari-output": "zx src/scripts/build-task.mjs --target=safari",
     "build:thunderbird": "zx src/scripts/build-task.mjs --target=thunderbird",

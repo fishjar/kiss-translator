@@ -36,4 +36,23 @@ describe("getSettingWithDefault", () => {
       lastPromptFrom: "",
     });
   });
+
+  test("persists backfilled defaultApiSlug for legacy settings", async () => {
+    const legacySetting = {
+      darkMode: "light",
+      cefrSetting: {
+        enabled: true,
+        level: 2,
+      },
+    };
+
+    window.localStorage.setItem(STOKEY_SETTING, JSON.stringify(legacySetting));
+
+    const setting = await getSettingWithDefault();
+
+    expect(setting.defaultApiSlug).toBe("Microsoft");
+
+    const persisted = JSON.parse(window.localStorage.getItem(STOKEY_SETTING));
+    expect(persisted.defaultApiSlug).toBe("Microsoft");
+  });
 });

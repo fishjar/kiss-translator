@@ -107,6 +107,7 @@ export default function Navigator(props) {
     },
     { id: "about", label: i18n("about"), url: "/about", icon: <InfoIcon /> },
   ];
+
   return (
     <Drawer {...props}>
       <Toolbar variant="dense" />

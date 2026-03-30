@@ -22,21 +22,37 @@ const CEFR_SELECTOR = `span.${CEFR_WORD_CLASS}[${CEFR_ATTR}="1"]`;
 const CEFR_STYLE_SELECTOR = `style[${CEFR_STYLE_ATTR}="1"]`;
 const CEFR_STYLE_TEXT = `
 .${CEFR_WORD_CLASS} {
-  display: inline-block;
+  display: inline;
   position: relative;
 }
 
 .${CEFR_WORD_CLASS} > .${CEFR_GLOSS_CLASS} {
   position: absolute;
   left: 50%;
-  bottom: 100%;
+  bottom: calc(100% - 7px);
   transform: translate(-50%, -0.2em);
   white-space: nowrap;
-  pointer-events: none;
+  pointer-events: auto;
   font-size: 0.72em;
   line-height: 1;
   color: currentColor;
-  opacity: 0.72;
+  opacity: 0.56;
+  padding: 0.1em 0.3em;
+  border-radius: 0.35em;
+  transition:
+    background-color 120ms ease,
+    opacity 120ms ease,
+    backdrop-filter 120ms ease,
+    -webkit-backdrop-filter 120ms ease;
+}
+
+.${CEFR_WORD_CLASS} > .${CEFR_GLOSS_CLASS}:hover {
+  z-index: 2;
+  color: #000;
+  background-color: rgba(255, 255, 255, 0.85);
+  opacity: 1;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 `;
 
@@ -53,6 +69,27 @@ function normalizeWord(word = "") {
 
 function getNodeOwnerDocument(node) {
   return node?.ownerDocument || document;
+}
+
+function formatGlossText(gloss = "") {
+  const source = String(gloss).trim();
+  if (!source) return "";
+
+  const parts = source
+    .split(/[;,/|、，；／]+/u)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (parts.length <= 2) {
+    return source;
+  }
+
+  return parts.slice(0, 2).join("、");
+}
+
+function appendTrackedNode(parentNode, childNode, onNodeInserted) {
+  parentNode.appendChild(childNode);
+  onNodeInserted?.(childNode);
 }
 
 export function ensureCEFRStylesInjected(rootNode) {
@@ -73,7 +110,7 @@ export function ensureCEFRStylesInjected(rootNode) {
   return styleNode;
 }
 
-function createCEFRFragment(text, dict, userLevel, doc) {
+function createCEFRFragment(text, dict, userLevel, doc, onNodeInserted) {
   const fragment = doc.createDocumentFragment();
   let lastIndex = 0;
   let hasAnnotation = false;
@@ -88,7 +125,11 @@ function createCEFRFragment(text, dict, userLevel, doc) {
     const levelScore = CEFR_LEVEL_SCORES[entry?.level] || 0;
 
     if (start > lastIndex) {
-      fragment.appendChild(doc.createTextNode(text.slice(lastIndex, start)));
+      appendTrackedNode(
+        fragment,
+        doc.createTextNode(text.slice(lastIndex, start)),
+        onNodeInserted
+      );
     }
 
     if (entry && levelScore > userLevel) {
@@ -102,20 +143,24 @@ function createCEFRFragment(text, dict, userLevel, doc) {
 
       glossNode.className = CEFR_GLOSS_CLASS;
       glossNode.setAttribute("aria-hidden", "true");
-      glossNode.textContent = entry.zh;
+      glossNode.textContent = formatGlossText(entry.zh);
 
       wordNode.appendChild(glossNode);
-      fragment.appendChild(wordNode);
+      appendTrackedNode(fragment, wordNode, onNodeInserted);
       hasAnnotation = true;
     } else {
-      fragment.appendChild(doc.createTextNode(rawWord));
+      appendTrackedNode(fragment, doc.createTextNode(rawWord), onNodeInserted);
     }
 
     lastIndex = end;
   });
 
   if (lastIndex < text.length) {
-    fragment.appendChild(doc.createTextNode(text.slice(lastIndex)));
+    appendTrackedNode(
+      fragment,
+      doc.createTextNode(text.slice(lastIndex)),
+      onNodeInserted
+    );
   }
 
   return hasAnnotation ? fragment : null;
@@ -181,6 +226,7 @@ export async function annotateNodeGroupWithCEFR({
   sourceLang = "",
   cefrSetting = {},
   hideOrigin = false,
+  onNodeInserted,
 } = {}) {
   if (
     !shouldAnnotateOriginalNodes({ sourceLang, cefrSetting, hideOrigin }) ||
@@ -215,7 +261,13 @@ export async function annotateNodeGroupWithCEFR({
     }
 
     const doc = getNodeOwnerDocument(node);
-    const fragment = createCEFRFragment(node.textContent, dict, userLevel, doc);
+    const fragment = createCEFRFragment(
+      node.textContent,
+      dict,
+      userLevel,
+      doc,
+      onNodeInserted
+    );
 
     if (fragment) {
       node.replaceWith(fragment);
@@ -226,7 +278,7 @@ export async function annotateNodeGroupWithCEFR({
   return changed;
 }
 
-export function removeCEFRAnnotations(rootNode) {
+export function removeCEFRAnnotations(rootNode, { onNodeInserted } = {}) {
   const root =
     rootNode instanceof Document ? rootNode.body : rootNode || document.body;
   if (!root) return 0;
@@ -236,6 +288,7 @@ export function removeCEFRAnnotations(rootNode) {
     const textNode = getNodeOwnerDocument(wrapper).createTextNode(
       wrapper.childNodes[0]?.textContent || wrapper.textContent || ""
     );
+    onNodeInserted?.(textNode);
     wrapper.replaceWith(textNode);
   });
 

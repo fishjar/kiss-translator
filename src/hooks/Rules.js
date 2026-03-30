@@ -101,5 +101,5 @@ export function useRules() {
     [save]
   );
 
-  return { list, add, del, clear, put, merge };
+  return { list, save, add, del, clear, put, merge };
 }

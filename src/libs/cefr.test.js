@@ -4,6 +4,7 @@ describe("cefr helpers", () => {
     community: { level: "B1", zh: "社区" },
     ambiguous: { level: "B2", zh: "模棱两可的" },
     mitigate: { level: "C1", zh: "减轻，缓和" },
+    nimble: { level: "C1", zh: "迅速的,敏捷的,灵活的" },
   };
 
   beforeEach(() => {
@@ -135,8 +136,73 @@ describe("cefr helpers", () => {
     const styleTag = document.head.querySelector('style[data-kiss-cefr-style="1"]');
     expect(styleTag).toBeTruthy();
     expect(styleTag.textContent).toContain("position: absolute;");
-    expect(styleTag.textContent).toContain("display: inline-block;");
+    expect(styleTag.textContent).toContain("display: inline;");
+    expect(styleTag.textContent).not.toContain("display: inline-block;");
     expect(styleTag.textContent).toContain(".kiss-cefr-gloss");
+    expect(styleTag.textContent).toContain(".kiss-cefr-gloss:hover");
+    expect(styleTag.textContent).toContain("backdrop-filter: blur(");
+    expect(styleTag.textContent).toContain("bottom: calc(100% - 7px);");
+    expect(styleTag.textContent).toContain("opacity: 0.56;");
+    expect(styleTag.textContent).toContain(
+      "background-color: rgba(255, 255, 255, 0.85);"
+    );
+    expect(styleTag.textContent).toContain("opacity: 1;");
+    expect(styleTag.textContent).toContain("color: #000;");
+    expect(styleTag.textContent).toContain("z-index: 2;");
+  });
+
+  test("limits long chinese glosses to the first two meanings", async () => {
+    const { annotateNodeGroupWithCEFR } = await import("./cefr");
+    const host = document.createElement("div");
+    const textNode = document.createTextNode("Nimble tactics help.");
+    host.appendChild(textNode);
+
+    await annotateNodeGroupWithCEFR({
+      nodes: [textNode],
+      sourceLang: "en",
+      hideOrigin: false,
+      cefrSetting: {
+        enabled: true,
+        assessmentCompleted: true,
+        level: 2,
+      },
+    });
+
+    expect(host.querySelector(".kiss-cefr-gloss")?.textContent).toBe(
+      "迅速的、敏捷的"
+    );
+  });
+
+  test("reports inserted annotation nodes so mutation observers can ignore internal CEFR updates", async () => {
+    const { annotateNodeGroupWithCEFR } = await import("./cefr");
+    const host = document.createElement("div");
+    const textNode = document.createTextNode("Community support can mitigate risk.");
+    host.appendChild(textNode);
+    const insertedNodes = [];
+
+    await annotateNodeGroupWithCEFR({
+      nodes: [textNode],
+      sourceLang: "en",
+      hideOrigin: false,
+      cefrSetting: {
+        enabled: true,
+        assessmentCompleted: true,
+        level: 2,
+      },
+      onNodeInserted: (node) => insertedNodes.push(node),
+    });
+
+    expect(insertedNodes.length).toBeGreaterThan(0);
+    expect(insertedNodes.some((node) => node.nodeType === Node.TEXT_NODE)).toBe(
+      true
+    );
+    expect(
+      insertedNodes.some(
+        (node) =>
+          node.nodeType === Node.ELEMENT_NODE &&
+          node.classList.contains("kiss-cefr-word")
+      )
+    ).toBe(true);
   });
 
   test("skips annotation when original text is hidden", async () => {
@@ -188,6 +254,36 @@ describe("cefr helpers", () => {
     expect(host.innerHTML).toBe("Mitigate ambiguous outcomes.");
     expect(host.childNodes).toHaveLength(1);
     expect(host.firstChild.nodeType).toBe(Node.TEXT_NODE);
+  });
+
+  test("cleanup reports restored text nodes so mutation observers can ignore CEFR teardown", async () => {
+    const { annotateNodeGroupWithCEFR, removeCEFRAnnotations } = await import(
+      "./cefr"
+    );
+    const host = document.createElement("div");
+    const textNode = document.createTextNode("Mitigate ambiguous outcomes.");
+    host.appendChild(textNode);
+
+    await annotateNodeGroupWithCEFR({
+      nodes: [textNode],
+      sourceLang: "en",
+      hideOrigin: false,
+      cefrSetting: {
+        enabled: true,
+        assessmentCompleted: true,
+        level: 2,
+      },
+    });
+
+    const restoredNodes = [];
+    removeCEFRAnnotations(host, {
+      onNodeInserted: (node) => restoredNodes.push(node),
+    });
+
+    expect(restoredNodes).toHaveLength(2);
+    expect(
+      restoredNodes.every((node) => node.nodeType === Node.TEXT_NODE)
+    ).toBe(true);
   });
 
   test("cleanup does not touch sibling translation wrappers", async () => {

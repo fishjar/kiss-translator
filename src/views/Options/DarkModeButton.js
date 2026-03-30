@@ -12,7 +12,7 @@ export default function DarkModeButton() {
         <DarkModeIcon />
       ) : darkMode === "light" ? (
         <LightModeIcon />
-      ) : (
+        ) : (
         <BrightnessAutoIcon />
       )}
     </IconButton>

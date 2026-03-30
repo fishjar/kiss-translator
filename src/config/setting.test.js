@@ -1,3 +1,4 @@
+import { DEFAULT_API_TYPE } from "./api";
 import { normalizeCEFRSetting, normalizeSetting } from "./setting";
 
 describe("normalizeCEFRSetting", () => {
@@ -36,9 +37,18 @@ describe("normalizeCEFRSetting", () => {
 });
 
 describe("normalizeSetting", () => {
+  test("defaults uiLang to zh for new settings", () => {
+    expect(normalizeSetting({}).uiLang).toBe("zh");
+  });
+
+  test("preserves an existing uiLang choice", () => {
+    expect(normalizeSetting({ uiLang: "en" }).uiLang).toBe("en");
+  });
+
   test("adds default CEFR settings when missing", () => {
     expect(normalizeSetting({ darkMode: "light" })).toMatchObject({
       darkMode: "light",
+      defaultApiSlug: DEFAULT_API_TYPE,
       cefrSetting: {
         enabled: false,
         level: 0,
@@ -52,6 +62,7 @@ describe("normalizeSetting", () => {
   test("keeps existing completed CEFR metadata", () => {
     expect(
       normalizeSetting({
+        defaultApiSlug: "OpenAI",
         cefrSetting: {
           enabled: true,
           level: 5,
@@ -61,6 +72,7 @@ describe("normalizeSetting", () => {
         },
       })
     ).toMatchObject({
+      defaultApiSlug: "OpenAI",
       cefrSetting: {
         enabled: true,
         level: 5,
@@ -69,5 +81,17 @@ describe("normalizeSetting", () => {
         lastPromptFrom: "settings",
       },
     });
+  });
+
+  test("falls back when defaultApiSlug points to a disabled api", () => {
+    expect(
+      normalizeSetting({
+        defaultApiSlug: "OpenAI",
+        transApis: [
+          { apiSlug: "Microsoft", isDisabled: false },
+          { apiSlug: "OpenAI", isDisabled: true },
+        ],
+      }).defaultApiSlug
+    ).toBe(DEFAULT_API_TYPE);
   });
 });

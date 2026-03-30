@@ -39,7 +39,7 @@ function Header(props) {
             target="_blank"
           >{`${i18n("app_name")} v${process.env.REACT_APP_VERSION}`}</Link>
         </Typography>
-        <DarkModeButton />
+          <DarkModeButton />
       </Toolbar>
     </AppBar>
   );

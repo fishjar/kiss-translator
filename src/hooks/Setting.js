@@ -12,6 +12,7 @@ import {
   KV_SETTING_KEY,
   MSG_SET_LOGLEVEL,
   normalizeCEFRSetting,
+  normalizeDefaultApiSlug,
   normalizeSetting,
 } from "../config";
 import { useStorage } from "./Storage";
@@ -42,6 +43,11 @@ const needsCEFRBackfill = (cefrSetting) => {
   return CEFR_SETTING_FIELDS.some((field) => !hasOwn(cefrSetting, field));
 };
 
+const needsDefaultApiBackfill = (setting) =>
+  !hasOwn(setting || {}, "defaultApiSlug") ||
+  normalizeDefaultApiSlug(setting?.defaultApiSlug, setting?.transApis) !==
+    setting?.defaultApiSlug;
+
 export function SettingProvider({ children, context }) {
   const isOptionsPage = useMemo(() => context === "options", [context]);
 
@@ -57,12 +63,21 @@ export function SettingProvider({ children, context }) {
   }, [setting]);
 
   useEffect(() => {
-    if (isLoading || !setting || !needsCEFRBackfill(setting?.cefrSetting)) {
+    if (
+      isLoading ||
+      !setting ||
+      (!needsCEFRBackfill(setting?.cefrSetting) &&
+        !needsDefaultApiBackfill(setting))
+    ) {
       return;
     }
 
     update({
       cefrSetting: normalizeCEFRSetting(setting?.cefrSetting),
+      defaultApiSlug: normalizeDefaultApiSlug(
+        setting?.defaultApiSlug,
+        setting?.transApis
+      ),
     });
   }, [isLoading, setting, update]);
 

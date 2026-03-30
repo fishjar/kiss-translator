@@ -1608,7 +1608,9 @@ export class Translator {
 
   #cleanupCEFRAnnotations(rootNode) {
     if (!rootNode) return 0;
-    return removeCEFRAnnotations(rootNode);
+    return removeCEFRAnnotations(rootNode, {
+      onNodeInserted: (node) => this.#skipMoNodes.add(node),
+    });
   }
 
   async #annotateOriginalNodeGroupWithCEFR(nodes, sourceLang, hideOrigin) {
@@ -1618,6 +1620,7 @@ export class Translator {
         sourceLang,
         hideOrigin,
         cefrSetting: this.#setting.cefrSetting,
+        onNodeInserted: (node) => this.#skipMoNodes.add(node),
       });
     } catch (err) {
       kissLog("cefr annotate error:", err?.message || err);

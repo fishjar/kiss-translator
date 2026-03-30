@@ -15,6 +15,8 @@ const mockI18nMap = {
   cefr_status_paused: "Paused",
   cefr_configured_disabled_desc:
     "Your level is saved, but CEFR personalization is currently paused.",
+  cefr_enable_personalization: "Enable CEFR personalization",
+  cefr_pause_personalization: "Pause CEFR personalization",
   cefr_manual_adjust_label: "Adjust manually",
   cefr_quiz_progress: "Question",
   cefr_apply_level: "Apply level",
@@ -141,7 +143,95 @@ describe("CEFRSetting", () => {
     unmount();
   });
 
-  test("retaking the quiz does not force CEFR back on after a user disabled it", () => {
+  test("finishing the checkpoint quiz enables CEFR automatically after the first failed level", () => {
+    const updateSetting = jest.fn();
+    mockUseSetting.mockReturnValue({
+      setting: {
+        cefrSetting: {
+          enabled: false,
+          level: 0,
+          assessmentCompleted: false,
+          levelSource: "unset",
+          lastPromptFrom: "",
+        },
+      },
+      updateSetting,
+    });
+
+    const { container, unmount } = renderUI();
+
+    const startButton = Array.from(container.querySelectorAll("button")).find(
+      (btn) => btn.textContent === "Start quick quiz"
+    );
+
+    act(() => {
+      startButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    for (let i = 0; i < 2; i += 1) {
+      act(() => {
+        container
+          .querySelector("button")
+          .dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      });
+    }
+
+    expect(updateSetting).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cefrSetting: expect.objectContaining({
+          enabled: true,
+          level: 1,
+          assessmentCompleted: true,
+          levelSource: "quiz",
+        }),
+      })
+    );
+
+    unmount();
+  });
+
+  test("paused CEFR can be resumed explicitly from settings", () => {
+    const updateSetting = jest.fn();
+    mockUseSetting.mockReturnValue({
+      setting: {
+        cefrSetting: {
+          enabled: false,
+          level: 4,
+          assessmentCompleted: true,
+          levelSource: "quiz",
+          lastPromptFrom: "",
+        },
+      },
+      updateSetting,
+    });
+
+    const { container, unmount } = renderUI();
+
+    const enableButton = Array.from(container.querySelectorAll("button")).find(
+      (btn) => btn.textContent === "Enable CEFR personalization"
+    );
+
+    expect(enableButton).toBeTruthy();
+
+    act(() => {
+      enableButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(updateSetting).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cefrSetting: expect.objectContaining({
+          enabled: true,
+          level: 4,
+          assessmentCompleted: true,
+          levelSource: "quiz",
+        }),
+      })
+    );
+
+    unmount();
+  });
+
+  test("retaking the checkpoint quiz does not force CEFR back on after a user disabled it", () => {
     const updateSetting = jest.fn();
     mockUseSetting.mockReturnValue({
       setting: {
@@ -166,7 +256,7 @@ describe("CEFRSetting", () => {
       retakeButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    for (let i = 0; i < 3; i += 1) {
+    for (let i = 0; i < 2; i += 1) {
       act(() => {
         container
           .querySelector("button")

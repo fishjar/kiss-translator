@@ -3,6 +3,7 @@ import {
   OPT_DICT_BING,
   OPT_SUG_YOUDAO,
   DEFAULT_HTTP_TIMEOUT,
+  DEFAULT_API_TYPE,
   OPT_TRANS_MICROSOFT,
   DEFAULT_API_LIST,
 } from "./api";
@@ -164,9 +165,39 @@ export const DEFAULT_CEFR_SETTING = {
   lastPromptFrom: "",
 };
 
+const getEnabledApiSlugs = (transApis = DEFAULT_API_LIST) =>
+  (Array.isArray(transApis) ? transApis : DEFAULT_API_LIST)
+    .filter((api) => api && api.apiSlug && !api.isDisabled)
+    .map((api) => api.apiSlug);
+
+export const getEnabledApiSlugSet = (transApis = DEFAULT_API_LIST) =>
+  new Set(getEnabledApiSlugs(transApis));
+
+const getDefaultApiFallback = (transApis = DEFAULT_API_LIST) => {
+  const enabledApiSlugs = getEnabledApiSlugs(transApis);
+  if (enabledApiSlugs.includes(DEFAULT_API_TYPE)) {
+    return DEFAULT_API_TYPE;
+  }
+  return enabledApiSlugs[0] || DEFAULT_API_TYPE;
+};
+
+export const normalizeDefaultApiSlug = (
+  defaultApiSlug,
+  transApis = DEFAULT_API_LIST
+) => {
+  if (
+    typeof defaultApiSlug === "string" &&
+    defaultApiSlug &&
+    getEnabledApiSlugSet(transApis).has(defaultApiSlug)
+  ) {
+    return defaultApiSlug;
+  }
+  return getDefaultApiFallback(transApis);
+};
+
 export const DEFAULT_SETTING = {
   darkMode: "auto", // 深色模式
-  uiLang: "en", // 界面语言
+  uiLang: "zh", // 界面语言
   // fetchLimit: DEFAULT_FETCH_LIMIT, // 最大任务数量(移至rule，作废)
   // fetchInterval: DEFAULT_FETCH_INTERVAL, // 任务间隔时间(移至rule，作废)
   minLength: TRANS_MIN_LENGTH,
@@ -186,6 +217,7 @@ export const DEFAULT_SETTING = {
   subrulesList: DEFAULT_SUBRULES_LIST, // 订阅列表
   // owSubrule: DEFAULT_OW_RULE, // 覆写订阅规则 (作废)
   transApis: DEFAULT_API_LIST, // 翻译接口 (v2.0 对象改为数组)
+  defaultApiSlug: DEFAULT_API_TYPE, // 默认翻译服务
   // mouseKey: OPT_TIMING_PAGESCROLL, // 翻译时机/鼠标悬停翻译(移至rule，作废)
   shortcuts: DEFAULT_SHORTCUTS, // 快捷键
   inputRule: DEFAULT_INPUT_RULE, // 输入框设置
@@ -219,9 +251,17 @@ export const normalizeCEFRSetting = (cefrSetting) => {
 
 export const normalizeSetting = (setting) => {
   const baseSetting = isObject(setting) ? setting : {};
+  const transApis = Array.isArray(baseSetting.transApis)
+    ? baseSetting.transApis
+    : DEFAULT_API_LIST;
   return {
     ...DEFAULT_SETTING,
     ...baseSetting,
+    transApis,
+    defaultApiSlug: normalizeDefaultApiSlug(
+      baseSetting.defaultApiSlug,
+      transApis
+    ),
     cefrSetting: normalizeCEFRSetting(baseSetting.cefrSetting),
   };
 };

@@ -6,14 +6,15 @@ import {
 } from "./cefrQuiz";
 
 describe("cefrQuiz", () => {
-  test("keeps the assessment lightweight", () => {
-    expect(CEFR_QUIZ_QUESTIONS).toHaveLength(3);
+  test("uses one checkpoint question per CEFR level", () => {
+    expect(CEFR_QUIZ_QUESTIONS).toHaveLength(6);
   });
 
-  test("maps short-quiz answers to CEFR levels", () => {
-    expect(calculateQuizLevel([1, 1, 1])).toBe(1);
-    expect(calculateQuizLevel([3, 3, 3])).toBe(3);
-    expect(calculateQuizLevel([6, 6, 6])).toBe(6);
+  test("maps checkpoint quiz answers to the highest confirmed CEFR level", () => {
+    expect(calculateQuizLevel([false])).toBe(0);
+    expect(calculateQuizLevel([true, false])).toBe(1);
+    expect(calculateQuizLevel([true, true, true, false])).toBe(3);
+    expect(calculateQuizLevel([true, true, true, true, true, true])).toBe(6);
   });
 
   test("stores quiz copy as i18n keys", () => {

@@ -15,56 +15,89 @@ export const CEFR_LEVEL_OPTIONS = [1, 2, 3, 4, 5, 6].map((level) => ({
 
 export const CEFR_QUIZ_QUESTIONS = [
   {
-    id: "everyday_conversations",
+    id: "a1_basic_be",
+    level: 1,
     promptKey: "cefr_quiz_q1_prompt",
     choices: [
-      { labelKey: "cefr_quiz_q1_choice_1", score: 1 },
-      { labelKey: "cefr_quiz_q1_choice_2", score: 2 },
-      { labelKey: "cefr_quiz_q1_choice_3", score: 3 },
-      { labelKey: "cefr_quiz_q1_choice_4", score: 4 },
-      { labelKey: "cefr_quiz_q1_choice_5", score: 5 },
-      { labelKey: "cefr_quiz_q1_choice_6", score: 6 },
+      { labelKey: "cefr_quiz_q1_choice_1", isCorrect: true },
+      { labelKey: "cefr_quiz_q1_choice_2", isCorrect: false },
+      { labelKey: "cefr_quiz_q1_choice_3", isCorrect: false },
+      { labelKey: "cefr_quiz_q1_choice_4", isCorrect: false },
     ],
   },
   {
-    id: "writing",
+    id: "a2_past_simple",
+    level: 2,
     promptKey: "cefr_quiz_q2_prompt",
     choices: [
-      { labelKey: "cefr_quiz_q2_choice_1", score: 1 },
-      { labelKey: "cefr_quiz_q2_choice_2", score: 2 },
-      { labelKey: "cefr_quiz_q2_choice_3", score: 3 },
-      { labelKey: "cefr_quiz_q2_choice_4", score: 4 },
-      { labelKey: "cefr_quiz_q2_choice_5", score: 5 },
-      { labelKey: "cefr_quiz_q2_choice_6", score: 6 },
+      { labelKey: "cefr_quiz_q2_choice_1", isCorrect: false },
+      { labelKey: "cefr_quiz_q2_choice_2", isCorrect: true },
+      { labelKey: "cefr_quiz_q2_choice_3", isCorrect: false },
+      { labelKey: "cefr_quiz_q2_choice_4", isCorrect: false },
     ],
   },
   {
-    id: "reading",
+    id: "b1_first_conditional",
+    level: 3,
     promptKey: "cefr_quiz_q3_prompt",
     choices: [
-      { labelKey: "cefr_quiz_q3_choice_1", score: 1 },
-      { labelKey: "cefr_quiz_q3_choice_2", score: 2 },
-      { labelKey: "cefr_quiz_q3_choice_3", score: 3 },
-      { labelKey: "cefr_quiz_q3_choice_4", score: 4 },
-      { labelKey: "cefr_quiz_q3_choice_5", score: 5 },
-      { labelKey: "cefr_quiz_q3_choice_6", score: 6 },
+      { labelKey: "cefr_quiz_q3_choice_1", isCorrect: true },
+      { labelKey: "cefr_quiz_q3_choice_2", isCorrect: false },
+      { labelKey: "cefr_quiz_q3_choice_3", isCorrect: false },
+      { labelKey: "cefr_quiz_q3_choice_4", isCorrect: false },
+    ],
+  },
+  {
+    id: "b2_past_perfect",
+    level: 4,
+    promptKey: "cefr_quiz_q4_prompt",
+    choices: [
+      { labelKey: "cefr_quiz_q4_choice_1", isCorrect: false },
+      { labelKey: "cefr_quiz_q4_choice_2", isCorrect: false },
+      { labelKey: "cefr_quiz_q4_choice_3", isCorrect: true },
+      { labelKey: "cefr_quiz_q4_choice_4", isCorrect: false },
+    ],
+  },
+  {
+    id: "c1_inversion",
+    level: 5,
+    promptKey: "cefr_quiz_q5_prompt",
+    choices: [
+      { labelKey: "cefr_quiz_q5_choice_1", isCorrect: false },
+      { labelKey: "cefr_quiz_q5_choice_2", isCorrect: false },
+      { labelKey: "cefr_quiz_q5_choice_3", isCorrect: true },
+      { labelKey: "cefr_quiz_q5_choice_4", isCorrect: false },
+    ],
+  },
+  {
+    id: "c2_conditional_inversion",
+    level: 6,
+    promptKey: "cefr_quiz_q6_prompt",
+    choices: [
+      { labelKey: "cefr_quiz_q6_choice_1", isCorrect: true },
+      { labelKey: "cefr_quiz_q6_choice_2", isCorrect: false },
+      { labelKey: "cefr_quiz_q6_choice_3", isCorrect: false },
+      { labelKey: "cefr_quiz_q6_choice_4", isCorrect: false },
     ],
   },
 ];
 
-const normalizeScore = (score) => {
-  const value = Number(score);
-  if (!Number.isFinite(value)) return 0;
-  return Math.max(1, Math.min(6, Math.round(value)));
-};
-
-export function calculateQuizLevel(scores = []) {
-  const normalized = scores.map(normalizeScore).filter((value) => value > 0);
+export function calculateQuizLevel(results = []) {
+  const normalized = results.filter(
+    (value) => value === true || value === false
+  );
   if (normalized.length === 0) return 0;
 
-  const average =
-    normalized.reduce((total, value) => total + value, 0) / normalized.length;
-  return normalizeScore(average);
+  const firstFailedIndex = normalized.findIndex((value) => value === false);
+  if (firstFailedIndex === 0) {
+    return 0;
+  }
+
+  if (firstFailedIndex > 0) {
+    return CEFR_QUIZ_QUESTIONS[firstFailedIndex - 1]?.level || 0;
+  }
+
+  return CEFR_QUIZ_QUESTIONS[normalized.length - 1]?.level || 0;
 }
 
 const resolveI18n = (i18n, key) => {

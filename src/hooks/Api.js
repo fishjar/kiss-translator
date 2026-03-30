@@ -72,6 +72,7 @@ export function useApiList() {
         ...prev,
         transApis: [...(prev?.transApis || []), newApi],
       }));
+      return newApi;
     },
     [updateSetting]
   );

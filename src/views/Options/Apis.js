@@ -20,11 +20,17 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import Link from "@mui/material/Link";
 import { useAlert } from "../../hooks/Alert";
 import { useApiList, useApiItem } from "../../hooks/Api";
+import { useSetting } from "../../hooks/Setting";
+import { useRules } from "../../hooks/Rules";
 import { useConfirm } from "../../hooks/Confirm";
 import { apiTranslate } from "../../apis";
 import Box from "@mui/material/Box";
 import ReusableAutocomplete from "./ReusableAutocomplete";
 import ShowMoreButton from "./ShowMoreButton";
+import {
+  applyDefaultApiToRules,
+  applyDefaultApiToSetting,
+} from "../../libs/defaultApi";
 import {
   OPT_TRANS_DEEPLX,
   // OPT_TRANS_OLLAMA,
@@ -910,7 +916,12 @@ function ApiAccordion({ api, isUserApi, deleteApi, copyApi }) {
 
 export default function Apis() {
   const i18n = useI18n();
-  const { userApis, builtinApis, addApi, deleteApi, copyApi } = useApiList();
+  const alert = useAlert();
+  const confirm = useConfirm();
+  const { setting, updateSetting } = useSetting();
+  const { save } = useRules();
+  const { enabledApis, userApis, builtinApis, addApi, deleteApi, copyApi } =
+    useApiList();
 
   const apiTypes = useMemo(
     () =>
@@ -932,9 +943,53 @@ export default function Apis() {
     setAnchorEl(null);
   };
 
-  const handleMenuItemClick = (apiType) => {
-    addApi(apiType);
+  const handleMenuItemClick = async (apiType) => {
+    const newApi = addApi(apiType);
     handleClose();
+
+    if (!newApi?.apiSlug) {
+      return;
+    }
+
+    const shouldSetAsDefault = await confirm({
+      title: i18n("default_translate_service_new_api_title"),
+      message: (
+        <>
+          <div>{i18n("default_translate_service_new_api_intro")}</div>
+          <div>{newApi.apiName}</div>
+          <div>{i18n("default_translate_service_new_api_note")}</div>
+        </>
+      ),
+      confirmText: i18n("set_as_default_service"),
+      cancelText: i18n("cancel"),
+    });
+
+    if (!shouldSetAsDefault) {
+      return;
+    }
+
+    updateSetting({
+      defaultApiSlug: newApi.apiSlug,
+    });
+    alert.success(i18n("default_translate_service_set_to_new_api"));
+  };
+
+  const handleDefaultApiChange = (event) => {
+    updateSetting({
+      defaultApiSlug: event.target.value,
+    });
+  };
+
+  const handleApplyDefaultApi = () => {
+    const apiSlug = setting?.defaultApiSlug;
+    if (!enabledApis.some((api) => api.apiSlug === apiSlug)) {
+      alert.error(i18n("default_translate_service_invalid"));
+      return;
+    }
+
+    updateSetting((prev) => applyDefaultApiToSetting(prev || {}, apiSlug));
+    save((prev) => applyDefaultApiToRules(prev, apiSlug));
+    alert.success(i18n("default_translate_service_applied"));
   };
 
   return (
@@ -953,6 +1008,41 @@ export default function Apis() {
             {i18n("goto_custom_api_example")}
           </Link>
         </Alert>
+
+        <Box>
+          <Grid container spacing={2} columns={12} alignItems="flex-start">
+            <Grid item xs={12} sm={12} md={6} lg={4}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                name="defaultApiSlug"
+                label={i18n("default_translate_service")}
+                value={setting?.defaultApiSlug || ""}
+                onChange={handleDefaultApiChange}
+                helperText={i18n("default_translate_service_help")}
+                SelectProps={{
+                  native: true,
+                }}
+              >
+                {enabledApis.map((api) => (
+                  <option key={api.apiSlug} value={api.apiSlug}>
+                    {api.apiName}
+                  </option>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={4}>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={handleApplyDefaultApi}
+              >
+                {i18n("apply_default_service_to_entries")}
+              </Button>
+            </Grid>
+          </Grid>
+        </Box>
 
         <Box>
           <Button
