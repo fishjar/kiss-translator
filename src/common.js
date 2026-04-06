@@ -160,8 +160,23 @@ export async function run(isUserscript = false) {
     }
 
     // 黑名单
-    if (isInBlacklist(href, setting)) {
+    if (isInBlacklist(href, setting.blacklist)) {
       return;
+    }
+
+    // 划词翻译黑名单
+    if (isInBlacklist(href, setting.tranboxSetting?.blacklist)) {
+      setting.tranboxSetting.transOpen = false;
+    }
+
+    // 输入框翻译黑名单
+    if (isInBlacklist(href, setting.inputRule?.blacklist)) {
+      setting.inputRule.transOpen = false;
+    }
+
+    // 鼠标悬停翻译黑名单
+    if (isInBlacklist(href, setting.mouseHoverSetting?.blacklist)) {
+      setting.mouseHoverSetting.useMouseHover = false;
     }
 
     // 翻译网页

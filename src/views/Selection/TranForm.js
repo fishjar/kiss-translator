@@ -76,6 +76,10 @@ export default function TranForm({
   }, [text]);
 
   useEffect(() => {
+    setApiSlugs(initApiSlugs);
+  }, [initApiSlugs]);
+
+  useEffect(() => {
     if (!editMode) {
       setEditText(text);
     }
@@ -140,6 +144,11 @@ export default function TranForm({
   const xs = useMemo(() => (isPlaygound ? 6 : 4), [isPlaygound]);
   const md = useMemo(() => (isPlaygound ? 3 : 4), [isPlaygound]);
 
+  const activeApiSlugs = useMemo(() => {
+    const validSlugs = new Set(optApis.map((api) => api.key));
+    return apiSlugs.filter((slug) => validSlugs.has(slug));
+  }, [apiSlugs, optApis]);
+
   return (
     <Stack spacing={simpleStyle ? 1 : 2}>
       {!simpleStyle && (
@@ -155,7 +164,7 @@ export default function TranForm({
                   }}
                   fullWidth
                   size="small"
-                  value={apiSlugs}
+                  value={activeApiSlugs}
                   name="apiSlugs"
                   label={i18n("translate_service_multiple")}
                   onChange={(e) => {
@@ -384,7 +393,7 @@ export default function TranForm({
         </>
       )}
 
-      {apiSlugs.map((slug) => (
+      {activeApiSlugs.map((slug) => (
         <TranCont
           key={slug}
           text={text}

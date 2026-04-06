@@ -3,6 +3,7 @@ import Stack from "@mui/material/Stack";
 import { useI18n } from "../../hooks/I18n";
 import ShortcutInput from "./ShortcutInput";
 import FormControlLabel from "@mui/material/FormControlLabel";
+import TextField from "@mui/material/TextField";
 import Switch from "@mui/material/Switch";
 import { useMouseHoverSetting } from "../../hooks/MouseHover";
 import { useCallback } from "react";
@@ -20,8 +21,19 @@ export default function MouseHoverSetting() {
     [updateMouseHoverSetting]
   );
 
-  const { useMouseHover = true, mouseHoverKey = DEFAULT_MOUSEHOVER_KEY } =
-    mouseHoverSetting;
+  const handleBlacklistChange = useCallback(
+    (e) => {
+      const { value } = e.target;
+      updateMouseHoverSetting({ blacklist: value });
+    },
+    [updateMouseHoverSetting]
+  );
+
+  const {
+    useMouseHover = true,
+    mouseHoverKey = DEFAULT_MOUSEHOVER_KEY,
+    blacklist = "",
+  } = mouseHoverSetting;
 
   return (
     <Box>
@@ -53,6 +65,17 @@ export default function MouseHoverSetting() {
             </Grid>
           </Grid>
         </Box>
+
+        <TextField
+          size="small"
+          label={i18n("blacklist")}
+          helperText={i18n("pattern_helper")}
+          name="blacklist"
+          value={blacklist}
+          onChange={handleBlacklistChange}
+          maxRows={10}
+          multiline
+        />
       </Stack>
     </Box>
   );

@@ -50,6 +50,7 @@ export default function InputSetting() {
     triggerTime,
     transSign,
     showDot,
+    blacklist = "",
   } = inputRule;
 
   return (
@@ -208,6 +209,17 @@ export default function InputSetting() {
             </Grid>
           </Grid>
         </Box>
+
+        <TextField
+          size="small"
+          label={i18n("blacklist")}
+          helperText={i18n("pattern_helper")}
+          name="blacklist"
+          value={blacklist}
+          onChange={handleChange}
+          maxRows={10}
+          multiline
+        />
       </Stack>
     </Box>
   );

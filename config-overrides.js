@@ -123,6 +123,7 @@ const userscriptWebpack = (config, env) => {
 // @connect       fanyi.baidu.com
 // @connect       transmart.qq.com
 // @connect       niutrans.com
+// @connect       ephone.ai
 // @connect       translate.volcengine.com
 // @connect       dict.youdao.com
 // @connect       api.anthropic.com

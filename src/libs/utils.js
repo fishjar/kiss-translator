@@ -511,3 +511,26 @@ export function escapeHTML(str) {
   div.textContent = str;
   return div.innerHTML;
 }
+
+/**
+ * 解析AI术语字符串
+ * @param {*} termsString
+ * @returns
+ */
+export function parseAITerms(termsString) {
+  if (typeof termsString !== "string" || termsString.trim() === "") return {};
+
+  try {
+    return Object.fromEntries(
+      termsString
+        .split(/\n|;/)
+        .map((line) => {
+          const [k = "", v = ""] = line.split(",").map((s) => s.trim());
+          return [k, v];
+        })
+        .filter(([k]) => k)
+    );
+  } catch (err) {
+    return {};
+  }
+}

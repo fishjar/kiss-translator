@@ -18,6 +18,7 @@ export const INPUT_PLACE_DESCRIPTION = "{{description}}"; // 描述
 export const INPUT_PLACE_SUMMARY = "{{summary}}"; // 摘要
 export const INPUT_PLACE_KEY = "{{key}}"; // 占位符
 export const INPUT_PLACE_MODEL = "{{model}}"; // 占位符
+export const INPUT_PLACE_GLOSSARY = "{{glossary}}"; // 占位符
 
 // export const OPT_DICT_BAIDU = "Baidu";
 export const OPT_DICT_BING = "Bing";
@@ -38,7 +39,7 @@ export const OPT_TRANS_AZUREAI = "AzureAI";
 export const OPT_TRANS_DEEPL = "DeepL";
 export const OPT_TRANS_DEEPLX = "DeepLX";
 export const OPT_TRANS_DEEPLFREE = "DeepLFree";
-export const OPT_TRANS_NIUTRANS = "NiuTrans";
+export const OPT_TRANS_EPHONEAI = "ePhoneAI";
 export const OPT_TRANS_BAIDU = "Baidu";
 export const OPT_TRANS_TENCENT = "Tencent";
 export const OPT_TRANS_VOLCENGINE = "Volcengine";
@@ -64,7 +65,7 @@ export const OPT_ALL_TRANS_TYPES = [
   OPT_TRANS_DEEPL,
   OPT_TRANS_DEEPLFREE,
   OPT_TRANS_DEEPLX,
-  OPT_TRANS_NIUTRANS,
+  OPT_TRANS_EPHONEAI,
   OPT_TRANS_OPENAI,
   OPT_TRANS_GEMINI,
   OPT_TRANS_GEMINI_2,
@@ -99,6 +100,7 @@ export const API_SPE_TYPES = {
   ]),
   // AI翻译
   ai: new Set([
+    OPT_TRANS_EPHONEAI,
     OPT_TRANS_OPENAI,
     OPT_TRANS_GEMINI,
     OPT_TRANS_GEMINI_2,
@@ -118,7 +120,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_CLOUDFLAREAI,
     OPT_TRANS_OLLAMA,
     OPT_TRANS_OPENROUTER,
-    OPT_TRANS_NIUTRANS,
+    OPT_TRANS_EPHONEAI,
     OPT_TRANS_CUSTOMIZE,
   ]),
   // 支持批处理
@@ -134,6 +136,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_CLAUDE,
     OPT_TRANS_OLLAMA,
     OPT_TRANS_OPENROUTER,
+    OPT_TRANS_EPHONEAI,
     OPT_TRANS_CUSTOMIZE,
   ]),
   // 支持上下文
@@ -144,6 +147,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_CLAUDE,
     OPT_TRANS_OLLAMA,
     OPT_TRANS_OPENROUTER,
+    OPT_TRANS_EPHONEAI,
     OPT_TRANS_CUSTOMIZE,
   ]),
   // 支持流式传输
@@ -154,7 +158,12 @@ export const API_SPE_TYPES = {
     OPT_TRANS_CLAUDE,
     OPT_TRANS_OLLAMA,
     OPT_TRANS_OPENROUTER,
+    OPT_TRANS_EPHONEAI,
   ]),
+  // 赞助商
+  sponsors: new Set([
+    OPT_TRANS_EPHONEAI
+  ])
 };
 
 export const BUILTIN_STONES = [
@@ -233,8 +242,8 @@ export const OPT_LANGS_SPEC_DEFAULT_UC = new Map(
 export const OPT_LANGS_TO_SPEC = {
   [OPT_TRANS_BUILTINAI]: new Map([
     ...OPT_LANGS_SPEC_DEFAULT,
-    ["zh-CN", "zh"],
-    ["zh-TW", "zh"],
+    ["zh-CN", "zh-Hans"],
+    ["zh-TW", "zh-Hant"],
   ]),
   [OPT_TRANS_GOOGLE]: OPT_LANGS_SPEC_DEFAULT,
   [OPT_TRANS_GOOGLE_2]: OPT_LANGS_SPEC_DEFAULT,
@@ -267,12 +276,6 @@ export const OPT_LANGS_TO_SPEC = {
     ["auto", "auto"],
     ["zh-CN", "ZH"],
     ["zh-TW", "ZH"],
-  ]),
-  [OPT_TRANS_NIUTRANS]: new Map([
-    ...OPT_LANGS_SPEC_DEFAULT,
-    ["auto", "auto"],
-    ["zh-CN", "zh"],
-    ["zh-TW", "cht"],
   ]),
   [OPT_TRANS_VOLCENGINE]: new Map([
     ...OPT_LANGS_SPEC_DEFAULT,
@@ -329,6 +332,7 @@ export const OPT_LANGS_TO_SPEC = {
     ["id", "id"],
     ["vi", "vi"],
   ]),
+  [OPT_TRANS_EPHONEAI]: OPT_LANGS_SPEC_NAME,
   [OPT_TRANS_OPENAI]: OPT_LANGS_SPEC_NAME,
   [OPT_TRANS_GEMINI]: OPT_LANGS_SPEC_NAME,
   [OPT_TRANS_GEMINI_2]: OPT_LANGS_SPEC_NAME,
@@ -485,15 +489,19 @@ Description: ${INPUT_PLACE_DESCRIPTION}
 Summary: ${INPUT_PLACE_SUMMARY}
 Tone: ${INPUT_PLACE_TONE}
 
+# Glossary (Terminology):
+${INPUT_PLACE_GLOSSARY}
+
 # Task
 Convert the input word-level timestamp JSON into a bilingual VTT file. Target Language: ${INPUT_PLACE_TO}.
 
 # Rules
 1. Merge words into complete sentences first.
 2. Split long sentences into readable cues (max 42 chars/line, natural pauses).
-3. Translate using the provided Context and Tone. Keep non-speech sounds (e.g., [Music]) as is.
-4. Convert timestamps to standard VTT format (MM:SS.mmm).
-5. Output ONLY the raw VTT content. No markdown, no notes.
+3. Strict Glossary Adherence: Use the provided Glossary for specific terms. If a word in the source text matches a key in the glossary, you MUST use the corresponding translation provided.
+4. Translate using the provided Context and Tone. Keep non-speech sounds (e.g., [Music]) as is.
+5. Convert timestamps to standard VTT format (MM:SS.mmm).
+6. Output ONLY the raw VTT content. No markdown, no notes.
 
 # VTT Format Example
 WEBVTT
@@ -534,7 +542,7 @@ const defaultApi = {
   tone: BUILTIN_STONES[0], // 翻译风格
   placeholder: BUILTIN_PLACEHOLDERS[0], // 占位符
   placetag: BUILTIN_PLACETAGS[0], // 占位标签
-  // aiTerms: false, // AI智能专业术语 （todo: 备用）
+  aiTerms: "", // AI智能专业术语 （todo: 备用）
   customHeader: "",
   customBody: "",
   reqHook: "", // request 钩子函数
@@ -605,11 +613,9 @@ const defaultApiOpts = {
     ...defaultApi,
     url: "http://localhost:1188/translate",
   },
-  [OPT_TRANS_NIUTRANS]: {
+  [OPT_TRANS_EPHONEAI]: {
     ...defaultApi,
-    url: "https://api.niutrans.com/NiuTransServer/translation",
-    dictNo: "",
-    memoryNo: "",
+    url: "https://api.ephone.ai/v1/chat/completions",
   },
   [OPT_TRANS_OPENAI]: {
     ...defaultApi,

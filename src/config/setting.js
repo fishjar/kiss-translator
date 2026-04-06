@@ -56,6 +56,7 @@ export const OPT_INPUT_TRANS_SIGNS = ["/", "//", "\\", "\\\\", ">", ">>"];
 export const DEFAULT_INPUT_SHORTCUT = ["AltLeft", "KeyI"];
 export const DEFAULT_INPUT_RULE = {
   transOpen: true,
+  blacklist: "", // 输入框翻译黑名单
   apiSlug: OPT_TRANS_MICROSOFT,
   fromLang: "auto",
   toLang: "en",
@@ -82,7 +83,9 @@ export const OPT_TRANBOX_TRIGGER_ALL = [
 export const DEFAULT_TRANBOX_SHORTCUT = ["AltLeft", "KeyS"];
 export const DEFAULT_TRANBOX_SETTING = {
   transOpen: true, // 是否启用划词翻译
+  blacklist: "", // 划词翻译黑名单
   apiSlugs: [OPT_TRANS_MICROSOFT],
+  singleWordNoTrans: false, // 划词为单个单词时仅使用默认翻译服务
   fromLang: "auto",
   toLang: "zh-CN",
   toLang2: "en",
@@ -153,6 +156,7 @@ export const DEFAULT_SUBRULES_LIST = [
 export const DEFAULT_MOUSEHOVER_KEY = ["ControlLeft"];
 export const DEFAULT_MOUSE_HOVER_SETTING = {
   useMouseHover: false, // 是否启用鼠标悬停翻译
+  blacklist: "", // 鼠标悬停翻译黑名单
   mouseHoverKey: DEFAULT_MOUSEHOVER_KEY, // 鼠标悬停翻译组合键
 };
 

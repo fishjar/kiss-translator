@@ -7,7 +7,7 @@ import {
   OPT_TRANS_DEEPL,
   OPT_TRANS_DEEPLFREE,
   OPT_TRANS_DEEPLX,
-  OPT_TRANS_NIUTRANS,
+  OPT_TRANS_EPHONEAI,
   OPT_TRANS_BAIDU,
   OPT_TRANS_TENCENT,
   OPT_TRANS_VOLCENGINE,
@@ -35,6 +35,7 @@ import {
   INPUT_PLACE_DESCRIPTION,
   INPUT_PLACE_TO_LANG,
   INPUT_PLACE_FROM_LANG,
+  INPUT_PLACE_GLOSSARY,
   defaultSystemPromptXml,
   defaultSystemPromptLines,
   INPUT_PLACE_SUMMARY,
@@ -47,6 +48,7 @@ import {
   parseJsonObj,
   extractJson,
   stripMarkdownCodeBlock,
+  parseAITerms,
 } from "../libs/utils";
 import {
   parseStreamingSegments,
@@ -106,7 +108,8 @@ const genUserPrompt = ({
   nobatchUserPrompt,
   useBatchFetch,
   tone,
-  glossary,
+  glossary = {}, // 规则中的AI专业术语
+  aiTerms = "", // 接口中的AI专业术语
   from,
   to,
   fromLang,
@@ -122,9 +125,14 @@ const genUserPrompt = ({
 
     title && (promptObj.title = title);
     description && (promptObj.description = description);
-    glossary &&
-      Object.keys(glossary).length !== 0 &&
-      (promptObj.glossary = glossary);
+
+    // 合并规则与接口中的AI专业术语
+    if (aiTerms) {
+      const aiGlossary = parseAITerms(aiTerms);
+      glossary = { ...glossary, ...aiGlossary };
+    }
+
+    Object.keys(glossary).length !== 0 && (promptObj.glossary = glossary);
     tone && (promptObj.tone = tone);
 
     return JSON.stringify(promptObj);
@@ -150,16 +158,23 @@ const genSubtitlePrompt = ({
   fromLang,
   toLang,
   docInfo: { title = "", description = "", summary = "" } = {},
-}) =>
-  subtitlePrompt
+  aiTerms = "",
+}) => {
+  const aiGlossary = parseAITerms(aiTerms);
+  const glossaryStr = Object.entries(aiGlossary)
+    .map(([term, definition]) => `- ${term}: ${definition}`)
+    .join("\n");
+  return subtitlePrompt
     .replaceAll(INPUT_PLACE_TITLE, title)
     .replaceAll(INPUT_PLACE_DESCRIPTION, description)
     .replaceAll(INPUT_PLACE_SUMMARY, summary)
     .replaceAll(INPUT_PLACE_TONE, tone)
+    .replaceAll(INPUT_PLACE_GLOSSARY, glossaryStr)
     .replaceAll(INPUT_PLACE_FROM, from)
     .replaceAll(INPUT_PLACE_TO, to)
     .replaceAll(INPUT_PLACE_FROM_LANG, fromLang)
     .replaceAll(INPUT_PLACE_TO_LANG, toLang);
+};
 
 const parseAIRes = (raw, useBatchFetch = true) => {
   if (!raw) {
@@ -357,23 +372,6 @@ const genDeeplX = ({ texts, from, to, url, key }) => {
   if (key) {
     headers.Authorization = `Bearer ${key}`;
   }
-
-  return { url, body, headers };
-};
-
-const genNiuTrans = ({ texts, from, to, url, key, dictNo, memoryNo }) => {
-  const body = {
-    from,
-    to,
-    apikey: key,
-    src_text: texts.join(" "),
-    dictNo,
-    memoryNo,
-  };
-
-  const headers = {
-    "Content-type": "application/json",
-  };
 
   return { url, body, headers };
 };
@@ -719,7 +717,7 @@ const genReqFuncs = {
   [OPT_TRANS_DEEPL]: genDeepl,
   [OPT_TRANS_DEEPLFREE]: genDeeplFree,
   [OPT_TRANS_DEEPLX]: genDeeplX,
-  [OPT_TRANS_NIUTRANS]: genNiuTrans,
+  [OPT_TRANS_EPHONEAI]: genOpenAI,
   [OPT_TRANS_BAIDU]: genBaidu,
   [OPT_TRANS_TENCENT]: genTencent,
   [OPT_TRANS_VOLCENGINE]: genVolcengine,
@@ -787,6 +785,7 @@ export const genTransReq = async ({ reqHook, ...args }) => {
     toLang,
     texts,
     glossary,
+    aiTerms,
     customHeader,
     customBody,
     events,
@@ -806,39 +805,41 @@ export const genTransReq = async ({ reqHook, ...args }) => {
 
     args.systemPrompt = events
       ? genSubtitlePrompt({
-          subtitlePrompt,
-          from,
-          to,
-          fromLang,
-          toLang,
-          texts,
-          docInfo,
-          tone,
-        })
+        subtitlePrompt,
+        from,
+        to,
+        fromLang,
+        toLang,
+        texts,
+        docInfo,
+        tone,
+        aiTerms,
+      })
       : genSystemPrompt({
-          systemPrompt: useBatchFetch ? systemPrompt : nobatchPrompt,
-          from,
-          to,
-          fromLang,
-          toLang,
-          texts,
-          docInfo,
-          tone,
-        });
+        systemPrompt: useBatchFetch ? systemPrompt : nobatchPrompt,
+        from,
+        to,
+        fromLang,
+        toLang,
+        texts,
+        docInfo,
+        tone,
+      });
     args.userPrompt = events
       ? JSON.stringify(events)
       : genUserPrompt({
-          nobatchUserPrompt,
-          useBatchFetch,
-          from,
-          to,
-          fromLang,
-          toLang,
-          texts,
-          docInfo,
-          tone,
-          glossary,
-        });
+        nobatchUserPrompt,
+        useBatchFetch,
+        from,
+        to,
+        fromLang,
+        toLang,
+        texts,
+        docInfo,
+        tone,
+        glossary,
+        aiTerms,
+      });
   }
 
   const {
@@ -975,12 +976,6 @@ export const parseTransRes = async (
       ];
     case OPT_TRANS_DEEPLX:
       return [[res?.data, res?.source_lang]];
-    case OPT_TRANS_NIUTRANS:
-      const json = JSON.parse(res);
-      if (json.error_msg) {
-        throw new Error(json.error_msg);
-      }
-      return [[json.tgt_text, json.from]];
     case OPT_TRANS_BAIDU:
       if (res.type === 1) {
         return [
@@ -997,6 +992,7 @@ export const parseTransRes = async (
       return res?.auto_translation?.map((text) => [text, res?.src_lang]);
     case OPT_TRANS_VOLCENGINE:
       return [[res?.translation, res?.detected_language]];
+    case OPT_TRANS_EPHONEAI:
     case OPT_TRANS_OPENAI:
     case OPT_TRANS_GEMINI_2:
     case OPT_TRANS_OPENROUTER:

@@ -11,6 +11,7 @@ import Typography from "@mui/material/Typography";
 import Accordion from "@mui/material/Accordion";
 import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
+import StarIcon from '@mui/icons-material/Star';
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import AddIcon from "@mui/icons-material/Add";
 import Alert from "@mui/material/Alert";
@@ -29,7 +30,7 @@ import {
   OPT_TRANS_DEEPLX,
   // OPT_TRANS_OLLAMA,
   OPT_TRANS_CUSTOMIZE,
-  OPT_TRANS_NIUTRANS,
+  OPT_TRANS_EPHONEAI,
   OPT_TRANS_BUILTINAI,
   DEFAULT_FETCH_LIMIT,
   DEFAULT_FETCH_INTERVAL,
@@ -214,8 +215,6 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi }) {
     fetchLimit = DEFAULT_FETCH_LIMIT,
     fetchInterval = DEFAULT_FETCH_INTERVAL,
     httpTimeout = DEFAULT_HTTP_TIMEOUT,
-    dictNo = "",
-    memoryNo = "",
     reqHook = "",
     resHook = "",
     temperature = 0,
@@ -235,13 +234,20 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi }) {
     placetagFormat = "compact",
     region = "",
     sortOrder = 0,
-    // aiTerms = false,
+    aiTerms = "",
   } = formData;
 
   const keyHelper = useMemo(
     () => (API_SPE_TYPES.mulkeys.has(apiType) ? i18n("mulkeys_help") : ""),
     [apiType, i18n]
   );
+
+  const EPHONEAI_MODELS = [
+    "gpt-5.4-mini",
+    "gpt-5.4-nano",
+    "gemini-3.1-flash-lite-preview",
+    "grok-4.20-beta-0309-non-reasoning",
+  ]
 
   return (
     <Stack spacing={3}>
@@ -314,17 +320,30 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi }) {
         <>
           <Box>
             <Grid container spacing={2} columns={12}>
-              <Grid item xs={12} sm={12} md={6} lg={3}>
-                {/* todo： 改成 ReusableAutocomplete 可选择和填写模型 */}
-                <TextField
-                  size="small"
-                  fullWidth
-                  label={"Model"}
-                  name="model"
-                  value={model}
-                  onChange={handleChange}
-                />
-              </Grid>
+              {
+                apiType === OPT_TRANS_EPHONEAI ? <Grid item xs={12} sm={12} md={6} lg={3}>
+                  <ReusableAutocomplete
+                    freeSolo
+                    size="small"
+                    fullWidth
+                    options={EPHONEAI_MODELS}
+                    name="model"
+                    label={"Model"}
+                    value={model}
+                    onChange={handleChange}
+                  />
+                </Grid> : <Grid item xs={12} sm={12} md={6} lg={3}>
+                  {/* todo： 改成 ReusableAutocomplete 可选择和填写模型 */}
+                  <TextField
+                    size="small"
+                    fullWidth
+                    label={"Model"}
+                    name="model"
+                    value={model}
+                    onChange={handleChange}
+                  />
+                </Grid>
+              }
               <Grid item xs={12} sm={12} md={6} lg={3}>
                 <ReusableAutocomplete
                   freeSolo
@@ -451,6 +470,16 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi }) {
             multiline
             maxRows={10}
           /> */}
+          <TextField
+            size="small"
+            label={i18n("ai_terms")}
+            helperText={i18n("ai_terms_helper")}
+            name="aiTerms"
+            value={aiTerms}
+            onChange={handleChange}
+            multiline
+            maxRows={10}
+          />
         </>
       )}
 
@@ -476,25 +505,6 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi }) {
           />
         </>
       )} */}
-
-      {apiType === OPT_TRANS_NIUTRANS && (
-        <>
-          <TextField
-            size="small"
-            label={"DictNo"}
-            name="dictNo"
-            value={dictNo}
-            onChange={handleChange}
-          />
-          <TextField
-            size="small"
-            label={"MemoryNo"}
-            name="memoryNo"
-            value={memoryNo}
-            onChange={handleChange}
-          />
-        </>
-      )}
 
       {apiType === OPT_TRANS_CUSTOMIZE && (
         <>
@@ -983,6 +993,11 @@ export default function Apis() {
                 onClick={() => handleMenuItemClick(apiOption.type)}
               >
                 {apiOption.label}
+                {
+                  API_SPE_TYPES.sponsors.has(apiOption.type) && (
+                    <StarIcon color="warning" sx={{ marginLeft: "0.2em" }} />
+                  )
+                }
               </MenuItem>
             ))}
           </Menu>

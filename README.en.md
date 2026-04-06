@@ -21,7 +21,7 @@ A simple, open source [bilingual translation extension & Greasemonkey script](ht
   - [x] Google/Microsoft
   - [x] Tencent/Volcengine
   - [x] OpenAI/Gemini/Claude/Ollama/DeepSeek/OpenRouter
-  - [x] DeepL/DeepLX/NiuTrans
+  - [x] DeepL/DeepLX
   - [x] AzureAI / CloudflareAI
   - [x] Chrome built-in AI translation (BuiltinAI)
 - [x] Covers common translation scenarios
@@ -184,3 +184,13 @@ window.dispatchEvent(new CustomEvent("kiss_translator", {detail: { action: "togg
 ## Appreciate
 
 ![appreciate](https://github.com/fishjar/kiss-translator/assets/1157624/ebaecabe-2934-4172-8085-af236f5ee399)
+
+## Sponsors
+
+<p align="center">
+<a href="https://platform.ephone.ai/" target="_blank">
+<img src="https://platform.ephone.ai/logo-e.png" width="96" /><br />
+<b>ePhone AI</b><br />
+An AI model API relay and aggregation platform for developers, supporting multiple large models such as OpenAI, Claude, Gemini, DeepSeek, and GLM.
+</a>
+</p>

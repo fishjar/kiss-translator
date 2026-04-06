@@ -21,7 +21,7 @@
   - [x] Google/Microsoft
   - [x] Tencent/Volcengine
   - [x] OpenAI/Gemini/Claude/Ollama/DeepSeek/OpenRouter
-  - [x] DeepL/DeepLX/NiuTrans
+  - [x] DeepL/DeepLX
   - [x] AzureAI/CloudflareAI
   - [x] Chrome 브라우저 내장 AI 번역(BuiltinAI)
 - [x] 일반적인 번역 시나리오 지원
@@ -185,3 +185,12 @@ window.dispatchEvent(new CustomEvent("kiss_translator", {detail: { action: "togg
 
 ![appreciate](https://github.com/fishjar/kiss-translator/assets/1157624/ebaecabe-2934-4172-8085-af236f5ee399)
 
+## 스폰서
+
+<p align="center">
+<a href="https://platform.ephone.ai/" target="_blank">
+<img src="https://platform.ephone.ai/logo-e.png" width="96" /><br />
+<b>ePhone AI</b><br />
+개발자를 위한 AI 모델 API 중계 및 통합 플랫폼으로, OpenAI, Claude, Gemini, DeepSeek, GLM 등 다양한 대형 모델을 지원합니다.
+</a>
+</p>

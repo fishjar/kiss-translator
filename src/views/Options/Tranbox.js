@@ -56,6 +56,7 @@ export default function Tranbox() {
   const {
     transOpen,
     apiSlugs,
+    singleWordNoTrans = false,
     fromLang,
     toLang,
     toLang2 = "en",
@@ -73,6 +74,7 @@ export default function Tranbox() {
     // extStyles = "",
     enDict = OPT_DICT_BING,
     enSug = OPT_SUG_YOUDAO,
+    blacklist = "",
   } = tranboxSetting;
 
   return (
@@ -113,6 +115,20 @@ export default function Tranbox() {
                     {api.apiName}
                   </MenuItem>
                 ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                fullWidth
+                select
+                size="small"
+                name="singleWordNoTrans"
+                value={singleWordNoTrans}
+                label={i18n("single_word_no_trans")}
+                onChange={handleChange}
+              >
+                <MenuItem value={false}>{i18n("disable")}</MenuItem>
+                <MenuItem value={true}>{i18n("enable")}</MenuItem>
               </TextField>
             </Grid>
             <Grid item xs={12} sm={12} md={6} lg={3}>
@@ -366,6 +382,17 @@ export default function Tranbox() {
           maxRows={10}
           multiline
         /> */}
+
+        <TextField
+          size="small"
+          label={i18n("blacklist")}
+          helperText={i18n("pattern_helper")}
+          name="blacklist"
+          value={blacklist}
+          onChange={handleChange}
+          maxRows={10}
+          multiline
+        />
       </Stack>
     </Box>
   );

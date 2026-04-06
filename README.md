@@ -21,7 +21,7 @@
   - [x] Google/Microsoft
   - [x] Tencent/Volcengine
   - [x] OpenAI/Gemini/Claude/Ollama/DeepSeek/OpenRouter
-  - [x] DeepL/DeepLX/NiuTrans
+  - [x] DeepL/DeepLX
   - [x] AzureAI/CloudflareAI
   - [x] Chrome浏览器内置AI翻译(BuiltinAI)
 - [x] 覆盖常见翻译场景
@@ -184,3 +184,13 @@ window.dispatchEvent(new CustomEvent("kiss_translator", {detail: { action: "togg
 ## 赞赏
 
 ![appreciate](https://github.com/fishjar/kiss-translator/assets/1157624/ebaecabe-2934-4172-8085-af236f5ee399)
+
+## 赞助商
+
+<p align="center">
+<a href="https://platform.ephone.ai/" target="_blank">
+<img src="https://platform.ephone.ai/logo-e.png" width="96" /><br />
+<b>ePhone AI</b><br />
+一个面向开发者的 AI 模型 API 中转与聚合平台，支持 OpenAI、Claude、Gemini、DeepSeek、GLM 等多家大模型。
+</a>
+</p>
