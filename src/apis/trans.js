@@ -185,6 +185,36 @@ const genSubtitlePrompt = ({
     .replaceAll(INPUT_PLACE_TO_LANG, toLang);
 };
 
+const normalizeSubtitleContext = (text) =>
+  String(text ?? "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 400);
+
+const buildSubtitleUserPrompt = ({
+  formattedEvents,
+  prevContext = "",
+  nextContext = "",
+}) => {
+  const mainInput = JSON.stringify(formattedEvents);
+  const prev = normalizeSubtitleContext(prevContext);
+  const next = normalizeSubtitleContext(nextContext);
+  if (!prev && !next) return mainInput;
+  const sections = [];
+  if (prev) {
+    sections.push(
+      `[Previous context (read-only, do NOT segment)]\n${JSON.stringify(prev)}`
+    );
+  }
+  sections.push(`[Main input]\n${mainInput}`);
+  if (next) {
+    sections.push(
+      `[Next context (read-only, do NOT segment)]\n${JSON.stringify(next)}`
+    );
+  }
+  return sections.join("\n\n");
+};
+
 const parseAIRes = (raw, useBatchFetch = true) => {
   if (!raw) {
     return [];
@@ -318,6 +348,8 @@ const parseIndexSubtitleRes = (raw, events) => {
         end: events[endIdx].end,
         text: String(seg.o ?? seg.original ?? ""),
         translation: String(seg.t ?? seg.translation ?? ""),
+        _si: s,
+        _ei: e,
       });
     }
     return result.length ? result : null;
@@ -972,6 +1004,8 @@ export const genTransReq = async ({ reqHook, ...args }) => {
     customBody,
     events,
     tone,
+    prevContext,
+    nextContext,
     docInfo: externalDocInfo,
   } = args;
 
@@ -1036,7 +1070,13 @@ export const genTransReq = async ({ reqHook, ...args }) => {
 
     args.systemPrompt = baseSystemPrompt;
     args.userPrompt = events
-      ? JSON.stringify(events)
+      ? buildSubtitleUserPrompt({
+          formattedEvents: usesIndexSubtitleInput(subtitlePrompt)
+            ? formatIndexSubtitleEvents(events)
+            : events,
+          prevContext,
+          nextContext,
+        })
       : genUserPrompt({
           nobatchUserPrompt,
           useBatchFetch,
@@ -1534,6 +1574,8 @@ export const handleSubtitle = async ({
   to,
   apiSetting,
   docInfo,
+  prevContext = "",
+  nextContext = "",
 }) => {
   const { apiType, fetchInterval, fetchLimit, httpTimeout } = apiSetting;
 
@@ -1543,6 +1585,8 @@ export const handleSubtitle = async ({
     from,
     to,
     docInfo,
+    prevContext,
+    nextContext,
   });
 
   const res = await fetchData(input, init, {
