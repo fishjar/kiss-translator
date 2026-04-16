@@ -607,13 +607,17 @@ export const apiSubtitle = async ({
   events = [],
   apiSetting,
   docInfo,
+  prevContext = "",
+  nextContext = "",
 }) => {
+  if (!events?.length) return [];
   const cacheOpts = {
     apiSlug: apiSetting.apiSlug,
     videoId,
     chunkSign,
     fromLang,
     toLang,
+    segVer: 2,
     ctx: docInfo?.summary?.slice(0, 50) || "",
   };
   const cacheInput = `${URL_CACHE_SUBTITLE}?${queryString.stringify(cacheOpts)}`;
@@ -628,6 +632,8 @@ export const apiSubtitle = async ({
     to: toLang,
     apiSetting,
     docInfo,
+    prevContext,
+    nextContext,
   });
   if (subtitles?.length) {
     putHttpCachePolyfill(cacheInput, null, subtitles);
