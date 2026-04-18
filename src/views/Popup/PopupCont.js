@@ -16,7 +16,7 @@ import {
   MSG_TRANS_PUTRULE,
   MSG_SAVE_RULE,
   MSG_COMMAND_SHORTCUTS,
-  MSG_TRANSBOX_TOGGLE,
+  MSG_OPEN_TRANBOX,
   MSG_MOUSEHOVER_TOGGLE,
   MSG_TRANSINPUT_TOGGLE,
   OPT_LANGS_FROM,
@@ -66,9 +66,9 @@ export default function PopupCont({
       }));
 
       if (!processActions) {
-        await sendTabMsg(MSG_TRANSBOX_TOGGLE);
+        await sendTabMsg(MSG_OPEN_TRANBOX);
       } else {
-        processActions({ action: MSG_TRANSBOX_TOGGLE });
+        processActions({ action: MSG_OPEN_TRANBOX });
       }
     } catch (err) {
       kissLog("toggle transbox", err);

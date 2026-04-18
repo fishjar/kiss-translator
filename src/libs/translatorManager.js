@@ -22,9 +22,7 @@ import {
   MSG_TRANS_TOGGLE,
   MSG_TRANS_TOGGLE_STYLE,
   MSG_TRANS_GETRULE,
-  MSG_TRANS_PUTRULE,
   MSG_OPEN_TRANBOX,
-  MSG_TRANSBOX_TOGGLE,
   MSG_POPUP_TOGGLE,
   MSG_MOUSEHOVER_TOGGLE,
   MSG_TRANSINPUT_TOGGLE,
@@ -283,22 +281,17 @@ export default class TranslatorManager {
         break;
       case MSG_TRANS_GETRULE:
         break;
-      case MSG_TRANS_PUTRULE:
-        this._translator.updateRule(args);
-        break;
       case MSG_OPEN_TRANBOX:
         document.dispatchEvent(
           new CustomEvent(EVENT_KISS_INNER, {
             detail: { action: MSG_OPEN_TRANBOX },
           })
         );
+        this._transboxManager?.toggle();
+        this._translator.toggleTransbox();
         break;
       case MSG_POPUP_TOGGLE:
         this._popupManager?.toggle();
-        break;
-      case MSG_TRANSBOX_TOGGLE:
-        this._transboxManager?.toggle();
-        this._translator.toggleTransbox();
         break;
       case MSG_MOUSEHOVER_TOGGLE:
         this._translator.toggleMouseHover();

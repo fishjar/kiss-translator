@@ -15,7 +15,6 @@ export const MSG_OPEN_TRANBOX = "open_tranbox";
 export const MSG_TRANS_GETRULE = "trans_getrule";
 export const MSG_TRANS_PUTRULE = "trans_putrule";
 export const MSG_TRANS_CURRULE = "trans_currule";
-export const MSG_TRANSBOX_TOGGLE = "toggle_transbox";
 export const MSG_POPUP_TOGGLE = "toggle_popup";
 export const MSG_MOUSEHOVER_TOGGLE = "toggle_mousehover";
 export const MSG_HOVERNODE_TOGGLE = "toggle_hover_node";
