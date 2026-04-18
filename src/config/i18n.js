@@ -2346,6 +2346,13 @@ export const I18N = {
     ja: `ミニ/通常モード`,
     ko: `미니/일반 모드`,
   },
+  btn_tip_dark_mode: {
+    zh: `亮色/暗色/跟随系统`,
+    en: `Light/Dark/Auto`,
+    zh_TW: `亮色/暗色/跟隨系統`,
+    ja: `ライト/ダーク/自動`,
+    ko: `라이트/다크/자동`,
+  },
   api_placeholder: {
     zh: `占位符`,
     en: `Placeholder`,
