@@ -259,14 +259,16 @@ export default function DraggableResizable({
           sx={() => {
             const containerStyle = autoHeight
               ? {
-                  maxWidth: size.w,
+                  width: size.w,
                   maxHeight: size.h,
                   overflow: "hidden auto",
+                  wordBreak: "break-word",
                 }
               : {
-                  maxWidth: size.w,
+                  width: size.w,
                   height: size.h,
                   overflow: "hidden auto",
+                  wordBreak: "break-word",
                 };
 
             const scrollbarTrackColor =
