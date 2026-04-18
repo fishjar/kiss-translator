@@ -11,7 +11,7 @@ import Typography from "@mui/material/Typography";
 import Accordion from "@mui/material/Accordion";
 import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
-import StarIcon from '@mui/icons-material/Star';
+import StarIcon from "@mui/icons-material/Star";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import AddIcon from "@mui/icons-material/Add";
 import Alert from "@mui/material/Alert";
@@ -247,7 +247,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi }) {
     "gpt-5.4-nano",
     "gemini-3.1-flash-lite-preview",
     "grok-4.20-beta-0309-non-reasoning",
-  ]
+  ];
 
   return (
     <Stack spacing={3}>
@@ -320,8 +320,8 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi }) {
         <>
           <Box>
             <Grid container spacing={2} columns={12}>
-              {
-                apiType === OPT_TRANS_EPHONEAI ? <Grid item xs={12} sm={12} md={6} lg={3}>
+              {apiType === OPT_TRANS_EPHONEAI ? (
+                <Grid item xs={12} sm={12} md={6} lg={3}>
                   <ReusableAutocomplete
                     freeSolo
                     size="small"
@@ -332,7 +332,9 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi }) {
                     value={model}
                     onChange={handleChange}
                   />
-                </Grid> : <Grid item xs={12} sm={12} md={6} lg={3}>
+                </Grid>
+              ) : (
+                <Grid item xs={12} sm={12} md={6} lg={3}>
                   {/* todo： 改成 ReusableAutocomplete 可选择和填写模型 */}
                   <TextField
                     size="small"
@@ -343,7 +345,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi }) {
                     onChange={handleChange}
                   />
                 </Grid>
-              }
+              )}
               <Grid item xs={12} sm={12} md={6} lg={3}>
                 <ReusableAutocomplete
                   freeSolo
@@ -993,11 +995,9 @@ export default function Apis() {
                 onClick={() => handleMenuItemClick(apiOption.type)}
               >
                 {apiOption.label}
-                {
-                  API_SPE_TYPES.sponsors.has(apiOption.type) && (
-                    <StarIcon color="warning" sx={{ marginLeft: "0.2em" }} />
-                  )
-                }
+                {API_SPE_TYPES.sponsors.has(apiOption.type) && (
+                  <StarIcon color="warning" sx={{ marginLeft: "0.2em" }} />
+                )}
               </MenuItem>
             ))}
           </Menu>

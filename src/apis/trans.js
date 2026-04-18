@@ -805,41 +805,41 @@ export const genTransReq = async ({ reqHook, ...args }) => {
 
     args.systemPrompt = events
       ? genSubtitlePrompt({
-        subtitlePrompt,
-        from,
-        to,
-        fromLang,
-        toLang,
-        texts,
-        docInfo,
-        tone,
-        aiTerms,
-      })
+          subtitlePrompt,
+          from,
+          to,
+          fromLang,
+          toLang,
+          texts,
+          docInfo,
+          tone,
+          aiTerms,
+        })
       : genSystemPrompt({
-        systemPrompt: useBatchFetch ? systemPrompt : nobatchPrompt,
-        from,
-        to,
-        fromLang,
-        toLang,
-        texts,
-        docInfo,
-        tone,
-      });
+          systemPrompt: useBatchFetch ? systemPrompt : nobatchPrompt,
+          from,
+          to,
+          fromLang,
+          toLang,
+          texts,
+          docInfo,
+          tone,
+        });
     args.userPrompt = events
       ? JSON.stringify(events)
       : genUserPrompt({
-        nobatchUserPrompt,
-        useBatchFetch,
-        from,
-        to,
-        fromLang,
-        toLang,
-        texts,
-        docInfo,
-        tone,
-        glossary,
-        aiTerms,
-      });
+          nobatchUserPrompt,
+          useBatchFetch,
+          from,
+          to,
+          fromLang,
+          toLang,
+          texts,
+          docInfo,
+          tone,
+          glossary,
+          aiTerms,
+        });
   }
 
   const {
