@@ -52,6 +52,9 @@
       },
       "description": "__MSG_toggle_translate__"
     },
+    "toggleTranbox": {
+      "description": "__MSG_toggle_tranbox__"
+    },
     "openTranbox": {
       "suggested_key": {
         "default": "Alt+S"

@@ -1,23 +1,16 @@
 import { useEffect, useCallback } from "react";
-import { shortcutRegister } from "../libs/shortcut";
-import { isGm, isExt } from "../libs/client";
+import { isGm } from "../libs/client";
 import { kissLog } from "../libs/log";
 import { useLangMap } from "./I18n";
-import {
-  MSG_OPEN_TRANBOX,
-  EVENT_KISS_INNER,
-  DEFAULT_TRANBOX_SHORTCUT,
-} from "../config";
+import { MSG_OPEN_TRANBOX, EVENT_KISS_INNER } from "../config";
 
 export default function useTranboxShortcuts({
-  tranboxSetting,
   showBox,
   setShowBox,
   handleToggleTranbox,
   contextMenuType,
   uiLang,
 }) {
-  const { tranboxShortcut = DEFAULT_TRANBOX_SHORTCUT } = tranboxSetting;
   const langMap = useLangMap(uiLang);
 
   const handleToggle = useCallback(() => {
@@ -28,18 +21,7 @@ export default function useTranboxShortcuts({
     }
   }, [showBox, handleToggleTranbox, setShowBox]);
 
-  // 注册油猴脚本快捷键
-  useEffect(() => {
-    if (isExt) {
-      return;
-    }
-    const clearShortcut = shortcutRegister(tranboxShortcut, handleToggle);
-    return () => {
-      clearShortcut();
-    };
-  }, [tranboxShortcut, handleToggle]);
-
-  // 监听打开翻译框的事件
+  // 监听打开翻译框的事件（浏览器扩展快捷键通过此事件触发显示/隐藏）
   useEffect(() => {
     const handleStatusUpdate = (event) => {
       if (event.detail?.action === MSG_OPEN_TRANBOX) {
@@ -53,7 +35,7 @@ export default function useTranboxShortcuts({
     };
   }, [handleToggle]);
 
-  // 注册油猴脚本菜单
+  // 注册油猴脚本菜单（显示翻译框）
   useEffect(() => {
     if (!isGm) {
       return;

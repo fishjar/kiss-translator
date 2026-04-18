@@ -19,5 +19,8 @@
   },
   "open_separate_window": {
     "message": "In eigenem Fenster öffnen"
+  },
+  "toggle_tranbox": {
+    "message": "Übersetzungsbox umschalten"
   }
 }
