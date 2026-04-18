@@ -646,6 +646,15 @@ export class Translator {
     );
   }
 
+  // 更新配置
+  updateSetting(newSetting) {
+    if (!newSetting) return;
+    this.#setting = { ...Translator.DEFAULT_OPTIONS, ...newSetting };
+    this.#apisMap = new Map(
+      this.#setting.transApis.map((api) => [api.apiSlug, api])
+    );
+  }
+
   // 监控页面动态变化
   #createMutationObserver() {
     return new MutationObserver((mutations) => {
@@ -1291,7 +1300,7 @@ export class Translator {
       }
 
       const inner = document.createElement(transTag);
-      inner.lang = toLang
+      inner.lang = toLang;
       inner.className = `${Translator.KISS_CLASS.inner} ${this.#textClass[textStyle] || ""}`;
       if (textExtStyle?.trim()) {
         inner.style.cssText = textExtStyle; // 附加内联样式

@@ -11,6 +11,7 @@ import {
   MSG_INPUT_TRANSLATE,
   newI18n,
 } from "../config";
+import { addSettingListener } from "./storage";
 import { touchTapListener } from "./touch";
 import { PopupManager } from "./popupManager";
 import { FabManager } from "./fabManager";
@@ -93,6 +94,12 @@ export default class TranslatorManager {
       this.#registerShortcuts();
       this.#registerMenus();
     }
+
+    addSettingListener((newSetting) => {
+      if (this._translator) {
+        this._translator.updateSetting(newSetting);
+      }
+    });
 
     this.#isActive = true;
     logger.info("TranslatorManager started.");

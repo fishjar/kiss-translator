@@ -161,9 +161,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_EPHONEAI,
   ]),
   // 赞助商
-  sponsors: new Set([
-    OPT_TRANS_EPHONEAI
-  ])
+  sponsors: new Set([OPT_TRANS_EPHONEAI]),
 };
 
 export const BUILTIN_STONES = [

@@ -184,3 +184,47 @@ export const tryInitDefaultData = async () => {
     kissLog("init default", err);
   }
 };
+
+/**
+ * 监听设置变化
+ */
+export const addSettingListener = (callback) => {
+  if (isExt) {
+    browser.storage.onChanged.addListener((changes, area) => {
+      if (area === "local" && changes[STOKEY_SETTING]) {
+        try {
+          const newVal = JSON.parse(changes[STOKEY_SETTING].newValue);
+          if (newVal) callback(newVal);
+        } catch (err) {
+          kissLog("parse setting listener error", err);
+        }
+      }
+    });
+  } else if (isGm) {
+    const KISS_GM = window.KISS_GM || GM;
+    if (KISS_GM && typeof KISS_GM.addValueChangeListener === "function") {
+      KISS_GM.addValueChangeListener(
+        STOKEY_SETTING,
+        (name, old_value, new_value, remote) => {
+          try {
+            const newVal = JSON.parse(new_value);
+            if (newVal) callback(newVal);
+          } catch (err) {
+            kissLog("parse setting listener error", err);
+          }
+        }
+      );
+    }
+  } else {
+    window.addEventListener("storage", (e) => {
+      if (e.key === STOKEY_SETTING) {
+        try {
+          const newVal = JSON.parse(e.newValue);
+          if (newVal) callback(newVal);
+        } catch (err) {
+          kissLog("parse setting listener error", err);
+        }
+      }
+    });
+  }
+};
