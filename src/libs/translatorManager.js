@@ -22,6 +22,7 @@ import {
   MSG_TRANS_TOGGLE,
   MSG_TRANS_TOGGLE_STYLE,
   MSG_TRANS_GETRULE,
+  MSG_TRANS_PUTRULE,
   MSG_OPEN_TRANBOX,
   MSG_POPUP_TOGGLE,
   MSG_MOUSEHOVER_TOGGLE,
@@ -280,6 +281,9 @@ export default class TranslatorManager {
         this._translator.toggleStyle();
         break;
       case MSG_TRANS_GETRULE:
+        break;
+      case MSG_TRANS_PUTRULE:
+        this._translator.updateRule(args);
         break;
       case MSG_OPEN_TRANBOX:
         document.dispatchEvent(
