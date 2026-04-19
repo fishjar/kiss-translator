@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import Stack from "@mui/material/Stack";
-import FavBtn from "./FavBtn";
+import GlossaryBtn from "./GlossaryBtn";
 import Typography from "@mui/material/Typography";
 import CircularProgress from "@mui/material/CircularProgress";
 import Divider from "@mui/material/Divider";
@@ -62,7 +62,7 @@ export default function DictCont({ text, enDict }) {
           </Typography>
           <Stack direction="row" justifyContent="space-between">
             <CopyBtn text={copyText} title={i18n("copy")} />
-            <FavBtn word={realWord} title={i18n("collect")} />
+            <GlossaryBtn word={realWord} title={i18n("add_to_glossary")} />
           </Stack>
         </Stack>
       )}

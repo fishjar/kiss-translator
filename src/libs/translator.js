@@ -171,6 +171,8 @@ export class Translator {
     br: `${APP_LCNAME}-br`,
     highlight: `${APP_LCNAME}-highlight`,
     retry: `${APP_LCNAME}-retry`,
+    noTranslate: `${APP_LCNAME}-no-translate`,
+    customTranslate: `${APP_LCNAME}-custom-translate`,
   };
 
   // 内置跳过翻译文本
@@ -309,7 +311,9 @@ export class Translator {
   #textClass = {}; // 译文样式class
   #textSheet = ""; // 译文样式字典
   #apisMap = new Map(); // 用于接口快速查找
-  #favWords = []; // 收藏词汇
+  #favWords = {}; // 收藏词汇（包含类型和自定义翻译）
+  #noTranslateWords = []; // 不翻译词汇列表
+  #customTranslateMap = {}; // 自定义翻译词汇映射
 
   #observedNodes = new WeakSet(); // 存储所有被识别出的、可翻译的 DOM 节点单元
   #translationNodes = new WeakMap(); // 存储所有插入到页面的译文节点
@@ -416,10 +420,19 @@ export class Translator {
     return result;
   }
 
-  constructor({ rule = {}, setting = {}, favWords = [] }) {
+  constructor({ rule = {}, setting = {}, favWords = {} }) {
     this.#setting = { ...Translator.DEFAULT_OPTIONS, ...setting };
     this.#rule = { ...Translator.DEFAULT_RULE, ...rule, isPlainText: false };
     this.#favWords = favWords;
+
+    Object.entries(favWords || {}).forEach(([word, data]) => {
+      if (data?.type === "no_translate") {
+        this.#noTranslateWords.push(word);
+      } else if (data?.type === "custom_translate" && data?.customTranslation) {
+        this.#customTranslateMap[word] = data.customTranslation;
+      }
+    });
+
     this.#apisMap = new Map(
       this.#setting.transApis.map((api) => [api.apiSlug, api])
     );
@@ -430,7 +443,6 @@ export class Translator {
     );
 
     this.#parseTerms(this.#rule.terms);
-    // this.#parseAITerms(this.#rule.aiTerms);
     this.#glossary = parseAITerms(this.#rule.aiTerms);
     this.#createTextStyles();
 
@@ -1059,12 +1071,13 @@ export class Translator {
 
   // 高亮词汇
   #highlightWordsDeeply(parentNode) {
-    if (!parentNode || this.#favWords.length === 0) {
+    const favWordKeys = Object.keys(this.#favWords || {});
+    if (!parentNode || favWordKeys.length === 0) {
       return;
     }
 
     const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const escapedWords = this.#favWords.map(escapeRegex);
+    const escapedWords = favWordKeys.map(escapeRegex);
     const wordRegex = new RegExp(`\\b(${escapedWords.join("|")})\\b`, "gi");
 
     if (parentNode.nodeType === Node.ELEMENT_NODE) {
@@ -1447,6 +1460,39 @@ export class Translator {
             return pushReplace(
               `<i class="${Translator.KISS_CLASS.term}" style="${termsStyle}">${termValue || fullMatch}</i>`
             );
+          });
+        }
+
+        // 不翻译词汇替换（保持原文不被翻译）
+        if (this.#noTranslateWords.length > 0) {
+          const escapeRegex = (str) =>
+            str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          const noTranslateRegex = new RegExp(
+            `\\b(${this.#noTranslateWords.map(escapeRegex).join("|")})\\b`,
+            "gi"
+          );
+          text = text.replace(noTranslateRegex, (match) => {
+            return pushReplace(`<span class="${Translator.KISS_CLASS.noTranslate}">${match}</span>`);
+          });
+        }
+
+        // 自定义翻译词汇替换（使用用户指定的翻译）
+        const customTranslateWords = Object.keys(this.#customTranslateMap);
+        if (customTranslateWords.length > 0) {
+          const escapeRegex = (str) =>
+            str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          const customTranslateRegex = new RegExp(
+            `\\b(${customTranslateWords.map(escapeRegex).join("|")})\\b`,
+            "gi"
+          );
+          text = text.replace(customTranslateRegex, (match) => {
+            const customTranslation = this.#customTranslateMap[match] || this.#customTranslateMap[match.toLowerCase()];
+            if (customTranslation) {
+              return pushReplace(
+                `<span class="${Translator.KISS_CLASS.customTranslate}">${customTranslation}</span>`
+              );
+            }
+            return match;
           });
         }
 
