@@ -437,6 +437,7 @@ export default function PopupCont({
           }
           onChange={handleChange}
           fullWidth
+          InputLabelProps={{ shrink: true }}
         >
           {allTextStyles.map((item) => (
             <MenuItem key={item.styleSlug} value={item.styleSlug}>

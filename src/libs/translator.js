@@ -2069,4 +2069,39 @@ export class Translator {
   get eventName() {
     return this.#eventName;
   }
+
+  updateStyles(newCustomStyles) {
+    if (newCustomStyles) {
+      this.#setting.customStyles = newCustomStyles;
+    }
+
+    this.#createTextStyles();
+
+    this.#injectSheet(document);
+
+    this.#findAllShadowRoots().forEach((shadowRoot) => {
+      this.#injectSheet(shadowRoot);
+    });
+
+    if (this.#enabled) {
+      this.#reIOViewNodes();
+    }
+  }
+
+  updateGlossary(newFavWords) {
+    this.#favWords = newFavWords || {};
+
+    this.#noTranslateWords = [];
+    this.#customTranslateMap = {};
+
+    Object.entries(this.#favWords).forEach(([word, data]) => {
+      if (data?.type === "no_translate") {
+        this.#noTranslateWords.push(word);
+      } else if (data?.type === "custom_translate" && data?.customTranslation) {
+        this.#customTranslateMap[word] = data.customTranslation;
+      }
+    });
+
+    this.#placeholderCache = null;
+  }
 }

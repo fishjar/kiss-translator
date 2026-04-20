@@ -14,6 +14,7 @@ import {
 import { touchTapListener } from "./touch";
 import { PopupManager } from "./popupManager";
 import { FabManager } from "./fabManager";
+import { GlossaryManager } from "./glossaryManager";
 import {
   OPT_SHORTCUT_TRANSLATE,
   OPT_SHORTCUT_STYLE,
@@ -28,6 +29,9 @@ import {
   MSG_POPUP_TOGGLE,
   MSG_MOUSEHOVER_TOGGLE,
   MSG_TRANSINPUT_TOGGLE,
+  MSG_UPDATE_STYLES,
+  MSG_UPDATE_GLOSSARY,
+  MSG_OPEN_GLOSSARY_PANEL,
 } from "../config";
 import { logger } from "./log";
 
@@ -48,6 +52,7 @@ export default class TranslatorManager {
   _inputTranslator;
   _popupManager;
   _fabManager;
+  _glossaryManager;
 
   constructor({ setting, rule, fabConfig, favWords, isIframe, isUserscript }) {
     this.#isIframe = isIframe;
@@ -72,6 +77,10 @@ export default class TranslatorManager {
       this._fabManager = new FabManager({
         processActions: this.#processActions.bind(this),
         fabConfig,
+      });
+      this._glossaryManager = new GlossaryManager({
+        translator: this._translator,
+        processActions: this.#processActions.bind(this),
       });
     }
 
@@ -135,6 +144,7 @@ export default class TranslatorManager {
     // 子模块
     this._popupManager?.destroy();
     this._fabManager?.destroy();
+    this._glossaryManager?.destroy();
     this._transboxManager?.disable();
     this._inputTranslator?.disable();
     this._translator.stop();
@@ -312,6 +322,19 @@ export default class TranslatorManager {
         break;
       case MSG_INPUT_TRANSLATE:
         this._inputTranslator.handleTranslate();
+        break;
+      case MSG_UPDATE_STYLES:
+        this._translator.updateStyles(args?.customStyles);
+        break;
+      case MSG_UPDATE_GLOSSARY:
+        this._translator.updateGlossary(args?.favWords);
+        break;
+      case MSG_OPEN_GLOSSARY_PANEL:
+        document.dispatchEvent(
+          new CustomEvent(EVENT_KISS_INNER, {
+            detail: { action: MSG_OPEN_GLOSSARY_PANEL },
+          })
+        );
         break;
       default:
         logger.info(`Message action is unavailable: ${action}`);

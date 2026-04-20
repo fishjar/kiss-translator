@@ -7,6 +7,7 @@ export const APP_CONSTS = {
   fabID: `${APP_LCNAME}-fab`,
   boxID: `${APP_LCNAME}-box`,
   popupID: `${APP_LCNAME}-popup`,
+  glossaryID: `${APP_LCNAME}-glossary`,
 };
 
 export const APP_VERSION = process.env.REACT_APP_VERSION.split(".");

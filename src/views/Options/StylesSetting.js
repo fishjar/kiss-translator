@@ -165,99 +165,87 @@ function StyleFields({ customStyle, deleteStyle, updateStyle, isBuiltin }) {
             />
           </Divider>
 
-          <FormControl fullWidth size="small">
-            <InputLabel id="style-type-label">
-              {i18n("text_style_alt") || "Style Type"}
-            </InputLabel>
-            <TextField
-              select
-              size="small"
-              label={i18n("text_style_alt") || "Style Type"}
-              value={visualOptions.styleType}
-              onChange={(e) =>
-                handleVisualOptionChange("styleType", e.target.value)
-              }
-            >
-              {STYLE_TYPES.map((type) => (
-                <MenuItem key={type.value} value={type.value}>
-                  {type.label}
-                </MenuItem>
-              ))}
-            </TextField>
-          </FormControl>
+          <TextField
+            select
+            fullWidth
+            size="small"
+            label={i18n("text_style_alt") || "Style Type"}
+            value={visualOptions.styleType}
+            onChange={(e) =>
+              handleVisualOptionChange("styleType", e.target.value)
+            }
+            InputLabelProps={{ shrink: true }}
+          >
+            {STYLE_TYPES.map((type) => (
+              <MenuItem key={type.value} value={type.value}>
+                {type.label}
+              </MenuItem>
+            ))}
+          </TextField>
 
           {visualOptions.styleType !== "custom" && (
             <Stack spacing={2}>
               {visualOptions.styleType === "line" && (
-                <FormControl fullWidth size="small">
-                  <InputLabel id="line-style-label">
-                    {i18n("text_style_alt") || "Line Style"}
-                  </InputLabel>
-                  <TextField
-                    select
-                    size="small"
-                    label="Line Style"
-                    value={visualOptions.lineStyle}
-                    onChange={(e) =>
-                      handleVisualOptionChange("lineStyle", e.target.value)
-                    }
-                  >
-                    {LINE_STYLES.map((style) => (
-                      <MenuItem key={style.value} value={style.value}>
-                        {style.label}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </FormControl>
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  label={i18n("text_style_alt") || "Line Style"}
+                  value={visualOptions.lineStyle}
+                  onChange={(e) =>
+                    handleVisualOptionChange("lineStyle", e.target.value)
+                  }
+                  InputLabelProps={{ shrink: true }}
+                >
+                  {LINE_STYLES.map((style) => (
+                    <MenuItem key={style.value} value={style.value}>
+                      {style.label}
+                    </MenuItem>
+                  ))}
+                </TextField>
               )}
 
               {visualOptions.styleType === "box" && (
-                <FormControl fullWidth size="small">
-                  <InputLabel id="border-style-label">
-                    {i18n("text_style_alt") || "Border Style"}
-                  </InputLabel>
-                  <TextField
-                    select
-                    size="small"
-                    label="Border Style"
-                    value={visualOptions.borderStyle}
-                    onChange={(e) =>
-                      handleVisualOptionChange("borderStyle", e.target.value)
-                    }
-                  >
-                    {BORDER_STYLES.map((style) => (
-                      <MenuItem key={style.value} value={style.value}>
-                        {style.label}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </FormControl>
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  label={i18n("text_style_alt") || "Border Style"}
+                  value={visualOptions.borderStyle}
+                  onChange={(e) =>
+                    handleVisualOptionChange("borderStyle", e.target.value)
+                  }
+                  InputLabelProps={{ shrink: true }}
+                >
+                  {BORDER_STYLES.map((style) => (
+                    <MenuItem key={style.value} value={style.value}>
+                      {style.label}
+                    </MenuItem>
+                  ))}
+                </TextField>
               )}
 
               {visualOptions.styleType === "background" && (
-                <FormControl fullWidth size="small">
-                  <InputLabel id="background-type-label">
-                    {i18n("text_style_alt") || "Background Type"}
-                  </InputLabel>
-                  <TextField
-                    select
-                    size="small"
-                    label="Background Type"
-                    value={visualOptions.backgroundType}
-                    onChange={(e) =>
-                      handleVisualOptionChange(
-                        "backgroundType",
-                        e.target.value
-                      )
-                    }
-                  >
-                    {BACKGROUND_TYPES.map((type) => (
-                      <MenuItem key={type.value} value={type.value}>
-                        {type.label}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </FormControl>
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  label={i18n("text_style_alt") || "Background Type"}
+                  value={visualOptions.backgroundType}
+                  onChange={(e) =>
+                    handleVisualOptionChange(
+                      "backgroundType",
+                      e.target.value
+                    )
+                  }
+                  InputLabelProps={{ shrink: true }}
+                >
+                  {BACKGROUND_TYPES.map((type) => (
+                    <MenuItem key={type.value} value={type.value}>
+                      {type.label}
+                    </MenuItem>
+                  ))}
+                </TextField>
               )}
 
               <Stack
