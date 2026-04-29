@@ -7,6 +7,8 @@ import {
   OPT_TRANS_DEEPL,
   OPT_TRANS_DEEPLFREE,
   OPT_TRANS_DEEPLX,
+  OPT_TRANS_DEEPSEEK,
+  OPT_TRANS_SILICONFLOW,
   OPT_TRANS_EPHONEAI,
   OPT_TRANS_BAIDU,
   OPT_TRANS_TENCENT,
@@ -716,6 +718,8 @@ const genReqFuncs = {
   [OPT_TRANS_AZUREAI]: genAzureAI,
   [OPT_TRANS_DEEPL]: genDeepl,
   [OPT_TRANS_DEEPLFREE]: genDeeplFree,
+  [OPT_TRANS_DEEPSEEK]: genOpenAI,
+  [OPT_TRANS_SILICONFLOW]: genOpenAI,
   [OPT_TRANS_DEEPLX]: genDeeplX,
   [OPT_TRANS_EPHONEAI]: genOpenAI,
   [OPT_TRANS_BAIDU]: genBaidu,
@@ -994,6 +998,8 @@ export const parseTransRes = async (
       return [[res?.translation, res?.detected_language]];
     case OPT_TRANS_EPHONEAI:
     case OPT_TRANS_OPENAI:
+    case OPT_TRANS_DEEPSEEK:
+    case OPT_TRANS_SILICONFLOW:
     case OPT_TRANS_GEMINI_2:
     case OPT_TRANS_OPENROUTER:
       modelMsg = res?.choices?.[0]?.message;

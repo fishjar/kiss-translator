@@ -1,6 +1,8 @@
 import { JSONParser } from "@streamparser/json";
 import {
   OPT_TRANS_OPENAI,
+  OPT_TRANS_DEEPSEEK,
+  OPT_TRANS_SILICONFLOW,
   OPT_TRANS_GEMINI,
   OPT_TRANS_GEMINI_2,
   OPT_TRANS_OPENROUTER,
@@ -88,6 +90,8 @@ export const createAsyncQueue = () => {
 export function getStreamDelta(json, apiType) {
   switch (apiType) {
     case OPT_TRANS_OPENAI:
+    case OPT_TRANS_DEEPSEEK:
+    case OPT_TRANS_SILICONFLOW:
     case OPT_TRANS_GEMINI_2:
     case OPT_TRANS_OPENROUTER:
     case OPT_TRANS_OLLAMA:

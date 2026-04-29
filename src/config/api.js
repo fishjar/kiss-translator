@@ -36,6 +36,8 @@ export const OPT_TRANS_GOOGLE = "Google";
 export const OPT_TRANS_GOOGLE_2 = "Google2";
 export const OPT_TRANS_MICROSOFT = "Microsoft";
 export const OPT_TRANS_AZUREAI = "AzureAI";
+export const OPT_TRANS_DEEPSEEK = "DeepSeek";
+export const OPT_TRANS_SILICONFLOW = "SiliconFlow";
 export const OPT_TRANS_DEEPL = "DeepL";
 export const OPT_TRANS_DEEPLX = "DeepLX";
 export const OPT_TRANS_DEEPLFREE = "DeepLFree";
@@ -60,6 +62,8 @@ export const OPT_ALL_TRANS_TYPES = [
   OPT_TRANS_MICROSOFT,
   OPT_TRANS_AZUREAI,
   // OPT_TRANS_BAIDU,
+  OPT_TRANS_DEEPSEEK,
+  OPT_TRANS_SILICONFLOW,
   OPT_TRANS_TENCENT,
   OPT_TRANS_VOLCENGINE,
   OPT_TRANS_DEEPL,
@@ -102,6 +106,8 @@ export const API_SPE_TYPES = {
   ai: new Set([
     OPT_TRANS_EPHONEAI,
     OPT_TRANS_OPENAI,
+    OPT_TRANS_DEEPSEEK,
+    OPT_TRANS_SILICONFLOW,
     OPT_TRANS_GEMINI,
     OPT_TRANS_GEMINI_2,
     OPT_TRANS_CLAUDE,
@@ -112,6 +118,8 @@ export const API_SPE_TYPES = {
   // 支持多key
   mulkeys: new Set([
     OPT_TRANS_AZUREAI,
+    OPT_TRANS_DEEPSEEK,
+    OPT_TRANS_SILICONFLOW,
     OPT_TRANS_DEEPL,
     OPT_TRANS_OPENAI,
     OPT_TRANS_GEMINI,
@@ -126,6 +134,8 @@ export const API_SPE_TYPES = {
   // 支持批处理
   batch: new Set([
     OPT_TRANS_AZUREAI,
+    OPT_TRANS_DEEPSEEK,
+    OPT_TRANS_SILICONFLOW,
     OPT_TRANS_GOOGLE_2,
     OPT_TRANS_MICROSOFT,
     OPT_TRANS_TENCENT,
@@ -141,6 +151,8 @@ export const API_SPE_TYPES = {
   ]),
   // 支持上下文
   context: new Set([
+    OPT_TRANS_DEEPSEEK,
+    OPT_TRANS_SILICONFLOW,
     OPT_TRANS_OPENAI,
     OPT_TRANS_GEMINI,
     OPT_TRANS_GEMINI_2,
@@ -152,6 +164,8 @@ export const API_SPE_TYPES = {
   ]),
   // 支持流式传输
   stream: new Set([
+    OPT_TRANS_DEEPSEEK,
+    OPT_TRANS_SILICONFLOW,
     OPT_TRANS_OPENAI,
     OPT_TRANS_GEMINI,
     OPT_TRANS_GEMINI_2,
@@ -275,6 +289,8 @@ export const OPT_LANGS_TO_SPEC = {
     ["zh-CN", "ZH"],
     ["zh-TW", "ZH"],
   ]),
+  [OPT_TRANS_DEEPSEEK]: OPT_LANGS_SPEC_NAME,
+  [OPT_TRANS_SILICONFLOW]: OPT_LANGS_SPEC_NAME,
   [OPT_TRANS_VOLCENGINE]: new Map([
     ...OPT_LANGS_SPEC_DEFAULT,
     ["auto", "auto"],
@@ -606,6 +622,18 @@ const defaultApiOpts = {
   [OPT_TRANS_DEEPLFREE]: {
     ...defaultApi,
     fetchLimit: 1,
+  },
+  [OPT_TRANS_DEEPSEEK]: {
+    ...defaultApi,
+    url: "https://api.deepseek.com/chat/completions",
+    model: "deepseek-v4-flash",
+    useBatchFetch: true,
+  },
+  [OPT_TRANS_SILICONFLOW]: {
+    ...defaultApi,
+    url: "https://api.siliconflow.cn/v1/chat/completions",
+    model: "Pro/zai-org/GLM-4.7",
+    useBatchFetch: true,
   },
   [OPT_TRANS_DEEPLX]: {
     ...defaultApi,
