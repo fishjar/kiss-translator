@@ -8,7 +8,9 @@ function useApiState() {
   const transApis = useMemo(
     () =>
       [...(setting?.transApis || [])].sort(
-        (a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)
+        (a, b) =>
+          (a.isDisabled ? 1 : 0) - (b.isDisabled ? 1 : 0) ||
+          (a.sortOrder || 0) - (b.sortOrder || 0)
       ),
     [setting?.transApis]
   );
