@@ -479,6 +479,7 @@ export const apiTranslate = async ({
   toLang,
   apiSetting = DEFAULT_API_SETTING,
   glossary,
+  onStreamChunk,
   useCache = true,
   usePool = true,
 }) => {
@@ -542,6 +543,7 @@ export const apiTranslate = async ({
       glossary,
       apiSetting,
       usePool,
+      onStreamChunk,
     });
   } else {
     const { value } = await handleTranslate([text], {
