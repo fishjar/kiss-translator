@@ -1300,8 +1300,62 @@ export class Translator {
       nodes[nodes.length - 1].after(wrapper);
 
       const currentRunId = this.#runId;
+
+      // 流式渲染模式
+      const streamRenderMode = this.#apiSetting.streamRenderMode || "disabled";
+      const isStreamRender = streamRenderMode !== "disabled" && this.#apiSetting.useStream && this.#apiSetting.useBatchFetch;
+
+      // RAF 缓冲
+      let rafId = null;
+      let pendingText = "";
+      let hasFirstChunk = false;
+      const innerRef = inner;
+
+      const flushPendingText = () => {
+        if (!hasFirstChunk) {
+          innerRef.textContent = "";
+          innerRef.appendChild(document.createTextNode(pendingText));
+          hasFirstChunk = true;
+        } else {
+          const textNode = innerRef.firstChild;
+          if (textNode) {
+            textNode.nodeValue = pendingText;
+          }
+        }
+        rafId = null;
+      };
+
+      const onStreamChunk = isStreamRender
+        ? (chunk) => {
+            if (this.#runId !== currentRunId) return;
+            const { text, isComplete } = chunk;
+            if (!text) return;
+
+            if (isComplete) {
+              pendingText = Array.isArray(text) ? text[0] : text;
+              if (rafId) {
+                cancelAnimationFrame(rafId);
+                rafId = null;
+              }
+              flushPendingText();
+            } else {
+              pendingText = text;
+              if (!rafId) {
+                rafId = requestAnimationFrame(flushPendingText);
+              }
+            }
+          }
+        : null;
+
       const { trText: translatedText, isSame: isSameLang } =
-        await this.#translateFetch(processedString, deLang);
+        await this.#translateFetch(processedString, deLang, onStreamChunk);
+
+      // 清理 RAF 缓冲
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+
       if (this.#runId !== currentRunId) {
         throw new Error("Request terminated");
       }
