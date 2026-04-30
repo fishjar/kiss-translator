@@ -82,7 +82,7 @@ Translator.#translateNodeGroup
 
 现有逻辑（trans.js:1169-1267）根据 streamRenderMode 分支：
 
-**segment 模式**：无需改动，现有 yield `{ id, result }` 已经是逐段落输出。
+**segment 模式**：现有 yield `{ id, result }` 已经是逐段落输出。无需改动 handleTranslateStreamInternal 本身，但 BatchQueue 需要在 resolve 时额外调用 onStreamChunk（见下方 BatchQueue 细化）。与当前行为的区别：当前段落 resolve 后 Translator 直接替换 innerHTML；segment 模式下，段落仍在流式中时即可显示已完成的段落（loading → textContent），并在全部完成后统一做占位符还原。
 
 **realtime 模式**：在 yield 最终结果之前，额外 yield 中间态：
 
@@ -138,7 +138,7 @@ createRealtimeStreamParser(): {
 
 **但注意**：`#translateNodeGroup` 每次处理的是一组 nodes（一个段落），而 `apiTranslate` 在 BatchQueue 中批量处理多个段落。因此 `onStreamChunk` 需要通过 BatchQueue 分发到各个 task 的回调。
 
-简化方案：每个 `addTask` 可以携带自己的 `onStreamChunk`，BatchQueue 在消费生成器时，根据 `id` 路由到对应 task 的回调。
+简化方案：每个 `addTask` 的 `args` 中携带 `onStreamChunk` 回调。BatchQueue 在消费生成器时，根据 yield 的 `id` 找到对应 task，调用其 `args.onStreamChunk`。
 
 ### BatchQueue 细化
 
@@ -148,18 +148,28 @@ for await (const item of generator) {
   const { id, result, partialText, isComplete } = item;
   const taskItem = tasksToProcess[id];
   if (taskItem) {
-    // 调用该 task 的流式回调
-    if (taskItem.args?.onStreamChunk && !isComplete) {
-      taskItem.args.onStreamChunk({ id, text: partialText, isComplete });
+    // 流式中间态回调（实时模式专用）
+    if (!isComplete && taskItem.args?.onStreamChunk) {
+      taskItem.args.onStreamChunk({ id, text: partialText, isComplete: false });
     }
-    // 段落完成时 resolve
-    if (isComplete && !taskItem.resolved) {
-      taskItem.resolved = true;
-      taskItem.resolve(result);
+    // 段落完成时：调用回调 + resolve Promise
+    if (isComplete) {
+      if (taskItem.args?.onStreamChunk) {
+        taskItem.args.onStreamChunk({ id, text: result, isComplete: true });
+      }
+      if (!taskItem.resolved) {
+        taskItem.resolved = true;
+        taskItem.resolve(result);
+      }
     }
   }
 }
 ```
+
+**注意**：现有代码中 yield 的格式是 `{ id, result }`（无 isComplete/partialText 字段）。改动需要统一 yield 格式为 `{ id, result, partialText?, isComplete }`：
+- 现有段落完成时：`{ id, result, isComplete: true }`
+- 实时模式中间态：`{ id, partialText, isComplete: false }`
+- `isComplete` 缺省时视为 `true`，保持向后兼容
 
 ## 性能优化
 
