@@ -68,11 +68,34 @@ const BatchQueue = (
 
       // 检查是否是异步生成器
       if (generator && typeof generator[Symbol.asyncIterator] === "function") {
-        for await (const { id, result } of generator) {
+        for await (const item of generator) {
+          const id = item.id;
+          const isComplete = item.isComplete !== false; // 缺省为 true
           const taskItem = tasksToProcess[id];
-          if (taskItem && !taskItem.resolved) {
-            taskItem.resolved = true;
-            taskItem.resolve(result);
+
+          if (taskItem) {
+            // 流式中间态回调（实时模式）
+            if (!isComplete && taskItem.args?.onStreamChunk) {
+              taskItem.args.onStreamChunk({
+                id,
+                text: item.partialText,
+                isComplete: false,
+              });
+            }
+            // 段落完成时：回调 + resolve
+            if (isComplete) {
+              if (taskItem.args?.onStreamChunk) {
+                taskItem.args.onStreamChunk({
+                  id,
+                  text: item.result,
+                  isComplete: true,
+                });
+              }
+              if (!taskItem.resolved) {
+                taskItem.resolved = true;
+                taskItem.resolve(item.result);
+              }
+            }
           }
         }
 
