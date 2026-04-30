@@ -2087,6 +2087,27 @@ export const I18N = {
     ja: `ストリーミングを有効にする`,
     ko: `스트리밍 활성화 여부`,
   },
+  stream_render_mode: {
+    zh: `流式渲染模式`,
+    en: `Stream render mode`,
+    zh_TW: `串流渲染模式`,
+    ja: `ストリーミングレンダリングモード`,
+    ko: `스트리밍 렌더링 모드`,
+  },
+  stream_render_realtime: {
+    zh: `实时渲染`,
+    en: `Realtime render`,
+    zh_TW: `即時渲染`,
+    ja: `リアルタイムレンダリング`,
+    ko: `실시간 렌더링`,
+  },
+  stream_render_segment: {
+    zh: `片段渲染`,
+    en: `Segment render`,
+    zh_TW: `片段渲染`,
+    ja: `セグメントレンダリング`,
+    ko: `세그먼트 렌더링`,
+  },
   use_context: {
     zh: `是否启用智能上下文`,
     en: `Whether to enable AI context`,
