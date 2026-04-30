@@ -1587,7 +1587,7 @@ export class Translator {
   }
 
   // 发起翻译请求
-  #translateFetch(text, deLang = "") {
+  #translateFetch(text, deLang = "", onStreamChunk = null) {
     const { toLang, transStartHook } = this.#rule;
     const fromLang = deLang || this.#rule.fromLang;
     const apiSetting = { ...this.#apiSetting };
@@ -1600,6 +1600,7 @@ export class Translator {
       toLang,
       apiSetting,
       glossary,
+      onStreamChunk,
     };
 
     // 翻译开始钩子函数
