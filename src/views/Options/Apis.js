@@ -388,81 +388,6 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi }) {
               <Grid item xs={12} sm={12} md={6} lg={3}></Grid>
             </Grid>
           </Box>
-
-          {useBatchFetch ? (
-            <TextField
-              size="small"
-              label={"Batch System Prompt"}
-              name="systemPrompt"
-              value={systemPrompt}
-              onChange={handleChange}
-              multiline
-              maxRows={10}
-              helperText={
-                <>
-                  {i18n("system_prompt_helper_1")}
-                  <Link
-                    component="button"
-                    sx={{ margin: "0 1em" }}
-                    data-output="json"
-                    onClick={handleUpdateSystemPrompt}
-                  >
-                    {i18n("json_output")}
-                  </Link>
-                  <Link
-                    component="button"
-                    sx={{ margin: "0 1em" }}
-                    data-output="xml"
-                    onClick={handleUpdateSystemPrompt}
-                  >
-                    {i18n("xml_output")}
-                  </Link>
-                  <Link
-                    component="button"
-                    sx={{ margin: "0 1em" }}
-                    data-output="textlines"
-                    onClick={handleUpdateSystemPrompt}
-                  >
-                    {i18n("textlines_output")}
-                  </Link>
-                  <br />
-                  {i18n("system_prompt_helper_2")}
-                </>
-              }
-            />
-          ) : (
-            <>
-              <TextField
-                size="small"
-                label={"System Prompt"}
-                name="nobatchPrompt"
-                value={nobatchPrompt}
-                onChange={handleChange}
-                multiline
-                maxRows={10}
-              />
-              <TextField
-                size="small"
-                label={"User Prompt"}
-                name="nobatchUserPrompt"
-                value={nobatchUserPrompt}
-                onChange={handleChange}
-                multiline
-                maxRows={10}
-              />
-            </>
-          )}
-
-          <TextField
-            size="small"
-            label={"Subtitle Prompt"}
-            name="subtitlePrompt"
-            value={subtitlePrompt}
-            onChange={handleChange}
-            multiline
-            maxRows={10}
-            helperText={i18n("system_prompt_helper")}
-          />
           {/* <TextField
             size="small"
             label={"USER PROMPT"}
@@ -709,6 +634,85 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi }) {
 
       {showMore && (
         <>
+          {API_SPE_TYPES.ai.has(apiType) && (
+            <>
+              {useBatchFetch ? (
+                <TextField
+                  size="small"
+                  label={"Batch System Prompt"}
+                  name="systemPrompt"
+                  value={systemPrompt}
+                  onChange={handleChange}
+                  multiline
+                  maxRows={10}
+                  helperText={
+                    <>
+                      {i18n("system_prompt_helper_1")}
+                      <Link
+                        component="button"
+                        sx={{ margin: "0 1em" }}
+                        data-output="json"
+                        onClick={handleUpdateSystemPrompt}
+                      >
+                        {i18n("json_output")}
+                      </Link>
+                      <Link
+                        component="button"
+                        sx={{ margin: "0 1em" }}
+                        data-output="xml"
+                        onClick={handleUpdateSystemPrompt}
+                      >
+                        {i18n("xml_output")}
+                      </Link>
+                      <Link
+                        component="button"
+                        sx={{ margin: "0 1em" }}
+                        data-output="textlines"
+                        onClick={handleUpdateSystemPrompt}
+                      >
+                        {i18n("textlines_output")}
+                      </Link>
+                      <br />
+                      {i18n("system_prompt_helper_2")}
+                    </>
+                  }
+                />
+              ) : (
+                <>
+                  <TextField
+                    size="small"
+                    label={"System Prompt"}
+                    name="nobatchPrompt"
+                    value={nobatchPrompt}
+                    onChange={handleChange}
+                    multiline
+                    maxRows={10}
+                  />
+                  <TextField
+                    size="small"
+                    label={"User Prompt"}
+                    name="nobatchUserPrompt"
+                    value={nobatchUserPrompt}
+                    onChange={handleChange}
+                    multiline
+                    maxRows={10}
+                  />
+                </>
+              )}
+
+              <TextField
+                size="small"
+                label={"Subtitle Prompt"}
+                name="subtitlePrompt"
+                value={subtitlePrompt}
+                onChange={handleChange}
+                multiline
+                maxRows={10}
+                helperText={i18n("system_prompt_helper")}
+              />
+            </>
+          )}
+
           <Box>
             <Grid container spacing={2} columns={12}>
               <Grid item xs={12} sm={12} md={6} lg={3}>
