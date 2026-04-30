@@ -601,6 +601,7 @@ const defaultApi = {
   batchLength: DEFAULT_BATCH_LENGTH, // 每次发送最大文字数量
   useBatchFetch: false, // 是否启用聚合发送请求
   useStream: false, // 是否启用流式传输
+  streamRenderMode: "disabled", // 流式渲染模式：disabled/realtime/segment
   useContext: false, // 是否启用智能上下文
   contextSize: DEFAULT_CONTEXT_SIZE, // 智能上下文保留会话数
   temperature: 0.0,
