@@ -50,6 +50,7 @@ import {
   defaultSystemPrompt,
   defaultSystemPromptXml,
   defaultSystemPromptLines,
+  THINKING_PARAM_MAP,
 } from "../../config";
 import ValidationInput from "../../hooks/ValidationInput";
 
@@ -235,7 +236,11 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi }) {
     region = "",
     sortOrder = 0,
     aiTerms = "",
+    thinkingMode = "auto",
+    thinkingEffort = "_default",
   } = formData;
+
+  const thinkingParam = THINKING_PARAM_MAP[apiType];
 
   const keyHelper = useMemo(
     () => (API_SPE_TYPES.mulkeys.has(apiType) ? i18n("mulkeys_help") : ""),
@@ -706,6 +711,51 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi }) {
           <Grid item xs={12} sm={12} md={6} lg={3}></Grid>
         </Grid>
       </Box>
+
+      {thinkingParam && (
+        <Box>
+          <Grid container spacing={2} columns={12}>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                name="thinkingMode"
+                value={thinkingMode}
+                label={i18n("thinking_mode")}
+                onChange={handleChange}
+                helperText={i18n("thinking_mode_helper")}
+              >
+                <MenuItem value="auto">{i18n("thinking_mode_default")}</MenuItem>
+                <MenuItem value="enabled">{i18n("thinking_mode_enabled")}</MenuItem>
+                {thinkingParam.disableSupported !== false && (
+                  <MenuItem value="disabled">{i18n("thinking_mode_disabled")}</MenuItem>
+                )}
+              </TextField>
+            </Grid>
+            {thinkingMode === "enabled" && thinkingParam.efforts && (
+              <Grid item xs={12} sm={12} md={6} lg={3}>
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  name="thinkingEffort"
+                  value={thinkingEffort}
+                  label={i18n("thinking_effort")}
+                  onChange={handleChange}
+                >
+                  {thinkingParam.efforts.map((e) => (
+                    <MenuItem key={e.value} value={e.value}>
+                      {e.label}
+                    </MenuItem>
+                  ))}
+                  <MenuItem value="_default">{i18n("thinking_effort_default")}</MenuItem>
+                </TextField>
+              </Grid>
+            )}
+          </Grid>
+        </Box>
+      )}
 
       {showMore && (
         <>

@@ -45,6 +45,7 @@ import {
   defaultSystemPromptXml,
   defaultSystemPromptLines,
   INPUT_PLACE_SUMMARY,
+  THINKING_PARAM_MAP,
 } from "../config";
 import { msAuth } from "../libs/auth";
 import { genDeeplFree } from "./deepl";
@@ -287,6 +288,52 @@ const parseSTRes = (raw) => {
   return [];
 };
 
+const siliconflowEffortMap = { max: 32768, high: 16384, medium: 8192, low: 4096, minimal: 2048 };
+
+const injectThinking = (body, { apiType, thinkingMode, thinkingEffort }) => {
+  if (thinkingMode === "auto") return;
+
+  const param = THINKING_PARAM_MAP[apiType];
+  if (!param) return;
+
+  const hasEffort = thinkingEffort && thinkingEffort !== "_default";
+
+  switch (param.type) {
+    case "deepseek":
+      body.thinking = { type: thinkingMode === "enabled" ? "enabled" : "disabled" };
+      if (thinkingMode === "enabled" && hasEffort) {
+        body.reasoning_effort = thinkingEffort;
+      }
+      break;
+    case "aliyunbailian":
+      body.thinking = { type: thinkingMode === "enabled" ? "true" : "false" };
+      if (thinkingMode === "enabled" && hasEffort) {
+        body.reasoning_effort = thinkingEffort;
+      }
+      break;
+    case "siliconflow":
+      body.enable_thinking = thinkingMode === "enabled";
+      if (thinkingMode === "enabled" && hasEffort) {
+        body.thinking_budget = siliconflowEffortMap[thinkingEffort] || 8192;
+      }
+      break;
+    case "cerebras":
+      if (thinkingMode === "disabled") {
+        body.reasoning_effort = "none";
+      } else if (hasEffort) {
+        body.reasoning_effort = thinkingEffort;
+      }
+      break;
+    case "openrouter":
+      if (hasEffort) {
+        body.reasoning = { effort: thinkingEffort };
+      }
+      break;
+    default:
+      break;
+  }
+};
+
 const genGoogle = ({ texts, from, to, url, key }) => {
   const params = queryString.stringify({
     client: "gtx",
@@ -435,6 +482,9 @@ const genOpenAI = ({
   maxTokens,
   hisMsgs = [],
   useStream = false,
+  apiType,
+  thinkingMode,
+  thinkingEffort,
 }) => {
   const userMsg = {
     role: "user",
@@ -455,6 +505,8 @@ const genOpenAI = ({
     stream: useStream,
   };
 
+  injectThinking(body, { apiType, thinkingMode, thinkingEffort });
+
   const headers = {
     "Content-type": "application/json",
     Authorization: `Bearer ${key}`, // OpenAI
@@ -474,6 +526,8 @@ const genGemini = ({
   maxTokens,
   hisMsgs = [],
   useStream = false,
+  thinkingMode,
+  thinkingEffort,
 }) => {
   url = url
     .replaceAll(INPUT_PLACE_MODEL, model)
@@ -506,9 +560,17 @@ const genGemini = ({
       // topP: 0.8,
       // topK: 10,
     },
-    // thinkingConfig: {
-    //   thinkingBudget: 0,
-    // },
+  };
+
+  if (thinkingMode && thinkingMode !== "auto") {
+    if (thinkingMode === "disabled") {
+      body.thinkingConfig = { thinkingLevel: "minimal" };
+    } else if (thinkingEffort && thinkingEffort !== "_default") {
+      body.thinkingConfig = { thinkingLevel: thinkingEffort };
+    }
+  }
+
+  Object.assign(body, {
     safetySettings: [
       {
         category: "HARM_CATEGORY_HARASSMENT",
@@ -527,7 +589,7 @@ const genGemini = ({
         threshold: "BLOCK_NONE",
       },
     ],
-  };
+  });
   const headers = {
     "Content-type": "application/json",
     "x-goog-api-key": key,
@@ -546,6 +608,9 @@ const genGemini2 = ({
   maxTokens,
   hisMsgs = [],
   useStream = false,
+  apiType,
+  thinkingMode,
+  thinkingEffort,
 }) => {
   const userMsg = {
     role: "user",
@@ -566,6 +631,8 @@ const genGemini2 = ({
     stream: useStream,
   };
 
+  injectThinking(body, { apiType, thinkingMode, thinkingEffort });
+
   const headers = {
     "Content-type": "application/json",
     Authorization: `Bearer ${key}`,
@@ -584,6 +651,8 @@ const genClaude = ({
   maxTokens,
   hisMsgs = [],
   useStream = false,
+  thinkingMode,
+  thinkingEffort,
 }) => {
   const userMsg = {
     role: "user",
@@ -597,6 +666,15 @@ const genClaude = ({
     max_tokens: maxTokens,
     stream: useStream,
   };
+
+  if (thinkingMode && thinkingMode !== "auto") {
+    if (thinkingMode === "enabled") {
+      body.thinking = { type: "adaptive" };
+      if (thinkingEffort && thinkingEffort !== "_default") {
+        body.output_config = { effort: thinkingEffort };
+      }
+    }
+  }
 
   const headers = {
     "Content-type": "application/json",
@@ -618,6 +696,8 @@ const genOpenRouter = ({
   maxTokens,
   hisMsgs = [],
   useStream = false,
+  thinkingMode,
+  thinkingEffort,
 }) => {
   const userMsg = {
     role: "user",
@@ -637,6 +717,8 @@ const genOpenRouter = ({
     max_tokens: maxTokens,
     stream: useStream,
   };
+
+  injectThinking(body, { apiType: OPT_TRANS_OPENROUTER, thinkingMode, thinkingEffort });
 
   const headers = {
     "Content-type": "application/json",
@@ -647,7 +729,6 @@ const genOpenRouter = ({
 };
 
 const genOllama = ({
-  // think,
   url,
   key,
   systemPrompt,
@@ -657,6 +738,8 @@ const genOllama = ({
   maxTokens,
   hisMsgs = [],
   useStream = false,
+  thinkingMode,
+  thinkingEffort,
 }) => {
   const userMsg = {
     role: "user",
@@ -674,9 +757,10 @@ const genOllama = ({
     ],
     temperature,
     max_tokens: maxTokens,
-    // think,
-    stream: useStream,
   };
+
+  injectThinking(body, { apiType: OPT_TRANS_OLLAMA, thinkingMode, thinkingEffort });
+  body.stream = useStream;
 
   const headers = {
     "Content-type": "application/json",
