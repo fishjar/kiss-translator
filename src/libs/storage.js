@@ -10,6 +10,7 @@ import {
   STOKEY_MSAUTH,
   STOKEY_BDAUTH,
   STOKEY_RULESCACHE_PREFIX,
+  STOKEY_DISABLED_SUB_RULES,
   DEFAULT_SETTING,
   DEFAULT_RULES,
   DEFAULT_SYNC,
@@ -127,6 +128,13 @@ export const getSubRulesWithDefault = async () => (await getSubRules()) || [];
 export const delSubRules = (url) => del(STOKEY_RULESCACHE_PREFIX + url);
 export const setSubRules = (url, val) =>
   setObj(STOKEY_RULESCACHE_PREFIX + url, val);
+
+export const getDisabledSubRules = async () => {
+  const arr = await getObj(STOKEY_DISABLED_SUB_RULES);
+  return Array.isArray(arr) ? arr : [];
+};
+
+export const setDisabledSubRules = (val) => setObj(STOKEY_DISABLED_SUB_RULES, val);
 
 /**
  * fab位置

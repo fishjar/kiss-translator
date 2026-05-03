@@ -2794,6 +2794,27 @@ export const I18N = {
     ja: `無効`,
     ko: `사용 안 함`,
   },
+  rule_disabled: {
+    zh: `规则已禁用`,
+    en: `Rule Disabled`,
+    zh_TW: `規則已禁用`,
+    ja: `ルールが無効になっています`,
+    ko: `규칙이 비활성화되었습니다`,
+  },
+  rule_enabled: {
+    zh: `规则已启用`,
+    en: `Rule Enabled`,
+    zh_TW: `規則已啟用`,
+    ja: `ルールが有効になっています`,
+    ko: `규칙이 활성화되었습니다`,
+  },
+  rule_toggle_failed: {
+    zh: `规则切换失败`,
+    en: `Failed to toggle rule`,
+    zh_TW: `規則切換失敗`,
+    ja: `ルールの切り替えに失敗しました`,
+    ko: `규칙 전환 실패`,
+  },
 };
 
 export const newI18n = (lang) => (key) => I18N[key]?.[lang] || "";

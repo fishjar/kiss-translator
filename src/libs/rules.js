@@ -9,7 +9,7 @@ import {
   OPT_HIGHLIGHT_WORDS_ALL,
 } from "../config";
 import { loadOrFetchSubRules } from "./subRules";
-import { getRulesWithDefault, setRules } from "./storage";
+import { getRulesWithDefault, setRules, getDisabledSubRules } from "./storage";
 import { trySyncRules } from "./sync";
 import { kissLog } from "./log";
 
@@ -185,6 +185,15 @@ export const matchRule = async (href, { injectRules, subrulesList }) => {
       if (selectedSub?.url) {
         const subRules = await loadOrFetchSubRules(selectedSub.url);
         matchedSubRule = findMatchingRule(subRules, href);
+        // If the matched subscribed rule is disabled by user, ignore it
+        try {
+          const disabled = await getDisabledSubRules();
+          if (matchedSubRule && disabled.includes(matchedSubRule.pattern)) {
+            matchedSubRule = null;
+          }
+        } catch (err) {
+          kissLog("getDisabledSubRules", err);
+        }
       }
     } catch (err) {
       kissLog("load injectRules", err);
