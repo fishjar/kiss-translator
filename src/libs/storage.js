@@ -129,12 +129,38 @@ export const delSubRules = (url) => del(STOKEY_RULESCACHE_PREFIX + url);
 export const setSubRules = (url, val) =>
   setObj(STOKEY_RULESCACHE_PREFIX + url, val);
 
-export const getDisabledSubRules = async () => {
-  const arr = await getObj(STOKEY_DISABLED_SUB_RULES);
-  return Array.isArray(arr) ? arr : [];
+export const getDisabledSubRules = async (url) => {
+  if (!url) return [];
+  const raw = await getObj(STOKEY_DISABLED_SUB_RULES);
+  if (!raw) return [];
+  if (typeof raw === "object") {
+    const list = raw[url];
+    return Array.isArray(list) ? list : [];
+  }
+  return [];
 };
 
-export const setDisabledSubRules = (val) => setObj(STOKEY_DISABLED_SUB_RULES, val);
+export const setDisabledSubRules = async (url, patterns) => {
+  if (!url) return;
+  const map = (await getObj(STOKEY_DISABLED_SUB_RULES)) || {};
+  const arr = Array.isArray(patterns) ? [...new Set(patterns)] : [];
+  if (arr.length === 0) {
+    if (map[url]) delete map[url];
+  } else {
+    map[url] = arr;
+  }
+  await setObj(STOKEY_DISABLED_SUB_RULES, map);
+};
+
+export const removeDisabledSubRules = async (url) => {
+  if (!url) return;
+  const raw = await getObj(STOKEY_DISABLED_SUB_RULES);
+  if (!raw || typeof raw !== "object") return;
+  if (raw[url]) {
+    delete raw[url];
+    await setObj(STOKEY_DISABLED_SUB_RULES, raw);
+  }
+};
 
 /**
  * fab位置

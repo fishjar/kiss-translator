@@ -50,6 +50,7 @@ import {
   getSyncWithDefault,
   getDisabledSubRules,
   setDisabledSubRules,
+  removeDisabledSubRules,
 } from "../../libs/storage";
 import ClearAllIcon from "@mui/icons-material/ClearAll";
 import HelpButton from "./HelpButton";
@@ -782,7 +783,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
   );
 }
 
-function RuleAccordion({ rule, rules, isExpanded = false }) {
+function RuleAccordion({ rule, rules, sourceUrl, isExpanded = false }) {
   const i18n = useI18n();
   const [expanded, setExpanded] = useState(isExpanded);
 
@@ -791,16 +792,17 @@ function RuleAccordion({ rule, rules, isExpanded = false }) {
 
   useEffect(() => {
     if (!rules) {
+      if (!sourceUrl) return;
       (async () => {
         try {
-          const list = await getDisabledSubRules();
+          const list = await getDisabledSubRules(sourceUrl);
           setDisabledByUser(Array.isArray(list) && list.includes(rule.pattern));
         } catch (err) {
           kissLog("getDisabledSubRules", err);
         }
       })();
     }
-  }, [rule, rules]);
+  }, [rule, rules, sourceUrl]);
 
   const handleChange = (e) => {
     setExpanded((pre) => !pre);
@@ -809,25 +811,31 @@ function RuleAccordion({ rule, rules, isExpanded = false }) {
   return (
     <Accordion expanded={expanded} onChange={handleChange}>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Stack direction="row" alignItems="center" spacing={1} sx={{ width: "100%" }}>
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={1}
+          sx={{ width: "100%" }}
+        >
           {!rules && (
             <Switch
               size="small"
               checked={!disabledByUser}
+              onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => e.stopPropagation()}
-              onFocus={(e) => e.stopPropagation()}
               onChange={async (e) => {
-                // checked means enabled; we store disabled list, so invert
                 const enabled = e.target.checked;
                 const toDisable = !enabled;
                 try {
-                  const list = await getDisabledSubRules();
+                  const list = await getDisabledSubRules(sourceUrl);
                   const set = new Set(Array.isArray(list) ? list : []);
                   if (toDisable) set.add(rule.pattern);
                   else set.delete(rule.pattern);
-                  await setDisabledSubRules([...set]);
+                  await setDisabledSubRules(sourceUrl, [...set]);
                   setDisabledByUser(toDisable);
-                  alert.success(i18n(toDisable ? "rule_disabled" : "rule_enabled"));
+                  alert.success(
+                    i18n(toDisable ? "rule_disabled" : "rule_enabled")
+                  );
                 } catch (err) {
                   kissLog("toggle disabled sub rule", err);
                   alert.error(i18n("rule_toggle_failed"));
@@ -1028,7 +1036,11 @@ function UserRules({ subRules, rules }) {
                 rule.pattern.includes(keyword) || keyword.includes(rule.pattern)
             )
             .map((rule) => (
-              <RuleAccordion key={rule.pattern} rule={rule} />
+              <RuleAccordion
+                key={rule.pattern}
+                rule={rule}
+                sourceUrl={selectedUrl}
+              />
             ))}
         </Box>
       )}
@@ -1054,6 +1066,12 @@ function SubRulesItem({
       await delSub(url);
       await delSubRules(url);
       await deleteDataCache(url);
+      // remove any per-source disabled state
+      try {
+        await removeDisabledSubRules(url);
+      } catch (err) {
+        kissLog("removeDisabledSubRules", err);
+      }
     } catch (err) {
       kissLog("del subrules", err);
     }
@@ -1279,7 +1297,7 @@ function SubRules({ subRules }) {
           </center>
         ) : (
           selectedRules.map((rule) => (
-            <RuleAccordion key={rule.pattern} rule={rule} />
+            <RuleAccordion key={rule.pattern} rule={rule} sourceUrl={selectedUrl}/>
           ))
         )}
       </Box>

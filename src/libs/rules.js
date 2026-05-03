@@ -185,9 +185,9 @@ export const matchRule = async (href, { injectRules, subrulesList }) => {
       if (selectedSub?.url) {
         const subRules = await loadOrFetchSubRules(selectedSub.url);
         matchedSubRule = findMatchingRule(subRules, href);
-        // If the matched subscribed rule is disabled by user, ignore it
+        // If the matched subscribed rule is disabled by user for this source, ignore it
         try {
-          const disabled = await getDisabledSubRules();
+          const disabled = await getDisabledSubRules(selectedSub.url);
           if (matchedSubRule && disabled.includes(matchedSubRule.pattern)) {
             matchedSubRule = null;
           }
