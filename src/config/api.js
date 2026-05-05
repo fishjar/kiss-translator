@@ -206,6 +206,90 @@ export const API_SPE_TYPES = {
   sponsors: new Set([OPT_TRANS_EPHONEAI]),
 };
 
+// 思考模式参数映射：定义各API的思考开关和强度参数
+// type: 注入逻辑类型; efforts: 思考强度选项(强→弱), null表示无强度控制
+// disableSupported: 是否支持关闭思考,默认true; 设为false则不显示"关闭思考"选项
+export const THINKING_PARAM_MAP = {
+  [OPT_TRANS_DEEPSEEK]: {
+    type: "deepseek",
+    efforts: [
+      { value: "max", label: "Max" },
+      { value: "high", label: "High" },
+    ],
+  },
+  [OPT_TRANS_SILICONFLOW]: {
+    type: "siliconflow",
+    efforts: [
+      { value: "max", label: "Max (32768)" },
+      { value: "high", label: "High (16384)" },
+      { value: "medium", label: "Medium (8192)" },
+      { value: "low", label: "Low (4096)" },
+      { value: "minimal", label: "Minimal (2048)" },
+    ],
+  },
+  [OPT_TRANS_XIAOMIMIMO]: {
+    type: "deepseek",
+    efforts: null,
+  },
+  [OPT_TRANS_ALIYUNBAILIAN]: {
+    type: "aliyunbailian",
+    efforts: [
+      { value: "max", label: "Max" },
+      { value: "high", label: "High" },
+    ],
+  },
+  [OPT_TRANS_CEREBRAS]: {
+    type: "cerebras",
+    efforts: [
+      { value: "high", label: "High" },
+      { value: "medium", label: "Medium" },
+      { value: "low", label: "Low" },
+    ],
+  },
+  [OPT_TRANS_ZAI]: {
+    type: "deepseek",
+    efforts: null,
+  },
+  [OPT_TRANS_GEMINI]: {
+    type: "gemini",
+    efforts: [
+      { value: "high", label: "High" },
+      { value: "medium", label: "Medium" },
+      { value: "low", label: "Low" },
+      { value: "minimal", label: "Minimal" },
+    ],
+  },
+  [OPT_TRANS_CLAUDE]: {
+    type: "claude",
+    disableSupported: false,
+    efforts: [
+      { value: "max", label: "Max" },
+      { value: "xhigh", label: "X-High" },
+      { value: "high", label: "High" },
+      { value: "medium", label: "Medium" },
+      { value: "low", label: "Low" },
+    ],
+  },
+  [OPT_TRANS_OLLAMA]: {
+    type: "cerebras",
+    efforts: [
+      { value: "high", label: "High" },
+      { value: "medium", label: "Medium" },
+      { value: "low", label: "Low" },
+    ],
+  },
+  [OPT_TRANS_OPENROUTER]: {
+    type: "openrouter",
+    disableSupported: false,
+    efforts: [
+      { value: "high", label: "High" },
+      { value: "medium", label: "Medium" },
+      { value: "low", label: "Low" },
+      { value: "minimal", label: "Minimal" },
+    ],
+  },
+};
+
 export const BUILTIN_STONES = [
   "formal", // 正式风格
   "casual", // 口语风格
@@ -605,8 +689,8 @@ const defaultApi = {
   contextSize: DEFAULT_CONTEXT_SIZE, // 智能上下文保留会话数
   temperature: 0.0,
   maxTokens: 20480,
-  // think: false, // (OpenAI 兼容接口未支持，暂时移除)
-  // thinkIgnore: "qwen3,deepseek-r1", // (OpenAI 兼容接口未支持，暂时移除)
+  thinkingMode: "auto", // 思考模式：auto | enabled | disabled
+  thinkingEffort: "_default", // 思考强度：_default=接口默认,不注入参数
   isDisabled: false, // 是否不显示,
   region: "", // Azure 专用
   sortOrder: 0, // 排序权重，数值越小越靠前
