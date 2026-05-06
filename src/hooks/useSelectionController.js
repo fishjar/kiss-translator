@@ -5,17 +5,7 @@ import useAutoHideTranBtn from "./useAutoHideTranBtn";
 import {
   OPT_TRANBOX_TRIGGER_HOVER,
   OPT_TRANBOX_TRIGGER_SELECT,
-  OPT_TRANBOX_INTERACT_CLICK,
-  OPT_TRANBOX_INTERACT_DBLCLICK,
 } from "../config";
-
-// 判断事件是否发生在翻译框内部（兼容 Shadow DOM 事件重定向）
-function isEventInTranbox(e) {
-  const path = e.composedPath ? e.composedPath() : [];
-  return path.some(
-    (el) => el.classList && el.classList.contains("KT-draggable")
-  );
-}
 
 export default function useSelectionController({
   tranboxSetting,
@@ -26,11 +16,7 @@ export default function useSelectionController({
   setBoxPosition,
   hideClickAway,
 }) {
-  const {
-    hideTranBtn = false,
-    triggerMode,
-    tranboxInteractMode = "-",
-  } = tranboxSetting;
+  const { hideTranBtn = false, triggerMode } = tranboxSetting;
 
   const [showBox, setShowBox] = useState(false);
   const [showBtn, setShowBtn] = useState(false);
@@ -89,13 +75,11 @@ export default function useSelectionController({
   }, [triggerMode]);
 
   // 监听划词事件
-  // 注意：翻译框内容区域已通过 onMouseUp/onTouchEnd stopPropagation 阻止事件冒泡，
-  // 因此此处的 handleMouseup 不会被翻译框内的选中操作触发。
   useEffect(() => {
     const eventName = isMobile ? "touchend" : "mouseup";
 
     async function handleMouseup(e) {
-      // e.stopPropagation();\
+      // e.stopPropagation();
       if (e.button === 2) return;
 
       await sleep(200);
@@ -144,41 +128,6 @@ export default function useSelectionController({
     boxSize,
     setBoxPosition,
   ]);
-
-  // 监听翻译框内交互事件（单击/双击选中文本触发新翻译）
-  // 使用 composedPath 判断事件来源，兼容 Shadow DOM 事件重定向
-  // 注意：翻译框内容区域已通过 stopPropagation 阻止 mouseup 冒泡到 window，
-  // 因此此处改用 document 捕获阶段监听，以接收翻译框内的事件。
-  useEffect(() => {
-    if (
-      tranboxInteractMode !== OPT_TRANBOX_INTERACT_CLICK &&
-      tranboxInteractMode !== OPT_TRANBOX_INTERACT_DBLCLICK
-    ) {
-      return;
-    }
-
-    const eventName =
-      tranboxInteractMode === OPT_TRANBOX_INTERACT_DBLCLICK
-        ? "dblclick"
-        : "mouseup";
-
-    function handleInteract(e) {
-      // 只响应来自翻译框内部的事件（通过 composedPath 跨越 Shadow DOM 边界检测）
-      if (!isEventInTranbox(e)) return;
-
-      const selection = window.getSelection();
-      const currentSelectedText = selection?.toString()?.trim() || "";
-      if (!currentSelectedText) return;
-
-      handleOpenTranbox(currentSelectedText);
-    }
-
-    // 使用 capture=true 以在 stopPropagation 之前捕获到翻译框内的事件
-    document.addEventListener(eventName, handleInteract, true);
-    return () => {
-      document.removeEventListener(eventName, handleInteract, true);
-    };
-  }, [tranboxInteractMode, handleOpenTranbox]);
 
   // 点击空白处隐藏翻译框
   useEffect(() => {

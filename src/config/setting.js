@@ -80,8 +80,6 @@ export const OPT_TRANBOX_TRIGGER_ALL = [
   OPT_TRANBOX_TRIGGER_HOVER,
   OPT_TRANBOX_TRIGGER_SELECT,
 ];
-export const OPT_TRANBOX_INTERACT_CLICK = "click"; // 单击翻译框内选中文本触发新翻译
-export const OPT_TRANBOX_INTERACT_DBLCLICK = "dblclick"; // 双击翻译框内选中文本触发新翻译
 export const DEFAULT_TRANBOX_SHORTCUT = ["AltLeft", "KeyS"];
 export const DEFAULT_TRANBOX_SETTING = {
   transOpen: true, // 是否启用划词翻译
@@ -102,7 +100,6 @@ export const DEFAULT_TRANBOX_SETTING = {
   followSelection: false, // 翻译框是否跟随选中文本
   autoHeight: false, // 自适应高度
   triggerMode: OPT_TRANBOX_TRIGGER_CLICK, // 触发翻译方式
-  tranboxInteractMode: "-", // 翻译框内交互模式（单选，"-"表示禁用）
   // extStyles: "", // 附加样式
   enDict: OPT_DICT_BING, // 英文词典
   enSug: OPT_SUG_YOUDAO, // 英文建议

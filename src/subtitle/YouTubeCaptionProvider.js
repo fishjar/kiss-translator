@@ -329,8 +329,10 @@ class YouTubeCaptionProvider {
       return null;
     }
 
-    // 优先返回用户选择的字幕轨
-    let captionTrack = captionTracks.find((item) => item.languageCode === lang);
+    // 优先返回用户选择的 且非自动生成的 字幕轨
+    let captionTrack = captionTracks.find(
+      (item) => item.languageCode === lang && item.kind !== "asr"
+    );
     if (!captionTrack) {
       const asrTrack = captionTracks.find((item) => item.kind === "asr");
       if (asrTrack) {

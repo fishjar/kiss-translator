@@ -36,6 +36,12 @@ export const OPT_TRANS_GOOGLE = "Google";
 export const OPT_TRANS_GOOGLE_2 = "Google2";
 export const OPT_TRANS_MICROSOFT = "Microsoft";
 export const OPT_TRANS_AZUREAI = "AzureAI";
+export const OPT_TRANS_DEEPSEEK = "DeepSeek";
+export const OPT_TRANS_SILICONFLOW = "SiliconFlow";
+export const OPT_TRANS_XIAOMIMIMO = "XiaomiMimo";
+export const OPT_TRANS_ALIYUNBAILIAN = "AliyunBailian";
+export const OPT_TRANS_CEREBRAS = "Cerebras";
+export const OPT_TRANS_ZAI = "Zai";
 export const OPT_TRANS_DEEPL = "DeepL";
 export const OPT_TRANS_DEEPLX = "DeepLX";
 export const OPT_TRANS_DEEPLFREE = "DeepLFree";
@@ -60,6 +66,12 @@ export const OPT_ALL_TRANS_TYPES = [
   OPT_TRANS_MICROSOFT,
   OPT_TRANS_AZUREAI,
   // OPT_TRANS_BAIDU,
+  OPT_TRANS_DEEPSEEK,
+  OPT_TRANS_SILICONFLOW,
+  OPT_TRANS_XIAOMIMIMO,
+  OPT_TRANS_ALIYUNBAILIAN,
+  OPT_TRANS_CEREBRAS,
+  OPT_TRANS_ZAI,
   OPT_TRANS_TENCENT,
   OPT_TRANS_VOLCENGINE,
   OPT_TRANS_DEEPL,
@@ -102,6 +114,12 @@ export const API_SPE_TYPES = {
   ai: new Set([
     OPT_TRANS_EPHONEAI,
     OPT_TRANS_OPENAI,
+    OPT_TRANS_DEEPSEEK,
+    OPT_TRANS_SILICONFLOW,
+    OPT_TRANS_XIAOMIMIMO,
+    OPT_TRANS_ALIYUNBAILIAN,
+    OPT_TRANS_CEREBRAS,
+    OPT_TRANS_ZAI,
     OPT_TRANS_GEMINI,
     OPT_TRANS_GEMINI_2,
     OPT_TRANS_CLAUDE,
@@ -112,6 +130,12 @@ export const API_SPE_TYPES = {
   // 支持多key
   mulkeys: new Set([
     OPT_TRANS_AZUREAI,
+    OPT_TRANS_DEEPSEEK,
+    OPT_TRANS_SILICONFLOW,
+    OPT_TRANS_XIAOMIMIMO,
+    OPT_TRANS_ALIYUNBAILIAN,
+    OPT_TRANS_CEREBRAS,
+    OPT_TRANS_ZAI,
     OPT_TRANS_DEEPL,
     OPT_TRANS_OPENAI,
     OPT_TRANS_GEMINI,
@@ -126,6 +150,12 @@ export const API_SPE_TYPES = {
   // 支持批处理
   batch: new Set([
     OPT_TRANS_AZUREAI,
+    OPT_TRANS_DEEPSEEK,
+    OPT_TRANS_SILICONFLOW,
+    OPT_TRANS_XIAOMIMIMO,
+    OPT_TRANS_ALIYUNBAILIAN,
+    OPT_TRANS_CEREBRAS,
+    OPT_TRANS_ZAI,
     OPT_TRANS_GOOGLE_2,
     OPT_TRANS_MICROSOFT,
     OPT_TRANS_TENCENT,
@@ -141,6 +171,12 @@ export const API_SPE_TYPES = {
   ]),
   // 支持上下文
   context: new Set([
+    OPT_TRANS_DEEPSEEK,
+    OPT_TRANS_SILICONFLOW,
+    OPT_TRANS_XIAOMIMIMO,
+    OPT_TRANS_ALIYUNBAILIAN,
+    OPT_TRANS_CEREBRAS,
+    OPT_TRANS_ZAI,
     OPT_TRANS_OPENAI,
     OPT_TRANS_GEMINI,
     OPT_TRANS_GEMINI_2,
@@ -152,6 +188,12 @@ export const API_SPE_TYPES = {
   ]),
   // 支持流式传输
   stream: new Set([
+    OPT_TRANS_DEEPSEEK,
+    OPT_TRANS_SILICONFLOW,
+    OPT_TRANS_XIAOMIMIMO,
+    OPT_TRANS_ALIYUNBAILIAN,
+    OPT_TRANS_CEREBRAS,
+    OPT_TRANS_ZAI,
     OPT_TRANS_OPENAI,
     OPT_TRANS_GEMINI,
     OPT_TRANS_GEMINI_2,
@@ -161,9 +203,91 @@ export const API_SPE_TYPES = {
     OPT_TRANS_EPHONEAI,
   ]),
   // 赞助商
-  sponsors: new Set([
-    OPT_TRANS_EPHONEAI
-  ])
+  sponsors: new Set([OPT_TRANS_EPHONEAI]),
+};
+
+// 思考模式参数映射：定义各API的思考开关和强度参数
+// type: 注入逻辑类型; efforts: 思考强度选项(强→弱), null表示无强度控制
+// disableSupported: 是否支持关闭思考,默认true; 设为false则不显示"关闭思考"选项
+export const THINKING_PARAM_MAP = {
+  [OPT_TRANS_DEEPSEEK]: {
+    type: "deepseek",
+    efforts: [
+      { value: "max", label: "Max" },
+      { value: "high", label: "High" },
+    ],
+  },
+  [OPT_TRANS_SILICONFLOW]: {
+    type: "siliconflow",
+    efforts: [
+      { value: "max", label: "Max (32768)" },
+      { value: "high", label: "High (16384)" },
+      { value: "medium", label: "Medium (8192)" },
+      { value: "low", label: "Low (4096)" },
+      { value: "minimal", label: "Minimal (2048)" },
+    ],
+  },
+  [OPT_TRANS_XIAOMIMIMO]: {
+    type: "deepseek",
+    efforts: null,
+  },
+  [OPT_TRANS_ALIYUNBAILIAN]: {
+    type: "aliyunbailian",
+    efforts: [
+      { value: "max", label: "Max" },
+      { value: "high", label: "High" },
+    ],
+  },
+  [OPT_TRANS_CEREBRAS]: {
+    type: "cerebras",
+    efforts: [
+      { value: "high", label: "High" },
+      { value: "medium", label: "Medium" },
+      { value: "low", label: "Low" },
+    ],
+  },
+  [OPT_TRANS_ZAI]: {
+    type: "deepseek",
+    efforts: null,
+  },
+  [OPT_TRANS_GEMINI]: {
+    type: "gemini",
+    efforts: [
+      { value: "high", label: "High" },
+      { value: "medium", label: "Medium" },
+      { value: "low", label: "Low" },
+      { value: "minimal", label: "Minimal" },
+    ],
+  },
+  [OPT_TRANS_CLAUDE]: {
+    type: "claude",
+    disableSupported: false,
+    efforts: [
+      { value: "max", label: "Max" },
+      { value: "xhigh", label: "X-High" },
+      { value: "high", label: "High" },
+      { value: "medium", label: "Medium" },
+      { value: "low", label: "Low" },
+    ],
+  },
+  [OPT_TRANS_OLLAMA]: {
+    type: "cerebras",
+    efforts: [
+      { value: "high", label: "High" },
+      { value: "medium", label: "Medium" },
+      { value: "low", label: "Low" },
+    ],
+  },
+  [OPT_TRANS_OPENROUTER]: {
+    type: "openrouter",
+    disableSupported: false,
+    efforts: [
+      { value: "high", label: "High" },
+      { value: "medium", label: "Medium" },
+      { value: "low", label: "Low" },
+      { value: "minimal", label: "Minimal" },
+    ],
+  },
 };
 
 export const BUILTIN_STONES = [
@@ -277,6 +401,12 @@ export const OPT_LANGS_TO_SPEC = {
     ["zh-CN", "ZH"],
     ["zh-TW", "ZH"],
   ]),
+  [OPT_TRANS_DEEPSEEK]: OPT_LANGS_SPEC_NAME,
+  [OPT_TRANS_SILICONFLOW]: OPT_LANGS_SPEC_NAME,
+  [OPT_TRANS_XIAOMIMIMO]: OPT_LANGS_SPEC_NAME,
+  [OPT_TRANS_ALIYUNBAILIAN]: OPT_LANGS_SPEC_NAME,
+  [OPT_TRANS_CEREBRAS]: OPT_LANGS_SPEC_NAME,
+  [OPT_TRANS_ZAI]: OPT_LANGS_SPEC_NAME,
   [OPT_TRANS_VOLCENGINE]: new Map([
     ...OPT_LANGS_SPEC_DEFAULT,
     ["auto", "auto"],
@@ -559,8 +689,8 @@ const defaultApi = {
   contextSize: DEFAULT_CONTEXT_SIZE, // 智能上下文保留会话数
   temperature: 0.0,
   maxTokens: 20480,
-  // think: false, // (OpenAI 兼容接口未支持，暂时移除)
-  // thinkIgnore: "qwen3,deepseek-r1", // (OpenAI 兼容接口未支持，暂时移除)
+  thinkingMode: "auto", // 思考模式：auto | enabled | disabled
+  thinkingEffort: "_default", // 思考强度：_default=接口默认,不注入参数
   isDisabled: false, // 是否不显示,
   region: "", // Azure 专用
   sortOrder: 0, // 排序权重，数值越小越靠前
@@ -609,6 +739,42 @@ const defaultApiOpts = {
     ...defaultApi,
     fetchLimit: 1,
   },
+  [OPT_TRANS_DEEPSEEK]: {
+    ...defaultApi,
+    url: "https://api.deepseek.com/chat/completions",
+    model: "deepseek-v4-flash",
+    useBatchFetch: true,
+  },
+  [OPT_TRANS_SILICONFLOW]: {
+    ...defaultApi,
+    url: "https://api.siliconflow.cn/v1/chat/completions",
+    model: "Pro/zai-org/GLM-4.7",
+    useBatchFetch: true,
+  },
+  [OPT_TRANS_XIAOMIMIMO]: {
+    ...defaultApi,
+    url: "https://api.xiaomimimo.com/v1/chat/completions",
+    model: "mimo-v2.5-pro",
+    useBatchFetch: true,
+  },
+  [OPT_TRANS_ALIYUNBAILIAN]: {
+    ...defaultApi,
+    url: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+    model: "qwen-plus",
+    useBatchFetch: true,
+  },
+  [OPT_TRANS_CEREBRAS]: {
+    ...defaultApi,
+    url: "https://api.cerebras.ai/v1/chat/completions",
+    model: "gpt-oss-120b",
+    useBatchFetch: true,
+  },
+  [OPT_TRANS_ZAI]: {
+    ...defaultApi,
+    url: "https://open.bigmodel.cn/api/paas/v4/chat/completions",
+    model: "glm-5.1",
+    useBatchFetch: true,
+  },
   [OPT_TRANS_DEEPLX]: {
     ...defaultApi,
     url: "http://localhost:1188/translate",
@@ -625,7 +791,7 @@ const defaultApiOpts = {
   },
   [OPT_TRANS_GEMINI]: {
     ...defaultApi,
-    url: `https://generativelanguage.googleapis.com/v1/models/${INPUT_PLACE_MODEL}:generateContent`,
+    url: `https://generativelanguage.googleapis.com/v1beta/models/${INPUT_PLACE_MODEL}:generateContent`,
     model: "gemini-2.5-flash",
     useBatchFetch: true,
   },

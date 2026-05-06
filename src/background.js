@@ -351,10 +351,34 @@ async function registerMsgDisplayScript() {
 }
 
 /**
+ * 获取UI语言
+ * @returns {Promise<string>}
+ */
+async function getUiLanguage() {
+  try {
+    const lang = await browser.i18n.getUILanguage();
+
+    if (lang === "zh-TW") {
+      return "zh_TW";
+    } else if (lang.startsWith("zh")) {
+      return "zh";
+    } else if (["ja", "ko"].includes(lang.substring(0, 2))) {
+      return lang.substring(0, 2);
+    } else {
+      return "en";
+    }
+  } catch (err) {
+    kissLog("get UI language error", err);
+    return "en";
+  }
+}
+
+/**
  * 插件安装
  */
 browser.runtime.onInstalled.addListener(async () => {
-  await tryInitDefaultData();
+  const uiLang = await getUiLanguage();
+  await tryInitDefaultData(uiLang);
 
   //在thunderbird中注册脚本
   if (process.env.REACT_APP_CLIENT === CLIENT_THUNDERBIRD) {

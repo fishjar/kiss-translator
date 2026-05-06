@@ -23,7 +23,8 @@ import TranCont from "./TranCont";
 import DictCont from "./DictCont";
 import SugCont from "./SugCont";
 import CopyBtn from "./CopyBtn";
-import { isValidWord } from "../../libs/utils";
+import Zdic from "./Zdic";
+import { isValidWord, isSingleChineseChar } from "../../libs/utils";
 import { kissLog } from "../../libs/log";
 import { tryDetectLang } from "../../libs/detect";
 
@@ -412,6 +413,9 @@ export default function TranForm({
       {isWord && OPT_SUG_MAP.has(enSug) && (
         <SugCont text={text} enSug={enSug} />
       )}
+
+      {/* 如果是单个汉字 */}
+      {isSingleChineseChar(text) && <Zdic text={text} />}
     </Stack>
   );
 }

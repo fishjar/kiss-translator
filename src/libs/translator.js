@@ -22,7 +22,6 @@ import {
   debounce,
   scheduleIdle,
   genEventName,
-  truncateWords,
   escapeHTML,
   parseAITerms,
 } from "./utils";
@@ -1291,7 +1290,7 @@ export class Translator {
       }
 
       const inner = document.createElement(transTag);
-      inner.lang = toLang
+      inner.lang = toLang;
       inner.className = `${Translator.KISS_CLASS.inner} ${this.#textClass[textStyle] || ""}`;
       if (textExtStyle?.trim()) {
         inner.style.cssText = textExtStyle; // 附加内联样式

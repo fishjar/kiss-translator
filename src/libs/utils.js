@@ -534,3 +534,12 @@ export function parseAITerms(termsString) {
     return {};
   }
 }
+
+/**
+ * 判断文本是否为单个汉字
+ * @param {string} str
+ * @returns {boolean}
+ */
+export const isSingleChineseChar = (str) => {
+  return /^[\u4e00-\u9fa5]$/.test(str || "");
+};

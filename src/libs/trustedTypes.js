@@ -1,5 +1,5 @@
 import { logger } from "./log";
-import DOMPurify from 'dompurify';
+import DOMPurify from "dompurify";
 
 export const trustedTypesHelper = (() => {
   const POLICY_NAME = "kiss-translator-policy";
