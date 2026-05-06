@@ -1425,6 +1425,13 @@ export const I18N = {
     ja: `「翻訳切り替え」ショートカット`,
     ko: `"번역 켜기" 단축키`,
   },
+  toggle_transonly_shortcut: {
+    zh: `"隐藏原文"快捷键`,
+    en: `"Hide Original" Shortcut`,
+    zh_TW: `「隱藏原文」快捷鍵`,
+    ja: `「原文を隠す」ショートカット`,
+    ko: `"원문 숨기기" 단축키`,
+  },
   toggle_style_shortcut: {
     zh: `"切换样式"快捷键`,
     en: `"Toggle Style" Shortcut`,

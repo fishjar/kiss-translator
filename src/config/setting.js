@@ -10,6 +10,7 @@ import { DEFAULT_CUSTOM_STYLES } from "./styles";
 
 // 默认快捷键
 export const OPT_SHORTCUT_TRANSLATE = "toggleTranslate";
+export const OPT_SHORTCUT_TRANSONLY = "toggleTransOnly";
 export const OPT_SHORTCUT_STYLE = "toggleStyle";
 export const OPT_SHORTCUT_POPUP = "togglePopup";
 export const OPT_SHORTCUT_SETTING = "openSetting";

@@ -16,10 +16,12 @@ import { PopupManager } from "./popupManager";
 import { FabManager } from "./fabManager";
 import {
   OPT_SHORTCUT_TRANSLATE,
+  OPT_SHORTCUT_TRANSONLY,
   OPT_SHORTCUT_STYLE,
   OPT_SHORTCUT_POPUP,
   OPT_SHORTCUT_SETTING,
   MSG_TRANS_TOGGLE,
+  MSG_TRANS_TOGGLE_ONLY,
   MSG_TRANS_TOGGLE_STYLE,
   MSG_TRANS_GETRULE,
   MSG_TRANS_PUTRULE,
@@ -222,6 +224,9 @@ export default class TranslatorManager {
       shortcutRegister(shortcuts[OPT_SHORTCUT_TRANSLATE], () =>
         this.#processActions({ action: MSG_TRANS_TOGGLE })
       ),
+      shortcutRegister(shortcuts[OPT_SHORTCUT_TRANSONLY], () =>
+        this.#processActions({ action: MSG_TRANS_TOGGLE_ONLY })
+      ),
       shortcutRegister(shortcuts[OPT_SHORTCUT_STYLE], () =>
         this.#processActions({ action: MSG_TRANS_TOGGLE_STYLE })
       ),
@@ -245,6 +250,11 @@ export default class TranslatorManager {
       GM.registerMenuCommand?.(
         i18n("translate_switch"),
         () => this.#processActions({ action: MSG_TRANS_TOGGLE }),
+        "Q"
+      ),
+      GM.registerMenuCommand?.(
+        i18n("transonly_alt"),
+        () => this.#processActions({ action: MSG_TRANS_TOGGLE_ONLY }),
         "Q"
       ),
       GM.registerMenuCommand?.(
@@ -277,6 +287,9 @@ export default class TranslatorManager {
     switch (action) {
       case MSG_TRANS_TOGGLE:
         this._translator.toggle();
+        break;
+      case MSG_TRANS_TOGGLE_ONLY:
+        this._translator.toggleTransOnly();
         break;
       case MSG_TRANS_TOGGLE_STYLE:
         this._translator.toggleStyle();
