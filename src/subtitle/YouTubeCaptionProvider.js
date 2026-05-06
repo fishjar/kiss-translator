@@ -348,6 +348,7 @@ class YouTubeCaptionProvider {
     }
 
     // 优先匹配用户选择的字幕轨（语言+kind完全一致）
+    // 手动字幕没有 kind 字段，统一转成 null，避免 undefined !== null 导致无法匹配
     let captionTrack = captionTracks.find(
       (item) =>
         item.languageCode === lang && (item.kind || null) === (kind || null)
