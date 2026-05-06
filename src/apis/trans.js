@@ -886,6 +886,7 @@ export const genTransReq = async ({ reqHook, ...args }) => {
     customBody,
     events,
     tone,
+    docInfo: externalDocInfo,
   } = args;
 
   if (API_SPE_TYPES.mulkeys.has(apiType)) {
@@ -897,9 +898,15 @@ export const genTransReq = async ({ reqHook, ...args }) => {
   }
 
   if (API_SPE_TYPES.ai.has(apiType)) {
-    const docInfo = getDocInfo();
+    const hasExternalDocInfo =
+      externalDocInfo &&
+      (externalDocInfo.title ||
+        externalDocInfo.description ||
+        externalDocInfo.summary);
+    const docInfo = hasExternalDocInfo ? externalDocInfo : getDocInfo();
+    const userDocInfo = hasExternalDocInfo ? {} : docInfo;
 
-    args.systemPrompt = events
+    let baseSystemPrompt = events
       ? genSubtitlePrompt({
           subtitlePrompt,
           from,
@@ -921,6 +928,27 @@ export const genTransReq = async ({ reqHook, ...args }) => {
           docInfo,
           tone,
         });
+
+    // 上下文回退：当 prompt 模板缺少占位符时，追加 # Context 块
+    if (hasExternalDocInfo) {
+      const template = events
+        ? subtitlePrompt
+        : useBatchFetch
+          ? systemPrompt
+          : nobatchPrompt;
+      const parts = [];
+      if (docInfo.title && !template.includes(INPUT_PLACE_TITLE))
+        parts.push(`Title: ${docInfo.title}`);
+      if (docInfo.description && !template.includes(INPUT_PLACE_DESCRIPTION))
+        parts.push(`Description: ${docInfo.description}`);
+      if (docInfo.summary && !template.includes(INPUT_PLACE_SUMMARY))
+        parts.push(`Summary: ${docInfo.summary}`);
+      if (parts.length) {
+        baseSystemPrompt += `\n\n# Context\n${parts.join("\n")}`;
+      }
+    }
+
+    args.systemPrompt = baseSystemPrompt;
     args.userPrompt = events
       ? JSON.stringify(events)
       : genUserPrompt({
@@ -931,7 +959,7 @@ export const genTransReq = async ({ reqHook, ...args }) => {
           fromLang,
           toLang,
           texts,
-          docInfo,
+          docInfo: userDocInfo,
           tone,
           glossary,
           aiTerms,
@@ -1161,7 +1189,17 @@ export const parseTransRes = async (
  */
 export async function* handleTranslate(
   texts = [],
-  { from, to, fromLang, toLang, langMap, glossary, apiSetting, usePool }
+  {
+    from,
+    to,
+    fromLang,
+    toLang,
+    langMap,
+    glossary,
+    apiSetting,
+    usePool,
+    docInfo,
+  }
 ) {
   let history = null;
   let hisMsgs = [];
@@ -1191,6 +1229,7 @@ export async function* handleTranslate(
   }
 
   const [input, init, userMsg] = await genTransReq({
+    ...apiSetting,
     texts,
     from,
     to,
@@ -1201,7 +1240,7 @@ export async function* handleTranslate(
     hisMsgs,
     token,
     useStream: enableStream,
-    ...apiSetting,
+    docInfo,
   });
 
   if (enableStream) {
@@ -1384,7 +1423,13 @@ export const handleMicrosoftLangdetect = async (texts = []) => {
  * @param {*} param0
  * @returns
  */
-export const handleSubtitle = async ({ events, from, to, apiSetting }) => {
+export const handleSubtitle = async ({
+  events,
+  from,
+  to,
+  apiSetting,
+  docInfo,
+}) => {
   const { apiType, fetchInterval, fetchLimit, httpTimeout } = apiSetting;
 
   const [input, init] = await genTransReq({
@@ -1392,6 +1437,7 @@ export const handleSubtitle = async ({ events, from, to, apiSetting }) => {
     events,
     from,
     to,
+    docInfo,
   });
 
   const res = await fetchData(input, init, {
@@ -1422,4 +1468,81 @@ export const handleSubtitle = async ({ events, from, to, apiSetting }) => {
   }
 
   return [];
+};
+
+/**
+ * 上下文摘要
+ * @param {*} param0
+ * @returns
+ */
+const summarizeSystemPrompt = `Analyze the video title, description, and transcript below. Produce a concise briefing (max 300 words) to help a subtitle translator understand the content accurately.
+
+Cover these aspects:
+1. Main topic, themes, and subject domain
+2. Key terminology with brief definitions or context
+3. Important proper nouns (people, organizations, products, places)
+4. Speaker's tone and register
+5. Abbreviations, jargon, or ambiguous terms needing consistent handling
+
+Output plain text only. No markdown, no formatting, no headers.`;
+
+export const handleSummarize = async ({
+  title,
+  description,
+  transcript,
+  apiSetting,
+}) => {
+  const { apiType, fetchInterval, fetchLimit, httpTimeout } = apiSetting;
+
+  const userPrompt = [
+    title && `Title: ${title}`,
+    description && `Description: ${description}`,
+    `\nTranscript:\n${transcript}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const [input, init] = await genTransReq({
+    ...apiSetting,
+    texts: [""],
+    from: "auto",
+    to: "en",
+    fromLang: "auto",
+    toLang: "en",
+    useBatchFetch: false,
+    nobatchPrompt: summarizeSystemPrompt,
+    nobatchUserPrompt: userPrompt,
+  });
+
+  const res = await fetchData(input, init, {
+    useCache: false,
+    usePool: true,
+    fetchInterval,
+    fetchLimit,
+    httpTimeout,
+  });
+
+  if (!res) return "";
+
+  switch (apiType) {
+    case OPT_TRANS_OPENAI:
+    case OPT_TRANS_GEMINI_2:
+    case OPT_TRANS_OPENROUTER:
+    case OPT_TRANS_OLLAMA:
+      return res?.choices?.[0]?.message?.content?.trim() || "";
+    case OPT_TRANS_GEMINI:
+      return res?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+    case OPT_TRANS_CLAUDE:
+      return res?.content?.[0]?.text?.trim() || "";
+    case OPT_TRANS_CUSTOMIZE:
+      if (typeof res === "string") return res.trim();
+      return (
+        res?.choices?.[0]?.message?.content?.trim() ||
+        res?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ||
+        res?.content?.[0]?.text?.trim() ||
+        ""
+      );
+    default:
+      return "";
+  }
 };
