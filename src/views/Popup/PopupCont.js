@@ -11,6 +11,9 @@ import { sendBgMsg, sendTabMsg, getCurTab } from "../../libs/msg";
 import { isExt } from "../../libs/client";
 import { useI18n } from "../../hooks/I18n";
 import TextField from "@mui/material/TextField";
+import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
+import PaletteIcon from "@mui/icons-material/Palette";
 import {
   MSG_TRANS_TOGGLE,
   MSG_TRANS_PUTRULE,
@@ -434,6 +437,7 @@ export default function PopupCont({
           }
           onChange={handleChange}
           fullWidth
+          InputLabelProps={{ shrink: true }}
         >
           {allTextStyles.map((item) => (
             <MenuItem key={item.styleSlug} value={item.styleSlug}>
@@ -441,6 +445,15 @@ export default function PopupCont({
             </MenuItem>
           ))}
         </TextField>
+        <Tooltip title={i18n("style_color") || "Customize Style"}>
+          <IconButton
+            size="small"
+            onClick={handleOpenSetting}
+            sx={{ ml: 1, alignSelf: "center" }}
+          >
+            <PaletteIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
       </Stack>
 
       <Stack>

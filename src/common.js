@@ -99,18 +99,13 @@ function showErr(message) {
 }
 
 async function getFavWords(rule) {
-  if (
-    rule.highlightWords &&
-    rule.highlightWords !== OPT_HIGHLIGHT_WORDS_DISABLE
-  ) {
-    try {
-      return Object.keys(await getWordsWithDefault());
-    } catch (err) {
-      logger.info("get fav words", err);
-    }
+  try {
+    return await getWordsWithDefault();
+  } catch (err) {
+    logger.info("get fav words", err);
   }
 
-  return [];
+  return {};
 }
 
 /**

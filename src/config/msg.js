@@ -43,3 +43,7 @@ export const MSG_XHR_DATA_YOUTUBE = "KISS_XHR_DATA_YOUTUBE";
 
 export const MSG_MENUS_PROGRESSED = "progressed";
 export const MSG_MENUS_UPDATEFORM = "updateFormData";
+
+export const MSG_UPDATE_STYLES = "update_styles";
+export const MSG_UPDATE_GLOSSARY = "update_glossary";
+export const MSG_OPEN_GLOSSARY_PANEL = "open_glossary_panel";

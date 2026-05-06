@@ -12,12 +12,13 @@ import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
 import LockIcon from "@mui/icons-material/Lock";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 import CloseIcon from "@mui/icons-material/Close";
+import BookIcon from "@mui/icons-material/Book";
 import Typography from "@mui/material/Typography";
 import { useI18n } from "../../hooks/I18n";
 import { useCallback, useState } from "react";
 import TranForm from "./TranForm.js";
-import { MSG_OPEN_SEPARATE_WINDOW } from "../../config/msg.js";
-import { sendBgMsg } from "../../libs/msg.js";
+import { MSG_OPEN_SEPARATE_WINDOW, MSG_OPEN_GLOSSARY_PANEL } from "../../config/msg.js";
+import { sendBgMsg, sendTabMsg } from "../../libs/msg.js";
 import { isExt } from "../../libs/client.js";
 import { useTheme, alpha } from "@mui/material/styles";
 import Logo from "../../components/Logo";
@@ -39,6 +40,12 @@ function TranBoxHeader({
 
   const openSeparateWindow = useCallback(() => {
     sendBgMsg(MSG_OPEN_SEPARATE_WINDOW);
+  }, []);
+
+  const openGlossaryPanel = useCallback(async () => {
+    if (isExt) {
+      await sendTabMsg(MSG_OPEN_GLOSSARY_PANEL);
+    }
   }, []);
 
   const blurOnLeave = (e) => e.currentTarget.blur();
@@ -138,6 +145,28 @@ function TranBoxHeader({
               <OpenInNewIcon sx={{ width: 16, height: 16 }} />
             </IconButton>
           )}
+
+          <IconButton
+            size="small"
+            title={i18n("glossary_setting") || "Glossary & Styles"}
+            onClick={openGlossaryPanel}
+            onMouseLeave={blurOnLeave}
+            sx={{
+              ...baseBtnStyle,
+              "&:hover": {
+                backgroundColor: theme.palette.secondary.light + "20",
+                transform: "scale(1.05)",
+                boxShadow: theme.shadows[2],
+                "& svg": { color: theme.palette.secondary.main },
+              },
+              "&:active": {
+                transform: "scale(0.95)",
+                backgroundColor: theme.palette.secondary.light + "40",
+              },
+            }}
+          >
+            <BookIcon sx={{ width: 16, height: 16 }} />
+          </IconButton>
 
           <IconButton
             size="small"
