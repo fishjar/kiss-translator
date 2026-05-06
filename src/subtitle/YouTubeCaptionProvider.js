@@ -36,12 +36,9 @@ class YouTubeCaptionProvider {
   #flatEvents = [];
   #progressedNum = 0;
   #fromLang = "auto";
-<<<<<<< split/pr2-enhanced-smart-context
   #docInfo = {};
   #fullDescription = "";
-=======
   #interceptedCaptionKind = null;
->>>>>>> dev
 
   #processingId = null;
 
@@ -99,12 +96,9 @@ class YouTubeCaptionProvider {
       this.#flatEvents = [];
       this.#progressed = 0;
       this.#fromLang = "auto";
-<<<<<<< split/pr2-enhanced-smart-context
       this.#docInfo = {};
       this.#fullDescription = "";
-=======
       this.#interceptedCaptionKind = null;
->>>>>>> dev
       this.#updateMenuProps(); // 更新菜单 props
     });
 
@@ -528,19 +522,14 @@ class YouTubeCaptionProvider {
       this.#showNotification(this.#i18n("starting_to_process_subtitle"));
 
       const { toLang } = this.#setting;
-<<<<<<< split/pr2-enhanced-smart-context
       const { captionTracks, fullDescription } =
         await this.#getCaptionTracks(videoId);
       this.#fullDescription = fullDescription || "";
-      const captionTrack = this.#findCaptionTrack(captionTracks, lang);
-=======
-      const captionTracks = await this.#getCaptionTracks(videoId);
       const captionTrack = this.#findCaptionTrack(
         captionTracks,
         lang,
         interceptedKind
       );
->>>>>>> dev
       if (!captionTrack) {
         logger.debug("Youtube Provider: CaptionTrack not found:", videoId);
         return;
@@ -575,12 +564,9 @@ class YouTubeCaptionProvider {
       this.#events = events;
       this.#flatEvents = flatEvents;
       this.#fromLang = fromLang;
-<<<<<<< split/pr2-enhanced-smart-context
       this.#docInfo = getDocInfo();
-      await this.#enrichDocInfoWithAI(flatEvents);
-=======
       this.#interceptedCaptionKind = interceptedKind;
->>>>>>> dev
+      await this.#enrichDocInfoWithAI(flatEvents);
 
       this.#processEvents({
         videoId,
