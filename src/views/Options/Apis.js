@@ -14,6 +14,7 @@ import AccordionDetails from "@mui/material/AccordionDetails";
 import StarIcon from "@mui/icons-material/Star";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import AddIcon from "@mui/icons-material/Add";
+import SwapVertIcon from "@mui/icons-material/SwapVert";
 import Alert from "@mui/material/Alert";
 import Menu from "@mui/material/Menu";
 import Grid from "@mui/material/Grid";
@@ -110,7 +111,7 @@ function TestButton({ api }) {
   );
 }
 
-function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi }) {
+function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi, onCollapse }) {
   const { api, update, reset } = useApiItem(apiSlug);
   const i18n = useI18n();
   const [formData, setFormData] = useState({});
@@ -144,9 +145,12 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi }) {
         [name]: value,
       };
 
-      // 关闭聚合翻译时，自动关闭流式传输
       if (name === "useBatchFetch" && value === false) {
         newData.useStream = false;
+      }
+
+      if (name === "isDisabled") {
+        newData.sortOrder = value ? 999 : 0;
       }
 
       return newData;
@@ -168,15 +172,10 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi }) {
   };
 
   const handleSave = () => {
-    // 过滤掉 api 对象中不存在的字段
-    // const updatedFields = Object.keys(formData).reduce((acc, key) => {
-    //   if (api && Object.keys(api).includes(key)) {
-    //     acc[key] = formData[key];
-    //   }
-    //   return acc;
-    // }, {});
-    // update(updatedFields);
     update(formData);
+    if (formData.isDisabled || formData.sortOrder === -1) {
+      onCollapse?.();
+    }
   };
 
   const handleReset = () => {
@@ -879,6 +878,23 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi }) {
           label={i18n("is_disabled")}
         />
 
+        <FormControlLabel
+          control={
+            <Switch
+              size="small"
+              checked={sortOrder === -1}
+              onChange={(e) => {
+                setFormData((prev) => ({
+                  ...prev,
+                  sortOrder: e.target.checked ? -1 : 0,
+                }));
+              }}
+              disabled={isDisabled}
+            />
+          }
+          label={i18n("is_pinned")}
+        />
+
         <ShowMoreButton showMore={showMore} onChange={setShowMore} />
       </Stack>
 
@@ -913,6 +929,7 @@ function ApiAccordion({ api, isUserApi, deleteApi, copyApi }) {
             isUserApi={isUserApi}
             deleteApi={deleteApi}
             copyApi={copyApi}
+            onCollapse={() => setExpanded(false)}
           />
         )}
       </AccordionDetails>
@@ -922,7 +939,11 @@ function ApiAccordion({ api, isUserApi, deleteApi, copyApi }) {
 
 export default function Apis() {
   const i18n = useI18n();
-  const { userApis, builtinApis, addApi, deleteApi, copyApi } = useApiList();
+  const { userApis, builtinApis, addApi, deleteApi, copyApi, alphaSortApis } =
+    useApiList();
+
+  const [alphaSortDir, setAlphaSortDir] = useState("asc");
+  const [collapseKey, setCollapseKey] = useState(0);
 
   const apiTypes = useMemo(
     () =>
@@ -967,19 +988,34 @@ export default function Apis() {
         </Alert>
 
         <Box>
-          <Button
-            size="small"
-            id="add-api-button"
-            variant="contained"
-            onClick={handleClick}
-            aria-controls={open ? "add-api-menu" : undefined}
-            aria-haspopup="true"
-            aria-expanded={open ? "true" : undefined}
-            endIcon={<KeyboardArrowDownIcon />}
-            startIcon={<AddIcon />}
-          >
-            {i18n("add")}
-          </Button>
+          <Stack direction="row" alignItems="center" spacing={2}>
+            <Button
+              size="small"
+              id="add-api-button"
+              variant="contained"
+              onClick={handleClick}
+              aria-controls={open ? "add-api-menu" : undefined}
+              aria-haspopup="true"
+              aria-expanded={open ? "true" : undefined}
+              endIcon={<KeyboardArrowDownIcon />}
+              startIcon={<AddIcon />}
+            >
+              {i18n("add")}
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => {
+                const newDir = alphaSortDir === "asc" ? "desc" : "asc";
+                setAlphaSortDir(newDir);
+                setCollapseKey((k) => k + 1);
+                alphaSortApis(newDir);
+              }}
+              startIcon={<SwapVertIcon />}
+            >
+              {i18n("sort_alphabetically")}
+            </Button>
+          </Stack>
           <Menu
             id="add-api-menu"
             anchorEl={anchorEl}
@@ -1006,7 +1042,7 @@ export default function Apis() {
         <Box>
           {userApis.map((api) => (
             <ApiAccordion
-              key={api.apiSlug}
+              key={`${collapseKey}-${api.apiSlug}`}
               api={api}
               isUserApi={true}
               deleteApi={deleteApi}
@@ -1016,7 +1052,11 @@ export default function Apis() {
         </Box>
         <Box>
           {builtinApis.map((api) => (
-            <ApiAccordion key={api.apiSlug} api={api} copyApi={copyApi} />
+            <ApiAccordion
+              key={`${collapseKey}-${api.apiSlug}`}
+              api={api}
+              copyApi={copyApi}
+            />
           ))}
         </Box>
       </Stack>

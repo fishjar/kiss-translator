@@ -2045,6 +2045,20 @@ export const I18N = {
     ja: `無効にする`,
     ko: `비활성화 여부`,
   },
+  is_pinned: {
+    zh: `是否置顶`,
+    en: `Is Pinned`,
+    zh_TW: `是否置頂`,
+    ja: `ピン留め`,
+    ko: `고정 여부`,
+  },
+  sort_alphabetically: {
+    zh: `按字母排序`,
+    en: `Sort Alphabetically`,
+    zh_TW: `按字母排序`,
+    ja: `アルファベット順`,
+    ko: `알파벳순 정렬`,
+  },
   translate_selected: {
     zh: `是否启用划词翻译`,
     en: `If translate selected`,
