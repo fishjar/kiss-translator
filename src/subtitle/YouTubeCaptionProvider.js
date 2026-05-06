@@ -34,6 +34,7 @@ class YouTubeCaptionProvider {
   #flatEvents = [];
   #progressedNum = 0;
   #fromLang = "auto";
+  #interceptedCaptionKind = null;
 
   #processingId = null;
 
@@ -91,6 +92,7 @@ class YouTubeCaptionProvider {
       this.#flatEvents = [];
       this.#progressed = 0;
       this.#fromLang = "auto";
+      this.#interceptedCaptionKind = null;
       this.#updateMenuProps(); // 更新菜单 props
     });
 
@@ -319,20 +321,25 @@ class YouTubeCaptionProvider {
   }
 
   // todo: 优化逻辑
-  #findCaptionTrack(captionTracks, lang) {
+  #findCaptionTrack(captionTracks, lang, kind) {
     logger.debug("Youtube Provider: find caption track", {
       captionTracks,
       lang,
+      kind,
     });
 
     if (!captionTracks?.length) {
       return null;
     }
 
-    // 优先返回用户选择的 且非自动生成的 字幕轨
+    // 优先匹配用户选择的字幕轨（语言+kind完全一致）
     let captionTrack = captionTracks.find(
-      (item) => item.languageCode === lang && item.kind !== "asr"
+      (item) =>
+        item.languageCode === lang && (item.kind || null) === (kind || null)
     );
+    if (!captionTrack) {
+      captionTrack = captionTracks.find((item) => item.languageCode === lang);
+    }
     if (!captionTrack) {
       const asrTrack = captionTracks.find((item) => item.kind === "asr");
       if (asrTrack) {
@@ -429,6 +436,10 @@ class YouTubeCaptionProvider {
       });
       logger.debug("Youtube Provider: aiSegment subtitles", subtitles);
       if (Array.isArray(subtitles)) {
+        // 断句服务和翻译服务不同时，清除断句的翻译，由翻译服务重新翻译
+        if (segApiSetting.apiSlug !== this.#setting.apiSlug) {
+          return subtitles.map((sub) => ({ ...sub, translation: "" }));
+        }
         return subtitles;
       }
     } catch (err) {
@@ -466,9 +477,13 @@ class YouTubeCaptionProvider {
     }
 
     const lang = potUrl.searchParams.get("lang");
+    const interceptedKind = potUrl.searchParams.get("kind") || null;
     const fromLang = this.#getFromLang(lang);
     if (this.#flatEvents.length) {
-      if (this.#isSameLang(lang, this.#fromLang)) {
+      if (
+        this.#isSameLang(lang, this.#fromLang) &&
+        interceptedKind === this.#interceptedCaptionKind
+      ) {
         logger.debug("Youtube Provider: video was processed:", videoId);
         return;
       }
@@ -487,7 +502,11 @@ class YouTubeCaptionProvider {
 
       const { toLang } = this.#setting;
       const captionTracks = await this.#getCaptionTracks(videoId);
-      const captionTrack = this.#findCaptionTrack(captionTracks, lang);
+      const captionTrack = this.#findCaptionTrack(
+        captionTracks,
+        lang,
+        interceptedKind
+      );
       if (!captionTrack) {
         logger.debug("Youtube Provider: CaptionTrack not found:", videoId);
         return;
@@ -522,6 +541,7 @@ class YouTubeCaptionProvider {
       this.#events = events;
       this.#flatEvents = flatEvents;
       this.#fromLang = fromLang;
+      this.#interceptedCaptionKind = interceptedKind;
 
       this.#processEvents({
         videoId,
@@ -598,9 +618,10 @@ class YouTubeCaptionProvider {
     // 根据segSlug从transApis中查找对应的API设置
     const segApiSetting = transApis?.find((api) => api.apiSlug === segSlug);
 
-    // potUrl.searchParams.get("kind") === "asr"
-    // 当segSlug不为"-"且segApiSetting存在时，启用AI断句
-    if (segSlug && segSlug !== "-" && segApiSetting) {
+    const isAutoCaption = this.#interceptedCaptionKind === "asr";
+
+    // 仅自动字幕(kind=asr)启用AI断句，人工字幕直接使用原字幕分段
+    if (isAutoCaption && segSlug && segSlug !== "-" && segApiSetting) {
       logger.info("Youtube Provider: Starting AI ...");
       this.#showNotification(this.#i18n("ai_processing_pls_wait"));
 
@@ -639,6 +660,11 @@ class YouTubeCaptionProvider {
       } else {
         return [firstBatchSubtitles, 100];
       }
+    }
+
+    if (!isAutoCaption) {
+      // 人工字幕已是句级分段，直接使用无需合并
+      return [flatEvents.filter((e) => e.text), 100];
     }
 
     return subtitlesFallback();
@@ -966,7 +992,10 @@ class YouTubeCaptionProvider {
 
     events.forEach(({ segs = [], tStartMs = 0, dDurationMs = 0 }) => {
       segs.forEach(({ utf8 = "", tOffsetMs = 0 }, j) => {
-        const text = utf8.trim().replace(/\s+/g, " ");
+        const text = utf8
+          .replace(/<[^>]+>/g, "")
+          .trim()
+          .replace(/\s+/g, " ");
         const start = tStartMs + tOffsetMs;
 
         if (buffer) {
