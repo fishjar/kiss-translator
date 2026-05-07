@@ -333,6 +333,64 @@ export class Translator {
   #rescanQueue = new Set(); // “脏容器”队列
   #isQueueProcessing = false; // 队列处理状态标志
 
+  // 获取当前视口中的稳定锚点，用于 DOM 高度变化后保持用户正在看的位置
+  #captureViewportAnchor() {
+    if (!document.elementFromPoint || !window.scrollBy) return null;
+
+    const points = [0.5, 0.33, 0.66];
+    for (const ratio of points) {
+      const x = Math.max(0, Math.floor(window.innerWidth / 2));
+      const y = Math.max(
+        0,
+        Math.min(window.innerHeight - 1, Math.floor(window.innerHeight * ratio))
+      );
+      const element = document.elementFromPoint(x, y);
+      const anchor = this.#normalizeViewportAnchor(element);
+      if (!anchor?.isConnected) continue;
+
+      const rect = anchor.getBoundingClientRect();
+      if (rect.width || rect.height) {
+        return { element: anchor, top: rect.top };
+      }
+    }
+
+    return null;
+  }
+
+  #normalizeViewportAnchor(element) {
+    if (!element) return null;
+
+    const wrapper = element.closest?.(`.${Translator.KISS_CLASS.warpper}`);
+    if (!wrapper) return element;
+
+    const { nodes } = this.#translationNodes.get(wrapper) || {};
+    const originalNode = nodes?.find((node) => node.isConnected);
+    if (originalNode?.nodeType === Node.ELEMENT_NODE) return originalNode;
+    if (originalNode?.parentElement?.isConnected)
+      return originalNode.parentElement;
+
+    return wrapper.previousElementSibling || wrapper.parentElement;
+  }
+
+  #restoreViewportAnchor(anchor) {
+    if (!anchor?.element?.isConnected) return;
+
+    const currentTop = anchor.element.getBoundingClientRect().top;
+    const offset = currentTop - anchor.top;
+    if (Math.abs(offset) > 0.5) {
+      window.scrollBy(0, offset);
+    }
+  }
+
+  #withViewportAnchor(callback) {
+    const anchor = this.#captureViewportAnchor();
+    try {
+      return callback();
+    } finally {
+      this.#restoreViewportAnchor(anchor);
+    }
+  }
+
   // 忽略元素
   get #ignoreSelector() {
     if (this.#rule.scanAll === "true" || this.#rule.isPlainText) {
@@ -1297,7 +1355,9 @@ export class Translator {
       }
       inner.appendChild(createLoadingSVG());
       wrapper.appendChild(inner);
-      nodes[nodes.length - 1].after(wrapper);
+      this.#withViewportAnchor(() => {
+        nodes[nodes.length - 1].after(wrapper);
+      });
 
       const currentRunId = this.#runId;
       const { trText: translatedText, isSame: isSameLang } =
@@ -1307,7 +1367,9 @@ export class Translator {
       }
 
       if (!translatedText || isSameLang) {
-        wrapper.remove();
+        this.#withViewportAnchor(() => {
+          wrapper.remove();
+        });
         return;
       }
 
@@ -1322,14 +1384,18 @@ export class Translator {
       // const innerElement = doc.body.firstChild;
       // inner.replaceChildren(innerElement);
 
-      inner.innerHTML = trustedHTML;
+      this.#withViewportAnchor(() => {
+        inner.innerHTML = trustedHTML;
+      });
 
       this.#translationNodes.set(wrapper, {
         nodes,
         isHide: hideOrigin,
       });
       if (hideOrigin) {
-        this.#removeNodes(nodes);
+        this.#withViewportAnchor(() => {
+          this.#removeNodes(nodes);
+        });
       }
 
       // 附加样式
@@ -1393,7 +1459,9 @@ export class Translator {
             retryIcon.addEventListener("click", (e) => {
               e.stopPropagation();
               e.preventDefault();
-              wrapper.remove();
+              this.#withViewportAnchor(() => {
+                wrapper.remove();
+              });
               this.#processedNodes.delete(hostNode);
               this.#translateNodeGroup(nodes, hostNode, deLang);
             });
@@ -1649,23 +1717,25 @@ export class Translator {
 
   // 清理译文
   #removeTranslationElement(el) {
-    const parentElement = el.parentElement;
-    this.#processedNodes.delete(parentElement);
+    this.#withViewportAnchor(() => {
+      const parentElement = el.parentElement;
+      this.#processedNodes.delete(parentElement);
 
-    // 如果是仅显示译文模式，先恢复原文
-    const { nodes, isHide } = this.#translationNodes.get(el) || {};
-    if (isHide) {
-      this.#restoreOriginal(el, nodes);
-    }
+      // 如果是仅显示译文模式，先恢复原文
+      const { nodes, isHide } = this.#translationNodes.get(el) || {};
+      if (isHide) {
+        this.#restoreOriginal(el, nodes);
+      }
 
-    this.#translationNodes.delete(el);
-    el.remove();
+      this.#translationNodes.delete(el);
+      el.remove();
 
-    // todo: 可能不应深度清除
-    if (this.#rule.highlightWords === OPT_HIGHLIGHT_WORDS_AFTERTRANS) {
-      this.#removeHighlights(parentElement);
-    }
-    this.#removeBrTags(parentElement);
+      // todo: 可能不应深度清除
+      if (this.#rule.highlightWords === OPT_HIGHLIGHT_WORDS_AFTERTRANS) {
+        this.#removeHighlights(parentElement);
+      }
+      this.#removeBrTags(parentElement);
+    });
   }
 
   // 恢复原文
@@ -1693,13 +1763,17 @@ export class Translator {
       const { nodes } = this.#translationNodes.get(el) || {};
       if (transOnly === "true") {
         // 双语变为仅译文
-        if (br) br.hidden = true;
-        this.#removeNodes(nodes);
+        this.#withViewportAnchor(() => {
+          if (br) br.hidden = true;
+          this.#removeNodes(nodes);
+        });
         this.#translationNodes.set(el, { nodes, isHide: true });
       } else {
         // 仅译文变为双语
-        if (br) br.hidden = false;
-        this.#restoreOriginal(el, nodes);
+        this.#withViewportAnchor(() => {
+          if (br) br.hidden = false;
+          this.#restoreOriginal(el, nodes);
+        });
         this.#translationNodes.set(el, { nodes, isHide: false });
       }
     });
