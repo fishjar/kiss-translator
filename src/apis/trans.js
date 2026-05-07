@@ -60,6 +60,7 @@ import {
 import {
   parseStreamingSegments,
   createStreamingJsonParser,
+  createRealtimeStreamParser,
   detectStreamFormat,
   getStreamDelta,
 } from "../libs/stream";
@@ -1252,6 +1253,7 @@ export async function* handleTranslate(
       fetchInterval,
       fetchLimit,
       httpTimeout,
+      streamRenderMode: apiSetting.streamRenderMode || "disabled",
     });
   } else {
     const response = await fetchData(input, init, {
@@ -1293,13 +1295,15 @@ async function* handleTranslateStreamInternal(
   texts,
   input,
   init,
-  { apiType, history, userMsg, usePool, fetchInterval, fetchLimit, httpTimeout }
+  { apiType, history, userMsg, usePool, fetchInterval, fetchLimit, httpTimeout, streamRenderMode }
 ) {
   const results = new Array(texts.length).fill(null);
   let fullContent = "";
   const processedIds = new Set();
 
   const jsonParser = createStreamingJsonParser();
+  const realtimeParser =
+    streamRenderMode === "realtime" ? createRealtimeStreamParser() : null;
   let isJsonFormat = false;
   let formatDetected = false;
 
@@ -1346,6 +1350,15 @@ async function* handleTranslateStreamInternal(
             )) {
               results[id] = translation;
               yield { id, result: translation };
+            }
+          }
+          // 实时渲染模式：yield 段落级中间态
+          if (realtimeParser && streamRenderMode === "realtime") {
+            const items = realtimeParser.write(delta);
+            for (const { id, partialText, isComplete } of items) {
+              if (!isComplete) {
+                yield { id, partialText, isComplete: false };
+              }
             }
           }
         }

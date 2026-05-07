@@ -150,6 +150,10 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi, onCollapse }) {
         newData.useStream = false;
       }
 
+      if (name === "useStream" && value === false) {
+        newData.streamRenderMode = "disabled";
+      }
+
       if (name === "isDisabled") {
         newData.sortOrder = value ? 999 : 0;
       }
@@ -223,6 +227,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi, onCollapse }) {
     isDisabled = false,
     useBatchFetch = false,
     useStream = false,
+    streamRenderMode = "disabled",
     batchInterval = DEFAULT_BATCH_INTERVAL,
     batchSize = DEFAULT_BATCH_SIZE,
     batchLength = DEFAULT_BATCH_LENGTH,
@@ -533,6 +538,24 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi, onCollapse }) {
               >
                 <MenuItem value={false}>{i18n("disable")}</MenuItem>
                 <MenuItem value={true}>{i18n("enable")}</MenuItem>
+              </TextField>
+            </Grid>
+          )}
+
+          {API_SPE_TYPES.stream.has(api.apiType) && useBatchFetch && useStream && (
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                name="streamRenderMode"
+                value={streamRenderMode}
+                label={i18n("stream_render_mode")}
+                onChange={handleChange}
+              >
+                <MenuItem value="disabled">{i18n("disable")}</MenuItem>
+                <MenuItem value="realtime">{i18n("stream_render_realtime")}</MenuItem>
+                <MenuItem value="segment">{i18n("stream_render_segment")}</MenuItem>
               </TextField>
             </Grid>
           )}
