@@ -35,6 +35,7 @@ export class YouTubeSubtitleList {
     this.loopAutoScroll = null; // 自动滚动的定时器 ID
     this.activeTab = "subtitles"; // 当前激活的 Tab: 'subtitles' 或 'vocabulary'
     this._lastActiveIndex = -1; // 上一次高亮的字幕索引
+    this._vocabularyDirty = false; // 生词本是否需要重新渲染
 
     // --- 事件绑定 ---
     this.handleWordAdded = this.handleWordAdded.bind(this);
@@ -157,8 +158,12 @@ export class YouTubeSubtitleList {
       // 新增单词
       this.vocabulary.push({ word, phonetic, definition, examples, timestamp });
     }
-    // 重新渲染生词本界面
-    this._renderVocabulary();
+
+    if (this.activeTab === "vocabulary") {
+      this._renderVocabulary();
+    } else {
+      this._vocabularyDirty = true;
+    }
   }
 
   /**
@@ -433,7 +438,10 @@ export class YouTubeSubtitleList {
       styleTab(vocabularyTab, true);
       this.subtitleListEl.style.display = "none";
       this.vocabularyListEl.style.display = "flex";
-      this._renderVocabulary();
+      if (this._vocabularyDirty) {
+        this._renderVocabulary();
+        this._vocabularyDirty = false;
+      }
     });
 
     styleTab(subtitleTab, true);
@@ -497,13 +505,26 @@ export class YouTubeSubtitleList {
 
   /**
    * 更新现有的双语字幕列表 (Diff Update)
-   * 策略：如果数据长度不变，仅更新文本内容以提高性能；如果长度变了，重建列表。
+   * 策略：如果数据长度变了，仅增量追加新增条目；如果长度不变，仅更新文本内容。
    */
   updateBilingualSubtitles() {
     if (!this.subtitleListEl) return;
 
-    // 1. 结构变化检测
-    if (this.bilingualSubtitles.length !== this._cachedSubtitleItems.length) {
+    // 1. 增量追加模式：只添加新增的条目，不全量重建
+    if (this.bilingualSubtitles.length > this._cachedSubtitleItems.length) {
+      const ul = this.subtitleListEl.querySelector("ul");
+      if (ul) {
+        const fragment = document.createDocumentFragment();
+        for (let i = this._cachedSubtitleItems.length; i < this.bilingualSubtitles.length; i++) {
+          const sub = this.bilingualSubtitles[i];
+          const li = this._createSubtitleListItem(sub, i);
+          this._cachedSubtitleItems.push(li);
+          fragment.appendChild(li);
+        }
+        ul.appendChild(fragment);
+      }
+    } else if (this.bilingualSubtitles.length < this._cachedSubtitleItems.length) {
+      // 数据源变少了（如切换视频后重建），全量重建
       const ul = this.subtitleListEl.querySelector("ul");
       if (ul) {
         ul.replaceChildren();
@@ -518,28 +539,39 @@ export class YouTubeSubtitleList {
       }
       return;
     }
+  }
 
-    // 2. 内容更新 (DOM 复用)
-    for (let i = 0; i < this.bilingualSubtitles.length; i++) {
-      const sub = this.bilingualSubtitles[i];
-      const item = this._cachedSubtitleItems[i];
+  /**
+   * 增量更新单条字幕的译文（O(1) DOM 操作）
+   * @param {{ start: number, end?: number, text?: string, translation: string }} subtitleUpdate
+   */
+  updateSingleSubtitle(subtitleUpdate) {
+    if (!this.subtitleListEl || !this._cachedSubtitleItems.length) return;
 
-      if (item && sub) {
-        // 更新时间绑定
-        item.dataset.time = sub.start;
-        // 更新时间显示
-        const timeSpan = item.firstElementChild;
-        if (timeSpan)
-          timeSpan.textContent = `${this.millisToMinutesAndSeconds(sub.start)} `;
-        // 更新原文
-        const textSpan = item.querySelector(".kiss-youtube-original");
-        if (textSpan) textSpan.textContent = sub.text || "";
-        // 更新译文
-        const translationEl = item.querySelector(".kiss-youtube-translation");
-        if (translationEl) {
-          translationEl.textContent = sub.translation || "";
-          translationEl.style.display = sub.translation ? "block" : "none";
-        }
+    const { start, translation } = subtitleUpdate;
+    // 二分查找匹配的条目索引
+    let left = 0, right = this.bilingualSubtitles.length - 1;
+    let targetIndex = -1;
+    while (left <= right) {
+      const mid = Math.floor((left + right) / 2);
+      const sub = this.bilingualSubtitles[mid];
+      if (sub.start === start) { targetIndex = mid; break; }
+      else if (sub.start > start) right = mid - 1;
+      else left = mid + 1;
+    }
+
+    if (targetIndex === -1) return;
+
+    // 更新数据源
+    this.bilingualSubtitles[targetIndex].translation = translation;
+
+    // 只更新单条 DOM
+    const item = this._cachedSubtitleItems[targetIndex];
+    if (item) {
+      const translationEl = item.querySelector(".kiss-youtube-translation");
+      if (translationEl) {
+        translationEl.textContent = translation || "";
+        translationEl.style.display = translation ? "block" : "none";
       }
     }
   }
@@ -895,7 +927,7 @@ export class YouTubeSubtitleList {
         currentEl.classList.add("active-subtitle");
         this._lastActiveIndex = currentIndex;
 
-        // 【修复点】：移除未使用的 targetScrollTop 变量，使用 clean 的居中计算逻辑
+        // 使用 auto 即时滚动，避免 smooth 动画重叠堆积导致卡顿
         const container = this.subtitleScrollContainer;
         if (container) {
           const elementTop = currentEl.offsetTop;
@@ -903,9 +935,8 @@ export class YouTubeSubtitleList {
           const elementHeight = currentEl.clientHeight;
 
           container.scrollTo({
-            // 计算公式：元素顶部位置 - 容器一半高度 + 元素一半高度 = 元素居中
             top: elementTop - containerHeight / 2 + elementHeight / 2,
-            behavior: "smooth",
+            behavior: "auto",
           });
         }
       }
