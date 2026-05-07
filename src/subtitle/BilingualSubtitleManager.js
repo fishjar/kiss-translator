@@ -700,13 +700,34 @@ export class BilingualSubtitleManager {
 
   /**
    * 根据时间（毫秒）查找对应的字幕索引。
+   * 使用二分查找，复杂度 O(log n)，替代原 findIndex 的 O(n)。
    * @param {number} currentTimeMs
    * @returns {number} 找到的字幕索引，-1 表示没找到。
    */
   #findSubtitleIndexForTime(currentTimeMs) {
-    return this.#formattedSubtitles.findIndex(
-      (sub) => currentTimeMs >= sub.start && currentTimeMs <= sub.end
-    );
+    const arr = this.#formattedSubtitles;
+    const len = arr.length;
+    if (len === 0) return -1;
+
+    if (currentTimeMs < arr[0].start || currentTimeMs > arr[len - 1].end) {
+      return -1;
+    }
+
+    let left = 0;
+    let right = len - 1;
+    while (left <= right) {
+      const mid = Math.floor((left + right) / 2);
+      const sub = arr[mid];
+      if (currentTimeMs >= sub.start && currentTimeMs <= sub.end) {
+        return mid;
+      } else if (currentTimeMs < sub.start) {
+        right = mid - 1;
+      } else {
+        left = mid + 1;
+      }
+    }
+
+    return -1;
   }
 
   /**
