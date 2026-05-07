@@ -4,6 +4,7 @@ import {
   MSG_GET_HTTPCACHE,
   MSG_PUT_HTTPCACHE,
   MSG_TRANS_TOGGLE,
+  MSG_TRANS_TOGGLE_ONLY,
   MSG_OPEN_OPTIONS,
   MSG_SAVE_RULE,
   MSG_TRANS_TOGGLE_STYLE,
@@ -16,6 +17,7 @@ import {
   MSG_BUILTINAI_DETECT,
   MSG_BUILTINAI_TRANSLATE,
   CMD_TOGGLE_TRANSLATE,
+  CMD_TOGGLE_TRANSLATE_ONLY,
   CMD_TOGGLE_STYLE,
   CMD_OPEN_OPTIONS,
   CMD_OPEN_TRANBOX,
@@ -231,6 +233,11 @@ async function addContextMenus(contextMenuType = 1) {
       browser.contextMenus.create({
         id: CMD_TOGGLE_TRANSLATE,
         title: browser.i18n.getMessage("toggle_translate"),
+        contexts: ["page", "selection"],
+      });
+      browser.contextMenus.create({
+        id: CMD_TOGGLE_TRANSLATE_ONLY,
+        title: browser.i18n.getMessage("toggle_translate_only"),
         contexts: ["page", "selection"],
       });
       browser.contextMenus.create({
@@ -494,6 +501,9 @@ browser.commands?.onCommand?.addListener?.((command) => {
     case CMD_TOGGLE_TRANSLATE:
       sendTabMsg(MSG_TRANS_TOGGLE);
       break;
+    case CMD_TOGGLE_TRANSLATE_ONLY:
+      sendTabMsg(MSG_TRANS_TOGGLE_ONLY);
+      break;
     case CMD_OPEN_TRANBOX:
       sendTabMsg(MSG_OPEN_TRANBOX);
       break;
@@ -521,6 +531,9 @@ browser?.contextMenus?.onClicked?.addListener?.(({ menuItemId }) => {
   switch (menuItemId) {
     case CMD_TOGGLE_TRANSLATE:
       sendTabMsg(MSG_TRANS_TOGGLE);
+      break;
+    case CMD_TOGGLE_TRANSLATE_ONLY:
+      sendTabMsg(MSG_TRANS_TOGGLE_ONLY);
       break;
     case CMD_TOGGLE_STYLE:
       sendTabMsg(MSG_TRANS_TOGGLE_STYLE);

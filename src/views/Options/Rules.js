@@ -45,7 +45,13 @@ import { loadOrFetchSubRules } from "../../libs/subRules";
 import { useAlert } from "../../hooks/Alert";
 import { syncShareRules } from "../../libs/sync";
 import { debounce } from "../../libs/utils";
-import { delSubRules, getSyncWithDefault } from "../../libs/storage";
+import {
+  delSubRules,
+  getSyncWithDefault,
+  getDisabledSubRules,
+  setDisabledSubRules,
+  removeDisabledSubRules,
+} from "../../libs/storage";
 import ClearAllIcon from "@mui/icons-material/ClearAll";
 import HelpButton from "./HelpButton";
 import { useSyncCaches } from "../../hooks/Sync";
@@ -777,9 +783,26 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
   );
 }
 
-function RuleAccordion({ rule, rules, isExpanded = false }) {
+function RuleAccordion({ rule, rules, sourceUrl, isExpanded = false }) {
   const i18n = useI18n();
   const [expanded, setExpanded] = useState(isExpanded);
+
+  const [disabledByUser, setDisabledByUser] = useState(false);
+  const alert = useAlert();
+
+  useEffect(() => {
+    if (!rules) {
+      if (!sourceUrl) return;
+      (async () => {
+        try {
+          const list = await getDisabledSubRules(sourceUrl);
+          setDisabledByUser(Array.isArray(list) && list.includes(rule.pattern));
+        } catch (err) {
+          kissLog("getDisabledSubRules", err);
+        }
+      })();
+    }
+  }, [rule, rules, sourceUrl]);
 
   const handleChange = (e) => {
     setExpanded((pre) => !pre);
@@ -788,16 +811,51 @@ function RuleAccordion({ rule, rules, isExpanded = false }) {
   return (
     <Accordion expanded={expanded} onChange={handleChange}>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Typography
-          sx={{
-            opacity: rules ? 1 : 0.5,
-            overflowWrap: "anywhere",
-          }}
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={1}
+          sx={{ width: "100%" }}
         >
-          {rule.pattern === GLOBAL_KEY
-            ? `[${i18n("global_rule")}] ${rule.pattern}`
-            : rule.pattern}
-        </Typography>
+          {!rules && (
+            <Switch
+              size="small"
+              checked={!disabledByUser}
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+              onChange={async (e) => {
+                const enabled = e.target.checked;
+                const toDisable = !enabled;
+                try {
+                  const list = await getDisabledSubRules(sourceUrl);
+                  const set = new Set(Array.isArray(list) ? list : []);
+                  if (toDisable) set.add(rule.pattern);
+                  else set.delete(rule.pattern);
+                  await setDisabledSubRules(sourceUrl, [...set]);
+                  setDisabledByUser(toDisable);
+                  alert.success(
+                    i18n(toDisable ? "rule_disabled" : "rule_enabled")
+                  );
+                } catch (err) {
+                  kissLog("toggle disabled sub rule", err);
+                  alert.error(i18n("rule_toggle_failed"));
+                }
+              }}
+            />
+          )}
+
+          <Typography
+            sx={{
+              opacity: rules ? 1 : 0.5,
+              overflowWrap: "anywhere",
+              flex: 1,
+            }}
+          >
+            {rule.pattern === GLOBAL_KEY
+              ? `[${i18n("global_rule")}] ${rule.pattern}`
+              : rule.pattern}
+          </Typography>
+        </Stack>
       </AccordionSummary>
       <AccordionDetails>
         {expanded && <RuleFields rule={rule} rules={rules} />}
@@ -978,7 +1036,11 @@ function UserRules({ subRules, rules }) {
                 rule.pattern.includes(keyword) || keyword.includes(rule.pattern)
             )
             .map((rule) => (
-              <RuleAccordion key={rule.pattern} rule={rule} />
+              <RuleAccordion
+                key={rule.pattern}
+                rule={rule}
+                sourceUrl={selectedUrl}
+              />
             ))}
         </Box>
       )}
@@ -1004,6 +1066,12 @@ function SubRulesItem({
       await delSub(url);
       await delSubRules(url);
       await deleteDataCache(url);
+      // remove any per-source disabled state
+      try {
+        await removeDisabledSubRules(url);
+      } catch (err) {
+        kissLog("removeDisabledSubRules", err);
+      }
     } catch (err) {
       kissLog("del subrules", err);
     }
@@ -1229,7 +1297,7 @@ function SubRules({ subRules }) {
           </center>
         ) : (
           selectedRules.map((rule) => (
-            <RuleAccordion key={rule.pattern} rule={rule} />
+            <RuleAccordion key={rule.pattern} rule={rule} sourceUrl={selectedUrl}/>
           ))
         )}
       </Box>

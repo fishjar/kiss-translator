@@ -1947,6 +1947,11 @@ export class Translator {
     this.#enabled ? this.disable() : this.enable();
   }
 
+  toggleTransOnly() {
+    const newValue = this.#rule.transOnly === "true" ? "false" : "true";
+    this.updateRule({ transOnly: newValue });
+  }
+
   // 快速切换模糊样式
   toggleStyle() {
     const textStyle =

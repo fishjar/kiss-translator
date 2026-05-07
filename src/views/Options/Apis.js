@@ -14,6 +14,7 @@ import AccordionDetails from "@mui/material/AccordionDetails";
 import StarIcon from "@mui/icons-material/Star";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import AddIcon from "@mui/icons-material/Add";
+import SwapVertIcon from "@mui/icons-material/SwapVert";
 import Alert from "@mui/material/Alert";
 import Menu from "@mui/material/Menu";
 import Grid from "@mui/material/Grid";
@@ -50,6 +51,7 @@ import {
   defaultSystemPrompt,
   defaultSystemPromptXml,
   defaultSystemPromptLines,
+  THINKING_PARAM_MAP,
 } from "../../config";
 import ValidationInput from "../../hooks/ValidationInput";
 
@@ -110,7 +112,7 @@ function TestButton({ api }) {
   );
 }
 
-function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi }) {
+function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi, onCollapse }) {
   const { api, update, reset } = useApiItem(apiSlug);
   const i18n = useI18n();
   const [formData, setFormData] = useState({});
@@ -144,9 +146,12 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi }) {
         [name]: value,
       };
 
-      // 关闭聚合翻译时，自动关闭流式传输
       if (name === "useBatchFetch" && value === false) {
         newData.useStream = false;
+      }
+
+      if (name === "isDisabled") {
+        newData.sortOrder = value ? 999 : 0;
       }
 
       return newData;
@@ -168,15 +173,10 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi }) {
   };
 
   const handleSave = () => {
-    // 过滤掉 api 对象中不存在的字段
-    // const updatedFields = Object.keys(formData).reduce((acc, key) => {
-    //   if (api && Object.keys(api).includes(key)) {
-    //     acc[key] = formData[key];
-    //   }
-    //   return acc;
-    // }, {});
-    // update(updatedFields);
     update(formData);
+    if (formData.isDisabled || formData.sortOrder === -1) {
+      onCollapse?.();
+    }
   };
 
   const handleReset = () => {
@@ -235,7 +235,11 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi }) {
     region = "",
     sortOrder = 0,
     aiTerms = "",
+    thinkingMode = "auto",
+    thinkingEffort = "_default",
   } = formData;
+
+  const thinkingParam = THINKING_PARAM_MAP[apiType];
 
   const keyHelper = useMemo(
     () => (API_SPE_TYPES.mulkeys.has(apiType) ? i18n("mulkeys_help") : ""),
@@ -389,99 +393,6 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi }) {
             </Grid>
           </Box>
 
-          {useBatchFetch ? (
-            <TextField
-              size="small"
-              label={"Batch System Prompt"}
-              name="systemPrompt"
-              value={systemPrompt}
-              onChange={handleChange}
-              multiline
-              maxRows={10}
-              helperText={
-                <>
-                  {i18n("system_prompt_helper_1")}
-                  <Link
-                    component="button"
-                    sx={{ margin: "0 1em" }}
-                    data-output="json"
-                    onClick={handleUpdateSystemPrompt}
-                  >
-                    {i18n("json_output")}
-                  </Link>
-                  <Link
-                    component="button"
-                    sx={{ margin: "0 1em" }}
-                    data-output="xml"
-                    onClick={handleUpdateSystemPrompt}
-                  >
-                    {i18n("xml_output")}
-                  </Link>
-                  <Link
-                    component="button"
-                    sx={{ margin: "0 1em" }}
-                    data-output="textlines"
-                    onClick={handleUpdateSystemPrompt}
-                  >
-                    {i18n("textlines_output")}
-                  </Link>
-                  <br />
-                  {i18n("system_prompt_helper_2")}
-                </>
-              }
-            />
-          ) : (
-            <>
-              <TextField
-                size="small"
-                label={"System Prompt"}
-                name="nobatchPrompt"
-                value={nobatchPrompt}
-                onChange={handleChange}
-                multiline
-                maxRows={10}
-              />
-              <TextField
-                size="small"
-                label={"User Prompt"}
-                name="nobatchUserPrompt"
-                value={nobatchUserPrompt}
-                onChange={handleChange}
-                multiline
-                maxRows={10}
-              />
-            </>
-          )}
-
-          <TextField
-            size="small"
-            label={"Subtitle Prompt"}
-            name="subtitlePrompt"
-            value={subtitlePrompt}
-            onChange={handleChange}
-            multiline
-            maxRows={10}
-            helperText={i18n("system_prompt_helper")}
-          />
-          {/* <TextField
-            size="small"
-            label={"USER PROMPT"}
-            name="userPrompt"
-            value={userPrompt}
-            onChange={handleChange}
-            multiline
-            maxRows={10}
-          /> */}
-          <TextField
-            size="small"
-            label={i18n("ai_terms")}
-            helperText={i18n("ai_terms_helper")}
-            name="aiTerms"
-            value={aiTerms}
-            onChange={handleChange}
-            multiline
-            maxRows={10}
-          />
         </>
       )}
 
@@ -707,6 +618,51 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi }) {
         </Grid>
       </Box>
 
+      {thinkingParam && (
+        <Box>
+          <Grid container spacing={2} columns={12}>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                name="thinkingMode"
+                value={thinkingMode}
+                label={i18n("thinking_mode")}
+                onChange={handleChange}
+                helperText={i18n("thinking_mode_helper")}
+              >
+                <MenuItem value="auto">{i18n("thinking_mode_default")}</MenuItem>
+                <MenuItem value="enabled">{i18n("thinking_mode_enabled")}</MenuItem>
+                {thinkingParam.disableSupported !== false && (
+                  <MenuItem value="disabled">{i18n("thinking_mode_disabled")}</MenuItem>
+                )}
+              </TextField>
+            </Grid>
+            {thinkingMode === "enabled" && thinkingParam.efforts && (
+              <Grid item xs={12} sm={12} md={6} lg={3}>
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  name="thinkingEffort"
+                  value={thinkingEffort}
+                  label={i18n("thinking_effort")}
+                  onChange={handleChange}
+                >
+                  {thinkingParam.efforts.map((e) => (
+                    <MenuItem key={e.value} value={e.value}>
+                      {e.label}
+                    </MenuItem>
+                  ))}
+                  <MenuItem value="_default">{i18n("thinking_effort_default")}</MenuItem>
+                </TextField>
+              </Grid>
+            )}
+          </Grid>
+        </Box>
+      )}
+
       {showMore && (
         <>
           <Box>
@@ -765,6 +721,95 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi }) {
               </Grid>
             </Grid>
           </Box>
+
+          {API_SPE_TYPES.ai.has(apiType) && (
+            <>
+              {useBatchFetch ? (
+                <TextField
+                  size="small"
+                  label={"Batch System Prompt"}
+                  name="systemPrompt"
+                  value={systemPrompt}
+                  onChange={handleChange}
+                  multiline
+                  maxRows={10}
+                  helperText={
+                    <>
+                      {i18n("system_prompt_helper_1")}
+                      <Link
+                        component="button"
+                        sx={{ margin: "0 1em" }}
+                        data-output="json"
+                        onClick={handleUpdateSystemPrompt}
+                      >
+                        {i18n("json_output")}
+                      </Link>
+                      <Link
+                        component="button"
+                        sx={{ margin: "0 1em" }}
+                        data-output="xml"
+                        onClick={handleUpdateSystemPrompt}
+                      >
+                        {i18n("xml_output")}
+                      </Link>
+                      <Link
+                        component="button"
+                        sx={{ margin: "0 1em" }}
+                        data-output="textlines"
+                        onClick={handleUpdateSystemPrompt}
+                      >
+                        {i18n("textlines_output")}
+                      </Link>
+                      <br />
+                      {i18n("system_prompt_helper_2")}
+                    </>
+                  }
+                />
+              ) : (
+                <>
+                  <TextField
+                    size="small"
+                    label={"System Prompt"}
+                    name="nobatchPrompt"
+                    value={nobatchPrompt}
+                    onChange={handleChange}
+                    multiline
+                    maxRows={10}
+                  />
+                  <TextField
+                    size="small"
+                    label={"User Prompt"}
+                    name="nobatchUserPrompt"
+                    value={nobatchUserPrompt}
+                    onChange={handleChange}
+                    multiline
+                    maxRows={10}
+                  />
+                </>
+              )}
+
+              <TextField
+                size="small"
+                label={"Subtitle Prompt"}
+                name="subtitlePrompt"
+                value={subtitlePrompt}
+                onChange={handleChange}
+                multiline
+                maxRows={10}
+                helperText={i18n("system_prompt_helper")}
+              />
+              <TextField
+                size="small"
+                label={i18n("ai_terms")}
+                helperText={i18n("ai_terms_helper")}
+                name="aiTerms"
+                value={aiTerms}
+                onChange={handleChange}
+                multiline
+                maxRows={10}
+              />
+            </>
+          )}
 
           {apiType !== OPT_TRANS_BUILTINAI && (
             <>
@@ -879,6 +924,23 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi }) {
           label={i18n("is_disabled")}
         />
 
+        <FormControlLabel
+          control={
+            <Switch
+              size="small"
+              checked={sortOrder === -1}
+              onChange={(e) => {
+                setFormData((prev) => ({
+                  ...prev,
+                  sortOrder: e.target.checked ? -1 : 0,
+                }));
+              }}
+              disabled={isDisabled}
+            />
+          }
+          label={i18n("is_pinned")}
+        />
+
         <ShowMoreButton showMore={showMore} onChange={setShowMore} />
       </Stack>
 
@@ -913,6 +975,7 @@ function ApiAccordion({ api, isUserApi, deleteApi, copyApi }) {
             isUserApi={isUserApi}
             deleteApi={deleteApi}
             copyApi={copyApi}
+            onCollapse={() => setExpanded(false)}
           />
         )}
       </AccordionDetails>
@@ -922,7 +985,11 @@ function ApiAccordion({ api, isUserApi, deleteApi, copyApi }) {
 
 export default function Apis() {
   const i18n = useI18n();
-  const { userApis, builtinApis, addApi, deleteApi, copyApi } = useApiList();
+  const { userApis, builtinApis, addApi, deleteApi, copyApi, alphaSortApis } =
+    useApiList();
+
+  const [alphaSortDir, setAlphaSortDir] = useState("asc");
+  const [collapseKey, setCollapseKey] = useState(0);
 
   const apiTypes = useMemo(
     () =>
@@ -967,19 +1034,34 @@ export default function Apis() {
         </Alert>
 
         <Box>
-          <Button
-            size="small"
-            id="add-api-button"
-            variant="contained"
-            onClick={handleClick}
-            aria-controls={open ? "add-api-menu" : undefined}
-            aria-haspopup="true"
-            aria-expanded={open ? "true" : undefined}
-            endIcon={<KeyboardArrowDownIcon />}
-            startIcon={<AddIcon />}
-          >
-            {i18n("add")}
-          </Button>
+          <Stack direction="row" alignItems="center" spacing={2}>
+            <Button
+              size="small"
+              id="add-api-button"
+              variant="contained"
+              onClick={handleClick}
+              aria-controls={open ? "add-api-menu" : undefined}
+              aria-haspopup="true"
+              aria-expanded={open ? "true" : undefined}
+              endIcon={<KeyboardArrowDownIcon />}
+              startIcon={<AddIcon />}
+            >
+              {i18n("add")}
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => {
+                const newDir = alphaSortDir === "asc" ? "desc" : "asc";
+                setAlphaSortDir(newDir);
+                setCollapseKey((k) => k + 1);
+                alphaSortApis(newDir);
+              }}
+              startIcon={<SwapVertIcon />}
+            >
+              {i18n("sort_alphabetically")}
+            </Button>
+          </Stack>
           <Menu
             id="add-api-menu"
             anchorEl={anchorEl}
@@ -1006,7 +1088,7 @@ export default function Apis() {
         <Box>
           {userApis.map((api) => (
             <ApiAccordion
-              key={api.apiSlug}
+              key={`${collapseKey}-${api.apiSlug}`}
               api={api}
               isUserApi={true}
               deleteApi={deleteApi}
@@ -1016,7 +1098,11 @@ export default function Apis() {
         </Box>
         <Box>
           {builtinApis.map((api) => (
-            <ApiAccordion key={api.apiSlug} api={api} copyApi={copyApi} />
+            <ApiAccordion
+              key={`${collapseKey}-${api.apiSlug}`}
+              api={api}
+              copyApi={copyApi}
+            />
           ))}
         </Box>
       </Stack>
