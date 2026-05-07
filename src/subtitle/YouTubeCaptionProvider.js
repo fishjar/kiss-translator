@@ -335,6 +335,13 @@ class YouTubeCaptionProvider {
     return lang1.slice(0, 2) === lang2.slice(0, 2);
   }
 
+  #isChatCaptionTrack(track) {
+    if (!track) return false;
+    const name =
+      track.name?.simpleText || track.name?.runs?.[0]?.text || "";
+    return /chat/i.test(name);
+  }
+
   // todo: 优化逻辑
   #findCaptionTrack(captionTracks, lang, kind) {
     logger.debug("Youtube Provider: find caption track", {
@@ -372,6 +379,30 @@ class YouTubeCaptionProvider {
 
     if (!captionTrack) {
       captionTrack = captionTracks.pop();
+    }
+
+    // Chat/弹幕字幕轨道自动降级为正常字幕轨道
+    if (captionTrack && this.#isChatCaptionTrack(captionTrack)) {
+      logger.debug("Youtube Provider: detected chat subtitle track, switching to normal subtitle");
+
+      const nonChatSameLang = captionTracks.find(
+        (item) =>
+          this.#isSameLang(item.languageCode, lang) &&
+          !this.#isChatCaptionTrack(item)
+      );
+
+      if (nonChatSameLang) {
+        logger.debug("Youtube Provider: switched to same-language non-chat track");
+        captionTrack = nonChatSameLang;
+      } else {
+        const anyNonChat = captionTracks.find(
+          (item) => !this.#isChatCaptionTrack(item)
+        );
+        if (anyNonChat) {
+          logger.debug("Youtube Provider: switched to fallback non-chat track");
+          captionTrack = anyNonChat;
+        }
+      }
     }
 
     return captionTrack;
@@ -415,6 +446,7 @@ class YouTubeCaptionProvider {
 
     try {
       potUrl.searchParams.delete("tlang");
+      potUrl.searchParams.delete("name");
       potUrl.searchParams.set("lang", capUrl.searchParams.get("lang"));
       potUrl.searchParams.set("fmt", "json3");
       if (capUrl.searchParams.get("kind")) {
@@ -500,6 +532,7 @@ class YouTubeCaptionProvider {
 
     const lang = potUrl.searchParams.get("lang");
     const interceptedKind = potUrl.searchParams.get("kind") || null;
+    const interceptedName = potUrl.searchParams.get("name");
     const fromLang = this.#getFromLang(lang);
     if (this.#flatEvents.length) {
       if (
@@ -536,6 +569,9 @@ class YouTubeCaptionProvider {
         return;
       }
 
+      // 同步实际选中轨道的 kind（#findCaptionTrack 可能已切换轨道，如 Chat→非Chat）
+      const actualKind = captionTrack.kind || null;
+
       const capUrl = new URL(captionTrack.baseUrl);
       const events = await this.#getSubtitleEvents(
         capUrl,
@@ -566,7 +602,7 @@ class YouTubeCaptionProvider {
       this.#flatEvents = flatEvents;
       this.#fromLang = fromLang;
       this.#docInfo = getDocInfo();
-      this.#interceptedCaptionKind = interceptedKind;
+      this.#interceptedCaptionKind = actualKind;
       await this.#enrichDocInfoWithAI(flatEvents);
 
       this.#processEvents({
