@@ -1045,8 +1045,15 @@ class YouTubeCaptionProvider {
       bufferWordCount = 0;
     };
 
+    const MIN_WORDS_FOR_NEWLINE_SPLIT = 6;
+
     flatEvents.forEach((segment) => {
-      if (!segment.text) return;
+      if (!segment.text) {
+        if (currentBuffer.length > 0 && bufferWordCount >= MIN_WORDS_FOR_NEWLINE_SPLIT) {
+          flushBuffer();
+        }
+        return;
+      }
 
       const lastSegment = currentBuffer[currentBuffer.length - 1];
 
@@ -1065,12 +1072,15 @@ class YouTubeCaptionProvider {
           ) &&
           currentBuffer.length > 1;
 
+        const isHardWordLimitExceeded = bufferWordCount >= maxWords * 2;
+
         if (
           isEndOfSentence ||
           isTimeout ||
           isWordLimitExceeded ||
           startsWithSign ||
-          startsWithPauseWord
+          startsWithPauseWord ||
+          isHardWordLimitExceeded
         ) {
           flushBuffer();
         }
@@ -1117,6 +1127,12 @@ class YouTubeCaptionProvider {
     });
 
     segments.push(buffer);
+
+    for (let i = 0; i < segments.length - 1; i++) {
+      if (segments[i].end && segments[i].end > segments[i + 1].start) {
+        segments[i].end = segments[i + 1].start;
+      }
+    }
 
     return segments;
   }
