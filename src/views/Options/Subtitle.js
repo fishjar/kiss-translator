@@ -457,6 +457,7 @@ export default function SubtitleSetting() {
     apiSlug,
     segSlug,
     chunkLength,
+    longSentenceThreshold = 120,
     preTrans = 90,
     throttleTrans = 30,
     toLang,
@@ -562,6 +563,19 @@ export default function SubtitleSetting() {
                 onChange={handleChange}
                 min={200}
                 max={20000}
+              />
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <ValidationInput
+                fullWidth
+                size="small"
+                label={i18n("long_sentence_threshold")}
+                type="number"
+                name="longSentenceThreshold"
+                value={longSentenceThreshold}
+                onChange={handleChange}
+                min={20}
+                max={500}
               />
             </Grid>
             <Grid item xs={12} sm={12} md={6} lg={3}>

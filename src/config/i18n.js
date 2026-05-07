@@ -2759,6 +2759,13 @@ export const I18N = {
     ja: `スタイルコード`,
     ko: `스타일 코드`,
   },
+  long_sentence_threshold: {
+    zh: `内置断句阈值 (20-300字符)`,
+    en: `Built-in sentence segmentation threshold (20-300 chars)`,
+    zh_TW: `內建斷句閾值 (20-300字符)`,
+    ja: `内蔵文分割閾値 (20-300文字)`,
+    ko: `내장 문장 분할 임계값 (20-300자)`,
+  },
   pre_trans_seconds: {
     zh: `提前翻译时长 (10-36000s)`,
     en: `Pre translation seconds (10-36000s)`,
