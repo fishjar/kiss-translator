@@ -806,11 +806,16 @@ class YouTubeCaptionProvider {
     return subtitles;
   }
 
-  #isQualityPoor(lines, lengthThreshold = 250, percentageThreshold = 0.2) {
+  #isQualityPoor(lines, lengthThreshold = 200, percentageThreshold = 0.1) {
     if (lines.length === 0) return false;
     const longLinesCount = lines.filter(
       (line) => line.text.length > lengthThreshold
     ).length;
+    logger.debug("Youtube Provider: quality check", {
+      longLinesCount,
+      totalLines: lines.length,
+      percentage: longLinesCount / lines.length,
+    });
     return longLinesCount / lines.length > percentageThreshold;
   }
 
