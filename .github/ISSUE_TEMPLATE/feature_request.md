@@ -1,0 +1,38 @@
+---
+name: Feature request
+about: Suggest an idea for this project 为本项目提出一个想法
+title: "[FEAT] ..."
+labels: ''
+assignees: ''
+
+---
+
+## 🚀 Feature Request / 功能需求
+
+### **Software Type / 软件类型**
+*   **Type / 类型:** [e.g. Browser Extension / 浏览器扩展, Tampermonkey Script / 油猴脚本]
+*   **Target Browsers / 希望能工作的浏览器:** [e.g. Chrome, Edge, Firefox, Safari]
+
+---
+
+### **Is your feature request related to a problem? / 您的需求是否与某个问题相关？**
+A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
+请清晰、简洁地描述该问题。例如：每当 [...] 的时候，我感到很不方便。
+
+---
+
+### **Describe the solution you'd like / 描述您期望的解决方案**
+A clear and concise description of what you want to happen.
+请清晰、简洁地描述您希望实现的功能或效果。
+
+---
+
+### **Describe alternatives you've considered / 描述您考虑过的替代方案**
+A clear and concise description of any alternative solutions or features you've considered.
+请简要描述您考虑过的任何替代方案或功能。
+
+---
+
+### **Additional context / 补充信息**
+Add any other context or screenshots about the feature request here.
+在此添加关于该功能需求的任何其他补充背景信息或截图。

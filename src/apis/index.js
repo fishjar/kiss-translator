@@ -14,12 +14,14 @@ import {
   MSG_BUILTINAI_TRANSLATE,
   OPT_TRANS_BUILTINAI,
   URL_CACHE_SUBTITLE,
+  URL_CACHE_CONTEXT,
   OPT_LANGS_TO_CODE,
 } from "../config";
 import { sha256, withTimeout } from "../libs/utils";
 import {
   handleTranslate,
   handleSubtitle,
+  handleSummarize,
   handleMicrosoftLangdetect,
 } from "./trans";
 import { getHttpCachePolyfill, putHttpCachePolyfill } from "../libs/cache";
@@ -480,6 +482,7 @@ export const apiTranslate = async ({
   apiSetting = DEFAULT_API_SETTING,
   glossary,
   onStreamChunk,
+  docInfo,
   useCache = true,
   usePool = true,
 }) => {
@@ -503,6 +506,7 @@ export const apiTranslate = async ({
     fromLang,
     toLang,
     version: [v1, v2].join("."),
+    ...(docInfo?.summary && { ctx: docInfo.summary.slice(0, 50) }),
   };
   const cacheInput = `${URL_CACHE_TRAN}?${queryString.stringify(cacheOpts)}`;
 
@@ -544,6 +548,7 @@ export const apiTranslate = async ({
       apiSetting,
       usePool,
       onStreamChunk,
+      docInfo,
     });
   } else {
     const { value } = await handleTranslate([text], {
@@ -555,6 +560,7 @@ export const apiTranslate = async ({
       glossary,
       apiSetting,
       usePool,
+      docInfo,
     }).next();
     translation = value?.result;
   }
@@ -593,6 +599,7 @@ export const apiSubtitle = async ({
   toLang,
   events = [],
   apiSetting,
+  docInfo,
 }) => {
   const cacheOpts = {
     apiSlug: apiSetting.apiSlug,
@@ -600,6 +607,7 @@ export const apiSubtitle = async ({
     chunkSign,
     fromLang,
     toLang,
+    ctx: docInfo?.summary?.slice(0, 50) || "",
   };
   const cacheInput = `${URL_CACHE_SUBTITLE}?${queryString.stringify(cacheOpts)}`;
   const cache = await getHttpCachePolyfill(cacheInput);
@@ -612,6 +620,7 @@ export const apiSubtitle = async ({
     from: fromLang,
     to: toLang,
     apiSetting,
+    docInfo,
   });
   if (subtitles?.length) {
     putHttpCachePolyfill(cacheInput, null, subtitles);
@@ -619,4 +628,34 @@ export const apiSubtitle = async ({
   }
 
   return [];
+};
+
+// 上下文摘要
+export const apiSummarizeContext = async ({
+  videoId,
+  title,
+  description,
+  transcript,
+  apiSetting,
+}) => {
+  const cacheOpts = { apiSlug: apiSetting.apiSlug, videoId };
+  const cacheInput = `${URL_CACHE_CONTEXT}?${queryString.stringify(cacheOpts)}`;
+  const cache = await getHttpCachePolyfill(cacheInput);
+  if (cache) {
+    return cache;
+  }
+
+  const summary = await handleSummarize({
+    title,
+    description,
+    transcript,
+    apiSetting,
+  });
+
+  if (summary) {
+    putHttpCachePolyfill(cacheInput, null, summary);
+    return summary;
+  }
+
+  return "";
 };

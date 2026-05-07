@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { limitNumber } from "../../libs/utils";
 import { isMobile } from "../../libs/mobile";
 import { putFab } from "../../libs/storage";
@@ -60,29 +60,110 @@ export default function Draggable({
 }) {
   const [hover, setHover] = useState(false);
   const [origin, setOrigin] = useState(null);
-  const [position, setPosition] = useState({ x: left, y: top });
+  const containerRef = useRef(null);
+  const latestPosition = useRef({
+    x: left / windowWidth,
+    y: top / windowHeight,
+  });
+  const [position, setPosition] = useState({
+    x: left / windowWidth,
+    y: top / windowHeight,
+  });
   const setFabPosition = useMemo(() => debounce(putFab, 500), []);
+
+  const applyTransform = useCallback((x, y) => {
+    if (containerRef.current) {
+      containerRef.current.style.transform = `translate(${x}px, ${y}px)`;
+    }
+  }, []);
+
+  useEffect(() => {
+    latestPosition.current = position;
+  }, [position]);
+
+  useEffect(() => {
+    const onResize = () => {
+      if (!containerRef.current) return;
+      const { x: px, y: py } = latestPosition.current;
+      const newX = px * window.innerWidth;
+      const newY = py * window.innerHeight;
+      applyTransform(newX, newY);
+    };
+
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [applyTransform]);
+
+  useEffect(() => {
+    if (!snapEdge || !!origin) {
+      return;
+    }
+
+    const currentPosition = {
+      x: position.x * windowWidth,
+      y: position.y * windowHeight,
+    };
+
+    const edgePosition = getEdgePosition({
+      x: currentPosition.x,
+      y: currentPosition.y,
+      width,
+      height,
+      windowWidth,
+      windowHeight,
+      hover,
+    });
+
+    applyTransform(edgePosition.x, edgePosition.y);
+
+    const percentageEdge = {
+      x: edgePosition.x / windowWidth,
+      y: edgePosition.y / windowHeight,
+    };
+    setPosition(percentageEdge);
+    setFabPosition(edgePosition);
+  }, [
+    origin,
+    hover,
+    width,
+    height,
+    windowWidth,
+    windowHeight,
+    snapEdge,
+    setFabPosition,
+    position.x,
+    position.y,
+    applyTransform,
+  ]);
 
   const handlePointerDown = (e) => {
     !isMobile && e.target.setPointerCapture(e.pointerId);
     onStart && onStart();
-    const { x, y } = position;
+    const rect = containerRef.current?.getBoundingClientRect();
+    const currentX = rect ? rect.left : position.x * windowWidth;
+    const currentY = rect ? rect.top : position.y * windowHeight;
     const { clientX, clientY } = isMobile ? e.targetTouches[0] : e;
-    setOrigin({ x, y, clientX, clientY });
+    setOrigin({ x: currentX, y: currentY, clientX, clientY });
   };
 
   const handlePointerMove = (e) => {
     onMove && onMove();
+    if (!origin) return;
     const { clientX, clientY } = isMobile ? e.targetTouches[0] : e;
-    if (origin) {
-      const dx = clientX - origin.clientX;
-      const dy = clientY - origin.clientY;
-      let x = origin.x + dx;
-      let y = origin.y + dy;
-      x = limitNumber(x, -width / 2, windowWidth - width / 2);
-      y = limitNumber(y, 0, windowHeight - height / 2);
-      setPosition({ x, y });
-    }
+    const dx = clientX - origin.clientX;
+    const dy = clientY - origin.clientY;
+    let x = origin.x + dx;
+    let y = origin.y + dy;
+    x = limitNumber(x, -width / 2, windowWidth - width / 2);
+    y = limitNumber(y, 0, windowHeight - height / 2);
+
+    applyTransform(x, y);
+    const relativePosition = {
+      x: x / windowWidth,
+      y: y / windowHeight,
+    };
+    setPosition(relativePosition);
+    latestPosition.current = relativePosition;
   };
 
   const handlePointerUp = (e) => {
@@ -104,34 +185,6 @@ export default function Draggable({
     setHover(false);
   };
 
-  useEffect(() => {
-    if (!snapEdge || !!origin) {
-      return;
-    }
-
-    setPosition((pre) => {
-      const edgePosition = getEdgePosition({
-        ...pre,
-        width,
-        height,
-        windowWidth,
-        windowHeight,
-        hover,
-      });
-      setFabPosition(edgePosition);
-      return edgePosition;
-    });
-  }, [
-    origin,
-    hover,
-    width,
-    height,
-    windowWidth,
-    windowHeight,
-    snapEdge,
-    setFabPosition,
-  ]);
-
   const opacity = useMemo(() => {
     if (snapEdge) {
       return hover || origin ? 1 : 0.2;
@@ -152,29 +205,32 @@ export default function Draggable({
       };
 
   return (
-    <DraggableWrapper
-      usePaper={usePaper}
+    <div
+      ref={containerRef}
       style={{
         opacity,
         position: "fixed",
-        left: position.x,
-        top: position.y,
+        top: 0,
+        left: 0,
         zIndex: 2147483647,
         display: show ? "block" : "none",
+        willChange: "transform",
       }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onClick={handleClick}
     >
-      <div
-        style={{
-          touchAction: "none",
-        }}
-        {...touchProps}
-      >
-        {handler}
-      </div>
-      <div>{children}</div>
-    </DraggableWrapper>
+      <DraggableWrapper usePaper={usePaper}>
+        <div
+          style={{
+            touchAction: "none",
+          }}
+          {...touchProps}
+        >
+          {handler}
+        </div>
+        <div>{children}</div>
+      </DraggableWrapper>
+    </div>
   );
 }

@@ -801,12 +801,13 @@ export class BilingualSubtitleManager {
   async #translateAndStore(subtitle) {
     subtitle.isTranslating = true;
     try {
-      const { fromLang, toLang, apiSetting } = this.#setting;
+      const { fromLang, toLang, apiSetting, docInfo } = this.#setting;
       const { trText } = await apiTranslate({
         text: subtitle.text,
         fromLang,
         toLang,
         apiSetting,
+        docInfo,
       });
       subtitle.translation = trText;
     } catch (error) {
@@ -822,9 +823,14 @@ export class BilingualSubtitleManager {
         this.#updateCaptionDisplay(subtitle);
       }
 
-      // 通知外部组件字幕已更新
+      // 通知外部组件字幕已更新（仅传递增量数据，避免全量传递导致性能问题）
       if (this.onSubtitleUpdate) {
-        this.onSubtitleUpdate(this.#formattedSubtitles);
+        this.onSubtitleUpdate({
+          start: subtitle.start,
+          end: subtitle.end,
+          text: subtitle.text,
+          translation: subtitle.translation,
+        });
       }
     }
   }
@@ -848,10 +854,7 @@ export class BilingualSubtitleManager {
     this.#currentSubtitleIndex = -1;
     this.onTimeUpdate();
 
-    // 通知外部组件字幕已更新
-    if (this.onSubtitleUpdate) {
-      this.onSubtitleUpdate(this.#formattedSubtitles);
-    }
+    // 新追加的字幕还没有译文，无需触发列表全量刷新
   }
 
   updateSetting(obj) {

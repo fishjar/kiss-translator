@@ -464,6 +464,7 @@ export default function SubtitleSetting() {
     enhanceMode = OPT_ENHANCE_MOBILE_OFF,
     showList = true,
     skipAd = false,
+    aiContextSlug = "-",
     windowStyle,
     originStyle,
     translationStyle,
@@ -522,6 +523,24 @@ export default function SubtitleSetting() {
                 name="segSlug"
                 value={segSlug}
                 label={i18n("ai_segmentation")}
+                onChange={handleChange}
+              >
+                <MenuItem value={"-"}>{i18n("disable")}</MenuItem>
+                {aiEnabledApis.map((api) => (
+                  <MenuItem key={api.apiSlug} value={api.apiSlug}>
+                    {api.apiName}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                name="aiContextSlug"
+                value={aiContextSlug}
+                label={i18n("ai_enhanced_context")}
                 onChange={handleChange}
               >
                 <MenuItem value={"-"}>{i18n("disable")}</MenuItem>

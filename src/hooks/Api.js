@@ -106,6 +106,38 @@ export function useApiList() {
     [updateSetting]
   );
 
+  const alphaSortApis = useCallback(
+    (direction = "asc") => {
+      updateSetting((prev) => {
+        const apis = prev?.transApis || [];
+        const pinnedApis = apis.filter((a) => a.sortOrder === -1);
+        const disabledApis = apis.filter((a) => a.isDisabled);
+        const normalApis = apis.filter(
+          (a) => a.sortOrder !== -1 && !a.isDisabled
+        );
+
+        const sorted = [...normalApis].sort((a, b) => {
+          const nameA = (a.apiName || "").toLowerCase();
+          const nameB = (b.apiName || "").toLowerCase();
+          return direction === "asc"
+            ? nameA.localeCompare(nameB)
+            : nameB.localeCompare(nameA);
+        });
+
+        const reassigned = sorted.map((api, index) => ({
+          ...api,
+          sortOrder: index,
+        }));
+
+        return {
+          ...prev,
+          transApis: [...pinnedApis, ...reassigned, ...disabledApis],
+        };
+      });
+    },
+    [updateSetting]
+  );
+
   return {
     transApis,
     userApis,
@@ -115,6 +147,7 @@ export function useApiList() {
     addApi,
     copyApi,
     deleteApi,
+    alphaSortApis,
   };
 }
 

@@ -10,6 +10,7 @@ import { DEFAULT_CUSTOM_STYLES } from "./styles";
 
 // 默认快捷键
 export const OPT_SHORTCUT_TRANSLATE = "toggleTranslate";
+export const OPT_SHORTCUT_TRANSONLY = "toggleTransOnly";
 export const OPT_SHORTCUT_STYLE = "toggleStyle";
 export const OPT_SHORTCUT_POPUP = "togglePopup";
 export const OPT_SHORTCUT_SETTING = "openSetting";
@@ -135,6 +136,7 @@ export const DEFAULT_SUBTITLE_SETTING = {
   translationStyle: SUBTITLE_TRANSLATION_STYLE, // 译文样式
   enhanceMode: OPT_ENHANCE_MOBILE_OFF, // 增强功能：on/off/mobile_off
   showList: true, // 是否显示滚动字幕
+  aiContextSlug: "-", // 增强智能上下文分析服务
 };
 
 // 订阅列表
