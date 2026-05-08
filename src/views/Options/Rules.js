@@ -117,6 +117,8 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
     // bgColor,
     // textDiyStyle,
     transOnly = "false",
+    transOnlyRevert = "false",
+    transOnlyRevertDelay = "0.5",
     autoScan = "true",
     hasRichText = "true",
     hasShadowroot = "false",
@@ -440,6 +442,37 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 <MenuItem value={"false"}>{i18n("disable")}</MenuItem>
                 <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
               </TextField>
+            </Grid>
+
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                select
+                size="small"
+                fullWidth
+                name="transOnlyRevert"
+                value={transOnlyRevert}
+                label={i18n("transonly_revert")}
+                disabled={disabled}
+                onChange={handleChange}
+              >
+                {GlobalItem}
+                <MenuItem value={"false"}>{i18n("disable")}</MenuItem>
+                <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
+              </TextField>
+            </Grid>
+
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                size="small"
+                fullWidth
+                name="transOnlyRevertDelay"
+                value={transOnlyRevertDelay}
+                label={i18n("transonly_revert_delay")}
+                disabled={disabled}
+                onChange={handleChange}
+                type="number"
+                inputProps={{ min: 0, step: 0.1 }}
+              />
             </Grid>
 
             <Grid item xs={12} sm={12} md={6} lg={3}>
