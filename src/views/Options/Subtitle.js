@@ -421,10 +421,13 @@ export default function SubtitleSetting() {
               max={5}
               step={0.1}
               onChange={(e, val) => {
+                const p = fontSize.preferred || 1;
+                const minRatio = fontSize.min / p;
+                const maxRatio = fontSize.max / p;
                 updateCss(
-                  "font-size",
-                  `clamp(${fontSize.min}${fontSize.unit}, ${val}cqw, ${fontSize.max}${fontSize.unit})`
-                );
+                    "font-size",
+                    `clamp(${(val * minRatio).toFixed(2)}${fontSize.unit}, ${val}cqw, ${(val * maxRatio).toFixed(2)}${fontSize.unit})`
+                  );
               }}
               sx={{ flex: 1 }}
             />
