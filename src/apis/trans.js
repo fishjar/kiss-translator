@@ -270,6 +270,13 @@ const parseAIRes = (raw, useBatchFetch = true) => {
   });
 };
 
+const usesIndexSubtitleInput = (prompt = "") => {
+  if (/\{\s*["']?s["']?\s*:/.test(prompt) && /\bid\b/i.test(prompt))
+    return true;
+  if (/WEBVTT|MM:SS\.mmm|-->/i.test(prompt)) return false;
+  return false;
+};
+
 const parseIndexSubtitleRes = (raw, events) => {
   try {
     const data = JSON.parse(raw);
@@ -982,7 +989,11 @@ export const genTransReq = async ({ reqHook, ...args }) => {
 
     args.systemPrompt = baseSystemPrompt;
     args.userPrompt = events
-      ? JSON.stringify(events.map((e, i) => ({ id: i, text: e.text })))
+      ? JSON.stringify(
+          usesIndexSubtitleInput(subtitlePrompt)
+            ? events.map((e, i) => ({ id: i, text: e.text }))
+            : events
+        )
       : genUserPrompt({
           nobatchUserPrompt,
           useBatchFetch,
