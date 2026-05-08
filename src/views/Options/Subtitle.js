@@ -9,6 +9,7 @@ import Accordion from "@mui/material/Accordion";
 import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import Divider from "@mui/material/Divider";
 import { useI18n } from "../../hooks/I18n";
 import {
   OPT_LANGS_TO,
@@ -16,16 +17,14 @@ import {
   OPT_ENHANCE_OFF,
   OPT_ENHANCE_MOBILE_OFF,
 } from "../../config";
-import { debounce } from "../../libs/utils";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Alert from "@mui/material/Alert";
 import Switch from "@mui/material/Switch";
 import { useSubtitle } from "../../hooks/Subtitle";
 import { useApiList } from "../../hooks/Api";
 import ValidationInput from "../../hooks/ValidationInput";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 
-// CSS 解析工具函数
 const parseCssToObject = (cssString) => {
   const result = {};
   if (!cssString) return result;
@@ -52,7 +51,6 @@ const objectToCss = (obj) => {
   return entries.map(([key, value]) => `${key}: ${value}`).join(";\n") + ";";
 };
 
-// 解析 rgba 颜色
 const parseRgba = (rgbaString) => {
   const match = rgbaString?.match(
     /rgba?\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+))?\s*\)/
@@ -68,7 +66,6 @@ const parseRgba = (rgbaString) => {
   return null;
 };
 
-// RGB 转 Hex
 const rgbToHex = (r, g, b) => {
   return (
     "#" +
@@ -83,7 +80,6 @@ const rgbToHex = (r, g, b) => {
   );
 };
 
-// Hex 转 RGB
 const hexToRgb = (hex) => {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return result
@@ -95,11 +91,9 @@ const hexToRgb = (hex) => {
     : { r: 0, g: 0, b: 0 };
 };
 
-// 解析 font-size，支持 clamp 格式
 const parseFontSize = (fontSizeStr) => {
   if (!fontSizeStr) return { min: 1, preferred: 2, max: 3, unit: "rem" };
 
-  // 匹配 clamp(1rem, 2cqw, 3rem) 格式
   const clampMatch = fontSizeStr.match(
     /clamp\s*\(\s*([\d.]+)(\w+)\s*,\s*([\d.]+)(\w+)\s*,\s*([\d.]+)(\w+)\s*\)/
   );
@@ -112,7 +106,6 @@ const parseFontSize = (fontSizeStr) => {
     };
   }
 
-  // 匹配普通格式如 16px, 1.5rem
   const simpleMatch = fontSizeStr.match(/([\d.]+)(\w+)/);
   if (simpleMatch) {
     const value = parseFloat(simpleMatch[1]);
@@ -127,7 +120,6 @@ const parseFontSize = (fontSizeStr) => {
   return { min: 1, preferred: 2, max: 3, unit: "rem" };
 };
 
-// 解析 padding
 const parsePadding = (paddingStr) => {
   if (!paddingStr) return { vertical: 0.5, horizontal: 1, unit: "em" };
 
@@ -155,284 +147,87 @@ const parsePadding = (paddingStr) => {
   return { vertical: 0.5, horizontal: 1, unit: "em" };
 };
 
-// 可视化样式编辑器组件
-function StyleVisualEditor({ label, cssValue, onChange, type }) {
+const colorToHex = (colorStr) => {
+  if (!colorStr) return "#ffffff";
+  const namedColors = {
+    white: "#ffffff",
+    black: "#000000",
+    red: "#ff0000",
+    green: "#00ff00",
+    blue: "#0000ff",
+    yellow: "#ffff00",
+    cyan: "#00ffff",
+    magenta: "#ff00ff",
+    gray: "#808080",
+    grey: "#808080",
+    orange: "#ffa500",
+    transparent: "#ffffff",
+  };
+  const lower = colorStr.toLowerCase().trim();
+  if (namedColors[lower]) return namedColors[lower];
+  if (colorStr.startsWith("#")) return colorStr;
+  const rgba = parseRgba(colorStr);
+  if (rgba) return rgbToHex(rgba.r, rgba.g, rgba.b);
+  return "#ffffff";
+};
+
+const YOUTUBE_CAPTION_CONTAINER_WIDTH = 640;
+
+function SubtitleStylePreview({ windowStyle, originStyle, translationStyle }) {
   const i18n = useI18n();
-  const [cssObj, setCssObj] = useState({});
 
-  useEffect(() => {
-    setCssObj(parseCssToObject(cssValue));
-  }, [cssValue]);
-
-  const debouncedOnChange = useMemo(() => debounce(onChange, 200), [onChange]);
-
-  const updateCss = useCallback(
-    (key, value) => {
-      setCssObj((prevCssObj) => {
-        const newObj = { ...prevCssObj, [key]: value };
-        debouncedOnChange(objectToCss(newObj));
-        return newObj;
-      });
-    },
-    [debouncedOnChange]
+  const windowCss = useMemo(
+    () => parseCssToObject(windowStyle),
+    [windowStyle]
+  );
+  const originCss = useMemo(
+    () => parseCssToObject(originStyle),
+    [originStyle]
+  );
+  const transCss = useMemo(
+    () => parseCssToObject(translationStyle),
+    [translationStyle]
   );
 
-  // 原文/译文样式 - 主要是 font-size
-  if (type === "text") {
-    const fontSizeStr = cssObj["font-size"] || "";
-    const fontSize = parseFontSize(fontSizeStr);
-
-    return (
-      <Box sx={{ mb: 2 }}>
-        <Typography variant="subtitle2" gutterBottom>
-          {label} - {i18n("visual_editor") || "可视化编辑"}
-        </Typography>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={4}>
-            <Typography variant="body2" color="text.secondary">
-              {i18n("font_size") || "字体大小"}
-            </Typography>
-          </Grid>
-          <Grid item xs={12} sm={8}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-              <Slider
-                size="small"
-                value={fontSize.preferred}
-                min={0.5}
-                max={5}
-                step={0.1}
-                onChange={(e, val) => {
-                  updateCss(
-                    "font-size",
-                    `clamp(${fontSize.min}${fontSize.unit}, ${val}cqw, ${fontSize.max}${fontSize.unit})`
-                  );
-                }}
-                sx={{ flex: 1 }}
-              />
-              <TextField
-                size="small"
-                type="number"
-                value={fontSize.preferred}
-                onChange={(e) => {
-                  const val = parseFloat(e.target.value) || 2;
-                  updateCss(
-                    "font-size",
-                    `clamp(${fontSize.min}${fontSize.unit}, ${val}cqw, ${fontSize.max}${fontSize.unit})`
-                  );
-                }}
-                inputProps={{ min: 0.5, max: 5, step: 0.1 }}
-                sx={{ width: 80 }}
-              />
-            </Box>
-          </Grid>
-          {/* 字体颜色 */}
-          <Grid item xs={12} sm={4}>
-            <Typography variant="body2" color="text.secondary">
-              {i18n("font_color") || "字体颜色"}
-            </Typography>
-          </Grid>
-          <Grid item xs={12} sm={8}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <input
-                type="color"
-                value={
-                  cssObj["color"] === "white"
-                    ? "#ffffff"
-                    : cssObj["color"] || "#ffffff"
-                }
-                onChange={(e) => updateCss("color", e.target.value)}
-                style={{
-                  width: 40,
-                  height: 30,
-                  border: "none",
-                  cursor: "pointer",
-                }}
-              />
-              <TextField
-                size="small"
-                value={cssObj["color"] || ""}
-                onChange={(e) => updateCss("color", e.target.value)}
-                placeholder="white / #ffffff"
-                sx={{ flex: 1 }}
-              />
-            </Box>
-          </Grid>
-        </Grid>
+  return (
+    <Box>
+      <Typography variant="subtitle2" gutterBottom>
+        {i18n("subtitle_style_preview") || "样式预览"}
+      </Typography>
+      <Box
+        sx={{
+          bgcolor: "#ffffff",
+          borderRadius: 1,
+          border: "1px solid",
+          borderColor: "divider",
+          overflow: "hidden",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: 120,
+        }}
+      >
+        <Box
+          sx={{
+            containerType: "inline-size",
+            width: YOUTUBE_CAPTION_CONTAINER_WIDTH,
+            maxWidth: "100%",
+            overflow: "hidden",
+            textAlign: "center",
+          }}
+        >
+          <div style={{ ...windowCss, textAlign: "center" }}>
+            <p style={{ ...originCss, margin: 0 }}>
+              This is an example subtitle
+            </p>
+            <p style={{ ...transCss, margin: 0 }}>
+              这是示例字幕文本
+            </p>
+          </div>
+        </Box>
       </Box>
-    );
-  }
-
-  // 背景样式 - padding, background-color, color, line-height, text-shadow
-  if (type === "window") {
-    const paddingStr = cssObj["padding"] || "0.5em 1em";
-    const padding = parsePadding(paddingStr);
-
-    const bgColorStr = cssObj["background-color"] || "rgba(0, 0, 0, 0.5)";
-    const bgRgba = parseRgba(bgColorStr) || { r: 0, g: 0, b: 0, a: 0.5 };
-    const bgHex = rgbToHex(bgRgba.r, bgRgba.g, bgRgba.b);
-
-    const lineHeight = parseFloat(cssObj["line-height"]) || 1.3;
-    const hasTextShadow = !!cssObj["text-shadow"];
-
-    return (
-      <Box sx={{ mb: 2 }}>
-        <Typography variant="subtitle2" gutterBottom>
-          {label} - {i18n("visual_editor") || "可视化编辑"}
-        </Typography>
-        <Grid container spacing={2} alignItems="center">
-          {/* 背景颜色 */}
-          <Grid item xs={12} sm={4}>
-            <Typography variant="body2" color="text.secondary">
-              {i18n("background_color") || "背景颜色"}
-            </Typography>
-          </Grid>
-          <Grid item xs={12} sm={8}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <input
-                type="color"
-                value={bgHex}
-                onChange={(e) => {
-                  const rgb = hexToRgb(e.target.value);
-                  updateCss(
-                    "background-color",
-                    `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${bgRgba.a})`
-                  );
-                }}
-                style={{
-                  width: 40,
-                  height: 30,
-                  border: "none",
-                  cursor: "pointer",
-                }}
-              />
-              <Typography variant="body2" sx={{ minWidth: 60 }}>
-                {i18n("opacity") || "透明度"}
-              </Typography>
-              <Slider
-                size="small"
-                value={bgRgba.a}
-                min={0}
-                max={1}
-                step={0.05}
-                onChange={(e, val) => {
-                  updateCss(
-                    "background-color",
-                    `rgba(${bgRgba.r}, ${bgRgba.g}, ${bgRgba.b}, ${val})`
-                  );
-                }}
-                sx={{ flex: 1 }}
-              />
-              <Typography variant="body2" sx={{ minWidth: 40 }}>
-                {Math.round(bgRgba.a * 100)}%
-              </Typography>
-            </Box>
-          </Grid>
-
-          {/* 内边距 */}
-          <Grid item xs={12} sm={4}>
-            <Typography variant="body2" color="text.secondary">
-              {i18n("padding") || "内边距"}
-            </Typography>
-          </Grid>
-          <Grid item xs={12} sm={8}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-              <Typography variant="body2">
-                {i18n("vertical") || "上下"}
-              </Typography>
-              <Slider
-                size="small"
-                value={padding.vertical}
-                min={0}
-                max={2}
-                step={0.1}
-                onChange={(e, val) => {
-                  updateCss(
-                    "padding",
-                    `${val}${padding.unit} ${padding.horizontal}${padding.unit}`
-                  );
-                }}
-                sx={{ width: 100 }}
-              />
-              <Typography variant="body2">
-                {i18n("horizontal") || "左右"}
-              </Typography>
-              <Slider
-                size="small"
-                value={padding.horizontal}
-                min={0}
-                max={3}
-                step={0.1}
-                onChange={(e, val) => {
-                  updateCss(
-                    "padding",
-                    `${padding.vertical}${padding.unit} ${val}${padding.unit}`
-                  );
-                }}
-                sx={{ width: 100 }}
-              />
-            </Box>
-          </Grid>
-
-          {/* 行高 */}
-          <Grid item xs={12} sm={4}>
-            <Typography variant="body2" color="text.secondary">
-              {i18n("line_height") || "行高"}
-            </Typography>
-          </Grid>
-          <Grid item xs={12} sm={8}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-              <Slider
-                size="small"
-                value={lineHeight}
-                min={1}
-                max={2.5}
-                step={0.1}
-                onChange={(e, val) => updateCss("line-height", String(val))}
-                sx={{ flex: 1 }}
-              />
-              <Typography variant="body2" sx={{ minWidth: 30 }}>
-                {lineHeight}
-              </Typography>
-            </Box>
-          </Grid>
-
-          {/* 文字阴影 */}
-          <Grid item xs={12} sm={4}>
-            <Typography variant="body2" color="text.secondary">
-              {i18n("text_shadow") || "文字阴影"}
-            </Typography>
-          </Grid>
-          <Grid item xs={12} sm={8}>
-            <FormControlLabel
-              control={
-                <Switch
-                  size="small"
-                  checked={hasTextShadow}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      updateCss("text-shadow", "1px 1px 2px black");
-                    } else {
-                      const newObj = { ...cssObj };
-                      delete newObj["text-shadow"];
-                      setCssObj(newObj);
-                      onChange(objectToCss(newObj));
-                    }
-                  }}
-                />
-              }
-              label={
-                hasTextShadow
-                  ? i18n("enabled") || "已启用"
-                  : i18n("disabled") || "已禁用"
-              }
-            />
-          </Grid>
-        </Grid>
-      </Box>
-    );
-  }
-
-  return null;
+    </Box>
+  );
 }
 
 export default function SubtitleSetting() {
@@ -446,10 +241,16 @@ export default function SubtitleSetting() {
     updateSubtitle({
       [name]: value,
     });
-  };
-
-  const handleStyleChange = (name) => (value) => {
-    updateSubtitle({ [name]: value });
+    if (name === "originStyle") {
+      setLocalOriginStyle(value);
+      originCssRef.current = parseCssToObject(value);
+    } else if (name === "translationStyle") {
+      setLocalTransStyle(value);
+      transCssRef.current = parseCssToObject(value);
+    } else if (name === "windowStyle") {
+      setLocalWindowStyle(value);
+      windowCssRef.current = parseCssToObject(value);
+    }
   };
 
   const {
@@ -470,6 +271,202 @@ export default function SubtitleSetting() {
     originStyle,
     translationStyle,
   } = subtitleSetting;
+
+  const [localOriginStyle, setLocalOriginStyle] = useState(originStyle);
+  const [localTransStyle, setLocalTransStyle] = useState(translationStyle);
+  const [localWindowStyle, setLocalWindowStyle] = useState(windowStyle);
+
+  useEffect(() => {
+    setLocalOriginStyle(originStyle);
+  }, [originStyle]);
+  useEffect(() => {
+    setLocalTransStyle(translationStyle);
+  }, [translationStyle]);
+  useEffect(() => {
+    setLocalWindowStyle(windowStyle);
+  }, [windowStyle]);
+
+  const debounceTimers = useRef({});
+  const rafIds = useRef({ origin: 0, trans: 0, window: 0 });
+
+  const originCssRef = useRef(parseCssToObject(localOriginStyle));
+  const transCssRef = useRef(parseCssToObject(localTransStyle));
+  const windowCssRef = useRef(parseCssToObject(localWindowStyle));
+
+  useEffect(() => {
+    return () => {
+      Object.values(debounceTimers.current).forEach(clearTimeout);
+      debounceTimers.current = {};
+      Object.values(rafIds.current).forEach((id) => id && cancelAnimationFrame(id));
+      rafIds.current = { origin: 0, trans: 0, window: 0 };
+    };
+  }, []);
+
+  const debouncedUpdate = useCallback(
+    (name, value) => {
+      if (debounceTimers.current[name]) {
+        clearTimeout(debounceTimers.current[name]);
+      }
+      debounceTimers.current[name] = setTimeout(() => {
+        updateSubtitle({ [name]: value });
+      }, 200);
+    },
+    [updateSubtitle]
+  );
+
+  const scheduleRafUpdate = useCallback((name, setter, cssString) => {
+    const rafKey = { originStyle: "origin", translationStyle: "trans", windowStyle: "window" }[name];
+    if (rafIds.current[rafKey]) {
+      cancelAnimationFrame(rafIds.current[rafKey]);
+    }
+    rafIds.current[rafKey] = requestAnimationFrame(() => {
+      rafIds.current[rafKey] = 0;
+      setter(cssString);
+    });
+  }, []);
+
+  const updateOriginCss = useCallback(
+    (key, value) => {
+      originCssRef.current[key] = value;
+      const css = objectToCss(originCssRef.current);
+      scheduleRafUpdate("originStyle", setLocalOriginStyle, css);
+      debouncedUpdate("originStyle", css);
+    },
+    [debouncedUpdate, scheduleRafUpdate]
+  );
+
+  const updateTranslationCss = useCallback(
+    (key, value) => {
+      transCssRef.current[key] = value;
+      const css = objectToCss(transCssRef.current);
+      scheduleRafUpdate("translationStyle", setLocalTransStyle, css);
+      debouncedUpdate("translationStyle", css);
+    },
+    [debouncedUpdate, scheduleRafUpdate]
+  );
+
+  const updateWindowCss = useCallback(
+    (key, value) => {
+      windowCssRef.current[key] = value;
+      const css = objectToCss(windowCssRef.current);
+      scheduleRafUpdate("windowStyle", setLocalWindowStyle, css);
+      debouncedUpdate("windowStyle", css);
+    },
+    [debouncedUpdate, scheduleRafUpdate]
+  );
+
+  const updateWindowCssDirect = useCallback(
+    (css) => {
+      windowCssRef.current = parseCssToObject(css);
+      scheduleRafUpdate("windowStyle", setLocalWindowStyle, css);
+      debouncedUpdate("windowStyle", css);
+    },
+    [debouncedUpdate, scheduleRafUpdate]
+  );
+
+  useEffect(() => {
+    originCssRef.current = parseCssToObject(localOriginStyle);
+  }, [localOriginStyle]);
+  useEffect(() => {
+    transCssRef.current = parseCssToObject(localTransStyle);
+  }, [localTransStyle]);
+  useEffect(() => {
+    windowCssRef.current = parseCssToObject(localWindowStyle);
+  }, [localWindowStyle]);
+
+  const originCssObj = useMemo(
+    () => parseCssToObject(localOriginStyle),
+    [localOriginStyle]
+  );
+  const transCssObj = useMemo(
+    () => parseCssToObject(localTransStyle),
+    [localTransStyle]
+  );
+  const windowCssObj = useMemo(
+    () => parseCssToObject(localWindowStyle),
+    [localWindowStyle]
+  );
+
+  const originFontSize = parseFontSize(originCssObj["font-size"] || "");
+  const transFontSize = parseFontSize(transCssObj["font-size"] || "");
+
+  const windowPadding = parsePadding(windowCssObj["padding"] || "0.5em 1em");
+  const windowBgRgba = parseRgba(
+    windowCssObj["background-color"] || "rgba(0, 0, 0, 0.5)"
+  ) || { r: 0, g: 0, b: 0, a: 0.5 };
+  const windowBgHex = rgbToHex(windowBgRgba.r, windowBgRgba.g, windowBgRgba.b);
+  const windowLineHeight =
+    parseFloat(windowCssObj["line-height"]) || 1.3;
+  const windowHasTextShadow = !!windowCssObj["text-shadow"];
+
+  const textStyleControls = useCallback(
+    (label, fontSize, cssObj, updateCss) => (
+      <Box>
+        <Typography variant="subtitle2" gutterBottom>
+          {label}
+        </Typography>
+        <Stack spacing={1.5}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ minWidth: 56, flexShrink: 0 }}
+            >
+              {i18n("font_size") || "字体大小"}
+            </Typography>
+            <Slider
+              size="small"
+              value={fontSize.preferred}
+              min={0.5}
+              max={5}
+              step={0.1}
+              onChange={(e, val) => {
+                updateCss(
+                  "font-size",
+                  `clamp(${fontSize.min}${fontSize.unit}, ${val}cqw, ${fontSize.max}${fontSize.unit})`
+                );
+              }}
+              sx={{ flex: 1 }}
+            />
+            <Typography variant="body2" sx={{ minWidth: 28, textAlign: "right" }}>
+              {fontSize.preferred}
+            </Typography>
+          </Box>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ minWidth: 56, flexShrink: 0 }}
+            >
+              {i18n("font_color") || "字体颜色"}
+            </Typography>
+            <Box
+              component="input"
+              type="color"
+              value={colorToHex(cssObj["color"])}
+              onChange={(e) => updateCss("color", e.target.value)}
+              sx={{
+                width: 28,
+                height: 28,
+                border: "none",
+                cursor: "pointer",
+                p: 0,
+                bgcolor: "transparent",
+              }}
+            />
+            <TextField
+              size="small"
+              value={cssObj["color"] || ""}
+              onChange={(e) => updateCss("color", e.target.value)}
+              placeholder="#ffffff"
+              sx={{ flex: 1 }}
+            />
+          </Box>
+        </Stack>
+      </Box>
+    ),
+    [i18n]
+  );
 
   return (
     <Box>
@@ -684,7 +681,6 @@ export default function SubtitleSetting() {
           </Grid>
         </Box>
 
-        {/* 原文样式 - 可视化编辑器 */}
         <Box
           sx={{
             border: "1px solid",
@@ -693,106 +689,242 @@ export default function SubtitleSetting() {
             p: 2,
           }}
         >
-          <StyleVisualEditor
-            label={i18n("origin_styles")}
-            cssValue={originStyle}
-            onChange={handleStyleChange("originStyle")}
-            type="text"
-          />
-          <Accordion
-            sx={{ boxShadow: "none", "&:before": { display: "none" } }}
-          >
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography variant="body2" color="text.secondary">
-                {i18n("advanced_css") || "高级 CSS 编辑"}
-              </Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <TextField
-                size="small"
-                name="originStyle"
-                value={originStyle}
-                onChange={handleChange}
-                maxRows={10}
-                multiline
-                fullWidth
-              />
-            </AccordionDetails>
-          </Accordion>
-        </Box>
+          <Stack spacing={2}>
+            <SubtitleStylePreview
+              windowStyle={localWindowStyle}
+              originStyle={localOriginStyle}
+              translationStyle={localTransStyle}
+            />
 
-        {/* 译文样式 - 可视化编辑器 */}
-        <Box
-          sx={{
-            border: "1px solid",
-            borderColor: "divider",
-            borderRadius: 1,
-            p: 2,
-          }}
-        >
-          <StyleVisualEditor
-            label={i18n("translation_styles")}
-            cssValue={translationStyle}
-            onChange={handleStyleChange("translationStyle")}
-            type="text"
-          />
-          <Accordion
-            sx={{ boxShadow: "none", "&:before": { display: "none" } }}
-          >
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography variant="body2" color="text.secondary">
-                {i18n("advanced_css") || "高级 CSS 编辑"}
-              </Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <TextField
-                size="small"
-                name="translationStyle"
-                value={translationStyle}
-                onChange={handleChange}
-                maxRows={10}
-                multiline
-                fullWidth
-              />
-            </AccordionDetails>
-          </Accordion>
-        </Box>
+            <Divider />
 
-        {/* 背景样式 - 可视化编辑器 */}
-        <Box
-          sx={{
-            border: "1px solid",
-            borderColor: "divider",
-            borderRadius: 1,
-            p: 2,
-          }}
-        >
-          <StyleVisualEditor
-            label={i18n("background_styles")}
-            cssValue={windowStyle}
-            onChange={handleStyleChange("windowStyle")}
-            type="window"
-          />
-          <Accordion
-            sx={{ boxShadow: "none", "&:before": { display: "none" } }}
-          >
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography variant="body2" color="text.secondary">
-                {i18n("advanced_css") || "高级 CSS 编辑"}
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                {textStyleControls(
+                  i18n("origin_styles"),
+                  originFontSize,
+                  originCssObj,
+                  updateOriginCss
+                )}
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                {textStyleControls(
+                  i18n("translation_styles"),
+                  transFontSize,
+                  transCssObj,
+                  updateTranslationCss
+                )}
+              </Grid>
+            </Grid>
+
+            <Divider />
+
+            <Box>
+              <Typography variant="subtitle2" gutterBottom>
+                {i18n("background_styles")}
               </Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <TextField
-                size="small"
-                name="windowStyle"
-                value={windowStyle}
-                onChange={handleChange}
-                maxRows={10}
-                multiline
-                fullWidth
-              />
-            </AccordionDetails>
-          </Accordion>
+              <Grid container spacing={1.5} alignItems="center">
+                <Grid item xs={12} sm={6}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ minWidth: 56, flexShrink: 0 }}
+                    >
+                      {i18n("background_color") || "背景颜色"}
+                    </Typography>
+                    <Box
+                      component="input"
+                      type="color"
+                      value={windowBgHex}
+                      onChange={(e) => {
+                        const rgb = hexToRgb(e.target.value);
+                        updateWindowCss(
+                          "background-color",
+                          `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${windowBgRgba.a})`
+                        );
+                      }}
+                      sx={{
+                        width: 28,
+                        height: 28,
+                        border: "none",
+                        cursor: "pointer",
+                        p: 0,
+                        bgcolor: "transparent",
+                      }}
+                    />
+                    <Typography variant="body2" sx={{ minWidth: 48 }}>
+                      {i18n("opacity") || "透明度"}
+                    </Typography>
+                    <Slider
+                      size="small"
+                      value={windowBgRgba.a}
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      onChange={(e, val) => {
+                        updateWindowCss(
+                          "background-color",
+                          `rgba(${windowBgRgba.r}, ${windowBgRgba.g}, ${windowBgRgba.b}, ${val})`
+                        );
+                      }}
+                      sx={{ flex: 1 }}
+                    />
+                    <Typography variant="body2" sx={{ minWidth: 36, textAlign: "right" }}>
+                      {Math.round(windowBgRgba.a * 100)}%
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ minWidth: 56, flexShrink: 0 }}
+                    >
+                      {i18n("line_height") || "行高"}
+                    </Typography>
+                    <Slider
+                      size="small"
+                      value={windowLineHeight}
+                      min={1}
+                      max={2.5}
+                      step={0.1}
+                      onChange={(e, val) =>
+                        updateWindowCss("line-height", String(val))
+                      }
+                      sx={{ flex: 1 }}
+                    />
+                    <Typography variant="body2" sx={{ minWidth: 28, textAlign: "right" }}>
+                      {windowLineHeight}
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ minWidth: 56, flexShrink: 0 }}
+                    >
+                      {i18n("padding") || "内边距"}
+                    </Typography>
+                    <Typography variant="body2">
+                      {i18n("vertical") || "上下"}
+                    </Typography>
+                    <Slider
+                      size="small"
+                      value={windowPadding.vertical}
+                      min={0}
+                      max={2}
+                      step={0.1}
+                      onChange={(e, val) => {
+                        updateWindowCss(
+                          "padding",
+                          `${val}${windowPadding.unit} ${windowPadding.horizontal}${windowPadding.unit}`
+                        );
+                      }}
+                      sx={{ width: 80 }}
+                    />
+                    <Typography variant="body2">
+                      {i18n("horizontal") || "左右"}
+                    </Typography>
+                    <Slider
+                      size="small"
+                      value={windowPadding.horizontal}
+                      min={0}
+                      max={3}
+                      step={0.1}
+                      onChange={(e, val) => {
+                        updateWindowCss(
+                          "padding",
+                          `${windowPadding.vertical}${windowPadding.unit} ${val}${windowPadding.unit}`
+                        );
+                      }}
+                      sx={{ width: 80 }}
+                    />
+                  </Box>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        size="small"
+                        checked={windowHasTextShadow}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            updateWindowCss(
+                              "text-shadow",
+                              "1px 1px 2px black"
+                            );
+                          } else {
+                            const newObj = { ...windowCssRef.current };
+                            delete newObj["text-shadow"];
+                            updateWindowCssDirect(objectToCss(newObj));
+                          }
+                        }}
+                      />
+                    }
+                    label={
+                      <Typography variant="body2">
+                        {i18n("text_shadow") || "文字阴影"}
+                      </Typography>
+                    }
+                  />
+                </Grid>
+              </Grid>
+            </Box>
+
+            <Accordion
+              sx={{ boxShadow: "none", "&:before": { display: "none" } }}
+            >
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Typography variant="body2" color="text.secondary">
+                  {i18n("advanced_css") || "高级 CSS 编辑"}
+                </Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={4}>
+                    <TextField
+                      size="small"
+                      label={i18n("origin_styles")}
+                      name="originStyle"
+                      value={originStyle}
+                      onChange={handleChange}
+                      maxRows={10}
+                      multiline
+                      fullWidth
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <TextField
+                      size="small"
+                      label={i18n("translation_styles")}
+                      name="translationStyle"
+                      value={translationStyle}
+                      onChange={handleChange}
+                      maxRows={10}
+                      multiline
+                      fullWidth
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <TextField
+                      size="small"
+                      label={i18n("background_styles")}
+                      name="windowStyle"
+                      value={windowStyle}
+                      onChange={handleChange}
+                      maxRows={10}
+                      multiline
+                      fullWidth
+                    />
+                  </Grid>
+                </Grid>
+              </AccordionDetails>
+            </Accordion>
+          </Stack>
         </Box>
       </Stack>
     </Box>
