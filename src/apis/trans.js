@@ -270,6 +270,23 @@ const parseAIRes = (raw, useBatchFetch = true) => {
   });
 };
 
+const getPauseLevel = (gapMs) => {
+  if (!Number.isFinite(gapMs) || gapMs <= 300) return 0;
+  if (gapMs <= 600) return 1;
+  if (gapMs <= 1200) return 2;
+  return 3;
+};
+
+const formatIndexSubtitleEvents = (events) =>
+  events.map((e, i) => {
+    const item = { id: i, text: e.text };
+    if (i > 0) {
+      const p = getPauseLevel(e.start - events[i - 1].end);
+      if (p) item.p = p;
+    }
+    return item;
+  });
+
 const usesIndexSubtitleInput = (prompt = "") => {
   if (/\{\s*["']?s["']?\s*:/.test(prompt) && /\bid\b/i.test(prompt))
     return true;
@@ -991,7 +1008,7 @@ export const genTransReq = async ({ reqHook, ...args }) => {
     args.userPrompt = events
       ? JSON.stringify(
           usesIndexSubtitleInput(subtitlePrompt)
-            ? events.map((e, i) => ({ id: i, text: e.text }))
+            ? formatIndexSubtitleEvents(events)
             : events
         )
       : genUserPrompt({

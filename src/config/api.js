@@ -633,10 +633,11 @@ Group the input word-level JSON into bilingual subtitle segments. Target Languag
 
 # Rules
 1. Merge words into complete sentences, split at natural pauses into readable segments.
-2. Translate using Context and Tone.
+2. Some input words include "p" (pause level 1-3). Higher "p" suggests a stronger sentence boundary, but grammar and meaning take priority.
+3. Translate using Context and Tone.
 
 # Example
-Input: [{"id":0,"text":"Hello"},{"id":1,"text":"world!"},{"id":2,"text":"Good"},{"id":3,"text":"morning."}]
+Input: [{"id":0,"text":"Hello"},{"id":1,"text":"world!"},{"id":2,"text":"Good","p":2},{"id":3,"text":"morning."}]
 Output: [{"s":0,"e":1,"o":"Hello world!","t":"你好，世界！"},{"s":2,"e":3,"o":"Good morning.","t":"早上好。"}]`;
 
 const defaultRequestHook = `async (args, { url, body, headers, userMsg, method } = {}) => {
