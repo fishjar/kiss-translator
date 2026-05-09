@@ -33,7 +33,7 @@ export default function TranBtn({
         version="1.1"
       >
         <path
-          d="M 4 0 L 28 0 Q 32 0 32 4 L 32 28 Q 32 32 28 32 L 4 32 Q 0 32 0 28 L 0 4 Q 0 0 4 0 Z"
+          d="M0 0 C10.56 0 21.12 0 32 0 C32 10.56 32 21.12 32 32 C21.44 32 10.88 32 0 32 C0 21.44 0 10.88 0 0 Z "
           fill="#209CEE"
           transform="translate(0,0)"
         />
