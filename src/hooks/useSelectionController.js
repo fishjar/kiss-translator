@@ -1,4 +1,4 @@
-﻿import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { sleep, limitNumber } from "../libs/utils";
 import { isMobile } from "../libs/mobile";
 import useAutoHideTranBtn from "./useAutoHideTranBtn";
@@ -6,23 +6,6 @@ import {
   OPT_TRANBOX_TRIGGER_HOVER,
   OPT_TRANBOX_TRIGGER_SELECT,
 } from "../config";
-
-function getSelectionPosition() {
-  const selection = window.getSelection();
-  if (!selection || selection.isCollapsed) return null;
-  try {
-    const range = selection.getRangeAt(0);
-    const rects = range.getClientRects();
-    if (rects.length === 0) return null;
-    const lastRect = rects[rects.length - 1];
-    return {
-      x: lastRect.right + window.scrollX,
-      y: lastRect.top + window.scrollY,
-    };
-  } catch {
-    return null;
-  }
-}
 
 export default function useSelectionController({
   tranboxSetting,
@@ -42,7 +25,7 @@ export default function useSelectionController({
   const [position, setPosition] = useState({ x: 0, y: 0 }); // 划词按钮位置
 
   // 划词按钮自动隐藏
-  useAutoHideTranBtn(showBtn, setShowBtn);
+  useAutoHideTranBtn(showBtn, setShowBtn, position);
 
   // 打开翻译框
   const handleOpenTranbox = useCallback(
@@ -96,6 +79,7 @@ export default function useSelectionController({
     const eventName = isMobile ? "touchend" : "mouseup";
 
     async function handleMouseup(e) {
+      // e.stopPropagation();
       if (e.button === 2) return;
 
       await sleep(200);
@@ -124,19 +108,12 @@ export default function useSelectionController({
         return;
       }
 
-      if (!hideTranBtn) {
-        const selectionPos = getSelectionPosition();
-        if (selectionPos) {
-          setShowBtn(true);
-          setPosition(selectionPos);
-        } else {
-          setShowBtn(false);
-        }
-      } else {
-        setShowBtn(false);
-      }
+      const { clientX, clientY } = isMobile ? e.changedTouches[0] : e;
+      setShowBtn(!hideTranBtn);
+      setPosition({ x: clientX, y: clientY });
     }
 
+    // window.addEventListener("mouseup", handleMouseup);
     window.addEventListener(eventName, handleMouseup);
     return () => {
       window.removeEventListener(eventName, handleMouseup);

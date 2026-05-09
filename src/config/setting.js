@@ -1,4 +1,4 @@
-﻿import { LogLevel } from "../libs/log";
+import { LogLevel } from "../libs/log";
 import {
   OPT_DICT_BING,
   OPT_SUG_YOUDAO,
@@ -91,8 +91,8 @@ export const DEFAULT_TRANBOX_SETTING = {
   toLang: "zh-CN",
   toLang2: "en",
   tranboxShortcut: DEFAULT_TRANBOX_SHORTCUT,
-  btnOffsetX: 0,
-  btnOffsetY: 0,
+  btnOffsetX: 10,
+  btnOffsetY: 10,
   boxOffsetX: 0,
   boxOffsetY: 10,
   hideTranBtn: false, // 是否隐藏翻译按钮
