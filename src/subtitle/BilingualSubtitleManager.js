@@ -5,6 +5,17 @@ import { apiMicrosoftDict } from "../apis/index.js";
 import { trustedTypesHelper } from "../libs/trustedTypes.js";
 import { isMobile } from "../libs/mobile.js";
 
+const decodeHTMLEntities = (str) => {
+  if (!str || typeof str !== "string") return str;
+  return str
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#x27;/g, "'")
+    .replace(/&#39;/g, "'");
+};
+
 // 添加CSS样式用于高亮显示悬停的单词
 const addWordHoverStyles = () => {
   if (document.getElementById("kiss-word-hover-styles")) return;
@@ -830,7 +841,7 @@ export class BilingualSubtitleManager {
         apiSetting,
         docInfo,
       });
-      subtitle.translation = trText;
+      subtitle.translation = decodeHTMLEntities(trText);
     } catch (error) {
       logger.info("Translation failed for:", subtitle.text, error);
       subtitle.translation = "[Translation failed]";

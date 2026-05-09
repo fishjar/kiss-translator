@@ -78,6 +78,17 @@ function formatMillisecondsToTimestamp(ms) {
  * @param {string} vttText - VTT文件的文本内容。
  * @returns {Array<Object>} 一个包含字幕对象的数组，每个对象包含 start, end, text, 和 translation.
  */
+const decodeHTMLEntities = (str) => {
+  if (!str || typeof str !== "string") return str;
+  return str
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#x27;/g, "'")
+    .replace(/&#39;/g, "'");
+};
+
 export function parseBilingualVtt(vttText) {
   const cleanText = vttText.replace(/^\uFEFF/, "").trim();
   if (!cleanText) {
@@ -102,8 +113,8 @@ export function parseBilingualVtt(vttText) {
     const textLines = lines.slice(timestampLineIndex + 1);
 
     if (startTimeString && endTimeString && textLines.length > 0) {
-      const originalText = textLines[0]?.trim() || "";
-      const translatedText = textLines[1]?.trim() || "";
+      const originalText = decodeHTMLEntities(textLines[0]?.trim() || "");
+      const translatedText = decodeHTMLEntities(textLines[1]?.trim() || "");
 
       result.push({
         start: parseTimestampToMilliseconds(startTimeString),
