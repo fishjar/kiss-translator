@@ -126,6 +126,7 @@ const mergeRules = (baseRule, overrideRule) => {
     "toLang",
     "transOpen",
     "transOnly",
+    "transOnlyRevert",
     "autoScan",
     "hasRichText",
     "hasShadowroot",
@@ -142,8 +143,8 @@ const mergeRules = (baseRule, overrideRule) => {
   });
 
   // 数字类型的属性
-  ["splitLength"].forEach((key) => {
-    if (overrideRule[key]) {
+  ["splitLength", "transOnlyRevertDelay"].forEach((key) => {
+    if (overrideRule[key] && overrideRule[key] !== GLOBAL_KEY) {
       merged[key] = overrideRule[key];
     }
   });
@@ -262,6 +263,8 @@ export const checkRules = (rules) => {
         textStyle,
         transOpen,
         transOnly,
+        transOnlyRevert,
+        transOnlyRevertDelay,
         autoScan,
         hasRichText,
         hasShadowroot,
@@ -303,6 +306,11 @@ export const checkRules = (rules) => {
             : GLOBAL_KEY,
         transOpen: matchValue([GLOBAL_KEY, "true", "false"], transOpen),
         transOnly: matchValue([GLOBAL_KEY, "true", "false"], transOnly),
+        transOnlyRevert: matchValue([GLOBAL_KEY, "true", "false"], transOnlyRevert),
+        transOnlyRevertDelay:
+          type(transOnlyRevertDelay) === "string" && !isNaN(parseFloat(transOnlyRevertDelay))
+            ? transOnlyRevertDelay
+            : GLOBAL_KEY,
         autoScan: matchValue([GLOBAL_KEY, "true", "false"], autoScan),
         hasRichText: matchValue([GLOBAL_KEY, "true", "false"], hasRichText),
         hasShadowroot: matchValue([GLOBAL_KEY, "true", "false"], hasShadowroot),
