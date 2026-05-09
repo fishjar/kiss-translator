@@ -85,7 +85,20 @@ class WordGap {
  * GapStats 类 - 间隔统计信息
  */
 class GapStats {
-  constructor(mean, median, std, minVal, maxVal, p25, p50, p75, p90, p95, mad) {
+  constructor(
+    mean,
+    median,
+    std,
+    minVal,
+    maxVal,
+    p25,
+    p50,
+    p75,
+    p90,
+    p95,
+    mad,
+    robustSigma
+  ) {
     this.mean = mean;
     this.median = median;
     this.std = std;
@@ -97,6 +110,7 @@ class GapStats {
     this.p90 = p90;
     this.p95 = p95;
     this.mad = mad;
+    this.robustSigma = robustSigma || mad * 1.4826;
   }
 }
 
@@ -221,7 +235,7 @@ function parseYoutubeData(data) {
     );
   }
 
-  return { words, gaps };
+  return { words, gaps, wordEventIds };
 }
 
 /**
@@ -244,12 +258,18 @@ function percentile(sortedData, p) {
  * @param {Array<WordGap>} gaps
  * @returns {GapStats}
  */
-function computeGapStats(gaps) {
-  const values = gaps.map((g) => g.gapMs).sort((a, b) => a - b);
+function computeGapStats(gaps, excludeValues = null) {
+  const values = [];
+  for (const g of gaps) {
+    if (excludeValues === null || !excludeValues.has(g.gapMs)) {
+      values.push(g.gapMs);
+    }
+  }
+  values.sort((a, b) => a - b);
   const n = values.length;
 
   if (n === 0) {
-    return new GapStats(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    return new GapStats(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
   }
 
   // 均值
@@ -281,6 +301,8 @@ function computeGapStats(gaps) {
   const absDevs = values.map((v) => Math.abs(v - median)).sort((a, b) => a - b);
   const mad = absDevs.length ? percentile(absDevs, 50) : 0;
 
+  const robustSigma = mad * 1.4826;
+
   return new GapStats(
     mean,
     median,
@@ -292,8 +314,61 @@ function computeGapStats(gaps) {
     p75,
     p90,
     p95,
-    mad
+    mad,
+    robustSigma
   );
+}
+
+/**
+ * 检测 YouTube JSON 中的默认 tOffsetMs 填充值
+ *
+ * YouTube 的某些 seg 中, tOffsetMs 使用的是默认值而非测量值。
+ * 这样的 gap 在同 event 内频繁出现, 却几乎不出现在跨 event 之处,
+ * 并非真实停顿, 需要侦测出来并加以衰减。
+ */
+function detectDefaultFillValues(words, gaps, wordEventIds) {
+  const withEvent = [];
+  for (let i = 0; i < gaps.length; i++) {
+    const g = gaps[i];
+    const sameEvent = wordEventIds[i] === wordEventIds[i + 1];
+    withEvent.push({
+      gapMs: g.gapMs,
+      isSameEvent: sameEvent,
+    });
+  }
+
+  const sameEventCounts = new Map();
+  const crossEventValues = new Set();
+
+  for (const item of withEvent) {
+    if (item.isSameEvent) {
+      sameEventCounts.set(
+        item.gapMs,
+        (sameEventCounts.get(item.gapMs) || 0) + 1
+      );
+    } else {
+      crossEventValues.add(item.gapMs);
+    }
+  }
+
+  const totalSameEvents = withEvent.filter((e) => e.isSameEvent).length;
+  const suspiciousValues = new Set();
+
+  if (totalSameEvents < 10) return suspiciousValues;
+
+  for (const [val, count] of sameEventCounts) {
+    const freqSame = count / totalSameEvents;
+    const freqCross = crossEventValues.has(val)
+      ? withEvent.filter((e) => !e.isSameEvent && e.gapMs === val).length /
+        Math.max(withEvent.filter((e) => !e.isSameEvent).length, 1)
+      : 0;
+
+    if (freqSame >= 0.08 && freqCross < 0.02) {
+      suspiciousValues.add(val);
+    }
+  }
+
+  return suspiciousValues;
 }
 
 /**
@@ -311,6 +386,7 @@ function computeBoundaryScore(gap, stats, params) {
     punctuationBreakBonus,
     commaBreakBonus,
     capitalBreakBonus,
+    defaultFillValues,
   } = params;
 
   let score = 0;
@@ -335,15 +411,26 @@ function computeBoundaryScore(gap, stats, params) {
     score += punctuationBreakBonus * 0.4;
   }
 
-  // B. 时间统计特征
+  // B. 时间统计特征（双 Z-Score：classical + robust 取最小）
+  let zClassical = 0;
+  let zRobust = 0;
   if (stats.std > 0) {
-    const zScore = (gapVal - stats.mean) / stats.std;
-    score += Math.max(0, zScore) * sensitivity;
+    zClassical = (gapVal - stats.mean) / stats.std;
   }
+  if (stats.robustSigma > 0) {
+    zRobust = (gapVal - stats.median) / stats.robustSigma;
+  }
+  const zScore = Math.min(zClassical, zRobust);
+  score += Math.max(0, zScore) * sensitivity;
 
-  if (gapVal >= stats.p75) score += 0.5;
-  if (gapVal >= stats.p90) score += 1.0;
-  if (gapVal >= stats.p95) score += 1.5;
+  // 分位数加分（对同事件内的默认填充值进行衰减）
+  const treatAsDefault =
+    defaultFillValues && defaultFillValues.has(gapVal) && gap.isSameEvent;
+  const dampen = treatAsDefault ? 0.4 : 1.0;
+
+  if (gapVal >= stats.p75) score += 0.5 * dampen;
+  if (gapVal >= stats.p90) score += 1.0 * dampen;
+  if (gapVal >= stats.p95) score += 1.5 * dampen;
 
   if (gapVal >= 500) score += 0.3;
   if (gapVal >= 800) score += 0.5;
@@ -647,31 +734,34 @@ export function intelligentSentenceBreak(data, params = {}) {
   const mergedParams = { ...DEFAULT_PARAMS, ...params };
 
   // 1. 解析数据
-  const { words, gaps } = parseYoutubeData(data);
+  const { words, gaps, wordEventIds } = parseYoutubeData(data);
   if (!words.length) return [];
 
-  // 2. 计算统计信息
-  const stats = computeGapStats(gaps);
+  // 2. 检测 YouTube 默认 tOffsetMs 填充值
+  const defaultFillValues = detectDefaultFillValues(words, gaps, wordEventIds);
 
-  // 3. 查找边界
-  let boundaryIndices = findSentenceBoundaries(
-    words,
+  // 3. 计算统计信息（排除检测到的默认填充值）
+  const stats = computeGapStats(
     gaps,
-    stats,
-    mergedParams
+    defaultFillValues.size ? defaultFillValues : null
   );
 
-  // 4. 合并过短句
-  boundaryIndices = mergeShortSentences(words, boundaryIndices, mergedParams);
+  // 4. 将 defaultFillValues 注入参数以传递给评分函数
+  const finalParams = {
+    ...mergedParams,
+    defaultFillValues: defaultFillValues.size ? defaultFillValues : null,
+  };
 
-  // 5. 构建句子
-  const sentences = buildSubtitleSentences(
-    words,
-    boundaryIndices,
-    mergedParams
-  );
+  // 5. 查找边界
+  let boundaryIndices = findSentenceBoundaries(words, gaps, stats, finalParams);
 
-  // 6. 转换为标准格式
+  // 6. 合并过短句
+  boundaryIndices = mergeShortSentences(words, boundaryIndices, finalParams);
+
+  // 7. 构建句子
+  const sentences = buildSubtitleSentences(words, boundaryIndices, finalParams);
+
+  // 8. 转换为标准格式
   return sentences.map((s) => ({
     text: s.text,
     start: s.startMs,
@@ -691,4 +781,5 @@ export {
   findSentenceBoundaries,
   mergeShortSentences,
   buildSubtitleSentences,
+  detectDefaultFillValues,
 };
