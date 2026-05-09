@@ -777,11 +777,6 @@ class YouTubeCaptionProvider {
       }
     }
 
-    if (!isAutoCaption) {
-      // 人工字幕已是句级分段，直接使用无需合并
-      return [flatEvents.filter((e) => e.text), 100];
-    }
-
     return subtitlesFallback();
   }
 
