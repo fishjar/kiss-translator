@@ -126,6 +126,7 @@ export const DEFAULT_SUBTITLE_SETTING = {
   segSlug: "-", // AI智能断句
   chunkLength: 1000, // AI处理切割长度
   longSentenceThreshold: 120, // 规则断句超长句阈值
+  useAlgorithmBreaker: "rule", // 内置断句方式: "rule" 规则断句 | "statistical" 统计断句
   preTrans: 90, // 提前翻译时长
   throttleTrans: 30, // 节流翻译间隔
   // fromLang: "en",
