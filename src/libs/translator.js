@@ -969,6 +969,51 @@ export class Translator {
     });
   }
 
+  #collectNodeGroups(node) {
+    const nodeGroups = [];
+    let nodeGroup = [];
+
+    [...node.childNodes].forEach((child) => {
+      const shouldBreak = this.#shouldBreak(child);
+      const shouldGroup =
+        child.nodeType === Node.ELEMENT_NODE ||
+        child.nodeType === Node.TEXT_NODE;
+      if (!shouldBreak && shouldGroup) {
+        nodeGroup.push(child);
+      } else if (shouldBreak && nodeGroup.length) {
+        nodeGroups.push(nodeGroup);
+        nodeGroup = [];
+      }
+    });
+
+    if (nodeGroup.length) {
+      nodeGroups.push(nodeGroup);
+    }
+
+    return nodeGroups;
+  }
+
+  #getTextForLangDetection(nodeGroups) {
+    const maxDetectTextLength = Math.min(this.#setting.maxLength, 5000);
+    let text = "";
+
+    for (const nodeGroup of nodeGroups) {
+      const groupText = nodeGroup
+        .map((node) => node.textContent || "")
+        .join("")
+        .trim();
+
+      if (this.#isInvalidText(groupText)) continue;
+
+      text = text ? `${text}\n${groupText}` : groupText;
+      if (text.length >= maxDetectTextLength) {
+        return text.slice(0, maxDetectTextLength);
+      }
+    }
+
+    return text;
+  }
+
   // 寻找需要被监控的文本节点
   #scanNode(rootNode) {
     if (
@@ -1018,8 +1063,13 @@ export class Translator {
 
     this.#processedNodes.set(node, { ...this.#rule });
 
-    // 提前检测文本
-    if (this.#isInvalidText(node.textContent)) {
+    let nodeGroups = this.#collectNodeGroups(node);
+    const textForLangDetection = this.#getTextForLangDetection(nodeGroups);
+
+    // 提前检测文本，但只检测当前节点会直接翻译的片段。
+    // 一些旧页面会把大量正文直接放在同一个大容器里，如果用整个
+    // node.textContent 判断，会因为超过最大长度而跳过所有正文片段。
+    if (!textForLangDetection) {
       return;
     }
 
@@ -1040,7 +1090,7 @@ export class Translator {
 
       // 还是用检测下  google de auto当翻译zh 到葡萄牙语时有问题
       deLang =
-        (await tryDetectLang(node.textContent, langDetector)) ||
+        (await tryDetectLang(textForLangDetection, langDetector)) ||
         apiSupportsAutoDetect;
       if (
         deLang &&
@@ -1056,25 +1106,12 @@ export class Translator {
     // 切分长段落
     if (splitParagraph !== OPT_SPLIT_PARAGRAPH_DISABLE) {
       this.#splitTextNodesBySentence(node, splitParagraph, splitLength);
+      nodeGroups = this.#collectNodeGroups(node);
     }
 
-    let nodeGroup = [];
-    [...node.childNodes].forEach((child) => {
-      const shouldBreak = this.#shouldBreak(child);
-      const shouldGroup =
-        child.nodeType === Node.ELEMENT_NODE ||
-        child.nodeType === Node.TEXT_NODE;
-      if (!shouldBreak && shouldGroup) {
-        nodeGroup.push(child);
-      } else if (shouldBreak && nodeGroup.length) {
-        this.#translateNodeGroup(nodeGroup, node, deLang);
-        nodeGroup = [];
-      }
-    });
-
-    if (nodeGroup.length) {
+    nodeGroups.forEach((nodeGroup) => {
       this.#translateNodeGroup(nodeGroup, node, deLang);
-    }
+    });
   }
 
   // 高亮词汇
