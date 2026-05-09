@@ -3,7 +3,7 @@ import { sendBgMsg } from "./msg";
 import { getSettingWithDefault } from "./storage";
 import { MSG_FETCH, DEFAULT_HTTP_TIMEOUT, PORT_STREAM_FETCH } from "../config";
 import { isBg } from "./browser";
-import { kissLog } from "./log";
+import { kissLog, logger } from "./log";
 import { getFetchPool } from "./pool";
 import { getHttpCachePolyfill, parseResponse } from "./cache";
 import { createSSEParser, createAsyncQueue } from "./stream";
@@ -66,6 +66,7 @@ export const fetchGM = async (
  * @returns
  */
 export const fetchPatcher = async (input, init = {}, opts) => {
+  logger.debug("fetchPatcher start", { url: input, method: init.method, env: isGm ? "GM" : isExt ? "Extension" : "Web" });
   let timeout = opts?.httpTimeout;
   if (!timeout) {
     try {
@@ -106,8 +107,12 @@ export const fetchPatcher = async (input, init = {}, opts) => {
  * @returns
  */
 export const fetchHandle = async ({ input, init, opts }) => {
+  const startTime = Date.now();
   const res = await fetchPatcher(input, init, opts);
-  return parseResponse(res, opts.expect);
+  const duration = Date.now() - startTime;
+  const parsed = await parseResponse(res, opts.expect);
+  logger.debug("fetchHandle done", { url: input, status: res.status, duration: `${duration}ms`, bodySize: typeof parsed === "string" ? parsed.length : JSON.stringify(parsed || "").length });
+  return parsed;
 };
 
 /**
@@ -141,21 +146,27 @@ export const fetchData = async (
     throw new Error("URL is empty");
   }
 
+  logger.debug("fetchData called", { url: input, method: init?.method, useCache, usePool, timeout: opts?.httpTimeout });
+
   // 使用缓存数据
   if (useCache) {
     const resCache = await getHttpCachePolyfill(input, init);
     if (resCache) {
+      logger.debug("fetchData cache hit", { url: input });
       return resCache;
     }
+    logger.debug("fetchData cache miss", { url: input });
   }
 
   // 通过任务池发送请求
   if (usePool) {
+    logger.debug("fetchData using pool", { url: input, fetchInterval, fetchLimit });
     const fetchPool = getFetchPool(fetchInterval, fetchLimit);
     return fetchPool.push(fnPolyfill, { fn: fetchHandle, input, init, opts });
   }
 
   // 直接请求
+  logger.debug("fetchData direct request", { url: input });
   return fnPolyfill({ fn: fetchHandle, input, init, opts });
 };
 
@@ -219,12 +230,16 @@ async function* fetchStreamGM(
  * @returns {AsyncGenerator<string>}
  */
 export async function* fetchStreamNative(input, init, timeout) {
+  logger.debug("fetchStreamNative start", { url: input });
   const signal = AbortSignal?.timeout?.(timeout);
+  const startTime = Date.now();
   const response = await fetch(input, { ...init, signal });
 
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
   }
+
+  logger.debug("fetchStreamNative response", { url: input, status: response.status, duration: `${Date.now() - startTime}ms` });
 
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
@@ -337,23 +352,30 @@ export async function* fetchStream(
     throw new Error("URL is empty");
   }
 
+  logger.debug("fetchStream start", { url: input, method: init?.method, usePool, timeout: opts?.httpTimeout });
+
   // 使用缓存数据
   if (useCache) {
     const resCache = await getHttpCachePolyfill(input, init);
     if (resCache) {
+      logger.debug("fetchStream cache hit", { url: input });
       yield resCache;
       return;
     }
   }
 
+  let chunkCount = 0;
+
   // 通过任务池发送请求
   if (usePool) {
+    logger.debug("fetchStream using pool", { url: input, fetchInterval, fetchLimit });
     const fetchPool = getFetchPool(fetchInterval, fetchLimit);
     const asyncQueue = createAsyncQueue();
 
     const streamPromise = fetchPool.push(async () => {
       try {
         for await (const chunk of fnPolyfillStream(input, init, opts)) {
+          chunkCount++;
           asyncQueue.push(chunk);
         }
         asyncQueue.finish();
@@ -365,9 +387,14 @@ export async function* fetchStream(
 
     yield* asyncQueue.iterate();
     await streamPromise;
+    logger.debug("fetchStream done", { url: input, totalChunks: chunkCount });
     return;
   }
 
   // 直接请求
-  yield* fnPolyfillStream(input, init, opts);
+  for await (const chunk of fnPolyfillStream(input, init, opts)) {
+    chunkCount++;
+    yield chunk;
+  }
+  logger.debug("fetchStream done", { url: input, totalChunks: chunkCount });
 }

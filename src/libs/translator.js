@@ -26,7 +26,7 @@ import {
   parseAITerms,
 } from "./utils";
 import { apiTranslate } from "../apis";
-import { kissLog } from "./log";
+import { kissLog, logger } from "./log";
 import { clearAllBatchQueue } from "./batchQueue";
 import { genTextClass } from "./style";
 import { createLoadingSVG, createRetrySVG } from "./svg";
@@ -539,10 +539,10 @@ export class Translator {
         .querySelectorAll("pre")
         .forEach(
           (pre) =>
-            (pre.innerHTML = pre.innerHTML?.replace(
-              /(?:\r\n|\r|\n)/g,
-              "<br />"
-            ))
+          (pre.innerHTML = pre.innerHTML?.replace(
+            /(?:\r\n|\r|\n)/g,
+            "<br />"
+          ))
         );
     }
 
@@ -710,7 +710,7 @@ export class Translator {
         if (
           this.#skipMoNodes.has(mutation.target) ||
           mutation.nextSibling?.tagName?.toLowerCase() ===
-            this.#translationTagName
+          this.#translationTagName
         ) {
           continue;
         }
@@ -1336,7 +1336,17 @@ export class Translator {
         nodes,
         termsStyle
       );
-      if (this.#isInvalidText(processedString)) return;
+
+      logger.debug("translateNodeGroup serialized", {
+        nodeCount: nodes.length,
+        textLen: processedString.length,
+        textPreview: processedString.slice(0, 80) + (processedString.length > 80 ? "..." : ""),
+      });
+
+      if (this.#isInvalidText(processedString)) {
+        logger.debug("translateNodeGroup skipped invalid text");
+        return;
+      }
 
       const wrapper = document.createElement(this.#translationTagName);
       wrapper.className = `${Translator.KISS_CLASS.warpper} notranslate`;
@@ -1387,28 +1397,34 @@ export class Translator {
 
       const onStreamChunk = isStreamRender
         ? (chunk) => {
-            if (this.#runId !== currentRunId) return;
-            const { text, isComplete } = chunk;
-            if (!text) return;
+          if (this.#runId !== currentRunId) return;
+          const { text, isComplete } = chunk;
+          if (!text) return;
 
-            if (isComplete) {
-              pendingText = Array.isArray(text) ? text[0] : text;
-              if (rafId) {
-                cancelAnimationFrame(rafId);
-                rafId = null;
-              }
-              flushPendingText();
-            } else {
-              pendingText = text;
-              if (!rafId) {
-                rafId = requestAnimationFrame(flushPendingText);
-              }
+          if (isComplete) {
+            pendingText = Array.isArray(text) ? text[0] : text;
+            if (rafId) {
+              cancelAnimationFrame(rafId);
+              rafId = null;
+            }
+            flushPendingText();
+          } else {
+            pendingText = text;
+            if (!rafId) {
+              rafId = requestAnimationFrame(flushPendingText);
             }
           }
+        }
         : null;
 
       const { trText: translatedText, isSame: isSameLang } =
         await this.#translateFetch(processedString, deLang, onStreamChunk);
+
+      logger.debug("translateNodeGroup got translation", {
+        trTextLen: translatedText?.length || 0,
+        isSameLang,
+        trTextPreview: translatedText?.slice(0, 60),
+      });
 
       // 清理 RAF 缓冲
       if (rafId) {
@@ -1725,6 +1741,13 @@ export class Translator {
       onStreamChunk,
     };
 
+    logger.debug("translateFetch", {
+      apiType: apiSetting.apiType,
+      fromLang, toLang,
+      textLen: text.length,
+      hasStreamChunk: !!onStreamChunk,
+    });
+
     // 翻译开始钩子函数
     if (transStartHook?.trim()) {
       try {
@@ -2006,6 +2029,8 @@ export class Translator {
     this.#rule.transOpen = "true";
     this.#runId++;
 
+    logger.debug("Translator enabled", { rule: this.#rule.apiSlug, transAllnow: this.#setting.transAllnow });
+
     if (this.#isInitialized) {
       if (this.#setting.transAllnow) {
         this.rescan();
@@ -2061,6 +2086,8 @@ export class Translator {
   rescan() {
     if (!this.#isInitialized) return;
     this.#runId++;
+
+    logger.debug("Translator rescan");
 
     this.#cleanupAllNodes();
     this.#resetOptions();

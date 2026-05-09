@@ -30,6 +30,7 @@ import { isBuiltinAIAvailable } from "../libs/browser";
 import { chromeDetect, chromeTranslate } from "../libs/builtinAI";
 import { fnPolyfill } from "../libs/fetch";
 import { getFetchPool } from "../libs/pool";
+import { logger } from "../libs/log";
 
 /**
  * 同步数据
@@ -491,6 +492,18 @@ export const apiTranslate = async ({
   }
 
   const { apiType, apiSlug, useBatchFetch } = apiSetting;
+
+  logger.debug("apiTranslate start", {
+    apiType,
+    apiSlug,
+    fromLang,
+    toLang,
+    textLen: text.length,
+    useBatchFetch,
+    useCache,
+    usePool,
+    textPreview: text.slice(0, 80) + (text.length > 80 ? "..." : ""),
+  });
   const langMap = OPT_LANGS_TO_SPEC[apiType] || OPT_LANGS_SPEC_DEFAULT;
   const from = langMap.get(fromLang);
   const to = langMap.get(toLang);
@@ -514,8 +527,10 @@ export const apiTranslate = async ({
   if (useCache) {
     const cache = await getHttpCachePolyfill(cacheInput);
     if (cache?.trText) {
+      logger.debug("apiTranslate cache hit", { apiSlug, trText: cache.trText?.slice(0, 60) });
       return cache;
     }
+    logger.debug("apiTranslate cache miss", { apiSlug });
   }
 
   // 请求接口数据
@@ -528,6 +543,7 @@ export const apiTranslate = async ({
       apiSetting,
     });
   } else if (useBatchFetch && API_SPE_TYPES.batch.has(apiType)) {
+    logger.debug("apiTranslate using batch queue", { apiType, apiSlug });
     const { apiSlug, batchInterval, batchSize, batchLength, useStream } =
       apiSetting;
     const enableStream = useStream && API_SPE_TYPES.stream.has(apiType);
@@ -551,6 +567,7 @@ export const apiTranslate = async ({
       docInfo,
     });
   } else {
+    logger.debug("apiTranslate using direct call", { apiType, apiSlug });
     const { value } = await handleTranslate([text], {
       from,
       to,
@@ -587,6 +604,11 @@ export const apiTranslate = async ({
   if (useCache) {
     putHttpCachePolyfill(cacheInput, null, { trText, isSame, srLang, srCode });
   }
+
+  logger.debug("apiTranslate done", {
+    apiType, trTextLen: trText.length, srLang, srCode, isSame,
+    trTextPreview: trText.slice(0, 60),
+  });
 
   return { trText, srLang, srCode, isSame };
 };

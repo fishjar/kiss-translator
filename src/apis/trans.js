@@ -64,7 +64,7 @@ import {
   detectStreamFormat,
   getStreamDelta,
 } from "../libs/stream";
-import { kissLog } from "../libs/log";
+import { kissLog, logger } from "../libs/log";
 import { fetchData, fetchStream } from "../libs/fetch";
 import { getMsgHistory } from "./history";
 import { parseBilingualVtt } from "../subtitle/vtt";
@@ -186,10 +186,14 @@ const genSubtitlePrompt = ({
 
 const parseAIRes = (raw, useBatchFetch = true) => {
   if (!raw) {
+    logger.debug("parseAIRes: empty input");
     return [];
   }
 
+  logger.debug("parseAIRes start", { rawLength: raw.length, useBatchFetch, rawPreview: raw.slice(0, 120) });
+
   if (!useBatchFetch) {
+    logger.debug("parseAIRes: non-batch mode, return as-is");
     return [[raw]];
   }
 
@@ -890,6 +894,13 @@ export const genTransReq = async ({ reqHook, ...args }) => {
     docInfo: externalDocInfo,
   } = args;
 
+  logger.debug("genTransReq", {
+    apiType, apiSlug,
+    fromLang, toLang, textCount: texts?.length,
+    useBatchFetch, hasEvents: !!events,
+    textPreview: texts?.[0]?.slice(0, 80) + (texts?.[0]?.length > 80 ? "..." : ""),
+  });
+
   if (API_SPE_TYPES.mulkeys.has(apiType)) {
     args.key = keyPick(apiSlug, key, keyMap);
   }
@@ -909,26 +920,26 @@ export const genTransReq = async ({ reqHook, ...args }) => {
 
     let baseSystemPrompt = events
       ? genSubtitlePrompt({
-          subtitlePrompt,
-          from,
-          to,
-          fromLang,
-          toLang,
-          texts,
-          docInfo,
-          tone,
-          aiTerms,
-        })
+        subtitlePrompt,
+        from,
+        to,
+        fromLang,
+        toLang,
+        texts,
+        docInfo,
+        tone,
+        aiTerms,
+      })
       : genSystemPrompt({
-          systemPrompt: useBatchFetch ? systemPrompt : nobatchPrompt,
-          from,
-          to,
-          fromLang,
-          toLang,
-          texts,
-          docInfo,
-          tone,
-        });
+        systemPrompt: useBatchFetch ? systemPrompt : nobatchPrompt,
+        from,
+        to,
+        fromLang,
+        toLang,
+        texts,
+        docInfo,
+        tone,
+      });
 
     // 上下文回退：当 prompt 模板缺少占位符时，追加 # Context 块
     if (hasExternalDocInfo) {
@@ -953,18 +964,18 @@ export const genTransReq = async ({ reqHook, ...args }) => {
     args.userPrompt = events
       ? JSON.stringify(events)
       : genUserPrompt({
-          nobatchUserPrompt,
-          useBatchFetch,
-          from,
-          to,
-          fromLang,
-          toLang,
-          texts,
-          docInfo: userDocInfo,
-          tone,
-          glossary,
-          aiTerms,
-        });
+        nobatchUserPrompt,
+        useBatchFetch,
+        from,
+        to,
+        fromLang,
+        toLang,
+        texts,
+        docInfo: userDocInfo,
+        tone,
+        glossary,
+        aiTerms,
+      });
   }
 
   const {
@@ -1008,6 +1019,7 @@ export const genTransReq = async ({ reqHook, ...args }) => {
         req
       );
       if (hookResult && hookResult.url) {
+        logger.debug("genTransReq hook override", { url: hookResult.url });
         return genInit(hookResult);
       }
     } catch (err) {
@@ -1016,7 +1028,9 @@ export const genTransReq = async ({ reqHook, ...args }) => {
     }
   }
 
-  return genInit({ url, body, headers, userMsg, method });
+  const [resultUrl, resultInit] = genInit({ url, body, headers, userMsg, method });
+  logger.debug("genTransReq result", { url: resultUrl, method: resultInit.method, bodySize: resultInit.body?.length || 0 });
+  return [resultUrl, resultInit, userMsg];
 };
 
 /**
@@ -1244,7 +1258,13 @@ export async function* handleTranslate(
     docInfo,
   });
 
+  logger.debug("handleTranslate sending", {
+    apiType, textCount: texts.length, enableStream,
+    useContext, contextMessages: hisMsgs.length,
+  });
+
   if (enableStream) {
+    logger.debug("handleTranslate using stream mode");
     yield* handleTranslateStreamInternal(texts, input, init, {
       apiType,
       history,
@@ -1256,6 +1276,7 @@ export async function* handleTranslate(
       streamRenderMode: apiSetting.streamRenderMode || "disabled",
     });
   } else {
+    logger.debug("handleTranslate using non-stream mode");
     const response = await fetchData(input, init, {
       useCache: false,
       usePool,
@@ -1267,6 +1288,7 @@ export async function* handleTranslate(
       throw new Error("translate got empty response");
     }
 
+    logger.debug("handleTranslate got response", { apiType, responseType: typeof response });
     const result = await parseTransRes(response, {
       texts,
       from,
@@ -1282,6 +1304,7 @@ export async function* handleTranslate(
       throw new Error("translate got an unexpected result");
     }
 
+    logger.debug("handleTranslate parsed result", { resultCount: result.length, firstResult: result[0]?.[0]?.slice(0, 60) });
     for (let i = 0; i < result.length; i++) {
       yield { id: i, result: result[i] };
     }
@@ -1300,6 +1323,12 @@ async function* handleTranslateStreamInternal(
   const results = new Array(texts.length).fill(null);
   let fullContent = "";
   const processedIds = new Set();
+  let chunkCount = 0;
+
+  logger.debug("handleTranslateStream start", {
+    apiType, textCount: texts.length,
+    streamRenderMode,
+  });
 
   const jsonParser = createStreamingJsonParser();
   const realtimeParser =
@@ -1400,6 +1429,14 @@ async function* handleTranslateStreamInternal(
       });
     }
   }
+
+  logger.debug("handleTranslateStream done", {
+    apiType, totalChunks: chunkCount,
+    fullContentLength: fullContent.length,
+    resultsFilled: results.filter(Boolean).length,
+    hasEmpty,
+    contentPreview: fullContent.slice(0, 100),
+  });
 }
 
 /**
@@ -1445,6 +1482,8 @@ export const handleSubtitle = async ({
 }) => {
   const { apiType, fetchInterval, fetchLimit, httpTimeout } = apiSetting;
 
+  logger.debug("handleSubtitle start", { apiType, eventCount: events?.length, from, to });
+
   const [input, init] = await genTransReq({
     ...apiSetting,
     events,
@@ -1464,6 +1503,8 @@ export const handleSubtitle = async ({
     kissLog("subtitle got empty response");
     return [];
   }
+
+  logger.debug("handleSubtitle got response", { apiType, responseLen: JSON.stringify(res || "").length });
 
   switch (apiType) {
     case OPT_TRANS_OPENAI:
