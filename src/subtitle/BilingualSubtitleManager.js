@@ -220,50 +220,6 @@ export class BilingualSubtitleManager {
   }
 
   /**
-   * 监听播放器控制条的显示状态，隐藏时将字幕下移
-   */
-  #observePlayerControlBar() {
-    const player = this.#videoEl.closest(".html5-video-player");
-    if (!player) return;
-
-    const controlBar = player.querySelector(".ytp-left-controls");
-    if (!controlBar) return;
-    const controlBarHeight = parseFloat(getComputedStyle(controlBar).height);
-
-    const getCurrentPaperElBottom = () => {
-      const bottom = getComputedStyle(this.#paperEl).bottom;
-      return parseFloat(bottom) || 0;
-    };
-
-    // 默认视字幕初始化完成时控制条为显示状态
-    let lastControlBarHiddenState = false;
-
-    const updatePaperElBottom = () => {
-      const isHidden = player.classList.contains("ytp-autohide");
-      if (isHidden === lastControlBarHiddenState) return;
-      lastControlBarHiddenState = isHidden;
-
-      const currentPaperElBottom = getCurrentPaperElBottom();
-      if (currentPaperElBottom === 0) return;
-
-      if (isHidden) {
-        this.#paperEl.style.bottom = `${currentPaperElBottom - controlBarHeight}px`;
-      } else {
-        this.#paperEl.style.bottom = `${currentPaperElBottom + controlBarHeight}px`;
-      }
-    };
-
-    const observer = new MutationObserver(() => {
-      if (!this.#captionDragged) updatePaperElBottom();
-    });
-
-    observer.observe(player, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-  }
-
-  /**
    * 创建并配置用于显示字幕的 DOM 元素。
    */
   #createCaptionWindow() {
@@ -346,7 +302,6 @@ export class BilingualSubtitleManager {
         }
       });
     }
-    this.#observePlayerControlBar();
   }
 
   // 处理单词悬停事件
@@ -788,6 +743,7 @@ export class BilingualSubtitleManager {
       // 创建带有单词标记的字幕内容
       const p1 = document.createElement("p");
       p1.style.cssText = this.#setting.originStyle;
+      p1.style.margin = "0";
 
       const isHoverLookupEnabled = this.#isHoverLookupEnabled();
 
@@ -801,6 +757,7 @@ export class BilingualSubtitleManager {
 
       const p2 = document.createElement("p");
       p2.style.cssText = this.#setting.translationStyle;
+      p2.style.margin = "0";
       if (isHoverLookupEnabled) {
         p2.innerHTML = trustedTypesHelper.createHTML(
           this.#wrapWordsWithSpans(subtitle.translation || "...")
