@@ -2598,6 +2598,13 @@ export const I18N = {
     ja: `字幕リストを表示`,
     ko: `자막 목록 표시`,
   },
+  subtitle_hover_lookup: {
+    zh: `悬停查词`,
+    en: `Hover Word Lookup`,
+    zh_TW: `懸停查詞`,
+    ja: `ホバー辞書検索`,
+    ko: `호버 단어 조회`,
+  },
   default_styles_example: {
     zh: `默认样式参考：`,
     en: `Default styles reference:`,

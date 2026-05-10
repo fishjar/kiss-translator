@@ -3,7 +3,7 @@ import { truncateWords, throttle } from "../libs/utils.js";
 import { apiTranslate } from "../apis/index.js";
 import { apiMicrosoftDict } from "../apis/index.js";
 import { trustedTypesHelper } from "../libs/trustedTypes.js";
-import { isMobile } from "../libs/mobile.js";
+import { isSubtitleModeEnabled } from "./modes.js";
 
 const decodeHTMLEntities = (str) => {
   if (!str || typeof str !== "string") return str;
@@ -162,14 +162,16 @@ export class BilingualSubtitleManager {
       (setting.throttleTrans ?? 30) * 1000
     );
 
-    // todo: 使用 @emotion/css
-    const enhanceMode = this.#setting.enhanceMode ?? "mobile_off";
-    const isEnhance =
-      enhanceMode === "on" || (enhanceMode === "mobile_off" && !isMobile);
-
-    if (isEnhance) {
+    if (this.#isHoverLookupEnabled()) {
       addWordHoverStyles();
     }
+  }
+
+  #isHoverLookupEnabled() {
+    return isSubtitleModeEnabled(
+      this.#setting.hoverLookupMode,
+      this.#setting.enhanceMode
+    );
   }
 
   /**
@@ -315,9 +317,7 @@ export class BilingualSubtitleManager {
     videoContainer.style.position = "relative";
     videoContainer.appendChild(container);
 
-    const enhanceMode = this.#setting.enhanceMode ?? "mobile_off";
-    const isEnhance =
-      enhanceMode === "on" || (enhanceMode === "mobile_off" && !isMobile);
+    const isHoverLookupEnabled = this.#isHoverLookupEnabled();
 
     this.#enableDragging(
       this.#paperEl,
@@ -326,7 +326,7 @@ export class BilingualSubtitleManager {
       () => (this.#captionDragged = true)
     );
 
-    if (isEnhance) {
+    if (isHoverLookupEnabled) {
       this.#captionWindowEl.addEventListener("pointerenter", (e) => {
         if (e.target === this.#captionWindowEl) {
           this.#wasPlayingBeforeHover = this.#videoEl && !this.#videoEl.paused;
@@ -793,11 +793,9 @@ export class BilingualSubtitleManager {
       const p1 = document.createElement("p");
       p1.style.cssText = this.#setting.originStyle;
 
-      const enhanceMode = this.#setting.enhanceMode ?? "mobile_off";
-      const isEnhance =
-        enhanceMode === "on" || (enhanceMode === "mobile_off" && !isMobile);
+      const isHoverLookupEnabled = this.#isHoverLookupEnabled();
 
-      if (isEnhance) {
+      if (isHoverLookupEnabled) {
         p1.innerHTML = trustedTypesHelper.createHTML(
           this.#wrapWordsWithSpans(subtitle.text)
         );
@@ -807,7 +805,7 @@ export class BilingualSubtitleManager {
 
       const p2 = document.createElement("p");
       p2.style.cssText = this.#setting.translationStyle;
-      if (isEnhance) {
+      if (isHoverLookupEnabled) {
         p2.innerHTML = trustedTypesHelper.createHTML(
           this.#wrapWordsWithSpans(subtitle.translation || "...")
         );
@@ -821,7 +819,7 @@ export class BilingualSubtitleManager {
         this.#captionWindowEl.replaceChildren(p2);
       }
 
-      if (isEnhance) {
+      if (isHoverLookupEnabled) {
         this.#attachSpanListeners();
       }
 

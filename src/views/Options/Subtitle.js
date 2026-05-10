@@ -24,6 +24,7 @@ import { useSubtitle } from "../../hooks/Subtitle";
 import { useApiList } from "../../hooks/Api";
 import ValidationInput from "../../hooks/ValidationInput";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { normalizeSubtitleMode } from "../../subtitle/modes";
 
 const parseCssToObject = (cssString) => {
   const result = {};
@@ -176,14 +177,8 @@ const YOUTUBE_CAPTION_CONTAINER_WIDTH = 640;
 function SubtitleStylePreview({ windowStyle, originStyle, translationStyle }) {
   const i18n = useI18n();
 
-  const windowCss = useMemo(
-    () => parseCssToObject(windowStyle),
-    [windowStyle]
-  );
-  const originCss = useMemo(
-    () => parseCssToObject(originStyle),
-    [originStyle]
-  );
+  const windowCss = useMemo(() => parseCssToObject(windowStyle), [windowStyle]);
+  const originCss = useMemo(() => parseCssToObject(originStyle), [originStyle]);
   const transCss = useMemo(
     () => parseCssToObject(translationStyle),
     [translationStyle]
@@ -220,9 +215,7 @@ function SubtitleStylePreview({ windowStyle, originStyle, translationStyle }) {
             <p style={{ ...originCss, margin: 0 }}>
               This is an example subtitle
             </p>
-            <p style={{ ...transCss, margin: 0 }}>
-              这是示例字幕文本
-            </p>
+            <p style={{ ...transCss, margin: 0 }}>这是示例字幕文本</p>
           </div>
         </Box>
       </Box>
@@ -263,14 +256,23 @@ export default function SubtitleSetting() {
     throttleTrans = 30,
     toLang,
     isBilingual,
-    enhanceMode = OPT_ENHANCE_MOBILE_OFF,
-    showList = true,
+    enhanceMode,
+    hoverLookupMode,
+    showList = OPT_ENHANCE_MOBILE_OFF,
     skipAd = false,
     aiContextSlug = "-",
     windowStyle,
     originStyle,
     translationStyle,
   } = subtitleSetting;
+  const hoverLookupModeValue = normalizeSubtitleMode(
+    hoverLookupMode,
+    enhanceMode || OPT_ENHANCE_MOBILE_OFF
+  );
+  const showListValue = normalizeSubtitleMode(
+    showList,
+    enhanceMode || OPT_ENHANCE_MOBILE_OFF
+  );
 
   const [localOriginStyle, setLocalOriginStyle] = useState(originStyle);
   const [localTransStyle, setLocalTransStyle] = useState(translationStyle);
@@ -297,7 +299,9 @@ export default function SubtitleSetting() {
     return () => {
       Object.values(debounceTimers.current).forEach(clearTimeout);
       debounceTimers.current = {};
-      Object.values(rafIds.current).forEach((id) => id && cancelAnimationFrame(id));
+      Object.values(rafIds.current).forEach(
+        (id) => id && cancelAnimationFrame(id)
+      );
       rafIds.current = { origin: 0, trans: 0, window: 0 };
     };
   }, []);
@@ -315,7 +319,11 @@ export default function SubtitleSetting() {
   );
 
   const scheduleRafUpdate = useCallback((name, setter, cssString) => {
-    const rafKey = { originStyle: "origin", translationStyle: "trans", windowStyle: "window" }[name];
+    const rafKey = {
+      originStyle: "origin",
+      translationStyle: "trans",
+      windowStyle: "window",
+    }[name];
     if (rafIds.current[rafKey]) {
       cancelAnimationFrame(rafIds.current[rafKey]);
     }
@@ -395,8 +403,7 @@ export default function SubtitleSetting() {
     windowCssObj["background-color"] || "rgba(0, 0, 0, 0.5)"
   ) || { r: 0, g: 0, b: 0, a: 0.5 };
   const windowBgHex = rgbToHex(windowBgRgba.r, windowBgRgba.g, windowBgRgba.b);
-  const windowLineHeight =
-    parseFloat(windowCssObj["line-height"]) || 1.3;
+  const windowLineHeight = parseFloat(windowCssObj["line-height"]) || 1.3;
   const windowHasTextShadow = !!windowCssObj["text-shadow"];
 
   const textStyleControls = useCallback(
@@ -425,13 +432,16 @@ export default function SubtitleSetting() {
                 const minRatio = fontSize.min / p;
                 const maxRatio = fontSize.max / p;
                 updateCss(
-                    "font-size",
-                    `clamp(${(val * minRatio).toFixed(2)}${fontSize.unit}, ${val}cqw, ${(val * maxRatio).toFixed(2)}${fontSize.unit})`
-                  );
+                  "font-size",
+                  `clamp(${(val * minRatio).toFixed(2)}${fontSize.unit}, ${val}cqw, ${(val * maxRatio).toFixed(2)}${fontSize.unit})`
+                );
               }}
               sx={{ flex: 1 }}
             />
-            <Typography variant="body2" sx={{ minWidth: 28, textAlign: "right" }}>
+            <Typography
+              variant="body2"
+              sx={{ minWidth: 28, textAlign: "right" }}
+            >
               {fontSize.preferred}
             </Typography>
           </Box>
@@ -655,9 +665,9 @@ export default function SubtitleSetting() {
                 fullWidth
                 select
                 size="small"
-                name="enhanceMode"
-                value={enhanceMode}
-                label={i18n("is_enable_enhance")}
+                name="hoverLookupMode"
+                value={hoverLookupModeValue}
+                label={i18n("subtitle_hover_lookup")}
                 onChange={handleChange}
               >
                 <MenuItem value={OPT_ENHANCE_ON}>{i18n("enable")}</MenuItem>
@@ -673,12 +683,15 @@ export default function SubtitleSetting() {
                 select
                 size="small"
                 name="showList"
-                value={showList}
+                value={showListValue}
                 label={i18n("show_subtitle_list") || "显示字幕列表"}
                 onChange={handleChange}
               >
-                <MenuItem value={true}>{i18n("enable")}</MenuItem>
-                <MenuItem value={false}>{i18n("disable")}</MenuItem>
+                <MenuItem value={OPT_ENHANCE_ON}>{i18n("enable")}</MenuItem>
+                <MenuItem value={OPT_ENHANCE_OFF}>{i18n("disable")}</MenuItem>
+                <MenuItem value={OPT_ENHANCE_MOBILE_OFF}>
+                  {i18n("disable_on_mobile")}
+                </MenuItem>
               </TextField>
             </Grid>
           </Grid>
@@ -773,7 +786,10 @@ export default function SubtitleSetting() {
                       }}
                       sx={{ flex: 1 }}
                     />
-                    <Typography variant="body2" sx={{ minWidth: 36, textAlign: "right" }}>
+                    <Typography
+                      variant="body2"
+                      sx={{ minWidth: 36, textAlign: "right" }}
+                    >
                       {Math.round(windowBgRgba.a * 100)}%
                     </Typography>
                   </Box>
@@ -798,7 +814,10 @@ export default function SubtitleSetting() {
                       }
                       sx={{ flex: 1 }}
                     />
-                    <Typography variant="body2" sx={{ minWidth: 28, textAlign: "right" }}>
+                    <Typography
+                      variant="body2"
+                      sx={{ minWidth: 28, textAlign: "right" }}
+                    >
                       {windowLineHeight}
                     </Typography>
                   </Box>
@@ -856,10 +875,7 @@ export default function SubtitleSetting() {
                         checked={windowHasTextShadow}
                         onChange={(e) => {
                           if (e.target.checked) {
-                            updateWindowCss(
-                              "text-shadow",
-                              "1px 1px 2px black"
-                            );
+                            updateWindowCss("text-shadow", "1px 1px 2px black");
                           } else {
                             const newObj = { ...windowCssRef.current };
                             delete newObj["text-shadow"];
