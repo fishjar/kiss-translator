@@ -1,3 +1,5 @@
+import { decodeHTMLEntities } from "../libs/utils.js";
+
 /**
  * 将多种格式的VTT时间戳字符串转换为毫秒数。
  * 兼容以下格式：
@@ -78,17 +80,6 @@ function formatMillisecondsToTimestamp(ms) {
  * @param {string} vttText - VTT文件的文本内容。
  * @returns {Array<Object>} 一个包含字幕对象的数组，每个对象包含 start, end, text, 和 translation.
  */
-const decodeHTMLEntities = (str) => {
-  if (!str || typeof str !== "string") return str;
-  return str
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#x27;/g, "'")
-    .replace(/&#39;/g, "'");
-};
-
 export function parseBilingualVtt(vttText) {
   const cleanText = vttText.replace(/^\uFEFF/, "").trim();
   if (!cleanText) {
