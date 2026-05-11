@@ -229,6 +229,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi, onCollapse }) {
     useStream = false,
     streamRenderMode = "disabled",
     transAllnow = false,
+    rootMargin = 500,
     batchInterval = DEFAULT_BATCH_INTERVAL,
     batchSize = DEFAULT_BATCH_SIZE,
     batchLength = DEFAULT_BATCH_LENGTH,
@@ -263,7 +264,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi, onCollapse }) {
     <Stack spacing={3}>
       <Box>
         <Grid container spacing={2} columns={12}>
-          <Grid item xs={12} sm={12} md={6} lg={4}>
+          <Grid item xs={12} sm={12} md={6} lg={3}>
             <TextField
               size="small"
               fullWidth
@@ -273,7 +274,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi, onCollapse }) {
               onChange={handleChange}
             />
           </Grid>
-          <Grid item xs={12} sm={12} md={6} lg={4}>
+          <Grid item xs={12} sm={12} md={6} lg={3}>
             <TextField
               size="small"
               fullWidth
@@ -285,7 +286,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi, onCollapse }) {
               helperText={i18n("sort_order_help") || "数值越小越靠前"}
             />
           </Grid>
-          <Grid item xs={12} sm={12} md={6} lg={4}>
+          <Grid item xs={12} sm={12} md={6} lg={3}>
             <TextField
               select
               fullWidth
@@ -298,6 +299,19 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi, onCollapse }) {
               <MenuItem value={false}>{i18n("mk_pagescroll")}</MenuItem>
               <MenuItem value={true}>{i18n("mk_pageopen")}</MenuItem>
             </TextField>
+          </Grid>
+          <Grid item xs={12} sm={12} md={6} lg={3}>
+            <ValidationInput
+              fullWidth
+              size="small"
+              label={i18n("pagescroll_root_margin")}
+              type="number"
+              name="rootMargin"
+              value={rootMargin}
+              onChange={handleChange}
+              min={0}
+              max={10000}
+            />
           </Grid>
         </Grid>
       </Box>

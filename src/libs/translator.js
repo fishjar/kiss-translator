@@ -438,6 +438,15 @@ export class Translator {
     );
   }
 
+  get #rootMargin() {
+    const apiValue = this.#apisMap.get(this.#rule.apiSlug)?.rootMargin;
+    if (apiValue !== undefined && apiValue !== "") {
+      return apiValue;
+    }
+
+    return this.#setting.rootMargin ?? 500;
+  }
+
   // 占位符配置（包含正则）
   get #placeholderConfig() {
     if (this.#placeholderCache) {
@@ -704,7 +713,8 @@ export class Translator {
 
   // 监控翻译单元的可见性
   #createIntersectionObserver() {
-    const { transInterval, rootMargin = 500 } = this.#setting;
+    const { transInterval } = this.#setting;
+    const rootMargin = this.#rootMargin;
 
     const pending = new Set();
     const flush = debounce(() => {
@@ -2247,6 +2257,8 @@ export class Translator {
   updateRule(newRule) {
     let hasChanged = false;
     let needsRescan = false;
+    const oldTransAllnow = this.#transAllnow;
+    const oldRootMargin = this.#rootMargin;
     for (const key in newRule) {
       if (
         Object.prototype.hasOwnProperty.call(this.#rule, key) &&
@@ -2269,7 +2281,16 @@ export class Translator {
     // 配置变更时清空正则缓存
     this.#placeholderCache = null;
 
-    if (needsRescan || (this.#enabled && this.#transAllnow)) {
+    const needsTriggerRescan =
+      this.#enabled &&
+      (oldTransAllnow !== this.#transAllnow ||
+        String(oldRootMargin) !== String(this.#rootMargin));
+
+    if (
+      needsRescan ||
+      needsTriggerRescan ||
+      (this.#enabled && this.#transAllnow)
+    ) {
       this.rescan();
       this.#syncTransOnlyRevert();
       return;

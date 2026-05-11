@@ -683,6 +683,7 @@ const defaultApi = {
   useStream: false, // 是否启用流式传输
   streamRenderMode: "disabled", // 流式渲染模式：disabled/realtime/segment
   transAllnow: false, // 是否立即全部翻译
+  rootMargin: 500, // 滚动加载提前触发距离
   useContext: false, // 是否启用智能上下文
   contextSize: DEFAULT_CONTEXT_SIZE, // 智能上下文保留会话数
   temperature: 0.0,

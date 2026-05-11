@@ -103,6 +103,8 @@ export const normalizeSetting = (setting = {}) => {
   };
   const legacyTransAllnow =
     normalizedSetting.transAllnow ?? DEFAULT_SETTING.transAllnow;
+  const legacyRootMargin =
+    normalizedSetting.rootMargin ?? DEFAULT_SETTING.rootMargin;
   const defaultApisBySlug = new Map(
     DEFAULT_API_LIST.map((api) => [api.apiSlug, api])
   );
@@ -125,6 +127,7 @@ export const normalizeSetting = (setting = {}) => {
         ...defaultApi,
         ...api,
         transAllnow: api.transAllnow ?? legacyTransAllnow,
+        rootMargin: api.rootMargin ?? legacyRootMargin,
       };
     }),
   };

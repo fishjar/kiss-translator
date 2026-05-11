@@ -203,6 +203,6 @@ export const DEFAULT_SETTING = {
   transAllnow: false, // 旧版全局触发方式，仅用于迁移接口配置
   subtitleSetting: DEFAULT_SUBTITLE_SETTING, // 字幕设置
   logLevel: LogLevel.INFO.value, // 日志级别
-  rootMargin: 500, // 提前触发翻译
+  rootMargin: 500, // 旧版全局滚动提前触发距离，仅用于迁移接口配置
   customStyles: DEFAULT_CUSTOM_STYLES, // 自定义样式列表
 };
