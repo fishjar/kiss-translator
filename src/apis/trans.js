@@ -395,7 +395,13 @@ const parseSTRes = (raw, events = null) => {
   return [];
 };
 
-const siliconflowEffortMap = { max: 32768, high: 16384, medium: 8192, low: 4096, minimal: 2048 };
+const siliconflowEffortMap = {
+  max: 32768,
+  high: 16384,
+  medium: 8192,
+  low: 4096,
+  minimal: 2048,
+};
 
 const injectThinking = (body, { apiType, thinkingMode, thinkingEffort }) => {
   if (thinkingMode === "auto") return;
@@ -407,7 +413,9 @@ const injectThinking = (body, { apiType, thinkingMode, thinkingEffort }) => {
 
   switch (param.type) {
     case "deepseek":
-      body.thinking = { type: thinkingMode === "enabled" ? "enabled" : "disabled" };
+      body.thinking = {
+        type: thinkingMode === "enabled" ? "enabled" : "disabled",
+      };
       if (thinkingMode === "enabled" && hasEffort) {
         body.reasoning_effort = thinkingEffort;
       }
@@ -648,23 +656,7 @@ const genGemini = ({
 
   const userMsg = { role: "user", parts: [{ text: userPrompt }] };
 
-  const modelLower = String(model || "").toLowerCase();
-  const geminiMajor = Number(modelLower.match(/gemini[- ]?(\d+)/)?.[1]);
-  const isPro = modelLower.includes("pro");
-  const thinkingConfig = isPro
-    ? null
-    : Number.isFinite(geminiMajor) && geminiMajor >= 3
-      ? { thinkingLevel: "MINIMAL" }
-      : modelLower.includes("gemini-2.5")
-        ? { thinkingBudget: 0 }
-        : null;
-
   const body = {
-    // system_instruction: {
-    //   parts: {
-    //     text: systemPrompt,
-    //   },
-    // },
     contents: [
       {
         role: "model",
@@ -676,15 +668,14 @@ const genGemini = ({
     generationConfig: {
       maxOutputTokens: maxTokens,
       temperature,
-      ...(thinkingConfig ? { thinkingConfig } : {}),
     },
   };
 
-  if (thinkingMode && thinkingMode !== "auto") {
-    if (thinkingMode === "disabled") {
-      body.thinkingConfig = { thinkingLevel: "minimal" };
-    } else if (thinkingEffort && thinkingEffort !== "_default") {
-      body.thinkingConfig = { thinkingLevel: thinkingEffort };
+  if (thinkingMode === "disabled") {
+    body.generationConfig.thinkingConfig = { thinkingBudget: 0 };
+  } else if (thinkingMode && thinkingMode !== "auto") {
+    if (thinkingEffort && thinkingEffort !== "_default") {
+      body.generationConfig.thinkingConfig = { thinkingLevel: thinkingEffort };
     }
   }
 
@@ -836,7 +827,11 @@ const genOpenRouter = ({
     stream: useStream,
   };
 
-  injectThinking(body, { apiType: OPT_TRANS_OPENROUTER, thinkingMode, thinkingEffort });
+  injectThinking(body, {
+    apiType: OPT_TRANS_OPENROUTER,
+    thinkingMode,
+    thinkingEffort,
+  });
 
   const headers = {
     "Content-type": "application/json",
@@ -877,7 +872,11 @@ const genOllama = ({
     max_tokens: maxTokens,
   };
 
-  injectThinking(body, { apiType: OPT_TRANS_OLLAMA, thinkingMode, thinkingEffort });
+  injectThinking(body, {
+    apiType: OPT_TRANS_OLLAMA,
+    thinkingMode,
+    thinkingEffort,
+  });
   body.stream = useStream;
 
   const headers = {
@@ -1427,7 +1426,16 @@ async function* handleTranslateStreamInternal(
   texts,
   input,
   init,
-  { apiType, history, userMsg, usePool, fetchInterval, fetchLimit, httpTimeout, streamRenderMode }
+  {
+    apiType,
+    history,
+    userMsg,
+    usePool,
+    fetchInterval,
+    fetchLimit,
+    httpTimeout,
+    streamRenderMode,
+  }
 ) {
   const results = new Array(texts.length).fill(null);
   let fullContent = "";
@@ -1606,14 +1614,41 @@ export const handleSubtitle = async ({
     case OPT_TRANS_GEMINI_2:
     case OPT_TRANS_OPENROUTER:
     case OPT_TRANS_OLLAMA:
-      return parseSTRes(res?.choices?.[0]?.message?.content ?? "");
-    case OPT_TRANS_GEMINI:
-      return parseSTRes(
-        geminiText(res?.candidates?.[0]?.content?.parts),
-        events
-      );
+      return parseSTRes(res?.choices?.[0]?.message?.content ?? "", events);
+    case OPT_TRANS_GEMINI: {
+      const candidate = res?.candidates?.[0];
+      const { thinkingMode } = apiSetting;
+      const thinkingWasOn =
+        thinkingMode && thinkingMode !== "auto" && thinkingMode !== "disabled";
+      if (candidate?.finishReason === "MAX_TOKENS" && thinkingWasOn) {
+        const [retryInput, retryInit] = await genTransReq({
+          ...apiSetting,
+          thinkingMode: "disabled",
+          events,
+          from,
+          to,
+          docInfo,
+          prevContext,
+          nextContext,
+        });
+        const retryRes = await fetchData(retryInput, retryInit, {
+          useCache: false,
+          usePool: true,
+          fetchInterval,
+          fetchLimit,
+          httpTimeout,
+        });
+        if (retryRes?.candidates?.[0]?.content?.parts) {
+          return parseSTRes(
+            geminiText(retryRes.candidates[0].content.parts),
+            events
+          );
+        }
+      }
+      return parseSTRes(geminiText(candidate?.content?.parts), events);
+    }
     case OPT_TRANS_CLAUDE:
-      return parseSTRes(res?.content?.[0]?.text ?? "");
+      return parseSTRes(res?.content?.[0]?.text ?? "", events);
     case OPT_TRANS_CUSTOMIZE:
       return res;
     default:
