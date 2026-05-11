@@ -200,7 +200,7 @@ export const DEFAULT_SETTING = {
   langDetector: "-", // 远程语言识别服务
   mouseHoverSetting: DEFAULT_MOUSE_HOVER_SETTING, // 鼠标悬停翻译
   preInit: true, // 是否预加载脚本
-  transAllnow: false, // 是否立即全部翻译
+  transAllnow: false, // 旧版全局触发方式，仅用于迁移接口配置
   subtitleSetting: DEFAULT_SUBTITLE_SETTING, // 字幕设置
   logLevel: LogLevel.INFO.value, // 日志级别
   rootMargin: 500, // 提前触发翻译

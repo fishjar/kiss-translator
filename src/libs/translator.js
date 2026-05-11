@@ -427,6 +427,17 @@ export class Translator {
     return this.#apisMap.get(this.#rule.apiSlug) || DEFAULT_API_SETTING;
   }
 
+  get #transAllnow() {
+    const apiValue = this.#apisMap.get(this.#rule.apiSlug)?.transAllnow;
+    if (apiValue !== undefined) {
+      return apiValue === true || apiValue === "true";
+    }
+
+    return (
+      this.#setting.transAllnow === true || this.#setting.transAllnow === "true"
+    );
+  }
+
   // 占位符配置（包含正则）
   get #placeholderConfig() {
     if (this.#placeholderCache) {
@@ -946,11 +957,7 @@ export class Translator {
       this.#highlightWordsDeeply(node);
     }
 
-    if (
-      !this.#observedNodes.has(node) &&
-      this.#enabled &&
-      this.#setting.transAllnow
-    ) {
+    if (!this.#observedNodes.has(node) && this.#enabled && this.#transAllnow) {
       this.#observedNodes.add(node);
       this.#processNode(node);
       return;
@@ -1377,7 +1384,10 @@ export class Translator {
 
       // 流式渲染模式
       const streamRenderMode = this.#apiSetting.streamRenderMode || "disabled";
-      const isStreamRender = streamRenderMode !== "disabled" && this.#apiSetting.useStream && this.#apiSetting.useBatchFetch;
+      const isStreamRender =
+        streamRenderMode !== "disabled" &&
+        this.#apiSetting.useStream &&
+        this.#apiSetting.useBatchFetch;
 
       // RAF 缓冲
       let rafId = null;
@@ -1956,17 +1966,14 @@ export class Translator {
     this.#transOnlyRevertEnabled = true;
 
     this.#boundTransOnlyMouseOver = (e) => {
-      const wrapper = e.target.closest?.(
-        `.${Translator.KISS_CLASS.warpper}`
-      );
+      const wrapper = e.target.closest?.(`.${Translator.KISS_CLASS.warpper}`);
       if (wrapper) {
         const data = this.#translationNodes.get(wrapper);
         if (!data || !data.isHide) return;
         if (this.#transOnlyRevertTarget === wrapper) return;
 
         this.#clearTransOnlyRevertTimer();
-        const delay =
-          parseFloat(this.#rule.transOnlyRevertDelay) || 0.5;
+        const delay = parseFloat(this.#rule.transOnlyRevertDelay) || 0.5;
         this.#transOnlyRevertTimer = setTimeout(() => {
           this.#showOriginalTemporarily(wrapper, data);
         }, delay * 1000);
@@ -1986,9 +1993,7 @@ export class Translator {
 
     this.#boundTransOnlyMouseOut = (e) => {
       if (!this.#transOnlyRevertTarget) {
-        const wrapper = e.target.closest?.(
-          `.${Translator.KISS_CLASS.warpper}`
-        );
+        const wrapper = e.target.closest?.(`.${Translator.KISS_CLASS.warpper}`);
         if (wrapper) this.#clearTransOnlyRevertTimer();
         return;
       }
@@ -2134,7 +2139,7 @@ export class Translator {
     this.#runId++;
 
     if (this.#isInitialized) {
-      if (this.#setting.transAllnow) {
+      if (this.#transAllnow) {
         this.rescan();
       } else {
         this.#reIOViewNodes();
@@ -2264,7 +2269,7 @@ export class Translator {
     // 配置变更时清空正则缓存
     this.#placeholderCache = null;
 
-    if (needsRescan || (this.#enabled && this.#setting.transAllnow)) {
+    if (needsRescan || (this.#enabled && this.#transAllnow)) {
       this.rescan();
       this.#syncTransOnlyRevert();
       return;
@@ -2278,8 +2283,7 @@ export class Translator {
 
   #syncTransOnlyRevert() {
     const shouldEnable =
-      this.#rule.transOnly === "true" &&
-      this.#rule.transOnlyRevert === "true";
+      this.#rule.transOnly === "true" && this.#rule.transOnlyRevert === "true";
     if (shouldEnable && !this.#transOnlyRevertEnabled) {
       this.#enableTransOnlyRevert();
     } else if (!shouldEnable && this.#transOnlyRevertEnabled) {

@@ -104,7 +104,6 @@ export default function Settings() {
     preInit = true,
     skipLangs = [],
     // detectRemote = true,
-    transAllnow = false,
     rootMargin = 500,
   } = setting;
   const { isHide = false, fabClickAction = 0 } = fab || {};
@@ -308,20 +307,6 @@ export default function Settings() {
                     {item}
                   </MenuItem>
                 ))}
-              </TextField>
-            </Grid>
-            <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
-                select
-                size="small"
-                fullWidth
-                name="transAllnow"
-                value={transAllnow}
-                label={i18n("trigger_mode")}
-                onChange={handleChange}
-              >
-                <MenuItem value={false}>{i18n("mk_pagescroll")}</MenuItem>
-                <MenuItem value={true}>{i18n("mk_pageopen")}</MenuItem>
               </TextField>
             </Grid>
             <Grid item xs={12} sm={12} md={6} lg={3}>

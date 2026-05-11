@@ -228,6 +228,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi, onCollapse }) {
     useBatchFetch = false,
     useStream = false,
     streamRenderMode = "disabled",
+    transAllnow = false,
     batchInterval = DEFAULT_BATCH_INTERVAL,
     batchSize = DEFAULT_BATCH_SIZE,
     batchLength = DEFAULT_BATCH_LENGTH,
@@ -262,7 +263,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi, onCollapse }) {
     <Stack spacing={3}>
       <Box>
         <Grid container spacing={2} columns={12}>
-          <Grid item xs={12} sm={12} md={6} lg={6}>
+          <Grid item xs={12} sm={12} md={6} lg={4}>
             <TextField
               size="small"
               fullWidth
@@ -272,7 +273,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi, onCollapse }) {
               onChange={handleChange}
             />
           </Grid>
-          <Grid item xs={12} sm={12} md={6} lg={6}>
+          <Grid item xs={12} sm={12} md={6} lg={4}>
             <TextField
               size="small"
               fullWidth
@@ -283,6 +284,20 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi, onCollapse }) {
               onChange={handleChange}
               helperText={i18n("sort_order_help") || "数值越小越靠前"}
             />
+          </Grid>
+          <Grid item xs={12} sm={12} md={6} lg={4}>
+            <TextField
+              select
+              fullWidth
+              size="small"
+              name="transAllnow"
+              value={transAllnow}
+              label={i18n("trigger_mode")}
+              onChange={handleChange}
+            >
+              <MenuItem value={false}>{i18n("mk_pagescroll")}</MenuItem>
+              <MenuItem value={true}>{i18n("mk_pageopen")}</MenuItem>
+            </TextField>
           </Grid>
         </Grid>
       </Box>
@@ -397,7 +412,6 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi, onCollapse }) {
               <Grid item xs={12} sm={12} md={6} lg={3}></Grid>
             </Grid>
           </Box>
-
         </>
       )}
 
@@ -542,23 +556,29 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi, onCollapse }) {
             </Grid>
           )}
 
-          {API_SPE_TYPES.stream.has(api.apiType) && useBatchFetch && useStream && (
-            <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
-                select
-                fullWidth
-                size="small"
-                name="streamRenderMode"
-                value={streamRenderMode}
-                label={i18n("stream_render_mode")}
-                onChange={handleChange}
-              >
-                <MenuItem value="disabled">{i18n("disable")}</MenuItem>
-                <MenuItem value="realtime">{i18n("stream_render_realtime")}</MenuItem>
-                <MenuItem value="segment">{i18n("stream_render_segment")}</MenuItem>
-              </TextField>
-            </Grid>
-          )}
+          {API_SPE_TYPES.stream.has(api.apiType) &&
+            useBatchFetch &&
+            useStream && (
+              <Grid item xs={12} sm={12} md={6} lg={3}>
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  name="streamRenderMode"
+                  value={streamRenderMode}
+                  label={i18n("stream_render_mode")}
+                  onChange={handleChange}
+                >
+                  <MenuItem value="disabled">{i18n("disable")}</MenuItem>
+                  <MenuItem value="realtime">
+                    {i18n("stream_render_realtime")}
+                  </MenuItem>
+                  <MenuItem value="segment">
+                    {i18n("stream_render_segment")}
+                  </MenuItem>
+                </TextField>
+              </Grid>
+            )}
 
           {API_SPE_TYPES.context.has(api.apiType) && (
             <>
@@ -655,10 +675,16 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi, onCollapse }) {
                 onChange={handleChange}
                 helperText={i18n("thinking_mode_helper")}
               >
-                <MenuItem value="auto">{i18n("thinking_mode_default")}</MenuItem>
-                <MenuItem value="enabled">{i18n("thinking_mode_enabled")}</MenuItem>
+                <MenuItem value="auto">
+                  {i18n("thinking_mode_default")}
+                </MenuItem>
+                <MenuItem value="enabled">
+                  {i18n("thinking_mode_enabled")}
+                </MenuItem>
                 {thinkingParam.disableSupported !== false && (
-                  <MenuItem value="disabled">{i18n("thinking_mode_disabled")}</MenuItem>
+                  <MenuItem value="disabled">
+                    {i18n("thinking_mode_disabled")}
+                  </MenuItem>
                 )}
               </TextField>
             </Grid>
@@ -678,7 +704,9 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi, onCollapse }) {
                       {e.label}
                     </MenuItem>
                   ))}
-                  <MenuItem value="_default">{i18n("thinking_effort_default")}</MenuItem>
+                  <MenuItem value="_default">
+                    {i18n("thinking_effort_default")}
+                  </MenuItem>
                 </TextField>
               </Grid>
             )}
