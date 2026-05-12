@@ -1140,15 +1140,20 @@ export default function Apis() {
           }}
         >
           <Box
-            sx={{
+            sx={(theme) => ({
               width: { xs: "100%", md: 280 },
               flex: { xs: "0 0 auto", md: "0 0 280px" },
               maxHeight: { xs: 240, md: "calc(100vh - 230px)" },
               overflowY: "auto",
-              borderRight: { xs: 0, md: 1 },
-              borderBottom: { xs: 1, md: 0 },
-              borderColor: "divider",
-            }}
+              borderRight: {
+                xs: 0,
+                md: `1px solid ${theme.palette.divider}`,
+              },
+              borderBottom: {
+                xs: `1px solid ${theme.palette.divider}`,
+                md: 0,
+              },
+            })}
           >
             <List disablePadding>
               {apiItems.map(({ api }) => (
