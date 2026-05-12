@@ -221,6 +221,8 @@ class YouTubeCaptionProvider {
       this.#toggleShowOrigin();
     } else if (name === "aiContextSlug") {
       this.#reProcessEventsWithContext();
+    } else if (name === "showLoadNotification" && value === false) {
+      this.#hideNotification();
     }
   }
 
@@ -1338,20 +1340,24 @@ class YouTubeCaptionProvider {
     notificationEl.className = "kiss-notification";
     Object.assign(notificationEl.style, {
       position: "absolute",
-      top: "40%",
+      top: "16px",
       left: "50%",
       transform: "translateX(-50%)",
-      background: "rgba(0,0,0,0.7)",
-      color: "red",
-      padding: "0.5em 1em",
-      borderRadius: "4px",
+      background: "rgba(0, 0, 0, 0.5)",
+      color: "#fff",
+      padding: "8px 12px",
+      borderRadius: "8px",
       zIndex: "2147483647",
       opacity: "0",
       transition: "opacity 0.3s ease-in-out",
       pointerEvents: "none",
-      fontSize: "2em",
-      width: "50%",
-      textAlign: "center",
+      fontSize: "16px",
+      lineHeight: "1.4",
+      width: "auto",
+      maxWidth: "min(360px, calc(100% - 32px))",
+      textAlign: "left",
+      boxSizing: "border-box",
+      boxShadow: "0 2px 8px rgba(0,0,0,0.25)",
     });
 
     const videoEl = this.#videoEl;
@@ -1362,13 +1368,27 @@ class YouTubeCaptionProvider {
     }
   }
 
+  #hideNotification() {
+    clearTimeout(this.#notificationTimeout);
+    if (this.#notificationEl) {
+      this.#notificationEl.style.opacity = "0";
+    }
+  }
+
   #showNotification(message, duration = 2000) {
+    if (this.#setting.showLoadNotification === false) {
+      this.#hideNotification();
+      return;
+    }
+
     if (!this.#notificationEl) this.#createNotificationElement();
+    if (!this.#notificationEl) return;
+
     this.#notificationEl.textContent = message;
     this.#notificationEl.style.opacity = "1";
     clearTimeout(this.#notificationTimeout);
     this.#notificationTimeout = setTimeout(() => {
-      this.#notificationEl.style.opacity = "0";
+      this.#hideNotification();
     }, duration);
   }
 }

@@ -265,6 +265,7 @@ export default function SubtitleSetting() {
     isBilingual,
     enhanceMode = OPT_ENHANCE_MOBILE_OFF,
     showList = true,
+    showLoadNotification = true,
     skipAd = false,
     aiContextSlug = "-",
     windowStyle,
@@ -679,6 +680,20 @@ export default function SubtitleSetting() {
               >
                 <MenuItem value={true}>{i18n("enable")}</MenuItem>
                 <MenuItem value={false}>{i18n("disable")}</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                fullWidth
+                select
+                size="small"
+                name="showLoadNotification"
+                value={showLoadNotification}
+                label={i18n("subtitle_loading_notification")}
+                onChange={handleChange}
+              >
+                <MenuItem value={true}>{i18n("show")}</MenuItem>
+                <MenuItem value={false}>{i18n("hide")}</MenuItem>
               </TextField>
             </Grid>
           </Grid>
