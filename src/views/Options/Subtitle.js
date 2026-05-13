@@ -694,6 +694,20 @@ export default function SubtitleSetting() {
                 </MenuItem>
               </TextField>
             </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                fullWidth
+                select
+                size="small"
+                name="showLoadNotification"
+                value={showLoadNotification}
+                label={i18n("subtitle_loading_notification")}
+                onChange={handleChange}
+              >
+                <MenuItem value={true}>{i18n("show")}</MenuItem>
+                <MenuItem value={false}>{i18n("hide")}</MenuItem>
+              </TextField>
+            </Grid>
           </Grid>
         </Box>
 

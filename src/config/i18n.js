@@ -2598,6 +2598,12 @@ export const I18N = {
     ja: `字幕リストを表示`,
     ko: `자막 목록 표시`,
   },
+  subtitle_loading_notification: {
+    zh: `字幕加载通知`,
+    en: `Subtitle loading notification`,
+    zh_TW: `字幕載入通知`,
+    ja: `字幕読み込み通知`,
+    ko: `자막 로딩 알림`,
   subtitle_hover_lookup: {
     zh: `悬停查词`,
     en: `Hover Word Lookup`,
