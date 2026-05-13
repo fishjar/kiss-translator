@@ -18,6 +18,7 @@ import DomManager from "../libs/domManager.js";
 import { Menus } from "./Menus.js";
 import { buildBilingualVtt } from "./vtt.js";
 import { getDocInfo } from "../libs/docInfo.js";
+import { intelligentSentenceBreak } from "./sentenceBreaker.js";
 import { isSubtitleModeEnabled } from "./modes.js";
 
 const VIDEO_SELECT = "#container video";
@@ -657,6 +658,7 @@ class YouTubeCaptionProvider {
     try {
       const [subtitles, progressed] = await this.#eventsToSubtitles({
         videoId,
+        events: this.#events,
         flatEvents,
         fromLang,
       });
@@ -761,27 +763,21 @@ class YouTubeCaptionProvider {
     this.#processEvents({ videoId, flatEvents, fromLang: this.#fromLang });
   }
 
-  async #eventsToSubtitles({ videoId, flatEvents, fromLang }) {
+  async #eventsToSubtitles({ videoId, events, flatEvents, fromLang }) {
     const { segSlug, transApis, chunkLength, toLang } = this.#setting;
-    const subtitlesFallback = () => [
-      this.#formatSubtitles(flatEvents, fromLang),
-      100,
-    ];
 
-    // 根据segSlug从transApis中查找对应的API设置
     const segApiSetting = transApis?.find((api) => api.apiSlug === segSlug);
-
     const isAutoCaption = this.#interceptedCaptionKind === "asr";
 
-    // 仅自动字幕(kind=asr)启用AI断句，人工字幕直接使用原字幕分段
     if (isAutoCaption && segSlug && segSlug !== "-" && segApiSetting) {
-      logger.info("Youtube Provider: Starting AI ...");
+      logger.info("Youtube Provider: Starting AI segmentation...");
       this.#showNotification(this.#i18n("ai_processing_pls_wait"));
 
       const eventChunks = this.#splitEventsIntoChunks(flatEvents, chunkLength);
 
       if (eventChunks.length === 0) {
-        return subtitlesFallback();
+        logger.info("Youtube Provider: AI no chunks, falling back to built-in");
+        return [this.#builtinSegment(events, flatEvents, fromLang), 100];
       }
 
       const firstChunkEvents = eventChunks[0];
@@ -794,9 +790,11 @@ class YouTubeCaptionProvider {
       });
 
       if (!firstBatchSubtitles?.length) {
-        return subtitlesFallback();
+        logger.info("Youtube Provider: AI failed, falling back to built-in");
+        return [this.#builtinSegment(events, flatEvents, fromLang), 100];
       }
 
+      logger.info("Youtube Provider: Sentence break mode: AI");
       if (eventChunks.length > 1) {
         const remainingChunks = eventChunks.slice(1);
         this.#processRemainingChunksAsync({
@@ -808,14 +806,49 @@ class YouTubeCaptionProvider {
         });
 
         const processed = Math.floor(100 / eventChunks.length);
-
         return [firstBatchSubtitles, processed];
-      } else {
-        return [firstBatchSubtitles, 100];
       }
+      return [firstBatchSubtitles, 100];
     }
 
-    return subtitlesFallback();
+    if (isAutoCaption) {
+      return [this.#builtinSegment(events, flatEvents, fromLang), 100];
+    }
+
+    logger.info(
+      "Youtube Provider: Sentence break mode: MANUAL (human caption)"
+    );
+    return [flatEvents.filter((e) => e.text), 100];
+  }
+
+  #builtinSegment(events, flatEvents, fromLang) {
+    const { useAlgorithmBreaker } = this.#setting;
+
+    if (useAlgorithmBreaker === "statistical") {
+      logger.info("Youtube Provider: Sentence break mode: STATISTICAL");
+      const result = this.#algorithmicSegment(events, fromLang);
+      if (result?.length) return result;
+      logger.info("Youtube Provider: Statistical segmentation returned empty");
+      return [];
+    }
+
+    logger.info("Youtube Provider: Sentence break mode: RULE");
+    return this.#formatSubtitles(flatEvents, fromLang);
+  }
+
+  #algorithmicSegment(events, fromLang) {
+    try {
+      const algorithmicSubtitles = intelligentSentenceBreak({ events });
+      return algorithmicSubtitles.map((sub) => ({
+        text: sub.text,
+        start: sub.start,
+        end: sub.end,
+        translation: "",
+      }));
+    } catch (error) {
+      logger.info("Youtube Provider: Error in algorithmic segmentation", error);
+      return null;
+    }
   }
 
   #startManager() {

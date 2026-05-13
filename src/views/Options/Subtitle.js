@@ -250,6 +250,7 @@ export default function SubtitleSetting() {
     enabled,
     apiSlug,
     segSlug,
+    useAlgorithmBreaker = "rule",
     chunkLength,
     longSentenceThreshold = 120,
     preTrans = 90,
@@ -542,6 +543,24 @@ export default function SubtitleSetting() {
                     {api.apiName}
                   </MenuItem>
                 ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                name="useAlgorithmBreaker"
+                value={useAlgorithmBreaker}
+                label={i18n("builtin_sentence_break")}
+                onChange={handleChange}
+              >
+                <MenuItem value={"rule"}>
+                  {i18n("rule_sentence_break")}
+                </MenuItem>
+                <MenuItem value={"statistical"}>
+                  {i18n("statistical_sentence_break")}
+                </MenuItem>
               </TextField>
             </Grid>
             <Grid item xs={12} sm={12} md={6} lg={3}>
