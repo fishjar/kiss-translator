@@ -2604,6 +2604,12 @@ export const I18N = {
     zh_TW: `字幕載入通知`,
     ja: `字幕読み込み通知`,
     ko: `자막 로딩 알림`,
+  subtitle_hover_lookup: {
+    zh: `悬停查词`,
+    en: `Hover Word Lookup`,
+    zh_TW: `懸停查詞`,
+    ja: `ホバー辞書検索`,
+    ko: `호버 단어 조회`,
   },
   default_styles_example: {
     zh: `默认样式参考：`,
