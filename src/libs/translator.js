@@ -416,6 +416,13 @@ export class Translator {
     return selectors.join(", ");
   }
 
+  #isIgnoredElement(node) {
+    return (
+      node?.nodeType === Node.ELEMENT_NODE &&
+      node.matches?.(this.#ignoreSelector)
+    );
+  }
+
   // 接口参数
   // todo: 不用频繁查找计算
   get #apiSetting() {
@@ -1594,6 +1601,10 @@ export class Translator {
 
       // 元素节点
       if (node.nodeType === Node.ELEMENT_NODE) {
+        if (this.#isIgnoredElement(node)) {
+          return "";
+        }
+
         if (
           (this.#rule.hasRichText === "true" &&
             Translator.TAGS.REPLACE.has(node.tagName)) ||
