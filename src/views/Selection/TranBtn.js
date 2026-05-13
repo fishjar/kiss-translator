@@ -1,5 +1,5 @@
+﻿import { createPortal } from "react-dom";
 import { isMobile } from "../../libs/mobile";
-import { limitNumber } from "../../libs/utils";
 
 export default function TranBtn({
   onTrigger,
@@ -8,20 +8,21 @@ export default function TranBtn({
   btnOffsetX,
   btnOffsetY,
 }) {
-  const left = limitNumber(position.x + btnOffsetX, 0, window.innerWidth - 32);
-  const top = limitNumber(position.y + btnOffsetY, 0, window.innerHeight - 32);
+  const left = position.x + btnOffsetX;
+  const top = position.y + btnOffsetY;
 
-  return (
+  const buttonElement = (
     <div
       className="KT-tranbtn"
       style={{
         cursor: "pointer",
-        // position: "absolute",
-        position: "fixed",
+        position: "absolute",
         left,
         top,
         zIndex: 2147483647,
       }}
+      // 阻止点击按钮时清除文本选区，防止 Hook 立刻隐藏按钮
+      onMouseDown={(e) => e.preventDefault()}
       {...{ [btnEvent]: onTrigger }}
     >
       <svg
@@ -44,4 +45,6 @@ export default function TranBtn({
       </svg>
     </div>
   );
+
+  return createPortal(buttonElement, document.body);
 }
