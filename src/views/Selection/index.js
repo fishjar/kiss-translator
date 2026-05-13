@@ -47,7 +47,6 @@ export default function Selection({
   });
 
   useTranboxShortcuts({
-    tranboxSetting,
     showBox,
     setShowBox,
     handleToggleTranbox,

@@ -52,8 +52,13 @@
       },
       "description": "__MSG_toggle_translate__"
     },
+<<<<<<< feat/tranbox-shortcut
+    "toggleTranbox": {
+      "description": "__MSG_toggle_tranbox__"
+=======
     "toggleTranslateOnly": {
       "description": "__MSG_toggle_translate_only__"
+>>>>>>> dev
     },
     "openTranbox": {
       "suggested_key": {

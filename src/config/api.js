@@ -204,6 +204,8 @@ export const API_SPE_TYPES = {
   ]),
   // 赞助商
   sponsors: new Set([OPT_TRANS_EPHONEAI]),
+<<<<<<< feat/tranbox-shortcut
+=======
 };
 
 // 思考模式参数映射：定义各API的思考开关和强度参数
@@ -288,6 +290,7 @@ export const THINKING_PARAM_MAP = {
       { value: "minimal", label: "Minimal" },
     ],
   },
+>>>>>>> dev
 };
 
 export const BUILTIN_STONES = [

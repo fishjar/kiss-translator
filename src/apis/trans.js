@@ -930,6 +930,8 @@ export const genTransReq = async ({ reqHook, ...args }) => {
           docInfo,
           tone,
         });
+<<<<<<< feat/tranbox-shortcut
+=======
 
     // 上下文回退：当 prompt 模板缺少占位符时，追加 # Context 块
     if (hasExternalDocInfo) {
@@ -951,6 +953,7 @@ export const genTransReq = async ({ reqHook, ...args }) => {
     }
 
     args.systemPrompt = baseSystemPrompt;
+>>>>>>> dev
     args.userPrompt = events
       ? JSON.stringify(events)
       : genUserPrompt({
@@ -961,7 +964,11 @@ export const genTransReq = async ({ reqHook, ...args }) => {
           fromLang,
           toLang,
           texts,
+<<<<<<< feat/tranbox-shortcut
+          docInfo,
+=======
           docInfo: userDocInfo,
+>>>>>>> dev
           tone,
           glossary,
           aiTerms,

@@ -219,7 +219,7 @@ export default class TranslatorManager {
   }
 
   #registerShortcuts() {
-    const { shortcuts } = this._translator.setting;
+    const { shortcuts, tranboxSetting } = this._translator.setting;
     this.#clearShortcuts = [
       shortcutRegister(shortcuts[OPT_SHORTCUT_TRANSLATE], () =>
         this.#processActions({ action: MSG_TRANS_TOGGLE })
@@ -235,6 +235,9 @@ export default class TranslatorManager {
       ),
       shortcutRegister(shortcuts[OPT_SHORTCUT_SETTING], () =>
         window.open(process.env.REACT_APP_OPTIONSPAGE, "_blank")
+      ),
+      shortcutRegister(tranboxSetting?.tranboxShortcut, () =>
+        this.#processActions({ action: MSG_TRANSBOX_TOGGLE })
       ),
     ];
   }

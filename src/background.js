@@ -9,6 +9,7 @@ import {
   MSG_SAVE_RULE,
   MSG_TRANS_TOGGLE_STYLE,
   MSG_OPEN_TRANBOX,
+  MSG_TRANSBOX_TOGGLE,
   MSG_CONTEXT_MENUS,
   MSG_COMMAND_SHORTCUTS,
   MSG_INJECT_JS,
@@ -21,6 +22,7 @@ import {
   CMD_TOGGLE_STYLE,
   CMD_OPEN_OPTIONS,
   CMD_OPEN_TRANBOX,
+  CMD_TOGGLE_TRANBOX,
   CMD_OPEN_SEPARATE_WINDOW,
   CLIENT_THUNDERBIRD,
   MSG_SET_LOGLEVEL,
@@ -507,6 +509,9 @@ browser.commands?.onCommand?.addListener?.((command) => {
     case CMD_OPEN_TRANBOX:
       sendTabMsg(MSG_OPEN_TRANBOX);
       break;
+    case CMD_TOGGLE_TRANBOX:
+      sendTabMsg(MSG_TRANSBOX_TOGGLE);
+      break;
     case CMD_TOGGLE_STYLE:
       sendTabMsg(MSG_TRANS_TOGGLE_STYLE);
       break;
@@ -540,6 +545,9 @@ browser?.contextMenus?.onClicked?.addListener?.(({ menuItemId }) => {
       break;
     case CMD_OPEN_TRANBOX:
       sendTabMsg(MSG_OPEN_TRANBOX);
+      break;
+    case CMD_TOGGLE_TRANBOX:
+      sendTabMsg(MSG_TRANSBOX_TOGGLE);
       break;
     case CMD_OPEN_OPTIONS:
       browser.runtime.openOptionsPage();
