@@ -8,8 +8,6 @@ import {
   OPT_LANGS_TO_CODE,
   OPT_TRANS_MICROSOFT,
   OPT_LANGS_SPEC_DEFAULT,
-  OPT_ENHANCE_ON,
-  OPT_ENHANCE_MOBILE_OFF,
   API_SPE_TYPES,
 } from "../config";
 import { sleep, downloadBlobFile } from "../libs/utils.js";
@@ -19,8 +17,8 @@ import { newI18n } from "../config";
 import DomManager from "../libs/domManager.js";
 import { Menus } from "./Menus.js";
 import { buildBilingualVtt } from "./vtt.js";
-import { isMobile } from "../libs/mobile.js";
 import { getDocInfo } from "../libs/docInfo.js";
+import { isSubtitleModeEnabled } from "./modes.js";
 
 const VIDEO_SELECT = "#container video";
 const CONTORLS_SELECT = ".ytp-right-controls";
@@ -337,8 +335,7 @@ class YouTubeCaptionProvider {
 
   #isChatCaptionTrack(track) {
     if (!track) return false;
-    const name =
-      track.name?.simpleText || track.name?.runs?.[0]?.text || "";
+    const name = track.name?.simpleText || track.name?.runs?.[0]?.text || "";
     return /chat/i.test(name);
   }
 
@@ -383,7 +380,9 @@ class YouTubeCaptionProvider {
 
     // Chat/弹幕字幕轨道自动降级为正常字幕轨道
     if (captionTrack && this.#isChatCaptionTrack(captionTrack)) {
-      logger.debug("Youtube Provider: detected chat subtitle track, switching to normal subtitle");
+      logger.debug(
+        "Youtube Provider: detected chat subtitle track, switching to normal subtitle"
+      );
 
       const nonChatSameLang = captionTracks.find(
         (item) =>
@@ -392,7 +391,9 @@ class YouTubeCaptionProvider {
       );
 
       if (nonChatSameLang) {
-        logger.debug("Youtube Provider: switched to same-language non-chat track");
+        logger.debug(
+          "Youtube Provider: switched to same-language non-chat track"
+        );
         captionTrack = nonChatSameLang;
       } else {
         const anyNonChat = captionTracks.find(
@@ -847,15 +848,13 @@ class YouTubeCaptionProvider {
       },
     });
 
-    // todo 移到菜单切换
     // 监听字幕更新事件，将翻译后的字幕传递给字幕列表
-    const enhanceMode = this.#setting.enhanceMode ?? "mobile_off";
-    const isEnhance =
-      enhanceMode === OPT_ENHANCE_ON ||
-      (enhanceMode === OPT_ENHANCE_MOBILE_OFF && !isMobile);
-    const showList = this.#setting.showList ?? true;
+    const showList = isSubtitleModeEnabled(
+      this.#setting.showList,
+      this.#setting.enhanceMode
+    );
 
-    if (isEnhance && showList && !this.#subtitleListManager) {
+    if (showList && !this.#subtitleListManager) {
       // 初始化字幕列表管理器
       this.#subtitleListManager = new YouTubeSubtitleList(videoEl);
       this.#subtitleListManager.initialize(this.#subtitles);
@@ -980,10 +979,13 @@ class YouTubeCaptionProvider {
           (e) => e.start >= sub.start && e.start < sub.end
         );
         if (subEvents.length > 1) {
-          logger.debug("Youtube Provider: re-processing long sentence with pause", {
-            length: sub.text.length,
-            text: sub.text.slice(0, 50) + "...",
-          });
+          logger.debug(
+            "Youtube Provider: re-processing long sentence with pause",
+            {
+              length: sub.text.length,
+              text: sub.text.slice(0, 50) + "...",
+            }
+          );
           const reProcessed = this.#processSubtitles({
             flatEvents: subEvents,
             usePause: true,
