@@ -8,15 +8,7 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import { useI18n } from "../../hooks/I18n";
 import Typography from "@mui/material/Typography";
-<<<<<<< feat/tranbox-shortcut
-import Accordion from "@mui/material/Accordion";
-import AccordionSummary from "@mui/material/AccordionSummary";
-import AccordionDetails from "@mui/material/AccordionDetails";
 import StarIcon from "@mui/icons-material/Star";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-=======
-import StarIcon from "@mui/icons-material/Star";
->>>>>>> dev
 import AddIcon from "@mui/icons-material/Add";
 import SwapVertIcon from "@mui/icons-material/SwapVert";
 import Alert from "@mui/material/Alert";

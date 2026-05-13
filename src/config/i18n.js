@@ -2327,8 +2327,8 @@ export const I18N = {
   },
   load_setting_err: {
     zh: `数据加载出错，请刷新页面或卸载后重新安装。`,
-    en: `Please press the shortcut key combination`, // 注意：这里的英文和繁体是用户上次错误的拷贝
-    zh_TW: `請按下快速鍵組合`, // 注意：这里的英文和繁体是用户上次错误的拷贝
+    en: `Data loading error, please refresh the page or uninstall and reinstall.`,
+    zh_TW: `數據加載出錯，請刷新頁面或卸載後重新安裝。`,
     ja: `データ読み込みエラー。ページを更新するか、アンインストール後に再インストールしてください。`, // 翻译自 "zh"
     ko: `데이터 로딩 오류. 페이지를 새로 고치거나 제거 후 다시 설치하세요.`, // 翻译自 "zh"
   },
@@ -2523,7 +2523,7 @@ export const I18N = {
   },
   background_styles: {
     zh: `背景样式`,
-    en: `DBackground Style`,
+    en: `Background Style`,
     zh_TW: `背景樣式`,
     ja: `背景スタイル`,
     ko: `배경 스타일`,
@@ -2625,6 +2625,7 @@ export const I18N = {
     zh_TW: `字幕載入通知`,
     ja: `字幕読み込み通知`,
     ko: `자막 로딩 알림`,
+  },
   subtitle_hover_lookup: {
     zh: `悬停查词`,
     en: `Hover Word Lookup`,

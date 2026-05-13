@@ -265,6 +265,7 @@ export default function SubtitleSetting() {
     windowStyle,
     originStyle,
     translationStyle,
+    showLoadNotification = true,
   } = subtitleSetting;
   const hoverLookupModeValue = normalizeSubtitleMode(
     hoverLookupMode,
