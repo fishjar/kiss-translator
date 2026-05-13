@@ -8,15 +8,13 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import { useI18n } from "../../hooks/I18n";
 import Typography from "@mui/material/Typography";
-import Accordion from "@mui/material/Accordion";
-import AccordionSummary from "@mui/material/AccordionSummary";
-import AccordionDetails from "@mui/material/AccordionDetails";
 import StarIcon from "@mui/icons-material/Star";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import AddIcon from "@mui/icons-material/Add";
 import SwapVertIcon from "@mui/icons-material/SwapVert";
 import Alert from "@mui/material/Alert";
 import Menu from "@mui/material/Menu";
+import List from "@mui/material/List";
+import ListItemButton from "@mui/material/ListItemButton";
 import Grid from "@mui/material/Grid";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import Link from "@mui/material/Link";
@@ -397,7 +395,6 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi, onCollapse }) {
               <Grid item xs={12} sm={12} md={6} lg={3}></Grid>
             </Grid>
           </Box>
-
         </>
       )}
 
@@ -542,23 +539,29 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi, onCollapse }) {
             </Grid>
           )}
 
-          {API_SPE_TYPES.stream.has(api.apiType) && useBatchFetch && useStream && (
-            <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
-                select
-                fullWidth
-                size="small"
-                name="streamRenderMode"
-                value={streamRenderMode}
-                label={i18n("stream_render_mode")}
-                onChange={handleChange}
-              >
-                <MenuItem value="disabled">{i18n("disable")}</MenuItem>
-                <MenuItem value="realtime">{i18n("stream_render_realtime")}</MenuItem>
-                <MenuItem value="segment">{i18n("stream_render_segment")}</MenuItem>
-              </TextField>
-            </Grid>
-          )}
+          {API_SPE_TYPES.stream.has(api.apiType) &&
+            useBatchFetch &&
+            useStream && (
+              <Grid item xs={12} sm={12} md={6} lg={3}>
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  name="streamRenderMode"
+                  value={streamRenderMode}
+                  label={i18n("stream_render_mode")}
+                  onChange={handleChange}
+                >
+                  <MenuItem value="disabled">{i18n("disable")}</MenuItem>
+                  <MenuItem value="realtime">
+                    {i18n("stream_render_realtime")}
+                  </MenuItem>
+                  <MenuItem value="segment">
+                    {i18n("stream_render_segment")}
+                  </MenuItem>
+                </TextField>
+              </Grid>
+            )}
 
           {API_SPE_TYPES.context.has(api.apiType) && (
             <>
@@ -655,10 +658,16 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi, onCollapse }) {
                 onChange={handleChange}
                 helperText={i18n("thinking_mode_helper")}
               >
-                <MenuItem value="auto">{i18n("thinking_mode_default")}</MenuItem>
-                <MenuItem value="enabled">{i18n("thinking_mode_enabled")}</MenuItem>
+                <MenuItem value="auto">
+                  {i18n("thinking_mode_default")}
+                </MenuItem>
+                <MenuItem value="enabled">
+                  {i18n("thinking_mode_enabled")}
+                </MenuItem>
                 {thinkingParam.disableSupported !== false && (
-                  <MenuItem value="disabled">{i18n("thinking_mode_disabled")}</MenuItem>
+                  <MenuItem value="disabled">
+                    {i18n("thinking_mode_disabled")}
+                  </MenuItem>
                 )}
               </TextField>
             </Grid>
@@ -678,7 +687,9 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi, onCollapse }) {
                       {e.label}
                     </MenuItem>
                   ))}
-                  <MenuItem value="_default">{i18n("thinking_effort_default")}</MenuItem>
+                  <MenuItem value="_default">
+                    {i18n("thinking_effort_default")}
+                  </MenuItem>
                 </TextField>
               </Grid>
             )}
@@ -972,37 +983,18 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi, onCollapse }) {
   );
 }
 
-function ApiAccordion({ api, isUserApi, deleteApi, copyApi }) {
-  const [expanded, setExpanded] = useState(false);
-
-  const handleChange = (e) => {
-    setExpanded((pre) => !pre);
-  };
-
+function ApiListItem({ api, selected, onSelect }) {
   return (
-    <Accordion expanded={expanded} onChange={handleChange}>
-      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Typography
-          sx={{
-            opacity: api.isDisabled ? 0.5 : 1,
-            overflowWrap: "anywhere",
-          }}
-        >
-          {`[${api.apiType}] ${api.apiName}`}
-        </Typography>
-      </AccordionSummary>
-      <AccordionDetails>
-        {expanded && (
-          <ApiFields
-            apiSlug={api.apiSlug}
-            isUserApi={isUserApi}
-            deleteApi={deleteApi}
-            copyApi={copyApi}
-            onCollapse={() => setExpanded(false)}
-          />
-        )}
-      </AccordionDetails>
-    </Accordion>
+    <ListItemButton selected={selected} onClick={onSelect}>
+      <Typography
+        sx={{
+          opacity: api.isDisabled ? 0.5 : 1,
+          overflowWrap: "anywhere",
+        }}
+      >
+        {`[${api.apiType}] ${api.apiName}`}
+      </Typography>
+    </ListItemButton>
   );
 }
 
@@ -1012,7 +1004,8 @@ export default function Apis() {
     useApiList();
 
   const [alphaSortDir, setAlphaSortDir] = useState("asc");
-  const [collapseKey, setCollapseKey] = useState(0);
+  const [detailKey, setDetailKey] = useState(0);
+  const [selectedApiSlug, setSelectedApiSlug] = useState("");
 
   const apiTypes = useMemo(
     () =>
@@ -1021,6 +1014,34 @@ export default function Apis() {
         label: type,
       })),
     []
+  );
+
+  const apiItems = useMemo(
+    () => [
+      ...userApis.map((api) => ({ api, isUserApi: true })),
+      ...builtinApis.map((api) => ({ api, isUserApi: false })),
+    ],
+    [userApis, builtinApis]
+  );
+
+  useEffect(() => {
+    if (apiItems.length === 0) {
+      setSelectedApiSlug("");
+      return;
+    }
+
+    const selectedApiExists = apiItems.some(
+      ({ api }) => api.apiSlug === selectedApiSlug
+    );
+
+    if (!selectedApiExists) {
+      setSelectedApiSlug(apiItems[0].api.apiSlug);
+    }
+  }, [apiItems, selectedApiSlug]);
+
+  const selectedApiItem = useMemo(
+    () => apiItems.find(({ api }) => api.apiSlug === selectedApiSlug),
+    [apiItems, selectedApiSlug]
   );
 
   const [anchorEl, setAnchorEl] = useState(null);
@@ -1077,7 +1098,7 @@ export default function Apis() {
               onClick={() => {
                 const newDir = alphaSortDir === "asc" ? "desc" : "asc";
                 setAlphaSortDir(newDir);
-                setCollapseKey((k) => k + 1);
+                setDetailKey((k) => k + 1);
                 alphaSortApis(newDir);
               }}
               startIcon={<SwapVertIcon />}
@@ -1108,25 +1129,54 @@ export default function Apis() {
           </Menu>
         </Box>
 
-        <Box>
-          {userApis.map((api) => (
-            <ApiAccordion
-              key={`${collapseKey}-${api.apiSlug}`}
-              api={api}
-              isUserApi={true}
-              deleteApi={deleteApi}
-              copyApi={copyApi}
-            />
-          ))}
-        </Box>
-        <Box>
-          {builtinApis.map((api) => (
-            <ApiAccordion
-              key={`${collapseKey}-${api.apiSlug}`}
-              api={api}
-              copyApi={copyApi}
-            />
-          ))}
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: { xs: "column", md: "row" },
+            border: 1,
+            borderColor: "divider",
+            borderRadius: 1,
+            overflow: "hidden",
+          }}
+        >
+          <Box
+            sx={(theme) => ({
+              width: { xs: "100%", md: 280 },
+              flex: { xs: "0 0 auto", md: "0 0 280px" },
+              maxHeight: { xs: 240, md: "calc(100vh - 230px)" },
+              overflowY: "auto",
+              borderRight: {
+                xs: 0,
+                md: `1px solid ${theme.palette.divider}`,
+              },
+              borderBottom: {
+                xs: `1px solid ${theme.palette.divider}`,
+                md: 0,
+              },
+            })}
+          >
+            <List disablePadding>
+              {apiItems.map(({ api }) => (
+                <ApiListItem
+                  key={api.apiSlug}
+                  api={api}
+                  selected={api.apiSlug === selectedApiSlug}
+                  onSelect={() => setSelectedApiSlug(api.apiSlug)}
+                />
+              ))}
+            </List>
+          </Box>
+          <Box sx={{ flex: 1, minWidth: 0, p: 2 }}>
+            {selectedApiItem && (
+              <ApiFields
+                key={`${detailKey}-${selectedApiItem.api.apiSlug}`}
+                apiSlug={selectedApiItem.api.apiSlug}
+                isUserApi={selectedApiItem.isUserApi}
+                deleteApi={deleteApi}
+                copyApi={copyApi}
+              />
+            )}
+          </Box>
         </Box>
       </Stack>
     </Box>
