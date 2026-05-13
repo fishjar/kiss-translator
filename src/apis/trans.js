@@ -56,6 +56,7 @@ import {
   extractJson,
   stripMarkdownCodeBlock,
   parseAITerms,
+  decodeHTMLEntities,
 } from "../libs/utils";
 import {
   parseStreamingSegments,
@@ -230,7 +231,7 @@ const parseAIRes = (raw, useBatchFetch = true) => {
         (list[0].text !== undefined || list[0].translations)
       ) {
         return list.map((item) => [
-          String(item.text || ""),
+          decodeHTMLEntities(String(item.text || "")),
           String(item.sourceLanguage || ""),
         ]);
       }
@@ -262,10 +263,10 @@ const parseAIRes = (raw, useBatchFetch = true) => {
   return content.split("\n").map((line) => {
     const pipeMatch = line.match(/^\d+\s*\|\s*(.*)/);
     if (pipeMatch) {
-      return [pipeMatch[1].trim(), ""];
+      return [decodeHTMLEntities(pipeMatch[1].trim()), ""];
     }
 
-    const text = line.replace(/<br\s*\/?>/gi, "\n").trim();
+    const text = decodeHTMLEntities(line.replace(/<br\s*\/?>/gi, "\n").trim());
     return [text, ""];
   });
 };

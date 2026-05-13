@@ -1,3 +1,5 @@
+import { decodeHTMLEntities } from "../libs/utils.js";
+
 /**
  * 将多种格式的VTT时间戳字符串转换为毫秒数。
  * 兼容以下格式：
@@ -102,8 +104,8 @@ export function parseBilingualVtt(vttText) {
     const textLines = lines.slice(timestampLineIndex + 1);
 
     if (startTimeString && endTimeString && textLines.length > 0) {
-      const originalText = textLines[0]?.trim() || "";
-      const translatedText = textLines[1]?.trim() || "";
+      const originalText = decodeHTMLEntities(textLines[0]?.trim() || "");
+      const translatedText = decodeHTMLEntities(textLines[1]?.trim() || "");
 
       result.push({
         start: parseTimestampToMilliseconds(startTimeString),

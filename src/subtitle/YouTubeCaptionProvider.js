@@ -8,8 +8,6 @@ import {
   OPT_LANGS_TO_CODE,
   OPT_TRANS_MICROSOFT,
   OPT_LANGS_SPEC_DEFAULT,
-  OPT_ENHANCE_ON,
-  OPT_ENHANCE_MOBILE_OFF,
   API_SPE_TYPES,
 } from "../config";
 import { sleep, downloadBlobFile } from "../libs/utils.js";
@@ -19,9 +17,9 @@ import { newI18n } from "../config";
 import DomManager from "../libs/domManager.js";
 import { Menus } from "./Menus.js";
 import { buildBilingualVtt } from "./vtt.js";
-import { isMobile } from "../libs/mobile.js";
 import { getDocInfo } from "../libs/docInfo.js";
 import { intelligentSentenceBreak } from "./sentenceBreaker.js";
+import { isSubtitleModeEnabled } from "./modes.js";
 
 const VIDEO_SELECT = "#container video";
 const CONTORLS_SELECT = ".ytp-right-controls";
@@ -222,6 +220,8 @@ class YouTubeCaptionProvider {
       this.#toggleShowOrigin();
     } else if (name === "aiContextSlug") {
       this.#reProcessEventsWithContext();
+    } else if (name === "showLoadNotification" && value === false) {
+      this.#hideNotification();
     }
   }
 
@@ -473,38 +473,73 @@ class YouTubeCaptionProvider {
   }
 
   async #aiSegment({ videoId, fromLang, toLang, chunkEvents, segApiSetting }) {
+    const NON_SPEECH_RE = /^\[.+\]$/i;
+    const speechEvents = [];
+    const nonSpeechEvents = [];
+
+    for (const item of chunkEvents) {
+      if (!item.text) continue;
+      if (NON_SPEECH_RE.test(item.text.trim())) {
+        nonSpeechEvents.push(item);
+      } else {
+        speechEvents.push(item);
+      }
+    }
+
+    const toStandaloneSub = (e) => ({
+      start: e.start,
+      end: e.end,
+      text: e.text,
+      translation: e.text,
+    });
+
+    if (!speechEvents.length) return nonSpeechEvents.map(toStandaloneSub);
+
     try {
-      const events = chunkEvents.filter((item) => item.text);
-      const chunkSign = `${events[0].start} --> ${events[events.length - 1].end}`;
+      const chunkSign = `${speechEvents[0].start} --> ${speechEvents[speechEvents.length - 1].end}`;
       logger.debug("Youtube Provider: aiSegment events", {
         videoId,
         chunkSign,
         fromLang,
         toLang,
-        events,
+        speechEvents,
       });
       const subtitles = await apiSubtitle({
         videoId,
         chunkSign,
         fromLang,
         toLang,
-        events,
+        events: speechEvents,
         apiSetting: segApiSetting,
         docInfo: this.#docInfo,
       });
       logger.debug("Youtube Provider: aiSegment subtitles", subtitles);
       if (Array.isArray(subtitles)) {
         // 断句服务和翻译服务不同时，清除断句的翻译，由翻译服务重新翻译
-        if (segApiSetting.apiSlug !== this.#setting.apiSlug) {
-          return subtitles.map((sub) => ({ ...sub, translation: "" }));
-        }
-        return subtitles;
+        const speechSubtitles =
+          segApiSetting.apiSlug !== this.#setting.apiSlug
+            ? subtitles.map((sub) => ({ ...sub, translation: "" }))
+            : subtitles;
+
+        // 仅保留落在语音字幕间隙中的非语音条目，丢弃与语音重叠的
+        const gapCues = nonSpeechEvents
+          .filter(
+            (ns) =>
+              !speechSubtitles.some(
+                (sub) => ns.start < sub.end && ns.end > sub.start
+              )
+          )
+          .map(toStandaloneSub);
+
+        return [...speechSubtitles, ...gapCues].sort(
+          (a, b) => a.start - b.start
+        );
       }
     } catch (err) {
       logger.info("Youtube Provider: ai segmentation", err);
     }
 
-    return [];
+    return nonSpeechEvents.map(toStandaloneSub);
   }
 
   #getFromLang(lang) {
@@ -848,15 +883,13 @@ class YouTubeCaptionProvider {
       },
     });
 
-    // todo 移到菜单切换
     // 监听字幕更新事件，将翻译后的字幕传递给字幕列表
-    const enhanceMode = this.#setting.enhanceMode ?? "mobile_off";
-    const isEnhance =
-      enhanceMode === OPT_ENHANCE_ON ||
-      (enhanceMode === OPT_ENHANCE_MOBILE_OFF && !isMobile);
-    const showList = this.#setting.showList ?? true;
+    const showList = isSubtitleModeEnabled(
+      this.#setting.showList,
+      this.#setting.enhanceMode
+    );
 
-    if (isEnhance && showList && !this.#subtitleListManager) {
+    if (showList && !this.#subtitleListManager) {
       // 初始化字幕列表管理器
       this.#subtitleListManager = new YouTubeSubtitleList(videoEl);
       this.#subtitleListManager.initialize(this.#subtitles);
@@ -1023,6 +1056,7 @@ class YouTubeCaptionProvider {
     usePause = false,
     timeout = 1000,
     maxWords = 15,
+    maxDurationMs = 10000,
   } = {}) {
     const groupedPauseWords = {
       1: new Set([
@@ -1133,6 +1167,8 @@ class YouTubeCaptionProvider {
         const isEndOfSentence = /[.?!…\])]$/.test(lastSegment.text);
         const isPauseOfSentence = /[,]$/.test(lastSegment.text);
         const isTimeout = segment.start - lastSegment.end > timeout;
+        const isDurationExceeded =
+          segment.start - currentBuffer[0].start >= maxDurationMs;
         const isWordLimitExceeded =
           (usePause || isPauseOfSentence) && bufferWordCount >= maxWords;
 
@@ -1147,6 +1183,7 @@ class YouTubeCaptionProvider {
         if (
           isEndOfSentence ||
           isTimeout ||
+          isDurationExceeded ||
           isWordLimitExceeded ||
           startsWithSign ||
           startsWithPauseWord
@@ -1195,9 +1232,13 @@ class YouTubeCaptionProvider {
       });
     });
 
-    segments.push(buffer);
+    if (buffer) {
+      segments.push(buffer);
+    }
 
-    return segments;
+    return segments.filter(
+      (s) => s && typeof s.start === "number" && s.end > s.start
+    );
   }
 
   #splitEventsIntoChunks(flatEvents, chunkLength = 1000) {
@@ -1329,20 +1370,24 @@ class YouTubeCaptionProvider {
     notificationEl.className = "kiss-notification";
     Object.assign(notificationEl.style, {
       position: "absolute",
-      top: "40%",
+      top: "16px",
       left: "50%",
       transform: "translateX(-50%)",
-      background: "rgba(0,0,0,0.7)",
-      color: "red",
-      padding: "0.5em 1em",
-      borderRadius: "4px",
+      background: "rgba(0, 0, 0, 0.5)",
+      color: "#fff",
+      padding: "8px 12px",
+      borderRadius: "8px",
       zIndex: "2147483647",
       opacity: "0",
       transition: "opacity 0.3s ease-in-out",
       pointerEvents: "none",
-      fontSize: "2em",
-      width: "50%",
-      textAlign: "center",
+      fontSize: "16px",
+      lineHeight: "1.4",
+      width: "auto",
+      maxWidth: "min(360px, calc(100% - 32px))",
+      textAlign: "left",
+      boxSizing: "border-box",
+      boxShadow: "0 2px 8px rgba(0,0,0,0.25)",
     });
 
     const videoEl = this.#videoEl;
@@ -1353,13 +1398,27 @@ class YouTubeCaptionProvider {
     }
   }
 
+  #hideNotification() {
+    clearTimeout(this.#notificationTimeout);
+    if (this.#notificationEl) {
+      this.#notificationEl.style.opacity = "0";
+    }
+  }
+
   #showNotification(message, duration = 2000) {
+    if (this.#setting.showLoadNotification === false) {
+      this.#hideNotification();
+      return;
+    }
+
     if (!this.#notificationEl) this.#createNotificationElement();
+    if (!this.#notificationEl) return;
+
     this.#notificationEl.textContent = message;
     this.#notificationEl.style.opacity = "1";
     clearTimeout(this.#notificationTimeout);
     this.#notificationTimeout = setTimeout(() => {
-      this.#notificationEl.style.opacity = "0";
+      this.#hideNotification();
     }, duration);
   }
 }

@@ -623,26 +623,22 @@ Tone: ${INPUT_PLACE_TONE}
 ${INPUT_PLACE_GLOSSARY}
 
 # Task
-Convert the input word-level timestamp JSON into a bilingual VTT file. Target Language: ${INPUT_PLACE_TO}.
+Group the input word-level JSON into bilingual subtitle segments. Target Language: ${INPUT_PLACE_TO}.
+
+# Output Contract
+1. Output a JSON array only. No markdown, no code fences, no extra text.
+2. Each element: {"s":<first_word_id>,"e":<last_word_id>,"o":"merged original text","t":"translation"}
+3. "s" and "e" are inclusive word IDs from the input.
+4. Cover all input words exactly once (no gaps, no overlaps).
 
 # Rules
-1. Merge words into complete sentences first.
-2. Split long sentences into readable cues (max 42 chars/line, natural pauses).
-3. Strict Glossary Adherence: Use the provided Glossary for specific terms. If a word in the source text matches a key in the glossary, you MUST use the corresponding translation provided.
-4. Translate using the provided Context and Tone. Keep non-speech sounds (e.g., [Music]) as is.
-5. Convert timestamps to standard VTT format (MM:SS.mmm).
-6. Output ONLY the raw VTT content. No markdown, no notes.
+1. Merge words into complete sentences, split at natural pauses into readable segments.
+2. Some input words include "p" (pause level 1-3). Higher "p" suggests a stronger sentence boundary, but grammar and meaning take priority.
+3. Translate using Context and Tone.
 
-# VTT Format Example
-WEBVTT
-
-1000 --> 3500
-Hello world!
-你好，世界！
-
-4000 --> 6000
-Good morning.
-早上好。`;
+# Example
+Input: [{"id":0,"text":"Hello"},{"id":1,"text":"world!"},{"id":2,"text":"Good","p":2},{"id":3,"text":"morning."}]
+Output: [{"s":0,"e":1,"o":"Hello world!","t":"你好，世界！"},{"s":2,"e":3,"o":"Good morning.","t":"早上好。"}]`;
 
 const defaultRequestHook = `async (args, { url, body, headers, userMsg, method } = {}) => {
   console.log("request hook args:", { args, url, body, headers, userMsg, method });

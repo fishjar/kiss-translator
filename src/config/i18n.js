@@ -1880,6 +1880,20 @@ export const I18N = {
     ja: `完全な実装ではなく、一部のページでスタイルの問題が発生する可能性があります。`,
     ko: `완벽한 구현이 아니며 일부 페이지에서 스타일 문제가 발생할 수 있습니다.`,
   },
+  transonly_revert: {
+    zh: `悬浮显示原文`,
+    en: `Hover to Show Original`,
+    zh_TW: `懸浮顯示原文`,
+    ja: `ホバーで原文を表示`,
+    ko: `호버 시 원문 표시`,
+  },
+  transonly_revert_delay: {
+    zh: `悬浮延迟(秒)`,
+    en: `Hover Delay (seconds)`,
+    zh_TW: `懸浮延遲(秒)`,
+    ja: `ホバー遅延(秒)`,
+    ko: `호버 지연(초)`,
+  },
   translate_page_title: {
     zh: `是否翻译页面标题`,
     en: `Translate Page Title`,
@@ -2604,6 +2618,19 @@ export const I18N = {
     zh_TW: `顯示字幕列表`,
     ja: `字幕リストを表示`,
     ko: `자막 목록 표시`,
+  },
+  subtitle_loading_notification: {
+    zh: `字幕加载通知`,
+    en: `Subtitle loading notification`,
+    zh_TW: `字幕載入通知`,
+    ja: `字幕読み込み通知`,
+    ko: `자막 로딩 알림`,
+  subtitle_hover_lookup: {
+    zh: `悬停查词`,
+    en: `Hover Word Lookup`,
+    zh_TW: `懸停查詞`,
+    ja: `ホバー辞書検索`,
+    ko: `호버 단어 조회`,
   },
   default_styles_example: {
     zh: `默认样式参考：`,

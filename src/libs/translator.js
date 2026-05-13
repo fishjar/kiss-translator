@@ -297,6 +297,12 @@ export class Translator {
   #mouseHoverEnabled = false; // 鼠标悬停翻译
   #enabled = false; // 全局默认状态
   #runId = 0; // 用于中止过期的异步请求
+
+  #transOnlyRevertTimer = null;
+  #transOnlyRevertTarget = null;
+  #transOnlyRevertEnabled = false;
+  #boundTransOnlyMouseOver = null;
+  #boundTransOnlyMouseOut = null;
   #termValues = []; // 按顺序存储术语的替换值
   #combinedTermsRegex; // 专业术语正则表达式
   #combinedSkipsRegex; // 跳过文本正则表达式
@@ -410,6 +416,13 @@ export class Translator {
     return selectors.join(", ");
   }
 
+  #isIgnoredElement(node) {
+    return (
+      node?.nodeType === Node.ELEMENT_NODE &&
+      node.matches?.(this.#ignoreSelector)
+    );
+  }
+
   // 接口参数
   // todo: 不用频繁查找计算
   get #apiSetting() {
@@ -508,6 +521,14 @@ export class Translator {
     // 鼠标悬停翻译
     if (this.#setting.mouseHoverSetting.useMouseHover) {
       this.#enableMouseHover();
+    }
+
+    // 仅显示译文模式下悬浮恢复原文
+    if (
+      this.#rule.transOnly === "true" &&
+      this.#rule.transOnlyRevert === "true"
+    ) {
+      this.#enableTransOnlyRevert();
     }
 
     if (document.readyState === "loading") {
@@ -1580,6 +1601,10 @@ export class Translator {
 
       // 元素节点
       if (node.nodeType === Node.ELEMENT_NODE) {
+        if (this.#isIgnoredElement(node)) {
+          return "";
+        }
+
         if (
           (this.#rule.hasRichText === "true" &&
             Translator.TAGS.REPLACE.has(node.tagName)) ||
@@ -1937,6 +1962,119 @@ export class Translator {
     this.#removeKeydownHandler?.();
   }
 
+  #enableTransOnlyRevert() {
+    if (this.#transOnlyRevertEnabled) return;
+    this.#transOnlyRevertEnabled = true;
+
+    this.#boundTransOnlyMouseOver = (e) => {
+      const wrapper = e.target.closest?.(
+        `.${Translator.KISS_CLASS.warpper}`
+      );
+      if (wrapper) {
+        const data = this.#translationNodes.get(wrapper);
+        if (!data || !data.isHide) return;
+        if (this.#transOnlyRevertTarget === wrapper) return;
+
+        this.#clearTransOnlyRevertTimer();
+        const delay =
+          parseFloat(this.#rule.transOnlyRevertDelay) || 0.5;
+        this.#transOnlyRevertTimer = setTimeout(() => {
+          this.#showOriginalTemporarily(wrapper, data);
+        }, delay * 1000);
+        return;
+      }
+
+      if (this.#transOnlyRevertTarget) {
+        const data = this.#translationNodes.get(this.#transOnlyRevertTarget);
+        if (data) {
+          const origNodes = data.nodes || [];
+          for (const node of origNodes) {
+            if (node === e.target || node.contains?.(e.target)) return;
+          }
+        }
+      }
+    };
+
+    this.#boundTransOnlyMouseOut = (e) => {
+      if (!this.#transOnlyRevertTarget) {
+        const wrapper = e.target.closest?.(
+          `.${Translator.KISS_CLASS.warpper}`
+        );
+        if (wrapper) this.#clearTransOnlyRevertTimer();
+        return;
+      }
+
+      const wrapper = this.#transOnlyRevertTarget;
+      const related = e.relatedTarget;
+
+      if (related && (wrapper.contains(related) || related === wrapper)) return;
+
+      const data = this.#translationNodes.get(wrapper);
+      if (data && related) {
+        const origNodes = data.nodes || [];
+        for (const node of origNodes) {
+          if (node === related || node.contains?.(related)) return;
+        }
+      }
+
+      this.#clearTransOnlyRevertTimer();
+      this.#hideOriginalTemporarily(wrapper);
+    };
+
+    document.addEventListener("mouseover", this.#boundTransOnlyMouseOver);
+    document.addEventListener("mouseout", this.#boundTransOnlyMouseOut);
+  }
+
+  #disableTransOnlyRevert() {
+    if (!this.#transOnlyRevertEnabled) return;
+    this.#transOnlyRevertEnabled = false;
+
+    this.#clearTransOnlyRevertTimer();
+    if (this.#transOnlyRevertTarget) {
+      this.#hideOriginalTemporarily(this.#transOnlyRevertTarget);
+    }
+
+    document.removeEventListener("mouseover", this.#boundTransOnlyMouseOver);
+    document.removeEventListener("mouseout", this.#boundTransOnlyMouseOut);
+    this.#boundTransOnlyMouseOver = null;
+    this.#boundTransOnlyMouseOut = null;
+  }
+
+  #clearTransOnlyRevertTimer() {
+    if (this.#transOnlyRevertTimer) {
+      clearTimeout(this.#transOnlyRevertTimer);
+      this.#transOnlyRevertTimer = null;
+    }
+  }
+
+  #showOriginalTemporarily(wrapper, data) {
+    const { nodes } = data;
+    this.#withViewportAnchor(() => {
+      this.#restoreOriginal(wrapper, nodes);
+      const inner = wrapper.querySelector(
+        `:scope > .${Translator.KISS_CLASS.inner}`
+      );
+      if (inner) inner.style.display = "none";
+      const br = wrapper.querySelector(":scope > br");
+      if (br) br.hidden = true;
+    });
+    this.#transOnlyRevertTarget = wrapper;
+  }
+
+  #hideOriginalTemporarily(wrapper) {
+    const data = this.#translationNodes.get(wrapper);
+    if (!data) return;
+    const { nodes } = data;
+    this.#withViewportAnchor(() => {
+      this.#removeNodes(nodes);
+      const inner = wrapper.querySelector(
+        `:scope > .${Translator.KISS_CLASS.inner}`
+      );
+      if (inner) inner.style.display = "";
+    });
+    this.#transOnlyRevertTarget = null;
+  }
+
   // 注入JS/CSS
   #initInjector() {
     if (this.#isJsInjected) {
@@ -2106,6 +2244,7 @@ export class Translator {
     this.disable();
     this.#resetOptions();
     this.#disableMouseHover();
+    this.#disableTransOnlyRevert();
     this.#removeInjector();
     this.#isInitialized = false;
   }
@@ -2138,11 +2277,24 @@ export class Translator {
 
     if (needsRescan || (this.#enabled && this.#setting.transAllnow)) {
       this.rescan();
+      this.#syncTransOnlyRevert();
       return;
     }
 
     if (hasChanged) {
       this.#reIOViewNodes();
+      this.#syncTransOnlyRevert();
+    }
+  }
+
+  #syncTransOnlyRevert() {
+    const shouldEnable =
+      this.#rule.transOnly === "true" &&
+      this.#rule.transOnlyRevert === "true";
+    if (shouldEnable && !this.#transOnlyRevertEnabled) {
+      this.#enableTransOnlyRevert();
+    } else if (!shouldEnable && this.#transOnlyRevertEnabled) {
+      this.#disableTransOnlyRevert();
     }
   }
 
