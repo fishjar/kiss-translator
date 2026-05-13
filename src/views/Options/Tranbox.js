@@ -9,8 +9,6 @@ import {
   OPT_LANGS_TO,
   OPT_TRANBOX_TRIGGER_CLICK,
   OPT_TRANBOX_TRIGGER_ALL,
-  OPT_TRANBOX_INTERACT_CLICK,
-  OPT_TRANBOX_INTERACT_DBLCLICK,
   OPT_DICT_BING,
   OPT_DICT_ALL,
   OPT_SUG_ALL,
@@ -73,7 +71,6 @@ export default function Tranbox() {
     followSelection = false,
     autoHeight = false,
     triggerMode = OPT_TRANBOX_TRIGGER_CLICK,
-    tranboxInteractMode = "-",
     // extStyles = "",
     enDict = OPT_DICT_BING,
     enSug = OPT_SUG_YOUDAO,
@@ -295,26 +292,6 @@ export default function Tranbox() {
               >
                 <MenuItem value={false}>{i18n("disable")}</MenuItem>
                 <MenuItem value={true}>{i18n("enable")}</MenuItem>
-              </TextField>
-            </Grid>
-
-            <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
-                fullWidth
-                select
-                size="small"
-                name="tranboxInteractMode"
-                value={tranboxInteractMode}
-                label={i18n("tranbox_interact_mode")}
-                onChange={handleChange}
-              >
-                <MenuItem value="-">{i18n("disable")}</MenuItem>
-                <MenuItem value={OPT_TRANBOX_INTERACT_CLICK}>
-                  {i18n("tranbox_interact_click")}
-                </MenuItem>
-                <MenuItem value={OPT_TRANBOX_INTERACT_DBLCLICK}>
-                  {i18n("tranbox_interact_dblclick")}
-                </MenuItem>
               </TextField>
             </Grid>
 

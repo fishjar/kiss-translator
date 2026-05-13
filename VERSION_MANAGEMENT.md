@@ -74,12 +74,12 @@ pnpm version:patch
 # 2. 更新 CHANGELOG.md（手动编辑）
 # 添加新版本的更新内容
 
-# 3. 提交更改
+# 3. 构建和打包（构建前会再次确保版本号同步）
+pnpm build+zip
+
+# 4. 提交更改
 git add .
 git commit -m "chore: bump version to 2.0.20"
-
-# 4. 构建和打包（构建前会再次确保版本号同步）
-pnpm build+zip
 
 # 5. 推送代码
 git push origin dev

@@ -8,6 +8,9 @@
   "toggle_translate": {
     "message": "Alternar traducción"
   },
+  "toggle_translate_only": {
+    "message": "Mostrar solo traducción"
+  },
   "toggle_style": {
     "message": "Cambiar estilo"
   },

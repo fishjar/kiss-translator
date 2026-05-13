@@ -1,4 +1,5 @@
 export const CMD_TOGGLE_TRANSLATE = "toggleTranslate";
+export const CMD_TOGGLE_TRANSLATE_ONLY = "toggleTranslateOnly";
 export const CMD_TOGGLE_STYLE = "toggleStyle";
 export const CMD_OPEN_OPTIONS = "openOptions";
 export const CMD_OPEN_TRANBOX = "openTranbox";
@@ -11,6 +12,7 @@ export const MSG_PUT_HTTPCACHE = "put_httpcache";
 export const MSG_OPEN_OPTIONS = "open_options";
 export const MSG_SAVE_RULE = "save_rule";
 export const MSG_TRANS_TOGGLE = "toggle_translate";
+export const MSG_TRANS_TOGGLE_ONLY = "toggle_translate_only";
 export const MSG_TRANS_TOGGLE_STYLE = "toggle_styles";
 export const MSG_OPEN_TRANBOX = "open_tranbox";
 export const MSG_TRANS_GETRULE = "trans_getrule";

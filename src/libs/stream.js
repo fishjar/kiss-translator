@@ -1,6 +1,12 @@
 import { JSONParser } from "@streamparser/json";
 import {
   OPT_TRANS_OPENAI,
+  OPT_TRANS_DEEPSEEK,
+  OPT_TRANS_SILICONFLOW,
+  OPT_TRANS_XIAOMIMIMO,
+  OPT_TRANS_ALIYUNBAILIAN,
+  OPT_TRANS_CEREBRAS,
+  OPT_TRANS_ZAI,
   OPT_TRANS_GEMINI,
   OPT_TRANS_GEMINI_2,
   OPT_TRANS_OPENROUTER,
@@ -88,6 +94,12 @@ export const createAsyncQueue = () => {
 export function getStreamDelta(json, apiType) {
   switch (apiType) {
     case OPT_TRANS_OPENAI:
+    case OPT_TRANS_DEEPSEEK:
+    case OPT_TRANS_SILICONFLOW:
+    case OPT_TRANS_XIAOMIMIMO:
+    case OPT_TRANS_ALIYUNBAILIAN:
+    case OPT_TRANS_CEREBRAS:
+    case OPT_TRANS_ZAI:
     case OPT_TRANS_GEMINI_2:
     case OPT_TRANS_OPENROUTER:
     case OPT_TRANS_OLLAMA:
@@ -237,4 +249,92 @@ export function detectStreamFormat(content) {
 
   const first = positions.reduce((a, b) => (a.pos < b.pos ? a : b));
   return { isJson: first.type === "json", detected: true };
+}
+
+/**
+ * 创建实时流式解析器
+ * 追踪段落边界，输出每个段落的实时文本累积
+ * @returns {{ write: (delta: string) => Array<{id: number, partialText: string, isComplete: boolean}> }}
+ */
+export function createRealtimeStreamParser() {
+  let format = null; // "xml" | "json" | "line" | null
+  let buffer = "";
+
+  const detect = (content) => {
+    const stripped = content.trim();
+    if (stripped.search(/[{[]/) !== -1) return "json";
+    if (stripped.search(/<(t|item|seg)\s/i) !== -1) return "xml";
+    if (stripped.search(/^\d+\s*\|/m) !== -1) return "line";
+    return null;
+  };
+
+  const parseXml = (content) => {
+    const results = [];
+    // 找所有已闭合的段落
+    const closedRegex =
+      /<(t|item|seg)\s+id="(\d+)"(?:\s[^>]*)?>([\s\S]*?)<\/\1>/gi;
+    let match;
+    while ((match = closedRegex.exec(content)) !== null) {
+      const id = parseInt(match[2], 10);
+      results.push({ id, partialText: match[3], isComplete: true });
+    }
+    // 找最后一个未闭合的段落（当前正在流式输出的）
+    let remaining = content;
+    remaining = remaining.replace(
+      /<(t|item|seg)\s+id="\d+"(?:\s[^>]*)?>[\s\S]*?<\/\1>/gi,
+      ""
+    );
+    const openRegex =
+      /<(t|item|seg)\s+id="(\d+)"(?:\s[^>]*)?>([^]*)$/;
+    const openMatch = remaining.match(openRegex);
+    if (openMatch) {
+      const id = parseInt(openMatch[2], 10);
+      const partialText = openMatch[3].replace(/<\/[^>]*$/, "");
+      results.push({ id, partialText, isComplete: false });
+    }
+    return results;
+  };
+
+  const parseLine = (content) => {
+    const results = [];
+    const lines = content.split("\n");
+    for (let i = 0; i < lines.length; i++) {
+      const trimmed = lines[i].trim();
+      const pipeMatch = trimmed.match(/^(\d+)\s*\|\s*(.*)/);
+      if (pipeMatch) {
+        const id = parseInt(pipeMatch[1], 10);
+        const text = pipeMatch[2].trim().replace(/<br\s*\/?>/gi, "\n");
+        const isComplete = i < lines.length - 1;
+        results.push({ id, partialText: text, isComplete });
+      }
+    }
+    return results;
+  };
+
+  return {
+    write(delta) {
+      buffer += delta;
+      if (!format) {
+        format = detect(buffer);
+        if (!format) return [];
+      }
+
+      switch (format) {
+        case "xml":
+          return parseXml(buffer);
+        case "line":
+          return parseLine(buffer);
+        case "json":
+          return [];
+        default:
+          return [];
+      }
+    },
+    getFormat() {
+      return format;
+    },
+    getBuffer() {
+      return buffer;
+    },
+  };
 }

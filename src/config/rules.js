@@ -71,6 +71,8 @@ export const DEFAULT_RULE = {
   injectJs: "", // 注入JS
   // injectCss: "", // 注入CSS (作废)
   transOnly: GLOBAL_KEY, // 是否仅显示译文
+  transOnlyRevert: GLOBAL_KEY, // 悬浮恢复原文
+  transOnlyRevertDelay: GLOBAL_KEY, // 悬浮恢复延迟(秒)
   // transTiming: GLOBAL_KEY, // 翻译时机/鼠标悬停翻译  (暂时作废)
   transTag: GLOBAL_KEY, // 译文元素标签
   transTitle: GLOBAL_KEY, // 是否同时翻译页面标题
@@ -116,6 +118,8 @@ export const GLOBLA_RULE = {
   injectJs: "", // 注入JS
   injectCss: "", // 注入CSS
   transOnly: "false", // 是否仅显示译文
+  transOnlyRevert: "false", // 悬浮恢复原文
+  transOnlyRevertDelay: "0.5", // 悬浮恢复延迟(秒)
   // transTiming: OPT_TIMING_PAGESCROLL, // 翻译时机/鼠标悬停翻译 (暂时作废)
   transTag: DEFAULT_TRANS_TAG, // 译文元素标签
   transTitle: "false", // 是否同时翻译页面标题

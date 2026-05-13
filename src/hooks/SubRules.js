@@ -15,7 +15,7 @@ export function useSubRules() {
   const list = setting?.subrulesList || DEFAULT_SUBRULES_LIST;
 
   const selectedSub = useMemo(() => list.find((item) => item.selected), [list]);
-  const selectedUrl = selectedSub.url;
+  const selectedUrl = selectedSub ? selectedSub.url : "";
 
   const selectSub = useCallback(
     (url) => {
@@ -62,6 +62,9 @@ export function useSubRules() {
         } finally {
           setLoading(false);
         }
+      } else {
+        // clear stale rules when no source selected
+        setSelectedRules([]);
       }
     })();
   }, [selectedUrl]);

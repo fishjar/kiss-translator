@@ -9,7 +9,7 @@ import {
   OPT_HIGHLIGHT_WORDS_ALL,
 } from "../config";
 import { loadOrFetchSubRules } from "./subRules";
-import { getRulesWithDefault, setRules } from "./storage";
+import { getRulesWithDefault, setRules, getDisabledSubRules } from "./storage";
 import { trySyncRules } from "./sync";
 import { kissLog } from "./log";
 
@@ -126,6 +126,7 @@ const mergeRules = (baseRule, overrideRule) => {
     "toLang",
     "transOpen",
     "transOnly",
+    "transOnlyRevert",
     "autoScan",
     "hasRichText",
     "hasShadowroot",
@@ -142,8 +143,8 @@ const mergeRules = (baseRule, overrideRule) => {
   });
 
   // 数字类型的属性
-  ["splitLength"].forEach((key) => {
-    if (overrideRule[key]) {
+  ["splitLength", "transOnlyRevertDelay"].forEach((key) => {
+    if (overrideRule[key] && overrideRule[key] !== GLOBAL_KEY) {
       merged[key] = overrideRule[key];
     }
   });
@@ -185,6 +186,15 @@ export const matchRule = async (href, { injectRules, subrulesList }) => {
       if (selectedSub?.url) {
         const subRules = await loadOrFetchSubRules(selectedSub.url);
         matchedSubRule = findMatchingRule(subRules, href);
+        // If the matched subscribed rule is disabled by user for this source, ignore it
+        try {
+          const disabled = await getDisabledSubRules(selectedSub.url);
+          if (matchedSubRule && disabled.includes(matchedSubRule.pattern)) {
+            matchedSubRule = null;
+          }
+        } catch (err) {
+          kissLog("getDisabledSubRules", err);
+        }
       }
     } catch (err) {
       kissLog("load injectRules", err);
@@ -253,6 +263,8 @@ export const checkRules = (rules) => {
         textStyle,
         transOpen,
         transOnly,
+        transOnlyRevert,
+        transOnlyRevertDelay,
         autoScan,
         hasRichText,
         hasShadowroot,
@@ -294,6 +306,11 @@ export const checkRules = (rules) => {
             : GLOBAL_KEY,
         transOpen: matchValue([GLOBAL_KEY, "true", "false"], transOpen),
         transOnly: matchValue([GLOBAL_KEY, "true", "false"], transOnly),
+        transOnlyRevert: matchValue([GLOBAL_KEY, "true", "false"], transOnlyRevert),
+        transOnlyRevertDelay:
+          type(transOnlyRevertDelay) === "string" && !isNaN(parseFloat(transOnlyRevertDelay))
+            ? transOnlyRevertDelay
+            : GLOBAL_KEY,
         autoScan: matchValue([GLOBAL_KEY, "true", "false"], autoScan),
         hasRichText: matchValue([GLOBAL_KEY, "true", "false"], hasRichText),
         hasShadowroot: matchValue([GLOBAL_KEY, "true", "false"], hasShadowroot),

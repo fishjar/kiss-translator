@@ -15,6 +15,7 @@ import {
   CACHE_NAME,
   OPT_LANGDETECTOR_ALL,
   OPT_SHORTCUT_TRANSLATE,
+  OPT_SHORTCUT_TRANSONLY,
   OPT_SHORTCUT_STYLE,
   OPT_SHORTCUT_POPUP,
   OPT_SHORTCUT_SETTING,
@@ -448,6 +449,12 @@ export default function Settings() {
                   <ShortcutItem
                     action={OPT_SHORTCUT_TRANSLATE}
                     label={i18n("toggle_translate_shortcut")}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={12} md={6} lg={3}>
+                  <ShortcutItem
+                    action={OPT_SHORTCUT_TRANSONLY}
+                    label={i18n("toggle_transonly_shortcut")}
                   />
                 </Grid>
                 <Grid item xs={12} sm={12} md={6} lg={3}>

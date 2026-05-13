@@ -1,4 +1,4 @@
-import { LogLevel } from "../libs/log";
+﻿import { LogLevel } from "../libs/log";
 import {
   OPT_DICT_BING,
   OPT_SUG_YOUDAO,
@@ -10,6 +10,7 @@ import { DEFAULT_CUSTOM_STYLES } from "./styles";
 
 // 默认快捷键
 export const OPT_SHORTCUT_TRANSLATE = "toggleTranslate";
+export const OPT_SHORTCUT_TRANSONLY = "toggleTransOnly";
 export const OPT_SHORTCUT_STYLE = "toggleStyle";
 export const OPT_SHORTCUT_POPUP = "togglePopup";
 export const OPT_SHORTCUT_SETTING = "openSetting";
@@ -80,8 +81,6 @@ export const OPT_TRANBOX_TRIGGER_ALL = [
   OPT_TRANBOX_TRIGGER_HOVER,
   OPT_TRANBOX_TRIGGER_SELECT,
 ];
-export const OPT_TRANBOX_INTERACT_CLICK = "click"; // 单击翻译框内选中文本触发新翻译
-export const OPT_TRANBOX_INTERACT_DBLCLICK = "dblclick"; // 双击翻译框内选中文本触发新翻译
 export const DEFAULT_TRANBOX_SHORTCUT = ["AltLeft", "KeyS"];
 export const DEFAULT_TRANBOX_SETTING = {
   transOpen: true, // 是否启用划词翻译
@@ -92,8 +91,8 @@ export const DEFAULT_TRANBOX_SETTING = {
   toLang: "zh-CN",
   toLang2: "en",
   tranboxShortcut: DEFAULT_TRANBOX_SHORTCUT,
-  btnOffsetX: 10,
-  btnOffsetY: 10,
+  btnOffsetX: 0,
+  btnOffsetY: 0,
   boxOffsetX: 0,
   boxOffsetY: 10,
   hideTranBtn: false, // 是否隐藏翻译按钮
@@ -102,7 +101,6 @@ export const DEFAULT_TRANBOX_SETTING = {
   followSelection: false, // 翻译框是否跟随选中文本
   autoHeight: false, // 自适应高度
   triggerMode: OPT_TRANBOX_TRIGGER_CLICK, // 触发翻译方式
-  tranboxInteractMode: "-", // 翻译框内交互模式（单选，"-"表示禁用）
   // extStyles: "", // 附加样式
   enDict: OPT_DICT_BING, // 英文词典
   enSug: OPT_SUG_YOUDAO, // 英文建议
@@ -127,6 +125,8 @@ export const DEFAULT_SUBTITLE_SETTING = {
   apiSlug: OPT_TRANS_MICROSOFT,
   segSlug: "-", // AI智能断句
   chunkLength: 1000, // AI处理切割长度
+  longSentenceThreshold: 120, // 规则断句超长句阈值
+  useAlgorithmBreaker: "rule", // 内置断句方式: "rule" 规则断句 | "statistical" 统计断句
   preTrans: 90, // 提前翻译时长
   throttleTrans: 30, // 节流翻译间隔
   // fromLang: "en",
@@ -136,8 +136,9 @@ export const DEFAULT_SUBTITLE_SETTING = {
   windowStyle: SUBTITLE_WINDOW_STYLE, // 背景样式
   originStyle: SUBTITLE_ORIGIN_STYLE, // 原文样式
   translationStyle: SUBTITLE_TRANSLATION_STYLE, // 译文样式
-  enhanceMode: OPT_ENHANCE_MOBILE_OFF, // 增强功能：on/off/mobile_off
-  showList: true, // 是否显示滚动字幕
+  hoverLookupMode: OPT_ENHANCE_MOBILE_OFF, // 悬停查词：on/off/mobile_off
+  showList: OPT_ENHANCE_MOBILE_OFF, // 是否显示滚动字幕：on/off/mobile_off
+  aiContextSlug: "-", // 增强智能上下文分析服务
 };
 
 // 订阅列表

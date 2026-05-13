@@ -36,6 +36,12 @@ export const OPT_TRANS_GOOGLE = "Google";
 export const OPT_TRANS_GOOGLE_2 = "Google2";
 export const OPT_TRANS_MICROSOFT = "Microsoft";
 export const OPT_TRANS_AZUREAI = "AzureAI";
+export const OPT_TRANS_DEEPSEEK = "DeepSeek";
+export const OPT_TRANS_SILICONFLOW = "SiliconFlow";
+export const OPT_TRANS_XIAOMIMIMO = "XiaomiMimo";
+export const OPT_TRANS_ALIYUNBAILIAN = "AliyunBailian";
+export const OPT_TRANS_CEREBRAS = "Cerebras";
+export const OPT_TRANS_ZAI = "Zai";
 export const OPT_TRANS_DEEPL = "DeepL";
 export const OPT_TRANS_DEEPLX = "DeepLX";
 export const OPT_TRANS_DEEPLFREE = "DeepLFree";
@@ -60,6 +66,12 @@ export const OPT_ALL_TRANS_TYPES = [
   OPT_TRANS_MICROSOFT,
   OPT_TRANS_AZUREAI,
   // OPT_TRANS_BAIDU,
+  OPT_TRANS_DEEPSEEK,
+  OPT_TRANS_SILICONFLOW,
+  OPT_TRANS_XIAOMIMIMO,
+  OPT_TRANS_ALIYUNBAILIAN,
+  OPT_TRANS_CEREBRAS,
+  OPT_TRANS_ZAI,
   OPT_TRANS_TENCENT,
   OPT_TRANS_VOLCENGINE,
   OPT_TRANS_DEEPL,
@@ -102,6 +114,12 @@ export const API_SPE_TYPES = {
   ai: new Set([
     OPT_TRANS_EPHONEAI,
     OPT_TRANS_OPENAI,
+    OPT_TRANS_DEEPSEEK,
+    OPT_TRANS_SILICONFLOW,
+    OPT_TRANS_XIAOMIMIMO,
+    OPT_TRANS_ALIYUNBAILIAN,
+    OPT_TRANS_CEREBRAS,
+    OPT_TRANS_ZAI,
     OPT_TRANS_GEMINI,
     OPT_TRANS_GEMINI_2,
     OPT_TRANS_CLAUDE,
@@ -112,6 +130,12 @@ export const API_SPE_TYPES = {
   // 支持多key
   mulkeys: new Set([
     OPT_TRANS_AZUREAI,
+    OPT_TRANS_DEEPSEEK,
+    OPT_TRANS_SILICONFLOW,
+    OPT_TRANS_XIAOMIMIMO,
+    OPT_TRANS_ALIYUNBAILIAN,
+    OPT_TRANS_CEREBRAS,
+    OPT_TRANS_ZAI,
     OPT_TRANS_DEEPL,
     OPT_TRANS_OPENAI,
     OPT_TRANS_GEMINI,
@@ -126,6 +150,12 @@ export const API_SPE_TYPES = {
   // 支持批处理
   batch: new Set([
     OPT_TRANS_AZUREAI,
+    OPT_TRANS_DEEPSEEK,
+    OPT_TRANS_SILICONFLOW,
+    OPT_TRANS_XIAOMIMIMO,
+    OPT_TRANS_ALIYUNBAILIAN,
+    OPT_TRANS_CEREBRAS,
+    OPT_TRANS_ZAI,
     OPT_TRANS_GOOGLE_2,
     OPT_TRANS_MICROSOFT,
     OPT_TRANS_TENCENT,
@@ -141,6 +171,12 @@ export const API_SPE_TYPES = {
   ]),
   // 支持上下文
   context: new Set([
+    OPT_TRANS_DEEPSEEK,
+    OPT_TRANS_SILICONFLOW,
+    OPT_TRANS_XIAOMIMIMO,
+    OPT_TRANS_ALIYUNBAILIAN,
+    OPT_TRANS_CEREBRAS,
+    OPT_TRANS_ZAI,
     OPT_TRANS_OPENAI,
     OPT_TRANS_GEMINI,
     OPT_TRANS_GEMINI_2,
@@ -152,6 +188,12 @@ export const API_SPE_TYPES = {
   ]),
   // 支持流式传输
   stream: new Set([
+    OPT_TRANS_DEEPSEEK,
+    OPT_TRANS_SILICONFLOW,
+    OPT_TRANS_XIAOMIMIMO,
+    OPT_TRANS_ALIYUNBAILIAN,
+    OPT_TRANS_CEREBRAS,
+    OPT_TRANS_ZAI,
     OPT_TRANS_OPENAI,
     OPT_TRANS_GEMINI,
     OPT_TRANS_GEMINI_2,
@@ -162,6 +204,93 @@ export const API_SPE_TYPES = {
   ]),
   // 赞助商
   sponsors: new Set([OPT_TRANS_EPHONEAI]),
+<<<<<<< feat/tranbox-shortcut
+=======
+};
+
+// 思考模式参数映射：定义各API的思考开关和强度参数
+// type: 注入逻辑类型; efforts: 思考强度选项(强→弱), null表示无强度控制
+// disableSupported: 是否支持关闭思考,默认true; 设为false则不显示"关闭思考"选项
+export const THINKING_PARAM_MAP = {
+  [OPT_TRANS_DEEPSEEK]: {
+    type: "deepseek",
+    efforts: [
+      { value: "max", label: "Max" },
+      { value: "high", label: "High" },
+    ],
+  },
+  [OPT_TRANS_SILICONFLOW]: {
+    type: "siliconflow",
+    efforts: [
+      { value: "max", label: "Max (32768)" },
+      { value: "high", label: "High (16384)" },
+      { value: "medium", label: "Medium (8192)" },
+      { value: "low", label: "Low (4096)" },
+      { value: "minimal", label: "Minimal (2048)" },
+    ],
+  },
+  [OPT_TRANS_XIAOMIMIMO]: {
+    type: "deepseek",
+    efforts: null,
+  },
+  [OPT_TRANS_ALIYUNBAILIAN]: {
+    type: "aliyunbailian",
+    efforts: [
+      { value: "max", label: "Max" },
+      { value: "high", label: "High" },
+    ],
+  },
+  [OPT_TRANS_CEREBRAS]: {
+    type: "cerebras",
+    efforts: [
+      { value: "high", label: "High" },
+      { value: "medium", label: "Medium" },
+      { value: "low", label: "Low" },
+    ],
+  },
+  [OPT_TRANS_ZAI]: {
+    type: "deepseek",
+    efforts: null,
+  },
+  [OPT_TRANS_GEMINI]: {
+    type: "gemini",
+    efforts: [
+      { value: "high", label: "High" },
+      { value: "medium", label: "Medium" },
+      { value: "low", label: "Low" },
+      { value: "minimal", label: "Minimal" },
+    ],
+  },
+  [OPT_TRANS_CLAUDE]: {
+    type: "claude",
+    disableSupported: false,
+    efforts: [
+      { value: "max", label: "Max" },
+      { value: "xhigh", label: "X-High" },
+      { value: "high", label: "High" },
+      { value: "medium", label: "Medium" },
+      { value: "low", label: "Low" },
+    ],
+  },
+  [OPT_TRANS_OLLAMA]: {
+    type: "cerebras",
+    efforts: [
+      { value: "high", label: "High" },
+      { value: "medium", label: "Medium" },
+      { value: "low", label: "Low" },
+    ],
+  },
+  [OPT_TRANS_OPENROUTER]: {
+    type: "openrouter",
+    disableSupported: false,
+    efforts: [
+      { value: "high", label: "High" },
+      { value: "medium", label: "Medium" },
+      { value: "low", label: "Low" },
+      { value: "minimal", label: "Minimal" },
+    ],
+  },
+>>>>>>> dev
 };
 
 export const BUILTIN_STONES = [
@@ -275,6 +404,12 @@ export const OPT_LANGS_TO_SPEC = {
     ["zh-CN", "ZH"],
     ["zh-TW", "ZH"],
   ]),
+  [OPT_TRANS_DEEPSEEK]: OPT_LANGS_SPEC_NAME,
+  [OPT_TRANS_SILICONFLOW]: OPT_LANGS_SPEC_NAME,
+  [OPT_TRANS_XIAOMIMIMO]: OPT_LANGS_SPEC_NAME,
+  [OPT_TRANS_ALIYUNBAILIAN]: OPT_LANGS_SPEC_NAME,
+  [OPT_TRANS_CEREBRAS]: OPT_LANGS_SPEC_NAME,
+  [OPT_TRANS_ZAI]: OPT_LANGS_SPEC_NAME,
   [OPT_TRANS_VOLCENGINE]: new Map([
     ...OPT_LANGS_SPEC_DEFAULT,
     ["auto", "auto"],
@@ -491,26 +626,22 @@ Tone: ${INPUT_PLACE_TONE}
 ${INPUT_PLACE_GLOSSARY}
 
 # Task
-Convert the input word-level timestamp JSON into a bilingual VTT file. Target Language: ${INPUT_PLACE_TO}.
+Group the input word-level JSON into bilingual subtitle segments. Target Language: ${INPUT_PLACE_TO}.
+
+# Output Contract
+1. Output a JSON array only. No markdown, no code fences, no extra text.
+2. Each element: {"s":<first_word_id>,"e":<last_word_id>,"o":"merged original text","t":"translation"}
+3. "s" and "e" are inclusive word IDs from the input.
+4. Cover all input words exactly once (no gaps, no overlaps).
 
 # Rules
-1. Merge words into complete sentences first.
-2. Split long sentences into readable cues (max 42 chars/line, natural pauses).
-3. Strict Glossary Adherence: Use the provided Glossary for specific terms. If a word in the source text matches a key in the glossary, you MUST use the corresponding translation provided.
-4. Translate using the provided Context and Tone. Keep non-speech sounds (e.g., [Music]) as is.
-5. Convert timestamps to standard VTT format (MM:SS.mmm).
-6. Output ONLY the raw VTT content. No markdown, no notes.
+1. Merge words into complete sentences, split at natural pauses into readable segments.
+2. Some input words include "p" (pause level 1-3). Higher "p" suggests a stronger sentence boundary, but grammar and meaning take priority.
+3. Translate using Context and Tone.
 
-# VTT Format Example
-WEBVTT
-
-1000 --> 3500
-Hello world!
-你好，世界！
-
-4000 --> 6000
-Good morning.
-早上好。`;
+# Example
+Input: [{"id":0,"text":"Hello"},{"id":1,"text":"world!"},{"id":2,"text":"Good","p":2},{"id":3,"text":"morning."}]
+Output: [{"s":0,"e":1,"o":"Hello world!","t":"你好，世界！"},{"s":2,"e":3,"o":"Good morning.","t":"早上好。"}]`;
 
 const defaultRequestHook = `async (args, { url, body, headers, userMsg, method } = {}) => {
   console.log("request hook args:", { args, url, body, headers, userMsg, method });
@@ -553,12 +684,13 @@ const defaultApi = {
   batchLength: DEFAULT_BATCH_LENGTH, // 每次发送最大文字数量
   useBatchFetch: false, // 是否启用聚合发送请求
   useStream: false, // 是否启用流式传输
+  streamRenderMode: "disabled", // 流式渲染模式：disabled/realtime/segment
   useContext: false, // 是否启用智能上下文
   contextSize: DEFAULT_CONTEXT_SIZE, // 智能上下文保留会话数
   temperature: 0.0,
   maxTokens: 20480,
-  // think: false, // (OpenAI 兼容接口未支持，暂时移除)
-  // thinkIgnore: "qwen3,deepseek-r1", // (OpenAI 兼容接口未支持，暂时移除)
+  thinkingMode: "auto", // 思考模式：auto | enabled | disabled
+  thinkingEffort: "_default", // 思考强度：_default=接口默认,不注入参数
   isDisabled: false, // 是否不显示,
   region: "", // Azure 专用
   sortOrder: 0, // 排序权重，数值越小越靠前
@@ -607,6 +739,42 @@ const defaultApiOpts = {
     ...defaultApi,
     fetchLimit: 1,
   },
+  [OPT_TRANS_DEEPSEEK]: {
+    ...defaultApi,
+    url: "https://api.deepseek.com/chat/completions",
+    model: "deepseek-v4-flash",
+    useBatchFetch: true,
+  },
+  [OPT_TRANS_SILICONFLOW]: {
+    ...defaultApi,
+    url: "https://api.siliconflow.cn/v1/chat/completions",
+    model: "Pro/zai-org/GLM-4.7",
+    useBatchFetch: true,
+  },
+  [OPT_TRANS_XIAOMIMIMO]: {
+    ...defaultApi,
+    url: "https://api.xiaomimimo.com/v1/chat/completions",
+    model: "mimo-v2.5-pro",
+    useBatchFetch: true,
+  },
+  [OPT_TRANS_ALIYUNBAILIAN]: {
+    ...defaultApi,
+    url: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+    model: "qwen-plus",
+    useBatchFetch: true,
+  },
+  [OPT_TRANS_CEREBRAS]: {
+    ...defaultApi,
+    url: "https://api.cerebras.ai/v1/chat/completions",
+    model: "gpt-oss-120b",
+    useBatchFetch: true,
+  },
+  [OPT_TRANS_ZAI]: {
+    ...defaultApi,
+    url: "https://open.bigmodel.cn/api/paas/v4/chat/completions",
+    model: "glm-5.1",
+    useBatchFetch: true,
+  },
   [OPT_TRANS_DEEPLX]: {
     ...defaultApi,
     url: "http://localhost:1188/translate",
@@ -623,7 +791,7 @@ const defaultApiOpts = {
   },
   [OPT_TRANS_GEMINI]: {
     ...defaultApi,
-    url: `https://generativelanguage.googleapis.com/v1/models/${INPUT_PLACE_MODEL}:generateContent`,
+    url: `https://generativelanguage.googleapis.com/v1beta/models/${INPUT_PLACE_MODEL}:generateContent`,
     model: "gemini-2.5-flash",
     useBatchFetch: true,
   },

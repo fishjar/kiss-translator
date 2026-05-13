@@ -10,6 +10,7 @@ import {
   STOKEY_MSAUTH,
   STOKEY_BDAUTH,
   STOKEY_RULESCACHE_PREFIX,
+  STOKEY_DISABLED_SUB_RULES,
   DEFAULT_SETTING,
   DEFAULT_RULES,
   DEFAULT_SYNC,
@@ -128,6 +129,39 @@ export const delSubRules = (url) => del(STOKEY_RULESCACHE_PREFIX + url);
 export const setSubRules = (url, val) =>
   setObj(STOKEY_RULESCACHE_PREFIX + url, val);
 
+export const getDisabledSubRules = async (url) => {
+  if (!url) return [];
+  const raw = await getObj(STOKEY_DISABLED_SUB_RULES);
+  if (!raw) return [];
+  if (typeof raw === "object") {
+    const list = raw[url];
+    return Array.isArray(list) ? list : [];
+  }
+  return [];
+};
+
+export const setDisabledSubRules = async (url, patterns) => {
+  if (!url) return;
+  const map = (await getObj(STOKEY_DISABLED_SUB_RULES)) || {};
+  const arr = Array.isArray(patterns) ? [...new Set(patterns)] : [];
+  if (arr.length === 0) {
+    if (map[url]) delete map[url];
+  } else {
+    map[url] = arr;
+  }
+  await setObj(STOKEY_DISABLED_SUB_RULES, map);
+};
+
+export const removeDisabledSubRules = async (url) => {
+  if (!url) return;
+  const raw = await getObj(STOKEY_DISABLED_SUB_RULES);
+  if (!raw || typeof raw !== "object") return;
+  if (raw[url]) {
+    delete raw[url];
+    await setObj(STOKEY_DISABLED_SUB_RULES, raw);
+  }
+};
+
 /**
  * fab位置
  */
@@ -171,9 +205,9 @@ export const setBdauth = (val) => setObj(STOKEY_BDAUTH, val);
 /**
  * 存入默认数据
  */
-export const tryInitDefaultData = async () => {
+export const tryInitDefaultData = async (uiLang) => {
   try {
-    await trySetObj(STOKEY_SETTING, DEFAULT_SETTING);
+    await trySetObj(STOKEY_SETTING, { ...DEFAULT_SETTING, uiLang });
     await trySetObj(STOKEY_RULES, DEFAULT_RULES);
     await trySetObj(STOKEY_SYNC, DEFAULT_SYNC);
     await trySetObj(

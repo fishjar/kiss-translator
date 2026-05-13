@@ -22,7 +22,6 @@ import {
   debounce,
   scheduleIdle,
   genEventName,
-  truncateWords,
   escapeHTML,
   parseAITerms,
 } from "./utils";
@@ -298,6 +297,12 @@ export class Translator {
   #mouseHoverEnabled = false; // 鼠标悬停翻译
   #enabled = false; // 全局默认状态
   #runId = 0; // 用于中止过期的异步请求
+
+  #transOnlyRevertTimer = null;
+  #transOnlyRevertTarget = null;
+  #transOnlyRevertEnabled = false;
+  #boundTransOnlyMouseOver = null;
+  #boundTransOnlyMouseOut = null;
   #termValues = []; // 按顺序存储术语的替换值
   #combinedTermsRegex; // 专业术语正则表达式
   #combinedSkipsRegex; // 跳过文本正则表达式
@@ -334,6 +339,64 @@ export class Translator {
   #rescanQueue = new Set(); // “脏容器”队列
   #isQueueProcessing = false; // 队列处理状态标志
 
+  // 获取当前视口中的稳定锚点，用于 DOM 高度变化后保持用户正在看的位置
+  #captureViewportAnchor() {
+    if (!document.elementFromPoint || !window.scrollBy) return null;
+
+    const points = [0.5, 0.33, 0.66];
+    for (const ratio of points) {
+      const x = Math.max(0, Math.floor(window.innerWidth / 2));
+      const y = Math.max(
+        0,
+        Math.min(window.innerHeight - 1, Math.floor(window.innerHeight * ratio))
+      );
+      const element = document.elementFromPoint(x, y);
+      const anchor = this.#normalizeViewportAnchor(element);
+      if (!anchor?.isConnected) continue;
+
+      const rect = anchor.getBoundingClientRect();
+      if (rect.width || rect.height) {
+        return { element: anchor, top: rect.top };
+      }
+    }
+
+    return null;
+  }
+
+  #normalizeViewportAnchor(element) {
+    if (!element) return null;
+
+    const wrapper = element.closest?.(`.${Translator.KISS_CLASS.warpper}`);
+    if (!wrapper) return element;
+
+    const { nodes } = this.#translationNodes.get(wrapper) || {};
+    const originalNode = nodes?.find((node) => node.isConnected);
+    if (originalNode?.nodeType === Node.ELEMENT_NODE) return originalNode;
+    if (originalNode?.parentElement?.isConnected)
+      return originalNode.parentElement;
+
+    return wrapper.previousElementSibling || wrapper.parentElement;
+  }
+
+  #restoreViewportAnchor(anchor) {
+    if (!anchor?.element?.isConnected) return;
+
+    const currentTop = anchor.element.getBoundingClientRect().top;
+    const offset = currentTop - anchor.top;
+    if (Math.abs(offset) > 0.5) {
+      window.scrollBy(0, offset);
+    }
+  }
+
+  #withViewportAnchor(callback) {
+    const anchor = this.#captureViewportAnchor();
+    try {
+      return callback();
+    } finally {
+      this.#restoreViewportAnchor(anchor);
+    }
+  }
+
   // 忽略元素
   get #ignoreSelector() {
     if (this.#rule.scanAll === "true" || this.#rule.isPlainText) {
@@ -351,6 +414,13 @@ export class Translator {
     }
 
     return selectors.join(", ");
+  }
+
+  #isIgnoredElement(node) {
+    return (
+      node?.nodeType === Node.ELEMENT_NODE &&
+      node.matches?.(this.#ignoreSelector)
+    );
   }
 
   // 接口参数
@@ -451,6 +521,14 @@ export class Translator {
     // 鼠标悬停翻译
     if (this.#setting.mouseHoverSetting.useMouseHover) {
       this.#enableMouseHover();
+    }
+
+    // 仅显示译文模式下悬浮恢复原文
+    if (
+      this.#rule.transOnly === "true" &&
+      this.#rule.transOnlyRevert === "true"
+    ) {
+      this.#enableTransOnlyRevert();
     }
 
     if (document.readyState === "loading") {
@@ -1298,17 +1376,75 @@ export class Translator {
       }
       inner.appendChild(createLoadingSVG());
       wrapper.appendChild(inner);
-      nodes[nodes.length - 1].after(wrapper);
+      this.#withViewportAnchor(() => {
+        nodes[nodes.length - 1].after(wrapper);
+      });
 
       const currentRunId = this.#runId;
+
+      // 流式渲染模式
+      const streamRenderMode = this.#apiSetting.streamRenderMode || "disabled";
+      const isStreamRender = streamRenderMode !== "disabled" && this.#apiSetting.useStream && this.#apiSetting.useBatchFetch;
+
+      // RAF 缓冲
+      let rafId = null;
+      let pendingText = "";
+      let hasFirstChunk = false;
+      const innerRef = inner;
+
+      const flushPendingText = () => {
+        if (!hasFirstChunk) {
+          innerRef.textContent = "";
+          innerRef.appendChild(document.createTextNode(pendingText));
+          hasFirstChunk = true;
+        } else {
+          const textNode = innerRef.firstChild;
+          if (textNode) {
+            textNode.nodeValue = pendingText;
+          }
+        }
+        rafId = null;
+      };
+
+      const onStreamChunk = isStreamRender
+        ? (chunk) => {
+            if (this.#runId !== currentRunId) return;
+            const { text, isComplete } = chunk;
+            if (!text) return;
+
+            if (isComplete) {
+              pendingText = Array.isArray(text) ? text[0] : text;
+              if (rafId) {
+                cancelAnimationFrame(rafId);
+                rafId = null;
+              }
+              flushPendingText();
+            } else {
+              pendingText = text;
+              if (!rafId) {
+                rafId = requestAnimationFrame(flushPendingText);
+              }
+            }
+          }
+        : null;
+
       const { trText: translatedText, isSame: isSameLang } =
-        await this.#translateFetch(processedString, deLang);
+        await this.#translateFetch(processedString, deLang, onStreamChunk);
+
+      // 清理 RAF 缓冲
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+
       if (this.#runId !== currentRunId) {
         throw new Error("Request terminated");
       }
 
       if (!translatedText || isSameLang) {
-        wrapper.remove();
+        this.#withViewportAnchor(() => {
+          wrapper.remove();
+        });
         return;
       }
 
@@ -1323,14 +1459,18 @@ export class Translator {
       // const innerElement = doc.body.firstChild;
       // inner.replaceChildren(innerElement);
 
-      inner.innerHTML = trustedHTML;
+      this.#withViewportAnchor(() => {
+        inner.innerHTML = trustedHTML;
+      });
 
       this.#translationNodes.set(wrapper, {
         nodes,
         isHide: hideOrigin,
       });
       if (hideOrigin) {
-        this.#removeNodes(nodes);
+        this.#withViewportAnchor(() => {
+          this.#removeNodes(nodes);
+        });
       }
 
       // 附加样式
@@ -1394,7 +1534,9 @@ export class Translator {
             retryIcon.addEventListener("click", (e) => {
               e.stopPropagation();
               e.preventDefault();
-              wrapper.remove();
+              this.#withViewportAnchor(() => {
+                wrapper.remove();
+              });
               this.#processedNodes.delete(hostNode);
               this.#translateNodeGroup(nodes, hostNode, deLang);
             });
@@ -1459,6 +1601,10 @@ export class Translator {
 
       // 元素节点
       if (node.nodeType === Node.ELEMENT_NODE) {
+        if (this.#isIgnoredElement(node)) {
+          return "";
+        }
+
         if (
           (this.#rule.hasRichText === "true" &&
             Translator.TAGS.REPLACE.has(node.tagName)) ||
@@ -1588,7 +1734,7 @@ export class Translator {
   }
 
   // 发起翻译请求
-  #translateFetch(text, deLang = "") {
+  #translateFetch(text, deLang = "", onStreamChunk = null) {
     const { toLang, transStartHook } = this.#rule;
     const fromLang = deLang || this.#rule.fromLang;
     const apiSetting = { ...this.#apiSetting };
@@ -1601,6 +1747,7 @@ export class Translator {
       toLang,
       apiSetting,
       glossary,
+      onStreamChunk,
     };
 
     // 翻译开始钩子函数
@@ -1650,23 +1797,25 @@ export class Translator {
 
   // 清理译文
   #removeTranslationElement(el) {
-    const parentElement = el.parentElement;
-    this.#processedNodes.delete(parentElement);
+    this.#withViewportAnchor(() => {
+      const parentElement = el.parentElement;
+      this.#processedNodes.delete(parentElement);
 
-    // 如果是仅显示译文模式，先恢复原文
-    const { nodes, isHide } = this.#translationNodes.get(el) || {};
-    if (isHide) {
-      this.#restoreOriginal(el, nodes);
-    }
+      // 如果是仅显示译文模式，先恢复原文
+      const { nodes, isHide } = this.#translationNodes.get(el) || {};
+      if (isHide) {
+        this.#restoreOriginal(el, nodes);
+      }
 
-    this.#translationNodes.delete(el);
-    el.remove();
+      this.#translationNodes.delete(el);
+      el.remove();
 
-    // todo: 可能不应深度清除
-    if (this.#rule.highlightWords === OPT_HIGHLIGHT_WORDS_AFTERTRANS) {
-      this.#removeHighlights(parentElement);
-    }
-    this.#removeBrTags(parentElement);
+      // todo: 可能不应深度清除
+      if (this.#rule.highlightWords === OPT_HIGHLIGHT_WORDS_AFTERTRANS) {
+        this.#removeHighlights(parentElement);
+      }
+      this.#removeBrTags(parentElement);
+    });
   }
 
   // 恢复原文
@@ -1694,13 +1843,17 @@ export class Translator {
       const { nodes } = this.#translationNodes.get(el) || {};
       if (transOnly === "true") {
         // 双语变为仅译文
-        if (br) br.hidden = true;
-        this.#removeNodes(nodes);
+        this.#withViewportAnchor(() => {
+          if (br) br.hidden = true;
+          this.#removeNodes(nodes);
+        });
         this.#translationNodes.set(el, { nodes, isHide: true });
       } else {
         // 仅译文变为双语
-        if (br) br.hidden = false;
-        this.#restoreOriginal(el, nodes);
+        this.#withViewportAnchor(() => {
+          if (br) br.hidden = false;
+          this.#restoreOriginal(el, nodes);
+        });
         this.#translationNodes.set(el, { nodes, isHide: false });
       }
     });
@@ -1807,6 +1960,119 @@ export class Translator {
 
     document.removeEventListener("mousemove", this.#boundMouseMoveHandler);
     this.#removeKeydownHandler?.();
+  }
+
+  #enableTransOnlyRevert() {
+    if (this.#transOnlyRevertEnabled) return;
+    this.#transOnlyRevertEnabled = true;
+
+    this.#boundTransOnlyMouseOver = (e) => {
+      const wrapper = e.target.closest?.(
+        `.${Translator.KISS_CLASS.warpper}`
+      );
+      if (wrapper) {
+        const data = this.#translationNodes.get(wrapper);
+        if (!data || !data.isHide) return;
+        if (this.#transOnlyRevertTarget === wrapper) return;
+
+        this.#clearTransOnlyRevertTimer();
+        const delay =
+          parseFloat(this.#rule.transOnlyRevertDelay) || 0.5;
+        this.#transOnlyRevertTimer = setTimeout(() => {
+          this.#showOriginalTemporarily(wrapper, data);
+        }, delay * 1000);
+        return;
+      }
+
+      if (this.#transOnlyRevertTarget) {
+        const data = this.#translationNodes.get(this.#transOnlyRevertTarget);
+        if (data) {
+          const origNodes = data.nodes || [];
+          for (const node of origNodes) {
+            if (node === e.target || node.contains?.(e.target)) return;
+          }
+        }
+      }
+    };
+
+    this.#boundTransOnlyMouseOut = (e) => {
+      if (!this.#transOnlyRevertTarget) {
+        const wrapper = e.target.closest?.(
+          `.${Translator.KISS_CLASS.warpper}`
+        );
+        if (wrapper) this.#clearTransOnlyRevertTimer();
+        return;
+      }
+
+      const wrapper = this.#transOnlyRevertTarget;
+      const related = e.relatedTarget;
+
+      if (related && (wrapper.contains(related) || related === wrapper)) return;
+
+      const data = this.#translationNodes.get(wrapper);
+      if (data && related) {
+        const origNodes = data.nodes || [];
+        for (const node of origNodes) {
+          if (node === related || node.contains?.(related)) return;
+        }
+      }
+
+      this.#clearTransOnlyRevertTimer();
+      this.#hideOriginalTemporarily(wrapper);
+    };
+
+    document.addEventListener("mouseover", this.#boundTransOnlyMouseOver);
+    document.addEventListener("mouseout", this.#boundTransOnlyMouseOut);
+  }
+
+  #disableTransOnlyRevert() {
+    if (!this.#transOnlyRevertEnabled) return;
+    this.#transOnlyRevertEnabled = false;
+
+    this.#clearTransOnlyRevertTimer();
+    if (this.#transOnlyRevertTarget) {
+      this.#hideOriginalTemporarily(this.#transOnlyRevertTarget);
+    }
+
+    document.removeEventListener("mouseover", this.#boundTransOnlyMouseOver);
+    document.removeEventListener("mouseout", this.#boundTransOnlyMouseOut);
+    this.#boundTransOnlyMouseOver = null;
+    this.#boundTransOnlyMouseOut = null;
+  }
+
+  #clearTransOnlyRevertTimer() {
+    if (this.#transOnlyRevertTimer) {
+      clearTimeout(this.#transOnlyRevertTimer);
+      this.#transOnlyRevertTimer = null;
+    }
+  }
+
+  #showOriginalTemporarily(wrapper, data) {
+    const { nodes } = data;
+    this.#withViewportAnchor(() => {
+      this.#restoreOriginal(wrapper, nodes);
+      const inner = wrapper.querySelector(
+        `:scope > .${Translator.KISS_CLASS.inner}`
+      );
+      if (inner) inner.style.display = "none";
+      const br = wrapper.querySelector(":scope > br");
+      if (br) br.hidden = true;
+    });
+    this.#transOnlyRevertTarget = wrapper;
+  }
+
+  #hideOriginalTemporarily(wrapper) {
+    const data = this.#translationNodes.get(wrapper);
+    if (!data) return;
+    const { nodes } = data;
+    this.#withViewportAnchor(() => {
+      this.#removeNodes(nodes);
+      const inner = wrapper.querySelector(
+        `:scope > .${Translator.KISS_CLASS.inner}`
+      );
+      if (inner) inner.style.display = "";
+    });
+    this.#transOnlyRevertTarget = null;
   }
 
   // 注入JS/CSS
@@ -1948,6 +2214,11 @@ export class Translator {
     this.#enabled ? this.disable() : this.enable();
   }
 
+  toggleTransOnly() {
+    const newValue = this.#rule.transOnly === "true" ? "false" : "true";
+    this.updateRule({ transOnly: newValue });
+  }
+
   // 快速切换模糊样式
   toggleStyle() {
     const textStyle =
@@ -1973,6 +2244,7 @@ export class Translator {
     this.disable();
     this.#resetOptions();
     this.#disableMouseHover();
+    this.#disableTransOnlyRevert();
     this.#removeInjector();
     this.#isInitialized = false;
   }
@@ -2005,11 +2277,24 @@ export class Translator {
 
     if (needsRescan || (this.#enabled && this.#setting.transAllnow)) {
       this.rescan();
+      this.#syncTransOnlyRevert();
       return;
     }
 
     if (hasChanged) {
       this.#reIOViewNodes();
+      this.#syncTransOnlyRevert();
+    }
+  }
+
+  #syncTransOnlyRevert() {
+    const shouldEnable =
+      this.#rule.transOnly === "true" &&
+      this.#rule.transOnlyRevert === "true";
+    if (shouldEnable && !this.#transOnlyRevertEnabled) {
+      this.#enableTransOnlyRevert();
+    } else if (!shouldEnable && this.#transOnlyRevertEnabled) {
+      this.#disableTransOnlyRevert();
     }
   }
 

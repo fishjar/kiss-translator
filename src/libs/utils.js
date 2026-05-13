@@ -512,6 +512,14 @@ export function escapeHTML(str) {
   return div.innerHTML;
 }
 
+// HTML实体解码
+export function decodeHTMLEntities(str) {
+  if (!str || typeof str !== "string") return str;
+  const textarea = document.createElement("textarea");
+  textarea.innerHTML = str;
+  return textarea.value;
+}
+
 /**
  * 解析AI术语字符串
  * @param {*} termsString
@@ -534,3 +542,12 @@ export function parseAITerms(termsString) {
     return {};
   }
 }
+
+/**
+ * 判断文本是否为单个汉字
+ * @param {string} str
+ * @returns {boolean}
+ */
+export const isSingleChineseChar = (str) => {
+  return /^[\u4e00-\u9fa5]$/.test(str || "");
+};

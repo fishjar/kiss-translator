@@ -1,9 +1,9 @@
 import { logger } from "../libs/log.js";
-import { truncateWords, throttle } from "../libs/utils.js";
+import { truncateWords, throttle, decodeHTMLEntities } from "../libs/utils.js";
 import { apiTranslate } from "../apis/index.js";
 import { apiMicrosoftDict } from "../apis/index.js";
 import { trustedTypesHelper } from "../libs/trustedTypes.js";
-import { isMobile } from "../libs/mobile.js";
+import { isSubtitleModeEnabled } from "./modes.js";
 
 // 添加CSS样式用于高亮显示悬停的单词
 const addWordHoverStyles = () => {
@@ -127,6 +127,7 @@ export class BilingualSubtitleManager {
   #throttledTriggerTranslations;
   #tooltipEl = null;
   #hoverTimeout = null; // 用于延迟显示/隐藏tooltip
+  #seekSyncRafId = null;
   #wasPlayingBeforeHover = false; //记录hover单词前视频是否处于播放状态
   #hoverTarget = null;
 
@@ -142,6 +143,7 @@ export class BilingualSubtitleManager {
     this.#formattedSubtitles = formattedSubtitles;
 
     this.onTimeUpdate = this.onTimeUpdate.bind(this);
+    this.onSeeking = this.onSeeking.bind(this);
     this.onSeek = this.onSeek.bind(this);
 
     this.#throttledTriggerTranslations = throttle(
@@ -149,14 +151,16 @@ export class BilingualSubtitleManager {
       (setting.throttleTrans ?? 30) * 1000
     );
 
-    // todo: 使用 @emotion/css
-    const enhanceMode = this.#setting.enhanceMode ?? "mobile_off";
-    const isEnhance =
-      enhanceMode === "on" || (enhanceMode === "mobile_off" && !isMobile);
-
-    if (isEnhance) {
+    if (this.#isHoverLookupEnabled()) {
       addWordHoverStyles();
     }
+  }
+
+  #isHoverLookupEnabled() {
+    return isSubtitleModeEnabled(
+      this.#setting.hoverLookupMode,
+      this.#setting.enhanceMode
+    );
   }
 
   /**
@@ -181,6 +185,10 @@ export class BilingualSubtitleManager {
     logger.info("Bilingual Subtitle Manager: Destroying...");
     this.#removeEventListeners();
     this.#throttledTriggerTranslations?.cancel();
+    if (this.#seekSyncRafId !== null) {
+      cancelAnimationFrame(this.#seekSyncRafId);
+      this.#seekSyncRafId = null;
+    }
     this.#captionWindowEl?.parentElement?.parentElement?.remove();
     this.#formattedSubtitles = [];
     // 清理tooltip元素
@@ -298,9 +306,7 @@ export class BilingualSubtitleManager {
     videoContainer.style.position = "relative";
     videoContainer.appendChild(container);
 
-    const enhanceMode = this.#setting.enhanceMode ?? "mobile_off";
-    const isEnhance =
-      enhanceMode === "on" || (enhanceMode === "mobile_off" && !isMobile);
+    const isHoverLookupEnabled = this.#isHoverLookupEnabled();
 
     this.#enableDragging(
       this.#paperEl,
@@ -309,7 +315,7 @@ export class BilingualSubtitleManager {
       () => (this.#captionDragged = true)
     );
 
-    if (isEnhance) {
+    if (isHoverLookupEnabled) {
       this.#captionWindowEl.addEventListener("pointerenter", (e) => {
         if (e.target === this.#captionWindowEl) {
           this.#wasPlayingBeforeHover = this.#videoEl && !this.#videoEl.paused;
@@ -661,6 +667,7 @@ export class BilingualSubtitleManager {
    */
   #attachEventListeners() {
     this.#videoEl.addEventListener("timeupdate", this.onTimeUpdate);
+    this.#videoEl.addEventListener("seeking", this.onSeeking);
     this.#videoEl.addEventListener("seeked", this.onSeek);
   }
 
@@ -669,6 +676,7 @@ export class BilingualSubtitleManager {
    */
   #removeEventListeners() {
     this.#videoEl.removeEventListener("timeupdate", this.onTimeUpdate);
+    this.#videoEl.removeEventListener("seeking", this.onSeeking);
     this.#videoEl.removeEventListener("seeked", this.onSeek);
   }
 
@@ -676,37 +684,85 @@ export class BilingualSubtitleManager {
    * 视频播放时间更新时的回调，负责更新字幕和触发预翻译。
    */
   onTimeUpdate() {
-    const currentTimeMs = this.#videoEl.currentTime * 1000;
-    const subtitleIndex = this.#findSubtitleIndexForTime(currentTimeMs);
+    this.#syncToCurrentTime();
+  }
 
-    if (subtitleIndex !== this.#currentSubtitleIndex) {
-      this.#currentSubtitleIndex = subtitleIndex;
-      const subtitle =
-        subtitleIndex !== -1 ? this.#formattedSubtitles[subtitleIndex] : null;
-      this.#updateCaptionDisplay(subtitle);
-    }
-
-    this.#throttledTriggerTranslations(currentTimeMs);
+  /**
+   * 用户正在拖动进度条时的回调。
+   */
+  onSeeking() {
+    this.#throttledTriggerTranslations.cancel();
+    this.#syncToCurrentTime({ forceRender: true, triggerTranslations: false });
   }
 
   /**
    * 用户拖动进度条后的回调。
    */
   onSeek() {
-    this.#currentSubtitleIndex = -1;
     this.#throttledTriggerTranslations.cancel();
-    this.onTimeUpdate();
+    this.#syncToCurrentTime({ forceRender: true });
+    this.#scheduleSeekSettledSync();
+  }
+
+  #scheduleSeekSettledSync() {
+    if (typeof requestAnimationFrame !== "function") return;
+    if (this.#seekSyncRafId !== null) {
+      cancelAnimationFrame(this.#seekSyncRafId);
+    }
+    this.#seekSyncRafId = requestAnimationFrame(() => {
+      this.#seekSyncRafId = requestAnimationFrame(() => {
+        this.#seekSyncRafId = null;
+        this.#syncToCurrentTime({ forceRender: true });
+      });
+    });
+  }
+
+  #syncToCurrentTime({ forceRender = false, triggerTranslations = true } = {}) {
+    const currentTimeMs = this.#videoEl.currentTime * 1000;
+    const subtitleIndex = this.#findSubtitleIndexForTime(currentTimeMs);
+
+    if (forceRender || subtitleIndex !== this.#currentSubtitleIndex) {
+      this.#currentSubtitleIndex = subtitleIndex;
+      this.#updateCaptionDisplay(
+        subtitleIndex !== -1 ? this.#formattedSubtitles[subtitleIndex] : null
+      );
+    }
+
+    if (triggerTranslations) {
+      this.#throttledTriggerTranslations(currentTimeMs);
+    }
   }
 
   /**
    * 根据时间（毫秒）查找对应的字幕索引。
+   * 使用二分查找，复杂度 O(log n)，替代原 findIndex 的 O(n)。
    * @param {number} currentTimeMs
    * @returns {number} 找到的字幕索引，-1 表示没找到。
    */
   #findSubtitleIndexForTime(currentTimeMs) {
-    return this.#formattedSubtitles.findIndex(
-      (sub) => currentTimeMs >= sub.start && currentTimeMs <= sub.end
-    );
+    const arr = this.#formattedSubtitles;
+    const len = arr.length;
+    if (len === 0) return -1;
+
+    if (currentTimeMs < arr[0].start || currentTimeMs > arr[len - 1].end) {
+      return -1;
+    }
+
+    let left = 0;
+    let right = len - 1;
+    while (left <= right) {
+      const mid = Math.floor((left + right) / 2);
+      const sub = arr[mid];
+      if (currentTimeMs >= sub.start && currentTimeMs <= sub.end) {
+        return mid;
+      } else if (currentTimeMs < sub.start) {
+        right = mid - 1;
+      } else {
+        left = mid + 1;
+      }
+    }
+
+    return -1;
   }
 
   /**
@@ -726,11 +782,9 @@ export class BilingualSubtitleManager {
       const p1 = document.createElement("p");
       p1.style.cssText = this.#setting.originStyle;
 
-      const enhanceMode = this.#setting.enhanceMode ?? "mobile_off";
-      const isEnhance =
-        enhanceMode === "on" || (enhanceMode === "mobile_off" && !isMobile);
+      const isHoverLookupEnabled = this.#isHoverLookupEnabled();
 
-      if (isEnhance) {
+      if (isHoverLookupEnabled) {
         p1.innerHTML = trustedTypesHelper.createHTML(
           this.#wrapWordsWithSpans(subtitle.text)
         );
@@ -740,7 +794,7 @@ export class BilingualSubtitleManager {
 
       const p2 = document.createElement("p");
       p2.style.cssText = this.#setting.translationStyle;
-      if (isEnhance) {
+      if (isHoverLookupEnabled) {
         p2.innerHTML = trustedTypesHelper.createHTML(
           this.#wrapWordsWithSpans(subtitle.translation || "...")
         );
@@ -754,7 +808,7 @@ export class BilingualSubtitleManager {
         this.#captionWindowEl.replaceChildren(p2);
       }
 
-      if (isEnhance) {
+      if (isHoverLookupEnabled) {
         this.#attachSpanListeners();
       }
 
@@ -780,15 +834,26 @@ export class BilingualSubtitleManager {
    */
   #triggerTranslations(currentTimeMs) {
     const { preTrans = 90 } = this.#setting;
-    const lookAheadMs = preTrans * 1000;
+    const endTimeMs = currentTimeMs + preTrans * 1000;
+    const subs = this.#formattedSubtitles;
 
-    for (const sub of this.#formattedSubtitles) {
-      const isCurrent = sub.start <= currentTimeMs && sub.end >= currentTimeMs;
-      const isUpcoming =
-        sub.start > currentTimeMs && sub.start <= currentTimeMs + lookAheadMs;
-      const needsTranslation = !sub.translation && !sub.isTranslating;
+    let lo = 0,
+      hi = subs.length - 1,
+      startIdx = subs.length;
+    while (lo <= hi) {
+      const mid = (lo + hi) >>> 1;
+      if (subs[mid].end >= currentTimeMs) {
+        startIdx = mid;
+        hi = mid - 1;
+      } else {
+        lo = mid + 1;
+      }
+    }
 
-      if ((isCurrent || isUpcoming) && needsTranslation) {
+    for (let i = startIdx; i < subs.length; i++) {
+      const sub = subs[i];
+      if (sub.start > endTimeMs) break;
+      if (!sub.translation && !sub.isTranslating) {
         this.#translateAndStore(sub);
       }
     }
@@ -801,14 +866,15 @@ export class BilingualSubtitleManager {
   async #translateAndStore(subtitle) {
     subtitle.isTranslating = true;
     try {
-      const { fromLang, toLang, apiSetting } = this.#setting;
+      const { fromLang, toLang, apiSetting, docInfo } = this.#setting;
       const { trText } = await apiTranslate({
         text: subtitle.text,
         fromLang,
         toLang,
         apiSetting,
+        docInfo,
       });
-      subtitle.translation = trText;
+      subtitle.translation = decodeHTMLEntities(trText);
     } catch (error) {
       logger.info("Translation failed for:", subtitle.text, error);
       subtitle.translation = "[Translation failed]";
@@ -822,9 +888,14 @@ export class BilingualSubtitleManager {
         this.#updateCaptionDisplay(subtitle);
       }
 
-      // 通知外部组件字幕已更新
+      // 通知外部组件字幕已更新（仅传递增量数据，避免全量传递导致性能问题）
       if (this.onSubtitleUpdate) {
-        this.onSubtitleUpdate(this.#formattedSubtitles);
+        this.onSubtitleUpdate({
+          start: subtitle.start,
+          end: subtitle.end,
+          text: subtitle.text,
+          translation: subtitle.translation,
+        });
       }
     }
   }
@@ -848,10 +919,7 @@ export class BilingualSubtitleManager {
     this.#currentSubtitleIndex = -1;
     this.onTimeUpdate();
 
-    // 通知外部组件字幕已更新
-    if (this.onSubtitleUpdate) {
-      this.onSubtitleUpdate(this.#formattedSubtitles);
-    }
+    // 新追加的字幕还没有译文，无需触发列表全量刷新
   }
 
   updateSetting(obj) {
@@ -861,12 +929,7 @@ export class BilingualSubtitleManager {
   // 获取当前字幕的开始时间（使用重新分段后的时间）
   #getCurrentSubtitleStartTime() {
     const currentTimeMs = this.#videoEl.currentTime * 1000;
-    // 查找当前时间对应的字幕
-    const currentSubtitle = this.#formattedSubtitles.find(
-      (sub) => currentTimeMs >= sub.start && currentTimeMs <= sub.end
-    );
-
-    // 返回重新分段后的字幕开始时间，如果没有找到则返回当前时间
-    return currentSubtitle ? currentSubtitle.start : currentTimeMs;
+    const idx = this.#findSubtitleIndexForTime(currentTimeMs);
+    return idx !== -1 ? this.#formattedSubtitles[idx].start : currentTimeMs;
   }
 }

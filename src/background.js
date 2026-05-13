@@ -4,6 +4,7 @@ import {
   MSG_GET_HTTPCACHE,
   MSG_PUT_HTTPCACHE,
   MSG_TRANS_TOGGLE,
+  MSG_TRANS_TOGGLE_ONLY,
   MSG_OPEN_OPTIONS,
   MSG_SAVE_RULE,
   MSG_TRANS_TOGGLE_STYLE,
@@ -17,6 +18,7 @@ import {
   MSG_BUILTINAI_DETECT,
   MSG_BUILTINAI_TRANSLATE,
   CMD_TOGGLE_TRANSLATE,
+  CMD_TOGGLE_TRANSLATE_ONLY,
   CMD_TOGGLE_STYLE,
   CMD_OPEN_OPTIONS,
   CMD_OPEN_TRANBOX,
@@ -236,6 +238,11 @@ async function addContextMenus(contextMenuType = 1) {
         contexts: ["page", "selection"],
       });
       browser.contextMenus.create({
+        id: CMD_TOGGLE_TRANSLATE_ONLY,
+        title: browser.i18n.getMessage("toggle_translate_only"),
+        contexts: ["page", "selection"],
+      });
+      browser.contextMenus.create({
         id: CMD_TOGGLE_STYLE,
         title: browser.i18n.getMessage("toggle_style"),
         contexts: ["page", "selection"],
@@ -353,10 +360,34 @@ async function registerMsgDisplayScript() {
 }
 
 /**
+ * 获取UI语言
+ * @returns {Promise<string>}
+ */
+async function getUiLanguage() {
+  try {
+    const lang = await browser.i18n.getUILanguage();
+
+    if (lang === "zh-TW") {
+      return "zh_TW";
+    } else if (lang.startsWith("zh")) {
+      return "zh";
+    } else if (["ja", "ko"].includes(lang.substring(0, 2))) {
+      return lang.substring(0, 2);
+    } else {
+      return "en";
+    }
+  } catch (err) {
+    kissLog("get UI language error", err);
+    return "en";
+  }
+}
+
+/**
  * 插件安装
  */
 browser.runtime.onInstalled.addListener(async () => {
-  await tryInitDefaultData();
+  const uiLang = await getUiLanguage();
+  await tryInitDefaultData(uiLang);
 
   //在thunderbird中注册脚本
   if (process.env.REACT_APP_CLIENT === CLIENT_THUNDERBIRD) {
@@ -472,6 +503,9 @@ browser.commands?.onCommand?.addListener?.((command) => {
     case CMD_TOGGLE_TRANSLATE:
       sendTabMsg(MSG_TRANS_TOGGLE);
       break;
+    case CMD_TOGGLE_TRANSLATE_ONLY:
+      sendTabMsg(MSG_TRANS_TOGGLE_ONLY);
+      break;
     case CMD_OPEN_TRANBOX:
       sendTabMsg(MSG_OPEN_TRANBOX);
       break;
@@ -502,6 +536,9 @@ browser?.contextMenus?.onClicked?.addListener?.(({ menuItemId }) => {
   switch (menuItemId) {
     case CMD_TOGGLE_TRANSLATE:
       sendTabMsg(MSG_TRANS_TOGGLE);
+      break;
+    case CMD_TOGGLE_TRANSLATE_ONLY:
+      sendTabMsg(MSG_TRANS_TOGGLE_ONLY);
       break;
     case CMD_TOGGLE_STYLE:
       sendTabMsg(MSG_TRANS_TOGGLE_STYLE);
