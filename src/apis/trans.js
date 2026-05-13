@@ -56,6 +56,7 @@ import {
   extractJson,
   stripMarkdownCodeBlock,
   parseAITerms,
+  decodeHTMLEntities,
 } from "../libs/utils";
 import {
   parseStreamingSegments,
@@ -230,7 +231,7 @@ const parseAIRes = (raw, useBatchFetch = true) => {
         (list[0].text !== undefined || list[0].translations)
       ) {
         return list.map((item) => [
-          String(item.text || ""),
+          decodeHTMLEntities(String(item.text || "")),
           String(item.sourceLanguage || ""),
         ]);
       }
@@ -262,78 +263,23 @@ const parseAIRes = (raw, useBatchFetch = true) => {
   return content.split("\n").map((line) => {
     const pipeMatch = line.match(/^\d+\s*\|\s*(.*)/);
     if (pipeMatch) {
-      return [pipeMatch[1].trim(), ""];
+      return [decodeHTMLEntities(pipeMatch[1].trim()), ""];
     }
 
-    const text = line.replace(/<br\s*\/?>/gi, "\n").trim();
+    const text = decodeHTMLEntities(line.replace(/<br\s*\/?>/gi, "\n").trim());
     return [text, ""];
   });
 };
 
-const getPauseLevel = (gapMs) => {
-  if (!Number.isFinite(gapMs) || gapMs <= 300) return 0;
-  if (gapMs <= 600) return 1;
-  if (gapMs <= 1200) return 2;
-  return 3;
-};
-
-const formatIndexSubtitleEvents = (events) =>
-  events.map((e, i) => {
-    const item = { id: i, text: e.text };
-    if (i > 0) {
-      const p = getPauseLevel(e.start - events[i - 1].end);
-      if (p) item.p = p;
-    }
-    return item;
-  });
-
-const usesIndexSubtitleInput = (prompt = "") => {
-  if (/\{\s*["']?s["']?\s*:/.test(prompt) && /\bid\b/i.test(prompt))
-    return true;
-  if (/WEBVTT|MM:SS\.mmm|-->/i.test(prompt)) return false;
-  return false;
-};
-
-const parseIndexSubtitleRes = (raw, events) => {
-  try {
-    const data = JSON.parse(raw);
-    if (!Array.isArray(data) || !data.length) return null;
-
-    const result = [];
-    for (const seg of data) {
-      const s = Number(seg.s ?? seg.start_id);
-      const e = Number(seg.e ?? seg.end_id);
-      if (!Number.isInteger(s) || !Number.isInteger(e)) continue;
-
-      const startIdx = Math.max(0, Math.min(s, events.length - 1));
-      const endIdx = Math.max(startIdx, Math.min(e, events.length - 1));
-
-      result.push({
-        start: events[startIdx].start,
-        end: events[endIdx].end,
-        text: String(seg.o ?? seg.original ?? ""),
-        translation: String(seg.t ?? seg.translation ?? ""),
-      });
-    }
-
-    return result.length ? result : null;
-  } catch {
-    return null;
-  }
-};
-
-const parseSTRes = (raw, events = null) => {
+const parseSTRes = (raw) => {
   if (!raw) {
     return [];
   }
 
   try {
-    const cleaned = stripMarkdownCodeBlock(raw);
-    if (events?.length) {
-      const indexResult = parseIndexSubtitleRes(cleaned, events);
-      if (indexResult?.length) return indexResult;
-    }
-    const data = parseBilingualVtt(cleaned);
+    // const jsonString = extractJson(raw);
+    // const data = JSON.parse(jsonString);
+    const data = parseBilingualVtt(raw);
     if (Array.isArray(data)) {
       return data;
     }
@@ -1006,11 +952,7 @@ export const genTransReq = async ({ reqHook, ...args }) => {
 
     args.systemPrompt = baseSystemPrompt;
     args.userPrompt = events
-      ? JSON.stringify(
-          usesIndexSubtitleInput(subtitlePrompt)
-            ? formatIndexSubtitleEvents(events)
-            : events
-        )
+      ? JSON.stringify(events)
       : genUserPrompt({
           nobatchUserPrompt,
           useBatchFetch,
@@ -1529,14 +1471,11 @@ export const handleSubtitle = async ({
     case OPT_TRANS_GEMINI_2:
     case OPT_TRANS_OPENROUTER:
     case OPT_TRANS_OLLAMA:
-      return parseSTRes(res?.choices?.[0]?.message?.content ?? "", events);
+      return parseSTRes(res?.choices?.[0]?.message?.content ?? "");
     case OPT_TRANS_GEMINI:
-      return parseSTRes(
-        res?.candidates?.[0]?.content?.parts?.[0]?.text ?? "",
-        events
-      );
+      return parseSTRes(res?.candidates?.[0]?.content?.parts?.[0]?.text ?? "");
     case OPT_TRANS_CLAUDE:
-      return parseSTRes(res?.content?.[0]?.text ?? "", events);
+      return parseSTRes(res?.content?.[0]?.text ?? "");
     case OPT_TRANS_CUSTOMIZE:
       return res;
     default:

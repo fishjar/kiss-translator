@@ -1,20 +1,9 @@
 import { logger } from "../libs/log.js";
-import { truncateWords, throttle } from "../libs/utils.js";
+import { truncateWords, throttle, decodeHTMLEntities } from "../libs/utils.js";
 import { apiTranslate } from "../apis/index.js";
 import { apiMicrosoftDict } from "../apis/index.js";
 import { trustedTypesHelper } from "../libs/trustedTypes.js";
 import { isMobile } from "../libs/mobile.js";
-
-const decodeHTMLEntities = (str) => {
-  if (!str || typeof str !== "string") return str;
-  return str
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#x27;/g, "'")
-    .replace(/&#39;/g, "'");
-};
 
 // 添加CSS样式用于高亮显示悬停的单词
 const addWordHoverStyles = () => {
