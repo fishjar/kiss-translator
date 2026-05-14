@@ -200,9 +200,9 @@ export const DEFAULT_SETTING = {
   langDetector: "-", // 远程语言识别服务
   mouseHoverSetting: DEFAULT_MOUSE_HOVER_SETTING, // 鼠标悬停翻译
   preInit: true, // 是否预加载脚本
-  transAllnow: false, // 旧版全局触发方式，仅用于迁移接口配置
+  transAllnow: false, // 旧版全局触发方式，供未设置接口配置时回退
   subtitleSetting: DEFAULT_SUBTITLE_SETTING, // 字幕设置
   logLevel: LogLevel.INFO.value, // 日志级别
-  rootMargin: 500, // 旧版全局滚动提前触发距离，仅用于迁移接口配置
+  rootMargin: 500, // 旧版全局滚动提前触发距离，供未设置接口配置时回退
   customStyles: DEFAULT_CUSTOM_STYLES, // 自定义样式列表
 };

@@ -440,11 +440,16 @@ export class Translator {
 
   get #rootMargin() {
     const apiValue = this.#apisMap.get(this.#rule.apiSlug)?.rootMargin;
-    if (apiValue !== undefined && apiValue !== "") {
-      return apiValue;
-    }
+    const legacyValue = this.#setting.rootMargin;
+    const value =
+      apiValue !== undefined && apiValue !== ""
+        ? apiValue
+        : legacyValue !== undefined && legacyValue !== ""
+          ? legacyValue
+          : 500;
+    const rootMargin = Number(value);
 
-    return this.#setting.rootMargin ?? 500;
+    return Number.isFinite(rootMargin) ? rootMargin : 500;
   }
 
   // 占位符配置（包含正则）
@@ -1941,6 +1946,7 @@ export class Translator {
     this.#observedNodes = new WeakSet();
     this.#translationNodes = new WeakMap();
     this.#processedNodes = new WeakMap();
+    this.#io = this.#createIntersectionObserver();
   }
 
   // 开启鼠标悬停翻译

@@ -12,7 +12,6 @@ import {
   STOKEY_RULESCACHE_PREFIX,
   STOKEY_DISABLED_SUB_RULES,
   DEFAULT_SETTING,
-  DEFAULT_API_LIST,
   DEFAULT_RULES,
   DEFAULT_SYNC,
   BUILTIN_RULES,
@@ -93,50 +92,12 @@ export const storage = {
   // onChanged,
 };
 
-/**
- * 设置信息
- */
-export const normalizeSetting = (setting = {}) => {
-  const normalizedSetting = {
-    ...DEFAULT_SETTING,
-    ...(setting || {}),
-  };
-  const legacyTransAllnow =
-    normalizedSetting.transAllnow ?? DEFAULT_SETTING.transAllnow;
-  const legacyRootMargin =
-    normalizedSetting.rootMargin ?? DEFAULT_SETTING.rootMargin;
-  const defaultApisBySlug = new Map(
-    DEFAULT_API_LIST.map((api) => [api.apiSlug, api])
-  );
-  const defaultApisByType = new Map(
-    DEFAULT_API_LIST.map((api) => [api.apiType, api])
-  );
-  const transApis = Array.isArray(normalizedSetting.transApis)
-    ? normalizedSetting.transApis
-    : DEFAULT_SETTING.transApis;
-
-  return {
-    ...normalizedSetting,
-    transApis: transApis.map((api) => {
-      const defaultApi =
-        defaultApisBySlug.get(api.apiSlug) ||
-        defaultApisByType.get(api.apiType) ||
-        {};
-
-      return {
-        ...defaultApi,
-        ...api,
-        transAllnow: api.transAllnow ?? legacyTransAllnow,
-        rootMargin: api.rootMargin ?? legacyRootMargin,
-      };
-    }),
-  };
-};
-
 export const getSetting = () => getObj(STOKEY_SETTING);
 export const getSettingOld = () => getObj(STOKEY_SETTING_OLD);
-export const getSettingWithDefault = async () =>
-  normalizeSetting((await getSetting()) || {});
+export const getSettingWithDefault = async () => ({
+  ...DEFAULT_SETTING,
+  ...((await getSetting()) || {}),
+});
 export const setSetting = (val) => setObj(STOKEY_SETTING, val);
 export const putSetting = (obj) => putObj(STOKEY_SETTING, obj);
 

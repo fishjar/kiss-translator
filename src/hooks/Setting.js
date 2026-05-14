@@ -13,7 +13,7 @@ import {
   MSG_SET_LOGLEVEL,
 } from "../config";
 import { useStorage } from "./Storage";
-import { debounceSyncMeta, normalizeSetting } from "../libs/storage";
+import { debounceSyncMeta } from "../libs/storage";
 import Loading from "./Loading";
 import { logger } from "../libs/log";
 import { sendBgMsg } from "../libs/msg";
@@ -29,16 +29,11 @@ export function SettingProvider({ children, context }) {
   const isOptionsPage = useMemo(() => context === "options", [context]);
 
   const {
-    data: storedSetting,
+    data: setting,
     isLoading,
     update,
     reload,
   } = useStorage(STOKEY_SETTING, DEFAULT_SETTING, KV_SETTING_KEY);
-
-  const setting = useMemo(
-    () => normalizeSetting(storedSetting || DEFAULT_SETTING),
-    [storedSetting]
-  );
 
   useEffect(() => {
     if (typeof setting?.darkMode === "boolean") {
