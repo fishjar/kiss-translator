@@ -92,9 +92,6 @@ export const storage = {
   // onChanged,
 };
 
-/**
- * 设置信息
- */
 export const getSetting = () => getObj(STOKEY_SETTING);
 export const getSettingOld = () => getObj(STOKEY_SETTING_OLD);
 export const getSettingWithDefault = async () => ({
