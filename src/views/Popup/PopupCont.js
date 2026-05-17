@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import Stack from "@mui/material/Stack";
 import MenuItem from "@mui/material/MenuItem";
 import FormControlLabel from "@mui/material/FormControlLabel";
@@ -27,6 +27,8 @@ import { tryClearCaches } from "../../libs/cache";
 import { kissLog } from "../../libs/log";
 import { getDomainOptions, truncateMiddle } from "../../libs/url";
 import { useAllTextStyles } from "../../hooks/CustomStyles";
+import { isInBlacklist } from "../../libs/blacklist";
+import { useSetting } from "../../hooks/Setting";
 
 export default function PopupCont({
   rule,
@@ -38,11 +40,45 @@ export default function PopupCont({
   isContent = false,
 }) {
   const i18n = useI18n();
+  const { updateSetting } = useSetting();
   const [commands, setCommands] = useState({});
   const [domainOptions, setDomainOptions] = useState([]);
   const [selectedDomain, setSelectedDomain] = useState("");
   const [snackbar, setSnackbar] = useState({ open: false, message: "" });
   const { allTextStyles } = useAllTextStyles();
+
+  const [currentHref, setCurrentHref] = useState("");
+
+  const isInCurrentBlacklist = useMemo(() => {
+    if (!selectedDomain || !setting.blacklist) return false;
+    return isInBlacklist(currentHref, setting.blacklist);
+  }, [selectedDomain, setting.blacklist, currentHref]);
+
+  const handleAddToBlacklist = useCallback(() => {
+    if (!selectedDomain) return;
+    const blacklist = setting.blacklist || "";
+    const newBlacklist = blacklist ? `${blacklist}\n${selectedDomain}` : selectedDomain;
+    updateSetting((pre) => ({ ...pre, blacklist: newBlacklist }));
+    setSnackbar({
+      open: true,
+      message: `${i18n("add_to_blacklist")}: ${selectedDomain}`,
+    });
+  }, [selectedDomain, setting.blacklist, updateSetting, i18n]);
+
+  const handleRemoveFromBlacklist = useCallback(() => {
+    if (!selectedDomain) return;
+    const blacklist = setting.blacklist || "";
+    const newList = blacklist
+      .split(/\n|,/)
+      .map((url) => url.trim())
+      .filter((url) => url !== selectedDomain)
+      .join("\n");
+    updateSetting((pre) => ({ ...pre, blacklist: newList }));
+    setSnackbar({
+      open: true,
+      message: `${i18n("remove_from_blacklist")}: ${selectedDomain}`,
+    });
+  }, [selectedDomain, setting.blacklist, updateSetting, i18n]);
 
   const handleTransToggle = async (e) => {
     try {
@@ -170,6 +206,7 @@ export default function PopupCont({
         }
 
         if (href && typeof href === "string") {
+          setCurrentHref(href);
           const options = getDomainOptions(href);
           setDomainOptions(options);
           if (options.length > 0) {
@@ -471,6 +508,13 @@ export default function PopupCont({
             disabled={domainOptions.length === 0}
           >
             {i18n("save_rule")}
+          </Button>
+          <Button
+            variant="text"
+            onClick={isInCurrentBlacklist ? handleRemoveFromBlacklist : handleAddToBlacklist}
+            disabled={domainOptions.length === 0}
+          >
+            {i18n(isInCurrentBlacklist ? "remove_from_blacklist" : "add_to_blacklist")}
           </Button>
           <Button variant="text" onClick={handleClearCache}>
             {i18n("clear_cache")}

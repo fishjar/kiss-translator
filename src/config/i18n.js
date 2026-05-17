@@ -1789,6 +1789,20 @@ export const I18N = {
     ja: `ブラックリスト`,
     ko: `블랙리스트`,
   },
+  add_to_blacklist: {
+    zh: `加入黑名单`,
+    en: `Add to Blacklist`,
+    zh_TW: `加入黑名單`,
+    ja: `ブラックリストに追加`,
+    ko: `블랙리스트에 추가`,
+  },
+  remove_from_blacklist: {
+    zh: `移出黑名单`,
+    en: `Remove from Blacklist`,
+    zh_TW: `移出黑名單`,
+    ja: `ブラックリストから削除`,
+    ko: `블랙리스트에서 제거`,
+  },
   disabled_orilist: {
     zh: `禁用Origin名单`,
     en: `Disabled Origin List`,
