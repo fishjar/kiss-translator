@@ -40,7 +40,7 @@ export default function PopupCont({
   isContent = false,
 }) {
   const i18n = useI18n();
-  const { updateSetting } = useSetting();
+  const { setting: contextSetting, updateSetting } = useSetting();
   const [commands, setCommands] = useState({});
   const [domainOptions, setDomainOptions] = useState([]);
   const [selectedDomain, setSelectedDomain] = useState("");
@@ -49,26 +49,26 @@ export default function PopupCont({
 
   const [currentHref, setCurrentHref] = useState("");
 
+  const blacklistValue = contextSetting?.blacklist || "";
+
   const isInCurrentBlacklist = useMemo(() => {
-    if (!selectedDomain || !setting.blacklist) return false;
-    return isInBlacklist(currentHref, setting.blacklist);
-  }, [selectedDomain, setting.blacklist, currentHref]);
+    if (!selectedDomain || !blacklistValue) return false;
+    return isInBlacklist(currentHref, blacklistValue);
+  }, [selectedDomain, blacklistValue, currentHref]);
 
   const handleAddToBlacklist = useCallback(() => {
     if (!selectedDomain) return;
-    const blacklist = setting.blacklist || "";
-    const newBlacklist = blacklist ? `${blacklist}\n${selectedDomain}` : selectedDomain;
+    const newBlacklist = blacklistValue ? `${blacklistValue}\n${selectedDomain}` : selectedDomain;
     updateSetting((pre) => ({ ...pre, blacklist: newBlacklist }));
     setSnackbar({
       open: true,
       message: `${i18n("add_to_blacklist")}: ${selectedDomain}`,
     });
-  }, [selectedDomain, setting.blacklist, updateSetting, i18n]);
+  }, [selectedDomain, blacklistValue, updateSetting, i18n]);
 
   const handleRemoveFromBlacklist = useCallback(() => {
     if (!selectedDomain) return;
-    const blacklist = setting.blacklist || "";
-    const newList = blacklist
+    const newList = blacklistValue
       .split(/\n|,/)
       .map((url) => url.trim())
       .filter((url) => url !== selectedDomain)
@@ -78,7 +78,7 @@ export default function PopupCont({
       open: true,
       message: `${i18n("remove_from_blacklist")}: ${selectedDomain}`,
     });
-  }, [selectedDomain, setting.blacklist, updateSetting, i18n]);
+  }, [selectedDomain, blacklistValue, updateSetting, i18n]);
 
   const handleTransToggle = async (e) => {
     try {
