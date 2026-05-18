@@ -1982,7 +1982,8 @@ export class Translator {
       this.#boundKeyDownHandler
     );
     const isSameShortcut =
-      JSON.stringify(mouseHoverKey) === JSON.stringify(mouseHoverKey2);
+      mouseHoverKey.length === mouseHoverKey2.length &&
+      mouseHoverKey.every((key, idx) => key === mouseHoverKey2[idx]);
     this.#removeKeydownHandler2 =
       mouseHoverKey2.length > 0 && !isSameShortcut
         ? shortcutRegister(mouseHoverKey2, this.#boundKeyDownHandler)
