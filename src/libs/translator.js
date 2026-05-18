@@ -1977,15 +1977,18 @@ export class Translator {
       // mouseHoverKey = DEFAULT_MOUSEHOVER_KEY;
       return;
     }
-    this.#removeKeydownHandler = shortcutRegister(
-      mouseHoverKey,
-      this.#boundKeyDownHandler
-    );
+    const hasPrimaryShortcut = mouseHoverKey.length > 0;
+    const hasAltShortcut = mouseHoverKey2.length > 0;
+    this.#removeKeydownHandler = hasPrimaryShortcut
+      ? shortcutRegister(mouseHoverKey, this.#boundKeyDownHandler)
+      : undefined;
     const isSameShortcut =
+      hasPrimaryShortcut &&
+      hasAltShortcut &&
       mouseHoverKey.length === mouseHoverKey2.length &&
       mouseHoverKey.every((key, idx) => key === mouseHoverKey2[idx]);
     this.#removeKeydownHandler2 =
-      mouseHoverKey2.length > 0 && !isSameShortcut
+      hasAltShortcut && !isSameShortcut
         ? shortcutRegister(mouseHoverKey2, this.#boundKeyDownHandler)
         : undefined;
   }
