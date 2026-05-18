@@ -162,6 +162,7 @@ export const DEFAULT_MOUSE_HOVER_SETTING = {
   useMouseHover: false, // 是否启用鼠标悬停翻译
   blacklist: "", // 鼠标悬停翻译黑名单
   mouseHoverKey: DEFAULT_MOUSEHOVER_KEY, // 鼠标悬停翻译组合键
+  mouseHoverKey2: [], // 鼠标悬停翻译备用快捷键
 };
 
 export const DEFAULT_SETTING = {
