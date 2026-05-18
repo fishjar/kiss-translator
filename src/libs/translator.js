@@ -325,6 +325,7 @@ export class Translator {
   #skipMoNodes = new WeakSet(); // 忽略变化的节点
 
   #removeKeydownHandler; // 快捷键清理函数
+  #removeKeydownHandler2; // 备用快捷键清理函数
   #hoveredNode = null; // 存储当前悬停的可翻译节点
   #boundMouseMoveHandler; // 鼠标事件
   #boundKeyDownHandler; // 键盘事件
@@ -810,11 +811,14 @@ export class Translator {
       }
       this.#hoveredNode = foundNode || startNode;
 
-      const { mouseHoverKey } = this.#setting.mouseHoverSetting;
-      if (mouseHoverKey.length === 0 && !this.#isInitialized) {
+      const { mouseHoverKey = [], mouseHoverKey2 = [] } =
+        this.#setting.mouseHoverSetting;
+      const hasMouseHoverShortcut =
+        mouseHoverKey.length > 0 || mouseHoverKey2.length > 0;
+      if (!hasMouseHoverShortcut && !this.#isInitialized) {
         this.#init();
       }
-      if (mouseHoverKey.length === 0 && foundNode) {
+      if (!hasMouseHoverShortcut && foundNode) {
         this.#toggleTargetNode(foundNode);
       }
     }, 100);
@@ -1967,15 +1971,26 @@ export class Translator {
     this.#setting.mouseHoverSetting.useMouseHover = true;
 
     document.addEventListener("mousemove", this.#boundMouseMoveHandler);
-    const { mouseHoverKey } = this.#setting.mouseHoverSetting;
-    if (mouseHoverKey.length === 0) {
+    const { mouseHoverKey = [], mouseHoverKey2 = [] } =
+      this.#setting.mouseHoverSetting;
+    if (mouseHoverKey.length === 0 && mouseHoverKey2.length === 0) {
       // mouseHoverKey = DEFAULT_MOUSEHOVER_KEY;
       return;
     }
-    this.#removeKeydownHandler = shortcutRegister(
-      mouseHoverKey,
-      this.#boundKeyDownHandler
-    );
+    const hasPrimaryShortcut = mouseHoverKey.length > 0;
+    const hasAltShortcut = mouseHoverKey2.length > 0;
+    this.#removeKeydownHandler = hasPrimaryShortcut
+      ? shortcutRegister(mouseHoverKey, this.#boundKeyDownHandler)
+      : undefined;
+    const isSameShortcut =
+      hasPrimaryShortcut &&
+      hasAltShortcut &&
+      mouseHoverKey.length === mouseHoverKey2.length &&
+      mouseHoverKey.every((key, idx) => key === mouseHoverKey2[idx]);
+    this.#removeKeydownHandler2 =
+      hasAltShortcut && !isSameShortcut
+        ? shortcutRegister(mouseHoverKey2, this.#boundKeyDownHandler)
+        : undefined;
   }
 
   // 禁用鼠标悬停翻译
@@ -1986,6 +2001,7 @@ export class Translator {
 
     document.removeEventListener("mousemove", this.#boundMouseMoveHandler);
     this.#removeKeydownHandler?.();
+    this.#removeKeydownHandler2?.();
   }
 
   #enableTransOnlyRevert() {

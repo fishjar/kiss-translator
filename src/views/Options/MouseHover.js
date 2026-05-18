@@ -20,6 +20,12 @@ export default function MouseHoverSetting() {
     },
     [updateMouseHoverSetting]
   );
+  const handleAltShortcutInput = useCallback(
+    (val) => {
+      updateMouseHoverSetting({ mouseHoverKey2: val });
+    },
+    [updateMouseHoverSetting]
+  );
 
   const handleBlacklistChange = useCallback(
     (e) => {
@@ -32,6 +38,7 @@ export default function MouseHoverSetting() {
   const {
     useMouseHover = true,
     mouseHoverKey = DEFAULT_MOUSEHOVER_KEY,
+    mouseHoverKey2 = [],
     blacklist = "",
   } = mouseHoverSetting;
 
@@ -60,6 +67,14 @@ export default function MouseHoverSetting() {
                 value={mouseHoverKey}
                 onChange={handleShortcutInput}
                 label={i18n("trigger_trans_shortcut")}
+                helperText={i18n("mousehover_key_help")}
+              />
+            </Grid>
+            <Grid item xs={12} sm={12} md={4} lg={4}>
+              <ShortcutInput
+                value={mouseHoverKey2}
+                onChange={handleAltShortcutInput}
+                label={`${i18n("trigger_trans_shortcut")} (Alternative)`}
                 helperText={i18n("mousehover_key_help")}
               />
             </Grid>
