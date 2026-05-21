@@ -47,6 +47,7 @@ import {
   defaultNobatchPrompt,
   defaultNobatchUserPrompt,
   defaultSystemPrompt,
+  defaultSystemPromptJsonFinalTranslation,
   defaultSystemPromptXml,
   defaultSystemPromptLines,
   THINKING_PARAM_MAP,
@@ -163,6 +164,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi, onCollapse }) {
   const handleUpdateSystemPrompt = (e) => {
     const promptMap = {
       json: defaultSystemPrompt,
+      json_finaltranslation: defaultSystemPromptJsonFinalTranslation,
       xml: defaultSystemPromptXml,
       textlines: defaultSystemPromptLines,
     };
@@ -226,6 +228,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi, onCollapse }) {
     useBatchFetch = false,
     useStream = false,
     streamRenderMode = "disabled",
+    useJsonResponseFormat = false,
     transAllnow = false,
     rootMargin = 500,
     batchInterval = DEFAULT_BATCH_INTERVAL,
@@ -245,6 +248,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi, onCollapse }) {
   } = formData;
 
   const thinkingParam = THINKING_PARAM_MAP[apiType];
+  const isOpenAICompatible = API_SPE_TYPES.openaiCompatible.has(apiType);
 
   const keyHelper = useMemo(
     () => (API_SPE_TYPES.mulkeys.has(apiType) ? i18n("mulkeys_help") : ""),
@@ -625,6 +629,27 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi, onCollapse }) {
               </Grid>
             </>
           )}
+
+          {isOpenAICompatible && useBatchFetch && (
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                name="useJsonResponseFormat"
+                value={useJsonResponseFormat}
+                label={i18n("use_json_response_format", "JSON Response Format")}
+                onChange={handleChange}
+                helperText={i18n(
+                  "use_json_response_format_helper",
+                  "Injects OpenAI-compatible json_schema response_format."
+                )}
+              >
+                <MenuItem value={false}>{i18n("disable")}</MenuItem>
+                <MenuItem value={true}>{i18n("enable")}</MenuItem>
+              </TextField>
+            </Grid>
+          )}
         </Grid>
       </Box>
 
@@ -806,6 +831,17 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi, onCollapse }) {
                         onClick={handleUpdateSystemPrompt}
                       >
                         {i18n("json_output")}
+                      </Link>
+                      <Link
+                        component="button"
+                        sx={{ margin: "0 1em" }}
+                        data-output="json_finaltranslation"
+                        onClick={handleUpdateSystemPrompt}
+                      >
+                        {i18n(
+                          "json_finaltranslation_output",
+                          "JSON finaltranslation"
+                        )}
                       </Link>
                       <Link
                         component="button"

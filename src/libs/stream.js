@@ -186,10 +186,13 @@ export function createStreamingJsonParser() {
       value &&
       typeof value === "object" &&
       typeof value.id === "number" &&
-      (typeof value.text === "string" || typeof value.translation === "string")
+      (typeof value.finaltranslation === "string" ||
+        typeof value.text === "string" ||
+        typeof value.translation === "string")
     ) {
       const id = value.id;
-      const translation = value.text || value.translation || "";
+      const translation =
+        value.finaltranslation ?? value.text ?? value.translation ?? "";
       const sourceLanguage = value.sourceLanguage || value.src || "";
       pending.push({ id, translation: [translation, sourceLanguage] });
     }
@@ -284,8 +287,7 @@ export function createRealtimeStreamParser() {
       /<(t|item|seg)\s+id="\d+"(?:\s[^>]*)?>[\s\S]*?<\/\1>/gi,
       ""
     );
-    const openRegex =
-      /<(t|item|seg)\s+id="(\d+)"(?:\s[^>]*)?>([^]*)$/;
+    const openRegex = /<(t|item|seg)\s+id="(\d+)"(?:\s[^>]*)?>([^]*)$/;
     const openMatch = remaining.match(openRegex);
     if (openMatch) {
       const id = parseInt(openMatch[2], 10);
