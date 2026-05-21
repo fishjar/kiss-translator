@@ -186,7 +186,7 @@ const genSubtitlePrompt = ({
     .replaceAll(INPUT_PLACE_TO_LANG, toLang);
 };
 
-const parseAIRes = (raw, useBatchFetch = true) => {
+const parseAIRes = (raw, useBatchFetch = true, useJsonResponseFormat = false) => {
   if (!raw) {
     return [];
   }
@@ -205,6 +205,20 @@ const parseAIRes = (raw, useBatchFetch = true) => {
   };
 
   if (!useBatchFetch) {
+    if (useJsonResponseFormat) {
+      try {
+        const content = stripMarkdownCodeBlock(raw).trim();
+        const jsonStr = getJsonString(content);
+        if (jsonStr) {
+          const parsed = JSON.parse(jsonStr);
+          const text =
+            parsed.finaltranslation ?? parsed.text ?? parsed.translation ?? raw;
+          return [[text, parsed.sourceLanguage]];
+        }
+      } catch {
+        // fallback to raw
+      }
+    }
     return [[raw]];
   }
 
@@ -398,11 +412,7 @@ const injectJsonResponseFormat = (
   body,
   { apiType, useJsonResponseFormat, useBatchFetch }
 ) => {
-  if (
-    !useBatchFetch ||
-    !useJsonResponseFormat ||
-    !API_SPE_TYPES.openaiCompatible.has(apiType)
-  ) {
+  if (!useJsonResponseFormat || !API_SPE_TYPES.openaiCompatible.has(apiType)) {
     return;
   }
 
@@ -1157,6 +1167,7 @@ export const parseTransRes = async (
     userMsg,
     apiType,
     useBatchFetch,
+    useJsonResponseFormat,
   }
 ) => {
   // Run response hook.
@@ -1251,13 +1262,13 @@ export const parseTransRes = async (
           content: modelMsg.content,
         });
       }
-      return parseAIRes(modelMsg?.content, useBatchFetch);
+      return parseAIRes(modelMsg?.content, useBatchFetch, useJsonResponseFormat);
     case OPT_TRANS_GEMINI:
       modelMsg = res?.candidates?.[0]?.content;
       if (history && userMsg && modelMsg) {
         history.add(userMsg, modelMsg);
       }
-      return parseAIRes(modelMsg?.parts?.[0]?.text ?? "", useBatchFetch);
+      return parseAIRes(modelMsg?.parts?.[0]?.text ?? "", useBatchFetch, useJsonResponseFormat);
     case OPT_TRANS_CLAUDE:
       modelMsg = { role: res?.role, content: res?.content?.text };
       if (history && userMsg && modelMsg) {
@@ -1266,7 +1277,7 @@ export const parseTransRes = async (
           content: modelMsg.content,
         });
       }
-      return parseAIRes(res?.content?.[0]?.text ?? "", useBatchFetch);
+      return parseAIRes(res?.content?.[0]?.text ?? "", useBatchFetch, useJsonResponseFormat);
     case OPT_TRANS_CLOUDFLAREAI:
       return [[res?.result?.translated_text]];
     case OPT_TRANS_OLLAMA:
@@ -1285,7 +1296,7 @@ export const parseTransRes = async (
           content: modelMsg.content,
         });
       }
-      return parseAIRes(modelMsg?.content, useBatchFetch);
+      return parseAIRes(modelMsg?.content, useBatchFetch, useJsonResponseFormat);
     case OPT_TRANS_CUSTOMIZE:
       if (useBatchFetch) {
         return (res?.translations ?? res)?.map((item) => [item.text, item.src]);

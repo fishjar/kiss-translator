@@ -630,7 +630,7 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi, onCollapse }) {
             </>
           )}
 
-          {isOpenAICompatible && useBatchFetch && (
+          {isOpenAICompatible && (
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
