@@ -226,7 +226,14 @@ export function Menus({
     return i18n("processing_subtitles");
   }, [progressed, i18n]);
 
-  const { segSlug, skipAd, isBilingual, showOrigin, aiContextSlug } = formData;
+  const {
+    segSlug,
+    skipAd,
+    isBilingual,
+    blurTranslation,
+    showOrigin,
+    aiContextSlug,
+  } = formData;
 
   return (
     <div
@@ -263,6 +270,12 @@ export function Menus({
         name="isBilingual"
         value={isBilingual}
         label={i18n("is_bilingual_view")}
+      />
+      <Switch
+        onChange={handleChange}
+        name="blurTranslation"
+        value={blurTranslation}
+        label={i18n("is_blur_translation")}
       />
       <Switch
         onChange={handleChange}

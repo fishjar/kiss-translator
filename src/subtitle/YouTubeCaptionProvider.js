@@ -212,7 +212,7 @@ class YouTubeCaptionProvider {
 
     this.#updateMenuProps(); // 更新菜单 props
 
-    if (name === "isBilingual") {
+    if (name === "isBilingual" || name === "blurTranslation") {
       this.#managerInstance?.updateSetting({ [name]: value });
     } else if (name === "segSlug") {
       this.#reProcessEvents();
@@ -260,6 +260,7 @@ class YouTubeCaptionProvider {
       segSlug,
       skipAd,
       isBilingual,
+      blurTranslation,
       showOrigin,
       aiContextSlug,
     } = this.#setting;
@@ -273,6 +274,7 @@ class YouTubeCaptionProvider {
         segSlug,
         skipAd,
         isBilingual,
+        blurTranslation,
         showOrigin,
         aiContextSlug,
       },

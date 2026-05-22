@@ -808,6 +808,17 @@ export class BilingualSubtitleManager {
         this.#captionWindowEl.replaceChildren(p2);
       }
 
+      if (this.#setting.blurTranslation) {
+        const blurValue = "blur(6px)";
+        p2.style.setProperty("filter", blurValue);
+        p2.addEventListener("pointerenter", () => {
+          p2.style.removeProperty("filter");
+        });
+        p2.addEventListener("pointerleave", () => {
+          p2.style.setProperty("filter", blurValue);
+        });
+      }
+
       if (isHoverLookupEnabled) {
         this.#attachSpanListeners();
       }
