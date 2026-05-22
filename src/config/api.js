@@ -202,6 +202,20 @@ export const API_SPE_TYPES = {
     OPT_TRANS_OPENROUTER,
     OPT_TRANS_EPHONEAI,
   ]),
+  // OpenAI compatible chat completions
+  openaiCompatible: new Set([
+    OPT_TRANS_OPENAI,
+    OPT_TRANS_DEEPSEEK,
+    OPT_TRANS_SILICONFLOW,
+    OPT_TRANS_XIAOMIMIMO,
+    OPT_TRANS_ALIYUNBAILIAN,
+    OPT_TRANS_CEREBRAS,
+    OPT_TRANS_ZAI,
+    OPT_TRANS_EPHONEAI,
+    OPT_TRANS_GEMINI_2,
+    OPT_TRANS_OPENROUTER,
+    OPT_TRANS_OLLAMA,
+  ]),
   // 赞助商
   sponsors: new Set([OPT_TRANS_EPHONEAI]),
 };
@@ -538,6 +552,25 @@ Output: {"translations":[{"id":1,"text":"一个<b>React</b>组件","sourceLangua
 
 Fail-safe: On any error, return {"translations":[]}.`;
 
+export const defaultSystemPromptJsonFinalTranslation = `Act as a translation API. Output one raw JSON object only. No markdown, no code fences, no extra text.
+
+The application displays only finaltranslation. You may put notes, checks, or reasoning in other fields, but never put them in finaltranslation.
+
+Input:
+{"targetLanguage":"<lang>","segments":[{"id":1,"text":"..."}],"glossary":{"sourceTerm":"targetTerm"},"tone":"<formal|casual>"}
+
+Output:
+{"translations":[{"id":1,"finaltranslation":"...","sourceLanguage":"<detected>","reasoning":""}]}
+
+Rules:
+1. Keep id, order, and count of segments.
+2. finaltranslation must contain only the final polished translation.
+3. Preserve whitespace, HTML entities, and HTML-like tags. Translate inner text only.
+4. Follow glossary first. If a glossary value is empty, keep the source term unchanged.
+5. Do not translate code, placeholders, or text inside backticks.
+6. Use reasoning only for non-visible notes if needed; otherwise set it to "".
+7. On error, return {"translations":[]}.`;
+
 export const defaultSystemPromptXml = `Act as a translation API. Output raw XML-like format only. No Markdown fences (xml). No conversational filler.
 
 Input:
@@ -686,6 +719,7 @@ const defaultApi = {
   rootMargin: 500, // 滚动加载提前触发距离
   useContext: false, // 是否启用智能上下文
   contextSize: DEFAULT_CONTEXT_SIZE, // 智能上下文保留会话数
+  useJsonResponseFormat: false,
   temperature: 0.0,
   maxTokens: 20480,
   thinkingMode: "auto", // 思考模式：auto | enabled | disabled

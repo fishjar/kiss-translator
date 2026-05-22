@@ -370,6 +370,20 @@ export const I18N = {
     ja: `各APIの思考パラメータは統一されていません。エラーが発生した場合は「APIデフォルト」を使用してください。`,
     ko: `API별 사고 매개변수가 통일되어 있지 않습니다. 오류 발생 시 "API 기본값"을 사용하세요.`,
   },
+  use_json_response_format: {
+    zh: `JSON Response Format`,
+    en: `JSON Response Format`,
+    zh_TW: `JSON Response Format`,
+    ja: `JSON Response Format`,
+    ko: `JSON Response Format`,
+  },
+  use_json_response_format_helper: {
+    zh: `Inject OpenAI-compatible json_schema response_format.`,
+    en: `Inject OpenAI-compatible json_schema response_format.`,
+    zh_TW: `Inject OpenAI-compatible json_schema response_format.`,
+    ja: `Inject OpenAI-compatible json_schema response_format.`,
+    ko: `Inject OpenAI-compatible json_schema response_format.`,
+  },
   thinking_effort: {
     zh: `思考强度`,
     en: `Thinking Effort`,
@@ -2366,6 +2380,13 @@ export const I18N = {
     zh_TW: `點選切換「JSON 格式」`,
     ja: `クリックして「JSON 形式」に切り替え`,
     ko: `클릭하여 "JSON 형식"으로 전환`,
+  },
+  json_finaltranslation_output: {
+    zh: `JSON finaltranslation`,
+    en: `JSON finaltranslation`,
+    zh_TW: `JSON finaltranslation`,
+    ja: `JSON finaltranslation`,
+    ko: `JSON finaltranslation`,
   },
   xml_output: {
     zh: `点击切换 “XML 格式“`,

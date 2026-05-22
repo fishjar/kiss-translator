@@ -42,6 +42,7 @@ import {
   INPUT_PLACE_TO_LANG,
   INPUT_PLACE_FROM_LANG,
   INPUT_PLACE_GLOSSARY,
+  defaultSystemPromptJsonFinalTranslation,
   defaultSystemPromptXml,
   defaultSystemPromptLines,
   INPUT_PLACE_SUMMARY,
@@ -74,7 +75,7 @@ import { getDocInfo } from "../libs/docInfo";
 const keyMap = new Map();
 const urlMap = new Map();
 
-// 轮询key/url
+// Rotate key/url
 const keyPick = (apiSlug, key = "", cacheMap) => {
   const keys = key
     .split(/\n|,/)
@@ -117,8 +118,8 @@ const genUserPrompt = ({
   nobatchUserPrompt,
   useBatchFetch,
   tone,
-  glossary = {}, // 规则中的AI专业术语
-  aiTerms = "", // 接口中的AI专业术语
+  glossary = {},
+  aiTerms = "",
   from,
   to,
   fromLang,
@@ -135,7 +136,7 @@ const genUserPrompt = ({
     title && (promptObj.title = title);
     description && (promptObj.description = description);
 
-    // 合并规则与接口中的AI专业术语
+    // Merge glossary from rules and API settings.
     if (aiTerms) {
       const aiGlossary = parseAITerms(aiTerms);
       glossary = { ...glossary, ...aiGlossary };
@@ -185,54 +186,72 @@ const genSubtitlePrompt = ({
     .replaceAll(INPUT_PLACE_TO_LANG, toLang);
 };
 
-const parseAIRes = (raw, useBatchFetch = true) => {
+const parseAIRes = (raw, useBatchFetch = true, useJsonResponseFormat = false) => {
   if (!raw) {
     return [];
   }
 
+  const getJsonString = (content) => {
+    const objectStart = content.indexOf("{");
+    const arrayStart = content.indexOf("[");
+    const starts = [objectStart, arrayStart].filter((index) => index !== -1);
+    if (starts.length === 0) return "";
+
+    const start = Math.min(...starts);
+    const closeChar = content[start] === "{" ? "}" : "]";
+    const end = content.lastIndexOf(closeChar);
+
+    return end > start ? content.substring(start, end + 1) : "";
+  };
+
   if (!useBatchFetch) {
+    if (useJsonResponseFormat) {
+      try {
+        const content = stripMarkdownCodeBlock(raw).trim();
+        const jsonStr = getJsonString(content);
+        if (jsonStr) {
+          const parsed = JSON.parse(jsonStr);
+          const text =
+            parsed.finaltranslation ?? parsed.text ?? parsed.translation ?? raw;
+          return [[text, parsed.sourceLanguage]];
+        }
+      } catch {
+        // fallback to raw
+      }
+    }
     return [[raw]];
   }
-
-  // try {
-  //   const jsonString = extractJson(raw);
-  //   if (!jsonString) return [];
-
-  //   const data = JSON.parse(jsonString);
-  //   if (Array.isArray(data.translations)) {
-  //     // todo: 考虑序号id可能会打乱
-  //     return data.translations.map((item) => [
-  //       item?.text ?? "",
-  //       item?.sourceLanguage ?? "",
-  //     ]);
-  //   }
-  // } catch (err) {
-  //   kissLog("parse AI Res", err);
-  // }
-  // return [];
 
   let content = stripMarkdownCodeBlock(raw).trim();
 
   // JSON
   try {
-    const start = content.search(/(\{|\[)/);
-    const end = content.lastIndexOf(content.includes("}") ? "}" : "]");
-
-    if (start > -1 && end > -1) {
-      const jsonStr = content.substring(start, end + 1);
+    const jsonStr = getJsonString(content);
+    if (jsonStr) {
       const parsed = JSON.parse(jsonStr);
 
       const list = Array.isArray(parsed)
         ? parsed
         : parsed.translations || (parsed.result ? [parsed.result] : [parsed]);
 
-      if (
-        list.length > 0 &&
-        (list[0].text !== undefined || list[0].translations)
-      ) {
+      if (Array.isArray(parsed?.translations) && list.length === 0) {
+        return [];
+      }
+
+      const hasTranslationField = list.some(
+        (item) =>
+          item &&
+          (item.finaltranslation !== undefined ||
+            item.text !== undefined ||
+            item.translation !== undefined)
+      );
+
+      if (list.length > 0 && hasTranslationField) {
         return list.map((item) => [
-          decodeHTMLEntities(String(item.text || "")),
-          String(item.sourceLanguage || ""),
+          decodeHTMLEntities(
+            String(item.finaltranslation ?? item.text ?? item.translation ?? "")
+          ),
+          String(item.sourceLanguage || item.src || ""),
         ]);
       }
     }
@@ -259,7 +278,7 @@ const parseAIRes = (raw, useBatchFetch = true) => {
     }
   }
 
-  // 纯文本换行
+  // Plain text lines
   return content.split("\n").map((line) => {
     const pipeMatch = line.match(/^\d+\s*\|\s*(.*)/);
     if (pipeMatch) {
@@ -290,7 +309,13 @@ const parseSTRes = (raw) => {
   return [];
 };
 
-const siliconflowEffortMap = { max: 32768, high: 16384, medium: 8192, low: 4096, minimal: 2048 };
+const siliconflowEffortMap = {
+  max: 32768,
+  high: 16384,
+  medium: 8192,
+  low: 4096,
+  minimal: 2048,
+};
 
 const injectThinking = (body, { apiType, thinkingMode, thinkingEffort }) => {
   if (thinkingMode === "auto") return;
@@ -302,7 +327,9 @@ const injectThinking = (body, { apiType, thinkingMode, thinkingEffort }) => {
 
   switch (param.type) {
     case "deepseek":
-      body.thinking = { type: thinkingMode === "enabled" ? "enabled" : "disabled" };
+      body.thinking = {
+        type: thinkingMode === "enabled" ? "enabled" : "disabled",
+      };
       if (thinkingMode === "enabled" && hasEffort) {
         body.reasoning_effort = thinkingEffort;
       }
@@ -334,6 +361,62 @@ const injectThinking = (body, { apiType, thinkingMode, thinkingEffort }) => {
     default:
       break;
   }
+};
+
+const getJsonResponseFormatSchema = ({ useBatchFetch }) => ({
+  type: "json_schema",
+  json_schema: {
+    name: useBatchFetch ? "kiss_batch_translation" : "kiss_translation",
+    strict: true,
+    schema: useBatchFetch
+      ? {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            translations: {
+              type: "array",
+              items: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  id: { type: "integer" },
+                  finaltranslation: { type: "string" },
+                  sourceLanguage: { type: "string" },
+                  reasoning: { type: "string" },
+                },
+                required: [
+                  "id",
+                  "finaltranslation",
+                  "sourceLanguage",
+                  "reasoning",
+                ],
+              },
+            },
+          },
+          required: ["translations"],
+        }
+      : {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            finaltranslation: { type: "string" },
+            sourceLanguage: { type: "string" },
+            reasoning: { type: "string" },
+          },
+          required: ["finaltranslation", "sourceLanguage", "reasoning"],
+        },
+  },
+});
+
+const injectJsonResponseFormat = (
+  body,
+  { apiType, useJsonResponseFormat, useBatchFetch }
+) => {
+  if (!useJsonResponseFormat || !API_SPE_TYPES.openaiCompatible.has(apiType)) {
+    return;
+  }
+
+  body.response_format = getJsonResponseFormatSchema({ useBatchFetch });
 };
 
 const genGoogle = ({ texts, from, to, url, key }) => {
@@ -484,6 +567,8 @@ const genOpenAI = ({
   maxTokens,
   hisMsgs = [],
   useStream = false,
+  useBatchFetch,
+  useJsonResponseFormat,
   apiType,
   thinkingMode,
   thinkingEffort,
@@ -508,6 +593,11 @@ const genOpenAI = ({
   };
 
   injectThinking(body, { apiType, thinkingMode, thinkingEffort });
+  injectJsonResponseFormat(body, {
+    apiType,
+    useJsonResponseFormat,
+    useBatchFetch,
+  });
 
   const headers = {
     "Content-type": "application/json",
@@ -535,7 +625,7 @@ const genGemini = ({
     .replaceAll(INPUT_PLACE_MODEL, model)
     .replaceAll(INPUT_PLACE_KEY, key);
 
-  // 流式传输使用 streamGenerateContent 端点
+  // Streaming uses the streamGenerateContent endpoint.
   if (useStream) {
     url = url.replace(":generateContent", ":streamGenerateContent");
     url += (url.includes("?") ? "&" : "?") + "alt=sse";
@@ -611,6 +701,8 @@ const genGemini2 = ({
   hisMsgs = [],
   useStream = false,
   apiType,
+  useBatchFetch,
+  useJsonResponseFormat,
   thinkingMode,
   thinkingEffort,
 }) => {
@@ -634,6 +726,11 @@ const genGemini2 = ({
   };
 
   injectThinking(body, { apiType, thinkingMode, thinkingEffort });
+  injectJsonResponseFormat(body, {
+    apiType,
+    useJsonResponseFormat,
+    useBatchFetch,
+  });
 
   const headers = {
     "Content-type": "application/json",
@@ -698,6 +795,9 @@ const genOpenRouter = ({
   maxTokens,
   hisMsgs = [],
   useStream = false,
+  apiType,
+  useBatchFetch,
+  useJsonResponseFormat,
   thinkingMode,
   thinkingEffort,
 }) => {
@@ -720,7 +820,16 @@ const genOpenRouter = ({
     stream: useStream,
   };
 
-  injectThinking(body, { apiType: OPT_TRANS_OPENROUTER, thinkingMode, thinkingEffort });
+  injectThinking(body, {
+    apiType: OPT_TRANS_OPENROUTER,
+    thinkingMode,
+    thinkingEffort,
+  });
+  injectJsonResponseFormat(body, {
+    apiType: apiType || OPT_TRANS_OPENROUTER,
+    useJsonResponseFormat,
+    useBatchFetch,
+  });
 
   const headers = {
     "Content-type": "application/json",
@@ -740,6 +849,9 @@ const genOllama = ({
   maxTokens,
   hisMsgs = [],
   useStream = false,
+  apiType,
+  useBatchFetch,
+  useJsonResponseFormat,
   thinkingMode,
   thinkingEffort,
 }) => {
@@ -761,7 +873,16 @@ const genOllama = ({
     max_tokens: maxTokens,
   };
 
-  injectThinking(body, { apiType: OPT_TRANS_OLLAMA, thinkingMode, thinkingEffort });
+  injectThinking(body, {
+    apiType: OPT_TRANS_OLLAMA,
+    thinkingMode,
+    thinkingEffort,
+  });
+  injectJsonResponseFormat(body, {
+    apiType: apiType || OPT_TRANS_OLLAMA,
+    useJsonResponseFormat,
+    useBatchFetch,
+  });
   body.stream = useStream;
 
   const headers = {
@@ -862,7 +983,7 @@ const genInit = ({
 };
 
 /**
- * 构造翻译接口请求参数
+ * Build translation request parameters.
  * @param {*}
  * @returns
  */
@@ -931,7 +1052,7 @@ export const genTransReq = async ({ reqHook, ...args }) => {
           tone,
         });
 
-    // 上下文回退：当 prompt 模板缺少占位符时，追加 # Context 块
+    // Add missing context fields when the prompt template has no placeholders.
     if (hasExternalDocInfo) {
       const template = events
         ? subtitlePrompt
@@ -966,6 +1087,10 @@ export const genTransReq = async ({ reqHook, ...args }) => {
           glossary,
           aiTerms,
         });
+
+    if (events) {
+      args.useJsonResponseFormat = false;
+    }
   }
 
   const {
@@ -976,7 +1101,7 @@ export const genTransReq = async ({ reqHook, ...args }) => {
     method = "POST",
   } = genReqFuncs[apiType](args);
 
-  // 合并用户自定义headers和body
+  // Merge user custom headers and body.
   if (customHeader?.trim()) {
     Object.assign(headers, parseJsonObj(customHeader));
   }
@@ -984,7 +1109,7 @@ export const genTransReq = async ({ reqHook, ...args }) => {
     Object.assign(body, parseJsonObj(customBody));
   }
 
-  // 执行 request hook
+  // Run request hook.
   if (reqHook?.trim() && !events) {
     try {
       const req = {
@@ -999,6 +1124,7 @@ export const genTransReq = async ({ reqHook, ...args }) => {
         {
           ...args,
           defaultSystemPrompt,
+          defaultSystemPromptJsonFinalTranslation,
           defaultSystemPromptXml,
           defaultSystemPromptLines,
           defaultSubtitlePrompt,
@@ -1021,7 +1147,7 @@ export const genTransReq = async ({ reqHook, ...args }) => {
 };
 
 /**
- * 解析翻译接口返回数据
+ * Parse translation API response data.
  * @param {*} res
  * @param {*} param3
  * @returns
@@ -1041,9 +1167,10 @@ export const parseTransRes = async (
     userMsg,
     apiType,
     useBatchFetch,
+    useJsonResponseFormat,
   }
 ) => {
-  // 执行 response hook
+  // Run response hook.
   if (resHook?.trim()) {
     try {
       interpreter.run(`exports.resHook = ${resHook}`);
@@ -1076,7 +1203,7 @@ export const parseTransRes = async (
 
   let modelMsg = "";
 
-  // todo: 根据结果抛出实际异常信息
+  // todo: throw actual API error information.
   switch (apiType) {
     case OPT_TRANS_GOOGLE:
       return [[res?.sentences?.map((item) => item.trans).join(" "), res?.src]];
@@ -1135,13 +1262,13 @@ export const parseTransRes = async (
           content: modelMsg.content,
         });
       }
-      return parseAIRes(modelMsg?.content, useBatchFetch);
+      return parseAIRes(modelMsg?.content, useBatchFetch, useJsonResponseFormat);
     case OPT_TRANS_GEMINI:
       modelMsg = res?.candidates?.[0]?.content;
       if (history && userMsg && modelMsg) {
         history.add(userMsg, modelMsg);
       }
-      return parseAIRes(modelMsg?.parts?.[0]?.text ?? "", useBatchFetch);
+      return parseAIRes(modelMsg?.parts?.[0]?.text ?? "", useBatchFetch, useJsonResponseFormat);
     case OPT_TRANS_CLAUDE:
       modelMsg = { role: res?.role, content: res?.content?.text };
       if (history && userMsg && modelMsg) {
@@ -1150,7 +1277,7 @@ export const parseTransRes = async (
           content: modelMsg.content,
         });
       }
-      return parseAIRes(res?.content?.[0]?.text ?? "", useBatchFetch);
+      return parseAIRes(res?.content?.[0]?.text ?? "", useBatchFetch, useJsonResponseFormat);
     case OPT_TRANS_CLOUDFLAREAI:
       return [[res?.result?.translated_text]];
     case OPT_TRANS_OLLAMA:
@@ -1169,7 +1296,7 @@ export const parseTransRes = async (
           content: modelMsg.content,
         });
       }
-      return parseAIRes(modelMsg?.content, useBatchFetch);
+      return parseAIRes(modelMsg?.content, useBatchFetch, useJsonResponseFormat);
     case OPT_TRANS_CUSTOMIZE:
       if (useBatchFetch) {
         return (res?.translations ?? res)?.map((item) => [item.text, item.src]);
@@ -1182,12 +1309,12 @@ export const parseTransRes = async (
 };
 
 /**
- * 发送翻译请求并解析
- * 支持流式和非流式两种模式
- * @param {*} texts 待翻译文本数组
- * @param {*} options 翻译选项
- * @yields {{id: number, result: [string, string]}} 流式模式下逐个返回结果
- * @returns {Promise<Array>} 非流式模式下返回完整结果数组
+ * Send translation request and parse response.
+ * Supports streaming and non-streaming modes.
+ * @param {*} texts texts to translate
+ * @param {*} options translation options
+ * @yields {{id: number, result: [string, string]}}
+ * @returns {Promise<Array>}
  */
 export async function* handleTranslate(
   texts = [],
@@ -1290,13 +1417,22 @@ export async function* handleTranslate(
 }
 
 /**
- * 内部流式翻译处理
+ * Internal streaming translation handler.
  */
 async function* handleTranslateStreamInternal(
   texts,
   input,
   init,
-  { apiType, history, userMsg, usePool, fetchInterval, fetchLimit, httpTimeout, streamRenderMode }
+  {
+    apiType,
+    history,
+    userMsg,
+    usePool,
+    fetchInterval,
+    fetchLimit,
+    httpTimeout,
+    streamRenderMode,
+  }
 ) {
   const results = new Array(texts.length).fill(null);
   let fullContent = "";
@@ -1329,7 +1465,7 @@ async function* handleTranslateStreamInternal(
             if (detected) {
               formatDetected = true;
               isJsonFormat = isJson;
-              // 格式检测成功后，将累积的内容写入解析器
+              // After format detection, feed accumulated content to parser.
               if (isJsonFormat) {
                 for (const { id, translation } of jsonParser.write(
                   fullContent
@@ -1353,7 +1489,7 @@ async function* handleTranslateStreamInternal(
               yield { id, result: translation };
             }
           }
-          // 实时渲染模式：yield 段落级中间态
+          // Realtime stream rendering emits partial segment text.
           if (realtimeParser && streamRenderMode === "realtime") {
             const items = realtimeParser.write(delta);
             for (const { id, partialText, isComplete } of items) {
@@ -1364,7 +1500,7 @@ async function* handleTranslateStreamInternal(
           }
         }
       } catch (e) {
-        // 忽略解析错误
+        // Ignore malformed stream chunks.
       }
     }
 
@@ -1376,7 +1512,7 @@ async function* handleTranslateStreamInternal(
     throw error;
   }
 
-  // 最终再解析一次，捕获可能遗漏的段落
+  // Parse once more at the end to catch missed segments.
   const hasEmpty = results.some((r) => !r);
   if (hasEmpty) {
     const parsed = parseAIRes(fullContent, true);
@@ -1404,7 +1540,7 @@ async function* handleTranslateStreamInternal(
 }
 
 /**
- * Microsoft语言识别聚合及解析
+ * Microsoft language detection aggregation and parsing.
  * @param {*} texts
  * @returns
  */
@@ -1433,7 +1569,7 @@ export const handleMicrosoftLangdetect = async (texts = []) => {
 };
 
 /**
- * 字幕翻译
+ * Subtitle translation.
  * @param {*} param0
  * @returns
  */
@@ -1485,7 +1621,7 @@ export const handleSubtitle = async ({
 };
 
 /**
- * 上下文摘要
+ * Context summary.
  * @param {*} param0
  * @returns
  */
@@ -1524,6 +1660,7 @@ export const handleSummarize = async ({
     fromLang: "auto",
     toLang: "en",
     useBatchFetch: false,
+    useJsonResponseFormat: false,
     nobatchPrompt: summarizeSystemPrompt,
     nobatchUserPrompt: userPrompt,
   });
