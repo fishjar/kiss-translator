@@ -104,8 +104,13 @@ export function getStreamDelta(json, apiType) {
     case OPT_TRANS_OPENROUTER:
     case OPT_TRANS_OLLAMA:
       return json.choices?.[0]?.delta?.content || "";
-    case OPT_TRANS_GEMINI:
-      return json.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    case OPT_TRANS_GEMINI: {
+      const parts = json.candidates?.[0]?.content?.parts;
+      return (
+        (Array.isArray(parts) ? parts.find((p) => !p.thought) : undefined)
+          ?.text || ""
+      );
+    }
     case OPT_TRANS_CLAUDE:
       if (json.type === "content_block_delta") {
         return json.delta?.text || "";

@@ -185,6 +185,36 @@ const genSubtitlePrompt = ({
     .replaceAll(INPUT_PLACE_TO_LANG, toLang);
 };
 
+const normalizeSubtitleContext = (text) =>
+  String(text ?? "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 400);
+
+const buildSubtitleUserPrompt = ({
+  formattedEvents,
+  prevContext = "",
+  nextContext = "",
+}) => {
+  const mainInput = JSON.stringify(formattedEvents);
+  const prev = normalizeSubtitleContext(prevContext);
+  const next = normalizeSubtitleContext(nextContext);
+  if (!prev && !next) return mainInput;
+  const sections = [];
+  if (prev) {
+    sections.push(
+      `[Previous context (read-only, do NOT segment)]\n${JSON.stringify(prev)}`
+    );
+  }
+  sections.push(`[Main input]\n${mainInput}`);
+  if (next) {
+    sections.push(
+      `[Next context (read-only, do NOT segment)]\n${JSON.stringify(next)}`
+    );
+  }
+  return sections.join("\n\n");
+};
+
 const parseAIRes = (raw, useBatchFetch = true) => {
   if (!raw) {
     return [];
@@ -271,14 +301,89 @@ const parseAIRes = (raw, useBatchFetch = true) => {
   });
 };
 
-const parseSTRes = (raw) => {
+const getPauseLevel = (gapMs) => {
+  if (!Number.isFinite(gapMs) || gapMs <= 300) return 0;
+  if (gapMs <= 600) return 1;
+  if (gapMs <= 1200) return 2;
+  return 3;
+};
+
+const formatIndexSubtitleEvents = (events) =>
+  events.map((e, i) => {
+    const item = { id: i, text: e.text };
+    if (i > 0) {
+      const p = getPauseLevel(e.start - events[i - 1].end);
+      if (p) item.p = p;
+    }
+    return item;
+  });
+
+const usesIndexSubtitleInput = (prompt = "") => {
+  if (/\{\s*["']?s["']?\s*:/.test(prompt) && /\bid\b/i.test(prompt))
+    return true;
+  if (/WEBVTT|MM:SS\.mmm|-->/i.test(prompt)) return false;
+  return false;
+};
+
+const geminiText = (parts) =>
+  Array.isArray(parts)
+    ? parts
+        .filter((p) => !p.thought && p.text)
+        .map((p) => p.text)
+        .join("")
+    : "";
+
+const parseIndexSubtitleRes = (raw, events) => {
+  const buildResult = (data) => {
+    if (!Array.isArray(data) || !data.length) return null;
+    const result = [];
+    for (const seg of data) {
+      const s = Number(seg.s ?? seg.start_id);
+      const e = Number(seg.e ?? seg.end_id);
+      if (!Number.isInteger(s) || !Number.isInteger(e)) continue;
+      const startIdx = Math.max(0, Math.min(s, events.length - 1));
+      const endIdx = Math.max(startIdx, Math.min(e, events.length - 1));
+      result.push({
+        start: events[startIdx].start,
+        end: events[endIdx].end,
+        text: String(seg.o ?? seg.original ?? ""),
+        translation: String(seg.t ?? seg.translation ?? ""),
+        _si: s,
+        _ei: e,
+      });
+    }
+    return result.length ? result : null;
+  };
+
+  try {
+    return buildResult(JSON.parse(raw));
+  } catch {
+    try {
+      const str = String(raw ?? "");
+      const last = Math.max(
+        str.lastIndexOf("},"),
+        str.lastIndexOf("}\n"),
+        str.lastIndexOf("}\r")
+      );
+      if (last < 0) return null;
+      return buildResult(JSON.parse(str.slice(0, last + 1) + "]"));
+    } catch {
+      return null;
+    }
+  }
+};
+
+const parseSTRes = (raw, events = null) => {
   if (!raw) {
     return [];
   }
 
+  if (events?.length) {
+    const indexed = parseIndexSubtitleRes(raw, events);
+    if (indexed) return indexed;
+  }
+
   try {
-    // const jsonString = extractJson(raw);
-    // const data = JSON.parse(jsonString);
     const data = parseBilingualVtt(raw);
     if (Array.isArray(data)) {
       return data;
@@ -290,7 +395,13 @@ const parseSTRes = (raw) => {
   return [];
 };
 
-const siliconflowEffortMap = { max: 32768, high: 16384, medium: 8192, low: 4096, minimal: 2048 };
+const siliconflowEffortMap = {
+  max: 32768,
+  high: 16384,
+  medium: 8192,
+  low: 4096,
+  minimal: 2048,
+};
 
 const injectThinking = (body, { apiType, thinkingMode, thinkingEffort }) => {
   if (thinkingMode === "auto") return;
@@ -302,7 +413,9 @@ const injectThinking = (body, { apiType, thinkingMode, thinkingEffort }) => {
 
   switch (param.type) {
     case "deepseek":
-      body.thinking = { type: thinkingMode === "enabled" ? "enabled" : "disabled" };
+      body.thinking = {
+        type: thinkingMode === "enabled" ? "enabled" : "disabled",
+      };
       if (thinkingMode === "enabled" && hasEffort) {
         body.reasoning_effort = thinkingEffort;
       }
@@ -542,12 +655,8 @@ const genGemini = ({
   }
 
   const userMsg = { role: "user", parts: [{ text: userPrompt }] };
+
   const body = {
-    // system_instruction: {
-    //   parts: {
-    //     text: systemPrompt,
-    //   },
-    // },
     contents: [
       {
         role: "model",
@@ -559,16 +668,14 @@ const genGemini = ({
     generationConfig: {
       maxOutputTokens: maxTokens,
       temperature,
-      // topP: 0.8,
-      // topK: 10,
     },
   };
 
-  if (thinkingMode && thinkingMode !== "auto") {
-    if (thinkingMode === "disabled") {
-      body.thinkingConfig = { thinkingLevel: "minimal" };
-    } else if (thinkingEffort && thinkingEffort !== "_default") {
-      body.thinkingConfig = { thinkingLevel: thinkingEffort };
+  if (thinkingMode === "disabled") {
+    body.generationConfig.thinkingConfig = { thinkingBudget: 0 };
+  } else if (thinkingMode && thinkingMode !== "auto") {
+    if (thinkingEffort && thinkingEffort !== "_default") {
+      body.generationConfig.thinkingConfig = { thinkingLevel: thinkingEffort };
     }
   }
 
@@ -720,7 +827,11 @@ const genOpenRouter = ({
     stream: useStream,
   };
 
-  injectThinking(body, { apiType: OPT_TRANS_OPENROUTER, thinkingMode, thinkingEffort });
+  injectThinking(body, {
+    apiType: OPT_TRANS_OPENROUTER,
+    thinkingMode,
+    thinkingEffort,
+  });
 
   const headers = {
     "Content-type": "application/json",
@@ -761,7 +872,11 @@ const genOllama = ({
     max_tokens: maxTokens,
   };
 
-  injectThinking(body, { apiType: OPT_TRANS_OLLAMA, thinkingMode, thinkingEffort });
+  injectThinking(body, {
+    apiType: OPT_TRANS_OLLAMA,
+    thinkingMode,
+    thinkingEffort,
+  });
   body.stream = useStream;
 
   const headers = {
@@ -888,6 +1003,8 @@ export const genTransReq = async ({ reqHook, ...args }) => {
     customBody,
     events,
     tone,
+    prevContext,
+    nextContext,
     docInfo: externalDocInfo,
   } = args;
 
@@ -952,7 +1069,13 @@ export const genTransReq = async ({ reqHook, ...args }) => {
 
     args.systemPrompt = baseSystemPrompt;
     args.userPrompt = events
-      ? JSON.stringify(events)
+      ? buildSubtitleUserPrompt({
+          formattedEvents: usesIndexSubtitleInput(subtitlePrompt)
+            ? formatIndexSubtitleEvents(events)
+            : events,
+          prevContext,
+          nextContext,
+        })
       : genUserPrompt({
           nobatchUserPrompt,
           useBatchFetch,
@@ -975,6 +1098,10 @@ export const genTransReq = async ({ reqHook, ...args }) => {
     userMsg = null,
     method = "POST",
   } = genReqFuncs[apiType](args);
+
+  if (events && apiType === OPT_TRANS_GEMINI && body?.generationConfig) {
+    body.generationConfig.responseMimeType = "application/json";
+  }
 
   // 合并用户自定义headers和body
   if (customHeader?.trim()) {
@@ -1141,7 +1268,7 @@ export const parseTransRes = async (
       if (history && userMsg && modelMsg) {
         history.add(userMsg, modelMsg);
       }
-      return parseAIRes(modelMsg?.parts?.[0]?.text ?? "", useBatchFetch);
+      return parseAIRes(geminiText(modelMsg?.parts), useBatchFetch);
     case OPT_TRANS_CLAUDE:
       modelMsg = { role: res?.role, content: res?.content?.text };
       if (history && userMsg && modelMsg) {
@@ -1201,8 +1328,11 @@ export async function* handleTranslate(
     apiSetting,
     usePool,
     docInfo,
+    signal,
   }
 ) {
+  if (signal?.aborted) return;
+
   let history = null;
   let hisMsgs = [];
   const {
@@ -1296,7 +1426,16 @@ async function* handleTranslateStreamInternal(
   texts,
   input,
   init,
-  { apiType, history, userMsg, usePool, fetchInterval, fetchLimit, httpTimeout, streamRenderMode }
+  {
+    apiType,
+    history,
+    userMsg,
+    usePool,
+    fetchInterval,
+    fetchLimit,
+    httpTimeout,
+    streamRenderMode,
+  }
 ) {
   const results = new Array(texts.length).fill(null);
   let fullContent = "";
@@ -1443,6 +1582,8 @@ export const handleSubtitle = async ({
   to,
   apiSetting,
   docInfo,
+  prevContext = "",
+  nextContext = "",
 }) => {
   const { apiType, fetchInterval, fetchLimit, httpTimeout } = apiSetting;
 
@@ -1452,6 +1593,8 @@ export const handleSubtitle = async ({
     from,
     to,
     docInfo,
+    prevContext,
+    nextContext,
   });
 
   const res = await fetchData(input, init, {
@@ -1471,11 +1614,41 @@ export const handleSubtitle = async ({
     case OPT_TRANS_GEMINI_2:
     case OPT_TRANS_OPENROUTER:
     case OPT_TRANS_OLLAMA:
-      return parseSTRes(res?.choices?.[0]?.message?.content ?? "");
-    case OPT_TRANS_GEMINI:
-      return parseSTRes(res?.candidates?.[0]?.content?.parts?.[0]?.text ?? "");
+      return parseSTRes(res?.choices?.[0]?.message?.content ?? "", events);
+    case OPT_TRANS_GEMINI: {
+      const candidate = res?.candidates?.[0];
+      const { thinkingMode } = apiSetting;
+      const thinkingWasOn =
+        thinkingMode && thinkingMode !== "auto" && thinkingMode !== "disabled";
+      if (candidate?.finishReason === "MAX_TOKENS" && thinkingWasOn) {
+        const [retryInput, retryInit] = await genTransReq({
+          ...apiSetting,
+          thinkingMode: "disabled",
+          events,
+          from,
+          to,
+          docInfo,
+          prevContext,
+          nextContext,
+        });
+        const retryRes = await fetchData(retryInput, retryInit, {
+          useCache: false,
+          usePool: true,
+          fetchInterval,
+          fetchLimit,
+          httpTimeout,
+        });
+        if (retryRes?.candidates?.[0]?.content?.parts) {
+          return parseSTRes(
+            geminiText(retryRes.candidates[0].content.parts),
+            events
+          );
+        }
+      }
+      return parseSTRes(geminiText(candidate?.content?.parts), events);
+    }
     case OPT_TRANS_CLAUDE:
-      return parseSTRes(res?.content?.[0]?.text ?? "");
+      return parseSTRes(res?.content?.[0]?.text ?? "", events);
     case OPT_TRANS_CUSTOMIZE:
       return res;
     default:
@@ -1545,14 +1718,14 @@ export const handleSummarize = async ({
     case OPT_TRANS_OLLAMA:
       return res?.choices?.[0]?.message?.content?.trim() || "";
     case OPT_TRANS_GEMINI:
-      return res?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+      return geminiText(res?.candidates?.[0]?.content?.parts).trim() || "";
     case OPT_TRANS_CLAUDE:
       return res?.content?.[0]?.text?.trim() || "";
     case OPT_TRANS_CUSTOMIZE:
       if (typeof res === "string") return res.trim();
       return (
         res?.choices?.[0]?.message?.content?.trim() ||
-        res?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ||
+        geminiText(res?.candidates?.[0]?.content?.parts).trim() ||
         res?.content?.[0]?.text?.trim() ||
         ""
       );
