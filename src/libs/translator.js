@@ -2252,8 +2252,13 @@ export class Translator {
   }
 
   toggleTransOnly() {
-    const newValue = this.#rule.transOnly === "true" ? "false" : "true";
-    this.updateRule({ transOnly: newValue });
+    if (!this.#enabled) {
+      this.#rule.transOnly = "true";
+      this.enable();
+    } else {
+      const newValue = this.#rule.transOnly === "true" ? "false" : "true";
+      this.updateRule({ transOnly: newValue });
+    }
   }
 
   // 快速切换模糊样式

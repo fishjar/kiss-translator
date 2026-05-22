@@ -5,6 +5,9 @@
   "app_description": {
     "message": "一個簡約的雙語對照翻譯擴充功能，支持網頁、劃詞、影片字幕翻譯等功能，支持多種翻譯服務及 AI 翻譯接口，擁有豐富靈活的自定義選項。"
   },
+  "translate_selection": {
+    "message": "翻譯 \"%s\""
+  },
   "toggle_translate": {
     "message": "開啟翻譯"
   },

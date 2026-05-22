@@ -5,6 +5,9 @@
   "app_description": {
     "message": "Eine minimalistische zweisprachige Übersetzungserweiterung, die Webseiten-, Textauswahl- und Videountertitel-Übersetzung unterstützt."
   },
+  "translate_selection": {
+    "message": "\"%s\" übersetzen"
+  },
   "toggle_translate": {
     "message": "Übersetzung umschalten"
   },
