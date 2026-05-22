@@ -2521,6 +2521,13 @@ export const I18N = {
     ja: `バイリンガル表示`,
     ko: `이중 언어 표시`,
   },
+  is_blur_translation: {
+    zh: `模糊译文`,
+    en: `Blur Translation`,
+    zh_TW: `模糊譯文`,
+    ja: `翻訳をぼかす`,
+    ko: `번역 흐림`,
+  },
   is_skip_ad: {
     zh: `快进广告`,
     en: `Skip AD`,
