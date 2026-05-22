@@ -5,6 +5,9 @@
   "app_description": {
     "message": "Webサイト、テキスト選択、動画字幕などの翻訳に対応した、シンプルで直感的な二言語対応翻訳拡張機能。複数の翻訳サービスやAI翻訳APIをサポートし、豊富で柔軟なカスタマイズオプションを備えています。"
   },
+  "translate_selection": {
+    "message": "「%s」を翻訳"
+  },
   "toggle_translate": {
     "message": "翻訳の切り替え"
   },

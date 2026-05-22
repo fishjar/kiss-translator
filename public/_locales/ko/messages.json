@@ -5,6 +5,9 @@
   "app_description": {
     "message": "웹페이지, 단어 선택, 동영상 자막 번역 등을 지원하는 심플한 이중 언어 대조 번역 확장 프로그램. 다양한 번역 서비스 및 AI 번역 인터페이스를 지원하며, 풍부하고 유연한 사용자 설정 옵션을 제공합니다."
   },
+  "translate_selection": {
+    "message": "\"%s\" 번역"
+  },
   "toggle_translate": {
     "message": "번역 켜기"
   },
