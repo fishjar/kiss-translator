@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
+import CodeField from "./CodeField";
 import Button from "@mui/material/Button";
 import { useI18n } from "../../hooks/I18n";
 import Typography from "@mui/material/Typography";
@@ -95,13 +96,12 @@ function StyleFields({ customStyle, deleteStyle, updateStyle, isBuiltin }) {
         onChange={handleChange}
         disabled={isBuiltin}
       />
-      <TextField
+      <CodeField
         size="small"
         label={i18n("style_code")}
         name="styleCode"
         value={styleCode}
         onChange={handleChange}
-        multiline
         maxRows={10}
         disabled={isBuiltin}
       />

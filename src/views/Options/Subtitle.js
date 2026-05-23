@@ -1,6 +1,7 @@
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
+import CodeField from "./CodeField";
 import MenuItem from "@mui/material/MenuItem";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
@@ -954,38 +955,35 @@ export default function SubtitleSetting() {
               <AccordionDetails>
                 <Grid container spacing={2}>
                   <Grid item xs={12} sm={4}>
-                    <TextField
+                    <CodeField
                       size="small"
                       label={i18n("origin_styles")}
                       name="originStyle"
                       value={originStyle}
                       onChange={handleChange}
                       maxRows={10}
-                      multiline
                       fullWidth
                     />
                   </Grid>
                   <Grid item xs={12} sm={4}>
-                    <TextField
+                    <CodeField
                       size="small"
                       label={i18n("translation_styles")}
                       name="translationStyle"
                       value={translationStyle}
                       onChange={handleChange}
                       maxRows={10}
-                      multiline
                       fullWidth
                     />
                   </Grid>
                   <Grid item xs={12} sm={4}>
-                    <TextField
+                    <CodeField
                       size="small"
                       label={i18n("background_styles")}
                       name="windowStyle"
                       value={windowStyle}
                       onChange={handleChange}
                       maxRows={10}
-                      multiline
                       fullWidth
                     />
                   </Grid>

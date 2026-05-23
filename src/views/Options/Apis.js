@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
+import CodeField from "./CodeField";
 import Button from "@mui/material/Button";
 import LoadingButton from "@mui/lab/LoadingButton";
 import MenuItem from "@mui/material/MenuItem";
@@ -452,13 +453,12 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi, onCollapse }) {
 
       {apiType === OPT_TRANS_CUSTOMIZE && (
         <>
-          <TextField
+          <CodeField
             size="small"
             label={"Request Hook"}
             name="reqHook"
             value={reqHook}
             onChange={handleChange}
-            multiline
             maxRows={10}
             FormHelperTextProps={{
               component: "div",
@@ -469,13 +469,12 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi, onCollapse }) {
               </Box>
             }
           />
-          <TextField
+          <CodeField
             size="small"
             label={"Response Hook"}
             name="resHook"
             value={resHook}
             onChange={handleChange}
-            multiline
             maxRows={10}
             FormHelperTextProps={{
               component: "div",
@@ -877,23 +876,21 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi, onCollapse }) {
           {apiType !== OPT_TRANS_BUILTINAI && (
             <>
               {" "}
-              <TextField
+              <CodeField
                 size="small"
                 label={i18n("custom_header")}
                 name="customHeader"
                 value={customHeader}
                 onChange={handleChange}
-                multiline
                 maxRows={10}
                 helperText={i18n("custom_header_help")}
               />
-              <TextField
+              <CodeField
                 size="small"
                 label={i18n("custom_body")}
                 name="customBody"
                 value={customBody}
                 onChange={handleChange}
-                multiline
                 maxRows={10}
                 helperText={i18n("custom_body_help")}
               />
@@ -903,13 +900,12 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi, onCollapse }) {
           {apiType !== OPT_TRANS_CUSTOMIZE &&
             apiType !== OPT_TRANS_BUILTINAI && (
               <>
-                <TextField
+                <CodeField
                   size="small"
                   label={"Request Hook"}
                   name="reqHook"
                   value={reqHook}
                   onChange={handleChange}
-                  multiline
                   maxRows={10}
                   FormHelperTextProps={{
                     component: "div",
@@ -920,13 +916,12 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi, onCollapse }) {
                     </Box>
                   }
                 />
-                <TextField
+                <CodeField
                   size="small"
                   label={"Response Hook"}
                   name="resHook"
                   value={resHook}
                   onChange={handleChange}
-                  multiline
                   maxRows={10}
                   FormHelperTextProps={{
                     component: "div",

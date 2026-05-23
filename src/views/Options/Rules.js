@@ -1,6 +1,7 @@
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
+import CodeField from "./CodeField";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
 import Alert from "@mui/material/Alert";
@@ -231,7 +232,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
   return (
     <form onSubmit={handleSubmit}>
       <Stack spacing={2}>
-        <TextField
+        <CodeField
           size="small"
           label={i18n("pattern")}
           error={!!errors.pattern}
@@ -241,9 +242,8 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
           disabled={rule?.pattern === "*" || disabled}
           onChange={handleChange}
           onFocus={handleFocus}
-          multiline
         />
-        <TextField
+        <CodeField
           size="small"
           label={i18n("root_selector")}
           helperText={i18n("root_selector_helper")}
@@ -251,9 +251,8 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
           value={rootsSelector}
           disabled={disabled}
           onChange={handleChange}
-          multiline
         />
-        <TextField
+        <CodeField
           size="small"
           label={i18n("ignore_selector")}
           helperText={i18n("ignore_selector_helper")}
@@ -261,9 +260,8 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
           value={ignoreSelector}
           disabled={disabled}
           onChange={handleChange}
-          multiline
         />
-        <TextField
+        <CodeField
           size="small"
           label={i18n("target_selector")}
           error={!!errors.selector}
@@ -273,9 +271,8 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
           disabled={autoScan === "true" || disabled}
           onChange={handleChange}
           onFocus={handleFocus}
-          multiline
         />
-        <TextField
+        <CodeField
           size="small"
           label={i18n("keep_selector")}
           helperText={i18n("keep_selector_helper")}
@@ -283,7 +280,6 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
           value={keepSelector}
           disabled={disabled}
           onChange={handleChange}
-          multiline
         />
 
         <Box>
@@ -608,7 +604,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
               maxRows={10}
             />
 
-            <TextField
+            <CodeField
               size="small"
               label={i18n("terms_style")}
               name="termsStyle"
@@ -616,9 +612,8 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
               disabled={disabled}
               onChange={handleChange}
               maxRows={10}
-              multiline
             />
-            <TextField
+            <CodeField
               size="small"
               label={i18n("highlight_style")}
               name="highlightStyle"
@@ -626,9 +621,8 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
               disabled={disabled}
               onChange={handleChange}
               maxRows={10}
-              multiline
             />
-            <TextField
+            <CodeField
               size="small"
               label={i18n("text_ext_style")}
               name="textExtStyle"
@@ -636,9 +630,8 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
               disabled={disabled}
               onChange={handleChange}
               maxRows={10}
-              multiline
             />
-            <TextField
+            <CodeField
               size="small"
               label={i18n("selector_style")}
               name="selectStyle"
@@ -646,9 +639,8 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
               disabled={disabled}
               onChange={handleChange}
               maxRows={10}
-              multiline
             />
-            <TextField
+            <CodeField
               size="small"
               label={i18n("selector_parent_style")}
               name="parentStyle"
@@ -656,9 +648,8 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
               disabled={disabled}
               onChange={handleChange}
               maxRows={10}
-              multiline
             />
-            <TextField
+            <CodeField
               size="small"
               label={i18n("selector_grand_style")}
               name="grandStyle"
@@ -666,10 +657,9 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
               disabled={disabled}
               onChange={handleChange}
               maxRows={10}
-              multiline
             />
 
-            <TextField
+            <CodeField
               size="small"
               label={i18n("translate_start_hook")}
               helperText={i18n("translate_start_hook_helper")}
@@ -677,10 +667,9 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
               value={transStartHook}
               disabled={disabled}
               onChange={handleChange}
-              multiline
               maxRows={10}
             />
-            <TextField
+            <CodeField
               size="small"
               label={i18n("translate_end_hook")}
               helperText={i18n("translate_end_hook_helper")}
@@ -688,7 +677,6 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
               value={transEndHook}
               disabled={disabled}
               onChange={handleChange}
-              multiline
               maxRows={10}
             />
             {/* <TextField
@@ -703,7 +691,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
               maxRows={10}
             /> */}
 
-            <TextField
+            <CodeField
               size="small"
               label={i18n("inject_css")}
               helperText={i18n("inject_css_helper")}
@@ -712,9 +700,8 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
               disabled={disabled}
               onChange={handleChange}
               maxRows={10}
-              multiline
             />
-            <TextField
+            <CodeField
               size="small"
               label={i18n("inject_js")}
               helperText={i18n("inject_js_helper")}
@@ -723,7 +710,6 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
               disabled={disabled}
               onChange={handleChange}
               maxRows={10}
-              multiline
             />
           </>
         )}
