@@ -1,4 +1,4 @@
-import { logger } from "../libs/log.js";
+﻿import { logger } from "../libs/log.js";
 import { truncateWords, throttle, decodeHTMLEntities } from "../libs/utils.js";
 import { apiTranslate } from "../apis/index.js";
 import { apiMicrosoftDict } from "../apis/index.js";
@@ -132,6 +132,7 @@ export class BilingualSubtitleManager {
   #abortController = null;
   #wasPlayingBeforeHover = false; //记录hover单词前视频是否处于播放状态
   #hoverTarget = null;
+  #playerControlBarObserver = null;
 
   /**
    * @param {object} options
@@ -197,6 +198,8 @@ export class BilingualSubtitleManager {
       this.#seekSyncRafId = null;
     }
     this.#captionWindowEl?.parentElement?.parentElement?.remove();
+    this.#playerControlBarObserver?.disconnect();
+    this.#playerControlBarObserver = null;
     this.#formattedSubtitles = [];
     // 清理tooltip元素
     if (this.#tooltipEl) {
@@ -220,6 +223,43 @@ export class BilingualSubtitleManager {
   }
 
   /**
+   * 监听播放器控制条的显示状态，隐藏时将字幕下移
+   */
+  #observePlayerControlBar() {
+    const player = this.#videoEl.closest(".html5-video-player");
+    if (!player) return;
+    const controlBar = player.querySelector(".ytp-left-controls");
+    if (!controlBar) return;
+    let controlBarHeight = parseFloat(getComputedStyle(controlBar).height);
+
+    // 根据当前控制条状态初始化位置
+    const isHiddenNow = player.classList.contains("ytp-autohide");
+    let initialBottom = player.clientHeight * 0.05;
+    if (!isHiddenNow) initialBottom += controlBarHeight;
+    this.#paperEl.style.bottom = `${initialBottom}px`;
+    let lastControlBarHiddenState = isHiddenNow;
+
+    const updatePaperElBottom = () => {
+      const isHidden = player.classList.contains("ytp-autohide");
+      if (isHidden === lastControlBarHiddenState) return;
+      lastControlBarHiddenState = isHidden;
+
+      let currentBottom = parseFloat(this.#paperEl.style.bottom) || 0;
+      let newBottom = isHidden
+        ? currentBottom - controlBarHeight
+        : currentBottom + controlBarHeight;
+
+      this.#paperEl.style.bottom = `${newBottom}px`;
+    };
+
+    const observer = new MutationObserver(() => {
+      if (!this.#captionDragged) updatePaperElBottom();
+    });
+    observer.observe(player, { attributes: true, attributeFilter: ["class"] });
+    this.#playerControlBarObserver = observer;
+  }
+
+  /**
    * 创建并配置用于显示字幕的 DOM 元素。
    */
   #createCaptionWindow() {
@@ -240,7 +280,6 @@ export class BilingualSubtitleManager {
       position: "absolute",
       width: "80%",
       left: "50%",
-      bottom: "10%",
       transform: "translateX(-50%)",
       textAlign: "center",
       containerType: "inline-size",
@@ -302,6 +341,8 @@ export class BilingualSubtitleManager {
         }
       });
     }
+
+    this.#observePlayerControlBar();
   }
 
   // 处理单词悬停事件
