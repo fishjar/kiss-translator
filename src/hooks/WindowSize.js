@@ -3,14 +3,14 @@ import { useDebouncedCallback } from "./DebouncedCallback";
 
 function useWindowSize() {
   const [windowSize, setWindowSize] = useState({
-    w: window.innerWidth,
-    h: window.innerHeight,
+    w: document.documentElement.clientWidth,
+    h: document.documentElement.clientHeight,
   });
 
   const debounceWindowResize = useDebouncedCallback(() => {
     setWindowSize({
-      w: window.innerWidth,
-      h: window.innerHeight,
+      w: document.documentElement.clientWidth,
+      h: document.documentElement.clientHeight,
     });
   }, 200);
 
