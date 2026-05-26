@@ -136,7 +136,7 @@ export class YouTubeSubtitleList {
     const CHUNK_SIZE = 100;
     const subtitles = this.bilingualSubtitles;
 
-    this._cachedSubtitleItems = new Array(subtitles.length);
+    this._cachedSubtitleItems = [];
 
     const renderNextChunk = (startIndex) => {
       if (startIndex >= subtitles.length || !this.subtitleListEl) return;
