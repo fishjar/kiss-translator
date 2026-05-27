@@ -90,8 +90,8 @@ export default function Draggable({
       applyTransform(newX, newY);
     };
 
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, [applyTransform]);
 
   useEffect(() => {

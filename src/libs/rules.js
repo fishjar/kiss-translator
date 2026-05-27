@@ -306,9 +306,13 @@ export const checkRules = (rules) => {
             : GLOBAL_KEY,
         transOpen: matchValue([GLOBAL_KEY, "true", "false"], transOpen),
         transOnly: matchValue([GLOBAL_KEY, "true", "false"], transOnly),
-        transOnlyRevert: matchValue([GLOBAL_KEY, "true", "false"], transOnlyRevert),
+        transOnlyRevert: matchValue(
+          [GLOBAL_KEY, "true", "false"],
+          transOnlyRevert
+        ),
         transOnlyRevertDelay:
-          type(transOnlyRevertDelay) === "string" && !isNaN(parseFloat(transOnlyRevertDelay))
+          type(transOnlyRevertDelay) === "string" &&
+          !isNaN(parseFloat(transOnlyRevertDelay))
             ? transOnlyRevertDelay
             : GLOBAL_KEY,
         autoScan: matchValue([GLOBAL_KEY, "true", "false"], autoScan),

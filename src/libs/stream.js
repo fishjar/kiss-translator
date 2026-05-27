@@ -289,8 +289,7 @@ export function createRealtimeStreamParser() {
       /<(t|item|seg)\s+id="\d+"(?:\s[^>]*)?>[\s\S]*?<\/\1>/gi,
       ""
     );
-    const openRegex =
-      /<(t|item|seg)\s+id="(\d+)"(?:\s[^>]*)?>([^]*)$/;
+    const openRegex = /<(t|item|seg)\s+id="(\d+)"(?:\s[^>]*)?>([^]*)$/;
     const openMatch = remaining.match(openRegex);
     if (openMatch) {
       const id = parseInt(openMatch[2], 10);

@@ -30,7 +30,7 @@ export function touchTapListener(fn, options = {}) {
 
       const dist = Math.sqrt(
         Math.pow(touch.clientX - start.x, 2) +
-          Math.pow(touch.clientY - start.y, 2),
+          Math.pow(touch.clientY - start.y, 2)
       );
 
       if (dist > 10) {

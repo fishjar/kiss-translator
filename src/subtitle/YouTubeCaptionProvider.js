@@ -615,15 +615,11 @@ class YouTubeCaptionProvider {
         const gapCues = nonSpeechEvents
           .filter(
             (ns) =>
-              !result.some(
-                (sub) => ns.start < sub.end && ns.end > sub.start
-              )
+              !result.some((sub) => ns.start < sub.end && ns.end > sub.start)
           )
           .map(toStandaloneSub);
 
-        return [...result, ...gapCues].sort(
-          (a, b) => a.start - b.start
-        );
+        return [...result, ...gapCues].sort((a, b) => a.start - b.start);
       }
     } catch (err) {
       logger.info("Youtube Provider: ai segmentation", err);
@@ -898,7 +894,13 @@ class YouTubeCaptionProvider {
     });
   }
 
-  async #eventsToSubtitles({ videoId, events, flatEvents, fromLang, processingVersion }) {
+  async #eventsToSubtitles({
+    videoId,
+    events,
+    flatEvents,
+    fromLang,
+    processingVersion,
+  }) {
     const { segSlug, transApis, chunkLength, toLang } = this.#setting;
 
     const segApiSetting = transApis?.find((api) => api.apiSlug === segSlug);

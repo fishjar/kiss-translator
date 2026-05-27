@@ -58,7 +58,9 @@ export default function PopupCont({
 
   const handleAddToBlacklist = useCallback(() => {
     if (!selectedDomain) return;
-    const newBlacklist = blacklistValue ? `${blacklistValue}\n${selectedDomain}` : selectedDomain;
+    const newBlacklist = blacklistValue
+      ? `${blacklistValue}\n${selectedDomain}`
+      : selectedDomain;
     updateSetting((pre) => ({ ...pre, blacklist: newBlacklist }));
     setSnackbar({
       open: true,
@@ -511,10 +513,18 @@ export default function PopupCont({
           </Button>
           <Button
             variant="text"
-            onClick={isInCurrentBlacklist ? handleRemoveFromBlacklist : handleAddToBlacklist}
+            onClick={
+              isInCurrentBlacklist
+                ? handleRemoveFromBlacklist
+                : handleAddToBlacklist
+            }
             disabled={domainOptions.length === 0}
           >
-            {i18n(isInCurrentBlacklist ? "remove_from_blacklist" : "add_to_blacklist")}
+            {i18n(
+              isInCurrentBlacklist
+                ? "remove_from_blacklist"
+                : "add_to_blacklist"
+            )}
           </Button>
           <Button variant="text" onClick={handleClearCache}>
             {i18n("clear_cache")}

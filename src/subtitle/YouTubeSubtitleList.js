@@ -569,7 +569,11 @@ export class YouTubeSubtitleList {
       const ul = this.subtitleListEl.querySelector("ul");
       if (ul) {
         const fragment = document.createDocumentFragment();
-        for (let i = this._cachedSubtitleItems.length; i < this.bilingualSubtitles.length; i++) {
+        for (
+          let i = this._cachedSubtitleItems.length;
+          i < this.bilingualSubtitles.length;
+          i++
+        ) {
           const sub = this.bilingualSubtitles[i];
           const li = this._createSubtitleListItem(sub, i);
           this._cachedSubtitleItems.push(li);
@@ -577,7 +581,9 @@ export class YouTubeSubtitleList {
         }
         ul.appendChild(fragment);
       }
-    } else if (this.bilingualSubtitles.length < this._cachedSubtitleItems.length) {
+    } else if (
+      this.bilingualSubtitles.length < this._cachedSubtitleItems.length
+    ) {
       // 数据源变少了（如切换视频后重建），全量分块渲染
       const ul = this.subtitleListEl.querySelector("ul");
       if (ul) {
@@ -598,13 +604,16 @@ export class YouTubeSubtitleList {
 
     const { start, translation } = subtitleUpdate;
     // 二分查找匹配的条目索引
-    let left = 0, right = this.bilingualSubtitles.length - 1;
+    let left = 0,
+      right = this.bilingualSubtitles.length - 1;
     let targetIndex = -1;
     while (left <= right) {
       const mid = Math.floor((left + right) / 2);
       const sub = this.bilingualSubtitles[mid];
-      if (sub.start === start) { targetIndex = mid; break; }
-      else if (sub.start > start) right = mid - 1;
+      if (sub.start === start) {
+        targetIndex = mid;
+        break;
+      } else if (sub.start > start) right = mid - 1;
       else left = mid + 1;
     }
 
