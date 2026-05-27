@@ -14,7 +14,6 @@ import {
   OPT_SPLIT_PARAGRAPH_TEXTLENGTH,
   MSG_INJECT_CSS,
   MSG_UPDATE_ICON,
-  OPT_LANGS_TO_SPEC,
 } from "../config";
 import { interpreter } from "./interpreter";
 import { clearFetchPool } from "./pool";
