@@ -19,8 +19,8 @@ import {
   MSG_TRANSBOX_TOGGLE,
   MSG_MOUSEHOVER_TOGGLE,
   MSG_TRANSINPUT_TOGGLE,
-  OPT_LANGS_FROM,
-  OPT_LANGS_TO,
+  OPT_LANGS_FROM_REVERSED as OPT_LANGS_FROM,
+  OPT_LANGS_TO_REVERSED as OPT_LANGS_TO,
 } from "../../config";
 import { saveRule } from "../../libs/rules";
 import { tryClearCaches } from "../../libs/cache";

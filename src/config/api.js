@@ -350,8 +350,10 @@ export const OPT_LANGS_TO = [
   ["vi", "Vietnamese - Tiếng Việt"],
 ];
 export const OPT_LANGS_LIST = OPT_LANGS_TO.map(([lang]) => lang);
-export const OPT_LANGS_FROM = [["auto", "Auto-detect"], ...OPT_LANGS_TO];
+export const OPT_LANGS_FROM = [["auto", "AutoDetect - AutoDetect"], ...OPT_LANGS_TO];
 export const OPT_LANGS_MAP = new Map(OPT_LANGS_TO);
+export const OPT_LANGS_TO_REVERSED = OPT_LANGS_TO.map(([code, name]) => [code,  name.split(" - ").reverse().join(" - ")]);
+export const OPT_LANGS_FROM_REVERSED = OPT_LANGS_FROM.map(([code, name]) => [code, name.split(" - ").reverse().join(" - ")]);
 
 // CODE->名称
 export const OPT_LANGS_SPEC_NAME = new Map(

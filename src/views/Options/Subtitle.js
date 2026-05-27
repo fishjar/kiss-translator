@@ -13,7 +13,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import Divider from "@mui/material/Divider";
 import { useI18n } from "../../hooks/I18n";
 import {
-  OPT_LANGS_TO,
+  OPT_LANGS_TO_REVERSED as OPT_LANGS_TO,
   OPT_ENHANCE_ON,
   OPT_ENHANCE_OFF,
   OPT_ENHANCE_MOBILE_OFF,

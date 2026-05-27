@@ -4,8 +4,8 @@ import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import { useI18n } from "../../hooks/I18n";
 import {
-  OPT_LANGS_FROM,
-  OPT_LANGS_TO,
+  OPT_LANGS_FROM_REVERSED as OPT_LANGS_FROM,
+  OPT_LANGS_TO_REVERSED as OPT_LANGS_TO,
   OPT_INPUT_TRANS_SIGNS,
   OPT_INPUT_DOT_DISABLE,
   OPT_INPUT_DOT_MOBILE,

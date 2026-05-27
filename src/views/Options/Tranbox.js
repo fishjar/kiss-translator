@@ -5,8 +5,8 @@ import MenuItem from "@mui/material/MenuItem";
 import Grid from "@mui/material/Grid";
 import { useI18n } from "../../hooks/I18n";
 import {
-  OPT_LANGS_FROM,
-  OPT_LANGS_TO,
+  OPT_LANGS_FROM_REVERSED as OPT_LANGS_FROM,
+  OPT_LANGS_TO_REVERSED as OPT_LANGS_TO,
   OPT_TRANBOX_TRIGGER_CLICK,
   OPT_TRANBOX_TRIGGER_ALL,
   OPT_DICT_BING,
