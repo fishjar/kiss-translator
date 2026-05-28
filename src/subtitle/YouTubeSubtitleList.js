@@ -960,6 +960,7 @@ export class YouTubeSubtitleList {
 
       const currentTimeMs = this.videoEl.currentTime * 1000;
       let currentIndex = this._binarySearchSubtitle(currentTimeMs);
+      if (this._lastActiveIndex === currentIndex) return;
 
       if (
         this.subtitleListEl &&
