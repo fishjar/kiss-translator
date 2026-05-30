@@ -337,7 +337,6 @@ export class YouTubeSubtitleList {
             "--kt-primary": "#1e88e5",
             "--kt-time-bg": "rgba(30, 136, 229, 0.1)",
             "--kt-divider": "rgba(240,240,240,0.6)",
-            "--kt-item-hover-bg": "rgba(30, 136, 229, 0.05)",
             "--kt-active-bg": "rgba(30, 136, 229, 0.1)",
             "--kt-btn-bg": "var(--kt-primary)",
             "--kt-btn-color": "white",
@@ -353,7 +352,6 @@ export class YouTubeSubtitleList {
             "--kt-primary": "#90caf9",
             "--kt-time-bg": "rgba(144,202,249,0.08)",
             "--kt-divider": "rgba(255,255,255,0.06)",
-            "--kt-item-hover-bg": "rgba(255,255,255,0.02)",
             "--kt-active-bg": "rgba(144,202,249,0.12)",
             "--kt-btn-bg": "linear-gradient(180deg,#0f0f0f,#1b1b1b)",
             "--kt-btn-color": "#e6e6e6",
@@ -514,7 +512,7 @@ export class YouTubeSubtitleList {
     li.id = `kiss-youtube-item-${index}`;
     li.className = "kiss-youtube-item";
     li.dataset.time = sub.start;
-    li.style.cssText = `cursor: pointer; padding: 12px 16px; border-bottom: 1px solid var(--kt-divider); transition: all 0.2s ease; border-radius: 6px; margin-bottom: 4px; display: flex; align-items: flex-start;`;
+    li.style.cssText = `cursor: pointer; padding: 12px 16px; border-bottom: 1px solid var(--kt-divider); transition: opacity 0.2s ease; opacity: 0.6; border-radius: 6px; margin-bottom: 4px; display: flex; align-items: flex-start;`;
 
     // 播放时间指示器 span
     const timeSpan = document.createElement("span");
@@ -542,11 +540,11 @@ export class YouTubeSubtitleList {
     li.addEventListener("click", () => this.jumpToTime(sub.start));
     li.addEventListener("mouseenter", () => {
       if (!li.classList.contains("active-subtitle"))
-        li.style.backgroundColor = "var(--kt-item-hover-bg)";
+        li.style.opacity = 1;
     });
     li.addEventListener("mouseleave", () => {
       if (!li.classList.contains("active-subtitle"))
-        li.style.backgroundColor = "transparent";
+        li.style.opacity = 0.6;
     });
 
     textContainer.appendChild(textSpan);
@@ -988,15 +986,13 @@ export class YouTubeSubtitleList {
           this._cachedSubtitleItems[this._lastActiveIndex]
         ) {
           const lastEl = this._cachedSubtitleItems[this._lastActiveIndex];
-          lastEl.style.fontWeight = "normal";
-          lastEl.style.backgroundColor = "transparent";
+          lastEl.style.opacity = 0.6;
           lastEl.classList.remove("active-subtitle");
         }
 
         // 高亮当前字幕行，并设置粗体字
         const currentEl = this._cachedSubtitleItems[currentIndex];
-        currentEl.style.fontWeight = "600";
-        currentEl.style.backgroundColor = "var(--kt-active-bg)";
+        currentEl.style.opacity = 1;
         currentEl.classList.add("active-subtitle");
         this._lastActiveIndex = currentIndex;
 
