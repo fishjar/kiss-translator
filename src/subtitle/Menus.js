@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { API_SPE_TYPES } from "../config";
 
+// 单行文本溢出省略标签组件
 function Label({ children }) {
   return (
     <div
@@ -15,6 +16,7 @@ function Label({ children }) {
   );
 }
 
+// 菜单单项组件，支持鼠标 hover 时的背景高亮和透明度变化过渡效果
 function MenuItem({ children, onClick, disabled = false }) {
   const [hover, setHover] = useState(false);
 
@@ -40,7 +42,10 @@ function MenuItem({ children, onClick, disabled = false }) {
   );
 }
 
+// 开关 (Toggle Switch) 菜单组件
 function Switch({ label, name, value, onChange, disabled }) {
+  // REVIEW: 这里的 handleClick 依赖了 value。当每次开关被点击切换时，value 会随之改变，
+  // 导致该 useCallback 重新生成并返回新的函数引用，使得 useCallback 并没有起到缓存函数引用的效果。
   const handleClick = useCallback(() => {
     if (disabled) return;
 
@@ -50,6 +55,7 @@ function Switch({ label, name, value, onChange, disabled }) {
   return (
     <MenuItem onClick={handleClick} disabled={disabled}>
       <Label>{label}</Label>
+      {/* 轨道 */}
       <div
         style={{
           width: 40,
@@ -59,6 +65,7 @@ function Switch({ label, name, value, onChange, disabled }) {
           position: "relative",
         }}
       >
+        {/* 滑块 */}
         <div
           style={{
             width: 20,
@@ -76,18 +83,23 @@ function Switch({ label, name, value, onChange, disabled }) {
   );
 }
 
+// 下拉选择菜单组件 (Select Component)
 function Select({ label, name, value, options, onChange, disabled }) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false); // 下拉框是否展开
+
+  // 查找当前被选中的选项，若没匹配到则回退至第一个选项
   const selectedOption = useMemo(
     () => options.find((opt) => opt.value === value) || options[0],
     [options, value]
   );
 
+  // 切换下拉菜单的显示/收起
   const handleToggle = useCallback(() => {
     if (disabled) return;
     setIsOpen((prev) => !prev);
   }, [disabled]);
 
+  // 选择具体选项并向外派发 onChange 事件，随后关闭下拉面板
   const handleSelect = useCallback(
     (optionValue) => {
       onChange({ name, value: optionValue });
@@ -161,6 +173,7 @@ function Select({ label, name, value, options, onChange, disabled }) {
   );
 }
 
+// 简单按钮点击项组件
 function Button({ label, onClick, disabled }) {
   const handleClick = useCallback(() => {
     if (disabled) return;
@@ -175,6 +188,9 @@ function Button({ label, onClick, disabled }) {
   );
 }
 
+/**
+ * 视频字幕设置快捷菜单面板组件（用于在视频网页内浮现，控制 AI 翻译和分句选项）
+ */
 export function Menus({
   i18n,
   formData,
@@ -183,6 +199,7 @@ export function Menus({
   downloadSubtitle,
   transApis,
 }) {
+  // 处理任何字段选项的变化
   const handleChange = useCallback(
     ({ name, value }) => {
       updateSetting({ name, value });
@@ -190,19 +207,19 @@ export function Menus({
     [updateSetting]
   );
 
-  // 过滤启用的API
+  // 过滤出未禁用的翻译 API
   const enabledApis = useMemo(
     () => (transApis || []).filter((api) => !api.isDisabled),
     [transApis]
   );
 
-  // 过滤AI启用的API
+  // 过滤出 AI 大模型翻译类型的 API 列表
   const aiEnabledApis = useMemo(
     () => enabledApis.filter((api) => API_SPE_TYPES.ai.has(api.apiType)),
     [enabledApis]
   );
 
-  // 构建断句服务选项
+  // 构建 AI 断句服务下拉选项（仅加载已启用的 AI 类型接口）
   const segOptions = useMemo(() => {
     const options = [{ value: "-", label: i18n("disable") || "禁用" }];
     aiEnabledApis.forEach((api) => {
@@ -211,7 +228,7 @@ export function Menus({
     return options;
   }, [aiEnabledApis, i18n]);
 
-  // 构建上下文分析服务选项
+  // 构建 AI 上下文增强服务下拉选项（仅加载已启用的 AI 类型接口）
   const aiContextOptions = useMemo(() => {
     const options = [{ value: "-", label: i18n("disable") || "禁用" }];
     aiEnabledApis.forEach((api) => {
@@ -220,12 +237,14 @@ export function Menus({
     return options;
   }, [aiEnabledApis, i18n]);
 
+  // 计算当前的字幕处理/下载状态描述语
   const status = useMemo(() => {
     if (progressed === 0) return i18n("waiting_subtitles");
     if (progressed === 100) return i18n("download_subtitles");
     return i18n("processing_subtitles");
   }, [progressed, i18n]);
 
+  // 解构字幕相关的表单值数据
   const {
     segSlug,
     skipAd,

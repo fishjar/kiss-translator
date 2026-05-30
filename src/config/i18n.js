@@ -1,3 +1,8 @@
+/**
+ * @file i18n.js
+ * @description 国际化本地化字典文件，包含支持的界面语言、自定义 API 请求帮助文档，以及多语言文案对照（支持中文、英文、繁体中文、日文、韩文）。
+ */
+
 export const UI_LANGS = [
   ["en", "English"],
   ["zh", "简体中文"],

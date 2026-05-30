@@ -19,30 +19,31 @@ export class YouTubeSubtitleList {
     this.videoEl = videoElement;
 
     // --- 数据源 ---
-    // 统一字幕数据结构: { start: number, end: number, text: string, translation: string }
+    // 统一双语字幕数据结构: { start: number, end: number, text: string, translation: string }
     this.bilingualSubtitles = [];
     // 生词数据结构: { word, phonetic, definition, examples: [], timestamp }
     this.vocabulary = [];
 
     // --- DOM 引用 ---
-    this.container = null; // 主容器
-    this.subtitleListEl = null; // 字幕列表面板
-    this.vocabularyListEl = null; // 生词本面板
-    this.subtitleScrollContainer = null; //
-    this._cachedSubtitleItems = []; // 缓存字幕列表项 DOM，减少 querySelector 调用，提升滚动性能
+    this.container = null; // 右侧悬浮面板主容器
+    this.subtitleListEl = null; // 字幕列表面板元素
+    this.vocabularyListEl = null; // 生词本面板元素
+    this.subtitleScrollContainer = null; // 字幕列表的专用独立滚动容器
+    this._cachedSubtitleItems = []; // 缓存字幕列表项 DOM 节点数组，减少重新 queryQuerySelector 造成的重排开销，提升滚动性能
 
     // --- 状态管理 ---
     this.loopAutoScroll = null; // 自动滚动的定时器 ID
     this.activeTab = "subtitles"; // 当前激活的 Tab: 'subtitles' 或 'vocabulary'
-    this._lastActiveIndex = -1; // 上一次高亮的字幕索引
-    this._vocabularyDirty = false; // 生词本是否需要重新渲染
-    this._chunkRenderCancel = null; // 分块渲染的取消函数，用于中止进行中的渲染
+    this._lastActiveIndex = -1; // 上一次高亮的字幕索引位置
+    this._vocabularyDirty = false; // 生词本是否需要重新渲染的标志位（在生词本不可见时添加了单词，切换过来时再重新渲染）
+    this._chunkRenderCancel = null; // 当前分块渲染的取消器函数，用于随时中断未完成的渲染流程
 
     // --- 事件绑定 ---
     this.handleWordAdded = this.handleWordAdded.bind(this);
+    // 监听在视频字幕上划词或 Hover 翻译弹窗抛出的“添加生词到生词本”自定义事件
     document.addEventListener("kiss-add-word", this.handleWordAdded);
 
-    // 监听来自外部（如选项页面）的跳转指令
+    // 监听来自扩展配置选项页面等第三方发送的消息，用以点击生词时同步跳转视频进度
     window.addEventListener("message", (event) => {
       if (event.data && event.data.type === "KISS_TRANSLATOR_JUMP_TO_TIME") {
         this.jumpToTime(event.data.time);
@@ -55,7 +56,7 @@ export class YouTubeSubtitleList {
   // ==================================================================================
 
   /**
-   * 初始化字幕列表
+   * 初始化字幕列表并进行 UI 渲染挂载
    * @param {Array} subtitles 标准化的字幕数组
    */
   initialize(subtitles) {
@@ -67,24 +68,24 @@ export class YouTubeSubtitleList {
   }
 
   /**
-   * 更新字幕数据（例如切换语言或翻译完成后）
+   * 外部触发更新字幕数据（例如切换视频语言、分句或者翻译完成后）
    * @param {Array} subtitles 标准化的字幕数组
    */
   setBilingualSubtitles(subtitles) {
     this.bilingualSubtitles = subtitles || [];
 
     if (this.subtitleListEl) {
-      // 如果 UI 已存在，尝试增量更新以提升性能
+      // 如果 UI 已存在，尝试增量渲染更新以提升性能
       this.updateBilingualSubtitles();
     } else if (this.bilingualSubtitles.length > 0) {
-      // 如果 UI 不存在，创建 UI
+      // 如果 UI 不存在，重新创建
       this.createSubtitleList();
       this.setupEventListeners();
     }
   }
 
   /**
-   * 销毁实例，清理 DOM 和事件监听
+   * 销毁实例，解绑所有事件、释放定时器、取消进行中的异步渲染并清理 DOM 节点防止内存泄露
    */
   destroy() {
     this.turnOffAutoSub();
@@ -106,7 +107,7 @@ export class YouTubeSubtitleList {
   // ==================================================================================
 
   /**
-   * 取消正在进行的分块渲染
+   * 取消正在进行的分块渲染，防止异步回调引发渲染混乱
    */
   _cancelChunkRender() {
     if (this._chunkRenderCancel) {
@@ -116,7 +117,7 @@ export class YouTubeSubtitleList {
   }
 
   /**
-   * 在空闲时调度回调，兼容不支持 requestIdleCallback 的浏览器
+   * 在空闲时调度回调，兼容不支持 requestIdleCallback 的老旧浏览器环境
    */
   _scheduleIdle(callback) {
     if (typeof requestIdleCallback === "function") {
@@ -129,16 +130,17 @@ export class YouTubeSubtitleList {
   }
 
   /**
-   * 分块异步渲染字幕列表，避免大量 DOM 节点同步创建导致主线程阻塞
+   * 分块异步渲染字幕列表，避免一次性创建数千个 DOM 节点导致网页严重卡顿甚至假死
    * @param {HTMLUListElement} ul 字幕列表的 ul 元素
    */
   _renderSubtitlesInChunks(ul) {
-    const CHUNK_SIZE = 100;
+    const CHUNK_SIZE = 100; // 每帧或每次空闲时处理的节点数量
     const subtitles = this.bilingualSubtitles;
 
     this._cachedSubtitleItems = [];
 
     const renderNextChunk = (startIndex) => {
+      // 如果索引越界或组件已被卸载，则终止
       if (startIndex >= subtitles.length || !this.subtitleListEl) return;
 
       const end = Math.min(startIndex + CHUNK_SIZE, subtitles.length);
@@ -150,6 +152,7 @@ export class YouTubeSubtitleList {
       }
       ul.appendChild(fragment);
 
+      // 如果尚未全部渲染完毕，在下一次空闲时间点继续渲染下一块
       if (end < subtitles.length && this.subtitleListEl) {
         this._scheduleIdle(() => renderNextChunk(end));
       }
@@ -169,6 +172,7 @@ export class YouTubeSubtitleList {
   jumpToTime(timeMs) {
     if (this.videoEl && Number.isFinite(timeMs)) {
       this.videoEl.currentTime = timeMs / 1000;
+      // 跳转后如果视频处于暂停状态，自动恢复播放
       if (this.videoEl.paused) {
         this.videoEl.play();
       }
@@ -176,7 +180,7 @@ export class YouTubeSubtitleList {
   }
 
   /**
-   * 处理添加单词事件
+   * 监听并响应“添加生词”事件的回调函数
    */
   handleWordAdded(event) {
     if (event.detail && event.detail.word) {
@@ -191,7 +195,7 @@ export class YouTubeSubtitleList {
   }
 
   /**
-   * 添加或更新单词到生词本
+   * 添加或合并更新生词数据至局部生词本列表中
    */
   addWord(
     word,
@@ -207,17 +211,18 @@ export class YouTubeSubtitleList {
     );
 
     if (existingIndex !== -1) {
-      // 单词已存在，合并/更新信息
+      // 单词已存在时，进行属性合并更新（补充音标、释义、例句等）
       const currentItem = this.vocabulary[existingIndex];
       if (phonetic) currentItem.phonetic = phonetic;
       if (definition) currentItem.definition = definition;
       if (examples.length > 0) currentItem.examples = examples;
       if (timestamp) currentItem.timestamp = timestamp;
     } else {
-      // 新增单词
+      // 新增单词记录
       this.vocabulary.push({ word, phonetic, definition, examples, timestamp });
     }
 
+    // 如果生词本当前处于显示 Tab，则立即重绘列表；若处于隐藏 Tab，仅标记 Dirty 并在切换时再绘制
     if (this.activeTab === "vocabulary") {
       this._renderVocabulary();
     } else {
@@ -226,7 +231,7 @@ export class YouTubeSubtitleList {
   }
 
   /**
-   * 下载当前双语字幕为 VTT 文件
+   * 触发下载操作：将当前的双语字幕数组整理并构造成标准的双语 VTT 格式文件下载
    */
   downloadSubtitles() {
     if (!this.bilingualSubtitles || this.bilingualSubtitles.length === 0) {
@@ -252,33 +257,33 @@ export class YouTubeSubtitleList {
   // ==================================================================================
 
   /**
-   * 创建主容器和列表结构
+   * 创建侧边悬浮面板的主 DOM 结构并触发内容分块渲染
    */
   createSubtitleList() {
     if (!this.videoEl) return;
 
-    // 1. 确保主容器存在
+    // 1. 确保主悬浮容器已创建在页面上
     this._ensureContainer();
 
-    // 2. 如果容器为空，初始化 Tab 结构和面板
+    // 2. 如果容器刚刚新建尚未渲染内容，构建 Tab 页头和各 Tab 视图结构
     if (this.container.children.length === 0) {
       this._renderTabsAndStructure();
     }
 
-    // 3. 取消之前可能正在进行的渲染
+    // 3. 取消任何进行中的旧分块渲染，防止数据源变化导致覆盖错位
     this._cancelChunkRender();
 
-    // 4. 清空列表并启动分块异步渲染，避免大量字幕导致主线程卡死
+    // 4. 清空字幕 DOM 列表并启动异步分块渲染
     const ul = this.subtitleListEl.querySelector("ul");
     ul.replaceChildren();
     this._renderSubtitlesInChunks(ul);
 
-    // 5. 渲染生词本（初始为空或已有数据）
+    // 5. 渲染生词本列表
     this._renderVocabulary();
   }
 
   /**
-   * 确保主悬浮容器存在并设置样式
+   * 确保主悬浮容器存在并自适应暗黑/浅色模式，注入对应的 CSS 变量系统
    */
   _ensureContainer() {
     this.container = document.getElementById(
@@ -287,7 +292,7 @@ export class YouTubeSubtitleList {
     if (!this.container) {
       this.container = document.createElement("div");
       this.container.id = "kiss-youtube-subtitle-list-container";
-      this.container.className = "notranslate";
+      this.container.className = "notranslate"; // 避免被其他浏览器翻译插件二次翻译
       Object.assign(this.container.style, {
         height: "calc(100vh - 220px)",
         maxHeight: "none",
@@ -309,10 +314,11 @@ export class YouTubeSubtitleList {
         flexDirection: "column",
         marginBottom: "12px",
       });
-      // 将容器插入到 YouTube 页面右侧栏 (secondary) 的顶部
+      // 默认将面板挂载到 YouTube 右侧“次要内容推荐”栏的顶部
       const secondary = document.getElementById("secondary-inner");
       if (secondary) secondary.prepend(this.container);
 
+      // 异步读取设置项，自适应检测 YouTube 原生页面暗黑模式偏好，并注入相匹配的主题色变量系统
       (async () => {
         try {
           const setting = await getSettingWithDefault();
@@ -367,10 +373,10 @@ export class YouTubeSubtitleList {
   }
 
   /**
-   * 渲染 Tabs 头部和内容区域结构
+   * 渲染 Tabs 页头、关闭按钮、内容骨架区域等结构
    */
   _renderTabsAndStructure() {
-    // --- Header & Tabs (保持不变) ---
+    // 创建头部容器
     const tabHeader = document.createElement("div");
     tabHeader.style.cssText = `display: flex; border-bottom: 1px solid var(--kt-divider); padding: 0 16px; flex-shrink: 0;`;
 
@@ -379,15 +385,15 @@ export class YouTubeSubtitleList {
     const vocabularyTab = document.createElement("button");
     vocabularyTab.textContent = "生词本";
 
+    // 切换 Tab 的高亮样式定制
     const styleTab = (tab, isActive) => {
       tab.style.cssText = `padding: 12px 16px; cursor: pointer; border: none; background: transparent; font-size: 15px; font-weight: ${isActive ? "600" : "500"}; color: ${isActive ? "var(--kt-primary)" : "var(--kt-text)"}; border-bottom: 2px solid ${isActive ? "var(--kt-primary)" : "transparent"}; margin-bottom: -1px; outline: none;`;
     };
 
+    // 关闭侧边栏的“叉叉”按钮
     const closeBtn = document.createElement("button");
-    closeBtn.innerHTML = "&times;"; // 使用 HTML 实体 ×
+    closeBtn.innerHTML = "&times;"; // × 符号
     closeBtn.title = "Close";
-
-    // 关键样式：margin-left: auto 将按钮推到最右侧
     closeBtn.style.cssText = `
       margin-left: auto; 
       background: transparent; 
@@ -402,12 +408,10 @@ export class YouTubeSubtitleList {
       transition: color 0.2s;
     `;
 
-    // 绑定销毁事件
     closeBtn.addEventListener("click", () => {
-      this.destroy(); // 使用 destroy() 可以彻底清理 DOM、定时器和事件监听
+      this.destroy(); // 销毁整个容器并清理挂载事件
     });
 
-    //简单的 Hover 效果
     closeBtn.addEventListener(
       "mouseenter",
       () => (closeBtn.style.color = "var(--kt-text)")
@@ -417,18 +421,16 @@ export class YouTubeSubtitleList {
       () => (closeBtn.style.color = "var(--kt-subtext)")
     );
 
-    // --- Content Area ---
+    // 内容区主包装容器 (限制内部局部滚动，防止触发外部页面滚动)
     const tabContentContainer = document.createElement("div");
-    // 【修改点 1】这里改为 overflow: hidden，不再让外层滚动
     tabContentContainer.style.cssText = `overflow: hidden; flex-grow: 1; display: flex; flex-direction: column; height: calc(100% - 40px);`;
 
-    // 1. Subtitle Panel
+    // 1. 字幕列表 Tab 面板
     this.subtitleListEl = document.createElement("div");
     this.subtitleListEl.id = "kiss-youtube-subtitle-list";
-    // 【修改点 2】Subtitle Panel 改为 Flex Column 布局，高度 100%
     this.subtitleListEl.style.cssText = `display: flex; flex-direction: column; height: 100%; overflow: hidden;`;
 
-    //    1.1 Subtitle Action Bar (固定在顶部)
+    //    1.1 字幕操作区工具栏 (固定在字幕上方)
     const subActionBar = document.createElement("div");
     subActionBar.style.cssText = `padding: 10px 16px; border-bottom: 1px solid var(--kt-divider); display: flex; justify-content: center; flex-shrink: 0;`;
 
@@ -459,29 +461,27 @@ export class YouTubeSubtitleList {
     subActionBar.appendChild(downloadBtn);
     this.subtitleListEl.appendChild(subActionBar);
 
-    //    1.2 Subtitle Scroll Container (【新增】专门的滚动容器)
+    //    1.2 字幕局部独立滚动容器
     this.subtitleScrollContainer = document.createElement("div");
     this.subtitleScrollContainer.style.cssText = `overflow-y: auto; flex: 1; padding: 0 16px; position: relative;`;
 
-    //    1.3 Subtitle List UL
+    //    1.3 字幕列表 UL 节点
     const subUl = document.createElement("ul");
-    // padding 移到 scrollContainer 上或者保持在这里，这里 margin: 0 即可
     subUl.style.cssText = `list-style-type: none; padding: 16px 0; margin: 0;`;
 
     this.subtitleScrollContainer.appendChild(subUl);
     this.subtitleListEl.appendChild(this.subtitleScrollContainer);
 
-    // 2. Vocabulary Panel (保持不变，它本来就是 Flex 结构)
+    // 2. 生词本 Tab 面板
     this.vocabularyListEl = document.createElement("div");
     this.vocabularyListEl.id = "kiss-youtube-vocabulary-list";
     this.vocabularyListEl.style.cssText = `display: none; flex-direction: column; height: 100%; overflow: hidden;`;
 
-    // --- Tab Switching Logic ---
+    // --- Tab 切换点击事件绑定 ---
     subtitleTab.addEventListener("click", () => {
       this.activeTab = "subtitles";
       styleTab(subtitleTab, true);
       styleTab(vocabularyTab, false);
-      // 注意：这里用 flex 还是 block 取决于外层布局，display: flex 配合 flex-direction: column 更好
       this.subtitleListEl.style.display = "flex";
       this.vocabularyListEl.style.display = "none";
     });
@@ -491,6 +491,7 @@ export class YouTubeSubtitleList {
       styleTab(vocabularyTab, true);
       this.subtitleListEl.style.display = "none";
       this.vocabularyListEl.style.display = "flex";
+      // 切换到生词本时，如果生词本发生过更改（标记为 dirty），立即触发重新渲染生词列表
       if (this._vocabularyDirty) {
         this._renderVocabulary();
         this._vocabularyDirty = false;
@@ -506,7 +507,7 @@ export class YouTubeSubtitleList {
   }
 
   /**
-   * 创建单个字幕行元素
+   * 创建单个字幕行元素 (DOM)
    */
   _createSubtitleListItem(sub, index) {
     const li = document.createElement("li");
@@ -515,29 +516,29 @@ export class YouTubeSubtitleList {
     li.dataset.time = sub.start;
     li.style.cssText = `cursor: pointer; padding: 12px 16px; border-bottom: 1px solid var(--kt-divider); transition: all 0.2s ease; border-radius: 6px; margin-bottom: 4px; display: flex; align-items: flex-start;`;
 
-    // 时间戳
+    // 播放时间指示器 span
     const timeSpan = document.createElement("span");
     timeSpan.textContent = `${this.millisToMinutesAndSeconds(sub.start)} `;
     timeSpan.style.cssText = `color: var(--kt-primary); font-weight: 600; margin-right: 10px; font-size: 12px; background: var(--kt-time-bg); padding: 2px 6px; border-radius: 4px; flex-shrink: 0; line-height: 20px;`;
 
-    // 文本容器
+    // 字幕内容文字包装容器
     const textContainer = document.createElement("div");
     textContainer.style.cssText = `flex-grow: 1;`;
 
-    // 原文
+    // 字幕原始语言
     const textSpan = document.createElement("div");
     textSpan.className = "kiss-youtube-original";
     textSpan.textContent = sub.text || "";
     textSpan.style.cssText = `color: var(--kt-text); font-size: 14px; line-height: 1.4; margin-bottom: 4px;`;
 
-    // 译文
+    // 字幕翻译语言
     const translationEl = document.createElement("div");
     translationEl.className = "kiss-youtube-translation";
     translationEl.textContent = sub.translation || "";
     translationEl.style.display = sub.translation ? "block" : "none";
     translationEl.style.cssText = `color: var(--kt-subtext); font-size: 13px; line-height: 1.4; font-style: italic; min-height: 18px;`;
 
-    // 事件
+    // 交互事件绑定：点击字幕跳跃视频播放时间点，鼠标悬停高亮
     li.addEventListener("click", () => this.jumpToTime(sub.start));
     li.addEventListener("mouseenter", () => {
       if (!li.classList.contains("active-subtitle"))
@@ -557,13 +558,12 @@ export class YouTubeSubtitleList {
   }
 
   /**
-   * 更新现有的双语字幕列表 (Diff Update)
-   * 策略：如果数据长度变了，仅增量追加新增条目；如果长度不变，仅更新文本内容。
+   * 当字幕源更新时的增量更新算法 (Diff 增量更新)
    */
   updateBilingualSubtitles() {
     if (!this.subtitleListEl) return;
 
-    // 1. 增量追加模式：只添加新增的条目，不全量重建
+    // 1. 增量追加模式：当新加载的字幕多于缓存的旧字幕时，只追加渲染新增的部分，避免全量重建
     if (this.bilingualSubtitles.length > this._cachedSubtitleItems.length) {
       this._cancelChunkRender();
       const ul = this.subtitleListEl.querySelector("ul");
@@ -584,7 +584,7 @@ export class YouTubeSubtitleList {
     } else if (
       this.bilingualSubtitles.length < this._cachedSubtitleItems.length
     ) {
-      // 数据源变少了（如切换视频后重建），全量分块渲染
+      // 2. 全量重置模式：如果数据源比旧缓存还少（表明视频已经重新加载或完全替换），清空列表并分块异步渲染
       const ul = this.subtitleListEl.querySelector("ul");
       if (ul) {
         this._cancelChunkRender();
@@ -596,14 +596,15 @@ export class YouTubeSubtitleList {
   }
 
   /**
-   * 增量更新单条字幕的译文（O(1) DOM 操作）
-   * @param {{ start: number, end?: number, text?: string, translation: string }} subtitleUpdate
+   * 增量更新单条字幕的译文 (O(log N) 检索更新算法)
+   * 用二分查找快速定位 DOM 节点并修改，避免多语言分段翻译时高频重绘整个列表
+   * @param {{ start: number, end?: number, text?: string, translation: string }} subtitleUpdate 单条字幕增量信息
    */
   updateSingleSubtitle(subtitleUpdate) {
     if (!this.subtitleListEl || !this._cachedSubtitleItems.length) return;
 
     const { start, translation } = subtitleUpdate;
-    // 二分查找匹配的条目索引
+    // 二分查找匹配 start 播放开始时间的字幕索引
     let left = 0,
       right = this.bilingualSubtitles.length - 1;
     let targetIndex = -1;
@@ -619,10 +620,10 @@ export class YouTubeSubtitleList {
 
     if (targetIndex === -1) return;
 
-    // 更新数据源
+    // 更新数据源缓存
     this.bilingualSubtitles[targetIndex].translation = translation;
 
-    // 只更新单条 DOM
+    // 定向更新对应的单个 DOM 节点的翻译文本显示，并将 element.style.display 展开为 block
     const item = this._cachedSubtitleItems[targetIndex];
     if (item) {
       const translationEl = item.querySelector(".kiss-youtube-translation");
@@ -638,13 +639,15 @@ export class YouTubeSubtitleList {
   // ==================================================================================
 
   /**
-   * 渲染整个生词本面板
+   * 渲染/重绘生词本面板
    */
   _renderVocabulary() {
     if (!this.vocabularyListEl) return;
 
     this.vocabularyListEl.replaceChildren();
+    // 导出文件操作按钮区 (导出 JSON, CSV, MD 等)
     const exportContainer = this._createExportContainer();
+    // 单词卡片滚动列表容器
     const vocabListContainer = this._createVocabListContainer();
 
     this.vocabularyListEl.appendChild(exportContainer);
@@ -652,12 +655,13 @@ export class YouTubeSubtitleList {
   }
 
   /**
-   * 创建生词本的导出按钮区域
+   * 创建生词导出操作区头部栏
    */
   _createExportContainer() {
     const exportContainer = document.createElement("div");
     exportContainer.style.cssText = `padding: 10px 16px; border-bottom: 1px solid var(--kt-divider); display: flex; justify-content: center; flex-shrink: 0; gap: 8px;`;
 
+    // 如果生词本不为空，显示导出格式的动作按钮
     if (this.vocabulary.length > 0) {
       const createBtn = (text, handler) => {
         const btn = document.createElement("button");
@@ -680,6 +684,7 @@ export class YouTubeSubtitleList {
         createBtn("导出MD", this.exportVocabularyAsMd)
       );
     } else {
+      // 提示暂无生词
       const emptyTip = document.createElement("span");
       emptyTip.textContent = "暂无生词，在字幕中添加";
       emptyTip.style.color = "var(--kt-subtext)";
@@ -709,13 +714,13 @@ export class YouTubeSubtitleList {
   }
 
   /**
-   * 创建单个生词卡片元素
+   * 创建单个生词列表项卡片 (DOM)
    */
   _createVocabItemElement(item) {
     const vocabItem = document.createElement("div");
     vocabItem.style.cssText = `border-bottom: 1px solid var(--kt-divider); word-wrap: break-word; word-break: break-word;`;
 
-    // 1. 单词行 (单词 + 音标 + 时间跳转)
+    // 1. 单词行 (单词 + 音标 + 播放跳转按钮)
     const wordLine = document.createElement("div");
     wordLine.style.cssText = `display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap;`;
 
@@ -741,7 +746,7 @@ export class YouTubeSubtitleList {
     }
     vocabItem.appendChild(wordLine);
 
-    // 2. 释义
+    // 2. 释义段落
     if (item.definition) {
       const defEl = document.createElement("div");
       defEl.textContent = item.definition;
@@ -749,7 +754,7 @@ export class YouTubeSubtitleList {
       vocabItem.appendChild(defEl);
     }
 
-    // 3. 例句
+    // 3. 例句列表
     if (item.examples && item.examples.length > 0) {
       const exContainer = document.createElement("div");
       exContainer.style.cssText = `color: var(--kt-subtext); font-size: 13px; line-height: 1.4;`;
@@ -775,13 +780,14 @@ export class YouTubeSubtitleList {
 
   // --- 导出实现 ---
 
+  // 导出为 JSON 格式文件
   exportVocabularyAsJson() {
     if (this.vocabulary.length === 0) return;
     const videoId = this._getYouTubeVideoId();
 
     const processedVocabulary = this.vocabulary.map((item) => {
       const newItem = { ...item };
-      // 清理音标格式
+      // 清理音标中可能包含的方括号，规范化导出数据
       if (item.phonetic) {
         const cleanPhonetic = item.phonetic;
         newItem.phonetic = cleanPhonetic ? `[${cleanPhonetic}]` : "";
@@ -805,6 +811,7 @@ export class YouTubeSubtitleList {
     );
   }
 
+  // 导出为 CSV 格式文件
   exportVocabularyAsCsv() {
     if (this.vocabulary.length === 0) return;
     const videoId = this._getYouTubeVideoId();
@@ -823,6 +830,7 @@ export class YouTubeSubtitleList {
       const ex2 = item.examples?.[1];
 
       let videoLink = "";
+      // 拼接跳转对应时间点的时间参数，生成跳转链接
       if (item.timestamp && videoId) {
         videoLink = `https://www.youtube.com/watch?v=${videoId}&t=${Math.floor(item.timestamp / 1000)}s`;
       }
@@ -841,7 +849,7 @@ export class YouTubeSubtitleList {
         .join(",");
     });
 
-    // 添加 BOM \uFEFF 解决 Excel 中文乱码
+    // 添加 BOM 头 \uFEFF，防止中文导出在 Windows Excel 中打开出现乱码问题
     const csvContent = [
       `"${this._getYouTubeVideoTitle()}",,,,,,,`,
       `"${videoId ? `https://www.youtube.com/watch?v=${videoId}` : "生词本"}",,,,,,,`,
@@ -853,6 +861,7 @@ export class YouTubeSubtitleList {
     this._downloadFile("\uFEFF" + csvContent, "text/csv;charset=utf-8;", "csv");
   }
 
+  // 导出为 Plain Text 纯文本
   exportVocabularyAsTxt() {
     if (this.vocabulary.length === 0) return;
     const videoId = this._getYouTubeVideoId();
@@ -889,6 +898,7 @@ export class YouTubeSubtitleList {
     this._downloadFile(lines.join("\n"), "text/plain;charset=utf-8;", "txt");
   }
 
+  // 导出为 Markdown 格式
   exportVocabularyAsMd() {
     if (this.vocabulary.length === 0) return;
     const videoId = this._getYouTubeVideoId();
@@ -931,26 +941,29 @@ export class YouTubeSubtitleList {
   // Sync Logic: 字幕同步滚动
   // ==================================================================================
 
+  // 绑定滚动事件相关监听器
   setupEventListeners() {
     if (!this.container || !this.videoEl) return;
-    // 鼠标悬停时停止自动滚动，提升用户体验
+    // 鼠标悬浮于侧边字幕面板时停止自动随视频播放滚动，方便用户进行鼠标选词或手动滑动浏览，鼠标移出时恢复自动滚动高亮，提升用户体验
     this.container.addEventListener("mouseenter", () => this.turnOffAutoSub());
     this.container.addEventListener("mouseleave", () => this.turnOnAutoSub());
 
-    // 视频事件联动
+    // 视频事件联动：视频结束或暂停时停止定时器，视频开始播放时开启同步定时器
     this.videoEl.addEventListener("ended", () => this.turnOffAutoSub());
     this.videoEl.addEventListener("pause", () => this.turnOffAutoSub());
     this.videoEl.addEventListener("play", () => this.turnOnAutoSub());
   }
 
   /**
-   * 启动自动滚动检测循环
+   * 启动以 200ms 为步长的自动字幕滚动轮询
    */
   turnOnAutoSub() {
     this.turnOffAutoSub();
+    // 视频本已暂停，无需启动轮询
     if (this.videoEl.paused) return;
 
     this.loopAutoScroll = setInterval(() => {
+      // 各种阻断条件判定
       if (
         !this.videoEl ||
         this.activeTab !== "subtitles" ||
@@ -959,7 +972,9 @@ export class YouTubeSubtitleList {
         return;
 
       const currentTimeMs = this.videoEl.currentTime * 1000;
+      // 利用二分法查找当前播放进度对应的字幕索引
       let currentIndex = this._binarySearchSubtitle(currentTimeMs);
+      // 如果当前行未改变，则不触发任何 DOM 修改
       if (this._lastActiveIndex === currentIndex) return;
 
       if (
@@ -967,7 +982,7 @@ export class YouTubeSubtitleList {
         currentIndex !== -1 &&
         this._cachedSubtitleItems[currentIndex]
       ) {
-        // 移除旧高亮
+        // 清理上一次高亮字幕行的样式
         if (
           this._lastActiveIndex !== -1 &&
           this._cachedSubtitleItems[this._lastActiveIndex]
@@ -978,20 +993,21 @@ export class YouTubeSubtitleList {
           lastEl.classList.remove("active-subtitle");
         }
 
-        // 添加新高亮
+        // 高亮当前字幕行，并设置粗体字
         const currentEl = this._cachedSubtitleItems[currentIndex];
         currentEl.style.fontWeight = "600";
         currentEl.style.backgroundColor = "var(--kt-active-bg)";
         currentEl.classList.add("active-subtitle");
         this._lastActiveIndex = currentIndex;
 
-        // 使用 auto 即时滚动，避免 smooth 动画重叠堆积导致卡顿
+        // 计算当前高亮行在滚动面板中的垂直位置，并将字幕行居中显示
         const container = this.subtitleScrollContainer;
         if (container) {
           const elementTop = currentEl.offsetTop;
           const containerHeight = container.clientHeight;
           const elementHeight = currentEl.clientHeight;
 
+          // 使用 'auto' 进行即时位置定位，不用 smooth 是为了防止高频微小的跳转重叠造成滚动抖动卡顿
           container.scrollTo({
             top: elementTop - containerHeight / 2 + elementHeight / 2,
             behavior: "auto",
@@ -1002,8 +1018,7 @@ export class YouTubeSubtitleList {
   }
 
   /**
-   * 二分查找：根据当前时间找到对应的字幕索引
-   * 复杂度 O(log n)，远优于线性查找
+   * 二分查找：在有序的双语字幕数组中，以 O(log N) 复杂度快速搜寻时间点 timeMs 对应的字幕块
    */
   _binarySearchSubtitle(timeMs) {
     let left = 0;
@@ -1015,17 +1030,18 @@ export class YouTubeSubtitleList {
       const sub = this.bilingualSubtitles[mid];
 
       if (timeMs >= sub.start && timeMs <= sub.end) {
-        return mid; // 精确命中时间区间
+        return mid; // 精确匹配该时间范围
       } else if (timeMs < sub.start) {
         right = mid - 1;
       } else {
         left = mid + 1;
-        bestMatch = mid; // 如果没有精确命中，记录最接近的上一句
+        bestMatch = mid; // 若没有精确包含在此区间内，将最接近的前一个字幕索引存入 bestMatch 作为缺省候选项
       }
     }
     return bestMatch;
   }
 
+  // 关闭同步滚动定时器
   turnOffAutoSub() {
     if (this.loopAutoScroll) {
       clearInterval(this.loopAutoScroll);
@@ -1038,7 +1054,7 @@ export class YouTubeSubtitleList {
   // ==================================================================================
 
   /**
-   * 将文件内容转为 Blob 并触发下载
+   * 将字符串文本转换成 Blob 文件并唤起浏览器下载弹窗
    */
   _downloadFile(content, mimeType, extension) {
     const blob = new Blob([content], { type: mimeType });
@@ -1049,7 +1065,11 @@ export class YouTubeSubtitleList {
   }
 
   /**
-   * 格式化时间：毫秒 -> MM:SS
+   * 格式化时间戳（毫秒）转换为 MM:SS 的短格式字符串
+   * REVIEW: 这里的 seconds 计算公式中：`((millis % 60000) / 1000).toFixed(0)`
+   * 在毫秒数为例如 59600 毫秒（即 59.6 秒）时，toFixed(0) 会将其四舍五入为 60，
+   * 此时本函数的输出格式为类似于 `3:60` 这一错误时间格式，而非期待的 `4:00`。
+   * 推荐的改进方案是对秒数向下取整：`Math.floor((millis % 60000) / 1000)`，或者在四舍五入为 60 时将分钟数加 1。
    */
   millisToMinutesAndSeconds(millis) {
     if (!Number.isFinite(millis)) return "0:00";
@@ -1058,6 +1078,7 @@ export class YouTubeSubtitleList {
     return minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
   }
 
+  // 截取当前 YouTube 的 URL 获取当前播放视频的 ID
   _getYouTubeVideoId() {
     try {
       const urlParams = new URLSearchParams(window.location.search);
@@ -1067,6 +1088,7 @@ export class YouTubeSubtitleList {
     }
   }
 
+  // 获取视频标题 DOM 中的文本内容
   _getYouTubeVideoTitle() {
     try {
       const titleElement = document.querySelector("h1 yt-formatted-string");

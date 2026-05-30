@@ -7,31 +7,42 @@ import Navigator from "./Navigator";
 import Header from "./Header";
 import { useTheme } from "@mui/material/styles";
 
+/**
+ * 设置中心后台页面的通风格子骨架布局组件 (Layout)
+ */
 export default function Layout() {
-  const navWidth = 256;
+  const navWidth = 256; // 左侧 Navigator 导航宽度为 256px
   const location = useLocation();
   const theme = useTheme();
+  // 移动端下控制临时侧边导航栏抽屉的展开状态
   const [open, setOpen] = useState(false);
+  // 匹配屏幕宽度大于等于 sm 的桌面设备环境
   const isSm = useMediaQuery(theme.breakpoints.up("sm"));
 
+  // 展开或收起侧边栏
   const handleDrawerToggle = () => {
     setOpen(!open);
   };
 
+  // 路由/导航路径一旦发生变化，立即关闭侧边栏 (主要适配移动端体验)
   useEffect(() => {
     setOpen(false);
   }, [location]);
 
   return (
     <Box>
+      {/* 浏览器默认样式归一化 */}
       <CssBaseline />
+      {/* 设置页公共导航头部 */}
       <Header onDrawerToggle={handleDrawerToggle} />
 
       <Box sx={{ display: "flex" }}>
+        {/* 左侧导航栏容器 */}
         <Box
           component="nav"
           sx={{ width: { sm: navWidth }, flexShrink: { sm: 0 } }}
         >
+          {/* 在大屏下是常驻固定栏 (permanent)，在小屏下为弹出临时抽屉 (temporary) */}
           <Navigator
             PaperProps={{ style: { width: navWidth } }}
             variant={isSm ? "permanent" : "temporary"}
@@ -40,6 +51,7 @@ export default function Layout() {
           />
         </Box>
 
+        {/* 右侧主设置面板内容渲染区域 (使用 react-router-dom 的 Outlet 渲染子路由) */}
         <Box component="main" sx={{ flex: 1, p: 2, width: "100%" }}>
           <Outlet />
         </Box>

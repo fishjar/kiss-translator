@@ -27,11 +27,15 @@ import SubtitleSetting from "./Subtitle";
 import Loading from "../../hooks/Loading";
 import StylesSetting from "./StylesSetting";
 
+/**
+ * 选项设置中心 (Options) 根入口组件
+ */
 export default function Options() {
   const [error, setError] = useState("");
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    // 检查油猴脚本版本与内置扩展打包版本的前两位主次版本号是否匹配
     const isValidVersion = (v1Str, v2Str) => {
       if (!v1Str || !v2Str) {
         return false;
@@ -45,13 +49,13 @@ export default function Options() {
 
     (async () => {
       if (isGm) {
-        // 等待GM注入
+        // 油猴脚本环境运行：轮询等待 GM_info 与 window.APP_INFO 被成功注入并初始化完毕
         let i = 0;
         for (;;) {
           if (window?.APP_INFO?.name === process.env.REACT_APP_NAME) {
             const { version, eventName } = window.APP_INFO;
 
-            // 检查版本是否一致（只检查前两位）
+            // 检查油猴端脚本版本是否需要更新升级
             if (!isValidVersion(version, process.env.REACT_APP_VERSION)) {
               setError(
                 `The version of the local script(v${version}) is not the latest version(v${process.env.REACT_APP_VERSION}). 本地脚本之版本(v${version})非最新版(v${process.env.REACT_APP_VERSION})。`
@@ -60,13 +64,14 @@ export default function Options() {
             }
 
             if (eventName) {
-              // 注入GM接口
+              // 绑定跨作用域油猴 GM 通信接口方法
               adaptScript(eventName);
             }
 
             break;
           }
 
+          // 循环轮询 8 次 (共 8 秒) 后判定为连接油猴后台超时
           if (++i > 8) {
             setError(
               "Time out. Please confirm whether to install or enable KISS Translator GreaseMonkey script? 连接超时，请检查是否安装或启用简约翻译油猴脚本。"
@@ -78,12 +83,13 @@ export default function Options() {
         }
       }
 
-      // 同步数据
+      // 同步最新配置及过滤翻译规则数据 (例如 WebDAV)
       await trySyncSettingAndRules();
       setReady(true);
     })();
   }, []);
 
+  // 展示版本不匹配或连接超时时的致命错误提示引导区
   if (error) {
     return (
       <center>
@@ -105,6 +111,7 @@ export default function Options() {
     );
   }
 
+  // 加载数据尚未就绪状态，展示 Loading 动效组件
   if (!ready) {
     return <Loading />;
   }
@@ -114,9 +121,11 @@ export default function Options() {
       <ThemeProvider>
         <AlertProvider>
           <ConfirmProvider>
+            {/* React 页面端路由管理 */}
             <HashRouter>
               <Routes>
                 <Route path="/" element={<Layout />}>
+                  {/* 子页面路由注册 */}
                   <Route index element={<Setting />} />
                   <Route path="rules" element={<Rules />} />
                   <Route path="styles" element={<StylesSetting />} />

@@ -1,3 +1,8 @@
+/**
+ * @file rules.js
+ * @description 翻译规则引擎。提供选择器的继承与差分算法（如支持加减号追加/剔除选择器）、三级优先级规则合并（个人规则 > 订阅规则 > 全局规则）以及规则数据的健全性清洗校验与保存。
+ */
+
 import { matchValue, type, isMatch } from "./utils";
 import {
   GLOBAL_KEY,
@@ -13,6 +18,15 @@ import { getRulesWithDefault, setRules, getDisabledSubRules } from "./storage";
 import { trySyncRules } from "./sync";
 import { kissLog } from "./log";
 
+/**
+ * 差分合并 CSS 选择器。
+ * 支持用户使用 “+” 号前缀在默认/基准选择器上追加自定义选择器，
+ * 以及使用 “-” 号前缀从基准选择器中剔除某些被误伤的默认选择器。
+ * 若无前缀（非补丁模式），则认为完全覆盖基准选择器。
+ * @param {string} defaultStr 默认/基准 CSS 选择器字符串（逗号分割）
+ * @param {string} userStr 覆盖的 CSS 选择器字符串（逗号分割）
+ * @returns {string} 合并后的最终 CSS 选择器字符串
+ */
 function mergeSelectors(defaultStr, userStr) {
   if (!userStr || !userStr.trim()) {
     return defaultStr;
@@ -27,16 +41,19 @@ function mergeSelectors(defaultStr, userStr) {
     .map((s) => s.trim())
     .filter(Boolean);
 
+  // 判断是否属于追加/删除的补丁（Patch）模式（即列表中包含任意一个带 "+" 或 "-" 的项）
   const isPatchMode = userList.some(
     (s) => s.startsWith("+") || s.startsWith("-")
   );
 
+  // 纯覆盖模式：直接去重并返回用户的选择器
   if (!isPatchMode) {
     return [...new Set(userList)].join(", ");
   }
 
+  // 补丁差分模式
   let finalSet = new Set(defaultList);
-  let currentMode = "add";
+  let currentMode = "add"; // 默认修饰动作为“添加”
   userList.forEach((item) => {
     let selector = item;
 
@@ -51,9 +68,9 @@ function mergeSelectors(defaultStr, userStr) {
     if (!selector) return;
 
     if (currentMode === "remove") {
-      finalSet.delete(selector);
+      finalSet.delete(selector); // 剔除选择器
     } else {
-      finalSet.add(selector);
+      finalSet.add(selector); // 追加选择器
     }
   });
 
@@ -61,10 +78,10 @@ function mergeSelectors(defaultStr, userStr) {
 }
 
 /**
- * 在规则列表中查找匹配的规则
- * @param {Array} rules 规则列表
- * @param {string} href 当前页面URL
- * @returns {Object|null} 匹配的规则或null
+ * 在给定的规则列表中，依据当前的 URL 匹配适合的规则
+ * @param {Array<Object>} rules 待遍历的规则数组
+ * @param {string} href 当前页面的完整 URL (如 location.href)
+ * @returns {Object|undefined} 匹配到的首条规则，未匹配返回 undefined
  */
 const findMatchingRule = (rules, href) => {
   return rules.find(
@@ -75,12 +92,12 @@ const findMatchingRule = (rules, href) => {
 };
 
 /**
- * 合并规则，应用优先级
- * 对于选择器类型的属性，使用mergeSelectors合并
- * 对于其他属性，高优先级规则覆盖低优先级规则
- * @param {Object} baseRule 基准规则（低优先级）
- * @param {Object} overrideRule 覆盖规则（高优先级）
- * @returns {Object} 合并后的规则
+ * 合并两条规则，高优先级（overrideRule）覆盖基准低优先级规则（baseRule）
+ * 对于选择器字段（selector, keepSelector 等），会调用 mergeSelectors 进行智能继承/差分合并；
+ * 对于枚举或普通字段，高优先级若为 `*` (GLOBAL_KEY) 或为空则继承低优先级，否则予以覆盖。
+ * @param {Object} baseRule 基准低优先级规则
+ * @param {Object} overrideRule 覆盖高优先级规则
+ * @returns {Object} 合并后的最终规则
  */
 const mergeRules = (baseRule, overrideRule) => {
   if (!overrideRule) return { ...baseRule };
@@ -88,7 +105,7 @@ const mergeRules = (baseRule, overrideRule) => {
 
   const merged = { ...baseRule };
 
-  // 选择器类型的属性需要使用mergeSelectors合并
+  // 1. 合并 CSS 选择器类型的属性，支持追加/剔除
   ["selector", "keepSelector", "rootsSelector", "ignoreSelector"].forEach(
     (key) => {
       merged[key] = mergeSelectors(
@@ -98,7 +115,7 @@ const mergeRules = (baseRule, overrideRule) => {
     }
   );
 
-  // 字符串类型的属性，非空则覆盖
+  // 2. 合并非空字符串类型的属性 (如自定义 JS/CSS/术语表样式)
   [
     "terms",
     "aiTerms",
@@ -119,7 +136,7 @@ const mergeRules = (baseRule, overrideRule) => {
     }
   });
 
-  // 枚举类型的属性，非全局值则覆盖
+  // 3. 合并枚举类型的属性，若高优先级属性为星号 '*' 则继续继承，否则直接覆盖
   [
     "apiSlug",
     "fromLang",
@@ -142,14 +159,14 @@ const mergeRules = (baseRule, overrideRule) => {
     }
   });
 
-  // 数字类型的属性
+  // 4. 合并数字数值类型属性
   ["splitLength", "transOnlyRevertDelay"].forEach((key) => {
     if (overrideRule[key] && overrideRule[key] !== GLOBAL_KEY) {
       merged[key] = overrideRule[key];
     }
   });
 
-  // pattern使用高优先级规则的pattern
+  // 5. 覆盖 pattern (URL 匹配模板)
   if (overrideRule.pattern) {
     merged.pattern = overrideRule.pattern;
   }
@@ -216,14 +233,18 @@ export const matchRule = async (href, { injectRules, subrulesList }) => {
 };
 
 /**
- * 检查过滤rules
- * @param {*} rules
- * @returns
+ * 检查、清洗并过滤规则列表数据。
+ * 支持输入 JSON 字符串或数组，对所有字段进行格式规范化与去重。
+ * @param {Array<Object>|string} rules 待校验的规则数组或 JSON 字符串
+ * @returns {Array<Object>} 校验规范化后的规则数组
+ * @throws {Error} 如果解析失败或数据格式不为数组，则抛出 "data error" 异常
  */
 export const checkRules = (rules) => {
+  // 如果是 JSON 字符串，先尝试解析为 JavaScript 对象
   if (type(rules) === "string") {
     rules = JSON.parse(rules);
   }
+  // 必须是数组格式
   if (type(rules) !== "array") {
     throw new Error("data error");
   }
@@ -231,9 +252,12 @@ export const checkRules = (rules) => {
   const fromLangs = OPT_LANGS_FROM.map((item) => item[0]);
   const toLangs = OPT_LANGS_TO.map((item) => item[0]);
   const patternSet = new Set();
+
+  // 过滤并映射规则列表
   rules = rules
-    .filter((rule) => type(rule) === "object")
+    .filter((rule) => type(rule) === "object") // 过滤出有效的规则对象
     .filter(({ pattern }) => {
+      // 过滤掉没有 pattern 或 pattern 重复的规则
       if (type(pattern) !== "string" || patternSet.has(pattern.trim())) {
         return false;
       }
@@ -278,6 +302,7 @@ export const checkRules = (rules) => {
         splitLength,
         highlightWords,
       }) => ({
+        // 确保字段类型及取值的合法性，不合法或空值时回退到默认占位符或空值
         pattern: pattern.trim(),
         selector: type(selector) === "string" ? selector : "",
         keepSelector: type(keepSelector) === "string" ? keepSelector : "",
@@ -299,7 +324,6 @@ export const checkRules = (rules) => {
             : GLOBAL_KEY,
         fromLang: matchValue([GLOBAL_KEY, ...fromLangs], fromLang),
         toLang: matchValue([GLOBAL_KEY, ...toLangs], toLang),
-        // textStyle: matchValue([GLOBAL_KEY, ...OPT_STYLE_ALL], textStyle),
         textStyle:
           type(textStyle) === "string" && textStyle.trim() !== ""
             ? textStyle.trim()
@@ -323,8 +347,6 @@ export const checkRules = (rules) => {
         transTitle: matchValue([GLOBAL_KEY, "true", "false"], transTitle),
         transStartHook: type(transStartHook) === "string" ? transStartHook : "",
         transEndHook: type(transEndHook) === "string" ? transEndHook : "",
-        // transRemoveHook:
-        //   type(transRemoveHook) === "string" ? transRemoveHook : "",
         splitParagraph: matchValue(
           [GLOBAL_KEY, ...OPT_SPLIT_PARAGRAPH_ALL],
           splitParagraph
@@ -341,17 +363,25 @@ export const checkRules = (rules) => {
 };
 
 /**
- * 保存或更新rule
- * @param {*} curRule
+ * 保存或更新单条用户自定义规则。
+ * 检查是否存在冲突并进行属性合并，最后同步更新规则列表。
+ * @param {Object} curRule 待保存的规则对象
  */
 export const saveRule = async (curRule) => {
+  // 获取当前所有的规则列表
   const rules = await getRulesWithDefault();
 
+  // 查找是否存在相同或模糊匹配 pattern 的已有规则
+  // REVIEW: 此处使用 isMatch(curRule.pattern, item.pattern) 进行判断。
+  // 如果 curRule.pattern 或 item.pattern 带有通配符，极易造成模糊匹配的误判，
+  // 导致非同名的其它规则被错误合并覆盖。建议改为精确的字符串对比：item.pattern === curRule.pattern。
   const index = rules.findIndex(
     (item) =>
       item.pattern !== GLOBAL_KEY && isMatch(curRule.pattern, item.pattern)
   );
+
   if (index !== -1) {
+    // 若匹配到了已有规则，将其从数组中取出，并与新属性合并，保留老规则的选择器等配置
     const rule = rules.splice(index, 1)[0];
     curRule = {
       ...rule,
@@ -365,10 +395,13 @@ export const saveRule = async (curRule) => {
   }
 
   const newRule = {};
+  // 获取当前的全局规则配置，用于做“冗余值过滤”
   const globalRule = {
     ...GLOBLA_RULE,
     ...(rules.find((r) => r.pattern === GLOBAL_KEY) || {}),
   };
+
+  // 遍历所有全局规则键值，若新规则的某项值与全局规则一致，则只保存 DEFAULT_RULE 中的占位符以优化存储大小
   Object.keys(GLOBLA_RULE).forEach((key) => {
     newRule[key] =
       !curRule[key] || curRule[key] === globalRule[key]
@@ -376,8 +409,10 @@ export const saveRule = async (curRule) => {
         : curRule[key];
   });
 
+  // 将新规则插入到列表的最前端并保存
   rules.unshift(newRule);
   await setRules(rules);
 
+  // 触发跨端/多终端规则同步
   trySyncRules();
 };

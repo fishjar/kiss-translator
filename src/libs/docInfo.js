@@ -24,6 +24,14 @@ const getDescription = () => {
   }
 };
 
+/**
+ * 获取网页的总结信息以供 AI 翻译提供更精准的领域上下文
+ * // REVIEW: 大文本正则清洗 CPU 性能开销。
+ * // 在 `getSummary()` 获取 YouTube 等特殊站点的视频详情或描述区域（如 `#description-inline-expander`）时，
+ * // 该节点的 `textContent` 长度可能极其庞大。
+ * // 此时立即对其运行 `cleanText` 中的全局正则替换 `replace(/\s+/g, " ")` 会在主线程产生明显的 CPU 计算阻塞，
+ * // 推荐先对文本进行字符截断（如 slice()）限制最大长度后，再执行正则空白符清洗。
+ */
 const getSummary = () => {
   // todo: 利用AI总结
   let summary = "";

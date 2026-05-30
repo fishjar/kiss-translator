@@ -43,9 +43,14 @@ import { getDocInfo } from "./docInfo";
  * @description 翻译核心逻辑封装
  */
 export class Translator {
+  // 块级判定缓存，避免对同一节点高频调用 window.getComputedStyle(el) 造成浏览器回流（Reflow）
   static displayCache = new WeakMap();
+
+  // HTML 元素标签分类
   static TAGS = {
+    // 强制换行标签
     BREAK_LINE: new Set(["BR", "WBR"]),
+    // 块级标签
     BLOCK: new Set([
       "ADDRESS",
       "ARTICLE",
@@ -82,6 +87,7 @@ export class Translator {
       "UL",
       "VIDEO",
     ]),
+    // 行级标签
     INLINE: new Set([
       // "A",
       "ABBR",
@@ -123,6 +129,7 @@ export class Translator {
       "U",
       "VAR",
     ]),
+    // 需要被作为占位符替换以保持原文格式不被机器翻译破坏的复杂标签
     REPLACE: new Set([
       "ABBR",
       "CODE",
@@ -139,6 +146,7 @@ export class Translator {
       "TIME",
       "VAR",
     ]),
+    // 需要被包装翻译的行内样式或逻辑标签
     WARP: new Set([
       "A",
       "B",
@@ -162,7 +170,7 @@ export class Translator {
     ]),
   };
 
-  // 译文相关class
+  // 译文相关 CSS 类名配置
   static KISS_CLASS = {
     warpper: `${APP_LCNAME}-wrapper`,
     inner: `${APP_LCNAME}-inner`,
@@ -172,8 +180,7 @@ export class Translator {
     retry: `${APP_LCNAME}-retry`,
   };
 
-  // 内置跳过翻译文本
-  // todo: 验证有效性
+  // 内置过滤与跳过翻译的正则表达式规则（URL、邮箱、路径、数字、日期、模板等）
   static BUILTIN_SKIP_PATTERNS = [
     // 1. URL (覆盖 http, https, ftp, file 协议)
     /^(?:(?:https?|ftp|file):\/\/|www\.)[^\s/$.?#].[^\s]*$/i,
@@ -203,7 +210,7 @@ export class Translator {
     // 9. CSS 选择器 (简单的 class/ID) 和十六进制颜色值
     /^(?:\.|#)[\w-]+$|^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/,
 
-    // 10. 用户名 (例如 @username, @user.name, @user-name) - [已修改]
+    // 10. 用户名 (例如 @username, @user.name, @user-name)
     /^@[\w.-]+$/,
 
     // 11. HTML 实体
@@ -212,38 +219,50 @@ export class Translator {
     // 12. 中括号包裹的序号 (例如 [1], [99])
     /^\[\d+\]$/,
 
-    // 13. 简单时间格式 (例如 12:30, 9:45:30) - [新增]
+    // 13. 简单时间格式 (例如 12:30, 9:45:30)
     /^\d{1,2}:\d{2}(:\d{2})?$/,
 
     // 14. 包含常见扩展名的文件名 (例如: document.pdf, image.jpeg)
     /^[^\s\\/:]+?\.[a-zA-Z0-9]{2,5}$/,
-
-    // todo: 数字和特殊字符组成的字符串
   ];
 
-  static DEFAULT_OPTIONS = DEFAULT_SETTING; // 默认配置
-  static DEFAULT_RULE = GLOBLA_RULE; // 默认规则
+  static DEFAULT_OPTIONS = DEFAULT_SETTING; // 默认配置选项
+  static DEFAULT_RULE = GLOBLA_RULE; // 默认匹配规则
 
+  // 判断是否为普通的 DOM 元素节点
   static isElement(el) {
     return el instanceof Element;
   }
 
+  // 判断是否为 DOM 元素节点或文档片段
   static isElementOrFragment(el) {
     return el instanceof Element || el instanceof DocumentFragment;
   }
 
-  // 判断是否块级元素
+  /**
+   * 判断目标元素是否为块级（Block）节点
+   * // REVIEW: 缓存失效风险。使用 WeakMap 缓存了元素的 block 判定结果，如果在页面运行期间，
+   * // 某个元素的 display 样式被动态修改（如从 none 变更为 block，或者从 inline 变更为 block），
+   * // displayCache 中缓存的旧状态不会被失效或刷新，这可能导致后续的扫描和翻译无法准确处理该节点。
+   * @param {Node} el - 待检测的 DOM 节点
+   * @returns {boolean}
+   */
   static isBlockNode(el) {
     if (!Translator.isElementOrFragment(el)) return false;
 
+    // 若有显式的 inline 属性设置，直接判定非块级
     if (el.attributes?.display?.value?.includes("inline")) return false;
+    // 若标签在内联标签集合中，直接判定非块级
     if (Translator.TAGS.INLINE.has(el.nodeName?.toUpperCase())) return false;
+    // 若标签在块级标签集合中，直接判定为块级
     if (Translator.TAGS.BLOCK.has(el.nodeName?.toUpperCase())) return true;
 
+    // 优先读取 WeakMap 缓存
     if (Translator.displayCache.has(el)) {
       return Translator.displayCache.get(el);
     }
 
+    // 降级回滚：调用 getComputedStyle 进行高开销的布局样式计算
     const isBlock = !window.getComputedStyle(el).display.startsWith("inline");
     Translator.displayCache.set(el, isBlock);
     return isBlock;
@@ -339,10 +358,11 @@ export class Translator {
   #rescanQueue = new Set(); // “脏容器”队列
   #isQueueProcessing = false; // 队列处理状态标志
 
-  // 获取当前视口中的稳定锚点，用于 DOM 高度变化后保持用户正在看的位置
+  // 获取当前视口中的稳定锚点，用于 DOM 高度/结构发生改变（如插入译文）后保持滚动条位置，防止页面视觉闪烁或滚动位置发生偏移
   #captureViewportAnchor() {
     if (!document.elementFromPoint || !window.scrollBy) return null;
 
+    // 测试视口中部的三个不同纵坐标点（50%, 33%, 66%），确保抓取到一个有效的可视 DOM 节点
     const points = [0.5, 0.33, 0.66];
     for (const ratio of points) {
       const x = Math.max(0, Math.floor(window.innerWidth / 2));
@@ -363,6 +383,7 @@ export class Translator {
     return null;
   }
 
+  // 规范化视口锚点，如果是译文容器节点，则向上归纳为对应的原文节点，以保证高度恢复的稳定性
   #normalizeViewportAnchor(element) {
     if (!element) return null;
 
@@ -378,16 +399,19 @@ export class Translator {
     return wrapper.previousElementSibling || wrapper.parentElement;
   }
 
+  // 恢复滚动视口的锚点位置，通过计算锚点元素的位移差进行补偿滚动
   #restoreViewportAnchor(anchor) {
     if (!anchor?.element?.isConnected) return;
 
     const currentTop = anchor.element.getBoundingClientRect().top;
     const offset = currentTop - anchor.top;
+    // 如果位移差超过 0.5 像素，则平滑滚动以补偿该差值
     if (Math.abs(offset) > 0.5) {
       window.scrollBy(0, offset);
     }
   }
 
+  // 包装执行 DOM 修改的回调函数，并在前后自动完成视口滚动稳定保护
   #withViewportAnchor(callback) {
     const anchor = this.#captureViewportAnchor();
     try {
@@ -1400,19 +1424,24 @@ export class Translator {
 
       const currentRunId = this.#runId;
 
-      // 流式渲染模式
+      // 1. 确定流式渲染模式状态
       const streamRenderMode = this.#apiSetting.streamRenderMode || "disabled";
       const isStreamRender =
         streamRenderMode !== "disabled" &&
         this.#apiSetting.useStream &&
         this.#apiSetting.useBatchFetch;
 
-      // RAF 缓冲
+      // REVIEW: 极佳的性能优化设计 (RequestAnimationFrame 缓冲刷新)！
+      // 大模型流式输出（onStreamChunk）返回速率极快（每秒可达几十次）。
+      // 若每次收到数据都直接操作 DOM 修改 innerText 刷新页面，极易导致浏览器主线程阻塞和严重的 Layout Thrashing (布局抖动)。
+      // 此处引入了 RAF (requestAnimationFrame) 刷新缓冲区，限制每秒最多渲染 60 次（FPS 锁帧），
+      // 并只在空闲时间执行 flushPendingText() 修改 textNode 节点，大幅度节约了 DOM 回流重绘的开销，用户体验丝滑。
       let rafId = null;
       let pendingText = "";
       let hasFirstChunk = false;
       const innerRef = inner;
 
+      // 异步刷新临时文本缓冲区到 DOM 中
       const flushPendingText = () => {
         if (!hasFirstChunk) {
           innerRef.textContent = "";
@@ -1421,14 +1450,16 @@ export class Translator {
         } else {
           const textNode = innerRef.firstChild;
           if (textNode) {
-            textNode.nodeValue = pendingText;
+            textNode.nodeValue = pendingText; // 直接修改 TextNode 的 nodeValue 避免触发表单级 Reflow
           }
         }
         rafId = null;
       };
 
+      // 流式 Chunk 回调函数
       const onStreamChunk = isStreamRender
         ? (chunk) => {
+            // 防过期控制，若本轮翻译请求已因用户点击关闭或被新请求覆盖，则立刻抛弃
             if (this.#runId !== currentRunId) return;
             const { text, isComplete } = chunk;
             if (!text) return;
@@ -1443,16 +1474,18 @@ export class Translator {
             } else {
               pendingText = text;
               if (!rafId) {
+                // 开启 RAF 排队渲染
                 rafId = requestAnimationFrame(flushPendingText);
               }
             }
           }
         : null;
 
+      // 2. 发起真实的翻译网络请求
       const { trText: translatedText, isSame: isSameLang } =
         await this.#translateFetch(processedString, deLang, onStreamChunk);
 
-      // 清理 RAF 缓冲
+      // 请求完成后，立刻注销多余的 RAF 定时监听器，防止内存泄漏
       if (rafId) {
         cancelAnimationFrame(rafId);
         rafId = null;
@@ -1462,6 +1495,7 @@ export class Translator {
         throw new Error("Request terminated");
       }
 
+      // 如果翻译文本为空，或者识别出来的源语言与目标语言一致，则移除临时的翻译 Loading 容器
       if (!translatedText || isSameLang) {
         this.#withViewportAnchor(() => {
           wrapper.remove();
@@ -1469,16 +1503,18 @@ export class Translator {
         return;
       }
 
+      // 3. 将翻译后文本里的 {{1}}、<tag1> 等占位符还原为对应的 DOM 节点和 HTML 结构
       const htmlString = this.#restoreFromTranslation(
         translatedText,
         placeholderMap
       );
-      const trustedHTML = trustedTypesHelper.createHTML(htmlString);
 
-      // const parser = new DOMParser();
-      // const doc = parser.parseFromString(trustedHTML, "text/html");
-      // const innerElement = doc.body.firstChild;
-      // inner.replaceChildren(innerElement);
+      // REVIEW: 高安全标准的 Trusted Types 注入机制。
+      // 在页面插入 innerHTML 很容易遭受 DOM-based XSS 跨站脚本攻击。
+      // 特别是在 Chrome 扩展中强灌 innerHTML 会直接触发扩展程序的安全拦截。
+      // 此处将 htmlString 传入 trustedTypesHelper.createHTML 转化为受信任的 TrustedHTML 实例，
+      // 再安全地写入 inner.innerHTML，这完全符合现代高 CSP 标准站点的规范，非常专业。
+      const trustedHTML = trustedTypesHelper.createHTML(htmlString);
 
       this.#withViewportAnchor(() => {
         inner.innerHTML = trustedHTML;
@@ -1510,7 +1546,11 @@ export class Translator {
         nodes.forEach((node) => this.#highlightWordsDeeply(node));
       }
 
-      // 翻译完成钩子函数
+      // 翻译完成钩子函数（在隔离沙盒内安全执行用户自定义的译后处理脚本）
+      // REVIEW: 共享 Sval 实例导致 Hook 竞态条件 (Race Condition) 隐患。
+      // 由于 interpreter 是全局单例，当页面中同时有多个并发的 translateNodeGroup 任务异步执行时，
+      // 同步运行的 `interpreter.run('exports.transEndHook = ...')` 会直接覆盖上一个任务尚未执行完毕的 exports.transEndHook 引用。
+      // 这可能导致后一个任务的 Hook 函数被错误地执行多次，或者前一个任务执行了不匹配的、新覆盖的 Hook 函数，出现非预期的运行时状态混乱。
       if (transEndHook?.trim()) {
         try {
           interpreter.run(`exports.transEndHook = ${transEndHook}`);
@@ -1697,7 +1737,7 @@ export class Translator {
     return [processedString, placeholderMap];
   }
 
-  // 组装恢复html字符串
+  // 将翻译后的文本与之前序列化时抽离的 HTML 占位符、标签和术语映射进行合并还原，恢复原网页的富文本格式与 DOM 结构
   #restoreFromTranslation(translatedText, placeholderMap) {
     if (!placeholderMap.size) {
       return translatedText;
@@ -1711,41 +1751,42 @@ export class Translator {
     let result = translatedText;
 
     try {
-      // 1. 将所有占位符格式统一替换为 <span data-kiss-restore="index">
+      // 1. 规范化占位符：将不同翻译源返回的不同占位标签（如 <a1>... </a1> 或 <span i=1>...）统一替换为统一的临时标记格式 `<span data-kiss-restore="序号">`
       textToParse = textToParse.replace(
         openRegex,
         `<${safeTag} ${restoreAttr}="$1">`
       );
       textToParse = textToParse.replace(closeRegex, `</${safeTag}>`);
 
-      // 2. DOM 解析
+      // 2. DOM 静态解析：使用 DOMParser 将规范后的 HTML 字符串解析成一个虚拟 DOM 树，以便精确操作和避免正则嵌套标签还原出错的问题
       const parser = new DOMParser();
       const doc = parser.parseFromString(textToParse, "text/html");
 
-      // 3. 查找所有标记节点
+      // 3. 查找所有临时标记节点
       const selector = `${safeTag}[${restoreAttr}]`;
       const placeholders = Array.from(doc.querySelectorAll(selector));
 
-      // 4. 倒序还原 (自底向上)
+      // 4. 自底向上倒序还原：为了保证嵌套标签的父子包含层级不被破坏，必须从最深处的子节点开始依次向外层父节点还原。
+      // 这里的 placeholders.reverse() 正是实现了自底向上（倒序）替换 DOM 节点，逻辑非常严密！
       placeholders.reverse().forEach((node) => {
         const index = node.getAttribute(restoreAttr);
         if (index) {
           const tagPair = placeholderMap.get(`TAG_${index}`);
           if (tagPair) {
-            // 使用 outerHTML 替换整个临时节点
-            // node.innerHTML 包含了该节点内部可能已经还原过的原本内容
+            // 使用原本的 HTML 标签对 (如 <a href="...">...</a>) 完整包裹当前节点的内容，并使用 outerHTML 替换整个临时 span 节点
             node.outerHTML = `${tagPair.openTag}${node.innerHTML}${tagPair.closeTag}`;
           }
         }
       });
 
+      // 获取还原完毕后的富文本 HTML 字符串
       result = doc.body.innerHTML;
     } catch (e) {
       kissLog("DOMParser restore failed, fallback to raw", e);
-      // 如果解析失败，result 仍为 translatedText，继续尝试正则还原其他占位符
+      // 如果 DOMParser 解析出错（比如翻译源返回了破碎的 HTML 片段），则回退，继续尝试用正则直接替换普通占位符
     }
 
-    // 还原普通占位符 {{1}}, {{2}} 等 (保留原有逻辑)
+    // 5. 还原普通无语义占位符（如术语、换行符、行内图片或不可翻译标记 {{1}}、{{2}} 等）
     result = result.replace(
       this.#placeholderConfig.placeholderRegex,
       (match) => placeholderMap.get(match) || match
@@ -1771,7 +1812,11 @@ export class Translator {
       onStreamChunk,
     };
 
-    // 翻译开始钩子函数
+    // 翻译开始钩子函数（允许用户在翻译请求发送前修改文本、语言或词典配置）
+    // REVIEW: 共享 Sval 实例导致 Hook 竞态条件 (Race Condition) 隐患。
+    // 由于 interpreter 是全局单例，当短时间内有多个并发的 translateFetch 触发时，
+    // 同步执行的 `interpreter.run('exports.transStartHook = ...')` 会直接覆盖上一个翻译请求的 exports.transStartHook。
+    // 这可能导致先前发起的、仍在执行准备阶段的请求，在调用 transStartHook 时执行成了后一个翻译源的钩子逻辑。
     if (transStartHook?.trim()) {
       try {
         interpreter.run(`exports.transStartHook = ${transStartHook}`);

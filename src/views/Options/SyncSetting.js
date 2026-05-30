@@ -24,13 +24,19 @@ import SyncIcon from "@mui/icons-material/Sync";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import ContentPasteIcon from "@mui/icons-material/ContentPaste";
 
+/**
+ * 云端备份与同步设置主面板组件 (SyncSetting)
+ */
 export default function SyncSetting() {
   const i18n = useI18n();
+  // 全局同步数据状态 Hook
   const { sync, updateSync } = useSync();
   const alert = useAlert();
+  // 数据同步过程中的 Loading 状态
   const [loading, setLoading] = useState(false);
   const { reloadSetting } = useSetting();
 
+  // 同步配置选项字段更改处理
   const handleChange = async (e) => {
     e.preventDefault();
     const { name, value } = e.target;
@@ -39,6 +45,7 @@ export default function SyncSetting() {
     });
   };
 
+  // 触发物理网络数据上传/下载同步
   const handleSyncTest = async (e) => {
     e.preventDefault();
     try {
@@ -54,6 +61,7 @@ export default function SyncSetting() {
     }
   };
 
+  // 将当前同步服务的 Url、User、Key 生成一段 Base64 分享口令以支持跨设备一键同步导入
   const handleGenerateShareString = async () => {
     try {
       const base64Config = btoa(
@@ -72,6 +80,7 @@ export default function SyncSetting() {
     }
   };
 
+  // 从系统剪贴板中读取分享口令并进行解析，一键恢复同步服务连接
   const handleImportFromClipboard = async () => {
     try {
       const text = await navigator.clipboard.readText();
@@ -81,6 +90,7 @@ export default function SyncSetting() {
         const jsonString = atob(base64Config);
         const updatedConfig = JSON.parse(jsonString);
 
+        // 验证同步服务类型是否合法
         if (!OPT_SYNCTYPE_ALL.includes(updatedConfig.syncType)) {
           kissLog("error syncType", updatedConfig.syncType);
           return;
@@ -105,7 +115,7 @@ export default function SyncSetting() {
   };
 
   if (!sync) {
-    return;
+    return null;
   }
 
   const {
@@ -118,9 +128,11 @@ export default function SyncSetting() {
   return (
     <Box>
       <Stack spacing={3}>
+        {/* 数据同步的风险警告与备份注意事项提示 */}
         <Alert severity="warning">{i18n("sync_warn")}</Alert>
         <Alert severity="warning">{i18n("sync_warn_2")}</Alert>
 
+        {/* 同步通道类型 (Cloudflare Worker 或 WebDAV) */}
         <TextField
           select
           size="small"
@@ -136,6 +148,7 @@ export default function SyncSetting() {
           ))}
         </TextField>
 
+        {/* 同步接口 URL 终端地址 */}
         <TextField
           size="small"
           label={i18n("data_sync_url")}
@@ -151,6 +164,7 @@ export default function SyncSetting() {
           }
         />
 
+        {/* 仅在 WebDAV 模式下显示的用户名输入框 */}
         {syncType === OPT_SYNCTYPE_WEBDAV && (
           <TextField
             size="small"
@@ -161,6 +175,7 @@ export default function SyncSetting() {
           />
         )}
 
+        {/* 云端数据访问密码或 Worker 同步密钥 */}
         <TextField
           size="small"
           type="password"
@@ -170,6 +185,7 @@ export default function SyncSetting() {
           onChange={handleChange}
         />
 
+        {/* 控制按钮栏：包含立即触发同步、复制同步配置口令与从剪贴板贴入同步口令 */}
         <Stack
           direction="row"
           alignItems="center"
@@ -177,6 +193,7 @@ export default function SyncSetting() {
           useFlexGap
           flexWrap="wrap"
         >
+          {/* 立即上传/下载并合并备份的同步按钮 */}
           <LoadingButton
             size="small"
             variant="contained"
@@ -187,6 +204,7 @@ export default function SyncSetting() {
           >
             {i18n("sync_now")}
           </LoadingButton>
+          {/* 生成同步分享码并拷贝到剪贴板 */}
           <Button
             size="small"
             variant="outlined"
@@ -195,6 +213,7 @@ export default function SyncSetting() {
           >
             {i18n("copy", "copy")}
           </Button>
+          {/* 从剪贴板读取同步码一键连接 */}
           <Button
             onClick={handleImportFromClipboard}
             size="small"

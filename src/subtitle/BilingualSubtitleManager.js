@@ -1,4 +1,4 @@
-﻿import { logger } from "../libs/log.js";
+import { logger } from "../libs/log.js";
 import { truncateWords, throttle, decodeHTMLEntities } from "../libs/utils.js";
 import { apiTranslate } from "../apis/index.js";
 import { apiMicrosoftDict } from "../apis/index.js";
@@ -877,6 +877,14 @@ export class BilingualSubtitleManager {
 
   /**
    * 执行单个字幕的翻译并更新其状态。
+   * // REVIEW: 视频进度 Seek 导致的在途预翻译请求资源浪费与字幕回刷隐患。
+   * //    当用户频繁拖拽视频进度条（Seeking / Seeked）时，代码仅仅取消了防抖触发定时器 `#throttledTriggerTranslations.cancel()`，
+   * //    但并没有更新 `#translationSessionId` 或中止（Abort）先前已发起的在途异步翻译网络请求。
+   * //    由于 `#translationSessionId` 只在实例销毁 `destroy()` 时递增，导致 seek 发生前已经在途的那些不再需要的预翻译请求在返回时，
+   * //    其 `sessionId !== this.#translationSessionId` 校验仍然会通过。
+   * //    这不仅会浪费 API 请求额度和网络带宽，还会在翻译完成后，如果用户已 seek 到其他地方，
+   * //    因为 subtitle 引用被错误改写而导致未来再次播放到该处时字幕显示不准，或是在 seek 到位后突然被过期请求回调触发重新渲染导致屏幕闪烁。
+   * //    推荐在 `onSeeking` 阶段也将 `this.#translationSessionId += 1` 并重置 `AbortController` 中止上一段进度的所有未决请求。
    * @param {object} subtitle - 需要翻译的字幕对象。
    */
   async #translateAndStore(subtitle) {

@@ -27,6 +27,9 @@ import ValidationInput from "../../hooks/ValidationInput";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { normalizeSubtitleMode } from "../../subtitle/modes";
 
+/**
+ * 将 CSS 字符串解析成键值对 JavaScript 对象
+ */
 const parseCssToObject = (cssString) => {
   const result = {};
   if (!cssString) return result;
@@ -43,6 +46,9 @@ const parseCssToObject = (cssString) => {
   return result;
 };
 
+/**
+ * 将 JavaScript CSS 样式对象转换回标准 CSS 字符串
+ */
 const objectToCss = (obj) => {
   const entries = Object.entries(obj).filter(
     ([, value]) => value !== undefined && value !== ""
@@ -53,6 +59,9 @@ const objectToCss = (obj) => {
   return entries.map(([key, value]) => `${key}: ${value}`).join(";\n") + ";";
 };
 
+/**
+ * 提取并解析 rgba() 或 rgb() 颜色字符串的 R、G、B、A 属性
+ */
 const parseRgba = (rgbaString) => {
   const match = rgbaString?.match(
     /rgba?\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+))?\s*\)/
@@ -68,6 +77,9 @@ const parseRgba = (rgbaString) => {
   return null;
 };
 
+/**
+ * 将 RGB 十进制数值转换为 Hex 十六进制颜色代码
+ */
 const rgbToHex = (r, g, b) => {
   return (
     "#" +
@@ -82,6 +94,9 @@ const rgbToHex = (r, g, b) => {
   );
 };
 
+/**
+ * 将 Hex 十六进制颜色代码转换成 RGB 十进制颜色对象
+ */
 const hexToRgb = (hex) => {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return result
@@ -93,6 +108,9 @@ const hexToRgb = (hex) => {
     : { r: 0, g: 0, b: 0 };
 };
 
+/**
+ * 从 CSS 字体大小声明中解析出具体的值 (如从 clamp 表达式中提取其弹性首选 rem 等)
+ */
 const parseFontSize = (fontSizeStr) => {
   if (!fontSizeStr) return { min: 1, preferred: 2, max: 3, unit: "rem" };
 
@@ -122,6 +140,9 @@ const parseFontSize = (fontSizeStr) => {
   return { min: 1, preferred: 2, max: 3, unit: "rem" };
 };
 
+/**
+ * 从 CSS 的 padding 声明中解析出上下和左右内边距
+ */
 const parsePadding = (paddingStr) => {
   if (!paddingStr) return { vertical: 0.5, horizontal: 1, unit: "em" };
 
@@ -149,6 +170,9 @@ const parsePadding = (paddingStr) => {
   return { vertical: 0.5, horizontal: 1, unit: "em" };
 };
 
+/**
+ * 将常见的 CSS 颜色名转化成十六进制颜色代码
+ */
 const colorToHex = (colorStr) => {
   if (!colorStr) return "#ffffff";
   const namedColors = {
@@ -173,8 +197,12 @@ const colorToHex = (colorStr) => {
   return "#ffffff";
 };
 
+// YouTube 默认字幕容器的最大参考宽度
 const YOUTUBE_CAPTION_CONTAINER_WIDTH = 640;
 
+/**
+ * 视频双语字幕预览面板组件
+ */
 function SubtitleStylePreview({ windowStyle, originStyle, translationStyle }) {
   const i18n = useI18n();
 
@@ -212,10 +240,13 @@ function SubtitleStylePreview({ windowStyle, originStyle, translationStyle }) {
             textAlign: "center",
           }}
         >
+          {/* 渲染模拟网页上的字幕窗格 */}
           <div style={{ ...windowCss, textAlign: "center" }}>
+            {/* 模拟原文行 */}
             <p style={{ ...originCss, margin: 0 }}>
               This is an example subtitle
             </p>
+            {/* 模拟译文行 */}
             <p style={{ ...transCss, margin: 0 }}>这是示例字幕文本</p>
           </div>
         </Box>
@@ -224,17 +255,24 @@ function SubtitleStylePreview({ windowStyle, originStyle, translationStyle }) {
   );
 }
 
+/**
+ * 视频双语字幕翻译设置页面组件 (SubtitleSetting)
+ */
 export default function SubtitleSetting() {
   const i18n = useI18n();
+  // 字幕设置 Hook
   const { subtitleSetting, updateSubtitle } = useSubtitle();
+  // 启用的翻译引擎列表与 AI 模型引擎列表
   const { enabledApis, aiEnabledApis } = useApiList();
 
+  // 通用表单变动提交
   const handleChange = (e) => {
     e.preventDefault();
     let { name, value } = e.target;
     updateSubtitle({
       [name]: value,
     });
+    // 如果修改了自定义 CSS 源码，同步刷新本地的 CSS 临时解析缓存
     if (name === "originStyle") {
       setLocalOriginStyle(value);
       originCssRef.current = parseCssToObject(value);
@@ -247,6 +285,7 @@ export default function SubtitleSetting() {
     }
   };
 
+  // 解构当前字幕翻译的具体设置
   const {
     enabled,
     apiSlug,
@@ -269,6 +308,8 @@ export default function SubtitleSetting() {
     translationStyle,
     showLoadNotification = true,
   } = subtitleSetting;
+
+  // 整理悬浮查词模式和字幕列表模式的回退逻辑
   const hoverLookupModeValue = normalizeSubtitleMode(
     hoverLookupMode,
     enhanceMode || OPT_ENHANCE_MOBILE_OFF
@@ -278,10 +319,12 @@ export default function SubtitleSetting() {
     enhanceMode || OPT_ENHANCE_MOBILE_OFF
   );
 
+  // 维护一份本地的 CSS 临时样式值，以供 Slider 滑块频繁拖拽时实现低延迟渲染
   const [localOriginStyle, setLocalOriginStyle] = useState(originStyle);
   const [localTransStyle, setLocalTransStyle] = useState(translationStyle);
   const [localWindowStyle, setLocalWindowStyle] = useState(windowStyle);
 
+  // 监听外部配置的样式同步更新本地
   useEffect(() => {
     setLocalOriginStyle(originStyle);
   }, [originStyle]);
@@ -292,6 +335,7 @@ export default function SubtitleSetting() {
     setLocalWindowStyle(windowStyle);
   }, [windowStyle]);
 
+  // 控制频繁 Slider 输入时的防抖定时器
   const debounceTimers = useRef({});
   const rafIds = useRef({ origin: 0, trans: 0, window: 0 });
 
@@ -299,6 +343,7 @@ export default function SubtitleSetting() {
   const transCssRef = useRef(parseCssToObject(localTransStyle));
   const windowCssRef = useRef(parseCssToObject(localWindowStyle));
 
+  // 组件卸载时销毁所有动画帧与防抖定时器
   useEffect(() => {
     return () => {
       Object.values(debounceTimers.current).forEach(clearTimeout);
@@ -310,6 +355,7 @@ export default function SubtitleSetting() {
     };
   }, []);
 
+  // 防抖保存最终 CSS 样式至 Chrome 扩展的持久存储中，避免拖动滑块时高频读写造成卡顿
   const debouncedUpdate = useCallback(
     (name, value) => {
       if (debounceTimers.current[name]) {
@@ -322,6 +368,7 @@ export default function SubtitleSetting() {
     [updateSubtitle]
   );
 
+  // 使用 requestAnimationFrame 优化滑动时预览的流畅性
   const scheduleRafUpdate = useCallback((name, setter, cssString) => {
     const rafKey = {
       originStyle: "origin",
@@ -337,6 +384,7 @@ export default function SubtitleSetting() {
     });
   }, []);
 
+  // 联动更新原文的 CSS 并触发防抖同步
   const updateOriginCss = useCallback(
     (key, value) => {
       originCssRef.current[key] = value;
@@ -347,6 +395,7 @@ export default function SubtitleSetting() {
     [debouncedUpdate, scheduleRafUpdate]
   );
 
+  // 联动更新译文的 CSS 并触发防抖同步
   const updateTranslationCss = useCallback(
     (key, value) => {
       transCssRef.current[key] = value;
@@ -357,6 +406,7 @@ export default function SubtitleSetting() {
     [debouncedUpdate, scheduleRafUpdate]
   );
 
+  // 联动更新背景窗格的 CSS 并触发防抖同步
   const updateWindowCss = useCallback(
     (key, value) => {
       windowCssRef.current[key] = value;
@@ -367,6 +417,7 @@ export default function SubtitleSetting() {
     [debouncedUpdate, scheduleRafUpdate]
   );
 
+  // 直接全量更新背景窗格 CSS 并防抖
   const updateWindowCssDirect = useCallback(
     (css) => {
       windowCssRef.current = parseCssToObject(css);
@@ -386,6 +437,7 @@ export default function SubtitleSetting() {
     windowCssRef.current = parseCssToObject(localWindowStyle);
   }, [localWindowStyle]);
 
+  // 从本地计算生成的临时 CSS 键值对，用于给 Slider 及其余受控组件展示当前样式属性值
   const originCssObj = useMemo(
     () => parseCssToObject(localOriginStyle),
     [localOriginStyle]
@@ -410,6 +462,7 @@ export default function SubtitleSetting() {
   const windowLineHeight = parseFloat(windowCssObj["line-height"]) || 1.3;
   const windowHasTextShadow = !!windowCssObj["text-shadow"];
 
+  // 缓存可复用的单个文本（如原文或译文）的 CSS 字体、大小及颜色滑动条控制器结构
   const textStyleControls = useCallback(
     (label, fontSize, cssObj, updateCss) => (
       <Box>
@@ -417,6 +470,7 @@ export default function SubtitleSetting() {
           {label}
         </Typography>
         <Stack spacing={1.5}>
+          {/* 字号 Slider 滑动控制 */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
             <Typography
               variant="body2"
@@ -449,6 +503,7 @@ export default function SubtitleSetting() {
               {fontSize.preferred}
             </Typography>
           </Box>
+          {/* 字体颜色选取器与 HEX 文本框 */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <Typography
               variant="body2"
@@ -488,6 +543,7 @@ export default function SubtitleSetting() {
   return (
     <Box>
       <Stack spacing={3}>
+        {/* 顶部字幕翻译相关交互功能友情说明 */}
         <Alert severity="info">
           {i18n("subtitle_helper_1")}
           <br />
@@ -496,6 +552,7 @@ export default function SubtitleSetting() {
           {i18n("subtitle_helper_3")}
         </Alert>
 
+        {/* 开关：是否在支持的视频网站上加载双语字幕翻译逻辑 */}
         <FormControlLabel
           control={
             <Switch
@@ -511,8 +568,10 @@ export default function SubtitleSetting() {
           sx={{ width: "fit-content" }}
         />
 
+        {/* 字幕分句分词策略、翻译引擎、超前预翻译等参数配置网格区域 */}
         <Box>
           <Grid container spacing={2} columns={12}>
+            {/* 字幕翻译首选的翻译引擎服务商 */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
@@ -530,6 +589,7 @@ export default function SubtitleSetting() {
                 ))}
               </TextField>
             </Grid>
+            {/* 字幕长句断句首选的大语言 AI 引擎服务商 */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
@@ -548,6 +608,7 @@ export default function SubtitleSetting() {
                 ))}
               </TextField>
             </Grid>
+            {/* 系统内置的轻量断句算法类型 (基于固定句尾符号断句，或统计学概率断句) */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
@@ -566,6 +627,7 @@ export default function SubtitleSetting() {
                 </MenuItem>
               </TextField>
             </Grid>
+            {/* 字幕翻译是否使用 AI 增强上下文，并指定提供服务的 AI 引擎 */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
@@ -584,6 +646,7 @@ export default function SubtitleSetting() {
                 ))}
               </TextField>
             </Grid>
+            {/* 一批提交给 AI 进行断句的最长原始字幕文本长度阈值 */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <ValidationInput
                 fullWidth
@@ -597,6 +660,7 @@ export default function SubtitleSetting() {
                 max={20000}
               />
             </Grid>
+            {/* 判定为长句并强行触发断句的句子最大长度限制 */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <ValidationInput
                 fullWidth
@@ -610,6 +674,7 @@ export default function SubtitleSetting() {
                 max={500}
               />
             </Grid>
+            {/* 视频拉取到字幕时，默认超前预翻译多少秒的后续字幕，以防视频播放时发生延迟查词 */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <ValidationInput
                 fullWidth
@@ -623,6 +688,7 @@ export default function SubtitleSetting() {
                 max={36000}
               />
             </Grid>
+            {/* 避免短时间内视频拖拽和字幕块大量翻滚时发生高频网络请求的防抖限流间隔 (s) */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <ValidationInput
                 fullWidth
@@ -636,6 +702,7 @@ export default function SubtitleSetting() {
                 max={3600}
               />
             </Grid>
+            {/* 目标翻译出的双语字幕语言 */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 fullWidth
@@ -654,6 +721,7 @@ export default function SubtitleSetting() {
               </TextField>
             </Grid>
 
+            {/* 是否保留双语字幕 (若禁用则在视频窗口上仅显示翻译后的目标语字幕) */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 fullWidth
@@ -668,6 +736,7 @@ export default function SubtitleSetting() {
                 <MenuItem value={false}>{i18n("disable")}</MenuItem>
               </TextField>
             </Grid>
+            {/* 是否开启磨砂模糊译文字幕显示效果 (鼠标划过时才高亮看清译文，用于英语听力训练备考) */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 fullWidth
@@ -682,6 +751,7 @@ export default function SubtitleSetting() {
                 <MenuItem value={false}>{i18n("disable")}</MenuItem>
               </TextField>
             </Grid>
+            {/* 视频插播商业广告时是否自动识别并跳过翻译网络请求 */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 fullWidth
@@ -696,6 +766,7 @@ export default function SubtitleSetting() {
                 <MenuItem value={false}>{i18n("disable")}</MenuItem>
               </TextField>
             </Grid>
+            {/* 鼠标悬停在视频窗口字幕单字词上时是否允许悬浮框划词查词解释 */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 fullWidth
@@ -713,6 +784,7 @@ export default function SubtitleSetting() {
                 </MenuItem>
               </TextField>
             </Grid>
+            {/* 视频侧边/下方的独立字幕全文滚动列表显示模式 */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 fullWidth
@@ -730,6 +802,7 @@ export default function SubtitleSetting() {
                 </MenuItem>
               </TextField>
             </Grid>
+            {/* 网页加载完毕且成功识别到视频字幕流时，是否在右下角弹出载入成功的横幅提示 */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 fullWidth
@@ -747,6 +820,7 @@ export default function SubtitleSetting() {
           </Grid>
         </Box>
 
+        {/* 字幕外观样式设计及预览器板块 */}
         <Box
           sx={{
             border: "1px solid",
@@ -756,6 +830,7 @@ export default function SubtitleSetting() {
           }}
         >
           <Stack spacing={2}>
+            {/* 字幕预览展示窗 */}
             <SubtitleStylePreview
               windowStyle={localWindowStyle}
               originStyle={localOriginStyle}
@@ -764,6 +839,7 @@ export default function SubtitleSetting() {
 
             <Divider />
 
+            {/* 字号与字体颜色修改 */}
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
                 {textStyleControls(
@@ -785,11 +861,13 @@ export default function SubtitleSetting() {
 
             <Divider />
 
+            {/* 字幕窗格背景样式控制区域 */}
             <Box>
               <Typography variant="subtitle2" gutterBottom>
                 {i18n("background_styles")}
               </Typography>
               <Grid container spacing={1.5} alignItems="center">
+                {/* 窗格背景底色与透明度滑动条 */}
                 <Grid item xs={12} sm={6}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <Typography
@@ -844,6 +922,7 @@ export default function SubtitleSetting() {
                     </Typography>
                   </Box>
                 </Grid>
+                {/* 行高微调 Slider */}
                 <Grid item xs={12} sm={6}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <Typography
@@ -872,6 +951,7 @@ export default function SubtitleSetting() {
                     </Typography>
                   </Box>
                 </Grid>
+                {/* 上下与左右内边距微调 Slider */}
                 <Grid item xs={12} sm={6}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                     <Typography
@@ -917,6 +997,7 @@ export default function SubtitleSetting() {
                     />
                   </Box>
                 </Grid>
+                {/* 字幕文字四周的阴影开关 */}
                 <Grid item xs={12} sm={6}>
                   <FormControlLabel
                     control={
@@ -944,6 +1025,7 @@ export default function SubtitleSetting() {
               </Grid>
             </Box>
 
+            {/* 折叠的高级 CSS 源码编辑器面板 (可自由手写额外的样式规则覆盖视频字幕的外观) */}
             <Accordion
               sx={{ boxShadow: "none", "&:before": { display: "none" } }}
             >

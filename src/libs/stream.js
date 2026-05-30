@@ -1,3 +1,8 @@
+/**
+ * @file stream.js
+ * @description 流式翻译响应处理模块。包含 SSE 流数据拆包、XML/JSON/行协议的流式解析、异步队列桥接以及实时打字机渲染的解析辅助方法。
+ */
+
 import { JSONParser } from "@streamparser/json";
 import {
   OPT_TRANS_OPENAI,
@@ -15,9 +20,9 @@ import {
 } from "../config";
 
 /**
- * 创建 SSE 流解析器
- * 处理 buffer 管理和 SSE 格式解析，逐条 yield 解析出的数据
- * @returns {Function} 生成器函数，接收 chunk 逐条 yield data
+ * 创建 Server-Sent Events (SSE) 协议数据流解析器
+ * 自动处理 TCP 拆包、粘包和 Buffer 状态，每次追加字符 chunk 时，生成器会解析并 yield 出有效的 data 字符串。
+ * @returns {Function} 生成器函数，接收文本块 chunk 字符并 yield 解析出的 data 数据。
  */
 export const createSSEParser = () => {
   let buffer = "";
@@ -25,20 +30,22 @@ export const createSSEParser = () => {
   return function* (chunk) {
     buffer += chunk;
     const lines = buffer.split("\n");
+    // 保留最后一行（可能尚未传输完整，作为下一次接收的 buffer）
     buffer = lines.pop() || "";
 
     for (const line of lines) {
       if (!line.startsWith("data: ")) continue;
       const data = line.slice(6);
-      if (data === "[DONE]") continue;
+      if (data === "[DONE]") continue; // 过滤流结束标识
       yield data;
     }
   };
 };
 
 /**
- * 创建异步队列，用于在回调式 API 和异步生成器之间桥接
- * @returns {Object} 队列对象
+ * 创建异步队列，用于在事件/回调 API 与 ES6 异步生成器 (Async Generator) 之间提供异步迭代桥接。
+ * 允许在生产者（如 SSE 监听器回调）和消费者（如 for await...of 循环）之间同步数据。
+ * @returns {Object} 队列操作对象，包含 push、finish、error 以及迭代器 iterate。
  */
 export const createAsyncQueue = () => {
   const queue = [];
@@ -47,6 +54,7 @@ export const createAsyncQueue = () => {
   let error = null;
 
   return {
+    // 将数据压入队列，并激活等待消费的 Promise
     push: (data) => {
       queue.push(data);
       if (resolve) {
@@ -54,6 +62,7 @@ export const createAsyncQueue = () => {
         resolve = null;
       }
     },
+    // 标记队列写入完毕，通知消费者迭代结束
     finish: () => {
       done = true;
       if (resolve) {
@@ -61,6 +70,7 @@ export const createAsyncQueue = () => {
         resolve = null;
       }
     },
+    // 标记出错，中途强行中断迭代
     error: (e) => {
       error = e;
       done = true;
@@ -69,6 +79,7 @@ export const createAsyncQueue = () => {
         resolve = null;
       }
     },
+    // 消费者调用的异步迭代器，可使用 for await (const item of queue.iterate()) 形式消费
     async *iterate() {
       const setResolve = (r) => {
         resolve = r;
@@ -77,7 +88,7 @@ export const createAsyncQueue = () => {
         if (queue.length > 0) {
           yield queue.shift();
         } else if (!done) {
-          await new Promise(setResolve);
+          await new Promise(setResolve); // 无数据时挂起等待 push 或 finish
         }
       }
       if (error) throw error;
@@ -86,10 +97,10 @@ export const createAsyncQueue = () => {
 };
 
 /**
- * 从流式响应数据中提取 delta 内容
- * @param {Object} json 解析后的 SSE 数据
- * @param {string} apiType API 类型
- * @returns {string} delta 内容
+ * 从不同大语言模型流式响应的原始 JSON 结构中，精准提取当前文本增量 (Delta Content)
+ * @param {Object} json 解析后的 SSE JSON 数据
+ * @param {string} apiType API 引擎类型
+ * @returns {string} 字符增量，无增量则返回空字符串 ""
  */
 export function getStreamDelta(json, apiType) {
   switch (apiType) {
@@ -103,8 +114,10 @@ export function getStreamDelta(json, apiType) {
     case OPT_TRANS_GEMINI_2:
     case OPT_TRANS_OPENROUTER:
     case OPT_TRANS_OLLAMA:
+      // OpenAI 兼容协议的大模型 delta 提取逻辑
       return json.choices?.[0]?.delta?.content || "";
     case OPT_TRANS_GEMINI: {
+      // 谷歌原生 Gemini API 的 delta 提取逻辑 (排除思维链思考过程)
       const parts = json.candidates?.[0]?.content?.parts;
       return (
         (Array.isArray(parts) ? parts.find((p) => !p.thought) : undefined)
@@ -112,6 +125,7 @@ export function getStreamDelta(json, apiType) {
       );
     }
     case OPT_TRANS_CLAUDE:
+      // Anthropic Claude 格式 delta 提取逻辑
       if (json.type === "content_block_delta") {
         return json.delta?.text || "";
       }
@@ -122,15 +136,16 @@ export function getStreamDelta(json, apiType) {
 }
 
 /**
- * 解析 SSE 流式响应中的段落（支持 XML、行格式）
- * @param {string} content 当前累积的内容
- * @param {Set} processedIds 已处理的 ID 集合
- * @yields {{ id, translation }} 解析出的段落
+ * 核心逻辑：从流式响应的文本中（随着大模型源源不断输出），即时抽取出已匹配完成的网页翻译段落。
+ * 兼容两种非 JSON 序列化的极速传输协议：XML 包裹协议与“管道符+换行”行协议。
+ * @param {string} content 当前累计接收到的流式文本
+ * @param {Set<number>} processedIds 已处理并上屏的段落 ID 集合 (用于去重，防重复上屏)
+ * @yields {{ id: number, translation: [string, string] }} 解析出的段落 ID、译文及语种
  */
 export function* parseStreamingSegments(content, processedIds) {
   if (!content) return;
 
-  // 尝试解析 XML 格式: <t id="0" sourceLanguage="en">翻译内容</t>
+  // 1. 尝试解析 XML 格式：<t id="0" sourceLanguage="en">译文</t>
   const xmlRegex =
     /<(t|item|seg)\s+id="(\d+)"(?:\s+sourceLanguage="([^"]*)")?[^>]*>([\s\S]*?)<\/\1>/gi;
   let match;
@@ -146,11 +161,13 @@ export function* parseStreamingSegments(content, processedIds) {
     }
   }
 
+  // 若成功解析到了任意符合 XML 闭合标签的文本，则跳过 Line 协议解析
   if (hasXml) return;
 
-  // 尝试解析行格式: 0 | 翻译内容
+  // 2. 尝试解析 Line 协议格式：ID | 译文文本
   const endsWithNewline = content.endsWith("\n");
   const lines = content.split("\n");
+  // 如果当前累积包不以换行符结尾，说明最后一行可能尚未写完，切掉最后一行以防解析错乱
   const linesToProcess = endsWithNewline ? lines : lines.slice(0, -1);
 
   for (const line of linesToProcess) {
@@ -162,6 +179,7 @@ export function* parseStreamingSegments(content, processedIds) {
       const id = parseInt(pipeMatch[1], 10);
       if (!processedIds.has(id)) {
         processedIds.add(id);
+        // 行协议中，大模型换行会被替换成 <br> 以防止破坏行协议结构，在此还原换行符
         const translation = [
           pipeMatch[2].trim().replace(/<br\s*\/?>/gi, "\n"),
           "",
@@ -173,19 +191,22 @@ export function* parseStreamingSegments(content, processedIds) {
 }
 
 /**
- * 创建流式 JSON 解析器
- * 支持的 JSON 格式:
- * - { "translations": [{ "id": 0, "text": "翻译" }, ...] }
- * - [{ "id": 0, "text": "翻译" }, ...]
+ * 创建大文本流式 JSON 解析器 (基于 @streamparser/json npm 库)
+ * 允许在 JSON 尚未接收完整时，就将已写入的数组项逐项解析出来。
+ * 兼容格式：
+ * - {"translations": [{"id": 0, "text": "译文"}, ...]}
+ * - [{"id": 0, "text": "译文"}, ...]
  * @returns {{ write: Generator, end: Function }}
  */
 export function createStreamingJsonParser() {
   const pending = [];
+  // 设置 JSON 抽取路径
   const parser = new JSONParser({
     paths: ["$.translations.*", "$.*"],
     keepStack: false,
   });
 
+  // 当解析器提取出一个完整对象时触发
   parser.onValue = ({ value }) => {
     if (
       value &&
@@ -203,16 +224,23 @@ export function createStreamingJsonParser() {
   parser.onError = () => {};
 
   return {
+    /**
+     * 向解析器中追加 delta 增量数据包，并 yield 当前能解析出的所有 JSON 段落对象
+     * @param {string} delta
+     */
     *write(delta) {
       try {
         parser.write(delta);
       } catch (e) {
-        // 忽略解析错误
+        // 忽略流式解析中由残缺 JSON 导致的解析错误
       }
       while (pending.length > 0) {
         yield pending.shift();
       }
     },
+    /**
+     * 强行闭合流并清理资源
+     */
     end() {
       try {
         parser.end();
@@ -224,24 +252,24 @@ export function createStreamingJsonParser() {
 }
 
 /**
- * 检测流式内容的格式类型
- * @param {string} content 累积的内容
- * @returns {{ isJson: boolean, detected: boolean }}
+ * 启发式检测大模型当前响应流的格式类型 (JSON / XML / 行协议)
+ * 通过判断最先出现的格式特征符（“{” 或 “<t” 或 “ID|”）进行确认。
+ * @param {string} content 首批累积的流内容
+ * @returns {{ isJson: boolean, detected: boolean }} 是否是 JSON，以及是否判定成功
  */
 export function detectStreamFormat(content) {
   const stripped = content.trim();
 
-  // 查找第一个有意义的格式标识符位置
+  // 查找各个特征标志符的索引
   const jsonStart = stripped.search(/[{[]/);
   const xmlStart = stripped.search(/<(t|item|seg)\s/i);
   const lineStart = stripped.search(/^\d+\s*\|/m);
 
-  // 如果都没找到，无法确定格式
   if (jsonStart === -1 && xmlStart === -1 && lineStart === -1) {
     return { isJson: false, detected: false };
   }
 
-  // 找出最先出现的格式
+  // 找出索引值最小且有效（即最先出现）的格式特征
   const positions = [
     { type: "json", pos: jsonStart },
     { type: "xml", pos: xmlStart },
@@ -257,14 +285,17 @@ export function detectStreamFormat(content) {
 }
 
 /**
- * 创建实时流式解析器
- * 追踪段落边界，输出每个段落的实时文本累积
- * @returns {{ write: (delta: string) => Array<{id: number, partialText: string, isComplete: boolean}> }}
+ * 创建实时打字机流解析器。
+ * 跟踪段落边界，并不仅在段落闭合时输出，而是在大模型打字时实时输出包含
+ * { id, partialText: '当前已输出的残缺译文', isComplete: '是否闭合' } 数组，
+ * 从而在网页中渲染出极其高级的“边打字边翻译”的 Premium 打字机视觉体验。
+ * @returns {{ write: Function, getFormat: Function, getBuffer: Function }}
  */
 export function createRealtimeStreamParser() {
-  let format = null; // "xml" | "json" | "line" | null
+  let format = null; // 判定的流格式："xml" | "json" | "line" | null
   let buffer = "";
 
+  // 辅助判定流格式
   const detect = (content) => {
     const stripped = content.trim();
     if (stripped.search(/[{[]/) !== -1) return "json";
@@ -273,9 +304,10 @@ export function createRealtimeStreamParser() {
     return null;
   };
 
+  // 实时增量解析 XML 标签内容
   const parseXml = (content) => {
     const results = [];
-    // 找所有已闭合的段落
+    // 1. 先匹配所有已完全闭合的 XML 节点
     const closedRegex =
       /<(t|item|seg)\s+id="(\d+)"(?:\s[^>]*)?>([\s\S]*?)<\/\1>/gi;
     let match;
@@ -283,7 +315,7 @@ export function createRealtimeStreamParser() {
       const id = parseInt(match[2], 10);
       results.push({ id, partialText: match[3], isComplete: true });
     }
-    // 找最后一个未闭合的段落（当前正在流式输出的）
+    // 2. 用正则剔除掉已闭合节点，寻找到最后一个处于“未闭合”状态的节点作为当前正在打字的段落
     let remaining = content;
     remaining = remaining.replace(
       /<(t|item|seg)\s+id="\d+"(?:\s[^>]*)?>[\s\S]*?<\/\1>/gi,
@@ -293,12 +325,14 @@ export function createRealtimeStreamParser() {
     const openMatch = remaining.match(openRegex);
     if (openMatch) {
       const id = parseInt(openMatch[2], 10);
+      // 去除未写完的残缺闭合标签干扰
       const partialText = openMatch[3].replace(/<\/[^>]*$/, "");
       results.push({ id, partialText, isComplete: false });
     }
     return results;
   };
 
+  // 实时解析行格式
   const parseLine = (content) => {
     const results = [];
     const lines = content.split("\n");

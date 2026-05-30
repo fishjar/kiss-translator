@@ -1,62 +1,72 @@
-export const DEFAULT_HTTP_TIMEOUT = 10000; // 调用超时时间
-export const DEFAULT_FETCH_LIMIT = 10; // 默认最大任务数量
-export const DEFAULT_FETCH_INTERVAL = 100; // 默认任务间隔时间
-export const DEFAULT_BATCH_INTERVAL = 400; // 批处理请求间隔时间
-export const DEFAULT_BATCH_SIZE = 10; // 每次最多发送段落数量
-export const DEFAULT_BATCH_LENGTH = 10000; // 每次发送最大文字数量
-export const DEFAULT_CONTEXT_SIZE = 3; // 上下文会话数量
+/**
+ * @file api.js
+ * @description 翻译 API 配置模块，定义各类翻译引擎和词典的默认请求参数、模型名称、语言映射以及 AI 翻译提示词模版。
+ */
 
-export const INPUT_PLACE_URL = "{{url}}"; // 占位符
-export const INPUT_PLACE_FROM = "{{from}}"; // 占位符
-export const INPUT_PLACE_TO = "{{to}}"; // 占位符
-export const INPUT_PLACE_FROM_LANG = "{{fromLang}}"; // 占位符
-export const INPUT_PLACE_TO_LANG = "{{toLang}}"; // 占位符
-export const INPUT_PLACE_TEXT = "{{text}}"; // 占位符
-export const INPUT_PLACE_TONE = "{{tone}}"; // 占位符
-export const INPUT_PLACE_TITLE = "{{title}}"; // 标题
-export const INPUT_PLACE_DESCRIPTION = "{{description}}"; // 描述
-export const INPUT_PLACE_SUMMARY = "{{summary}}"; // 摘要
-export const INPUT_PLACE_KEY = "{{key}}"; // 占位符
-export const INPUT_PLACE_MODEL = "{{model}}"; // 占位符
-export const INPUT_PLACE_GLOSSARY = "{{glossary}}"; // 占位符
+// --- 基础请求控制参数 ---
+export const DEFAULT_HTTP_TIMEOUT = 10000; // 调用超时时间 (单位：毫秒)
+export const DEFAULT_FETCH_LIMIT = 10; // 默认最大并行请求/任务数量
+export const DEFAULT_FETCH_INTERVAL = 100; // 默认任务间隔时间 (单位：毫秒)
+export const DEFAULT_BATCH_INTERVAL = 400; // 批处理合并请求的等待延迟时间 (单位：毫秒)
+export const DEFAULT_BATCH_SIZE = 10; // 每次翻译请求最多合并发送的 DOM 段落数量
+export const DEFAULT_BATCH_LENGTH = 10000; // 每次翻译请求发送的最大字符数限制
+export const DEFAULT_CONTEXT_SIZE = 3; // AI 翻译时保留的上下文会话历史轮数
 
+// --- 翻译内容替换占位符 ---
+export const INPUT_PLACE_URL = "{{url}}"; // 当前网页 URL 占位符
+export const INPUT_PLACE_FROM = "{{from}}"; // 源语言占位符
+export const INPUT_PLACE_TO = "{{to}}"; // 目标语言占位符
+export const INPUT_PLACE_FROM_LANG = "{{fromLang}}"; // 源语言代码占位符
+export const INPUT_PLACE_TO_LANG = "{{toLang}}"; // 目标语言代码占位符
+export const INPUT_PLACE_TEXT = "{{text}}"; // 翻译源文本占位符
+export const INPUT_PLACE_TONE = "{{tone}}"; // 翻译风格/语气占位符 (例如：formal, casual 等)
+export const INPUT_PLACE_TITLE = "{{title}}"; // 页面标题占位符
+export const INPUT_PLACE_DESCRIPTION = "{{description}}"; // 页面描述(Description)占位符
+export const INPUT_PLACE_SUMMARY = "{{summary}}"; // 页面摘要(Summary)占位符
+export const INPUT_PLACE_KEY = "{{key}}"; // API Key 占位符
+export const INPUT_PLACE_MODEL = "{{model}}"; // AI 模型名称占位符
+export const INPUT_PLACE_GLOSSARY = "{{glossary}}"; // 专业术语表占位符
+
+// --- 划词翻译词典服务商 ---
 // export const OPT_DICT_BAIDU = "Baidu";
-export const OPT_DICT_BING = "Bing";
-export const OPT_DICT_YOUDAO = "Youdao";
+export const OPT_DICT_BING = "Bing"; // 必应词典
+export const OPT_DICT_YOUDAO = "Youdao"; // 有道词典
 export const OPT_DICT_ALL = [OPT_DICT_BING, OPT_DICT_YOUDAO];
 export const OPT_DICT_MAP = new Set(OPT_DICT_ALL);
 
-export const OPT_SUG_BAIDU = "Baidu";
-export const OPT_SUG_YOUDAO = "Youdao";
+// --- 划词翻译输入联想建议服务商 ---
+export const OPT_SUG_BAIDU = "Baidu"; // 百度搜索建议
+export const OPT_SUG_YOUDAO = "Youdao"; // 有道输入建议
 export const OPT_SUG_ALL = [OPT_SUG_BAIDU, OPT_SUG_YOUDAO];
 export const OPT_SUG_MAP = new Set(OPT_SUG_ALL);
 
-export const OPT_TRANS_BUILTINAI = "BuiltinAI";
-export const OPT_TRANS_GOOGLE = "Google";
-export const OPT_TRANS_GOOGLE_2 = "Google2";
-export const OPT_TRANS_MICROSOFT = "Microsoft";
-export const OPT_TRANS_AZUREAI = "AzureAI";
-export const OPT_TRANS_DEEPSEEK = "DeepSeek";
-export const OPT_TRANS_SILICONFLOW = "SiliconFlow";
-export const OPT_TRANS_XIAOMIMIMO = "XiaomiMimo";
-export const OPT_TRANS_ALIYUNBAILIAN = "AliyunBailian";
-export const OPT_TRANS_CEREBRAS = "Cerebras";
-export const OPT_TRANS_ZAI = "Zai";
-export const OPT_TRANS_DEEPL = "DeepL";
-export const OPT_TRANS_DEEPLX = "DeepLX";
-export const OPT_TRANS_DEEPLFREE = "DeepLFree";
-export const OPT_TRANS_EPHONEAI = "ePhoneAI";
-export const OPT_TRANS_BAIDU = "Baidu";
-export const OPT_TRANS_TENCENT = "Tencent";
-export const OPT_TRANS_VOLCENGINE = "Volcengine";
-export const OPT_TRANS_OPENAI = "OpenAI";
-export const OPT_TRANS_GEMINI = "Gemini";
-export const OPT_TRANS_GEMINI_2 = "Gemini2";
-export const OPT_TRANS_CLAUDE = "Claude";
-export const OPT_TRANS_CLOUDFLAREAI = "CloudflareAI";
-export const OPT_TRANS_OLLAMA = "Ollama";
-export const OPT_TRANS_OPENROUTER = "OpenRouter";
-export const OPT_TRANS_CUSTOMIZE = "Custom";
+// --- 翻译服务提供商标识常量 ---
+export const OPT_TRANS_BUILTINAI = "BuiltinAI"; // 浏览器内置 Gemini AI 翻译
+export const OPT_TRANS_GOOGLE = "Google"; // 谷歌翻译服务
+export const OPT_TRANS_GOOGLE_2 = "Google2"; // 谷歌翻译 pa 网页 API (支持大批量 HTML)
+export const OPT_TRANS_MICROSOFT = "Microsoft"; // 微软翻译服务
+export const OPT_TRANS_AZUREAI = "AzureAI"; // 微软 Azure 翻译
+export const OPT_TRANS_DEEPSEEK = "DeepSeek"; // DeepSeek 深度求索 AI 翻译
+export const OPT_TRANS_SILICONFLOW = "SiliconFlow"; // 硅基流动 AI 翻译 (云端部署大模型)
+export const OPT_TRANS_XIAOMIMIMO = "XiaomiMimo"; // 小米米莫 AI 翻译
+export const OPT_TRANS_ALIYUNBAILIAN = "AliyunBailian"; // 阿里云百炼大模型翻译
+export const OPT_TRANS_CEREBRAS = "Cerebras"; // Cerebras AI 翻译极速推理服务
+export const OPT_TRANS_ZAI = "Zai"; // 智谱 AI 翻译服务
+export const OPT_TRANS_DEEPL = "DeepL"; // DeepL 官方专业翻译 API
+export const OPT_TRANS_DEEPLX = "DeepLX"; // DeepLX 开源/自定义中转端
+export const OPT_TRANS_DEEPLFREE = "DeepLFree"; // DeepL 免费网页翻译接口
+export const OPT_TRANS_EPHONEAI = "ePhoneAI"; // ePhone AI 翻译服务
+export const OPT_TRANS_BAIDU = "Baidu"; // 百度翻译 API
+export const OPT_TRANS_TENCENT = "Tencent"; // 腾讯翻译君 API
+export const OPT_TRANS_VOLCENGINE = "Volcengine"; // 火山翻译 API
+export const OPT_TRANS_OPENAI = "OpenAI"; // OpenAI 官方大模型 API 翻译
+export const OPT_TRANS_GEMINI = "Gemini"; // 谷歌 Gemini API 翻译 (原版接口形式)
+export const OPT_TRANS_GEMINI_2 = "Gemini2"; // 谷歌 Gemini API 翻译 (OpenAI 兼容接口形式)
+export const OPT_TRANS_CLAUDE = "Claude"; // Anthropic Claude 翻译
+export const OPT_TRANS_CLOUDFLAREAI = "CloudflareAI"; // Cloudflare Workers AI 翻译
+export const OPT_TRANS_OLLAMA = "Ollama"; // 本地部署 Ollama 模型翻译
+export const OPT_TRANS_OPENROUTER = "OpenRouter"; // OpenRouter 多模型聚合 API 翻译
+export const OPT_TRANS_CUSTOMIZE = "Custom"; // 自定义翻译 API
 
 // 内置支持的翻译引擎
 export const OPT_ALL_TRANS_TYPES = [
@@ -98,11 +108,11 @@ export const OPT_LANGDETECTOR_ALL = [
 
 export const OPT_LANGDETECTOR_MAP = new Set(OPT_LANGDETECTOR_ALL);
 
-// 翻译引擎特殊集合
+// 翻译引擎特殊集合：按能力将翻译引擎分类
 export const API_SPE_TYPES = {
-  // 内置翻译
+  // 内置翻译引擎
   builtin: new Set(OPT_ALL_TRANS_TYPES),
-  // 机器翻译
+  // 机器翻译引擎（传统查表/神经网络翻译，不需要大型语言模型）
   machine: new Set([
     OPT_TRANS_MICROSOFT,
     OPT_TRANS_DEEPLFREE,
@@ -110,7 +120,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_TENCENT,
     OPT_TRANS_VOLCENGINE,
   ]),
-  // AI翻译
+  // 大语言模型 AI 翻译引擎
   ai: new Set([
     OPT_TRANS_EPHONEAI,
     OPT_TRANS_OPENAI,
@@ -127,7 +137,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_OPENROUTER,
     OPT_TRANS_CUSTOMIZE,
   ]),
-  // 支持多key
+  // 支持多 API Key 轮询/备用的引擎
   mulkeys: new Set([
     OPT_TRANS_AZUREAI,
     OPT_TRANS_DEEPSEEK,
@@ -147,7 +157,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_EPHONEAI,
     OPT_TRANS_CUSTOMIZE,
   ]),
-  // 支持批处理
+  // 支持段落聚合（批处理合并）翻译的引擎
   batch: new Set([
     OPT_TRANS_AZUREAI,
     OPT_TRANS_DEEPSEEK,
@@ -169,7 +179,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_EPHONEAI,
     OPT_TRANS_CUSTOMIZE,
   ]),
-  // 支持上下文
+  // 支持带历史会话（Context）关联的翻译引擎
   context: new Set([
     OPT_TRANS_DEEPSEEK,
     OPT_TRANS_SILICONFLOW,
@@ -186,7 +196,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_EPHONEAI,
     OPT_TRANS_CUSTOMIZE,
   ]),
-  // 支持流式传输
+  // 支持流式文本返回（Server-Sent Events / Stream）的翻译引擎
   stream: new Set([
     OPT_TRANS_DEEPSEEK,
     OPT_TRANS_SILICONFLOW,
@@ -202,13 +212,14 @@ export const API_SPE_TYPES = {
     OPT_TRANS_OPENROUTER,
     OPT_TRANS_EPHONEAI,
   ]),
-  // 赞助商
+  // 官方推荐/赞助商的翻译服务
   sponsors: new Set([OPT_TRANS_EPHONEAI]),
 };
 
-// 思考模式参数映射：定义各API的思考开关和强度参数
-// type: 注入逻辑类型; efforts: 思考强度选项(强→弱), null表示无强度控制
-// disableSupported: 是否支持关闭思考,默认true; 设为false则不显示"关闭思考"选项
+// REVIEW: 思考模式参数映射：定义各 API 的思考开关和强度参数。
+// 这里的设计可以将 AI 推理模型的“思考过程”(Reasoning Effort) 与普通参数解耦，支持可视化调节。
+// type: 对应的厂商/平台类型；efforts: 思考强度级别列表 (如 max, high 等)，null 表示仅支持开启/关闭，无多档强度可选。
+// disableSupported: 是否允许用户手动关闭思考模式，默认 true。若为 false 则说明该模型强制开启思考（如 Claude 的部分高推理模型）。
 export const THINKING_PARAM_MAP = {
   [OPT_TRANS_DEEPSEEK]: {
     type: "deepseek",

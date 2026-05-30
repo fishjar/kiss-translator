@@ -24,14 +24,21 @@ import { isExt } from "../../libs/client";
 import { useApiList } from "../../hooks/Api";
 import ValidationInput from "../../hooks/ValidationInput";
 
+/**
+ * 划词翻译框 (Tranbox) 样式与交互配置面板组件
+ */
 export default function Tranbox() {
   const i18n = useI18n();
+  // 查词翻译框配置管理 Hook
   const { tranboxSetting, updateTranbox } = useTranbox();
+  // 启用的 API 引擎
   const { enabledApis } = useApiList();
 
+  // 基础表单输入值变动处理
   const handleChange = (e) => {
     e.preventDefault();
     let { name, value } = e.target;
+    // 特殊处理：限制小按钮与翻译框偏移量的安全输入界限在 [-200, 200] 像素内以防 UI 飞出视区
     switch (name) {
       case "btnOffsetX":
       case "btnOffsetY":
@@ -46,6 +53,7 @@ export default function Tranbox() {
     });
   };
 
+  // 快捷键组合变更处理回调
   const handleShortcutInput = useCallback(
     (val) => {
       updateTranbox({ tranboxShortcut: val });
@@ -53,6 +61,7 @@ export default function Tranbox() {
     [updateTranbox]
   );
 
+  // 解构当前划词翻译配置
   const {
     transOpen,
     apiSlugs,
@@ -71,7 +80,6 @@ export default function Tranbox() {
     followSelection = false,
     autoHeight = false,
     triggerMode = OPT_TRANBOX_TRIGGER_CLICK,
-    // extStyles = "",
     enDict = OPT_DICT_BING,
     enSug = OPT_SUG_YOUDAO,
     blacklist = "",
@@ -80,6 +88,7 @@ export default function Tranbox() {
   return (
     <Box>
       <Stack spacing={3}>
+        {/* 开关：是否启用划词翻译触发小按钮与悬浮翻译框 */}
         <FormControlLabel
           control={
             <Switch
@@ -95,8 +104,10 @@ export default function Tranbox() {
           sx={{ width: "fit-content" }}
         />
 
+        {/* 各项具体参数网格配置区 */}
         <Box>
           <Grid container spacing={2} columns={12}>
+            {/* 划词翻译框中支持多选并存展示的并行翻译服务 */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
@@ -117,6 +128,7 @@ export default function Tranbox() {
                 ))}
               </TextField>
             </Grid>
+            {/* 对单个英文单词是否跳过完整的大模型/机翻 (直接使用词典)，以此提高查词效率与节省 token 额度 */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 fullWidth
@@ -131,6 +143,7 @@ export default function Tranbox() {
                 <MenuItem value={true}>{i18n("enable")}</MenuItem>
               </TextField>
             </Grid>
+            {/* 默认源语言 */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 fullWidth
@@ -148,6 +161,7 @@ export default function Tranbox() {
                 ))}
               </TextField>
             </Grid>
+            {/* 首选翻译出的目标语言 */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 fullWidth
@@ -165,6 +179,7 @@ export default function Tranbox() {
                 ))}
               </TextField>
             </Grid>
+            {/* 次选目标语言 (例如：如果划词内容本身就是首选语言，则翻译为次选语言) */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 fullWidth
@@ -185,6 +200,7 @@ export default function Tranbox() {
               </TextField>
             </Grid>
 
+            {/* 本地查词词典选择 */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 fullWidth
@@ -203,6 +219,7 @@ export default function Tranbox() {
                 ))}
               </TextField>
             </Grid>
+            {/* 联想输入建议源选择 */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 fullWidth
@@ -221,6 +238,7 @@ export default function Tranbox() {
                 ))}
               </TextField>
             </Grid>
+            {/* 划词翻译框的触发模式 (点击小球触发、选中直接触发、或者带辅助按键) */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 fullWidth
@@ -238,6 +256,7 @@ export default function Tranbox() {
                 ))}
               </TextField>
             </Grid>
+            {/* 是否隐藏触发划词翻译的浮动 FAB 小按钮 (隐藏后通常只能通过快捷键调起翻译框) */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 fullWidth
@@ -252,6 +271,7 @@ export default function Tranbox() {
                 <MenuItem value={true}>{i18n("hide")}</MenuItem>
               </TextField>
             </Grid>
+            {/* 点击翻译框外任意处时，是否关闭并自动销毁翻译框 */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 fullWidth
@@ -266,6 +286,7 @@ export default function Tranbox() {
                 <MenuItem value={true}>{i18n("enable")}</MenuItem>
               </TextField>
             </Grid>
+            {/* 是否开启轻量极简无背景毛玻璃外观样式 */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 fullWidth
@@ -280,6 +301,7 @@ export default function Tranbox() {
                 <MenuItem value={true}>{i18n("enable")}</MenuItem>
               </TextField>
             </Grid>
+            {/* 翻译弹框的定位是否紧随选定文字的最下方, 否则固定在相对小图标的偏移位置 */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 fullWidth
@@ -295,6 +317,7 @@ export default function Tranbox() {
               </TextField>
             </Grid>
 
+            {/* 浮动 FAB 触发按钮相对于光标的物理水平偏移量 (X 轴像素) */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <ValidationInput
                 fullWidth
@@ -308,6 +331,7 @@ export default function Tranbox() {
                 max={200}
               />
             </Grid>
+            {/* 浮动 FAB 触发按钮相对于光标的物理垂直偏移量 (Y 轴像素) */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <ValidationInput
                 fullWidth
@@ -321,6 +345,7 @@ export default function Tranbox() {
                 max={200}
               />
             </Grid>
+            {/* 悬浮翻译框相对于光标/按钮的物理水平偏移量 (X 轴像素) */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <ValidationInput
                 fullWidth
@@ -334,6 +359,7 @@ export default function Tranbox() {
                 max={200}
               />
             </Grid>
+            {/* 悬浮翻译框相对于光标/按钮的物理垂直偏移量 (Y 轴像素) */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <ValidationInput
                 fullWidth
@@ -347,6 +373,7 @@ export default function Tranbox() {
                 max={200}
               />
             </Grid>
+            {/* 翻译文本较多时，翻译框高度是否随着文字自动拉伸，否则启用内部局部纵向滚动条 */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 fullWidth
@@ -361,6 +388,7 @@ export default function Tranbox() {
                 <MenuItem value={true}>{i18n("enable")}</MenuItem>
               </TextField>
             </Grid>
+            {/* 油猴脚本下触发调出主动查词输入框的热键录入 */}
             {!isExt && (
               <Grid item xs={12} sm={12} md={6} lg={3}>
                 <ShortcutInput
@@ -373,16 +401,7 @@ export default function Tranbox() {
           </Grid>
         </Box>
 
-        {/* <TextField
-          size="small"
-          label={i18n("extend_styles")}
-          name="extStyles"
-          value={extStyles}
-          onChange={handleChange}
-          maxRows={10}
-          multiline
-        /> */}
-
+        {/* 划词翻译不生效的黑名单域名及正则规则列表 */}
         <TextField
           size="small"
           label={i18n("blacklist")}

@@ -1,3 +1,8 @@
+/**
+ * @file cache.js
+ * @description 本地缓存管理模块。使用浏览器的 CacheStorage 缓存翻译接口响应结果，提供高效的 POST 请求虚拟化 GET 转换技术，以及 Content 到 Background 的中转 Polyfill。
+ */
+
 import {
   CACHE_NAME,
   DEFAULT_CACHE_TIMEOUT,
@@ -12,7 +17,7 @@ import { sendBgMsg } from "./msg";
 import { blobToBase64 } from "./utils";
 
 /**
- * 清除缓存数据
+ * 清除翻译网络请求的本地缓存
  */
 export const tryClearCaches = async () => {
   try {
@@ -27,10 +32,20 @@ export const tryClearCaches = async () => {
 };
 
 /**
- * 构造缓存 request
- * @param {*} input
- * @param {*} init
- * @returns
+ * 构造缓存所用的 Request 对象。
+ * 由于浏览器原生 CacheStorage (caches) 仅支持拦截/匹配 GET 类型的网络请求，而网页翻译接口大多使用 POST 方法。
+ * 本函数通过将 POST 请求的 Body (包含待翻译原文的 JSON 字符串) 拼接在 URL 路径末尾，
+ * 并将方法重置为 GET，从而巧妙实现了对 POST 翻译请求的本地缓存与命中。
+ *
+ * REVIEW:
+ * 该转换方案在处理段落切分翻译（通常文本较短，限制在数千字符内）时工作极其良好，是一个非常有想象力的方案。
+ * 但需注意：当单次发送的原文极长时，拼接了 Body 后的 URL 长度可能会超出浏览器或 Web 服务器对 URL 长度的限制（如 IE/Chrome 的 2083 字符上限），
+ * 导致 Request 对象初始化抛错或匹配失效。
+ * 后期若要支持不限制长度的自定义接口，建议将 Body 字符串进行 MD5 或 SHA-256 散列哈希处理，把哈希值拼在 URL 后面作为缓存 Key，
+ * 这既能缩短 URL 规避限制，又能保障缓存安全性。
+ * @param {string} input
+ * @param {Object} init
+ * @returns {Promise<Request>} 虚拟转换后的 GET 缓存 Request 对象
  */
 const newCacheReq = async (input, init) => {
   let request = new Request(input, init);
@@ -45,10 +60,11 @@ const newCacheReq = async (input, init) => {
 };
 
 /**
- * 查询 caches
- * @param {*} input
- * @param {*} init
- * @returns
+ * 查询本地 CacheStorage 中是否缓存了该请求的翻译结果
+ * @param {string} input
+ * @param {Object} init
+ * @param {string} [expect] 预期的解析格式 (如 json/text 等)
+ * @returns {Promise<*>} 缓存的数据，若无缓存返回 null
  */
 export const getHttpCache = async ({ input, init, expect }) => {
   try {
@@ -66,10 +82,11 @@ export const getHttpCache = async ({ input, init, expect }) => {
 };
 
 /**
- * 插入 caches
- * @param {*} input
- * @param {*} init
- * @param {*} data
+ * 将成功请求回来的翻译数据及语种缓存写入 CacheStorage 中
+ * @param {string} input
+ * @param {Object} init
+ * @param {Object} data 待缓存的数据
+ * @param {number} [maxAge=DEFAULT_CACHE_TIMEOUT] 缓存有效期 (秒)
  */
 export const putHttpCache = async ({
   input,
@@ -95,15 +112,17 @@ export const putHttpCache = async ({
 };
 
 /**
- * 解析 response
- * @param {*} res
- * @returns
+ * 通用网络响应 Response 解析函数，自动适配 JSON, Text, Blob 及语音文件转 Base64 格式并抛出友好错误。
+ * @param {Response} res 原生 Response 实例
+ * @param {string} [expect=null] 预期转换类型 (text, json, blob, audio)
+ * @returns {Promise<*>}
  */
 export const parseResponse = async (res, expect = null) => {
   if (!res) {
     throw new Error("Response object does not exist");
   }
 
+  // 若 HTTP 状态码非 200/2xx 成功状态，提取其 body 中可能的错误信息，抛出统一规范的 Error
   if (!res.ok) {
     const msg = {
       url: res.url,
@@ -129,6 +148,7 @@ export const parseResponse = async (res, expect = null) => {
   if (expect === "blob") return res.blob();
   if (expect === "text") return res.text();
   if (expect === "json") return res.json();
+  // 翻译发音音频 (TTS) 或多媒体文件：返回 Base64 格式
   if (
     expect === "audio" ||
     contentType.includes("audio") ||
@@ -150,34 +170,41 @@ export const parseResponse = async (res, expect = null) => {
 };
 
 /**
- * getHttpCache 兼容性封装
- * @param {*} input
- * @param {*} init
- * @returns
+ * getHttpCache 的跨环境包装层，若是 Content Script 会交由 Background 查询
+ * @param {string} input
+ * @param {Object} init
+ * @returns {Promise<*>}
  */
 export const getHttpCachePolyfill = (input, init) => {
-  // 插件
+  // 插件前端：发送消息查询
   if (isExt && !isBg()) {
-    return sendBgMsg(MSG_GET_HTTPCACHE, { input, init });
+    return sendBgMsg(msgGetCacheName(), { input, init });
   }
 
-  // 油猴/网页/BackgroundPage
+  // 油猴/网页/后台端点：直接本地查询
   return getHttpCache({ input, init });
 };
 
 /**
- * putHttpCache 兼容性封装
- * @param {*} input
- * @param {*} init
- * @param {*} data
- * @returns
+ * 辅助获取消息键名函数，防止常量导入死锁
+ */
+function msgGetCacheName() {
+  return MSG_GET_HTTPCACHE;
+}
+
+/**
+ * putHttpCache 的跨环境包装层，若是 Content Script 会交由 Background 写入
+ * @param {string} input
+ * @param {Object} init
+ * @param {Object} data
+ * @returns {Promise<void>}
  */
 export const putHttpCachePolyfill = (input, init, data) => {
-  // 插件
+  // 插件前端：发送消息写入
   if (isExt && !isBg()) {
     return sendBgMsg(MSG_PUT_HTTPCACHE, { input, init, data });
   }
 
-  // 油猴/网页/BackgroundPage
+  // 油猴/网页/后台端点：直接本地写入
   return putHttpCache({ input, init, data });
 };

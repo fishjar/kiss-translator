@@ -1,3 +1,8 @@
+/**
+ * @file log.js
+ * @description 日志模块。提供带有色彩标识的调试和信息打印功能，支持动态设置日志等级（DEBUG/INFO/WARN/ERROR/SILENT）。
+ */
+
 // 定义日志级别
 export const LogLevel = {
   DEBUG: { value: 0, name: "DEBUG", color: "#6495ED" }, // 宝蓝色
@@ -7,16 +12,21 @@ export const LogLevel = {
   SILENT: { value: 4, name: "SILENT" }, // 特殊级别，用于关闭所有日志
 };
 
+// 辅助方法：通过数字查找日志级别对象
 function findLogLevelByValue(value) {
   return Object.values(LogLevel).find((level) => level.value === value);
 }
 
+// 辅助方法：通过名称查找日志级别对象
 function findLogLevelByName(name) {
   if (typeof name !== "string" || name.length === 0) return undefined;
   const upperCaseName = name.toUpperCase();
   return Object.values(LogLevel).find((level) => level.name === upperCaseName);
 }
 
+/**
+ * 带有格式化输出的控制台日志记录器类
+ */
 class Logger {
   /**
    * @param {object} [options={}] 配置选项
@@ -32,7 +42,7 @@ class Logger {
 
   /**
    * 动态设置日志级别
-   * @param {LogLevel} level - 新的日志级别
+   * @param {LogLevel|string|number} level - 新的日志级别
    */
   setLevel(level) {
     let newLevelObject;
@@ -110,6 +120,8 @@ class Logger {
   /**
    * 根据日志级别获取对应的 console 方法
    * @private
+   * @param {LogLevel} level
+   * @returns {Function} console 方法
    */
   _getConsoleMethod(level) {
     switch (level) {
@@ -157,7 +169,11 @@ class Logger {
   }
 }
 
+// 导出单例 Logger 供外部模块调用
 export const logger = new Logger();
+
+// REVIEW: kissLog 作为 logger.info 的快捷别名导出，但实际上 debug 或 warn 在日常拦截异常中用的也很多。
+// 可以考虑后续提供类似的快捷别名或直接鼓励大家使用 logger.warn/error 以保持日志语义清晰。
 export const kissLog = logger.info.bind(logger);
 
-// todo：debug日志埋点
+// TODO：debug日志埋点

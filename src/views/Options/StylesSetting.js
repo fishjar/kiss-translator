@@ -17,27 +17,41 @@ import { css } from "@emotion/css";
 import { getRandomQuote } from "../../config/quotes";
 import { useSetting } from "../../hooks/Setting";
 
+/**
+ * 单个自定义 CSS 样式编辑表单区域
+ *
+ * @param {Object} props
+ * @param {Object} props.customStyle - 样式对象配置
+ * @param {Function} props.deleteStyle - 删除样式回调
+ * @param {Function} props.updateStyle - 保存/更新样式回调
+ * @param {boolean} props.isBuiltin - 是否是系统内置的只读样式 (内置样式不允许修改和删除)
+ */
 function StyleFields({ customStyle, deleteStyle, updateStyle, isBuiltin }) {
   const i18n = useI18n();
   const {
     setting: { uiLang },
   } = useSetting();
+  // 暂存表单输入值的状态
   const [formData, setFormData] = useState({});
+  // 用于判定当前输入是否发生改变以控制保存按钮
   const [isModified, setIsModified] = useState(false);
   const confirm = useConfirm();
 
+  // 监听外部样式更新，重置表单
   useEffect(() => {
     if (customStyle) {
       setFormData(customStyle);
     }
   }, [customStyle]);
 
+  // 比对是否发生过修改以激活保存按钮
   useEffect(() => {
     if (!customStyle) return;
     const hasChanged = JSON.stringify(customStyle) !== JSON.stringify(formData);
     setIsModified(hasChanged);
   }, [customStyle, formData]);
 
+  // 表单字段输入改变处理
   const handleChange = (e) => {
     e.preventDefault();
     let { name, value } = e.target;
@@ -48,10 +62,12 @@ function StyleFields({ customStyle, deleteStyle, updateStyle, isBuiltin }) {
     }));
   };
 
+  // 触发样式规则更新
   const handleSave = () => {
     updateStyle(customStyle.styleSlug, formData);
   };
 
+  // 二次确认删除自定义样式
   const handleDelete = async () => {
     const isConfirmed = await confirm({
       confirmText: i18n("delete"),
@@ -65,6 +81,7 @@ function StyleFields({ customStyle, deleteStyle, updateStyle, isBuiltin }) {
 
   const { styleName = "", styleCode = "" } = formData;
 
+  // 使用 @emotion/css 动态把用户手写的 CSS 转换为随机类名挂载到预览框上展示样式效果
   const textClass = useMemo(
     () => css`
       ${styleCode}
@@ -72,6 +89,7 @@ function StyleFields({ customStyle, deleteStyle, updateStyle, isBuiltin }) {
     [styleCode]
   );
 
+  // 动态生成一句预览文字
   const quote = useMemo(() => {
     const q = getRandomQuote();
     if (uiLang === "en") {
@@ -82,12 +100,14 @@ function StyleFields({ customStyle, deleteStyle, updateStyle, isBuiltin }) {
 
   return (
     <Stack spacing={3}>
+      {/* 实时 CSS 渲染预览展示区 */}
       <Box>
         {quote[0]}
         <br />
         <span className={textClass}>{quote[1]}</span>
       </Box>
 
+      {/* 样式名称输入框 */}
       <TextField
         size="small"
         label={i18n("style_name")}
@@ -96,6 +116,7 @@ function StyleFields({ customStyle, deleteStyle, updateStyle, isBuiltin }) {
         onChange={handleChange}
         disabled={isBuiltin}
       />
+      {/* CSS 源码编辑器 */}
       <CodeField
         size="small"
         label={i18n("style_code")}
@@ -106,6 +127,7 @@ function StyleFields({ customStyle, deleteStyle, updateStyle, isBuiltin }) {
         disabled={isBuiltin}
       />
 
+      {/* 非只读的自定义样式，提供保存和删除动作按钮 */}
       {!isBuiltin && (
         <Stack
           direction="row"
@@ -136,6 +158,9 @@ function StyleFields({ customStyle, deleteStyle, updateStyle, isBuiltin }) {
   );
 }
 
+/**
+ * 样式的折叠手风琴壳组件
+ */
 function StyleAccordion({ customStyle, deleteStyle, updateStyle, isBuiltin }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -168,11 +193,17 @@ function StyleAccordion({ customStyle, deleteStyle, updateStyle, isBuiltin }) {
   );
 }
 
+/**
+ * 译文展现样式设置主页面组件 (StylesSetting)
+ */
 export default function StylesSetting() {
   const i18n = useI18n();
+  // 自定义 CSS 列表 Hook
   const { customStyles, addStyle, deleteStyle, updateStyle } = useStyleList();
+  // 系统内置的只读样式配置列表
   const { builtinStyles } = useAllTextStyles();
 
+  // 添加新 CSS 样式
   const handleClick = (e) => {
     e.preventDefault();
     addStyle();
@@ -181,6 +212,7 @@ export default function StylesSetting() {
   return (
     <Box>
       <Stack spacing={3}>
+        {/* 新增样式按钮 */}
         <Box>
           <Button
             size="small"
@@ -193,6 +225,7 @@ export default function StylesSetting() {
           </Button>
         </Box>
 
+        {/* 用户自定义的可修改样式列表 */}
         <Box>
           {customStyles.map((customStyle) => (
             <StyleAccordion
@@ -203,6 +236,7 @@ export default function StylesSetting() {
             />
           ))}
         </Box>
+        {/* 插件内置的只读系统样式列表 */}
         <Box>
           {builtinStyles.map((customStyle) => (
             <StyleAccordion

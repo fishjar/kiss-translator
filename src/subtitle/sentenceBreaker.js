@@ -1,22 +1,24 @@
 /**
- * 智能断句算法 - 从 YouTube JSON 到字幕断句
- * 基于 subtitle_generator.py 的 JavaScript 实现
+ * 智能断句算法 - 从 YouTube 歌词/字幕 JSON 到结构化断句
+ * 基于 Python 字幕生成器 (subtitle_generator.py) 的 JavaScript 等价实现。
+ * 核心设计：通过分析单词与单词之间的时间间隔（Gap）、语言学边界特征（如首字母大写、句尾标点符号），
+ * 以及时间间隔的中位数绝对偏差（MAD）和 Z-Score 统计算法来自动判断最合理的句子边界，以解决机器生成字幕（ASR）没有断句的问题。
  */
 
-// 算法默认参数
+// 算法评分机制的默认参数配置
 const DEFAULT_PARAMS = {
-  maxDurationMs: 7000,
-  maxWords: 30,
-  sensitivity: 2.0,
-  punctuationBreakBonus: 2.5,
-  commaBreakBonus: 1.0,
-  capitalBreakBonus: 0.5,
-  minBoundaryScore: 1.2,
-  minSentenceWords: 4,
-  minSentenceDurationMs: 500,
-  forceBreakOnPunctuation: true,
-  forcePunctuationMinWords: 6,
-  forcePunctuationMinDurationMs: 2000,
+  maxDurationMs: 7000, // 单个句子的最大时长上限（毫秒）
+  maxWords: 30, // 单个句子的最大单词数上限
+  sensitivity: 2.0, // 对停顿时间的评分灵敏度系数
+  punctuationBreakBonus: 2.5, // 句尾标点断句的评分加分
+  commaBreakBonus: 1.0, // 逗号断句的评分加分
+  capitalBreakBonus: 0.5, // 下一单词首字母大写（可能代表新句子起始）的加分
+  minBoundaryScore: 1.2, // 判定为断句边界的最小累加评分阈值
+  minSentenceWords: 4, // 单个句子的最小单词数限制
+  minSentenceDurationMs: 500, // 单个句子的最小时长限制（毫秒）
+  forceBreakOnPunctuation: true, // 在标点符号处是否启用硬性条件强制断句
+  forcePunctuationMinWords: 6, // 标点符号硬断句的最小单词数
+  forcePunctuationMinDurationMs: 2000, // 标点符号硬断句的最小时长
 };
 
 /**

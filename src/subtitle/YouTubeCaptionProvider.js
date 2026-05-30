@@ -1432,6 +1432,17 @@ class YouTubeCaptionProvider {
     return eventChunks;
   }
 
+  /**
+   * 异步批次处理视频后续的所有字幕分块并增量渲染到界面上
+   * // REVIEW: 视频切换时后台异步 API 请求浪费风险。
+   * //    在异步 for 循环中遍历后续的分块，当视频中途被用户切换或退出时，虽然有 `#isStaleProcessing` 拦截，
+   * //    但由于该拦截只发生在异步 await 请求返回之后进行检查抛弃，
+   * //    这就导致已经发出的 AI 翻译网络请求依然会被后台的 TaskPool 处理并执行完毕。
+   * //    如果在前一个视频处理期间用户频繁切换了几个新视频，可能会导致大量被废弃的“前视频字幕翻译请求”依然常驻后台，
+   * //    造成高额的大模型 API 额度（Token）消耗与浏览器跨域带宽浪费。
+   * //    推荐为每次异步请求引入 `AbortController` 并在视频重定向销毁时执行 `.abort()`。
+   * @private
+   */
   async #processRemainingChunksAsync({
     chunks,
     startIndex = 0,
@@ -1446,6 +1457,7 @@ class YouTubeCaptionProvider {
     );
 
     for (let i = startIndex; i < chunks.length; i++) {
+      // 检查本批次是否已经因为用户切换了字幕轨道或视频而过期，若是则立即退出
       if (this.#isStaleProcessing(processingVersion)) {
         logger.info("Youtube Provider: Skip stale chunk processing.");
         break;
@@ -1460,6 +1472,7 @@ class YouTubeCaptionProvider {
       let subtitlesForThisChunk = [];
 
       try {
+        // 请求大模型 AI 对当前分块进行智能断句及辅助翻译
         const aiSubtitles = await this.#aiSegment({
           videoId,
           chunkEvents,
@@ -1474,15 +1487,18 @@ class YouTubeCaptionProvider {
         if (aiSubtitles?.length > 0) {
           subtitlesForThisChunk = aiSubtitles;
         } else {
+          // AI 模式返回空时，降级采用内置普通规则断句
           logger.debug(
             `Youtube Provider: AI segmentation for chunk ${chunkNum} returned no data.`
           );
           subtitlesForThisChunk = this.#formatSubtitles(chunkEvents, fromLang);
         }
       } catch (chunkError) {
+        // 出错时降级
         subtitlesForThisChunk = this.#formatSubtitles(chunkEvents, fromLang);
       }
 
+      // 双重检查防竞态：确认视频 ID 是否在此期间发生了改变
       if (
         videoId !== this.#videoId ||
         this.#isStaleProcessing(processingVersion)
@@ -1498,6 +1514,7 @@ class YouTubeCaptionProvider {
       if (subtitlesForThisChunk.length > 0) {
         const progressed = Math.floor((chunkNum * 100) / chunks.length);
         this.#subtitles.push(...subtitlesForThisChunk);
+        // 按时间轴起始点进行重新排序以确保不错序
         this.#subtitles.sort((a, b) => a.start - b.start);
         this.#progressed = progressed;
 
@@ -1509,7 +1526,7 @@ class YouTubeCaptionProvider {
           this.#managerInstance.appendSubtitles(subtitlesForThisChunk);
         }
 
-        // 增量追加新字条目到字幕列表
+        // 增量追加新字条目到侧边字幕列表渲染器中
         if (this.#subtitleListManager) {
           this.#subtitleListManager.setBilingualSubtitles(this.#subtitles);
         }
@@ -1517,6 +1534,7 @@ class YouTubeCaptionProvider {
         logger.debug(`Youtube Provider: Chunk ${chunkNum} no subtitles.`);
       }
 
+      // 引入轻微延时抖动以防请求触发高频流控
       await sleep(randomBetween(500, 1000));
     }
 

@@ -1,3 +1,8 @@
+/**
+ * @file quotes.js
+ * @description 名人名言/格言警句数据源模块。提供多语言的名言文案，并在设置或 Popup 页面随机展示以提升用户交互体验。
+ */
+
 const quotes = [
   {
     en: "The unexamined life is not worth living.",
@@ -707,6 +712,10 @@ const quotes = [
   },
 ];
 
+/**
+ * 随机获取一条多语言格言警句
+ * @returns {{en: string, zh: string, zh_TW: string, ja: string, ko: string}} 包含多国语言翻译的名言对象
+ */
 export function getRandomQuote() {
   const randomIndex = Math.floor(Math.random() * quotes.length);
   return quotes[randomIndex];

@@ -77,6 +77,11 @@ function formatMillisecondsToTimestamp(ms) {
 
 /**
  * 解析包含双语字幕的VTT文件内容。
+ * // REVIEW: CRLF (\r\n) 换行符割裂解析隐患。
+ * //    `vttText.split(/\n\n+/)` 在处理 Windows (\r\n) 格式换行符的 VTT 文件时，会由于 `\r` 的残留，
+ * //    导致在进行行分割 `cue.split("\n")` 时每一行尾部依然带有 `\r` 符号。
+ * //    这可能导致在匹配 `textLines[0]?.trim()` 以及时间戳行匹配时产生不可预知的字符串清洗或比对异常。
+ * //    推荐在分割前先将字符串中的所有 `\r\n` 统一规范化为 `\n`。
  * @param {string} vttText - VTT文件的文本内容。
  * @returns {Array<Object>} 一个包含字幕对象的数组，每个对象包含 start, end, text, 和 translation.
  */
