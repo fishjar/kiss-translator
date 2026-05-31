@@ -539,12 +539,10 @@ export class YouTubeSubtitleList {
     // 交互事件绑定：点击字幕跳跃视频播放时间点，鼠标悬停高亮
     li.addEventListener("click", () => this.jumpToTime(sub.start));
     li.addEventListener("mouseenter", () => {
-      if (!li.classList.contains("active-subtitle"))
-        li.style.opacity = 1;
+      if (!li.classList.contains("active-subtitle")) li.style.opacity = 1;
     });
     li.addEventListener("mouseleave", () => {
-      if (!li.classList.contains("active-subtitle"))
-        li.style.opacity = 0.6;
+      if (!li.classList.contains("active-subtitle")) li.style.opacity = 0.6;
     });
 
     textContainer.appendChild(textSpan);
