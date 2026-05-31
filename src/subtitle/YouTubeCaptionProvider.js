@@ -1084,12 +1084,12 @@ class YouTubeCaptionProvider {
 
   #hideYtCaption() {
     const ytCaption = document.querySelector(YT_CAPTION_SELECT);
-    ytCaption && (ytCaption.style.display = "none");
+    ytCaption && (ytCaption.style.top = "-10000px");
   }
 
   #showYtCaption() {
     const ytCaption = document.querySelector(YT_CAPTION_SELECT);
-    ytCaption && (ytCaption.style.display = "block");
+    ytCaption && (ytCaption.style.top = "0");
   }
 
   #formatSubtitles(flatEvents, lang) {
