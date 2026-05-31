@@ -9,7 +9,7 @@ import { genEventName } from "./libs/utils";
 import { handlePing, injectScript } from "./libs/gm";
 import { matchRule } from "./libs/rules";
 import { trySyncAllSubRules } from "./libs/subRules";
-import { isInBlacklist } from "./libs/blacklist";
+import { isInBlacklist, isInWhitelist } from "./libs/blacklist";
 import { runSubtitle } from "./subtitle/subtitle";
 import { logger } from "./libs/log";
 import { injectInlineJs } from "./libs/injector";
@@ -170,6 +170,11 @@ export async function run(isUserscript = false) {
 
     // 5. 网页黑名单校验，命中时彻底不启动翻译
     if (isInBlacklist(href, setting.blacklist)) {
+      return;
+    }
+
+    // 5.1. iframe 白名单校验：如果是 iframe，但不在白名单中，则提前退出
+    if (isIframe && !isInWhitelist(href, setting.iframeWhitelist)) {
       return;
     }
 
