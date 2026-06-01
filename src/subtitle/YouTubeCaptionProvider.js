@@ -51,6 +51,7 @@ class YouTubeCaptionProvider {
   #notificationTimeout = null;
   #i18n = () => "";
   #menuManager = null; // 菜单管理器实例
+  #ytSubtitleStateObserver = null;
 
   // 新增：字幕列表管理器实例
   #subtitleListManager = null;
@@ -111,13 +112,7 @@ class YouTubeCaptionProvider {
     this.#waitForElement(CONTORLS_SELECT, (ytControls) => {
       const ytSubtitleBtn = ytControls.querySelector(YT_SUBTITLE_BTN_SELECT);
       if (ytSubtitleBtn) {
-        ytSubtitleBtn.addEventListener("click", () => {
-          if (ytSubtitleBtn.getAttribute("aria-pressed") === "true") {
-            this.#startManager();
-          } else {
-            this.#destroyManager();
-          }
-        });
+        this.#observeYtSubtitleState(ytSubtitleBtn);
       }
 
       this.#injectToggleButton(ytControls);
@@ -126,6 +121,33 @@ class YouTubeCaptionProvider {
     this.#waitForElement(YT_AD_SELECT, (adContainer) => {
       this.#moAds(adContainer);
     });
+  }
+
+  #observeYtSubtitleState(ytSubtitleBtn) {
+    this.#ytSubtitleStateObserver?.disconnect();
+    this.#ytSubtitleStateObserver = new MutationObserver(() => {
+      this.#syncYtSubtitleState(ytSubtitleBtn);
+    });
+    this.#ytSubtitleStateObserver.observe(ytSubtitleBtn, {
+      attributes: true,
+      attributeFilter: ["aria-pressed"],
+    });
+    this.#syncYtSubtitleState(ytSubtitleBtn);
+  }
+
+  #syncYtSubtitleState(ytSubtitleBtn) {
+    if (ytSubtitleBtn.getAttribute("aria-pressed") === "true") {
+      this.#startManager();
+    } else {
+      this.#destroyManager();
+    }
+  }
+
+  #isYtSubtitleEnabled() {
+    const ytSubtitleBtn = document.querySelector(YT_SUBTITLE_BTN_SELECT);
+    return (
+      !ytSubtitleBtn || ytSubtitleBtn.getAttribute("aria-pressed") === "true"
+    );
   }
 
   #moAds(adContainer) {
@@ -994,6 +1016,10 @@ class YouTubeCaptionProvider {
   }
 
   #startManager() {
+    if (!this.#isYtSubtitleEnabled()) {
+      return;
+    }
+
     if (this.#managerInstance) {
       return;
     }
