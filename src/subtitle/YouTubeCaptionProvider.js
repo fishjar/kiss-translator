@@ -249,6 +249,12 @@ class YouTubeCaptionProvider {
       this.#reProcessEventsWithContext();
     } else if (name === "showLoadNotification" && value === false) {
       this.#hideNotification();
+    } else if (name === "hideSubtitleButton") {
+      if (value === true) {
+        this.#removeToggleButton();
+      } else {
+        this.#injectToggleButton(document.querySelector(CONTORLS_SELECT));
+      }
     }
   }
 
@@ -319,6 +325,14 @@ class YouTubeCaptionProvider {
   }
 
   #injectToggleButton(ytControls) {
+    if (
+      this.#setting.hideSubtitleButton === true ||
+      !ytControls ||
+      ytControls.querySelector(".kiss-subtitle-button")
+    ) {
+      return;
+    }
+
     const kissControls = document.createElement("div");
     kissControls.className = "notranslate kiss-subtitle-controls";
     Object.assign(kissControls.style, {
@@ -359,6 +373,17 @@ class YouTubeCaptionProvider {
     this.#toggleButton = toggleButton;
 
     ytControls?.prepend(kissControls);
+  }
+
+  #removeToggleButton() {
+    this.#isMenuShow = false;
+    this.#menuManager?.destroy();
+    this.#menuManager = null;
+    const kissControls =
+      this.#toggleButton?.closest(".kiss-subtitle-controls") ||
+      document.querySelector(".kiss-subtitle-controls");
+    kissControls?.remove();
+    this.#toggleButton = null;
   }
 
   #isSameLang(lang1, lang2) {

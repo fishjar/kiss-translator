@@ -2673,6 +2673,13 @@ export const I18N = {
     ja: `字幕読み込み通知`,
     ko: `자막 로딩 알림`,
   },
+  hide_subtitle_button: {
+    zh: `隐藏功能按钮`,
+    en: `Hide function button`,
+    zh_TW: `隱藏功能按鈕`,
+    ja: `機能ボタンを非表示`,
+    ko: `기능 버튼 숨기기`,
+  },
   subtitle_hover_lookup: {
     zh: `悬停查词`,
     en: `Hover Word Lookup`,
