@@ -902,9 +902,12 @@ class YouTubeCaptionProvider {
     const { segSlug, transApis, chunkLength, toLang } = this.#setting;
 
     const segApiSetting = transApis?.find((api) => api.apiSlug === segSlug);
-    const isAutoCaption = this.#interceptedCaptionKind === "asr";
+    const isWordLevel = this.#isWordLevelCaption(events);
+    logger.info(
+      `Youtube Provider: caption kind=${this.#interceptedCaptionKind}, wordLevel=${isWordLevel}`
+    );
 
-    if (isAutoCaption && segSlug && segSlug !== "-" && segApiSetting) {
+    if (isWordLevel && segSlug && segSlug !== "-" && segApiSetting) {
       if (this.#isStaleProcessing(processingVersion)) return [[], 0];
       logger.info("Youtube Provider: Starting AI segmentation...");
       this.#showNotification(this.#i18n("ai_processing_pls_wait"));
@@ -951,14 +954,27 @@ class YouTubeCaptionProvider {
       return [firstBatchSubtitles, 100];
     }
 
-    if (isAutoCaption) {
+    if (isWordLevel) {
       return [this.#builtinSegment(events, flatEvents, fromLang), 100];
     }
 
     logger.info(
-      "Youtube Provider: Sentence break mode: MANUAL (human caption)"
+      "Youtube Provider: Sentence break mode: PASS-THROUGH (sentence-level track)"
     );
     return [flatEvents.filter((e) => e.text), 100];
+  }
+
+  // kind 不可靠：词级轨可能没有 kind=asr（见 issue #722）。
+  // asr 必为词级；其余按逐词时间戳 tOffsetMs 判断，人工整句轨没有 tOffsetMs。
+  #isWordLevelCaption(events = []) {
+    if (this.#interceptedCaptionKind === "asr") return true;
+    let offsetSegs = 0;
+    for (const { segs = [] } of events) {
+      for (const s of segs) {
+        if (Number(s.tOffsetMs) > 0 && ++offsetSegs >= 2) return true;
+      }
+    }
+    return false;
   }
 
   #builtinSegment(events, flatEvents, fromLang) {
