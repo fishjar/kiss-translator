@@ -47,7 +47,7 @@ export class YouTubeSubtitleList {
     this._virtualBottomPadding = 16;
     this._virtualOverscan = 8;
     this._pendingCenterIndex = -1;
-    this._pendingSubtitleTabScrollIndex = -1;
+    this._pendingSubtitleTabScrollIndex = -1; // 字幕 Tab 隐藏期间收到跳转请求时，延后到 Tab 恢复可见后再滚动到目标行
     this._eventListenersAttached = false;
     this._vocabularyDirty = false; // 生词本是否需要重新渲染的标志位（在生词本不可见时添加了单词，切换过来时再重新渲染）
     this._chunkRenderCancel = null; // 当前分块渲染的取消器函数，用于随时中断未完成的渲染流程
@@ -251,6 +251,11 @@ export class YouTubeSubtitleList {
     this._virtualRenderForce = false;
   }
 
+  /**
+   * 判断字幕列表当前是否处于可见且可测量状态。
+   * 虚拟列表依赖 offsetHeight / clientHeight 计算行高和偏移量；当字幕 Tab 被 display:none 隐藏时，
+   * 浏览器会把子树元素的布局尺寸读成 0，此时如果回写高度缓存，会污染后续滚动定位。
+   */
   _isSubtitleTabVisible() {
     return (
       this.activeTab === "subtitles" &&
@@ -306,6 +311,7 @@ export class YouTubeSubtitleList {
 
   _renderVirtualSubtitles(force = false) {
     if (!this.subtitleListUl || !this.subtitleScrollContainer) return;
+    // 隐藏状态下只更新数据源，不重建和测量 DOM，避免 display:none 导致虚拟高度缓存被 0 值覆盖。
     if (!this._isSubtitleTabVisible()) return;
 
     const { start, end } = this._getVirtualRange();
@@ -340,6 +346,7 @@ export class YouTubeSubtitleList {
   }
 
   _measureVisibleSubtitleItems() {
+    // 只在字幕 Tab 可见时测量真实行高；生词本 Tab 下的字幕列表尺寸不可作为布局依据。
     if (!this._isSubtitleTabVisible()) return;
 
     let changed = false;
@@ -405,6 +412,8 @@ export class YouTubeSubtitleList {
         const shouldScroll = this.activeTab === "subtitles";
         this._setActiveSubtitle(targetIndex, shouldScroll);
         if (!shouldScroll) {
+          // 生词本 Tab 内点击时间戳时，字幕列表不可见，不能立即滚动；
+          // 先记录目标索引，等用户切回字幕 Tab 后再居中，否则自动滚动会因 _lastActiveIndex 已更新而直接跳过。
           this._pendingSubtitleTabScrollIndex = targetIndex;
         }
       }
@@ -725,6 +734,7 @@ export class YouTubeSubtitleList {
       styleTab(vocabularyTab, false);
       this.subtitleListEl.style.display = "flex";
       this.vocabularyListEl.style.display = "none";
+      // 优先处理隐藏期间记录的跳转目标；没有待滚动目标时，再按当前 scrollTop 正常刷新虚拟窗口。
       if (!this._scrollPendingSubtitleTabIndex()) {
         this._scheduleVirtualRender(true);
       }
@@ -1265,6 +1275,7 @@ export class YouTubeSubtitleList {
     const index = this._pendingSubtitleTabScrollIndex;
     if (index === -1 || !this._isSubtitleTabVisible()) return false;
 
+    // 只有确认字幕 Tab 已经恢复布局后才消费 pending，避免刚切换时布局尚未完成导致目标索引丢失。
     this._pendingSubtitleTabScrollIndex = -1;
     this._scrollIndexIntoView(index);
     return true;
@@ -1277,6 +1288,8 @@ export class YouTubeSubtitleList {
     }
 
     if (!this._isSubtitleTabVisible()) {
+      // 外部消息或生词本时间戳可能在字幕 Tab 隐藏时触发跳转；
+      // 此时保存目标行，等列表可见后再用真实容器高度计算居中位置。
       this._pendingSubtitleTabScrollIndex = index;
       return;
     }
