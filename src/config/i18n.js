@@ -970,6 +970,20 @@ export const I18N = {
     ja: `1. 対象要素の下にある、そのまま保持する必要がある子ノード。 2. CSSセレクタ構文に従ってください。`,
     ko: `1. 대상 요소 아래의 자식 노드 중 그대로 유지해야 하는 노드. 2. CSS 선택자 구문을 따릅니다.`,
   },
+  block_selector: {
+    zh: `块级元素选择器`,
+    en: `Block element selector`,
+    zh_TW: `區塊元素選擇器`,
+    ja: `ブロック要素セレクタ`,
+    ko: `블록 요소 선택자`,
+  },
+  block_selector_helper: {
+    zh: `1、匹配到的元素会被当作块级节点处理。2、遵循CSS选择器语法。`,
+    en: `1. Matched elements will be treated as block nodes. 2. Follow the CSS selector syntax.`,
+    zh_TW: `1. 符合的元素會被當作區塊節點處理。2. 遵循 CSS 選擇器語法。`,
+    ja: `1. 一致した要素はブロックノードとして扱われます。2. CSSセレクタ構文に従ってください。`,
+    ko: `1. 일치하는 요소는 블록 노드로 처리됩니다. 2. CSS 선택자 구문을 따르세요.`,
+  },
   root_selector: {
     zh: `根节点选择器`,
     en: `Root node selector`,

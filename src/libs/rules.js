@@ -106,14 +106,15 @@ const mergeRules = (baseRule, overrideRule) => {
   const merged = { ...baseRule };
 
   // 1. 合并 CSS 选择器类型的属性，支持追加/剔除
-  ["selector", "keepSelector", "rootsSelector", "ignoreSelector"].forEach(
-    (key) => {
-      merged[key] = mergeSelectors(
-        baseRule[key] || "",
-        overrideRule[key] || ""
-      );
-    }
-  );
+  [
+    "selector",
+    "keepSelector",
+    "blockSelector",
+    "rootsSelector",
+    "ignoreSelector",
+  ].forEach((key) => {
+    merged[key] = mergeSelectors(baseRule[key] || "", overrideRule[key] || "");
+  });
 
   // 2. 合并非空字符串类型的属性 (如自定义 JS/CSS/术语表样式)
   [
@@ -269,6 +270,7 @@ export const checkRules = (rules) => {
         pattern,
         selector,
         keepSelector,
+        blockSelector,
         rootsSelector,
         ignoreSelector,
         terms,
@@ -306,6 +308,7 @@ export const checkRules = (rules) => {
         pattern: pattern.trim(),
         selector: type(selector) === "string" ? selector : "",
         keepSelector: type(keepSelector) === "string" ? keepSelector : "",
+        blockSelector: type(blockSelector) === "string" ? blockSelector : "",
         rootsSelector: type(rootsSelector) === "string" ? rootsSelector : "",
         ignoreSelector: type(ignoreSelector) === "string" ? ignoreSelector : "",
         terms: type(terms) === "string" ? terms : "",
@@ -389,6 +392,7 @@ export const saveRule = async (curRule) => {
       pattern: rule.pattern,
       selector: rule.selector,
       keepSelector: rule.keepSelector,
+      blockSelector: rule.blockSelector,
       rootsSelector: rule.rootsSelector,
       ignoreSelector: rule.ignoreSelector,
     };

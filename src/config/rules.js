@@ -67,6 +67,7 @@ export const DEFAULT_RULE = {
   pattern: "", // 匹配网址的正则/通配符字符串
   selector: "", // 核心待翻译元素 CSS 选择器
   keepSelector: "", // 保留原文的行内元素 CSS 选择器
+  blockSelector: "", // 自定义块级元素 CSS 选择器
   terms: "", // 本地化专有名词/术语表字典 (格式：原文=译文)
   aiTerms: "", // 发送给大模型的专有名词/术语表
   apiSlug: GLOBAL_KEY, // 本网页指定的翻译 API 标识名 (继承/覆盖全局)
@@ -114,6 +115,7 @@ export const GLOBLA_RULE = {
   pattern: "*", // 匹配任意网址
   selector: DEFAULT_SELECTOR, // 默认的翻译元素
   keepSelector: DEFAULT_KEEP_SELECTOR, // 保留不动的行内元素
+  blockSelector: "",
   terms: "",
   aiTerms: "",
   apiSlug: OPT_TRANS_MICROSOFT, // 默认采用微软翻译
