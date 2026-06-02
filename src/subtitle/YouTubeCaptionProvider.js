@@ -38,7 +38,6 @@ class YouTubeCaptionProvider {
   #fromLang = "auto";
   #docInfo = {};
   #fullDescription = "";
-  #interceptedCaptionKind = null;
 
   #processingId = null;
   #processingVersion = 0;
@@ -102,7 +101,6 @@ class YouTubeCaptionProvider {
       this.#fromLang = "auto";
       this.#docInfo = {};
       this.#fullDescription = "";
-      this.#interceptedCaptionKind = null;
       this.#processingId = null;
       this.#processingVersion += 1;
       this.#activeTrackKey = null;
@@ -708,7 +706,6 @@ class YouTubeCaptionProvider {
       this.#flatEvents = [];
       this.#progressed = 0;
       this.#activeTrackKey = null;
-      this.#interceptedCaptionKind = null;
     }
 
     try {
@@ -764,7 +761,6 @@ class YouTubeCaptionProvider {
       this.#events = events;
       this.#flatEvents = flatEvents;
       this.#fromLang = fromLang;
-      this.#interceptedCaptionKind = interceptedKind;
       this.#activeTrackKey = trackKey;
       this.#docInfo = getDocInfo();
       await this.#enrichDocInfoWithAI(flatEvents, processingVersion);
@@ -926,9 +922,10 @@ class YouTubeCaptionProvider {
     const { segSlug, transApis, chunkLength, toLang } = this.#setting;
 
     const segApiSetting = transApis?.find((api) => api.apiSlug === segSlug);
-    const isAutoCaption = this.#interceptedCaptionKind === "asr";
+    const useAiSegmentation = segSlug && segSlug !== "-" && segApiSetting;
 
-    if (isAutoCaption && segSlug && segSlug !== "-" && segApiSetting) {
+    // 断句策略仅由用户配置的 segSlug 决定；kind 只负责定位用户实际选择的字幕轨道。
+    if (useAiSegmentation) {
       if (this.#isStaleProcessing(processingVersion)) return [[], 0];
       logger.info("Youtube Provider: Starting AI segmentation...");
       this.#showNotification(this.#i18n("ai_processing_pls_wait"));
@@ -975,14 +972,7 @@ class YouTubeCaptionProvider {
       return [firstBatchSubtitles, 100];
     }
 
-    if (isAutoCaption) {
-      return [this.#builtinSegment(events, flatEvents, fromLang), 100];
-    }
-
-    logger.info(
-      "Youtube Provider: Sentence break mode: MANUAL (human caption)"
-    );
-    return [flatEvents.filter((e) => e.text), 100];
+    return [this.#builtinSegment(events, flatEvents, fromLang), 100];
   }
 
   #builtinSegment(events, flatEvents, fromLang) {
