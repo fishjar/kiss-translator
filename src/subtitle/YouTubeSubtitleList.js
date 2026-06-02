@@ -35,18 +35,18 @@ export class YouTubeSubtitleList {
     this.loopAutoScroll = null; // 自动滚动的定时器 ID
     this.activeTab = "subtitles"; // 当前激活的 Tab: 'subtitles' 或 'vocabulary'
     this._lastActiveIndex = -1; // 上一次高亮的字幕索引位置
-    this._virtualHeights = [];
-    this._virtualOffsets = [0];
-    this._virtualStart = -1;
-    this._virtualEnd = -1;
-    this._virtualRenderRaf = null;
-    this._virtualRenderForce = false;
-    this._estimatedItemHeight = 76;
-    this._subtitleItemGap = 4;
-    this._virtualTopPadding = 16;
-    this._virtualBottomPadding = 16;
-    this._virtualOverscan = 8;
-    this._pendingCenterIndex = -1;
+    this._virtualHeights = []; // 虚拟列表每一行的缓存高度；未测量行先使用估算值，显示后再用真实高度回写
+    this._virtualOffsets = [0]; // 前缀和偏移表，用于通过 scrollTop 快速定位应该渲染的字幕区间
+    this._virtualStart = -1; // 当前已渲染窗口的起始字幕索引，避免 scroll 事件重复渲染同一段 DOM
+    this._virtualEnd = -1; // 当前已渲染窗口的结束字幕索引（不包含该索引）
+    this._virtualRenderRaf = null; // 虚拟列表渲染的 requestAnimationFrame ID，用于把高频滚动合并到下一帧
+    this._virtualRenderForce = false; // 是否强制重建当前虚拟窗口；数据或高度变化时需要跳过区间相同的短路判断
+    this._estimatedItemHeight = 76; // 字幕行在真实测量前使用的默认高度，保证长列表初始滚动条长度稳定
+    this._subtitleItemGap = 4; // li 的 margin-bottom 需要计入虚拟高度，否则偏移量会随行数累积误差
+    this._virtualTopPadding = 16; // 模拟原 ul 顶部 padding，保持虚拟化前后的视觉留白一致
+    this._virtualBottomPadding = 16; // 模拟原 ul 底部 padding，避免最后一行贴住滚动容器底部
+    this._virtualOverscan = 8; // 视口上下额外预渲染的行数，减少快速滚动时的空白闪烁
+    this._pendingCenterIndex = -1; // 跳转到未测量高度的行后，等真实高度回写再补一次居中
     this._pendingSubtitleTabScrollIndex = -1; // 字幕 Tab 隐藏期间收到跳转请求时，延后到 Tab 恢复可见后再滚动到目标行
     this._eventListenersAttached = false;
     this._vocabularyDirty = false; // 生词本是否需要重新渲染的标志位（在生词本不可见时添加了单词，切换过来时再重新渲染）
@@ -68,32 +68,55 @@ export class YouTubeSubtitleList {
     window.addEventListener("message", this.handleJumpMessage);
   }
 
+  /**
+   * 响应外部页面发送的跳转消息，例如从生词本链接跳回视频对应时间点。
+   * 使用具名 handler 是为了 destroy 时可以准确 removeEventListener，避免匿名函数残留。
+   */
   handleJumpMessage(event) {
     if (event.data && event.data.type === "KISS_TRANSLATOR_JUMP_TO_TIME") {
       this.jumpToTime(event.data.time);
     }
   }
 
+  /**
+   * 字幕滚动容器发生滚动时，仅调度下一帧虚拟渲染。
+   * 实际 DOM 重建会被 _scheduleVirtualRender 合并，避免滚动过程中每个事件都同步改 DOM。
+   */
   handleSubtitleScroll() {
     this._scheduleVirtualRender();
   }
 
+  /**
+   * 鼠标进入侧栏时暂停自动跟随，方便用户手动浏览或选择字幕文本。
+   */
   handleContainerMouseEnter() {
     this.turnOffAutoSub();
   }
 
+  /**
+   * 鼠标离开侧栏后恢复自动跟随视频进度。
+   */
   handleContainerMouseLeave() {
     this.turnOnAutoSub();
   }
 
+  /**
+   * 视频播放结束时关闭自动滚动定时器，避免无意义轮询。
+   */
   handleVideoEnded() {
     this.turnOffAutoSub();
   }
 
+  /**
+   * 视频暂停时关闭自动滚动定时器；恢复播放时再由 play 事件重新开启。
+   */
   handleVideoPause() {
     this.turnOffAutoSub();
   }
 
+  /**
+   * 视频开始播放时恢复字幕自动跟随。
+   */
   handleVideoPlay() {
     this.turnOnAutoSub();
   }
@@ -159,7 +182,7 @@ export class YouTubeSubtitleList {
   }
 
   // ==================================================================================
-  // Chunk Rendering: 分块渲染工具方法
+  // Chunk / Virtual Rendering: 分块渲染兼容入口与虚拟列表工具方法
   // ==================================================================================
 
   /**
@@ -186,7 +209,8 @@ export class YouTubeSubtitleList {
   }
 
   /**
-   * 分块异步渲染字幕列表，避免一次性创建数千个 DOM 节点导致网页严重卡顿甚至假死
+   * 字幕列表渲染入口。
+   * 历史上这里会分块创建全部 DOM；虚拟化后仅初始化虚拟列表状态，并渲染当前视口附近的字幕行。
    * @param {HTMLUListElement} ul 字幕列表的 ul 元素
    */
   _renderSubtitlesInChunks(ul) {
@@ -195,6 +219,11 @@ export class YouTubeSubtitleList {
     this._scheduleVirtualRender(true);
   }
 
+  /**
+   * 重置虚拟列表的高度和窗口缓存。
+   * @param {{ preserveHeights?: boolean }} options preserveHeights 为 true 时尽量沿用旧高度，
+   * 用于翻译文本增量更新后保持滚动位置稳定；全量重建时则重新回到估算高度。
+   */
   _resetVirtualMetrics({ preserveHeights = false } = {}) {
     const previousHeights = preserveHeights ? this._virtualHeights : [];
 
@@ -207,6 +236,10 @@ export class YouTubeSubtitleList {
     this._rebuildVirtualOffsets();
   }
 
+  /**
+   * 根据每行高度缓存重建前缀和偏移表，并同步 ul 的总高度。
+   * 虚拟列表只渲染可见 DOM，但滚动条需要完整列表高度来保持原有滚动体验。
+   */
   _rebuildVirtualOffsets() {
     const offsets = [0];
     let totalHeight = 0;
@@ -222,6 +255,11 @@ export class YouTubeSubtitleList {
     }
   }
 
+  /**
+   * 调度虚拟列表渲染到下一帧执行。
+   * 多次滚动或数据更新只保留一个 RAF；force 会在合并后继续保留，确保下一帧跳过窗口相同的短路逻辑。
+   * @param {boolean} force 是否强制重建当前可见窗口
+   */
   _scheduleVirtualRender(force = false) {
     this._virtualRenderForce = this._virtualRenderForce || force;
     if (this._virtualRenderRaf) return;
@@ -239,6 +277,10 @@ export class YouTubeSubtitleList {
     });
   }
 
+  /**
+   * 取消尚未执行的虚拟渲染任务。
+   * 组件销毁或数据源切换时需要清理，防止 RAF 回调在 DOM 被移除后继续访问旧节点。
+   */
   _cancelVirtualRender() {
     if (!this._virtualRenderRaf) return;
 
@@ -255,6 +297,7 @@ export class YouTubeSubtitleList {
    * 判断字幕列表当前是否处于可见且可测量状态。
    * 虚拟列表依赖 offsetHeight / clientHeight 计算行高和偏移量；当字幕 Tab 被 display:none 隐藏时，
    * 浏览器会把子树元素的布局尺寸读成 0，此时如果回写高度缓存，会污染后续滚动定位。
+   * @returns {boolean} 当前字幕 Tab 是否可以安全执行 DOM 测量和滚动计算
    */
   _isSubtitleTabVisible() {
     return (
@@ -266,6 +309,11 @@ export class YouTubeSubtitleList {
     );
   }
 
+  /**
+   * 通过偏移表二分查找某个 scrollTop 所在的字幕索引。
+   * @param {number} offset 滚动容器内相对虚拟列表顶部的像素偏移
+   * @returns {number} 与该偏移最接近的字幕索引；空列表返回 -1
+   */
   _findIndexByOffset(offset) {
     const length = this.bilingualSubtitles.length;
     if (length === 0) return -1;
@@ -285,6 +333,11 @@ export class YouTubeSubtitleList {
     return Math.min(best, length - 1);
   }
 
+  /**
+   * 计算当前滚动视口需要渲染的字幕索引区间。
+   * 会在视口上下加入 overscan，保证快速滚动时目标行提前出现在 DOM 中。
+   * @returns {{ start: number, end: number }} end 为不包含的结束索引
+   */
   _getVirtualRange() {
     const container = this.subtitleScrollContainer;
     const length = this.bilingualSubtitles.length;
@@ -309,6 +362,10 @@ export class YouTubeSubtitleList {
     return { start, end };
   }
 
+  /**
+   * 根据当前滚动位置重建可见字幕 DOM。
+   * @param {boolean} force 为 false 且可见区间未变化时直接返回；为 true 时强制重建以反映数据或高度变化。
+   */
   _renderVirtualSubtitles(force = false) {
     if (!this.subtitleListUl || !this.subtitleScrollContainer) return;
     // 隐藏状态下只更新数据源，不重建和测量 DOM，避免 display:none 导致虚拟高度缓存被 0 值覆盖。
@@ -345,6 +402,10 @@ export class YouTubeSubtitleList {
     this._measureVisibleSubtitleItems();
   }
 
+  /**
+   * 测量当前可见字幕行的真实高度，并在高度变化后重建偏移表。
+   * 只测量可见行，避免一次性创建/读取全部字幕 DOM；未显示过的行继续使用估算高度。
+   */
   _measureVisibleSubtitleItems() {
     // 只在字幕 Tab 可见时测量真实行高；生词本 Tab 下的字幕列表尺寸不可作为布局依据。
     if (!this._isSubtitleTabVisible()) return;
@@ -806,6 +867,7 @@ export class YouTubeSubtitleList {
     textContainer.appendChild(translationEl);
     li.appendChild(timeSpan);
     li.appendChild(textContainer);
+    // 缓存译文节点引用，增量更新当前可见行时避免每次 querySelector。
     li._translationEl = translationEl;
 
     return li;
@@ -813,6 +875,8 @@ export class YouTubeSubtitleList {
 
   /**
    * 当字幕源更新时的增量更新算法 (Diff 增量更新)
+   * 虚拟列表不再直接追加 DOM；这里重置高度/偏移缓存并强制重绘当前窗口，
+   * 让新增字幕和翻译后的高度变化统一通过虚拟渲染流程处理。
    */
   updateBilingualSubtitles() {
     if (!this.subtitleListEl) return;
@@ -845,11 +909,18 @@ export class YouTubeSubtitleList {
       if (translationEl) {
         translationEl.textContent = translation || "";
         translationEl.style.display = translation ? "block" : "none";
+        // 译文展示状态会改变行高，调度一次强制渲染以便重新测量可见行。
         this._scheduleVirtualRender(true);
       }
     }
   }
 
+  /**
+   * 根据字幕开始时间定位字幕索引。
+   * 翻译更新事件只携带 start 时间；字幕数组按 start 升序排列，因此这里用二分查找避免线性扫描。
+   * @param {number} start 字幕开始时间（毫秒）
+   * @returns {number} 匹配的字幕索引，未找到返回 -1
+   */
   _findSubtitleIndexByStart(start) {
     let left = 0;
     let right = this.bilingualSubtitles.length - 1;
@@ -1194,6 +1265,10 @@ export class YouTubeSubtitleList {
     this._eventListenersAttached = true;
   }
 
+  /**
+   * 解绑当前实例挂载的所有 DOM / video 事件。
+   * 与 setupEventListeners 中的具名 handler 一一对应，确保切换视频或销毁侧栏时不会重复监听。
+   */
   _removeEventListeners() {
     if (this.subtitleScrollContainer) {
       this.subtitleScrollContainer.removeEventListener(
@@ -1249,6 +1324,12 @@ export class YouTubeSubtitleList {
     }, 200);
   }
 
+  /**
+   * 更新当前高亮字幕索引，并按需将目标行滚动到可见区域中间。
+   * 虚拟列表中目标 DOM 可能尚未渲染，因此滚动使用偏移缓存而不是直接依赖 DOM 节点。
+   * @param {number} index 需要高亮的字幕索引
+   * @param {boolean} shouldScroll 是否同步滚动到目标行
+   */
   _setActiveSubtitle(index, shouldScroll = false) {
     const previousIndex = this._lastActiveIndex;
     this._lastActiveIndex = index;
@@ -1261,6 +1342,12 @@ export class YouTubeSubtitleList {
     }
   }
 
+  /**
+   * 更新某个可见字幕 DOM 的高亮状态。
+   * 离屏行没有对应 DOM，稍后进入虚拟窗口时会在 _renderVirtualSubtitles 中根据 _lastActiveIndex 恢复状态。
+   * @param {number} index 字幕索引
+   * @param {boolean} isActive 是否设置为高亮状态
+   */
   _updateSubtitleItemActive(index, isActive) {
     if (index === -1) return;
 
@@ -1271,6 +1358,10 @@ export class YouTubeSubtitleList {
     item.classList.toggle("active-subtitle", isActive);
   }
 
+  /**
+   * 消费隐藏字幕 Tab 期间记录的待滚动目标。
+   * @returns {boolean} 是否成功处理了待滚动目标；返回 false 时调用方可执行普通虚拟窗口刷新。
+   */
   _scrollPendingSubtitleTabIndex() {
     const index = this._pendingSubtitleTabScrollIndex;
     if (index === -1 || !this._isSubtitleTabVisible()) return false;
@@ -1281,6 +1372,12 @@ export class YouTubeSubtitleList {
     return true;
   }
 
+  /**
+   * 根据虚拟偏移缓存把指定字幕行滚动到容器中间。
+   * 如果目标行刚被渲染且真实高度发生变化，会通过 _pendingCenterIndex 在测量后再补一次居中。
+   * @param {number} index 目标字幕索引
+   * @param {{ stabilizeAfterMeasure?: boolean }} options 是否在测量后补偿一次居中
+   */
   _scrollIndexIntoView(index, { stabilizeAfterMeasure = true } = {}) {
     const container = this.subtitleScrollContainer;
     if (!container || index < 0 || index >= this.bilingualSubtitles.length) {
