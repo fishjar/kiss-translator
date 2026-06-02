@@ -1297,6 +1297,13 @@ export const I18N = {
     ja: `データ同期API`,
     ko: `데이터 동기화 API`,
   },
+  gist_sync_tip: {
+    zh: `选择 GitHub Gist 时会自动创建私密 Gist。GitHub PAT 需要 Gists 读写权限。`,
+    en: `A secret gist will be created automatically when GitHub Gist is selected. GitHub PAT needs Gists read and write permission.`,
+    zh_TW: `選擇 GitHub Gist 時會自動建立私密 Gist。GitHub PAT 需要 Gists 讀寫權限。`,
+    ja: `GitHub Gist を選択すると Secret Gist が自動作成されます。GitHub PAT には Gists の読み書き権限が必要です。`,
+    ko: `GitHub Gist를 선택하면 비공개 Gist가 자동으로 생성됩니다. GitHub PAT에는 Gists 읽기/쓰기 권한이 필요합니다.`,
+  },
   data_sync_user: {
     zh: `数据同步账户`,
     en: `Data Sync User`,

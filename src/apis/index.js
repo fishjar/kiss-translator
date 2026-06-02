@@ -54,12 +54,63 @@ export const apiSyncData = async (url, key, data) =>
     body: JSON.stringify(data),
   });
 
+const GITHUB_GIST_API = "https://api.github.com/gists";
+
+const getGistHeaders = (token) => ({
+  Accept: "application/vnd.github+json",
+  Authorization: `Bearer ${token}`,
+  "Content-type": "application/json",
+  "X-GitHub-Api-Version": "2022-11-28",
+});
+
+export const apiListGists = async (token) =>
+  fetchData(`${GITHUB_GIST_API}?per_page=100`, {
+    method: "GET",
+    headers: getGistHeaders(token),
+  });
+
+export const apiCreateGist = async (token, file, description) =>
+  fetchData(GITHUB_GIST_API, {
+    method: "POST",
+    headers: getGistHeaders(token),
+    body: JSON.stringify({
+      description,
+      public: false,
+      files: {
+        [file.key]: {
+          content: file.content,
+        },
+      },
+    }),
+  });
+
+export const apiGetGist = async (gistId, token) =>
+  fetchData(`${GITHUB_GIST_API}/${gistId}`, {
+    method: "GET",
+    headers: getGistHeaders(token),
+  });
+
+export const apiUpdateGistFile = async (gistId, token, key, content) =>
+  fetchData(`${GITHUB_GIST_API}/${gistId}`, {
+    method: "PATCH",
+    headers: getGistHeaders(token),
+    body: JSON.stringify({
+      files: {
+        [key]: {
+          content,
+        },
+      },
+    }),
+  });
+
 /**
  * 通用轻量数据拉取函数。
  * @param {string} url 目标 URL
  * @returns {Promise<*>} 拉取的数据内容
  */
 export const apiFetch = (url) => fetchData(url);
+export const apiFetchText = (url) =>
+  fetchData(url, undefined, { expect: "text" });
 
 /**
  * 获取微软 Edge 翻译服务的授权凭证 Token。
