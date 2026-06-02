@@ -1067,16 +1067,6 @@ class YouTubeCaptionProvider {
         this.#subtitleListManager.updateSingleSubtitle(subtitleUpdate);
       };
 
-      // 创建包含翻译信息的双语字幕数据（初始可能没有翻译）
-      const bilingualSubtitles = this.#subtitles.map((sub) => ({
-        start: sub.start,
-        end: sub.end,
-        text: sub.text,
-        translation: sub.translation || "",
-      }));
-
-      // 将双语字幕数据传递给字幕列表
-      this.#subtitleListManager.setBilingualSubtitles(bilingualSubtitles);
       // 启动字幕列表自动滚动
       this.#subtitleListManager.turnOnAutoSub();
     }
