@@ -715,10 +715,8 @@ class YouTubeCaptionProvider {
         captionTrack.baseUrl = window.location.origin + captionTrack.baseUrl;
       }
       const capUrl = new URL(captionTrack.baseUrl);
-      const events = await this.#getSubtitleEvents(
-        capUrl,
-        potUrl,
-        responseText
+      const events = this.#dedupeEvents(
+        await this.#getSubtitleEvents(capUrl, potUrl, responseText)
       );
       if (this.#isStaleProcessing(processingVersion)) return;
 
@@ -1356,6 +1354,22 @@ class YouTubeCaptionProvider {
     flushBuffer();
 
     return sentences;
+  }
+
+  // YouTube 个别字幕轨会把每个 event 原样重复两遍，去掉连续完全相同的 event
+  #dedupeEvents(events = []) {
+    const out = [];
+    let prevKey = null;
+    for (const e of events || []) {
+      const sig = (e.segs || [])
+        .map((s) => `${s.utf8 || ""}@${s.tOffsetMs || 0}`)
+        .join("|");
+      const key = `${e.tStartMs}|${e.dDurationMs}|${sig}`;
+      if (key === prevKey) continue;
+      out.push(e);
+      prevKey = key;
+    }
+    return out;
   }
 
   #genFlatEvents(events = []) {
