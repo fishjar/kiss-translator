@@ -307,6 +307,7 @@ export default function SubtitleSetting() {
     originStyle,
     translationStyle,
     showLoadNotification = true,
+    hideSubtitleButton = false,
   } = subtitleSetting;
 
   // 整理悬浮查词模式和字幕列表模式的回退逻辑
@@ -815,6 +816,21 @@ export default function SubtitleSetting() {
               >
                 <MenuItem value={true}>{i18n("show")}</MenuItem>
                 <MenuItem value={false}>{i18n("hide")}</MenuItem>
+              </TextField>
+            </Grid>
+            {/* 是否隐藏 YouTube 播放器控制栏中的 KT 字幕功能按钮 */}
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                fullWidth
+                select
+                size="small"
+                name="hideSubtitleButton"
+                value={hideSubtitleButton}
+                label={i18n("hide_subtitle_button")}
+                onChange={handleChange}
+              >
+                <MenuItem value={true}>{i18n("enable")}</MenuItem>
+                <MenuItem value={false}>{i18n("disable")}</MenuItem>
               </TextField>
             </Grid>
           </Grid>

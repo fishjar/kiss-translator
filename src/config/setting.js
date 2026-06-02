@@ -150,6 +150,7 @@ export const DEFAULT_SUBTITLE_SETTING = {
   translationStyle: SUBTITLE_TRANSLATION_STYLE, // 译文字体大小样式
   hoverLookupMode: OPT_ENHANCE_MOBILE_OFF, // 鼠标悬停到字幕单词上时是否弹出查词面板
   showList: OPT_ENHANCE_MOBILE_OFF, // 是否在侧边/右侧显示字幕全文滚动历史面板
+  hideSubtitleButton: false, // 是否隐藏 YouTube 播放器中的字幕功能按钮
   aiContextSlug: "-", // 是否为字幕启用智能上下文，以获取更好的代词翻译效果
 };
 
