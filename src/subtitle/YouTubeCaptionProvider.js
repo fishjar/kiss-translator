@@ -29,6 +29,8 @@ const YT_AD_SELECT = ".video-ads";
 const YT_SUBTITLE_BTN_SELECT = "button.ytp-subtitles-button";
 // 零宽字符（U+200B~U+200D、U+FEFF），个别 YouTube 轨用它做占位 seg
 const ZERO_WIDTH_RE = new RegExp("[\\u200B-\\u200D\\uFEFF]", "g");
+// 记录字幕原始 end，延长尾巴时从原始值算，避免异步重算时累加
+const RAW_END = Symbol("rawEnd");
 
 class YouTubeCaptionProvider {
   #setting = {};
@@ -617,15 +619,11 @@ class YouTubeCaptionProvider {
         const gapCues = nonSpeechEvents
           .filter(
             (ns) =>
-              !result.some(
-                (sub) => ns.start < sub.end && ns.end > sub.start
-              )
+              !result.some((sub) => ns.start < sub.end && ns.end > sub.start)
           )
           .map(toStandaloneSub);
 
-        return [...result, ...gapCues].sort(
-          (a, b) => a.start - b.start
-        );
+        return [...result, ...gapCues].sort((a, b) => a.start - b.start);
       }
     } catch (err) {
       logger.info("Youtube Provider: ai segmentation", err);
@@ -800,6 +798,9 @@ class YouTubeCaptionProvider {
       }
 
       this.#cleanOriginals(subtitles);
+      if (this.#isWordLevelCaption(this.#events)) {
+        this.#extendSubtitleEnds(subtitles);
+      }
       this.#subtitles = subtitles;
       this.#progressed = progressed;
 
@@ -899,7 +900,13 @@ class YouTubeCaptionProvider {
     });
   }
 
-  async #eventsToSubtitles({ videoId, events, flatEvents, fromLang, processingVersion }) {
+  async #eventsToSubtitles({
+    videoId,
+    events,
+    flatEvents,
+    fromLang,
+    processingVersion,
+  }) {
     const { segSlug, transApis, chunkLength, toLang } = this.#setting;
 
     const segApiSetting = transApis?.find((api) => api.apiSlug === segSlug);
@@ -1388,6 +1395,29 @@ class YouTubeCaptionProvider {
     return subtitles;
   }
 
+  // 词级字幕的 end 是最后一个词的时间槽末尾，太紧会让词没说完字幕就消失。
+  // 给 end 加一个温和的尾巴：封顶到下一句开始，最多延长 500ms，尽量保证 700ms 可读时长。
+  // 长停顿仍留空白（不做完整 gap-fill）；从原始 end 算保证幂等；重叠的收到下一句开始。
+  #extendSubtitleEnds(subtitles = []) {
+    const TAIL = 250;
+    const MIN_ON_SCREEN = 700;
+    const MAX_EXTEND = 500;
+    for (let i = 0; i < subtitles.length; i += 1) {
+      const sub = subtitles[i];
+      if (!sub) continue;
+      if (sub[RAW_END] == null) sub[RAW_END] = sub.end;
+      const rawEnd = sub[RAW_END];
+      const nextStart =
+        i + 1 < subtitles.length ? subtitles[i + 1].start : Infinity;
+      sub.end = Math.min(
+        nextStart,
+        rawEnd + MAX_EXTEND,
+        Math.max(rawEnd + TAIL, sub.start + MIN_ON_SCREEN)
+      );
+    }
+    return subtitles;
+  }
+
   #genFlatEvents(events = []) {
     const segments = [];
     let buffer = null;
@@ -1545,6 +1575,7 @@ class YouTubeCaptionProvider {
         const progressed = Math.floor((chunkNum * 100) / chunks.length);
         this.#subtitles.push(...subtitlesForThisChunk);
         this.#subtitles.sort((a, b) => a.start - b.start);
+        this.#extendSubtitleEnds(this.#subtitles);
         this.#progressed = progressed;
 
         logger.debug(
