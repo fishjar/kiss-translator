@@ -754,14 +754,15 @@ class YouTubeCaptionProvider {
         return;
       }
 
-      const flatEvents = this.#genFlatEvents(events);
+      const subtitleEvents = this.#normalizeTimedTextEvents(events);
+      const flatEvents = this.#genFlatEvents(subtitleEvents);
       if (!flatEvents?.length) {
         logger.debug("Youtube Provider: flatEvents not got:", videoId);
         return;
       }
       if (this.#isStaleProcessing(processingVersion)) return;
 
-      this.#events = events;
+      this.#events = subtitleEvents;
       this.#flatEvents = flatEvents;
       this.#fromLang = fromLang;
       this.#interceptedCaptionKind = interceptedKind;
@@ -1370,23 +1371,101 @@ class YouTubeCaptionProvider {
     return sentences;
   }
 
+  #cleanTimedText(utf8 = "") {
+    return (
+      String(utf8)
+        .replace(/<[^>]+>/g, "")
+        // 当前异常 timedtext 中实际污染字幕的是 U+200B 零宽空格。
+        // 这里只移除 U+200B，避免误删 U+200C/U+200D 等对部分语言文字成形有意义的字符。
+        .replace(/\u200B/g, "")
+        .trim()
+        .replace(/\s+/g, " ")
+    );
+  }
+
+  #normalizeTimedTextEvents(events = []) {
+    const normalizedEvents = [];
+    let lastVisibleEventKey = "";
+
+    events.forEach((event) => {
+      const { segs = [], tStartMs = 0, dDurationMs = 0 } = event || {};
+
+      // YouTube 会用 aAppend + "\n" 标记原始字幕断行；统计断句模式会读取这个信号，
+      // 因此这类控制事件必须原样保留，不能被“空文本清理”误删。
+      if (event?.aAppend === 1 && segs.length === 1 && segs[0]?.utf8 === "\n") {
+        normalizedEvents.push(event);
+        lastVisibleEventKey = "";
+        return;
+      }
+
+      const normalizedSegs = segs.map((seg) => ({
+        ...seg,
+        utf8: this.#cleanTimedText(seg?.utf8),
+      }));
+      const visibleSegs = normalizedSegs.filter((seg) => seg.utf8);
+
+      // 清洗后没有可见文本的 seg 仍可能携带 tOffsetMs 断点。
+      // 这些断点会被 #genFlatEvents 用来截断前一个可见片段，直接丢弃会让字幕粘连。
+      // 因此这里只清理文本内容，不改变原始 seg 的时间结构。
+      if (!visibleSegs.length) {
+        normalizedEvents.push({
+          ...event,
+          segs: normalizedSegs,
+        });
+        lastVisibleEventKey = "";
+        return;
+      }
+
+      const visibleText = visibleSegs
+        .map((seg) => seg.utf8)
+        .join(" ")
+        .replace(/\s+/g, " ")
+        .trim();
+      const eventKey = `${tStartMs}|${dDurationMs}|${visibleText}`;
+
+      // 部分 json3 timedtext 会把同一字幕用两套 pPenId 样式连续输出两遍。
+      // 去重键只使用时间和可见文本，避免样式层差异污染字幕内容。
+      if (eventKey === lastVisibleEventKey) return;
+
+      normalizedEvents.push({
+        ...event,
+        segs: normalizedSegs,
+      });
+      lastVisibleEventKey = eventKey;
+    });
+
+    return normalizedEvents;
+  }
+
   #genFlatEvents(events = []) {
     const segments = [];
     let buffer = null;
 
     events.forEach(({ segs = [], tStartMs = 0, dDurationMs = 0 }) => {
       segs.forEach(({ utf8 = "", tOffsetMs = 0 }, j) => {
-        const text = utf8
-          .replace(/<[^>]+>/g, "")
-          .trim()
-          .replace(/\s+/g, " ");
+        const text = this.#cleanTimedText(utf8);
         const start = tStartMs + tOffsetMs;
+
+        if (!text) {
+          if (buffer) {
+            if (!buffer.end || buffer.end > start) {
+              buffer.end = start;
+            }
+            if (buffer.end > buffer.start) {
+              segments.push(buffer);
+            }
+            buffer = null;
+          }
+          return;
+        }
 
         if (buffer) {
           if (!buffer.end || buffer.end > start) {
             buffer.end = start;
           }
-          segments.push(buffer);
+          if (buffer.end > buffer.start) {
+            segments.push(buffer);
+          }
           buffer = null;
         }
 
@@ -1402,7 +1481,9 @@ class YouTubeCaptionProvider {
     });
 
     if (buffer) {
-      segments.push(buffer);
+      if (buffer.end > buffer.start) {
+        segments.push(buffer);
+      }
     }
 
     return segments.filter(
