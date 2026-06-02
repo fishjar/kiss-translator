@@ -35,20 +35,66 @@ export class YouTubeSubtitleList {
     this.loopAutoScroll = null; // 自动滚动的定时器 ID
     this.activeTab = "subtitles"; // 当前激活的 Tab: 'subtitles' 或 'vocabulary'
     this._lastActiveIndex = -1; // 上一次高亮的字幕索引位置
+    this._virtualHeights = [];
+    this._virtualOffsets = [0];
+    this._virtualStart = -1;
+    this._virtualEnd = -1;
+    this._virtualRenderRaf = null;
+    this._virtualRenderForce = false;
+    this._estimatedItemHeight = 76;
+    this._subtitleItemGap = 4;
+    this._virtualTopPadding = 16;
+    this._virtualBottomPadding = 16;
+    this._virtualOverscan = 8;
+    this._pendingCenterIndex = -1;
+    this._eventListenersAttached = false;
     this._vocabularyDirty = false; // 生词本是否需要重新渲染的标志位（在生词本不可见时添加了单词，切换过来时再重新渲染）
     this._chunkRenderCancel = null; // 当前分块渲染的取消器函数，用于随时中断未完成的渲染流程
 
     // --- 事件绑定 ---
     this.handleWordAdded = this.handleWordAdded.bind(this);
+    this.handleJumpMessage = this.handleJumpMessage.bind(this);
+    this.handleSubtitleScroll = this.handleSubtitleScroll.bind(this);
+    this.handleContainerMouseEnter = this.handleContainerMouseEnter.bind(this);
+    this.handleContainerMouseLeave = this.handleContainerMouseLeave.bind(this);
+    this.handleVideoEnded = this.handleVideoEnded.bind(this);
+    this.handleVideoPause = this.handleVideoPause.bind(this);
+    this.handleVideoPlay = this.handleVideoPlay.bind(this);
     // 监听在视频字幕上划词或 Hover 翻译弹窗抛出的“添加生词到生词本”自定义事件
     document.addEventListener("kiss-add-word", this.handleWordAdded);
 
     // 监听来自扩展配置选项页面等第三方发送的消息，用以点击生词时同步跳转视频进度
-    window.addEventListener("message", (event) => {
-      if (event.data && event.data.type === "KISS_TRANSLATOR_JUMP_TO_TIME") {
-        this.jumpToTime(event.data.time);
-      }
-    });
+    window.addEventListener("message", this.handleJumpMessage);
+  }
+
+  handleJumpMessage(event) {
+    if (event.data && event.data.type === "KISS_TRANSLATOR_JUMP_TO_TIME") {
+      this.jumpToTime(event.data.time);
+    }
+  }
+
+  handleSubtitleScroll() {
+    this._scheduleVirtualRender();
+  }
+
+  handleContainerMouseEnter() {
+    this.turnOffAutoSub();
+  }
+
+  handleContainerMouseLeave() {
+    this.turnOnAutoSub();
+  }
+
+  handleVideoEnded() {
+    this.turnOffAutoSub();
+  }
+
+  handleVideoPause() {
+    this.turnOffAutoSub();
+  }
+
+  handleVideoPlay() {
+    this.turnOnAutoSub();
   }
 
   // ==================================================================================
@@ -90,15 +136,23 @@ export class YouTubeSubtitleList {
   destroy() {
     this.turnOffAutoSub();
     this._cancelChunkRender();
+    this._cancelVirtualRender();
+    this._removeEventListeners();
     document.removeEventListener("kiss-add-word", this.handleWordAdded);
+    window.removeEventListener("message", this.handleJumpMessage);
     if (this.container) {
       this.container.remove();
       this.container = null;
     }
     this.subtitleListEl = null;
     this.vocabularyListEl = null;
+    this.subtitleScrollContainer = null;
+    this.subtitleListUl = null;
     this.bilingualSubtitles = [];
     this._cachedSubtitleItems = [];
+    this._virtualHeights = [];
+    this._virtualOffsets = [0];
+    this._pendingCenterIndex = -1;
     this.vocabulary = [];
   }
 
@@ -134,31 +188,182 @@ export class YouTubeSubtitleList {
    * @param {HTMLUListElement} ul 字幕列表的 ul 元素
    */
   _renderSubtitlesInChunks(ul) {
-    const CHUNK_SIZE = 100; // 每帧或每次空闲时处理的节点数量
-    const subtitles = this.bilingualSubtitles;
+    this.subtitleListUl = ul;
+    this._resetVirtualMetrics();
+    this._scheduleVirtualRender(true);
+  }
+
+  _resetVirtualMetrics({ preserveHeights = false } = {}) {
+    const previousHeights = preserveHeights ? this._virtualHeights : [];
 
     this._cachedSubtitleItems = [];
+    this._virtualStart = -1;
+    this._virtualEnd = -1;
+    this._virtualHeights = this.bilingualSubtitles.map(
+      (_, index) => previousHeights[index] || this._estimatedItemHeight
+    );
+    this._rebuildVirtualOffsets();
+  }
 
-    const renderNextChunk = (startIndex) => {
-      // 如果索引越界或组件已被卸载，则终止
-      if (startIndex >= subtitles.length || !this.subtitleListEl) return;
+  _rebuildVirtualOffsets() {
+    const offsets = [0];
+    let totalHeight = 0;
 
-      const end = Math.min(startIndex + CHUNK_SIZE, subtitles.length);
-      const fragment = document.createDocumentFragment();
-      for (let i = startIndex; i < end; i++) {
-        const li = this._createSubtitleListItem(subtitles[i], i);
-        this._cachedSubtitleItems[i] = li;
-        fragment.appendChild(li);
+    for (let i = 0; i < this._virtualHeights.length; i++) {
+      totalHeight += this._virtualHeights[i] || this._estimatedItemHeight;
+      offsets.push(totalHeight);
+    }
+
+    this._virtualOffsets = offsets;
+    if (this.subtitleListUl) {
+      this.subtitleListUl.style.height = `${totalHeight + this._virtualTopPadding + this._virtualBottomPadding}px`;
+    }
+  }
+
+  _scheduleVirtualRender(force = false) {
+    this._virtualRenderForce = this._virtualRenderForce || force;
+    if (this._virtualRenderRaf) return;
+
+    const schedule =
+      typeof requestAnimationFrame === "function"
+        ? requestAnimationFrame
+        : (callback) => setTimeout(callback, 16);
+
+    this._virtualRenderRaf = schedule(() => {
+      this._virtualRenderRaf = null;
+      const shouldForce = this._virtualRenderForce;
+      this._virtualRenderForce = false;
+      this._renderVirtualSubtitles(shouldForce);
+    });
+  }
+
+  _cancelVirtualRender() {
+    if (!this._virtualRenderRaf) return;
+
+    if (typeof cancelAnimationFrame === "function") {
+      cancelAnimationFrame(this._virtualRenderRaf);
+    } else {
+      clearTimeout(this._virtualRenderRaf);
+    }
+    this._virtualRenderRaf = null;
+    this._virtualRenderForce = false;
+  }
+
+  _findIndexByOffset(offset) {
+    const length = this.bilingualSubtitles.length;
+    if (length === 0) return -1;
+
+    let left = 0;
+    let right = length - 1;
+    let best = 0;
+    while (left <= right) {
+      const mid = (left + right) >> 1;
+      if (this._virtualOffsets[mid] <= offset) {
+        best = mid;
+        left = mid + 1;
+      } else {
+        right = mid - 1;
       }
-      ul.appendChild(fragment);
+    }
+    return Math.min(best, length - 1);
+  }
 
-      // 如果尚未全部渲染完毕，在下一次空闲时间点继续渲染下一块
-      if (end < subtitles.length && this.subtitleListEl) {
-        this._scheduleIdle(() => renderNextChunk(end));
+  _getVirtualRange() {
+    const container = this.subtitleScrollContainer;
+    const length = this.bilingualSubtitles.length;
+    if (!container || length === 0) {
+      return { start: 0, end: 0 };
+    }
+
+    const viewportTop = Math.max(
+      0,
+      container.scrollTop - this._virtualTopPadding
+    );
+    const viewportBottom = viewportTop + container.clientHeight;
+    const start = Math.max(
+      0,
+      this._findIndexByOffset(viewportTop) - this._virtualOverscan
+    );
+    const end = Math.min(
+      length,
+      this._findIndexByOffset(viewportBottom) + this._virtualOverscan + 1
+    );
+
+    return { start, end };
+  }
+
+  _renderVirtualSubtitles(force = false) {
+    if (!this.subtitleListUl || !this.subtitleScrollContainer) return;
+
+    const { start, end } = this._getVirtualRange();
+    if (!force && start === this._virtualStart && end === this._virtualEnd) {
+      return;
+    }
+
+    this._virtualStart = start;
+    this._virtualEnd = end;
+    this._cachedSubtitleItems = [];
+
+    const fragment = document.createDocumentFragment();
+    for (let i = start; i < end; i++) {
+      const li = this._createSubtitleListItem(this.bilingualSubtitles[i], i);
+      li.style.position = "absolute";
+      li.style.left = "0";
+      li.style.right = "0";
+      li.style.top = `${this._virtualTopPadding + this._virtualOffsets[i]}px`;
+      li.style.contain = "layout paint style";
+
+      if (i === this._lastActiveIndex) {
+        li.style.opacity = 1;
+        li.classList.add("active-subtitle");
       }
-    };
 
-    renderNextChunk(0);
+      this._cachedSubtitleItems[i] = li;
+      fragment.appendChild(li);
+    }
+
+    this.subtitleListUl.replaceChildren(fragment);
+    this._measureVisibleSubtitleItems();
+  }
+
+  _measureVisibleSubtitleItems() {
+    let changed = false;
+
+    for (let i = this._virtualStart; i < this._virtualEnd; i++) {
+      const item = this._cachedSubtitleItems[i];
+      if (!item) continue;
+
+      const measuredHeight = item.offsetHeight + this._subtitleItemGap;
+      if (
+        Number.isFinite(measuredHeight) &&
+        Math.abs((this._virtualHeights[i] || 0) - measuredHeight) > 1
+      ) {
+        this._virtualHeights[i] = measuredHeight;
+        changed = true;
+      }
+    }
+
+    if (!changed) {
+      this._pendingCenterIndex = -1;
+      return;
+    }
+
+    // 仅测量当前可见行；批量测量后统一重建偏移量，
+    // 避免渲染完整列表，同时保持自动滚动定位准确。
+    this._rebuildVirtualOffsets();
+
+    const pendingCenterIndex = this._pendingCenterIndex;
+    this._pendingCenterIndex = -1;
+    if (pendingCenterIndex !== -1) {
+      // 目标行真实高度已写回后，再按最新偏移补一次居中，
+      // 避免跳转后必须等下一次滚动才稳定到列表中间。
+      this._scrollIndexIntoView(pendingCenterIndex, {
+        stabilizeAfterMeasure: false,
+      });
+      return;
+    }
+
+    this._scheduleVirtualRender(true);
   }
 
   // ==================================================================================
@@ -168,10 +373,23 @@ export class YouTubeSubtitleList {
   /**
    * 跳转视频到指定时间
    * @param {number} timeMs 毫秒时间戳
+   * @param {number|null} exactIndex 已知目标字幕行索引，避免边界时间点命中上一句字幕
    */
-  jumpToTime(timeMs) {
+  jumpToTime(timeMs, exactIndex = null) {
     if (this.videoEl && Number.isFinite(timeMs)) {
       this.videoEl.currentTime = timeMs / 1000;
+
+      const targetIndex =
+        Number.isInteger(exactIndex) &&
+        exactIndex >= 0 &&
+        exactIndex < this.bilingualSubtitles.length
+          ? exactIndex
+          : this._binarySearchSubtitle(timeMs);
+      if (targetIndex !== -1) {
+        // 跳转触发时立即同步焦点；否则居中会等到下一轮自动滚动轮询。
+        this._setActiveSubtitle(targetIndex, this.activeTab === "subtitles");
+      }
+
       // 跳转后如果视频处于暂停状态，自动恢复播放
       if (this.videoEl.paused) {
         this.videoEl.play();
@@ -462,10 +680,16 @@ export class YouTubeSubtitleList {
     //    1.2 字幕局部独立滚动容器
     this.subtitleScrollContainer = document.createElement("div");
     this.subtitleScrollContainer.style.cssText = `overflow-y: auto; flex: 1; padding: 0 16px; position: relative;`;
+    this.subtitleScrollContainer.addEventListener(
+      "scroll",
+      this.handleSubtitleScroll,
+      { passive: true }
+    );
 
     //    1.3 字幕列表 UL 节点
     const subUl = document.createElement("ul");
-    subUl.style.cssText = `list-style-type: none; padding: 16px 0; margin: 0;`;
+    subUl.style.cssText = `list-style-type: none; padding: 0; margin: 0; position: relative;`;
+    this.subtitleListUl = subUl;
 
     this.subtitleScrollContainer.appendChild(subUl);
     this.subtitleListEl.appendChild(this.subtitleScrollContainer);
@@ -482,6 +706,7 @@ export class YouTubeSubtitleList {
       styleTab(vocabularyTab, false);
       this.subtitleListEl.style.display = "flex";
       this.vocabularyListEl.style.display = "none";
+      this._scheduleVirtualRender(true);
     });
     vocabularyTab.addEventListener("click", () => {
       this.activeTab = "vocabulary";
@@ -511,6 +736,7 @@ export class YouTubeSubtitleList {
     const li = document.createElement("li");
     li.id = `kiss-youtube-item-${index}`;
     li.className = "kiss-youtube-item";
+    li.dataset.index = index;
     li.dataset.time = sub.start;
     li.style.cssText = `cursor: pointer; padding: 12px 16px; border-bottom: 1px solid var(--kt-divider); transition: opacity 0.2s ease; opacity: 0.6; border-radius: 6px; margin-bottom: 4px; display: flex; align-items: flex-start;`;
 
@@ -537,7 +763,7 @@ export class YouTubeSubtitleList {
     translationEl.style.cssText = `color: var(--kt-subtext); font-size: 13px; line-height: 1.4; font-style: italic; min-height: 18px;`;
 
     // 交互事件绑定：点击字幕跳跃视频播放时间点，鼠标悬停高亮
-    li.addEventListener("click", () => this.jumpToTime(sub.start));
+    li.addEventListener("click", () => this.jumpToTime(sub.start, index));
     li.addEventListener("mouseenter", () => {
       if (!li.classList.contains("active-subtitle")) li.style.opacity = 1;
     });
@@ -549,6 +775,7 @@ export class YouTubeSubtitleList {
     textContainer.appendChild(translationEl);
     li.appendChild(timeSpan);
     li.appendChild(textContainer);
+    li._translationEl = translationEl;
 
     return li;
   }
@@ -559,36 +786,8 @@ export class YouTubeSubtitleList {
   updateBilingualSubtitles() {
     if (!this.subtitleListEl) return;
 
-    // 1. 增量追加模式：当新加载的字幕多于缓存的旧字幕时，只追加渲染新增的部分，避免全量重建
-    if (this.bilingualSubtitles.length > this._cachedSubtitleItems.length) {
-      this._cancelChunkRender();
-      const ul = this.subtitleListEl.querySelector("ul");
-      if (ul) {
-        const fragment = document.createDocumentFragment();
-        for (
-          let i = this._cachedSubtitleItems.length;
-          i < this.bilingualSubtitles.length;
-          i++
-        ) {
-          const sub = this.bilingualSubtitles[i];
-          const li = this._createSubtitleListItem(sub, i);
-          this._cachedSubtitleItems.push(li);
-          fragment.appendChild(li);
-        }
-        ul.appendChild(fragment);
-      }
-    } else if (
-      this.bilingualSubtitles.length < this._cachedSubtitleItems.length
-    ) {
-      // 2. 全量重置模式：如果数据源比旧缓存还少（表明视频已经重新加载或完全替换），清空列表并分块异步渲染
-      const ul = this.subtitleListEl.querySelector("ul");
-      if (ul) {
-        this._cancelChunkRender();
-        ul.replaceChildren();
-        this._renderSubtitlesInChunks(ul);
-      }
-      return;
-    }
+    this._resetVirtualMetrics({ preserveHeights: true });
+    this._scheduleVirtualRender(true);
   }
 
   /**
@@ -597,37 +796,42 @@ export class YouTubeSubtitleList {
    * @param {{ start: number, end?: number, text?: string, translation: string }} subtitleUpdate 单条字幕增量信息
    */
   updateSingleSubtitle(subtitleUpdate) {
-    if (!this.subtitleListEl || !this._cachedSubtitleItems.length) return;
+    if (!this.subtitleListEl) return;
 
     const { start, translation } = subtitleUpdate;
-    // 二分查找匹配 start 播放开始时间的字幕索引
-    let left = 0,
-      right = this.bilingualSubtitles.length - 1;
-    let targetIndex = -1;
-    while (left <= right) {
-      const mid = Math.floor((left + right) / 2);
-      const sub = this.bilingualSubtitles[mid];
-      if (sub.start === start) {
-        targetIndex = mid;
-        break;
-      } else if (sub.start > start) right = mid - 1;
-      else left = mid + 1;
-    }
+    const targetIndex = this._findSubtitleIndexByStart(start);
 
     if (targetIndex === -1) return;
 
     // 更新数据源缓存
     this.bilingualSubtitles[targetIndex].translation = translation;
 
-    // 定向更新对应的单个 DOM 节点的翻译文本显示，并将 element.style.display 展开为 block
+    // 只更新当前可见行；不可见字幕稍后会根据数据源重新渲染。
     const item = this._cachedSubtitleItems[targetIndex];
     if (item) {
-      const translationEl = item.querySelector(".kiss-youtube-translation");
+      const translationEl =
+        item._translationEl || item.querySelector(".kiss-youtube-translation");
       if (translationEl) {
         translationEl.textContent = translation || "";
         translationEl.style.display = translation ? "block" : "none";
+        this._scheduleVirtualRender(true);
       }
     }
+  }
+
+  _findSubtitleIndexByStart(start) {
+    let left = 0;
+    let right = this.bilingualSubtitles.length - 1;
+
+    while (left <= right) {
+      const mid = Math.floor((left + right) / 2);
+      const sub = this.bilingualSubtitles[mid];
+      if (sub.start === start) return mid;
+      if (sub.start > start) right = mid - 1;
+      else left = mid + 1;
+    }
+
+    return -1;
   }
 
   // ==================================================================================
@@ -940,14 +1144,51 @@ export class YouTubeSubtitleList {
   // 绑定滚动事件相关监听器
   setupEventListeners() {
     if (!this.container || !this.videoEl) return;
+    if (this._eventListenersAttached) return;
+
     // 鼠标悬浮于侧边字幕面板时停止自动随视频播放滚动，方便用户进行鼠标选词或手动滑动浏览，鼠标移出时恢复自动滚动高亮，提升用户体验
-    this.container.addEventListener("mouseenter", () => this.turnOffAutoSub());
-    this.container.addEventListener("mouseleave", () => this.turnOnAutoSub());
+    this.container.addEventListener(
+      "mouseenter",
+      this.handleContainerMouseEnter
+    );
+    this.container.addEventListener(
+      "mouseleave",
+      this.handleContainerMouseLeave
+    );
 
     // 视频事件联动：视频结束或暂停时停止定时器，视频开始播放时开启同步定时器
-    this.videoEl.addEventListener("ended", () => this.turnOffAutoSub());
-    this.videoEl.addEventListener("pause", () => this.turnOffAutoSub());
-    this.videoEl.addEventListener("play", () => this.turnOnAutoSub());
+    this.videoEl.addEventListener("ended", this.handleVideoEnded);
+    this.videoEl.addEventListener("pause", this.handleVideoPause);
+    this.videoEl.addEventListener("play", this.handleVideoPlay);
+    this._eventListenersAttached = true;
+  }
+
+  _removeEventListeners() {
+    if (this.subtitleScrollContainer) {
+      this.subtitleScrollContainer.removeEventListener(
+        "scroll",
+        this.handleSubtitleScroll
+      );
+    }
+
+    if (this.container) {
+      this.container.removeEventListener(
+        "mouseenter",
+        this.handleContainerMouseEnter
+      );
+      this.container.removeEventListener(
+        "mouseleave",
+        this.handleContainerMouseLeave
+      );
+    }
+
+    if (this.videoEl) {
+      this.videoEl.removeEventListener("ended", this.handleVideoEnded);
+      this.videoEl.removeEventListener("pause", this.handleVideoPause);
+      this.videoEl.removeEventListener("play", this.handleVideoPlay);
+    }
+
+    this._eventListenersAttached = false;
   }
 
   /**
@@ -973,42 +1214,48 @@ export class YouTubeSubtitleList {
       // 如果当前行未改变，则不触发任何 DOM 修改
       if (this._lastActiveIndex === currentIndex) return;
 
-      if (
-        this.subtitleListEl &&
-        currentIndex !== -1 &&
-        this._cachedSubtitleItems[currentIndex]
-      ) {
-        // 清理上一次高亮字幕行的样式
-        if (
-          this._lastActiveIndex !== -1 &&
-          this._cachedSubtitleItems[this._lastActiveIndex]
-        ) {
-          const lastEl = this._cachedSubtitleItems[this._lastActiveIndex];
-          lastEl.style.opacity = 0.6;
-          lastEl.classList.remove("active-subtitle");
-        }
-
-        // 高亮当前字幕行，并设置粗体字
-        const currentEl = this._cachedSubtitleItems[currentIndex];
-        currentEl.style.opacity = 1;
-        currentEl.classList.add("active-subtitle");
-        this._lastActiveIndex = currentIndex;
-
-        // 计算当前高亮行在滚动面板中的垂直位置，并将字幕行居中显示
-        const container = this.subtitleScrollContainer;
-        if (container) {
-          const elementTop = currentEl.offsetTop;
-          const containerHeight = container.clientHeight;
-          const elementHeight = currentEl.clientHeight;
-
-          // 使用 'auto' 进行即时位置定位，不用 smooth 是为了防止高频微小的跳转重叠造成滚动抖动卡顿
-          container.scrollTo({
-            top: elementTop - containerHeight / 2 + elementHeight / 2,
-            behavior: "auto",
-          });
-        }
-      }
+      this._setActiveSubtitle(currentIndex, true);
     }, 200);
+  }
+
+  _setActiveSubtitle(index, shouldScroll = false) {
+    const previousIndex = this._lastActiveIndex;
+    this._lastActiveIndex = index;
+
+    this._updateSubtitleItemActive(previousIndex, false);
+    this._updateSubtitleItemActive(index, true);
+
+    if (shouldScroll && index !== -1) {
+      this._scrollIndexIntoView(index);
+    }
+  }
+
+  _updateSubtitleItemActive(index, isActive) {
+    if (index === -1) return;
+
+    const item = this._cachedSubtitleItems[index];
+    if (!item) return;
+
+    item.style.opacity = isActive ? 1 : 0.6;
+    item.classList.toggle("active-subtitle", isActive);
+  }
+
+  _scrollIndexIntoView(index, { stabilizeAfterMeasure = true } = {}) {
+    const container = this.subtitleScrollContainer;
+    if (!container || index < 0 || index >= this.bilingualSubtitles.length) {
+      return;
+    }
+
+    if (stabilizeAfterMeasure) {
+      this._pendingCenterIndex = index;
+    }
+
+    const itemTop = this._virtualTopPadding + this._virtualOffsets[index];
+    const itemHeight = this._virtualHeights[index] || this._estimatedItemHeight;
+    const targetTop = itemTop - container.clientHeight / 2 + itemHeight / 2;
+
+    container.scrollTop = Math.max(0, targetTop);
+    this._scheduleVirtualRender(true);
   }
 
   /**
@@ -1023,7 +1270,8 @@ export class YouTubeSubtitleList {
       const mid = Math.floor((left + right) / 2);
       const sub = this.bilingualSubtitles[mid];
 
-      if (timeMs >= sub.start && timeMs <= sub.end) {
+      const isLastSubtitle = mid === this.bilingualSubtitles.length - 1;
+      if (timeMs >= sub.start && (timeMs < sub.end || isLastSubtitle)) {
         return mid; // 精确匹配该时间范围
       } else if (timeMs < sub.start) {
         right = mid - 1;
