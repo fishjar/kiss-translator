@@ -6,6 +6,7 @@ import {
   KV_RULES_SHARE_KEY,
   KV_SALT_SHARE,
   OPT_SYNCTYPE_WEBDAV,
+  OPT_SYNCTYPE_GIST,
 } from "../config";
 import {
   getSyncWithDefault,
@@ -17,7 +18,14 @@ import {
   setRules,
   setWords,
 } from "./storage";
-import { apiSyncData } from "../apis";
+import {
+  apiSyncData,
+  apiCreateGist,
+  apiListGists,
+  apiGetGist,
+  apiUpdateGistFile,
+  apiFetchText,
+} from "../apis";
 import { sha256, removeEndchar } from "./utils";
 import { createClient, getPatcher } from "webdav";
 import { fetchPatcher } from "./fetch";
@@ -86,6 +94,66 @@ const syncByWorker = async (data, { syncUrl, syncKey }) => {
   return await apiSyncData(`${syncUrl}/sync`, syncKey, data);
 };
 
+export const getGistId = (input = "") => {
+  const value = input.trim();
+  if (!value) return "";
+
+  try {
+    const url = new URL(value);
+    const parts = url.pathname.split("/").filter(Boolean);
+    return parts[parts.length - 1] || "";
+  } catch {
+    return value;
+  }
+};
+
+const getGistDescription = async (syncKey) => {
+  const description = "kiss translator sync files";
+  const gists = await apiListGists(syncKey);
+  if (gists.some((gist) => gist.description === description)) {
+    return `${description}-${Date.now()}`;
+  }
+  return description;
+};
+
+const getGistFilename = (key) => {
+  if (key.startsWith("kiss-rules_")) return `sync-rules_${key}`;
+  if (key === KV_WORDS_KEY) return `sync-words_${key}`;
+  return key;
+};
+
+const syncByGist = async (data, { syncUrl, syncKey }) => {
+  const gistId = getGistId(syncUrl);
+  const filename = getGistFilename(data.key);
+  const content = JSON.stringify(data, null, 2);
+
+  if (!gistId) {
+    const gist = await apiCreateGist(
+      syncKey,
+      {
+        key: filename,
+        content,
+      },
+      await getGistDescription(syncKey)
+    );
+    await putSync({ syncUrl: gist.id });
+    return data;
+  }
+
+  const gist = await apiGetGist(gistId, syncKey);
+  const file = gist.files?.[filename] || gist.files?.[data.key];
+  if (file) {
+    const fileContent = file.content || (await apiFetchText(file.raw_url));
+    const gistData = JSON.parse(fileContent);
+    if (gistData.updateAt >= data.updateAt) {
+      return gistData;
+    }
+  }
+
+  await apiUpdateGistFile(gistId, syncKey, filename, content);
+  return data;
+};
+
 /**
  * 核心同步调度器。根据配置的 syncType（WebDAV / Worker）执行对应的网络同步，
  * 并依据“最新修改时间戳”双向更新本地 Storage 与云端。
@@ -105,7 +173,11 @@ export const syncData = async (key, value) => {
   } = await getSyncWithDefault();
 
   // 若未填写必要的同步参数，则直接退出不报错
-  if (!syncUrl || !syncKey || (syncType === OPT_SYNCTYPE_WEBDAV && !syncUser)) {
+  if (
+    !syncKey ||
+    (syncType !== OPT_SYNCTYPE_GIST && !syncUrl) ||
+    (syncType === OPT_SYNCTYPE_WEBDAV && !syncUser)
+  ) {
     return;
   }
 
@@ -129,7 +201,9 @@ export const syncData = async (key, value) => {
   const res =
     syncType === OPT_SYNCTYPE_WEBDAV
       ? await syncByWebdav(data, args)
-      : await syncByWorker(data, args);
+      : syncType === OPT_SYNCTYPE_GIST
+        ? await syncByGist(data, args)
+        : await syncByWorker(data, args);
 
   if (!res) {
     throw new Error("sync data got err", key);
