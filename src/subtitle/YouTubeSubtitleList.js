@@ -47,6 +47,7 @@ export class YouTubeSubtitleList {
     this._virtualBottomPadding = 16;
     this._virtualOverscan = 8;
     this._pendingCenterIndex = -1;
+    this._pendingSubtitleTabScrollIndex = -1;
     this._eventListenersAttached = false;
     this._vocabularyDirty = false; // 生词本是否需要重新渲染的标志位（在生词本不可见时添加了单词，切换过来时再重新渲染）
     this._chunkRenderCancel = null; // 当前分块渲染的取消器函数，用于随时中断未完成的渲染流程
@@ -153,6 +154,7 @@ export class YouTubeSubtitleList {
     this._virtualHeights = [];
     this._virtualOffsets = [0];
     this._pendingCenterIndex = -1;
+    this._pendingSubtitleTabScrollIndex = -1;
     this.vocabulary = [];
   }
 
@@ -249,6 +251,16 @@ export class YouTubeSubtitleList {
     this._virtualRenderForce = false;
   }
 
+  _isSubtitleTabVisible() {
+    return (
+      this.activeTab === "subtitles" &&
+      this.subtitleListEl &&
+      this.subtitleScrollContainer &&
+      this.subtitleListEl.style.display !== "none" &&
+      this.subtitleListEl.getClientRects().length > 0
+    );
+  }
+
   _findIndexByOffset(offset) {
     const length = this.bilingualSubtitles.length;
     if (length === 0) return -1;
@@ -294,6 +306,7 @@ export class YouTubeSubtitleList {
 
   _renderVirtualSubtitles(force = false) {
     if (!this.subtitleListUl || !this.subtitleScrollContainer) return;
+    if (!this._isSubtitleTabVisible()) return;
 
     const { start, end } = this._getVirtualRange();
     if (!force && start === this._virtualStart && end === this._virtualEnd) {
@@ -327,6 +340,8 @@ export class YouTubeSubtitleList {
   }
 
   _measureVisibleSubtitleItems() {
+    if (!this._isSubtitleTabVisible()) return;
+
     let changed = false;
 
     for (let i = this._virtualStart; i < this._virtualEnd; i++) {
@@ -387,7 +402,11 @@ export class YouTubeSubtitleList {
           : this._binarySearchSubtitle(timeMs);
       if (targetIndex !== -1) {
         // 跳转触发时立即同步焦点；否则居中会等到下一轮自动滚动轮询。
-        this._setActiveSubtitle(targetIndex, this.activeTab === "subtitles");
+        const shouldScroll = this.activeTab === "subtitles";
+        this._setActiveSubtitle(targetIndex, shouldScroll);
+        if (!shouldScroll) {
+          this._pendingSubtitleTabScrollIndex = targetIndex;
+        }
       }
 
       // 跳转后如果视频处于暂停状态，自动恢复播放
@@ -706,7 +725,9 @@ export class YouTubeSubtitleList {
       styleTab(vocabularyTab, false);
       this.subtitleListEl.style.display = "flex";
       this.vocabularyListEl.style.display = "none";
-      this._scheduleVirtualRender(true);
+      if (!this._scrollPendingSubtitleTabIndex()) {
+        this._scheduleVirtualRender(true);
+      }
     });
     vocabularyTab.addEventListener("click", () => {
       this.activeTab = "vocabulary";
@@ -1240,9 +1261,23 @@ export class YouTubeSubtitleList {
     item.classList.toggle("active-subtitle", isActive);
   }
 
+  _scrollPendingSubtitleTabIndex() {
+    const index = this._pendingSubtitleTabScrollIndex;
+    if (index === -1 || !this._isSubtitleTabVisible()) return false;
+
+    this._pendingSubtitleTabScrollIndex = -1;
+    this._scrollIndexIntoView(index);
+    return true;
+  }
+
   _scrollIndexIntoView(index, { stabilizeAfterMeasure = true } = {}) {
     const container = this.subtitleScrollContainer;
     if (!container || index < 0 || index >= this.bilingualSubtitles.length) {
+      return;
+    }
+
+    if (!this._isSubtitleTabVisible()) {
+      this._pendingSubtitleTabScrollIndex = index;
       return;
     }
 
