@@ -19,6 +19,9 @@ const DEFAULT_PARAMS = {
   forcePunctuationMinDurationMs: 2000,
 };
 
+// 零宽字符（U+200B~U+200D、U+FEFF），个别 YouTube 轨用它做占位 seg
+const ZERO_WIDTH_RE = new RegExp("[\\u200B-\\u200D\\uFEFF]", "g");
+
 /**
  * Word 类 - 单词对象
  */
@@ -177,8 +180,8 @@ function parseYoutubeData(data) {
 
     for (let i = 0; i < segs.length; i++) {
       const seg = segs[i];
-      const text = seg.utf8 || "";
-      if (!text || text === "\n") continue;
+      const text = (seg.utf8 || "").replace(ZERO_WIDTH_RE, "");
+      if (!text.trim()) continue;
 
       const offset = seg.tOffsetMs || 0;
       const wordStart = tStart + offset;

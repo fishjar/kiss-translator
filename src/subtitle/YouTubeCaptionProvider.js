@@ -27,6 +27,8 @@ const CONTORLS_SELECT = ".ytp-right-controls";
 const YT_CAPTION_SELECT = "#ytp-caption-window-container";
 const YT_AD_SELECT = ".video-ads";
 const YT_SUBTITLE_BTN_SELECT = "button.ytp-subtitles-button";
+// 零宽字符（U+200B~U+200D、U+FEFF），个别 YouTube 轨用它做占位 seg
+const ZERO_WIDTH_RE = new RegExp("[\\u200B-\\u200D\\uFEFF]", "g");
 
 class YouTubeCaptionProvider {
   #setting = {};
@@ -797,6 +799,7 @@ class YouTubeCaptionProvider {
         return;
       }
 
+      this.#cleanOriginals(subtitles);
       this.#subtitles = subtitles;
       this.#progressed = progressed;
 
@@ -1372,6 +1375,19 @@ class YouTubeCaptionProvider {
     return out;
   }
 
+  // 清掉原文里的零宽字符和多余空格（个别轨用零宽 seg 占位，会让原文出现怪空格）
+  #cleanOriginals(subtitles = []) {
+    for (const sub of subtitles) {
+      if (sub?.text) {
+        sub.text = sub.text
+          .replace(ZERO_WIDTH_RE, "")
+          .replace(/\s+/g, " ")
+          .trim();
+      }
+    }
+    return subtitles;
+  }
+
   #genFlatEvents(events = []) {
     const segments = [];
     let buffer = null;
@@ -1380,6 +1396,7 @@ class YouTubeCaptionProvider {
       segs.forEach(({ utf8 = "", tOffsetMs = 0 }, j) => {
         const text = utf8
           .replace(/<[^>]+>/g, "")
+          .replace(ZERO_WIDTH_RE, "")
           .trim()
           .replace(/\s+/g, " ");
         const start = tStartMs + tOffsetMs;
@@ -1524,6 +1541,7 @@ class YouTubeCaptionProvider {
       }
 
       if (subtitlesForThisChunk.length > 0) {
+        this.#cleanOriginals(subtitlesForThisChunk);
         const progressed = Math.floor((chunkNum * 100) / chunks.length);
         this.#subtitles.push(...subtitlesForThisChunk);
         this.#subtitles.sort((a, b) => a.start - b.start);
