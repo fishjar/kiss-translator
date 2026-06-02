@@ -111,6 +111,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
     pattern, // 匹配的域名或 URL 规则
     selector, // 翻译的目标 CSS 选择器
     keepSelector = "", // 保留不翻译的 CSS 选择器
+    blockSelector = "", // 自定义块级元素 CSS 选择器
     rootsSelector = "", // 翻译的根容器 CSS 选择器
     ignoreSelector = "", // 忽略不翻译的 CSS 选择器
     terms, // 专有名词对照表（普通）
@@ -309,6 +310,16 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
           helperText={i18n("keep_selector_helper")}
           name="keepSelector"
           value={keepSelector}
+          disabled={disabled}
+          onChange={handleChange}
+        />
+        {/* 自定义块级元素选择器配置 */}
+        <CodeField
+          size="small"
+          label={i18n("block_selector")}
+          helperText={i18n("block_selector_helper")}
+          name="blockSelector"
+          value={blockSelector}
           disabled={disabled}
           onChange={handleChange}
         />
