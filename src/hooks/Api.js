@@ -14,14 +14,14 @@ function useApiState() {
     [setting?.transApis]
   );
 
-  return { transApis, updateSetting };
+  return { setting, transApis, updateSetting };
 }
 
 /**
  * 翻译 API 列表管理的自定义 Hook，支持列表的补全、筛选、新增、复制、删除和字母排序
  */
 export function useApiList() {
-  const { transApis, updateSetting } = useApiState();
+  const { setting, transApis, updateSetting } = useApiState();
 
   // 当发现持久化的翻译 API 列表里缺失某些内置 API 时（例如由于新版本升级增加了新翻译源），自动将它们合并补全。
   // REVIEW: React 状态无限递归（Infinite Loop）风险。
@@ -30,9 +30,10 @@ export function useApiList() {
   // 导致下一次循环中 `missApis.length > 0` 依然成立，这将会导致该 React 组件陷入无限重渲染和更新设置的死循环。
   // 推荐将该内置 API 自动对齐的校验与合并工作放在应用层初始化（如 Background 启动）时一次性完成，而不是放在 React 交互 Hook 的副作用中高频执行。
   useEffect(() => {
+    const deletedSlugs = new Set(setting?.deletedTransApiSlugs || []);
     const curSlugs = new Set(transApis.map((api) => api.apiSlug));
     const missApis = DEFAULT_API_LIST.filter(
-      (api) => !curSlugs.has(api.apiSlug)
+      (api) => !curSlugs.has(api.apiSlug) && !deletedSlugs.has(api.apiSlug)
     );
     if (missApis.length > 0) {
       updateSetting((prev) => ({
@@ -40,15 +41,12 @@ export function useApiList() {
         transApis: [...(prev?.transApis || []), ...missApis],
       }));
     }
-  }, [transApis, updateSetting]);
+  }, [setting?.deletedTransApiSlugs, transApis, updateSetting]);
 
   // 获取用户添加的自定义 API 列表，按照拼音/字母表排序
   // 过滤掉内置 API (如 google, bing, deeplBuiltin 等)
   const userApis = useMemo(
-    () =>
-      transApis
-        .filter((api) => !API_SPE_TYPES.builtin.has(api.apiSlug))
-        .sort((a, b) => a.apiSlug.localeCompare(b.apiSlug)),
+    () => transApis.filter((api) => !API_SPE_TYPES.builtin.has(api.apiSlug)),
     [transApis]
   );
 
@@ -116,12 +114,24 @@ export function useApiList() {
   // 删除一个翻译 API 配置项
   const deleteApi = useCallback(
     (apiSlug) => {
-      updateSetting((prev) => ({
-        ...prev,
-        transApis: (prev?.transApis || []).filter(
-          (api) => api.apiSlug !== apiSlug
-        ),
-      }));
+      updateSetting((prev) => {
+        const isDefaultApi = DEFAULT_API_LIST.some(
+          (api) => api.apiSlug === apiSlug
+        );
+        const deletedTransApiSlugs = isDefaultApi
+          ? Array.from(
+              new Set([...(prev?.deletedTransApiSlugs || []), apiSlug])
+            )
+          : prev?.deletedTransApiSlugs || [];
+
+        return {
+          ...prev,
+          deletedTransApiSlugs,
+          transApis: (prev?.transApis || []).filter(
+            (api) => api.apiSlug !== apiSlug
+          ),
+        };
+      });
     },
     [updateSetting]
   );
@@ -165,6 +175,47 @@ export function useApiList() {
     [updateSetting]
   );
 
+  const reorderApis = useCallback(
+    (activeSlug, overSlug) => {
+      if (!activeSlug || !overSlug || activeSlug === overSlug) return;
+
+      updateSetting((prev) => {
+        const apis = [...(prev?.transApis || [])].sort(
+          (a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)
+        );
+        const fromIndex = apis.findIndex((api) => api.apiSlug === activeSlug);
+        const toIndex = apis.findIndex((api) => api.apiSlug === overSlug);
+
+        if (fromIndex < 0 || toIndex < 0) {
+          return prev;
+        }
+
+        const nextApis = [...apis];
+        const [movedApi] = nextApis.splice(fromIndex, 1);
+        nextApis.splice(toIndex, 0, movedApi);
+
+        const pinnedApis = nextApis
+          .filter((api) => api.sortOrder === -1)
+          .map((api) => ({ ...api, sortOrder: -1 }));
+        const normalApis = nextApis
+          .filter((api) => api.sortOrder !== -1 && !api.isDisabled)
+          .map((api, index) => ({ ...api, sortOrder: index }));
+        const disabledApis = nextApis
+          .filter((api) => api.sortOrder !== -1 && api.isDisabled)
+          .map((api, index) => ({
+            ...api,
+            sortOrder: 999 + index,
+          }));
+
+        return {
+          ...prev,
+          transApis: [...pinnedApis, ...normalApis, ...disabledApis],
+        };
+      });
+    },
+    [updateSetting]
+  );
+
   return {
     transApis,
     userApis,
@@ -175,6 +226,7 @@ export function useApiList() {
     copyApi,
     deleteApi,
     alphaSortApis,
+    reorderApis,
   };
 }
 

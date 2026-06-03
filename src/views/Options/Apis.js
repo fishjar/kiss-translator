@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import CodeField from "./CodeField";
@@ -16,8 +16,10 @@ import Alert from "@mui/material/Alert";
 import Menu from "@mui/material/Menu";
 import List from "@mui/material/List";
 import ListItemButton from "@mui/material/ListItemButton";
+import Tooltip from "@mui/material/Tooltip";
 import Grid from "@mui/material/Grid";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import Link from "@mui/material/Link";
 import { useAlert } from "../../hooks/Alert";
 import { useApiList, useApiItem } from "../../hooks/Api";
@@ -111,7 +113,7 @@ function TestButton({ api }) {
   );
 }
 
-function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi, onCollapse }) {
+function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
   const { api, update, reset } = useApiItem(apiSlug);
   const i18n = useI18n();
   const [formData, setFormData] = useState({});
@@ -959,16 +961,14 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi, onCollapse }) {
         <Button size="small" variant="outlined" onClick={handleCopy}>
           {i18n("copy_api")}
         </Button>
-        {isUserApi && (
-          <Button
-            size="small"
-            variant="outlined"
-            color="error"
-            onClick={handleDelete}
-          >
-            {i18n("delete")}
-          </Button>
-        )}
+        <Button
+          size="small"
+          variant="outlined"
+          color="error"
+          onClick={handleDelete}
+        >
+          {i18n("delete")}
+        </Button>
 
         <FormControlLabel
           control={
@@ -1007,11 +1007,57 @@ function ApiFields({ apiSlug, isUserApi, deleteApi, copyApi, onCollapse }) {
   );
 }
 
-function ApiListItem({ api, selected, onSelect }) {
+function ApiListItem({
+  api,
+  selected,
+  dragging,
+  dragOver,
+  onSelect,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onDragEnd,
+}) {
   return (
-    <ListItemButton selected={selected} onClick={onSelect}>
+    <ListItemButton
+      selected={selected}
+      onClick={onSelect}
+      onDragOver={onDragOver}
+      onDragEnter={onDragOver}
+      onDrop={onDrop}
+      sx={(theme) => ({
+        gap: 1,
+        alignItems: "flex-start",
+        opacity: dragging ? 0.45 : 1,
+        borderTop: dragOver
+          ? `2px solid ${theme.palette.primary.main}`
+          : "2px solid transparent",
+      })}
+    >
+      <Tooltip title="Drag to reorder">
+        <Box
+          draggable
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
+          onClick={(e) => e.stopPropagation()}
+          sx={{
+            display: "inline-flex",
+            alignItems: "center",
+            color: "text.secondary",
+            cursor: "grab",
+            flex: "0 0 auto",
+            mt: "1px",
+            "&:active": {
+              cursor: "grabbing",
+            },
+          }}
+        >
+          <DragIndicatorIcon fontSize="small" />
+        </Box>
+      </Tooltip>
       <Typography
         sx={{
+          flex: 1,
           opacity: api.isDisabled ? 0.5 : 1,
           overflowWrap: "anywhere",
         }}
@@ -1024,12 +1070,14 @@ function ApiListItem({ api, selected, onSelect }) {
 
 export default function Apis() {
   const i18n = useI18n();
-  const { userApis, builtinApis, addApi, deleteApi, copyApi, alphaSortApis } =
+  const { transApis, addApi, deleteApi, copyApi, alphaSortApis, reorderApis } =
     useApiList();
 
   const [alphaSortDir, setAlphaSortDir] = useState("asc");
   const [detailKey, setDetailKey] = useState(0);
   const [selectedApiSlug, setSelectedApiSlug] = useState("");
+  const [draggingApiSlug, setDraggingApiSlug] = useState("");
+  const [dragOverApiSlug, setDragOverApiSlug] = useState("");
 
   const apiTypes = useMemo(
     () =>
@@ -1041,11 +1089,8 @@ export default function Apis() {
   );
 
   const apiItems = useMemo(
-    () => [
-      ...userApis.map((api) => ({ api, isUserApi: true })),
-      ...builtinApis.map((api) => ({ api, isUserApi: false })),
-    ],
-    [userApis, builtinApis]
+    () => transApis.map((api) => ({ api })),
+    [transApis]
   );
 
   useEffect(() => {
@@ -1083,6 +1128,43 @@ export default function Apis() {
     addApi(apiType);
     handleClose();
   };
+
+  const handleDragStart = useCallback((event, apiSlug) => {
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", apiSlug);
+    setDraggingApiSlug(apiSlug);
+  }, []);
+
+  const handleDragOver = useCallback(
+    (event, apiSlug) => {
+      if (!draggingApiSlug || draggingApiSlug === apiSlug) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "move";
+      setDragOverApiSlug(apiSlug);
+    },
+    [draggingApiSlug]
+  );
+
+  const handleDrop = useCallback(
+    (event, apiSlug) => {
+      event.preventDefault();
+      const activeSlug =
+        draggingApiSlug || event.dataTransfer.getData("text/plain");
+
+      if (activeSlug && activeSlug !== apiSlug) {
+        reorderApis(activeSlug, apiSlug);
+      }
+
+      setDraggingApiSlug("");
+      setDragOverApiSlug("");
+    },
+    [draggingApiSlug, reorderApis]
+  );
+
+  const handleDragEnd = useCallback(() => {
+    setDraggingApiSlug("");
+    setDragOverApiSlug("");
+  }, []);
 
   return (
     <Box>
@@ -1185,7 +1267,13 @@ export default function Apis() {
                   key={api.apiSlug}
                   api={api}
                   selected={api.apiSlug === selectedApiSlug}
+                  dragging={api.apiSlug === draggingApiSlug}
+                  dragOver={api.apiSlug === dragOverApiSlug}
                   onSelect={() => setSelectedApiSlug(api.apiSlug)}
+                  onDragStart={(event) => handleDragStart(event, api.apiSlug)}
+                  onDragOver={(event) => handleDragOver(event, api.apiSlug)}
+                  onDrop={(event) => handleDrop(event, api.apiSlug)}
+                  onDragEnd={handleDragEnd}
                 />
               ))}
             </List>
@@ -1195,7 +1283,6 @@ export default function Apis() {
               <ApiFields
                 key={`${detailKey}-${selectedApiItem.api.apiSlug}`}
                 apiSlug={selectedApiItem.api.apiSlug}
-                isUserApi={selectedApiItem.isUserApi}
                 deleteApi={deleteApi}
                 copyApi={copyApi}
               />
