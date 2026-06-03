@@ -450,7 +450,11 @@ export class Translator {
 
   #matchesBlockSelector(node) {
     const selector = this.#rule.blockSelector?.trim();
-    if (!selector || this.#blockSelectorInvalid || !Translator.isElement(node)) {
+    if (
+      !selector ||
+      this.#blockSelectorInvalid ||
+      !Translator.isElement(node)
+    ) {
       return false;
     }
 
