@@ -46,8 +46,6 @@ class YouTubeCaptionProvider {
   #docInfo = {};
   // 原生视频的完整 shortDescription 描述文本
   #fullDescription = "";
-  // 拦截到的原生字幕轨种类（'asr' 为自动生成语音识别，null 为普通人工上传）
-  #interceptedCaptionKind = null;
 
   // 当前正在处理的字幕轨唯一标识 Key
   #processingId = null;
@@ -124,7 +122,6 @@ class YouTubeCaptionProvider {
       this.#fromLang = "auto";
       this.#docInfo = {};
       this.#fullDescription = "";
-      this.#interceptedCaptionKind = null;
       this.#processingId = null;
       this.#processingVersion += 1;
       this.#activeTrackKey = null;
@@ -319,6 +316,12 @@ class YouTubeCaptionProvider {
       this.#reProcessEventsWithContext(); // 重新加载 AI 上下文分析
     } else if (name === "showLoadNotification" && value === false) {
       this.#hideNotification(); // 关闭通知展示
+    } else if (name === "hideSubtitleButton") {
+      if (value === true) {
+        this.#removeToggleButton();
+      } else {
+        this.#injectToggleButton(document.querySelector(CONTORLS_SELECT));
+      }
     }
   }
 
@@ -399,6 +402,14 @@ class YouTubeCaptionProvider {
   }
 
   #injectToggleButton(ytControls) {
+    if (
+      this.#setting.hideSubtitleButton === true ||
+      !ytControls ||
+      ytControls.querySelector(".kiss-subtitle-button")
+    ) {
+      return;
+    }
+
     const kissControls = document.createElement("div");
     kissControls.className = "notranslate kiss-subtitle-controls";
     Object.assign(kissControls.style, {
@@ -439,6 +450,17 @@ class YouTubeCaptionProvider {
     this.#toggleButton = toggleButton;
 
     ytControls?.prepend(kissControls);
+  }
+
+  #removeToggleButton() {
+    this.#isMenuShow = false;
+    this.#menuManager?.destroy();
+    this.#menuManager = null;
+    const kissControls =
+      this.#toggleButton?.closest(".kiss-subtitle-controls") ||
+      document.querySelector(".kiss-subtitle-controls");
+    kissControls?.remove();
+    this.#toggleButton = null;
   }
 
   // 简易判断两种语言编码是否属于同一种语言的大类（如 zh-CN 与 zh-TW 均视为 zh）
@@ -839,7 +861,6 @@ class YouTubeCaptionProvider {
       this.#flatEvents = [];
       this.#progressed = 0;
       this.#activeTrackKey = null;
-      this.#interceptedCaptionKind = null;
     }
 
     try {
@@ -890,17 +911,17 @@ class YouTubeCaptionProvider {
       }
 
       // 将零碎的字幕词块拍平（Flatten）并合并成易于处理的片段列表
-      const flatEvents = this.#genFlatEvents(events);
+      const subtitleEvents = this.#normalizeTimedTextEvents(events);
+      const flatEvents = this.#genFlatEvents(subtitleEvents);
       if (!flatEvents?.length) {
         logger.debug("Youtube Provider: flatEvents not got:", videoId);
         return;
       }
       if (this.#isStaleProcessing(processingVersion)) return;
 
-      this.#events = events;
+      this.#events = subtitleEvents;
       this.#flatEvents = flatEvents;
       this.#fromLang = fromLang;
-      this.#interceptedCaptionKind = interceptedKind;
       this.#activeTrackKey = trackKey;
       this.#docInfo = getDocInfo();
       // 使用 AI 生成视频的总结或上下文背景信息，用以增强翻译质量
@@ -1103,10 +1124,10 @@ class YouTubeCaptionProvider {
     const { segSlug, transApis, chunkLength, toLang } = this.#setting;
 
     const segApiSetting = transApis?.find((api) => api.apiSlug === segSlug);
-    const isAutoCaption = this.#interceptedCaptionKind === "asr";
+    const useAiSegmentation = segSlug && segSlug !== "-" && segApiSetting;
 
-    // 仅针对 YouTube 自动生成的 ASR 字幕轨，并且启用了 AI 智能分句服务时，才使用 AI 断句
-    if (isAutoCaption && segSlug && segSlug !== "-" && segApiSetting) {
+    // 断句策略仅由用户配置的 segSlug 决定；kind 只负责定位用户实际选择的字幕轨道。
+    if (useAiSegmentation) {
       if (this.#isStaleProcessing(processingVersion)) return [[], 0];
       logger.info("Youtube Provider: Starting AI segmentation...");
       this.#showNotification(this.#i18n("ai_processing_pls_wait"));
@@ -1157,16 +1178,7 @@ class YouTubeCaptionProvider {
       return [firstBatchSubtitles, 100];
     }
 
-    // 自动生成字幕但未开启 AI 断句，降级使用内置规则或统计算法断句
-    if (isAutoCaption) {
-      return [this.#builtinSegment(events, flatEvents, fromLang), 100];
-    }
-
-    // 人工上传的字幕（带有正常的标点和分句），直接过滤出有效文本即可
-    logger.info(
-      "Youtube Provider: Sentence break mode: MANUAL (human caption)"
-    );
-    return [flatEvents.filter((e) => e.text), 100];
+    return [this.#builtinSegment(events, flatEvents, fromLang), 100];
   }
 
   // 内置兜底分句方法（选择统计算法智能分句或内置规则匹配）
@@ -1254,16 +1266,6 @@ class YouTubeCaptionProvider {
         this.#subtitleListManager.updateSingleSubtitle(subtitleUpdate);
       };
 
-      // 创建包含翻译信息的双语字幕数据（初始可能没有翻译）
-      const bilingualSubtitles = this.#subtitles.map((sub) => ({
-        start: sub.start,
-        end: sub.end,
-        text: sub.text,
-        translation: sub.translation || "",
-      }));
-
-      // 将双语字幕数据传递给字幕列表
-      this.#subtitleListManager.setBilingualSubtitles(bilingualSubtitles);
       // 启动字幕列表自动滚动
       this.#subtitleListManager.turnOnAutoSub();
     }
@@ -1588,6 +1590,72 @@ class YouTubeCaptionProvider {
     return sentences;
   }
 
+  #cleanTimedText(utf8 = "") {
+    return (
+      String(utf8)
+        .replace(/<[^>]+>/g, "")
+        // 当前异常 timedtext 中实际污染字幕的是 U+200B 零宽空格。
+        // 这里只移除 U+200B，避免误删 U+200C/U+200D 等对部分语言文字成形有意义的字符。
+        .replace(/\u200B/g, "")
+        .trim()
+        .replace(/\s+/g, " ")
+    );
+  }
+
+  #normalizeTimedTextEvents(events = []) {
+    const normalizedEvents = [];
+    let lastVisibleEventKey = "";
+
+    events.forEach((event) => {
+      const { segs = [], tStartMs = 0, dDurationMs = 0 } = event || {};
+
+      // YouTube 会用 aAppend + "\n" 标记原始字幕断行；统计断句模式会读取这个信号，
+      // 因此这类控制事件必须原样保留，不能被“空文本清理”误删。
+      if (event?.aAppend === 1 && segs.length === 1 && segs[0]?.utf8 === "\n") {
+        normalizedEvents.push(event);
+        lastVisibleEventKey = "";
+        return;
+      }
+
+      const normalizedSegs = segs.map((seg) => ({
+        ...seg,
+        utf8: this.#cleanTimedText(seg?.utf8),
+      }));
+      const visibleSegs = normalizedSegs.filter((seg) => seg.utf8);
+
+      // 清洗后没有可见文本的 seg 仍可能携带 tOffsetMs 断点。
+      // 这些断点会被 #genFlatEvents 用来截断前一个可见片段，直接丢弃会让字幕粘连。
+      // 因此这里只清理文本内容，不改变原始 seg 的时间结构。
+      if (!visibleSegs.length) {
+        normalizedEvents.push({
+          ...event,
+          segs: normalizedSegs,
+        });
+        lastVisibleEventKey = "";
+        return;
+      }
+
+      const visibleText = visibleSegs
+        .map((seg) => seg.utf8)
+        .join(" ")
+        .replace(/\s+/g, " ")
+        .trim();
+      const eventKey = `${tStartMs}|${dDurationMs}|${visibleText}`;
+
+      // 部分 json3 timedtext 会把同一字幕用两套 pPenId 样式连续输出两遍。
+      // 去重键只使用时间和可见文本，避免样式层差异污染字幕内容。
+      if (eventKey === lastVisibleEventKey) return;
+
+      normalizedEvents.push({
+        ...event,
+        segs: normalizedSegs,
+      });
+      lastVisibleEventKey = eventKey;
+    });
+
+    return normalizedEvents;
+  }
+
   // 将 YouTube events 格式 of 原始字幕流拍平并规范化为按单词/词组的起始/结束时间的扁平数组
   #genFlatEvents(events = []) {
     const segments = [];
@@ -1595,17 +1663,29 @@ class YouTubeCaptionProvider {
 
     events.forEach(({ segs = [], tStartMs = 0, dDurationMs = 0 }) => {
       segs.forEach(({ utf8 = "", tOffsetMs = 0 }, j) => {
-        const text = utf8
-          .replace(/<[^>]+>/g, "")
-          .trim()
-          .replace(/\s+/g, " ");
+        const text = this.#cleanTimedText(utf8);
         const start = tStartMs + tOffsetMs;
+
+        if (!text) {
+          if (buffer) {
+            if (!buffer.end || buffer.end > start) {
+              buffer.end = start;
+            }
+            if (buffer.end > buffer.start) {
+              segments.push(buffer);
+            }
+            buffer = null;
+          }
+          return;
+        }
 
         if (buffer) {
           if (!buffer.end || buffer.end > start) {
             buffer.end = start;
           }
-          segments.push(buffer);
+          if (buffer.end > buffer.start) {
+            segments.push(buffer);
+          }
           buffer = null;
         }
 
@@ -1621,7 +1701,9 @@ class YouTubeCaptionProvider {
     });
 
     if (buffer) {
-      segments.push(buffer);
+      if (buffer.end > buffer.start) {
+        segments.push(buffer);
+      }
     }
 
     return segments.filter(

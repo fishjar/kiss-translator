@@ -970,6 +970,20 @@ export const I18N = {
     ja: `1. 対象要素の下にある、そのまま保持する必要がある子ノード。 2. CSSセレクタ構文に従ってください。`,
     ko: `1. 대상 요소 아래의 자식 노드 중 그대로 유지해야 하는 노드. 2. CSS 선택자 구문을 따릅니다.`,
   },
+  block_selector: {
+    zh: `块级元素选择器`,
+    en: `Block element selector`,
+    zh_TW: `區塊元素選擇器`,
+    ja: `ブロック要素セレクタ`,
+    ko: `블록 요소 선택자`,
+  },
+  block_selector_helper: {
+    zh: `1、匹配到的元素会被当作块级节点处理。2、遵循CSS选择器语法。`,
+    en: `1. Matched elements will be treated as block nodes. 2. Follow the CSS selector syntax.`,
+    zh_TW: `1. 符合的元素會被當作區塊節點處理。2. 遵循 CSS 選擇器語法。`,
+    ja: `1. 一致した要素はブロックノードとして扱われます。2. CSSセレクタ構文に従ってください。`,
+    ko: `1. 일치하는 요소는 블록 노드로 처리됩니다. 2. CSS 선택자 구문을 따르세요.`,
+  },
   root_selector: {
     zh: `根节点选择器`,
     en: `Root node selector`,
@@ -1282,6 +1296,13 @@ export const I18N = {
     zh_TW: `資料同步介面`,
     ja: `データ同期API`,
     ko: `데이터 동기화 API`,
+  },
+  gist_sync_tip: {
+    zh: `选择 GitHub Gist 时会自动创建私密 Gist。GitHub PAT 需要 Gists 读写权限。`,
+    en: `A secret gist will be created automatically when GitHub Gist is selected. GitHub PAT needs Gists read and write permission.`,
+    zh_TW: `選擇 GitHub Gist 時會自動建立私密 Gist。GitHub PAT 需要 Gists 讀寫權限。`,
+    ja: `GitHub Gist を選択すると Secret Gist が自動作成されます。GitHub PAT には Gists の読み書き権限が必要です。`,
+    ko: `GitHub Gist를 선택하면 비공개 Gist가 자동으로 생성됩니다. GitHub PAT에는 Gists 읽기/쓰기 권한이 필요합니다.`,
   },
   data_sync_user: {
     zh: `数据同步账户`,
@@ -2658,6 +2679,13 @@ export const I18N = {
     zh_TW: `字幕載入通知`,
     ja: `字幕読み込み通知`,
     ko: `자막 로딩 알림`,
+  },
+  hide_subtitle_button: {
+    zh: `隐藏功能按钮`,
+    en: `Hide function button`,
+    zh_TW: `隱藏功能按鈕`,
+    ja: `機能ボタンを非表示`,
+    ko: `기능 버튼 숨기기`,
   },
   subtitle_hover_lookup: {
     zh: `悬停查词`,

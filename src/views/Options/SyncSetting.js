@@ -10,9 +10,11 @@ import LoadingButton from "@mui/lab/LoadingButton";
 import Button from "@mui/material/Button";
 import {
   URL_KISS_WORKER,
+  URL_GITHUB_GIST_TOKEN,
   OPT_SYNCTYPE_ALL,
   OPT_SYNCTYPE_WORKER,
   OPT_SYNCTYPE_WEBDAV,
+  OPT_SYNCTYPE_GIST,
   OPT_SYNCTOKEN_PERFIX,
 } from "../../config";
 import { useState } from "react";
@@ -96,7 +98,10 @@ export default function SyncSetting() {
           return;
         }
 
-        if (updatedConfig.syncUrl) {
+        if (
+          updatedConfig.syncUrl ||
+          updatedConfig.syncType === OPT_SYNCTYPE_GIST
+        ) {
           updateSync({
             syncType: updatedConfig.syncType,
             syncUrl: updatedConfig.syncUrl,
@@ -124,6 +129,7 @@ export default function SyncSetting() {
     syncUser = "",
     syncKey = "",
   } = sync;
+  const isGistSync = syncType === OPT_SYNCTYPE_GIST;
 
   return (
     <Box>
@@ -140,6 +146,13 @@ export default function SyncSetting() {
           value={syncType}
           label={i18n("data_sync_type")}
           onChange={handleChange}
+          helperText={
+            isGistSync && (
+              <Link href={URL_GITHUB_GIST_TOKEN} target="_blank">
+                {i18n("gist_sync_tip")}
+              </Link>
+            )
+          }
         >
           {OPT_SYNCTYPE_ALL.map((item) => (
             <MenuItem key={item} value={item}>
@@ -149,20 +162,22 @@ export default function SyncSetting() {
         </TextField>
 
         {/* 同步接口 URL 终端地址 */}
-        <TextField
-          size="small"
-          label={i18n("data_sync_url")}
-          name="syncUrl"
-          value={syncUrl}
-          onChange={handleChange}
-          helperText={
-            syncType === OPT_SYNCTYPE_WORKER && (
-              <Link href={URL_KISS_WORKER} target="_blank">
-                {i18n("about_sync_api")}
-              </Link>
-            )
-          }
-        />
+        {!isGistSync && (
+          <TextField
+            size="small"
+            label={i18n("data_sync_url")}
+            name="syncUrl"
+            value={syncUrl}
+            onChange={handleChange}
+            helperText={
+              syncType === OPT_SYNCTYPE_WORKER && (
+                <Link href={URL_KISS_WORKER} target="_blank">
+                  {i18n("about_sync_api")}
+                </Link>
+              )
+            }
+          />
+        )}
 
         {/* 仅在 WebDAV 模式下显示的用户名输入框 */}
         {syncType === OPT_SYNCTYPE_WEBDAV && (
@@ -197,7 +212,7 @@ export default function SyncSetting() {
           <LoadingButton
             size="small"
             variant="contained"
-            disabled={!syncUrl || !syncKey || loading}
+            disabled={(!isGistSync && !syncUrl) || !syncKey || loading}
             onClick={handleSyncTest}
             startIcon={<SyncIcon />}
             loading={loading}

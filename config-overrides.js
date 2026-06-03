@@ -128,6 +128,7 @@ const userscriptWebpack = (config, env) => {
 // @connect       workers.dev
 // @connect       github.io
 // @connect       github.com
+// @connect       api.github.com
 // @connect       githubusercontent.com
 // @connect       kiss-translator.rayjar.com
 // @connect       ghproxy.com

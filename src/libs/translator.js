@@ -330,6 +330,7 @@ export class Translator {
   #eventName = ""; // 通信事件名称
   #docInfo = {}; // 网页信息
   #glossary = {}; // AI词典
+  #blockSelectorInvalid = false; // 自定义块级选择器是否已确认无效
   #textClass = {}; // 译文样式class
   #textSheet = ""; // 译文样式字典
   #apisMap = new Map(); // 用于接口快速查找
@@ -445,6 +446,40 @@ export class Translator {
       node?.nodeType === Node.ELEMENT_NODE &&
       node.matches?.(this.#ignoreSelector)
     );
+  }
+
+  #matchesBlockSelector(node) {
+    const selector = this.#rule.blockSelector?.trim();
+    if (
+      !selector ||
+      this.#blockSelectorInvalid ||
+      !Translator.isElement(node)
+    ) {
+      return false;
+    }
+
+    try {
+      return node.matches(selector);
+    } catch (err) {
+      this.#blockSelectorInvalid = true;
+      kissLog("invalid blockSelector", err);
+      return false;
+    }
+  }
+
+  #isBlockNode(node) {
+    if (this.#matchesBlockSelector(node)) return true;
+    return Translator.isBlockNode(node);
+  }
+
+  #hasBlockNode(node) {
+    if (!Translator.isElementOrFragment(node)) return false;
+    for (const child of node.childNodes) {
+      if (this.#isBlockNode(child)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   // 接口参数
@@ -928,7 +963,7 @@ export class Translator {
 
     let current = startNode;
     while (current && current !== document.body) {
-      if (Translator.isBlockNode(current) || this.#observedNodes.has(current)) {
+      if (this.#isBlockNode(current) || this.#observedNodes.has(current)) {
         // 确保找到的容器在我们监控的根节点内
         for (const root of this.#rootNodes) {
           if (root.contains(current)) {
@@ -1061,7 +1096,7 @@ export class Translator {
       return;
     }
 
-    const hasBlock = Translator.hasBlockNode(rootNode);
+    const hasBlock = this.#hasBlockNode(rootNode);
 
     if (hasText || !hasBlock) {
       this.#startObserveNode(rootNode);
@@ -1069,7 +1104,7 @@ export class Translator {
 
     if (hasBlock) {
       for (const child of rootNode.children) {
-        const isBlock = Translator.isBlockNode(child);
+        const isBlock = this.#isBlockNode(child);
         if (!hasText || isBlock) {
           this.#scanNode(child);
         }
@@ -1321,7 +1356,7 @@ export class Translator {
       return true;
     }
 
-    if (this.#rule.autoScan && Translator.isBlockNode(node)) {
+    if (this.#rule.autoScan && this.#isBlockNode(node)) {
       return true;
     }
 
@@ -2342,6 +2377,7 @@ export class Translator {
         this.#rule[key] = newRule[key];
         if (
           key === "autoScan" ||
+          key === "blockSelector" ||
           key === "hasShadowroot" ||
           key === "scanAll" ||
           key === "isPlainText"
@@ -2355,6 +2391,7 @@ export class Translator {
 
     // 配置变更时清空正则缓存
     this.#placeholderCache = null;
+    this.#blockSelectorInvalid = false;
 
     const needsTriggerRescan =
       this.#enabled &&

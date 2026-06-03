@@ -32,24 +32,94 @@ export class YouTubeSubtitleList {
     this.subtitleScrollContainer = null; // 字幕列表的专用独立纵向滚动容器
     this._cachedSubtitleItems = []; // 缓存每一个字幕行 li 节点引用的数组，避免在滚动同步高亮时高频执行 querySelector 带来的重排 (Reflow) 损耗，提升滚动性能
 
-    // --- 状态控制 ---
-    this.loopAutoScroll = null; // 自动同步滚动的轮询定时器 ID
-    this.activeTab = "subtitles"; // 当前处于激活可见状态的 Tab 页签名称 ('subtitles' 或者是 'vocabulary')
-    this._lastActiveIndex = -1; // 上一次被高亮标记的字幕行索引
+    // --- 状态管理 ---
+    this.loopAutoScroll = null; // 自动滚动的定时器 ID
+    this.activeTab = "subtitles"; // 当前激活的 Tab: 'subtitles' 或 'vocabulary'
+    this._lastActiveIndex = -1; // 上一次高亮的字幕索引位置
+    this._virtualHeights = []; // 虚拟列表每一行的缓存高度；未测量行先使用估算值，显示后再用真实高度回写
+    this._virtualOffsets = [0]; // 前缀和偏移表，用于通过 scrollTop 快速定位应该渲染的字幕区间
+    this._virtualStart = -1; // 当前已渲染窗口的起始字幕索引，避免 scroll 事件重复渲染同一段 DOM
+    this._virtualEnd = -1; // 当前已渲染窗口的结束字幕索引（不包含该索引）
+    this._virtualRenderRaf = null; // 虚拟列表渲染的 requestAnimationFrame ID，用于把高频滚动合并到下一帧
+    this._virtualRenderForce = false; // 是否强制重建当前虚拟窗口；数据或高度变化时需要跳过区间相同的短路判断
+    this._estimatedItemHeight = 76; // 字幕行在真实测量前使用的默认高度，保证长列表初始滚动条长度稳定
+    this._subtitleItemGap = 4; // li 的 margin-bottom 需要计入虚拟高度，否则偏移量会随行数累积误差
+    this._virtualTopPadding = 16; // 模拟原 ul 顶部 padding，保持虚拟化前后的视觉留白一致
+    this._virtualBottomPadding = 16; // 模拟原 ul 底部 padding，避免最后一行贴住滚动容器底部
+    this._virtualOverscan = 8; // 视口上下额外预渲染的行数，减少快速滚动时的空白闪烁
+    this._pendingCenterIndex = -1; // 跳转到未测量高度的行后，等真实高度回写再补一次居中
+    this._pendingSubtitleTabScrollIndex = -1; // 字幕 Tab 隐藏期间收到跳转请求时，延后到 Tab 恢复可见后再滚动到目标行
+    this._eventListenersAttached = false;
     this._vocabularyDirty = false; // 惰性重绘标志位：若在生词 Tab 隐藏时收录了生词，先置为 true。当用户切换到生词 Tab 时再按需重绘 DOM，避免隐藏 DOM 的无效绘制开销
     this._chunkRenderCancel = null; // 记录当前分块渲染流程的取消回调函数，用于在重置或卸载时随时中断异步渲染流水线
 
     // --- 交互事件句柄绑定 ---
     this.handleWordAdded = this.handleWordAdded.bind(this);
+    this.handleJumpMessage = this.handleJumpMessage.bind(this);
+    this.handleSubtitleScroll = this.handleSubtitleScroll.bind(this);
+    this.handleContainerMouseEnter = this.handleContainerMouseEnter.bind(this);
+    this.handleContainerMouseLeave = this.handleContainerMouseLeave.bind(this);
+    this.handleVideoEnded = this.handleVideoEnded.bind(this);
+    this.handleVideoPause = this.handleVideoPause.bind(this);
+    this.handleVideoPlay = this.handleVideoPlay.bind(this);
     // 监听在视频字幕上 hover 或划词翻译触发后，弹窗模块向外广播的自定义 "kiss-add-word" 事件
     document.addEventListener("kiss-add-word", this.handleWordAdded);
 
-    // 监听来自扩展侧边栏或主进程发送的跳转播放进度消息
-    window.addEventListener("message", (event) => {
-      if (event.data && event.data.type === "KISS_TRANSLATOR_JUMP_TO_TIME") {
-        this.jumpToTime(event.data.time);
-      }
-    });
+    // 监听来自扩展配置选项页面等第三方发送的消息，用以点击生词时同步跳转视频进度
+    window.addEventListener("message", this.handleJumpMessage);
+  }
+
+  /**
+   * 响应外部页面发送的跳转消息，例如从生词本链接跳回视频对应时间点。
+   * 使用具名 handler 是为了 destroy 时可以准确 removeEventListener，避免匿名函数残留。
+   */
+  handleJumpMessage(event) {
+    if (event.data && event.data.type === "KISS_TRANSLATOR_JUMP_TO_TIME") {
+      this.jumpToTime(event.data.time);
+    }
+  }
+
+  /**
+   * 字幕滚动容器发生滚动时，仅调度下一帧虚拟渲染。
+   * 实际 DOM 重建会被 _scheduleVirtualRender 合并，避免滚动过程中每个事件都同步改 DOM。
+   */
+  handleSubtitleScroll() {
+    this._scheduleVirtualRender();
+  }
+
+  /**
+   * 鼠标进入侧栏时暂停自动跟随，方便用户手动浏览或选择字幕文本。
+   */
+  handleContainerMouseEnter() {
+    this.turnOffAutoSub();
+  }
+
+  /**
+   * 鼠标离开侧栏后恢复自动跟随视频进度。
+   */
+  handleContainerMouseLeave() {
+    this.turnOnAutoSub();
+  }
+
+  /**
+   * 视频播放结束时关闭自动滚动定时器，避免无意义轮询。
+   */
+  handleVideoEnded() {
+    this.turnOffAutoSub();
+  }
+
+  /**
+   * 视频暂停时关闭自动滚动定时器；恢复播放时再由 play 事件重新开启。
+   */
+  handleVideoPause() {
+    this.turnOffAutoSub();
+  }
+
+  /**
+   * 视频开始播放时恢复字幕自动跟随。
+   */
+  handleVideoPlay() {
+    this.turnOnAutoSub();
   }
 
   // ==================================================================================
@@ -92,20 +162,29 @@ export class YouTubeSubtitleList {
   destroy() {
     this.turnOffAutoSub();
     this._cancelChunkRender();
+    this._cancelVirtualRender();
+    this._removeEventListeners();
     document.removeEventListener("kiss-add-word", this.handleWordAdded);
+    window.removeEventListener("message", this.handleJumpMessage);
     if (this.container) {
       this.container.remove();
       this.container = null;
     }
     this.subtitleListEl = null;
     this.vocabularyListEl = null;
+    this.subtitleScrollContainer = null;
+    this.subtitleListUl = null;
     this.bilingualSubtitles = [];
     this._cachedSubtitleItems = [];
+    this._virtualHeights = [];
+    this._virtualOffsets = [0];
+    this._pendingCenterIndex = -1;
+    this._pendingSubtitleTabScrollIndex = -1;
     this.vocabulary = [];
   }
 
   // ==================================================================================
-  // 分块渲染 (Chunk Rendering) 优化层
+  // Chunk / Virtual Rendering: 分块渲染兼容入口与虚拟列表工具方法
   // ==================================================================================
 
   /**
@@ -133,40 +212,247 @@ export class YouTubeSubtitleList {
   }
 
   /**
-   * 核心渲染优化算法：分块渲染 (Chunk Rendering) 字幕列表。
+   * 核心渲染优化算法：虚拟化与分块渲染字幕列表。
    *
    * ASR 自动字幕往往拥有数千行数据，如果一次性渲染几千个复杂的 li 节点，会导致浏览器主线程长任务 (Long Task) 爆表，
-   * 页面出现明显卡顿甚至失去响应。
-   * 本方法将字幕行拆分为每 100 行为一分块 (CHUNK_SIZE)，利用时间切片在主线程空闲帧中分批次挂载，保障了用户交互的平滑顺畅。
+   * 页面出现明显卡顿甚至失去响应。虚拟化后仅初始化虚拟列表状态，并按需渲染当前视口附近的字幕行，保障了用户交互的平滑顺畅。
    *
-   * @param {HTMLUListElement} ul - 待插入字幕行的列表根节点
+   * @param {HTMLUListElement} ul - 字幕列表的 ul 元素
    */
   _renderSubtitlesInChunks(ul) {
-    const CHUNK_SIZE = 100; // 每个时间切片所处理的 DOM 数量
-    const subtitles = this.bilingualSubtitles;
+    this.subtitleListUl = ul;
+    this._resetVirtualMetrics();
+    this._scheduleVirtualRender(true);
+  }
 
-    this._cachedSubtitleItems = []; // 清空缓存容器
+  /**
+   * 重置虚拟列表的高度和窗口缓存。
+   * @param {{ preserveHeights?: boolean }} options preserveHeights 为 true 时尽量沿用旧高度，
+   * 用于翻译文本增量更新后保持滚动位置稳定；全量重建时则重新回到估算高度。
+   */
+  _resetVirtualMetrics({ preserveHeights = false } = {}) {
+    const previousHeights = preserveHeights ? this._virtualHeights : [];
 
-    const renderNextChunk = (startIndex) => {
-      // 竞态及越界判定：如果当前索引已耗尽，或者列表已经被外部销毁，直接终止后续切片调度
-      if (startIndex >= subtitles.length || !this.subtitleListEl) return;
+    this._cachedSubtitleItems = [];
+    this._virtualStart = -1;
+    this._virtualEnd = -1;
+    this._virtualHeights = this.bilingualSubtitles.map(
+      (_, index) => previousHeights[index] || this._estimatedItemHeight
+    );
+    this._rebuildVirtualOffsets();
+  }
 
-      const end = Math.min(startIndex + CHUNK_SIZE, subtitles.length);
-      const fragment = document.createDocumentFragment(); // 使用文档片段减少重绘次数
-      for (let i = startIndex; i < end; i++) {
-        const li = this._createSubtitleListItem(subtitles[i], i);
-        this._cachedSubtitleItems[i] = li; // 缓存节点引用，提速 O(1) 高亮查表
-        fragment.appendChild(li);
+  /**
+   * 根据每行高度缓存重建前缀和偏移表，并同步 ul 的总高度。
+   * 虚拟列表只渲染可见 DOM，但滚动条需要完整列表高度来保持原有滚动体验。
+   */
+  _rebuildVirtualOffsets() {
+    const offsets = [0];
+    let totalHeight = 0;
+
+    for (let i = 0; i < this._virtualHeights.length; i++) {
+      totalHeight += this._virtualHeights[i] || this._estimatedItemHeight;
+      offsets.push(totalHeight);
+    }
+
+    this._virtualOffsets = offsets;
+    if (this.subtitleListUl) {
+      this.subtitleListUl.style.height = `${totalHeight + this._virtualTopPadding + this._virtualBottomPadding}px`;
+    }
+  }
+
+  /**
+   * 调度虚拟列表渲染到下一帧执行。
+   * 多次滚动或数据更新只保留一个 RAF；force 会在合并后继续保留，确保下一帧跳过窗口相同的短路逻辑。
+   * @param {boolean} force 是否强制重建当前可见窗口
+   */
+  _scheduleVirtualRender(force = false) {
+    this._virtualRenderForce = this._virtualRenderForce || force;
+    if (this._virtualRenderRaf) return;
+
+    const schedule =
+      typeof requestAnimationFrame === "function"
+        ? requestAnimationFrame
+        : (callback) => setTimeout(callback, 16);
+
+    this._virtualRenderRaf = schedule(() => {
+      this._virtualRenderRaf = null;
+      const shouldForce = this._virtualRenderForce;
+      this._virtualRenderForce = false;
+      this._renderVirtualSubtitles(shouldForce);
+    });
+  }
+
+  /**
+   * 取消尚未执行的虚拟渲染任务。
+   * 组件销毁或数据源切换时需要清理，防止 RAF 回调在 DOM 被移除后继续访问旧节点。
+   */
+  _cancelVirtualRender() {
+    if (!this._virtualRenderRaf) return;
+
+    if (typeof cancelAnimationFrame === "function") {
+      cancelAnimationFrame(this._virtualRenderRaf);
+    } else {
+      clearTimeout(this._virtualRenderRaf);
+    }
+    this._virtualRenderRaf = null;
+    this._virtualRenderForce = false;
+  }
+
+  /**
+   * 判断字幕列表当前是否处于可见且可测量状态。
+   * 虚拟列表依赖 offsetHeight / clientHeight 计算行高和偏移量；当字幕 Tab 被 display:none 隐藏时，
+   * 浏览器会把子树元素的布局尺寸读成 0，此时如果回写高度缓存，会污染后续滚动定位。
+   * @returns {boolean} 当前字幕 Tab 是否可以安全执行 DOM 测量和滚动计算
+   */
+  _isSubtitleTabVisible() {
+    return (
+      this.activeTab === "subtitles" &&
+      this.subtitleListEl &&
+      this.subtitleScrollContainer &&
+      this.subtitleListEl.style.display !== "none" &&
+      this.subtitleListEl.getClientRects().length > 0
+    );
+  }
+
+  /**
+   * 通过偏移表二分查找某个 scrollTop 所在的字幕索引。
+   * @param {number} offset 滚动容器内相对虚拟列表顶部的像素偏移
+   * @returns {number} 与该偏移最接近的字幕索引；空列表返回 -1
+   */
+  _findIndexByOffset(offset) {
+    const length = this.bilingualSubtitles.length;
+    if (length === 0) return -1;
+
+    let left = 0;
+    let right = length - 1;
+    let best = 0;
+    while (left <= right) {
+      const mid = (left + right) >> 1;
+      if (this._virtualOffsets[mid] <= offset) {
+        best = mid;
+        left = mid + 1;
+      } else {
+        right = mid - 1;
       }
-      ul.appendChild(fragment);
+    }
+    return Math.min(best, length - 1);
+  }
 
-      // 若未渲染完，向浏览器注册调度，在下一次空闲时间点再画下一个 Chunk
-      if (end < subtitles.length && this.subtitleListEl) {
-        this._scheduleIdle(() => renderNextChunk(end));
+  /**
+   * 计算当前滚动视口需要渲染的字幕索引区间。
+   * 会在视口上下加入 overscan，保证快速滚动时目标行提前出现在 DOM 中。
+   * @returns {{ start: number, end: number }} end 为不包含的结束索引
+   */
+  _getVirtualRange() {
+    const container = this.subtitleScrollContainer;
+    const length = this.bilingualSubtitles.length;
+    if (!container || length === 0) {
+      return { start: 0, end: 0 };
+    }
+
+    const viewportTop = Math.max(
+      0,
+      container.scrollTop - this._virtualTopPadding
+    );
+    const viewportBottom = viewportTop + container.clientHeight;
+    const start = Math.max(
+      0,
+      this._findIndexByOffset(viewportTop) - this._virtualOverscan
+    );
+    const end = Math.min(
+      length,
+      this._findIndexByOffset(viewportBottom) + this._virtualOverscan + 1
+    );
+
+    return { start, end };
+  }
+
+  /**
+   * 根据当前滚动位置重建可见字幕 DOM。
+   * @param {boolean} force 为 false 且可见区间未变化时直接返回；为 true 时强制重建以反映数据或高度变化。
+   */
+  _renderVirtualSubtitles(force = false) {
+    if (!this.subtitleListUl || !this.subtitleScrollContainer) return;
+    // 隐藏状态下只更新数据源，不重建和测量 DOM，避免 display:none 导致虚拟高度缓存被 0 值覆盖。
+    if (!this._isSubtitleTabVisible()) return;
+
+    const { start, end } = this._getVirtualRange();
+    if (!force && start === this._virtualStart && end === this._virtualEnd) {
+      return;
+    }
+
+    this._virtualStart = start;
+    this._virtualEnd = end;
+    this._cachedSubtitleItems = [];
+
+    const fragment = document.createDocumentFragment();
+    for (let i = start; i < end; i++) {
+      const li = this._createSubtitleListItem(this.bilingualSubtitles[i], i);
+      li.style.position = "absolute";
+      li.style.left = "0";
+      li.style.right = "0";
+      li.style.top = `${this._virtualTopPadding + this._virtualOffsets[i]}px`;
+      li.style.contain = "layout paint style";
+
+      if (i === this._lastActiveIndex) {
+        li.style.opacity = 1;
+        li.classList.add("active-subtitle");
       }
-    };
 
-    renderNextChunk(0);
+      this._cachedSubtitleItems[i] = li;
+      fragment.appendChild(li);
+    }
+
+    this.subtitleListUl.replaceChildren(fragment);
+    this._measureVisibleSubtitleItems();
+  }
+
+  /**
+   * 测量当前可见字幕行的真实高度，并在高度变化后重建偏移表。
+   * 只测量可见行，避免一次性创建/读取全部字幕 DOM；未显示过的行继续使用估算高度。
+   */
+  _measureVisibleSubtitleItems() {
+    // 只在字幕 Tab 可见时测量真实行高；生词本 Tab 下的字幕列表尺寸不可作为布局依据。
+    if (!this._isSubtitleTabVisible()) return;
+
+    let changed = false;
+
+    for (let i = this._virtualStart; i < this._virtualEnd; i++) {
+      const item = this._cachedSubtitleItems[i];
+      if (!item) continue;
+
+      const measuredHeight = item.offsetHeight + this._subtitleItemGap;
+      if (
+        Number.isFinite(measuredHeight) &&
+        Math.abs((this._virtualHeights[i] || 0) - measuredHeight) > 1
+      ) {
+        this._virtualHeights[i] = measuredHeight;
+        changed = true;
+      }
+    }
+
+    if (!changed) {
+      this._pendingCenterIndex = -1;
+      return;
+    }
+
+    // 仅测量当前可见行；批量测量后统一重建偏移量，
+    // 避免渲染完整列表，同时保持自动滚动定位准确。
+    this._rebuildVirtualOffsets();
+
+    const pendingCenterIndex = this._pendingCenterIndex;
+    this._pendingCenterIndex = -1;
+    if (pendingCenterIndex !== -1) {
+      // 目标行真实高度已写回后，再按最新偏移补一次居中，
+      // 避免跳转后必须等下一次滚动才稳定到列表中间。
+      this._scrollIndexIntoView(pendingCenterIndex, {
+        stabilizeAfterMeasure: false,
+      });
+      return;
+    }
+
+    this._scheduleVirtualRender(true);
   }
 
   // ==================================================================================
@@ -176,10 +462,28 @@ export class YouTubeSubtitleList {
   /**
    * 跳转视频到指定的毫秒进度
    * @param {number} timeMs - 视频绝对播放点时间戳（毫秒）
+   * @param {number|null} exactIndex 已知目标字幕行索引，避免边界时间点命中上一句字幕
    */
-  jumpToTime(timeMs) {
+  jumpToTime(timeMs, exactIndex = null) {
     if (this.videoEl && Number.isFinite(timeMs)) {
       this.videoEl.currentTime = timeMs / 1000;
+      const targetIndex =
+        Number.isInteger(exactIndex) &&
+        exactIndex >= 0 &&
+        exactIndex < this.bilingualSubtitles.length
+          ? exactIndex
+          : this._binarySearchSubtitle(timeMs);
+      if (targetIndex !== -1) {
+        // 跳转触发时立即同步焦点；否则居中会等到下一轮自动滚动轮询。
+        const shouldScroll = this.activeTab === "subtitles";
+        this._setActiveSubtitle(targetIndex, shouldScroll);
+        if (!shouldScroll) {
+          // 生词本 Tab 内点击时间戳时，字幕列表不可见，不能立即滚动；
+          // 先记录目标索引，等用户切回字幕 Tab 后再居中，否则自动滚动会因 _lastActiveIndex 已更新而直接跳过。
+          this._pendingSubtitleTabScrollIndex = targetIndex;
+        }
+      }
+
       // 若视频原先为暂停状态，跳转后自动触发播放
       if (this.videoEl.paused) {
         this.videoEl.play();
@@ -476,9 +780,15 @@ export class YouTubeSubtitleList {
     // 字幕滚动视口容器
     this.subtitleScrollContainer = document.createElement("div");
     this.subtitleScrollContainer.style.cssText = `overflow-y: auto; flex: 1; padding: 0 16px; position: relative;`;
+    this.subtitleScrollContainer.addEventListener(
+      "scroll",
+      this.handleSubtitleScroll,
+      { passive: true }
+    );
 
     const subUl = document.createElement("ul");
-    subUl.style.cssText = `list-style-type: none; padding: 16px 0; margin: 0;`;
+    subUl.style.cssText = `list-style-type: none; padding: 0; margin: 0; position: relative;`;
+    this.subtitleListUl = subUl;
 
     this.subtitleScrollContainer.appendChild(subUl);
     this.subtitleListEl.appendChild(this.subtitleScrollContainer);
@@ -497,6 +807,10 @@ export class YouTubeSubtitleList {
       styleTab(vocabularyTab, false);
       this.subtitleListEl.style.display = "flex";
       this.vocabularyListEl.style.display = "none";
+      // 优先处理隐藏期间记录的跳转目标；没有待滚动目标时，再按当前 scrollTop 正常刷新虚拟窗口。
+      if (!this._scrollPendingSubtitleTabIndex()) {
+        this._scheduleVirtualRender(true);
+      }
     });
     vocabularyTab.addEventListener("click", () => {
       this.activeTab = "vocabulary";
@@ -531,6 +845,7 @@ export class YouTubeSubtitleList {
     const li = document.createElement("li");
     li.id = `kiss-youtube-item-${index}`;
     li.className = "kiss-youtube-item";
+    li.dataset.index = index;
     li.dataset.time = sub.start;
     li.style.cssText = `cursor: pointer; padding: 12px 16px; border-bottom: 1px solid var(--kt-divider); transition: opacity 0.2s ease; opacity: 0.6; border-radius: 6px; margin-bottom: 4px; display: flex; align-items: flex-start;`;
 
@@ -555,8 +870,8 @@ export class YouTubeSubtitleList {
     translationEl.style.display = sub.translation ? "block" : "none";
     translationEl.style.cssText = `color: var(--kt-subtext); font-size: 13px; line-height: 1.4; font-style: italic; min-height: 18px;`;
 
-    // 动作绑定：点击字幕整行，直接同步将视频进度拉至字幕开始时间轴
-    li.addEventListener("click", () => this.jumpToTime(sub.start));
+    // 动作绑定：点击字幕整行，直接同步将视频进度拉至字幕开始时间轴，带有字幕索引避免边界时间偏差
+    li.addEventListener("click", () => this.jumpToTime(sub.start, index));
     li.addEventListener("mouseenter", () => {
       if (!li.classList.contains("active-subtitle")) li.style.opacity = 1;
     });
@@ -568,47 +883,23 @@ export class YouTubeSubtitleList {
     textContainer.appendChild(translationEl);
     li.appendChild(timeSpan);
     li.appendChild(textContainer);
+    // 缓存译文节点引用，增量更新当前可见行时避免每次 querySelector。
+    li._translationEl = translationEl;
 
     return li;
   }
 
   /**
    * 差异增量更新字幕列表：
-   * 针对流式加载或 AI 后续批次翻译返回的数据块进行增量挂载，避开低效的全量 DOM 清理重建。
+   * 针对流式加载或 AI 后续批次翻译返回的数据块进行增量更新。
+   * 虚拟列表不再直接追加 DOM；这里重置高度/偏移缓存并强制重绘当前窗口，
+   * 让新增字幕和翻译后的高度变化统一通过虚拟渲染流程处理，避开低效的全量 DOM 清理重建。
    */
   updateBilingualSubtitles() {
     if (!this.subtitleListEl) return;
 
-    if (this.bilingualSubtitles.length > this._cachedSubtitleItems.length) {
-      // 1. 增量追加模式：数据量变多，说明有后续 AI 翻译块返回，仅对超出缓存数量的新增节点进行渲染并追加到末尾
-      this._cancelChunkRender();
-      const ul = this.subtitleListEl.querySelector("ul");
-      if (ul) {
-        const fragment = document.createDocumentFragment();
-        for (
-          let i = this._cachedSubtitleItems.length;
-          i < this.bilingualSubtitles.length;
-          i++
-        ) {
-          const sub = this.bilingualSubtitles[i];
-          const li = this._createSubtitleListItem(sub, i);
-          this._cachedSubtitleItems.push(li);
-          fragment.appendChild(li);
-        }
-        ul.appendChild(fragment);
-      }
-    } else if (
-      this.bilingualSubtitles.length < this._cachedSubtitleItems.length
-    ) {
-      // 2. 全量重设模式：数据量变少，说明切换了语言或者分句方式发生了根本变化。此时清空所有节点并开启新分块任务
-      const ul = this.subtitleListEl.querySelector("ul");
-      if (ul) {
-        this._cancelChunkRender();
-        ul.replaceChildren();
-        this._renderSubtitlesInChunks(ul);
-      }
-      return;
-    }
+    this._resetVirtualMetrics({ preserveHeights: true });
+    this._scheduleVirtualRender(true);
   }
 
   /**
@@ -619,37 +910,50 @@ export class YouTubeSubtitleList {
    * @param {object} subtitleUpdate - 含有 { start, translation } 的更新分片数据
    */
   updateSingleSubtitle(subtitleUpdate) {
-    if (!this.subtitleListEl || !this._cachedSubtitleItems.length) return;
+    if (!this.subtitleListEl) return;
 
     const { start, translation } = subtitleUpdate;
     // 对有序的双语字幕数组进行二分精确匹配
-    let left = 0,
-      right = this.bilingualSubtitles.length - 1;
-    let targetIndex = -1;
-    while (left <= right) {
-      const mid = Math.floor((left + right) / 2);
-      const sub = this.bilingualSubtitles[mid];
-      if (sub.start === start) {
-        targetIndex = mid;
-        break;
-      } else if (sub.start > start) right = mid - 1;
-      else left = mid + 1;
-    }
+    const targetIndex = this._findSubtitleIndexByStart(start);
 
     if (targetIndex === -1) return;
 
     // 修改本地缓存数据
     this.bilingualSubtitles[targetIndex].translation = translation;
 
-    // 获取缓存的 li 节点引用，进行局部修改
+    // 获取缓存的 li 节点引用进行局部修改，只更新当前可见行；不可见字幕稍后会根据数据源重新渲染。
     const item = this._cachedSubtitleItems[targetIndex];
     if (item) {
-      const translationEl = item.querySelector(".kiss-youtube-translation");
+      const translationEl =
+        item._translationEl || item.querySelector(".kiss-youtube-translation");
       if (translationEl) {
         translationEl.textContent = translation || "";
         translationEl.style.display = translation ? "block" : "none";
+        // 译文展示状态会改变行高，调度一次强制渲染以便重新测量可见行。
+        this._scheduleVirtualRender(true);
       }
     }
+  }
+
+  /**
+   * 根据字幕开始时间定位字幕索引。
+   * 翻译更新事件只携带 start 时间；字幕数组按 start 升序排列，因此这里用二分查找避免线性扫描。
+   * @param {number} start 字幕开始时间（毫秒）
+   * @returns {number} 匹配的字幕索引，未找到返回 -1
+   */
+  _findSubtitleIndexByStart(start) {
+    let left = 0;
+    let right = this.bilingualSubtitles.length - 1;
+
+    while (left <= right) {
+      const mid = Math.floor((left + right) / 2);
+      const sub = this.bilingualSubtitles[mid];
+      if (sub.start === start) return mid;
+      if (sub.start > start) right = mid - 1;
+      else left = mid + 1;
+    }
+
+    return -1;
   }
 
   // ==================================================================================
@@ -969,16 +1273,55 @@ export class YouTubeSubtitleList {
    */
   setupEventListeners() {
     if (!this.container || !this.videoEl) return;
+    if (this._eventListenersAttached) return;
 
-    // 鼠标划入字幕列表面板时，注销同步滚动定时器。允许用户自由用鼠标选词、划词查义或回滚浏览；
-    // 鼠标移出面板时，重新激活滚动，保证视觉焦点重回当前视频播放进度。
-    this.container.addEventListener("mouseenter", () => this.turnOffAutoSub());
-    this.container.addEventListener("mouseleave", () => this.turnOnAutoSub());
+    // 鼠标悬浮于侧边字幕面板时停止自动随视频播放滚动，方便用户进行鼠标选词或手动滑动浏览，鼠标移出时恢复自动滚动高亮，提升用户体验
+    this.container.addEventListener(
+      "mouseenter",
+      this.handleContainerMouseEnter
+    );
+    this.container.addEventListener(
+      "mouseleave",
+      this.handleContainerMouseLeave
+    );
 
-    // 与视频的暂停、播放、结束等生命周期动作绑定联动
-    this.videoEl.addEventListener("ended", () => this.turnOffAutoSub());
-    this.videoEl.addEventListener("pause", () => this.turnOffAutoSub());
-    this.videoEl.addEventListener("play", () => this.turnOnAutoSub());
+    // 视频事件联动：视频结束或暂停时停止定时器，视频开始播放时开启同步定时器
+    this.videoEl.addEventListener("ended", this.handleVideoEnded);
+    this.videoEl.addEventListener("pause", this.handleVideoPause);
+    this.videoEl.addEventListener("play", this.handleVideoPlay);
+    this._eventListenersAttached = true;
+  }
+
+  /**
+   * 解绑当前实例挂载的所有 DOM / video 事件。
+   * 与 setupEventListeners 中的具名 handler 一一对应，确保切换视频或销毁侧栏时不会重复监听。
+   */
+  _removeEventListeners() {
+    if (this.subtitleScrollContainer) {
+      this.subtitleScrollContainer.removeEventListener(
+        "scroll",
+        this.handleSubtitleScroll
+      );
+    }
+
+    if (this.container) {
+      this.container.removeEventListener(
+        "mouseenter",
+        this.handleContainerMouseEnter
+      );
+      this.container.removeEventListener(
+        "mouseleave",
+        this.handleContainerMouseLeave
+      );
+    }
+
+    if (this.videoEl) {
+      this.videoEl.removeEventListener("ended", this.handleVideoEnded);
+      this.videoEl.removeEventListener("pause", this.handleVideoPause);
+      this.videoEl.removeEventListener("play", this.handleVideoPlay);
+    }
+
+    this._eventListenersAttached = false;
   }
 
   /**
@@ -1003,42 +1346,87 @@ export class YouTubeSubtitleList {
       // 缓存对比：若当前行索引并未发生变动，直接返回，避免无谓的 DOM 改写与滚动行为
       if (this._lastActiveIndex === currentIndex) return;
 
-      if (
-        this.subtitleListEl &&
-        currentIndex !== -1 &&
-        this._cachedSubtitleItems[currentIndex]
-      ) {
-        // 清理上一次高亮字幕行的样式
-        if (
-          this._lastActiveIndex !== -1 &&
-          this._cachedSubtitleItems[this._lastActiveIndex]
-        ) {
-          const lastEl = this._cachedSubtitleItems[this._lastActiveIndex];
-          lastEl.style.opacity = 0.6;
-          lastEl.classList.remove("active-subtitle");
-        }
-
-        // 高亮当前字幕行，并设置粗体字
-        const currentEl = this._cachedSubtitleItems[currentIndex];
-        currentEl.style.opacity = 1;
-        currentEl.classList.add("active-subtitle");
-        this._lastActiveIndex = currentIndex;
-
-        // 计算当前高亮行在滚动面板中的垂直位置，并将字幕行居中显示
-        const container = this.subtitleScrollContainer;
-        if (container) {
-          const elementTop = currentEl.offsetTop;
-          const containerHeight = container.clientHeight;
-          const elementHeight = currentEl.clientHeight;
-
-          // 使用 'auto' 进行即时位置定位，不用 smooth 是为了防止高频微小的跳转重叠造成滚动抖动卡顿
-          container.scrollTo({
-            top: elementTop - containerHeight / 2 + elementHeight / 2,
-            behavior: "auto",
-          });
-        }
-      }
+      this._setActiveSubtitle(currentIndex, true);
     }, 200);
+  }
+
+  /**
+   * 更新当前高亮字幕索引，并按需将目标行滚动到可见区域中间。
+   * 虚拟列表中目标 DOM 可能尚未渲染，因此滚动使用偏移缓存而不是直接依赖 DOM 节点。
+   * @param {number} index 需要高亮的字幕索引
+   * @param {boolean} shouldScroll 是否同步滚动到目标行
+   */
+  _setActiveSubtitle(index, shouldScroll = false) {
+    const previousIndex = this._lastActiveIndex;
+    this._lastActiveIndex = index;
+
+    this._updateSubtitleItemActive(previousIndex, false);
+    this._updateSubtitleItemActive(index, true);
+
+    if (shouldScroll && index !== -1) {
+      this._scrollIndexIntoView(index);
+    }
+  }
+
+  /**
+   * 更新某个可见字幕 DOM 的高亮状态。
+   * 离屏行没有对应 DOM，稍后进入虚拟窗口时会在 _renderVirtualSubtitles 中根据 _lastActiveIndex 恢复状态。
+   * @param {number} index 字幕索引
+   * @param {boolean} isActive 是否设置为高亮状态
+   */
+  _updateSubtitleItemActive(index, isActive) {
+    if (index === -1) return;
+
+    const item = this._cachedSubtitleItems[index];
+    if (!item) return;
+
+    item.style.opacity = isActive ? 1 : 0.6;
+    item.classList.toggle("active-subtitle", isActive);
+  }
+
+  /**
+   * 消费隐藏字幕 Tab 期间记录的待滚动目标。
+   * @returns {boolean} 是否成功处理了待滚动目标；返回 false 时调用方可执行普通虚拟窗口刷新。
+   */
+  _scrollPendingSubtitleTabIndex() {
+    const index = this._pendingSubtitleTabScrollIndex;
+    if (index === -1 || !this._isSubtitleTabVisible()) return false;
+
+    // 只有确认字幕 Tab 已经恢复布局后才消费 pending，避免刚切换时布局尚未完成导致目标索引丢失。
+    this._pendingSubtitleTabScrollIndex = -1;
+    this._scrollIndexIntoView(index);
+    return true;
+  }
+
+  /**
+   * 根据虚拟偏移缓存把指定字幕行滚动到容器中间。
+   * 如果目标行刚被渲染且真实高度发生变化，会通过 _pendingCenterIndex 在测量后再补一次居中。
+   * @param {number} index 目标字幕索引
+   * @param {{ stabilizeAfterMeasure?: boolean }} options 是否在测量后补偿一次居中
+   */
+  _scrollIndexIntoView(index, { stabilizeAfterMeasure = true } = {}) {
+    const container = this.subtitleScrollContainer;
+    if (!container || index < 0 || index >= this.bilingualSubtitles.length) {
+      return;
+    }
+
+    if (!this._isSubtitleTabVisible()) {
+      // 外部消息或生词本时间戳可能在字幕 Tab 隐藏时触发跳转；
+      // 此时保存目标行，等列表可见后再用真实容器高度计算居中位置。
+      this._pendingSubtitleTabScrollIndex = index;
+      return;
+    }
+
+    if (stabilizeAfterMeasure) {
+      this._pendingCenterIndex = index;
+    }
+
+    const itemTop = this._virtualTopPadding + this._virtualOffsets[index];
+    const itemHeight = this._virtualHeights[index] || this._estimatedItemHeight;
+    const targetTop = itemTop - container.clientHeight / 2 + itemHeight / 2;
+
+    container.scrollTop = Math.max(0, targetTop);
+    this._scheduleVirtualRender(true);
   }
 
   /**
@@ -1053,7 +1441,8 @@ export class YouTubeSubtitleList {
       const mid = Math.floor((left + right) / 2);
       const sub = this.bilingualSubtitles[mid];
 
-      if (timeMs >= sub.start && timeMs <= sub.end) {
+      const isLastSubtitle = mid === this.bilingualSubtitles.length - 1;
+      if (timeMs >= sub.start && (timeMs < sub.end || isLastSubtitle)) {
         return mid; // 精确匹配该时间范围
       } else if (timeMs < sub.start) {
         right = mid - 1;
