@@ -30,7 +30,7 @@ export const fetchGM = async (
       url: input,
       headers,
       data: body,
-      // withCredentials: true,
+      anonymous: true,
       timeout,
       onload: ({ response, responseHeaders, status, statusText }) => {
         const headers = {};
@@ -199,6 +199,7 @@ async function* fetchStreamGM(
     url: input,
     headers,
     data: body,
+    anonymous: true,
     timeout,
     responseType: "stream",
     onloadstart: async ({ response }) => {
