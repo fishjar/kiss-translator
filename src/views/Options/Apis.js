@@ -1,4 +1,11 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  useLayoutEffect,
+  useRef,
+} from "react";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import CodeField from "./CodeField";
@@ -116,22 +123,30 @@ function TestButton({ api }) {
 function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
   const { api, update, reset } = useApiItem(apiSlug);
   const i18n = useI18n();
-  const [formData, setFormData] = useState({});
-  const [isModified, setIsModified] = useState(false);
+  const [formData, setFormData] = useState(() => api || {});
   const [showMore, setShowMore] = useState(false);
   const confirm = useConfirm();
 
-  useEffect(() => {
-    if (api) {
-      setFormData(api);
-    }
+  useLayoutEffect(() => {
+    setFormData(api || {});
   }, [api]);
 
-  useEffect(() => {
-    if (!api) return;
-    const hasChanged = JSON.stringify(api) !== JSON.stringify(formData);
-    setIsModified(hasChanged);
-  }, [api, formData]);
+  useLayoutEffect(() => {
+    setShowMore(false);
+  }, [apiSlug]);
+
+  const activeFormData = useMemo(
+    () => (formData?.apiSlug === apiSlug ? formData : api || {}),
+    [api, apiSlug, formData]
+  );
+
+  const isModified = useMemo(() => {
+    if (!api || activeFormData?.apiSlug !== apiSlug) {
+      return false;
+    }
+
+    return JSON.stringify(api) !== JSON.stringify(activeFormData);
+  }, [api, apiSlug, activeFormData]);
 
   const handleChange = (e) => {
     e?.preventDefault();
@@ -142,8 +157,9 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
     }
 
     setFormData((prevData) => {
+      const baseData = prevData?.apiSlug === apiSlug ? prevData : api || {};
       const newData = {
-        ...prevData,
+        ...baseData,
         [name]: value,
       };
 
@@ -178,8 +194,8 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
   };
 
   const handleSave = () => {
-    update(formData);
-    if (formData.isDisabled || formData.sortOrder === -1) {
+    update(activeFormData);
+    if (activeFormData.isDisabled || activeFormData.sortOrder === -1) {
       onCollapse?.();
     }
   };
@@ -189,7 +205,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
   };
 
   const handleCopy = () => {
-    copyApi(formData);
+    copyApi(activeFormData);
   };
 
   const handleDelete = async () => {
@@ -245,7 +261,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
     aiTerms = "",
     thinkingMode = "auto",
     thinkingEffort = "_default",
-  } = formData;
+  } = activeFormData;
 
   const thinkingParam = THINKING_PARAM_MAP[apiType];
 
@@ -490,7 +506,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
         </>
       )}
 
-      {API_SPE_TYPES.batch.has(api.apiType) && (
+      {API_SPE_TYPES.batch.has(apiType) && (
         <Box>
           <Grid container spacing={2} columns={12}>
             <Grid item xs={12} sm={12} md={6} lg={3}>
@@ -552,7 +568,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
 
       <Box>
         <Grid container spacing={2} columns={12}>
-          {API_SPE_TYPES.stream.has(api.apiType) && useBatchFetch && (
+          {API_SPE_TYPES.stream.has(apiType) && useBatchFetch && (
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
@@ -569,31 +585,29 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
             </Grid>
           )}
 
-          {API_SPE_TYPES.stream.has(api.apiType) &&
-            useBatchFetch &&
-            useStream && (
-              <Grid item xs={12} sm={12} md={6} lg={3}>
-                <TextField
-                  select
-                  fullWidth
-                  size="small"
-                  name="streamRenderMode"
-                  value={streamRenderMode}
-                  label={i18n("stream_render_mode")}
-                  onChange={handleChange}
-                >
-                  <MenuItem value="disabled">{i18n("disable")}</MenuItem>
-                  <MenuItem value="realtime">
-                    {i18n("stream_render_realtime")}
-                  </MenuItem>
-                  <MenuItem value="segment">
-                    {i18n("stream_render_segment")}
-                  </MenuItem>
-                </TextField>
-              </Grid>
-            )}
+          {API_SPE_TYPES.stream.has(apiType) && useBatchFetch && useStream && (
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                name="streamRenderMode"
+                value={streamRenderMode}
+                label={i18n("stream_render_mode")}
+                onChange={handleChange}
+              >
+                <MenuItem value="disabled">{i18n("disable")}</MenuItem>
+                <MenuItem value="realtime">
+                  {i18n("stream_render_realtime")}
+                </MenuItem>
+                <MenuItem value="segment">
+                  {i18n("stream_render_segment")}
+                </MenuItem>
+              </TextField>
+            </Grid>
+          )}
 
-          {API_SPE_TYPES.context.has(api.apiType) && (
+          {API_SPE_TYPES.context.has(apiType) && (
             <>
               <Grid item xs={12} sm={12} md={6} lg={3}>
                 {" "}
@@ -954,7 +968,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
         >
           {i18n("save")}
         </Button>
-        <TestButton api={formData} />
+        <TestButton api={activeFormData} />
         <Button size="small" variant="outlined" onClick={handleReset}>
           {i18n("restore_default")}
         </Button>
@@ -989,7 +1003,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
               checked={sortOrder === -1}
               onChange={(e) => {
                 setFormData((prev) => ({
-                  ...prev,
+                  ...(prev?.apiSlug === apiSlug ? prev : api || {}),
                   sortOrder: e.target.checked ? -1 : 0,
                 }));
               }}
@@ -1078,6 +1092,7 @@ export default function Apis() {
   const [selectedApiSlug, setSelectedApiSlug] = useState("");
   const [draggingApiSlug, setDraggingApiSlug] = useState("");
   const [dragOverApiSlug, setDragOverApiSlug] = useState("");
+  const detailPanelRef = useRef(null);
 
   const apiTypes = useMemo(
     () =>
@@ -1112,6 +1127,10 @@ export default function Apis() {
     () => apiItems.find(({ api }) => api.apiSlug === selectedApiSlug),
     [apiItems, selectedApiSlug]
   );
+
+  useLayoutEffect(() => {
+    detailPanelRef.current?.scrollTo({ top: 0 });
+  }, [selectedApiSlug]);
 
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
@@ -1278,10 +1297,22 @@ export default function Apis() {
               ))}
             </List>
           </Box>
-          <Box sx={{ flex: 1, minWidth: 0, p: 2 }}>
+          <Box
+            ref={detailPanelRef}
+            sx={{
+              flex: 1,
+              minWidth: 0,
+              p: 2,
+              boxSizing: "border-box",
+              height: { md: "calc(100vh - 230px)" },
+              overflowY: { md: "auto" },
+              scrollbarGutter: { md: "stable" },
+              overscrollBehavior: "contain",
+            }}
+          >
             {selectedApiItem && (
               <ApiFields
-                key={`${detailKey}-${selectedApiItem.api.apiSlug}`}
+                key={detailKey}
                 apiSlug={selectedApiItem.api.apiSlug}
                 deleteApi={deleteApi}
                 copyApi={copyApi}
