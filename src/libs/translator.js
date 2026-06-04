@@ -14,6 +14,7 @@ import {
   OPT_SPLIT_PARAGRAPH_TEXTLENGTH,
   MSG_INJECT_CSS,
   MSG_UPDATE_ICON,
+  newI18n,
 } from "../config";
 import { interpreter } from "./interpreter";
 import { clearFetchPool } from "./pool";
@@ -1405,6 +1406,154 @@ export class Translator {
     return false;
   }
 
+  // 将不同来源的异常统一转成可展示、可复制的纯文本错误信息
+  #formatTranslateError(error) {
+    if (error instanceof Error) {
+      return error.stack || error.message || error.name || String(error);
+    }
+
+    if (typeof error === "string") {
+      return error;
+    }
+
+    try {
+      const jsonText = JSON.stringify(error);
+      return jsonText || String(error);
+    } catch (_) {
+      return String(error);
+    }
+  }
+
+  // 将文本写入剪贴板；当 Clipboard API 不可用时，回退到临时文本框复制
+  async #copyText(text) {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "");
+    textarea.style.cssText =
+      "position: fixed; left: -9999px; top: 0; opacity: 0;";
+
+    document.body.appendChild(textarea);
+    try {
+      textarea.focus();
+      textarea.select();
+      document.execCommand("copy");
+    } finally {
+      textarea.remove();
+    }
+  }
+
+  // 创建带错误信息浮层的重试按钮，浮层内支持直接复制错误内容
+  #createRetryErrorNode(errorText, onRetry) {
+    const i18n = newI18n(this.#setting.uiLang || "zh");
+    const copyText = i18n("copy") || "Copy";
+
+    const container = document.createElement("span");
+    container.style.cssText =
+      "position: relative; display: inline-flex; align-items: center; vertical-align: middle;";
+
+    const retryIcon = createRetrySVG();
+    retryIcon.classList.add(Translator.KISS_CLASS.retry);
+    retryIcon.setAttribute("role", "button");
+    retryIcon.setAttribute("tabindex", "0");
+    retryIcon.addEventListener("click", (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      onRetry();
+    });
+    retryIcon.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      e.stopPropagation();
+      e.preventDefault();
+      onRetry();
+    });
+
+    const panel = document.createElement("span");
+    panel.style.cssText = [
+      "position: absolute",
+      "left: 0",
+      "top: 1.4em",
+      "z-index: 2147483647",
+      "display: none",
+      "box-sizing: border-box",
+      "width: max-content",
+      "max-width: min(420px, 80vw)",
+      "max-height: 240px",
+      "overflow: auto",
+      "padding: 8px",
+      "border: 1px solid rgba(244, 67, 54, 0.45)",
+      "border-radius: 4px",
+      "background: #fff",
+      "color: #b71c1c",
+      "box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18)",
+      "font-size: 12px",
+      "line-height: 1.5",
+      "font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+      "white-space: pre-wrap",
+      "overflow-wrap: anywhere",
+      "user-select: text",
+    ].join("; ");
+
+    const message = document.createElement("span");
+    message.textContent = errorText;
+
+    const copyButton = document.createElement("button");
+    copyButton.type = "button";
+    copyButton.textContent = copyText;
+    copyButton.style.cssText = [
+      "display: block",
+      "margin-top: 6px",
+      "padding: 2px 6px",
+      "border: 1px solid rgba(244, 67, 54, 0.35)",
+      "border-radius: 4px",
+      "background: rgba(244, 67, 54, 0.08)",
+      "color: #b71c1c",
+      "font-size: 12px",
+      "line-height: 1.4",
+      "cursor: pointer",
+    ].join("; ");
+    copyButton.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+
+      try {
+        await this.#copyText(errorText);
+        copyButton.textContent = "OK";
+        setTimeout(() => {
+          copyButton.textContent = copyText;
+        }, 800);
+      } catch (copyErr) {
+        kissLog("copy translate error: ", this.#formatTranslateError(copyErr));
+      }
+    });
+
+    const showPanel = () => {
+      panel.style.display = "block";
+    };
+    const hidePanel = () => {
+      panel.style.display = "none";
+    };
+
+    container.addEventListener("mouseenter", showPanel);
+    container.addEventListener("mouseleave", hidePanel);
+    container.addEventListener("focusin", showPanel);
+    container.addEventListener("focusout", (e) => {
+      if (container.contains(e.relatedTarget)) return;
+      hidePanel();
+    });
+
+    panel.appendChild(message);
+    panel.appendChild(copyButton);
+    container.appendChild(retryIcon);
+    container.appendChild(panel);
+
+    return container;
+  }
+
   // 翻译内联节点
   async #translateNodeGroup(nodes, hostNode, deLang) {
     const {
@@ -1608,8 +1757,9 @@ export class Translator {
         }
       }
     } catch (err) {
-      kissLog("translate group error: ", err.message);
-      if (err.message === "Request terminated") {
+      const errorText = this.#formatTranslateError(err);
+      kissLog("translate group error: ", errorText);
+      if (err?.message === "Request terminated") {
         this.#cleanupDirectTranslations(hostNode);
         return;
       }
@@ -1625,18 +1775,14 @@ export class Translator {
           );
           if (inner) {
             inner.textContent = "";
-            const retryIcon = createRetrySVG();
-            retryIcon.classList.add(Translator.KISS_CLASS.retry);
-            retryIcon.addEventListener("click", (e) => {
-              e.stopPropagation();
-              e.preventDefault();
+            const retryNode = this.#createRetryErrorNode(errorText, () => {
               this.#withViewportAnchor(() => {
                 wrapper.remove();
               });
               this.#processedNodes.delete(hostNode);
               this.#translateNodeGroup(nodes, hostNode, deLang);
             });
-            inner.appendChild(retryIcon);
+            inner.appendChild(retryNode);
           }
         }
       } catch (retryErr) {
