@@ -140,7 +140,7 @@ function getApiIconSrc(apiType) {
   return `${process.env.PUBLIC_URL || ""}/api/${iconFile}`;
 }
 
-function ApiProviderIcon({ apiType, disabled = false, sx = {} }) {
+function ApiProviderIcon({ apiType, sx = {} }) {
   const iconSrc = getApiIconSrc(apiType);
 
   return (
@@ -152,7 +152,10 @@ function ApiProviderIcon({ apiType, disabled = false, sx = {} }) {
         width: API_ICON_SIZE,
         height: API_ICON_SIZE,
         flex: "0 0 auto",
-        opacity: disabled ? 0.5 : 1,
+        opacity: 1,
+        background: "#fff",
+        borderRadius: "50%",
+        overflow: "hidden",
         ...sx,
       }}
     >
@@ -1227,7 +1230,7 @@ function ApiListItem({
             <DragIndicatorIcon fontSize="small" />
           </Box>
         </Tooltip>
-        <ApiProviderIcon apiType={api.apiType} disabled={api.isDisabled} />
+        <ApiProviderIcon apiType={api.apiType} />
         <Typography
           sx={{
             minWidth: 0,
