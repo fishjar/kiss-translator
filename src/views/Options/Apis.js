@@ -162,12 +162,17 @@ function ApiProviderIcon({ apiType, disabled = false, sx = {} }) {
           src={iconSrc}
           alt=""
           aria-hidden="true"
-          sx={{
+          sx={(theme) => ({
             width: API_ICON_SIZE,
             height: API_ICON_SIZE,
             objectFit: "contain",
             display: "block",
-          }}
+            filter:
+              theme.palette.mode === "dark" &&
+              API_SPE_TYPES.darkIcon.has(apiType)
+                ? "invert(100%)"
+                : "none",
+          })}
         />
       ) : (
         <ApiIcon fontSize="small" color="action" />
