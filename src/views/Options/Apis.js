@@ -27,6 +27,7 @@ import Tooltip from "@mui/material/Tooltip";
 import Grid from "@mui/material/Grid";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
+import ApiIcon from "@mui/icons-material/Api";
 import Link from "@mui/material/Link";
 import { useAlert } from "../../hooks/Alert";
 import { useApiList, useApiItem } from "../../hooks/Api";
@@ -41,6 +42,27 @@ import {
   OPT_TRANS_CUSTOMIZE,
   OPT_TRANS_EPHONEAI,
   OPT_TRANS_BUILTINAI,
+  OPT_TRANS_GOOGLE,
+  OPT_TRANS_GOOGLE_2,
+  OPT_TRANS_MICROSOFT,
+  OPT_TRANS_DEEPSEEK,
+  OPT_TRANS_SILICONFLOW,
+  OPT_TRANS_XIAOMIMIMO,
+  OPT_TRANS_ALIYUNBAILIAN,
+  OPT_TRANS_CEREBRAS,
+  OPT_TRANS_ZAI,
+  OPT_TRANS_DEEPL,
+  OPT_TRANS_DEEPLFREE,
+  OPT_TRANS_BAIDU,
+  OPT_TRANS_TENCENT,
+  OPT_TRANS_VOLCENGINE,
+  OPT_TRANS_OPENAI,
+  OPT_TRANS_GEMINI,
+  OPT_TRANS_GEMINI_2,
+  OPT_TRANS_CLAUDE,
+  OPT_TRANS_CLOUDFLAREAI,
+  OPT_TRANS_OLLAMA,
+  OPT_TRANS_OPENROUTER,
   DEFAULT_FETCH_LIMIT,
   DEFAULT_FETCH_INTERVAL,
   DEFAULT_HTTP_TIMEOUT,
@@ -62,6 +84,83 @@ import {
   THINKING_PARAM_MAP,
 } from "../../config";
 import ValidationInput from "../../hooks/ValidationInput";
+
+const API_ICON_SIZE = 22;
+
+// Keep icon paths tied to apiType because apiName is user editable.
+const API_ICON_FILES = {
+  [OPT_TRANS_BUILTINAI]: "BuiltinAI.svg",
+  [OPT_TRANS_GOOGLE]: "Google.svg",
+  [OPT_TRANS_GOOGLE_2]: "Google.svg",
+  [OPT_TRANS_MICROSOFT]: "Microsoft.svg",
+  [OPT_TRANS_AZUREAI]: "AzureAI.svg",
+  [OPT_TRANS_DEEPSEEK]: "DeepSeek.svg",
+  [OPT_TRANS_SILICONFLOW]: "SiliconFlow.svg",
+  [OPT_TRANS_XIAOMIMIMO]: "XiaomiMimo.svg",
+  [OPT_TRANS_ALIYUNBAILIAN]: "AliyunBailian.svg",
+  [OPT_TRANS_CEREBRAS]: "Cerebras.svg",
+  [OPT_TRANS_ZAI]: "Zai.svg",
+  [OPT_TRANS_DEEPL]: "DeepL.svg",
+  [OPT_TRANS_DEEPLFREE]: "DeepL.svg",
+  [OPT_TRANS_DEEPLX]: "DeepL.svg",
+  [OPT_TRANS_BAIDU]: "Baidu.svg",
+  [OPT_TRANS_TENCENT]: "Tencent.svg",
+  [OPT_TRANS_VOLCENGINE]: "Volcengine.svg",
+  [OPT_TRANS_EPHONEAI]: "ePhoneAI.png",
+  [OPT_TRANS_OPENAI]: "OpenAI.svg",
+  [OPT_TRANS_GEMINI]: "Gemini.svg",
+  [OPT_TRANS_GEMINI_2]: "Gemini.svg",
+  [OPT_TRANS_CLAUDE]: "Claude.svg",
+  [OPT_TRANS_CLOUDFLAREAI]: "CloudflareAI.svg",
+  [OPT_TRANS_OLLAMA]: "Ollama.svg",
+  [OPT_TRANS_OPENROUTER]: "OpenRouter.svg",
+};
+
+function getApiIconSrc(apiType) {
+  const iconFile = API_ICON_FILES[apiType];
+
+  if (!iconFile) {
+    return "";
+  }
+
+  return `${process.env.PUBLIC_URL || ""}/api/${iconFile}`;
+}
+
+function ApiProviderIcon({ apiType, disabled = false, sx = {} }) {
+  const iconSrc = getApiIconSrc(apiType);
+
+  return (
+    <Box
+      sx={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: API_ICON_SIZE,
+        height: API_ICON_SIZE,
+        flex: "0 0 auto",
+        opacity: disabled ? 0.5 : 1,
+        ...sx,
+      }}
+    >
+      {iconSrc ? (
+        <Box
+          component="img"
+          src={iconSrc}
+          alt=""
+          aria-hidden="true"
+          sx={{
+            width: API_ICON_SIZE,
+            height: API_ICON_SIZE,
+            objectFit: "contain",
+            display: "block",
+          }}
+        />
+      ) : (
+        <ApiIcon fontSize="small" color="action" />
+      )}
+    </Box>
+  );
+}
 
 function TestButton({ api }) {
   const i18n = useI18n();
@@ -1069,6 +1168,11 @@ function ApiListItem({
           <DragIndicatorIcon fontSize="small" />
         </Box>
       </Tooltip>
+      <ApiProviderIcon
+        apiType={api.apiType}
+        disabled={api.isDisabled}
+        sx={{ mt: "1px" }}
+      />
       <Typography
         sx={{
           flex: 1,
@@ -1076,7 +1180,7 @@ function ApiListItem({
           overflowWrap: "anywhere",
         }}
       >
-        {`[${api.apiType}] ${api.apiName}`}
+        {api.apiName || api.apiType}
       </Typography>
     </ListItemButton>
   );
@@ -1244,8 +1348,12 @@ export default function Apis() {
               <MenuItem
                 key={apiOption.type}
                 onClick={() => handleMenuItemClick(apiOption.type)}
+                sx={{ gap: 1 }}
               >
-                {apiOption.label}
+                <ApiProviderIcon apiType={apiOption.type} />
+                <Box component="span" sx={{ flex: 1 }}>
+                  {apiOption.label}
+                </Box>
                 {API_SPE_TYPES.sponsors.has(apiOption.type) && (
                   <StarIcon color="warning" sx={{ marginLeft: "0.2em" }} />
                 )}
