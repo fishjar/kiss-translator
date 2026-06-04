@@ -1451,6 +1451,27 @@ export class Translator {
   #createRetryErrorNode(errorText, onRetry) {
     const i18n = newI18n(this.#setting.uiLang || "zh");
     const copyText = i18n("copy") || "Copy";
+    const isDarkMode =
+      this.#setting.darkMode === "dark" ||
+      (this.#setting.darkMode === "auto" &&
+        window.matchMedia?.("(prefers-color-scheme: dark)")?.matches);
+    const panelBg = isDarkMode ? "#1f1f23" : "#ffffff";
+    const panelText = isDarkMode
+      ? "rgba(255, 255, 255, 0.82)"
+      : "rgba(0, 0, 0, 0.78)";
+    const panelBorder = isDarkMode
+      ? "rgba(32, 156, 238, 0.45)"
+      : "rgba(32, 156, 238, 0.28)";
+    const panelShadow = isDarkMode
+      ? "0 8px 24px rgba(0, 0, 0, 0.42)"
+      : "0 8px 24px rgba(0, 0, 0, 0.16)";
+    const errorColor = isDarkMode ? "#ff8a80" : "#d32f2f";
+    const buttonBg = isDarkMode
+      ? "rgba(32, 156, 238, 0.14)"
+      : "rgba(32, 156, 238, 0.08)";
+    const buttonHoverBg = isDarkMode
+      ? "rgba(32, 156, 238, 0.24)"
+      : "rgba(32, 156, 238, 0.16)";
 
     const container = document.createElement("span");
     container.style.cssText =
@@ -1484,12 +1505,13 @@ export class Translator {
       "max-width: min(420px, 80vw)",
       "max-height: 240px",
       "overflow: auto",
-      "padding: 8px",
-      "border: 1px solid rgba(244, 67, 54, 0.45)",
-      "border-radius: 4px",
-      "background: #fff",
-      "color: #b71c1c",
-      "box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18)",
+      "padding: 10px 10px 8px 12px",
+      `border: 1px solid ${panelBorder}`,
+      "border-left: 3px solid #209CEE",
+      "border-radius: 6px",
+      `background: ${panelBg}`,
+      `color: ${panelText}`,
+      `box-shadow: ${panelShadow}`,
       "font-size: 12px",
       "line-height: 1.5",
       "font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
@@ -1500,22 +1522,36 @@ export class Translator {
 
     const message = document.createElement("span");
     message.textContent = errorText;
+    message.style.cssText = `color: ${errorColor};`;
 
     const copyButton = document.createElement("button");
     copyButton.type = "button";
     copyButton.textContent = copyText;
     copyButton.style.cssText = [
-      "display: block",
-      "margin-top: 6px",
-      "padding: 2px 6px",
-      "border: 1px solid rgba(244, 67, 54, 0.35)",
+      "display: flex",
+      "align-items: center",
+      "justify-content: center",
+      "width: fit-content",
+      "margin-top: 8px",
+      "padding: 3px 8px",
+      "border: 1px solid rgba(32, 156, 238, 0.35)",
       "border-radius: 4px",
-      "background: rgba(244, 67, 54, 0.08)",
-      "color: #b71c1c",
+      `background: ${buttonBg}`,
+      "color: #209CEE",
       "font-size: 12px",
       "line-height: 1.4",
+      "font-weight: 500",
       "cursor: pointer",
+      "transition: background 0.2s ease, border-color 0.2s ease",
     ].join("; ");
+    copyButton.addEventListener("mouseenter", () => {
+      copyButton.style.background = buttonHoverBg;
+      copyButton.style.borderColor = "rgba(32, 156, 238, 0.55)";
+    });
+    copyButton.addEventListener("mouseleave", () => {
+      copyButton.style.background = buttonBg;
+      copyButton.style.borderColor = "rgba(32, 156, 238, 0.35)";
+    });
     copyButton.addEventListener("click", async (e) => {
       e.stopPropagation();
       e.preventDefault();
