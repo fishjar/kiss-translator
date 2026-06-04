@@ -5,8 +5,14 @@
   "app_description": {
     "message": "A minimalist bilingual translation extension that supports webpage, text selection, and video subtitle translation."
   },
+  "translate_selection": {
+    "message": "Translate \"%s\""
+  },
   "toggle_translate": {
     "message": "Toggle Translation"
+  },
+  "toggle_translate_only": {
+    "message": "Show translation only"
   },
   "toggle_style": {
     "message": "Toggle Styles"
@@ -19,5 +25,8 @@
   },
   "open_separate_window": {
     "message": "Open Independent Window"
+  },
+  "toggle_tranbox": {
+    "message": "Toggle Translation Box"
   }
 }

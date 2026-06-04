@@ -5,8 +5,14 @@
   "app_description": {
     "message": "Una extensión de traducción bilingüe minimalista que admite la traducción de páginas web, selección de texto y subtítulos de video."
   },
+  "translate_selection": {
+    "message": "Traducir \"%s\""
+  },
   "toggle_translate": {
     "message": "Alternar traducción"
+  },
+  "toggle_translate_only": {
+    "message": "Mostrar solo traducción"
   },
   "toggle_style": {
     "message": "Cambiar estilo"
@@ -19,5 +25,8 @@
   },
   "open_separate_window": {
     "message": "Abrir en ventana independiente"
+  },
+  "toggle_tranbox": {
+    "message": "Alternar cuadro de traducción"
   }
 }

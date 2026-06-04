@@ -5,8 +5,14 @@
   "app_description": {
     "message": "Une extension de traduction bilingue minimaliste prenant en charge la traduction de pages web, de texte sélectionné et de sous-titres vidéo."
   },
+  "translate_selection": {
+    "message": "Traduire \"%s\""
+  },
   "toggle_translate": {
     "message": "Activer/désactiver la traduction"
+  },
+  "toggle_translate_only": {
+    "message": "Afficher uniquement la traduction"
   },
   "toggle_style": {
     "message": "Changer de style"
@@ -19,5 +25,8 @@
   },
   "open_separate_window": {
     "message": "Ouvrir dans une fenêtre indépendante"
+  },
+  "toggle_tranbox": {
+    "message": "Basculer la boîte de traduction"
   }
 }
