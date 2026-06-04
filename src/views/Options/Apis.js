@@ -14,14 +14,20 @@ import LoadingButton from "@mui/lab/LoadingButton";
 import MenuItem from "@mui/material/MenuItem";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
+import Checkbox from "@mui/material/Checkbox";
 import { useI18n } from "../../hooks/I18n";
 import Typography from "@mui/material/Typography";
 import StarIcon from "@mui/icons-material/Star";
 import AddIcon from "@mui/icons-material/Add";
 import SwapVertIcon from "@mui/icons-material/SwapVert";
+import PushPinIcon from "@mui/icons-material/PushPin";
+import DeleteIcon from "@mui/icons-material/Delete";
+import BlockIcon from "@mui/icons-material/Block";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import Alert from "@mui/material/Alert";
 import Menu from "@mui/material/Menu";
 import List from "@mui/material/List";
+import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import Tooltip from "@mui/material/Tooltip";
 import Grid from "@mui/material/Grid";
@@ -86,6 +92,14 @@ import {
 import ValidationInput from "../../hooks/ValidationInput";
 
 const API_ICON_SIZE = 22;
+const API_LIST_CONTROL_SIZE = 24;
+const API_LIST_CONTROL_GAP = 0.5;
+
+const apiListControlSx = {
+  width: API_LIST_CONTROL_SIZE,
+  height: API_LIST_CONTROL_SIZE,
+  flex: `0 0 ${API_LIST_CONTROL_SIZE}px`,
+};
 
 // Keep icon paths tied to apiType because apiName is user editable.
 const API_ICON_FILES = {
@@ -1123,77 +1137,133 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
 function ApiListItem({
   api,
   selected,
+  bulkMode,
+  checked,
   dragging,
   dragOver,
   onSelect,
+  onCheck,
   onDragStart,
   onDragOver,
   onDrop,
   onDragEnd,
 }) {
+  const handleContentClick = (event) => {
+    if (bulkMode) {
+      onCheck(event, api.apiSlug);
+      return;
+    }
+
+    onSelect();
+  };
+
   return (
-    <ListItemButton
-      selected={selected}
-      onClick={onSelect}
+    <ListItem
+      disablePadding
       onDragOver={onDragOver}
       onDragEnter={onDragOver}
       onDrop={onDrop}
       sx={(theme) => ({
-        gap: 1,
-        alignItems: "flex-start",
+        display: "grid",
+        gridTemplateColumns: bulkMode
+          ? `${API_LIST_CONTROL_SIZE}px minmax(0, 1fr)`
+          : "minmax(0, 1fr)",
+        columnGap: API_LIST_CONTROL_GAP,
+        alignItems: "center",
+        minHeight: 44,
+        px: 1,
         opacity: dragging ? 0.45 : 1,
         borderTop: dragOver
           ? `2px solid ${theme.palette.primary.main}`
           : "2px solid transparent",
       })}
     >
-      <Tooltip title="Drag to reorder">
-        <Box
-          draggable
-          onDragStart={onDragStart}
-          onDragEnd={onDragEnd}
+      {bulkMode && (
+        <Checkbox
+          size="small"
+          checked={checked}
           onClick={(e) => e.stopPropagation()}
-          sx={{
-            display: "inline-flex",
-            alignItems: "center",
-            color: "text.secondary",
-            cursor: "grab",
-            flex: "0 0 auto",
-            mt: "1px",
-            "&:active": {
-              cursor: "grabbing",
-            },
+          onChange={(event) => onCheck(event, api.apiSlug)}
+          inputProps={{
+            "aria-label": api.apiName || api.apiType,
           }}
-        >
-          <DragIndicatorIcon fontSize="small" />
-        </Box>
-      </Tooltip>
-      <ApiProviderIcon
-        apiType={api.apiType}
-        disabled={api.isDisabled}
-        sx={{ mt: "1px" }}
-      />
-      <Typography
+          sx={{
+            ...apiListControlSx,
+            p: 0,
+            alignSelf: "center",
+          }}
+        />
+      )}
+      <ListItemButton
+        selected={bulkMode ? checked : selected}
+        onClick={handleContentClick}
         sx={{
-          flex: 1,
-          opacity: api.isDisabled ? 0.5 : 1,
-          overflowWrap: "anywhere",
+          gap: 0.5,
+          minWidth: 0,
+          minHeight: 40,
+          py: 0.75,
+          px: 0.5,
+          borderRadius: 0.5,
         }}
       >
-        {api.apiName || api.apiType}
-      </Typography>
-    </ListItemButton>
+        <Tooltip title="Drag to reorder">
+          <Box
+            draggable
+            onDragStart={onDragStart}
+            onDragEnd={onDragEnd}
+            onClick={(e) => e.stopPropagation()}
+            sx={{
+              ...apiListControlSx,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "text.secondary",
+              cursor: "grab",
+              "&:active": {
+                cursor: "grabbing",
+              },
+            }}
+          >
+            <DragIndicatorIcon fontSize="small" />
+          </Box>
+        </Tooltip>
+        <ApiProviderIcon apiType={api.apiType} disabled={api.isDisabled} />
+        <Typography
+          sx={{
+            minWidth: 0,
+            flex: 1,
+            opacity: api.isDisabled ? 0.5 : 1,
+            overflowWrap: "anywhere",
+          }}
+        >
+          {api.apiName || api.apiType}
+        </Typography>
+      </ListItemButton>
+    </ListItem>
   );
 }
 
 export default function Apis() {
   const i18n = useI18n();
-  const { transApis, addApi, deleteApi, copyApi, alphaSortApis, reorderApis } =
-    useApiList();
+  const {
+    transApis,
+    addApi,
+    deleteApi,
+    deleteApis,
+    pinApis,
+    disableApis,
+    enableApis,
+    copyApi,
+    alphaSortApis,
+    reorderApis,
+  } = useApiList();
+  const confirm = useConfirm();
 
   const [alphaSortDir, setAlphaSortDir] = useState("asc");
   const [detailKey, setDetailKey] = useState(0);
   const [selectedApiSlug, setSelectedApiSlug] = useState("");
+  const [bulkMode, setBulkMode] = useState(false);
+  const [checkedApiSlugs, setCheckedApiSlugs] = useState([]);
   const [draggingApiSlug, setDraggingApiSlug] = useState("");
   const [dragOverApiSlug, setDragOverApiSlug] = useState("");
   const detailPanelRef = useRef(null);
@@ -1212,6 +1282,21 @@ export default function Apis() {
     [transApis]
   );
 
+  const apiSlugList = useMemo(
+    () => apiItems.map(({ api }) => api.apiSlug),
+    [apiItems]
+  );
+
+  const checkedApiSlugSet = useMemo(
+    () => new Set(checkedApiSlugs),
+    [checkedApiSlugs]
+  );
+
+  const checkedApiCount = checkedApiSlugs.length;
+  const hasCheckedApis = checkedApiCount > 0;
+  const allApisChecked =
+    apiItems.length > 0 && checkedApiCount === apiItems.length;
+
   useEffect(() => {
     if (apiItems.length === 0) {
       setSelectedApiSlug("");
@@ -1226,6 +1311,19 @@ export default function Apis() {
       setSelectedApiSlug(apiItems[0].api.apiSlug);
     }
   }, [apiItems, selectedApiSlug]);
+
+  useEffect(() => {
+    setCheckedApiSlugs((prev) => {
+      if (prev.length === 0) {
+        return prev;
+      }
+
+      const apiSlugSet = new Set(apiSlugList);
+      const next = prev.filter((apiSlug) => apiSlugSet.has(apiSlug));
+
+      return next.length === prev.length ? prev : next;
+    });
+  }, [apiSlugList]);
 
   const selectedApiItem = useMemo(
     () => apiItems.find(({ api }) => api.apiSlug === selectedApiSlug),
@@ -1251,6 +1349,65 @@ export default function Apis() {
     addApi(apiType);
     handleClose();
   };
+
+  const handleCheckApi = useCallback((event, apiSlug) => {
+    event.stopPropagation();
+    setCheckedApiSlugs((prev) =>
+      prev.includes(apiSlug)
+        ? prev.filter((item) => item !== apiSlug)
+        : [...prev, apiSlug]
+    );
+  }, []);
+
+  const handleToggleAllApis = useCallback(() => {
+    setCheckedApiSlugs((prev) =>
+      apiSlugList.length > 0 && prev.length === apiSlugList.length
+        ? []
+        : apiSlugList
+    );
+  }, [apiSlugList]);
+
+  const handleToggleBulkMode = useCallback(() => {
+    setBulkMode((prev) => {
+      if (prev) {
+        setCheckedApiSlugs([]);
+      }
+
+      return !prev;
+    });
+  }, []);
+
+  const handlePinCheckedApis = useCallback(() => {
+    pinApis(checkedApiSlugs);
+    setDetailKey((key) => key + 1);
+  }, [checkedApiSlugs, pinApis]);
+
+  const handleEnableCheckedApis = useCallback(() => {
+    enableApis(checkedApiSlugs);
+    setDetailKey((key) => key + 1);
+  }, [checkedApiSlugs, enableApis]);
+
+  const handleDisableCheckedApis = useCallback(() => {
+    disableApis(checkedApiSlugs);
+    setDetailKey((key) => key + 1);
+  }, [checkedApiSlugs, disableApis]);
+
+  const handleDeleteCheckedApis = useCallback(async () => {
+    const isConfirmed = await confirm({
+      message: i18n(
+        "delete_selected_apis_confirm",
+        "Delete {count} selected interfaces?"
+      ).replace("{count}", checkedApiCount),
+      confirmText: i18n("delete"),
+      cancelText: i18n("cancel"),
+    });
+
+    if (isConfirmed) {
+      deleteApis(checkedApiSlugs);
+      setCheckedApiSlugs([]);
+      setDetailKey((key) => key + 1);
+    }
+  }, [checkedApiCount, checkedApiSlugs, confirm, deleteApis, i18n]);
 
   const handleDragStart = useCallback((event, apiSlug) => {
     event.dataTransfer.effectAllowed = "move";
@@ -1307,7 +1464,13 @@ export default function Apis() {
         </Alert>
 
         <Box>
-          <Stack direction="row" alignItems="center" spacing={2}>
+          <Stack
+            direction="row"
+            alignItems="center"
+            spacing={2}
+            useFlexGap
+            flexWrap="wrap"
+          >
             <Button
               size="small"
               id="add-api-button"
@@ -1334,6 +1497,62 @@ export default function Apis() {
             >
               {i18n("sort_alphabetically")}
             </Button>
+            <Button
+              size="small"
+              variant={bulkMode ? "contained" : "outlined"}
+              onClick={handleToggleBulkMode}
+            >
+              {i18n("bulk_actions")}
+            </Button>
+            {bulkMode && (
+              <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                <Button
+                  size="small"
+                  variant="outlined"
+                  disabled={apiItems.length === 0}
+                  onClick={handleToggleAllApis}
+                >
+                  {allApisChecked ? i18n("deselect_all") : i18n("select_all")}
+                </Button>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  disabled={!hasCheckedApis}
+                  onClick={handlePinCheckedApis}
+                  startIcon={<PushPinIcon />}
+                >
+                  {i18n("pin_to_top")}
+                </Button>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  disabled={!hasCheckedApis}
+                  onClick={handleEnableCheckedApis}
+                  startIcon={<CheckCircleOutlineIcon />}
+                >
+                  {i18n("enable")}
+                </Button>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  disabled={!hasCheckedApis}
+                  onClick={handleDisableCheckedApis}
+                  startIcon={<BlockIcon />}
+                >
+                  {i18n("disable")}
+                </Button>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="error"
+                  disabled={!hasCheckedApis}
+                  onClick={handleDeleteCheckedApis}
+                  startIcon={<DeleteIcon />}
+                >
+                  {i18n("delete")}
+                </Button>
+              </Stack>
+            )}
           </Stack>
           <Menu
             id="add-api-menu"
@@ -1394,9 +1613,12 @@ export default function Apis() {
                   key={api.apiSlug}
                   api={api}
                   selected={api.apiSlug === selectedApiSlug}
+                  bulkMode={bulkMode}
+                  checked={checkedApiSlugSet.has(api.apiSlug)}
                   dragging={api.apiSlug === draggingApiSlug}
                   dragOver={api.apiSlug === dragOverApiSlug}
                   onSelect={() => setSelectedApiSlug(api.apiSlug)}
+                  onCheck={handleCheckApi}
                   onDragStart={(event) => handleDragStart(event, api.apiSlug)}
                   onDragOver={(event) => handleDragOver(event, api.apiSlug)}
                   onDrop={(event) => handleDrop(event, api.apiSlug)}

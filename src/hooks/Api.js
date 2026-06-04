@@ -17,6 +17,25 @@ function useApiState() {
   return { setting, transApis, updateSetting };
 }
 
+// 统一收拢 API 列表顺序，避免批量修改后留下重复或交叉的 sortOrder。
+function normalizeApiOrder(apis = []) {
+  const pinnedApis = apis
+    .filter((api) => api.sortOrder === -1 && !api.isDisabled)
+    .map((api) => ({ ...api, sortOrder: -1 }));
+  const normalApis = apis
+    .filter((api) => api.sortOrder !== -1 && !api.isDisabled)
+    .map((api, index) => ({ ...api, sortOrder: index }));
+  const disabledApis = apis
+    .filter((api) => api.isDisabled)
+    .map((api, index) => ({ ...api, sortOrder: 999 + index }));
+
+  return [...pinnedApis, ...normalApis, ...disabledApis];
+}
+
+function getDisplayOrderedApis(apis = []) {
+  return [...apis].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+}
+
 /**
  * 翻译 API 列表管理的自定义 Hook，支持列表的补全、筛选、新增、复制、删除和字母排序
  */
@@ -111,25 +130,120 @@ export function useApiList() {
     [updateSetting]
   );
 
-  // 删除一个翻译 API 配置项
-  const deleteApi = useCallback(
-    (apiSlug) => {
+  // 批量删除翻译 API；内置 API 需要记录删除标识，避免自动补全逻辑再次恢复。
+  const deleteApis = useCallback(
+    (apiSlugs) => {
+      if (!Array.isArray(apiSlugs) || apiSlugs.length === 0) {
+        return;
+      }
+
       updateSetting((prev) => {
-        const isDefaultApi = DEFAULT_API_LIST.some(
-          (api) => api.apiSlug === apiSlug
-        );
-        const deletedTransApiSlugs = isDefaultApi
-          ? Array.from(
-              new Set([...(prev?.deletedTransApiSlugs || []), apiSlug])
-            )
-          : prev?.deletedTransApiSlugs || [];
+        const apiSlugSet = new Set(apiSlugs);
+        const defaultApiSlugs = DEFAULT_API_LIST.filter((api) =>
+          apiSlugSet.has(api.apiSlug)
+        ).map((api) => api.apiSlug);
+        const deletedTransApiSlugs =
+          defaultApiSlugs.length > 0
+            ? Array.from(
+                new Set([
+                  ...(prev?.deletedTransApiSlugs || []),
+                  ...defaultApiSlugs,
+                ])
+              )
+            : prev?.deletedTransApiSlugs || [];
 
         return {
           ...prev,
           deletedTransApiSlugs,
           transApis: (prev?.transApis || []).filter(
-            (api) => api.apiSlug !== apiSlug
+            (api) => !apiSlugSet.has(api.apiSlug)
           ),
+        };
+      });
+    },
+    [updateSetting]
+  );
+
+  // 删除一个翻译 API 配置项
+  const deleteApi = useCallback(
+    (apiSlug) => {
+      deleteApis([apiSlug]);
+    },
+    [deleteApis]
+  );
+
+  // 批量置顶已启用的 API；禁用项保持禁用状态，不隐式启用。
+  const pinApis = useCallback(
+    (apiSlugs) => {
+      if (!Array.isArray(apiSlugs) || apiSlugs.length === 0) {
+        return;
+      }
+
+      updateSetting((prev) => {
+        const apiSlugSet = new Set(apiSlugs);
+        const nextApis = getDisplayOrderedApis(prev?.transApis || []).map(
+          (api) =>
+            apiSlugSet.has(api.apiSlug) && !api.isDisabled
+              ? { ...api, sortOrder: -1 }
+              : api
+        );
+
+        return {
+          ...prev,
+          transApis: normalizeApiOrder(nextApis),
+        };
+      });
+    },
+    [updateSetting]
+  );
+
+  // 批量禁用 API，并统一放到列表底部。
+  const disableApis = useCallback(
+    (apiSlugs) => {
+      if (!Array.isArray(apiSlugs) || apiSlugs.length === 0) {
+        return;
+      }
+
+      updateSetting((prev) => {
+        const apiSlugSet = new Set(apiSlugs);
+        const nextApis = getDisplayOrderedApis(prev?.transApis || []).map(
+          (api) =>
+            apiSlugSet.has(api.apiSlug)
+              ? { ...api, isDisabled: true, sortOrder: 999 }
+              : api
+        );
+
+        return {
+          ...prev,
+          transApis: normalizeApiOrder(nextApis),
+        };
+      });
+    },
+    [updateSetting]
+  );
+
+  // 批量启用 API；已启用项保持原状态，刚启用的项回到常规排序区。
+  const enableApis = useCallback(
+    (apiSlugs) => {
+      if (!Array.isArray(apiSlugs) || apiSlugs.length === 0) {
+        return;
+      }
+
+      updateSetting((prev) => {
+        const apiSlugSet = new Set(apiSlugs);
+        const nextApis = getDisplayOrderedApis(prev?.transApis || []).map(
+          (api) => {
+            if (!apiSlugSet.has(api.apiSlug) || !api.isDisabled) {
+              return api;
+            }
+
+            return { ...api, isDisabled: false, sortOrder: 0 };
+          }
+        );
+
+        return {
+          ...prev,
+          transApis: normalizeApiOrder(nextApis),
         };
       });
     },
@@ -142,7 +256,9 @@ export function useApiList() {
       updateSetting((prev) => {
         const apis = prev?.transApis || [];
         // 置顶的 API 保持原样 (sortOrder 为 -1)
-        const pinnedApis = apis.filter((a) => a.sortOrder === -1);
+        const pinnedApis = apis.filter(
+          (a) => a.sortOrder === -1 && !a.isDisabled
+        );
         // 已禁用的 API 提取出来（不参与首字母排序，依然放倒数）
         const disabledApis = apis.filter((a) => a.isDisabled);
         // 常规正常启用的 API 参与排序
@@ -159,16 +275,14 @@ export function useApiList() {
             : nameB.localeCompare(nameA);
         });
 
-        // 重新分配 sortOrder 索引值
-        const reassigned = sorted.map((api, index) => ({
-          ...api,
-          sortOrder: index,
-        }));
-
         // 重新拼合数组，顺序为：置顶的 API -> 重新排序后的常规 API -> 已禁用的 API
         return {
           ...prev,
-          transApis: [...pinnedApis, ...reassigned, ...disabledApis],
+          transApis: normalizeApiOrder([
+            ...pinnedApis,
+            ...sorted,
+            ...disabledApis,
+          ]),
         };
       });
     },
@@ -194,22 +308,9 @@ export function useApiList() {
         const [movedApi] = nextApis.splice(fromIndex, 1);
         nextApis.splice(toIndex, 0, movedApi);
 
-        const pinnedApis = nextApis
-          .filter((api) => api.sortOrder === -1)
-          .map((api) => ({ ...api, sortOrder: -1 }));
-        const normalApis = nextApis
-          .filter((api) => api.sortOrder !== -1 && !api.isDisabled)
-          .map((api, index) => ({ ...api, sortOrder: index }));
-        const disabledApis = nextApis
-          .filter((api) => api.sortOrder !== -1 && api.isDisabled)
-          .map((api, index) => ({
-            ...api,
-            sortOrder: 999 + index,
-          }));
-
         return {
           ...prev,
-          transApis: [...pinnedApis, ...normalApis, ...disabledApis],
+          transApis: normalizeApiOrder(nextApis),
         };
       });
     },
@@ -225,6 +326,10 @@ export function useApiList() {
     addApi,
     copyApi,
     deleteApi,
+    deleteApis,
+    pinApis,
+    disableApis,
+    enableApis,
     alphaSortApis,
     reorderApis,
   };
