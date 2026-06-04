@@ -214,6 +214,19 @@ export const API_SPE_TYPES = {
   ]),
   // 官方推荐/赞助商的翻译服务
   sponsors: new Set([OPT_TRANS_EPHONEAI]),
+  // 暗黑模式下图标反色
+  darkIcon: new Set([
+    OPT_TRANS_SILICONFLOW,
+    OPT_TRANS_XIAOMIMIMO,
+    OPT_TRANS_EPHONEAI,
+    OPT_TRANS_ZAI,
+    OPT_TRANS_DEEPL,
+    OPT_TRANS_DEEPLFREE,
+    OPT_TRANS_DEEPLX,
+    OPT_TRANS_OPENAI,
+    OPT_TRANS_OLLAMA,
+    OPT_TRANS_OPENROUTER,
+  ]),
 };
 
 // REVIEW: 思考模式参数映射：定义各 API 的思考开关和强度参数。
