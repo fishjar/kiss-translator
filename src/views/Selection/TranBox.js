@@ -25,7 +25,6 @@ import { isExt } from "../../libs/client.js";
 import { useTheme, alpha } from "@mui/material/styles";
 import Logo from "../../components/Logo";
 import { isValidWord } from "../../libs/utils";
-import { OPT_TRANS_MICROSOFT } from "../../config";
 import { useDarkMode } from "../../hooks/ColorMode";
 
 /**
