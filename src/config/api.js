@@ -244,10 +244,7 @@ export const THINKING_PARAM_MAP = {
   },
   [OPT_TRANS_ALIYUNBAILIAN]: {
     type: "aliyunbailian",
-    efforts: [
-      { value: "max", label: "Max" },
-      { value: "high", label: "High" },
-    ],
+    efforts: null,
   },
   [OPT_TRANS_CEREBRAS]: {
     type: "cerebras",

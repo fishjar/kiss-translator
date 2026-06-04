@@ -427,10 +427,8 @@ const injectThinking = (body, { apiType, thinkingMode, thinkingEffort }) => {
       }
       break;
     case "aliyunbailian":
-      body.thinking = { type: thinkingMode === "enabled" ? "true" : "false" };
-      if (thinkingMode === "enabled" && hasEffort) {
-        body.reasoning_effort = thinkingEffort;
-      }
+      // 百炼仅支持 enable_thinking 布尔开关，不支持推理强度参数
+      body.enable_thinking = thinkingMode === "enabled";
       break;
     case "siliconflow":
       body.enable_thinking = thinkingMode === "enabled";
