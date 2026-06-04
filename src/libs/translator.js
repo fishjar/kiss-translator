@@ -14,6 +14,7 @@ import {
   OPT_SPLIT_PARAGRAPH_TEXTLENGTH,
   MSG_INJECT_CSS,
   MSG_UPDATE_ICON,
+  newI18n,
 } from "../config";
 import { interpreter } from "./interpreter";
 import { clearFetchPool } from "./pool";
@@ -1405,6 +1406,270 @@ export class Translator {
     return false;
   }
 
+  // 将不同来源的异常统一转成可展示、可复制的纯文本错误信息
+  #formatTranslateError(error) {
+    if (error instanceof Error) {
+      return error.stack || error.message || error.name || String(error);
+    }
+
+    if (typeof error === "string") {
+      return error;
+    }
+
+    try {
+      const jsonText = JSON.stringify(error);
+      return jsonText || String(error);
+    } catch (_) {
+      return String(error);
+    }
+  }
+
+  // 将文本写入剪贴板；当 Clipboard API 不可用时，回退到临时文本框复制
+  async #copyText(text) {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "");
+    textarea.style.cssText =
+      "position: fixed; left: -9999px; top: 0; opacity: 0;";
+
+    document.body.appendChild(textarea);
+    try {
+      textarea.focus();
+      textarea.select();
+      document.execCommand("copy");
+    } finally {
+      textarea.remove();
+    }
+  }
+
+  // 创建带错误信息浮层的重试按钮，浮层内支持直接复制错误内容
+  #createRetryErrorNode(errorText, onRetry) {
+    const i18n = newI18n(this.#setting.uiLang || "zh");
+    const copyText = i18n("copy") || "Copy";
+    const isDarkMode =
+      this.#setting.darkMode === "dark" ||
+      (this.#setting.darkMode === "auto" &&
+        window.matchMedia?.("(prefers-color-scheme: dark)")?.matches);
+    const panelBg = isDarkMode ? "#1f1f23" : "#ffffff";
+    const panelText = isDarkMode
+      ? "rgba(255, 255, 255, 0.82)"
+      : "rgba(0, 0, 0, 0.78)";
+    const panelBorder = isDarkMode
+      ? "rgba(32, 156, 238, 0.45)"
+      : "rgba(32, 156, 238, 0.28)";
+    const panelShadow = isDarkMode
+      ? "0 8px 24px rgba(0, 0, 0, 0.42)"
+      : "0 8px 24px rgba(0, 0, 0, 0.16)";
+    const errorColor = isDarkMode ? "#ff8a80" : "#d32f2f";
+    const buttonBg = isDarkMode
+      ? "rgba(32, 156, 238, 0.14)"
+      : "rgba(32, 156, 238, 0.08)";
+    const buttonHoverBg = isDarkMode
+      ? "rgba(32, 156, 238, 0.24)"
+      : "rgba(32, 156, 238, 0.16)";
+
+    const container = document.createElement("span");
+    container.style.cssText =
+      "position: relative; display: inline-flex; align-items: center; vertical-align: middle;";
+
+    const retryIcon = createRetrySVG();
+    retryIcon.classList.add(Translator.KISS_CLASS.retry);
+    retryIcon.setAttribute("role", "button");
+    retryIcon.setAttribute("tabindex", "0");
+
+    const panel = document.createElement("span");
+    panel.className = "notranslate";
+    panel.setAttribute("translate", "no");
+    panel.style.cssText = [
+      "position: fixed",
+      "left: 0",
+      "top: 0",
+      "z-index: 2147483647",
+      "display: none",
+      "box-sizing: border-box",
+      "width: max-content",
+      "max-width: min(420px, calc(100vw - 16px))",
+      "max-height: 240px",
+      "overflow: auto",
+      "padding: 10px 10px 8px 12px",
+      `border: 1px solid ${panelBorder}`,
+      "border-left: 3px solid #209CEE",
+      "border-radius: 6px",
+      `background: ${panelBg}`,
+      `color: ${panelText}`,
+      `box-shadow: ${panelShadow}`,
+      "font-size: 12px",
+      "line-height: 1.5",
+      "font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+      "white-space: pre-wrap",
+      "overflow-wrap: anywhere",
+      "user-select: text",
+      "visibility: hidden",
+    ].join("; ");
+
+    const message = document.createElement("span");
+    message.textContent = errorText;
+    message.style.cssText = `color: ${errorColor};`;
+
+    const copyButton = document.createElement("button");
+    copyButton.type = "button";
+    copyButton.textContent = copyText;
+    copyButton.style.cssText = [
+      "display: flex",
+      "align-items: center",
+      "justify-content: center",
+      "width: fit-content",
+      "margin-top: 8px",
+      "padding: 3px 8px",
+      "border: 1px solid rgba(32, 156, 238, 0.35)",
+      "border-radius: 4px",
+      `background: ${buttonBg}`,
+      "color: #209CEE",
+      "font-size: 12px",
+      "line-height: 1.4",
+      "font-weight: 500",
+      "cursor: pointer",
+      "transition: background 0.2s ease, border-color 0.2s ease",
+    ].join("; ");
+    copyButton.addEventListener("mouseenter", () => {
+      copyButton.style.background = buttonHoverBg;
+      copyButton.style.borderColor = "rgba(32, 156, 238, 0.55)";
+    });
+    copyButton.addEventListener("mouseleave", () => {
+      copyButton.style.background = buttonBg;
+      copyButton.style.borderColor = "rgba(32, 156, 238, 0.35)";
+    });
+    copyButton.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+
+      try {
+        await this.#copyText(errorText);
+        copyButton.textContent = "OK";
+        setTimeout(() => {
+          copyButton.textContent = copyText;
+        }, 800);
+      } catch (copyErr) {
+        kissLog("copy translate error: ", this.#formatTranslateError(copyErr));
+      }
+    });
+
+    let hideTimer = null;
+
+    const clearHideTimer = () => {
+      if (!hideTimer) return;
+      clearTimeout(hideTimer);
+      hideTimer = null;
+    };
+
+    // 浮层挂到 body，避免被正文节点的 stacking context 或 overflow 裁剪。
+    const updatePanelPosition = () => {
+      if (!container.isConnected) {
+        hidePanel();
+        return;
+      }
+
+      const anchorRect = container.getBoundingClientRect();
+      const viewportGap = 8;
+      const panelGap = 6;
+      const panelRect = panel.getBoundingClientRect();
+      const panelWidth = panelRect.width;
+      const panelHeight = panelRect.height;
+      const maxLeft = window.innerWidth - panelWidth - viewportGap;
+      const maxTop = window.innerHeight - panelHeight - viewportGap;
+
+      let left = anchorRect.left;
+      let top = anchorRect.bottom + panelGap;
+
+      if (top > maxTop) {
+        top = anchorRect.top - panelHeight - panelGap;
+      }
+
+      panel.style.left = `${Math.max(viewportGap, Math.min(left, maxLeft))}px`;
+      panel.style.top = `${Math.max(viewportGap, Math.min(top, maxTop))}px`;
+      panel.style.visibility = "visible";
+    };
+
+    const showPanel = () => {
+      clearHideTimer();
+      if (!panel.isConnected) {
+        document.body.appendChild(panel);
+      }
+      panel.style.display = "block";
+      panel.style.visibility = "hidden";
+      updatePanelPosition();
+      window.addEventListener("scroll", updatePanelPosition, true);
+      window.addEventListener("resize", updatePanelPosition);
+    };
+
+    const hidePanel = () => {
+      clearHideTimer();
+      window.removeEventListener("scroll", updatePanelPosition, true);
+      window.removeEventListener("resize", updatePanelPosition);
+      panel.style.display = "none";
+      panel.style.visibility = "hidden";
+      panel.remove();
+    };
+
+    const hidePanelSoon = () => {
+      clearHideTimer();
+      hideTimer = setTimeout(() => {
+        const activeElement = document.activeElement;
+        if (
+          container.matches(":hover") ||
+          panel.matches(":hover") ||
+          container.contains(activeElement) ||
+          panel.contains(activeElement)
+        ) {
+          return;
+        }
+
+        hidePanel();
+      }, 80);
+    };
+
+    container.addEventListener("mouseenter", showPanel);
+    container.addEventListener("mouseleave", hidePanelSoon);
+    container.addEventListener("focusin", showPanel);
+    container.addEventListener("focusout", (e) => {
+      if (panel.contains(e.relatedTarget)) return;
+      if (container.contains(e.relatedTarget)) return;
+      hidePanelSoon();
+    });
+    panel.addEventListener("mouseenter", showPanel);
+    panel.addEventListener("mouseleave", hidePanelSoon);
+    panel.addEventListener("focusin", showPanel);
+    panel.addEventListener("focusout", (e) => {
+      if (container.contains(e.relatedTarget)) return;
+      if (panel.contains(e.relatedTarget)) return;
+      hidePanelSoon();
+    });
+    retryIcon.addEventListener("click", (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      hidePanel();
+      onRetry();
+    });
+    retryIcon.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      e.stopPropagation();
+      e.preventDefault();
+      hidePanel();
+      onRetry();
+    });
+
+    panel.appendChild(message);
+    panel.appendChild(copyButton);
+    container.appendChild(retryIcon);
+
+    return container;
+  }
+
   // 翻译内联节点
   async #translateNodeGroup(nodes, hostNode, deLang) {
     const {
@@ -1608,8 +1873,9 @@ export class Translator {
         }
       }
     } catch (err) {
-      kissLog("translate group error: ", err.message);
-      if (err.message === "Request terminated") {
+      const errorText = this.#formatTranslateError(err);
+      kissLog("translate group error: ", errorText);
+      if (err?.message === "Request terminated") {
         this.#cleanupDirectTranslations(hostNode);
         return;
       }
@@ -1625,18 +1891,14 @@ export class Translator {
           );
           if (inner) {
             inner.textContent = "";
-            const retryIcon = createRetrySVG();
-            retryIcon.classList.add(Translator.KISS_CLASS.retry);
-            retryIcon.addEventListener("click", (e) => {
-              e.stopPropagation();
-              e.preventDefault();
+            const retryNode = this.#createRetryErrorNode(errorText, () => {
               this.#withViewportAnchor(() => {
                 wrapper.remove();
               });
               this.#processedNodes.delete(hostNode);
               this.#translateNodeGroup(nodes, hostNode, deLang);
             });
-            inner.appendChild(retryIcon);
+            inner.appendChild(retryNode);
           }
         }
       } catch (retryErr) {
