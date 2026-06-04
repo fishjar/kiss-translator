@@ -1481,28 +1481,19 @@ export class Translator {
     retryIcon.classList.add(Translator.KISS_CLASS.retry);
     retryIcon.setAttribute("role", "button");
     retryIcon.setAttribute("tabindex", "0");
-    retryIcon.addEventListener("click", (e) => {
-      e.stopPropagation();
-      e.preventDefault();
-      onRetry();
-    });
-    retryIcon.addEventListener("keydown", (e) => {
-      if (e.key !== "Enter" && e.key !== " ") return;
-      e.stopPropagation();
-      e.preventDefault();
-      onRetry();
-    });
 
     const panel = document.createElement("span");
+    panel.className = "notranslate";
+    panel.setAttribute("translate", "no");
     panel.style.cssText = [
-      "position: absolute",
+      "position: fixed",
       "left: 0",
-      "top: 1.4em",
+      "top: 0",
       "z-index: 2147483647",
       "display: none",
       "box-sizing: border-box",
       "width: max-content",
-      "max-width: min(420px, 80vw)",
+      "max-width: min(420px, calc(100vw - 16px))",
       "max-height: 240px",
       "overflow: auto",
       "padding: 10px 10px 8px 12px",
@@ -1518,6 +1509,7 @@ export class Translator {
       "white-space: pre-wrap",
       "overflow-wrap: anywhere",
       "user-select: text",
+      "visibility: hidden",
     ].join("; ");
 
     const message = document.createElement("span");
@@ -1567,25 +1559,113 @@ export class Translator {
       }
     });
 
-    const showPanel = () => {
-      panel.style.display = "block";
+    let hideTimer = null;
+
+    const clearHideTimer = () => {
+      if (!hideTimer) return;
+      clearTimeout(hideTimer);
+      hideTimer = null;
     };
+
+    // 浮层挂到 body，避免被正文节点的 stacking context 或 overflow 裁剪。
+    const updatePanelPosition = () => {
+      if (!container.isConnected) {
+        hidePanel();
+        return;
+      }
+
+      const anchorRect = container.getBoundingClientRect();
+      const viewportGap = 8;
+      const panelGap = 6;
+      const panelRect = panel.getBoundingClientRect();
+      const panelWidth = panelRect.width;
+      const panelHeight = panelRect.height;
+      const maxLeft = window.innerWidth - panelWidth - viewportGap;
+      const maxTop = window.innerHeight - panelHeight - viewportGap;
+
+      let left = anchorRect.left;
+      let top = anchorRect.bottom + panelGap;
+
+      if (top > maxTop) {
+        top = anchorRect.top - panelHeight - panelGap;
+      }
+
+      panel.style.left = `${Math.max(viewportGap, Math.min(left, maxLeft))}px`;
+      panel.style.top = `${Math.max(viewportGap, Math.min(top, maxTop))}px`;
+      panel.style.visibility = "visible";
+    };
+
+    const showPanel = () => {
+      clearHideTimer();
+      if (!panel.isConnected) {
+        document.body.appendChild(panel);
+      }
+      panel.style.display = "block";
+      panel.style.visibility = "hidden";
+      updatePanelPosition();
+      window.addEventListener("scroll", updatePanelPosition, true);
+      window.addEventListener("resize", updatePanelPosition);
+    };
+
     const hidePanel = () => {
+      clearHideTimer();
+      window.removeEventListener("scroll", updatePanelPosition, true);
+      window.removeEventListener("resize", updatePanelPosition);
       panel.style.display = "none";
+      panel.style.visibility = "hidden";
+      panel.remove();
+    };
+
+    const hidePanelSoon = () => {
+      clearHideTimer();
+      hideTimer = setTimeout(() => {
+        const activeElement = document.activeElement;
+        if (
+          container.matches(":hover") ||
+          panel.matches(":hover") ||
+          container.contains(activeElement) ||
+          panel.contains(activeElement)
+        ) {
+          return;
+        }
+
+        hidePanel();
+      }, 80);
     };
 
     container.addEventListener("mouseenter", showPanel);
-    container.addEventListener("mouseleave", hidePanel);
+    container.addEventListener("mouseleave", hidePanelSoon);
     container.addEventListener("focusin", showPanel);
     container.addEventListener("focusout", (e) => {
+      if (panel.contains(e.relatedTarget)) return;
       if (container.contains(e.relatedTarget)) return;
+      hidePanelSoon();
+    });
+    panel.addEventListener("mouseenter", showPanel);
+    panel.addEventListener("mouseleave", hidePanelSoon);
+    panel.addEventListener("focusin", showPanel);
+    panel.addEventListener("focusout", (e) => {
+      if (container.contains(e.relatedTarget)) return;
+      if (panel.contains(e.relatedTarget)) return;
+      hidePanelSoon();
+    });
+    retryIcon.addEventListener("click", (e) => {
+      e.stopPropagation();
+      e.preventDefault();
       hidePanel();
+      onRetry();
+    });
+    retryIcon.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      e.stopPropagation();
+      e.preventDefault();
+      hidePanel();
+      onRetry();
     });
 
     panel.appendChild(message);
     panel.appendChild(copyButton);
     container.appendChild(retryIcon);
-    container.appendChild(panel);
 
     return container;
   }
