@@ -21,16 +21,29 @@ import { useConfirm } from "../../hooks/Confirm";
 import { useSetting } from "../../hooks/Setting";
 import { dictHandlers } from "../Selection/DictHandler";
 
+/**
+ * 单个生词的折叠手风琴面板组件
+ *
+ * @param {Object} props
+ * @param {string} props.word - 生词/词组文本
+ * @param {number} props.index - 单词在生词表中的序号
+ * @param {number} [props.createdAt] - 收藏生词的创建时间戳
+ * @param {number} [props.timestamp] - 关联的视频播放时间戳 (毫秒)
+ */
 function FavAccordion({ word, index, createdAt, timestamp }) {
+  // 控制当前手风琴展开与收起状态
   const [expanded, setExpanded] = useState(false);
+  // 从全局设置 Hook 中获取当前翻译偏好设置
   const { setting } = useSetting();
+  // 提取配置中用户选择的查词词典 (enDict) 和联想源 (enSug)
   const { enDict, enSug } = setting?.tranboxSetting || {};
 
+  // 展开折叠切换处理
   const handleChange = (e) => {
     setExpanded((pre) => !pre);
   };
 
-  // 格式化时间为 MM:SS 格式
+  // 将时间戳 (毫秒数) 格式化为 MM:SS 格式，方便视频时间跳转提示展示
   const formatTime = (milliseconds) => {
     if (!milliseconds) return "";
     const totalSeconds = Math.floor(milliseconds / 1000);
@@ -39,11 +52,11 @@ function FavAccordion({ word, index, createdAt, timestamp }) {
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   };
 
-  // 跳转到视频时间点
+  // 处理点击跳转到视频指定时间点的事件
   const jumpToTime = (e) => {
     e.stopPropagation();
     if (timestamp) {
-      // 发送消息到内容脚本，让视频跳转到指定时间
+      // 通过 window.postMessage 向主页面发送跨文档消息，通知视频播放器跳转到对应时间
       window.postMessage(
         {
           type: "KISS_TRANSLATOR_JUMP_TO_TIME",
@@ -58,7 +71,9 @@ function FavAccordion({ word, index, createdAt, timestamp }) {
     <Accordion expanded={expanded} onChange={handleChange}>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
         <Typography>
+          {/* 序号与生词本身 */}
           {`${index + 1}. ${word}`}
+          {/* 若带有视频时间戳，展示可点击跳转的时间按钮 */}
           {timestamp && (
             <Button
               size="small"
@@ -78,6 +93,7 @@ function FavAccordion({ word, index, createdAt, timestamp }) {
         </Typography>
       </AccordionSummary>
       <AccordionDetails>
+        {/* 仅在展开时懒加载渲染词典解释与联想提示组件，以提升长列表性能 */}
         {expanded && (
           <Stack spacing={2}>
             <DictCont text={word} enDict={enDict} />
@@ -89,12 +105,17 @@ function FavAccordion({ word, index, createdAt, timestamp }) {
   );
 }
 
+/**
+ * 生词本管理器主页面组件 (用于查看、检索、清空和导入导出收藏的词汇)
+ */
 export default function FavWords() {
   const i18n = useI18n();
+  // 全局生词管理 Hook，提供生词字典、单纯单词列表、合并导入与清空方法
   const { favList, wordList, mergeWords, clearWords } = useFavWords();
   const { setting } = useSetting();
   const confirm = useConfirm();
 
+  // 导入解析方法：解析纯文本，按行提取逗号分隔的第一个字段作为有效单词进行合并
   const handleImport = (data) => {
     try {
       const newWords = data
@@ -107,6 +128,7 @@ export default function FavWords() {
     }
   };
 
+  // 清空整个生词库的二次确认对话框
   const handleClearWords = async () => {
     const isConfirmed = await confirm({
       confirmText: i18n("confirm_title"),
@@ -117,13 +139,11 @@ export default function FavWords() {
     }
   };
 
-  // 导出为纯文本格式
+  // 导出为格式化纯文本 (.txt) 格式方法
   const handleExportTxt = async () => {
-    // 获取完整的单词信息
     const fullWordData = [];
 
-    // 由于选项页面无法直接访问 YouTube 字幕列表中的完整数据，
-    // 我们只能导出已存储在收藏夹中的信息
+    // 从全局内存的 map / map 数据结构中读取收藏的完整释义字段
     for (const [word, data] of favList) {
       fullWordData.push({
         word,
@@ -142,7 +162,7 @@ export default function FavWords() {
     fullWordData.forEach((item, index) => {
       lines.push(`${index + 1}. ${item.word}`);
 
-      // 清理音标，去除"US"标签和其他方括号，只保留音标本身，并用方括号包裹
+      // 提取并展示包裹方括号的干净音标
       const cleanPhonetic = item.phonetic;
       if (cleanPhonetic) {
         lines.push(`   音标: [${cleanPhonetic}]`);
@@ -152,6 +172,7 @@ export default function FavWords() {
         lines.push(`   释义: ${item.definition}`);
       }
 
+      // 如果有保存的例句，最多导出 2 条
       if (item.examples && item.examples.length > 0) {
         lines.push("   例句:");
         item.examples.slice(0, 2).forEach((example, exIndex) => {
@@ -162,7 +183,7 @@ export default function FavWords() {
         });
       }
 
-      // 如果有时间戳，也导出时间信息
+      // 导出关联的 YouTube 视频定位播放 URL
       if (item.timestamp) {
         const totalSeconds = Math.floor(item.timestamp / 1000);
         const videoLink = `https://www.youtube.com/watch?t=${totalSeconds}`;
@@ -175,13 +196,10 @@ export default function FavWords() {
     return lines.join("\n");
   };
 
-  // 导出为 CSV 格式
+  // 导出为适合 Excel/Anki 导入的 CSV 电子表格格式方法
   const handleExportCsv = async () => {
-    // 获取完整的单词信息（包括音标、释义、例句等）
     const fullWordData = [];
 
-    // 由于选项页面无法直接访问 YouTube 字幕列表中的完整数据，
-    // 我们只能导出已存储在收藏夹中的信息
     for (const [word, data] of favList) {
       fullWordData.push({
         word,
@@ -192,28 +210,26 @@ export default function FavWords() {
       });
     }
 
-    // 创建包含多个例句列的表头
+    // 表头定义，包含音标、基本释义、例句与译文、视频跳链
     const header =
       "Word,Phonetic,Definition,Example1,Translation1,Example2,Translation2,Video Link";
     const rows = fullWordData.map((item) => {
-      // 转义特殊字符，特别是双引号
+      // 转义 CSV 字段以防逗号与双引号断句冲突
       const escapeCSVField = (field) => {
         if (!field) return '""';
-        // 替换双引号为两个双引号，然后用双引号包围整个字段
         return `"${field.toString().replace(/"/g, '""')}"`;
       };
 
-      // 清理音标，去除"US"标签和其他方括号，只保留音标本身，并用方括号包裹
       const cleanPhonetic = item.phonetic;
       const phonetic = cleanPhonetic ? `[${cleanPhonetic}]` : "";
       const definition = item.definition || "";
 
-      // 获取前两个例句及其翻译
       let example1 = "";
       let translation1 = "";
       let example2 = "";
       let translation2 = "";
 
+      // 提取最多两个例句
       if (item.examples && item.examples.length > 0) {
         example1 = item.examples[0].eng || "";
         translation1 = item.examples[0].chs || "";
@@ -224,10 +240,8 @@ export default function FavWords() {
         translation2 = item.examples[1].chs || "";
       }
 
-      // 创建YouTube链接
       let videoLink = "";
       if (item.timestamp) {
-        // 由于在选项页面无法获取具体的视频ID，我们只能提供时间参数
         const totalSeconds = Math.floor(item.timestamp / 1000);
         videoLink = `https://www.youtube.com/watch?t=${totalSeconds}`;
       }
@@ -235,28 +249,21 @@ export default function FavWords() {
       return `${escapeCSVField(item.word)},${escapeCSVField(phonetic)},${escapeCSVField(definition)},${escapeCSVField(example1)},${escapeCSVField(translation1)},${escapeCSVField(example2)},${escapeCSVField(translation2)},${escapeCSVField(videoLink)}`;
     });
 
-    // 创建CSV内容，添加说明行和表头
     const csvContent = [
-      // 添加文件信息（在实际使用中，这应该是视频标题和链接）
       `"生词本导出文件",,,,,,,`,
       `,,,,,,,,`,
-      // 表头
       header,
-      // 数据行
       ...rows,
     ].join("\n");
 
-    // 添加 BOM 头以支持 Excel 正确显示中文
+    // 添加 BOM 字节头 (\uFEFF) 强行让 Windows 记事本与 Excel 使用 UTF-8 编码解析中文，杜绝乱码
     return "\uFEFF" + csvContent;
   };
 
-  // 导出为 Markdown 格式
+  // 导出为格式美观的 Markdown (.md) 电子学习笔记格式
   const handleExportMd = async () => {
-    // 获取完整的单词信息
     const fullWordData = [];
 
-    // 由于选项页面无法直接访问 YouTube 字幕列表中的完整数据，
-    // 我们只能导出已存储在收藏夹中的信息
     for (const [word, data] of favList) {
       fullWordData.push({
         word,
@@ -275,7 +282,6 @@ export default function FavWords() {
     fullWordData.forEach((item, index) => {
       lines.push(`${index + 1}. **${item.word}**`);
 
-      // 清理音标，去除"US"标签和其他方括号，只保留音标本身，并用方括号包裹
       const cleanPhonetic = item.phonetic;
       if (cleanPhonetic) {
         lines.push(`   *音标 Phonetic:* [${cleanPhonetic}]`);
@@ -295,7 +301,6 @@ export default function FavWords() {
         });
       }
 
-      // 如果有时间戳，也导出时间信息
       if (item.timestamp) {
         const totalSeconds = Math.floor(item.timestamp / 1000);
         const videoLink = `https://www.youtube.com/watch?t=${totalSeconds}`;
@@ -304,19 +309,20 @@ export default function FavWords() {
         );
       }
 
-      lines.push(""); // 空行分隔
+      lines.push("");
     });
 
     return lines.join("\n");
   };
 
-  // 导出翻译
+  // 实时调用词典 API 生成包含完整第三方释义的导出文本
   const handleTranslation = async () => {
     const { enDict } = setting?.tranboxSetting;
     const dict = dictHandlers[enDict];
     if (!dict) return "";
 
     const tranList = [];
+    // REVIEW: 循环中串行 await 查词请求。若生词本中存在大量单词，这会导致严重的 HTTP 请求堆积、耗时极长乃至超时。建议改为并发限制（Pool分批）请求，以提升生成速度。
     for (const word of wordList) {
       try {
         const data = await dict.apiFn(word);
@@ -337,8 +343,10 @@ export default function FavWords() {
   return (
     <Box>
       <Stack spacing={3}>
+        {/* 生词本操作说明提示条 */}
         <Alert severity="info">{i18n("favorite_words_helper")}</Alert>
 
+        {/* 导入、导出以及清空控制操作按钮栏 */}
         <Stack
           direction="row"
           alignItems="center"
@@ -346,6 +354,7 @@ export default function FavWords() {
           useFlexGap
           flexWrap="wrap"
         >
+          {/* 上传导入纯文本生词本按钮 */}
           <UploadButton
             text={i18n("import")}
             handleImport={handleImport}
@@ -353,38 +362,41 @@ export default function FavWords() {
             fileExts={[".txt", ".csv"]}
           />
 
+          {/* 默认纯单词行导出 (.txt) 按钮 */}
           <DownloadButton
             handleData={() => wordList.join("\n")}
             text={i18n("export")}
             fileName={`kiss-words_${Date.now()}.txt`}
           />
 
-          {/* 导出为 TXT 格式 */}
+          {/* 格式化带释义与例句的 TXT 导出按钮 */}
           <DownloadButton
             handleData={handleExportTxt}
             text={i18n("export") + " (TXT)"}
             fileName={`kiss-words_${Date.now()}.txt`}
           />
 
-          {/* 导出为 CSV 格式 */}
+          {/* 带释义与例句的 CSV 导出按钮 */}
           <DownloadButton
             handleData={handleExportCsv}
             text={i18n("export") + " (CSV)"}
             fileName={`kiss-words_${Date.now()}.csv`}
           />
 
-          {/* 导出为 Markdown 格式 */}
+          {/* 带释义与例句的 Markdown 导出按钮 */}
           <DownloadButton
             handleData={handleExportMd}
             text={i18n("export") + " (MD)"}
             fileName={`kiss-words_${Date.now()}.md`}
           />
 
+          {/* 第三方词典翻译释义 Markdown 导出按钮 */}
           <DownloadButton
             handleData={handleTranslation}
             text={i18n("export_translation")}
             fileName={`kiss-words_${Date.now()}.md`}
           />
+          {/* 一键清空所有生词 */}
           <Button
             size="small"
             variant="outlined"
@@ -395,6 +407,7 @@ export default function FavWords() {
           </Button>
         </Stack>
 
+        {/* 手风琴风折叠的生词列表区域 */}
         <Box>
           {favList.map(([word, { createdAt, timestamp }], index) => (
             <FavAccordion

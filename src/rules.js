@@ -2,10 +2,15 @@ import fs from "fs";
 import path from "path";
 import { BUILTIN_RULES } from "./config/rules";
 
+/**
+ * 这是一个在构建 (Build) 阶段由 Node.js 运行的辅助脚本。
+ * 作用是生成内置规则的静态 JSON 文件以及记录当前版本号的文本文件，供云端分发与客户端检测更新。
+ */
 (() => {
-  // rules
+  // 1. 生成内置翻译规则的静态 JSON 配置文件
   try {
     const data = JSON.stringify(BUILTIN_RULES, null, 2);
+    // 生成的目标路径在打包输出文件夹的 web 目录下
     const file = path.resolve(
       __dirname,
       "../build/web/kiss-translator-rules.json"
@@ -13,16 +18,20 @@ import { BUILTIN_RULES } from "./config/rules";
     fs.writeFileSync(file, data);
     console.info(`Built-in rules generated: ${file}`);
   } catch (err) {
-    console.error(err);
+    console.error("Failed to generate built-in rules file:", err);
   }
 
-  // version
+  // 2. 从 package.json 读取最新版本号并生成 version.txt，以供自动更新检测
   try {
+    // REVIEW: 此处在 ES 模块混合环境下使用了 require()。
+    // 如果项目在未来升级并强制开启 package.json 中的 `"type": "module"` (纯 ESM 模式)，
+    // 此处的 require("../package.json") 将会在 Node.js 运行时抛出 ReferenceError 错误。
+    // 届时建议改为 fs.readFileSync 结合 JSON.parse 来读取 package.json 内容。
     var pjson = require("../package.json");
     const file = path.resolve(__dirname, "../build/web/version.txt");
     fs.writeFileSync(file, pjson.version);
     console.info(`Version file generated: ${file}`);
   } catch (err) {
-    console.error(err);
+    console.error("Failed to generate version file:", err);
   }
 })();

@@ -72,6 +72,15 @@ export class TransboxManager {
     }
   }
 
+  /**
+   * 更新属性并根据开关状态决定重新启用或禁用
+   * // REVIEW: React 组件热更新失效隐患。
+   * // 如果翻译框当前已启用且仍然保持开启，在调用 `update(newProps)` 时，合并新 props 后会走 `else { this.enable() }` 分支。
+   * // 然而，在 `enable()` 方法内部首行有判断保护：`if (!this.isEnabled()) { ... }`。
+   * // 导致当翻译框已经在页面中活跃（isEnabled() 为 true）时，`enable()` 会直接跳出执行，并不重新调用 render。
+   * // 这样导致新传入并合并的 `newProps` 根本无法渲染到底层的 `Slection` 组件上，翻译框配置无法动态同步。
+   * @param {Object} newProps - 新的属性配置
+   */
   update(newProps) {
     this.#props = { ...this.#props, ...newProps };
     if (this.isEnabled()) {

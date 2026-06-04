@@ -175,6 +175,17 @@ const genBuiltinStyles = (color = DEFAULT_COLOR) => ({
   `,
 });
 
+/**
+ * 根据内置样式和用户自定义样式，生成唯一的 CSS Class 类名映射与全局样式表字符串
+ * // REVIEW: 样式生成冗余与潜在冲突风险。
+ * // 在 `genTextClass` 中，直接调用了 `@emotion/css` 的 `css` 方法。
+ * // 这一步会将生成的样式规则自动同步插入到当前宿主文档的全局 `<style>` 标签中。
+ * // 随后，代码又遍历了一遍样式拼装为 `textStyles` 字符串，并在 `translator.js` 中放入 `adoptedStyleSheets` 中挂载。
+ * // 这样会在同一页面产生双重样式渲染（一次在顶层文档，一次在 Shadow DOM 内部），产生了内存和渲染性能冗余，
+ * // 且如果 `@emotion/css` 被运行在限制了 CSP 或者隔离的 Shadow 环境下，可能会由于无法直接操作全局 document 的头部导致运行期报错。
+ * @param {Array} customStyles - 用户自定义样式表
+ * @returns {Array} [textClass, textStyles] 返回 Class 映射字典及完整样式表字符串
+ */
 export const genTextClass = (customStyles = []) => {
   const styles = genBuiltinStyles();
   customStyles.forEach((style) => {

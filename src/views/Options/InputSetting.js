@@ -4,8 +4,8 @@ import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import { useI18n } from "../../hooks/I18n";
 import {
-  OPT_LANGS_FROM,
-  OPT_LANGS_TO,
+  OPT_LANGS_FROM_REVERSED as OPT_LANGS_FROM,
+  OPT_LANGS_TO_REVERSED as OPT_LANGS_TO,
   OPT_INPUT_TRANS_SIGNS,
   OPT_INPUT_DOT_DISABLE,
   OPT_INPUT_DOT_MOBILE,
@@ -20,11 +20,18 @@ import Grid from "@mui/material/Grid";
 import { useApiList } from "../../hooks/Api";
 import ValidationInput from "../../hooks/ValidationInput";
 
+/**
+ * 网页输入框快捷输入翻译设置页面 (InputSetting)
+ * 用户在输入框中输入指定文本后，通过快捷键/特殊结束标点自动在输入框内将源文本翻译成目标语言
+ */
 export default function InputSetting() {
   const i18n = useI18n();
+  // 输入查词规则 Hook 状态
   const { inputRule, updateInputRule } = useInputRule();
+  // 全局启用的 API 服务商列表
   const { enabledApis } = useApiList();
 
+  // 通用表单更改提交方法
   const handleChange = (e) => {
     e.preventDefault();
     let { name, value } = e.target;
@@ -33,6 +40,7 @@ export default function InputSetting() {
     });
   };
 
+  // 触发快捷键组合修改回调
   const handleShortcutInput = useCallback(
     (val) => {
       updateInputRule({ triggerShortcut: val });
@@ -40,6 +48,7 @@ export default function InputSetting() {
     [updateInputRule]
   );
 
+  // 解构当前输入查词翻译的各项具体设置
   const {
     transOpen,
     apiSlug,
@@ -56,6 +65,7 @@ export default function InputSetting() {
   return (
     <Box>
       <Stack spacing={3}>
+        {/* 开关：是否启用输入框翻译功能 */}
         <FormControlLabel
           control={
             <Switch
@@ -71,8 +81,10 @@ export default function InputSetting() {
           sx={{ width: "fit-content" }}
         />
 
+        {/* 翻译引擎、源与目标语言、触发结束标点选择网格区 */}
         <Box>
           <Grid container spacing={2} columns={12}>
+            {/* 首选翻译引擎服务商 */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
@@ -90,6 +102,7 @@ export default function InputSetting() {
                 ))}
               </TextField>
             </Grid>
+            {/* 输入源语言 */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
@@ -107,6 +120,7 @@ export default function InputSetting() {
                 ))}
               </TextField>
             </Grid>
+            {/* 翻译出的目标语言 */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
@@ -124,6 +138,7 @@ export default function InputSetting() {
                 ))}
               </TextField>
             </Grid>
+            {/* 结束触发翻译的符号标点 (如打完字后在尾部加上三个问号/斜杠/空格等字符直接触发翻译并自动消除标点) */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
@@ -146,8 +161,10 @@ export default function InputSetting() {
           </Grid>
         </Box>
 
+        {/* 触发快捷组合键、按击次数限制、连击判定超时、查词浮球按钮显示状态网格区 */}
         <Box>
           <Grid container spacing={2} columns={12}>
+            {/* 触发输入翻译的键盘快捷键 */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <ShortcutInput
                 value={triggerShortcut}
@@ -156,6 +173,7 @@ export default function InputSetting() {
                 helperText={i18n("trigger_trans_shortcut_help")}
               />
             </Grid>
+            {/* 需要连续按下几次快捷键触发翻译 */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
@@ -173,6 +191,7 @@ export default function InputSetting() {
                 ))}
               </TextField>
             </Grid>
+            {/* 连击组合键判定超时阈值 (ms) */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <ValidationInput
                 fullWidth
@@ -186,6 +205,7 @@ export default function InputSetting() {
                 max={1000}
               />
             </Grid>
+            {/* 移动端或全局是否在聚焦输入框时显示右下角翻译悬浮球点 (Dot) 触发图标 */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
@@ -210,6 +230,7 @@ export default function InputSetting() {
           </Grid>
         </Box>
 
+        {/* 输入框翻译不生效的黑名单域名及正则规则列表 */}
         <TextField
           size="small"
           label={i18n("blacklist")}

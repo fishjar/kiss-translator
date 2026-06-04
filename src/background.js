@@ -4,10 +4,12 @@ import {
   MSG_GET_HTTPCACHE,
   MSG_PUT_HTTPCACHE,
   MSG_TRANS_TOGGLE,
+  MSG_TRANS_TOGGLE_ONLY,
   MSG_OPEN_OPTIONS,
   MSG_SAVE_RULE,
   MSG_TRANS_TOGGLE_STYLE,
   MSG_OPEN_TRANBOX,
+  MSG_TRANSBOX_TOGGLE,
   MSG_CONTEXT_MENUS,
   MSG_COMMAND_SHORTCUTS,
   MSG_INJECT_JS,
@@ -16,9 +18,11 @@ import {
   MSG_BUILTINAI_DETECT,
   MSG_BUILTINAI_TRANSLATE,
   CMD_TOGGLE_TRANSLATE,
+  CMD_TOGGLE_TRANSLATE_ONLY,
   CMD_TOGGLE_STYLE,
   CMD_OPEN_OPTIONS,
   CMD_OPEN_TRANBOX,
+  CMD_TOGGLE_TRANBOX,
   CMD_OPEN_SEPARATE_WINDOW,
   CLIENT_THUNDERBIRD,
   MSG_SET_LOGLEVEL,
@@ -42,6 +46,11 @@ import { chromeDetect, chromeTranslate } from "./libs/builtinAI";
 
 globalThis.__KISS_CONTEXT__ = "background";
 
+/**
+ * 根据前台翻译的激活状态更新浏览器插件栏图标。
+ * @param {boolean} isActive 翻译器是否激活 (是否处于高亮彩色状态)
+ * @param {number} tabId 目标标签页 ID
+ */
 async function updateIcon(isActive, tabId) {
   const suffix = isActive ? "_active" : "";
   const path = {
@@ -52,7 +61,7 @@ async function updateIcon(isActive, tabId) {
     192: `images/logo192${suffix}.png`,
   };
   try {
-    // 兼容 v2 清单下的 Firefox
+    // 兼容 MV3 (browser.action) 和 MV2 (browser.browserAction) 规范下的 Firefox 和 Chrome
     if (browser.action) {
       await browser.action.setIcon({ path, tabId });
     } else {
@@ -63,8 +72,10 @@ async function updateIcon(isActive, tabId) {
   }
 }
 
+// declarativeNetRequest 动态规则的起始 ID 段，避免 ID 冲突
 const CSP_RULE_START_ID = 1;
 const ORI_RULE_START_ID = 10000;
+// 需要从 HTTP 响应头中移除的 CSP (Content-Security-Policy) 键名，用以允许加载第三方翻译接口脚本/发送翻译请求
 const CSP_REMOVE_HEADERS = [
   `content-security-policy`,
   `content-security-policy-report-only`,
@@ -72,10 +83,9 @@ const CSP_REMOVE_HEADERS = [
   `x-content-security-policy`,
 ];
 
-// 独立窗口ID
-let separateWindowId = null;
-// 记录窗口最后一次有效的位置和大小
-let lastKnownBounds = null;
+// 独立窗口 (TranBox 独立窗口模式) 的全局状态变量
+let separateWindowId = null; // 当前已打开窗口的 ID
+let lastKnownBounds = null; // 缓存窗口最后一次有效的屏幕位置坐标与大小
 
 const DEFAULT_SEPARATE_WINDOW_BOUNDS = {
   left: 100,
@@ -85,7 +95,8 @@ const DEFAULT_SEPARATE_WINDOW_BOUNDS = {
 };
 
 /**
- * 将独立窗口数据写入存储
+ * 将独立窗口的位置及宽高数据持久化保存到 storage.local 中。
+ * @param {Object} bounds 坐标大小数据
  */
 async function persistSeparateWindowBounds(bounds) {
   if (!bounds) return;
@@ -98,11 +109,11 @@ async function persistSeparateWindowBounds(bounds) {
 }
 
 /**
- * 打开独立窗口
+ * 读取上次保存的窗口位置与大小，启动/聚焦翻译独立窗口。
  */
 async function openSeparateWindowWithSavedBounds() {
   try {
-    // 如果窗口已存在，则聚焦它而不是重复创建
+    // REVIEW: 窗口单例机制。若窗口已存在且被创建过，则通过查询所有窗口状态直接聚焦，避免重复创建
     if (separateWindowId !== null) {
       const allWindows = await browser.windows.getAll();
       const existingWin = allWindows.find((w) => w.id === separateWindowId);
@@ -123,7 +134,7 @@ async function openSeparateWindowWithSavedBounds() {
 
     const win = await browser.windows.create({
       url: "popup.html#tranbox",
-      type: "popup",
+      type: "popup", // 以弹出窗口（无地址栏、无工具栏）形式创建
       left: Math.round(bounds.left),
       top: Math.round(bounds.top),
       width: Math.round(bounds.width),
@@ -146,11 +157,13 @@ async function openSeparateWindowWithSavedBounds() {
 }
 
 /**
- * 更新内存中的坐标缓存
+ * 从实际的窗口实例中同步并更新内存缓存的坐标尺寸。
+ * @param {number} windowId 窗口 ID
  */
 async function updateCacheFromActual(windowId) {
   try {
     const win = await browser.windows.get(windowId);
+    // 只有在窗口处于正常状态时才更新，最小化或最大化时不保存其 bounds
     if (win && win.state === "normal") {
       lastKnownBounds = {
         left: Math.round(win.left),
@@ -159,17 +172,17 @@ async function updateCacheFromActual(windowId) {
         height: Math.round(win.height),
       };
       kissLog("Bounds cached via fallback:", lastKnownBounds);
-      // todo: 获取到的left和top均为0？
-      // todo: firefox 每重新打开一次，窗口愈来愈大？
+      // REVIEW: 针对“获取到的 left 和 top 均为 0”以及“重启后窗口越来越大”的问题：
+      // 在一些 Linux 窗口管理器、macOS 或 Firefox 兼容层中，如果窗口刚创建就立即触发或在焦点切换时，
+      // OS 返回的 window.left/top 经常会存在暂时的 0 值。应该在 left/top 均不为 0 时才允许覆盖 lastKnownBounds。
     }
   } catch (e) {
-    // 窗口可能已关闭
+    // 忽略窗口已被关闭时的查询异常
   }
 }
 
 /**
- * 监听焦点变化(兼容桌面Firefox)
- * Firefox 移动端不支持
+ * 监听窗口焦点切换事件 (用于兼容不支持 boundsChanged 的 Firefox)
  */
 browser.windows?.onFocusChanged?.addListener?.(async (windowId) => {
   if (separateWindowId !== null) {
@@ -178,24 +191,25 @@ browser.windows?.onFocusChanged?.addListener?.(async (windowId) => {
 });
 
 /**
- * 监听位置变化：仅更新内存，不操作 Storage
- * Firefox 不支持 browser.windows.onBoundsChanged
+ * 监听窗口大小及位置移动变化。
+ * 此时只实时更新内存中的 lastKnownBounds 缓存，不频繁写入 Storage，防止 Storage API 限频报错。
  */
 browser.windows?.onBoundsChanged?.addListener?.((win) => {
   if (separateWindowId !== null && win.id === separateWindowId) {
+    // REVIEW: 同样需要警惕在拖拽过程中 win.left / top 偶尔返回 0 的异常，此处可判定 if (win.left !== 0 && win.top !== 0) 再予更新
     lastKnownBounds = {
       left: win.left ?? lastKnownBounds.left,
       top: win.top ?? lastKnownBounds.top,
       width: win.width ?? lastKnownBounds.width,
       height: win.height ?? lastKnownBounds.height,
     };
-    // todo: 获取到的left和top均为0？
   }
 });
 
 /**
- * 监听窗口关闭：此时执行持久化
- * Firefox 移动端不支持
+ * 监听窗口关闭事件。
+ * 在独立窗口彻底销毁后，才将最终的 lastKnownBounds 写入磁盘（Storage.local）中持久化，
+ * 并释放全局引用。该时机设计得非常好，能极大节约 IO 开销。
  */
 browser.windows?.onRemoved?.addListener?.(async (windowId) => {
   if (windowId === separateWindowId) {
@@ -209,11 +223,12 @@ browser.windows?.onRemoved?.addListener?.(async (windowId) => {
 });
 
 /**
- * 添加右键菜单
+ * 动态增删及配置右键快捷菜单。
+ * @param {number} contextMenuType 菜单类型标识 (1: 简易模式, 2: 完整模式)
  */
 async function addContextMenus(contextMenuType = 1) {
-  // 添加前先删除,避免重复ID的错误
   try {
+    // 添加右键菜单前，务必先全部清空，防止因为重复添加相同 ID 菜单导致插件崩溃
     await browser.contextMenus.removeAll();
   } catch (err) {
     kissLog("remove contextMenus", err);
@@ -221,16 +236,28 @@ async function addContextMenus(contextMenuType = 1) {
 
   switch (contextMenuType) {
     case 1:
-      browser.contextMenus.create({
-        id: CMD_TOGGLE_TRANSLATE,
-        title: browser.i18n.getMessage("app_name"),
-        contexts: ["page", "selection"],
-      });
-      break;
-    case 2:
+      // 简易模式：仅提供“双语对照翻译”与“翻译所选文本”
       browser.contextMenus.create({
         id: CMD_TOGGLE_TRANSLATE,
         title: browser.i18n.getMessage("toggle_translate"),
+        contexts: ["page"],
+      });
+      browser.contextMenus.create({
+        id: CMD_OPEN_TRANBOX,
+        title: browser.i18n.getMessage("translate_selection"),
+        contexts: ["selection"],
+      });
+      break;
+    case 2:
+      // 完整模式：额外提供“仅显示翻译”、样式切换、打开独立翻译面板以及进入选项设置页
+      browser.contextMenus.create({
+        id: CMD_TOGGLE_TRANSLATE,
+        title: browser.i18n.getMessage("toggle_translate"),
+        contexts: ["page", "selection"],
+      });
+      browser.contextMenus.create({
+        id: CMD_TOGGLE_TRANSLATE_ONLY,
+        title: browser.i18n.getMessage("toggle_translate_only"),
         contexts: ["page", "selection"],
       });
       browser.contextMenus.create({
@@ -259,16 +286,22 @@ async function addContextMenus(contextMenuType = 1) {
 }
 
 /**
- * 更新CSP策略
- * @param {*} csplist
+ * 动态更新浏览器的 CSP (Content Security Policy) 和跨域 Origin 修改策略。
+ * 利用 Chrome MV3 declarativeNetRequest (DNR) 动态配置规则，
+ * 实现“剥离第三方 CSP 限制”和“伪装 Origin 请求头以绕过跨域防护”的能力。
+ * @param {Object} params
+ * @param {Array<string>|string} params.csplist 需移除 CSP 响应头的域名规则列表
+ * @param {Array<string>|string} params.orilist 需伪装 Origin 请求头的请求过滤列表
  */
 async function updateCspRules({ csplist, orilist }) {
   try {
+    // 1. 获取当前所有已注册的动态 DNR 规则
     const oldRules = await browser.declarativeNetRequest.getDynamicRules();
 
     const rulesToAdd = [];
     const idsToRemove = [];
 
+    // 2. 构造并处理 CSP 移除过滤规则
     if (csplist !== undefined) {
       let processedCspList = csplist;
       if (typeof processedCspList === "string") {
@@ -278,6 +311,7 @@ async function updateCspRules({ csplist, orilist }) {
           .filter(Boolean);
       }
 
+      // 获取所有属于 CSP 段的旧规则 ID，准备予以清理
       const oldCspRuleIds = oldRules
         .filter(
           (rule) => rule.id >= CSP_RULE_START_ID && rule.id < ORI_RULE_START_ID
@@ -285,6 +319,7 @@ async function updateCspRules({ csplist, orilist }) {
         .map((rule) => rule.id);
       idsToRemove.push(...oldCspRuleIds);
 
+      // 为每个目标 url 分配新的规则 ID 并构造 removeHeaders 行动
       const newCspRules = processedCspList.map((url, index) => ({
         id: CSP_RULE_START_ID + index,
         action: {
@@ -302,6 +337,7 @@ async function updateCspRules({ csplist, orilist }) {
       rulesToAdd.push(...newCspRules);
     }
 
+    // 3. 构造并处理 Origin 请求头重写伪装规则
     if (orilist !== undefined) {
       let processedOriList = orilist;
       if (typeof processedOriList === "string") {
@@ -311,11 +347,13 @@ async function updateCspRules({ csplist, orilist }) {
           .filter(Boolean);
       }
 
+      // 获取所有属于 Origin 修改段的旧规则 ID，准备清理
       const oldOriRuleIds = oldRules
         .filter((rule) => rule.id >= ORI_RULE_START_ID)
         .map((rule) => rule.id);
       idsToRemove.push(...oldOriRuleIds);
 
+      // 将发往特定翻译源的 xmlhttprequest 请求的 Origin 修改为目标源域名，伪装成同源请求
       const newOriRules = processedOriList.map((url, index) => ({
         id: ORI_RULE_START_ID + index,
         action: {
@@ -330,6 +368,8 @@ async function updateCspRules({ csplist, orilist }) {
       rulesToAdd.push(...newOriRules);
     }
 
+    // REVIEW: 批量更新 DNR 规则。在部分不支持 MV3 动态规则的旧浏览器（如旧版 Firefox）中可能会抛错，
+    // 在 catch 中已做了捕获处理，能够保障基础功能的正常工作，但无法去除 CSP 限制。
     if (idsToRemove.length > 0 || rulesToAdd.length > 0) {
       await browser.declarativeNetRequest.updateDynamicRules({
         removeRuleIds: idsToRemove,
@@ -342,7 +382,7 @@ async function updateCspRules({ csplist, orilist }) {
 }
 
 /**
- * 注册邮件显示脚本
+ * 在 Thunderbird (雷鸟邮件客户端) 中注册脚本，实现邮件正文区域的注入翻译。
  */
 async function registerMsgDisplayScript() {
   await messenger.messageDisplayScripts.register({
@@ -351,12 +391,37 @@ async function registerMsgDisplayScript() {
 }
 
 /**
- * 插件安装
+ * 适配并转换当前浏览器的 UI 显示语言，映射为本项目支持的语言键名。
+ * @returns {Promise<string>} 本项目识别的语言简写 (zh_TW / zh / ja / ko / en)
+ */
+async function getUiLanguage() {
+  try {
+    const lang = await browser.i18n.getUILanguage();
+
+    if (lang === "zh-TW") {
+      return "zh_TW";
+    } else if (lang.startsWith("zh")) {
+      return "zh";
+    } else if (["ja", "ko"].includes(lang.substring(0, 2))) {
+      return lang.substring(0, 2);
+    } else {
+      return "en";
+    }
+  } catch (err) {
+    kissLog("get UI language error", err);
+    return "en";
+  }
+}
+
+/**
+ * 监听扩展安装/升级事件 (onInstalled)。
+ * 此时触发数据库默认初始化、右键菜单生成、CSP 网络过滤器注册、以及拉取网络订阅规则。
  */
 browser.runtime.onInstalled.addListener(async () => {
-  await tryInitDefaultData();
+  const uiLang = await getUiLanguage();
+  await tryInitDefaultData(uiLang);
 
-  //在thunderbird中注册脚本
+  // 在 Thunderbird 场景下注册特定的邮件脚本
   if (process.env.REACT_APP_CLIENT === CLIENT_THUNDERBIRD) {
     registerMsgDisplayScript();
   }
@@ -364,18 +429,14 @@ browser.runtime.onInstalled.addListener(async () => {
   const { contextMenuType, csplist, orilist, subrulesList } =
     await getSettingWithDefault();
 
-  // 右键菜单
   addContextMenus(contextMenuType);
-
-  // 禁用CSP
   updateCspRules({ csplist, orilist });
-
-  // 同步订阅规则
   trySyncAllSubRules({ subrulesList });
 });
 
 /**
- * 浏览器启动
+ * 监听浏览器/扩展启动事件 (onStartup)。
+ * 此时从本地恢复日志级别、清空不需要的翻译长缓存、重建右键菜单，并与云端同步设置、本地规则与订阅规则。
  */
 browser.runtime.onStartup.addListener(async () => {
   const {
@@ -387,35 +448,28 @@ browser.runtime.onStartup.addListener(async () => {
     logLevel,
   } = await getSettingWithDefault();
 
-  // 设置日志
   logger.setLevel(logLevel);
 
-  // 清除缓存
   if (clearCache) {
     tryClearCaches();
   }
 
-  //在thunderbird中注册脚本
   if (process.env.REACT_APP_CLIENT === CLIENT_THUNDERBIRD) {
     registerMsgDisplayScript();
   }
 
-  // 右键菜单
-  // firefox重启后菜单会消失,故重复添加
+  // REVIEW: 针对“Firefox 重启后菜单消失”的系统 Bug，此处在启动时必须重新添加一次 addContextMenus
   addContextMenus(contextMenuType);
 
-  // 禁用CSP
   updateCspRules({ csplist, orilist });
-
-  // 同步数据
   trySyncSettingAndRules();
-
-  // 同步订阅规则
   trySyncAllSubRules({ subrulesList });
 });
 
 /**
- * 向当前活动标签页注入脚本或CSS
+ * 辅助函数：向前台当前活动标签页的所有框架 (Frames) 中注入指定的 JS 脚本或样式逻辑。
+ * @param {Function} func 待注入的函数
+ * @param {*} args 传递给注入函数的入参
  */
 const injectToCurrentTab = async (func, args) => {
   const tabId = await getCurTabId();
@@ -423,33 +477,32 @@ const injectToCurrentTab = async (func, args) => {
     target: { tabId, allFrames: true },
     func: func,
     args: [args],
-    world: "MAIN",
+    world: "MAIN", // 运行在前台页面的真实主环境 (MAIN world)，而非隔离环境 (ISOLATED)
   });
 };
 
-// 动作处理器映射表
+// 后台消息指令与对应处理器映射表
 const messageHandlers = {
-  [MSG_FETCH]: (args) => fetchHandle(args),
-  [MSG_GET_HTTPCACHE]: (args) => getHttpCache(args),
-  [MSG_PUT_HTTPCACHE]: (args) => putHttpCache(args),
-  [MSG_OPEN_OPTIONS]: () => browser.runtime.openOptionsPage(),
-  [MSG_SAVE_RULE]: (args) => saveRule(args),
-  [MSG_INJECT_JS]: (args) => injectToCurrentTab(injectInlineJsBg, args),
-  [MSG_INJECT_CSS]: (args) => injectToCurrentTab(injectInternalCss, args),
-  [MSG_UPDATE_CSP]: (args) => updateCspRules(args),
-  [MSG_CONTEXT_MENUS]: (args) => addContextMenus(args),
-  [MSG_COMMAND_SHORTCUTS]: () => browser.commands.getAll(),
-  [MSG_BUILTINAI_DETECT]: (args) => chromeDetect(args),
-  [MSG_BUILTINAI_TRANSLATE]: (args) => chromeTranslate(args),
-  [MSG_SET_LOGLEVEL]: (args) => logger.setLevel(args),
-  [MSG_CLEAR_CACHES]: () => tryClearCaches(),
-  [MSG_OPEN_SEPARATE_WINDOW]: () => openSeparateWindowWithSavedBounds(),
-  [MSG_UPDATE_ICON]: (args, sender) => updateIcon(args, sender?.tab?.id),
+  [MSG_FETCH]: (args) => fetchHandle(args), // 跨域请求代理
+  [MSG_GET_HTTPCACHE]: (args) => getHttpCache(args), // 读取翻译 HTTP 缓存
+  [MSG_PUT_HTTPCACHE]: (args) => putHttpCache(args), // 存入翻译 HTTP 缓存
+  [MSG_OPEN_OPTIONS]: () => browser.runtime.openOptionsPage(), // 打开设置选项页
+  [MSG_SAVE_RULE]: (args) => saveRule(args), // 写入/保存规则
+  [MSG_INJECT_JS]: (args) => injectToCurrentTab(injectInlineJsBg, args), // 注入 JS 代码到前台
+  [MSG_INJECT_CSS]: (args) => injectToCurrentTab(injectInternalCss, args), // 注入 CSS 样式到前台
+  [MSG_UPDATE_CSP]: (args) => updateCspRules(args), // 触发 CSP 重写规则变更
+  [MSG_CONTEXT_MENUS]: (args) => addContextMenus(args), // 切换右键菜单样式
+  [MSG_COMMAND_SHORTCUTS]: () => browser.commands.getAll(), // 获取 manifest 注册的所有快捷键
+  [MSG_BUILTINAI_DETECT]: (args) => chromeDetect(args), // 触发 Chrome 127+ 内置 Gemini AI 语言检测
+  [MSG_BUILTINAI_TRANSLATE]: (args) => chromeTranslate(args), // 触发 Chrome 内置 AI 翻译接口
+  [MSG_SET_LOGLEVEL]: (args) => logger.setLevel(args), // 修改运行时的日志记录等级
+  [MSG_CLEAR_CACHES]: () => tryClearCaches(), // 清空翻译缓存
+  [MSG_OPEN_SEPARATE_WINDOW]: () => openSeparateWindowWithSavedBounds(), // 打开独立翻译小窗口
+  [MSG_UPDATE_ICON]: (args, sender) => updateIcon(args, sender?.tab?.id), // 变更页面的插件高亮图标
 };
 
 /**
- * 监听消息
- * todo: 返回含错误的结构化信息
+ * 注册全局统一的 runtime.onMessage 消息通道监听器。
  */
 browser.runtime.onMessage.addListener(async ({ action, args }, sender) => {
   const handler = messageHandlers[action];
@@ -457,21 +510,27 @@ browser.runtime.onMessage.addListener(async ({ action, args }, sender) => {
     throw new Error(`Message action is unavailable: ${action}`);
   }
 
+  // 执行对应的处理器并回传结果给发送方 (Content Script / Popup)
   return handler(args, sender);
 });
 
 /**
- * 监听快捷键
- * Firefox 移动端不支持
+ * 监听浏览器系统快捷键事件 (browser.commands)。
+ * 用户在 manifest 中声明的快捷键按下时，后台直接将对应的翻译指令广播给前台 content 脚本。
  */
 browser.commands?.onCommand?.addListener?.((command) => {
-  // console.log(`Command: ${command}`);
   switch (command) {
     case CMD_TOGGLE_TRANSLATE:
       sendTabMsg(MSG_TRANS_TOGGLE);
       break;
+    case CMD_TOGGLE_TRANSLATE_ONLY:
+      sendTabMsg(MSG_TRANS_TOGGLE_ONLY);
+      break;
     case CMD_OPEN_TRANBOX:
       sendTabMsg(MSG_OPEN_TRANBOX);
+      break;
+    case CMD_TOGGLE_TRANBOX:
+      sendTabMsg(MSG_TRANSBOX_TOGGLE);
       break;
     case CMD_TOGGLE_STYLE:
       sendTabMsg(MSG_TRANS_TOGGLE_STYLE);
@@ -480,7 +539,6 @@ browser.commands?.onCommand?.addListener?.((command) => {
       browser.runtime.openOptionsPage();
       break;
     case CMD_OPEN_SEPARATE_WINDOW:
-      // invoke the handler to open the independent window
       if (messageHandlers[MSG_OPEN_SEPARATE_WINDOW]) {
         messageHandlers[MSG_OPEN_SEPARATE_WINDOW]();
       }
@@ -490,19 +548,25 @@ browser.commands?.onCommand?.addListener?.((command) => {
 });
 
 /**
- * 监听右键菜单
- * Firefox 移动端不支持
+ * 监听全局右键菜单的点击项。
+ * 触发时，通过 Chrome 消息管道将对应指令转发给用户所点击页面的前台 Content Script。
  */
 browser?.contextMenus?.onClicked?.addListener?.(({ menuItemId }) => {
   switch (menuItemId) {
     case CMD_TOGGLE_TRANSLATE:
       sendTabMsg(MSG_TRANS_TOGGLE);
       break;
+    case CMD_TOGGLE_TRANSLATE_ONLY:
+      sendTabMsg(MSG_TRANS_TOGGLE_ONLY);
+      break;
     case CMD_TOGGLE_STYLE:
       sendTabMsg(MSG_TRANS_TOGGLE_STYLE);
       break;
     case CMD_OPEN_TRANBOX:
       sendTabMsg(MSG_OPEN_TRANBOX);
+      break;
+    case CMD_TOGGLE_TRANBOX:
+      sendTabMsg(MSG_TRANSBOX_TOGGLE);
       break;
     case CMD_OPEN_OPTIONS:
       browser.runtime.openOptionsPage();
@@ -512,8 +576,10 @@ browser?.contextMenus?.onClicked?.addListener?.(({ menuItemId }) => {
 });
 
 /**
- * 处理通用流式请求
- * 通过端口连接实现流式数据传输
+ * 专门处理 SSE/翻译大模型的流式数据请求通道。
+ * 使用 for-await 逐帧读取流式 chunk，通过 port.postMessage 实时推送到前台，避免 onMessage 一次性通信无法传输流数据的限制。
+ * @param {Port} port 专属长连接通信端口
+ * @param {Object} args 流式请求参数 (包含接口 input, fetch 配置 init 等)
  */
 async function handleStreamFetch(port, args) {
   const { input, init, opts } = args;
@@ -524,10 +590,13 @@ async function handleStreamFetch(port, args) {
       init,
       opts.httpTimeout
     )) {
+      // 实时向发送端传送当前收到的流式增量文本块
       port.postMessage({ type: "delta", data: chunk });
     }
+    // 流式传输正常结束信号
     port.postMessage({ type: "done" });
   } catch (error) {
+    // 过滤掉用户自己主动点击“取消翻译”产生的 AbortError 报错，不向前端反馈错误
     if (error.name !== "AbortError") {
       port.postMessage({ type: "error", error: error.message });
     }
@@ -535,7 +604,8 @@ async function handleStreamFetch(port, args) {
 }
 
 /**
- * 监听端口连接（用于流式请求）
+ * 监听 runtime.onConnect 连接事件。
+ * 筛选流式专属端口名 PORT_STREAM_FETCH，监听 start 开始指令并启动 handleStreamFetch 异步流处理程序。
  */
 browser.runtime.onConnect.addListener((port) => {
   if (port.name === PORT_STREAM_FETCH) {

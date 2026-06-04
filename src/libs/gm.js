@@ -1,6 +1,7 @@
 import { fetchGM } from "./fetch";
 import { genEventName } from "./utils";
 
+// 各项 GM (Greasemonkey) 跨沙盒通信指令
 const MSG_GM_xmlHttpRequest = "xmlHttpRequest";
 const MSG_GM_setValue = "setValue";
 const MSG_GM_getValue = "getValue";
@@ -8,26 +9,41 @@ const MSG_GM_deleteValue = "deleteValue";
 const MSG_GM_info = "info";
 
 /**
- * 注入页面的脚本，请求并接受GM接口信息
- * @param {*} param0
+ * 注入网页的初始化脚本，用于将油猴基本信息与事件通道公开给页面环境。
+ * @param {string} ping 特权环境监听的自定义 CustomEvent 事件名称
  */
 export const injectScript = (ping) => {
   window.APP_INFO = {
     name: process.env.REACT_APP_NAME,
     version: process.env.REACT_APP_VERSION,
-    eventName: ping,
+    eventName: ping, // 将监听的事件名暴露在全局，以便页面内代码进行事件通信
   };
 };
 
 /**
- * 适配GM脚本
+ * 运行在普通页面沙盒中的适配器。
+ * 创建一个 `window.KISS_GM` 垫片对象，将对 GM 存储和跨域请求的调用，
+ * 通过 CustomEvent 跨沙盒消息机制代理到拥有特权 API 权限的油猴脚本环境（Content Script）中执行。
+ * @param {string} ping 接受页面请求的 CustomEvent 监听事件名称
  */
 export const adaptScript = (ping) => {
+  /**
+   * 通用的 CustomEvent 异步请求封装。
+   * @param {string} action 需要执行的 GM 操作
+   * @param {Object} args 指令对应参数
+   * @param {number} timeout 超时时间 (毫秒)，默认 5000ms
+   * @returns {Promise<*>} 接收特权环境处理后返回的数据
+   */
   const promiseGM = (action, args, timeout = 5000) =>
     new Promise((resolve, reject) => {
-      const pong = genEventName();
+      const pong = genEventName(); // 动态生成一个唯一的事件名作为回调通道
+      let timer = null;
+
       const handleEvent = (e) => {
+        // 收到消息后立即解绑监听器，防止多次触发
         window.removeEventListener(pong, handleEvent);
+        if (timer) clearTimeout(timer); // 收到正常响应时及时清除超时定时器
+
         const { data, error } = e.detail;
         if (error) {
           reject(new Error(error));
@@ -36,17 +52,24 @@ export const adaptScript = (ping) => {
         }
       };
 
+      // 1. 注册接收回调的临时事件监听器
       window.addEventListener(pong, handleEvent);
+
+      // 2. 向特权油猴脚本环境分发请求事件
       window.dispatchEvent(
         new CustomEvent(ping, { detail: { action, args, pong } })
       );
 
-      setTimeout(() => {
+      // 3. 注册超时保险定时器，避免请求卡死造成内存监听器泄露
+      // REVIEW: 原实现中没有 clearTimeout 句柄。如果请求正常 resolve，
+      // 该定时器仍会触发并无害地执行一次 removeEventListener，但会堆积临时定时器。已在此处优化加入 timer 清理。
+      timer = setTimeout(() => {
         window.removeEventListener(pong, handleEvent);
         reject(new Error("timeout"));
       }, timeout);
     });
 
+  // 挂载垫片到宿主页面 window，使运行在普通页面沙盒中的 React / Web 业务代码可以像调用原生 GM 般顺畅
   window.KISS_GM = {
     fetch: (input, init) => promiseGM(MSG_GM_xmlHttpRequest, { input, init }),
     setValue: (key, val) => promiseGM(MSG_GM_setValue, { key, val }),
@@ -62,17 +85,24 @@ export const adaptScript = (ping) => {
 };
 
 /**
- * 监听并回应页面对GM接口的请求
- * @param {*} param0
+ * 监听并响应普通页面通过 CustomEvent 派发的 GM 特权调用请求。
+ * 运行在具有 GM 权限的 Userscript 脚本沙盒中。
+ * @param {CustomEvent} e 派发的事件对象
  */
 export const handlePing = async (e) => {
+  // REVIEW: 安全性警告！
+  // 此处没有校验请求源或进行令牌(Token)认证。如果宿主网页中存在恶意第三方脚本，
+  // 可以通过读取 `window.APP_INFO.eventName` 轻松获取通信事件名，
+  // 继而构造伪造的 CustomEvent 来调用 `setValue`、`getValue` 甚至是 `xmlHttpRequest` 跨域代理。
+  // 这会导致存储隐私泄露、数据被恶意覆写、甚至利用特权跨域请求实施 CSRF 攻击。
+  // 建议今后在此处加入简单的会话 Token 校验机制。
   const { action, args, pong } = e.detail;
   let res;
   try {
     switch (action) {
       case MSG_GM_xmlHttpRequest:
         const { input, init } = args;
-        res = await fetchGM(input, init);
+        res = await fetchGM(input, init); // 调用跨域特权 fetch
         break;
       case MSG_GM_setValue:
         const { key, val } = args;
@@ -93,8 +123,10 @@ export const handlePing = async (e) => {
         throw new Error(`message action is unavailable: ${action}`);
     }
 
+    // 成功处理后，向回调事件 pong 发送成功报文
     window.dispatchEvent(new CustomEvent(pong, { detail: { data: res } }));
   } catch (err) {
+    // 捕获异常并反馈给回调页面
     window.dispatchEvent(
       new CustomEvent(pong, { detail: { error: err.message } })
     );

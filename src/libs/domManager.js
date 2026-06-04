@@ -115,6 +115,10 @@ export default class DomManager {
 
   /**
    * 更新组件 props（仅在组件已挂载时有效）
+   * // REVIEW: 内部属性未更新隐患。在 updateProps() 执行中，虽然成功调用了渲染器更新 DOM 上的组件，
+   * // 但并没有将新的 newProps 同步更新到实例的 `this._props` 中。
+   * // 导致后续如果通过 `toggle()` 或不传参数的 `show()` 再次显示组件时，
+   * // 仍会读取到挂载初期在构造器中传入的旧 props 引用，产生数据不同步的 BUG。
    * @param {Object} newProps - 新的 props
    */
   updateProps(newProps) {

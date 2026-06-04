@@ -15,16 +15,18 @@ import {
   CACHE_NAME,
   OPT_LANGDETECTOR_ALL,
   OPT_SHORTCUT_TRANSLATE,
+  OPT_SHORTCUT_TRANSONLY,
   OPT_SHORTCUT_STYLE,
   OPT_SHORTCUT_POPUP,
   OPT_SHORTCUT_SETTING,
   DEFAULT_BLACKLIST,
   DEFAULT_CSPLIST,
   DEFAULT_ORILIST,
+  DEFAULT_IFRAME_WHITELIST,
   MSG_CONTEXT_MENUS,
   MSG_UPDATE_CSP,
   DEFAULT_HTTP_TIMEOUT,
-  OPT_LANGS_TO,
+  OPT_LANGS_TO_REVERSED as OPT_LANGS_TO,
 } from "../../config";
 import { useShortcut } from "../../hooks/Shortcut";
 import ShortcutInput from "./ShortcutInput";
@@ -35,6 +37,9 @@ import UploadButton from "./UploadButton";
 import DownloadButton from "./DownloadButton";
 import ValidationInput from "../../hooks/ValidationInput";
 
+/**
+ * 包装单个快捷键录入表单项组件
+ */
 function ShortcutItem({ action, label }) {
   const { shortcut, setShortcut } = useShortcut(action);
   return (
@@ -42,15 +47,23 @@ function ShortcutItem({ action, label }) {
   );
 }
 
+/**
+ * 基本查词/运行设置中心页面 (Settings)
+ */
 export default function Settings() {
   const i18n = useI18n();
+  // 设置 Hook
   const { setting, updateSetting } = useSetting();
   const alert = useAlert();
+  // 悬浮查词 FAB 浮球设置 Hook
   const { fab, updateFab } = useFab();
 
+  // 基础表单输入状态更改回调
   const handleChange = (e) => {
     e.preventDefault();
     let { name, value } = e.target;
+
+    // 特定联动：若是浏览器扩展模式，且修改了右键菜单或CSP规则列表，立即向后台 content script / background 发送同步消息
     switch (name) {
       case "contextMenuType":
         isExt && sendBgMsg(MSG_CONTEXT_MENUS, value);
@@ -68,6 +81,7 @@ export default function Settings() {
     });
   };
 
+  // 清除本地网络请求翻译缓存
   const handleClearCache = () => {
     try {
       caches.delete(CACHE_NAME);
@@ -77,6 +91,7 @@ export default function Settings() {
     }
   };
 
+  // 导入备份 JSON 配置文件
   const handleImport = async (data) => {
     try {
       updateSetting(JSON.parse(data));
@@ -85,6 +100,7 @@ export default function Settings() {
     }
   };
 
+  // 解构当前基础查词偏好设置
   const {
     uiLang,
     minLength,
@@ -95,6 +111,7 @@ export default function Settings() {
     contextMenuType = 1,
     touchModes = [2],
     blacklist = DEFAULT_BLACKLIST.join(",\n"),
+    iframeWhitelist = DEFAULT_IFRAME_WHITELIST.join(",\n"),
     csplist = DEFAULT_CSPLIST.join(",\n"),
     orilist = DEFAULT_ORILIST.join(",\n"),
     transInterval = 100,
@@ -102,17 +119,14 @@ export default function Settings() {
     logLevel = 1,
     preInit = true,
     skipLangs = [],
-    // detectRemote = true,
-    transAllnow = false,
-    rootMargin = 500,
   } = setting;
+  // 解构 FAB 悬浮球的显隐状态及点击后的默认交互行为
   const { isHide = false, fabClickAction = 0 } = fab || {};
 
   return (
     <Box>
       <Stack spacing={3}>
-        {/* <Alert severity="info">{i18n("setting_helper")}</Alert> */}
-
+        {/* 数据导入导出控制条 */}
         <Stack
           direction="row"
           alignItems="center"
@@ -128,8 +142,10 @@ export default function Settings() {
           />
         </Stack>
 
+        {/* 基础参数网格配置区 */}
         <Box>
           <Grid container spacing={2} columns={12}>
+            {/* 设置面板用户界面语言 */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
@@ -147,6 +163,7 @@ export default function Settings() {
                 ))}
               </TextField>
             </Grid>
+            {/* 页面打开时是否预先初始化运行环境 */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
@@ -161,6 +178,7 @@ export default function Settings() {
                 <MenuItem value={false}>{i18n("disable")}</MenuItem>
               </TextField>
             </Grid>
+            {/* 是否全局隐藏内容页面右侧的悬浮查词小图标 FAB */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
@@ -177,6 +195,7 @@ export default function Settings() {
                 <MenuItem value={true}>{i18n("hide")}</MenuItem>
               </TextField>
             </Grid>
+            {/* 点击悬浮球时触发的行为 (直接展示菜单或立即启动全文双语翻译) */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
@@ -191,6 +210,7 @@ export default function Settings() {
                 <MenuItem value={1}>{i18n("fab_click_translate")}</MenuItem>
               </TextField>
             </Grid>
+            {/* 单个 DOM 文本块触发网页翻译的最小有效文本长度 */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <ValidationInput
                 fullWidth
@@ -204,6 +224,7 @@ export default function Settings() {
                 max={100}
               />
             </Grid>
+            {/* 允许发起单次网页段落翻译的最长文本限制 */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <ValidationInput
                 fullWidth
@@ -217,6 +238,7 @@ export default function Settings() {
                 max={100000}
               />
             </Grid>
+            {/* 网页中单个纯文本换行符被当作真换行截断句子的数量 */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <ValidationInput
                 fullWidth
@@ -230,6 +252,7 @@ export default function Settings() {
                 max={1000}
               />
             </Grid>
+            {/* DOM 段落网页翻译扫描定时查询轮询间隔时间 (ms) */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <ValidationInput
                 fullWidth
@@ -243,6 +266,7 @@ export default function Settings() {
                 max={2000}
               />
             </Grid>
+            {/* 全局接口 HTTP 网络请求超时阈值 (ms) */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <ValidationInput
                 fullWidth
@@ -256,6 +280,7 @@ export default function Settings() {
                 max={600000}
               />
             </Grid>
+            {/* 移动端/触屏端特定的触摸手势快捷翻译触发方式 */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
@@ -276,6 +301,7 @@ export default function Settings() {
                 ))}
               </TextField>
             </Grid>
+            {/* 浏览器右键上下文菜单的展示层级 */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
@@ -291,6 +317,7 @@ export default function Settings() {
                 <MenuItem value={2}>{i18n("secondary_context_menus")}</MenuItem>
               </TextField>
             </Grid>
+            {/* 网页首选的语言自动检测服务组件 (如 Chrome Builtin, FastText 或 API) */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
@@ -309,47 +336,7 @@ export default function Settings() {
                 ))}
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
-                select
-                size="small"
-                fullWidth
-                name="transAllnow"
-                value={transAllnow}
-                label={i18n("trigger_mode")}
-                onChange={handleChange}
-              >
-                <MenuItem value={false}>{i18n("mk_pagescroll")}</MenuItem>
-                <MenuItem value={true}>{i18n("mk_pageopen")}</MenuItem>
-              </TextField>
-            </Grid>
-            <Grid item xs={12} sm={12} md={6} lg={3}>
-              <ValidationInput
-                fullWidth
-                size="small"
-                label={i18n("pagescroll_root_margin")}
-                type="number"
-                name="rootMargin"
-                value={rootMargin}
-                onChange={handleChange}
-                min={0}
-                max={10000}
-              />
-            </Grid>
-            {/* <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
-                select
-                size="small"
-                fullWidth
-                name="detectRemote"
-                value={detectRemote}
-                label={i18n("detect_lang_remote")}
-                onChange={handleChange}
-              >
-                <MenuItem value={true}>{i18n("enable")}</MenuItem>
-                <MenuItem value={false}>{i18n("disable")}</MenuItem>
-              </TextField>
-            </Grid> */}
+            {/* 日志记录详细层级 (Error/Info/Debug 等) */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
@@ -370,6 +357,7 @@ export default function Settings() {
           </Grid>
         </Box>
 
+        {/* 翻译跳过语言：遇到选中的目标语言时跳过自动网页翻译 */}
         <TextField
           select
           size="small"
@@ -388,6 +376,8 @@ export default function Settings() {
             </MenuItem>
           ))}
         </TextField>
+
+        {/* 网页翻译的黑名单域名正则排除列表 (一行一条) */}
         <TextField
           size="small"
           label={i18n("translate_blacklist")}
@@ -399,8 +389,22 @@ export default function Settings() {
           multiline
         />
 
+        {/* iframe 网页翻译的白名单域名匹配列表 (一行一条) */}
+        <TextField
+          size="small"
+          label={i18n("iframe_whitelist")}
+          helperText={i18n("pattern_helper")}
+          name="iframeWhitelist"
+          value={iframeWhitelist}
+          onChange={handleChange}
+          maxRows={10}
+          multiline
+        />
+
+        {/* 扩展专属的高级网络设置 (只在 Extension 模式下展示) */}
         {isExt ? (
           <>
+            {/* 是否在浏览器关闭/重启时自动清空网页翻译的已缓存译文 */}
             <TextField
               select
               fullWidth
@@ -419,6 +423,7 @@ export default function Settings() {
               <MenuItem value={true}>{i18n("clear_cache_restart")}</MenuItem>
             </TextField>
 
+            {/* 跨域安全 CSP 旁路加载白名单与 Ori 白名单 */}
             <TextField
               size="small"
               label={i18n("disabled_orilist")}
@@ -441,6 +446,7 @@ export default function Settings() {
             />
           </>
         ) : (
+          // 油猴脚本环境运行：渲染脚本侧注册的全局热键录入面板
           <>
             <Box>
               <Grid container spacing={2} columns={12}>
@@ -448,6 +454,12 @@ export default function Settings() {
                   <ShortcutItem
                     action={OPT_SHORTCUT_TRANSLATE}
                     label={i18n("toggle_translate_shortcut")}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={12} md={6} lg={3}>
+                  <ShortcutItem
+                    action={OPT_SHORTCUT_TRANSONLY}
+                    label={i18n("toggle_transonly_shortcut")}
                   />
                 </Grid>
                 <Grid item xs={12} sm={12} md={6} lg={3}>

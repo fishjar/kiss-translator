@@ -89,6 +89,20 @@ function setNativeValue(element, value) {
 // ==========================================
 // 核心逻辑：智能替换文本
 // ==========================================
+/**
+ * 智能替换文本函数
+ * 核心逻辑：利用各种兼容策略，将新翻译的文本回填写入页面中的目标输入框（支持普通 input、textarea 以及各类富文本编辑器）
+ *
+ * // REVIEW: 合成 Paste 事件与硬编码延时竞态风险。
+ * // 1. 针对富文本编辑器，代码试图通过自定义派发合成的 ClipboardEvent("paste") 事件来绕过浏览器的安全机制。
+ * //    如果目标富文本库内部直接读取了浏览器的原生 Clipboard 硬件数据而非从 Event 的 clipboardData 中提取，此合成事件将被抛弃。
+ * // 2. 采用了硬编码的延时等待机制（如 `sleep(100)`, `sleep(20)` 等）来等待框架重新渲染。
+ * //    在用户设备性能不佳、CPU 占用过高或标签页置于后台时，React 渲染延时可能远大于此，
+ * //    导致 `checkSuccess()` 提前校验失败并误触发降级替换策略，造成文本被重复插入或覆盖失败。
+ * @param {HTMLElement} node - 输入目标 DOM 节点
+ * @param {string} newText - 翻译回填文本
+ * @returns {Promise<boolean>} 是否成功替换
+ */
 async function smartReplaceText(node, newText) {
   node.focus();
   await sleep(10);

@@ -12,6 +12,9 @@ import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
 import LockIcon from "@mui/icons-material/Lock";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 import CloseIcon from "@mui/icons-material/Close";
+import LightModeIcon from "@mui/icons-material/LightMode";
+import DarkModeIcon from "@mui/icons-material/DarkMode";
+import BrightnessAutoIcon from "@mui/icons-material/BrightnessAuto";
 import Typography from "@mui/material/Typography";
 import { useI18n } from "../../hooks/I18n";
 import { useCallback, useState } from "react";
@@ -22,7 +25,20 @@ import { isExt } from "../../libs/client.js";
 import { useTheme, alpha } from "@mui/material/styles";
 import Logo from "../../components/Logo";
 import { isValidWord } from "../../libs/utils";
+import { useDarkMode } from "../../hooks/ColorMode";
 
+/**
+ * 划词翻译框的顶部导航栏组件
+ *
+ * @param {Object} props
+ * @param {Function} props.setShowBox - 控制划词翻译框显隐的 React setter
+ * @param {boolean} props.simpleStyle - 极简模式开关状态
+ * @param {Function} props.setSimpleStyle - 控制极简模式开关的 React setter
+ * @param {boolean} props.hideClickAway - 点击外部是否自动隐藏划词框的锁定开关状态
+ * @param {Function} props.setHideClickAway - 锁定开关的 React setter
+ * @param {boolean} props.followSelection - 划词框是否紧跟选区的定位锁定状态
+ * @param {Function} props.setFollowSelection - 定位锁定状态的 React setter
+ */
 function TranBoxHeader({
   setShowBox,
   simpleStyle,
@@ -34,15 +50,20 @@ function TranBoxHeader({
 }) {
   const theme = useTheme();
   const i18n = useI18n();
+  const { darkMode, toggleDarkMode } = useDarkMode();
 
   const iconColor = theme.palette.text.secondary;
 
+  // 请求在独立的无边框小窗口中打开翻译框
   const openSeparateWindow = useCallback(() => {
     sendBgMsg(MSG_OPEN_SEPARATE_WINDOW);
+    // REVIEW: 在独立小窗口中打开翻译后，并未同时调用 setShowBox(false) 来隐藏当前页面上的划词翻译框，这可能导致页面上残留已打开的翻译框，体验上可进一步优化。
   }, []);
 
+  // 鼠标移出按钮后，自动取消焦点
   const blurOnLeave = (e) => e.currentTarget.blur();
 
+  // 顶部操作图标按钮的基础通用样式配置
   const baseBtnStyle = {
     borderRadius: "6px",
     padding: "5px",
@@ -78,6 +99,7 @@ function TranBoxHeader({
           height: "100%",
         }}
       >
+        {/* 左侧：Logo 图标与版本号显示 */}
         <Stack direction="row" alignItems="center" spacing={1}>
           <Box
             sx={{
@@ -114,7 +136,9 @@ function TranBoxHeader({
           )}
         </Stack>
 
+        {/* 右侧：功能控制按钮组 */}
         <Stack direction="row" alignItems="center" spacing={0.5}>
+          {/* 独立窗口打开 */}
           {isExt && (
             <IconButton
               size="small"
@@ -139,6 +163,7 @@ function TranBoxHeader({
             </IconButton>
           )}
 
+          {/* 锁定划词框 (点击外部不消失) */}
           <IconButton
             size="small"
             title={i18n("btn_tip_click_away")}
@@ -171,6 +196,7 @@ function TranBoxHeader({
             )}
           </IconButton>
 
+          {/* 固定位置/跟随划词选区位置切换 */}
           <IconButton
             size="small"
             title={i18n("btn_tip_follow_selection")}
@@ -203,6 +229,7 @@ function TranBoxHeader({
             )}
           </IconButton>
 
+          {/* 极简折叠样式切换 */}
           <IconButton
             size="small"
             title={i18n("btn_tip_simple_style")}
@@ -231,6 +258,48 @@ function TranBoxHeader({
             )}
           </IconButton>
 
+          {/* 深色/浅色/自动主题模式切换 */}
+          <IconButton
+            size="small"
+            title={i18n("btn_tip_dark_mode")}
+            onMouseLeave={blurOnLeave}
+            onClick={toggleDarkMode}
+            sx={{
+              ...baseBtnStyle,
+              "&:hover": {
+                backgroundColor: theme.palette.warning.light + "20",
+                transform: "scale(1.05)",
+                boxShadow: theme.shadows[2],
+                "& svg": { color: theme.palette.warning.main },
+              },
+              "&:active": {
+                transform: "scale(0.95)",
+                backgroundColor: theme.palette.warning.light + "40",
+              },
+            }}
+          >
+            {darkMode === "dark" ? (
+              <DarkModeIcon
+                sx={{
+                  width: 16,
+                  height: 16,
+                  color: theme.palette.warning.main,
+                }}
+              />
+            ) : darkMode === "auto" ? (
+              <BrightnessAutoIcon
+                sx={{
+                  width: 16,
+                  height: 16,
+                  color: theme.palette.info.main,
+                }}
+              />
+            ) : (
+              <LightModeIcon sx={{ width: 16, height: 16 }} />
+            )}
+          </IconButton>
+
+          {/* 关闭翻译框 */}
           <IconButton
             size="small"
             title={i18n("close")}
@@ -258,6 +327,9 @@ function TranBoxHeader({
   );
 }
 
+/**
+ * 划词翻译框的内部表单内容渲染容器组件
+ */
 function TranBoxContent({
   simpleStyle,
   text,
@@ -306,12 +378,13 @@ function TranBoxContent({
         scrollbarColor: `${scrollbarThumbColor} ${scrollbarTrackColor}`,
 
         color: isDark
-          ? "rgba(255,255,255,0.82)" // 柔白, 避免刺眼
+          ? "rgba(255,255,255,0.82)" // 柔白字体, 避免极暗背景下过于刺眼
           : theme.palette.text.primary,
 
         lineHeight: 1.55,
       }}
     >
+      {/* 嵌入实际的翻译表单 */}
       <TranForm
         text={text}
         setText={setText}
@@ -329,6 +402,9 @@ function TranBoxContent({
   );
 }
 
+/**
+ * 划词翻译框的主容器入口组件 (控制拖拽外壳及规则分发)
+ */
 export default function TranBox(props) {
   const [mouseHover, setMouseHover] = useState(false);
 
@@ -340,15 +416,19 @@ export default function TranBox(props) {
   const setFollowSelection = props.setFollowSelection;
 
   let realApiSlugs = props.tranboxSetting.apiSlugs;
+  // 检查是否开启了“如果是单字，则不进行全文大模型/机器翻译，仅展示词典与建议”的性能优化设置
   if (props.tranboxSetting.singleWordNoTrans && isValidWord(props.text)) {
-    // Do not call any translation APIs, rely solely on dictionaries/suggestions
+    // 强制清空要调用的翻译引擎 API slugs
     realApiSlugs = [];
   }
 
   return (
+    // 为子组件提供独立翻译框专属的 Setting 上下文
     <SettingProvider context="tranbox">
+      {/* 提供独立翻译框专属的自定义样式 CSS 作用的主题 */}
       <ThemeProvider styles={props.extStyles}>
         {props.showBox && (
+          // 渲染可拖动可缩放的外壳
           <DraggableResizable
             position={props.boxPosition}
             size={props.boxSize}
