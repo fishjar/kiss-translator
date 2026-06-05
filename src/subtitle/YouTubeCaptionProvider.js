@@ -28,6 +28,10 @@ const YT_CAPTION_SELECT = "#ytp-caption-window-container";
 const YT_AD_SELECT = ".video-ads";
 const YT_SUBTITLE_BTN_SELECT = "button.ytp-subtitles-button";
 
+/**
+ * YouTube 字幕翻译与双语渲染入口。
+ * 负责拦截 timedtext 字幕流、选择字幕轨、断句翻译，并把结果挂载到视频播放器和字幕列表。
+ */
 class YouTubeCaptionProvider {
   // 扩展配置选项对象
   #setting = {};
@@ -74,29 +78,60 @@ class YouTubeCaptionProvider {
   // 挂载在视频右侧/下方的双语字幕列表面板管理器实例
   #subtitleListManager = null;
 
+  /**
+   * 创建 YouTube 字幕处理器实例，并初始化用户配置与国际化函数。
+   *
+   * @param {object} [setting={}] 字幕模块运行配置
+   */
   constructor(setting = {}) {
     this.#setting = { ...setting, showOrigin: false };
     this.#i18n = newI18n(setting.uiLang || "zh");
   }
 
+  /**
+   * 当前 YouTube 播放页 URL 中的视频 ID。
+   *
+   * @returns {string|null} URL 查询参数 v 的值；非视频页返回 null
+   */
   get #videoId() {
     const docUrl = new URL(document.location.href);
     return docUrl.searchParams.get("v");
   }
 
+  /**
+   * 当前页面中 YouTube 原生 video 播放器节点。
+   *
+   * @returns {HTMLVideoElement|null} 匹配到的播放器 DOM 节点
+   */
   get #videoEl() {
     return document.querySelector(VIDEO_SELECT);
   }
 
+  /**
+   * 更新字幕处理进度，并同步刷新已展开的菜单状态。
+   *
+   * @param {number} num 新的处理进度百分比
+   */
   set #progressed(num) {
     this.#progressedNum = num;
     this.#updateMenuProps(); // 更新菜单 props
   }
 
+  /**
+   * 当前字幕处理进度百分比。
+   *
+   * @returns {number} 处理进度，取值通常为 0-100
+   */
   get #progressed() {
     return this.#progressedNum;
   }
 
+  /**
+   * 初始化 YouTube 页面监听器和字幕按钮注入流程。
+   * 只注册事件与 DOM 观察器，真正的字幕处理由拦截到 timedtext 请求后触发。
+   *
+   * @public
+   */
   initialize() {
     // 监听来自网页（通常是拦截 YouTube 请求的注入脚本）的 message 事件，捕获原生字幕数据
     window.addEventListener("message", (event) => {
@@ -190,7 +225,12 @@ class YouTubeCaptionProvider {
     );
   }
 
-  // 监听 YouTube 广告播放状态的 MutationObserver
+  /**
+   * 监听 YouTube 广告 DOM 状态，并在广告开始/结束时同步字幕渲染器状态。
+   *
+   * @private
+   * @param {HTMLElement} adContainer - YouTube 广告容器 DOM 节点
+   */
   #moAds(adContainer) {
     const adLayoutSelector = ".ytp-ad-player-overlay-layout";
     const skipBtnSelector =
@@ -362,7 +402,9 @@ class YouTubeCaptionProvider {
 
   /**
    * 获取菜单组件的 props
+   *
    * @private
+   * @returns {object} 传给字幕菜单 React 组件的 props
    */
   #getMenuProps() {
     const {
@@ -393,6 +435,7 @@ class YouTubeCaptionProvider {
 
   /**
    * 更新菜单组件的 props
+   *
    * @private
    */
   #updateMenuProps() {
@@ -401,6 +444,12 @@ class YouTubeCaptionProvider {
     }
   }
 
+  /**
+   * 向 YouTube 右侧控制栏注入 Kiss Translator 字幕菜单按钮。
+   *
+   * @private
+   * @param {HTMLElement|null} ytControls - YouTube 原生右侧控制栏容器
+   */
   #injectToggleButton(ytControls) {
     if (
       this.#setting.hideSubtitleButton === true ||
@@ -452,6 +501,11 @@ class YouTubeCaptionProvider {
     ytControls?.prepend(kissControls);
   }
 
+  /**
+   * 移除已注入的字幕菜单按钮并销毁对应菜单挂载实例。
+   *
+   * @private
+   */
   #removeToggleButton() {
     this.#isMenuShow = false;
     this.#menuManager?.destroy();
@@ -463,20 +517,39 @@ class YouTubeCaptionProvider {
     this.#toggleButton = null;
   }
 
-  // 简易判断两种语言编码是否属于同一种语言的大类（如 zh-CN 与 zh-TW 均视为 zh）
+  /**
+   * 简易判断两种语言编码是否属于同一种语言的大类。
+   *
+   * @private
+   * @param {string} lang1 - 第一个语言编码，如 zh-CN
+   * @param {string} lang2 - 第二个语言编码，如 zh-TW
+   * @returns {boolean} 前两个字符一致时返回 true
+   */
   #isSameLang(lang1, lang2) {
     if (!lang1 || !lang2) return false;
     return lang1.slice(0, 2) === lang2.slice(0, 2);
   }
 
-  // 检测字幕轨是否是 Live Chat（弹幕）类型，这类字幕轨无需翻译
+  /**
+   * 检测字幕轨是否是 Live Chat（弹幕）类型。
+   *
+   * @private
+   * @param {object|null} track - YouTube captionTrack 配置项
+   * @returns {boolean} 是弹幕轨道时返回 true
+   */
   #isChatCaptionTrack(track) {
     if (!track) return false;
     const name = track.name?.simpleText || track.name?.runs?.[0]?.text || "";
     return /chat/i.test(name);
   }
 
-  // 根据 URL 的 Query 参数拼接字幕轨的唯一哈希 Key
+  /**
+   * 根据 timedtext URL 查询参数生成字幕轨唯一 Key。
+   *
+   * @private
+   * @param {URL} potUrl - 当前拦截到的 YouTube timedtext 请求 URL
+   * @returns {string} 由视频、语言、轨道类型等字段拼接的轨道标识
+   */
   #buildTrackKey(potUrl) {
     const p = potUrl.searchParams;
     return [
@@ -488,13 +561,26 @@ class YouTubeCaptionProvider {
     ].join("|");
   }
 
-  // 比对版本号检查该异步处理线程是否因为用户切视频/切字幕而过期失效
+  /**
+   * 检查异步处理版本是否已过期。
+   *
+   * @private
+   * @param {number} version - 异步任务创建时捕获的版本号
+   * @returns {boolean} 当前实例版本已变化时返回 true
+   */
   #isStaleProcessing(version) {
     return version !== this.#processingVersion;
   }
 
-  // 寻找与当前拦截到的网络请求最匹配的 YouTube 字幕配置项
-  // todo: 优化逻辑
+  /**
+   * 寻找与当前拦截到的网络请求最匹配的 YouTube 字幕配置项。
+   *
+   * @private
+   * @param {Array<object>} captionTracks - YouTube 页面提供的字幕轨配置列表
+   * @param {string} lang - 当前 timedtext 请求的语言编码
+   * @param {string|null} kind - 当前 timedtext 请求的轨道类型
+   * @returns {object|null} 匹配到的 captionTrack；无法匹配时返回 null
+   */
   #findCaptionTrack(captionTracks, lang, kind) {
     logger.debug("Youtube Provider: find caption track", {
       captionTracks,
@@ -565,7 +651,14 @@ class YouTubeCaptionProvider {
     return captionTrack;
   }
 
-  // 请求 YouTube 页面抓取 html 内容并解析视频对应的所有可选字幕轨和原描述
+  /**
+   * 请求 YouTube 播放页 HTML，并解析当前视频的字幕轨列表与原始描述。
+   *
+   * @private
+   * @async
+   * @param {string} videoId - 当前视频 ID
+   * @returns {Promise<{captionTracks?: Array<object>, fullDescription?: string}>} 字幕轨配置与视频描述
+   */
   async #getCaptionTracks(videoId) {
     try {
       const url = `https://www.youtube.com/watch?v=${videoId}`;
@@ -587,7 +680,17 @@ class YouTubeCaptionProvider {
     }
   }
 
-  // 获取字幕详细事件数组（如果当前网络拦截的内容已符合要求则直接解析，否则发送额外请求）
+  /**
+   * 获取字幕详细事件数组。
+   * 当当前拦截响应已经是目标原文字幕时直接解析，否则按选中轨道重新请求 JSON3 字幕。
+   *
+   * @private
+   * @async
+   * @param {URL} capUrl - 最终选中的字幕轨 baseUrl
+   * @param {URL} potUrl - 当前拦截到的 timedtext 请求 URL
+   * @param {string} responseText - 当前拦截请求的响应文本
+   * @returns {Promise<Array<object>|null>} YouTube json3 events 数组
+   */
   async #getSubtitleEvents(capUrl, potUrl, responseText) {
     if (
       !potUrl.searchParams.get("tlang") &&
@@ -631,6 +734,17 @@ class YouTubeCaptionProvider {
     }
   }
 
+  /**
+   * 提取相邻字幕分块的简短上下文，辅助 AI 断句保持语义连续。
+   *
+   * @private
+   * @param {Array<Array<object>>} chunks - 已切分的字幕事件分块
+   * @param {number} chunkIndex - 当前分块索引
+   * @param {"prev"|"next"} side - 提取前一块或后一块上下文
+   * @param {number} [maxEvents=3] 最多取用的相邻事件数量
+   * @param {number} [maxChars=240] 输出上下文最大字符数
+   * @returns {string} 清洗后的上下文文本
+   */
   #getChunkContext(chunks, chunkIndex, side, maxEvents = 3, maxChars = 240) {
     const NON_SPEECH_RE = /^\[.+\]$/i;
     const adj =
@@ -666,6 +780,16 @@ class YouTubeCaptionProvider {
    *    当断句模型完成智能拆分句式后，其直译结果（translation）并非最终的翻译服务提供的，因此需清空，留给最终翻译服务渲染。
    *
    * @private
+   * @async
+   * @param {object} param0
+   * @param {string} param0.videoId - 当前视频 ID
+   * @param {string} param0.fromLang - 字幕源语言代码
+   * @param {string} param0.toLang - 目标翻译语言代码
+   * @param {Array<object>} param0.chunkEvents - 当前 AI 分块内的字幕事件
+   * @param {object} param0.segApiSetting - 断句 API 配置
+   * @param {string} [param0.prevContext=""] - 前一分块的简短上下文
+   * @param {string} [param0.nextContext=""] - 后一分块的简短上下文
+   * @returns {Promise<Array<object>>} AI 断句后的字幕条目；失败时返回可保留的非语音条目
    */
   async #aiSegment({
     videoId,
@@ -799,6 +923,13 @@ class YouTubeCaptionProvider {
     return nonSpeechEvents.map(toStandaloneSub);
   }
 
+  /**
+   * 将 YouTube 字幕语言编码映射为项目翻译 API 使用的源语言编码。
+   *
+   * @private
+   * @param {string} lang - YouTube timedtext 语言编码
+   * @returns {string} 项目内部识别的语言编码，无法识别时返回 auto
+   */
   #getFromLang(lang) {
     if (lang === "zh") {
       return "zh-CN";
@@ -813,6 +944,16 @@ class YouTubeCaptionProvider {
     );
   }
 
+  /**
+   * 处理页面注入脚本拦截到的 YouTube timedtext 请求。
+   * 该方法会校验视频与字幕轨、拉取原始字幕事件，并启动后续断句翻译流程。
+   *
+   * @private
+   * @async
+   * @param {string} url - 被拦截到的 timedtext 请求 URL
+   * @param {string} responseText - 被拦截请求的响应文本
+   * @returns {Promise<void>}
+   */
   async #handleInterceptedRequest(url, responseText) {
     const videoId = this.#videoId;
     if (!videoId) {
@@ -1114,6 +1255,20 @@ class YouTubeCaptionProvider {
     });
   }
 
+  /**
+   * 将 YouTube 原始字幕事件转换为可渲染的字幕条目。
+   * 根据用户配置选择 AI 断句、统计算法断句或内置规则断句。
+   *
+   * @private
+   * @async
+   * @param {object} param0
+   * @param {string} param0.videoId - 当前视频 ID
+   * @param {Array<object>} param0.events - 清洗后的 YouTube json3 events
+   * @param {Array<object>} param0.flatEvents - 展平后的字幕事件流
+   * @param {string} param0.fromLang - 字幕源语言代码
+   * @param {number} param0.processingVersion - 当前异步处理版本快照
+   * @returns {Promise<[Array<object>, number]>} 字幕条目数组与处理进度百分比
+   */
   async #eventsToSubtitles({
     videoId,
     events,
@@ -1181,7 +1336,16 @@ class YouTubeCaptionProvider {
     return [this.#builtinSegment(events, flatEvents, fromLang), 100];
   }
 
-  // 内置兜底分句方法（选择统计算法智能分句或内置规则匹配）
+  /**
+   * 内置兜底分句方法。
+   * 根据配置选择统计算法智能分句或内置规则匹配。
+   *
+   * @private
+   * @param {Array<object>} events - 清洗后的 YouTube json3 events
+   * @param {Array<object>} flatEvents - 展平后的字幕事件流
+   * @param {string} fromLang - 字幕源语言代码
+   * @returns {Array<object>} 格式化后的字幕条目
+   */
   #builtinSegment(events, flatEvents, fromLang) {
     const { useAlgorithmBreaker } = this.#setting;
 
@@ -1197,7 +1361,14 @@ class YouTubeCaptionProvider {
     return this.#formatSubtitles(flatEvents, fromLang);
   }
 
-  // 基于启发式统计算法提取的智能分句逻辑
+  /**
+   * 基于启发式统计算法提取字幕分句。
+   *
+   * @private
+   * @param {Array<object>} events - 清洗后的 YouTube json3 events
+   * @param {string} fromLang - 字幕源语言代码
+   * @returns {Array<object>|null} 统计算法生成的字幕条目，异常时返回 null
+   */
   #algorithmicSegment(events, fromLang) {
     try {
       const algorithmicSubtitles = intelligentSentenceBreak({ events });
@@ -1213,7 +1384,11 @@ class YouTubeCaptionProvider {
     }
   }
 
-  // 实例化双语字幕渲染管理器，并在页面和侧边栏初始化显示
+  /**
+   * 实例化双语字幕渲染管理器，并在页面和侧边栏初始化显示。
+   *
+   * @private
+   */
   #startManager() {
     if (!this.#isYtSubtitleEnabled()) {
       return;
@@ -1277,7 +1452,11 @@ class YouTubeCaptionProvider {
     this.#hideYtCaption();
   }
 
-  // 销毁双语字幕管理器以及字幕侧边栏，恢复网页原生字幕展示状态
+  /**
+   * 销毁双语字幕管理器以及字幕侧边栏，恢复网页原生字幕展示状态。
+   *
+   * @private
+   */
   #destroyManager() {
     this.#showYtCaption();
 
@@ -1298,19 +1477,34 @@ class YouTubeCaptionProvider {
     }
   }
 
-  // 将 YouTube 原生的字幕窗口通过定位隐藏在屏幕外
+  /**
+   * 将 YouTube 原生字幕窗口通过定位隐藏在屏幕外。
+   *
+   * @private
+   */
   #hideYtCaption() {
     const ytCaption = document.querySelector(YT_CAPTION_SELECT);
     ytCaption && (ytCaption.style.top = "-10000px");
   }
 
-  // 恢复 YouTube 原生字幕窗口在原位置显示
+  /**
+   * 恢复 YouTube 原生字幕窗口在原位置显示。
+   *
+   * @private
+   */
   #showYtCaption() {
     const ytCaption = document.querySelector(YT_CAPTION_SELECT);
     ytCaption && (ytCaption.style.top = "0");
   }
 
-  // 基础字幕格式化处理函数（支持按语言特性自适应分段）
+  /**
+   * 基础字幕格式化处理函数，支持按语言特性自适应分段。
+   *
+   * @private
+   * @param {Array<object>} flatEvents - 展平后的字幕事件流
+   * @param {string} lang - 字幕源语言代码
+   * @returns {Array<object>} 格式化后的字幕条目
+   */
   #formatSubtitles(flatEvents, lang) {
     if (!flatEvents?.length) return [];
 
@@ -1404,7 +1598,16 @@ class YouTubeCaptionProvider {
     return subtitles;
   }
 
-  // 质量检测辅助方法：判断传入的一行或多行字幕是否是异常的长行，若长行占比过多，则视为源字幕排版质量极差，停止自动合并分段
+  /**
+   * 判断传入的一行或多行字幕是否存在过多异常长行。
+   * 若长行占比过多，则视为源字幕排版质量极差，停止自动合并分段。
+   *
+   * @private
+   * @param {Array<object>} lines - 待检测的字幕行数组
+   * @param {number} [lengthThreshold=200] 判定为长行的字符数阈值
+   * @param {number} [percentageThreshold=0.1] 长行占比阈值
+   * @returns {boolean} 字幕质量较差时返回 true
+   */
   #isQualityPoor(lines, lengthThreshold = 200, percentageThreshold = 0.1) {
     if (lines.length === 0) return false;
     const longLinesCount = lines.filter(
@@ -1418,7 +1621,18 @@ class YouTubeCaptionProvider {
     return longLinesCount / lines.length > percentageThreshold;
   }
 
-  // 核心断句分行状态机算法（针对英文和欧系空格分隔语系）
+  /**
+   * 核心断句分行状态机算法，主要用于英文和欧系空格分隔语系。
+   *
+   * @private
+   * @param {object} [param0={}]
+   * @param {Array<object>} param0.flatEvents - 展平后的字幕事件流
+   * @param {boolean} [param0.usePause=false] 是否启用弱暂停和逻辑连词辅助断行
+   * @param {number} [param0.timeout=1000] 单词间静音间隔断行阈值，单位毫秒
+   * @param {number} [param0.maxWords=15] 单行最大单词数
+   * @param {number} [param0.maxDurationMs=10000] 单行最大持续时间，单位毫秒
+   * @returns {Array<object>} 分行后的字幕条目
+   */
   #processSubtitles({
     flatEvents,
     usePause = false,
@@ -1590,6 +1804,13 @@ class YouTubeCaptionProvider {
     return sentences;
   }
 
+  /**
+   * 清洗 YouTube timedtext 字幕片段中的 HTML 标签、零宽污染和多余空白。
+   *
+   * @private
+   * @param {string} [utf8=""] 原始 utf8 字幕片段文本
+   * @returns {string} 可展示和断句的纯文本
+   */
   #cleanTimedText(utf8 = "") {
     return (
       String(utf8)
@@ -1602,6 +1823,14 @@ class YouTubeCaptionProvider {
     );
   }
 
+  /**
+   * 规范化 YouTube json3 events。
+   * 保留断行控制事件和时间断点，同时清洗可见文本并去除重复字幕。
+   *
+   * @private
+   * @param {Array<object>} [events=[]] YouTube 原始 json3 events
+   * @returns {Array<object>} 规范化后的 events
+   */
   #normalizeTimedTextEvents(events = []) {
     const normalizedEvents = [];
     let lastVisibleEventKey = "";
@@ -1656,7 +1885,13 @@ class YouTubeCaptionProvider {
     return normalizedEvents;
   }
 
-  // 将 YouTube events 格式 of 原始字幕流拍平并规范化为按单词/词组的起始/结束时间的扁平数组
+  /**
+   * 将 YouTube events 格式的原始字幕流拍平为按单词或词组标记起止时间的数组。
+   *
+   * @private
+   * @param {Array<object>} [events=[]] 规范化后的 YouTube json3 events
+   * @returns {Array<object>} 展平后的字幕事件流
+   */
   #genFlatEvents(events = []) {
     const segments = [];
     let buffer = null;
@@ -1816,6 +2051,16 @@ class YouTubeCaptionProvider {
    * //    推荐为每次异步请求引入 `AbortController` 并在视频重定向销毁时执行 `.abort()`。
    *
    * @private
+   * @async
+   * @param {object} param0
+   * @param {Array<Array<object>>} param0.chunks - 待处理的字幕事件分块列表
+   * @param {number} [param0.startIndex=0] 后台续跑的起始分块索引
+   * @param {string} param0.videoId - 当前视频 ID
+   * @param {string} param0.fromLang - 字幕源语言代码
+   * @param {string} param0.toLang - 目标翻译语言代码
+   * @param {object} param0.segApiSetting - 断句 API 配置
+   * @param {number} param0.processingVersion - 当前异步处理版本快照
+   * @returns {Promise<void>}
    */
   async #processRemainingChunksAsync({
     chunks,
@@ -1915,7 +2160,11 @@ class YouTubeCaptionProvider {
     logger.info("Youtube Provider: All subtitle chunks processed.");
   }
 
-  // 动态创建并插入右上角通知弹窗的 DOM 容器与基本样式
+  /**
+   * 动态创建并插入右上角通知弹窗的 DOM 容器与基本样式。
+   *
+   * @private
+   */
   #createNotificationElement() {
     const notificationEl = document.createElement("div");
     notificationEl.className = "kiss-notification";
@@ -1949,7 +2198,11 @@ class YouTubeCaptionProvider {
     }
   }
 
-  // 隐藏当前右上角通知弹窗
+  /**
+   * 隐藏当前右上角通知弹窗。
+   *
+   * @private
+   */
   #hideNotification() {
     clearTimeout(this.#notificationTimeout);
     if (this.#notificationEl) {
@@ -1957,7 +2210,13 @@ class YouTubeCaptionProvider {
     }
   }
 
-  // 展现通知弹窗，支持传入自定义停留展示时长
+  /**
+   * 展现通知弹窗，支持传入自定义停留展示时长。
+   *
+   * @private
+   * @param {string} message - 通知文案
+   * @param {number} [duration=2000] 停留展示时长，单位毫秒
+   */
   #showNotification(message, duration = 2000) {
     if (this.#setting.showLoadNotification === false) {
       this.#hideNotification();
@@ -1976,6 +2235,13 @@ class YouTubeCaptionProvider {
   }
 }
 
+/**
+ * YouTube 字幕模块的单例初始化入口。
+ * 多次调用只会创建一个 provider，避免重复注册页面监听器和重复注入控制按钮。
+ *
+ * @param {object} setting - 字幕模块运行配置
+ * @returns {Promise<void>}
+ */
 export const YouTubeInitializer = (() => {
   let initialized = false;
 
