@@ -107,6 +107,33 @@ export default class TranslatorManager {
 
     this.#isActive = true;
     logger.info("TranslatorManager started.");
+
+    // 当 body 标签被更新时，需要更新 ui 等等
+    let isBodyRemoved = false;
+    new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        mutation.removedNodes.forEach((node) => {
+          if (node.nodeName === "BODY") {
+            isBodyRemoved = true;
+            return;
+          }
+        });
+        mutation.addedNodes.forEach((node) => {
+          if (isBodyRemoved && node.nodeName === "BODY") {
+            isBodyRemoved = false;
+            logger.info("Document update body element");
+
+            this._fabManager?.reShowOnBody();
+            this._popupManager?.reShowOnBody();
+
+            this._transboxManager?.reset();
+            this._transboxManager?.enable();
+          }
+        });
+      });
+    }).observe(document.documentElement, {
+      childList: true,
+    });
   }
 
   /**

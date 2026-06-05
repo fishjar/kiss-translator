@@ -57,6 +57,11 @@ export class TransboxManager {
     if (!this.isEnabled() || !this.#reactRoot) {
       return;
     }
+    this.reset();
+  }
+
+  /** 强制重置 */
+  reset() {
     this.#reactRoot.unmount();
     this.#container.remove();
     this.#container = null;

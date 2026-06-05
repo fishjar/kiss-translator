@@ -38,4 +38,10 @@ export class PopupManager extends ShadowDomManager {
       this.show(props || this._props);
     }
   }
+
+  /** 当网站更新 body 标签时，需要更新相关数据 */
+  reShowOnBody() {
+    this.reset();
+    this._rootElement = document.body;
+  }
 }

@@ -79,6 +79,11 @@ export default class ShadowDomManager {
     if (!this.#hostElement) {
       return;
     }
+    this.reset();
+    logger.info(`Component with id "${this._id}" has been destroyed.`);
+  }
+
+  reset() {
     this.#isProcessing = true;
 
     if (this.#reactRoot) {
@@ -91,7 +96,6 @@ export default class ShadowDomManager {
     this.#reactRoot = null;
     this.#isVisible = false;
     this.#isProcessing = false;
-    logger.info(`Component with id "${this._id}" has been destroyed.`);
   }
 
   toggle(props) {

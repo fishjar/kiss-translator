@@ -26,4 +26,11 @@ export class FabManager extends ShadowDomManager {
       this.show();
     }
   }
+
+  /** 当网站更新 body 标签时，需要重新显示悬浮窗 */
+  reShowOnBody() {
+    this.reset();
+    this._rootElement = document.body;
+    this.show();
+  }
 }
