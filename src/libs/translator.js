@@ -1705,12 +1705,6 @@ export class Translator {
       const wrapper = document.createElement(this.#translationTagName);
       wrapper.className = `${Translator.KISS_CLASS.warpper} notranslate`;
 
-      if (processedString.length > newlineLength) {
-        const br = document.createElement("br");
-        br.hidden = hideOrigin;
-        wrapper.appendChild(br);
-      }
-
       const inner = document.createElement(transTag);
       inner.lang = toLang;
       inner.className = `${Translator.KISS_CLASS.inner} ${this.#textClass[textStyle] || ""}`;
@@ -1718,12 +1712,23 @@ export class Translator {
         inner.style.cssText = textExtStyle; // 附加内联样式
       }
       inner.appendChild(createLoadingSVG());
-      wrapper.appendChild(inner);
 
-      // 在原文和译文之间添加分隔换行
-      const separatorBr = document.createElement("br");
-      separatorBr.hidden = hideOrigin;
-      wrapper.appendChild(separatorBr);
+      // 将 <br> 作为 wrapper 的子节点，以便 toggleTranslationOnly 统一管理
+      if (processedString.length > newlineLength) {
+        const br = document.createElement("br");
+        br.hidden = hideOrigin;
+        if (transOrder === "translation-first") {
+          // 译文在上：inner → br
+          wrapper.appendChild(inner);
+          wrapper.appendChild(br);
+        } else {
+          // 原文在上：br → inner
+          wrapper.appendChild(br);
+          wrapper.appendChild(inner);
+        }
+      } else {
+        wrapper.appendChild(inner);
+      }
 
       this.#withViewportAnchor(() => {
         // 根据 transOrder 选项决定译文显示位置
@@ -2222,17 +2227,26 @@ export class Translator {
         this.#withViewportAnchor(() => {
           if (br) br.hidden = true;
           this.#removeNodes(nodes);
-          // 根据 transOrder 调整 wrapper 位置以遵循全局文本顺序设置
-          this.#adjustWrapperPosition(el, nodes, transOrder);
         });
         this.#translationNodes.set(el, { nodes, isHide: true });
       } else {
         // 仅译文变为双语
         this.#withViewportAnchor(() => {
           if (br) br.hidden = false;
-          this.#restoreOriginal(el, nodes);
-          // 根据 transOrder 调整 wrapper 位置以遵循全局文本顺序设置
-          this.#adjustWrapperPosition(el, nodes, transOrder);
+          if (nodes && nodes.length) {
+            const frag = document.createDocumentFragment();
+            nodes.forEach((n) => frag.appendChild(n));
+            const parent = el.parentElement;
+            if (parent) {
+              if (transOrder === "translation-first") {
+                // 译文在上：原文节点应在 wrapper 之后
+                el.after(frag);
+              } else {
+                // 原文在上：原文节点应在 wrapper 之前
+                el.before(frag);
+              }
+            }
+          }
         });
         this.#translationNodes.set(el, { nodes, isHide: false });
       }
@@ -2257,7 +2271,7 @@ export class Translator {
       return;
     }
 
-    // 根据 transOrder 决定 wrapper 位置
+    // br 是 wrapper 的子节点，只需调整 wrapper 相对于原文节点的位置
     if (transOrder === "translation-first") {
       // 译文在上：wrapper 应在原文节点前面
       if (firstNode.previousElementSibling !== wrapper) {
