@@ -2213,6 +2213,7 @@ export class Translator {
 
   // 切换译文和双语显示
   #toggleTranslationOnly(node, transOnly) {
+    const { transOrder = "original-first" } = this.#rule;
     this.#findTranslationWrappers(node).forEach((el) => {
       const br = el.querySelector(":scope > br");
       const { nodes } = this.#translationNodes.get(el) || {};
@@ -2221,6 +2222,8 @@ export class Translator {
         this.#withViewportAnchor(() => {
           if (br) br.hidden = true;
           this.#removeNodes(nodes);
+          // 根据 transOrder 调整 wrapper 位置以遵循全局文本顺序设置
+          this.#adjustWrapperPosition(el, nodes, transOrder);
         });
         this.#translationNodes.set(el, { nodes, isHide: true });
       } else {
@@ -2228,10 +2231,44 @@ export class Translator {
         this.#withViewportAnchor(() => {
           if (br) br.hidden = false;
           this.#restoreOriginal(el, nodes);
+          // 根据 transOrder 调整 wrapper 位置以遵循全局文本顺序设置
+          this.#adjustWrapperPosition(el, nodes, transOrder);
         });
         this.#translationNodes.set(el, { nodes, isHide: false });
       }
     });
+  }
+
+  // 根据 transOrder 调整 wrapper 位置
+  #adjustWrapperPosition(wrapper, nodes, transOrder) {
+    if (!nodes || !nodes.length) return;
+
+    // 获取第一个和最后一个原文节点的位置
+    const firstNode = nodes[0];
+    const lastNode = nodes[nodes.length - 1];
+
+    // 获取 wrapper 和原文节点的父容器
+    const wrapperParent = wrapper.parentElement;
+    const firstNodeParent = firstNode?.parentElement;
+    const lastNodeParent = lastNode?.parentElement;
+
+    // 仅在同一父容器下才需要调整位置
+    if (wrapperParent !== firstNodeParent || wrapperParent !== lastNodeParent) {
+      return;
+    }
+
+    // 根据 transOrder 决定 wrapper 位置
+    if (transOrder === "translation-first") {
+      // 译文在上：wrapper 应在原文节点前面
+      if (firstNode.previousElementSibling !== wrapper) {
+        firstNode.before(wrapper);
+      }
+    } else {
+      // 原文在上（默认）：wrapper 应在原文节点后面
+      if (lastNode.nextElementSibling !== wrapper) {
+        lastNode.after(wrapper);
+      }
+    }
   }
 
   // 更新样式
@@ -2242,6 +2279,18 @@ export class Translator {
       );
       inner.classList.remove(this.#textClass[oldStyle]);
       inner.classList.add(this.#textClass[newStyle]);
+    });
+  }
+
+  // 更新文本顺序
+  #updateTransOrder(node, transOrder) {
+    this.#findTranslationWrappers(node).forEach((el) => {
+      const { nodes } = this.#translationNodes.get(el) || {};
+      if (nodes && nodes.length) {
+        this.#withViewportAnchor(() => {
+          this.#adjustWrapperPosition(el, nodes, transOrder);
+        });
+      }
     });
   }
 
@@ -2259,8 +2308,15 @@ export class Translator {
       return;
     }
 
-    const { apiSlug, fromLang, toLang, hasRichText, textStyle, transOnly } =
-      this.#rule;
+    const {
+      apiSlug,
+      fromLang,
+      toLang,
+      hasRichText,
+      textStyle,
+      transOnly,
+      transOrder = "original-first",
+    } = this.#rule;
 
     const needsRefresh =
       appliedRule.apiSlug !== apiSlug ||
@@ -2277,6 +2333,7 @@ export class Translator {
         hasRichText,
         textStyle,
         transOnly,
+        transOrder,
       });
       this.#refreshNode(node); // 会自动应用新样式
       return;
@@ -2287,6 +2344,12 @@ export class Translator {
       const oldStyle = appliedRule.textStyle;
       appliedRule.textStyle = textStyle;
       this.#updateStyle(node, oldStyle, textStyle);
+    }
+
+    // 文本顺序规则过时
+    if (appliedRule.transOrder !== transOrder) {
+      appliedRule.transOrder = transOrder;
+      this.#updateTransOrder(node, transOrder);
     }
 
     // 切换原文显示
