@@ -350,6 +350,12 @@ export class Translator {
   #boundMouseMoveHandler; // 鼠标事件
   #boundKeyDownHandler; // 键盘事件
   #windowMessageHandler = null;
+  // 页面恢复/同文档导航完成后的统一处理器，用于修复 SPA/Turbo 页面替换 DOM 后内部扫描状态失效的问题。
+  #boundPageRestoreHandler = null;
+  // 避免 init/rescan 多次执行时重复注册页面生命周期监听。
+  #pageRestoreListenersEnabled = false;
+  // 多个导航完成事件可能连续触发，使用定时器合并为一次状态刷新。
+  #pageRestoreTimer = null;
 
   #debouncedFindShadowRoot = null;
 
@@ -598,6 +604,7 @@ export class Translator {
     this.#dmm = this.#createDebounceMouseMover();
 
     this.#windowMessageHandler = this.#handleWindowMessage.bind(this);
+    this.#boundPageRestoreHandler = this.#handlePageRestore.bind(this);
     this.#debouncedFindShadowRoot = debounce(
       this.#findAndObserveShadowRoot.bind(this),
       300
@@ -635,6 +642,7 @@ export class Translator {
   // 初始化
   #init() {
     this.#isInitialized = true;
+    this.#addPageRestoreListeners();
 
     // 注入JS/CSS
     this.#initInjector();
@@ -684,6 +692,80 @@ export class Translator {
 
   #removeShadowRootListener() {
     window.removeEventListener("message", this.#windowMessageHandler);
+  }
+
+  #addPageRestoreListeners() {
+    if (this.#pageRestoreListenersEnabled) return;
+    this.#pageRestoreListenersEnabled = true;
+
+    // BFCache 后退恢复不会重新执行 content script，但 DOM 可能恢复到旧快照；
+    // 此时 #observedNodes/#processedNodes 仍记录恢复前的节点状态，需要重新建立扫描状态。
+    window.addEventListener("pageshow", this.#boundPageRestoreHandler);
+
+    // Turbo Drive 会在同一个 document 中完成页面访问并替换 body 内容。
+    // 监听 turbo:load，而不是 popstate/turbo:render，可避免一次导航过程中多次触发整页重扫。
+    document.documentElement.addEventListener(
+      "turbo:load",
+      this.#boundPageRestoreHandler
+    );
+
+    // GitHub 仓库主体使用 repo-content-turbo-frame 局部加载页面内容。
+    // 监听 frame 加载完成事件，覆盖仓库主页与 releases 页面之间的局部导航/后退恢复。
+    document.addEventListener(
+      "turbo:frame-load",
+      this.#boundPageRestoreHandler,
+      true
+    );
+  }
+
+  #removePageRestoreListeners() {
+    if (!this.#pageRestoreListenersEnabled) return;
+    this.#pageRestoreListenersEnabled = false;
+
+    window.removeEventListener("pageshow", this.#boundPageRestoreHandler);
+    document.documentElement.removeEventListener(
+      "turbo:load",
+      this.#boundPageRestoreHandler
+    );
+    document.removeEventListener(
+      "turbo:frame-load",
+      this.#boundPageRestoreHandler,
+      true
+    );
+
+    if (this.#pageRestoreTimer) {
+      clearTimeout(this.#pageRestoreTimer);
+      this.#pageRestoreTimer = null;
+    }
+  }
+
+  #handlePageRestore(event) {
+    if (!this.#isInitialized) return;
+    // 普通 pageshow 在首次打开页面时也会触发，这种情况下 content script 已正常初始化，无需重扫。
+    if (event.type === "pageshow" && event.persisted !== true) return;
+
+    this.#schedulePageRestoreRescan();
+  }
+
+  #schedulePageRestoreRescan() {
+    if (this.#pageRestoreTimer) {
+      clearTimeout(this.#pageRestoreTimer);
+    }
+
+    this.#pageRestoreTimer = setTimeout(() => {
+      this.#pageRestoreTimer = null;
+      if (!this.#isInitialized) return;
+
+      if (this.#enabled) {
+        this.rescan();
+        return;
+      }
+
+      // 翻译关闭时不主动扫描页面，避免用户未开启翻译时的额外开销。
+      // 只清空旧 observer/WeakMap 状态；下次 enable() 会走 #init() 重新绑定当前 DOM。
+      this.#resetOptions();
+      this.#isInitialized = false;
+    }, 0);
   }
 
   // 查找现有的所有shadowroot
@@ -2621,6 +2703,7 @@ export class Translator {
     this.#resetOptions();
     this.#disableMouseHover();
     this.#disableTransOnlyRevert();
+    this.#removePageRestoreListeners();
     this.#removeInjector();
     this.#isInitialized = false;
   }
