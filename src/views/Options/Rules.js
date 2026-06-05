@@ -151,7 +151,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
     splitParagraph = OPT_SPLIT_PARAGRAPH_DISABLE, // 段落切分策略
     splitLength = 0, // 段落切分最大长度
     highlightWords = OPT_HIGHLIGHT_WORDS_DISABLE, // 单词高亮策略
-    transOrder = "original-first", // 文本顺序：原文在上或译文在上
+    transOrder, // 文本顺序：由 DEFAULT_RULE / GLOBLA_RULE 提供初始值
   } = formValues;
 
   // 判断当前表单值是否与初始值不同，决定是否激活“保存”按钮

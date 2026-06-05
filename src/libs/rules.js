@@ -145,6 +145,7 @@ const mergeRules = (baseRule, overrideRule) => {
     "transOpen",
     "transOnly",
     "transOnlyRevert",
+    "transOrder",
     "autoScan",
     "hasRichText",
     "hasShadowroot",
@@ -291,6 +292,7 @@ export const checkRules = (rules) => {
         transOnly,
         transOnlyRevert,
         transOnlyRevertDelay,
+        transOrder,
         autoScan,
         hasRichText,
         hasShadowroot,
@@ -342,6 +344,10 @@ export const checkRules = (rules) => {
           !isNaN(parseFloat(transOnlyRevertDelay))
             ? transOnlyRevertDelay
             : GLOBAL_KEY,
+        transOrder: matchValue(
+          [GLOBAL_KEY, "original-first", "translation-first"],
+          transOrder
+        ),
         autoScan: matchValue([GLOBAL_KEY, "true", "false"], autoScan),
         hasRichText: matchValue([GLOBAL_KEY, "true", "false"], hasRichText),
         hasShadowroot: matchValue([GLOBAL_KEY, "true", "false"], hasShadowroot),
