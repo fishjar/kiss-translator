@@ -437,10 +437,7 @@ export default class TranslatorManager {
 
       if (!this.#isActive) return;
 
-      if (
-        refreshType === "restart" ||
-        this.#hasDocumentContainerChanged()
-      ) {
+      if (refreshType === "restart" || this.#hasDocumentContainerChanged()) {
         this.restart(refreshReason);
         return;
       }
