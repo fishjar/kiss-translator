@@ -329,7 +329,9 @@ describe("TranslatorManager SPA lifecycle", () => {
     const manager = createManager();
     manager.start();
 
-    window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true }));
+    window.dispatchEvent(
+      new PageTransitionEvent("pageshow", { persisted: true })
+    );
     jest.runOnlyPendingTimers();
 
     expect(mockTranslatorInstances[0].rescan).toHaveBeenCalledTimes(1);
