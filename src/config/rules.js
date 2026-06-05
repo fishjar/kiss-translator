@@ -156,6 +156,7 @@ export const GLOBLA_RULE = {
   splitParagraph: OPT_SPLIT_PARAGRAPH_DISABLE,
   splitLength: 100,
   highlightWords: OPT_HIGHLIGHT_WORDS_DISABLE,
+  transOrder: "original-first", // 文本顺序：原文在上 ("original-first") 或 译文在上 ("translation-first")
 };
 
 // 预设规则列表，初始化时直接注册

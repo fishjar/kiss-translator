@@ -151,6 +151,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
     splitParagraph = OPT_SPLIT_PARAGRAPH_DISABLE, // 段落切分策略
     splitLength = 0, // 段落切分最大长度
     highlightWords = OPT_HIGHLIGHT_WORDS_DISABLE, // 单词高亮策略
+    transOrder = "original-first", // 文本顺序：原文在上或译文在上
   } = formValues;
 
   // 判断当前表单值是否与初始值不同，决定是否激活“保存”按钮
@@ -488,6 +489,28 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 {GlobalItem}
                 <MenuItem value={"false"}>{i18n("disable")}</MenuItem>
                 <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
+              </TextField>
+            </Grid>
+
+            {/* 文本顺序设置 */}
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                select
+                size="small"
+                fullWidth
+                name="transOrder"
+                value={transOrder}
+                label={i18n("trans_order")}
+                disabled={disabled}
+                onChange={handleChange}
+              >
+                {GlobalItem}
+                <MenuItem value="original-first">
+                  {i18n("original_first")}
+                </MenuItem>
+                <MenuItem value="translation-first">
+                  {i18n("translation_first")}
+                </MenuItem>
               </TextField>
             </Grid>
 

@@ -302,10 +302,10 @@ export class Translator {
   #${APP_CONSTS.boxID}, .${APP_CONSTS.boxID}_warpper,
   #${APP_CONSTS.popupID}, .${APP_CONSTS.popupID}_warpper`;
 
-  static BUILTIN_IGNORE_SELECTOR = `address, area, audio, br, canvas, 
-  data, datalist, embed, head, iframe, input, noscript, map, 
-  object, option, param, picture, progress, 
-  select, script, style, svg, track, textarea, template, 
+  static BUILTIN_IGNORE_SELECTOR = `address, area, audio, br, canvas,
+  data, datalist, embed, head, iframe, input, noscript, map,
+  object, option, param, picture, progress,
+  select, script, style, svg, track, textarea, template,
   video, wbr, .notranslate, [contenteditable='true'], [translate='no']`;
 
   #setting; // 设置选项
@@ -1686,6 +1686,7 @@ export class Translator {
       toLang,
       // skipLangs = [],
       highlightWords,
+      transOrder = "original-first",
     } = this.#rule;
     const {
       newlineLength,
@@ -1718,8 +1719,19 @@ export class Translator {
       }
       inner.appendChild(createLoadingSVG());
       wrapper.appendChild(inner);
+
+      // 在原文和译文之间添加分隔换行
+      const separatorBr = document.createElement("br");
+      separatorBr.hidden = hideOrigin;
+      wrapper.appendChild(separatorBr);
+
       this.#withViewportAnchor(() => {
-        nodes[nodes.length - 1].after(wrapper);
+        // 根据 transOrder 选项决定译文显示位置
+        if (transOrder === "translation-first") {
+          nodes[0].before(wrapper); // 译文在上
+        } else {
+          nodes[nodes.length - 1].after(wrapper); // 原文在上（默认）
+        }
       });
 
       const currentRunId = this.#runId;

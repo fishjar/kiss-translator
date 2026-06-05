@@ -1962,6 +1962,27 @@ export const I18N = {
     ja: `完全な実装ではなく、一部のページでスタイルの問題が発生する可能性があります。`,
     ko: `완벽한 구현이 아니며 일부 페이지에서 스타일 문제가 발생할 수 있습니다.`,
   },
+  trans_order: {
+    zh: `文本顺序`,
+    en: `Translation Order`,
+    zh_TW: `文字順序`,
+    ja: `テキスト順序`,
+    ko: `텍스트 순서`,
+  },
+  original_first: {
+    zh: `原文在上方`,
+    en: `Original First`,
+    zh_TW: `原文在上方`,
+    ja: `原文が最初`,
+    ko: `원문이 먼저`,
+  },
+  translation_first: {
+    zh: `译文在上方`,
+    en: `Translation First`,
+    zh_TW: `譯文在上方`,
+    ja: `翻訳が最初`,
+    ko: `번역이 먼저`,
+  },
   transonly_revert: {
     zh: `悬浮显示原文`,
     en: `Hover to Show Original`,
