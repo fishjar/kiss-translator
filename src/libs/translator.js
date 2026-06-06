@@ -1123,6 +1123,7 @@ export class Translator {
     }
 
     this.#processedNodes.set(node, { ...this.#rule });
+    this.#observeprocessedNodeChange(node);
 
     // 提前检测文本
     if (this.#isInvalidText(node.textContent)) {
@@ -2312,6 +2313,39 @@ export class Translator {
   #refreshNode(node) {
     this.#cleanupDirectTranslations(node);
     this.#processNode(node);
+  }
+
+  /** 当已经翻译的节点的内容被改变时，需要标记它重新处理。
+   *
+   * @param {Node} node 传入已经处理过的节点进行监控
+   */
+  #observeprocessedNodeChange(node) {
+    const observer = new MutationObserver((mutations) => {
+      // 插件添加、删除翻译节点时需要忽略
+      const isKiss = mutations.some(
+        (m) =>
+          // 新增的节点
+          (m.addedNodes.length === 1 &&
+            m.addedNodes[0].classList?.contains(
+              Translator.KISS_CLASS.warpper
+            )) ||
+          // 删除的节点
+          (m.removedNodes.length === 1 &&
+            m.removedNodes[0].classList?.contains(
+              Translator.KISS_CLASS.warpper
+            ))
+      );
+      if (isKiss) return;
+
+      // 节点一旦改变，清空所有现有的配置，当它重新处理
+      this.#io.unobserve(node);
+      this.#processedNodes.delete(node);
+      this.#observedNodes.delete(node);
+
+      // 只需要运行一次就可以了，下一次重新处理时，会再次监控
+      observer.disconnect();
+    });
+    observer.observe(node, { childList: true });
   }
 
   // 使指定节点的状态与当前的全局同步
