@@ -14,7 +14,7 @@ import { kissLog } from "./log";
 import { isExt } from "./client";
 import { isBg } from "./browser";
 import { sendBgMsg } from "./msg";
-import { blobToBase64 } from "./utils";
+import { parseResponse } from "./response";
 
 /**
  * 清除翻译网络请求的本地缓存
@@ -108,64 +108,6 @@ export const putHttpCache = async ({
     await cache.put(req, res);
   } catch (err) {
     kissLog("put cache", err);
-  }
-};
-
-/**
- * 通用网络响应 Response 解析函数，自动适配 JSON, Text, Blob 及语音文件转 Base64 格式并抛出友好错误。
- * @param {Response} res 原生 Response 实例
- * @param {string} [expect=null] 预期转换类型 (text, json, blob, audio)
- * @returns {Promise<*>}
- */
-export const parseResponse = async (res, expect = null) => {
-  if (!res) {
-    throw new Error("Response object does not exist");
-  }
-
-  // 若 HTTP 状态码非 200/2xx 成功状态，提取其 body 中可能的错误信息，抛出统一规范的 Error
-  if (!res.ok) {
-    const msg = {
-      url: res.url,
-      status: res.status,
-      statusText: res.statusText,
-    };
-
-    try {
-      const errorText = await res.clone().text();
-      try {
-        msg.response = JSON.parse(errorText);
-      } catch {
-        msg.response = errorText;
-      }
-    } catch (e) {
-      msg.response = "Unable to read error body";
-    }
-
-    throw new Error(JSON.stringify(msg));
-  }
-
-  const contentType = res.headers.get("Content-Type") || "";
-  if (expect === "blob") return res.blob();
-  if (expect === "text") return res.text();
-  if (expect === "json") return res.json();
-  // 翻译发音音频 (TTS) 或多媒体文件：返回 Base64 格式
-  if (
-    expect === "audio" ||
-    contentType.includes("audio") ||
-    contentType.includes("image") ||
-    contentType.includes("video")
-  ) {
-    const blob = await res.blob();
-    return blobToBase64(blob);
-  }
-
-  const text = await res.text();
-  if (!text) return null;
-
-  try {
-    return JSON.parse(text);
-  } catch (err) {
-    return text;
   }
 };
 

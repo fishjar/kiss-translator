@@ -1398,6 +1398,7 @@ export async function* handleTranslate(
       fetchInterval,
       fetchLimit,
       httpTimeout,
+      signal,
       streamRenderMode: apiSetting.streamRenderMode || "disabled",
     });
   } else {
@@ -1407,6 +1408,7 @@ export async function* handleTranslate(
       fetchInterval,
       fetchLimit,
       httpTimeout,
+      signal,
     });
     if (!response) {
       throw new Error("translate got empty response");
@@ -1448,6 +1450,7 @@ async function* handleTranslateStreamInternal(
     fetchInterval,
     fetchLimit,
     httpTimeout,
+    signal,
     streamRenderMode,
   }
 ) {
@@ -1468,6 +1471,7 @@ async function* handleTranslateStreamInternal(
       fetchInterval,
       fetchLimit,
       httpTimeout,
+      signal,
     })) {
       try {
         const json = JSON.parse(rawData);
@@ -1603,6 +1607,8 @@ export const handleSubtitle = async ({
 
   const [input, init] = await genTransReq({
     ...apiSetting,
+    // 字幕断句必须等待完整结构化结果，不能继承网页段落翻译的 SSE 流式输出设置。
+    useStream: false,
     events,
     from,
     to,
@@ -1624,7 +1630,14 @@ export const handleSubtitle = async ({
   }
 
   switch (apiType) {
+    case OPT_TRANS_EPHONEAI:
     case OPT_TRANS_OPENAI:
+    case OPT_TRANS_DEEPSEEK:
+    case OPT_TRANS_SILICONFLOW:
+    case OPT_TRANS_XIAOMIMIMO:
+    case OPT_TRANS_ALIYUNBAILIAN:
+    case OPT_TRANS_CEREBRAS:
+    case OPT_TRANS_ZAI:
     case OPT_TRANS_GEMINI_2:
     case OPT_TRANS_OPENROUTER:
     case OPT_TRANS_OLLAMA:
@@ -1643,6 +1656,8 @@ export const handleSubtitle = async ({
       if (candidate?.finishReason === "MAX_TOKENS" && thinkingWasOn) {
         const [retryInput, retryInit] = await genTransReq({
           ...apiSetting,
+          // Gemini 字幕重试同样需要完整 JSON/VTT 结果，避免把 SSE 当普通响应解析。
+          useStream: false,
           thinkingMode: "disabled",
           events,
           from,
@@ -1711,6 +1726,8 @@ export const handleSummarize = async ({
 
   const [input, init] = await genTransReq({
     ...apiSetting,
+    // 字幕上下文总结需要一次性文本结果，不能继承段落翻译的流式输出设置。
+    useStream: false,
     texts: [""],
     from: "auto",
     to: "en",
@@ -1732,7 +1749,14 @@ export const handleSummarize = async ({
   if (!res) return "";
 
   switch (apiType) {
+    case OPT_TRANS_EPHONEAI:
     case OPT_TRANS_OPENAI:
+    case OPT_TRANS_DEEPSEEK:
+    case OPT_TRANS_SILICONFLOW:
+    case OPT_TRANS_XIAOMIMIMO:
+    case OPT_TRANS_ALIYUNBAILIAN:
+    case OPT_TRANS_CEREBRAS:
+    case OPT_TRANS_ZAI:
     case OPT_TRANS_GEMINI_2:
     case OPT_TRANS_OPENROUTER:
     case OPT_TRANS_OLLAMA:

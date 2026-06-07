@@ -17,6 +17,7 @@ import {
   OPT_TRANS_OPENROUTER,
   OPT_TRANS_OLLAMA,
   OPT_TRANS_CLAUDE,
+  OPT_TRANS_EPHONEAI,
 } from "../config";
 
 /**
@@ -27,17 +28,34 @@ import {
 export const createSSEParser = () => {
   let buffer = "";
 
-  return function* (chunk) {
+  return function* (chunk = "") {
     buffer += chunk;
-    const lines = buffer.split("\n");
-    // 保留最后一行（可能尚未传输完整，作为下一次接收的 buffer）
-    buffer = lines.pop() || "";
+    buffer = buffer.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 
-    for (const line of lines) {
-      if (!line.startsWith("data: ")) continue;
-      const data = line.slice(6);
-      if (data === "[DONE]") continue; // 过滤流结束标识
-      yield data;
+    let boundaryIndex = buffer.indexOf("\n\n");
+    while (boundaryIndex !== -1) {
+      const frame = buffer.slice(0, boundaryIndex);
+      // SSE 以空行作为一帧结束；未结束的尾部片段必须留在 buffer 等下一块数据补齐。
+      buffer = buffer.slice(boundaryIndex + 2);
+
+      const dataLines = [];
+      for (const line of frame.split("\n")) {
+        if (line.startsWith(":")) continue;
+        if (!line.startsWith("data:")) continue;
+
+        let data = line.slice(5);
+        if (data.startsWith(" ")) data = data.slice(1);
+        dataLines.push(data);
+      }
+
+      if (dataLines.length) {
+        const data = dataLines.join("\n");
+        if (data.trim() !== "[DONE]") {
+          yield data;
+        }
+      }
+
+      boundaryIndex = buffer.indexOf("\n\n");
     }
   };
 };
@@ -114,6 +132,7 @@ export function getStreamDelta(json, apiType) {
     case OPT_TRANS_GEMINI_2:
     case OPT_TRANS_OPENROUTER:
     case OPT_TRANS_OLLAMA:
+    case OPT_TRANS_EPHONEAI:
       // OpenAI 兼容协议的大模型 delta 提取逻辑
       return json.choices?.[0]?.delta?.content || "";
     case OPT_TRANS_GEMINI: {

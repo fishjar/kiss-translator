@@ -31,13 +31,26 @@ import { createClient, getPatcher } from "webdav";
 import { fetchPatcher } from "./fetch";
 import { kissLog } from "./log";
 
-getPatcher().patch("request", (opts) => {
-  return fetchPatcher(opts.url, {
-    method: opts.method,
-    headers: opts.headers,
-    body: opts.data,
+let webdavRequestPatched = false;
+
+/**
+ * 确保 WebDAV 库的 request 通道只被补丁一次。
+ *
+ * @returns {void}
+ */
+const ensureWebdavRequestPatched = () => {
+  if (webdavRequestPatched) return;
+  webdavRequestPatched = true;
+
+  // WebDAV 同步只在实际使用前安装补丁，避免模块导入时产生隐式全局副作用。
+  getPatcher().patch("request", (opts) => {
+    return fetchPatcher(opts.url, {
+      method: opts.method,
+      headers: opts.headers,
+      body: opts.data,
+    });
   });
-});
+};
 
 /**
  * 使用 WebDAV 同步规则或设置数据。
@@ -52,6 +65,8 @@ getPatcher().patch("request", (opts) => {
  * @returns {Promise<Object>} 返回最终云端与本地同步判定后的最新数据对象
  */
 const syncByWebdav = async (data, { syncUrl, syncUser, syncKey }) => {
+  ensureWebdavRequestPatched();
+
   const client = createClient(syncUrl, {
     username: syncUser,
     password: syncKey,

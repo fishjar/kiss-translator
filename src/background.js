@@ -583,23 +583,38 @@ browser?.contextMenus?.onClicked?.addListener?.(({ menuItemId }) => {
  */
 async function handleStreamFetch(port, args) {
   const { input, init, opts } = args;
+  const controller = new AbortController();
+  let disconnected = false;
+  const handleDisconnect = () => {
+    disconnected = true;
+    // 前台 Port 断开代表调用方已停止消费流，必须同步中止后台 fetch。
+    controller.abort();
+  };
+  port.onDisconnect.addListener(handleDisconnect);
 
   try {
     for await (const chunk of fetchStreamNative(
       input,
       init,
-      opts.httpTimeout
+      { httpTimeout: opts.httpTimeout, signal: controller.signal }
     )) {
+      if (disconnected) break;
       // 实时向发送端传送当前收到的流式增量文本块
       port.postMessage({ type: "delta", data: chunk });
     }
-    // 流式传输正常结束信号
-    port.postMessage({ type: "done" });
-  } catch (error) {
-    // 过滤掉用户自己主动点击“取消翻译”产生的 AbortError 报错，不向前端反馈错误
-    if (error.name !== "AbortError") {
-      port.postMessage({ type: "error", error: error.message });
+    // 只有 Port 仍连接时才发送完成信号，避免断开后继续 postMessage。
+    if (!disconnected) {
+      port.postMessage({ type: "done" });
     }
+  } catch (error) {
+    // 过滤用户主动取消导致的 AbortError，保留真正的上游请求错误。
+    if (error.name !== "AbortError") {
+      if (!disconnected) {
+        port.postMessage({ type: "error", error: error.message });
+      }
+    }
+  } finally {
+    port.onDisconnect.removeListener?.(handleDisconnect);
   }
 }
 
