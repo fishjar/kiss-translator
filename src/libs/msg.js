@@ -47,12 +47,12 @@ export const sendTabMsg = async (action, args) => {
     // REVIEW: 屏蔽两种常见的无害通信错误：
     // 1. "Could not establish connection" (多发于前台 content script 尚未加载完毕或无响应)
     // 2. "Receiving end does not exist" (常见于用户在不支持注入扩展的浏览器内置特权页面如 chrome:// 上触发了消息)
-    // 此处仅使用 console.warn 警告，避免未就绪的通信异常打断业务逻辑调用链。
+    // 此处静默返回，避免未就绪的通信异常打断业务逻辑调用链或污染扩展错误页。
     if (
       err?.message?.includes("Could not establish connection") ||
       err?.message?.includes("Receiving end does not exist")
     ) {
-      console.warn("sendTabMsg warning: ", err?.message);
+      return;
     } else {
       throw err;
     }
