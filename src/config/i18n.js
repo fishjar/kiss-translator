@@ -2680,6 +2680,13 @@ export const I18N = {
     ja: `統計的分割`,
     ko: `통계 기반 분리`,
   },
+  force_subtitle_retranslate: {
+    zh: `强制重翻`,
+    en: `Force re-translate`,
+    zh_TW: `強制重翻`,
+    ja: `強制再翻訳`,
+    ko: `강제 재번역`,
+  },
   ai_enhanced_context: {
     zh: `增强智能上下文`,
     en: `Enhanced Intelligent Context`,

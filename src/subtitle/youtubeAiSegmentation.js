@@ -246,6 +246,9 @@ export async function eventsToSubtitles({
 
   const segApiSetting = transApis?.find((api) => api.apiSlug === segSlug);
   const useAiSegmentation = segSlug && segSlug !== "-" && segApiSetting;
+  const shouldClearSegmentTranslation =
+    setting.forceSubtitleRetranslate &&
+    segApiSetting?.apiSlug !== setting.apiSlug;
 
   // 断句策略仅由用户配置的 segSlug 决定；kind 只负责定位用户实际选择的字幕轨道。
   if (useAiSegmentation) {
@@ -271,7 +274,7 @@ export async function eventsToSubtitles({
       apiSubtitle,
       docInfo,
       formatSubtitles,
-      clearSegmentTranslation: segApiSetting.apiSlug !== setting.apiSlug,
+      clearSegmentTranslation: shouldClearSegmentTranslation,
       prevContext: "",
       nextContext: getChunkContext(eventChunks, 0, "next"),
       signal,
@@ -314,6 +317,7 @@ export async function eventsToSubtitles({
         apiSubtitle,
         docInfo,
         formatSubtitles,
+        clearSegmentTranslation: shouldClearSegmentTranslation,
         onAppendSubtitles,
         getCurrentVideoId,
         signal,
@@ -352,6 +356,7 @@ export async function eventsToSubtitles({
  * @param {Function} param0.apiSubtitle 调用字幕断句 API 的函数。
  * @param {object} param0.docInfo 页面与 AI 上下文信息。
  * @param {Function} param0.formatSubtitles AI 失败时的内置格式化降级函数。
+ * @param {boolean} param0.clearSegmentTranslation 是否清空断句 API 返回的翻译字段。
  * @param {Function} param0.onAppendSubtitles 分块完成时同步到 provider 的回调。
  * @param {Function} param0.getCurrentVideoId 读取当前页面视频 ID 的函数。
  * @param {AbortSignal} [param0.signal] 当前字幕处理生命周期的取消信号。
@@ -370,6 +375,7 @@ export async function processRemainingChunksAsync({
   apiSubtitle,
   docInfo,
   formatSubtitles,
+  clearSegmentTranslation,
   onAppendSubtitles,
   getCurrentVideoId,
   signal,
@@ -404,7 +410,7 @@ export async function processRemainingChunksAsync({
         apiSubtitle,
         docInfo,
         formatSubtitles,
-        clearSegmentTranslation: segApiSetting.apiSlug !== setting.apiSlug,
+        clearSegmentTranslation,
         prevContext: getChunkContext(chunks, i, "prev"),
         nextContext: getChunkContext(chunks, i, "next"),
         signal,

@@ -316,7 +316,7 @@ class YouTubeCaptionProvider {
 
     if (name === "isBilingual" || name === "blurTranslation") {
       this.#managerInstance?.updateSetting({ [name]: value });
-    } else if (name === "segSlug") {
+    } else if (name === "segSlug" || name === "forceSubtitleRetranslate") {
       this.#reProcessEvents();
     } else if (name === "showOrigin") {
       this.#toggleShowOrigin();
