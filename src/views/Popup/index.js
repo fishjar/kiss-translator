@@ -79,7 +79,7 @@ export default function Popup() {
 
         // 向当前活动的标签页请求该网址的翻译规则及全局配置信息
         const res = await sendTabMsg(MSG_TRANS_GETRULE);
-        if (!res.error) {
+        if (res && !res.error) {
           setRule(res.rule);
           setSetting(res.setting);
         }
