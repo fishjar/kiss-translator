@@ -996,6 +996,7 @@ export class Translator {
     const container = this.#findChangeContainer(changedNode);
     if (!container) return;
 
+    this.#processedNodes.delete(container); // 删除处理状态，允许重新翻译
     this.#cleanupAllTranslations(container);
     this.#scanNode(container);
   }
