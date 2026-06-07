@@ -87,17 +87,17 @@ const userscriptWebpack = (config, env) => {
   // 定义油猴脚本特有的 Meta 元数据头部信息 banner
   // REVIEW: @connect 声明中 generativelanguage.googleapis.com 出现了两次，建议删除一行冗余配置。
   const banner = `// ==UserScript==
-// @name          \${process.env.REACT_APP_NAME}
-// @namespace     \${process.env.REACT_APP_HOMEPAGE}
-// @version       \${process.env.REACT_APP_VERSION}
+// @name          ${process.env.REACT_APP_NAME}
+// @namespace     ${process.env.REACT_APP_HOMEPAGE}
+// @version       ${process.env.REACT_APP_VERSION}
 // @description   A simple bilingual translation extension & Greasemonkey script (一个简约的双语对照翻译扩展 & 油猴脚本)
 // @author        Gabe<yugang2002@gmail.com>
-// @homepageURL   \${process.env.REACT_APP_HOMEPAGE}
+// @homepageURL   ${process.env.REACT_APP_HOMEPAGE}
 // @license       GPL-3.0
 // @match         *://*/*
-// @icon          \${process.env.REACT_APP_LOGOURL}
-// @downloadURL   \${process.env.REACT_APP_USERSCRIPT_DOWNLOADURL}
-// @updateURL     \${process.env.REACT_APP_USERSCRIPT_DOWNLOADURL}
+// @icon          ${process.env.REACT_APP_LOGOURL}
+// @downloadURL   ${process.env.REACT_APP_USERSCRIPT_DOWNLOADURL}
+// @updateURL     ${process.env.REACT_APP_USERSCRIPT_DOWNLOADURL}
 // @grant         GM.xmlHttpRequest
 // @grant         GM_xmlhttpRequest
 // @grant         GM.registerMenuCommand

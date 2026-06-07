@@ -52,6 +52,7 @@ export default function TranForm({
   // 输入框中临时编辑的文本，在失焦或点击提交时同步至外层全局 text 状态
   const [editText, setEditText] = useState(text);
   const [apiSlugs, setApiSlugs] = useState(initApiSlugs);
+  const [hasUserChangedApiSlugs, setHasUserChangedApiSlugs] = useState(false);
   const [fromLang, setFromLang] = useState(initFromLang);
   const [toLang, setToLang] = useState(initToLang);
   const [toLang2, setToLang2] = useState(initToLang2);
@@ -62,6 +63,7 @@ export default function TranForm({
   const [deLang, setDeLang] = useState("");
   const [deLoading, setDeLoading] = useState(false);
   const inputRef = useRef(null);
+  const prevTextRef = useRef(text);
 
   // 挂载时：输入框自动获取焦点，并将光标定位在文本尾部
   useEffect(() => {
@@ -86,8 +88,18 @@ export default function TranForm({
 
   // 同步外层传入的 API 启用列表状态
   useEffect(() => {
-    setApiSlugs(initApiSlugs);
-  }, [initApiSlugs]);
+    if (!hasUserChangedApiSlugs) {
+      setApiSlugs(initApiSlugs);
+    }
+  }, [initApiSlugs, hasUserChangedApiSlugs]);
+
+  useEffect(() => {
+    if (prevTextRef.current !== text) {
+      prevTextRef.current = text;
+      setHasUserChangedApiSlugs(false);
+      setApiSlugs(initApiSlugs);
+    }
+  }, [text]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 如果没有处于编辑态，输入框显示内容需要实时同步外部 text
   useEffect(() => {
@@ -185,6 +197,7 @@ export default function TranForm({
                   name="apiSlugs"
                   label={i18n("translate_service_multiple")}
                   onChange={(e) => {
+                    setHasUserChangedApiSlugs(true);
                     setApiSlugs(e.target.value);
                   }}
                 >

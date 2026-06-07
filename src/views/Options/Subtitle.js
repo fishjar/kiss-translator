@@ -290,6 +290,7 @@ export default function SubtitleSetting() {
     enabled,
     apiSlug,
     segSlug,
+    forceSubtitleRetranslate = false,
     useAlgorithmBreaker = "rule",
     chunkLength,
     longSentenceThreshold = 120,
@@ -600,6 +601,17 @@ export default function SubtitleSetting() {
                 value={segSlug}
                 label={i18n("ai_segmentation")}
                 onChange={handleChange}
+                helperText={
+                  forceSubtitleRetranslate &&
+                  segSlug !== "-" &&
+                  segSlug !== apiSlug
+                    ? i18n("seg_trans_diff_warning") ||
+                      "断句和翻译服务不同，翻译引擎会重复翻译字幕"
+                    : ""
+                }
+                FormHelperTextProps={{
+                  sx: { color: "error.main" },
+                }}
               >
                 <MenuItem value={"-"}>{i18n("disable")}</MenuItem>
                 {aiEnabledApis.map((api) => (
@@ -607,6 +619,21 @@ export default function SubtitleSetting() {
                     {api.apiName}
                   </MenuItem>
                 ))}
+              </TextField>
+            </Grid>
+            {/* AI 断句服务与翻译服务不同时，是否丢弃 AI 断句返回的译文并交给翻译服务重翻 */}
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                fullWidth
+                select
+                size="small"
+                name="forceSubtitleRetranslate"
+                value={forceSubtitleRetranslate}
+                label={i18n("force_subtitle_retranslate")}
+                onChange={handleChange}
+              >
+                <MenuItem value={true}>{i18n("enable")}</MenuItem>
+                <MenuItem value={false}>{i18n("disable")}</MenuItem>
               </TextField>
             </Grid>
             {/* 系统内置的轻量断句算法类型 (基于固定句尾符号断句，或统计学概率断句) */}

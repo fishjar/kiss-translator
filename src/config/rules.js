@@ -88,6 +88,7 @@ export const DEFAULT_RULE = {
   transOnly: GLOBAL_KEY, // 是否仅显示译文而不显示原文 (单语翻译)
   transOnlyRevert: GLOBAL_KEY, // 仅译文模式下，鼠标悬浮时是否临时恢复显示原文
   transOnlyRevertDelay: GLOBAL_KEY, // 悬浮恢复原文的延迟时间 (秒)
+  transOrder: GLOBAL_KEY, // 文本顺序：原文在上 ("original-first") 或 译文在上 ("translation-first")
   // transTiming: GLOBAL_KEY, // 翻译时机/鼠标悬停翻译 (暂时作废)
   transTag: GLOBAL_KEY, // 译文嵌套的 HTML 标签 (如 font, span 等)
   transTitle: GLOBAL_KEY, // 是否翻译网页的 document.title
@@ -156,6 +157,7 @@ export const GLOBLA_RULE = {
   splitParagraph: OPT_SPLIT_PARAGRAPH_DISABLE,
   splitLength: 100,
   highlightWords: OPT_HIGHLIGHT_WORDS_DISABLE,
+  transOrder: "original-first", // 文本顺序：原文在上 ("original-first") 或 译文在上 ("translation-first")
 };
 
 // 预设规则列表，初始化时直接注册

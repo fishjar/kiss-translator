@@ -18,16 +18,3 @@ import { isMatch } from "./utils";
  */
 export const isInBlacklist = (href, blacklist = "") =>
   blacklist.split(/\n|,/).some((url) => isMatch(href, url.trim()));
-
-/**
- * 检查当前网页 URL 是否处于配置的白名单列表中
- * @param {string} href 当前页面的完整 URL (如 location.href)
- * @param {string} [whitelist=""] 逗号或换行分隔的白名单网址/匹配模式列表
- * @returns {boolean} 如果处于白名单中，返回 true；否则返回 false
- */
-export const isInWhitelist = (href, whitelist = "") => {
-  if (!whitelist || !whitelist.trim()) {
-    return false;
-  }
-  return whitelist.split(/\n|,/).some((url) => isMatch(href, url.trim()));
-};

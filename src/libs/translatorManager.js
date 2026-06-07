@@ -33,62 +33,81 @@ import {
 } from "../config";
 import { logger } from "./log";
 
+/**
+ * 前台翻译业务的总生命周期管理器。
+ *
+ * 这个类负责把网页翻译核心、划词翻译、输入框翻译、弹出面板、
+ * 悬浮球、快捷键、油猴菜单和跨 iframe 消息分发组织到同一个
+ * start/stop/restart 生命周期里。构造函数刻意不创建 DOM 相关子模块，
+ * 因为 SPA 页面可能替换 body/html，运行期子模块必须能被销毁并重建。
+ */
 export default class TranslatorManager {
+  // 全局注册项的清理句柄；这些只随 start/stop 注册，restart 时不重复注册。
   #clearShortcuts = [];
   #menuCommandIds = [];
   #clearTouchListeners = [];
   #isActive = false;
+
+  // 初始配置快照。restart 会用运行期状态刷新这些快照，再重建子模块。
+  #setting;
+  #rule;
+  #fabConfig;
+  #favWords;
   #isUserscript;
   #isIframe;
 
+  // SPA 容器监听：document 负责 html 替换，documentElement 负责 body 替换。
+  #documentObserver = null;
+  #documentElementObserver = null;
+  #knownDocumentElement = null;
+  #knownBody = null;
+
+  // 多个导航/DOM 事件通常会连发，用 0ms timer 合并成一次 rescan/restart。
+  #spaRefreshTimer = null;
+  #pendingSpaRefresh = null;
+  #pendingSpaRefreshReason = "";
+
+  // 绑定后的 handler 必须稳定保存，才能在 stop/restart 时准确 remove。
   #innerMessageHandler = null;
   #browserMessageHandler = null;
   #windowMessageHandler = null;
+  #pageRestoreHandler = null;
+  #spaNavigationHandler = null;
 
-  _translator;
-  _transboxManager;
-  _inputTranslator;
-  _popupManager;
-  _fabManager;
+  // 运行期子模块实例。它们可能挂载 DOM，因此随 restart 销毁并重建。
+  _translator = null;
+  _transboxManager = null;
+  _inputTranslator = null;
+  _popupManager = null;
+  _fabManager = null;
 
+  /**
+   * 保存启动参数并绑定全局 handler。
+   *
+   * 不在构造函数里创建 Translator/FAB/Popup 等运行期模块，避免
+   * 构造即挂载 DOM。这样 body/html 被 SPA 替换后，可以通过 restart()
+   * 只重建运行期模块，而不重复注册全局消息、快捷键和菜单。
+   */
   constructor({ setting, rule, fabConfig, favWords, isIframe, isUserscript }) {
+    this.#setting = this.#cloneConfig(setting);
+    this.#rule = this.#cloneConfig(rule);
+    this.#fabConfig = this.#cloneConfig(fabConfig);
+    this.#favWords = this.#cloneConfig(favWords);
     this.#isIframe = isIframe;
     this.#isUserscript = isUserscript;
 
-    // 1. 初始化核心网页翻译扫描器
-    this._translator = new Translator({
-      rule,
-      setting,
-      favWords,
-      isUserscript,
-      isIframe,
-    });
-
-    // 2. 初始化划词翻译面板管理器
-    this._transboxManager = new TransboxManager(setting);
-
-    // 3. 非 iframe (即在 top window 主页面) 模式下，额外初始化输入框翻译、快捷弹出菜单与悬浮球按钮
-    if (!isIframe) {
-      this._inputTranslator = new InputTranslator(setting);
-      this._popupManager = new PopupManager({
-        translator: this._translator,
-        processActions: this.#processActions.bind(this),
-      });
-      this._fabManager = new FabManager({
-        processActions: this.#processActions.bind(this),
-        fabConfig,
-      });
-    }
-
-    // 绑定各类环境下的通信消息处理器句柄
     this.#innerMessageHandler = this.#handleInnerMessage.bind(this);
     this.#browserMessageHandler = this.#handleBrowserMessage.bind(this);
     this.#windowMessageHandler = this.#handleWindowMessage.bind(this);
+    this.#pageRestoreHandler = this.#handlePageRestore.bind(this);
+    this.#spaNavigationHandler = this.#handleSpaNavigation.bind(this);
   }
 
   /**
-   * 启动整个翻译扩展前端业务。
-   * 注册各类事件监听、绑定触屏手势和油猴右上角菜单选项。
+   * 启动前台翻译业务。
+   *
+   * start 注册全局通信、快捷入口和 SPA 监听，并创建运行期子模块。
+   * start 是幂等的；重复调用只记录日志，不会重复注册监听器。
    */
   start() {
     if (this.#isActive) {
@@ -96,22 +115,52 @@ export default class TranslatorManager {
       return;
     }
 
+    this.#createRuntimeModules();
     this.#setupMessageListeners();
     this.#setupTouchOperations();
 
-    // 仅在主页面窗口且属于油猴脚本时，注册页面级物理快捷键及油猴右上角点击菜单
     if (!this.#isIframe && this.#isUserscript) {
       this.#registerShortcuts();
       this.#registerMenus();
     }
 
+    this.#setupSpaListeners();
     this.#isActive = true;
     logger.info("TranslatorManager started.");
   }
 
   /**
-   * 彻底停用并注销前端翻译器。
-   * 执行健全的垃圾回收，清除全局事件、物理按键监听、手势绑定、撤回油猴特权菜单，并逐个销毁子模块实例，防止内存泄漏。
+   * 重启运行期子模块，用于 SPA 替换 body/html 后重新挂载。
+   *
+   * restart 不会重新注册全局消息监听、快捷键、触屏手势或油猴菜单。
+   * 它只快照当前运行期状态，销毁挂 DOM 的子模块，再用快照创建新实例。
+   * 这能保留用户当前的翻译开关、划词翻译开关和输入框翻译开关。
+   */
+  restart(reason = "spa-navigation") {
+    if (!this.#isActive) {
+      logger.info("TranslatorManager is not running.");
+      return;
+    }
+
+    // 必须在 destroy 前快照：Translator.stop() 会把实例内 rule.transOpen 改成 false。
+    const state = this.#snapshotRuntimeState();
+    this.#destroyRuntimeModules();
+
+    this.#setting = state.setting;
+    this.#rule = state.rule;
+    this.#fabConfig = state.fabConfig;
+    this.#favWords = state.favWords;
+
+    this.#createRuntimeModules();
+    this.#refreshDocumentElementObserver();
+    logger.info(`TranslatorManager restarted: ${reason}`);
+  }
+
+  /**
+   * 停止前台翻译业务并释放所有注册项。
+   *
+   * stop 会清理 SPA timer/observer、全局通信监听、快捷键、触屏手势、
+   * 油猴菜单和运行期子模块。stop 后 body/html 变化不应再触发 restart。
    */
   stop() {
     if (!this.#isActive) {
@@ -119,10 +168,12 @@ export default class TranslatorManager {
       return;
     }
 
-    // 1. 移出消息监听器
+    this.#clearSpaRefreshTimer();
+    this.#teardownSpaListeners();
+
     window.removeEventListener(
       EVENT_KISS_TRANSLATOR,
-      this.#innerMessageHandler
+      this.#windowMessageHandler
     );
     if (this.#isUserscript) {
       window.removeEventListener("message", this.#innerMessageHandler);
@@ -133,51 +184,312 @@ export default class TranslatorManager {
       }
     }
 
-    // 2. 清理物理快捷键监听
     this.#clearShortcuts.forEach((clear) => clear());
     this.#clearShortcuts = [];
 
-    // 3. 清理触屏手势监听
     this.#clearTouchListeners.forEach((clear) => clear());
     this.#clearTouchListeners = [];
 
-    // 4. 销毁并撤销已挂载的油猴特权菜单
     if (globalThis.GM && this.#menuCommandIds.length > 0) {
       this.#menuCommandIds.forEach((id) => GM.unregisterMenuCommand?.(id));
       this.#menuCommandIds = [];
     }
 
-    // 5. 销毁各子组件实例
-    this._popupManager?.destroy();
-    this._fabManager?.destroy();
-    this._transboxManager?.disable();
-    this._inputTranslator?.disable();
-    this._translator.stop();
-
+    this.#destroyRuntimeModules();
     this.#isActive = false;
     logger.info("TranslatorManager stopped.");
   }
 
   /**
-   * 依据运行宿主环境，注册相应的消息通道监听。
+   * 创建所有会读写页面 DOM 或注册局部状态的运行期子模块。
+   *
+   * 每个子模块拿到的都是独立配置副本，避免子模块内部修改状态时污染
+   * manager 保存的基线快照；restart 时会用当前运行期 getter 重新同步。
+   */
+  #createRuntimeModules() {
+    this._translator = new Translator({
+      rule: this.#cloneConfig(this.#rule),
+      setting: this.#cloneConfig(this.#setting),
+      favWords: this.#cloneConfig(this.#favWords),
+      isUserscript: this.#isUserscript,
+      isIframe: this.#isIframe,
+    });
+
+    this._transboxManager = new TransboxManager(
+      this.#cloneConfig(this.#setting)
+    );
+
+    // iframe 内只跑核心翻译，不创建顶层页面专属交互 UI。
+    if (!this.#isIframe) {
+      this._inputTranslator = new InputTranslator(
+        this.#cloneConfig(this.#setting)
+      );
+      this._popupManager = new PopupManager({
+        translator: this._translator,
+        processActions: this.#processActions.bind(this),
+      });
+      this._fabManager = new FabManager({
+        processActions: this.#processActions.bind(this),
+        fabConfig: this.#cloneConfig(this.#fabConfig),
+      });
+    }
+  }
+
+  /**
+   * 销毁运行期子模块，并清空引用以帮助 GC。
+   *
+   * 这里不清理全局消息、快捷键和菜单；那些属于 start/stop 生命周期。
+   * restart 只调用本方法，避免重复注册全局入口。
+   */
+  #destroyRuntimeModules() {
+    this._popupManager?.destroy();
+    this._fabManager?.destroy();
+    this._transboxManager?.disable();
+    this._inputTranslator?.disable();
+    this._translator?.stop();
+
+    this._translator = null;
+    this._transboxManager = null;
+    this._inputTranslator = null;
+    this._popupManager = null;
+    this._fabManager = null;
+  }
+
+  /**
+   * 克隆配置对象，隔离 manager 快照和子模块运行期可变状态。
+   *
+   * 优先使用 structuredClone 以保留更多数据类型；如果宿主不支持或克隆
+   * 失败，则回退到 JSON clone。本项目当前配置主要是普通 JSON 数据。
+   */
+  #cloneConfig(value) {
+    if (value == null) return value;
+    if (typeof globalThis.structuredClone === "function") {
+      try {
+        return globalThis.structuredClone(value);
+      } catch (err) {
+        logger.debug("structuredClone failed, using JSON clone.", err);
+      }
+    }
+    return JSON.parse(JSON.stringify(value));
+  }
+
+  /**
+   * 从当前运行期实例读取最新状态，作为 restart 重建子模块的输入。
+   *
+   * Translator 的 getter 会返回当前 rule/setting 的副本，所以可保留
+   * 用户在页面内切换过的全文翻译、划词翻译、输入框翻译等开关。
+   */
+  #snapshotRuntimeState() {
+    return {
+      setting: this.#cloneConfig(this._translator?.setting || this.#setting),
+      rule: this.#cloneConfig(this._translator?.rule || this.#rule),
+      fabConfig: this.#cloneConfig(this.#fabConfig),
+      favWords: this.#cloneConfig(this.#favWords),
+    };
+  }
+
+  /**
+   * 注册 SPA 相关监听。
+   *
+   * 采用两层策略：
+   * - document/documentElement 的 MutationObserver 发现 body/html 替换时 restart；
+   * - pageshow/turbo 事件没有替换容器时只 rescan，修复 BFCache/Turbo 状态过期。
+   */
+  #setupSpaListeners() {
+    this.#documentObserver = new MutationObserver(() => {
+      this.#handleDocumentContainerMutation("document");
+    });
+    // 监听 document 的直接子节点，用于捕捉 documentElement/html 被替换。
+    this.#documentObserver.observe(document, { childList: true });
+
+    this.#refreshDocumentElementObserver();
+    window.addEventListener("pageshow", this.#pageRestoreHandler);
+    document.addEventListener(
+      "turbo:frame-load",
+      this.#spaNavigationHandler,
+      true
+    );
+  }
+
+  /**
+   * 注销 SPA 监听并清空当前已知容器引用。
+   */
+  #teardownSpaListeners() {
+    this.#documentObserver?.disconnect();
+    this.#documentObserver = null;
+
+    this.#documentElementObserver?.disconnect();
+    this.#documentElementObserver = null;
+
+    this.#knownDocumentElement?.removeEventListener(
+      "turbo:load",
+      this.#spaNavigationHandler
+    );
+    this.#knownDocumentElement = null;
+    this.#knownBody = null;
+
+    window.removeEventListener("pageshow", this.#pageRestoreHandler);
+    document.removeEventListener(
+      "turbo:frame-load",
+      this.#spaNavigationHandler,
+      true
+    );
+  }
+
+  /**
+   * 重新绑定当前 documentElement 上的 body 观察器和 turbo:load 监听。
+   *
+   * body/html 被替换后，旧 documentElement 上的监听器已经不再可靠；
+   * restart 完成后必须刷新已知引用和 observer。
+   */
+  #refreshDocumentElementObserver() {
+    this.#documentElementObserver?.disconnect();
+    this.#documentElementObserver = null;
+
+    this.#knownDocumentElement?.removeEventListener(
+      "turbo:load",
+      this.#spaNavigationHandler
+    );
+
+    // 这两个引用是判断“容器是否真的被替换”的基准。
+    this.#knownDocumentElement = document.documentElement;
+    this.#knownBody = document.body;
+
+    if (!this.#knownDocumentElement) return;
+
+    this.#knownDocumentElement.addEventListener(
+      "turbo:load",
+      this.#spaNavigationHandler
+    );
+    this.#documentElementObserver = new MutationObserver(() => {
+      this.#handleDocumentContainerMutation("documentElement");
+    });
+    // 监听 documentElement 的直接子节点，用于捕捉 body 被整体替换。
+    this.#documentElementObserver.observe(this.#knownDocumentElement, {
+      childList: true,
+    });
+  }
+
+  /**
+   * 处理 DOM 容器观察事件。
+   *
+   * MutationObserver 会因任意直接子节点变化触发；只有 body/html 引用变化
+   * 才说明运行期 DOM 挂载点失效，需要重启子模块。
+   */
+  #handleDocumentContainerMutation(reason) {
+    if (this.#hasDocumentContainerChanged()) {
+      this.#scheduleSpaRefresh("restart", reason);
+    }
+  }
+
+  /**
+   * BFCache 恢复处理。
+   *
+   * 普通首次 pageshow 不需要处理；persisted=true 表示从 BFCache 恢复，
+   * content script 不会重新执行，但 Translator 的内部扫描状态可能过期。
+   */
+  #handlePageRestore(event) {
+    if (event.type === "pageshow" && event.persisted !== true) return;
+    this.#scheduleSpaRefresh("rescan", event.type);
+  }
+
+  /**
+   * Turbo 导航完成处理。
+   *
+   * Turbo 事件本身不一定替换 body/html，因此默认只请求 rescan。
+   * 如果同一轮事件里观察到容器替换，调度器会自动升级为 restart。
+   */
+  #handleSpaNavigation(event) {
+    this.#scheduleSpaRefresh("rescan", event.type);
+  }
+
+  /**
+   * 合并 SPA 刷新请求，并保证 restart 优先于 rescan。
+   *
+   * 同一次前进/后退可能连续触发 turbo:load、turbo:frame-load、
+   * pageshow 和 MutationObserver。这里用 0ms timer 将它们合并，
+   * 避免重复 rescan/restart。
+   */
+  #scheduleSpaRefresh(type, reason) {
+    if (!this.#isActive) return;
+
+    if (this.#spaRefreshTimer) {
+      clearTimeout(this.#spaRefreshTimer);
+      this.#spaRefreshTimer = null;
+    }
+
+    // 一旦出现 restart 请求，本轮调度不能被后续 rescan 降级。
+    if (type === "restart" || this.#pendingSpaRefresh !== "restart") {
+      this.#pendingSpaRefresh = type;
+      this.#pendingSpaRefreshReason = reason;
+    }
+
+    if (type === "restart") {
+      this.#pendingSpaRefreshReason = reason;
+    }
+
+    this.#spaRefreshTimer = setTimeout(() => {
+      const refreshType = this.#pendingSpaRefresh;
+      const refreshReason = this.#pendingSpaRefreshReason;
+      this.#spaRefreshTimer = null;
+      this.#pendingSpaRefresh = null;
+      this.#pendingSpaRefreshReason = "";
+
+      if (!this.#isActive) return;
+
+      if (refreshType === "restart" || this.#hasDocumentContainerChanged()) {
+        this.restart(refreshReason);
+        return;
+      }
+
+      this._translator?.rescan();
+      logger.info(`TranslatorManager rescanned: ${refreshReason}`);
+    }, 0);
+  }
+
+  /**
+   * 清理尚未执行的 SPA 刷新任务。
+   */
+  #clearSpaRefreshTimer() {
+    if (!this.#spaRefreshTimer) return;
+
+    clearTimeout(this.#spaRefreshTimer);
+    this.#spaRefreshTimer = null;
+    this.#pendingSpaRefresh = null;
+    this.#pendingSpaRefreshReason = "";
+  }
+
+  /**
+   * 判断当前页面根容器是否已被替换。
+   */
+  #hasDocumentContainerChanged() {
+    return (
+      document.documentElement !== this.#knownDocumentElement ||
+      document.body !== this.#knownBody
+    );
+  }
+
+  /**
+   * 根据运行环境注册消息通道。
+   *
+   * Userscript 环境通过 window message 通信；扩展环境通过 runtime.onMessage
+   * 接收 background 指令，iframe 中还要监听父页面转发的 window message。
    */
   #setupMessageListeners() {
     if (this.#isUserscript) {
       window.addEventListener("message", this.#innerMessageHandler);
     } else {
-      // 浏览器插件环境：监听 background.js 发送的控制指令
       browser.runtime.onMessage.addListener(this.#browserMessageHandler);
       if (this.#isIframe) {
         window.addEventListener("message", this.#innerMessageHandler);
       }
     }
 
-    // 监听其它前台扩展模块或外部页面事件直接派发的 EVENT_KISS_TRANSLATOR CustomEvent 调用
     window.addEventListener(EVENT_KISS_TRANSLATOR, this.#windowMessageHandler);
   }
 
   /**
-   * 根据设置配置项，将手势手势绑定到 touchTapListener。
+   * 根据设置注册触屏手势。
    */
   #setupTouchOperations() {
     if (this.#isIframe) return;
@@ -197,16 +509,16 @@ export default class TranslatorManager {
         case 2:
         case 3:
         case 4:
-          options = { taps: 1, fingers: mode }; // fingers 根手指单次点击
+          options = { taps: 1, fingers: mode };
           break;
         case 5:
-          options = { taps: 2, fingers: 1 }; // 单指双击
+          options = { taps: 2, fingers: 1 };
           break;
         case 6:
-          options = { taps: 3, fingers: 1 }; // 单指三击
+          options = { taps: 3, fingers: 1 };
           break;
         case 7:
-          options = { taps: 2, fingers: 2 }; // 双指双击
+          options = { taps: 2, fingers: 2 };
           break;
         default:
       }
@@ -218,30 +530,36 @@ export default class TranslatorManager {
     touchModes.forEach((mode) => handleListener(mode));
   }
 
-  // 处理来自主 window 自定义事件的通信
+  /**
+   * 处理同窗口 CustomEvent 通信。
+   */
   #handleWindowMessage(event) {
     logger.debug("handle window message:", event);
     this.#processActions(event.detail);
   }
 
-  // 处理 iframe 或页面内 postMessage 传递的消息
+  /**
+   * 处理 iframe 或页面内 postMessage 通信。
+   */
   #handleInnerMessage(event) {
     this.#processActions(event.data);
   }
 
-  // 扩展环境：处理 runtime.onMessage 底层通信
+  /**
+   * 处理扩展 background 发送的 runtime 消息。
+   */
   #handleBrowserMessage(message, sender, sendResponse) {
     const result = this.#processActions(message, true);
     const response = result || {
-      rule: this._translator.rule,
-      setting: this._translator.setting,
+      rule: this._translator?.rule || this.#rule,
+      setting: this._translator?.setting || this.#setting,
     };
     sendResponse(response);
-    return true; // 返回 true 以支持异步回调 (sendResponse)
+    return true;
   }
 
   /**
-   * 使用 shortcutRegister 在页面全局注册对应的控制快捷键。
+   * 注册页面级快捷键，并保存每个快捷键的清理函数。
    */
   #registerShortcuts() {
     const { shortcuts, tranboxSetting } = this._translator.setting;
@@ -268,7 +586,7 @@ export default class TranslatorManager {
   }
 
   /**
-   * 在油猴环境下，向浏览器右上角的脚本菜单中添加交互可点击的命令按钮。
+   * 注册油猴菜单命令。
    */
   #registerMenus() {
     if (!globalThis.GM) return;
@@ -307,17 +625,15 @@ export default class TranslatorManager {
   }
 
   /**
-   * 翻译动作分发器中枢。
-   * 接收指令后，将其应用给子模块，且将非 Extension 内部的消息向子 iframe 广播，同步翻译动作。
-   * @param {Object} action 包含指令名 action 和参数 args
-   * @param {boolean} fromExt 标识该命令是否直接来自 Background 扩展，为真时不需要二次向 Iframe 广播
+   * 翻译动作分发入口。
+   *
+   * 顶层页面发起的动作会同步广播给 iframe；来自扩展 background 的动作
+   * 已经是统一入口，不再二次广播，避免 iframe 收到重复指令。
    */
   #processActions({ action, args } = {}, fromExt = false) {
     if (!action) return;
 
-    // REVIEW: 强大的跨 Iframe 动作广播机制！
-    // 若当前为顶级框架主页面触发的翻译动作（如点击了悬浮球或按下了快捷键），
-    // 主动调用 sendIframeMsg 广播消息给所有子 iframe，使多层 iframe 页面能统一联动翻译，效果极佳。
+    // 非 background 指令需要主动同步给子 iframe，保持多 frame 页面状态一致。
     if (!fromExt) {
       sendIframeMsg(action, args);
     }
@@ -326,18 +642,18 @@ export default class TranslatorManager {
 
     switch (action) {
       case MSG_TRANS_TOGGLE:
-        this._translator.toggle();
+        this._translator?.toggle();
         break;
       case MSG_TRANS_TOGGLE_ONLY:
-        this._translator.toggleTransOnly();
+        this._translator?.toggleTransOnly();
         break;
       case MSG_TRANS_TOGGLE_STYLE:
-        this._translator.toggleStyle();
+        this._translator?.toggleStyle();
         break;
       case MSG_TRANS_GETRULE:
         break;
       case MSG_TRANS_PUTRULE:
-        this._translator.updateRule(args);
+        this._translator?.updateRule(args);
         break;
       case MSG_OPEN_TRANBOX:
         document.dispatchEvent(
@@ -351,20 +667,20 @@ export default class TranslatorManager {
         break;
       case MSG_TRANSBOX_TOGGLE:
         this._transboxManager?.toggle();
-        this._translator.toggleTransbox();
+        this._translator?.toggleTransbox();
         break;
       case MSG_MOUSEHOVER_TOGGLE:
-        this._translator.toggleMouseHover();
+        this._translator?.toggleMouseHover();
         break;
       case MSG_TRANSINPUT_TOGGLE:
         this._inputTranslator?.toggle();
-        this._translator.toggleInputTranslate();
+        this._translator?.toggleInputTranslate();
         break;
       case MSG_HOVERNODE_TOGGLE:
-        this._translator.toggleHoverNode();
+        this._translator?.toggleHoverNode();
         break;
       case MSG_INPUT_TRANSLATE:
-        this._inputTranslator.handleTranslate();
+        this._inputTranslator?.handleTranslate();
         break;
       default:
         logger.info(`Message action is unavailable: ${action}`);

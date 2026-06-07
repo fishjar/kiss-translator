@@ -22,7 +22,6 @@ import {
   DEFAULT_BLACKLIST,
   DEFAULT_CSPLIST,
   DEFAULT_ORILIST,
-  DEFAULT_IFRAME_WHITELIST,
   MSG_CONTEXT_MENUS,
   MSG_UPDATE_CSP,
   DEFAULT_HTTP_TIMEOUT,
@@ -111,7 +110,6 @@ export default function Settings() {
     contextMenuType = 1,
     touchModes = [2],
     blacklist = DEFAULT_BLACKLIST.join(",\n"),
-    iframeWhitelist = DEFAULT_IFRAME_WHITELIST.join(",\n"),
     csplist = DEFAULT_CSPLIST.join(",\n"),
     orilist = DEFAULT_ORILIST.join(",\n"),
     transInterval = 100,
@@ -266,7 +264,7 @@ export default function Settings() {
                 max={2000}
               />
             </Grid>
-            {/* 全局接口 HTTP 网络请求超时阈值 (ms) */}
+            {/* 全局接口 HTTP 网络请求超时阈值 (s) */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <ValidationInput
                 fullWidth
@@ -276,8 +274,8 @@ export default function Settings() {
                 name="httpTimeout"
                 value={httpTimeout}
                 onChange={handleChange}
-                min={1000}
-                max={600000}
+                min={1}
+                max={600}
               />
             </Grid>
             {/* 移动端/触屏端特定的触摸手势快捷翻译触发方式 */}
@@ -384,18 +382,6 @@ export default function Settings() {
           helperText={i18n("pattern_helper")}
           name="blacklist"
           value={blacklist}
-          onChange={handleChange}
-          maxRows={10}
-          multiline
-        />
-
-        {/* iframe 网页翻译的白名单域名匹配列表 (一行一条) */}
-        <TextField
-          size="small"
-          label={i18n("iframe_whitelist")}
-          helperText={i18n("pattern_helper")}
-          name="iframeWhitelist"
-          value={iframeWhitelist}
           onChange={handleChange}
           maxRows={10}
           multiline

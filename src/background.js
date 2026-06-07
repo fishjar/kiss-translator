@@ -75,6 +75,27 @@ async function updateIcon(isActive, tabId) {
 // declarativeNetRequest 动态规则的起始 ID 段，避免 ID 冲突
 const CSP_RULE_START_ID = 1;
 const ORI_RULE_START_ID = 10000;
+
+/**
+ * 从一个 URL 或域名字符串中提取可注册域名 (registrable domain, 即 eTLD+1)。
+ * 例如 "https://dict.youdao.com/xxx" -> "youdao.com"。
+ * 用于 DNR 的 excludedInitiatorDomains，使其能匹配目标站点的所有子域名页面。
+ * @param {string} input URL 或域名（可不带协议）
+ * @returns {string} 可注册域名；解析失败时返回空字符串
+ */
+function getRegistrableDomain(input) {
+  try {
+    const hostname = new URL(
+      /^[a-z]+:\/\//i.test(input) ? input : `https://${input}`
+    ).hostname;
+    const labels = hostname.split(".").filter(Boolean);
+    // 取最后两段作为可注册域名（足以覆盖有道等常见翻译源场景）
+    return labels.length <= 2 ? hostname : labels.slice(-2).join(".");
+  } catch (err) {
+    kissLog("getRegistrableDomain error", err);
+    return "";
+  }
+}
 // 需要从 HTTP 响应头中移除的 CSP (Content-Security-Policy) 键名，用以允许加载第三方翻译接口脚本/发送翻译请求
 const CSP_REMOVE_HEADERS = [
   `content-security-policy`,
@@ -354,17 +375,31 @@ async function updateCspRules({ csplist, orilist }) {
       idsToRemove.push(...oldOriRuleIds);
 
       // 将发往特定翻译源的 xmlhttprequest 请求的 Origin 修改为目标源域名，伪装成同源请求
-      const newOriRules = processedOriList.map((url, index) => ({
-        id: ORI_RULE_START_ID + index,
-        action: {
-          type: "modifyHeaders",
-          requestHeaders: [{ header: "Origin", operation: "set", value: url }],
-        },
-        condition: {
+      const newOriRules = processedOriList.map((url, index) => {
+        const condition = {
           urlFilter: url,
           resourceTypes: ["xmlhttprequest"],
-        },
-      }));
+        };
+
+        // 仅对“非目标站点本身”的页面发起的请求伪装 Origin。
+        // 否则会篡改用户在目标站点（如有道）自身页面上发出的请求的 Origin，
+        // 反而触发该站点的跨域校验失败 (CORS AllowOriginMismatch)。详见 issue #759。
+        const initiatorDomain = getRegistrableDomain(url);
+        if (initiatorDomain) {
+          condition.excludedInitiatorDomains = [initiatorDomain];
+        }
+
+        return {
+          id: ORI_RULE_START_ID + index,
+          action: {
+            type: "modifyHeaders",
+            requestHeaders: [
+              { header: "Origin", operation: "set", value: url },
+            ],
+          },
+          condition,
+        };
+      });
       rulesToAdd.push(...newOriRules);
     }
 
@@ -583,23 +618,37 @@ browser?.contextMenus?.onClicked?.addListener?.(({ menuItemId }) => {
  */
 async function handleStreamFetch(port, args) {
   const { input, init, opts } = args;
+  const controller = new AbortController();
+  let disconnected = false;
+  const handleDisconnect = () => {
+    disconnected = true;
+    // 前台 Port 断开代表调用方已停止消费流，必须同步中止后台 fetch。
+    controller.abort();
+  };
+  port.onDisconnect.addListener(handleDisconnect);
 
   try {
-    for await (const chunk of fetchStreamNative(
-      input,
-      init,
-      opts.httpTimeout
-    )) {
+    for await (const chunk of fetchStreamNative(input, init, {
+      httpTimeout: opts.httpTimeout,
+      signal: controller.signal,
+    })) {
+      if (disconnected) break;
       // 实时向发送端传送当前收到的流式增量文本块
       port.postMessage({ type: "delta", data: chunk });
     }
-    // 流式传输正常结束信号
-    port.postMessage({ type: "done" });
-  } catch (error) {
-    // 过滤掉用户自己主动点击“取消翻译”产生的 AbortError 报错，不向前端反馈错误
-    if (error.name !== "AbortError") {
-      port.postMessage({ type: "error", error: error.message });
+    // 只有 Port 仍连接时才发送完成信号，避免断开后继续 postMessage。
+    if (!disconnected) {
+      port.postMessage({ type: "done" });
     }
+  } catch (error) {
+    // 过滤用户主动取消导致的 AbortError，保留真正的上游请求错误。
+    if (error.name !== "AbortError") {
+      if (!disconnected) {
+        port.postMessage({ type: "error", error: error.message });
+      }
+    }
+  } finally {
+    port.onDisconnect.removeListener?.(handleDisconnect);
   }
 }
 

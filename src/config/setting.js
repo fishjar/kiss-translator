@@ -38,7 +38,6 @@ export const DEFAULT_BLACKLIST = [
 ];
 export const DEFAULT_CSPLIST = []; // 默认禁用 CSP 安全策略的网址列表
 export const DEFAULT_ORILIST = ["https://dict.youdao.com"]; // 默认在跨域请求中需要重写 Origin 请求头的域名
-export const DEFAULT_IFRAME_WHITELIST = []; // 默认允许进入 iframe 翻译的网址/白名单列表
 
 // --- 配置同步设置 ---
 export const OPT_SYNCTYPE_WORKER = "KISS-Worker"; // 自建 Cloudflare Worker 同步方案
@@ -140,8 +139,9 @@ export const DEFAULT_SUBTITLE_SETTING = {
   enabled: true, // 是否自动开启视频字幕翻译功能
   apiSlug: OPT_TRANS_MICROSOFT, // 默认的字幕翻译接口 (使用微软翻译)
   segSlug: "-", // 智能 AI 断句/字幕合并的算法选择 ("-" 表示禁用 AI 段落合并)
-  chunkLength: 1000, // 触发 AI 翻译的单包最大字幕字符数
-  longSentenceThreshold: 120, // 启用基于标点规则拆分的长句判定字符长度限制
+  forceSubtitleRetranslate: false, // AI 断句服务与翻译服务不同时，是否强制使用翻译服务重翻译文
+  chunkLength: 2000, // 触发 AI 翻译的单包最大字幕字符数
+  longSentenceThreshold: 100, // 启用基于标点规则拆分的长句判定字符长度限制
   useAlgorithmBreaker: "rule", // 字幕断句断行处理器类型 ("rule" 规则断行，"statistical" 基于时间统计特征断行)
   preTrans: 90, // 字幕翻译提前发送的时长 (毫秒)，防止接口网络延迟导致字幕不同步
   throttleTrans: 30, // 节流延迟：两次翻译请求的最小时间间隔 (毫秒)
@@ -214,9 +214,7 @@ export const DEFAULT_SETTING = {
   // touchTranslate: 2, // 触屏翻译 {5:单指双击，6:单指三击，7:双指双击} (作废)
   touchModes: [2], // 触屏移动端翻译触发行为配置 (数组，支持多选，如单指双击/三击)
   blacklist: DEFAULT_BLACKLIST.join(",\n"), // 禁用整页双语翻译的网址/黑名单列表
-  iframeWhitelist: DEFAULT_IFRAME_WHITELIST.join(",\n"), // 允许进入 iframe 翻译的网址/白名单列表
   csplist: DEFAULT_CSPLIST.join(",\n"), // 强制禁用内容安全策略(CSP)以允许向翻译 API 发送请求的网址列表
-
   orilist: DEFAULT_ORILIST.join(",\n"), // 需要改写或删除 Cross-Origin HTTP 请求头的网址列表
   // disableLangs: [], // 不翻译的语言(移至rule，作废)
   skipLangs: [], // 忽略翻译的语种代码列表 (即如果网页检测到是这些语言，则不触发自动整页翻译)
