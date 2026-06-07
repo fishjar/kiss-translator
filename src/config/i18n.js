@@ -3100,6 +3100,13 @@ export const I18N = {
     ja: `ルールの切り替えに失敗しました`,
     ko: `규칙 전환 실패`,
   },
+  seg_trans_diff_warning: {
+    zh: `断句和翻译服务不同，翻译引擎会重复翻译字幕`,
+    en: `Segmentation and translation engines differ; subtitles will be re-translated.`,
+    zh_TW: `斷句和翻譯服務不同，翻譯引擎會重複翻譯字幕`,
+    ja: `セグメンテーションと翻訳エンジンが異なります。字幕は再翻訳されます。`,
+    ko: `분할과 번역 엔진이 다릅니다. 자막이 다시 번역됩니다.`,
+  },
 };
 
 export const newI18n = (lang) => (key) => I18N[key]?.[lang] || "";

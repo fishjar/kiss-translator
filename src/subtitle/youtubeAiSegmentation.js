@@ -125,7 +125,7 @@ export async function aiSegment({
         if (!subtitles?.length || !onSubtitleChunk) return;
 
         const streamedSubtitles = clearSegmentTranslation
-          ? subtitles.map((sub) => ({ ...sub, translation: "" }))
+          ? subtitles.map((sub) => ({ ...sub, _isDraftTranslation: true }))
           : subtitles;
         // 字幕断句流式回调只上抛已经闭合的完整句子，避免半句扰乱播放器时间轴。
         onSubtitleChunk({ subtitles: streamedSubtitles });
@@ -135,7 +135,7 @@ export async function aiSegment({
     if (Array.isArray(subtitles) && subtitles.length) {
       let result = subtitles;
       if (clearSegmentTranslation) {
-        result = subtitles.map((sub) => ({ ...sub, translation: "" }));
+        result = subtitles.map((sub) => ({ ...sub, _isDraftTranslation: true }));
       }
 
       const maxEi = Math.max(...result.map((s) => s._ei ?? -1));
@@ -165,7 +165,14 @@ export async function aiSegment({
             });
 
             if (tailSubs?.length) {
-              result = [...result, ...tailSubs];
+              let processedTailSubs = tailSubs;
+              if (clearSegmentTranslation) {
+                processedTailSubs = processedTailSubs.map((sub) => ({
+                  ...sub,
+                  _isDraftTranslation: true,
+                }));
+              }
+              result = [...result, ...processedTailSubs];
             } else {
               result = [...result, ...formatSubtitles(tailEvents, fromLang)];
             }

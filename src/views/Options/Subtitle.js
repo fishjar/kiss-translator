@@ -600,6 +600,15 @@ export default function SubtitleSetting() {
                 value={segSlug}
                 label={i18n("ai_segmentation")}
                 onChange={handleChange}
+                helperText={
+                  segSlug !== "-" && segSlug !== apiSlug
+                    ? i18n("seg_trans_diff_warning") ||
+                      "断句和翻译服务不同，翻译引擎会重复翻译字幕"
+                    : ""
+                }
+                FormHelperTextProps={{
+                  sx: { color: "error.main" },
+                }}
               >
                 <MenuItem value={"-"}>{i18n("disable")}</MenuItem>
                 {aiEnabledApis.map((api) => (
