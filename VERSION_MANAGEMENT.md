@@ -100,6 +100,9 @@ git push origin v2.0.20
 
 # 10. 切换回 dev 分支继续日常开发
 git checkout dev
+
+# 11. 把 master 上的这个合并记录也同步回 de
+git merge master
 ```
 
 ## 🛠️ 相关脚本文件
