@@ -775,7 +775,11 @@ export class BilingualSubtitleManager {
   /**
    * 同步当前视频时间，计算出应当渲染的那条字幕块
    */
-  #syncToCurrentTime({ forceRender = false, triggerTranslations = true } = {}) {
+  #syncToCurrentTime({
+    forceRender = false,
+    triggerTranslations = true,
+    forceTriggerTranslations = false,
+  } = {}) {
     const currentTimeMs = this.#videoEl.currentTime * 1000;
     const subtitleIndex = this.#findSubtitleIndexForTime(currentTimeMs);
 
@@ -789,7 +793,11 @@ export class BilingualSubtitleManager {
 
     // 触发预翻译加载
     if (triggerTranslations) {
-      this.#throttledTriggerTranslations(currentTimeMs);
+      if (forceTriggerTranslations) {
+        this.#triggerTranslations(currentTimeMs);
+      } else {
+        this.#throttledTriggerTranslations(currentTimeMs);
+      }
     }
   }
 
@@ -943,7 +951,7 @@ export class BilingualSubtitleManager {
     for (let i = startIdx; i < subs.length; i++) {
       const sub = subs[i];
       if (sub.start > endTimeMs) break; // 超出了预翻译时间窗口，退出扫描
-      if (!sub.translation && !sub.isTranslating) {
+      if ((!sub.translation || sub._isDraftTranslation) && !sub.isTranslating) {
         this.#translateAndStore(sub);
       }
     }
@@ -968,6 +976,33 @@ export class BilingualSubtitleManager {
     const signal = this.#abortController?.signal;
     if (signal?.aborted) return;
 
+    const normalizeStreamText = (text) =>
+      Array.isArray(text) ? text[0] || "" : text || "";
+
+    const updateSubtitleTranslation = (translation) => {
+      if (!translation || sessionId !== this.#translationSessionId) return;
+      if (signal?.aborted) return;
+
+      subtitle.translation = decodeHTMLEntities(translation);
+      subtitle._isDraftTranslation = false;
+
+      const currentSubtitleIndexNow = this.#findSubtitleIndexForTime(
+        this.#videoEl.currentTime * 1000
+      );
+      if (this.#formattedSubtitles[currentSubtitleIndexNow] === subtitle) {
+        this.#updateCaptionDisplay(subtitle);
+      }
+
+      if (this.onSubtitleUpdate) {
+        this.onSubtitleUpdate({
+          start: subtitle.start,
+          end: subtitle.end,
+          text: subtitle.text,
+          translation: subtitle.translation,
+        });
+      }
+    };
+
     subtitle.isTranslating = true;
     try {
       const { fromLang, toLang, apiSetting, docInfo } = this.#setting;
@@ -978,36 +1013,31 @@ export class BilingualSubtitleManager {
         apiSetting,
         docInfo,
         signal,
+        onStreamChunk: ({ text }) => {
+          // 字幕单句翻译的流式 chunk 只更新当前字幕对象，不改时间轴结构。
+          updateSubtitleTranslation(normalizeStreamText(text));
+        },
       });
       // 竞态校验：如翻译异步返回时会话 ID 已过时，丢弃结果防止脏数据覆盖
       if (sessionId !== this.#translationSessionId) return;
-      subtitle.translation = decodeHTMLEntities(trText);
+      updateSubtitleTranslation(trText);
     } catch (error) {
       if (sessionId !== this.#translationSessionId) return;
       if (error?.name === "AbortError") return; // 属于 Abort 中止，静默退出
       logger.info("Translation failed for:", subtitle.text, error);
-      subtitle.translation = "[Translation failed]";
+      if (
+        !subtitle.translation ||
+        subtitle.translation === "[Translation failed]"
+      ) {
+        subtitle.translation = "[Translation failed]";
+      }
+      subtitle._isDraftTranslation = false;
     } finally {
       if (sessionId !== this.#translationSessionId) return;
       subtitle.isTranslating = false;
 
-      // 如果翻译返回时，该条字幕恰好是当前视频正应该高亮渲染的那行字幕，立即重新渲染更新窗口显示
-      const currentSubtitleIndexNow = this.#findSubtitleIndexForTime(
-        this.#videoEl.currentTime * 1000
-      );
-      if (this.#formattedSubtitles[currentSubtitleIndexNow] === subtitle) {
-        this.#updateCaptionDisplay(subtitle);
-      }
-
-      // 发布增量字幕译文更新事件，以通知侧边字幕栏同步渲染出译文
-      if (this.onSubtitleUpdate) {
-        this.onSubtitleUpdate({
-          start: subtitle.start,
-          end: subtitle.end,
-          text: subtitle.text,
-          translation: subtitle.translation,
-        });
-      }
+      // 发布最终状态更新事件；流式阶段已经推送过部分译文，这里保证失败态或最终态也同步给侧栏。
+      updateSubtitleTranslation(subtitle.translation);
     }
   }
 
@@ -1028,7 +1058,10 @@ export class BilingualSubtitleManager {
     // 由于上层 provider 在 processRemainingChunksAsync 时直接 push 了全局 subtitles 数组，
     // 这里指向的是同一个底层数组引用，无需重复 push 和 sort 排序，直接将当前索引置 -1 强制触发一次 timeupdate 重刷即可。
     this.#currentSubtitleIndex = -1;
-    this.onTimeUpdate();
+    this.#syncToCurrentTime({
+      forceRender: true,
+      forceTriggerTranslations: true,
+    });
   }
 
   // 更新配置项

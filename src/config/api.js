@@ -4,11 +4,11 @@
  */
 
 // --- 基础请求控制参数 ---
-export const DEFAULT_HTTP_TIMEOUT = 10000; // 调用超时时间 (单位：毫秒)
+export const DEFAULT_HTTP_TIMEOUT = 30; // 调用超时时间 (单位：秒)
 export const DEFAULT_FETCH_LIMIT = 10; // 默认最大并行请求/任务数量
 export const DEFAULT_FETCH_INTERVAL = 100; // 默认任务间隔时间 (单位：毫秒)
 export const DEFAULT_BATCH_INTERVAL = 400; // 批处理合并请求的等待延迟时间 (单位：毫秒)
-export const DEFAULT_BATCH_SIZE = 10; // 每次翻译请求最多合并发送的 DOM 段落数量
+export const DEFAULT_BATCH_SIZE = 20; // 每次翻译请求最多合并发送的 DOM 段落数量
 export const DEFAULT_BATCH_LENGTH = 10000; // 每次翻译请求发送的最大字符数限制
 export const DEFAULT_CONTEXT_SIZE = 3; // AI 翻译时保留的上下文会话历史轮数
 
@@ -707,7 +707,7 @@ const defaultApi = {
   resHook: "", // response 钩子函数
   fetchLimit: DEFAULT_FETCH_LIMIT, // 最大请求数量
   fetchInterval: DEFAULT_FETCH_INTERVAL, // 请求间隔时间
-  httpTimeout: DEFAULT_HTTP_TIMEOUT * 3, // 请求超时时间
+  httpTimeout: DEFAULT_HTTP_TIMEOUT, // 请求超时时间
   batchInterval: DEFAULT_BATCH_INTERVAL, // 批处理请求间隔时间
   batchSize: DEFAULT_BATCH_SIZE, // 每次最多发送段落数量
   batchLength: DEFAULT_BATCH_LENGTH, // 每次发送最大文字数量
@@ -715,7 +715,7 @@ const defaultApi = {
   useStream: false, // 是否启用流式传输
   streamRenderMode: "disabled", // 流式渲染模式：disabled/realtime/segment
   transAllnow: false, // 是否立即全部翻译
-  rootMargin: 500, // 滚动加载提前触发距离
+  rootMargin: 2000, // 滚动加载提前触发距离
   useContext: false, // 是否启用智能上下文
   contextSize: DEFAULT_CONTEXT_SIZE, // 智能上下文保留会话数
   temperature: 0.0,
@@ -726,6 +726,15 @@ const defaultApi = {
   region: "", // Azure 专用
   sortOrder: 0, // 排序权重，数值越小越靠前
   placetagFormat: "compact", // 占位符格式：compact(<a1>) 或 attribute(<a i=1>)
+};
+
+// AI 翻译接口默认参数
+const defaultAiApiOpts = {
+  useBatchFetch: true, // 是否启用聚合发送请求
+  thinkingMode: "disabled", // 思考模式：auto | enabled | disabled
+  thinkingEffort: "_default", // 思考强度：_default=接口默认,不注入参数
+  useStream: true, // 是否启用流式传输
+  streamRenderMode: "realtime", // 流式渲染模式：disabled/realtime/segment
 };
 
 const defaultApiOpts = {
@@ -774,46 +783,37 @@ const defaultApiOpts = {
     ...defaultApi,
     url: "https://api.deepseek.com/chat/completions",
     model: "deepseek-v4-flash",
-    useBatchFetch: true,
-    thinkingMode: "disabled",
-    thinkingEffort: "high",
+    ...defaultAiApiOpts,
   },
   [OPT_TRANS_SILICONFLOW]: {
     ...defaultApi,
     url: "https://api.siliconflow.cn/v1/chat/completions",
     model: "Pro/zai-org/GLM-4.7",
-    useBatchFetch: true,
-    thinkingMode: "disabled",
-    thinkingEffort: "minimal",
+    ...defaultAiApiOpts,
   },
   [OPT_TRANS_XIAOMIMIMO]: {
     ...defaultApi,
     url: "https://api.xiaomimimo.com/v1/chat/completions",
     model: "mimo-v2.5-pro",
-    useBatchFetch: true,
-    thinkingMode: "disabled",
+    ...defaultAiApiOpts,
   },
   [OPT_TRANS_ALIYUNBAILIAN]: {
     ...defaultApi,
     url: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
     model: "qwen-plus",
-    useBatchFetch: true,
-    thinkingMode: "disabled",
+    ...defaultAiApiOpts,
   },
   [OPT_TRANS_CEREBRAS]: {
     ...defaultApi,
     url: "https://api.cerebras.ai/v1/chat/completions",
     model: "gpt-oss-120b",
-    useBatchFetch: true,
-    thinkingMode: "disabled",
-    thinkingEffort: "low",
+    ...defaultAiApiOpts,
   },
   [OPT_TRANS_ZAI]: {
     ...defaultApi,
     url: "https://open.bigmodel.cn/api/paas/v4/chat/completions",
     model: "glm-5.1",
-    useBatchFetch: true,
-    thinkingMode: "disabled",
+    ...defaultAiApiOpts,
   },
   [OPT_TRANS_DEEPLX]: {
     ...defaultApi,
@@ -827,29 +827,25 @@ const defaultApiOpts = {
     ...defaultApi,
     url: "https://api.openai.com/v1/chat/completions",
     model: "gpt-4",
-    useBatchFetch: true,
+    ...defaultAiApiOpts,
   },
   [OPT_TRANS_GEMINI]: {
     ...defaultApi,
     url: `https://generativelanguage.googleapis.com/v1beta/models/${INPUT_PLACE_MODEL}:generateContent`,
     model: "gemini-2.5-flash",
-    useBatchFetch: true,
-    thinkingMode: "disabled",
-    thinkingEffort: "minimal",
+    ...defaultAiApiOpts,
   },
   [OPT_TRANS_GEMINI_2]: {
     ...defaultApi,
     url: `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions`,
     model: "gemini-2.0-flash",
-    useBatchFetch: true,
+    ...defaultAiApiOpts,
   },
   [OPT_TRANS_CLAUDE]: {
     ...defaultApi,
     url: "https://api.anthropic.com/v1/messages",
     model: "claude-3-haiku-20240307",
-    useBatchFetch: true,
-    thinkingMode: "enabled",
-    thinkingEffort: "low",
+    ...defaultAiApiOpts,
   },
   [OPT_TRANS_CLOUDFLAREAI]: {
     ...defaultApi,
@@ -859,17 +855,13 @@ const defaultApiOpts = {
     ...defaultApi,
     url: "http://localhost:11434/v1/chat/completions",
     model: "llama3.1",
-    useBatchFetch: true,
-    thinkingMode: "disabled",
-    thinkingEffort: "low",
+    ...defaultAiApiOpts,
   },
   [OPT_TRANS_OPENROUTER]: {
     ...defaultApi,
     url: "https://openrouter.ai/api/v1/chat/completions",
     model: "openai/gpt-4o",
-    useBatchFetch: true,
-    thinkingMode: "enabled",
-    thinkingEffort: "minimal",
+    ...defaultAiApiOpts,
   },
   [OPT_TRANS_CUSTOMIZE]: {
     ...defaultApi,

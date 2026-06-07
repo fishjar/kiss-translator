@@ -404,11 +404,11 @@ export const I18N = {
     ko: `번역 간격 (1-2000ms)`,
   },
   http_timeout: {
-    zh: `请求超时时间 (100-600000ms)`,
-    en: `Request Timeout Time (100-600000ms)`,
-    zh_TW: `請求逾時時間 (100-60000ms)`,
-    ja: `リクエストタイムアウト (100-600000ms)`,
-    ko: `요청 시간 초과 (100-600000ms)`,
+    zh: `请求超时时间 (1-600s)`,
+    en: `Request Timeout Time (1-600s)`,
+    zh_TW: `請求逾時時間 (1-600s)`,
+    ja: `リクエストタイムアウト (1-600s)`,
+    ko: `요청 시간 초과 (1-600s)`,
   },
   custom_header: {
     zh: `自定义Header参数`,
@@ -2680,6 +2680,13 @@ export const I18N = {
     ja: `統計的分割`,
     ko: `통계 기반 분리`,
   },
+  force_subtitle_retranslate: {
+    zh: `强制重翻`,
+    en: `Force re-translate`,
+    zh_TW: `強制重翻`,
+    ja: `強制再翻訳`,
+    ko: `강제 재번역`,
+  },
   ai_enhanced_context: {
     zh: `增强智能上下文`,
     en: `Enhanced Intelligent Context`,
@@ -2716,11 +2723,11 @@ export const I18N = {
     ko: `2. 플러그인에는 기본적인 자막 병합 및 문장 분리 알고리즘이 내장되어 있어 대부분의 상황에 대응할 수 있습니다.`,
   },
   subtitle_helper_3: {
-    zh: `3、亦可以启用AI智能断句，但需考虑切割长度及AI接口能力，可能处理时间会很长，甚至处理失败，导致无法看到字幕。`,
-    en: `3. You can also enable AI intelligent segmentation, but you need to consider the segmentation length and AI interface capabilities. The processing time may be very long or even fail, resulting in the inability to see subtitles.`,
-    zh_TW: `3. 亦可啟用 AI 智慧斷句，但需考慮切割長度及 AI 介面能力，處理時間可能會很長，甚至處理失敗，導致無法看到字幕。`,
-    ja: `3. AIインテリジェント文分割を有効にすることもできますが、分割長とAIインターフェースの能力を考慮する必要があり、処理時間が長くなったり、失敗して字幕が表示されなくなる可能性があります。`,
-    ko: `3. AI 지능형 분리를 활성화할 수도 있지만, 분리 길이와 AI 인터페이스의 능력을 고려해야 하며, 처리 시간이 매우 길거나 실패하여 자막을 볼 수 없게 될 수도 있습니다.`,
+    zh: `3、亦可以启用AI智能断句，但需考虑切割长度及AI接口能力，可能处理时间会很长。若处理失败，将自动降级为内置断句并翻译。`,
+    en: `3. You can also enable AI intelligent segmentation, but consider the chunk length and AI interface capacity, as processing may take a long time. If it fails, it will automatically fall back to built-in sentence break and translation.`,
+    zh_TW: `3. 亦可啟用 AI 智慧斷句，但需考慮切割長度及 AI 介面能力，處理時間可能會很長。若處理失敗，將自動降級為內置斷句並翻譯。`,
+    ja: `3. AIによるインテリジェントな文分割を有効にすることもできますが、チャンク長やAIの処理能力を考慮する必要があり、処理に時間がかかる場合があります。処理が失敗した場合は、自動的に内蔵文分割と翻訳にフォールバックされます。`,
+    ko: `3. AI 지능형 분리를 활성화할 수도 있지만, 청크 길이와 AI 인터페이스 처리 능력을 고려해야 하며 처리 시간이 길어질 수 있습니다. 처리에 실패할 경우 자동으로 내장 문장 분리 및 번역으로 대체됩니다.`,
   },
   show_subtitle_list: {
     zh: `显示字幕列表`,
@@ -3099,6 +3106,13 @@ export const I18N = {
     zh_TW: `規則切換失敗`,
     ja: `ルールの切り替えに失敗しました`,
     ko: `규칙 전환 실패`,
+  },
+  seg_trans_diff_warning: {
+    zh: `断句和翻译服务不同，翻译引擎会重复翻译字幕`,
+    en: `Segmentation and translation engines differ; subtitles will be re-translated.`,
+    zh_TW: `斷句和翻譯服務不同，翻譯引擎會重複翻譯字幕`,
+    ja: `セグメンテーションと翻訳エンジンが異なります。字幕は再翻訳されます。`,
+    ko: `분할과 번역 엔진이 다릅니다. 자막이 다시 번역됩니다.`,
   },
 };
 

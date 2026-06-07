@@ -62,6 +62,8 @@ class YouTubeCaptionProvider {
   #processingVersion = 0;
   // 当前已成功激活并运行的字幕轨唯一标识 Key
   #activeTrackKey = null;
+  // 当前字幕断句/分块处理的取消控制器，用于视频或字幕轨切换时中止旧流式请求
+  #subtitleAbortController = null;
 
   // 控制双语字幕渲染、显示和位置计算的管理器实例
   #managerInstance = null;
@@ -161,6 +163,8 @@ class YouTubeCaptionProvider {
       this.#processingId = null;
       this.#processingVersion += 1;
       this.#activeTrackKey = null;
+      this.#subtitleAbortController?.abort();
+      this.#subtitleAbortController = null;
       this.#playerUi.updateMenuProps();
     });
 
@@ -312,7 +316,7 @@ class YouTubeCaptionProvider {
 
     if (name === "isBilingual" || name === "blurTranslation") {
       this.#managerInstance?.updateSetting({ [name]: value });
-    } else if (name === "segSlug") {
+    } else if (name === "segSlug" || name === "forceSubtitleRetranslate") {
       this.#reProcessEvents();
     } else if (name === "showOrigin") {
       this.#toggleShowOrigin();
@@ -456,6 +460,8 @@ class YouTubeCaptionProvider {
 
     const processingVersion = (this.#processingVersion += 1);
     this.#processingId = trackKey;
+    this.#subtitleAbortController?.abort();
+    this.#subtitleAbortController = new AbortController();
 
     if (this.#flatEvents.length) {
       this.#destroyManager();
@@ -529,6 +535,7 @@ class YouTubeCaptionProvider {
         flatEvents,
         fromLang,
         processingVersion,
+        signal: this.#subtitleAbortController.signal,
       });
     } catch (error) {
       logger.warn("Youtube Provider: handle subtitle", error);
@@ -555,7 +562,13 @@ class YouTubeCaptionProvider {
    * @param {number} param0.processingVersion 当前异步任务的版本号快照。
    * @returns {Promise<void>}
    */
-  async #processEvents({ videoId, flatEvents, fromLang, processingVersion }) {
+  async #processEvents({
+    videoId,
+    flatEvents,
+    fromLang,
+    processingVersion,
+    signal,
+  }) {
     try {
       const [subtitles, progressed] = await eventsToSubtitles({
         videoId,
@@ -579,10 +592,11 @@ class YouTubeCaptionProvider {
           this.#appendProcessedSubtitles(subtitles, progressed);
         },
         getCurrentVideoId: () => this.#videoId,
+        signal,
       });
       if (this.#isStaleProcessing(processingVersion)) return;
 
-      if (!subtitles?.length) {
+      if (!subtitles?.length && !this.#subtitles.length) {
         logger.debug(
           "Youtube Provider: events to subtitles got empty",
           videoId
@@ -599,13 +613,50 @@ class YouTubeCaptionProvider {
         return;
       }
 
-      this.#subtitles = subtitles;
-      this.#progressed = progressed;
+      this.#upsertProcessedSubtitles(subtitles, progressed);
       this.#startManager();
     } catch (error) {
+      if (error?.name === "AbortError") return;
       logger.info("Youtube Provider: process events", error);
       this.#playerUi.showNotification(this.#i18n("subtitle_load_failed"));
     }
+  }
+
+  /**
+   * 按时间轴合并已经处理出的字幕句子，并同步进度。
+   *
+   * @private
+   * @param {Array<object>} subtitles 新返回的字幕条目。
+   * @param {number} progressed 后台处理进度百分比。
+   * @returns {Array<object>} 本次新增的字幕条目。
+   */
+  #upsertProcessedSubtitles(subtitles, progressed) {
+    if (!subtitles?.length) {
+      this.#progressed = progressed;
+      return [];
+    }
+
+    const existed = new Map(
+      this.#subtitles.map((sub, index) => [`${sub.start}:${sub.end}`, index])
+    );
+    const inserted = [];
+
+    for (const subtitle of subtitles) {
+      const key = `${subtitle.start}:${subtitle.end}`;
+      const index = existed.get(key);
+      if (index !== undefined) {
+        // 完整 chunk 回来时用最终结果覆盖同一时间轴句子，保留数组引用给 manager/list 使用。
+        this.#subtitles[index] = { ...this.#subtitles[index], ...subtitle };
+      } else {
+        existed.set(key, this.#subtitles.length);
+        this.#subtitles.push(subtitle);
+        inserted.push(subtitle);
+      }
+    }
+
+    this.#subtitles.sort((a, b) => a.start - b.start);
+    this.#progressed = progressed;
+    return inserted;
   }
 
   /**
@@ -617,10 +668,12 @@ class YouTubeCaptionProvider {
    * @returns {void}
    */
   #appendProcessedSubtitles(subtitles, progressed) {
-    this.#subtitles.push(...subtitles);
-    // 分块异步返回时仍强制按时间排序，保证播放器高亮查找不受返回顺序影响。
-    this.#subtitles.sort((a, b) => a.start - b.start);
-    this.#progressed = progressed;
+    this.#upsertProcessedSubtitles(subtitles, progressed);
+
+    if (!this.#managerInstance && this.#subtitles.length) {
+      // 首个流式句子到达时立即启动字幕管理器，不再等待整个 AI chunk 返回。
+      this.#startManager();
+    }
 
     this.#managerInstance?.appendSubtitles(subtitles);
     this.#subtitleListManager?.setBilingualSubtitles(this.#subtitles);
@@ -646,10 +699,18 @@ class YouTubeCaptionProvider {
     this.#playerUi.showNotification(this.#i18n("starting_reprocess_events"));
 
     const processingVersion = (this.#processingVersion += 1);
+    this.#subtitleAbortController?.abort();
+    this.#subtitleAbortController = new AbortController();
     this.#destroyManager();
     clearMsgHistory(this.#setting.apiSlug);
 
-    this.#processEvents({ videoId, flatEvents, fromLang, processingVersion });
+    this.#processEvents({
+      videoId,
+      flatEvents,
+      fromLang,
+      processingVersion,
+      signal: this.#subtitleAbortController.signal,
+    });
   }
 
   /**
@@ -722,6 +783,8 @@ class YouTubeCaptionProvider {
     if (!videoId || !flatEvents.length) return;
 
     const processingVersion = (this.#processingVersion += 1);
+    this.#subtitleAbortController?.abort();
+    this.#subtitleAbortController = new AbortController();
     this.#destroyManager();
     clearMsgHistory(this.#setting.apiSlug);
     this.#docInfo = getDocInfo();
@@ -732,6 +795,7 @@ class YouTubeCaptionProvider {
       flatEvents,
       fromLang: this.#fromLang,
       processingVersion,
+      signal: this.#subtitleAbortController.signal,
     });
   }
 

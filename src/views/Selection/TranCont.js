@@ -1,24 +1,54 @@
-import TextField from "@mui/material/TextField";
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
-import { useI18n } from "../../hooks/I18n";
-import { useEffect, useState, useMemo } from "react";
-import { apiTranslate } from "../../apis";
-import CopyBtn from "./CopyBtn";
+import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import Alert from "@mui/material/Alert";
+import { useEffect, useMemo, useState } from "react";
+import { apiTranslate } from "../../apis";
+import { API_SPE_TYPES } from "../../config";
+import { useI18n } from "../../hooks/I18n";
+import CopyBtn from "./CopyBtn";
 
 /**
- * 单项翻译内容展示组件 (负责发起单平台翻译请求并渲染译文)
+ * 判断划词翻译结果是否允许进行可见的流式渲染。
  *
- * @param {Object} props
- * @param {string} props.text - 需要翻译的原始文本
- * @param {string} props.fromLang - 源语言
- * @param {string} props.toLang - 目标语言
- * @param {string} props.apiSlug - 选用的翻译 API 标识 (如 "baidu", "google", "microsoft")
- * @param {Array} props.transApis - 启用的翻译 API 配置列表
- * @param {boolean} [props.simpleStyle=false] - 是否以极简/纯文本样式渲染 (无输入框边框)
+ * @param {Object} apiSetting 翻译接口配置。
+ * @returns {boolean} 当前接口是否应把增量 chunk 直接写入划词翻译输出框。
+ */
+const canRenderStream = (apiSetting) =>
+  Boolean(
+    apiSetting?.useStream &&
+      apiSetting?.useBatchFetch &&
+      API_SPE_TYPES.stream.has(apiSetting.apiType) &&
+      (apiSetting.streamRenderMode || "disabled") !== "disabled"
+  );
+
+/**
+ * 归一化流式回调中的文本载荷。
+ *
+ * @param {string|string[]} text 流式回调返回的局部文本或最终翻译结果。
+ * @returns {string} 可直接写入 UI 的译文字符串。
+ */
+const normalizeChunkText = (text) => {
+  if (Array.isArray(text)) {
+    return text[0] || "";
+  }
+
+  return text || "";
+};
+
+/**
+ * 单个划词翻译结果组件，负责发起指定服务商的翻译请求并渲染译文。
+ *
+ * @param {Object} props 组件参数。
+ * @param {string} props.text 需要翻译的原始文本。
+ * @param {string} props.fromLang 源语言代码。
+ * @param {string} props.toLang 目标语言代码。
+ * @param {string} props.apiSlug 选用的翻译 API 唯一标识。
+ * @param {Array<Object>} props.transApis 可用翻译 API 配置列表。
+ * @param {boolean} [props.simpleStyle=false] 是否使用极简文本样式渲染。
+ * @returns {JSX.Element|null} 单个翻译服务商的结果视图。
  */
 export default function TranCont({
   text,
@@ -29,22 +59,47 @@ export default function TranCont({
   simpleStyle = false,
 }) {
   const i18n = useI18n();
-  // 翻译好的译文文本
   const [trText, setTrText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // 获取当前 API 的配置参数
+  // 根据 slug 找到当前组件实例负责调用的翻译接口配置。
   const apiSetting = useMemo(
     () => transApis.find((api) => api.apiSlug === apiSlug),
     [transApis, apiSlug]
   );
 
-  // 侦听文本或目标语言、接口服务改变，触发翻译请求
   useEffect(() => {
     if (!text?.trim() || !apiSetting) {
+      setTrText("");
+      setLoading(false);
+      setError("");
       return;
     }
+
+    let active = true;
+    const controller = new AbortController();
+    const enableStreamRender = canRenderStream(apiSetting);
+
+    /**
+     * 接收底层翻译队列吐出的流式增量文本，并同步到当前输出框。
+     *
+     * @param {Object} chunk 流式翻译分块。
+     * @param {string|string[]} chunk.text 当前分块中已经解析出的译文。
+     */
+    const handleStreamChunk = enableStreamRender
+      ? ({ text: chunkText }) => {
+          // 旧请求被切换或取消后，晚到的流式分块不能再覆盖当前划词结果。
+          if (!active || controller.signal.aborted) {
+            return;
+          }
+
+          const nextText = normalizeChunkText(chunkText);
+          if (nextText) {
+            setTrText(nextText);
+          }
+        }
+      : undefined;
 
     (async () => {
       try {
@@ -52,50 +107,72 @@ export default function TranCont({
         setTrText("");
         setError("");
 
-        // 发起翻译请求
-        // REVIEW: useEffect 在异步调用 apiTranslate 时未处理竞态条件。由于网络延迟不同，频繁更新输入文本或切换目标语言、翻译接口时，先发出的翻译请求有可能晚于后发出的请求返回，这会导致旧的翻译结果覆盖最新的译文。建议在此处引入 active 清理标记防范竞态覆盖。
         const { trText } = await apiTranslate({
           text,
           fromLang,
           toLang,
           apiSetting,
+          onStreamChunk: handleStreamChunk,
+          // 将组件生命周期的取消信号下传，避免划词内容变化后旧请求继续占用网络与回写 UI。
+          signal: controller.signal,
         });
 
-        setTrText(trText);
+        if (active) {
+          setTrText(trText);
+        }
       } catch (err) {
-        setError(err.message);
+        if (err?.name === "AbortError") {
+          return;
+        }
+
+        if (active) {
+          setError(err.message);
+        }
       } finally {
-        setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       }
     })();
+
+    return () => {
+      active = false;
+      // 组件卸载或依赖变化时主动中止请求，确保后台流式连接不会继续为旧划词结果推送数据。
+      controller.abort();
+    };
   }, [text, fromLang, toLang, apiSetting]);
 
   if (!apiSetting) {
     return null;
   }
 
-  // 极简样式渲染：通常在划词浮层中启用，呈现为流畅的纯排版译文
   if (simpleStyle) {
     return (
       <Box>
         {error ? (
           <Alert severity="error">{error}</Alert>
+        ) : trText ? (
+          <Stack direction="row" spacing={1} alignItems="flex-start">
+            {loading && (
+              <CircularProgress
+                size={12}
+                sx={{ flex: "0 0 auto", mt: "0.35em" }}
+              />
+            )}
+            <Typography style={{ whiteSpace: "pre-line" }}>{trText}</Typography>
+          </Stack>
         ) : loading ? (
           <CircularProgress size={16} />
-        ) : (
-          <Typography style={{ whiteSpace: "pre-line" }}>{trText}</Typography>
-        )}
+        ) : null}
       </Box>
     );
   }
 
-  // 默认文本框样式渲染：通常在主动文本翻译框（如 Popup 页或独立翻译页）中启用
   return (
     <Box>
       <TextField
         size="small"
         label={`${i18n("translated_text")} - ${apiSetting.apiName}`}
-        // disabled
         fullWidth
         multiline
         value={trText}
@@ -111,7 +188,7 @@ export default function TranCont({
                 top: 0,
               }}
             >
-              {/* 复制译文按钮 */}
+              {/* 复制当前译文；流式渲染期间复制到的是已经到达的部分文本。 */}
               <CopyBtn text={trText} title={i18n("copy")} />
             </Stack>
           ),

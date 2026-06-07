@@ -266,7 +266,7 @@ export default function Settings() {
                 max={2000}
               />
             </Grid>
-            {/* 全局接口 HTTP 网络请求超时阈值 (ms) */}
+            {/* 全局接口 HTTP 网络请求超时阈值 (s) */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <ValidationInput
                 fullWidth
@@ -276,8 +276,8 @@ export default function Settings() {
                 name="httpTimeout"
                 value={httpTimeout}
                 onChange={handleChange}
-                min={1000}
-                max={600000}
+                min={1}
+                max={600}
               />
             </Grid>
             {/* 移动端/触屏端特定的触摸手势快捷翻译触发方式 */}
