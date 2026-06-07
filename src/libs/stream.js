@@ -320,7 +320,7 @@ export function createStreamingSubtitleParser(events = []) {
   const trimToJsonStart = () => {
     if (jsonStarted) return;
 
-    const start = buffer.search(/[\[{]/);
+    const start = buffer.search(/[[{]/);
     if (start === -1) {
       buffer = buffer.slice(-20);
       return;
