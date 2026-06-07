@@ -140,8 +140,8 @@ export const DEFAULT_SUBTITLE_SETTING = {
   enabled: true, // 是否自动开启视频字幕翻译功能
   apiSlug: OPT_TRANS_MICROSOFT, // 默认的字幕翻译接口 (使用微软翻译)
   segSlug: "-", // 智能 AI 断句/字幕合并的算法选择 ("-" 表示禁用 AI 段落合并)
-  chunkLength: 1000, // 触发 AI 翻译的单包最大字幕字符数
-  longSentenceThreshold: 120, // 启用基于标点规则拆分的长句判定字符长度限制
+  chunkLength: 2000, // 触发 AI 翻译的单包最大字幕字符数
+  longSentenceThreshold: 100, // 启用基于标点规则拆分的长句判定字符长度限制
   useAlgorithmBreaker: "rule", // 字幕断句断行处理器类型 ("rule" 规则断行，"statistical" 基于时间统计特征断行)
   preTrans: 90, // 字幕翻译提前发送的时长 (毫秒)，防止接口网络延迟导致字幕不同步
   throttleTrans: 30, // 节流延迟：两次翻译请求的最小时间间隔 (毫秒)

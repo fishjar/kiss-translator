@@ -4,11 +4,11 @@
  */
 
 // --- 基础请求控制参数 ---
-export const DEFAULT_HTTP_TIMEOUT = 10000; // 调用超时时间 (单位：毫秒)
+export const DEFAULT_HTTP_TIMEOUT = 30; // 调用超时时间 (单位：秒)
 export const DEFAULT_FETCH_LIMIT = 10; // 默认最大并行请求/任务数量
 export const DEFAULT_FETCH_INTERVAL = 100; // 默认任务间隔时间 (单位：毫秒)
 export const DEFAULT_BATCH_INTERVAL = 400; // 批处理合并请求的等待延迟时间 (单位：毫秒)
-export const DEFAULT_BATCH_SIZE = 10; // 每次翻译请求最多合并发送的 DOM 段落数量
+export const DEFAULT_BATCH_SIZE = 20; // 每次翻译请求最多合并发送的 DOM 段落数量
 export const DEFAULT_BATCH_LENGTH = 10000; // 每次翻译请求发送的最大字符数限制
 export const DEFAULT_CONTEXT_SIZE = 3; // AI 翻译时保留的上下文会话历史轮数
 
@@ -707,7 +707,7 @@ const defaultApi = {
   resHook: "", // response 钩子函数
   fetchLimit: DEFAULT_FETCH_LIMIT, // 最大请求数量
   fetchInterval: DEFAULT_FETCH_INTERVAL, // 请求间隔时间
-  httpTimeout: DEFAULT_HTTP_TIMEOUT * 3, // 请求超时时间
+  httpTimeout: DEFAULT_HTTP_TIMEOUT, // 请求超时时间
   batchInterval: DEFAULT_BATCH_INTERVAL, // 批处理请求间隔时间
   batchSize: DEFAULT_BATCH_SIZE, // 每次最多发送段落数量
   batchLength: DEFAULT_BATCH_LENGTH, // 每次发送最大文字数量
@@ -715,7 +715,7 @@ const defaultApi = {
   useStream: false, // 是否启用流式传输
   streamRenderMode: "disabled", // 流式渲染模式：disabled/realtime/segment
   transAllnow: false, // 是否立即全部翻译
-  rootMargin: 500, // 滚动加载提前触发距离
+  rootMargin: 2000, // 滚动加载提前触发距离
   useContext: false, // 是否启用智能上下文
   contextSize: DEFAULT_CONTEXT_SIZE, // 智能上下文保留会话数
   temperature: 0.0,

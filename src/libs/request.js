@@ -20,16 +20,19 @@ import { parseResponse } from "./response";
  * @returns {Promise<number>} 最终使用的超时时间，单位毫秒。
  */
 export const resolveHttpTimeout = async (opts = {}) => {
-  if (opts?.httpTimeout) return opts.httpTimeout;
-
-  try {
-    const timeout = (await getSettingWithDefault())?.httpTimeout;
-    if (timeout) return timeout;
-  } catch (err) {
-    kissLog("getSettingWithDefault", err);
+  let timeout = opts?.httpTimeout;
+  if (!timeout) {
+    try {
+      timeout = (await getSettingWithDefault())?.httpTimeout;
+    } catch (err) {
+      kissLog("getSettingWithDefault", err);
+    }
   }
 
-  return DEFAULT_HTTP_TIMEOUT;
+  timeout = timeout || DEFAULT_HTTP_TIMEOUT;
+
+  // 如果值大于 600，说明是旧配置（毫秒），直接返回；否则视为新配置（秒）并乘以 1000
+  return timeout > 600 ? timeout : timeout * 1000;
 };
 
 /**

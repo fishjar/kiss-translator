@@ -94,7 +94,8 @@ async function* fetchStreamGM(
  */
 export async function* fetchStreamNative(input, init = {}, opts = {}) {
   const options = typeof opts === "number" ? { httpTimeout: opts } : opts || {};
-  const timeout = options.httpTimeout || DEFAULT_HTTP_TIMEOUT;
+  let timeout = options.httpTimeout || DEFAULT_HTTP_TIMEOUT;
+  timeout = timeout > 600 ? timeout : timeout * 1000;
   const signal = mergeAbortSignals([
     init.signal,
     options.signal,
