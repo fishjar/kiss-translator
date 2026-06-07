@@ -271,9 +271,39 @@ export const THINKING_PARAM_MAP = {
     type: "deepseek",
     efforts: null,
   },
+  [OPT_TRANS_EPHONEAI]: {
+    type: "openai",
+    efforts: [
+      { value: "xhigh", label: "X-High" },
+      { value: "high", label: "High" },
+      { value: "medium", label: "Medium" },
+      { value: "low", label: "Low" },
+      { value: "minimal", label: "Minimal" },
+    ],
+  },
+  [OPT_TRANS_OPENAI]: {
+    type: "openai",
+    efforts: [
+      { value: "xhigh", label: "X-High" },
+      { value: "high", label: "High" },
+      { value: "medium", label: "Medium" },
+      { value: "low", label: "Low" },
+      { value: "minimal", label: "Minimal" },
+    ],
+  },
   [OPT_TRANS_GEMINI]: {
     type: "gemini",
     efforts: [
+      { value: "high", label: "High" },
+      { value: "medium", label: "Medium" },
+      { value: "low", label: "Low" },
+      { value: "minimal", label: "Minimal" },
+    ],
+  },
+  [OPT_TRANS_GEMINI_2]: {
+    type: "openai",
+    efforts: [
+      { value: "xhigh", label: "X-High" },
       { value: "high", label: "High" },
       { value: "medium", label: "Medium" },
       { value: "low", label: "Low" },

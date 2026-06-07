@@ -445,6 +445,13 @@ const injectThinking = (body, { apiType, thinkingMode, thinkingEffort }) => {
         body.reasoning_effort = thinkingEffort;
       }
       break;
+    case "openai":
+      if (thinkingMode === "disabled") {
+        body.reasoning_effort = "none";
+      } else if (thinkingMode === "enabled" && hasEffort) {
+        body.reasoning_effort = thinkingEffort;
+      }
+      break;
     case "openrouter":
       if (hasEffort) {
         body.reasoning = { effort: thinkingEffort };
