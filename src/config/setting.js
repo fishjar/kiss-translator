@@ -38,7 +38,6 @@ export const DEFAULT_BLACKLIST = [
 ];
 export const DEFAULT_CSPLIST = []; // 默认禁用 CSP 安全策略的网址列表
 export const DEFAULT_ORILIST = ["https://dict.youdao.com"]; // 默认在跨域请求中需要重写 Origin 请求头的域名
-export const DEFAULT_IFRAME_WHITELIST = []; // 默认允许进入 iframe 翻译的网址/白名单列表
 
 // --- 配置同步设置 ---
 export const OPT_SYNCTYPE_WORKER = "KISS-Worker"; // 自建 Cloudflare Worker 同步方案
@@ -215,9 +214,7 @@ export const DEFAULT_SETTING = {
   // touchTranslate: 2, // 触屏翻译 {5:单指双击，6:单指三击，7:双指双击} (作废)
   touchModes: [2], // 触屏移动端翻译触发行为配置 (数组，支持多选，如单指双击/三击)
   blacklist: DEFAULT_BLACKLIST.join(",\n"), // 禁用整页双语翻译的网址/黑名单列表
-  iframeWhitelist: DEFAULT_IFRAME_WHITELIST.join(",\n"), // 允许进入 iframe 翻译的网址/白名单列表
   csplist: DEFAULT_CSPLIST.join(",\n"), // 强制禁用内容安全策略(CSP)以允许向翻译 API 发送请求的网址列表
-
   orilist: DEFAULT_ORILIST.join(",\n"), // 需要改写或删除 Cross-Origin HTTP 请求头的网址列表
   // disableLangs: [], // 不翻译的语言(移至rule，作废)
   skipLangs: [], // 忽略翻译的语种代码列表 (即如果网页检测到是这些语言，则不触发自动整页翻译)
