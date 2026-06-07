@@ -1843,13 +1843,6 @@ export const I18N = {
     ja: `翻訳ブラックリスト`,
     ko: `번역 블랙리스트`,
   },
-  iframe_whitelist: {
-    zh: `iframe翻译白名单`,
-    en: `iframe Translate Whitelist`,
-    zh_TW: `iframe翻譯白名單`,
-    ja: `iframe翻訳ホワイトリスト`,
-    ko: `iframe 번역 화이트리스트`,
-  },
   blacklist: {
     zh: `禁用黑名单`,
     en: `Blacklist`,

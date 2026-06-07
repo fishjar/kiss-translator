@@ -9,7 +9,7 @@ import { genEventName } from "./libs/utils";
 import { handlePing, injectScript } from "./libs/gm";
 import { matchRule } from "./libs/rules";
 import { trySyncAllSubRules } from "./libs/subRules";
-import { isInBlacklist, isInWhitelist } from "./libs/blacklist";
+import { isInBlacklist } from "./libs/blacklist";
 import { runSubtitle } from "./subtitle/subtitle";
 import { logger } from "./libs/log";
 import { injectInlineJs } from "./libs/injector";
@@ -123,6 +123,69 @@ async function getFavWords(rule) {
   return [];
 }
 
+const IFRAME_TEXT_CHECK_TIMEOUT = 1000;
+const IFRAME_TEXT_IGNORE_SELECTOR = [
+  "script",
+  "style",
+  "template",
+  "noscript",
+  "svg",
+  "canvas",
+  "iframe",
+  "input",
+  "textarea",
+  "select",
+  "option",
+  ".notranslate",
+  "[translate='no']",
+  "[contenteditable='true']",
+].join(", ");
+
+function waitForDocumentReady(timeout = IFRAME_TEXT_CHECK_TIMEOUT) {
+  if (document.readyState !== "loading") {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve) => {
+    const done = () => {
+      clearTimeout(timer);
+      document.removeEventListener("DOMContentLoaded", done);
+      resolve();
+    };
+    const timer = setTimeout(done, timeout);
+    document.addEventListener("DOMContentLoaded", done, { once: true });
+  });
+}
+
+function hasIframeTranslatableText() {
+  if (!document.body) return false;
+
+  const walker = document.createTreeWalker(
+    document.body,
+    NodeFilter.SHOW_TEXT,
+    {
+      acceptNode(node) {
+        if (!node.nodeValue?.trim()) {
+          return NodeFilter.FILTER_REJECT;
+        }
+
+        if (node.parentElement?.closest(IFRAME_TEXT_IGNORE_SELECTOR)) {
+          return NodeFilter.FILTER_REJECT;
+        }
+
+        return NodeFilter.FILTER_ACCEPT;
+      },
+    }
+  );
+
+  return Boolean(walker.nextNode());
+}
+
+async function waitForIframeTranslatableText() {
+  await waitForDocumentReady();
+  return hasIframeTranslatableText();
+}
+
 /**
  * 前端翻译器的核心运行总入口。
  * @param {boolean} isUserscript 是否作为油猴 Userscript 脚本模式运行 (false 代表作为浏览器 Extension 运行)
@@ -173,8 +236,8 @@ export async function run(isUserscript = false) {
       return;
     }
 
-    // 5.1. iframe 白名单校验：如果是 iframe，但不在白名单中，则提前退出
-    if (isIframe && !isInWhitelist(href, setting.iframeWhitelist)) {
+    // 5.1. iframe 空内容拦截：默认允许 iframe 翻译，但空 iframe 不继续挂载后续脚本
+    if (isIframe && !(await waitForIframeTranslatableText())) {
       return;
     }
 
