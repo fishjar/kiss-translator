@@ -693,7 +693,10 @@ export const apiTranslate = async ({
 /**
  * 专为视频外挂字幕 (Subtitle Segment) 订制的翻译处理函数。
  * 融合了视频上下文摘要，使得大模型字幕翻译语义更加贴合剧情，不会产生传统断句翻译的突兀感。
- * @param {Object} params 包含视频 ID、字幕块标识、当前切片字幕数组、上一句和下一句字幕上下文等
+ * @param {Object} params 包含视频 ID、字幕块标识、当前切片字幕数组、上一句和下一句字幕上下文等。
+ * @param {Function} [params.onSubtitleChunk] 字幕断句流式输出完整句子时触发的增量回调。
+ * @param {AbortSignal} [params.signal] 当前字幕处理生命周期的取消信号，会下传到请求层。
+ * @returns {Promise<Array<Object>>} 完整字幕断句与翻译结果。
  */
 export const apiSubtitle = async ({
   videoId,
@@ -705,6 +708,8 @@ export const apiSubtitle = async ({
   docInfo,
   prevContext = "",
   nextContext = "",
+  onSubtitleChunk,
+  signal,
 }) => {
   if (!events?.length) return [];
   const cacheOpts = {
@@ -733,6 +738,8 @@ export const apiSubtitle = async ({
     docInfo,
     prevContext,
     nextContext,
+    onSubtitleChunk,
+    signal,
   });
   if (subtitles?.length) {
     putHttpCachePolyfill(cacheInput, null, subtitles);

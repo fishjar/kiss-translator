@@ -58,6 +58,8 @@ export function getChunkContext(
  * @param {boolean} param0.clearSegmentTranslation 是否清空断句 API 返回的翻译字段。
  * @param {string} [param0.prevContext=""] 前一分块的简短上下文。
  * @param {string} [param0.nextContext=""] 后一分块的简短上下文。
+ * @param {Function} [param0.onSubtitleChunk] AI 流式返回完整句子时的增量回调。
+ * @param {AbortSignal} [param0.signal] 当前字幕处理生命周期的取消信号。
  * @returns {Promise<Array<object>>} AI 断句后的字幕条目；失败时返回可保留的非语音条目。
  */
 export async function aiSegment({
@@ -72,6 +74,8 @@ export async function aiSegment({
   clearSegmentTranslation,
   prevContext = "",
   nextContext = "",
+  onSubtitleChunk,
+  signal,
 }) {
   const NON_SPEECH_RE = /^\[.+\]$/i;
   const speechEvents = [];
@@ -116,6 +120,16 @@ export async function aiSegment({
       docInfo,
       prevContext,
       nextContext,
+      signal,
+      onSubtitleChunk: ({ subtitles }) => {
+        if (!subtitles?.length || !onSubtitleChunk) return;
+
+        const streamedSubtitles = clearSegmentTranslation
+          ? subtitles.map((sub) => ({ ...sub, translation: "" }))
+          : subtitles;
+        // 字幕断句流式回调只上抛已经闭合的完整句子，避免半句扰乱播放器时间轴。
+        onSubtitleChunk({ subtitles: streamedSubtitles });
+      },
     });
     logger.debug("Youtube Provider: aiSegment subtitles", subtitles);
     if (Array.isArray(subtitles) && subtitles.length) {
@@ -147,6 +161,7 @@ export async function aiSegment({
                 .filter(Boolean)
                 .join(" "),
               nextContext,
+              signal,
             });
 
             if (tailSubs?.length) {
@@ -196,6 +211,7 @@ export async function aiSegment({
  * @param {Function} param0.formatSubtitles 内置规则格式化函数。
  * @param {Function} param0.onAppendSubtitles 后台分块完成时的增量回调。
  * @param {Function} param0.getCurrentVideoId 读取当前页面视频 ID 的函数，用于二次竞态检查。
+ * @param {AbortSignal} [param0.signal] 当前字幕处理生命周期的取消信号。
  * @returns {Promise<[Array<object>, number]>} 字幕条目数组与处理进度百分比。
  */
 export async function eventsToSubtitles({
@@ -214,6 +230,7 @@ export async function eventsToSubtitles({
   formatSubtitles,
   onAppendSubtitles,
   getCurrentVideoId,
+  signal,
 }) {
   const { segSlug, transApis, chunkLength, toLang } = setting;
 
@@ -234,6 +251,7 @@ export async function eventsToSubtitles({
     }
 
     const firstChunkEvents = eventChunks[0];
+    const firstChunkProgressed = Math.floor(100 / eventChunks.length);
     const firstBatchSubtitles = await aiSegment({
       videoId,
       chunkEvents: firstChunkEvents,
@@ -246,6 +264,23 @@ export async function eventsToSubtitles({
       clearSegmentTranslation: segApiSetting.apiSlug !== setting.apiSlug,
       prevContext: "",
       nextContext: getChunkContext(eventChunks, 0, "next"),
+      signal,
+      onSubtitleChunk: ({ subtitles }) => {
+        if (
+          !subtitles?.length ||
+          isStaleProcessing(processingVersion) ||
+          videoId !== getCurrentVideoId()
+        ) {
+          return;
+        }
+
+        // 首块也允许按句增量上屏，让用户不必等待整个 AI chunk 完整返回。
+        onAppendSubtitles({
+          subtitles,
+          progressed: firstChunkProgressed,
+          chunkNum: 1,
+        });
+      },
     });
     if (isStaleProcessing(processingVersion)) return [[], 0];
 
@@ -271,6 +306,7 @@ export async function eventsToSubtitles({
         formatSubtitles,
         onAppendSubtitles,
         getCurrentVideoId,
+        signal,
       });
 
       const processed = Math.floor(100 / eventChunks.length);
@@ -308,6 +344,7 @@ export async function eventsToSubtitles({
  * @param {Function} param0.formatSubtitles AI 失败时的内置格式化降级函数。
  * @param {Function} param0.onAppendSubtitles 分块完成时同步到 provider 的回调。
  * @param {Function} param0.getCurrentVideoId 读取当前页面视频 ID 的函数。
+ * @param {AbortSignal} [param0.signal] 当前字幕处理生命周期的取消信号。
  * @returns {Promise<void>}
  */
 export async function processRemainingChunksAsync({
@@ -325,6 +362,7 @@ export async function processRemainingChunksAsync({
   formatSubtitles,
   onAppendSubtitles,
   getCurrentVideoId,
+  signal,
 }) {
   logger.info(
     `Youtube Provider: Starting async from chunk ${startIndex + 1}/${chunks.length}.`
@@ -359,6 +397,24 @@ export async function processRemainingChunksAsync({
         clearSegmentTranslation: segApiSetting.apiSlug !== setting.apiSlug,
         prevContext: getChunkContext(chunks, i, "prev"),
         nextContext: getChunkContext(chunks, i, "next"),
+        signal,
+        onSubtitleChunk: ({ subtitles }) => {
+          if (
+            !subtitles?.length ||
+            videoId !== getCurrentVideoId() ||
+            isStaleProcessing(processingVersion)
+          ) {
+            return;
+          }
+
+          const progressed = Math.floor((chunkNum * 100) / chunks.length);
+          // 后续 chunk 内部也按句增量提交，完整 chunk 返回后再由 upsert 去重补齐。
+          onAppendSubtitles({
+            subtitles,
+            progressed,
+            chunkNum,
+          });
+        },
       });
       if (isStaleProcessing(processingVersion)) break;
 

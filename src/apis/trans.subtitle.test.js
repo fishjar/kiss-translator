@@ -8,6 +8,7 @@ jest.mock("@streamparser/json", () => ({
 
 jest.mock("../libs/fetch", () => ({
   fetchData: jest.fn(),
+  fetchStream: jest.fn(),
 }));
 
 jest.mock("../libs/docInfo", () => ({
@@ -21,6 +22,7 @@ import {
   OPT_TRANS_OPENAI,
 } from "../config";
 import { fetchData } from "../libs/fetch";
+import { fetchStream } from "../libs/fetch";
 
 const getApiSetting = (apiType) => ({
   ...DEFAULT_API_LIST.find((api) => api.apiType === apiType),
@@ -86,5 +88,98 @@ describe("handleSubtitle", () => {
         _ei: 1,
       },
     ]);
+  });
+
+  test("streams subtitle sentences when callback is provided", async () => {
+    async function* streamChunks() {
+      yield JSON.stringify({
+        choices: [
+          {
+            delta: {
+              content: '[{"s":0,"e":0,"o":"hello","t":"你好"}',
+            },
+          },
+        ],
+      });
+      yield JSON.stringify({
+        choices: [
+          {
+            delta: {
+              content: ',{"s":1,"e":1,"o":"world","t":"世界"}]',
+            },
+          },
+        ],
+      });
+    }
+    fetchStream.mockReturnValueOnce(streamChunks());
+
+    const onSubtitleChunk = jest.fn();
+    const result = await handleSubtitle({
+      events,
+      from: "en",
+      to: "zh-CN",
+      apiSetting: getApiSetting(OPT_TRANS_OPENAI),
+      onSubtitleChunk,
+    });
+
+    const init = fetchStream.mock.calls[0][1];
+    expect(JSON.parse(init.body).stream).toBe(true);
+    expect(onSubtitleChunk).toHaveBeenCalledWith({
+      subtitles: [
+        {
+          start: 0,
+          end: 1000,
+          text: "hello",
+          translation: "你好",
+          _si: 0,
+          _ei: 0,
+        },
+      ],
+      isFinal: false,
+    });
+    expect(onSubtitleChunk).toHaveBeenCalledWith({
+      subtitles: [
+        {
+          start: 1000,
+          end: 2000,
+          text: "world",
+          translation: "世界",
+          _si: 1,
+          _ei: 1,
+        },
+      ],
+      isFinal: false,
+    });
+    expect(result).toEqual([
+      {
+        start: 0,
+        end: 1000,
+        text: "hello",
+        translation: "你好",
+        _si: 0,
+        _ei: 0,
+      },
+      {
+        start: 1000,
+        end: 2000,
+        text: "world",
+        translation: "世界",
+        _si: 1,
+        _ei: 1,
+      },
+    ]);
+    expect(fetchData).not.toHaveBeenCalled();
+  });
+
+  test("keeps non-stream request when stream callback is missing", async () => {
+    await handleSubtitle({
+      events,
+      from: "en",
+      to: "zh-CN",
+      apiSetting: getApiSetting(OPT_TRANS_OPENAI),
+    });
+
+    expect(fetchStream).not.toHaveBeenCalled();
+    expect(fetchData).toHaveBeenCalledTimes(1);
   });
 });

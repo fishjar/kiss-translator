@@ -61,6 +61,7 @@ import {
 import {
   parseStreamingSegments,
   createStreamingJsonParser,
+  createStreamingSubtitleParser,
   createRealtimeStreamParser,
   detectStreamFormat,
   getStreamDelta,
@@ -1590,9 +1591,19 @@ export const handleMicrosoftLangdetect = async (texts = []) => {
 };
 
 /**
- * 字幕翻译
- * @param {*} param0
- * @returns
+ * 执行字幕断句与字幕翻译请求。
+ *
+ * @param {Object} params 字幕请求参数。
+ * @param {Array<Object>} params.events 当前字幕分块内的原始事件列表。
+ * @param {string} params.from 源语言代码。
+ * @param {string} params.to 目标语言代码。
+ * @param {Object} params.apiSetting 字幕断句所使用的 API 配置。
+ * @param {Object} [params.docInfo] 页面标题、描述和 AI 摘要等上下文。
+ * @param {string} [params.prevContext] 前一个字幕分块的只读上下文。
+ * @param {string} [params.nextContext] 后一个字幕分块的只读上下文。
+ * @param {Function} [params.onSubtitleChunk] 流式解析到完整字幕句子时触发的回调。
+ * @param {AbortSignal} [params.signal] 调用方生命周期取消信号，会下传到 fetch/fetchStream。
+ * @returns {Promise<Array<Object>>} 完整字幕句子数组。
  */
 export const handleSubtitle = async ({
   events,
@@ -1602,13 +1613,20 @@ export const handleSubtitle = async ({
   docInfo,
   prevContext = "",
   nextContext = "",
+  onSubtitleChunk,
+  signal,
 }) => {
-  const { apiType, fetchInterval, fetchLimit, httpTimeout } = apiSetting;
+  const { apiType, fetchInterval, fetchLimit, httpTimeout, useStream } =
+    apiSetting;
+  const enableStream =
+    Boolean(onSubtitleChunk) &&
+    useStream &&
+    API_SPE_TYPES.stream.has(apiType);
 
   const [input, init] = await genTransReq({
     ...apiSetting,
-    // 字幕断句必须等待完整结构化结果，不能继承网页段落翻译的 SSE 流式输出设置。
-    useStream: false,
+    // 字幕流式只在调用方显式消费句子分块时开启，避免普通完整响应路径误把 SSE 当 JSON 解析。
+    useStream: enableStream,
     events,
     from,
     to,
@@ -1617,12 +1635,46 @@ export const handleSubtitle = async ({
     nextContext,
   });
 
+  if (enableStream) {
+    try {
+      const subtitles = await handleSubtitleStreamInternal(input, init, {
+        events,
+        apiType,
+        fetchInterval,
+        fetchLimit,
+        httpTimeout,
+        onSubtitleChunk,
+        signal,
+      });
+      if (subtitles?.length) {
+        return subtitles;
+      }
+    } catch (err) {
+      if (err?.name === "AbortError") {
+        throw err;
+      }
+      kissLog("subtitle stream failed, fallback to non-stream", err);
+    }
+
+    return handleSubtitle({
+      events,
+      from,
+      to,
+      apiSetting: { ...apiSetting, useStream: false },
+      docInfo,
+      prevContext,
+      nextContext,
+      signal,
+    });
+  }
+
   const res = await fetchData(input, init, {
     useCache: false,
     usePool: true,
     fetchInterval,
     fetchLimit,
     httpTimeout,
+    signal,
   });
   if (!res) {
     kissLog("subtitle got empty response");
@@ -1691,6 +1743,89 @@ export const handleSubtitle = async ({
 
   return [];
 };
+
+/**
+ * 处理字幕断句的 SSE 流式响应。
+ *
+ * @param {string} input 请求地址。
+ * @param {Object} init Fetch 初始化参数。
+ * @param {Object} options 流式解析上下文。
+ * @param {Array<Object>} options.events 当前字幕事件列表，用于把 s/e 索引映射回时间轴。
+ * @param {string} options.apiType 翻译接口类型。
+ * @param {number} options.fetchInterval 请求池间隔。
+ * @param {number} options.fetchLimit 请求池并发限制。
+ * @param {number} options.httpTimeout 请求超时时间。
+ * @param {Function} options.onSubtitleChunk 新句子完成时触发的回调。
+ * @param {AbortSignal} options.signal 取消信号。
+ * @returns {Promise<Array<Object>>} 最终完整字幕数组。
+ */
+async function handleSubtitleStreamInternal(
+  input,
+  init,
+  {
+    events,
+    apiType,
+    fetchInterval,
+    fetchLimit,
+    httpTimeout,
+    onSubtitleChunk,
+    signal,
+  }
+) {
+  const parser = createStreamingSubtitleParser(events);
+  let fullContent = "";
+  const emitted = [];
+  const emittedKeys = new Set();
+
+  const appendSubtitles = (subtitles, isFinal = false) => {
+    const fresh = [];
+    for (const subtitle of subtitles || []) {
+      const key = `${subtitle._si}:${subtitle._ei}`;
+      if (emittedKeys.has(key)) continue;
+      emittedKeys.add(key);
+      emitted.push(subtitle);
+      fresh.push(subtitle);
+    }
+
+    if (fresh.length) {
+      // 只有完整句子对象闭合后才上抛，避免半句字幕污染播放器时间轴。
+      onSubtitleChunk({ subtitles: fresh, isFinal });
+    }
+  };
+
+  for await (const rawData of fetchStream(input, init, {
+    useCache: false,
+    usePool: true,
+    fetchInterval,
+    fetchLimit,
+    httpTimeout,
+    signal,
+  })) {
+    if (signal?.aborted) {
+      throw new DOMException("The operation was aborted.", "AbortError");
+    }
+
+    try {
+      const json = JSON.parse(rawData);
+      const delta = getStreamDelta(json, apiType);
+      if (!delta) continue;
+
+      fullContent += delta;
+      appendSubtitles(parser.write(delta), false);
+    } catch {
+      // 单个 SSE 分片异常不终止整条字幕流，等待后续分片或最终兜底解析补齐。
+    }
+  }
+
+  appendSubtitles(parser.end(), false);
+
+  const finalSubtitles = parseSTRes(fullContent, events);
+  appendSubtitles(finalSubtitles, true);
+
+  return finalSubtitles?.length
+    ? finalSubtitles
+    : emitted.sort((a, b) => a.start - b.start);
+}
 
 /**
  * 上下文摘要

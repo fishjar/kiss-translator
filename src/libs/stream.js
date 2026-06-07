@@ -271,6 +271,184 @@ export function createStreamingJsonParser() {
 }
 
 /**
+ * 把字幕断句模型返回的索引结构映射成播放器可消费的字幕对象。
+ *
+ * @param {Object} item 模型已经输出完整的字幕句子对象。
+ * @param {Array<Object>} events 当前请求中传给模型的原始字幕事件。
+ * @returns {Object|null} 可渲染字幕；字段不完整时返回 null。
+ */
+const mapSubtitleItemToCue = (item, events = []) => {
+  const s = Number(item?.s ?? item?.start_id);
+  const e = Number(item?.e ?? item?.end_id);
+  if (!Number.isInteger(s) || !Number.isInteger(e) || events.length === 0) {
+    return null;
+  }
+
+  const startIdx = Math.max(0, Math.min(s, events.length - 1));
+  const endIdx = Math.max(startIdx, Math.min(e, events.length - 1));
+  return {
+    start: events[startIdx].start,
+    end: events[endIdx].end,
+    text: String(item.o ?? item.original ?? ""),
+    translation: String(item.t ?? item.translation ?? ""),
+    _si: s,
+    _ei: e,
+  };
+};
+
+/**
+ * 创建字幕断句专用的流式 JSON 解析器。
+ *
+ * 字幕断句必须等到一个完整 `{s,e,o,t}` 对象闭合后才能稳定映射时间轴，
+ * 因此这里按对象边界增量抽取，而不是像网页段落翻译那样解析任意文本片段。
+ *
+ * @param {Array<Object>} events 当前字幕请求对应的原始事件列表。
+ * @returns {{write: Function, end: Function}} 流式写入器，每次写入返回新完成的字幕句子数组。
+ */
+export function createStreamingSubtitleParser(events = []) {
+  let buffer = "";
+  let jsonStarted = false;
+  let scanIndex = 0;
+  const emittedKeys = new Set();
+
+  /**
+   * 从当前 buffer 中查找 JSON 正文的起点。
+   *
+   * 大模型偶尔会先输出 Markdown fence 或解释性文字；字幕流式解析只从第一个
+   * JSON 数组/对象起点开始消费，前置噪声直接丢弃，避免污染对象边界扫描。
+   */
+  const trimToJsonStart = () => {
+    if (jsonStarted) return;
+
+    const start = buffer.search(/[\[{]/);
+    if (start === -1) {
+      buffer = buffer.slice(-20);
+      return;
+    }
+
+    buffer = buffer.slice(start);
+    jsonStarted = true;
+    scanIndex = 0;
+  };
+
+  /**
+   * 扫描并取出当前 buffer 中已经完整闭合的 JSON 对象字符串。
+   *
+   * 这里保留未完成对象在 buffer 中，等待下一段 delta 补齐；这是字幕按句
+   * 流式输出能安全工作的核心，不能在半个对象上尝试更新时间轴。
+   */
+  const extractCompletedObjects = () => {
+    const objects = [];
+    let depth = 0;
+    let objectStart = -1;
+    let inString = false;
+    let escaped = false;
+    let lastConsumedEnd = -1;
+
+    for (let i = scanIndex; i < buffer.length; i++) {
+      const ch = buffer[i];
+
+      if (inString) {
+        if (escaped) {
+          escaped = false;
+        } else if (ch === "\\") {
+          escaped = true;
+        } else if (ch === '"') {
+          inString = false;
+        }
+        continue;
+      }
+
+      if (ch === '"') {
+        inString = true;
+        continue;
+      }
+
+      if (ch === "{") {
+        if (depth === 0) {
+          objectStart = i;
+        }
+        depth += 1;
+        continue;
+      }
+
+      if (ch === "}") {
+        depth -= 1;
+        if (depth === 0 && objectStart !== -1) {
+          objects.push(buffer.slice(objectStart, i + 1));
+          lastConsumedEnd = i + 1;
+          objectStart = -1;
+        }
+      }
+    }
+
+    if (lastConsumedEnd !== -1) {
+      buffer = buffer.slice(lastConsumedEnd);
+      scanIndex = 0;
+    } else {
+      scanIndex = Math.max(0, objectStart);
+    }
+
+    return objects;
+  };
+
+  /**
+   * 将对象字符串解析成字幕句子，并按 `s/e` 去重。
+   *
+   * @param {Array<string>} objectStrings 已闭合的 JSON 对象字符串列表。
+   * @returns {Array<Object>} 新解析出的字幕句子数组。
+   */
+  const consumeObjects = (objectStrings) => {
+    const subtitles = [];
+
+    for (const objectString of objectStrings) {
+      try {
+        const item = JSON.parse(objectString);
+        const subtitle = mapSubtitleItemToCue(item, events);
+        if (!subtitle) continue;
+
+        const key = `${subtitle._si}:${subtitle._ei}`;
+        // 流式过程中模型可能重复输出同一对象，按时间轴索引去重避免重复插入字幕轨。
+        if (emittedKeys.has(key)) continue;
+        emittedKeys.add(key);
+        subtitles.push(subtitle);
+      } catch {
+        // 单个对象解析失败时忽略，保留后续对象继续增量输出。
+      }
+    }
+
+    return subtitles;
+  };
+
+  return {
+    /**
+     * 写入模型文本增量，并返回当前新完成的字幕句子。
+     *
+     * @param {string} delta 新到达的模型文本增量。
+     * @returns {Array<Object>} 本次写入解析出的新增字幕。
+     */
+    write(delta = "") {
+      buffer += delta;
+      trimToJsonStart();
+      if (!jsonStarted) return [];
+
+      return consumeObjects(extractCompletedObjects());
+    },
+    /**
+     * 流结束时再尝试消费一次缓冲区中已经闭合的对象。
+     *
+     * @returns {Array<Object>} 最终补解析出的字幕。
+     */
+    end() {
+      trimToJsonStart();
+      if (!jsonStarted) return [];
+
+      return consumeObjects(extractCompletedObjects());
+    },
+  };
+}
+
+/**
  * 启发式检测大模型当前响应流的格式类型 (JSON / XML / 行协议)
  * 通过判断最先出现的格式特征符（“{” 或 “<t” 或 “ID|”）进行确认。
  * @param {string} content 首批累积的流内容
