@@ -45,6 +45,7 @@ class YouTubeCaptionProvider {
   #subtitles = [];
   // YouTube 返回的原生字幕事件流数据，直接保存以备重处理/降级使用
   #events = [];
+  #rawSubtitleEvents = [];
   // 展平并排好序的细粒度单词级别字幕流
   #flatEvents = [];
   // 翻译处理进度百分比 (0-100)
@@ -155,6 +156,7 @@ class YouTubeCaptionProvider {
 
       this.#subtitles = [];
       this.#events = [];
+      this.#rawSubtitleEvents = [];
       this.#flatEvents = [];
       this.#progressed = 0;
       this.#fromLang = "auto";
@@ -468,6 +470,7 @@ class YouTubeCaptionProvider {
       clearMsgHistory(this.#setting.apiSlug);
       this.#subtitles = [];
       this.#events = [];
+      this.#rawSubtitleEvents = [];
       this.#flatEvents = [];
       this.#progressed = 0;
       this.#activeTrackKey = null;
@@ -504,6 +507,7 @@ class YouTubeCaptionProvider {
         logger.debug("Youtube Provider: events not got:", videoId);
         return;
       }
+      this.#rawSubtitleEvents = events;
 
       logger.debug(
         `Youtube Provider: lang: ${lang}, fromLang: ${fromLang}, toLang: ${toLang}`
@@ -848,7 +852,10 @@ class YouTubeCaptionProvider {
 
     if (showList && !this.#subtitleListManager) {
       this.#subtitleListManager = new YouTubeSubtitleList(videoEl);
-      this.#subtitleListManager.initialize(this.#subtitles);
+      this.#subtitleListManager.initialize(
+        this.#subtitles,
+        this.#rawSubtitleEvents
+      );
 
       this.#managerInstance.onSubtitleUpdate = (subtitleUpdate) => {
         this.#subtitleListManager.updateSingleSubtitle(subtitleUpdate);
