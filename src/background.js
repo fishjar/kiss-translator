@@ -593,11 +593,10 @@ async function handleStreamFetch(port, args) {
   port.onDisconnect.addListener(handleDisconnect);
 
   try {
-    for await (const chunk of fetchStreamNative(
-      input,
-      init,
-      { httpTimeout: opts.httpTimeout, signal: controller.signal }
-    )) {
+    for await (const chunk of fetchStreamNative(input, init, {
+      httpTimeout: opts.httpTimeout,
+      signal: controller.signal,
+    })) {
       if (disconnected) break;
       // 实时向发送端传送当前收到的流式增量文本块
       port.postMessage({ type: "delta", data: chunk });

@@ -106,9 +106,9 @@ describe("BilingualSubtitleManager", () => {
     manager.start();
     await Promise.resolve();
 
-    expect(document.querySelector(".kiss-caption-window").textContent).toContain(
-      "部分译文"
-    );
+    expect(
+      document.querySelector(".kiss-caption-window").textContent
+    ).toContain("部分译文");
     expect(manager.onSubtitleUpdate).toHaveBeenCalledWith({
       start: 0,
       end: 1000,
@@ -120,9 +120,9 @@ describe("BilingualSubtitleManager", () => {
     await deferred.promise;
     await Promise.resolve();
 
-    expect(document.querySelector(".kiss-caption-window").textContent).toContain(
-      "最终译文"
-    );
+    expect(
+      document.querySelector(".kiss-caption-window").textContent
+    ).toContain("最终译文");
 
     manager.destroy();
   });

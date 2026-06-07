@@ -775,7 +775,11 @@ export class BilingualSubtitleManager {
   /**
    * 同步当前视频时间，计算出应当渲染的那条字幕块
    */
-  #syncToCurrentTime({ forceRender = false, triggerTranslations = true, forceTriggerTranslations = false } = {}) {
+  #syncToCurrentTime({
+    forceRender = false,
+    triggerTranslations = true,
+    forceTriggerTranslations = false,
+  } = {}) {
     const currentTimeMs = this.#videoEl.currentTime * 1000;
     const subtitleIndex = this.#findSubtitleIndexForTime(currentTimeMs);
 
@@ -1021,7 +1025,10 @@ export class BilingualSubtitleManager {
       if (sessionId !== this.#translationSessionId) return;
       if (error?.name === "AbortError") return; // 属于 Abort 中止，静默退出
       logger.info("Translation failed for:", subtitle.text, error);
-      if (!subtitle.translation || subtitle.translation === "[Translation failed]") {
+      if (
+        !subtitle.translation ||
+        subtitle.translation === "[Translation failed]"
+      ) {
         subtitle.translation = "[Translation failed]";
       }
       subtitle._isDraftTranslation = false;
@@ -1051,7 +1058,10 @@ export class BilingualSubtitleManager {
     // 由于上层 provider 在 processRemainingChunksAsync 时直接 push 了全局 subtitles 数组，
     // 这里指向的是同一个底层数组引用，无需重复 push 和 sort 排序，直接将当前索引置 -1 强制触发一次 timeupdate 重刷即可。
     this.#currentSubtitleIndex = -1;
-    this.#syncToCurrentTime({ forceRender: true, forceTriggerTranslations: true });
+    this.#syncToCurrentTime({
+      forceRender: true,
+      forceTriggerTranslations: true,
+    });
   }
 
   // 更新配置项

@@ -135,7 +135,10 @@ export async function aiSegment({
     if (Array.isArray(subtitles) && subtitles.length) {
       let result = subtitles;
       if (clearSegmentTranslation) {
-        result = subtitles.map((sub) => ({ ...sub, _isDraftTranslation: true }));
+        result = subtitles.map((sub) => ({
+          ...sub,
+          _isDraftTranslation: true,
+        }));
       }
 
       const maxEi = Math.max(...result.map((s) => s._ei ?? -1));

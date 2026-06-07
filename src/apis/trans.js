@@ -1619,9 +1619,7 @@ export const handleSubtitle = async ({
   const { apiType, fetchInterval, fetchLimit, httpTimeout, useStream } =
     apiSetting;
   const enableStream =
-    Boolean(onSubtitleChunk) &&
-    useStream &&
-    API_SPE_TYPES.stream.has(apiType);
+    Boolean(onSubtitleChunk) && useStream && API_SPE_TYPES.stream.has(apiType);
 
   const [input, init] = await genTransReq({
     ...apiSetting,

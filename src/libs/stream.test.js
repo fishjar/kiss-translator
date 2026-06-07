@@ -27,9 +27,7 @@ describe("createSSEParser", () => {
   test("supports CRLF and multi-line data frames", () => {
     const parse = createSSEParser();
 
-    expect([...parse("data: one\r\ndata: two\r\n\r\n")]).toEqual([
-      "one\ntwo",
-    ]);
+    expect([...parse("data: one\r\ndata: two\r\n\r\n")]).toEqual(["one\ntwo"]);
   });
 
   test("filters DONE frames", () => {

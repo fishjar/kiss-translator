@@ -29,7 +29,11 @@ describe("fetchPatcher", () => {
       Promise.resolve(new Response("{}", { status: 200 }))
     );
 
-    await fetchPatcher("https://example.test", {}, { signal: controller.signal });
+    await fetchPatcher(
+      "https://example.test",
+      {},
+      { signal: controller.signal }
+    );
 
     expect(global.fetch.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
   });

@@ -40,7 +40,9 @@ describe("fetchStreamNative", () => {
         .fn()
         .mockResolvedValueOnce({
           done: false,
-          value: new Uint8Array([100, 97, 116, 97, 58, 32, 111, 110, 101, 10, 10]),
+          value: new Uint8Array([
+            100, 97, 116, 97, 58, 32, 111, 110, 101, 10, 10,
+          ]),
         })
         .mockResolvedValue(new Promise(() => {})),
       cancel,
