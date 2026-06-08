@@ -54,6 +54,7 @@ export const DEFAULT_SYNC = {
   syncUrl: "", // 数据同步服务器端点
   syncUser: "", // 同步用户名
   syncKey: "", // 同步密码或 Token
+  syncEncryptKey: "", // 同步数据端到端加密口令
   syncMeta: {}, // 存储同步的元信息 (如文件 ETag/修改时间等)
   subRulesSyncAt: 0, // 上一次订阅规则同步的时间戳
   dataCaches: {}, // 各类缓存项的最近同步时间
