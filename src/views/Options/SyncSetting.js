@@ -137,6 +137,9 @@ export default function SyncSetting() {
         {/* 数据同步的风险警告与备份注意事项提示 */}
         <Alert severity="warning">{i18n("sync_warn")}</Alert>
         <Alert severity="warning">{i18n("sync_warn_2")}</Alert>
+        {isGistSync && (
+          <Alert severity="warning">{i18n("sync_warn_gist")}</Alert>
+        )}
 
         {/* 同步通道类型 (Cloudflare Worker 或 WebDAV) */}
         <TextField
