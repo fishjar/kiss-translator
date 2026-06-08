@@ -957,6 +957,14 @@ export class BilingualSubtitleManager {
     }
   }
 
+  #needsRepairTranslation(subtitle) {
+    return (
+      !subtitle?.translation ||
+      subtitle.translation === "[Translation failed]" ||
+      subtitle._isDraftTranslation
+    );
+  }
+
   /**
    * 调用大模型或常规翻译 API 对单个字幕进行翻译，并将翻译成功的译文缓存到字幕对象上。
    *
@@ -1062,6 +1070,16 @@ export class BilingualSubtitleManager {
       forceRender: true,
       forceTriggerTranslations: true,
     });
+  }
+
+  repairChunkTranslations(subtitles) {
+    for (const subtitle of subtitles || []) {
+      if (!this.#needsRepairTranslation(subtitle) || subtitle.isTranslating) {
+        continue;
+      }
+
+      this.#translateAndStore(subtitle);
+    }
   }
 
   // 更新配置项

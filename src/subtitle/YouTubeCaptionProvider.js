@@ -617,8 +617,12 @@ class YouTubeCaptionProvider {
         return;
       }
 
-      this.#upsertProcessedSubtitles(subtitles, progressed);
+      const managedSubtitles = this.#upsertProcessedSubtitles(
+        subtitles,
+        progressed
+      );
       this.#startManager();
+      this.#managerInstance?.repairChunkTranslations(managedSubtitles);
     } catch (error) {
       if (error?.name === "AbortError") return;
       logger.info("Youtube Provider: process events", error);
@@ -643,7 +647,7 @@ class YouTubeCaptionProvider {
     const existed = new Map(
       this.#subtitles.map((sub, index) => [`${sub.start}:${sub.end}`, index])
     );
-    const inserted = [];
+    const changed = [];
 
     for (const subtitle of subtitles) {
       const key = `${subtitle.start}:${subtitle.end}`;
@@ -651,16 +655,17 @@ class YouTubeCaptionProvider {
       if (index !== undefined) {
         // 完整 chunk 回来时用最终结果覆盖同一时间轴句子，保留数组引用给 manager/list 使用。
         this.#subtitles[index] = { ...this.#subtitles[index], ...subtitle };
+        changed.push(this.#subtitles[index]);
       } else {
         existed.set(key, this.#subtitles.length);
         this.#subtitles.push(subtitle);
-        inserted.push(subtitle);
+        changed.push(subtitle);
       }
     }
 
     this.#subtitles.sort((a, b) => a.start - b.start);
     this.#progressed = progressed;
-    return inserted;
+    return changed;
   }
 
   /**
@@ -672,15 +677,19 @@ class YouTubeCaptionProvider {
    * @returns {void}
    */
   #appendProcessedSubtitles(subtitles, progressed) {
-    this.#upsertProcessedSubtitles(subtitles, progressed);
+    const managedSubtitles = this.#upsertProcessedSubtitles(
+      subtitles,
+      progressed
+    );
 
     if (!this.#managerInstance && this.#subtitles.length) {
       // 首个流式句子到达时立即启动字幕管理器，不再等待整个 AI chunk 返回。
       this.#startManager();
     }
 
-    this.#managerInstance?.appendSubtitles(subtitles);
+    this.#managerInstance?.appendSubtitles(managedSubtitles);
     this.#subtitleListManager?.setBilingualSubtitles(this.#subtitles);
+    this.#managerInstance?.repairChunkTranslations(managedSubtitles);
   }
 
   /**

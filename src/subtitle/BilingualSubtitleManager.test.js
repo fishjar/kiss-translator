@@ -126,4 +126,99 @@ describe("BilingualSubtitleManager", () => {
 
     manager.destroy();
   });
+
+  test("repairs failed chunk translations immediately", async () => {
+    const deferred = createDeferred();
+    apiTranslate.mockReturnValue(deferred.promise);
+
+    const videoEl = createVideoElement();
+    const failedSubtitle = {
+      ...subtitle,
+      translation: "[Translation failed]",
+    };
+    const manager = new BilingualSubtitleManager({
+      videoEl,
+      formattedSubtitles: [failedSubtitle],
+      setting,
+    });
+
+    manager.repairChunkTranslations([failedSubtitle]);
+
+    expect(apiTranslate).toHaveBeenCalledTimes(1);
+    expect(apiTranslate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: "hello world",
+        fromLang: "en",
+        toLang: "zh-CN",
+        apiSetting: setting.apiSetting,
+      })
+    );
+
+    deferred.resolve({ trText: "修复译文" });
+    await deferred.promise;
+    manager.destroy();
+  });
+
+  test("streams repaired chunk translations to caption and list callback", async () => {
+    const deferred = createDeferred();
+    apiTranslate.mockImplementation(({ onStreamChunk }) => {
+      onStreamChunk({ text: "补翻中", isComplete: false });
+      return deferred.promise;
+    });
+
+    const videoEl = createVideoElement();
+    const failedSubtitle = {
+      ...subtitle,
+      translation: "[Translation failed]",
+    };
+    const manager = new BilingualSubtitleManager({
+      videoEl,
+      formattedSubtitles: [failedSubtitle],
+      setting,
+    });
+    manager.onSubtitleUpdate = jest.fn();
+
+    manager.start();
+    manager.repairChunkTranslations([failedSubtitle]);
+    await Promise.resolve();
+
+    expect(
+      document.querySelector(".kiss-caption-window").textContent
+    ).toContain("补翻中");
+    expect(manager.onSubtitleUpdate).toHaveBeenCalledWith({
+      start: 0,
+      end: 1000,
+      text: "hello world",
+      translation: "补翻中",
+    });
+
+    deferred.resolve({ trText: "补翻完成" });
+    await deferred.promise;
+    await Promise.resolve();
+
+    expect(
+      document.querySelector(".kiss-caption-window").textContent
+    ).toContain("补翻完成");
+
+    manager.destroy();
+  });
+
+  test("skips chunk subtitles that are already translating", () => {
+    const videoEl = createVideoElement();
+    const translatingSubtitle = {
+      ...subtitle,
+      translation: "[Translation failed]",
+      isTranslating: true,
+    };
+    const manager = new BilingualSubtitleManager({
+      videoEl,
+      formattedSubtitles: [translatingSubtitle],
+      setting,
+    });
+
+    manager.repairChunkTranslations([translatingSubtitle]);
+
+    expect(apiTranslate).not.toHaveBeenCalled();
+    manager.destroy();
+  });
 });
