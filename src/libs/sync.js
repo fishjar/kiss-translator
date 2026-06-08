@@ -31,6 +31,7 @@ import { createClient, getPatcher } from "webdav";
 import { fetchPatcher } from "./fetch";
 import { kissLog } from "./log";
 import { encryptSyncValue, decryptSyncValue } from "./syncCrypto";
+import { packSettingForBackup, unpackSettingFromBackup } from "./settingBackup";
 
 let webdavRequestPatched = false;
 const GIST_SYNC_DESCRIPTION = "kiss translator sync files";
@@ -230,7 +231,7 @@ const syncByType = async (syncType, data, args, options) =>
     ? await syncByWebdav(data, args, options)
     : syncType === OPT_SYNCTYPE_GIST
       ? await syncByGist(data, args, options)
-    : await syncByWorker(data, args);
+      : await syncByWorker(data, args);
 
 /**
  * 将已经读取成功的旧版明文远端数据，用当前同步加密口令回写成密文。
@@ -273,10 +274,12 @@ const forceSyncDataWithEncryptKey = async (key, value, syncEncryptKey) => {
     syncUser,
     syncKey,
   };
+  const syncValue =
+    key === KV_SETTING_KEY ? packSettingForBackup(value) : value;
   const data = await encryptSyncData(
     {
       key,
-      value: JSON.stringify(value),
+      value: JSON.stringify(syncValue),
       updateAt,
     },
     syncEncryptKey
@@ -328,9 +331,11 @@ export const syncData = async (key, value) => {
     updateAt = 0; // 若从未同步过，将更新时间置 0 以触发首次拉取云端
   }
 
+  const syncValue =
+    key === KV_SETTING_KEY ? packSettingForBackup(value) : value;
   const data = {
     key,
-    value: JSON.stringify(value),
+    value: JSON.stringify(syncValue),
     updateAt,
   };
   const args = {
@@ -352,13 +357,22 @@ export const syncData = async (key, value) => {
     encryptedOrLegacyRes,
     syncEncryptKey
   );
-  const newVal = JSON.parse(res.value);
+  const parsedValue = JSON.parse(res.value);
+  const newVal =
+    key === KV_SETTING_KEY ? unpackSettingFromBackup(parsedValue) : parsedValue;
   // 若返回的云端数据更新时间戳晚于本地，则说明云端有新更改需要覆盖本地
   const isNew = res.updateAt > updateAt;
 
   // 新版客户端首次遇到旧版明文远端数据时，读取后立即迁移为密文。
   if (!encrypted) {
-    await migratePlainSyncData(syncType, res, args, syncEncryptKey);
+    await migratePlainSyncData(
+      syncType,
+      key === KV_SETTING_KEY
+        ? { ...res, value: JSON.stringify(packSettingForBackup(newVal)) }
+        : res,
+      args,
+      syncEncryptKey
+    );
   }
 
   // 更新本地同步元数据，包含云端的最新修改时间及当前的同步操作时间

@@ -61,6 +61,7 @@ import {
   apiListGists,
   apiUpdateGistFile,
 } from "../apis";
+import { DEFAULT_API_LIST, OPT_TRANS_OPENAI } from "../config/api";
 import {
   getSettingWithDefault,
   getRulesWithDefault,
@@ -78,6 +79,15 @@ const NEW_SYNC_ENCRYPT_KEY = "new-sync-encrypt-passphrase";
 const SETTING_KEY = "kiss-setting_v2.json";
 const RULES_KEY = "kiss-rules_v2.json";
 const WORDS_KEY = "kiss-words.json";
+const PROMPT_FIELDS = [
+  "systemPrompt",
+  "subtitlePrompt",
+  "nobatchPrompt",
+  "nobatchUserPrompt",
+];
+const defaultOpenAiApi = DEFAULT_API_LIST.find(
+  (api) => api.apiType === OPT_TRANS_OPENAI
+);
 
 const gistFileContent = (value, updateAt) =>
   JSON.stringify({
@@ -105,7 +115,10 @@ describe("GitHub Gist sync", () => {
       }
       if (value.startsWith("cipher:")) {
         return Promise.resolve({
-          value: Buffer.from(value.slice("cipher:".length), "base64").toString(),
+          value: Buffer.from(
+            value.slice("cipher:".length),
+            "base64"
+          ).toString(),
           encrypted: true,
         });
       }
@@ -286,6 +299,79 @@ describe("GitHub Gist sync", () => {
     expect(result).toEqual({ value: { remote: true }, isNew: true });
   });
 
+  test("uploads setting sync data without unchanged default prompts", async () => {
+    getSyncWithDefault.mockResolvedValue({
+      syncType: "GitHub Gist",
+      syncUrl: "existing-gist",
+      syncKey: SYNC_KEY,
+      syncEncryptKey: SYNC_ENCRYPT_KEY,
+      syncMeta: {
+        [SETTING_KEY]: {
+          updateAt: 200,
+          syncAt: 1,
+        },
+      },
+    });
+    apiGetGist.mockResolvedValue({ files: {} });
+
+    const result = await syncData(SETTING_KEY, {
+      transApis: [{ ...defaultOpenAiApi }],
+    });
+    const uploadedSetting = JSON.parse(encryptSyncValue.mock.calls[0][0]);
+
+    PROMPT_FIELDS.forEach((field) => {
+      expect(uploadedSetting.transApis[0]).not.toHaveProperty(field);
+    });
+    expect(result.value.transApis[0].systemPrompt).toBe(
+      defaultOpenAiApi.systemPrompt
+    );
+  });
+
+  test("restores default prompts from compact setting sync data", async () => {
+    getSyncWithDefault.mockResolvedValue({
+      syncType: "GitHub Gist",
+      syncUrl: "existing-gist",
+      syncKey: SYNC_KEY,
+      syncEncryptKey: SYNC_ENCRYPT_KEY,
+      syncMeta: {
+        [SETTING_KEY]: {
+          updateAt: 10,
+          syncAt: 1,
+        },
+      },
+    });
+    apiGetGist.mockResolvedValue({
+      files: {
+        [SETTING_KEY]: {
+          content: encryptedGistFileContent(
+            {
+              transApis: [
+                {
+                  apiSlug: defaultOpenAiApi.apiSlug,
+                  apiName: defaultOpenAiApi.apiName,
+                  apiType: defaultOpenAiApi.apiType,
+                },
+              ],
+            },
+            50
+          ),
+        },
+      },
+    });
+
+    const result = await syncData(SETTING_KEY, {
+      transApis: [{ ...defaultOpenAiApi }],
+    });
+
+    expect(apiUpdateGistFile).not.toHaveBeenCalled();
+    expect(result.value.transApis[0].systemPrompt).toBe(
+      defaultOpenAiApi.systemPrompt
+    );
+    expect(result.value.transApis[0].subtitlePrompt).toBe(
+      defaultOpenAiApi.subtitlePrompt
+    );
+  });
+
   test("migrates newer legacy plaintext gist data to encrypted content", async () => {
     getSyncWithDefault.mockResolvedValue({
       syncType: "GitHub Gist",
@@ -358,9 +444,9 @@ describe("GitHub Gist sync", () => {
       JSON.stringify(
         {
           key: SETTING_KEY,
-          value: `cipher:${Buffer.from(JSON.stringify({ local: true })).toString(
-            "base64"
-          )}`,
+          value: `cipher:${Buffer.from(
+            JSON.stringify({ local: true })
+          ).toString("base64")}`,
           updateAt: 200,
         },
         null,

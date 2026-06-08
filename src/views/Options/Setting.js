@@ -35,6 +35,10 @@ import { kissLog, LogLevel } from "../../libs/log";
 import UploadButton from "./UploadButton";
 import DownloadButton from "./DownloadButton";
 import ValidationInput from "../../hooks/ValidationInput";
+import {
+  packSettingForBackup,
+  unpackSettingFromBackup,
+} from "../../libs/settingBackup";
 
 /**
  * 包装单个快捷键录入表单项组件
@@ -93,7 +97,7 @@ export default function Settings() {
   // 导入备份 JSON 配置文件
   const handleImport = async (data) => {
     try {
-      updateSetting(JSON.parse(data));
+      updateSetting(unpackSettingFromBackup(JSON.parse(data)));
     } catch (err) {
       kissLog("import setting", err);
     }
@@ -134,7 +138,7 @@ export default function Settings() {
         >
           <UploadButton text={i18n("import")} handleImport={handleImport} />
           <DownloadButton
-            handleData={() => JSON.stringify(setting, null, 2)}
+            handleData={() => JSON.stringify(packSettingForBackup(setting))}
             text={i18n("export")}
             fileName={`kiss-setting_v2_${Date.now()}.json`}
           />
