@@ -753,6 +753,13 @@ export const I18N = {
     ja: `プライバシーに関わるデータを同期する場合、サードパーティの同期サービスは慎重に選択してください。kiss-worker や WebDAV サービスを自己ホスティングすることをお勧めします。`,
     ko: `개인정보가 포함된 데이터를 동기화할 경우, 타사 동기화 서비스 선택에 신중을 기하십시오. 자체 kiss-worker 또는 WebDAV 서비스를 구축하는 것을 권장합니다.`,
   },
+  sync_warn_gist: {
+    zh: `GitHub Gist 不会出现在公开搜索或发现页面中，但任何拥有该链接的人都可以查看内容。`,
+    en: `GitHub Gists do not appear in public searches or discovery pages, but anyone with the link can view the content.`,
+    zh_TW: `GitHub Gist 不會出現在公開搜尋或探索頁面中，但任何擁有該連結的人都可以查看內容。`,
+    ja: `GitHub Gist は公開検索や発見ページには表示されませんが、リンクを持っている人は誰でも内容を閲覧できます。`,
+    ko: `GitHub Gist는 공개 검색이나 탐색 페이지에 표시되지 않지만, 링크를 가진 사람은 누구나 내용을 볼 수 있습니다.`,
+  },
   sync_warn_2: {
     zh: `如果服务器存在其他客户端同步的数据，第一次同步将直接覆盖本地配置，后面则根据修改时间，新的覆盖旧的。`,
     en: `If the server has data synchronized by other clients, the first synchronization will directly overwrite the local configuration, and later, according to the modification time, the new one will overwrite the old one.`,
