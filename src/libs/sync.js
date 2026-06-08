@@ -32,6 +32,7 @@ import { fetchPatcher } from "./fetch";
 import { kissLog } from "./log";
 
 let webdavRequestPatched = false;
+const GIST_SYNC_DESCRIPTION = "kiss translator sync files";
 
 /**
  * 确保 WebDAV 库的 request 通道只被补丁一次。
@@ -122,13 +123,15 @@ export const getGistId = (input = "") => {
   }
 };
 
-const getGistDescription = async (syncKey) => {
-  const description = "kiss translator sync files";
+const findGistByDescription = async (syncKey) => {
   const gists = await apiListGists(syncKey);
-  if (gists.some((gist) => gist.description === description)) {
-    return `${description}-${Date.now()}`;
-  }
-  return description;
+  return gists
+    .filter((gist) => gist.description === GIST_SYNC_DESCRIPTION)
+    .sort((a, b) => {
+      const timeA = Date.parse(a.updated_at || a.created_at || 0);
+      const timeB = Date.parse(b.updated_at || b.created_at || 0);
+      return timeB - timeA;
+    })[0];
 };
 
 const getGistFilename = (key) => {
@@ -138,9 +141,17 @@ const getGistFilename = (key) => {
 };
 
 const syncByGist = async (data, { syncUrl, syncKey }) => {
-  const gistId = getGistId(syncUrl);
+  let gistId = getGistId(syncUrl);
   const filename = getGistFilename(data.key);
   const content = JSON.stringify(data, null, 2);
+
+  if (!gistId) {
+    const existingGist = await findGistByDescription(syncKey);
+    if (existingGist?.id) {
+      gistId = existingGist.id;
+      await putSync({ syncUrl: gistId });
+    }
+  }
 
   if (!gistId) {
     const gist = await apiCreateGist(
@@ -149,7 +160,7 @@ const syncByGist = async (data, { syncUrl, syncKey }) => {
         key: filename,
         content,
       },
-      await getGistDescription(syncKey)
+      GIST_SYNC_DESCRIPTION
     );
     await putSync({ syncUrl: gist.id });
     return data;
