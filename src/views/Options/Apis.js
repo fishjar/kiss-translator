@@ -543,6 +543,9 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
                   min={0.0}
                   max={2.0}
                   isFloat={true}
+                  inputProps={{
+                    step: 0.1,
+                  }}
                 />
               </Grid>
               <Grid item xs={12} sm={12} md={6} lg={3}>
