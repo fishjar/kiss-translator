@@ -426,9 +426,6 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
     batchPromptSlug = "",
     nobatchPromptSlug = "",
     subtitlePromptSlug = "",
-    batchPromptId: legacyBatchPromptId = undefined,
-    nobatchPromptId: legacyNobatchPromptId = undefined,
-    subtitlePromptId: legacySubtitlePromptId = undefined,
   } = activeFormData;
 
   const thinkingParam = THINKING_PARAM_MAP[apiType];
@@ -437,25 +434,19 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
     "batchPromptSlug"
   )
     ? batchPromptSlug
-    : Object.prototype.hasOwnProperty.call(activeFormData, "batchPromptId")
-      ? legacyBatchPromptId
-      : DEFAULT_BATCH_PROMPT_SLUG;
+    : DEFAULT_BATCH_PROMPT_SLUG;
   const selectedNobatchPromptSlug = Object.prototype.hasOwnProperty.call(
     activeFormData,
     "nobatchPromptSlug"
   )
     ? nobatchPromptSlug
-    : Object.prototype.hasOwnProperty.call(activeFormData, "nobatchPromptId")
-      ? legacyNobatchPromptId
-      : DEFAULT_NOBATCH_PROMPT_SLUG;
+    : DEFAULT_NOBATCH_PROMPT_SLUG;
   const selectedSubtitlePromptSlug = Object.prototype.hasOwnProperty.call(
     activeFormData,
     "subtitlePromptSlug"
   )
     ? subtitlePromptSlug
-    : Object.prototype.hasOwnProperty.call(activeFormData, "subtitlePromptId")
-      ? legacySubtitlePromptId
-      : DEFAULT_SUBTITLE_PROMPT_SLUG;
+    : DEFAULT_SUBTITLE_PROMPT_SLUG;
   const nobatchPromptOptions = useMemo(
     () => getNobatchPromptOptions(prompts),
     [prompts]

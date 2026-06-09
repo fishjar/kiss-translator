@@ -8,6 +8,7 @@ import {
   PROMPT_MODE_GLOBAL,
   PROMPT_TEMPLATE_CATEGORIES,
   migrateLegacyPromptSettings,
+  normalizePrompt,
   removeLegacyApiPromptIds,
   removePromptReferences,
   resolveApiPromptSettings,
@@ -150,7 +151,7 @@ describe("prompt settings", () => {
         {
           apiSlug: "openai",
           batchPromptSlug: "prompt_deleted",
-          nobatchPromptId: "prompt_deleted",
+          nobatchPromptSlug: "prompt_deleted",
           subtitlePromptSlug: "prompt_deleted",
           systemPrompt: "deleted batch prompt",
           nobatchPrompt: "deleted nobatch system prompt",
@@ -161,7 +162,6 @@ describe("prompt settings", () => {
       subtitleSetting: {
         segPromptMode: PROMPT_MODE_GLOBAL,
         segPromptSlug: "prompt_deleted",
-        segPromptId: "prompt_deleted",
       },
     };
 
@@ -176,37 +176,47 @@ describe("prompt settings", () => {
       nobatchUserPrompt: defaultNobatchUserPrompt,
       subtitlePrompt: defaultSubtitlePrompt,
     });
-    expect(cleaned.transApis[0]).not.toHaveProperty("nobatchPromptId");
     expect(cleaned.subtitleSetting).toMatchObject({
       segPromptMode: PROMPT_MODE_FOLLOW_API,
       segPromptSlug: DEFAULT_SUBTITLE_PROMPT_SLUG,
     });
-    expect(cleaned.subtitleSetting).not.toHaveProperty("segPromptId");
   });
 
-  test("ignores legacy prompt ids when current prompt slugs point elsewhere", () => {
-    const setting = {
+  test("does not read prompt id fields as prompt references", () => {
+    expect(normalizePrompt({ id: "prompt_old_id" }).slug).toBe("");
+
+    const cleaned = removePromptReferences(
+      {
+        transApis: [
+          {
+            apiSlug: "openai",
+            batchPromptId: "prompt_deleted",
+            nobatchPromptId: "prompt_deleted",
+            subtitlePromptId: "prompt_deleted",
+          },
+        ],
+        subtitleSetting: {
+          segPromptMode: PROMPT_MODE_GLOBAL,
+          segPromptId: "prompt_deleted",
+        },
+      },
+      "prompt_deleted"
+    );
+
+    expect(cleaned).toEqual({
       transApis: [
         {
           apiSlug: "openai",
-          batchPromptSlug: "prompt_current_batch",
           batchPromptId: "prompt_deleted",
-          nobatchPromptSlug: "prompt_current_nobatch",
           nobatchPromptId: "prompt_deleted",
-          subtitlePromptSlug: "prompt_current_subtitle",
           subtitlePromptId: "prompt_deleted",
         },
       ],
       subtitleSetting: {
         segPromptMode: PROMPT_MODE_GLOBAL,
-        segPromptSlug: "prompt_current_subtitle",
         segPromptId: "prompt_deleted",
       },
-    };
-
-    const cleaned = removePromptReferences(setting, "prompt_deleted");
-
-    expect(cleaned).toBe(setting);
+    });
   });
 
   test("removes legacy api prompt ids before saving api settings", () => {
@@ -229,6 +239,46 @@ describe("prompt settings", () => {
     expect(cleaned).not.toHaveProperty("batchPromptId");
     expect(cleaned).not.toHaveProperty("nobatchPromptId");
     expect(cleaned).not.toHaveProperty("subtitlePromptId");
+  });
+
+  test("normalizes stored prompts and removes legacy id fields during migration", () => {
+    const migrated = migrateLegacyPromptSettings({
+      prompts: [
+        {
+          id: "prompt_old_id",
+          slug: "prompt_current",
+          category: "user prompt",
+          name: "Current prompt",
+          systemPrompt: "system",
+          userPrompt: "user",
+        },
+      ],
+      transApis: [
+        {
+          apiSlug: "openai",
+          batchPromptId: "prompt_old_id",
+          systemPrompt: defaultSystemPrompt,
+        },
+      ],
+      subtitleSetting: {
+        segPromptMode: PROMPT_MODE_GLOBAL,
+        segPromptSlug: DEFAULT_SUBTITLE_PROMPT_SLUG,
+        segPromptId: "prompt_old_id",
+      },
+    });
+
+    expect(migrated.prompts).toEqual([
+      {
+        slug: "prompt_current",
+        category: "user prompt",
+        nameKey: "",
+        name: "Current prompt",
+        systemPrompt: "system",
+        userPrompt: "user",
+      },
+    ]);
+    expect(migrated.transApis[0]).not.toHaveProperty("batchPromptId");
+    expect(migrated.subtitleSetting).not.toHaveProperty("segPromptId");
   });
 
   test("does not expose dictionary prompt templates", () => {

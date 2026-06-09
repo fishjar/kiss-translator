@@ -77,10 +77,18 @@ export const PRESET_PROMPTS = [
 const PRESET_PROMPT_SLUGS = new Set(
   PRESET_PROMPTS.map((prompt) => prompt.slug)
 );
+const PROMPT_STORAGE_FIELDS = [
+  "slug",
+  "category",
+  "nameKey",
+  "name",
+  "systemPrompt",
+  "userPrompt",
+];
 
 export function normalizePrompt(prompt = {}) {
   return {
-    slug: String(prompt.slug || prompt.id || ""),
+    slug: String(prompt.slug || ""),
     category: String(prompt.category || ""),
     nameKey: String(prompt.nameKey || ""),
     name: String(prompt.name || ""),
@@ -94,11 +102,15 @@ export function isPresetPromptSlug(promptSlug) {
 }
 
 export function getAllPrompts(userPrompts = []) {
-  const customPrompts = (Array.isArray(userPrompts) ? userPrompts : [])
-    .map(normalizePrompt)
-    .filter((prompt) => prompt.slug && !isPresetPromptSlug(prompt.slug));
+  const customPrompts = normalizeCustomPrompts(userPrompts);
 
   return [...PRESET_PROMPTS, ...customPrompts];
+}
+
+export function normalizeCustomPrompts(userPrompts = []) {
+  return (Array.isArray(userPrompts) ? userPrompts : [])
+    .map(normalizePrompt)
+    .filter((prompt) => prompt.slug && !isPresetPromptSlug(prompt.slug));
 }
 
 export function findPromptBySlug(userPrompts = [], promptSlug) {
@@ -134,15 +146,8 @@ function getPromptFieldValue(source = {}, fieldName, defaultValue = "") {
   return source[fieldName];
 }
 
-function hasPromptReferenceField(
-  source = {},
-  promptSlugFieldName,
-  legacyPromptIdFieldName
-) {
-  return (
-    hasOwn(source, promptSlugFieldName) ||
-    hasOwn(source, legacyPromptIdFieldName)
-  );
+function hasPromptReferenceField(source = {}, promptSlugFieldName) {
+  return hasOwn(source, promptSlugFieldName);
 }
 
 function getPromptText(source = {}, fieldName) {
@@ -258,24 +263,23 @@ export function getSubtitlePromptOptions(prompts = []) {
   return getPromptOptions(prompts, PROMPT_CATEGORY_SUBTITLE);
 }
 
-function hasPromptReference(
-  source = {},
-  promptSlugFieldName,
-  legacyPromptIdFieldName,
-  promptSlug
-) {
-  if (hasOwn(source, promptSlugFieldName)) {
-    return source[promptSlugFieldName] === promptSlug;
-  }
-
+function hasPromptReference(source = {}, promptSlugFieldName, promptSlug) {
   return (
-    hasOwn(source, legacyPromptIdFieldName) &&
-    source[legacyPromptIdFieldName] === promptSlug
+    hasOwn(source, promptSlugFieldName) &&
+    source[promptSlugFieldName] === promptSlug
   );
 }
 
 export function removeLegacyApiPromptIds(apiSetting = {}) {
   if (!apiSetting) {
+    return apiSetting;
+  }
+
+  if (
+    !hasOwn(apiSetting, "batchPromptId") &&
+    !hasOwn(apiSetting, "nobatchPromptId") &&
+    !hasOwn(apiSetting, "subtitlePromptId")
+  ) {
     return apiSetting;
   }
 
@@ -295,7 +299,6 @@ const LEGACY_API_PROMPT_MIGRATIONS = [
     systemPromptFieldName: "systemPrompt",
     userPromptFieldName: "",
     promptSlugFieldName: "batchPromptSlug",
-    legacyPromptIdFieldName: "batchPromptId",
   },
   {
     promptType: "nobatch",
@@ -304,7 +307,6 @@ const LEGACY_API_PROMPT_MIGRATIONS = [
     systemPromptFieldName: "nobatchPrompt",
     userPromptFieldName: "nobatchUserPrompt",
     promptSlugFieldName: "nobatchPromptSlug",
-    legacyPromptIdFieldName: "nobatchPromptId",
   },
   {
     promptType: "subtitle",
@@ -313,7 +315,6 @@ const LEGACY_API_PROMPT_MIGRATIONS = [
     systemPromptFieldName: "subtitlePrompt",
     userPromptFieldName: "",
     promptSlugFieldName: "subtitlePromptSlug",
-    legacyPromptIdFieldName: "subtitlePromptId",
   },
 ];
 
@@ -347,14 +348,44 @@ function createPromptSlugIndex(prompts = []) {
   return promptBySlug;
 }
 
+function isStoredPromptListNormalized(sourcePrompts = [], normalizedPrompts) {
+  if (!Array.isArray(sourcePrompts)) {
+    return normalizedPrompts.length === 0;
+  }
+
+  if (sourcePrompts.length !== normalizedPrompts.length) {
+    return false;
+  }
+
+  return sourcePrompts.every((prompt, index) => {
+    if (!prompt || typeof prompt !== "object") {
+      return false;
+    }
+
+    const hasOnlyPromptStorageFields = Object.keys(prompt).every((fieldName) =>
+      PROMPT_STORAGE_FIELDS.includes(fieldName)
+    );
+
+    return (
+      hasOnlyPromptStorageFields &&
+      JSON.stringify(normalizePrompt(prompt)) ===
+        JSON.stringify(normalizedPrompts[index])
+    );
+  });
+}
+
+function removeLegacySubtitlePromptId(subtitleSetting) {
+  if (!subtitleSetting || !hasOwn(subtitleSetting, "segPromptId")) {
+    return subtitleSetting;
+  }
+
+  const nextSubtitleSetting = { ...subtitleSetting };
+  delete nextSubtitleSetting.segPromptId;
+  return nextSubtitleSetting;
+}
+
 function migrateLegacyApiPrompt(apiSetting, migration, customPromptState) {
-  if (
-    hasPromptReferenceField(
-      apiSetting,
-      migration.promptSlugFieldName,
-      migration.legacyPromptIdFieldName
-    )
-  ) {
+  if (hasPromptReferenceField(apiSetting, migration.promptSlugFieldName)) {
     return "";
   }
 
@@ -401,11 +432,20 @@ export function migrateLegacyPromptSettings(setting = {}) {
     return setting;
   }
 
-  const customPrompts = Array.isArray(setting.prompts) ? setting.prompts : [];
+  const storedCustomPrompts = Array.isArray(setting.prompts)
+    ? setting.prompts
+    : [];
+  const customPrompts = normalizeCustomPrompts(storedCustomPrompts);
+  const hasCustomPromptChanges = !isStoredPromptListNormalized(
+    storedCustomPrompts,
+    customPrompts
+  );
+  const subtitleSetting = removeLegacySubtitlePromptId(setting.subtitleSetting);
+  const hasSubtitleSettingChanges = subtitleSetting !== setting.subtitleSetting;
   const customPromptState = {
     prompts: [...customPrompts],
     promptBySlug: createPromptSlugIndex([...PRESET_PROMPTS, ...customPrompts]),
-    hasPromptChanges: false,
+    hasPromptChanges: hasCustomPromptChanges,
   };
   let hasApiChanges = false;
 
@@ -414,18 +454,21 @@ export function migrateLegacyPromptSettings(setting = {}) {
       return apiSetting;
     }
 
-    let nextApiSetting = apiSetting;
+    let nextApiSetting = removeLegacyApiPromptIds(apiSetting);
+    if (nextApiSetting !== apiSetting) {
+      hasApiChanges = true;
+    }
 
     LEGACY_API_PROMPT_MIGRATIONS.forEach((migration) => {
       const promptSlug = migrateLegacyApiPrompt(
-        apiSetting,
+        nextApiSetting,
         migration,
         customPromptState
       );
 
       if (
         promptSlug &&
-        apiSetting[migration.promptSlugFieldName] !== promptSlug
+        nextApiSetting[migration.promptSlugFieldName] !== promptSlug
       ) {
         if (nextApiSetting === apiSetting) {
           nextApiSetting = { ...apiSetting };
@@ -433,7 +476,6 @@ export function migrateLegacyPromptSettings(setting = {}) {
 
         // 旧版 API 内联 prompt 升级为新版 prompt 引用；内联字段继续保留作运行时镜像。
         nextApiSetting[migration.promptSlugFieldName] = promptSlug;
-        delete nextApiSetting[migration.legacyPromptIdFieldName];
         hasApiChanges = true;
       }
     });
@@ -441,7 +483,11 @@ export function migrateLegacyPromptSettings(setting = {}) {
     return nextApiSetting;
   });
 
-  if (!hasApiChanges && !customPromptState.hasPromptChanges) {
+  if (
+    !hasApiChanges &&
+    !customPromptState.hasPromptChanges &&
+    !hasSubtitleSettingChanges
+  ) {
     return setting;
   }
 
@@ -453,6 +499,10 @@ export function migrateLegacyPromptSettings(setting = {}) {
 
   if (customPromptState.hasPromptChanges) {
     nextSetting.prompts = customPromptState.prompts;
+  }
+
+  if (hasSubtitleSettingChanges) {
+    nextSetting.subtitleSetting = subtitleSetting;
   }
 
   return nextSetting;
@@ -473,50 +523,31 @@ export function removePromptReferences(setting = {}, promptSlug) {
   ).map((api) => {
     let nextApi = api;
 
-    if (
-      hasPromptReference(api, "batchPromptSlug", "batchPromptId", promptSlug)
-    ) {
+    if (hasPromptReference(api, "batchPromptSlug", promptSlug)) {
       nextApi = {
         ...nextApi,
         batchPromptSlug: DEFAULT_BATCH_PROMPT_SLUG,
         systemPrompt: batchPrompt.systemPrompt,
       };
-      delete nextApi.batchPromptId;
       hasApiChanges = true;
     }
 
-    if (
-      hasPromptReference(
-        api,
-        "nobatchPromptSlug",
-        "nobatchPromptId",
-        promptSlug
-      )
-    ) {
+    if (hasPromptReference(api, "nobatchPromptSlug", promptSlug)) {
       nextApi = {
         ...nextApi,
         nobatchPromptSlug: DEFAULT_NOBATCH_PROMPT_SLUG,
         nobatchPrompt: nobatchPrompt.systemPrompt,
         nobatchUserPrompt: nobatchPrompt.userPrompt,
       };
-      delete nextApi.nobatchPromptId;
       hasApiChanges = true;
     }
 
-    if (
-      hasPromptReference(
-        api,
-        "subtitlePromptSlug",
-        "subtitlePromptId",
-        promptSlug
-      )
-    ) {
+    if (hasPromptReference(api, "subtitlePromptSlug", promptSlug)) {
       nextApi = {
         ...nextApi,
         subtitlePromptSlug: DEFAULT_SUBTITLE_PROMPT_SLUG,
         subtitlePrompt: subtitlePrompt.systemPrompt,
       };
-      delete nextApi.subtitlePromptId;
       hasApiChanges = true;
     }
 
@@ -526,7 +557,6 @@ export function removePromptReferences(setting = {}, promptSlug) {
   const hasSubtitlePromptReference = hasPromptReference(
     setting?.subtitleSetting,
     "segPromptSlug",
-    "segPromptId",
     promptSlug
   );
 
@@ -546,7 +576,6 @@ export function removePromptReferences(setting = {}, promptSlug) {
       segPromptMode: PROMPT_MODE_FOLLOW_API,
       segPromptSlug: DEFAULT_SUBTITLE_PROMPT_SLUG,
     };
-    delete nextSetting.subtitleSetting.segPromptId;
   }
 
   return nextSetting;
@@ -561,21 +590,18 @@ export function resolveApiPromptSettings(
     return apiSetting;
   }
 
-  const nextApiSetting = { ...apiSetting };
+  const cleanedApiSetting = removeLegacyApiPromptIds(apiSetting);
+  const nextApiSetting =
+    cleanedApiSetting === apiSetting ? { ...apiSetting } : cleanedApiSetting;
   const hasBatchPromptReference = hasPromptReferenceField(
     nextApiSetting,
-    "batchPromptSlug",
-    "batchPromptId"
+    "batchPromptSlug"
   );
   const hasBatchPromptInlineValue = hasOwn(nextApiSetting, "systemPrompt");
   const batchPromptSlug = getPromptFieldValue(
     nextApiSetting,
     "batchPromptSlug",
-    getPromptFieldValue(
-      nextApiSetting,
-      "batchPromptId",
-      DEFAULT_BATCH_PROMPT_SLUG
-    )
+    DEFAULT_BATCH_PROMPT_SLUG
   );
   const batchPrompt = findPromptBySlugOrDefault(
     userPrompts,
@@ -585,14 +611,12 @@ export function resolveApiPromptSettings(
 
   if (batchPrompt && (hasBatchPromptReference || !hasBatchPromptInlineValue)) {
     nextApiSetting.batchPromptSlug = normalizePrompt(batchPrompt).slug;
-    delete nextApiSetting.batchPromptId;
     nextApiSetting.systemPrompt = batchPrompt.systemPrompt;
   }
 
   const hasNobatchPromptReference = hasPromptReferenceField(
     nextApiSetting,
-    "nobatchPromptSlug",
-    "nobatchPromptId"
+    "nobatchPromptSlug"
   );
   const hasNobatchPromptInlineValue =
     hasOwn(nextApiSetting, "nobatchPrompt") ||
@@ -600,11 +624,7 @@ export function resolveApiPromptSettings(
   const nobatchPromptSlug = getPromptFieldValue(
     nextApiSetting,
     "nobatchPromptSlug",
-    getPromptFieldValue(
-      nextApiSetting,
-      "nobatchPromptId",
-      DEFAULT_NOBATCH_PROMPT_SLUG
-    )
+    DEFAULT_NOBATCH_PROMPT_SLUG
   );
   const nobatchPrompt = findPromptBySlugOrDefault(
     userPrompts,
@@ -617,7 +637,6 @@ export function resolveApiPromptSettings(
     (hasNobatchPromptReference || !hasNobatchPromptInlineValue)
   ) {
     nextApiSetting.nobatchPromptSlug = normalizePrompt(nobatchPrompt).slug;
-    delete nextApiSetting.nobatchPromptId;
     nextApiSetting.nobatchPrompt = nobatchPrompt.systemPrompt;
     nextApiSetting.nobatchUserPrompt = nobatchPrompt.userPrompt;
   }
@@ -626,28 +645,19 @@ export function resolveApiPromptSettings(
     subtitleSetting?.segPromptMode === PROMPT_MODE_GLOBAL;
   const hasSubtitlePromptReference = hasPromptReferenceField(
     nextApiSetting,
-    "subtitlePromptSlug",
-    "subtitlePromptId"
+    "subtitlePromptSlug"
   );
   const hasSubtitlePromptInlineValue = hasOwn(nextApiSetting, "subtitlePrompt");
   const subtitlePromptSlug = useGlobalSubtitlePrompt
     ? getPromptFieldValue(
         subtitleSetting,
         "segPromptSlug",
-        getPromptFieldValue(
-          subtitleSetting,
-          "segPromptId",
-          DEFAULT_SUBTITLE_PROMPT_SLUG
-        )
+        DEFAULT_SUBTITLE_PROMPT_SLUG
       )
     : getPromptFieldValue(
         nextApiSetting,
         "subtitlePromptSlug",
-        getPromptFieldValue(
-          nextApiSetting,
-          "subtitlePromptId",
-          DEFAULT_SUBTITLE_PROMPT_SLUG
-        )
+        DEFAULT_SUBTITLE_PROMPT_SLUG
       );
   const subtitlePrompt = findPromptBySlugOrDefault(
     userPrompts,
@@ -663,7 +673,6 @@ export function resolveApiPromptSettings(
   ) {
     if (!useGlobalSubtitlePrompt) {
       nextApiSetting.subtitlePromptSlug = normalizePrompt(subtitlePrompt).slug;
-      delete nextApiSetting.subtitlePromptId;
     }
     nextApiSetting.subtitlePrompt = subtitlePrompt.systemPrompt;
   }

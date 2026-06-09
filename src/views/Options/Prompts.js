@@ -37,6 +37,8 @@ import {
   INPUT_PLACE_TO,
   INPUT_PLACE_TO_LANG,
   INPUT_PLACE_TONE,
+  PROMPT_CATEGORY_BATCH_SYSTEM,
+  PROMPT_CATEGORY_SUBTITLE,
   PROMPT_CATEGORY_USER,
   PROMPT_TEMPLATE_CATEGORIES,
   getPromptCategoryDisplayName,
@@ -46,8 +48,19 @@ import {
 import { usePromptList } from "../../hooks/Prompt";
 import CodeField from "./CodeField";
 
-const PROMPT_PLACEHOLDERS = [
+const TRANSLATION_PROMPT_PLACEHOLDERS = [
   INPUT_PLACE_TEXT,
+  INPUT_PLACE_TO,
+  INPUT_PLACE_FROM,
+  INPUT_PLACE_TO_LANG,
+  INPUT_PLACE_FROM_LANG,
+  INPUT_PLACE_TITLE,
+  INPUT_PLACE_DESCRIPTION,
+  INPUT_PLACE_SUMMARY,
+  INPUT_PLACE_TONE,
+];
+
+const SUBTITLE_PROMPT_PLACEHOLDERS = [
   INPUT_PLACE_TO,
   INPUT_PLACE_FROM,
   INPUT_PLACE_TO_LANG,
@@ -59,8 +72,28 @@ const PROMPT_PLACEHOLDERS = [
   INPUT_PLACE_GLOSSARY,
 ];
 
-function PromptPlaceholderButtons({ disabled, onInsert }) {
+function getPromptPlaceholders(category) {
+  if (category === PROMPT_CATEGORY_SUBTITLE) {
+    return SUBTITLE_PROMPT_PLACEHOLDERS;
+  }
+
+  if (
+    category === PROMPT_CATEGORY_USER ||
+    category === PROMPT_CATEGORY_BATCH_SYSTEM
+  ) {
+    return TRANSLATION_PROMPT_PLACEHOLDERS;
+  }
+
+  return [];
+}
+
+function PromptPlaceholderButtons({ category, disabled, onInsert }) {
   const i18n = useI18n();
+  const placeholders = getPromptPlaceholders(category);
+
+  if (placeholders.length === 0) {
+    return null;
+  }
 
   return (
     <Box>
@@ -72,7 +105,7 @@ function PromptPlaceholderButtons({ disabled, onInsert }) {
         {i18n("placeholder")}
       </Typography>
       <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-        {PROMPT_PLACEHOLDERS.map((placeholder) => (
+        {placeholders.map((placeholder) => (
           <Button
             key={placeholder}
             size="small"
@@ -234,6 +267,7 @@ function PromptFields({
       />
       {!isPreset && (
         <PromptPlaceholderButtons
+          category={formData.category}
           onInsert={(placeholder) =>
             handleInsertPlaceholder(
               "systemPrompt",
@@ -258,6 +292,7 @@ function PromptFields({
           />
           {!isPreset && (
             <PromptPlaceholderButtons
+              category={formData.category}
               onInsert={(placeholder) =>
                 handleInsertPlaceholder(
                   "userPrompt",

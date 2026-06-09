@@ -334,7 +334,6 @@ export default function SubtitleSetting() {
     aiContextSlug = "-",
     segPromptMode = PROMPT_MODE_FOLLOW_API,
     segPromptSlug,
-    segPromptId: legacySegPromptId,
     windowStyle,
     originStyle,
     translationStyle,
@@ -351,8 +350,7 @@ export default function SubtitleSetting() {
     showList,
     enhanceMode || OPT_ENHANCE_MOBILE_OFF
   );
-  const selectedSegPromptSlug =
-    segPromptSlug || legacySegPromptId || DEFAULT_SUBTITLE_PROMPT_SLUG;
+  const selectedSegPromptSlug = segPromptSlug || DEFAULT_SUBTITLE_PROMPT_SLUG;
   const hasSelectedSegPrompt = subtitlePromptOptions.some(
     (prompt) => prompt.slug === selectedSegPromptSlug
   );

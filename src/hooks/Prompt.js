@@ -65,9 +65,7 @@ export function usePromptList() {
             return prompt;
           }
 
-          const nextPrompt = { ...prompt, ...patch, slug: promptSlug };
-          delete nextPrompt.id;
-          return nextPrompt;
+          return normalizePrompt({ ...prompt, ...patch, slug: promptSlug });
         }),
       }));
     },
