@@ -230,7 +230,7 @@ const syncByType = async (syncType, data, args, options) =>
     ? await syncByWebdav(data, args, options)
     : syncType === OPT_SYNCTYPE_GIST
       ? await syncByGist(data, args, options)
-    : await syncByWorker(data, args);
+      : await syncByWorker(data, args);
 
 /**
  * 将已经读取成功的旧版明文远端数据，用当前同步加密口令回写成密文。

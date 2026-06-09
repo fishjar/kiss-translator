@@ -30,6 +30,7 @@ import { isBuiltinAIAvailable } from "../libs/browser";
 import { chromeDetect, chromeTranslate } from "../libs/builtinAI";
 import { fnPolyfill } from "../libs/fetch";
 import { getFetchPool } from "../libs/pool";
+import { trustedTypesHelper } from "../libs/trustedTypes";
 
 /**
  * 同步数据
@@ -213,7 +214,10 @@ export const apiMicrosoftDict = async (text) => {
 
   // 2. 利用客户端 DOMParser 提取 HTML 中高度复杂的页面数据
   const parser = new DOMParser();
-  const doc = parser.parseFromString(str, "text/html");
+  const doc = parser.parseFromString(
+    trustedTypesHelper.createHTML(str),
+    "text/html"
+  );
 
   const word = doc.querySelector("#headword > h1")?.textContent.trim();
   if (!word) {

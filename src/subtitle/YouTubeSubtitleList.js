@@ -728,7 +728,7 @@ export class YouTubeSubtitleList {
 
     // 关闭侧边列表栏的“×”小按钮
     const closeBtn = document.createElement("button");
-    closeBtn.innerHTML = "&times;";
+    closeBtn.textContent = "×"; // 直接使用纯文本的“×”号，不再需要 HTML 转义
     closeBtn.title = "Close";
     closeBtn.style.cssText = `
       margin-left: auto; 

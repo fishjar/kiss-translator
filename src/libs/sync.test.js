@@ -105,7 +105,10 @@ describe("GitHub Gist sync", () => {
       }
       if (value.startsWith("cipher:")) {
         return Promise.resolve({
-          value: Buffer.from(value.slice("cipher:".length), "base64").toString(),
+          value: Buffer.from(
+            value.slice("cipher:".length),
+            "base64"
+          ).toString(),
           encrypted: true,
         });
       }
@@ -358,9 +361,9 @@ describe("GitHub Gist sync", () => {
       JSON.stringify(
         {
           key: SETTING_KEY,
-          value: `cipher:${Buffer.from(JSON.stringify({ local: true })).toString(
-            "base64"
-          )}`,
+          value: `cipher:${Buffer.from(
+            JSON.stringify({ local: true })
+          ).toString("base64")}`,
           updateAt: 200,
         },
         null,

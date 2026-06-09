@@ -18,13 +18,8 @@ import {
 } from "../config";
 import { interpreter } from "./interpreter";
 import { clearFetchPool } from "./pool";
-import {
-  debounce,
-  scheduleIdle,
-  genEventName,
-  escapeHTML,
-  parseAITerms,
-} from "./utils";
+import { debounce, scheduleIdle, genEventName, parseAITerms } from "./utils";
+import { escapeHTML } from "./html";
 import { apiTranslate } from "../apis";
 import { kissLog } from "./log";
 import { clearAllBatchQueue } from "./batchQueue";
@@ -645,9 +640,8 @@ export class Translator {
         .querySelectorAll("pre")
         .forEach(
           (pre) =>
-            (pre.innerHTML = pre.innerHTML?.replace(
-              /(?:\r\n|\r|\n)/g,
-              "<br />"
+            (pre.innerHTML = trustedTypesHelper.createHTML(
+              pre.innerHTML?.replace(/(?:\r\n|\r|\n)/g, "<br />")
             ))
         );
     }
@@ -2075,7 +2069,10 @@ export class Translator {
 
       // 2. DOM 静态解析：使用 DOMParser 将规范后的 HTML 字符串解析成一个虚拟 DOM 树，以便精确操作和避免正则嵌套标签还原出错的问题
       const parser = new DOMParser();
-      const doc = parser.parseFromString(textToParse, "text/html");
+      const doc = parser.parseFromString(
+        trustedTypesHelper.createHTML(textToParse),
+        "text/html"
+      );
 
       // 3. 查找所有临时标记节点
       const selector = `${safeTag}[${restoreAttr}]`;
@@ -2089,7 +2086,9 @@ export class Translator {
           const tagPair = placeholderMap.get(`TAG_${index}`);
           if (tagPair) {
             // 使用原本的 HTML 标签对 (如 <a href="...">...</a>) 完整包裹当前节点的内容，并使用 outerHTML 替换整个临时 span 节点
-            node.outerHTML = `${tagPair.openTag}${node.innerHTML}${tagPair.closeTag}`;
+            node.outerHTML = trustedTypesHelper.createHTML(
+              `${tagPair.openTag}${node.innerHTML}${tagPair.closeTag}`
+            );
           }
         }
       });

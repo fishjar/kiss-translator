@@ -1,6 +1,6 @@
 /**
  * @file utils.js
- * @description 通用工具函数模块，包含类型判定、数字限制、字符串匹配、节流防抖、密码学加密及 HTML 处理等辅助方法。
+ * @description 通用工具函数模块，包含类型判定、数字限制、字符串匹配、节流防抖、密码学加密等辅助方法。
  */
 
 /**
@@ -340,23 +340,6 @@ export const blobToBase64 = (blob) => {
 };
 
 /**
- * 将包含 HTML 的源码解析，并提取纯文本，支持剔除某些指定标签 (如不计入字数的译文 font 等)
- * @param {string} htmlStr HTML 字符串
- * @param {string} skipTag 需要剔除掉不计入纯文本的 CSS 选择器
- * @returns {string} 过滤干净后的纯文本
- */
-export const getHtmlText = (htmlStr, skipTag = "") => {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(htmlStr, "text/html");
-
-  if (skipTag) {
-    doc.querySelectorAll(skipTag).forEach((el) => el.remove());
-  }
-
-  return doc.body.innerText.trim();
-};
-
-/**
  * 容错率极高的 JSON 字符串解析函数，支持自动补齐两端的花括号 "{}"
  * @param {string} str JSON 字符串
  * @returns {object} 解析成功的对象，若失败返回空对象 {}
@@ -530,29 +513,6 @@ export function downloadBlobFile(str, filename = "kiss-file.txt") {
 
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-}
-
-/**
- * 对普通字符串进行 HTML 实体编码转义，防止 DOM 渲染漏洞
- * @param {string} str
- * @returns {string} 转义后的 HTML 字符串
- */
-export function escapeHTML(str) {
-  const div = document.createElement("div");
-  div.textContent = str;
-  return div.innerHTML;
-}
-
-/**
- * 对 HTML 实体进行解码，还原成普通的明文文本字符串
- * @param {string} str
- * @returns {string} 解码后的文本
- */
-export function decodeHTMLEntities(str) {
-  if (!str || typeof str !== "string") return str;
-  const textarea = document.createElement("textarea");
-  textarea.innerHTML = str;
-  return textarea.value;
 }
 
 /**

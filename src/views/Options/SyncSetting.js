@@ -185,10 +185,7 @@ export default function SyncSetting() {
       return;
     }
 
-    if (
-      encryptKeyDialogMode === "change" &&
-      oldEncryptKey !== syncEncryptKey
-    ) {
+    if (encryptKeyDialogMode === "change" && oldEncryptKey !== syncEncryptKey) {
       setEncryptKeyError(i18n("old_sync_encrypt_key_invalid"));
       return;
     }
@@ -333,9 +330,7 @@ export default function SyncSetting() {
                     <IconButton
                       size="small"
                       edge="end"
-                      onClick={() =>
-                        setShowSyncEncryptKey((value) => !value)
-                      }
+                      onClick={() => setShowSyncEncryptKey((value) => !value)}
                       onMouseDown={(e) => e.preventDefault()}
                     >
                       {showSyncEncryptKey ? (

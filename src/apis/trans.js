@@ -56,8 +56,8 @@ import {
   extractJson,
   stripMarkdownCodeBlock,
   parseAITerms,
-  decodeHTMLEntities,
 } from "../libs/utils";
+import { decodeHTMLEntities } from "../libs/html";
 import {
   parseStreamingSegments,
   createStreamingJsonParser,
@@ -71,6 +71,7 @@ import { fetchData, fetchStream } from "../libs/fetch";
 import { getMsgHistory } from "./history";
 import { parseBilingualVtt } from "../subtitle/vtt";
 import { getDocInfo } from "../libs/docInfo";
+import { trustedTypesHelper } from "../libs/trustedTypes";
 
 const keyMap = new Map();
 const urlMap = new Map();
@@ -275,7 +276,10 @@ const parseAIRes = (raw, useBatchFetch = true) => {
   if (xmlTagPattern.test(content)) {
     try {
       const parser = new DOMParser();
-      const doc = parser.parseFromString(content, "text/html");
+      const doc = parser.parseFromString(
+        trustedTypesHelper.createHTML(content),
+        "text/html"
+      );
       const elements = doc.querySelectorAll("t, item, seg");
 
       if (elements.length > 0) {

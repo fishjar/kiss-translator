@@ -65,7 +65,7 @@ export const tryDetectLang = async (text, langDetector = "-") => {
       const res = await browser?.i18n?.detectLanguage(text);
       const lang = res?.languages?.[0]?.language;
       // 仅当识别置信度高 (isReliable) 且被当前插件支持时采纳
-      if (res.isReliable && lang && OPT_LANGS_MAP.has(lang)) {
+      if (res?.isReliable && lang && OPT_LANGS_MAP.has(lang)) {
         deLang = lang;
       } else if (lang?.startsWith("zh")) {
         deLang = "zh-CN";

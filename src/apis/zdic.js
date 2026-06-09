@@ -1,4 +1,5 @@
 import { fetchData } from "../libs/fetch";
+import { trustedTypesHelper } from "../libs/trustedTypes";
 
 const ZDIC_HOST = "https://www.zdic.net";
 
@@ -138,7 +139,10 @@ export const apiZdic = async (text) => {
   }
 
   const parser = new DOMParser();
-  const doc = parser.parseFromString(str, "text/html");
+  const doc = parser.parseFromString(
+    trustedTypesHelper.createHTML(str),
+    "text/html"
+  );
 
   const character =
     cleanText(doc.querySelector(".char-meta")?.getAttribute("content")) ||
