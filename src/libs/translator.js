@@ -15,6 +15,7 @@ import {
   MSG_INJECT_CSS,
   MSG_UPDATE_ICON,
   newI18n,
+  resolveApiPromptList,
 } from "../config";
 import { interpreter } from "./interpreter";
 import { clearFetchPool } from "./pool";
@@ -576,6 +577,11 @@ export class Translator {
     this.#setting = { ...Translator.DEFAULT_OPTIONS, ...setting };
     this.#rule = { ...Translator.DEFAULT_RULE, ...rule, isPlainText: false };
     this.#favWords = favWords;
+    this.#setting.transApis = resolveApiPromptList(
+      this.#setting.transApis,
+      this.#setting.prompts,
+      this.#setting.subtitleSetting
+    );
     this.#apisMap = new Map(
       this.#setting.transApis.map((api) => [api.apiSlug, api])
     );

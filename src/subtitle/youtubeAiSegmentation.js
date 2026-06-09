@@ -1,4 +1,5 @@
 import { logger } from "../libs/log.js";
+import { resolveApiPromptSettings } from "../config/prompt.js";
 import { randomBetween, sleep } from "../libs/utils.js";
 import { splitEventsIntoChunks } from "./youtubeSubtitleProcessing.js";
 
@@ -244,7 +245,12 @@ export async function eventsToSubtitles({
 }) {
   const { segSlug, transApis, chunkLength, toLang } = setting;
 
-  const segApiSetting = transApis?.find((api) => api.apiSlug === segSlug);
+  const rawSegApiSetting = transApis?.find((api) => api.apiSlug === segSlug);
+  const segApiSetting = resolveApiPromptSettings(
+    rawSegApiSetting,
+    setting.prompts,
+    setting
+  );
   const useAiSegmentation = segSlug && segSlug !== "-" && segApiSetting;
   const shouldClearSegmentTranslation =
     setting.forceSubtitleRetranslate &&

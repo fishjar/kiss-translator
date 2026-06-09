@@ -31,6 +31,25 @@ import { chromeDetect, chromeTranslate } from "../libs/builtinAI";
 import { fnPolyfill } from "../libs/fetch";
 import { getFetchPool } from "../libs/pool";
 
+const PROMPT_CACHE_SALT = "prompt-cache";
+
+async function getPromptCacheSig(
+  apiSetting = {},
+  includeSubtitlePrompt = false
+) {
+  const promptText = [
+    apiSetting.batchPromptId || "",
+    apiSetting.nobatchPromptId || "",
+    apiSetting.subtitlePromptId || "",
+    apiSetting.systemPrompt || "",
+    apiSetting.nobatchPrompt || "",
+    apiSetting.nobatchUserPrompt || "",
+    includeSubtitlePrompt ? apiSetting.subtitlePrompt || "" : "",
+  ].join("\n");
+
+  return (await sha256(promptText, PROMPT_CACHE_SALT)).slice(0, 16);
+}
+
 /**
  * 同步数据
  * @param {*} url
@@ -594,6 +613,7 @@ export const apiTranslate = async ({
     fromLang,
     toLang,
     version: [v1, v2].join("."),
+    promptSig: await getPromptCacheSig(apiSetting),
     ...(docInfo?.summary && { ctx: docInfo.summary.slice(0, 50) }),
   };
   const cacheInput = `${URL_CACHE_TRAN}?${queryString.stringify(cacheOpts)}`;
@@ -719,6 +739,7 @@ export const apiSubtitle = async ({
     fromLang,
     toLang,
     segVer: 2,
+    promptSig: await getPromptCacheSig(apiSetting, true),
     ctx: docInfo?.summary?.slice(0, 50) || "",
   };
   const cacheInput = `${URL_CACHE_SUBTITLE}?${queryString.stringify(cacheOpts)}`;

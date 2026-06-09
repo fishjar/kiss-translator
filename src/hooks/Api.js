@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useMemo } from "react";
-import { DEFAULT_API_LIST, API_SPE_TYPES } from "../config";
+import {
+  DEFAULT_API_LIST,
+  API_SPE_TYPES,
+  resolveApiPromptList,
+} from "../config";
 import { useSetting } from "./Setting";
 
 // 内部辅助 Hook，获取翻译 API 的排序状态和更新配置的方法
@@ -8,10 +12,12 @@ function useApiState() {
   // 统一排序，所有使用transApis的地方都是按照 sortOrder 从小到大排序好的
   const transApis = useMemo(
     () =>
-      [...(setting?.transApis || [])].sort(
-        (a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)
-      ),
-    [setting?.transApis]
+      resolveApiPromptList(
+        setting?.transApis || [],
+        setting?.prompts || [],
+        setting?.subtitleSetting || {}
+      ).sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)),
+    [setting?.prompts, setting?.subtitleSetting, setting?.transApis]
   );
 
   return { setting, transApis, updateSetting };

@@ -3,7 +3,22 @@ import ReactDOM from "react-dom/client";
 import createCache from "@emotion/cache";
 import { CacheProvider } from "@emotion/react";
 import Slection from "../views/Selection";
-import { DEFAULT_TRANBOX_SETTING, APP_CONSTS } from "../config";
+import {
+  DEFAULT_TRANBOX_SETTING,
+  APP_CONSTS,
+  resolveApiPromptList,
+} from "../config";
+
+function resolvePromptProps(props = {}) {
+  return {
+    ...props,
+    transApis: resolveApiPromptList(
+      props.transApis,
+      props.prompts,
+      props.subtitleSetting
+    ),
+  };
+}
 
 export class TransboxManager {
   #container = null;
@@ -12,7 +27,7 @@ export class TransboxManager {
   #props = {};
 
   constructor(initialProps = {}) {
-    this.#props = initialProps;
+    this.#props = resolvePromptProps(initialProps);
 
     const { tranboxSetting = DEFAULT_TRANBOX_SETTING } = this.#props;
     if (tranboxSetting?.transOpen) {
@@ -82,7 +97,7 @@ export class TransboxManager {
    * @param {Object} newProps - 新的属性配置
    */
   update(newProps) {
-    this.#props = { ...this.#props, ...newProps };
+    this.#props = resolvePromptProps({ ...this.#props, ...newProps });
     if (this.isEnabled()) {
       if (!this.#props.tranboxSetting?.transOpen) {
         this.disable();
