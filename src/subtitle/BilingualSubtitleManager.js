@@ -1,5 +1,6 @@
 import { logger } from "../libs/log.js";
-import { truncateWords, throttle, decodeHTMLEntities } from "../libs/utils.js";
+import { truncateWords, throttle } from "../libs/utils.js";
+import { decodeHTMLEntities } from "../libs/html.js";
 import { apiTranslate } from "../apis/index.js";
 import { apiMicrosoftDict } from "../apis/index.js";
 import { trustedTypesHelper } from "../libs/trustedTypes.js";

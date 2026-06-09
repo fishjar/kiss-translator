@@ -1,4 +1,4 @@
-import { decodeHTMLEntities } from "../libs/utils.js";
+import { decodeHTMLEntities } from "../libs/html.js";
 
 /**
  * 将多种格式的VTT时间戳字符串转换为毫秒数。
