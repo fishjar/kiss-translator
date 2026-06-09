@@ -37,7 +37,7 @@ import {
   INPUT_PLACE_TO,
   INPUT_PLACE_TO_LANG,
   INPUT_PLACE_TONE,
-  PROMPT_CATEGORY_BATCH_SYSTEM,
+  PROMPT_CATEGORY_USER,
   PROMPT_TEMPLATE_CATEGORIES,
   getPromptCategoryDisplayName,
   getPromptDisplayName,
@@ -145,9 +145,8 @@ function PromptFields({
   const promptDisplayName = getPromptDisplayName(prompt, i18n);
   const systemPromptRef = useRef(null);
   const userPromptRef = useRef(null);
-  // 聚合翻译的 user message 由翻译请求代码根据批量文本动态生成，
-  // batch system prompt 类型只编辑系统提示词，避免展示不会生效的用户提示词输入框。
-  const showUserPrompt = formData.category !== PROMPT_CATEGORY_BATCH_SYSTEM;
+  // 只有非聚合翻译链路会读取 userPrompt；其他类型只编辑实际会生效的系统提示词。
+  const showUserPrompt = formData.category === PROMPT_CATEGORY_USER;
 
   useLayoutEffect(() => {
     setFormData(normalizePrompt(prompt));

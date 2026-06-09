@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo } from "react";
 import {
   DEFAULT_API_LIST,
   API_SPE_TYPES,
+  removeLegacyApiPromptIds,
   resolveApiPromptList,
 } from "../config";
 import { useSetting } from "./Setting";
@@ -360,7 +361,9 @@ export function useApiItem(apiSlug) {
       updateSetting((prev) => ({
         ...prev,
         transApis: (prev?.transApis || []).map((item) =>
-          item.apiSlug === apiSlug ? { ...item, ...updateData, apiSlug } : item
+          item.apiSlug === apiSlug
+            ? removeLegacyApiPromptIds({ ...item, ...updateData, apiSlug })
+            : item
         ),
       }));
     },

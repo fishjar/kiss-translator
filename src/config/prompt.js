@@ -25,7 +25,6 @@ export const PROMPT_TEMPLATE_CATEGORIES = [
   PROMPT_CATEGORY_USER,
   PROMPT_CATEGORY_BATCH_SYSTEM,
   PROMPT_CATEGORY_SUBTITLE,
-  PROMPT_CATEGORY_DICTIONARY,
 ];
 
 export const DEFAULT_NOBATCH_PROMPT_SLUG = PROMPT_SLUG_NOBATCH_TRANSLATION;
@@ -71,14 +70,6 @@ export const PRESET_PROMPTS = [
     nameKey: "preset_prompt_subtitle_segmentation",
     name: "Subtitle AI segmentation",
     systemPrompt: defaultSubtitlePrompt,
-    userPrompt: "",
-  },
-  {
-    slug: PROMPT_SLUG_DICTIONARY_EN_ZH,
-    category: PROMPT_CATEGORY_DICTIONARY,
-    nameKey: "preset_prompt_dictionary_en_zh",
-    name: "AI English-Chinese dictionary",
-    systemPrompt: "",
     userPrompt: "",
   },
 ];
@@ -131,8 +122,12 @@ export function getPromptName(userPrompts = [], promptSlug) {
   return findPromptBySlug(userPrompts, promptSlug)?.name || "";
 }
 
+function hasOwn(source = {}, fieldName) {
+  return Object.prototype.hasOwnProperty.call(source, fieldName);
+}
+
 function getPromptFieldValue(source = {}, fieldName, defaultValue = "") {
-  if (!Object.prototype.hasOwnProperty.call(source, fieldName)) {
+  if (!hasOwn(source, fieldName)) {
     return defaultValue;
   }
 
@@ -181,12 +176,33 @@ export function getSubtitlePromptOptions(prompts = []) {
   return getPromptOptions(prompts, PROMPT_CATEGORY_SUBTITLE);
 }
 
-function hasPromptReference(source = {}, fieldNames = [], promptSlug) {
-  return fieldNames.some(
-    (fieldName) =>
-      Object.prototype.hasOwnProperty.call(source, fieldName) &&
-      source[fieldName] === promptSlug
+function hasPromptReference(
+  source = {},
+  promptSlugFieldName,
+  legacyPromptIdFieldName,
+  promptSlug
+) {
+  if (hasOwn(source, promptSlugFieldName)) {
+    return source[promptSlugFieldName] === promptSlug;
+  }
+
+  return (
+    hasOwn(source, legacyPromptIdFieldName) &&
+    source[legacyPromptIdFieldName] === promptSlug
   );
+}
+
+export function removeLegacyApiPromptIds(apiSetting = {}) {
+  if (!apiSetting) {
+    return apiSetting;
+  }
+
+  const nextApiSetting = { ...apiSetting };
+  delete nextApiSetting.batchPromptId;
+  delete nextApiSetting.nobatchPromptId;
+  delete nextApiSetting.subtitlePromptId;
+
+  return nextApiSetting;
 }
 
 export function removePromptReferences(setting = {}, promptSlug) {
@@ -205,7 +221,7 @@ export function removePromptReferences(setting = {}, promptSlug) {
     let nextApi = api;
 
     if (
-      hasPromptReference(api, ["batchPromptSlug", "batchPromptId"], promptSlug)
+      hasPromptReference(api, "batchPromptSlug", "batchPromptId", promptSlug)
     ) {
       nextApi = {
         ...nextApi,
@@ -219,7 +235,8 @@ export function removePromptReferences(setting = {}, promptSlug) {
     if (
       hasPromptReference(
         api,
-        ["nobatchPromptSlug", "nobatchPromptId"],
+        "nobatchPromptSlug",
+        "nobatchPromptId",
         promptSlug
       )
     ) {
@@ -236,7 +253,8 @@ export function removePromptReferences(setting = {}, promptSlug) {
     if (
       hasPromptReference(
         api,
-        ["subtitlePromptSlug", "subtitlePromptId"],
+        "subtitlePromptSlug",
+        "subtitlePromptId",
         promptSlug
       )
     ) {
@@ -254,7 +272,8 @@ export function removePromptReferences(setting = {}, promptSlug) {
 
   const hasSubtitlePromptReference = hasPromptReference(
     setting?.subtitleSetting,
-    ["segPromptSlug", "segPromptId"],
+    "segPromptSlug",
+    "segPromptId",
     promptSlug
   );
 

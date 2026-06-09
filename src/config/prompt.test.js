@@ -2,8 +2,12 @@ import {
   DEFAULT_BATCH_PROMPT_SLUG,
   DEFAULT_NOBATCH_PROMPT_SLUG,
   DEFAULT_SUBTITLE_PROMPT_SLUG,
+  PRESET_PROMPTS,
+  PROMPT_CATEGORY_DICTIONARY,
   PROMPT_MODE_FOLLOW_API,
   PROMPT_MODE_GLOBAL,
+  PROMPT_TEMPLATE_CATEGORIES,
+  removeLegacyApiPromptIds,
   removePromptReferences,
   resolveApiPromptSettings,
 } from "./prompt";
@@ -77,5 +81,63 @@ describe("prompt settings", () => {
       segPromptSlug: DEFAULT_SUBTITLE_PROMPT_SLUG,
     });
     expect(cleaned.subtitleSetting).not.toHaveProperty("segPromptId");
+  });
+
+  test("ignores legacy prompt ids when current prompt slugs point elsewhere", () => {
+    const setting = {
+      transApis: [
+        {
+          apiSlug: "openai",
+          batchPromptSlug: "prompt_current_batch",
+          batchPromptId: "prompt_deleted",
+          nobatchPromptSlug: "prompt_current_nobatch",
+          nobatchPromptId: "prompt_deleted",
+          subtitlePromptSlug: "prompt_current_subtitle",
+          subtitlePromptId: "prompt_deleted",
+        },
+      ],
+      subtitleSetting: {
+        segPromptMode: PROMPT_MODE_GLOBAL,
+        segPromptSlug: "prompt_current_subtitle",
+        segPromptId: "prompt_deleted",
+      },
+    };
+
+    const cleaned = removePromptReferences(setting, "prompt_deleted");
+
+    expect(cleaned).toBe(setting);
+  });
+
+  test("removes legacy api prompt ids before saving api settings", () => {
+    const cleaned = removeLegacyApiPromptIds({
+      apiSlug: "openai",
+      batchPromptSlug: "prompt_current_batch",
+      batchPromptId: "prompt_deleted_batch",
+      nobatchPromptSlug: "prompt_current_nobatch",
+      nobatchPromptId: "prompt_deleted_nobatch",
+      subtitlePromptSlug: "prompt_current_subtitle",
+      subtitlePromptId: "prompt_deleted_subtitle",
+    });
+
+    expect(cleaned).toMatchObject({
+      apiSlug: "openai",
+      batchPromptSlug: "prompt_current_batch",
+      nobatchPromptSlug: "prompt_current_nobatch",
+      subtitlePromptSlug: "prompt_current_subtitle",
+    });
+    expect(cleaned).not.toHaveProperty("batchPromptId");
+    expect(cleaned).not.toHaveProperty("nobatchPromptId");
+    expect(cleaned).not.toHaveProperty("subtitlePromptId");
+  });
+
+  test("does not expose dictionary prompt templates", () => {
+    expect(PROMPT_TEMPLATE_CATEGORIES).not.toContain(
+      PROMPT_CATEGORY_DICTIONARY
+    );
+    expect(PRESET_PROMPTS).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ category: PROMPT_CATEGORY_DICTIONARY }),
+      ])
+    );
   });
 });
