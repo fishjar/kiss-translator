@@ -82,15 +82,10 @@ import {
   BUILTIN_PLACEHOLDERS,
   BUILTIN_PLACETAGS,
   OPT_TRANS_AZUREAI,
-  defaultNobatchPrompt,
-  defaultNobatchUserPrompt,
-  defaultSystemPrompt,
-  defaultSystemPromptXml,
-  defaultSystemPromptLines,
   THINKING_PARAM_MAP,
-  DEFAULT_NOBATCH_PROMPT_ID,
-  DEFAULT_BATCH_PROMPT_ID,
-  DEFAULT_SUBTITLE_PROMPT_ID,
+  DEFAULT_NOBATCH_PROMPT_SLUG,
+  DEFAULT_BATCH_PROMPT_SLUG,
+  DEFAULT_SUBTITLE_PROMPT_SLUG,
   getBatchPromptOptions,
   getNobatchPromptOptions,
   getPromptDisplayName,
@@ -331,18 +326,6 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
         newData.sortOrder = value ? 999 : 0;
       }
 
-      if (name === "systemPrompt") {
-        newData.batchPromptId = "";
-      }
-
-      if (name === "nobatchPrompt" || name === "nobatchUserPrompt") {
-        newData.nobatchPromptId = "";
-      }
-
-      if (name === "subtitlePrompt") {
-        newData.subtitlePromptId = "";
-      }
-
       return newData;
     });
   };
@@ -350,7 +333,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
   const handlePromptChange = (e) => {
     e?.preventDefault();
     const { name, value } = e.target;
-    const prompt = prompts.find((item) => item.id === value);
+    const prompt = prompts.find((item) => item.slug === value);
 
     setFormData((prevData) => {
       const baseData = prevData?.apiSlug === apiSlug ? prevData : api || {};
@@ -359,36 +342,21 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
         [name]: value,
       };
 
-      if (name === "batchPromptId" && prompt) {
+      if (name === "batchPromptSlug" && prompt) {
         newData.systemPrompt = prompt.systemPrompt;
       }
 
-      if (name === "nobatchPromptId" && prompt) {
+      if (name === "nobatchPromptSlug" && prompt) {
         newData.nobatchPrompt = prompt.systemPrompt;
         newData.nobatchUserPrompt = prompt.userPrompt;
       }
 
-      if (name === "subtitlePromptId" && prompt) {
+      if (name === "subtitlePromptSlug" && prompt) {
         newData.subtitlePrompt = prompt.systemPrompt;
       }
 
       return newData;
     });
-  };
-
-  const handleUpdateSystemPrompt = (e) => {
-    const promptMap = {
-      json: defaultSystemPrompt,
-      xml: defaultSystemPromptXml,
-      textlines: defaultSystemPromptLines,
-    };
-    const systemPrompt =
-      promptMap[e.target.dataset.output] || defaultSystemPromptXml;
-    setFormData((prevData) => ({
-      ...prevData,
-      systemPrompt,
-      batchPromptId: "",
-    }));
   };
 
   const handleSave = () => {
@@ -422,10 +390,6 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
     key = "",
     model = "",
     apiType,
-    systemPrompt = "",
-    nobatchPrompt = defaultNobatchPrompt,
-    nobatchUserPrompt = defaultNobatchUserPrompt,
-    subtitlePrompt = "",
     // userPrompt = "",
     customHeader = "",
     customBody = "",
@@ -459,42 +423,46 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
     aiTerms = "",
     thinkingMode = "auto",
     thinkingEffort = "_default",
-    batchPromptId = "",
-    nobatchPromptId = "",
-    subtitlePromptId = "",
+    batchPromptSlug = "",
+    nobatchPromptSlug = "",
+    subtitlePromptSlug = "",
+    batchPromptId: legacyBatchPromptId = undefined,
+    nobatchPromptId: legacyNobatchPromptId = undefined,
+    subtitlePromptId: legacySubtitlePromptId = undefined,
   } = activeFormData;
 
   const thinkingParam = THINKING_PARAM_MAP[apiType];
-  const selectedBatchPromptId = Object.prototype.hasOwnProperty.call(
+  const selectedBatchPromptSlug = Object.prototype.hasOwnProperty.call(
     activeFormData,
-    "batchPromptId"
+    "batchPromptSlug"
   )
-    ? batchPromptId
-    : DEFAULT_BATCH_PROMPT_ID;
-  const selectedNobatchPromptId = Object.prototype.hasOwnProperty.call(
+    ? batchPromptSlug
+    : Object.prototype.hasOwnProperty.call(activeFormData, "batchPromptId")
+      ? legacyBatchPromptId
+      : DEFAULT_BATCH_PROMPT_SLUG;
+  const selectedNobatchPromptSlug = Object.prototype.hasOwnProperty.call(
     activeFormData,
-    "nobatchPromptId"
+    "nobatchPromptSlug"
   )
-    ? nobatchPromptId
-    : DEFAULT_NOBATCH_PROMPT_ID;
-  const selectedSubtitlePromptId = Object.prototype.hasOwnProperty.call(
+    ? nobatchPromptSlug
+    : Object.prototype.hasOwnProperty.call(activeFormData, "nobatchPromptId")
+      ? legacyNobatchPromptId
+      : DEFAULT_NOBATCH_PROMPT_SLUG;
+  const selectedSubtitlePromptSlug = Object.prototype.hasOwnProperty.call(
     activeFormData,
-    "subtitlePromptId"
+    "subtitlePromptSlug"
   )
-    ? subtitlePromptId
-    : DEFAULT_SUBTITLE_PROMPT_ID;
-  const translationPromptName = useBatchFetch
-    ? "batchPromptId"
-    : "nobatchPromptId";
-  const translationPromptId = useBatchFetch
-    ? selectedBatchPromptId
-    : selectedNobatchPromptId;
-  const translationPromptOptions = useMemo(
-    () =>
-      useBatchFetch
-        ? getBatchPromptOptions(prompts)
-        : getNobatchPromptOptions(prompts),
-    [prompts, useBatchFetch]
+    ? subtitlePromptSlug
+    : Object.prototype.hasOwnProperty.call(activeFormData, "subtitlePromptId")
+      ? legacySubtitlePromptId
+      : DEFAULT_SUBTITLE_PROMPT_SLUG;
+  const nobatchPromptOptions = useMemo(
+    () => getNobatchPromptOptions(prompts),
+    [prompts]
+  );
+  const batchPromptOptions = useMemo(
+    () => getBatchPromptOptions(prompts),
+    [prompts]
   );
   const subtitlePromptOptions = useMemo(
     () => getSubtitlePromptOptions(prompts),
@@ -934,17 +902,13 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
                 select
                 fullWidth
                 size="small"
-                name={translationPromptName}
-                value={translationPromptId}
-                label={
-                  useBatchFetch
-                    ? i18n("batch_prompt", "聚合翻译")
-                    : i18n("nobatch_prompt", "非聚合翻译")
-                }
+                name="nobatchPromptSlug"
+                value={selectedNobatchPromptSlug}
+                label={i18n("nobatch_prompt", "非聚合翻译提示词")}
                 onChange={handlePromptChange}
               >
-                {translationPromptOptions.map((prompt) => (
-                  <MenuItem key={prompt.id} value={prompt.id}>
+                {nobatchPromptOptions.map((prompt) => (
+                  <MenuItem key={prompt.slug} value={prompt.slug}>
                     {getPromptDisplayName(prompt, i18n)}
                   </MenuItem>
                 ))}
@@ -955,13 +919,30 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
                 select
                 fullWidth
                 size="small"
-                name="subtitlePromptId"
-                value={selectedSubtitlePromptId}
-                label={i18n("subtitle_prompt", "AI断句")}
+                name="batchPromptSlug"
+                value={selectedBatchPromptSlug}
+                label={i18n("batch_prompt", "聚合翻译提示词")}
+                onChange={handlePromptChange}
+              >
+                {batchPromptOptions.map((prompt) => (
+                  <MenuItem key={prompt.slug} value={prompt.slug}>
+                    {getPromptDisplayName(prompt, i18n)}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                name="subtitlePromptSlug"
+                value={selectedSubtitlePromptSlug}
+                label={i18n("subtitle_prompt", "AI断句提示词")}
                 onChange={handlePromptChange}
               >
                 {subtitlePromptOptions.map((prompt) => (
-                  <MenuItem key={prompt.id} value={prompt.id}>
+                  <MenuItem key={prompt.slug} value={prompt.slug}>
                     {getPromptDisplayName(prompt, i18n)}
                   </MenuItem>
                 ))}
@@ -1084,92 +1065,16 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
           </Box>
 
           {API_SPE_TYPES.ai.has(apiType) && (
-            <>
-              {useBatchFetch ? (
-                <TextField
-                  size="small"
-                  label={"Batch System Prompt"}
-                  name="systemPrompt"
-                  value={systemPrompt}
-                  onChange={handleChange}
-                  multiline
-                  maxRows={10}
-                  helperText={
-                    <>
-                      {i18n("system_prompt_helper_1")}
-                      <Link
-                        component="button"
-                        sx={{ margin: "0 1em" }}
-                        data-output="json"
-                        onClick={handleUpdateSystemPrompt}
-                      >
-                        {i18n("json_output")}
-                      </Link>
-                      <Link
-                        component="button"
-                        sx={{ margin: "0 1em" }}
-                        data-output="xml"
-                        onClick={handleUpdateSystemPrompt}
-                      >
-                        {i18n("xml_output")}
-                      </Link>
-                      <Link
-                        component="button"
-                        sx={{ margin: "0 1em" }}
-                        data-output="textlines"
-                        onClick={handleUpdateSystemPrompt}
-                      >
-                        {i18n("textlines_output")}
-                      </Link>
-                      <br />
-                      {i18n("system_prompt_helper_2")}
-                    </>
-                  }
-                />
-              ) : (
-                <>
-                  <TextField
-                    size="small"
-                    label={"System Prompt"}
-                    name="nobatchPrompt"
-                    value={nobatchPrompt}
-                    onChange={handleChange}
-                    multiline
-                    maxRows={10}
-                  />
-                  <TextField
-                    size="small"
-                    label={"User Prompt"}
-                    name="nobatchUserPrompt"
-                    value={nobatchUserPrompt}
-                    onChange={handleChange}
-                    multiline
-                    maxRows={10}
-                  />
-                </>
-              )}
-
-              <TextField
-                size="small"
-                label={"Subtitle Prompt"}
-                name="subtitlePrompt"
-                value={subtitlePrompt}
-                onChange={handleChange}
-                multiline
-                maxRows={10}
-                helperText={i18n("system_prompt_helper")}
-              />
-              <TextField
-                size="small"
-                label={i18n("ai_terms")}
-                helperText={i18n("ai_terms_helper")}
-                name="aiTerms"
-                value={aiTerms}
-                onChange={handleChange}
-                multiline
-                maxRows={10}
-              />
-            </>
+            <TextField
+              size="small"
+              label={i18n("ai_terms")}
+              helperText={i18n("ai_terms_helper")}
+              name="aiTerms"
+              value={aiTerms}
+              onChange={handleChange}
+              multiline
+              maxRows={10}
+            />
           )}
 
           {apiType !== OPT_TRANS_BUILTINAI && (

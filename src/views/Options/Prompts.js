@@ -13,10 +13,8 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import LockIcon from "@mui/icons-material/Lock";
 import SaveIcon from "@mui/icons-material/Save";
 import TextSnippetIcon from "@mui/icons-material/TextSnippet";
-import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Chip from "@mui/material/Chip";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
@@ -29,6 +27,17 @@ import Typography from "@mui/material/Typography";
 import { useConfirm } from "../../hooks/Confirm";
 import { useI18n } from "../../hooks/I18n";
 import {
+  INPUT_PLACE_DESCRIPTION,
+  INPUT_PLACE_FROM,
+  INPUT_PLACE_FROM_LANG,
+  INPUT_PLACE_GLOSSARY,
+  INPUT_PLACE_SUMMARY,
+  INPUT_PLACE_TEXT,
+  INPUT_PLACE_TITLE,
+  INPUT_PLACE_TO,
+  INPUT_PLACE_TO_LANG,
+  INPUT_PLACE_TONE,
+  PROMPT_CATEGORY_BATCH_SYSTEM,
   PROMPT_TEMPLATE_CATEGORIES,
   getPromptCategoryDisplayName,
   getPromptDisplayName,
@@ -36,6 +45,49 @@ import {
 } from "../../config";
 import { usePromptList } from "../../hooks/Prompt";
 import CodeField from "./CodeField";
+
+const PROMPT_PLACEHOLDERS = [
+  INPUT_PLACE_TEXT,
+  INPUT_PLACE_TO,
+  INPUT_PLACE_FROM,
+  INPUT_PLACE_TO_LANG,
+  INPUT_PLACE_FROM_LANG,
+  INPUT_PLACE_TITLE,
+  INPUT_PLACE_DESCRIPTION,
+  INPUT_PLACE_SUMMARY,
+  INPUT_PLACE_TONE,
+  INPUT_PLACE_GLOSSARY,
+];
+
+function PromptPlaceholderButtons({ disabled, onInsert }) {
+  const i18n = useI18n();
+
+  return (
+    <Box>
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ display: "block", mb: 1 }}
+      >
+        {i18n("placeholder")}
+      </Typography>
+      <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+        {PROMPT_PLACEHOLDERS.map((placeholder) => (
+          <Button
+            key={placeholder}
+            size="small"
+            variant="outlined"
+            disabled={disabled}
+            onClick={() => onInsert(placeholder)}
+            sx={{ textTransform: "none" }}
+          >
+            {placeholder}
+          </Button>
+        ))}
+      </Stack>
+    </Box>
+  );
+}
 
 function PromptListItem({ prompt, selected, isPreset, onSelect }) {
   const i18n = useI18n();
@@ -91,6 +143,11 @@ function PromptFields({
   const confirm = useConfirm();
   const [formData, setFormData] = useState(() => normalizePrompt(prompt));
   const promptDisplayName = getPromptDisplayName(prompt, i18n);
+  const systemPromptRef = useRef(null);
+  const userPromptRef = useRef(null);
+  // 聚合翻译的 user message 由翻译请求代码根据批量文本动态生成，
+  // batch system prompt 类型只编辑系统提示词，避免展示不会生效的用户提示词输入框。
+  const showUserPrompt = formData.category !== PROMPT_CATEGORY_BATCH_SYSTEM;
 
   useLayoutEffect(() => {
     setFormData(normalizePrompt(prompt));
@@ -116,6 +173,32 @@ function PromptFields({
     onSave(formData);
   };
 
+  const handleInsertPlaceholder = (name, inputRef, placeholder) => {
+    if (isPreset) {
+      return;
+    }
+
+    const input = inputRef.current;
+    const value = formData[name] || "";
+    const start = input?.selectionStart ?? value.length;
+    const end = input?.selectionEnd ?? value.length;
+    const nextValue =
+      value.slice(0, start) + placeholder + value.slice(end, value.length);
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: nextValue,
+    }));
+
+    setTimeout(() => {
+      input?.focus();
+      input?.setSelectionRange(
+        start + placeholder.length,
+        start + placeholder.length
+      );
+    });
+  };
+
   const handleDelete = async () => {
     const isConfirmed = await confirm({
       message: i18n("delete_prompt_confirm", "确定删除这份提示词吗？"),
@@ -124,21 +207,13 @@ function PromptFields({
     });
 
     if (isConfirmed) {
-      onDelete(formData.id);
+      onDelete(formData.slug);
       onCollapse?.();
     }
   };
 
   return (
     <Stack spacing={3}>
-      <TextField
-        size="small"
-        label="ID"
-        name="id"
-        value={formData.id}
-        InputProps={{ readOnly: true }}
-      />
-
       <TextField
         size="small"
         label={i18n("prompt_name", "名称")}
@@ -154,19 +229,47 @@ function PromptFields({
         name="systemPrompt"
         value={formData.systemPrompt}
         onChange={handleChange}
+        inputRef={systemPromptRef}
         maxRows={14}
         disabled={isPreset}
       />
+      {!isPreset && (
+        <PromptPlaceholderButtons
+          onInsert={(placeholder) =>
+            handleInsertPlaceholder(
+              "systemPrompt",
+              systemPromptRef,
+              placeholder
+            )
+          }
+        />
+      )}
 
-      <CodeField
-        size="small"
-        label={i18n("user_prompt", "用户提示词")}
-        name="userPrompt"
-        value={formData.userPrompt}
-        onChange={handleChange}
-        maxRows={14}
-        disabled={isPreset}
-      />
+      {showUserPrompt && (
+        <>
+          <CodeField
+            size="small"
+            label={i18n("user_prompt", "用户提示词")}
+            name="userPrompt"
+            value={formData.userPrompt}
+            onChange={handleChange}
+            inputRef={userPromptRef}
+            maxRows={14}
+            disabled={isPreset}
+          />
+          {!isPreset && (
+            <PromptPlaceholderButtons
+              onInsert={(placeholder) =>
+                handleInsertPlaceholder(
+                  "userPrompt",
+                  userPromptRef,
+                  placeholder
+                )
+              }
+            />
+          )}
+        </>
+      )}
 
       <Stack
         direction="row"
@@ -215,34 +318,37 @@ export default function Prompts() {
     updatePrompt,
     deletePrompt,
     copyPrompt,
-    isPresetPromptId,
+    isPresetPromptSlug,
   } = usePromptList();
-  const [selectedPromptId, setSelectedPromptId] = useState("");
+  const [selectedPromptSlug, setSelectedPromptSlug] = useState("");
   const [anchorEl, setAnchorEl] = useState(null);
   const detailPanelRef = useRef(null);
   const addMenuOpen = Boolean(anchorEl);
 
   useEffect(() => {
     if (prompts.length === 0) {
-      setSelectedPromptId("");
+      setSelectedPromptSlug("");
       return;
     }
 
     const selectedExists = prompts.some(
-      (prompt) => prompt.id === selectedPromptId
+      (prompt) => normalizePrompt(prompt).slug === selectedPromptSlug
     );
     if (!selectedExists) {
-      setSelectedPromptId(prompts[0].id);
+      setSelectedPromptSlug(normalizePrompt(prompts[0]).slug);
     }
-  }, [prompts, selectedPromptId]);
+  }, [prompts, selectedPromptSlug]);
 
   useLayoutEffect(() => {
     detailPanelRef.current?.scrollTo({ top: 0 });
-  }, [selectedPromptId]);
+  }, [selectedPromptSlug]);
 
   const selectedPrompt = useMemo(
-    () => prompts.find((prompt) => prompt.id === selectedPromptId),
-    [prompts, selectedPromptId]
+    () =>
+      prompts.find(
+        (prompt) => normalizePrompt(prompt).slug === selectedPromptSlug
+      ),
+    [prompts, selectedPromptSlug]
   );
 
   const promptTemplateGroups = useMemo(
@@ -251,11 +357,11 @@ export default function Prompts() {
         category,
         templates: prompts.filter(
           (prompt) =>
-            isPresetPromptId(prompt.id) &&
+            isPresetPromptSlug(normalizePrompt(prompt).slug) &&
             normalizePrompt(prompt).category === category
         ),
       })).filter((group) => group.templates.length > 0),
-    [isPresetPromptId, prompts]
+    [isPresetPromptSlug, prompts]
   );
 
   const handleClick = (event) => {
@@ -268,26 +374,19 @@ export default function Prompts() {
 
   const handleAddPromptFromTemplate = (template) => {
     const templateName = getPromptDisplayName(template, i18n);
-    const promptId = addPrompt(template, templateName);
-    setSelectedPromptId(promptId);
+    const promptSlug = addPrompt(template, templateName);
+    setSelectedPromptSlug(promptSlug);
     handleClose();
   };
 
   const handleCopyPrompt = (prompt, promptDisplayName) => {
-    const promptId = copyPrompt(prompt, promptDisplayName);
-    setSelectedPromptId(promptId);
+    const promptSlug = copyPrompt(prompt, promptDisplayName);
+    setSelectedPromptSlug(promptSlug);
   };
 
   return (
     <Box>
       <Stack spacing={3}>
-        <Alert severity="info">
-          {i18n(
-            "prompt_management_help",
-            "集中管理翻译、AI 断句和未来 AI 词典会使用的提示词。预设只能复制为模板，自定义提示词可以修改和删除。"
-          )}
-        </Alert>
-
         <Box>
           <Stack
             direction="row"
@@ -309,11 +408,6 @@ export default function Prompts() {
             >
               {i18n("add_prompt", "新增提示词")}
             </Button>
-            <Chip
-              size="small"
-              icon={<LockIcon />}
-              label={i18n("preset_prompt", "预设提示词")}
-            />
             <Menu
               id="add-prompt-menu"
               anchorEl={anchorEl}
@@ -330,7 +424,7 @@ export default function Prompts() {
                   </ListSubheader>
                   {group.templates.map((template) => (
                     <MenuItem
-                      key={template.id}
+                      key={normalizePrompt(template).slug}
                       onClick={() => handleAddPromptFromTemplate(template)}
                       sx={{ gap: 1 }}
                     >
@@ -375,11 +469,13 @@ export default function Prompts() {
             <List disablePadding>
               {prompts.map((prompt) => (
                 <PromptListItem
-                  key={prompt.id}
+                  key={normalizePrompt(prompt).slug}
                   prompt={prompt}
-                  selected={prompt.id === selectedPromptId}
-                  isPreset={isPresetPromptId(prompt.id)}
-                  onSelect={() => setSelectedPromptId(prompt.id)}
+                  selected={normalizePrompt(prompt).slug === selectedPromptSlug}
+                  isPreset={isPresetPromptSlug(normalizePrompt(prompt).slug)}
+                  onSelect={() =>
+                    setSelectedPromptSlug(normalizePrompt(prompt).slug)
+                  }
                 />
               ))}
             </List>
@@ -401,13 +497,15 @@ export default function Prompts() {
             {selectedPrompt && (
               <PromptFields
                 prompt={selectedPrompt}
-                isPreset={isPresetPromptId(selectedPrompt.id)}
+                isPreset={isPresetPromptSlug(
+                  normalizePrompt(selectedPrompt).slug
+                )}
                 onSave={(updateData) =>
-                  updatePrompt(selectedPrompt.id, updateData)
+                  updatePrompt(normalizePrompt(selectedPrompt).slug, updateData)
                 }
                 onCopy={handleCopyPrompt}
                 onDelete={deletePrompt}
-                onCollapse={() => setSelectedPromptId("")}
+                onCollapse={() => setSelectedPromptSlug("")}
               />
             )}
           </Box>

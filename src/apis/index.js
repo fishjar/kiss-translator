@@ -38,9 +38,9 @@ async function getPromptCacheSig(
   includeSubtitlePrompt = false
 ) {
   const promptText = [
-    apiSetting.batchPromptId || "",
-    apiSetting.nobatchPromptId || "",
-    apiSetting.subtitlePromptId || "",
+    apiSetting.batchPromptSlug || apiSetting.batchPromptId || "",
+    apiSetting.nobatchPromptSlug || apiSetting.nobatchPromptId || "",
+    apiSetting.subtitlePromptSlug || apiSetting.subtitlePromptId || "",
     apiSetting.systemPrompt || "",
     apiSetting.nobatchPrompt || "",
     apiSetting.nobatchUserPrompt || "",

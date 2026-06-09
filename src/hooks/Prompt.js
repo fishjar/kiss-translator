@@ -1,8 +1,8 @@
 import { useCallback, useMemo } from "react";
-import { getAllPrompts, isPresetPromptId, normalizePrompt } from "../config";
+import { getAllPrompts, isPresetPromptSlug, normalizePrompt } from "../config";
 import { useSetting } from "./Setting";
 
-function createPromptId() {
+function createPromptSlug() {
   return `prompt_${crypto.randomUUID()}`;
 }
 
@@ -30,7 +30,7 @@ export function usePromptList() {
       const source = normalizePrompt(sourcePrompt);
       const prompt = {
         ...source,
-        id: createPromptId(),
+        slug: createPromptSlug(),
         // 自定义提示词副本要保存当次生成的显示名称，不继承预设提示词的 i18n key。
         nameKey: "",
         name: createPromptName(source, sourcePromptName),
@@ -41,40 +41,44 @@ export function usePromptList() {
         prompts: [...(prev?.prompts || []), prompt],
       }));
 
-      return prompt.id;
+      return prompt.slug;
     },
     [updateSetting]
   );
 
   const updatePrompt = useCallback(
-    (promptId, updateData) => {
-      if (!promptId || isPresetPromptId(promptId)) {
+    (promptSlug, updateData) => {
+      if (!promptSlug || isPresetPromptSlug(promptSlug)) {
         return;
       }
 
-      const patch = normalizePrompt({ ...updateData, id: promptId });
+      const patch = normalizePrompt({ ...updateData, slug: promptSlug });
       updateSetting((prev) => ({
         ...prev,
-        prompts: (prev?.prompts || []).map((prompt) =>
-          prompt.id === promptId
-            ? { ...prompt, ...patch, id: promptId }
-            : prompt
-        ),
+        prompts: (prev?.prompts || []).map((prompt) => {
+          if (normalizePrompt(prompt).slug !== promptSlug) {
+            return prompt;
+          }
+
+          const nextPrompt = { ...prompt, ...patch, slug: promptSlug };
+          delete nextPrompt.id;
+          return nextPrompt;
+        }),
       }));
     },
     [updateSetting]
   );
 
   const deletePrompt = useCallback(
-    (promptId) => {
-      if (!promptId || isPresetPromptId(promptId)) {
+    (promptSlug) => {
+      if (!promptSlug || isPresetPromptSlug(promptSlug)) {
         return;
       }
 
       updateSetting((prev) => ({
         ...prev,
         prompts: (prev?.prompts || []).filter(
-          (prompt) => prompt.id !== promptId
+          (prompt) => normalizePrompt(prompt).slug !== promptSlug
         ),
       }));
     },
@@ -94,17 +98,22 @@ export function usePromptList() {
     updatePrompt,
     deletePrompt,
     copyPrompt,
-    isPresetPromptId,
+    isPresetPromptSlug,
   };
 }
 
-export function usePromptItem(promptId) {
-  const { prompts, updatePrompt, deletePrompt, copyPrompt, isPresetPromptId } =
-    usePromptList();
+export function usePromptItem(promptSlug) {
+  const {
+    prompts,
+    updatePrompt,
+    deletePrompt,
+    copyPrompt,
+    isPresetPromptSlug,
+  } = usePromptList();
 
   const prompt = useMemo(
-    () => prompts.find((item) => item.id === promptId),
-    [prompts, promptId]
+    () => prompts.find((item) => normalizePrompt(item).slug === promptSlug),
+    [prompts, promptSlug]
   );
 
   return {
@@ -112,6 +121,6 @@ export function usePromptItem(promptId) {
     updatePrompt,
     deletePrompt,
     copyPrompt,
-    isPreset: isPresetPromptId(promptId),
+    isPreset: isPresetPromptSlug(promptSlug),
   };
 }

@@ -17,7 +17,7 @@ import {
   OPT_ENHANCE_ON,
   OPT_ENHANCE_OFF,
   OPT_ENHANCE_MOBILE_OFF,
-  DEFAULT_SUBTITLE_PROMPT_ID,
+  DEFAULT_SUBTITLE_PROMPT_SLUG,
   PROMPT_MODE_FOLLOW_API,
   PROMPT_MODE_GLOBAL,
   getPromptDisplayName,
@@ -309,7 +309,7 @@ export default function SubtitleSetting() {
 
     updateSubtitle({
       segPromptMode: PROMPT_MODE_GLOBAL,
-      segPromptId: value,
+      segPromptSlug: value,
     });
   };
 
@@ -333,7 +333,8 @@ export default function SubtitleSetting() {
     skipAd = false,
     aiContextSlug = "-",
     segPromptMode = PROMPT_MODE_FOLLOW_API,
-    segPromptId = DEFAULT_SUBTITLE_PROMPT_ID,
+    segPromptSlug,
+    segPromptId: legacySegPromptId,
     windowStyle,
     originStyle,
     translationStyle,
@@ -350,12 +351,14 @@ export default function SubtitleSetting() {
     showList,
     enhanceMode || OPT_ENHANCE_MOBILE_OFF
   );
+  const selectedSegPromptSlug =
+    segPromptSlug || legacySegPromptId || DEFAULT_SUBTITLE_PROMPT_SLUG;
   const hasSelectedSegPrompt = subtitlePromptOptions.some(
-    (prompt) => prompt.id === segPromptId
+    (prompt) => prompt.slug === selectedSegPromptSlug
   );
   const segPromptValue =
     segPromptMode === PROMPT_MODE_GLOBAL && hasSelectedSegPrompt
-      ? segPromptId
+      ? selectedSegPromptSlug
       : PROMPT_MODE_FOLLOW_API;
 
   // 维护一份本地的 CSS 临时样式值，以供 Slider 滑块频繁拖拽时实现低延迟渲染
@@ -664,7 +667,7 @@ export default function SubtitleSetting() {
                   select
                   fullWidth
                   size="small"
-                  name="segPromptId"
+                  name="segPromptSlug"
                   value={segPromptValue}
                   label={i18n("seg_prompt_mode", "AI断句提示词")}
                   onChange={handleSegPromptChange}
@@ -673,7 +676,7 @@ export default function SubtitleSetting() {
                     {i18n("follow_api_prompt", "接口默认")}
                   </MenuItem>
                   {subtitlePromptOptions.map((prompt) => (
-                    <MenuItem key={prompt.id} value={prompt.id}>
+                    <MenuItem key={prompt.slug} value={prompt.slug}>
                       {getPromptDisplayName(prompt, i18n)}
                     </MenuItem>
                   ))}

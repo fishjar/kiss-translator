@@ -11,7 +11,7 @@ import {
   OPT_TRANS_MICROSOFT,
   DEFAULT_API_LIST,
 } from "./api";
-import { DEFAULT_SUBTITLE_PROMPT_ID, PROMPT_MODE_FOLLOW_API } from "./prompt";
+import { DEFAULT_SUBTITLE_PROMPT_SLUG, PROMPT_MODE_FOLLOW_API } from "./prompt";
 import { DEFAULT_CUSTOM_STYLES } from "./styles";
 
 // --- 默认系统快捷键映射 ---
@@ -160,7 +160,7 @@ export const DEFAULT_SUBTITLE_SETTING = {
   hideSubtitleButton: false, // 是否隐藏 YouTube 播放器中的字幕功能按钮
   aiContextSlug: "-", // 是否为字幕启用智能上下文，以获取更好的代词翻译效果
   segPromptMode: PROMPT_MODE_FOLLOW_API, // AI 断句提示词来源：接口默认或指定 subtitle prompt
-  segPromptId: DEFAULT_SUBTITLE_PROMPT_ID, // 指定的 subtitle prompt id，仅在指定提示词模式下生效
+  segPromptSlug: DEFAULT_SUBTITLE_PROMPT_SLUG, // 指定的 subtitle prompt slug，仅在指定提示词模式下生效
 };
 
 // 预设配置规则的在线订阅 URL 地址列表 (从服务器拉取全球主流网站的最优适配 CSS 选择器规则)

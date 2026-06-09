@@ -722,7 +722,7 @@ const defaultApi = {
   url: "",
   key: "",
   model: "", // 模型名称
-  systemPrompt: defaultSystemPromptXml,
+  systemPrompt: defaultSystemPrompt,
   subtitlePrompt: defaultSubtitlePrompt,
   nobatchPrompt: defaultNobatchPrompt,
   nobatchUserPrompt: defaultNobatchUserPrompt,
