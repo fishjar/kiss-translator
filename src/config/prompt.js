@@ -134,6 +134,88 @@ function getPromptFieldValue(source = {}, fieldName, defaultValue = "") {
   return source[fieldName];
 }
 
+function hasPromptReferenceField(
+  source = {},
+  promptSlugFieldName,
+  legacyPromptIdFieldName
+) {
+  return (
+    hasOwn(source, promptSlugFieldName) ||
+    hasOwn(source, legacyPromptIdFieldName)
+  );
+}
+
+function getPromptText(source = {}, fieldName) {
+  return String(source[fieldName] || "");
+}
+
+function isSamePromptContent(prompt, sourcePrompt) {
+  const normalizedPrompt = normalizePrompt(prompt);
+  const normalizedSourcePrompt = normalizePrompt(sourcePrompt);
+
+  return (
+    normalizedPrompt.category === normalizedSourcePrompt.category &&
+    normalizedPrompt.systemPrompt === normalizedSourcePrompt.systemPrompt &&
+    normalizedPrompt.userPrompt === normalizedSourcePrompt.userPrompt
+  );
+}
+
+function findPresetPromptByContent(sourcePrompt) {
+  return PRESET_PROMPTS.find((prompt) =>
+    isSamePromptContent(prompt, sourcePrompt)
+  );
+}
+
+function createStablePromptHash(sourceText) {
+  const text = String(sourceText);
+  let hashA = 0x811c9dc5;
+  let hashB = 0x01000193;
+
+  // 该 hash 只用于生成稳定 slug，不承担安全校验职责。
+  for (let index = 0; index < text.length; index += 1) {
+    const code = text.charCodeAt(index);
+    hashA = Math.imul(hashA ^ code, 0x01000193);
+    hashB = Math.imul(hashB ^ (code + index), 0x811c9dc5);
+  }
+
+  return `${(hashA >>> 0).toString(36)}${(hashB >>> 0).toString(36)}`;
+}
+
+function createMigratedPromptName(apiSetting = {}, promptLabel) {
+  const apiName = String(apiSetting.apiName || apiSetting.apiSlug || "API");
+  return `${apiName} ${promptLabel}`;
+}
+
+function createMigratedPromptSlug(apiSetting = {}, promptType, sourcePrompt) {
+  const hash = createStablePromptHash(
+    JSON.stringify({
+      apiSlug: String(apiSetting.apiSlug || ""),
+      promptType,
+      category: sourcePrompt.category,
+      systemPrompt: sourcePrompt.systemPrompt,
+      userPrompt: sourcePrompt.userPrompt,
+    })
+  );
+
+  return `prompt_migrated_${promptType}_${hash}`;
+}
+
+function getAvailableMigratedPromptSlug(promptBySlug, sourcePrompt, baseSlug) {
+  let index = 1;
+  let promptSlug = baseSlug;
+
+  while (promptBySlug.has(promptSlug)) {
+    if (isSamePromptContent(promptBySlug.get(promptSlug), sourcePrompt)) {
+      return promptSlug;
+    }
+
+    index += 1;
+    promptSlug = `${baseSlug}_${index}`;
+  }
+
+  return promptSlug;
+}
+
 export function getPromptDisplayName(prompt = {}, i18n) {
   const normalizedPrompt = normalizePrompt(prompt);
   if (normalizedPrompt.nameKey && typeof i18n === "function") {
@@ -203,6 +285,177 @@ export function removeLegacyApiPromptIds(apiSetting = {}) {
   delete nextApiSetting.subtitlePromptId;
 
   return nextApiSetting;
+}
+
+const LEGACY_API_PROMPT_MIGRATIONS = [
+  {
+    promptType: "batch",
+    promptLabel: "Batch prompt",
+    category: PROMPT_CATEGORY_BATCH_SYSTEM,
+    systemPromptFieldName: "systemPrompt",
+    userPromptFieldName: "",
+    promptSlugFieldName: "batchPromptSlug",
+    legacyPromptIdFieldName: "batchPromptId",
+  },
+  {
+    promptType: "nobatch",
+    promptLabel: "Non-batch prompt",
+    category: PROMPT_CATEGORY_USER,
+    systemPromptFieldName: "nobatchPrompt",
+    userPromptFieldName: "nobatchUserPrompt",
+    promptSlugFieldName: "nobatchPromptSlug",
+    legacyPromptIdFieldName: "nobatchPromptId",
+  },
+  {
+    promptType: "subtitle",
+    promptLabel: "Subtitle prompt",
+    category: PROMPT_CATEGORY_SUBTITLE,
+    systemPromptFieldName: "subtitlePrompt",
+    userPromptFieldName: "",
+    promptSlugFieldName: "subtitlePromptSlug",
+    legacyPromptIdFieldName: "subtitlePromptId",
+  },
+];
+
+function createLegacyApiPromptSource(apiSetting, migration) {
+  if (!hasOwn(apiSetting, migration.systemPromptFieldName)) {
+    return null;
+  }
+
+  return {
+    slug: "",
+    category: migration.category,
+    nameKey: "",
+    name: createMigratedPromptName(apiSetting, migration.promptLabel),
+    systemPrompt: getPromptText(apiSetting, migration.systemPromptFieldName),
+    userPrompt: migration.userPromptFieldName
+      ? getPromptText(apiSetting, migration.userPromptFieldName)
+      : "",
+  };
+}
+
+function createPromptSlugIndex(prompts = []) {
+  const promptBySlug = new Map();
+
+  prompts.forEach((prompt) => {
+    const promptSlug = normalizePrompt(prompt).slug;
+    if (promptSlug && !promptBySlug.has(promptSlug)) {
+      promptBySlug.set(promptSlug, prompt);
+    }
+  });
+
+  return promptBySlug;
+}
+
+function migrateLegacyApiPrompt(apiSetting, migration, customPromptState) {
+  if (
+    hasPromptReferenceField(
+      apiSetting,
+      migration.promptSlugFieldName,
+      migration.legacyPromptIdFieldName
+    )
+  ) {
+    return "";
+  }
+
+  const sourcePrompt = createLegacyApiPromptSource(apiSetting, migration);
+  if (!sourcePrompt) {
+    return "";
+  }
+
+  const presetPrompt = findPresetPromptByContent(sourcePrompt);
+  if (presetPrompt) {
+    return normalizePrompt(presetPrompt).slug;
+  }
+
+  const baseSlug = createMigratedPromptSlug(
+    apiSetting,
+    migration.promptType,
+    sourcePrompt
+  );
+  const promptSlug = getAvailableMigratedPromptSlug(
+    customPromptState.promptBySlug,
+    sourcePrompt,
+    baseSlug
+  );
+
+  if (!customPromptState.promptBySlug.has(promptSlug)) {
+    const migratedPrompt = {
+      ...sourcePrompt,
+      slug: promptSlug,
+    };
+    customPromptState.prompts.push(migratedPrompt);
+    customPromptState.promptBySlug.set(promptSlug, migratedPrompt);
+    customPromptState.hasPromptChanges = true;
+  }
+
+  return promptSlug;
+}
+
+export function migrateLegacyPromptSettings(setting = {}) {
+  if (!setting || typeof setting !== "object") {
+    return setting;
+  }
+
+  if (!Array.isArray(setting.transApis)) {
+    return setting;
+  }
+
+  const customPrompts = Array.isArray(setting.prompts) ? setting.prompts : [];
+  const customPromptState = {
+    prompts: [...customPrompts],
+    promptBySlug: createPromptSlugIndex([...PRESET_PROMPTS, ...customPrompts]),
+    hasPromptChanges: false,
+  };
+  let hasApiChanges = false;
+
+  const transApis = setting.transApis.map((apiSetting) => {
+    if (!apiSetting || typeof apiSetting !== "object") {
+      return apiSetting;
+    }
+
+    let nextApiSetting = apiSetting;
+
+    LEGACY_API_PROMPT_MIGRATIONS.forEach((migration) => {
+      const promptSlug = migrateLegacyApiPrompt(
+        apiSetting,
+        migration,
+        customPromptState
+      );
+
+      if (
+        promptSlug &&
+        apiSetting[migration.promptSlugFieldName] !== promptSlug
+      ) {
+        if (nextApiSetting === apiSetting) {
+          nextApiSetting = { ...apiSetting };
+        }
+
+        // 旧版 API 内联 prompt 升级为新版 prompt 引用；内联字段继续保留作运行时镜像。
+        nextApiSetting[migration.promptSlugFieldName] = promptSlug;
+        delete nextApiSetting[migration.legacyPromptIdFieldName];
+        hasApiChanges = true;
+      }
+    });
+
+    return nextApiSetting;
+  });
+
+  if (!hasApiChanges && !customPromptState.hasPromptChanges) {
+    return setting;
+  }
+
+  const nextSetting = { ...setting };
+
+  if (hasApiChanges) {
+    nextSetting.transApis = transApis;
+  }
+
+  if (customPromptState.hasPromptChanges) {
+    nextSetting.prompts = customPromptState.prompts;
+  }
+
+  return nextSetting;
 }
 
 export function removePromptReferences(setting = {}, promptSlug) {
@@ -309,6 +562,12 @@ export function resolveApiPromptSettings(
   }
 
   const nextApiSetting = { ...apiSetting };
+  const hasBatchPromptReference = hasPromptReferenceField(
+    nextApiSetting,
+    "batchPromptSlug",
+    "batchPromptId"
+  );
+  const hasBatchPromptInlineValue = hasOwn(nextApiSetting, "systemPrompt");
   const batchPromptSlug = getPromptFieldValue(
     nextApiSetting,
     "batchPromptSlug",
@@ -324,12 +583,20 @@ export function resolveApiPromptSettings(
     DEFAULT_BATCH_PROMPT_SLUG
   );
 
-  if (batchPrompt) {
+  if (batchPrompt && (hasBatchPromptReference || !hasBatchPromptInlineValue)) {
     nextApiSetting.batchPromptSlug = normalizePrompt(batchPrompt).slug;
     delete nextApiSetting.batchPromptId;
     nextApiSetting.systemPrompt = batchPrompt.systemPrompt;
   }
 
+  const hasNobatchPromptReference = hasPromptReferenceField(
+    nextApiSetting,
+    "nobatchPromptSlug",
+    "nobatchPromptId"
+  );
+  const hasNobatchPromptInlineValue =
+    hasOwn(nextApiSetting, "nobatchPrompt") ||
+    hasOwn(nextApiSetting, "nobatchUserPrompt");
   const nobatchPromptSlug = getPromptFieldValue(
     nextApiSetting,
     "nobatchPromptSlug",
@@ -345,7 +612,10 @@ export function resolveApiPromptSettings(
     DEFAULT_NOBATCH_PROMPT_SLUG
   );
 
-  if (nobatchPrompt) {
+  if (
+    nobatchPrompt &&
+    (hasNobatchPromptReference || !hasNobatchPromptInlineValue)
+  ) {
     nextApiSetting.nobatchPromptSlug = normalizePrompt(nobatchPrompt).slug;
     delete nextApiSetting.nobatchPromptId;
     nextApiSetting.nobatchPrompt = nobatchPrompt.systemPrompt;
@@ -354,6 +624,12 @@ export function resolveApiPromptSettings(
 
   const useGlobalSubtitlePrompt =
     subtitleSetting?.segPromptMode === PROMPT_MODE_GLOBAL;
+  const hasSubtitlePromptReference = hasPromptReferenceField(
+    nextApiSetting,
+    "subtitlePromptSlug",
+    "subtitlePromptId"
+  );
+  const hasSubtitlePromptInlineValue = hasOwn(nextApiSetting, "subtitlePrompt");
   const subtitlePromptSlug = useGlobalSubtitlePrompt
     ? getPromptFieldValue(
         subtitleSetting,
@@ -379,7 +655,12 @@ export function resolveApiPromptSettings(
     DEFAULT_SUBTITLE_PROMPT_SLUG
   );
 
-  if (subtitlePrompt) {
+  if (
+    subtitlePrompt &&
+    (useGlobalSubtitlePrompt ||
+      hasSubtitlePromptReference ||
+      !hasSubtitlePromptInlineValue)
+  ) {
     if (!useGlobalSubtitlePrompt) {
       nextApiSetting.subtitlePromptSlug = normalizePrompt(subtitlePrompt).slug;
       delete nextApiSetting.subtitlePromptId;

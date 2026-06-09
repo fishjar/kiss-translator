@@ -15,6 +15,7 @@ import {
   DEFAULT_RULES,
   DEFAULT_SYNC,
   BUILTIN_RULES,
+  migrateLegacyPromptSettings,
 } from "../config";
 import { isExt, isGm } from "./client";
 import { browser } from "./browser";
@@ -132,12 +133,17 @@ export const storage = {
 // --- 应用设置 (Settings) 数据存取 ---
 export const getSetting = () => getObj(STOKEY_SETTING);
 export const getSettingOld = () => getObj(STOKEY_SETTING_OLD);
-export const getSettingWithDefault = async () => ({
-  ...DEFAULT_SETTING,
-  ...((await getSetting()) || {}),
-});
-export const setSetting = (val) => setObj(STOKEY_SETTING, val);
-export const putSetting = (obj) => putObj(STOKEY_SETTING, obj);
+export const getSettingWithDefault = async () =>
+  migrateLegacyPromptSettings({
+    ...DEFAULT_SETTING,
+    ...((await getSetting()) || {}),
+  });
+export const setSetting = (val) =>
+  setObj(STOKEY_SETTING, migrateLegacyPromptSettings(val));
+export const putSetting = async (obj) => {
+  const cur = (await getSetting()) ?? {};
+  await setSetting({ ...cur, ...obj });
+};
 
 // --- 用户翻译规则 (Rules) 数据存取 ---
 export const getRules = () => getObj(STOKEY_RULES);
@@ -243,7 +249,10 @@ export const setBdauth = (val) => setObj(STOKEY_BDAUTH, val);
  */
 export const tryInitDefaultData = async (uiLang) => {
   try {
-    await trySetObj(STOKEY_SETTING, { ...DEFAULT_SETTING, uiLang });
+    await trySetObj(
+      STOKEY_SETTING,
+      migrateLegacyPromptSettings({ ...DEFAULT_SETTING, uiLang })
+    );
     await trySetObj(STOKEY_RULES, DEFAULT_RULES);
     await trySetObj(STOKEY_SYNC, DEFAULT_SYNC);
     await trySetObj(
