@@ -463,6 +463,25 @@ export class Translator {
     }
   }
 
+  #appendCssText(node, cssText, label) {
+    if (typeof cssText !== "string" || !cssText.trim()) return;
+
+    try {
+      const style = node?.style;
+      if (
+        !style ||
+        typeof style !== "object" ||
+        typeof style.cssText !== "string"
+      ) {
+        return;
+      }
+
+      style.cssText = `${style.cssText || ""}${cssText}`;
+    } catch (err) {
+      kissLog("append rule style error", label, err);
+    }
+  }
+
   #isBlockNode(node) {
     if (this.#matchesBlockSelector(node)) return true;
     return Translator.isBlockNode(node);
@@ -1843,15 +1862,9 @@ export class Translator {
       }
 
       // 附加样式
-      if (selectStyle && hostNode.style) {
-        hostNode.style.cssText += selectStyle;
-      }
-      if (parentStyle && parentNode && parentNode.style) {
-        parentNode.style.cssText += parentStyle;
-      }
-      if (grandStyle && parentNode && parentNode.parentElement) {
-        parentNode.parentElement.style.cssText += grandStyle;
-      }
+      this.#appendCssText(hostNode, selectStyle, "selectStyle");
+      this.#appendCssText(parentNode, parentStyle, "parentStyle");
+      this.#appendCssText(parentNode?.parentElement, grandStyle, "grandStyle");
 
       // 高亮词汇
       if (highlightWords === OPT_HIGHLIGHT_WORDS_AFTERTRANS) {
