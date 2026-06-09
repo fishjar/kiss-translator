@@ -120,6 +120,13 @@ export function findPromptBySlug(userPrompts = [], promptSlug) {
   );
 }
 
+function findPromptBySlugOrDefault(userPrompts, promptSlug, defaultPromptSlug) {
+  return (
+    findPromptBySlug(userPrompts, promptSlug) ||
+    findPromptBySlug(userPrompts, defaultPromptSlug)
+  );
+}
+
 export function getPromptName(userPrompts = [], promptSlug) {
   return findPromptBySlug(userPrompts, promptSlug)?.name || "";
 }
@@ -174,6 +181,105 @@ export function getSubtitlePromptOptions(prompts = []) {
   return getPromptOptions(prompts, PROMPT_CATEGORY_SUBTITLE);
 }
 
+function hasPromptReference(source = {}, fieldNames = [], promptSlug) {
+  return fieldNames.some(
+    (fieldName) =>
+      Object.prototype.hasOwnProperty.call(source, fieldName) &&
+      source[fieldName] === promptSlug
+  );
+}
+
+export function removePromptReferences(setting = {}, promptSlug) {
+  if (!promptSlug || isPresetPromptSlug(promptSlug)) {
+    return setting;
+  }
+
+  const batchPrompt = findPromptBySlug([], DEFAULT_BATCH_PROMPT_SLUG);
+  const nobatchPrompt = findPromptBySlug([], DEFAULT_NOBATCH_PROMPT_SLUG);
+  const subtitlePrompt = findPromptBySlug([], DEFAULT_SUBTITLE_PROMPT_SLUG);
+  let hasApiChanges = false;
+
+  const transApis = (
+    Array.isArray(setting?.transApis) ? setting.transApis : []
+  ).map((api) => {
+    let nextApi = api;
+
+    if (
+      hasPromptReference(api, ["batchPromptSlug", "batchPromptId"], promptSlug)
+    ) {
+      nextApi = {
+        ...nextApi,
+        batchPromptSlug: DEFAULT_BATCH_PROMPT_SLUG,
+        systemPrompt: batchPrompt.systemPrompt,
+      };
+      delete nextApi.batchPromptId;
+      hasApiChanges = true;
+    }
+
+    if (
+      hasPromptReference(
+        api,
+        ["nobatchPromptSlug", "nobatchPromptId"],
+        promptSlug
+      )
+    ) {
+      nextApi = {
+        ...nextApi,
+        nobatchPromptSlug: DEFAULT_NOBATCH_PROMPT_SLUG,
+        nobatchPrompt: nobatchPrompt.systemPrompt,
+        nobatchUserPrompt: nobatchPrompt.userPrompt,
+      };
+      delete nextApi.nobatchPromptId;
+      hasApiChanges = true;
+    }
+
+    if (
+      hasPromptReference(
+        api,
+        ["subtitlePromptSlug", "subtitlePromptId"],
+        promptSlug
+      )
+    ) {
+      nextApi = {
+        ...nextApi,
+        subtitlePromptSlug: DEFAULT_SUBTITLE_PROMPT_SLUG,
+        subtitlePrompt: subtitlePrompt.systemPrompt,
+      };
+      delete nextApi.subtitlePromptId;
+      hasApiChanges = true;
+    }
+
+    return nextApi;
+  });
+
+  const hasSubtitlePromptReference = hasPromptReference(
+    setting?.subtitleSetting,
+    ["segPromptSlug", "segPromptId"],
+    promptSlug
+  );
+
+  if (!hasApiChanges && !hasSubtitlePromptReference) {
+    return setting;
+  }
+
+  const nextSetting = { ...setting };
+
+  if (hasApiChanges) {
+    nextSetting.transApis = transApis;
+  }
+
+  if (hasSubtitlePromptReference) {
+    nextSetting.subtitleSetting = {
+      ...(setting?.subtitleSetting || {}),
+      segPromptMode: PROMPT_MODE_FOLLOW_API,
+      segPromptSlug: DEFAULT_SUBTITLE_PROMPT_SLUG,
+    };
+    delete nextSetting.subtitleSetting.segPromptId;
+  }
+
+  return nextSetting;
+}
+
 export function resolveApiPromptSettings(
   apiSetting = {},
   userPrompts = [],
@@ -193,9 +299,15 @@ export function resolveApiPromptSettings(
       DEFAULT_BATCH_PROMPT_SLUG
     )
   );
-  const batchPrompt = findPromptBySlug(userPrompts, batchPromptSlug);
+  const batchPrompt = findPromptBySlugOrDefault(
+    userPrompts,
+    batchPromptSlug,
+    DEFAULT_BATCH_PROMPT_SLUG
+  );
 
   if (batchPrompt) {
+    nextApiSetting.batchPromptSlug = normalizePrompt(batchPrompt).slug;
+    delete nextApiSetting.batchPromptId;
     nextApiSetting.systemPrompt = batchPrompt.systemPrompt;
   }
 
@@ -208,36 +320,51 @@ export function resolveApiPromptSettings(
       DEFAULT_NOBATCH_PROMPT_SLUG
     )
   );
-  const nobatchPrompt = findPromptBySlug(userPrompts, nobatchPromptSlug);
+  const nobatchPrompt = findPromptBySlugOrDefault(
+    userPrompts,
+    nobatchPromptSlug,
+    DEFAULT_NOBATCH_PROMPT_SLUG
+  );
 
   if (nobatchPrompt) {
+    nextApiSetting.nobatchPromptSlug = normalizePrompt(nobatchPrompt).slug;
+    delete nextApiSetting.nobatchPromptId;
     nextApiSetting.nobatchPrompt = nobatchPrompt.systemPrompt;
     nextApiSetting.nobatchUserPrompt = nobatchPrompt.userPrompt;
   }
 
-  const subtitlePromptSlug =
-    subtitleSetting?.segPromptMode === PROMPT_MODE_GLOBAL
-      ? getPromptFieldValue(
+  const useGlobalSubtitlePrompt =
+    subtitleSetting?.segPromptMode === PROMPT_MODE_GLOBAL;
+  const subtitlePromptSlug = useGlobalSubtitlePrompt
+    ? getPromptFieldValue(
+        subtitleSetting,
+        "segPromptSlug",
+        getPromptFieldValue(
           subtitleSetting,
-          "segPromptSlug",
-          getPromptFieldValue(
-            subtitleSetting,
-            "segPromptId",
-            DEFAULT_SUBTITLE_PROMPT_SLUG
-          )
+          "segPromptId",
+          DEFAULT_SUBTITLE_PROMPT_SLUG
         )
-      : getPromptFieldValue(
+      )
+    : getPromptFieldValue(
+        nextApiSetting,
+        "subtitlePromptSlug",
+        getPromptFieldValue(
           nextApiSetting,
-          "subtitlePromptSlug",
-          getPromptFieldValue(
-            nextApiSetting,
-            "subtitlePromptId",
-            DEFAULT_SUBTITLE_PROMPT_SLUG
-          )
-        );
-  const subtitlePrompt = findPromptBySlug(userPrompts, subtitlePromptSlug);
+          "subtitlePromptId",
+          DEFAULT_SUBTITLE_PROMPT_SLUG
+        )
+      );
+  const subtitlePrompt = findPromptBySlugOrDefault(
+    userPrompts,
+    subtitlePromptSlug,
+    DEFAULT_SUBTITLE_PROMPT_SLUG
+  );
 
   if (subtitlePrompt) {
+    if (!useGlobalSubtitlePrompt) {
+      nextApiSetting.subtitlePromptSlug = normalizePrompt(subtitlePrompt).slug;
+      delete nextApiSetting.subtitlePromptId;
+    }
     nextApiSetting.subtitlePrompt = subtitlePrompt.systemPrompt;
   }
 

@@ -1,5 +1,10 @@
 import { useCallback, useMemo } from "react";
-import { getAllPrompts, isPresetPromptSlug, normalizePrompt } from "../config";
+import {
+  getAllPrompts,
+  isPresetPromptSlug,
+  normalizePrompt,
+  removePromptReferences,
+} from "../config";
 import { useSetting } from "./Setting";
 
 function createPromptSlug() {
@@ -76,7 +81,7 @@ export function usePromptList() {
       }
 
       updateSetting((prev) => ({
-        ...prev,
+        ...removePromptReferences(prev || {}, promptSlug),
         prompts: (prev?.prompts || []).filter(
           (prompt) => normalizePrompt(prompt).slug !== promptSlug
         ),

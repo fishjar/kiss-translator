@@ -607,13 +607,14 @@ export const apiTranslate = async ({
   // 这可以确保用户在升级扩展插件后，旧版本的翻译缓存会被自动作废，防止旧的翻译 Prompt/规则影响新版效果。
   // 此外，如果当前是视频字幕翻译，还会缓存前 50 字符的上下文视频摘要信息，使上下文关联缓存更智能。
   const [v1, v2] = process.env.REACT_APP_VERSION.split(".");
+  const promptSig = await getPromptCacheSig(apiSetting);
   const cacheOpts = {
     apiSlug,
     text,
     fromLang,
     toLang,
     version: [v1, v2].join("."),
-    promptSig: await getPromptCacheSig(apiSetting),
+    promptSig,
     ...(docInfo?.summary && { ctx: docInfo.summary.slice(0, 50) }),
   };
   const cacheInput = `${URL_CACHE_TRAN}?${queryString.stringify(cacheOpts)}`;
@@ -645,7 +646,7 @@ export const apiTranslate = async ({
     const { apiSlug, batchInterval, batchSize, batchLength, useStream } =
       apiSetting;
     const enableStream = useStream && API_SPE_TYPES.stream.has(apiType);
-    const key = `${apiSlug}_${fromLang}_${toLang}_${enableStream ? "stream" : "batch"}`;
+    const key = `${apiSlug}_${fromLang}_${toLang}_${enableStream ? "stream" : "batch"}_${promptSig}`;
     const queue = getBatchQueue(key, handleTranslate, {
       batchInterval,
       batchSize,
