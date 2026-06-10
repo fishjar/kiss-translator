@@ -141,7 +141,7 @@ const writeSettingBackupBeforeV2 = (setting) =>
 const mergeSettingWithDefault = (setting) => ({
   ...DEFAULT_SETTING,
   ...(setting || {}),
-  version: setting?.version,
+  version: setting?.version ?? DEFAULT_SETTING.version,
 });
 export const migrateStoredSettingToV2 = async (
   setting,
@@ -173,7 +173,16 @@ export const runDataMigration = async () => {
 
 export const getSettingWithDefault = async () => {
   const rawSetting = await getSetting();
-  return rawSetting ? mergeSettingWithDefault(rawSetting) : DEFAULT_SETTING;
+  if (!rawSetting) {
+    return DEFAULT_SETTING;
+  }
+
+  const setting =
+    getSettingVersion(rawSetting) < SETTINGS_VERSION_V2
+      ? migrateSettingPromptsToV2(rawSetting)
+      : rawSetting;
+
+  return mergeSettingWithDefault(setting);
 };
 export const setSetting = async (val) => setObj(STOKEY_SETTING, val);
 export const putSetting = async (obj) => {

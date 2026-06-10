@@ -14,8 +14,11 @@ import {
   normalizePrompt,
   removeLegacyApiPromptIds,
   removePromptReferences,
+  resolveApiPromptSettings,
 } from "./prompt";
 import {
+  API_SPE_TYPES,
+  DEFAULT_API_LIST,
   defaultNobatchPrompt,
   defaultNobatchUserPrompt,
   defaultSubtitlePrompt,
@@ -100,6 +103,27 @@ describe("prompt settings", () => {
     expect(migrated.prompts).toEqual([]);
   });
 
+  test("resolves default ai api prompt slugs without storing prompt text", () => {
+    const api = DEFAULT_API_LIST.find((item) =>
+      API_SPE_TYPES.ai.has(item.apiType)
+    );
+
+    expect(api.systemPrompt).toBe("");
+    expect(api.nobatchPrompt).toBe("");
+    expect(api.nobatchUserPrompt).toBe("");
+    expect(api.subtitlePrompt).toBe("");
+
+    expect(resolveApiPromptSettings(api)).toMatchObject({
+      batchPromptSlug: DEFAULT_BATCH_PROMPT_SLUG,
+      nobatchPromptSlug: DEFAULT_NOBATCH_PROMPT_SLUG,
+      subtitlePromptSlug: DEFAULT_SUBTITLE_PROMPT_SLUG,
+      systemPrompt: defaultSystemPrompt,
+      nobatchPrompt: defaultNobatchPrompt,
+      nobatchUserPrompt: defaultNobatchUserPrompt,
+      subtitlePrompt: defaultSubtitlePrompt,
+    });
+  });
+
   test("cleans api and subtitle references when a custom prompt is deleted", () => {
     const setting = {
       transApis: [
@@ -126,14 +150,21 @@ describe("prompt settings", () => {
       batchPromptSlug: DEFAULT_BATCH_PROMPT_SLUG,
       nobatchPromptSlug: DEFAULT_NOBATCH_PROMPT_SLUG,
       subtitlePromptSlug: DEFAULT_SUBTITLE_PROMPT_SLUG,
+    });
+    expect(cleaned.transApis[0]).not.toHaveProperty("systemPrompt");
+    expect(cleaned.transApis[0]).not.toHaveProperty("nobatchPrompt");
+    expect(cleaned.transApis[0]).not.toHaveProperty("nobatchUserPrompt");
+    expect(cleaned.transApis[0]).not.toHaveProperty("subtitlePrompt");
+    expect(cleaned.subtitleSetting).toMatchObject({
+      segPromptMode: PROMPT_MODE_FOLLOW_API,
+      segPromptSlug: DEFAULT_SUBTITLE_PROMPT_SLUG,
+    });
+
+    expect(resolveApiPromptSettings(cleaned.transApis[0])).toMatchObject({
       systemPrompt: defaultSystemPrompt,
       nobatchPrompt: defaultNobatchPrompt,
       nobatchUserPrompt: defaultNobatchUserPrompt,
       subtitlePrompt: defaultSubtitlePrompt,
-    });
-    expect(cleaned.subtitleSetting).toMatchObject({
-      segPromptMode: PROMPT_MODE_FOLLOW_API,
-      segPromptSlug: DEFAULT_SUBTITLE_PROMPT_SLUG,
     });
   });
 

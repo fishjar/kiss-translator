@@ -11,6 +11,9 @@ import {
   DEFAULT_SETTING,
   KV_SETTING_KEY,
   MSG_SET_LOGLEVEL,
+  SETTINGS_VERSION_V2,
+  getSettingVersion,
+  migrateSettingPromptsToV2,
 } from "../config";
 import { useStorage } from "./Storage";
 import { debounceSyncMeta } from "../libs/storage";
@@ -40,6 +43,24 @@ export function SettingProvider({ children, context }) {
     update,
     reload,
   } = useStorage(STOKEY_SETTING, DEFAULT_SETTING, KV_SETTING_KEY);
+
+  // 兼容直接从 Storage 或云同步回填进来的旧版设置，确保进入界面的配置已经升级到 V2。
+  useEffect(() => {
+    if (!setting || getSettingVersion(setting) >= SETTINGS_VERSION_V2) {
+      return;
+    }
+
+    update((currentSetting) => {
+      if (
+        !currentSetting ||
+        getSettingVersion(currentSetting) >= SETTINGS_VERSION_V2
+      ) {
+        return currentSetting;
+      }
+
+      return migrateSettingPromptsToV2(currentSetting);
+    });
+  }, [setting?.version, update]);
 
   // 对设置项中老版本可能存在的 boolean 类型 darkMode 进行自动平滑升级为三种模式类型 (dark, light, auto)
   useEffect(() => {

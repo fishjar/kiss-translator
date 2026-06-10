@@ -476,6 +476,15 @@ function removeLegacySubtitlePromptId(subtitleSetting) {
   return nextSubtitleSetting;
 }
 
+function removeApiPromptTextFields(apiSetting, migration) {
+  const nextApiSetting = { ...apiSetting };
+  delete nextApiSetting[migration.systemPromptFieldName];
+  if (migration.userPromptFieldName) {
+    delete nextApiSetting[migration.userPromptFieldName];
+  }
+  return nextApiSetting;
+}
+
 function migrateLegacyApiPrompt(apiSetting, migration, customPromptState) {
   if (hasPromptReferenceField(apiSetting, migration.promptSlugFieldName)) {
     return "";
@@ -574,7 +583,9 @@ export function migrateSettingPromptsToV2(setting = {}) {
     }
 
     LEGACY_API_PROMPT_MIGRATIONS.forEach((migration) => {
-      const isAI = API_SPE_TYPES.ai.has(nextApiSetting.apiType);
+      const hasApiType = Boolean(nextApiSetting.apiType);
+      const isNonAiApi =
+        hasApiType && !API_SPE_TYPES.ai.has(nextApiSetting.apiType);
 
       const sysVal =
         typeof nextApiSetting[migration.systemPromptFieldName] === "string"
@@ -587,7 +598,7 @@ export function migrateSettingPromptsToV2(setting = {}) {
           : "";
       const isEmpty = !sysVal && !userVal;
 
-      if (!isAI || isEmpty) {
+      if (isNonAiApi || isEmpty) {
         if (
           hasOwn(nextApiSetting, migration.systemPromptFieldName) ||
           (migration.userPromptFieldName &&
@@ -596,10 +607,7 @@ export function migrateSettingPromptsToV2(setting = {}) {
           if (nextApiSetting === apiSetting) {
             nextApiSetting = { ...apiSetting };
           }
-          delete nextApiSetting[migration.systemPromptFieldName];
-          if (migration.userPromptFieldName) {
-            delete nextApiSetting[migration.userPromptFieldName];
-          }
+          nextApiSetting = removeApiPromptTextFields(nextApiSetting, migration);
           hasApiChanges = true;
         }
         return;
@@ -673,6 +681,7 @@ export function removePromptReferences(setting = {}, promptSlug) {
         ...nextApi,
         batchPromptSlug: DEFAULT_BATCH_PROMPT_SLUG,
       };
+      delete nextApi.systemPrompt;
       hasApiChanges = true;
     }
 
@@ -681,6 +690,8 @@ export function removePromptReferences(setting = {}, promptSlug) {
         ...nextApi,
         nobatchPromptSlug: DEFAULT_NOBATCH_PROMPT_SLUG,
       };
+      delete nextApi.nobatchPrompt;
+      delete nextApi.nobatchUserPrompt;
       hasApiChanges = true;
     }
 
@@ -689,6 +700,7 @@ export function removePromptReferences(setting = {}, promptSlug) {
         ...nextApi,
         subtitlePromptSlug: DEFAULT_SUBTITLE_PROMPT_SLUG,
       };
+      delete nextApi.subtitlePrompt;
       hasApiChanges = true;
     }
 
