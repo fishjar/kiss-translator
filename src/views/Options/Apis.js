@@ -35,9 +35,12 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import ApiIcon from "@mui/icons-material/Api";
 import Link from "@mui/material/Link";
+import { useTheme } from "../../hooks/Theme";
+import { useSetting } from "../../hooks/Setting";
 import { useAlert } from "../../hooks/Alert";
 import { useApiList, useApiItem } from "../../hooks/Api";
 import { useConfirm } from "../../hooks/Confirm";
+import { resolveApiPromptSettings } from "../../config/prompt";
 import { apiTranslate } from "../../apis";
 import Box from "@mui/material/Box";
 import ReusableAutocomplete from "./ReusableAutocomplete";
@@ -187,16 +190,24 @@ function ApiProviderIcon({ apiType, disabled = false, sx = {} }) {
 function TestButton({ api }) {
   const i18n = useI18n();
   const alert = useAlert();
+  const { setting: { prompts, subtitleSetting } = {} } = useSetting();
   const [loading, setLoading] = useState(false);
   const handleApiTest = async () => {
     try {
       setLoading(true);
       const text = "The quick brown fox jumps over the lazy dog.";
+
+      const apiSetting = resolveApiPromptSettings(
+        { ...api },
+        prompts,
+        subtitleSetting
+      );
+
       const { trText } = await apiTranslate({
         text,
         fromLang: "en",
         toLang: "zh-CN",
-        apiSetting: { ...api },
+        apiSetting,
         useCache: false,
         usePool: false,
       });
@@ -1655,13 +1666,14 @@ export default function Apis() {
             borderColor: "divider",
             borderRadius: 1,
             overflow: "hidden",
+            height: { md: "calc(100vh - 250px)" },
           }}
         >
           <Box
             sx={(theme) => ({
               width: { xs: "100%", md: 280 },
               flex: { xs: "0 0 auto", md: "0 0 280px" },
-              maxHeight: { xs: 240, md: "calc(100vh - 230px)" },
+              height: { md: "100%" },
               overflowY: "auto",
               borderRight: {
                 xs: 0,
@@ -1700,7 +1712,7 @@ export default function Apis() {
               minWidth: 0,
               p: 2,
               boxSizing: "border-box",
-              height: { md: "calc(100vh - 230px)" },
+              height: { md: "100%" },
               overflowY: { md: "auto" },
               scrollbarGutter: { md: "stable" },
               overscrollBehavior: "contain",

@@ -7,11 +7,13 @@ import {
   PROMPT_MODE_FOLLOW_API,
   PROMPT_MODE_GLOBAL,
   PROMPT_TEMPLATE_CATEGORIES,
-  migrateLegacyPromptSettings,
+  SETTINGS_VERSION_V2,
+  getPromptDisplayName,
+  migrateSettingPromptsToV2,
+  normalizeCustomPrompts,
   normalizePrompt,
   removeLegacyApiPromptIds,
   removePromptReferences,
-  resolveApiPromptSettings,
 } from "./prompt";
 import {
   defaultNobatchPrompt,
@@ -21,7 +23,7 @@ import {
 } from "./api";
 
 describe("prompt settings", () => {
-  test("migrates legacy inline api prompts into custom prompt references", () => {
+  test("migrates v1 inline api prompts into v2 custom prompt references", () => {
     const setting = {
       prompts: [],
       transApis: [
@@ -36,9 +38,10 @@ describe("prompt settings", () => {
       ],
     };
 
-    const migrated = migrateLegacyPromptSettings(setting);
+    const migrated = migrateSettingPromptsToV2(setting);
     const api = migrated.transApis[0];
 
+    expect(migrated.version).toBe(SETTINGS_VERSION_V2);
     expect(api.batchPromptSlug).toMatch(/^prompt_migrated_batch_/);
     expect(api.nobatchPromptSlug).toMatch(/^prompt_migrated_nobatch_/);
     expect(api.subtitlePromptSlug).toMatch(/^prompt_migrated_subtitle_/);
@@ -62,9 +65,8 @@ describe("prompt settings", () => {
       ])
     );
     expect(migrated.prompts).toHaveLength(3);
-    expect(migrateLegacyPromptSettings(migrated)).toBe(migrated);
 
-    const migratedAgain = migrateLegacyPromptSettings(setting);
+    const migratedAgain = migrateSettingPromptsToV2(setting);
     expect(migratedAgain.transApis[0].batchPromptSlug).toBe(
       api.batchPromptSlug
     );
@@ -77,7 +79,7 @@ describe("prompt settings", () => {
   });
 
   test("links legacy inline default prompts to presets without creating custom prompts", () => {
-    const migrated = migrateLegacyPromptSettings({
+    const migrated = migrateSettingPromptsToV2({
       prompts: [],
       transApis: [
         {
@@ -96,53 +98,6 @@ describe("prompt settings", () => {
       subtitlePromptSlug: DEFAULT_SUBTITLE_PROMPT_SLUG,
     });
     expect(migrated.prompts).toEqual([]);
-  });
-
-  test("keeps legacy inline api prompts when prompt references are absent", () => {
-    const resolved = resolveApiPromptSettings(
-      {
-        apiSlug: "openai",
-        systemPrompt: "custom batch system prompt",
-        nobatchPrompt: "custom nobatch system prompt",
-        nobatchUserPrompt: "custom nobatch user prompt",
-        subtitlePrompt: "custom subtitle prompt",
-      },
-      []
-    );
-
-    expect(resolved).toMatchObject({
-      systemPrompt: "custom batch system prompt",
-      nobatchPrompt: "custom nobatch system prompt",
-      nobatchUserPrompt: "custom nobatch user prompt",
-      subtitlePrompt: "custom subtitle prompt",
-    });
-    expect(resolved).not.toHaveProperty("batchPromptSlug");
-    expect(resolved).not.toHaveProperty("nobatchPromptSlug");
-    expect(resolved).not.toHaveProperty("subtitlePromptSlug");
-  });
-
-  test("falls back to preset prompts when saved prompt slugs are missing", () => {
-    const resolved = resolveApiPromptSettings(
-      {
-        apiSlug: "openai",
-        batchPromptSlug: "prompt_deleted",
-        nobatchPromptSlug: "prompt_deleted",
-        subtitlePromptSlug: "prompt_deleted",
-        systemPrompt: "stale batch prompt",
-        nobatchPrompt: "stale nobatch system prompt",
-        nobatchUserPrompt: "stale nobatch user prompt",
-        subtitlePrompt: "stale subtitle prompt",
-      },
-      []
-    );
-
-    expect(resolved.batchPromptSlug).toBe(DEFAULT_BATCH_PROMPT_SLUG);
-    expect(resolved.nobatchPromptSlug).toBe(DEFAULT_NOBATCH_PROMPT_SLUG);
-    expect(resolved.subtitlePromptSlug).toBe(DEFAULT_SUBTITLE_PROMPT_SLUG);
-    expect(resolved.systemPrompt).toBe(defaultSystemPrompt);
-    expect(resolved.nobatchPrompt).toBe(defaultNobatchPrompt);
-    expect(resolved.nobatchUserPrompt).toBe(defaultNobatchUserPrompt);
-    expect(resolved.subtitlePrompt).toBe(defaultSubtitlePrompt);
   });
 
   test("cleans api and subtitle references when a custom prompt is deleted", () => {
@@ -241,44 +196,30 @@ describe("prompt settings", () => {
     expect(cleaned).not.toHaveProperty("subtitlePromptId");
   });
 
-  test("normalizes stored prompts and removes legacy id fields during migration", () => {
-    const migrated = migrateLegacyPromptSettings({
-      prompts: [
-        {
-          id: "prompt_old_id",
-          slug: "prompt_current",
-          category: "user prompt",
-          name: "Current prompt",
-          systemPrompt: "system",
-          userPrompt: "user",
-        },
-      ],
-      transApis: [
-        {
-          apiSlug: "openai",
-          batchPromptId: "prompt_old_id",
-          systemPrompt: defaultSystemPrompt,
-        },
-      ],
-      subtitleSetting: {
-        segPromptMode: PROMPT_MODE_GLOBAL,
-        segPromptSlug: DEFAULT_SUBTITLE_PROMPT_SLUG,
-        segPromptId: "prompt_old_id",
-      },
-    });
-
-    expect(migrated.prompts).toEqual([
+  test("keeps preset nameKey for i18n display but removes it from custom storage", () => {
+    const preset = PRESET_PROMPTS[0];
+    const i18n = jest.fn((key, fallback) => `${key}:${fallback}`);
+    const normalized = normalizeCustomPrompts([
       {
-        slug: "prompt_current",
+        slug: "prompt_custom",
         category: "user prompt",
-        nameKey: "",
-        name: "Current prompt",
+        nameKey: "custom_key",
+        name: "Custom prompt",
         systemPrompt: "system",
         userPrompt: "user",
       },
     ]);
-    expect(migrated.transApis[0]).not.toHaveProperty("batchPromptId");
-    expect(migrated.subtitleSetting).not.toHaveProperty("segPromptId");
+
+    expect(getPromptDisplayName(preset, i18n)).toBe(
+      `${preset.nameKey}:${preset.name}`
+    );
+    expect(normalized[0]).toEqual({
+      slug: "prompt_custom",
+      category: "user prompt",
+      name: "Custom prompt",
+      systemPrompt: "system",
+      userPrompt: "user",
+    });
   });
 
   test("does not expose dictionary prompt templates", () => {

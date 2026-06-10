@@ -112,4 +112,35 @@ describe("apiTranslate prompt queue isolation", () => {
     expect(signedTexts[0]).not.toContain("subtitle prompt A");
     expect(signedTexts[1]).not.toContain("subtitle prompt B");
   });
+
+  test("does not include prompt slug in batch queue key", async () => {
+    await apiTranslate({
+      text: "hello",
+      fromLang: "en",
+      toLang: "zh-CN",
+      apiSetting: {
+        ...getOpenAiApiSetting("batch prompt A"),
+        batchPromptSlug: "prompt_a",
+      },
+      useCache: false,
+    });
+    await apiTranslate({
+      text: "world",
+      fromLang: "en",
+      toLang: "zh-CN",
+      apiSetting: {
+        ...getOpenAiApiSetting("batch prompt A"),
+        batchPromptSlug: "prompt_b",
+      },
+      useCache: false,
+    });
+
+    const queueKeys = getBatchQueue.mock.calls.map(([key]) => key);
+    const signedTexts = mockSha256.mock.calls.map(([text]) => text);
+
+    expect(queueKeys).toHaveLength(2);
+    expect(queueKeys[0]).toBe(queueKeys[1]);
+    expect(signedTexts[0]).not.toContain("prompt_a");
+    expect(signedTexts[1]).not.toContain("prompt_b");
+  });
 });

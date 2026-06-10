@@ -1,6 +1,6 @@
 import { logger } from "../libs/log.js";
-import { resolveApiPromptSettings } from "../config/prompt.js";
 import { randomBetween, sleep } from "../libs/utils.js";
+import { resolveApiPromptSettings } from "../config/prompt.js";
 import { splitEventsIntoChunks } from "./youtubeSubtitleProcessing.js";
 
 /**
@@ -77,6 +77,7 @@ export async function aiSegment({
   nextContext = "",
   onSubtitleChunk,
   signal,
+  setting,
 }) {
   const NON_SPEECH_RE = /^\[.+\]$/i;
   const speechEvents = [];
@@ -111,13 +112,20 @@ export async function aiSegment({
       toLang,
       speechEvents,
     });
+
+    const resolvedSegApiSetting = resolveApiPromptSettings(
+      segApiSetting,
+      setting?.prompts,
+      setting
+    );
+
     const subtitles = await apiSubtitle({
       videoId,
       chunkSign,
       fromLang,
       toLang,
       events: speechEvents,
-      apiSetting: segApiSetting,
+      apiSetting: resolvedSegApiSetting,
       docInfo,
       prevContext,
       nextContext,
@@ -159,7 +167,7 @@ export async function aiSegment({
               fromLang,
               toLang,
               events: tailEvents,
-              apiSetting: segApiSetting,
+              apiSetting: resolvedSegApiSetting,
               docInfo,
               prevContext: [prevContext, lastResultText]
                 .filter(Boolean)
@@ -245,12 +253,7 @@ export async function eventsToSubtitles({
 }) {
   const { segSlug, transApis, chunkLength, toLang } = setting;
 
-  const rawSegApiSetting = transApis?.find((api) => api.apiSlug === segSlug);
-  const segApiSetting = resolveApiPromptSettings(
-    rawSegApiSetting,
-    setting.prompts,
-    setting
-  );
+  const segApiSetting = transApis?.find((api) => api.apiSlug === segSlug);
   const useAiSegmentation = segSlug && segSlug !== "-" && segApiSetting;
   const shouldClearSegmentTranslation =
     setting.forceSubtitleRetranslate &&
@@ -284,6 +287,7 @@ export async function eventsToSubtitles({
       prevContext: "",
       nextContext: getChunkContext(eventChunks, 0, "next"),
       signal,
+      setting,
       onSubtitleChunk: ({ subtitles }) => {
         if (
           !subtitles?.length ||
@@ -420,6 +424,7 @@ export async function processRemainingChunksAsync({
         prevContext: getChunkContext(chunks, i, "prev"),
         nextContext: getChunkContext(chunks, i, "next"),
         signal,
+        setting,
         onSubtitleChunk: ({ subtitles }) => {
           if (
             !subtitles?.length ||

@@ -5,8 +5,10 @@ import {
   defaultSystemPromptLines,
   defaultSystemPromptXml,
   defaultSubtitlePrompt,
+  API_SPE_TYPES,
 } from "./api";
 
+// 定义各类预设提示词的唯一标识符 (Slug)
 export const PROMPT_SLUG_NOBATCH_TRANSLATION = "nobatch-translation";
 export const PROMPT_SLUG_BATCH_TRANSLATION_JSON = "batch-translation-json";
 export const PROMPT_SLUG_BATCH_TRANSLATION_XML = "batch-translation-xml";
@@ -14,23 +16,36 @@ export const PROMPT_SLUG_BATCH_TRANSLATION_LINE = "batch-translation-line";
 export const PROMPT_SLUG_SUBTITLE_SEGMENTATION = "subtitle-segmentation";
 export const PROMPT_SLUG_DICTIONARY_EN_ZH = "dictionary-en-zh";
 
+// 提示词应用模式：跟随接口内部配置，或使用全局统一配置
 export const PROMPT_MODE_FOLLOW_API = "follow_api";
 export const PROMPT_MODE_GLOBAL = "global";
 
+// 定义提示词所属的分类，用于在界面和逻辑中进行归类区分
 export const PROMPT_CATEGORY_BATCH_SYSTEM = "batch system prompt";
 export const PROMPT_CATEGORY_USER = "user prompt";
 export const PROMPT_CATEGORY_SUBTITLE = "subtitle prompt";
 export const PROMPT_CATEGORY_DICTIONARY = "dictionary prompt";
+// 允许在设置界面“提示词管理”中展示和维护的分类列表
 export const PROMPT_TEMPLATE_CATEGORIES = [
   PROMPT_CATEGORY_USER,
   PROMPT_CATEGORY_BATCH_SYSTEM,
   PROMPT_CATEGORY_SUBTITLE,
 ];
 
+// 各类功能默认使用的提示词 Slug，当未配置时作为后备默认值
 export const DEFAULT_NOBATCH_PROMPT_SLUG = PROMPT_SLUG_NOBATCH_TRANSLATION;
 export const DEFAULT_BATCH_PROMPT_SLUG = PROMPT_SLUG_BATCH_TRANSLATION_JSON;
 export const DEFAULT_SUBTITLE_PROMPT_SLUG = PROMPT_SLUG_SUBTITLE_SEGMENTATION;
 
+// 配置数据结构的版本号（用于检测并执行数据迁移升级逻辑）
+export const SETTINGS_VERSION_V1 = 1;
+export const SETTINGS_VERSION_V2 = 2;
+export const CURRENT_SETTINGS_VERSION = SETTINGS_VERSION_V2;
+
+/**
+ * 预设的提示词列表。包含了系统出厂自带的各种场景提示词模板。
+ * 用户不能删除预设提示词，但可以基于它们复制出自定义的模板。
+ */
 export const PRESET_PROMPTS = [
   {
     slug: PROMPT_SLUG_NOBATCH_TRANSLATION,
@@ -80,12 +95,18 @@ const PRESET_PROMPT_SLUGS = new Set(
 const PROMPT_STORAGE_FIELDS = [
   "slug",
   "category",
-  "nameKey",
   "name",
   "systemPrompt",
   "userPrompt",
 ];
 
+/**
+ * 规范化提示词对象，确保所有必填字段为字符串格式。
+ * 避免因为 undefined 等值导致报错或判断异常。
+ *
+ * @param {Object} prompt 原始提示词对象
+ * @returns {Object} 规范化后的提示词对象
+ */
 export function normalizePrompt(prompt = {}) {
   return {
     slug: String(prompt.slug || ""),
@@ -97,29 +118,61 @@ export function normalizePrompt(prompt = {}) {
   };
 }
 
+/**
+ * 判断给定的提示词标识符是否属于系统预设提示词。
+ *
+ * @param {string} promptSlug 提示词标识符
+ * @returns {boolean} 是否为预设提示词
+ */
 export function isPresetPromptSlug(promptSlug) {
   return PRESET_PROMPT_SLUGS.has(promptSlug);
 }
 
+/**
+ * 获取所有可用的提示词（包含预设的提示词与用户自定义的提示词）。
+ *
+ * @param {Array} userPrompts 用户自定义提示词列表
+ * @returns {Array} 组合后的提示词列表
+ */
 export function getAllPrompts(userPrompts = []) {
   const customPrompts = normalizeCustomPrompts(userPrompts);
 
   return [...PRESET_PROMPTS, ...customPrompts];
 }
 
+/**
+ * 过滤并规范化用户自定义的提示词列表，去除无效或与预设冲突的项。
+ *
+ * @param {Array} userPrompts 用户自定义提示词列表
+ * @returns {Array} 清洗后的自定义提示词列表
+ */
 export function normalizeCustomPrompts(userPrompts = []) {
   return (Array.isArray(userPrompts) ? userPrompts : [])
     .map(normalizePrompt)
-    .filter((prompt) => prompt.slug && !isPresetPromptSlug(prompt.slug));
+    .filter((prompt) => prompt.slug && !isPresetPromptSlug(prompt.slug))
+    .map(({ slug, category, name, systemPrompt, userPrompt }) => ({
+      slug,
+      category,
+      name,
+      systemPrompt,
+      userPrompt,
+    }));
 }
 
+/**
+ * 根据 Slug 查找对应的提示词对象（优先从全部列表中查找）。
+ *
+ * @param {Array} userPrompts 用户自定义提示词列表
+ * @param {string} promptSlug 需要查找的提示词 Slug
+ * @returns {Object|null} 匹配的提示词对象，未找到返回 null
+ */
 export function findPromptBySlug(userPrompts = [], promptSlug) {
   if (!promptSlug) {
     return null;
   }
 
   return getAllPrompts(userPrompts).find(
-    (prompt) => normalizePrompt(prompt).slug === promptSlug
+    (prompt) => prompt?.slug === promptSlug
   );
 }
 
@@ -130,6 +183,13 @@ function findPromptBySlugOrDefault(userPrompts, promptSlug, defaultPromptSlug) {
   );
 }
 
+/**
+ * 获取指定提示词的名称（未进行本地化翻译的原始名称）。
+ *
+ * @param {Array} userPrompts 用户自定义提示词列表
+ * @param {string} promptSlug 提示词标识符
+ * @returns {string} 提示词名称，未找到则返回空字符串
+ */
 export function getPromptName(userPrompts = [], promptSlug) {
   return findPromptBySlug(userPrompts, promptSlug)?.name || "";
 }
@@ -221,6 +281,13 @@ function getAvailableMigratedPromptSlug(promptBySlug, sourcePrompt, baseSlug) {
   return promptSlug;
 }
 
+/**
+ * 获取提示词在界面上显示的名称（支持国际化 i18n 翻译）。
+ *
+ * @param {Object} prompt 提示词对象
+ * @param {Function} i18n 多语言翻译函数
+ * @returns {string} 对应的展示名称
+ */
 export function getPromptDisplayName(prompt = {}, i18n) {
   const normalizedPrompt = normalizePrompt(prompt);
   if (normalizedPrompt.nameKey && typeof i18n === "function") {
@@ -230,6 +297,13 @@ export function getPromptDisplayName(prompt = {}, i18n) {
   return normalizedPrompt.name || normalizedPrompt.slug;
 }
 
+/**
+ * 获取提示词分类在界面上显示的名称（支持国际化）。
+ *
+ * @param {string} category 提示词分类常量
+ * @param {Function} i18n 多语言翻译函数
+ * @returns {string} 分类的展示名称
+ */
 export function getPromptCategoryDisplayName(category, i18n) {
   if (typeof i18n !== "function") {
     return category || "";
@@ -247,18 +321,36 @@ export function getPromptCategoryDisplayName(category, i18n) {
 
 function getPromptOptions(prompts = [], category) {
   return (Array.isArray(prompts) ? prompts : []).filter(
-    (prompt) => normalizePrompt(prompt).category === category
+    (prompt) => prompt?.category === category
   );
 }
 
+/**
+ * 获取所有可用的“非聚合翻译 (Non-batch)”提示词选项
+ *
+ * @param {Array} prompts 全部可用提示词列表
+ * @returns {Array}
+ */
 export function getNobatchPromptOptions(prompts = []) {
   return getPromptOptions(prompts, PROMPT_CATEGORY_USER);
 }
 
+/**
+ * 获取所有可用的“聚合翻译 (Batch)”提示词选项
+ *
+ * @param {Array} prompts 全部可用提示词列表
+ * @returns {Array}
+ */
 export function getBatchPromptOptions(prompts = []) {
   return getPromptOptions(prompts, PROMPT_CATEGORY_BATCH_SYSTEM);
 }
 
+/**
+ * 获取所有可用的“字幕翻译/分句”提示词选项
+ *
+ * @param {Array} prompts 全部可用提示词列表
+ * @returns {Array}
+ */
 export function getSubtitlePromptOptions(prompts = []) {
   return getPromptOptions(prompts, PROMPT_CATEGORY_SUBTITLE);
 }
@@ -339,7 +431,7 @@ function createPromptSlugIndex(prompts = []) {
   const promptBySlug = new Map();
 
   prompts.forEach((prompt) => {
-    const promptSlug = normalizePrompt(prompt).slug;
+    const promptSlug = prompt?.slug;
     if (promptSlug && !promptBySlug.has(promptSlug)) {
       promptBySlug.set(promptSlug, prompt);
     }
@@ -396,7 +488,7 @@ function migrateLegacyApiPrompt(apiSetting, migration, customPromptState) {
 
   const presetPrompt = findPresetPromptByContent(sourcePrompt);
   if (presetPrompt) {
-    return normalizePrompt(presetPrompt).slug;
+    return presetPrompt.slug;
   }
 
   const baseSlug = createMigratedPromptSlug(
@@ -423,13 +515,35 @@ function migrateLegacyApiPrompt(apiSetting, migration, customPromptState) {
   return promptSlug;
 }
 
-export function migrateLegacyPromptSettings(setting = {}) {
+/**
+ * 获取当前配置对象的数据版本号。
+ * 如果未设置或遇到异常情况，则默认返回 V1 版本。
+ *
+ * @param {Object} setting 配置对象
+ * @returns {number} 数据结构版本号
+ */
+export function getSettingVersion(setting = {}) {
+  const version = Number(setting?.version || SETTINGS_VERSION_V1);
+  return Number.isFinite(version) && version >= SETTINGS_VERSION_V1
+    ? version
+    : SETTINGS_VERSION_V1;
+}
+
+/**
+ * 核心迁移逻辑：将旧版本 (V1) 的 API 配置升级为 V2 格式。
+ * 在 V1 中，提示词文本通常是硬编码在每个 API 配置中的（systemPrompt, userPrompt 等）。
+ * 本函数会将这些内联的文本提取出来，生成全局复用的 custom prompt，并在 API 配置中改为通过 slug 引用该提示词。
+ *
+ * @param {Object} setting 旧版原始配置对象
+ * @returns {Object} 升级迁移为 V2 格式的新配置对象
+ */
+export function migrateSettingPromptsToV2(setting = {}) {
   if (!setting || typeof setting !== "object") {
     return setting;
   }
 
   if (!Array.isArray(setting.transApis)) {
-    return setting;
+    return { ...setting, version: SETTINGS_VERSION_V2 };
   }
 
   const storedCustomPrompts = Array.isArray(setting.prompts)
@@ -460,6 +574,37 @@ export function migrateLegacyPromptSettings(setting = {}) {
     }
 
     LEGACY_API_PROMPT_MIGRATIONS.forEach((migration) => {
+      const isAI = API_SPE_TYPES.ai.has(nextApiSetting.apiType);
+
+      const sysVal =
+        typeof nextApiSetting[migration.systemPromptFieldName] === "string"
+          ? nextApiSetting[migration.systemPromptFieldName].trim()
+          : "";
+      const userVal =
+        migration.userPromptFieldName &&
+        typeof nextApiSetting[migration.userPromptFieldName] === "string"
+          ? nextApiSetting[migration.userPromptFieldName].trim()
+          : "";
+      const isEmpty = !sysVal && !userVal;
+
+      if (!isAI || isEmpty) {
+        if (
+          hasOwn(nextApiSetting, migration.systemPromptFieldName) ||
+          (migration.userPromptFieldName &&
+            hasOwn(nextApiSetting, migration.userPromptFieldName))
+        ) {
+          if (nextApiSetting === apiSetting) {
+            nextApiSetting = { ...apiSetting };
+          }
+          delete nextApiSetting[migration.systemPromptFieldName];
+          if (migration.userPromptFieldName) {
+            delete nextApiSetting[migration.userPromptFieldName];
+          }
+          hasApiChanges = true;
+        }
+        return;
+      }
+
       const promptSlug = migrateLegacyApiPrompt(
         nextApiSetting,
         migration,
@@ -474,8 +619,12 @@ export function migrateLegacyPromptSettings(setting = {}) {
           nextApiSetting = { ...apiSetting };
         }
 
-        // 旧版 API 内联 prompt 升级为新版 prompt 引用；内联字段继续保留作运行时镜像。
+        // 旧版 API 内联 prompt 升级为新版 prompt 引用，并删除旧的内联字段。
         nextApiSetting[migration.promptSlugFieldName] = promptSlug;
+        delete nextApiSetting[migration.systemPromptFieldName];
+        if (migration.userPromptFieldName) {
+          delete nextApiSetting[migration.userPromptFieldName];
+        }
         hasApiChanges = true;
       }
     });
@@ -483,23 +632,13 @@ export function migrateLegacyPromptSettings(setting = {}) {
     return nextApiSetting;
   });
 
-  if (
-    !hasApiChanges &&
-    !customPromptState.hasPromptChanges &&
-    !hasSubtitleSettingChanges
-  ) {
-    return setting;
-  }
-
   const nextSetting = { ...setting };
 
-  if (hasApiChanges) {
-    nextSetting.transApis = transApis;
-  }
-
-  if (customPromptState.hasPromptChanges) {
-    nextSetting.prompts = customPromptState.prompts;
-  }
+  nextSetting.version = SETTINGS_VERSION_V2;
+  nextSetting.transApis = hasApiChanges ? transApis : setting.transApis;
+  nextSetting.prompts = customPromptState.hasPromptChanges
+    ? customPromptState.prompts
+    : customPrompts;
 
   if (hasSubtitleSettingChanges) {
     nextSetting.subtitleSetting = subtitleSetting;
@@ -508,14 +647,20 @@ export function migrateLegacyPromptSettings(setting = {}) {
   return nextSetting;
 }
 
+/**
+ * 删除某个自定义提示词后，级联更新所有引用了该提示词的接口配置。
+ * 遍历各个 API 和字幕设置，如果它们正在使用被删除的提示词（根据 promptSlug 判断），
+ * 则将它们回退重置为对应类型的系统默认提示词（DEFAULT_***_PROMPT_SLUG）。
+ *
+ * @param {Object} setting 完整的配置对象
+ * @param {string} promptSlug 被删除的提示词 Slug
+ * @returns {Object} 更新引用后的配置对象副本
+ */
 export function removePromptReferences(setting = {}, promptSlug) {
   if (!promptSlug || isPresetPromptSlug(promptSlug)) {
     return setting;
   }
 
-  const batchPrompt = findPromptBySlug([], DEFAULT_BATCH_PROMPT_SLUG);
-  const nobatchPrompt = findPromptBySlug([], DEFAULT_NOBATCH_PROMPT_SLUG);
-  const subtitlePrompt = findPromptBySlug([], DEFAULT_SUBTITLE_PROMPT_SLUG);
   let hasApiChanges = false;
 
   const transApis = (
@@ -527,7 +672,6 @@ export function removePromptReferences(setting = {}, promptSlug) {
       nextApi = {
         ...nextApi,
         batchPromptSlug: DEFAULT_BATCH_PROMPT_SLUG,
-        systemPrompt: batchPrompt.systemPrompt,
       };
       hasApiChanges = true;
     }
@@ -536,8 +680,6 @@ export function removePromptReferences(setting = {}, promptSlug) {
       nextApi = {
         ...nextApi,
         nobatchPromptSlug: DEFAULT_NOBATCH_PROMPT_SLUG,
-        nobatchPrompt: nobatchPrompt.systemPrompt,
-        nobatchUserPrompt: nobatchPrompt.userPrompt,
       };
       hasApiChanges = true;
     }
@@ -546,7 +688,6 @@ export function removePromptReferences(setting = {}, promptSlug) {
       nextApi = {
         ...nextApi,
         subtitlePromptSlug: DEFAULT_SUBTITLE_PROMPT_SLUG,
-        subtitlePrompt: subtitlePrompt.systemPrompt,
       };
       hasApiChanges = true;
     }
@@ -581,6 +722,16 @@ export function removePromptReferences(setting = {}, promptSlug) {
   return nextSetting;
 }
 
+/**
+ * 在运行时，将接口配置中引用的提示词 Slug 解析展开。
+ * 它会根据配置中的 `***PromptSlug` 字段，去 `userPrompts` 或预设列表中寻找实际的提示词文本，
+ * 并把解析后的实际 `systemPrompt` 和 `userPrompt` 内容注入到 API 配置对象副本中，供翻译时直接取用。
+ *
+ * @param {Object} apiSetting 单个接口配置
+ * @param {Array} userPrompts 用户自定义提示词列表
+ * @param {Object} subtitleSetting 字幕相关的特殊全局配置
+ * @returns {Object} 填充了实际提示词文本的 API 配置副本
+ */
 export function resolveApiPromptSettings(
   apiSetting = {},
   userPrompts = [],
@@ -610,7 +761,7 @@ export function resolveApiPromptSettings(
   );
 
   if (batchPrompt && (hasBatchPromptReference || !hasBatchPromptInlineValue)) {
-    nextApiSetting.batchPromptSlug = normalizePrompt(batchPrompt).slug;
+    nextApiSetting.batchPromptSlug = batchPrompt.slug;
     nextApiSetting.systemPrompt = batchPrompt.systemPrompt;
   }
 
@@ -636,7 +787,7 @@ export function resolveApiPromptSettings(
     nobatchPrompt &&
     (hasNobatchPromptReference || !hasNobatchPromptInlineValue)
   ) {
-    nextApiSetting.nobatchPromptSlug = normalizePrompt(nobatchPrompt).slug;
+    nextApiSetting.nobatchPromptSlug = nobatchPrompt.slug;
     nextApiSetting.nobatchPrompt = nobatchPrompt.systemPrompt;
     nextApiSetting.nobatchUserPrompt = nobatchPrompt.userPrompt;
   }
@@ -672,7 +823,7 @@ export function resolveApiPromptSettings(
       !hasSubtitlePromptInlineValue)
   ) {
     if (!useGlobalSubtitlePrompt) {
-      nextApiSetting.subtitlePromptSlug = normalizePrompt(subtitlePrompt).slug;
+      nextApiSetting.subtitlePromptSlug = subtitlePrompt.slug;
     }
     nextApiSetting.subtitlePrompt = subtitlePrompt.systemPrompt;
   }
@@ -680,6 +831,15 @@ export function resolveApiPromptSettings(
   return nextApiSetting;
 }
 
+/**
+ * 批量解析 API 列表中的提示词配置。
+ * 遍历所有 API，逐个调用 resolveApiPromptSettings，返回展开实际提示词文本后的新数组。
+ *
+ * @param {Array} transApis 接口配置列表
+ * @param {Array} userPrompts 用户自定义提示词列表
+ * @param {Object} subtitleSetting 字幕配置
+ * @returns {Array} 解析后的接口配置列表
+ */
 export function resolveApiPromptList(
   transApis = [],
   userPrompts = [],

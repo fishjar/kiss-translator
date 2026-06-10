@@ -1,6 +1,7 @@
 import { logger } from "../libs/log.js";
 import { truncateWords, throttle, decodeHTMLEntities } from "../libs/utils.js";
 import { apiTranslate } from "../apis/index.js";
+import { resolveApiPromptSettings } from "../config/prompt.js";
 import { apiMicrosoftDict } from "../apis/index.js";
 import { trustedTypesHelper } from "../libs/trustedTypes.js";
 import { isSubtitleModeEnabled } from "./modes.js";
@@ -1013,7 +1014,20 @@ export class BilingualSubtitleManager {
 
     subtitle.isTranslating = true;
     try {
-      const { fromLang, toLang, apiSetting, docInfo } = this.#setting;
+      const {
+        fromLang,
+        toLang,
+        apiSetting: rawApiSetting,
+        docInfo,
+        prompts,
+      } = this.#setting;
+
+      const apiSetting = resolveApiPromptSettings(
+        rawApiSetting,
+        prompts,
+        this.#setting
+      );
+
       const { trText } = await apiTranslate({
         text: subtitle.text,
         fromLang,

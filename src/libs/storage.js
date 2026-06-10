@@ -1,5 +1,6 @@
 import {
   STOKEY_SETTING,
+  STOKEY_SETTING_BACKUP_V1_BEFORE_V2,
   STOKEY_SETTING_OLD,
   STOKEY_RULES,
   STOKEY_RULES_OLD,
@@ -15,7 +16,9 @@ import {
   DEFAULT_RULES,
   DEFAULT_SYNC,
   BUILTIN_RULES,
-  migrateLegacyPromptSettings,
+  getSettingVersion,
+  migrateSettingPromptsToV2,
+  SETTINGS_VERSION_V2,
 } from "../config";
 import { isExt, isGm } from "./client";
 import { browser } from "./browser";
@@ -72,7 +75,7 @@ async function del(key) {
 /**
  * 写入序列化后的对象数据。
  * @param {string} key 键名
- * @param {Object|Array} obj 待存入的 JS 对象或数组
+ * @param {Object|Array} obj 待存入 of JS 对象或数组
  */
 async function setObj(key, obj) {
   await set(key, JSON.stringify(obj));
@@ -133,13 +136,46 @@ export const storage = {
 // --- 应用设置 (Settings) 数据存取 ---
 export const getSetting = () => getObj(STOKEY_SETTING);
 export const getSettingOld = () => getObj(STOKEY_SETTING_OLD);
-export const getSettingWithDefault = async () =>
-  migrateLegacyPromptSettings({
-    ...DEFAULT_SETTING,
-    ...((await getSetting()) || {}),
-  });
-export const setSetting = (val) =>
-  setObj(STOKEY_SETTING, migrateLegacyPromptSettings(val));
+const writeSettingBackupBeforeV2 = (setting) =>
+  setObj(STOKEY_SETTING_BACKUP_V1_BEFORE_V2, setting);
+const mergeSettingWithDefault = (setting) => ({
+  ...DEFAULT_SETTING,
+  ...(setting || {}),
+  version: setting?.version,
+});
+export const migrateStoredSettingToV2 = async (
+  setting,
+  backupSetting = setting
+) => {
+  if (getSettingVersion(setting) >= SETTINGS_VERSION_V2) {
+    return setting;
+  }
+
+  await writeSettingBackupBeforeV2(backupSetting);
+  return migrateSettingPromptsToV2(setting);
+};
+
+export const runDataMigration = async () => {
+  const rawSetting = await getSetting();
+  if (rawSetting && getSettingVersion(rawSetting) < SETTINGS_VERSION_V2) {
+    try {
+      const nextSetting = await migrateStoredSettingToV2(
+        rawSetting,
+        rawSetting
+      );
+      await setObj(STOKEY_SETTING, nextSetting);
+      kissLog("Migration to V2 completed.");
+    } catch (err) {
+      kissLog("Data migration to V2 failed:", err);
+    }
+  }
+};
+
+export const getSettingWithDefault = async () => {
+  const rawSetting = await getSetting();
+  return rawSetting ? mergeSettingWithDefault(rawSetting) : DEFAULT_SETTING;
+};
+export const setSetting = async (val) => setObj(STOKEY_SETTING, val);
 export const putSetting = async (obj) => {
   const cur = (await getSetting()) ?? {};
   await setSetting({ ...cur, ...obj });
@@ -249,10 +285,7 @@ export const setBdauth = (val) => setObj(STOKEY_BDAUTH, val);
  */
 export const tryInitDefaultData = async (uiLang) => {
   try {
-    await trySetObj(
-      STOKEY_SETTING,
-      migrateLegacyPromptSettings({ ...DEFAULT_SETTING, uiLang })
-    );
+    await trySetObj(STOKEY_SETTING, { ...DEFAULT_SETTING, uiLang });
     await trySetObj(STOKEY_RULES, DEFAULT_RULES);
     await trySetObj(STOKEY_SYNC, DEFAULT_SYNC);
     await trySetObj(

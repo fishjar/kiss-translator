@@ -1,7 +1,6 @@
 import { YouTubeInitializer } from "./YouTubeCaptionProvider.js";
 import { isMatch } from "../libs/utils.js";
 import { DEFAULT_API_SETTING } from "../config/api.js";
-import { resolveApiPromptList } from "../config/prompt.js";
 import { DEFAULT_SUBTITLE_SETTING } from "../config/setting.js";
 import { logger } from "../libs/log.js";
 import { injectJs, INJECTOR } from "../injectors/index.js";
@@ -42,12 +41,7 @@ export function runSubtitle({ href, setting }) {
       injectJs(INJECTOR.subtitle, id);
 
       // 2. 获取当前字幕翻译所关联的翻译 API 配置 (apiSetting)
-      // 通过用户配置的 apiSlug 在全局翻译 API 列表中进行检索，如果不存在，则回退到默认的 API 设置
-      const transApis = resolveApiPromptList(
-        setting.transApis,
-        setting.prompts,
-        subtitleSetting
-      );
+      const transApis = setting.transApis || [];
       const apiSetting =
         transApis.find((api) => api.apiSlug === subtitleSetting.apiSlug) ||
         DEFAULT_API_SETTING;

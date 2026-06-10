@@ -11,7 +11,11 @@ import {
   OPT_TRANS_MICROSOFT,
   DEFAULT_API_LIST,
 } from "./api";
-import { DEFAULT_SUBTITLE_PROMPT_SLUG, PROMPT_MODE_FOLLOW_API } from "./prompt";
+import {
+  CURRENT_SETTINGS_VERSION,
+  DEFAULT_SUBTITLE_PROMPT_SLUG,
+  PROMPT_MODE_FOLLOW_API,
+} from "./prompt";
 import { DEFAULT_CUSTOM_STYLES } from "./styles";
 
 // --- 默认系统快捷键映射 ---
@@ -189,6 +193,7 @@ export const DEFAULT_MOUSE_HOVER_SETTING = {
 
 // --- 全局默认设置对象，存储于 local storage ---
 export const DEFAULT_SETTING = {
+  version: CURRENT_SETTINGS_VERSION,
   darkMode: "auto", // 主题外观模式 ("light" 浅色, "dark" 深色, "auto" 跟随浏览器系统)
   uiLang: "en", // 插件设置面板界面的显示语言
   // fetchLimit: DEFAULT_FETCH_LIMIT, // 最大任务数量(移至rule，作废)

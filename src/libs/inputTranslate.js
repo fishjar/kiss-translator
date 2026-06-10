@@ -5,8 +5,8 @@ import {
   DEFAULT_API_SETTING,
   OPT_INPUT_DOT_DISABLE,
   OPT_INPUT_DOT_MOBILE,
-  resolveApiPromptList,
 } from "../config";
+import { resolveApiPromptSettings } from "../config/prompt";
 import { isMobile } from "./mobile";
 import { genEventName, removeEndchar, matchInputStr, sleep } from "./utils";
 import { stepShortcutRegister } from "./shortcut";
@@ -259,7 +259,7 @@ export class InputTranslator {
       inputRule,
       prompts,
       subtitleSetting,
-      transApis: resolveApiPromptList(transApis, prompts, subtitleSetting),
+      transApis,
     };
 
     const { triggerShortcut: initialTriggerShortcut } = this.#config.inputRule;
@@ -571,9 +571,15 @@ export class InputTranslator {
       }
     }
 
-    const apiSetting =
+    const rawApiSetting =
       this.#config.transApis.find((api) => api.apiSlug === apiSlug) ||
       DEFAULT_API_SETTING;
+
+    const apiSetting = resolveApiPromptSettings(
+      rawApiSetting,
+      this.#config.prompts,
+      this.#config.subtitleSetting
+    );
 
     const loadingId = "kiss-loading-" + genEventName();
 
@@ -614,19 +620,11 @@ export class InputTranslator {
 
     if (inputRule) this.#config.inputRule = inputRule;
     if (prompts) this.#config.prompts = prompts;
-    if (subtitleSetting) this.#config.subtitleSetting = subtitleSetting;
+    if (subtitleSetting) {
+      this.#config.subtitleSetting = subtitleSetting;
+    }
     if (transApis) {
-      this.#config.transApis = resolveApiPromptList(
-        transApis,
-        this.#config.prompts,
-        this.#config.subtitleSetting
-      );
-    } else if (prompts || subtitleSetting) {
-      this.#config.transApis = resolveApiPromptList(
-        this.#config.transApis,
-        this.#config.prompts,
-        this.#config.subtitleSetting
-      );
+      this.#config.transApis = transApis;
     }
 
     const { triggerShortcut } = this.#config.inputRule;

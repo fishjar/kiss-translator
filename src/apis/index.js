@@ -49,22 +49,15 @@ function getTranslatePromptCacheScope(apiSetting = {}) {
 
 function getPromptCacheFields(apiSetting = {}, promptScope) {
   if (promptScope === PROMPT_CACHE_SCOPE_BATCH) {
-    return [apiSetting.batchPromptSlug || "", apiSetting.systemPrompt || ""];
+    return [apiSetting.systemPrompt || ""];
   }
 
   if (promptScope === PROMPT_CACHE_SCOPE_NOBATCH) {
-    return [
-      apiSetting.nobatchPromptSlug || "",
-      apiSetting.nobatchPrompt || "",
-      apiSetting.nobatchUserPrompt || "",
-    ];
+    return [apiSetting.nobatchPrompt || "", apiSetting.nobatchUserPrompt || ""];
   }
 
   if (promptScope === PROMPT_CACHE_SCOPE_SUBTITLE) {
-    return [
-      apiSetting.subtitlePromptSlug || "",
-      apiSetting.subtitlePrompt || "",
-    ];
+    return [apiSetting.subtitlePrompt || ""];
   }
 
   return [];
@@ -772,10 +765,7 @@ export const apiSubtitle = async ({
     fromLang,
     toLang,
     segVer: 2,
-    promptSig: await getPromptCacheSig(
-      apiSetting,
-      PROMPT_CACHE_SCOPE_SUBTITLE
-    ),
+    promptSig: await getPromptCacheSig(apiSetting, PROMPT_CACHE_SCOPE_SUBTITLE),
     ctx: docInfo?.summary?.slice(0, 50) || "",
   };
   const cacheInput = `${URL_CACHE_SUBTITLE}?${queryString.stringify(cacheOpts)}`;

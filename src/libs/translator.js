@@ -15,8 +15,8 @@ import {
   MSG_INJECT_CSS,
   MSG_UPDATE_ICON,
   newI18n,
-  resolveApiPromptList,
 } from "../config";
+import { resolveApiPromptSettings } from "../config/prompt";
 import { interpreter } from "./interpreter";
 import { clearFetchPool } from "./pool";
 import {
@@ -577,11 +577,6 @@ export class Translator {
     this.#setting = { ...Translator.DEFAULT_OPTIONS, ...setting };
     this.#rule = { ...Translator.DEFAULT_RULE, ...rule, isPlainText: false };
     this.#favWords = favWords;
-    this.#setting.transApis = resolveApiPromptList(
-      this.#setting.transApis,
-      this.#setting.prompts,
-      this.#setting.subtitleSetting
-    );
     this.#apisMap = new Map(
       this.#setting.transApis.map((api) => [api.apiSlug, api])
     );
@@ -2120,7 +2115,14 @@ export class Translator {
   #translateFetch(text, deLang = "", onStreamChunk = null) {
     const { toLang, transStartHook } = this.#rule;
     const fromLang = deLang || this.#rule.fromLang;
-    const apiSetting = { ...this.#apiSetting };
+    const rawApiSetting = { ...this.#apiSetting };
+
+    const apiSetting = resolveApiPromptSettings(
+      rawApiSetting,
+      this.#setting.prompts,
+      this.#setting.subtitleSetting
+    );
+
     const glossary = { ...this.#glossary };
     const apisMap = this.#apisMap;
 

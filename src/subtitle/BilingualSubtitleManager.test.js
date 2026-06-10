@@ -150,7 +150,7 @@ describe("BilingualSubtitleManager", () => {
         text: "hello world",
         fromLang: "en",
         toLang: "zh-CN",
-        apiSetting: setting.apiSetting,
+        apiSetting: expect.objectContaining(setting.apiSetting),
       })
     );
 

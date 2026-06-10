@@ -97,19 +97,12 @@ function PromptPlaceholderButtons({ category, disabled, onInsert }) {
 
   return (
     <Box>
-      <Typography
-        variant="caption"
-        color="text.secondary"
-        sx={{ display: "block", mb: 1 }}
-      >
-        {i18n("placeholder")}
-      </Typography>
       <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
         {placeholders.map((placeholder) => (
           <Button
             key={placeholder}
             size="small"
-            variant="outlined"
+            variant="text"
             disabled={disabled}
             onClick={() => onInsert(placeholder)}
             sx={{ textTransform: "none" }}
@@ -255,31 +248,39 @@ function PromptFields({
         disabled={isPreset}
       />
 
-      <CodeField
-        size="small"
-        label={i18n("system_prompt", "系统提示词")}
-        name="systemPrompt"
-        value={formData.systemPrompt}
-        onChange={handleChange}
-        inputRef={systemPromptRef}
-        maxRows={14}
-        disabled={isPreset}
-      />
-      {!isPreset && (
-        <PromptPlaceholderButtons
-          category={formData.category}
-          onInsert={(placeholder) =>
-            handleInsertPlaceholder(
-              "systemPrompt",
-              systemPromptRef,
-              placeholder
-            )
-          }
+      <Stack spacing={1}>
+        <CodeField
+          size="small"
+          label={i18n("system_prompt", "系统提示词")}
+          name="systemPrompt"
+          value={formData.systemPrompt}
+          onChange={handleChange}
+          inputRef={systemPromptRef}
+          minRows={3}
+          maxRows={14}
+          disabled={isPreset}
+          sx={{
+            "& textarea": {
+              resize: "vertical",
+            },
+          }}
         />
-      )}
+        {!isPreset && (
+          <PromptPlaceholderButtons
+            category={formData.category}
+            onInsert={(placeholder) =>
+              handleInsertPlaceholder(
+                "systemPrompt",
+                systemPromptRef,
+                placeholder
+              )
+            }
+          />
+        )}
+      </Stack>
 
       {showUserPrompt && (
-        <>
+        <Stack spacing={1}>
           <CodeField
             size="small"
             label={i18n("user_prompt", "用户提示词")}
@@ -287,8 +288,14 @@ function PromptFields({
             value={formData.userPrompt}
             onChange={handleChange}
             inputRef={userPromptRef}
+            minRows={3}
             maxRows={14}
             disabled={isPreset}
+            sx={{
+              "& textarea": {
+                resize: "vertical",
+              },
+            }}
           />
           {!isPreset && (
             <PromptPlaceholderButtons
@@ -302,7 +309,7 @@ function PromptFields({
               }
             />
           )}
-        </>
+        </Stack>
       )}
 
       <Stack
@@ -482,13 +489,15 @@ export default function Prompts() {
             borderColor: "divider",
             borderRadius: 1,
             overflow: "hidden",
+            height: { md: "calc(100vh - 140px)" },
+            minHeight: { md: 450 },
           }}
         >
           <Box
             sx={(theme) => ({
               width: { xs: "100%", md: 280 },
               flex: { xs: "0 0 auto", md: "0 0 280px" },
-              maxHeight: { xs: 240, md: "calc(100vh - 230px)" },
+              height: { md: "100%" },
               overflowY: "auto",
               borderRight: {
                 xs: 0,
@@ -522,7 +531,7 @@ export default function Prompts() {
               minWidth: 0,
               p: 2,
               boxSizing: "border-box",
-              height: { md: "calc(100vh - 230px)" },
+              height: { md: "100%" },
               overflowY: { md: "auto" },
               scrollbarGutter: { md: "stable" },
               overscrollBehavior: "contain",

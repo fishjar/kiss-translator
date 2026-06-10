@@ -11,7 +11,6 @@ import {
   DEFAULT_SETTING,
   KV_SETTING_KEY,
   MSG_SET_LOGLEVEL,
-  migrateLegacyPromptSettings,
 } from "../config";
 import { useStorage } from "./Storage";
 import { debounceSyncMeta } from "../libs/storage";
@@ -40,12 +39,7 @@ export function SettingProvider({ children, context }) {
     isLoading,
     update,
     reload,
-  } = useStorage(
-    STOKEY_SETTING,
-    DEFAULT_SETTING,
-    KV_SETTING_KEY,
-    migrateLegacyPromptSettings
-  );
+  } = useStorage(STOKEY_SETTING, DEFAULT_SETTING, KV_SETTING_KEY);
 
   // 对设置项中老版本可能存在的 boolean 类型 darkMode 进行自动平滑升级为三种模式类型 (dark, light, auto)
   useEffect(() => {

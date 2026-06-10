@@ -5,8 +5,6 @@ import { syncData } from "../libs/sync";
 import { useDebouncedCallback } from "./DebouncedCallback";
 import { isOptions } from "../libs/browser";
 
-const identityStorageValue = (value) => value;
-
 /**
  * 自定义 Storage 同步 Hook，用于在 React 组件生命周期中存取本地 Storage 状态
  *
@@ -20,7 +18,6 @@ const identityStorageValue = (value) => value;
  * @param {string} key 用于在 Storage 中存取值的键
  * @param {*} defaultVal 默认值。建议在组件外定义为常量。
  * @param {string} [syncKey=""] 用于远端同步的可选键名
- * @param {Function} [normalizeValue] 读取、保存、同步回填前的数据规范化函数。
  * @returns {{
  * data: *,
  * save: (valueOrFn: any | ((prevData: any) => any)) => void,
@@ -30,14 +27,9 @@ const identityStorageValue = (value) => value;
  * isLoading: boolean
  * }}
  */
-export function useStorage(
-  key,
-  defaultVal = null,
-  syncKey = "",
-  normalizeValue = identityStorageValue
-) {
+export function useStorage(key, defaultVal = null, syncKey = "") {
   const [isLoading, setIsLoading] = useState(true);
-  const [data, setData] = useState(() => normalizeValue(defaultVal));
+  const [data, setData] = useState(defaultVal);
 
   // 首次挂载时从本地存储异步加载初始数据
   useEffect(() => {
@@ -48,13 +40,9 @@ export function useStorage(
         const storedVal = await storage.getObj(key);
         if (storedVal === undefined || storedVal === null) {
           // 如果存储中没有该值，写入初始默认值
-          const normalizedDefaultVal = normalizeValue(defaultVal);
-          await storage.setObj(key, normalizedDefaultVal);
-          if (isMounted) {
-            setData(normalizedDefaultVal);
-          }
+          await storage.setObj(key, defaultVal);
         } else if (isMounted) {
-          setData(normalizeValue(storedVal));
+          setData(storedVal);
         }
       } catch (err) {
         kissLog(`storage load error for key: ${key}`, err);
@@ -70,22 +58,19 @@ export function useStorage(
     return () => {
       isMounted = false;
     };
-  }, [key, defaultVal, normalizeValue]);
+  }, [key, defaultVal]);
 
   // 远端同步处理器
-  const runSync = useCallback(
-    async (keyToSync, valueToSync) => {
-      try {
-        const res = await syncData(keyToSync, valueToSync);
-        if (res?.isNew) {
-          setData(normalizeValue(res.value));
-        }
-      } catch (error) {
-        kissLog("Sync failed", keyToSync);
+  const runSync = useCallback(async (keyToSync, valueToSync) => {
+    try {
+      const res = await syncData(keyToSync, valueToSync);
+      if (res?.isNew) {
+        setData(res.value);
       }
-    },
-    [normalizeValue]
-  );
+    } catch (error) {
+      kissLog("Sync failed", keyToSync);
+    }
+  }, []);
 
   // 对远端同步逻辑进行防抖，防止高频触发写盘和网络请求
   const debouncedSync = useDebouncedCallback(runSync, 3000);
@@ -114,36 +99,28 @@ export function useStorage(
    * 全量替换状态值并自动触发写盘副作用
    * @param {any | ((prevData: any) => any)} valueOrFn 新的值或一个返回新值的函数。
    */
-  const save = useCallback(
-    (valueOrFn) => {
-      setData((prevData) =>
-        normalizeValue(
-          typeof valueOrFn === "function" ? valueOrFn(prevData) : valueOrFn
-        )
-      );
-    },
-    [normalizeValue]
-  );
+  const save = useCallback((valueOrFn) => {
+    setData((prevData) =>
+      typeof valueOrFn === "function" ? valueOrFn(prevData) : valueOrFn
+    );
+  }, []);
 
   /**
    * 合并部分对象到当前状态（假设状态是一个对象）。
    * @param {object | ((prevData: object) => object)} partialDataOrFn 要合并的对象或一个返回该对象的函数。
    */
-  const update = useCallback(
-    (partialDataOrFn) => {
-      setData((prevData) => {
-        const partialData =
-          typeof partialDataOrFn === "function"
-            ? partialDataOrFn(prevData)
-            : partialDataOrFn;
-        // 确保 preData 是一个对象，避免展开 null 或 undefined
-        const baseObj =
-          typeof prevData === "object" && prevData !== null ? prevData : {};
-        return normalizeValue({ ...baseObj, ...partialData });
-      });
-    },
-    [normalizeValue]
-  );
+  const update = useCallback((partialDataOrFn) => {
+    setData((prevData) => {
+      const partialData =
+        typeof partialDataOrFn === "function"
+          ? partialDataOrFn(prevData)
+          : partialDataOrFn;
+      // 确保 preData 是一个对象，避免展开 null 或 undefined
+      const baseObj =
+        typeof prevData === "object" && prevData !== null ? prevData : {};
+      return { ...baseObj, ...partialData };
+    });
+  }, []);
 
   /**
    * 从 Storage 中删除该值，并将状态重置为 null。
@@ -163,11 +140,11 @@ export function useStorage(
   const reload = useCallback(async () => {
     try {
       const storedVal = await storage.getObj(key);
-      setData(normalizeValue(storedVal ?? defaultVal));
+      setData(storedVal ?? defaultVal);
     } catch (err) {
       kissLog(`storage reload error for key: ${key}`, err);
     }
-  }, [key, defaultVal, normalizeValue]);
+  }, [key, defaultVal]);
 
   return { data, save, update, remove, reload, isLoading };
 }
