@@ -11,6 +11,11 @@ import {
   OPT_TRANS_MICROSOFT,
   DEFAULT_API_LIST,
 } from "./api";
+import {
+  CURRENT_SETTINGS_VERSION,
+  DEFAULT_SUBTITLE_PROMPT_SLUG,
+  PROMPT_MODE_FOLLOW_API,
+} from "./prompt";
 import { DEFAULT_CUSTOM_STYLES } from "./styles";
 
 // --- 默认系统快捷键映射 ---
@@ -158,6 +163,8 @@ export const DEFAULT_SUBTITLE_SETTING = {
   showList: OPT_ENHANCE_MOBILE_OFF, // 是否在侧边/右侧显示字幕全文滚动历史面板
   hideSubtitleButton: false, // 是否隐藏 YouTube 播放器中的字幕功能按钮
   aiContextSlug: "-", // 是否为字幕启用智能上下文，以获取更好的代词翻译效果
+  segPromptMode: PROMPT_MODE_FOLLOW_API, // AI 断句提示词来源：接口默认或指定 subtitle prompt
+  segPromptSlug: DEFAULT_SUBTITLE_PROMPT_SLUG, // 指定的 subtitle prompt slug，仅在指定提示词模式下生效
 };
 
 // 预设配置规则的在线订阅 URL 地址列表 (从服务器拉取全球主流网站的最优适配 CSS 选择器规则)
@@ -186,6 +193,7 @@ export const DEFAULT_MOUSE_HOVER_SETTING = {
 
 // --- 全局默认设置对象，存储于 local storage ---
 export const DEFAULT_SETTING = {
+  version: CURRENT_SETTINGS_VERSION,
   darkMode: "auto", // 主题外观模式 ("light" 浅色, "dark" 深色, "auto" 跟随浏览器系统)
   uiLang: "en", // 插件设置面板界面的显示语言
   // fetchLimit: DEFAULT_FETCH_LIMIT, // 最大任务数量(移至rule，作废)
@@ -207,6 +215,7 @@ export const DEFAULT_SETTING = {
   subrulesList: DEFAULT_SUBRULES_LIST, // 订阅的在线翻译规则列表
   // owSubrule: DEFAULT_OW_RULE, // 覆写订阅规则 (作废)
   transApis: DEFAULT_API_LIST, // 缓存的全部可用翻译 API 配置列表（数组格式）
+  prompts: [], // 用户自定义提示词；预设提示词由 config/prompt.js 提供，不写入本地配置
   deletedTransApiSlugs: [], // 用户手动删除的默认翻译接口标识
   // mouseKey: OPT_TIMING_PAGESCROLL, // 翻译时机/鼠标悬停翻译(移至rule，作废)
   shortcuts: DEFAULT_SHORTCUTS, // 键盘快捷键配置对象

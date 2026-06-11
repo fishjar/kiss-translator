@@ -6,6 +6,7 @@ import {
   OPT_INPUT_DOT_DISABLE,
   OPT_INPUT_DOT_MOBILE,
 } from "../config";
+import { resolveApiPromptSettings } from "../config/prompt";
 import { isMobile } from "./mobile";
 import { genEventName, removeEndchar, matchInputStr, sleep } from "./utils";
 import { stepShortcutRegister } from "./shortcut";
@@ -248,8 +249,18 @@ export class InputTranslator {
   #boundFocusOut;
   #boundUpdatePos;
 
-  constructor({ inputRule = DEFAULT_INPUT_RULE, transApis = [] } = {}) {
-    this.#config = { inputRule, transApis };
+  constructor({
+    inputRule = DEFAULT_INPUT_RULE,
+    transApis = [],
+    prompts = [],
+    subtitleSetting = {},
+  } = {}) {
+    this.#config = {
+      inputRule,
+      prompts,
+      subtitleSetting,
+      transApis,
+    };
 
     const { triggerShortcut: initialTriggerShortcut } = this.#config.inputRule;
     this.#triggerShortcut =
@@ -560,9 +571,15 @@ export class InputTranslator {
       }
     }
 
-    const apiSetting =
+    const rawApiSetting =
       this.#config.transApis.find((api) => api.apiSlug === apiSlug) ||
       DEFAULT_API_SETTING;
+
+    const apiSetting = resolveApiPromptSettings(
+      rawApiSetting,
+      this.#config.prompts,
+      this.#config.subtitleSetting
+    );
 
     const loadingId = "kiss-loading-" + genEventName();
 
@@ -597,12 +614,18 @@ export class InputTranslator {
     }
   }
 
-  updateConfig({ inputRule, transApis }) {
+  updateConfig({ inputRule, transApis, prompts, subtitleSetting }) {
     const wasEnabled = this.#isEnabled;
     if (wasEnabled) this.disable();
 
     if (inputRule) this.#config.inputRule = inputRule;
-    if (transApis) this.#config.transApis = transApis;
+    if (prompts) this.#config.prompts = prompts;
+    if (subtitleSetting) {
+      this.#config.subtitleSetting = subtitleSetting;
+    }
+    if (transApis) {
+      this.#config.transApis = transApis;
+    }
 
     const { triggerShortcut } = this.#config.inputRule;
     this.#triggerShortcut =

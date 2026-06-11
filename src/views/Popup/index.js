@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
@@ -7,7 +7,11 @@ import { browser } from "../../libs/browser";
 import { useI18n } from "../../hooks/I18n";
 import Divider from "@mui/material/Divider";
 import Header from "./Header";
-import { MSG_OPEN_SEPARATE_WINDOW, MSG_TRANS_GETRULE } from "../../config";
+import {
+  MSG_OPEN_SEPARATE_WINDOW,
+  MSG_TRANS_GETRULE,
+  resolveApiPromptList,
+} from "../../config";
 import { kissLog } from "../../libs/log";
 import PopupCont from "./PopupCont";
 import TranForm from "../Selection/TranForm";
@@ -26,7 +30,13 @@ function Trantab() {
     tranboxSetting: { enDict, enSug, apiSlugs, fromLang, toLang, toLang2 },
     transApis,
     langDetector,
+    prompts,
+    subtitleSetting,
   } = setting;
+  const resolvedTransApis = useMemo(
+    () => resolveApiPromptList(transApis, prompts, subtitleSetting),
+    [prompts, subtitleSetting, transApis]
+  );
 
   return (
     <Box sx={{ p: 2 }}>
@@ -38,7 +48,7 @@ function Trantab() {
         fromLang={fromLang}
         toLang={toLang}
         toLang2={toLang2}
-        transApis={transApis}
+        transApis={resolvedTransApis}
         simpleStyle={false}
         langDetector={langDetector}
         enDict={enDict}

@@ -16,6 +16,7 @@ import {
   MSG_UPDATE_ICON,
   newI18n,
 } from "../config";
+import { resolveApiPromptSettings } from "../config/prompt";
 import { interpreter } from "./interpreter";
 import { clearFetchPool } from "./pool";
 import { debounce, scheduleIdle, genEventName, parseAITerms } from "./utils";
@@ -2126,7 +2127,14 @@ export class Translator {
   #translateFetch(text, deLang = "", onStreamChunk = null) {
     const { toLang, transStartHook } = this.#rule;
     const fromLang = deLang || this.#rule.fromLang;
-    const apiSetting = { ...this.#apiSetting };
+    const rawApiSetting = { ...this.#apiSetting };
+
+    const apiSetting = resolveApiPromptSettings(
+      rawApiSetting,
+      this.#setting.prompts,
+      this.#setting.subtitleSetting
+    );
+
     const glossary = { ...this.#glossary };
     const apisMap = this.#apisMap;
 

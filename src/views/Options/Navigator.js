@@ -18,6 +18,7 @@ import MouseIcon from "@mui/icons-material/Mouse";
 import SubtitlesIcon from "@mui/icons-material/Subtitles";
 import FormatColorText from "@mui/icons-material/FormatColorText";
 import BugReportIcon from "@mui/icons-material/BugReport";
+import TextSnippetIcon from "@mui/icons-material/TextSnippet";
 
 /**
  * 单个侧边栏路由导航菜单项组件
@@ -57,6 +58,12 @@ export default function Navigator(props) {
       label: i18n("apis_setting"),
       url: "/apis",
       icon: <ApiIcon />,
+    },
+    {
+      id: "prompt_management",
+      label: i18n("prompt_management", "提示词管理"),
+      url: "/prompts",
+      icon: <TextSnippetIcon />,
     },
     {
       id: "styles_setting",

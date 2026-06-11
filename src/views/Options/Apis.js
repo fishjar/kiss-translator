@@ -35,9 +35,12 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import ApiIcon from "@mui/icons-material/Api";
 import Link from "@mui/material/Link";
+import { useTheme } from "../../hooks/Theme";
+import { useSetting } from "../../hooks/Setting";
 import { useAlert } from "../../hooks/Alert";
 import { useApiList, useApiItem } from "../../hooks/Api";
 import { useConfirm } from "../../hooks/Confirm";
+import { resolveApiPromptSettings } from "../../config/prompt";
 import { apiTranslate } from "../../apis";
 import Box from "@mui/material/Box";
 import ReusableAutocomplete from "./ReusableAutocomplete";
@@ -82,14 +85,17 @@ import {
   BUILTIN_PLACEHOLDERS,
   BUILTIN_PLACETAGS,
   OPT_TRANS_AZUREAI,
-  defaultNobatchPrompt,
-  defaultNobatchUserPrompt,
-  defaultSystemPrompt,
-  defaultSystemPromptXml,
-  defaultSystemPromptLines,
   THINKING_PARAM_MAP,
+  DEFAULT_NOBATCH_PROMPT_SLUG,
+  DEFAULT_BATCH_PROMPT_SLUG,
+  DEFAULT_SUBTITLE_PROMPT_SLUG,
+  getBatchPromptOptions,
+  getNobatchPromptOptions,
+  getPromptDisplayName,
+  getSubtitlePromptOptions,
 } from "../../config";
 import ValidationInput from "../../hooks/ValidationInput";
+import { usePromptList } from "../../hooks/Prompt";
 
 const API_ICON_SIZE = 22;
 const API_LIST_CONTROL_SIZE = 24;
@@ -184,16 +190,24 @@ function ApiProviderIcon({ apiType, disabled = false, sx = {} }) {
 function TestButton({ api }) {
   const i18n = useI18n();
   const alert = useAlert();
+  const { setting: { prompts, subtitleSetting } = {} } = useSetting();
   const [loading, setLoading] = useState(false);
   const handleApiTest = async () => {
     try {
       setLoading(true);
       const text = "The quick brown fox jumps over the lazy dog.";
+
+      const apiSetting = resolveApiPromptSettings(
+        { ...api },
+        prompts,
+        subtitleSetting
+      );
+
       const { trText } = await apiTranslate({
         text,
         fromLang: "en",
         toLang: "zh-CN",
-        apiSetting: { ...api },
+        apiSetting,
         useCache: false,
         usePool: false,
       });
@@ -269,6 +283,7 @@ function SensitiveTextField({ value = "", onChange, inputProps, ...props }) {
 
 function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
   const { api, update, reset } = useApiItem(apiSlug);
+  const { prompts } = usePromptList();
   const i18n = useI18n();
   const [formData, setFormData] = useState(() => api || {});
   const [showMore, setShowMore] = useState(false);
@@ -326,18 +341,33 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
     });
   };
 
-  const handleUpdateSystemPrompt = (e) => {
-    const promptMap = {
-      json: defaultSystemPrompt,
-      xml: defaultSystemPromptXml,
-      textlines: defaultSystemPromptLines,
-    };
-    const systemPrompt =
-      promptMap[e.target.dataset.output] || defaultSystemPromptXml;
-    setFormData((prevData) => ({
-      ...prevData,
-      systemPrompt,
-    }));
+  const handlePromptChange = (e) => {
+    e?.preventDefault();
+    const { name, value } = e.target;
+    const prompt = prompts.find((item) => item.slug === value);
+
+    setFormData((prevData) => {
+      const baseData = prevData?.apiSlug === apiSlug ? prevData : api || {};
+      const newData = {
+        ...baseData,
+        [name]: value,
+      };
+
+      if (name === "batchPromptSlug" && prompt) {
+        newData.systemPrompt = prompt.systemPrompt;
+      }
+
+      if (name === "nobatchPromptSlug" && prompt) {
+        newData.nobatchPrompt = prompt.systemPrompt;
+        newData.nobatchUserPrompt = prompt.userPrompt;
+      }
+
+      if (name === "subtitlePromptSlug" && prompt) {
+        newData.subtitlePrompt = prompt.systemPrompt;
+      }
+
+      return newData;
+    });
   };
 
   const handleSave = () => {
@@ -371,10 +401,6 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
     key = "",
     model = "",
     apiType,
-    systemPrompt = "",
-    nobatchPrompt = defaultNobatchPrompt,
-    nobatchUserPrompt = defaultNobatchUserPrompt,
-    subtitlePrompt = "",
     // userPrompt = "",
     customHeader = "",
     customBody = "",
@@ -408,9 +434,42 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
     aiTerms = "",
     thinkingMode = "auto",
     thinkingEffort = "_default",
+    batchPromptSlug = "",
+    nobatchPromptSlug = "",
+    subtitlePromptSlug = "",
   } = activeFormData;
 
   const thinkingParam = THINKING_PARAM_MAP[apiType];
+  const selectedBatchPromptSlug = Object.prototype.hasOwnProperty.call(
+    activeFormData,
+    "batchPromptSlug"
+  )
+    ? batchPromptSlug
+    : DEFAULT_BATCH_PROMPT_SLUG;
+  const selectedNobatchPromptSlug = Object.prototype.hasOwnProperty.call(
+    activeFormData,
+    "nobatchPromptSlug"
+  )
+    ? nobatchPromptSlug
+    : DEFAULT_NOBATCH_PROMPT_SLUG;
+  const selectedSubtitlePromptSlug = Object.prototype.hasOwnProperty.call(
+    activeFormData,
+    "subtitlePromptSlug"
+  )
+    ? subtitlePromptSlug
+    : DEFAULT_SUBTITLE_PROMPT_SLUG;
+  const nobatchPromptOptions = useMemo(
+    () => getNobatchPromptOptions(prompts),
+    [prompts]
+  );
+  const batchPromptOptions = useMemo(
+    () => getBatchPromptOptions(prompts),
+    [prompts]
+  );
+  const subtitlePromptOptions = useMemo(
+    () => getSubtitlePromptOptions(prompts),
+    [prompts]
+  );
 
   const keyHelper = useMemo(
     () => (API_SPE_TYPES.mulkeys.has(apiType) ? i18n("mulkeys_help") : ""),
@@ -590,7 +649,6 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
                   max={1000000}
                 />
               </Grid>
-              <Grid item xs={12} sm={12} md={6} lg={3}></Grid>
             </Grid>
           </Box>
         </>
@@ -838,6 +896,64 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
         </Grid>
       </Box>
 
+      {API_SPE_TYPES.ai.has(apiType) && (
+        <Box>
+          <Grid container spacing={2} columns={12}>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                name="nobatchPromptSlug"
+                value={selectedNobatchPromptSlug}
+                label={i18n("nobatch_prompt", "非聚合翻译提示词")}
+                onChange={handlePromptChange}
+              >
+                {nobatchPromptOptions.map((prompt) => (
+                  <MenuItem key={prompt.slug} value={prompt.slug}>
+                    {getPromptDisplayName(prompt, i18n)}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                name="batchPromptSlug"
+                value={selectedBatchPromptSlug}
+                label={i18n("batch_prompt", "聚合翻译提示词")}
+                onChange={handlePromptChange}
+              >
+                {batchPromptOptions.map((prompt) => (
+                  <MenuItem key={prompt.slug} value={prompt.slug}>
+                    {getPromptDisplayName(prompt, i18n)}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                name="subtitlePromptSlug"
+                value={selectedSubtitlePromptSlug}
+                label={i18n("subtitle_prompt", "AI断句提示词")}
+                onChange={handlePromptChange}
+              >
+                {subtitlePromptOptions.map((prompt) => (
+                  <MenuItem key={prompt.slug} value={prompt.slug}>
+                    {getPromptDisplayName(prompt, i18n)}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+          </Grid>
+        </Box>
+      )}
+
       {thinkingParam && (
         <Box>
           <Grid container spacing={2} columns={12}>
@@ -951,92 +1067,16 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
           </Box>
 
           {API_SPE_TYPES.ai.has(apiType) && (
-            <>
-              {useBatchFetch ? (
-                <TextField
-                  size="small"
-                  label={"Batch System Prompt"}
-                  name="systemPrompt"
-                  value={systemPrompt}
-                  onChange={handleChange}
-                  multiline
-                  maxRows={10}
-                  helperText={
-                    <>
-                      {i18n("system_prompt_helper_1")}
-                      <Link
-                        component="button"
-                        sx={{ margin: "0 1em" }}
-                        data-output="json"
-                        onClick={handleUpdateSystemPrompt}
-                      >
-                        {i18n("json_output")}
-                      </Link>
-                      <Link
-                        component="button"
-                        sx={{ margin: "0 1em" }}
-                        data-output="xml"
-                        onClick={handleUpdateSystemPrompt}
-                      >
-                        {i18n("xml_output")}
-                      </Link>
-                      <Link
-                        component="button"
-                        sx={{ margin: "0 1em" }}
-                        data-output="textlines"
-                        onClick={handleUpdateSystemPrompt}
-                      >
-                        {i18n("textlines_output")}
-                      </Link>
-                      <br />
-                      {i18n("system_prompt_helper_2")}
-                    </>
-                  }
-                />
-              ) : (
-                <>
-                  <TextField
-                    size="small"
-                    label={"System Prompt"}
-                    name="nobatchPrompt"
-                    value={nobatchPrompt}
-                    onChange={handleChange}
-                    multiline
-                    maxRows={10}
-                  />
-                  <TextField
-                    size="small"
-                    label={"User Prompt"}
-                    name="nobatchUserPrompt"
-                    value={nobatchUserPrompt}
-                    onChange={handleChange}
-                    multiline
-                    maxRows={10}
-                  />
-                </>
-              )}
-
-              <TextField
-                size="small"
-                label={"Subtitle Prompt"}
-                name="subtitlePrompt"
-                value={subtitlePrompt}
-                onChange={handleChange}
-                multiline
-                maxRows={10}
-                helperText={i18n("system_prompt_helper")}
-              />
-              <TextField
-                size="small"
-                label={i18n("ai_terms")}
-                helperText={i18n("ai_terms_helper")}
-                name="aiTerms"
-                value={aiTerms}
-                onChange={handleChange}
-                multiline
-                maxRows={10}
-              />
-            </>
+            <TextField
+              size="small"
+              label={i18n("ai_terms")}
+              helperText={i18n("ai_terms_helper")}
+              name="aiTerms"
+              value={aiTerms}
+              onChange={handleChange}
+              multiline
+              maxRows={10}
+            />
           )}
 
           {apiType !== OPT_TRANS_BUILTINAI && (
@@ -1626,13 +1666,14 @@ export default function Apis() {
             borderColor: "divider",
             borderRadius: 1,
             overflow: "hidden",
+            height: { md: "calc(100vh - 250px)" },
           }}
         >
           <Box
             sx={(theme) => ({
               width: { xs: "100%", md: 280 },
               flex: { xs: "0 0 auto", md: "0 0 280px" },
-              maxHeight: { xs: 240, md: "calc(100vh - 230px)" },
+              height: { md: "100%" },
               overflowY: "auto",
               borderRight: {
                 xs: 0,
@@ -1671,7 +1712,7 @@ export default function Apis() {
               minWidth: 0,
               p: 2,
               boxSizing: "border-box",
-              height: { md: "calc(100vh - 230px)" },
+              height: { md: "100%" },
               overflowY: { md: "auto" },
               scrollbarGutter: { md: "stable" },
               overscrollBehavior: "contain",

@@ -722,10 +722,13 @@ const defaultApi = {
   url: "",
   key: "",
   model: "", // 模型名称
-  systemPrompt: defaultSystemPromptXml,
-  subtitlePrompt: defaultSubtitlePrompt,
-  nobatchPrompt: defaultNobatchPrompt,
-  nobatchUserPrompt: defaultNobatchUserPrompt,
+  systemPrompt: "",
+  batchPromptSlug: "batch-translation-json",
+  subtitlePrompt: "",
+  subtitlePromptSlug: "subtitle-segmentation",
+  nobatchPrompt: "",
+  nobatchUserPrompt: "",
+  nobatchPromptSlug: "nobatch-translation",
   userPrompt: "",
   tone: BUILTIN_STONES[0], // 翻译风格
   placeholder: BUILTIN_PLACEHOLDERS[0], // 占位符

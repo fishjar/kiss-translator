@@ -192,6 +192,12 @@ async function waitForIframeTranslatableText() {
  */
 export async function run(isUserscript = false) {
   try {
+    // 0. 执行核心数据迁移 (针对油猴等无后台更新事件的场景)
+    if (isUserscript) {
+      const { runDataMigration } = await import("./libs/storage");
+      await runDataMigration();
+    }
+
     // 1. 加载本地设置
     const setting = await getSettingWithDefault();
 

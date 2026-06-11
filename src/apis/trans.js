@@ -110,7 +110,7 @@ const genSystemPrompt = ({
   texts,
   docInfo: { title = "", description = "", summary = "" } = {},
 }) =>
-  systemPrompt
+  String(systemPrompt || "")
     .replaceAll(INPUT_PLACE_TITLE, title)
     .replaceAll(INPUT_PLACE_DESCRIPTION, description)
     .replaceAll(INPUT_PLACE_SUMMARY, summary)
@@ -155,7 +155,7 @@ const genUserPrompt = ({
     return JSON.stringify(promptObj);
   }
 
-  return nobatchUserPrompt
+  return String(nobatchUserPrompt || "")
     .replaceAll(INPUT_PLACE_TITLE, title)
     .replaceAll(INPUT_PLACE_DESCRIPTION, description)
     .replaceAll(INPUT_PLACE_SUMMARY, summary)
@@ -181,7 +181,7 @@ const genSubtitlePrompt = ({
   const glossaryStr = Object.entries(aiGlossary)
     .map(([term, definition]) => `- ${term}: ${definition}`)
     .join("\n");
-  return subtitlePrompt
+  return String(subtitlePrompt || "")
     .replaceAll(INPUT_PLACE_TITLE, title)
     .replaceAll(INPUT_PLACE_DESCRIPTION, description)
     .replaceAll(INPUT_PLACE_SUMMARY, summary)
@@ -1076,11 +1076,13 @@ export const genTransReq = async ({ reqHook, ...args }) => {
 
     // 上下文回退：当 prompt 模板缺少占位符时，追加 # Context 块
     if (hasExternalDocInfo) {
-      const template = events
-        ? subtitlePrompt
-        : useBatchFetch
-          ? systemPrompt
-          : nobatchPrompt;
+      const template = String(
+        events
+          ? subtitlePrompt
+          : useBatchFetch
+            ? systemPrompt
+            : nobatchPrompt || ""
+      );
       const parts = [];
       if (docInfo.title && !template.includes(INPUT_PLACE_TITLE))
         parts.push(`Title: ${docInfo.title}`);
