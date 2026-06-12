@@ -27,6 +27,7 @@
         "file://*/*"
       ],
       "all_frames": true,
+      "match_origin_as_fallback": true,
       "match_about_blank": true
     }
   ],
