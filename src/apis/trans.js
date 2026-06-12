@@ -1388,34 +1388,23 @@ export async function* handleTranslate(
     }
   }
 
-  const [input, init, userMsg] = await genTransReq({
-    ...apiSetting,
-    texts,
-    from,
-    to,
-    fromLang,
-    toLang,
-    langMap,
-    glossary,
-    hisMsgs,
-    token,
-    useStream: enableStream,
-    docInfo,
-  });
-
-  if (enableStream) {
-    yield* handleTranslateStreamInternal(texts, input, init, {
-      apiType,
-      history,
-      userMsg,
-      usePool,
-      fetchInterval,
-      fetchLimit,
-      httpTimeout,
-      signal,
-      streamRenderMode: apiSetting.streamRenderMode || "disabled",
+  const getRequest = (requestUseStream) =>
+    genTransReq({
+      ...apiSetting,
+      texts,
+      from,
+      to,
+      fromLang,
+      toLang,
+      langMap,
+      glossary,
+      hisMsgs,
+      token,
+      useStream: requestUseStream,
+      docInfo,
     });
-  } else {
+
+  const runNonStream = async function* (input, init, userMsg) {
     const response = await fetchData(input, init, {
       useCache: false,
       usePool,
@@ -1446,7 +1435,39 @@ export async function* handleTranslate(
     for (let i = 0; i < result.length; i++) {
       yield { id: i, result: result[i] };
     }
+  };
+
+  const [input, init, userMsg] = await getRequest(enableStream);
+
+  if (enableStream) {
+    try {
+      yield* handleTranslateStreamInternal(texts, input, init, {
+        apiType,
+        history,
+        userMsg,
+        usePool,
+        fetchInterval,
+        fetchLimit,
+        httpTimeout,
+        signal,
+        streamRenderMode: apiSetting.streamRenderMode || "disabled",
+      });
+      return;
+    } catch (err) {
+      if (err?.name === "AbortError") {
+        throw err;
+      }
+      kissLog("translate stream failed, fallback to non-stream", err);
+    }
+
+    const [fallbackInput, fallbackInit, fallbackUserMsg] = await getRequest(
+      false
+    );
+    yield* runNonStream(fallbackInput, fallbackInit, fallbackUserMsg);
+    return;
   }
+
+  yield* runNonStream(input, init, userMsg);
 }
 
 /**

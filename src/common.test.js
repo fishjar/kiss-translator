@@ -9,6 +9,7 @@ jest.mock("./libs/storage", () => ({
   getSettingWithDefault: jest.fn(),
   getFabWithDefault: jest.fn(),
   getWordsWithDefault: jest.fn(),
+  runDataMigration: jest.fn(),
 }));
 
 jest.mock("./libs/iframe", () => ({
@@ -60,9 +61,11 @@ const {
   getSettingWithDefault,
   getFabWithDefault,
   getWordsWithDefault,
+  runDataMigration,
 } = require("./libs/storage");
 const { matchRule } = require("./libs/rules");
 const { runSubtitle } = require("./subtitle/subtitle");
+const { injectInlineJs } = require("./libs/injector");
 const TranslatorManager = require("./libs/translatorManager").default;
 const { run } = require("./common");
 
@@ -74,10 +77,16 @@ function setReadyState(value) {
 }
 
 describe("common iframe startup", () => {
+  const originalOptionsPage = process.env.REACT_APP_OPTIONSPAGE;
+  const originalOptionsPageDev = process.env.REACT_APP_OPTIONSPAGE_DEV;
+
   beforeEach(() => {
     document.documentElement.innerHTML = "<head></head><body></body>";
     setReadyState("complete");
     mockIsIframe = false;
+    process.env.REACT_APP_OPTIONSPAGE = "https://kiss.example/options.html";
+    process.env.REACT_APP_OPTIONSPAGE_DEV = "http://localhost:3000/options.html";
+    delete globalThis.unsafeWindow;
     jest.clearAllMocks();
 
     TranslatorManager.mockImplementation(() => ({
@@ -92,10 +101,25 @@ describe("common iframe startup", () => {
     });
     getFabWithDefault.mockResolvedValue({ isHide: false });
     getWordsWithDefault.mockResolvedValue({});
+    runDataMigration.mockResolvedValue();
     matchRule.mockResolvedValue({
       transOpen: "true",
       highlightWords: "-",
     });
+  });
+
+  afterEach(() => {
+    if (originalOptionsPage === undefined) {
+      delete process.env.REACT_APP_OPTIONSPAGE;
+    } else {
+      process.env.REACT_APP_OPTIONSPAGE = originalOptionsPage;
+    }
+    if (originalOptionsPageDev === undefined) {
+      delete process.env.REACT_APP_OPTIONSPAGE_DEV;
+    } else {
+      process.env.REACT_APP_OPTIONSPAGE_DEV = originalOptionsPageDev;
+    }
+    delete globalThis.unsafeWindow;
   });
 
   test("starts translator manager for iframe with text", async () => {
@@ -152,5 +176,184 @@ describe("common iframe startup", () => {
     expect(TranslatorManager).toHaveBeenCalledTimes(1);
     expect(mockTranslatorManagerStart).toHaveBeenCalledTimes(1);
     expect(runSubtitle).toHaveBeenCalledTimes(1);
+  });
+
+  test("creates legacy userscript GM shim before data migration", async () => {
+    const originalGM = globalThis.GM;
+    const originalGMGetValue = globalThis.GM_getValue;
+    const originalGMXmlhttpRequest = globalThis.GM_xmlhttpRequest;
+    const legacyGetValue = jest.fn();
+    const legacyXmlhttpRequest = jest.fn();
+    let gmDuringMigration;
+
+    delete globalThis.GM;
+    globalThis.GM_getValue = legacyGetValue;
+    globalThis.GM_xmlhttpRequest = legacyXmlhttpRequest;
+    runDataMigration.mockImplementation(async () => {
+      gmDuringMigration = globalThis.GM;
+    });
+
+    try {
+      await run(true);
+
+      expect(runDataMigration).toHaveBeenCalledTimes(1);
+      expect(gmDuringMigration).toBeDefined();
+      expect(gmDuringMigration.getValue).toBe(legacyGetValue);
+      expect(gmDuringMigration.xmlHttpRequest).toBe(legacyXmlhttpRequest);
+    } finally {
+      if (originalGM === undefined) {
+        delete globalThis.GM;
+      } else {
+        globalThis.GM = originalGM;
+      }
+      if (originalGMGetValue === undefined) {
+        delete globalThis.GM_getValue;
+      } else {
+        globalThis.GM_getValue = originalGMGetValue;
+      }
+      if (originalGMXmlhttpRequest === undefined) {
+        delete globalThis.GM_xmlhttpRequest;
+      } else {
+        globalThis.GM_xmlhttpRequest = originalGMXmlhttpRequest;
+      }
+    }
+  });
+
+  test("fills missing fields on existing userscript GM object", async () => {
+    const originalGM = globalThis.GM;
+    const originalGMXmlhttpRequest = globalThis.GM_xmlhttpRequest;
+    const existingSetValue = jest.fn();
+    const legacyXmlhttpRequest = jest.fn();
+    let gmDuringMigration;
+
+    globalThis.GM = { setValue: existingSetValue };
+    globalThis.GM_xmlhttpRequest = legacyXmlhttpRequest;
+    runDataMigration.mockImplementation(async () => {
+      gmDuringMigration = globalThis.GM;
+    });
+
+    try {
+      await run(true);
+
+      expect(runDataMigration).toHaveBeenCalledTimes(1);
+      expect(gmDuringMigration.setValue).toBe(existingSetValue);
+      expect(gmDuringMigration.xmlHttpRequest).toBe(legacyXmlhttpRequest);
+    } finally {
+      if (originalGM === undefined) {
+        delete globalThis.GM;
+      } else {
+        globalThis.GM = originalGM;
+      }
+      if (originalGMXmlhttpRequest === undefined) {
+        delete globalThis.GM_xmlhttpRequest;
+      } else {
+        globalThis.GM_xmlhttpRequest = originalGMXmlhttpRequest;
+      }
+    }
+  });
+
+  test("does not replace existing GM xmlHttpRequest", async () => {
+    const originalGM = globalThis.GM;
+    const originalGMXmlhttpRequest = globalThis.GM_xmlhttpRequest;
+    const existingXmlhttpRequest = jest.fn();
+    const legacyXmlhttpRequest = jest.fn();
+    let gmDuringMigration;
+
+    globalThis.GM = { xmlHttpRequest: existingXmlhttpRequest };
+    globalThis.GM_xmlhttpRequest = legacyXmlhttpRequest;
+    runDataMigration.mockImplementation(async () => {
+      gmDuringMigration = globalThis.GM;
+    });
+
+    try {
+      await run(true);
+
+      expect(runDataMigration).toHaveBeenCalledTimes(1);
+      expect(gmDuringMigration.xmlHttpRequest).toBe(existingXmlhttpRequest);
+    } finally {
+      if (originalGM === undefined) {
+        delete globalThis.GM;
+      } else {
+        globalThis.GM = originalGM;
+      }
+      if (originalGMXmlhttpRequest === undefined) {
+        delete globalThis.GM_xmlhttpRequest;
+      } else {
+        globalThis.GM_xmlhttpRequest = originalGMXmlhttpRequest;
+      }
+    }
+  });
+
+  test("falls back when unsafeWindow grant exists but unsafeWindow is unavailable", async () => {
+    const originalHref = window.location.href;
+    window.history.pushState({}, "", "/options.html");
+    process.env.REACT_APP_OPTIONSPAGE = window.location.href;
+    globalThis.GM = {
+      info: {
+        script: {
+          grant: ["unsafeWindow"],
+        },
+      },
+    };
+
+    try {
+      await run(true);
+
+      expect(injectInlineJs).toHaveBeenCalledTimes(1);
+      expect(injectInlineJs.mock.calls[0][1]).toBe(
+        "kiss-translator-options-injector"
+      );
+    } finally {
+      window.history.pushState({}, "", originalHref);
+      delete globalThis.GM;
+    }
+  });
+
+  test("mounts GM directly when unsafeWindow is available", async () => {
+    const originalHref = window.location.href;
+    const gm = {
+      info: {
+        script: {
+          grant: ["unsafeWindow"],
+        },
+      },
+    };
+    window.history.pushState({}, "", "/options.html");
+    process.env.REACT_APP_OPTIONSPAGE = window.location.href;
+    globalThis.GM = gm;
+    globalThis.unsafeWindow = {};
+
+    try {
+      await run(true);
+
+      expect(globalThis.unsafeWindow.GM).toBe(gm);
+      expect(globalThis.unsafeWindow.APP_INFO).toEqual({
+        name: process.env.REACT_APP_NAME,
+        version: process.env.REACT_APP_VERSION,
+      });
+      expect(injectInlineJs).not.toHaveBeenCalled();
+    } finally {
+      window.history.pushState({}, "", originalHref);
+      delete globalThis.GM;
+    }
+  });
+
+  test("falls back when GM grant metadata is missing", async () => {
+    const originalHref = window.location.href;
+    window.history.pushState({}, "", "/options.html");
+    process.env.REACT_APP_OPTIONSPAGE = window.location.href;
+    globalThis.GM = { info: {} };
+
+    try {
+      await run(true);
+
+      expect(injectInlineJs).toHaveBeenCalledTimes(1);
+      expect(injectInlineJs.mock.calls[0][1]).toBe(
+        "kiss-translator-options-injector"
+      );
+    } finally {
+      window.history.pushState({}, "", originalHref);
+      delete globalThis.GM;
+    }
   });
 });
