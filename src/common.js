@@ -21,8 +21,8 @@ import TranslatorManager from "./libs/translatorManager";
  * 该函数负责把油猴特权 GM 接口暴露给页面环境，以便设置页面能直接读写油猴配置项。
  */
 function runSettingPage() {
-  // 若油猴赋予了 unsafeWindow (直通宿主 window 权限)，则直接挂载
-  if (GM.info?.script?.grant?.includes("unsafeWindow")) {
+  // 若油猴实际提供了 unsafeWindow (直通宿主 window 权限)，则直接挂载
+  if (hasUnsafeWindowBridge()) {
     unsafeWindow.GM = GM;
     unsafeWindow.APP_INFO = {
       name: process.env.REACT_APP_NAME,
@@ -37,6 +37,30 @@ function runSettingPage() {
       "kiss-translator-options-injector"
     );
   }
+}
+
+function hasUnsafeWindowBridge() {
+  return typeof unsafeWindow !== "undefined";
+}
+
+/**
+ * 建立旧式 GM_* API 到现代 GM 对象的兼容垫片。
+ * 必须在任何 storage 访问前执行，避免旧油猴环境在数据迁移阶段缺少 GM。
+ */
+function ensureUserscriptGM() {
+  globalThis.GM = globalThis.GM || {};
+
+  globalThis.GM.xmlHttpRequest =
+    globalThis.GM.xmlHttpRequest || globalThis.GM_xmlhttpRequest;
+  globalThis.GM.registerMenuCommand =
+    globalThis.GM.registerMenuCommand || globalThis.GM_registerMenuCommand;
+  globalThis.GM.unregisterMenuCommand =
+    globalThis.GM.unregisterMenuCommand || globalThis.GM_unregisterMenuCommand;
+  globalThis.GM.setValue = globalThis.GM.setValue || globalThis.GM_setValue;
+  globalThis.GM.getValue = globalThis.GM.getValue || globalThis.GM_getValue;
+  globalThis.GM.deleteValue =
+    globalThis.GM.deleteValue || globalThis.GM_deleteValue;
+  globalThis.GM.info = globalThis.GM.info || globalThis.GM_info;
 }
 
 /**
@@ -192,8 +216,10 @@ async function waitForIframeTranslatableText() {
  */
 export async function run(isUserscript = false) {
   try {
-    // 0. 执行核心数据迁移 (针对油猴等无后台更新事件的场景)
     if (isUserscript) {
+      ensureUserscriptGM();
+
+      // 0. 执行核心数据迁移 (针对油猴等无后台更新事件的场景)
       const { runDataMigration } = await import("./libs/storage");
       await runDataMigration();
     }
@@ -215,18 +241,6 @@ export async function run(isUserscript = false) {
 
     // 4. 若为油猴脚本环境，建立向后兼容的 GM 特权接口垫片
     if (isUserscript) {
-      if (!globalThis.GM) {
-        globalThis.GM = {
-          xmlHttpRequest: globalThis.GM_xmlhttpRequest,
-          registerMenuCommand: globalThis.GM_registerMenuCommand,
-          unregisterMenuCommand: globalThis.GM_unregisterMenuCommand,
-          setValue: globalThis.GM_setValue,
-          getValue: globalThis.GM_getValue,
-          deleteValue: globalThis.GM_deleteValue,
-          info: globalThis.GM_info,
-        };
-      }
-
       // 如果当前是设置面板 URL，跳转去执行设置面板专用代理
       if (
         href.includes(process.env.REACT_APP_OPTIONSPAGE_DEV) ||

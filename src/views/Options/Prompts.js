@@ -88,7 +88,6 @@ function getPromptPlaceholders(category) {
 }
 
 function PromptPlaceholderButtons({ category, disabled, onInsert }) {
-  const i18n = useI18n();
   const placeholders = getPromptPlaceholders(category);
 
   if (placeholders.length === 0) {

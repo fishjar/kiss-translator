@@ -35,7 +35,6 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import ApiIcon from "@mui/icons-material/Api";
 import Link from "@mui/material/Link";
-import { useTheme } from "../../hooks/Theme";
 import { useSetting } from "../../hooks/Setting";
 import { useAlert } from "../../hooks/Alert";
 import { useApiList, useApiItem } from "../../hooks/Api";
