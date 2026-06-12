@@ -166,12 +166,17 @@ export const handlePing = async (e) => {
   // 继而构造伪造的 CustomEvent 来调用 `setValue`、`getValue` 甚至是 `xmlHttpRequest` 跨域代理。
   // 这会导致存储隐私泄露、数据被恶意覆写、甚至利用特权跨域请求实施 CSRF 攻击。
   // 建议今后在此处加入简单的会话 Token 校验机制。
-  const { action, args, pong } = e.detail;
+  let pong;
   let res;
   try {
+    const { action, args: rawArgs = {}, pong: eventPong } = e?.detail || {};
+    const args = rawArgs || {};
+    pong = eventPong;
+    if (!action) return;
+
     switch (action) {
       case MSG_GM_xmlHttpRequest:
-        if ("input" in args) {
+        if (Object.prototype.hasOwnProperty.call(args, "input")) {
           const { input, init } = args;
           res = await fetchGM(input, init); // 调用跨域特权 fetch
           break;
@@ -223,11 +228,15 @@ export const handlePing = async (e) => {
     }
 
     // 成功处理后，向回调事件 pong 发送成功报文
-    window.dispatchEvent(new CustomEvent(pong, { detail: { data: res } }));
+    if (pong) {
+      window.dispatchEvent(new CustomEvent(pong, { detail: { data: res } }));
+    }
   } catch (err) {
     // 捕获异常并反馈给回调页面
-    window.dispatchEvent(
-      new CustomEvent(pong, { detail: { error: err.message } })
-    );
+    if (pong) {
+      window.dispatchEvent(
+        new CustomEvent(pong, { detail: { error: err.message } })
+      );
+    }
   }
 };

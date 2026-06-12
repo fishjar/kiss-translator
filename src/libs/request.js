@@ -75,6 +75,35 @@ export const mergeAbortSignals = (signals = []) => {
 export const createTimeoutSignal = (timeout) =>
   AbortSignal?.timeout && timeout ? AbortSignal.timeout(timeout) : undefined;
 
+const parseResponseHeaders = (responseHeaders) => {
+  const headers = {};
+  try {
+    responseHeaders &&
+      responseHeaders.split(/\r?\n/).forEach((line) => {
+        const [name, value] = line.split(":").map((item) => item.trim());
+        if (name && value) {
+          headers[name] = value;
+        }
+      });
+  } catch (e) {
+    kissLog("fetchGM parse headers error", e);
+  }
+
+  return headers;
+};
+
+const createGMResponse = ({
+  response,
+  responseHeaders,
+  status,
+  statusText,
+} = {}) => ({
+  body: response,
+  headers: parseResponseHeaders(responseHeaders),
+  status,
+  statusText,
+});
+
 /**
  * 通过 GM.xmlHttpRequest 发起普通请求，并包装成接近 Fetch Response 的对象。
  *
@@ -124,27 +153,58 @@ export const fetchGM = async (
       data: body,
       anonymous: true,
       timeout,
-      onload: ({ response, responseHeaders, status, statusText }) => {
-        const headers = {};
-        try {
-          responseHeaders &&
-            responseHeaders.split(/\r?\n/).forEach((line) => {
-              const [name, value] = line.split(":").map((item) => item.trim());
-              if (name && value) {
-                headers[name] = value;
-              }
-            });
-        } catch (e) {
-          kissLog("fetchGM parse headers error", e);
-        }
-
-        finish(resolve, {
-          body: response,
-          headers,
-          status,
-          statusText,
-        });
+      onload(responseEvent) {
+        finish(resolve, createGMResponse(responseEvent || this));
       },
+      onerror: (error) => finish(reject, error),
+      onabort: () =>
+        finish(
+          reject,
+          new DOMException("The operation was aborted.", "AbortError")
+        ),
+      ontimeout: () => finish(reject, new Error("GM request timeout.")),
+    });
+  });
+
+const fetchKissGM = async (
+  input,
+  { method = "GET", headers, body, timeout, signal } = {}
+) =>
+  new Promise((resolve, reject) => {
+    let requestHandle = null;
+    let settled = false;
+
+    const finish = (fn, value) => {
+      if (settled) return;
+      settled = true;
+      signal?.removeEventListener?.("abort", abortBySignal);
+      fn(value);
+    };
+
+    const abortBySignal = () => {
+      requestHandle?.abort?.();
+      finish(
+        reject,
+        new DOMException("The operation was aborted.", "AbortError")
+      );
+    };
+
+    if (signal?.aborted) {
+      abortBySignal();
+      return;
+    }
+
+    signal?.addEventListener?.("abort", abortBySignal, { once: true });
+
+    requestHandle = window.KISS_GM.xmlHttpRequest({
+      method,
+      url: input,
+      headers,
+      data: body,
+      anonymous: true,
+      timeout,
+      onload: (responseEvent) =>
+        finish(resolve, createGMResponse(responseEvent)),
       onerror: (error) => finish(reject, error),
       onabort: () =>
         finish(
@@ -178,7 +238,7 @@ export const fetchPatcher = async (input, init = {}, opts) => {
     const gmInit = { ...requestInit, timeout };
 
     const { body, headers, status, statusText } = window.KISS_GM
-      ? await window.KISS_GM.fetch(input, gmInit)
+      ? await fetchKissGM(input, gmInit)
       : await fetchGM(input, gmInit);
 
     return new Response(body, {

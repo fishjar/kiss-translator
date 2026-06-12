@@ -134,6 +134,13 @@ describe("gm userscript bridge", () => {
     );
   });
 
+  test("handlePing ignores missing detail without throwing", async () => {
+    await expect(handlePing(new CustomEvent("kiss-ping"))).resolves.toBe(
+      undefined
+    );
+    await expect(handlePing({})).resolves.toBe(undefined);
+  });
+
   test("handlePing forwards native GM xmlHttpRequest callbacks and aborts", async () => {
     const abort = jest.fn();
     let xhrDetails;
