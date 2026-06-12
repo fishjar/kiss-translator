@@ -21,7 +21,9 @@ const loadRequestWithClient = (clientMock) => {
   jest.resetModules();
   jest.doMock("./client", () => clientMock);
   jest.doMock("./storage", () => ({
-    getSettingWithDefault: jest.fn(() => Promise.resolve({ httpTimeout: 1000 })),
+    getSettingWithDefault: jest.fn(() =>
+      Promise.resolve({ httpTimeout: 1000 })
+    ),
   }));
   jest.doMock("../config", () => ({
     CLIENT_EXTS: [],

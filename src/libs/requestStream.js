@@ -179,9 +179,7 @@ async function* fetchStreamGM(
     },
     onerror: (e) => fail(e),
     onabort: () =>
-      fail(
-        new DOMException("The operation was aborted.", "AbortError")
-      ),
+      fail(new DOMException("The operation was aborted.", "AbortError")),
     ontimeout: () => fail(new Error("GM stream request timeout")),
   });
 

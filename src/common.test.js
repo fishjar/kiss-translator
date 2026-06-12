@@ -85,7 +85,8 @@ describe("common iframe startup", () => {
     setReadyState("complete");
     mockIsIframe = false;
     process.env.REACT_APP_OPTIONSPAGE = "https://kiss.example/options.html";
-    process.env.REACT_APP_OPTIONSPAGE_DEV = "http://localhost:3000/options.html";
+    process.env.REACT_APP_OPTIONSPAGE_DEV =
+      "http://localhost:3000/options.html";
     delete globalThis.unsafeWindow;
     jest.clearAllMocks();
 

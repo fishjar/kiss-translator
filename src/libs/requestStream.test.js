@@ -188,10 +188,8 @@ describe("requestStream in userscript", () => {
     const first = iterator.next();
     await waitForRequestDetails();
 
-    const data =
-      'data: {"choices":[{"delta":{"content":"ä½ å¥½"}}]}\n\n';
-    const partialDataEnd = 'data: {"choices":[{"delta":{"content":"ä½'
-      .length;
+    const data = 'data: {"choices":[{"delta":{"content":"ä½ å¥½"}}]}\n\n';
+    const partialDataEnd = 'data: {"choices":[{"delta":{"content":"ä½'.length;
     requestDetails.onprogress({
       responseText: data.slice(0, partialDataEnd),
     });

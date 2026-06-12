@@ -1460,9 +1460,8 @@ export async function* handleTranslate(
       kissLog("translate stream failed, fallback to non-stream", err);
     }
 
-    const [fallbackInput, fallbackInit, fallbackUserMsg] = await getRequest(
-      false
-    );
+    const [fallbackInput, fallbackInit, fallbackUserMsg] =
+      await getRequest(false);
     yield* runNonStream(fallbackInput, fallbackInit, fallbackUserMsg);
     return;
   }

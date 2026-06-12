@@ -55,9 +55,7 @@ describe("handleTranslate", () => {
       choices: [
         {
           message: {
-            content: JSON.stringify([
-              { text: "你好", sourceLanguage: "en" },
-            ]),
+            content: JSON.stringify([{ text: "你好", sourceLanguage: "en" }]),
           },
         },
       ],
