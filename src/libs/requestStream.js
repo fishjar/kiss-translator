@@ -69,7 +69,12 @@ async function* fetchStreamGM(
     }
   };
 
-  const hasWideChar = (text) => /[^\u0000-\u00ff]/.test(text);
+  const hasWideChar = (text) => {
+    for (let i = 0; i < text.length; i += 1) {
+      if (text.charCodeAt(i) > 0xff) return true;
+    }
+    return false;
+  };
   const hasHighByte = (text) => /[\u0080-\u00ff]/.test(text);
   const looksLikeUtf8ByteString = (text) =>
     /[\u00c2-\u00f4][\u0080-\u00bf]/.test(text);
