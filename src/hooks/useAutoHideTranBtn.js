@@ -5,8 +5,13 @@ import { useEffect } from "react";
  * 当用户在页面中点击右键，或者页面中的文字选区被清空（Collapsed）时，自动隐藏划词翻译触发按钮。
  * @param {boolean} showBtn 按钮当前是否显示
  * @param {function} setShowBtn 控制按钮显示隐藏的 set 函数
+ * @param {function} getSelection 获取当前有效选区
  */
-export default function useAutoHideTranBtn(showBtn, setShowBtn) {
+export default function useAutoHideTranBtn(
+  showBtn,
+  setShowBtn,
+  getSelection = () => window.getSelection()
+) {
   useEffect(() => {
     // 如果按钮本就处于隐藏状态，无需做任何事件监听
     if (!showBtn) return;
@@ -23,7 +28,7 @@ export default function useAutoHideTranBtn(showBtn, setShowBtn) {
     // 在其中高频判断并触发状态更新（setShowBtn(false)）可能带来性能开销。
     // 可以考虑引入轻量级去抖（debounce）或者仅在状态真正发生 true -> false 突变时才执行状态派发。
     const handleSelectionChange = () => {
-      const selection = window.getSelection();
+      const selection = getSelection();
       if (!selection || selection.isCollapsed) setShowBtn(false);
     };
 
@@ -35,5 +40,5 @@ export default function useAutoHideTranBtn(showBtn, setShowBtn) {
       window.removeEventListener("mousedown", handleMouseDown, true);
       document.removeEventListener("selectionchange", handleSelectionChange);
     };
-  }, [showBtn, setShowBtn]);
+  }, [showBtn, setShowBtn, getSelection]);
 }

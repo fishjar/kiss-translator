@@ -1,5 +1,6 @@
 import {
   DEFAULT_BATCH_PROMPT_SLUG,
+  DEFAULT_DICTIONARY_PROMPT_SLUG,
   DEFAULT_NOBATCH_PROMPT_SLUG,
   DEFAULT_SUBTITLE_PROMPT_SLUG,
   PRESET_PROMPTS,
@@ -8,6 +9,7 @@ import {
   PROMPT_MODE_GLOBAL,
   PROMPT_TEMPLATE_CATEGORIES,
   SETTINGS_VERSION_V2,
+  getDictionaryPromptOptions,
   getPromptDisplayName,
   migrateSettingPromptsToV2,
   normalizeCustomPrompts,
@@ -21,6 +23,7 @@ import {
   DEFAULT_API_LIST,
   defaultNobatchPrompt,
   defaultNobatchUserPrompt,
+  defaultDictPrompt,
   defaultSubtitlePrompt,
   defaultSystemPrompt,
 } from "./api";
@@ -112,15 +115,18 @@ describe("prompt settings", () => {
     expect(api.nobatchPrompt).toBe("");
     expect(api.nobatchUserPrompt).toBe("");
     expect(api.subtitlePrompt).toBe("");
+    expect(api.dictPrompt).toBe("");
 
     expect(resolveApiPromptSettings(api)).toMatchObject({
       batchPromptSlug: DEFAULT_BATCH_PROMPT_SLUG,
       nobatchPromptSlug: DEFAULT_NOBATCH_PROMPT_SLUG,
       subtitlePromptSlug: DEFAULT_SUBTITLE_PROMPT_SLUG,
+      dictPromptSlug: DEFAULT_DICTIONARY_PROMPT_SLUG,
       systemPrompt: defaultSystemPrompt,
       nobatchPrompt: defaultNobatchPrompt,
       nobatchUserPrompt: defaultNobatchUserPrompt,
       subtitlePrompt: defaultSubtitlePrompt,
+      dictPrompt: defaultDictPrompt,
     });
   });
 
@@ -132,12 +138,17 @@ describe("prompt settings", () => {
           batchPromptSlug: "prompt_deleted",
           nobatchPromptSlug: "prompt_deleted",
           subtitlePromptSlug: "prompt_deleted",
+          dictPromptSlug: "prompt_deleted",
           systemPrompt: "deleted batch prompt",
           nobatchPrompt: "deleted nobatch system prompt",
           nobatchUserPrompt: "deleted nobatch user prompt",
           subtitlePrompt: "deleted subtitle prompt",
+          dictPrompt: "deleted dictionary prompt",
         },
       ],
+      tranboxSetting: {
+        aiDictPromptSlug: "prompt_deleted",
+      },
       subtitleSetting: {
         segPromptMode: PROMPT_MODE_GLOBAL,
         segPromptSlug: "prompt_deleted",
@@ -150,11 +161,16 @@ describe("prompt settings", () => {
       batchPromptSlug: DEFAULT_BATCH_PROMPT_SLUG,
       nobatchPromptSlug: DEFAULT_NOBATCH_PROMPT_SLUG,
       subtitlePromptSlug: DEFAULT_SUBTITLE_PROMPT_SLUG,
+      dictPromptSlug: DEFAULT_DICTIONARY_PROMPT_SLUG,
     });
     expect(cleaned.transApis[0]).not.toHaveProperty("systemPrompt");
     expect(cleaned.transApis[0]).not.toHaveProperty("nobatchPrompt");
     expect(cleaned.transApis[0]).not.toHaveProperty("nobatchUserPrompt");
     expect(cleaned.transApis[0]).not.toHaveProperty("subtitlePrompt");
+    expect(cleaned.transApis[0]).not.toHaveProperty("dictPrompt");
+    expect(cleaned.tranboxSetting).toMatchObject({
+      aiDictPromptSlug: PROMPT_MODE_FOLLOW_API,
+    });
     expect(cleaned.subtitleSetting).toMatchObject({
       segPromptMode: PROMPT_MODE_FOLLOW_API,
       segPromptSlug: DEFAULT_SUBTITLE_PROMPT_SLUG,
@@ -165,6 +181,7 @@ describe("prompt settings", () => {
       nobatchPrompt: defaultNobatchPrompt,
       nobatchUserPrompt: defaultNobatchUserPrompt,
       subtitlePrompt: defaultSubtitlePrompt,
+      dictPrompt: defaultDictPrompt,
     });
   });
 
@@ -179,6 +196,7 @@ describe("prompt settings", () => {
             batchPromptId: "prompt_deleted",
             nobatchPromptId: "prompt_deleted",
             subtitlePromptId: "prompt_deleted",
+            dictPromptId: "prompt_deleted",
           },
         ],
         subtitleSetting: {
@@ -196,6 +214,7 @@ describe("prompt settings", () => {
           batchPromptId: "prompt_deleted",
           nobatchPromptId: "prompt_deleted",
           subtitlePromptId: "prompt_deleted",
+          dictPromptId: "prompt_deleted",
         },
       ],
       subtitleSetting: {
@@ -214,6 +233,8 @@ describe("prompt settings", () => {
       nobatchPromptId: "prompt_deleted_nobatch",
       subtitlePromptSlug: "prompt_current_subtitle",
       subtitlePromptId: "prompt_deleted_subtitle",
+      dictPromptSlug: "prompt_current_dict",
+      dictPromptId: "prompt_deleted_dict",
     });
 
     expect(cleaned).toMatchObject({
@@ -221,10 +242,12 @@ describe("prompt settings", () => {
       batchPromptSlug: "prompt_current_batch",
       nobatchPromptSlug: "prompt_current_nobatch",
       subtitlePromptSlug: "prompt_current_subtitle",
+      dictPromptSlug: "prompt_current_dict",
     });
     expect(cleaned).not.toHaveProperty("batchPromptId");
     expect(cleaned).not.toHaveProperty("nobatchPromptId");
     expect(cleaned).not.toHaveProperty("subtitlePromptId");
+    expect(cleaned).not.toHaveProperty("dictPromptId");
   });
 
   test("keeps preset nameKey for i18n display but removes it from custom storage", () => {
@@ -253,13 +276,20 @@ describe("prompt settings", () => {
     });
   });
 
-  test("does not expose dictionary prompt templates", () => {
-    expect(PROMPT_TEMPLATE_CATEGORIES).not.toContain(
-      PROMPT_CATEGORY_DICTIONARY
-    );
-    expect(PRESET_PROMPTS).not.toEqual(
+  test("exposes dictionary prompt templates", () => {
+    expect(PROMPT_TEMPLATE_CATEGORIES).toContain(PROMPT_CATEGORY_DICTIONARY);
+    expect(PRESET_PROMPTS).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ category: PROMPT_CATEGORY_DICTIONARY }),
+        expect.objectContaining({
+          slug: DEFAULT_DICTIONARY_PROMPT_SLUG,
+          category: PROMPT_CATEGORY_DICTIONARY,
+          systemPrompt: defaultDictPrompt,
+        }),
+      ])
+    );
+    expect(getDictionaryPromptOptions(PRESET_PROMPTS)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ slug: DEFAULT_DICTIONARY_PROMPT_SLUG }),
       ])
     );
   });

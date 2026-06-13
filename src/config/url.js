@@ -10,6 +10,7 @@ export const URL_CACHE_TRAN = `https://${APP_LCNAME}/translate`; // 网页正文
 export const URL_CACHE_SUBTITLE = `https://${APP_LCNAME}/subtitle`; // 字幕翻译结果缓存 Key
 export const URL_CACHE_DELANG = `https://${APP_LCNAME}/detectlang`; // 语言判定结果缓存 Key
 export const URL_CACHE_BINGDICT = `https://${APP_LCNAME}/bingdict`; // 必应词典查询结果缓存 Key
+export const URL_CACHE_DICT = `https://${APP_LCNAME}/dict`; // AI 词典结果缓存 Key
 export const URL_CACHE_CONTEXT = `https://${APP_LCNAME}/context`; // 智能上下文分析结果缓存 Key
 
 // --- 外部相关的开源仓库及文档地址 ---

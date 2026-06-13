@@ -12,6 +12,10 @@ jest.mock("../libs/cache", () => ({
   putHttpCachePolyfill: jest.fn(),
 }));
 
+jest.mock("../libs/docInfo", () => ({
+  getDocInfo: () => ({ title: "Doc", description: "Desc", summary: "Summary" }),
+}));
+
 jest.mock("../libs/batchQueue", () => ({
   getBatchQueue: jest.fn(),
 }));
@@ -25,13 +29,16 @@ jest.mock("../libs/utils", () => ({
 
 jest.mock("./trans", () => ({
   handleTranslate: jest.fn(),
+  handleDict: jest.fn(),
   handleSubtitle: jest.fn(),
   handleSummarize: jest.fn(),
   handleMicrosoftLangdetect: jest.fn(),
 }));
 
-import { apiTranslate } from "./index";
+import { apiDict, apiTranslate } from "./index";
+import { handleDict } from "./trans";
 import { getBatchQueue } from "../libs/batchQueue";
+import { getHttpCachePolyfill, putHttpCachePolyfill } from "../libs/cache";
 import { DEFAULT_API_LIST, OPT_TRANS_OPENAI } from "../config";
 
 const getOpenAiApiSetting = (systemPrompt) => ({
@@ -42,6 +49,87 @@ const getOpenAiApiSetting = (systemPrompt) => ({
   useBatchFetch: true,
   useStream: false,
   systemPrompt,
+});
+
+describe("apiDict", () => {
+  beforeEach(() => {
+    mockSha256.mockImplementation(async (text) =>
+      text.includes("dictionary prompt B") ? "b".repeat(64) : "a".repeat(64)
+    );
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test("delegates to dictionary handler with prompt and context", async () => {
+    handleDict.mockResolvedValueOnce("## dictionary");
+
+    const apiSetting = {
+      ...getOpenAiApiSetting("batch prompt"),
+      dictPrompt: "dictionary prompt {{context}} {{text}}",
+    };
+    const result = await apiDict({
+      text: "library",
+      fromLang: "en",
+      toLang: "zh-CN",
+      apiSetting,
+      context: "The library is open.",
+    });
+
+    expect(result).toBe("## dictionary");
+    expect(handleDict).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: "library",
+        fromLang: "en",
+        toLang: "zh-CN",
+        apiSetting,
+        context: "The library is open.",
+      })
+    );
+    expect(getBatchQueue).not.toHaveBeenCalled();
+  });
+
+  test("returns cached dictionary markdown without calling handler", async () => {
+    getHttpCachePolyfill.mockResolvedValueOnce({ markdown: "cached markdown" });
+
+    const result = await apiDict({
+      text: "library",
+      fromLang: "en",
+      toLang: "zh-CN",
+      apiSetting: {
+        ...getOpenAiApiSetting("batch prompt"),
+        dictPrompt: "dictionary prompt A",
+      },
+      context: "The library is open.",
+    });
+
+    expect(result).toBe("cached markdown");
+    expect(handleDict).not.toHaveBeenCalled();
+    expect(putHttpCachePolyfill).not.toHaveBeenCalled();
+  });
+
+  test("writes dictionary markdown cache using dictionary prompt signature", async () => {
+    getHttpCachePolyfill.mockResolvedValue(null);
+    handleDict.mockResolvedValueOnce("fresh markdown");
+
+    await apiDict({
+      text: "library",
+      fromLang: "en",
+      toLang: "zh-CN",
+      apiSetting: {
+        ...getOpenAiApiSetting("batch prompt"),
+        dictPrompt: "dictionary prompt B",
+      },
+      context: "The library is open.",
+    });
+
+    expect(putHttpCachePolyfill).toHaveBeenCalledWith(
+      expect.stringContaining("promptSig=bbbbbbbbbbbbbbbb"),
+      null,
+      { markdown: "fresh markdown" }
+    );
+  });
 });
 
 describe("apiTranslate prompt queue isolation", () => {

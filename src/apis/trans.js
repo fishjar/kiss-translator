@@ -45,6 +45,7 @@ import {
   defaultSystemPromptXml,
   defaultSystemPromptLines,
   INPUT_PLACE_SUMMARY,
+  INPUT_PLACE_CONTEXT,
   THINKING_PARAM_MAP,
 } from "../config";
 import { msAuth } from "../libs/auth";
@@ -108,12 +109,13 @@ const genSystemPrompt = ({
   fromLang,
   toLang,
   texts,
-  docInfo: { title = "", description = "", summary = "" } = {},
+  docInfo: { title = "", description = "", summary = "", context = "" } = {},
 }) =>
   String(systemPrompt || "")
     .replaceAll(INPUT_PLACE_TITLE, title)
     .replaceAll(INPUT_PLACE_DESCRIPTION, description)
     .replaceAll(INPUT_PLACE_SUMMARY, summary)
+    .replaceAll(INPUT_PLACE_CONTEXT, context)
     .replaceAll(INPUT_PLACE_TONE, tone)
     .replaceAll(INPUT_PLACE_FROM, from)
     .replaceAll(INPUT_PLACE_TO, to)
@@ -132,7 +134,7 @@ const genUserPrompt = ({
   fromLang,
   toLang,
   texts,
-  docInfo: { title = "", description = "", summary = "" } = {},
+  docInfo: { title = "", description = "", summary = "", context = "" } = {},
 }) => {
   if (useBatchFetch) {
     const promptObj = {
@@ -159,6 +161,7 @@ const genUserPrompt = ({
     .replaceAll(INPUT_PLACE_TITLE, title)
     .replaceAll(INPUT_PLACE_DESCRIPTION, description)
     .replaceAll(INPUT_PLACE_SUMMARY, summary)
+    .replaceAll(INPUT_PLACE_CONTEXT, context)
     .replaceAll(INPUT_PLACE_TONE, tone)
     .replaceAll(INPUT_PLACE_FROM, from)
     .replaceAll(INPUT_PLACE_TO, to)
@@ -1047,7 +1050,8 @@ export const genTransReq = async ({ reqHook, ...args }) => {
       externalDocInfo &&
       (externalDocInfo.title ||
         externalDocInfo.description ||
-        externalDocInfo.summary);
+        externalDocInfo.summary ||
+        externalDocInfo.context);
     const docInfo = hasExternalDocInfo ? externalDocInfo : getDocInfo();
     const userDocInfo = hasExternalDocInfo ? {} : docInfo;
 
@@ -1090,6 +1094,8 @@ export const genTransReq = async ({ reqHook, ...args }) => {
         parts.push(`Description: ${docInfo.description}`);
       if (docInfo.summary && !template.includes(INPUT_PLACE_SUMMARY))
         parts.push(`Summary: ${docInfo.summary}`);
+      if (docInfo.context && !template.includes(INPUT_PLACE_CONTEXT))
+        parts.push(`Context: ${docInfo.context}`);
       if (parts.length) {
         baseSystemPrompt += `\n\n# Context\n${parts.join("\n")}`;
       }
@@ -1334,6 +1340,207 @@ export const parseTransRes = async (
   }
 
   throw new Error("parse translate result: apiType not matched", apiType);
+};
+
+/**
+ * 从各家 AI 接口响应中抽取 AI 词典正文。
+ *
+ * AI 词典使用 Markdown 原文展示，不走翻译结果的 JSON 行解析逻辑，
+ * 因此这里只提取模型 message/content 文本并保留其格式。
+ *
+ * @param {*} res 接口原始响应
+ * @param {string} apiType API 类型
+ * @returns {string} 模型生成的 Markdown 内容
+ */
+function parseDictRes(res, apiType) {
+  switch (apiType) {
+    case OPT_TRANS_EPHONEAI:
+    case OPT_TRANS_OPENAI:
+    case OPT_TRANS_DEEPSEEK:
+    case OPT_TRANS_SILICONFLOW:
+    case OPT_TRANS_XIAOMIMIMO:
+    case OPT_TRANS_ALIYUNBAILIAN:
+    case OPT_TRANS_CEREBRAS:
+    case OPT_TRANS_ZAI:
+    case OPT_TRANS_GEMINI_2:
+    case OPT_TRANS_OPENROUTER:
+    case OPT_TRANS_OLLAMA:
+      return res?.choices?.[0]?.message?.content || "";
+    case OPT_TRANS_GEMINI:
+      return geminiText(res?.candidates?.[0]?.content?.parts);
+    case OPT_TRANS_CLAUDE:
+      return res?.content?.[0]?.text || "";
+    case OPT_TRANS_CUSTOMIZE:
+      if (typeof res === "string") return res;
+      return res?.text || res?.result || "";
+    default:
+  }
+
+  throw new Error("parse dictionary result: apiType not matched", apiType);
+}
+
+/**
+ * 发起 AI 词典请求并返回 Markdown 结果。
+ *
+ * 这里将词典提示词临时映射到非聚合翻译请求字段，
+ * 以便复用 `genTransReq` 已经实现好的鉴权、模型参数、Hook 和流式协议适配。
+ *
+ * @param {Object} params 词典请求参数
+ * @param {string} params.text 需要解析的文本
+ * @param {string} params.from 已映射到当前接口规格的源语言名称
+ * @param {string} params.to 已映射到当前接口规格的目标语言名称
+ * @param {string} params.fromLang 源语言代码
+ * @param {string} params.toLang 目标语言代码
+ * @param {Object} params.apiSetting 当前 AI 接口配置
+ * @param {Object} [params.docInfo] 页面标题、描述与摘要
+ * @param {string} [params.context] 当前选区所在段落上下文
+ * @param {Function} [params.onStreamChunk] 流式增量回调
+ * @param {AbortSignal} [params.signal] 取消信号
+ * @returns {Promise<string>} Markdown 格式的词典解析结果
+ */
+export const handleDict = async ({
+  text,
+  from,
+  to,
+  fromLang,
+  toLang,
+  apiSetting,
+  docInfo,
+  context = "",
+  onStreamChunk,
+  signal,
+}) => {
+  if (signal?.aborted) {
+    throw new DOMException("The operation was aborted.", "AbortError");
+  }
+
+  const { apiType, fetchInterval, fetchLimit, httpTimeout, dictPrompt } =
+    apiSetting;
+  const enableStream =
+    Boolean(onStreamChunk) &&
+    apiSetting.useStream &&
+    API_SPE_TYPES.stream.has(apiType);
+  if (!dictPrompt) {
+    throw new Error("AI dictionary prompt is empty.");
+  }
+
+  // 词典请求本质上是单条文本解析，强制关闭批量模式，避免进入批量 JSON 解析分支。
+  const requestApiSetting = {
+    ...apiSetting,
+    useBatchFetch: false,
+    useStream: enableStream,
+    nobatchPrompt: dictPrompt,
+    nobatchUserPrompt: "",
+  };
+  const dictDocInfo = docInfo || getDocInfo();
+
+  // 将选区段落作为 docInfo.context 注入，使默认词典提示词中的 {{context}} 可被替换。
+  const [input, init] = await genTransReq({
+    ...requestApiSetting,
+    texts: [text],
+    from,
+    to,
+    fromLang,
+    toLang,
+    docInfo: {
+      ...(dictDocInfo || {}),
+      context,
+    },
+  });
+
+  if (enableStream) {
+    try {
+      let fullContent = "";
+
+      for await (const rawData of fetchStream(input, init, {
+        useCache: false,
+        usePool: true,
+        fetchInterval,
+        fetchLimit,
+        httpTimeout,
+        signal,
+      })) {
+        try {
+          const json = JSON.parse(rawData);
+          const delta = getStreamDelta(json, apiType);
+          if (!delta) continue;
+
+          fullContent += delta;
+          // 流式模型可能先输出 Markdown 代码围栏，边流式展示边剥离可避免 UI 闪出 ```。
+          fullContent = stripMarkdownCodeBlock(fullContent, true);
+          onStreamChunk({ markdown: fullContent });
+        } catch {
+          // 忽略单个 SSE 数据帧解析失败，等待后续帧继续输出。
+        }
+      }
+
+      const markdown = stripMarkdownCodeBlock(fullContent).trim();
+      if (!markdown) {
+        throw new Error("dictionary got empty content");
+      }
+
+      return markdown;
+    } catch (err) {
+      if (err?.name === "AbortError") {
+        throw err;
+      }
+
+      kissLog("dictionary stream failed, fallback to non-stream", err);
+    }
+
+    // 流式协议异常时自动降级为普通请求，保留 AI 词典功能可用性。
+    const [fallbackInput, fallbackInit] = await genTransReq({
+      ...requestApiSetting,
+      useStream: false,
+      texts: [text],
+      from,
+      to,
+      fromLang,
+      toLang,
+      docInfo: {
+        ...(dictDocInfo || {}),
+        context,
+      },
+    });
+
+    const fallbackRes = await fetchData(fallbackInput, fallbackInit, {
+      useCache: false,
+      usePool: true,
+      fetchInterval,
+      fetchLimit,
+      httpTimeout,
+      signal,
+    });
+    if (!fallbackRes) {
+      throw new Error("dictionary got empty response");
+    }
+
+    const fallbackMarkdown = parseDictRes(fallbackRes, apiType);
+    if (!fallbackMarkdown) {
+      throw new Error("dictionary got empty content");
+    }
+
+    return fallbackMarkdown;
+  }
+
+  const res = await fetchData(input, init, {
+    useCache: false,
+    usePool: true,
+    fetchInterval,
+    fetchLimit,
+    httpTimeout,
+    signal,
+  });
+  if (!res) {
+    throw new Error("dictionary got empty response");
+  }
+
+  const markdown = parseDictRes(res, apiType);
+  if (!markdown) {
+    throw new Error("dictionary got empty content");
+  }
+
+  return markdown;
 };
 
 /**
