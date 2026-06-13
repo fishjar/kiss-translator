@@ -18,6 +18,7 @@ export default function Selection({
   contextMenuType,
   tranboxSetting,
   transApis,
+  prompts,
   uiLang,
   langDetector,
 }) {
@@ -44,9 +45,11 @@ export default function Selection({
     showBtn,
     text,
     setText,
+    textContext,
     position,
     handleOpenTranbox,
     handleToggleTranbox,
+    handlePanelSelection,
     btnEvent,
   } = useSelectionController({
     tranboxSetting,
@@ -81,6 +84,7 @@ export default function Selection({
           setBoxPosition={setBoxPosition}
           tranboxSetting={tranboxSetting}
           transApis={transApis}
+          prompts={prompts}
           setShowBox={setShowBox}
           simpleStyle={simpleStyle}
           setSimpleStyle={setSimpleStyle}
@@ -90,6 +94,8 @@ export default function Selection({
           setFollowSelection={setFollowSelection}
           // extStyles={extStyles}
           langDetector={langDetector}
+          selectionContext={textContext}
+          onPanelSelection={handlePanelSelection}
         />
       }
 

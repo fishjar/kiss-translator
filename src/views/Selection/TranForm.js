@@ -1,5 +1,7 @@
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
+import Tabs from "@mui/material/Tabs";
+import Tab from "@mui/material/Tab";
 import MenuItem from "@mui/material/MenuItem";
 import Grid from "@mui/material/Grid";
 import Box from "@mui/material/Box";
@@ -17,10 +19,13 @@ import {
   OPT_LANGS_MAP,
   OPT_DICT_MAP,
   OPT_SUG_MAP,
+  PROMPT_MODE_FOLLOW_API,
+  findPromptBySlug,
 } from "../../config";
 import { useState, useMemo, useEffect, useRef } from "react";
 import TranCont from "./TranCont";
 import DictCont from "./DictCont";
+import AiDictCont from "./AiDictCont";
 import SugCont from "./SugCont";
 import CopyBtn from "./CopyBtn";
 import Zdic from "./Zdic";
@@ -43,6 +48,10 @@ export default function TranForm({
   langDetector: initLangDetector = "-",
   enDict: initEnDict = "-",
   enSug: initEnSug = "-",
+  aiDictApiSlug = "-",
+  aiDictPromptSlug = PROMPT_MODE_FOLLOW_API,
+  prompts = [],
+  selectionContext = "",
   isPlaygound = false,
 }) {
   const i18n = useI18n();
@@ -59,6 +68,7 @@ export default function TranForm({
   const [langDetector, setLangDetector] = useState(initLangDetector);
   const [enDict, setEnDict] = useState(initEnDict);
   const [enSug, setEnSug] = useState(initEnSug);
+  const [dictTab, setDictTab] = useState("default");
   // 异步自动检测到的源文本语言代码 (例如 "en", "zh")
   const [deLang, setDeLang] = useState("");
   const [deLoading, setDeLoading] = useState(false);
@@ -174,6 +184,50 @@ export default function TranForm({
     const validSlugs = new Set(optApis.map((api) => api.key));
     return apiSlugs.filter((slug) => validSlugs.has(slug));
   }, [apiSlugs, optApis]);
+
+  // 默认词典覆盖英文单词和单个汉字：英文走 Bing/有道，单字走汉典。
+  const defaultDictAvailable =
+    (isWord && OPT_DICT_MAP.has(enDict)) || isSingleChineseChar(text);
+  const aiDictApiSetting = useMemo(() => {
+    if (!aiDictApiSlug || aiDictApiSlug === "-") {
+      return null;
+    }
+
+    const apiSetting = transApis.find((api) => api.apiSlug === aiDictApiSlug);
+    if (!apiSetting) {
+      return null;
+    }
+
+    // 跟随接口时必须确保 API 配置已经解析出了 dictPrompt，否则 AI 词典不可用。
+    if (aiDictPromptSlug === PROMPT_MODE_FOLLOW_API) {
+      return apiSetting.dictPrompt ? apiSetting : null;
+    }
+
+    // 指定全局词典提示词时，用该提示词覆盖接口内置词典提示词。
+    const prompt = findPromptBySlug(prompts, aiDictPromptSlug);
+    if (!prompt) {
+      return null;
+    }
+
+    return {
+      ...apiSetting,
+      dictPromptSlug: prompt.slug,
+      dictPrompt: prompt.systemPrompt,
+    };
+  }, [aiDictApiSlug, aiDictPromptSlug, prompts, transApis]);
+  const aiDictAvailable = Boolean(text?.trim() && aiDictApiSetting);
+
+  useEffect(() => {
+    // 默认词典可用时优先展示更快、更稳定的本地/在线词典；否则自动切到 AI 词典。
+    if (defaultDictAvailable) {
+      setDictTab("default");
+      return;
+    }
+
+    if (aiDictAvailable) {
+      setDictTab("ai");
+    }
+  }, [text, defaultDictAvailable, aiDictAvailable]);
 
   return (
     <Stack spacing={simpleStyle ? 1 : 2}>
@@ -450,18 +504,69 @@ export default function TranForm({
         />
       ))}
 
-      {/* 2. 如果是合法的英文单词且启用了词典，渲染词典释义组件 */}
-      {isWord && OPT_DICT_MAP.has(enDict) && (
-        <DictCont text={text} enDict={enDict} />
+      {/* 2. 根据可用能力在默认词典与 AI 词典之间分流展示 */}
+      {(defaultDictAvailable || aiDictAvailable) && (
+        <Box>
+          {aiDictAvailable ? (
+            <>
+              <Tabs
+                value={defaultDictAvailable ? dictTab : "ai"}
+                onChange={(_, value) => setDictTab(value)}
+                variant="scrollable"
+                allowScrollButtonsMobile
+                sx={{ minHeight: 36, mb: 1 }}
+              >
+                {defaultDictAvailable && (
+                  <Tab
+                    value="default"
+                    label={i18n("default_dict", "默认词典")}
+                    sx={{ minHeight: 36, py: 0.5 }}
+                  />
+                )}
+                <Tab
+                  value="ai"
+                  label={i18n("ai_dict", "AI词典")}
+                  sx={{ minHeight: 36, py: 0.5 }}
+                />
+              </Tabs>
+              {defaultDictAvailable && dictTab === "default" && (
+                <>
+                  {isWord && OPT_DICT_MAP.has(enDict) && (
+                    <DictCont text={text} enDict={enDict} />
+                  )}
+                  {isSingleChineseChar(text) && <Zdic text={text} />}
+                </>
+              )}
+              {(!defaultDictAvailable || dictTab === "ai") && (
+                <AiDictCont
+                  text={text}
+                  fromLang={fromLang}
+                  toLang={realToLang}
+                  apiSetting={aiDictApiSetting}
+                  context={
+                    // 只在段落上下文确实包含当前文本时传入，避免手动输入内容复用旧划词上下文。
+                    selectionContext && selectionContext.includes(text)
+                      ? selectionContext
+                      : ""
+                  }
+                />
+              )}
+            </>
+          ) : (
+            <>
+              {isWord && OPT_DICT_MAP.has(enDict) && (
+                <DictCont text={text} enDict={enDict} />
+              )}
+              {isSingleChineseChar(text) && <Zdic text={text} />}
+            </>
+          )}
+        </Box>
       )}
 
       {/* 3. 如果是合法的英文单词且启用了输入建议，渲染联想建议组件 */}
       {isWord && OPT_SUG_MAP.has(enSug) && (
         <SugCont text={text} enSug={enSug} />
       )}
-
-      {/* 4. 特殊定制：如果是单个汉字，渲染汉典释义组件 */}
-      {isSingleChineseChar(text) && <Zdic text={text} />}
     </Stack>
   );
 }

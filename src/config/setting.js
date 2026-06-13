@@ -123,6 +123,8 @@ export const DEFAULT_TRANBOX_SETTING = {
   // extStyles: "", // 附加样式
   enDict: OPT_DICT_BING, // 默认英文网络词典数据源
   enSug: OPT_SUG_YOUDAO, // 英文输入联想建议源
+  aiDictApiSlug: "-",
+  aiDictPromptSlug: PROMPT_MODE_FOLLOW_API,
 };
 
 // --- 字幕默认样式属性 ---

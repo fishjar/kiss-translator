@@ -4,6 +4,7 @@ import {
   defaultSystemPrompt,
   defaultSystemPromptLines,
   defaultSystemPromptXml,
+  defaultDictPrompt,
   defaultSubtitlePrompt,
   API_SPE_TYPES,
 } from "./api";
@@ -30,12 +31,14 @@ export const PROMPT_TEMPLATE_CATEGORIES = [
   PROMPT_CATEGORY_USER,
   PROMPT_CATEGORY_BATCH_SYSTEM,
   PROMPT_CATEGORY_SUBTITLE,
+  PROMPT_CATEGORY_DICTIONARY,
 ];
 
 // 各类功能默认使用的提示词 Slug，当未配置时作为后备默认值
 export const DEFAULT_NOBATCH_PROMPT_SLUG = PROMPT_SLUG_NOBATCH_TRANSLATION;
 export const DEFAULT_BATCH_PROMPT_SLUG = PROMPT_SLUG_BATCH_TRANSLATION_JSON;
 export const DEFAULT_SUBTITLE_PROMPT_SLUG = PROMPT_SLUG_SUBTITLE_SEGMENTATION;
+export const DEFAULT_DICTIONARY_PROMPT_SLUG = PROMPT_SLUG_DICTIONARY_EN_ZH;
 
 // 配置数据结构的版本号（用于检测并执行数据迁移升级逻辑）
 export const SETTINGS_VERSION_V1 = 1;
@@ -85,6 +88,14 @@ export const PRESET_PROMPTS = [
     nameKey: "preset_prompt_subtitle_segmentation",
     name: "Subtitle AI segmentation",
     systemPrompt: defaultSubtitlePrompt,
+    userPrompt: "",
+  },
+  {
+    slug: PROMPT_SLUG_DICTIONARY_EN_ZH,
+    category: PROMPT_CATEGORY_DICTIONARY,
+    nameKey: "preset_prompt_dictionary_en_zh",
+    name: "AI English-Chinese Dictionary",
+    systemPrompt: defaultDictPrompt,
     userPrompt: "",
   },
 ];
@@ -355,6 +366,18 @@ export function getSubtitlePromptOptions(prompts = []) {
   return getPromptOptions(prompts, PROMPT_CATEGORY_SUBTITLE);
 }
 
+/**
+ * 获取 AI 词典可选提示词列表。
+ *
+ * 仅返回词典分类，供接口配置页和划词翻译框设置页复用。
+ *
+ * @param {Array<Object>} prompts 用户与预设提示词集合
+ * @returns {Array<Object>} 可用于 AI 词典的提示词选项
+ */
+export function getDictionaryPromptOptions(prompts = []) {
+  return getPromptOptions(prompts, PROMPT_CATEGORY_DICTIONARY);
+}
+
 function hasPromptReference(source = {}, promptSlugFieldName, promptSlug) {
   return (
     hasOwn(source, promptSlugFieldName) &&
@@ -370,7 +393,8 @@ export function removeLegacyApiPromptIds(apiSetting = {}) {
   if (
     !hasOwn(apiSetting, "batchPromptId") &&
     !hasOwn(apiSetting, "nobatchPromptId") &&
-    !hasOwn(apiSetting, "subtitlePromptId")
+    !hasOwn(apiSetting, "subtitlePromptId") &&
+    !hasOwn(apiSetting, "dictPromptId")
   ) {
     return apiSetting;
   }
@@ -379,6 +403,7 @@ export function removeLegacyApiPromptIds(apiSetting = {}) {
   delete nextApiSetting.batchPromptId;
   delete nextApiSetting.nobatchPromptId;
   delete nextApiSetting.subtitlePromptId;
+  delete nextApiSetting.dictPromptId;
 
   return nextApiSetting;
 }
@@ -704,6 +729,15 @@ export function removePromptReferences(setting = {}, promptSlug) {
       hasApiChanges = true;
     }
 
+    if (hasPromptReference(api, "dictPromptSlug", promptSlug)) {
+      nextApi = {
+        ...nextApi,
+        dictPromptSlug: DEFAULT_DICTIONARY_PROMPT_SLUG,
+      };
+      delete nextApi.dictPrompt;
+      hasApiChanges = true;
+    }
+
     return nextApi;
   });
 
@@ -712,8 +746,17 @@ export function removePromptReferences(setting = {}, promptSlug) {
     "segPromptSlug",
     promptSlug
   );
+  const hasTranboxDictPromptReference = hasPromptReference(
+    setting?.tranboxSetting,
+    "aiDictPromptSlug",
+    promptSlug
+  );
 
-  if (!hasApiChanges && !hasSubtitlePromptReference) {
+  if (
+    !hasApiChanges &&
+    !hasSubtitlePromptReference &&
+    !hasTranboxDictPromptReference
+  ) {
     return setting;
   }
 
@@ -728,6 +771,13 @@ export function removePromptReferences(setting = {}, promptSlug) {
       ...(setting?.subtitleSetting || {}),
       segPromptMode: PROMPT_MODE_FOLLOW_API,
       segPromptSlug: DEFAULT_SUBTITLE_PROMPT_SLUG,
+    };
+  }
+
+  if (hasTranboxDictPromptReference) {
+    nextSetting.tranboxSetting = {
+      ...(setting?.tranboxSetting || {}),
+      aiDictPromptSlug: PROMPT_MODE_FOLLOW_API,
     };
   }
 
@@ -838,6 +888,27 @@ export function resolveApiPromptSettings(
       nextApiSetting.subtitlePromptSlug = subtitlePrompt.slug;
     }
     nextApiSetting.subtitlePrompt = subtitlePrompt.systemPrompt;
+  }
+
+  const hasDictPromptReference = hasPromptReferenceField(
+    nextApiSetting,
+    "dictPromptSlug"
+  );
+  const hasDictPromptInlineValue = hasOwn(nextApiSetting, "dictPrompt");
+  const dictPromptSlug = getPromptFieldValue(
+    nextApiSetting,
+    "dictPromptSlug",
+    DEFAULT_DICTIONARY_PROMPT_SLUG
+  );
+  const dictPrompt = findPromptBySlugOrDefault(
+    userPrompts,
+    dictPromptSlug,
+    DEFAULT_DICTIONARY_PROMPT_SLUG
+  );
+
+  if (dictPrompt && (hasDictPromptReference || !hasDictPromptInlineValue)) {
+    nextApiSetting.dictPromptSlug = dictPrompt.slug;
+    nextApiSetting.dictPrompt = dictPrompt.systemPrompt;
   }
 
   return nextApiSetting;

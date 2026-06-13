@@ -13,16 +13,20 @@ import {
   OPT_DICT_ALL,
   OPT_SUG_ALL,
   OPT_SUG_YOUDAO,
+  PROMPT_MODE_FOLLOW_API,
+  getDictionaryPromptOptions,
+  getPromptDisplayName,
 } from "../../config";
 import ShortcutInput from "./ShortcutInput";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { limitNumber } from "../../libs/utils";
 import { useTranbox } from "../../hooks/Tranbox";
 import { isExt } from "../../libs/client";
 import { useApiList } from "../../hooks/Api";
 import ValidationInput from "../../hooks/ValidationInput";
+import { usePromptList } from "../../hooks/Prompt";
 
 /**
  * 划词翻译框 (Tranbox) 样式与交互配置面板组件
@@ -32,7 +36,14 @@ export default function Tranbox() {
   // 查词翻译框配置管理 Hook
   const { tranboxSetting, updateTranbox } = useTranbox();
   // 启用的 API 引擎
-  const { enabledApis } = useApiList();
+  // AI 词典只能调用大模型接口，因此这里额外读取已启用的 AI API 列表。
+  const { enabledApis, aiEnabledApis } = useApiList();
+  const { prompts } = usePromptList();
+  // 仅展示词典分类提示词，避免误选翻译或字幕断句提示词。
+  const dictionaryPromptOptions = useMemo(
+    () => getDictionaryPromptOptions(prompts),
+    [prompts]
+  );
 
   // 基础表单输入值变动处理
   const handleChange = (e) => {
@@ -82,6 +93,8 @@ export default function Tranbox() {
     triggerMode = OPT_TRANBOX_TRIGGER_CLICK,
     enDict = OPT_DICT_BING,
     enSug = OPT_SUG_YOUDAO,
+    aiDictApiSlug = "-",
+    aiDictPromptSlug = PROMPT_MODE_FOLLOW_API,
     blacklist = "",
   } = tranboxSetting;
 
@@ -219,7 +232,46 @@ export default function Tranbox() {
                 ))}
               </TextField>
             </Grid>
-            {/* 联想输入建议源选择 */}
+            {/* AI 词典所使用的大模型接口；关闭时仅保留默认本地/在线词典。 */}
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                fullWidth
+                select
+                size="small"
+                name="aiDictApiSlug"
+                value={aiDictApiSlug}
+                label={i18n("ai_dict_api", "AI词典接口")}
+                onChange={handleChange}
+              >
+                <MenuItem value={"-"}>{i18n("disable")}</MenuItem>
+                {aiEnabledApis.map((api) => (
+                  <MenuItem value={api.apiSlug} key={api.apiSlug}>
+                    {api.apiName}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            {/* AI 词典提示词来源：跟随接口默认配置，或指定全局词典提示词。 */}
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                fullWidth
+                select
+                size="small"
+                name="aiDictPromptSlug"
+                value={aiDictPromptSlug}
+                label={i18n("ai_dict_prompt", "AI词典提示词")}
+                onChange={handleChange}
+              >
+                <MenuItem value={PROMPT_MODE_FOLLOW_API}>
+                  {i18n("follow_api_prompt", "接口默认")}
+                </MenuItem>
+                {dictionaryPromptOptions.map((prompt) => (
+                  <MenuItem value={prompt.slug} key={prompt.slug}>
+                    {getPromptDisplayName(prompt, i18n)}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 fullWidth

@@ -24,8 +24,16 @@ export default function Playgound() {
     [prompts, subtitleSetting, transApis]
   );
   // 解构翻译框的首选 API 服务 Slug、首选与次选语言、以及词典与联想配置
-  const { apiSlugs, fromLang, toLang, toLang2, enDict, enSug } =
-    tranboxSetting || DEFAULT_TRANBOX_SETTING;
+  const {
+    apiSlugs,
+    fromLang,
+    toLang,
+    toLang2,
+    enDict,
+    enSug,
+    aiDictApiSlug,
+    aiDictPromptSlug,
+  } = tranboxSetting || DEFAULT_TRANBOX_SETTING;
   return (
     <TranForm
       text={text}
@@ -39,6 +47,9 @@ export default function Playgound() {
       langDetector={langDetector}
       enDict={enDict}
       enSug={enSug}
+      aiDictApiSlug={aiDictApiSlug}
+      aiDictPromptSlug={aiDictPromptSlug}
+      prompts={prompts}
       isPlaygound={true} // 标识为 Playground 环境以进行特定的渲染样式和交互处理
     />
   );

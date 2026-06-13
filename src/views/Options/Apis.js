@@ -88,7 +88,9 @@ import {
   DEFAULT_NOBATCH_PROMPT_SLUG,
   DEFAULT_BATCH_PROMPT_SLUG,
   DEFAULT_SUBTITLE_PROMPT_SLUG,
+  DEFAULT_DICTIONARY_PROMPT_SLUG,
   getBatchPromptOptions,
+  getDictionaryPromptOptions,
   getNobatchPromptOptions,
   getPromptDisplayName,
   getSubtitlePromptOptions,
@@ -365,6 +367,10 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
         newData.subtitlePrompt = prompt.systemPrompt;
       }
 
+      if (name === "dictPromptSlug" && prompt) {
+        newData.dictPrompt = prompt.systemPrompt;
+      }
+
       return newData;
     });
   };
@@ -436,6 +442,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
     batchPromptSlug = "",
     nobatchPromptSlug = "",
     subtitlePromptSlug = "",
+    dictPromptSlug = "",
   } = activeFormData;
 
   const thinkingParam = THINKING_PARAM_MAP[apiType];
@@ -457,6 +464,12 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
   )
     ? subtitlePromptSlug
     : DEFAULT_SUBTITLE_PROMPT_SLUG;
+  const selectedDictPromptSlug = Object.prototype.hasOwnProperty.call(
+    activeFormData,
+    "dictPromptSlug"
+  )
+    ? dictPromptSlug
+    : DEFAULT_DICTIONARY_PROMPT_SLUG;
   const nobatchPromptOptions = useMemo(
     () => getNobatchPromptOptions(prompts),
     [prompts]
@@ -467,6 +480,10 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
   );
   const subtitlePromptOptions = useMemo(
     () => getSubtitlePromptOptions(prompts),
+    [prompts]
+  );
+  const dictionaryPromptOptions = useMemo(
+    () => getDictionaryPromptOptions(prompts),
     [prompts]
   );
 
@@ -916,6 +933,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
               </TextField>
             </Grid>
             <Grid item xs={12} sm={12} md={6} lg={3}>
+              {/* AI 词典使用独立提示词，避免复用普通翻译提示词时输出格式不可控。 */}
               <TextField
                 select
                 fullWidth
@@ -943,6 +961,23 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
                 onChange={handlePromptChange}
               >
                 {subtitlePromptOptions.map((prompt) => (
+                  <MenuItem key={prompt.slug} value={prompt.slug}>
+                    {getPromptDisplayName(prompt, i18n)}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                name="dictPromptSlug"
+                value={selectedDictPromptSlug}
+                label={i18n("ai_dict_prompt", "AI词典提示词")}
+                onChange={handlePromptChange}
+              >
+                {dictionaryPromptOptions.map((prompt) => (
                   <MenuItem key={prompt.slug} value={prompt.slug}>
                     {getPromptDisplayName(prompt, i18n)}
                   </MenuItem>

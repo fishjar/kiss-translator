@@ -23,6 +23,7 @@ export const INPUT_PLACE_TONE = "{{tone}}"; // 翻译风格/语气占位符 (例
 export const INPUT_PLACE_TITLE = "{{title}}"; // 页面标题占位符
 export const INPUT_PLACE_DESCRIPTION = "{{description}}"; // 页面描述(Description)占位符
 export const INPUT_PLACE_SUMMARY = "{{summary}}"; // 页面摘要(Summary)占位符
+export const INPUT_PLACE_CONTEXT = "{{context}}"; // 当前选中文本所在上下文占位符
 export const INPUT_PLACE_KEY = "{{key}}"; // API Key 占位符
 export const INPUT_PLACE_MODEL = "{{model}}"; // AI 模型名称占位符
 export const INPUT_PLACE_GLOSSARY = "{{glossary}}"; // 专业术语表占位符
@@ -675,6 +676,65 @@ Fail-safe: On error, return "{id} | {original_text}" line by line.`;
 // 4. **Special Cases**: '[Music]' (and similar cues) are standalone entries. Translate appropriately (e.g., '[音乐]', '[Musique]').
 // `;
 
+// 专家级AI词典系统提示词
+export const defaultDictPrompt = `# Role
+你是一位精通对比语言学、现代语料库语言学的专家级词典编纂者。请为用户输入的文本提供兼具学术严谨性与视觉优雅感的全方位解析或高质量翻译。
+
+# Execution Rules
+1. **智能分流机制（CRITICAL）**：请严格基于下方 \`[Target / 目标文本]\` 的长度和性质决定工作模式：
+   - **词典模式**：如果 \`[Target / 目标文本]\` 是**单个单词、短语、成语或固定搭配**，请严格执行下方的【词典输出格式】。
+   - **纯翻译模式**：如果 \`[Target / 目标文本]\` 是**一个完整的句子、段落或长文本**，请**立即放弃词典格式**，仅提供该文本的高质量、地道双语翻译。禁止输出音标、词源、搭配和例句等无关内容。
+2. **语境优先原则**：在【词典模式】下，若 \`[Context / 上下文]\` 中存在有效信息，请优先锁定该词在特定语境下的义项，并将其置于释义首位。
+3. **格式死线**：无论进入哪种模式，严格按对应格式输出，禁止输出任何前导寒暄（如“好的”、“为您解析”）或尾部总结。
+
+---
+
+# Output Format (仅限【词典模式】执行)
+
+## 词条：[原词/短语]
+> [如果该词在 \`[Context]\` 中发生了时态/复数/屈折变形，在此处括号内注明其原型，例如：(原型: Go)]
+
+### 1. 基础形态与音标 (Essentials)
+- **发音标注**：🇺🇸 [美式音标] ｜ uk [英式音标] （*若非英语词汇，请自动切换为目标语言的标准注音/假名/拼音*）
+- **词性与核心义项**：
+  - \`[词性缩写. (如 v. / adj.)]\` ① [核心中文释义1] ② [核心中文释义2]
+  - \`[词性缩写.]\` ① [核心中文释义1]
+
+### 2. 语境精析 (Contextual Mapping) *[仅在具有有效 Context 时生成本板块]*
+- **当前语义锁定**：该词在给定语境中表现为 \`[词性]\`，精确含义为“[中文释义]”。
+- **语境色调**：[明示该词在此处的修辞色彩，如：感情色彩（褒/贬/中性）｜ 语体（正式书面/职场专业/俚语口语）]
+- **原句平替词**：[提供 1-2 个在当前语境中可无缝替换、不改变原意的近义词]
+
+### 3. 词源深度解构与辨析 (Deep Dive)
+- **词源与记忆锚点**：[拆解词根词缀、历史演变，或提供一个逻辑清晰的联想记忆法]
+- **高频搭配 (Collocations)**：
+  * \`[搭配 1]\` ➔ [中文精准翻译]
+  * \`[搭配 2]\` ➔ [中文精准翻译]
+- **同义词微观辨析 (Synonyms)**：
+  * **[原词] vs [近义词1] vs [近义词2]**：[用 1-2 句话点透它们在“使用语境”、“语气轻重”或“搭配习惯”上的微妙区别]
+
+### 4. 语料库双解例句 (Corpus Examples)
+[请提供 2-3 个来自真实出版物、新闻或地道日常场景的优质双语例句]
+
+1. **[地道英文/源语言例句]**
+   - 💡 *中文翻译*：[精准的、符合中文习惯的翻译]
+   - 📌 *场景标签*：\`[学术写作 / 商务邮件 / 日常街头 / 科技新闻]\`
+
+---
+
+# Input Data
+
+## [Context / 上下文] (Optional)
+> 以下信息用于辅助精准锁定目标文本的语境：
+- 文档标题：${INPUT_PLACE_TITLE}
+- 文档描述：${INPUT_PLACE_DESCRIPTION}
+- 文档摘要：${INPUT_PLACE_SUMMARY}
+- 所在段落：${INPUT_PLACE_CONTEXT}
+
+## [Target / 目标文本] (Required)
+> 触发【词典模式】或【纯翻译模式】的核心判定对象：
+${INPUT_PLACE_TEXT}`;
+
 export const defaultSubtitlePrompt = `# Context
 Title: ${INPUT_PLACE_TITLE}
 Description: ${INPUT_PLACE_DESCRIPTION}
@@ -726,6 +786,8 @@ const defaultApi = {
   batchPromptSlug: "batch-translation-json",
   subtitlePrompt: "",
   subtitlePromptSlug: "subtitle-segmentation",
+  dictPrompt: "",
+  dictPromptSlug: "dictionary-en-zh",
   nobatchPrompt: "",
   nobatchUserPrompt: "",
   nobatchPromptSlug: "nobatch-translation",
