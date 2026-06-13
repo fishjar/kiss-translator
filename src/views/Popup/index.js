@@ -27,7 +27,16 @@ function Trantab() {
 
   // REVIEW: 如果在异步加载未完成或出现异常时 setting 仍为 null / undefined，此处直接解构 setting 将导致 TypeError 崩溃。建议对 setting 进行判空保护，例如：const { tranboxSetting = {}, transApis = [], langDetector = {} } = setting || {};
   const {
-    tranboxSetting: { enDict, enSug, apiSlugs, fromLang, toLang, toLang2 },
+    tranboxSetting: {
+      enDict,
+      enSug,
+      apiSlugs,
+      fromLang,
+      toLang,
+      toLang2,
+      aiDictApiSlug,
+      aiDictPromptSlug,
+    },
     transApis,
     langDetector,
     prompts,
@@ -53,6 +62,9 @@ function Trantab() {
         langDetector={langDetector}
         enDict={enDict}
         enSug={enSug}
+        aiDictApiSlug={aiDictApiSlug}
+        aiDictPromptSlug={aiDictPromptSlug}
+        prompts={prompts}
       />
     </Box>
   );
