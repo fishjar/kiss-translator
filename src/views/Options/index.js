@@ -9,7 +9,7 @@ import ThemeProvider from "../../hooks/Theme";
 import { useEffect, useState } from "react";
 import { isGm } from "../../libs/client";
 import { sleep } from "../../libs/utils";
-import { trySyncSettingAndRules } from "../../libs/sync";
+import { trySyncRules, trySyncSetting, trySyncWords } from "../../libs/sync";
 import { AlertProvider } from "../../hooks/Alert";
 import { ConfirmProvider } from "../../hooks/Confirm";
 import Link from "@mui/material/Link";
@@ -25,17 +25,43 @@ import FavWords from "./FavWords";
 import Playgound from "./Playground";
 import MouseHoverSetting from "./MouseHover";
 import SubtitleSetting from "./Subtitle";
-import Loading from "../../hooks/Loading";
 import StylesSetting from "./StylesSetting";
+import Backdrop from "@mui/material/Backdrop";
+import CircularProgress from "@mui/material/CircularProgress";
+import { kissLog } from "../../libs/log";
+
+const getOptionsStartupSyncTasks = () => {
+  const hashPath = window.location.hash.replace(/^#/, "") || "/";
+  if (hashPath === "/rules" || hashPath.startsWith("/rules/")) {
+    return {
+      requiredSync: trySyncRules,
+      backgroundSyncs: [trySyncSetting, trySyncWords],
+    };
+  }
+
+  if (hashPath === "/words" || hashPath.startsWith("/words/")) {
+    return {
+      requiredSync: trySyncWords,
+      backgroundSyncs: [trySyncSetting, trySyncRules],
+    };
+  }
+
+  return {
+    requiredSync: trySyncSetting,
+    backgroundSyncs: [trySyncRules, trySyncWords],
+  };
+};
 
 /**
  * 选项设置中心 (Options) 根入口组件
  */
 export default function Options() {
   const [error, setError] = useState("");
-  const [ready, setReady] = useState(false);
+  const [syncingRequiredData, setSyncingRequiredData] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+
     // 检查油猴脚本版本与内置扩展打包版本的前两位主次版本号是否匹配
     const isValidVersion = (v1Str, v2Str) => {
       if (!v1Str || !v2Str) {
@@ -84,10 +110,24 @@ export default function Options() {
         }
       }
 
-      // 同步最新配置及过滤翻译规则数据 (例如 WebDAV)
-      await trySyncSettingAndRules();
-      setReady(true);
+      // 只等待当前入口页必须的数据，其他同步任务放到后台继续执行。
+      const { requiredSync, backgroundSyncs } = getOptionsStartupSyncTasks();
+      await requiredSync();
+
+      if (!isMounted) {
+        return;
+      }
+
+      setSyncingRequiredData(false);
+
+      void Promise.all(backgroundSyncs.map((sync) => sync())).catch((err) => {
+        kissLog("sync options background", err?.message || err);
+      });
     })();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // 展示版本不匹配或连接超时时的致命错误提示引导区
@@ -110,11 +150,6 @@ export default function Options() {
         </Stack>
       </center>
     );
-  }
-
-  // 加载数据尚未就绪状态，展示 Loading 动效组件
-  if (!ready) {
-    return <Loading />;
   }
 
   return (
@@ -143,6 +178,17 @@ export default function Options() {
                 </Route>
               </Routes>
             </HashRouter>
+            <Backdrop
+              data-testid="options-sync-backdrop"
+              aria-label="syncing required data"
+              open={syncingRequiredData}
+              sx={(theme) => ({
+                color: "#fff",
+                zIndex: theme.zIndex.modal + 1,
+              })}
+            >
+              <CircularProgress color="inherit" size={72} />
+            </Backdrop>
           </ConfirmProvider>
         </AlertProvider>
       </ThemeProvider>

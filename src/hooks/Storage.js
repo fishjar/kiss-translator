@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { storage } from "../libs/storage";
 import { kissLog } from "../libs/log";
 import { syncData } from "../libs/sync";
@@ -30,6 +30,7 @@ import { isOptions } from "../libs/browser";
 export function useStorage(key, defaultVal = null, syncKey = "") {
   const [isLoading, setIsLoading] = useState(true);
   const [data, setData] = useState(defaultVal);
+  const skipRemoteSyncValueRef = useRef();
 
   // 首次挂载时从本地存储异步加载初始数据
   useEffect(() => {
@@ -89,6 +90,14 @@ export function useStorage(key, defaultVal = null, syncKey = "") {
       kissLog(`storage save error for key: ${key}`, err);
     });
 
+    if (
+      skipRemoteSyncValueRef.current &&
+      Object.is(skipRemoteSyncValueRef.current.value, data)
+    ) {
+      skipRemoteSyncValueRef.current = undefined;
+      return;
+    }
+
     // 仅在配置后台页面中触发远端同步
     if (syncKey && isOptions()) {
       debouncedSync(syncKey, data);
@@ -140,11 +149,15 @@ export function useStorage(key, defaultVal = null, syncKey = "") {
   const reload = useCallback(async () => {
     try {
       const storedVal = await storage.getObj(key);
-      setData(storedVal ?? defaultVal);
+      const nextData = storedVal ?? defaultVal;
+      if (!Object.is(data, nextData)) {
+        skipRemoteSyncValueRef.current = { value: nextData };
+      }
+      setData(nextData);
     } catch (err) {
       kissLog(`storage reload error for key: ${key}`, err);
     }
-  }, [key, defaultVal]);
+  }, [key, defaultVal, data]);
 
   return { data, save, update, remove, reload, isLoading };
 }
