@@ -22,6 +22,7 @@ export class YouTubeSubtitleList {
     // --- 数据源缓存 ---
     // 双语字幕主列表数组。结构：{ start: number, end: number, text: string, translation: string }
     this.bilingualSubtitles = [];
+    this.rawSubtitleEvents = [];
     // 生词本收录数组。结构：{ word, phonetic, definition, examples: [], timestamp }
     this.vocabulary = [];
 
@@ -130,8 +131,9 @@ export class YouTubeSubtitleList {
    * 初始化字幕面板并启动首次渲染与事件挂载
    * @param {Array} subtitles 初始格式化完毕的字幕数组
    */
-  initialize(subtitles) {
+  initialize(subtitles, rawSubtitleEvents = []) {
     this.bilingualSubtitles = subtitles || [];
+    this.rawSubtitleEvents = rawSubtitleEvents || [];
     if (this.bilingualSubtitles.length > 0) {
       this.createSubtitleList();
       this.setupEventListeners();
@@ -175,6 +177,7 @@ export class YouTubeSubtitleList {
     this.subtitleScrollContainer = null;
     this.subtitleListUl = null;
     this.bilingualSubtitles = [];
+    this.rawSubtitleEvents = [];
     this._cachedSubtitleItems = [];
     this._virtualHeights = [];
     this._virtualOffsets = [0];
@@ -567,6 +570,25 @@ export class YouTubeSubtitleList {
     }
   }
 
+  downloadRawSubtitleEvents() {
+    if (!this.rawSubtitleEvents || this.rawSubtitleEvents.length === 0) {
+      logger.info("Youtube Provider: No raw subtitle events to download");
+      return;
+    }
+
+    try {
+      const videoId = this._getYouTubeVideoId() || "video";
+      const jsonContent = JSON.stringify(this.rawSubtitleEvents, null, 2);
+
+      downloadBlobFile(
+        jsonContent,
+        `kiss-subtitles-raw-${videoId}_${Date.now()}.json`
+      );
+    } catch (error) {
+      logger.error("Youtube Provider: download raw subtitles error:", error);
+    }
+  }
+
   // ==================================================================================
   // UI 渲染与自适应主题逻辑
   // ==================================================================================
@@ -706,7 +728,7 @@ export class YouTubeSubtitleList {
 
     // 关闭侧边列表栏的“×”小按钮
     const closeBtn = document.createElement("button");
-    closeBtn.innerHTML = "&times;";
+    closeBtn.textContent = "×"; // 直接使用纯文本的“×”号，不再需要 HTML 转义
     closeBtn.title = "Close";
     closeBtn.style.cssText = `
       margin-left: auto; 
@@ -748,7 +770,7 @@ export class YouTubeSubtitleList {
 
     // 字幕操作工具条
     const subActionBar = document.createElement("div");
-    subActionBar.style.cssText = `padding: 10px 16px; border-bottom: 1px solid var(--kt-divider); display: flex; justify-content: center; flex-shrink: 0;`;
+    subActionBar.style.cssText = `padding: 10px 16px; border-bottom: 1px solid var(--kt-divider); display: flex; justify-content: center; gap: 8px; flex-shrink: 0;`;
 
     const downloadBtn = document.createElement("button");
     downloadBtn.textContent = "下载字幕 (VTT)";
@@ -774,7 +796,34 @@ export class YouTubeSubtitleList {
     });
     downloadBtn.addEventListener("click", this.downloadSubtitles.bind(this));
 
-    subActionBar.appendChild(downloadBtn);
+    const downloadRawBtn = document.createElement("button");
+    downloadRawBtn.textContent = "下载源数据 (JSON)";
+    downloadRawBtn.style.cssText = `padding: 6px 12px; background: var(--kt-btn-bg); color: var(--kt-btn-color); border: var(--kt-btn-border); border-radius: 4px; cursor: pointer; font-size: 12px; transition: background 220ms ease, color 200ms ease, transform 160ms ease;`;
+
+    downloadRawBtn.addEventListener("mouseenter", () => {
+      try {
+        const hover = getComputedStyle(this.container).getPropertyValue(
+          "--kt-btn-hover-bg"
+        );
+        if (hover) downloadRawBtn.style.background = hover;
+        downloadRawBtn.style.transform = "translateY(-1px)";
+      } catch (e) {}
+    });
+    downloadRawBtn.addEventListener("mouseleave", () => {
+      try {
+        const normal = getComputedStyle(this.container).getPropertyValue(
+          "--kt-btn-bg"
+        );
+        if (normal) downloadRawBtn.style.background = normal;
+        downloadRawBtn.style.transform = "translateY(0)";
+      } catch (e) {}
+    });
+    downloadRawBtn.addEventListener(
+      "click",
+      this.downloadRawSubtitleEvents.bind(this)
+    );
+
+    subActionBar.append(downloadBtn, downloadRawBtn);
     this.subtitleListEl.appendChild(subActionBar);
 
     // 字幕滚动视口容器

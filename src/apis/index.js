@@ -4,6 +4,7 @@ import {
   URL_CACHE_TRAN,
   URL_CACHE_DELANG,
   URL_CACHE_BINGDICT,
+  URL_CACHE_DICT,
   KV_SALT_SYNC,
   OPT_LANGS_TO_SPEC,
   OPT_LANGS_SPEC_DEFAULT,
@@ -20,6 +21,7 @@ import {
 import { sha256, withTimeout } from "../libs/utils";
 import {
   handleTranslate,
+  handleDict,
   handleSubtitle,
   handleSummarize,
   handleMicrosoftLangdetect,
@@ -30,6 +32,54 @@ import { isBuiltinAIAvailable } from "../libs/browser";
 import { chromeDetect, chromeTranslate } from "../libs/builtinAI";
 import { fnPolyfill } from "../libs/fetch";
 import { getFetchPool } from "../libs/pool";
+import { trustedTypesHelper } from "../libs/trustedTypes";
+import { getDocInfo } from "../libs/docInfo";
+
+const PROMPT_CACHE_SALT = "prompt-cache";
+const PROMPT_CACHE_SCOPE_BATCH = "batch";
+const PROMPT_CACHE_SCOPE_NOBATCH = "nobatch";
+const PROMPT_CACHE_SCOPE_SUBTITLE = "subtitle";
+const PROMPT_CACHE_SCOPE_DICT = "dict";
+const PROMPT_CACHE_SCOPE_PLAIN = "plain";
+
+function getTranslatePromptCacheScope(apiSetting = {}) {
+  if (!API_SPE_TYPES.ai.has(apiSetting.apiType)) {
+    return PROMPT_CACHE_SCOPE_PLAIN;
+  }
+
+  return apiSetting.useBatchFetch && API_SPE_TYPES.batch.has(apiSetting.apiType)
+    ? PROMPT_CACHE_SCOPE_BATCH
+    : PROMPT_CACHE_SCOPE_NOBATCH;
+}
+
+function getPromptCacheFields(apiSetting = {}, promptScope) {
+  if (promptScope === PROMPT_CACHE_SCOPE_BATCH) {
+    return [apiSetting.systemPrompt || ""];
+  }
+
+  if (promptScope === PROMPT_CACHE_SCOPE_NOBATCH) {
+    return [apiSetting.nobatchPrompt || "", apiSetting.nobatchUserPrompt || ""];
+  }
+
+  if (promptScope === PROMPT_CACHE_SCOPE_SUBTITLE) {
+    return [apiSetting.subtitlePrompt || ""];
+  }
+
+  if (promptScope === PROMPT_CACHE_SCOPE_DICT) {
+    return [apiSetting.dictPrompt || ""];
+  }
+
+  return [];
+}
+
+async function getPromptCacheSig(apiSetting = {}, promptScope) {
+  const promptText = [
+    promptScope,
+    ...getPromptCacheFields(apiSetting, promptScope),
+  ].join("\n");
+
+  return (await sha256(promptText, PROMPT_CACHE_SALT)).slice(0, 16);
+}
 
 /**
  * 同步数据
@@ -213,7 +263,10 @@ export const apiMicrosoftDict = async (text) => {
 
   // 2. 利用客户端 DOMParser 提取 HTML 中高度复杂的页面数据
   const parser = new DOMParser();
-  const doc = parser.parseFromString(str, "text/html");
+  const doc = parser.parseFromString(
+    trustedTypesHelper.createHTML(str),
+    "text/html"
+  );
 
   const word = doc.querySelector("#headword > h1")?.textContent.trim();
   if (!word) {
@@ -588,12 +641,17 @@ export const apiTranslate = async ({
   // 这可以确保用户在升级扩展插件后，旧版本的翻译缓存会被自动作废，防止旧的翻译 Prompt/规则影响新版效果。
   // 此外，如果当前是视频字幕翻译，还会缓存前 50 字符的上下文视频摘要信息，使上下文关联缓存更智能。
   const [v1, v2] = process.env.REACT_APP_VERSION.split(".");
+  const promptSig = await getPromptCacheSig(
+    apiSetting,
+    getTranslatePromptCacheScope(apiSetting)
+  );
   const cacheOpts = {
     apiSlug,
     text,
     fromLang,
     toLang,
     version: [v1, v2].join("."),
+    promptSig,
     ...(docInfo?.summary && { ctx: docInfo.summary.slice(0, 50) }),
   };
   const cacheInput = `${URL_CACHE_TRAN}?${queryString.stringify(cacheOpts)}`;
@@ -625,7 +683,7 @@ export const apiTranslate = async ({
     const { apiSlug, batchInterval, batchSize, batchLength, useStream } =
       apiSetting;
     const enableStream = useStream && API_SPE_TYPES.stream.has(apiType);
-    const key = `${apiSlug}_${fromLang}_${toLang}_${enableStream ? "stream" : "batch"}`;
+    const key = `${apiSlug}_${fromLang}_${toLang}_${enableStream ? "stream" : "batch"}_${promptSig}`;
     const queue = getBatchQueue(key, handleTranslate, {
       batchInterval,
       batchSize,
@@ -691,6 +749,108 @@ export const apiTranslate = async ({
 };
 
 /**
+ * AI 词典查询入口。
+ *
+ * 该函数负责完成参数校验、语言名映射、缓存 Key 构造与上下文签名计算，
+ * 真正的模型请求由 `handleDict` 处理，避免 UI 层直接接触不同 AI 接口差异。
+ *
+ * @param {Object} params 查询参数
+ * @param {string} params.text 待解析的单词、短语或长文本
+ * @param {string} [params.fromLang="auto"] 源语言代码
+ * @param {string} params.toLang 目标语言代码
+ * @param {Object} [params.apiSetting] 已解析出提示词的 API 配置
+ * @param {Object} [params.docInfo] 外部传入的页面上下文信息
+ * @param {string} [params.context] 当前选区所在段落上下文
+ * @param {Function} [params.onStreamChunk] 流式增量 Markdown 回调
+ * @param {boolean} [params.useCache=true] 是否读写本地缓存
+ * @param {AbortSignal} [params.signal] 取消信号
+ * @returns {Promise<string>} AI 词典返回的 Markdown 文本
+ */
+export const apiDict = async ({
+  text,
+  fromLang = "auto",
+  toLang,
+  apiSetting = DEFAULT_API_SETTING,
+  docInfo,
+  context = "",
+  onStreamChunk,
+  useCache = true,
+  signal,
+}) => {
+  if (!text) {
+    throw new Error("The text cannot be empty.");
+  }
+  if (signal?.aborted) {
+    throw new DOMException("The operation was aborted.", "AbortError");
+  }
+
+  const { apiType } = apiSetting;
+  if (!API_SPE_TYPES.ai.has(apiType)) {
+    throw new Error("AI dictionary only supports AI APIs.");
+  }
+
+  // 复用翻译接口的语言规格映射，确保词典提示词中 {{from}}/{{to}} 与该模型兼容。
+  const langMap = OPT_LANGS_TO_SPEC[apiType] || OPT_LANGS_SPEC_DEFAULT;
+  const from = langMap.get(fromLang);
+  const to = langMap.get(toLang);
+  if (!to) {
+    throw new Error(`The target lang: ${toLang} not support`);
+  }
+
+  const [v1, v2] = process.env.REACT_APP_VERSION.split(".");
+  const effectiveDocInfo = docInfo || getDocInfo();
+  // 缓存需要区分页面信息和选区段落，否则同一个词在不同语境下会错误复用释义。
+  const contextSig = await sha256(
+    [
+      effectiveDocInfo?.title || "",
+      effectiveDocInfo?.description || "",
+      effectiveDocInfo?.summary || "",
+      context || "",
+    ].join("\n"),
+    PROMPT_CACHE_SALT
+  );
+  const cacheOpts = {
+    apiSlug: apiSetting.apiSlug,
+    text,
+    fromLang,
+    toLang,
+    version: [v1, v2].join("."),
+    promptSig: await getPromptCacheSig(apiSetting, PROMPT_CACHE_SCOPE_DICT),
+    contextSig: contextSig.slice(0, 16),
+  };
+  const cacheInput = `${URL_CACHE_DICT}?${queryString.stringify(cacheOpts)}`;
+
+  if (useCache) {
+    const cache = await getHttpCachePolyfill(cacheInput);
+    if (cache?.markdown) {
+      return cache.markdown;
+    }
+  }
+  if (signal?.aborted) {
+    throw new DOMException("The operation was aborted.", "AbortError");
+  }
+
+  const markdown = await handleDict({
+    text,
+    from,
+    to,
+    fromLang,
+    toLang,
+    apiSetting,
+    docInfo: effectiveDocInfo,
+    context,
+    onStreamChunk,
+    signal,
+  });
+
+  if (useCache) {
+    putHttpCachePolyfill(cacheInput, null, { markdown });
+  }
+
+  return markdown;
+};
+
+/**
  * 专为视频外挂字幕 (Subtitle Segment) 订制的翻译处理函数。
  * 融合了视频上下文摘要，使得大模型字幕翻译语义更加贴合剧情，不会产生传统断句翻译的突兀感。
  * @param {Object} params 包含视频 ID、字幕块标识、当前切片字幕数组、上一句和下一句字幕上下文等。
@@ -719,6 +879,7 @@ export const apiSubtitle = async ({
     fromLang,
     toLang,
     segVer: 2,
+    promptSig: await getPromptCacheSig(apiSetting, PROMPT_CACHE_SCOPE_SUBTITLE),
     ctx: docInfo?.summary?.slice(0, 50) || "",
   };
   const cacheInput = `${URL_CACHE_SUBTITLE}?${queryString.stringify(cacheOpts)}`;

@@ -1,6 +1,8 @@
 import { logger } from "../libs/log.js";
-import { truncateWords, throttle, decodeHTMLEntities } from "../libs/utils.js";
+import { truncateWords, throttle } from "../libs/utils.js";
+import { decodeHTMLEntities } from "../libs/html.js";
 import { apiTranslate } from "../apis/index.js";
+import { resolveApiPromptSettings } from "../config/prompt.js";
 import { apiMicrosoftDict } from "../apis/index.js";
 import { trustedTypesHelper } from "../libs/trustedTypes.js";
 import { isSubtitleModeEnabled } from "./modes.js";
@@ -957,6 +959,14 @@ export class BilingualSubtitleManager {
     }
   }
 
+  #needsRepairTranslation(subtitle) {
+    return (
+      !subtitle?.translation ||
+      subtitle.translation === "[Translation failed]" ||
+      subtitle._isDraftTranslation
+    );
+  }
+
   /**
    * 调用大模型或常规翻译 API 对单个字幕进行翻译，并将翻译成功的译文缓存到字幕对象上。
    *
@@ -1005,7 +1015,20 @@ export class BilingualSubtitleManager {
 
     subtitle.isTranslating = true;
     try {
-      const { fromLang, toLang, apiSetting, docInfo } = this.#setting;
+      const {
+        fromLang,
+        toLang,
+        apiSetting: rawApiSetting,
+        docInfo,
+        prompts,
+      } = this.#setting;
+
+      const apiSetting = resolveApiPromptSettings(
+        rawApiSetting,
+        prompts,
+        this.#setting
+      );
+
       const { trText } = await apiTranslate({
         text: subtitle.text,
         fromLang,
@@ -1062,6 +1085,16 @@ export class BilingualSubtitleManager {
       forceRender: true,
       forceTriggerTranslations: true,
     });
+  }
+
+  repairChunkTranslations(subtitles) {
+    for (const subtitle of subtitles || []) {
+      if (!this.#needsRepairTranslation(subtitle) || subtitle.isTranslating) {
+        continue;
+      }
+
+      this.#translateAndStore(subtitle);
+    }
   }
 
   // 更新配置项

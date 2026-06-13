@@ -16,15 +16,11 @@ import {
   MSG_UPDATE_ICON,
   newI18n,
 } from "../config";
+import { resolveApiPromptSettings } from "../config/prompt";
 import { interpreter } from "./interpreter";
 import { clearFetchPool } from "./pool";
-import {
-  debounce,
-  scheduleIdle,
-  genEventName,
-  escapeHTML,
-  parseAITerms,
-} from "./utils";
+import { debounce, scheduleIdle, genEventName, parseAITerms } from "./utils";
+import { escapeHTML } from "./html";
 import { apiTranslate } from "../apis";
 import { kissLog } from "./log";
 import { clearAllBatchQueue } from "./batchQueue";
@@ -468,6 +464,25 @@ export class Translator {
     }
   }
 
+  #appendCssText(node, cssText, label) {
+    if (typeof cssText !== "string" || !cssText.trim()) return;
+
+    try {
+      const style = node?.style;
+      if (
+        !style ||
+        typeof style !== "object" ||
+        typeof style.cssText !== "string"
+      ) {
+        return;
+      }
+
+      style.cssText = `${style.cssText || ""}${cssText}`;
+    } catch (err) {
+      kissLog("append rule style error", label, err);
+    }
+  }
+
   #isBlockNode(node) {
     if (this.#matchesBlockSelector(node)) return true;
     return Translator.isBlockNode(node);
@@ -645,9 +660,8 @@ export class Translator {
         .querySelectorAll("pre")
         .forEach(
           (pre) =>
-            (pre.innerHTML = pre.innerHTML?.replace(
-              /(?:\r\n|\r|\n)/g,
-              "<br />"
+            (pre.innerHTML = trustedTypesHelper.createHTML(
+              pre.innerHTML?.replace(/(?:\r\n|\r|\n)/g, "<br />")
             ))
         );
     }
@@ -1849,15 +1863,9 @@ export class Translator {
       }
 
       // 附加样式
-      if (selectStyle && hostNode.style) {
-        hostNode.style.cssText += selectStyle;
-      }
-      if (parentStyle && parentNode && parentNode.style) {
-        parentNode.style.cssText += parentStyle;
-      }
-      if (grandStyle && parentNode && parentNode.parentElement) {
-        parentNode.parentElement.style.cssText += grandStyle;
-      }
+      this.#appendCssText(hostNode, selectStyle, "selectStyle");
+      this.#appendCssText(parentNode, parentStyle, "parentStyle");
+      this.#appendCssText(parentNode?.parentElement, grandStyle, "grandStyle");
 
       // 高亮词汇
       if (highlightWords === OPT_HIGHLIGHT_WORDS_AFTERTRANS) {
@@ -2075,7 +2083,10 @@ export class Translator {
 
       // 2. DOM 静态解析：使用 DOMParser 将规范后的 HTML 字符串解析成一个虚拟 DOM 树，以便精确操作和避免正则嵌套标签还原出错的问题
       const parser = new DOMParser();
-      const doc = parser.parseFromString(textToParse, "text/html");
+      const doc = parser.parseFromString(
+        trustedTypesHelper.createHTML(textToParse),
+        "text/html"
+      );
 
       // 3. 查找所有临时标记节点
       const selector = `${safeTag}[${restoreAttr}]`;
@@ -2089,7 +2100,9 @@ export class Translator {
           const tagPair = placeholderMap.get(`TAG_${index}`);
           if (tagPair) {
             // 使用原本的 HTML 标签对 (如 <a href="...">...</a>) 完整包裹当前节点的内容，并使用 outerHTML 替换整个临时 span 节点
-            node.outerHTML = `${tagPair.openTag}${node.innerHTML}${tagPair.closeTag}`;
+            node.outerHTML = trustedTypesHelper.createHTML(
+              `${tagPair.openTag}${node.innerHTML}${tagPair.closeTag}`
+            );
           }
         }
       });
@@ -2114,7 +2127,14 @@ export class Translator {
   #translateFetch(text, deLang = "", onStreamChunk = null) {
     const { toLang, transStartHook } = this.#rule;
     const fromLang = deLang || this.#rule.fromLang;
-    const apiSetting = { ...this.#apiSetting };
+    const rawApiSetting = { ...this.#apiSetting };
+
+    const apiSetting = resolveApiPromptSettings(
+      rawApiSetting,
+      this.#setting.prompts,
+      this.#setting.subtitleSetting
+    );
+
     const glossary = { ...this.#glossary };
     const apisMap = this.#apisMap;
 

@@ -45,6 +45,7 @@ class YouTubeCaptionProvider {
   #subtitles = [];
   // YouTube 返回的原生字幕事件流数据，直接保存以备重处理/降级使用
   #events = [];
+  #rawSubtitleEvents = [];
   // 展平并排好序的细粒度单词级别字幕流
   #flatEvents = [];
   // 翻译处理进度百分比 (0-100)
@@ -155,6 +156,7 @@ class YouTubeCaptionProvider {
 
       this.#subtitles = [];
       this.#events = [];
+      this.#rawSubtitleEvents = [];
       this.#flatEvents = [];
       this.#progressed = 0;
       this.#fromLang = "auto";
@@ -468,6 +470,7 @@ class YouTubeCaptionProvider {
       clearMsgHistory(this.#setting.apiSlug);
       this.#subtitles = [];
       this.#events = [];
+      this.#rawSubtitleEvents = [];
       this.#flatEvents = [];
       this.#progressed = 0;
       this.#activeTrackKey = null;
@@ -504,6 +507,7 @@ class YouTubeCaptionProvider {
         logger.debug("Youtube Provider: events not got:", videoId);
         return;
       }
+      this.#rawSubtitleEvents = events;
 
       logger.debug(
         `Youtube Provider: lang: ${lang}, fromLang: ${fromLang}, toLang: ${toLang}`
@@ -613,8 +617,12 @@ class YouTubeCaptionProvider {
         return;
       }
 
-      this.#upsertProcessedSubtitles(subtitles, progressed);
+      const managedSubtitles = this.#upsertProcessedSubtitles(
+        subtitles,
+        progressed
+      );
       this.#startManager();
+      this.#managerInstance?.repairChunkTranslations(managedSubtitles);
     } catch (error) {
       if (error?.name === "AbortError") return;
       logger.info("Youtube Provider: process events", error);
@@ -639,7 +647,7 @@ class YouTubeCaptionProvider {
     const existed = new Map(
       this.#subtitles.map((sub, index) => [`${sub.start}:${sub.end}`, index])
     );
-    const inserted = [];
+    const changed = [];
 
     for (const subtitle of subtitles) {
       const key = `${subtitle.start}:${subtitle.end}`;
@@ -647,16 +655,17 @@ class YouTubeCaptionProvider {
       if (index !== undefined) {
         // 完整 chunk 回来时用最终结果覆盖同一时间轴句子，保留数组引用给 manager/list 使用。
         this.#subtitles[index] = { ...this.#subtitles[index], ...subtitle };
+        changed.push(this.#subtitles[index]);
       } else {
         existed.set(key, this.#subtitles.length);
         this.#subtitles.push(subtitle);
-        inserted.push(subtitle);
+        changed.push(subtitle);
       }
     }
 
     this.#subtitles.sort((a, b) => a.start - b.start);
     this.#progressed = progressed;
-    return inserted;
+    return changed;
   }
 
   /**
@@ -668,15 +677,19 @@ class YouTubeCaptionProvider {
    * @returns {void}
    */
   #appendProcessedSubtitles(subtitles, progressed) {
-    this.#upsertProcessedSubtitles(subtitles, progressed);
+    const managedSubtitles = this.#upsertProcessedSubtitles(
+      subtitles,
+      progressed
+    );
 
     if (!this.#managerInstance && this.#subtitles.length) {
       // 首个流式句子到达时立即启动字幕管理器，不再等待整个 AI chunk 返回。
       this.#startManager();
     }
 
-    this.#managerInstance?.appendSubtitles(subtitles);
+    this.#managerInstance?.appendSubtitles(managedSubtitles);
     this.#subtitleListManager?.setBilingualSubtitles(this.#subtitles);
+    this.#managerInstance?.repairChunkTranslations(managedSubtitles);
   }
 
   /**
@@ -848,7 +861,10 @@ class YouTubeCaptionProvider {
 
     if (showList && !this.#subtitleListManager) {
       this.#subtitleListManager = new YouTubeSubtitleList(videoEl);
-      this.#subtitleListManager.initialize(this.#subtitles);
+      this.#subtitleListManager.initialize(
+        this.#subtitles,
+        this.#rawSubtitleEvents
+      );
 
       this.#managerInstance.onSubtitleUpdate = (subtitleUpdate) => {
         this.#subtitleListManager.updateSingleSubtitle(subtitleUpdate);

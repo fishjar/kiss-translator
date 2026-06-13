@@ -17,12 +17,18 @@ import {
   OPT_ENHANCE_ON,
   OPT_ENHANCE_OFF,
   OPT_ENHANCE_MOBILE_OFF,
+  DEFAULT_SUBTITLE_PROMPT_SLUG,
+  PROMPT_MODE_FOLLOW_API,
+  PROMPT_MODE_GLOBAL,
+  getPromptDisplayName,
+  getSubtitlePromptOptions,
 } from "../../config";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Alert from "@mui/material/Alert";
 import Switch from "@mui/material/Switch";
 import { useSubtitle } from "../../hooks/Subtitle";
 import { useApiList } from "../../hooks/Api";
+import { usePromptList } from "../../hooks/Prompt";
 import ValidationInput from "../../hooks/ValidationInput";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { normalizeSubtitleMode } from "../../subtitle/modes";
@@ -264,6 +270,11 @@ export default function SubtitleSetting() {
   const { subtitleSetting, updateSubtitle } = useSubtitle();
   // 启用的翻译引擎列表与 AI 模型引擎列表
   const { enabledApis, aiEnabledApis } = useApiList();
+  const { prompts } = usePromptList();
+  const subtitlePromptOptions = useMemo(
+    () => getSubtitlePromptOptions(prompts),
+    [prompts]
+  );
 
   // 通用表单变动提交
   const handleChange = (e) => {
@@ -285,6 +296,23 @@ export default function SubtitleSetting() {
     }
   };
 
+  const handleSegPromptChange = (e) => {
+    e.preventDefault();
+    const { value } = e.target;
+
+    if (value === PROMPT_MODE_FOLLOW_API) {
+      updateSubtitle({
+        segPromptMode: PROMPT_MODE_FOLLOW_API,
+      });
+      return;
+    }
+
+    updateSubtitle({
+      segPromptMode: PROMPT_MODE_GLOBAL,
+      segPromptSlug: value,
+    });
+  };
+
   // 解构当前字幕翻译的具体设置
   const {
     enabled,
@@ -304,6 +332,8 @@ export default function SubtitleSetting() {
     showList = OPT_ENHANCE_MOBILE_OFF,
     skipAd = false,
     aiContextSlug = "-",
+    segPromptMode = PROMPT_MODE_FOLLOW_API,
+    segPromptSlug,
     windowStyle,
     originStyle,
     translationStyle,
@@ -320,6 +350,14 @@ export default function SubtitleSetting() {
     showList,
     enhanceMode || OPT_ENHANCE_MOBILE_OFF
   );
+  const selectedSegPromptSlug = segPromptSlug || DEFAULT_SUBTITLE_PROMPT_SLUG;
+  const hasSelectedSegPrompt = subtitlePromptOptions.some(
+    (prompt) => prompt.slug === selectedSegPromptSlug
+  );
+  const segPromptValue =
+    segPromptMode === PROMPT_MODE_GLOBAL && hasSelectedSegPrompt
+      ? selectedSegPromptSlug
+      : PROMPT_MODE_FOLLOW_API;
 
   // 维护一份本地的 CSS 临时样式值，以供 Slider 滑块频繁拖拽时实现低延迟渲染
   const [localOriginStyle, setLocalOriginStyle] = useState(originStyle);
@@ -621,6 +659,28 @@ export default function SubtitleSetting() {
                 ))}
               </TextField>
             </Grid>
+            {segSlug !== "-" && (
+              <Grid item xs={12} sm={12} md={6} lg={3}>
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  name="segPromptSlug"
+                  value={segPromptValue}
+                  label={i18n("seg_prompt_mode", "AI断句提示词")}
+                  onChange={handleSegPromptChange}
+                >
+                  <MenuItem value={PROMPT_MODE_FOLLOW_API}>
+                    {i18n("follow_api_prompt", "接口默认")}
+                  </MenuItem>
+                  {subtitlePromptOptions.map((prompt) => (
+                    <MenuItem key={prompt.slug} value={prompt.slug}>
+                      {getPromptDisplayName(prompt, i18n)}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+            )}
             {/* AI 断句服务与翻译服务不同时，是否丢弃 AI 断句返回的译文并交给翻译服务重翻 */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField

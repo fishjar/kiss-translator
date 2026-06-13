@@ -1,0 +1,4 @@
+$ cross-env NODE_OPTIONS=--disable-warning=DEP0176 REACT_APP_CLIENT=web react-app-rewired start
+process.env.REACT_APP_CLIENT web
+Starting the development server...
+

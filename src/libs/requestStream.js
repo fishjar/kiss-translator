@@ -33,6 +33,104 @@ async function* fetchStreamGM(
 ) {
   const asyncQueue = createAsyncQueue();
   const parseSSE = createSSEParser();
+  let readerStarted = false;
+  let pushedChunk = false;
+  let lastResponseTextLength = 0;
+  let settled = false;
+  let responseTextEncoding = "unknown";
+  let pendingResponseText = "";
+  const responseTextDecoder = new TextDecoder();
+
+  const finish = () => {
+    if (settled) return;
+    settled = true;
+    asyncQueue.finish();
+  };
+
+  const fail = (error) => {
+    if (settled) return;
+    settled = true;
+    asyncQueue.error(error);
+  };
+
+  const getResponseText = (event = {}) => {
+    if (typeof event.responseText === "string") return event.responseText;
+    if (typeof event.response?.responseText === "string") {
+      return event.response.responseText;
+    }
+    if (typeof event.response === "string") return event.response;
+    return "";
+  };
+
+  const pushSSEText = (text) => {
+    for (const data of parseSSE(text)) {
+      pushedChunk = true;
+      asyncQueue.push(data);
+    }
+  };
+
+  const hasWideChar = (text) => {
+    for (let i = 0; i < text.length; i += 1) {
+      if (text.charCodeAt(i) > 0xff) return true;
+    }
+    return false;
+  };
+  const hasHighByte = (text) => /[\u0080-\u00ff]/.test(text);
+  const looksLikeUtf8ByteString = (text) =>
+    /[\u00c2-\u00f4][\u0080-\u00bf]/.test(text);
+
+  const decodeBinaryString = (text, options) => {
+    const bytes = new Uint8Array(text.length);
+    for (let i = 0; i < text.length; i += 1) {
+      bytes[i] = text.charCodeAt(i) & 0xff;
+    }
+    return responseTextDecoder.decode(bytes, options);
+  };
+
+  const pushDecodedResponseText = (text, isFinal = false) => {
+    if (!text && !isFinal) return;
+
+    if (responseTextEncoding === "utf8-bytes") {
+      pushSSEText(decodeBinaryString(text, { stream: !isFinal }));
+      return;
+    }
+
+    pendingResponseText += text;
+    if (responseTextEncoding === "unknown") {
+      if (hasWideChar(pendingResponseText)) {
+        responseTextEncoding = "text";
+      } else if (looksLikeUtf8ByteString(pendingResponseText)) {
+        responseTextEncoding = "utf8-bytes";
+      } else if (hasHighByte(pendingResponseText) && !isFinal) {
+        return;
+      } else {
+        responseTextEncoding = "text";
+      }
+    }
+
+    if (responseTextEncoding === "utf8-bytes") {
+      pushSSEText(
+        decodeBinaryString(pendingResponseText, { stream: !isFinal })
+      );
+    } else {
+      pushSSEText(pendingResponseText);
+    }
+    pendingResponseText = "";
+  };
+
+  const pushResponseTextDelta = (event, isFinal = false) => {
+    if (readerStarted || settled) return;
+
+    const responseText = getResponseText(event);
+    if (responseText.length <= lastResponseTextLength) {
+      pushDecodedResponseText("", isFinal);
+      return;
+    }
+
+    const delta = responseText.slice(lastResponseTextLength);
+    lastResponseTextLength = responseText.length;
+    pushDecodedResponseText(delta, isFinal);
+  };
 
   const gmRequest = window.KISS_GM?.xmlHttpRequest || GM.xmlHttpRequest;
   const requestHandle = gmRequest({
@@ -43,7 +141,12 @@ async function* fetchStreamGM(
     anonymous: true,
     timeout,
     responseType: "stream",
-    onloadstart: async ({ response }) => {
+    onloadstart: async ({ response } = {}) => {
+      if (!response?.getReader) {
+        return;
+      }
+
+      readerStarted = true;
       try {
         const reader = response.getReader();
         const decoder = new TextDecoder();
@@ -53,21 +156,31 @@ async function* fetchStreamGM(
           for (const data of parseSSE(
             decoder.decode(value, { stream: true })
           )) {
+            pushedChunk = true;
             asyncQueue.push(data);
           }
         }
       } catch (e) {
-        asyncQueue.error(e);
+        fail(e);
         return;
       }
-      asyncQueue.finish();
+      finish();
     },
-    onerror: (e) => asyncQueue.error(e),
+    onprogress: (event) => pushResponseTextDelta(event),
+    onload: (event) => {
+      if (readerStarted || settled) return;
+
+      pushResponseTextDelta(event, true);
+      if (!pushedChunk) {
+        fail(new Error("GM stream response is not readable."));
+        return;
+      }
+      finish();
+    },
+    onerror: (e) => fail(e),
     onabort: () =>
-      asyncQueue.error(
-        new DOMException("The operation was aborted.", "AbortError")
-      ),
-    ontimeout: () => asyncQueue.error(new Error("GM stream request timeout")),
+      fail(new DOMException("The operation was aborted.", "AbortError")),
+    ontimeout: () => fail(new Error("GM stream request timeout")),
   });
 
   const abortBySignal = () => requestHandle?.abort?.();

@@ -116,6 +116,7 @@ const userscriptWebpack = (config, env) => {
 // @connect       translate.googleapis.com
 // @connect       translate-pa.googleapis.com
 // @connect       generativelanguage.googleapis.com
+// @connect       api.cognitive.microsofttranslator.com
 // @connect       api-edge.cognitive.microsofttranslator.com
 // @connect       edge.microsoft.com
 // @connect       bing.com
@@ -136,11 +137,17 @@ const userscriptWebpack = (config, env) => {
 // @connect       fanyi.baidu.com
 // @connect       transmart.qq.com
 // @connect       niutrans.com
+// @connect       api.ephone.ai
 // @connect       ephone.ai
 // @connect       translate.volcengine.com
 // @connect       dict.youdao.com
 // @connect       api.anthropic.com
+// @connect       api.deepseek.com
 // @connect       api.siliconflow.cn
+// @connect       api.xiaomimimo.com
+// @connect       dashscope.aliyuncs.com
+// @connect       api.cerebras.ai
+// @connect       open.bigmodel.cn
 // @connect       api.cloudflare.com
 // @connect       openrouter.ai
 // @connect       localhost
@@ -267,4 +274,25 @@ switch (process.env.REACT_APP_CLIENT) {
 
 module.exports = {
   webpack: webpackConfig,
+  devServer: (configFunction) => (proxy, allowedHost) => {
+    const config = configFunction(proxy, allowedHost);
+    const onBeforeSetupMiddleware = config.onBeforeSetupMiddleware;
+    const onAfterSetupMiddleware = config.onAfterSetupMiddleware;
+    const setupMiddlewares = config.setupMiddlewares;
+
+    if (onBeforeSetupMiddleware || onAfterSetupMiddleware) {
+      config.setupMiddlewares = (middlewares, devServer) => {
+        if (onBeforeSetupMiddleware) onBeforeSetupMiddleware(devServer);
+        const nextMiddlewares = setupMiddlewares
+          ? setupMiddlewares(middlewares, devServer)
+          : middlewares;
+        if (onAfterSetupMiddleware) onAfterSetupMiddleware(devServer);
+        return nextMiddlewares;
+      };
+      delete config.onBeforeSetupMiddleware;
+      delete config.onAfterSetupMiddleware;
+    }
+
+    return config;
+  },
 };

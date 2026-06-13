@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { sleep, limitNumber } from "../libs/utils";
 import { isMobile } from "../libs/mobile";
 import useAutoHideTranBtn from "./useAutoHideTranBtn";
@@ -11,10 +11,10 @@ import {
  * 获取当前选区的右下角坐标位置，以便于在此处展示划词翻译按钮或翻译框
  * @returns {object|null} {x, y} 坐标
  */
-function getSelectionPosition() {
-  const selection = window.getSelection();
+function getSelectionPosition(selection = window.getSelection()) {
   if (!selection || selection.isCollapsed) return null;
   try {
+    if (selection.rangeCount === 0) return null;
     const range = selection.getRangeAt(0);
     const rects = range.getClientRects();
     if (rects.length === 0) return null;
@@ -25,6 +25,44 @@ function getSelectionPosition() {
     };
   } catch {
     return null;
+  }
+}
+
+/**
+ * 根据事件来源定位 Selection 所在根节点。
+ *
+ * 翻译框可能运行在 ShadowRoot 内，直接使用 window.getSelection()
+ * 会读不到面板内部二次划词的内容，因此需要优先读取事件目标所属根节点。
+ *
+ * @param {Event} e 鼠标或触摸事件
+ * @returns {Document|ShadowRoot} 可提供 getSelection 的根节点
+ */
+function getSelectionRootFromEvent(e) {
+  const root = e?.target?.getRootNode?.();
+  return root?.getSelection ? root : document;
+}
+
+/**
+ * 从当前选区提取最多 1000 字的段落上下文，供 AI 词典做语义消歧。
+ *
+ * @param {Selection} selection 当前浏览器选区
+ * @returns {string} 清理空白后的上下文文本
+ */
+function getSelectionContext(selection) {
+  try {
+    if (!selection || selection.rangeCount === 0) return "";
+    const node = selection.getRangeAt(0).commonAncestorContainer;
+    const element =
+      node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+    const container = element?.closest?.(
+      "p, li, blockquote, article, section, main, div"
+    );
+    return (container?.textContent || element?.textContent || "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 1000);
+  } catch {
+    return "";
   }
 }
 
@@ -54,10 +92,17 @@ export default function useSelectionController({
   const [showBtn, setShowBtn] = useState(false); // 划词浮现的“译”按钮展示状态
   const [selectedText, setSelText] = useState(""); // 当前选中的原始文本缓存
   const [text, setText] = useState(""); // 实际翻译框中待翻译或翻译完成的文本
+  const [textContext, setTextContext] = useState(""); // 当前选区所在段落上下文，供 AI 词典使用
   const [position, setPosition] = useState({ x: 0, y: 0 }); // 划词按钮浮现位置
+  const selectionRootRef = useRef(document); // 最近一次划词所在根节点，兼容 ShadowRoot 内部选区
+
+  const getActiveSelection = useCallback(
+    () => selectionRootRef.current?.getSelection?.() || window.getSelection(),
+    []
+  );
 
   // 绑定翻译触发按钮的自动超时隐藏机制
-  useAutoHideTranBtn(showBtn, setShowBtn);
+  useAutoHideTranBtn(showBtn, setShowBtn, getActiveSelection);
 
   // 打开翻译面板，将指定文本填入并显示面板
   const handleOpenTranbox = useCallback(
@@ -69,10 +114,83 @@ export default function useSelectionController({
     [selectedText]
   );
 
+  const handleSelectedText = useCallback(
+    (selection, currentSelectedText) => {
+      setSelText(currentSelectedText);
+      setTextContext(getSelectionContext(selection));
+
+      if (!currentSelectedText) {
+        setShowBtn(false);
+        return;
+      }
+
+      // 同一套选区处理同时服务页面划词和翻译框内二次划词，统一做 rangeCount 防护。
+      const rect =
+        selection?.rangeCount > 0
+          ? selection.getRangeAt(0)?.getBoundingClientRect()
+          : null;
+      if (rect && followSelection) {
+        const x = (rect.left + rect.right) / 2 + boxOffsetX;
+        const y = rect.bottom + boxOffsetY;
+        setBoxPosition({
+          x: limitNumber(x, 0, window.innerWidth - boxSize.w),
+          y: limitNumber(y, 0, window.innerHeight - 50),
+        });
+      }
+
+      if (triggerMode === OPT_TRANBOX_TRIGGER_SELECT) {
+        handleOpenTranbox(currentSelectedText);
+        return;
+      }
+
+      if (!hideTranBtn) {
+        const selectionPos = getSelectionPosition(selection);
+        if (selectionPos) {
+          setShowBtn(true);
+          setPosition(selectionPos);
+        } else {
+          setShowBtn(false);
+        }
+      } else {
+        setShowBtn(false);
+      }
+    },
+    [
+      hideTranBtn,
+      triggerMode,
+      followSelection,
+      boxOffsetX,
+      boxOffsetY,
+      handleOpenTranbox,
+      boxSize,
+      setBoxPosition,
+    ]
+  );
+
+  const handlePanelSelection = useCallback(
+    async (e) => {
+      if (e.button === 2) return;
+
+      e.stopPropagation?.();
+      // 面板内选词使用事件根节点读取 Selection，避免 Shadow DOM 场景读到页面旧选区。
+      selectionRootRef.current = getSelectionRootFromEvent(e);
+      await sleep(0);
+      const selection = getActiveSelection();
+      const currentSelectedText = selection?.toString()?.trim() || "";
+      if (!currentSelectedText) {
+        return;
+      }
+
+      handleSelectedText(selection, currentSelectedText);
+    },
+    [getActiveSelection, handleSelectedText]
+  );
+
   // 切换/激活翻译面板
   const handleToggleTranbox = useCallback(() => {
     setShowBtn(false);
 
+    selectionRootRef.current = document;
     const selection = window.getSelection();
     const currentSelectedText = selection?.toString()?.trim() || "";
     // 若没有选中文本，则执行面板展开状态的直接取反切换
@@ -81,7 +199,10 @@ export default function useSelectionController({
       return;
     }
 
-    const rect = selection?.getRangeAt(0)?.getBoundingClientRect();
+    const rect =
+      selection?.rangeCount > 0
+        ? selection.getRangeAt(0)?.getBoundingClientRect()
+        : null;
     // 如果启用跟随选中文字定位，重新计算并设定翻译面板相对于选区的展示位置，并边界限制防止溢出视口
     if (rect && followSelection) {
       const x = (rect.left + rect.right) / 2 + boxOffsetX;
@@ -93,6 +214,7 @@ export default function useSelectionController({
     }
 
     setSelText(currentSelectedText);
+    setTextContext(getSelectionContext(selection));
     setText(currentSelectedText);
     setShowBox(true);
   }, [followSelection, boxOffsetX, boxOffsetY, setBoxPosition, boxSize]);
@@ -116,61 +238,17 @@ export default function useSelectionController({
 
       await sleep(200); // 延迟等待系统选区高亮渲染及 Selection 属性就绪
 
+      selectionRootRef.current = document;
       const selection = window.getSelection();
       const currentSelectedText = selection?.toString()?.trim() || "";
-      setSelText(currentSelectedText);
-
-      // 若没有选中文本，隐藏划词触发按钮
-      if (!currentSelectedText) {
-        setShowBtn(false);
-        return;
-      }
-
-      // 获取选区相对于视口的边界数据，用以设定翻译面板的初始显示位置
-      const rect = selection?.getRangeAt(0)?.getBoundingClientRect();
-      if (rect && followSelection) {
-        const x = (rect.left + rect.right) / 2 + boxOffsetX;
-        const y = rect.bottom + boxOffsetY;
-        setBoxPosition({
-          x: limitNumber(x, 0, window.innerWidth - boxSize.w),
-          y: limitNumber(y, 0, window.innerHeight - 50),
-        });
-      }
-
-      // 如果触发模式是划词完毕立即触发翻译，则直接打开翻译面板
-      if (triggerMode === OPT_TRANBOX_TRIGGER_SELECT) {
-        handleOpenTranbox(currentSelectedText);
-        return;
-      }
-
-      // 否则，如果用户没有配置“隐藏翻译按钮”，计算选区右下角坐标以显示“译”按钮
-      if (!hideTranBtn) {
-        const selectionPos = getSelectionPosition();
-        if (selectionPos) {
-          setShowBtn(true);
-          setPosition(selectionPos);
-        } else {
-          setShowBtn(false);
-        }
-      } else {
-        setShowBtn(false);
-      }
+      handleSelectedText(selection, currentSelectedText);
     }
 
     window.addEventListener(eventName, handleMouseup);
     return () => {
       window.removeEventListener(eventName, handleMouseup);
     };
-  }, [
-    hideTranBtn,
-    triggerMode,
-    followSelection,
-    boxOffsetX,
-    boxOffsetY,
-    handleOpenTranbox,
-    boxSize,
-    setBoxPosition,
-  ]);
+  }, [handleSelectedText]);
 
   // 点击翻译面板空白处时，自动收起并隐藏翻译面板 (ClickAway)
   useEffect(() => {
@@ -194,10 +272,12 @@ export default function useSelectionController({
     setSelText,
     text,
     setText,
+    textContext,
     position,
     setPosition,
     handleOpenTranbox,
     handleToggleTranbox,
+    handlePanelSelection,
     btnEvent,
   };
 }

@@ -342,6 +342,11 @@ function TranBoxContent({
   langDetector,
   enDict,
   enSug,
+  aiDictApiSlug,
+  aiDictPromptSlug,
+  prompts,
+  selectionContext,
+  onPanelSelection,
 }) {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
@@ -354,6 +359,8 @@ function TranBoxContent({
 
   return (
     <Box
+      onMouseUp={onPanelSelection}
+      onTouchEnd={onPanelSelection}
       sx={{
         p: simpleStyle ? 1 : 2,
         backgroundColor: theme.palette.background.paper,
@@ -393,10 +400,14 @@ function TranBoxContent({
         toLang={toLang}
         toLang2={toLang2}
         transApis={transApis}
+        prompts={prompts}
         simpleStyle={simpleStyle}
         langDetector={langDetector}
         enDict={enDict}
         enSug={enSug}
+        aiDictApiSlug={aiDictApiSlug}
+        aiDictPromptSlug={aiDictPromptSlug}
+        selectionContext={selectionContext}
       />
     </Box>
   );
@@ -460,9 +471,14 @@ export default function TranBox(props) {
               toLang={props.tranboxSetting.toLang}
               toLang2={props.tranboxSetting.toLang2}
               transApis={props.transApis}
+              prompts={props.prompts}
               langDetector={props.langDetector}
               enDict={props.tranboxSetting.enDict}
               enSug={props.tranboxSetting.enSug}
+              aiDictApiSlug={props.tranboxSetting.aiDictApiSlug}
+              aiDictPromptSlug={props.tranboxSetting.aiDictPromptSlug}
+              selectionContext={props.selectionContext}
+              onPanelSelection={props.onPanelSelection}
             />
           </DraggableResizable>
         )}

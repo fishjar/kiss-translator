@@ -30,8 +30,10 @@ import { sha256, removeEndchar } from "./utils";
 import { createClient, getPatcher } from "webdav";
 import { fetchPatcher } from "./fetch";
 import { kissLog } from "./log";
+import { encryptSyncValue, decryptSyncValue } from "./syncCrypto";
 
 let webdavRequestPatched = false;
+const GIST_SYNC_DESCRIPTION = "kiss translator sync files";
 
 /**
  * 确保 WebDAV 库的 request 通道只被补丁一次。
@@ -64,7 +66,11 @@ const ensureWebdavRequestPatched = () => {
  * @param {string} params.syncKey 账号密码或应用授权码
  * @returns {Promise<Object>} 返回最终云端与本地同步判定后的最新数据对象
  */
-const syncByWebdav = async (data, { syncUrl, syncUser, syncKey }) => {
+const syncByWebdav = async (
+  data,
+  { syncUrl, syncUser, syncKey },
+  { forceWrite = false } = {}
+) => {
   ensureWebdavRequestPatched();
 
   const client = createClient(syncUrl, {
@@ -81,7 +87,7 @@ const syncByWebdav = async (data, { syncUrl, syncUser, syncKey }) => {
 
   // 2. 若云端文件已存在，则读取云端内容，对比 updateAt 时间戳以决定“谁覆盖谁”
   const isExist = await client.exists(filename);
-  if (isExist) {
+  if (isExist && !forceWrite) {
     const cont = await client.getFileContents(filename, { format: "text" });
     const webData = JSON.parse(cont);
 
@@ -122,13 +128,15 @@ export const getGistId = (input = "") => {
   }
 };
 
-const getGistDescription = async (syncKey) => {
-  const description = "kiss translator sync files";
+const findGistByDescription = async (syncKey) => {
   const gists = await apiListGists(syncKey);
-  if (gists.some((gist) => gist.description === description)) {
-    return `${description}-${Date.now()}`;
-  }
-  return description;
+  return gists
+    .filter((gist) => gist.description === GIST_SYNC_DESCRIPTION)
+    .sort((a, b) => {
+      const timeA = Date.parse(a.updated_at || a.created_at || 0);
+      const timeB = Date.parse(b.updated_at || b.created_at || 0);
+      return timeB - timeA;
+    })[0];
 };
 
 const getGistFilename = (key) => {
@@ -137,10 +145,22 @@ const getGistFilename = (key) => {
   return key;
 };
 
-const syncByGist = async (data, { syncUrl, syncKey }) => {
-  const gistId = getGistId(syncUrl);
+const syncByGist = async (
+  data,
+  { syncUrl, syncKey },
+  { forceWrite = false } = {}
+) => {
+  let gistId = getGistId(syncUrl);
   const filename = getGistFilename(data.key);
   const content = JSON.stringify(data, null, 2);
+
+  if (!gistId) {
+    const existingGist = await findGistByDescription(syncKey);
+    if (existingGist?.id) {
+      gistId = existingGist.id;
+      await putSync({ syncUrl: gistId });
+    }
+  }
 
   if (!gistId) {
     const gist = await apiCreateGist(
@@ -149,7 +169,7 @@ const syncByGist = async (data, { syncUrl, syncKey }) => {
         key: filename,
         content,
       },
-      await getGistDescription(syncKey)
+      GIST_SYNC_DESCRIPTION
     );
     await putSync({ syncUrl: gist.id });
     return data;
@@ -157,7 +177,7 @@ const syncByGist = async (data, { syncUrl, syncKey }) => {
 
   const gist = await apiGetGist(gistId, syncKey);
   const file = gist.files?.[filename] || gist.files?.[data.key];
-  if (file) {
+  if (file && !forceWrite) {
     const fileContent = file.content || (await apiFetchText(file.raw_url));
     const gistData = JSON.parse(fileContent);
     if (gistData.updateAt >= data.updateAt) {
@@ -167,6 +187,111 @@ const syncByGist = async (data, { syncUrl, syncKey }) => {
 
   await apiUpdateGistFile(gistId, syncKey, filename, content);
   return data;
+};
+
+/**
+ * 将同步包的业务 value 加密，保留 key/updateAt 用于远端文件定位与冲突判断。
+ * @param {Object} data 同步包
+ * @param {string} syncEncryptKey 同步加密口令
+ * @returns {Promise<Object>}
+ */
+const encryptSyncData = async (data, syncEncryptKey) => ({
+  ...data,
+  value: await encryptSyncValue(data.value, syncEncryptKey),
+});
+
+/**
+ * 解密同步包中的 value，并保留是否来自新版密文的标记。
+ * @param {Object} data 远端返回的同步包
+ * @param {string} syncEncryptKey 同步加密口令
+ * @returns {Promise<{data: Object, encrypted: boolean}>}
+ */
+const decryptSyncData = async (data, syncEncryptKey) => {
+  const { value, encrypted } = await decryptSyncValue(
+    data.value,
+    syncEncryptKey
+  );
+  return {
+    data: {
+      ...data,
+      value,
+    },
+    encrypted,
+  };
+};
+
+/**
+ * 按同步类型分发到 Worker / WebDAV / Gist。
+ * options.forceWrite 只用于 WebDAV/Gist 客户端侧跳过远端时间戳比较；
+ * Worker 协议不额外透传该字段，重加密时通过提升 updateAt 表达新密文版本。
+ */
+const syncByType = async (syncType, data, args, options) =>
+  syncType === OPT_SYNCTYPE_WEBDAV
+    ? await syncByWebdav(data, args, options)
+    : syncType === OPT_SYNCTYPE_GIST
+      ? await syncByGist(data, args, options)
+      : await syncByWorker(data, args);
+
+/**
+ * 将已经读取成功的旧版明文远端数据，用当前同步加密口令回写成密文。
+ */
+const migratePlainSyncData = async (syncType, data, args, syncEncryptKey) => {
+  const encryptedData = await encryptSyncData(data, syncEncryptKey);
+  await syncByType(syncType, encryptedData, args, { forceWrite: true });
+};
+
+/**
+ * 修改同步加密口令时强制用指定口令回写某一类个人同步数据。
+ *
+ * @param {string} key 同步文件键名
+ * @param {*} value 当前本地业务数据
+ * @param {string} syncEncryptKey 新同步加密口令
+ * @returns {Promise<void>}
+ */
+const forceSyncDataWithEncryptKey = async (key, value, syncEncryptKey) => {
+  const {
+    syncType,
+    syncUrl,
+    syncUser,
+    syncKey,
+    syncMeta = {},
+  } = await getSyncWithDefault();
+
+  if (
+    !syncKey ||
+    !syncEncryptKey ||
+    (syncType !== OPT_SYNCTYPE_GIST && !syncUrl) ||
+    (syncType === OPT_SYNCTYPE_WEBDAV && !syncUser)
+  ) {
+    throw new Error("sync setting is incomplete");
+  }
+
+  // 口令轮换会改变密文内容，必须提升 updateAt 让其他设备感知新版本。
+  const updateAt = Date.now();
+  const args = {
+    syncUrl,
+    syncUser,
+    syncKey,
+  };
+  const data = await encryptSyncData(
+    {
+      key,
+      value: JSON.stringify(value),
+      updateAt,
+    },
+    syncEncryptKey
+  );
+
+  const res = await syncByType(syncType, data, args, { forceWrite: true });
+  if (!res) {
+    throw new Error("sync data got err", key);
+  }
+
+  syncMeta[key] = {
+    updateAt,
+    syncAt: Date.now(),
+  };
+  await putSync({ syncMeta });
 };
 
 /**
@@ -184,12 +309,14 @@ export const syncData = async (key, value) => {
     syncUrl,
     syncUser,
     syncKey,
+    syncEncryptKey,
     syncMeta = {},
   } = await getSyncWithDefault();
 
   // 若未填写必要的同步参数，则直接退出不报错
   if (
     !syncKey ||
+    !syncEncryptKey ||
     (syncType !== OPT_SYNCTYPE_GIST && !syncUrl) ||
     (syncType === OPT_SYNCTYPE_WEBDAV && !syncUser)
   ) {
@@ -212,21 +339,27 @@ export const syncData = async (key, value) => {
     syncKey,
   };
 
-  // 根据同步类型执行不同的同步方法
-  const res =
-    syncType === OPT_SYNCTYPE_WEBDAV
-      ? await syncByWebdav(data, args)
-      : syncType === OPT_SYNCTYPE_GIST
-        ? await syncByGist(data, args)
-        : await syncByWorker(data, args);
+  const encryptedData = await encryptSyncData(data, syncEncryptKey);
 
-  if (!res) {
+  // 根据同步类型执行不同的同步方法
+  const encryptedOrLegacyRes = await syncByType(syncType, encryptedData, args);
+
+  if (!encryptedOrLegacyRes) {
     throw new Error("sync data got err", key);
   }
 
+  const { data: res, encrypted } = await decryptSyncData(
+    encryptedOrLegacyRes,
+    syncEncryptKey
+  );
   const newVal = JSON.parse(res.value);
   // 若返回的云端数据更新时间戳晚于本地，则说明云端有新更改需要覆盖本地
   const isNew = res.updateAt > updateAt;
+
+  // 新版客户端首次遇到旧版明文远端数据时，读取后立即迁移为密文。
+  if (!encrypted) {
+    await migratePlainSyncData(syncType, res, args, syncEncryptKey);
+  }
 
   // 更新本地同步元数据，包含云端的最新修改时间及当前的同步操作时间
   syncMeta[key] = {
@@ -342,6 +475,36 @@ export const syncSettingAndRules = async () => {
   await syncSetting();
   await syncRules();
   await syncWords();
+};
+
+/**
+ * 修改同步加密口令，并用新口令重新加密个人同步数据。
+ *
+ * 先用旧口令完成一次普通同步，确保本地拿到远端最新数据；三类数据全部
+ * 用新口令回写成功后，才保存新的 syncEncryptKey，避免半失败导致旧密文不可读。
+ * @param {string} newSyncEncryptKey 新同步加密口令
+ * @returns {Promise<void>}
+ */
+export const changeSyncEncryptKey = async (newSyncEncryptKey) => {
+  await syncSettingAndRules();
+
+  await forceSyncDataWithEncryptKey(
+    KV_SETTING_KEY,
+    await getSettingWithDefault(),
+    newSyncEncryptKey
+  );
+  await forceSyncDataWithEncryptKey(
+    KV_RULES_KEY,
+    await getRulesWithDefault(),
+    newSyncEncryptKey
+  );
+  await forceSyncDataWithEncryptKey(
+    KV_WORDS_KEY,
+    await getWordsWithDefault(),
+    newSyncEncryptKey
+  );
+
+  await putSync({ syncEncryptKey: newSyncEncryptKey });
 };
 
 /**

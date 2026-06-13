@@ -11,6 +11,9 @@ import {
   DEFAULT_SETTING,
   KV_SETTING_KEY,
   MSG_SET_LOGLEVEL,
+  SETTINGS_VERSION_V2,
+  getSettingVersion,
+  migrateSettingPromptsToV2,
 } from "../config";
 import { useStorage } from "./Storage";
 import { debounceSyncMeta } from "../libs/storage";
@@ -40,6 +43,27 @@ export function SettingProvider({ children, context }) {
     update,
     reload,
   } = useStorage(STOKEY_SETTING, DEFAULT_SETTING, KV_SETTING_KEY);
+  const hasSetting = !!setting;
+  const settingVersion = getSettingVersion(setting);
+  const logLevel = setting?.logLevel;
+
+  // 兼容直接从 Storage 或云同步回填进来的旧版设置，确保进入界面的配置已经升级到 V2。
+  useEffect(() => {
+    if (!hasSetting || settingVersion >= SETTINGS_VERSION_V2) {
+      return;
+    }
+
+    update((currentSetting) => {
+      if (
+        !currentSetting ||
+        getSettingVersion(currentSetting) >= SETTINGS_VERSION_V2
+      ) {
+        return currentSetting;
+      }
+
+      return migrateSettingPromptsToV2(currentSetting);
+    });
+  }, [hasSetting, settingVersion, update]);
 
   // 对设置项中老版本可能存在的 boolean 类型 darkMode 进行自动平滑升级为三种模式类型 (dark, light, auto)
   useEffect(() => {
@@ -58,15 +82,15 @@ export function SettingProvider({ children, context }) {
 
     (async () => {
       try {
-        logger.setLevel(setting?.logLevel);
+        logger.setLevel(logLevel);
         if (isExt) {
-          await sendBgMsg(MSG_SET_LOGLEVEL, setting?.logLevel);
+          await sendBgMsg(MSG_SET_LOGLEVEL, logLevel);
         }
       } catch (error) {
         logger.error("Failed to fetch log level, using default.", error);
       }
     })();
-  }, [isOptionsPage, setting?.logLevel]);
+  }, [isOptionsPage, logLevel]);
 
   // 包装后的更新设置项函数，更新状态的同时异步触发防抖的云端同步机制 (KV 同步)
   const updateSetting = useCallback(

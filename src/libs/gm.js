@@ -3,10 +3,27 @@ import { genEventName } from "./utils";
 
 // 各项 GM (Greasemonkey) 跨沙盒通信指令
 const MSG_GM_xmlHttpRequest = "xmlHttpRequest";
+const MSG_GM_xmlHttpRequestAbort = "xmlHttpRequestAbort";
 const MSG_GM_setValue = "setValue";
 const MSG_GM_getValue = "getValue";
 const MSG_GM_deleteValue = "deleteValue";
 const MSG_GM_info = "info";
+const GM_XHR_CALLBACKS = [
+  "onloadstart",
+  "onprogress",
+  "onreadystatechange",
+  "onload",
+  "onerror",
+  "onabort",
+  "ontimeout",
+];
+const GM_XHR_TERMINAL_CALLBACKS = new Set([
+  "onload",
+  "onerror",
+  "onabort",
+  "ontimeout",
+]);
+const gmRequestHandles = new Map();
 
 /**
  * 注入网页的初始化脚本，用于将油猴基本信息与事件通道公开给页面环境。
@@ -69,9 +86,62 @@ export const adaptScript = (ping) => {
       }, timeout);
     });
 
+  const xmlHttpRequest = (details) => {
+    const pong = genEventName();
+    const callbacks = {};
+    const requestDetails = { ...details };
+
+    GM_XHR_CALLBACKS.forEach((name) => {
+      if (typeof requestDetails[name] === "function") {
+        callbacks[name] = requestDetails[name];
+        delete requestDetails[name];
+      }
+    });
+
+    const cleanup = () => window.removeEventListener(pong, handleEvent);
+    const handleEvent = (e) => {
+      const { callback, data, error } = e.detail || {};
+      if (error) {
+        cleanup();
+        callbacks.onerror?.(new Error(error));
+        return;
+      }
+
+      callbacks[callback]?.(data);
+      if (GM_XHR_TERMINAL_CALLBACKS.has(callback)) {
+        cleanup();
+      }
+    };
+
+    window.addEventListener(pong, handleEvent);
+    window.dispatchEvent(
+      new CustomEvent(ping, {
+        detail: {
+          action: MSG_GM_xmlHttpRequest,
+          args: { details: requestDetails },
+          pong,
+        },
+      })
+    );
+
+    return {
+      abort: () => {
+        window.dispatchEvent(
+          new CustomEvent(ping, {
+            detail: {
+              action: MSG_GM_xmlHttpRequestAbort,
+              args: { requestId: pong },
+            },
+          })
+        );
+      },
+    };
+  };
+
   // 挂载垫片到宿主页面 window，使运行在普通页面沙盒中的 React / Web 业务代码可以像调用原生 GM 般顺畅
   window.KISS_GM = {
     fetch: (input, init) => promiseGM(MSG_GM_xmlHttpRequest, { input, init }),
+    xmlHttpRequest,
     setValue: (key, val) => promiseGM(MSG_GM_setValue, { key, val }),
     getValue: (key) => promiseGM(MSG_GM_getValue, { key }),
     deleteValue: (key) => promiseGM(MSG_GM_deleteValue, { key }),
@@ -96,14 +166,48 @@ export const handlePing = async (e) => {
   // 继而构造伪造的 CustomEvent 来调用 `setValue`、`getValue` 甚至是 `xmlHttpRequest` 跨域代理。
   // 这会导致存储隐私泄露、数据被恶意覆写、甚至利用特权跨域请求实施 CSRF 攻击。
   // 建议今后在此处加入简单的会话 Token 校验机制。
-  const { action, args, pong } = e.detail;
+  let pong;
   let res;
   try {
+    const { action, args: rawArgs = {}, pong: eventPong } = e?.detail || {};
+    const args = rawArgs || {};
+    pong = eventPong;
+    if (!action) return;
+
     switch (action) {
       case MSG_GM_xmlHttpRequest:
-        const { input, init } = args;
-        res = await fetchGM(input, init); // 调用跨域特权 fetch
-        break;
+        if (Object.prototype.hasOwnProperty.call(args, "input")) {
+          const { input, init } = args;
+          res = await fetchGM(input, init); // 调用跨域特权 fetch
+          break;
+        }
+
+        gmRequestHandles.set(
+          pong,
+          GM.xmlHttpRequest(
+            GM_XHR_CALLBACKS.reduce(
+              (details, name) => ({
+                ...details,
+                [name]: (data) => {
+                  window.dispatchEvent(
+                    new CustomEvent(pong, {
+                      detail: { callback: name, data },
+                    })
+                  );
+                  if (GM_XHR_TERMINAL_CALLBACKS.has(name)) {
+                    gmRequestHandles.delete(pong);
+                  }
+                },
+              }),
+              args.details
+            )
+          )
+        );
+        return;
+      case MSG_GM_xmlHttpRequestAbort:
+        gmRequestHandles.get(args.requestId)?.abort?.();
+        gmRequestHandles.delete(args.requestId);
+        return;
       case MSG_GM_setValue:
         const { key, val } = args;
         await GM.setValue(key, val);
@@ -124,11 +228,15 @@ export const handlePing = async (e) => {
     }
 
     // 成功处理后，向回调事件 pong 发送成功报文
-    window.dispatchEvent(new CustomEvent(pong, { detail: { data: res } }));
+    if (pong) {
+      window.dispatchEvent(new CustomEvent(pong, { detail: { data: res } }));
+    }
   } catch (err) {
     // 捕获异常并反馈给回调页面
-    window.dispatchEvent(
-      new CustomEvent(pong, { detail: { error: err.message } })
-    );
+    if (pong) {
+      window.dispatchEvent(
+        new CustomEvent(pong, { detail: { error: err.message } })
+      );
+    }
   }
 };

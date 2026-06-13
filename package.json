@@ -1,7 +1,7 @@
 {
   "name": "kiss-translator",
   "description": "A minimalist bilingual translation Extension & Greasemonkey Script",
-  "version": "2.0.23",
+  "version": "2.0.24",
   "author": "Gabe<yugang2002@gmail.com>",
   "private": true,
   "dependencies": {
@@ -25,8 +25,8 @@
     "webextension-polyfill": "^0.10.0"
   },
   "scripts": {
-    "start": "cross-env REACT_APP_CLIENT=web react-app-rewired start",
-    "start:userscript": "cross-env REACT_APP_CLIENT=userscript react-app-rewired start",
+    "start": "cross-env NODE_OPTIONS=--disable-warning=DEP0176 REACT_APP_CLIENT=web react-app-rewired start",
+    "start:userscript": "cross-env NODE_OPTIONS=--disable-warning=DEP0176 REACT_APP_CLIENT=userscript react-app-rewired start",
     "sync-version": "zx src/scripts/sync-version.mjs",
     "version:patch": "zx src/scripts/update-version.mjs patch",
     "version:minor": "zx src/scripts/update-version.mjs minor",
