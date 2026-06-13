@@ -55,7 +55,7 @@ function LogoMark({ tokens }) {
   return (
     <Box
       component="img"
-      src="/images/logo192.png"
+      src="images/logo192.png"
       alt="KISS Translator"
       sx={{
         width: { xs: 34, sm: 38 },
