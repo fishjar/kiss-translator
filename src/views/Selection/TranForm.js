@@ -541,6 +541,7 @@ export default function TranForm({
                 <AiDictCont
                   text={text}
                   fromLang={fromLang}
+                  speechLang={fromLang === "auto" ? deLang : fromLang}
                   toLang={realToLang}
                   apiSetting={aiDictApiSetting}
                   context={

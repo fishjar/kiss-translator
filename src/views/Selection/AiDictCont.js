@@ -14,11 +14,8 @@ const pendingRequests = new Map();
 /**
  * 生成 AI 词典请求去重 Key。
  *
- * 同一个翻译框在 React 重渲染或 StrictMode 下可能短时间触发重复请求，
+ * 同一翻译框在 React 重渲染或 StrictMode 下可能短时间触发重复请求。
  * 用完整输入、语言、接口配置和上下文共同参与去重，避免串用不同语境结果。
- *
- * @param {Object} params 影响词典输出的请求参数
- * @returns {string} 可作为 Map 键使用的稳定字符串
  */
 function getRequestKey({ text, fromLang, toLang, apiSettingKey, context }) {
   return JSON.stringify({
@@ -30,77 +27,16 @@ function getRequestKey({ text, fromLang, toLang, apiSettingKey, context }) {
   });
 }
 
-function getNodeText(children) {
-  if (typeof children === "string" || typeof children === "number") {
-    return String(children);
-  }
-
-  if (Array.isArray(children)) {
-    return children.map(getNodeText).join("");
-  }
-
-  if (children?.props?.children) {
-    return getNodeText(children.props.children);
-  }
-
-  return "";
-}
-
-function createMarkdownComponents({ text, lang }) {
-  let renderedSpeechButton = false;
-  const query = text?.trim().toLowerCase();
-
-  const shouldRenderSpeechButton = (children) => {
-    if (renderedSpeechButton || !query) return false;
-
-    const content = getNodeText(children).trim().toLowerCase();
-    if (!content) return false;
-
-    const matched =
-      content.includes("词条") ||
-      content.includes("entry") ||
-      content.includes(query);
-
-    if (matched) {
-      renderedSpeechButton = true;
-    }
-
-    return matched;
-  };
-
-  const renderWithSpeechButton = (Tag) => {
-    return function MarkdownNode({ children, ...props }) {
-      const showSpeechButton = shouldRenderSpeechButton(children);
-
-      return (
-        <Tag {...props}>
-          {children}
-          {showSpeechButton && <BrowserTtsBtn text={text} lang={lang} />}
-        </Tag>
-      );
-    };
-  };
-
-  return {
-    h1: renderWithSpeechButton("h1"),
-    h2: renderWithSpeechButton("h2"),
-    h3: renderWithSpeechButton("h3"),
-    h4: renderWithSpeechButton("h4"),
-    h5: renderWithSpeechButton("h5"),
-    h6: renderWithSpeechButton("h6"),
-    p: renderWithSpeechButton("p"),
-  };
-}
-
 /**
  * AI 词典结果展示组件。
  *
- * 组件负责请求去重、流式 Markdown 增量展示、错误提示和复制按钮，
+ * 组件负责请求去重、流式 Markdown 增量展示、错误提示、复制按钮和发音按钮。
  * 具体词典生成逻辑统一委托给 `apiDict`，保持 UI 层只处理展示状态。
  */
 export default function AiDictCont({
   text,
   fromLang,
+  speechLang,
   toLang,
   apiSetting,
   context = "",
@@ -127,7 +63,7 @@ export default function AiDictCont({
       apiSettingKey,
       context,
     });
-    // 仅当前组件实例仍然存活时才接收流式片段，避免卸载后 setState。
+
     const handleStreamChunk = ({ markdown: chunkMarkdown }) => {
       if (active && chunkMarkdown) {
         setMarkdown(chunkMarkdown);
@@ -140,7 +76,7 @@ export default function AiDictCont({
         setMarkdown("");
         setError("");
 
-        // 多个相同组件实例共享同一个进行中的请求，减少 AI 接口重复调用。
+        // 多个相同组件实例共享同一个进行中请求，减少 AI 接口重复调用。
         let pending = pendingRequests.get(requestKey);
         if (!pending) {
           pending = {
@@ -201,16 +137,11 @@ export default function AiDictCont({
     return null;
   }
 
-  const markdownComponents = createMarkdownComponents({
-    text,
-    lang: fromLang || "en-US",
-  });
-
   return (
     <Box
       sx={{
         position: "relative",
-        pr: 4,
+        pr: 8,
         "& > :first-of-type": { mt: 0 },
         "& > :last-child": { mb: 0 },
         "& h1, & h2, & h3, & h4, & h5, & h6": {
@@ -237,14 +168,22 @@ export default function AiDictCont({
         },
       }}
     >
-      <Box sx={{ position: "absolute", top: 0, right: 0, zIndex: 1 }}>
+      <Box
+        sx={{
+          position: "absolute",
+          top: 0,
+          right: 0,
+          zIndex: 1,
+          display: "flex",
+          alignItems: "center",
+        }}
+      >
+        <BrowserTtsBtn text={text} lang={speechLang || fromLang || "en-US"} />
         <CopyBtn text={markdown} title={i18n("copy")} />
       </Box>
       {loading && <CircularProgress size={12} sx={{ mr: 1 }} />}
       <Typography component="div">
-        <ReactMarkdown components={markdownComponents}>
-          {markdown}
-        </ReactMarkdown>
+        <ReactMarkdown>{markdown}</ReactMarkdown>
       </Typography>
     </Box>
   );

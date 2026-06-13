@@ -122,6 +122,23 @@ describe("AiDictCont", () => {
     });
   });
 
+  test("uses detected language for speech when provided", async () => {
+    apiDict.mockResolvedValueOnce("## library\n\n- book room");
+
+    const { container, root } = renderAiDictCont({
+      fromLang: "auto",
+      speechLang: "ja",
+    });
+    await flushEffects();
+
+    const speechButton = container.querySelector("[data-testid='browser-tts']");
+    expect(speechButton?.getAttribute("data-lang")).toBe("ja");
+
+    act(() => {
+      root.unmount();
+    });
+  });
+
   test("does not render speech button without dictionary markdown", async () => {
     const { container, root } = renderAiDictCont({ text: "" });
     await flushEffects();
