@@ -274,4 +274,25 @@ switch (process.env.REACT_APP_CLIENT) {
 
 module.exports = {
   webpack: webpackConfig,
+  devServer: (configFunction) => (proxy, allowedHost) => {
+    const config = configFunction(proxy, allowedHost);
+    const onBeforeSetupMiddleware = config.onBeforeSetupMiddleware;
+    const onAfterSetupMiddleware = config.onAfterSetupMiddleware;
+    const setupMiddlewares = config.setupMiddlewares;
+
+    if (onBeforeSetupMiddleware || onAfterSetupMiddleware) {
+      config.setupMiddlewares = (middlewares, devServer) => {
+        if (onBeforeSetupMiddleware) onBeforeSetupMiddleware(devServer);
+        const nextMiddlewares = setupMiddlewares
+          ? setupMiddlewares(middlewares, devServer)
+          : middlewares;
+        if (onAfterSetupMiddleware) onAfterSetupMiddleware(devServer);
+        return nextMiddlewares;
+      };
+      delete config.onBeforeSetupMiddleware;
+      delete config.onAfterSetupMiddleware;
+    }
+
+    return config;
+  },
 };

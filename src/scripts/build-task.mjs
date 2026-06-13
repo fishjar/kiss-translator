@@ -48,6 +48,12 @@ try {
     process.env.BUILD_PATH = `./${targetDir}`;
     process.env.REACT_APP_CLIENT = clientEnv;
     process.env.FORCE_COLOR = "1";
+    process.env.NODE_OPTIONS = [
+      process.env.NODE_OPTIONS,
+      "--disable-warning=DEP0176",
+    ]
+      .filter(Boolean)
+      .join(" ");
 
     console.log(chalk.gray(`Running react-app-rewired build...`));
     await $`react-app-rewired build`;
