@@ -144,7 +144,7 @@ function getApiIconSrc(apiType) {
     return "";
   }
 
-  return `${process.env.PUBLIC_URL || ""}/api/${iconFile}`;
+  return `${process.env.PUBLIC_URL || "."}/api/${iconFile}`;
 }
 
 function ApiProviderIcon({ apiType, disabled = false, sx = {} }) {
