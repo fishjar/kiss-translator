@@ -159,6 +159,44 @@ describe("BilingualSubtitleManager", () => {
     manager.destroy();
   });
 
+  test("does not repair untranslated chunk subtitles immediately", () => {
+    const videoEl = createVideoElement();
+    const untranslatedSubtitle = {
+      ...subtitle,
+      translation: "",
+    };
+    const missingTranslationSubtitle = {
+      start: 1000,
+      end: 2000,
+      text: "missing translation",
+    };
+    const draftSubtitle = {
+      ...subtitle,
+      start: 2000,
+      end: 3000,
+      translation: "draft translation",
+      _isDraftTranslation: true,
+    };
+    const manager = new BilingualSubtitleManager({
+      videoEl,
+      formattedSubtitles: [
+        untranslatedSubtitle,
+        missingTranslationSubtitle,
+        draftSubtitle,
+      ],
+      setting,
+    });
+
+    manager.repairChunkTranslations([
+      untranslatedSubtitle,
+      missingTranslationSubtitle,
+      draftSubtitle,
+    ]);
+
+    expect(apiTranslate).not.toHaveBeenCalled();
+    manager.destroy();
+  });
+
   test("streams repaired chunk translations to caption and list callback", async () => {
     const deferred = createDeferred();
     apiTranslate.mockImplementation(({ onStreamChunk }) => {

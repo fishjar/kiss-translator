@@ -960,11 +960,7 @@ export class BilingualSubtitleManager {
   }
 
   #needsRepairTranslation(subtitle) {
-    return (
-      !subtitle?.translation ||
-      subtitle.translation === "[Translation failed]" ||
-      subtitle._isDraftTranslation
-    );
+    return subtitle?.translation === "[Translation failed]";
   }
 
   /**
