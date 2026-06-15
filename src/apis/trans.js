@@ -366,18 +366,20 @@ const parseIndexSubtitleRes = (raw, events) => {
   };
 
   const stripped = stripMarkdownCodeBlock(String(raw ?? "")).trim();
+  // AI 有时在 JSON 值以 >> 开头时丢掉冒号和引号: "o">> → "o":">>
+  const repaired = stripped.replace(/"([a-z_]+)">>/g, '"$1":">>');
 
   try {
-    return buildResult(JSON.parse(stripped));
+    return buildResult(JSON.parse(repaired));
   } catch {
     try {
       const last = Math.max(
-        stripped.lastIndexOf("},"),
-        stripped.lastIndexOf("}\n"),
-        stripped.lastIndexOf("}\r")
+        repaired.lastIndexOf("},"),
+        repaired.lastIndexOf("}\n"),
+        repaired.lastIndexOf("}\r")
       );
       if (last < 0) return null;
-      return buildResult(JSON.parse(stripped.slice(0, last + 1) + "]"));
+      return buildResult(JSON.parse(repaired.slice(0, last + 1) + "]"));
     } catch {
       return null;
     }
