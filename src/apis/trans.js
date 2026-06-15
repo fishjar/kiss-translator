@@ -365,18 +365,19 @@ const parseIndexSubtitleRes = (raw, events) => {
     return result.length ? result : null;
   };
 
+  const stripped = stripMarkdownCodeBlock(String(raw ?? "")).trim();
+
   try {
-    return buildResult(JSON.parse(raw));
+    return buildResult(JSON.parse(stripped));
   } catch {
     try {
-      const str = String(raw ?? "");
       const last = Math.max(
-        str.lastIndexOf("},"),
-        str.lastIndexOf("}\n"),
-        str.lastIndexOf("}\r")
+        stripped.lastIndexOf("},"),
+        stripped.lastIndexOf("}\n"),
+        stripped.lastIndexOf("}\r")
       );
       if (last < 0) return null;
-      return buildResult(JSON.parse(str.slice(0, last + 1) + "]"));
+      return buildResult(JSON.parse(stripped.slice(0, last + 1) + "]"));
     } catch {
       return null;
     }
