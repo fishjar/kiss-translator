@@ -207,7 +207,10 @@ export async function aiSegment({
     logger.info("Youtube Provider: ai segmentation", err);
   }
 
-  return nonSpeechEvents.map(toStandaloneSub);
+  return [
+    ...formatSubtitles(speechEvents, fromLang),
+    ...nonSpeechEvents.map(toStandaloneSub),
+  ].sort((a, b) => a.start - b.start);
 }
 
 /**
