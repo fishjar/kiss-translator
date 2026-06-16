@@ -1367,7 +1367,11 @@ export class Translator {
     try {
       matchesKeepSelector = node.matches(this.#rule.keepSelector);
     } catch (err) {
-      kissLog("keepSelector match error in shouldBreak", this.#rule.keepSelector, err);
+      kissLog(
+        "keepSelector match error in shouldBreak",
+        this.#rule.keepSelector,
+        err
+      );
     }
     if (matchesKeepSelector) return false;
 

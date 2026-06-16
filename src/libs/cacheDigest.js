@@ -26,8 +26,7 @@ const simpleHash = (text) => {
   );
 };
 
-const getSimpleCacheDigest = (text, salt = "") =>
-  simpleHash(`${text}${salt}`);
+const getSimpleCacheDigest = (text, salt = "") => simpleHash(`${text}${salt}`);
 
 /**
  * 生成缓存签名。优先使用 SHA-256；受限 content 页面没有 Web Crypto 时，

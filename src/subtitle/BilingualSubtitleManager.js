@@ -1100,7 +1100,8 @@ export class BilingualSubtitleManager {
   // 更新配置项
   updateSetting(obj) {
     this.#setting = { ...this.#setting, ...obj };
-    const currentSubtitle = this.#formattedSubtitles[this.#currentSubtitleIndex];
+    const currentSubtitle =
+      this.#formattedSubtitles[this.#currentSubtitleIndex];
     if (currentSubtitle) {
       this.#updateCaptionDisplay(currentSubtitle);
     }
