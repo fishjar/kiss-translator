@@ -316,7 +316,11 @@ class YouTubeCaptionProvider {
 
     this.#playerUi.updateMenuProps();
 
-    if (name === "isBilingual" || name === "blurTranslation") {
+    if (
+      name === "isBilingual" ||
+      name === "blurTranslation" ||
+      name === "displayOrder"
+    ) {
       this.#managerInstance?.updateSetting({ [name]: value });
     } else if (name === "segSlug" || name === "forceSubtitleRetranslate") {
       this.#reProcessEvents();
