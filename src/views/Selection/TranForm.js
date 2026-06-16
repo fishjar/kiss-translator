@@ -213,6 +213,7 @@ export default function TranForm({
       ...apiSetting,
       dictPromptSlug: prompt.slug,
       dictPrompt: prompt.systemPrompt,
+      dictUserPrompt: prompt.userPrompt,
     };
   }, [aiDictApiSlug, aiDictPromptSlug, prompts, transApis]);
   const aiDictAvailable = Boolean(text?.trim() && aiDictApiSetting);

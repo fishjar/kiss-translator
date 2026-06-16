@@ -24,6 +24,7 @@ import {
   defaultNobatchPrompt,
   defaultNobatchUserPrompt,
   defaultDictPrompt,
+  defaultDictUserPrompt,
   defaultSubtitlePrompt,
   defaultSystemPrompt,
 } from "./api";
@@ -40,6 +41,8 @@ describe("prompt settings", () => {
           nobatchPrompt: "custom nobatch system prompt",
           nobatchUserPrompt: "custom nobatch user prompt",
           subtitlePrompt: "custom subtitle prompt",
+          dictPrompt: "custom dictionary system prompt",
+          dictUserPrompt: "custom dictionary user prompt",
         },
       ],
     };
@@ -51,6 +54,7 @@ describe("prompt settings", () => {
     expect(api.batchPromptSlug).toMatch(/^prompt_migrated_batch_/);
     expect(api.nobatchPromptSlug).toMatch(/^prompt_migrated_nobatch_/);
     expect(api.subtitlePromptSlug).toMatch(/^prompt_migrated_subtitle_/);
+    expect(api.dictPromptSlug).toMatch(/^prompt_migrated_dict_/);
     expect(migrated.prompts).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -68,9 +72,14 @@ describe("prompt settings", () => {
           systemPrompt: "custom subtitle prompt",
           userPrompt: "",
         }),
+        expect.objectContaining({
+          slug: api.dictPromptSlug,
+          systemPrompt: "custom dictionary system prompt",
+          userPrompt: "custom dictionary user prompt",
+        }),
       ])
     );
-    expect(migrated.prompts).toHaveLength(3);
+    expect(migrated.prompts).toHaveLength(4);
 
     const migratedAgain = migrateSettingPromptsToV2(setting);
     expect(migratedAgain.transApis[0].batchPromptSlug).toBe(
@@ -82,6 +91,7 @@ describe("prompt settings", () => {
     expect(migratedAgain.transApis[0].subtitlePromptSlug).toBe(
       api.subtitlePromptSlug
     );
+    expect(migratedAgain.transApis[0].dictPromptSlug).toBe(api.dictPromptSlug);
   });
 
   test("links legacy inline default prompts to presets without creating custom prompts", () => {
@@ -94,6 +104,8 @@ describe("prompt settings", () => {
           nobatchPrompt: defaultNobatchPrompt,
           nobatchUserPrompt: defaultNobatchUserPrompt,
           subtitlePrompt: defaultSubtitlePrompt,
+          dictPrompt: defaultDictPrompt,
+          dictUserPrompt: defaultDictUserPrompt,
         },
       ],
     });
@@ -102,6 +114,7 @@ describe("prompt settings", () => {
       batchPromptSlug: DEFAULT_BATCH_PROMPT_SLUG,
       nobatchPromptSlug: DEFAULT_NOBATCH_PROMPT_SLUG,
       subtitlePromptSlug: DEFAULT_SUBTITLE_PROMPT_SLUG,
+      dictPromptSlug: DEFAULT_DICTIONARY_PROMPT_SLUG,
     });
     expect(migrated.prompts).toEqual([]);
   });
@@ -116,6 +129,7 @@ describe("prompt settings", () => {
     expect(api.nobatchUserPrompt).toBe("");
     expect(api.subtitlePrompt).toBe("");
     expect(api.dictPrompt).toBe("");
+    expect(api.dictUserPrompt).toBe("");
 
     expect(resolveApiPromptSettings(api)).toMatchObject({
       batchPromptSlug: DEFAULT_BATCH_PROMPT_SLUG,
@@ -127,6 +141,7 @@ describe("prompt settings", () => {
       nobatchUserPrompt: defaultNobatchUserPrompt,
       subtitlePrompt: defaultSubtitlePrompt,
       dictPrompt: defaultDictPrompt,
+      dictUserPrompt: defaultDictUserPrompt,
     });
   });
 
@@ -144,6 +159,7 @@ describe("prompt settings", () => {
           nobatchUserPrompt: "deleted nobatch user prompt",
           subtitlePrompt: "deleted subtitle prompt",
           dictPrompt: "deleted dictionary prompt",
+          dictUserPrompt: "deleted dictionary user prompt",
         },
       ],
       tranboxSetting: {
@@ -168,6 +184,7 @@ describe("prompt settings", () => {
     expect(cleaned.transApis[0]).not.toHaveProperty("nobatchUserPrompt");
     expect(cleaned.transApis[0]).not.toHaveProperty("subtitlePrompt");
     expect(cleaned.transApis[0]).not.toHaveProperty("dictPrompt");
+    expect(cleaned.transApis[0]).not.toHaveProperty("dictUserPrompt");
     expect(cleaned.tranboxSetting).toMatchObject({
       aiDictPromptSlug: PROMPT_MODE_FOLLOW_API,
     });
@@ -182,6 +199,7 @@ describe("prompt settings", () => {
       nobatchUserPrompt: defaultNobatchUserPrompt,
       subtitlePrompt: defaultSubtitlePrompt,
       dictPrompt: defaultDictPrompt,
+      dictUserPrompt: defaultDictUserPrompt,
     });
   });
 
@@ -284,6 +302,7 @@ describe("prompt settings", () => {
           slug: DEFAULT_DICTIONARY_PROMPT_SLUG,
           category: PROMPT_CATEGORY_DICTIONARY,
           systemPrompt: defaultDictPrompt,
+          userPrompt: defaultDictUserPrompt,
         }),
       ])
     );

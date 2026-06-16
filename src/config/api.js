@@ -718,11 +718,10 @@ export const defaultDictPrompt = `# Role
 
 1. **[地道英文/源语言例句]**
    - 💡 *中文翻译*：[精准的、符合中文习惯的翻译]
-   - 📌 *场景标签*：\`[学术写作 / 商务邮件 / 日常街头 / 科技新闻]\`
+   - 📌 *场景标签*：\`[学术写作 / 商务邮件 / 日常街头 / 科技新闻]\``;
 
----
-
-# Input Data
+// 专家级AI词典用户提示词
+export const defaultDictUserPrompt = `# Input Data
 
 ## [Context / 上下文] (Optional)
 > 以下信息用于辅助精准锁定目标文本的语境：
@@ -734,6 +733,7 @@ export const defaultDictPrompt = `# Role
 ## [Target / 目标文本] (Required)
 > 触发【词典模式】或【纯翻译模式】的核心判定对象：
 ${INPUT_PLACE_TEXT}`;
+
 
 export const defaultSubtitlePrompt = `# Context
 Title: ${INPUT_PLACE_TITLE}
@@ -787,6 +787,7 @@ const defaultApi = {
   subtitlePrompt: "",
   subtitlePromptSlug: "subtitle-segmentation",
   dictPrompt: "",
+  dictUserPrompt: "",
   dictPromptSlug: "dictionary-en-zh",
   nobatchPrompt: "",
   nobatchUserPrompt: "",

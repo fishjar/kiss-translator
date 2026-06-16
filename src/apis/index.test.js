@@ -54,7 +54,10 @@ const getOpenAiApiSetting = (systemPrompt) => ({
 describe("apiDict", () => {
   beforeEach(() => {
     mockSha256.mockImplementation(async (text) =>
-      text.includes("dictionary prompt B") ? "b".repeat(64) : "a".repeat(64)
+      text.includes("dictionary prompt B") ||
+      text.includes("dictionary user prompt B")
+        ? "b".repeat(64)
+        : "a".repeat(64)
     );
   });
 
@@ -120,6 +123,30 @@ describe("apiDict", () => {
       apiSetting: {
         ...getOpenAiApiSetting("batch prompt"),
         dictPrompt: "dictionary prompt B",
+        dictUserPrompt: "dictionary user prompt A",
+      },
+      context: "The library is open.",
+    });
+
+    expect(putHttpCachePolyfill).toHaveBeenCalledWith(
+      expect.stringContaining("promptSig=bbbbbbbbbbbbbbbb"),
+      null,
+      { markdown: "fresh markdown" }
+    );
+  });
+
+  test("dictionary prompt signature includes dictionary user prompt", async () => {
+    getHttpCachePolyfill.mockResolvedValue(null);
+    handleDict.mockResolvedValueOnce("fresh markdown");
+
+    await apiDict({
+      text: "library",
+      fromLang: "en",
+      toLang: "zh-CN",
+      apiSetting: {
+        ...getOpenAiApiSetting("batch prompt"),
+        dictPrompt: "dictionary prompt A",
+        dictUserPrompt: "dictionary user prompt B",
       },
       context: "The library is open.",
     });

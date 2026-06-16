@@ -369,6 +369,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
 
       if (name === "dictPromptSlug" && prompt) {
         newData.dictPrompt = prompt.systemPrompt;
+        newData.dictUserPrompt = prompt.userPrompt;
       }
 
       return newData;

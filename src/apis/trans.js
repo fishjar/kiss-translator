@@ -36,6 +36,7 @@ import {
   defaultSubtitlePrompt,
   defaultNobatchPrompt,
   defaultNobatchUserPrompt,
+  defaultDictUserPrompt,
   INPUT_PLACE_TONE,
   INPUT_PLACE_TITLE,
   INPUT_PLACE_DESCRIPTION,
@@ -1049,14 +1050,7 @@ export const genTransReq = async ({ reqHook, ...args }) => {
   }
 
   if (API_SPE_TYPES.ai.has(apiType)) {
-    const hasExternalDocInfo =
-      externalDocInfo &&
-      (externalDocInfo.title ||
-        externalDocInfo.description ||
-        externalDocInfo.summary ||
-        externalDocInfo.context);
-    const docInfo = hasExternalDocInfo ? externalDocInfo : getDocInfo();
-    const userDocInfo = hasExternalDocInfo ? {} : docInfo;
+    const docInfo = externalDocInfo || getDocInfo();
 
     let baseSystemPrompt = events
       ? genSubtitlePrompt({
@@ -1081,29 +1075,6 @@ export const genTransReq = async ({ reqHook, ...args }) => {
           tone,
         });
 
-    // 上下文回退：当 prompt 模板缺少占位符时，追加 # Context 块
-    if (hasExternalDocInfo) {
-      const template = String(
-        events
-          ? subtitlePrompt
-          : useBatchFetch
-            ? systemPrompt
-            : nobatchPrompt || ""
-      );
-      const parts = [];
-      if (docInfo.title && !template.includes(INPUT_PLACE_TITLE))
-        parts.push(`Title: ${docInfo.title}`);
-      if (docInfo.description && !template.includes(INPUT_PLACE_DESCRIPTION))
-        parts.push(`Description: ${docInfo.description}`);
-      if (docInfo.summary && !template.includes(INPUT_PLACE_SUMMARY))
-        parts.push(`Summary: ${docInfo.summary}`);
-      if (docInfo.context && !template.includes(INPUT_PLACE_CONTEXT))
-        parts.push(`Context: ${docInfo.context}`);
-      if (parts.length) {
-        baseSystemPrompt += `\n\n# Context\n${parts.join("\n")}`;
-      }
-    }
-
     args.systemPrompt = baseSystemPrompt;
     args.userPrompt = events
       ? buildSubtitleUserPrompt({
@@ -1121,7 +1092,7 @@ export const genTransReq = async ({ reqHook, ...args }) => {
           fromLang,
           toLang,
           texts,
-          docInfo: userDocInfo,
+          docInfo,
           tone,
           glossary,
           aiTerms,
@@ -1417,8 +1388,14 @@ export const handleDict = async ({
     throw new DOMException("The operation was aborted.", "AbortError");
   }
 
-  const { apiType, fetchInterval, fetchLimit, httpTimeout, dictPrompt } =
-    apiSetting;
+  const {
+    apiType,
+    fetchInterval,
+    fetchLimit,
+    httpTimeout,
+    dictPrompt,
+    dictUserPrompt,
+  } = apiSetting;
   const enableStream =
     Boolean(onStreamChunk) &&
     apiSetting.useStream &&
@@ -1433,7 +1410,7 @@ export const handleDict = async ({
     useBatchFetch: false,
     useStream: enableStream,
     nobatchPrompt: dictPrompt,
-    nobatchUserPrompt: "",
+    nobatchUserPrompt: dictUserPrompt ?? defaultDictUserPrompt,
   };
   const dictDocInfo = docInfo || getDocInfo();
 
