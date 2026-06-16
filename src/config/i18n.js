@@ -2306,11 +2306,11 @@ export const I18N = {
     ko: `팝업 버튼 위치`,
   },
   tranbtn_position_fixed: {
-    zh: `当前固定位置`,
-    en: `Current Fixed Position`,
-    zh_TW: `目前固定位置`,
-    ja: `現在の固定位置`,
-    ko: `현재 고정 위치`,
+    zh: `固定位置`,
+    en: `Fixed Position`,
+    zh_TW: `固定位置`,
+    ja: `固定位置`,
+    ko: `고정 위치`,
   },
   tranbtn_position_mouse: {
     zh: `跟随鼠标`,
