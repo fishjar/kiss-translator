@@ -2298,6 +2298,27 @@ export const I18N = {
     ja: `選択トリガー`,
     ko: `선택 트리거`,
   },
+  tranbtn_position_mode: {
+    zh: `弹出按钮位置`,
+    en: `Popup Button Position`,
+    zh_TW: `彈出按鈕位置`,
+    ja: `ポップアップボタン位置`,
+    ko: `팝업 버튼 위치`,
+  },
+  tranbtn_position_fixed: {
+    zh: `当前固定位置`,
+    en: `Current Fixed Position`,
+    zh_TW: `目前固定位置`,
+    ja: `現在の固定位置`,
+    ko: `현재 고정 위치`,
+  },
+  tranbtn_position_mouse: {
+    zh: `跟随鼠标`,
+    en: `Follow Mouse`,
+    zh_TW: `跟隨滑鼠`,
+    ja: `マウスに追従`,
+    ko: `마우스 따라가기`,
+  },
   extend_styles: {
     zh: `附加样式`,
     en: `Extend Styles`,

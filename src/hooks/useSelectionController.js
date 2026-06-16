@@ -3,9 +3,14 @@ import { sleep, limitNumber } from "../libs/utils";
 import { isMobile } from "../libs/mobile";
 import useAutoHideTranBtn from "./useAutoHideTranBtn";
 import {
+  OPT_TRANBOX_BTN_POSITION_FIXED,
+  OPT_TRANBOX_BTN_POSITION_MOUSE,
   OPT_TRANBOX_TRIGGER_HOVER,
   OPT_TRANBOX_TRIGGER_SELECT,
 } from "../config";
+
+const TRANBTN_SIZE = isMobile ? 32 : 20; // 与 TranBtn 组件中的 SVG 尺寸保持一致
+const TRANBTN_MOUSE_GAP = isMobile ? 16 : 12; // 鼠标模式下按钮与指针之间的基础间距
 
 /**
  * 获取当前选区的右下角坐标位置，以便于在此处展示划词翻译按钮或翻译框
@@ -26,6 +31,89 @@ function getSelectionPosition(selection = window.getSelection()) {
   } catch {
     return null;
   }
+}
+
+/**
+ * 从鼠标或触摸事件中提取页面坐标，用于让划词按钮跟随本次指针释放位置。
+ *
+ * 触摸事件优先使用 changedTouches[0]，因为 touchend 时 touches 可能已经为空。
+ * @param {MouseEvent|TouchEvent|React.SyntheticEvent} e 鼠标或触摸事件
+ * @returns {object|null} {x, y} 页面坐标
+ */
+function getPointerPosition(e) {
+  const touch = e?.changedTouches?.[0] || e?.touches?.[0];
+  if (typeof touch?.pageX === "number" && typeof touch?.pageY === "number") {
+    return {
+      x: touch.pageX,
+      y: touch.pageY,
+    };
+  }
+
+  if (typeof e?.pageX === "number" && typeof e?.pageY === "number") {
+    return {
+      x: e.pageX,
+      y: e.pageY,
+    };
+  }
+
+  return null;
+}
+
+function limitButtonPosition(value, min, max) {
+  const safeMax = Math.max(min, max);
+  return Math.min(Math.max(value, min), safeMax);
+}
+
+/**
+ * 计算鼠标跟随模式下的按钮位置。
+ *
+ * 返回的是传给 TranBtn 的基础坐标；TranBtn 内部仍会叠加用户配置的 btnOffsetX/Y。
+ * 因此这里先按最终渲染位置做边界修正，再扣回用户偏移，避免偏移后越出当前视口。
+ * @param {object|null} pointerPosition 鼠标或触摸结束位置
+ * @param {number} btnOffsetX 用户配置的按钮横向偏移
+ * @param {number} btnOffsetY 用户配置的按钮纵向偏移
+ * @returns {object|null} {x, y} 按钮基础坐标
+ */
+function getPointerButtonPosition(
+  pointerPosition,
+  btnOffsetX = 0,
+  btnOffsetY = 0
+) {
+  if (!pointerPosition) return null;
+
+  const offsetX = Number(btnOffsetX) || 0;
+  const offsetY = Number(btnOffsetY) || 0;
+  const viewportLeft = window.scrollX;
+  const viewportTop = window.scrollY;
+  const viewportRight = viewportLeft + window.innerWidth;
+  const viewportBottom = viewportTop + window.innerHeight;
+
+  let left = pointerPosition.x + TRANBTN_MOUSE_GAP + offsetX;
+  let top = pointerPosition.y + TRANBTN_MOUSE_GAP + offsetY;
+
+  // 指针靠近右侧或底部边界时，改放到左侧或上方，尽量保持与指针的间距。
+  if (left + TRANBTN_SIZE > viewportRight) {
+    left = pointerPosition.x - TRANBTN_MOUSE_GAP - TRANBTN_SIZE + offsetX;
+  }
+  if (top + TRANBTN_SIZE > viewportBottom) {
+    top = pointerPosition.y - TRANBTN_MOUSE_GAP - TRANBTN_SIZE + offsetY;
+  }
+
+  const finalLeft = limitButtonPosition(
+    left,
+    viewportLeft,
+    viewportRight - TRANBTN_SIZE
+  );
+  const finalTop = limitButtonPosition(
+    top,
+    viewportTop,
+    viewportBottom - TRANBTN_SIZE
+  );
+
+  return {
+    x: finalLeft - offsetX,
+    y: finalTop - offsetY,
+  };
 }
 
 /**
@@ -86,7 +174,13 @@ export default function useSelectionController({
   setBoxPosition,
   hideClickAway,
 }) {
-  const { hideTranBtn = false, triggerMode } = tranboxSetting;
+  const {
+    hideTranBtn = false,
+    triggerMode,
+    btnPositionMode = OPT_TRANBOX_BTN_POSITION_FIXED,
+    btnOffsetX = 0,
+    btnOffsetY = 0,
+  } = tranboxSetting;
 
   const [showBox, setShowBox] = useState(false); // 翻译面板展示状态
   const [showBtn, setShowBtn] = useState(false); // 划词浮现的“译”按钮展示状态
@@ -115,7 +209,7 @@ export default function useSelectionController({
   );
 
   const handleSelectedText = useCallback(
-    (selection, currentSelectedText) => {
+    (selection, currentSelectedText, pointerPosition = null) => {
       setSelText(currentSelectedText);
       setTextContext(getSelectionContext(selection));
 
@@ -144,10 +238,14 @@ export default function useSelectionController({
       }
 
       if (!hideTranBtn) {
-        const selectionPos = getSelectionPosition(selection);
-        if (selectionPos) {
+        const buttonPosition =
+          btnPositionMode === OPT_TRANBOX_BTN_POSITION_MOUSE && pointerPosition
+            ? getPointerButtonPosition(pointerPosition, btnOffsetX, btnOffsetY)
+            : getSelectionPosition(selection);
+
+        if (buttonPosition) {
           setShowBtn(true);
-          setPosition(selectionPos);
+          setPosition(buttonPosition);
         } else {
           setShowBtn(false);
         }
@@ -158,6 +256,9 @@ export default function useSelectionController({
     [
       hideTranBtn,
       triggerMode,
+      btnPositionMode,
+      btnOffsetX,
+      btnOffsetY,
       followSelection,
       boxOffsetX,
       boxOffsetY,
@@ -174,6 +275,7 @@ export default function useSelectionController({
       e.stopPropagation?.();
       // 面板内选词使用事件根节点读取 Selection，避免 Shadow DOM 场景读到页面旧选区。
       selectionRootRef.current = getSelectionRootFromEvent(e);
+      const pointerPosition = getPointerPosition(e);
       await sleep(0);
       const selection = getActiveSelection();
       const currentSelectedText = selection?.toString()?.trim() || "";
@@ -181,7 +283,7 @@ export default function useSelectionController({
         return;
       }
 
-      handleSelectedText(selection, currentSelectedText);
+      handleSelectedText(selection, currentSelectedText, pointerPosition);
     },
     [getActiveSelection, handleSelectedText]
   );
@@ -236,12 +338,13 @@ export default function useSelectionController({
     async function handleMouseup(e) {
       if (e.button === 2) return; // 忽略鼠标右键
 
+      const pointerPosition = getPointerPosition(e);
       await sleep(200); // 延迟等待系统选区高亮渲染及 Selection 属性就绪
 
       selectionRootRef.current = document;
       const selection = window.getSelection();
       const currentSelectedText = selection?.toString()?.trim() || "";
-      handleSelectedText(selection, currentSelectedText);
+      handleSelectedText(selection, currentSelectedText, pointerPosition);
     }
 
     window.addEventListener(eventName, handleMouseup);
