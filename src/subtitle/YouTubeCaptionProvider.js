@@ -37,7 +37,7 @@ import {
  * YouTube 字幕翻译与双语渲染入口。
  * 负责页面生命周期、字幕轨处理调度、异步竞态保护，并把结果交给播放器渲染器。
  */
-export class YouTubeCaptionProvider {
+class YouTubeCaptionProvider {
   // 扩展配置选项对象
   #setting = {};
 
@@ -531,7 +531,8 @@ export class YouTubeCaptionProvider {
       this.#fromLang = fromLang;
       this.#activeTrackKey = trackKey;
       this.#docInfo = getDocInfo();
-      this.#startDocInfoEnrichment(flatEvents, processingVersion);
+      await this.#enrichDocInfoWithAI(flatEvents, processingVersion);
+      if (this.#isStaleProcessing(processingVersion)) return;
 
       this.#processEvents({
         videoId,
@@ -726,21 +727,6 @@ export class YouTubeCaptionProvider {
   }
 
   /**
-   * Start AI context enrichment in the background so first subtitle processing
-   * can proceed with the fallback summary from getDocInfo().
-   *
-   * @private
-   * @param {Array<object>} flatEvents
-   * @param {number} processingVersion
-   * @returns {void}
-   */
-  #startDocInfoEnrichment(flatEvents, processingVersion) {
-    this.#enrichDocInfoWithAI(flatEvents, processingVersion).catch((err) => {
-      logger.info("Youtube Provider: AI context enrichment failed", err);
-    });
-  }
-
-  /**
    * 异步调用 AI 总结 API，提取视频的专有名词、主要大意及语境背景。
    * 提取的信息会保存在 docInfo.summary 中，为之后的翻译步骤提供上下文提示。
    *
@@ -799,9 +785,9 @@ export class YouTubeCaptionProvider {
    * 当用户更改了 AI 上下文引擎配置时，清空当前大纲记忆，并带上新上下文重新处理字幕事件。
    *
    * @private
-   * @returns {void}
+   * @returns {Promise<void>}
    */
-  #reProcessEventsWithContext() {
+  async #reProcessEventsWithContext() {
     this.#progressed = 0;
     this.#subtitles = [];
 
@@ -815,7 +801,8 @@ export class YouTubeCaptionProvider {
     this.#destroyManager();
     clearMsgHistory(this.#setting.apiSlug);
     this.#docInfo = getDocInfo();
-    this.#startDocInfoEnrichment(flatEvents, processingVersion);
+    await this.#enrichDocInfoWithAI(flatEvents, processingVersion);
+    if (this.#isStaleProcessing(processingVersion)) return;
     this.#processEvents({
       videoId,
       flatEvents,
