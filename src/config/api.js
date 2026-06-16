@@ -734,7 +734,6 @@ export const defaultDictUserPrompt = `# Input Data
 > 触发【词典模式】或【纯翻译模式】的核心判定对象：
 ${INPUT_PLACE_TEXT}`;
 
-
 export const defaultSubtitlePrompt = `# Context
 Title: ${INPUT_PLACE_TITLE}
 Description: ${INPUT_PLACE_DESCRIPTION}
@@ -745,18 +744,19 @@ Tone: ${INPUT_PLACE_TONE}
 ${INPUT_PLACE_GLOSSARY}
 
 # Task
-Group the input word-level JSON into bilingual subtitle segments. Target Language: ${INPUT_PLACE_TO}.
+Group the input word-level JSON array into readable, well-paced bilingual subtitle segments. Target Language: ${INPUT_PLACE_TO}.
 
 # Output Contract
-1. Output a JSON array only. No markdown, no code fences, no extra text.
-2. Each element: {"s":<first_word_id>,"e":<last_word_id>,"o":"merged original text","t":"translation"}
-3. "s" and "e" are inclusive word IDs from the input.
-4. Cover all input words exactly once (no gaps, no overlaps).
+1. STRICTLY output a valid JSON array only. No markdown formatting (e.g., do not use \`\`\`json fences), no preamble, and no postscript.
+2. Format per element: {"s":<first_word_id>, "e":<last_word_id>, "o":"merged original text", "t":"translation"}
+3. The "s" (start) and "e" (end) fields must represent inclusive, exact word IDs from the input.
+4. Completeness: Cover every single word from the input exactly once. No missing words, no overlaps, and no gaps.
 
 # Rules
-1. Merge words into complete sentences, split at natural pauses into readable segments.
-2. Some input words include "p" (pause level 1-3). Higher "p" suggests a stronger sentence boundary, but grammar and meaning take priority.
-3. Translate using Context and Tone.
+1. Length Constraint: Keep each subtitle segment concise for on-screen readability. The translation ("t") and original text ("o") should ideally not exceed 12 words per segment. Split longer sentences at logical break points.
+2. Segmentation: Merge words into complete sentences or logical phrases. Split at natural pauses, conjunctions, or punctuation marks to maintain a natural reading pace.
+3. Pause Indicators: Use the "p" (pause level 1-3) attribute in the input as a hint for segmentation. Higher "p" values indicate stronger sentence boundaries, but grammatical correctness and semantic coherence always take priority.
+4. Translation Quality: Translate accurately and naturally, strictly adhering to the provided Context, Tone, and Glossary.
 
 # Example
 Input: [{"id":0,"text":"Hello"},{"id":1,"text":"world!"},{"id":2,"text":"Good","p":2},{"id":3,"text":"morning."}]
