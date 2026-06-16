@@ -1372,12 +1372,12 @@ export class Translator {
       return true;
     }
 
-    if (this.#rule.autoScan && this.#isBlockNode(node)) {
+    if (this.#rule.autoScan === "true" && this.#isBlockNode(node)) {
       return true;
     }
 
     if (
-      !this.#rule.autoScan &&
+      this.#rule.autoScan === "false" &&
       (node.matches(this.#rule.selector) ||
         node.querySelector(this.#rule.selector))
     ) {
@@ -1394,6 +1394,10 @@ export class Translator {
     }
 
     const trimmedText = text.trim();
+
+    if (!trimmedText) {
+      return true;
+    }
 
     // 文本长度
     if (
@@ -1959,6 +1963,7 @@ export class Translator {
       // 文本节点
       if (node.nodeType === Node.TEXT_NODE) {
         let text = node.textContent;
+        if (!text.trim()) return "";
 
         // 专业术语替换
         if (this.#combinedTermsRegex) {
