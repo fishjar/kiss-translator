@@ -734,7 +734,6 @@ export const defaultDictUserPrompt = `# Input Data
 > 触发【词典模式】或【纯翻译模式】的核心判定对象：
 ${INPUT_PLACE_TEXT}`;
 
-
 export const defaultSubtitlePrompt = `# Context
 Title: ${INPUT_PLACE_TITLE}
 Description: ${INPUT_PLACE_DESCRIPTION}

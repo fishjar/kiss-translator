@@ -21,10 +21,15 @@ jest.mock("../libs/batchQueue", () => ({
 }));
 
 const mockSha256 = jest.fn();
+const mockGetCacheDigest = jest.fn();
 
 jest.mock("../libs/utils", () => ({
   sha256: (...args) => mockSha256(...args),
   withTimeout: jest.fn((promise) => promise),
+}));
+
+jest.mock("../libs/cacheDigest", () => ({
+  getCacheDigest: (...args) => mockGetCacheDigest(...args),
 }));
 
 jest.mock("./trans", () => ({
@@ -53,7 +58,7 @@ const getOpenAiApiSetting = (systemPrompt) => ({
 
 describe("apiDict", () => {
   beforeEach(() => {
-    mockSha256.mockImplementation(async (text) =>
+    mockGetCacheDigest.mockImplementation(async (text) =>
       text.includes("dictionary prompt B") ||
       text.includes("dictionary user prompt B")
         ? "b".repeat(64)
@@ -89,6 +94,10 @@ describe("apiDict", () => {
         apiSetting,
         context: "The library is open.",
       })
+    );
+    expect(mockGetCacheDigest).toHaveBeenCalledWith(
+      expect.stringContaining("The library is open."),
+      "prompt-cache"
     );
     expect(getBatchQueue).not.toHaveBeenCalled();
   });
@@ -161,7 +170,7 @@ describe("apiDict", () => {
 
 describe("apiTranslate prompt queue isolation", () => {
   beforeEach(() => {
-    mockSha256.mockImplementation(async (text) =>
+    mockGetCacheDigest.mockImplementation(async (text) =>
       text.includes("batch prompt B") ? "b".repeat(64) : "a".repeat(64)
     );
     getBatchQueue.mockImplementation(() => ({
@@ -220,7 +229,7 @@ describe("apiTranslate prompt queue isolation", () => {
     });
 
     const queueKeys = getBatchQueue.mock.calls.map(([key]) => key);
-    const signedTexts = mockSha256.mock.calls.map(([text]) => text);
+    const signedTexts = mockGetCacheDigest.mock.calls.map(([text]) => text);
 
     expect(queueKeys).toHaveLength(2);
     expect(queueKeys[0]).toBe(queueKeys[1]);
@@ -251,7 +260,7 @@ describe("apiTranslate prompt queue isolation", () => {
     });
 
     const queueKeys = getBatchQueue.mock.calls.map(([key]) => key);
-    const signedTexts = mockSha256.mock.calls.map(([text]) => text);
+    const signedTexts = mockGetCacheDigest.mock.calls.map(([text]) => text);
 
     expect(queueKeys).toHaveLength(2);
     expect(queueKeys[0]).toBe(queueKeys[1]);
