@@ -883,7 +883,11 @@ export class BilingualSubtitleManager {
 
       // 3. 根据用户设置，决定显示双语对照还是仅显示翻译
       if (this.#setting.isBilingual) {
-        this.#captionWindowEl.replaceChildren(p1, p2);
+        const children =
+          this.#setting.displayOrder === "translation-first"
+            ? [p2, p1]
+            : [p1, p2];
+        this.#captionWindowEl.replaceChildren(...children);
       } else {
         this.#captionWindowEl.replaceChildren(p2);
       }
@@ -1096,6 +1100,10 @@ export class BilingualSubtitleManager {
   // 更新配置项
   updateSetting(obj) {
     this.#setting = { ...this.#setting, ...obj };
+    const currentSubtitle = this.#formattedSubtitles[this.#currentSubtitleIndex];
+    if (currentSubtitle) {
+      this.#updateCaptionDisplay(currentSubtitle);
+    }
   }
 
   // 获取当前字幕的开始时间（以重新分段分句后的时间轴为准）

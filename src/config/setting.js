@@ -164,6 +164,7 @@ export const DEFAULT_SUBTITLE_SETTING = {
   // fromLang: "en",
   toLang: "zh-CN", // 字幕译文的目标语言
   isBilingual: true, // 字幕是否启用双语对照显示
+  displayOrder: "original-first", // 字幕双语显示顺序：原文在前或译文在前
   blurTranslation: false, // 是否模糊显示译文 (用于听力/口语训练)
   skipAd: false, // 是否在识别到 YouTube 广告字幕时进行特殊快进
   windowStyle: SUBTITLE_WINDOW_STYLE, // 字幕背景及定位样式
