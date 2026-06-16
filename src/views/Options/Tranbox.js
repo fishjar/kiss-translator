@@ -9,6 +9,8 @@ import {
   OPT_LANGS_TO_REVERSED as OPT_LANGS_TO,
   OPT_TRANBOX_TRIGGER_CLICK,
   OPT_TRANBOX_TRIGGER_ALL,
+  OPT_TRANBOX_BTN_POSITION_FIXED,
+  OPT_TRANBOX_BTN_POSITION_ALL,
   OPT_DICT_BING,
   OPT_DICT_ALL,
   OPT_SUG_ALL,
@@ -91,6 +93,7 @@ export default function Tranbox() {
     followSelection = false,
     autoHeight = false,
     triggerMode = OPT_TRANBOX_TRIGGER_CLICK,
+    btnPositionMode = OPT_TRANBOX_BTN_POSITION_FIXED,
     enDict = OPT_DICT_BING,
     enSug = OPT_SUG_YOUDAO,
     aiDictApiSlug = "-",
@@ -304,6 +307,24 @@ export default function Tranbox() {
                 {OPT_TRANBOX_TRIGGER_ALL.map((item) => (
                   <MenuItem key={item} value={item}>
                     {i18n(`trigger_${item}`)}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            {/* 划词后弹出按钮的定位模式：沿用选区右下角，或跟随鼠标/触摸结束位置 */}
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                fullWidth
+                select
+                size="small"
+                name="btnPositionMode"
+                value={btnPositionMode}
+                label={i18n("tranbtn_position_mode")}
+                onChange={handleChange}
+              >
+                {OPT_TRANBOX_BTN_POSITION_ALL.map((item) => (
+                  <MenuItem key={item} value={item}>
+                    {i18n(`tranbtn_position_${item}`)}
                   </MenuItem>
                 ))}
               </TextField>
