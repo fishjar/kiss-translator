@@ -17,6 +17,8 @@ import {
   URL_CACHE_SUBTITLE,
   URL_CACHE_CONTEXT,
   OPT_LANGS_TO_CODE,
+  defaultNobatchUserPrompt,
+  defaultDictUserPrompt,
 } from "../config";
 import { sha256, withTimeout } from "../libs/utils";
 import {
@@ -58,7 +60,10 @@ function getPromptCacheFields(apiSetting = {}, promptScope) {
   }
 
   if (promptScope === PROMPT_CACHE_SCOPE_NOBATCH) {
-    return [apiSetting.nobatchPrompt || "", apiSetting.nobatchUserPrompt || ""];
+    return [
+      apiSetting.nobatchPrompt || "",
+      apiSetting.nobatchUserPrompt ?? defaultNobatchUserPrompt,
+    ];
   }
 
   if (promptScope === PROMPT_CACHE_SCOPE_SUBTITLE) {
@@ -66,7 +71,10 @@ function getPromptCacheFields(apiSetting = {}, promptScope) {
   }
 
   if (promptScope === PROMPT_CACHE_SCOPE_DICT) {
-    return [apiSetting.dictPrompt || ""];
+    return [
+      apiSetting.dictPrompt || "",
+      apiSetting.dictUserPrompt ?? defaultDictUserPrompt,
+    ];
   }
 
   return [];

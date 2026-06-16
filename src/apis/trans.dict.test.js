@@ -31,7 +31,8 @@ const openaiApi = {
   key: "test-key",
   model: "test-model",
   url: "https://example.com/chat/completions",
-  dictPrompt: "Explain {{text}} in {{context}}.",
+  dictPrompt: "Dictionary rules for {{text}}.",
+  dictUserPrompt: "Explain {{text}} in {{context}}.",
   useStream: true,
 };
 
@@ -42,7 +43,7 @@ describe("handleDict", () => {
     getStreamDelta.mockReset();
   });
 
-  test("uses dictionary prompt and replaces context placeholders", async () => {
+  test("uses dictionary system and user prompts with context placeholders", async () => {
     fetchData.mockResolvedValueOnce({
       choices: [{ message: { content: "## library\nA place for books." } }],
     });
@@ -62,9 +63,67 @@ describe("handleDict", () => {
     const body = JSON.parse(init.body);
 
     expect(body.stream).toBe(false);
-    expect(body.messages[0].content).toBe(
+    expect(body.messages[0].content).toBe("Dictionary rules for library.");
+    expect(body.messages[0].content).not.toContain("# Context");
+    expect(body.messages[body.messages.length - 1].content).toBe(
       "Explain library in The library closes at six.."
     );
+  });
+
+  test("falls back to default dictionary user prompt for old api settings", async () => {
+    fetchData.mockResolvedValueOnce({
+      choices: [{ message: { content: "## library\nA place for books." } }],
+    });
+
+    await handleDict({
+      text: "library",
+      from: "English",
+      to: "Simplified Chinese",
+      fromLang: "en",
+      toLang: "zh-CN",
+      apiSetting: {
+        ...openaiApi,
+        dictUserPrompt: undefined,
+      },
+      context: "The library closes at six.",
+    });
+
+    const [, init] = fetchData.mock.calls[0];
+    const body = JSON.parse(init.body);
+
+    expect(body.messages[0].content).toBe("Dictionary rules for library.");
+    expect(body.messages[0].content).not.toContain("# Context");
+    expect(body.messages[body.messages.length - 1].content).toContain(
+      "所在段落：The library closes at six."
+    );
+    expect(body.messages[body.messages.length - 1].content).toContain(
+      "library"
+    );
+  });
+
+  test("allows empty dictionary user prompt", async () => {
+    fetchData.mockResolvedValueOnce({
+      choices: [{ message: { content: "## library\nA place for books." } }],
+    });
+
+    await handleDict({
+      text: "library",
+      from: "English",
+      to: "Simplified Chinese",
+      fromLang: "en",
+      toLang: "zh-CN",
+      apiSetting: {
+        ...openaiApi,
+        dictUserPrompt: "",
+      },
+      context: "The library closes at six.",
+    });
+
+    const [, init] = fetchData.mock.calls[0];
+    const body = JSON.parse(init.body);
+
+    expect(body.messages[0].content).toBe("Dictionary rules for library.");
+    expect(body.messages[0].content).not.toContain("# Context");
     expect(body.messages[body.messages.length - 1].content).toBe("");
   });
 
