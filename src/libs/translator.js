@@ -1362,7 +1362,18 @@ export class Translator {
   // 判断是否需要换行
   #shouldBreak(node) {
     if (!Translator.isElementOrFragment(node)) return false;
-    if (node.matches(this.#rule.keepSelector)) return false;
+
+    let matchesKeepSelector = false;
+    try {
+      matchesKeepSelector = node.matches(this.#rule.keepSelector);
+    } catch (err) {
+      kissLog(
+        "keepSelector match error in shouldBreak",
+        this.#rule.keepSelector,
+        err
+      );
+    }
+    if (matchesKeepSelector) return false;
 
     if (
       Translator.TAGS.BREAK_LINE.has(node.nodeName?.toUpperCase()) ||
@@ -1372,12 +1383,12 @@ export class Translator {
       return true;
     }
 
-    if (this.#rule.autoScan && this.#isBlockNode(node)) {
+    if (this.#rule.autoScan === "true" && this.#isBlockNode(node)) {
       return true;
     }
 
     if (
-      !this.#rule.autoScan &&
+      this.#rule.autoScan === "false" &&
       (node.matches(this.#rule.selector) ||
         node.querySelector(this.#rule.selector))
     ) {
@@ -1394,6 +1405,10 @@ export class Translator {
     }
 
     const trimmedText = text.trim();
+
+    if (!trimmedText) {
+      return true;
+    }
 
     // 文本长度
     if (
@@ -1424,7 +1439,9 @@ export class Translator {
   // 将不同来源的异常统一转成可展示、可复制的纯文本错误信息
   #formatTranslateError(error) {
     if (error instanceof Error) {
-      return error.stack || error.message || error.name || String(error);
+      const tag = error.name ? `[${error.name}]` : "[UnknownError]";
+      const msg = error.message ? ` ${error.message}` : "";
+      return `${tag}${msg}\n${error.stack || ""}`;
     }
 
     if (typeof error === "string") {
@@ -1959,6 +1976,7 @@ export class Translator {
       // 文本节点
       if (node.nodeType === Node.TEXT_NODE) {
         let text = node.textContent;
+        if (!text.trim()) return "";
 
         // 专业术语替换
         if (this.#combinedTermsRegex) {
@@ -1989,10 +2007,17 @@ export class Translator {
           return "";
         }
 
+        let matchesKeepSelector = false;
+        try {
+          matchesKeepSelector = node.matches(this.#rule.keepSelector);
+        } catch (err) {
+          kissLog("keepSelector match error", this.#rule.keepSelector, err);
+        }
+
         if (
           (this.#rule.hasRichText === "true" &&
             Translator.TAGS.REPLACE.has(node.tagName)) ||
-          node.matches(this.#rule.keepSelector) ||
+          matchesKeepSelector ||
           // node.matches(this.#ignoreSelector) ||
           !node.textContent.trim()
         ) {
@@ -2008,7 +2033,11 @@ export class Translator {
 
         let innerContent = "";
         node.childNodes.forEach((child) => {
-          innerContent += traverse(child);
+          try {
+            innerContent += traverse(child);
+          } catch (err) {
+            kissLog("traverse child error", child.nodeName, err);
+          }
         });
 
         if (

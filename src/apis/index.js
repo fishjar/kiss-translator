@@ -17,8 +17,11 @@ import {
   URL_CACHE_SUBTITLE,
   URL_CACHE_CONTEXT,
   OPT_LANGS_TO_CODE,
+  defaultNobatchUserPrompt,
+  defaultDictUserPrompt,
 } from "../config";
 import { sha256, withTimeout } from "../libs/utils";
+import { getCacheDigest } from "../libs/cacheDigest";
 import {
   handleTranslate,
   handleDict,
@@ -58,7 +61,10 @@ function getPromptCacheFields(apiSetting = {}, promptScope) {
   }
 
   if (promptScope === PROMPT_CACHE_SCOPE_NOBATCH) {
-    return [apiSetting.nobatchPrompt || "", apiSetting.nobatchUserPrompt || ""];
+    return [
+      apiSetting.nobatchPrompt || "",
+      apiSetting.nobatchUserPrompt ?? defaultNobatchUserPrompt,
+    ];
   }
 
   if (promptScope === PROMPT_CACHE_SCOPE_SUBTITLE) {
@@ -66,7 +72,10 @@ function getPromptCacheFields(apiSetting = {}, promptScope) {
   }
 
   if (promptScope === PROMPT_CACHE_SCOPE_DICT) {
-    return [apiSetting.dictPrompt || ""];
+    return [
+      apiSetting.dictPrompt || "",
+      apiSetting.dictUserPrompt ?? defaultDictUserPrompt,
+    ];
   }
 
   return [];
@@ -78,7 +87,7 @@ async function getPromptCacheSig(apiSetting = {}, promptScope) {
     ...getPromptCacheFields(apiSetting, promptScope),
   ].join("\n");
 
-  return (await sha256(promptText, PROMPT_CACHE_SALT)).slice(0, 16);
+  return (await getCacheDigest(promptText, PROMPT_CACHE_SALT)).slice(0, 16);
 }
 
 /**
@@ -800,7 +809,7 @@ export const apiDict = async ({
   const [v1, v2] = process.env.REACT_APP_VERSION.split(".");
   const effectiveDocInfo = docInfo || getDocInfo();
   // 缓存需要区分页面信息和选区段落，否则同一个词在不同语境下会错误复用释义。
-  const contextSig = await sha256(
+  const contextSig = await getCacheDigest(
     [
       effectiveDocInfo?.title || "",
       effectiveDocInfo?.description || "",

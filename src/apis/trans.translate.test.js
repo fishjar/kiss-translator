@@ -30,6 +30,16 @@ const getApiSetting = (apiType) => ({
   httpTimeout: 1000,
 });
 
+const getNobatchApiSetting = (update = {}) => ({
+  ...getApiSetting(OPT_TRANS_OPENAI),
+  useStream: false,
+  useBatchFetch: false,
+  systemPrompt: "batch system prompt",
+  nobatchPrompt: "Translate {{text}}.",
+  nobatchUserPrompt: "",
+  ...update,
+});
+
 async function collectAsyncGenerator(generator) {
   const result = [];
   for await (const item of generator) {
@@ -109,5 +119,68 @@ describe("handleTranslate", () => {
     ).rejects.toThrow("The operation was aborted.");
 
     expect(fetchData).not.toHaveBeenCalled();
+  });
+
+  test("does not append external docInfo to system prompt without placeholders", async () => {
+    fetchData.mockResolvedValueOnce({
+      choices: [{ message: { content: "你好" } }],
+    });
+
+    await collectAsyncGenerator(
+      handleTranslate(["hello"], {
+        from: "en",
+        to: "zh-CN",
+        fromLang: "English",
+        toLang: "Chinese",
+        langMap: () => "",
+        glossary: "",
+        apiSetting: getNobatchApiSetting(),
+        usePool: false,
+        docInfo: {
+          title: "Doc title",
+          description: "Doc description",
+          summary: "Doc summary",
+          context: "Doc context",
+        },
+      })
+    );
+
+    const body = JSON.parse(fetchData.mock.calls[0][1].body);
+
+    expect(body.messages[0].content).toBe("Translate hello.");
+    expect(body.messages[0].content).not.toContain("# Context");
+    expect(body.messages[0].content).not.toContain("Doc context");
+  });
+
+  test("replaces external docInfo placeholders in user prompt", async () => {
+    fetchData.mockResolvedValueOnce({
+      choices: [{ message: { content: "你好" } }],
+    });
+
+    await collectAsyncGenerator(
+      handleTranslate(["hello"], {
+        from: "en",
+        to: "zh-CN",
+        fromLang: "English",
+        toLang: "Chinese",
+        langMap: () => "",
+        glossary: "",
+        apiSetting: getNobatchApiSetting({
+          nobatchUserPrompt: "Title: {{title}}\nContext: {{context}}",
+        }),
+        usePool: false,
+        docInfo: {
+          title: "Doc title",
+          context: "Doc context",
+        },
+      })
+    );
+
+    const body = JSON.parse(fetchData.mock.calls[0][1].body);
+
+    expect(body.messages[0].content).toBe("Translate hello.");
+    expect(body.messages[body.messages.length - 1].content).toBe(
+      "Title: Doc title\nContext: Doc context"
+    );
   });
 });

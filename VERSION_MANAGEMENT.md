@@ -102,7 +102,8 @@ git push origin v2.0.20
 git checkout dev
 
 # 11. 把 master 上的这个合并记录也同步回 dev
-git merge master
+git pull --ff-only origin dev
+git merge --ff-only origin/master
 git push origin dev
 ```
 

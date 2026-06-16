@@ -5,6 +5,7 @@ import {
   defaultSystemPromptLines,
   defaultSystemPromptXml,
   defaultDictPrompt,
+  defaultDictUserPrompt,
   defaultSubtitlePrompt,
   API_SPE_TYPES,
 } from "./api";
@@ -96,7 +97,7 @@ export const PRESET_PROMPTS = [
     nameKey: "preset_prompt_dictionary_en_zh",
     name: "AI English-Chinese Dictionary",
     systemPrompt: defaultDictPrompt,
-    userPrompt: "",
+    userPrompt: defaultDictUserPrompt,
   },
 ];
 
@@ -433,6 +434,14 @@ const LEGACY_API_PROMPT_MIGRATIONS = [
     userPromptFieldName: "",
     promptSlugFieldName: "subtitlePromptSlug",
   },
+  {
+    promptType: "dict",
+    promptLabel: "Dictionary prompt",
+    category: PROMPT_CATEGORY_DICTIONARY,
+    systemPromptFieldName: "dictPrompt",
+    userPromptFieldName: "dictUserPrompt",
+    promptSlugFieldName: "dictPromptSlug",
+  },
 ];
 
 function createLegacyApiPromptSource(apiSetting, migration) {
@@ -735,6 +744,7 @@ export function removePromptReferences(setting = {}, promptSlug) {
         dictPromptSlug: DEFAULT_DICTIONARY_PROMPT_SLUG,
       };
       delete nextApi.dictPrompt;
+      delete nextApi.dictUserPrompt;
       hasApiChanges = true;
     }
 
@@ -894,7 +904,9 @@ export function resolveApiPromptSettings(
     nextApiSetting,
     "dictPromptSlug"
   );
-  const hasDictPromptInlineValue = hasOwn(nextApiSetting, "dictPrompt");
+  const hasDictPromptInlineValue =
+    hasOwn(nextApiSetting, "dictPrompt") ||
+    hasOwn(nextApiSetting, "dictUserPrompt");
   const dictPromptSlug = getPromptFieldValue(
     nextApiSetting,
     "dictPromptSlug",
@@ -909,6 +921,7 @@ export function resolveApiPromptSettings(
   if (dictPrompt && (hasDictPromptReference || !hasDictPromptInlineValue)) {
     nextApiSetting.dictPromptSlug = dictPrompt.slug;
     nextApiSetting.dictPrompt = dictPrompt.systemPrompt;
+    nextApiSetting.dictUserPrompt = dictPrompt.userPrompt;
   }
 
   return nextApiSetting;

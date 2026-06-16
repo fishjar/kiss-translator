@@ -31,6 +31,7 @@ import {
   STOKEY_SEPARATE_WINDOW,
   PORT_STREAM_FETCH,
   MSG_UPDATE_ICON,
+  MSG_SHA256,
 } from "./config";
 import {
   getSettingWithDefault,
@@ -47,6 +48,7 @@ import { getCurTabId } from "./libs/msg";
 import { injectInlineJsBg, injectInternalCss } from "./libs/injector";
 import { kissLog, logger } from "./libs/log";
 import { chromeDetect, chromeTranslate } from "./libs/builtinAI";
+import { sha256 } from "./libs/utils";
 
 globalThis.__KISS_CONTEXT__ = "background";
 
@@ -528,6 +530,7 @@ const messageHandlers = {
   [MSG_FETCH]: (args) => fetchHandle(args), // 跨域请求代理
   [MSG_GET_HTTPCACHE]: (args) => getHttpCache(args), // 读取翻译 HTTP 缓存
   [MSG_PUT_HTTPCACHE]: (args) => putHttpCache(args), // 存入翻译 HTTP 缓存
+  [MSG_SHA256]: ({ text = "", salt = "" } = {}) => sha256(text, salt), // 代算缓存签名
   [MSG_OPEN_OPTIONS]: () => browser.runtime.openOptionsPage(), // 打开设置选项页
   [MSG_SAVE_RULE]: (args) => saveRule(args), // 写入/保存规则
   [MSG_INJECT_JS]: (args) => injectToCurrentTab(injectInlineJsBg, args), // 注入 JS 代码到前台

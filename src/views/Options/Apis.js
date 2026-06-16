@@ -144,7 +144,7 @@ function getApiIconSrc(apiType) {
     return "";
   }
 
-  return `${process.env.PUBLIC_URL || ""}/api/${iconFile}`;
+  return `${process.env.PUBLIC_URL || "."}/api/${iconFile}`;
 }
 
 function ApiProviderIcon({ apiType, disabled = false, sx = {} }) {
@@ -369,6 +369,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
 
       if (name === "dictPromptSlug" && prompt) {
         newData.dictPrompt = prompt.systemPrompt;
+        newData.dictUserPrompt = prompt.userPrompt;
       }
 
       return newData;

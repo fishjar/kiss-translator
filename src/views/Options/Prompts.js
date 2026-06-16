@@ -188,8 +188,10 @@ function PromptFields({
   const promptDisplayName = getPromptDisplayName(prompt, i18n);
   const systemPromptRef = useRef(null);
   const userPromptRef = useRef(null);
-  // 只有非聚合翻译链路会读取 userPrompt；其他类型只编辑实际会生效的系统提示词。
-  const showUserPrompt = formData.category === PROMPT_CATEGORY_USER;
+  // 只有会读取 userPrompt 的链路展示第二段提示词，避免编辑无效字段。
+  const showUserPrompt =
+    formData.category === PROMPT_CATEGORY_USER ||
+    formData.category === PROMPT_CATEGORY_DICTIONARY;
 
   useLayoutEffect(() => {
     setFormData(normalizePrompt(prompt));

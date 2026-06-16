@@ -209,7 +209,12 @@ const YOUTUBE_CAPTION_CONTAINER_WIDTH = 640;
 /**
  * 视频双语字幕预览面板组件
  */
-function SubtitleStylePreview({ windowStyle, originStyle, translationStyle }) {
+function SubtitleStylePreview({
+  windowStyle,
+  originStyle,
+  translationStyle,
+  displayOrder,
+}) {
   const i18n = useI18n();
 
   const windowCss = useMemo(() => parseCssToObject(windowStyle), [windowStyle]);
@@ -218,7 +223,12 @@ function SubtitleStylePreview({ windowStyle, originStyle, translationStyle }) {
     () => parseCssToObject(translationStyle),
     [translationStyle]
   );
-
+  const originPreview = (
+    <p style={{ ...originCss, margin: 0 }}>This is an example subtitle</p>
+  );
+  const translationPreview = (
+    <p style={{ ...transCss, margin: 0 }}>这是示例字幕文本</p>
+  );
   return (
     <Box>
       <Typography variant="subtitle2" gutterBottom>
@@ -248,12 +258,17 @@ function SubtitleStylePreview({ windowStyle, originStyle, translationStyle }) {
         >
           {/* 渲染模拟网页上的字幕窗格 */}
           <div style={{ ...windowCss, textAlign: "center" }}>
-            {/* 模拟原文行 */}
-            <p style={{ ...originCss, margin: 0 }}>
-              This is an example subtitle
-            </p>
-            {/* 模拟译文行 */}
-            <p style={{ ...transCss, margin: 0 }}>这是示例字幕文本</p>
+            {displayOrder === "translation-first" ? (
+              <>
+                {translationPreview}
+                {originPreview}
+              </>
+            ) : (
+              <>
+                {originPreview}
+                {translationPreview}
+              </>
+            )}
           </div>
         </Box>
       </Box>
@@ -326,6 +341,7 @@ export default function SubtitleSetting() {
     throttleTrans = 30,
     toLang,
     isBilingual,
+    displayOrder = "original-first",
     blurTranslation = false,
     enhanceMode,
     hoverLookupMode,
@@ -824,6 +840,25 @@ export default function SubtitleSetting() {
                 <MenuItem value={false}>{i18n("disable")}</MenuItem>
               </TextField>
             </Grid>
+            {/* 双语字幕在视频画面中的显示顺序 */}
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                fullWidth
+                select
+                size="small"
+                name="displayOrder"
+                value={displayOrder}
+                label={i18n("trans_order")}
+                onChange={handleChange}
+              >
+                <MenuItem value={"original-first"}>
+                  {i18n("original_first")}
+                </MenuItem>
+                <MenuItem value={"translation-first"}>
+                  {i18n("translation_first")}
+                </MenuItem>
+              </TextField>
+            </Grid>
             {/* 是否开启磨砂模糊译文字幕显示效果 (鼠标划过时才高亮看清译文，用于英语听力训练备考) */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
@@ -938,6 +973,7 @@ export default function SubtitleSetting() {
               windowStyle={localWindowStyle}
               originStyle={localOriginStyle}
               translationStyle={localTransStyle}
+              displayOrder={displayOrder}
             />
 
             <Divider />

@@ -100,6 +100,13 @@ export const OPT_TRANBOX_TRIGGER_ALL = [
   OPT_TRANBOX_TRIGGER_HOVER,
   OPT_TRANBOX_TRIGGER_SELECT,
 ];
+// 划词后弹出按钮的定位模式
+export const OPT_TRANBOX_BTN_POSITION_FIXED = "fixed"; // 沿用当前逻辑，固定显示在选区右下角
+export const OPT_TRANBOX_BTN_POSITION_MOUSE = "mouse"; // 跟随鼠标或触摸结束位置显示
+export const OPT_TRANBOX_BTN_POSITION_ALL = [
+  OPT_TRANBOX_BTN_POSITION_FIXED,
+  OPT_TRANBOX_BTN_POSITION_MOUSE,
+];
 export const DEFAULT_TRANBOX_SHORTCUT = ["AltLeft", "KeyS"]; // 呼出划词翻译面板的键盘快捷键
 export const DEFAULT_TRANBOX_SETTING = {
   transOpen: true, // 是否启用划词翻译功能
@@ -120,6 +127,7 @@ export const DEFAULT_TRANBOX_SETTING = {
   followSelection: false, // 翻译结果框位置是否贴紧选中文本中心
   autoHeight: false, // 翻译结果框高度是否自适应其文本内容长度
   triggerMode: OPT_TRANBOX_TRIGGER_CLICK, // 划词触发翻译的行为模式
+  btnPositionMode: OPT_TRANBOX_BTN_POSITION_FIXED, // 划词后弹出按钮的定位模式
   // extStyles: "", // 附加样式
   enDict: OPT_DICT_BING, // 默认英文网络词典数据源
   enSug: OPT_SUG_YOUDAO, // 英文输入联想建议源
@@ -156,6 +164,7 @@ export const DEFAULT_SUBTITLE_SETTING = {
   // fromLang: "en",
   toLang: "zh-CN", // 字幕译文的目标语言
   isBilingual: true, // 字幕是否启用双语对照显示
+  displayOrder: "original-first", // 字幕双语显示顺序：原文在前或译文在前
   blurTranslation: false, // 是否模糊显示译文 (用于听力/口语训练)
   skipAd: false, // 是否在识别到 YouTube 广告字幕时进行特殊快进
   windowStyle: SUBTITLE_WINDOW_STYLE, // 字幕背景及定位样式

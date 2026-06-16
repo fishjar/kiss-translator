@@ -82,9 +82,61 @@ const setting = {
   enhanceMode: "off",
 };
 
+function getCaptionLines() {
+  return Array.from(document.querySelectorAll(".kiss-caption-window p")).map(
+    (node) => node.textContent
+  );
+}
+
 describe("BilingualSubtitleManager", () => {
   beforeEach(() => {
     apiTranslate.mockReset();
+  });
+
+  test("renders original subtitle before translation by default", () => {
+    const videoEl = createVideoElement();
+    const manager = new BilingualSubtitleManager({
+      videoEl,
+      formattedSubtitles: [{ ...subtitle, translation: "你好世界" }],
+      setting,
+    });
+
+    manager.start();
+
+    expect(getCaptionLines()).toEqual(["hello world", "你好世界"]);
+    manager.destroy();
+  });
+
+  test("renders translation before original when display order is translation first", () => {
+    const videoEl = createVideoElement();
+    const manager = new BilingualSubtitleManager({
+      videoEl,
+      formattedSubtitles: [{ ...subtitle, translation: "你好世界" }],
+      setting: { ...setting, displayOrder: "translation-first" },
+    });
+
+    manager.start();
+
+    expect(getCaptionLines()).toEqual(["你好世界", "hello world"]);
+    manager.destroy();
+  });
+
+  test("renders only translation when bilingual display is disabled", () => {
+    const videoEl = createVideoElement();
+    const manager = new BilingualSubtitleManager({
+      videoEl,
+      formattedSubtitles: [{ ...subtitle, translation: "你好世界" }],
+      setting: {
+        ...setting,
+        isBilingual: false,
+        displayOrder: "translation-first",
+      },
+    });
+
+    manager.start();
+
+    expect(getCaptionLines()).toEqual(["你好世界"]);
+    manager.destroy();
   });
 
   test("updates current subtitle and list callback with streaming translation chunk", async () => {
@@ -156,6 +208,44 @@ describe("BilingualSubtitleManager", () => {
 
     deferred.resolve({ trText: "修复译文" });
     await deferred.promise;
+    manager.destroy();
+  });
+
+  test("does not repair untranslated chunk subtitles immediately", () => {
+    const videoEl = createVideoElement();
+    const untranslatedSubtitle = {
+      ...subtitle,
+      translation: "",
+    };
+    const missingTranslationSubtitle = {
+      start: 1000,
+      end: 2000,
+      text: "missing translation",
+    };
+    const draftSubtitle = {
+      ...subtitle,
+      start: 2000,
+      end: 3000,
+      translation: "draft translation",
+      _isDraftTranslation: true,
+    };
+    const manager = new BilingualSubtitleManager({
+      videoEl,
+      formattedSubtitles: [
+        untranslatedSubtitle,
+        missingTranslationSubtitle,
+        draftSubtitle,
+      ],
+      setting,
+    });
+
+    manager.repairChunkTranslations([
+      untranslatedSubtitle,
+      missingTranslationSubtitle,
+      draftSubtitle,
+    ]);
+
+    expect(apiTranslate).not.toHaveBeenCalled();
     manager.destroy();
   });
 
