@@ -1632,6 +1632,7 @@ export async function* handleTranslate(
         apiType,
         history,
         userMsg,
+        useBatchFetch: apiSetting.useBatchFetch,
         usePool,
         fetchInterval,
         fetchLimit,
@@ -1667,6 +1668,7 @@ async function* handleTranslateStreamInternal(
     apiType,
     history,
     userMsg,
+    useBatchFetch,
     usePool,
     fetchInterval,
     fetchLimit,
@@ -1701,6 +1703,13 @@ async function* handleTranslateStreamInternal(
         if (delta) {
           fullContent += delta;
           fullContent = stripMarkdownCodeBlock(fullContent, true);
+
+          if (!useBatchFetch) {
+            if (streamRenderMode === "realtime") {
+              yield { id: 0, partialText: fullContent, isComplete: false };
+            }
+            continue;
+          }
 
           if (!formatDetected) {
             const { isJson, detected } = detectStreamFormat(fullContent);
@@ -1757,7 +1766,7 @@ async function* handleTranslateStreamInternal(
   // 最终再解析一次，捕获可能遗漏的段落
   const hasEmpty = results.some((r) => !r);
   if (hasEmpty) {
-    const parsed = parseAIRes(fullContent, true);
+    const parsed = parseAIRes(fullContent, useBatchFetch);
     for (let i = 0; i < texts.length && i < parsed.length; i++) {
       if (!results[i]) {
         results[i] = parsed[i];

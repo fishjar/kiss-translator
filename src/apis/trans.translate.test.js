@@ -121,6 +121,40 @@ describe("handleTranslate", () => {
     expect(fetchData).not.toHaveBeenCalled();
   });
 
+  test("streams non-batch plain text when batch fetch is disabled", async () => {
+    async function* streamChunks() {
+      yield JSON.stringify({ choices: [{ delta: { content: "你" } }] });
+      yield JSON.stringify({ choices: [{ delta: { content: "好" } }] });
+    }
+
+    fetchStream.mockReturnValueOnce(streamChunks());
+
+    const result = await collectAsyncGenerator(
+      handleTranslate(["hello"], {
+        from: "en",
+        to: "zh-CN",
+        fromLang: "English",
+        toLang: "Chinese",
+        langMap: () => "",
+        glossary: "",
+        apiSetting: getNobatchApiSetting({
+          useStream: true,
+          streamRenderMode: "realtime",
+        }),
+        usePool: false,
+      })
+    );
+
+    expect(fetchStream).toHaveBeenCalledTimes(1);
+    expect(fetchData).not.toHaveBeenCalled();
+    expect(JSON.parse(fetchStream.mock.calls[0][1].body).stream).toBe(true);
+    expect(result).toEqual([
+      { id: 0, partialText: "你", isComplete: false },
+      { id: 0, partialText: "你好", isComplete: false },
+      { id: 0, result: ["你好"] },
+    ]);
+  });
+
   test("does not append external docInfo to system prompt without placeholders", async () => {
     fetchData.mockResolvedValueOnce({
       choices: [{ message: { content: "你好" } }],
