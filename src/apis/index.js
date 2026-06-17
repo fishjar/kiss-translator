@@ -714,7 +714,7 @@ export const apiTranslate = async ({
     });
   } else {
     // 2.3 不支持批量翻译、需要单个请求执行的 API (如某些流式大模型 API)
-    const { value } = await handleTranslate([text], {
+    const generator = handleTranslate([text], {
       from,
       to,
       fromLang,
@@ -724,9 +724,36 @@ export const apiTranslate = async ({
       apiSetting,
       usePool,
       docInfo,
+      onStreamChunk,
       signal,
-    }).next();
-    translation = value?.result;
+    });
+
+    for await (const item of generator) {
+      if (item.id !== 0) {
+        continue;
+      }
+
+      const isComplete = item.isComplete !== false;
+      if (!isComplete) {
+        if (onStreamChunk) {
+          onStreamChunk({
+            id: item.id,
+            text: item.partialText,
+            isComplete: false,
+          });
+        }
+        continue;
+      }
+
+      if (onStreamChunk) {
+        onStreamChunk({
+          id: item.id,
+          text: item.result,
+          isComplete: true,
+        });
+      }
+      translation = item.result;
+    }
   }
 
   // 3. 对翻译引擎返回的数据格式进行规范化处理

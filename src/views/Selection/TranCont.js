@@ -19,7 +19,6 @@ import CopyBtn from "./CopyBtn";
 const canRenderStream = (apiSetting) =>
   Boolean(
     apiSetting?.useStream &&
-      apiSetting?.useBatchFetch &&
       API_SPE_TYPES.stream.has(apiSetting.apiType) &&
       (apiSetting.streamRenderMode || "disabled") !== "disabled"
   );

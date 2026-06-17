@@ -326,10 +326,6 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
         [name]: value,
       };
 
-      if (name === "useBatchFetch" && value === false) {
-        newData.useStream = false;
-      }
-
       if (name === "useStream" && value === false) {
         newData.streamRenderMode = "disabled";
       }
@@ -793,7 +789,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
 
       <Box>
         <Grid container spacing={2} columns={12}>
-          {API_SPE_TYPES.stream.has(apiType) && useBatchFetch && (
+          {API_SPE_TYPES.stream.has(apiType) && (
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
@@ -810,7 +806,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
             </Grid>
           )}
 
-          {API_SPE_TYPES.stream.has(apiType) && useBatchFetch && useStream && (
+          {API_SPE_TYPES.stream.has(apiType) && useStream && (
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
                 select
