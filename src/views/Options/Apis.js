@@ -512,18 +512,6 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
           </Grid>
           <Grid item xs={12} sm={12} md={6} lg={3}>
             <TextField
-              size="small"
-              fullWidth
-              type="number"
-              label={i18n("sort_order") || "排序权重"}
-              name="sortOrder"
-              value={sortOrder}
-              onChange={handleChange}
-              helperText={i18n("sort_order_help") || "数值越小越靠前"}
-            />
-          </Grid>
-          <Grid item xs={12} sm={12} md={6} lg={3}>
-            <TextField
               select
               fullWidth
               size="small"
