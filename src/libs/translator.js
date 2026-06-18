@@ -250,6 +250,9 @@ export class Translator {
 
     // 若有显式的 inline 属性设置，直接判定非块级
     if (el.attributes?.display?.value?.includes("inline")) return false;
+    // 若有显式的 block 属性设置，直接判定为块级
+    if (el.attributes?.display?.value?.includes("block")) return true;
+
     // 若标签在内联标签集合中，直接判定非块级
     if (Translator.TAGS.INLINE.has(el.nodeName?.toUpperCase())) return false;
     // 若标签在块级标签集合中，直接判定为块级
@@ -688,6 +691,10 @@ export class Translator {
   }
 
   #initPlainTextPre(pre) {
+    if (pre.dataset.kissPreprocessed === "true") {
+      return;
+    }
+
     // 使用 textContent 读取纯文本，避免把 <tag> 这类内容重新解析成 HTML。
     const state = {
       source: pre.textContent || "",
@@ -696,6 +703,7 @@ export class Translator {
       pendingBreaks: 0,
     };
 
+    pre.dataset.kissPreprocessed = "true";
     this.#plainTextPreprocessingNodes.add(pre);
     pre.replaceChildren();
     this.#appendPlainTextPreBatch(pre, state, true);
