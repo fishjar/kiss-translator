@@ -39,6 +39,24 @@ function createTranslator(rule = {}, setting = {}) {
   });
 }
 
+function createPlainTextTranslator(rule = {}, setting = {}) {
+  const translator = createTranslator(
+    {
+      transOpen: "false",
+      ...rule,
+    },
+    {
+      preInit: false,
+      ...setting,
+    }
+  );
+
+  translator.updateRule({ isPlainText: true });
+  translator.enable();
+
+  return translator;
+}
+
 describe("Translator rule styles", () => {
   let originalIntersectionObserver;
   let originalCSSStyleSheet;
@@ -269,5 +287,103 @@ describe("Translator rule styles", () => {
 
     expect(openOrClosedShadowRoot).toHaveBeenCalledWith(host);
     expect(openOrClosedShadowRoot).not.toHaveBeenCalledWith(svg);
+  });
+
+  test("splits plain text pre content into bounded block chunks", async () => {
+    global.IntersectionObserver = class {
+      constructor() {}
+
+      observe() {}
+
+      unobserve() {}
+
+      disconnect() {}
+    };
+    document.body.innerHTML = '<main id="root"><pre></pre></main>';
+    const pre = document.querySelector("pre");
+    pre.textContent = [
+      "First line with indentation",
+      "  second line with leading spaces",
+      "",
+      "A very long plain text line that needs to be split into smaller chunks without changing the global max length filter.",
+      "Literal <tag> should stay text.",
+    ].join("\n");
+
+    createPlainTextTranslator({}, { maxLength: 45, minLength: 0 });
+    await flushAsync();
+
+    const chunks = Array.from(pre.querySelectorAll(":scope > span"));
+    const blankLines = Array.from(pre.children).filter(
+      (child) => child.tagName === "BR"
+    );
+
+    expect(chunks.length).toBeGreaterThan(1);
+    expect(blankLines).toHaveLength(1);
+    expect(chunks.every((chunk) => chunk.textContent.length < 45)).toBe(true);
+    expect(chunks[0].style.display).toBe("block");
+    expect(chunks[0].style.whiteSpace).toBe("pre-wrap");
+    expect(pre.querySelector("tag")).toBeNull();
+    expect(pre.textContent).toContain("  second line");
+    expect(pre.textContent).toContain("Literal <tag> should stay text.");
+    expect(apiTranslate).not.toHaveBeenCalled();
+  });
+
+  test("splits plain text pre content at single line breaks", async () => {
+    global.IntersectionObserver = class {
+      constructor() {}
+
+      observe() {}
+
+      unobserve() {}
+
+      disconnect() {}
+    };
+    document.body.innerHTML = '<main id="root"><pre></pre></main>';
+    const pre = document.querySelector("pre");
+    pre.textContent = "First line\nSecond line\nThird line";
+
+    createPlainTextTranslator({}, { minLength: 0 });
+    await flushAsync();
+
+    const chunks = Array.from(pre.querySelectorAll(":scope > span")).map(
+      (chunk) => chunk.textContent
+    );
+
+    expect(chunks).toEqual(["First line", "Second line", "Third line"]);
+  });
+
+  test("only translates visible plain text chunks", async () => {
+    const observed = [];
+    let intersectionCallback;
+    global.IntersectionObserver = class {
+      constructor(callback) {
+        intersectionCallback = callback;
+      }
+
+      observe(target) {
+        observed.push(target);
+      }
+
+      unobserve() {}
+
+      disconnect() {}
+    };
+    document.body.innerHTML = '<main id="root"><pre></pre></main>';
+    document.querySelector("pre").textContent =
+      "First visible chunk.\n\nSecond chunk waits for scrolling.";
+
+    createPlainTextTranslator({}, { minLength: 0 });
+    await flushAsync();
+
+    const chunks = Array.from(document.querySelectorAll("pre > span"));
+    expect(chunks).toHaveLength(2);
+    expect(observed).toEqual(expect.arrayContaining(chunks));
+    expect(apiTranslate).not.toHaveBeenCalled();
+
+    intersectionCallback([{ target: chunks[0], isIntersecting: true }]);
+    await flushAsync();
+
+    expect(apiTranslate).toHaveBeenCalledTimes(1);
+    expect(apiTranslate.mock.calls[0][0].text).toContain("First visible chunk");
   });
 });

@@ -499,6 +499,123 @@ export class Translator {
     return false;
   }
 
+  #getPlainTextChunkLimit() {
+    const maxLength = Number(this.#setting.maxLength);
+    // 单个纯文本块必须小于 maxLength，避免后续 #isInvalidText 直接过滤。
+    const hardLimit = Number.isFinite(maxLength)
+      ? Math.max(1, maxLength - 1)
+      : 3000;
+
+    // 控制默认块大小，避免纯文本页面一次请求过长文本。
+    return Math.min(3000, hardLimit);
+  }
+
+  #findPlainTextBreakIndex(text, limit) {
+    const slice = text.slice(0, limit + 1);
+    let breakIndex = -1;
+    // 优先在句尾或换行处切分，减少把一句话截断的概率。
+    const naturalBreakRegex = /(?:[。！？]+|[.?!]+(?=\s+|$)|\n+)/g;
+    let match;
+
+    while ((match = naturalBreakRegex.exec(slice)) !== null) {
+      const candidate = match.index + match[0].length;
+      if (candidate > 0 && candidate <= limit) {
+        breakIndex = candidate;
+      }
+    }
+
+    if (breakIndex > Math.floor(limit * 0.4)) {
+      return breakIndex;
+    }
+
+    for (let i = limit; i > Math.floor(limit * 0.4); i--) {
+      if (/\s/.test(text[i - 1])) {
+        return i;
+      }
+    }
+
+    return limit;
+  }
+
+  #splitPlainTextToChunks(text) {
+    const limit = this.#getPlainTextChunkLimit();
+    const chunks = [];
+    let current = "";
+
+    const flushCurrent = () => {
+      if (!current) return;
+      chunks.push({ type: "text", value: current });
+      current = "";
+    };
+
+    const appendText = (value) => {
+      let remaining = value;
+
+      // 超长单行继续按自然边界或硬上限拆分，保证每个 span 可单独翻译。
+      while (remaining.length) {
+        const spaceLeft = limit - current.length;
+        if (spaceLeft <= 0) {
+          flushCurrent();
+          continue;
+        }
+
+        if (remaining.length <= spaceLeft) {
+          current += remaining;
+          return;
+        }
+
+        const splitIndex = this.#findPlainTextBreakIndex(remaining, spaceLeft);
+        current += remaining.slice(0, splitIndex);
+        flushCurrent();
+        remaining = remaining.slice(splitIndex);
+      }
+    };
+
+    text
+      .replace(/\r\n?/g, "\n")
+      .split(/(\n+)/)
+      .forEach((part) => {
+        if (!part) return;
+
+        if (/^\n+$/.test(part)) {
+          flushCurrent();
+          // 一个换行只结束当前 span；连续换行额外生成 br 来保留空白行。
+          for (let i = 1; i < part.length; i++) {
+            chunks.push({ type: "break" });
+          }
+          return;
+        }
+
+        appendText(part);
+        // 普通换行也应该形成新的翻译单元，以便滚动时逐行触发。
+        flushCurrent();
+      });
+
+    flushCurrent();
+
+    return chunks;
+  }
+
+  #initPlainTextPre(pre) {
+    // 使用 textContent 读取纯文本，避免把 <tag> 这类内容重新解析成 HTML。
+    const chunks = this.#splitPlainTextToChunks(pre.textContent || "");
+    const fragment = document.createDocumentFragment();
+
+    chunks.forEach((chunk) => {
+      if (chunk.type === "break") {
+        fragment.appendChild(document.createElement("br"));
+        return;
+      }
+
+      const span = document.createElement("span");
+      span.style.cssText = "display: block; white-space: pre-wrap;";
+      span.textContent = chunk.value;
+      fragment.appendChild(span);
+    });
+
+    pre.replaceChildren(fragment);
+  }
+
   // 接口参数
   // todo: 不用频繁查找计算
   get #apiSetting() {
@@ -657,14 +774,9 @@ export class Translator {
 
     // 纯文本预处理
     if (this.#rule.isPlainText) {
-      document
-        .querySelectorAll("pre")
-        .forEach(
-          (pre) =>
-            (pre.innerHTML = trustedTypesHelper.createHTML(
-              pre.innerHTML?.replace(/(?:\r\n|\r|\n)/g, "<br />")
-            ))
-        );
+      document.querySelectorAll("pre").forEach((pre) => {
+        this.#initPlainTextPre(pre);
+      });
     }
 
     // 查找根节点并扫描
