@@ -43,6 +43,7 @@ describe("Translator rule styles", () => {
   let originalIntersectionObserver;
   let originalCSSStyleSheet;
   let originalScrollBy;
+  let originalChrome;
 
   beforeEach(() => {
     jest.useFakeTimers();
@@ -71,12 +72,15 @@ describe("Translator rule styles", () => {
 
     originalScrollBy = window.scrollBy;
     window.scrollBy = jest.fn();
+
+    originalChrome = globalThis.chrome;
   });
 
   afterEach(() => {
     global.IntersectionObserver = originalIntersectionObserver;
     global.CSSStyleSheet = originalCSSStyleSheet;
     window.scrollBy = originalScrollBy;
+    globalThis.chrome = originalChrome;
     jest.runOnlyPendingTimers();
     jest.useRealTimers();
     jest.clearAllMocks();
@@ -185,5 +189,85 @@ describe("Translator rule styles", () => {
     expect(combinedRequestedText).toContain("tail");
     expect(wrapper).not.toBeNull();
     expect(wrapper.textContent).toBe("Translated mixed inline content");
+  });
+
+  test("does not query shadow roots inside KISS translator elements when scanAll is enabled", async () => {
+    document.body.innerHTML = `
+      <main id="root">
+        <div id="page-host">Page content</div>
+        <div id="kiss-translator-fab">
+          <div id="plugin-child">Plugin content</div>
+        </div>
+      </main>
+    `;
+    const pageHost = document.getElementById("page-host");
+    const pluginChild = document.getElementById("plugin-child");
+    const openOrClosedShadowRoot = jest.fn((element) =>
+      element === pageHost ? null : undefined
+    );
+    globalThis.chrome = {
+      dom: {
+        openOrClosedShadowRoot,
+      },
+    };
+
+    createTranslator({ scanAll: "true" });
+    await flushAsync();
+
+    expect(openOrClosedShadowRoot).toHaveBeenCalledWith(pageHost);
+    expect(openOrClosedShadowRoot).not.toHaveBeenCalledWith(pluginChild);
+  });
+
+  test("still discovers shadow roots on regular HTML elements when scanAll is enabled", async () => {
+    document.body.innerHTML = `
+      <main id="root">
+        <section id="host">Page content</section>
+      </main>
+    `;
+    const host = document.getElementById("host");
+    const shadowRoot = host.attachShadow({ mode: "open" });
+    Object.defineProperty(shadowRoot, "adoptedStyleSheets", {
+      configurable: true,
+      writable: true,
+      value: [],
+    });
+    shadowRoot.innerHTML = "<p>Shadow content</p>";
+    const observe = jest.spyOn(MutationObserver.prototype, "observe");
+
+    createTranslator({ scanAll: "true" });
+    await flushAsync();
+
+    expect(observe).toHaveBeenCalledWith(
+      shadowRoot,
+      expect.objectContaining({ subtree: true })
+    );
+  });
+
+  test("does not pass SVG elements to the Chrome closed shadow root API", async () => {
+    document.body.innerHTML = `
+      <main id="root">
+        <svg id="icon"><path d="M0 0h1v1z"></path></svg>
+        <div id="host">Page content</div>
+      </main>
+    `;
+    const svg = document.getElementById("icon");
+    const host = document.getElementById("host");
+    const openOrClosedShadowRoot = jest.fn((element) => {
+      if (!(element instanceof HTMLElement)) {
+        throw new TypeError("HTMLElement element expected");
+      }
+      return null;
+    });
+    globalThis.chrome = {
+      dom: {
+        openOrClosedShadowRoot,
+      },
+    };
+
+    createTranslator({ scanAll: "true" });
+    await flushAsync();
+
+    expect(openOrClosedShadowRoot).toHaveBeenCalledWith(host);
+    expect(openOrClosedShadowRoot).not.toHaveBeenCalledWith(svg);
   });
 });

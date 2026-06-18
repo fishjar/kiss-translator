@@ -938,12 +938,21 @@ export class Translator {
     // Chrome 扩展 API
     if (
       typeof globalThis !== "undefined" &&
-      globalThis.chrome?.dom?.openOrClosedShadowRoot
+      globalThis.chrome?.dom?.openOrClosedShadowRoot &&
+      element instanceof HTMLElement
     ) {
       return globalThis.chrome.dom.openOrClosedShadowRoot(element);
     }
     // 标准 API（只能获取 open 模式）
     return element.shadowRoot;
+  }
+
+  #isKissIgnoredNode(node) {
+    return (
+      node?.nodeType === Node.ELEMENT_NODE &&
+      (node.matches?.(Translator.KISS_IGNORE_SELECTOR) ||
+        node.closest?.(Translator.KISS_IGNORE_SELECTOR))
+    );
   }
 
   // 找页面所有 ShadowRoot
@@ -953,6 +962,10 @@ export class Translator {
       const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
       while (walker.nextNode()) {
         const node = walker.currentNode;
+        if (this.#isKissIgnoredNode(node)) {
+          continue;
+        }
+
         const shadowRoot = this.#getShadowRoot(node);
         if (shadowRoot) {
           results.add(shadowRoot);
