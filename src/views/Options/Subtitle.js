@@ -227,7 +227,9 @@ function SubtitleStylePreview({
     <p style={{ ...originCss, margin: 0 }}>This is an example subtitle</p>
   );
   const translationPreview = (
-    <p style={{ ...transCss, margin: 0 }}>这是示例字幕文本</p>
+    <p style={{ ...transCss, margin: 0 }}>
+      {i18n("subtitle_preview_sample") || "这是示例字幕文本"}
+    </p>
   );
   return (
     <Box>
