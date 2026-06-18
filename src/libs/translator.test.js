@@ -352,6 +352,74 @@ describe("Translator rule styles", () => {
     expect(chunks).toEqual(["First line", "Second line", "Third line"]);
   });
 
+  test("streams very long plain text pre preprocessing in idle batches", async () => {
+    const observed = [];
+    global.IntersectionObserver = class {
+      constructor() {}
+
+      observe(target) {
+        observed.push(target);
+      }
+
+      unobserve() {}
+
+      disconnect() {}
+    };
+    document.body.innerHTML = '<main id="root"><pre></pre></main>';
+    const pre = document.querySelector("pre");
+    pre.textContent = Array.from(
+      { length: 150 },
+      (_, index) => `Line ${index + 1}`
+    ).join("\n");
+
+    createPlainTextTranslator({}, { minLength: 0 });
+
+    expect(pre.querySelectorAll(":scope > span")).toHaveLength(20);
+    expect(apiTranslate).not.toHaveBeenCalled();
+
+    jest.advanceTimersByTime(100);
+    await Promise.resolve();
+
+    const chunksAfterIdle = Array.from(pre.querySelectorAll(":scope > span"));
+    expect(chunksAfterIdle.length).toBeGreaterThan(20);
+    expect(chunksAfterIdle.length).toBeLessThanOrEqual(120);
+    expect(observed).toEqual(expect.arrayContaining(chunksAfterIdle));
+
+    jest.runOnlyPendingTimers();
+    await Promise.resolve();
+
+    expect(pre.querySelectorAll(":scope > span")).toHaveLength(150);
+  });
+
+  test("stops stale plain text pre preprocessing when run changes", async () => {
+    global.IntersectionObserver = class {
+      constructor() {}
+
+      observe() {}
+
+      unobserve() {}
+
+      disconnect() {}
+    };
+    document.body.innerHTML = '<main id="root"><pre></pre></main>';
+    const pre = document.querySelector("pre");
+    pre.textContent = Array.from(
+      { length: 150 },
+      (_, index) => `Line ${index + 1}`
+    ).join("\n");
+
+    const translator = createPlainTextTranslator({}, { minLength: 0 });
+    const initialChunkCount = pre.querySelectorAll(":scope > span").length;
+
+    translator.disable();
+    jest.runOnlyPendingTimers();
+    await Promise.resolve();
+
+    expect(pre.querySelectorAll(":scope > span")).toHaveLength(
+      initialChunkCount
+    );
+  });
+
   test("only translates visible plain text chunks", async () => {
     const observed = [];
     let intersectionCallback;
