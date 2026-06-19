@@ -24,6 +24,7 @@ export class TransboxManager {
   #container = null;
   #reactRoot = null;
   #shadowContainer = null;
+  #cache = null;
   #props = {};
 
   constructor(initialProps = {}) {
@@ -51,21 +52,29 @@ export class TransboxManager {
       shadowRootElement.className = `${APP_CONSTS.boxID}_wrapper notranslate`;
       this.#shadowContainer.appendChild(shadowRootElement);
 
-      const cache = createCache({
+      this.#cache = createCache({
         key: APP_CONSTS.boxID,
         prepend: true,
         container: this.#shadowContainer,
       });
 
       this.#reactRoot = ReactDOM.createRoot(shadowRootElement);
-      this.#reactRoot.render(
-        <React.StrictMode>
-          <CacheProvider value={cache}>
-            <Slection {...this.#props} />
-          </CacheProvider>
-        </React.StrictMode>
-      );
+      this.#render();
     }
+  }
+
+  #render() {
+    if (!this.#reactRoot || !this.#cache) {
+      return;
+    }
+
+    this.#reactRoot.render(
+      <React.StrictMode>
+        <CacheProvider value={this.#cache}>
+          <Slection {...this.#props} />
+        </CacheProvider>
+      </React.StrictMode>
+    );
   }
 
   disable() {
@@ -77,6 +86,7 @@ export class TransboxManager {
     this.#container = null;
     this.#reactRoot = null;
     this.#shadowContainer = null;
+    this.#cache = null;
   }
 
   toggle() {
@@ -102,8 +112,13 @@ export class TransboxManager {
       if (!this.#props.tranboxSetting?.transOpen) {
         this.disable();
       } else {
-        this.enable();
+        this.#render();
       }
+      return;
+    }
+
+    if (this.#props.tranboxSetting?.transOpen) {
+      this.enable();
     }
   }
 }

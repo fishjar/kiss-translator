@@ -69,6 +69,7 @@ export default function TranForm({
   const [enDict, setEnDict] = useState(initEnDict);
   const [enSug, setEnSug] = useState(initEnSug);
   const [dictTab, setDictTab] = useState("default");
+  const hasUserChangedDictTabRef = useRef(false);
   // 异步自动检测到的源文本语言代码 (例如 "en", "zh")
   const [deLang, setDeLang] = useState("");
   const [deLoading, setDeLoading] = useState(false);
@@ -219,6 +220,10 @@ export default function TranForm({
   const aiDictAvailable = Boolean(text?.trim() && aiDictApiSetting);
 
   useEffect(() => {
+    if (hasUserChangedDictTabRef.current) {
+      return;
+    }
+
     // 默认词典可用时优先展示更快、更稳定的本地/在线词典；否则自动切到 AI 词典。
     if (defaultDictAvailable) {
       setDictTab("default");
@@ -512,7 +517,10 @@ export default function TranForm({
             <>
               <Tabs
                 value={defaultDictAvailable ? dictTab : "ai"}
-                onChange={(_, value) => setDictTab(value)}
+                onChange={(_, value) => {
+                  hasUserChangedDictTabRef.current = true;
+                  setDictTab(value);
+                }}
                 variant="scrollable"
                 allowScrollButtonsMobile
                 sx={{ minHeight: 36, mb: 1 }}

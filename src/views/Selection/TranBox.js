@@ -346,7 +346,6 @@ function TranBoxContent({
   aiDictPromptSlug,
   prompts,
   selectionContext,
-  onPanelSelection,
 }) {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
@@ -359,8 +358,6 @@ function TranBoxContent({
 
   return (
     <Box
-      onMouseUp={onPanelSelection}
-      onTouchEnd={onPanelSelection}
       sx={{
         p: simpleStyle ? 1 : 2,
         backgroundColor: theme.palette.background.paper,
@@ -478,7 +475,6 @@ export default function TranBox(props) {
               aiDictApiSlug={props.tranboxSetting.aiDictApiSlug}
               aiDictPromptSlug={props.tranboxSetting.aiDictPromptSlug}
               selectionContext={props.selectionContext}
-              onPanelSelection={props.onPanelSelection}
             />
           </DraggableResizable>
         )}

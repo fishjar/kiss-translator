@@ -49,7 +49,6 @@ export default function Selection({
     position,
     handleOpenTranbox,
     handleToggleTranbox,
-    handlePanelSelection,
     btnEvent,
   } = useSelectionController({
     tranboxSetting,
@@ -95,7 +94,6 @@ export default function Selection({
           // extStyles={extStyles}
           langDetector={langDetector}
           selectionContext={textContext}
-          onPanelSelection={handlePanelSelection}
         />
       }
 
