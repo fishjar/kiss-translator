@@ -7,9 +7,24 @@ import { getSettingWithDefault, runDataMigration } from "./storage";
 
 const readStoredJson = (key) => JSON.parse(window.localStorage.getItem(key));
 
+function loadGmStorageModule() {
+  let storageModule;
+  jest.isolateModules(() => {
+    jest.doMock("./client", () => ({
+      isExt: false,
+      isGm: true,
+    }));
+    storageModule = require("./storage");
+  });
+  jest.dontMock("./client");
+  return storageModule;
+}
+
 describe("settings storage migration", () => {
   beforeEach(() => {
     window.localStorage.clear();
+    delete window.KISS_GM;
+    delete globalThis.GM;
   });
 
   test("runDataMigration backs up raw v1 settings and stores v2 with prompt slugs", async () => {
@@ -58,5 +73,35 @@ describe("settings storage migration", () => {
       /^prompt_migrated_batch_/
     );
     expect(setting.transApis[0]).not.toHaveProperty("systemPrompt");
+  });
+
+  test("GM storage reports a clear error when GM APIs are unavailable", async () => {
+    const { storage } = loadGmStorageModule();
+
+    await expect(storage.get("missing-gm")).rejects.toThrow(
+      "GM storage API is not available"
+    );
+  });
+
+  test("GM storage uses KISS_GM when it is available", async () => {
+    const stored = new Map();
+    window.KISS_GM = {
+      setValue: jest.fn(async (key, value) => stored.set(key, value)),
+      getValue: jest.fn(async (key) => stored.get(key)),
+      deleteValue: jest.fn(async (key) => stored.delete(key)),
+    };
+    const { storage } = loadGmStorageModule();
+
+    await storage.setObj("gm-key", { local: true });
+    await expect(storage.getObj("gm-key")).resolves.toEqual({ local: true });
+    await storage.del("gm-key");
+
+    expect(window.KISS_GM.setValue).toHaveBeenCalledWith(
+      "gm-key",
+      JSON.stringify({ local: true })
+    );
+    expect(window.KISS_GM.getValue).toHaveBeenCalledWith("gm-key");
+    expect(window.KISS_GM.deleteValue).toHaveBeenCalledWith("gm-key");
+    expect(stored.has("gm-key")).toBe(false);
   });
 });

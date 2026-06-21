@@ -1271,14 +1271,22 @@ function SubRulesItem({
       {loading ? (
         <CircularProgress size={16} />
       ) : (
-        <IconButton size="small" onClick={handleSync}>
+        <IconButton
+          size="small"
+          onClick={handleSync}
+          aria-label={`Sync subscription ${url}`}
+        >
           <SyncIcon fontSize="small" />
         </IconButton>
       )}
 
       {/* 首个默认订阅源，以及当前正在选中的订阅源不允许删除 */}
       {index !== 0 && selectedUrl !== url && (
-        <IconButton size="small" onClick={handleDel}>
+        <IconButton
+          size="small"
+          onClick={handleDel}
+          aria-label={`Delete subscription ${url}`}
+        >
           <DeleteIcon fontSize="small" />
         </IconButton>
       )}
@@ -1420,19 +1428,13 @@ function SubRules({ subRules }) {
   } = subRules;
 
   // 引入同步缓存 Hook，用于管理 WebDAV 或本地订阅源的最后同步时间戳
-  const { dataCaches, updateDataCache, deleteDataCache, reloadSync } =
-    useSyncCaches();
+  const { dataCaches, updateDataCache, deleteDataCache } = useSyncCaches();
 
   // 切换选中的订阅规则源
   const handleSelect = (e) => {
     const url = e.target.value;
     selectSub(url);
   };
-
-  // 订阅规则发生改变时，触发配置同步刷新
-  useEffect(() => {
-    reloadSync();
-  }, [selectedRules, reloadSync]);
 
   return (
     <Stack spacing={3}>

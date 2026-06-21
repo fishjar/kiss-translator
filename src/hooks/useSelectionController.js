@@ -351,7 +351,7 @@ export default function useSelectionController({
 
       // 必须在 await 释放事件循环前获取 selectionRoot，否则 e.composedPath() 会被清空
       const selectionRoot = isFromTranbox
-        ? target?.getRootNode?.() || document
+        ? getSelectionRootFromEvent(e)
         : document;
 
       const pointerPosition = getPointerPosition(e);
@@ -382,7 +382,8 @@ export default function useSelectionController({
 
     // 尝试读取当前激活的根节点（如 ShadowRoot）中的选区
     if (!snapshot?.text && selectionRootRef.current) {
-      selection = selectionRootRef.current.getSelection?.() || window.getSelection();
+      selection =
+        selectionRootRef.current.getSelection?.() || window.getSelection();
       snapshot = createSelectionSnapshot(selection, null, "page");
     }
 
@@ -468,17 +469,23 @@ export default function useSelectionController({
 
     function handleInteract(e) {
       if (!isTranboxEvent(e)) return;
-      const selection = window.getSelection();
-      const currentSelectedText = selection?.toString()?.trim() || "";
-      if (!currentSelectedText) return;
-      handleOpenTranbox(currentSelectedText);
+      const target = getOriginalEventTarget(e);
+      const selectionRoot = getSelectionRootFromEvent(e);
+      const selection = selectionRoot.getSelection?.() || window.getSelection();
+      const snapshot = createSelectionSnapshot(
+        selection,
+        getPointerPosition(e),
+        "panel",
+        target
+      );
+      commitSelectionSnapshot(snapshot);
     }
 
     document.addEventListener(eventName, handleInteract, true);
     return () => {
       document.removeEventListener(eventName, handleInteract, true);
     };
-  }, [tranboxInteractMode, handleOpenTranbox]);
+  }, [tranboxInteractMode, createSelectionSnapshot, commitSelectionSnapshot]);
 
   return {
     showBox,
