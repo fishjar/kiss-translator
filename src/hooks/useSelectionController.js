@@ -8,6 +8,8 @@ import {
   OPT_TRANBOX_BTN_POSITION_MOUSE,
   OPT_TRANBOX_TRIGGER_HOVER,
   OPT_TRANBOX_TRIGGER_SELECT,
+  OPT_TRANBOX_INTERACT_CLICK,
+  OPT_TRANBOX_INTERACT_DBLCLICK,
 } from "../config";
 
 const TRANBTN_SIZE = isMobile ? 32 : 20;
@@ -199,6 +201,7 @@ export default function useSelectionController({
     btnPositionMode = OPT_TRANBOX_BTN_POSITION_FIXED,
     btnOffsetX = 0,
     btnOffsetY = 0,
+    tranboxInteractMode = "-",
   } = tranboxSetting;
 
   const [showBox, setShowBox] = useState(false);
@@ -275,6 +278,11 @@ export default function useSelectionController({
       pendingSelectionRef.current = snapshot;
       setSelText(snapshot.text);
 
+      // 翻译框内交互模式：拦截面板内选区，等待用户单击/双击触发
+      if (snapshot.source === "panel" && tranboxInteractMode !== "-") {
+        return;
+      }
+
       if (snapshot.rect && followSelection) {
         const x = (snapshot.rect.left + snapshot.rect.right) / 2 + boxOffsetX;
         const y = snapshot.rect.bottom + boxOffsetY;
@@ -319,6 +327,7 @@ export default function useSelectionController({
     [
       hideTranBtn,
       triggerMode,
+      tranboxInteractMode,
       btnPositionMode,
       btnOffsetX,
       btnOffsetY,
@@ -442,6 +451,34 @@ export default function useSelectionController({
       window.removeEventListener("click", handleHideBox);
     };
   }, [hideClickAway]);
+
+  // 监听翻译框内交互事件（单击/双击选中文本触发新翻译）
+  useEffect(() => {
+    if (
+      tranboxInteractMode !== OPT_TRANBOX_INTERACT_CLICK &&
+      tranboxInteractMode !== OPT_TRANBOX_INTERACT_DBLCLICK
+    ) {
+      return;
+    }
+
+    const eventName =
+      tranboxInteractMode === OPT_TRANBOX_INTERACT_DBLCLICK
+        ? "dblclick"
+        : "mouseup";
+
+    function handleInteract(e) {
+      if (!isTranboxEvent(e)) return;
+      const selection = window.getSelection();
+      const currentSelectedText = selection?.toString()?.trim() || "";
+      if (!currentSelectedText) return;
+      handleOpenTranbox(currentSelectedText);
+    }
+
+    document.addEventListener(eventName, handleInteract, true);
+    return () => {
+      document.removeEventListener(eventName, handleInteract, true);
+    };
+  }, [tranboxInteractMode, handleOpenTranbox]);
 
   return {
     showBox,

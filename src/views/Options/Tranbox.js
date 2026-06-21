@@ -11,6 +11,8 @@ import {
   OPT_TRANBOX_TRIGGER_ALL,
   OPT_TRANBOX_BTN_POSITION_FIXED,
   OPT_TRANBOX_BTN_POSITION_ALL,
+  OPT_TRANBOX_INTERACT_CLICK,
+  OPT_TRANBOX_INTERACT_DBLCLICK,
   OPT_DICT_BING,
   OPT_DICT_ALL,
   OPT_SUG_ALL,
@@ -93,6 +95,7 @@ export default function Tranbox() {
     followSelection = false,
     autoHeight = false,
     triggerMode = OPT_TRANBOX_TRIGGER_CLICK,
+    tranboxInteractMode = "-",
     btnPositionMode = OPT_TRANBOX_BTN_POSITION_FIXED,
     enDict = OPT_DICT_BING,
     enSug = OPT_SUG_YOUDAO,
@@ -459,6 +462,27 @@ export default function Tranbox() {
               >
                 <MenuItem value={false}>{i18n("disable")}</MenuItem>
                 <MenuItem value={true}>{i18n("enable")}</MenuItem>
+              </TextField>
+            </Grid>
+
+            {/* 翻译框内部交互：单击或双击选中文本触发新翻译 */}
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                fullWidth
+                select
+                size="small"
+                name="tranboxInteractMode"
+                value={tranboxInteractMode}
+                label={i18n("tranbox_interact_mode")}
+                onChange={handleChange}
+              >
+                <MenuItem value="-">{i18n("disable")}</MenuItem>
+                <MenuItem value={OPT_TRANBOX_INTERACT_CLICK}>
+                  {i18n("tranbox_interact_click")}
+                </MenuItem>
+                <MenuItem value={OPT_TRANBOX_INTERACT_DBLCLICK}>
+                  {i18n("tranbox_interact_dblclick")}
+                </MenuItem>
               </TextField>
             </Grid>
             {/* 油猴脚本下触发调出主动查词输入框的热键录入 */}
