@@ -25,6 +25,14 @@ import { browser } from "./browser";
 import { kissLog } from "./log";
 import { debounce } from "./utils";
 
+function getGmStorage() {
+  const gmStorage = window.KISS_GM || globalThis.GM;
+  if (!gmStorage) {
+    throw new Error("GM storage API is not available");
+  }
+  return gmStorage;
+}
+
 /**
  * 跨平台存储底层写入操作。
  * 会自动适配 Chrome Extension (browser.storage.local)、Userscript 油猴环境 (GM.setValue)
@@ -36,7 +44,7 @@ async function set(key, val) {
   if (isExt) {
     await browser.storage.local.set({ [key]: val });
   } else if (isGm) {
-    await (window.KISS_GM || GM).setValue(key, val);
+    await getGmStorage().setValue(key, val);
   } else {
     window.localStorage.setItem(key, val);
   }
@@ -52,7 +60,7 @@ async function get(key) {
     const val = await browser.storage.local.get([key]);
     return val[key];
   } else if (isGm) {
-    const val = await (window.KISS_GM || GM).getValue(key);
+    const val = await getGmStorage().getValue(key);
     return val;
   }
   return window.localStorage.getItem(key);
@@ -66,7 +74,7 @@ async function del(key) {
   if (isExt) {
     await browser.storage.local.remove([key]);
   } else if (isGm) {
-    await (window.KISS_GM || GM).deleteValue(key);
+    await getGmStorage().deleteValue(key);
   } else {
     window.localStorage.removeItem(key);
   }

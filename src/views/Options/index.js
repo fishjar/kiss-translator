@@ -57,6 +57,7 @@ const getOptionsStartupSyncTasks = () => {
  */
 export default function Options() {
   const [error, setError] = useState("");
+  const [gmBridgeReady, setGmBridgeReady] = useState(!isGm);
   const [syncingRequiredData, setSyncingRequiredData] = useState(true);
 
   useEffect(() => {
@@ -95,6 +96,9 @@ export default function Options() {
               adaptScript(eventName);
             }
 
+            if (isMounted) {
+              setGmBridgeReady(true);
+            }
             break;
           }
 
@@ -149,6 +153,22 @@ export default function Options() {
           </Link>
         </Stack>
       </center>
+    );
+  }
+
+  if (!gmBridgeReady) {
+    return (
+      <Backdrop
+        data-testid="options-sync-backdrop"
+        aria-label="syncing required data"
+        open
+        sx={(theme) => ({
+          color: "#fff",
+          zIndex: theme.zIndex.modal + 1,
+        })}
+      >
+        <CircularProgress color="inherit" size={72} />
+      </Backdrop>
     );
   }
 
