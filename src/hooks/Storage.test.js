@@ -153,4 +153,23 @@ describe("useStorage remote sync", () => {
 
     host.unmount();
   });
+
+  test("does not update state when reload returns equivalent data", async () => {
+    const host = createHookHost();
+    host.render();
+    await waitForLoaded(host.hookResult);
+    await flushEffects();
+
+    storage.setObj.mockClear();
+    storage.getObj.mockResolvedValueOnce({ local: true });
+
+    await act(async () => {
+      await host.hookResult.reload();
+    });
+    await flushEffects();
+
+    expect(storage.setObj).not.toHaveBeenCalled();
+
+    host.unmount();
+  });
 });

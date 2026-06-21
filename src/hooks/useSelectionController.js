@@ -367,7 +367,8 @@ export default function useSelectionController({
 
     // 尝试读取当前激活的根节点（如 ShadowRoot）中的选区
     if (!snapshot?.text && selectionRootRef.current) {
-      selection = selectionRootRef.current.getSelection?.() || window.getSelection();
+      selection =
+        selectionRootRef.current.getSelection?.() || window.getSelection();
       snapshot = createSelectionSnapshot(selection, null, "page");
     }
 

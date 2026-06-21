@@ -82,10 +82,7 @@ function renderController(props = {}) {
 
   act(() => {
     root.render(
-      <TestController
-        onState={(state) => (currentState = state)}
-        {...props}
-      />
+      <TestController onState={(state) => (currentState = state)} {...props} />
     );
   });
 
@@ -220,7 +217,10 @@ describe("useSelectionController", () => {
       controller.state.handleOpenTranbox();
     });
 
-    currentSelection = makeSelection("Other", createParagraph("Other panel text.", wrapper));
+    currentSelection = makeSelection(
+      "Other",
+      createParagraph("Other panel text.", wrapper)
+    );
     await dispatchPanelMouseup(tab, [
       tab,
       wrapper,
@@ -244,7 +244,10 @@ describe("useSelectionController", () => {
     const controller = renderController();
     const pageParagraph = createParagraph("The library is open.");
     const { host, shadow, wrapper } = createPanelTarget();
-    const panelParagraph = createParagraph("Panel selected word context.", wrapper);
+    const panelParagraph = createParagraph(
+      "Panel selected word context.",
+      wrapper
+    );
 
     Object.defineProperty(shadow, "getSelection", {
       configurable: true,
@@ -289,7 +292,10 @@ describe("useSelectionController", () => {
   test("uses the pointer position when a panel selection has an empty rect", async () => {
     const controller = renderController();
     const { host, shadow, wrapper } = createPanelTarget();
-    const panelParagraph = createParagraph("Panel selected word context.", wrapper);
+    const panelParagraph = createParagraph(
+      "Panel selected word context.",
+      wrapper
+    );
 
     Object.defineProperty(shadow, "getSelection", {
       configurable: true,
@@ -327,7 +333,10 @@ describe("useSelectionController", () => {
     const controller = renderController({ triggerMode: "select" });
     const pageParagraph = createParagraph("The library is open.");
     const { host, shadow, wrapper } = createPanelTarget();
-    const panelParagraph = createParagraph("Panel selected word context.", wrapper);
+    const panelParagraph = createParagraph(
+      "Panel selected word context.",
+      wrapper
+    );
 
     Object.defineProperty(shadow, "getSelection", {
       configurable: true,
