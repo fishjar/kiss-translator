@@ -76,6 +76,13 @@ function setReadyState(value) {
   });
 }
 
+function expectNoNormalUserscriptStartup() {
+  expect(runDataMigration).not.toHaveBeenCalled();
+  expect(getSettingWithDefault).not.toHaveBeenCalled();
+  expect(matchRule).not.toHaveBeenCalled();
+  expect(TranslatorManager).not.toHaveBeenCalled();
+}
+
 describe("common iframe startup", () => {
   const originalOptionsPage = process.env.REACT_APP_OPTIONSPAGE;
   const originalOptionsPageDev = process.env.REACT_APP_OPTIONSPAGE_DEV;
@@ -312,6 +319,7 @@ describe("common iframe startup", () => {
       expect(injectInlineJs.mock.calls[0][1]).toBe(
         "kiss-translator-options-injector"
       );
+      expectNoNormalUserscriptStartup();
     } finally {
       window.history.pushState({}, "", originalHref);
       delete globalThis.GM;
@@ -341,6 +349,7 @@ describe("common iframe startup", () => {
         version: process.env.REACT_APP_VERSION,
       });
       expect(injectInlineJs).not.toHaveBeenCalled();
+      expectNoNormalUserscriptStartup();
     } finally {
       window.history.pushState({}, "", originalHref);
       delete globalThis.GM;
@@ -360,6 +369,27 @@ describe("common iframe startup", () => {
       expect(injectInlineJs.mock.calls[0][1]).toBe(
         "kiss-translator-options-injector"
       );
+      expectNoNormalUserscriptStartup();
+    } finally {
+      window.history.pushState({}, "", originalHref);
+      delete globalThis.GM;
+    }
+  });
+
+  test("uses setting page proxy for dev userscript options page", async () => {
+    const originalHref = window.location.href;
+    window.history.pushState({}, "", "/options");
+    process.env.REACT_APP_OPTIONSPAGE_DEV = window.location.href;
+    globalThis.GM = { info: {} };
+
+    try {
+      await run(true);
+
+      expect(injectInlineJs).toHaveBeenCalledTimes(1);
+      expect(injectInlineJs.mock.calls[0][1]).toBe(
+        "kiss-translator-options-injector"
+      );
+      expectNoNormalUserscriptStartup();
     } finally {
       window.history.pushState({}, "", originalHref);
       delete globalThis.GM;
@@ -379,8 +409,7 @@ describe("common iframe startup", () => {
       expect(injectInlineJs.mock.calls[0][1]).toBe(
         "kiss-translator-options-injector"
       );
-      expect(TranslatorManager).not.toHaveBeenCalled();
-      expect(matchRule).not.toHaveBeenCalled();
+      expectNoNormalUserscriptStartup();
     } finally {
       window.history.pushState({}, "", originalHref);
       delete globalThis.GM;

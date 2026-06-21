@@ -44,6 +44,22 @@ function hasUnsafeWindowBridge() {
 }
 
 /**
+ * 检查指定的 URL 是否属于扩展/脚本的设置页面。
+ * 用于匹配本地开发、打包产物及外置挂载的不同设置页路由。
+ * @param {string} href 需要检测的当前页面完整 URL
+ * @returns {boolean} 若当前处于设置页面则返回 true
+ */
+function isOptionsPageHref(href) {
+  return [
+    process.env.REACT_APP_OPTIONSPAGE,
+    process.env.REACT_APP_OPTIONSPAGE_DEV,
+    process.env.REACT_APP_OPTIONSPAGE_LOCAL,
+  ]
+    .filter(Boolean)
+    .some((optionsPage) => href.startsWith(optionsPage));
+}
+
+/**
  * 建立旧式 GM_* API 到现代 GM 对象的兼容垫片。
  * 必须在任何 storage 访问前执行，避免旧油猴环境在数据迁移阶段缺少 GM。
  */
@@ -216,8 +232,16 @@ async function waitForIframeTranslatableText() {
  */
 export async function run(isUserscript = false) {
   try {
+    const href = document?.location?.href || "";
+
     if (isUserscript) {
       ensureUserscriptGM();
+
+      // 如果当前是设置面板 URL，先建立设置页专用代理，避免 storage 读写抢跑 GM 桥接。
+      if (isOptionsPageHref(href)) {
+        runSettingPage();
+        return;
+      }
 
       // 0. 执行核心数据迁移 (针对油猴等无后台更新事件的场景)
       const { runDataMigration } = await import("./libs/storage");
@@ -235,21 +259,6 @@ export async function run(isUserscript = false) {
     if (!contentType.includes("text") && !contentType.includes("html")) {
       logger.info("Skip running in document content type: ", contentType);
       return;
-    }
-
-    const href = document?.location?.href || "";
-
-    // 4. 若为油猴脚本环境，建立向后兼容的 GM 特权接口垫片
-    if (isUserscript) {
-      // 如果当前是设置面板 URL，跳转去执行设置面板专用代理
-      if (
-        href.startsWith(process.env.REACT_APP_OPTIONSPAGE) ||
-        href.startsWith(process.env.REACT_APP_OPTIONSPAGE_DEV) ||
-        href.startsWith(process.env.REACT_APP_OPTIONSPAGE_LOCAL)
-      ) {
-        runSettingPage();
-        return;
-      }
     }
 
     // 5. 网页黑名单校验，命中时彻底不启动翻译

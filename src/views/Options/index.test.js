@@ -4,6 +4,8 @@ import Options from "./index";
 import { trySyncRules, trySyncSetting, trySyncWords } from "../../libs/sync";
 import { kissLog } from "../../libs/log";
 import { adaptScript } from "../../libs/gm";
+import { runDataMigration } from "../../libs/storage";
+import { sleep } from "../../libs/utils";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -28,6 +30,14 @@ jest.mock("../../libs/log", () => ({
 
 jest.mock("../../libs/gm", () => ({
   adaptScript: jest.fn(),
+}));
+
+jest.mock("../../libs/storage", () => ({
+  runDataMigration: jest.fn(),
+}));
+
+jest.mock("../../libs/utils", () => ({
+  sleep: jest.fn(() => Promise.resolve()),
 }));
 
 jest.mock("../../hooks/Setting", () => ({
@@ -145,6 +155,8 @@ describe("Options startup sync", () => {
     trySyncRules.mockResolvedValue(undefined);
     trySyncSetting.mockResolvedValue(undefined);
     trySyncWords.mockResolvedValue(undefined);
+    runDataMigration.mockResolvedValue(undefined);
+    sleep.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -291,9 +303,13 @@ describe("Options startup sync", () => {
       await flushEffects();
 
       expect(adaptScript).toHaveBeenCalledWith("kiss-ping");
+      expect(runDataMigration).toHaveBeenCalledTimes(1);
+      expect(runDataMigration.mock.invocationCallOrder[0]).toBeGreaterThan(
+        adaptScript.mock.invocationCallOrder[0]
+      );
       expect(mockSettingProvider).toHaveBeenCalled();
       expect(mockSettingProvider.mock.invocationCallOrder[0]).toBeGreaterThan(
-        adaptScript.mock.invocationCallOrder[0]
+        runDataMigration.mock.invocationCallOrder[0]
       );
       expect(
         view.container.querySelector("[data-testid='apis-page']")
@@ -302,6 +318,9 @@ describe("Options startup sync", () => {
         view.container.querySelector("[data-testid='options-sync-backdrop']")
       ).not.toBe(null);
       expect(trySyncSetting).toHaveBeenCalledTimes(1);
+      expect(trySyncSetting.mock.invocationCallOrder[0]).toBeGreaterThan(
+        runDataMigration.mock.invocationCallOrder[0]
+      );
 
       await act(async () => {
         settingSync.resolve();
@@ -312,6 +331,141 @@ describe("Options startup sync", () => {
       expect(
         view.container.querySelector("[data-testid='options-sync-backdrop']")
       ).toBe(null);
+    } finally {
+      view?.unmount();
+      if (originalName === undefined) {
+        delete process.env.REACT_APP_NAME;
+      } else {
+        process.env.REACT_APP_NAME = originalName;
+      }
+      if (originalVersion === undefined) {
+        delete process.env.REACT_APP_VERSION;
+      } else {
+        process.env.REACT_APP_VERSION = originalVersion;
+      }
+    }
+  });
+
+  test("keeps userscript options loading while data migration is pending", async () => {
+    const originalName = process.env.REACT_APP_NAME;
+    const originalVersion = process.env.REACT_APP_VERSION;
+    let view;
+    const migration = createDeferred();
+    mockIsGm = true;
+    runDataMigration.mockReturnValueOnce(migration.promise);
+    process.env.REACT_APP_NAME = "KISS Translator";
+    process.env.REACT_APP_VERSION = "2.0.25";
+    window.APP_INFO = {
+      name: "KISS Translator",
+      version: "2.0.25",
+      eventName: "kiss-ping",
+    };
+
+    try {
+      view = renderOptions("#/apis");
+
+      await flushEffects();
+
+      expect(adaptScript).toHaveBeenCalledWith("kiss-ping");
+      expect(runDataMigration).toHaveBeenCalledTimes(1);
+      expect(mockSettingProvider).not.toHaveBeenCalled();
+      expect(view.container.querySelector("[data-testid='apis-page']")).toBe(
+        null
+      );
+      expect(
+        view.container.querySelector("[data-testid='options-sync-backdrop']")
+      ).not.toBe(null);
+      expect(trySyncSetting).not.toHaveBeenCalled();
+      expect(trySyncRules).not.toHaveBeenCalled();
+      expect(trySyncWords).not.toHaveBeenCalled();
+
+      await act(async () => {
+        migration.resolve();
+        await migration.promise;
+      });
+      await flushEffects();
+
+      expect(mockSettingProvider).toHaveBeenCalled();
+      expect(
+        view.container.querySelector("[data-testid='apis-page']")
+      ).not.toBe(null);
+      expect(trySyncSetting).toHaveBeenCalledTimes(1);
+    } finally {
+      view?.unmount();
+      if (originalName === undefined) {
+        delete process.env.REACT_APP_NAME;
+      } else {
+        process.env.REACT_APP_NAME = originalName;
+      }
+      if (originalVersion === undefined) {
+        delete process.env.REACT_APP_VERSION;
+      } else {
+        process.env.REACT_APP_VERSION = originalVersion;
+      }
+    }
+  });
+
+  test("shows version mismatch error while mounted", async () => {
+    const originalName = process.env.REACT_APP_NAME;
+    const originalVersion = process.env.REACT_APP_VERSION;
+    let view;
+    mockIsGm = true;
+    process.env.REACT_APP_NAME = "KISS Translator";
+    process.env.REACT_APP_VERSION = "2.0.25";
+    window.APP_INFO = {
+      name: "KISS Translator",
+      version: "2.1.0",
+      eventName: "kiss-ping",
+    };
+
+    try {
+      view = renderOptions("#/apis");
+
+      await flushEffects();
+
+      expect(
+        view.container.textContent.includes("not the latest version")
+      ).toBe(true);
+      expect(adaptScript).not.toHaveBeenCalled();
+      expect(runDataMigration).not.toHaveBeenCalled();
+      expect(trySyncSetting).not.toHaveBeenCalled();
+      expect(mockSettingProvider).not.toHaveBeenCalled();
+    } finally {
+      view?.unmount();
+      if (originalName === undefined) {
+        delete process.env.REACT_APP_NAME;
+      } else {
+        process.env.REACT_APP_NAME = originalName;
+      }
+      if (originalVersion === undefined) {
+        delete process.env.REACT_APP_VERSION;
+      } else {
+        process.env.REACT_APP_VERSION = originalVersion;
+      }
+    }
+  });
+
+  test("shows timeout error when userscript APP_INFO is unavailable", async () => {
+    const originalName = process.env.REACT_APP_NAME;
+    const originalVersion = process.env.REACT_APP_VERSION;
+    let view;
+    mockIsGm = true;
+    process.env.REACT_APP_NAME = "KISS Translator";
+    process.env.REACT_APP_VERSION = "2.0.25";
+
+    try {
+      view = renderOptions("#/apis");
+
+      await flushEffects();
+
+      expect(
+        view.container.textContent.includes("Time out. Please confirm")
+      ).toBe(true);
+      expect(sleep).toHaveBeenCalledTimes(8);
+      expect(adaptScript).not.toHaveBeenCalled();
+      expect(runDataMigration).not.toHaveBeenCalled();
+      expect(trySyncSetting).not.toHaveBeenCalled();
+      expect(mockSettingProvider).not.toHaveBeenCalled();
     } finally {
       view?.unmount();
       if (originalName === undefined) {
