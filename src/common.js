@@ -243,9 +243,9 @@ export async function run(isUserscript = false) {
     if (isUserscript) {
       // 如果当前是设置面板 URL，跳转去执行设置面板专用代理
       if (
-        href.includes(process.env.REACT_APP_OPTIONSPAGE_DEV) ||
-        href.includes(process.env.REACT_APP_OPTIONSPAGE_LOCAL) ||
-        href.includes(process.env.REACT_APP_OPTIONSPAGE)
+        href.startsWith(process.env.REACT_APP_OPTIONSPAGE) ||
+        href.startsWith(process.env.REACT_APP_OPTIONSPAGE_DEV) ||
+        href.startsWith(process.env.REACT_APP_OPTIONSPAGE_LOCAL)
       ) {
         runSettingPage();
         return;
