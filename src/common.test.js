@@ -79,6 +79,7 @@ function setReadyState(value) {
 describe("common iframe startup", () => {
   const originalOptionsPage = process.env.REACT_APP_OPTIONSPAGE;
   const originalOptionsPageDev = process.env.REACT_APP_OPTIONSPAGE_DEV;
+  const originalOptionsPageLocal = process.env.REACT_APP_OPTIONSPAGE_LOCAL;
 
   beforeEach(() => {
     document.documentElement.innerHTML = "<head></head><body></body>";
@@ -86,6 +87,8 @@ describe("common iframe startup", () => {
     mockIsIframe = false;
     process.env.REACT_APP_OPTIONSPAGE = "https://kiss.example/options.html";
     process.env.REACT_APP_OPTIONSPAGE_DEV =
+      "https://kiss-dev.example/options.html";
+    process.env.REACT_APP_OPTIONSPAGE_LOCAL =
       "http://localhost:3000/options.html";
     delete globalThis.unsafeWindow;
     jest.clearAllMocks();
@@ -119,6 +122,11 @@ describe("common iframe startup", () => {
       delete process.env.REACT_APP_OPTIONSPAGE_DEV;
     } else {
       process.env.REACT_APP_OPTIONSPAGE_DEV = originalOptionsPageDev;
+    }
+    if (originalOptionsPageLocal === undefined) {
+      delete process.env.REACT_APP_OPTIONSPAGE_LOCAL;
+    } else {
+      process.env.REACT_APP_OPTIONSPAGE_LOCAL = originalOptionsPageLocal;
     }
     delete globalThis.unsafeWindow;
   });
@@ -352,6 +360,27 @@ describe("common iframe startup", () => {
       expect(injectInlineJs.mock.calls[0][1]).toBe(
         "kiss-translator-options-injector"
       );
+    } finally {
+      window.history.pushState({}, "", originalHref);
+      delete globalThis.GM;
+    }
+  });
+
+  test("uses setting page proxy for local userscript options page", async () => {
+    const originalHref = window.location.href;
+    window.history.pushState({}, "", "/options.html");
+    process.env.REACT_APP_OPTIONSPAGE_LOCAL = window.location.href;
+    globalThis.GM = { info: {} };
+
+    try {
+      await run(true);
+
+      expect(injectInlineJs).toHaveBeenCalledTimes(1);
+      expect(injectInlineJs.mock.calls[0][1]).toBe(
+        "kiss-translator-options-injector"
+      );
+      expect(TranslatorManager).not.toHaveBeenCalled();
+      expect(matchRule).not.toHaveBeenCalled();
     } finally {
       window.history.pushState({}, "", originalHref);
       delete globalThis.GM;
