@@ -86,12 +86,6 @@ function getOriginalEventTarget(e) {
   return getEventPath(e)?.[0] || e?.target;
 }
 
-function getSelectionRootFromEvent(e) {
-  const target = getOriginalEventTarget(e);
-  const root = target?.getRootNode?.();
-  return root?.getSelection ? root : document;
-}
-
 function isTranboxEvent(e) {
   return getEventPath(e).some(
     (node) =>
