@@ -24,13 +24,23 @@ import { isExt, isGm } from "./client";
 import { browser } from "./browser";
 import { kissLog } from "./log";
 import { debounce } from "./utils";
+import { getGmMethod } from "./gm";
 
+/**
+ * 获取适用于当前环境的 GM (Greasemonkey) 存储引擎方法集合。
+ * 返回的对象包含跨环境安全调用的 setValue, getValue, deleteValue 方法。
+ * 查找优先级：
+ * 1. window.KISS_GM：用于网页沙盒内通过 CustomEvent 与特权层通信的代理对象。
+ * 2. 原生 GM Promise API (如 GM.setValue)。
+ * 3. 旧版 GM_xxx 同步 API。
+ * @returns {{setValue: Function, getValue: Function, deleteValue: Function}} 封装好的存储方法集合
+ */
 function getGmStorage() {
-  const gmStorage = window.KISS_GM || globalThis.GM;
-  if (!gmStorage) {
-    throw new Error("GM storage API is not available");
-  }
-  return gmStorage;
+  return {
+    setValue: getGmMethod("setValue", "GM_setValue", [window.KISS_GM]),
+    getValue: getGmMethod("getValue", "GM_getValue", [window.KISS_GM]),
+    deleteValue: getGmMethod("deleteValue", "GM_deleteValue", [window.KISS_GM]),
+  };
 }
 
 /**

@@ -137,6 +137,12 @@ const genUserPrompt = ({
   texts,
   docInfo: { title = "", description = "", summary = "", context = "" } = {},
 }) => {
+  // 合并规则与接口中的AI专业术语
+  if (aiTerms) {
+    const aiGlossary = parseAITerms(aiTerms);
+    glossary = { ...glossary, ...aiGlossary };
+  }
+  
   if (useBatchFetch) {
     const promptObj = {
       targetLanguage: toLang,
@@ -146,17 +152,15 @@ const genUserPrompt = ({
     title && (promptObj.title = title);
     description && (promptObj.description = description);
 
-    // 合并规则与接口中的AI专业术语
-    if (aiTerms) {
-      const aiGlossary = parseAITerms(aiTerms);
-      glossary = { ...glossary, ...aiGlossary };
-    }
-
     Object.keys(glossary).length !== 0 && (promptObj.glossary = glossary);
     tone && (promptObj.tone = tone);
 
     return JSON.stringify(promptObj);
   }
+
+  const glossaryStr = Object.entries(glossary)
+    .map(([term, definition]) => `- ${term}: ${definition}`)
+    .join("\n");
 
   return String(nobatchUserPrompt || "")
     .replaceAll(INPUT_PLACE_TITLE, title)
@@ -164,6 +168,7 @@ const genUserPrompt = ({
     .replaceAll(INPUT_PLACE_SUMMARY, summary)
     .replaceAll(INPUT_PLACE_CONTEXT, context)
     .replaceAll(INPUT_PLACE_TONE, tone)
+    .replaceAll(INPUT_PLACE_GLOSSARY, glossaryStr)
     .replaceAll(INPUT_PLACE_FROM, from)
     .replaceAll(INPUT_PLACE_TO, to)
     .replaceAll(INPUT_PLACE_FROM_LANG, fromLang)
