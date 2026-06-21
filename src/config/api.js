@@ -567,6 +567,9 @@ Description: ${INPUT_PLACE_DESCRIPTION}
 Summary: ${INPUT_PLACE_SUMMARY}
 Tone: ${INPUT_PLACE_TONE}
 
+# Glossary:
+${INPUT_PLACE_GLOSSARY}
+
 # Task
 Translate the Source Text below to ${INPUT_PLACE_TO}.
 1. Use the Context to ensure accuracy.
