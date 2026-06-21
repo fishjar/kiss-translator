@@ -50,7 +50,11 @@ function createPanelTarget() {
   return { host, shadow, wrapper };
 }
 
-function TestController({ onState, triggerMode = "click" }) {
+function TestController({
+  onState,
+  triggerMode = "click",
+  tranboxInteractMode = "-",
+}) {
   const state = useSelectionController({
     tranboxSetting: {
       triggerMode,
@@ -58,6 +62,7 @@ function TestController({ onState, triggerMode = "click" }) {
       btnPositionMode: "fixed",
       btnOffsetX: 0,
       btnOffsetY: 0,
+      tranboxInteractMode,
     },
     followSelection: false,
     boxOffsetX: 0,
@@ -283,6 +288,47 @@ describe("useSelectionController", () => {
 
     expect(controller.state.text).toBe("selected");
     expect(controller.state.textContext).toBe("Panel selected word context.");
+
+    act(() => {
+      controller.root.unmount();
+    });
+  });
+
+  test("opens panel selections directly in panel interact click mode", async () => {
+    const controller = renderController({ tranboxInteractMode: "click" });
+    const pageParagraph = createParagraph("The library is open.");
+    const { host, shadow, wrapper } = createPanelTarget();
+    const panelParagraph = createParagraph(
+      "Panel selected word context.",
+      wrapper
+    );
+
+    Object.defineProperty(shadow, "getSelection", {
+      configurable: true,
+      value: () => currentSelection,
+    });
+
+    currentSelection = makeSelection("library", pageParagraph);
+    await dispatchWindowMouseup();
+
+    act(() => {
+      controller.state.handleOpenTranbox();
+    });
+
+    currentSelection = makeSelection("selected", panelParagraph);
+    await dispatchPanelMouseup(panelParagraph, [
+      panelParagraph,
+      wrapper,
+      shadow,
+      host,
+      document.body,
+      document,
+      window,
+    ]);
+
+    expect(controller.state.text).toBe("selected");
+    expect(controller.state.textContext).toBe("Panel selected word context.");
+    expect(controller.state.showBtn).toBe(false);
 
     act(() => {
       controller.root.unmount();
