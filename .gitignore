@@ -28,3 +28,5 @@ package-lock.json
 *.crx
 *.pem
 *.zip
+.repomixignore
+.agents

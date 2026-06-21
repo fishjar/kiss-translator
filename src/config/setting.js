@@ -107,6 +107,8 @@ export const OPT_TRANBOX_BTN_POSITION_ALL = [
   OPT_TRANBOX_BTN_POSITION_FIXED,
   OPT_TRANBOX_BTN_POSITION_MOUSE,
 ];
+export const OPT_TRANBOX_INTERACT_CLICK = "click"; // 单击翻译框内选中文本触发新翻译
+export const OPT_TRANBOX_INTERACT_DBLCLICK = "dblclick"; // 双击翻译框内选中文本触发新翻译
 export const DEFAULT_TRANBOX_SHORTCUT = ["AltLeft", "KeyS"]; // 呼出划词翻译面板的键盘快捷键
 export const DEFAULT_TRANBOX_SETTING = {
   transOpen: true, // 是否启用划词翻译功能
@@ -128,6 +130,7 @@ export const DEFAULT_TRANBOX_SETTING = {
   autoHeight: false, // 翻译结果框高度是否自适应其文本内容长度
   triggerMode: OPT_TRANBOX_TRIGGER_CLICK, // 划词触发翻译的行为模式
   btnPositionMode: OPT_TRANBOX_BTN_POSITION_FIXED, // 划词后弹出按钮的定位模式
+  tranboxInteractMode: "-", // 翻译框内交互模式（"-"表示禁用）
   // extStyles: "", // 附加样式
   enDict: OPT_DICT_BING, // 默认英文网络词典数据源
   enSug: OPT_SUG_YOUDAO, // 英文输入联想建议源
