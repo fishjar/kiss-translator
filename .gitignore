@@ -25,6 +25,7 @@ yarn-debug.log*
 yarn-error.log*
 package-lock.json
 
+*.patch
 *.crx
 *.pem
 *.zip
