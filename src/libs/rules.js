@@ -87,6 +87,7 @@ const findMatchingRule = (rules, href) => {
   return rules.find(
     (r) =>
       r.pattern !== GLOBAL_KEY &&
+      r.enabled !== false &&
       r.pattern.split(/\n|,/).some((p) => isMatch(href, p.trim()))
   );
 };
@@ -269,6 +270,7 @@ export const checkRules = (rules) => {
     .map(
       ({
         pattern,
+        enabled,
         selector,
         keepSelector,
         blockSelector,
@@ -308,6 +310,7 @@ export const checkRules = (rules) => {
       }) => ({
         // 确保字段类型及取值的合法性，不合法或空值时回退到默认占位符或空值
         pattern: pattern.trim(),
+        enabled: type(enabled) === "boolean" ? enabled : true,
         selector: type(selector) === "string" ? selector : "",
         keepSelector: type(keepSelector) === "string" ? keepSelector : "",
         blockSelector: type(blockSelector) === "string" ? blockSelector : "",

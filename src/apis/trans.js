@@ -142,7 +142,7 @@ const genUserPrompt = ({
     const aiGlossary = parseAITerms(aiTerms);
     glossary = { ...glossary, ...aiGlossary };
   }
-  
+
   if (useBatchFetch) {
     const promptObj = {
       targetLanguage: toLang,
