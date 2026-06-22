@@ -311,4 +311,33 @@ describe("BilingualSubtitleManager", () => {
     expect(apiTranslate).not.toHaveBeenCalled();
     manager.destroy();
   });
+
+  test("reports playback lookahead window for lazy AI segmentation", () => {
+    const videoEl = createVideoElement();
+    const onSubtitleTimeWindow = jest.fn();
+    const manager = new BilingualSubtitleManager({
+      videoEl,
+      formattedSubtitles: [{ ...subtitle, translation: "浣犲ソ涓栫晫" }],
+      setting: {
+        ...setting,
+        preTrans: 45,
+        onSubtitleTimeWindow,
+      },
+    });
+
+    manager.start();
+    expect(onSubtitleTimeWindow).toHaveBeenCalledWith({
+      currentTimeMs: 0,
+      preTrans: 45,
+    });
+
+    videoEl.currentTime = 12;
+    manager.onTimeUpdate();
+
+    expect(onSubtitleTimeWindow).toHaveBeenLastCalledWith({
+      currentTimeMs: 12000,
+      preTrans: 45,
+    });
+    manager.destroy();
+  });
 });

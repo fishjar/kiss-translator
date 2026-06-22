@@ -795,6 +795,13 @@ export class BilingualSubtitleManager {
 
     // 触发预翻译加载
     if (triggerTranslations) {
+      // 将播放前瞻窗口同步给上层 provider，用于按需触发后续 AI 断句 chunk。
+      // 这里跟随预翻译触发路径，避免 seeking 过程中产生无效的 AI 断句请求。
+      this.#setting.onSubtitleTimeWindow?.({
+        currentTimeMs,
+        preTrans: this.#setting.preTrans ?? 90,
+      });
+
       if (forceTriggerTranslations) {
         this.#triggerTranslations(currentTimeMs);
       } else {
