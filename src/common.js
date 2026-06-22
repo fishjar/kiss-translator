@@ -53,6 +53,7 @@ function isOptionsPageHref(href) {
   return [
     process.env.REACT_APP_OPTIONSPAGE,
     process.env.REACT_APP_OPTIONSPAGE_DEV,
+    process.env.REACT_APP_OPTIONSPAGE_DEV2,
     process.env.REACT_APP_OPTIONSPAGE_LOCAL,
   ]
     .filter(Boolean)
