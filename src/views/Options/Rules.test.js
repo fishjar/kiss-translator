@@ -49,11 +49,11 @@ jest.mock("../../hooks/Confirm", () => ({
 }));
 
 jest.mock("../../hooks/Api", () => ({
-  useApiList: () => [],
+  useApiList: () => ({ enabledApis: [] }),
 }));
 
 jest.mock("../../hooks/CustomStyles", () => ({
-  useAllTextStyles: () => [],
+  useAllTextStyles: () => ({ allTextStyles: [] }),
 }));
 
 jest.mock("./HelpButton", () => {
@@ -87,6 +87,7 @@ jest.mock("../../libs/log", () => ({
 }));
 
 let mockSubRules;
+const mockPutRule = jest.fn();
 const mockUpdateDataCache = jest.fn();
 const mockDeleteDataCache = jest.fn();
 const mockReloadSync = jest.fn();
@@ -141,6 +142,14 @@ async function flushEffects() {
 
 async function openSubscribeTab(view) {
   const tab = getByRole(view.container, "tab", "subscribe_rules");
+  await act(async () => {
+    tab.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  });
+  await flushEffects();
+}
+
+async function openPersonalTab(view) {
+  const tab = getByRole(view.container, "tab", "personal_rules");
   await act(async () => {
     tab.dispatchEvent(new MouseEvent("click", { bubbles: true }));
   });
@@ -259,6 +268,63 @@ describe("Options Rules subscription tab", () => {
     expect(removeDisabledSubRules).toHaveBeenCalledWith(
       "https://rules.example/old.json"
     );
+
+    view.unmount();
+  });
+});
+
+describe("Options Rules personal tab", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    useRules.mockReturnValue({
+      list: [
+        { pattern: "example.com", enabled: true },
+        { pattern: "*", selector: "p" },
+      ],
+      put: mockPutRule,
+    });
+    mockSubRules = createSubRules({ selectedRules: [] });
+    useSubRules.mockImplementation(() => mockSubRules);
+    useSyncCaches.mockReturnValue({
+      dataCaches: {},
+      updateDataCache: mockUpdateDataCache,
+      deleteDataCache: mockDeleteDataCache,
+      reloadSync: mockReloadSync,
+    });
+  });
+
+  test("renders a switch for personal rules but not the global rule", async () => {
+    const view = renderRules();
+    await openPersonalTab(view);
+
+    const switchInput = view.container.querySelector(
+      'input[aria-label="Toggle personal rule example.com"]'
+    );
+
+    expect(view.container.textContent).toContain("example.com");
+    expect(switchInput).not.toBeNull();
+    expect(switchInput.checked).toBe(true);
+
+    view.unmount();
+  });
+
+  test("toggles personal rule enabled state without deleting or expanding it", async () => {
+    const view = renderRules();
+    await openPersonalTab(view);
+
+    const switchInput = view.container.querySelector(
+      'input[aria-label="Toggle personal rule example.com"]'
+    );
+    await act(async () => {
+      switchInput.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+    await flushEffects();
+
+    expect(mockPutRule).toHaveBeenCalledWith("example.com", {
+      enabled: false,
+    });
+    expect(view.container.querySelector('input[name="pattern"]')).toBeNull();
 
     view.unmount();
   });

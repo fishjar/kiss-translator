@@ -65,6 +65,7 @@ export const DEFAULT_KEEP_SELECTOR = `code, cite, math, .math, a:has(code)`;
 // 网页匹配翻译规则的空对象结构模板（属性全览）
 export const DEFAULT_RULE = {
   pattern: "", // 匹配网址的正则/通配符字符串
+  enabled: true, // 该条个人/订阅规则是否参与匹配
   selector: "", // 核心待翻译元素 CSS 选择器
   keepSelector: "", // 保留原文的行内元素 CSS 选择器
   blockSelector: "", // 自定义块级元素 CSS 选择器
@@ -114,6 +115,7 @@ export const DEFAULT_RULE = {
 // 全局兜底规则：当网页没有匹配的特定规则时，采用此默认规则
 export const GLOBLA_RULE = {
   pattern: "*", // 匹配任意网址
+  enabled: true,
   selector: DEFAULT_SELECTOR, // 默认的翻译元素
   keepSelector: DEFAULT_KEEP_SELECTOR, // 保留不动的行内元素
   blockSelector: "",
