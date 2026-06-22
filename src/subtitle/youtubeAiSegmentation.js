@@ -316,33 +316,268 @@ export async function eventsToSubtitles({
     }
 
     logger.info("Youtube Provider: Sentence break mode: AI");
-    if (eventChunks.length > 1) {
-      processRemainingChunksAsync({
-        chunks: eventChunks,
-        startIndex: 1,
-        videoId,
-        fromLang,
-        toLang,
-        segApiSetting,
-        setting,
-        processingVersion,
-        isStaleProcessing,
-        apiSubtitle,
-        docInfo,
-        formatSubtitles,
-        clearSegmentTranslation: shouldClearSegmentTranslation,
-        onAppendSubtitles,
-        getCurrentVideoId,
-        signal,
-      });
-
-      const processed = Math.floor(100 / eventChunks.length);
-      return [firstBatchSubtitles, processed];
+    if (eventChunks.length === 1) {
+      return [firstBatchSubtitles, 100];
     }
-    return [firstBatchSubtitles, 100];
+
+    const scheduler = createAiChunkScheduler({
+      chunks: eventChunks,
+      firstDoneIndex: 0,
+      videoId,
+      fromLang,
+      toLang,
+      segApiSetting,
+      setting,
+      processingVersion,
+      isStaleProcessing,
+      apiSubtitle,
+      docInfo,
+      formatSubtitles,
+      clearSegmentTranslation: shouldClearSegmentTranslation,
+      onAppendSubtitles,
+      getCurrentVideoId,
+      signal,
+    });
+
+    const processed = Math.floor(100 / eventChunks.length);
+    return [firstBatchSubtitles, processed, scheduler];
   }
 
   return [builtinSegment(events, flatEvents, fromLang, setting), 100];
+}
+
+/**
+ * 创建按播放窗口懒处理 AI 字幕块的调度器。
+ *
+ * 该调度器只负责首块之后的 AI 断句 chunk：外层会先处理首块以保证字幕尽快上屏，
+ * 后续 chunk 只有进入播放器当前时间 + `preTrans` 的前瞻窗口时才会请求 AI，避免长视频
+ * 在用户尚未观看的位置提前消耗大量 token。
+ *
+ * @param {object} params 调度器依赖与运行上下文。
+ * @param {Array<Array<object>>} params.chunks 按字幕文本长度切好的 AI 断句 chunk 列表。
+ * @param {number} [params.firstDoneIndex=-1] 已由首屏流程处理完成的 chunk 索引。
+ * @param {string} params.videoId 当前 YouTube 视频 ID，用于丢弃跨视频的过期回调。
+ * @param {string} params.fromLang 原字幕语言代码。
+ * @param {string} params.toLang 目标翻译语言代码。
+ * @param {object} params.segApiSetting AI 断句接口配置。
+ * @param {object} params.setting 字幕模块完整配置。
+ * @param {number} params.processingVersion 当前字幕处理生命周期版本号。
+ * @param {Function} params.isStaleProcessing 判断当前异步任务是否已经过期。
+ * @param {Function} params.apiSubtitle 调用 AI 断句接口的函数。
+ * @param {object} params.docInfo 页面/视频上下文信息。
+ * @param {Function} params.formatSubtitles AI 断句失败时的内置降级断句函数。
+ * @param {boolean} params.clearSegmentTranslation 是否清空 AI 断句返回的翻译，交给后续翻译服务重翻。
+ * @param {Function} params.onAppendSubtitles chunk 完成或流式返回时合并字幕的回调。
+ * @param {Function} params.getCurrentVideoId 读取当前页面视频 ID 的函数。
+ * @param {AbortSignal} [params.signal] 当前字幕处理生命周期的取消信号。
+ * @returns {{scheduleUntil: Function}} 返回按播放窗口调度后续 chunk 的控制对象。
+ */
+export function createAiChunkScheduler({
+  chunks,
+  firstDoneIndex = -1,
+  videoId,
+  fromLang,
+  toLang,
+  segApiSetting,
+  setting,
+  processingVersion,
+  isStaleProcessing,
+  apiSubtitle,
+  docInfo,
+  formatSubtitles,
+  clearSegmentTranslation,
+  onAppendSubtitles,
+  getCurrentVideoId,
+  signal,
+}) {
+  const states = chunks.map(() => "pending");
+  if (firstDoneIndex >= 0) states[firstDoneIndex] = "done";
+
+  let active = false;
+  let latestWindow = null;
+
+  /**
+   * 根据 chunk 状态计算处理进度。
+   * failed 也视为已结束，因为失败 chunk 会立即降级为内置断句，不应阻塞下载和菜单状态。
+   *
+   * @returns {number} 当前已处理或已降级的 chunk 百分比。
+   */
+  const getProgressed = () => {
+    const doneCount = states.filter(
+      (state) => state === "done" || state === "failed"
+    ).length;
+    return Math.floor((doneCount * 100) / chunks.length);
+  };
+
+  /**
+   * 判断 chunk 时间轴是否与当前播放前瞻窗口有交集。
+   *
+   * @param {Array<object>} chunkEvents 当前候选 chunk 内的字幕事件。
+   * @param {number} currentTimeMs 播放器当前时间，单位毫秒。
+   * @param {number} endTimeMs 播放器当前时间加前瞻窗口后的结束时间，单位毫秒。
+   * @returns {boolean} chunk 是否落入需要提前 AI 断句的时间范围。
+   */
+  const isChunkInWindow = (chunkEvents, currentTimeMs, endTimeMs) => {
+    const first = chunkEvents[0];
+    const last = chunkEvents[chunkEvents.length - 1];
+    if (!first || !last) return false;
+    return last.end >= currentTimeMs && first.start <= endTimeMs;
+  };
+
+  /**
+   * 从最新播放窗口中选择下一个仍未处理的 chunk。
+   * 使用最新窗口可以让 seek 后的新位置优先处理，而不是继续排空旧窗口。
+   *
+   * @returns {number} 下一个待处理 chunk 索引；没有可处理 chunk 时返回 -1。
+   */
+  const findNextChunkIndex = () => {
+    if (!latestWindow) return -1;
+    const { currentTimeMs, endTimeMs } = latestWindow;
+    return chunks.findIndex(
+      (chunkEvents, index) =>
+        states[index] === "pending" &&
+        isChunkInWindow(chunkEvents, currentTimeMs, endTimeMs)
+    );
+  };
+
+  /**
+   * 处理单个 AI 断句 chunk，并把结果增量合并回 provider。
+   * AI 失败时立即使用内置断句降级，保证当前窗口内仍有可显示/可下载的字幕。
+   *
+   * @param {number} index 需要处理的 chunk 索引。
+   * @returns {Promise<void>}
+   */
+  const processChunk = async (index) => {
+    if (isStaleProcessing(processingVersion)) {
+      logger.info("Youtube Provider: Skip stale chunk processing.");
+      return;
+    }
+
+    const chunkEvents = chunks[index];
+    const chunkNum = index + 1;
+    states[index] = "processing";
+    logger.debug(
+      `Youtube Provider: Processing subtitle chunk ${chunkNum}/${chunks.length}: ${chunkEvents[0]?.start} --> ${
+        chunkEvents[chunkEvents.length - 1]?.start
+      }`
+    );
+
+    let subtitlesForThisChunk = [];
+
+    try {
+      const aiSubtitles = await aiSegment({
+        videoId,
+        chunkEvents,
+        fromLang,
+        toLang,
+        segApiSetting,
+        apiSubtitle,
+        docInfo,
+        formatSubtitles,
+        clearSegmentTranslation,
+        prevContext: getChunkContext(chunks, index, "prev"),
+        nextContext: getChunkContext(chunks, index, "next"),
+        signal,
+        setting,
+        onSubtitleChunk: ({ subtitles }) => {
+          if (
+            !subtitles?.length ||
+            videoId !== getCurrentVideoId() ||
+            isStaleProcessing(processingVersion)
+          ) {
+            return;
+          }
+
+          onAppendSubtitles({
+            subtitles,
+            progressed: getProgressed(),
+            chunkNum,
+          });
+        },
+      });
+      if (isStaleProcessing(processingVersion)) return;
+
+      if (aiSubtitles?.length > 0) {
+        subtitlesForThisChunk = aiSubtitles;
+      } else {
+        logger.debug(
+          `Youtube Provider: AI segmentation for chunk ${chunkNum} returned no data.`
+        );
+        subtitlesForThisChunk = formatSubtitles(chunkEvents, fromLang);
+      }
+    } catch (chunkError) {
+      states[index] = "failed";
+      subtitlesForThisChunk = formatSubtitles(chunkEvents, fromLang);
+    }
+
+    if (
+      videoId !== getCurrentVideoId() ||
+      isStaleProcessing(processingVersion)
+    ) {
+      logger.info(
+        "Youtube Provider: videoId changed or track replaced!",
+        videoId,
+        getCurrentVideoId()
+      );
+      return;
+    }
+
+    if (states[index] !== "failed") {
+      states[index] = "done";
+    }
+
+    if (subtitlesForThisChunk.length > 0) {
+      const progressed = getProgressed();
+      logger.debug(
+        `Youtube Provider: Appending ${subtitlesForThisChunk.length} subtitles from chunk ${chunkNum} (${progressed}%).`
+      );
+      onAppendSubtitles({
+        subtitles: subtitlesForThisChunk,
+        progressed,
+        chunkNum,
+      });
+    } else {
+      logger.debug(`Youtube Provider: Chunk ${chunkNum} no subtitles.`);
+    }
+  };
+
+  /**
+   * 串行泵送当前窗口内的待处理 chunk。
+   * active 锁用于避免高频 timeupdate 重入造成同一 chunk 重复请求。
+   *
+   * @returns {Promise<void>}
+   */
+  const pump = async () => {
+    if (active) return;
+    active = true;
+    try {
+      while (true) {
+        if (signal?.aborted || isStaleProcessing(processingVersion)) return;
+        const nextIndex = findNextChunkIndex();
+        if (nextIndex === -1) return;
+        await processChunk(nextIndex);
+      }
+    } finally {
+      active = false;
+    }
+  };
+
+  return {
+    /**
+     * 按播放器当前时间和前瞻秒数更新调度窗口，并启动懒处理。
+     *
+     * @param {number} currentTimeMs 播放器当前时间，单位毫秒。
+     * @param {number} [preTrans=90] 复用字幕“提前翻译时长”的前瞻秒数。
+     * @returns {Promise<void>} 当前窗口内已触发 chunk 的处理 Promise；生产路径可忽略，测试可等待。
+     */
+    scheduleUntil(currentTimeMs, preTrans = 90) {
+      latestWindow = {
+        currentTimeMs,
+        endTimeMs: currentTimeMs + preTrans * 1000,
+      };
+      return pump();
+    },
+  };
 }
 
 /**

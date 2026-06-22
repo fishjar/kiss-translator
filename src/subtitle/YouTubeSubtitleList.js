@@ -28,12 +28,14 @@ export class YouTubeSubtitleList {
 
     // --- DOM 节点引用缓存 ---
     this.container = null; // 右侧字幕/生词面板的最外层根容器节点
+    this.subtitleTabEl = null; // 字幕 Tab 按钮引用，用于随处理进度刷新标题文案
     this.subtitleListEl = null; // 字幕列表面板的 DOM 引用
     this.vocabularyListEl = null; // 生词本面板的 DOM 引用
     this.subtitleScrollContainer = null; // 字幕列表的专用独立纵向滚动容器
     this._cachedSubtitleItems = []; // 缓存每一个字幕行 li 节点引用的数组，避免在滚动同步高亮时高频执行 querySelector 带来的重排 (Reflow) 损耗，提升滚动性能
 
     // --- 状态管理 ---
+    this.subtitleProgress = 0; // 当前字幕断句/处理进度百分比，用于显示在“双语字幕”Tab 后
     this.loopAutoScroll = null; // 自动滚动的定时器 ID
     this.activeTab = "subtitles"; // 当前激活的 Tab: 'subtitles' 或 'vocabulary'
     this._lastActiveIndex = -1; // 上一次高亮的字幕索引位置
@@ -131,9 +133,10 @@ export class YouTubeSubtitleList {
    * 初始化字幕面板并启动首次渲染与事件挂载
    * @param {Array} subtitles 初始格式化完毕的字幕数组
    */
-  initialize(subtitles, rawSubtitleEvents = []) {
+  initialize(subtitles, rawSubtitleEvents = [], progressed = 100) {
     this.bilingualSubtitles = subtitles || [];
     this.rawSubtitleEvents = rawSubtitleEvents || [];
+    this.subtitleProgress = this._normalizeProgress(progressed);
     if (this.bilingualSubtitles.length > 0) {
       this.createSubtitleList();
       this.setupEventListeners();
@@ -145,8 +148,10 @@ export class YouTubeSubtitleList {
    * 对面板应用 Diff 增量更新算法以最小化 DOM 操作代价。
    * @param {Array} subtitles 标准双语字幕数组
    */
-  setBilingualSubtitles(subtitles) {
+  setBilingualSubtitles(subtitles, progressed = this.subtitleProgress) {
     this.bilingualSubtitles = subtitles || [];
+    this.subtitleProgress = this._normalizeProgress(progressed);
+    this._updateSubtitleTabLabel();
 
     if (this.subtitleListEl) {
       // 若列表面板已处于挂载状态，尝试执行增量 Diff 挂载
@@ -156,6 +161,28 @@ export class YouTubeSubtitleList {
       this.createSubtitleList();
       this.setupEventListeners();
     }
+  }
+
+  /**
+   * 将外部传入的处理进度规整为 0-100 的整数百分比。
+   *
+   * @param {number} progressed 字幕处理进度百分比。
+   * @returns {number} 可直接展示的进度百分比。
+   */
+  _normalizeProgress(progressed) {
+    const progress = Number(progressed);
+    if (!Number.isFinite(progress)) return 0;
+    return Math.min(100, Math.max(0, Math.round(progress)));
+  }
+
+  /**
+   * 刷新字幕 Tab 标题，在“双语字幕”后显示当前按需断句处理进度。
+   *
+   * @returns {void}
+   */
+  _updateSubtitleTabLabel() {
+    if (!this.subtitleTabEl) return;
+    this.subtitleTabEl.textContent = `双语字幕 [已处理${this.subtitleProgress}%]`;
   }
 
   /**
@@ -172,6 +199,7 @@ export class YouTubeSubtitleList {
       this.container.remove();
       this.container = null;
     }
+    this.subtitleTabEl = null;
     this.subtitleListEl = null;
     this.vocabularyListEl = null;
     this.subtitleScrollContainer = null;
@@ -183,6 +211,7 @@ export class YouTubeSubtitleList {
     this._virtualOffsets = [0];
     this._pendingCenterIndex = -1;
     this._pendingSubtitleTabScrollIndex = -1;
+    this.subtitleProgress = 0;
     this.vocabulary = [];
   }
 
@@ -717,7 +746,8 @@ export class YouTubeSubtitleList {
     tabHeader.style.cssText = `display: flex; border-bottom: 1px solid var(--kt-divider); padding: 0 16px; flex-shrink: 0;`;
 
     const subtitleTab = document.createElement("button");
-    subtitleTab.textContent = "双语字幕";
+    this.subtitleTabEl = subtitleTab;
+    this._updateSubtitleTabLabel();
     const vocabularyTab = document.createElement("button");
     vocabularyTab.textContent = "生词本";
 
