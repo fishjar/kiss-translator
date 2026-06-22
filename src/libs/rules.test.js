@@ -74,7 +74,9 @@ describe("rules enabled state", () => {
 
     const rule = await matchRule("https://example.com/post", {
       injectRules: true,
-      subrulesList: [{ url: "https://rules.example/main.json", selected: true }],
+      subrulesList: [
+        { url: "https://rules.example/main.json", selected: true },
+      ],
     });
 
     expect(rule.pattern).toBe("example.com");
