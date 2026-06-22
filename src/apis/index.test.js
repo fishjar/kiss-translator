@@ -41,7 +41,7 @@ jest.mock("./trans", () => ({
 }));
 
 import { apiDict, apiTranslate } from "./index";
-import { handleDict } from "./trans";
+import { handleDict, handleTranslate } from "./trans";
 import { getBatchQueue } from "../libs/batchQueue";
 import { getHttpCachePolyfill, putHttpCachePolyfill } from "../libs/cache";
 import { DEFAULT_API_LIST, OPT_TRANS_OPENAI } from "../config";
@@ -266,5 +266,61 @@ describe("apiTranslate prompt queue isolation", () => {
     expect(queueKeys[0]).toBe(queueKeys[1]);
     expect(signedTexts[0]).not.toContain("prompt_a");
     expect(signedTexts[1]).not.toContain("prompt_b");
+  });
+});
+
+describe("apiTranslate non-batch stream", () => {
+  beforeEach(() => {
+    mockGetCacheDigest.mockResolvedValue("a".repeat(64));
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test("consumes non-batch stream results without the batch queue", async () => {
+    const onStreamChunk = jest.fn();
+    async function* streamResult() {
+      yield { id: 0, partialText: "阶段译文", isComplete: false };
+      yield { id: 0, result: ["最终译文", ""] };
+    }
+    handleTranslate.mockImplementationOnce(streamResult);
+
+    const result = await apiTranslate({
+      text: "hello",
+      fromLang: "en",
+      toLang: "zh-CN",
+      apiSetting: {
+        ...getOpenAiApiSetting("batch prompt A"),
+        useBatchFetch: false,
+        useStream: true,
+        streamRenderMode: "realtime",
+      },
+      onStreamChunk,
+      useCache: false,
+    });
+
+    expect(result.trText).toBe("最终译文");
+    expect(getBatchQueue).not.toHaveBeenCalled();
+    expect(handleTranslate).toHaveBeenCalledWith(
+      ["hello"],
+      expect.objectContaining({
+        onStreamChunk,
+        apiSetting: expect.objectContaining({
+          useBatchFetch: false,
+          useStream: true,
+        }),
+      })
+    );
+    expect(onStreamChunk).toHaveBeenCalledWith({
+      id: 0,
+      text: "阶段译文",
+      isComplete: false,
+    });
+    expect(onStreamChunk).toHaveBeenCalledWith({
+      id: 0,
+      text: ["最终译文", ""],
+      isComplete: true,
+    });
   });
 });

@@ -185,6 +185,73 @@ async ({ res, ...args }) => {
   return { translations, modelMsg };
 }`;
 
+const customApiHelpTW = `// 請求資料預設格式
+{
+  "url": "{{url}}",
+  "method": "POST",
+  "headers": {
+    "Content-type": "application/json",
+    "Authorization": "Bearer {{key}}"
+  },
+  "body": {
+    "text": "{{text}}", // 待翻譯文字
+    "from": "{{from}}", // 文字的語言（可能為空）
+    "to": "{{to}}",     // 目標語言
+  },
+}
+
+
+// 回傳資料預設格式
+{
+  text: "", // 翻譯後的文字
+  from: "", // 辨識的來源語言
+  to: "",   // 目標語言（選填）
+}
+
+
+// Hook 範例
+// URL
+https://translate.googleapis.com/translate_a/single?client=gtx&dj=1&dt=t&ie=UTF-8&q={{text}}&sl=en&tl=zh-CN
+
+// Request Hook
+(text, from, to, url, key) => [url, {
+  headers: {
+      "Content-type": "application/json",
+  },
+  method: "GET",
+  body: null,
+}]
+
+// Response Hook
+// 其中回傳陣列第一個值表示譯文字串，第二個值為布林值，表示原文語言與目標語言是否相同
+(res, text, from, to) => [res.sentences.map((item) => item.trans).join(" "), to === res.src]
+
+
+// 支援的語言代碼如下
+${customApiLangs}
+`;
+
+const requestHookHelperTW = `1、第一個參數包含如下欄位：'texts', 'from', 'to', 'url', 'key', 'model', 'systemPrompt', ...
+2、回傳值必須是包含以下欄位的物件： 'url', 'body', 'headers', 'method'
+3、若回傳空值，則 hook 函式不會產生任何效果。
+
+// 範例
+async (args, { url, body, headers, userMsg, method } = {}) => {
+  return { url, body, headers, userMsg, method };
+}`;
+
+const responsetHookHelperTW = `1、第一個參數包含如下欄位：'res', ...
+2、回傳值必須是包含以下欄位的物件： 'translations'
+  （'translations' 應為一個二維陣列：[[譯文, 原文語言]]）
+3、若回傳空值，則 hook 函式不會產生任何效果。
+
+// 範例
+async ({ res, ...args }) => {
+  const translations = [["你好", "en"]];
+  const modelMsg = {}; // 用於 AI 上下文
+  return { translations, modelMsg };
+}`;
+
 export const I18N = {
   app_name: {
     zh: `简约翻译`,
@@ -203,21 +270,21 @@ export const I18N = {
   custom_api_help: {
     zh: customApiHelpZH,
     en: customApiHelpEN,
-    zh_TW: customApiHelpZH,
+    zh_TW: customApiHelpTW,
     ja: customApiHelpEN,
     ko: customApiHelpEN,
   },
   request_hook_helper: {
     zh: requestHookHelperZH,
     en: requestHookHelperEN,
-    zh_TW: requestHookHelperZH,
+    zh_TW: requestHookHelperTW,
     ja: requestHookHelperEN,
     ko: requestHookHelperEN,
   },
   response_hook_helper: {
     zh: responsetHookHelperZH,
     en: responsetHookHelperEN,
-    zh_TW: responsetHookHelperZH,
+    zh_TW: responsetHookHelperTW,
     ja: responsetHookHelperEN,
     ko: responsetHookHelperEN,
   },
@@ -658,7 +725,7 @@ export const I18N = {
   bulk_actions: {
     zh: `批量操作`,
     en: `Bulk Actions`,
-    zh_TW: `批量操作`,
+    zh_TW: `批次操作`,
     ja: `一括操作`,
     ko: `일괄 작업`,
   },
@@ -931,7 +998,7 @@ export const I18N = {
   sync_warn_encryption: {
     zh: `新版本会自动将旧版明文同步数据迁移为加密数据；同步加密口令独立用于数据解密，请妥善保存，遗失后无法读取已加密的云端数据。`,
     en: `New versions automatically migrate legacy plaintext sync data to encrypted data. The sync encryption passphrase is used independently for data decryption, so keep it safe; encrypted cloud data cannot be read if it is lost.`,
-    zh_TW: `新版本會自動將舊版明文同步資料遷移為加密資料；同步加密口令獨立用於資料解密，請妥善保存，遺失後將無法讀取已加密的雲端資料。`,
+    zh_TW: `新版本會自動將舊版明文同步資料遷移為加密資料；同步加密密碼獨立用於資料解密，請妥善保存，遺失後將無法讀取已加密的雲端資料。`,
     ja: `新しいバージョンでは、従来の平文同期データを暗号化データへ自動移行します。同期暗号化パスフレーズはデータ復号専用に独立して使用されるため、安全に保管してください。紛失すると暗号化済みのクラウドデータは読み取れません。`,
     ko: `새 버전은 기존 일반 텍스트 동기화 데이터를 암호화 데이터로 자동 마이그레이션합니다. 동기화 암호화 암호문은 데이터 복호화에 독립적으로 사용되므로 안전하게 보관하세요. 분실하면 암호화된 클라우드 데이터를 읽을 수 없습니다.`,
   },
@@ -1494,18 +1561,18 @@ export const I18N = {
     ko: `브라우저 재시작 시 캐시 지우기`,
   },
   data_sync_type: {
-    zh: `数据同步方式`,
-    en: `Data Sync Type`,
-    zh_TW: `資料同步方式`,
-    ja: `データ同期タイプ`,
-    ko: `데이터 동기화 유형`,
+    zh: `同步方式`,
+    en: `Sync Type`,
+    zh_TW: `同步方式`,
+    ja: `同期方式`,
+    ko: `동기화 방식`,
   },
   data_sync_url: {
-    zh: `数据同步接口`,
-    en: `Data Sync API`,
-    zh_TW: `資料同步介面`,
-    ja: `データ同期API`,
-    ko: `데이터 동기화 API`,
+    zh: `同步接口`,
+    en: `Sync API`,
+    zh_TW: `同步介面`,
+    ja: `同期API`,
+    ko: `동기화 API`,
   },
   gist_sync_tip: {
     zh: `选择 GitHub Gist 时会自动创建私密 Gist。GitHub PAT 需要 Gists 读写权限。`,
@@ -1515,93 +1582,93 @@ export const I18N = {
     ko: `GitHub Gist를 선택하면 비공개 Gist가 자동으로 생성됩니다. GitHub PAT에는 Gists 읽기/쓰기 권한이 필요합니다.`,
   },
   data_sync_user: {
-    zh: `数据同步账户`,
-    en: `Data Sync User`,
-    zh_TW: `資料同步帳號`,
-    ja: `データ同期アカウント`,
-    ko: `데이터 동기화 계정`,
+    zh: `同步账户`,
+    en: `Sync Account`,
+    zh_TW: `同步帳號`,
+    ja: `同期アカウント`,
+    ko: `동기화 계정`,
   },
   data_sync_key: {
-    zh: `数据同步密钥`,
-    en: `Data Sync Key`,
-    zh_TW: `資料同步金鑰`,
-    ja: `データ同期キー`,
-    ko: `데이터 동기화 키`,
+    zh: `同步密钥`,
+    en: `Sync Key`,
+    zh_TW: `同步金鑰`,
+    ja: `同期キー`,
+    ko: `동기화 키`,
   },
   data_sync_encrypt_key: {
-    zh: `同步加密口令`,
-    en: `Sync Encryption Passphrase`,
-    zh_TW: `同步加密口令`,
-    ja: `同期暗号化パスフレーズ`,
-    ko: `동기화 암호화 암호문`,
+    zh: `加密口令`,
+    en: `Encryption Passphrase`,
+    zh_TW: `加密密碼`,
+    ja: `暗号化パスフレーズ`,
+    ko: `암호화 비밀번호`,
   },
   set_sync_encrypt_key: {
     zh: `设定口令`,
     en: `Set Passphrase`,
-    zh_TW: `設定口令`,
+    zh_TW: `設定密碼`,
     ja: `パスフレーズを設定`,
     ko: `암호문 설정`,
   },
   change_sync_encrypt_key: {
     zh: `修改口令`,
     en: `Change Passphrase`,
-    zh_TW: `修改口令`,
+    zh_TW: `修改密碼`,
     ja: `パスフレーズを変更`,
     ko: `암호문 변경`,
   },
   sync_encrypt_key_not_set: {
     zh: `口令未设置，同步功能不可用。`,
     en: `Passphrase is not set. Sync is unavailable.`,
-    zh_TW: `口令未設定，同步功能不可用。`,
+    zh_TW: `密碼未設定，同步功能無法使用。`,
     ja: `パスフレーズが未設定のため、同期機能は使用できません。`,
     ko: `암호문이 설정되지 않아 동기화 기능을 사용할 수 없습니다.`,
   },
   old_sync_encrypt_key: {
     zh: `旧口令`,
     en: `Old Passphrase`,
-    zh_TW: `舊口令`,
+    zh_TW: `舊密碼`,
     ja: `旧パスフレーズ`,
     ko: `기존 암호문`,
   },
   new_sync_encrypt_key: {
     zh: `新口令`,
     en: `New Passphrase`,
-    zh_TW: `新口令`,
+    zh_TW: `新密碼`,
     ja: `新しいパスフレーズ`,
     ko: `새 암호문`,
   },
   confirm_sync_encrypt_key: {
     zh: `确认口令`,
     en: `Confirm Passphrase`,
-    zh_TW: `確認口令`,
+    zh_TW: `確認密碼`,
     ja: `パスフレーズを確認`,
     ko: `암호문 확인`,
   },
   sync_encrypt_key_too_short: {
     zh: `口令长度至少 6 位。`,
     en: `Passphrase must be at least 6 characters.`,
-    zh_TW: `口令長度至少 6 位。`,
+    zh_TW: `密碼長度至少 6 位。`,
     ja: `パスフレーズは 6 文字以上にしてください。`,
     ko: `암호문은 최소 6자 이상이어야 합니다.`,
   },
   sync_encrypt_key_mismatch: {
     zh: `两次输入的口令不一致。`,
     en: `The two passphrases do not match.`,
-    zh_TW: `兩次輸入的口令不一致。`,
+    zh_TW: `兩次輸入的密碼不一致。`,
     ja: `入力した 2 つのパスフレーズが一致しません。`,
     ko: `두 번 입력한 암호문이 일치하지 않습니다.`,
   },
   old_sync_encrypt_key_invalid: {
     zh: `旧口令不正确。`,
     en: `Old passphrase is incorrect.`,
-    zh_TW: `舊口令不正確。`,
+    zh_TW: `舊密碼不正確。`,
     ja: `旧パスフレーズが正しくありません。`,
     ko: `기존 암호문이 올바르지 않습니다.`,
   },
   sync_encrypt_key_change_failed: {
     zh: `修改口令失败。请保留旧口令和新口令，检查网络后重试；如果曾有部分数据已用新口令写入云端，必要时请清空远端同步文件后重新同步。`,
     en: `Failed to change the passphrase. Keep both the old and new passphrases, check your network, and retry. If some cloud data was already written with the new passphrase, clear the remote sync files and sync again if needed.`,
-    zh_TW: `修改口令失敗。請保留舊口令和新口令，檢查網路後重試；如果已有部分資料用新口令寫入雲端，必要時請清空遠端同步檔案後重新同步。`,
+    zh_TW: `修改密碼失敗。請保留舊密碼和新密碼，檢查網路後重試；如果已有部分資料用新密碼寫入雲端，必要時請清空遠端同步檔案後重新同步。`,
     ja: `パスフレーズの変更に失敗しました。旧パスフレーズと新パスフレーズの両方を保管し、ネットワークを確認してから再試行してください。一部のクラウドデータが新しいパスフレーズで書き込まれている場合は、必要に応じてリモート同期ファイルを削除してから再同期してください。`,
     ko: `암호문 변경에 실패했습니다. 기존 암호문과 새 암호문을 모두 보관하고 네트워크를 확인한 뒤 다시 시도하세요. 일부 클라우드 데이터가 이미 새 암호문으로 쓰인 경우 필요하면 원격 동기화 파일을 비운 뒤 다시 동기화하세요.`,
   },
@@ -2374,6 +2441,27 @@ export const I18N = {
     zh_TW: `翻譯框自適應高度`,
     ja: `翻訳ボックスの高さ自動調整`,
     ko: `번역 상자 높이 자동 조절`,
+  },
+  tranbox_interact_mode: {
+    zh: `翻译框内交互模式`,
+    en: `Transbox Interact Mode`,
+    zh_TW: `翻譯框內互動模式`,
+    ja: `翻訳ボックス内インタラクションモード`,
+    ko: `번역 상자 내 인터랙션 모드`,
+  },
+  tranbox_interact_click: {
+    zh: `单击选中文本触发翻译`,
+    en: `Click selected text to translate`,
+    zh_TW: `單擊選取文字觸發翻譯`,
+    ja: `選択したテキストをクリックして翻訳`,
+    ko: `선택한 텍스트를 클릭하여 번역`,
+  },
+  tranbox_interact_dblclick: {
+    zh: `双击选中文本触发翻译`,
+    en: `Double-click selected text to translate`,
+    zh_TW: `雙擊選取文字觸發翻譯`,
+    ja: `選択したテキストをダブルクリックして翻訳`,
+    ko: `선택한 텍스트를 더블클릭하여 번역`,
   },
   translate_start_hook: {
     zh: `翻译开始钩子函数`,
@@ -3407,6 +3495,97 @@ export const I18N = {
     zh_TW: `斷句和翻譯服務不同，翻譯引擎會重複翻譯字幕`,
     ja: `セグメンテーションと翻訳エンジンが異なります。字幕は再翻訳されます。`,
     ko: `분할과 번역 엔진이 다릅니다. 자막이 다시 번역됩니다.`,
+  },
+  subtitle_style_preview: {
+    zh: `样式预览`,
+    en: `Style Preview`,
+    zh_TW: `樣式預覽`,
+    ja: `スタイルプレビュー`,
+    ko: `스타일 미리보기`,
+  },
+  subtitle_preview_sample: {
+    zh: `这是示例字幕文本`,
+    en: `This is an example subtitle`,
+    zh_TW: `這是範例字幕文字`,
+    ja: `これはサンプル字幕テキストです`,
+    ko: `예시 자막 텍스트입니다`,
+  },
+  font_size: {
+    zh: `字体大小`,
+    en: `Font Size`,
+    zh_TW: `字體大小`,
+    ja: `フォントサイズ`,
+    ko: `글꼴 크기`,
+  },
+  font_color: {
+    zh: `字体颜色`,
+    en: `Font Color`,
+    zh_TW: `字體顏色`,
+    ja: `フォントの色`,
+    ko: `글꼴 색상`,
+  },
+  background_color: {
+    zh: `背景颜色`,
+    en: `Background Color`,
+    zh_TW: `背景顏色`,
+    ja: `背景色`,
+    ko: `배경색`,
+  },
+  opacity: {
+    zh: `透明度`,
+    en: `Opacity`,
+    zh_TW: `透明度`,
+    ja: `不透明度`,
+    ko: `불투명도`,
+  },
+  line_height: {
+    zh: `行高`,
+    en: `Line Height`,
+    zh_TW: `行高`,
+    ja: `行の高さ`,
+    ko: `줄 높이`,
+  },
+  padding: {
+    zh: `内边距`,
+    en: `Padding`,
+    zh_TW: `內邊距`,
+    ja: `余白`,
+    ko: `안쪽 여백`,
+  },
+  vertical: {
+    zh: `上下`,
+    en: `Vertical`,
+    zh_TW: `上下`,
+    ja: `上下`,
+    ko: `상하`,
+  },
+  horizontal: {
+    zh: `左右`,
+    en: `Horizontal`,
+    zh_TW: `左右`,
+    ja: `左右`,
+    ko: `좌우`,
+  },
+  text_shadow: {
+    zh: `文字阴影`,
+    en: `Text Shadow`,
+    zh_TW: `文字陰影`,
+    ja: `テキストの影`,
+    ko: `텍스트 그림자`,
+  },
+  advanced_css: {
+    zh: `高级 CSS 编辑`,
+    en: `Advanced CSS`,
+    zh_TW: `進階 CSS 編輯`,
+    ja: `高度な CSS 編集`,
+    ko: `고급 CSS 편집`,
+  },
+  close: {
+    zh: `关闭`,
+    en: `Close`,
+    zh_TW: `關閉`,
+    ja: `閉じる`,
+    ko: `닫기`,
   },
 };
 

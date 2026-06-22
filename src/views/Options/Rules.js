@@ -901,6 +901,9 @@ function RuleAccordion({ rule, rules, sourceUrl, isExpanded = false }) {
   const i18n = useI18n();
   // 面板展开状态
   const [expanded, setExpanded] = useState(isExpanded);
+  const isPersonalRule = !!rules && rule.pattern !== GLOBAL_KEY;
+  const isSubRule = !rules;
+  const isRuleEnabled = isPersonalRule ? rule.enabled !== false : true;
 
   // 用户是否手动禁用了该订阅规则
   const [disabledByUser, setDisabledByUser] = useState(false);
@@ -927,6 +930,18 @@ function RuleAccordion({ rule, rules, sourceUrl, isExpanded = false }) {
     setExpanded((pre) => !pre);
   };
 
+  const stopSummaryToggle = (e) => {
+    e.stopPropagation();
+  };
+
+  const titleOpacity = isPersonalRule
+    ? isRuleEnabled
+      ? 1
+      : 0.5
+    : rules
+      ? 1
+      : 0.5;
+
   return (
     <Accordion expanded={expanded} onChange={handleChange}>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -936,13 +951,31 @@ function RuleAccordion({ rule, rules, sourceUrl, isExpanded = false }) {
           spacing={1}
           sx={{ width: "100%" }}
         >
+          {/* 对于个人规则，提供一个 Switch 按钮，控制该条规则在匹配时的生效状态 */}
+          {isPersonalRule && (
+            <Switch
+              size="small"
+              checked={isRuleEnabled}
+              inputProps={{
+                "aria-label": `Toggle personal rule ${rule.pattern}`,
+              }}
+              onPointerDown={stopSummaryToggle}
+              onClick={stopSummaryToggle}
+              onChange={(e) => {
+                const enabled = e.target.checked;
+                rules.put(rule.pattern, { enabled });
+                alert.success(i18n(enabled ? "rule_enabled" : "rule_disabled"));
+              }}
+            />
+          )}
+
           {/* 对于订阅规则，额外提供一个 Switch 按钮，控制该条规则在匹配时的生效状态 */}
-          {!rules && (
+          {isSubRule && (
             <Switch
               size="small"
               checked={!disabledByUser}
-              onPointerDown={(e) => e.stopPropagation()} // 阻止事件传播，避免点击 Switch 触发折叠面板展开/收起
-              onClick={(e) => e.stopPropagation()}
+              onPointerDown={stopSummaryToggle} // 阻止事件传播，避免点击 Switch 触发折叠面板展开/收起
+              onClick={stopSummaryToggle}
               onChange={async (e) => {
                 const enabled = e.target.checked;
                 const toDisable = !enabled;
@@ -966,7 +999,7 @@ function RuleAccordion({ rule, rules, sourceUrl, isExpanded = false }) {
 
           <Typography
             sx={{
-              opacity: rules ? 1 : 0.5,
+              opacity: titleOpacity,
               overflowWrap: "anywhere",
               flex: 1,
             }}
@@ -1271,14 +1304,22 @@ function SubRulesItem({
       {loading ? (
         <CircularProgress size={16} />
       ) : (
-        <IconButton size="small" onClick={handleSync}>
+        <IconButton
+          size="small"
+          onClick={handleSync}
+          aria-label={`Sync subscription ${url}`}
+        >
           <SyncIcon fontSize="small" />
         </IconButton>
       )}
 
       {/* 首个默认订阅源，以及当前正在选中的订阅源不允许删除 */}
       {index !== 0 && selectedUrl !== url && (
-        <IconButton size="small" onClick={handleDel}>
+        <IconButton
+          size="small"
+          onClick={handleDel}
+          aria-label={`Delete subscription ${url}`}
+        >
           <DeleteIcon fontSize="small" />
         </IconButton>
       )}
@@ -1420,19 +1461,13 @@ function SubRules({ subRules }) {
   } = subRules;
 
   // 引入同步缓存 Hook，用于管理 WebDAV 或本地订阅源的最后同步时间戳
-  const { dataCaches, updateDataCache, deleteDataCache, reloadSync } =
-    useSyncCaches();
+  const { dataCaches, updateDataCache, deleteDataCache } = useSyncCaches();
 
   // 切换选中的订阅规则源
   const handleSelect = (e) => {
     const url = e.target.value;
     selectSub(url);
   };
-
-  // 订阅规则发生改变时，触发配置同步刷新
-  useEffect(() => {
-    reloadSync();
-  }, [selectedRules, reloadSync]);
 
   return (
     <Stack spacing={3}>

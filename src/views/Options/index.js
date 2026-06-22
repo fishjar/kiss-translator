@@ -29,6 +29,7 @@ import StylesSetting from "./StylesSetting";
 import Backdrop from "@mui/material/Backdrop";
 import CircularProgress from "@mui/material/CircularProgress";
 import { kissLog } from "../../libs/log";
+import { runDataMigration } from "../../libs/storage";
 
 const getOptionsStartupSyncTasks = () => {
   const hashPath = window.location.hash.replace(/^#/, "") || "/";
@@ -57,11 +58,10 @@ const getOptionsStartupSyncTasks = () => {
  */
 export default function Options() {
   const [error, setError] = useState("");
-  const [syncingRequiredData, setSyncingRequiredData] = useState(true);
+  const [gmBridgeReady, setGmBridgeReady] = useState(!isGm); // 是否已建立油猴 GM 桥接，若是则允许页面其他部分访问 GM 接口
+  const [syncingRequiredData, setSyncingRequiredData] = useState(true); // 是否正在同步当前页面必须的数据 (setting/rules/words)，若是则阻塞页面其他部分访问 storage 接口
 
   useEffect(() => {
-    let isMounted = true;
-
     // 检查油猴脚本版本与内置扩展打包版本的前两位主次版本号是否匹配
     const isValidVersion = (v1Str, v2Str) => {
       if (!v1Str || !v2Str) {
@@ -95,6 +95,12 @@ export default function Options() {
               adaptScript(eventName);
             }
 
+            // 连接成功，继续执行后续数据迁移与同步准备工作
+            await runDataMigration();
+
+            // GM 桥接准备就绪，允许页面其他部分开始正常访问 GM 接口
+            setGmBridgeReady(true);
+
             break;
           }
 
@@ -114,20 +120,13 @@ export default function Options() {
       const { requiredSync, backgroundSyncs } = getOptionsStartupSyncTasks();
       await requiredSync();
 
-      if (!isMounted) {
-        return;
-      }
-
+      // 所有必须数据同步完成后，允许页面其他部分开始访问 storage 接口
       setSyncingRequiredData(false);
 
       void Promise.all(backgroundSyncs.map((sync) => sync())).catch((err) => {
         kissLog("sync options background", err?.message || err);
       });
     })();
-
-    return () => {
-      isMounted = false;
-    };
   }, []);
 
   // 展示版本不匹配或连接超时时的致命错误提示引导区
@@ -149,6 +148,22 @@ export default function Options() {
           </Link>
         </Stack>
       </center>
+    );
+  }
+
+  if (!gmBridgeReady) {
+    return (
+      <Backdrop
+        data-testid="options-sync-backdrop"
+        aria-label="syncing required data"
+        open
+        sx={(theme) => ({
+          color: "#fff",
+          zIndex: theme.zIndex.modal + 1,
+        })}
+      >
+        <CircularProgress color="inherit" size={72} />
+      </Backdrop>
     );
   }
 

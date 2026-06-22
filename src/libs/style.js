@@ -149,6 +149,9 @@ const genBuiltinStyles = (color = DEFAULT_COLOR) => ({
     -webkit-background-clip: text;
     background-clip: text;
     animation: ${gradientFlow} 4s linear infinite;
+    & * {
+      background-color: transparent !important;
+    }
   `,
   // 闪现
   [OPT_STYLE_BLINK]: `

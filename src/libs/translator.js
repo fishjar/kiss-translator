@@ -12,6 +12,7 @@ import {
   OPT_SPLIT_PARAGRAPH_PUNCTUATION,
   OPT_SPLIT_PARAGRAPH_DISABLE,
   OPT_SPLIT_PARAGRAPH_TEXTLENGTH,
+  API_SPE_TYPES,
   MSG_INJECT_CSS,
   MSG_UPDATE_ICON,
   newI18n,
@@ -249,6 +250,9 @@ export class Translator {
 
     // 若有显式的 inline 属性设置，直接判定非块级
     if (el.attributes?.display?.value?.includes("inline")) return false;
+    // 若有显式的 block 属性设置，直接判定为块级
+    if (el.attributes?.display?.value?.includes("block")) return true;
+
     // 若标签在内联标签集合中，直接判定非块级
     if (Translator.TAGS.INLINE.has(el.nodeName?.toUpperCase())) return false;
     // 若标签在块级标签集合中，直接判定为块级
@@ -339,6 +343,7 @@ export class Translator {
   #processedNodes = new WeakMap(); // 已处理（已执行翻译DOM操作）的单元
   #rootNodes = new Set(); // 已监控的根节点
   #skipMoNodes = new WeakSet(); // 忽略变化的节点
+  #plainTextPreprocessingNodes = new WeakSet(); // 正在流式预处理的纯文本 pre
 
   #removeKeydownHandler; // 快捷键清理函数
   #removeKeydownHandler2; // 备用快捷键清理函数
@@ -496,6 +501,212 @@ export class Translator {
       }
     }
     return false;
+  }
+
+  #getPlainTextChunkLimit() {
+    const maxLength = Number(this.#setting.maxLength);
+    // 单个纯文本块必须小于 maxLength，避免后续 #isInvalidText 直接过滤。
+    const hardLimit = Number.isFinite(maxLength)
+      ? Math.max(1, maxLength - 1)
+      : 3000;
+
+    // 控制默认块大小，避免纯文本页面一次请求过长文本。
+    return Math.min(3000, hardLimit);
+  }
+
+  #findPlainTextBreakIndex(text, limit) {
+    const slice = text.slice(0, limit + 1);
+    let breakIndex = -1;
+    // 优先在句尾或换行处切分，减少把一句话截断的概率。
+    const naturalBreakRegex = /(?:[。！？]+|[.?!]+(?=\s+|$)|\n+)/g;
+    let match;
+
+    while ((match = naturalBreakRegex.exec(slice)) !== null) {
+      const candidate = match.index + match[0].length;
+      if (candidate > 0 && candidate <= limit) {
+        breakIndex = candidate;
+      }
+    }
+
+    if (breakIndex > Math.floor(limit * 0.4)) {
+      return breakIndex;
+    }
+
+    for (let i = limit; i > Math.floor(limit * 0.4); i--) {
+      if (/\s/.test(text[i - 1])) {
+        return i;
+      }
+    }
+
+    return limit;
+  }
+
+  #readPlainTextNewline(source, offset) {
+    let count = 0;
+    let nextOffset = offset;
+
+    while (nextOffset < source.length) {
+      const char = source[nextOffset];
+      if (char === "\r") {
+        count++;
+        nextOffset += source[nextOffset + 1] === "\n" ? 2 : 1;
+      } else if (char === "\n") {
+        count++;
+        nextOffset++;
+      } else {
+        break;
+      }
+    }
+
+    return count ? { count, nextOffset } : null;
+  }
+
+  #findPlainTextLineEnd(source, offset) {
+    let cursor = offset;
+
+    while (cursor < source.length) {
+      const char = source[cursor];
+      if (char === "\r" || char === "\n") break;
+      cursor++;
+    }
+
+    return cursor;
+  }
+
+  #readNextPlainTextChunk(source, offset, limit) {
+    if (offset >= source.length) return null;
+
+    const newline = this.#readPlainTextNewline(source, offset);
+    if (newline) {
+      return {
+        type: "break",
+        count: Math.max(0, newline.count - 1),
+        nextOffset: newline.nextOffset,
+      };
+    }
+
+    const lineEnd = this.#findPlainTextLineEnd(source, offset);
+    const lineLength = lineEnd - offset;
+
+    if (lineLength <= limit) {
+      return {
+        type: "text",
+        value: source.slice(offset, lineEnd),
+        nextOffset: lineEnd,
+      };
+    }
+
+    // 超长单行继续按自然边界或硬上限拆分，保证每个 span 可单独翻译。
+    const splitIndex = this.#findPlainTextBreakIndex(
+      source.slice(offset, lineEnd),
+      limit
+    );
+
+    return {
+      type: "text",
+      value: source.slice(offset, offset + splitIndex),
+      nextOffset: offset + splitIndex,
+    };
+  }
+
+  #createPlainTextChunkNode(chunk) {
+    if (chunk.type !== "text" || !chunk.value) return null;
+
+    const span = document.createElement("span");
+    span.style.cssText = "display: block; white-space: pre-wrap;";
+    span.textContent = chunk.value;
+
+    return span;
+  }
+
+  #appendPlainTextPreBatch(pre, state, isInitialBatch = false) {
+    if (
+      state.runId !== this.#runId ||
+      !pre.isConnected ||
+      !this.#rule.isPlainText
+    ) {
+      this.#plainTextPreprocessingNodes.delete(pre);
+      return;
+    }
+
+    const limit = this.#getPlainTextChunkLimit();
+    const maxNodes = isInitialBatch ? 20 : 100;
+    const maxDuration = isInitialBatch ? Infinity : 10;
+    const startedAt = performance.now?.() || Date.now();
+    const fragment = document.createDocumentFragment();
+    const textNodes = [];
+    let nodeCount = 0;
+
+    while (
+      (state.offset < state.source.length || state.pendingBreaks > 0) &&
+      nodeCount < maxNodes
+    ) {
+      if (state.pendingBreaks > 0) {
+        fragment.appendChild(document.createElement("br"));
+        state.pendingBreaks--;
+        nodeCount++;
+        continue;
+      }
+
+      const chunk = this.#readNextPlainTextChunk(
+        state.source,
+        state.offset,
+        limit
+      );
+      if (!chunk) break;
+
+      state.offset = chunk.nextOffset;
+
+      if (chunk.type === "break") {
+        // 一个换行只结束当前 span；连续换行额外生成 br 来保留空白行。
+        state.pendingBreaks += chunk.count;
+      } else {
+        const node = this.#createPlainTextChunkNode(chunk);
+        if (node) {
+          fragment.appendChild(node);
+          textNodes.push(node);
+          nodeCount++;
+        }
+      }
+
+      if (
+        !isInitialBatch &&
+        nodeCount > 0 &&
+        (performance.now?.() || Date.now()) - startedAt >= maxDuration
+      ) {
+        break;
+      }
+    }
+
+    if (fragment.childNodes.length) {
+      pre.appendChild(fragment);
+      textNodes.forEach((node) => this.#startObserveNode(node));
+    }
+
+    if (state.offset < state.source.length || state.pendingBreaks > 0) {
+      scheduleIdle(() => this.#appendPlainTextPreBatch(pre, state), 100);
+    } else {
+      this.#plainTextPreprocessingNodes.delete(pre);
+    }
+  }
+
+  #initPlainTextPre(pre) {
+    if (pre.dataset.kissPreprocessed === "true") {
+      return;
+    }
+
+    // 使用 textContent 读取纯文本，避免把 <tag> 这类内容重新解析成 HTML。
+    const state = {
+      source: pre.textContent || "",
+      offset: 0,
+      runId: this.#runId,
+      pendingBreaks: 0,
+    };
+
+    pre.dataset.kissPreprocessed = "true";
+    this.#plainTextPreprocessingNodes.add(pre);
+    pre.replaceChildren();
+    this.#appendPlainTextPreBatch(pre, state, true);
   }
 
   // 接口参数
@@ -656,14 +867,9 @@ export class Translator {
 
     // 纯文本预处理
     if (this.#rule.isPlainText) {
-      document
-        .querySelectorAll("pre")
-        .forEach(
-          (pre) =>
-            (pre.innerHTML = trustedTypesHelper.createHTML(
-              pre.innerHTML?.replace(/(?:\r\n|\r|\n)/g, "<br />")
-            ))
-        );
+      document.querySelectorAll("pre").forEach((pre) => {
+        this.#initPlainTextPre(pre);
+      });
     }
 
     // 查找根节点并扫描
@@ -830,6 +1036,7 @@ export class Translator {
       for (const mutation of mutations) {
         if (
           this.#skipMoNodes.has(mutation.target) ||
+          this.#plainTextPreprocessingNodes.has(mutation.target) ||
           mutation.nextSibling?.tagName?.toLowerCase() ===
             this.#translationTagName
         ) {
@@ -937,12 +1144,21 @@ export class Translator {
     // Chrome 扩展 API
     if (
       typeof globalThis !== "undefined" &&
-      globalThis.chrome?.dom?.openOrClosedShadowRoot
+      globalThis.chrome?.dom?.openOrClosedShadowRoot &&
+      element instanceof HTMLElement
     ) {
       return globalThis.chrome.dom.openOrClosedShadowRoot(element);
     }
     // 标准 API（只能获取 open 模式）
     return element.shadowRoot;
+  }
+
+  #isKissIgnoredNode(node) {
+    return (
+      node?.nodeType === Node.ELEMENT_NODE &&
+      (node.matches?.(Translator.KISS_IGNORE_SELECTOR) ||
+        node.closest?.(Translator.KISS_IGNORE_SELECTOR))
+    );
   }
 
   // 找页面所有 ShadowRoot
@@ -952,6 +1168,10 @@ export class Translator {
       const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
       while (walker.nextNode()) {
         const node = walker.currentNode;
+        if (this.#isKissIgnoredNode(node)) {
+          continue;
+        }
+
         const shadowRoot = this.#getShadowRoot(node);
         if (shadowRoot) {
           results.add(shadowRoot);
@@ -1778,7 +1998,7 @@ export class Translator {
       const isStreamRender =
         streamRenderMode !== "disabled" &&
         this.#apiSetting.useStream &&
-        this.#apiSetting.useBatchFetch;
+        API_SPE_TYPES.stream.has(this.#apiSetting.apiType);
 
       // REVIEW: 极佳的性能优化设计 (RequestAnimationFrame 缓冲刷新)！
       // 大模型流式输出（onStreamChunk）返回速率极快（每秒可达几十次）。
@@ -2434,6 +2654,7 @@ export class Translator {
     this.#observedNodes = new WeakSet();
     this.#translationNodes = new WeakMap();
     this.#processedNodes = new WeakMap();
+    this.#plainTextPreprocessingNodes = new WeakSet();
     this.#io = this.#createIntersectionObserver();
   }
 

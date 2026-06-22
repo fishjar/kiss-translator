@@ -160,6 +160,25 @@ describe("TranCont", () => {
     });
   });
 
+  test("passes stream callback when batch fetch is disabled", async () => {
+    const nonBatchStream = {
+      ...baseApiSetting,
+      useBatchFetch: false,
+    };
+    apiTranslate.mockResolvedValueOnce({ trText: "完整译文" });
+
+    const rendered = renderTranCont({ transApis: [nonBatchStream] });
+    await flushEffects();
+
+    expect(apiTranslate.mock.calls[0][0].onStreamChunk).toEqual(
+      expect.any(Function)
+    );
+
+    act(() => {
+      rendered.root.unmount();
+    });
+  });
+
   test("aborts stale request and prevents stale result overwrite", async () => {
     const first = createDeferred();
     const second = createDeferred();

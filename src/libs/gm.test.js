@@ -13,6 +13,9 @@ describe("gm userscript bridge", () => {
     document.documentElement.innerHTML = "<head></head><body></body>";
     delete window.KISS_GM;
     delete window.GM_info;
+    delete globalThis.GM_setValue;
+    delete globalThis.GM_getValue;
+    delete globalThis.GM_deleteValue;
     utils.genEventName.mockReturnValue("pong-adapt");
     mockFetchGM.mockReset();
   });
@@ -21,6 +24,9 @@ describe("gm userscript bridge", () => {
     delete globalThis.GM;
     delete window.KISS_GM;
     delete window.GM_info;
+    delete globalThis.GM_setValue;
+    delete globalThis.GM_getValue;
+    delete globalThis.GM_deleteValue;
   });
 
   test("adaptScript exposes xmlHttpRequest through CustomEvent bridge", () => {
@@ -221,5 +227,125 @@ describe("gm userscript bridge", () => {
     );
 
     expect(abort).toHaveBeenCalledTimes(1);
+  });
+
+  test("handlePing forwards native GM storage APIs before legacy fallback", async () => {
+    const stored = new Map();
+    globalThis.GM = {
+      setValue: jest.fn(async (key, value) => stored.set(key, value)),
+      getValue: jest.fn(async (key) => stored.get(key)),
+      deleteValue: jest.fn(async (key) => stored.delete(key)),
+    };
+    globalThis.GM_setValue = jest.fn();
+    globalThis.GM_getValue = jest.fn();
+    globalThis.GM_deleteValue = jest.fn();
+    const setPong = jest.fn();
+    const getPong = jest.fn();
+    const deletePong = jest.fn();
+    window.addEventListener("pong-native-set", setPong);
+    window.addEventListener("pong-native-get", getPong);
+    window.addEventListener("pong-native-delete", deletePong);
+
+    await handlePing(
+      new CustomEvent("kiss-ping", {
+        detail: {
+          action: "setValue",
+          args: { key: "native-key", val: "native-value" },
+          pong: "pong-native-set",
+        },
+      })
+    );
+    await handlePing(
+      new CustomEvent("kiss-ping", {
+        detail: {
+          action: "getValue",
+          args: { key: "native-key" },
+          pong: "pong-native-get",
+        },
+      })
+    );
+    await handlePing(
+      new CustomEvent("kiss-ping", {
+        detail: {
+          action: "deleteValue",
+          args: { key: "native-key" },
+          pong: "pong-native-delete",
+        },
+      })
+    );
+
+    expect(globalThis.GM.setValue).toHaveBeenCalledWith(
+      "native-key",
+      "native-value"
+    );
+    expect(globalThis.GM.getValue).toHaveBeenCalledWith("native-key");
+    expect(globalThis.GM.deleteValue).toHaveBeenCalledWith("native-key");
+    expect(globalThis.GM_setValue).not.toHaveBeenCalled();
+    expect(globalThis.GM_getValue).not.toHaveBeenCalled();
+    expect(globalThis.GM_deleteValue).not.toHaveBeenCalled();
+    expect(setPong).toHaveBeenCalledWith(
+      expect.objectContaining({ detail: { data: "native-value" } })
+    );
+    expect(getPong).toHaveBeenCalledWith(
+      expect.objectContaining({ detail: { data: "native-value" } })
+    );
+    expect(deletePong).toHaveBeenCalledWith(
+      expect.objectContaining({ detail: { data: "ok" } })
+    );
+    expect(stored.has("native-key")).toBe(false);
+  });
+
+  test("handlePing falls back to legacy GM storage APIs", async () => {
+    globalThis.GM = {};
+    globalThis.GM_setValue = jest.fn(async () => {});
+    globalThis.GM_getValue = jest.fn(async (key) => `stored:${key}`);
+    globalThis.GM_deleteValue = jest.fn(async () => {});
+    const setPong = jest.fn();
+    const getPong = jest.fn();
+    const deletePong = jest.fn();
+    window.addEventListener("pong-set", setPong);
+    window.addEventListener("pong-get", getPong);
+    window.addEventListener("pong-delete", deletePong);
+
+    await handlePing(
+      new CustomEvent("kiss-ping", {
+        detail: {
+          action: "setValue",
+          args: { key: "ios-key", val: "ios-value" },
+          pong: "pong-set",
+        },
+      })
+    );
+    await handlePing(
+      new CustomEvent("kiss-ping", {
+        detail: {
+          action: "getValue",
+          args: { key: "ios-key" },
+          pong: "pong-get",
+        },
+      })
+    );
+    await handlePing(
+      new CustomEvent("kiss-ping", {
+        detail: {
+          action: "deleteValue",
+          args: { key: "ios-key" },
+          pong: "pong-delete",
+        },
+      })
+    );
+
+    expect(globalThis.GM_setValue).toHaveBeenCalledWith("ios-key", "ios-value");
+    expect(globalThis.GM_getValue).toHaveBeenCalledWith("ios-key");
+    expect(globalThis.GM_deleteValue).toHaveBeenCalledWith("ios-key");
+    expect(setPong).toHaveBeenCalledWith(
+      expect.objectContaining({ detail: { data: "ios-value" } })
+    );
+    expect(getPong).toHaveBeenCalledWith(
+      expect.objectContaining({ detail: { data: "stored:ios-key" } })
+    );
+    expect(deletePong).toHaveBeenCalledWith(
+      expect.objectContaining({ detail: { data: "ok" } })
+    );
   });
 });

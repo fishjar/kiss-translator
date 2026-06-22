@@ -5,6 +5,26 @@ import { syncData } from "../libs/sync";
 import { useDebouncedCallback } from "./DebouncedCallback";
 import { isOptions } from "../libs/browser";
 
+function isSameStorageValue(a, b) {
+  if (Object.is(a, b)) return true;
+
+  if (
+    a &&
+    b &&
+    typeof a === "object" &&
+    typeof b === "object" &&
+    Array.isArray(a) === Array.isArray(b)
+  ) {
+    try {
+      return JSON.stringify(a) === JSON.stringify(b);
+    } catch (err) {
+      return false;
+    }
+  }
+
+  return false;
+}
+
 /**
  * 自定义 Storage 同步 Hook，用于在 React 组件生命周期中存取本地 Storage 状态
  *
@@ -150,6 +170,9 @@ export function useStorage(key, defaultVal = null, syncKey = "") {
     try {
       const storedVal = await storage.getObj(key);
       const nextData = storedVal ?? defaultVal;
+      if (isSameStorageValue(data, nextData)) {
+        return;
+      }
       if (!Object.is(data, nextData)) {
         skipRemoteSyncValueRef.current = { value: nextData };
       }

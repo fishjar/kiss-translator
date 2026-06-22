@@ -137,6 +137,12 @@ const genUserPrompt = ({
   texts,
   docInfo: { title = "", description = "", summary = "", context = "" } = {},
 }) => {
+  // 合并规则与接口中的AI专业术语
+  if (aiTerms) {
+    const aiGlossary = parseAITerms(aiTerms);
+    glossary = { ...glossary, ...aiGlossary };
+  }
+
   if (useBatchFetch) {
     const promptObj = {
       targetLanguage: toLang,
@@ -146,17 +152,15 @@ const genUserPrompt = ({
     title && (promptObj.title = title);
     description && (promptObj.description = description);
 
-    // 合并规则与接口中的AI专业术语
-    if (aiTerms) {
-      const aiGlossary = parseAITerms(aiTerms);
-      glossary = { ...glossary, ...aiGlossary };
-    }
-
     Object.keys(glossary).length !== 0 && (promptObj.glossary = glossary);
     tone && (promptObj.tone = tone);
 
     return JSON.stringify(promptObj);
   }
+
+  const glossaryStr = Object.entries(glossary)
+    .map(([term, definition]) => `- ${term}: ${definition}`)
+    .join("\n");
 
   return String(nobatchUserPrompt || "")
     .replaceAll(INPUT_PLACE_TITLE, title)
@@ -164,6 +168,7 @@ const genUserPrompt = ({
     .replaceAll(INPUT_PLACE_SUMMARY, summary)
     .replaceAll(INPUT_PLACE_CONTEXT, context)
     .replaceAll(INPUT_PLACE_TONE, tone)
+    .replaceAll(INPUT_PLACE_GLOSSARY, glossaryStr)
     .replaceAll(INPUT_PLACE_FROM, from)
     .replaceAll(INPUT_PLACE_TO, to)
     .replaceAll(INPUT_PLACE_FROM_LANG, fromLang)
@@ -1632,6 +1637,7 @@ export async function* handleTranslate(
         apiType,
         history,
         userMsg,
+        useBatchFetch: apiSetting.useBatchFetch,
         usePool,
         fetchInterval,
         fetchLimit,
@@ -1667,6 +1673,7 @@ async function* handleTranslateStreamInternal(
     apiType,
     history,
     userMsg,
+    useBatchFetch,
     usePool,
     fetchInterval,
     fetchLimit,
@@ -1701,6 +1708,13 @@ async function* handleTranslateStreamInternal(
         if (delta) {
           fullContent += delta;
           fullContent = stripMarkdownCodeBlock(fullContent, true);
+
+          if (!useBatchFetch) {
+            if (streamRenderMode === "realtime") {
+              yield { id: 0, partialText: fullContent, isComplete: false };
+            }
+            continue;
+          }
 
           if (!formatDetected) {
             const { isJson, detected } = detectStreamFormat(fullContent);
@@ -1757,7 +1771,7 @@ async function* handleTranslateStreamInternal(
   // 最终再解析一次，捕获可能遗漏的段落
   const hasEmpty = results.some((r) => !r);
   if (hasEmpty) {
-    const parsed = parseAIRes(fullContent, true);
+    const parsed = parseAIRes(fullContent, useBatchFetch);
     for (let i = 0; i < texts.length && i < parsed.length; i++) {
       if (!results[i]) {
         results[i] = parsed[i];
