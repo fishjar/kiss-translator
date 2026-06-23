@@ -1,25 +1,69 @@
 import Stack from "@mui/material/Stack";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Typography from "@mui/material/Typography";
 import Accordion from "@mui/material/Accordion";
 import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import Tabs from "@mui/material/Tabs";
+import Tab from "@mui/material/Tab";
 import { useI18n } from "../../hooks/I18n";
 import Box from "@mui/material/Box";
 import { useFavWords } from "../../hooks/FavWords";
 import DictCont from "../Selection/DictCont";
+import AiDictCont from "../Selection/AiDictCont";
 import SugCont from "../Selection/SugCont";
+import Zdic from "../Selection/Zdic";
 import DownloadButton from "./DownloadButton";
 import UploadButton from "./UploadButton";
 import Button from "@mui/material/Button";
 import ClearAllIcon from "@mui/icons-material/ClearAll";
 import Alert from "@mui/material/Alert";
-import { isValidWord } from "../../libs/utils";
+import { isSingleChineseChar, isValidWord } from "../../libs/utils";
 import { kissLog } from "../../libs/log";
 import { useConfirm } from "../../hooks/Confirm";
 import { useSetting } from "../../hooks/Setting";
 import { dictHandlers } from "../Selection/DictHandler";
+import {
+  DEFAULT_SETTING,
+  DEFAULT_TRANBOX_SETTING,
+  OPT_DICT_MAP,
+  PROMPT_MODE_FOLLOW_API,
+  findPromptBySlug,
+  resolveApiPromptList,
+} from "../../config";
+
+function resolveAiDictApiSetting({
+  aiDictApiSlug,
+  aiDictPromptSlug = PROMPT_MODE_FOLLOW_API,
+  prompts = [],
+  transApis = [],
+}) {
+  if (!aiDictApiSlug || aiDictApiSlug === "-") {
+    return null;
+  }
+
+  const apiSetting = transApis.find((api) => api.apiSlug === aiDictApiSlug);
+  if (!apiSetting) {
+    return null;
+  }
+
+  if (aiDictPromptSlug === PROMPT_MODE_FOLLOW_API) {
+    return apiSetting.dictPrompt ? apiSetting : null;
+  }
+
+  const prompt = findPromptBySlug(prompts, aiDictPromptSlug);
+  if (!prompt) {
+    return null;
+  }
+
+  return {
+    ...apiSetting,
+    dictPromptSlug: prompt.slug,
+    dictPrompt: prompt.systemPrompt,
+    dictUserPrompt: prompt.userPrompt,
+  };
+}
 
 /**
  * 单个生词的折叠手风琴面板组件
@@ -30,13 +74,37 @@ import { dictHandlers } from "../Selection/DictHandler";
  * @param {number} [props.createdAt] - 收藏生词的创建时间戳
  * @param {number} [props.timestamp] - 关联的视频播放时间戳 (毫秒)
  */
-function FavAccordion({ word, index, createdAt, timestamp }) {
+function FavAccordion({
+  word,
+  index,
+  createdAt,
+  timestamp,
+  tranboxSetting,
+  transApis,
+  prompts,
+}) {
   // 控制当前手风琴展开与收起状态
   const [expanded, setExpanded] = useState(false);
-  // 从全局设置 Hook 中获取当前翻译偏好设置
-  const { setting } = useSetting();
   // 提取配置中用户选择的查词词典 (enDict) 和联想源 (enSug)
-  const { enDict, enSug } = setting?.tranboxSetting || {};
+  const { enDict, enSug, aiDictApiSlug, aiDictPromptSlug, fromLang, toLang } =
+    tranboxSetting || DEFAULT_TRANBOX_SETTING;
+  const i18n = useI18n();
+  const [dictTab, setDictTab] = useState("default");
+  const isWord = useMemo(() => isValidWord(word), [word]);
+  const isChineseChar = useMemo(() => isSingleChineseChar(word), [word]);
+  const defaultDictAvailable =
+    (isWord && OPT_DICT_MAP.has(enDict)) || isChineseChar;
+  const aiDictApiSetting = useMemo(
+    () =>
+      resolveAiDictApiSetting({
+        aiDictApiSlug,
+        aiDictPromptSlug,
+        prompts,
+        transApis,
+      }),
+    [aiDictApiSlug, aiDictPromptSlug, prompts, transApis]
+  );
+  const aiDictAvailable = Boolean(word?.trim() && aiDictApiSetting);
 
   // 展开折叠切换处理
   const handleChange = (e) => {
@@ -96,7 +164,58 @@ function FavAccordion({ word, index, createdAt, timestamp }) {
         {/* 仅在展开时懒加载渲染词典解释与联想提示组件，以提升长列表性能 */}
         {expanded && (
           <Stack spacing={2}>
-            <DictCont text={word} enDict={enDict} />
+            {(defaultDictAvailable || aiDictAvailable) && (
+              <Box>
+                {aiDictAvailable ? (
+                  <>
+                    <Tabs
+                      value={defaultDictAvailable ? dictTab : "ai"}
+                      onChange={(_, value) => setDictTab(value)}
+                      variant="scrollable"
+                      allowScrollButtonsMobile
+                      sx={{ minHeight: 36, mb: 1 }}
+                    >
+                      {defaultDictAvailable && (
+                        <Tab
+                          value="default"
+                          label={i18n("default_dict", "默认词典")}
+                          sx={{ minHeight: 36, py: 0.5 }}
+                        />
+                      )}
+                      <Tab
+                        value="ai"
+                        label={i18n("ai_dict", "AI词典")}
+                        sx={{ minHeight: 36, py: 0.5 }}
+                      />
+                    </Tabs>
+                    {defaultDictAvailable && dictTab === "default" && (
+                      <>
+                        {isWord && OPT_DICT_MAP.has(enDict) && (
+                          <DictCont text={word} enDict={enDict} />
+                        )}
+                        {isChineseChar && <Zdic text={word} />}
+                      </>
+                    )}
+                    {(!defaultDictAvailable || dictTab === "ai") && (
+                      <AiDictCont
+                        text={word}
+                        fromLang={fromLang}
+                        speechLang={fromLang}
+                        toLang={toLang}
+                        apiSetting={aiDictApiSetting}
+                      />
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {isWord && OPT_DICT_MAP.has(enDict) && (
+                      <DictCont text={word} enDict={enDict} />
+                    )}
+                    {isChineseChar && <Zdic text={word} />}
+                  </>
+                )}
+              </Box>
+            )}
             <SugCont text={word} enSug={enSug} />
           </Stack>
         )}
@@ -113,6 +232,12 @@ export default function FavWords() {
   // 全局生词管理 Hook，提供生词字典、单纯单词列表、合并导入与清空方法
   const { favList, wordList, mergeWords, clearWords } = useFavWords();
   const { setting } = useSetting();
+  const { transApis, prompts, subtitleSetting, tranboxSetting } =
+    setting || DEFAULT_SETTING;
+  const resolvedTransApis = useMemo(
+    () => resolveApiPromptList(transApis, prompts, subtitleSetting),
+    [prompts, subtitleSetting, transApis]
+  );
   const confirm = useConfirm();
 
   // 导入解析方法：解析纯文本，按行提取逗号分隔的第一个字段作为有效单词进行合并
@@ -416,6 +541,9 @@ export default function FavWords() {
               word={word}
               createdAt={createdAt}
               timestamp={timestamp}
+              tranboxSetting={tranboxSetting}
+              transApis={resolvedTransApis}
+              prompts={prompts}
             />
           ))}
         </Box>
