@@ -1272,6 +1272,7 @@ export class Translator {
   #startObserveNode(node) {
     // todo: DocumentFragment 无法被 this.#io.observe
     if (!Translator.isElement(node)) return;
+    if (this.#tryAdoptExistingTranslationHost(node)) return;
 
     if (this.#rule.highlightWords === OPT_HIGHLIGHT_WORDS_BEFORETRANS) {
       this.#highlightWordsDeeply(node);
@@ -2443,6 +2444,68 @@ export class Translator {
     this.#findTranslationWrappers(node).forEach((el) => {
       this.#removeTranslationElement(el);
     });
+  }
+
+  #collectExistingTranslationNodes(wrapper) {
+    const { transOrder = "original-first" } = this.#rule;
+    const nodes = [];
+    const isOriginalBefore = transOrder !== "translation-first";
+    let current = isOriginalBefore
+      ? wrapper.previousSibling
+      : wrapper.nextSibling;
+
+    while (current) {
+      if (
+        this.#shouldBreak(current) &&
+        !Translator.TAGS.WARP.has(current.nodeName?.toUpperCase())
+      ) {
+        break;
+      }
+
+      if (
+        current.nodeType === Node.ELEMENT_NODE ||
+        current.nodeType === Node.TEXT_NODE
+      ) {
+        if (isOriginalBefore) {
+          nodes.unshift(current);
+        } else {
+          nodes.push(current);
+        }
+      }
+
+      current = isOriginalBefore
+        ? current.previousSibling
+        : current.nextSibling;
+    }
+
+    return nodes;
+  }
+
+  #tryAdoptExistingTranslationHost(hostNode) {
+    if (!Translator.isElementOrFragment(hostNode)) return false;
+
+    const wrappers = Array.from(hostNode.children || []).filter((child) =>
+      child.classList?.contains(Translator.KISS_CLASS.warpper)
+    );
+    if (!wrappers.length) return false;
+
+    wrappers.forEach((wrapper) => {
+      const nodes = this.#collectExistingTranslationNodes(wrapper);
+      this.#translationNodes.set(wrapper, {
+        nodes,
+        isHide: false,
+      });
+      nodes.forEach((node) => {
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          this.#processedNodes.set(node, { ...this.#rule });
+        }
+      });
+    });
+
+    this.#processedNodes.set(hostNode, { ...this.#rule });
+    this.#observedNodes.add(hostNode);
+    this.#viewNodes.add(hostNode);
+    return true;
   }
 
   // 清理译文

@@ -209,6 +209,106 @@ describe("Translator rule styles", () => {
     expect(wrapper.textContent).toBe("Translated mixed inline content");
   });
 
+  test("continues scanning block children after processing mixed parent nodes", async () => {
+    apiTranslate.mockImplementation(({ text }) =>
+      Promise.resolve({
+        trText: `Translated ${text}`,
+        isSame: false,
+      })
+    );
+    document.body.innerHTML = `
+      <main id="root">
+        <section id="mixed">
+          Intro text
+          <p>Nested paragraph</p>
+        </section>
+      </main>
+    `;
+
+    createTranslator({}, { minLength: 0 });
+    await flushAsync();
+
+    const requestedTexts = apiTranslate.mock.calls.map(([args]) => args.text);
+
+    expect(requestedTexts.some((text) => text.includes("Intro text"))).toBe(
+      true
+    );
+    expect(requestedTexts).toContain("Nested paragraph");
+  });
+
+  test("adopts restored translation wrappers without retranslating", async () => {
+    document.body.innerHTML = `
+      <main id="root">
+        <h3>
+          <a href="/discussion/1">How to fix playback buttons?</a>
+          <kiss-translator class="kiss-translator-wrapper notranslate">
+            <font lang="zh-CN" class="kiss-translator-inner">Existing translation</font>
+          </kiss-translator>
+        </h3>
+      </main>
+    `;
+
+    createTranslator(
+      {
+        autoScan: "false",
+        selector: "h3",
+      },
+      { minLength: 0 }
+    );
+    await flushAsync();
+
+    const wrappers = document.querySelectorAll(
+      `.${Translator.KISS_CLASS.warpper}`
+    );
+    const requestedTexts = apiTranslate.mock.calls.map(([args]) => args.text);
+
+    expect(wrappers).toHaveLength(1);
+    expect(wrappers[0].textContent).toContain("Existing translation");
+    expect(
+      document.querySelector(`h3 a .${Translator.KISS_CLASS.warpper}`)
+    ).toBeNull();
+    expect(requestedTexts).toEqual([]);
+  });
+
+  test("syncs translation-only mode after adopting restored wrappers", async () => {
+    document.body.innerHTML = `
+      <main id="root">
+        <h3>
+          <a href="/discussion/1">How to fix playback buttons?</a>
+          <kiss-translator class="kiss-translator-wrapper notranslate">
+            <br>
+            <font lang="zh-CN" class="kiss-translator-inner">Existing translation</font>
+          </kiss-translator>
+        </h3>
+      </main>
+    `;
+
+    const translator = createTranslator(
+      {
+        autoScan: "false",
+        selector: "h3",
+      },
+      { minLength: 0 }
+    );
+    await flushAsync();
+
+    translator.updateRule({ transOnly: "true" });
+    await flushAsync();
+
+    expect(document.querySelector("h3 a")).toBeNull();
+    expect(document.querySelector("h3").textContent).toContain(
+      "Existing translation"
+    );
+
+    translator.updateRule({ transOnly: "false" });
+    await flushAsync();
+
+    expect(document.querySelector("h3 a")?.textContent).toBe(
+      "How to fix playback buttons?"
+    );
+    expect(apiTranslate).not.toHaveBeenCalled();
+  });
+
   test("does not query shadow roots inside KISS translator elements when scanAll is enabled", async () => {
     document.body.innerHTML = `
       <main id="root">
