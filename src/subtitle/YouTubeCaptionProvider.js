@@ -899,7 +899,7 @@ class YouTubeCaptionProvider {
     );
 
     if (showList && !this.#subtitleListManager) {
-      this.#subtitleListManager = new YouTubeSubtitleList(videoEl);
+      this.#subtitleListManager = new YouTubeSubtitleList(videoEl, this.#i18n);
       this.#subtitleListManager.initialize(
         this.#subtitles,
         this.#rawSubtitleEvents,

@@ -16,8 +16,9 @@ export class YouTubeSubtitleList {
   /**
    * @param {HTMLVideoElement} videoElement YouTube 的原生视频播放器 DOM 节点
    */
-  constructor(videoElement) {
+  constructor(videoElement, i18n = () => "") {
     this.videoEl = videoElement;
+    this.i18n = i18n;
 
     // --- 数据源缓存 ---
     // 双语字幕主列表数组。结构：{ start: number, end: number, text: string, translation: string }
@@ -175,6 +176,10 @@ export class YouTubeSubtitleList {
     return Math.min(100, Math.max(0, Math.round(progress)));
   }
 
+  _t(key, fallback) {
+    return this.i18n(key) || fallback;
+  }
+
   /**
    * 刷新字幕 Tab 标题，在“双语字幕”后显示当前按需断句处理进度。
    *
@@ -182,7 +187,10 @@ export class YouTubeSubtitleList {
    */
   _updateSubtitleTabLabel() {
     if (!this.subtitleTabEl) return;
-    this.subtitleTabEl.textContent = `双语字幕 [${this.subtitleProgress}%]`;
+    this.subtitleTabEl.textContent = `${this._t(
+      "bilingual_subtitles",
+      "双语字幕"
+    )} [${this.subtitleProgress}%]`;
   }
 
   /**
@@ -749,7 +757,7 @@ export class YouTubeSubtitleList {
     this.subtitleTabEl = subtitleTab;
     this._updateSubtitleTabLabel();
     const vocabularyTab = document.createElement("button");
-    vocabularyTab.textContent = "生词本";
+    vocabularyTab.textContent = this._t("vocabulary_book", "生词本");
 
     // 动态控制 Tab 激活态与未激活态 CSS 的映射函数
     const styleTab = (tab, isActive) => {
@@ -759,7 +767,7 @@ export class YouTubeSubtitleList {
     // 关闭侧边列表栏的“×”小按钮
     const closeBtn = document.createElement("button");
     closeBtn.textContent = "×"; // 直接使用纯文本的“×”号，不再需要 HTML 转义
-    closeBtn.title = "Close";
+    closeBtn.title = this._t("close", "Close");
     closeBtn.style.cssText = `
       margin-left: auto; 
       background: transparent; 
@@ -803,7 +811,10 @@ export class YouTubeSubtitleList {
     subActionBar.style.cssText = `padding: 10px 16px; border-bottom: 1px solid var(--kt-divider); display: flex; justify-content: center; gap: 8px; flex-shrink: 0;`;
 
     const downloadBtn = document.createElement("button");
-    downloadBtn.textContent = "下载字幕 (VTT)";
+    downloadBtn.textContent = this._t(
+      "download_subtitles_vtt",
+      "下载字幕 (VTT)"
+    );
     downloadBtn.style.cssText = `padding: 6px 12px; background: var(--kt-btn-bg); color: var(--kt-btn-color); border: var(--kt-btn-border); border-radius: 4px; cursor: pointer; font-size: 12px; transition: background 220ms ease, color 200ms ease, transform 160ms ease;`;
 
     downloadBtn.addEventListener("mouseenter", () => {
@@ -827,7 +838,10 @@ export class YouTubeSubtitleList {
     downloadBtn.addEventListener("click", this.downloadSubtitles.bind(this));
 
     const downloadRawBtn = document.createElement("button");
-    downloadRawBtn.textContent = "下载源数据 (JSON)";
+    downloadRawBtn.textContent = this._t(
+      "download_raw_subtitle_events_json",
+      "下载源数据 (JSON)"
+    );
     downloadRawBtn.style.cssText = `padding: 6px 12px; background: var(--kt-btn-bg); color: var(--kt-btn-color); border: var(--kt-btn-border); border-radius: 4px; cursor: pointer; font-size: 12px; transition: background 220ms ease, color 200ms ease, transform 160ms ease;`;
 
     downloadRawBtn.addEventListener("mouseenter", () => {
