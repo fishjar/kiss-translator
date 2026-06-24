@@ -261,9 +261,10 @@ describe("Translator rule styles", () => {
       `.${Translator.KISS_CLASS.warpper}`
     );
     const requestedTexts = apiTranslate.mock.calls.map(([args]) => args.text);
+    const inner = wrappers[0].querySelector(`.${Translator.KISS_CLASS.inner}`);
 
     expect(wrappers).toHaveLength(1);
-    expect(wrappers[0].textContent).toContain("Existing translation");
+    expect(inner.textContent).toContain("Existing translation");
     expect(
       document.querySelector(`h3 a .${Translator.KISS_CLASS.warpper}`)
     ).toBeNull();
@@ -299,6 +300,43 @@ describe("Translator rule styles", () => {
     expect(document.querySelector("h3").textContent).toContain(
       "Existing translation"
     );
+
+    translator.updateRule({ transOnly: "false" });
+    await flushAsync();
+
+    expect(document.querySelector("h3 a")?.textContent).toBe(
+      "How to fix playback buttons?"
+    );
+    expect(apiTranslate).not.toHaveBeenCalled();
+  });
+
+  test("restores original nodes from template backup after transOnly turbo restore", async () => {
+    document.body.innerHTML = `
+      <main id="root">
+        <h3>
+          <kiss-translator class="kiss-translator-wrapper notranslate">
+            <br hidden>
+            <font lang="zh-CN" class="kiss-translator-inner">Existing translation</font>
+            <template class="kiss-translator-backup">
+              <a href="/discussion/1">How to fix playback buttons?</a>
+            </template>
+          </kiss-translator>
+        </h3>
+      </main>
+    `;
+
+    const translator = createTranslator(
+      {
+        autoScan: "false",
+        selector: "h3",
+        transOnly: "true",
+      },
+      { minLength: 0 }
+    );
+    await flushAsync();
+
+    expect(document.querySelector("h3 a")).toBeNull();
+    expect(apiTranslate).not.toHaveBeenCalled();
 
     translator.updateRule({ transOnly: "false" });
     await flushAsync();
