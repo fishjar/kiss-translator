@@ -174,6 +174,7 @@ export class Translator {
     inner: `${APP_LCNAME}-inner`,
     term: `${APP_LCNAME}-term`,
     br: `${APP_LCNAME}-br`,
+    space: `${APP_LCNAME}-space`,
     highlight: `${APP_LCNAME}-highlight`,
     retry: `${APP_LCNAME}-retry`,
     backup: `${APP_LCNAME}-backup`,
@@ -1991,7 +1992,17 @@ export class Translator {
           wrapper.appendChild(inner);
         }
       } else {
-        wrapper.appendChild(inner);
+        const space = document.createElement("span");
+        space.textContent = " ";
+        space.className = Translator.KISS_CLASS.space;
+        space.hidden = hideOrigin;
+        if (transOrder === "translation-first") {
+          wrapper.appendChild(inner);
+          wrapper.appendChild(space);
+        } else {
+          wrapper.appendChild(space);
+          wrapper.appendChild(inner);
+        }
       }
 
       this.#withViewportAnchor(() => {
@@ -2589,11 +2600,15 @@ export class Translator {
     const { transOrder = "original-first" } = this.#rule;
     this.#findTranslationWrappers(node).forEach((el) => {
       const br = el.querySelector(":scope > br");
+      const space = el.querySelector(
+        `:scope > span.${Translator.KISS_CLASS.space}`
+      );
       const { nodes } = this.#translationNodes.get(el) || {};
       if (transOnly === "true") {
         // 双语变为仅译文
         this.#withViewportAnchor(() => {
           if (br) br.hidden = true;
+          if (space) space.hidden = true;
           this.#removeNodes(nodes, el);
         });
         this.#translationNodes.set(el, { nodes, isHide: true });
@@ -2601,6 +2616,7 @@ export class Translator {
         // 仅译文变为双语
         this.#withViewportAnchor(() => {
           if (br) br.hidden = false;
+          if (space) space.hidden = false;
           if (nodes && nodes.length) {
             const frag = document.createDocumentFragment();
             nodes.forEach((n) => frag.appendChild(n));
