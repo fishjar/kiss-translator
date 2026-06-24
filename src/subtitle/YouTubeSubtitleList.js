@@ -182,7 +182,7 @@ export class YouTubeSubtitleList {
    */
   _updateSubtitleTabLabel() {
     if (!this.subtitleTabEl) return;
-    this.subtitleTabEl.textContent = `双语字幕 [已处理${this.subtitleProgress}%]`;
+    this.subtitleTabEl.textContent = `双语字幕 [${this.subtitleProgress}%]`;
   }
 
   /**
@@ -672,7 +672,7 @@ export class YouTubeSubtitleList {
         border: "var(--kt-border, 1px solid rgba(0, 0, 0, 0.1))",
         borderRadius: "8px",
         minWidth: "320px",
-        maxWidth: "400px",
+        maxWidth: "600px",
         boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
         fontFamily:
           "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",

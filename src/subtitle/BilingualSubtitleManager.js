@@ -134,7 +134,6 @@ export class BilingualSubtitleManager {
   #videoEl; // 当前绑定的 HTMLVideoElement 播放器实例
   #formattedSubtitles = []; // 已经分句整理好的全部字幕数组
   #captionWindowEl = null; // 悬浮字幕窗口的内部 DOM 引用
-  #captionDragged = false; // 标识用户是否手动拖拽过字幕窗口，用于暂停自动同步位置
   #paperEl = null; // 悬浮字幕外层背景画布 DOM 引用
   #currentSubtitleIndex = -1; // 当前正在显示的字幕在数组中的索引，-1 代表无字幕显示
   #setting = {}; // 全局设置项副本
@@ -148,6 +147,7 @@ export class BilingualSubtitleManager {
   #wasPlayingBeforeHover = false; // 记录鼠标 hover 单词前视频是否原本处于播放状态，用于离开时恢复播放
   #hoverTarget = null;
   #playerControlBarObserver = null; // 监听播放器底部控制条显隐突变的 MutationObserver
+  #syncPaperBottomAfterDrag = null; // 拖拽结束后按当前控制条状态修正字幕位置
 
   /**
    * @param {object} options
@@ -221,6 +221,7 @@ export class BilingualSubtitleManager {
     // 释放 MutationObserver 监听器
     this.#playerControlBarObserver?.disconnect();
     this.#playerControlBarObserver = null;
+    this.#syncPaperBottomAfterDrag = null;
     this.#formattedSubtitles = [];
 
     // 清理单词提示气泡框
@@ -247,40 +248,41 @@ export class BilingualSubtitleManager {
 
   /**
    * 监听 YouTube 原生控制栏的显示状态突变。
-   * 控制条弹出时，需要将字幕框底部边缘上移，控制条隐退时下移，防止挡住控制菜单。
+   * 字幕贴近底部时，控制条弹出需要临时上浮，控制条隐退后回到用户确认的基础位置。
    */
   #observePlayerControlBar() {
     const player = this.#videoEl.closest(".html5-video-player");
     if (!player) return;
     const controlBar = player.querySelector(".ytp-left-controls");
     if (!controlBar) return;
-    let controlBarHeight = parseFloat(getComputedStyle(controlBar).height);
+    const controlBarHeight = parseFloat(getComputedStyle(controlBar).height);
 
-    // 根据 YouTube 原生是否有 ytp-autohide 样式类，初始化计算底部高度
-    const isHiddenNow = player.classList.contains("ytp-autohide");
-    let initialBottom = player.clientHeight * 0.05;
-    if (!isHiddenNow) initialBottom += controlBarHeight;
-    this.#paperEl.style.bottom = `${initialBottom}px`;
-    let lastControlBarHiddenState = isHiddenNow;
+    let baseBottomWhenControlsHidden = player.clientHeight * 0.05;
+    let lastControlBarHiddenState = null;
 
-    // 当控制条状态变化时，加/减控制条的高度自适应平移字幕
-    const updatePaperElBottom = () => {
+    const syncPaperElBottom = ({ force = false } = {}) => {
       const isHidden = player.classList.contains("ytp-autohide");
-      if (isHidden === lastControlBarHiddenState) return;
+      if (!force && isHidden === lastControlBarHiddenState) return;
       lastControlBarHiddenState = isHidden;
 
-      let currentBottom = parseFloat(this.#paperEl.style.bottom) || 0;
-      let newBottom = isHidden
-        ? currentBottom - controlBarHeight
-        : currentBottom + controlBarHeight;
+      const shouldFloatAboveControlBar =
+        baseBottomWhenControlsHidden < controlBarHeight * 2;
+      const bottom =
+        !isHidden && shouldFloatAboveControlBar
+          ? baseBottomWhenControlsHidden + controlBarHeight
+          : baseBottomWhenControlsHidden;
 
-      this.#paperEl.style.bottom = `${newBottom}px`;
+      this.#paperEl.style.bottom = `${bottom}px`;
     };
 
-    const observer = new MutationObserver(() => {
-      // 如果用户已经手动拖拽了字幕框，则不再执行位置自适应平移，以用户手动拖拽位置为准
-      if (!this.#captionDragged) updatePaperElBottom();
-    });
+    this.#syncPaperBottomAfterDrag = () => {
+      baseBottomWhenControlsHidden = parseFloat(this.#paperEl.style.bottom) || 0;
+      syncPaperElBottom({ force: true });
+    };
+
+    syncPaperElBottom({ force: true });
+
+    const observer = new MutationObserver(() => syncPaperElBottom());
     observer.observe(player, { attributes: true, attributeFilter: ["class"] });
     this.#playerControlBarObserver = observer;
   }
@@ -346,7 +348,7 @@ export class BilingualSubtitleManager {
       this.#paperEl,
       container,
       this.#captionWindowEl,
-      () => (this.#captionDragged = true) // 拖动完成后将标志位置为 true
+      () => this.#syncPaperBottomAfterDrag?.()
     );
 
     // 5. 如果开启了悬浮查词，则在鼠标 hover 字幕窗口时暂停视频，方便用户稳妥查词；移开鼠标时自动恢复播放
@@ -636,6 +638,7 @@ export class BilingualSubtitleManager {
     dragEndCallback
   ) {
     let isDragging = false;
+    let hasDragged = false;
     let startY;
     let initialBottom;
     let dragElementHeight;
@@ -647,6 +650,7 @@ export class BilingualSubtitleManager {
       e.preventDefault();
 
       isDragging = true;
+      hasDragged = false;
       handleElement.style.cursor = "grabbing";
       // 兼容触屏端拖拽
       startY = e.type === "touchstart" ? e.touches[0].clientY : e.clientY;
@@ -686,9 +690,8 @@ export class BilingualSubtitleManager {
         newBottom = Math.max(0, newBottom);
       }
 
+      hasDragged = true;
       dragElement.style.bottom = `${newBottom}px`;
-      if (dragEndCallback && typeof dragEndCallback === "function")
-        dragEndCallback();
     };
 
     const onDragEnd = (e) => {
@@ -705,6 +708,12 @@ export class BilingualSubtitleManager {
       document.removeEventListener("mouseup", onDragEnd, { capture: true });
       document.removeEventListener("touchend", onDragEnd, { capture: true });
 
+      if (
+        hasDragged &&
+        dragEndCallback &&
+        typeof dragEndCallback === "function"
+      )
+        dragEndCallback();
       const finalBottomPx = dragElement.style.bottom;
       setTimeout(() => {
         dragElement.style.bottom = finalBottomPx;
