@@ -54,6 +54,7 @@ import {
   OPT_TRANS_GOOGLE_2,
   OPT_TRANS_MICROSOFT,
   OPT_TRANS_DEEPSEEK,
+  OPT_TRANS_OPENCODEGO,
   OPT_TRANS_SILICONFLOW,
   OPT_TRANS_XIAOMIMIMO,
   OPT_TRANS_ALIYUNBAILIAN,
@@ -117,6 +118,7 @@ const API_ICON_FILES = {
   [OPT_TRANS_MICROSOFT]: "Microsoft.svg",
   [OPT_TRANS_AZUREAI]: "AzureAI.svg",
   [OPT_TRANS_DEEPSEEK]: "DeepSeek.svg",
+  [OPT_TRANS_OPENCODEGO]: "OpenCodeGo.svg",
   [OPT_TRANS_SILICONFLOW]: "SiliconFlow.svg",
   [OPT_TRANS_XIAOMIMIMO]: "XiaomiMimo.svg",
   [OPT_TRANS_ALIYUNBAILIAN]: "AliyunBailian.svg",
@@ -177,7 +179,7 @@ function ApiProviderIcon({ apiType, disabled = false, sx = {} }) {
             display: "block",
             filter:
               theme.palette.mode === "dark" &&
-              API_SPE_TYPES.darkIcon.has(apiType)
+                API_SPE_TYPES.darkIcon.has(apiType)
                 ? "invert(100%)"
                 : "none",
           })}
@@ -272,9 +274,9 @@ function SensitiveTextField({ value = "", onChange, inputProps, ...props }) {
   const displayValue = editing
     ? value
     : String(value)
-        .split("\n")
-        .map((line) => (line ? "•".repeat(Math.min(line.length, 24)) : ""))
-        .join("\n");
+      .split("\n")
+      .map((line) => (line ? "•".repeat(Math.min(line.length, 24)) : ""))
+      .join("\n");
 
   return (
     <TextField

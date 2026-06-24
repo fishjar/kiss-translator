@@ -48,6 +48,7 @@ export const OPT_TRANS_GOOGLE_2 = "Google2"; // 谷歌翻译 pa 网页 API (支�
 export const OPT_TRANS_MICROSOFT = "Microsoft"; // 微软翻译服务
 export const OPT_TRANS_AZUREAI = "AzureAI"; // 微软 Azure 翻译
 export const OPT_TRANS_DEEPSEEK = "DeepSeek"; // DeepSeek 深度求索 AI 翻译
+export const OPT_TRANS_OPENCODEGO = "OpenCodeGo"; // OpenCode Go AI 翻译订阅服务
 export const OPT_TRANS_SILICONFLOW = "SiliconFlow"; // 硅基流动 AI 翻译 (云端部署大模型)
 export const OPT_TRANS_XIAOMIMIMO = "XiaomiMimo"; // 小米米莫 AI 翻译
 export const OPT_TRANS_ALIYUNBAILIAN = "AliyunBailian"; // 阿里云百炼大模型翻译
@@ -78,6 +79,7 @@ export const OPT_ALL_TRANS_TYPES = [
   OPT_TRANS_AZUREAI,
   // OPT_TRANS_BAIDU,
   OPT_TRANS_DEEPSEEK,
+  OPT_TRANS_OPENCODEGO,
   OPT_TRANS_SILICONFLOW,
   OPT_TRANS_XIAOMIMIMO,
   OPT_TRANS_ALIYUNBAILIAN,
@@ -126,6 +128,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_EPHONEAI,
     OPT_TRANS_OPENAI,
     OPT_TRANS_DEEPSEEK,
+    OPT_TRANS_OPENCODEGO,
     OPT_TRANS_SILICONFLOW,
     OPT_TRANS_XIAOMIMIMO,
     OPT_TRANS_ALIYUNBAILIAN,
@@ -142,6 +145,7 @@ export const API_SPE_TYPES = {
   mulkeys: new Set([
     OPT_TRANS_AZUREAI,
     OPT_TRANS_DEEPSEEK,
+    OPT_TRANS_OPENCODEGO,
     OPT_TRANS_SILICONFLOW,
     OPT_TRANS_XIAOMIMIMO,
     OPT_TRANS_ALIYUNBAILIAN,
@@ -162,6 +166,7 @@ export const API_SPE_TYPES = {
   batch: new Set([
     OPT_TRANS_AZUREAI,
     OPT_TRANS_DEEPSEEK,
+    OPT_TRANS_OPENCODEGO,
     OPT_TRANS_SILICONFLOW,
     OPT_TRANS_XIAOMIMIMO,
     OPT_TRANS_ALIYUNBAILIAN,
@@ -183,6 +188,7 @@ export const API_SPE_TYPES = {
   // 支持带历史会话（Context）关联的翻译引擎
   context: new Set([
     OPT_TRANS_DEEPSEEK,
+    OPT_TRANS_OPENCODEGO,
     OPT_TRANS_SILICONFLOW,
     OPT_TRANS_XIAOMIMIMO,
     OPT_TRANS_ALIYUNBAILIAN,
@@ -200,6 +206,7 @@ export const API_SPE_TYPES = {
   // 支持流式文本返回（Server-Sent Events / Stream）的翻译引擎
   stream: new Set([
     OPT_TRANS_DEEPSEEK,
+    OPT_TRANS_OPENCODEGO,
     OPT_TRANS_SILICONFLOW,
     OPT_TRANS_XIAOMIMIMO,
     OPT_TRANS_ALIYUNBAILIAN,
@@ -236,6 +243,13 @@ export const API_SPE_TYPES = {
 // disableSupported: 是否允许用户手动关闭思考模式，默认 true。若为 false 则说明该模型强制开启思考（如 Claude 的部分高推理模型）。
 export const THINKING_PARAM_MAP = {
   [OPT_TRANS_DEEPSEEK]: {
+    type: "deepseek",
+    efforts: [
+      { value: "max", label: "Max" },
+      { value: "high", label: "High" },
+    ],
+  },
+  [OPT_TRANS_OPENCODEGO]: {
     type: "deepseek",
     efforts: [
       { value: "max", label: "Max" },
@@ -465,6 +479,7 @@ export const OPT_LANGS_TO_SPEC = {
     ["zh-TW", "ZH"],
   ]),
   [OPT_TRANS_DEEPSEEK]: OPT_LANGS_SPEC_NAME,
+  [OPT_TRANS_OPENCODEGO]: OPT_LANGS_SPEC_NAME,
   [OPT_TRANS_SILICONFLOW]: OPT_LANGS_SPEC_NAME,
   [OPT_TRANS_XIAOMIMIMO]: OPT_LANGS_SPEC_NAME,
   [OPT_TRANS_ALIYUNBAILIAN]: OPT_LANGS_SPEC_NAME,
@@ -881,6 +896,12 @@ const defaultApiOpts = {
   [OPT_TRANS_DEEPSEEK]: {
     ...defaultApi,
     url: "https://api.deepseek.com/chat/completions",
+    model: "deepseek-v4-flash",
+    ...defaultAiApiOpts,
+  },
+  [OPT_TRANS_OPENCODEGO]: {
+    ...defaultApi,
+    url: "https://opencode.ai/zen/go/v1/chat/completions",
     model: "deepseek-v4-flash",
     ...defaultAiApiOpts,
   },
