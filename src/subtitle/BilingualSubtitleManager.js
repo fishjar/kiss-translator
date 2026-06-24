@@ -192,7 +192,7 @@ export class BilingualSubtitleManager {
       transform: "translateX(-50%)",
       textAlign: "center",
       containerType: "inline-size",
-      zIndex: "2147483647",
+      zIndex: "50",
       pointerEvents: "auto", // 自身拦截点击，用来做拖拽操作
       display: "none", // 缺省隐藏，有字幕时显示
     });
