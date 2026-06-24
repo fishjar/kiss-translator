@@ -37,20 +37,28 @@ function createDeferred() {
  *
  * @returns {HTMLVideoElement} 测试用 video 节点。
  */
-function createVideoElement() {
+function createVideoElement({ playerHeight = 400 } = {}) {
   document.body.innerHTML = "";
   const outer = document.createElement("div");
   outer.className = "html5-video-player ytp-autohide";
   const inner = document.createElement("div");
   const video = document.createElement("video");
+  const controlBar = document.createElement("div");
+  controlBar.className = "ytp-left-controls";
+  controlBar.style.height = "40px";
 
   Object.defineProperty(video, "currentTime", {
     value: 0,
     writable: true,
   });
+  Object.defineProperty(outer, "clientHeight", {
+    value: playerHeight,
+    configurable: true,
+  });
 
   inner.appendChild(video);
   outer.appendChild(inner);
+  outer.appendChild(controlBar);
   document.body.appendChild(outer);
   return video;
 }
@@ -88,6 +96,19 @@ function getCaptionLines() {
   );
 }
 
+function getCaptionBottom() {
+  return parseFloat(document.querySelector(".kiss-caption-paper").style.bottom);
+}
+
+function setControlBarVisible(videoEl, isVisible) {
+  const player = videoEl.closest(".html5-video-player");
+  player.classList.toggle("ytp-autohide", !isVisible);
+}
+
+async function waitForMutationObserver() {
+  await Promise.resolve();
+}
+
 describe("BilingualSubtitleManager", () => {
   beforeEach(() => {
     apiTranslate.mockReset();
@@ -104,6 +125,24 @@ describe("BilingualSubtitleManager", () => {
     manager.start();
 
     expect(getCaptionLines()).toEqual(["hello world", "你好世界"]);
+    manager.destroy();
+  });
+
+  test("renders hover lookup word spans when enabled", () => {
+    const videoEl = createVideoElement();
+    const manager = new BilingualSubtitleManager({
+      videoEl,
+      formattedSubtitles: [{ ...subtitle, translation: "你好世界" }],
+      setting: { ...setting, hoverLookupMode: "on" },
+    });
+
+    manager.start();
+
+    expect(
+      Array.from(document.querySelectorAll(".kiss-subtitle-word")).map(
+        (node) => node.textContent
+      )
+    ).toEqual(["hello", "world"]);
     manager.destroy();
   });
 
@@ -338,6 +377,121 @@ describe("BilingualSubtitleManager", () => {
       currentTimeMs: 12000,
       preTrans: 45,
     });
+    manager.destroy();
+  });
+
+  test("floats low captions above visible player controls and sinks back when hidden", async () => {
+    const videoEl = createVideoElement({ playerHeight: 400 });
+    const manager = new BilingualSubtitleManager({
+      videoEl,
+      formattedSubtitles: [{ ...subtitle, translation: "你好世界" }],
+      setting,
+    });
+
+    manager.start();
+    expect(getCaptionBottom()).toBe(20);
+
+    setControlBarVisible(videoEl, true);
+    await waitForMutationObserver();
+    expect(getCaptionBottom()).toBe(60);
+
+    setControlBarVisible(videoEl, false);
+    await waitForMutationObserver();
+    expect(getCaptionBottom()).toBe(20);
+
+    manager.destroy();
+  });
+
+  test("keeps high captions fixed when player controls toggle", async () => {
+    const videoEl = createVideoElement({ playerHeight: 1600 });
+    const manager = new BilingualSubtitleManager({
+      videoEl,
+      formattedSubtitles: [{ ...subtitle, translation: "你好世界" }],
+      setting,
+    });
+
+    manager.start();
+    expect(getCaptionBottom()).toBe(80);
+
+    setControlBarVisible(videoEl, true);
+    await waitForMutationObserver();
+    expect(getCaptionBottom()).toBe(80);
+
+    setControlBarVisible(videoEl, false);
+    await waitForMutationObserver();
+    expect(getCaptionBottom()).toBe(80);
+
+    manager.destroy();
+  });
+
+  test("does not treat a click without movement as a drag position update", () => {
+    const videoEl = createVideoElement({ playerHeight: 400 });
+    setControlBarVisible(videoEl, true);
+    const manager = new BilingualSubtitleManager({
+      videoEl,
+      formattedSubtitles: [{ ...subtitle, translation: "你好世界" }],
+      setting,
+    });
+
+    manager.start();
+    const handle = document.querySelector(".kiss-caption-window");
+
+    expect(getCaptionBottom()).toBe(60);
+
+    handle.dispatchEvent(
+      new MouseEvent("mousedown", { button: 0, clientY: 100 })
+    );
+    document.dispatchEvent(new MouseEvent("mouseup", { clientY: 100 }));
+
+    expect(getCaptionBottom()).toBe(60);
+
+    manager.destroy();
+  });
+
+  test("treats dragged position as the hidden-controls bottom and floats after drag ends", async () => {
+    const videoEl = createVideoElement({ playerHeight: 400 });
+    setControlBarVisible(videoEl, true);
+    const manager = new BilingualSubtitleManager({
+      videoEl,
+      formattedSubtitles: [{ ...subtitle, translation: "你好世界" }],
+      setting,
+    });
+
+    manager.start();
+    const paper = document.querySelector(".kiss-caption-paper");
+    const container = document.querySelector(".kiss-caption-container");
+    const handle = document.querySelector(".kiss-caption-window");
+
+    Object.defineProperty(container, "clientHeight", {
+      value: 400,
+      configurable: true,
+    });
+    Object.defineProperty(paper, "offsetHeight", {
+      value: 40,
+      configurable: true,
+    });
+    container.getBoundingClientRect = () => ({ bottom: 400 });
+    paper.getBoundingClientRect = () => ({
+      bottom: 400 - getCaptionBottom(),
+    });
+
+    expect(getCaptionBottom()).toBe(60);
+
+    handle.dispatchEvent(
+      new MouseEvent("mousedown", { button: 0, clientY: 100 })
+    );
+    document.dispatchEvent(new MouseEvent("mousemove", { clientY: 130 }));
+
+    expect(getCaptionBottom()).toBe(30);
+
+    document.dispatchEvent(new MouseEvent("mouseup", { clientY: 130 }));
+
+    expect(getCaptionBottom()).toBe(70);
+
+    setControlBarVisible(videoEl, false);
+    await waitForMutationObserver();
+    expect(getCaptionBottom()).toBe(30);
+
     manager.destroy();
   });
 });
