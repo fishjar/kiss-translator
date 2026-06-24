@@ -128,6 +128,24 @@ describe("BilingualSubtitleManager", () => {
     manager.destroy();
   });
 
+  test("renders hover lookup word spans when enabled", () => {
+    const videoEl = createVideoElement();
+    const manager = new BilingualSubtitleManager({
+      videoEl,
+      formattedSubtitles: [{ ...subtitle, translation: "你好世界" }],
+      setting: { ...setting, hoverLookupMode: "on" },
+    });
+
+    manager.start();
+
+    expect(
+      Array.from(document.querySelectorAll(".kiss-subtitle-word")).map(
+        (node) => node.textContent
+      )
+    ).toEqual(["hello", "world"]);
+    manager.destroy();
+  });
+
   test("renders translation before original when display order is translation first", () => {
     const videoEl = createVideoElement();
     const manager = new BilingualSubtitleManager({
