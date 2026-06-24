@@ -8,6 +8,7 @@ import {
   OPT_TRANS_DEEPLFREE,
   OPT_TRANS_DEEPLX,
   OPT_TRANS_DEEPSEEK,
+  OPT_TRANS_OPENCODEGO,
   OPT_TRANS_SILICONFLOW,
   OPT_TRANS_XIAOMIMIMO,
   OPT_TRANS_ALIYUNBAILIAN,
@@ -344,9 +345,9 @@ const usesIndexSubtitleInput = (prompt = "") => {
 const geminiText = (parts) =>
   Array.isArray(parts)
     ? parts
-        .filter((p) => !p.thought && p.text)
-        .map((p) => p.text)
-        .join("")
+      .filter((p) => !p.thought && p.text)
+      .map((p) => p.text)
+      .join("")
     : "";
 
 const parseIndexSubtitleRes = (raw, events) => {
@@ -953,6 +954,7 @@ const genReqFuncs = {
   [OPT_TRANS_DEEPL]: genDeepl,
   [OPT_TRANS_DEEPLFREE]: genDeeplFree,
   [OPT_TRANS_DEEPSEEK]: genOpenAI,
+  [OPT_TRANS_OPENCODEGO]: genOpenAI,
   [OPT_TRANS_SILICONFLOW]: genOpenAI,
   [OPT_TRANS_XIAOMIMIMO]: genOpenAI,
   [OPT_TRANS_ALIYUNBAILIAN]: genOpenAI,
@@ -1059,49 +1061,49 @@ export const genTransReq = async ({ reqHook, ...args }) => {
 
     let baseSystemPrompt = events
       ? genSubtitlePrompt({
-          subtitlePrompt,
-          from,
-          to,
-          fromLang,
-          toLang,
-          texts,
-          docInfo,
-          tone,
-          aiTerms,
-        })
+        subtitlePrompt,
+        from,
+        to,
+        fromLang,
+        toLang,
+        texts,
+        docInfo,
+        tone,
+        aiTerms,
+      })
       : genSystemPrompt({
-          systemPrompt: useBatchFetch ? systemPrompt : nobatchPrompt,
-          from,
-          to,
-          fromLang,
-          toLang,
-          texts,
-          docInfo,
-          tone,
-        });
+        systemPrompt: useBatchFetch ? systemPrompt : nobatchPrompt,
+        from,
+        to,
+        fromLang,
+        toLang,
+        texts,
+        docInfo,
+        tone,
+      });
 
     args.systemPrompt = baseSystemPrompt;
     args.userPrompt = events
       ? buildSubtitleUserPrompt({
-          formattedEvents: usesIndexSubtitleInput(subtitlePrompt)
-            ? formatIndexSubtitleEvents(events)
-            : events,
-          prevContext,
-          nextContext,
-        })
+        formattedEvents: usesIndexSubtitleInput(subtitlePrompt)
+          ? formatIndexSubtitleEvents(events)
+          : events,
+        prevContext,
+        nextContext,
+      })
       : genUserPrompt({
-          nobatchUserPrompt,
-          useBatchFetch,
-          from,
-          to,
-          fromLang,
-          toLang,
-          texts,
-          docInfo,
-          tone,
-          glossary,
-          aiTerms,
-        });
+        nobatchUserPrompt,
+        useBatchFetch,
+        from,
+        to,
+        fromLang,
+        toLang,
+        texts,
+        docInfo,
+        tone,
+        glossary,
+        aiTerms,
+      });
   }
 
   const {
@@ -1261,6 +1263,7 @@ export const parseTransRes = async (
     case OPT_TRANS_EPHONEAI:
     case OPT_TRANS_OPENAI:
     case OPT_TRANS_DEEPSEEK:
+    case OPT_TRANS_OPENCODEGO:
     case OPT_TRANS_SILICONFLOW:
     case OPT_TRANS_XIAOMIMIMO:
     case OPT_TRANS_ALIYUNBAILIAN:
@@ -1336,6 +1339,7 @@ function parseDictRes(res, apiType) {
     case OPT_TRANS_EPHONEAI:
     case OPT_TRANS_OPENAI:
     case OPT_TRANS_DEEPSEEK:
+    case OPT_TRANS_OPENCODEGO:
     case OPT_TRANS_SILICONFLOW:
     case OPT_TRANS_XIAOMIMIMO:
     case OPT_TRANS_ALIYUNBAILIAN:
@@ -1917,6 +1921,7 @@ export const handleSubtitle = async ({
     case OPT_TRANS_EPHONEAI:
     case OPT_TRANS_OPENAI:
     case OPT_TRANS_DEEPSEEK:
+    case OPT_TRANS_OPENCODEGO:
     case OPT_TRANS_SILICONFLOW:
     case OPT_TRANS_XIAOMIMIMO:
     case OPT_TRANS_ALIYUNBAILIAN:
@@ -2119,6 +2124,7 @@ export const handleSummarize = async ({
     case OPT_TRANS_EPHONEAI:
     case OPT_TRANS_OPENAI:
     case OPT_TRANS_DEEPSEEK:
+    case OPT_TRANS_OPENCODEGO:
     case OPT_TRANS_SILICONFLOW:
     case OPT_TRANS_XIAOMIMIMO:
     case OPT_TRANS_ALIYUNBAILIAN:

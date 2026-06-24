@@ -143,6 +143,7 @@ const userscriptWebpack = (config, env) => {
 // @connect       dict.youdao.com
 // @connect       api.anthropic.com
 // @connect       api.deepseek.com
+// @connect       opencode.ai
 // @connect       api.siliconflow.cn
 // @connect       api.xiaomimimo.com
 // @connect       dashscope.aliyuncs.com

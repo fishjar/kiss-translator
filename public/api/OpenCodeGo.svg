@@ -1,0 +1,7 @@
+<svg height="1em" style="flex:none;line-height:1" viewBox="0 0 24 24" width="1em"
+    xmlns="http://www.w3.org/2000/svg">
+    <title>OpenCode Go</title>
+    <rect width="24" height="24" rx="4" fill="#131010"/>
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M18 20H6V4h12v16zm-3-12H9v8h6V8z" fill="white"/>
+    <path d="M15 10v6h-6v-6h6z" fill="#5A5858"/>
+</svg>
