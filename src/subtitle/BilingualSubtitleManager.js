@@ -155,7 +155,8 @@ export class BilingualSubtitleManager {
     };
 
     this.#syncPaperBottomAfterDrag = () => {
-      baseBottomWhenControlsHidden = parseFloat(this.#paperEl.style.bottom) || 0;
+      baseBottomWhenControlsHidden =
+        parseFloat(this.#paperEl.style.bottom) || 0;
       syncPaperElBottom({ force: true });
     };
 
@@ -223,11 +224,8 @@ export class BilingualSubtitleManager {
     const isHoverLookupEnabled = this.#isHoverLookupEnabled();
 
     // 4. 为字幕框启用拖拽交互
-    this.#enableDragging(
-      this.#paperEl,
-      container,
-      this.#captionWindowEl,
-      () => this.#syncPaperBottomAfterDrag?.()
+    this.#enableDragging(this.#paperEl, container, this.#captionWindowEl, () =>
+      this.#syncPaperBottomAfterDrag?.()
     );
 
     // 5. 如果开启了悬浮查词，则在鼠标 hover 字幕窗口时暂停视频，方便用户稳妥查词；移开鼠标时自动恢复播放

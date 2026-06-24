@@ -133,9 +133,9 @@ describe("YouTubeSubtitleList", () => {
     renderVisibleSubtitleItems(manager);
 
     expect(
-      Array.from(document.querySelectorAll(".kiss-youtube-original .kiss-subtitle-word")).map(
-        (node) => node.textContent
-      )
+      Array.from(
+        document.querySelectorAll(".kiss-youtube-original .kiss-subtitle-word")
+      ).map((node) => node.textContent)
     ).toEqual(["hello", "world"]);
 
     await Promise.resolve();
@@ -157,7 +157,11 @@ describe("YouTubeSubtitleList", () => {
     const addWordHandler = jest.fn();
     document.addEventListener("kiss-add-word", addWordHandler);
 
-    manager.initialize([{ ...subtitle, start: 33000, text: "ready to go" }], [], 100);
+    manager.initialize(
+      [{ ...subtitle, start: 33000, text: "ready to go" }],
+      [],
+      100
+    );
     renderVisibleSubtitleItems(manager);
     document
       .querySelector(".kiss-subtitle-word")

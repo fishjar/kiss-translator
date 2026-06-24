@@ -148,7 +148,8 @@ export class WordTooltipController {
     const spans = root.querySelectorAll(".kiss-subtitle-word");
     spans.forEach((span) => {
       if (span.dataset.kissListenerAttached) return;
-      const enterHandler = (event) => this.#handleWordHover(event, getTimestamp);
+      const enterHandler = (event) =>
+        this.#handleWordHover(event, getTimestamp);
       const leaveHandler = (event) => this.#handleWordHoverOut(event);
       span.addEventListener("pointerenter", enterHandler);
       span.addEventListener("pointerleave", leaveHandler);
@@ -229,8 +230,7 @@ export class WordTooltipController {
       const top = containerRect.top + 20;
 
       const maxLeft = window.innerWidth - tooltipWidth - 10;
-      this.tooltipEl.style.left =
-        Math.min(maxLeft, Math.max(10, left)) + "px";
+      this.tooltipEl.style.left = Math.min(maxLeft, Math.max(10, left)) + "px";
       this.tooltipEl.style.top = Math.max(10, top) + "px";
       this.tooltipEl.style.maxWidth = tooltipWidth + "px";
       this.tooltipEl.style.maxHeight = tooltipHeight + "px";
@@ -244,7 +244,13 @@ export class WordTooltipController {
       const { phonetic, definition, examples } =
         this.#extractDictionaryData(dictResult);
 
-      this.#dispatchAddWord({ word, phonetic, definition, examples, timestamp });
+      this.#dispatchAddWord({
+        word,
+        phonetic,
+        definition,
+        examples,
+        timestamp,
+      });
       this.#renderDictionaryResult(word, dictResult);
     } catch (error) {
       logger.info("Dictionary lookup failed for word:", word, error);

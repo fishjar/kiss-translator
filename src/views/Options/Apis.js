@@ -179,7 +179,7 @@ function ApiProviderIcon({ apiType, disabled = false, sx = {} }) {
             display: "block",
             filter:
               theme.palette.mode === "dark" &&
-                API_SPE_TYPES.darkIcon.has(apiType)
+              API_SPE_TYPES.darkIcon.has(apiType)
                 ? "invert(100%)"
                 : "none",
           })}
@@ -274,9 +274,9 @@ function SensitiveTextField({ value = "", onChange, inputProps, ...props }) {
   const displayValue = editing
     ? value
     : String(value)
-      .split("\n")
-      .map((line) => (line ? "•".repeat(Math.min(line.length, 24)) : ""))
-      .join("\n");
+        .split("\n")
+        .map((line) => (line ? "•".repeat(Math.min(line.length, 24)) : ""))
+        .join("\n");
 
   return (
     <TextField

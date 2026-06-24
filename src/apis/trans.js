@@ -345,9 +345,9 @@ const usesIndexSubtitleInput = (prompt = "") => {
 const geminiText = (parts) =>
   Array.isArray(parts)
     ? parts
-      .filter((p) => !p.thought && p.text)
-      .map((p) => p.text)
-      .join("")
+        .filter((p) => !p.thought && p.text)
+        .map((p) => p.text)
+        .join("")
     : "";
 
 const parseIndexSubtitleRes = (raw, events) => {
@@ -1061,49 +1061,49 @@ export const genTransReq = async ({ reqHook, ...args }) => {
 
     let baseSystemPrompt = events
       ? genSubtitlePrompt({
-        subtitlePrompt,
-        from,
-        to,
-        fromLang,
-        toLang,
-        texts,
-        docInfo,
-        tone,
-        aiTerms,
-      })
+          subtitlePrompt,
+          from,
+          to,
+          fromLang,
+          toLang,
+          texts,
+          docInfo,
+          tone,
+          aiTerms,
+        })
       : genSystemPrompt({
-        systemPrompt: useBatchFetch ? systemPrompt : nobatchPrompt,
-        from,
-        to,
-        fromLang,
-        toLang,
-        texts,
-        docInfo,
-        tone,
-      });
+          systemPrompt: useBatchFetch ? systemPrompt : nobatchPrompt,
+          from,
+          to,
+          fromLang,
+          toLang,
+          texts,
+          docInfo,
+          tone,
+        });
 
     args.systemPrompt = baseSystemPrompt;
     args.userPrompt = events
       ? buildSubtitleUserPrompt({
-        formattedEvents: usesIndexSubtitleInput(subtitlePrompt)
-          ? formatIndexSubtitleEvents(events)
-          : events,
-        prevContext,
-        nextContext,
-      })
+          formattedEvents: usesIndexSubtitleInput(subtitlePrompt)
+            ? formatIndexSubtitleEvents(events)
+            : events,
+          prevContext,
+          nextContext,
+        })
       : genUserPrompt({
-        nobatchUserPrompt,
-        useBatchFetch,
-        from,
-        to,
-        fromLang,
-        toLang,
-        texts,
-        docInfo,
-        tone,
-        glossary,
-        aiTerms,
-      });
+          nobatchUserPrompt,
+          useBatchFetch,
+          from,
+          to,
+          fromLang,
+          toLang,
+          texts,
+          docInfo,
+          tone,
+          glossary,
+          aiTerms,
+        });
   }
 
   const {

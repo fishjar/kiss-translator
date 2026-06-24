@@ -22,7 +22,11 @@ export class YouTubeSubtitleList {
   /**
    * @param {HTMLVideoElement} videoElement YouTube 的原生视频播放器 DOM 节点
    */
-  constructor(videoElement, i18n = () => "", { enableHoverLookup = false } = {}) {
+  constructor(
+    videoElement,
+    i18n = () => "",
+    { enableHoverLookup = false } = {}
+  ) {
     this.videoEl = videoElement;
     this.i18n = i18n;
     this.enableHoverLookup = enableHoverLookup;
