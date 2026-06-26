@@ -41,6 +41,7 @@ import { useApiList, useApiItem } from "../../hooks/Api";
 import { useConfirm } from "../../hooks/Confirm";
 import { resolveApiPromptSettings } from "../../config/prompt";
 import { apiTranslate } from "../../apis";
+import { fetchModelList } from "../../libs/modelList";
 import Box from "@mui/material/Box";
 import ReusableAutocomplete from "./ReusableAutocomplete";
 import ShowMoreButton from "./ShowMoreButton";
@@ -54,6 +55,7 @@ import {
   OPT_TRANS_GOOGLE_2,
   OPT_TRANS_MICROSOFT,
   OPT_TRANS_DEEPSEEK,
+  OPT_TRANS_OPENCODEGO,
   OPT_TRANS_SILICONFLOW,
   OPT_TRANS_XIAOMIMIMO,
   OPT_TRANS_ALIYUNBAILIAN,
@@ -109,6 +111,13 @@ const apiListControlSx = {
   flex: `0 0 ${API_LIST_CONTROL_SIZE}px`,
 };
 
+const EPHONEAI_MODELS = [
+  "gpt-5.4-mini",
+  "gpt-5.4-nano",
+  "gemini-3.1-flash-lite-preview",
+  "grok-4.20-beta-0309-non-reasoning",
+];
+
 // Keep icon paths tied to apiType because apiName is user editable.
 const API_ICON_FILES = {
   [OPT_TRANS_BUILTINAI]: "BuiltinAI.svg",
@@ -117,6 +126,7 @@ const API_ICON_FILES = {
   [OPT_TRANS_MICROSOFT]: "Microsoft.svg",
   [OPT_TRANS_AZUREAI]: "AzureAI.svg",
   [OPT_TRANS_DEEPSEEK]: "DeepSeek.svg",
+  [OPT_TRANS_OPENCODEGO]: "OpenCodeGo.svg",
   [OPT_TRANS_SILICONFLOW]: "SiliconFlow.svg",
   [OPT_TRANS_XIAOMIMIMO]: "XiaomiMimo.svg",
   [OPT_TRANS_ALIYUNBAILIAN]: "AliyunBailian.svg",
@@ -297,6 +307,10 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
   const i18n = useI18n();
   const [formData, setFormData] = useState(() => api || {});
   const [showMore, setShowMore] = useState(false);
+  const [modelOptions, setModelOptions] = useState([]);
+  const [modelListStatus, setModelListStatus] = useState("idle");
+  const [modelListError, setModelListError] = useState("");
+  const requestedModelListKeyRef = useRef("");
   const confirm = useConfirm();
 
   useLayoutEffect(() => {
@@ -305,6 +319,10 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
 
   useLayoutEffect(() => {
     setShowMore(false);
+    setModelOptions([]);
+    setModelListStatus("idle");
+    setModelListError("");
+    requestedModelListKeyRef.current = "";
   }, [apiSlug]);
 
   const activeFormData = useMemo(
@@ -411,6 +429,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
     url = "",
     key = "",
     model = "",
+    modelListUrl = "",
     apiType,
     // userPrompt = "",
     customHeader = "",
@@ -450,6 +469,12 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
     subtitlePromptSlug = "",
     dictPromptSlug = "",
   } = activeFormData;
+
+  useEffect(() => {
+    setModelListStatus("idle");
+    setModelListError("");
+    requestedModelListKeyRef.current = "";
+  }, [modelListUrl, key]);
 
   const thinkingParam = THINKING_PARAM_MAP[apiType];
   const selectedBatchPromptSlug = Object.prototype.hasOwnProperty.call(
@@ -498,12 +523,56 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
     [apiType, i18n]
   );
 
-  const EPHONEAI_MODELS = [
-    "gpt-5.4-mini",
-    "gpt-5.4-nano",
-    "gemini-3.1-flash-lite-preview",
-    "grok-4.20-beta-0309-non-reasoning",
-  ];
+  const allModelOptions = useMemo(() => {
+    const baseOptions = apiType === OPT_TRANS_EPHONEAI ? EPHONEAI_MODELS : [];
+    return Array.from(new Set([...baseOptions, ...modelOptions]));
+  }, [apiType, modelOptions]);
+
+  const modelListHelperText = useMemo(() => {
+    if (modelListStatus === "loading") {
+      return i18n("model_list_loading");
+    }
+
+    if (modelListStatus === "empty") {
+      return i18n("model_list_empty");
+    }
+
+    if (modelListStatus === "error") {
+      return `${i18n("model_list_fetch_failed")}: ${modelListError}`;
+    }
+
+    return "";
+  }, [i18n, modelListError, modelListStatus]);
+
+  const handleLoadModelList = useCallback(async () => {
+    const requestKey = `${apiSlug}|${modelListUrl}|${key}`;
+    if (
+      !modelListUrl?.trim() ||
+      !key?.trim() ||
+      requestedModelListKeyRef.current === requestKey ||
+      modelListStatus === "loading"
+    ) {
+      return;
+    }
+
+    requestedModelListKeyRef.current = requestKey;
+    setModelListStatus("loading");
+    setModelListError("");
+
+    try {
+      const nextModelOptions = await fetchModelList({
+        apiType,
+        modelListUrl,
+        key,
+        httpTimeout,
+      });
+      setModelOptions(nextModelOptions);
+      setModelListStatus(nextModelOptions.length > 0 ? "success" : "empty");
+    } catch (err) {
+      setModelListStatus("error");
+      setModelListError(err?.message || String(err));
+    }
+  }, [apiSlug, apiType, httpTimeout, key, modelListStatus, modelListUrl]);
 
   return (
     <Stack spacing={3}>
@@ -589,34 +658,36 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
 
       {API_SPE_TYPES.ai.has(apiType) && (
         <>
+          <TextField
+            size="small"
+            fullWidth
+            label={i18n("model_list_url")}
+            name="modelListUrl"
+            value={modelListUrl}
+            onChange={handleChange}
+          />
           <Box>
             <Grid container spacing={2} columns={12}>
-              {apiType === OPT_TRANS_EPHONEAI ? (
-                <Grid item xs={12} sm={12} md={6} lg={3}>
-                  <ReusableAutocomplete
-                    freeSolo
-                    size="small"
-                    fullWidth
-                    options={EPHONEAI_MODELS}
-                    name="model"
-                    label={"Model"}
-                    value={model}
-                    onChange={handleChange}
-                  />
-                </Grid>
-              ) : (
-                <Grid item xs={12} sm={12} md={6} lg={3}>
-                  {/* todo： 改成 ReusableAutocomplete 可选择和填写模型 */}
-                  <TextField
-                    size="small"
-                    fullWidth
-                    label={"Model"}
-                    name="model"
-                    value={model}
-                    onChange={handleChange}
-                  />
-                </Grid>
-              )}
+              <Grid item xs={12} sm={12} md={6} lg={3}>
+                <ReusableAutocomplete
+                  freeSolo
+                  size="small"
+                  fullWidth
+                  options={allModelOptions}
+                  name="model"
+                  label={"Model"}
+                  value={model}
+                  onChange={handleChange}
+                  onFocus={handleLoadModelList}
+                  loading={modelListStatus === "loading"}
+                  loadingText={i18n("model_list_loading")}
+                  noOptionsText={i18n("model_list_empty")}
+                  textFieldProps={{
+                    helperText: modelListHelperText,
+                    error: modelListStatus === "error",
+                  }}
+                />
+              </Grid>
               <Grid item xs={12} sm={12} md={6} lg={3}>
                 <ReusableAutocomplete
                   freeSolo
@@ -898,8 +969,8 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
               name="httpTimeout"
               value={httpTimeout}
               onChange={handleChange}
-              min={100}
-              max={600000}
+              min={1}
+              max={600}
             />
           </Grid>
           <Grid item xs={12} sm={12} md={6} lg={3}></Grid>

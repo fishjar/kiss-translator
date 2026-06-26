@@ -3,127 +3,13 @@ import { truncateWords, throttle } from "../libs/utils.js";
 import { decodeHTMLEntities } from "../libs/html.js";
 import { apiTranslate } from "../apis/index.js";
 import { resolveApiPromptSettings } from "../config/prompt.js";
-import { apiMicrosoftDict } from "../apis/index.js";
 import { trustedTypesHelper } from "../libs/trustedTypes.js";
 import { isSubtitleModeEnabled } from "./modes.js";
-
-/**
- * 动态向网页 document.head 中注入生词 hover 及详情气泡弹窗所需的 CSS 样式
- */
-const addWordHoverStyles = () => {
-  // 如果已经注入过该样式表，直接返回，避免重复创建
-  if (document.getElementById("kiss-word-hover-styles")) return;
-
-  const style = document.createElement("style");
-  style.id = "kiss-word-hover-styles";
-  style.textContent = `
-    /* 鼠标 hover 的单词样式：呈现下划线，指示可点击查词 */
-    .kiss-word-hover {
-      cursor: pointer;
-      text-decoration: underline;
-      text-decoration-color: #4fc3f7;
-      text-decoration-thickness: 2px;
-    }
-    
-    /* 查词气泡弹窗主体样式 */
-    .kiss-word-tooltip {
-      position: fixed;
-      background: rgba(0, 0, 0, 0.9);
-      color: white;
-      border-radius: 6px;
-      padding: 12px;
-      font-size: 14px;
-      z-index: 2147483647;
-      max-width: 300px;
-      word-wrap: break-word;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-      backdrop-filter: blur(4px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      font-family: Arial, sans-serif;
-    }
-    
-    /* 气泡弹窗头部（包含单词名和关闭按钮） */
-    .kiss-word-tooltip-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
-      font-weight: bold;
-      font-size: 16px;
-      color: #4fc3f7;
-    }
-    
-    /* 关闭气泡弹窗的 X 按钮 */
-    .kiss-word-tooltip-close {
-      background: none;
-      border: none;
-      color: #aaa;
-      cursor: pointer;
-      font-size: 18px;
-      padding: 0;
-      margin-left: 10px;
-      width: 24px;
-      height: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    
-    .kiss-word-tooltip-close:hover {
-      color: white;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 50%;
-    }
-    
-    /* 释义加载中状态文案 */
-    .kiss-word-loading {
-      color: #bbb;
-      font-style: italic;
-    }
-    
-    /* 单词词性释义行 */
-    .kiss-word-definition {
-      margin: 4px 0;
-    }
-    
-    /* 词性前缀标记（如 n. / v. 等） */
-    .kiss-word-pos {
-      color: #4fc3f7;
-      font-weight: bold;
-    }
-    
-    /* 音标字符样式 */
-    .kiss-word-phonetic {
-      color: #bbb;
-      font-style: italic;
-      margin-right: 10px;
-    }
-    
-    /* 例句包裹区 */
-    .kiss-word-example {
-      margin-top: 10px;
-      padding-top: 8px;
-      border-top: 1px solid #444;
-    }
-    
-    .kiss-word-example-title {
-      font-weight: bold;
-      margin-bottom: 5px;
-    }
-    
-    /* 例句英文正文 */
-    .kiss-word-example-sentence {
-      margin-bottom: 3px;
-    }
-    
-    /* 例句中文翻译 */
-    .kiss-word-example-translation {
-      color: #bbb;
-      font-style: italic;
-    }
-  `;
-  document.head.appendChild(style);
-};
+import {
+  addWordHoverStyles,
+  WordTooltipController,
+  wrapWordsWithSpans,
+} from "./wordHover.js";
 
 /**
  * @class BilingualSubtitleManager
@@ -134,20 +20,19 @@ export class BilingualSubtitleManager {
   #videoEl; // 当前绑定的 HTMLVideoElement 播放器实例
   #formattedSubtitles = []; // 已经分句整理好的全部字幕数组
   #captionWindowEl = null; // 悬浮字幕窗口的内部 DOM 引用
-  #captionDragged = false; // 标识用户是否手动拖拽过字幕窗口，用于暂停自动同步位置
   #paperEl = null; // 悬浮字幕外层背景画布 DOM 引用
   #currentSubtitleIndex = -1; // 当前正在显示的字幕在数组中的索引，-1 代表无字幕显示
   #setting = {}; // 全局设置项副本
   #isAdPlaying = false; // 当前视频是否正在播放 YouTube 广告
   #throttledTriggerTranslations; // 预翻译请求防抖节流函数
-  #tooltipEl = null; // 划词查义气泡弹窗 DOM 引用
-  #hoverTimeout = null; // 用于控制 hover 延迟显隐的定时器 ID
+  #wordTooltipController = null; // 划词查义气泡弹窗控制器
   #seekSyncRafId = null; // 控制进度 seek 完毕后强制同步的 requestAnimationFrame ID
   #translationSessionId = 0; // 当前翻译会话版本 ID，用于防竞态过滤过期异步请求
   #abortController = null; // 用于在实例销毁时中止所有尚未返回的网络请求
   #wasPlayingBeforeHover = false; // 记录鼠标 hover 单词前视频是否原本处于播放状态，用于离开时恢复播放
   #hoverTarget = null;
   #playerControlBarObserver = null; // 监听播放器底部控制条显隐突变的 MutationObserver
+  #syncPaperBottomAfterDrag = null; // 拖拽结束后按当前控制条状态修正字幕位置
 
   /**
    * @param {object} options
@@ -175,6 +60,10 @@ export class BilingualSubtitleManager {
     // 如果启用了悬浮背词/查词翻译功能，将所需 CSS 样式表写入 head
     if (this.#isHoverLookupEnabled()) {
       addWordHoverStyles();
+      this.#wordTooltipController = new WordTooltipController({
+        getVideoContainer: () => this.#videoEl.parentElement?.parentElement,
+        getTimestamp: () => this.#getCurrentSubtitleStartTime(),
+      });
     }
   }
 
@@ -221,19 +110,10 @@ export class BilingualSubtitleManager {
     // 释放 MutationObserver 监听器
     this.#playerControlBarObserver?.disconnect();
     this.#playerControlBarObserver = null;
+    this.#syncPaperBottomAfterDrag = null;
     this.#formattedSubtitles = [];
-
-    // 清理单词提示气泡框
-    if (this.#tooltipEl) {
-      this.#tooltipEl.remove();
-      this.#tooltipEl = null;
-    }
-
-    // 清理 hover 查词定时器
-    if (this.#hoverTimeout) {
-      clearTimeout(this.#hoverTimeout);
-      this.#hoverTimeout = null;
-    }
+    this.#wordTooltipController?.destroy();
+    this.#wordTooltipController = null;
   }
 
   /**
@@ -247,40 +127,42 @@ export class BilingualSubtitleManager {
 
   /**
    * 监听 YouTube 原生控制栏的显示状态突变。
-   * 控制条弹出时，需要将字幕框底部边缘上移，控制条隐退时下移，防止挡住控制菜单。
+   * 字幕贴近底部时，控制条弹出需要临时上浮，控制条隐退后回到用户确认的基础位置。
    */
   #observePlayerControlBar() {
     const player = this.#videoEl.closest(".html5-video-player");
     if (!player) return;
     const controlBar = player.querySelector(".ytp-left-controls");
     if (!controlBar) return;
-    let controlBarHeight = parseFloat(getComputedStyle(controlBar).height);
+    const controlBarHeight = parseFloat(getComputedStyle(controlBar).height);
 
-    // 根据 YouTube 原生是否有 ytp-autohide 样式类，初始化计算底部高度
-    const isHiddenNow = player.classList.contains("ytp-autohide");
-    let initialBottom = player.clientHeight * 0.05;
-    if (!isHiddenNow) initialBottom += controlBarHeight;
-    this.#paperEl.style.bottom = `${initialBottom}px`;
-    let lastControlBarHiddenState = isHiddenNow;
+    let baseBottomWhenControlsHidden = player.clientHeight * 0.05;
+    let lastControlBarHiddenState = null;
 
-    // 当控制条状态变化时，加/减控制条的高度自适应平移字幕
-    const updatePaperElBottom = () => {
+    const syncPaperElBottom = ({ force = false } = {}) => {
       const isHidden = player.classList.contains("ytp-autohide");
-      if (isHidden === lastControlBarHiddenState) return;
+      if (!force && isHidden === lastControlBarHiddenState) return;
       lastControlBarHiddenState = isHidden;
 
-      let currentBottom = parseFloat(this.#paperEl.style.bottom) || 0;
-      let newBottom = isHidden
-        ? currentBottom - controlBarHeight
-        : currentBottom + controlBarHeight;
+      const shouldFloatAboveControlBar =
+        baseBottomWhenControlsHidden < controlBarHeight * 2;
+      const bottom =
+        !isHidden && shouldFloatAboveControlBar
+          ? baseBottomWhenControlsHidden + controlBarHeight
+          : baseBottomWhenControlsHidden;
 
-      this.#paperEl.style.bottom = `${newBottom}px`;
+      this.#paperEl.style.bottom = `${bottom}px`;
     };
 
-    const observer = new MutationObserver(() => {
-      // 如果用户已经手动拖拽了字幕框，则不再执行位置自适应平移，以用户手动拖拽位置为准
-      if (!this.#captionDragged) updatePaperElBottom();
-    });
+    this.#syncPaperBottomAfterDrag = () => {
+      baseBottomWhenControlsHidden =
+        parseFloat(this.#paperEl.style.bottom) || 0;
+      syncPaperElBottom({ force: true });
+    };
+
+    syncPaperElBottom({ force: true });
+
+    const observer = new MutationObserver(() => syncPaperElBottom());
     observer.observe(player, { attributes: true, attributeFilter: ["class"] });
     this.#playerControlBarObserver = observer;
   }
@@ -311,7 +193,7 @@ export class BilingualSubtitleManager {
       transform: "translateX(-50%)",
       textAlign: "center",
       containerType: "inline-size",
-      zIndex: "2147483647",
+      zIndex: "50",
       pointerEvents: "auto", // 自身拦截点击，用来做拖拽操作
       display: "none", // 缺省隐藏，有字幕时显示
     });
@@ -342,11 +224,8 @@ export class BilingualSubtitleManager {
     const isHoverLookupEnabled = this.#isHoverLookupEnabled();
 
     // 4. 为字幕框启用拖拽交互
-    this.#enableDragging(
-      this.#paperEl,
-      container,
-      this.#captionWindowEl,
-      () => (this.#captionDragged = true) // 拖动完成后将标志位置为 true
+    this.#enableDragging(this.#paperEl, container, this.#captionWindowEl, () =>
+      this.#syncPaperBottomAfterDrag?.()
     );
 
     // 5. 如果开启了悬浮查词，则在鼠标 hover 字幕窗口时暂停视频，方便用户稳妥查词；移开鼠标时自动恢复播放
@@ -380,245 +259,10 @@ export class BilingualSubtitleManager {
   }
 
   /**
-   * 触发单词 hover 事件
-   */
-  #handleWordHover(event) {
-    const target = event.target;
-    if (target.classList.contains("kiss-subtitle-word")) {
-      // 撤销先前延迟显隐的定时器
-      if (this.#hoverTimeout) {
-        clearTimeout(this.#hoverTimeout);
-        this.#hoverTimeout = null;
-      }
-
-      target.classList.add("kiss-word-hover");
-
-      // 延迟 300 毫秒后显示词义气泡框，防止鼠标划过时频繁触发无意义的查词网络请求
-      this.#hoverTimeout = setTimeout(() => {
-        this.#showWordTooltip(
-          target.dataset.word,
-          event.clientX,
-          event.clientY
-        );
-      }, 300);
-    }
-  }
-
-  /**
-   * 鼠标移出单词事件
-   */
-  #handleWordHoverOut(event) {
-    const target = event.target;
-    if (target.classList.contains("kiss-subtitle-word")) {
-      target.classList.remove("kiss-word-hover");
-
-      if (this.#hoverTimeout) {
-        clearTimeout(this.#hoverTimeout);
-        this.#hoverTimeout = null;
-      }
-
-      // 移出后延迟 100 毫秒关闭提示框，给用户留出鼠标划入弹窗本身的冗余时间
-      this.#hoverTimeout = setTimeout(() => {
-        this.#hideWordTooltip();
-      }, 100);
-    }
-  }
-
-  #handleWordMouseMove(event) {
-    // 已弃用：保持 tooltip 面板在右上角固定位置渲染，优化视觉连续性
-  }
-
-  /**
    * 为翻译分词后产生的每一个单词标签绑 hover 移入/移出事件
    */
   #attachSpanListeners() {
-    if (!this.#captionWindowEl) return;
-    const spans = this.#captionWindowEl.querySelectorAll(".kiss-subtitle-word");
-    spans.forEach((span) => {
-      if (span.dataset.kissListenerAttached) return; // 避免重复注册
-      const enterHandler = (e) => this.#handleWordHover(e);
-      const leaveHandler = (e) => this.#handleWordHoverOut(e);
-      span.addEventListener("pointerenter", enterHandler);
-      span.addEventListener("pointerleave", leaveHandler);
-      span.dataset.kissListenerAttached = "1";
-    });
-  }
-
-  /**
-   * 获取单词释义并渲染至网页右侧浮空词典弹窗，同时将查词记录发布到生词本事件队列中
-   *
-   * @param {string} word - 被查的英文单词文本
-   * @param {number} x - 鼠标视口 X 坐标
-   * @param {number} y - 鼠标视口 Y 坐标
-   */
-  async #showWordTooltip(word, x, y) {
-    if (this.#tooltipEl) {
-      this.#tooltipEl.remove();
-    }
-
-    // 创建提示气泡框主节点并设为 loading
-    this.#tooltipEl = document.createElement("div");
-    this.#tooltipEl.className = "kiss-word-tooltip";
-    this.#tooltipEl.innerHTML = trustedTypesHelper.createHTML(
-      '<div class="kiss-word-loading">Looking up...</div>'
-    );
-
-    // 将提示框定位在视频播放器的右上角
-    const videoContainer = this.#videoEl.parentElement?.parentElement;
-    if (videoContainer) {
-      const containerRect = videoContainer.getBoundingClientRect();
-      const tooltipWidth = 300;
-      const tooltipHeight = 400;
-
-      // 摆放位置：距离容器右边缘 45px，上边缘 20px
-      const left = containerRect.right - tooltipWidth - 45;
-      const top = containerRect.top + 20;
-
-      const maxLeft = window.innerWidth - tooltipWidth - 10;
-      this.#tooltipEl.style.left = Math.min(maxLeft, Math.max(10, left)) + "px";
-      this.#tooltipEl.style.top = Math.max(10, top) + "px";
-      this.#tooltipEl.style.maxWidth = tooltipWidth + "px";
-      this.#tooltipEl.style.maxHeight = tooltipHeight + "px";
-      this.#tooltipEl.style.overflow = "auto";
-    }
-
-    document.body.appendChild(this.#tooltipEl);
-
-    try {
-      // 1. 调用微软在线词典服务获取音标、词性及汉字翻译
-      const dictResult = await apiMicrosoftDict(word);
-
-      let phonetic = "";
-      if (dictResult && dictResult.aus) {
-        // 优先筛选并取美音 (aus) 的音标内容
-        const usPhonetic = dictResult.aus.find((au) => au.key === "美");
-        if (usPhonetic && usPhonetic.phonetic) {
-          phonetic = usPhonetic.phonetic;
-        } else if (dictResult.aus.length > 0 && dictResult.aus[0].phonetic) {
-          phonetic = dictResult.aus[0].phonetic;
-        }
-      }
-
-      // 提取前三个有效释义
-      let definition = "";
-      if (dictResult && dictResult.trs) {
-        definition = dictResult.trs
-          .slice(0, 3)
-          .map((tr) => `${tr.pos ? tr.pos + " " : ""}${tr.def}`)
-          .join("; ");
-      }
-
-      // 提取前两个双语例句
-      let examples = [];
-      if (dictResult && dictResult.sentences) {
-        examples = dictResult.sentences.slice(0, 2).map((sentence) => ({
-          eng: sentence.eng,
-          chs: sentence.chs,
-        }));
-      }
-
-      // 获取当前视频播放到此的绝对时间轴起承点
-      const currentTimeMs = this.#getCurrentSubtitleStartTime();
-
-      // 2. 派发自定义全局 DOM 事件 "kiss-add-word"，以此通知侧边生词本管理器同步记录本词汇
-      const event = new CustomEvent("kiss-add-word", {
-        detail: {
-          word,
-          phonetic,
-          definition,
-          examples,
-          timestamp: currentTimeMs,
-        },
-      });
-      document.dispatchEvent(event);
-
-      // 3. 构建查词卡片的 HTML 展示模板并渲染
-      if (
-        dictResult &&
-        (dictResult.trs || dictResult.aus || dictResult.sentences)
-      ) {
-        let content = `<div class="kiss-word-tooltip-header">
-          <span>${word}</span>
-          <button class="kiss-word-tooltip-close" onclick="this.closest('.kiss-word-tooltip').remove()">×</button>
-        </div>`;
-
-        // 渲染音标栏
-        if (dictResult.aus && dictResult.aus.length > 0) {
-          content += "<div>";
-          dictResult.aus.forEach((au) => {
-            if (au.phonetic) {
-              content += `<span class="kiss-word-phonetic">${au.phonetic}</span>`;
-            }
-          });
-          content += "</div>";
-        }
-
-        // 渲染释义列表
-        if (dictResult.trs) {
-          dictResult.trs.slice(0, 3).forEach((tr) => {
-            content += `<div class="kiss-word-definition">${tr.pos ? '<span class="kiss-word-pos">' + tr.pos + "</span> " : ""}${tr.def}</div>`;
-          });
-        }
-
-        // 渲染双语例句
-        if (dictResult.sentences && dictResult.sentences.length > 0) {
-          content += `<div class="kiss-word-example">
-            <div class="kiss-word-example-title">例句</div>`;
-          dictResult.sentences.slice(0, 2).forEach((sentence) => {
-            content += `<div class="kiss-word-example-sentence">${sentence.eng}</div>
-              <div class="kiss-word-example-translation">${sentence.chs}</div>`;
-          });
-          content += "</div>";
-        }
-
-        if (this.#tooltipEl) {
-          this.#tooltipEl.innerHTML = trustedTypesHelper.createHTML(content);
-        }
-      } else {
-        // 未匹配到任何词典条目兜底
-        if (this.#tooltipEl) {
-          this.#tooltipEl.innerHTML =
-            trustedTypesHelper.createHTML(`<div class="kiss-word-tooltip-header">
-          <span>${word}</span>
-          <button class="kiss-word-tooltip-close" onclick="this.closest('.kiss-word-tooltip').remove()">×</button>
-        </div>
-        <div class="kiss-word-definition">No definition found</div>`);
-        }
-      }
-    } catch (error) {
-      logger.info("Dictionary lookup failed for word:", word, error);
-
-      const currentTimeMs = this.#getCurrentSubtitleStartTime();
-
-      // 即使词典查询发生网络请求异常，依然向生词本发布此生词（防止用户记录遗失，仅没有详细翻译）
-      const event = new CustomEvent("kiss-add-word", {
-        detail: {
-          word,
-          phonetic: "",
-          definition: "",
-          examples: [],
-          timestamp: currentTimeMs,
-        },
-      });
-      document.dispatchEvent(event);
-
-      if (this.#tooltipEl) {
-        this.#tooltipEl.innerHTML =
-          trustedTypesHelper.createHTML(`<div class="kiss-word-tooltip-header">
-        <span>${word}</span>
-        <button class="kiss-word-tooltip-close" onclick="this.closest('.kiss-word-tooltip').remove()">×</button>
-      </div>
-      <div class="kiss-word-definition">Failed to load definition</div>`);
-      }
-    }
-  }
-
-  // 隐藏查词气泡框
-  #hideWordTooltip() {
-    if (this.#tooltipEl) {
-      this.#tooltipEl.remove();
-      this.#tooltipEl = null;
-    }
+    this.#wordTooltipController?.attachSpanListeners(this.#captionWindowEl);
   }
 
   /**
@@ -636,6 +280,7 @@ export class BilingualSubtitleManager {
     dragEndCallback
   ) {
     let isDragging = false;
+    let hasDragged = false;
     let startY;
     let initialBottom;
     let dragElementHeight;
@@ -647,6 +292,7 @@ export class BilingualSubtitleManager {
       e.preventDefault();
 
       isDragging = true;
+      hasDragged = false;
       handleElement.style.cursor = "grabbing";
       // 兼容触屏端拖拽
       startY = e.type === "touchstart" ? e.touches[0].clientY : e.clientY;
@@ -686,9 +332,8 @@ export class BilingualSubtitleManager {
         newBottom = Math.max(0, newBottom);
       }
 
+      hasDragged = true;
       dragElement.style.bottom = `${newBottom}px`;
-      if (dragEndCallback && typeof dragEndCallback === "function")
-        dragEndCallback();
     };
 
     const onDragEnd = (e) => {
@@ -705,6 +350,12 @@ export class BilingualSubtitleManager {
       document.removeEventListener("mouseup", onDragEnd, { capture: true });
       document.removeEventListener("touchend", onDragEnd, { capture: true });
 
+      if (
+        hasDragged &&
+        dragEndCallback &&
+        typeof dragEndCallback === "function"
+      )
+        dragEndCallback();
       const finalBottomPx = dragElement.style.bottom;
       setTimeout(() => {
         dragElement.style.bottom = finalBottomPx;
@@ -795,6 +446,13 @@ export class BilingualSubtitleManager {
 
     // 触发预翻译加载
     if (triggerTranslations) {
+      // 将播放前瞻窗口同步给上层 provider，用于按需触发后续 AI 断句 chunk。
+      // 这里跟随预翻译触发路径，避免 seeking 过程中产生无效的 AI 断句请求。
+      this.#setting.onSubtitleTimeWindow?.({
+        currentTimeMs,
+        preTrans: this.#setting.preTrans ?? 90,
+      });
+
       if (forceTriggerTranslations) {
         this.#triggerTranslations(currentTimeMs);
       } else {
@@ -862,7 +520,7 @@ export class BilingualSubtitleManager {
       if (isHoverLookupEnabled) {
         // 如果开启划词查词，用 span 标记每个单词
         p1.innerHTML = trustedTypesHelper.createHTML(
-          this.#wrapWordsWithSpans(subtitle.text)
+          wrapWordsWithSpans(subtitle.text)
         );
       } else {
         // 没有查词需要时，只做常规安全截断后展示 text 文本内容
@@ -875,7 +533,7 @@ export class BilingualSubtitleManager {
       p2.style.margin = "0";
       if (isHoverLookupEnabled) {
         p2.innerHTML = trustedTypesHelper.createHTML(
-          this.#wrapWordsWithSpans(subtitle.translation || "...")
+          wrapWordsWithSpans(subtitle.translation || "...")
         );
       } else {
         p2.textContent = truncateWords(subtitle.translation) || "...";
@@ -913,20 +571,6 @@ export class BilingualSubtitleManager {
     } else {
       this.#paperEl.style.display = "none";
     }
-  }
-
-  /**
-   * 使用正则表达式，将英文字幕文本中的每一个独立英文单词（包括带单引号/撇号的如 it's）使用 span 标签包裹，
-   * 并利用 dataset.word 存储单词本身，以供悬浮查词和背词库集成。
-   *
-   * @param {string} text - 原文字幕字符串
-   * @returns {string} 替换为带 span 标签的 HTML 字符串
-   */
-  #wrapWordsWithSpans(text) {
-    return text.replace(
-      /\b([a-zA-Z]+(?:'[a-zA-Z]+)?)\b/g,
-      '<span class="kiss-subtitle-word" data-word="$1">$1</span>'
-    );
   }
 
   /**

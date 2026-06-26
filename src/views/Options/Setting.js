@@ -1,4 +1,7 @@
+import { useEffect, useState } from "react";
 import Box from "@mui/material/Box";
+import IconButton from "@mui/material/IconButton";
+import EditIcon from "@mui/icons-material/Edit";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
@@ -7,6 +10,7 @@ import { useSetting } from "../../hooks/Setting";
 import { useI18n } from "../../hooks/I18n";
 import { useAlert } from "../../hooks/Alert";
 import { isExt } from "../../libs/client";
+import { browser } from "../../libs/browser";
 import Grid from "@mui/material/Grid";
 
 import {
@@ -43,6 +47,73 @@ function ShortcutItem({ action, label }) {
   const { shortcut, setShortcut } = useShortcut(action);
   return (
     <ShortcutInput value={shortcut} onChange={setShortcut} label={label} />
+  );
+}
+
+/**
+ * 展示扩展版快捷键的组件 (仅 Extension 模式)
+ */
+function ExtCommands() {
+  const [commands, setCommands] = useState([]);
+
+  useEffect(() => {
+    if (browser?.commands?.getAll) {
+      browser.commands
+        .getAll()
+        .then((cmds) => {
+          if (cmds) {
+            setCommands(cmds.filter((c) => c.description));
+          }
+        })
+        .catch((err) => {
+          console.error("fetch commands error:", err);
+        });
+    }
+  }, []);
+
+  if (!commands || commands.length === 0) return null;
+
+  const handleEdit = () => {
+    let url = "chrome://extensions/shortcuts";
+    const ua = navigator.userAgent;
+    if (ua.includes("Edg/")) {
+      url = "edge://extensions/shortcuts";
+    } else if (ua.includes("Firefox/")) {
+      url = "about:addons"; // Firefox 目前没有直接进入扩展快捷键的 URI
+    } else if (ua.includes("OPR/")) {
+      url = "opera://extensions/shortcuts";
+    } else if (ua.includes("Brave/")) {
+      url = "brave://extensions/shortcuts";
+    }
+
+    if (browser?.tabs?.create) {
+      browser.tabs.create({ url });
+    } else {
+      window.open(url, "_blank");
+    }
+  };
+
+  return (
+    <Box>
+      <Grid container spacing={2} columns={12}>
+        {commands.map((cmd) => (
+          <Grid item xs={12} sm={12} md={6} lg={3} key={cmd.name}>
+            <Stack direction="row" alignItems="flex-start">
+              <TextField
+                size="small"
+                label={cmd.description}
+                value={cmd.shortcut || ""}
+                fullWidth
+                disabled
+              />
+              <IconButton onClick={handleEdit}>
+                <EditIcon />
+              </IconButton>
+            </Stack>
+          </Grid>
+        ))}
+      </Grid>
+    </Box>
   );
 }
 
@@ -430,6 +501,8 @@ export default function Settings() {
               onChange={handleChange}
               multiline
             />
+
+            <ExtCommands />
           </>
         ) : (
           // 油猴脚本环境运行：渲染脚本侧注册的全局热键录入面板

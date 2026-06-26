@@ -63,6 +63,8 @@ class YouTubeCaptionProvider {
   #processingVersion = 0;
   // 当前已成功激活并运行的字幕轨唯一标识 Key
   #activeTrackKey = null;
+  // AI 断句后续 chunk 的按需调度器；为 null 表示当前使用内置断句或尚未生成后续 chunk。
+  #aiChunkScheduler = null;
   // 当前字幕断句/分块处理的取消控制器，用于视频或字幕轨切换时中止旧流式请求
   #subtitleAbortController = null;
 
@@ -165,6 +167,7 @@ class YouTubeCaptionProvider {
       this.#processingId = null;
       this.#processingVersion += 1;
       this.#activeTrackKey = null;
+      this.#aiChunkScheduler = null;
       this.#subtitleAbortController?.abort();
       this.#subtitleAbortController = null;
       this.#playerUi.updateMenuProps();
@@ -362,7 +365,7 @@ class YouTubeCaptionProvider {
    * @returns {void}
    */
   downloadSubtitle() {
-    if (!this.#subtitles.length || this.#progressed !== 100) {
+    if (!this.#subtitles.length) {
       logger.debug("Youtube Provider: The subtitle is not yet ready.");
       return;
     }
@@ -468,6 +471,7 @@ class YouTubeCaptionProvider {
     this.#processingId = trackKey;
     this.#subtitleAbortController?.abort();
     this.#subtitleAbortController = new AbortController();
+    this.#aiChunkScheduler = null;
 
     if (this.#flatEvents.length) {
       this.#destroyManager();
@@ -478,6 +482,7 @@ class YouTubeCaptionProvider {
       this.#flatEvents = [];
       this.#progressed = 0;
       this.#activeTrackKey = null;
+      this.#aiChunkScheduler = null;
     }
 
     try {
@@ -578,31 +583,41 @@ class YouTubeCaptionProvider {
     signal,
   }) {
     try {
-      const [subtitles, progressed] = await eventsToSubtitles({
-        videoId,
-        events: this.#events,
-        flatEvents,
-        fromLang,
-        setting: this.#setting,
-        processingVersion,
-        isStaleProcessing: (version) => this.#isStaleProcessing(version),
-        showNotification: (message, duration) =>
-          this.#playerUi.showNotification(message, duration),
-        i18n: this.#i18n,
-        apiSubtitle,
-        docInfo: this.#docInfo,
-        builtinSegment,
-        formatSubtitles: (events, lang) =>
-          formatSubtitles(events, lang, {
-            longSentenceThreshold: this.#setting.longSentenceThreshold,
-          }),
-        onAppendSubtitles: ({ subtitles, progressed }) => {
-          this.#appendProcessedSubtitles(subtitles, progressed);
-        },
-        getCurrentVideoId: () => this.#videoId,
-        signal,
-      });
+      const [subtitles, progressed, aiChunkScheduler] = await eventsToSubtitles(
+        {
+          videoId,
+          events: this.#events,
+          flatEvents,
+          fromLang,
+          setting: this.#setting,
+          processingVersion,
+          isStaleProcessing: (version) => this.#isStaleProcessing(version),
+          showNotification: (message, duration) =>
+            this.#playerUi.showNotification(message, duration),
+          i18n: this.#i18n,
+          apiSubtitle,
+          docInfo: this.#docInfo,
+          builtinSegment,
+          formatSubtitles: (events, lang) =>
+            formatSubtitles(events, lang, {
+              longSentenceThreshold: this.#setting.longSentenceThreshold,
+            }),
+          onAppendSubtitles: ({ subtitles, progressed }) => {
+            this.#appendProcessedSubtitles(subtitles, progressed);
+          },
+          getCurrentVideoId: () => this.#videoId,
+          signal,
+        }
+      );
       if (this.#isStaleProcessing(processingVersion)) return;
+      this.#aiChunkScheduler = aiChunkScheduler || null;
+      if (this.#aiChunkScheduler && this.#videoEl) {
+        // 首块完整返回后立即按当前播放点补一次调度，避免暂停或低频 timeupdate 时后续 chunk 不启动。
+        this.#scheduleAiChunks(
+          this.#videoEl.currentTime * 1000,
+          this.#setting.preTrans ?? 90
+        );
+      }
 
       if (!subtitles?.length && !this.#subtitles.length) {
         logger.debug(
@@ -692,7 +707,10 @@ class YouTubeCaptionProvider {
     }
 
     this.#managerInstance?.appendSubtitles(managedSubtitles);
-    this.#subtitleListManager?.setBilingualSubtitles(this.#subtitles);
+    this.#subtitleListManager?.setBilingualSubtitles(
+      this.#subtitles,
+      this.#progressed
+    );
     this.#managerInstance?.repairChunkTranslations(managedSubtitles);
   }
 
@@ -718,6 +736,7 @@ class YouTubeCaptionProvider {
     const processingVersion = (this.#processingVersion += 1);
     this.#subtitleAbortController?.abort();
     this.#subtitleAbortController = new AbortController();
+    this.#aiChunkScheduler = null;
     this.#destroyManager();
     clearMsgHistory(this.#setting.apiSlug);
 
@@ -802,6 +821,7 @@ class YouTubeCaptionProvider {
     const processingVersion = (this.#processingVersion += 1);
     this.#subtitleAbortController?.abort();
     this.#subtitleAbortController = new AbortController();
+    this.#aiChunkScheduler = null;
     this.#destroyManager();
     clearMsgHistory(this.#setting.apiSlug);
     this.#docInfo = getDocInfo();
@@ -814,6 +834,18 @@ class YouTubeCaptionProvider {
       processingVersion,
       signal: this.#subtitleAbortController.signal,
     });
+  }
+
+  /**
+   * 将播放器播放窗口转发给 AI chunk 懒调度器。
+   *
+   * @private
+   * @param {number} currentTimeMs 播放器当前时间，单位毫秒。
+   * @param {number} preTrans 复用字幕“提前翻译时长”的前瞻秒数。
+   * @returns {void}
+   */
+  #scheduleAiChunks(currentTimeMs, preTrans) {
+    this.#aiChunkScheduler?.scheduleUntil(currentTimeMs, preTrans);
   }
 
   /**
@@ -855,6 +887,9 @@ class YouTubeCaptionProvider {
         ...this.#setting,
         fromLang: this.#fromLang,
         docInfo: this.#docInfo,
+        // 由渲染管理器按 timeupdate/seeked 上报播放窗口，provider 再决定是否触发后续 AI chunk。
+        onSubtitleTimeWindow: ({ currentTimeMs, preTrans }) =>
+          this.#scheduleAiChunks(currentTimeMs, preTrans),
       },
     });
 
@@ -864,10 +899,16 @@ class YouTubeCaptionProvider {
     );
 
     if (showList && !this.#subtitleListManager) {
-      this.#subtitleListManager = new YouTubeSubtitleList(videoEl);
+      this.#subtitleListManager = new YouTubeSubtitleList(videoEl, this.#i18n, {
+        enableHoverLookup: isSubtitleModeEnabled(
+          this.#setting.hoverLookupMode,
+          this.#setting.enhanceMode
+        ),
+      });
       this.#subtitleListManager.initialize(
         this.#subtitles,
-        this.#rawSubtitleEvents
+        this.#rawSubtitleEvents,
+        this.#progressed
       );
 
       this.#managerInstance.onSubtitleUpdate = (subtitleUpdate) => {

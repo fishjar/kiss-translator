@@ -174,8 +174,10 @@ export class Translator {
     inner: `${APP_LCNAME}-inner`,
     term: `${APP_LCNAME}-term`,
     br: `${APP_LCNAME}-br`,
+    space: `${APP_LCNAME}-space`,
     highlight: `${APP_LCNAME}-highlight`,
     retry: `${APP_LCNAME}-retry`,
+    backup: `${APP_LCNAME}-backup`,
   };
 
   // 内置过滤与跳过翻译的正则表达式规则（URL、邮箱、路径、数字、日期、模板等）
@@ -1272,6 +1274,13 @@ export class Translator {
   #startObserveNode(node) {
     // todo: DocumentFragment 无法被 this.#io.observe
     if (!Translator.isElement(node)) return;
+    if (this.#tryAdoptExistingTranslationHost(node)) {
+      if (!this.#observedNodes.has(node)) {
+        this.#observedNodes.add(node);
+        this.#io.observe(node);
+      }
+      return;
+    }
 
     if (this.#rule.highlightWords === OPT_HIGHLIGHT_WORDS_BEFORETRANS) {
       this.#highlightWordsDeeply(node);
@@ -1327,9 +1336,13 @@ export class Translator {
 
     const hasText = Translator.hasTextNode(rootNode);
 
+    // 如果当前节点没有直接文本，但只有一个子节点，继续向下钻取，避免在过高层级包裹
     if (!hasText && rootNode.children.length === 1) {
-      this.#scanNode(rootNode.children[0]);
-      return;
+      const child = rootNode.children[0];
+      if (!child.classList?.contains(Translator.KISS_CLASS.warpper)) {
+        this.#scanNode(child);
+        return;
+      }
     }
 
     const hasBlock = this.#hasBlockNode(rootNode);
@@ -1979,7 +1992,17 @@ export class Translator {
           wrapper.appendChild(inner);
         }
       } else {
-        wrapper.appendChild(inner);
+        const space = document.createElement("span");
+        space.textContent = " ";
+        space.className = Translator.KISS_CLASS.space;
+        space.hidden = hideOrigin;
+        if (transOrder === "translation-first") {
+          wrapper.appendChild(inner);
+          wrapper.appendChild(space);
+        } else {
+          wrapper.appendChild(space);
+          wrapper.appendChild(inner);
+        }
       }
 
       this.#withViewportAnchor(() => {
@@ -2095,7 +2118,7 @@ export class Translator {
       });
       if (hideOrigin) {
         this.#withViewportAnchor(() => {
-          this.#removeNodes(nodes);
+          this.#removeNodes(nodes, wrapper);
         });
       }
 
@@ -2445,6 +2468,89 @@ export class Translator {
     });
   }
 
+  #collectExistingTranslationNodes(wrapper) {
+    const { transOrder = "original-first" } = this.#rule;
+    const nodes = [];
+    const isOriginalBefore = transOrder !== "translation-first";
+    let current = isOriginalBefore
+      ? wrapper.previousSibling
+      : wrapper.nextSibling;
+
+    while (current) {
+      if (
+        this.#shouldBreak(current) &&
+        !Translator.TAGS.WARP.has(current.nodeName?.toUpperCase())
+      ) {
+        break;
+      }
+
+      if (
+        current.nodeType === Node.ELEMENT_NODE ||
+        current.nodeType === Node.TEXT_NODE
+      ) {
+        if (isOriginalBefore) {
+          nodes.unshift(current);
+        } else {
+          nodes.push(current);
+        }
+      }
+
+      current = isOriginalBefore
+        ? current.previousSibling
+        : current.nextSibling;
+    }
+
+    return nodes;
+  }
+
+  #getTranslationBackup(wrapper) {
+    return wrapper.querySelector(
+      `:scope > template.${Translator.KISS_CLASS.backup}`
+    );
+  }
+
+  #getOrCreateTranslationBackup(wrapper) {
+    let backup = this.#getTranslationBackup(wrapper);
+    if (!backup) {
+      backup = document.createElement("template");
+      backup.className = Translator.KISS_CLASS.backup;
+      wrapper.appendChild(backup);
+    }
+    return backup;
+  }
+
+  #tryAdoptExistingTranslationHost(hostNode) {
+    if (!Translator.isElementOrFragment(hostNode)) return false;
+
+    const wrappers = Array.from(hostNode.children || []).filter((child) =>
+      child.classList?.contains(Translator.KISS_CLASS.warpper)
+    );
+    if (!wrappers.length) return false;
+
+    wrappers.forEach((wrapper) => {
+      const backup = this.#getTranslationBackup(wrapper);
+      const backupNodes = backup ? Array.from(backup.content.childNodes) : [];
+      const hasBackupNodes = backupNodes.length > 0;
+      const nodes = hasBackupNodes
+        ? backupNodes
+        : this.#collectExistingTranslationNodes(wrapper);
+      this.#translationNodes.set(wrapper, {
+        nodes,
+        isHide: hasBackupNodes,
+      });
+      nodes.forEach((node) => {
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          this.#processedNodes.set(node, { ...this.#rule });
+        }
+      });
+    });
+
+    this.#processedNodes.set(hostNode, { ...this.#rule });
+    this.#observedNodes.add(hostNode);
+    this.#viewNodes.add(hostNode);
+    return true;
+  }
+
   // 清理译文
   #removeTranslationElement(el) {
     this.#withViewportAnchor(() => {
@@ -2479,8 +2585,11 @@ export class Translator {
   }
 
   // 移除多个节点
-  #removeNodes(nodes) {
-    if (nodes) {
+  #removeNodes(nodes, wrapper) {
+    if (nodes && wrapper) {
+      const backup = this.#getOrCreateTranslationBackup(wrapper);
+      nodes.forEach((n) => backup.content.appendChild(n));
+    } else if (nodes) {
       const frag = document.createDocumentFragment();
       nodes.forEach((n) => frag.appendChild(n));
     }
@@ -2491,18 +2600,23 @@ export class Translator {
     const { transOrder = "original-first" } = this.#rule;
     this.#findTranslationWrappers(node).forEach((el) => {
       const br = el.querySelector(":scope > br");
+      const space = el.querySelector(
+        `:scope > span.${Translator.KISS_CLASS.space}`
+      );
       const { nodes } = this.#translationNodes.get(el) || {};
       if (transOnly === "true") {
         // 双语变为仅译文
         this.#withViewportAnchor(() => {
           if (br) br.hidden = true;
-          this.#removeNodes(nodes);
+          if (space) space.hidden = true;
+          this.#removeNodes(nodes, el);
         });
         this.#translationNodes.set(el, { nodes, isHide: true });
       } else {
         // 仅译文变为双语
         this.#withViewportAnchor(() => {
           if (br) br.hidden = false;
+          if (space) space.hidden = false;
           if (nodes && nodes.length) {
             const frag = document.createDocumentFragment();
             nodes.forEach((n) => frag.appendChild(n));
@@ -2797,7 +2911,7 @@ export class Translator {
     if (!data) return;
     const { nodes } = data;
     this.#withViewportAnchor(() => {
-      this.#removeNodes(nodes);
+      this.#removeNodes(nodes, wrapper);
       const inner = wrapper.querySelector(
         `:scope > .${Translator.KISS_CLASS.inner}`
       );

@@ -7,6 +7,10 @@ jest.mock("../libs/fetch", () => ({
   fnPolyfill: jest.fn(),
 }));
 
+jest.mock("../libs/browser", () => ({
+  isBuiltinAIAvailable: true,
+}));
+
 jest.mock("../libs/cache", () => ({
   getHttpCachePolyfill: jest.fn(),
   putHttpCachePolyfill: jest.fn(),
@@ -18,6 +22,21 @@ jest.mock("../libs/docInfo", () => ({
 
 jest.mock("../libs/batchQueue", () => ({
   getBatchQueue: jest.fn(),
+}));
+
+jest.mock("../libs/pool", () => ({
+  getFetchPool: jest.fn(() => ({
+    push: (fn, args) => fn(args),
+  })),
+}));
+
+jest.mock("../libs/request", () => ({
+  normalizeHttpTimeout: (timeout) => {
+    const normalizedTimeout = timeout || 30;
+    return normalizedTimeout > 600
+      ? normalizedTimeout
+      : normalizedTimeout * 1000;
+  },
 }));
 
 const mockSha256 = jest.fn();
@@ -42,9 +61,16 @@ jest.mock("./trans", () => ({
 
 import { apiDict, apiTranslate } from "./index";
 import { handleDict, handleTranslate } from "./trans";
+import { fnPolyfill } from "../libs/fetch";
+import { withTimeout } from "../libs/utils";
 import { getBatchQueue } from "../libs/batchQueue";
+import { getFetchPool } from "../libs/pool";
 import { getHttpCachePolyfill, putHttpCachePolyfill } from "../libs/cache";
-import { DEFAULT_API_LIST, OPT_TRANS_OPENAI } from "../config";
+import {
+  DEFAULT_API_LIST,
+  OPT_TRANS_BUILTINAI,
+  OPT_TRANS_OPENAI,
+} from "../config";
 
 const getOpenAiApiSetting = (systemPrompt) => ({
   ...DEFAULT_API_LIST.find((api) => api.apiType === OPT_TRANS_OPENAI),
@@ -54,6 +80,76 @@ const getOpenAiApiSetting = (systemPrompt) => ({
   useBatchFetch: true,
   useStream: false,
   systemPrompt,
+});
+
+const getBuiltinAiApiSetting = (httpTimeout) => ({
+  ...DEFAULT_API_LIST.find((api) => api.apiType === OPT_TRANS_BUILTINAI),
+  apiSlug: `builtinai_${httpTimeout}`,
+  fetchInterval: 100,
+  fetchLimit: 1,
+  httpTimeout,
+});
+
+describe("apiTranslate BuiltinAI timeout", () => {
+  beforeEach(() => {
+    mockGetCacheDigest.mockResolvedValue("a".repeat(64));
+    getFetchPool.mockReturnValue({
+      push: (fn, args) => fn(args),
+    });
+    withTimeout.mockImplementation((promise) => promise);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test("converts second-based timeout before calling withTimeout", async () => {
+    fnPolyfill.mockResolvedValueOnce(["translated text", "en", ""]);
+
+    await apiTranslate({
+      text: "hello",
+      fromLang: "en",
+      toLang: "zh-CN",
+      apiSetting: getBuiltinAiApiSetting(30),
+      useCache: false,
+    });
+
+    expect(withTimeout.mock.calls[0][1]).toBe(30000);
+  });
+
+  test("keeps legacy millisecond timeout before calling withTimeout", async () => {
+    fnPolyfill.mockResolvedValueOnce(["translated text", "en", ""]);
+
+    await apiTranslate({
+      text: "hello",
+      fromLang: "en",
+      toLang: "zh-CN",
+      apiSetting: getBuiltinAiApiSetting(30000),
+      useCache: false,
+    });
+
+    expect(withTimeout.mock.calls[0][1]).toBe(30000);
+  });
+
+  test("includes BuiltinAI error reason in thrown message", async () => {
+    fnPolyfill.mockResolvedValueOnce([
+      "",
+      "auto",
+      "Automatic detection of source language failed: low confidence",
+    ]);
+
+    await expect(
+      apiTranslate({
+        text: "hello",
+        fromLang: "auto",
+        toLang: "zh-CN",
+        apiSetting: getBuiltinAiApiSetting(30),
+        useCache: false,
+      })
+    ).rejects.toThrow(
+      "apiBuiltinAITranslate got error: Automatic detection of source language failed: low confidence"
+    );
+  });
 });
 
 describe("apiDict", () => {

@@ -364,11 +364,10 @@ export function Menus({
         value={skipAd}
         label={i18n("is_skip_ad")}
       />
-      {/* 字幕下载动作按钮：仅在进度为 100% (处理完毕) 时才启用 */}
+      {/* 字幕下载动作按钮：按需 AI 断句下允许下载当前已处理的字幕 */}
       <Button
         label={`${status} [${progressed}%] `}
         onClick={downloadSubtitle}
-        disabled={progressed !== 100}
       />
     </div>
   );

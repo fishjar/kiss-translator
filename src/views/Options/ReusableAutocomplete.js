@@ -16,6 +16,7 @@ export default function ReusableAutocomplete({
   label,
   value,
   onChange,
+  textFieldProps = {},
   ...rest
 }) {
   // 本地 inputValue 用来暂存用户的文本输入框输入（对于 freeSolo 可输入非列表项的值很有用）
@@ -75,7 +76,7 @@ export default function ReusableAutocomplete({
       onBlur={handleBlur}
       {...rest}
       renderInput={(params) => (
-        <TextField {...params} name={name} label={label} />
+        <TextField {...params} {...textFieldProps} name={name} label={label} />
       )}
     />
   );
