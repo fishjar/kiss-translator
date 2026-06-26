@@ -900,8 +900,8 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
               name="httpTimeout"
               value={httpTimeout}
               onChange={handleChange}
-              min={100}
-              max={600000}
+              min={1}
+              max={600}
             />
           </Grid>
           <Grid item xs={12} sm={12} md={6} lg={3}></Grid>

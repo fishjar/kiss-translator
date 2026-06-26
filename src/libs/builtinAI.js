@@ -11,6 +11,8 @@ class ChromeTranslator {
   #translatorMap = new Map();
   // 缓存全局唯一的本地 LanguageDetector 实例 Promise
   #detectorPromise = null;
+  // 缓存上一次通过置信度阈值的可靠语言识别结果
+  #lastReliableDetectedLanguage = "";
 
   constructor(options = {}) {
     // 支持接收模型下载进度的回调通知
@@ -122,6 +124,10 @@ class ChromeTranslator {
       const { detectedLanguage, confidence } = results[0];
       // 过滤低置信度的噪音识别结果，防止误报
       if (confidence < confidenceThreshold) {
+        if (this.#lastReliableDetectedLanguage) {
+          return [this.#lastReliableDetectedLanguage, ""];
+        }
+
         return [
           "",
           `Confidence of test results (${detectedLanguage} ${confidence.toFixed(
@@ -130,6 +136,7 @@ class ChromeTranslator {
         ];
       }
 
+      this.#lastReliableDetectedLanguage = detectedLanguage;
       return [detectedLanguage, ""];
     } catch (error) {
       kissLog("detectLanguage", error, `(${text})`);

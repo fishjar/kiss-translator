@@ -7,11 +7,12 @@
 import browser from "webextension-polyfill";
 import { isExt, isGm } from "./client";
 import { isBg } from "./browser";
-import { PORT_STREAM_FETCH, DEFAULT_HTTP_TIMEOUT } from "../config";
+import { PORT_STREAM_FETCH } from "../config";
 import { createSSEParser, createAsyncQueue } from "./stream";
 import {
   createTimeoutSignal,
   mergeAbortSignals,
+  normalizeHttpTimeout,
   resolveHttpTimeout,
 } from "./request";
 
@@ -207,8 +208,7 @@ async function* fetchStreamGM(
  */
 export async function* fetchStreamNative(input, init = {}, opts = {}) {
   const options = typeof opts === "number" ? { httpTimeout: opts } : opts || {};
-  let timeout = options.httpTimeout || DEFAULT_HTTP_TIMEOUT;
-  timeout = timeout > 600 ? timeout : timeout * 1000;
+  const timeout = normalizeHttpTimeout(options.httpTimeout);
   const signal = mergeAbortSignals([
     init.signal,
     options.signal,

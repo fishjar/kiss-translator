@@ -501,7 +501,7 @@ export default function Settings() {
               onChange={handleChange}
               multiline
             />
-            
+
             <ExtCommands />
           </>
         ) : (

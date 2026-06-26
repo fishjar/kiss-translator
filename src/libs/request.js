@@ -13,6 +13,18 @@ import { kissLog } from "./log";
 import { parseResponse } from "./response";
 
 /**
+ * 将用户配置的请求超时时间统一归一化为毫秒。
+ *
+ * @param {number} [timeout] 用户配置的超时时间。新配置单位为秒，旧配置可能为毫秒。
+ * @returns {number} 最终使用的超时时间，单位毫秒。
+ */
+export const normalizeHttpTimeout = (timeout) => {
+  const normalizedTimeout = timeout || DEFAULT_HTTP_TIMEOUT;
+  // 如果值大于 600，说明是旧配置（毫秒），直接返回；否则视为新配置（秒）并乘以 1000
+  return normalizedTimeout > 600 ? normalizedTimeout : normalizedTimeout * 1000;
+};
+
+/**
  * 读取当前请求应使用的 HTTP 超时时间。
  *
  * @param {Object} [opts] 请求选项。
@@ -29,10 +41,7 @@ export const resolveHttpTimeout = async (opts = {}) => {
     }
   }
 
-  timeout = timeout || DEFAULT_HTTP_TIMEOUT;
-
-  // 如果值大于 600，说明是旧配置（毫秒），直接返回；否则视为新配置（秒）并乘以 1000
-  return timeout > 600 ? timeout : timeout * 1000;
+  return normalizeHttpTimeout(timeout);
 };
 
 /**
