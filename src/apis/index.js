@@ -597,7 +597,7 @@ const apiBuiltinAITranslate = async ({ text, from, to, apiSetting }) => {
 
   const [trText, srLang, error] = result;
   if (error) {
-    throw new Error("apiBuiltinAITranslate got error", error);
+    throw new Error(`apiBuiltinAITranslate got error: ${error}`);
   }
 
   return [trText, srLang];

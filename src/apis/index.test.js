@@ -130,6 +130,26 @@ describe("apiTranslate BuiltinAI timeout", () => {
 
     expect(withTimeout.mock.calls[0][1]).toBe(30000);
   });
+
+  test("includes BuiltinAI error reason in thrown message", async () => {
+    fnPolyfill.mockResolvedValueOnce([
+      "",
+      "auto",
+      "Automatic detection of source language failed: low confidence",
+    ]);
+
+    await expect(
+      apiTranslate({
+        text: "hello",
+        fromLang: "auto",
+        toLang: "zh-CN",
+        apiSetting: getBuiltinAiApiSetting(30),
+        useCache: false,
+      })
+    ).rejects.toThrow(
+      "apiBuiltinAITranslate got error: Automatic detection of source language failed: low confidence"
+    );
+  });
 });
 
 describe("apiDict", () => {
