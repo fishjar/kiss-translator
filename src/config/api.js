@@ -800,6 +800,7 @@ const defaultApi = {
   url: "",
   key: "",
   model: "", // 模型名称
+  modelListUrl: "", // 模型列表接口地址
   systemPrompt: "",
   batchPromptSlug: "batch-translation-json",
   subtitlePrompt: "",
@@ -896,6 +897,7 @@ const defaultApiOpts = {
   [OPT_TRANS_DEEPSEEK]: {
     ...defaultApi,
     url: "https://api.deepseek.com/chat/completions",
+    modelListUrl: "https://api.deepseek.com/models",
     model: "deepseek-v4-flash",
     ...defaultAiApiOpts,
   },
@@ -908,30 +910,35 @@ const defaultApiOpts = {
   [OPT_TRANS_SILICONFLOW]: {
     ...defaultApi,
     url: "https://api.siliconflow.cn/v1/chat/completions",
+    modelListUrl: "https://api.siliconflow.cn/v1/models",
     model: "Pro/zai-org/GLM-4.7",
     ...defaultAiApiOpts,
   },
   [OPT_TRANS_XIAOMIMIMO]: {
     ...defaultApi,
     url: "https://api.xiaomimimo.com/v1/chat/completions",
+    modelListUrl: "https://api.xiaomimimo.com/v1/models",
     model: "mimo-v2.5-pro",
     ...defaultAiApiOpts,
   },
   [OPT_TRANS_ALIYUNBAILIAN]: {
     ...defaultApi,
     url: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+    modelListUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1/models",
     model: "qwen-plus",
     ...defaultAiApiOpts,
   },
   [OPT_TRANS_CEREBRAS]: {
     ...defaultApi,
     url: "https://api.cerebras.ai/v1/chat/completions",
+    modelListUrl: "https://api.cerebras.ai/v1/models",
     model: "gpt-oss-120b",
     ...defaultAiApiOpts,
   },
   [OPT_TRANS_ZAI]: {
     ...defaultApi,
     url: "https://open.bigmodel.cn/api/paas/v4/chat/completions",
+    modelListUrl: "https://open.bigmodel.cn/api/paas/v4/models",
     model: "glm-5.1",
     ...defaultAiApiOpts,
   },
@@ -946,24 +953,28 @@ const defaultApiOpts = {
   [OPT_TRANS_OPENAI]: {
     ...defaultApi,
     url: "https://api.openai.com/v1/chat/completions",
+    modelListUrl: "https://api.openai.com/v1/models",
     model: "gpt-4",
     ...defaultAiApiOpts,
   },
   [OPT_TRANS_GEMINI]: {
     ...defaultApi,
     url: `https://generativelanguage.googleapis.com/v1beta/models/${INPUT_PLACE_MODEL}:generateContent`,
+    modelListUrl: "https://generativelanguage.googleapis.com/v1beta/models",
     model: "gemini-2.5-flash",
     ...defaultAiApiOpts,
   },
   [OPT_TRANS_GEMINI_2]: {
     ...defaultApi,
     url: `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions`,
+    modelListUrl: "https://generativelanguage.googleapis.com/v1beta/models",
     model: "gemini-2.0-flash",
     ...defaultAiApiOpts,
   },
   [OPT_TRANS_CLAUDE]: {
     ...defaultApi,
     url: "https://api.anthropic.com/v1/messages",
+    modelListUrl: "https://api.anthropic.com/v1/models",
     model: "claude-3-haiku-20240307",
     ...defaultAiApiOpts,
   },
@@ -974,12 +985,14 @@ const defaultApiOpts = {
   [OPT_TRANS_OLLAMA]: {
     ...defaultApi,
     url: "http://localhost:11434/v1/chat/completions",
+    modelListUrl: "http://localhost:11434/v1/models",
     model: "llama3.1",
     ...defaultAiApiOpts,
   },
   [OPT_TRANS_OPENROUTER]: {
     ...defaultApi,
     url: "https://openrouter.ai/api/v1/chat/completions",
+    modelListUrl: "https://openrouter.ai/api/v1/models",
     model: "openai/gpt-4o",
     ...defaultAiApiOpts,
   },
@@ -997,6 +1010,63 @@ export const DEFAULT_API_LIST = OPT_ALL_TRANS_TYPES.map((apiType) => ({
   apiName: apiType,
   apiType,
 }));
+
+/**
+ * 为单个翻译接口补齐模型列表 URL。
+ *
+ * 这里专门用来兼容旧版本保存的数据：旧数据里没有 `modelListUrl` 字段，
+ * 读取到的值会是 `undefined`。如果用户已经显式保存为空字符串，说明用户
+ * 选择不配置模型列表接口，不能再用默认值覆盖。
+ *
+ * @param {object} apiSetting 单个翻译接口配置
+ * @returns {object} 补齐后的接口配置；如果无需修改，则返回原对象引用
+ */
+export function fillDefaultApiModelListUrl(apiSetting) {
+  if (!apiSetting || typeof apiSetting !== "object") {
+    return apiSetting;
+  }
+  // 只有 undefined 才代表旧数据缺字段；空字符串或自定义 URL 都应原样保留。
+  if (apiSetting.modelListUrl !== undefined) {
+    return apiSetting;
+  }
+
+  // 按接口类型查找内置默认配置，未查到官方模型列表接口时补为空字符串。
+  const defaultApiOpt =
+    DEFAULT_API_LIST.find((item) => item.apiType === apiSetting.apiType) || {};
+  return {
+    ...apiSetting,
+    modelListUrl: defaultApiOpt.modelListUrl || "",
+  };
+}
+
+/**
+ * 批量补齐翻译接口列表中的模型列表 URL。
+ *
+ * 该函数保持不可变更新：只有发现旧数据缺少 `modelListUrl` 时才创建新数组
+ * 和新接口对象；没有任何变更时返回原数组引用，方便调用方用引用比较避免
+ * 多余的设置写回和 React 重渲染。
+ *
+ * @param {Array<object>} transApis 翻译接口配置列表
+ * @returns {Array<object>} 归一化后的接口配置列表
+ */
+export function normalizeApiModelListUrls(transApis = []) {
+  if (!Array.isArray(transApis)) {
+    return transApis;
+  }
+
+  let hasChanges = false;
+  const nextApis = transApis.map((api) => {
+    const nextApi = fillDefaultApiModelListUrl(api);
+    // helper 返回新对象时，说明该 API 是需要补字段的旧数据。
+    if (nextApi !== api) {
+      hasChanges = true;
+    }
+    return nextApi;
+  });
+
+  // 无变更时保留原数组引用，避免触发不必要的持久化更新。
+  return hasChanges ? nextApis : transApis;
+}
 
 export const DEFAULT_API_TYPE = OPT_TRANS_MICROSOFT;
 export const DEFAULT_API_SETTING = DEFAULT_API_LIST.find(

@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useMemo } from "react";
-import { DEFAULT_API_LIST, API_SPE_TYPES } from "../config";
+import {
+  DEFAULT_API_LIST,
+  API_SPE_TYPES,
+  normalizeApiModelListUrls,
+} from "../config";
 import { useSetting } from "./Setting";
 
 // 内部辅助 Hook，获取翻译 API 的排序状态和更新配置的方法
@@ -8,7 +12,7 @@ function useApiState() {
   // 统一排序，所有使用transApis的地方都是按照 sortOrder 从小到大排序好的
   const transApis = useMemo(
     () =>
-      [...(setting?.transApis || [])].sort(
+      [...normalizeApiModelListUrls(setting?.transApis || [])].sort(
         (a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)
       ),
     [setting?.transApis]
@@ -61,6 +65,31 @@ export function useApiList() {
       }));
     }
   }, [setting?.deletedTransApiSlugs, transApis, updateSetting]);
+
+  useEffect(() => {
+    if (!Array.isArray(setting?.transApis)) {
+      return;
+    }
+
+    const normalizedTransApis = normalizeApiModelListUrls(setting.transApis);
+    if (normalizedTransApis === setting.transApis) {
+      return;
+    }
+
+    updateSetting((prev) => {
+      const prevTransApis = Array.isArray(prev?.transApis)
+        ? prev.transApis
+        : [];
+      const nextTransApis = normalizeApiModelListUrls(prevTransApis);
+      if (nextTransApis === prevTransApis) {
+        return prev;
+      }
+      return {
+        ...prev,
+        transApis: nextTransApis,
+      };
+    });
+  }, [setting?.transApis, updateSetting]);
 
   // 获取用户添加的自定义 API 列表，按照拼音/字母表排序
   // 过滤掉内置 API (如 google, bing, deeplBuiltin 等)
