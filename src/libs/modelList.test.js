@@ -1,7 +1,4 @@
-import {
-  createModelListRequest,
-  parseModelListResponse,
-} from "./modelList";
+import { createModelListRequest, parseModelListResponse } from "./modelList";
 import { OPT_TRANS_GEMINI, OPT_TRANS_OPENAI } from "../config/api";
 
 describe("modelList", () => {

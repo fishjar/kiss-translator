@@ -270,9 +270,7 @@ describe("Apis model list", () => {
     });
 
     expect(modelInput.getAttribute("aria-invalid")).toBe("false");
-    expect(view.container.textContent).not.toContain(
-      "model_list_fetch_failed"
-    );
+    expect(view.container.textContent).not.toContain("model_list_fetch_failed");
 
     view.unmount();
   });

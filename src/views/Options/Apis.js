@@ -524,8 +524,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
   );
 
   const allModelOptions = useMemo(() => {
-    const baseOptions =
-      apiType === OPT_TRANS_EPHONEAI ? EPHONEAI_MODELS : [];
+    const baseOptions = apiType === OPT_TRANS_EPHONEAI ? EPHONEAI_MODELS : [];
     return Array.from(new Set([...baseOptions, ...modelOptions]));
   }, [apiType, modelOptions]);
 
