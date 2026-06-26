@@ -162,6 +162,22 @@ describe("requestStream in userscript", () => {
     await expect(done).resolves.toEqual({ value: undefined, done: true });
   });
 
+  test("converts second-based timeout values before passing them to GM", async () => {
+    const iterator = requestStream(
+      "https://example.test/stream",
+      {},
+      { httpTimeout: 30 }
+    );
+    const first = iterator.next();
+    await waitForRequestDetails();
+
+    expect(requestDetails.timeout).toBe(30000);
+
+    requestDetails.onprogress({ responseText: "data: one\n\n" });
+    await expect(first).resolves.toEqual({ value: "one", done: false });
+    await iterator.return();
+  });
+
   test("does not duplicate cumulative responseText chunks", async () => {
     const iterator = requestStream("https://example.test/stream", {});
     const first = iterator.next();

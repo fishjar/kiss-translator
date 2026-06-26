@@ -34,6 +34,7 @@ import { getBatchQueue } from "../libs/batchQueue";
 import { isBuiltinAIAvailable } from "../libs/browser";
 import { chromeDetect, chromeTranslate } from "../libs/builtinAI";
 import { fnPolyfill } from "../libs/fetch";
+import { normalizeHttpTimeout } from "../libs/request";
 import { getFetchPool } from "../libs/pool";
 import { trustedTypesHelper } from "../libs/trustedTypes";
 import { getDocInfo } from "../libs/docInfo";
@@ -587,7 +588,7 @@ const apiBuiltinAITranslate = async ({ text, from, to, apiSetting }) => {
       from,
       to,
     }),
-    httpTimeout
+    normalizeHttpTimeout(httpTimeout)
   );
 
   if (!result) {

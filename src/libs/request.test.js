@@ -7,7 +7,7 @@ jest.mock("../config", () => ({
   CLIENT_FIREFOX: "firefox",
   CLIENT_USERSCRIPT: "userscript",
   CLIENT_WEB: "web",
-  DEFAULT_HTTP_TIMEOUT: 1000,
+  DEFAULT_HTTP_TIMEOUT: 30,
   MSG_FETCH: "kiss_fetch",
 }));
 
@@ -15,7 +15,7 @@ jest.mock("./log", () => ({
   kissLog: jest.fn(),
 }));
 
-import { fetchGM, fetchPatcher } from "./request";
+import { fetchGM, fetchPatcher, normalizeHttpTimeout } from "./request";
 
 const loadRequestWithClient = (clientMock) => {
   jest.resetModules();
@@ -30,7 +30,7 @@ const loadRequestWithClient = (clientMock) => {
     CLIENT_FIREFOX: "firefox",
     CLIENT_USERSCRIPT: "userscript",
     CLIENT_WEB: "web",
-    DEFAULT_HTTP_TIMEOUT: 1000,
+    DEFAULT_HTTP_TIMEOUT: 30,
     MSG_FETCH: "kiss_fetch",
   }));
   jest.doMock("./log", () => ({
@@ -45,6 +45,22 @@ const waitFor = async (condition) => {
   }
   expect(condition()).toBe(true);
 };
+
+describe("normalizeHttpTimeout", () => {
+  test("converts second-based timeout values to milliseconds", () => {
+    expect(normalizeHttpTimeout(30)).toBe(30000);
+    expect(normalizeHttpTimeout(600)).toBe(600000);
+  });
+
+  test("keeps legacy millisecond timeout values unchanged", () => {
+    expect(normalizeHttpTimeout(1000)).toBe(1000);
+  });
+
+  test("falls back to the default timeout in seconds", () => {
+    expect(normalizeHttpTimeout()).toBe(30000);
+    expect(normalizeHttpTimeout(0)).toBe(30000);
+  });
+});
 
 describe("fetchPatcher", () => {
   afterEach(() => {
