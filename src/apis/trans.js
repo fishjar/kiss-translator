@@ -61,6 +61,7 @@ import {
   parseAITerms,
 } from "../libs/utils";
 import { decodeHTMLEntities } from "../libs/html";
+import { parseCompleteTranslationSegments } from "../libs/aiResponseParser";
 import {
   parseStreamingSegments,
   createStreamingJsonParser,
@@ -74,7 +75,6 @@ import { fetchData, fetchStream } from "../libs/fetch";
 import { getMsgHistory } from "./history";
 import { parseBilingualVtt } from "../subtitle/vtt";
 import { getDocInfo } from "../libs/docInfo";
-import { trustedTypesHelper } from "../libs/trustedTypes";
 
 const keyMap = new Map();
 const urlMap = new Map();
@@ -253,63 +253,18 @@ const parseAIRes = (raw, useBatchFetch = true) => {
   // 剥离 Markdown 常用的 ```json...``` 代码块包裹
   let content = stripMarkdownCodeBlock(raw).trim();
 
-  // 1. 尝试以 JSON 格式提取与纠错
-  try {
-    // 查找 JSON 有效的起始与结束位置，能过滤掉 JSON 块前后的引导语或杂音文本
-    const start = content.search(/(\{|\[)/);
-    const end = content.lastIndexOf(content.includes("}") ? "}" : "]");
-
-    if (start > -1 && end > -1) {
-      const jsonStr = content.substring(start, end + 1);
-      const parsed = JSON.parse(jsonStr);
-
-      const list = Array.isArray(parsed)
-        ? parsed
-        : parsed.translations || (parsed.result ? [parsed.result] : [parsed]);
-
-      if (
-        list.length > 0 &&
-        (list[0].text !== undefined || list[0].translations)
-      ) {
-        return list.map((item) => [
-          decodeHTMLEntities(String(item.text || "")),
-          String(item.sourceLanguage || ""),
-        ]);
-      }
-    }
-  } catch (e) {
-    // 忽略异常，平滑降级到 XML 尝试
+  // JSON/XML/LINE 三种聚合格式统一交给共享字符串解析器处理。
+  // 这里不再直接使用 DOMParser 解析 XML，避免浏览器 Trusted Types / DOMPurify
+  // 清洗自定义标签后导致非流式路径拿不到 <t> 译文。
+  const structuredSegments = parseCompleteTranslationSegments(content, {
+    decodeText: decodeHTMLEntities,
+  });
+  if (structuredSegments.length > 0) {
+    return structuredSegments.map((segment) => segment.translation);
   }
 
-  // 2. 尝试以 XML 标签格式解析 (如 <t>...</t> 或 <seg>...</seg> 块)
-  const xmlTagPattern = /<(t|item|seg)\b/i;
-  if (xmlTagPattern.test(content)) {
-    try {
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(
-        trustedTypesHelper.createHTML(content),
-        "text/html"
-      );
-      const elements = doc.querySelectorAll("t, item, seg");
-
-      if (elements.length > 0) {
-        return Array.from(elements).map((el) => [
-          el.innerHTML.trim(),
-          el.getAttribute("sourceLanguage") || "",
-        ]);
-      }
-    } catch (e) {
-      // 忽略，降级到纯文本多级备用
-    }
-  }
-
-  // 3. 兜底策略：纯文本单行/带序号和管道符按行切割解析 (例如 "1 | 译文" 格式)
+  // 兜底策略：纯文本按行切割解析
   return content.split("\n").map((line) => {
-    const pipeMatch = line.match(/^\d+\s*\|\s*(.*)/);
-    if (pipeMatch) {
-      return [decodeHTMLEntities(pipeMatch[1].trim()), ""];
-    }
-
     const text = decodeHTMLEntities(line.replace(/<br\s*\/?>/gi, "\n").trim());
     return [text, ""];
   });
