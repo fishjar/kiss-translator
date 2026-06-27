@@ -18,6 +18,7 @@ jest.mock("../libs/docInfo", () => ({
 import { handleTranslate } from "./trans";
 import { DEFAULT_API_LIST, OPT_TRANS_OPENAI } from "../config";
 import { fetchData, fetchStream } from "../libs/fetch";
+import { trustedTypesHelper } from "../libs/trustedTypes";
 
 const getApiSetting = (apiType) => ({
   ...DEFAULT_API_LIST.find((api) => api.apiType === apiType),
@@ -51,6 +52,7 @@ async function collectAsyncGenerator(generator) {
 describe("handleTranslate", () => {
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   test("falls back to non-stream request when stream reader is unsupported", async () => {
@@ -91,7 +93,158 @@ describe("handleTranslate", () => {
     expect(result).toEqual([
       {
         id: 0,
-        result: [JSON.stringify([{ text: "你好", sourceLanguage: "en" }]), ""],
+        result: ["你好", "en"],
+      },
+    ]);
+  });
+
+  test("parses non-stream OpenAI XML content and ignores reasoning content", async () => {
+    fetchData.mockResolvedValueOnce({
+      choices: [
+        {
+          finish_reason: "stop",
+          index: 0,
+          logprobs: null,
+          message: {
+            content:
+              '<root>\n    <t id="0" sourceLanguage="en">敏捷的棕色狐狸跳过了懒惰的狗。</t>\n</root>',
+            reasoning_content:
+              "This reasoning text should not be parsed as translation.",
+            role: "assistant",
+          },
+        },
+      ],
+      created: 1782579027,
+      id: "021782579025384c63a6ac480f44318ff02bbee696f61102e5957",
+      model: "doubao-seed-2-0-mini-260428",
+      object: "chat.completion",
+    });
+
+    const result = await collectAsyncGenerator(
+      handleTranslate(["The quick brown fox jumps over the lazy dog."], {
+        from: "en",
+        to: "zh-CN",
+        fromLang: "English",
+        toLang: "Chinese",
+        langMap: () => "",
+        glossary: "",
+        apiSetting: {
+          ...getApiSetting(OPT_TRANS_OPENAI),
+          useStream: false,
+          useBatchFetch: true,
+        },
+        usePool: false,
+      })
+    );
+
+    expect(fetchStream).not.toHaveBeenCalled();
+    expect(fetchData).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(fetchData.mock.calls[0][1].body).stream).toBe(false);
+    expect(result).toEqual([
+      {
+        id: 0,
+        result: ["敏捷的棕色狐狸跳过了懒惰的狗。", "en"],
+      },
+    ]);
+  });
+
+  test("parses non-stream OpenAI-compatible XML content from DeepSeek-style response", async () => {
+    fetchData.mockResolvedValueOnce({
+      id: "a729d491-11e8-4a8c-bb6a-c780329e1f99",
+      object: "chat.completion",
+      created: 1782580528,
+      model: "deepseek-v4-flash",
+      choices: [
+        {
+          index: 0,
+          message: {
+            role: "assistant",
+            content:
+              '<root>\n    <t id="0" sourceLanguage="en">敏捷的棕色狐狸跳过了懒惰的狗。</t>\n</root>',
+          },
+          logprobs: null,
+          finish_reason: "stop",
+        },
+      ],
+      usage: {
+        prompt_tokens: 544,
+        completion_tokens: 30,
+        total_tokens: 574,
+        prompt_tokens_details: {
+          cached_tokens: 512,
+        },
+        prompt_cache_hit_tokens: 512,
+        prompt_cache_miss_tokens: 32,
+      },
+      system_fingerprint: "fp_8b330d02d0_prod0820_fp8_kvcache_20260402",
+    });
+
+    const result = await collectAsyncGenerator(
+      handleTranslate(["The quick brown fox jumps over the lazy dog."], {
+        from: "en",
+        to: "zh-CN",
+        fromLang: "English",
+        toLang: "Chinese",
+        langMap: () => "",
+        glossary: "",
+        apiSetting: {
+          ...getApiSetting(OPT_TRANS_OPENAI),
+          useStream: false,
+          useBatchFetch: true,
+        },
+        usePool: false,
+      })
+    );
+
+    expect(fetchStream).not.toHaveBeenCalled();
+    expect(fetchData).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(fetchData.mock.calls[0][1].body).stream).toBe(false);
+    expect(result).toEqual([
+      {
+        id: 0,
+        result: ["敏捷的棕色狐狸跳过了懒惰的狗。", "en"],
+      },
+    ]);
+  });
+
+  test("parses OpenAI XML content before sanitized DOM fallback", async () => {
+    const createHTMLSpy = jest
+      .spyOn(trustedTypesHelper, "createHTML")
+      .mockReturnValue("");
+
+    fetchData.mockResolvedValueOnce({
+      choices: [
+        {
+          message: {
+            content:
+              '<root>\n    <t id="0" sourceLanguage="en">敏捷的棕色狐狸跳过了懒惰的狗。</t>\n</root>',
+          },
+        },
+      ],
+    });
+
+    const result = await collectAsyncGenerator(
+      handleTranslate(["The quick brown fox jumps over the lazy dog."], {
+        from: "en",
+        to: "zh-CN",
+        fromLang: "English",
+        toLang: "Chinese",
+        langMap: () => "",
+        glossary: "",
+        apiSetting: {
+          ...getApiSetting(OPT_TRANS_OPENAI),
+          useStream: false,
+          useBatchFetch: true,
+        },
+        usePool: false,
+      })
+    );
+
+    expect(createHTMLSpy).not.toHaveBeenCalled();
+    expect(result).toEqual([
+      {
+        id: 0,
+        result: ["敏捷的棕色狐狸跳过了懒惰的狗。", "en"],
       },
     ]);
   });

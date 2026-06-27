@@ -20,6 +20,11 @@ import {
   OPT_TRANS_CLAUDE,
   OPT_TRANS_EPHONEAI,
 } from "../config";
+import {
+  normalizeTranslationItem,
+  parseLineTranslationSegments,
+  parseXmlTranslationSegments,
+} from "./aiResponseParser";
 
 /**
  * 创建 Server-Sent Events (SSE) 协议数据流解析器
@@ -167,46 +172,26 @@ export function* parseStreamingSegments(content, processedIds) {
   if (!content) return;
 
   // 1. 尝试解析 XML 格式：<t id="0" sourceLanguage="en">译文</t>
-  const xmlRegex =
-    /<(t|item|seg)\s+id="(\d+)"(?:\s+sourceLanguage="([^"]*)")?[^>]*>([\s\S]*?)<\/\1>/gi;
-  let match;
-  let hasXml = false;
-  while ((match = xmlRegex.exec(content)) !== null) {
-    hasXml = true;
-    const id = parseInt(match[2], 10);
-    if (!processedIds.has(id)) {
-      processedIds.add(id);
-      const sourceLanguage = match[3] || "";
-      const translation = [match[4].trim(), sourceLanguage];
-      yield { id, translation };
-    }
-  }
-
-  // 若成功解析到了任意符合 XML 闭合标签的文本，则跳过 Line 协议解析
-  if (hasXml) return;
-
-  // 2. 尝试解析 Line 协议格式：ID | 译文文本
-  const endsWithNewline = content.endsWith("\n");
-  const lines = content.split("\n");
-  // 如果当前累积包不以换行符结尾，说明最后一行可能尚未写完，切掉最后一行以防解析错乱
-  const linesToProcess = endsWithNewline ? lines : lines.slice(0, -1);
-
-  for (const line of linesToProcess) {
-    const trimmedLine = line.trim();
-    if (!trimmedLine) continue;
-
-    const pipeMatch = trimmedLine.match(/^(\d+)\s*\|\s*(.*)/);
-    if (pipeMatch) {
-      const id = parseInt(pipeMatch[1], 10);
+  // XML/LINE 的具体字符串解析规则与非流式共用，流式层只负责 processedIds 去重和增量 yield。
+  const xmlSegments = parseXmlTranslationSegments(content);
+  if (xmlSegments.length > 0) {
+    for (const { id, translation } of xmlSegments) {
       if (!processedIds.has(id)) {
         processedIds.add(id);
-        // 行协议中，大模型换行会被替换成 <br> 以防止破坏行协议结构，在此还原换行符
-        const translation = [
-          pipeMatch[2].trim().replace(/<br\s*\/?>/gi, "\n"),
-          "",
-        ];
         yield { id, translation };
       }
+    }
+    return;
+  }
+
+  // 2. 尝试解析 Line 协议格式：ID | 译文文本
+  // 流式累积文本的最后一行可能还没接收完整，因此必须只解析完整行。
+  for (const { id, translation } of parseLineTranslationSegments(content, {
+    requireCompleteLine: true,
+  })) {
+    if (!processedIds.has(id)) {
+      processedIds.add(id);
+      yield { id, translation };
     }
   }
 }
@@ -229,20 +214,14 @@ export function createStreamingJsonParser() {
 
   // 当解析器提取出一个完整对象时触发
   parser.onValue = ({ value }) => {
-    if (
-      value &&
-      typeof value === "object" &&
-      typeof value.id === "number" &&
-      (typeof value.text === "string" || typeof value.translation === "string")
-    ) {
-      const id = value.id;
-      const translation = value.text || value.translation || "";
-      const sourceLanguage = value.sourceLanguage || value.src || "";
-      pending.push({ id, translation: [translation, sourceLanguage] });
+    // JSON 增量解析仍由 @streamparser/json 负责，但单条对象字段归一化与非流式 JSON 共用。
+    const segment = normalizeTranslationItem(value, NaN);
+    if (segment) {
+      pending.push(segment);
     }
   };
 
-  parser.onError = () => { };
+  parser.onError = () => {};
 
   return {
     /**

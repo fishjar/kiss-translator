@@ -6,6 +6,7 @@ import {
   createSSEParser,
   createStreamingSubtitleParser,
   getStreamDelta,
+  parseStreamingSegments,
 } from "./stream";
 import { OPT_TRANS_EPHONEAI } from "../config";
 
@@ -44,6 +45,28 @@ describe("getStreamDelta", () => {
     };
 
     expect(getStreamDelta(chunk, OPT_TRANS_EPHONEAI)).toBe("hello");
+  });
+});
+
+describe("parseStreamingSegments", () => {
+  test("parses XML segments and skips processed ids", () => {
+    const processedIds = new Set([0]);
+    const result = [
+      ...parseStreamingSegments(
+        '<root><t id="0" sourceLanguage="en">你好</t><t id="1" sourceLanguage="en">世界</t></root>',
+        processedIds
+      ),
+    ];
+
+    expect(result).toEqual([{ id: 1, translation: ["世界", "en"] }]);
+  });
+
+  test("parses complete LINE segments only", () => {
+    const result = [
+      ...parseStreamingSegments("0 | 第一行<br>第二行\n1 | 未完成", new Set()),
+    ];
+
+    expect(result).toEqual([{ id: 0, translation: ["第一行\n第二行", ""] }]);
   });
 });
 
