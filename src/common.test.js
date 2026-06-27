@@ -415,4 +415,85 @@ describe("common iframe startup", () => {
       delete globalThis.GM;
     }
   });
+
+  test("allows PDF content type to run translator", async () => {
+    Object.defineProperty(document, "contentType", {
+      configurable: true,
+      get: () => "application/pdf",
+    });
+
+    try {
+      await run();
+
+      expect(matchRule).toHaveBeenCalledTimes(1);
+      expect(TranslatorManager).toHaveBeenCalledTimes(1);
+      expect(mockTranslatorManagerStart).toHaveBeenCalledTimes(1);
+    } finally {
+      delete document.contentType;
+    }
+  });
+
+  test("skips non-text non-html non-pdf content type", async () => {
+    Object.defineProperty(document, "contentType", {
+      configurable: true,
+      get: () => "image/png",
+    });
+
+    try {
+      await run();
+
+      expect(matchRule).not.toHaveBeenCalled();
+      expect(TranslatorManager).not.toHaveBeenCalled();
+    } finally {
+      delete document.contentType;
+    }
+  });
+
+  test("passes PDF-specific rule to TranslatorManager for PDF pages", async () => {
+    Object.defineProperty(document, "contentType", {
+      configurable: true,
+      get: () => "application/pdf",
+    });
+    matchRule.mockResolvedValue({
+      transOpen: "true",
+      highlightWords: "-",
+      selector: "p",
+      rootsSelector: "body",
+      autoScan: "true",
+    });
+
+    try {
+      await run();
+
+      expect(TranslatorManager).toHaveBeenCalledTimes(1);
+      const passedRule = TranslatorManager.mock.calls[0][0].rule;
+      expect(passedRule.selector).toBe(
+        ".textLayer p, .textLayer span, .textLayer"
+      );
+      expect(passedRule.rootsSelector).toBe("#viewer, body");
+      expect(passedRule.autoScan).toBe("false");
+      expect(passedRule.hasRichText).toBe("true");
+    } finally {
+      delete document.contentType;
+    }
+  });
+
+  test("uses matched rule as-is for non-PDF pages", async () => {
+    const originalRule = {
+      transOpen: "true",
+      highlightWords: "-",
+      selector: "p, h1",
+      rootsSelector: "body",
+      autoScan: "true",
+    };
+    matchRule.mockResolvedValue(originalRule);
+
+    await run();
+
+    expect(TranslatorManager).toHaveBeenCalledTimes(1);
+    const passedRule = TranslatorManager.mock.calls[0][0].rule;
+    expect(passedRule.selector).toBe("p, h1");
+    expect(passedRule.rootsSelector).toBe("body");
+    expect(passedRule.autoScan).toBe("true");
+  });
 });

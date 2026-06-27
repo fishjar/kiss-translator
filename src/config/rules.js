@@ -209,6 +209,13 @@ const RULES_MAP = {
     selector: `h1, h2, h3, h4, h5, h6, .markdown-body li, p, dd, blockquote, figcaption, label, legend, .user-profile-bio>div, [data-testid="results-list"] .search-match, .Subhead-description, [class^="prc-SelectPanel-Subtitle-"], [class^="prc-ActionList-ItemLabel-"], [role="dialog"] .overflow-auto, .h4, .repos-list-description, .discussion-title, [class*="PinnedIssue-module__Link"] span, .js-wiki-sidebar-page-container :is(.Truncate-text, .Link--primary)`,
     ignoreSelector: `button, p.pinned-item-desc+p`,
   },
+  "docs.google.com/document": {
+    autoScan: `false`,
+    selector: `.kix-page, .kix-lineview, .kix-paragraphrenderer, .kix-wordhtmlgenerator-word-node`,
+    ignoreSelector: `button, footer, nav, .kix-toolbar, .kix-presence-indicator, .docs-title-input`,
+    hasRichText: `true`,
+    rootsSelector: `.kix-appview-editor`,
+  },
 };
 
 // 格式化 RULES_MAP 为内置规则数组，供扩展初始化或同步逻辑使用

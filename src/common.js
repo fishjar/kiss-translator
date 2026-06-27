@@ -255,9 +255,14 @@ export async function run(isUserscript = false) {
     // 2. 初始化全局日志配置
     logger.setLevel(setting.logLevel);
 
-    // 3. 页面类型拦截：若是 PDF / 图片 / 音视频等非 HTML 或纯文本媒体页面，则终止执行，避免注入多余 DOM
+    // 3. 页面类型拦截：若是图片 / 音视频等非 HTML 或纯文本媒体页面，则终止执行，避免注入多余 DOM
+    // 允许 PDF 页面运行翻译器，以支持 Chrome/Edge 内置 PDF 阅读器的文本层翻译
     const contentType = document?.contentType?.toLowerCase() || "";
-    if (!contentType.includes("text") && !contentType.includes("html")) {
+    if (
+      !contentType.includes("text") &&
+      !contentType.includes("html") &&
+      !contentType.includes("pdf")
+    ) {
       logger.info("Skip running in document content type: ", contentType);
       return;
     }
@@ -286,7 +291,21 @@ export async function run(isUserscript = false) {
     }
 
     // 7. 匹配当前网页专用的规则 (三级规则合并：个人 > 订阅 > 内置全局)
-    const rule = await matchRule(href, setting);
+    let rule = await matchRule(href, setting);
+
+    // 7.1. PDF 页面特殊处理：如果当前页面是 PDF，使用 PDF 文本层的选择器
+    const isPdfPage = contentType.includes("pdf");
+    if (isPdfPage) {
+      rule = {
+        ...rule,
+        selector: ".textLayer p, .textLayer span, .textLayer",
+        rootsSelector: "#viewer, body",
+        autoScan: "false",
+        hasRichText: "true",
+        ignoreSelector:
+          "button, footer, nav, header, .toolbar, #toolbarContainer, .textLayer .highlight",
+      };
+    }
     const favWords = await getFavWords(rule);
     const fabConfig = await getFabWithDefault();
 

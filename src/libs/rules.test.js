@@ -139,3 +139,110 @@ describe("rules enabled state", () => {
     );
   });
 });
+
+describe("builtin rules for special pages", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    getDisabledSubRules.mockResolvedValue([]);
+  });
+
+  test("matches Google Docs URL via subscription rules", async () => {
+    getRulesWithDefault.mockResolvedValue([
+      {
+        pattern: "*",
+        selector: "p",
+        transOpen: "false",
+      },
+    ]);
+    loadOrFetchSubRules.mockResolvedValue([
+      {
+        pattern: "docs.google.com/document",
+        selector: ".kix-page, .kix-lineview, .kix-paragraphrenderer, .kix-wordhtmlgenerator-word-node",
+        rootsSelector: ".kix-appview-editor",
+        autoScan: "false",
+        hasRichText: "true",
+      },
+    ]);
+
+    const rule = await matchRule(
+      "https://docs.google.com/document/d/189AbzVGpxhQczTcdfJd13o_EL36t-M5jOEt1hgBIh7w/edit",
+      {
+        injectRules: true,
+        subrulesList: [
+          { url: "https://rules.example/main.json", selected: true },
+        ],
+      }
+    );
+
+    expect(rule.selector).toContain(".kix-page");
+    expect(rule.selector).toContain(".kix-lineview");
+    expect(rule.rootsSelector).toBe(".kix-appview-editor");
+    expect(rule.autoScan).toBe("false");
+  });
+
+  test("matches Google Docs URL with tab parameter", async () => {
+    getRulesWithDefault.mockResolvedValue([
+      {
+        pattern: "*",
+        selector: "p",
+        transOpen: "false",
+      },
+    ]);
+    loadOrFetchSubRules.mockResolvedValue([
+      {
+        pattern: "docs.google.com/document",
+        selector: ".kix-page, .kix-lineview",
+        rootsSelector: ".kix-appview-editor",
+        autoScan: "false",
+      },
+    ]);
+
+    const rule = await matchRule(
+      "https://docs.google.com/document/d/189AbzVGpxhQczTcdfJd13o_EL36t-M5jOEt1hgBIh7w/edit?pli=1&tab=t.0",
+      {
+        injectRules: true,
+        subrulesList: [
+          { url: "https://rules.example/main.json", selected: true },
+        ],
+      }
+    );
+
+    expect(rule.selector).toContain(".kix-page");
+    expect(rule.rootsSelector).toBe(".kix-appview-editor");
+  });
+
+  test("personal rule overrides builtin Google Docs rule", async () => {
+    getRulesWithDefault.mockResolvedValue([
+      {
+        pattern: "docs.google.com/document",
+        selector: ".my-custom-selector",
+        rootsSelector: ".my-root",
+      },
+      {
+        pattern: "*",
+        selector: "p",
+        transOpen: "false",
+      },
+    ]);
+    loadOrFetchSubRules.mockResolvedValue([
+      {
+        pattern: "docs.google.com/document",
+        selector: ".kix-page",
+        rootsSelector: ".kix-appview-editor",
+      },
+    ]);
+
+    const rule = await matchRule(
+      "https://docs.google.com/document/d/abc123/edit",
+      {
+        injectRules: true,
+        subrulesList: [
+          { url: "https://rules.example/main.json", selected: true },
+        ],
+      }
+    );
+
+    expect(rule.selector).toBe(".my-custom-selector");
+    expect(rule.rootsSelector).toBe(".my-root");
+  });
+});
