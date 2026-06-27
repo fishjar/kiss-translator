@@ -7,6 +7,7 @@ import { JSONParser } from "@streamparser/json";
 import {
   OPT_TRANS_OPENAI,
   OPT_TRANS_DEEPSEEK,
+  OPT_TRANS_OPENCODEGO,
   OPT_TRANS_SILICONFLOW,
   OPT_TRANS_XIAOMIMIMO,
   OPT_TRANS_ALIYUNBAILIAN,
@@ -124,6 +125,7 @@ export function getStreamDelta(json, apiType) {
   switch (apiType) {
     case OPT_TRANS_OPENAI:
     case OPT_TRANS_DEEPSEEK:
+    case OPT_TRANS_OPENCODEGO:
     case OPT_TRANS_SILICONFLOW:
     case OPT_TRANS_XIAOMIMIMO:
     case OPT_TRANS_ALIYUNBAILIAN:
@@ -240,7 +242,7 @@ export function createStreamingJsonParser() {
     }
   };
 
-  parser.onError = () => {};
+  parser.onError = () => { };
 
   return {
     /**
