@@ -174,6 +174,12 @@ export default function TranCont({
         label={`${i18n("translated_text")} - ${apiSetting.apiName}`}
         fullWidth
         multiline
+        maxRows={10}
+        sx={{
+          "& textarea": {
+            resize: "vertical",
+          },
+        }}
         value={trText}
         helperText={error}
         InputProps={{

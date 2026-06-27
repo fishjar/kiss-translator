@@ -74,7 +74,6 @@ export default function TranForm({
   const [deLang, setDeLang] = useState("");
   const [deLoading, setDeLoading] = useState(false);
   const inputRef = useRef(null);
-  const prevTextRef = useRef(text);
 
   // 挂载时：输入框自动获取焦点，并将光标定位在文本尾部
   useEffect(() => {
@@ -103,14 +102,6 @@ export default function TranForm({
       setApiSlugs(initApiSlugs);
     }
   }, [initApiSlugs, hasUserChangedApiSlugs]);
-
-  useEffect(() => {
-    if (prevTextRef.current !== text) {
-      prevTextRef.current = text;
-      setHasUserChangedApiSlugs(false);
-      setApiSlugs(initApiSlugs);
-    }
-  }, [text]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 如果没有处于编辑态，输入框显示内容需要实时同步外部 text
   useEffect(() => {
@@ -440,6 +431,11 @@ export default function TranForm({
               inputRef={inputRef}
               minRows={isPlaygound ? 2 : 1}
               maxRows={10}
+              sx={{
+                "& textarea": {
+                  resize: "vertical",
+                },
+              }}
               value={editText}
               onChange={(e) => {
                 setEditText(e.target.value);

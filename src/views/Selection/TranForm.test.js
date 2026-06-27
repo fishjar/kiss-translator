@@ -23,7 +23,15 @@ jest.mock("react-markdown", () => {
   return ({ children }) => React.createElement("div", null, children);
 });
 
-jest.mock("./TranCont", () => () => null);
+jest.mock("./TranCont", () => {
+  const React = require("react");
+
+  return ({ apiSlug }) =>
+    React.createElement("div", {
+      "data-testid": "tran-cont",
+      "data-api-slug": apiSlug,
+    });
+});
 
 jest.mock("./DictCont", () => {
   const React = require("react");
@@ -182,6 +190,99 @@ describe("TranForm AI dictionary tab", () => {
         context: "If you create a baseline at this point.",
       })
     );
+
+    act(() => {
+      root.unmount();
+    });
+  });
+});
+
+describe("TranForm translation service selection", () => {
+  beforeEach(() => {
+    apiDict.mockReset();
+    document.body.innerHTML = "";
+  });
+
+  test("keeps user-selected services when text changes", async () => {
+    const setText = jest.fn();
+    const transApis = [
+      {
+        apiSlug: "google",
+        apiName: "Google",
+        apiType: "Google",
+      },
+      {
+        apiSlug: "openai",
+        apiName: "OpenAI",
+        apiType: "OpenAI",
+      },
+    ];
+    const { container, root } = renderTranForm({
+      text: "hello",
+      setText,
+      apiSlugs: ["google"],
+      transApis,
+      simpleStyle: false,
+    });
+    await flushEffects();
+
+    expect(
+      [...container.querySelectorAll('[data-testid="tran-cont"]')].map((el) =>
+        el.getAttribute("data-api-slug")
+      )
+    ).toEqual(["google"]);
+
+    const apiSlugsInput = container.querySelector('input[name="apiSlugs"]');
+    const apiSlugsButton = apiSlugsInput
+      .closest(".MuiInputBase-root")
+      .querySelector(
+        '[role="combobox"], [role="button"], [aria-haspopup="listbox"]'
+      );
+    await act(async () => {
+      apiSlugsButton.dispatchEvent(
+        new MouseEvent("mousedown", { bubbles: true })
+      );
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      [...document.body.querySelectorAll('[role="option"]')]
+        .find((option) => option.getAttribute("data-value") === "openai")
+        .dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    expect(
+      [...container.querySelectorAll('[data-testid="tran-cont"]')].map((el) =>
+        el.getAttribute("data-api-slug")
+      )
+    ).toEqual(["google", "openai"]);
+
+    act(() => {
+      root.render(
+        <TranForm
+          text="hello world"
+          setText={setText}
+          apiSlugs={["google"]}
+          fromLang="en"
+          toLang="zh-CN"
+          toLang2="-"
+          transApis={transApis}
+          simpleStyle={false}
+          langDetector="-"
+          enDict="Bing"
+          enSug="-"
+          aiDictApiSlug="-"
+        />
+      );
+    });
+    await flushEffects();
+
+    expect(
+      [...container.querySelectorAll('[data-testid="tran-cont"]')].map((el) =>
+        el.getAttribute("data-api-slug")
+      )
+    ).toEqual(["google", "openai"]);
 
     act(() => {
       root.unmount();
