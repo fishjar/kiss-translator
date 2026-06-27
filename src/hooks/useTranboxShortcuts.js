@@ -8,6 +8,7 @@ export default function useTranboxShortcuts({
   showBox,
   setShowBox,
   handleToggleTranbox,
+  handleOpenTranbox,
   contextMenuType,
   uiLang,
 }) {
@@ -26,6 +27,11 @@ export default function useTranboxShortcuts({
   useEffect(() => {
     const handleStatusUpdate = (event) => {
       if (event.detail?.action === MSG_OPEN_TRANBOX) {
+        const text = event.detail?.args?.text?.trim();
+        if (text) {
+          handleOpenTranbox?.(text);
+          return;
+        }
         handleToggle();
       }
     };
@@ -34,7 +40,7 @@ export default function useTranboxShortcuts({
     return () => {
       document.removeEventListener(EVENT_KISS_INNER, handleStatusUpdate);
     };
-  }, [handleToggle]);
+  }, [handleToggle, handleOpenTranbox]);
 
   // 副作用：注册油猴脚本专用的右键菜单/脚本管理器菜单，供用户点击菜单拉起划词翻译框
   // REVIEW: GM.registerMenuCommand 在不同的油猴运行器（如 Tampermonkey 或是 VM/Violentmonkey）中，

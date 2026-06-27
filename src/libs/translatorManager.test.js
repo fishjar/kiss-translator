@@ -212,6 +212,7 @@ function createManager({
   rule = { transOpen: "true" },
   setting = {},
   isUserscript = false,
+  transboxOnly = false,
 } = {}) {
   const manager = new TranslatorManager({
     setting: {
@@ -227,6 +228,7 @@ function createManager({
     favWords: [],
     isIframe: false,
     isUserscript,
+    transboxOnly,
   });
   activeManagers.push(manager);
   return manager;
@@ -336,5 +338,52 @@ describe("TranslatorManager SPA lifecycle", () => {
 
     expect(mockTranslatorInstances[0].rescan).toHaveBeenCalledTimes(1);
     expect(Translator).toHaveBeenCalledTimes(1);
+  });
+
+  test("starts only the transbox and message listener in transbox-only mode", () => {
+    const manager = createManager({ transboxOnly: true });
+    manager.start();
+
+    expect(TransboxManager).toHaveBeenCalledTimes(1);
+    expect(Translator).not.toHaveBeenCalled();
+    expect(InputTranslator).not.toHaveBeenCalled();
+    expect(PopupManager).not.toHaveBeenCalled();
+    expect(FabManager).not.toHaveBeenCalled();
+    expect(browser.runtime.onMessage.addListener).toHaveBeenCalledTimes(1);
+  });
+
+  test("passes open-tranbox args through the inner event", () => {
+    const manager = createManager({ transboxOnly: true });
+    const eventHandler = jest.fn();
+    manager.start();
+    document.addEventListener("kiss-inner", eventHandler);
+
+    const runtimeHandler =
+      browser.runtime.onMessage.addListener.mock.calls[0][0];
+    const sendResponse = jest.fn();
+    runtimeHandler(
+      { action: "open-tranbox", args: { text: "hello" } },
+      {},
+      sendResponse
+    );
+
+    expect(eventHandler).toHaveBeenCalledTimes(1);
+    expect(eventHandler.mock.calls[0][0].detail).toEqual({
+      action: "open-tranbox",
+      args: { text: "hello" },
+    });
+
+    document.removeEventListener("kiss-inner", eventHandler);
+  });
+
+  test("cleans up transbox-only runtime on stop", () => {
+    const manager = createManager({ transboxOnly: true });
+    manager.start();
+    manager.stop();
+
+    expect(browser.runtime.onMessage.removeListener).toHaveBeenCalledWith(
+      browser.runtime.onMessage.addListener.mock.calls[0][0]
+    );
+    expect(mockTransboxInstances[0].disable).toHaveBeenCalledTimes(1);
   });
 });
