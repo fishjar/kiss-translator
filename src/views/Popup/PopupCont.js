@@ -8,6 +8,7 @@ import Grid from "@mui/material/Grid";
 import Snackbar from "@mui/material/Snackbar";
 import MuiAlert from "@mui/material/Alert";
 import { sendBgMsg, sendTabMsg, getCurTab } from "../../libs/msg";
+import { browser } from "../../libs/browser";
 import { isExt } from "../../libs/client";
 import { useI18n } from "../../hooks/I18n";
 import TextField from "@mui/material/TextField";
@@ -109,6 +110,35 @@ export default function PopupCont({
   const handleTransToggle = async (e) => {
     try {
       setRule({ ...rule, transOpen: e.target.checked ? "true" : "false" });
+
+      // Google Docs 编辑/查看页面用 canvas 渲染，无法直接翻译。
+      // 点击翻译时自动跳转到 mobilebasic 模式（该模式渲染为普通 HTML，可翻译）。
+      const isGoogleDocsEdit =
+        currentHref &&
+        /^https?:\/\/docs\.google\.com\/(?:document|presentation|spreadsheets)\/[^/]+\/[^/]+\/(edit|view|present)(?:[?#]|$)/.test(
+          currentHref
+        );
+      if (isGoogleDocsEdit && e.target.checked) {
+        const m = currentHref.match(
+          /^(https?:\/\/docs\.google\.com\/(?:document|presentation|spreadsheets)\/[^/]+\/[^/]+)\/(edit|view|present)(\?[^#]*)?(#.*)?$/
+        );
+        if (m) {
+          const query = m[3] || "";
+          const fragment = m[4] || "";
+          const mobilebasicUrl = m[1] + "/mobilebasic" + query + fragment;
+          try {
+            // 直接调用 background 跳转（无需消息）
+            const tab = await getCurTab();
+            if (tab?.id != null) {
+              await browser.tabs.update(tab.id, { url: mobilebasicUrl });
+            }
+            window.close();
+          } catch (err) {
+            kissLog("google docs redirect", err);
+          }
+          return;
+        }
+      }
 
       if (!processActions) {
         await sendTabMsg(MSG_TRANS_TOGGLE);

@@ -32,6 +32,7 @@ import {
   PORT_STREAM_FETCH,
   MSG_UPDATE_ICON,
   MSG_SHA256,
+  MSG_GOOGLE_DOCS_REDIRECT,
 } from "./config";
 import {
   getSettingWithDefault,
@@ -544,6 +545,26 @@ const messageHandlers = {
   [MSG_CLEAR_CACHES]: () => tryClearCaches(), // 清空翻译缓存
   [MSG_OPEN_SEPARATE_WINDOW]: () => openSeparateWindowWithSavedBounds(), // 打开独立翻译小窗口
   [MSG_UPDATE_ICON]: (args, sender) => updateIcon(args, sender?.tab?.id), // 变更页面的插件高亮图标
+  // 将当前激活的 Google Docs 标签页重定向到 mobilebasic 模式以触发翻译
+  // 普通 /edit|view 模式下 Google Docs 用 canvas 渲染无法翻译；mobilebasic 模式渲染为普通 HTML
+  [MSG_GOOGLE_DOCS_REDIRECT]: async () => {
+    const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+    const cur = tabs[0];
+    if (!cur?.url) return { ok: false, error: "No active tab" };
+    // URL 格式：https://docs.google.com/(document|presentation|spreadsheets)/<kind>/<id>/(edit|view|present)
+    const m = cur.url.match(
+      /^(https?:\/\/docs\.google\.com\/(?:document|presentation|spreadsheets)\/[^/]+\/[^/]+)\/(edit|view|present)(\?[^#]*)?(#.*)?$/
+    );
+    if (!m) {
+      return { ok: false, error: "Not a Google Docs edit/view URL", url: cur.url };
+    }
+    const base = m[1];
+    const query = m[3] || "";
+    const fragment = m[4] || "";
+    const mobilebasicUrl = base + "/mobilebasic" + query + fragment;
+    await browser.tabs.update(cur.id, { url: mobilebasicUrl });
+    return { ok: true, url: mobilebasicUrl };
+  },
 };
 
 /**
@@ -560,13 +581,39 @@ browser.runtime.onMessage.addListener(async ({ action, args }, sender) => {
 });
 
 /**
+ * 处理翻译开关动作：如果是 Google Docs 编辑页面，先跳转到 mobilebasic 模式（由页面 load 后自动启用翻译）；
+ * 否则直接发送 MSG_TRANS_TOGGLE 消息到 content script。
+ */
+const handleToggleTranslate = async () => {
+  const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+  const cur = tabs[0];
+  if (!cur?.url) {
+    sendTabMsg(MSG_TRANS_TOGGLE);
+    return;
+  }
+  // URL 格式：https://docs.google.com/(document|presentation|spreadsheets)/<kind>/<id>/(edit|view|present)
+  const m = cur.url.match(
+    /^(https?:\/\/docs\.google\.com\/(?:document|presentation|spreadsheets)\/[^/]+\/[^/]+)\/(edit|view|present)(\?[^#]*)?(#.*)?$/
+  );
+  if (m) {
+    const base = m[1];
+    const query = m[3] || "";
+    const fragment = m[4] || "";
+    const mobilebasicUrl = base + "/mobilebasic" + query + fragment;
+    await browser.tabs.update(cur.id, { url: mobilebasicUrl });
+    return;
+  }
+  sendTabMsg(MSG_TRANS_TOGGLE);
+};
+
+/**
  * 监听浏览器系统快捷键事件 (browser.commands)。
  * 用户在 manifest 中声明的快捷键按下时，后台直接将对应的翻译指令广播给前台 content 脚本。
  */
 browser.commands?.onCommand?.addListener?.((command) => {
   switch (command) {
     case CMD_TOGGLE_TRANSLATE:
-      sendTabMsg(MSG_TRANS_TOGGLE);
+      handleToggleTranslate();
       break;
     case CMD_TOGGLE_TRANSLATE_ONLY:
       sendTabMsg(MSG_TRANS_TOGGLE_ONLY);
@@ -600,7 +647,7 @@ browser?.contextMenus?.onClicked?.addListener?.(
   ({ menuItemId, selectionText }) => {
     switch (menuItemId) {
       case CMD_TOGGLE_TRANSLATE:
-        sendTabMsg(MSG_TRANS_TOGGLE);
+        handleToggleTranslate();
         break;
       case CMD_TOGGLE_TRANSLATE_ONLY:
         sendTabMsg(MSG_TRANS_TOGGLE_ONLY);

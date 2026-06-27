@@ -267,6 +267,13 @@ export async function run(isUserscript = false) {
       return;
     }
 
+    // 3.1. Google Docs mobilebasic 模式标记：当 URL 已经是 mobilebasic 模式（如用户点击了 popup 的翻译按钮后跳转过来的），
+    // 此处不自动执行任何跳转，仅标记以便后续使用 mobilebasic 专用规则。
+    // Google Docs 的普通 /edit|view/present 模式重定向不在这里自动执行，必须由用户在 popup 中主动点击触发
+    // （见 PopupCont.js 的 handleTransToggle，会通过 browser.tabs.update 跳转）。
+    // URL 格式：https://docs.google.com/(document|presentation|spreadsheets)/<kind>/<id>/mobilebasic
+    const isGoogleDocsMobile = /^https?:\/\/docs\.google\.com\/(?:document|presentation|spreadsheets)\/[^/]+\/[^/]+\/(mobilebasic|mobile)/.test(href);
+
     // 5. 网页黑名单校验，命中时彻底不启动翻译
     if (isInBlacklist(href, setting.blacklist)) {
       return;
@@ -291,7 +298,23 @@ export async function run(isUserscript = false) {
     }
 
     // 7. 匹配当前网页专用的规则 (三级规则合并：个人 > 订阅 > 内置全局)
-    const rule = await matchRule(href, setting);
+    let rule = await matchRule(href, setting);
+
+    // 7.1. Google Docs mobilebasic 模式特殊处理：使用 .doc-content 容器内的 span 作为选择器
+    // mobilebasic 模式下 Google Docs 渲染为普通 HTML，文本在 span 元素中
+    // 此模式本身就是我们重定向过去的，所以默认开启翻译
+    if (isGoogleDocsMobile) {
+      rule = {
+        ...rule,
+        selector: ".doc-content span, .doc-content p, .doc-content",
+        rootsSelector: ".doc-content, body",
+        autoScan: "false",
+        hasRichText: "true",
+        ignoreSelector:
+          "button, .docs-ml-header, .docs-ml-footer, nav, [role='navigation'], script, style",
+        transOpen: "true",
+      };
+    }
     const favWords = await getFavWords(rule);
     const fabConfig = await getFabWithDefault();
 

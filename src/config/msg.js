@@ -44,6 +44,7 @@ export const MSG_OPEN_SEPARATE_WINDOW = "open_separate_window"; // 请求后台�
 export const PORT_STREAM_FETCH = "kiss_stream_fetch"; // 双向长连接端口名称：用于大模型翻译时的流式输出通道
 export const MSG_UPDATE_ICON = "update_icon"; // 通知后台脚本更新扩展的工具栏图标状态 (激活/灰色状态)
 export const MSG_SHA256 = "sha256"; // 请求后台脚本代算 SHA-256 签名
+export const MSG_GOOGLE_DOCS_REDIRECT = "google_docs_redirect"; // 将当前 Google Docs 标签页重定向到 mobilebasic 模式以触发翻译
 
 // --- 用于 Window.postMessage 与自定义事件通信的事件名称 ---
 export const EVENT_KISS_INNER = "kiss_translator_inner"; // 插件沙箱/内容脚本内部事件

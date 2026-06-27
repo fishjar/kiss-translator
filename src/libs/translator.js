@@ -2990,11 +2990,9 @@ export class Translator {
     this.#runId++;
 
     if (this.#isInitialized) {
-      if (this.#transAllnow) {
-        this.rescan();
-      } else {
-        this.#reIOViewNodes();
-      }
+      // 总是调用 rescan() 重新扫描所有节点，确保新加载的内容也被翻译
+      // （原来根据 transAllnow 选择 rescan 或 reIOViewNodes，但后者只会重新观察已有节点）
+      this.rescan();
     } else {
       this.#init();
     }
