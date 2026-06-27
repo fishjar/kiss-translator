@@ -64,6 +64,7 @@ export default function Selection({
   useTranboxShortcuts({
     showBox,
     setShowBox,
+    handleOpenTranbox,
     handleToggleTranbox,
     contextMenuType,
     uiLang,

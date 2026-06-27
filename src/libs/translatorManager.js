@@ -55,6 +55,7 @@ export default class TranslatorManager {
   #favWords;
   #isUserscript;
   #isIframe;
+  #transboxOnly;
 
   // SPA 容器监听：document 负责 html 替换，documentElement 负责 body 替换。
   #documentObserver = null;
@@ -88,13 +89,22 @@ export default class TranslatorManager {
    * 构造即挂载 DOM。这样 body/html 被 SPA 替换后，可以通过 restart()
    * 只重建运行期模块，而不重复注册全局消息、快捷键和菜单。
    */
-  constructor({ setting, rule, fabConfig, favWords, isIframe, isUserscript }) {
+  constructor({
+    setting,
+    rule,
+    fabConfig,
+    favWords,
+    isIframe,
+    isUserscript,
+    transboxOnly = false,
+  }) {
     this.#setting = this.#cloneConfig(setting);
     this.#rule = this.#cloneConfig(rule);
     this.#fabConfig = this.#cloneConfig(fabConfig);
     this.#favWords = this.#cloneConfig(favWords);
     this.#isIframe = isIframe;
     this.#isUserscript = isUserscript;
+    this.#transboxOnly = transboxOnly;
 
     this.#innerMessageHandler = this.#handleInnerMessage.bind(this);
     this.#browserMessageHandler = this.#handleBrowserMessage.bind(this);
@@ -117,14 +127,18 @@ export default class TranslatorManager {
 
     this.#createRuntimeModules();
     this.#setupMessageListeners();
-    this.#setupTouchOperations();
+    if (!this.#transboxOnly) {
+      this.#setupTouchOperations();
+    }
 
-    if (!this.#isIframe && this.#isUserscript) {
+    if (!this.#transboxOnly && !this.#isIframe && this.#isUserscript) {
       this.#registerShortcuts();
       this.#registerMenus();
     }
 
-    this.#setupSpaListeners();
+    if (!this.#transboxOnly) {
+      this.#setupSpaListeners();
+    }
     this.#isActive = true;
     logger.info("TranslatorManager started.");
   }
@@ -207,6 +221,13 @@ export default class TranslatorManager {
    * manager 保存的基线快照；restart 时会用当前运行期 getter 重新同步。
    */
   #createRuntimeModules() {
+    if (this.#transboxOnly) {
+      this._transboxManager = new TransboxManager(
+        this.#cloneConfig(this.#setting)
+      );
+      return;
+    }
+
     this._translator = new Translator({
       rule: this.#cloneConfig(this.#rule),
       setting: this.#cloneConfig(this.#setting),
@@ -658,7 +679,7 @@ export default class TranslatorManager {
       case MSG_OPEN_TRANBOX:
         document.dispatchEvent(
           new CustomEvent(EVENT_KISS_INNER, {
-            detail: { action: MSG_OPEN_TRANBOX },
+            detail: { action: MSG_OPEN_TRANBOX, args },
           })
         );
         break;

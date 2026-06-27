@@ -596,29 +596,31 @@ browser.commands?.onCommand?.addListener?.((command) => {
  * 监听全局右键菜单的点击项。
  * 触发时，通过 Chrome 消息管道将对应指令转发给用户所点击页面的前台 Content Script。
  */
-browser?.contextMenus?.onClicked?.addListener?.(({ menuItemId }) => {
-  switch (menuItemId) {
-    case CMD_TOGGLE_TRANSLATE:
-      sendTabMsg(MSG_TRANS_TOGGLE);
-      break;
-    case CMD_TOGGLE_TRANSLATE_ONLY:
-      sendTabMsg(MSG_TRANS_TOGGLE_ONLY);
-      break;
-    case CMD_TOGGLE_STYLE:
-      sendTabMsg(MSG_TRANS_TOGGLE_STYLE);
-      break;
-    case CMD_OPEN_TRANBOX:
-      sendTabMsg(MSG_OPEN_TRANBOX);
-      break;
-    case CMD_TOGGLE_TRANBOX:
-      sendTabMsg(MSG_TRANSBOX_TOGGLE);
-      break;
-    case CMD_OPEN_OPTIONS:
-      browser.runtime.openOptionsPage();
-      break;
-    default:
+browser?.contextMenus?.onClicked?.addListener?.(
+  ({ menuItemId, selectionText }) => {
+    switch (menuItemId) {
+      case CMD_TOGGLE_TRANSLATE:
+        sendTabMsg(MSG_TRANS_TOGGLE);
+        break;
+      case CMD_TOGGLE_TRANSLATE_ONLY:
+        sendTabMsg(MSG_TRANS_TOGGLE_ONLY);
+        break;
+      case CMD_TOGGLE_STYLE:
+        sendTabMsg(MSG_TRANS_TOGGLE_STYLE);
+        break;
+      case CMD_OPEN_TRANBOX:
+        sendTabMsg(MSG_OPEN_TRANBOX, { text: selectionText });
+        break;
+      case CMD_TOGGLE_TRANBOX:
+        sendTabMsg(MSG_TRANSBOX_TOGGLE);
+        break;
+      case CMD_OPEN_OPTIONS:
+        browser.runtime.openOptionsPage();
+        break;
+      default:
+    }
   }
-});
+);
 
 /**
  * 专门处理 SSE/翻译大模型的流式数据请求通道。

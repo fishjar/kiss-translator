@@ -257,7 +257,12 @@ export async function run(isUserscript = false) {
 
     // 3. 页面类型拦截：若是 PDF / 图片 / 音视频等非 HTML 或纯文本媒体页面，则终止执行，避免注入多余 DOM
     const contentType = document?.contentType?.toLowerCase() || "";
-    if (!contentType.includes("text") && !contentType.includes("html")) {
+    const isPdfDocument = contentType.includes("application/pdf");
+    if (
+      !contentType.includes("text") &&
+      !contentType.includes("html") &&
+      !isPdfDocument
+    ) {
       logger.info("Skip running in document content type: ", contentType);
       return;
     }
@@ -298,11 +303,12 @@ export async function run(isUserscript = false) {
       favWords,
       isIframe,
       isUserscript,
+      transboxOnly: isPdfDocument,
     });
     translatorManager.start();
 
     // 9. 若当前页面是嵌套的 iframe，不进行视频字幕翻译，避免多个 iframe 里重复跑字幕服务造成冲突
-    if (isIframe) {
+    if (isIframe || isPdfDocument) {
       return;
     }
 

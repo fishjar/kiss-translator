@@ -76,6 +76,13 @@ function setReadyState(value) {
   });
 }
 
+function setContentType(value) {
+  Object.defineProperty(document, "contentType", {
+    configurable: true,
+    value,
+  });
+}
+
 function expectNoNormalUserscriptStartup() {
   expect(runDataMigration).not.toHaveBeenCalled();
   expect(getSettingWithDefault).not.toHaveBeenCalled();
@@ -91,6 +98,7 @@ describe("common iframe startup", () => {
   beforeEach(() => {
     document.documentElement.innerHTML = "<head></head><body></body>";
     setReadyState("complete");
+    setContentType("text/html");
     mockIsIframe = false;
     process.env.REACT_APP_OPTIONSPAGE = "https://kiss.example/options.html";
     process.env.REACT_APP_OPTIONSPAGE_DEV =
@@ -192,6 +200,29 @@ describe("common iframe startup", () => {
     expect(TranslatorManager).toHaveBeenCalledTimes(1);
     expect(mockTranslatorManagerStart).toHaveBeenCalledTimes(1);
     expect(runSubtitle).toHaveBeenCalledTimes(1);
+  });
+
+  test("starts transbox-only manager for PDF documents", async () => {
+    setContentType("application/pdf");
+
+    await run();
+
+    expect(matchRule).toHaveBeenCalledTimes(1);
+    expect(TranslatorManager).toHaveBeenCalledTimes(1);
+    expect(TranslatorManager.mock.calls[0][0].transboxOnly).toBe(true);
+    expect(mockTranslatorManagerStart).toHaveBeenCalledTimes(1);
+    expect(runSubtitle).not.toHaveBeenCalled();
+  });
+
+  test("skips non-PDF media documents before rule matching and manager startup", async () => {
+    setContentType("image/png");
+
+    await run();
+
+    expect(matchRule).not.toHaveBeenCalled();
+    expect(TranslatorManager).not.toHaveBeenCalled();
+    expect(mockTranslatorManagerStart).not.toHaveBeenCalled();
+    expect(runSubtitle).not.toHaveBeenCalled();
   });
 
   test("creates legacy userscript GM shim before data migration", async () => {
