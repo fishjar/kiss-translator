@@ -4,6 +4,12 @@ import Box from "@mui/material/Box";
 import { isMobile } from "../../libs/mobile";
 import { useTheme, alpha } from "@mui/material/styles";
 import { limitNumber } from "../../libs/utils";
+import {
+  getMaxTranBoxContentWidth,
+  getMaxTranBoxContentHeight,
+  getMaxTranBoxX,
+  getMaxTranBoxY,
+} from "../../libs/tranboxPosition";
 
 /**
  * 拖拽/拉伸触发点（控制八个方向拉伸和顶部拖拽移动）
@@ -122,15 +128,17 @@ function Pointer({
         y = position.y;
       }
 
-      // 执行物理坐标边界控制更新 (保证翻译窗口不移出屏幕可视区)
+      // 执行物理坐标边界控制更新 (保证翻译窗口在拖拽和缩放时不会移出屏幕可视区)
+      const nextSize = {
+        w: limitNumber(w, minSize.w, getMaxTranBoxContentWidth()),
+        h: limitNumber(h, minSize.h, getMaxTranBoxContentHeight()),
+      };
+
       setPosition({
-        x: limitNumber(x, 0, window.innerWidth - w),
-        y: limitNumber(y, 0, window.innerHeight - 50),
+        x: limitNumber(x, 0, getMaxTranBoxX(nextSize.w)),
+        y: limitNumber(y, 0, getMaxTranBoxY(nextSize.h)),
       });
-      setSize({
-        w: limitNumber(w, minSize.w, window.innerWidth),
-        h: limitNumber(h, minSize.h, window.innerHeight),
-      });
+      setSize(nextSize);
     }
   }
 
@@ -224,7 +232,7 @@ export default function DraggableResizable({
         top: position.y,
         // CSS Grid 网格划分 3x3 空间，用于完美排布四周及顶部的拉伸触控条
         display: "grid",
-        gridTemplateColumns: `${lineWidth * 2}px auto ${lineWidth * 2}px`,
+        gridTemplateColumns: `${lineWidth * 2}px ${size.w}px ${lineWidth * 2}px`,
         gridTemplateRows: `${lineWidth * 2}px auto ${lineWidth * 2}px`,
         zIndex: 2147483647,
         borderRadius: "12px",
@@ -273,6 +281,9 @@ export default function DraggableResizable({
         className="KT-draggable-body"
         elevation={4}
         sx={{
+          width: size.w,
+          maxWidth: size.w,
+          minWidth: 0,
           borderRadius: 4,
           overflow: "hidden",
           backgroundColor: theme.palette.background.paper,

@@ -15,7 +15,9 @@ const Logo = ({ size = 16, className = "", style = {}, onClick }) => {
       src={FAVICON_BASE64}
       alt="Logo"
       className={className}
+      draggable={false}
       onClick={onClick}
+      onDragStart={(e) => e.preventDefault()}
       style={{
         width: `${size}px`,
         height: `${size}px`,

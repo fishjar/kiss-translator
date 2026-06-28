@@ -11,6 +11,11 @@ import {
   OPT_TRANBOX_INTERACT_CLICK,
   OPT_TRANBOX_INTERACT_DBLCLICK,
 } from "../config";
+import {
+  getMaxTranBoxX,
+  getMaxTranBoxY,
+  getTranBoxOuterHeight,
+} from "../libs/tranboxPosition";
 
 const TRANBTN_SIZE = isMobile ? 32 : 20;
 const TRANBTN_MOUSE_GAP = isMobile ? 16 : 12;
@@ -155,6 +160,25 @@ function getSelectionPositionFromRect(rect) {
   };
 }
 
+/**
+ * 计算翻译框跟随选区时的最佳显示位置。
+ * 默认显示在选区下方，若下方空间不足则智能翻转到上方。若选区过大导致上下均无空间，则停靠在视口顶部。
+ */
+function getFollowBoxPosition(rect, boxOffsetX, boxOffsetY, boxSize) {
+  const x = (rect.left + rect.right) / 2 + boxOffsetX;
+  const bottomY = rect.bottom + boxOffsetY;
+  const maxY = getMaxTranBoxY(boxSize.h);
+  const y =
+    bottomY + getTranBoxOuterHeight(boxSize.h) > window.innerHeight
+      ? rect.top - getTranBoxOuterHeight(boxSize.h) - boxOffsetY
+      : bottomY;
+
+  return {
+    x: limitNumber(x, 0, getMaxTranBoxX(boxSize.w)),
+    y: limitNumber(y, 0, maxY),
+  };
+}
+
 function getTargetContext(target) {
   const element =
     target?.nodeType === Node.ELEMENT_NODE ? target : target?.parentElement;
@@ -284,12 +308,9 @@ export default function useSelectionController({
       }
 
       if (snapshot.rect && followSelection) {
-        const x = (snapshot.rect.left + snapshot.rect.right) / 2 + boxOffsetX;
-        const y = snapshot.rect.bottom + boxOffsetY;
-        setBoxPosition({
-          x: limitNumber(x, 0, window.innerWidth - boxSize.w),
-          y: limitNumber(y, 0, window.innerHeight - 50),
-        });
+        setBoxPosition(
+          getFollowBoxPosition(snapshot.rect, boxOffsetX, boxOffsetY, boxSize)
+        );
       }
 
       if (triggerMode === OPT_TRANBOX_TRIGGER_SELECT) {
@@ -400,12 +421,9 @@ export default function useSelectionController({
     selectionRootRef.current = document;
 
     if (snapshot.rect && followSelection) {
-      const x = (snapshot.rect.left + snapshot.rect.right) / 2 + boxOffsetX;
-      const y = snapshot.rect.bottom + boxOffsetY;
-      setBoxPosition({
-        x: limitNumber(x, 0, window.innerWidth - boxSize.w),
-        y: limitNumber(y, 0, window.innerHeight - 50),
-      });
+      setBoxPosition(
+        getFollowBoxPosition(snapshot.rect, boxOffsetX, boxOffsetY, boxSize)
+      );
     }
 
     commitSelectionSnapshot(snapshot);

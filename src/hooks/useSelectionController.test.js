@@ -54,6 +54,10 @@ function TestController({
   onState,
   triggerMode = "click",
   tranboxInteractMode = "-",
+  followSelection = false,
+  boxOffsetY = 0,
+  boxSize = { w: 320, h: 240 },
+  setBoxPosition = jest.fn(),
 }) {
   const state = useSelectionController({
     tranboxSetting: {
@@ -64,11 +68,11 @@ function TestController({
       btnOffsetY: 0,
       tranboxInteractMode,
     },
-    followSelection: false,
+    followSelection,
     boxOffsetX: 0,
-    boxOffsetY: 0,
-    boxSize: { w: 320, h: 240 },
-    setBoxPosition: jest.fn(),
+    boxOffsetY,
+    boxSize,
+    setBoxPosition,
     hideClickAway: false,
   });
 
@@ -83,16 +87,22 @@ function renderController(props = {}) {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
+  const setBoxPosition = props.setBoxPosition || jest.fn();
   let currentState;
 
   act(() => {
     root.render(
-      <TestController onState={(state) => (currentState = state)} {...props} />
+      <TestController
+        onState={(state) => (currentState = state)}
+        setBoxPosition={setBoxPosition}
+        {...props}
+      />
     );
   });
 
   return {
     root,
+    setBoxPosition,
     get state() {
       return currentState;
     },
@@ -132,6 +142,7 @@ describe("useSelectionController", () => {
   let currentSelection;
   let windowGetSelectionSpy;
   let documentGetSelectionSpy;
+  const originalInnerHeight = window.innerHeight;
 
   beforeEach(() => {
     jest.useFakeTimers();
@@ -146,6 +157,11 @@ describe("useSelectionController", () => {
   });
 
   afterEach(() => {
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      writable: true,
+      value: originalInnerHeight,
+    });
     windowGetSelectionSpy.mockRestore();
     documentGetSelectionSpy.mockRestore();
     jest.useRealTimers();
@@ -409,6 +425,105 @@ describe("useSelectionController", () => {
 
     expect(controller.state.text).toBe("selected");
     expect(controller.state.textContext).toBe("Panel selected word context.");
+
+    act(() => {
+      controller.root.unmount();
+    });
+  });
+
+  test("positions the followed box above a selection near the viewport bottom", async () => {
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      writable: true,
+      value: 500,
+    });
+    const controller = renderController({
+      followSelection: true,
+      boxOffsetY: 10,
+      boxSize: { w: 320, h: 200 },
+    });
+    const pageParagraph = createParagraph("The library is open.");
+
+    currentSelection = makeSelection("library", pageParagraph, {
+      left: 10,
+      right: 30,
+      top: 420,
+      bottom: 440,
+      width: 20,
+      height: 20,
+    });
+    await dispatchWindowMouseup();
+
+    expect(controller.setBoxPosition).toHaveBeenLastCalledWith({
+      x: 20,
+      y: 158,
+    });
+
+    act(() => {
+      controller.root.unmount();
+    });
+  });
+
+  test("clamps the followed box inside the viewport when neither side fits", async () => {
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      writable: true,
+      value: 500,
+    });
+    const controller = renderController({
+      followSelection: true,
+      boxOffsetY: 10,
+      boxSize: { w: 320, h: 480 },
+    });
+    const pageParagraph = createParagraph("The library is open.");
+
+    currentSelection = makeSelection("library", pageParagraph, {
+      left: 10,
+      right: 30,
+      top: 100,
+      bottom: 120,
+      width: 20,
+      height: 20,
+    });
+    await dispatchWindowMouseup();
+
+    expect(controller.setBoxPosition).toHaveBeenLastCalledWith({
+      x: 20,
+      y: 0,
+    });
+
+    act(() => {
+      controller.root.unmount();
+    });
+  });
+
+  test("falls back to the viewport top when the followed box is taller than the viewport", async () => {
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      writable: true,
+      value: 500,
+    });
+    const controller = renderController({
+      followSelection: true,
+      boxOffsetY: 10,
+      boxSize: { w: 320, h: 600 },
+    });
+    const pageParagraph = createParagraph("The library is open.");
+
+    currentSelection = makeSelection("library", pageParagraph, {
+      left: 10,
+      right: 30,
+      top: 420,
+      bottom: 440,
+      width: 20,
+      height: 20,
+    });
+    await dispatchWindowMouseup();
+
+    expect(controller.setBoxPosition).toHaveBeenLastCalledWith({
+      x: 20,
+      y: 0,
+    });
 
     act(() => {
       controller.root.unmount();

@@ -97,14 +97,21 @@ function TranBoxHeader({
         sx={{
           width: "100%",
           height: "100%",
+          minWidth: 0,
         }}
       >
         {/* 左侧：Logo 图标与版本号显示 */}
-        <Stack direction="row" alignItems="center" spacing={1}>
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={1}
+          sx={{ minWidth: 0, flex: "1 1 auto", overflow: "hidden" }}
+        >
           <Box
             sx={{
               width: 18,
               height: 18,
+              flexShrink: 0,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -122,22 +129,29 @@ function TranBoxHeader({
             <Logo size={16} />
           </Box>
 
-          {!simpleStyle && (
-            <Typography
-              variant="caption"
-              sx={{
-                fontWeight: 500,
-                fontSize: "12px",
-                color: theme.palette.text.secondary,
-              }}
-            >
-              {`${process.env.REACT_APP_NAME} v${process.env.REACT_APP_VERSION}`}
-            </Typography>
-          )}
+          <Typography
+            variant="caption"
+            sx={{
+              minWidth: 0,
+              fontWeight: 500,
+              fontSize: "12px",
+              color: theme.palette.text.secondary,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {`${process.env.REACT_APP_NAME} v${process.env.REACT_APP_VERSION}`}
+          </Typography>
         </Stack>
 
         {/* 右侧：功能控制按钮组 */}
-        <Stack direction="row" alignItems="center" spacing={0.5}>
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={0.5}
+          sx={{ flexShrink: 0 }}
+        >
           {/* 独立窗口打开 */}
           {isExt && (
             <IconButton
