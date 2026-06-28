@@ -7,8 +7,10 @@ import {
   // DEFAULT_MOUSEHOVER_KEY,
   OPT_STYLE_NONE,
   DEFAULT_API_SETTING,
+  DEFAULT_MOUSE_HOVER_BUBBLE_STYLE,
   OPT_HIGHLIGHT_WORDS_BEFORETRANS,
   OPT_HIGHLIGHT_WORDS_AFTERTRANS,
+  OPT_MOUSE_HOVER_DISPLAY_BUBBLE,
   OPT_SPLIT_PARAGRAPH_PUNCTUATION,
   OPT_SPLIT_PARAGRAPH_DISABLE,
   OPT_SPLIT_PARAGRAPH_TEXTLENGTH,
@@ -178,6 +180,7 @@ export class Translator {
     highlight: `${APP_LCNAME}-highlight`,
     retry: `${APP_LCNAME}-retry`,
     backup: `${APP_LCNAME}-backup`,
+    hoverBubble: `${APP_LCNAME}-hover-bubble`,
   };
 
   // 内置过滤与跳过翻译的正则表达式规则（URL、邮箱、路径、数字、日期、模板等）
@@ -299,7 +302,7 @@ export class Translator {
   }
 
   // 内置忽略元素
-  static KISS_IGNORE_SELECTOR = `.${Translator.KISS_CLASS.warpper}, .kiss-caption-container, .kiss-subtitle-controls, #kiss-youtube-subtitle-list-container,
+  static KISS_IGNORE_SELECTOR = `.${Translator.KISS_CLASS.warpper}, .${Translator.KISS_CLASS.hoverBubble}, .kiss-caption-container, .kiss-subtitle-controls, #kiss-youtube-subtitle-list-container,
   #${APP_CONSTS.fabID}, .${APP_CONSTS.fabID}_warpper,
   #${APP_CONSTS.boxID}, .${APP_CONSTS.boxID}_warpper,
   #${APP_CONSTS.popupID}, .${APP_CONSTS.popupID}_warpper`;
@@ -350,6 +353,10 @@ export class Translator {
   #removeKeydownHandler; // 快捷键清理函数
   #removeKeydownHandler2; // 备用快捷键清理函数
   #hoveredNode = null; // 存储当前悬停的可翻译节点
+  #hoverPointer = { x: 0, y: 0 }; // 最近一次鼠标位置，用于定位气泡
+  #hoverBubbleNode = null; // 鼠标悬停气泡容器
+  #hoverBubbleTarget = null; // 当前气泡绑定的原文节点
+  #hoverBubbleRunId = 0; // 用于丢弃过期的气泡翻译请求
   #boundMouseMoveHandler; // 鼠标事件
   #boundKeyDownHandler; // 键盘事件
   #windowMessageHandler = null;
@@ -1102,12 +1109,22 @@ export class Translator {
       }
       if (!hasMouseHoverShortcut && foundNode) {
         this.#toggleTargetNode(foundNode);
+      } else if (!foundNode && this.#isMouseHoverBubbleMode()) {
+        this.#hideHoverBubble();
       }
     }, 100);
   }
 
   // 跟踪鼠标下的可翻译节点
   #handleMouseMove(event) {
+    this.#hoverPointer = { x: event.clientX, y: event.clientY };
+    if (
+      this.#isMouseHoverBubbleMode() &&
+      this.#hoverBubbleNode &&
+      !this.#hoverBubbleNode.hidden
+    ) {
+      this.#positionHoverBubble();
+    }
     let targetNode = event.composedPath()[0];
     this.#dmm(targetNode);
   }
@@ -1130,11 +1147,24 @@ export class Translator {
 
   // 切换节点翻译状态
   #toggleTargetNode(targetNode) {
+    if (this.#isMouseHoverBubbleMode()) {
+      this.#translateHoverBubbleNode(targetNode);
+      return;
+    }
+
     if (this.#processedNodes.has(targetNode)) {
       this.#cleanupDirectTranslations(targetNode);
     } else {
       this.#processNode(targetNode);
     }
+  }
+
+  // 判断当前鼠标悬停翻译是否处于气泡展示模式
+  #isMouseHoverBubbleMode() {
+    return (
+      this.#setting.mouseHoverSetting?.displayMode ===
+      OPT_MOUSE_HOVER_DISPLAY_BUBBLE
+    );
   }
 
   // 获取元素的 shadowRoot（支持 closed 模式）
@@ -2194,6 +2224,140 @@ export class Translator {
     }
   }
 
+  // 获取悬停气泡的样式，如果用户未设置则使用默认样式
+  #getHoverBubbleStyle() {
+    const userStyle =
+      this.#setting.mouseHoverSetting?.bubbleStyle ||
+      DEFAULT_MOUSE_HOVER_BUBBLE_STYLE;
+    const normalizedUserStyle = userStyle.trim().replace(/;+$/, "");
+    return `${normalizedUserStyle};
+position: fixed !important;
+z-index: 2147483647 !important;
+box-sizing: border-box !important;
+pointer-events: none !important;
+white-space: pre-wrap !important;
+overflow-wrap: anywhere !important;`;
+  }
+
+  // 确保悬停气泡的 DOM 元素存在并已挂载到 body
+  #ensureHoverBubble() {
+    if (this.#hoverBubbleNode?.isConnected) {
+      return this.#hoverBubbleNode;
+    }
+
+    const bubble = document.createElement("div");
+    bubble.className = `${Translator.KISS_CLASS.hoverBubble} notranslate`;
+    bubble.setAttribute("role", "tooltip");
+    document.body.appendChild(bubble);
+    this.#hoverBubbleNode = bubble;
+
+    return bubble;
+  }
+
+  // 计算并更新悬停气泡的位置，使其跟随鼠标且不溢出视口
+  #positionHoverBubble() {
+    const bubble = this.#hoverBubbleNode;
+    if (!bubble) return;
+
+    const gap = 12;
+    const viewportGap = 8;
+    let left = this.#hoverPointer.x + gap;
+    let top = this.#hoverPointer.y + gap;
+
+    bubble.style.left = `${left}px`;
+    bubble.style.top = `${top}px`;
+
+    const rect = bubble.getBoundingClientRect();
+    const maxLeft = window.innerWidth - rect.width - viewportGap;
+    const maxTop = window.innerHeight - rect.height - viewportGap;
+
+    left = Math.max(viewportGap, Math.min(left, maxLeft));
+    top = Math.max(viewportGap, Math.min(top, maxTop));
+
+    bubble.style.left = `${left}px`;
+    bubble.style.top = `${top}px`;
+  }
+
+  // 显示悬停气泡内容并更新其状态与位置
+  #showHoverBubble(content, state = "ready") {
+    const bubble = this.#ensureHoverBubble();
+    bubble.style.cssText = this.#getHoverBubbleStyle();
+    bubble.dataset.state = state;
+    bubble.replaceChildren(
+      content instanceof Node ? content : document.createTextNode(content)
+    );
+    bubble.hidden = false;
+    this.#positionHoverBubble();
+  }
+
+  // 隐藏并移除悬停气泡，同时通过递增 RunId 废弃正在进行的翻译请求
+  #hideHoverBubble() {
+    this.#hoverBubbleRunId++;
+    this.#hoverBubbleTarget = null;
+    if (this.#hoverBubbleNode) {
+      this.#hoverBubbleNode.remove();
+      this.#hoverBubbleNode = null;
+    }
+  }
+
+  // 气泡模式下翻译目标节点，处理请求竞态与错误边界
+  async #translateHoverBubbleNode(node) {
+    if (!Translator.isElementOrFragment(node)) return;
+    if (this.#hoverBubbleTarget === node && this.#hoverBubbleNode) return;
+
+    const text = node.textContent || "";
+    if (this.#isInvalidText(text)) {
+      this.#hideHoverBubble();
+      return;
+    }
+
+    const currentRunId = ++this.#hoverBubbleRunId;
+    this.#hoverBubbleTarget = node;
+    this.#showHoverBubble(createLoadingSVG(), "loading");
+
+    try {
+      let deLang = "";
+      const { fromLang = "auto", toLang } = this.#rule;
+      const { langDetector, skipLangs = [] } = this.#setting;
+      if (fromLang === "auto") {
+        deLang = await tryDetectLang(text, langDetector);
+        if (
+          deLang &&
+          (toLang.slice(0, 2) === deLang.slice(0, 2) ||
+            skipLangs.includes(deLang))
+        ) {
+          if (this.#hoverBubbleRunId === currentRunId) {
+            this.#hideHoverBubble();
+          }
+          return;
+        }
+      }
+
+      const { trText, isSame } = await this.#translateFetch(text, deLang);
+      if (
+        this.#hoverBubbleRunId !== currentRunId ||
+        this.#hoverBubbleTarget !== node
+      ) {
+        return;
+      }
+
+      if (!trText || isSame) {
+        this.#hideHoverBubble();
+        return;
+      }
+
+      this.#showHoverBubble(Array.isArray(trText) ? trText[0] : trText);
+    } catch (err) {
+      if (
+        this.#hoverBubbleRunId !== currentRunId ||
+        this.#hoverBubbleTarget !== node
+      ) {
+        return;
+      }
+      this.#showHoverBubble(this.#formatTranslateError(err), "error");
+    }
+  }
+
   // 处理节点转为翻译字符串
   #serializeForTranslation(nodes, termsStyle) {
     let replaceCounter = 0; // {{n}}
@@ -2806,6 +2970,7 @@ export class Translator {
     if (!this.#mouseHoverEnabled) return;
     this.#mouseHoverEnabled = false;
     this.#setting.mouseHoverSetting.useMouseHover = false;
+    this.#hideHoverBubble();
 
     document.removeEventListener("mousemove", this.#boundMouseMoveHandler);
     this.#removeKeydownHandler?.();

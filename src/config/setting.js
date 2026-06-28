@@ -198,11 +198,24 @@ export const DEFAULT_SUBRULES_LIST = [
 ];
 
 export const DEFAULT_MOUSEHOVER_KEY = ["ControlLeft"]; // 默认触发悬停翻译的触发按键 (左 Ctrl 键)
+export const OPT_MOUSE_HOVER_DISPLAY_BILINGUAL = "bilingual"; // 鼠标悬停翻译：把译文插入页面形成双语对照
+export const OPT_MOUSE_HOVER_DISPLAY_BUBBLE = "bubble"; // 鼠标悬停翻译：用悬浮气泡展示译文，不改变页面布局
+export const DEFAULT_MOUSE_HOVER_BUBBLE_STYLE = `max-width: min(420px, calc(100vw - 32px));
+padding: 10px 12px;
+border-radius: 8px;
+background: rgb(25, 118, 210);
+color: #fff;
+font-size: 14px;
+line-height: 1.5;
+box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+backdrop-filter: blur(8px);`;
 export const DEFAULT_MOUSE_HOVER_SETTING = {
   useMouseHover: false, // 是否开启鼠标悬停翻译
   blacklist: "", // 鼠标悬停翻译禁用的网页黑名单
   mouseHoverKey: DEFAULT_MOUSEHOVER_KEY, // 主按键
   mouseHoverKey2: [], // 备用快捷按键
+  displayMode: OPT_MOUSE_HOVER_DISPLAY_BILINGUAL, // 鼠标悬停翻译展示模式
+  bubbleStyle: DEFAULT_MOUSE_HOVER_BUBBLE_STYLE, // 气泡模式的容器 CSS
 };
 
 // --- 全局默认设置对象，存储于 local storage ---

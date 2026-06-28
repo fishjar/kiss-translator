@@ -15,6 +15,19 @@ const flushAsync = async () => {
   await Promise.resolve();
 };
 
+const hoverNode = async (node, x = 20, y = 20) => {
+  node.dispatchEvent(
+    new MouseEvent("mousemove", {
+      bubbles: true,
+      clientX: x,
+      clientY: y,
+    })
+  );
+  jest.advanceTimersByTime(100);
+  await Promise.resolve();
+  await Promise.resolve();
+};
+
 function createTranslator(rule = {}, setting = {}) {
   return new Translator({
     rule: {
@@ -591,5 +604,252 @@ describe("Translator rule styles", () => {
 
     expect(apiTranslate).toHaveBeenCalledTimes(1);
     expect(apiTranslate.mock.calls[0][0].text).toContain("First visible chunk");
+  });
+
+  test("keeps default mouse hover mode as inline bilingual translation", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="target">Hello hover</p></main>';
+    const target = document.getElementById("target");
+
+    createTranslator(
+      {
+        transOpen: "false",
+      },
+      {
+        preInit: true,
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+        },
+      }
+    );
+    await hoverNode(target);
+    await flushAsync();
+
+    const wrapper = document.querySelector(`.${Translator.KISS_CLASS.warpper}`);
+    expect(wrapper).not.toBeNull();
+    const inner = wrapper.querySelector(`.${Translator.KISS_CLASS.inner}`);
+    expect(inner.textContent).toBe("Translated");
+    expect(
+      document.querySelector(`.${Translator.KISS_CLASS.hoverBubble}`)
+    ).toBeNull();
+  });
+
+  test("shows mouse hover bubble without inserting translation wrappers", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="target">Hello hover</p></main>';
+    const target = document.getElementById("target");
+
+    createTranslator(
+      {
+        transOpen: "false",
+      },
+      {
+        preInit: true,
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          displayMode: "bubble",
+          bubbleStyle: "background: rgb(1, 2, 3); font-size: 18px;",
+        },
+      }
+    );
+    await hoverNode(target, 30, 40);
+    await flushAsync();
+
+    const bubble = document.querySelector(
+      `.${Translator.KISS_CLASS.hoverBubble}`
+    );
+    expect(apiTranslate).toHaveBeenCalledWith(
+      expect.objectContaining({ text: "Hello hover" })
+    );
+    expect(
+      document.querySelector(`.${Translator.KISS_CLASS.warpper}`)
+    ).toBeNull();
+    expect(bubble).not.toBeNull();
+    expect(bubble.textContent).toBe("Translated");
+    expect(bubble.getAttribute("style")).toContain("font-size: 18px");
+    expect(bubble.style.position).toBe("fixed");
+    expect(bubble.style.zIndex).toBe("2147483647");
+  });
+
+  test("keeps forced bubble positioning when custom CSS misses trailing semicolon", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="target">Hello hover</p></main>';
+
+    createTranslator(
+      {
+        transOpen: "false",
+      },
+      {
+        preInit: true,
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          displayMode: "bubble",
+          bubbleStyle: "background: red",
+        },
+      }
+    );
+    await hoverNode(document.getElementById("target"));
+    await flushAsync();
+
+    const bubble = document.querySelector(
+      `.${Translator.KISS_CLASS.hoverBubble}`
+    );
+    expect(bubble.style.background).toBe("red");
+    expect(bubble.style.position).toBe("fixed");
+    expect(bubble.style.zIndex).toBe("2147483647");
+  });
+
+  test("repositions an existing mouse hover bubble on raw mousemove", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="target">Hello hover</p></main>';
+    const target = document.getElementById("target");
+
+    createTranslator(
+      {
+        transOpen: "false",
+      },
+      {
+        preInit: true,
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          displayMode: "bubble",
+        },
+      }
+    );
+    await hoverNode(target, 10, 20);
+    await flushAsync();
+
+    const bubble = document.querySelector(
+      `.${Translator.KISS_CLASS.hoverBubble}`
+    );
+    const initialLeft = bubble.style.left;
+    const initialTop = bubble.style.top;
+
+    target.dispatchEvent(
+      new MouseEvent("mousemove", {
+        bubbles: true,
+        clientX: 80,
+        clientY: 90,
+      })
+    );
+
+    expect(bubble.style.left).not.toBe(initialLeft);
+    expect(bubble.style.top).not.toBe(initialTop);
+  });
+
+  test("uses the shared loading icon and default blue style for mouse hover bubble", async () => {
+    apiTranslate.mockImplementationOnce(() => new Promise(() => {}));
+    document.body.innerHTML =
+      '<main id="root"><p id="target">Hello hover</p></main>';
+
+    createTranslator(
+      {
+        transOpen: "false",
+      },
+      {
+        preInit: true,
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          displayMode: "bubble",
+        },
+      }
+    );
+    await hoverNode(document.getElementById("target"));
+
+    const bubble = document.querySelector(
+      `.${Translator.KISS_CLASS.hoverBubble}`
+    );
+    expect(bubble.dataset.state).toBe("loading");
+    expect(bubble.querySelector("svg")).not.toBeNull();
+    expect(bubble.getAttribute("style")).toContain(
+      "background: rgb(25, 118, 210)"
+    );
+  });
+
+  test("ignores stale mouse hover bubble translation results", async () => {
+    let resolveFirst;
+    apiTranslate
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveFirst = resolve;
+          })
+      )
+      .mockResolvedValueOnce({ trText: "Second translation", isSame: false });
+    document.body.innerHTML = `
+      <main id="root">
+        <p id="first">First hover</p>
+        <p id="second">Second hover</p>
+      </main>
+    `;
+
+    createTranslator(
+      {
+        transOpen: "false",
+      },
+      {
+        preInit: true,
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          displayMode: "bubble",
+        },
+      }
+    );
+
+    await hoverNode(document.getElementById("first"));
+    await hoverNode(document.getElementById("second"));
+    await flushAsync();
+    resolveFirst({ trText: "First translation", isSame: false });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const bubble = document.querySelector(
+      `.${Translator.KISS_CLASS.hoverBubble}`
+    );
+    expect(bubble.textContent).toBe("Second translation");
+  });
+
+  test("removes mouse hover bubble when mouse hover is disabled", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="target">Hello hover</p></main>';
+    const target = document.getElementById("target");
+    const translator = createTranslator(
+      {
+        transOpen: "false",
+      },
+      {
+        preInit: true,
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          displayMode: "bubble",
+        },
+      }
+    );
+
+    await hoverNode(target);
+    await flushAsync();
+    expect(
+      document.querySelector(`.${Translator.KISS_CLASS.hoverBubble}`)
+    ).not.toBeNull();
+
+    translator.toggleMouseHover();
+
+    expect(
+      document.querySelector(`.${Translator.KISS_CLASS.hoverBubble}`)
+    ).toBeNull();
   });
 });
