@@ -1854,6 +1854,13 @@ export const I18N = {
     ja: `フローティングボタンを隠す`,
     ko: `플로팅 버튼 숨기기`,
   },
+  show_fab_button: {
+    zh: `显示悬浮按钮`,
+    en: `Show Fab Button`,
+    zh_TW: `顯示浮動按鈕`,
+    ja: `フローティングボタンを表示`,
+    ko: `플로팅 버튼 표시`,
+  },
   fab_click_action: {
     zh: `单击悬浮按钮动作`,
     en: `Single Click Fab Action`,
@@ -2238,6 +2245,13 @@ export const I18N = {
     zh_TW: `右鍵選單`,
     ja: `コンテキストメニュー`,
     ko: `컨텍스트 메뉴`,
+  },
+  context_menu_type: {
+    zh: `右键菜单类型`,
+    en: `Context Menu Type`,
+    zh_TW: `右鍵選單類型`,
+    ja: `コンテキストメニュータイプ`,
+    ko: `컨텍스트 메뉴 유형`,
   },
   hide_context_menus: {
     zh: `隐藏右键菜单`,

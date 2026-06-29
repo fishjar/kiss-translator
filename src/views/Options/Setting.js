@@ -6,6 +6,8 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import Link from "@mui/material/Link";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Switch from "@mui/material/Switch";
 import { useSetting } from "../../hooks/Setting";
 import { useI18n } from "../../hooks/I18n";
 import { useAlert } from "../../hooks/Alert";
@@ -151,6 +153,12 @@ export default function Settings() {
     });
   };
 
+  const updateContextMenuType = (value) => {
+    const nextContextMenuType = Number(value);
+    isExt && sendBgMsg(MSG_CONTEXT_MENUS, nextContextMenuType);
+    updateSetting({ contextMenuType: nextContextMenuType });
+  };
+
   // 清除本地网络请求翻译缓存
   const handleClearCache = () => {
     try {
@@ -191,6 +199,12 @@ export default function Settings() {
   } = setting;
   // 解构 FAB 悬浮球的显隐状态及点击后的默认交互行为
   const { isHide = false, fabClickAction = 0 } = fab || {};
+  const isFabHidden = isHide === true || isHide === "true";
+  const normalizedContextMenuType = Number(contextMenuType);
+  const isContextMenuEnabled = [1, 2].includes(normalizedContextMenuType);
+  const contextMenuDisplayType = isContextMenuEnabled
+    ? normalizedContextMenuType
+    : 1;
 
   return (
     <Box>
@@ -249,20 +263,18 @@ export default function Settings() {
             </Grid>
             {/* 是否全局隐藏内容页面右侧的悬浮查词小图标 FAB */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
-                select
-                fullWidth
-                size="small"
-                name="isHide"
-                value={isHide}
-                label={i18n("hide_fab_button")}
-                onChange={(e) => {
-                  updateFab({ isHide: e.target.value });
-                }}
-              >
-                <MenuItem value={false}>{i18n("show")}</MenuItem>
-                <MenuItem value={true}>{i18n("hide")}</MenuItem>
-              </TextField>
+              <FormControlLabel
+                control={
+                  <Switch
+                    name="isHide"
+                    checked={!isFabHidden}
+                    onChange={(e) => {
+                      updateFab({ isHide: !e.target.checked });
+                    }}
+                  />
+                }
+                label={i18n("show_fab_button")}
+              />
             </Grid>
             {/* 点击悬浮球时触发的行为 (直接展示菜单或立即启动全文双语翻译) */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
@@ -274,6 +286,7 @@ export default function Settings() {
                 value={fabClickAction}
                 label={i18n("fab_click_action")}
                 onChange={(e) => updateFab({ fabClickAction: e.target.value })}
+                disabled={isFabHidden}
               >
                 <MenuItem value={0}>{i18n("fab_click_menu")}</MenuItem>
                 <MenuItem value={1}>{i18n("fab_click_translate")}</MenuItem>
@@ -370,6 +383,21 @@ export default function Settings() {
                 ))}
               </TextField>
             </Grid>
+            {/* 浏览器右键上下文菜单启用开关 */}
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    name="contextMenuEnabled"
+                    checked={isContextMenuEnabled}
+                    onChange={(e) =>
+                      updateContextMenuType(e.target.checked ? 1 : 0)
+                    }
+                  />
+                }
+                label={i18n("context_menus")}
+              />
+            </Grid>
             {/* 浏览器右键上下文菜单的展示层级 */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
@@ -377,11 +405,11 @@ export default function Settings() {
                 fullWidth
                 size="small"
                 name="contextMenuType"
-                value={contextMenuType}
-                label={i18n("context_menus")}
-                onChange={handleChange}
+                value={contextMenuDisplayType}
+                label={i18n("context_menu_type")}
+                onChange={(e) => updateContextMenuType(e.target.value)}
+                disabled={!isContextMenuEnabled}
               >
-                <MenuItem value={0}>{i18n("hide_context_menus")}</MenuItem>
                 <MenuItem value={1}>{i18n("simple_context_menus")}</MenuItem>
                 <MenuItem value={2}>{i18n("secondary_context_menus")}</MenuItem>
               </TextField>
