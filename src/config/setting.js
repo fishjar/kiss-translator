@@ -235,7 +235,8 @@ export const DEFAULT_SETTING = {
   // injectWebfix: true, // 是否注入修复补丁(作废)
   // detectRemote: false, // 是否使用远程语言检测 （从rule移回）
   // contextMenus: true, // 是否添加右键菜单(作废)
-  contextMenuType: 1, // 鼠标右键上下文菜单形式 (0: 禁用, 1: 精简, 2: 完整菜单)
+  contextMenusEnabled: true, // 是否启用鼠标右键上下文菜单
+  contextMenuType: 1, // 鼠标右键上下文菜单形式 (0: 旧版禁用值, 1: 精简, 2: 完整菜单)
   // transTag: DEFAULT_TRANS_TAG, // 译文元素标签(移至rule，作废)
   // transOnly: false, // 是否仅显示译文(移至rule，作废)
   // transTitle: false, // 是否同时翻译页面标题(移至rule，作废)

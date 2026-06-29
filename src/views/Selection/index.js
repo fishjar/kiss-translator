@@ -8,6 +8,7 @@ import useTranboxShortcuts from "../../hooks/useTranboxShortcuts";
  * 划词翻译交互整体入口组件
  *
  * @param {Object} props
+ * @param {boolean} props.contextMenusEnabled - 是否启用浏览器右键菜单
  * @param {string} props.contextMenuType - 浏览器右键菜单的类型/配置
  * @param {Object} props.tranboxSetting - 划词翻译框的相关设置项
  * @param {Array} props.transApis - 启用的翻译 API 配置列表
@@ -15,6 +16,7 @@ import useTranboxShortcuts from "../../hooks/useTranboxShortcuts";
  * @param {Object} props.langDetector - 语种检测器的状态配置项
  */
 export default function Selection({
+  contextMenusEnabled = true,
   contextMenuType,
   tranboxSetting,
   transApis,
@@ -22,6 +24,12 @@ export default function Selection({
   uiLang,
   langDetector,
 }) {
+  const normalizedContextMenuType = Number(contextMenuType);
+  const effectiveContextMenuType =
+    contextMenusEnabled === false || ![1, 2].includes(normalizedContextMenuType)
+      ? 0
+      : normalizedContextMenuType;
+
   // 1. 初始化并管理划词翻译框（TranBox）的各种展示和交互状态（如宽高、位置、极简模式、点击外部关闭等）
   const {
     boxSize,
@@ -66,7 +74,7 @@ export default function Selection({
     setShowBox,
     handleOpenTranbox,
     handleToggleTranbox,
-    contextMenuType,
+    contextMenuType: effectiveContextMenuType,
     uiLang,
   });
 

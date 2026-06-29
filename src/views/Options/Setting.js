@@ -135,11 +135,8 @@ export default function Settings() {
     e.preventDefault();
     let { name, value } = e.target;
 
-    // 特定联动：若是浏览器扩展模式，且修改了右键菜单或CSP规则列表，立即向后台 content script / background 发送同步消息
+    // 特定联动：若是浏览器扩展模式，且修改了 CSP 规则列表，立即向后台 content script / background 发送同步消息
     switch (name) {
-      case "contextMenuType":
-        isExt && sendBgMsg(MSG_CONTEXT_MENUS, value);
-        break;
       case "csplist":
         isExt && sendBgMsg(MSG_UPDATE_CSP, { csplist: value });
         break;
@@ -153,10 +150,16 @@ export default function Settings() {
     });
   };
 
-  const updateContextMenuType = (value) => {
-    const nextContextMenuType = Number(value);
-    isExt && sendBgMsg(MSG_CONTEXT_MENUS, nextContextMenuType);
-    updateSetting({ contextMenuType: nextContextMenuType });
+  const updateContextMenus = ({ enabled, type } = {}) => {
+    const nextEnabled =
+      typeof enabled === "boolean" ? enabled : isContextMenuEnabled;
+    const nextContextMenuType = Number(type ?? contextMenuDisplayType);
+    isExt &&
+      sendBgMsg(MSG_CONTEXT_MENUS, nextEnabled ? nextContextMenuType : 0);
+    updateSetting({
+      contextMenusEnabled: nextEnabled,
+      contextMenuType: nextContextMenuType,
+    });
   };
 
   // 清除本地网络请求翻译缓存
@@ -186,6 +189,7 @@ export default function Settings() {
     clearCache,
     newlineLength = TRANS_NEWLINE_LENGTH,
     httpTimeout = DEFAULT_HTTP_TIMEOUT,
+    contextMenusEnabled = true,
     contextMenuType = 1,
     touchModes = [2],
     blacklist = DEFAULT_BLACKLIST.join(",\n"),
@@ -201,8 +205,10 @@ export default function Settings() {
   const { isHide = false, fabClickAction = 0 } = fab || {};
   const isFabHidden = isHide === true || isHide === "true";
   const normalizedContextMenuType = Number(contextMenuType);
-  const isContextMenuEnabled = [1, 2].includes(normalizedContextMenuType);
-  const contextMenuDisplayType = isContextMenuEnabled
+  const hasContextMenuType = [1, 2].includes(normalizedContextMenuType);
+  const isContextMenuEnabled =
+    contextMenusEnabled !== false && hasContextMenuType;
+  const contextMenuDisplayType = hasContextMenuType
     ? normalizedContextMenuType
     : 1;
 
@@ -391,7 +397,7 @@ export default function Settings() {
                     name="contextMenuEnabled"
                     checked={isContextMenuEnabled}
                     onChange={(e) =>
-                      updateContextMenuType(e.target.checked ? 1 : 0)
+                      updateContextMenus({ enabled: e.target.checked })
                     }
                   />
                 }
@@ -407,7 +413,9 @@ export default function Settings() {
                 name="contextMenuType"
                 value={contextMenuDisplayType}
                 label={i18n("context_menu_type")}
-                onChange={(e) => updateContextMenuType(e.target.value)}
+                onChange={(e) =>
+                  updateContextMenus({ enabled: true, type: e.target.value })
+                }
                 disabled={!isContextMenuEnabled}
               >
                 <MenuItem value={1}>{i18n("simple_context_menus")}</MenuItem>

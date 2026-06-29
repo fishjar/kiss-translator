@@ -55,8 +55,8 @@ export default function useTranboxShortcuts({
 
     try {
       const menuCommandIds = [];
-      // 当 contextMenuType 不为 0 时（表明启用菜单项），注册“翻译选中文字”菜单项
-      contextMenuType !== 0 &&
+      // 当 contextMenuType 为有效菜单类型时，注册“翻译选中文字”菜单项
+      [1, 2].includes(Number(contextMenuType)) &&
         menuCommandIds.push(
           GM.registerMenuCommand?.(
             langMap("translate_selected_text"),

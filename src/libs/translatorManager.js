@@ -611,8 +611,17 @@ export default class TranslatorManager {
    */
   #registerMenus() {
     if (!globalThis.GM) return;
-    const { contextMenuType, uiLang } = this._translator.setting;
-    if (contextMenuType === 0) return;
+    const {
+      contextMenusEnabled = true,
+      contextMenuType,
+      uiLang,
+    } = this._translator.setting;
+    if (
+      contextMenusEnabled === false ||
+      ![1, 2].includes(Number(contextMenuType))
+    ) {
+      return;
+    }
 
     const i18n = newI18n(uiLang || "zh");
 
