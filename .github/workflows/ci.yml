@@ -1,0 +1,35 @@
+name: ci.yml
+
+on:
+  push:
+  discussion:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v6
+      with:
+        version: latest
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 'lts/*'
+        cache: 'pnpm'
+
+    - name: Install dependencies
+      run: pnpm install
+
+    - name: Build and zip
+      run: pnpm build+zip
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v7
+      with:
+        name: kiss-translator-build
+        path: build/*.zip
+
