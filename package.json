@@ -41,7 +41,7 @@
     "build:safari": "node src/scripts/build-safari.mjs",
     "build:userscript-ios": "zx src/scripts/build-ios.mjs",
     "build:rules": "babel-node src/rules.js",
-    "format": "prettier --write \"**/*.{js,json,html}\"",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,html}\"",
     "build": "pnpm sync-version && pnpm format && pnpm build:chrome && pnpm build:edge && pnpm build:thunderbird && pnpm build:firefox && pnpm build:web && pnpm build:userscript-ios && pnpm build:rules",
     "zip": "zx src/scripts/archive.mjs",
     "build+zip": "cross-env CI=true pnpm build && pnpm zip",
@@ -79,12 +79,17 @@
     "@babel/node": "^7.22.19",
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
     "@babel/preset-env": "^7.22.20",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^26.0.1",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
     "bestzip": "^2.2.1",
     "cross-env": "^7.0.3",
     "dotenv": "^17.2.1",
     "find-up": "^7.0.0",
     "prettier": "3.6.2",
     "react-app-rewired": "^2.2.1",
+    "typescript": "^6.0.3",
     "zx": "^8.8.1"
   }
 }
