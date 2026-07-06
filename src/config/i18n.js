@@ -260,6 +260,7 @@ export const I18N = {
     zh_TW: `簡約翻譯`,
     ja: `KISS Translator`,
     ko: `KISS Translator`,
+    tr: `KISS Translator`,
   },
   translate: {
     zh: `翻译`,
@@ -267,6 +268,7 @@ export const I18N = {
     zh_TW: `翻譯`,
     ja: `翻訳`,
     ko: `번역`,
+    tr: `Çeviri`,
   },
   custom_api_help: {
     zh: customApiHelpZH,
@@ -274,6 +276,7 @@ export const I18N = {
     zh_TW: customApiHelpTW,
     ja: customApiHelpEN,
     ko: customApiHelpEN,
+    tr: customApiHelpEN,
   },
   request_hook_helper: {
     zh: requestHookHelperZH,
@@ -281,6 +284,7 @@ export const I18N = {
     zh_TW: requestHookHelperTW,
     ja: requestHookHelperEN,
     ko: requestHookHelperEN,
+    tr: requestHookHelperEN,
   },
   response_hook_helper: {
     zh: responsetHookHelperZH,
@@ -288,6 +292,7 @@ export const I18N = {
     zh_TW: responsetHookHelperTW,
     ja: responsetHookHelperEN,
     ko: responsetHookHelperEN,
+    tr: responsetHookHelperEN,
   },
   translate_alt: {
     zh: `翻译`,
@@ -295,6 +300,7 @@ export const I18N = {
     zh_TW: `翻譯`,
     ja: `翻訳`,
     ko: `번역`,
+    tr: `Çeviri`,
   },
   basic_setting: {
     zh: `基本设置`,
@@ -302,6 +308,7 @@ export const I18N = {
     zh_TW: `基本設定`,
     ja: `基本設定`,
     ko: `기본 설정`,
+    tr: `Basit Ayar`,
   },
   rules_setting: {
     zh: `规则设置`,
@@ -309,6 +316,7 @@ export const I18N = {
     zh_TW: `規則設定`,
     ja: `ルール設定`,
     ko: `규칙 설정`,
+    tr: `Kural Ayarı`,
   },
   apis_setting: {
     zh: `接口设置`,
@@ -316,13 +324,16 @@ export const I18N = {
     zh_TW: `API設定`,
     ja: `API設定`,
     ko: `API 설정`,
+    tr: `API Ayarı`,
   },
+ 
   prompt_management: {
     zh: `提示词管理`,
     en: `Prompt Management`,
     zh_TW: `提示詞管理`,
     ja: `プロンプト管理`,
     ko: `프롬프트 관리`,
+    tr: `İstem Yönetimi`,
   },
   sync_setting: {
     zh: `同步设置`,
@@ -330,6 +341,7 @@ export const I18N = {
     zh_TW: `同步設定`,
     ja: `同期設定`,
     ko: `동기화 설정`,
+    tr: `Senkronizasyon Ayarı`,
   },
   patch_setting: {
     zh: `补丁设置`,
@@ -337,6 +349,7 @@ export const I18N = {
     zh_TW: `修補設定`,
     ja: `パッチ設定`,
     ko: `패치 설정`,
+    tr: `Yama Ayarı`,
   },
   patch_setting_help: {
     zh: `针对一些特殊网站的修正脚本，以便翻译软件得到更好的展示效果。`,
@@ -344,6 +357,7 @@ export const I18N = {
     zh_TW: `針對某些特殊網站的修正腳本，讓翻譯軟體有更好的顯示效果。`,
     ja: `一部の特殊なウェブサイト用の修正スクリプトで、翻訳ソフトウェアの表示効果を向上させます。`,
     ko: `일부 특수 웹사이트를 위한 수정 스크립트로, 번역 소프트웨어의 표시 효과를 개선합니다.`,
+    tr: `Çeviri yazılımının daha iyi görüntü sonuçları alabilmesi için bazı özel web sitelerinin komut dosyaları düzeltildi.`,
   },
   inject_webfix: {
     zh: `注入修复补丁`,
@@ -351,6 +365,7 @@ export const I18N = {
     zh_TW: `注入修正補丁`,
     ja: `Webfixを注入`,
     ko: `웹 수정 패치 주입`,
+    tr: `Webfix'i Enjekte Edin`,
   },
   about: {
     zh: `关于`,
@@ -358,6 +373,7 @@ export const I18N = {
     zh_TW: `關於`,
     ja: `概要`,
     ko: `정보`,
+    tr: `Hakkında`,
   },
   about_md: {
     zh: `README.md`,
@@ -365,6 +381,7 @@ export const I18N = {
     zh_TW: `README.md`,
     ja: `README.ja.md`, // 假设的文件名
     ko: `README.ko.md`, // 假设的文件名
+    tr: `Readme.En.Md`,
   },
   about_md_local: {
     zh: `请 [点击这里](${process.env.REACT_APP_HOMEPAGE}) 查看详情。`,
@@ -372,6 +389,7 @@ export const I18N = {
     zh_TW: `請 [點這裡](${process.env.REACT_APP_HOMEPAGE}) 檢視詳細內容。`,
     ja: `詳細は [こちら](${process.env.REACT_APP_HOMEPAGE}) をクリックしてください。`,
     ko: `자세한 내용은 [여기](${process.env.REACT_APP_HOMEPAGE})를 클릭하세요.`,
+    tr: `Lütfen Ayrıntılar İçin [Buraya Tıkla](${process.env.REACT_APP_HOMEPAGE})`,
   },
   ui_lang: {
     zh: `界面语言`,
@@ -379,6 +397,7 @@ export const I18N = {
     zh_TW: `介面語言`,
     ja: `インターフェース言語`,
     ko: `인터페이스 언어`,
+    tr: `Arayüz Dili`,
   },
   version_warning: {
     zh: `当前版本 (v{0}) 不是最新版本 (v{1})，可以等待自动升级或手动`,
@@ -386,6 +405,7 @@ export const I18N = {
     zh_TW: `當前版本 (v{0}) 不是最新版本 (v{1})，可以等待自動升級或手動`,
     ja: `現在のバージョン (v{0}) は最新バージョン (v{1}) ではありません。自動更新を待つか、手動で`,
     ko: `현재 버전(v{0})은 최신 버전(v{1})이 아닙니다. 자동 업데이트를 기다리거나 수동으로 `,
+    tr: `Mevcut sürüm (v{0}), en son sürüm (v{1}) değildir. Otomatik güncellemeyi bekleyebilir veya manuel olarak güncelleyebilirsiniz `,
   },
   download_update: {
     zh: `下载更新`,
@@ -393,6 +413,7 @@ export const I18N = {
     zh_TW: `下載更新`,
     ja: `アップデートをダウンロード`,
     ko: `업데이트 다운로드`,
+    tr: `Güncellemeyi Indir`,
   },
   fetch_limit: {
     zh: `最大并发请求数量 (1-100)`,
@@ -400,6 +421,7 @@ export const I18N = {
     zh_TW: `最大同時請求數量 (1-100)`,
     ja: `最大同時リクエスト数 (1-100)`,
     ko: `최대 동시 요청 수 (1-100)`,
+    tr: `Maksimum Eşzamanlı İstek Sayısı (1-100)`,
   },
   if_think: {
     zh: `启用或禁用模型的深度思考能力`,
@@ -407,6 +429,7 @@ export const I18N = {
     zh_TW: `啟用或停用模型的深度思考能力`,
     ja: `モデルの思考行動を有効または無効にする`,
     ko: `모델의 사고 행동 활성화 또는 비활성화`,
+    tr: `Modelin Düşünme Davranışını Etkinleştirme Veya Devre Dışı Bırakma`,
   },
   think: {
     zh: `启用深度思考`,
@@ -414,6 +437,7 @@ export const I18N = {
     zh_TW: `啟用深度思考`,
     ja: `思考を有効にする`,
     ko: `사고 활성화`,
+    tr: `Düşünmeyi Etkinleştir`,
   },
   nothink: {
     zh: `禁用深度思考`,
@@ -421,6 +445,7 @@ export const I18N = {
     zh_TW: `停用深度思考`,
     ja: `思考を無効にする`,
     ko: `사고 비활성화`,
+    tr: `Düşünmeyi Devre Dışı Bırak`,
   },
   think_ignore: {
     zh: `忽略以下模型的<think>输出,逗号(,)分割,当模型支持思考但ollama不支持时需要填写本参数`,
@@ -428,6 +453,7 @@ export const I18N = {
     zh_TW: `忽略以下模型的 <think> 輸出，以逗號 (,) 分隔；當模型支援思考但 ollama 不支援時需要填寫此參數`,
     ja: `以下のモデルの<think>出力を無視する (コンマ(,)区切り)。モデルが思考をサポートしているが、ollamaがサポートしていない場合に記入が必要です`,
     ko: `다음 모델의 <think> 블록 무시 (쉼표(,)로 구분), 모델이 사고를 지원하지만 ollama가 지원하지 않는 경우 이 매개변수를 입력해야 합니다`,
+    tr: `Aşağıdaki modeller için <think> bloğunu dikkate almayın`,
   },
   thinking_mode: {
     zh: `思考模式`,
@@ -435,6 +461,7 @@ export const I18N = {
     zh_TW: `思考模式`,
     ja: `思考モード`,
     ko: `사고 모드`,
+    tr: `Düşünme Modu`,
   },
   thinking_mode_default: {
     zh: `接口默认`,
@@ -442,6 +469,7 @@ export const I18N = {
     zh_TW: `介面預設`,
     ja: `APIデフォルト`,
     ko: `API 기본값`,
+    tr: `API Varsayılanı`,
   },
   thinking_mode_enabled: {
     zh: `开启思考`,
@@ -449,6 +477,7 @@ export const I18N = {
     zh_TW: `開啟思考`,
     ja: `思考を有効`,
     ko: `사고 활성화`,
+    tr: `Düşünmeyi Etkinleştir`,
   },
   thinking_mode_disabled: {
     zh: `关闭思考`,
@@ -456,6 +485,7 @@ export const I18N = {
     zh_TW: `關閉思考`,
     ja: `思考を無効`,
     ko: `사고 비활성화`,
+    tr: `Düşünmeyi Devre Dışı Bırak`,
   },
   thinking_mode_helper: {
     zh: `目前各家接口混乱，如果出现异常，请使用接口默认选项`,
@@ -463,6 +493,7 @@ export const I18N = {
     zh_TW: `目前各家介面混亂，如果出現異常，請使用介面預設選項`,
     ja: `各APIの思考パラメータは統一されていません。エラーが発生した場合は「APIデフォルト」を使用してください。`,
     ko: `API별 사고 매개변수가 통일되어 있지 않습니다. 오류 발생 시 "API 기본값"을 사용하세요.`,
+    tr: `API'ler arasında düşünme parametreleri farklılık gösterir. Hata ile karşılaşırsanız lütfen "API Varsayılanı" seçeneğini kullanın.`,
   },
   thinking_effort: {
     zh: `思考强度`,
@@ -470,6 +501,7 @@ export const I18N = {
     zh_TW: `思考強度`,
     ja: `思考レベル`,
     ko: `사고 수준`,
+    tr: `Düşünme Çabası`,
   },
   thinking_effort_default: {
     zh: `接口默认`,
@@ -477,6 +509,7 @@ export const I18N = {
     zh_TW: `介面預設`,
     ja: `APIデフォルト`,
     ko: `API 기본값`,
+    tr: `API Varsayılanı`,
   },
   fetch_interval: {
     zh: `每次请求间隔时间 (0-5000ms)`,
@@ -484,6 +517,7 @@ export const I18N = {
     zh_TW: `每次請求間隔時間 (0-5000ms)`,
     ja: `リクエスト間隔 (0-5000ms)`,
     ko: `요청 간 시간 (0-5000ms)`,
+    tr: `İstekler Arasındaki Süre (0-5000Ms)`,
   },
   translate_interval: {
     zh: `翻译间隔时间 (1-2000ms)`,
@@ -491,6 +525,7 @@ export const I18N = {
     zh_TW: `翻譯間隔時間 (1-2000ms)`,
     ja: `翻訳間隔 (1-2000ms)`,
     ko: `번역 간격 (1-2000ms)`,
+    tr: `Çeviri Aralığı (1-2000Ms)`,
   },
   http_timeout: {
     zh: `请求超时时间 (1-600s)`,
@@ -498,6 +533,7 @@ export const I18N = {
     zh_TW: `請求逾時時間 (1-600s)`,
     ja: `リクエストタイムアウト (1-600s)`,
     ko: `요청 시간 초과 (1-600s)`,
+    tr: `İstek Zaman Aşımı Süresi (1-600S)`,
   },
   custom_header: {
     zh: `自定义Header参数`,
@@ -505,6 +541,7 @@ export const I18N = {
     zh_TW: `自訂 Header 參數`,
     ja: `カスタムヘッダー`,
     ko: `사용자 지정 헤더`,
+    tr: `Özel Başlık Parametreleri`,
   },
   custom_header_help: {
     zh: `使用JSON格式，例如 "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:141.0) Gecko/20100101 Firefox/141.0"`,
@@ -512,6 +549,7 @@ export const I18N = {
     zh_TW: `使用JSON格式，例如 "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:141.0) Gecko/20100101 Firefox/141.0"`,
     ja: `JSON形式を使用してください。例: "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:141.0) Gecko/20100101 Firefox/141.0"`,
     ko: `JSON 형식을 사용하세요. 예: "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:141.0) Gecko/20100101 Firefox/141.0"`,
+    tr: `Örneğin, "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:141.0) Gecko/20100101 Firefox/141.0"` şeklinde JSON formatını kullanın.`,
   },
   custom_body: {
     zh: `自定义Body参数`,
@@ -519,6 +557,7 @@ export const I18N = {
     zh_TW: `自訂 Body 參數`,
     ja: `カスタムボディ`,
     ko: `사용자 지정 바디`,
+    tr: `Özel Gövde Parametreleri`,
   },
   custom_body_help: {
     zh: `使用JSON格式，例如 "top_p": 0.7`,
@@ -526,6 +565,7 @@ export const I18N = {
     zh_TW: `使用JSON格式，例如 "top_p": 0.7`,
     ja: `JSON形式を使用してください。例: "top_p": 0.7`,
     ko: `JSON 형식을 사용하세요. 예: "top_p": 0.7`,
+    tr: `JSON formatını kullanın, örneğin "top_p": 0.7`,
   },
   min_translate_length: {
     zh: `最小翻译字符数 (1-100)`,
@@ -533,6 +573,7 @@ export const I18N = {
     zh_TW: `最小翻譯字元數 (1-100)`,
     ja: `最小翻訳文字数 (1-100)`,
     ko: `최소 번역 문자 수 (1-100)`,
+    tr: `Minimum Çevrilmiş Karakter Sayısı (1-100)`,
   },
   max_translate_length: {
     zh: `最大翻译字符数 (100-100000)`,
@@ -540,6 +581,7 @@ export const I18N = {
     zh_TW: `最大翻譯字元數 (100-100000)`,
     ja: `最大翻訳文字数 (100-100000)`,
     ko: `최대 번역 문자 수 (100-100000)`,
+    tr: `Maksimum Çevrilmiş Karakter Sayısı (100-100000)`,
   },
   num_of_newline_characters: {
     zh: `换行字符数 (1-1000)`,
@@ -547,6 +589,7 @@ export const I18N = {
     zh_TW: `換行字元數 (1-1000)`,
     ja: `改行文字数 (1-1000)`,
     ko: `줄바꿈 문자 수 (1-1000)`,
+    tr: `Yeni Satır Karakter Sayısı (1-1000)`,
   },
   translate_service: {
     zh: `翻译服务`,
@@ -554,6 +597,7 @@ export const I18N = {
     zh_TW: `翻譯服務`,
     ja: `翻訳サービス`,
     ko: `번역 서비스`,
+    tr: `Çeviri Hizmeti`,
   },
   translate_service_multiple: {
     zh: `翻译服务 (支持多选)`,
@@ -561,6 +605,7 @@ export const I18N = {
     zh_TW: `翻譯服務 (支援多選)`,
     ja: `翻訳サービス (複数選択可)`,
     ko: `번역 서비스 (다중 선택 지원)`,
+    tr: `Çeviri Hizmeti (Birden Fazla Desteklenir)`,
   },
   single_word_no_trans: {
     zh: `单个单词划词不调用翻译服务`,
@@ -568,6 +613,7 @@ export const I18N = {
     zh_TW: `選取單一單字時不呼叫翻譯服務`,
     ja: `単一単語は翻訳サービスを使用しない`,
     ko: `단일 단어는 번역 서비스를 사용하지 않음`,
+    tr: `Tek Kelime İçin Çeviri Hizmetlerini Kullanmayın`,
   },
   translate_timing: {
     zh: `翻译时机`,
@@ -575,6 +621,7 @@ export const I18N = {
     zh_TW: `翻譯時機`,
     ja: `翻訳タイミング`,
     ko: `번역 시점`,
+    tr: `Çeviri Zamanlaması`,
   },
   mk_pagescroll: {
     zh: `滚动加载翻译（推荐）`,
@@ -582,6 +629,7 @@ export const I18N = {
     zh_TW: `滾動載入翻譯（建議）`,
     ja: `スクロール翻訳 (推奨)`,
     ko: `스크롤 번역 (권장)`,
+    tr: `Kademeli Yükleme (Önerilen)`,
   },
   mk_pageopen: {
     zh: `立即全部翻译`,
@@ -589,6 +637,7 @@ export const I18N = {
     zh_TW: `立即全部翻譯`,
     ja: `すぐにすべて翻訳`,
     ko: `즉시 모두 번역`,
+    tr: `Hepsini Şimdi Çevir`,
   },
   mk_mouseover: {
     zh: `鼠标悬停翻译`,
@@ -596,6 +645,7 @@ export const I18N = {
     zh_TW: `滑鼠懸停翻譯`,
     ja: `マウスオーバー翻訳`,
     ko: `마우스오버 번역`,
+    tr: `Fareyle Üzerine Gelme`,
   },
   mk_ctrlKey: {
     zh: `Control + 鼠标悬停`,
@@ -603,6 +653,7 @@ export const I18N = {
     zh_TW: `Control + 滑鼠懸停`,
     ja: `Control + マウスオーバー`,
     ko: `Control + 마우스오버`,
+    tr: `Control + Fareyle Üzerine Gelme`,
   },
   mk_shiftKey: {
     zh: `Shift + 鼠标悬停`,
@@ -610,6 +661,7 @@ export const I18N = {
     zh_TW: `Shift + 滑鼠懸停`,
     ja: `Shift + マウスオーバー`,
     ko: `Shift + 마우스오버`,
+    tr: `Shift + Fareyle Üzerine Gelme`,
   },
   mk_altKey: {
     zh: `Alt + 鼠标悬停`,
@@ -617,6 +669,7 @@ export const I18N = {
     zh_TW: `Alt + 滑鼠懸停`,
     ja: `Alt + マウスオーバー`,
     ko: `Alt + 마우스오버`,
+    tr: `Alt + Fareyle Üzerine Gelme`,
   },
   from_lang: {
     zh: `原文语言`,
@@ -624,6 +677,7 @@ export const I18N = {
     zh_TW: `原文語言`,
     ja: `原文の言語`,
     ko: `원본 언어`,
+    tr: `Kaynak Dil`,
   },
   to_lang: {
     zh: `目标语言`,
@@ -631,6 +685,7 @@ export const I18N = {
     zh_TW: `目標語言`,
     ja: `翻訳先の言語`,
     ko: `대상 언어`,
+    tr: `Hedef Dil`,
   },
   to_lang2: {
     zh: `第二目标语言`,
@@ -638,6 +693,7 @@ export const I18N = {
     zh_TW: `第二目標語言`,
     ja: `第二翻訳先の言語`,
     ko: `두 번째 대상 언어`,
+    tr: `Hedef Dil 2`,
   },
   to_lang2_helper: {
     zh: `设定后，与目标语言产生互译效果，但依赖远程语言识别。`,
@@ -645,6 +701,7 @@ export const I18N = {
     zh_TW: `設定後會與目標語言互譯，但依賴遠端語言偵測。`,
     ja: `設定後、ターゲット言語との相互翻訳が可能になりますが、リモート言語認識に依存します。`,
     ko: `설정 후, 대상 언어와 상호 번역 효과가 발생하지만, 원격 언어 인식에 의존합니다.`,
+    tr: `Ayarlar yapıldıktan sonra, hedef dille karşılıklı çeviri etkisi yaratacaktır, ancak uzaktan dil tanıma özelliğine bağlıdır`,
   },
   text_style: {
     zh: `译文样式`,
@@ -652,6 +709,7 @@ export const I18N = {
     zh_TW: `譯文樣式`,
     ja: `翻訳テキストスタイル`,
     ko: `번역 텍스트 스타일`,
+    tr: `Metin Stili`,
   },
   text_style_alt: {
     zh: `译文样式`,
@@ -659,6 +717,7 @@ export const I18N = {
     zh_TW: `譯文樣式`,
     ja: `翻訳テキストスタイル`,
     ko: `번역 텍스트 스타일`,
+    tr: `Metin Stili`,
   },
   bg_color: {
     zh: `样式颜色`,
@@ -666,6 +725,7 @@ export const I18N = {
     zh_TW: `樣式顏色`,
     ja: `スタイルカラー`,
     ko: `스타일 색상`,
+    tr: `Stil Rengi`,
   },
   remain_unchanged: {
     zh: `保留不变`,
@@ -673,6 +733,7 @@ export const I18N = {
     zh_TW: `保留不變`,
     ja: `変更しない`,
     ko: `변경하지 않음`,
+    tr: `Değişmeden Kal`,
   },
   google_api: {
     zh: `谷歌翻译接口`,
@@ -680,6 +741,7 @@ export const I18N = {
     zh_TW: `Google 翻譯介面`,
     ja: `Google 翻訳 API`,
     ko: `Google 번역 API`,
+    tr: `Google Çeviri API'si`,
   },
   default_selector: {
     zh: `默认选择器`,
@@ -687,6 +749,7 @@ export const I18N = {
     zh_TW: `預設選擇器`,
     ja: `デフォルトセレクタ`,
     ko: `기본 선택자`,
+    tr: `Varsayılan Seçici`,
   },
   selector_rules: {
     zh: `选择器规则`,
@@ -694,6 +757,7 @@ export const I18N = {
     zh_TW: `選擇器規則`,
     ja: `セレクタールール`,
     ko: `선택자 규칙`,
+    tr: `Seçici Kuralları`,
   },
   save: {
     zh: `保存`,
@@ -701,6 +765,7 @@ export const I18N = {
     zh_TW: `儲存`,
     ja: `保存`,
     ko: `저장`,
+    tr: `Kaydet`,
   },
   edit: {
     zh: `编辑`,
@@ -708,6 +773,7 @@ export const I18N = {
     zh_TW: `編輯`,
     ja: `編集`,
     ko: `수정`,
+    tr: `Düzenle`,
   },
   cancel: {
     zh: `取消`,
@@ -715,6 +781,7 @@ export const I18N = {
     zh_TW: `取消`,
     ja: `キャンセル`,
     ko: `취소`,
+    tr: `İptal Et`,
   },
   delete: {
     zh: `删除`,
@@ -722,6 +789,7 @@ export const I18N = {
     zh_TW: `刪除`,
     ja: `削除`,
     ko: `삭제`,
+    tr: `Sil`,
   },
   reset: {
     zh: `重置`,
@@ -729,6 +797,7 @@ export const I18N = {
     zh_TW: `重設`,
     ja: `リセット`,
     ko: `초기화`,
+    tr: `Sıfırla`,
   },
   add: {
     zh: `添加`,
@@ -736,6 +805,7 @@ export const I18N = {
     zh_TW: `新增`,
     ja: `追加`,
     ko: `추가`,
+    tr: `Ekle`,
   },
   bulk_actions: {
     zh: `批量操作`,
@@ -743,6 +813,7 @@ export const I18N = {
     zh_TW: `批次操作`,
     ja: `一括操作`,
     ko: `일괄 작업`,
+    tr: `Toplu İşlemler`,
   },
   select_all: {
     zh: `全选`,
@@ -750,6 +821,7 @@ export const I18N = {
     zh_TW: `全選`,
     ja: `すべて選択`,
     ko: `모두 선택`,
+    tr: `Tümünü Seç`,
   },
   deselect_all: {
     zh: `全不选`,
@@ -757,6 +829,7 @@ export const I18N = {
     zh_TW: `全部取消選取`,
     ja: `すべて解除`,
     ko: `모두 해제`,
+    tr: `Tümünün Seçimini Kaldır`,
   },
   pin_to_top: {
     zh: `置顶`,
@@ -764,6 +837,7 @@ export const I18N = {
     zh_TW: `置頂`,
     ja: `先頭に固定`,
     ko: `맨 위에 고정`,
+    tr: `En Üste Sabitle`,
   },
   delete_selected_apis_confirm: {
     zh: `确定删除已选的 {count} 个接口吗？`,
@@ -771,6 +845,7 @@ export const I18N = {
     zh_TW: `確定刪除已選的 {count} 個介面嗎？`,
     ja: `選択した {count} 件のインターフェースを削除しますか？`,
     ko: `선택한 인터페이스 {count}개를 삭제할까요?`,
+    tr: `Seçili {Count} Arayüzü Silmek İstiyor Musunuz?`,
   },
   copy_api: {
     zh: `复制接口`,
@@ -778,6 +853,7 @@ export const I18N = {
     zh_TW: `複製介面`,
     ja: `インターフェースをコピー`,
     ko: `인터페이스 복사`,
+    tr: `Arayüzü Kopyala`,
   },
   prompt_name: {
     zh: `名称`,
@@ -785,6 +861,7 @@ export const I18N = {
     zh_TW: `名稱`,
     ja: `名前`,
     ko: `이름`,
+    tr: `Ad`,
   },
   system_prompt: {
     zh: `系统提示词`,
@@ -792,6 +869,7 @@ export const I18N = {
     zh_TW: `系統提示詞`,
     ja: `システムプロンプト`,
     ko: `시스템 프롬프트`,
+    tr: `Sistem İstemi`,
   },
   user_prompt: {
     zh: `用户提示词`,
@@ -799,6 +877,7 @@ export const I18N = {
     zh_TW: `使用者提示詞`,
     ja: `ユーザープロンプト`,
     ko: `사용자 프롬프트`,
+    tr: `Kullanıcı İstemi`,
   },
   copy_as_template: {
     zh: `复制为模板`,
@@ -806,6 +885,7 @@ export const I18N = {
     zh_TW: `複製為範本`,
     ja: `テンプレートとしてコピー`,
     ko: `템플릿으로 복사`,
+    tr: `Şablon Olarak Kopyala`,
   },
   delete_prompt_confirm: {
     zh: `确定删除这份提示词吗？`,
@@ -813,6 +893,7 @@ export const I18N = {
     zh_TW: `確定刪除這份提示詞嗎？`,
     ja: `このプロンプトを削除しますか？`,
     ko: `이 프롬프트를 삭제할까요?`,
+    tr: `Bu İstem Silinsin Mi?`,
   },
   custom_prompt: {
     zh: `自定义提示词`,
@@ -820,6 +901,7 @@ export const I18N = {
     zh_TW: `自訂提示詞`,
     ja: `カスタムプロンプト`,
     ko: `사용자 프롬프트`,
+    tr: `Özel İstem`,
   },
   add_prompt: {
     zh: `新增提示词`,
@@ -827,6 +909,7 @@ export const I18N = {
     zh_TW: `新增提示詞`,
     ja: `プロンプトを追加`,
     ko: `프롬프트 추가`,
+    tr: `İstem Ekle`,
   },
   prompt_category_batch_system: {
     zh: `聚合系统提示词`,
@@ -834,6 +917,7 @@ export const I18N = {
     zh_TW: `聚合系統提示詞`,
     ja: `一括翻訳システムプロンプト`,
     ko: `일괄 시스템 프롬프트`,
+    tr: `Toplu Sistem İstemi`,
   },
   prompt_category_user: {
     zh: `用户提示词`,
@@ -841,6 +925,7 @@ export const I18N = {
     zh_TW: `使用者提示詞`,
     ja: `ユーザープロンプト`,
     ko: `사용자 프롬프트`,
+    tr: `Kullanıcı İstemi`,
   },
   prompt_category_subtitle: {
     zh: `字幕提示词`,
@@ -848,6 +933,7 @@ export const I18N = {
     zh_TW: `字幕提示詞`,
     ja: `字幕プロンプト`,
     ko: `자막 프롬프트`,
+    tr: `Altyazı İstemi`,
   },
   prompt_category_dictionary: {
     zh: `词典提示词`,
@@ -855,6 +941,7 @@ export const I18N = {
     zh_TW: `詞典提示詞`,
     ja: `辞書プロンプト`,
     ko: `사전 프롬프트`,
+    tr: `Sözlük İstemi`,
   },
   batch_prompt: {
     zh: `聚合翻译提示词`,
@@ -862,6 +949,7 @@ export const I18N = {
     zh_TW: `聚合翻譯提示詞`,
     ja: `一括翻訳プロンプト`,
     ko: `일괄 번역 프롬프트`,
+    tr: `Toplu Çeviri İstemi`,
   },
   nobatch_prompt: {
     zh: `非聚合翻译提示词`,
@@ -869,6 +957,7 @@ export const I18N = {
     zh_TW: `非聚合翻譯提示詞`,
     ja: `非一括翻訳プロンプト`,
     ko: `비일괄 번역 프롬프트`,
+    tr: `Toplu Olmayan Çeviri İstemi`,
   },
   subtitle_prompt: {
     zh: `AI断句提示词`,
@@ -876,6 +965,7 @@ export const I18N = {
     zh_TW: `AI斷句提示詞`,
     ja: `AI セグメンテーションプロンプト`,
     ko: `AI 문장 분할 프롬프트`,
+    tr: `AI Altyazı İstemi`,
   },
   seg_prompt_mode: {
     zh: `AI断句提示词`,
@@ -883,6 +973,7 @@ export const I18N = {
     zh_TW: `AI斷句提示詞`,
     ja: `AI セグメンテーションプロンプト`,
     ko: `AI 문장 분할 프롬프트`,
+    tr: `AI Segmentasyon İstemi`,
   },
   follow_api_prompt: {
     zh: `接口默认`,
@@ -890,6 +981,7 @@ export const I18N = {
     zh_TW: `介面預設`,
     ja: `インターフェース既定`,
     ko: `인터페이스 기본값`,
+    tr: `Arayüz Varsayılanı`,
   },
   preset_prompt_nobatch_translation: {
     zh: `非聚合翻译`,
@@ -897,6 +989,7 @@ export const I18N = {
     zh_TW: `非聚合翻譯`,
     ja: `非一括翻訳`,
     ko: `비일괄 번역`,
+    tr: `Toplu Olmayan Çeviri`,
   },
   preset_prompt_batch_translation_json: {
     zh: `聚合翻译（JSON）`,
@@ -904,6 +997,7 @@ export const I18N = {
     zh_TW: `聚合翻譯（JSON）`,
     ja: `一括翻訳（JSON）`,
     ko: `일괄 번역(JSON)`,
+    tr: `Toplu Çeviri (JSON)`,
   },
   preset_prompt_batch_translation_xml: {
     zh: `聚合翻译（XML）`,
@@ -911,6 +1005,7 @@ export const I18N = {
     zh_TW: `聚合翻譯（XML）`,
     ja: `一括翻訳（XML）`,
     ko: `일괄 번역(XML)`,
+    tr: `Toplu Çeviri (XML)`,
   },
   preset_prompt_batch_translation_line: {
     zh: `聚合翻译（LINE）`,
@@ -918,6 +1013,7 @@ export const I18N = {
     zh_TW: `聚合翻譯（LINE）`,
     ja: `一括翻訳（LINE）`,
     ko: `일괄 번역(LINE)`,
+    tr: `Toplu Çeviri (Line)`,
   },
   preset_prompt_subtitle_segmentation: {
     zh: `字幕 AI 断句`,
@@ -925,6 +1021,7 @@ export const I18N = {
     zh_TW: `字幕 AI 斷句`,
     ja: `字幕 AI セグメンテーション`,
     ko: `자막 AI 문장 분할`,
+    tr: `Altyazı AI Segmentasyonu`,
   },
   preset_prompt_dictionary_en_zh: {
     zh: `AI 英汉词典`,
@@ -932,6 +1029,7 @@ export const I18N = {
     zh_TW: `AI 英漢詞典`,
     ja: `AI 英中辞書`,
     ko: `AI 영중 사전`,
+    tr: `AI İngilizce-Çince Sözlük`,
   },
   inject_rules: {
     zh: `注入订阅规则`,
@@ -939,6 +1037,7 @@ export const I18N = {
     zh_TW: `注入訂閱規則`,
     ja: `購読ルールを注入`,
     ko: `구독 규칙 주입`,
+    tr: `Abonelik Kurallarını Ekle`,
   },
   personal_rules: {
     zh: `个人规则`,
@@ -946,6 +1045,7 @@ export const I18N = {
     zh_TW: `個人規則`,
     ja: `個人ルール`,
     ko: `개인 규칙`,
+    tr: `Kurallar`,
   },
   subscribe_rules: {
     zh: `订阅规则`,
@@ -953,6 +1053,7 @@ export const I18N = {
     zh_TW: `訂閱規則`,
     ja: `購読ルール`,
     ko: `구독 규칙`,
+    tr: `Abonelik Kuralları`,
   },
   overwrite_subscribe_rules: {
     zh: `覆写订阅规则`,
@@ -960,6 +1061,7 @@ export const I18N = {
     zh_TW: `覆寫訂閱規則`,
     ja: `購読ルールを上書き`,
     ko: `구독 규칙 덮어쓰기`,
+    tr: `Üzerine Yaz`,
   },
   subscribe_url: {
     zh: `订阅地址`,
@@ -967,6 +1069,7 @@ export const I18N = {
     zh_TW: `訂閱網址`,
     ja: `購読URL`,
     ko: `구독 URL`,
+    tr: `Abonelik URL'si`,
   },
   rules_warn_1: {
     zh: `1、规则生效的优先级依次为：个人规则 > 订阅规则 > 全局规则。"全局规则"相当于兜底规则。`,
@@ -974,6 +1077,7 @@ export const I18N = {
     zh_TW: `1. 規則生效的優先順序依序為：個人規則 > 訂閱規則 > 全域規則。「全域規則」相當於備援規則。`,
     ja: `1. ルールの優先順位: 個人ルール > 購読ルール > グローバルルール。「グローバルルール」はフォールバックルールのようなものです。`,
     ko: `1. 규칙 우선순위: 개인 규칙 > 구독 규칙 > 전역 규칙. "전역 규칙"은 일종의 폴백(fallback) 규칙입니다.`,
+    tr: `1. Kuralların önceliği şudur: kişisel kurallar > abonelik kuralları > genel kurallar. "Genel kurallar" bir geri dönüş kuralı gibidir`,
   },
   rules_warn_2: {
     zh: `2、“订阅规则”选择注入后才会生效。`,
@@ -981,6 +1085,7 @@ export const I18N = {
     zh_TW: `2、「訂閱規則」選擇注入後才會生效。`,
     ja: `2. 「購読ルール」は注入を選択した後にのみ有効になります。`,
     ko: `2. "구독 규칙"은 주입을 선택한 후에만 적용됩니다.`,
+    tr: `2. "Abonelik kuralları" yalnızca enjeksiyon seçildikten sonra geçerli olacaktır.`,
   },
   rules_warn_3: {
     zh: `3、关于规则填写：输入框留空或下拉框选“*”表示采用全局规则。CSS选择器支持 + 号前缀表示在全局规则基础上追加，- 号表示剔除。`,
@@ -988,6 +1093,7 @@ export const I18N = {
     zh_TW: `3. 規則填寫說明：輸入框留空或下拉選擇「*」表示使用全域規則。CSS 選擇器支援使用前綴：「+」表示在全域規則基礎上新增，「-」表示排除。`,
     ja: `3. ルールの記入について: 入力ボックスを空白にするか、ドロップダウンで「*」を選択すると、グローバルルールが使用されます。CSS セレクターはプレフィックスに対応しています。「+」はグローバルルールへの追加、「-」は除外を意味します。`,
     ko: `3. 규칙 작성 관련: 입력란을 비워두거나 드롭다운에서 "*"를 선택하면 전역 규칙이 사용됩니다. CSS 선택자는 접두사를 지원합니다. "+"는 전역 규칙에 추가, "-"는 제외를 의미합니다.`,
+    tr: `3. Kuralların Doldurulmasıyla İlgili Olarak: Genel Kuralı Kullanmak İçin Giriş Kutusunu Boş Bırakın Veya Açılır Kutuda "*" Seçeneğini Seçin. Css Seçicileri Önekleri Destekler: "+" Genel Kurallara Ekleme Anlamına Gelir`,
   },
   sync_warn: {
     zh: `涉及隐私数据的同步请谨慎选择第三方同步服务，建议自行搭建 kiss-worker 或 WebDAV 服务。`,
@@ -995,6 +1101,7 @@ export const I18N = {
     zh_TW: `同步涉及隱私資料時，請謹慎選擇第三方同步服務；建議自行架設 kiss-worker 或 WebDAV 服務。`,
     ja: `プライバシーに関わるデータを同期する場合、サードパーティの同期サービスは慎重に選択してください。kiss-worker や WebDAV サービスを自己ホスティングすることをお勧めします。`,
     ko: `개인정보가 포함된 데이터를 동기화할 경우, 타사 동기화 서비스 선택에 신중을 기하십시오. 자체 kiss-worker 또는 WebDAV 서비스를 구축하는 것을 권장합니다.`,
+    tr: `Gizlilikle ilgili verileri senkronize ederken, üçüncü taraf senkronizasyon hizmetlerini seçerken lütfen dikkatli olun. KISS-Worker veya WebDAV kullanarak kendi senkronizasyon hizmetinizi kurmanız önerilir`,
   },
   sync_warn_gist: {
     zh: `GitHub Gist 不会出现在公开搜索或发现页面中，但任何拥有该链接的人都可以查看内容。`,
@@ -1002,6 +1109,7 @@ export const I18N = {
     zh_TW: `GitHub Gist 不會出現在公開搜尋或探索頁面中，但任何擁有該連結的人都可以查看內容。`,
     ja: `GitHub Gist は公開検索や発見ページには表示されませんが、リンクを持っている人は誰でも内容を閲覧できます。`,
     ko: `GitHub Gist는 공개 검색이나 탐색 페이지에 표시되지 않지만, 링크를 가진 사람은 누구나 내용을 볼 수 있습니다.`,
+    tr: `GitHub Gist'leri herkese açık aramalarda veya keşif sayfalarında görünmez, ancak bağlantıya sahip herkes içeriği görüntüleyebilir.`,
   },
   sync_warn_2: {
     zh: `如果服务器存在其他客户端同步的数据，第一次同步将直接覆盖本地配置，后面则根据修改时间，新的覆盖旧的。`,
@@ -1009,6 +1117,7 @@ export const I18N = {
     zh_TW: `若伺服器上存在其他用戶端同步的資料，第一次同步會直接覆蓋本機設定；之後則依修改時間，由新的覆蓋舊的。`,
     ja: `サーバーに他のクライアントによって同期されたデータがある場合、最初の同期はローカル設定を直接上書きし、その後は変更時間に応じて新しいものが古いものを上書きします。`,
     ko: `서버에 다른 클라이언트가 동기화한 데이터가 있는 경우, 첫 번째 동기화는 로컬 구성을 직접 덮어쓰며, 이후에는 수정 시간에 따라 새 항목이 기존 항목을 덮어씁니다.`,
+    tr: `Eğer sunucuda diğer istemciler tarafından senkronize edilen veriler varsa, ilk senkronizasyon doğrudan yerel yapılandırmanın üzerine yazılır ve daha sonra, değişiklik zamanına göre, yenisi eskisinin üzerine yazılır`,
   },
   sync_warn_encryption: {
     zh: `新版本会自动将旧版明文同步数据迁移为加密数据；同步加密口令独立用于数据解密，请妥善保存，遗失后无法读取已加密的云端数据。`,
@@ -1016,6 +1125,7 @@ export const I18N = {
     zh_TW: `新版本會自動將舊版明文同步資料遷移為加密資料；同步加密密碼獨立用於資料解密，請妥善保存，遺失後將無法讀取已加密的雲端資料。`,
     ja: `新しいバージョンでは、従来の平文同期データを暗号化データへ自動移行します。同期暗号化パスフレーズはデータ復号専用に独立して使用されるため、安全に保管してください。紛失すると暗号化済みのクラウドデータは読み取れません。`,
     ko: `새 버전은 기존 일반 텍스트 동기화 데이터를 암호화 데이터로 자동 마이그레이션합니다. 동기화 암호화 암호문은 데이터 복호화에 독립적으로 사용되므로 안전하게 보관하세요. 분실하면 암호화된 클라우드 데이터를 읽을 수 없습니다.`,
+    tr: `Yeni sürümler, eski düz metin senkronizasyon verilerini otomatik olarak şifrelenmiş verilere taşır. Senkronizasyon şifreleme parolası, veri şifresinin çözülmesi için bağımsız olarak kullanılır`,
   },
   about_sync_api: {
     zh: `自建kiss-wroker数据同步服务`,
@@ -1023,6 +1133,7 @@ export const I18N = {
     zh_TW: `自行架設 kiss-worker 資料同步服務`,
     ja: `Kiss-worker データ同期サービスをセルフホストする`,
     ko: `Kiss-worker 데이터 동기화 서비스 자체 호스팅`,
+    tr: `KISS-Worker Veri Senkronizasyon Hizmetini Kendi Kendine Barındırma`,
   },
   about_api: {
     zh: `1、其中 BuiltinAI 为浏览器内置AI翻译，目前仅 Chrome 138 及以上版本得到支持。`,
@@ -1030,6 +1141,7 @@ export const I18N = {
     zh_TW: `1.其中 BuiltinAI 為瀏覽器內建AI翻譯，目前僅 Chrome 138 以上版本支援。`,
     ja: `1. BuiltinAI はブラウザ内蔵のAI翻訳で、現在 Chrome 138 以降のバージョンでのみサポートされています。`,
     ko: `1. BuiltinAI는 브라우저 내장 AI 번역으로, 현재 Chrome 138 이상 버전에서만 지원됩니다.`,
+    tr: `1. BuiltinAI, tarayıcının yerleşik AI çeviri özelliğidir ve şu anda yalnızca Chrome 138 ve üzeri sürümler tarafından desteklenmektedir.`,
   },
   about_api_2: {
     zh: `2、大部分AI接口都与OpenAI兼容，因此选择OpenAI类型即可。“是否聚合发送翻译请求”所对应的 Prompt 并不相同，并且不是所有接口都支持聚合翻译。`,
@@ -1037,6 +1149,7 @@ export const I18N = {
     zh_TW: `2. 大部分的 AI 介面都與 OpenAI 相容，因此選擇 OpenAI 類型即可。「是否彙整發送翻譯請求」所對應的 Prompt 並不相同，並且不是所有介面都支援彙整翻譯。`,
     ja: `2. ほとんどの AI インターフェースは OpenAI と互換性があるため、OpenAI タイプを選択すれば問題ありません。「翻訳リクエストをまとめて送信するかどうか」に対応するプロンプトは異なり、すべてのインターフェースが集約翻訳をサポートしているわけではありません。`,
     ko: `2. 대부분의 AI 인터페이스는 OpenAI와 호환되므로 OpenAI 유형을 선택하면 됩니다. “번역 요청을 집합적으로 보낼지 여부”에 대응하는 프롬프트는 서로 다르며, 모든 인터페이스가 집합 번역을 지원하는 것은 아닙니다.`,
+    tr: `2. Çoğu AI arayüzü OpenAI ile uyumludur, bu nedenle OpenAI türünü seçmeniz yeterlidir. "Çeviri isteklerinin birleştirilip birleştirilmeyeceği" ile ilgili istemler farklıdır ve tüm arayüzler birleştirilmiş çeviriyi desteklemez.`,
   },
   about_api_3: {
     zh: `3、理论上，所有翻译接口，都可以通过自定义接口 (Custom) 的形式使用。`,
@@ -1044,6 +1157,7 @@ export const I18N = {
     zh_TW: `3. 理論上，所有翻譯介面都可以透過自訂介面（Custom）的方式來使用。`,
     ja: `3. 理論的には、すべての翻訳インターフェースはカスタム（Custom）インターフェースとして設定することで利用できます。`,
     ko: `3. 이론적으로 모든 번역 인터페이스는 커스텀(Custom) 인터페이스로 설정하여 사용할 수 있습니다.`,
+    tr: `3. Teorik olarak, tüm çeviri arayüzleri özel bir arayüz olarak yapılandırılarak kullanılabilir.`,
   },
   about_api_proxy: {
     zh: `查看自建一个翻译接口代理`,
@@ -1051,6 +1165,7 @@ export const I18N = {
     zh_TW: `檢視如何自行架設翻譯介面 Proxy`,
     ja: `自作の翻訳インターフェースプロキシをチェックする`,
     ko: `자체 구축 번역 인터페이스 프록시 확인하기`,
+    tr: `Kendi Oluşturduğunuz Çeviri Arayüzü Proxy'sine Göz Atın`,
   },
   setting_helper: {
     zh: `新旧配置并不兼容，导出的旧版配置，勿再次导入。`,
@@ -1058,6 +1173,7 @@ export const I18N = {
     zh_TW: `新舊設定並不相容，匯出的舊版設定請勿再次匯入。`,
     ja: `新旧の設定に互換性はありません。エクスポートした古い設定を再度インポートしないでください。`,
     ko: `이전 구성과 새 구성은 호환되지 않습니다. 내보낸 이전 구성을 다시 가져오지 마십시오.`,
+    tr: `Eski ve yeni konfigürasyonlar uyumlu değildir. Dışa aktarılan eski konfigürasyonu tekrar içe aktarmayın.`,
   },
   style_none: {
     zh: `无`,
@@ -1065,6 +1181,7 @@ export const I18N = {
     zh_TW: `無`,
     ja: `なし`,
     ko: `없음`,
+    tr: `Hiçbiri`,
   },
   under_line: {
     zh: `下划直线`,
@@ -1072,6 +1189,7 @@ export const I18N = {
     zh_TW: `下劃直線`,
     ja: `下線`,
     ko: `밑줄`,
+    tr: `Altı Çizili`,
   },
   dot_line: {
     zh: `下划点状线`,
@@ -1079,6 +1197,7 @@ export const I18N = {
     zh_TW: `下劃點狀線`,
     ja: `点線の下線`,
     ko: `점선 밑줄`,
+    tr: `Noktalı Alt Çizgi`,
   },
   dash_line: {
     zh: `下划虚线`,
@@ -1086,6 +1205,7 @@ export const I18N = {
     zh_TW: `下劃虛線`,
     ja: `破線の下線`,
     ko: `파선 밑줄`,
+    tr: `Kesikli Alt Çizgi`,
   },
   dash_box: {
     zh: `虚线框`,
@@ -1093,6 +1213,7 @@ export const I18N = {
     zh_TW: `虛線框`,
     ja: `破線ボックス`,
     ko: `파선 상자`,
+    tr: `Kesikli Kutu`,
   },
   dash_line_bold: {
     zh: `下划虚线加粗`,
@@ -1100,6 +1221,7 @@ export const I18N = {
     zh_TW: `下劃虛線`,
     ja: `破線の下線 (太字)`,
     ko: `굵은 파선 밑줄`,
+    tr: `Kesikli Altı Çizili Kalın`,
   },
   dash_box_bold: {
     zh: `虚线框加粗`,
@@ -1107,6 +1229,7 @@ export const I18N = {
     zh_TW: `虛線框加粗`,
     ja: `破線ボックス (太字)`,
     ko: `굵은 파선 상자`,
+    tr: `Kesikli Kutu Kalın`,
   },
   marker: {
     zh: `马克笔`,
@@ -1114,6 +1237,7 @@ export const I18N = {
     zh_TW: `馬克筆`,
     ja: `マーカー`,
     ko: `마커`,
+    tr: `İşaretleyici`,
   },
   gradient_marker: {
     zh: `渐变马克笔`,
@@ -1121,6 +1245,7 @@ export const I18N = {
     zh_TW: `漸層馬克筆`,
     ja: `グラデーションマーカー`,
     ko: `그라데이션 마커`,
+    tr: `Gradyan İşaretleyici`,
   },
   wavy_line: {
     zh: `下划波浪线`,
@@ -1128,6 +1253,7 @@ export const I18N = {
     zh_TW: `下劃波浪線`,
     ja: `波線の下線`,
     ko: `물결 밑줄`,
+    tr: `Dalgalı Alt Çizgi`,
   },
   wavy_line_bold: {
     zh: `下划波浪线加粗`,
@@ -1135,6 +1261,7 @@ export const I18N = {
     zh_TW: `下劃波浪線加粗`,
     ja: `波線の下線 (太字)`,
     ko: `굵은 물결 밑줄`,
+    tr: `Dalgalı Altı Çizili Kalın`,
   },
   fuzzy: {
     zh: `模糊`,
@@ -1142,6 +1269,7 @@ export const I18N = {
     zh_TW: `模糊`,
     ja: `ぼかし`,
     ko: `흐림`,
+    tr: `Bulanık`,
   },
   highlight: {
     zh: `高亮`,
@@ -1149,6 +1277,7 @@ export const I18N = {
     zh_TW: `反白標示`,
     ja: `ハイライト`,
     ko: `하이라이트`,
+    tr: `Vurgu`,
   },
   blockquote: {
     zh: `引用`,
@@ -1156,6 +1285,7 @@ export const I18N = {
     zh_TW: `引用`,
     ja: `引用`,
     ko: `인용`,
+    tr: `Blok Alıntı`,
   },
   gradient: {
     zh: `渐变`,
@@ -1163,6 +1293,7 @@ export const I18N = {
     zh_TW: `漸變`,
     ja: `グラデーション`,
     ko: `그라데이션`,
+    tr: `Gradyan`,
   },
   blink: {
     zh: `闪现`,
@@ -1170,6 +1301,7 @@ export const I18N = {
     zh_TW: `閃現`,
     ja: `点滅`,
     ko: `깜박임`,
+    tr: `Işıltı`,
   },
   glow: {
     zh: `发光`,
@@ -1177,6 +1309,7 @@ export const I18N = {
     zh_TW: `發光`,
     ja: `発光`,
     ko: `발광`,
+    tr: `Parıltı`,
   },
   colorful: {
     zh: `多彩`,
@@ -1184,6 +1317,7 @@ export const I18N = {
     zh_TW: `多彩`,
     ja: `カラフル`,
     ko: `다채롭게`,
+    tr: `Renkli`,
   },
   setting: {
     zh: `设置`,
@@ -1191,6 +1325,7 @@ export const I18N = {
     zh_TW: `設定`,
     ja: `設定`,
     ko: `설정`,
+    tr: `Ayar`,
   },
   pattern: {
     zh: `匹配网址`,
@@ -1198,6 +1333,7 @@ export const I18N = {
     zh_TW: `匹配網址`,
     ja: `URLパターン`,
     ko: `URL 패턴`,
+    tr: `URL Modeli`,
   },
   pattern_helper: {
     zh: `1、支持星号(*)通配符。2、多个URL用换行或英文逗号“,”分隔。`,
@@ -1205,6 +1341,7 @@ export const I18N = {
     zh_TW: `1. 支援星號 (*) 萬用字元。2. 多個 URL 請以換行或英文逗號「,」分隔。`,
     ja: `1. アスタリスク (*) ワイルドカードをサポートします。 2. 複数のURLは改行または英語のコンマ「,」で区切ります。`,
     ko: `1. 별표(*) 와일드카드 문자를 지원합니다. 2. 여러 URL은 줄바꿈 또는 영어 쉼표 ","로 구분합니다.`,
+    tr: `1. Yıldız (*) Joker Karakterini Destekler. 2. Birden Fazla URL'Yi Yeni Satırlarla Veya Virgüllerle Ayırın "`,
   },
   selector_helper: {
     zh: `1、需要翻译的目标元素。2、开启自动扫描页面后，本设置无效。3、遵循CSS选择器语法。`,
@@ -1212,6 +1349,7 @@ export const I18N = {
     zh_TW: `1、需要翻譯的目標元素。 2.開啟自動掃描頁面後，本設定無效。 3.遵循CSS選擇器語法。`,
     ja: `1. 翻訳対象の要素。 2. ページの自動スキャンを有効にすると、この設定は無効になります。 3. CSSセレクタ構文に従ってください。`,
     ko: `1. 번역할 대상 요소입니다. 2. 자동 페이지 스캔이 활성화되면 이 설정은 무효화됩니다. 3. CSS 선택자 구문을 따릅니다.`,
+    tr: `1. Çevrilecek hedef öğe. 2. Otomatik sayfa tarama etkinleştirildiğinde bu ayar geçersizdir. 3. CSS seçici sözdizimini takip edin.`,
   },
   translate_switch: {
     zh: `开启翻译`,
@@ -1219,6 +1357,7 @@ export const I18N = {
     zh_TW: `開啟翻譯`,
     ja: `翻訳を有効にする`,
     ko: `번역 켜기`,
+    tr: `Çeviri Anahtarı`,
   },
   default_enabled: {
     zh: `默认开启`,
@@ -1226,6 +1365,7 @@ export const I18N = {
     zh_TW: `預設開啟`,
     ja: `デフォルトで有効`,
     ko: `기본으로 사용`,
+    tr: `Etkin`,
   },
   default_disabled: {
     zh: `默认关闭`,
@@ -1233,6 +1373,7 @@ export const I18N = {
     zh_TW: `預設關閉`,
     ja: `デフォルトで無効`,
     ko: `기본으로 사용 안함`,
+    tr: `Devre Dışı`,
   },
   selector: {
     zh: `选择器`,
@@ -1240,6 +1381,7 @@ export const I18N = {
     zh_TW: `選擇器`,
     ja: `セレクタ`,
     ko: `선택자`,
+    tr: `Seçici`,
   },
   target_selector: {
     zh: `目标元素选择器`,
@@ -1247,6 +1389,7 @@ export const I18N = {
     zh_TW: `目標元素選擇器`,
     ja: `対象要素セレクタ`,
     ko: `대상 요소 선택자`,
+    tr: `Hedef Öğe Seçici`,
   },
   keep_selector: {
     zh: `保留元素选择器`,
@@ -1254,6 +1397,7 @@ export const I18N = {
     zh_TW: `保留元素選擇器`,
     ja: `保持要素セレクタ`,
     ko: `유지할 요소 선택자`,
+    tr: `Seçiciyi Değiştirmeden Tut`,
   },
   keep_selector_helper: {
     zh: `1、目标元素下面需要原样保留的子节点。2、遵循CSS选择器语法。`,
@@ -1261,6 +1405,7 @@ export const I18N = {
     zh_TW: `1. 目標元素下的子節點需要保持原樣。 2. 遵循 CSS 選擇器語法。`,
     ja: `1. 対象要素の下にある、そのまま保持する必要がある子ノード。 2. CSSセレクタ構文に従ってください。`,
     ko: `1. 대상 요소 아래의 자식 노드 중 그대로 유지해야 하는 노드. 2. CSS 선택자 구문을 따릅니다.`,
+    tr: `1. Hedef öğenin altındaki alt düğümlerin sağlam kalması gerekir. 2. CSS seçici sözdizimini takip edin.`,
   },
   block_selector: {
     zh: `块级元素选择器`,
@@ -1268,6 +1413,7 @@ export const I18N = {
     zh_TW: `區塊元素選擇器`,
     ja: `ブロック要素セレクタ`,
     ko: `블록 요소 선택자`,
+    tr: `Blok Öğe Seçici`,
   },
   block_selector_helper: {
     zh: `1、匹配到的元素会被当作块级节点处理。2、遵循CSS选择器语法。`,
@@ -1275,6 +1421,7 @@ export const I18N = {
     zh_TW: `1. 符合的元素會被當作區塊節點處理。2. 遵循 CSS 選擇器語法。`,
     ja: `1. 一致した要素はブロックノードとして扱われます。2. CSSセレクタ構文に従ってください。`,
     ko: `1. 일치하는 요소는 블록 노드로 처리됩니다. 2. CSS 선택자 구문을 따르세요.`,
+    tr: `1. Eşleşen öğeler blok düğümleri olarak ele alınacaktır. 2. CSS seçici sözdizimini takip edin.`,
   },
   root_selector: {
     zh: `根节点选择器`,
@@ -1282,6 +1429,7 @@ export const I18N = {
     zh_TW: `根節點選擇器`,
     ja: `ルートノードセレクタ`,
     ko: `루트 노드 선택자`,
+    tr: `Kök Düğüm Seçici`,
   },
   root_selector_helper: {
     zh: `1、用于缩小页面翻译范围。2、遵循CSS选择器语法。`,
@@ -1289,6 +1437,7 @@ export const I18N = {
     zh_TW: `1.用於縮小頁面翻譯範圍。 2、遵循CSS選擇器語法。`,
     ja: `1. ページの翻訳範囲を絞り込むために使用します。 2. CSSセレクタ構文に従ってください。`,
     ko: `1. 페이지의 번역 범위를 좁히는 데 사용됩니다. 2. CSS 선택자 구문을 따릅니다.`,
+    tr: `1. Sayfanın çeviri kapsamını daraltmak için kullanılır. 2. CSS seçici sözdizimini takip edin.`,
   },
   ignore_selector: {
     zh: `不翻译节点选择器`,
@@ -1296,6 +1445,7 @@ export const I18N = {
     zh_TW: `不翻譯節點選擇器`,
     ja: `翻訳しないノードセレクタ`,
     ko: `번역 무시 노드 선택자`,
+    tr: `Düğüm Seçicileri Yoksay`,
   },
   ignore_selector_helper: {
     zh: `1、需要忽略的节点。2、遵循CSS选择器语法。`,
@@ -1303,6 +1453,7 @@ export const I18N = {
     zh_TW: `1、需要忽略的節點。 2、遵循CSS選擇器語法。`,
     ja: `1. 無視するノード。 2. CSSセレクタ構文に従ってください。`,
     ko: `1. 무시할 노드. 2. CSS 선택자 구문을 따릅니다.`,
+    tr: `1. Göz ardı edilecek düğümler. 2. CSS seçici sözdizimini takip edin.`,
   },
   terms: {
     zh: `专业术语`,
@@ -1310,6 +1461,7 @@ export const I18N = {
     zh_TW: `專業術語`,
     ja: `専門用語`,
     ko: `전문 용어`,
+    tr: `Şartlar`,
   },
   terms_helper: {
     zh: `1、支持正则表达式匹配，无需斜杆，不支持修饰符。2、多条术语用换行或分号“;”隔开。3、术语和译文用英文逗号“,”隔开。4、没有译文视为不翻译术语。`,
@@ -1317,6 +1469,7 @@ export const I18N = {
     zh_TW: `1. 支援正規表示式比對，不需斜線，且不支援修飾符。2. 多條術語以換行或分號「;」分隔。3. 術語與譯文以英文逗號「,」分隔。4. 無譯文者視為不翻譯該術語。`,
     ja: `1. 正規表現マッチングをサポート (スラッシュ不要、修飾子非対応)。 2. 複数の用語は改行またはセミコロン「;」で区切ります。 3. 用語と翻訳は英語のコンマ「,」で区切ります。 4. 翻訳がない場合は、その用語を翻訳しないものとみなします。`,
     ko: `1. 정규식 일치를 지원하며, 슬래시가 필요 없고 수정자는 지원되지 않습니다. 2. 여러 용어는 줄바꿈 또는 세미콜론 ";"으로 구분합니다. 3. 용어와 번역은 영어 쉼표 ","로 구분합니다. 4. 번역이 없는 경우 해당 용어를 번역하지 않는 것으로 간주합니다.`,
+    tr: `1. Düzenli ifade eşleştirmeyi destekler, eğik çizgi gerekmez ve değiştiriciler desteklenmez. 2. Birden fazla terim yeni satır veya noktalı virgül ";" ile ayrılır. 3. Terimler ve çeviriler İngilizce virgül "," ile ayrılır. 4. Çeviri yoksa, terim çevrilmemiş olarak kabul edilir.`,
   },
   ai_terms: {
     zh: `AI专业术语`,
@@ -1324,6 +1477,7 @@ export const I18N = {
     zh_TW: `AI專業術語`,
     ja: `AI専門用語`,
     ko: `AI 전문 용어`,
+    tr: `AI Şartları`,
   },
   ai_terms_helper: {
     zh: `1、AI智能替换，不支持正则表达式。2、多条术语用换行或分号“;”隔开。3、术语和译文用英文逗号“,”隔开。4、没有译文视为不翻译术语。`,
@@ -1331,6 +1485,7 @@ export const I18N = {
     zh_TW: `1. AI 智慧替換，不支援正規表示式。2. 多條術語以換行或分號「;」分隔。3. 術語與譯文以英文逗號「,」分隔。4. 無譯文者視為不翻譯該術語。`,
     ja: `1. AIによるインテリジェントな置換 (正規表現非対応)。 2. 複数の用語は改行またはセミコロン「;」で区切ります。 3. 用語と翻訳は英語のコンマ「,」で区切ります。 4. 翻訳がない場合は、その用語を翻訳しないものとみなします。`,
     ko: `1. AI 지능형 대체, 정규식을 지원하지 않습니다. 2. 여러 용어는 줄바꿈 또는 세미콜론 ";"으로 구분합니다. 3. 용어와 번역은 영어 쉼표 ","로 구분합니다. 4. 번역이 없는 경우 해당 용어를 번역하지 않는 것으로 간주합니다.`,
+    tr: `1. Yapay Zekâ Destekli Akıllı Değiştirme, Düzenli Ifadeleri Desteklemez. 2. Birden Fazla Terim, Yeni Satır Veya Noktalı Virgül ";" Ile Ayrılmalıdır. 3. Terimler Ve Çeviriler, İngilizce Virgül "," Ile Ayrılmalıdır. 4. Çeviri Yoksa, Terim Çevrilmemiş Olarak Kabul Edilecektir."`,
   },
   text_ext_style: {
     zh: `译文附加样式`,
@@ -1338,6 +1493,7 @@ export const I18N = {
     zh_TW: `譯文附加樣式`,
     ja: `翻訳の追加スタイル`,
     ko: `번역 추가 스타일`,
+    tr: `Çeviriye Ek Stiller`,
   },
   selector_style: {
     zh: `选择器节点样式`,
@@ -1345,6 +1501,7 @@ export const I18N = {
     zh_TW: `選擇器節點樣式`,
     ja: `セレクタノードスタイル`,
     ko: `선택자 노드 스타일`,
+    tr: `Seçici Stili`,
   },
   terms_style: {
     zh: `专业术语样式`,
@@ -1352,6 +1509,7 @@ export const I18N = {
     zh_TW: `專業術語樣式`,
     ja: `専門用語スタイル`,
     ko: `전문 용어 스타일`,
+    tr: `Terimler Stili`,
   },
   highlight_style: {
     zh: `词汇高亮样式`,
@@ -1359,6 +1517,7 @@ export const I18N = {
     zh_TW: `詞彙醒目標示樣式`,
     ja: `単語ハイライトスタイル`,
     ko: `단어 하이라이트 스타일`,
+    tr: `Favori Kelimeler Vurgu Stili`,
   },
   selector_style_helper: {
     zh: `开启翻译时注入。`,
@@ -1366,6 +1525,7 @@ export const I18N = {
     zh_TW: `在開啟翻譯時注入。`,
     ja: `翻訳が有効なときに注入されます。`,
     ko: `번역이 켜져 있을 때 주입됩니다.`,
+    tr: `Çeviri açıldığında enjekte edilir.`,
   },
   selector_parent_style: {
     zh: `选择器父节点样式`,
@@ -1373,6 +1533,7 @@ export const I18N = {
     zh_TW: `選擇器父節點樣式`,
     ja: `親セレクタスタイル`,
     ko: `부모 선택자 스타일`,
+    tr: `Ebeveyn Seçici Stili`,
   },
   selector_grand_style: {
     zh: `选择器祖节点样式`,
@@ -1380,6 +1541,7 @@ export const I18N = {
     zh_TW: `選擇器祖節點樣式`,
     ja: `祖先セレクタスタイル`,
     ko: `상위 선택자 스타일`,
+    tr: `Üst Seçici Stili`,
   },
   inject_js: {
     zh: `注入JS`,
@@ -1387,6 +1549,7 @@ export const I18N = {
     zh_TW: `注入 JS`,
     ja: `JSを注入`,
     ko: `JS 주입`,
+    tr: `JS'yi Enjekte Et`,
   },
   inject_js_helper: {
     zh: `预加载时注入，一个页面仅运行一次。内置全局对象 KT: {
@@ -1433,6 +1596,14 @@ export const I18N = {
       toLang,
       docInfo,
       glossary,
+    tr: `Ön yükleme sırasında enjekte edilir, sayfa başına yalnızca bir kez çalışır. Dahili global nesne KT: {
+      apiTranslate,
+      apiDectect,
+      apiSetting,
+      apisMap,
+      toLang,
+      docInfo,
+      glossary,
     }`,
   },
   inject_css: {
@@ -1441,6 +1612,7 @@ export const I18N = {
     zh_TW: `注入 CSS`,
     ja: `CSSを注入`,
     ko: `CSS 주입`,
+    tr: `CSS'yi Enjekte Et`,
   },
   inject_css_helper: {
     zh: `预加载时注入，一个页面仅运行一次。`,
@@ -1448,6 +1620,7 @@ export const I18N = {
     zh_TW: `預先載入時注入，一個頁面僅執行一次。`,
     ja: `プリロード時に注入され、ページごとに1回だけ実行されます。`,
     ko: `미리 로드 시 주입되며 페이지당 한 번만 실행됩니다.`,
+    tr: `Ön yükleme sırasında enjekte edildi`,
   },
   fixer_function: {
     zh: `修复函数`,
@@ -1455,6 +1628,7 @@ export const I18N = {
     zh_TW: `修復函式`,
     ja: `修正関数`,
     ko: `수정 함수`,
+    tr: `Onarıcı Fonksiyonu`,
   },
   fixer_function_helper: {
     zh: `1、br是将<br>换行替换成<p "kiss-p">。2、bn是将\\n换行替换成<p "kiss-p">。3、brToDiv和bnToDiv是替换成<div class="kiss-p">。`,
@@ -1462,6 +1636,7 @@ export const I18N = {
     zh_TW: `1. br 會將 <br> 換行替換為 <p "kiss-p">。2. bn 會將 \\n 換行替換為 <p "kiss-p">。3. brToDiv 與 bnToDiv 會替換為 <div class="kiss-p">。`,
     ja: `1. br は <br> 改行を <p "kiss-p"> に置き換えます。 2. bn は \\n 改行を <p "kiss-p"> に置き換えます。 3. brToDiv と bnToDiv は <div class="kiss-p"> に置き換えます。`,
     ko: `1. br은 <br> 줄바꿈을 <p "kiss-p">로 대체합니다. 2. bn은 \\n 줄바꿈을 <p "kiss-p">로 대체합니다. 3. brToDiv 및 bnToDiv는 <div class="kiss-p">로 대체됩니다.`,
+    tr: `1. br, <br> satır sonlarını <p "kiss-p"> ile değiştirir. 2. bn, \\n yeni satırı <p "kiss-p"> ile değiştirir. 3. brToDiv ve bnToDiv, <div class="kiss-p"> ile değiştirildi.`,
   },
   import: {
     zh: `导入`,
@@ -1469,6 +1644,7 @@ export const I18N = {
     zh_TW: `匯入`,
     ja: `インポート`,
     ko: `가져오기`,
+    tr: `İçe Aktar`,
   },
   export: {
     zh: `导出`,
@@ -1476,6 +1652,7 @@ export const I18N = {
     zh_TW: `匯出`,
     ja: `エクスポート`,
     ko: `내보내기`,
+    tr: `Dışa Aktar`,
   },
   export_translation: {
     zh: `导出释义`,
@@ -1483,6 +1660,7 @@ export const I18N = {
     zh_TW: `匯出釋義`,
     ja: `訳文のエクスポート`,
     ko: `번역 내보내기`,
+    tr: `Çeviriyi Dışa Aktar`,
   },
   error_cant_be_blank: {
     zh: `不能为空`,
@@ -1490,6 +1668,7 @@ export const I18N = {
     zh_TW: `不可為空`,
     ja: `空白にすることはできません`,
     ko: `비워둘 수 없습니다`,
+    tr: `Boş Olamaz`,
   },
   error_duplicate_values: {
     zh: `存在重复的值`,
@@ -1497,6 +1676,7 @@ export const I18N = {
     zh_TW: `存在重複的值`,
     ja: `重複する値が存在します`,
     ko: `중복된 값이 있습니다`,
+    tr: `Yinelenen Değerler Var`,
   },
   error_wrong_file_type: {
     zh: `错误的文件类型`,
@@ -1504,6 +1684,7 @@ export const I18N = {
     zh_TW: `檔案類型錯誤`,
     ja: `不正なファイルタイプです`,
     ko: `잘못된 파일 형식입니다`,
+    tr: `Yanlış Dosya Türü`,
   },
   error_fetch_url: {
     zh: `请检查url地址是否正确或稍后再试。`,
@@ -1511,6 +1692,7 @@ export const I18N = {
     zh_TW: `請檢查 URL 是否正確或稍後再試。`,
     ja: `URLアドレスが正しいか確認するか、後でもう一度お試しください。`,
     ko: `URL 주소가 올바른지 확인하거나 나중에 다시 시도하십시오.`,
+    tr: `Lütfen URL adresinin doğru olup olmadığını kontrol edin veya daha sonra tekrar deneyin.`,
   },
   deepl_api: {
     zh: `DeepL 接口`,
@@ -1518,6 +1700,7 @@ export const I18N = {
     zh_TW: `DeepL 介面`,
     ja: `DeepL API`,
     ko: `DeepL API`,
+    tr: `Deepl API'si`,
   },
   deepl_key: {
     zh: `DeepL 密钥`,
@@ -1525,6 +1708,7 @@ export const I18N = {
     zh_TW: `DeepL 金鑰`,
     ja: `DeepL キー`,
     ko: `DeepL 키`,
+    tr: `Deepl Anahtarı`,
   },
   openai_api: {
     zh: `OpenAI 接口`,
@@ -1532,6 +1716,7 @@ export const I18N = {
     zh_TW: `OpenAI 介面`,
     ja: `OpenAI API`,
     ko: `OpenAI API`,
+    tr: `OpenAI API`,
   },
   openai_key: {
     zh: `OpenAI 密钥`,
@@ -1539,6 +1724,7 @@ export const I18N = {
     zh_TW: `OpenAI 金鑰`,
     ja: `OpenAI キー`,
     ko: `OpenAI 키`,
+    tr: `OpenAI Anahtarı`,
   },
   openai_model: {
     zh: `OpenAI 模型`,
@@ -1546,6 +1732,7 @@ export const I18N = {
     zh_TW: `OpenAI 模型`,
     ja: `OpenAI モデル`,
     ko: `OpenAI 모델`,
+    tr: `OpenAI Modeli`,
   },
   openai_prompt: {
     zh: `OpenAI 提示词`,
@@ -1553,6 +1740,7 @@ export const I18N = {
     zh_TW: `OpenAI 提示詞`,
     ja: `OpenAI プロンプト`,
     ko: `OpenAI 프롬프트`,
+    tr: `OpenAI İstemi`,
   },
   if_clear_cache: {
     zh: `是否清除缓存（默认缓存7天）`,
@@ -1560,6 +1748,7 @@ export const I18N = {
     zh_TW: `是否清除快取（預設快取7天）`,
     ja: `キャッシュをクリアしますか（デフォルトのキャッシュ期間は7日間です）`,
     ko: `캐시를 지우시겠습니까 (기본 캐시 7일)`,
+    tr: `Önbelleğin Temizlenip Temizlenmeyeceği (Varsayılan Önbellek 7 Gündür)`,
   },
   clear_cache_never: {
     zh: `不清除缓存`,
@@ -1567,6 +1756,7 @@ export const I18N = {
     zh_TW: `不清除快取`,
     ja: `キャッシュをクリアしない`,
     ko: `캐시 지우지 않음`,
+    tr: `Önbelleği Hiçbir Zaman Temizleme`,
   },
   clear_cache_restart: {
     zh: `重启浏览器时清除缓存`,
@@ -1574,6 +1764,7 @@ export const I18N = {
     zh_TW: `重新啟動瀏覽器時清除快取`,
     ja: `ブラウザ再起動時にキャッシュをクリア`,
     ko: `브라우저 재시작 시 캐시 지우기`,
+    tr: `Tarayıcıyı Yeniden Başlatırken Önbelleği Temizle`,
   },
   data_sync_type: {
     zh: `同步方式`,
@@ -1581,6 +1772,7 @@ export const I18N = {
     zh_TW: `同步方式`,
     ja: `同期方式`,
     ko: `동기화 방식`,
+    tr: `Senkronizasyon Türü`,
   },
   data_sync_url: {
     zh: `同步接口`,
@@ -1588,6 +1780,7 @@ export const I18N = {
     zh_TW: `同步介面`,
     ja: `同期API`,
     ko: `동기화 API`,
+    tr: `API'yi Senkronize Et`,
   },
   gist_sync_tip: {
     zh: `选择 GitHub Gist 时会自动创建私密 Gist。GitHub PAT 需要 Gists 读写权限。`,
@@ -1595,6 +1788,7 @@ export const I18N = {
     zh_TW: `選擇 GitHub Gist 時會自動建立私密 Gist。GitHub PAT 需要 Gists 讀寫權限。`,
     ja: `GitHub Gist を選択すると Secret Gist が自動作成されます。GitHub PAT には Gists の読み書き権限が必要です。`,
     ko: `GitHub Gist를 선택하면 비공개 Gist가 자동으로 생성됩니다. GitHub PAT에는 Gists 읽기/쓰기 권한이 필요합니다.`,
+    tr: `GitHub Gist seçildiğinde otomatik olarak gizli bir öz oluşturulacaktır. GitHub PAT'in Gists'in okuma ve yazma iznine ihtiyacı var.`,
   },
   data_sync_user: {
     zh: `同步账户`,
@@ -1602,6 +1796,7 @@ export const I18N = {
     zh_TW: `同步帳號`,
     ja: `同期アカウント`,
     ko: `동기화 계정`,
+    tr: `Hesabı Senkronize Et`,
   },
   data_sync_key: {
     zh: `同步密钥`,
@@ -1609,6 +1804,7 @@ export const I18N = {
     zh_TW: `同步金鑰`,
     ja: `同期キー`,
     ko: `동기화 키`,
+    tr: `Senkronizasyon Anahtarı`,
   },
   data_sync_encrypt_key: {
     zh: `加密口令`,
@@ -1616,6 +1812,7 @@ export const I18N = {
     zh_TW: `加密密碼`,
     ja: `暗号化パスフレーズ`,
     ko: `암호화 비밀번호`,
+    tr: `Şifreleme Parolası`,
   },
   set_sync_encrypt_key: {
     zh: `设定口令`,
@@ -1623,6 +1820,7 @@ export const I18N = {
     zh_TW: `設定密碼`,
     ja: `パスフレーズを設定`,
     ko: `암호문 설정`,
+    tr: `Parolayı Ayarla`,
   },
   change_sync_encrypt_key: {
     zh: `修改口令`,
@@ -1630,6 +1828,7 @@ export const I18N = {
     zh_TW: `修改密碼`,
     ja: `パスフレーズを変更`,
     ko: `암호문 변경`,
+    tr: `Parolayı Değiştir`,
   },
   sync_encrypt_key_not_set: {
     zh: `口令未设置，同步功能不可用。`,
@@ -1637,6 +1836,7 @@ export const I18N = {
     zh_TW: `密碼未設定，同步功能無法使用。`,
     ja: `パスフレーズが未設定のため、同期機能は使用できません。`,
     ko: `암호문이 설정되지 않아 동기화 기능을 사용할 수 없습니다.`,
+    tr: `Parola ayarlanmadı. Senkronizasyon kullanılamıyor.`,
   },
   old_sync_encrypt_key: {
     zh: `旧口令`,
@@ -1644,6 +1844,7 @@ export const I18N = {
     zh_TW: `舊密碼`,
     ja: `旧パスフレーズ`,
     ko: `기존 암호문`,
+    tr: `Eski Parola`,
   },
   new_sync_encrypt_key: {
     zh: `新口令`,
@@ -1651,6 +1852,7 @@ export const I18N = {
     zh_TW: `新密碼`,
     ja: `新しいパスフレーズ`,
     ko: `새 암호문`,
+    tr: `Yeni Parola`,
   },
   confirm_sync_encrypt_key: {
     zh: `确认口令`,
@@ -1658,6 +1860,7 @@ export const I18N = {
     zh_TW: `確認密碼`,
     ja: `パスフレーズを確認`,
     ko: `암호문 확인`,
+    tr: `Parolayı Onayla`,
   },
   sync_encrypt_key_too_short: {
     zh: `口令长度至少 6 位。`,
@@ -1665,6 +1868,7 @@ export const I18N = {
     zh_TW: `密碼長度至少 6 位。`,
     ja: `パスフレーズは 6 文字以上にしてください。`,
     ko: `암호문은 최소 6자 이상이어야 합니다.`,
+    tr: `Parola en az 6 karakterden oluşmalıdır.`,
   },
   sync_encrypt_key_mismatch: {
     zh: `两次输入的口令不一致。`,
@@ -1672,6 +1876,7 @@ export const I18N = {
     zh_TW: `兩次輸入的密碼不一致。`,
     ja: `入力した 2 つのパスフレーズが一致しません。`,
     ko: `두 번 입력한 암호문이 일치하지 않습니다.`,
+    tr: `Her İki Parola Eşleşmiyor.`,
   },
   old_sync_encrypt_key_invalid: {
     zh: `旧口令不正确。`,
@@ -1679,6 +1884,7 @@ export const I18N = {
     zh_TW: `舊密碼不正確。`,
     ja: `旧パスフレーズが正しくありません。`,
     ko: `기존 암호문이 올바르지 않습니다.`,
+    tr: `Eski Parola Yanlış.`,
   },
   sync_encrypt_key_change_failed: {
     zh: `修改口令失败。请保留旧口令和新口令，检查网络后重试；如果曾有部分数据已用新口令写入云端，必要时请清空远端同步文件后重新同步。`,
@@ -1686,6 +1892,7 @@ export const I18N = {
     zh_TW: `修改密碼失敗。請保留舊密碼和新密碼，檢查網路後重試；如果已有部分資料用新密碼寫入雲端，必要時請清空遠端同步檔案後重新同步。`,
     ja: `パスフレーズの変更に失敗しました。旧パスフレーズと新パスフレーズの両方を保管し、ネットワークを確認してから再試行してください。一部のクラウドデータが新しいパスフレーズで書き込まれている場合は、必要に応じてリモート同期ファイルを削除してから再同期してください。`,
     ko: `암호문 변경에 실패했습니다. 기존 암호문과 새 암호문을 모두 보관하고 네트워크를 확인한 뒤 다시 시도하세요. 일부 클라우드 데이터가 이미 새 암호문으로 쓰인 경우 필요하면 원격 동기화 파일을 비운 뒤 다시 동기화하세요.`,
+    tr: `Parola değiştirme işlemi başarısız oldu. Hem eski hem de yeni parolayı saklayın, ağınızı kontrol edin ve tekrar deneyin. Yeni parola ile bulut verilerine zaten bazı veriler yazılmışsa, uzaktan senkronizasyon dosyalarını temizleyin ve gerekirse tekrar senkronize edin`,
   },
   sync_now: {
     zh: `立即同步`,
@@ -1693,6 +1900,7 @@ export const I18N = {
     zh_TW: `立即同步`,
     ja: `今すぐ同期`,
     ko: `지금 동기화`,
+    tr: `Şimdi Senkronize Et`,
   },
   sync_success: {
     zh: `同步成功！`,
@@ -1700,6 +1908,7 @@ export const I18N = {
     zh_TW: `同步成功！`,
     ja: `同期成功！`,
     ko: `동기화 성공!`,
+    tr: `Senkronizasyon Başarılı`,
   },
   sync_failed: {
     zh: `同步失败！`,
@@ -1707,6 +1916,7 @@ export const I18N = {
     zh_TW: `同步失敗！`,
     ja: `同期失敗！`,
     ko: `동기화 실패!`,
+    tr: `Senkronizasyon Hatası`,
   },
   error_got_some_wrong: {
     zh: `抱歉，出错了！`,
@@ -1714,6 +1924,7 @@ export const I18N = {
     zh_TW: `抱歉，發生錯誤！`,
     ja: `申し訳ありません、エラーが発生しました！`,
     ko: `죄송합니다, 오류가 발생했습니다!`,
+    tr: `Üzgünüm, Bir Sorun Oluştu`,
   },
   error_sync_setting: {
     zh: `您的同步类型必须为“KISS-Worker”，且需填写完整`,
@@ -1721,6 +1932,7 @@ export const I18N = {
     zh_TW: `您的同步型態必須為「KISS-Worker」，且需填寫完整。`,
     ja: `同期タイプは「KISS-Worker」である必要があり、すべて入力する必要があります。`,
     ko: `동기화 유형은 "KISS-Worker"여야 하며, 모든 항목을 빠짐없이 입력해야 합니다.`,
+    tr: `Senkronizasyon Türünüz "KISS-Worker" Olmalı Ve Eksiksiz Olarak Doldurulmalıdır`,
   },
   click_test: {
     zh: `点击测试`,
@@ -1728,6 +1940,7 @@ export const I18N = {
     zh_TW: `點選測試`,
     ja: `クリックしてテスト`,
     ko: `클릭 테스트`,
+    tr: `Test Et'I Tıklayın`,
   },
   test_success: {
     zh: `测试成功`,
@@ -1735,6 +1948,7 @@ export const I18N = {
     zh_TW: `測試成功`,
     ja: `テスト成功`,
     ko: `테스트 성공`,
+    tr: `Test Başarılı`,
   },
   test_failed: {
     zh: `测试失败`,
@@ -1742,6 +1956,7 @@ export const I18N = {
     zh_TW: `測試失敗`,
     ja: `テスト失敗`,
     ko: `테스트 실패`,
+    tr: `Test Başarısız Oldu`,
   },
   clear_all_cache_now: {
     zh: `立即清除全部缓存`,
@@ -1749,6 +1964,7 @@ export const I18N = {
     zh_TW: `立即清除全部快取`,
     ja: `すべてのキャッシュを今すぐクリア`,
     ko: `모든 캐시 지금 지우기`,
+    tr: `Tüm Önbelleği Şimdi Temizle`,
   },
   clear_cache: {
     zh: `清除缓存`,
@@ -1756,6 +1972,7 @@ export const I18N = {
     zh_TW: `清除快取`,
     ja: `キャッシュをクリア`,
     ko: `캐시 지우기`,
+    tr: `Önbelleği Temizle`,
   },
   disable_on_mobile: {
     zh: `移动端禁用`,
@@ -1763,6 +1980,7 @@ export const I18N = {
     zh_TW: `行動裝置停用`,
     ja: `モバイルで無効にする`,
     ko: `모바일에서 비활성화`,
+    tr: `Mobil Cihazda Devre Dışı Bırak`,
   },
   clear_success: {
     zh: `清除成功`,
@@ -1770,6 +1988,7 @@ export const I18N = {
     zh_TW: `清除成功`,
     ja: `クリア成功`,
     ko: `지우기 성공`,
+    tr: `Temizleme Başarılı`,
   },
   clear_failed: {
     zh: `清除失败`,
@@ -1777,6 +1996,7 @@ export const I18N = {
     zh_TW: `清除失敗`,
     ja: `クリア失敗`,
     ko: `지우기 실패`,
+    tr: `Temizleme Başarısız Oldu`,
   },
   share: {
     zh: `分享`,
@@ -1784,6 +2004,7 @@ export const I18N = {
     zh_TW: `分享`,
     ja: `共有`,
     ko: `공유`,
+    tr: `Paylaş`,
   },
   clear_all: {
     zh: `清空`,
@@ -1791,6 +2012,7 @@ export const I18N = {
     zh_TW: `清空`,
     ja: `すべてクリア`,
     ko: `모두 지우기`,
+    tr: `Tümünü Temizle`,
   },
   help: {
     zh: `求助`,
@@ -1798,6 +2020,7 @@ export const I18N = {
     zh_TW: `求助`,
     ja: `ヘルプ`,
     ko: `도움말`,
+    tr: `Yardım`,
   },
   restore_default: {
     zh: `恢复默认`,
@@ -1805,6 +2028,7 @@ export const I18N = {
     zh_TW: `恢復預設`,
     ja: `デフォルトに戻す`,
     ko: `기본값 복원`,
+    tr: `Varsayılanı Geri Yükle`,
   },
   shortcuts_setting: {
     zh: `快捷键设置`,
@@ -1812,6 +2036,7 @@ export const I18N = {
     zh_TW: `快速鍵設定`,
     ja: `ショートカット設定`,
     ko: `단축키 설정`,
+    tr: `Kısayol Ayarı`,
   },
   toggle_translate_shortcut: {
     zh: `"开启翻译"快捷键`,
@@ -1819,6 +2044,7 @@ export const I18N = {
     zh_TW: `「開啟翻譯」快速鍵`,
     ja: `「翻訳切り替え」ショートカット`,
     ko: `"번역 켜기" 단축키`,
+    tr: `"Çeviriyi Aç/Kapat" Kısayolu`,
   },
   toggle_transonly_shortcut: {
     zh: `"隐藏原文"快捷键`,
@@ -1826,6 +2052,7 @@ export const I18N = {
     zh_TW: `「隱藏原文」快速鍵`,
     ja: `「原文を隠す」ショートカット`,
     ko: `"원문 숨기기" 단축키`,
+    tr: `"Orijinali Gizle" Kısayolu`,
   },
   toggle_style_shortcut: {
     zh: `"切换样式"快捷键`,
@@ -1833,6 +2060,7 @@ export const I18N = {
     zh_TW: `「切換樣式」快速鍵`,
     ja: `「スタイル切り替え」ショートカット`,
     ko: `"스타일 전환" 단축키`,
+    tr: `"Stil Değiştir" Kısayolu`,
   },
   toggle_popup_shortcut: {
     zh: `"打开弹窗"快捷键`,
@@ -1840,6 +2068,7 @@ export const I18N = {
     zh_TW: `「開啟彈出視窗」快速鍵`,
     ja: `「ポップアップを開く」ショートカット`,
     ko: `"팝업 열기" 단축키`,
+    tr: `"Açılır Pencereyi Aç" Kısayolu`,
   },
   open_setting_shortcut: {
     zh: `"打开设置"快捷键`,
@@ -1847,6 +2076,7 @@ export const I18N = {
     zh_TW: `「開啟設定」快速鍵`,
     ja: `「設定を開く」ショートカット`,
     ko: `"설정 열기" 단축키`,
+    tr: `"Ayarı Aç" Kısayolu`,
   },
   hide_fab_button: {
     zh: `隐藏悬浮按钮`,
@@ -1854,6 +2084,7 @@ export const I18N = {
     zh_TW: `隱藏浮動按鈕`,
     ja: `フローティングボタンを隠す`,
     ko: `플로팅 버튼 숨기기`,
+    tr: `Yüzen Eylem Düğmesini Gizle`,
   },
   fab_click_action: {
     zh: `单击悬浮按钮动作`,
@@ -1861,6 +2092,7 @@ export const I18N = {
     zh_TW: `點選浮動按鈕動作`,
     ja: `フローティングボタンのクリック動作`,
     ko: `플로팅 버튼 클릭 동작`,
+    tr: `Tek Tıklamayla Yüzen Eylem Düğmesi`,
   },
   fab_click_menu: {
     zh: `弹出菜单`,
@@ -1868,6 +2100,7 @@ export const I18N = {
     zh_TW: `彈出選單`,
     ja: `メニューを開く`,
     ko: `팝업 메뉴`,
+    tr: `Açılır Menü`,
   },
   fab_click_translate: {
     zh: `直接翻译`,
@@ -1875,6 +2108,7 @@ export const I18N = {
     zh_TW: `直接翻譯`,
     ja: `直接翻訳`,
     ko: `바로 번역`,
+    tr: `Çevir`,
   },
   hide_tran_button: {
     zh: `隐藏翻译按钮`,
@@ -1882,6 +2116,7 @@ export const I18N = {
     zh_TW: `隱藏翻譯按鈕`,
     ja: `翻訳ボタンを隠す`,
     ko: `번역 버튼 숨기기`,
+    tr: `Çevir Düğmesini Gizle`,
   },
   hide_click_away: {
     zh: `点击外部关闭弹窗`,
@@ -1889,6 +2124,7 @@ export const I18N = {
     zh_TW: `點選外部區域關閉彈出視窗`,
     ja: `外部クリックでポップアップを閉じる`,
     ko: `바깥쪽 클릭 시 팝업 닫기`,
+    tr: `Açılır Pencereyi Kapatmak İçin Dışarıyı Tıklayın`,
   },
   use_simple_style: {
     zh: `使用简洁界面`,
@@ -1896,6 +2132,7 @@ export const I18N = {
     zh_TW: `使用簡潔介面`,
     ja: `シンプルUIを使用`,
     ko: `간단한 인터페이스 사용`,
+    tr: `Basit Bir Arayüz Kullanın`,
   },
   show: {
     zh: `显示`,
@@ -1903,6 +2140,7 @@ export const I18N = {
     zh_TW: `顯示`,
     ja: `表示`,
     ko: `표시`,
+    tr: `Göster`,
   },
   hide: {
     zh: `隐藏`,
@@ -1910,6 +2148,7 @@ export const I18N = {
     zh_TW: `隱藏`,
     ja: `非表示`,
     ko: `숨기기`,
+    tr: `Gizle`,
   },
   save_rule: {
     zh: `保存本站规则`,
@@ -1917,6 +2156,7 @@ export const I18N = {
     zh_TW: `儲存本站規則`,
     ja: `このサイトのルールを保存`,
     ko: `이 사이트 규칙 저장`,
+    tr: `Bu Site Kuralını Kaydet`,
   },
   domain: {
     zh: `网域`,
@@ -1924,6 +2164,7 @@ export const I18N = {
     zh_TW: `網域`,
     ja: `ドメイン`,
     ko: `도메인`,
+    tr: `Alan`,
   },
   global_rule: {
     zh: `全局规则`,
@@ -1931,6 +2172,7 @@ export const I18N = {
     zh_TW: `全域規則`,
     ja: `グローバルルール`,
     ko: `전역 규칙`,
+    tr: `Küresel Kural`,
   },
   input_translate: {
     zh: `输入框翻译`,
@@ -1938,6 +2180,7 @@ export const I18N = {
     zh_TW: `輸入框翻譯`,
     ja: `入力ボックス翻訳`,
     ko: `입력창 번역`,
+    tr: `Giriş Kutusu Çevirisi`,
   },
   use_input_box_translation: {
     zh: `启用输入框翻译`,
@@ -1945,6 +2188,7 @@ export const I18N = {
     zh_TW: `啟用輸入框翻譯`,
     ja: `入力ボックス翻訳を有効にする`,
     ko: `입력창 번역 사용`,
+    tr: `Giriş Kutusu Çevirisi`,
   },
   input_selector: {
     zh: `输入框选择器`,
@@ -1952,6 +2196,7 @@ export const I18N = {
     zh_TW: `輸入框選擇器`,
     ja: `入力ボックスセレクタ`,
     ko: `입력창 선택자`,
+    tr: `Giriş Seçici`,
   },
   input_selector_helper: {
     zh: `用于输入框翻译。`,
@@ -1959,6 +2204,7 @@ export const I18N = {
     zh_TW: `用於輸入框翻譯。`,
     ja: `入力ボックスの翻訳に使用します。`,
     ko: `입력창 번역에 사용됩니다.`,
+    tr: `Giriş kutusu çevirisi için kullanılır.`,
   },
   trigger_trans_shortcut: {
     zh: `触发翻译快捷键`,
@@ -1966,6 +2212,7 @@ export const I18N = {
     zh_TW: `觸發翻譯快速鍵`,
     ja: `翻訳ショートカットキー`,
     ko: `번역 실행 단축키`,
+    tr: `Çeviri Kısayol Tuşlarını Tetikleyin`,
   },
   trigger_trans_shortcut_help: {
     zh: `默认为单击“AltLeft+KeyI”`,
@@ -1973,6 +2220,7 @@ export const I18N = {
     zh_TW: `預設為按下「AltLeft+KeyI」`,
     ja: `デフォルトは「AltLeft+KeyI」です`,
     ko: `기본값 "AltLeft+KeyI"`,
+    tr: `Varsayılan "AltLeft+KeyI"`,
   },
   shortcut_press_count: {
     zh: `快捷键连击次数`,
@@ -1980,6 +2228,7 @@ export const I18N = {
     zh_TW: `快速鍵連按次數`,
     ja: `ショートカットの連続プレス回数`,
     ko: `단축키 연속 입력 횟수`,
+    tr: `Kısayol Tuşuna Basın`,
   },
   combo_timeout: {
     zh: `连击超时时间 (10-1000ms)`,
@@ -1987,6 +2236,7 @@ export const I18N = {
     zh_TW: `連擊逾時 (10-1000ms)`,
     ja: `連続プレスタイムアウト (10-1000ms)`,
     ko: `연속 입력 시간 초과 (10-1000ms)`,
+    tr: `Kombo Zaman Aşımı (10-1000 Ms)`,
   },
   input_trans_start_sign: {
     zh: `翻译起始标识`,
@@ -1994,6 +2244,7 @@ export const I18N = {
     zh_TW: `翻譯起始標記`,
     ja: `翻訳開始記号`,
     ko: `번역 시작 표시`,
+    tr: `Çeviri Başlangıç İşareti`,
   },
   input_trans_start_sign_help: {
     zh: `标识后面可以加目标语言代码，如： “/en 你好”、“/zh hello”`,
@@ -2001,6 +2252,7 @@ export const I18N = {
     zh_TW: `標記後可加上目標語言代碼，例如：「/en 你好」、「/zh hello」`,
     ja: `記号の後に対象言語コードを追加できます。例：「/en 你好」、「/zh hello」`,
     ko: `표시 뒤에 대상 언어 코드를 추가할 수 있습니다. 예: "/en 你好", "/zh hello"`,
+    tr: `İşaretin sonuna hedef dil kodu eklenebilir, örneğin: "/en 你好", "/zh hello"`,
   },
   detect_lang_remote: {
     zh: `远程语言检测`,
@@ -2008,6 +2260,7 @@ export const I18N = {
     zh_TW: `遠端語言偵測`,
     ja: `リモート言語検出`,
     ko: `원격 언어 감지`,
+    tr: `Uzaktan Dil Algılama`,
   },
   detect_lang_remote_help: {
     zh: `启用后检测准确度增加，但会降低翻译速度，请酌情开启`,
@@ -2015,6 +2268,7 @@ export const I18N = {
     zh_TW: `啟用後可提升偵測準確度，但會降低翻譯速度，請視需要開啟。`,
     ja: `有効にすると検出精度が向上しますが、翻訳速度が低下する可能性があります。必要に応じて有効にしてください。`,
     ko: `활성화하면 감지 정확도가 높아지지만 번역 속도가 느려질 수 있습니다. 적절히 활성화하십시오.`,
+    tr: `Etkinleştirildikten sonra algılama doğruluğu artacak, ancak çeviri hızı düşecektir. Lütfen uygun şekilde etkinleştirin.`,
   },
   detect_lang_service: {
     zh: `语言检测服务`,
@@ -2022,6 +2276,7 @@ export const I18N = {
     zh_TW: `語言偵測服務`,
     ja: `言語検出サービス`,
     ko: `언어 감지 서비스`,
+    tr: `Dil Algılama Hizmeti`,
   },
   disable: {
     zh: `禁用`,
@@ -2029,6 +2284,7 @@ export const I18N = {
     zh_TW: `停用`,
     ja: `無効`,
     ko: `비활성화`,
+    tr: `Devre Dışı`,
   },
   enable: {
     zh: `启用`,
@@ -2036,6 +2292,7 @@ export const I18N = {
     zh_TW: `啟用`,
     ja: `有効`,
     ko: `활성화`,
+    tr: `Etkin`,
   },
   selection_translate: {
     zh: `划词翻译`,
@@ -2043,6 +2300,7 @@ export const I18N = {
     zh_TW: `選取文字翻譯`,
     ja: `選択翻訳`,
     ko: `선택 번역`,
+    tr: `Seçim Çevirisi`,
   },
   toggle_selection_translate: {
     zh: `启用划词翻译`,
@@ -2050,6 +2308,7 @@ export const I18N = {
     zh_TW: `啟用選取文字翻譯`,
     ja: `選択翻訳を有効にする`,
     ko: `선택 번역 사용`,
+    tr: `Seçim Çevirmeyi Kullan`,
   },
   trigger_tranbox_shortcut: {
     zh: `显示翻译框/翻译选中文字快捷键`,
@@ -2057,6 +2316,7 @@ export const I18N = {
     zh_TW: `顯示翻譯框／翻譯選取文字快速鍵`,
     ja: `翻訳ポップアップ表示/選択翻訳ショートカット`,
     ko: `번역창 표시/선택 번역 단축키`,
+    tr: `Çeviri Açılır Penceresini Aç/Seçilen Kısayolu Çevir`,
   },
   tranbtn_offset_x: {
     zh: `翻译按钮偏移X（±200）`,
@@ -2064,6 +2324,7 @@ export const I18N = {
     zh_TW: `翻譯按鈕位移 X（±200）`,
     ja: `翻訳ボタンオフセットX (±200)`,
     ko: `번역 버튼 오프셋 X (±200)`,
+    tr: `Çevirme Düğmesi Ofseti X (±200)`,
   },
   tranbtn_offset_y: {
     zh: `翻译按钮偏移Y（±200）`,
@@ -2071,6 +2332,7 @@ export const I18N = {
     zh_TW: `翻譯按鈕位移 Y（±200）`,
     ja: `翻訳ボタンオフセットY (±200)`,
     ko: `번역 버튼 오프셋 Y (±200)`,
+    tr: `Çevirme Düğmesi Ofseti Y (±200)`,
   },
   tranbox_offset_x: {
     zh: `翻译框偏移X（±200）`,
@@ -2078,6 +2340,7 @@ export const I18N = {
     zh_TW: `翻譯框位移 X（±200）`,
     ja: `翻訳ボックスオフセットX (±200)`,
     ko: `번역창 오프셋 X (±200)`,
+    tr: `Çevirme Kutusu Ofseti X (±200)`,
   },
   tranbox_offset_y: {
     zh: `翻译框偏移Y（±200）`,
@@ -2085,6 +2348,7 @@ export const I18N = {
     zh_TW: `翻譯框位移 Y（±200）`,
     ja: `翻訳ボックスオフセットY (±200)`,
     ko: `번역창 오프셋 Y (±200)`,
+    tr: `Çevirme Kutusu Ofseti Y (±200)`,
   },
   translated_text: {
     zh: `译文`,
@@ -2092,6 +2356,7 @@ export const I18N = {
     zh_TW: `譯文`,
     ja: `翻訳済みテキスト`,
     ko: `번역된 텍스트`,
+    tr: `Çevrilmiş Metin`,
   },
   original_text: {
     zh: `原文`,
@@ -2099,6 +2364,7 @@ export const I18N = {
     zh_TW: `原文`,
     ja: `原文`,
     ko: `원본 텍스트`,
+    tr: `Orijinal Metin`,
   },
   favorite_words: {
     zh: `收藏词汇`,
@@ -2106,6 +2372,7 @@ export const I18N = {
     zh_TW: `收藏詞彙`,
     ja: `お気に入り単語`,
     ko: `즐겨찾는 단어`,
+    tr: `Favori Kelimeler`,
   },
   touch_setting: {
     zh: `触屏设置`,
@@ -2113,6 +2380,7 @@ export const I18N = {
     zh_TW: `觸控設定`,
     ja: `タッチ設定`,
     ko: `터치 설정`,
+    tr: `Dokunma Ayarı`,
   },
   touch_translate_shortcut: {
     zh: `触屏翻译快捷方式 (支持多选)`,
@@ -2120,6 +2388,7 @@ export const I18N = {
     zh_TW: `觸控翻譯捷徑 (支援多選)`,
     ja: `タッチ翻訳ショートカット (複数選択可)`,
     ko: `터치 번역 단축키 (다중 선택 지원)`,
+    tr: `Dokunmatik Çeviri Kısayolu (Birden Fazla Desteklenir)`,
   },
   touch_tap_0: {
     zh: `禁用`,
@@ -2127,6 +2396,7 @@ export const I18N = {
     zh_TW: `停用`,
     ja: `無効`,
     ko: `비활성화`,
+    tr: `Devre Dışı`,
   },
   touch_tap_2: {
     zh: `双指轻触`,
@@ -2134,6 +2404,7 @@ export const I18N = {
     zh_TW: `雙指輕觸`,
     ja: `2本指タップ`,
     ko: `두 손가락 탭`,
+    tr: `İki Parmakla Dokunma`,
   },
   touch_tap_3: {
     zh: `三指轻触`,
@@ -2141,6 +2412,7 @@ export const I18N = {
     zh_TW: `三指輕觸`,
     ja: `3本指タップ`,
     ko: `세 손가락 탭`,
+    tr: `Üç Parmakla Dokunma`,
   },
   touch_tap_4: {
     zh: `四指轻触`,
@@ -2148,6 +2420,7 @@ export const I18N = {
     zh_TW: `四指輕觸`,
     ja: `4本指タップ`,
     ko: `네 손가락 탭`,
+    tr: `Dört Parmakla Dokunma`,
   },
   touch_tap_5: {
     zh: `单指双击`,
@@ -2155,6 +2428,7 @@ export const I18N = {
     zh_TW: `單指雙擊`,
     ja: `ダブルクリック`,
     ko: `더블 클릭`,
+    tr: `Çift Tıklama`,
   },
   touch_tap_6: {
     zh: `单指三击`,
@@ -2162,6 +2436,7 @@ export const I18N = {
     zh_TW: `單指三擊`,
     ja: `トリプルクリック`,
     ko: `트리플 클릭`,
+    tr: `Üçlü Tıklama`,
   },
   touch_tap_7: {
     zh: `双指双击`,
@@ -2169,6 +2444,7 @@ export const I18N = {
     zh_TW: `雙指雙擊`,
     ja: `2本指ダブルクリック`,
     ko: `두 손가락 더블 클릭`,
+    tr: `İki Parmakla Çift Tıklama`,
   },
   translate_blacklist: {
     zh: `禁用翻译名单`,
@@ -2176,6 +2452,7 @@ export const I18N = {
     zh_TW: `停用翻譯名單`,
     ja: `翻訳ブラックリスト`,
     ko: `번역 블랙리스트`,
+    tr: `Kara Listeyi Çevir`,
   },
   blacklist: {
     zh: `禁用黑名单`,
@@ -2183,6 +2460,7 @@ export const I18N = {
     zh_TW: `停用黑名單`,
     ja: `ブラックリスト`,
     ko: `블랙리스트`,
+    tr: `Kara Liste`,
   },
   add_to_blacklist: {
     zh: `加入黑名单`,
@@ -2190,6 +2468,7 @@ export const I18N = {
     zh_TW: `加入黑名單`,
     ja: `ブラックリストに追加`,
     ko: `블랙리스트에 추가`,
+    tr: `Kara Listeye Ekle`,
   },
   remove_from_blacklist: {
     zh: `移出黑名单`,
@@ -2197,6 +2476,7 @@ export const I18N = {
     zh_TW: `移出黑名單`,
     ja: `ブラックリストから削除`,
     ko: `블랙리스트에서 제거`,
+    tr: `Kara Listeden Kaldır`,
   },
   disabled_orilist: {
     zh: `禁用Origin名单`,
@@ -2204,6 +2484,7 @@ export const I18N = {
     zh_TW: `停用 Origin 名單`,
     ja: `無効化Originリスト`,
     ko: `비활성화된 Origin 목록`,
+    tr: `Devre Dışı Bırakılan Kaynak Listesi`,
   },
   disabled_csplist: {
     zh: `禁用CSP名单`,
@@ -2211,6 +2492,7 @@ export const I18N = {
     zh_TW: `停用 CSP 名單`,
     ja: `無効化CSPリスト`,
     ko: `비활성화된 CSP 목록`,
+    tr: `Devre Dışı CSP Listesi`,
   },
   disabled_csplist_helper: {
     zh: `3、通过调整CSP策略，使得某些页面能够注入JS/CSS/Media，请谨慎使用，除非您已知晓相关风险。`,
@@ -2218,6 +2500,7 @@ export const I18N = {
     zh_TW: `3. 透過調整 CSP 政策，使部分頁面可注入 JS/CSS/Media。請謹慎使用，除非您已知悉相關風險。`,
     ja: `3. CSPポリシーを調整することにより、一部のページでJS/CSS/Mediaの注入が可能になります。関連するリスクを承知していない限り、慎重に使用してください。`,
     ko: `3. CSP 정책을 조정하여 일부 페이지에서 JS/CSS/Media를 주입할 수 있습니다. 관련된 위험을 인지하고 있는 경우가 아니라면 주의해서 사용하십시오.`,
+    tr: `3. CSP politikasını ayarlayarak, bazı sayfalara JS/CSS/Medya dosyaları eklenebilir. İlgili risklerin farkında değilseniz, lütfen dikkatli kullanın.`,
   },
   skip_langs: {
     zh: `不翻译的语言`,
@@ -2225,6 +2508,7 @@ export const I18N = {
     zh_TW: `不翻譯的語言`,
     ja: `翻訳しない言語`,
     ko: `번역하지 않을 언어`,
+    tr: `Dilleri Devre Dışı Bırak`,
   },
   skip_langs_helper: {
     zh: `此功能依赖准确的语言检测，建议启用远程语言检测。`,
@@ -2232,6 +2516,7 @@ export const I18N = {
     zh_TW: `此功能仰賴準確的語言偵測，建議啟用遠端語言偵測。`,
     ja: `この機能は正確な言語検出に依存しているため、リモート言語検出を有効にすることをお勧めします。`,
     ko: `이 기능은 정확한 언어 감지에 의존하므로 원격 언어 감지를 활성화하는 것이 좋습니다.`,
+    tr: `Bu özellik, doğru dil algılamasına bağlıdır. Uzaktan dil algılamayı etkinleştirmeniz önerilir`,
   },
   context_menus: {
     zh: `右键菜单`,
@@ -2239,6 +2524,7 @@ export const I18N = {
     zh_TW: `右鍵選單`,
     ja: `コンテキストメニュー`,
     ko: `컨텍스트 메뉴`,
+    tr: `İçerik Menüleri`,
   },
   hide_context_menus: {
     zh: `隐藏右键菜单`,
@@ -2246,6 +2532,7 @@ export const I18N = {
     zh_TW: `隱藏右鍵選單`,
     ja: `コンテキストメニューを隠す`,
     ko: `컨텍스트 메뉴 숨기기`,
+    tr: `İçerik Menülerini Gizle`,
   },
   simple_context_menus: {
     zh: `简单右键菜单`,
@@ -2253,6 +2540,7 @@ export const I18N = {
     zh_TW: `簡易右鍵選單`,
     ja: `シンプルコンテキストメニュー`,
     ko: `간단한 컨텍스트 메뉴`,
+    tr: `Basit İçerik Menüleri`,
   },
   secondary_context_menus: {
     zh: `二级右键菜单`,
@@ -2260,6 +2548,7 @@ export const I18N = {
     zh_TW: `次級右鍵選單`,
     ja: `サブコンテキストメニュー`,
     ko: `보조 컨텍스트 메뉴`,
+    tr: `İkincil İçerik Menüleri`,
   },
   mulkeys_help: {
     zh: `支持用换行或英文逗号“,”分隔，轮询调用。`,
@@ -2267,6 +2556,7 @@ export const I18N = {
     zh_TW: `支援以換行或英文逗號「,」分隔，輪詢呼叫。`,
     ja: `改行または英語のコンマ「,」で区切ってポーリングコールをサポートします。`,
     ko: `줄바꿈 또는 영어 쉼표 ","로 구분된 폴링 호출을 지원합니다.`,
+    tr: `Anket çağrılarının yeni satırlarla veya İngilizce virgüllerle ayrılmasını destekler"`,
   },
   translation_element_tag: {
     zh: `译文元素标签`,
@@ -2274,6 +2564,7 @@ export const I18N = {
     zh_TW: `譯文元素標籤`,
     ja: `翻訳要素タグ`,
     ko: `번역 요소 태그`,
+    tr: `Çeviri Öğesi Etiketi`,
   },
   show_only_translations: {
     zh: `仅显示译文`,
@@ -2281,6 +2572,7 @@ export const I18N = {
     zh_TW: `僅顯示譯文`,
     ja: `翻訳のみ表示`,
     ko: `번역만 보기`,
+    tr: `Yalnızca Çevirileri Göster`,
   },
   show_only_translations_help: {
     zh: `非完美实现，某些页面可能有样式等问题。`,
@@ -2288,6 +2580,7 @@ export const I18N = {
     zh_TW: `此為非完美實作，部分頁面可能出現樣式等問題。`,
     ja: `完全な実装ではなく、一部のページでスタイルの問題が発生する可能性があります。`,
     ko: `완벽한 구현이 아니며 일부 페이지에서 스타일 문제가 발생할 수 있습니다.`,
+    tr: `Mükemmel bir uygulama değildir ve bazı sayfalarda stil sorunları olabilir`,
   },
   trans_order: {
     zh: `文本顺序`,
@@ -2295,6 +2588,7 @@ export const I18N = {
     zh_TW: `文字順序`,
     ja: `テキスト順序`,
     ko: `텍스트 순서`,
+    tr: `Çeviri Sırası`,
   },
   original_first: {
     zh: `原文在上方`,
@@ -2302,6 +2596,7 @@ export const I18N = {
     zh_TW: `原文在上方`,
     ja: `原文が最初`,
     ko: `원문이 먼저`,
+    tr: `Orijinal İlk`,
   },
   translation_first: {
     zh: `译文在上方`,
@@ -2309,6 +2604,7 @@ export const I18N = {
     zh_TW: `譯文在上方`,
     ja: `翻訳が最初`,
     ko: `번역이 먼저`,
+    tr: `Çeviri İlk`,
   },
   transonly_revert: {
     zh: `悬浮显示原文`,
@@ -2316,6 +2612,7 @@ export const I18N = {
     zh_TW: `滑鼠懸停時顯示原文`,
     ja: `ホバーで原文を表示`,
     ko: `호버 시 원문 표시`,
+    tr: `Orijinali Göstermek İçin Üzerine Gelin`,
   },
   transonly_revert_delay: {
     zh: `悬浮延迟(秒)`,
@@ -2323,6 +2620,7 @@ export const I18N = {
     zh_TW: `滑鼠懸停延遲(秒)`,
     ja: `ホバー遅延(秒)`,
     ko: `호버 지연(초)`,
+    tr: `Vurgulu Gecikme (Saniye)`,
   },
   translate_page_title: {
     zh: `是否翻译页面标题`,
@@ -2330,6 +2628,7 @@ export const I18N = {
     zh_TW: `是否翻譯頁面標題`,
     ja: `ページタイトルを翻訳する`,
     ko: `페이지 제목 번역`,
+    tr: `Sayfa Başlığını Çevir`,
   },
   more: {
     zh: `更多`,
@@ -2337,6 +2636,7 @@ export const I18N = {
     zh_TW: `更多`,
     ja: `もっと見る`,
     ko: `더보기`,
+    tr: `Daha Fazla`,
   },
   less: {
     zh: `更少`,
@@ -2344,6 +2644,7 @@ export const I18N = {
     zh_TW: `更少`,
     ja: `少なく`,
     ko: `줄이기`,
+    tr: `Daha Az`,
   },
   fixer_selector: {
     zh: `网页修复选择器`,
@@ -2351,6 +2652,7 @@ export const I18N = {
     zh_TW: `網頁修復選擇器`,
     ja: `Web修正セレクタ`,
     ko: `웹페이지 수정 선택자`,
+    tr: `Onarıcı Seçici`,
   },
   trigger_mode: {
     zh: `触发方式`,
@@ -2358,6 +2660,7 @@ export const I18N = {
     zh_TW: `觸發方式`,
     ja: `トリガーモード`,
     ko: `트리거 모드`,
+    tr: `Tetikleme Modu`,
   },
   trigger_click: {
     zh: `点击触发`,
@@ -2365,6 +2668,7 @@ export const I18N = {
     zh_TW: `點選觸發`,
     ja: `クリックトリガー`,
     ko: `클릭 트리거`,
+    tr: `Tıklama Tetikleyicisi`,
   },
   trigger_hover: {
     zh: `鼠标悬停触发`,
@@ -2372,6 +2676,7 @@ export const I18N = {
     zh_TW: `滑鼠懸停觸發`,
     ja: `ホバートリガー`,
     ko: `호버 트리거`,
+    tr: `Fareyle Üzerine Gelme Tetikleyicisi`,
   },
   trigger_select: {
     zh: `选中触发`,
@@ -2379,6 +2684,7 @@ export const I18N = {
     zh_TW: `選取觸發`,
     ja: `選択トリガー`,
     ko: `선택 트리거`,
+    tr: `Tetikleyiciyi Seçin`,
   },
   tranbtn_position_mode: {
     zh: `弹出按钮位置`,
@@ -2386,6 +2692,7 @@ export const I18N = {
     zh_TW: `彈出按鈕位置`,
     ja: `ポップアップボタン位置`,
     ko: `팝업 버튼 위치`,
+    tr: `Açılır Düğme Konumu`,
   },
   tranbtn_position_fixed: {
     zh: `固定位置`,
@@ -2393,6 +2700,7 @@ export const I18N = {
     zh_TW: `固定位置`,
     ja: `固定位置`,
     ko: `고정 위치`,
+    tr: `Sabit Pozisyon`,
   },
   tranbtn_position_mouse: {
     zh: `跟随鼠标`,
@@ -2400,6 +2708,7 @@ export const I18N = {
     zh_TW: `跟隨滑鼠`,
     ja: `マウスに追従`,
     ko: `마우스 따라가기`,
+    tr: `Fareyi Takip Et`,
   },
   extend_styles: {
     zh: `附加样式`,
@@ -2407,6 +2716,7 @@ export const I18N = {
     zh_TW: `附加樣式`,
     ja: `拡張スタイル`,
     ko: `확장 스타일`,
+    tr: `Stilleri Genişlet`,
   },
   custom_option: {
     zh: `自定义选项`,
@@ -2414,6 +2724,7 @@ export const I18N = {
     zh_TW: `自訂選項`,
     ja: `カスタムオプション`,
     ko: `사용자 지정 옵션`,
+    tr: `Özel Seçenek`,
   },
   translate_selected_text: {
     zh: `翻译选中文字`,
@@ -2421,6 +2732,7 @@ export const I18N = {
     zh_TW: `翻譯選取文字`,
     ja: `選択したテキストを翻訳`,
     ko: `선택한 텍스트 번역`,
+    tr: `Seçilen Metni Çevir`,
   },
   toggle_style: {
     zh: `切换样式`,
@@ -2428,6 +2740,7 @@ export const I18N = {
     zh_TW: `切換樣式`,
     ja: `スタイルを切り替え`,
     ko: `스타일 전환`,
+    tr: `Stili Değiştir`,
   },
   open_menu: {
     zh: `打开弹窗菜单`,
@@ -2435,6 +2748,7 @@ export const I18N = {
     zh_TW: `開啟彈出視窗選單`,
     ja: `ポップアップメニューを開く`,
     ko: `팝업 메뉴 열기`,
+    tr: `Açılır Menüyü Aç`,
   },
   open_setting: {
     zh: `打开设置`,
@@ -2442,6 +2756,7 @@ export const I18N = {
     zh_TW: `開啟設定`,
     ja: `設定を開く`,
     ko: `설정 열기`,
+    tr: `Ayarı Aç`,
   },
   follow_selection: {
     zh: `翻译框跟随选中文本`,
@@ -2449,6 +2764,7 @@ export const I18N = {
     zh_TW: `翻譯框跟隨選取文字`,
     ja: `翻訳ボックスを選択範囲に追従`,
     ko: `번역 상자가 선택 항목 따라가기`,
+    tr: `Çeviri Kutusu Takip Seçimi`,
   },
   tranbox_auto_height: {
     zh: `翻译框自适应高度`,
@@ -2456,6 +2772,7 @@ export const I18N = {
     zh_TW: `翻譯框自適應高度`,
     ja: `翻訳ボックスの高さ自動調整`,
     ko: `번역 상자 높이 자동 조절`,
+    tr: `Çeviri Kutusu Uyarlanabilir Yükseklik`,
   },
   tranbox_interact_mode: {
     zh: `翻译框内交互模式`,
@@ -2463,6 +2780,7 @@ export const I18N = {
     zh_TW: `翻譯框內互動模式`,
     ja: `翻訳ボックス内インタラクションモード`,
     ko: `번역 상자 내 인터랙션 모드`,
+    tr: `Çeviri Kutusu Etkileşim Modu`,
   },
   tranbox_interact_click: {
     zh: `单击选中文本触发翻译`,
@@ -2470,6 +2788,7 @@ export const I18N = {
     zh_TW: `單擊選取文字觸發翻譯`,
     ja: `選択したテキストをクリックして翻訳`,
     ko: `선택한 텍스트를 클릭하여 번역`,
+    tr: `Çevirmek İçin Seçilen Metni Tıklayın`,
   },
   tranbox_interact_dblclick: {
     zh: `双击选中文本触发翻译`,
@@ -2477,6 +2796,7 @@ export const I18N = {
     zh_TW: `雙擊選取文字觸發翻譯`,
     ja: `選択したテキストをダブルクリックして翻訳`,
     ko: `선택한 텍스트를 더블클릭하여 번역`,
+    tr: `Çevirmek İçin Seçilen Metni Çift Tıklayın`,
   },
   translate_start_hook: {
     zh: `翻译开始钩子函数`,
@@ -2484,6 +2804,7 @@ export const I18N = {
     zh_TW: `翻譯開始 Hook`,
     ja: `翻訳開始フック`,
     ko: `번역 시작 후크`,
+    tr: `Çeviri Başladığında Tetiklenen İşlev`,
   },
   translate_start_hook_helper: {
     zh: `翻译前时运行，入参为： {text,
@@ -2516,6 +2837,12 @@ export const I18N = {
       apiSetting,
       docInfo,
       glossary,}`,
+    tr: `Çeviriden önce çalıştırılır, giriş parametreleri şunlardır: {text,
+      fromLang,
+      toLang,
+      apiSetting,
+      docInfo,
+      glossary,}`,
   },
   translate_end_hook: {
     zh: `翻译完成钩子函数`,
@@ -2523,6 +2850,7 @@ export const I18N = {
     zh_TW: `翻譯完成 Hook`,
     ja: `翻訳完了フック`,
     ko: `번역 완료 후크`,
+    tr: `Çeviri Bittiğinde Tetiklenen İşlev`,
   },
   translate_end_hook_helper: {
     zh: `翻译完成时运行，入参为： ({hostNode, parentNode, nodes, wrapperNode, innerNode})`,
@@ -2530,6 +2858,7 @@ export const I18N = {
     zh_TW: `翻譯完成時執行，輸入參數為： ({hostNode, parentNode, nodes, wrapperNode, innerNode})`,
     ja: `翻訳完了時に実行、入力パラメータ: ({hostNode, parentNode, nodes, wrapperNode, innerNode})`,
     ko: `번역 완료 시 실행, 입력 매개변수: ({hostNode, parentNode, nodes, wrapperNode, innerNode})`,
+    tr: `Çeviri tamamlandığında, giriş parametreleri şunlardır: ({hostNode, parentNode, nodes, wrapperNode, innerNode})`,
   },
   translate_remove_hook: {
     zh: `翻译移除钩子函数`,
@@ -2537,6 +2866,7 @@ export const I18N = {
     zh_TW: `翻譯移除 Hook`,
     ja: `翻訳削除フック`,
     ko: `번역 제거 후크`,
+    tr: `Çeviri Kaldırıldığında Tetiklenen İşlev`,
   },
   translate_remove_hook_helper: {
     zh: `翻译移除时运行，入参为： 翻译节点。`,
@@ -2544,6 +2874,7 @@ export const I18N = {
     zh_TW: `移除翻譯時執行，輸入參數為：翻譯節點。`,
     ja: `翻訳削除時に実行、入力パラメータ: 翻訳ノード。`,
     ko: `번역 제거 시 실행, 입력 매개변수: 번역 노드.`,
+    tr: `Çeviri kaldırıldığında çalıştırılır, giriş parametreleri şunlardır: çeviri düğümü.`,
   },
   english_dict: {
     zh: `英文词典`,
@@ -2551,6 +2882,7 @@ export const I18N = {
     zh_TW: `英文字典`,
     ja: `英語辞書`,
     ko: `영어 사전`,
+    tr: `İngilizce Sözlük`,
   },
   default_dict: {
     zh: `默认词典`,
@@ -2558,6 +2890,7 @@ export const I18N = {
     zh_TW: `預設詞典`,
     ja: `既定の辞書`,
     ko: `기본 사전`,
+    tr: `Varsayılan Sözlük`,
   },
   ai_dict: {
     zh: `AI 词典`,
@@ -2565,6 +2898,7 @@ export const I18N = {
     zh_TW: `AI 詞典`,
     ja: `AI 辞書`,
     ko: `AI 사전`,
+    tr: `AI Sözlüğü`,
   },
   ai_dict_api: {
     zh: `AI 词典接口`,
@@ -2572,6 +2906,7 @@ export const I18N = {
     zh_TW: `AI 詞典介面`,
     ja: `AI 辞書 API`,
     ko: `AI 사전 API`,
+    tr: `AI Sözlük API'si`,
   },
   ai_dict_prompt: {
     zh: `AI 词典提示词`,
@@ -2579,6 +2914,7 @@ export const I18N = {
     zh_TW: `AI 詞典提示詞`,
     ja: `AI 辞書プロンプト`,
     ko: `AI 사전 프롬프트`,
+    tr: `AI Sözlük İstemi`,
   },
   english_suggest: {
     zh: `英文建议`,
@@ -2586,6 +2922,7 @@ export const I18N = {
     zh_TW: `英文建議`,
     ja: `英語サジェスト`,
     ko: `영어 제안`,
+    tr: `İngilizce Öneri`,
   },
   api_name: {
     zh: `接口名称`,
@@ -2593,6 +2930,7 @@ export const I18N = {
     zh_TW: `介面名稱`,
     ja: `API名`,
     ko: `API 이름`,
+    tr: `API Adı`,
   },
   model_list_url: {
     zh: `模型列表URL`,
@@ -2600,6 +2938,7 @@ export const I18N = {
     zh_TW: `模型列表URL`,
     ja: `モデル一覧URL`,
     ko: `모델 목록 URL`,
+    tr: `Model Listesi URL'si`,
   },
   model_list_loading: {
     zh: `正在加载模型列表...`,
@@ -2607,6 +2946,7 @@ export const I18N = {
     zh_TW: `正在載入模型列表...`,
     ja: `モデル一覧を読み込み中...`,
     ko: `모델 목록을 불러오는 중...`,
+    tr: `Model Listesi Yükleniyor...`,
   },
   model_list_fetch_failed: {
     zh: `模型列表加载失败`,
@@ -2614,6 +2954,7 @@ export const I18N = {
     zh_TW: `模型列表載入失敗`,
     ja: `モデル一覧の読み込みに失敗しました`,
     ko: `모델 목록을 불러오지 못했습니다`,
+    tr: `Model Listesi Yüklenemedi`,
   },
   model_list_empty: {
     zh: `未获取到模型列表，可手动填写`,
@@ -2621,6 +2962,7 @@ export const I18N = {
     zh_TW: `未取得模型列表，可手動填寫`,
     ja: `モデルが見つかりません。手動入力できます。`,
     ko: `모델을 찾을 수 없습니다. 직접 입력할 수 있습니다.`,
+    tr: `Hiçbir model bulunamadı. Manuel olarak bir tane girebilirsiniz.`,
   },
   sort_order: {
     zh: `排序权重`,
@@ -2628,6 +2970,7 @@ export const I18N = {
     zh_TW: `排序權重`,
     ja: `ソート順序`,
     ko: `정렬 순서`,
+    tr: `Sıralama Düzeni`,
   },
   sort_order_help: {
     zh: `数值越小越靠前`,
@@ -2635,6 +2978,7 @@ export const I18N = {
     zh_TW: `數值越小越靠前`,
     ja: `小さい値が先に表示されます`,
     ko: `작은 값이 먼저 표시됩니다`,
+    tr: `Önce Küçük Değerler Görünür`,
   },
   is_disabled: {
     zh: `是否禁用`,
@@ -2642,6 +2986,7 @@ export const I18N = {
     zh_TW: `是否停用`,
     ja: `無効にする`,
     ko: `비활성화 여부`,
+    tr: `Devre dışı Bırakıldı`,
   },
   is_pinned: {
     zh: `是否置顶`,
@@ -2649,6 +2994,7 @@ export const I18N = {
     zh_TW: `是否置頂`,
     ja: `ピン留め`,
     ko: `고정 여부`,
+    tr: `Sabitlendi`,
   },
   sort_alphabetically: {
     zh: `按字母排序`,
@@ -2656,6 +3002,7 @@ export const I18N = {
     zh_TW: `按字母排序`,
     ja: `アルファベット順`,
     ko: `알파벳순 정렬`,
+    tr: `Alfabetik Olarak Sırala`,
   },
   translate_selected: {
     zh: `是否启用划词翻译`,
@@ -2663,6 +3010,7 @@ export const I18N = {
     zh_TW: `是否啟用選取文字翻譯`,
     ja: `選択範囲の翻訳を有効にする`,
     ko: `선택 번역 사용 여부`,
+    tr: `Çeviri Seçeneği Seçilirse`,
   },
   use_batch_fetch: {
     zh: `是否聚合发送翻译请求`,
@@ -2670,6 +3018,7 @@ export const I18N = {
     zh_TW: `是否彙整發送翻譯請求`,
     ja: `翻訳リクエストをまとめて送信`,
     ko: `번역 요청 일괄 전송 여부`,
+    tr: `Çeviri isteklerini bir araya getirip göndermeye karar verilip verilmeyeceği`,
   },
   batch_interval: {
     zh: `聚合请求等待时间(10-10000)`,
@@ -2677,6 +3026,7 @@ export const I18N = {
     zh_TW: `彙整請求等待時間(10-10000)`,
     ja: `一括リクエストの待機時間(10-10000)`,
     ko: `일괄 요청 대기 시간(10-10000)`,
+    tr: `Toplama İsteği Bekleme Süresi (10-10000)`,
   },
   batch_size: {
     zh: `聚合请求最大段落数(1-100)`,
@@ -2684,6 +3034,7 @@ export const I18N = {
     zh_TW: `彙整請求最大段落數(1-100)`,
     ja: `一括リクエストの最大段落数(1-100)`,
     ko: `일괄 요청 최대 단락 수(1-100)`,
+    tr: `Toplama İsteğindeki Maksimum Paragraf Sayısı (1-100)`,
   },
   batch_length: {
     zh: `聚合请求最大文本长度(1000-100000)`,
@@ -2691,6 +3042,7 @@ export const I18N = {
     zh_TW: `彙整請求最大文字長度(1000-100000)`,
     ja: `一括リクエストの最大テキスト長(1000-100000)`,
     ko: `일괄 요청 최대 텍스트 길이(1000-100000)`,
+    tr: `Toplama Istekleri İçin Maksimum Metin Uzunluğu (1000-100000)`,
   },
   use_stream: {
     zh: `是否启用流式传输`,
@@ -2698,6 +3050,7 @@ export const I18N = {
     zh_TW: `是否啟用串流傳輸`,
     ja: `ストリーミングを有効にする`,
     ko: `스트리밍 활성화 여부`,
+    tr: `Akışın Etkinleştirilip Etkinleştirilmeyeceği`,
   },
   stream_render_mode: {
     zh: `流式渲染模式`,
@@ -2705,6 +3058,7 @@ export const I18N = {
     zh_TW: `串流渲染模式`,
     ja: `ストリーミングレンダリングモード`,
     ko: `스트리밍 렌더링 모드`,
+    tr: `Akış Oluşturma Modu`,
   },
   stream_render_realtime: {
     zh: `实时渲染`,
@@ -2712,6 +3066,7 @@ export const I18N = {
     zh_TW: `即時渲染`,
     ja: `リアルタイムレンダリング`,
     ko: `실시간 렌더링`,
+    tr: `Gerçek Zamanlı Oluşturma`,
   },
   stream_render_segment: {
     zh: `片段渲染`,
@@ -2719,6 +3074,7 @@ export const I18N = {
     zh_TW: `片段渲染`,
     ja: `セグメントレンダリング`,
     ko: `세그먼트 렌더링`,
+    tr: `Segment Oluşturma`,
   },
   use_context: {
     zh: `是否启用智能上下文`,
@@ -2726,6 +3082,7 @@ export const I18N = {
     zh_TW: `是否啟用智慧上下文`,
     ja: `AIコンテキストを有効にする`,
     ko: `AI 컨텍스트 활성화 여부`,
+    tr: `AI İçeriklerinin Etkinleştirilip Etkinleştirilmeyeceği`,
   },
   context_size: {
     zh: `上下文会话数量(1-20)`,
@@ -2733,6 +3090,7 @@ export const I18N = {
     zh_TW: `上下文會話數量(1-20)`,
     ja: `コンテキストセッション数(1-20)`,
     ko: `컨텍스트 세션 수(1-20)`,
+    tr: `İçerik Oturumlarının Sayısı (1-20)`,
   },
   auto_scan_page: {
     zh: `自动扫描页面`,
@@ -2740,6 +3098,7 @@ export const I18N = {
     zh_TW: `自動掃描頁面`,
     ja: `ページを自動スキャン`,
     ko: `페이지 자동 스캔`,
+    tr: `Sayfayı Otomatik Tara`,
   },
   has_rich_text: {
     zh: `启用富文本翻译`,
@@ -2747,6 +3106,7 @@ export const I18N = {
     zh_TW: `啟用富文字翻譯`,
     ja: `リッチテキスト翻訳を有効にする`,
     ko: `리치 텍스트 번역 활성화`,
+    tr: `Zengin Metin Çevirisini Etkinleştir`,
   },
   has_shadowroot: {
     zh: `扫描Shadowroot`,
@@ -2754,6 +3114,7 @@ export const I18N = {
     zh_TW: `掃描Shadowroot`,
     ja: `Shadowrootをスキャン`,
     ko: `Shadowroot 스캔`,
+    tr: `Shadowroot'u Tara`,
   },
   mousehover_translate: {
     zh: `鼠标悬停翻译`,
@@ -2761,6 +3122,7 @@ export const I18N = {
     zh_TW: `滑鼠懸停翻譯`,
     ja: `マウスオーバー翻訳`,
     ko: `마우스오버 번역`,
+    tr: `Fareyle Üzerine Gelme Çevirisi`,
   },
   use_mousehover_translation: {
     zh: `启用鼠标悬停翻译`,
@@ -2768,6 +3130,7 @@ export const I18N = {
     zh_TW: `啟用滑鼠懸停翻譯`,
     ja: `マウスオーバー翻訳を有効にする`,
     ko: `마우스오버 번역 활성화`,
+    tr: `Fareyle Üzerine Gelindiğinde Çeviriyi Etkinleştir`,
   },
   selected_translation_alert: {
     zh: `划词翻译的开启和关闭请到“规则设置”里面设置。`,
@@ -2775,6 +3138,7 @@ export const I18N = {
     zh_TW: `選取文字翻譯的開啟和關閉請到「規則設定」裡面設定。`,
     ja: `選択翻訳のオン/オフは「ルール設定」で行ってください。`,
     ko: `선택 번역 활성화/비활성화는 "규칙 설정"에서 하십시오.`,
+    tr: `Seçilen çeviri özelliğini açmak veya kapatmak için lütfen "Kural Ayarları"na gidin.`,
   },
   mousehover_key_help: {
     zh: `当快捷键置空时表示鼠标懸停直接翻译`,
@@ -2782,6 +3146,7 @@ export const I18N = {
     zh_TW: `快速鍵留空時表示滑鼠懸停即直接翻譯`,
     ja: `ショートカットキーが空の場合、マウスオーバーで直接翻訳します`,
     ko: `단축키가 비어 있으면 마우스오버 시 바로 번역합니다`,
+    tr: `Kısayol tuşu boş olduğunda, fare imlecinin üzerine gelerek doğrudan çeviri yapacağı anlamına gelir`,
   },
   mousehover_display_mode: {
     zh: `展示模式`,
@@ -2789,6 +3154,7 @@ export const I18N = {
     zh_TW: `顯示模式`,
     ja: `表示モード`,
     ko: `표시 모드`,
+    tr: `Ekran Modu`,
   },
   mousehover_display_bilingual: {
     zh: `双语模式`,
@@ -2796,6 +3162,7 @@ export const I18N = {
     zh_TW: `雙語模式`,
     ja: `バイリンガルモード`,
     ko: `이중 언어 모드`,
+    tr: `İki Dilli Mod`,
   },
   mousehover_display_bubble: {
     zh: `气泡模式`,
@@ -2803,6 +3170,7 @@ export const I18N = {
     zh_TW: `氣泡模式`,
     ja: `バブルモード`,
     ko: `말풍선 모드`,
+    tr: `Kabarcık Modu`,
   },
   mousehover_bubble_style: {
     zh: `气泡样式 CSS`,
@@ -2810,6 +3178,7 @@ export const I18N = {
     zh_TW: `氣泡樣式 CSS`,
     ja: `バブルスタイル CSS`,
     ko: `말풍선 스타일 CSS`,
+    tr: `Kabarcık Stili Css`,
   },
   mousehover_bubble_style_helper: {
     zh: `用于自定义气泡容器样式；定位和视口防溢出由程序自动处理。`,
@@ -2817,6 +3186,7 @@ export const I18N = {
     zh_TW: `用於自訂氣泡容器樣式；定位與視窗防溢出由程式自動處理。`,
     ja: `バブルコンテナのスタイルをカスタマイズします。位置と画面外にはみ出す処理は自動で行われます。`,
     ko: `말풍선 컨테이너 스타일을 사용자 지정합니다. 위치와 화면 넘침 방지는 자동으로 처리됩니다.`,
+    tr: `Kabarcık kabı stilini özelleştirin. Konumlandırma ve görüntü alanı taşması otomatik olarak gerçekleştirilir.`,
   },
   autoscan_alt: {
     zh: `自动扫描`,
@@ -2824,6 +3194,7 @@ export const I18N = {
     zh_TW: `自動掃描`,
     ja: `自動スキャン`,
     ko: `자동 스캔`,
+    tr: `Otomatik Tara`,
   },
   scan_all_nodes: {
     zh: `扫描全部节点`,
@@ -2831,6 +3202,7 @@ export const I18N = {
     zh_TW: `掃描全部節點`,
     ja: `すべてのノードをスキャン`,
     ko: `모든 노드 스캔`,
+    tr: `Tüm Düğümleri Tara`,
   },
   shadowroot_alt: {
     zh: `ShadowRoot`,
@@ -2838,6 +3210,7 @@ export const I18N = {
     zh_TW: `ShadowRoot`,
     ja: `ShadowRoot`,
     ko: `ShadowRoot`,
+    tr: `ShadowRoot`,
   },
   richtext_alt: {
     zh: `保留富文本`,
@@ -2845,6 +3218,7 @@ export const I18N = {
     zh_TW: `保留富文字`,
     ja: `リッチテキスト`,
     ko: `리치 텍스트`,
+    tr: `Zengin Metin`,
   },
   transonly_alt: {
     zh: `隐藏原文`,
@@ -2852,6 +3226,7 @@ export const I18N = {
     zh_TW: `隱藏原文`,
     ja: `原文を隠す`,
     ko: `원문 숨기기`,
+    tr: `Orijinali Gizle`,
   },
   confirm_title: {
     zh: `确认`,
@@ -2859,6 +3234,7 @@ export const I18N = {
     zh_TW: `確認`,
     ja: `確認`,
     ko: `확인`,
+    tr: `Onayla`,
   },
   confirm_message: {
     zh: `确定操作吗？`,
@@ -2866,6 +3242,7 @@ export const I18N = {
     zh_TW: `確定操作嗎？`,
     ja: `操作を続行しますか？`,
     ko: `계속하시겠습니까?`,
+    tr: `Devam Etmek İstediğinizden Emin Misiniz?`,
   },
   confirm_action: {
     zh: `确定`,
@@ -2873,6 +3250,7 @@ export const I18N = {
     zh_TW: `確定`,
     ja: `確認`,
     ko: `확인`,
+    tr: `Onayla`,
   },
   cancel_action: {
     zh: `取消`,
@@ -2880,6 +3258,7 @@ export const I18N = {
     zh_TW: `取消`,
     ja: `キャンセル`,
     ko: `취소`,
+    tr: `İptal Et`,
   },
   pls_press_shortcut: {
     zh: `请按下快捷键组合`,
@@ -2887,6 +3266,7 @@ export const I18N = {
     zh_TW: `請按下快速鍵組合`,
     ja: `ショートカットキーを押してください`,
     ko: `단축키 조합을 누르세요`,
+    tr: `Lütfen Kısayol Tuş Kombinasyonuna Basın`,
   },
   load_setting_err: {
     zh: `数据加载出错，请刷新页面或卸载后重新安装。`,
@@ -2894,6 +3274,7 @@ export const I18N = {
     zh_TW: `資料載入發生錯誤，請重新整理頁面或解除安裝後重新安裝。`,
     ja: `データ読み込みエラー。ページを更新するか、アンインストール後に再インストールしてください。`, // 翻译自 "zh"
     ko: `데이터 로딩 오류. 페이지를 새로 고치거나 제거 후 다시 설치하세요.`, // 翻译自 "zh"
+    tr: `Veri yükleme hatası, lütfen sayfayı yenileyin veya uygulamayı kaldırıp yeniden yükleyin`,
   },
   translation_style: {
     zh: `翻译风格`,
@@ -2901,6 +3282,7 @@ export const I18N = {
     zh_TW: `翻譯風格`,
     ja: `翻訳スタイル`,
     ko: `번역 스타일`,
+    tr: `Çeviri Stili`,
   },
   placeholder: {
     zh: `占位符`,
@@ -2908,6 +3290,7 @@ export const I18N = {
     zh_TW: `佔位符`,
     ja: `プレースホルダー`,
     ko: `플레이스홀더`,
+    tr: `Yer Tutucu`,
   },
   tag_name: {
     zh: `占位标签名`,
@@ -2915,6 +3298,7 @@ export const I18N = {
     zh_TW: `佔位標名`,
     ja: `プレースホルダータグ名`,
     ko: `플레이스홀더 태그 이름`,
+    tr: `Yer Tutucu Etiket Adı`,
   },
   system_prompt_helper_1: {
     zh: `1. 根据实际情况选择AI支持的聚合格式：`,
@@ -2922,6 +3306,7 @@ export const I18N = {
     zh_TW: `1. 請依實際情況選擇 AI 支援的彙整格式：`,
     ja: `1. 実際の状況に応じて、AI が対応している集約形式を選択してください：`,
     ko: `1. 상황에 맞게 AI에서 지원하는 집계 형식을 선택하세요:`,
+    tr: `1. İhtiyaçlarınıza Göre AI Tarafından Desteklenen Toplama Formatını Seçin:`,
   },
   json_output: {
     zh: `点击切换 “JSON 格式“`,
@@ -2929,6 +3314,7 @@ export const I18N = {
     zh_TW: `點選切換「JSON 格式」`,
     ja: `クリックして「JSON 形式」に切り替え`,
     ko: `클릭하여 "JSON 형식"으로 전환`,
+    tr: `"JSON Formatına Geçmek İçin Tıklayın`,
   },
   xml_output: {
     zh: `点击切换 “XML 格式“`,
@@ -2936,6 +3322,7 @@ export const I18N = {
     zh_TW: `點選切換「XML 格式」`,
     ja: `クリックして「XML 形式」に切り替え`,
     ko: `클릭하여 "XML 형식"으로 전환`,
+    tr: `"XML Formatına Geçmek İçin Tıklayın`,
   },
   textlines_output: {
     zh: `点击切换 “多行文本格式“`,
@@ -2943,6 +3330,7 @@ export const I18N = {
     zh_TW: `點選切換「多行文字格式」`,
     ja: `クリックして「複数行テキスト形式」に切り替え`,
     ko: `클릭하여 "여러 줄 텍스트 형식"으로 전환`,
+    tr: `"Çok Satırlı Metin Formatına Geçmek İçin Tıklayın`,
   },
   system_prompt_helper_2: {
     zh: `2. 在未完全理解默认Prompt的情况下，请勿随意修改，否则可能无法工作。`,
@@ -2950,6 +3338,7 @@ export const I18N = {
     zh_TW: `2. 在未完全理解預設Prompt的情況下，請勿隨意修改，否則可能無法運作。`,
     ja: `2. デフォルトのプロンプトを完全に理解せずに変更しないでください。動作しなくなる可能性があります。`,
     ko: `2. 기본 프롬프트를 완전히 이해하지 않고 수정하지 마십시오. 작동하지 않을 수 있습니다.`,
+    tr: `2. Varsayılan komut istemini tam olarak anlamadan değiştirmeyin, aksi takdirde çalışmayabilir`,
   },
   if_pre_init: {
     zh: `是否预初始化`,
@@ -2957,6 +3346,7 @@ export const I18N = {
     zh_TW: `是否預初始化`,
     ja: `事前初期化するか`,
     ko: `사전 초기화 여부`,
+    tr: `Önceden Başlatılıp Başlatılmayacağı`,
   },
   export_old: {
     zh: `导出旧版`,
@@ -2964,6 +3354,7 @@ export const I18N = {
     zh_TW: `匯出舊版`,
     ja: `旧バージョンをエクスポート`,
     ko: `이전 버전 내보내기`,
+    tr: `Eski Sürümü Dışa Aktar`,
   },
   favorite_words_helper: {
     zh: `导入词汇请使用txt文件，每一行一个单词。`,
@@ -2971,6 +3362,7 @@ export const I18N = {
     zh_TW: `匯入詞彙請使用 txt 檔案，每一行一個單字。`,
     ja: `単語をインポートするには、1行に1単語ずつ記述したtxtファイルを使用してください。`,
     ko: `단어를 가져오려면 한 줄에 한 단어씩 .txt 파일을 사용하세요.`,
+    tr: `Sözlük eklemek için lütfen her satırda bir kelime bulunan bir txt dosyası kullanın`,
   },
   btn_tip_click_away: {
     zh: `失焦隐藏/显示`,
@@ -2978,6 +3370,7 @@ export const I18N = {
     zh_TW: `失焦隱藏/顯示`,
     ja: `フォーカスを失った時に非表示/表示`,
     ko: `포커스 잃을 시 숨기기/표시`,
+    tr: `Odak Kaybında Gizle/Göster`,
   },
   btn_tip_follow_selection: {
     zh: `跟随/固定模式`,
@@ -2985,6 +3378,7 @@ export const I18N = {
     zh_TW: `跟隨/固定模式`,
     ja: `追従/固定モード`,
     ko: `따라가기/고정 모드`,
+    tr: `Takip/Sabit Mod`,
   },
   btn_tip_simple_style: {
     zh: `迷你/常规模式`,
@@ -2992,6 +3386,7 @@ export const I18N = {
     zh_TW: `迷你/常規模式`,
     ja: `ミニ/通常モード`,
     ko: `미니/일반 모드`,
+    tr: `Mini/Normal Mod`,
   },
   btn_tip_dark_mode: {
     zh: `亮色/暗色/跟随系统`,
@@ -2999,6 +3394,7 @@ export const I18N = {
     zh_TW: `亮色/暗色/跟隨系統`,
     ja: `ライト/ダーク/自動`,
     ko: `라이트/다크/자동`,
+    tr: `Açık/Koyu/Otomatik`,
   },
   api_placeholder: {
     zh: `占位符`,
@@ -3006,6 +3402,7 @@ export const I18N = {
     zh_TW: `佔位符`,
     ja: `プレースホルダー`,
     ko: `플레이스홀더`,
+    tr: `Yer Tutucu`,
   },
   api_placetag: {
     zh: `占位标签`,
@@ -3013,6 +3410,7 @@ export const I18N = {
     zh_TW: `佔位標`,
     ja: `プレースホルダタグ`,
     ko: `플레이스홀더 태그`,
+    tr: `Yer Tutucu Etiketleri`,
   },
   placetag_format: {
     zh: `占位符格式`,
@@ -3020,6 +3418,7 @@ export const I18N = {
     zh_TW: `佔位符格式`,
     ja: `プレースホルダー形式`,
     ko: `자리 표시자 형식`,
+    tr: `Yer Tutucu Formatı`,
   },
   format_compact: {
     zh: `简洁格式 <a1>`,
@@ -3027,6 +3426,7 @@ export const I18N = {
     zh_TW: `簡潔格式 <a1>`,
     ja: `簡潔形式 <a1>`,
     ko: `간결 형식 <a1>`,
+    tr: `Kompakt Format <a1>`,
   },
   format_attribute: {
     zh: `属性格式 <a i=1>`,
@@ -3034,6 +3434,7 @@ export const I18N = {
     zh_TW: `屬性格式 <a i=1>`,
     ja: `属性形式 <a i=1>`,
     ko: `속성 형식 <a i=1>`,
+    tr: `Öznitelik Formatı <a i=1>`,
   },
   detected_lang: {
     zh: `语言检测`,
@@ -3041,6 +3442,7 @@ export const I18N = {
     zh_TW: `語言偵測`,
     ja: `言語検出`,
     ko: `언어 감지`,
+    tr: `Dil Algılama`,
   },
   detected_result: {
     zh: `检测结果`,
@@ -3048,6 +3450,7 @@ export const I18N = {
     zh_TW: `偵測結果`,
     ja: `検出結果`,
     ko: `감지 결과`,
+    tr: `Sonuç Tespiti`,
   },
   subtitle_translate: {
     zh: `字幕翻译`,
@@ -3055,6 +3458,7 @@ export const I18N = {
     zh_TW: `字幕翻譯`,
     ja: `字幕翻訳`,
     ko: `자막 번역`,
+    tr: `Altyazı Çevirisi`,
   },
   bilingual_subtitles: {
     zh: `双语字幕`,
@@ -3062,6 +3466,7 @@ export const I18N = {
     zh_TW: `雙語字幕`,
     ja: `バイリンガル字幕`,
     ko: `이중 언어 자막`,
+    tr: `İki Dilli Altyazılar`,
   },
   vocabulary_book: {
     zh: `生词本`,
@@ -3069,6 +3474,7 @@ export const I18N = {
     zh_TW: `生詞本`,
     ja: `単語帳`,
     ko: `단어장`,
+    tr: `Kelime Bilgisi`,
   },
   download_subtitles_vtt: {
     zh: `下载字幕 (VTT)`,
@@ -3076,6 +3482,7 @@ export const I18N = {
     zh_TW: `下載字幕 (VTT)`,
     ja: `字幕をダウンロード (VTT)`,
     ko: `자막 다운로드 (VTT)`,
+    tr: `Altyazıları İndir (VTT)`,
   },
   download_raw_subtitle_events_json: {
     zh: `下载源数据 (JSON)`,
@@ -3083,6 +3490,7 @@ export const I18N = {
     zh_TW: `下載來源資料 (JSON)`,
     ja: `ソースデータをダウンロード (JSON)`,
     ko: `원본 데이터 다운로드 (JSON)`,
+    tr: `Kaynak Verilerini İndirin (JSON)`,
   },
   toggle_subtitle_translate: {
     zh: `启用字幕翻译`,
@@ -3090,6 +3498,7 @@ export const I18N = {
     zh_TW: `啟用字幕翻譯`,
     ja: `字幕翻訳を有効にする`,
     ko: `자막 번역 활성화`,
+    tr: `Altyazı Çevirisini Etkinleştir`,
   },
   is_bilingual_view: {
     zh: `双语显示`,
@@ -3097,6 +3506,7 @@ export const I18N = {
     zh_TW: `雙語顯示`,
     ja: `バイリンガル表示`,
     ko: `이중 언어 표시`,
+    tr: `İki Dilli Görüntülemeyi Etkinleştir`,
   },
   is_blur_translation: {
     zh: `模糊译文`,
@@ -3104,6 +3514,7 @@ export const I18N = {
     zh_TW: `模糊譯文`,
     ja: `翻訳をぼかす`,
     ko: `번역 흐림`,
+    tr: `Bulanıklık Çevirisi`,
   },
   is_skip_ad: {
     zh: `快进广告`,
@@ -3111,6 +3522,7 @@ export const I18N = {
     zh_TW: `快轉廣告`,
     ja: `広告をスキップ`,
     ko: `광고 건너뛰기`,
+    tr: `Reklamı Atla`,
   },
   download_subtitles: {
     zh: `下载字幕`,
@@ -3118,6 +3530,7 @@ export const I18N = {
     zh_TW: `下載字幕`,
     ja: `字幕をダウンロード`,
     ko: `자막 다운로드`,
+    tr: `Altyazıları İndir`,
   },
   background_styles: {
     zh: `背景样式`,
@@ -3125,6 +3538,7 @@ export const I18N = {
     zh_TW: `背景樣式`,
     ja: `背景スタイル`,
     ko: `배경 스타일`,
+    tr: `Arka Plan Stili`,
   },
   origin_styles: {
     zh: `原文样式`,
@@ -3132,6 +3546,7 @@ export const I18N = {
     zh_TW: `原文樣式`,
     ja: `原文スタイル`,
     ko: `원문 스타일`,
+    tr: `Orijinal Stil`,
   },
   translation_styles: {
     zh: `译文样式`,
@@ -3139,6 +3554,7 @@ export const I18N = {
     zh_TW: `譯文樣式`,
     ja: `翻訳スタイル`,
     ko: `번역문 스타일`,
+    tr: `Çeviri Stili`,
   },
   ai_segmentation: {
     zh: `AI智能断句`,
@@ -3146,6 +3562,7 @@ export const I18N = {
     zh_TW: `AI智慧斷句`,
     ja: `AIによるインテリジェントな文分割`,
     ko: `AI 지능형 문장 분리`,
+    tr: `AI Akıllı Noktalama İşaretleri`,
   },
   builtin_sentence_break: {
     zh: `内置断句`,
@@ -3153,6 +3570,7 @@ export const I18N = {
     zh_TW: `內置斷句`,
     ja: `内蔵文分割`,
     ko: `내장 문장 분리`,
+    tr: `Yerleşik Cümle Arası`,
   },
   rule_sentence_break: {
     zh: `规则断句`,
@@ -3160,6 +3578,7 @@ export const I18N = {
     zh_TW: `規則斷句`,
     ja: `ルールベース分割`,
     ko: `규칙 기반 분리`,
+    tr: `Kural Tabanlı Mola`,
   },
   statistical_sentence_break: {
     zh: `统计断句`,
@@ -3167,6 +3586,7 @@ export const I18N = {
     zh_TW: `統計斷句`,
     ja: `統計的分割`,
     ko: `통계 기반 분리`,
+    tr: `İstatistiksel Kırılım`,
   },
   force_subtitle_retranslate: {
     zh: `强制重翻`,
@@ -3174,6 +3594,7 @@ export const I18N = {
     zh_TW: `強制重翻`,
     ja: `強制再翻訳`,
     ko: `강제 재번역`,
+    tr: `Yeniden Çevirmeye Zorla`,
   },
   ai_enhanced_context: {
     zh: `增强智能上下文`,
@@ -3181,6 +3602,7 @@ export const I18N = {
     zh_TW: `增強智慧上下文`,
     ja: `強化インテリジェントコンテキスト`,
     ko: `강화 지능형 컨텍스트`,
+    tr: `Gelişmiş Akıllı İçerik`,
   },
   ai_context_analyzing: {
     zh: `AI正在分析视频内容...`,
@@ -3188,6 +3610,7 @@ export const I18N = {
     zh_TW: `AI正在分析影片內容...`,
     ja: `AIが動画内容を分析中...`,
     ko: `AI가 비디오 콘텐츠를 분석 중...`,
+    tr: `AI video içeriğini analiz ediyor...`,
   },
   ai_chunk_length: {
     zh: `AI处理切割长度(200-20000)`,
@@ -3195,6 +3618,7 @@ export const I18N = {
     zh_TW: `AI 處理切割長度(200-20000)`,
     ja: `AI処理のチャンク長(200-20000)`,
     ko: `AI 처리 청크 길이(200-20000)`,
+    tr: `AI İşleme Parça Uzunluğu (200-20000)`,
   },
   subtitle_helper_1: {
     zh: `1、目前仅支持Youtube桌面网站。`,
@@ -3202,6 +3626,7 @@ export const I18N = {
     zh_TW: `1.目前僅支援Youtube桌面網站，且僅支援瀏覽器擴充功能。`,
     ja: `1. 現在、Youtubeのデスクトップサイトのみサポートしています。`,
     ko: `1. 현재 Youtube 데스크톱 웹사이트만 지원합니다.`,
+    tr: `1. Şu anda yalnızca Youtube masaüstü web sitesini desteklemektedir.`,
   },
   subtitle_helper_2: {
     zh: `2、插件内置基础的字幕合并、断句算法，可满足大部分情况。`,
@@ -3209,6 +3634,7 @@ export const I18N = {
     zh_TW: `2. 擴充功能內建基礎的字幕合併、斷句演算法，可滿足大部分情況。`,
     ja: `2. プラグインには基本的な字幕結合と文分割アルゴリズムが組み込まれており、ほとんどの状況に対応できます。`,
     ko: `2. 플러그인에는 기본적인 자막 병합 및 문장 분리 알고리즘이 내장되어 있어 대부분의 상황에 대응할 수 있습니다.`,
+    tr: `2. Eklenti, çoğu duruma uygun temel altyazı birleştirme ve cümle bölme algoritmalarına sahiptir.`,
   },
   subtitle_helper_3: {
     zh: `3、亦可以启用AI智能断句，但需考虑切割长度及AI接口能力，可能处理时间会很长。若处理失败，将自动降级为内置断句并翻译。`,
@@ -3216,6 +3642,7 @@ export const I18N = {
     zh_TW: `3. 亦可啟用 AI 智慧斷句，但需考慮切割長度及 AI 介面能力，處理時間可能會很長。若處理失敗，將自動降級為內置斷句並翻譯。`,
     ja: `3. AIによるインテリジェントな文分割を有効にすることもできますが、チャンク長やAIの処理能力を考慮する必要があり、処理に時間がかかる場合があります。処理が失敗した場合は、自動的に内蔵文分割と翻訳にフォールバックされます。`,
     ko: `3. AI 지능형 분리를 활성화할 수도 있지만, 청크 길이와 AI 인터페이스 처리 능력을 고려해야 하며 처리 시간이 길어질 수 있습니다. 처리에 실패할 경우 자동으로 내장 문장 분리 및 번역으로 대체됩니다.`,
+    tr: `3. AI destekli akıllı bölümlemeyi de etkinleştirebilirsiniz, ancak işlem uzun sürebileceğinden, öbek uzunluğunu ve yapay zekâ arayüzü kapasitesini göz önünde bulundurun. Başarısız olursa, otomatik olarak yerleşik cümle bölme ve çeviri özelliğine geri dönecektir.`,
   },
   show_subtitle_list: {
     zh: `显示字幕列表`,
@@ -3223,6 +3650,7 @@ export const I18N = {
     zh_TW: `顯示字幕清單`,
     ja: `字幕リストを表示`,
     ko: `자막 목록 표시`,
+    tr: `Altyazı Listesini Göster`,
   },
   subtitle_loading_notification: {
     zh: `字幕加载通知`,
@@ -3230,6 +3658,7 @@ export const I18N = {
     zh_TW: `字幕載入通知`,
     ja: `字幕読み込み通知`,
     ko: `자막 로딩 알림`,
+    tr: `Altyazı Yükleme Bildirimi`,
   },
   hide_subtitle_button: {
     zh: `隐藏功能按钮`,
@@ -3237,6 +3666,7 @@ export const I18N = {
     zh_TW: `隱藏功能按鈕`,
     ja: `機能ボタンを非表示`,
     ko: `기능 버튼 숨기기`,
+    tr: `İşlev Düğmesini Gizle`,
   },
   subtitle_hover_lookup: {
     zh: `悬停查词`,
@@ -3244,6 +3674,7 @@ export const I18N = {
     zh_TW: `懸停查詞`,
     ja: `ホバー辞書検索`,
     ko: `호버 단어 조회`,
+    tr: `Vurgulu Kelime Arama`,
   },
   default_styles_example: {
     zh: `默认样式参考：`,
@@ -3251,6 +3682,7 @@ export const I18N = {
     zh_TW: `預設樣式參考：`,
     ja: `デフォルトスタイルの例：`,
     ko: `기본 스타일 예시:`,
+    tr: `Varsayılan Stiller Referansı:`,
   },
   subtitle_load_succeed: {
     zh: `双语字幕加载成功！`,
@@ -3258,6 +3690,7 @@ export const I18N = {
     zh_TW: `雙語字幕載入成功！`,
     ja: `バイリンガル字幕の読み込みに成功しました！`,
     ko: `이중 언어 자막 로딩 성공!`,
+    tr: `İki Dilli Altyazılar Başarıyla Yüklendi`,
   },
   subtitle_load_failed: {
     zh: `双语字幕加载失败！`,
@@ -3265,6 +3698,7 @@ export const I18N = {
     zh_TW: `雙語字幕載入失敗！`,
     ja: `バイリンガル字幕の読み込みに失敗しました！`,
     ko: `이중 언어 자막 로딩 실패!`,
+    tr: `İki Dilli Altyazılar Yüklenemedi`,
   },
   try_get_subtitle_data: {
     zh: `尝试获取字幕数据，请稍候...`,
@@ -3272,6 +3706,7 @@ export const I18N = {
     zh_TW: `嘗試取得字幕資料，請稍候...`,
     ja: `字幕データを取得しています。お待ちください...`,
     ko: `자막 데이터를 가져오는 중입니다. 잠시 기다려주세요...`,
+    tr: `Altyazı verileri alınmaya çalışılıyor`,
   },
   subtitle_data_processing: {
     zh: `字幕数据处理中...`,
@@ -3279,6 +3714,7 @@ export const I18N = {
     zh_TW: `字幕資料處理中...`,
     ja: `字幕データを処理中...`,
     ko: `자막 데이터 처리 중...`,
+    tr: `Altyazı Verileri İşleniyor...`,
   },
   starting_to_process_subtitle: {
     zh: `开始处理字幕数据...`,
@@ -3286,6 +3722,7 @@ export const I18N = {
     zh_TW: `開始處理字幕資料...`,
     ja: `字幕データの処理を開始します...`,
     ko: `자막 데이터 처리를 시작합니다...`,
+    tr: `Altyazı verileri işlenmeye başlıyor...`,
   },
   subtitle_data_is_ready: {
     zh: `字幕数据已准备就绪，请点击KT按钮加载`,
@@ -3293,6 +3730,7 @@ export const I18N = {
     zh_TW: `字幕資料已準備就緒，請點選 KT 按鈕載入`,
     ja: `字幕データの準備ができました。KTボタンをクリックして読み込んでください`,
     ko: `자막 데이터가 준비되었습니다. KT 버튼을 클릭하여 로드하세요`,
+    tr: `Altyazı verileri hazır, yüklemek için lütfen KT düğmesine tıklayın`,
   },
   starting_reprocess_events: {
     zh: `重新处理字幕数据...`,
@@ -3300,6 +3738,7 @@ export const I18N = {
     zh_TW: `重新處理字幕資料...`,
     ja: `字幕データを再処理しています...`,
     ko: `자막 데이터를 다시 처리 중...`,
+    tr: `Altyazı verilerini yeniden işleyin...`,
   },
   waitting_for_subtitle: {
     zh: `请等待字幕数据`,
@@ -3307,6 +3746,7 @@ export const I18N = {
     zh_TW: `請等待字幕資料`,
     ja: `字幕データを待機中`,
     ko: `자막 데이터를 기다려주세요`,
+    tr: `Lütfen altyazı verilerini bekleyin.`,
   },
   ai_processing_pls_wait: {
     zh: `AI处理中，请稍等...`,
@@ -3314,6 +3754,7 @@ export const I18N = {
     zh_TW: `AI 處理中，請稍候...`,
     ja: `AI処理中です。お待ちください...`,
     ko: `AI 처리 중입니다. 잠시 기다려주세요...`,
+    tr: `AI işleme devam ediyor`,
   },
   processing_subtitles: {
     zh: `字幕处理中...`,
@@ -3321,6 +3762,7 @@ export const I18N = {
     zh_TW: `字幕處理中...`,
     ja: `字幕処理中...`,
     ko: `자막 처리 중...`,
+    tr: `Altyazı İşleniyor...`,
   },
   waiting_subtitles: {
     zh: `等待字幕中`,
@@ -3328,6 +3770,7 @@ export const I18N = {
     zh_TW: `等待字幕中`,
     ja: `字幕待機中`,
     ko: `자막 대기 중`,
+    tr: `Altyazıları Bekliyorum`,
   },
   subtitle_is_not_yet_ready: {
     zh: `字幕数据尚未准备好`,
@@ -3335,6 +3778,7 @@ export const I18N = {
     zh_TW: `字幕資料尚未準備好`,
     ja: `字幕データの準備がまだできていません。`,
     ko: `자막 데이터가 아직 준비되지 않았습니다.`,
+    tr: `Altyazı henüz hazır değil.`,
   },
   log_level: {
     zh: `日志级别`,
@@ -3342,6 +3786,7 @@ export const I18N = {
     zh_TW: `日誌等級`,
     ja: `ログレベル`,
     ko: `로그 레벨`,
+    tr: `Günlük Düzeyi`,
   },
   goto_custom_api_example: {
     zh: `点击查看【自定义接口示例】`,
@@ -3349,6 +3794,7 @@ export const I18N = {
     zh_TW: `點選檢視【自訂介面範例】`,
     ja: `【カスタムインターフェースの例】を見る`,
     ko: `[사용자 지정 인터페이스 예시] 보기`,
+    tr: `[Özel Arayüz Örneği]'ni Görüntülemek İçin Tıklayın`,
   },
   split_paragraph: {
     zh: `切分长段落`,
@@ -3356,6 +3802,7 @@ export const I18N = {
     zh_TW: `切分長段落`,
     ja: `長い段落を分割`,
     ko: `긴 단락 나누기`,
+    tr: `Uzun Paragrafı Böl`,
   },
   split_length: {
     zh: `切分长度 (0-10000)`,
@@ -3363,6 +3810,7 @@ export const I18N = {
     zh_TW: `切分長度(0-10000)`,
     ja: `分割長(0-10000)`,
     ko: `분할 길이(0-10000)`,
+    tr: `Segmentasyon Uzunluğu (0-10000)`,
   },
   highlight_words: {
     zh: `高亮收藏词汇`,
@@ -3370,6 +3818,7 @@ export const I18N = {
     zh_TW: `醒目標示收藏詞彙`,
     ja: `お気に入り単語をハイライト`,
     ko: `즐겨찾는 단어 하이라이트`,
+    tr: `Favori Kelimeleri Vurgulayın`,
   },
   split_disable: {
     zh: `禁用`,
@@ -3377,6 +3826,7 @@ export const I18N = {
     zh_TW: `停用`,
     ja: `無効`,
     ko: `비활성화`,
+    tr: `Devre Dışı`,
   },
   split_textlength: {
     zh: `按照长度切分`,
@@ -3384,6 +3834,7 @@ export const I18N = {
     zh_TW: `依長度切分`,
     ja: `長さで分割`,
     ko: `길이로 나누기`,
+    tr: `Uzunluğa Göre Bölünmüş`,
   },
   split_punctuation: {
     zh: `按照句子切分`,
@@ -3391,6 +3842,7 @@ export const I18N = {
     zh_TW: `按照句子切分`,
     ja: `文で分割`,
     ko: `문장으로 나누기`,
+    tr: `Cümleye Göre Bölünmüş`,
   },
   highlight_disable: {
     zh: `禁用`,
@@ -3398,6 +3850,7 @@ export const I18N = {
     zh_TW: `停用`,
     ja: `無効`,
     ko: `비활성화`,
+    tr: `Devre Dışı`,
   },
   highlight_beforetrans: {
     zh: `翻译前高亮`,
@@ -3405,6 +3858,7 @@ export const I18N = {
     zh_TW: `翻譯前醒目標示`,
     ja: `翻訳前にハイライト`,
     ko: `번역 전 하이라이트`,
+    tr: `Çeviriden Önce Vurgula`,
   },
   highlight_aftertrans: {
     zh: `翻译后高亮`,
@@ -3412,6 +3866,7 @@ export const I18N = {
     zh_TW: `翻譯後醒目標示`,
     ja: `翻訳後にハイライト`,
     ko: `번역 후 하이라이트`,
+    tr: `Çeviriden Sonra Vurgula`,
   },
   pagescroll_root_margin: {
     zh: `滚动加载提前触发 (0-10000px)`,
@@ -3419,6 +3874,7 @@ export const I18N = {
     zh_TW: `滾動載入提前觸發 (0-10000px)`,
     ja: `スクロール読み込みの事前トリガー (0-10000px)`,
     ko: `스크롤 로딩 미리 트리거 (0-10000px)`,
+    tr: `Kaydırma Yüklemesinin Erken Tetiklenmesi (0-10000 Piksel)`,
   },
   styles_setting: {
     zh: `样式设置`,
@@ -3426,6 +3882,7 @@ export const I18N = {
     zh_TW: `樣式設定`,
     ja: `スタイル設定`,
     ko: `스타일 설정`,
+    tr: `Stil Ayarı`,
   },
   style_name: {
     zh: `样式名称`,
@@ -3433,6 +3890,7 @@ export const I18N = {
     zh_TW: `樣式名稱`,
     ja: `スタイル名`,
     ko: `스타일 이름`,
+    tr: `Stil Adı`,
   },
   style_code: {
     zh: `样式代码`,
@@ -3440,6 +3898,7 @@ export const I18N = {
     zh_TW: `樣式程式碼`,
     ja: `スタイルコード`,
     ko: `스타일 코드`,
+    tr: `Stil Kodu`,
   },
   long_sentence_threshold: {
     zh: `规则断句阈值 (20-300字符)`,
@@ -3447,6 +3906,7 @@ export const I18N = {
     zh_TW: `規則斷句閾值 (20-300 字元)`,
     ja: `ルールベース分割閾値 (20-300文字)`,
     ko: `규칙 기반 분할 임계값 (20-300자)`,
+    tr: `Kural Tabanlı Segmentasyon Eşiği (20-300 Karakter)`,
   },
   pre_trans_seconds: {
     zh: `提前翻译时长 (10-36000s)`,
@@ -3454,6 +3914,7 @@ export const I18N = {
     zh_TW: `提前翻譯時長 (10-36000s)`,
     ja: `事前翻訳時間 (10-36000s)`,
     ko: `미리 번역 시간 (10-36000s)`,
+    tr: `Çeviri Öncesi Saniye (10-36000s)`,
   },
   throttle_trans_interval: {
     zh: `节流翻译间隔 (1-3600s)`,
@@ -3461,6 +3922,7 @@ export const I18N = {
     zh_TW: `節流翻譯間隔 (1-3600s)`,
     ja: `翻訳間隔のスロットリング (1-3600s)`,
     ko: `번역 간격 조절 (1-3600s)`,
+    tr: `Çeviri Aralığını Daraltma (1-3600s)`,
   },
   show_origin_subtitle: {
     zh: `显示原字幕`,
@@ -3468,6 +3930,7 @@ export const I18N = {
     zh_TW: `顯示原字幕`,
     ja: `原字幕を表示`,
     ko: `원본 자막 표시`,
+    tr: `Orijinal Altyazıları Göster`,
   },
   subtitle_same_lang: {
     zh: `原语言与目标语言相同，字幕不予处理`,
@@ -3475,6 +3938,7 @@ export const I18N = {
     zh_TW: `原語言與目標語言相同時，字幕不予處理`,
     ja: `原言語と目標言語が同じ場合、字幕は処理されません`,
     ko: `원본 언어와 대상 언어가 동일한 경우, 자막은 처리되지 않습니다`,
+    tr: `Kaynak Dil Hedef Dil İle Aynı`,
   },
   plain_text_translate: {
     zh: `纯文本翻译`,
@@ -3482,6 +3946,7 @@ export const I18N = {
     zh_TW: `純文字翻譯`,
     ja: `プレーンテキスト翻訳`,
     ko: `순수 텍스트 번역`,
+    tr: `Düz Metin Çevirisi`,
   },
   is_enable_enhance: {
     zh: `启用增强功能`,
@@ -3489,6 +3954,7 @@ export const I18N = {
     zh_TW: `啟用增強功能`,
     ja: `強化機能を有効にする`,
     ko: `향상 기능 활성화`,
+    tr: `Gelişmiş Özellikleri Etkinleştir`,
   },
   open_separate_window: {
     zh: `独立窗口打开`,
@@ -3496,6 +3962,7 @@ export const I18N = {
     zh_TW: `在獨立視窗中開啟`,
     ja: `別ウィンドウで開く`,
     ko: `별도 창에서 열기`,
+    tr: `Ayrı Pencerede Aç`,
   },
   comment_support: {
     zh: `好评支持`,
@@ -3503,6 +3970,7 @@ export const I18N = {
     zh_TW: `好評支持`,
     ja: `高評価で応援`,
     ko: `좋은 평가로 응원`,
+    tr: `Olumlu Bir İnceleme Bırakın`,
   },
   appreciate_support: {
     zh: `赞赏支持`,
@@ -3510,6 +3978,7 @@ export const I18N = {
     zh_TW: `贊賞支持`,
     ja: `投げ銭で応援`,
     ko: `후원하기`,
+    tr: `Bir Bağış İle Destek Ol`,
   },
   toggle_transbox: {
     zh: `切换翻译窗`,
@@ -3517,6 +3986,7 @@ export const I18N = {
     zh_TW: `切換翻譯視窗`,
     ja: `翻訳ウィンドウを切り替え`,
     ko: `번역 창 전환`,
+    tr: `Çeviri Kutusunu Değiştir`,
   },
   copy: {
     zh: `复制`,
@@ -3524,6 +3994,7 @@ export const I18N = {
     zh_TW: `複製`,
     ja: `コピー`,
     ko: `복사`,
+    tr: `Kopyala`,
   },
   paste: {
     zh: `黏贴`,
@@ -3531,6 +4002,7 @@ export const I18N = {
     zh_TW: `貼上`,
     ja: `貼り付け`,
     ko: `붙여넣기`,
+    tr: `Yapıştır`,
   },
   submit: {
     zh: `提交`,
@@ -3538,6 +4010,7 @@ export const I18N = {
     zh_TW: `提交`,
     ja: `送信`,
     ko: `제출`,
+    tr: `Gönder`,
   },
   collect: {
     zh: `收藏`,
@@ -3545,6 +4018,7 @@ export const I18N = {
     zh_TW: `收藏`,
     ja: `保存`,
     ko: `저장`,
+    tr: `Kaydet`,
   },
   show_translation_dot: {
     zh: `显示翻译圆点`,
@@ -3552,6 +4026,7 @@ export const I18N = {
     zh_TW: `顯示翻譯圓點`,
     ja: `翻訳ドットを表示`,
     ko: `번역 점 표시`,
+    tr: `Çeviri Noktasını Göster`,
   },
   show_dot_mobile: {
     zh: `仅移动端`,
@@ -3559,6 +4034,7 @@ export const I18N = {
     zh_TW: `僅限行動裝置`,
     ja: `モバイルのみ`,
     ko: `모바일 전용`,
+    tr: `Yalnızca Mobil`,
   },
   show_dot_always: {
     zh: `总是显示`,
@@ -3566,6 +4042,7 @@ export const I18N = {
     zh_TW: `總是顯示`,
     ja: `常に表示`,
     ko: `항상 표시`,
+    tr: `Her Zaman`,
   },
   show_dot_disable: {
     zh: `禁用`,
@@ -3573,6 +4050,7 @@ export const I18N = {
     zh_TW: `停用`,
     ja: `無効`,
     ko: `사용 안 함`,
+    tr: `Devre Dışı`,
   },
   rule_disabled: {
     zh: `规则已禁用`,
@@ -3580,6 +4058,7 @@ export const I18N = {
     zh_TW: `規則已停用`,
     ja: `ルールが無効になっています`,
     ko: `규칙이 비활성화되었습니다`,
+    tr: `Kural Devre Dışı`,
   },
   rule_enabled: {
     zh: `规则已启用`,
@@ -3587,6 +4066,7 @@ export const I18N = {
     zh_TW: `規則已啟用`,
     ja: `ルールが有効になっています`,
     ko: `규칙이 활성화되었습니다`,
+    tr: `Kural Etkin`,
   },
   rule_toggle_failed: {
     zh: `规则切换失败`,
@@ -3594,6 +4074,7 @@ export const I18N = {
     zh_TW: `規則切換失敗`,
     ja: `ルールの切り替えに失敗しました`,
     ko: `규칙 전환 실패`,
+    tr: `Kural Değiştirilemedi`,
   },
   seg_trans_diff_warning: {
     zh: `断句和翻译服务不同，翻译引擎会重复翻译字幕`,
@@ -3601,6 +4082,7 @@ export const I18N = {
     zh_TW: `斷句和翻譯服務不同，翻譯引擎會重複翻譯字幕`,
     ja: `セグメンテーションと翻訳エンジンが異なります。字幕は再翻訳されます。`,
     ko: `분할과 번역 엔진이 다릅니다. 자막이 다시 번역됩니다.`,
+    tr: `Segmentasyon ve çeviri motorları farklıdır; altyazılar yeniden çevrilecektir.`,
   },
   subtitle_style_preview: {
     zh: `样式预览`,
@@ -3608,6 +4090,7 @@ export const I18N = {
     zh_TW: `樣式預覽`,
     ja: `スタイルプレビュー`,
     ko: `스타일 미리보기`,
+    tr: `Stil Önizlemesi`,
   },
   subtitle_preview_sample: {
     zh: `这是示例字幕文本`,
@@ -3615,6 +4098,7 @@ export const I18N = {
     zh_TW: `這是範例字幕文字`,
     ja: `これはサンプル字幕テキストです`,
     ko: `예시 자막 텍스트입니다`,
+    tr: `Bu Bir Örnek Altyazıdır`,
   },
   font_size: {
     zh: `字体大小`,
@@ -3622,6 +4106,7 @@ export const I18N = {
     zh_TW: `字體大小`,
     ja: `フォントサイズ`,
     ko: `글꼴 크기`,
+    tr: `Yazı Tipi Boyutu`,
   },
   font_color: {
     zh: `字体颜色`,
@@ -3629,6 +4114,7 @@ export const I18N = {
     zh_TW: `字體顏色`,
     ja: `フォントの色`,
     ko: `글꼴 색상`,
+    tr: `Yazı Tipi Rengi`,
   },
   background_color: {
     zh: `背景颜色`,
@@ -3636,6 +4122,7 @@ export const I18N = {
     zh_TW: `背景顏色`,
     ja: `背景色`,
     ko: `배경색`,
+    tr: `Arka Plan Rengi`,
   },
   opacity: {
     zh: `透明度`,
@@ -3643,6 +4130,7 @@ export const I18N = {
     zh_TW: `透明度`,
     ja: `不透明度`,
     ko: `불투명도`,
+    tr: `Opaklık`,
   },
   line_height: {
     zh: `行高`,
@@ -3650,6 +4138,7 @@ export const I18N = {
     zh_TW: `行高`,
     ja: `行の高さ`,
     ko: `줄 높이`,
+    tr: `Satır Yüksekliği`,
   },
   padding: {
     zh: `内边距`,
@@ -3657,6 +4146,7 @@ export const I18N = {
     zh_TW: `內邊距`,
     ja: `余白`,
     ko: `안쪽 여백`,
+    tr: `Dolgu`,
   },
   vertical: {
     zh: `上下`,
@@ -3664,6 +4154,7 @@ export const I18N = {
     zh_TW: `上下`,
     ja: `上下`,
     ko: `상하`,
+    tr: `Dikey`,
   },
   horizontal: {
     zh: `左右`,
@@ -3671,6 +4162,7 @@ export const I18N = {
     zh_TW: `左右`,
     ja: `左右`,
     ko: `좌우`,
+    tr: `Yatay`,
   },
   text_shadow: {
     zh: `文字阴影`,
@@ -3678,6 +4170,7 @@ export const I18N = {
     zh_TW: `文字陰影`,
     ja: `テキストの影`,
     ko: `텍스트 그림자`,
+    tr: `Metin Gölgesi`,
   },
   advanced_css: {
     zh: `高级 CSS 编辑`,
@@ -3685,6 +4178,7 @@ export const I18N = {
     zh_TW: `進階 CSS 編輯`,
     ja: `高度な CSS 編集`,
     ko: `고급 CSS 편집`,
+    tr: `Gelişmiş CSS`,
   },
   close: {
     zh: `关闭`,
@@ -3692,6 +4186,7 @@ export const I18N = {
     zh_TW: `關閉`,
     ja: `閉じる`,
     ko: `닫기`,
+    tr: `Kapat`,
   },
 };
 
