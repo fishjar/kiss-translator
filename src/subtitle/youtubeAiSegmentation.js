@@ -150,7 +150,12 @@ export async function aiSegment({
         }));
       }
 
-      const maxEi = Math.max(...result.map((s) => s._ei ?? -1));
+      // 重锚定响应只认 _aei 为覆盖终点：未锚定段的原始 _ei 不可信，
+      // 虚高值会骗过尾句重试；未重锚定的响应维持原语义。
+      const isReanchored = result.some((s) => s._reanchored);
+      const maxEi = Math.max(
+        ...result.map((s) => (isReanchored ? (s._aei ?? -1) : (s._ei ?? -1)))
+      );
 
       if (maxEi >= 0 && maxEi < speechEvents.length - 1) {
         const tailEvents = speechEvents.slice(maxEi + 1);

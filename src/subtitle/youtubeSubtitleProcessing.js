@@ -518,3 +518,30 @@ export function splitEventsIntoChunks(flatEvents, chunkLength = 1000) {
 
   return eventChunks;
 }
+
+/**
+ * 用整体重锚定后的最终结果替换其时间范围内的失准流式草稿。
+ * 必须就地变异 subtitles：数组引用被播放器 manager 与字幕列表持有，不能重建。
+ * 删除范围取新结果的 [最早 start, 最晚 end)，半开区间保护相邻分块的首句。
+ *
+ * @param {Array<object>} subtitles 当前已合并的字幕数组。
+ * @param {Array<object>} incoming 新到达的字幕条目。
+ * @returns {void}
+ */
+export function replaceReanchoredRange(subtitles, incoming) {
+  if (!incoming?.some((sub) => sub._reanchored)) return;
+
+  let lo = Infinity;
+  let hi = -Infinity;
+  for (const sub of incoming) {
+    if (sub.start < lo) lo = sub.start;
+    if (sub.end > hi) hi = sub.end;
+  }
+
+  for (let i = subtitles.length - 1; i >= 0; i--) {
+    const { start } = subtitles[i];
+    if (start >= lo && start < hi) {
+      subtitles.splice(i, 1);
+    }
+  }
+}

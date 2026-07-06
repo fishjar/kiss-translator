@@ -3,6 +3,7 @@ import {
   formatSubtitles,
   genFlatEvents,
   normalizeTimedTextEvents,
+  replaceReanchoredRange,
   splitEventsIntoChunks,
 } from "./youtubeSubtitleProcessing.js";
 
@@ -45,6 +46,33 @@ describe("youtubeSubtitleProcessing", () => {
     };
 
     expect(normalizeTimedTextEvents([event, { ...event }])).toHaveLength(1);
+  });
+
+  test("replaces stale cues inside a reanchored incoming range in place", () => {
+    const cue = (start, end, extra = {}) => ({ start, end, ...extra });
+    const list = [
+      cue(0, 900),
+      cue(1000, 1800),
+      cue(2500, 3000),
+      cue(5000, 5800),
+    ];
+    const incoming = [
+      cue(1000, 2000, { _reanchored: true }),
+      cue(2000, 5000),
+    ];
+
+    replaceReanchoredRange(list, incoming);
+
+    // 半开区间：范围内的失准草稿被清掉，恰好落在 endMs 的下一分块首句保留。
+    expect(list).toEqual([cue(0, 900), cue(5000, 5800)]);
+  });
+
+  test("keeps the list untouched when incoming has no reanchored cues", () => {
+    const list = [{ start: 1000, end: 2000 }];
+
+    replaceReanchoredRange(list, [{ start: 500, end: 3000 }]);
+
+    expect(list).toEqual([{ start: 1000, end: 2000 }]);
   });
 
   test("generates flat events with start and end timestamps", () => {

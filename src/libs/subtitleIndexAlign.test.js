@@ -1,4 +1,7 @@
-import { createSubtitleIndexAligner } from "./subtitleIndexAlign";
+import {
+  createSubtitleIndexAligner,
+  reanchorIfUntrusted,
+} from "./subtitleIndexAlign";
 
 const wordEvents = (words) =>
   words.map((text, i) => ({ text, start: i * 1000, end: i * 1000 + 1000 }));
@@ -192,5 +195,142 @@ describe("createSubtitleIndexAligner", () => {
     const first = a.realign(...args);
     expect(a.realign(...args)).toEqual(first);
     expect(b.realign(...args)).toEqual(first);
+  });
+});
+
+describe("reanchorIfUntrusted", () => {
+  const words = (n, from = 0) =>
+    Array.from({ length: n }, (_, i) => `w${from + i}`);
+  const textOf = (from, len) => words(len, from).join(" ");
+  const seg = (s, e, text) => ({ text, _si: s, _ei: e });
+  // 持续压缩响应：每段 10 词只声称 7 个 id，比值 0.7，模拟长枚举计数崩坏。
+  const compressed = (count) =>
+    Array.from({ length: count }, (_, k) =>
+      seg(7 * k, 7 * k + 6, textOf(k * 10, 10))
+    );
+
+  test("returns null for healthy responses and for tiny volume", () => {
+    const events = wordEvents(words(400));
+    const healthy = Array.from({ length: 40 }, (_, k) =>
+      seg(k * 10, k * 10 + 9, textOf(k * 10, 10))
+    );
+
+    expect(reanchorIfUntrusted(healthy, events)).toBeNull();
+    expect(reanchorIfUntrusted(healthy.slice(0, 8), events)).toBeNull();
+  });
+
+  test("returns null for episodic bounded drift (phase-1 territory)", () => {
+    const events = wordEvents(words(200));
+    const segs = Array.from({ length: 20 }, (_, k) =>
+      seg(k * 10, k * 10 + 9, textOf(k * 10, 10))
+    );
+    segs[5] = seg(45, 54, textOf(50, 10));
+    segs[6] = seg(65, 74, textOf(60, 10));
+
+    expect(reanchorIfUntrusted(segs, events)).toBeNull();
+  });
+
+  test("re-anchors a sustained compressed response", () => {
+    const events = wordEvents(words(400));
+    const out = reanchorIfUntrusted(compressed(40), events);
+
+    expect(out).toHaveLength(40);
+    out.forEach((sub, k) => {
+      expect(sub.start).toBe(k * 10 * 1000);
+      expect(sub.end).toBe((k * 10 + 9) * 1000 + 1000);
+      expect(sub._si).toBe(7 * k);
+      expect(sub._aei).toBe(k * 10 + 9);
+      expect(sub._reanchored).toBe(true);
+    });
+  });
+
+  test("catches a degraded tail hidden by a healthy prefix", () => {
+    const events = wordEvents(words(300));
+    // 整体比值 0.85 恰好擦过整响应阈值，靠滑动窗口补位识别。
+    const segs = Array.from({ length: 30 }, (_, k) =>
+      k < 15
+        ? seg(k * 10, k * 10 + 9, textOf(k * 10, 10))
+        : seg(150 + 7 * (k - 15), 156 + 7 * (k - 15), textOf(k * 10, 10))
+    );
+    const out = reanchorIfUntrusted(segs, events);
+
+    expect(out).not.toBeNull();
+    expect(out[29].start).toBe(290 * 1000);
+    expect(out[29]._reanchored).toBe(true);
+  });
+
+  test("returns null for unspaced CJK responses", () => {
+    const events = wordEvents(words(200));
+    const segs = Array.from({ length: 150 }, (_, k) =>
+      seg(k, k, "这是一段没有空格的中文字幕文本")
+    );
+
+    expect(reanchorIfUntrusted(segs, events)).toBeNull();
+  });
+
+  test("a hallucinated segment misses without derailing the chain", () => {
+    const events = wordEvents(words(200));
+    const segs = compressed(20);
+    segs[10] = seg(70, 76, "zzz yyy xxx qqq ppp");
+    const out = reanchorIfUntrusted(segs, events);
+
+    expect(out).not.toBeNull();
+    expect(out[10]._reanchored).toBeUndefined();
+    expect(out[11].start).toBe(110 * 1000);
+    expect(out[11]._reanchored).toBe(true);
+  });
+
+  test("abandons after five consecutive misses and rejects the pass", () => {
+    const events = wordEvents(words(300));
+    const segs = compressed(30);
+    for (let k = 10; k < 15; k++) {
+      segs[k] = seg(7 * k, 7 * k + 6, `bad${k} bogus${k} nope${k} nah${k}`);
+    }
+
+    expect(reanchorIfUntrusted(segs, events)).toBeNull();
+  });
+
+  test("drops duplicate re-emissions overlapping the previous span", () => {
+    const events = wordEvents(words(200));
+    const segs = compressed(16);
+    segs.splice(6, 0, seg(40, 46, textOf(52, 8)));
+    const out = reanchorIfUntrusted(segs, events);
+
+    expect(out).toHaveLength(16);
+    expect(out[6].start).toBe(60 * 1000);
+  });
+
+  test("keeps a literally repeated back-to-back sentence", () => {
+    const w = words(200);
+    // 说话人原样重复上一句：词 60-69 与 50-59 完全相同。
+    for (let i = 0; i < 10; i++) w[60 + i] = `w${50 + i}`;
+    const events = wordEvents(w);
+    const segs = compressed(20);
+    segs[6] = seg(42, 48, textOf(50, 10));
+    const out = reanchorIfUntrusted(segs, events);
+
+    expect(out).toHaveLength(20);
+    expect(out[5].start).toBe(50 * 1000);
+    expect(out[6].start).toBe(60 * 1000);
+    expect(out[6]._reanchored).toBe(true);
+  });
+
+  test("keeps a context-leak tail segment raw", () => {
+    const events = wordEvents(words(160));
+    const segs = compressed(16);
+    segs.push(seg(112, 118, "aaa bbb ccc ddd eee"));
+    const out = reanchorIfUntrusted(segs, events);
+
+    expect(out).not.toBeNull();
+    expect(out[16]._reanchored).toBeUndefined();
+  });
+
+  test("is deterministic", () => {
+    const events = wordEvents(words(400));
+    const segs = compressed(40);
+
+    expect(reanchorIfUntrusted(segs, events)).toEqual(
+      reanchorIfUntrusted(segs, events)
+    );
   });
 });

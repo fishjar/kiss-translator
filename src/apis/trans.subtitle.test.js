@@ -217,4 +217,72 @@ describe("handleSubtitle", () => {
       },
     ]);
   });
+
+  const runawayEvents = Array.from({ length: 200 }, (_, i) => ({
+    start: i * 1000,
+    end: i * 1000 + 1000,
+    text: `w${i}`,
+  }));
+  // 持续压缩响应：每段 10 词只声称 7 个 id，模拟长枚举下的计数崩坏。
+  const runawayBody = (count) =>
+    Array.from({ length: count }, (_, k) => ({
+      s: 7 * k,
+      e: 7 * k + 6,
+      o: Array.from({ length: 10 }, (_, j) => `w${k * 10 + j}`).join(" "),
+      t: `译${k}`,
+    }));
+
+  test("reanchors a runaway response wholesale on the non-stream path", async () => {
+    fetchData.mockResolvedValueOnce({
+      choices: [{ message: { content: JSON.stringify(runawayBody(20)) } }],
+    });
+
+    const result = await handleSubtitle({
+      events: runawayEvents,
+      from: "en",
+      to: "zh-CN",
+      apiSetting: getApiSetting(OPT_TRANS_OPENAI),
+    });
+
+    expect(result).toHaveLength(20);
+    result.forEach((sub, k) => {
+      expect(sub.start).toBe(k * 10 * 1000);
+      expect(sub.end).toBe((k * 10 + 9) * 1000 + 1000);
+      expect(sub._si).toBe(7 * k);
+      expect(sub._reanchored).toBe(true);
+    });
+  });
+
+  test("suppresses runaway streaming drafts and reanchors the final result", async () => {
+    const body = runawayBody(16);
+    async function* streamChunks() {
+      for (let k = 0; k < body.length; k++) {
+        const prefix = k === 0 ? "[" : ",";
+        const suffix = k === body.length - 1 ? "]" : "";
+        yield JSON.stringify({
+          choices: [
+            { delta: { content: prefix + JSON.stringify(body[k]) + suffix } },
+          ],
+        });
+      }
+    }
+    fetchStream.mockReturnValueOnce(streamChunks());
+
+    const onSubtitleChunk = jest.fn();
+    const result = await handleSubtitle({
+      events: runawayEvents,
+      from: "en",
+      to: "zh-CN",
+      apiSetting: getApiSetting(OPT_TRANS_OPENAI),
+      onSubtitleChunk,
+    });
+
+    // 第 10 段填满监测窗口即判失准，其后的草稿全部被抑制。
+    expect(onSubtitleChunk).toHaveBeenCalledTimes(9);
+    expect(result).toHaveLength(16);
+    result.forEach((sub, k) => {
+      expect(sub.start).toBe(k * 10 * 1000);
+      expect(sub._reanchored).toBe(true);
+    });
+  });
 });

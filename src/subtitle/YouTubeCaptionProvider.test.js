@@ -59,6 +59,7 @@ jest.mock("./youtubeSubtitleProcessing.js", () => ({
   genFlatEvents: jest.fn(),
   getFromLang: () => "en",
   normalizeTimedTextEvents: jest.fn(),
+  replaceReanchoredRange: jest.fn(),
 }));
 
 jest.mock("./youtubeAiSegmentation.js", () => ({
@@ -69,6 +70,7 @@ jest.mock("./BilingualSubtitleManager.js", () => ({
   BilingualSubtitleManager: class {
     start = jest.fn();
     destroy = jest.fn();
+    appendSubtitles = jest.fn();
     repairChunkTranslations = jest.fn();
   },
 }));

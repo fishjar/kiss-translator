@@ -70,7 +70,10 @@ import {
   detectStreamFormat,
   getStreamDelta,
 } from "../libs/stream";
-import { createSubtitleIndexAligner } from "../libs/subtitleIndexAlign";
+import {
+  createSubtitleIndexAligner,
+  reanchorIfUntrusted,
+} from "../libs/subtitleIndexAlign";
 import { kissLog } from "../libs/log";
 import { fetchData, fetchStream } from "../libs/fetch";
 import { getMsgHistory } from "./history";
@@ -337,8 +340,12 @@ const parseIndexSubtitleRes = (raw, events) => {
   // AI 有时在 JSON 值以 >> 开头时丢掉冒号和引号: "o">> → "o":">>
   const repaired = stripped.replace(/"([a-z_]+)">>/g, '"$1":">>');
 
+  // 响应级门控：整份 s/e 失准（长枚举计数崩坏）时按 o 文本全局重锚定。
+  const finalize = (result) =>
+    result ? (reanchorIfUntrusted(result, events) ?? result) : result;
+
   try {
-    return buildResult(JSON.parse(repaired));
+    return finalize(buildResult(JSON.parse(repaired)));
   } catch {
     try {
       const last = Math.max(
@@ -347,7 +354,7 @@ const parseIndexSubtitleRes = (raw, events) => {
         repaired.lastIndexOf("}\r")
       );
       if (last < 0) return null;
-      return buildResult(JSON.parse(repaired.slice(0, last + 1) + "]"));
+      return finalize(buildResult(JSON.parse(repaired.slice(0, last + 1) + "]")));
     } catch {
       return null;
     }
@@ -1975,17 +1982,51 @@ async function handleSubtitleStreamInternal(
   const emitted = [];
   const emittedKeys = new Set();
 
+  // 滑动窗口监测草稿的 id 消耗与文本词数比值，失准后停止向上转发，
+  // 避免崩坏响应把提前数分钟的错误字幕流式推上播放器。
+  // 比值检测预设事件≈单词（ASR 词级轨）；行级人工轨一个事件多词，比值天然
+  // 偏低，参与监测会误伤健康草稿，直接停用。
+  const avgWordsPerEvent = events?.length
+    ? events.reduce(
+        (acc, e) =>
+          acc + String(e?.text || "").split(/\s+/).filter(Boolean).length,
+        0
+      ) / events.length
+    : 1;
+  const ratioWin = [];
+  let draftSuppressed = false;
+  const trackDraftDrift = (subtitle) => {
+    if (draftSuppressed || avgWordsPerEvent > 1.5) return;
+    const words = String(subtitle.text || "")
+      .split(/\s+/)
+      .filter(Boolean).length;
+    // CJK 等不空格文本分不出词，不参与监测，保持草稿照常上屏。
+    if (words < 3) return;
+    const ids = Math.max(1, (subtitle._ei ?? 0) - (subtitle._si ?? 0) + 1);
+    ratioWin.push([ids, words]);
+    if (ratioWin.length > 10) ratioWin.shift();
+    if (ratioWin.length === 10) {
+      const idSum = ratioWin.reduce((acc, [n]) => acc + n, 0);
+      const wordSum = ratioWin.reduce((acc, [, n]) => acc + n, 0);
+      const ratio = idSum / wordSum;
+      if (ratio < 0.8 || ratio > 1.25) draftSuppressed = true;
+    }
+  };
+
   const appendSubtitles = (subtitles, isFinal = false) => {
     const fresh = [];
     for (const subtitle of subtitles || []) {
       const key = `${subtitle._si}:${subtitle._ei}`;
       if (emittedKeys.has(key)) continue;
       emittedKeys.add(key);
+      // 抑制只拦 onSubtitleChunk 转发；emitted 必须完整收集，
+      // 最终解析失败时它是兜底返回值，缺句会造成字幕永久丢失。
       emitted.push(subtitle);
+      trackDraftDrift(subtitle);
       fresh.push(subtitle);
     }
 
-    if (fresh.length) {
+    if (fresh.length && !draftSuppressed) {
       // 只有完整句子对象闭合后才上抛，避免半句字幕污染播放器时间轴。
       onSubtitleChunk({ subtitles: fresh, isFinal });
     }

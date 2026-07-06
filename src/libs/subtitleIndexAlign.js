@@ -20,13 +20,7 @@ const tokenize = (text) =>
 
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(n, hi));
 
-/**
- * 创建字幕索引对齐器。构建时一次性拍平事件词表，realign 为纯函数、无游标，
- * 同一输入永远得到同一结果（流式乱序、重复输出与二次解析都依赖这一点）。
- * @param {Array<Object>} events 字幕事件列表（{text, start, end}）。
- * @returns {{realign: Function}} realign(s, e, o) 返回 {startIdx, endIdx} 或 null。
- */
-export const createSubtitleIndexAligner = (events = []) => {
+const buildWordTable = (events = []) => {
   const table = [];
   const eventStartPos = [];
   for (let ei = 0; ei < events.length; ei++) {
@@ -36,14 +30,26 @@ export const createSubtitleIndexAligner = (events = []) => {
       table.push({ w, ei });
     }
   }
+  return { table, eventStartPos };
+};
 
-  const matchAt = (pos, tokens) => {
-    if (pos < 0 || pos + tokens.length > table.length) return false;
-    for (let k = 0; k < tokens.length; k++) {
-      if (table[pos + k].w !== tokens[k]) return false;
-    }
-    return true;
-  };
+const makeMatchAt = (table) => (pos, tokens) => {
+  if (pos < 0 || pos + tokens.length > table.length) return false;
+  for (let k = 0; k < tokens.length; k++) {
+    if (table[pos + k].w !== tokens[k]) return false;
+  }
+  return true;
+};
+
+/**
+ * 创建字幕索引对齐器。构建时一次性拍平事件词表，realign 为纯函数、无游标，
+ * 同一输入永远得到同一结果（流式乱序、重复输出与二次解析都依赖这一点）。
+ * @param {Array<Object>} events 字幕事件列表（{text, start, end}）。
+ * @returns {{realign: Function}} realign(s, e, o) 返回 {startIdx, endIdx} 或 null。
+ */
+export const createSubtitleIndexAligner = (events = []) => {
+  const { table, eventStartPos } = buildWordTable(events);
+  const matchAt = makeMatchAt(table);
 
   /**
    * 用 o 原文纠正模型声称的事件索引范围。
@@ -155,4 +161,173 @@ export const createSubtitleIndexAligner = (events = []) => {
   };
 
   return { realign };
+};
+
+const GATE = {
+  minSegs: 10, // 段数太少统计不稳，不启用门控
+  minWords: 150, // 文本词量太小统计不稳，不启用门控
+  wholeRatio: 0.15, // 整响应「声称词数/文本词数」偏差阈值
+  winSize: 10, // 滑动窗口段数，识别被健康前缀稀释的局部崩坏
+  winMinWords: 80,
+  winLo: 0.8,
+  winHi: 1.25,
+  cumDrift: 80, // 任一前缀的累计词数亏空阈值
+  spacedRatio: 0.6, // 词分隔守卫：六成以上段的 o 要能分出 3 词，挡住 CJK
+  backtrack: 40, // 重锚定游标允许的回溯词数，需覆盖模型交错重发段的回跳幅度
+  forward: 200, // 重锚定单步向前搜索上限；重复口头禅的远处假匹配不得拖走游标
+  maxMisses: 5, // 连续锚定失败上限，超出后放弃剩余段
+  accept: 0.7, // 验收下限：锚定段占比与锚定词覆盖率
+};
+
+/**
+ * 检测整份断句响应的 s/e 是否整体失准（长枚举下模型计数崩坏，实测比值可低至 0.71
+ * 且持续十分钟不自愈），失准则按 o 文本做游标单调的全局重锚定。
+ * 返回 null 表示响应可信或重锚定未达验收标准，调用方保持原结果；
+ * 返回数组则为替换结果：锚定段带 _aei（锚定终点事件索引，供尾句重试判定覆盖范围）
+ * 与 _reanchored 标记（provider 据此清理失准草稿），_si/_ei 保留模型原始值。
+ * @param {Array<Object>} segments parseIndexSubtitleRes 构建的字幕段。
+ * @param {Array<Object>} events 当前请求的事件列表。
+ * @returns {Array<Object>|null}
+ */
+export const reanchorIfUntrusted = (segments = [], events = []) => {
+  if (segments.length < GATE.minSegs || !events.length) return null;
+
+  const { table, eventStartPos } = buildWordTable(events);
+  if (!table.length) return null;
+  const matchAt = makeMatchAt(table);
+  const eventEndPos = (ei) =>
+    ei + 1 < events.length ? eventStartPos[ei + 1] : table.length;
+
+  const stats = segments.map((sub) => {
+    const cs = clamp(Number(sub._si) || 0, 0, events.length - 1);
+    const ce = clamp(Number(sub._ei) || 0, cs, events.length - 1);
+    const oTokens = tokenize(sub.text);
+    return {
+      oTokens,
+      oTok: oTokens.length,
+      claimedTok: Math.max(0, eventEndPos(ce) - eventStartPos[cs]),
+    };
+  });
+
+  const totalO = stats.reduce((acc, s) => acc + s.oTok, 0);
+  if (totalO < GATE.minWords) return null;
+  const spacedCount = stats.filter((s) => s.oTok >= 3).length;
+  if (spacedCount / segments.length < GATE.spacedRatio) return null;
+
+  // 三路并联门控。整体比值会被健康前缀稀释（实测崩坏响应混算后仅 0.857），
+  // 滑动窗口与前缀累计亏空负责补位。
+  const totalClaimed = stats.reduce((acc, s) => acc + s.claimedTok, 0);
+  let tripped = Math.abs(totalClaimed / totalO - 1) > GATE.wholeRatio;
+  let cum = 0;
+  for (let i = 0; i < stats.length && !tripped; i++) {
+    cum += stats[i].claimedTok - stats[i].oTok;
+    if (Math.abs(cum) >= GATE.cumDrift) {
+      tripped = true;
+      break;
+    }
+    if (i >= GATE.winSize - 1) {
+      let winO = 0;
+      let winC = 0;
+      for (let k = i - GATE.winSize + 1; k <= i; k++) {
+        winO += stats[k].oTok;
+        winC += stats[k].claimedTok;
+      }
+      if (winO >= GATE.winMinWords) {
+        const ratio = winC / winO;
+        if (ratio < GATE.winLo || ratio > GATE.winHi) tripped = true;
+      }
+    }
+  }
+  if (!tripped) return null;
+
+  // 游标单调重锚定：从上一段锚定终点接续向前找。
+  // miss 不动游标，避免幻觉段拖歪整条链；连续 miss 过多则放弃剩余段。
+  const out = [];
+  let cursor = 0;
+  let misses = 0;
+  let anchoring = true;
+  let anchoredSegs = 0;
+  let anchoredWords = 0;
+  let prevEndPos = -1;
+
+  for (let i = 0; i < segments.length; i++) {
+    const sub = segments[i];
+    const { oTokens } = stats[i];
+    const L = oTokens.length;
+    if (!anchoring || L < 3) {
+      out.push(sub);
+      continue;
+    }
+
+    const probes = [0, 1, 2]
+      .filter((off) => off + 3 <= L)
+      .map((off) => [off, oTokens.slice(off, off + 3)]);
+    // 取离游标最近的候选：顺序文本的真实位置就在游标附近，
+    // 重复口头禅落在回溯区或远处的假匹配都会因距离更远而落选；等距偏向顺流方向。
+    let st = -1;
+    let bestDist = Infinity;
+    const lo = Math.max(0, cursor - GATE.backtrack);
+    const hi = Math.min(table.length - L, cursor + GATE.forward);
+    for (let pos = lo; pos <= hi && bestDist > 0; pos++) {
+      for (const [off, probe] of probes) {
+        if (matchAt(pos + off, probe)) {
+          const dist = Math.abs(pos - cursor);
+          if (dist < bestDist || (dist === bestDist && st < cursor)) {
+            bestDist = dist;
+            st = pos;
+          }
+          break;
+        }
+      }
+    }
+
+    if (st === -1) {
+      out.push(sub);
+      if (++misses >= GATE.maxMisses) anchoring = false;
+      continue;
+    }
+
+    const tail = oTokens.slice(-3);
+    const expected = st + L - tail.length;
+    let endPos = st + L - 1;
+    let tailDone = false;
+    for (let d = 0; d <= 4 && !tailDone; d++) {
+      const js = d === 0 ? [expected] : [expected - d, expected + d];
+      for (const j of js) {
+        if (j >= st && matchAt(j, tail)) {
+          endPos = j + tail.length - 1;
+          tailDone = true;
+          break;
+        }
+      }
+    }
+
+    // 模型重复输出的段会锚到已消费的位置，保留先到者。
+    if (st <= prevEndPos && prevEndPos - st + 1 > (endPos - st + 1) / 2) {
+      continue;
+    }
+
+    const startIdx = table[st].ei;
+    const endIdx = Math.max(startIdx, table[endPos].ei);
+    out.push({
+      ...sub,
+      start: events[startIdx].start,
+      end: events[endIdx].end,
+      _aei: endIdx,
+      _reanchored: true,
+    });
+    anchoredSegs += 1;
+    anchoredWords += L;
+    cursor = endPos + 1;
+    prevEndPos = endPos;
+    misses = 0;
+  }
+
+  if (
+    anchoredSegs / segments.length < GATE.accept ||
+    anchoredWords / totalO < GATE.accept
+  ) {
+    return null;
+  }
+  return out;
 };

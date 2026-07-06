@@ -23,6 +23,7 @@ import {
   genFlatEvents,
   getFromLang,
   normalizeTimedTextEvents,
+  replaceReanchoredRange,
 } from "./youtubeSubtitleProcessing.js";
 import {
   CONTROLS_SELECTOR,
@@ -696,6 +697,12 @@ export class YouTubeCaptionProvider {
         progressed
       );
       this.#startManager();
+      // 流式草稿可能已提前启动 manager；首块最终结果（含重锚定替换）需强制重刷。
+      this.#managerInstance?.appendSubtitles(managedSubtitles);
+      this.#subtitleListManager?.setBilingualSubtitles(
+        this.#subtitles,
+        this.#progressed
+      );
       this.#managerInstance?.repairChunkTranslations(managedSubtitles);
     } catch (error) {
       if (error?.name === "AbortError") return;
@@ -717,6 +724,9 @@ export class YouTubeCaptionProvider {
       this.#progressed = progressed;
       return [];
     }
+
+    // 整体重锚定的最终结果先清掉时间范围内的失准草稿，再走常规合并。
+    replaceReanchoredRange(this.#subtitles, subtitles);
 
     const existed = new Map(
       this.#subtitles.map((sub, index) => [`${sub.start}:${sub.end}`, index])

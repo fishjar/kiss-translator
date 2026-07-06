@@ -1,4 +1,5 @@
 import {
+  aiSegment,
   createAiChunkScheduler,
   eventsToSubtitles,
 } from "./youtubeAiSegmentation";
@@ -347,5 +348,76 @@ describe("createAiChunkScheduler", () => {
       progressed: 66,
       chunkNum: 2,
     });
+  });
+});
+
+describe("aiSegment tail retry", () => {
+  const chunkEvents = Array.from({ length: 12 }, (_, i) => ({
+    start: i * 1000,
+    end: i * 1000 + 1000,
+    text: `w${i}`,
+  }));
+  const baseArgs = {
+    videoId: "v",
+    fromLang: "en",
+    toLang: "zh-CN",
+    segApiSetting: {},
+    docInfo: {},
+    formatSubtitles: jest.fn(() => []),
+    clearSegmentTranslation: false,
+    setting: {},
+  };
+
+  test("skips tail retry when reanchored coverage reaches the chunk end", async () => {
+    const apiSubtitle = jest.fn(() =>
+      Promise.resolve([
+        {
+          start: 0,
+          end: 12000,
+          text: "x",
+          _si: 0,
+          _ei: 7,
+          _aei: 11,
+          _reanchored: true,
+        },
+      ])
+    );
+
+    await aiSegment({ ...baseArgs, chunkEvents, apiSubtitle });
+
+    expect(apiSubtitle).toHaveBeenCalledTimes(1);
+  });
+
+  test("retries the tail from the raw end when not reanchored", async () => {
+    const apiSubtitle = jest.fn(() =>
+      Promise.resolve([{ start: 0, end: 8000, text: "x", _si: 0, _ei: 7 }])
+    );
+
+    await aiSegment({ ...baseArgs, chunkEvents, apiSubtitle });
+
+    expect(apiSubtitle).toHaveBeenCalledTimes(2);
+    expect(apiSubtitle.mock.calls[1][0].events).toHaveLength(4);
+  });
+
+  test("ignores raw _ei of unanchored segments in a reanchored response", async () => {
+    const apiSubtitle = jest.fn(() =>
+      Promise.resolve([
+        { start: 0, end: 8000, text: "x", _si: 0, _ei: 11 },
+        {
+          start: 0,
+          end: 8000,
+          text: "y",
+          _si: 3,
+          _ei: 5,
+          _aei: 7,
+          _reanchored: true,
+        },
+      ])
+    );
+
+    await aiSegment({ ...baseArgs, chunkEvents, apiSubtitle });
+
+    expect(apiSubtitle).toHaveBeenCalledTimes(2);
+    expect(apiSubtitle.mock.calls[1][0].events).toHaveLength(4);
   });
 });
