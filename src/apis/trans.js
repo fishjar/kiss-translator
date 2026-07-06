@@ -70,6 +70,7 @@ import {
   detectStreamFormat,
   getStreamDelta,
 } from "../libs/stream";
+import { createSubtitleIndexAligner } from "../libs/subtitleIndexAlign";
 import { kissLog } from "../libs/log";
 import { fetchData, fetchStream } from "../libs/fetch";
 import { getMsgHistory } from "./history";
@@ -306,6 +307,8 @@ const geminiText = (parts) =>
     : "";
 
 const parseIndexSubtitleRes = (raw, events) => {
+  // 对齐器只建一次词表：buildResult 在截断修复兜底时可能执行两次。
+  const aligner = createSubtitleIndexAligner(events);
   const buildResult = (data) => {
     if (!Array.isArray(data) || !data.length) return null;
     const result = [];
@@ -315,11 +318,14 @@ const parseIndexSubtitleRes = (raw, events) => {
       if (!Number.isInteger(s) || !Number.isInteger(e)) continue;
       const startIdx = Math.max(0, Math.min(s, events.length - 1));
       const endIdx = Math.max(startIdx, Math.min(e, events.length - 1));
+      const text = String(seg.o ?? seg.original ?? "");
+      const fixed = aligner.realign(s, e, text);
       result.push({
-        start: events[startIdx].start,
-        end: events[endIdx].end,
-        text: String(seg.o ?? seg.original ?? ""),
+        start: events[fixed?.startIdx ?? startIdx].start,
+        end: events[fixed?.endIdx ?? endIdx].end,
+        text,
         translation: String(seg.t ?? seg.translation ?? ""),
+        // _si/_ei 保留模型原始索引：去重键与尾句重试语义依赖它们。
         _si: s,
         _ei: e,
       });

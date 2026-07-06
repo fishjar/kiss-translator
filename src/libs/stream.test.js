@@ -147,4 +147,39 @@ describe("createStreamingSubtitleParser", () => {
     ).toHaveLength(1);
     expect(parser.end()).toEqual([]);
   });
+
+  describe("index realignment", () => {
+    const driftEvents = Array.from({ length: 10 }, (_, i) => ({
+      start: i * 1000,
+      end: i * 1000 + 1000,
+      text: `w${i}`,
+    }));
+
+    test("corrects drifted s/e times while _si/_ei keep raw values", () => {
+      const parser = createStreamingSubtitleParser(driftEvents);
+
+      expect(parser.write('[{"s":4,"e":6,"o":"w1 w2 w3","t":"译文"}]')).toEqual(
+        [
+          {
+            start: 1000,
+            end: 4000,
+            text: "w1 w2 w3",
+            translation: "译文",
+            _si: 4,
+            _ei: 6,
+          },
+        ]
+      );
+    });
+
+    test("still deduplicates by raw s/e after realignment", () => {
+      const parser = createStreamingSubtitleParser(driftEvents);
+
+      expect(
+        parser.write(
+          '[{"s":4,"e":6,"o":"w1 w2 w3","t":"译文"},{"s":4,"e":6,"o":"w1 w2 w3","t":"译文"}]'
+        )
+      ).toHaveLength(1);
+    });
+  });
 });
