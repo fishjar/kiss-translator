@@ -176,4 +176,7 @@ export const logger = new Logger();
 // 可以考虑后续提供类似的快捷别名或直接鼓励大家使用 logger.warn/error 以保持日志语义清晰。
 export const kissLog = logger.info.bind(logger);
 
+export const SPA_DEBUG = false;
+export const spaLog = (...args) => SPA_DEBUG && logger.info(...args);
+
 // TODO：debug日志埋点

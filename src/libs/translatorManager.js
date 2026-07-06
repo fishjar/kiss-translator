@@ -31,7 +31,7 @@ import {
   MSG_MOUSEHOVER_TOGGLE,
   MSG_TRANSINPUT_TOGGLE,
 } from "../config";
-import { logger } from "./log";
+import { logger, spaLog } from "./log";
 
 /**
  * 前台翻译业务的总生命周期管理器。
@@ -434,6 +434,8 @@ export default class TranslatorManager {
   #scheduleSpaRefresh(type, reason) {
     if (!this.#isActive) return;
 
+    spaLog(`[SPA-DEBUG] scheduleSpaRefresh type=${type} reason=${reason} pending=${this.#pendingSpaRefresh}`);
+
     if (this.#spaRefreshTimer) {
       clearTimeout(this.#spaRefreshTimer);
       this.#spaRefreshTimer = null;
@@ -457,6 +459,8 @@ export default class TranslatorManager {
       this.#pendingSpaRefreshReason = "";
 
       if (!this.#isActive) return;
+
+      spaLog(`[SPA-DEBUG] spaRefresh executing: type=${refreshType} reason=${refreshReason} containerChanged=${this.#hasDocumentContainerChanged()}`);
 
       if (refreshType === "restart" || this.#hasDocumentContainerChanged()) {
         this.restart(refreshReason);

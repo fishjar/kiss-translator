@@ -385,6 +385,15 @@ export const scheduleIdle = (cb, timeout = 200) => {
   return setTimeout(cb, timeout);
 };
 
+export const cancelScheduledIdle = (handle) => {
+  if (handle == null) return;
+  if (window.cancelIdleCallback) {
+    cancelIdleCallback(handle);
+  } else {
+    clearTimeout(handle);
+  }
+};
+
 /**
  * 根据页面 URL，提取通用的主机名/域名 Pattern
  * @param {string} href
