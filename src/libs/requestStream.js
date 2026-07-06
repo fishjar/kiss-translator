@@ -154,8 +154,14 @@ async function* fetchStreamGM(
         while (true) {
           const { done: readerDone, value } = await reader.read();
           if (readerDone) break;
+          // Firefox Xray: TypedArray 跨 origin 边界不可直接访问，
+          // 拷贝ß到当前 realm 以规避 "Accessing TypedArray data over Xrays" 错误。
+          const chunk =
+            value instanceof ArrayBuffer || ArrayBuffer.isView(value)
+              ? new Uint8Array(value)
+              : value;
           for (const data of parseSSE(
-            decoder.decode(value, { stream: true })
+            decoder.decode(chunk, { stream: true })
           )) {
             pushedChunk = true;
             asyncQueue.push(data);
