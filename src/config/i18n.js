@@ -9,6 +9,7 @@ export const UI_LANGS = [
   ["zh_TW", "繁體中文"],
   ["ja", "日本語"],
   ["ko", "한국어"],
+  ["tr", "Türkçe"],
 ];
 
 const customApiLangs = `["en", "English - English"],
