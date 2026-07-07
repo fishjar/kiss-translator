@@ -1079,14 +1079,14 @@ export class YouTubeSubtitleList {
    * 利用二分检索算法 (O(log N)) 在有序的字幕缓存数组中快速定位匹配目标时间轴的 DOM 节点，
    * 随后定向修改译文 textContent 并显示。由于无需重画周边节点，性能极佳。
    *
-   * @param {object} subtitleUpdate - 含有 { start, translation } 的更新分片数据
+   * @param {object} subtitleUpdate - 含有 { start, end, text, translation } 的更新分片数据
    */
   updateSingleSubtitle(subtitleUpdate) {
     if (!this.subtitleListEl) return;
 
-    const { start, translation } = subtitleUpdate;
+    const { start, end, text, translation } = subtitleUpdate;
     // 对有序的双语字幕数组进行二分精确匹配
-    const targetIndex = this._findSubtitleIndexByStart(start);
+    const targetIndex = this._findSubtitleIndexByStart(start, end, text);
 
     if (targetIndex === -1) return;
 
@@ -1109,22 +1109,43 @@ export class YouTubeSubtitleList {
 
   /**
    * 根据字幕开始时间定位字幕索引。
-   * 翻译更新事件只携带 start 时间；字幕数组按 start 升序排列，因此这里用二分查找避免线性扫描。
+   * 字幕数组按 start 升序排列，先二分再在同 start 相邻段内用 end/text 精确命中：
+   * 断句模型会重发与整句同一 start 的感叹词短段，只按 start 匹配会把译文写到相邻
+   * 条目上；条目被最终断句替换后 end/text 已变的迟到更新同样不能落到别的句子上，
+   * 宁可丢弃等预翻译循环重译。
    * @param {number} start 字幕开始时间（毫秒）
+   * @param {number} [end] 字幕结束时间（毫秒），与 text 一起精确命中
+   * @param {string} [text] 字幕原文，与 end 一起精确命中
    * @returns {number} 匹配的字幕索引，未找到返回 -1
    */
-  _findSubtitleIndexByStart(start) {
+  _findSubtitleIndexByStart(start, end, text) {
+    const subs = this.bilingualSubtitles;
     let left = 0;
-    let right = this.bilingualSubtitles.length - 1;
+    let right = subs.length - 1;
+    let hit = -1;
 
     while (left <= right) {
       const mid = Math.floor((left + right) / 2);
-      const sub = this.bilingualSubtitles[mid];
-      if (sub.start === start) return mid;
+      const sub = subs[mid];
+      if (sub.start === start) {
+        hit = mid;
+        break;
+      }
       if (sub.start > start) right = mid - 1;
       else left = mid + 1;
     }
+    if (hit === -1) return -1;
+    // 不带判别字段的旧调用保持按 start 命中。
+    if (end === undefined && text === undefined) return hit;
 
+    let lo = hit;
+    while (lo > 0 && subs[lo - 1].start === start) lo--;
+    let hi = hit;
+    while (hi + 1 < subs.length && subs[hi + 1].start === start) hi++;
+
+    for (let i = lo; i <= hi; i++) {
+      if (subs[i].end === end && subs[i].text === text) return i;
+    }
     return -1;
   }
 

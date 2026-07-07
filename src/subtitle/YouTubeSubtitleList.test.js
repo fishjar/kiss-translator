@@ -218,6 +218,61 @@ describe("YouTubeSubtitleList", () => {
     manager.destroy();
   });
 
+  test("routes translation updates to the exact same-start subtitle", async () => {
+    const videoEl = createVideoElement();
+    const manager = new YouTubeSubtitleList(videoEl);
+    // 断句模型重发的感叹词与整句共用同一 start，只按 start 匹配会互相错写译文。
+    const interjection = { start: 33000, end: 33500, text: "Okay." };
+    const sentence = {
+      start: 33000,
+      end: 36000,
+      text: "Well, we can see that it is eleven characters long.",
+    };
+
+    manager.initialize([interjection, sentence], [], 100);
+
+    manager.updateSingleSubtitle({ ...interjection, translation: "好。" });
+    manager.updateSingleSubtitle({
+      ...sentence,
+      translation: "我们可以看到它有 11 个字符长。",
+    });
+
+    expect(interjection.translation).toBe("好。");
+    expect(sentence.translation).toBe("我们可以看到它有 11 个字符长。");
+
+    await Promise.resolve();
+    await Promise.resolve();
+    manager.destroy();
+  });
+
+  test("drops stale updates whose end/text no longer match any same-start cue", async () => {
+    const videoEl = createVideoElement();
+    const manager = new YouTubeSubtitleList(videoEl);
+    const sentence = {
+      start: 33000,
+      end: 36000,
+      text: "Okay, so we can move on now.",
+    };
+
+    manager.initialize([sentence], [], 100);
+
+    // 已被最终断句丢弃的重发短段迟到的译文，不得落到同 start 的幸存句子上。
+    manager.updateSingleSubtitle({
+      start: 33000,
+      end: 33500,
+      text: "Okay.",
+      translation: "好。",
+    });
+    expect(sentence.translation).toBeUndefined();
+
+    manager.updateSingleSubtitle({ ...sentence, translation: "好，那我们继续。" });
+    expect(sentence.translation).toBe("好，那我们继续。");
+
+    await Promise.resolve();
+    await Promise.resolve();
+    manager.destroy();
+  });
+
   test("jumps only when clicking the time label", async () => {
     const videoEl = createVideoElement();
     const manager = new YouTubeSubtitleList(videoEl);
