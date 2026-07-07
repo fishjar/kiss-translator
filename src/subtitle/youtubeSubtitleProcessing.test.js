@@ -67,6 +67,19 @@ describe("youtubeSubtitleProcessing", () => {
     expect(list).toEqual([cue(0, 900), cue(5000, 5800)]);
   });
 
+  test("purges the entire response range carried on reanchored cues", () => {
+    const cue = (start, end, extra = {}) => ({ start, end, ...extra });
+    const list = [cue(300, 900), cue(1500, 2400), cue(6200, 6900)];
+    const incoming = [
+      cue(1000, 2000, { _reanchored: true, _alo: 200, _ahi: 6000 }),
+    ];
+
+    replaceReanchoredRange(list, incoming);
+
+    // 清扫范围取 _alo/_ahi 的 [200, 6000)：首段短句被丢弃留下的缝隙草稿一并清除。
+    expect(list).toEqual([cue(6200, 6900)]);
+  });
+
   test("keeps the list untouched when incoming has no reanchored cues", () => {
     const list = [{ start: 1000, end: 2000 }];
 

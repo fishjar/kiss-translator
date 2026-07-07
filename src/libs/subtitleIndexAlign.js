@@ -172,9 +172,12 @@ const GATE = {
   winLo: 0.8,
   winHi: 1.25,
   cumDrift: 80, // 任一前缀的累计词数亏空阈值
-  spacedRatio: 0.6, // 词分隔守卫：六成以上段的 o 要能分出 3 词，挡住 CJK
+  spacedRatio: 0.6, // 词分隔守卫：能分出 3 词的段需占六成词量，挡住 CJK
   backtrack: 40, // 重锚定游标允许的回溯词数，需覆盖模型交错重发段的回跳幅度
   forward: 200, // 重锚定单步向前搜索上限；重复口头禅的远处假匹配不得拖走游标
+  shortBack: 10, // 短段（<3 词）回溯窗口：真实感叹词就贴在游标附近
+  shortForward: 40, // 短段前向窗口
+  shortOneDist: 8, // 单词短段的最大可信锚定距离
   maxMisses: 5, // 连续锚定失败上限，超出后放弃剩余段
   accept: 0.7, // 验收下限：锚定段占比与锚定词覆盖率
 };
@@ -183,8 +186,11 @@ const GATE = {
  * 检测整份断句响应的 s/e 是否整体失准（长枚举下模型计数崩坏，实测比值可低至 0.71
  * 且持续十分钟不自愈），失准则按 o 文本做游标单调的全局重锚定。
  * 返回 null 表示响应可信或重锚定未达验收标准，调用方保持原结果；
- * 返回数组则为替换结果：锚定段带 _aei（锚定终点事件索引，供尾句重试判定覆盖范围）
- * 与 _reanchored 标记（provider 据此清理失准草稿），_si/_ei 保留模型原始值。
+ * 返回数组则为替换结果：锚定段带 _aei（锚定终点事件索引，供尾句重试判定覆盖范围）、
+ * _reanchored 标记与 _alo/_ahi（本响应事件时间范围，provider 据此清理失准草稿），
+ * _si/_ei 保留模型原始值。不足 3 词的短段无法用探针可靠锚定，在游标近旁就近
+ * 锚定，找不到或歧义时整段丢弃（实测幻影短段可提前语音 160 秒，错误时间上屏
+ * 比丢一个感叹词更糟）。
  * @param {Array<Object>} segments parseIndexSubtitleRes 构建的字幕段。
  * @param {Array<Object>} events 当前请求的事件列表。
  * @returns {Array<Object>|null}
@@ -211,8 +217,12 @@ export const reanchorIfUntrusted = (segments = [], events = []) => {
 
   const totalO = stats.reduce((acc, s) => acc + s.oTok, 0);
   if (totalO < GATE.minWords) return null;
-  const spacedCount = stats.filter((s) => s.oTok >= 3).length;
-  if (spacedCount / segments.length < GATE.spacedRatio) return null;
+  // 分隔度按词量而非段数统计：话痨响应的大量单词感叹段不稀释守卫，CJK 段依旧不达标。
+  const spacedWords = stats.reduce(
+    (acc, s) => acc + (s.oTok >= 3 ? s.oTok : 0),
+    0
+  );
+  if (spacedWords / totalO < GATE.spacedRatio) return null;
 
   // 三路并联门控。整体比值会被健康前缀稀释（实测崩坏响应混算后仅 0.857），
   // 滑动窗口与前缀累计亏空负责补位。
@@ -248,14 +258,91 @@ export const reanchorIfUntrusted = (segments = [], events = []) => {
   let anchoring = true;
   let anchoredSegs = 0;
   let anchoredWords = 0;
+  let judgedSegs = 0;
+  let judgedWords = 0;
   let prevEndPos = -1;
+  let prevAnchored = null;
+
+  // 锚定段统一出口。模型常先重发感叹词再重发整句：同 start 且被当前段整体
+  // 覆盖的上一锚定段以长段为准，移除并回滚其计数。
+  const pushAnchored = (sub, L, startIdx, endIdx) => {
+    const cue = {
+      ...sub,
+      start: events[startIdx].start,
+      end: events[endIdx].end,
+      _aei: endIdx,
+      _reanchored: true,
+    };
+    if (
+      prevAnchored &&
+      prevAnchored.startMs === cue.start &&
+      prevAnchored.aei <= endIdx
+    ) {
+      out.splice(prevAnchored.at, 1);
+      anchoredSegs -= 1;
+      anchoredWords -= prevAnchored.L;
+      judgedSegs -= 1;
+      judgedWords -= prevAnchored.L;
+    }
+    out.push(cue);
+    prevAnchored = { at: out.length - 1, startMs: cue.start, aei: endIdx, L };
+    anchoredSegs += 1;
+    anchoredWords += L;
+    judgedSegs += 1;
+    judgedWords += L;
+  };
 
   for (let i = 0; i < segments.length; i++) {
     const sub = segments[i];
     const { oTokens } = stats[i];
     const L = oTokens.length;
-    if (!anchoring || L < 3) {
+    if (!anchoring) {
       out.push(sub);
+      judgedSegs += 1;
+      judgedWords += L;
+      continue;
+    }
+
+    if (L < 3) {
+      // 短段只在游标近旁锚定；无词可验的纯符号段保持原样且不参与验收。
+      if (!L) {
+        out.push(sub);
+        continue;
+      }
+      // 一字母 token 探针过弱（如 "A."），任何位置都可能撞上，直接丢弃。
+      if (L === 1 && oTokens[0].length < 2) continue;
+      let st = -1;
+      let bestDist = Infinity;
+      let tied = false;
+      const lo = Math.max(0, cursor - GATE.shortBack);
+      const hi = Math.min(table.length - L, cursor + GATE.shortForward);
+      for (let pos = lo; pos <= hi; pos++) {
+        if (!matchAt(pos, oTokens)) continue;
+        const dist = Math.abs(pos - cursor);
+        if (dist < bestDist) {
+          bestDist = dist;
+          st = pos;
+          tied = false;
+        } else if (dist === bestDist) {
+          tied = true;
+        }
+      }
+      // 找不到、等距歧义、落入已消费区（重复重发）或单词段离游标过远都丢弃，
+      // 不动游标也不影响 miss 预算。
+      if (
+        st < 0 ||
+        tied ||
+        st <= prevEndPos ||
+        (L === 1 && bestDist > GATE.shortOneDist)
+      ) {
+        continue;
+      }
+      const endPos = st + L - 1;
+      const startIdx = table[st].ei;
+      pushAnchored(sub, L, startIdx, Math.max(startIdx, table[endPos].ei));
+      cursor = endPos + 1;
+      prevEndPos = endPos;
+      misses = 0;
       continue;
     }
 
@@ -283,6 +370,8 @@ export const reanchorIfUntrusted = (segments = [], events = []) => {
 
     if (st === -1) {
       out.push(sub);
+      judgedSegs += 1;
+      judgedWords += L;
       if (++misses >= GATE.maxMisses) anchoring = false;
       continue;
     }
@@ -308,26 +397,31 @@ export const reanchorIfUntrusted = (segments = [], events = []) => {
     }
 
     const startIdx = table[st].ei;
-    const endIdx = Math.max(startIdx, table[endPos].ei);
-    out.push({
-      ...sub,
-      start: events[startIdx].start,
-      end: events[endIdx].end,
-      _aei: endIdx,
-      _reanchored: true,
-    });
-    anchoredSegs += 1;
-    anchoredWords += L;
+    pushAnchored(sub, L, startIdx, Math.max(startIdx, table[endPos].ei));
     cursor = endPos + 1;
     prevEndPos = endPos;
     misses = 0;
   }
 
+  // 验收分母只含真正接受评判的段：丢弃的短段与重复段不计（话痨响应的感叹词
+  // 不再稀释通过率），保留原样的失败长段计入，防止大量实质 miss 仍然放行。
   if (
-    anchoredSegs / segments.length < GATE.accept ||
-    anchoredWords / totalO < GATE.accept
+    !judgedSegs ||
+    anchoredSegs / judgedSegs < GATE.accept ||
+    anchoredWords / Math.max(1, judgedWords) < GATE.accept
   ) {
     return null;
+  }
+
+  // 携带整个响应的事件时间范围：草稿清扫若只按输出 cue 的 min/max，首尾短段
+  // 被丢弃时会留缝放过缝隙里的幻影草稿。
+  const rangeLo = events[0].start;
+  const rangeHi = events[events.length - 1].end;
+  for (const cue of out) {
+    if (cue._reanchored) {
+      cue._alo = rangeLo;
+      cue._ahi = rangeHi;
+    }
   }
   return out;
 };

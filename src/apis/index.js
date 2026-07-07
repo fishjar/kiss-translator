@@ -915,7 +915,7 @@ export const apiSubtitle = async ({
     chunkSign,
     fromLang,
     toLang,
-    segVer: 4,
+    segVer: 5,
     promptSig: await getPromptCacheSig(apiSetting, PROMPT_CACHE_SCOPE_SUBTITLE),
     ctx: docInfo?.summary?.slice(0, 50) || "",
   };

@@ -325,6 +325,115 @@ describe("reanchorIfUntrusted", () => {
     expect(out[16]._reanchored).toBeUndefined();
   });
 
+  test("anchors drifted short interjections near the cursor", () => {
+    const w = words(220);
+    w[40] = "okay";
+    const events = wordEvents(w);
+    const txt = (a, len) => w.slice(a, a + len).join(" ");
+    const segs = [];
+    for (let k = 0; k < 4; k++) segs.push(seg(7 * k, 7 * k + 6, txt(k * 10, 10)));
+    // 声称漂移到词 28（28s），真实位置在词 40（40s）。
+    segs.push(seg(28, 28, "Okay."));
+    for (let k = 4; k < 20; k++)
+      segs.push(seg(7 * k, 7 * k + 6, txt(k * 10 + 1, 10)));
+    const out = reanchorIfUntrusted(segs, events);
+
+    const short = out.find((s) => s.text === "Okay.");
+    expect(short.start).toBe(40 * 1000);
+    expect(short._aei).toBe(40);
+    expect(short._reanchored).toBe(true);
+    expect(short._alo).toBe(0);
+    expect(short._ahi).toBe(220 * 1000);
+    expect(out[5].start).toBe(41 * 1000);
+  });
+
+  test("drops hallucinated shorts instead of emitting them raw", () => {
+    const events = wordEvents(words(200));
+    const segs = compressed(20);
+    for (let k = 0; k < 6; k++) segs.splice(10, 0, seg(70, 70, "zzz"));
+    const out = reanchorIfUntrusted(segs, events);
+
+    expect(out).toHaveLength(20);
+    expect(out.every((s) => s._reanchored)).toBe(true);
+    // 连续被丢弃的短段不烧 miss 预算，后续句子照常锚定。
+    expect(out[10].start).toBe(100 * 1000);
+  });
+
+  test("acceptance ignores dropped shorts in a chatty response", () => {
+    const events = wordEvents(words(200));
+    const segs = compressed(20);
+    // 10 个幻觉短段：按旧分母 20/30 会低于验收线整体回退。
+    for (let k = 0; k < 10; k++) segs.splice(2 * k, 0, seg(7 * k, 7 * k, "zzz"));
+    const out = reanchorIfUntrusted(segs, events);
+
+    expect(out).toHaveLength(20);
+    expect(out.every((s) => s._reanchored)).toBe(true);
+  });
+
+  test("gate spacing guard uses word mass, not segment count", () => {
+    const events = wordEvents(words(200));
+    // 30/42 的段是单词感叹段：按段数统计分隔度不足 0.6，按词量 120/150 达标。
+    const segs = compressed(12);
+    for (let k = 0; k < 30; k++) segs.push(seg(84 + k, 84 + k, "zzz"));
+    const out = reanchorIfUntrusted(segs, events);
+
+    expect(out).toHaveLength(12);
+    expect(out.every((s) => s._reanchored)).toBe(true);
+  });
+
+  test("prefers the sentence when a short re-emission shares its start", () => {
+    const w = words(200);
+    w[40] = "okay";
+    const events = wordEvents(w);
+    const txt = (a, len) => w.slice(a, a + len).join(" ");
+    const segs = [];
+    for (let k = 0; k < 4; k++) segs.push(seg(7 * k, 7 * k + 6, txt(k * 10, 10)));
+    segs.push(seg(28, 28, "Okay."));
+    segs.push(seg(29, 36, txt(40, 10)));
+    for (let k = 5; k < 20; k++)
+      segs.push(seg(7 * k, 7 * k + 6, txt(k * 10, 10)));
+    const out = reanchorIfUntrusted(segs, events);
+
+    expect(out).toHaveLength(20);
+    expect(out.filter((s) => s.text === "Okay.")).toHaveLength(0);
+    expect(out.find((s) => s.text === txt(40, 10)).start).toBe(40 * 1000);
+  });
+
+  test("drops ambiguous, distant or weak-probe shorts", () => {
+    const build = (mutate, shortText = "Okay.") => {
+      const w = words(200);
+      mutate(w);
+      const txt = (a, len) => w.slice(a, a + len).join(" ");
+      const segs = [];
+      for (let k = 0; k < 4; k++)
+        segs.push(seg(7 * k, 7 * k + 6, txt(k * 10, 10)));
+      segs.push(seg(28, 28, shortText));
+      for (let k = 4; k < 20; k++)
+        segs.push(seg(7 * k, 7 * k + 6, txt(k * 10, 10)));
+      return reanchorIfUntrusted(segs, wordEvents(w));
+    };
+
+    // 游标两侧等距双候选：歧义丢弃。
+    const ambiguous = build((w) => {
+      w[38] = "okay";
+      w[42] = "okay";
+    });
+    expect(ambiguous.filter((s) => s.text === "Okay.")).toHaveLength(0);
+
+    // 唯一候选但离游标超出单词段可信距离：丢弃。
+    const distant = build((w) => {
+      w[55] = "okay";
+    });
+    expect(distant.filter((s) => s.text === "Okay.")).toHaveLength(0);
+
+    // 一字母 token 探针过弱：即使近旁存在也丢弃。
+    const weak = build((w) => {
+      w[41] = "a";
+    }, "A.");
+    expect(weak.filter((s) => s.text === "A.")).toHaveLength(0);
+    expect(weak).toHaveLength(20);
+  });
+
   test("is deterministic", () => {
     const events = wordEvents(words(400));
     const segs = compressed(40);
