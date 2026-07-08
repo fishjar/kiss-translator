@@ -415,6 +415,16 @@ export class Translator {
   #restoreViewportAnchor(anchor) {
     if (!anchor?.element?.isConnected) return;
 
+    const scrollingElement = document.scrollingElement || document.documentElement;
+    if (!scrollingElement) return;
+
+    const overflowY = window.getComputedStyle(scrollingElement).overflowY;
+    const canScrollDocument =
+      scrollingElement.scrollHeight > scrollingElement.clientHeight &&
+      overflowY !== "hidden" &&
+      overflowY !== "clip";
+    if (!canScrollDocument) return;
+
     const currentTop = anchor.element.getBoundingClientRect().top;
     const offset = currentTop - anchor.top;
     // 如果位移差超过 0.5 像素，则平滑滚动以补偿该差值
