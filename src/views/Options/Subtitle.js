@@ -342,6 +342,7 @@ export default function SubtitleSetting() {
     preTrans = 90,
     throttleTrans = 30,
     toLang,
+    autoTranslate = true,
     isBilingual,
     displayOrder = "original-first",
     blurTranslation = false,
@@ -629,6 +630,22 @@ export default function SubtitleSetting() {
         {/* 字幕分句分词策略、翻译引擎、超前预翻译等参数配置网格区域 */}
         <Box>
           <Grid container spacing={2} columns={12}>
+            {/* 是否在获取字幕后立即启动翻译 */}
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                name="autoTranslate"
+                value={autoTranslate}
+                label={i18n("default_subtitle_translate")}
+                onChange={handleChange}
+                disabled={!enabled}
+              >
+                <MenuItem value={false}>{i18n("disable")}</MenuItem>
+                <MenuItem value={true}>{i18n("enable")}</MenuItem>
+              </TextField>
+            </Grid>
             {/* 字幕翻译首选的翻译引擎服务商 */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
               <TextField
