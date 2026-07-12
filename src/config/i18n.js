@@ -2127,6 +2127,22 @@ export const I18N = {
     ko: `플로팅 버튼 숨기기`,
     tr: `Yüzen Eylem Düğmesini Gizle`,
   },
+  fab_exception_list: {
+    zh: `悬浮按钮特例名单`,
+    en: `Fab Button Exception List`,
+    zh_TW: `浮動按鈕例外清單`,
+    ja: `フローティングボタンの例外リスト`,
+    ko: `플로팅 버튼 예외 목록`,
+    tr: `Yüzen Düğme İstisna Listesi`,
+  },
+  fab_exception_list_helper: {
+    zh: `全局显示时，命中名单的页面隐藏按钮；全局隐藏时，命中名单的页面显示按钮。支持星号(*)通配符，多个网址用换行或逗号分隔。`,
+    en: `When shown globally, matching pages hide the button; when hidden globally, matching pages show it. Supports * wildcards; separate URLs with newlines or commas.`,
+    zh_TW: `全域顯示時，命中清單的頁面會隱藏按鈕；全域隱藏時，命中清單的頁面會顯示按鈕。支援星號 (*) 萬用字元，網址可用換行或逗號分隔。`,
+    ja: `グローバル表示時は一致するページでボタンを隠し、グローバル非表示時は一致するページでボタンを表示します。* のワイルドカードに対応し、URL は改行またはカンマで区切れます。`,
+    ko: `전역 표시 시 목록과 일치하는 페이지에서는 버튼을 숨기고, 전역 숨김 시에는 버튼을 표시합니다. * 와일드카드를 지원하며 URL은 줄바꿈 또는 쉼표로 구분합니다.`,
+    tr: `Genel olarak gösterildiğinde eşleşen sayfalarda düğme gizlenir; genel olarak gizlendiğinde eşleşen sayfalarda gösterilir. * joker karakteri desteklenir; URL'leri satır sonu veya virgülle ayırın.`,
+  },
   fab_click_action: {
     zh: `单击悬浮按钮动作`,
     en: `Single Click Fab Action`,
