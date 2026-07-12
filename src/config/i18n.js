@@ -326,7 +326,7 @@ export const I18N = {
     ko: `API 설정`,
     tr: `API Ayarı`,
   },
- 
+
   prompt_management: {
     zh: `提示词管理`,
     en: `Prompt Management`,
@@ -549,7 +549,7 @@ export const I18N = {
     zh_TW: `使用JSON格式，例如 "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:141.0) Gecko/20100101 Firefox/141.0"`,
     ja: `JSON形式を使用してください。例: "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:141.0) Gecko/20100101 Firefox/141.0"`,
     ko: `JSON 형식을 사용하세요. 예: "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:141.0) Gecko/20100101 Firefox/141.0"`,
-    tr: `Örneğin, "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:141.0) Gecko/20100101 Firefox/141.0"` şeklinde JSON formatını kullanın.`,
+    tr: `Örneğin, "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:141.0) Gecko/20100101 Firefox/141.0" şeklinde JSON formatını kullanın.`,
   },
   custom_body: {
     zh: `自定义Body参数`,
@@ -1596,6 +1596,7 @@ export const I18N = {
       toLang,
       docInfo,
       glossary,
+    }`,
     tr: `Ön yükleme sırasında enjekte edilir, sayfa başına yalnızca bir kez çalışır. Dahili global nesne KT: {
       apiTranslate,
       apiDectect,
