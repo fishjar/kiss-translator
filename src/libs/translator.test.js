@@ -636,6 +636,48 @@ describe("Translator rule styles", () => {
     ).toBeNull();
   });
 
+  test("keeps a pending translation-only hover request visible when retriggered", async () => {
+    let resolveTranslation;
+    apiTranslate.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveTranslation = resolve;
+        })
+    );
+    document.body.innerHTML =
+      '<main id="root"><p id="target">Hello hover</p></main>';
+    const target = document.getElementById("target");
+
+    createTranslator(
+      {
+        transOpen: "false",
+        transOnly: "true",
+      },
+      {
+        preInit: true,
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+        },
+      }
+    );
+
+    await hoverNode(target);
+    await hoverNode(target);
+    resolveTranslation({ trText: "Delayed translation", isSame: false });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const wrapper = document.querySelector(`.${Translator.KISS_CLASS.warpper}`);
+    expect(wrapper).not.toBeNull();
+    expect(wrapper.isConnected).toBe(true);
+    expect(
+      wrapper.querySelector(`.${Translator.KISS_CLASS.inner}`).textContent
+    ).toBe("Delayed translation");
+    expect(target.contains(wrapper)).toBe(true);
+  });
+
   test("shows mouse hover bubble without inserting translation wrappers", async () => {
     document.body.innerHTML =
       '<main id="root"><p id="target">Hello hover</p></main>';

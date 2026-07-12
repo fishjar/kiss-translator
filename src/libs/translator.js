@@ -1163,6 +1163,10 @@ export class Translator {
     }
 
     if (this.#processedNodes.has(targetNode)) {
+      const hasPendingTranslation = Array.from(
+        this.#findTranslationWrappers(targetNode)
+      ).some((wrapper) => !this.#translationNodes.has(wrapper));
+      if (hasPendingTranslation) return;
       this.#cleanupDirectTranslations(targetNode);
     } else {
       this.#processNode(targetNode);
