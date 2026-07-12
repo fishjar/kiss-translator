@@ -615,6 +615,14 @@ export const I18N = {
     ko: `단일 단어는 번역 서비스를 사용하지 않음`,
     tr: `Tek Kelime İçin Çeviri Hizmetlerini Kullanmayın`,
   },
+  auto_fav_word: {
+    zh: `自动收藏词汇`,
+    en: `Automatically favorite words`,
+    zh_TW: `自動收藏詞彙`,
+    ja: `単語を自動でお気に入りに追加`,
+    ko: `단어 자동 즐겨찾기`,
+    tr: `Kelimeleri Otomatik Favorilere Ekle`,
+  },
   translate_timing: {
     zh: `翻译时机`,
     en: `Translate Timing`,

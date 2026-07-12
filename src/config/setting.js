@@ -115,6 +115,7 @@ export const DEFAULT_TRANBOX_SETTING = {
   blacklist: "", // 划词翻译禁用的域名列表
   apiSlugs: [OPT_TRANS_MICROSOFT], // 启用的翻译 API (支持多选)
   singleWordNoTrans: false, // 划词为单个单词时是否仅查询词典，不请求整句翻译服务
+  autoFavWord: false, // 打开划词翻译框时自动收藏英文单词
   fromLang: "auto",
   toLang: "zh-CN",
   toLang2: "en", // 第二目标语言，用于自动反向互译
