@@ -302,16 +302,26 @@ const forceSyncDataWithEncryptKey = async (key, value, syncEncryptKey) => {
  * @returns {Promise<{value: *, isNew: boolean}|undefined>}
  *          value: 最终判定采用的最新数据值，isNew: 标识该数据是否比本地之前的数据新
  */
-export const syncData = async (key, value) => {
+export const syncData = async (
+  key,
+  value,
+  {
+    syncEncryptKey: syncEncryptKeyOverride,
+    forceRemoteRead = false,
+    persistMeta = true,
+  } = {}
+) => {
   // 获取同步服务配置
   const {
     syncType,
     syncUrl,
     syncUser,
     syncKey,
-    syncEncryptKey,
+    syncEncryptKey: savedSyncEncryptKey,
     syncMeta = {},
   } = await getSyncWithDefault();
+
+  const syncEncryptKey = syncEncryptKeyOverride ?? savedSyncEncryptKey;
 
   // 若未填写必要的同步参数，则直接退出不报错
   if (
@@ -331,7 +341,8 @@ export const syncData = async (key, value) => {
   const data = {
     key,
     value: JSON.stringify(value),
-    updateAt,
+    // 修改口令时必须先读取远端密文，不能因为本地元数据较新而覆盖它。
+    updateAt: forceRemoteRead ? 0 : updateAt,
   };
   const args = {
     syncUrl,
@@ -357,16 +368,18 @@ export const syncData = async (key, value) => {
   const isNew = res.updateAt > updateAt;
 
   // 新版客户端首次遇到旧版明文远端数据时，读取后立即迁移为密文。
-  if (!encrypted) {
+  if (!encrypted && !forceRemoteRead) {
     await migratePlainSyncData(syncType, res, args, syncEncryptKey);
   }
 
   // 更新本地同步元数据，包含云端的最新修改时间及当前的同步操作时间
-  syncMeta[key] = {
-    updateAt: res.updateAt,
-    syncAt: Date.now(),
-  };
-  await putSync({ syncMeta });
+  if (persistMeta) {
+    syncMeta[key] = {
+      updateAt: res.updateAt,
+      syncAt: Date.now(),
+    };
+    await putSync({ syncMeta });
+  }
 
   return { value: newVal, isNew };
 };
@@ -374,12 +387,13 @@ export const syncData = async (key, value) => {
 /**
  * 同步用户设置 (Setting)。若云端设置更新，则覆盖本地设置。
  */
-const syncSetting = async () => {
+const syncSetting = async (options) => {
   const value = await getSettingWithDefault();
-  const res = await syncData(KV_SETTING_KEY, value);
-  if (res?.isNew) {
+  const res = await syncData(KV_SETTING_KEY, value, options);
+  if (res?.isNew && options?.applyRemote !== false) {
     await setSetting(res.value);
   }
+  return res;
 };
 
 /**
@@ -396,12 +410,13 @@ export const trySyncSetting = async () => {
 /**
  * 同步规则 (Rules)。若云端规则更新，则覆盖本地规则。
  */
-const syncRules = async () => {
+const syncRules = async (options) => {
   const value = await getRulesWithDefault();
-  const res = await syncData(KV_RULES_KEY, value);
-  if (res?.isNew) {
+  const res = await syncData(KV_RULES_KEY, value, options);
+  if (res?.isNew && options?.applyRemote !== false) {
     await setRules(res.value);
   }
+  return res;
 };
 
 /**
@@ -418,12 +433,13 @@ export const trySyncRules = async () => {
 /**
  * 同步生词本词汇 (Fav Words)。若云端有更新，则覆盖本地。
  */
-const syncWords = async () => {
+const syncWords = async (options) => {
   const value = await getWordsWithDefault();
-  const res = await syncData(KV_WORDS_KEY, value);
-  if (res?.isNew) {
+  const res = await syncData(KV_WORDS_KEY, value, options);
+  if (res?.isNew && options?.applyRemote !== false) {
     await setWords(res.value);
   }
+  return res;
 };
 
 /**
@@ -471,10 +487,11 @@ export const syncShareRules = async ({ rules, syncUrl, syncKey }) => {
 /**
  * 顺序同步个人设置、自定义规则以及生词本。
  */
-export const syncSettingAndRules = async () => {
-  await syncSetting();
-  await syncRules();
-  await syncWords();
+export const syncSettingAndRules = async (options) => {
+  const setting = await syncSetting(options);
+  const rules = await syncRules(options);
+  const words = await syncWords(options);
+  return { setting, rules, words };
 };
 
 /**
@@ -482,29 +499,44 @@ export const syncSettingAndRules = async () => {
  *
  * 先用旧口令完成一次普通同步，确保本地拿到远端最新数据；三类数据全部
  * 用新口令回写成功后，才保存新的 syncEncryptKey，避免半失败导致旧密文不可读。
- * @param {string} newSyncEncryptKey 新同步加密口令
+ * @param {Object} params 口令轮换参数
+ * @param {string} params.oldEncryptKey 用于解密当前云端数据的旧口令
+ * @param {string} params.newEncryptKey 用于重新加密数据的新口令
  * @returns {Promise<void>}
  */
-export const changeSyncEncryptKey = async (newSyncEncryptKey) => {
-  await syncSettingAndRules();
+export const changeSyncEncryptKey = async ({
+  oldEncryptKey,
+  newEncryptKey,
+}) => {
+  const synced = await syncSettingAndRules({
+    syncEncryptKey: oldEncryptKey,
+    forceRemoteRead: true,
+    persistMeta: false,
+    applyRemote: false,
+  });
+
+  // 三类远端数据都通过旧口令校验后，才把较新的版本写入本地并开始重加密。
+  if (synced.setting?.isNew) await setSetting(synced.setting.value);
+  if (synced.rules?.isNew) await setRules(synced.rules.value);
+  if (synced.words?.isNew) await setWords(synced.words.value);
 
   await forceSyncDataWithEncryptKey(
     KV_SETTING_KEY,
     await getSettingWithDefault(),
-    newSyncEncryptKey
+    newEncryptKey
   );
   await forceSyncDataWithEncryptKey(
     KV_RULES_KEY,
     await getRulesWithDefault(),
-    newSyncEncryptKey
+    newEncryptKey
   );
   await forceSyncDataWithEncryptKey(
     KV_WORDS_KEY,
     await getWordsWithDefault(),
-    newSyncEncryptKey
+    newEncryptKey
   );
 
-  await putSync({ syncEncryptKey: newSyncEncryptKey });
+  await putSync({ syncEncryptKey: newEncryptKey });
 };
 
 /**
