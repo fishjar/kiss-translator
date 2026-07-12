@@ -315,8 +315,10 @@ export default function PopupCont({
     transOnly,
     hasRichText,
     scanAll,
-    isPlainText = false,
+    isPlainText: isPlainTextValue = false,
   } = rule || {};
+  const isPlainText =
+    isPlainTextValue === true || isPlainTextValue === "true";
 
   return (
     <Stack sx={{ p: 2 }} spacing={2}>

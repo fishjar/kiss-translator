@@ -819,7 +819,11 @@ export class Translator {
 
   constructor({ rule = {}, setting = {}, favWords = [] }) {
     this.#setting = { ...Translator.DEFAULT_OPTIONS, ...setting };
-    this.#rule = { ...Translator.DEFAULT_RULE, ...rule, isPlainText: false };
+    this.#rule = {
+      ...Translator.DEFAULT_RULE,
+      ...rule,
+      isPlainText: rule.isPlainText === true || rule.isPlainText === "true",
+    };
     this.#favWords = favWords;
     this.#apisMap = new Map(
       this.#setting.transApis.map((api) => [api.apiSlug, api])

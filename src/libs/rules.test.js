@@ -1,5 +1,5 @@
-import { checkRules, matchRule } from "./rules";
-import { getDisabledSubRules, getRulesWithDefault } from "./storage";
+import { checkRules, matchRule, saveRule } from "./rules";
+import { getDisabledSubRules, getRulesWithDefault, setRules } from "./storage";
 import { loadOrFetchSubRules } from "./subRules";
 
 jest.mock("./storage", () => ({
@@ -105,6 +105,58 @@ describe("rules enabled state", () => {
     expect(rule.pattern).toBe("*");
     expect(rule.selector).toBe("p");
   });
+
+  test.each([
+    ["inherits the global setting", "true", "*", "true"],
+    ["overrides the global setting on", "false", "true", "true"],
+    ["overrides the global setting off", "true", "false", "false"],
+  ])(
+    "%s",
+    async (_, globalValue, siteValue, expectedValue) => {
+      getRulesWithDefault.mockResolvedValue([
+        {
+          pattern: "example.com",
+          selector: "article",
+          isPlainText: siteValue,
+        },
+        {
+          pattern: "*",
+          selector: "p",
+          isPlainText: globalValue,
+        },
+      ]);
+
+      const rule = await matchRule("https://example.com/post", {
+        injectRules: false,
+        subrulesList: [],
+      });
+
+      expect(rule.isPlainText).toBe(expectedValue);
+    }
+  );
+
+  test.each([
+    ["enabled", "false", true, "true"],
+    ["disabled", "true", false, "false"],
+  ])(
+    "persists an explicit plain text setting from the popup when %s",
+    async (_, globalValue, popupValue, expectedValue) => {
+      getRulesWithDefault.mockResolvedValue([
+        { pattern: "*", selector: "p", isPlainText: globalValue },
+      ]);
+
+      await saveRule({ pattern: "example.com", isPlainText: popupValue });
+
+      expect(setRules).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            pattern: "example.com",
+            isPlainText: expectedValue,
+          }),
+        ])
+      );
+    }
+  );
 
   test("normalizes enabled field when checking imported rules", () => {
     const rules = checkRules([
