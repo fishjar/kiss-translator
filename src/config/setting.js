@@ -166,6 +166,7 @@ export const DEFAULT_SUBTITLE_SETTING = {
   throttleTrans: 30, // 节流延迟：两次翻译请求的最小时间间隔 (毫秒)
   // fromLang: "en",
   toLang: "zh-CN", // 字幕译文的目标语言
+  autoTranslate: true, // 是否在获取并解析视频字幕后立即启动翻译
   isBilingual: true, // 字幕是否启用双语对照显示
   displayOrder: "original-first", // 字幕双语显示顺序：原文在前或译文在前
   blurTranslation: false, // 是否模糊显示译文 (用于听力/口语训练)

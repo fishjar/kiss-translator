@@ -37,9 +37,11 @@ import {
  * YouTube 字幕翻译与双语渲染入口。
  * 负责页面生命周期、字幕轨处理调度、异步竞态保护，并把结果交给播放器渲染器。
  */
-class YouTubeCaptionProvider {
+export class YouTubeCaptionProvider {
   // 扩展配置选项对象
   #setting = {};
+  // 每次进入新视频时恢复的持久化自动翻译偏好
+  #defaultAutoTranslate = true;
 
   // 最终处理合并、翻译好的双语字幕数组（包含开始/结束时间、原文、翻译）
   #subtitles = [];
@@ -86,7 +88,11 @@ class YouTubeCaptionProvider {
    * @param {object} [setting={}] 字幕模块运行配置。
    */
   constructor(setting = {}) {
-    this.#setting = { ...setting, showOrigin: false };
+    this.#defaultAutoTranslate = setting.autoTranslate ?? true;
+    this.#setting = {
+      ...setting,
+      autoTranslate: this.#defaultAutoTranslate,
+    };
     this.#i18n = newI18n(setting.uiLang || "zh");
     this.#playerUi = new YouTubePlayerUi({
       getSetting: () => this.#setting,
@@ -170,6 +176,7 @@ class YouTubeCaptionProvider {
       this.#aiChunkScheduler = null;
       this.#subtitleAbortController?.abort();
       this.#subtitleAbortController = null;
+      this.#setting.autoTranslate = this.#defaultAutoTranslate;
       this.#playerUi.updateMenuProps();
     });
 
@@ -284,7 +291,7 @@ class YouTubeCaptionProvider {
 
           if (node.matches(adLayoutSelector)) {
             logger.debug("Youtube Provider: Ad ends!");
-            if (!this.#setting.showOrigin) {
+            if (this.#setting.autoTranslate) {
               this.#playerUi.hideYtCaption();
             }
             if (videoEl && skipAd) {
@@ -327,8 +334,8 @@ class YouTubeCaptionProvider {
       this.#managerInstance?.updateSetting({ [name]: value });
     } else if (name === "segSlug" || name === "forceSubtitleRetranslate") {
       this.#reProcessEvents();
-    } else if (name === "showOrigin") {
-      this.#toggleShowOrigin();
+    } else if (name === "autoTranslate") {
+      this.#toggleTranslation();
     } else if (name === "aiContextSlug") {
       this.#reProcessEventsWithContext();
     } else if (name === "showLoadNotification" && value === false) {
@@ -345,17 +352,61 @@ class YouTubeCaptionProvider {
   }
 
   /**
-   * 根据“显示原版字幕”的切换配置，执行字幕渲染管理器的挂载与销毁。
+   * 根据当前视频翻译开关启动或停止字幕翻译。
    *
    * @private
    * @returns {void}
    */
-  #toggleShowOrigin() {
-    if (this.#setting.showOrigin) {
+  #toggleTranslation() {
+    if (!this.#setting.autoTranslate) {
+      if (this.#flatEvents.length) {
+        this.#processingVersion += 1;
+        this.#subtitleAbortController?.abort();
+        this.#subtitleAbortController = null;
+        this.#aiChunkScheduler = null;
+        this.#processingId = null;
+        this.#subtitles = [];
+        this.#progressed = 0;
+        clearMsgHistory(this.#setting.apiSlug);
+      }
       this.#destroyManager();
     } else {
-      this.#startManager();
+      this.#translateCachedEvents();
     }
+  }
+
+  /**
+   * 使用已经获取并标准化的字幕缓存启动翻译流程。
+   *
+   * @private
+   * @returns {Promise<void>}
+   */
+  async #translateCachedEvents() {
+    const videoId = this.#videoId;
+    if (!this.#setting.autoTranslate || !videoId || !this.#flatEvents.length) {
+      return;
+    }
+
+    const processingVersion = (this.#processingVersion += 1);
+    this.#subtitleAbortController?.abort();
+    this.#subtitleAbortController = new AbortController();
+    this.#aiChunkScheduler = null;
+    this.#subtitles = [];
+    this.#progressed = 0;
+    this.#destroyManager();
+    clearMsgHistory(this.#setting.apiSlug);
+    this.#docInfo = getDocInfo();
+
+    await this.#enrichDocInfoWithAI(this.#flatEvents, processingVersion);
+    if (this.#isStaleProcessing(processingVersion)) return;
+
+    this.#processEvents({
+      videoId,
+      flatEvents: this.#flatEvents,
+      fromLang: this.#fromLang,
+      processingVersion,
+      signal: this.#subtitleAbortController.signal,
+    });
   }
 
   /**
@@ -394,7 +445,7 @@ class YouTubeCaptionProvider {
       skipAd,
       isBilingual,
       blurTranslation,
-      showOrigin,
+      autoTranslate,
       aiContextSlug,
     } = this.#setting;
     return {
@@ -408,7 +459,7 @@ class YouTubeCaptionProvider {
         skipAd,
         isBilingual,
         blurTranslation,
-        showOrigin,
+        autoTranslate,
         aiContextSlug,
       },
     };
@@ -540,6 +591,10 @@ class YouTubeCaptionProvider {
       this.#fromLang = fromLang;
       this.#activeTrackKey = trackKey;
       this.#docInfo = getDocInfo();
+      if (!this.#setting.autoTranslate) {
+        this.#playerUi.updateMenuProps();
+        return;
+      }
       await this.#enrichDocInfoWithAI(flatEvents, processingVersion);
       if (this.#isStaleProcessing(processingVersion)) return;
 
@@ -721,6 +776,8 @@ class YouTubeCaptionProvider {
    * @returns {void}
    */
   #reProcessEvents() {
+    if (!this.#setting.autoTranslate) return;
+
     this.#progressed = 0;
     this.#subtitles = [];
 
@@ -811,6 +868,8 @@ class YouTubeCaptionProvider {
    * @returns {Promise<void>}
    */
   async #reProcessEventsWithContext() {
+    if (!this.#setting.autoTranslate) return;
+
     this.#progressed = 0;
     this.#subtitles = [];
 
@@ -863,7 +922,7 @@ class YouTubeCaptionProvider {
       return;
     }
 
-    if (this.#setting.showOrigin) {
+    if (!this.#setting.autoTranslate) {
       return;
     }
 

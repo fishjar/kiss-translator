@@ -3541,6 +3541,22 @@ export const I18N = {
     ko: `자막 번역 활성화`,
     tr: `Altyazı Çevirisini Etkinleştir`,
   },
+  default_subtitle_translate: {
+    zh: `默认立即翻译`,
+    en: `Translate subtitles immediately by default`,
+    zh_TW: `預設立即翻譯`,
+    ja: `デフォルトですぐに字幕を翻訳`,
+    ko: `기본적으로 자막 즉시 번역`,
+    tr: `Altyazıları varsayılan olarak hemen çevir`,
+  },
+  enable_subtitle_translate: {
+    zh: `开启翻译`,
+    en: `Enable translation`,
+    zh_TW: `開啟翻譯`,
+    ja: `翻訳を有効にする`,
+    ko: `번역 활성화`,
+    tr: `Çeviriyi etkinleştir`,
+  },
   is_bilingual_view: {
     zh: `双语显示`,
     en: `Enable bilingual display`,
@@ -3964,14 +3980,6 @@ export const I18N = {
     ja: `翻訳間隔のスロットリング (1-3600s)`,
     ko: `번역 간격 조절 (1-3600s)`,
     tr: `Çeviri Aralığını Daraltma (1-3600s)`,
-  },
-  show_origin_subtitle: {
-    zh: `显示原字幕`,
-    en: `Show original subtitles`,
-    zh_TW: `顯示原字幕`,
-    ja: `原字幕を表示`,
-    ko: `원본 자막 표시`,
-    tr: `Orijinal Altyazıları Göster`,
   },
   subtitle_same_lang: {
     zh: `原语言与目标语言相同，字幕不予处理`,
