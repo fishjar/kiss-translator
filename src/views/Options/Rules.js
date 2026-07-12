@@ -138,6 +138,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
     hasRichText = "true", // 是否包含富文本
     hasShadowroot = "false", // 是否包含 Shadow Root
     scanAll = "false", // 是否扫描所有节点
+    isPlainText = "false", // 是否启用 <pre> 纯文本翻译
     // transTiming = OPT_TIMING_PAGESCROLL,
     transTag = DEFAULT_TRANS_TAG, // 翻译结果容器标签 (span / font)
     transTitle = "false", // 是否翻译网页标题
@@ -465,6 +466,24 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 name="scanAll"
                 value={scanAll}
                 label={i18n("scan_all_nodes")}
+                disabled={disabled}
+                onChange={handleChange}
+              >
+                {GlobalItem}
+                <MenuItem value={"false"}>{i18n("disable")}</MenuItem>
+                <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
+              </TextField>
+            </Grid>
+
+            {/* 是否以纯文本模式翻译 <pre> 内容 */}
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                select
+                size="small"
+                fullWidth
+                name="isPlainText"
+                value={isPlainText}
+                label={i18n("plain_text_translate")}
                 disabled={disabled}
                 onChange={handleChange}
               >

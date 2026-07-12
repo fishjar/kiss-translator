@@ -440,6 +440,22 @@ describe("Translator rule styles", () => {
     expect(openOrClosedShadowRoot).not.toHaveBeenCalledWith(svg);
   });
 
+  test("honors persisted plain text rules during initialization", async () => {
+    global.IntersectionObserver = class {
+      observe() {}
+
+      unobserve() {}
+
+      disconnect() {}
+    };
+    document.body.innerHTML = '<main id="root"><pre>First line</pre></main>';
+
+    createTranslator({ transOpen: "false", isPlainText: "true" });
+    await flushAsync();
+
+    expect(document.querySelector("pre > span")?.textContent).toBe("First line");
+  });
+
   test("splits plain text pre content into bounded block chunks", async () => {
     global.IntersectionObserver = class {
       constructor() {}

@@ -105,6 +105,7 @@ export const DEFAULT_RULE = {
   hasRichText: GLOBAL_KEY, // 是否启用富文本(包含嵌套 HTML 标签)翻译而非仅纯文本
   hasShadowroot: GLOBAL_KEY, // 页面是否包含 Shadow DOM，若为 true 会递归穿透扫描
   scanAll: GLOBAL_KEY, // 是否强行扫描页面中的所有节点 (不推荐，性能损耗大)
+  isPlainText: GLOBAL_KEY, // 是否启用 <pre> 纯文本翻译模式
   rootsSelector: "", // 限制翻译仅在特定的根节点容器内进行
   ignoreSelector: "", // 额外指定不进行翻译的 CSS 屏蔽选择器
   splitParagraph: GLOBAL_KEY, // 拆分长段落的策略
@@ -154,6 +155,7 @@ export const GLOBLA_RULE = {
   hasRichText: "true", // 默认进行富文本标签翻译，以保证链接等样式不会在翻译后破损
   hasShadowroot: "false", // 默认不主动穿透 Shadow DOM (因性能开销，仅在特定页面开启)
   scanAll: "false",
+  isPlainText: "false", // 默认关闭 <pre> 纯文本翻译模式
   rootsSelector: "body",
   ignoreSelector: DEFAULT_IGNORE_SELECTOR,
   splitParagraph: OPT_SPLIT_PARAGRAPH_DISABLE,
