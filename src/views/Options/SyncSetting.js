@@ -27,6 +27,7 @@ import {
 import { useState } from "react";
 import { changeSyncEncryptKey, syncSettingAndRules } from "../../libs/sync";
 import { useAlert } from "../../hooks/Alert";
+import { useConfirm } from "../../hooks/Confirm";
 import { useSetting } from "../../hooks/Setting";
 import { kissLog } from "../../libs/log";
 import SyncIcon from "@mui/icons-material/Sync";
@@ -44,6 +45,7 @@ export default function SyncSetting() {
   // 全局同步数据状态 Hook
   const { sync, updateSync } = useSync();
   const alert = useAlert();
+  const confirm = useConfirm();
   // 数据同步过程中的 Loading 状态
   const [loading, setLoading] = useState(false);
   // 同步加密口令只能通过弹窗设定/修改，避免主表单直接误改导致云端密文不可读。
@@ -56,6 +58,9 @@ export default function SyncSetting() {
   // 敏感字段默认隐藏，用户可临时切换明文查看。
   const [showSyncKey, setShowSyncKey] = useState(false);
   const [showSyncEncryptKey, setShowSyncEncryptKey] = useState(false);
+  const [showOldEncryptKey, setShowOldEncryptKey] = useState(false);
+  const [showNewEncryptKey, setShowNewEncryptKey] = useState(false);
+  const [showConfirmEncryptKey, setShowConfirmEncryptKey] = useState(false);
   const { reloadSetting } = useSetting();
 
   const getSyncErrorMessage = (err, fallback = i18n("sync_failed")) => {
@@ -163,6 +168,9 @@ export default function SyncSetting() {
     setNewEncryptKey("");
     setConfirmEncryptKey("");
     setEncryptKeyError("");
+    setShowOldEncryptKey(false);
+    setShowNewEncryptKey(false);
+    setShowConfirmEncryptKey(false);
   };
 
   const closeEncryptKeyDialog = () => {
@@ -185,15 +193,13 @@ export default function SyncSetting() {
       return;
     }
 
-    if (encryptKeyDialogMode === "change" && oldEncryptKey !== syncEncryptKey) {
-      setEncryptKeyError(i18n("old_sync_encrypt_key_invalid"));
-      return;
-    }
-
     try {
       setSavingEncryptKey(true);
       if (encryptKeyDialogMode === "change") {
-        await changeSyncEncryptKey(newEncryptKey);
+        await changeSyncEncryptKey({
+          oldEncryptKey,
+          newEncryptKey,
+        });
       }
       await updateSync({ syncEncryptKey: newEncryptKey });
       setEncryptKeyDialogMode(null);
@@ -211,6 +217,18 @@ export default function SyncSetting() {
     } finally {
       setSavingEncryptKey(false);
     }
+  };
+
+  const handleClearLocalEncryptKey = async () => {
+    const confirmed = await confirm({
+      title: i18n("clear_sync_encrypt_key_title"),
+      message: i18n("clear_sync_encrypt_key_message"),
+      confirmText: i18n("clear_sync_encrypt_key_confirm"),
+    });
+    if (!confirmed) return;
+
+    await updateSync({ syncEncryptKey: "" });
+    alert.success(i18n("clear_sync_encrypt_key_success"));
   };
 
   if (!sync) {
@@ -359,6 +377,15 @@ export default function SyncSetting() {
               {i18n("sync_encrypt_key_not_set")}
             </FormHelperText>
           )}
+          {syncEncryptKey && (
+            <Button
+              size="small"
+              onClick={handleClearLocalEncryptKey}
+              sx={{ mt: 1 }}
+            >
+              {i18n("clear_sync_encrypt_key")}
+            </Button>
+          )}
         </Box>
 
         {/* 控制按钮栏：包含立即触发同步、复制同步配置口令与从剪贴板贴入同步口令 */}
@@ -416,27 +443,83 @@ export default function SyncSetting() {
             {encryptKeyDialogMode === "change" && (
               <TextField
                 size="small"
-                type="password"
+                type={showOldEncryptKey ? "text" : "password"}
                 label={i18n("old_sync_encrypt_key")}
                 value={oldEncryptKey}
                 onChange={(e) => setOldEncryptKey(e.target.value)}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        size="small"
+                        edge="end"
+                        onClick={() => setShowOldEncryptKey((value) => !value)}
+                        onMouseDown={(e) => e.preventDefault()}
+                      >
+                        {showOldEncryptKey ? (
+                          <VisibilityOffIcon />
+                        ) : (
+                          <VisibilityIcon />
+                        )}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
               />
             )}
             <TextField
               size="small"
-              type="password"
+              type={showNewEncryptKey ? "text" : "password"}
               label={i18n("new_sync_encrypt_key")}
               value={newEncryptKey}
               onChange={(e) => setNewEncryptKey(e.target.value)}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      size="small"
+                      edge="end"
+                      onClick={() => setShowNewEncryptKey((value) => !value)}
+                      onMouseDown={(e) => e.preventDefault()}
+                    >
+                      {showNewEncryptKey ? (
+                        <VisibilityOffIcon />
+                      ) : (
+                        <VisibilityIcon />
+                      )}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
             />
             <TextField
               size="small"
-              type="password"
+              type={showConfirmEncryptKey ? "text" : "password"}
               label={i18n("confirm_sync_encrypt_key")}
               value={confirmEncryptKey}
               onChange={(e) => setConfirmEncryptKey(e.target.value)}
               error={!!encryptKeyError}
               helperText={encryptKeyError}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      size="small"
+                      edge="end"
+                      onClick={() =>
+                        setShowConfirmEncryptKey((value) => !value)
+                      }
+                      onMouseDown={(e) => e.preventDefault()}
+                    >
+                      {showConfirmEncryptKey ? (
+                        <VisibilityOffIcon />
+                      ) : (
+                        <VisibilityIcon />
+                      )}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
             />
           </Stack>
         </DialogContent>

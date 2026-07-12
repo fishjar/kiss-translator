@@ -74,6 +74,7 @@ import { decryptSyncValue, encryptSyncValue } from "./syncCrypto";
 const SYNC_DESCRIPTION = "kiss translator sync files";
 const SYNC_KEY = "github-token";
 const SYNC_ENCRYPT_KEY = "sync-encrypt-passphrase";
+const RECOVERY_OLD_ENCRYPT_KEY = "recovery-old-passphrase";
 const NEW_SYNC_ENCRYPT_KEY = "new-sync-encrypt-passphrase";
 const SETTING_KEY = "kiss-setting_v2.json";
 const RULES_KEY = "kiss-rules_v2.json";
@@ -461,7 +462,10 @@ describe("GitHub Gist sync", () => {
 
     Date.now.mockReturnValue(9999);
 
-    await changeSyncEncryptKey(NEW_SYNC_ENCRYPT_KEY);
+    await changeSyncEncryptKey({
+      oldEncryptKey: SYNC_ENCRYPT_KEY,
+      newEncryptKey: NEW_SYNC_ENCRYPT_KEY,
+    });
 
     expect(encryptSyncValue).toHaveBeenNthCalledWith(
       1,
@@ -545,12 +549,44 @@ describe("GitHub Gist sync", () => {
     apiGetGist.mockResolvedValue({ files: {} });
     apiUpdateGistFile.mockRejectedValue(new Error("upload failed"));
 
-    await expect(changeSyncEncryptKey(NEW_SYNC_ENCRYPT_KEY)).rejects.toThrow(
-      "upload failed"
-    );
+    await expect(
+      changeSyncEncryptKey({
+        oldEncryptKey: SYNC_ENCRYPT_KEY,
+        newEncryptKey: NEW_SYNC_ENCRYPT_KEY,
+      })
+    ).rejects.toThrow("upload failed");
 
     expect(putSync).not.toHaveBeenCalledWith({
       syncEncryptKey: NEW_SYNC_ENCRYPT_KEY,
     });
+  });
+
+  test("uses the supplied old passphrase instead of a stale local passphrase", async () => {
+    getSyncWithDefault.mockResolvedValue({
+      syncType: "GitHub Gist",
+      syncUrl: "existing-gist",
+      syncKey: SYNC_KEY,
+      syncEncryptKey: "stale-local-passphrase",
+      syncMeta: {},
+    });
+    getSettingWithDefault.mockResolvedValue({ setting: true });
+    getRulesWithDefault.mockResolvedValue([]);
+    getWordsWithDefault.mockResolvedValue({});
+    apiGetGist.mockResolvedValue({ files: {} });
+
+    await changeSyncEncryptKey({
+      oldEncryptKey: RECOVERY_OLD_ENCRYPT_KEY,
+      newEncryptKey: NEW_SYNC_ENCRYPT_KEY,
+    });
+
+    expect(encryptSyncValue).toHaveBeenNthCalledWith(
+      1,
+      JSON.stringify({ setting: true }),
+      RECOVERY_OLD_ENCRYPT_KEY
+    );
+    expect(encryptSyncValue).not.toHaveBeenCalledWith(
+      JSON.stringify({ setting: true }),
+      "stale-local-passphrase"
+    );
   });
 });
