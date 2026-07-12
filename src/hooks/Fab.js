@@ -1,7 +1,7 @@
 import { STOKEY_FAB } from "../config";
 import { useStorage } from "./Storage";
 
-const DEFAULT_FAB = {};
+const DEFAULT_FAB = { hideExceptionList: "" };
 
 /**
  * 悬浮球 (Float Action Button) 状态的获取与更新自定义 Hook
