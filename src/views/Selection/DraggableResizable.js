@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import Paper from "@mui/material/Paper";
 import Box from "@mui/material/Box";
 import { isMobile } from "../../libs/mobile";
@@ -9,6 +9,7 @@ import {
   getMaxTranBoxContentHeight,
   getMaxTranBoxX,
   getMaxTranBoxY,
+  getTranBoxOuterHeight,
 } from "../../libs/tranboxPosition";
 
 /**
@@ -32,6 +33,7 @@ function Pointer({
   children,
   minSize,
   maxSize,
+  getMaxPositionY,
   ...props
 }) {
   // 记录拖动/拉伸开始时的起点物理坐标及初始位置大小
@@ -136,7 +138,7 @@ function Pointer({
 
       setPosition({
         x: limitNumber(x, 0, getMaxTranBoxX(nextSize.w)),
-        y: limitNumber(y, 0, getMaxTranBoxY(nextSize.h)),
+        y: limitNumber(y, 0, getMaxPositionY(nextSize.h)),
       });
       setSize(nextSize);
     }
@@ -201,6 +203,40 @@ export default function DraggableResizable({
   const lineWidth = 4;
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
+  const containerRef = useRef(null);
+
+  const getMaxPositionY = useCallback(
+    (contentHeight) => {
+      if (!autoHeight) return getMaxTranBoxY(contentHeight);
+
+      const outerHeight = containerRef.current?.getBoundingClientRect().height;
+      return Math.max(
+        0,
+        window.innerHeight -
+          (outerHeight || getTranBoxOuterHeight(contentHeight))
+      );
+    },
+    [autoHeight]
+  );
+
+  useLayoutEffect(() => {
+    if (!autoHeight || !containerRef.current) return;
+
+    const clampPosition = () => {
+      setPosition((previous) => {
+        const y = limitNumber(previous.y, 0, getMaxPositionY(size.h));
+        return y === previous.y ? previous : { ...previous, y };
+      });
+    };
+
+    clampPosition();
+    const ResizeObserver = window.ResizeObserver;
+    if (!ResizeObserver) return;
+
+    const observer = new ResizeObserver(clampPosition);
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, [autoHeight, getMaxPositionY, setPosition, size.h]);
 
   // 深色模式下，为悬浮翻译小窗口提供精美的外发光日食效果阴影
   const glowShadow = isDark
@@ -220,10 +256,12 @@ export default function DraggableResizable({
     setPosition,
     minSize,
     maxSize,
+    getMaxPositionY,
   };
 
   return (
     <Box
+      ref={containerRef}
       className="KT-draggable"
       style={{
         touchAction: "none", // 阻止系统默认的触摸手势行为
