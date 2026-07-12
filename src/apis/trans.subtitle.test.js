@@ -182,4 +182,39 @@ describe("handleSubtitle", () => {
     expect(fetchStream).not.toHaveBeenCalled();
     expect(fetchData).toHaveBeenCalledTimes(1);
   });
+
+  test("realigns drifted indices on the non-stream path", async () => {
+    const driftEvents = Array.from({ length: 10 }, (_, i) => ({
+      start: i * 1000,
+      end: i * 1000 + 1000,
+      text: `w${i}`,
+    }));
+    fetchData.mockResolvedValueOnce({
+      choices: [
+        {
+          message: {
+            content: JSON.stringify([{ s: 4, e: 6, o: "w1 w2 w3", t: "译文" }]),
+          },
+        },
+      ],
+    });
+
+    const result = await handleSubtitle({
+      events: driftEvents,
+      from: "en",
+      to: "zh-CN",
+      apiSetting: getApiSetting(OPT_TRANS_OPENAI),
+    });
+
+    expect(result).toEqual([
+      {
+        start: 1000,
+        end: 4000,
+        text: "w1 w2 w3",
+        translation: "译文",
+        _si: 4,
+        _ei: 6,
+      },
+    ]);
+  });
 });

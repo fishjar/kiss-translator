@@ -25,6 +25,7 @@ import {
   parseLineTranslationSegments,
   parseXmlTranslationSegments,
 } from "./aiResponseParser";
+import { createSubtitleIndexAligner } from "./subtitleIndexAlign";
 
 /**
  * 创建 Server-Sent Events (SSE) 协议数据流解析器
@@ -256,9 +257,10 @@ export function createStreamingJsonParser() {
  *
  * @param {Object} item 模型已经输出完整的字幕句子对象。
  * @param {Array<Object>} events 当前请求中传给模型的原始字幕事件。
+ * @param {Object} [aligner] 索引对齐器，用 o 原文纠正模型漂移的 s/e 索引。
  * @returns {Object|null} 可渲染字幕；字段不完整时返回 null。
  */
-const mapSubtitleItemToCue = (item, events = []) => {
+const mapSubtitleItemToCue = (item, events = [], aligner) => {
   const s = Number(item?.s ?? item?.start_id);
   const e = Number(item?.e ?? item?.end_id);
   if (!Number.isInteger(s) || !Number.isInteger(e) || events.length === 0) {
@@ -267,11 +269,14 @@ const mapSubtitleItemToCue = (item, events = []) => {
 
   const startIdx = Math.max(0, Math.min(s, events.length - 1));
   const endIdx = Math.max(startIdx, Math.min(e, events.length - 1));
+  const text = String(item.o ?? item.original ?? "");
+  const fixed = aligner?.realign(s, e, text);
   return {
-    start: events[startIdx].start,
-    end: events[endIdx].end,
-    text: String(item.o ?? item.original ?? ""),
+    start: events[fixed?.startIdx ?? startIdx].start,
+    end: events[fixed?.endIdx ?? endIdx].end,
+    text,
     translation: String(item.t ?? item.translation ?? ""),
+    // _si/_ei 必须保留模型原始索引：去重键与尾句重试语义都依赖它们。
     _si: s,
     _ei: e,
   };
@@ -291,6 +296,7 @@ export function createStreamingSubtitleParser(events = []) {
   let jsonStarted = false;
   let scanIndex = 0;
   const emittedKeys = new Set();
+  const aligner = createSubtitleIndexAligner(events);
 
   /**
    * 从当前 buffer 中查找 JSON 正文的起点。
@@ -385,7 +391,7 @@ export function createStreamingSubtitleParser(events = []) {
     for (const objectString of objectStrings) {
       try {
         const item = JSON.parse(objectString);
-        const subtitle = mapSubtitleItemToCue(item, events);
+        const subtitle = mapSubtitleItemToCue(item, events, aligner);
         if (!subtitle) continue;
 
         const key = `${subtitle._si}:${subtitle._ei}`;
