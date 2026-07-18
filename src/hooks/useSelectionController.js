@@ -8,6 +8,7 @@ import {
   OPT_TRANBOX_BTN_POSITION_MOUSE,
   OPT_TRANBOX_TRIGGER_HOVER,
   OPT_TRANBOX_TRIGGER_SELECT,
+  OPT_TRANBOX_TRIGGER_DBLCLICK,
   OPT_TRANBOX_INTERACT_CLICK,
   OPT_TRANBOX_INTERACT_DBLCLICK,
 } from "../config";
@@ -313,7 +314,10 @@ export default function useSelectionController({
         );
       }
 
-      if (triggerMode === OPT_TRANBOX_TRIGGER_SELECT) {
+      if (
+        triggerMode === OPT_TRANBOX_TRIGGER_SELECT ||
+        triggerMode === OPT_TRANBOX_TRIGGER_DBLCLICK
+      ) {
         commitSelectionSnapshot(snapshot);
         return;
       }
@@ -447,13 +451,22 @@ export default function useSelectionController({
   }, [triggerMode]);
 
   useEffect(() => {
-    const eventName = isMobile ? "touchend" : "mouseup";
+    // 双击触发模式下监听 dblclick：仅在浏览器双击自动选词时触发，
+    // 拖拽选择不会派发 dblclick，从而避免复制等操作时的误触。
+    let eventName;
+    if (triggerMode === OPT_TRANBOX_TRIGGER_DBLCLICK) {
+      eventName = "dblclick";
+    } else if (isMobile) {
+      eventName = "touchend";
+    } else {
+      eventName = "mouseup";
+    }
 
     window.addEventListener(eventName, handleSelectionEvent);
     return () => {
       window.removeEventListener(eventName, handleSelectionEvent);
     };
-  }, [handleSelectionEvent]);
+  }, [handleSelectionEvent, triggerMode]);
 
   useEffect(() => {
     if (!hideClickAway) return;

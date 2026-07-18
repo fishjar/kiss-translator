@@ -95,10 +95,12 @@ export const PHONIC_MAP = {
 export const OPT_TRANBOX_TRIGGER_CLICK = "click"; // 划词后，点击出现的翻译悬浮球图标再触发翻译
 export const OPT_TRANBOX_TRIGGER_HOVER = "hover"; // 划词后，鼠标悬停在悬浮球上触发翻译
 export const OPT_TRANBOX_TRIGGER_SELECT = "select"; // 划词后直接开始翻译并展现结果面板
+export const OPT_TRANBOX_TRIGGER_DBLCLICK = "dblclick"; // 双击自动选中单词时直接翻译（不响应拖拽选区，减少复制误触）
 export const OPT_TRANBOX_TRIGGER_ALL = [
   OPT_TRANBOX_TRIGGER_CLICK,
   OPT_TRANBOX_TRIGGER_HOVER,
   OPT_TRANBOX_TRIGGER_SELECT,
+  OPT_TRANBOX_TRIGGER_DBLCLICK,
 ];
 // 划词后弹出按钮的定位模式
 export const OPT_TRANBOX_BTN_POSITION_FIXED = "fixed"; // 沿用当前逻辑，固定显示在选区右下角

@@ -2751,6 +2751,14 @@ export const I18N = {
     ko: `선택 트리거`,
     tr: `Tetikleyiciyi Seçin`,
   },
+  trigger_dblclick: {
+    zh: `双击触发`,
+    en: `Double-click Trigger`,
+    zh_TW: `雙擊觸發`,
+    ja: `ダブルクリックトリガー`,
+    ko: `더블클릭 트리거`,
+    tr: `Çift Tıklama Tetikleyicisi`,
+  },
   tranbtn_position_mode: {
     zh: `弹出按钮位置`,
     en: `Popup Button Position`,
