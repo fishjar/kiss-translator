@@ -119,6 +119,16 @@ async function dispatchWindowMouseup(delay = 200) {
   });
 }
 
+async function dispatchWindowDblclick() {
+  await act(async () => {
+    window.dispatchEvent(
+      new MouseEvent("dblclick", { bubbles: true, button: 0 })
+    );
+    jest.runOnlyPendingTimers();
+    await Promise.resolve();
+  });
+}
+
 async function dispatchPanelMouseup(target, composedPath) {
   await act(async () => {
     const event = new MouseEvent("mouseup", {
@@ -425,6 +435,39 @@ describe("useSelectionController", () => {
 
     expect(controller.state.text).toBe("selected");
     expect(controller.state.textContext).toBe("Panel selected word context.");
+
+    act(() => {
+      controller.root.unmount();
+    });
+  });
+
+  test("opens the box immediately on double-click in dblclick mode", async () => {
+    const controller = renderController({ triggerMode: "dblclick" });
+    const pageParagraph = createParagraph("The library is open.");
+
+    currentSelection = makeSelection("library", pageParagraph);
+    await dispatchWindowDblclick();
+
+    expect(controller.state.text).toBe("library");
+    expect(controller.state.textContext).toBe("The library is open.");
+    expect(controller.state.showBox).toBe(true);
+    expect(controller.state.showBtn).toBe(false);
+
+    act(() => {
+      controller.root.unmount();
+    });
+  });
+
+  test("ignores plain mouseup selections in dblclick mode", async () => {
+    const controller = renderController({ triggerMode: "dblclick" });
+    const pageParagraph = createParagraph("The library is open.");
+
+    currentSelection = makeSelection("library", pageParagraph);
+    await dispatchWindowMouseup();
+
+    expect(controller.state.text).toBe("");
+    expect(controller.state.showBox).toBe(false);
+    expect(controller.state.showBtn).toBe(false);
 
     act(() => {
       controller.root.unmount();
