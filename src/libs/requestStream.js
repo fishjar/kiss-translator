@@ -33,8 +33,9 @@ async function* fetchStreamGM(
   { method = "GET", headers, body, timeout, signal } = {}
 ) {
   const asyncQueue = createAsyncQueue();
-  const parseSSE = createSSEParser();
+  let parseSSE = createSSEParser();
   let readerStarted = false;
+  let readerFallbackError = null;
   let pushedChunk = false;
   let lastResponseTextLength = 0;
   let settled = false;
@@ -53,6 +54,11 @@ async function* fetchStreamGM(
     settled = true;
     asyncQueue.error(error);
   };
+
+  const isXrayTypedArrayError = (error) =>
+    String(error?.message || error).includes(
+      "Accessing TypedArray data over Xrays"
+    );
 
   const getResponseText = (event = {}) => {
     if (typeof event.responseText === "string") return event.responseText;
@@ -148,8 +154,9 @@ async function* fetchStreamGM(
       }
 
       readerStarted = true;
+      let reader;
       try {
-        const reader = response.getReader();
+        reader = response.getReader();
         const decoder = new TextDecoder();
         while (true) {
           const { done: readerDone, value } = await reader.read();
@@ -162,6 +169,17 @@ async function* fetchStreamGM(
           }
         }
       } catch (e) {
+        if (!pushedChunk && isXrayTypedArrayError(e)) {
+          readerStarted = false;
+          readerFallbackError = e;
+          parseSSE = createSSEParser();
+          try {
+            await reader?.cancel?.();
+          } catch {
+            // The broken cross-realm reader may also reject cancellation.
+          }
+          return;
+        }
         fail(e);
         return;
       }
@@ -173,7 +191,10 @@ async function* fetchStreamGM(
 
       pushResponseTextDelta(event, true);
       if (!pushedChunk) {
-        fail(new Error("GM stream response is not readable."));
+        fail(
+          readerFallbackError ||
+            new Error("GM stream response is not readable.")
+        );
         return;
       }
       finish();
