@@ -988,7 +988,7 @@ export class Translator {
     const style = document.createElement("style");
     style.id = fallbackStyleId;
     style.textContent = this.#textStylesRaw || "";
-    shadowRoot.prepend(style);
+    shadowRoot.append(style);
   }
 
   // 解析专业术语字符串
