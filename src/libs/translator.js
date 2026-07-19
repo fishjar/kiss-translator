@@ -338,7 +338,9 @@ export class Translator {
   #glossary = {}; // AI词典
   #blockSelectorInvalid = false; // 自定义块级选择器是否已确认无效
   #textClass = {}; // 译文样式class
-  #textSheet = ""; // 译文样式字典
+  #textSheet = null; // CSSStyleSheet 实例（Firefox 内容脚本中不可用时为 null）
+  #textStylesRaw = ""; // 原始 CSS 文本（Firefox adoptedStyleSheets 回退备用）
+  #useSheetFallback = false; // Firefox 跨作用域限制标记：adoptedStyleSheets 不可用时直接走内联 <style>
   #apisMap = new Map(); // 用于接口快速查找
   #favWords = []; // 收藏词汇
 
@@ -943,20 +945,50 @@ export class Translator {
   // 创建样式
   #createTextStyles() {
     const [textClass, textStyles] = genTextClass(this.#setting.customStyles);
-    const textSheet = new CSSStyleSheet();
-    textSheet.replaceSync(textStyles);
     this.#textClass = textClass;
-    this.#textSheet = textSheet;
+    this.#textStylesRaw = textStyles;
+
+    try {
+      const textSheet = new CSSStyleSheet();
+      textSheet.replaceSync(textStyles)
+      this.#textSheet = textSheet;
+    } catch (err) {
+      kissLog("createTextStyles: CSSStyleSheet not available", err);
+      // CSSStyleSheet 在当前环境不可用（Firefox 内容脚本等），改用内联 <style>
+      this.#useSheetFallback = true;
+    }
   }
 
-  // 注入样式
+  // 注入样式（优先 adoptedStyleSheets，失败时回退到 <style>）
   #injectSheet(shadowRoot) {
-    if (!shadowRoot.adoptedStyleSheets.includes(this.#textSheet)) {
-      shadowRoot.adoptedStyleSheets = [
-        ...shadowRoot.adoptedStyleSheets,
-        this.#textSheet,
-      ];
+    if (this.#useSheetFallback || !this.#textSheet) {
+      this.#injectSheetFallback(shadowRoot);
+      return;
     }
+
+    try {
+      if (!shadowRoot.adoptedStyleSheets.includes(this.#textSheet)) {
+        shadowRoot.adoptedStyleSheets = [
+          ...shadowRoot.adoptedStyleSheets,
+          this.#textSheet,
+        ];
+      }
+    } catch {
+      // Firefox 跨作用域限制：内容脚本的 CSSStyleSheet 无法赋值给页面 ShadowRoot
+      this.#useSheetFallback = true;
+      this.#injectSheetFallback(shadowRoot);
+    }
+  }
+
+  // 回退方案：通过内联 <style> 元素注入样式（兼容 Firefox）
+  #injectSheetFallback(shadowRoot) {
+    const fallbackStyleId = `${APP_LCNAME}-fallback-style`;
+    if (shadowRoot.getElementById(fallbackStyleId)) return;
+
+    const style = document.createElement("style");
+    style.id = fallbackStyleId;
+    style.textContent = this.#textStylesRaw || "";
+    shadowRoot.prepend(style);
   }
 
   // 解析专业术语字符串
@@ -1298,11 +1330,15 @@ export class Translator {
 
   // 监控shadowroot
   #startObserveShadowRoot(shadowRoot) {
-    if (shadowRoot.host.matches(`#${APP_CONSTS.fabID}, #${APP_CONSTS.boxID}`)) {
-      return;
+    try {
+      if (shadowRoot.host.matches(`#${APP_CONSTS.fabID}, #${APP_CONSTS.boxID}`)) {
+        return;
+      }
+      this.#startObserveRoot(shadowRoot);
+      this.#injectSheet(shadowRoot);
+    } catch (err) {
+      kissLog("startObserveShadowRoot", err);
     }
-    this.#startObserveRoot(shadowRoot);
-    this.#injectSheet(shadowRoot);
   }
 
   // 监控根节点

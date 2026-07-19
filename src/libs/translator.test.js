@@ -879,6 +879,58 @@ describe("Translator rule styles", () => {
     expect(bubble.textContent).toBe("Second translation");
   });
 
+  test("injects inline <style> when CSSStyleSheet constructor is unavailable", async () => {
+    global.CSSStyleSheet = class {
+      constructor() {
+        throw new Error("CSSStyleSheet not available");
+      }
+    };
+
+    document.body.innerHTML =
+      '<main id="root"><section id="host">Content</section></main>';
+    const host = document.getElementById("host");
+    const shadowRoot = host.attachShadow({ mode: "open" });
+    Object.defineProperty(shadowRoot, "adoptedStyleSheets", {
+      configurable: true,
+      writable: true,
+      value: [],
+    });
+    shadowRoot.innerHTML = "<p>Shadow content</p>";
+
+    createTranslator({ scanAll: "true" });
+    await flushAsync();
+
+    const style = shadowRoot.querySelector("style");
+    expect(style).not.toBeNull();
+    expect(style.id).toBe("kiss-translator-fallback-style");
+    expect(style.textContent.length).toBeGreaterThan(0);
+    expect(shadowRoot.querySelectorAll("style")).toHaveLength(1);
+  });
+
+  test("falls back to inline <style> when adoptedStyleSheets setter throws", async () => {
+    document.body.innerHTML =
+      '<main id="root"><section id="host">Content</section></main>';
+    const host = document.getElementById("host");
+    const shadowRoot = host.attachShadow({ mode: "open" });
+    Object.defineProperty(shadowRoot, "adoptedStyleSheets", {
+      configurable: true,
+      get: () => [],
+      set: () => {
+        throw new Error("adoptedStyleSheets not allowed");
+      },
+    });
+    shadowRoot.innerHTML = "<p>Shadow content</p>";
+
+    createTranslator({ scanAll: "true" });
+    await flushAsync();
+
+    const style = shadowRoot.querySelector("style");
+    expect(style).not.toBeNull();
+    expect(style.id).toBe("kiss-translator-fallback-style");
+    expect(style.textContent.length).toBeGreaterThan(0);
+    expect(shadowRoot.querySelectorAll("style")).toHaveLength(1);
+  });
+
   test("removes mouse hover bubble when mouse hover is disabled", async () => {
     document.body.innerHTML =
       '<main id="root"><p id="target">Hello hover</p></main>';
