@@ -26,6 +26,8 @@ import {
   handleTranslate,
   handleDict,
   handleSubtitle,
+  buildSubtitleSystemPrompt,
+  formatIndexSubtitleEvents,
   handleSummarize,
   handleMicrosoftLangdetect,
 } from "./trans";
@@ -42,7 +44,6 @@ import { getDocInfo } from "../libs/docInfo";
 const PROMPT_CACHE_SALT = "prompt-cache";
 const PROMPT_CACHE_SCOPE_BATCH = "batch";
 const PROMPT_CACHE_SCOPE_NOBATCH = "nobatch";
-const PROMPT_CACHE_SCOPE_SUBTITLE = "subtitle";
 const PROMPT_CACHE_SCOPE_DICT = "dict";
 const PROMPT_CACHE_SCOPE_PLAIN = "plain";
 
@@ -66,10 +67,6 @@ function getPromptCacheFields(apiSetting = {}, promptScope) {
       apiSetting.nobatchPrompt || "",
       apiSetting.nobatchUserPrompt ?? defaultNobatchUserPrompt,
     ];
-  }
-
-  if (promptScope === PROMPT_CACHE_SCOPE_SUBTITLE) {
-    return [apiSetting.subtitlePrompt || ""];
   }
 
   if (promptScope === PROMPT_CACHE_SCOPE_DICT) {
@@ -890,7 +887,7 @@ export const apiDict = async ({
 /**
  * 专为视频外挂字幕 (Subtitle Segment) 订制的翻译处理函数。
  * 融合了视频上下文摘要，使得大模型字幕翻译语义更加贴合剧情，不会产生传统断句翻译的突兀感。
- * @param {Object} params 包含视频 ID、字幕块标识、当前切片字幕数组、上一句和下一句字幕上下文等。
+ * @param {Object} params 包含视频 ID、字幕块标识和当前切片字幕数组等。
  * @param {Function} [params.onSubtitleChunk] 字幕断句流式输出完整句子时触发的增量回调。
  * @param {AbortSignal} [params.signal] 当前字幕处理生命周期的取消信号，会下传到请求层。
  * @returns {Promise<Array<Object>>} 完整字幕断句与翻译结果。
@@ -903,21 +900,55 @@ export const apiSubtitle = async ({
   events = [],
   apiSetting,
   docInfo,
-  prevContext = "",
-  nextContext = "",
   onSubtitleChunk,
   signal,
 }) => {
   if (!events?.length) return [];
-  const cacheOpts = {
-    apiSlug: apiSetting.apiSlug,
-    videoId,
-    chunkSign,
+  const formattedEvents = formatIndexSubtitleEvents(
+    events,
+    apiSetting.subtitlePrompt
+  );
+  // chunk 哈希同时包含 AI 输入和内部时间轴，避免相同首尾时间误命中旧字幕。
+  const chunkHash = (
+    await getCacheDigest(
+      JSON.stringify(
+        formattedEvents.map((item, index) => [
+          item.id,
+          item.text,
+          events[index]?.start,
+          events[index]?.end,
+          // 新协议记录精确停顿；旧提示词仍使用 p 时继续纳入同一哈希槽位。
+          item.pauseMs || item.p || 0,
+        ])
+      ),
+      "subtitle-chunk-v4"
+    )
+  ).slice(0, 16);
+  // 对完成变量替换的最终提示词签名，动态视频上下文无需再维护独立 contextSig。
+  const renderedPrompt = buildSubtitleSystemPrompt({
+    subtitlePrompt: apiSetting.subtitlePrompt,
+    tone: apiSetting.tone,
+    from: fromLang,
+    to: toLang,
     fromLang,
     toLang,
-    segVer: 3,
-    promptSig: await getPromptCacheSig(apiSetting, PROMPT_CACHE_SCOPE_SUBTITLE),
-    ctx: docInfo?.summary?.slice(0, 50) || "",
+    docInfo,
+    aiTerms: apiSetting.aiTerms,
+  });
+  const cacheOpts = {
+    apiSlug: apiSetting.apiSlug,
+    apiType: apiSetting.apiType,
+    model: apiSetting.model,
+    videoId,
+    chunkSign,
+    chunkHash,
+    fromLang,
+    toLang,
+    segVer: 4,
+    promptSig: (await getCacheDigest(renderedPrompt, PROMPT_CACHE_SALT)).slice(
+      0,
+      16
+    ),
   };
   const cacheInput = `${URL_CACHE_SUBTITLE}?${queryString.stringify(cacheOpts)}`;
 
@@ -927,15 +958,13 @@ export const apiSubtitle = async ({
     return cache;
   }
 
-  // 2. 发起含有剧本前后文语义的字幕翻译请求
+  // 2. 发起使用视频级系统上下文的字幕断句与翻译请求。
   const subtitles = await handleSubtitle({
     events,
     from: fromLang,
     to: toLang,
     apiSetting,
     docInfo,
-    prevContext,
-    nextContext,
     onSubtitleChunk,
     signal,
   });

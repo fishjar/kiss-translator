@@ -1,11 +1,12 @@
 #!/usr/bin/env zx
 import { argv, quote, $ } from "zx";
+import { copySubtitleSamplesToWeb } from "./subtitle-samples.mjs";
 
 // 在 Windows 上使用 cmd.exe，避免 zx 默认使用 WSL bash 导致 node not found
 if (process.platform === "win32") {
   $.shell = "cmd.exe";
   $.prefix = "";
-  $.quote = quote
+  $.quote = quote;
 }
 
 // 用法: zx src/scripts/build-task.mjs --target=chrome
@@ -118,6 +119,9 @@ try {
         await fs.copy(inDest(f), path.join(userscriptDir, f));
       }
     }
+
+    // 字幕测试样本只随 GitHub Pages Web 产物发布，不进入任何插件压缩包。
+    await copySubtitleSamplesToWeb(targetDir);
   }
 
   console.log(

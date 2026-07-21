@@ -1,0 +1,57 @@
+[
+  {
+    "tStartMs": 0,
+    "dDurationMs": 1800,
+    "segs": [
+      {
+        "utf8": "<b>Hello</b>​   world"
+      }
+    ]
+  },
+  {
+    "tStartMs": 0,
+    "dDurationMs": 1800,
+    "pPenId": 2,
+    "segs": [
+      {
+        "utf8": "<i>Hello</i>​ world"
+      }
+    ]
+  },
+  {
+    "tStartMs": 1800,
+    "dDurationMs": 0,
+    "aAppend": 1,
+    "segs": [
+      {
+        "utf8": "\n"
+      }
+    ]
+  },
+  {
+    "tStartMs": 2000,
+    "dDurationMs": 1600,
+    "segs": [
+      {
+        "utf8": "[Music]"
+      }
+    ]
+  },
+  {
+    "tStartMs": 3700,
+    "dDurationMs": 2300,
+    "segs": [
+      {
+        "utf8": "Back"
+      },
+      {
+        "utf8": " to",
+        "tOffsetMs": 500
+      },
+      {
+        "utf8": " speech.",
+        "tOffsetMs": 1000
+      }
+    ]
+  }
+]

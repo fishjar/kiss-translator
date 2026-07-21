@@ -52,8 +52,9 @@ describe("subtitle Menus", () => {
         element.children.length === 0
     );
 
-    expect(view.container.textContent.startsWith("enable_subtitle_translate"))
-      .toBe(true);
+    expect(
+      view.container.textContent.startsWith("enable_subtitle_translate")
+    ).toBe(true);
 
     act(() => {
       label.parentElement.click();

@@ -1,7 +1,9 @@
 import {
+  aiSegment,
   createAiChunkScheduler,
   eventsToSubtitles,
 } from "./youtubeAiSegmentation";
+import { prepareTimedTextEvents } from "./youtubeSubtitleProcessing";
 
 jest.mock("../libs/log.js", () => ({
   LogLevel: {
@@ -42,6 +44,101 @@ const subtitle = {
   _si: 0,
   _ei: 1,
 };
+
+describe("aiSegment recovery", () => {
+  test("sends only speech events after timedtext preparation", async () => {
+    const prepared = prepareTimedTextEvents([
+      {
+        tStartMs: 0,
+        dDurationMs: 1500,
+        segs: [
+          { utf8: "Hello" },
+          { utf8: " [Music]", tOffsetMs: 500 },
+          { utf8: " world.", tOffsetMs: 900 },
+        ],
+      },
+    ]);
+    const apiSubtitle = jest.fn(({ events }) =>
+      Promise.resolve([
+        {
+          start: events[0].start,
+          end: events[events.length - 1].end,
+          text: events.map((event) => event.text).join(" "),
+          translation: "你好，世界。",
+          _si: 0,
+          _ei: events.length - 1,
+        },
+      ])
+    );
+
+    const result = await aiSegment({
+      videoId: "video-non-speech",
+      fromLang: "en",
+      toLang: "zh-CN",
+      chunkEvents: prepared.flatEvents,
+      segApiSetting: { apiSlug: "openai" },
+      apiSubtitle,
+      docInfo: {},
+      formatSubtitles: jest.fn(() => []),
+      clearSegmentTranslation: false,
+      setting: {},
+    });
+
+    expect(
+      apiSubtitle.mock.calls[0][0].events.map((event) => event.text)
+    ).toEqual(["Hello", "world."]);
+    expect(result[0].text).toBe("Hello world.");
+  });
+
+  test("retries an uncovered tail once and falls back only for the remaining events", async () => {
+    const events = Array.from({ length: 4 }, (_, index) => ({
+      start: index * 1000,
+      end: (index + 1) * 1000,
+      text: `word-${index}`,
+    }));
+    const apiSubtitle = jest
+      .fn()
+      // 首次响应只覆盖 0，遗漏尾部超过整个 chunk 的一半。
+      .mockResolvedValueOnce([
+        { ...events[0], translation: "译文-0", _si: 0, _ei: 0 },
+      ])
+      // 尾部重试只再覆盖局部事件 0，剩余局部事件必须精确降级。
+      .mockResolvedValueOnce([
+        { ...events[1], translation: "译文-1", _si: 0, _ei: 0 },
+      ]);
+    const formatSubtitles = jest.fn((tailEvents) => [
+      {
+        start: tailEvents[0].start,
+        end: tailEvents[tailEvents.length - 1].end,
+        text: tailEvents.map((event) => event.text).join(" "),
+        translation: "",
+      },
+    ]);
+
+    const result = await aiSegment({
+      videoId: "video-recovery",
+      fromLang: "en",
+      toLang: "zh-CN",
+      chunkEvents: events,
+      segApiSetting: { apiSlug: "openai" },
+      apiSubtitle,
+      docInfo: {},
+      formatSubtitles,
+      clearSegmentTranslation: false,
+      setting: {},
+    });
+
+    expect(apiSubtitle).toHaveBeenCalledTimes(2);
+    expect(apiSubtitle.mock.calls[1][0].events).toEqual(events.slice(1));
+    expect(formatSubtitles).toHaveBeenCalledWith(events.slice(2), "en");
+    expect(result.map(({ start, end }) => [start, end])).toEqual([
+      [0, 1000],
+      [1000, 2000],
+      [2000, 4000],
+    ]);
+    expect(result[1]).toMatchObject({ _si: 1, _ei: 1 });
+  });
+});
 
 describe("eventsToSubtitles", () => {
   test("appends streamed first-chunk subtitles before full chunk resolves", async () => {

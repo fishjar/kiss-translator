@@ -9,43 +9,109 @@ import { splitEventsIntoChunks } from "./youtubeSubtitleProcessing.js";
  */
 
 /**
- * 提取相邻字幕分块的简短上下文，辅助 AI 断句保持语义连续。
- *
- * @param {Array<Array<object>>} chunks 已切分的字幕事件分块。
- * @param {number} chunkIndex 当前分块索引。
- * @param {"prev"|"next"} side 提取前一块或后一块上下文。
- * @param {number} [maxEvents=3] 最多取用的相邻事件数量。
- * @param {number} [maxChars=240] 输出上下文最大字符数。
- * @returns {string} 清洗后的上下文文本。
+ * 只接受从事件 0 开始连续覆盖的字幕前缀，非法、跳号或重叠后的对象全部丢弃。
+ * VTT 旧协议没有事件索引，无法进行游标校验，只保留原有兼容行为。
  */
-export function getChunkContext(
-  chunks,
-  chunkIndex,
-  side,
-  maxEvents = 3,
-  maxChars = 240
-) {
-  const NON_SPEECH_RE = /^\[.+\]$/i;
-  const adj = side === "prev" ? chunks[chunkIndex - 1] : chunks[chunkIndex + 1];
-  if (!adj?.length) return "";
-  const picked =
-    side === "prev" ? adj.slice(-maxEvents) : adj.slice(0, maxEvents);
-  return picked
-    .map((e) => String(e?.text ?? "").trim())
-    .filter((t) => t && !NON_SPEECH_RE.test(t))
-    .join(" ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, maxChars);
+function takeContinuousCuePrefix(cues, eventCount) {
+  const safeCues = Array.isArray(cues) ? cues : [];
+  const hasIndexedCue = safeCues.some(
+    (cue) => Number.isInteger(cue?._ei) || Number.isInteger(cue?._alignedEi)
+  );
+  if (!hasIndexedCue) {
+    return {
+      cues: safeCues,
+      coveredEnd: safeCues.length ? eventCount - 1 : -1,
+      verifiable: false,
+    };
+  }
+
+  const prefix = [];
+  let nextIndex = 0;
+  for (const cue of safeCues) {
+    const startIndex = cue._alignedSi ?? cue._si;
+    const endIndex = cue._alignedEi ?? cue._ei;
+    if (
+      !Number.isInteger(startIndex) ||
+      !Number.isInteger(endIndex) ||
+      startIndex !== nextIndex ||
+      endIndex < startIndex ||
+      endIndex >= eventCount
+    ) {
+      break;
+    }
+    prefix.push(cue);
+    nextIndex = endIndex + 1;
+  }
+
+  return { cues: prefix, coveredEnd: nextIndex - 1, verifiable: true };
+}
+
+/** 把尾部请求的局部事件索引恢复为当前 chunk 的全局索引。 */
+function offsetCueIndices(cues, offset) {
+  return (cues || []).map((cue) => ({
+    ...cue,
+    _si: Number.isInteger(cue._si) ? cue._si + offset : cue._si,
+    _ei: Number.isInteger(cue._ei) ? cue._ei + offset : cue._ei,
+    _alignedSi: Number.isInteger(cue._alignedSi)
+      ? cue._alignedSi + offset
+      : cue._alignedSi,
+    _alignedEi: Number.isInteger(cue._alignedEi)
+      ? cue._alignedEi + offset
+      : cue._alignedEi,
+  }));
+}
+
+/** 根据设置标记 AI 译文为待重翻译，保持现有字幕管理器的处理语义。 */
+function markDraftTranslations(cues, clearSegmentTranslation) {
+  return clearSegmentTranslation
+    ? (cues || []).map((cue) => ({ ...cue, _isDraftTranslation: true }))
+    : cues || [];
+}
+
+/**
+ * 最终校验字幕时间轴和原文顺序；兼容 VTT 时也能发现漏词或重复词。
+ * 校验失败直接对当前 chunk 全量降级，避免把损坏结果交给播放器。
+ */
+function finalizeAiCues(cues, segmentEvents, fromLang, formatSubtitles) {
+  const sorted = [...(cues || [])].sort((a, b) => a.start - b.start);
+  const hasInvalidTimeline = sorted.some((cue, index) => {
+    const start = Number(cue.start);
+    const end = Number(cue.end);
+    const previous = sorted[index - 1];
+    return (
+      !String(cue.text || "").trim() ||
+      !Number.isFinite(start) ||
+      !Number.isFinite(end) ||
+      end <= start ||
+      (previous && start < Number(previous.end))
+    );
+  });
+  // 仅比较字母和数字序列，允许模型在 VTT 旧协议中修正空格或标点。
+  const normalizeText = (items) =>
+    (items || [])
+      .map((item) => String(item?.text || ""))
+      .join("")
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}]/gu, "");
+  const hasInvalidCoverage =
+    normalizeText(sorted) !== normalizeText(segmentEvents);
+
+  if (hasInvalidTimeline || hasInvalidCoverage) {
+    logger.info("Youtube Provider: AI result validation failed, falling back");
+    return formatSubtitles(segmentEvents, fromLang).sort(
+      (a, b) => a.start - b.start
+    );
+  }
+  return sorted;
 }
 
 /**
  * 通过大模型 AI 接口对字幕切片事件流进行“智能断句”与“辅助翻译”。
  *
  * 设计要点：
- * 1. 预先剥离 `[Music]`、`[Laughter]` 等非语音事件，节省 Token 并避免直译混淆。
+ * 1. 只接收预处理后的语音事件，非语音标记不会进入模型和完整覆盖校验。
  * 2. 对 AI 响应尾部遗漏进行一次 Tail Retry，降低流式截断导致的尾句丢失。
- * 3. 当断句 API 与正式翻译 API 不一致时，清空断句模型返回的 translation，交给后续翻译流程处理。
+ * 3. 启用强制重翻译时，把断句模型译文标记为草稿，交给后续翻译流程替换。
  *
  * @param {object} param0 参数对象。
  * @param {string} param0.videoId 当前视频 ID。
@@ -56,12 +122,10 @@ export function getChunkContext(
  * @param {Function} param0.apiSubtitle 调用字幕断句 API 的函数。
  * @param {object} param0.docInfo 页面与 AI 上下文信息。
  * @param {Function} param0.formatSubtitles AI 失败时的内置格式化降级函数。
- * @param {boolean} param0.clearSegmentTranslation 是否清空断句 API 返回的翻译字段。
- * @param {string} [param0.prevContext=""] 前一分块的简短上下文。
- * @param {string} [param0.nextContext=""] 后一分块的简短上下文。
+ * @param {boolean} param0.clearSegmentTranslation 是否把断句 API 译文标记为待重翻译。
  * @param {Function} [param0.onSubtitleChunk] AI 流式返回完整句子时的增量回调。
  * @param {AbortSignal} [param0.signal] 当前字幕处理生命周期的取消信号。
- * @returns {Promise<Array<object>>} AI 断句后的字幕条目；失败时返回可保留的非语音条目。
+ * @returns {Promise<Array<object>>} AI 断句后的字幕条目；失败时返回内置规则断句结果。
  */
 export async function aiSegment({
   videoId,
@@ -73,44 +137,24 @@ export async function aiSegment({
   docInfo,
   formatSubtitles,
   clearSegmentTranslation,
-  prevContext = "",
-  nextContext = "",
   onSubtitleChunk,
   signal,
   setting,
 }) {
-  const NON_SPEECH_RE = /^\[.+\]$/i;
-  const speechEvents = [];
-  const nonSpeechEvents = [];
-
-  for (const item of chunkEvents) {
-    if (!item.text) continue;
-    if (NON_SPEECH_RE.test(item.text.trim())) {
-      nonSpeechEvents.push(item);
-    } else {
-      speechEvents.push(item);
-    }
-  }
-
-  const toStandaloneSub = (e) => ({
-    start: e.start,
-    end: e.end,
-    text: e.text,
-    translation: e.text,
-  });
-
-  if (!speechEvents.length) return nonSpeechEvents.map(toStandaloneSub);
+  // 调用方已经统一过滤非语音片段，这里只剔除无文本项，避免重复分类和事后回填。
+  const segmentEvents = (chunkEvents || []).filter((item) => item?.text);
+  if (!segmentEvents.length) return [];
 
   try {
-    const chunkSign = `${speechEvents[0].start} --> ${
-      speechEvents[speechEvents.length - 1].end
+    const chunkSign = `${segmentEvents[0].start} --> ${
+      segmentEvents[segmentEvents.length - 1].end
     }`;
     logger.debug("Youtube Provider: aiSegment events", {
       videoId,
       chunkSign,
       fromLang,
       toLang,
-      speechEvents,
+      segmentEvents,
     });
 
     const resolvedSegApiSetting = resolveApiPromptSettings(
@@ -124,11 +168,9 @@ export async function aiSegment({
       chunkSign,
       fromLang,
       toLang,
-      events: speechEvents,
+      events: segmentEvents,
       apiSetting: resolvedSegApiSetting,
       docInfo,
-      prevContext,
-      nextContext,
       signal,
       onSubtitleChunk: ({ subtitles }) => {
         if (!subtitles?.length || !onSubtitleChunk) return;
@@ -141,76 +183,71 @@ export async function aiSegment({
       },
     });
     logger.debug("Youtube Provider: aiSegment subtitles", subtitles);
-    if (Array.isArray(subtitles) && subtitles.length) {
-      let result = subtitles;
-      if (clearSegmentTranslation) {
-        result = subtitles.map((sub) => ({
-          ...sub,
-          _isDraftTranslation: true,
-        }));
+    if (Array.isArray(subtitles)) {
+      const initial = takeContinuousCuePrefix(
+        markDraftTranslations(subtitles, clearSegmentTranslation),
+        segmentEvents.length
+      );
+      if (
+        !initial.verifiable ||
+        initial.coveredEnd === segmentEvents.length - 1
+      ) {
+        return finalizeAiCues(
+          initial.cues,
+          segmentEvents,
+          fromLang,
+          formatSubtitles
+        );
       }
 
-      const maxEi = Math.max(...result.map((s) => s._ei ?? -1));
-
-      if (maxEi >= 0 && maxEi < speechEvents.length - 1) {
-        const tailEvents = speechEvents.slice(maxEi + 1);
-        if (tailEvents.length <= speechEvents.length * 0.5) {
-          try {
-            const tailSign = `${tailEvents[0].start} --> ${
-              tailEvents[tailEvents.length - 1].end
-            }`;
-            const lastResultText = result[result.length - 1]?.text || "";
-
-            const tailSubs = await apiSubtitle({
-              videoId,
-              chunkSign: tailSign,
-              fromLang,
-              toLang,
-              events: tailEvents,
-              apiSetting: resolvedSegApiSetting,
-              docInfo,
-              prevContext: [prevContext, lastResultText]
-                .filter(Boolean)
-                .join(" "),
-              nextContext,
-              signal,
-            });
-
-            if (tailSubs?.length) {
-              let processedTailSubs = tailSubs;
-              if (clearSegmentTranslation) {
-                processedTailSubs = processedTailSubs.map((sub) => ({
-                  ...sub,
-                  _isDraftTranslation: true,
-                }));
-              }
-              result = [...result, ...processedTailSubs];
-            } else {
-              result = [...result, ...formatSubtitles(tailEvents, fromLang)];
-            }
-          } catch {
-            result = [...result, ...formatSubtitles(tailEvents, fromLang)];
-          }
-        }
+      // 未覆盖尾部最多重试一次；二次响应仍不完整时，只对剩余事件使用规则断句。
+      const tailOffset = initial.coveredEnd + 1;
+      const tailEvents = segmentEvents.slice(tailOffset);
+      let tailPrefix = { cues: [], coveredEnd: -1, verifiable: true };
+      try {
+        const tailSign = `${tailEvents[0].start} --> ${
+          tailEvents[tailEvents.length - 1].end
+        }`;
+        const tailSubs = await apiSubtitle({
+          videoId,
+          chunkSign: tailSign,
+          fromLang,
+          toLang,
+          events: tailEvents,
+          apiSetting: resolvedSegApiSetting,
+          docInfo,
+          signal,
+        });
+        tailPrefix = takeContinuousCuePrefix(
+          markDraftTranslations(tailSubs, clearSegmentTranslation),
+          tailEvents.length
+        );
+      } catch (tailError) {
+        logger.info("Youtube Provider: ai tail retry", tailError);
       }
 
-      const gapCues = nonSpeechEvents
-        .filter(
-          (ns) =>
-            !result.some((sub) => ns.start < sub.end && ns.end > sub.start)
-        )
-        .map(toStandaloneSub);
-
-      return [...result, ...gapCues].sort((a, b) => a.start - b.start);
+      const acceptedTail = offsetCueIndices(tailPrefix.cues, tailOffset);
+      const fallbackOffset = tailPrefix.verifiable
+        ? tailOffset + tailPrefix.coveredEnd + 1
+        : segmentEvents.length;
+      const fallbackEvents = segmentEvents.slice(fallbackOffset);
+      const fallbackCues = fallbackEvents.length
+        ? formatSubtitles(fallbackEvents, fromLang)
+        : [];
+      return finalizeAiCues(
+        [...initial.cues, ...acceptedTail, ...fallbackCues],
+        segmentEvents,
+        fromLang,
+        formatSubtitles
+      );
     }
   } catch (err) {
     logger.info("Youtube Provider: ai segmentation", err);
   }
 
-  return [
-    ...formatSubtitles(speechEvents, fromLang),
-    ...nonSpeechEvents.map(toStandaloneSub),
-  ].sort((a, b) => a.start - b.start);
+  return formatSubtitles(segmentEvents, fromLang).sort(
+    (a, b) => a.start - b.start
+  );
 }
 
 /**
@@ -287,8 +324,6 @@ export async function eventsToSubtitles({
       docInfo,
       formatSubtitles,
       clearSegmentTranslation: shouldClearSegmentTranslation,
-      prevContext: "",
-      nextContext: getChunkContext(eventChunks, 0, "next"),
       signal,
       setting,
       onSubtitleChunk: ({ subtitles }) => {
@@ -366,7 +401,7 @@ export async function eventsToSubtitles({
  * @param {Function} params.apiSubtitle 调用 AI 断句接口的函数。
  * @param {object} params.docInfo 页面/视频上下文信息。
  * @param {Function} params.formatSubtitles AI 断句失败时的内置降级断句函数。
- * @param {boolean} params.clearSegmentTranslation 是否清空 AI 断句返回的翻译，交给后续翻译服务重翻。
+ * @param {boolean} params.clearSegmentTranslation 是否把 AI 译文标记为草稿，交给后续翻译服务重翻。
  * @param {Function} params.onAppendSubtitles chunk 完成或流式返回时合并字幕的回调。
  * @param {Function} params.getCurrentVideoId 读取当前页面视频 ID 的函数。
  * @param {AbortSignal} [params.signal] 当前字幕处理生命周期的取消信号。
@@ -475,8 +510,6 @@ export function createAiChunkScheduler({
         docInfo,
         formatSubtitles,
         clearSegmentTranslation,
-        prevContext: getChunkContext(chunks, index, "prev"),
-        nextContext: getChunkContext(chunks, index, "next"),
         signal,
         setting,
         onSubtitleChunk: ({ subtitles }) => {
@@ -604,7 +637,7 @@ export function createAiChunkScheduler({
  * @param {Function} param0.apiSubtitle 调用字幕断句 API 的函数。
  * @param {object} param0.docInfo 页面与 AI 上下文信息。
  * @param {Function} param0.formatSubtitles AI 失败时的内置格式化降级函数。
- * @param {boolean} param0.clearSegmentTranslation 是否清空断句 API 返回的翻译字段。
+ * @param {boolean} param0.clearSegmentTranslation 是否把断句 API 译文标记为待重翻译。
  * @param {Function} param0.onAppendSubtitles 分块完成时同步到 provider 的回调。
  * @param {Function} param0.getCurrentVideoId 读取当前页面视频 ID 的函数。
  * @param {AbortSignal} [param0.signal] 当前字幕处理生命周期的取消信号。
@@ -659,8 +692,6 @@ export async function processRemainingChunksAsync({
         docInfo,
         formatSubtitles,
         clearSegmentTranslation,
-        prevContext: getChunkContext(chunks, i, "prev"),
-        nextContext: getChunkContext(chunks, i, "next"),
         signal,
         setting,
         onSubtitleChunk: ({ subtitles }) => {

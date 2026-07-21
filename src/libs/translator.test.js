@@ -453,7 +453,9 @@ describe("Translator rule styles", () => {
     createTranslator({ transOpen: "false", isPlainText: "true" });
     await flushAsync();
 
-    expect(document.querySelector("pre > span")?.textContent).toBe("First line");
+    expect(document.querySelector("pre > span")?.textContent).toBe(
+      "First line"
+    );
   });
 
   test("splits plain text pre content into bounded block chunks", async () => {

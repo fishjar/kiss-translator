@@ -1,0 +1,36 @@
+[
+  {
+    "tStartMs": 0,
+    "dDurationMs": 4200,
+    "segs": [
+      {
+        "utf8": "今天"
+      },
+      {
+        "utf8": "我们",
+        "tOffsetMs": 600
+      },
+      {
+        "utf8": "测试",
+        "tOffsetMs": 1200
+      },
+      {
+        "utf8": "中文字幕",
+        "tOffsetMs": 1900
+      },
+      {
+        "utf8": "断句。",
+        "tOffsetMs": 3000
+      }
+    ]
+  },
+  {
+    "tStartMs": 4400,
+    "dDurationMs": 3000,
+    "segs": [
+      {
+        "utf8": "这里不应该插入多余空格。"
+      }
+    ]
+  }
+]
