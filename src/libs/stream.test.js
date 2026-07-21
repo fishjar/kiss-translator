@@ -94,6 +94,59 @@ describe("createStreamingSubtitleParser", () => {
     ]);
   });
 
+  test("keeps boundary-v3 without anchors compatible with one shared boundary cursor", () => {
+    const parser = createStreamingSubtitleParser(events, { fromLang: "en" });
+
+    expect(
+      parser.write('[{"e":0,"t":"你好"},{"e":2,"t":"世界又来了"}]')
+    ).toEqual([
+      {
+        start: 0,
+        end: 1000,
+        text: "hello",
+        translation: "你好",
+        _si: 0,
+        _ei: 0,
+      },
+      {
+        start: 1000,
+        end: 3000,
+        text: "world again",
+        translation: "世界又来了",
+        _si: 1,
+        _ei: 2,
+      },
+    ]);
+  });
+
+  test("streams default boundary-v3 anchors with one shared boundary cursor", () => {
+    const parser = createStreamingSubtitleParser(events, { fromLang: "en" });
+
+    expect(
+      // `o` 仅供模型自检；流式结果的原文仍按 e 游标从输入事件重建。
+      parser.write(
+        '[{"e":0,"o":"wrong source","t":"你好"},{"e":2,"o":"also wrong","t":"世界又来了"}]'
+      )
+    ).toEqual([
+      {
+        start: 0,
+        end: 1000,
+        text: "hello",
+        translation: "你好",
+        _si: 0,
+        _ei: 0,
+      },
+      {
+        start: 1000,
+        end: 3000,
+        text: "world again",
+        translation: "世界又来了",
+        _si: 1,
+        _ei: 2,
+      },
+    ]);
+  });
+
   test("keeps incomplete subtitle object until it is closed", () => {
     const parser = createStreamingSubtitleParser(events);
 
@@ -167,6 +220,8 @@ describe("createStreamingSubtitleParser", () => {
             translation: "译文",
             _si: 4,
             _ei: 6,
+            _alignedSi: 1,
+            _alignedEi: 3,
           },
         ]
       );

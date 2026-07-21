@@ -417,7 +417,8 @@ export class Translator {
   #restoreViewportAnchor(anchor) {
     if (!anchor?.element?.isConnected) return;
 
-    const scrollingElement = document.scrollingElement || document.documentElement;
+    const scrollingElement =
+      document.scrollingElement || document.documentElement;
     if (!scrollingElement) return;
 
     const overflowY = window.getComputedStyle(scrollingElement).overflowY;
@@ -950,7 +951,7 @@ export class Translator {
 
     try {
       const textSheet = new CSSStyleSheet();
-      textSheet.replaceSync(textStyles)
+      textSheet.replaceSync(textStyles);
       this.#textSheet = textSheet;
     } catch (err) {
       kissLog("createTextStyles: CSSStyleSheet not available", err);
@@ -1331,7 +1332,9 @@ export class Translator {
   // 监控shadowroot
   #startObserveShadowRoot(shadowRoot) {
     try {
-      if (shadowRoot.host.matches(`#${APP_CONSTS.fabID}, #${APP_CONSTS.boxID}`)) {
+      if (
+        shadowRoot.host.matches(`#${APP_CONSTS.fabID}, #${APP_CONSTS.boxID}`)
+      ) {
         return;
       }
       this.#startObserveRoot(shadowRoot);

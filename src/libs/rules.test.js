@@ -110,30 +110,27 @@ describe("rules enabled state", () => {
     ["inherits the global setting", "true", "*", "true"],
     ["overrides the global setting on", "false", "true", "true"],
     ["overrides the global setting off", "true", "false", "false"],
-  ])(
-    "%s",
-    async (_, globalValue, siteValue, expectedValue) => {
-      getRulesWithDefault.mockResolvedValue([
-        {
-          pattern: "example.com",
-          selector: "article",
-          isPlainText: siteValue,
-        },
-        {
-          pattern: "*",
-          selector: "p",
-          isPlainText: globalValue,
-        },
-      ]);
+  ])("%s", async (_, globalValue, siteValue, expectedValue) => {
+    getRulesWithDefault.mockResolvedValue([
+      {
+        pattern: "example.com",
+        selector: "article",
+        isPlainText: siteValue,
+      },
+      {
+        pattern: "*",
+        selector: "p",
+        isPlainText: globalValue,
+      },
+    ]);
 
-      const rule = await matchRule("https://example.com/post", {
-        injectRules: false,
-        subrulesList: [],
-      });
+    const rule = await matchRule("https://example.com/post", {
+      injectRules: false,
+      subrulesList: [],
+    });
 
-      expect(rule.isPlainText).toBe(expectedValue);
-    }
-  );
+    expect(rule.isPlainText).toBe(expectedValue);
+  });
 
   test.each([
     ["enabled", "false", true, "true"],

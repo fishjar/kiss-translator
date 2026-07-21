@@ -111,7 +111,7 @@ describe("trustedTypesHelper", () => {
   test("sanitizes HTML and does not retry when CSP blocks policy creation", () => {
     const createPolicy = jest.fn(() => {
       throw new Error(
-        'Creating a TrustedTypePolicy named \'kiss-translator-policy\' violates the following Content Security policy directive: "trusted-types gIqNx7 default". The action has been blocked.'
+        "Creating a TrustedTypePolicy named 'kiss-translator-policy' violates the following Content Security policy directive: \"trusted-types gIqNx7 default\". The action has been blocked."
       );
     });
     globalThis.trustedTypes = {
@@ -135,7 +135,7 @@ describe("trustedTypesHelper", () => {
   test("treats allow-duplicates CSP rejection as unavailable policy", () => {
     const createPolicy = jest.fn(() => {
       throw new Error(
-        'Creating a TrustedTypePolicy named \'kiss-translator-policy\' violates the following Content Security policy directive: "trusted-types fast-html dompurify 1DSScriptURL MeControlScriptURL @azure/ms-rest-js#xml.browser lit-html npsTrustedTypePolicy default \'allow-duplicates\'". The action has been blocked.'
+        "Creating a TrustedTypePolicy named 'kiss-translator-policy' violates the following Content Security policy directive: \"trusted-types fast-html dompurify 1DSScriptURL MeControlScriptURL @azure/ms-rest-js#xml.browser lit-html npsTrustedTypePolicy default 'allow-duplicates'\". The action has been blocked."
       );
     });
     globalThis.trustedTypes = {

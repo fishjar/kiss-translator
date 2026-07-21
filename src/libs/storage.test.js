@@ -2,8 +2,14 @@ import {
   STOKEY_SETTING,
   STOKEY_SETTING_BACKUP_V1_BEFORE_V2,
   SETTINGS_VERSION_V2,
+  DEFAULT_SUBTITLE_SETTING,
 } from "../config";
 import { getSettingWithDefault, runDataMigration } from "./storage";
+
+// 存储测试不涉及流式解析，隔离 ESM-only 依赖以免 Jest 27 在加载阶段失败。
+jest.mock("@streamparser/json", () => ({ JSONParser: jest.fn() }));
+// jsdom 并非扩展页面，使用空实现避免 webextension-polyfill 在模块初始化时主动抛错。
+jest.mock("webextension-polyfill", () => ({}));
 
 const readStoredJson = (key) => JSON.parse(window.localStorage.getItem(key));
 
@@ -85,11 +91,27 @@ describe("settings storage migration", () => {
     expect(setting.transApis[0]).not.toHaveProperty("systemPrompt");
   });
 
+  test("keeps an explicitly stored subtitle chunk length", async () => {
+    // 新默认值只影响新配置；已有用户明确保存的 2000 不应被默认设置覆盖。
+    expect(DEFAULT_SUBTITLE_SETTING.chunkLength).toBe(1000);
+    window.localStorage.setItem(
+      STOKEY_SETTING,
+      JSON.stringify({
+        version: SETTINGS_VERSION_V2,
+        subtitleSetting: { chunkLength: 2000 },
+      })
+    );
+
+    const setting = await getSettingWithDefault();
+
+    expect(setting.subtitleSetting.chunkLength).toBe(2000);
+  });
+
   test("GM storage reports a clear error when GM APIs are unavailable", async () => {
     const { storage } = loadGmStorageModule();
 
     await expect(storage.get("missing-gm")).rejects.toThrow(
-      "GM storage API is not available"
+      "GM API is not available"
     );
   });
 

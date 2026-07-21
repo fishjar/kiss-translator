@@ -426,8 +426,7 @@ export const saveRule = async (curRule) => {
           : curRule[key] === false || curRule[key] === "false"
             ? "false"
             : DEFAULT_RULE[key];
-      newRule[key] =
-        value === globalRule[key] ? DEFAULT_RULE[key] : value;
+      newRule[key] = value === globalRule[key] ? DEFAULT_RULE[key] : value;
       return;
     }
     newRule[key] =

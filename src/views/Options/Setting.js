@@ -190,8 +190,11 @@ export default function Settings() {
     skipLangs = [],
   } = setting;
   // 解构 FAB 悬浮球的显隐状态及点击后的默认交互行为
-  const { isHide = false, fabClickAction = 0, hideExceptionList = "" } =
-    fab || {};
+  const {
+    isHide = false,
+    fabClickAction = 0,
+    hideExceptionList = "",
+  } = fab || {};
 
   return (
     <Box>

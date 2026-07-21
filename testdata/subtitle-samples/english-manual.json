@@ -1,0 +1,29 @@
+[
+  {
+    "tStartMs": 0,
+    "dDurationMs": 2200,
+    "segs": [
+      {
+        "utf8": "Welcome to the subtitle test."
+      }
+    ]
+  },
+  {
+    "tStartMs": 2400,
+    "dDurationMs": 2600,
+    "segs": [
+      {
+        "utf8": "This track already contains punctuation."
+      }
+    ]
+  },
+  {
+    "tStartMs": 5200,
+    "dDurationMs": 2300,
+    "segs": [
+      {
+        "utf8": "Can both algorithms preserve it?"
+      }
+    ]
+  }
+]

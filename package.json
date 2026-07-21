@@ -46,6 +46,7 @@
     "zip": "zx src/scripts/archive.mjs",
     "build+zip": "cross-env CI=true pnpm build && pnpm zip",
     "test": "react-app-rewired test",
+    "test:subtitle-segmentation": "babel-node src/scripts/test-subtitle-segmentation.js",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {

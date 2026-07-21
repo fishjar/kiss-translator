@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+/.pnpm-store/
 /.pnp
 /.obsidian
 .pnp.js
@@ -9,6 +10,7 @@
 
 # testing
 /coverage
+/tmp/
 
 # production
 /build

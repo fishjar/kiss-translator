@@ -76,6 +76,10 @@ import { fetchData, fetchStream } from "../libs/fetch";
 import { getMsgHistory } from "./history";
 import { parseBilingualVtt } from "../subtitle/vtt";
 import { getDocInfo } from "../libs/docInfo";
+import {
+  isLegacyIndexSubtitleItem,
+  mapBoundaryItemToCue,
+} from "../subtitle/subtitleBoundaryProtocol";
 
 const keyMap = new Map();
 const urlMap = new Map();
@@ -178,7 +182,8 @@ const genUserPrompt = ({
     .replaceAll(INPUT_PLACE_TEXT, texts[0]);
 };
 
-const genSubtitlePrompt = ({
+// 统一生成最终字幕系统提示词；缓存签名与实际请求必须复用同一结果。
+export const buildSubtitleSystemPrompt = ({
   subtitlePrompt,
   tone,
   from,
@@ -204,35 +209,9 @@ const genSubtitlePrompt = ({
     .replaceAll(INPUT_PLACE_TO_LANG, toLang);
 };
 
-const normalizeSubtitleContext = (text) =>
-  String(text ?? "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 400);
-
-const buildSubtitleUserPrompt = ({
-  formattedEvents,
-  prevContext = "",
-  nextContext = "",
-}) => {
-  const mainInput = JSON.stringify(formattedEvents);
-  const prev = normalizeSubtitleContext(prevContext);
-  const next = normalizeSubtitleContext(nextContext);
-  if (!prev && !next) return mainInput;
-  const sections = [];
-  if (prev) {
-    sections.push(
-      `[Previous context (read-only, do NOT segment)]\n${JSON.stringify(prev)}`
-    );
-  }
-  sections.push(`[Main input]\n${mainInput}`);
-  if (next) {
-    sections.push(
-      `[Next context (read-only, do NOT segment)]\n${JSON.stringify(next)}`
-    );
-  }
-  return sections.join("\n\n");
-};
+// 字幕用户消息保持为纯 JSON，避免只读上下文污染模型的边界编号。
+const buildSubtitleUserPrompt = ({ formattedEvents }) =>
+  JSON.stringify(formattedEvents);
 
 /**
  * 强健的大模型翻译结果解析器 (AI Response Robust Parser)。
@@ -271,9 +250,7 @@ const parseAIRes = (raw, useBatchFetch = true) => {
   });
 };
 
-/**
- * 依据时间差计算字幕中发生的句子停顿断句等级。
- */
+/** 依据时间差计算旧版字幕输入使用的停顿等级。 */
 const getPauseLevel = (gapMs) => {
   if (!Number.isFinite(gapMs) || gapMs <= 300) return 0;
   if (gapMs <= 600) return 1;
@@ -281,21 +258,48 @@ const getPauseLevel = (gapMs) => {
   return 3;
 };
 
-const formatIndexSubtitleEvents = (events) =>
-  events.map((e, i) => {
+/**
+ * 根据提示词识别字幕断句协议，供请求格式、缓存和 Playground 共用。
+ */
+export const detectSubtitleProtocol = (prompt = "") => {
+  const normalizedPrompt = String(prompt);
+  if (/WEBVTT|MM:SS\.mmm|-->/i.test(normalizedPrompt)) return "vtt-legacy";
+  if (/\{\s*["']?s["']?\s*:/.test(normalizedPrompt)) return "index-v1";
+
+  // 自定义提示词明确描述旧 p 等级时继续发送原结构，避免静默破坏已有配置。
+  const mentionsQuotedP = /["'`]p["'`]/i.test(normalizedPrompt);
+  const mentionsPauseLevel = /pause\s+levels?|停顿等级|暫停等級/i.test(
+    normalizedPrompt
+  );
+  if (mentionsQuotedP && mentionsPauseLevel) return "boundary-v2";
+  return "boundary-v3";
+};
+
+/** 将播放器事件压缩成发送给 AI 的稳定索引 JSON 结构。 */
+export const formatIndexSubtitleEvents = (events, prompt = "") => {
+  const protocol = detectSubtitleProtocol(prompt);
+  const usesLegacyPauseLevel =
+    protocol === "boundary-v2" ||
+    protocol === "index-v1" ||
+    protocol === "vtt-legacy";
+
+  return events.map((e, i) => {
     const item = { id: i, text: e.text };
-    if (i > 0) {
+    if (usesLegacyPauseLevel && i > 0) {
       const p = getPauseLevel(e.start - events[i - 1].end);
       if (p) item.p = p;
+    } else if (!usesLegacyPauseLevel && i < events.length - 1) {
+      // pauseMs 挂在停顿前的事件上，可直接作为该事件成为句末的边界提示。
+      const pauseMs = Math.round(events[i + 1].start - e.end);
+      if (pauseMs > 0) item.pauseMs = pauseMs;
     }
     return item;
   });
+};
 
 const usesIndexSubtitleInput = (prompt = "") => {
-  if (/\{\s*["']?s["']?\s*:/.test(prompt) && /\bid\b/i.test(prompt))
-    return true;
-  if (/WEBVTT|MM:SS\.mmm|-->/i.test(prompt)) return false;
-  return false;
+  // 只有明确声明 VTT 的旧提示词继续接收旧结构；其余字幕请求统一使用纯索引 JSON。
+  return detectSubtitleProtocol(prompt) !== "vtt-legacy";
 };
 
 const geminiText = (parts) =>
@@ -306,11 +310,28 @@ const geminiText = (parts) =>
         .join("")
     : "";
 
-const parseIndexSubtitleRes = (raw, events) => {
+const parseIndexSubtitleRes = (raw, events, fromLang = "auto") => {
   // 对齐器只建一次词表：buildResult 在截断修复兜底时可能执行两次。
   const aligner = createSubtitleIndexAligner(events);
   const buildResult = (data) => {
     if (!Array.isArray(data) || !data.length) return null;
+    const legacyItems = data.map(isLegacyIndexSubtitleItem);
+    // 同一响应混用新旧协议会使游标语义不明确，直接交给尾部恢复逻辑处理。
+    if (legacyItems.some(Boolean) && !legacyItems.every(Boolean)) return null;
+
+    if (!legacyItems[0]) {
+      const result = [];
+      let nextIndex = 0;
+      for (const item of data) {
+        const cue = mapBoundaryItemToCue(item, events, nextIndex, fromLang);
+        // 新协议一旦出现非法边界，停止接收后续对象，保留已验证的连续前缀。
+        if (!cue) break;
+        result.push(cue);
+        nextIndex = cue._ei + 1;
+      }
+      return result.length ? result : null;
+    }
+
     const result = [];
     for (const seg of data) {
       const s = Number(seg.s ?? seg.start_id);
@@ -328,6 +349,11 @@ const parseIndexSubtitleRes = (raw, events) => {
         // _si/_ei 保留模型原始索引：去重键与尾句重试语义依赖它们。
         _si: s,
         _ei: e,
+        // 仅在确实发生纠偏时记录覆盖索引，避免扩大普通结果的数据表面。
+        ...(fixed && {
+          _alignedSi: fixed.startIdx,
+          _alignedEi: fixed.endIdx,
+        }),
       });
     }
     return result.length ? result : null;
@@ -341,26 +367,26 @@ const parseIndexSubtitleRes = (raw, events) => {
     return buildResult(JSON.parse(repaired));
   } catch {
     try {
-      const last = Math.max(
-        repaired.lastIndexOf("},"),
-        repaired.lastIndexOf("}\n"),
-        repaired.lastIndexOf("}\r")
+      // 响应被截断时，从最后一个完整对象闭合处补上数组尾括号，保留可验证前缀。
+      const arrayStart = repaired.indexOf("[");
+      const lastObjectEnd = repaired.lastIndexOf("}");
+      if (arrayStart < 0 || lastObjectEnd < arrayStart) return null;
+      return buildResult(
+        JSON.parse(repaired.slice(arrayStart, lastObjectEnd + 1) + "]")
       );
-      if (last < 0) return null;
-      return buildResult(JSON.parse(repaired.slice(0, last + 1) + "]"));
     } catch {
       return null;
     }
   }
 };
 
-const parseSTRes = (raw, events = null) => {
+const parseSTRes = (raw, events = null, fromLang = "auto") => {
   if (!raw) {
     return [];
   }
 
   if (events?.length) {
-    const indexed = parseIndexSubtitleRes(raw, events);
+    const indexed = parseIndexSubtitleRes(raw, events, fromLang);
     if (indexed) return indexed;
   }
 
@@ -1004,8 +1030,6 @@ export const genTransReq = async ({ reqHook, ...args }) => {
     customBody,
     events,
     tone,
-    prevContext,
-    nextContext,
     docInfo: externalDocInfo,
   } = args;
 
@@ -1021,7 +1045,7 @@ export const genTransReq = async ({ reqHook, ...args }) => {
     const docInfo = externalDocInfo || getDocInfo();
 
     let baseSystemPrompt = events
-      ? genSubtitlePrompt({
+      ? buildSubtitleSystemPrompt({
           subtitlePrompt,
           from,
           to,
@@ -1047,10 +1071,8 @@ export const genTransReq = async ({ reqHook, ...args }) => {
     args.userPrompt = events
       ? buildSubtitleUserPrompt({
           formattedEvents: usesIndexSubtitleInput(subtitlePrompt)
-            ? formatIndexSubtitleEvents(events)
+            ? formatIndexSubtitleEvents(events, subtitlePrompt)
             : events,
-          prevContext,
-          nextContext,
         })
       : genUserPrompt({
           nobatchUserPrompt,
@@ -1798,8 +1820,6 @@ export const handleMicrosoftLangdetect = async (texts = []) => {
  * @param {string} params.to 目标语言代码。
  * @param {Object} params.apiSetting 字幕断句所使用的 API 配置。
  * @param {Object} [params.docInfo] 页面标题、描述和 AI 摘要等上下文。
- * @param {string} [params.prevContext] 前一个字幕分块的只读上下文。
- * @param {string} [params.nextContext] 后一个字幕分块的只读上下文。
  * @param {Function} [params.onSubtitleChunk] 流式解析到完整字幕句子时触发的回调。
  * @param {AbortSignal} [params.signal] 调用方生命周期取消信号，会下传到 fetch/fetchStream。
  * @returns {Promise<Array<Object>>} 完整字幕句子数组。
@@ -1810,8 +1830,6 @@ export const handleSubtitle = async ({
   to,
   apiSetting,
   docInfo,
-  prevContext = "",
-  nextContext = "",
   onSubtitleChunk,
   signal,
 }) => {
@@ -1827,9 +1845,9 @@ export const handleSubtitle = async ({
     events,
     from,
     to,
+    fromLang: from,
+    toLang: to,
     docInfo,
-    prevContext,
-    nextContext,
   });
 
   if (enableStream) {
@@ -1840,6 +1858,7 @@ export const handleSubtitle = async ({
         fetchInterval,
         fetchLimit,
         httpTimeout,
+        fromLang: from,
         onSubtitleChunk,
         signal,
       });
@@ -1859,8 +1878,6 @@ export const handleSubtitle = async ({
       to,
       apiSetting: { ...apiSetting, useStream: false },
       docInfo,
-      prevContext,
-      nextContext,
       signal,
     });
   }
@@ -1891,7 +1908,11 @@ export const handleSubtitle = async ({
     case OPT_TRANS_GEMINI_2:
     case OPT_TRANS_OPENROUTER:
     case OPT_TRANS_OLLAMA:
-      return parseSTRes(res?.choices?.[0]?.message?.content ?? "", events);
+      return parseSTRes(
+        res?.choices?.[0]?.message?.content ?? "",
+        events,
+        from
+      );
     case OPT_TRANS_GEMINI: {
       const candidate = res?.candidates?.[0];
       const { thinkingMode } = apiSetting;
@@ -1912,9 +1933,9 @@ export const handleSubtitle = async ({
           events,
           from,
           to,
+          fromLang: from,
+          toLang: to,
           docInfo,
-          prevContext,
-          nextContext,
         });
         const retryRes = await fetchData(retryInput, retryInit, {
           useCache: false,
@@ -1926,14 +1947,15 @@ export const handleSubtitle = async ({
         if (retryRes?.candidates?.[0]?.content?.parts) {
           return parseSTRes(
             geminiText(retryRes.candidates[0].content.parts),
-            events
+            events,
+            from
           );
         }
       }
-      return parseSTRes(geminiText(candidate?.content?.parts), events);
+      return parseSTRes(geminiText(candidate?.content?.parts), events, from);
     }
     case OPT_TRANS_CLAUDE:
-      return parseSTRes(res?.content?.[0]?.text ?? "", events);
+      return parseSTRes(res?.content?.[0]?.text ?? "", events, from);
     case OPT_TRANS_CUSTOMIZE:
       return res;
     default:
@@ -1953,6 +1975,7 @@ export const handleSubtitle = async ({
  * @param {number} options.fetchInterval 请求池间隔。
  * @param {number} options.fetchLimit 请求池并发限制。
  * @param {number} options.httpTimeout 请求超时时间。
+ * @param {string} options.fromLang 源语言，用于按语言规则重建字幕原文。
  * @param {Function} options.onSubtitleChunk 新句子完成时触发的回调。
  * @param {AbortSignal} options.signal 取消信号。
  * @returns {Promise<Array<Object>>} 最终完整字幕数组。
@@ -1966,11 +1989,12 @@ async function handleSubtitleStreamInternal(
     fetchInterval,
     fetchLimit,
     httpTimeout,
+    fromLang,
     onSubtitleChunk,
     signal,
   }
 ) {
-  const parser = createStreamingSubtitleParser(events);
+  const parser = createStreamingSubtitleParser(events, { fromLang });
   let fullContent = "";
   const emitted = [];
   const emittedKeys = new Set();
@@ -2017,7 +2041,7 @@ async function handleSubtitleStreamInternal(
 
   appendSubtitles(parser.end(), false);
 
-  const finalSubtitles = parseSTRes(fullContent, events);
+  const finalSubtitles = parseSTRes(fullContent, events, fromLang);
   appendSubtitles(finalSubtitles, true);
 
   return finalSubtitles?.length
