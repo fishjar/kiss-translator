@@ -6,8 +6,14 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useEffect, useMemo, useState } from "react";
 import { apiTranslate } from "../../apis";
-import { API_SPE_TYPES } from "../../config";
+import {
+  API_SPE_TYPES,
+  OPT_TRANS_BUILTINAI,
+  OPT_TRANS_GOOGLE,
+  OPT_TRANS_GOOGLE_2,
+} from "../../config";
 import { useI18n } from "../../hooks/I18n";
+import { decodeHTMLEntities } from "../../libs/html";
 import CopyBtn from "./CopyBtn";
 
 /**
@@ -35,6 +41,68 @@ const normalizeChunkText = (text) => {
   }
 
   return text || "";
+};
+
+/**
+ * Google2 使用 translateHtml，原始换行会被当作普通 HTML 空白折叠。
+ * 文本翻译场景用显式 br 标签保留换行数量。
+ *
+ * @param {string} text 原始待翻译文本。
+ * @param {string} apiType 翻译接口类型。
+ * @returns {string} 发送给翻译接口的文本。
+ */
+const normalizeRequestText = (text, apiType) =>
+  apiType === OPT_TRANS_GOOGLE_2 ? text.replace(/\r\n|\r|\n/g, "<br>") : text;
+
+/**
+ * 将接口响应转换为文本框可直接显示和复制的纯文本。
+ *
+ * @param {string} text 翻译接口返回的文本。
+ * @param {string} apiType 翻译接口类型。
+ * @param {string} sourceText 原始待翻译文本。
+ * @returns {string} 供文本 UI 使用的译文。
+ */
+const normalizeTranslationText = (text, apiType, sourceText) => {
+  const normalizedText = normalizeChunkText(text);
+  if (apiType === OPT_TRANS_GOOGLE_2) {
+    return decodeHTMLEntities(
+      normalizedText.replace(/<br\s*\/?>[\t ]*/gi, "\n")
+    );
+  }
+
+  if (apiType === OPT_TRANS_GOOGLE) {
+    return normalizedText.replace(/[\t ]*(\r\n|\r|\n)[\t ]*/g, "\n");
+  }
+
+  if (API_SPE_TYPES.ai.has(apiType) && /\r\n|\r|\n/.test(sourceText)) {
+    return normalizedText.replace(/\\r\\n|\\n|\\r/g, "\n");
+  }
+
+  return normalizedText;
+};
+
+/**
+ * BuiltinAI does not preserve input line breaks reliably. Translate each
+ * non-empty text fragment separately, then rejoin the original separators.
+ *
+ * @param {string} text Original text to translate.
+ * @param {Function} translate Translation function for one text fragment.
+ * @returns {Promise<{trText: string}>} Rejoined translated text.
+ */
+const translateBuiltinText = async (text, translate) => {
+  const parts = text.split(/(\r\n|\r|\n)/);
+  const translatedParts = await Promise.all(
+    parts.map(async (part, index) => {
+      if (index % 2 === 1 || !part.trim()) {
+        return part;
+      }
+
+      const result = await translate(part);
+      return result.trText;
+    })
+  );
+
+  return { trText: translatedParts.join("") };
 };
 
 /**
@@ -93,7 +161,11 @@ export default function TranCont({
             return;
           }
 
-          const nextText = normalizeChunkText(chunkText);
+          const nextText = normalizeTranslationText(
+            chunkText,
+            apiSetting.apiType,
+            text
+          );
           if (nextText) {
             setTrText(nextText);
           }
@@ -106,18 +178,23 @@ export default function TranCont({
         setTrText("");
         setError("");
 
-        const { trText } = await apiTranslate({
-          text,
-          fromLang,
-          toLang,
-          apiSetting,
-          onStreamChunk: handleStreamChunk,
-          // 将组件生命周期的取消信号下传，避免划词内容变化后旧请求继续占用网络与回写 UI。
-          signal: controller.signal,
-        });
+        const translate = (requestText) =>
+          apiTranslate({
+            text: requestText,
+            fromLang,
+            toLang,
+            apiSetting,
+            onStreamChunk: handleStreamChunk,
+            // 将组件生命周期的取消信号下传，避免划词内容变化后旧请求继续占用网络与回写 UI。
+            signal: controller.signal,
+          });
+        const { trText } =
+          apiSetting.apiType === OPT_TRANS_BUILTINAI
+            ? await translateBuiltinText(text, translate)
+            : await translate(normalizeRequestText(text, apiSetting.apiType));
 
         if (active) {
-          setTrText(trText);
+          setTrText(normalizeTranslationText(trText, apiSetting.apiType, text));
         }
       } catch (err) {
         if (err?.name === "AbortError") {
