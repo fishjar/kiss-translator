@@ -492,6 +492,46 @@ describe("apiTranslate prompt queue isolation", () => {
     expect(signedTexts[0]).not.toContain("prompt_a");
     expect(signedTexts[1]).not.toContain("prompt_b");
   });
+
+  test("passes configured batch concurrency and isolates its queue", async () => {
+    await apiTranslate({
+      text: "hello",
+      fromLang: "en",
+      toLang: "zh-CN",
+      apiSetting: {
+        ...getOpenAiApiSetting("batch prompt A"),
+        batchConcurrency: 3,
+        useContext: false,
+      },
+      useCache: false,
+    });
+
+    expect(getBatchQueue).toHaveBeenCalledWith(
+      expect.stringMatching(/_3$/),
+      handleTranslate,
+      expect.objectContaining({ batchConcurrency: 3 })
+    );
+  });
+
+  test("forces batch concurrency to one for context sessions", async () => {
+    await apiTranslate({
+      text: "hello",
+      fromLang: "en",
+      toLang: "zh-CN",
+      apiSetting: {
+        ...getOpenAiApiSetting("batch prompt A"),
+        batchConcurrency: 4,
+        useContext: true,
+      },
+      useCache: false,
+    });
+
+    expect(getBatchQueue).toHaveBeenCalledWith(
+      expect.stringMatching(/_1$/),
+      handleTranslate,
+      expect.objectContaining({ batchConcurrency: 1 })
+    );
+  });
 });
 
 describe("apiTranslate non-batch stream", () => {

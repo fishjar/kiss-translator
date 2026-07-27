@@ -3787,6 +3787,22 @@ export const I18N = {
     ko: `일괄 요청 최대 텍스트 길이(1000-100000)`,
     tr: `Toplama Istekleri İçin Maksimum Metin Uzunluğu (1000-100000)`,
   },
+  batch_concurrency: {
+    zh: `聚合批次并发数(1-100)`,
+    en: `Concurrent aggregation batches (1-100)`,
+    zh_TW: `彙整批次並行數(1-100)`,
+    ja: `同時実行する一括リクエスト数(1-100)`,
+    ko: `동시 일괄 요청 수(1-100)`,
+    tr: `Eşzamanlı Toplama Grubu Sayısı (1-100)`,
+  },
+  batch_concurrency_context_hint: {
+    zh: `上下文会话要求批次按顺序执行，因此并发数固定为 1`,
+    en: `Context sessions require ordered batches, so concurrency is fixed at 1`,
+    zh_TW: `上下文會話要求批次依序執行，因此並行數固定為 1`,
+    ja: `コンテキスト利用時は順序を保つため、同時実行数は1に固定されます`,
+    ko: `컨텍스트 세션은 순차 실행이 필요하므로 동시 실행 수는 1로 고정됩니다`,
+    tr: `Bağlam oturumları sıralı gruplar gerektirdiğinden eşzamanlılık 1 olarak sabitlenir`,
+  },
   use_stream: {
     zh: `是否启用流式传输`,
     en: `Whether to enable streaming`,
