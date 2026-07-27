@@ -10,6 +10,7 @@ export const DEFAULT_FETCH_INTERVAL = 100; // 默认任务间隔时间 (单位�
 export const DEFAULT_BATCH_INTERVAL = 400; // 批处理合并请求的等待延迟时间 (单位：毫秒)
 export const DEFAULT_BATCH_SIZE = 20; // 每次翻译请求最多合并发送的 DOM 段落数量
 export const DEFAULT_BATCH_LENGTH = 10000; // 每次翻译请求发送的最大字符数限制
+export const DEFAULT_BATCH_CONCURRENCY = 1; // 同时执行的聚合批次数量
 export const DEFAULT_CONTEXT_SIZE = 3; // AI 翻译时保留的上下文会话历史轮数
 
 // --- 翻译内容替换占位符 ---
@@ -834,6 +835,7 @@ const defaultApi = {
   batchInterval: DEFAULT_BATCH_INTERVAL, // 批处理请求间隔时间
   batchSize: DEFAULT_BATCH_SIZE, // 每次最多发送段落数量
   batchLength: DEFAULT_BATCH_LENGTH, // 每次发送最大文字数量
+  batchConcurrency: DEFAULT_BATCH_CONCURRENCY, // 同时执行的聚合批次数量
   useBatchFetch: false, // 是否启用聚合发送请求
   useStream: false, // 是否启用流式传输
   streamRenderMode: "disabled", // 流式渲染模式：disabled/realtime/segment

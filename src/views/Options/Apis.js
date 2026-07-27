@@ -79,6 +79,7 @@ import {
   DEFAULT_BATCH_INTERVAL,
   DEFAULT_BATCH_SIZE,
   DEFAULT_BATCH_LENGTH,
+  DEFAULT_BATCH_CONCURRENCY,
   DEFAULT_CONTEXT_SIZE,
   OPT_ALL_TRANS_TYPES,
   OPT_LANGS_LIST,
@@ -453,6 +454,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
     batchInterval = DEFAULT_BATCH_INTERVAL,
     batchSize = DEFAULT_BATCH_SIZE,
     batchLength = DEFAULT_BATCH_LENGTH,
+    batchConcurrency = DEFAULT_BATCH_CONCURRENCY,
     useContext = false,
     contextSize = DEFAULT_CONTEXT_SIZE,
     tone = "neutral",
@@ -469,6 +471,8 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
     subtitlePromptSlug = "",
     dictPromptSlug = "",
   } = activeFormData;
+  const contextForcesSerialBatch =
+    useContext && API_SPE_TYPES.context.has(apiType);
 
   useEffect(() => {
     setModelListStatus("idle");
@@ -849,6 +853,25 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
                 onChange={handleChange}
                 min={1000}
                 max={100000}
+              />
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <ValidationInput
+                size="small"
+                fullWidth
+                label={i18n("batch_concurrency")}
+                type="number"
+                name="batchConcurrency"
+                value={contextForcesSerialBatch ? 1 : batchConcurrency}
+                onChange={handleChange}
+                min={1}
+                max={100}
+                disabled={contextForcesSerialBatch}
+                helperText={
+                  contextForcesSerialBatch
+                    ? i18n("batch_concurrency_context_hint")
+                    : ""
+                }
               />
             </Grid>
           </Grid>

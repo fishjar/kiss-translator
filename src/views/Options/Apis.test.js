@@ -275,3 +275,29 @@ describe("Apis model list", () => {
     view.unmount();
   });
 });
+
+describe("Apis batch concurrency", () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+    document.body.innerHTML = "";
+  });
+
+  test("disables batch concurrency at one when context is enabled", async () => {
+    const view = await renderApis(
+      createApi({
+        useBatchFetch: true,
+        batchConcurrency: 4,
+        useContext: true,
+      })
+    );
+    const concurrencyInput = getInput(view.container, "batchConcurrency");
+
+    expect(concurrencyInput.value).toBe("1");
+    expect(concurrencyInput.disabled).toBe(true);
+    expect(view.container.textContent).toContain(
+      "batch_concurrency_context_hint"
+    );
+
+    view.unmount();
+  });
+});

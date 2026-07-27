@@ -687,14 +687,30 @@ export const apiTranslate = async ({
   } else if (useBatchFetch && API_SPE_TYPES.batch.has(apiType)) {
     // 2.2 支持批量翻译的传统接口 (如 Google/Microsoft/DeepL 等)
     // 使用 BatchQueue 进行零散文本大合并，节省网络交互次数，大幅提升网页整页翻译的载入速度
-    const { apiSlug, batchInterval, batchSize, batchLength, useStream } =
-      apiSetting;
+    const {
+      apiSlug,
+      batchInterval,
+      batchSize,
+      batchLength,
+      batchConcurrency,
+      useStream,
+      useContext,
+    } = apiSetting;
     const enableStream = useStream && API_SPE_TYPES.stream.has(apiType);
-    const key = `${apiSlug}_${fromLang}_${toLang}_${enableStream ? "stream" : "batch"}_${promptSig}`;
+    const configuredBatchConcurrency = Number(batchConcurrency);
+    const effectiveBatchConcurrency =
+      useContext && API_SPE_TYPES.context.has(apiType)
+        ? 1
+        : Number.isFinite(configuredBatchConcurrency) &&
+            configuredBatchConcurrency >= 1
+          ? Math.floor(configuredBatchConcurrency)
+          : 1;
+    const key = `${apiSlug}_${fromLang}_${toLang}_${enableStream ? "stream" : "batch"}_${promptSig}_${effectiveBatchConcurrency}`;
     const queue = getBatchQueue(key, handleTranslate, {
       batchInterval,
       batchSize,
       batchLength,
+      batchConcurrency: effectiveBatchConcurrency,
     });
 
     translation = await queue.addTask(text, {
