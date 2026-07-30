@@ -853,7 +853,7 @@ const genOpenRouter = ({
   const headers = {
     "Content-type": "application/json",
     Authorization: `Bearer ${key}`,
-    "HTTP-Referer": "https://github.com/fishjar/kiss-translator",
+    "HTTP-Referer": "https://fishjar.github.io/kiss-translator/",
     "X-OpenRouter-Title": "KISS Translator",
   };
 
