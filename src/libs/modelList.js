@@ -72,10 +72,13 @@ export function parseModelListResponse(data) {
         return;
       }
 
-      // 按常见字段依次尝试；去重逻辑会避免同一模型被重复加入。
-      addUniqueModel(models, seen, item.id);
-      addUniqueModel(models, seen, item.name);
-      addUniqueModel(models, seen, item.baseModelId);
+      // 每条记录只对应一个可填入 `model` 的值。OpenRouter 等接口会同时返回
+      // `id`（请求使用的模型 ID）和 `name`（展示标题），因此必须优先选择
+      // `id`，不能把同一模型的多个描述字段都展开成下拉选项。
+      const model = [item.id, item.name, item.baseModelId].find(
+        (value) => typeof value === "string" && value.trim()
+      );
+      addUniqueModel(models, seen, model);
     });
   });
 
