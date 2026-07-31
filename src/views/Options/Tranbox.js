@@ -103,6 +103,7 @@ export default function Tranbox() {
     aiDictApiSlug = "-",
     aiDictPromptSlug = PROMPT_MODE_FOLLOW_API,
     blacklist = "",
+    disableTranBtnOnToLang = true,
   } = tranboxSetting;
 
   return (
@@ -121,6 +122,24 @@ export default function Tranbox() {
             />
           }
           label={i18n("toggle_selection_translate")}
+          sx={{ width: "fit-content" }}
+        />
+
+        {/* 开关：检测到选中文本为翻译目标语言时，禁用划词翻译按钮弹出 */}
+        <FormControlLabel
+          control={
+            <Switch
+              size="small"
+              name="disableTranBtnOnToLang"
+              checked={disableTranBtnOnToLang}
+              onChange={() => {
+                updateTranbox({
+                  disableTranBtnOnToLang: !disableTranBtnOnToLang,
+                });
+              }}
+            />
+          }
+          label={i18n("disable_tranbtn_on_tolang")}
           sx={{ width: "fit-content" }}
         />
 

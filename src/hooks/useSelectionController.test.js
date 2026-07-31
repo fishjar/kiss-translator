@@ -10,6 +10,16 @@ jest.mock("../libs/mobile", () => ({
   isMobile: false,
 }));
 
+jest.mock("../libs/detectFast", () => {
+  const actual = jest.requireActual("../libs/detectFast");
+  return {
+    ...actual,
+    detectLangFast: jest.fn(),
+  };
+});
+
+import { detectLangFast } from "../libs/detectFast";
+
 function makeSelection(text, container, rectOverride) {
   const rect = rectOverride || {
     left: 10,
@@ -58,6 +68,8 @@ function TestController({
   boxOffsetY = 0,
   boxSize = { w: 320, h: 240 },
   setBoxPosition = jest.fn(),
+  toLang = "zh-CN",
+  disableTranBtnOnToLang = true,
 }) {
   const state = useSelectionController({
     tranboxSetting: {
@@ -67,6 +79,8 @@ function TestController({
       btnOffsetX: 0,
       btnOffsetY: 0,
       tranboxInteractMode,
+      toLang,
+      disableTranBtnOnToLang,
     },
     followSelection,
     boxOffsetX: 0,
@@ -158,6 +172,8 @@ describe("useSelectionController", () => {
     jest.useFakeTimers();
     document.body.innerHTML = "";
     currentSelection = null;
+    detectLangFast.mockReset();
+    detectLangFast.mockResolvedValue("");
     windowGetSelectionSpy = jest
       .spyOn(window, "getSelection")
       .mockImplementation(() => currentSelection);
@@ -567,6 +583,101 @@ describe("useSelectionController", () => {
       x: 20,
       y: 0,
     });
+
+    act(() => {
+      controller.root.unmount();
+    });
+  });
+
+  test("hides the button when the selected language matches the target language", async () => {
+    const controller = renderController();
+    const pageParagraph = createParagraph("The library is open.");
+
+    detectLangFast.mockResolvedValue("zh-CN");
+    currentSelection = makeSelection("这是一段中文文本", pageParagraph);
+    await dispatchWindowMouseup();
+
+    expect(controller.state.selectedText).toBe("这是一段中文文本");
+    expect(controller.state.showBtn).toBe(false);
+    expect(controller.state.showBox).toBe(false);
+
+    act(() => {
+      controller.root.unmount();
+    });
+  });
+
+  test("treats traditional Chinese as the target language via zh normalization", async () => {
+    const controller = renderController();
+    const pageParagraph = createParagraph("The library is open.");
+
+    detectLangFast.mockResolvedValue("zh-TW");
+    currentSelection = makeSelection("這是一段繁體中文", pageParagraph);
+    await dispatchWindowMouseup();
+
+    expect(controller.state.showBtn).toBe(false);
+
+    act(() => {
+      controller.root.unmount();
+    });
+  });
+
+  test("shows the button when the selected language differs from the target", async () => {
+    const controller = renderController();
+    const pageParagraph = createParagraph("The library is open.");
+
+    detectLangFast.mockResolvedValue("en");
+    currentSelection = makeSelection("some english text here", pageParagraph);
+    await dispatchWindowMouseup();
+
+    expect(controller.state.showBtn).toBe(true);
+
+    act(() => {
+      controller.root.unmount();
+    });
+  });
+
+  test("shows the button when the target-language suppression is disabled", async () => {
+    const controller = renderController({ disableTranBtnOnToLang: false });
+    const pageParagraph = createParagraph("The library is open.");
+
+    detectLangFast.mockResolvedValue("zh-CN");
+    currentSelection = makeSelection("这是一段中文文本", pageParagraph);
+    await dispatchWindowMouseup();
+
+    expect(controller.state.showBtn).toBe(true);
+
+    act(() => {
+      controller.root.unmount();
+    });
+  });
+
+  test("hides the button for pure-number selections of any length", async () => {
+    const controller = renderController();
+    const pageParagraph = createParagraph("The library is open.");
+
+    currentSelection = makeSelection("1234567890", pageParagraph);
+    await dispatchWindowMouseup();
+
+    expect(controller.state.showBtn).toBe(false);
+    expect(detectLangFast).not.toHaveBeenCalled();
+
+    act(() => {
+      controller.root.unmount();
+    });
+  });
+
+  test("shows the button when language detection times out or fails", async () => {
+    const controller = renderController();
+    const pageParagraph = createParagraph("The library is open.");
+
+    detectLangFast.mockResolvedValue("");
+    currentSelection = makeSelection(
+      "some undetectable text here",
+      pageParagraph
+    );
+    await dispatchWindowMouseup();
+
+    expect(controller.state.showBtn).toBe(true);
 
     act(() => {
       controller.root.unmount();

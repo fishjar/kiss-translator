@@ -3541,6 +3541,21 @@ export const I18N = {
     ko: `선택한 텍스트를 더블클릭하여 번역`,
     tr: `Çevirmek İçin Seçilen Metni Çift Tıklayın`,
   },
+  disable_tranbtn_on_tolang: {
+    zh: `检测到划词为目标语言时，禁用划词翻译弹窗
+    （开启后会自动禁用第二目标语言选项的互译功能）`,
+    en: `Disable pop-up when target language detected
+    (Enabling this will automatically disable the mutual translation function of the second target language option)`,
+    zh_TW: `偵測到目標語言時停用劃詞彈窗
+    （啟用後會自動停用第二目標語言選項的互譯功能）`,
+    ja: `対象言語が検出された場合はポップアップを無効化
+    （有効にすると、2番目の対象言語オプションの相互翻訳機能が自動的に無効化されます）`,
+    ko: `대상 언어 감지 시 팝업 비활성화
+    (활성화하면 두 번째 대상 언어 옵션의 상호 번역 기능이 자동으로 비활성화됩니다)`,
+    tr: `Hedef dil algılandığında açılır pencereyi devre dışı bırak
+    (Bunu etkinleştirmek, ikinci hedef dil seçeneğinin karşılıklı çeviri işlevini otomatik olarak devre dışı bırakır)`,
+  },
+
   translate_start_hook: {
     zh: `翻译开始钩子函数`,
     en: `Translate Start Hook`,

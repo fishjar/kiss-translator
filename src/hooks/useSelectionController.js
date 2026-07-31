@@ -1,6 +1,12 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { sleep, limitNumber } from "../libs/utils";
 import { isMobile } from "../libs/mobile";
+import {
+  detectLangFast,
+  isPureNumberText,
+  normalizeZhLang,
+  quickDetectLang,
+} from "../libs/detectFast";
 import useAutoHideTranBtn from "./useAutoHideTranBtn";
 import {
   APP_CONSTS,
@@ -227,6 +233,8 @@ export default function useSelectionController({
     btnOffsetX = 0,
     btnOffsetY = 0,
     tranboxInteractMode = "-",
+    disableTranBtnOnToLang = true,
+    toLang = "zh-CN",
   } = tranboxSetting;
 
   const [showBox, setShowBox] = useState(false);
@@ -293,8 +301,37 @@ export default function useSelectionController({
     []
   );
 
+  // 判断当前划词是否应被拦截 (不弹出翻译按钮/翻译框)。
+  // 命中条件：纯数字、检测语言命中黑名单、或与目标语言匹配 (简体/繁体统一视为 zh)。
+  const shouldSuppressSelection = useCallback(
+    async (text) => {
+      if (isPureNumberText(text)) return true;
+      if (typeof text !== "string" || !text.trim()) return false;
+
+      // 先进行同步字符集快判（零开销），能明确识别的语言直接走判定
+      const quickLang = quickDetectLang(text);
+      // 短文本：只有字符集能明确识别时才继续判定（避免拉丁短词误判）
+      if (text.length < 4 && !quickLang) return false;
+
+      // 快判有结果则直接用，否则对较长文本走完整异步检测
+      const lang = quickLang || (await detectLangFast(text));
+      if (!lang) return false;
+
+      const normLang = normalizeZhLang(lang);
+      if (
+        disableTranBtnOnToLang &&
+        toLang &&
+        normalizeZhLang(toLang) === normLang
+      ) {
+        return true;
+      }
+      return false;
+    },
+    [disableTranBtnOnToLang, toLang]
+  );
+
   const processSelectionSnapshot = useCallback(
-    (snapshot) => {
+    async (snapshot) => {
       if (!snapshot?.text) {
         setShowBtn(false);
         return;
@@ -302,6 +339,13 @@ export default function useSelectionController({
 
       pendingSelectionRef.current = snapshot;
       setSelText(snapshot.text);
+
+      // 目标语言/黑名单/纯数字命中时，统一禁用划词按钮与翻译框弹出
+      if (await shouldSuppressSelection(snapshot.text)) {
+        setShowBtn(false);
+        setShowBox(false);
+        return;
+      }
 
       // 翻译框内交互模式：拦截面板内选区，等待用户单击/双击触发
       if (snapshot.source === "panel" && tranboxInteractMode !== "-") {
@@ -362,6 +406,7 @@ export default function useSelectionController({
       commitSelectionSnapshot,
       boxSize,
       setBoxPosition,
+      shouldSuppressSelection,
     ]
   );
 
@@ -394,7 +439,7 @@ export default function useSelectionController({
         target
       );
 
-      processSelectionSnapshot(snapshot);
+      await processSelectionSnapshot(snapshot);
     },
     [createSelectionSnapshot, processSelectionSnapshot]
   );
