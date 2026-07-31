@@ -302,7 +302,7 @@ export default function useSelectionController({
   );
 
   // 判断当前划词是否应被拦截 (不弹出翻译按钮/翻译框)。
-  // 命中条件：纯数字、检测语言命中黑名单、或与目标语言匹配 (简体/繁体统一视为 zh)。
+  // 命中条件：纯数字、或与目标语言匹配 (简体/繁体统一视为 zh)。
   const shouldSuppressSelection = useCallback(
     async (text) => {
       if (isPureNumberText(text)) return true;
@@ -340,7 +340,7 @@ export default function useSelectionController({
       pendingSelectionRef.current = snapshot;
       setSelText(snapshot.text);
 
-      // 目标语言/黑名单/纯数字命中时，统一禁用划词按钮与翻译框弹出
+      // 目标语言/纯数字命中时，统一禁用划词按钮与翻译框弹出
       if (await shouldSuppressSelection(snapshot.text)) {
         setShowBtn(false);
         setShowBox(false);
