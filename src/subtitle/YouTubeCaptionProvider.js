@@ -555,10 +555,10 @@ export class YouTubeCaptionProvider {
         logger.debug("Youtube Provider: CaptionTrack not found:", videoId);
         return;
       }
-      const captionUrl = captionTrack.baseUrl.startsWith("https")
-        ? captionTrack.baseUrl
-        : window.location.origin + captionTrack.baseUrl;
-      const capUrl = new URL(captionUrl);
+      if (!captionTrack.baseUrl.startsWith("https")) {
+        captionTrack.baseUrl = window.location.origin + captionTrack.baseUrl;
+      }
+      const capUrl = new URL(captionTrack.baseUrl);
       const events = await getSubtitleEvents(capUrl, potUrl, responseText);
       if (this.#isStaleProcessing(processingVersion)) return;
 
