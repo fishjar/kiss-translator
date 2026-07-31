@@ -15,6 +15,23 @@ describe("modelList", () => {
     ).toEqual(["gpt-4o", "deepseek-chat"]);
   });
 
+  test("uses OpenRouter model IDs instead of also listing display names", () => {
+    expect(
+      parseModelListResponse({
+        data: [
+          {
+            id: "qwen/qwen3.7-flash",
+            name: "Qwen: Qwen3.7 Flash",
+          },
+          {
+            id: "anthropic/claude-opus-5-fast",
+            name: "Claude Opus 5 (Fast)",
+          },
+        ],
+      })
+    ).toEqual(["qwen/qwen3.7-flash", "anthropic/claude-opus-5-fast"]);
+  });
+
   test("parses Gemini model lists", () => {
     expect(
       parseModelListResponse({
