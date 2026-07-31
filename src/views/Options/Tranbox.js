@@ -139,7 +139,17 @@ export default function Tranbox() {
               }}
             />
           }
-          label={i18n("disable_tranbtn_on_tolang")}
+          label={
+            <>
+              {i18n("disable_tranbtn_on_tolang")}
+              <Box
+                component="p"
+                sx={{ fontSize: "0.65rem", color: "text.secondary", m: 0 }}
+              >
+                {i18n("disable_tranbtn_on_tolang_helper")}
+              </Box>
+            </>
+          }
           sx={{ width: "fit-content" }}
         />
 

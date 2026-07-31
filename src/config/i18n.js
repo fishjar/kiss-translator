@@ -3542,18 +3542,20 @@ export const I18N = {
     tr: `Çevirmek İçin Seçilen Metni Çift Tıklayın`,
   },
   disable_tranbtn_on_tolang: {
-    zh: `检测到划词为目标语言时，禁用划词翻译弹窗
-    （开启后会自动禁用第二目标语言选项的互译功能）`,
-    en: `Disable pop-up when target language detected
-    (Enabling this will automatically disable the mutual translation function of the second target language option)`,
-    zh_TW: `偵測到目標語言時停用劃詞彈窗
-    （啟用後會自動停用第二目標語言選項的互譯功能）`,
-    ja: `対象言語が検出された場合はポップアップを無効化
-    （有効にすると、2番目の対象言語オプションの相互翻訳機能が自動的に無効化されます）`,
-    ko: `대상 언어 감지 시 팝업 비활성화
-    (활성화하면 두 번째 대상 언어 옵션의 상호 번역 기능이 자동으로 비활성화됩니다)`,
-    tr: `Hedef dil algılandığında açılır pencereyi devre dışı bırak
-    (Bunu etkinleştirmek, ikinci hedef dil seçeneğinin karşılıklı çeviri işlevini otomatik olarak devre dışı bırakır)`,
+    zh: `目标语言不弹窗`,
+    en: `Disable popup when target language is detected`,
+    zh_TW: `目標語言不彈窗`,
+    ja: `対象言語が検出された場合、ポップアップを無効にする`,
+    ko: `대상 언어가 감지되면 팝업을 비활성화`,
+    tr: `Hedef dil algılandığında açılır pencereyi devre dışı bırak`,
+  },
+  disable_tranbtn_on_tolang_helper: {
+    zh: `开启后，若划选文本已是目标语言，则不显示翻译弹窗`,
+    en: `When enabled, if the selected text is already in the target language, the translation popup will not be displayed`,
+    zh_TW: `開啟後，若選取文字已是目標語言，則不顯示翻譯彈窗`,
+    ja: `有効にすると、選択したテキストがすでに対象言語の場合、翻訳ポップアップは表示されません`,
+    ko: `활성화되면 선택한 텍스트가 이미 대상 언어인 경우 번역 팝업이 표시되지 않습니다`,
+    tr: `Etkinleştirildiğinde, seçilen metin zaten hedef dildeyse, çeviri açılır penceresi görüntülenmez`,
   },
 
   translate_start_hook: {
