@@ -25,6 +25,7 @@ import {
   OPT_TRANS_CLOUDFLAREAI,
   OPT_TRANS_OLLAMA,
   OPT_TRANS_OPENROUTER,
+  OPT_TRANS_ORCAROUTER,
   OPT_TRANS_CUSTOMIZE,
   API_SPE_TYPES,
   INPUT_PLACE_FROM,
@@ -860,6 +861,55 @@ const genOpenRouter = ({
   return { url, body, headers, userMsg };
 };
 
+const genOrcaRouter = ({
+  url,
+  key,
+  systemPrompt,
+  userPrompt,
+  model,
+  temperature,
+  maxTokens,
+  hisMsgs = [],
+  useStream = false,
+  thinkingMode,
+  thinkingEffort,
+}) => {
+  const userMsg = {
+    role: "user",
+    content: userPrompt,
+  };
+  const body = {
+    model,
+    messages: [
+      {
+        role: "system",
+        content: systemPrompt,
+      },
+      ...hisMsgs,
+      userMsg,
+    ],
+    temperature,
+    max_completion_tokens: maxTokens,
+    stream: useStream,
+  };
+
+  injectThinking(body, {
+    apiType: OPT_TRANS_ORCAROUTER,
+    thinkingMode,
+    thinkingEffort,
+  });
+
+  const headers = {
+    "Content-type": "application/json",
+    Authorization: `Bearer ${key}`,
+    // 聚合网关的调用来源标识，便于在 OrcaRouter 控制台区分本扩展的用量
+    "HTTP-Referer": "https://fishjar.github.io/kiss-translator/",
+    "X-Title": "KISS Translator",
+  };
+
+  return { url, body, headers, userMsg };
+};
+
 const genOllama = ({
   url,
   key,
@@ -961,6 +1011,7 @@ const genReqFuncs = {
   [OPT_TRANS_CLOUDFLAREAI]: genCloudflareAI,
   [OPT_TRANS_OLLAMA]: genOllama,
   [OPT_TRANS_OPENROUTER]: genOpenRouter,
+  [OPT_TRANS_ORCAROUTER]: genOrcaRouter,
   [OPT_TRANS_CUSTOMIZE]: genCustom,
 };
 
@@ -1256,6 +1307,7 @@ export const parseTransRes = async (
     case OPT_TRANS_ZAI:
     case OPT_TRANS_GEMINI_2:
     case OPT_TRANS_OPENROUTER:
+    case OPT_TRANS_ORCAROUTER:
       modelMsg = res?.choices?.[0]?.message;
       if (history && userMsg && modelMsg) {
         history.add(userMsg, {
@@ -1332,6 +1384,7 @@ function parseDictRes(res, apiType) {
     case OPT_TRANS_ZAI:
     case OPT_TRANS_GEMINI_2:
     case OPT_TRANS_OPENROUTER:
+    case OPT_TRANS_ORCAROUTER:
     case OPT_TRANS_OLLAMA:
       return res?.choices?.[0]?.message?.content || "";
     case OPT_TRANS_GEMINI:
@@ -1909,6 +1962,7 @@ export const handleSubtitle = async ({
     case OPT_TRANS_ZAI:
     case OPT_TRANS_GEMINI_2:
     case OPT_TRANS_OPENROUTER:
+    case OPT_TRANS_ORCAROUTER:
     case OPT_TRANS_OLLAMA:
       return parseSTRes(
         res?.choices?.[0]?.message?.content ?? "",
@@ -2119,6 +2173,7 @@ export const handleSummarize = async ({
     case OPT_TRANS_ZAI:
     case OPT_TRANS_GEMINI_2:
     case OPT_TRANS_OPENROUTER:
+    case OPT_TRANS_ORCAROUTER:
     case OPT_TRANS_OLLAMA:
       return res?.choices?.[0]?.message?.content?.trim() || "";
     case OPT_TRANS_GEMINI:

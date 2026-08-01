@@ -69,6 +69,7 @@ export const OPT_TRANS_CLAUDE = "Claude"; // Anthropic Claude 翻译
 export const OPT_TRANS_CLOUDFLAREAI = "CloudflareAI"; // Cloudflare Workers AI 翻译
 export const OPT_TRANS_OLLAMA = "Ollama"; // 本地部署 Ollama 模型翻译
 export const OPT_TRANS_OPENROUTER = "OpenRouter"; // OpenRouter 多模型聚合 API 翻译
+export const OPT_TRANS_ORCAROUTER = "OrcaRouter"; // OrcaRouter 多模型聚合 API 翻译
 export const OPT_TRANS_CUSTOMIZE = "Custom"; // 自定义翻译 API
 
 // 内置支持的翻译引擎
@@ -99,6 +100,7 @@ export const OPT_ALL_TRANS_TYPES = [
   OPT_TRANS_CLOUDFLAREAI,
   OPT_TRANS_OLLAMA,
   OPT_TRANS_OPENROUTER,
+  OPT_TRANS_ORCAROUTER,
   OPT_TRANS_CUSTOMIZE,
 ];
 
@@ -140,6 +142,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_CLAUDE,
     OPT_TRANS_OLLAMA,
     OPT_TRANS_OPENROUTER,
+    OPT_TRANS_ORCAROUTER,
     OPT_TRANS_CUSTOMIZE,
   ]),
   // 支持多 API Key 轮询/备用的引擎
@@ -160,6 +163,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_CLOUDFLAREAI,
     OPT_TRANS_OLLAMA,
     OPT_TRANS_OPENROUTER,
+    OPT_TRANS_ORCAROUTER,
     OPT_TRANS_EPHONEAI,
     OPT_TRANS_CUSTOMIZE,
   ]),
@@ -183,6 +187,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_CLAUDE,
     OPT_TRANS_OLLAMA,
     OPT_TRANS_OPENROUTER,
+    OPT_TRANS_ORCAROUTER,
     OPT_TRANS_EPHONEAI,
     OPT_TRANS_CUSTOMIZE,
   ]),
@@ -201,6 +206,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_CLAUDE,
     OPT_TRANS_OLLAMA,
     OPT_TRANS_OPENROUTER,
+    OPT_TRANS_ORCAROUTER,
     OPT_TRANS_EPHONEAI,
     OPT_TRANS_CUSTOMIZE,
   ]),
@@ -219,6 +225,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_CLAUDE,
     OPT_TRANS_OLLAMA,
     OPT_TRANS_OPENROUTER,
+    OPT_TRANS_ORCAROUTER,
     OPT_TRANS_EPHONEAI,
   ]),
   // 官方推荐/赞助商的翻译服务
@@ -353,6 +360,17 @@ export const THINKING_PARAM_MAP = {
       { value: "medium", label: "Medium" },
       { value: "low", label: "Low" },
       { value: "minimal", label: "Minimal" },
+    ],
+  },
+  // OrcaRouter 网关按 OpenAI 规范透传 reasoning_effort（none/low/medium/high/xhigh），
+  // 不接受 OpenRouter 的 reasoning: { effort } 对象形式，所以这里走 "openai" 分支。
+  [OPT_TRANS_ORCAROUTER]: {
+    type: "openai",
+    efforts: [
+      { value: "xhigh", label: "X-High" },
+      { value: "high", label: "High" },
+      { value: "medium", label: "Medium" },
+      { value: "low", label: "Low" },
     ],
   },
 };
@@ -548,6 +566,7 @@ export const OPT_LANGS_TO_SPEC = {
   [OPT_TRANS_CLAUDE]: OPT_LANGS_SPEC_NAME,
   [OPT_TRANS_OLLAMA]: OPT_LANGS_SPEC_NAME,
   [OPT_TRANS_OPENROUTER]: OPT_LANGS_SPEC_NAME,
+  [OPT_TRANS_ORCAROUTER]: OPT_LANGS_SPEC_NAME,
   [OPT_TRANS_CLOUDFLAREAI]: new Map([
     ...OPT_LANGS_SPEC_DEFAULT,
     ["auto", "en"],
@@ -1004,6 +1023,13 @@ const defaultApiOpts = {
     url: "https://openrouter.ai/api/v1/chat/completions",
     modelListUrl: "https://openrouter.ai/api/v1/models",
     model: "openai/gpt-4o",
+    ...defaultAiApiOpts,
+  },
+  [OPT_TRANS_ORCAROUTER]: {
+    ...defaultApi,
+    url: "https://api.orcarouter.ai/v1/chat/completions",
+    modelListUrl: "https://api.orcarouter.ai/v1/models",
+    model: "openai/gpt-5.4-mini",
     ...defaultAiApiOpts,
   },
   [OPT_TRANS_CUSTOMIZE]: {

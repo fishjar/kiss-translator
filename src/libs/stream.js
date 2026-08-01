@@ -16,6 +16,7 @@ import {
   OPT_TRANS_GEMINI,
   OPT_TRANS_GEMINI_2,
   OPT_TRANS_OPENROUTER,
+  OPT_TRANS_ORCAROUTER,
   OPT_TRANS_OLLAMA,
   OPT_TRANS_CLAUDE,
   OPT_TRANS_EPHONEAI,
@@ -143,6 +144,7 @@ export function getStreamDelta(json, apiType) {
     case OPT_TRANS_ZAI:
     case OPT_TRANS_GEMINI_2:
     case OPT_TRANS_OPENROUTER:
+    case OPT_TRANS_ORCAROUTER:
     case OPT_TRANS_OLLAMA:
     case OPT_TRANS_EPHONEAI:
       // OpenAI 兼容协议的大模型 delta 提取逻辑
