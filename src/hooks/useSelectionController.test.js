@@ -69,7 +69,7 @@ function TestController({
   boxSize = { w: 320, h: 240 },
   setBoxPosition = jest.fn(),
   toLang = "zh-CN",
-  disableTranBtnOnToLang = true,
+  skipLangs = [],
 }) {
   const state = useSelectionController({
     tranboxSetting: {
@@ -80,7 +80,7 @@ function TestController({
       btnOffsetY: 0,
       tranboxInteractMode,
       toLang,
-      disableTranBtnOnToLang,
+      skipLangs,
     },
     followSelection,
     boxOffsetX: 0,
@@ -589,8 +589,8 @@ describe("useSelectionController", () => {
     });
   });
 
-  test("hides the button when the selected language matches the target language", async () => {
-    const controller = renderController();
+  test("hides the button when the selected language is in skipLangs", async () => {
+    const controller = renderController({ skipLangs: ["zh"] });
     const pageParagraph = createParagraph("The library is open.");
 
     detectLangFast.mockResolvedValue("zh-CN");
@@ -606,8 +606,8 @@ describe("useSelectionController", () => {
     });
   });
 
-  test("treats traditional Chinese as the target language via zh normalization", async () => {
-    const controller = renderController();
+  test("treats traditional Chinese as zh via normalization in skipLangs", async () => {
+    const controller = renderController({ skipLangs: ["zh"] });
     const pageParagraph = createParagraph("The library is open.");
 
     detectLangFast.mockResolvedValue("zh-TW");
@@ -636,8 +636,23 @@ describe("useSelectionController", () => {
     });
   });
 
-  test("shows the button when the target-language suppression is disabled", async () => {
-    const controller = renderController({ disableTranBtnOnToLang: false });
+  test("suppresses the button when skipLangs includes the detected language", async () => {
+    const controller = renderController({ skipLangs: ["en"] });
+    const pageParagraph = createParagraph("The library is open.");
+
+    detectLangFast.mockResolvedValue("en");
+    currentSelection = makeSelection("some english text here", pageParagraph);
+    await dispatchWindowMouseup();
+
+    expect(controller.state.showBtn).toBe(false);
+
+    act(() => {
+      controller.root.unmount();
+    });
+  });
+
+  test("shows the button when skipLangs is empty and detected lang differs from toLang", async () => {
+    const controller = renderController({ skipLangs: [], toLang: "ja" });
     const pageParagraph = createParagraph("The library is open.");
 
     detectLangFast.mockResolvedValue("zh-CN");

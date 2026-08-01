@@ -3541,21 +3541,21 @@ export const I18N = {
     ko: `선택한 텍스트를 더블클릭하여 번역`,
     tr: `Çevirmek İçin Seçilen Metni Çift Tıklayın`,
   },
-  disable_tranbtn_on_tolang: {
-    zh: `目标语言不弹窗`,
-    en: `Disable popup when target language is detected`,
-    zh_TW: `目標語言不彈窗`,
-    ja: `対象言語が検出された場合、ポップアップを無効にする`,
-    ko: `대상 언어가 감지되면 팝업을 비활성화`,
-    tr: `Hedef dil algılandığında açılır pencereyi devre dışı bırak`,
+  selection_skip_langs: {
+    zh: `忽略的语言`,
+    en: `Ignore Languages`,
+    zh_TW: `忽略的語言`,
+    ja: `無視する言語`,
+    ko: `무시할 언어`,
+    tr: `Dilleri Yoksay`,
   },
-  disable_tranbtn_on_tolang_helper: {
-    zh: `开启后，若划选文本已是目标语言，则不显示翻译弹窗`,
-    en: `When enabled, if the selected text is already in the target language, the translation popup will not be displayed`,
-    zh_TW: `開啟後，若選取文字已是目標語言，則不顯示翻譯彈窗`,
-    ja: `有効にすると、選択したテキストがすでに対象言語の場合、翻訳ポップアップは表示されません`,
-    ko: `활성화되면 선택한 텍스트가 이미 대상 언어인 경우 번역 팝업이 표시되지 않습니다`,
-    tr: `Etkinleştirildiğinde, seçilen metin zaten hedef dildeyse, çeviri açılır penceresi görüntülenmez`,
+  selection_skip_langs_helper: {
+    zh: `列表中的语言不弹窗（设定后，第二目标语言互译功能将自动禁用）`,
+    en: `Don't show popup for languages in this list (when enabled, will automatically disable bidirectional translation for the second target language)`,
+    zh_TW: `列表中的語言不彈窗（設定後，第二目標語言的互譯功能將自動禁用）`,
+    ja: `リスト内の言語はポップアップを表示しません（有効にすると、第二の対象言語の双方向翻訳機能が自動的に無効になります）`,
+    ko: `목록에 있는 언어는 팝업을 표시하지 않습니다 (활성화 시, 두 번째 대상 언어의 양방향 번역 기능이 자동으로 비활성화됩니다)`,
+    tr: `Bu listedeki diller için açılır pencere gösterilmez (etkinleştirildiğinde, ikinci hedef dil için çift yönlü çeviri işlevi otomatik olarak devre dışı bırakılır)`,
   },
 
   translate_start_hook: {

@@ -233,8 +233,7 @@ export default function useSelectionController({
     btnOffsetX = 0,
     btnOffsetY = 0,
     tranboxInteractMode = "-",
-    disableTranBtnOnToLang = true,
-    toLang = "zh-CN",
+    skipLangs = [],
   } = tranboxSetting;
 
   const [showBox, setShowBox] = useState(false);
@@ -318,16 +317,12 @@ export default function useSelectionController({
       if (!lang) return false;
 
       const normLang = normalizeZhLang(lang);
-      if (
-        disableTranBtnOnToLang &&
-        toLang &&
-        normalizeZhLang(toLang) === normLang
-      ) {
+      if (skipLangs.includes(normLang)) {
         return true;
       }
       return false;
     },
-    [disableTranBtnOnToLang, toLang]
+    [skipLangs]
   );
 
   const processSelectionSnapshot = useCallback(

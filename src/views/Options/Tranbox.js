@@ -20,6 +20,7 @@ import {
   PROMPT_MODE_FOLLOW_API,
   getDictionaryPromptOptions,
   getPromptDisplayName,
+  OPT_SKIPLANGS_SELECTION,
 } from "../../config";
 import ShortcutInput from "./ShortcutInput";
 import FormControlLabel from "@mui/material/FormControlLabel";
@@ -103,7 +104,7 @@ export default function Tranbox() {
     aiDictApiSlug = "-",
     aiDictPromptSlug = PROMPT_MODE_FOLLOW_API,
     blacklist = "",
-    disableTranBtnOnToLang = true,
+    skipLangs = ["zh"],
   } = tranboxSetting;
 
   return (
@@ -125,33 +126,25 @@ export default function Tranbox() {
           sx={{ width: "fit-content" }}
         />
 
-        {/* 开关：检测到选中文本为翻译目标语言时，禁用划词翻译按钮弹出 */}
-        <FormControlLabel
-          control={
-            <Switch
-              size="small"
-              name="disableTranBtnOnToLang"
-              checked={disableTranBtnOnToLang}
-              onChange={() => {
-                updateTranbox({
-                  disableTranBtnOnToLang: !disableTranBtnOnToLang,
-                });
-              }}
-            />
-          }
-          label={
-            <>
-              {i18n("disable_tranbtn_on_tolang")}
-              <Box
-                component="p"
-                sx={{ fontSize: "0.65rem", color: "text.secondary", m: 0 }}
-              >
-                {i18n("disable_tranbtn_on_tolang_helper")}
-              </Box>
-            </>
-          }
-          sx={{ width: "fit-content" }}
-        />
+        {/* 多选下拉：划词检测到列表内的语言时不弹出按钮 */}
+        <TextField
+          select
+          size="small"
+          label={i18n("selection_skip_langs")}
+          helperText={i18n("selection_skip_langs_helper")}
+          name="skipLangs"
+          value={skipLangs}
+          onChange={handleChange}
+          SelectProps={{
+            multiple: true,
+          }}
+        >
+          {OPT_SKIPLANGS_SELECTION.map(([langKey, langName]) => (
+            <MenuItem key={langKey} value={langKey}>
+              {langName}
+            </MenuItem>
+          ))}
+        </TextField>
 
         {/* 各项具体参数网格配置区 */}
         <Box>
