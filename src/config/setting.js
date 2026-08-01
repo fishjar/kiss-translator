@@ -10,6 +10,7 @@ import {
   DEFAULT_HTTP_TIMEOUT,
   OPT_TRANS_MICROSOFT,
   DEFAULT_API_LIST,
+  OPT_LANGS_TO,
 } from "./api";
 import {
   CURRENT_SETTINGS_VERSION,
@@ -112,6 +113,13 @@ export const OPT_TRANBOX_BTN_POSITION_ALL = [
 export const OPT_TRANBOX_INTERACT_CLICK = "click"; // 单击翻译框内选中文本触发新翻译
 export const OPT_TRANBOX_INTERACT_DBLCLICK = "dblclick"; // 双击翻译框内选中文本触发新翻译
 export const DEFAULT_TRANBOX_SHORTCUT = ["AltLeft", "KeyS"]; // 呼出划词翻译面板的键盘快捷键
+
+// 划词翻译"忽略的语言"下拉选项：将 zh-CN/zh-TW 合并为单个 "zh" 条目
+export const OPT_SKIPLANGS_SELECTION = [
+  ["zh", "中文 Chinese"],
+  ...OPT_LANGS_TO.filter(([code]) => code !== "zh-CN" && code !== "zh-TW"),
+];
+
 export const DEFAULT_TRANBOX_SETTING = {
   transOpen: true, // 是否启用划词翻译功能
   blacklist: "", // 划词翻译禁用的域名列表
@@ -134,6 +142,8 @@ export const DEFAULT_TRANBOX_SETTING = {
   triggerMode: OPT_TRANBOX_TRIGGER_CLICK, // 划词触发翻译的行为模式
   btnPositionMode: OPT_TRANBOX_BTN_POSITION_FIXED, // 划词后弹出按钮的定位模式
   tranboxInteractMode: "-", // 翻译框内交互模式（"-"表示禁用）
+  skipLangs: ["zh"], // 忽略的语言：划词检测到列表内语言时不弹窗
+
   // extStyles: "", // 附加样式
   enDict: OPT_DICT_BING, // 默认英文网络词典数据源
   enSug: OPT_SUG_YOUDAO, // 英文输入联想建议源

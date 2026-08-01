@@ -20,6 +20,7 @@ import {
   PROMPT_MODE_FOLLOW_API,
   getDictionaryPromptOptions,
   getPromptDisplayName,
+  OPT_SKIPLANGS_SELECTION,
 } from "../../config";
 import ShortcutInput from "./ShortcutInput";
 import FormControlLabel from "@mui/material/FormControlLabel";
@@ -103,6 +104,7 @@ export default function Tranbox() {
     aiDictApiSlug = "-",
     aiDictPromptSlug = PROMPT_MODE_FOLLOW_API,
     blacklist = "",
+    skipLangs = ["zh"],
   } = tranboxSetting;
 
   return (
@@ -123,6 +125,26 @@ export default function Tranbox() {
           label={i18n("toggle_selection_translate")}
           sx={{ width: "fit-content" }}
         />
+
+        {/* 多选下拉：划词检测到列表内的语言时不弹出按钮 */}
+        <TextField
+          select
+          size="small"
+          label={i18n("selection_skip_langs")}
+          helperText={i18n("selection_skip_langs_helper")}
+          name="skipLangs"
+          value={skipLangs}
+          onChange={handleChange}
+          SelectProps={{
+            multiple: true,
+          }}
+        >
+          {OPT_SKIPLANGS_SELECTION.map(([langKey, langName]) => (
+            <MenuItem key={langKey} value={langKey}>
+              {langName}
+            </MenuItem>
+          ))}
+        </TextField>
 
         {/* 各项具体参数网格配置区 */}
         <Box>

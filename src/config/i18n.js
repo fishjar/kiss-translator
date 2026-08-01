@@ -3541,6 +3541,23 @@ export const I18N = {
     ko: `선택한 텍스트를 더블클릭하여 번역`,
     tr: `Çevirmek İçin Seçilen Metni Çift Tıklayın`,
   },
+  selection_skip_langs: {
+    zh: `忽略的语言`,
+    en: `Ignore Languages`,
+    zh_TW: `忽略的語言`,
+    ja: `無視する言語`,
+    ko: `무시할 언어`,
+    tr: `Dilleri Yoksay`,
+  },
+  selection_skip_langs_helper: {
+    zh: `列表中的语言不弹窗（设定后，第二目标语言互译功能将自动禁用）`,
+    en: `Don't show popup for languages in this list (when enabled, will automatically disable bidirectional translation for the second target language)`,
+    zh_TW: `列表中的語言不彈窗（設定後，第二目標語言的互譯功能將自動禁用）`,
+    ja: `リスト内の言語はポップアップを表示しません（有効にすると、第二の対象言語の双方向翻訳機能が自動的に無効になります）`,
+    ko: `목록에 있는 언어는 팝업을 표시하지 않습니다 (활성화 시, 두 번째 대상 언어의 양방향 번역 기능이 자동으로 비활성화됩니다)`,
+    tr: `Bu listedeki diller için açılır pencere gösterilmez (etkinleştirildiğinde, ikinci hedef dil için çift yönlü çeviri işlevi otomatik olarak devre dışı bırakılır)`,
+  },
+
   translate_start_hook: {
     zh: `翻译开始钩子函数`,
     en: `Translate Start Hook`,
