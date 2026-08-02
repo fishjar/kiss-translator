@@ -142,7 +142,7 @@ export const DEFAULT_TRANBOX_SETTING = {
   triggerMode: OPT_TRANBOX_TRIGGER_CLICK, // 划词触发翻译的行为模式
   btnPositionMode: OPT_TRANBOX_BTN_POSITION_FIXED, // 划词后弹出按钮的定位模式
   tranboxInteractMode: "-", // 翻译框内交互模式（"-"表示禁用）
-  skipLangs: ["zh"], // 忽略的语言：划词检测到列表内语言时不弹窗
+  skipLangs: [], // 忽略的语言：默认为空，检测到列表内语言时不弹窗
 
   // extStyles: "", // 附加样式
   enDict: OPT_DICT_BING, // 默认英文网络词典数据源

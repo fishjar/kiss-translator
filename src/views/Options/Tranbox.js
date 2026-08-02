@@ -104,7 +104,7 @@ export default function Tranbox() {
     aiDictApiSlug = "-",
     aiDictPromptSlug = PROMPT_MODE_FOLLOW_API,
     blacklist = "",
-    skipLangs = ["zh"],
+    skipLangs = [],
   } = tranboxSetting;
 
   return (
