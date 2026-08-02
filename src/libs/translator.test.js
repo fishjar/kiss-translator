@@ -1164,4 +1164,224 @@ describe("Translator rule styles", () => {
       document.querySelector(`.${Translator.KISS_CLASS.hoverBubble}`)
     ).toBeNull();
   });
+
+  test("wraps original nodes with a reusable text style and unwraps on disable", async () => {
+    document.body.innerHTML = `
+      <main id="root">
+        <p id="target">Text <a id="link" href="#">link</a> tail</p>
+      </main>
+    `;
+    const target = document.getElementById("target");
+    const link = document.getElementById("link");
+    const translator = createTranslator(
+      {
+        wrapOriginal: "true",
+        originalTextStyle: "original_custom",
+        autoScan: "false",
+        selector: "#target",
+      },
+      {
+        minLength: 0,
+        customStyles: [
+          {
+            styleSlug: "original_custom",
+            styleName: "Original Custom",
+            styleCode: "background: yellow;",
+          },
+        ],
+      }
+    );
+    await flushAsync();
+
+    const original = target.querySelector(
+      `:scope > .${Translator.KISS_CLASS.original}`
+    );
+    expect(original).not.toBeNull();
+    expect(original.classList.length).toBeGreaterThan(1);
+    expect(original.querySelector("#link")).toBe(link);
+    expect(
+      target.querySelectorAll(`.${Translator.KISS_CLASS.original}`)
+    ).toHaveLength(1);
+
+    translator.disable();
+
+    expect(
+      target.querySelector(`.${Translator.KISS_CLASS.original}`)
+    ).toBeNull();
+    expect(target.querySelector("#link")).toBe(link);
+    expect(target.textContent).toContain("Text link tail");
+    expect(
+      target.querySelector(`.${Translator.KISS_CLASS.warpper}`)
+    ).toBeNull();
+  });
+
+  test("updates original wrapping and style without translating again", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="target">Hello original</p></main>';
+    const target = document.getElementById("target");
+    const translator = createTranslator(
+      { wrapOriginal: "false" },
+      {
+        minLength: 0,
+        customStyles: [
+          {
+            styleSlug: "original_one",
+            styleName: "Original One",
+            styleCode: "color: red;",
+          },
+          {
+            styleSlug: "original_two",
+            styleName: "Original Two",
+            styleCode: "color: blue;",
+          },
+        ],
+      }
+    );
+    await flushAsync();
+    const requestCount = apiTranslate.mock.calls.length;
+
+    translator.updateRule({
+      wrapOriginal: "true",
+      originalTextStyle: "original_one",
+    });
+    await flushAsync();
+
+    let original = target.querySelector(
+      `:scope > .${Translator.KISS_CLASS.original}`
+    );
+    expect(original).not.toBeNull();
+    const firstStyleClass = Array.from(original.classList).find(
+      (className) => className !== Translator.KISS_CLASS.original
+    );
+    expect(apiTranslate).toHaveBeenCalledTimes(requestCount);
+
+    translator.updateRule({ originalTextStyle: "original_two" });
+    await flushAsync();
+
+    original = target.querySelector(
+      `:scope > .${Translator.KISS_CLASS.original}`
+    );
+    expect(original.classList.contains(firstStyleClass)).toBe(false);
+    expect(apiTranslate).toHaveBeenCalledTimes(requestCount);
+
+    translator.updateRule({ transOrder: "translation-first" });
+    await flushAsync();
+    expect(target.firstElementChild.classList).toContain(
+      Translator.KISS_CLASS.warpper
+    );
+    expect(target.lastElementChild).toBe(original);
+
+    translator.updateRule({ wrapOriginal: "false" });
+    await flushAsync();
+    expect(
+      target.querySelector(`.${Translator.KISS_CLASS.original}`)
+    ).toBeNull();
+    expect(apiTranslate).toHaveBeenCalledTimes(requestCount);
+  });
+
+  test("moves a wrapped original through translation-only mode and cleans it up", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="target">Hidden original</p></main>';
+    const target = document.getElementById("target");
+    const translator = createTranslator({
+      wrapOriginal: "true",
+      originalTextStyle: "style_none",
+      transOnly: "true",
+      transOrder: "translation-first",
+    });
+    await flushAsync();
+
+    const translation = target.querySelector(
+      `.${Translator.KISS_CLASS.warpper}`
+    );
+    const backup = translation.querySelector(
+      `template.${Translator.KISS_CLASS.backup}`
+    );
+    expect(
+      backup.content.querySelector(`.${Translator.KISS_CLASS.original}`)
+    ).not.toBeNull();
+    expect(
+      target.querySelector(`.${Translator.KISS_CLASS.original}`)
+    ).toBeNull();
+
+    const requestCount = apiTranslate.mock.calls.length;
+    translator.updateRule({ wrapOriginal: "false" });
+    await flushAsync();
+    expect(
+      backup.content.querySelector(`.${Translator.KISS_CLASS.original}`)
+    ).toBeNull();
+    expect(apiTranslate).toHaveBeenCalledTimes(requestCount);
+
+    translator.updateRule({
+      wrapOriginal: "true",
+      originalTextStyle: "blockquote",
+    });
+    await flushAsync();
+    expect(
+      backup.content.querySelector(`.${Translator.KISS_CLASS.original}`)
+    ).not.toBeNull();
+    expect(apiTranslate).toHaveBeenCalledTimes(requestCount);
+
+    translator.updateRule({ transOnly: "false" });
+    await flushAsync();
+    expect(target.lastElementChild.classList).toContain(
+      Translator.KISS_CLASS.original
+    );
+
+    translator.updateRule({ transOnly: "true" });
+    await flushAsync();
+    expect(
+      backup.content.querySelector(`.${Translator.KISS_CLASS.original}`)
+    ).not.toBeNull();
+
+    translator.disable();
+    expect(target.textContent).toBe("Hidden original");
+    expect(
+      target.querySelector(`.${Translator.KISS_CLASS.original}`)
+    ).toBeNull();
+  });
+
+  test("does not wrap original nodes when translation produces no result", async () => {
+    apiTranslate.mockResolvedValueOnce({ trText: "", isSame: false });
+    document.body.innerHTML =
+      '<main id="root"><p id="target">Untranslated original</p></main>';
+
+    createTranslator({ wrapOriginal: "true" });
+    await flushAsync();
+
+    const target = document.getElementById("target");
+    expect(
+      target.querySelector(`.${Translator.KISS_CLASS.original}`)
+    ).toBeNull();
+    expect(
+      target.querySelector(`.${Translator.KISS_CLASS.warpper}`)
+    ).toBeNull();
+    expect(target.textContent).toBe("Untranslated original");
+  });
+
+  test("rescans changed wrapped content without nesting original wrappers", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="target">Initial original</p></main>';
+    const translator = createTranslator(
+      { wrapOriginal: "true" },
+      { minLength: 0 }
+    );
+    await flushAsync();
+
+    const target = document.getElementById("target");
+    const original = target.querySelector(`.${Translator.KISS_CLASS.original}`);
+    const requestCount = apiTranslate.mock.calls.length;
+    original.firstChild.nodeValue = "Changed original";
+
+    translator.rescan();
+    await flushAsync();
+
+    expect(apiTranslate.mock.calls.length).toBeGreaterThan(requestCount);
+    expect(
+      target.querySelectorAll(`.${Translator.KISS_CLASS.original}`)
+    ).toHaveLength(1);
+    expect(
+      target.querySelector(`.${Translator.KISS_CLASS.original}`).textContent
+    ).toBe("Changed original");
+  });
 });

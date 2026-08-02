@@ -133,6 +133,61 @@ describe("rules enabled state", () => {
   });
 
   test.each([
+    [
+      "inherits original wrapping and style",
+      "true",
+      "blockquote",
+      "*",
+      "*",
+      "true",
+      "blockquote",
+    ],
+    [
+      "overrides original wrapping and style",
+      "false",
+      "style_none",
+      "true",
+      "highlight",
+      "true",
+      "highlight",
+    ],
+  ])(
+    "%s",
+    async (
+      _,
+      globalWrap,
+      globalStyle,
+      siteWrap,
+      siteStyle,
+      expectedWrap,
+      expectedStyle
+    ) => {
+      getRulesWithDefault.mockResolvedValue([
+        {
+          pattern: "example.com",
+          selector: "article",
+          wrapOriginal: siteWrap,
+          originalTextStyle: siteStyle,
+        },
+        {
+          pattern: "*",
+          selector: "p",
+          wrapOriginal: globalWrap,
+          originalTextStyle: globalStyle,
+        },
+      ]);
+
+      const rule = await matchRule("https://example.com/post", {
+        injectRules: false,
+        subrulesList: [],
+      });
+
+      expect(rule.wrapOriginal).toBe(expectedWrap);
+      expect(rule.originalTextStyle).toBe(expectedStyle);
+    }
+  );
+
+  test.each([
     ["enabled", "false", true, "true"],
     ["disabled", "true", false, "false"],
   ])(
@@ -183,6 +238,52 @@ describe("rules enabled state", () => {
         expect.objectContaining({
           pattern: "legacy.example",
           enabled: true,
+        }),
+      ])
+    );
+  });
+
+  test("normalizes original wrapping fields in imported and legacy rules", () => {
+    const rules = checkRules([
+      {
+        pattern: "valid.example",
+        wrapOriginal: "true",
+        originalTextStyle: "custom_original",
+      },
+      {
+        pattern: "invalid.example",
+        wrapOriginal: true,
+        originalTextStyle: null,
+      },
+      {
+        pattern: "legacy.example",
+      },
+      {
+        pattern: "*",
+      },
+    ]);
+
+    expect(rules).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          pattern: "valid.example",
+          wrapOriginal: "true",
+          originalTextStyle: "custom_original",
+        }),
+        expect.objectContaining({
+          pattern: "invalid.example",
+          wrapOriginal: "*",
+          originalTextStyle: "*",
+        }),
+        expect.objectContaining({
+          pattern: "legacy.example",
+          wrapOriginal: "*",
+          originalTextStyle: "*",
+        }),
+        expect.objectContaining({
+          pattern: "*",
+          wrapOriginal: "false",
+          originalTextStyle: "style_none",
         }),
       ])
     );

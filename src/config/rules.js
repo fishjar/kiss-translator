@@ -75,6 +75,8 @@ export const DEFAULT_RULE = {
   fromLang: GLOBAL_KEY, // 网页源语言代码 (继承/覆盖全局)
   toLang: GLOBAL_KEY, // 目标语言代码 (继承/覆盖全局)
   textStyle: GLOBAL_KEY, // 译文样式类型 (继承/覆盖全局)
+  wrapOriginal: GLOBAL_KEY, // 是否为原文节点增加稳定的包裹元素
+  originalTextStyle: GLOBAL_KEY, // 原文样式类型 (继承/覆盖全局)
   transOpen: GLOBAL_KEY, // 是否自动开启翻译 (继承/覆盖全局)
   // bgColor: "", // 译文颜色 (作废)
   // textDiyStyle: "", // 自定义译文样式 (作废)
@@ -126,6 +128,8 @@ export const GLOBLA_RULE = {
   fromLang: "auto", // 默认自动识别原文语言
   toLang: "zh-CN", // 默认翻译为简体中文
   textStyle: OPT_STYLE_NONE, // 默认译文不加额外线条/高亮背景
+  wrapOriginal: "false", // 默认不改变原文 DOM 层级
+  originalTextStyle: OPT_STYLE_NONE, // 默认原文不加额外样式
   transOpen: "false", // 默认不自动开始翻译网页 (需要手动点击或快捷键)
   // bgColor: DEFAULT_COLOR, // 译文颜色 (作废)
   // textDiyStyle: DEFAULT_DIY_STYLE, // 自定义译文样式 (作废)
