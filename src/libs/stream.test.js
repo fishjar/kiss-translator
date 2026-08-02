@@ -8,7 +8,7 @@ import {
   getStreamDelta,
   parseStreamingSegments,
 } from "./stream";
-import { OPT_TRANS_EPHONEAI } from "../config";
+import { OPT_TRANS_EPHONEAI, OPT_TRANS_ORCAROUTER } from "../config";
 
 describe("createSSEParser", () => {
   test("parses data fields with or without a following space", () => {
@@ -45,6 +45,16 @@ describe("getStreamDelta", () => {
     };
 
     expect(getStreamDelta(chunk, OPT_TRANS_EPHONEAI)).toBe("hello");
+  });
+
+  test("extracts OrcaRouter as an OpenAI-compatible stream", () => {
+    const chunk = {
+      choices: [{ delta: { content: "敏" }, finish_reason: null, index: 0 }],
+      object: "chat.completion.chunk",
+    };
+
+    expect(getStreamDelta(chunk, OPT_TRANS_ORCAROUTER)).toBe("敏");
+    expect(getStreamDelta({ choices: [] }, OPT_TRANS_ORCAROUTER)).toBe("");
   });
 });
 
