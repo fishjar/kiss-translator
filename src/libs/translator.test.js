@@ -735,6 +735,206 @@ describe("Translator rule styles", () => {
     expect(bubble.style.zIndex).toBe("2147483647");
   });
 
+  test("shows the hidden original in a bubble after the configured hover delay", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="target">Hello hidden original</p></main>';
+
+    const translator = createTranslator(
+      {
+        transOnly: "true",
+        transOnlyRevert: "false",
+        transOnlyRevertDelay: "0.3",
+      },
+      {
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          displayMode: "bubble",
+        },
+      }
+    );
+    await flushAsync();
+
+    const wrapper = document.querySelector(`.${Translator.KISS_CLASS.warpper}`);
+    const inner = wrapper.querySelector(`.${Translator.KISS_CLASS.inner}`);
+    const translateCallCount = apiTranslate.mock.calls.length;
+
+    await hoverNode(inner);
+    jest.advanceTimersByTime(299);
+    expect(
+      document.querySelector(`.${Translator.KISS_CLASS.hoverBubble}`)
+    ).toBeNull();
+
+    jest.advanceTimersByTime(1);
+    const bubble = document.querySelector(
+      `.${Translator.KISS_CLASS.hoverBubble}`
+    );
+    expect(bubble.textContent).toBe("Hello hidden original");
+    expect(apiTranslate).toHaveBeenCalledTimes(translateCallCount);
+    expect(document.getElementById("target").textContent).not.toContain(
+      "Hello hidden original"
+    );
+
+    translator.updateRule({ transOnly: "false" });
+    expect(
+      document.querySelector(`.${Translator.KISS_CLASS.hoverBubble}`)
+    ).toBeNull();
+  });
+
+  test("shows the hidden original immediately when the hover shortcut is used", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p>Hello shortcut original</p></main>';
+
+    createTranslator(
+      {
+        transOnly: "true",
+        transOnlyRevert: "true",
+        transOnlyRevertDelay: "10",
+      },
+      {
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: ["ControlLeft"],
+          mouseHoverKey2: [],
+          displayMode: "bubble",
+        },
+      }
+    );
+    await flushAsync();
+
+    const inner = document.querySelector(`.${Translator.KISS_CLASS.inner}`);
+    const translateCallCount = apiTranslate.mock.calls.length;
+    await hoverNode(inner);
+
+    expect(
+      document.querySelector(`.${Translator.KISS_CLASS.hoverBubble}`)
+    ).toBeNull();
+
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", { code: "ControlLeft", bubbles: true })
+    );
+    window.dispatchEvent(
+      new KeyboardEvent("keyup", { code: "ControlLeft", bubbles: true })
+    );
+
+    const bubble = document.querySelector(
+      `.${Translator.KISS_CLASS.hoverBubble}`
+    );
+    expect(bubble.textContent).toBe("Hello shortcut original");
+    expect(apiTranslate).toHaveBeenCalledTimes(translateCallCount);
+  });
+
+  test("shows the original after translation-only mode is enabled dynamically", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p>Original hidden after control panel toggle</p></main>';
+
+    const translator = createTranslator(
+      {
+        transOnly: "false",
+        transOnlyRevert: "false",
+        transOnlyRevertDelay: "0",
+      },
+      {
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          displayMode: "bubble",
+        },
+      }
+    );
+    await flushAsync();
+
+    translator.updateRule({ transOnly: "true" });
+    await flushAsync();
+
+    const inner = document.querySelector(`.${Translator.KISS_CLASS.inner}`);
+    const translateCallCount = apiTranslate.mock.calls.length;
+    await hoverNode(inner);
+    jest.advanceTimersByTime(1);
+
+    expect(
+      document.querySelector(`.${Translator.KISS_CLASS.hoverBubble}`)
+        .textContent
+    ).toBe("Original hidden after control panel toggle");
+    expect(apiTranslate).toHaveBeenCalledTimes(translateCallCount);
+  });
+
+  test("cancels a pending original bubble after leaving the translation", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p>Original bubble should be cancelled</p></main>';
+
+    createTranslator(
+      {
+        transOnly: "true",
+        transOnlyRevert: "true",
+        transOnlyRevertDelay: "0.5",
+      },
+      {
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          displayMode: "bubble",
+        },
+      }
+    );
+    await flushAsync();
+
+    const inner = document.querySelector(`.${Translator.KISS_CLASS.inner}`);
+    await hoverNode(inner);
+    await hoverNode(document.body);
+    jest.advanceTimersByTime(1000);
+
+    expect(
+      document.querySelector(`.${Translator.KISS_CLASS.hoverBubble}`)
+    ).toBeNull();
+  });
+
+  test("shows rich original text only for the latest hovered translation", async () => {
+    document.body.innerHTML = `
+      <main id="root">
+        <p>First <strong>rich</strong> original</p>
+        <p>Second <em>latest</em> original</p>
+      </main>
+    `;
+
+    createTranslator(
+      {
+        transOnly: "true",
+        transOnlyRevert: "true",
+        transOnlyRevertDelay: "0.5",
+      },
+      {
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          displayMode: "bubble",
+        },
+      }
+    );
+    await flushAsync();
+
+    const inners = document.querySelectorAll(`.${Translator.KISS_CLASS.inner}`);
+    expect(inners).toHaveLength(2);
+
+    await hoverNode(inners[0]);
+    jest.advanceTimersByTime(200);
+    await hoverNode(inners[1]);
+    jest.advanceTimersByTime(499);
+    expect(
+      document.querySelector(`.${Translator.KISS_CLASS.hoverBubble}`)
+    ).toBeNull();
+
+    jest.advanceTimersByTime(1);
+    expect(
+      document.querySelector(`.${Translator.KISS_CLASS.hoverBubble}`)
+        .textContent
+    ).toBe("Second latest original");
+  });
+
   test("keeps forced bubble positioning when custom CSS misses trailing semicolon", async () => {
     document.body.innerHTML =
       '<main id="root"><p id="target">Hello hover</p></main>';
