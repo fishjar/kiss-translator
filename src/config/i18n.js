@@ -272,6 +272,14 @@ const SUBTITLE_PLAYGROUND_I18N = {
     "텍스트 번역",
     "Metin çevirisi"
   ),
+  playground_merge_single_line_breaks: subtitlePlaygroundText(
+    "合并单个换行（保留段落）",
+    "Merge single line breaks (preserve paragraphs)",
+    "合併單個換行（保留段落）",
+    "単一改行を結合（段落は保持）",
+    "단일 줄바꿈 병합(문단 유지)",
+    "Tek satır sonlarını birleştir (paragrafları koru)"
+  ),
   subtitle_segmentation: subtitlePlaygroundText(
     "字幕断句",
     "Subtitle segmentation",
