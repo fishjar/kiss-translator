@@ -69,19 +69,20 @@ function TestController({
   boxSize = { w: 320, h: 240 },
   setBoxPosition = jest.fn(),
   toLang = "zh-CN",
-  skipLangs = [],
+  skipLangs,
 }) {
+  const tranboxSetting = {
+    triggerMode,
+    hideTranBtn: false,
+    btnPositionMode: "fixed",
+    btnOffsetX: 0,
+    btnOffsetY: 0,
+    tranboxInteractMode,
+    toLang,
+    ...(skipLangs === undefined ? {} : { skipLangs }),
+  };
   const state = useSelectionController({
-    tranboxSetting: {
-      triggerMode,
-      hideTranBtn: false,
-      btnPositionMode: "fixed",
-      btnOffsetX: 0,
-      btnOffsetY: 0,
-      tranboxInteractMode,
-      toLang,
-      skipLangs,
-    },
+    tranboxSetting,
     followSelection,
     boxOffsetX: 0,
     boxOffsetY,
@@ -653,6 +654,21 @@ describe("useSelectionController", () => {
 
   test("shows the button when skipLangs is empty and detected lang differs from toLang", async () => {
     const controller = renderController({ skipLangs: [], toLang: "ja" });
+    const pageParagraph = createParagraph("The library is open.");
+
+    detectLangFast.mockResolvedValue("zh-CN");
+    currentSelection = makeSelection("这是一段中文文本", pageParagraph);
+    await dispatchWindowMouseup();
+
+    expect(controller.state.showBtn).toBe(true);
+
+    act(() => {
+      controller.root.unmount();
+    });
+  });
+
+  test("shows the button for Chinese when legacy settings omit skipLangs", async () => {
+    const controller = renderController({ toLang: "ja" });
     const pageParagraph = createParagraph("The library is open.");
 
     detectLangFast.mockResolvedValue("zh-CN");
