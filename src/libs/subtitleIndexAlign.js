@@ -140,7 +140,7 @@ export const createSubtitleIndexAligner = (events = []) => {
       // 同组同距视为歧义，宁可不纠正。
       if (
         second &&
-        top.offset > 0 === second.offset > 0 &&
+        Boolean(top.offset > 0) === Boolean(second.offset > 0) &&
         top.dist === second.dist
       ) {
         return null;
