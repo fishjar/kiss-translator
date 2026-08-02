@@ -19,6 +19,7 @@ import {
   getSettingVersion,
   migrateSettingPromptsToV2,
   SETTINGS_VERSION_V2,
+  DEFAULT_TRANBOX_SETTING,
 } from "../config";
 import { isExt, isGm } from "./client";
 import { browser } from "./browser";
@@ -159,6 +160,7 @@ const writeSettingBackupBeforeV2 = (setting) =>
 const mergeSettingWithDefault = (setting) => ({
   ...DEFAULT_SETTING,
   ...(setting || {}),
+  tranboxSetting: { ...DEFAULT_TRANBOX_SETTING, ...(setting?.tranboxSetting || {}) },
   version: setting?.version ?? DEFAULT_SETTING.version,
 });
 export const migrateStoredSettingToV2 = async (
