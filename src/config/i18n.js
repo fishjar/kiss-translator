@@ -1397,6 +1397,14 @@ export const I18N = {
     ko: `번역 텍스트 스타일`,
     tr: `Metin Stili`,
   },
+  original_text_style: {
+    zh: `原文样式`,
+    en: `Original Text Style`,
+    zh_TW: `原文樣式`,
+    ja: `原文テキストスタイル`,
+    ko: `원문 텍스트 스타일`,
+    tr: `Orijinal Metin Stili`,
+  },
   text_style_alt: {
     zh: `译文样式`,
     en: `Text Style`,
@@ -3332,6 +3340,14 @@ export const I18N = {
     ja: `テキスト順序`,
     ko: `텍스트 순서`,
     tr: `Çeviri Sırası`,
+  },
+  wrap_original: {
+    zh: `包裹原文`,
+    en: `Wrap Original Text`,
+    zh_TW: `包裹原文`,
+    ja: `原文をラップ`,
+    ko: `원문 감싸기`,
+    tr: `Orijinal Metni Sar`,
   },
   original_first: {
     zh: `原文在上方`,

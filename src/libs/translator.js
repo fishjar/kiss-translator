@@ -180,6 +180,7 @@ export class Translator {
     highlight: `${APP_LCNAME}-highlight`,
     retry: `${APP_LCNAME}-retry`,
     backup: `${APP_LCNAME}-backup`,
+    original: `${APP_LCNAME}-original`,
     hoverBubble: `${APP_LCNAME}-hover-bubble`,
   };
 
@@ -350,6 +351,7 @@ export class Translator {
   #processedNodes = new WeakMap(); // 已处理（已执行翻译DOM操作）的单元
   #rootNodes = new Set(); // 已监控的根节点
   #skipMoNodes = new WeakSet(); // 忽略变化的节点
+  #ignoredMutationTargets = new WeakSet(); // 临时忽略扩展自身 DOM 调整产生的变化
   #plainTextPreprocessingNodes = new WeakSet(); // 正在流式预处理的纯文本 pre
 
   #removeKeydownHandler; // 快捷键清理函数
@@ -1093,6 +1095,7 @@ export class Translator {
     return new MutationObserver((mutations) => {
       for (const mutation of mutations) {
         if (
+          this.#ignoredMutationTargets.has(mutation.target) ||
           this.#skipMoNodes.has(mutation.target) ||
           this.#plainTextPreprocessingNodes.has(mutation.target) ||
           mutation.nextSibling?.tagName?.toLowerCase() ===
@@ -1133,6 +1136,20 @@ export class Translator {
         }
       }
     });
+  }
+
+  #withIgnoredMutations(targets, callback) {
+    const validTargets = targets.filter((target) => target instanceof Node);
+    validTargets.forEach((target) => this.#ignoredMutationTargets.add(target));
+    try {
+      return callback();
+    } finally {
+      queueMicrotask(() => {
+        validTargets.forEach((target) =>
+          this.#ignoredMutationTargets.delete(target)
+        );
+      });
+    }
   }
 
   // 节流的鼠标悬停事件
@@ -1402,6 +1419,10 @@ export class Translator {
 
     let current = startNode;
     while (current && current !== document.body) {
+      if (current.classList?.contains(Translator.KISS_CLASS.original)) {
+        current = current.parentElement;
+        continue;
+      }
       if (this.#isBlockNode(current) || this.#observedNodes.has(current)) {
         // 确保找到的容器在我们监控的根节点内
         for (const root of this.#rootNodes) {
@@ -2160,6 +2181,8 @@ export class Translator {
       // skipLangs = [],
       highlightWords,
       transOrder = "original-first",
+      wrapOriginal,
+      originalTextStyle,
     } = this.#rule;
     const {
       newlineLength,
@@ -2320,13 +2343,22 @@ export class Translator {
         inner.innerHTML = trustedHTML;
       });
 
-      this.#translationNodes.set(wrapper, {
+      let originalWrapper = null;
+      if (wrapOriginal === "true") {
+        this.#withViewportAnchor(() => {
+          originalWrapper = this.#wrapOriginalNodes(nodes, originalTextStyle);
+        });
+      }
+
+      const translationData = {
         nodes,
+        originalWrapper,
         isHide: hideOrigin,
-      });
+      };
+      this.#translationNodes.set(wrapper, translationData);
       if (hideOrigin) {
         this.#withViewportAnchor(() => {
-          this.#removeNodes(nodes, wrapper);
+          this.#removeOriginal(translationData, wrapper);
         });
       }
 
@@ -2820,6 +2852,10 @@ overflow-wrap: anywhere !important;`;
       ? wrapper.previousSibling
       : wrapper.nextSibling;
 
+    if (current?.classList?.contains(Translator.KISS_CLASS.original)) {
+      return [current];
+    }
+
     while (current) {
       if (
         this.#shouldBreak(current) &&
@@ -2863,6 +2899,56 @@ overflow-wrap: anywhere !important;`;
     return backup;
   }
 
+  #getOriginalStyleClass(style) {
+    return this.#textClass[style] || this.#textClass[OPT_STYLE_NONE] || "";
+  }
+
+  #wrapOriginalNodes(nodes, style) {
+    if (!nodes?.length) return null;
+
+    const parent = nodes[0].parentNode;
+    if (!parent || nodes.some((node) => node.parentNode !== parent)) {
+      return null;
+    }
+
+    const originalWrapper = document.createElement("span");
+    originalWrapper.className = [
+      Translator.KISS_CLASS.original,
+      this.#getOriginalStyleClass(style),
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+    this.#withIgnoredMutations([parent, originalWrapper], () => {
+      nodes[0].before(originalWrapper);
+      nodes.forEach((node) => originalWrapper.appendChild(node));
+    });
+
+    return originalWrapper;
+  }
+
+  #unwrapOriginal(originalWrapper) {
+    if (!originalWrapper?.parentNode) return;
+
+    const parent = originalWrapper.parentNode;
+    this.#withIgnoredMutations([parent, originalWrapper], () => {
+      originalWrapper.replaceWith(...originalWrapper.childNodes);
+    });
+  }
+
+  #getOriginalUnits({ nodes = [], originalWrapper } = {}) {
+    return originalWrapper ? [originalWrapper] : nodes;
+  }
+
+  #setOriginalStyle(originalWrapper, oldStyle, newStyle) {
+    if (!originalWrapper) return;
+
+    const oldClass = this.#getOriginalStyleClass(oldStyle);
+    const newClass = this.#getOriginalStyleClass(newStyle);
+    if (oldClass) originalWrapper.classList.remove(oldClass);
+    if (newClass) originalWrapper.classList.add(newClass);
+  }
+
   #tryAdoptExistingTranslationHost(hostNode) {
     if (!Translator.isElementOrFragment(hostNode)) return false;
 
@@ -2875,11 +2961,18 @@ overflow-wrap: anywhere !important;`;
       const backup = this.#getTranslationBackup(wrapper);
       const backupNodes = backup ? Array.from(backup.content.childNodes) : [];
       const hasBackupNodes = backupNodes.length > 0;
-      const nodes = hasBackupNodes
+      const collectedNodes = hasBackupNodes
         ? backupNodes
         : this.#collectExistingTranslationNodes(wrapper);
+      const originalWrapper = collectedNodes.find((node) =>
+        node.classList?.contains(Translator.KISS_CLASS.original)
+      );
+      const nodes = originalWrapper
+        ? Array.from(originalWrapper.childNodes)
+        : collectedNodes;
       this.#translationNodes.set(wrapper, {
         nodes,
+        originalWrapper,
         isHide: hasBackupNodes,
       });
       nodes.forEach((node) => {
@@ -2902,9 +2995,12 @@ overflow-wrap: anywhere !important;`;
       this.#processedNodes.delete(parentElement);
 
       // 如果是仅显示译文模式，先恢复原文
-      const { nodes, isHide } = this.#translationNodes.get(el) || {};
-      if (isHide) {
-        this.#restoreOriginal(el, nodes);
+      const data = this.#translationNodes.get(el);
+      if (data?.isHide) {
+        this.#restoreOriginal(el, data);
+      }
+      if (data?.originalWrapper) {
+        this.#unwrapOriginal(data.originalWrapper);
       }
 
       this.#translationNodes.delete(el);
@@ -2919,64 +3015,62 @@ overflow-wrap: anywhere !important;`;
   }
 
   // 恢复原文
-  #restoreOriginal(el, nodes) {
-    if (nodes) {
-      const frag = document.createDocumentFragment();
-      nodes.forEach((n) => frag.appendChild(n));
+  #restoreOriginal(el, data) {
+    const originalUnits = this.#getOriginalUnits(data);
+    if (originalUnits.length) {
       const parent = el.parentElement;
-      parent?.insertBefore(frag, el);
+      if (parent) {
+        const sourceParents = originalUnits.map((node) => node.parentNode);
+        this.#withIgnoredMutations([...sourceParents, parent], () => {
+          const frag = document.createDocumentFragment();
+          originalUnits.forEach((node) => frag.appendChild(node));
+          if (this.#rule.transOrder === "translation-first") {
+            el.after(frag);
+          } else {
+            el.before(frag);
+          }
+        });
+      }
     }
   }
 
-  // 移除多个节点
-  #removeNodes(nodes, wrapper) {
-    if (nodes && wrapper) {
+  // 隐藏原文显示单元
+  #removeOriginal(data, wrapper) {
+    const originalUnits = this.#getOriginalUnits(data);
+    if (originalUnits.length && wrapper) {
       const backup = this.#getOrCreateTranslationBackup(wrapper);
-      nodes.forEach((n) => backup.content.appendChild(n));
-    } else if (nodes) {
-      const frag = document.createDocumentFragment();
-      nodes.forEach((n) => frag.appendChild(n));
+      const parent = originalUnits[0].parentNode;
+      this.#withIgnoredMutations([parent], () => {
+        originalUnits.forEach((node) => backup.content.appendChild(node));
+      });
     }
   }
 
   // 切换译文和双语显示
   #toggleTranslationOnly(node, transOnly) {
-    const { transOrder = "original-first" } = this.#rule;
     this.#findTranslationWrappers(node).forEach((el) => {
       const br = el.querySelector(":scope > br");
       const space = el.querySelector(
         `:scope > span.${Translator.KISS_CLASS.space}`
       );
-      const { nodes } = this.#translationNodes.get(el) || {};
+      const data = this.#translationNodes.get(el);
+      if (!data) return;
       if (transOnly === "true") {
         // 双语变为仅译文
         this.#withViewportAnchor(() => {
           if (br) br.hidden = true;
           if (space) space.hidden = true;
-          this.#removeNodes(nodes, el);
+          this.#removeOriginal(data, el);
         });
-        this.#translationNodes.set(el, { nodes, isHide: true });
+        this.#translationNodes.set(el, { ...data, isHide: true });
       } else {
         // 仅译文变为双语
         this.#withViewportAnchor(() => {
           if (br) br.hidden = false;
           if (space) space.hidden = false;
-          if (nodes && nodes.length) {
-            const frag = document.createDocumentFragment();
-            nodes.forEach((n) => frag.appendChild(n));
-            const parent = el.parentElement;
-            if (parent) {
-              if (transOrder === "translation-first") {
-                // 译文在上：原文节点应在 wrapper 之后
-                el.after(frag);
-              } else {
-                // 原文在上：原文节点应在 wrapper 之前
-                el.before(frag);
-              }
-            }
-          }
+          this.#restoreOriginal(el, data);
         });
-        this.#translationNodes.set(el, { nodes, isHide: false });
+        this.#translationNodes.set(el, { ...data, isHide: false });
       }
     });
   }
@@ -2985,9 +3079,12 @@ overflow-wrap: anywhere !important;`;
   #adjustWrapperPosition(wrapper, nodes, transOrder) {
     if (!nodes || !nodes.length) return;
 
+    const { originalWrapper } = this.#translationNodes.get(wrapper) || {};
+    const positionNodes = originalWrapper ? [originalWrapper] : nodes;
+
     // 获取第一个和最后一个原文节点的位置
-    const firstNode = nodes[0];
-    const lastNode = nodes[nodes.length - 1];
+    const firstNode = positionNodes[0];
+    const lastNode = positionNodes[positionNodes.length - 1];
 
     // 获取 wrapper 和原文节点的父容器
     const wrapperParent = wrapper.parentElement;
@@ -3021,6 +3118,39 @@ overflow-wrap: anywhere !important;`;
       );
       inner.classList.remove(this.#textClass[oldStyle]);
       inner.classList.add(this.#textClass[newStyle]);
+    });
+  }
+
+  #updateOriginalWrapping(node, wrapOriginal, originalTextStyle) {
+    this.#findTranslationWrappers(node).forEach((wrapper) => {
+      const data = this.#translationNodes.get(wrapper);
+      if (!data) return;
+
+      if (wrapOriginal === "true" && !data.originalWrapper) {
+        const originalWrapper = this.#wrapOriginalNodes(
+          data.nodes,
+          originalTextStyle
+        );
+        if (originalWrapper) {
+          this.#translationNodes.set(wrapper, {
+            ...data,
+            originalWrapper,
+          });
+        }
+      } else if (wrapOriginal !== "true" && data.originalWrapper) {
+        this.#unwrapOriginal(data.originalWrapper);
+        this.#translationNodes.set(wrapper, {
+          ...data,
+          originalWrapper: null,
+        });
+      }
+    });
+  }
+
+  #updateOriginalStyle(node, oldStyle, newStyle) {
+    this.#findTranslationWrappers(node).forEach((wrapper) => {
+      const { originalWrapper } = this.#translationNodes.get(wrapper) || {};
+      this.#setOriginalStyle(originalWrapper, oldStyle, newStyle);
     });
   }
 
@@ -3058,6 +3188,8 @@ overflow-wrap: anywhere !important;`;
       textStyle,
       transOnly,
       transOrder = "original-first",
+      wrapOriginal,
+      originalTextStyle,
     } = this.#rule;
 
     const needsRefresh =
@@ -3076,6 +3208,8 @@ overflow-wrap: anywhere !important;`;
         textStyle,
         transOnly,
         transOrder,
+        wrapOriginal,
+        originalTextStyle,
       });
       this.#refreshNode(node); // 会自动应用新样式
       return;
@@ -3086,6 +3220,19 @@ overflow-wrap: anywhere !important;`;
       const oldStyle = appliedRule.textStyle;
       appliedRule.textStyle = textStyle;
       this.#updateStyle(node, oldStyle, textStyle);
+    }
+
+    if (appliedRule.wrapOriginal !== wrapOriginal) {
+      appliedRule.wrapOriginal = wrapOriginal;
+      this.#withViewportAnchor(() => {
+        this.#updateOriginalWrapping(node, wrapOriginal, originalTextStyle);
+      });
+    }
+
+    if (appliedRule.originalTextStyle !== originalTextStyle) {
+      const oldStyle = appliedRule.originalTextStyle;
+      appliedRule.originalTextStyle = originalTextStyle;
+      this.#updateOriginalStyle(node, oldStyle, originalTextStyle);
     }
 
     // 文本顺序规则过时
@@ -3113,6 +3260,7 @@ overflow-wrap: anywhere !important;`;
     this.#translationNodes = new WeakMap();
     this.#processedNodes = new WeakMap();
     this.#plainTextPreprocessingNodes = new WeakSet();
+    this.#ignoredMutationTargets = new WeakSet();
     this.#io = this.#createIntersectionObserver();
   }
 
@@ -3248,9 +3396,8 @@ overflow-wrap: anywhere !important;`;
   }
 
   #showOriginalTemporarily(wrapper, data) {
-    const { nodes } = data;
     this.#withViewportAnchor(() => {
-      this.#restoreOriginal(wrapper, nodes);
+      this.#restoreOriginal(wrapper, data);
       const inner = wrapper.querySelector(
         `:scope > .${Translator.KISS_CLASS.inner}`
       );
@@ -3264,9 +3411,8 @@ overflow-wrap: anywhere !important;`;
   #hideOriginalTemporarily(wrapper) {
     const data = this.#translationNodes.get(wrapper);
     if (!data) return;
-    const { nodes } = data;
     this.#withViewportAnchor(() => {
-      this.#removeNodes(nodes, wrapper);
+      this.#removeOriginal(data, wrapper);
       const inner = wrapper.querySelector(
         `:scope > .${Translator.KISS_CLASS.inner}`
       );

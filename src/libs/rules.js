@@ -147,6 +147,7 @@ const mergeRules = (baseRule, overrideRule) => {
     "transOnly",
     "transOnlyRevert",
     "transOrder",
+    "wrapOriginal",
     "autoScan",
     "hasRichText",
     "hasShadowroot",
@@ -157,6 +158,7 @@ const mergeRules = (baseRule, overrideRule) => {
     "splitParagraph",
     "highlightWords",
     "textStyle",
+    "originalTextStyle",
   ].forEach((key) => {
     if (overrideRule[key] && overrideRule[key] !== GLOBAL_KEY) {
       merged[key] = overrideRule[key];
@@ -291,6 +293,8 @@ export const checkRules = (rules) => {
         fromLang,
         toLang,
         textStyle,
+        wrapOriginal,
+        originalTextStyle,
         transOpen,
         transOnly,
         transOnlyRevert,
@@ -338,6 +342,21 @@ export const checkRules = (rules) => {
           type(textStyle) === "string" && textStyle.trim() !== ""
             ? textStyle.trim()
             : GLOBAL_KEY,
+        wrapOriginal: matchValue(
+          [GLOBAL_KEY, "true", "false"],
+          [GLOBAL_KEY, "true", "false"].includes(wrapOriginal)
+            ? wrapOriginal
+            : pattern.trim() === GLOBAL_KEY
+              ? GLOBLA_RULE.wrapOriginal
+              : GLOBAL_KEY
+        ),
+        originalTextStyle:
+          type(originalTextStyle) === "string" &&
+          originalTextStyle.trim() !== ""
+            ? originalTextStyle.trim()
+            : pattern.trim() === GLOBAL_KEY
+              ? GLOBLA_RULE.originalTextStyle
+              : GLOBAL_KEY,
         transOpen: matchValue([GLOBAL_KEY, "true", "false"], transOpen),
         transOnly: matchValue([GLOBAL_KEY, "true", "false"], transOnly),
         transOnlyRevert: matchValue(

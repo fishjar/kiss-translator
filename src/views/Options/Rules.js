@@ -128,6 +128,8 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
     fromLang, // 源语言
     toLang, // 目标语言
     textStyle, // 预设译文样式 slug
+    wrapOriginal = "false", // 是否为原文节点增加包裹元素
+    originalTextStyle = "style_none", // 原文样式 slug
     transOpen, // 是否开启翻译
     // bgColor,
     // textDiyStyle,
@@ -154,6 +156,12 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
     highlightWords = OPT_HIGHLIGHT_WORDS_DISABLE, // 单词高亮策略
     transOrder, // 文本顺序：由 DEFAULT_RULE / GLOBLA_RULE 提供初始值
   } = formValues;
+
+  const globalRule = rules?.list?.find((item) => item.pattern === GLOBAL_KEY);
+  const effectiveWrapOriginal =
+    wrapOriginal === GLOBAL_KEY
+      ? globalRule?.wrapOriginal === "true"
+      : wrapOriginal === "true";
 
   // 判断当前表单值是否与初始值不同，决定是否激活“保存”按钮
   const isModified = useMemo(() => {
@@ -532,6 +540,46 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 </MenuItem>
               </TextField>
             </Grid>
+
+            {/* 原文包裹设置 */}
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                select
+                size="small"
+                fullWidth
+                name="wrapOriginal"
+                value={wrapOriginal}
+                label={i18n("wrap_original")}
+                disabled={disabled}
+                onChange={handleChange}
+              >
+                {GlobalItem}
+                <MenuItem value={"false"}>{i18n("disable")}</MenuItem>
+                <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
+              </TextField>
+            </Grid>
+
+            {effectiveWrapOriginal && (
+              <Grid item xs={12} sm={12} md={6} lg={3}>
+                <TextField
+                  select
+                  size="small"
+                  fullWidth
+                  name="originalTextStyle"
+                  value={originalTextStyle}
+                  label={i18n("original_text_style")}
+                  disabled={disabled}
+                  onChange={handleChange}
+                >
+                  {GlobalItem}
+                  {allTextStyles.map((item) => (
+                    <MenuItem key={item.styleSlug} value={item.styleSlug}>
+                      {item.styleName}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+            )}
 
             {/* 悬停恢复原文设置 */}
             <Grid item xs={12} sm={12} md={6} lg={3}>
