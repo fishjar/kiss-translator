@@ -39,6 +39,7 @@ import { tryDetectLang } from "../../libs/detect";
 export default function TranForm({
   text,
   setText,
+  translationText = text,
   apiSlugs: initApiSlugs,
   fromLang: initFromLang,
   toLang: initToLang,
@@ -497,7 +498,7 @@ export default function TranForm({
       {activeApiSlugs.map((slug) => (
         <TranCont
           key={slug}
-          text={text}
+          text={translationText}
           fromLang={fromLang}
           toLang={realToLang}
           simpleStyle={simpleStyle}
