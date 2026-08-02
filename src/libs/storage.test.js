@@ -2,6 +2,7 @@ import {
   STOKEY_SETTING,
   STOKEY_SETTING_BACKUP_V1_BEFORE_V2,
   SETTINGS_VERSION_V2,
+  SETTINGS_VERSION_V3,
   DEFAULT_SUBTITLE_SETTING,
 } from "../config";
 import { getSettingWithDefault, runDataMigration } from "./storage";
@@ -43,7 +44,7 @@ describe("settings storage migration", () => {
     delete globalThis.GM_deleteValue;
   });
 
-  test("runDataMigration backs up raw v1 settings and stores v2 with prompt slugs", async () => {
+  test("runDataMigration backs up raw v1 settings and stores current settings", async () => {
     const oldSetting = {
       uiLang: "zh-CN",
       transApis: [
@@ -62,14 +63,14 @@ describe("settings storage migration", () => {
     const stored = readStoredJson(STOKEY_SETTING);
 
     expect(backup).toEqual(oldSetting);
-    expect(stored.version).toBe(SETTINGS_VERSION_V2);
+    expect(stored.version).toBe(SETTINGS_VERSION_V3);
     expect(stored.transApis[0].batchPromptSlug).toMatch(
       /^prompt_migrated_batch_/
     );
     expect(stored.transApis[0]).not.toHaveProperty("systemPrompt");
   });
 
-  test("getSettingWithDefault returns migrated v2 settings for stored v1 data", async () => {
+  test("getSettingWithDefault returns current settings for stored v1 data", async () => {
     const oldSetting = {
       uiLang: "zh",
       transApis: [
@@ -84,7 +85,7 @@ describe("settings storage migration", () => {
 
     const setting = await getSettingWithDefault();
 
-    expect(setting.version).toBe(SETTINGS_VERSION_V2);
+    expect(setting.version).toBe(SETTINGS_VERSION_V3);
     expect(setting.transApis[0].batchPromptSlug).toMatch(
       /^prompt_migrated_batch_/
     );

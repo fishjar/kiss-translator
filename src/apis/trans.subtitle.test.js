@@ -24,6 +24,7 @@ import {
 import {
   DEFAULT_API_LIST,
   OPT_TRANS_DEEPSEEK,
+  OPT_TRANS_GEMINI,
   OPT_TRANS_OPENAI,
   defaultSubtitlePrompt,
 } from "../config";
@@ -254,6 +255,64 @@ describe("handleSubtitle", () => {
       apiSetting: getApiSetting(OPT_TRANS_DEEPSEEK),
     });
 
+    expect(result).toEqual([
+      {
+        start: 0,
+        end: 2000,
+        text: "hello world",
+        translation: "你好世界",
+        _si: 0,
+        _ei: 1,
+      },
+    ]);
+  });
+
+  test("uses Gemini response_format and retries incomplete interactions at minimal thinking", async () => {
+    fetchData
+      .mockResolvedValueOnce({
+        status: "incomplete",
+        steps: [
+          {
+            type: "model_output",
+            content: [{ type: "text", text: '[{"e":0,"t":"你"}' }],
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        status: "completed",
+        steps: [
+          {
+            type: "model_output",
+            content: [
+              {
+                type: "text",
+                text: '[{"e":1,"o":"hello world","t":"你好世界"}]',
+              },
+            ],
+          },
+        ],
+      });
+
+    const result = await handleSubtitle({
+      events,
+      from: "en",
+      to: "zh-CN",
+      apiSetting: {
+        ...getApiSetting(OPT_TRANS_GEMINI),
+        useStream: false,
+        thinkingMode: "enabled",
+        thinkingEffort: "high",
+      },
+    });
+
+    const firstBody = JSON.parse(fetchData.mock.calls[0][1].body);
+    const retryBody = JSON.parse(fetchData.mock.calls[1][1].body);
+    expect(firstBody.response_format).toEqual({
+      type: "text",
+      mime_type: "application/json",
+    });
+    expect(firstBody.generation_config.thinking_level).toBe("high");
+    expect(retryBody.generation_config.thinking_level).toBe("minimal");
     expect(result).toEqual([
       {
         start: 0,

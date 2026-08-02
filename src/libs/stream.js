@@ -150,6 +150,31 @@ export function getStreamDelta(json, apiType) {
       // OpenAI 兼容协议的大模型 delta 提取逻辑
       return json.choices?.[0]?.delta?.content || "";
     case OPT_TRANS_GEMINI: {
+      if (json.event_type === "error") {
+        const error = new Error(
+          json.error?.message || "Gemini interaction stream failed"
+        );
+        error.isAIStreamTerminal = true;
+        throw error;
+      }
+      if (
+        json.event_type === "interaction.status_update" &&
+        ["failed", "cancelled", "incomplete", "budget_exceeded"].includes(
+          json.status
+        )
+      ) {
+        const error = new Error(
+          `Gemini interaction stream ended with status: ${json.status}`
+        );
+        error.isAIStreamTerminal = true;
+        throw error;
+      }
+      if (json.event_type) {
+        return json.event_type === "step.delta" && json.delta?.type === "text"
+          ? json.delta.text || ""
+          : "";
+      }
+
       // 谷歌原生 Gemini API 的 delta 提取逻辑 (排除思维链思考过程)
       const parts = json.candidates?.[0]?.content?.parts;
       return (
