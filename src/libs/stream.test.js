@@ -8,7 +8,11 @@ import {
   getStreamDelta,
   parseStreamingSegments,
 } from "./stream";
-import { OPT_TRANS_EPHONEAI, OPT_TRANS_ORCAROUTER } from "../config";
+import {
+  OPT_TRANS_EPHONEAI,
+  OPT_TRANS_GEMINI,
+  OPT_TRANS_ORCAROUTER,
+} from "../config";
 
 describe("createSSEParser", () => {
   test("parses data fields with or without a following space", () => {
@@ -55,6 +59,51 @@ describe("getStreamDelta", () => {
 
     expect(getStreamDelta(chunk, OPT_TRANS_ORCAROUTER)).toBe("敏");
     expect(getStreamDelta({ choices: [] }, OPT_TRANS_ORCAROUTER)).toBe("");
+  });
+
+  test("extracts only text step deltas from Gemini interactions", () => {
+    expect(
+      getStreamDelta(
+        {
+          event_type: "step.delta",
+          delta: { type: "text", text: "你好" },
+        },
+        OPT_TRANS_GEMINI
+      )
+    ).toBe("你好");
+    expect(
+      getStreamDelta(
+        {
+          event_type: "step.delta",
+          delta: { type: "thought_summary", text: "reasoning" },
+        },
+        OPT_TRANS_GEMINI
+      )
+    ).toBe("");
+    expect(
+      getStreamDelta(
+        { event_type: "interaction.completed", interaction: {} },
+        OPT_TRANS_GEMINI
+      )
+    ).toBe("");
+  });
+
+  test("turns Gemini terminal stream events into fallback errors", () => {
+    expect(() =>
+      getStreamDelta(
+        {
+          event_type: "interaction.status_update",
+          status: "incomplete",
+        },
+        OPT_TRANS_GEMINI
+      )
+    ).toThrow("incomplete");
+    expect(() =>
+      getStreamDelta(
+        { event_type: "error", error: { message: "bad request" } },
+        OPT_TRANS_GEMINI
+      )
+    ).toThrow("bad request");
   });
 });
 

@@ -311,6 +311,24 @@ const geminiText = (parts) =>
         .join("")
     : "";
 
+const isGeminiInteractionsUrl = (url = "") =>
+  /\/v1(?:beta\d*)?\/interactions(?:[/?]|$)/i.test(url);
+
+const geminiInteractionText = (res) =>
+  Array.isArray(res?.steps)
+    ? res.steps
+        .filter((step) => step?.type === "model_output")
+        .flatMap((step) => (Array.isArray(step.content) ? step.content : []))
+        .filter((content) => content?.type === "text" && content.text)
+        .map((content) => content.text)
+        .join("")
+    : "";
+
+const geminiResponseText = (res) =>
+  Array.isArray(res?.steps)
+    ? geminiInteractionText(res)
+    : geminiText(res?.candidates?.[0]?.content?.parts);
+
 const parseIndexSubtitleRes = (raw, events, fromLang = "auto") => {
   // 对齐器只建一次词表：buildResult 在截断修复兜底时可能执行两次。
   const aligner = createSubtitleIndexAligner(events);
@@ -655,7 +673,6 @@ const genGemini = ({
   systemPrompt,
   userPrompt,
   model,
-  temperature,
   maxTokens,
   hisMsgs = [],
   useStream = false,
@@ -666,7 +683,48 @@ const genGemini = ({
     .replaceAll(INPUT_PLACE_MODEL, model)
     .replaceAll(INPUT_PLACE_KEY, key);
 
-  // 流式传输使用 streamGenerateContent 端点
+  if (isGeminiInteractionsUrl(url)) {
+    const userMsg = {
+      type: "user_input",
+      content: [{ type: "text", text: userPrompt }],
+    };
+    const generationConfig = {
+      max_output_tokens: maxTokens,
+    };
+
+    if (thinkingMode === "disabled") {
+      generationConfig.thinking_level = "minimal";
+    } else if (
+      thinkingMode === "enabled" &&
+      thinkingEffort &&
+      thinkingEffort !== "_default"
+    ) {
+      generationConfig.thinking_level = thinkingEffort;
+    }
+
+    const body = {
+      model,
+      system_instruction: systemPrompt,
+      input: [...hisMsgs, userMsg],
+      stream: useStream,
+      store: false,
+      generation_config: generationConfig,
+      safety_settings: [
+        { type: "harassment", threshold: "block_none" },
+        { type: "hate_speech", threshold: "block_none" },
+        { type: "sexually_explicit", threshold: "block_none" },
+        { type: "dangerous_content", threshold: "block_none" },
+      ],
+    };
+    const headers = {
+      "Content-type": "application/json",
+      "x-goog-api-key": key,
+    };
+
+    return { url, body, headers, userMsg };
+  }
+
+  // 自定义代理 URL 继续兼容 Legacy generateContent 协议。
   if (useStream) {
     url = url.replace(":generateContent", ":streamGenerateContent");
     url += (url.includes("?") ? "&" : "?") + "alt=sse";
@@ -675,17 +733,10 @@ const genGemini = ({
   const userMsg = { role: "user", parts: [{ text: userPrompt }] };
 
   const body = {
-    contents: [
-      {
-        role: "model",
-        parts: [{ text: systemPrompt }],
-      },
-      ...hisMsgs,
-      userMsg,
-    ],
+    systemInstruction: { parts: [{ text: systemPrompt }] },
+    contents: [...hisMsgs, userMsg],
     generationConfig: {
       maxOutputTokens: maxTokens,
-      temperature,
     },
   };
 
@@ -1150,8 +1201,15 @@ export const genTransReq = async ({ reqHook, ...args }) => {
     method = "POST",
   } = genReqFuncs[apiType](args);
 
-  if (events && apiType === OPT_TRANS_GEMINI && body?.generationConfig) {
-    body.generationConfig.responseMimeType = "application/json";
+  if (events && apiType === OPT_TRANS_GEMINI) {
+    if (body?.generation_config) {
+      body.response_format = {
+        type: "text",
+        mime_type: "application/json",
+      };
+    } else if (body?.generationConfig) {
+      body.generationConfig.responseMimeType = "application/json";
+    }
   }
 
   // 合并用户自定义headers和body
@@ -1317,11 +1375,16 @@ export const parseTransRes = async (
       }
       return parseAIRes(modelMsg?.content, useBatchFetch);
     case OPT_TRANS_GEMINI:
-      modelMsg = res?.candidates?.[0]?.content;
-      if (history && userMsg && modelMsg) {
-        history.add(userMsg, modelMsg);
+      if (history && Array.isArray(res?.steps)) {
+        history.clear();
+        history.add(...res.steps);
+      } else {
+        modelMsg = res?.candidates?.[0]?.content;
+        if (history && userMsg && modelMsg) {
+          history.add(userMsg, modelMsg);
+        }
       }
-      return parseAIRes(geminiText(modelMsg?.parts), useBatchFetch);
+      return parseAIRes(geminiResponseText(res), useBatchFetch);
     case OPT_TRANS_CLAUDE:
       modelMsg = { role: res?.role, content: res?.content?.text };
       if (history && userMsg && modelMsg) {
@@ -1388,7 +1451,7 @@ function parseDictRes(res, apiType) {
     case OPT_TRANS_OLLAMA:
       return res?.choices?.[0]?.message?.content || "";
     case OPT_TRANS_GEMINI:
-      return geminiText(res?.candidates?.[0]?.content?.parts);
+      return geminiResponseText(res);
     case OPT_TRANS_CLAUDE:
       return res?.content?.[0]?.text || "";
     case OPT_TRANS_CUSTOMIZE:
@@ -1496,7 +1559,8 @@ export const handleDict = async ({
           // 流式模型可能先输出 Markdown 代码围栏，边流式展示边剥离可避免 UI 闪出 ```。
           fullContent = stripMarkdownCodeBlock(fullContent, true);
           onStreamChunk({ markdown: fullContent });
-        } catch {
+        } catch (error) {
+          if (error?.isAIStreamTerminal) throw error;
           // 忽略单个 SSE 数据帧解析失败，等待后续帧继续输出。
         }
       }
@@ -1612,7 +1676,14 @@ export async function* handleTranslate(
     hisMsgs = history.getAll();
   }
 
-  const enableStream = useStream && API_SPE_TYPES.stream.has(apiType);
+  const enableStream =
+    useStream &&
+    API_SPE_TYPES.stream.has(apiType) &&
+    !(
+      apiType === OPT_TRANS_GEMINI &&
+      useContext &&
+      isGeminiInteractionsUrl(apiSetting.url)
+    );
 
   let token = "";
   if (apiType === OPT_TRANS_MICROSOFT) {
@@ -1798,6 +1869,7 @@ async function* handleTranslateStreamInternal(
           }
         }
       } catch (e) {
+        if (e?.isAIStreamTerminal) throw e;
         // 忽略解析错误
       }
     }
@@ -1970,7 +2042,6 @@ export const handleSubtitle = async ({
         from
       );
     case OPT_TRANS_GEMINI: {
-      const candidate = res?.candidates?.[0];
       const { thinkingMode } = apiSetting;
       const thinkingWasOn =
         thinkingMode && thinkingMode !== "auto" && thinkingMode !== "disabled";
@@ -1978,9 +2049,12 @@ export const handleSubtitle = async ({
       // REVIEW: 本地 AI (Gemini Nano) 强大的降级容灾容错逻辑！
       // 字幕翻译时，如果开启了推理链 (Thinking)，可能会因推理产生大量额外 Token，
       // 触发 Gemini 发生 finishReason === "MAX_TOKENS" 的阶段性提前截断中止。
-      // 遇到该截断限制时，此处自动关闭推理（thinkingMode = "disabled"）并重新发送重试，
-      // 降级以取得无损字幕。该设计能够极大增强在复杂字幕网页下的长句稳定性。
-      if (candidate?.finishReason === "MAX_TOKENS" && thinkingWasOn) {
+      // 遇到该截断限制时，此处自动将推理降到 minimal 并重新发送重试，
+      // 尽量保留输出 token 以取得完整字幕。
+      const outputWasTruncated = Array.isArray(res?.steps)
+        ? res?.status === "incomplete" || res?.status === "budget_exceeded"
+        : res?.candidates?.[0]?.finishReason === "MAX_TOKENS";
+      if (outputWasTruncated && thinkingWasOn) {
         const [retryInput, retryInit] = await genTransReq({
           ...apiSetting,
           // Gemini 字幕重试同样需要完整 JSON/VTT 结果，避免把 SSE 当普通响应解析。
@@ -2000,15 +2074,12 @@ export const handleSubtitle = async ({
           fetchLimit,
           httpTimeout,
         });
-        if (retryRes?.candidates?.[0]?.content?.parts) {
-          return parseSTRes(
-            geminiText(retryRes.candidates[0].content.parts),
-            events,
-            from
-          );
+        const retryText = geminiResponseText(retryRes);
+        if (retryText) {
+          return parseSTRes(retryText, events, from);
         }
       }
-      return parseSTRes(geminiText(candidate?.content?.parts), events, from);
+      return parseSTRes(geminiResponseText(res), events, from);
     }
     case OPT_TRANS_CLAUDE:
       return parseSTRes(res?.content?.[0]?.text ?? "", events, from);
@@ -2090,7 +2161,8 @@ async function handleSubtitleStreamInternal(
 
       fullContent += delta;
       appendSubtitles(parser.write(delta), false);
-    } catch {
+    } catch (error) {
+      if (error?.isAIStreamTerminal) throw error;
       // 单个 SSE 分片异常不终止整条字幕流，等待后续分片或最终兜底解析补齐。
     }
   }
@@ -2177,7 +2249,7 @@ export const handleSummarize = async ({
     case OPT_TRANS_OLLAMA:
       return res?.choices?.[0]?.message?.content?.trim() || "";
     case OPT_TRANS_GEMINI:
-      return geminiText(res?.candidates?.[0]?.content?.parts).trim() || "";
+      return geminiResponseText(res).trim() || "";
     case OPT_TRANS_CLAUDE:
       return res?.content?.[0]?.text?.trim() || "";
     case OPT_TRANS_CUSTOMIZE:

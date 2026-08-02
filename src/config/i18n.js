@@ -1237,6 +1237,14 @@ export const I18N = {
     ko: `JSON 형식을 사용하세요. 예: "top_p": 0.7`,
     tr: `JSON formatını kullanın, örneğin "top_p": 0.7`,
   },
+  gemini_interactions_custom_body_help: {
+    zh: `使用 Interactions API 顶层 JSON 字段；Request Hook 收到的也是 Interactions 请求结构。`,
+    en: `Use top-level Interactions API JSON fields. Request Hook also receives the Interactions request shape.`,
+    zh_TW: `使用 Interactions API 頂層 JSON 欄位；Request Hook 收到的也是 Interactions 請求結構。`,
+    ja: `Interactions API のトップレベル JSON フィールドを使用します。Request Hook も Interactions のリクエスト形式を受け取ります。`,
+    ko: `Interactions API 최상위 JSON 필드를 사용하세요. Request Hook도 Interactions 요청 구조를 받습니다.`,
+    tr: `Üst düzey Interactions API JSON alanlarını kullanın. Request Hook da Interactions istek yapısını alır.`,
+  },
   min_translate_length: {
     zh: `最小翻译字符数 (1-100)`,
     en: `Minimum number Of Translated Characters (1-100)`,

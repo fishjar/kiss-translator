@@ -29,6 +29,10 @@ export const INPUT_PLACE_KEY = "{{key}}"; // API Key 占位符
 export const INPUT_PLACE_MODEL = "{{model}}"; // AI 模型名称占位符
 export const INPUT_PLACE_GLOSSARY = "{{glossary}}"; // 专业术语表占位符
 
+export const GEMINI_GENERATE_CONTENT_URL = `https://generativelanguage.googleapis.com/v1beta/models/${INPUT_PLACE_MODEL}:generateContent`;
+export const GEMINI_INTERACTIONS_URL =
+  "https://generativelanguage.googleapis.com/v1/interactions";
+
 // --- 划词翻译词典服务商 ---
 // export const OPT_DICT_BAIDU = "Baidu";
 export const OPT_DICT_BING = "Bing"; // 必应词典
@@ -864,7 +868,7 @@ const defaultApi = {
   contextSize: DEFAULT_CONTEXT_SIZE, // 智能上下文保留会话数
   temperature: 0.0,
   maxTokens: 20480,
-  thinkingMode: "auto", // 思考模式：auto | enabled | disabled
+  thinkingMode: "disabled", // 思考模式：auto | enabled | disabled
   thinkingEffort: "_default", // 思考强度：_default=接口默认,不注入参数
   isDisabled: false, // 是否不显示,
   region: "", // Azure 专用
@@ -988,10 +992,12 @@ const defaultApiOpts = {
   },
   [OPT_TRANS_GEMINI]: {
     ...defaultApi,
-    url: `https://generativelanguage.googleapis.com/v1beta/models/${INPUT_PLACE_MODEL}:generateContent`,
+    url: GEMINI_INTERACTIONS_URL,
     modelListUrl: "https://generativelanguage.googleapis.com/v1beta/models",
     model: "gemini-2.5-flash",
     ...defaultAiApiOpts,
+    thinkingMode: "disabled",
+    thinkingEffort: "minimal",
   },
   [OPT_TRANS_GEMINI_2]: {
     ...defaultApi,

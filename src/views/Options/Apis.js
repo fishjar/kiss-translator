@@ -466,7 +466,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
     region = "",
     sortOrder = 0,
     aiTerms = "",
-    thinkingMode = "auto",
+    thinkingMode = "disabled",
     thinkingEffort = "_default",
     batchPromptSlug = "",
     nobatchPromptSlug = "",
@@ -706,23 +706,25 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
                   onChange={handleChange}
                 />
               </Grid>
-              <Grid item xs={12} sm={12} md={6} lg={3}>
-                <ValidationInput
-                  size="small"
-                  fullWidth
-                  label={"Temperature (0.0-2.0)"}
-                  type="number"
-                  name="temperature"
-                  value={temperature}
-                  onChange={handleChange}
-                  min={0.0}
-                  max={2.0}
-                  isFloat={true}
-                  inputProps={{
-                    step: 0.1,
-                  }}
-                />
-              </Grid>
+              {apiType !== OPT_TRANS_GEMINI && (
+                <Grid item xs={12} sm={12} md={6} lg={3}>
+                  <ValidationInput
+                    size="small"
+                    fullWidth
+                    label={"Temperature (0.0-2.0)"}
+                    type="number"
+                    name="temperature"
+                    value={temperature}
+                    onChange={handleChange}
+                    min={0.0}
+                    max={2.0}
+                    isFloat={true}
+                    inputProps={{
+                      step: 0.1,
+                    }}
+                  />
+                </Grid>
+              )}
               <Grid item xs={12} sm={12} md={6} lg={3}>
                 <ValidationInput
                   size="small"
@@ -1222,7 +1224,11 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
                 value={customBody}
                 onChange={handleChange}
                 maxRows={10}
-                helperText={i18n("custom_body_help")}
+                helperText={i18n(
+                  apiType === OPT_TRANS_GEMINI
+                    ? "gemini_interactions_custom_body_help"
+                    : "custom_body_help"
+                )}
               />
             </>
           )}
