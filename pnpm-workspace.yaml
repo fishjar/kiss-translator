@@ -1,3 +1,6 @@
+packages:
+  - "."
+
 allowBuilds:
   core-js: true
   core-js-pure: true
