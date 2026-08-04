@@ -17,9 +17,9 @@ test("uses Tencent as the fallback default API", () => {
 });
 
 test("temporarily excludes Microsoft from the built-in API list", () => {
-  expect(DEFAULT_API_LIST.some((api) => api.apiType === OPT_TRANS_MICROSOFT)).toBe(
-    false
-  );
+  expect(
+    DEFAULT_API_LIST.some((api) => api.apiType === OPT_TRANS_MICROSOFT)
+  ).toBe(false);
 });
 
 test("all AI APIs disable thinking by default", () => {
