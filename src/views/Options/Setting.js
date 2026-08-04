@@ -53,8 +53,10 @@ function ShortcutItem({ action, label }) {
 /**
  * 展示扩展版快捷键的组件 (仅 Extension 模式)
  */
-function ExtCommands() {
+export function ExtCommands() {
   const [commands, setCommands] = useState([]);
+  const i18n = useI18n();
+  const alert = useAlert();
 
   useEffect(() => {
     if (browser?.commands?.getAll) {
@@ -76,10 +78,12 @@ function ExtCommands() {
   const handleEdit = () => {
     let url = "chrome://extensions/shortcuts";
     const ua = navigator.userAgent;
+    if (ua.includes("Firefox/")) {
+      alert.info(i18n("firefox_shortcut_edit_hint"));
+      return;
+    }
     if (ua.includes("Edg/")) {
       url = "edge://extensions/shortcuts";
-    } else if (ua.includes("Firefox/")) {
-      url = "about:addons"; // Firefox 目前没有直接进入扩展快捷键的 URI
     } else if (ua.includes("OPR/")) {
       url = "opera://extensions/shortcuts";
     } else if (ua.includes("Brave/")) {

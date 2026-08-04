@@ -2829,6 +2829,10 @@ export const I18N = {
     ko: `"설정 열기" 단축키`,
     tr: `"Ayarı Aç" Kısayolu`,
   },
+  firefox_shortcut_edit_hint: {
+    zh: `Firefox 不支持直接打开扩展快捷键管理页。请在地址栏输入 about:addons，然后点击齿轮菜单中的“管理扩展快捷键”。`,
+    en: `Firefox cannot open the extension shortcut manager directly. Enter about:addons in the address bar, then select Manage Extension Shortcuts from the gear menu.`,
+  },
   hide_fab_button: {
     zh: `隐藏悬浮按钮`,
     en: `Hide Fab Button`,
