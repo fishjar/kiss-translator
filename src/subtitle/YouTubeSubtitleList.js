@@ -8,6 +8,7 @@ import {
   WordTooltipController,
   wrapWordsWithSpans,
 } from "./wordHover.js";
+import { createFavoriteButton } from "./favoriteWords.js";
 
 /**
  * YouTube 字幕列表管理器
@@ -25,11 +26,12 @@ export class YouTubeSubtitleList {
   constructor(
     videoElement,
     i18n = () => "",
-    { enableHoverLookup = false } = {}
+    { enableHoverLookup = false, autoFavWord = false } = {}
   ) {
     this.videoEl = videoElement;
     this.i18n = i18n;
     this.enableHoverLookup = enableHoverLookup;
+    this.autoFavWord = autoFavWord;
 
     // --- 数据源缓存 ---
     // 双语字幕主列表数组。结构：{ start: number, end: number, text: string, translation: string }
@@ -92,6 +94,8 @@ export class YouTubeSubtitleList {
       this._wordTooltipController = new WordTooltipController({
         getVideoContainer: () => this._getPlayerElement(),
         getTimestamp: () => this.videoEl.currentTime * 1000,
+        autoFavWord: this.autoFavWord,
+        i18n: this.i18n,
       });
     }
   }
@@ -1222,6 +1226,17 @@ export class YouTubeSubtitleList {
     wordEl.textContent = item.word;
     wordEl.style.cssText = `color: var(--kt-text); font-weight: bold; font-size: 16px;`;
     wordLine.appendChild(wordEl);
+    const favoriteButton = createFavoriteButton({
+      word: item.word,
+      data: {
+        timestamp: item.timestamp,
+        phonetic: item.phonetic,
+        definition: item.definition,
+        examples: item.examples,
+      },
+      i18n: this.i18n,
+    });
+    favoriteButton.style.marginLeft = "auto";
 
     if (item.phonetic) {
       const phEl = document.createElement("div");
@@ -1239,6 +1254,7 @@ export class YouTubeSubtitleList {
       tsBtn.addEventListener("click", () => this.jumpToTime(item.timestamp));
       wordLine.appendChild(tsBtn);
     }
+    wordLine.appendChild(favoriteButton);
     vocabItem.appendChild(wordLine);
 
     // 2. 词典中文释义

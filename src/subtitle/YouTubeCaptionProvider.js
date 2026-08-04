@@ -962,6 +962,7 @@ export class YouTubeCaptionProvider {
           this.#setting.hoverLookupMode,
           this.#setting.enhanceMode
         ),
+        autoFavWord: this.#setting.autoFavWord === true,
       });
       this.#subtitleListManager.initialize(
         this.#subtitles,
