@@ -1,0 +1,32 @@
+[
+  {
+    "tStartMs": 0,
+    "dDurationMs": 4500,
+    "segs": [
+      {
+        "utf8": "今日は"
+      },
+      {
+        "utf8": "字幕の",
+        "tOffsetMs": 700
+      },
+      {
+        "utf8": "区切りを",
+        "tOffsetMs": 1500
+      },
+      {
+        "utf8": "確認します。",
+        "tOffsetMs": 2600
+      }
+    ]
+  },
+  {
+    "tStartMs": 4800,
+    "dDurationMs": 2800,
+    "segs": [
+      {
+        "utf8": "自然な表示になるでしょうか。"
+      }
+    ]
+  }
+]

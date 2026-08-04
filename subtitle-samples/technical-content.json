@@ -1,0 +1,36 @@
+[
+  {
+    "tStartMs": 0,
+    "dDurationMs": 5200,
+    "segs": [
+      {
+        "utf8": "Node.js"
+      },
+      {
+        "utf8": " v22.3.0",
+        "tOffsetMs": 800
+      },
+      {
+        "utf8": " uses",
+        "tOffsetMs": 1700
+      },
+      {
+        "utf8": " 128-bit",
+        "tOffsetMs": 2300
+      },
+      {
+        "utf8": " identifiers.",
+        "tOffsetMs": 3300
+      }
+    ]
+  },
+  {
+    "tStartMs": 5500,
+    "dDurationMs": 3500,
+    "segs": [
+      {
+        "utf8": "Call foo(bar) before API_v2 returns HTTP 204."
+      }
+    ]
+  }
+]
