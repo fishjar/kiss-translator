@@ -1,13 +1,19 @@
 import {
   API_SPE_TYPES,
   DEFAULT_API_LIST,
+  DEFAULT_API_TYPE,
   GEMINI_INTERACTIONS_URL,
   normalizeApiModelListUrls,
   OPT_TRANS_CLOUDFLAREAI,
   OPT_TRANS_DEEPSEEK,
   OPT_TRANS_GEMINI,
+  OPT_TRANS_GOOGLE_2,
   OPT_TRANS_OPENAI,
 } from "./api";
+
+test("uses Google2 as the fallback default API", () => {
+  expect(DEFAULT_API_TYPE).toBe(OPT_TRANS_GOOGLE_2);
+});
 
 test("all AI APIs disable thinking by default", () => {
   for (const apiType of API_SPE_TYPES.ai) {

@@ -1,6 +1,8 @@
 import { checkRules, matchRule, saveRule } from "./rules";
 import { getDisabledSubRules, getRulesWithDefault, setRules } from "./storage";
 import { loadOrFetchSubRules } from "./subRules";
+import { GLOBLA_RULE } from "../config/rules";
+import { OPT_TRANS_GOOGLE_2 } from "../config/api";
 
 jest.mock("./storage", () => ({
   getRulesWithDefault: jest.fn(),
@@ -22,6 +24,10 @@ jest.mock("./log", () => ({
     INFO: { value: 3 },
   },
 }));
+
+test("uses Google2 as the default webpage translator", () => {
+  expect(GLOBLA_RULE.apiSlug).toBe(OPT_TRANS_GOOGLE_2);
+});
 
 describe("rules enabled state", () => {
   beforeEach(() => {
