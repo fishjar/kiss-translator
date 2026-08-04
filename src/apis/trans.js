@@ -50,6 +50,8 @@ import {
   INPUT_PLACE_SUMMARY,
   INPUT_PLACE_CONTEXT,
   THINKING_PARAM_MAP,
+  getGeminiThinkingDisableStrategy,
+  isGeminiInteractionsUrl,
 } from "../config";
 import { msAuth } from "../libs/auth";
 import { genDeeplFree } from "./deepl";
@@ -310,9 +312,6 @@ const geminiText = (parts) =>
         .map((p) => p.text)
         .join("")
     : "";
-
-const isGeminiInteractionsUrl = (url = "") =>
-  /\/v1(?:beta\d*)?\/interactions(?:[/?]|$)/i.test(url);
 
 const geminiInteractionText = (res) =>
   Array.isArray(res?.steps)
@@ -673,9 +672,11 @@ const genGemini = ({
   systemPrompt,
   userPrompt,
   model,
+  temperature,
   maxTokens,
   hisMsgs = [],
   useStream = false,
+  apiType,
   thinkingMode,
   thinkingEffort,
 }) => {
@@ -690,10 +691,18 @@ const genGemini = ({
     };
     const generationConfig = {
       max_output_tokens: maxTokens,
+      temperature,
     };
 
     if (thinkingMode === "disabled") {
-      generationConfig.thinking_level = "minimal";
+      const strategy = getGeminiThinkingDisableStrategy({
+        apiType,
+        url,
+        model,
+      });
+      if (strategy.field === "thinking_level") {
+        generationConfig.thinking_level = strategy.value;
+      }
     } else if (
       thinkingMode === "enabled" &&
       thinkingEffort &&
@@ -709,12 +718,6 @@ const genGemini = ({
       stream: useStream,
       store: false,
       generation_config: generationConfig,
-      safety_settings: [
-        { type: "harassment", threshold: "block_none" },
-        { type: "hate_speech", threshold: "block_none" },
-        { type: "sexually_explicit", threshold: "block_none" },
-        { type: "dangerous_content", threshold: "block_none" },
-      ],
     };
     const headers = {
       "Content-type": "application/json",
@@ -737,11 +740,17 @@ const genGemini = ({
     contents: [...hisMsgs, userMsg],
     generationConfig: {
       maxOutputTokens: maxTokens,
+      temperature,
     },
   };
 
   if (thinkingMode === "disabled") {
-    body.generationConfig.thinkingConfig = { thinkingBudget: 0 };
+    const strategy = getGeminiThinkingDisableStrategy({ apiType, url, model });
+    if (strategy.field) {
+      body.generationConfig.thinkingConfig = {
+        [strategy.field]: strategy.value,
+      };
+    }
   } else if (thinkingMode && thinkingMode !== "auto") {
     if (thinkingEffort && thinkingEffort !== "_default") {
       body.generationConfig.thinkingConfig = { thinkingLevel: thinkingEffort };
@@ -809,7 +818,12 @@ const genGemini2 = ({
     stream: useStream,
   };
 
-  injectThinking(body, { apiType, thinkingMode, thinkingEffort });
+  if (thinkingMode === "disabled") {
+    const strategy = getGeminiThinkingDisableStrategy({ apiType, url, model });
+    body[strategy.field] = strategy.value;
+  } else {
+    injectThinking(body, { apiType, thinkingMode, thinkingEffort });
+  }
 
   const headers = {
     "Content-type": "application/json",
