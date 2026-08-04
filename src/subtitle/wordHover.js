@@ -1,6 +1,10 @@
 import { apiMicrosoftDict } from "../apis/index.js";
 import { logger } from "../libs/log.js";
 import { trustedTypesHelper } from "../libs/trustedTypes.js";
+import {
+  createFavoriteButton,
+  saveFavoriteWordIfMissing,
+} from "./favoriteWords.js";
 
 /**
  * 动态向网页 document.head 中注入生词 hover 及详情气泡弹窗所需的 CSS 样式
@@ -134,9 +138,16 @@ export function wrapWordsWithSpans(text) {
 }
 
 export class WordTooltipController {
-  constructor({ getVideoContainer, getTimestamp }) {
+  constructor({
+    getVideoContainer,
+    getTimestamp,
+    autoFavWord = false,
+    i18n = () => "",
+  }) {
     this.getVideoContainer = getVideoContainer;
     this.getTimestamp = getTimestamp;
+    this.autoFavWord = autoFavWord;
+    this.i18n = i18n;
     this.tooltipEl = null;
     this.hoverTimeout = null;
     this.activeWordEl = null;
@@ -251,7 +262,14 @@ export class WordTooltipController {
         examples,
         timestamp,
       });
-      this.#renderDictionaryResult(word, dictResult);
+      const wordData = { timestamp, phonetic, definition, examples };
+      const hasDictionaryResult = Boolean(
+        dictResult && (dictResult.trs || dictResult.aus || dictResult.sentences)
+      );
+      if (this.autoFavWord && hasDictionaryResult) {
+        await saveFavoriteWordIfMissing(word, wordData);
+      }
+      this.#renderDictionaryResult(word, dictResult, wordData);
     } catch (error) {
       logger.info("Dictionary lookup failed for word:", word, error);
       this.#dispatchAddWord({
@@ -269,6 +287,7 @@ export class WordTooltipController {
         <button class="kiss-word-tooltip-close" onclick="this.closest('.kiss-word-tooltip').remove()">×</button>
       </div>
       <div class="kiss-word-definition">Failed to load definition</div>`);
+        this.#addFavoriteButton(word, { timestamp });
       }
     }
   }
@@ -314,7 +333,18 @@ export class WordTooltipController {
     document.dispatchEvent(new CustomEvent("kiss-add-word", { detail }));
   }
 
-  #renderDictionaryResult(word, dictResult) {
+  #addFavoriteButton(word, data) {
+    const header = this.tooltipEl?.querySelector(".kiss-word-tooltip-header");
+    const closeButton = header?.querySelector(".kiss-word-tooltip-close");
+    if (!header || !closeButton) return;
+
+    header.insertBefore(
+      createFavoriteButton({ word, data, i18n: this.i18n }),
+      closeButton
+    );
+  }
+
+  #renderDictionaryResult(word, dictResult, wordData) {
     if (
       dictResult &&
       (dictResult.trs || dictResult.aus || dictResult.sentences)
@@ -352,6 +382,7 @@ export class WordTooltipController {
 
       if (this.tooltipEl) {
         this.tooltipEl.innerHTML = trustedTypesHelper.createHTML(content);
+        this.#addFavoriteButton(word, wordData);
       }
       return;
     }
@@ -363,6 +394,7 @@ export class WordTooltipController {
           <button class="kiss-word-tooltip-close" onclick="this.closest('.kiss-word-tooltip').remove()">×</button>
         </div>
         <div class="kiss-word-definition">No definition found</div>`);
+      this.#addFavoriteButton(word, wordData);
     }
   }
 }

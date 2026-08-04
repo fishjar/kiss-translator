@@ -44,6 +44,10 @@ describe("subtitle Menus", () => {
     expect(DEFAULT_SUBTITLE_SETTING.autoTranslate).toBe(true);
   });
 
+  test("keeps automatic subtitle word favorites disabled by default", () => {
+    expect(DEFAULT_SUBTITLE_SETTING.autoFavWord).toBe(false);
+  });
+
   test("renders translation first and updates the current video state", () => {
     const view = renderMenus({ autoTranslate: false });
     const label = Array.from(view.container.querySelectorAll("div")).find(
