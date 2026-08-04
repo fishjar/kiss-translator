@@ -122,6 +122,10 @@ try {
 
     // 字幕测试样本只随 GitHub Pages Web 产物发布，不进入任何插件压缩包。
     await copySubtitleSamplesToWeb(targetDir);
+
+    const { version } = await fs.readJson("package.json");
+    await fs.writeFile(inDest("version.txt"), version);
+    console.log(chalk.green(`Version file generated: ${inDest("version.txt")}`));
   }
 
   console.log(

@@ -10,6 +10,28 @@ import Alert from "@mui/material/Alert";
 import Link from "@mui/material/Link";
 import { useI18n } from "../../hooks/I18n";
 
+export async function fetchLatestVersion() {
+  const versionUrls = [
+    process.env.REACT_APP_VERSION_URL,
+    process.env.REACT_APP_VERSION_URL_GITHUB,
+  ].filter(Boolean);
+  let lastError;
+
+  for (const versionUrl of versionUrls) {
+    try {
+      const response = await fetch(`${versionUrl}?t=${Date.now()}`);
+      if (!response.ok) {
+        throw new Error(`Version request failed: ${response.status}`);
+      }
+      return (await response.text()).trim();
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError || new Error("No version URL configured");
+}
+
 /**
  * 设置中心后台页面的通风格子骨架布局组件 (Layout)
  */
@@ -26,10 +48,8 @@ export default function Layout() {
   const [latestVersion, setLatestVersion] = useState("");
 
   useEffect(() => {
-    fetch(`${process.env.REACT_APP_VERSION_URL}?t=${Date.now()}`)
-      .then((res) => res.text())
-      .then((text) => {
-        const lv = text.trim();
+    fetchLatestVersion()
+      .then((lv) => {
         const currentVersion = process.env.REACT_APP_VERSION;
         if (lv && currentVersion && lv !== currentVersion) {
           setLatestVersion(lv);
