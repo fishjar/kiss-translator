@@ -30,8 +30,6 @@ export const INPUT_PLACE_MODEL = "{{model}}"; // AI 模型名称占位符
 export const INPUT_PLACE_GLOSSARY = "{{glossary}}"; // 专业术语表占位符
 
 export const GEMINI_GENERATE_CONTENT_URL = `https://generativelanguage.googleapis.com/v1beta/models/${INPUT_PLACE_MODEL}:generateContent`;
-export const GEMINI_INTERACTIONS_URL =
-  "https://generativelanguage.googleapis.com/v1beta2/interactions";
 
 // --- 划词翻译词典服务商 ---
 // export const OPT_DICT_BAIDU = "Baidu";
@@ -379,13 +377,7 @@ export const THINKING_PARAM_MAP = {
 };
 
 export const normalizeGeminiModelName = (model = "") =>
-  String(model)
-    .trim()
-    .replace(/^models\//i, "")
-    .toLowerCase();
-
-export const isGeminiInteractionsUrl = (url = "") =>
-  /\/v1(?:beta\d*)?\/interactions(?:[/?]|$)/i.test(url);
+  String(model).trim().replace(/^models\//i, "").toLowerCase();
 
 const isGemini25FlashLite = (model) =>
   model.startsWith("gemini-2.5-flash-lite");
@@ -408,17 +400,6 @@ export const getGeminiThinkingDisableStrategy = ({
     }
     return {
       field: "reasoning_effort",
-      value: "low",
-      fallback: true,
-    };
-  }
-
-  if (isGeminiInteractionsUrl(url)) {
-    if (isGemini25FlashLite(normalizedModel)) {
-      return { field: null, value: null, fallback: false };
-    }
-    return {
-      field: "thinking_level",
       value: "low",
       fallback: true,
     };
@@ -1060,7 +1041,7 @@ const defaultApiOpts = {
   },
   [OPT_TRANS_GEMINI]: {
     ...defaultApi,
-    url: GEMINI_INTERACTIONS_URL,
+    url: GEMINI_GENERATE_CONTENT_URL,
     modelListUrl: "https://generativelanguage.googleapis.com/v1beta/models",
     model: "gemini-3.6-flash",
     ...defaultAiApiOpts,

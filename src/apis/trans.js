@@ -51,7 +51,6 @@ import {
   INPUT_PLACE_CONTEXT,
   THINKING_PARAM_MAP,
   getGeminiThinkingDisableStrategy,
-  isGeminiInteractionsUrl,
 } from "../config";
 import { msAuth } from "../libs/auth";
 import { genDeeplFree } from "./deepl";
