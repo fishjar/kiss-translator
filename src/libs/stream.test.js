@@ -82,6 +82,15 @@ describe("getStreamDelta", () => {
     ).toBe("");
     expect(
       getStreamDelta(
+        {
+          type: "step.delta",
+          delta: { type: "text", text: "你好" },
+        },
+        OPT_TRANS_GEMINI
+      )
+    ).toBe("你好");
+    expect(
+      getStreamDelta(
         { event_type: "interaction.completed", interaction: {} },
         OPT_TRANS_GEMINI
       )

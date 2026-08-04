@@ -90,6 +90,7 @@ import {
   BUILTIN_PLACETAGS,
   OPT_TRANS_AZUREAI,
   THINKING_PARAM_MAP,
+  getGeminiThinkingDisableStrategy,
   DEFAULT_NOBATCH_PROMPT_SLUG,
   DEFAULT_BATCH_PROMPT_SLUG,
   DEFAULT_SUBTITLE_PROMPT_SLUG,
@@ -483,6 +484,11 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
   }, [modelListUrl, key]);
 
   const thinkingParam = THINKING_PARAM_MAP[apiType];
+  const thinkingDisableStrategy =
+    thinkingMode === "disabled" &&
+    (apiType === OPT_TRANS_GEMINI || apiType === OPT_TRANS_GEMINI_2)
+      ? getGeminiThinkingDisableStrategy({ apiType, url, model })
+      : null;
   const selectedBatchPromptSlug = Object.prototype.hasOwnProperty.call(
     activeFormData,
     "batchPromptSlug"
@@ -1092,7 +1098,11 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
                 value={thinkingMode}
                 label={i18n("thinking_mode")}
                 onChange={handleChange}
-                helperText={i18n("thinking_mode_helper")}
+                helperText={
+                  thinkingDisableStrategy?.fallback
+                    ? i18n("gemini_thinking_minimum_helper")
+                    : i18n("thinking_mode_helper")
+                }
               >
                 <MenuItem value="auto">
                   {i18n("thinking_mode_default")}

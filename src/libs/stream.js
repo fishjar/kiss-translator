@@ -150,7 +150,8 @@ export function getStreamDelta(json, apiType) {
       // OpenAI 兼容协议的大模型 delta 提取逻辑
       return json.choices?.[0]?.delta?.content || "";
     case OPT_TRANS_GEMINI: {
-      if (json.event_type === "error") {
+      const eventType = json.event_type || json.type;
+      if (eventType === "error") {
         const error = new Error(
           json.error?.message || "Gemini interaction stream failed"
         );
@@ -158,7 +159,7 @@ export function getStreamDelta(json, apiType) {
         throw error;
       }
       if (
-        json.event_type === "interaction.status_update" &&
+        eventType === "interaction.status_update" &&
         ["failed", "cancelled", "incomplete", "budget_exceeded"].includes(
           json.status
         )
@@ -169,8 +170,8 @@ export function getStreamDelta(json, apiType) {
         error.isAIStreamTerminal = true;
         throw error;
       }
-      if (json.event_type) {
-        return json.event_type === "step.delta" && json.delta?.type === "text"
+      if (eventType) {
+        return eventType === "step.delta" && json.delta?.type === "text"
           ? json.delta.text || ""
           : "";
       }
