@@ -90,7 +90,8 @@
   },
   "pnpm": {
     "overrides": {
-      "fast-xml-parser": "4.5.4"
+      "fast-xml-parser": "4.5.4",
+      "shell-quote": "1.8.4"
     }
   }
 }
