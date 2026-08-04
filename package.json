@@ -87,5 +87,10 @@
     "prettier": "3.6.2",
     "react-app-rewired": "^2.2.1",
     "zx": "^8.8.1"
+  },
+  "pnpm": {
+    "overrides": {
+      "fast-xml-parser": "4.5.4"
+    }
   }
 }
