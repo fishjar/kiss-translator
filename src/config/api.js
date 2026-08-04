@@ -379,7 +379,10 @@ export const THINKING_PARAM_MAP = {
 };
 
 export const normalizeGeminiModelName = (model = "") =>
-  String(model).trim().replace(/^models\//i, "").toLowerCase();
+  String(model)
+    .trim()
+    .replace(/^models\//i, "")
+    .toLowerCase();
 
 export const isGeminiInteractionsUrl = (url = "") =>
   /\/v1(?:beta\d*)?\/interactions(?:[/?]|$)/i.test(url);

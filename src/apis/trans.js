@@ -695,7 +695,11 @@ const genGemini = ({
     };
 
     if (thinkingMode === "disabled") {
-      const strategy = getGeminiThinkingDisableStrategy({ apiType, url, model });
+      const strategy = getGeminiThinkingDisableStrategy({
+        apiType,
+        url,
+        model,
+      });
       if (strategy.field === "thinking_level") {
         generationConfig.thinking_level = strategy.value;
       }
