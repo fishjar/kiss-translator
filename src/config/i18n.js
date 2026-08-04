@@ -4300,6 +4300,14 @@ export const I18N = {
     ko: `원본 데이터 다운로드 (JSON)`,
     tr: `Kaynak Verilerini İndirin (JSON)`,
   },
+  download_translation_subtitles_vtt: {
+    zh: `下载译文字幕 (VTT)`,
+    en: `Download translation subtitles (VTT)`,
+    zh_TW: `下載譯文字幕 (VTT)`,
+    ja: `翻訳字幕をダウンロード (VTT)`,
+    ko: `번역 자막 다운로드 (VTT)`,
+    tr: `Çeviri Altyazılarını İndir (VTT)`,
+  },
   toggle_subtitle_translate: {
     zh: `启用字幕翻译`,
     en: `Enable subtitle translation`,

@@ -1,6 +1,6 @@
 import { logger } from "../libs/log.js";
 import { downloadBlobFile } from "../libs/utils.js";
-import { buildBilingualVtt } from "./vtt.js";
+import { buildBilingualVtt, buildTranslationOnlyVtt } from "./vtt.js";
 import { getSettingWithDefault } from "../libs/storage.js";
 import { trustedTypesHelper } from "../libs/trustedTypes.js";
 import {
@@ -645,6 +645,31 @@ export class YouTubeSubtitleList {
     }
   }
 
+  /**
+   * 下载仅含译文的 VTT 字幕文件
+   */
+  downloadTranslationOnlySubtitles() {
+    if (!this.bilingualSubtitles || this.bilingualSubtitles.length === 0) {
+      logger.info("Youtube Provider: No subtitles to download");
+      return;
+    }
+
+    try {
+      const videoId = this._getYouTubeVideoId() || "video";
+      const vttContent = buildTranslationOnlyVtt(this.bilingualSubtitles);
+
+      downloadBlobFile(
+        vttContent,
+        `kiss-subtitles-translation-${videoId}_${Date.now()}.vtt`
+      );
+    } catch (error) {
+      logger.error(
+        "Youtube Provider: download translation subtitles error:",
+        error
+      );
+    }
+  }
+
   downloadRawSubtitleEvents() {
     if (!this.rawSubtitleEvents || this.rawSubtitleEvents.length === 0) {
       logger.info("Youtube Provider: No raw subtitle events to download");
@@ -938,7 +963,37 @@ export class YouTubeSubtitleList {
       this.downloadRawSubtitleEvents.bind(this)
     );
 
-    subActionBar.append(downloadBtn, downloadRawBtn);
+    const downloadTranslationBtn = document.createElement("button");
+    downloadTranslationBtn.textContent = this._t(
+      "download_translation_subtitles_vtt",
+      "下载译文字幕 (VTT)"
+    );
+    downloadTranslationBtn.style.cssText = `padding: 6px 12px; background: var(--kt-btn-bg); color: var(--kt-btn-color); border: var(--kt-btn-border); border-radius: 4px; cursor: pointer; font-size: 12px; transition: background 220ms ease, color 200ms ease, transform 160ms ease;`;
+
+    downloadTranslationBtn.addEventListener("mouseenter", () => {
+      try {
+        const hover = getComputedStyle(this.container).getPropertyValue(
+          "--kt-btn-hover-bg"
+        );
+        if (hover) downloadTranslationBtn.style.background = hover;
+        downloadTranslationBtn.style.transform = "translateY(-1px)";
+      } catch (e) {}
+    });
+    downloadTranslationBtn.addEventListener("mouseleave", () => {
+      try {
+        const normal = getComputedStyle(this.container).getPropertyValue(
+          "--kt-btn-bg"
+        );
+        if (normal) downloadTranslationBtn.style.background = normal;
+        downloadTranslationBtn.style.transform = "translateY(0)";
+      } catch (e) {}
+    });
+    downloadTranslationBtn.addEventListener(
+      "click",
+      this.downloadTranslationOnlySubtitles.bind(this)
+    );
+
+    subActionBar.append(downloadBtn, downloadTranslationBtn, downloadRawBtn);
     this.subtitleListEl.appendChild(subActionBar);
 
     // 字幕滚动视口容器
