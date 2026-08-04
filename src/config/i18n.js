@@ -1173,6 +1173,14 @@ export const I18N = {
     ko: `API별 사고 매개변수가 통일되어 있지 않습니다. 오류 발생 시 "API 기본값"을 사용하세요.`,
     tr: `API'ler arasında düşünme parametreleri farklılık gösterir. Hata ile karşılaşırsanız lütfen "API Varsayılanı" seçeneğini kullanın.`,
   },
+  gemini_thinking_minimum_helper: {
+    zh: `当前模型不支持完全关闭思考，将自动使用最低思考级别。`,
+    en: `This model cannot disable thinking completely and will use its lowest supported level.`,
+    zh_TW: `目前模型不支援完全關閉思考，將自動使用最低思考等級。`,
+    ja: `このモデルは思考を完全に無効化できないため、最も低い対応レベルを使用します。`,
+    ko: `이 모델은 사고를 완전히 비활성화할 수 없어 지원되는 최저 수준을 사용합니다.`,
+    tr: `Bu model düşünmeyi tamamen devre dışı bırakamaz; desteklenen en düşük düzeyi kullanır.`,
+  },
   thinking_effort: {
     zh: `思考强度`,
     en: `Thinking Effort`,

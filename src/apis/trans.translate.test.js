@@ -18,8 +18,10 @@ jest.mock("../libs/docInfo", () => ({
 import { handleTranslate } from "./trans";
 import {
   DEFAULT_API_LIST,
+  GEMINI_GENERATE_CONTENT_URL,
   GEMINI_INTERACTIONS_URL,
   OPT_TRANS_GEMINI,
+  OPT_TRANS_GEMINI_2,
   OPT_TRANS_OPENAI,
 } from "../config";
 import { fetchData, fetchStream } from "../libs/fetch";
@@ -106,15 +108,104 @@ describe("handleTranslate", () => {
       store: false,
       generation_config: {
         max_output_tokens: expect.any(Number),
-        thinking_level: "minimal",
+        thinking_level: "low",
+        temperature: 0.7,
       },
     });
     expect(body.input.at(-1)).toMatchObject({ type: "user_input" });
-    expect(body).not.toHaveProperty("temperature");
-    expect(body.generation_config).not.toHaveProperty("temperature");
+    expect(body).not.toHaveProperty("safety_settings");
     expect(body.generation_config).not.toHaveProperty("top_p");
     expect(body.generation_config).not.toHaveProperty("top_k");
     expect(result).toEqual([{ id: 0, result: ["你好", "en"] }]);
+  });
+
+  test("maps Gemini2 disabled thinking by model capability", async () => {
+    fetchData.mockResolvedValue({
+      choices: [{ message: { content: "你好" } }],
+    });
+
+    await collectAsyncGenerator(
+      handleTranslate(["hello"], {
+        from: "en",
+        to: "zh-CN",
+        fromLang: "English",
+        toLang: "Chinese",
+        langMap: () => "",
+        glossary: "",
+        apiSetting: {
+          ...getApiSetting(OPT_TRANS_GEMINI_2),
+          useStream: false,
+          model: "gemini-2.5-flash",
+          thinkingMode: "disabled",
+        },
+        usePool: false,
+      })
+    );
+    expect(JSON.parse(fetchData.mock.calls[0][1].body).reasoning_effort).toBe(
+      "none"
+    );
+
+    fetchData.mockClear();
+    await collectAsyncGenerator(
+      handleTranslate(["hello"], {
+        from: "en",
+        to: "zh-CN",
+        fromLang: "English",
+        toLang: "Chinese",
+        langMap: () => "",
+        glossary: "",
+        apiSetting: {
+          ...getApiSetting(OPT_TRANS_GEMINI_2),
+          useStream: false,
+          model: "gemini-3.5-flash",
+          thinkingMode: "disabled",
+        },
+        usePool: false,
+      })
+    );
+    expect(JSON.parse(fetchData.mock.calls[0][1].body).reasoning_effort).toBe(
+      "low"
+    );
+  });
+
+  test("keeps Legacy Gemini safety settings and applies temperature", async () => {
+    fetchData.mockResolvedValueOnce({
+      candidates: [
+        {
+          content: {
+            parts: [
+              { text: '<root><t id="0" sourceLanguage="en">你好</t></root>' },
+            ],
+          },
+        },
+      ],
+    });
+
+    await collectAsyncGenerator(
+      handleTranslate(["hello"], {
+        from: "en",
+        to: "zh-CN",
+        fromLang: "English",
+        toLang: "Chinese",
+        langMap: () => "",
+        glossary: "",
+        apiSetting: {
+          ...getApiSetting(OPT_TRANS_GEMINI),
+          url: GEMINI_GENERATE_CONTENT_URL,
+          useStream: false,
+          temperature: 0.7,
+          thinkingMode: "disabled",
+        },
+        usePool: false,
+      })
+    );
+
+    const body = JSON.parse(fetchData.mock.calls[0][1].body);
+    expect(body.generationConfig).toMatchObject({
+      temperature: 0.7,
+      thinkingConfig: { thinkingLevel: "low" },
+    });
+    expect(body.safetySettings).toHaveLength(4);
   });
 
   test("keeps Gemini context stateless and disables streaming so exact steps can be reused", async () => {
