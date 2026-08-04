@@ -2,7 +2,7 @@ import { checkRules, matchRule, saveRule } from "./rules";
 import { getDisabledSubRules, getRulesWithDefault, setRules } from "./storage";
 import { loadOrFetchSubRules } from "./subRules";
 import { GLOBLA_RULE } from "../config/rules";
-import { OPT_TRANS_GOOGLE_2 } from "../config/api";
+import { OPT_TRANS_TENCENT } from "../config/api";
 
 jest.mock("./storage", () => ({
   getRulesWithDefault: jest.fn(),
@@ -25,8 +25,8 @@ jest.mock("./log", () => ({
   },
 }));
 
-test("uses Google2 as the default webpage translator", () => {
-  expect(GLOBLA_RULE.apiSlug).toBe(OPT_TRANS_GOOGLE_2);
+test("uses Tencent as the default webpage translator", () => {
+  expect(GLOBLA_RULE.apiSlug).toBe(OPT_TRANS_TENCENT);
 });
 
 describe("rules enabled state", () => {
