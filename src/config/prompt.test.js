@@ -9,9 +9,11 @@ import {
   PROMPT_MODE_GLOBAL,
   PROMPT_TEMPLATE_CATEGORIES,
   SETTINGS_VERSION_V2,
+  SETTINGS_VERSION_V3,
   getDictionaryPromptOptions,
   getPromptDisplayName,
   migrateSettingPromptsToV2,
+  migrateSettingToV3,
   normalizeCustomPrompts,
   normalizePrompt,
   removeLegacyApiPromptIds,
@@ -21,6 +23,9 @@ import {
 import {
   API_SPE_TYPES,
   DEFAULT_API_LIST,
+  GEMINI_GENERATE_CONTENT_URL,
+  GEMINI_INTERACTIONS_URL,
+  OPT_TRANS_GEMINI,
   defaultNobatchPrompt,
   defaultNobatchUserPrompt,
   defaultDictPrompt,
@@ -30,6 +35,42 @@ import {
 } from "./api";
 
 describe("prompt settings", () => {
+  test("migrates only the old official Gemini URL to Interactions V3", () => {
+    const customUrl =
+      "https://proxy.example.com/models/{{model}}:generateContent";
+    const setting = {
+      version: SETTINGS_VERSION_V2,
+      transApis: [
+        {
+          apiSlug: OPT_TRANS_GEMINI,
+          apiType: OPT_TRANS_GEMINI,
+          url: GEMINI_GENERATE_CONTENT_URL,
+          thinkingMode: "disabled",
+        },
+        {
+          apiSlug: "Gemini_copy",
+          apiType: OPT_TRANS_GEMINI,
+          url: GEMINI_GENERATE_CONTENT_URL,
+        },
+        {
+          apiSlug: "Gemini_proxy",
+          apiType: OPT_TRANS_GEMINI,
+          url: customUrl,
+        },
+      ],
+    };
+
+    const migrated = migrateSettingToV3(setting);
+    expect(migrated.version).toBe(SETTINGS_VERSION_V3);
+    expect(migrated.transApis[0]).toMatchObject({
+      url: GEMINI_INTERACTIONS_URL,
+      thinkingMode: "disabled",
+    });
+    expect(migrated.transApis[1].url).toBe(GEMINI_INTERACTIONS_URL);
+    expect(migrated.transApis[2].url).toBe(customUrl);
+    expect(migrateSettingToV3(migrated)).toBe(migrated);
+  });
+
   test("migrates v1 inline api prompts into v2 custom prompt references", () => {
     const setting = {
       prompts: [],

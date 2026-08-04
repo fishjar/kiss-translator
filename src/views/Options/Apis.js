@@ -73,12 +73,14 @@ import {
   OPT_TRANS_CLOUDFLAREAI,
   OPT_TRANS_OLLAMA,
   OPT_TRANS_OPENROUTER,
+  OPT_TRANS_ORCAROUTER,
   DEFAULT_FETCH_LIMIT,
   DEFAULT_FETCH_INTERVAL,
   DEFAULT_HTTP_TIMEOUT,
   DEFAULT_BATCH_INTERVAL,
   DEFAULT_BATCH_SIZE,
   DEFAULT_BATCH_LENGTH,
+  DEFAULT_BATCH_CONCURRENCY,
   DEFAULT_CONTEXT_SIZE,
   OPT_ALL_TRANS_TYPES,
   OPT_LANGS_LIST,
@@ -146,6 +148,7 @@ const API_ICON_FILES = {
   [OPT_TRANS_CLOUDFLAREAI]: "CloudflareAI.svg",
   [OPT_TRANS_OLLAMA]: "Ollama.svg",
   [OPT_TRANS_OPENROUTER]: "OpenRouter.svg",
+  [OPT_TRANS_ORCAROUTER]: "OrcaRouter.svg",
 };
 
 function getApiIconSrc(apiType) {
@@ -453,6 +456,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
     batchInterval = DEFAULT_BATCH_INTERVAL,
     batchSize = DEFAULT_BATCH_SIZE,
     batchLength = DEFAULT_BATCH_LENGTH,
+    batchConcurrency = DEFAULT_BATCH_CONCURRENCY,
     useContext = false,
     contextSize = DEFAULT_CONTEXT_SIZE,
     tone = "neutral",
@@ -462,13 +466,15 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
     region = "",
     sortOrder = 0,
     aiTerms = "",
-    thinkingMode = "auto",
+    thinkingMode = "disabled",
     thinkingEffort = "_default",
     batchPromptSlug = "",
     nobatchPromptSlug = "",
     subtitlePromptSlug = "",
     dictPromptSlug = "",
   } = activeFormData;
+  const contextForcesSerialBatch =
+    useContext && API_SPE_TYPES.context.has(apiType);
 
   useEffect(() => {
     setModelListStatus("idle");
@@ -700,23 +706,25 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
                   onChange={handleChange}
                 />
               </Grid>
-              <Grid item xs={12} sm={12} md={6} lg={3}>
-                <ValidationInput
-                  size="small"
-                  fullWidth
-                  label={"Temperature (0.0-2.0)"}
-                  type="number"
-                  name="temperature"
-                  value={temperature}
-                  onChange={handleChange}
-                  min={0.0}
-                  max={2.0}
-                  isFloat={true}
-                  inputProps={{
-                    step: 0.1,
-                  }}
-                />
-              </Grid>
+              {apiType !== OPT_TRANS_GEMINI && (
+                <Grid item xs={12} sm={12} md={6} lg={3}>
+                  <ValidationInput
+                    size="small"
+                    fullWidth
+                    label={"Temperature (0.0-2.0)"}
+                    type="number"
+                    name="temperature"
+                    value={temperature}
+                    onChange={handleChange}
+                    min={0.0}
+                    max={2.0}
+                    isFloat={true}
+                    inputProps={{
+                      step: 0.1,
+                    }}
+                  />
+                </Grid>
+              )}
               <Grid item xs={12} sm={12} md={6} lg={3}>
                 <ValidationInput
                   size="small"
@@ -849,6 +857,25 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
                 onChange={handleChange}
                 min={1000}
                 max={100000}
+              />
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <ValidationInput
+                size="small"
+                fullWidth
+                label={i18n("batch_concurrency")}
+                type="number"
+                name="batchConcurrency"
+                value={contextForcesSerialBatch ? 1 : batchConcurrency}
+                onChange={handleChange}
+                min={1}
+                max={100}
+                disabled={contextForcesSerialBatch}
+                helperText={
+                  contextForcesSerialBatch
+                    ? i18n("batch_concurrency_context_hint")
+                    : ""
+                }
               />
             </Grid>
           </Grid>
@@ -1197,7 +1224,11 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
                 value={customBody}
                 onChange={handleChange}
                 maxRows={10}
-                helperText={i18n("custom_body_help")}
+                helperText={i18n(
+                  apiType === OPT_TRANS_GEMINI
+                    ? "gemini_interactions_custom_body_help"
+                    : "custom_body_help"
+                )}
               />
             </>
           )}

@@ -3,11 +3,11 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
 import { sendBgMsg, sendTabMsg } from "../../libs/msg";
-import { browser } from "../../libs/browser";
 import { useI18n } from "../../hooks/I18n";
 import Divider from "@mui/material/Divider";
 import Header from "./Header";
 import {
+  MSG_OPEN_OPTIONS,
   MSG_OPEN_SEPARATE_WINDOW,
   MSG_TRANS_GETRULE,
   resolveApiPromptList,
@@ -86,7 +86,7 @@ export default function Popup() {
 
   // 跳转到浏览器插件的设置选项页面
   const handleOpenSetting = useCallback(() => {
-    browser?.runtime.openOptionsPage();
+    sendBgMsg(MSG_OPEN_OPTIONS);
   }, []);
 
   // 页面挂载时：获取当前网页的规则和全局配置，并检测是否是独立窗口

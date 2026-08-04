@@ -10,6 +10,16 @@ jest.mock("../libs/mobile", () => ({
   isMobile: false,
 }));
 
+jest.mock("../libs/detectFast", () => {
+  const actual = jest.requireActual("../libs/detectFast");
+  return {
+    ...actual,
+    detectLangFast: jest.fn(),
+  };
+});
+
+import { detectLangFast } from "../libs/detectFast";
+
 function makeSelection(text, container, rectOverride) {
   const rect = rectOverride || {
     left: 10,
@@ -58,16 +68,21 @@ function TestController({
   boxOffsetY = 0,
   boxSize = { w: 320, h: 240 },
   setBoxPosition = jest.fn(),
+  toLang = "zh-CN",
+  skipLangs,
 }) {
+  const tranboxSetting = {
+    triggerMode,
+    hideTranBtn: false,
+    btnPositionMode: "fixed",
+    btnOffsetX: 0,
+    btnOffsetY: 0,
+    tranboxInteractMode,
+    toLang,
+    ...(skipLangs === undefined ? {} : { skipLangs }),
+  };
   const state = useSelectionController({
-    tranboxSetting: {
-      triggerMode,
-      hideTranBtn: false,
-      btnPositionMode: "fixed",
-      btnOffsetX: 0,
-      btnOffsetY: 0,
-      tranboxInteractMode,
-    },
+    tranboxSetting,
     followSelection,
     boxOffsetX: 0,
     boxOffsetY,
@@ -119,6 +134,16 @@ async function dispatchWindowMouseup(delay = 200) {
   });
 }
 
+async function dispatchWindowDblclick() {
+  await act(async () => {
+    window.dispatchEvent(
+      new MouseEvent("dblclick", { bubbles: true, button: 0 })
+    );
+    jest.runOnlyPendingTimers();
+    await Promise.resolve();
+  });
+}
+
 async function dispatchPanelMouseup(target, composedPath) {
   await act(async () => {
     const event = new MouseEvent("mouseup", {
@@ -148,6 +173,8 @@ describe("useSelectionController", () => {
     jest.useFakeTimers();
     document.body.innerHTML = "";
     currentSelection = null;
+    detectLangFast.mockReset();
+    detectLangFast.mockResolvedValue("");
     windowGetSelectionSpy = jest
       .spyOn(window, "getSelection")
       .mockImplementation(() => currentSelection);
@@ -431,6 +458,39 @@ describe("useSelectionController", () => {
     });
   });
 
+  test("opens the box immediately on double-click in dblclick mode", async () => {
+    const controller = renderController({ triggerMode: "dblclick" });
+    const pageParagraph = createParagraph("The library is open.");
+
+    currentSelection = makeSelection("library", pageParagraph);
+    await dispatchWindowDblclick();
+
+    expect(controller.state.text).toBe("library");
+    expect(controller.state.textContext).toBe("The library is open.");
+    expect(controller.state.showBox).toBe(true);
+    expect(controller.state.showBtn).toBe(false);
+
+    act(() => {
+      controller.root.unmount();
+    });
+  });
+
+  test("ignores plain mouseup selections in dblclick mode", async () => {
+    const controller = renderController({ triggerMode: "dblclick" });
+    const pageParagraph = createParagraph("The library is open.");
+
+    currentSelection = makeSelection("library", pageParagraph);
+    await dispatchWindowMouseup();
+
+    expect(controller.state.text).toBe("");
+    expect(controller.state.showBox).toBe(false);
+    expect(controller.state.showBtn).toBe(false);
+
+    act(() => {
+      controller.root.unmount();
+    });
+  });
+
   test("positions the followed box above a selection near the viewport bottom", async () => {
     Object.defineProperty(window, "innerHeight", {
       configurable: true,
@@ -524,6 +584,131 @@ describe("useSelectionController", () => {
       x: 20,
       y: 0,
     });
+
+    act(() => {
+      controller.root.unmount();
+    });
+  });
+
+  test("hides the button when the selected language is in skipLangs", async () => {
+    const controller = renderController({ skipLangs: ["zh"] });
+    const pageParagraph = createParagraph("The library is open.");
+
+    detectLangFast.mockResolvedValue("zh-CN");
+    currentSelection = makeSelection("这是一段中文文本", pageParagraph);
+    await dispatchWindowMouseup();
+
+    expect(controller.state.selectedText).toBe("这是一段中文文本");
+    expect(controller.state.showBtn).toBe(false);
+    expect(controller.state.showBox).toBe(false);
+
+    act(() => {
+      controller.root.unmount();
+    });
+  });
+
+  test("treats traditional Chinese as zh via normalization in skipLangs", async () => {
+    const controller = renderController({ skipLangs: ["zh"] });
+    const pageParagraph = createParagraph("The library is open.");
+
+    detectLangFast.mockResolvedValue("zh-TW");
+    currentSelection = makeSelection("這是一段繁體中文", pageParagraph);
+    await dispatchWindowMouseup();
+
+    expect(controller.state.showBtn).toBe(false);
+
+    act(() => {
+      controller.root.unmount();
+    });
+  });
+
+  test("shows the button when the selected language differs from the target", async () => {
+    const controller = renderController();
+    const pageParagraph = createParagraph("The library is open.");
+
+    detectLangFast.mockResolvedValue("en");
+    currentSelection = makeSelection("some english text here", pageParagraph);
+    await dispatchWindowMouseup();
+
+    expect(controller.state.showBtn).toBe(true);
+
+    act(() => {
+      controller.root.unmount();
+    });
+  });
+
+  test("suppresses the button when skipLangs includes the detected language", async () => {
+    const controller = renderController({ skipLangs: ["en"] });
+    const pageParagraph = createParagraph("The library is open.");
+
+    detectLangFast.mockResolvedValue("en");
+    currentSelection = makeSelection("some english text here", pageParagraph);
+    await dispatchWindowMouseup();
+
+    expect(controller.state.showBtn).toBe(false);
+
+    act(() => {
+      controller.root.unmount();
+    });
+  });
+
+  test("shows the button when skipLangs is empty and detected lang differs from toLang", async () => {
+    const controller = renderController({ skipLangs: [], toLang: "ja" });
+    const pageParagraph = createParagraph("The library is open.");
+
+    detectLangFast.mockResolvedValue("zh-CN");
+    currentSelection = makeSelection("这是一段中文文本", pageParagraph);
+    await dispatchWindowMouseup();
+
+    expect(controller.state.showBtn).toBe(true);
+
+    act(() => {
+      controller.root.unmount();
+    });
+  });
+
+  test("shows the button for Chinese when legacy settings omit skipLangs", async () => {
+    const controller = renderController({ toLang: "ja" });
+    const pageParagraph = createParagraph("The library is open.");
+
+    detectLangFast.mockResolvedValue("zh-CN");
+    currentSelection = makeSelection("这是一段中文文本", pageParagraph);
+    await dispatchWindowMouseup();
+
+    expect(controller.state.showBtn).toBe(true);
+
+    act(() => {
+      controller.root.unmount();
+    });
+  });
+
+  test("hides the button for pure-number selections of any length", async () => {
+    const controller = renderController();
+    const pageParagraph = createParagraph("The library is open.");
+
+    currentSelection = makeSelection("1234567890", pageParagraph);
+    await dispatchWindowMouseup();
+
+    expect(controller.state.showBtn).toBe(false);
+    expect(detectLangFast).not.toHaveBeenCalled();
+
+    act(() => {
+      controller.root.unmount();
+    });
+  });
+
+  test("shows the button when language detection times out or fails", async () => {
+    const controller = renderController();
+    const pageParagraph = createParagraph("The library is open.");
+
+    detectLangFast.mockResolvedValue("");
+    currentSelection = makeSelection(
+      "some undetectable text here",
+      pageParagraph
+    );
+    await dispatchWindowMouseup();
+
+    expect(controller.state.showBtn).toBe(true);
 
     act(() => {
       controller.root.unmount();

@@ -10,6 +10,7 @@ export const DEFAULT_FETCH_INTERVAL = 100; // 默认任务间隔时间 (单位�
 export const DEFAULT_BATCH_INTERVAL = 400; // 批处理合并请求的等待延迟时间 (单位：毫秒)
 export const DEFAULT_BATCH_SIZE = 20; // 每次翻译请求最多合并发送的 DOM 段落数量
 export const DEFAULT_BATCH_LENGTH = 10000; // 每次翻译请求发送的最大字符数限制
+export const DEFAULT_BATCH_CONCURRENCY = 1; // 同时执行的聚合批次数量
 export const DEFAULT_CONTEXT_SIZE = 3; // AI 翻译时保留的上下文会话历史轮数
 
 // --- 翻译内容替换占位符 ---
@@ -27,6 +28,10 @@ export const INPUT_PLACE_CONTEXT = "{{context}}"; // 当前选中文本所在上
 export const INPUT_PLACE_KEY = "{{key}}"; // API Key 占位符
 export const INPUT_PLACE_MODEL = "{{model}}"; // AI 模型名称占位符
 export const INPUT_PLACE_GLOSSARY = "{{glossary}}"; // 专业术语表占位符
+
+export const GEMINI_GENERATE_CONTENT_URL = `https://generativelanguage.googleapis.com/v1beta/models/${INPUT_PLACE_MODEL}:generateContent`;
+export const GEMINI_INTERACTIONS_URL =
+  "https://generativelanguage.googleapis.com/v1/interactions";
 
 // --- 划词翻译词典服务商 ---
 // export const OPT_DICT_BAIDU = "Baidu";
@@ -68,6 +73,7 @@ export const OPT_TRANS_CLAUDE = "Claude"; // Anthropic Claude 翻译
 export const OPT_TRANS_CLOUDFLAREAI = "CloudflareAI"; // Cloudflare Workers AI 翻译
 export const OPT_TRANS_OLLAMA = "Ollama"; // 本地部署 Ollama 模型翻译
 export const OPT_TRANS_OPENROUTER = "OpenRouter"; // OpenRouter 多模型聚合 API 翻译
+export const OPT_TRANS_ORCAROUTER = "OrcaRouter"; // OrcaRouter 多模型聚合 API 翻译
 export const OPT_TRANS_CUSTOMIZE = "Custom"; // 自定义翻译 API
 
 // 内置支持的翻译引擎
@@ -75,7 +81,7 @@ export const OPT_ALL_TRANS_TYPES = [
   OPT_TRANS_BUILTINAI,
   OPT_TRANS_GOOGLE,
   OPT_TRANS_GOOGLE_2,
-  OPT_TRANS_MICROSOFT,
+  // OPT_TRANS_MICROSOFT,
   OPT_TRANS_AZUREAI,
   // OPT_TRANS_BAIDU,
   OPT_TRANS_DEEPSEEK,
@@ -98,6 +104,7 @@ export const OPT_ALL_TRANS_TYPES = [
   OPT_TRANS_CLOUDFLAREAI,
   OPT_TRANS_OLLAMA,
   OPT_TRANS_OPENROUTER,
+  OPT_TRANS_ORCAROUTER,
   OPT_TRANS_CUSTOMIZE,
 ];
 
@@ -139,6 +146,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_CLAUDE,
     OPT_TRANS_OLLAMA,
     OPT_TRANS_OPENROUTER,
+    OPT_TRANS_ORCAROUTER,
     OPT_TRANS_CUSTOMIZE,
   ]),
   // 支持多 API Key 轮询/备用的引擎
@@ -159,6 +167,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_CLOUDFLAREAI,
     OPT_TRANS_OLLAMA,
     OPT_TRANS_OPENROUTER,
+    OPT_TRANS_ORCAROUTER,
     OPT_TRANS_EPHONEAI,
     OPT_TRANS_CUSTOMIZE,
   ]),
@@ -182,6 +191,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_CLAUDE,
     OPT_TRANS_OLLAMA,
     OPT_TRANS_OPENROUTER,
+    OPT_TRANS_ORCAROUTER,
     OPT_TRANS_EPHONEAI,
     OPT_TRANS_CUSTOMIZE,
   ]),
@@ -200,6 +210,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_CLAUDE,
     OPT_TRANS_OLLAMA,
     OPT_TRANS_OPENROUTER,
+    OPT_TRANS_ORCAROUTER,
     OPT_TRANS_EPHONEAI,
     OPT_TRANS_CUSTOMIZE,
   ]),
@@ -218,6 +229,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_CLAUDE,
     OPT_TRANS_OLLAMA,
     OPT_TRANS_OPENROUTER,
+    OPT_TRANS_ORCAROUTER,
     OPT_TRANS_EPHONEAI,
   ]),
   // 官方推荐/赞助商的翻译服务
@@ -352,6 +364,17 @@ export const THINKING_PARAM_MAP = {
       { value: "medium", label: "Medium" },
       { value: "low", label: "Low" },
       { value: "minimal", label: "Minimal" },
+    ],
+  },
+  // OrcaRouter 网关按 OpenAI 规范透传 reasoning_effort（none/low/medium/high/xhigh），
+  // 不接受 OpenRouter 的 reasoning: { effort } 对象形式，所以这里走 "openai" 分支。
+  [OPT_TRANS_ORCAROUTER]: {
+    type: "openai",
+    efforts: [
+      { value: "xhigh", label: "X-High" },
+      { value: "high", label: "High" },
+      { value: "medium", label: "Medium" },
+      { value: "low", label: "Low" },
     ],
   },
 };
@@ -547,6 +570,7 @@ export const OPT_LANGS_TO_SPEC = {
   [OPT_TRANS_CLAUDE]: OPT_LANGS_SPEC_NAME,
   [OPT_TRANS_OLLAMA]: OPT_LANGS_SPEC_NAME,
   [OPT_TRANS_OPENROUTER]: OPT_LANGS_SPEC_NAME,
+  [OPT_TRANS_ORCAROUTER]: OPT_LANGS_SPEC_NAME,
   [OPT_TRANS_CLOUDFLAREAI]: new Map([
     ...OPT_LANGS_SPEC_DEFAULT,
     ["auto", "en"],
@@ -700,12 +724,23 @@ export const defaultDictPrompt = `# Role
 
 # Execution Rules
 1. **智能分流机制（CRITICAL）**：请严格基于下方 \`[Target / 目标文本]\` 的长度和性质决定工作模式：
-   - **词典模式**：如果 \`[Target / 目标文本]\` 是**单个单词、短语、成语或固定搭配**，请严格执行下方的【词典输出格式】。
-   - **纯翻译模式**：如果 \`[Target / 目标文本]\` 是**一个完整的句子、段落或长文本**，请**立即放弃词典格式**，仅提供该文本的高质量、地道双语翻译。禁止输出音标、词源、搭配和例句等无关内容。
+   - **词典模式**：仅当 \`[Target / 目标文本]\` 明确是**单个词、成语，或不超过 3 个词的固定搭配**时，才严格执行下方的【词典输出格式】。
+   - **纯翻译模式**：完整句子、分句、自然语言短语、段落、长文本，或**超过 3 个词的连续文本**，一律进入纯翻译模式。无法确定时，优先进入纯翻译模式。
 2. **语境优先原则**：在【词典模式】下，若 \`[Context / 上下文]\` 中存在有效信息，请优先锁定该词在特定语境下的义项，并将其置于释义首位。
 3. **格式死线**：无论进入哪种模式，严格按对应格式输出，禁止输出任何前导寒暄（如“好的”、“为您解析”）或尾部总结。
 
 ---
+
+# Pure Translation Output Contract (仅限【纯翻译模式】执行)
+
+你的整条回复必须且只能是目标语言译文文本本身。不得添加任何字符、格式或说明：
+- 不输出原文、双语对照、标题、标签、语言名称、引号或 Markdown。
+- 不输出“译文：”“翻译如下：”等前缀，也不输出解释、音标、词源、搭配、例句或致谢。
+- 原文是单段时，译文也只输出单段；仅在原文有多个段落时保留相应分段。
+
+示例：
+- 输入：The library for web and native user interfaces
+- 正确输出：用于 Web 和原生用户界面的库
 
 # Output Format (仅限【词典模式】执行)
 
@@ -752,6 +787,7 @@ export const defaultDictUserPrompt = `# Input Data
 > 触发【词典模式】或【纯翻译模式】的核心判定对象：
 ${INPUT_PLACE_TEXT}`;
 
+// AI 字幕默认使用 boundary-v3：模型返回句末事件 ID、原文锚点和译文，最终原文与时间轴仍由程序重建。
 export const defaultSubtitlePrompt = `# Context
 Title: ${INPUT_PLACE_TITLE}
 Description: ${INPUT_PLACE_DESCRIPTION}
@@ -766,19 +802,26 @@ Group the input word-level JSON array into readable, well-paced bilingual subtit
 
 # Output Contract
 1. STRICTLY output a valid JSON array only. No markdown formatting (e.g., do not use \`\`\`json fences), no preamble, and no postscript.
-2. Format per element: {"s":<first_word_id>, "e":<last_word_id>, "o":"merged original text", "t":"translation"}
-3. The "s" (start) and "e" (end) fields must represent inclusive, exact word IDs from the input.
-4. Completeness: Cover every single word from the input exactly once. No missing words, no overlaps, and no gaps.
+2. Format per element: {"e":<last_word_id>, "o":"exact merged source text", "t":"translation"}
+3. The "e" field must be an inclusive, exact word ID from the input and must increase strictly. The first segment starts at ID 0; every later segment starts at the previous "e" + 1.
+4. Completeness: Cover every input item exactly once. The final "e" must equal the final input ID. No missing items, overlaps, or gaps.
+5. For each segment, first determine its exact input range from the previous "e" + 1 through the current "e", then merge every source item in that range verbatim into "o". Do not paraphrase, normalize, translate, omit, or add source text in "o".
+6. Do not return start IDs, timestamps, or any extra fields. The application reconstructs them from the input.
 
 # Rules
-1. Length Constraint: Keep each subtitle segment concise for on-screen readability. The translation ("t") and original text ("o") should ideally not exceed 12 words per segment. Split longer sentences at logical break points.
-2. Segmentation: Merge words into complete sentences or logical phrases. Split at natural pauses, conjunctions, or punctuation marks to maintain a natural reading pace.
-3. Pause Indicators: Use the "p" (pause level 1-3) attribute in the input as a hint for segmentation. Higher "p" values indicate stronger sentence boundaries, but grammatical correctness and semantic coherence always take priority.
-4. Translation Quality: Translate accurately and naturally, strictly adhering to the provided Context, Tone, and Glossary.
+1. Hard Source Length Limit:
+   - For space-separated source languages, each source span MUST contain no more than 15 words; aim for 8-12 words when a natural boundary exists.
+   - For Chinese, Japanese, and other non-space-separated source languages, each source span MUST contain no more than 30 source characters.
+   - If a sentence exceeds the applicable limit, split it at a clause, comma, conjunction, or natural phrase boundary. The hard length limit takes priority over keeping a long grammatical sentence intact.
+2. Sentence Boundaries: Never merge two complete sentences into one subtitle segment. Terminal punctuation such as .?!。！？ normally ends the current segment.
+3. Pause Indicators: An optional "pauseMs" field is the timeline gap in milliseconds after the current input item. If "pauseMs" is missing, treat it as 0 milliseconds and do not infer a pause. Larger positive values indicate stronger sentence boundaries, but grammatical correctness and semantic coherence always take priority.
+4. Exact Translation Alignment: Build "o" first from the exact source span covered by the current "e", starting after the previous "e". Then translate only the current "o" into "t". The "t" field MUST NOT omit that span, translate future input items, or carry text from adjacent segments.
+5. Silent Self-Check: Before returning, silently verify that every "e", "o", and "t" correspond one-to-one, every "o" matches its exact input range, all source-length limits are satisfied, and all input items are covered exactly once. Do not output the self-check or any reasoning.
+6. Translation Quality: Keep "t" concise, accurate, and natural while strictly adhering to the provided Context, Tone, and Glossary.
 
 # Example
-Input: [{"id":0,"text":"Hello"},{"id":1,"text":"world!"},{"id":2,"text":"Good","p":2},{"id":3,"text":"morning."}]
-Output: [{"s":0,"e":1,"o":"Hello world!","t":"你好，世界！"},{"s":2,"e":3,"o":"Good morning.","t":"早上好。"}]`;
+Input: [{"id":0,"text":"Once"},{"id":1,"text":"the"},{"id":2,"text":"assets"},{"id":3,"text":"are"},{"id":4,"text":"ready,"},{"id":5,"text":"open"},{"id":6,"text":"the"},{"id":7,"text":"storyboard"},{"id":8,"text":"tab.","pauseMs":850},{"id":9,"text":"This"},{"id":10,"text":"is"},{"id":11,"text":"where"},{"id":12,"text":"everything"},{"id":13,"text":"comes"},{"id":14,"text":"together."},{"id":15,"text":"If"},{"id":16,"text":"a"},{"id":17,"text":"scene"},{"id":18,"text":"does"},{"id":19,"text":"not"},{"id":20,"text":"match"},{"id":21,"text":"your"},{"id":22,"text":"idea,"},{"id":23,"text":"regenerate"},{"id":24,"text":"it"},{"id":25,"text":"or"},{"id":26,"text":"adjust"},{"id":27,"text":"the"},{"id":28,"text":"prompt"},{"id":29,"text":"carefully"},{"id":30,"text":"until"},{"id":31,"text":"it"},{"id":32,"text":"feels"},{"id":33,"text":"right."}]
+Output: [{"e":8,"o":"Once the assets are ready, open the storyboard tab.","t":"素材准备好后，打开故事板标签页。"},{"e":14,"o":"This is where everything comes together.","t":"一切从这里开始整合。"},{"e":22,"o":"If a scene does not match your idea,","t":"如果某个场景与你的想法不符，"},{"e":33,"o":"regenerate it or adjust the prompt carefully until it feels right.","t":"请重新生成，或仔细调整提示词，直到效果合适。"}]`;
 
 const defaultRequestHook = `async (args, { url, body, headers, userMsg, method } = {}) => {
   console.log("request hook args:", { args, url, body, headers, userMsg, method });
@@ -826,6 +869,7 @@ const defaultApi = {
   batchInterval: DEFAULT_BATCH_INTERVAL, // 批处理请求间隔时间
   batchSize: DEFAULT_BATCH_SIZE, // 每次最多发送段落数量
   batchLength: DEFAULT_BATCH_LENGTH, // 每次发送最大文字数量
+  batchConcurrency: DEFAULT_BATCH_CONCURRENCY, // 同时执行的聚合批次数量
   useBatchFetch: false, // 是否启用聚合发送请求
   useStream: false, // 是否启用流式传输
   streamRenderMode: "disabled", // 流式渲染模式：disabled/realtime/segment
@@ -835,7 +879,7 @@ const defaultApi = {
   contextSize: DEFAULT_CONTEXT_SIZE, // 智能上下文保留会话数
   temperature: 0.0,
   maxTokens: 20480,
-  thinkingMode: "auto", // 思考模式：auto | enabled | disabled
+  thinkingMode: "disabled", // 思考模式：auto | enabled | disabled
   thinkingEffort: "_default", // 思考强度：_default=接口默认,不注入参数
   isDisabled: false, // 是否不显示,
   region: "", // Azure 专用
@@ -959,10 +1003,12 @@ const defaultApiOpts = {
   },
   [OPT_TRANS_GEMINI]: {
     ...defaultApi,
-    url: `https://generativelanguage.googleapis.com/v1beta/models/${INPUT_PLACE_MODEL}:generateContent`,
+    url: GEMINI_INTERACTIONS_URL,
     modelListUrl: "https://generativelanguage.googleapis.com/v1beta/models",
     model: "gemini-2.5-flash",
     ...defaultAiApiOpts,
+    thinkingMode: "disabled",
+    thinkingEffort: "minimal",
   },
   [OPT_TRANS_GEMINI_2]: {
     ...defaultApi,
@@ -994,6 +1040,13 @@ const defaultApiOpts = {
     url: "https://openrouter.ai/api/v1/chat/completions",
     modelListUrl: "https://openrouter.ai/api/v1/models",
     model: "openai/gpt-4o",
+    ...defaultAiApiOpts,
+  },
+  [OPT_TRANS_ORCAROUTER]: {
+    ...defaultApi,
+    url: "https://api.orcarouter.ai/v1/chat/completions",
+    modelListUrl: "https://api.orcarouter.ai/v1/models",
+    model: "openai/gpt-5.4-mini",
     ...defaultAiApiOpts,
   },
   [OPT_TRANS_CUSTOMIZE]: {
@@ -1068,7 +1121,7 @@ export function normalizeApiModelListUrls(transApis = []) {
   return hasChanges ? nextApis : transApis;
 }
 
-export const DEFAULT_API_TYPE = OPT_TRANS_MICROSOFT;
+export const DEFAULT_API_TYPE = OPT_TRANS_TENCENT;
 export const DEFAULT_API_SETTING = DEFAULT_API_LIST.find(
   (a) => a.apiType === DEFAULT_API_TYPE
 );

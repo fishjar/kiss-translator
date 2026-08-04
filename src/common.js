@@ -52,8 +52,8 @@ function hasUnsafeWindowBridge() {
 function isOptionsPageHref(href) {
   return [
     process.env.REACT_APP_OPTIONSPAGE,
+    process.env.REACT_APP_OPTIONSPAGE_GITHUB,
     process.env.REACT_APP_OPTIONSPAGE_DEV,
-    process.env.REACT_APP_OPTIONSPAGE_DEV2,
     process.env.REACT_APP_OPTIONSPAGE_LOCAL,
   ]
     .filter(Boolean)
@@ -293,7 +293,15 @@ export async function run(isUserscript = false) {
     // 7. 匹配当前网页专用的规则 (三级规则合并：个人 > 订阅 > 内置全局)
     const rule = await matchRule(href, setting);
     const favWords = await getFavWords(rule);
-    const fabConfig = await getFabWithDefault();
+    const fabConfig = { ...(await getFabWithDefault()) };
+    // 名单命中时反转全局显隐：全局显示为黑名单，全局隐藏为白名单。
+    if (
+      !isIframe &&
+      !isPdfDocument &&
+      isInBlacklist(href, fabConfig.hideExceptionList)
+    ) {
+      fabConfig.isHide = !fabConfig.isHide;
+    }
 
     // 8. 创建翻译调度器管理器并启动
     const translatorManager = new TranslatorManager({

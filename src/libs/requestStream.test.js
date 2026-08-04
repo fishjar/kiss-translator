@@ -162,6 +162,108 @@ describe("requestStream in userscript", () => {
     await expect(done).resolves.toEqual({ value: undefined, done: true });
   });
 
+  test("falls back to responseText when Firefox blocks a TypedArray over Xrays", async () => {
+    let decoderCount = 0;
+    global.TextDecoder = class {
+      constructor() {
+        this.isStreamDecoder = decoderCount++ === 1;
+      }
+
+      decode() {
+        if (this.isStreamDecoder) {
+          throw new Error(
+            "Accessing TypedArray data over Xrays is slow, and forbidden in order to encourage performant code."
+          );
+        }
+        return "";
+      }
+    };
+    const cancel = jest.fn(() => Promise.resolve());
+    const reader = {
+      read: jest.fn().mockResolvedValueOnce({
+        done: false,
+        value: new Uint8Array([100]),
+      }),
+      cancel,
+    };
+
+    const iterator = requestStream("https://example.test/stream", {});
+    const first = iterator.next();
+    await waitForRequestDetails();
+
+    await requestDetails.onloadstart({
+      response: { getReader: () => reader },
+    });
+    requestDetails.onprogress({ responseText: "data: one\n\n" });
+
+    await expect(first).resolves.toEqual({ value: "one", done: false });
+
+    const second = iterator.next();
+    requestDetails.onprogress({
+      responseText: "data: one\n\ndata: two\n\n",
+    });
+    await expect(second).resolves.toEqual({ value: "two", done: false });
+
+    const done = iterator.next();
+    requestDetails.onload({
+      responseText: "data: one\n\ndata: two\n\n",
+    });
+    await expect(done).resolves.toEqual({ value: undefined, done: true });
+    expect(cancel).toHaveBeenCalledTimes(1);
+  });
+
+  test("preserves the Xray error when responseText fallback is unavailable", async () => {
+    let decoderCount = 0;
+    global.TextDecoder = class {
+      constructor() {
+        this.isStreamDecoder = decoderCount++ === 1;
+      }
+
+      decode() {
+        if (this.isStreamDecoder) {
+          throw new Error("Accessing TypedArray data over Xrays is forbidden");
+        }
+        return "";
+      }
+    };
+    const reader = {
+      read: jest.fn().mockResolvedValueOnce({
+        done: false,
+        value: new Uint8Array([100]),
+      }),
+      cancel: jest.fn(() => Promise.resolve()),
+    };
+
+    const iterator = requestStream("https://example.test/stream", {});
+    const first = iterator.next();
+    await waitForRequestDetails();
+
+    await requestDetails.onloadstart({
+      response: { getReader: () => reader },
+    });
+    requestDetails.onload({});
+
+    await expect(first).rejects.toThrow(
+      "Accessing TypedArray data over Xrays is forbidden"
+    );
+  });
+
+  test("does not hide non-Xray readable stream errors", async () => {
+    const reader = {
+      read: jest.fn().mockRejectedValueOnce(new Error("stream read failed")),
+    };
+
+    const iterator = requestStream("https://example.test/stream", {});
+    const first = iterator.next();
+    await waitForRequestDetails();
+
+    await requestDetails.onloadstart({
+      response: { getReader: () => reader },
+    });
+
+    await expect(first).rejects.toThrow("stream read failed");
+  });
+
   test("converts second-based timeout values before passing them to GM", async () => {
     const iterator = requestStream(
       "https://example.test/stream",

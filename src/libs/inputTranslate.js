@@ -30,6 +30,8 @@ function getDeepActiveElement() {
   return element;
 }
 
+const TEXT_INPUT_TYPES = new Set(["text", "search", "email", "url", "tel"]);
+
 /**
  * 判断是否为可编辑区域
  * 兼容 input, textarea, 以及 contenteditable="true" 的 div/span
@@ -37,11 +39,12 @@ function getDeepActiveElement() {
 function isEditableTarget(node) {
   if (!node) return false;
 
+  if (node.disabled || node.readOnly) return false;
+
   // 1. 标准输入框
   const nodeName = node.nodeName?.toUpperCase();
-  if (nodeName === "INPUT" || nodeName === "TEXTAREA") {
-    return true;
-  }
+  if (nodeName === "INPUT") return TEXT_INPUT_TYPES.has(node.type);
+  if (nodeName === "TEXTAREA") return true;
 
   // 2. 检查 contenteditable 属性 (HTML 属性或 DOM 属性)
   if (
@@ -495,7 +498,21 @@ export class InputTranslator {
     let top = rect.bottom - btnSize - padding;
     let left = rect.right - btnSize - padding;
 
-    if (rect.height < 60) top = rect.top - btnSize - 2;
+    if (rect.height < 60) {
+      const gap = 2;
+      const above = rect.top - btnSize - gap;
+      const below = rect.bottom + gap;
+
+      if (above >= 0) {
+        top = above;
+      } else if (below + btnSize <= window.innerHeight) {
+        top = below;
+      } else {
+        const spaceAbove = rect.top;
+        const spaceBelow = window.innerHeight - rect.bottom;
+        top = spaceAbove >= spaceBelow ? above : below;
+      }
+    }
     // 确保按钮不超出屏幕范围
     left = Math.max(0, Math.min(left, window.innerWidth - btnSize - 2));
     top = Math.max(0, Math.min(top, window.innerHeight - btnSize - 2));

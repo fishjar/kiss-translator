@@ -147,15 +147,18 @@ const mergeRules = (baseRule, overrideRule) => {
     "transOnly",
     "transOnlyRevert",
     "transOrder",
+    "wrapOriginal",
     "autoScan",
     "hasRichText",
     "hasShadowroot",
     "scanAll",
+    "isPlainText",
     "transTag",
     "transTitle",
     "splitParagraph",
     "highlightWords",
     "textStyle",
+    "originalTextStyle",
   ].forEach((key) => {
     if (overrideRule[key] && overrideRule[key] !== GLOBAL_KEY) {
       merged[key] = overrideRule[key];
@@ -290,6 +293,8 @@ export const checkRules = (rules) => {
         fromLang,
         toLang,
         textStyle,
+        wrapOriginal,
+        originalTextStyle,
         transOpen,
         transOnly,
         transOnlyRevert,
@@ -299,6 +304,7 @@ export const checkRules = (rules) => {
         hasRichText,
         hasShadowroot,
         scanAll,
+        isPlainText,
         transTag,
         transTitle,
         transStartHook,
@@ -336,6 +342,21 @@ export const checkRules = (rules) => {
           type(textStyle) === "string" && textStyle.trim() !== ""
             ? textStyle.trim()
             : GLOBAL_KEY,
+        wrapOriginal: matchValue(
+          [GLOBAL_KEY, "true", "false"],
+          [GLOBAL_KEY, "true", "false"].includes(wrapOriginal)
+            ? wrapOriginal
+            : pattern.trim() === GLOBAL_KEY
+              ? GLOBLA_RULE.wrapOriginal
+              : GLOBAL_KEY
+        ),
+        originalTextStyle:
+          type(originalTextStyle) === "string" &&
+          originalTextStyle.trim() !== ""
+            ? originalTextStyle.trim()
+            : pattern.trim() === GLOBAL_KEY
+              ? GLOBLA_RULE.originalTextStyle
+              : GLOBAL_KEY,
         transOpen: matchValue([GLOBAL_KEY, "true", "false"], transOpen),
         transOnly: matchValue([GLOBAL_KEY, "true", "false"], transOnly),
         transOnlyRevert: matchValue(
@@ -355,6 +376,7 @@ export const checkRules = (rules) => {
         hasRichText: matchValue([GLOBAL_KEY, "true", "false"], hasRichText),
         hasShadowroot: matchValue([GLOBAL_KEY, "true", "false"], hasShadowroot),
         scanAll: matchValue([GLOBAL_KEY, "true", "false"], scanAll),
+        isPlainText: matchValue([GLOBAL_KEY, "true", "false"], isPlainText),
         transTag: matchValue([GLOBAL_KEY, "span", "font"], transTag),
         transTitle: matchValue([GLOBAL_KEY, "true", "false"], transTitle),
         transStartHook: type(transStartHook) === "string" ? transStartHook : "",
@@ -416,6 +438,16 @@ export const saveRule = async (curRule) => {
 
   // 遍历所有全局规则键值，若新规则的某项值与全局规则一致，则只保存 DEFAULT_RULE 中的占位符以优化存储大小
   Object.keys(GLOBLA_RULE).forEach((key) => {
+    if (key === "isPlainText") {
+      const value =
+        curRule[key] === true || curRule[key] === "true"
+          ? "true"
+          : curRule[key] === false || curRule[key] === "false"
+            ? "false"
+            : DEFAULT_RULE[key];
+      newRule[key] = value === globalRule[key] ? DEFAULT_RULE[key] : value;
+      return;
+    }
     newRule[key] =
       !curRule[key] || curRule[key] === globalRule[key]
         ? DEFAULT_RULE[key]

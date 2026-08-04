@@ -1,9 +1,10 @@
 import IconButton from "@mui/material/IconButton";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useFavWords } from "../../hooks/FavWords";
 import { kissLog } from "../../libs/log";
+import { useSetting } from "../../hooks/Setting";
 
 /**
  * 收藏生词按钮组件 (红心图标)
@@ -15,10 +16,13 @@ import { kissLog } from "../../libs/log";
 export default function FavBtn({ word, title }) {
   // 使用自定义的 useFavWords 获取收藏的生词列表及切换收藏状态的方法
   const { favWords, toggleFav } = useFavWords();
+  const { context, setting } = useSetting();
   const [loading, setLoading] = useState(false);
+  const autoCollect =
+    context === "tranbox" && setting?.tranboxSetting?.autoFavWord;
 
   // 点击触发收藏/取消收藏
-  const handleClick = () => {
+  const handleClick = useCallback(() => {
     try {
       setLoading(true);
       // REVIEW: toggleFav(word) 极有可能是涉及本地存储或后台同步的异步操作，但在 handleClick 中未对其进行 await (函数也未声明为 async)。这导致 finally 块中的 setLoading(false) 会同步瞬间执行，使防连击的 loading 状态形同虚设。建议将其改为 async 函数，并对 toggleFav(word) 加上 await。
@@ -28,7 +32,13 @@ export default function FavBtn({ word, title }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toggleFav, word]);
+
+  useEffect(() => {
+    if (autoCollect && word && !favWords[word]) {
+      handleClick();
+    }
+  }, [autoCollect, favWords, handleClick, word]);
 
   return (
     <IconButton

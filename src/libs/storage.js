@@ -18,7 +18,10 @@ import {
   BUILTIN_RULES,
   getSettingVersion,
   migrateSettingPromptsToV2,
+  migrateSettingToV3,
   SETTINGS_VERSION_V2,
+  CURRENT_SETTINGS_VERSION,
+  DEFAULT_TRANBOX_SETTING,
 } from "../config";
 import { isExt, isGm } from "./client";
 import { browser } from "./browser";
@@ -159,6 +162,10 @@ const writeSettingBackupBeforeV2 = (setting) =>
 const mergeSettingWithDefault = (setting) => ({
   ...DEFAULT_SETTING,
   ...(setting || {}),
+  tranboxSetting: {
+    ...DEFAULT_TRANBOX_SETTING,
+    ...(setting?.tranboxSetting || {}),
+  },
   version: setting?.version ?? DEFAULT_SETTING.version,
 });
 export const migrateStoredSettingToV2 = async (
@@ -175,16 +182,14 @@ export const migrateStoredSettingToV2 = async (
 
 export const runDataMigration = async () => {
   const rawSetting = await getSetting();
-  if (rawSetting && getSettingVersion(rawSetting) < SETTINGS_VERSION_V2) {
+  if (rawSetting && getSettingVersion(rawSetting) < CURRENT_SETTINGS_VERSION) {
     try {
-      const nextSetting = await migrateStoredSettingToV2(
-        rawSetting,
-        rawSetting
-      );
+      const v2Setting = await migrateStoredSettingToV2(rawSetting, rawSetting);
+      const nextSetting = migrateSettingToV3(v2Setting);
       await setObj(STOKEY_SETTING, nextSetting);
-      kissLog("Migration to V2 completed.");
+      kissLog(`Migration to V${CURRENT_SETTINGS_VERSION} completed.`);
     } catch (err) {
-      kissLog("Data migration to V2 failed:", err);
+      kissLog(`Data migration to V${CURRENT_SETTINGS_VERSION} failed:`, err);
     }
   }
 };
@@ -196,8 +201,8 @@ export const getSettingWithDefault = async () => {
   }
 
   const setting =
-    getSettingVersion(rawSetting) < SETTINGS_VERSION_V2
-      ? migrateSettingPromptsToV2(rawSetting)
+    getSettingVersion(rawSetting) < CURRENT_SETTINGS_VERSION
+      ? migrateSettingToV3(rawSetting)
       : rawSetting;
 
   return mergeSettingWithDefault(setting);

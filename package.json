@@ -1,7 +1,7 @@
 {
   "name": "kiss-translator",
   "description": "A minimalist bilingual translation Extension & Greasemonkey Script",
-  "version": "2.0.28",
+  "version": "2.0.29",
   "author": "Gabe<yugang2002@gmail.com>",
   "private": true,
   "dependencies": {
@@ -46,6 +46,7 @@
     "zip": "zx src/scripts/archive.mjs",
     "build+zip": "cross-env CI=true pnpm build && pnpm zip",
     "test": "react-app-rewired test",
+    "test:subtitle-segmentation": "babel-node src/scripts/test-subtitle-segmentation.js",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
@@ -86,5 +87,10 @@
     "prettier": "3.6.2",
     "react-app-rewired": "^2.2.1",
     "zx": "^8.8.1"
+  },
+  "pnpm": {
+    "overrides": {
+      "fast-xml-parser": "4.5.4"
+    }
   }
 }

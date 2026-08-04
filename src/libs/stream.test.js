@@ -8,7 +8,11 @@ import {
   getStreamDelta,
   parseStreamingSegments,
 } from "./stream";
-import { OPT_TRANS_EPHONEAI } from "../config";
+import {
+  OPT_TRANS_EPHONEAI,
+  OPT_TRANS_GEMINI,
+  OPT_TRANS_ORCAROUTER,
+} from "../config";
 
 describe("createSSEParser", () => {
   test("parses data fields with or without a following space", () => {
@@ -45,6 +49,61 @@ describe("getStreamDelta", () => {
     };
 
     expect(getStreamDelta(chunk, OPT_TRANS_EPHONEAI)).toBe("hello");
+  });
+
+  test("extracts OrcaRouter as an OpenAI-compatible stream", () => {
+    const chunk = {
+      choices: [{ delta: { content: "敏" }, finish_reason: null, index: 0 }],
+      object: "chat.completion.chunk",
+    };
+
+    expect(getStreamDelta(chunk, OPT_TRANS_ORCAROUTER)).toBe("敏");
+    expect(getStreamDelta({ choices: [] }, OPT_TRANS_ORCAROUTER)).toBe("");
+  });
+
+  test("extracts only text step deltas from Gemini interactions", () => {
+    expect(
+      getStreamDelta(
+        {
+          event_type: "step.delta",
+          delta: { type: "text", text: "你好" },
+        },
+        OPT_TRANS_GEMINI
+      )
+    ).toBe("你好");
+    expect(
+      getStreamDelta(
+        {
+          event_type: "step.delta",
+          delta: { type: "thought_summary", text: "reasoning" },
+        },
+        OPT_TRANS_GEMINI
+      )
+    ).toBe("");
+    expect(
+      getStreamDelta(
+        { event_type: "interaction.completed", interaction: {} },
+        OPT_TRANS_GEMINI
+      )
+    ).toBe("");
+  });
+
+  test("turns Gemini terminal stream events into fallback errors", () => {
+    expect(() =>
+      getStreamDelta(
+        {
+          event_type: "interaction.status_update",
+          status: "incomplete",
+        },
+        OPT_TRANS_GEMINI
+      )
+    ).toThrow("incomplete");
+    expect(() =>
+      getStreamDelta(
+        { event_type: "error", error: { message: "bad request" } },
+        OPT_TRANS_GEMINI
+      )
+    ).toThrow("bad request");
   });
 });
 
@@ -90,6 +149,59 @@ describe("createStreamingSubtitleParser", () => {
         translation: "你好世界",
         _si: 0,
         _ei: 1,
+      },
+    ]);
+  });
+
+  test("keeps boundary-v3 without anchors compatible with one shared boundary cursor", () => {
+    const parser = createStreamingSubtitleParser(events, { fromLang: "en" });
+
+    expect(
+      parser.write('[{"e":0,"t":"你好"},{"e":2,"t":"世界又来了"}]')
+    ).toEqual([
+      {
+        start: 0,
+        end: 1000,
+        text: "hello",
+        translation: "你好",
+        _si: 0,
+        _ei: 0,
+      },
+      {
+        start: 1000,
+        end: 3000,
+        text: "world again",
+        translation: "世界又来了",
+        _si: 1,
+        _ei: 2,
+      },
+    ]);
+  });
+
+  test("streams default boundary-v3 anchors with one shared boundary cursor", () => {
+    const parser = createStreamingSubtitleParser(events, { fromLang: "en" });
+
+    expect(
+      // `o` 仅供模型自检；流式结果的原文仍按 e 游标从输入事件重建。
+      parser.write(
+        '[{"e":0,"o":"wrong source","t":"你好"},{"e":2,"o":"also wrong","t":"世界又来了"}]'
+      )
+    ).toEqual([
+      {
+        start: 0,
+        end: 1000,
+        text: "hello",
+        translation: "你好",
+        _si: 0,
+        _ei: 0,
+      },
+      {
+        start: 1000,
+        end: 3000,
+        text: "world again",
+        translation: "世界又来了",
+        _si: 1,
+        _ei: 2,
       },
     ]);
   });
@@ -146,5 +258,42 @@ describe("createStreamingSubtitleParser", () => {
       )
     ).toHaveLength(1);
     expect(parser.end()).toEqual([]);
+  });
+
+  describe("index realignment", () => {
+    const driftEvents = Array.from({ length: 10 }, (_, i) => ({
+      start: i * 1000,
+      end: i * 1000 + 1000,
+      text: `w${i}`,
+    }));
+
+    test("corrects drifted s/e times while _si/_ei keep raw values", () => {
+      const parser = createStreamingSubtitleParser(driftEvents);
+
+      expect(parser.write('[{"s":4,"e":6,"o":"w1 w2 w3","t":"译文"}]')).toEqual(
+        [
+          {
+            start: 1000,
+            end: 4000,
+            text: "w1 w2 w3",
+            translation: "译文",
+            _si: 4,
+            _ei: 6,
+            _alignedSi: 1,
+            _alignedEi: 3,
+          },
+        ]
+      );
+    });
+
+    test("still deduplicates by raw s/e after realignment", () => {
+      const parser = createStreamingSubtitleParser(driftEvents);
+
+      expect(
+        parser.write(
+          '[{"s":4,"e":6,"o":"w1 w2 w3","t":"译文"},{"s":4,"e":6,"o":"w1 w2 w3","t":"译文"}]'
+        )
+      ).toHaveLength(1);
+    });
   });
 });

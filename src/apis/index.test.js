@@ -55,12 +55,25 @@ jest.mock("./trans", () => ({
   handleTranslate: jest.fn(),
   handleDict: jest.fn(),
   handleSubtitle: jest.fn(),
+  // 字幕缓存测试只关心最终提示词和稳定事件输入，不在这里重复测试提示词模板替换。
+  buildSubtitleSystemPrompt: ({ subtitlePrompt, docInfo }) =>
+    `${subtitlePrompt || ""}\n${docInfo?.title || ""}\n${docInfo?.summary || ""}`,
+  formatIndexSubtitleEvents: (events) =>
+    events.map((event, id) => {
+      const item = { id, text: event.text };
+      // 缓存测试使用 boundary-v3 输入，正间隔挂在停顿前的事件上。
+      if (id < events.length - 1) {
+        const pauseMs = Math.round(events[id + 1].start - event.end);
+        if (pauseMs > 0) item.pauseMs = pauseMs;
+      }
+      return item;
+    }),
   handleSummarize: jest.fn(),
   handleMicrosoftLangdetect: jest.fn(),
 }));
 
-import { apiDict, apiTranslate } from "./index";
-import { handleDict, handleTranslate } from "./trans";
+import { apiDict, apiSubtitle, apiTranslate } from "./index";
+import { handleDict, handleSubtitle, handleTranslate } from "./trans";
 import { fnPolyfill } from "../libs/fetch";
 import { withTimeout } from "../libs/utils";
 import { getBatchQueue } from "../libs/batchQueue";
@@ -88,6 +101,122 @@ const getBuiltinAiApiSetting = (httpTimeout) => ({
   fetchInterval: 100,
   fetchLimit: 1,
   httpTimeout,
+});
+
+describe("apiSubtitle cache identity", () => {
+  const events = [{ start: 100, end: 900, text: "hello" }];
+
+  beforeEach(() => {
+    getHttpCachePolyfill.mockResolvedValue(null);
+    handleSubtitle.mockResolvedValue([
+      { start: 100, end: 900, text: "hello", translation: "你好" },
+    ]);
+    mockGetCacheDigest.mockImplementation(async (text, salt) =>
+      `${salt}:${text}`.padEnd(64, "a")
+    );
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test("includes chunk hash and rendered prompt signature without contextSig", async () => {
+    await apiSubtitle({
+      videoId: "video-1",
+      chunkSign: "100 --> 900",
+      fromLang: "en",
+      toLang: "zh-CN",
+      events,
+      apiSetting: {
+        ...getOpenAiApiSetting("translate"),
+        subtitlePrompt: "subtitle {{title}} {{summary}}",
+      },
+      docInfo: { title: "Title A", summary: "Summary A" },
+    });
+
+    const cacheInput = getHttpCachePolyfill.mock.calls[0][0];
+    expect(cacheInput).toContain("chunkHash=");
+    expect(cacheInput).toContain("promptSig=");
+    expect(cacheInput).toContain("segVer=4");
+    expect(cacheInput).not.toContain("contextSig=");
+    expect(mockGetCacheDigest).toHaveBeenCalledWith(
+      JSON.stringify([[0, "hello", 100, 900, 0]]),
+      "subtitle-chunk-v4"
+    );
+    expect(mockGetCacheDigest).toHaveBeenCalledWith(
+      expect.stringContaining("Summary A"),
+      "prompt-cache"
+    );
+  });
+
+  test("changes cache identity when the internal timeline or rendered context changes", async () => {
+    // 分别让时间轴和动态摘要产生不同摘要值，直接验证两部分缓存身份都会变化。
+    mockGetCacheDigest.mockImplementation(async (text, salt) => {
+      if (salt === "subtitle-chunk-v4") {
+        return (text.includes("901") ? "b" : "a").repeat(64);
+      }
+      return (text.includes("Summary B") ? "d" : "c").repeat(64);
+    });
+    const apiSetting = {
+      ...getOpenAiApiSetting("translate"),
+      subtitlePrompt: "subtitle {{summary}}",
+    };
+
+    await apiSubtitle({
+      videoId: "video-1",
+      chunkSign: "100 --> 900",
+      fromLang: "en",
+      toLang: "zh-CN",
+      events,
+      apiSetting,
+      docInfo: { summary: "Summary A" },
+    });
+    await apiSubtitle({
+      videoId: "video-1",
+      chunkSign: "100 --> 901",
+      fromLang: "en",
+      toLang: "zh-CN",
+      events: [{ ...events[0], end: 901 }],
+      apiSetting,
+      docInfo: { summary: "Summary B" },
+    });
+
+    const [firstCacheInput, secondCacheInput] =
+      getHttpCachePolyfill.mock.calls.map(([cacheInput]) => cacheInput);
+    expect(firstCacheInput).not.toBe(secondCacheInput);
+    expect(firstCacheInput).toContain(`chunkHash=${"a".repeat(16)}`);
+    expect(secondCacheInput).toContain(`chunkHash=${"b".repeat(16)}`);
+    expect(firstCacheInput).toContain(`promptSig=${"c".repeat(16)}`);
+    expect(secondCacheInput).toContain(`promptSig=${"d".repeat(16)}`);
+  });
+
+  test("includes boundary-v3 pauseMs in the v4 chunk hash", async () => {
+    const pauseEvents = [
+      { start: 0, end: 400, text: "hello" },
+      { start: 1250, end: 1800, text: "world" },
+    ];
+
+    await apiSubtitle({
+      videoId: "video-pause",
+      chunkSign: "0 --> 1800",
+      fromLang: "en",
+      toLang: "zh-CN",
+      events: pauseEvents,
+      apiSetting: {
+        ...getOpenAiApiSetting("translate"),
+        subtitlePrompt: "boundary-v3 prompt",
+      },
+    });
+
+    expect(mockGetCacheDigest).toHaveBeenCalledWith(
+      JSON.stringify([
+        [0, "hello", 0, 400, 850],
+        [1, "world", 1250, 1800, 0],
+      ]),
+      "subtitle-chunk-v4"
+    );
+    expect(getHttpCachePolyfill.mock.calls[0][0]).toContain("segVer=4");
+  });
 });
 
 describe("apiTranslate BuiltinAI timeout", () => {
@@ -362,6 +491,46 @@ describe("apiTranslate prompt queue isolation", () => {
     expect(queueKeys[0]).toBe(queueKeys[1]);
     expect(signedTexts[0]).not.toContain("prompt_a");
     expect(signedTexts[1]).not.toContain("prompt_b");
+  });
+
+  test("passes configured batch concurrency and isolates its queue", async () => {
+    await apiTranslate({
+      text: "hello",
+      fromLang: "en",
+      toLang: "zh-CN",
+      apiSetting: {
+        ...getOpenAiApiSetting("batch prompt A"),
+        batchConcurrency: 3,
+        useContext: false,
+      },
+      useCache: false,
+    });
+
+    expect(getBatchQueue).toHaveBeenCalledWith(
+      expect.stringMatching(/_3$/),
+      handleTranslate,
+      expect.objectContaining({ batchConcurrency: 3 })
+    );
+  });
+
+  test("forces batch concurrency to one for context sessions", async () => {
+    await apiTranslate({
+      text: "hello",
+      fromLang: "en",
+      toLang: "zh-CN",
+      apiSetting: {
+        ...getOpenAiApiSetting("batch prompt A"),
+        batchConcurrency: 4,
+        useContext: true,
+      },
+      useCache: false,
+    });
+
+    expect(getBatchQueue).toHaveBeenCalledWith(
+      expect.stringMatching(/_1$/),
+      handleTranslate,
+      expect.objectContaining({ batchConcurrency: 1 })
+    );
   });
 });
 

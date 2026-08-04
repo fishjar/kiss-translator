@@ -1,3 +1,5 @@
+import { isNonSpeechSegment } from "./subtitleTextClassification.js";
+
 /**
  * 智能断句算法 - 从 YouTube 歌词/字幕 JSON 到结构化断句
  * 基于 Python 字幕生成器 (subtitle_generator.py) 的 JavaScript 等价实现。
@@ -204,7 +206,10 @@ function parseYoutubeData(data) {
     for (let i = 0; i < segs.length; i++) {
       const seg = segs[i];
       const text = seg.utf8 || "";
-      if (!text || text === "\n") continue;
+      if (!text || text === "\n" || isNonSpeechSegment(text)) {
+        // 保留 seg 在原数组中的位置，让前一个语音词仍可使用该标记的偏移作为结束时间。
+        continue;
+      }
 
       const offset = seg.tOffsetMs || 0;
       const wordStart = tStart + offset;

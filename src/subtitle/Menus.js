@@ -300,7 +300,7 @@ export function Menus({
     skipAd, // 是否开启自动跳过广告
     isBilingual, // 是否采用双语对照视图显示
     blurTranslation, // 是否启用模糊隐藏译文，悬浮时显示的背词模式
-    showOrigin, // 是否显示视频平台原生字幕（即关闭本插件的双语字幕渲染模式）
+    autoTranslate, // 当前视频是否开启字幕翻译
     aiContextSlug, // 选中的上下文增强服务 apiSlug
   } = formData;
 
@@ -318,6 +318,13 @@ export function Menus({
         borderRadius: 5,
       }}
     >
+      {/* 当前视频的翻译开关 */}
+      <Switch
+        onChange={handleChange}
+        name="autoTranslate"
+        value={autoTranslate}
+        label={i18n("enable_subtitle_translate")}
+      />
       {/* 智能断句下拉项：若可用 AI 大模型数量为 0 时禁用下拉 */}
       <Select
         onChange={handleChange}
@@ -349,13 +356,6 @@ export function Menus({
         name="blurTranslation"
         value={blurTranslation}
         label={i18n("is_blur_translation")}
-      />
-      {/* 是否还原原生字幕显示开关 */}
-      <Switch
-        onChange={handleChange}
-        name="showOrigin"
-        value={showOrigin}
-        label={i18n("show_origin_subtitle")}
       />
       {/* 广告跳过开关 */}
       <Switch

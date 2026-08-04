@@ -2,3 +2,4 @@ node_modules
 build
 public
 package.json
+testdata/subtitle-samples

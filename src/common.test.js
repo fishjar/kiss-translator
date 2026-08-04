@@ -64,6 +64,7 @@ const {
   runDataMigration,
 } = require("./libs/storage");
 const { matchRule } = require("./libs/rules");
+const { isInBlacklist } = require("./libs/blacklist");
 const { runSubtitle } = require("./subtitle/subtitle");
 const { injectInlineJs } = require("./libs/injector");
 const TranslatorManager = require("./libs/translatorManager").default;
@@ -107,6 +108,7 @@ describe("common iframe startup", () => {
       "http://localhost:3000/options.html";
     delete globalThis.unsafeWindow;
     jest.clearAllMocks();
+    isInBlacklist.mockImplementation(() => false);
 
     TranslatorManager.mockImplementation(() => ({
       start: mockTranslatorManagerStart,
@@ -200,6 +202,37 @@ describe("common iframe startup", () => {
     expect(TranslatorManager).toHaveBeenCalledTimes(1);
     expect(mockTranslatorManagerStart).toHaveBeenCalledTimes(1);
     expect(runSubtitle).toHaveBeenCalledTimes(1);
+  });
+
+  test("inverts the FAB visibility when the top-level page matches its exception list", async () => {
+    getFabWithDefault.mockResolvedValue({
+      isHide: false,
+      hideExceptionList: "kiss.example",
+    });
+    isInBlacklist.mockImplementation(
+      (_href, blacklist) => blacklist === "kiss.example"
+    );
+
+    await run();
+
+    expect(TranslatorManager.mock.calls[0][0].fabConfig).toEqual({
+      isHide: true,
+      hideExceptionList: "kiss.example",
+    });
+  });
+
+  test("shows the FAB when a hidden global setting matches its exception list", async () => {
+    getFabWithDefault.mockResolvedValue({
+      isHide: true,
+      hideExceptionList: "kiss.example",
+    });
+    isInBlacklist.mockImplementation(
+      (_href, blacklist) => blacklist === "kiss.example"
+    );
+
+    await run();
+
+    expect(TranslatorManager.mock.calls[0][0].fabConfig.isHide).toBe(false);
   });
 
   test("starts transbox-only manager for PDF documents", async () => {

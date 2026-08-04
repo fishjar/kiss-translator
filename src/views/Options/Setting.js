@@ -190,7 +190,11 @@ export default function Settings() {
     skipLangs = [],
   } = setting;
   // 解构 FAB 悬浮球的显隐状态及点击后的默认交互行为
-  const { isHide = false, fabClickAction = 0 } = fab || {};
+  const {
+    isHide = false,
+    fabClickAction = 0,
+    hideExceptionList = "",
+  } = fab || {};
 
   return (
     <Box>
@@ -245,23 +249,6 @@ export default function Settings() {
               >
                 <MenuItem value={true}>{i18n("enable")}</MenuItem>
                 <MenuItem value={false}>{i18n("disable")}</MenuItem>
-              </TextField>
-            </Grid>
-            {/* 是否全局隐藏内容页面右侧的悬浮查词小图标 FAB */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
-                select
-                fullWidth
-                size="small"
-                name="isHide"
-                value={isHide}
-                label={i18n("hide_fab_button")}
-                onChange={(e) => {
-                  updateFab({ isHide: e.target.value });
-                }}
-              >
-                <MenuItem value={false}>{i18n("show")}</MenuItem>
-                <MenuItem value={true}>{i18n("hide")}</MenuItem>
               </TextField>
             </Grid>
             {/* 点击悬浮球时触发的行为 (直接展示菜单或立即启动全文双语翻译) */}
@@ -445,6 +432,34 @@ export default function Settings() {
             </MenuItem>
           ))}
         </TextField>
+
+        {/* 是否全局隐藏内容页面右侧的悬浮查词小图标 FAB */}
+        <TextField
+          select
+          fullWidth
+          size="small"
+          name="isHide"
+          value={isHide}
+          label={i18n("hide_fab_button")}
+          onChange={(e) => {
+            updateFab({ isHide: e.target.value });
+          }}
+        >
+          <MenuItem value={false}>{i18n("show")}</MenuItem>
+          <MenuItem value={true}>{i18n("hide")}</MenuItem>
+        </TextField>
+
+        <TextField
+          fullWidth
+          size="small"
+          multiline
+          maxRows={10}
+          name="hideExceptionList"
+          value={hideExceptionList}
+          label={i18n("fab_exception_list")}
+          helperText={i18n("fab_exception_list_helper")}
+          onChange={(e) => updateFab({ hideExceptionList: e.target.value })}
+        />
 
         {/* 网页翻译的黑名单域名正则排除列表 (一行一条) */}
         <TextField

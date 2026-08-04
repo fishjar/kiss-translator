@@ -1,6 +1,6 @@
 import { logger } from "../libs/log.js";
 import { downloadBlobFile } from "../libs/utils.js";
-import { buildBilingualVtt } from "./vtt.js";
+import { buildBilingualVtt, buildTranslationOnlyVtt } from "./vtt.js";
 import { getSettingWithDefault } from "../libs/storage.js";
 import { trustedTypesHelper } from "../libs/trustedTypes.js";
 import {
@@ -8,6 +8,7 @@ import {
   WordTooltipController,
   wrapWordsWithSpans,
 } from "./wordHover.js";
+import { createFavoriteButton } from "./favoriteWords.js";
 
 /**
  * YouTube 字幕列表管理器
@@ -25,11 +26,12 @@ export class YouTubeSubtitleList {
   constructor(
     videoElement,
     i18n = () => "",
-    { enableHoverLookup = false } = {}
+    { enableHoverLookup = false, autoFavWord = false } = {}
   ) {
     this.videoEl = videoElement;
     this.i18n = i18n;
     this.enableHoverLookup = enableHoverLookup;
+    this.autoFavWord = autoFavWord;
 
     // --- 数据源缓存 ---
     // 双语字幕主列表数组。结构：{ start: number, end: number, text: string, translation: string }
@@ -92,6 +94,8 @@ export class YouTubeSubtitleList {
       this._wordTooltipController = new WordTooltipController({
         getVideoContainer: () => this._getPlayerElement(),
         getTimestamp: () => this.videoEl.currentTime * 1000,
+        autoFavWord: this.autoFavWord,
+        i18n: this.i18n,
       });
     }
   }
@@ -641,6 +645,31 @@ export class YouTubeSubtitleList {
     }
   }
 
+  /**
+   * 下载仅含译文的 VTT 字幕文件
+   */
+  downloadTranslationOnlySubtitles() {
+    if (!this.bilingualSubtitles || this.bilingualSubtitles.length === 0) {
+      logger.info("Youtube Provider: No subtitles to download");
+      return;
+    }
+
+    try {
+      const videoId = this._getYouTubeVideoId() || "video";
+      const vttContent = buildTranslationOnlyVtt(this.bilingualSubtitles);
+
+      downloadBlobFile(
+        vttContent,
+        `kiss-subtitles-translation-${videoId}_${Date.now()}.vtt`
+      );
+    } catch (error) {
+      logger.error(
+        "Youtube Provider: download translation subtitles error:",
+        error
+      );
+    }
+  }
+
   downloadRawSubtitleEvents() {
     if (!this.rawSubtitleEvents || this.rawSubtitleEvents.length === 0) {
       logger.info("Youtube Provider: No raw subtitle events to download");
@@ -934,7 +963,37 @@ export class YouTubeSubtitleList {
       this.downloadRawSubtitleEvents.bind(this)
     );
 
-    subActionBar.append(downloadBtn, downloadRawBtn);
+    const downloadTranslationBtn = document.createElement("button");
+    downloadTranslationBtn.textContent = this._t(
+      "download_translation_subtitles_vtt",
+      "下载译文字幕 (VTT)"
+    );
+    downloadTranslationBtn.style.cssText = `padding: 6px 12px; background: var(--kt-btn-bg); color: var(--kt-btn-color); border: var(--kt-btn-border); border-radius: 4px; cursor: pointer; font-size: 12px; transition: background 220ms ease, color 200ms ease, transform 160ms ease;`;
+
+    downloadTranslationBtn.addEventListener("mouseenter", () => {
+      try {
+        const hover = getComputedStyle(this.container).getPropertyValue(
+          "--kt-btn-hover-bg"
+        );
+        if (hover) downloadTranslationBtn.style.background = hover;
+        downloadTranslationBtn.style.transform = "translateY(-1px)";
+      } catch (e) {}
+    });
+    downloadTranslationBtn.addEventListener("mouseleave", () => {
+      try {
+        const normal = getComputedStyle(this.container).getPropertyValue(
+          "--kt-btn-bg"
+        );
+        if (normal) downloadTranslationBtn.style.background = normal;
+        downloadTranslationBtn.style.transform = "translateY(0)";
+      } catch (e) {}
+    });
+    downloadTranslationBtn.addEventListener(
+      "click",
+      this.downloadTranslationOnlySubtitles.bind(this)
+    );
+
+    subActionBar.append(downloadBtn, downloadTranslationBtn, downloadRawBtn);
     this.subtitleListEl.appendChild(subActionBar);
 
     // 字幕滚动视口容器
@@ -1222,6 +1281,17 @@ export class YouTubeSubtitleList {
     wordEl.textContent = item.word;
     wordEl.style.cssText = `color: var(--kt-text); font-weight: bold; font-size: 16px;`;
     wordLine.appendChild(wordEl);
+    const favoriteButton = createFavoriteButton({
+      word: item.word,
+      data: {
+        timestamp: item.timestamp,
+        phonetic: item.phonetic,
+        definition: item.definition,
+        examples: item.examples,
+      },
+      i18n: this.i18n,
+    });
+    favoriteButton.style.marginLeft = "auto";
 
     if (item.phonetic) {
       const phEl = document.createElement("div");
@@ -1239,6 +1309,7 @@ export class YouTubeSubtitleList {
       tsBtn.addEventListener("click", () => this.jumpToTime(item.timestamp));
       wordLine.appendChild(tsBtn);
     }
+    wordLine.appendChild(favoriteButton);
     vocabItem.appendChild(wordLine);
 
     // 2. 词典中文释义

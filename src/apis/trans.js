@@ -25,6 +25,7 @@ import {
   OPT_TRANS_CLOUDFLAREAI,
   OPT_TRANS_OLLAMA,
   OPT_TRANS_OPENROUTER,
+  OPT_TRANS_ORCAROUTER,
   OPT_TRANS_CUSTOMIZE,
   API_SPE_TYPES,
   INPUT_PLACE_FROM,
@@ -70,11 +71,16 @@ import {
   detectStreamFormat,
   getStreamDelta,
 } from "../libs/stream";
+import { createSubtitleIndexAligner } from "../libs/subtitleIndexAlign";
 import { kissLog } from "../libs/log";
 import { fetchData, fetchStream } from "../libs/fetch";
 import { getMsgHistory } from "./history";
 import { parseBilingualVtt } from "../subtitle/vtt";
 import { getDocInfo } from "../libs/docInfo";
+import {
+  isLegacyIndexSubtitleItem,
+  mapBoundaryItemToCue,
+} from "../subtitle/subtitleBoundaryProtocol";
 
 const keyMap = new Map();
 const urlMap = new Map();
@@ -177,7 +183,8 @@ const genUserPrompt = ({
     .replaceAll(INPUT_PLACE_TEXT, texts[0]);
 };
 
-const genSubtitlePrompt = ({
+// 统一生成最终字幕系统提示词；缓存签名与实际请求必须复用同一结果。
+export const buildSubtitleSystemPrompt = ({
   subtitlePrompt,
   tone,
   from,
@@ -203,35 +210,9 @@ const genSubtitlePrompt = ({
     .replaceAll(INPUT_PLACE_TO_LANG, toLang);
 };
 
-const normalizeSubtitleContext = (text) =>
-  String(text ?? "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 400);
-
-const buildSubtitleUserPrompt = ({
-  formattedEvents,
-  prevContext = "",
-  nextContext = "",
-}) => {
-  const mainInput = JSON.stringify(formattedEvents);
-  const prev = normalizeSubtitleContext(prevContext);
-  const next = normalizeSubtitleContext(nextContext);
-  if (!prev && !next) return mainInput;
-  const sections = [];
-  if (prev) {
-    sections.push(
-      `[Previous context (read-only, do NOT segment)]\n${JSON.stringify(prev)}`
-    );
-  }
-  sections.push(`[Main input]\n${mainInput}`);
-  if (next) {
-    sections.push(
-      `[Next context (read-only, do NOT segment)]\n${JSON.stringify(next)}`
-    );
-  }
-  return sections.join("\n\n");
-};
+// 字幕用户消息保持为纯 JSON，避免只读上下文污染模型的边界编号。
+const buildSubtitleUserPrompt = ({ formattedEvents }) =>
+  JSON.stringify(formattedEvents);
 
 /**
  * 强健的大模型翻译结果解析器 (AI Response Robust Parser)。
@@ -270,9 +251,7 @@ const parseAIRes = (raw, useBatchFetch = true) => {
   });
 };
 
-/**
- * 依据时间差计算字幕中发生的句子停顿断句等级。
- */
+/** 依据时间差计算旧版字幕输入使用的停顿等级。 */
 const getPauseLevel = (gapMs) => {
   if (!Number.isFinite(gapMs) || gapMs <= 300) return 0;
   if (gapMs <= 600) return 1;
@@ -280,21 +259,48 @@ const getPauseLevel = (gapMs) => {
   return 3;
 };
 
-const formatIndexSubtitleEvents = (events) =>
-  events.map((e, i) => {
+/**
+ * 根据提示词识别字幕断句协议，供请求格式、缓存和 Playground 共用。
+ */
+export const detectSubtitleProtocol = (prompt = "") => {
+  const normalizedPrompt = String(prompt);
+  if (/WEBVTT|MM:SS\.mmm|-->/i.test(normalizedPrompt)) return "vtt-legacy";
+  if (/\{\s*["']?s["']?\s*:/.test(normalizedPrompt)) return "index-v1";
+
+  // 自定义提示词明确描述旧 p 等级时继续发送原结构，避免静默破坏已有配置。
+  const mentionsQuotedP = /["'`]p["'`]/i.test(normalizedPrompt);
+  const mentionsPauseLevel = /pause\s+levels?|停顿等级|暫停等級/i.test(
+    normalizedPrompt
+  );
+  if (mentionsQuotedP && mentionsPauseLevel) return "boundary-v2";
+  return "boundary-v3";
+};
+
+/** 将播放器事件压缩成发送给 AI 的稳定索引 JSON 结构。 */
+export const formatIndexSubtitleEvents = (events, prompt = "") => {
+  const protocol = detectSubtitleProtocol(prompt);
+  const usesLegacyPauseLevel =
+    protocol === "boundary-v2" ||
+    protocol === "index-v1" ||
+    protocol === "vtt-legacy";
+
+  return events.map((e, i) => {
     const item = { id: i, text: e.text };
-    if (i > 0) {
+    if (usesLegacyPauseLevel && i > 0) {
       const p = getPauseLevel(e.start - events[i - 1].end);
       if (p) item.p = p;
+    } else if (!usesLegacyPauseLevel && i < events.length - 1) {
+      // pauseMs 挂在停顿前的事件上，可直接作为该事件成为句末的边界提示。
+      const pauseMs = Math.round(events[i + 1].start - e.end);
+      if (pauseMs > 0) item.pauseMs = pauseMs;
     }
     return item;
   });
+};
 
 const usesIndexSubtitleInput = (prompt = "") => {
-  if (/\{\s*["']?s["']?\s*:/.test(prompt) && /\bid\b/i.test(prompt))
-    return true;
-  if (/WEBVTT|MM:SS\.mmm|-->/i.test(prompt)) return false;
-  return false;
+  // 只有明确声明 VTT 的旧提示词继续接收旧结构；其余字幕请求统一使用纯索引 JSON。
+  return detectSubtitleProtocol(prompt) !== "vtt-legacy";
 };
 
 const geminiText = (parts) =>
@@ -305,9 +311,46 @@ const geminiText = (parts) =>
         .join("")
     : "";
 
-const parseIndexSubtitleRes = (raw, events) => {
+const isGeminiInteractionsUrl = (url = "") =>
+  /\/v1(?:beta\d*)?\/interactions(?:[/?]|$)/i.test(url);
+
+const geminiInteractionText = (res) =>
+  Array.isArray(res?.steps)
+    ? res.steps
+        .filter((step) => step?.type === "model_output")
+        .flatMap((step) => (Array.isArray(step.content) ? step.content : []))
+        .filter((content) => content?.type === "text" && content.text)
+        .map((content) => content.text)
+        .join("")
+    : "";
+
+const geminiResponseText = (res) =>
+  Array.isArray(res?.steps)
+    ? geminiInteractionText(res)
+    : geminiText(res?.candidates?.[0]?.content?.parts);
+
+const parseIndexSubtitleRes = (raw, events, fromLang = "auto") => {
+  // 对齐器只建一次词表：buildResult 在截断修复兜底时可能执行两次。
+  const aligner = createSubtitleIndexAligner(events);
   const buildResult = (data) => {
     if (!Array.isArray(data) || !data.length) return null;
+    const legacyItems = data.map(isLegacyIndexSubtitleItem);
+    // 同一响应混用新旧协议会使游标语义不明确，直接交给尾部恢复逻辑处理。
+    if (legacyItems.some(Boolean) && !legacyItems.every(Boolean)) return null;
+
+    if (!legacyItems[0]) {
+      const result = [];
+      let nextIndex = 0;
+      for (const item of data) {
+        const cue = mapBoundaryItemToCue(item, events, nextIndex, fromLang);
+        // 新协议一旦出现非法边界，停止接收后续对象，保留已验证的连续前缀。
+        if (!cue) break;
+        result.push(cue);
+        nextIndex = cue._ei + 1;
+      }
+      return result.length ? result : null;
+    }
+
     const result = [];
     for (const seg of data) {
       const s = Number(seg.s ?? seg.start_id);
@@ -315,13 +358,21 @@ const parseIndexSubtitleRes = (raw, events) => {
       if (!Number.isInteger(s) || !Number.isInteger(e)) continue;
       const startIdx = Math.max(0, Math.min(s, events.length - 1));
       const endIdx = Math.max(startIdx, Math.min(e, events.length - 1));
+      const text = String(seg.o ?? seg.original ?? "");
+      const fixed = aligner.realign(s, e, text);
       result.push({
-        start: events[startIdx].start,
-        end: events[endIdx].end,
-        text: String(seg.o ?? seg.original ?? ""),
+        start: events[fixed?.startIdx ?? startIdx].start,
+        end: events[fixed?.endIdx ?? endIdx].end,
+        text,
         translation: String(seg.t ?? seg.translation ?? ""),
+        // _si/_ei 保留模型原始索引：去重键与尾句重试语义依赖它们。
         _si: s,
         _ei: e,
+        // 仅在确实发生纠偏时记录覆盖索引，避免扩大普通结果的数据表面。
+        ...(fixed && {
+          _alignedSi: fixed.startIdx,
+          _alignedEi: fixed.endIdx,
+        }),
       });
     }
     return result.length ? result : null;
@@ -335,26 +386,26 @@ const parseIndexSubtitleRes = (raw, events) => {
     return buildResult(JSON.parse(repaired));
   } catch {
     try {
-      const last = Math.max(
-        repaired.lastIndexOf("},"),
-        repaired.lastIndexOf("}\n"),
-        repaired.lastIndexOf("}\r")
+      // 响应被截断时，从最后一个完整对象闭合处补上数组尾括号，保留可验证前缀。
+      const arrayStart = repaired.indexOf("[");
+      const lastObjectEnd = repaired.lastIndexOf("}");
+      if (arrayStart < 0 || lastObjectEnd < arrayStart) return null;
+      return buildResult(
+        JSON.parse(repaired.slice(arrayStart, lastObjectEnd + 1) + "]")
       );
-      if (last < 0) return null;
-      return buildResult(JSON.parse(repaired.slice(0, last + 1) + "]"));
     } catch {
       return null;
     }
   }
 };
 
-const parseSTRes = (raw, events = null) => {
+const parseSTRes = (raw, events = null, fromLang = "auto") => {
   if (!raw) {
     return [];
   }
 
   if (events?.length) {
-    const indexed = parseIndexSubtitleRes(raw, events);
+    const indexed = parseIndexSubtitleRes(raw, events, fromLang);
     if (indexed) return indexed;
   }
 
@@ -622,7 +673,6 @@ const genGemini = ({
   systemPrompt,
   userPrompt,
   model,
-  temperature,
   maxTokens,
   hisMsgs = [],
   useStream = false,
@@ -633,7 +683,48 @@ const genGemini = ({
     .replaceAll(INPUT_PLACE_MODEL, model)
     .replaceAll(INPUT_PLACE_KEY, key);
 
-  // 流式传输使用 streamGenerateContent 端点
+  if (isGeminiInteractionsUrl(url)) {
+    const userMsg = {
+      type: "user_input",
+      content: [{ type: "text", text: userPrompt }],
+    };
+    const generationConfig = {
+      max_output_tokens: maxTokens,
+    };
+
+    if (thinkingMode === "disabled") {
+      generationConfig.thinking_level = "minimal";
+    } else if (
+      thinkingMode === "enabled" &&
+      thinkingEffort &&
+      thinkingEffort !== "_default"
+    ) {
+      generationConfig.thinking_level = thinkingEffort;
+    }
+
+    const body = {
+      model,
+      system_instruction: systemPrompt,
+      input: [...hisMsgs, userMsg],
+      stream: useStream,
+      store: false,
+      generation_config: generationConfig,
+      safety_settings: [
+        { type: "harassment", threshold: "block_none" },
+        { type: "hate_speech", threshold: "block_none" },
+        { type: "sexually_explicit", threshold: "block_none" },
+        { type: "dangerous_content", threshold: "block_none" },
+      ],
+    };
+    const headers = {
+      "Content-type": "application/json",
+      "x-goog-api-key": key,
+    };
+
+    return { url, body, headers, userMsg };
+  }
+
+  // 自定义代理 URL 继续兼容 Legacy generateContent 协议。
   if (useStream) {
     url = url.replace(":generateContent", ":streamGenerateContent");
     url += (url.includes("?") ? "&" : "?") + "alt=sse";
@@ -642,17 +733,10 @@ const genGemini = ({
   const userMsg = { role: "user", parts: [{ text: userPrompt }] };
 
   const body = {
-    contents: [
-      {
-        role: "model",
-        parts: [{ text: systemPrompt }],
-      },
-      ...hisMsgs,
-      userMsg,
-    ],
+    systemInstruction: { parts: [{ text: systemPrompt }] },
+    contents: [...hisMsgs, userMsg],
     generationConfig: {
       maxOutputTokens: maxTokens,
-      temperature,
     },
   };
 
@@ -821,6 +905,57 @@ const genOpenRouter = ({
   const headers = {
     "Content-type": "application/json",
     Authorization: `Bearer ${key}`,
+    "HTTP-Referer": "https://fishjar.github.io/kiss-translator/",
+    "X-OpenRouter-Title": "KISS Translator",
+  };
+
+  return { url, body, headers, userMsg };
+};
+
+const genOrcaRouter = ({
+  url,
+  key,
+  systemPrompt,
+  userPrompt,
+  model,
+  temperature,
+  maxTokens,
+  hisMsgs = [],
+  useStream = false,
+  thinkingMode,
+  thinkingEffort,
+}) => {
+  const userMsg = {
+    role: "user",
+    content: userPrompt,
+  };
+  const body = {
+    model,
+    messages: [
+      {
+        role: "system",
+        content: systemPrompt,
+      },
+      ...hisMsgs,
+      userMsg,
+    ],
+    temperature,
+    max_completion_tokens: maxTokens,
+    stream: useStream,
+  };
+
+  injectThinking(body, {
+    apiType: OPT_TRANS_ORCAROUTER,
+    thinkingMode,
+    thinkingEffort,
+  });
+
+  const headers = {
+    "Content-type": "application/json",
+    Authorization: `Bearer ${key}`,
+    // 聚合网关的调用来源标识，便于在 OrcaRouter 控制台区分本扩展的用量
+    "HTTP-Referer": "https://fishjar.github.io/kiss-translator/",
+    "X-Title": "KISS Translator",
   };
 
   return { url, body, headers, userMsg };
@@ -927,6 +1062,7 @@ const genReqFuncs = {
   [OPT_TRANS_CLOUDFLAREAI]: genCloudflareAI,
   [OPT_TRANS_OLLAMA]: genOllama,
   [OPT_TRANS_OPENROUTER]: genOpenRouter,
+  [OPT_TRANS_ORCAROUTER]: genOrcaRouter,
   [OPT_TRANS_CUSTOMIZE]: genCustom,
 };
 
@@ -998,8 +1134,6 @@ export const genTransReq = async ({ reqHook, ...args }) => {
     customBody,
     events,
     tone,
-    prevContext,
-    nextContext,
     docInfo: externalDocInfo,
   } = args;
 
@@ -1015,7 +1149,7 @@ export const genTransReq = async ({ reqHook, ...args }) => {
     const docInfo = externalDocInfo || getDocInfo();
 
     let baseSystemPrompt = events
-      ? genSubtitlePrompt({
+      ? buildSubtitleSystemPrompt({
           subtitlePrompt,
           from,
           to,
@@ -1041,10 +1175,8 @@ export const genTransReq = async ({ reqHook, ...args }) => {
     args.userPrompt = events
       ? buildSubtitleUserPrompt({
           formattedEvents: usesIndexSubtitleInput(subtitlePrompt)
-            ? formatIndexSubtitleEvents(events)
+            ? formatIndexSubtitleEvents(events, subtitlePrompt)
             : events,
-          prevContext,
-          nextContext,
         })
       : genUserPrompt({
           nobatchUserPrompt,
@@ -1069,8 +1201,15 @@ export const genTransReq = async ({ reqHook, ...args }) => {
     method = "POST",
   } = genReqFuncs[apiType](args);
 
-  if (events && apiType === OPT_TRANS_GEMINI && body?.generationConfig) {
-    body.generationConfig.responseMimeType = "application/json";
+  if (events && apiType === OPT_TRANS_GEMINI) {
+    if (body?.generation_config) {
+      body.response_format = {
+        type: "text",
+        mime_type: "application/json",
+      };
+    } else if (body?.generationConfig) {
+      body.generationConfig.responseMimeType = "application/json";
+    }
   }
 
   // 合并用户自定义headers和body
@@ -1226,6 +1365,7 @@ export const parseTransRes = async (
     case OPT_TRANS_ZAI:
     case OPT_TRANS_GEMINI_2:
     case OPT_TRANS_OPENROUTER:
+    case OPT_TRANS_ORCAROUTER:
       modelMsg = res?.choices?.[0]?.message;
       if (history && userMsg && modelMsg) {
         history.add(userMsg, {
@@ -1235,11 +1375,16 @@ export const parseTransRes = async (
       }
       return parseAIRes(modelMsg?.content, useBatchFetch);
     case OPT_TRANS_GEMINI:
-      modelMsg = res?.candidates?.[0]?.content;
-      if (history && userMsg && modelMsg) {
-        history.add(userMsg, modelMsg);
+      if (history && Array.isArray(res?.steps)) {
+        history.clear();
+        history.add(...res.steps);
+      } else {
+        modelMsg = res?.candidates?.[0]?.content;
+        if (history && userMsg && modelMsg) {
+          history.add(userMsg, modelMsg);
+        }
       }
-      return parseAIRes(geminiText(modelMsg?.parts), useBatchFetch);
+      return parseAIRes(geminiResponseText(res), useBatchFetch);
     case OPT_TRANS_CLAUDE:
       modelMsg = { role: res?.role, content: res?.content?.text };
       if (history && userMsg && modelMsg) {
@@ -1302,10 +1447,11 @@ function parseDictRes(res, apiType) {
     case OPT_TRANS_ZAI:
     case OPT_TRANS_GEMINI_2:
     case OPT_TRANS_OPENROUTER:
+    case OPT_TRANS_ORCAROUTER:
     case OPT_TRANS_OLLAMA:
       return res?.choices?.[0]?.message?.content || "";
     case OPT_TRANS_GEMINI:
-      return geminiText(res?.candidates?.[0]?.content?.parts);
+      return geminiResponseText(res);
     case OPT_TRANS_CLAUDE:
       return res?.content?.[0]?.text || "";
     case OPT_TRANS_CUSTOMIZE:
@@ -1413,7 +1559,8 @@ export const handleDict = async ({
           // 流式模型可能先输出 Markdown 代码围栏，边流式展示边剥离可避免 UI 闪出 ```。
           fullContent = stripMarkdownCodeBlock(fullContent, true);
           onStreamChunk({ markdown: fullContent });
-        } catch {
+        } catch (error) {
+          if (error?.isAIStreamTerminal) throw error;
           // 忽略单个 SSE 数据帧解析失败，等待后续帧继续输出。
         }
       }
@@ -1529,7 +1676,14 @@ export async function* handleTranslate(
     hisMsgs = history.getAll();
   }
 
-  const enableStream = useStream && API_SPE_TYPES.stream.has(apiType);
+  const enableStream =
+    useStream &&
+    API_SPE_TYPES.stream.has(apiType) &&
+    !(
+      apiType === OPT_TRANS_GEMINI &&
+      useContext &&
+      isGeminiInteractionsUrl(apiSetting.url)
+    );
 
   let token = "";
   if (apiType === OPT_TRANS_MICROSOFT) {
@@ -1715,6 +1869,7 @@ async function* handleTranslateStreamInternal(
           }
         }
       } catch (e) {
+        if (e?.isAIStreamTerminal) throw e;
         // 忽略解析错误
       }
     }
@@ -1792,8 +1947,6 @@ export const handleMicrosoftLangdetect = async (texts = []) => {
  * @param {string} params.to 目标语言代码。
  * @param {Object} params.apiSetting 字幕断句所使用的 API 配置。
  * @param {Object} [params.docInfo] 页面标题、描述和 AI 摘要等上下文。
- * @param {string} [params.prevContext] 前一个字幕分块的只读上下文。
- * @param {string} [params.nextContext] 后一个字幕分块的只读上下文。
  * @param {Function} [params.onSubtitleChunk] 流式解析到完整字幕句子时触发的回调。
  * @param {AbortSignal} [params.signal] 调用方生命周期取消信号，会下传到 fetch/fetchStream。
  * @returns {Promise<Array<Object>>} 完整字幕句子数组。
@@ -1804,8 +1957,6 @@ export const handleSubtitle = async ({
   to,
   apiSetting,
   docInfo,
-  prevContext = "",
-  nextContext = "",
   onSubtitleChunk,
   signal,
 }) => {
@@ -1821,9 +1972,9 @@ export const handleSubtitle = async ({
     events,
     from,
     to,
+    fromLang: from,
+    toLang: to,
     docInfo,
-    prevContext,
-    nextContext,
   });
 
   if (enableStream) {
@@ -1834,6 +1985,7 @@ export const handleSubtitle = async ({
         fetchInterval,
         fetchLimit,
         httpTimeout,
+        fromLang: from,
         onSubtitleChunk,
         signal,
       });
@@ -1853,8 +2005,6 @@ export const handleSubtitle = async ({
       to,
       apiSetting: { ...apiSetting, useStream: false },
       docInfo,
-      prevContext,
-      nextContext,
       signal,
     });
   }
@@ -1884,10 +2034,14 @@ export const handleSubtitle = async ({
     case OPT_TRANS_ZAI:
     case OPT_TRANS_GEMINI_2:
     case OPT_TRANS_OPENROUTER:
+    case OPT_TRANS_ORCAROUTER:
     case OPT_TRANS_OLLAMA:
-      return parseSTRes(res?.choices?.[0]?.message?.content ?? "", events);
+      return parseSTRes(
+        res?.choices?.[0]?.message?.content ?? "",
+        events,
+        from
+      );
     case OPT_TRANS_GEMINI: {
-      const candidate = res?.candidates?.[0];
       const { thinkingMode } = apiSetting;
       const thinkingWasOn =
         thinkingMode && thinkingMode !== "auto" && thinkingMode !== "disabled";
@@ -1895,9 +2049,12 @@ export const handleSubtitle = async ({
       // REVIEW: 本地 AI (Gemini Nano) 强大的降级容灾容错逻辑！
       // 字幕翻译时，如果开启了推理链 (Thinking)，可能会因推理产生大量额外 Token，
       // 触发 Gemini 发生 finishReason === "MAX_TOKENS" 的阶段性提前截断中止。
-      // 遇到该截断限制时，此处自动关闭推理（thinkingMode = "disabled"）并重新发送重试，
-      // 降级以取得无损字幕。该设计能够极大增强在复杂字幕网页下的长句稳定性。
-      if (candidate?.finishReason === "MAX_TOKENS" && thinkingWasOn) {
+      // 遇到该截断限制时，此处自动将推理降到 minimal 并重新发送重试，
+      // 尽量保留输出 token 以取得完整字幕。
+      const outputWasTruncated = Array.isArray(res?.steps)
+        ? res?.status === "incomplete" || res?.status === "budget_exceeded"
+        : res?.candidates?.[0]?.finishReason === "MAX_TOKENS";
+      if (outputWasTruncated && thinkingWasOn) {
         const [retryInput, retryInit] = await genTransReq({
           ...apiSetting,
           // Gemini 字幕重试同样需要完整 JSON/VTT 结果，避免把 SSE 当普通响应解析。
@@ -1906,9 +2063,9 @@ export const handleSubtitle = async ({
           events,
           from,
           to,
+          fromLang: from,
+          toLang: to,
           docInfo,
-          prevContext,
-          nextContext,
         });
         const retryRes = await fetchData(retryInput, retryInit, {
           useCache: false,
@@ -1917,17 +2074,15 @@ export const handleSubtitle = async ({
           fetchLimit,
           httpTimeout,
         });
-        if (retryRes?.candidates?.[0]?.content?.parts) {
-          return parseSTRes(
-            geminiText(retryRes.candidates[0].content.parts),
-            events
-          );
+        const retryText = geminiResponseText(retryRes);
+        if (retryText) {
+          return parseSTRes(retryText, events, from);
         }
       }
-      return parseSTRes(geminiText(candidate?.content?.parts), events);
+      return parseSTRes(geminiResponseText(res), events, from);
     }
     case OPT_TRANS_CLAUDE:
-      return parseSTRes(res?.content?.[0]?.text ?? "", events);
+      return parseSTRes(res?.content?.[0]?.text ?? "", events, from);
     case OPT_TRANS_CUSTOMIZE:
       return res;
     default:
@@ -1947,6 +2102,7 @@ export const handleSubtitle = async ({
  * @param {number} options.fetchInterval 请求池间隔。
  * @param {number} options.fetchLimit 请求池并发限制。
  * @param {number} options.httpTimeout 请求超时时间。
+ * @param {string} options.fromLang 源语言，用于按语言规则重建字幕原文。
  * @param {Function} options.onSubtitleChunk 新句子完成时触发的回调。
  * @param {AbortSignal} options.signal 取消信号。
  * @returns {Promise<Array<Object>>} 最终完整字幕数组。
@@ -1960,11 +2116,12 @@ async function handleSubtitleStreamInternal(
     fetchInterval,
     fetchLimit,
     httpTimeout,
+    fromLang,
     onSubtitleChunk,
     signal,
   }
 ) {
-  const parser = createStreamingSubtitleParser(events);
+  const parser = createStreamingSubtitleParser(events, { fromLang });
   let fullContent = "";
   const emitted = [];
   const emittedKeys = new Set();
@@ -2004,14 +2161,15 @@ async function handleSubtitleStreamInternal(
 
       fullContent += delta;
       appendSubtitles(parser.write(delta), false);
-    } catch {
+    } catch (error) {
+      if (error?.isAIStreamTerminal) throw error;
       // 单个 SSE 分片异常不终止整条字幕流，等待后续分片或最终兜底解析补齐。
     }
   }
 
   appendSubtitles(parser.end(), false);
 
-  const finalSubtitles = parseSTRes(fullContent, events);
+  const finalSubtitles = parseSTRes(fullContent, events, fromLang);
   appendSubtitles(finalSubtitles, true);
 
   return finalSubtitles?.length
@@ -2087,10 +2245,11 @@ export const handleSummarize = async ({
     case OPT_TRANS_ZAI:
     case OPT_TRANS_GEMINI_2:
     case OPT_TRANS_OPENROUTER:
+    case OPT_TRANS_ORCAROUTER:
     case OPT_TRANS_OLLAMA:
       return res?.choices?.[0]?.message?.content?.trim() || "";
     case OPT_TRANS_GEMINI:
-      return geminiText(res?.candidates?.[0]?.content?.parts).trim() || "";
+      return geminiResponseText(res).trim() || "";
     case OPT_TRANS_CLAUDE:
       return res?.content?.[0]?.text?.trim() || "";
     case OPT_TRANS_CUSTOMIZE:
