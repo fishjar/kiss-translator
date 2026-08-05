@@ -50,7 +50,8 @@ import {
   INPUT_PLACE_SUMMARY,
   INPUT_PLACE_CONTEXT,
   THINKING_PARAM_MAP,
-  getGeminiThinkingDisableStrategy,
+  getGeminiThinkingStrategy,
+  isGeminiInteractionsUrl,
 } from "../config";
 import { msAuth } from "../libs/auth";
 import { genDeeplFree } from "./deepl";
@@ -321,9 +322,6 @@ const geminiInteractionText = (res) =>
         .map((content) => content.text)
         .join("")
     : "";
-
-const isGeminiInteractionsUrl = (url = "") =>
-  /\/v1(?:beta\d*)?\/interactions(?:[/?]|$)/i.test(url);
 
 const geminiResponseText = (res) =>
   Array.isArray(res?.steps)
@@ -686,6 +684,7 @@ const genGemini = ({
     .replaceAll(INPUT_PLACE_MODEL, model)
     .replaceAll(INPUT_PLACE_KEY, key);
 
+  // 官方 Interactions 与 generateContent 的请求体、上下文和流式事件均不同，必须按 URL 分流。
   if (isGeminiInteractionsUrl(url)) {
     const userMsg = {
       type: "user_input",
@@ -696,21 +695,15 @@ const genGemini = ({
       temperature,
     };
 
-    if (thinkingMode === "disabled") {
-      const strategy = getGeminiThinkingDisableStrategy({
-        apiType,
-        url,
-        model,
-      });
-      if (strategy.field === "thinking_level") {
-        generationConfig.thinking_level = strategy.value;
-      }
-    } else if (
-      thinkingMode === "enabled" &&
-      thinkingEffort &&
-      thinkingEffort !== "_default"
-    ) {
-      generationConfig.thinking_level = thinkingEffort;
+    const strategy = getGeminiThinkingStrategy({
+      apiType,
+      url,
+      model,
+      thinkingMode,
+      thinkingEffort,
+    });
+    if (strategy.field) {
+      generationConfig[strategy.field] = strategy.value;
     }
 
     const body = {
@@ -718,6 +711,7 @@ const genGemini = ({
       system_instruction: systemPrompt,
       input: [...hisMsgs, userMsg],
       stream: useStream,
+      // Interactions 默认会在服务端保存会话；翻译历史由客户端维护，因此显式关闭存储。
       store: false,
       generation_config: generationConfig,
     };
@@ -729,7 +723,7 @@ const genGemini = ({
     return { url, body, headers, userMsg };
   }
 
-  // 自定义代理 URL 继续兼容 Legacy generateContent 协议。
+  // 自定义代理通常只实现 generateContent，不能随官方默认端点一起强制迁移协议。
   if (useStream) {
     url = url.replace(":generateContent", ":streamGenerateContent");
     url += (url.includes("?") ? "&" : "?") + "alt=sse";
@@ -746,17 +740,17 @@ const genGemini = ({
     },
   };
 
-  if (thinkingMode === "disabled") {
-    const strategy = getGeminiThinkingDisableStrategy({ apiType, url, model });
-    if (strategy.field) {
-      body.generationConfig.thinkingConfig = {
-        [strategy.field]: strategy.value,
-      };
-    }
-  } else if (thinkingMode && thinkingMode !== "auto") {
-    if (thinkingEffort && thinkingEffort !== "_default") {
-      body.generationConfig.thinkingConfig = { thinkingLevel: thinkingEffort };
-    }
+  const strategy = getGeminiThinkingStrategy({
+    apiType,
+    url,
+    model,
+    thinkingMode,
+    thinkingEffort,
+  });
+  if (strategy.field) {
+    body.generationConfig.thinkingConfig = {
+      [strategy.field]: strategy.value,
+    };
   }
 
   Object.assign(body, {
@@ -820,11 +814,15 @@ const genGemini2 = ({
     stream: useStream,
   };
 
-  if (thinkingMode === "disabled") {
-    const strategy = getGeminiThinkingDisableStrategy({ apiType, url, model });
+  const strategy = getGeminiThinkingStrategy({
+    apiType,
+    url,
+    model,
+    thinkingMode,
+    thinkingEffort,
+  });
+  if (strategy.field) {
     body[strategy.field] = strategy.value;
-  } else {
-    injectThinking(body, { apiType, thinkingMode, thinkingEffort });
   }
 
   const headers = {
@@ -2065,7 +2063,7 @@ export const handleSubtitle = async ({
       // REVIEW: 本地 AI (Gemini Nano) 强大的降级容灾容错逻辑！
       // 字幕翻译时，如果开启了推理链 (Thinking)，可能会因推理产生大量额外 Token，
       // 触发 Gemini 发生 finishReason === "MAX_TOKENS" 的阶段性提前截断中止。
-      // 遇到该截断限制时，此处自动将推理降到 minimal 并重新发送重试，
+      // 遇到该截断限制时，此处自动将推理降到当前模型支持的最低等级并重新发送重试，
       // 尽量保留输出 token 以取得完整字幕。
       const outputWasTruncated = Array.isArray(res?.steps)
         ? res?.status === "incomplete" || res?.status === "budget_exceeded"

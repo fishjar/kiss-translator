@@ -338,3 +338,26 @@ describe("Apis temperature input", () => {
     gemini2View.unmount();
   });
 });
+
+describe("Apis Gemini thinking efforts", () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+    document.body.innerHTML = "";
+  });
+
+  test("falls back to the default selection for an unsupported saved effort", async () => {
+    const view = await renderApis(
+      createApi({
+        apiSlug: OPT_TRANS_GEMINI,
+        apiType: OPT_TRANS_GEMINI,
+        model: "gemini-3-pro-preview",
+        thinkingMode: "enabled",
+        thinkingEffort: "medium",
+      })
+    );
+    const effortInput = getInput(view.container, "thinkingEffort");
+    expect(effortInput.value).toBe("_default");
+
+    view.unmount();
+  });
+});

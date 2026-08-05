@@ -91,6 +91,7 @@ import {
   OPT_TRANS_AZUREAI,
   THINKING_PARAM_MAP,
   getGeminiThinkingDisableStrategy,
+  getGeminiThinkingEfforts,
   DEFAULT_NOBATCH_PROMPT_SLUG,
   DEFAULT_BATCH_PROMPT_SLUG,
   DEFAULT_SUBTITLE_PROMPT_SLUG,
@@ -484,6 +485,15 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
   }, [modelListUrl, key]);
 
   const thinkingParam = THINKING_PARAM_MAP[apiType];
+  const thinkingEfforts =
+    apiType === OPT_TRANS_GEMINI || apiType === OPT_TRANS_GEMINI_2
+      ? getGeminiThinkingEfforts({ apiType, model })
+      : thinkingParam?.efforts;
+  const selectedThinkingEffort = thinkingEfforts?.some(
+    (effort) => effort.value === thinkingEffort
+  )
+    ? thinkingEffort
+    : "_default";
   const thinkingDisableStrategy =
     thinkingMode === "disabled" &&
     (apiType === OPT_TRANS_GEMINI || apiType === OPT_TRANS_GEMINI_2)
@@ -712,25 +722,26 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
                   onChange={handleChange}
                 />
               </Grid>
-              {apiType !== OPT_TRANS_GEMINI && apiType !== OPT_TRANS_GEMINI_2 && (
-                <Grid item xs={12} sm={12} md={6} lg={3}>
-                  <ValidationInput
-                    size="small"
-                    fullWidth
-                    label={"Temperature (0.0-2.0)"}
-                    type="number"
-                    name="temperature"
-                    value={temperature}
-                    onChange={handleChange}
-                    min={0.0}
-                    max={2.0}
-                    isFloat={true}
-                    inputProps={{
-                      step: 0.1,
-                    }}
-                  />
-                </Grid>
-              )}
+              {apiType !== OPT_TRANS_GEMINI &&
+                apiType !== OPT_TRANS_GEMINI_2 && (
+                  <Grid item xs={12} sm={12} md={6} lg={3}>
+                    <ValidationInput
+                      size="small"
+                      fullWidth
+                      label={"Temperature (0.0-2.0)"}
+                      type="number"
+                      name="temperature"
+                      value={temperature}
+                      onChange={handleChange}
+                      min={0.0}
+                      max={2.0}
+                      isFloat={true}
+                      inputProps={{
+                        step: 0.1,
+                      }}
+                    />
+                  </Grid>
+                )}
               <Grid item xs={12} sm={12} md={6} lg={3}>
                 <ValidationInput
                   size="small"
@@ -1117,18 +1128,18 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
                 )}
               </TextField>
             </Grid>
-            {thinkingMode === "enabled" && thinkingParam.efforts && (
+            {thinkingMode === "enabled" && thinkingEfforts && (
               <Grid item xs={12} sm={12} md={6} lg={3}>
                 <TextField
                   select
                   fullWidth
                   size="small"
                   name="thinkingEffort"
-                  value={thinkingEffort}
+                  value={selectedThinkingEffort}
                   label={i18n("thinking_effort")}
                   onChange={handleChange}
                 >
-                  {thinkingParam.efforts.map((e) => (
+                  {thinkingEfforts.map((e) => (
                     <MenuItem key={e.value} value={e.value}>
                       {e.label}
                     </MenuItem>

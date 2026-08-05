@@ -267,7 +267,7 @@ describe("handleSubtitle", () => {
     ]);
   });
 
-  test("uses Gemini response_format and retries incomplete interactions at minimal thinking", async () => {
+  test("uses Gemini response_format and retries incomplete interactions at minimum thinking", async () => {
     fetchData
       .mockResolvedValueOnce({
         status: "incomplete",
@@ -312,7 +312,7 @@ describe("handleSubtitle", () => {
       mime_type: "application/json",
     });
     expect(firstBody.generation_config.thinking_level).toBe("high");
-    expect(retryBody.generation_config.thinking_level).toBe("minimal");
+    expect(retryBody.generation_config.thinking_level).toBe("low");
     expect(result).toEqual([
       {
         start: 0,
