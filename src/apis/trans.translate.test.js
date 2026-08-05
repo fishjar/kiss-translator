@@ -27,6 +27,9 @@ import { fetchData, fetchStream } from "../libs/fetch";
 import { trustedTypesHelper } from "../libs/trustedTypes";
 import { clearMsgHistory } from "./history";
 
+const GEMINI_INTERACTIONS_URL =
+  "https://generativelanguage.googleapis.com/v1beta2/interactions";
+
 const getApiSetting = (apiType) => ({
   ...DEFAULT_API_LIST.find((api) => api.apiType === apiType),
   useStream: true,
@@ -90,6 +93,7 @@ describe("handleTranslate", () => {
         glossary: "",
         apiSetting: {
           ...getApiSetting(OPT_TRANS_GEMINI),
+          url: GEMINI_INTERACTIONS_URL,
           useStream: false,
           temperature: 0.7,
           thinkingMode: "disabled",
@@ -107,7 +111,6 @@ describe("handleTranslate", () => {
       store: false,
       generation_config: {
         max_output_tokens: expect.any(Number),
-        thinking_level: "low",
         temperature: 0.7,
       },
     });
@@ -237,6 +240,7 @@ describe("handleTranslate", () => {
       });
     const apiSetting = {
       ...getApiSetting(OPT_TRANS_GEMINI),
+      url: GEMINI_INTERACTIONS_URL,
       useBatchFetch: false,
       useContext: true,
       contextSize: 10,

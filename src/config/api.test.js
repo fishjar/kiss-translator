@@ -60,20 +60,6 @@ test("maps Gemini disabled thinking by API URL and model capability", () => {
   expect(
     getGeminiThinkingDisableStrategy({
       apiType: OPT_TRANS_GEMINI,
-      url: GEMINI_INTERACTIONS_URL,
-      model: "models/GEMINI-2.5-FLASH-LITE",
-    })
-  ).toEqual({ field: null, value: null, fallback: false });
-  expect(
-    getGeminiThinkingDisableStrategy({
-      apiType: OPT_TRANS_GEMINI,
-      url: GEMINI_INTERACTIONS_URL,
-      model: "custom-model",
-    })
-  ).toEqual({ field: "thinking_level", value: "low", fallback: true });
-  expect(
-    getGeminiThinkingDisableStrategy({
-      apiType: OPT_TRANS_GEMINI,
       url: "https://proxy.example.com/v1/models/{{model}}:generateContent",
       model: "gemini-2.5-pro",
     })

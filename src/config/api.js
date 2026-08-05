@@ -379,8 +379,6 @@ export const THINKING_PARAM_MAP = {
 export const normalizeGeminiModelName = (model = "") =>
   String(model).trim().replace(/^models\//i, "").toLowerCase();
 
-const isGemini25FlashLite = (model) =>
-  model.startsWith("gemini-2.5-flash-lite");
 const isGemini25Flash = (model) => model.startsWith("gemini-2.5-flash");
 const isGemini25Pro = (model) => model.startsWith("gemini-2.5-pro");
 const isGemini3 = (model) => model.startsWith("gemini-3");
