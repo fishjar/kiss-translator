@@ -10,7 +10,7 @@ let id = 1e4 * Math.round(1e4 * Math.random());
  * @param {string} params.to 目标翻译语言简写
  * @returns {{url: string, body: Object, headers: Object}} DeepL 接口的请求 url、JSON-RPC 参数及伪装 headers
  */
-export const genDeeplFree = ({ texts, from, to }) => {
+export const genDeeplFree = ({ texts, from, to, toLang }) => {
   const text = texts.join(" ");
 
   // REVIEW: 针对 DeepL 免费接口的“防爬虫人机签名算法”：
@@ -36,6 +36,8 @@ export const genDeeplFree = ({ texts, from, to }) => {
       commonJobParams: {
         wasSpoken: false,
         transcribe_as: "",
+        ...(toLang === "zh-CN" && { regionalVariant: "zh-Hans" }),
+        ...(toLang === "zh-TW" && { regionalVariant: "zh-Hant" }),
       },
       id,
       timestamp,

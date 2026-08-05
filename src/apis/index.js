@@ -7,6 +7,7 @@ import {
   URL_CACHE_DICT,
   KV_SALT_SYNC,
   OPT_LANGS_TO_SPEC,
+  OPT_LANGS_FROM_SPEC,
   OPT_LANGS_SPEC_DEFAULT,
   API_SPE_TYPES,
   DEFAULT_API_SETTING,
@@ -637,7 +638,8 @@ export const apiTranslate = async ({
 
   const { apiType, apiSlug, useBatchFetch } = apiSetting;
   const langMap = OPT_LANGS_TO_SPEC[apiType] || OPT_LANGS_SPEC_DEFAULT;
-  const from = langMap.get(fromLang);
+  const fromMap = OPT_LANGS_FROM_SPEC[apiType] || langMap;
+  const from = fromMap.get(fromLang);
   const to = langMap.get(toLang);
   if (!to) {
     throw new Error(`The target lang: ${toLang} not support`);

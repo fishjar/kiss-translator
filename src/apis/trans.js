@@ -322,6 +322,9 @@ const geminiInteractionText = (res) =>
         .join("")
     : "";
 
+const isGeminiInteractionsUrl = (url = "") =>
+  /\/v1(?:beta\d*)?\/interactions(?:[/?]|$)/i.test(url);
+
 const geminiResponseText = (res) =>
   Array.isArray(res?.steps)
     ? geminiInteractionText(res)
