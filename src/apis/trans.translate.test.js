@@ -19,6 +19,7 @@ import { handleTranslate } from "./trans";
 import {
   DEFAULT_API_LIST,
   GEMINI_GENERATE_CONTENT_URL,
+  GEMINI_INTERACTIONS_URL,
   OPT_TRANS_GEMINI,
   OPT_TRANS_GEMINI_2,
   OPT_TRANS_OPENAI,
@@ -26,9 +27,6 @@ import {
 import { fetchData, fetchStream } from "../libs/fetch";
 import { trustedTypesHelper } from "../libs/trustedTypes";
 import { clearMsgHistory } from "./history";
-
-const GEMINI_INTERACTIONS_URL =
-  "https://generativelanguage.googleapis.com/v1beta2/interactions";
 
 const getApiSetting = (apiType) => ({
   ...DEFAULT_API_LIST.find((api) => api.apiType === apiType),
@@ -111,6 +109,7 @@ describe("handleTranslate", () => {
       store: false,
       generation_config: {
         max_output_tokens: expect.any(Number),
+        thinking_level: "low",
         temperature: 0.7,
       },
     });
@@ -119,6 +118,54 @@ describe("handleTranslate", () => {
     expect(body.generation_config).not.toHaveProperty("top_p");
     expect(body.generation_config).not.toHaveProperty("top_k");
     expect(result).toEqual([{ id: 0, result: ["你好", "en"] }]);
+  });
+
+  test("applies all three thinking modes to Gemini Interactions", async () => {
+    fetchData.mockResolvedValue({
+      status: "completed",
+      steps: [
+        {
+          type: "model_output",
+          content: [{ type: "text", text: "你好" }],
+        },
+      ],
+    });
+    const translate = (thinkingMode, thinkingEffort = "_default") =>
+      collectAsyncGenerator(
+        handleTranslate(["hello"], {
+          from: "en",
+          to: "zh-CN",
+          fromLang: "English",
+          toLang: "Chinese",
+          langMap: () => "",
+          glossary: "",
+          apiSetting: {
+            ...getApiSetting(OPT_TRANS_GEMINI),
+            useStream: false,
+            model: "gemini-3-pro-preview",
+            thinkingMode,
+            thinkingEffort,
+          },
+          usePool: false,
+        })
+      );
+
+    await translate("auto", "high");
+    expect(
+      JSON.parse(fetchData.mock.calls[0][1].body).generation_config
+    ).not.toHaveProperty("thinking_level");
+
+    await translate("enabled", "medium");
+    expect(
+      JSON.parse(fetchData.mock.calls[1][1].body).generation_config
+        .thinking_level
+    ).toBe("high");
+
+    await translate("disabled");
+    expect(
+      JSON.parse(fetchData.mock.calls[2][1].body).generation_config
+        .thinking_level
+    ).toBe("low");
   });
 
   test("maps Gemini2 disabled thinking by model capability", async () => {
@@ -166,8 +213,68 @@ describe("handleTranslate", () => {
       })
     );
     expect(JSON.parse(fetchData.mock.calls[0][1].body).reasoning_effort).toBe(
-      "low"
+      "minimal"
     );
+  });
+
+  test("enables Gemini2 thinking at the highest effort by default", async () => {
+    fetchData.mockResolvedValue({
+      choices: [{ message: { content: "你好" } }],
+    });
+
+    await collectAsyncGenerator(
+      handleTranslate(["hello"], {
+        from: "en",
+        to: "zh-CN",
+        fromLang: "English",
+        toLang: "Chinese",
+        langMap: () => "",
+        glossary: "",
+        apiSetting: {
+          ...getApiSetting(OPT_TRANS_GEMINI_2),
+          useStream: false,
+          model: "gemini-3.6-flash",
+          thinkingMode: "enabled",
+          thinkingEffort: "_default",
+        },
+        usePool: false,
+      })
+    );
+
+    expect(JSON.parse(fetchData.mock.calls[0][1].body).reasoning_effort).toBe(
+      "high"
+    );
+  });
+
+  test("uses thinkingBudget when enabling Gemini 2.5 through generateContent", async () => {
+    fetchData.mockResolvedValueOnce({
+      candidates: [{ content: { parts: [{ text: "你好" }] } }],
+    });
+
+    await collectAsyncGenerator(
+      handleTranslate(["hello"], {
+        from: "en",
+        to: "zh-CN",
+        fromLang: "English",
+        toLang: "Chinese",
+        langMap: () => "",
+        glossary: "",
+        apiSetting: {
+          ...getApiSetting(OPT_TRANS_GEMINI),
+          url: GEMINI_GENERATE_CONTENT_URL,
+          useStream: false,
+          model: "gemini-2.5-flash-lite",
+          thinkingMode: "enabled",
+          thinkingEffort: "_default",
+        },
+        usePool: false,
+      })
+    );
+
+    const body = JSON.parse(fetchData.mock.calls[0][1].body);
+    expect(body.generationConfig.thinkingConfig).toEqual({
+      thinkingBudget: -1,
+    });
   });
 
   test("keeps Legacy Gemini safety settings and applies temperature", async () => {
@@ -195,6 +302,7 @@ describe("handleTranslate", () => {
           ...getApiSetting(OPT_TRANS_GEMINI),
           url: GEMINI_GENERATE_CONTENT_URL,
           useStream: false,
+          model: "gemini-3.5-flash",
           temperature: 0.7,
           thinkingMode: "disabled",
         },
@@ -205,7 +313,7 @@ describe("handleTranslate", () => {
     const body = JSON.parse(fetchData.mock.calls[0][1].body);
     expect(body.generationConfig).toMatchObject({
       temperature: 0.7,
-      thinkingConfig: { thinkingLevel: "low" },
+      thinkingConfig: { thinkingLevel: "minimal" },
     });
     expect(body.safetySettings).toHaveLength(4);
   });

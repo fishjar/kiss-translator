@@ -3,7 +3,10 @@ import {
   DEFAULT_API_LIST,
   DEFAULT_API_TYPE,
   GEMINI_GENERATE_CONTENT_URL,
+  GEMINI_INTERACTIONS_URL,
   getGeminiThinkingDisableStrategy,
+  getGeminiThinkingEfforts,
+  getGeminiThinkingStrategy,
   normalizeApiModelListUrls,
   OPT_TRANS_CLOUDFLAREAI,
   OPT_TRANS_DEEPSEEK,
@@ -32,13 +35,13 @@ test("all AI APIs define a thinking mode by default", () => {
   }
 });
 
-test("Gemini uses the generateContent endpoint while the model list stays on v1beta", () => {
+test("Gemini uses stable Interactions while the model list stays on v1beta", () => {
   const gemini = DEFAULT_API_LIST.find(
     (api) => api.apiType === OPT_TRANS_GEMINI
   );
 
   expect(gemini).toMatchObject({
-    url: GEMINI_GENERATE_CONTENT_URL,
+    url: GEMINI_INTERACTIONS_URL,
     modelListUrl: "https://generativelanguage.googleapis.com/v1beta/models",
     model: "gemini-3.6-flash",
     thinkingMode: "disabled",
@@ -56,7 +59,7 @@ test("Gemini2 defaults to a model that can disable thinking", () => {
   });
 });
 
-test("maps Gemini disabled thinking by API URL and model capability", () => {
+test("maps Gemini disabled thinking by protocol and model capability", () => {
   expect(
     getGeminiThinkingDisableStrategy({
       apiType: OPT_TRANS_GEMINI,
@@ -74,29 +77,113 @@ test("maps Gemini disabled thinking by API URL and model capability", () => {
   expect(
     getGeminiThinkingDisableStrategy({
       apiType: OPT_TRANS_GEMINI,
-      url: "https://proxy.example.com/v1/models/{{model}}:generateContent",
-      model: "gemini-3.5-flash",
+      url: GEMINI_GENERATE_CONTENT_URL,
+      model: "gemini-3-pro-preview",
     })
   ).toEqual({ field: "thinkingLevel", value: "low", fallback: true });
   expect(
     getGeminiThinkingDisableStrategy({
       apiType: OPT_TRANS_GEMINI,
-      url: "https://proxy.example.com/v1/models/{{model}}:generateContent",
-      model: "custom-model",
+      url: GEMINI_INTERACTIONS_URL,
+      model: "gemini-3.6-flash",
     })
-  ).toEqual({ field: "thinkingLevel", value: "low", fallback: true });
+  ).toEqual({ field: "thinking_level", value: "minimal", fallback: true });
+  expect(
+    getGeminiThinkingDisableStrategy({
+      apiType: OPT_TRANS_GEMINI,
+      url: GEMINI_INTERACTIONS_URL,
+      model: "gemini-2.5-flash-lite",
+    })
+  ).toEqual({ field: null, value: null, fallback: false });
   expect(
     getGeminiThinkingDisableStrategy({
       apiType: OPT_TRANS_GEMINI_2,
       model: "custom-model",
     })
-  ).toEqual({ field: "reasoning_effort", value: "low", fallback: true });
+  ).toEqual({ field: "reasoning_effort", value: "minimal", fallback: true });
   expect(
     getGeminiThinkingDisableStrategy({
       apiType: OPT_TRANS_GEMINI_2,
-      model: "gemini-3.5-flash",
+      model: "gemini-3.1-pro-preview",
     })
-  ).toEqual({ field: "reasoning_effort", value: "low", fallback: true });
+  ).toEqual({ field: "reasoning_effort", value: "minimal", fallback: true });
+});
+
+test("maps enabled Gemini thinking and normalizes unsupported efforts", () => {
+  expect(
+    getGeminiThinkingStrategy({
+      apiType: OPT_TRANS_GEMINI,
+      url: GEMINI_GENERATE_CONTENT_URL,
+      model: "gemini-2.5-flash-lite",
+      thinkingMode: "enabled",
+      thinkingEffort: "_default",
+    })
+  ).toEqual({ field: "thinkingBudget", value: -1, fallback: false });
+  expect(
+    getGeminiThinkingStrategy({
+      apiType: OPT_TRANS_GEMINI,
+      url: GEMINI_GENERATE_CONTENT_URL,
+      model: "gemini-2.5-pro",
+      thinkingMode: "enabled",
+      thinkingEffort: "medium",
+    })
+  ).toEqual({ field: "thinkingBudget", value: 8192, fallback: false });
+  expect(
+    getGeminiThinkingStrategy({
+      apiType: OPT_TRANS_GEMINI,
+      url: GEMINI_INTERACTIONS_URL,
+      model: "gemini-3-pro-preview",
+      thinkingMode: "enabled",
+      thinkingEffort: "medium",
+    })
+  ).toEqual({ field: "thinking_level", value: "high", fallback: false });
+  expect(
+    getGeminiThinkingStrategy({
+      apiType: OPT_TRANS_GEMINI_2,
+      model: "gemini-3.6-flash",
+      thinkingMode: "enabled",
+      thinkingEffort: "_default",
+    })
+  ).toEqual({ field: "reasoning_effort", value: "high", fallback: false });
+});
+
+test("keeps interface-default Gemini thinking free of extra parameters", () => {
+  expect(
+    getGeminiThinkingStrategy({
+      apiType: OPT_TRANS_GEMINI,
+      url: GEMINI_INTERACTIONS_URL,
+      model: "gemini-3.6-flash",
+      thinkingMode: "auto",
+      thinkingEffort: "high",
+    })
+  ).toEqual({ field: null, value: null, fallback: false });
+});
+
+test("filters native Gemini thinking efforts by model capability", () => {
+  expect(
+    getGeminiThinkingEfforts({
+      apiType: OPT_TRANS_GEMINI,
+      model: "gemini-3.1-pro-preview",
+    }).map((item) => item.value)
+  ).toEqual(["high", "medium", "low"]);
+  expect(
+    getGeminiThinkingEfforts({
+      apiType: OPT_TRANS_GEMINI,
+      model: "gemini-3-pro-preview",
+    }).map((item) => item.value)
+  ).toEqual(["high", "low"]);
+  expect(
+    getGeminiThinkingEfforts({
+      apiType: OPT_TRANS_GEMINI,
+      model: "gemini-3.1-flash-lite-image",
+    }).map((item) => item.value)
+  ).toEqual(["high", "minimal"]);
+  expect(
+    getGeminiThinkingEfforts({
+      apiType: OPT_TRANS_GEMINI,
+      model: "gemini-3.6-flash",
+    }).map((item) => item.value)
+  ).toEqual(["high", "medium", "low", "minimal"]);
 });
 
 describe("normalizeApiModelListUrls", () => {

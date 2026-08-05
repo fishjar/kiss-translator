@@ -150,6 +150,7 @@ export function getStreamDelta(json, apiType) {
       // OpenAI 兼容协议的大模型 delta 提取逻辑
       return json.choices?.[0]?.delta?.content || "";
     case OPT_TRANS_GEMINI: {
+      // 两套 Gemini 协议共用同一接口类型：Interactions 带事件类型，generateContent 返回 candidates。
       const eventType = json.event_type || json.type;
       if (eventType === "error") {
         const error = new Error(

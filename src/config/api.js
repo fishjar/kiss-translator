@@ -30,6 +30,8 @@ export const INPUT_PLACE_MODEL = "{{model}}"; // AI 模型名称占位符
 export const INPUT_PLACE_GLOSSARY = "{{glossary}}"; // 专业术语表占位符
 
 export const GEMINI_GENERATE_CONTENT_URL = `https://generativelanguage.googleapis.com/v1beta/models/${INPUT_PLACE_MODEL}:generateContent`;
+export const GEMINI_INTERACTIONS_URL =
+  "https://generativelanguage.googleapis.com/v1/interactions";
 
 // --- 划词翻译词典服务商 ---
 // export const OPT_DICT_BAIDU = "Baidu";
@@ -322,12 +324,12 @@ export const THINKING_PARAM_MAP = {
       { value: "high", label: "High" },
       { value: "medium", label: "Medium" },
       { value: "low", label: "Low" },
+      { value: "minimal", label: "Minimal" },
     ],
   },
   [OPT_TRANS_GEMINI_2]: {
     type: "openai",
     efforts: [
-      { value: "xhigh", label: "X-High" },
       { value: "high", label: "High" },
       { value: "medium", label: "Medium" },
       { value: "low", label: "Low" },
@@ -377,42 +379,167 @@ export const THINKING_PARAM_MAP = {
 };
 
 export const normalizeGeminiModelName = (model = "") =>
-  String(model).trim().replace(/^models\//i, "").toLowerCase();
+  String(model)
+    .trim()
+    .replace(/^models\//i, "")
+    .toLowerCase();
 
-const isGemini25Flash = (model) => model.startsWith("gemini-2.5-flash");
+export const isGeminiInteractionsUrl = (url = "") =>
+  /\/v1(?:beta\d*)?\/interactions(?:[/?]|$)/i.test(url);
+
+const GEMINI_EFFORT_OPTIONS = {
+  high: { value: "high", label: "High" },
+  medium: { value: "medium", label: "Medium" },
+  low: { value: "low", label: "Low" },
+  minimal: { value: "minimal", label: "Minimal" },
+};
+const GEMINI_EFFORT_RANK = { minimal: 0, low: 1, medium: 2, high: 3 };
+const GEMINI25_BUDGETS = {
+  minimal: 1024,
+  low: 1024,
+  medium: 8192,
+  high: 24576,
+};
+
+const isGemini25 = (model) => model.startsWith("gemini-2.5-");
+const isGemini25FlashLite = (model) =>
+  model.startsWith("gemini-2.5-flash-lite");
 const isGemini25Pro = (model) => model.startsWith("gemini-2.5-pro");
-const isGemini3 = (model) => model.startsWith("gemini-3");
-const isGemini25NonPro = (model) =>
-  model.startsWith("gemini-2.5-") && !isGemini25Pro(model);
+const isGemini25NonPro = (model) => isGemini25(model) && !isGemini25Pro(model);
+const isGemini31Pro = (model) => model.startsWith("gemini-3.1-pro");
+const isGemini3Pro = (model) => model.startsWith("gemini-3-pro");
+const isGemini31FlashLiteImage = (model) =>
+  model.startsWith("gemini-3.1-flash-lite-image");
+
+const toGeminiEffortOptions = (efforts) =>
+  efforts.map((effort) => GEMINI_EFFORT_OPTIONS[effort]);
+
+/**
+ * Gemini 不同模型支持的 thinkingLevel 并不一致。UI 与请求构造共用这份能力表，
+ * 避免界面允许选择一个最终会被官方接口拒绝的等级。
+ */
+export const getGeminiThinkingEfforts = ({ apiType, model = "" }) => {
+  if (apiType === OPT_TRANS_GEMINI_2) {
+    return toGeminiEffortOptions(["high", "medium", "low", "minimal"]);
+  }
+
+  const normalizedModel = normalizeGeminiModelName(model);
+  if (isGemini25(normalizedModel)) {
+    return toGeminiEffortOptions(["high", "medium", "low"]);
+  }
+  if (isGemini31FlashLiteImage(normalizedModel)) {
+    return toGeminiEffortOptions(["high", "minimal"]);
+  }
+  if (isGemini31Pro(normalizedModel)) {
+    return toGeminiEffortOptions(["high", "medium", "low"]);
+  }
+  if (isGemini3Pro(normalizedModel)) {
+    return toGeminiEffortOptions(["high", "low"]);
+  }
+  if (
+    normalizedModel.startsWith("gemini-3") &&
+    normalizedModel.includes("flash")
+  ) {
+    return toGeminiEffortOptions(["high", "medium", "low", "minimal"]);
+  }
+  return toGeminiEffortOptions(["high", "medium", "low"]);
+};
+
+const normalizeGeminiThinkingEffort = (effort, supportedEfforts) => {
+  const supported = supportedEfforts.map((item) => item.value);
+  if (supported.includes(effort)) return effort;
+  if (!effort || effort === "_default") return supported[0];
+
+  const targetRank = GEMINI_EFFORT_RANK[effort];
+  if (targetRank === undefined) return supported[0];
+  return supported.reduce((closest, candidate) => {
+    const distance = Math.abs(GEMINI_EFFORT_RANK[candidate] - targetRank);
+    const closestDistance = Math.abs(GEMINI_EFFORT_RANK[closest] - targetRank);
+    return distance < closestDistance ? candidate : closest;
+  });
+};
+
+/**
+ * 将三态思考设置转换为当前协议和模型真正支持的参数。
+ * auto 完全不注入参数；enabled 优先显式开启，否则取最高等级；disabled 无法关闭时取最低等级。
+ */
+export const getGeminiThinkingStrategy = ({
+  apiType,
+  url = "",
+  model = "",
+  thinkingMode = "auto",
+  thinkingEffort = "_default",
+}) => {
+  if (thinkingMode === "auto") {
+    return { field: null, value: null, fallback: false };
+  }
+
+  const normalizedModel = normalizeGeminiModelName(model);
+  const supportedEfforts = getGeminiThinkingEfforts({ apiType, model });
+  const lowestEffort = supportedEfforts[supportedEfforts.length - 1].value;
+  const requestedEffort = normalizeGeminiThinkingEffort(
+    thinkingEffort,
+    supportedEfforts
+  );
+
+  if (apiType === OPT_TRANS_GEMINI_2) {
+    if (thinkingMode === "disabled" && isGemini25NonPro(normalizedModel)) {
+      return { field: "reasoning_effort", value: "none", fallback: false };
+    }
+    return {
+      field: "reasoning_effort",
+      value: thinkingMode === "enabled" ? requestedEffort : lowestEffort,
+      fallback: thinkingMode === "disabled",
+    };
+  }
+
+  if (isGeminiInteractionsUrl(url)) {
+    // Interactions 对 2.5 Flash-Lite 不提供关闭参数；省略等级即可保留模型默认的不思考状态。
+    if (thinkingMode === "disabled" && isGemini25FlashLite(normalizedModel)) {
+      return { field: null, value: null, fallback: false };
+    }
+    return {
+      field: "thinking_level",
+      value: thinkingMode === "enabled" ? requestedEffort : lowestEffort,
+      fallback: thinkingMode === "disabled",
+    };
+  }
+
+  // generateContent 的 Gemini 2.5 使用 token 预算，Gemini 3 才使用 thinkingLevel。
+  if (isGemini25(normalizedModel)) {
+    if (thinkingMode === "enabled") {
+      return {
+        field: "thinkingBudget",
+        value:
+          thinkingEffort === "_default"
+            ? -1
+            : GEMINI25_BUDGETS[requestedEffort],
+        fallback: false,
+      };
+    }
+    return isGemini25Pro(normalizedModel)
+      ? { field: "thinkingBudget", value: 128, fallback: true }
+      : { field: "thinkingBudget", value: 0, fallback: false };
+  }
+
+  return {
+    field: "thinkingLevel",
+    value: thinkingMode === "enabled" ? requestedEffort : lowestEffort,
+    fallback: thinkingMode === "disabled",
+  };
+};
 
 export const getGeminiThinkingDisableStrategy = ({
   apiType,
   url = "",
   model = "",
 }) => {
-  const normalizedModel = normalizeGeminiModelName(model);
-
-  if (apiType === OPT_TRANS_GEMINI_2) {
-    if (isGemini25NonPro(normalizedModel)) {
-      return { field: "reasoning_effort", value: "none", fallback: false };
-    }
-    return {
-      field: "reasoning_effort",
-      value: "low",
-      fallback: true,
-    };
-  }
-
-  if (isGemini25Flash(normalizedModel)) {
-    return { field: "thinkingBudget", value: 0, fallback: false };
-  }
-  if (isGemini25Pro(normalizedModel)) {
-    return { field: "thinkingBudget", value: 128, fallback: true };
-  }
-  if (isGemini3(normalizedModel)) {
-    return { field: "thinkingLevel", value: "low", fallback: true };
-  }
-  return { field: "thinkingLevel", value: "low", fallback: true };
+  return getGeminiThinkingStrategy({
+    apiType,
+    url,
+    model,
+    thinkingMode: "disabled",
+  });
 };
 
 export const BUILTIN_STONES = [
@@ -1056,7 +1183,8 @@ const defaultApiOpts = {
   },
   [OPT_TRANS_GEMINI]: {
     ...defaultApi,
-    url: GEMINI_GENERATE_CONTENT_URL,
+    // 官方 Gemini 默认使用 GA 的 Interactions；用户自定义 URL 仍由运行时按协议自动分流。
+    url: GEMINI_INTERACTIONS_URL,
     modelListUrl: "https://generativelanguage.googleapis.com/v1beta/models",
     model: "gemini-3.6-flash",
     ...defaultAiApiOpts,
@@ -1064,7 +1192,8 @@ const defaultApiOpts = {
   [OPT_TRANS_GEMINI_2]: {
     ...defaultApi,
     url: `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions`,
-    modelListUrl: "https://generativelanguage.googleapis.com/v1beta/openai/models",
+    modelListUrl:
+      "https://generativelanguage.googleapis.com/v1beta/openai/models",
     model: "gemini-3.6-flash",
     ...defaultAiApiOpts,
   },
