@@ -4,6 +4,19 @@ import { OPT_TRANS_GEMINI } from "../config/api";
 const MODEL_KEY_PLACEHOLDER = "{{key}}";
 
 /**
+ * 判断 URL 是否为 Google Gemini 原生模型列表端点。
+ *
+ * 原生端点（如 `https://generativelanguage.googleapis.com/v1beta/models`）使用
+ * `?key=...` 鉴权，而不使用 `Authorization: Bearer`。
+ *
+ * @param {string} url 待检验的 URL。
+ * @returns {boolean} 是否为 Gemini 原生模型列表 URL。
+ */
+const isGeminiNativeModelListUrl = (url = "") =>
+  /\/v1(?:beta\d*)?\/models(?:[/?]|$)/i.test(url) &&
+  !/\/openai\//i.test(url);
+
+/**
  * 去掉 Gemini 原生模型列表返回的资源名前缀。
  *
  * Gemini `models.list` 返回的 `name` 通常是 `models/gemini-xxx`，但生成接口里
@@ -146,7 +159,7 @@ export function createModelListRequest({ apiType, modelListUrl, key }) {
   }
 
   // Google Gemini 原生 REST API 不使用 Bearer header，而是通过 key query 参数鉴权。
-  if (apiType === OPT_TRANS_GEMINI) {
+  if (apiType === OPT_TRANS_GEMINI || isGeminiNativeModelListUrl(trimmedUrl)) {
     return {
       input: appendQueryParam(trimmedUrl, "key", trimmedKey),
       init: {

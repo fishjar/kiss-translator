@@ -712,7 +712,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
                   onChange={handleChange}
                 />
               </Grid>
-              {apiType !== OPT_TRANS_GEMINI && (
+              {apiType !== OPT_TRANS_GEMINI && apiType !== OPT_TRANS_GEMINI_2 && (
                 <Grid item xs={12} sm={12} md={6} lg={3}>
                   <ValidationInput
                     size="small"
