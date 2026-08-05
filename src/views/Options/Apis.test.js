@@ -2,7 +2,11 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
 import Apis from "./Apis";
-import { OPT_TRANS_OPENAI } from "../../config";
+import {
+  OPT_TRANS_OPENAI,
+  OPT_TRANS_GEMINI,
+  OPT_TRANS_GEMINI_2,
+} from "../../config";
 import { fetchModelList } from "../../libs/modelList";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -299,5 +303,38 @@ describe("Apis batch concurrency", () => {
     );
 
     view.unmount();
+  });
+});
+
+describe("Apis temperature input", () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+    document.body.innerHTML = "";
+  });
+
+  test("renders temperature input for OpenAI but hides it for Gemini and Gemini2", async () => {
+    const openaiView = await renderApis(
+      createApi({ apiType: OPT_TRANS_OPENAI })
+    );
+    expect(
+      openaiView.container.querySelector('input[name="temperature"]')
+    ).not.toBeNull();
+    openaiView.unmount();
+
+    const geminiView = await renderApis(
+      createApi({ apiType: OPT_TRANS_GEMINI })
+    );
+    expect(
+      geminiView.container.querySelector('input[name="temperature"]')
+    ).toBeNull();
+    geminiView.unmount();
+
+    const gemini2View = await renderApis(
+      createApi({ apiType: OPT_TRANS_GEMINI_2 })
+    );
+    expect(
+      gemini2View.container.querySelector('input[name="temperature"]')
+    ).toBeNull();
+    gemini2View.unmount();
   });
 });
