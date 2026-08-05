@@ -1068,7 +1068,7 @@ const defaultApiOpts = {
   [OPT_TRANS_GEMINI_2]: {
     ...defaultApi,
     url: `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions`,
-    modelListUrl: "https://generativelanguage.googleapis.com/v1beta/models",
+    modelListUrl: "https://generativelanguage.googleapis.com/v1beta/openai/models",
     model: "gemini-3.6-flash",
     ...defaultAiApiOpts,
   },

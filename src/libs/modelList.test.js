@@ -1,5 +1,9 @@
 import { createModelListRequest, parseModelListResponse } from "./modelList";
-import { OPT_TRANS_GEMINI, OPT_TRANS_OPENAI } from "../config/api";
+import {
+  OPT_TRANS_GEMINI,
+  OPT_TRANS_GEMINI_2,
+  OPT_TRANS_OPENAI,
+} from "../config/api";
 
 describe("modelList", () => {
   test("parses OpenAI-compatible model lists", () => {
@@ -86,6 +90,42 @@ describe("modelList", () => {
         "https://generativelanguage.googleapis.com/v1beta/models?key=gemini-key",
       init: {
         method: "GET",
+      },
+    });
+  });
+
+  test("builds Gemini key query requests for native Gemini URLs regardless of apiType", () => {
+    expect(
+      createModelListRequest({
+        apiType: OPT_TRANS_GEMINI_2,
+        modelListUrl: "https://generativelanguage.googleapis.com/v1beta/models",
+        key: "gemini-key",
+      })
+    ).toEqual({
+      input:
+        "https://generativelanguage.googleapis.com/v1beta/models?key=gemini-key",
+      init: {
+        method: "GET",
+      },
+    });
+  });
+
+  test("builds bearer auth requests for Gemini2 OpenAI-compatible model list URL", () => {
+    expect(
+      createModelListRequest({
+        apiType: OPT_TRANS_GEMINI_2,
+        modelListUrl:
+          "https://generativelanguage.googleapis.com/v1beta/openai/models",
+        key: "gemini-key",
+      })
+    ).toEqual({
+      input:
+        "https://generativelanguage.googleapis.com/v1beta/openai/models",
+      init: {
+        method: "GET",
+        headers: {
+          Authorization: "Bearer gemini-key",
+        },
       },
     });
   });
