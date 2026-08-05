@@ -24,7 +24,6 @@ import {
   API_SPE_TYPES,
   DEFAULT_API_LIST,
   GEMINI_GENERATE_CONTENT_URL,
-  GEMINI_INTERACTIONS_URL,
   OPT_TRANS_GEMINI,
   defaultNobatchPrompt,
   defaultNobatchUserPrompt,
@@ -35,22 +34,24 @@ import {
 } from "./api";
 
 describe("prompt settings", () => {
-  test("migrates only the old official Gemini URL to Interactions V3", () => {
+  test("rewrites Gemini Interactions URL back to GEMINI_GENERATE_CONTENT_URL in V3 migration", () => {
     const customUrl =
       "https://proxy.example.com/models/{{model}}:generateContent";
+    const interactionsUrl =
+      "https://generativelanguage.googleapis.com/v1beta2/interactions";
     const setting = {
       version: SETTINGS_VERSION_V2,
       transApis: [
         {
           apiSlug: OPT_TRANS_GEMINI,
           apiType: OPT_TRANS_GEMINI,
-          url: GEMINI_GENERATE_CONTENT_URL,
+          url: interactionsUrl,
           thinkingMode: "disabled",
         },
         {
           apiSlug: "Gemini_copy",
           apiType: OPT_TRANS_GEMINI,
-          url: GEMINI_GENERATE_CONTENT_URL,
+          url: interactionsUrl,
         },
         {
           apiSlug: "Gemini_proxy",
@@ -63,10 +64,10 @@ describe("prompt settings", () => {
     const migrated = migrateSettingToV3(setting);
     expect(migrated.version).toBe(SETTINGS_VERSION_V3);
     expect(migrated.transApis[0]).toMatchObject({
-      url: GEMINI_INTERACTIONS_URL,
+      url: GEMINI_GENERATE_CONTENT_URL,
       thinkingMode: "disabled",
     });
-    expect(migrated.transApis[1].url).toBe(GEMINI_INTERACTIONS_URL);
+    expect(migrated.transApis[1].url).toBe(GEMINI_GENERATE_CONTENT_URL);
     expect(migrated.transApis[2].url).toBe(customUrl);
     expect(migrateSettingToV3(migrated)).toBe(migrated);
   });

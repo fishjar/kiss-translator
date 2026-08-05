@@ -9,7 +9,6 @@ import {
   defaultSubtitlePrompt,
   API_SPE_TYPES,
   GEMINI_GENERATE_CONTENT_URL,
-  GEMINI_INTERACTIONS_URL,
   OPT_TRANS_GEMINI,
 } from "./api";
 
@@ -694,8 +693,7 @@ export function migrateSettingPromptsToV2(setting = {}) {
 }
 
 /**
- * 将官方 Gemini generateContent 配置迁移到稳定版 Interactions API。
- * 自定义代理 URL 保持原样，继续使用 Legacy generateContent 协议。
+ * 从Interactions API改回generateContent API的补救
  */
 export function migrateSettingToV3(setting = {}) {
   if (!setting || typeof setting !== "object") {
@@ -712,17 +710,22 @@ export function migrateSettingToV3(setting = {}) {
 
   const transApis = Array.isArray(v2Setting.transApis)
     ? v2Setting.transApis.map((apiSetting) => {
-        if (
-          apiSetting?.apiType !== OPT_TRANS_GEMINI ||
-          apiSetting.url !== GEMINI_GENERATE_CONTENT_URL
-        ) {
+        if (apiSetting?.apiType !== OPT_TRANS_GEMINI) {
           return apiSetting;
         }
 
-        return {
-          ...apiSetting,
-          url: GEMINI_INTERACTIONS_URL,
-        };
+        const url = apiSetting.url || "";
+        if (
+          url.includes("generativelanguage.googleapis.com") &&
+          url.includes("interactions")
+        ) {
+          return {
+            ...apiSetting,
+            url: GEMINI_GENERATE_CONTENT_URL,
+          };
+        }
+
+        return apiSetting;
       })
     : v2Setting.transApis;
 

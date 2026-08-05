@@ -2,7 +2,7 @@ import {
   API_SPE_TYPES,
   DEFAULT_API_LIST,
   DEFAULT_API_TYPE,
-  GEMINI_INTERACTIONS_URL,
+  GEMINI_GENERATE_CONTENT_URL,
   getGeminiThinkingDisableStrategy,
   normalizeApiModelListUrls,
   OPT_TRANS_CLOUDFLAREAI,
@@ -32,13 +32,13 @@ test("all AI APIs define a thinking mode by default", () => {
   }
 });
 
-test("Gemini uses the official interactions endpoint while the model list stays on v1beta", () => {
+test("Gemini uses the generateContent endpoint while the model list stays on v1beta", () => {
   const gemini = DEFAULT_API_LIST.find(
     (api) => api.apiType === OPT_TRANS_GEMINI
   );
 
   expect(gemini).toMatchObject({
-    url: GEMINI_INTERACTIONS_URL,
+    url: GEMINI_GENERATE_CONTENT_URL,
     modelListUrl: "https://generativelanguage.googleapis.com/v1beta/models",
     model: "gemini-3.6-flash",
     thinkingMode: "disabled",
