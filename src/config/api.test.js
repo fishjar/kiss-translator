@@ -75,9 +75,23 @@ test("maps Gemini disabled thinking by API URL and model capability", () => {
     getGeminiThinkingDisableStrategy({
       apiType: OPT_TRANS_GEMINI,
       url: "https://proxy.example.com/v1/models/{{model}}:generateContent",
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash-lite",
+    })
+  ).toEqual({ field: "thinkingBudget", value: 0, fallback: false });
+  expect(
+    getGeminiThinkingDisableStrategy({
+      apiType: OPT_TRANS_GEMINI,
+      url: "https://proxy.example.com/v1/models/{{model}}:generateContent",
+      model: "gemini-3.1-pro",
     })
   ).toEqual({ field: "thinkingLevel", value: "low", fallback: true });
+  expect(
+    getGeminiThinkingDisableStrategy({
+      apiType: OPT_TRANS_GEMINI,
+      url: "https://proxy.example.com/v1/models/{{model}}:generateContent",
+      model: "gemini-3.5-flash",
+    })
+  ).toEqual({ field: "thinkingLevel", value: "minimal", fallback: true });
   expect(
     getGeminiThinkingDisableStrategy({
       apiType: OPT_TRANS_GEMINI,
@@ -90,13 +104,25 @@ test("maps Gemini disabled thinking by API URL and model capability", () => {
       apiType: OPT_TRANS_GEMINI_2,
       model: "custom-model",
     })
+  ).toEqual({ field: "reasoning_effort", value: "minimal", fallback: true });
+  expect(
+    getGeminiThinkingDisableStrategy({
+      apiType: OPT_TRANS_GEMINI_2,
+      model: "gemini-3.1-pro",
+    })
   ).toEqual({ field: "reasoning_effort", value: "low", fallback: true });
+  expect(
+    getGeminiThinkingDisableStrategy({
+      apiType: OPT_TRANS_GEMINI_2,
+      model: "gemini-2.5-pro",
+    })
+  ).toEqual({ field: "reasoning_effort", value: "minimal", fallback: true });
   expect(
     getGeminiThinkingDisableStrategy({
       apiType: OPT_TRANS_GEMINI_2,
       model: "gemini-3.5-flash",
     })
-  ).toEqual({ field: "reasoning_effort", value: "low", fallback: true });
+  ).toEqual({ field: "reasoning_effort", value: "minimal", fallback: true });
 });
 
 describe("normalizeApiModelListUrls", () => {

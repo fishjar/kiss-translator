@@ -119,8 +119,7 @@ describe("modelList", () => {
         key: "gemini-key",
       })
     ).toEqual({
-      input:
-        "https://generativelanguage.googleapis.com/v1beta/openai/models",
+      input: "https://generativelanguage.googleapis.com/v1beta/openai/models",
       init: {
         method: "GET",
         headers: {

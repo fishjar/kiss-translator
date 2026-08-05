@@ -322,12 +322,12 @@ export const THINKING_PARAM_MAP = {
       { value: "high", label: "High" },
       { value: "medium", label: "Medium" },
       { value: "low", label: "Low" },
+      { value: "minimal", label: "Minimal" },
     ],
   },
   [OPT_TRANS_GEMINI_2]: {
     type: "openai",
     efforts: [
-      { value: "xhigh", label: "X-High" },
       { value: "high", label: "High" },
       { value: "medium", label: "Medium" },
       { value: "low", label: "Low" },
@@ -377,11 +377,14 @@ export const THINKING_PARAM_MAP = {
 };
 
 export const normalizeGeminiModelName = (model = "") =>
-  String(model).trim().replace(/^models\//i, "").toLowerCase();
+  String(model)
+    .trim()
+    .replace(/^models\//i, "")
+    .toLowerCase();
 
-const isGemini25Flash = (model) => model.startsWith("gemini-2.5-flash");
 const isGemini25Pro = (model) => model.startsWith("gemini-2.5-pro");
 const isGemini3 = (model) => model.startsWith("gemini-3");
+const isGemini31Pro = (model) => model.startsWith("gemini-3.1-pro");
 const isGemini25NonPro = (model) =>
   model.startsWith("gemini-2.5-") && !isGemini25Pro(model);
 
@@ -396,21 +399,27 @@ export const getGeminiThinkingDisableStrategy = ({
     if (isGemini25NonPro(normalizedModel)) {
       return { field: "reasoning_effort", value: "none", fallback: false };
     }
+    if (isGemini31Pro(normalizedModel)) {
+      return { field: "reasoning_effort", value: "low", fallback: true };
+    }
     return {
       field: "reasoning_effort",
-      value: "low",
+      value: "minimal",
       fallback: true,
     };
   }
 
-  if (isGemini25Flash(normalizedModel)) {
-    return { field: "thinkingBudget", value: 0, fallback: false };
-  }
   if (isGemini25Pro(normalizedModel)) {
     return { field: "thinkingBudget", value: 128, fallback: true };
   }
-  if (isGemini3(normalizedModel)) {
+  if (isGemini25NonPro(normalizedModel)) {
+    return { field: "thinkingBudget", value: 0, fallback: false };
+  }
+  if (isGemini31Pro(normalizedModel)) {
     return { field: "thinkingLevel", value: "low", fallback: true };
+  }
+  if (isGemini3(normalizedModel)) {
+    return { field: "thinkingLevel", value: "minimal", fallback: true };
   }
   return { field: "thinkingLevel", value: "low", fallback: true };
 };
@@ -1064,7 +1073,8 @@ const defaultApiOpts = {
   [OPT_TRANS_GEMINI_2]: {
     ...defaultApi,
     url: `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions`,
-    modelListUrl: "https://generativelanguage.googleapis.com/v1beta/openai/models",
+    modelListUrl:
+      "https://generativelanguage.googleapis.com/v1beta/openai/models",
     model: "gemini-3.6-flash",
     ...defaultAiApiOpts,
   },

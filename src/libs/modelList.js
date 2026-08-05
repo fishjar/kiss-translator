@@ -13,8 +13,7 @@ const MODEL_KEY_PLACEHOLDER = "{{key}}";
  * @returns {boolean} 是否为 Gemini 原生模型列表 URL。
  */
 const isGeminiNativeModelListUrl = (url = "") =>
-  /\/v1(?:beta\d*)?\/models(?:[/?]|$)/i.test(url) &&
-  !/\/openai\//i.test(url);
+  /\/v1(?:beta\d*)?\/models(?:[/?]|$)/i.test(url) && !/\/openai\//i.test(url);
 
 /**
  * 去掉 Gemini 原生模型列表返回的资源名前缀。

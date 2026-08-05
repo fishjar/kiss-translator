@@ -712,25 +712,26 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
                   onChange={handleChange}
                 />
               </Grid>
-              {apiType !== OPT_TRANS_GEMINI && apiType !== OPT_TRANS_GEMINI_2 && (
-                <Grid item xs={12} sm={12} md={6} lg={3}>
-                  <ValidationInput
-                    size="small"
-                    fullWidth
-                    label={"Temperature (0.0-2.0)"}
-                    type="number"
-                    name="temperature"
-                    value={temperature}
-                    onChange={handleChange}
-                    min={0.0}
-                    max={2.0}
-                    isFloat={true}
-                    inputProps={{
-                      step: 0.1,
-                    }}
-                  />
-                </Grid>
-              )}
+              {apiType !== OPT_TRANS_GEMINI &&
+                apiType !== OPT_TRANS_GEMINI_2 && (
+                  <Grid item xs={12} sm={12} md={6} lg={3}>
+                    <ValidationInput
+                      size="small"
+                      fullWidth
+                      label={"Temperature (0.0-2.0)"}
+                      type="number"
+                      name="temperature"
+                      value={temperature}
+                      onChange={handleChange}
+                      min={0.0}
+                      max={2.0}
+                      isFloat={true}
+                      inputProps={{
+                        step: 0.1,
+                      }}
+                    />
+                  </Grid>
+                )}
               <Grid item xs={12} sm={12} md={6} lg={3}>
                 <ValidationInput
                   size="small"

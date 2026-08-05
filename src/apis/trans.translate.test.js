@@ -166,7 +166,7 @@ describe("handleTranslate", () => {
       })
     );
     expect(JSON.parse(fetchData.mock.calls[0][1].body).reasoning_effort).toBe(
-      "low"
+      "minimal"
     );
   });
 
