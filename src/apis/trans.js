@@ -686,50 +686,6 @@ const genGemini = ({
     .replaceAll(INPUT_PLACE_MODEL, model)
     .replaceAll(INPUT_PLACE_KEY, key);
 
-  if (isGeminiInteractionsUrl(url)) {
-    const userMsg = {
-      type: "user_input",
-      content: [{ type: "text", text: userPrompt }],
-    };
-    const generationConfig = {
-      max_output_tokens: maxTokens,
-      temperature,
-    };
-
-    if (thinkingMode === "disabled") {
-      const strategy = getGeminiThinkingDisableStrategy({
-        apiType,
-        url,
-        model,
-      });
-      if (strategy.field === "thinking_level") {
-        generationConfig.thinking_level = strategy.value;
-      }
-    } else if (
-      thinkingMode === "enabled" &&
-      thinkingEffort &&
-      thinkingEffort !== "_default"
-    ) {
-      generationConfig.thinking_level = thinkingEffort;
-    }
-
-    const body = {
-      model,
-      system_instruction: systemPrompt,
-      input: [...hisMsgs, userMsg],
-      stream: useStream,
-      store: false,
-      generation_config: generationConfig,
-    };
-    const headers = {
-      "Content-type": "application/json",
-      "x-goog-api-key": key,
-    };
-
-    return { url, body, headers, userMsg };
-  }
-
-  // 自定义代理 URL 继续兼容 Legacy generateContent 协议。
   if (useStream) {
     url = url.replace(":generateContent", ":streamGenerateContent");
     url += (url.includes("?") ? "&" : "?") + "alt=sse";
@@ -1692,14 +1648,7 @@ export async function* handleTranslate(
     hisMsgs = history.getAll();
   }
 
-  const enableStream =
-    useStream &&
-    API_SPE_TYPES.stream.has(apiType) &&
-    !(
-      apiType === OPT_TRANS_GEMINI &&
-      useContext &&
-      isGeminiInteractionsUrl(apiSetting.url)
-    );
+  const enableStream = useStream && API_SPE_TYPES.stream.has(apiType);
 
   let token = "";
   if (apiType === OPT_TRANS_MICROSOFT) {
