@@ -82,6 +82,8 @@ import { getHttpCachePolyfill, putHttpCachePolyfill } from "../libs/cache";
 import {
   DEFAULT_API_LIST,
   OPT_TRANS_BUILTINAI,
+  OPT_TRANS_DEEPL,
+  OPT_TRANS_DEEPLX,
   OPT_TRANS_OPENAI,
 } from "../config";
 
@@ -531,6 +533,62 @@ describe("apiTranslate prompt queue isolation", () => {
       handleTranslate,
       expect.objectContaining({ batchConcurrency: 1 })
     );
+  });
+});
+
+describe("apiTranslate DeepL language mappings", () => {
+  beforeEach(() => {
+    mockGetCacheDigest.mockResolvedValue("a".repeat(64));
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test("uses a Traditional Chinese target variant and generic Chinese source for DeepL", async () => {
+    const addTask = jest.fn().mockResolvedValue(["繁體譯文", "ZH"]);
+    getBatchQueue.mockReturnValue({ addTask });
+
+    const result = await apiTranslate({
+      text: "hello",
+      fromLang: "zh-TW",
+      toLang: "zh-TW",
+      apiSetting: {
+        ...DEFAULT_API_LIST.find((api) => api.apiType === OPT_TRANS_DEEPL),
+        apiSlug: "deepl_test",
+      },
+      useCache: false,
+    });
+
+    expect(addTask).toHaveBeenCalledWith(
+      "hello",
+      expect.objectContaining({ from: "ZH", to: "ZH-HANT" })
+    );
+    expect(result.srCode).toBe("zh-CN");
+  });
+
+  test("uses a Traditional Chinese target variant and generic Chinese source for DeepLX", async () => {
+    async function* translate() {
+      yield { id: 0, result: ["繁體譯文", "ZH"] };
+    }
+    handleTranslate.mockImplementationOnce(translate);
+
+    const result = await apiTranslate({
+      text: "hello",
+      fromLang: "zh-TW",
+      toLang: "zh-TW",
+      apiSetting: {
+        ...DEFAULT_API_LIST.find((api) => api.apiType === OPT_TRANS_DEEPLX),
+        apiSlug: "deeplx_test",
+      },
+      useCache: false,
+    });
+
+    expect(handleTranslate).toHaveBeenCalledWith(
+      ["hello"],
+      expect.objectContaining({ from: "ZH", to: "ZH-HANT" })
+    );
+    expect(result.srCode).toBe("zh-CN");
   });
 });
 

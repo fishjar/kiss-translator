@@ -524,8 +524,8 @@ export const OPT_LANGS_TO_SPEC = {
   [OPT_TRANS_DEEPL]: new Map([
     ...OPT_LANGS_SPEC_DEFAULT_UC,
     ["auto", ""],
-    ["zh-CN", "ZH"],
-    ["zh-TW", "ZH"],
+    ["zh-CN", "ZH-HANS"],
+    ["zh-TW", "ZH-HANT"],
   ]),
   [OPT_TRANS_DEEPLFREE]: new Map([
     ...OPT_LANGS_SPEC_DEFAULT_UC,
@@ -536,8 +536,8 @@ export const OPT_LANGS_TO_SPEC = {
   [OPT_TRANS_DEEPLX]: new Map([
     ...OPT_LANGS_SPEC_DEFAULT_UC,
     ["auto", "auto"],
-    ["zh-CN", "ZH"],
-    ["zh-TW", "ZH"],
+    ["zh-CN", "ZH-HANS"],
+    ["zh-TW", "ZH-HANT"],
   ]),
   [OPT_TRANS_DEEPSEEK]: OPT_LANGS_SPEC_NAME,
   [OPT_TRANS_OPENCODEGO]: OPT_LANGS_SPEC_NAME,
@@ -618,6 +618,20 @@ export const OPT_LANGS_TO_SPEC = {
   [OPT_TRANS_CUSTOMIZE]: OPT_LANGS_SPEC_NAME,
 };
 
+export const OPT_LANGS_FROM_SPEC = {
+  ...OPT_LANGS_TO_SPEC,
+  [OPT_TRANS_DEEPL]: new Map([
+    ...OPT_LANGS_TO_SPEC[OPT_TRANS_DEEPL],
+    ["zh-CN", "ZH"],
+    ["zh-TW", "ZH"],
+  ]),
+  [OPT_TRANS_DEEPLX]: new Map([
+    ...OPT_LANGS_TO_SPEC[OPT_TRANS_DEEPLX],
+    ["zh-CN", "ZH"],
+    ["zh-TW", "ZH"],
+  ]),
+};
+
 const specToCode = (m) =>
   new Map(
     Array.from(m.entries()).map(([k, v]) => {
@@ -635,6 +649,9 @@ const specToCode = (m) =>
 export const OPT_LANGS_TO_CODE = {};
 Object.entries(OPT_LANGS_TO_SPEC).forEach(([t, m]) => {
   OPT_LANGS_TO_CODE[t] = specToCode(m);
+});
+[OPT_TRANS_DEEPL, OPT_TRANS_DEEPLX].forEach((apiType) => {
+  OPT_LANGS_TO_CODE[apiType].set("ZH", "zh-CN");
 });
 
 export const defaultNobatchPrompt = `You are a professional, authentic machine translation engine.`;
