@@ -1,0 +1,32 @@
+{
+  "app_name": {
+    "message": "KISS Translator"
+  },
+  "app_description": {
+    "message": "Một tiện ích mở rộng dịch song ngữ tối giản, hỗ trợ dịch trang web, vùng chọn và phụ đề video."
+  },
+  "translate_selection": {
+    "message": "Dịch \"%s\""
+  },
+  "toggle_translate": {
+    "message": "Bật/tắt Dịch"
+  },
+  "toggle_translate_only": {
+    "message": "Chỉ hiển thị bản dịch"
+  },
+  "toggle_style": {
+    "message": "Chuyển đổi Kiểu dáng"
+  },
+  "open_options": {
+    "message": "Mở Cài đặt"
+  },
+  "open_tranbox": {
+    "message": "Mở Hộp Bật lên"
+  },
+  "open_separate_window": {
+    "message": "Mở Cửa sổ Độc lập"
+  },
+  "toggle_tranbox": {
+    "message": "Chuyển đổi Hộp Dịch"
+  }
+}
