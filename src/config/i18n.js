@@ -1169,7 +1169,7 @@ export const I18N = {
     ja: `詳細は [こちら](${process.env.REACT_APP_HOMEPAGE}) をクリックしてください。`,
     ko: `자세한 내용은 [여기](${process.env.REACT_APP_HOMEPAGE})를 클릭하세요.`,
     tr: `Lütfen Ayrıntılar İçin [Buraya Tıkla](${process.env.REACT_APP_HOMEPAGE})`,
-    vi: "Vui lòng [nhấp vào đây](\${process.env.REACT_APP_HOMEPAGE}) để biết chi tiết.",
+    vi: `Vui lòng [nhấp vào đây](${process.env.REACT_APP_HOMEPAGE}) để biết chi tiết.`,
   },
   ui_lang: {
     zh: `界面语言`,
