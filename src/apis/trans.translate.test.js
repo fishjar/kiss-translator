@@ -23,6 +23,7 @@ import {
   OPT_TRANS_GEMINI,
   OPT_TRANS_GEMINI_2,
   OPT_TRANS_OPENAI,
+  OPT_TRANS_OPENROUTER,
 } from "../config";
 import { fetchData, fetchStream } from "../libs/fetch";
 import { trustedTypesHelper } from "../libs/trustedTypes";
@@ -166,6 +167,50 @@ describe("handleTranslate", () => {
       JSON.parse(fetchData.mock.calls[2][1].body).generation_config
         .thinking_level
     ).toBe("low");
+  });
+
+  test("maps all OpenRouter thinking modes to the unified reasoning object", async () => {
+    fetchData.mockResolvedValue({
+      choices: [{ message: { content: "你好" } }],
+    });
+    const translate = (thinkingMode, thinkingEffort = "_default") =>
+      collectAsyncGenerator(
+        handleTranslate(["hello"], {
+          from: "en",
+          to: "zh-CN",
+          fromLang: "English",
+          toLang: "Chinese",
+          langMap: () => "",
+          glossary: "",
+          apiSetting: {
+            ...getApiSetting(OPT_TRANS_OPENROUTER),
+            useStream: false,
+            thinkingMode,
+            thinkingEffort,
+          },
+          usePool: false,
+        })
+      );
+
+    await translate("auto", "high");
+    expect(JSON.parse(fetchData.mock.calls[0][1].body)).not.toHaveProperty(
+      "reasoning"
+    );
+
+    await translate("enabled");
+    expect(JSON.parse(fetchData.mock.calls[1][1].body).reasoning).toEqual({
+      enabled: true,
+    });
+
+    await translate("enabled", "xhigh");
+    expect(JSON.parse(fetchData.mock.calls[2][1].body).reasoning).toEqual({
+      effort: "xhigh",
+    });
+
+    await translate("disabled");
+    expect(JSON.parse(fetchData.mock.calls[3][1].body).reasoning).toEqual({
+      effort: "none",
+    });
   });
 
   test("maps Gemini2 disabled thinking by model capability", async () => {

@@ -357,8 +357,9 @@ export const THINKING_PARAM_MAP = {
   },
   [OPT_TRANS_OPENROUTER]: {
     type: "openrouter",
-    disableSupported: false,
     efforts: [
+      { value: "max", label: "Max" },
+      { value: "xhigh", label: "X-High" },
       { value: "high", label: "High" },
       { value: "medium", label: "Medium" },
       { value: "low", label: "Low" },
