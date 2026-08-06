@@ -13,8 +13,9 @@ const MODEL_KEY_PLACEHOLDER = "{{key}}";
  * @returns {boolean} 是否为 Gemini 原生模型列表 URL。
  */
 const isGeminiNativeModelListUrl = (url = "") =>
-  /\/v1(?:beta\d*)?\/models(?:[/?]|$)/i.test(url) &&
-  !/\/openai\//i.test(url);
+  /^https:\/\/generativelanguage\.googleapis\.com\/v1(?:beta\d*)?\/models(?:[/?]|$)/i.test(
+    url
+  ) && !/\/openai\//i.test(url);
 
 /**
  * 去掉 Gemini 原生模型列表返回的资源名前缀。
@@ -63,12 +64,13 @@ const addUniqueModel = (models, seen, model) => {
  * @param {unknown} data 模型列表接口返回的 JSON 数据。
  * @returns {string[]} 标准化、去重后的模型名称列表。
  */
-export function parseModelListResponse(data) {
+export function parseModelCatalogResponse(data) {
   if (!data || typeof data !== "object") {
-    return [];
+    return { models: [], thinkingCapabilities: {} };
   }
 
   const models = [];
+  const thinkingCapabilities = {};
   const seen = new Set();
   // 兼容 OpenAI-compatible 的 `data` 和 Gemini/Ollama 的 `models` 两种列表字段。
   const lists = [data.data, data.models].filter(Array.isArray);
@@ -92,10 +94,40 @@ export function parseModelListResponse(data) {
         (value) => typeof value === "string" && value.trim()
       );
       addUniqueModel(models, seen, model);
+
+      const normalizedModel = stripGeminiModelPrefix(model?.trim?.() || "");
+      if (
+        normalizedModel &&
+        item.reasoning &&
+        typeof item.reasoning === "object"
+      ) {
+        // OpenRouter 会在 Models API 中动态公布各模型的推理等级和强制推理状态。
+        // 这里只保留请求规范化需要的字段，避免把整条易变的模型记录写入设置。
+        const rawEfforts = item.reasoning.supported_efforts;
+        const supportedEfforts =
+          rawEfforts === null
+            ? ["max", "xhigh", "high", "medium", "low", "minimal"]
+            : Array.isArray(rawEfforts)
+              ? rawEfforts
+              : [];
+        if (supportedEfforts.length) {
+          thinkingCapabilities[normalizedModel] = {
+            model: normalizedModel,
+            supportedEfforts,
+            defaultEffort: item.reasoning.default_effort,
+            defaultEnabled: item.reasoning.default_enabled,
+            mandatory: item.reasoning.mandatory === true,
+          };
+        }
+      }
     });
   });
 
-  return models;
+  return { models, thinkingCapabilities };
+}
+
+export function parseModelListResponse(data) {
+  return parseModelCatalogResponse(data).models;
 }
 
 /**
@@ -193,7 +225,7 @@ export function createModelListRequest({ apiType, modelListUrl, key }) {
  * @param {number} [params.httpTimeout] 请求超时时间配置。
  * @returns {Promise<string[]>} 可用于模型下拉选项的模型名称列表。
  */
-export async function fetchModelList({
+export async function fetchModelCatalog({
   apiType,
   modelListUrl,
   key,
@@ -204,7 +236,7 @@ export async function fetchModelList({
   const request = createModelListRequest({ apiType, modelListUrl, key });
 
   if (!request) {
-    return [];
+    return { models: [], thinkingCapabilities: {} };
   }
 
   const data = await fnPolyfill({
@@ -218,5 +250,11 @@ export async function fetchModelList({
     },
   });
 
-  return parseModelListResponse(data);
+  return parseModelCatalogResponse(data);
+}
+
+// 兼容只消费字符串模型 ID 的现有调用方。
+export async function fetchModelList(params) {
+  const catalog = await fetchModelCatalog(params);
+  return catalog.models;
 }

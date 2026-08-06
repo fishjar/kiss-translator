@@ -49,7 +49,7 @@ import {
   defaultSystemPromptLines,
   INPUT_PLACE_SUMMARY,
   INPUT_PLACE_CONTEXT,
-  THINKING_PARAM_MAP,
+  resolveThinkingStrategy,
   getGeminiThinkingStrategy,
   isGeminiInteractionsUrl,
 } from "../config";
@@ -432,55 +432,47 @@ const siliconflowEffortMap = {
  * 注入推理模式（Thinking）的专用控制参数。
  * 针对 DeepSeek, 阿里百炼, 硅基流动, Cerebras, OpenRouter 各大模型厂商繁杂的推理链配置参数进行统一映射注入。
  */
-const injectThinking = (body, { apiType, thinkingMode, thinkingEffort }) => {
-  if (thinkingMode === "auto") return; // 留空由模型网关自动决定
+const injectThinking = (
+  body,
+  { apiType, model, thinkingMode, thinkingEffort, thinkingCapabilities }
+) => {
+  const strategy = resolveThinkingStrategy({
+    apiType,
+    model,
+    thinkingMode,
+    thinkingEffort,
+    thinkingCapabilities,
+  });
+  if (strategy.action === "none") return;
 
-  const param = THINKING_PARAM_MAP[apiType];
-  if (!param) return;
-
-  const hasEffort = thinkingEffort && thinkingEffort !== "_default";
-
-  switch (param.type) {
+  switch (strategy.capability.protocol) {
     case "deepseek":
       body.thinking = {
-        type: thinkingMode === "enabled" ? "enabled" : "disabled",
+        type: strategy.action === "enabled" ? "enabled" : "disabled",
       };
-      if (thinkingMode === "enabled" && hasEffort) {
-        body.reasoning_effort = thinkingEffort;
+      if (strategy.effort) {
+        body.reasoning_effort = strategy.effort;
       }
       break;
     case "aliyunbailian":
       // 百炼仅支持 enable_thinking 布尔开关，不支持推理强度参数
-      body.enable_thinking = thinkingMode === "enabled";
+      body.enable_thinking = strategy.action === "enabled";
       break;
     case "siliconflow":
-      body.enable_thinking = thinkingMode === "enabled";
-      if (thinkingMode === "enabled" && hasEffort) {
+      body.enable_thinking = strategy.action === "enabled";
+      if (strategy.effort) {
         // 将抽象等级转换为硅基流动所支持的具体思考 tokens 额度
-        body.thinking_budget = siliconflowEffortMap[thinkingEffort] || 8192;
-      }
-      break;
-    case "cerebras":
-      if (thinkingMode === "disabled") {
-        body.reasoning_effort = "none";
-      } else if (hasEffort) {
-        body.reasoning_effort = thinkingEffort;
+        body.thinking_budget = siliconflowEffortMap[strategy.effort] || 8192;
       }
       break;
     case "openai":
-      if (thinkingMode === "disabled") {
-        body.reasoning_effort = "none";
-      } else if (thinkingMode === "enabled" && hasEffort) {
-        body.reasoning_effort = thinkingEffort;
-      }
+      if (strategy.effort) body.reasoning_effort = strategy.effort;
       break;
     case "openrouter":
-      if (thinkingMode === "disabled") {
-        body.reasoning = { effort: "none" };
-      } else if (thinkingMode === "enabled" && hasEffort) {
-        body.reasoning = { effort: thinkingEffort };
-      } else if (thinkingMode === "enabled") {
+      if (strategy.action === "enabled" && !strategy.effort) {
         body.reasoning = { enabled: true };
+      } else if (strategy.effort) {
+        body.reasoning = { effort: strategy.effort };
       }
       break;
     default:
@@ -639,6 +631,7 @@ const genOpenAI = ({
   apiType,
   thinkingMode,
   thinkingEffort,
+  thinkingCapabilities,
 }) => {
   const userMsg = {
     role: "user",
@@ -659,7 +652,13 @@ const genOpenAI = ({
     stream: useStream,
   };
 
-  injectThinking(body, { apiType, thinkingMode, thinkingEffort });
+  injectThinking(body, {
+    apiType,
+    model,
+    thinkingMode,
+    thinkingEffort,
+    thinkingCapabilities,
+  });
 
   const headers = {
     "Content-type": "application/json",
@@ -849,6 +848,7 @@ const genClaude = ({
   useStream = false,
   thinkingMode,
   thinkingEffort,
+  thinkingCapabilities,
 }) => {
   const userMsg = {
     role: "user",
@@ -863,13 +863,22 @@ const genClaude = ({
     stream: useStream,
   };
 
-  if (thinkingMode && thinkingMode !== "auto") {
-    if (thinkingMode === "enabled") {
-      body.thinking = { type: "adaptive" };
-      if (thinkingEffort && thinkingEffort !== "_default") {
-        body.output_config = { effort: thinkingEffort };
-      }
-    }
+  const strategy = resolveThinkingStrategy({
+    apiType: OPT_TRANS_CLAUDE,
+    model,
+    thinkingMode,
+    thinkingEffort,
+    thinkingCapabilities,
+  });
+  if (strategy.action === "enabled") {
+    body.thinking = { type: "adaptive" };
+    if (strategy.effort) body.output_config = { effort: strategy.effort };
+  } else if (strategy.action === "disabled") {
+    body.thinking = { type: "disabled" };
+  } else if (strategy.action === "effort" && strategy.effort) {
+    // 强制思考模型不能发送 disabled，只能保持 adaptive 并降到最低等级。
+    body.thinking = { type: "adaptive" };
+    body.output_config = { effort: strategy.effort };
   }
 
   const headers = {
@@ -894,6 +903,7 @@ const genOpenRouter = ({
   useStream = false,
   thinkingMode,
   thinkingEffort,
+  thinkingCapabilities,
 }) => {
   const userMsg = {
     role: "user",
@@ -916,8 +926,10 @@ const genOpenRouter = ({
 
   injectThinking(body, {
     apiType: OPT_TRANS_OPENROUTER,
+    model,
     thinkingMode,
     thinkingEffort,
+    thinkingCapabilities,
   });
 
   const headers = {
@@ -942,6 +954,7 @@ const genOrcaRouter = ({
   useStream = false,
   thinkingMode,
   thinkingEffort,
+  thinkingCapabilities,
 }) => {
   const userMsg = {
     role: "user",
@@ -964,8 +977,10 @@ const genOrcaRouter = ({
 
   injectThinking(body, {
     apiType: OPT_TRANS_ORCAROUTER,
+    model,
     thinkingMode,
     thinkingEffort,
+    thinkingCapabilities,
   });
 
   const headers = {
@@ -991,6 +1006,7 @@ const genOllama = ({
   useStream = false,
   thinkingMode,
   thinkingEffort,
+  thinkingCapabilities,
 }) => {
   const userMsg = {
     role: "user",
@@ -1012,8 +1028,10 @@ const genOllama = ({
 
   injectThinking(body, {
     apiType: OPT_TRANS_OLLAMA,
+    model,
     thinkingMode,
     thinkingEffort,
+    thinkingCapabilities,
   });
   body.stream = useStream;
 

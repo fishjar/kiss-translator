@@ -7,7 +7,7 @@ import {
   OPT_TRANS_GEMINI,
   OPT_TRANS_GEMINI_2,
 } from "../../config";
-import { fetchModelList } from "../../libs/modelList";
+import { fetchModelCatalog } from "../../libs/modelList";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 HTMLElement.prototype.scrollTo = jest.fn();
@@ -47,7 +47,7 @@ jest.mock("../../apis", () => ({
 }));
 
 jest.mock("../../libs/modelList", () => ({
-  fetchModelList: jest.fn(),
+  fetchModelCatalog: jest.fn(),
 }));
 
 jest.mock("./ReusableAutocomplete", () => {
@@ -162,7 +162,10 @@ describe("Apis model list", () => {
   });
 
   test("loads model list once when model input is focused", async () => {
-    fetchModelList.mockResolvedValue(["gpt-4o", "gpt-4.1"]);
+    fetchModelCatalog.mockResolvedValue({
+      models: ["gpt-4o", "gpt-4.1"],
+      thinkingCapabilities: {},
+    });
     const view = await renderApis();
     const modelInput = getInput(view.container, "model");
 
@@ -176,14 +179,64 @@ describe("Apis model list", () => {
       await Promise.resolve();
     });
 
-    expect(fetchModelList).toHaveBeenCalledTimes(1);
-    expect(fetchModelList).toHaveBeenCalledWith({
+    expect(fetchModelCatalog).toHaveBeenCalledTimes(1);
+    expect(fetchModelCatalog).toHaveBeenCalledWith({
       apiType: OPT_TRANS_OPENAI,
       modelListUrl: "https://api.openai.com/v1/models",
       key: "sk-test",
       httpTimeout: 30,
     });
     expect(modelInput.getAttribute("data-options")).toContain("gpt-4o");
+
+    view.unmount();
+  });
+
+  test("saves OpenRouter reasoning metadata for the selected model", async () => {
+    fetchModelCatalog.mockResolvedValue({
+      models: ["provider/mandatory-model"],
+      thinkingCapabilities: {
+        "provider/mandatory-model": {
+          model: "provider/mandatory-model",
+          supportedEfforts: ["high", "low"],
+          mandatory: true,
+        },
+      },
+    });
+    const update = jest.fn();
+    const view = await renderApis(
+      createApi({
+        apiSlug: "OpenRouter",
+        apiName: "OpenRouter",
+        apiType: "OpenRouter",
+        model: "provider/mandatory-model",
+        modelListUrl: "https://openrouter.ai/api/v1/models",
+        thinkingMode: "disabled",
+      }),
+      update
+    );
+    const modelInput = getInput(view.container, "model");
+
+    await act(async () => {
+      Simulate.focus(modelInput);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(view.container.textContent).toContain(
+      "gemini_thinking_minimum_helper"
+    );
+
+    await act(async () => {
+      Simulate.click(getSaveButton(view.container));
+    });
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        thinkingCapabilities: {
+          model: "provider/mandatory-model",
+          supportedEfforts: ["high", "low"],
+          mandatory: true,
+        },
+      })
+    );
 
     view.unmount();
   });
@@ -197,7 +250,7 @@ describe("Apis model list", () => {
       await Promise.resolve();
     });
 
-    expect(fetchModelList).not.toHaveBeenCalled();
+    expect(fetchModelCatalog).not.toHaveBeenCalled();
 
     view.unmount();
   });
@@ -231,7 +284,7 @@ describe("Apis model list", () => {
   });
 
   test("shows fetch failure without clearing model", async () => {
-    fetchModelList.mockRejectedValue(new Error("network failed"));
+    fetchModelCatalog.mockRejectedValue(new Error("network failed"));
     const view = await renderApis();
     const modelInput = getInput(view.container, "model");
 
@@ -249,7 +302,7 @@ describe("Apis model list", () => {
   });
 
   test("resets model list error when url or key changes", async () => {
-    fetchModelList.mockRejectedValue(new Error("network failed"));
+    fetchModelCatalog.mockRejectedValue(new Error("network failed"));
     const view = await renderApis();
     const modelInput = getInput(view.container, "model");
     const modelListUrlInput = getInput(view.container, "modelListUrl");

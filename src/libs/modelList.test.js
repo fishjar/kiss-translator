@@ -1,4 +1,8 @@
-import { createModelListRequest, parseModelListResponse } from "./modelList";
+import {
+  createModelListRequest,
+  parseModelCatalogResponse,
+  parseModelListResponse,
+} from "./modelList";
 import {
   OPT_TRANS_GEMINI,
   OPT_TRANS_GEMINI_2,
@@ -34,6 +38,35 @@ describe("modelList", () => {
         ],
       })
     ).toEqual(["qwen/qwen3.7-flash", "anthropic/claude-opus-5-fast"]);
+  });
+
+  test("preserves OpenRouter reasoning capabilities by model ID", () => {
+    expect(
+      parseModelCatalogResponse({
+        data: [
+          {
+            id: "google/gemini-3.5-flash",
+            reasoning: {
+              supported_efforts: ["high", "medium", "low", "minimal"],
+              default_effort: "medium",
+              default_enabled: true,
+              mandatory: true,
+            },
+          },
+        ],
+      })
+    ).toEqual({
+      models: ["google/gemini-3.5-flash"],
+      thinkingCapabilities: {
+        "google/gemini-3.5-flash": {
+          model: "google/gemini-3.5-flash",
+          supportedEfforts: ["high", "medium", "low", "minimal"],
+          defaultEffort: "medium",
+          defaultEnabled: true,
+          mandatory: true,
+        },
+      },
+    });
   });
 
   test("parses Gemini model lists", () => {
@@ -119,8 +152,7 @@ describe("modelList", () => {
         key: "gemini-key",
       })
     ).toEqual({
-      input:
-        "https://generativelanguage.googleapis.com/v1beta/openai/models",
+      input: "https://generativelanguage.googleapis.com/v1beta/openai/models",
       init: {
         method: "GET",
         headers: {

@@ -184,6 +184,6 @@ describe("OrcaRouter interface", () => {
 
     const body = JSON.parse(fetchData.mock.calls[0][1].body);
     expect(body).not.toHaveProperty("reasoning");
-    expect(body.reasoning_effort).toBe("medium");
+    expect(body.reasoning_effort).toBe("high");
   });
 });

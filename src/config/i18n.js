@@ -1286,7 +1286,7 @@ export const I18N = {
     ja: `各APIの思考パラメータは統一されていません。エラーが発生した場合は「APIデフォルト」を使用してください。`,
     ko: `API별 사고 매개변수가 통일되어 있지 않습니다. 오류 발생 시 "API 기본값"을 사용하세요.`,
     tr: `API'ler arasında düşünme parametreleri farklılık gösterir. Hata ile karşılaşırsanız lütfen "API Varsayılanı" seçeneğini kullanın.`,
-    vi: "The thinking parameters vary across APIs. If you encounter errors, please use the \"API Default\" option.",
+    vi: 'The thinking parameters vary across APIs. If you encounter errors, please use the "API Default" option.',
   },
   gemini_thinking_minimum_helper: {
     zh: `当前模型不支持完全关闭思考，将自动使用最低思考级别。`,
@@ -1358,7 +1358,7 @@ export const I18N = {
     ja: `JSON形式を使用してください。例: "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:141.0) Gecko/20100101 Firefox/141.0"`,
     ko: `JSON 형식을 사용하세요. 예: "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:141.0) Gecko/20100101 Firefox/141.0"`,
     tr: `Örneğin, "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:141.0) Gecko/20100101 Firefox/141.0" şeklinde JSON formatını kullanın.`,
-    vi: "Use JSON format, for example \"User-Agent\": \"Mozilla/5.0 (X11; Linux x86_64; rv:141.0) Gecko/20100101 Firefox/141.0\"",
+    vi: 'Use JSON format, for example "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:141.0) Gecko/20100101 Firefox/141.0"',
   },
   custom_body: {
     zh: `自定义Body参数`,
@@ -1376,7 +1376,7 @@ export const I18N = {
     ja: `JSON形式を使用してください。例: "top_p": 0.7`,
     ko: `JSON 형식을 사용하세요. 예: "top_p": 0.7`,
     tr: `JSON formatını kullanın, örneğin "top_p": 0.7`,
-    vi: "Use JSON format, for example \"top_p\": 0.7",
+    vi: 'Use JSON format, for example "top_p": 0.7',
   },
   gemini_interactions_custom_body_help: {
     zh: `使用 Interactions API 顶层 JSON 字段；Request Hook 收到的也是 Interactions 请求结构。`,
@@ -1979,7 +1979,7 @@ export const I18N = {
     ja: `1. ルールの優先順位: 個人ルール > 購読ルール > グローバルルール。「グローバルルール」はフォールバックルールのようなものです。`,
     ko: `1. 규칙 우선순위: 개인 규칙 > 구독 규칙 > 전역 규칙. "전역 규칙"은 일종의 폴백(fallback) 규칙입니다.`,
     tr: `1. Kuralların önceliği şudur: kişisel kurallar > abonelik kuralları > genel kurallar. "Genel kurallar" bir geri dönüş kuralı gibidir`,
-    vi: "1. The priority of rules is: personal rules > subscription rules > global rules. \"Global rules\" are like a fallback rule.",
+    vi: '1. The priority of rules is: personal rules > subscription rules > global rules. "Global rules" are like a fallback rule.',
   },
   rules_warn_2: {
     zh: `2、“订阅规则”选择注入后才会生效。`,
@@ -1988,7 +1988,7 @@ export const I18N = {
     ja: `2. 「購読ルール」は注入を選択した後にのみ有効になります。`,
     ko: `2. "구독 규칙"은 주입을 선택한 후에만 적용됩니다.`,
     tr: `2. "Abonelik kuralları" yalnızca enjeksiyon seçildikten sonra geçerli olacaktır.`,
-    vi: "2. \"Subscription rules\" will take effect only after injection is selected.",
+    vi: '2. "Subscription rules" will take effect only after injection is selected.',
   },
   rules_warn_3: {
     zh: `3、关于规则填写：输入框留空或下拉框选“*”表示采用全局规则。CSS选择器支持 + 号前缀表示在全局规则基础上追加，- 号表示剔除。`,
@@ -1997,7 +1997,7 @@ export const I18N = {
     ja: `3. ルールの記入について: 入力ボックスを空白にするか、ドロップダウンで「*」を選択すると、グローバルルールが使用されます。CSS セレクターはプレフィックスに対応しています。「+」はグローバルルールへの追加、「-」は除外を意味します。`,
     ko: `3. 규칙 작성 관련: 입력란을 비워두거나 드롭다운에서 "*"를 선택하면 전역 규칙이 사용됩니다. CSS 선택자는 접두사를 지원합니다. "+"는 전역 규칙에 추가, "-"는 제외를 의미합니다.`,
     tr: `3. Kuralların Doldurulmasıyla İlgili Olarak: Genel Kuralı Kullanmak İçin Giriş Kutusunu Boş Bırakın Veya Açılır Kutuda "*" Seçeneğini Seçin. Css Seçicileri Önekleri Destekler: "+" Genel Kurallara Ekleme Anlamına Gelir`,
-    vi: "3. Regarding filling in the rules: Leave the input box blank or select \"*\" in the drop-down box to use global rule. CSS selectors support prefixes: \"+\" means add to the global rules, \"-\" means exclude.",
+    vi: '3. Regarding filling in the rules: Leave the input box blank or select "*" in the drop-down box to use global rule. CSS selectors support prefixes: "+" means add to the global rules, "-" means exclude.',
   },
   sync_warn: {
     zh: `涉及隐私数据的同步请谨慎选择第三方同步服务，建议自行搭建 kiss-worker 或 WebDAV 服务。`,
@@ -2276,7 +2276,7 @@ export const I18N = {
     ja: `1. アスタリスク (*) ワイルドカードをサポートします。 2. 複数のURLは改行または英語のコンマ「,」で区切ります。`,
     ko: `1. 별표(*) 와일드카드 문자를 지원합니다. 2. 여러 URL은 줄바꿈 또는 영어 쉼표 ","로 구분합니다.`,
     tr: `1. Yıldız (*) Joker Karakterini Destekler. 2. Birden Fazla URL'Yi Yeni Satırlarla Veya Virgüllerle Ayırın "`,
-    vi: "1. Supports the asterisk (*) wildcard character. 2. Separate multiple URLs with newlines or English commas \",\".",
+    vi: '1. Supports the asterisk (*) wildcard character. 2. Separate multiple URLs with newlines or English commas ",".',
   },
   selector_helper: {
     zh: `1、需要翻译的目标元素。2、开启自动扫描页面后，本设置无效。3、遵循CSS选择器语法。`,
@@ -2420,7 +2420,7 @@ export const I18N = {
     ja: `1. 正規表現マッチングをサポート (スラッシュ不要、修飾子非対応)。 2. 複数の用語は改行またはセミコロン「;」で区切ります。 3. 用語と翻訳は英語のコンマ「,」で区切ります。 4. 翻訳がない場合は、その用語を翻訳しないものとみなします。`,
     ko: `1. 정규식 일치를 지원하며, 슬래시가 필요 없고 수정자는 지원되지 않습니다. 2. 여러 용어는 줄바꿈 또는 세미콜론 ";"으로 구분합니다. 3. 용어와 번역은 영어 쉼표 ","로 구분합니다. 4. 번역이 없는 경우 해당 용어를 번역하지 않는 것으로 간주합니다.`,
     tr: `1. Düzenli ifade eşleştirmeyi destekler, eğik çizgi gerekmez ve değiştiriciler desteklenmez. 2. Birden fazla terim yeni satır veya noktalı virgül ";" ile ayrılır. 3. Terimler ve çeviriler İngilizce virgül "," ile ayrılır. 4. Çeviri yoksa, terim çevrilmemiş olarak kabul edilir.`,
-    vi: "1. Supports regular expression matching, no slash required, and no modifiers are supported. 2. Separate multiple terms with newlines or semicolons \";\". 3. Terms and translations are separated by English commas \",\". 4. If there is no translation, the term will be deemed not to be translated.",
+    vi: '1. Supports regular expression matching, no slash required, and no modifiers are supported. 2. Separate multiple terms with newlines or semicolons ";". 3. Terms and translations are separated by English commas ",". 4. If there is no translation, the term will be deemed not to be translated.',
   },
   ai_terms: {
     zh: `AI专业术语`,
@@ -2438,7 +2438,7 @@ export const I18N = {
     ja: `1. AIによるインテリジェントな置換 (正規表現非対応)。 2. 複数の用語は改行またはセミコロン「;」で区切ります。 3. 用語と翻訳は英語のコンマ「,」で区切ります。 4. 翻訳がない場合は、その用語を翻訳しないものとみなします。`,
     ko: `1. AI 지능형 대체, 정규식을 지원하지 않습니다. 2. 여러 용어는 줄바꿈 또는 세미콜론 ";"으로 구분합니다. 3. 용어와 번역은 영어 쉼표 ","로 구분합니다. 4. 번역이 없는 경우 해당 용어를 번역하지 않는 것으로 간주합니다.`,
     tr: `1. Yapay Zekâ Destekli Akıllı Değiştirme, Düzenli Ifadeleri Desteklemez. 2. Birden Fazla Terim, Yeni Satır Veya Noktalı Virgül ";" Ile Ayrılmalıdır. 3. Terimler Ve Çeviriler, İngilizce Virgül "," Ile Ayrılmalıdır. 4. Çeviri Yoksa, Terim Çevrilmemiş Olarak Kabul Edilecektir."`,
-    vi: "1. AI intelligent replacement does not support regular expressions.2. Separate multiple terms with newlines or semicolons \";\". 3. Terms and translations are separated by English commas \",\". 4. If there is no translation, the term will be deemed not to be translated.",
+    vi: '1. AI intelligent replacement does not support regular expressions.2. Separate multiple terms with newlines or semicolons ";". 3. Terms and translations are separated by English commas ",". 4. If there is no translation, the term will be deemed not to be translated.',
   },
   text_ext_style: {
     zh: `译文附加样式`,
@@ -2611,7 +2611,7 @@ export const I18N = {
     ja: `1. br は <br> 改行を <p "kiss-p"> に置き換えます。 2. bn は \\n 改行を <p "kiss-p"> に置き換えます。 3. brToDiv と bnToDiv は <div class="kiss-p"> に置き換えます。`,
     ko: `1. br은 <br> 줄바꿈을 <p "kiss-p">로 대체합니다. 2. bn은 \\n 줄바꿈을 <p "kiss-p">로 대체합니다. 3. brToDiv 및 bnToDiv는 <div class="kiss-p">로 대체됩니다.`,
     tr: `1. br, <br> satır sonlarını <p "kiss-p"> ile değiştirir. 2. bn, \\n yeni satırı <p "kiss-p"> ile değiştirir. 3. brToDiv ve bnToDiv, <div class="kiss-p"> ile değiştirildi.`,
-    vi: "1. br replaces <br> line breaks with <p \"kiss-p\">. 2. bn replaces \\\\n newline with <p \"kiss-p\">. 3. brToDiv and bnToDiv are replaced with <div class=\"kiss-p\">.",
+    vi: '1. br replaces <br> line breaks with <p "kiss-p">. 2. bn replaces \\\\n newline with <p "kiss-p">. 3. brToDiv and bnToDiv are replaced with <div class="kiss-p">.',
   },
   import: {
     zh: `导入`,
@@ -2989,7 +2989,7 @@ export const I18N = {
     ja: `同期タイプは「KISS-Worker」である必要があり、すべて入力する必要があります。`,
     ko: `동기화 유형은 "KISS-Worker"여야 하며, 모든 항목을 빠짐없이 입력해야 합니다.`,
     tr: `Senkronizasyon Türünüz "KISS-Worker" Olmalı Ve Eksiksiz Olarak Doldurulmalıdır`,
-    vi: "Your sync type must be \"KISS-Worker\" and must be filled in completely",
+    vi: 'Your sync type must be "KISS-Worker" and must be filled in completely',
   },
   click_test: {
     zh: `点击测试`,
@@ -3115,7 +3115,7 @@ export const I18N = {
     ja: `「翻訳切り替え」ショートカット`,
     ko: `"번역 켜기" 단축키`,
     tr: `"Çeviriyi Aç/Kapat" Kısayolu`,
-    vi: "Phím tắt \"Bật/tắt Dịch\"",
+    vi: 'Phím tắt "Bật/tắt Dịch"',
   },
   toggle_transonly_shortcut: {
     zh: `"隐藏原文"快捷键`,
@@ -3124,7 +3124,7 @@ export const I18N = {
     ja: `「原文を隠す」ショートカット`,
     ko: `"원문 숨기기" 단축키`,
     tr: `"Orijinali Gizle" Kısayolu`,
-    vi: "Phím tắt \"Ẩn bản gốc\"",
+    vi: 'Phím tắt "Ẩn bản gốc"',
   },
   toggle_style_shortcut: {
     zh: `"切换样式"快捷键`,
@@ -3133,7 +3133,7 @@ export const I18N = {
     ja: `「スタイル切り替え」ショートカット`,
     ko: `"스타일 전환" 단축키`,
     tr: `"Stil Değiştir" Kısayolu`,
-    vi: "Phím tắt \"Chuyển đổi Kiểu\"",
+    vi: 'Phím tắt "Chuyển đổi Kiểu"',
   },
   toggle_popup_shortcut: {
     zh: `"打开弹窗"快捷键`,
@@ -3142,7 +3142,7 @@ export const I18N = {
     ja: `「ポップアップを開く」ショートカット`,
     ko: `"팝업 열기" 단축키`,
     tr: `"Açılır Pencereyi Aç" Kısayolu`,
-    vi: "Phím tắt \"Mở Bật lên\"",
+    vi: 'Phím tắt "Mở Bật lên"',
   },
   open_setting_shortcut: {
     zh: `"打开设置"快捷键`,
@@ -3151,7 +3151,7 @@ export const I18N = {
     ja: `「設定を開く」ショートカット`,
     ko: `"설정 열기" 단축키`,
     tr: `"Ayarı Aç" Kısayolu`,
-    vi: "Phím tắt \"Mở Cài đặt\"",
+    vi: 'Phím tắt "Mở Cài đặt"',
   },
   firefox_shortcut_edit_hint: {
     zh: `Firefox 不支持直接打开扩展快捷键管理页。请在地址栏输入 about:addons，然后点击齿轮菜单中的“管理扩展快捷键”。`,
@@ -3336,7 +3336,7 @@ export const I18N = {
     ja: `デフォルトは「AltLeft+KeyI」です`,
     ko: `기본값 "AltLeft+KeyI"`,
     tr: `Varsayılan "AltLeft+KeyI"`,
-    vi: "Default is \"AltLeft+KeyI\"",
+    vi: 'Default is "AltLeft+KeyI"',
   },
   shortcut_press_count: {
     zh: `快捷键连击次数`,
@@ -3372,7 +3372,7 @@ export const I18N = {
     ja: `記号の後に対象言語コードを追加できます。例：「/en 你好」、「/zh hello」`,
     ko: `표시 뒤에 대상 언어 코드를 추가할 수 있습니다. 예: "/en 你好", "/zh hello"`,
     tr: `İşaretin sonuna hedef dil kodu eklenebilir, örneğin: "/en 你好", "/zh hello"`,
-    vi: "The target language code can be added after the sign, such as: \"/en 你好\", \"/zh hello\"",
+    vi: 'The target language code can be added after the sign, such as: "/en 你好", "/zh hello"',
   },
   detect_lang_remote: {
     zh: `远程语言检测`,
@@ -3714,7 +3714,7 @@ export const I18N = {
     ja: `改行または英語のコンマ「,」で区切ってポーリングコールをサポートします。`,
     ko: `줄바꿈 또는 영어 쉼표 ","로 구분된 폴링 호출을 지원합니다.`,
     tr: `Anket çağrılarının yeni satırlarla veya İngilizce virgüllerle ayrılmasını destekler"`,
-    vi: "Supports polling calls separated by newlines or English commas \",\".",
+    vi: 'Supports polling calls separated by newlines or English commas ",".',
   },
   translation_element_tag: {
     zh: `译文元素标签`,
@@ -4425,7 +4425,7 @@ export const I18N = {
     ja: `選択翻訳のオン/オフは「ルール設定」で行ってください。`,
     ko: `선택 번역 활성화/비활성화는 "규칙 설정"에서 하십시오.`,
     tr: `Seçilen çeviri özelliğini açmak veya kapatmak için lütfen "Kural Ayarları"na gidin.`,
-    vi: "To turn selected translation on or off, please go to \"Rule Settings\".",
+    vi: 'To turn selected translation on or off, please go to "Rule Settings".',
   },
   mousehover_key_help: {
     zh: `当快捷键置空时表示鼠标懸停直接翻译`,
@@ -4623,7 +4623,7 @@ export const I18N = {
     ja: `クリックして「JSON 形式」に切り替え`,
     ko: `클릭하여 "JSON 형식"으로 전환`,
     tr: `"JSON Formatına Geçmek İçin Tıklayın`,
-    vi: "Click to switch to \"JSON Format\"",
+    vi: 'Click to switch to "JSON Format"',
   },
   xml_output: {
     zh: `点击切换 “XML 格式“`,
@@ -4632,7 +4632,7 @@ export const I18N = {
     ja: `クリックして「XML 形式」に切り替え`,
     ko: `클릭하여 "XML 형식"으로 전환`,
     tr: `"XML Formatına Geçmek İçin Tıklayın`,
-    vi: "Click to switch to \"XML Format\"",
+    vi: 'Click to switch to "XML Format"',
   },
   textlines_output: {
     zh: `点击切换 “多行文本格式“`,
@@ -4641,7 +4641,7 @@ export const I18N = {
     ja: `クリックして「複数行テキスト形式」に切り替え`,
     ko: `클릭하여 "여러 줄 텍스트 형식"으로 전환`,
     tr: `"Çok Satırlı Metin Formatına Geçmek İçin Tıklayın`,
-    vi: "Click to switch to \"Multi-line Text Format\"",
+    vi: 'Click to switch to "Multi-line Text Format"',
   },
   system_prompt_helper_2: {
     zh: `2. 在未完全理解默认Prompt的情况下，请勿随意修改，否则可能无法工作。`,
