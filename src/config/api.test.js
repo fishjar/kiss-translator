@@ -15,6 +15,7 @@ import {
   OPT_TRANS_MICROSOFT,
   OPT_TRANS_TENCENT,
   OPT_TRANS_OPENAI,
+  OPT_TRANS_OPENROUTER,
 } from "./api";
 
 test("uses Tencent as the fallback default API", () => {
@@ -33,6 +34,18 @@ test("all AI APIs define a thinking mode by default", () => {
     expect(api).toBeDefined();
     expect(["auto", "enabled", "disabled"]).toContain(api.thinkingMode);
   }
+});
+
+test("OpenRouter uses the shared disabled thinking default", () => {
+  const openrouter = DEFAULT_API_LIST.find(
+    (api) => api.apiType === OPT_TRANS_OPENROUTER
+  );
+
+  expect(openrouter).toMatchObject({
+    model: "openai/gpt-4o",
+    thinkingMode: "disabled",
+    thinkingEffort: "_default",
+  });
 });
 
 test("Gemini uses stable Interactions while the model list stays on v1beta", () => {
