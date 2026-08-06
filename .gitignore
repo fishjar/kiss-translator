@@ -33,3 +33,4 @@ package-lock.json
 *.zip
 .repomixignore
 .agents
+.claude

@@ -204,13 +204,102 @@ describe("handleTranslate", () => {
 
     await translate("enabled", "xhigh");
     expect(JSON.parse(fetchData.mock.calls[2][1].body).reasoning).toEqual({
-      effort: "xhigh",
+      effort: "high",
     });
 
     await translate("disabled");
     expect(JSON.parse(fetchData.mock.calls[3][1].body).reasoning).toEqual({
       effort: "none",
     });
+  });
+
+  test("uses OpenRouter model metadata for supported and mandatory efforts", async () => {
+    fetchData.mockResolvedValue({
+      choices: [{ message: { content: "你好" } }],
+    });
+    const apiSetting = {
+      ...getApiSetting(OPT_TRANS_OPENROUTER),
+      useStream: false,
+      model: "provider/mandatory-model",
+      thinkingCapabilities: {
+        model: "provider/mandatory-model",
+        supportedEfforts: ["high", "medium", "low"],
+        mandatory: true,
+      },
+    };
+
+    await collectAsyncGenerator(
+      handleTranslate(["hello"], {
+        from: "en",
+        to: "zh-CN",
+        fromLang: "English",
+        toLang: "Chinese",
+        langMap: () => "",
+        glossary: "",
+        apiSetting: {
+          ...apiSetting,
+          thinkingMode: "enabled",
+          thinkingEffort: "xhigh",
+        },
+        usePool: false,
+      })
+    );
+    expect(JSON.parse(fetchData.mock.calls[0][1].body).reasoning).toEqual({
+      effort: "high",
+    });
+
+    await collectAsyncGenerator(
+      handleTranslate(["hello"], {
+        from: "en",
+        to: "zh-CN",
+        fromLang: "English",
+        toLang: "Chinese",
+        langMap: () => "",
+        glossary: "",
+        apiSetting: { ...apiSetting, thinkingMode: "disabled" },
+        usePool: false,
+      })
+    );
+    expect(JSON.parse(fetchData.mock.calls[1][1].body).reasoning).toEqual({
+      effort: "low",
+    });
+  });
+
+  test("applies the OpenAI-compatible high/none baseline in requests", async () => {
+    fetchData.mockResolvedValue({
+      choices: [{ message: { content: "你好" } }],
+    });
+    const translate = (thinkingMode) =>
+      collectAsyncGenerator(
+        handleTranslate(["hello"], {
+          from: "en",
+          to: "zh-CN",
+          fromLang: "English",
+          toLang: "Chinese",
+          langMap: () => "",
+          glossary: "",
+          apiSetting: {
+            ...getApiSetting(OPT_TRANS_OPENAI),
+            useStream: false,
+            model: "unknown-model",
+            thinkingMode,
+          },
+          usePool: false,
+        })
+      );
+
+    await translate("auto");
+    expect(JSON.parse(fetchData.mock.calls[0][1].body)).not.toHaveProperty(
+      "reasoning_effort"
+    );
+    await translate("enabled");
+    expect(JSON.parse(fetchData.mock.calls[1][1].body).reasoning_effort).toBe(
+      "high"
+    );
+    await translate("disabled");
+    expect(JSON.parse(fetchData.mock.calls[2][1].body).reasoning_effort).toBe(
+      "none"
+    );
   });
 
   test("maps Gemini2 disabled thinking by model capability", async () => {

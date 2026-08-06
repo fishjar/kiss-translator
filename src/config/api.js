@@ -249,134 +249,306 @@ export const API_SPE_TYPES = {
   ]),
 };
 
-// REVIEW: 思考模式参数映射：定义各 API 的思考开关和强度参数。
-// 这里的设计可以将 AI 推理模型的“思考过程”(Reasoning Effort) 与普通参数解耦，支持可视化调节。
-// type: 对应的厂商/平台类型；efforts: 思考强度级别列表 (如 max, high 等)，null 表示仅支持开启/关闭，无多档强度可选。
-// disableSupported: 是否允许用户手动关闭思考模式，默认 true。若为 false 则说明该模型强制开启思考（如 Claude 的部分高推理模型）。
+const THINKING_EFFORT_LABELS = {
+  max: "Max",
+  xhigh: "X-High",
+  high: "High",
+  medium: "Medium",
+  low: "Low",
+  minimal: "Minimal",
+};
+const THINKING_EFFORT_RANK = {
+  none: 0,
+  minimal: 1,
+  low: 2,
+  medium: 3,
+  high: 4,
+  xhigh: 5,
+  max: 6,
+};
+const toThinkingEffortOptions = (efforts = []) =>
+  efforts.map((effort) => ({
+    value: effort,
+    label: THINKING_EFFORT_LABELS[effort] || effort,
+  }));
+
+const OPENAI_COMPAT_CAPABILITY = {
+  protocol: "openai",
+  efforts: toThinkingEffortOptions(["high"]),
+  disableEffort: "none",
+};
+
+const createThinkingCapability = (protocol, efforts, extra = {}) => ({
+  protocol,
+  efforts: efforts ? toThinkingEffortOptions(efforts) : null,
+  ...extra,
+});
+
+// 保留静态映射供旧调用方判断接口是否显示思考设置；具体模型能力统一由
+// getThinkingCapability 解析，避免界面和请求层各自维护一套等级列表。
 export const THINKING_PARAM_MAP = {
-  [OPT_TRANS_DEEPSEEK]: {
-    type: "deepseek",
-    efforts: [
-      { value: "max", label: "Max" },
-      { value: "high", label: "High" },
-    ],
-  },
-  [OPT_TRANS_OPENCODEGO]: {
-    type: "deepseek",
-    efforts: [
-      { value: "max", label: "Max" },
-      { value: "high", label: "High" },
-    ],
-  },
-  [OPT_TRANS_SILICONFLOW]: {
-    type: "siliconflow",
-    efforts: [
-      { value: "max", label: "Max (32768)" },
-      { value: "high", label: "High (16384)" },
-      { value: "medium", label: "Medium (8192)" },
-      { value: "low", label: "Low (4096)" },
-      { value: "minimal", label: "Minimal (2048)" },
-    ],
-  },
-  [OPT_TRANS_XIAOMIMIMO]: {
-    type: "deepseek",
-    efforts: null,
-  },
-  [OPT_TRANS_ALIYUNBAILIAN]: {
-    type: "aliyunbailian",
-    efforts: null,
-  },
-  [OPT_TRANS_CEREBRAS]: {
-    type: "cerebras",
-    efforts: [
-      { value: "high", label: "High" },
-      { value: "medium", label: "Medium" },
-      { value: "low", label: "Low" },
-    ],
-  },
-  [OPT_TRANS_ZAI]: {
-    type: "deepseek",
-    efforts: null,
-  },
-  [OPT_TRANS_EPHONEAI]: {
-    type: "openai",
-    efforts: [
-      { value: "xhigh", label: "X-High" },
-      { value: "high", label: "High" },
-      { value: "medium", label: "Medium" },
-      { value: "low", label: "Low" },
-      { value: "minimal", label: "Minimal" },
-    ],
-  },
-  [OPT_TRANS_OPENAI]: {
-    type: "openai",
-    efforts: [
-      { value: "xhigh", label: "X-High" },
-      { value: "high", label: "High" },
-      { value: "medium", label: "Medium" },
-      { value: "low", label: "Low" },
-      { value: "minimal", label: "Minimal" },
-    ],
-  },
-  [OPT_TRANS_GEMINI]: {
-    type: "gemini",
-    efforts: [
-      { value: "high", label: "High" },
-      { value: "medium", label: "Medium" },
-      { value: "low", label: "Low" },
-      { value: "minimal", label: "Minimal" },
-    ],
-  },
-  [OPT_TRANS_GEMINI_2]: {
-    type: "openai",
-    efforts: [
-      { value: "high", label: "High" },
-      { value: "medium", label: "Medium" },
-      { value: "low", label: "Low" },
-      { value: "minimal", label: "Minimal" },
-    ],
-  },
-  [OPT_TRANS_CLAUDE]: {
-    type: "claude",
-    disableSupported: false,
-    efforts: [
-      { value: "max", label: "Max" },
-      { value: "xhigh", label: "X-High" },
-      { value: "high", label: "High" },
-      { value: "medium", label: "Medium" },
-      { value: "low", label: "Low" },
-    ],
-  },
-  [OPT_TRANS_OLLAMA]: {
-    type: "cerebras",
-    efforts: [
-      { value: "high", label: "High" },
-      { value: "medium", label: "Medium" },
-      { value: "low", label: "Low" },
-    ],
-  },
-  [OPT_TRANS_OPENROUTER]: {
-    type: "openrouter",
-    efforts: [
-      { value: "max", label: "Max" },
-      { value: "xhigh", label: "X-High" },
-      { value: "high", label: "High" },
-      { value: "medium", label: "Medium" },
-      { value: "low", label: "Low" },
-      { value: "minimal", label: "Minimal" },
-    ],
-  },
-  // OrcaRouter 网关按 OpenAI 规范透传 reasoning_effort（none/low/medium/high/xhigh），
-  // 不接受 OpenRouter 的 reasoning: { effort } 对象形式，所以这里走 "openai" 分支。
-  [OPT_TRANS_ORCAROUTER]: {
-    type: "openai",
-    efforts: [
-      { value: "xhigh", label: "X-High" },
-      { value: "high", label: "High" },
-      { value: "medium", label: "Medium" },
-      { value: "low", label: "Low" },
-    ],
-  },
+  [OPT_TRANS_DEEPSEEK]: { type: "deepseek" },
+  [OPT_TRANS_OPENCODEGO]: { type: "deepseek" },
+  [OPT_TRANS_SILICONFLOW]: { type: "siliconflow" },
+  [OPT_TRANS_XIAOMIMIMO]: { type: "deepseek" },
+  [OPT_TRANS_ALIYUNBAILIAN]: { type: "aliyunbailian" },
+  [OPT_TRANS_CEREBRAS]: { type: "openai" },
+  [OPT_TRANS_ZAI]: { type: "deepseek" },
+  [OPT_TRANS_EPHONEAI]: { type: "openai" },
+  [OPT_TRANS_OPENAI]: { type: "openai" },
+  [OPT_TRANS_GEMINI]: { type: "gemini" },
+  [OPT_TRANS_GEMINI_2]: { type: "gemini" },
+  [OPT_TRANS_CLAUDE]: { type: "claude" },
+  [OPT_TRANS_OLLAMA]: { type: "openai" },
+  [OPT_TRANS_OPENROUTER]: { type: "openrouter" },
+  [OPT_TRANS_ORCAROUTER]: { type: "openai" },
+};
+
+const getOpenAIThinkingCapability = (model = "") => {
+  const normalizedModel = String(model).trim().toLowerCase();
+
+  if (/^gpt-5\.6(?:-|$)/.test(normalizedModel)) {
+    return createThinkingCapability(
+      "openai",
+      ["max", "xhigh", "high", "medium", "low"],
+      { disableEffort: "none" }
+    );
+  }
+  if (/^gpt-5\.(?:4|2)-pro(?:-|$)/.test(normalizedModel)) {
+    return createThinkingCapability("openai", ["xhigh", "high", "medium"], {
+      disableEffort: "none",
+    });
+  }
+  if (/^gpt-5-pro(?:-|$)/.test(normalizedModel)) {
+    return createThinkingCapability("openai", ["high"], {
+      disableEffort: "none",
+    });
+  }
+  if (/^gpt-5\.[23]-codex(?:-|$)/.test(normalizedModel)) {
+    return createThinkingCapability(
+      "openai",
+      ["xhigh", "high", "medium", "low"],
+      { disableEffort: "none" }
+    );
+  }
+  if (/^gpt-5\.(?:5|4|2)(?:-|$)/.test(normalizedModel)) {
+    return createThinkingCapability(
+      "openai",
+      ["xhigh", "high", "medium", "low"],
+      { disableEffort: "none" }
+    );
+  }
+  if (/^gpt-5\.1(?:-|$)/.test(normalizedModel)) {
+    return createThinkingCapability("openai", ["high", "medium", "low"], {
+      disableEffort: "none",
+    });
+  }
+  if (/^gpt-5(?:-|$)/.test(normalizedModel)) {
+    return createThinkingCapability(
+      "openai",
+      ["high", "medium", "low", "minimal"],
+      { disableEffort: "none" }
+    );
+  }
+
+  // 文档无法确认的 OpenAI 兼容模型只发送最通用的 high/none，避免猜测 xhigh、minimal 等扩展等级。
+  return OPENAI_COMPAT_CAPABILITY;
+};
+
+const normalizeOpenRouterCapability = (model, metadata) => {
+  if (!metadata || metadata.model !== model) return null;
+
+  const supportedEfforts = Array.isArray(metadata.supportedEfforts)
+    ? metadata.supportedEfforts.filter(
+        (effort) =>
+          effort !== "none" && THINKING_EFFORT_RANK[effort] !== undefined
+      )
+    : [];
+  if (!supportedEfforts.length) return null;
+
+  return createThinkingCapability("openrouter", supportedEfforts, {
+    explicitEnable: true,
+    disableEffort: metadata.mandatory ? null : "none",
+  });
+};
+
+const getClaudeThinkingCapability = (model = "") => {
+  const normalizedModel = String(model).trim().toLowerCase();
+  const supportsAdaptiveThinking =
+    /^claude-(?:opus|sonnet)-(?:[5-9](?:-|$)|4-[6-9](?:-|$))/.test(
+      normalizedModel
+    ) ||
+    /^claude-(?:fable|mythos)-5(?:-|$)/.test(normalizedModel) ||
+    normalizedModel.startsWith("claude-mythos-preview");
+
+  if (!supportsAdaptiveThinking) return null;
+
+  const mandatory =
+    /^claude-(?:fable|mythos)-5(?:-|$)/.test(normalizedModel) ||
+    normalizedModel.startsWith("claude-mythos-preview");
+  return createThinkingCapability(
+    "claude",
+    ["max", "xhigh", "high", "medium", "low"],
+    {
+      explicitEnable: true,
+      explicitDisable: !mandatory,
+    }
+  );
+};
+
+/**
+ * 返回当前接口和模型真正可用的思考能力。未知聚合接口与未知模型按 OpenAI
+ * 兼容基线处理；Gemini 和 Claude 仍保留各自原生协议，不能混用请求字段。
+ */
+export const getThinkingCapability = ({
+  apiType,
+  model = "",
+  thinkingCapabilities,
+}) => {
+  if (apiType === OPT_TRANS_GEMINI || apiType === OPT_TRANS_GEMINI_2) {
+    return createThinkingCapability(
+      "gemini",
+      getGeminiThinkingEfforts({ apiType, model }).map((item) => item.value)
+    );
+  }
+  if (apiType === OPT_TRANS_CLAUDE) {
+    return getClaudeThinkingCapability(model);
+  }
+  if (apiType === OPT_TRANS_OPENROUTER) {
+    return (
+      normalizeOpenRouterCapability(model, thinkingCapabilities) ||
+      createThinkingCapability("openrouter", ["high"], {
+        explicitEnable: true,
+        disableEffort: "none",
+      })
+    );
+  }
+  if (apiType === OPT_TRANS_OPENAI) {
+    return getOpenAIThinkingCapability(model);
+  }
+  if (apiType === OPT_TRANS_CEREBRAS && /^gpt-oss-120b(?:-|$)/i.test(model)) {
+    return createThinkingCapability("openai", ["high", "medium", "low"], {
+      explicitEnable: true,
+      disableEffort: "none",
+    });
+  }
+  if (apiType === OPT_TRANS_DEEPSEEK || apiType === OPT_TRANS_OPENCODEGO) {
+    return createThinkingCapability("deepseek", ["max", "high"], {
+      explicitEnable: true,
+      explicitDisable: true,
+    });
+  }
+  if (apiType === OPT_TRANS_XIAOMIMIMO || apiType === OPT_TRANS_ZAI) {
+    return createThinkingCapability("deepseek", null, {
+      explicitEnable: true,
+      explicitDisable: true,
+    });
+  }
+  if (apiType === OPT_TRANS_ALIYUNBAILIAN) {
+    return createThinkingCapability("aliyunbailian", null, {
+      explicitEnable: true,
+      explicitDisable: true,
+    });
+  }
+  if (apiType === OPT_TRANS_SILICONFLOW) {
+    return createThinkingCapability(
+      "siliconflow",
+      ["max", "high", "medium", "low", "minimal"],
+      { explicitEnable: true, explicitDisable: true }
+    );
+  }
+  if (THINKING_PARAM_MAP[apiType]) {
+    return OPENAI_COMPAT_CAPABILITY;
+  }
+  return null;
+};
+
+export const normalizeThinkingEffort = (effort, supportedEfforts = []) => {
+  const supported = supportedEfforts.map((item) => item.value);
+  if (!supported.length) return null;
+  if (!effort || effort === "_default") return supported[supported.length - 1];
+  if (supported.includes(effort)) return effort;
+
+  const targetRank = THINKING_EFFORT_RANK[effort];
+  if (targetRank === undefined) return supported[0];
+  return supported.reduce((closest, candidate) => {
+    const distance = Math.abs(THINKING_EFFORT_RANK[candidate] - targetRank);
+    const closestDistance = Math.abs(
+      THINKING_EFFORT_RANK[closest] - targetRank
+    );
+    return distance < closestDistance ? candidate : closest;
+  });
+};
+
+/**
+ * auto 不注入参数；enabled 优先走显式开关，否则取最高等级；disabled
+ * 优先显式关闭，不能关闭时降到模型最低等级。
+ */
+export const resolveThinkingStrategy = ({
+  apiType,
+  url = "",
+  model = "",
+  thinkingMode = "disabled",
+  thinkingEffort = "_default",
+  thinkingCapabilities,
+}) => {
+  const capability = getThinkingCapability({
+    apiType,
+    model,
+    thinkingCapabilities,
+  });
+  if (!capability || thinkingMode === "auto") {
+    return { capability, action: "none", effort: null, fallback: false };
+  }
+  if (capability.protocol === "gemini") {
+    const strategy = getGeminiThinkingStrategy({
+      apiType,
+      url,
+      model,
+      thinkingMode,
+      thinkingEffort,
+    });
+    return {
+      capability,
+      action: strategy.field ? "effort" : "none",
+      effort: strategy.value,
+      fallback: strategy.fallback,
+    };
+  }
+
+  const hasExplicitEffort = thinkingEffort && thinkingEffort !== "_default";
+  const normalizedEffort = normalizeThinkingEffort(
+    thinkingEffort,
+    capability.efforts || []
+  );
+  if (thinkingMode === "enabled") {
+    const useExplicitEnable = capability.explicitEnable && !hasExplicitEffort;
+    return {
+      capability,
+      action: useExplicitEnable ? "enabled" : "effort",
+      effort: useExplicitEnable ? null : normalizedEffort,
+      fallback: false,
+    };
+  }
+  if (capability.explicitDisable) {
+    return { capability, action: "disabled", effort: null, fallback: false };
+  }
+  if (capability.disableEffort) {
+    return {
+      capability,
+      action: "effort",
+      effort: capability.disableEffort,
+      fallback: false,
+    };
+  }
+
+  const efforts = capability.efforts || [];
+  return {
+    capability,
+    action: "effort",
+    effort: efforts[efforts.length - 1]?.value || null,
+    fallback: true,
+  };
 };
 
 export const normalizeGeminiModelName = (model = "") =>
@@ -468,7 +640,7 @@ export const getGeminiThinkingStrategy = ({
   apiType,
   url = "",
   model = "",
-  thinkingMode = "auto",
+  thinkingMode = "disabled",
   thinkingEffort = "_default",
 }) => {
   if (thinkingMode === "auto") {

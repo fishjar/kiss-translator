@@ -7,15 +7,25 @@ import {
   getGeminiThinkingDisableStrategy,
   getGeminiThinkingEfforts,
   getGeminiThinkingStrategy,
+  getThinkingCapability,
+  resolveThinkingStrategy,
   normalizeApiModelListUrls,
   OPT_TRANS_CLOUDFLAREAI,
   OPT_TRANS_DEEPSEEK,
+  OPT_TRANS_EPHONEAI,
+  OPT_TRANS_CEREBRAS,
+  OPT_TRANS_CLAUDE,
   OPT_TRANS_GEMINI,
   OPT_TRANS_GEMINI_2,
+  OPT_TRANS_ALIYUNBAILIAN,
   OPT_TRANS_MICROSOFT,
+  OPT_TRANS_SILICONFLOW,
   OPT_TRANS_TENCENT,
   OPT_TRANS_OPENAI,
+  OPT_TRANS_OPENCODEGO,
   OPT_TRANS_OPENROUTER,
+  OPT_TRANS_XIAOMIMIMO,
+  OPT_TRANS_ZAI,
 } from "./api";
 
 test("uses Tencent as the fallback default API", () => {
@@ -34,6 +44,123 @@ test("all AI APIs define a thinking mode by default", () => {
     expect(api).toBeDefined();
     expect(["auto", "enabled", "disabled"]).toContain(api.thinkingMode);
   }
+});
+
+test("keeps disabled as the initial thinking mode", () => {
+  for (const apiType of API_SPE_TYPES.ai) {
+    const api = DEFAULT_API_LIST.find((item) => item.apiType === apiType);
+    expect(api.thinkingMode).toBe("disabled");
+  }
+});
+
+describe("unified thinking capabilities", () => {
+  test.each([
+    ["gpt-5.6-sol", "low", "none", false],
+    ["gpt-5.4-pro", "medium", "none", false],
+    ["gpt-5.3-codex", "low", "none", false],
+    ["gpt-5.1", "low", "none", false],
+    ["gpt-5", "minimal", "none", false],
+    ["unknown-model", "high", "none", false],
+  ])(
+    "normalizes OpenAI model %s to lowest and disabled strategies",
+    (model, defaultEffort, disabled, fallback) => {
+      expect(
+        resolveThinkingStrategy({
+          apiType: OPT_TRANS_OPENAI,
+          model,
+          thinkingMode: "enabled",
+        }).effort
+      ).toBe(defaultEffort);
+      expect(
+        resolveThinkingStrategy({
+          apiType: OPT_TRANS_OPENAI,
+          model,
+          thinkingMode: "disabled",
+        })
+      ).toMatchObject({ effort: disabled, fallback });
+    }
+  );
+
+  test("uses the OpenAI-compatible high/none baseline for unknown gateways", () => {
+    expect(
+      resolveThinkingStrategy({
+        apiType: OPT_TRANS_EPHONEAI,
+        model: "provider/unknown-model",
+        thinkingMode: "enabled",
+        thinkingEffort: "xhigh",
+      })
+    ).toMatchObject({ action: "effort", effort: "high" });
+    expect(
+      resolveThinkingStrategy({
+        apiType: OPT_TRANS_EPHONEAI,
+        model: "provider/unknown-model",
+        thinkingMode: "disabled",
+      })
+    ).toMatchObject({ action: "effort", effort: "none" });
+    expect(
+      resolveThinkingStrategy({
+        apiType: OPT_TRANS_EPHONEAI,
+        model: "provider/unknown-model",
+        thinkingMode: "auto",
+      }).action
+    ).toBe("none");
+  });
+
+  test.each([
+    [OPT_TRANS_DEEPSEEK, "deepseek"],
+    [OPT_TRANS_XIAOMIMIMO, "deepseek"],
+    [OPT_TRANS_ZAI, "deepseek"],
+    [OPT_TRANS_ALIYUNBAILIAN, "aliyunbailian"],
+    [OPT_TRANS_SILICONFLOW, "siliconflow"],
+  ])("uses explicit thinking switches for %s", (apiType, protocol) => {
+    expect(
+      resolveThinkingStrategy({ apiType, thinkingMode: "auto" })
+    ).toMatchObject({ action: "none" });
+    expect(
+      resolveThinkingStrategy({ apiType, thinkingMode: "enabled" })
+    ).toMatchObject({ action: "enabled", capability: { protocol } });
+    expect(
+      resolveThinkingStrategy({ apiType, thinkingMode: "disabled" })
+    ).toMatchObject({ action: "disabled", capability: { protocol } });
+  });
+
+  test("falls back to the lowest effort for mandatory reasoning models", () => {
+    expect(
+      resolveThinkingStrategy({
+        apiType: OPT_TRANS_CEREBRAS,
+        model: "gpt-oss-120b",
+        thinkingMode: "disabled",
+      })
+    ).toMatchObject({ action: "effort", effort: "none", fallback: false });
+    expect(
+      resolveThinkingStrategy({
+        apiType: OPT_TRANS_OPENROUTER,
+        model: "google/gemini-3.5-flash",
+        thinkingMode: "disabled",
+        thinkingCapabilities: {
+          model: "google/gemini-3.5-flash",
+          supportedEfforts: ["high", "medium", "low", "minimal"],
+          mandatory: true,
+        },
+      })
+    ).toMatchObject({ action: "effort", effort: "minimal", fallback: true });
+  });
+
+  test("keeps Claude native and hides unsupported legacy models", () => {
+    expect(
+      getThinkingCapability({
+        apiType: OPT_TRANS_CLAUDE,
+        model: "claude-3-haiku-20240307",
+      })
+    ).toBeNull();
+    expect(
+      resolveThinkingStrategy({
+        apiType: OPT_TRANS_CLAUDE,
+        model: "claude-mythos-5",
+        thinkingMode: "disabled",
+      })
+    ).toMatchObject({ action: "effort", effort: "low", fallback: true });
+  });
 });
 
 test("OpenRouter uses the shared disabled thinking default", () => {
