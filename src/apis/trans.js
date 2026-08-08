@@ -1854,6 +1854,17 @@ async function* handleTranslateStreamInternal(
             continue;
           }
 
+          // 中间态必须先于同一段的最终结果发出，避免较晚到达的 partial
+          // 回调覆盖已经完成的译文。
+          if (realtimeParser && streamRenderMode === "realtime") {
+            const items = realtimeParser.write(delta);
+            for (const { id, partialText, isComplete } of items) {
+              if (!isComplete) {
+                yield { id, partialText, isComplete: false };
+              }
+            }
+          }
+
           if (!formatDetected) {
             const { isJson, detected } = detectStreamFormat(fullContent);
             if (detected) {
@@ -1881,15 +1892,6 @@ async function* handleTranslateStreamInternal(
             )) {
               results[id] = translation;
               yield { id, result: translation };
-            }
-          }
-          // 实时渲染模式：yield 段落级中间态
-          if (realtimeParser && streamRenderMode === "realtime") {
-            const items = realtimeParser.write(delta);
-            for (const { id, partialText, isComplete } of items) {
-              if (!isComplete) {
-                yield { id, partialText, isComplete: false };
-              }
             }
           }
         }

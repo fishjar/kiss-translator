@@ -548,6 +548,43 @@ export function detectStreamFormat(content) {
 export function createRealtimeStreamParser() {
   let format = null; // 判定的流格式："xml" | "json" | "line" | null
   let buffer = "";
+  const pendingJsonItems = [];
+  const lastJsonTextById = new Map();
+  const jsonParser = new JSONParser({
+    paths: [
+      "$.translations.*.text",
+      "$.translations.*.translation",
+      "$.*.text",
+      "$.*.translation",
+      "$.text",
+      "$.translation",
+    ],
+    keepStack: true,
+    emitPartialTokens: true,
+    emitPartialValues: true,
+  });
+
+  // JSON 聚合协议只有在对象闭合后才会进入最终结果解析器。这里订阅部分值，
+  // 让尚未闭合的 text 字符串也能驱动实时渲染。
+  jsonParser.onValue = ({ value, key, parent }) => {
+    if (value === undefined) return;
+
+    const segment = normalizeTranslationItem({ ...parent, [key]: value }, NaN);
+    if (!segment) return;
+
+    const [partialText] = segment.translation;
+    if (!partialText || lastJsonTextById.get(segment.id) === partialText) {
+      return;
+    }
+
+    lastJsonTextById.set(segment.id, partialText);
+    pendingJsonItems.push({
+      id: segment.id,
+      partialText,
+      isComplete: false,
+    });
+  };
+  jsonParser.onError = () => {};
 
   // 辅助判定流格式
   const detect = (content) => {
@@ -603,6 +640,16 @@ export function createRealtimeStreamParser() {
     return results;
   };
 
+  const parseJson = (delta) => {
+    try {
+      jsonParser.write(delta);
+    } catch (e) {
+      // 最终 JSON 解析与非流式回退仍会处理协议异常；实时预览不应中断请求。
+    }
+
+    return pendingJsonItems.splice(0);
+  };
+
   return {
     write(delta) {
       buffer += delta;
@@ -617,7 +664,7 @@ export function createRealtimeStreamParser() {
         case "line":
           return parseLine(buffer);
         case "json":
-          return [];
+          return parseJson(delta);
         default:
           return [];
       }
