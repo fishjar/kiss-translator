@@ -7,6 +7,9 @@ jest.mock("./msg", () => ({
 }));
 
 const { apiTranslate } = require("../apis");
+const {
+  OPT_HIGHLIGHT_WORDS_BEFORETRANS,
+} = require("../config/rules");
 const { Translator } = require("./translator");
 
 const flushAsync = async () => {
@@ -28,7 +31,7 @@ const hoverNode = async (node, x = 20, y = 20) => {
   await Promise.resolve();
 };
 
-function createTranslator(rule = {}, setting = {}) {
+function createTranslator(rule = {}, setting = {}, favWords = []) {
   return new Translator({
     rule: {
       transOpen: "true",
@@ -49,6 +52,7 @@ function createTranslator(rule = {}, setting = {}) {
       transApis: [],
       ...setting,
     },
+    favWords,
   });
 }
 
@@ -294,6 +298,64 @@ describe("Translator rule styles", () => {
     ).toBe(true);
     expect(wrapper).not.toBeNull();
     expect(wrapper.textContent).toBe("Translated mixed inline content");
+  });
+
+  test("keeps pre-translation highlights out of the translation request", async () => {
+    const sourceText = "A model evaluation security incident report";
+    document.body.innerHTML =
+      '<main id="root"><p id="target"></p></main>';
+    document.getElementById("target").textContent = sourceText;
+
+    createTranslator(
+      {
+        autoScan: "false",
+        selector: "#target",
+        hasRichText: "true",
+        highlightWords: OPT_HIGHLIGHT_WORDS_BEFORETRANS,
+      },
+      { minLength: 0 },
+      ["incident"]
+    );
+    await flushAsync();
+
+    const highlight = document.querySelector(
+      `#target > .${Translator.KISS_CLASS.highlight}`
+    );
+
+    expect(highlight).not.toBeNull();
+    expect(highlight.textContent).toBe("incident");
+    expect(apiTranslate).toHaveBeenCalledTimes(1);
+    expect(apiTranslate.mock.calls[0][0].text).toBe(sourceText);
+  });
+
+  test("filters only extension highlights from rich text requests", async () => {
+    document.body.innerHTML = `
+      <main id="root">
+        <p id="target">Review the <strong>incident response</strong> details</p>
+      </main>
+    `;
+
+    createTranslator(
+      {
+        autoScan: "false",
+        selector: "#target",
+        hasRichText: "true",
+        highlightWords: OPT_HIGHLIGHT_WORDS_BEFORETRANS,
+      },
+      { minLength: 0 },
+      ["incident"]
+    );
+    await flushAsync();
+
+    const requestedText = apiTranslate.mock.calls[0][0].text;
+    const highlight = document.querySelector(
+      `#target strong > .${Translator.KISS_CLASS.highlight}`
+    );
+
+    expect(highlight).not.toBeNull();
+    expect(requestedText).toBe(
+      "Review the <i1>incident response</i1> details"
+    );
   });
 
   test("continues scanning block children after processing mixed parent nodes", async () => {
