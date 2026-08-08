@@ -32,5 +32,9 @@ package-lock.json
 *.pem
 *.zip
 .repomixignore
-.agents
+.agents/*
+!.agents/skills/
+.agents/skills/*
+!.agents/skills/release-kiss-translator/
+!.agents/skills/release-kiss-translator/**
 .claude
