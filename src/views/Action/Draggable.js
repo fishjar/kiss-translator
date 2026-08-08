@@ -5,28 +5,51 @@ import { putFab } from "../../libs/storage";
 import { debounce } from "../../libs/utils";
 import Paper from "@mui/material/Paper";
 
-// 计算吸附到最近视口边缘的 X 或 Y 坐标
-const getEdgePosition = ({
+const FAB_EDGES = ["left", "right", "top", "bottom"];
+
+// 计算当前位置最近的视口边缘
+export const getNearestEdge = ({
   x: left,
   y: top,
   width,
   height,
   windowWidth,
   windowHeight,
-  hover, // 鼠标悬浮时展开显示，移开时吸附并隐藏一半以减少视觉打扰
 }) => {
   const right = windowWidth - left - width;
   const bottom = windowHeight - top - height;
-  // 找出当前距离上下左右哪个边缘最近
   const min = Math.min(left, top, right, bottom);
   switch (min) {
     case right:
+      return "right";
+    case left:
+      return "left";
+    case bottom:
+      return "bottom";
+    default:
+      return "top";
+  }
+};
+
+// 按指定边缘计算吸附坐标；悬浮时完全展开，否则隐藏一半
+export const getEdgePosition = ({
+  x: left,
+  y: top,
+  width,
+  height,
+  windowWidth,
+  windowHeight,
+  hover,
+  edge,
+}) => {
+  switch (edge) {
+    case "right":
       left = hover ? windowWidth - width : windowWidth - width / 2;
       break;
-    case left:
+    case "left":
       left = hover ? 0 : -width / 2;
       break;
-    case bottom:
+    case "bottom":
       top = hover ? windowHeight - height : windowHeight - height / 2;
       break;
     default:
@@ -57,6 +80,7 @@ export default function Draggable({
   height,
   left,
   top,
+  edge: savedEdge,
   show = true,
   snapEdge,
   onStart,
@@ -67,7 +91,11 @@ export default function Draggable({
 }) {
   const [hover, setHover] = useState(false);
   const [origin, setOrigin] = useState(null); // 拖动起始的参考原点坐标和 client 坐标
+  const [edge, setEdge] = useState(
+    FAB_EDGES.includes(savedEdge) ? savedEdge : null
+  );
   const containerRef = useRef(null);
+  const draggedRef = useRef(false);
 
   // 用百分比的形式保存位置，以便在视口大小 resize 时等比例缩放位置
   // REVIEW: 这里的 left / windowWidth 和 top / windowHeight 在首帧 windowWidth/Height 为 0 的异常场景下，
@@ -76,6 +104,7 @@ export default function Draggable({
     x: left / windowWidth,
     y: top / windowHeight,
   });
+  const latestEdge = useRef(edge);
   const [position, setPosition] = useState({
     x: left / windowWidth,
     y: top / windowHeight,
@@ -95,19 +124,42 @@ export default function Draggable({
     latestPosition.current = position;
   }, [position]);
 
+  useEffect(() => {
+    latestEdge.current = edge;
+  }, [edge]);
+
   // 监听 resize 事件，自适应保持拖拽组件在屏幕中的相对比例坐标
   useEffect(() => {
     const onResize = () => {
       if (!containerRef.current) return;
       const { x: px, y: py } = latestPosition.current;
-      const newX = px * window.innerWidth;
-      const newY = py * window.innerHeight;
-      applyTransform(newX, newY);
+      const newWindowWidth = document.documentElement.clientWidth;
+      const newWindowHeight = document.documentElement.clientHeight;
+      const currentPosition = {
+        x: px * newWindowWidth,
+        y: py * newWindowHeight,
+      };
+
+      if (snapEdge && latestEdge.current) {
+        const edgePosition = getEdgePosition({
+          ...currentPosition,
+          width,
+          height,
+          windowWidth: newWindowWidth,
+          windowHeight: newWindowHeight,
+          hover,
+          edge: latestEdge.current,
+        });
+        applyTransform(edgePosition.x, edgePosition.y);
+        return;
+      }
+
+      applyTransform(currentPosition.x, currentPosition.y);
     };
 
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
-  }, [applyTransform]);
+  }, [applyTransform, height, hover, snapEdge, width]);
 
   // 贴边自动吸附效果逻辑
   useEffect(() => {
@@ -120,14 +172,28 @@ export default function Draggable({
       y: position.y * windowHeight,
     };
 
+    const activeEdge =
+      edge ||
+      getNearestEdge({
+        ...currentPosition,
+        width,
+        height,
+        windowWidth,
+        windowHeight,
+      });
+    if (!edge) {
+      setEdge(activeEdge);
+      latestEdge.current = activeEdge;
+    }
+
     const edgePosition = getEdgePosition({
-      x: currentPosition.x,
-      y: currentPosition.y,
+      ...currentPosition,
       width,
       height,
       windowWidth,
       windowHeight,
       hover,
+      edge: activeEdge,
     });
 
     applyTransform(edgePosition.x, edgePosition.y);
@@ -137,8 +203,9 @@ export default function Draggable({
       y: edgePosition.y / windowHeight,
     };
     setPosition(percentageEdge);
-    setFabPosition(edgePosition);
+    setFabPosition({ ...edgePosition, edge: activeEdge });
   }, [
+    edge,
     origin,
     hover,
     width,
@@ -156,6 +223,7 @@ export default function Draggable({
   const handlePointerDown = (e) => {
     !isMobile && e.target.setPointerCapture(e.pointerId); // 捕获指针事件，使得移出当前元素时仍能响应 move
     onStart && onStart();
+    draggedRef.current = false;
     const rect = containerRef.current?.getBoundingClientRect();
     const currentX = rect ? rect.left : position.x * windowWidth;
     const currentY = rect ? rect.top : position.y * windowHeight;
@@ -167,6 +235,7 @@ export default function Draggable({
   const handlePointerMove = (e) => {
     onMove && onMove();
     if (!origin) return;
+    draggedRef.current = true;
     const { clientX, clientY } = isMobile ? e.targetTouches[0] : e;
     const dx = clientX - origin.clientX;
     const dy = clientY - origin.clientY;
@@ -189,6 +258,21 @@ export default function Draggable({
   // 鼠标松开/手指抬起，清除拖拽 origin，并阻止事件冒泡防止底层元素误触
   const handlePointerUp = (e) => {
     e.stopPropagation();
+    if (snapEdge && draggedRef.current) {
+      const currentPosition = {
+        x: latestPosition.current.x * windowWidth,
+        y: latestPosition.current.y * windowHeight,
+      };
+      const nextEdge = getNearestEdge({
+        ...currentPosition,
+        width,
+        height,
+        windowWidth,
+        windowHeight,
+      });
+      setEdge(nextEdge);
+      latestEdge.current = nextEdge;
+    }
     setOrigin(null);
   };
 
