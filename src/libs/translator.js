@@ -2614,9 +2614,6 @@ overflow-wrap: anywhere !important;`;
           });
         }
 
-        // 换行符替换
-        text = text.replace(/\r?\n/g, () => pushReplace(`&#10;`));
-
         return escapeHTML(text);
       }
 
@@ -2703,7 +2700,13 @@ overflow-wrap: anywhere !important;`;
       return tag;
     }
 
-    const processedString = nodes.map(traverse).join("").trim();
+    let processedString = nodes.map(traverse).join("").trim();
+
+    // 先清理整个翻译片段两端的源码排版空白，再保护正文内部的换行和 Tab。
+    // 不能逐个 trim 文本节点，否则会破坏行内元素之间的必要空格。
+    processedString = processedString.replace(/\r?\n|\t/g, (whitespace) =>
+      pushReplace(whitespace === "\t" ? "&#9;" : "&#10;")
+    );
 
     return [processedString, placeholderMap];
   }
