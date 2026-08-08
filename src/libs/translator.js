@@ -2619,6 +2619,11 @@ overflow-wrap: anywhere !important;`;
 
       // 元素节点
       if (node.nodeType === Node.ELEMENT_NODE) {
+        // 收藏词高亮只影响原文显示，不应改变翻译请求的结构
+        if (node.classList.contains(Translator.KISS_CLASS.highlight)) {
+          return Array.from(node.childNodes, traverse).join("");
+        }
+
         if (this.#isIgnoredElement(node)) {
           return "";
         }
