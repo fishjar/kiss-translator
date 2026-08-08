@@ -22,6 +22,7 @@ import {
   GEMINI_INTERACTIONS_URL,
   OPT_TRANS_GEMINI,
   OPT_TRANS_GEMINI_2,
+  OPT_TRANS_MICROSOFT,
   OPT_TRANS_OPENAI,
   OPT_TRANS_OPENROUTER,
 } from "../config";
@@ -834,5 +835,49 @@ describe("handleTranslate", () => {
     expect(body.messages[body.messages.length - 1].content).toBe(
       "Title: Doc title\nContext: Doc context"
     );
+  });
+
+  test("calls Edge translate endpoint without auth and string-array body", async () => {
+    fetchData.mockResolvedValueOnce([
+      {
+        detectedLanguage: { language: "en", score: 0.9 },
+        translations: [{ text: "你好世界", to: "zh-Hans" }],
+      },
+      {
+        detectedLanguage: { language: "en", score: 0.99 },
+        translations: [{ text: "早上好", to: "zh-Hans" }],
+      },
+    ]);
+
+    const result = await collectAsyncGenerator(
+      handleTranslate(["Hello world", "Good morning"], {
+        from: "",
+        to: "zh-Hans",
+        fromLang: "auto",
+        toLang: "Chinese",
+        langMap: () => "",
+        glossary: "",
+        apiSetting: {
+          ...getApiSetting(OPT_TRANS_MICROSOFT),
+          useStream: false,
+        },
+        usePool: false,
+      })
+    );
+
+    expect(fetchData).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchData.mock.calls[0];
+    expect(
+      url.startsWith("https://edge.microsoft.com/translate/translatetext?")
+    ).toBe(true);
+    expect(new URL(url).searchParams.get("from")).toBe("");
+    expect(new URL(url).searchParams.get("to")).toBe("zh-Hans");
+    expect(new URL(url).searchParams.get("isEnterpriseClient")).toBe("false");
+    expect(init.headers.Authorization).toBeUndefined();
+    expect(JSON.parse(init.body)).toEqual(["Hello world", "Good morning"]);
+    expect(result).toEqual([
+      { id: 0, result: ["你好世界", "en"] },
+      { id: 1, result: ["早上好", "en"] },
+    ]);
   });
 });

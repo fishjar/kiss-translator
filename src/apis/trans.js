@@ -53,7 +53,6 @@ import {
   getGeminiThinkingStrategy,
   isGeminiInteractionsUrl,
 } from "../config";
-import { msAuth } from "../libs/auth";
 import { genDeeplFree } from "./deepl";
 import { genBaidu } from "./baidu";
 import { interpreter } from "../libs/interpreter";
@@ -511,20 +510,19 @@ const genGoogle2 = ({ texts, from, to, url, key }) => {
   return { url, body, headers };
 };
 
-const genMicrosoft = ({ texts, from, to, token }) => {
+const genMicrosoft = ({ texts, from, to }) => {
+  // Edge 前端内部端点：无需鉴权，Body 为纯字符串数组；from 留空表示自动检测。
   const params = queryString.stringify({
-    from,
+    from: from || "",
     to,
-    "api-version": "3.0",
+    isEnterpriseClient: false,
   });
-  const url = `https://api-edge.cognitive.microsofttranslator.com/translate?${params}`;
+  const url = `https://edge.microsoft.com/translate/translatetext?${params}`;
   const headers = {
     "Content-type": "application/json",
-    Authorization: `Bearer ${token}`,
   };
-  const body = texts.map((text) => ({ Text: text }));
 
-  return { url, body, headers };
+  return { url, body: texts, headers };
 };
 
 const genAzureAI = ({ texts, from, to, url, key, region }) => {
@@ -1721,14 +1719,6 @@ export async function* handleTranslate(
       isGeminiInteractionsUrl(apiSetting.url)
     );
 
-  let token = "";
-  if (apiType === OPT_TRANS_MICROSOFT) {
-    token = await msAuth();
-    if (!token) {
-      throw new Error("got msauth error");
-    }
-  }
-
   const getRequest = (requestUseStream) =>
     genTransReq({
       ...apiSetting,
@@ -1740,7 +1730,6 @@ export async function* handleTranslate(
       langMap,
       glossary,
       hisMsgs,
-      token,
       useStream: requestUseStream,
       docInfo,
     });
@@ -1944,35 +1933,6 @@ async function* handleTranslateStreamInternal(
     }
   }
 }
-
-/**
- * Microsoft语言识别聚合及解析
- * @param {*} texts
- * @returns
- */
-export const handleMicrosoftLangdetect = async (texts = []) => {
-  const token = await msAuth();
-  const input =
-    "https://api-edge.cognitive.microsofttranslator.com/detect?api-version=3.0";
-  const init = {
-    headers: {
-      "Content-type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    method: "POST",
-    body: JSON.stringify(texts.map((text) => ({ Text: text }))),
-  };
-
-  const res = await fetchData(input, init, {
-    useCache: false,
-  });
-
-  if (Array.isArray(res)) {
-    return res.map((r) => r.language);
-  }
-
-  return [];
-};
 
 /**
  * 执行字幕断句与字幕翻译请求。

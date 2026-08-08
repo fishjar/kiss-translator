@@ -69,7 +69,6 @@ jest.mock("./trans", () => ({
       return item;
     }),
   handleSummarize: jest.fn(),
-  handleMicrosoftLangdetect: jest.fn(),
 }));
 
 import { apiDict, apiSubtitle, apiTranslate } from "./index";
