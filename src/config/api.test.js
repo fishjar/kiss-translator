@@ -32,10 +32,10 @@ test("uses Tencent as the fallback default API", () => {
   expect(DEFAULT_API_TYPE).toBe(OPT_TRANS_TENCENT);
 });
 
-test("temporarily excludes Microsoft from the built-in API list", () => {
+test("includes Microsoft in the built-in API list", () => {
   expect(
     DEFAULT_API_LIST.some((api) => api.apiType === OPT_TRANS_MICROSOFT)
-  ).toBe(false);
+  ).toBe(true);
 });
 
 test("all AI APIs define a thinking mode by default", () => {

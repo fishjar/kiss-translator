@@ -8,7 +8,6 @@ import {
   STOKEY_FAB,
   STOKEY_TRANBOX,
   STOKEY_SYNC,
-  STOKEY_MSAUTH,
   STOKEY_BDAUTH,
   STOKEY_RULESCACHE_PREFIX,
   STOKEY_DISABLED_SUB_RULES,
@@ -302,10 +301,6 @@ export const putSyncMeta = async (key) => {
 };
 // 节流处理同步时间元数据的更新
 export const debounceSyncMeta = debounce(putSyncMeta, 300);
-
-// --- 微软云服务授权 Token 存取 ---
-export const getMsauth = () => getObj(STOKEY_MSAUTH);
-export const setMsauth = (val) => setObj(STOKEY_MSAUTH, val);
 
 // --- 百度云服务授权 Token 存取 ---
 export const getBdauth = () => getObj(STOKEY_BDAUTH);
