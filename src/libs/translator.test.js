@@ -194,6 +194,75 @@ describe("Translator rule styles", () => {
     expect(requestedTexts.every((text) => text.trim())).toBe(true);
   });
 
+  test("trims source indentation before creating whitespace placeholders", async () => {
+    document.body.innerHTML =
+      '<main id="root"><span id="target">\n\t\t1. Overall Structure\n\t</span></main>';
+
+    createTranslator(
+      {
+        autoScan: "false",
+        selector: "#target",
+      },
+      { minLength: 0 }
+    );
+    await flushAsync();
+
+    expect(apiTranslate).toHaveBeenCalledTimes(1);
+    expect(apiTranslate.mock.calls[0][0].text).toBe("1. Overall Structure");
+  });
+
+  test("protects and restores internal newlines and tabs", async () => {
+    const sourceText = "First\tcolumn\nSecond line";
+    apiTranslate.mockImplementation(({ text }) =>
+      Promise.resolve({ trText: text, isSame: false })
+    );
+    document.body.innerHTML =
+      '<main id="root"><span id="target"></span></main>';
+    document.getElementById("target").textContent = sourceText;
+
+    createTranslator(
+      {
+        autoScan: "false",
+        selector: "#target",
+      },
+      { minLength: 0 }
+    );
+    await flushAsync();
+
+    const requestedText = apiTranslate.mock.calls[0][0].text;
+    const inner = document.querySelector(`.${Translator.KISS_CLASS.inner}`);
+
+    expect(requestedText).toBe("First{1}column{2}Second line");
+    expect(requestedText).not.toContain("\t");
+    expect(requestedText).not.toContain("\n");
+    expect(inner.textContent).toBe(sourceText);
+  });
+
+  test("keeps literal backslash-t text unchanged", async () => {
+    const sourceText = "Show \\t literally";
+    apiTranslate.mockImplementation(({ text }) =>
+      Promise.resolve({ trText: text, isSame: false })
+    );
+    document.body.innerHTML =
+      '<main id="root"><span id="target"></span></main>';
+    document.getElementById("target").textContent = sourceText;
+
+    createTranslator(
+      {
+        autoScan: "false",
+        selector: "#target",
+      },
+      { minLength: 0 }
+    );
+    await flushAsync();
+
+    const requestedText = apiTranslate.mock.calls[0][0].text;
+    const inner = document.querySelector(`.${Translator.KISS_CLASS.inner}`);
+
+    expect(requestedText).toBe(sourceText);
+    expect(inner.textContent).toBe(sourceText);
+  });
+
   test("still translates mixed inline text groups", async () => {
     apiTranslate.mockResolvedValue({
       trText: "Translated mixed inline content",
@@ -218,6 +287,11 @@ describe("Translator rule styles", () => {
     expect(apiTranslate).toHaveBeenCalled();
     expect(combinedRequestedText).toContain("Text");
     expect(combinedRequestedText).toContain("tail");
+    expect(
+      requestedTexts.some(
+        (text) => text.startsWith("Text ") && text.endsWith(" tail")
+      )
+    ).toBe(true);
     expect(wrapper).not.toBeNull();
     expect(wrapper.textContent).toBe("Translated mixed inline content");
   });
