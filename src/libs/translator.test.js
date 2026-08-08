@@ -7,9 +7,7 @@ jest.mock("./msg", () => ({
 }));
 
 const { apiTranslate } = require("../apis");
-const {
-  OPT_HIGHLIGHT_WORDS_BEFORETRANS,
-} = require("../config/rules");
+const { OPT_HIGHLIGHT_WORDS_BEFORETRANS } = require("../config/rules");
 const { Translator } = require("./translator");
 
 const flushAsync = async () => {
@@ -302,8 +300,7 @@ describe("Translator rule styles", () => {
 
   test("keeps pre-translation highlights out of the translation request", async () => {
     const sourceText = "A model evaluation security incident report";
-    document.body.innerHTML =
-      '<main id="root"><p id="target"></p></main>';
+    document.body.innerHTML = '<main id="root"><p id="target"></p></main>';
     document.getElementById("target").textContent = sourceText;
 
     createTranslator(
@@ -353,9 +350,7 @@ describe("Translator rule styles", () => {
     );
 
     expect(highlight).not.toBeNull();
-    expect(requestedText).toBe(
-      "Review the <i1>incident response</i1> details"
-    );
+    expect(requestedText).toBe("Review the <i1>incident response</i1> details");
   });
 
   test("continues scanning block children after processing mixed parent nodes", async () => {
