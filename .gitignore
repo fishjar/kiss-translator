@@ -7,7 +7,7 @@
 /.obsidian
 .pnp.js
 .yarn
-
+.pnpm-store
 # testing
 /coverage
 /tmp/

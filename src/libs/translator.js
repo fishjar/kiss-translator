@@ -22,10 +22,10 @@ import {
 import { resolveApiPromptSettings } from "../config/prompt";
 import { interpreter } from "./interpreter";
 import { clearFetchPool } from "./pool";
-import { debounce, scheduleIdle, genEventName, parseAITerms } from "./utils";
+import { debounce, scheduleIdle, cancelScheduledIdle, genEventName, parseAITerms } from "./utils";
 import { escapeHTML } from "./html";
 import { apiTranslate } from "../apis";
-import { kissLog } from "./log";
+import { kissLog, spaLog } from "./log";
 import { clearAllBatchQueue } from "./batchQueue";
 import { genTextClass } from "./style";
 import { createLoadingSVG, createRetrySVG } from "./svg";
@@ -375,6 +375,7 @@ export class Translator {
 
   #rescanQueue = new Set(); // “脏容器”队列
   #isQueueProcessing = false; // 队列处理状态标志
+  #rescanIdleHandle = null; // scheduleIdle 返回的句柄，用于取消 pending idle rescan
 
   // 获取当前视口中的稳定锚点，用于 DOM 高度/结构发生改变（如插入译文）后保持滚动条位置，防止页面视觉闪烁或滚动位置发生偏移
   #captureViewportAnchor() {
@@ -1104,6 +1105,11 @@ export class Translator {
           continue;
         }
 
+        // 跳过翻译容器自身及其子元素内的变化（如 inner.innerHTML 赋值触发的 childList mutation）
+        if (mutation.target.closest?.(`.${Translator.KISS_CLASS.warpper}`)) {
+          continue;
+        }
+
         if (mutation.type === "characterData") {
           if (
             mutation.oldValue !== mutation.target.nodeValue &&
@@ -1440,9 +1446,12 @@ export class Translator {
   // “脏容器”队列
   #queueForRescan(target) {
     this.#rescanQueue.add(target);
+    spaLog("[SPA-DEBUG] queueForRescan, queue.size=", this.#rescanQueue.size, "isProcessing=", this.#isQueueProcessing, "target=", target?.tagName, target?.className?.slice?.(0, 50));
     if (!this.#isQueueProcessing) {
       this.#isQueueProcessing = true;
-      scheduleIdle(() => {
+      this.#rescanIdleHandle = scheduleIdle(() => {
+        this.#rescanIdleHandle = null;
+        spaLog("[SPA-DEBUG] rescanQueue idle callback, queue.size=", this.#rescanQueue.size, "runId=", this.#runId);
         this.#rescanQueue.forEach((t) => this.#rescanContainer(t));
         this.#rescanQueue.clear();
         this.#isQueueProcessing = false;
@@ -1450,14 +1459,48 @@ export class Translator {
     }
   }
 
-  // 处理“脏容器”
+  #cancelPendingRescanIdle() {
+    if (this.#rescanIdleHandle != null) {
+      cancelScheduledIdle(this.#rescanIdleHandle);
+      this.#rescanIdleHandle = null;
+    }
+    this.#rescanQueue.clear();
+    this.#isQueueProcessing = false;
+  }
+
+  // 处理"脏容器"
   #rescanContainer(changedNode) {
     const container = this.#findChangeContainer(changedNode);
     if (!container) return;
 
-    this.#processedNodes.delete(container); // 删除处理状态，允许重新翻译
+    // 如果容器内的原文（排除翻译 wrapper）未变化，跳过重翻译
+    const prevState = this.#processedNodes.get(container);
+    if (prevState) {
+      const currentText = this.#getSourceTextContent(container);
+      if (prevState._sourceText && prevState._sourceText === currentText) {
+        return;
+      }
+    }
+
+    this.#processedNodes.delete(container);
     this.#cleanupAllTranslations(container);
     this.#scanNode(container);
+  }
+
+  #getSourceTextContent(node) {
+    let text = "";
+    const wrapperClass = Translator.KISS_CLASS.warpper;
+    for (const child of node.childNodes) {
+      if (child.nodeType === Node.TEXT_NODE) {
+        text += child.nodeValue;
+      } else if (
+        child.nodeType === Node.ELEMENT_NODE &&
+        !child.classList?.contains(wrapperClass)
+      ) {
+        text += child.textContent;
+      }
+    }
+    return text;
   }
 
   // 重新观察
@@ -1599,7 +1642,8 @@ export class Translator {
       return;
     }
 
-    this.#processedNodes.set(node, { ...this.#rule });
+    spaLog("[SPA-DEBUG] processNode, runId=", this.#runId, "tag=", node?.tagName, "text=", node?.textContent?.slice?.(0, 40));
+    this.#processedNodes.set(node, { ...this.#rule, _sourceText: this.#getSourceTextContent(node) });
 
     // 提前检测文本
     if (this.#isInvalidText(node.textContent)) {
@@ -2197,6 +2241,8 @@ export class Translator {
         termsStyle
       );
       if (this.#isInvalidText(processedString)) return;
+
+      spaLog("[SPA-DEBUG] translateNodeGroup, runId=", this.#runId, "text=", processedString?.slice?.(0, 50));
 
       const wrapper = document.createElement(this.#translationTagName);
       wrapper.className = `${Translator.KISS_CLASS.warpper} notranslate`;
@@ -3529,6 +3575,7 @@ overflow-wrap: anywhere !important;`;
     this.#rule.transOpen = "false";
     this.#runId++;
 
+    this.#cancelPendingRescanIdle();
     this.#cleanupAllNodes();
     clearFetchPool();
     clearAllBatchQueue();
@@ -3545,7 +3592,9 @@ overflow-wrap: anywhere !important;`;
   rescan() {
     if (!this.#isInitialized) return;
     this.#runId++;
+    spaLog("[SPA-DEBUG] rescan() called, new runId=", this.#runId, "rescanQueue.size=", this.#rescanQueue.size);
 
+    this.#cancelPendingRescanIdle();
     this.#cleanupAllNodes();
     this.#resetOptions();
     clearFetchPool();
