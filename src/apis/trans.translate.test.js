@@ -2,9 +2,13 @@ jest.mock("query-string", () => ({
   stringify: (obj) => new URLSearchParams(obj).toString(),
 }));
 
-jest.mock("@streamparser/json", () => ({
-  JSONParser: jest.fn(),
-}));
+jest.mock("@streamparser/json", () =>
+  jest.requireActual("../../node_modules/@streamparser/json/dist/cjs/index.js")
+);
+
+const { TextDecoder, TextEncoder } = require("util");
+global.TextEncoder = global.TextEncoder || TextEncoder;
+global.TextDecoder = global.TextDecoder || TextDecoder;
 
 jest.mock("../libs/fetch", () => ({
   fetchData: jest.fn(),
@@ -771,6 +775,49 @@ describe("handleTranslate", () => {
       { id: 0, partialText: "你", isComplete: false },
       { id: 0, partialText: "你好", isComplete: false },
       { id: 0, result: ["你好"] },
+    ]);
+  });
+
+  test("streams partial JSON text before a batched translation completes", async () => {
+    async function* streamChunks() {
+      yield JSON.stringify({
+        choices: [
+          { delta: { content: '{"translations":[{"id":0,"text":"你' } },
+        ],
+      });
+      yield JSON.stringify({
+        choices: [
+          {
+            delta: {
+              content: '好","sourceLanguage":"zh"}]}',
+            },
+          },
+        ],
+      });
+    }
+
+    fetchStream.mockReturnValueOnce(streamChunks());
+
+    const result = await collectAsyncGenerator(
+      handleTranslate(["hello"], {
+        from: "en",
+        to: "zh-CN",
+        fromLang: "English",
+        toLang: "Chinese",
+        langMap: () => "",
+        glossary: "",
+        apiSetting: {
+          ...getApiSetting(OPT_TRANS_OPENAI),
+          streamRenderMode: "realtime",
+        },
+        usePool: false,
+      })
+    );
+
+    expect(result).toEqual([
+      { id: 0, partialText: "你", isComplete: false },
+      { id: 0, partialText: "你好", isComplete: false },
+      { id: 0, result: ["你好", "zh"] },
     ]);
   });
 
