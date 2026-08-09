@@ -377,7 +377,7 @@ export class Translator {
   #isQueueProcessing = false; // 队列处理状态标志
 
   // 获取当前视口中的稳定锚点，用于 DOM 高度/结构发生改变（如插入译文）后保持滚动条位置，防止页面视觉闪烁或滚动位置发生偏移
-  #captureViewportAnchor() {
+  #captureViewportAnchor(excludedElements) {
     if (!document.elementFromPoint || !window.scrollBy) return null;
 
     // 测试视口中部的三个不同纵坐标点（50%, 33%, 66%），确保抓取到一个有效的可视 DOM 节点
@@ -389,7 +389,11 @@ export class Translator {
         Math.min(window.innerHeight - 1, Math.floor(window.innerHeight * ratio))
       );
       const element = document.elementFromPoint(x, y);
-      const anchor = this.#normalizeViewportAnchor(element);
+      let anchor = this.#normalizeViewportAnchor(element);
+      // 如果锚点会在本次操作中被移除，则向上查找一个稳定的祖先节点
+      while (anchor && excludedElements?.has(anchor)) {
+        anchor = anchor.parentElement || anchor.getRootNode?.()?.host || null;
+      }
       if (!anchor?.isConnected) continue;
 
       const rect = anchor.getBoundingClientRect();
@@ -441,8 +445,8 @@ export class Translator {
   }
 
   // 包装执行 DOM 修改的回调函数，并在前后自动完成视口滚动稳定保护
-  #withViewportAnchor(callback) {
-    const anchor = this.#captureViewportAnchor();
+  #withViewportAnchor(callback, excludedElements) {
+    const anchor = this.#captureViewportAnchor(excludedElements);
     try {
       return callback();
     } finally {
@@ -2838,18 +2842,33 @@ overflow-wrap: anywhere !important;`;
     this.#rootNodes.forEach((root) => this.#cleanupAllTranslations(root));
   }
 
+  #cleanupTranslationElements(elements) {
+    const wrappers = Array.from(elements);
+    if (!wrappers.length) return;
+
+    // 这些节点会在清理期间被移除或解包，不能作为最终的视口锚点
+    const excludedAnchors = new Set(wrappers);
+    wrappers.forEach((wrapper) => {
+      const originalWrapper =
+        this.#translationNodes.get(wrapper)?.originalWrapper;
+      if (originalWrapper) excludedAnchors.add(originalWrapper);
+    });
+
+    this.#withViewportAnchor(() => {
+      wrappers.forEach((el) => this.#removeTranslationElement(el));
+    }, excludedAnchors);
+  }
+
   // 清理节点下面所有译文dom
   #cleanupAllTranslations(root) {
-    root
-      .querySelectorAll(`.${Translator.KISS_CLASS.warpper}`)
-      .forEach((el) => this.#removeTranslationElement(el));
+    this.#cleanupTranslationElements(
+      root.querySelectorAll(`.${Translator.KISS_CLASS.warpper}`)
+    );
   }
 
   // 清理子节点译文dom
   #cleanupDirectTranslations(node) {
-    this.#findTranslationWrappers(node).forEach((el) => {
-      this.#removeTranslationElement(el);
-    });
+    this.#cleanupTranslationElements(this.#findTranslationWrappers(node));
   }
 
   #collectExistingTranslationNodes(wrapper) {
@@ -2996,30 +3015,28 @@ overflow-wrap: anywhere !important;`;
     return true;
   }
 
-  // 清理译文
+  // 清理译文；视口锚点由批量清理方法统一维护
   #removeTranslationElement(el) {
-    this.#withViewportAnchor(() => {
-      const parentElement = el.parentElement;
-      this.#processedNodes.delete(parentElement);
+    const parentElement = el.parentElement;
+    this.#processedNodes.delete(parentElement);
 
-      // 如果是仅显示译文模式，先恢复原文
-      const data = this.#translationNodes.get(el);
-      if (data?.isHide) {
-        this.#restoreOriginal(el, data);
-      }
-      if (data?.originalWrapper) {
-        this.#unwrapOriginal(data.originalWrapper);
-      }
+    // 如果是仅显示译文模式，先恢复原文
+    const data = this.#translationNodes.get(el);
+    if (data?.isHide) {
+      this.#restoreOriginal(el, data);
+    }
+    if (data?.originalWrapper) {
+      this.#unwrapOriginal(data.originalWrapper);
+    }
 
-      this.#translationNodes.delete(el);
-      el.remove();
+    this.#translationNodes.delete(el);
+    el.remove();
 
-      // todo: 可能不应深度清除
-      if (this.#rule.highlightWords === OPT_HIGHLIGHT_WORDS_AFTERTRANS) {
-        this.#removeHighlights(parentElement);
-      }
-      this.#removeBrTags(parentElement);
-    });
+    // todo: 可能不应深度清除
+    if (this.#rule.highlightWords === OPT_HIGHLIGHT_WORDS_AFTERTRANS) {
+      this.#removeHighlights(parentElement);
+    }
+    this.#removeBrTags(parentElement);
   }
 
   // 恢复原文
