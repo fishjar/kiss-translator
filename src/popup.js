@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { SettingProvider } from "./hooks/Setting";
-import ThemeProvider from "./hooks/Theme";
+import ThemeProvider from "./views/Popup/PopupTheme";
 import Popup from "./views/Popup";
 
 // 标记当前上下文为 "popup"，方便其他共享库得知当前处于浏览器插件弹窗面板环境
