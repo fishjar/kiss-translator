@@ -1,6 +1,5 @@
 import {
   Fragment,
-  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -8,7 +7,6 @@ import {
   useState,
 } from "react";
 import AddIcon from "@mui/icons-material/Add";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DeleteIcon from "@mui/icons-material/Delete";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
@@ -51,8 +49,6 @@ import {
 } from "../../config";
 import { usePromptList } from "../../hooks/Prompt";
 import CodeField from "./CodeField";
-import { SettingsCard, SettingsRow, SettingsSection } from "./SettingsCard";
-import { usePersistedEntityDraft } from "./usePersistedEntityDraft";
 
 const TRANSLATION_PROMPT_PLACEHOLDERS = [
   INPUT_PLACE_TEXT,
@@ -189,25 +185,26 @@ function PromptFields({
 }) {
   const i18n = useI18n();
   const confirm = useConfirm();
-  const normalizedPrompt = normalizePrompt(prompt);
-  const {
-    draft: formData,
-    setDraft: setFormData,
-    isDirty: hasDraftChanges,
-  } = usePersistedEntityDraft(
-    normalizedPrompt,
-    normalizedPrompt.slug,
-    normalizePrompt
-  );
+  const [formData, setFormData] = useState(() => normalizePrompt(prompt));
   const promptDisplayName = getPromptDisplayName(prompt, i18n);
   const systemPromptRef = useRef(null);
   const userPromptRef = useRef(null);
-  // 只有会读取 userPrompt 的链路展示第二段提示词，避免编辑无效字段。
+  // Only show the second prompt for flows that consume userPrompt.
   const showUserPrompt =
     formData.category === PROMPT_CATEGORY_USER ||
     formData.category === PROMPT_CATEGORY_DICTIONARY;
 
-  const isModified = !isPreset && hasDraftChanges;
+  useLayoutEffect(() => {
+    setFormData(normalizePrompt(prompt));
+  }, [prompt]);
+
+  const isModified = useMemo(
+    () =>
+      !isPreset &&
+      JSON.stringify(normalizePrompt(prompt)) !==
+        JSON.stringify(normalizePrompt(formData)),
+    [formData, isPreset, prompt]
+  );
 
   useEffect(() => {
     onDirtyChange?.(isModified);
@@ -223,7 +220,6 @@ function PromptFields({
 
   const handleSave = () => {
     onSave(formData);
-    onDirtyChange?.(false);
   };
 
   const handleInsertPlaceholder = (name, inputRef, placeholder) => {
@@ -391,7 +387,6 @@ export default function Prompts() {
     isPresetPromptSlug,
   } = usePromptList();
   const [selectedPromptSlug, setSelectedPromptSlug] = useState("");
-  const [editorOpen, setEditorOpen] = useState(false);
   const [editorDirty, setEditorDirty] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const detailPanelRef = useRef(null);
@@ -435,39 +430,6 @@ export default function Prompts() {
       })).filter((group) => group.templates.length > 0),
     [isPresetPromptSlug, prompts]
   );
-  const quickPromptRows = useMemo(
-    () =>
-      [
-        {
-          category: PROMPT_CATEGORY_USER,
-          fallbackCategory: PROMPT_CATEGORY_BATCH_SYSTEM,
-          label: i18n("settings_prompt_general"),
-          description: i18n("settings_prompt_general_description"),
-        },
-        {
-          category: PROMPT_CATEGORY_SUBTITLE,
-          label: i18n("settings_prompt_subtitle"),
-          description: i18n("settings_prompt_subtitle_description"),
-        },
-        {
-          category: PROMPT_CATEGORY_DICTIONARY,
-          label: i18n("settings_prompt_dictionary"),
-          description: i18n("settings_prompt_dictionary_description"),
-        },
-      ].map((row) => ({
-        ...row,
-        prompt:
-          prompts.find(
-            (prompt) => normalizePrompt(prompt).category === row.category
-          ) ||
-          prompts.find(
-            (prompt) =>
-              row.fallbackCategory &&
-              normalizePrompt(prompt).category === row.fallbackCategory
-          ),
-      })),
-    [i18n, prompts]
-  );
 
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -477,14 +439,14 @@ export default function Prompts() {
     setAnchorEl(null);
   };
 
-  const confirmDiscardChanges = useCallback(async () => {
+  const confirmDiscardChanges = async () => {
     if (!editorDirty) return true;
     return confirm({
       message: i18n("discard_prompt_changes_confirm"),
       confirmText: i18n("discard_changes"),
       cancelText: i18n("cancel"),
     });
-  }, [confirm, editorDirty, i18n]);
+  };
 
   const handleAddPromptFromTemplate = async (template) => {
     if (!(await confirmDiscardChanges())) return;
@@ -492,7 +454,6 @@ export default function Prompts() {
     const promptSlug = addPrompt(template, templateName);
     setEditorDirty(false);
     setSelectedPromptSlug(promptSlug);
-    setEditorOpen(true);
     handleClose();
   };
 
@@ -500,66 +461,20 @@ export default function Prompts() {
     const promptSlug = copyPrompt(prompt, promptDisplayName);
     setEditorDirty(false);
     setSelectedPromptSlug(promptSlug);
-    setEditorOpen(true);
   };
 
-  const handleOpenPrompt = async (prompt) => {
-    if (!prompt) return;
+  const handleSelectPrompt = async (prompt) => {
     const promptSlug = normalizePrompt(prompt).slug;
-    if (editorOpen && promptSlug === selectedPromptSlug) return;
+    if (promptSlug === selectedPromptSlug) return;
     if (!(await confirmDiscardChanges())) return;
     setEditorDirty(false);
     setSelectedPromptSlug(promptSlug);
-    setEditorOpen(true);
-  };
-
-  const handleCloseEditor = async () => {
-    if (!(await confirmDiscardChanges())) return;
-    setEditorDirty(false);
-    setEditorOpen(false);
   };
 
   return (
     <Box>
-      {!editorOpen ? (
-        <SettingsSection>
-          <SettingsCard>
-            {quickPromptRows.map((row) => (
-              <SettingsRow
-                key={row.category}
-                label={row.label}
-                description={row.description}
-              >
-                <Button
-                  size="small"
-                  variant="contained"
-                  disabled={!row.prompt}
-                  onClick={() => void handleOpenPrompt(row.prompt)}
-                >
-                  {i18n("edit")}
-                </Button>
-              </SettingsRow>
-            ))}
-            <SettingsRow
-              label={i18n("add_prompt", "Add prompt")}
-              description={i18n("settings_prompt_new_description")}
-            >
-              <Button
-                size="small"
-                id="add-prompt-button"
-                variant="contained"
-                onClick={handleClick}
-                aria-controls={addMenuOpen ? "add-prompt-menu" : undefined}
-                aria-haspopup="true"
-                aria-expanded={addMenuOpen ? "true" : undefined}
-              >
-                {i18n("settings_create")}
-              </Button>
-            </SettingsRow>
-          </SettingsCard>
-        </SettingsSection>
-      ) : (
-        <Stack spacing={3}>
+      <Stack spacing={3}>
+        <Box>
           <Stack
             direction="row"
             alignItems="center"
@@ -567,14 +482,6 @@ export default function Prompts() {
             useFlexGap
             flexWrap="wrap"
           >
-            <Button
-              size="small"
-              variant="text"
-              onClick={() => void handleCloseEditor()}
-              startIcon={<ArrowBackIcon />}
-            >
-              {i18n("back")}
-            </Button>
             <Button
               size="small"
               id="add-prompt-button"
@@ -589,90 +496,84 @@ export default function Prompts() {
               {i18n("add_prompt", "新增提示词")}
             </Button>
           </Stack>
+        </Box>
+
+        <Box
+          className="kt-prompt-editor"
+          sx={{
+            display: "flex",
+            flexDirection: { xs: "column", md: "row" },
+            border: 1,
+            borderColor: "divider",
+            borderRadius: "20px",
+            overflow: "hidden",
+            height: { md: "calc(100vh - 140px)" },
+            minHeight: { md: 450 },
+          }}
+        >
+          <Box
+            sx={(theme) => ({
+              width: { xs: "100%", md: 280 },
+              flex: { xs: "0 0 auto", md: "0 0 280px" },
+              height: { md: "100%" },
+              overflowY: "auto",
+              borderRight: {
+                xs: 0,
+                md: `1px solid ${theme.palette.divider}`,
+              },
+              borderBottom: {
+                xs: `1px solid ${theme.palette.divider}`,
+                md: 0,
+              },
+            })}
+          >
+            <List disablePadding>
+              {prompts.map((prompt) => (
+                <PromptListItem
+                  key={normalizePrompt(prompt).slug}
+                  prompt={prompt}
+                  selected={normalizePrompt(prompt).slug === selectedPromptSlug}
+                  isPreset={isPresetPromptSlug(normalizePrompt(prompt).slug)}
+                  onSelect={() => void handleSelectPrompt(prompt)}
+                />
+              ))}
+            </List>
+          </Box>
 
           <Box
-            className="kt-prompt-editor"
+            ref={detailPanelRef}
             sx={{
-              display: "flex",
-              flexDirection: { xs: "column", md: "row" },
-              border: 1,
-              borderColor: "divider",
-              borderRadius: "20px",
-              overflow: "hidden",
-              height: { md: "calc(100vh - 220px)" },
-              minHeight: { md: 450 },
+              flex: 1,
+              minWidth: 0,
+              p: 2,
+              boxSizing: "border-box",
+              height: { md: "100%" },
+              overflowY: { md: "auto" },
+              scrollbarGutter: { md: "stable" },
+              overscrollBehavior: "contain",
             }}
           >
-            <Box
-              sx={(theme) => ({
-                width: { xs: "100%", md: 280 },
-                flex: { xs: "0 0 auto", md: "0 0 280px" },
-                height: { md: "100%" },
-                overflowY: "auto",
-                borderRight: {
-                  xs: 0,
-                  md: `1px solid ${theme.palette.divider}`,
-                },
-                borderBottom: {
-                  xs: `1px solid ${theme.palette.divider}`,
-                  md: 0,
-                },
-              })}
-            >
-              <List disablePadding>
-                {prompts.map((prompt) => (
-                  <PromptListItem
-                    key={normalizePrompt(prompt).slug}
-                    prompt={prompt}
-                    selected={
-                      normalizePrompt(prompt).slug === selectedPromptSlug
-                    }
-                    isPreset={isPresetPromptSlug(normalizePrompt(prompt).slug)}
-                    onSelect={() => void handleOpenPrompt(prompt)}
-                  />
-                ))}
-              </List>
-            </Box>
-
-            <Box
-              ref={detailPanelRef}
-              sx={{
-                flex: 1,
-                minWidth: 0,
-                p: 2,
-                boxSizing: "border-box",
-                height: { md: "100%" },
-                overflowY: { md: "auto" },
-                scrollbarGutter: { md: "stable" },
-                overscrollBehavior: "contain",
-              }}
-            >
-              {selectedPrompt && (
-                <PromptFields
-                  prompt={selectedPrompt}
-                  isPreset={isPresetPromptSlug(
-                    normalizePrompt(selectedPrompt).slug
-                  )}
-                  onSave={(updateData) =>
-                    updatePrompt(
-                      normalizePrompt(selectedPrompt).slug,
-                      updateData
-                    )
-                  }
-                  onCopy={handleCopyPrompt}
-                  onDelete={deletePrompt}
-                  onDirtyChange={setEditorDirty}
-                  onCollapse={() => {
-                    setEditorDirty(false);
-                    setSelectedPromptSlug("");
-                    setEditorOpen(false);
-                  }}
-                />
-              )}
-            </Box>
+            {selectedPrompt && (
+              <PromptFields
+                prompt={selectedPrompt}
+                isPreset={isPresetPromptSlug(
+                  normalizePrompt(selectedPrompt).slug
+                )}
+                onSave={(updateData) =>
+                  updatePrompt(normalizePrompt(selectedPrompt).slug, updateData)
+                }
+                onCopy={handleCopyPrompt}
+                onDelete={deletePrompt}
+                onDirtyChange={setEditorDirty}
+                onCollapse={() => {
+                  setEditorDirty(false);
+                  setSelectedPromptSlug("");
+                }}
+              />
+            )}
           </Box>
-        </Stack>
-      )}
+        </Box>
+      </Stack>
 
       <Menu
         id="add-prompt-menu"

@@ -248,23 +248,30 @@ export function SettingsAdvanced({
   className = "",
 }) {
   const [expanded, setExpanded] = useState(open);
+  const [hasExpanded, setHasExpanded] = useState(open);
 
   useEffect(() => {
     setExpanded(open);
+    if (open) setHasExpanded(true);
   }, [open]);
+
+  const handleChange = (_event, nextExpanded) => {
+    setExpanded(nextExpanded);
+    if (nextExpanded) setHasExpanded(true);
+  };
 
   return (
     <Accordion
       disableGutters
       expanded={expanded}
-      onChange={(_event, nextExpanded) => setExpanded(nextExpanded)}
+      onChange={handleChange}
       className={`kt-settings-advanced ${className}`.trim()}
     >
       <AccordionSummary expandIcon={<ExpandMoreRoundedIcon />}>
         {label}
       </AccordionSummary>
       <AccordionDetails className="kt-settings-advanced__content">
-        {expanded ? children : null}
+        {hasExpanded ? children : null}
       </AccordionDetails>
     </Accordion>
   );

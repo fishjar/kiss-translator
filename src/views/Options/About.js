@@ -6,22 +6,6 @@ import Button from "@mui/material/Button";
 import Logo from "../../components/Logo";
 import { SettingsAdvanced } from "./SettingsCard";
 
-const MARKDOWN_COMPONENTS = {
-  a: ({ href, children }) => {
-    const normalizedHref = href?.trim();
-    const hasUnsafeScheme =
-      normalizedHref &&
-      /^[a-z][a-z0-9+.-]*:/i.test(normalizedHref) &&
-      !/^(https?|mailto):/i.test(normalizedHref);
-
-    if (!normalizedHref || hasUnsafeScheme) {
-      return <span>{children}</span>;
-    }
-
-    return <a href={normalizedHref}>{children}</a>;
-  },
-};
-
 /**
  * 关于面板组件 (在设置页展示关于/帮助的 MD 格式文档)
  */
@@ -34,9 +18,7 @@ function AboutDetails() {
       <CircularProgress size={24} />
     </div>
   ) : (
-    <ReactMarkdown components={MARKDOWN_COMPONENTS}>
-      {error ? i18n("about_md_local") : data}
-    </ReactMarkdown>
+    <ReactMarkdown>{error ? i18n("about_md_local") : data}</ReactMarkdown>
   );
 }
 

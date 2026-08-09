@@ -83,7 +83,6 @@ import {
 import ValidationInput from "../../hooks/ValidationInput";
 import { usePromptList } from "../../hooks/Prompt";
 import ApiProviderIcon from "../../components/ApiProviderIcon";
-import { usePersistedEntityDraft } from "./usePersistedEntityDraft";
 
 const API_LIST_CONTROL_SIZE = 24;
 const API_LIST_CONTROL_GAP = 0.5;
@@ -203,23 +202,11 @@ function SensitiveTextField({ value = "", onChange, inputProps, ...props }) {
   );
 }
 
-function ApiFields({
-  apiSlug,
-  deleteApi,
-  copyApi,
-  onCollapse,
-  onDirtyChange,
-  confirmDiscardChanges,
-}) {
+function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
   const { api, update, reset } = useApiItem(apiSlug);
   const { prompts } = usePromptList();
   const i18n = useI18n();
-  const {
-    draft: formData,
-    setDraft: setFormData,
-    discardDraft,
-    isDirty: hasDraftChanges,
-  } = usePersistedEntityDraft(api || {}, apiSlug);
+  const [formData, setFormData] = useState(() => api || {});
   const [showMore, setShowMore] = useState(false);
   const [modelOptions, setModelOptions] = useState([]);
   const [modelThinkingCapabilities, setModelThinkingCapabilities] = useState(
@@ -229,6 +216,10 @@ function ApiFields({
   const [modelListError, setModelListError] = useState("");
   const requestedModelListKeyRef = useRef("");
   const confirm = useConfirm();
+
+  useLayoutEffect(() => {
+    setFormData(api || {});
+  }, [api]);
 
   useLayoutEffect(() => {
     setShowMore(false);
@@ -249,8 +240,8 @@ function ApiFields({
       return false;
     }
 
-    return hasDraftChanges;
-  }, [api, apiSlug, activeFormData, hasDraftChanges]);
+    return JSON.stringify(api) !== JSON.stringify(activeFormData);
+  }, [api, apiSlug, activeFormData]);
 
   useEffect(() => {
     onDirtyChange?.(isModified);
@@ -339,16 +330,13 @@ function ApiFields({
       nextFormData.thinkingEffort = "_default";
     }
     update(nextFormData);
-    setFormData(nextFormData);
     if (activeFormData.isDisabled || activeFormData.sortOrder === -1) {
       onCollapse?.();
     }
   };
 
-  const handleReset = async () => {
-    if (!(await confirmDiscardChanges())) return;
+  const handleReset = () => {
     reset();
-    discardDraft();
   };
 
   const handleCopy = () => {
@@ -361,8 +349,9 @@ function ApiFields({
       cancelText: i18n("cancel"),
     });
 
-    if (!isConfirmed || !(await confirmDiscardChanges())) return;
-    deleteApi(apiSlug);
+    if (isConfirmed) {
+      deleteApi(apiSlug);
+    }
   };
 
   const {
@@ -1345,7 +1334,6 @@ function ApiListItem({
   onDragOver,
   onDrop,
   onDragEnd,
-  onToggle,
 }) {
   const handleContentClick = (event) => {
     if (bulkMode) {
@@ -1464,14 +1452,6 @@ function ApiListItem({
             {api.model || api.apiType}
           </Typography>
         </Box>
-        {!bulkMode && (
-          <Switch
-            checked={!api.isDisabled}
-            onClick={(event) => event.stopPropagation()}
-            onChange={onToggle}
-            inputProps={{ "aria-label": api.apiName || api.apiType }}
-          />
-        )}
       </ListItemButton>
     </ListItem>
   );
@@ -1572,25 +1552,6 @@ export default function Apis() {
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
 
-  const confirmDiscardChanges = useCallback(async () => {
-    if (!detailDirty) return true;
-
-    const isConfirmed = await confirm({
-      message: i18n(
-        "discard_api_changes_confirm",
-        "This API has unsaved changes. Discard them?"
-      ),
-      confirmText: i18n("discard_changes"),
-      cancelText: i18n("cancel"),
-    });
-
-    if (!isConfirmed) return false;
-
-    setDetailDirty(false);
-    setDetailKey((key) => key + 1);
-    return true;
-  }, [confirm, detailDirty, i18n]);
-
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
   };
@@ -1599,21 +1560,32 @@ export default function Apis() {
     setAnchorEl(null);
   };
 
-  const handleMenuItemClick = async (apiType) => {
-    handleClose();
-    if (!(await confirmDiscardChanges())) return;
+  const handleMenuItemClick = (apiType) => {
     addApi(apiType);
+    handleClose();
   };
 
   const handleSelectApi = useCallback(
     async (apiSlug) => {
-      if (apiSlug === selectedApiSlug || !(await confirmDiscardChanges())) {
-        return;
+      if (apiSlug === selectedApiSlug) return;
+
+      if (detailDirty) {
+        const isConfirmed = await confirm({
+          message: i18n(
+            "discard_api_changes_confirm",
+            "This API has unsaved changes. Discard them?"
+          ),
+          confirmText: i18n("discard_changes"),
+          cancelText: i18n("cancel"),
+        });
+
+        if (!isConfirmed) return;
       }
 
+      setDetailDirty(false);
       setSelectedApiSlug(apiSlug);
     },
-    [confirmDiscardChanges, selectedApiSlug]
+    [confirm, detailDirty, i18n, selectedApiSlug]
   );
 
   const handleCheckApi = useCallback((event, apiSlug) => {
@@ -1643,38 +1615,27 @@ export default function Apis() {
     });
   }, []);
 
-  const handlePinCheckedApis = useCallback(async () => {
-    if (!(await confirmDiscardChanges())) return;
+  const handlePinCheckedApis = useCallback(() => {
     pinApis(checkedApiSlugs);
-  }, [checkedApiSlugs, confirmDiscardChanges, pinApis]);
+    setDetailKey((key) => key + 1);
+  }, [checkedApiSlugs, pinApis]);
 
-  const handleEnableCheckedApis = useCallback(async () => {
-    if (!(await confirmDiscardChanges())) return;
+  const handleEnableCheckedApis = useCallback(() => {
     enableApis(checkedApiSlugs);
-  }, [checkedApiSlugs, confirmDiscardChanges, enableApis]);
+    setDetailKey((key) => key + 1);
+  }, [checkedApiSlugs, enableApis]);
 
-  const handleDisableCheckedApis = useCallback(async () => {
-    if (!(await confirmDiscardChanges())) return;
+  const handleDisableCheckedApis = useCallback(() => {
     disableApis(checkedApiSlugs);
-  }, [checkedApiSlugs, confirmDiscardChanges, disableApis]);
+    setDetailKey((key) => key + 1);
+  }, [checkedApiSlugs, disableApis]);
 
-  const handleToggleApi = useCallback(
-    async (api) => {
-      if (!(await confirmDiscardChanges())) return;
-
-      if (api.isDisabled) enableApis([api.apiSlug]);
-      else disableApis([api.apiSlug]);
-    },
-    [confirmDiscardChanges, disableApis, enableApis]
-  );
-
-  const handleAlphaSortApis = useCallback(async () => {
-    if (!(await confirmDiscardChanges())) return;
-
+  const handleAlphaSortApis = useCallback(() => {
     const newDir = alphaSortDir === "asc" ? "desc" : "asc";
     setAlphaSortDir(newDir);
+    setDetailKey((key) => key + 1);
     alphaSortApis(newDir);
-  }, [alphaSortApis, alphaSortDir, confirmDiscardChanges]);
+  }, [alphaSortApis, alphaSortDir]);
 
   const handleDeleteCheckedApis = useCallback(async () => {
     const isConfirmed = await confirm({
@@ -1686,18 +1647,12 @@ export default function Apis() {
       cancelText: i18n("cancel"),
     });
 
-    if (!isConfirmed || !(await confirmDiscardChanges())) return;
-
-    deleteApis(checkedApiSlugs);
-    setCheckedApiSlugs([]);
-  }, [
-    checkedApiCount,
-    checkedApiSlugs,
-    confirm,
-    confirmDiscardChanges,
-    deleteApis,
-    i18n,
-  ]);
+    if (isConfirmed) {
+      deleteApis(checkedApiSlugs);
+      setCheckedApiSlugs([]);
+      setDetailKey((key) => key + 1);
+    }
+  }, [checkedApiCount, checkedApiSlugs, confirm, deleteApis, i18n]);
 
   const handleDragStart = useCallback((event, apiSlug) => {
     event.dataTransfer.effectAllowed = "move";
@@ -1716,25 +1671,19 @@ export default function Apis() {
   );
 
   const handleDrop = useCallback(
-    async (event, apiSlug) => {
+    (event, apiSlug) => {
       event.preventDefault();
       const activeSlug =
         draggingApiSlug || event.dataTransfer.getData("text/plain");
 
-      setDraggingApiSlug("");
-      setDragOverApiSlug("");
-
-      if (
-        !activeSlug ||
-        activeSlug === apiSlug ||
-        !(await confirmDiscardChanges())
-      ) {
-        return;
+      if (activeSlug && activeSlug !== apiSlug) {
+        reorderApis(activeSlug, apiSlug);
       }
 
-      reorderApis(activeSlug, apiSlug);
+      setDraggingApiSlug("");
+      setDragOverApiSlug("");
     },
-    [confirmDiscardChanges, draggingApiSlug, reorderApis]
+    [draggingApiSlug, reorderApis]
   );
 
   const handleDragEnd = useCallback(() => {
@@ -1894,7 +1843,6 @@ export default function Apis() {
                 onDragOver={(event) => handleDragOver(event, api.apiSlug)}
                 onDrop={(event) => handleDrop(event, api.apiSlug)}
                 onDragEnd={handleDragEnd}
-                onToggle={() => handleToggleApi(api)}
               />
             ))}
           </List>
@@ -1906,7 +1854,6 @@ export default function Apis() {
                 deleteApi={deleteApi}
                 copyApi={copyApi}
                 onDirtyChange={setDetailDirty}
-                confirmDiscardChanges={confirmDiscardChanges}
               />
             </Box>
           )}

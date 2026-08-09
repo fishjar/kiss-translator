@@ -2,7 +2,6 @@ import { useMemo } from "react";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { CssBaseline, GlobalStyles } from "@mui/material";
 import { useDarkMode } from "../../hooks/ColorMode";
-import { useSetting } from "../../hooks/Setting";
 import { THEME_DARK, THEME_LIGHT } from "../../config";
 import {
   createM3CssVariables,
@@ -18,6 +17,7 @@ export { getMuiSwitchStyleOverrides } from "../../hooks/themeStyles";
 
 const EMPTY_THEME_OPTIONS = Object.freeze({});
 const EMPTY_GLOBAL_STYLES = Object.freeze({});
+const M3_BRAND_COLOR = "blue";
 
 export default function OptionsTheme({
   children,
@@ -25,10 +25,6 @@ export default function OptionsTheme({
   styles = EMPTY_GLOBAL_STYLES,
 }) {
   const { darkMode } = useDarkMode();
-  const { setting } = useSetting();
-  const brandColor = ["blue", "cyan", "violet"].includes(setting?.brandColor)
-    ? setting.brandColor
-    : "blue";
   const systemPrefersDark = useSystemDarkPreference();
 
   const previewMode =
@@ -40,8 +36,8 @@ export default function OptionsTheme({
       ? previewMode
       : resolveM3ThemeMode(darkMode, systemPrefersDark);
   const colors = useMemo(
-    () => resolveM3Colors(resolvedMode, brandColor),
-    [brandColor, resolvedMode]
+    () => resolveM3Colors(resolvedMode, M3_BRAND_COLOR),
+    [resolvedMode]
   );
 
   const theme = useMemo(() => {
@@ -214,7 +210,7 @@ export default function OptionsTheme({
       <div
         className="kt-m3-root"
         data-theme={resolvedMode}
-        data-brand={brandColor}
+        data-brand={M3_BRAND_COLOR}
         style={{
           ...createM3CssVariables(colors),
           colorScheme: resolvedMode,

@@ -106,6 +106,7 @@ export default function SyncSetting() {
   };
 
   const handleSyncTypeChange = async (syncTypeValue) => {
+    if (syncTypeValue === syncType) return;
     await updateSync({ syncType: syncTypeValue });
   };
 
@@ -276,14 +277,19 @@ export default function SyncSetting() {
           <Alert severity="warning">{i18n("sync_warn_gist")}</Alert>
         )}
 
-        <div className="kt-sync-methods">
+        <div
+          className="kt-sync-methods"
+          role="radiogroup"
+          aria-label={i18n("data_sync_type")}
+        >
           {OPT_SYNCTYPE_ALL.map((item) => {
             const { Icon, descriptionKey } = SYNC_METHOD_METADATA[item];
             return (
               <button
                 type="button"
                 className="kt-sync-method"
-                aria-pressed={syncType === item}
+                role="radio"
+                aria-checked={syncType === item}
                 key={item}
                 onClick={() => void handleSyncTypeChange(item)}
               >

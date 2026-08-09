@@ -528,9 +528,9 @@ export default function FavWords() {
                 key={word}
                 index={index}
                 word={word}
-                createdAt={entry.createdAt}
-                phonetic={entry.phonetic}
-                definition={entry.definition}
+                createdAt={entry?.createdAt}
+                phonetic={entry?.phonetic}
+                definition={entry?.definition}
                 tranboxSetting={tranboxSetting}
                 transApis={resolvedTransApis}
                 prompts={prompts}

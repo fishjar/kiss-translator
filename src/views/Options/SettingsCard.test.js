@@ -67,7 +67,7 @@ function focus(element) {
 }
 
 describe("SettingsAdvanced", () => {
-  test("mounts advanced content only while expanded", () => {
+  test("mounts advanced content lazily and keeps it mounted", () => {
     const container = document.createElement("div");
     const root = createRoot(container);
     act(() => {
@@ -82,6 +82,13 @@ describe("SettingsAdvanced", () => {
     expect(
       container.querySelector('[data-testid="advanced-content"]')
     ).toBeNull();
+
+    act(() => {
+      summary.click();
+    });
+    expect(
+      container.querySelector('[data-testid="advanced-content"]')
+    ).not.toBeNull();
 
     act(() => {
       summary.click();

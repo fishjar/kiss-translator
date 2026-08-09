@@ -37,6 +37,10 @@ describe("About", () => {
     expect(mockUseI18nMd).toHaveBeenCalledTimes(1);
     expect(container.textContent).toContain("Project details");
 
+    act(() => summary.click());
+    act(() => summary.click());
+    expect(mockUseI18nMd).toHaveBeenCalledTimes(1);
+
     act(() => root.unmount());
   });
 });

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import CodeField from "./CodeField";
@@ -21,15 +21,12 @@ import {
 import { css } from "@emotion/css";
 import { getRandomQuote } from "../../config/quotes";
 import { useSetting } from "../../hooks/Setting";
-import { useRules } from "../../hooks/Rules";
 import {
   SettingsCard,
   SettingsRow,
   SettingsSection,
   SettingsSegmented,
-  SettingsSwitch,
 } from "./SettingsCard";
-import { usePersistedEntityDraft } from "./usePersistedEntityDraft";
 
 /**
  * 单个自定义 CSS 样式编辑表单区域
@@ -45,12 +42,17 @@ function StyleFields({ customStyle, deleteStyle, updateStyle, isBuiltin }) {
   const {
     setting: { uiLang },
   } = useSetting();
-  const {
-    draft: formData,
-    setDraft: setFormData,
-    isDirty: isModified,
-  } = usePersistedEntityDraft(customStyle || {}, customStyle?.styleSlug || "");
+  const [formData, setFormData] = useState(() => customStyle || {});
   const confirm = useConfirm();
+
+  useEffect(() => {
+    setFormData(customStyle || {});
+  }, [customStyle]);
+
+  const isModified = useMemo(
+    () => JSON.stringify(customStyle || {}) !== JSON.stringify(formData),
+    [customStyle, formData]
+  );
 
   // 表单字段输入改变处理
   const handleChange = (e) => {
@@ -216,7 +218,6 @@ export function StyleAccordion({ customStyle, deleteStyle, updateStyle }) {
 export default function StylesSetting() {
   const i18n = useI18n();
   const { setting, updateSetting } = useSetting();
-  const { list: rules, put: updateRule } = useRules();
   const [showStyleManager, setShowStyleManager] = useState(false);
   // 自定义 CSS 列表 Hook
   const { addStyle, deleteStyle, updateStyle } = useStyleList();
@@ -229,33 +230,12 @@ export default function StylesSetting() {
     addStyle();
   };
 
-  const brandColor = ["blue", "cyan", "violet"].includes(setting.brandColor)
-    ? setting.brandColor
-    : "blue";
   const darkMode = setting.darkMode || "auto";
-  const globalRule = rules.find((rule) => rule.pattern === "*");
-  const richTextEnabled =
-    globalRule?.hasRichText === true || globalRule?.hasRichText === "true";
 
   return (
     <Box>
       <SettingsSection title={i18n("settings_interface_theme")}>
         <SettingsCard>
-          <SettingsRow
-            label={i18n("settings_brand_color")}
-            description={i18n("settings_brand_color_description")}
-          >
-            <SettingsSegmented
-              value={brandColor}
-              label={i18n("settings_brand_color")}
-              onChange={(value) => updateSetting({ brandColor: value })}
-              items={[
-                { value: "blue", label: i18n("settings_brand_blue") },
-                { value: "cyan", label: i18n("settings_brand_cyan") },
-                { value: "violet", label: i18n("settings_brand_violet") },
-              ]}
-            />
-          </SettingsRow>
           <SettingsRow label={i18n("settings_appearance_mode")}>
             <SettingsSegmented
               value={darkMode}
@@ -284,20 +264,6 @@ export default function StylesSetting() {
             >
               {i18n("edit")}
             </Button>
-          </SettingsRow>
-          <SettingsRow
-            label={i18n("richtext_alt")}
-            description={i18n("settings_rich_text_description")}
-          >
-            <SettingsSwitch
-              checked={richTextEnabled}
-              label={i18n("richtext_alt")}
-              onChange={(checked) =>
-                updateRule("*", {
-                  hasRichText: checked ? "true" : "false",
-                })
-              }
-            />
           </SettingsRow>
           <SettingsRow
             label={i18n("settings_style_library")}

@@ -41,10 +41,6 @@ jest.mock("../../hooks/Confirm", () => ({
   useConfirm: () => jest.fn(async () => true),
 }));
 
-jest.mock("../../hooks/Rules", () => ({
-  useRules: () => ({ list: [], put: jest.fn() }),
-}));
-
 function renderStyleAccordion(customStyle) {
   const container = document.createElement("div");
   document.body.appendChild(container);
@@ -123,20 +119,11 @@ describe("StylesSetting style previews", () => {
     view.cleanup();
   });
 
-  test("accepts clean updates without discarding a dirty style draft", () => {
+  test("keeps a local draft until the persisted style changes", () => {
     const view = renderStyleAccordion(CUSTOM_STYLE);
     act(() => {
       view.container.querySelector(".MuiAccordionSummary-root").click();
     });
-    const cleanUpdate = {
-      ...CUSTOM_STYLE,
-      styleName: "Remote clean style",
-    };
-
-    view.rerender(cleanUpdate);
-    expect(view.container.querySelector('input[name="styleName"]').value).toBe(
-      "Remote clean style"
-    );
 
     const nameInput = view.container.querySelector('input[name="styleName"]');
     act(() => {
@@ -147,22 +134,24 @@ describe("StylesSetting style previews", () => {
       nameInput.dispatchEvent(new Event("input", { bubbles: true }));
     });
 
-    view.rerender({ ...cleanUpdate });
+    view.rerender(CUSTOM_STYLE);
     expect(view.container.querySelector('input[name="styleName"]').value).toBe(
       "Local style draft"
     );
 
-    view.rerender({
-      ...cleanUpdate,
+    const persistedUpdate = {
+      ...CUSTOM_STYLE,
+      styleName: "Persisted style",
       styleCode: "color: rebeccapurple;",
-    });
+    };
+    view.rerender(persistedUpdate);
     expect(view.container.querySelector('input[name="styleName"]').value).toBe(
-      "Local style draft"
+      "Persisted style"
     );
     const saveButton = Array.from(
       view.container.querySelectorAll("button")
     ).find((button) => button.textContent === "save");
-    expect(saveButton.disabled).toBe(false);
+    expect(saveButton.disabled).toBe(true);
 
     view.cleanup();
   });

@@ -193,11 +193,11 @@ export const OPTIONS_STYLES = String.raw`
 .kt-sync-methods { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .kt-sync-method { min-height: 116px; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 16px; border: 1px solid var(--kt-linev); border-radius: 20px; background: var(--kt-sf0); color: var(--kt-on); cursor: pointer; text-align: left; transition: border-color .3s, background .3s, transform .15s; }
 .kt-sync-method:active { transform: scale(.98); }
-.kt-sync-method[aria-pressed="true"] { border: 2px solid var(--kt-pri); background: var(--kt-pric); color: var(--kt-onpric); }
+.kt-sync-method[aria-checked="true"] { border: 2px solid var(--kt-pri); background: var(--kt-pric); color: var(--kt-onpric); }
 .kt-sync-method svg { width: 25px; height: 25px; color: var(--kt-pri); }
 .kt-sync-method__name { font-size: 13.5px; font-weight: 700; }
 .kt-sync-method__description { color: var(--kt-onv); font-size: 10.5px; line-height: 1.4; }
-.kt-sync-method[aria-pressed="true"] .kt-sync-method__description { color: inherit; opacity: .72; }
+.kt-sync-method[aria-checked="true"] .kt-sync-method__description { color: inherit; opacity: .72; }
 .kt-word-card { margin-bottom: 9px !important; }
 .kt-word-toolbar { padding: 10px 12px; border-radius: 20px; background: var(--kt-sf1); }
 .kt-word-export-more { display: flex; flex-wrap: wrap; gap: 8px; margin-top: -14px; padding: 12px; border: 1px solid var(--kt-linev); border-radius: 18px; background: var(--kt-sf0); animation: kt-m3-rise .3s var(--kt-spring); }

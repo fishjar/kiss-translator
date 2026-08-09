@@ -105,7 +105,7 @@ async function flushEffects() {
 }
 
 async function renderApis(api = createApi(), update = jest.fn()) {
-  let apis = Array.isArray(api) ? api : [api];
+  const apis = Array.isArray(api) ? api : [api];
   const reset = jest.fn();
   const container = document.createElement("div");
   document.body.appendChild(container);
@@ -122,17 +122,12 @@ async function renderApis(api = createApi(), update = jest.fn()) {
     reorderApis: jest.fn(),
   };
 
-  const setApis = (nextApi) => {
-    apis = Array.isArray(nextApi) ? nextApi : [nextApi];
-    useApiList.mockReturnValue({ transApis: apis, ...apiListValue });
-    useApiItem.mockImplementation((apiSlug) => ({
-      api: apis.find((item) => item.apiSlug === apiSlug),
-      update,
-      reset,
-    }));
-  };
-
-  setApis(api);
+  useApiList.mockReturnValue({ transApis: apis, ...apiListValue });
+  useApiItem.mockImplementation((apiSlug) => ({
+    api: apis.find((item) => item.apiSlug === apiSlug),
+    update,
+    reset,
+  }));
 
   await act(async () => {
     root.render(<Apis />);
@@ -141,15 +136,7 @@ async function renderApis(api = createApi(), update = jest.fn()) {
 
   return {
     container,
-    reset,
     update,
-    rerender: async (nextApi) => {
-      setApis(nextApi);
-      await act(async () => {
-        root.render(<Apis />);
-      });
-      await flushEffects();
-    },
     unmount: () => {
       act(() => root.unmount());
       container.remove();
@@ -171,16 +158,6 @@ function getSaveButton(container) {
   );
 }
 
-function getButton(root, label) {
-  const button = Array.from(root.querySelectorAll("button")).find(
-    (item) => item.textContent === label
-  );
-  if (!button) {
-    throw new Error(`Unable to find button labeled ${label}`);
-  }
-  return button;
-}
-
 function getApiListItem(container, apiName) {
   const item = Array.from(
     container.querySelectorAll(".MuiListItemButton-root")
@@ -199,14 +176,6 @@ async function editUrlDraft(container) {
     });
   });
   return urlInput;
-}
-
-function getListToggle(container, apiName) {
-  const input = container.querySelector(`input[aria-label="${apiName}"]`);
-  if (!input) {
-    throw new Error(`Unable to find list toggle for ${apiName}`);
-  }
-  return input;
 }
 
 describe("Apis conditional option groups", () => {
@@ -236,50 +205,6 @@ describe("Apis conditional option groups", () => {
     expect(
       view.container.querySelector(".kt-api-runtime-options")
     ).not.toBeNull();
-
-    view.unmount();
-  });
-});
-
-describe("Apis persisted updates", () => {
-  afterEach(() => {
-    jest.clearAllMocks();
-    document.body.innerHTML = "";
-  });
-
-  test("accepts clean updates without discarding a dirty API draft", async () => {
-    const initialApi = createApi();
-    const view = await renderApis(initialApi);
-    const cleanUpdate = {
-      ...initialApi,
-      model: "remote-clean-model",
-    };
-
-    await view.rerender(cleanUpdate);
-    expect(getInput(view.container, "model").value).toBe("remote-clean-model");
-
-    const urlInput = await editUrlDraft(view.container);
-    await view.rerender({ ...cleanUpdate });
-    expect(urlInput.value).toBe("https://draft.example/v1");
-
-    await view.rerender({
-      ...cleanUpdate,
-      model: "remote-conflicting-model",
-    });
-    expect(getInput(view.container, "url").value).toBe(
-      "https://draft.example/v1"
-    );
-    expect(getSaveButton(view.container).disabled).toBe(false);
-
-    await act(async () => {
-      Simulate.click(getSaveButton(view.container));
-    });
-    expect(view.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        url: "https://draft.example/v1",
-        model: "remote-conflicting-model",
-      })
-    );
 
     view.unmount();
   });
@@ -463,90 +388,7 @@ describe("Apis model list", () => {
   });
 });
 
-describe("Apis list toggles", () => {
-  afterEach(() => {
-    jest.clearAllMocks();
-    document.body.innerHTML = "";
-  });
-
-  test("keeps a selected API draft when its toggle is cancelled", async () => {
-    const api = createApi();
-    const view = await renderApis(api);
-    const { disableApis } = useApiList.mock.results[0].value;
-    const urlInput = getInput(view.container, "url");
-
-    await act(async () => {
-      Simulate.change(urlInput, {
-        target: { name: "url", value: "https://draft.example/v1" },
-      });
-    });
-    mockConfirm.mockResolvedValueOnce(false);
-
-    await act(async () => {
-      Simulate.change(getListToggle(view.container, api.apiName));
-      await Promise.resolve();
-    });
-
-    expect(mockConfirm).toHaveBeenCalledWith({
-      message: "This API has unsaved changes. Discard them?",
-      confirmText: "discard_changes",
-      cancelText: "cancel",
-    });
-    expect(disableApis).not.toHaveBeenCalled();
-    expect(urlInput.value).toBe("https://draft.example/v1");
-    expect(view.update).not.toHaveBeenCalled();
-
-    view.unmount();
-  });
-
-  test("confirms before toggling another API and deliberately discards the draft", async () => {
-    const selectedApi = createApi();
-    const otherApi = createApi({
-      apiSlug: "Other",
-      apiName: "Other",
-      isDisabled: true,
-    });
-    const view = await renderApis([selectedApi, otherApi]);
-    const { enableApis } = useApiList.mock.results[0].value;
-    const urlInput = getInput(view.container, "url");
-
-    await act(async () => {
-      Simulate.change(urlInput, {
-        target: { name: "url", value: "https://draft.example/v1" },
-      });
-    });
-    mockConfirm.mockResolvedValueOnce(true);
-
-    await act(async () => {
-      Simulate.change(getListToggle(view.container, otherApi.apiName));
-      await Promise.resolve();
-    });
-
-    expect(enableApis).toHaveBeenCalledWith([otherApi.apiSlug]);
-    expect(getInput(view.container, "url").value).toBe(selectedApi.url);
-    expect(view.update).not.toHaveBeenCalled();
-
-    view.unmount();
-  });
-
-  test("toggles immediately when the detail has no draft", async () => {
-    const api = createApi();
-    const view = await renderApis(api);
-    const { disableApis } = useApiList.mock.results[0].value;
-
-    await act(async () => {
-      Simulate.change(getListToggle(view.container, api.apiName));
-      await Promise.resolve();
-    });
-
-    expect(mockConfirm).not.toHaveBeenCalled();
-    expect(disableApis).toHaveBeenCalledWith([api.apiSlug]);
-
-    view.unmount();
-  });
-});
-
-describe("Apis unsaved detail guard", () => {
+describe("Apis unsaved API switching", () => {
   afterEach(() => {
     jest.clearAllMocks();
     document.body.innerHTML = "";
@@ -579,6 +421,25 @@ describe("Apis unsaved detail guard", () => {
     view.unmount();
   });
 
+  test("switches clean APIs without confirmation", async () => {
+    const otherApi = createApi({
+      apiSlug: "Other",
+      apiName: "Other",
+      url: "https://other.example/v1",
+    });
+    const view = await renderApis([createApi(), otherApi]);
+
+    await act(async () => {
+      Simulate.click(getApiListItem(view.container, otherApi.apiName));
+      await Promise.resolve();
+    });
+
+    expect(mockConfirm).not.toHaveBeenCalled();
+    expect(getInput(view.container, "url").value).toBe(otherApi.url);
+
+    view.unmount();
+  });
+
   test("switches APIs after the draft is deliberately discarded", async () => {
     const selectedApi = createApi();
     const otherApi = createApi({
@@ -597,196 +458,6 @@ describe("Apis unsaved detail guard", () => {
 
     expect(getInput(view.container, "url").value).toBe(otherApi.url);
     expect(getInput(view.container, "apiName").value).toBe(otherApi.apiName);
-
-    view.unmount();
-  });
-
-  test("does not sort APIs when discarding the draft is cancelled", async () => {
-    const view = await renderApis();
-    const { alphaSortApis } = useApiList.mock.results[0].value;
-    const urlInput = await editUrlDraft(view.container);
-    mockConfirm.mockResolvedValueOnce(false);
-
-    await act(async () => {
-      Simulate.click(getButton(view.container, "sort_alphabetically"));
-      await Promise.resolve();
-    });
-
-    expect(alphaSortApis).not.toHaveBeenCalled();
-    expect(urlInput.value).toBe("https://draft.example/v1");
-
-    view.unmount();
-  });
-
-  test.each([
-    ["pin_to_top", "pinApis"],
-    ["enable", "enableApis"],
-    ["disable", "disableApis"],
-  ])(
-    "does not run the %s bulk action when discarding the draft is cancelled",
-    async (buttonLabel, actionName) => {
-      const api = createApi();
-      const view = await renderApis(api);
-      const apiList = useApiList.mock.results[0].value;
-      const urlInput = await editUrlDraft(view.container);
-
-      await act(async () => {
-        Simulate.click(getButton(view.container, "bulk_actions"));
-      });
-      await act(async () => {
-        Simulate.change(getListToggle(view.container, api.apiName));
-      });
-      mockConfirm.mockResolvedValueOnce(false);
-
-      await act(async () => {
-        Simulate.click(getButton(view.container, buttonLabel));
-        await Promise.resolve();
-      });
-
-      expect(apiList[actionName]).not.toHaveBeenCalled();
-      expect(urlInput.value).toBe("https://draft.example/v1");
-
-      view.unmount();
-    }
-  );
-
-  test("does not add an API when discarding the draft is cancelled", async () => {
-    const view = await renderApis();
-    const { addApi } = useApiList.mock.results[0].value;
-    const urlInput = await editUrlDraft(view.container);
-
-    await act(async () => {
-      Simulate.click(getButton(view.container, "add"));
-    });
-    const menuItem = Array.from(
-      document.body.querySelectorAll('[role="menuitem"]')
-    ).find((item) => item.textContent.trim() === OPT_TRANS_OPENAI);
-    expect(menuItem).toBeDefined();
-    mockConfirm.mockResolvedValueOnce(false);
-
-    await act(async () => {
-      Simulate.click(menuItem);
-      await Promise.resolve();
-    });
-
-    expect(addApi).not.toHaveBeenCalled();
-    expect(urlInput.value).toBe("https://draft.example/v1");
-
-    view.unmount();
-  });
-
-  test("does not reorder APIs when discarding the draft is cancelled", async () => {
-    const selectedApi = createApi();
-    const otherApi = createApi({ apiSlug: "Other", apiName: "Other" });
-    const view = await renderApis([selectedApi, otherApi]);
-    const { reorderApis } = useApiList.mock.results[0].value;
-    const urlInput = await editUrlDraft(view.container);
-    const selectedItem = getApiListItem(view.container, selectedApi.apiName);
-    const otherItem = getApiListItem(view.container, otherApi.apiName);
-    const dataTransfer = {
-      effectAllowed: "",
-      dropEffect: "",
-      setData: jest.fn(),
-      getData: jest.fn(() => selectedApi.apiSlug),
-    };
-
-    await act(async () => {
-      Simulate.dragStart(selectedItem.querySelector('[draggable="true"]'), {
-        dataTransfer,
-      });
-    });
-    mockConfirm.mockResolvedValueOnce(false);
-    await act(async () => {
-      Simulate.drop(otherItem.closest("li"), { dataTransfer });
-      await Promise.resolve();
-    });
-
-    expect(reorderApis).not.toHaveBeenCalled();
-    expect(urlInput.value).toBe("https://draft.example/v1");
-
-    view.unmount();
-  });
-
-  test("does not restore defaults when discarding the draft is cancelled", async () => {
-    const view = await renderApis();
-    const urlInput = await editUrlDraft(view.container);
-    mockConfirm.mockResolvedValueOnce(false);
-
-    await act(async () => {
-      Simulate.click(getButton(view.container, "restore_default"));
-      await Promise.resolve();
-    });
-
-    expect(view.reset).not.toHaveBeenCalled();
-    expect(urlInput.value).toBe("https://draft.example/v1");
-
-    view.unmount();
-  });
-
-  test("follows persisted defaults after a dirty draft is reset", async () => {
-    const initialApi = createApi();
-    const view = await renderApis(initialApi);
-    await editUrlDraft(view.container);
-    mockConfirm.mockResolvedValueOnce(true);
-
-    await act(async () => {
-      Simulate.click(getButton(view.container, "restore_default"));
-      await Promise.resolve();
-    });
-
-    expect(view.reset).toHaveBeenCalledTimes(1);
-    await view.rerender({
-      ...initialApi,
-      url: "https://reset.example/v1",
-    });
-    expect(getInput(view.container, "url").value).toBe(
-      "https://reset.example/v1"
-    );
-    expect(getSaveButton(view.container).disabled).toBe(true);
-
-    view.unmount();
-  });
-
-  test("keeps the API draft when deletion is confirmed but discard is cancelled", async () => {
-    const view = await renderApis();
-    const { deleteApi } = useApiList.mock.results[0].value;
-    const urlInput = await editUrlDraft(view.container);
-    mockConfirm.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
-
-    await act(async () => {
-      Simulate.click(getButton(view.container, "delete"));
-      await Promise.resolve();
-      await Promise.resolve();
-    });
-
-    expect(deleteApi).not.toHaveBeenCalled();
-    expect(urlInput.value).toBe("https://draft.example/v1");
-
-    view.unmount();
-  });
-
-  test("keeps the API draft when bulk deletion is confirmed but discard is cancelled", async () => {
-    const api = createApi();
-    const view = await renderApis(api);
-    const { deleteApis } = useApiList.mock.results[0].value;
-    const urlInput = await editUrlDraft(view.container);
-
-    await act(async () => {
-      Simulate.click(getButton(view.container, "bulk_actions"));
-    });
-    await act(async () => {
-      Simulate.change(getListToggle(view.container, api.apiName));
-    });
-    mockConfirm.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
-
-    await act(async () => {
-      Simulate.click(getButton(view.container, "delete"));
-      await Promise.resolve();
-      await Promise.resolve();
-    });
-
-    expect(deleteApis).not.toHaveBeenCalled();
-    expect(urlInput.value).toBe("https://draft.example/v1");
 
     view.unmount();
   });
@@ -869,34 +540,6 @@ describe("Apis Gemini thinking efforts", () => {
     );
     const effortInput = getInput(view.container, "thinkingEffort");
     expect(effortInput.value).toBe("_default");
-
-    view.unmount();
-  });
-
-  test("accepts a normalized effort as the new clean draft", async () => {
-    const initialApi = createApi({
-      apiSlug: OPT_TRANS_GEMINI,
-      apiType: OPT_TRANS_GEMINI,
-      model: "gemini-3-pro-preview",
-      thinkingMode: "enabled",
-      thinkingEffort: "medium",
-    });
-    const view = await renderApis(initialApi);
-    await editUrlDraft(view.container);
-
-    await act(async () => {
-      Simulate.click(getSaveButton(view.container));
-    });
-
-    expect(view.update).toHaveBeenCalledWith(
-      expect.objectContaining({ thinkingEffort: "_default" })
-    );
-    await view.rerender({
-      ...initialApi,
-      url: "https://draft.example/v1",
-      thinkingEffort: "_default",
-    });
-    expect(getSaveButton(view.container).disabled).toBe(true);
 
     view.unmount();
   });

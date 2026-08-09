@@ -47,7 +47,7 @@ const getOptionsStartupSyncTasks = () => {
     };
   }
 
-  if (hashPath === "/" || hashPath === "/styles") {
+  if (hashPath === "/") {
     return {
       requiredSync: () => Promise.all([trySyncSetting(), trySyncRules()]),
       backgroundSyncs: [trySyncWords],
@@ -158,7 +158,7 @@ export default function Options() {
     );
   }
 
-  if (!gmBridgeReady) {
+  if (!gmBridgeReady || syncingRequiredData) {
     return (
       <Backdrop
         data-testid="options-sync-backdrop"
@@ -180,12 +180,7 @@ export default function Options() {
         <AlertProvider>
           <ConfirmProvider>
             {/* React 页面端路由管理 */}
-            <HashRouter
-              future={{
-                v7_startTransition: true,
-                v7_relativeSplatPath: true,
-              }}
-            >
+            <HashRouter>
               <Routes>
                 <Route path="/" element={<Layout />}>
                   {/* 子页面路由注册 */}
@@ -205,17 +200,6 @@ export default function Options() {
                 </Route>
               </Routes>
             </HashRouter>
-            <Backdrop
-              data-testid="options-sync-backdrop"
-              aria-label="syncing required data"
-              open={syncingRequiredData}
-              sx={(theme) => ({
-                color: "#fff",
-                zIndex: theme.zIndex.modal + 1,
-              })}
-            >
-              <CircularProgress color="inherit" size={72} />
-            </Backdrop>
           </ConfirmProvider>
         </AlertProvider>
       </ThemeProvider>

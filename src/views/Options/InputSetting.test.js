@@ -46,4 +46,21 @@ describe("InputSetting", () => {
 
     act(() => root.unmount());
   });
+
+  test("preserves one-millisecond timeout precision", () => {
+    const container = document.createElement("div");
+    const root = createRoot(container);
+    act(() => root.render(<InputSetting />));
+
+    const advanced = container.querySelector(".MuiAccordionSummary-root");
+    act(() => advanced.click());
+
+    const timeout = container.querySelector(
+      'input[type="range"][aria-label="combo_timeout"]'
+    );
+    expect(timeout).not.toBeNull();
+    expect(timeout.step).toBe("1");
+
+    act(() => root.unmount());
+  });
 });

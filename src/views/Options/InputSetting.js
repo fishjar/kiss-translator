@@ -175,7 +175,7 @@ export default function InputSetting() {
                 value={triggerTime}
                 min={10}
                 max={1000}
-                step={10}
+                step={1}
                 unit=" ms"
                 label={i18n("combo_timeout")}
                 onChange={(value) => updateInputRule({ triggerTime: value })}

@@ -121,7 +121,7 @@ export default function MouseHoverSetting() {
           <ShortcutInput
             value={mouseHoverKey2}
             onChange={handleAltShortcutInput}
-            label={`${i18n("trigger_trans_shortcut")} (Alternative)`}
+            label={`${i18n("trigger_trans_shortcut")} 2`}
             helperText={i18n("mousehover_key_help")}
           />
           {displayMode === OPT_MOUSE_HOVER_DISPLAY_BUBBLE && (
