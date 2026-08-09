@@ -34,6 +34,7 @@ jest.mock("../../libs/log", () => ({
 jest.mock("./UploadButton", () => () => null);
 jest.mock("./DownloadButton", () => () => null);
 jest.mock("../../hooks/ValidationInput", () => () => null);
+jest.mock("./OverviewHero", () => () => null);
 
 const commands = [
   {

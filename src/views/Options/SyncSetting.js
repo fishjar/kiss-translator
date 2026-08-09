@@ -5,7 +5,6 @@ import { useI18n } from "../../hooks/I18n";
 import { useSync } from "../../hooks/Sync";
 import Alert from "@mui/material/Alert";
 import Link from "@mui/material/Link";
-import MenuItem from "@mui/material/MenuItem";
 import LoadingButton from "@mui/lab/LoadingButton";
 import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
@@ -34,8 +33,26 @@ import SyncIcon from "@mui/icons-material/Sync";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import ContentPasteIcon from "@mui/icons-material/ContentPaste";
 import EditIcon from "@mui/icons-material/Edit";
+import CloudSyncRoundedIcon from "@mui/icons-material/CloudSyncRounded";
+import FolderSharedRoundedIcon from "@mui/icons-material/FolderSharedRounded";
+import CodeRoundedIcon from "@mui/icons-material/CodeRounded";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
+
+const SYNC_METHOD_METADATA = {
+  [OPT_SYNCTYPE_WEBDAV]: {
+    Icon: FolderSharedRoundedIcon,
+    descriptionKey: "sync_method_webdav_description",
+  },
+  [OPT_SYNCTYPE_GIST]: {
+    Icon: CodeRoundedIcon,
+    descriptionKey: "sync_method_gist_description",
+  },
+  [OPT_SYNCTYPE_WORKER]: {
+    Icon: CloudSyncRoundedIcon,
+    descriptionKey: "sync_method_worker_description",
+  },
+};
 
 /**
  * 云端备份与同步设置主面板组件 (SyncSetting)
@@ -86,6 +103,10 @@ export default function SyncSetting() {
     await updateSync({
       [name]: value,
     });
+  };
+
+  const handleSyncTypeChange = async (syncTypeValue) => {
+    await updateSync({ syncType: syncTypeValue });
   };
 
   // 触发物理网络数据上传/下载同步
@@ -255,28 +276,31 @@ export default function SyncSetting() {
           <Alert severity="warning">{i18n("sync_warn_gist")}</Alert>
         )}
 
-        {/* 同步通道类型 (Cloudflare Worker 或 WebDAV) */}
-        <TextField
-          select
-          size="small"
-          name="syncType"
-          value={syncType}
-          label={i18n("data_sync_type")}
-          onChange={handleChange}
-          helperText={
-            isGistSync && (
-              <Link href={URL_GITHUB_GIST_TOKEN} target="_blank">
-                {i18n("gist_sync_tip")}
-              </Link>
-            )
-          }
-        >
-          {OPT_SYNCTYPE_ALL.map((item) => (
-            <MenuItem key={item} value={item}>
-              {item}
-            </MenuItem>
-          ))}
-        </TextField>
+        <div className="kt-sync-methods">
+          {OPT_SYNCTYPE_ALL.map((item) => {
+            const { Icon, descriptionKey } = SYNC_METHOD_METADATA[item];
+            return (
+              <button
+                type="button"
+                className="kt-sync-method"
+                aria-pressed={syncType === item}
+                key={item}
+                onClick={() => void handleSyncTypeChange(item)}
+              >
+                <Icon />
+                <span className="kt-sync-method__name">{item}</span>
+                <span className="kt-sync-method__description">
+                  {i18n(descriptionKey)}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        {isGistSync && (
+          <Link href={URL_GITHUB_GIST_TOKEN} target="_blank">
+            {i18n("gist_sync_tip")}
+          </Link>
+        )}
 
         {/* 同步接口 URL 终端地址 */}
         {!isGistSync && (
@@ -321,6 +345,9 @@ export default function SyncSetting() {
                 <IconButton
                   size="small"
                   edge="end"
+                  aria-label={`${i18n(showSyncKey ? "hide" : "show")} ${i18n(
+                    "data_sync_key"
+                  )}`}
                   onClick={() => setShowSyncKey((value) => !value)}
                   onMouseDown={(e) => e.preventDefault()}
                 >
@@ -348,6 +375,9 @@ export default function SyncSetting() {
                     <IconButton
                       size="small"
                       edge="end"
+                      aria-label={`${i18n(
+                        showSyncEncryptKey ? "hide" : "show"
+                      )} ${i18n("data_sync_encrypt_key")}`}
                       onClick={() => setShowSyncEncryptKey((value) => !value)}
                       onMouseDown={(e) => e.preventDefault()}
                     >
@@ -453,6 +483,9 @@ export default function SyncSetting() {
                       <IconButton
                         size="small"
                         edge="end"
+                        aria-label={`${i18n(
+                          showOldEncryptKey ? "hide" : "show"
+                        )} ${i18n("old_sync_encrypt_key")}`}
                         onClick={() => setShowOldEncryptKey((value) => !value)}
                         onMouseDown={(e) => e.preventDefault()}
                       >
@@ -479,6 +512,9 @@ export default function SyncSetting() {
                     <IconButton
                       size="small"
                       edge="end"
+                      aria-label={`${i18n(
+                        showNewEncryptKey ? "hide" : "show"
+                      )} ${i18n("new_sync_encrypt_key")}`}
                       onClick={() => setShowNewEncryptKey((value) => !value)}
                       onMouseDown={(e) => e.preventDefault()}
                     >
@@ -506,6 +542,9 @@ export default function SyncSetting() {
                     <IconButton
                       size="small"
                       edge="end"
+                      aria-label={`${i18n(
+                        showConfirmEncryptKey ? "hide" : "show"
+                      )} ${i18n("confirm_sync_encrypt_key")}`}
                       onClick={() =>
                         setShowConfirmEncryptKey((value) => !value)
                       }

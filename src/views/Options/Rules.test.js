@@ -49,12 +49,17 @@ jest.mock("../../hooks/Confirm", () => ({
 }));
 
 jest.mock("../../hooks/Api", () => ({
-  useApiList: () => ({ enabledApis: [] }),
+  useApiList: () => ({
+    enabledApis: [{ apiSlug: "Tencent", apiName: "Tencent" }],
+  }),
 }));
 
 jest.mock("../../hooks/CustomStyles", () => ({
   useAllTextStyles: () => ({
-    allTextStyles: [{ styleSlug: "style_none", styleName: "style_none" }],
+    allTextStyles: [
+      { styleSlug: "style_none", styleName: "style_none" },
+      { styleSlug: "marker", styleName: "marker" },
+    ],
   }),
 }));
 
@@ -362,11 +367,59 @@ describe("Options Rules personal tab", () => {
     await flushEffects();
 
     expect(
-      view.container.querySelector('input[name="wrapOriginal"]')
+      view.container.querySelector(
+        '[role="combobox"][aria-label="wrap_original"]'
+      )
     ).not.toBeNull();
     expect(
-      view.container.querySelector('input[name="originalTextStyle"]')
+      view.container.querySelector(
+        '[role="combobox"][aria-label="original_text_style"]'
+      )
     ).not.toBeNull();
+    expect(
+      view.container.querySelector(".kt-rule-original-settings")
+    ).not.toBeNull();
+
+    view.unmount();
+  });
+
+  test("resolves inherited original wrapping from the global rule", async () => {
+    useRules.mockReturnValue({
+      list: [
+        {
+          pattern: "example.com",
+          enabled: true,
+          wrapOriginal: "*",
+          originalTextStyle: "*",
+        },
+        {
+          pattern: "*",
+          selector: "p",
+          wrapOriginal: "true",
+          originalTextStyle: "marker",
+        },
+      ],
+      put: mockPutRule,
+    });
+    const view = renderRules();
+    await openPersonalTab(view);
+
+    const inheritedRule = Array.from(
+      view.container.querySelectorAll('[role="button"]')
+    ).find((item) => item.textContent.includes("example.com"));
+    await act(async () => {
+      inheritedRule.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await flushEffects();
+
+    const wrapOriginalControl = view.container.querySelector(
+      '[role="combobox"][aria-label="wrap_original"]'
+    );
+    const originalStyleControl = view.container.querySelector(
+      '[role="combobox"][aria-label="original_text_style"]'
+    );
+    expect(wrapOriginalControl?.textContent).toBe("*");
+    expect(originalStyleControl?.textContent).toBe("*");
 
     view.unmount();
   });

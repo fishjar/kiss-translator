@@ -45,7 +45,7 @@ jest.mock("../../libs/utils", () => ({
 
 jest.mock("../../hooks/Setting", () => ({
   useSetting: () => ({
-    setting: { uiLang: "zh-CN" },
+    setting: { uiLang: "en" },
     updateSetting: jest.fn(),
   }),
   SettingProvider: function SettingProvider(props) {
@@ -264,6 +264,36 @@ describe("Options startup sync", () => {
     expect(trySyncRules).toHaveBeenCalledTimes(1);
     expect(trySyncWords).toHaveBeenCalledTimes(1);
 
+    view.unmount();
+  });
+
+  test("waits for settings and rules on the appearance page", async () => {
+    const settingSync = createDeferred();
+    const rulesSync = createDeferred();
+    trySyncSetting.mockReturnValueOnce(settingSync.promise);
+    trySyncRules.mockReturnValueOnce(rulesSync.promise);
+
+    const view = renderOptions("#/styles");
+    await flushEffects();
+
+    expect(trySyncSetting).toHaveBeenCalledTimes(1);
+    expect(trySyncRules).toHaveBeenCalledTimes(1);
+    expect(trySyncWords).not.toHaveBeenCalled();
+    expect(
+      view.container.querySelector("[data-testid='options-sync-backdrop']")
+    ).not.toBe(null);
+
+    await act(async () => {
+      settingSync.resolve();
+      rulesSync.resolve();
+      await Promise.all([settingSync.promise, rulesSync.promise]);
+    });
+    await flushEffects();
+
+    expect(
+      view.container.querySelector("[data-testid='options-sync-backdrop']")
+    ).toBe(null);
+    expect(trySyncWords).toHaveBeenCalledTimes(1);
     view.unmount();
   });
 

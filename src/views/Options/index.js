@@ -5,7 +5,7 @@ import Setting from "./Setting";
 import Layout from "./Layout";
 import SyncSetting from "./SyncSetting";
 import { SettingProvider } from "../../hooks/Setting";
-import ThemeProvider from "../../hooks/Theme";
+import ThemeProvider from "./OptionsTheme";
 import { useEffect, useState } from "react";
 import { isGm } from "../../libs/client";
 import { sleep } from "../../libs/utils";
@@ -44,6 +44,13 @@ const getOptionsStartupSyncTasks = () => {
     return {
       requiredSync: trySyncWords,
       backgroundSyncs: [trySyncSetting, trySyncRules],
+    };
+  }
+
+  if (hashPath === "/" || hashPath === "/styles") {
+    return {
+      requiredSync: () => Promise.all([trySyncSetting(), trySyncRules()]),
+      backgroundSyncs: [trySyncWords],
     };
   }
 
@@ -173,7 +180,12 @@ export default function Options() {
         <AlertProvider>
           <ConfirmProvider>
             {/* React 页面端路由管理 */}
-            <HashRouter>
+            <HashRouter
+              future={{
+                v7_startTransition: true,
+                v7_relativeSplatPath: true,
+              }}
+            >
               <Routes>
                 <Route path="/" element={<Layout />}>
                   {/* 子页面路由注册 */}

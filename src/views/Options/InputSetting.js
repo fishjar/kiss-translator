@@ -1,7 +1,5 @@
 import Box from "@mui/material/Box";
-import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
-import MenuItem from "@mui/material/MenuItem";
 import { useI18n } from "../../hooks/I18n";
 import {
   OPT_LANGS_FROM_REVERSED as OPT_LANGS_FROM,
@@ -12,13 +10,19 @@ import {
   OPT_INPUT_DOT_ALWAYS,
 } from "../../config";
 import ShortcutInput from "./ShortcutInput";
-import FormControlLabel from "@mui/material/FormControlLabel";
-import Switch from "@mui/material/Switch";
 import { useInputRule } from "../../hooks/InputRule";
 import { useCallback } from "react";
-import Grid from "@mui/material/Grid";
 import { useApiList } from "../../hooks/Api";
-import ValidationInput from "../../hooks/ValidationInput";
+import {
+  SettingsAdvanced,
+  SettingsCard,
+  SettingsRange,
+  SettingsRow,
+  SettingsSection,
+  SettingsSegmented,
+  SettingsSelect,
+  SettingsSwitch,
+} from "./SettingsCard";
 
 /**
  * 网页输入框快捷输入翻译设置页面 (InputSetting)
@@ -64,174 +68,126 @@ export default function InputSetting() {
 
   return (
     <Box>
-      <Stack spacing={3}>
-        {/* 开关：是否启用输入框翻译功能 */}
-        <FormControlLabel
-          control={
-            <Switch
-              size="small"
-              name="transOpen"
+      <SettingsSection>
+        <SettingsCard>
+          <SettingsRow label={i18n("use_input_box_translation")}>
+            <SettingsSwitch
               checked={transOpen}
-              onChange={() => {
-                updateInputRule({ transOpen: !transOpen });
-              }}
+              label={i18n("use_input_box_translation")}
+              onChange={(checked) => updateInputRule({ transOpen: checked })}
             />
-          }
-          label={i18n("use_input_box_translation")}
-          sx={{ width: "fit-content" }}
-        />
+          </SettingsRow>
+          <SettingsRow
+            label={i18n("trigger_trans_shortcut")}
+            description={i18n("trigger_trans_shortcut_help")}
+          >
+            <ShortcutInput
+              compact
+              value={triggerShortcut}
+              onChange={handleShortcutInput}
+              label={i18n("trigger_trans_shortcut")}
+            />
+          </SettingsRow>
+          <SettingsRow label={i18n("shortcut_press_count")}>
+            <SettingsSegmented
+              value={Number(triggerCount)}
+              label={i18n("shortcut_press_count")}
+              onChange={(value) => updateInputRule({ triggerCount: value })}
+              items={[1, 2, 3, 4, 5].map((value) => ({
+                value,
+                label: `${value}×`,
+              }))}
+            />
+          </SettingsRow>
+          <SettingsRow
+            label={i18n("input_trans_start_sign")}
+            description={i18n("input_trans_start_sign_help")}
+          >
+            <SettingsSelect
+              value={transSign}
+              label={i18n("input_trans_start_sign")}
+              onChange={(value) => updateInputRule({ transSign: value })}
+              options={[
+                { value: "", label: i18n("style_none") },
+                ...OPT_INPUT_TRANS_SIGNS.map((value) => ({
+                  value,
+                  label: value,
+                })),
+              ]}
+            />
+          </SettingsRow>
+          <SettingsRow label={i18n("to_lang")}>
+            <SettingsSelect
+              value={toLang}
+              label={i18n("to_lang")}
+              onChange={(value) => updateInputRule({ toLang: value })}
+              options={OPT_LANGS_TO}
+            />
+          </SettingsRow>
+          <SettingsRow label={i18n("show_translation_dot")}>
+            <SettingsSegmented
+              value={showDot || OPT_INPUT_DOT_MOBILE}
+              label={i18n("show_translation_dot")}
+              onChange={(value) => updateInputRule({ showDot: value })}
+              items={[
+                {
+                  value: OPT_INPUT_DOT_DISABLE,
+                  label: i18n("show_dot_disable"),
+                },
+                {
+                  value: OPT_INPUT_DOT_MOBILE,
+                  label: i18n("show_dot_mobile"),
+                },
+                {
+                  value: OPT_INPUT_DOT_ALWAYS,
+                  label: i18n("show_dot_always"),
+                },
+              ]}
+            />
+          </SettingsRow>
+        </SettingsCard>
+      </SettingsSection>
 
-        {/* 翻译引擎、源与目标语言、触发结束标点选择网格区 */}
-        <Box>
-          <Grid container spacing={2} columns={12}>
-            {/* 首选翻译引擎服务商 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
-                select
-                fullWidth
-                size="small"
-                name="apiSlug"
+      <SettingsAdvanced label={i18n("settings_detailed_controls")}>
+        <SettingsSection>
+          <SettingsCard>
+            <SettingsRow label={i18n("translate_service")}>
+              <SettingsSelect
                 value={apiSlug}
                 label={i18n("translate_service")}
-                onChange={handleChange}
-              >
-                {enabledApis.map((api) => (
-                  <MenuItem key={api.apiSlug} value={api.apiSlug}>
-                    {api.apiName}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-            {/* 输入源语言 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
-                select
-                fullWidth
-                size="small"
-                name="fromLang"
+                onChange={(value) => updateInputRule({ apiSlug: value })}
+                options={enabledApis.map((api) => ({
+                  value: api.apiSlug,
+                  label: api.apiName,
+                }))}
+              />
+            </SettingsRow>
+            <SettingsRow label={i18n("from_lang")}>
+              <SettingsSelect
                 value={fromLang}
                 label={i18n("from_lang")}
-                onChange={handleChange}
-              >
-                {OPT_LANGS_FROM.map(([lang, name]) => (
-                  <MenuItem key={lang} value={lang}>
-                    {name}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-            {/* 翻译出的目标语言 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
-                select
-                fullWidth
-                size="small"
-                name="toLang"
-                value={toLang}
-                label={i18n("to_lang")}
-                onChange={handleChange}
-              >
-                {OPT_LANGS_TO.map(([lang, name]) => (
-                  <MenuItem key={lang} value={lang}>
-                    {name}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-            {/* 结束触发翻译的符号标点 (如打完字后在尾部加上三个问号/斜杠/空格等字符直接触发翻译并自动消除标点) */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
-                select
-                fullWidth
-                size="small"
-                name="transSign"
-                value={transSign}
-                label={i18n("input_trans_start_sign")}
-                onChange={handleChange}
-                helperText={i18n("input_trans_start_sign_help")}
-              >
-                <MenuItem value={""}>{i18n("style_none")}</MenuItem>
-                {OPT_INPUT_TRANS_SIGNS.map((item) => (
-                  <MenuItem key={item} value={item}>
-                    {item}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-          </Grid>
-        </Box>
-
-        {/* 触发快捷组合键、按击次数限制、连击判定超时、查词浮球按钮显示状态网格区 */}
-        <Box>
-          <Grid container spacing={2} columns={12}>
-            {/* 触发输入翻译的键盘快捷键 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
-              <ShortcutInput
-                value={triggerShortcut}
-                onChange={handleShortcutInput}
-                label={i18n("trigger_trans_shortcut")}
-                helperText={i18n("trigger_trans_shortcut_help")}
+                onChange={(value) => updateInputRule({ fromLang: value })}
+                options={OPT_LANGS_FROM}
               />
-            </Grid>
-            {/* 需要连续按下几次快捷键触发翻译 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
-                select
-                fullWidth
-                size="small"
-                name="triggerCount"
-                value={triggerCount}
-                label={i18n("shortcut_press_count")}
-                onChange={handleChange}
-              >
-                {[1, 2, 3, 4, 5].map((val) => (
-                  <MenuItem key={val} value={val}>
-                    {val}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-            {/* 连击组合键判定超时阈值 (ms) */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
-              <ValidationInput
-                fullWidth
-                size="small"
-                label={i18n("combo_timeout")}
-                type="number"
-                name="triggerTime"
+            </SettingsRow>
+            <SettingsRow label={i18n("combo_timeout")}>
+              <SettingsRange
                 value={triggerTime}
-                onChange={handleChange}
                 min={10}
                 max={1000}
+                step={10}
+                unit=" ms"
+                label={i18n("combo_timeout")}
+                onChange={(value) => updateInputRule({ triggerTime: value })}
               />
-            </Grid>
-            {/* 移动端或全局是否在聚焦输入框时显示右下角翻译悬浮球点 (Dot) 触发图标 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
-                select
-                fullWidth
-                size="small"
-                name="showDot"
-                value={showDot || OPT_INPUT_DOT_MOBILE}
-                label={i18n("show_translation_dot")}
-                onChange={handleChange}
-              >
-                <MenuItem value={OPT_INPUT_DOT_MOBILE}>
-                  {i18n("show_dot_mobile")}
-                </MenuItem>
-                <MenuItem value={OPT_INPUT_DOT_ALWAYS}>
-                  {i18n("show_dot_always")}
-                </MenuItem>
-                <MenuItem value={OPT_INPUT_DOT_DISABLE}>
-                  {i18n("show_dot_disable")}
-                </MenuItem>
-              </TextField>
-            </Grid>
-          </Grid>
-        </Box>
+            </SettingsRow>
+          </SettingsCard>
+        </SettingsSection>
+      </SettingsAdvanced>
 
-        {/* 输入框翻译不生效的黑名单域名及正则规则列表 */}
+      <SettingsSection title={i18n("blacklist")}>
         <TextField
+          fullWidth
           size="small"
           label={i18n("blacklist")}
           helperText={i18n("pattern_helper")}
@@ -241,7 +197,7 @@ export default function InputSetting() {
           maxRows={10}
           multiline
         />
-      </Stack>
+      </SettingsSection>
     </Box>
   );
 }

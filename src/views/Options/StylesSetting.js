@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import CodeField from "./CodeField";
@@ -12,10 +12,24 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import AddIcon from "@mui/icons-material/Add";
 import { useConfirm } from "../../hooks/Confirm";
 import Box from "@mui/material/Box";
-import { useAllTextStyles, useStyleList } from "../../hooks/CustomStyles";
+import {
+  getCompactStylePreviewCode,
+  toPersistedCustomStyle,
+  useAllTextStyles,
+  useStyleList,
+} from "../../hooks/CustomStyles";
 import { css } from "@emotion/css";
 import { getRandomQuote } from "../../config/quotes";
 import { useSetting } from "../../hooks/Setting";
+import { useRules } from "../../hooks/Rules";
+import {
+  SettingsCard,
+  SettingsRow,
+  SettingsSection,
+  SettingsSegmented,
+  SettingsSwitch,
+} from "./SettingsCard";
+import { usePersistedEntityDraft } from "./usePersistedEntityDraft";
 
 /**
  * 单个自定义 CSS 样式编辑表单区域
@@ -31,25 +45,12 @@ function StyleFields({ customStyle, deleteStyle, updateStyle, isBuiltin }) {
   const {
     setting: { uiLang },
   } = useSetting();
-  // 暂存表单输入值的状态
-  const [formData, setFormData] = useState({});
-  // 用于判定当前输入是否发生改变以控制保存按钮
-  const [isModified, setIsModified] = useState(false);
+  const {
+    draft: formData,
+    setDraft: setFormData,
+    isDirty: isModified,
+  } = usePersistedEntityDraft(customStyle || {}, customStyle?.styleSlug || "");
   const confirm = useConfirm();
-
-  // 监听外部样式更新，重置表单
-  useEffect(() => {
-    if (customStyle) {
-      setFormData(customStyle);
-    }
-  }, [customStyle]);
-
-  // 比对是否发生过修改以激活保存按钮
-  useEffect(() => {
-    if (!customStyle) return;
-    const hasChanged = JSON.stringify(customStyle) !== JSON.stringify(formData);
-    setIsModified(hasChanged);
-  }, [customStyle, formData]);
 
   // 表单字段输入改变处理
   const handleChange = (e) => {
@@ -64,7 +65,7 @@ function StyleFields({ customStyle, deleteStyle, updateStyle, isBuiltin }) {
 
   // 触发样式规则更新
   const handleSave = () => {
-    updateStyle(customStyle.styleSlug, formData);
+    updateStyle(customStyle.styleSlug, toPersistedCustomStyle(formData));
   };
 
   // 二次确认删除自定义样式
@@ -161,23 +162,39 @@ function StyleFields({ customStyle, deleteStyle, updateStyle, isBuiltin }) {
 /**
  * 样式的折叠手风琴壳组件
  */
-function StyleAccordion({ customStyle, deleteStyle, updateStyle, isBuiltin }) {
+export function StyleAccordion({ customStyle, deleteStyle, updateStyle }) {
   const [expanded, setExpanded] = useState(false);
+  const i18n = useI18n();
+  const { isBuiltin } = customStyle;
+  const previewCode = getCompactStylePreviewCode(customStyle);
+  const previewClass = useMemo(
+    () =>
+      previewCode
+        ? css`
+            ${previewCode}
+          `
+        : undefined,
+    [previewCode]
+  );
 
   const handleChange = (e) => {
     setExpanded((pre) => !pre);
   };
 
   return (
-    <Accordion expanded={expanded} onChange={handleChange}>
+    <Accordion
+      className="kt-style-card"
+      expanded={expanded}
+      onChange={handleChange}
+    >
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Typography
-          sx={{
-            overflowWrap: "anywhere",
-          }}
-        >
-          {`${customStyle.styleName}`}
-        </Typography>
+        <Box className="kt-style-card__summary">
+          <span>{i18n("style_preview_source")}</span>
+          <span className={previewClass}>
+            {i18n("style_preview_translation")}
+          </span>
+          <Typography>{customStyle.styleName}</Typography>
+        </Box>
       </AccordionSummary>
       <AccordionDetails>
         {expanded && (
@@ -198,10 +215,13 @@ function StyleAccordion({ customStyle, deleteStyle, updateStyle, isBuiltin }) {
  */
 export default function StylesSetting() {
   const i18n = useI18n();
+  const { setting, updateSetting } = useSetting();
+  const { list: rules, put: updateRule } = useRules();
+  const [showStyleManager, setShowStyleManager] = useState(false);
   // 自定义 CSS 列表 Hook
-  const { customStyles, addStyle, deleteStyle, updateStyle } = useStyleList();
+  const { addStyle, deleteStyle, updateStyle } = useStyleList();
   // 系统内置的只读样式配置列表
-  const { builtinStyles } = useAllTextStyles();
+  const { builtinStyles, customStyles } = useAllTextStyles();
 
   // 添加新 CSS 样式
   const handleClick = (e) => {
@@ -209,46 +229,139 @@ export default function StylesSetting() {
     addStyle();
   };
 
+  const brandColor = ["blue", "cyan", "violet"].includes(setting.brandColor)
+    ? setting.brandColor
+    : "blue";
+  const darkMode = setting.darkMode || "auto";
+  const globalRule = rules.find((rule) => rule.pattern === "*");
+  const richTextEnabled =
+    globalRule?.hasRichText === true || globalRule?.hasRichText === "true";
+
   return (
     <Box>
-      <Stack spacing={3}>
-        {/* 新增样式按钮 */}
-        <Box>
-          <Button
-            size="small"
-            id="add-style-button"
-            variant="contained"
-            onClick={handleClick}
-            startIcon={<AddIcon />}
+      <SettingsSection title={i18n("settings_interface_theme")}>
+        <SettingsCard>
+          <SettingsRow
+            label={i18n("settings_brand_color")}
+            description={i18n("settings_brand_color_description")}
           >
-            {i18n("add")}
-          </Button>
-        </Box>
+            <SettingsSegmented
+              value={brandColor}
+              label={i18n("settings_brand_color")}
+              onChange={(value) => updateSetting({ brandColor: value })}
+              items={[
+                { value: "blue", label: i18n("settings_brand_blue") },
+                { value: "cyan", label: i18n("settings_brand_cyan") },
+                { value: "violet", label: i18n("settings_brand_violet") },
+              ]}
+            />
+          </SettingsRow>
+          <SettingsRow label={i18n("settings_appearance_mode")}>
+            <SettingsSegmented
+              value={darkMode}
+              label={i18n("settings_appearance_mode")}
+              onChange={(value) => updateSetting({ darkMode: value })}
+              items={[
+                { value: "light", label: i18n("settings_theme_light") },
+                { value: "dark", label: i18n("settings_theme_dark") },
+                { value: "auto", label: i18n("settings_theme_system") },
+              ]}
+            />
+          </SettingsRow>
+        </SettingsCard>
+      </SettingsSection>
 
-        {/* 用户自定义的可修改样式列表 */}
-        <Box>
-          {customStyles.map((customStyle) => (
-            <StyleAccordion
-              key={customStyle.styleSlug}
-              customStyle={customStyle}
-              deleteStyle={deleteStyle}
-              updateStyle={updateStyle}
+      <SettingsSection title={i18n("settings_translation_styles")}>
+        <SettingsCard>
+          <SettingsRow
+            label={i18n("settings_custom_css")}
+            description={i18n("settings_custom_css_description")}
+          >
+            <Button
+              size="small"
+              variant="contained"
+              onClick={() => setShowStyleManager(true)}
+            >
+              {i18n("edit")}
+            </Button>
+          </SettingsRow>
+          <SettingsRow
+            label={i18n("richtext_alt")}
+            description={i18n("settings_rich_text_description")}
+          >
+            <SettingsSwitch
+              checked={richTextEnabled}
+              label={i18n("richtext_alt")}
+              onChange={(checked) =>
+                updateRule("*", {
+                  hasRichText: checked ? "true" : "false",
+                })
+              }
             />
-          ))}
-        </Box>
-        {/* 插件内置的只读系统样式列表 */}
-        <Box>
-          {builtinStyles.map((customStyle) => (
-            <StyleAccordion
-              key={customStyle.styleSlug}
-              customStyle={customStyle}
-              deleteStyle={deleteStyle}
-              updateStyle={updateStyle}
-              isBuiltin={true}
-            />
-          ))}
-        </Box>
-      </Stack>
+          </SettingsRow>
+          <SettingsRow
+            label={i18n("settings_style_library")}
+            description={i18n("settings_style_library_description")
+              .replace("{0}", String(customStyles.length))
+              .replace("{1}", String(builtinStyles.length))}
+          >
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => setShowStyleManager((current) => !current)}
+            >
+              {showStyleManager ? i18n("hide") : i18n("edit")}
+            </Button>
+          </SettingsRow>
+        </SettingsCard>
+      </SettingsSection>
+
+      {showStyleManager && (
+        <Stack className="kt-style-manager" spacing={3}>
+          <Box>
+            <Button
+              size="small"
+              id="add-style-button"
+              variant="contained"
+              onClick={handleClick}
+              startIcon={<AddIcon />}
+            >
+              {i18n("add")}
+            </Button>
+          </Box>
+
+          <section>
+            <Typography component="h2" className="kt-options-section-title">
+              {i18n("custom_styles")}
+            </Typography>
+            <Box className="kt-style-grid">
+              {customStyles.map((customStyle) => (
+                <StyleAccordion
+                  key={customStyle.styleSlug}
+                  customStyle={customStyle}
+                  deleteStyle={deleteStyle}
+                  updateStyle={updateStyle}
+                />
+              ))}
+            </Box>
+          </section>
+          <section>
+            <Typography component="h2" className="kt-options-section-title">
+              {i18n("builtin_styles")}
+            </Typography>
+            <Box className="kt-style-grid">
+              {builtinStyles.map((customStyle) => (
+                <StyleAccordion
+                  key={customStyle.styleSlug}
+                  customStyle={customStyle}
+                  deleteStyle={deleteStyle}
+                  updateStyle={updateStyle}
+                />
+              ))}
+            </Box>
+          </section>
+        </Stack>
+      )}
     </Box>
   );
 }

@@ -1,128 +1,193 @@
-import Drawer from "@mui/material/Drawer";
-import List from "@mui/material/List";
-import ListItemButton from "@mui/material/ListItemButton";
-import ListItemIcon from "@mui/material/ListItemIcon";
-import ListItemText from "@mui/material/ListItemText";
-import Toolbar from "@mui/material/Toolbar";
-import { NavLink, useMatch } from "react-router-dom";
-import SettingsIcon from "@mui/icons-material/Settings";
-import InfoIcon from "@mui/icons-material/Info";
-import DesignServicesIcon from "@mui/icons-material/DesignServices";
+import { useMemo, useState } from "react";
+import ApiRoundedIcon from "@mui/icons-material/ApiRounded";
+import BookmarksRoundedIcon from "@mui/icons-material/BookmarksRounded";
+import BugReportRoundedIcon from "@mui/icons-material/BugReportRounded";
+import CloudSyncRoundedIcon from "@mui/icons-material/CloudSyncRounded";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
+import InfoRoundedIcon from "@mui/icons-material/InfoRounded";
+import KeyboardRoundedIcon from "@mui/icons-material/KeyboardRounded";
+import LanguageRoundedIcon from "@mui/icons-material/LanguageRounded";
+import MouseRoundedIcon from "@mui/icons-material/MouseRounded";
+import PaletteRoundedIcon from "@mui/icons-material/PaletteRounded";
+import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
+import SelectAllRoundedIcon from "@mui/icons-material/SelectAllRounded";
+import SubtitlesRoundedIcon from "@mui/icons-material/SubtitlesRounded";
+import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
+import { NavLink } from "react-router-dom";
+import Logo from "../../components/Logo";
 import { useI18n } from "../../hooks/I18n";
-import SyncIcon from "@mui/icons-material/Sync";
-import ApiIcon from "@mui/icons-material/Api";
-import InputIcon from "@mui/icons-material/Input";
-import SelectAllIcon from "@mui/icons-material/SelectAll";
-import EventNoteIcon from "@mui/icons-material/EventNote";
-import MouseIcon from "@mui/icons-material/Mouse";
-import SubtitlesIcon from "@mui/icons-material/Subtitles";
-import FormatColorText from "@mui/icons-material/FormatColorText";
-import BugReportIcon from "@mui/icons-material/BugReport";
-import TextSnippetIcon from "@mui/icons-material/TextSnippet";
 
-/**
- * 单个侧边栏路由导航菜单项组件
- */
-function LinkItem({ label, url, icon }) {
-  // 检查当前 URL 路由是否与该菜单项匹配，匹配的会被激活高亮显示
-  const match = useMatch(url);
-  return (
-    <ListItemButton component={NavLink} to={url} selected={!!match}>
-      <ListItemIcon>{icon}</ListItemIcon>
-      <ListItemText>{label}</ListItemText>
-    </ListItemButton>
-  );
-}
-
-/**
- * 侧边栏导航列表栏组件 (Navigator)
- */
-export default function Navigator(props) {
+export default function Navigator({ open, isMobile = false, onClose }) {
   const i18n = useI18n();
-  // 选项设置页的菜单列表项配置
-  const memus = [
-    {
-      id: "basic_setting",
-      label: i18n("basic_setting"),
-      url: "/",
-      icon: <SettingsIcon />,
-    },
-    {
-      id: "rules_setting",
-      label: i18n("rules_setting"),
-      url: "/rules",
-      icon: <DesignServicesIcon />,
-    },
-    {
-      id: "apis_setting",
-      label: i18n("apis_setting"),
-      url: "/apis",
-      icon: <ApiIcon />,
-    },
-    {
-      id: "prompt_management",
-      label: i18n("prompt_management", "提示词管理"),
-      url: "/prompts",
-      icon: <TextSnippetIcon />,
-    },
-    {
-      id: "styles_setting",
-      label: i18n("styles_setting"),
-      url: "/styles",
-      icon: <FormatColorText />,
-    },
-    {
-      id: "sync",
-      label: i18n("sync_setting"),
-      url: "/sync",
-      icon: <SyncIcon />,
-    },
-    {
-      id: "input_translate",
-      label: i18n("input_translate"),
-      url: "/input",
-      icon: <InputIcon />,
-    },
-    {
-      id: "selection_translate",
-      label: i18n("selection_translate"),
-      url: "/tranbox",
-      icon: <SelectAllIcon />,
-    },
-    {
-      id: "mousehover_translate",
-      label: i18n("mousehover_translate"),
-      url: "/mousehover",
-      icon: <MouseIcon />,
-    },
-    {
-      id: "subtitle_translate",
-      label: i18n("subtitle_translate"),
-      url: "/subtitle",
-      icon: <SubtitlesIcon />,
-    },
-    {
-      id: "words",
-      label: i18n("favorite_words"),
-      url: "/words",
-      icon: <EventNoteIcon />,
-    },
-    {
-      id: "playground",
-      label: "Playground",
-      url: "/playground",
-      icon: <BugReportIcon />,
-    },
-    { id: "about", label: i18n("about"), url: "/about", icon: <InfoIcon /> },
-  ];
+  const [query, setQuery] = useState("");
+
+  const groups = useMemo(
+    () => [
+      {
+        label: i18n("options_group_general"),
+        items: [
+          ["overview", i18n("options_overview"), "/", TuneRoundedIcon],
+          [
+            "appearance",
+            i18n("options_appearance"),
+            "/styles",
+            PaletteRoundedIcon,
+          ],
+        ],
+      },
+      {
+        label: i18n("options_group_scenarios"),
+        items: [
+          [
+            "web",
+            i18n("options_web_translation"),
+            "/rules",
+            LanguageRoundedIcon,
+          ],
+          [
+            "selection",
+            i18n("selection_translate"),
+            "/tranbox",
+            SelectAllRoundedIcon,
+          ],
+          [
+            "hover",
+            i18n("mousehover_translate"),
+            "/mousehover",
+            MouseRoundedIcon,
+          ],
+          ["input", i18n("input_translate"), "/input", KeyboardRoundedIcon],
+          [
+            "subtitle",
+            i18n("subtitle_translate"),
+            "/subtitle",
+            SubtitlesRoundedIcon,
+          ],
+        ],
+      },
+      {
+        label: i18n("options_group_services"),
+        items: [
+          [
+            "apis",
+            i18n("options_translation_services"),
+            "/apis",
+            ApiRoundedIcon,
+          ],
+          [
+            "prompts",
+            i18n("prompt_management"),
+            "/prompts",
+            DescriptionRoundedIcon,
+          ],
+        ],
+      },
+      {
+        label: i18n("options_group_data"),
+        items: [
+          ["sync", i18n("options_data_sync"), "/sync", CloudSyncRoundedIcon],
+          ["words", i18n("favorite_words"), "/words", BookmarksRoundedIcon],
+        ],
+      },
+      {
+        label: "",
+        items: [
+          ["playground", "Playground", "/playground", BugReportRoundedIcon],
+          ["about", i18n("about"), "/about", InfoRoundedIcon],
+        ],
+      },
+    ],
+    [i18n]
+  );
+
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  const visibleGroups = groups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter(([, label]) =>
+        label.toLocaleLowerCase().includes(normalizedQuery)
+      ),
+    }))
+    .filter((group) => group.items.length);
+
   return (
-    <Drawer {...props}>
-      <Toolbar variant="dense" />
-      <List component="nav">
-        {memus.map(({ id, label, url, icon }) => (
-          <LinkItem key={id} label={label} url={url} icon={icon} />
-        ))}
-      </List>
-    </Drawer>
+    <aside
+      id="kt-options-navigation"
+      className={`kt-options-sidebar ${open ? "kt-options-sidebar--open" : ""}`}
+      role={isMobile ? "dialog" : undefined}
+      aria-modal={isMobile ? "true" : undefined}
+      aria-labelledby={isMobile ? "kt-options-navigation-title" : undefined}
+      tabIndex={isMobile ? -1 : undefined}
+    >
+      <a
+        className="kt-options-brand"
+        href={process.env.REACT_APP_HOMEPAGE}
+        target="_blank"
+        rel="noreferrer"
+      >
+        <Logo size={30} />
+        <span>
+          <span
+            id="kt-options-navigation-title"
+            className="kt-options-brand__name"
+          >
+            {i18n("app_name")}
+          </span>
+          <span className="kt-options-brand__version">
+            v{process.env.REACT_APP_VERSION}
+          </span>
+        </span>
+      </a>
+      <label className="kt-options-search">
+        <SearchRoundedIcon />
+        <input
+          type="search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder={i18n("options_search")}
+          aria-label={i18n("options_search")}
+        />
+      </label>
+      <nav className="kt-options-nav">
+        {visibleGroups.length ? (
+          visibleGroups.map((group) => (
+            <section
+              className="kt-options-nav__group"
+              key={group.label || "other"}
+            >
+              {group.label && (
+                <h2 className="kt-options-nav__label">{group.label}</h2>
+              )}
+              {group.items.map(([id, label, path, Icon]) => (
+                <NavLink
+                  className="kt-options-nav__link"
+                  to={path}
+                  end={path === "/"}
+                  key={id}
+                >
+                  <Icon />
+                  <span>{label}</span>
+                </NavLink>
+              ))}
+            </section>
+          ))
+        ) : (
+          <div className="kt-options-nav__empty">
+            {i18n("options_no_results")}
+          </div>
+        )}
+      </nav>
+      {isMobile && (
+        <button
+          type="button"
+          className="kt-options-sidebar__close"
+          aria-label={i18n("options_close_navigation")}
+          onClick={onClose}
+        >
+          <CloseRoundedIcon />
+        </button>
+      )}
+    </aside>
   );
 }

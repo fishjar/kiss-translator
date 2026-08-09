@@ -49,7 +49,11 @@ describe("Tranbox language defaults", () => {
       root.render(<Tranbox />);
     });
 
-    expect(container.querySelector("input[name='skipLangs']").value).toBe("");
+    const skipLanguagesRow = Array.from(
+      container.querySelectorAll(".kt-settings-row")
+    ).find((row) => row.textContent.includes("selection_skip_langs"));
+    expect(skipLanguagesRow).toBeDefined();
+    expect(skipLanguagesRow.querySelector("input").value).toBe("");
 
     act(() => {
       root.unmount();

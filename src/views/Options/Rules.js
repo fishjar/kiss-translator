@@ -68,6 +68,14 @@ import { useApiList } from "../../hooks/Api";
 import ShowMoreButton from "./ShowMoreButton";
 import { useConfirm } from "../../hooks/Confirm";
 import { useAllTextStyles } from "../../hooks/CustomStyles";
+import { css } from "@emotion/css";
+import {
+  SettingsCard,
+  SettingsRow,
+  SettingsSection,
+  SettingsSelect,
+  SettingsSwitch,
+} from "./SettingsCard";
 
 // 计算规则的初始表单值
 const calculateInitialValues = (rule) => {
@@ -194,14 +202,17 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
     [setKeyword]
   );
 
-  // 通用的表单输入变化处理器
-  const handleChange = (e) => {
-    e.preventDefault();
-    const { name, value } = e.target;
+  const updateFormValue = (name, value) => {
     setFormValues((pre) => ({ ...pre, [name]: value }));
     if (name === "pattern" && !editMode) {
       handlePatternChange(value);
     }
+  };
+
+  // 通用的表单输入变化处理器
+  const handleChange = (e) => {
+    e.preventDefault();
+    updateFormValue(e.target.name, e.target.value);
   };
 
   // 取消按钮处理器：编辑状态下重新禁用表单并回滚修改；新增状态下直接关闭新增面板
@@ -265,10 +276,104 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
       {GLOBAL_KEY}
     </MenuItem>
   );
+  const featuredStyles = [
+    "dash_line",
+    "under_line",
+    "marker",
+    "blockquote",
+    "style_none",
+  ]
+    .map((slug) => allTextStyles.find((style) => style.styleSlug === slug))
+    .filter(Boolean);
+  const canInheritGlobalRule = rule?.pattern !== GLOBAL_KEY;
+  const wrapOriginalOptions = [
+    ...(canInheritGlobalRule ? [{ value: GLOBAL_KEY, label: GLOBAL_KEY }] : []),
+    { value: "false", label: i18n("disable") },
+    { value: "true", label: i18n("enable") },
+  ];
+  const originalTextStyleOptions = [
+    ...(canInheritGlobalRule ? [{ value: GLOBAL_KEY, label: GLOBAL_KEY }] : []),
+    ...allTextStyles.map((style) => ({
+      value: style.styleSlug,
+      label: style.styleName,
+    })),
+  ];
 
   return (
     <form onSubmit={handleSubmit}>
       <Stack spacing={2}>
+        {rule?.pattern === "*" && (
+          <section>
+            <Typography component="h2" className="kt-options-section-title">
+              {i18n("text_style")}
+            </Typography>
+            <div className="kt-rule-style-grid">
+              {featuredStyles.map((style) => {
+                const previewClass = css`
+                  ${style.styleCode || ""}
+                `;
+                return (
+                  <button
+                    type="button"
+                    className="kt-rule-style-card"
+                    aria-pressed={textStyle === style.styleSlug}
+                    disabled={disabled}
+                    onClick={() =>
+                      updateFormValue("textStyle", style.styleSlug)
+                    }
+                    key={style.styleSlug}
+                  >
+                    <span>{i18n("style_preview_source")}</span>
+                    <span className={previewClass}>
+                      {i18n("style_preview_translation")}
+                    </span>
+                    <strong>{style.styleName}</strong>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
+        <SettingsSection
+          title={i18n("wrap_original")}
+          className="kt-rule-original-settings"
+        >
+          <SettingsCard>
+            <SettingsRow label={i18n("wrap_original")}>
+              {canInheritGlobalRule ? (
+                <SettingsSelect
+                  value={wrapOriginal}
+                  label={i18n("wrap_original")}
+                  options={wrapOriginalOptions}
+                  disabled={disabled}
+                  onChange={(value) => updateFormValue("wrapOriginal", value)}
+                />
+              ) : (
+                <SettingsSwitch
+                  checked={wrapOriginal === "true"}
+                  label={i18n("wrap_original")}
+                  disabled={disabled}
+                  onChange={(checked) =>
+                    updateFormValue("wrapOriginal", checked ? "true" : "false")
+                  }
+                />
+              )}
+            </SettingsRow>
+            {effectiveWrapOriginal && (
+              <SettingsRow label={i18n("original_text_style")}>
+                <SettingsSelect
+                  value={originalTextStyle}
+                  label={i18n("original_text_style")}
+                  options={originalTextStyleOptions}
+                  disabled={disabled}
+                  onChange={(value) =>
+                    updateFormValue("originalTextStyle", value)
+                  }
+                />
+              </SettingsRow>
+            )}
+          </SettingsCard>
+        </SettingsSection>
         {/* 规则匹配模式输入框（如域名或通配符 '*'） */}
         <CodeField
           size="small"
@@ -540,46 +645,6 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 </MenuItem>
               </TextField>
             </Grid>
-
-            {/* 原文包裹设置 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
-                select
-                size="small"
-                fullWidth
-                name="wrapOriginal"
-                value={wrapOriginal}
-                label={i18n("wrap_original")}
-                disabled={disabled}
-                onChange={handleChange}
-              >
-                {GlobalItem}
-                <MenuItem value={"false"}>{i18n("disable")}</MenuItem>
-                <MenuItem value={"true"}>{i18n("enable")}</MenuItem>
-              </TextField>
-            </Grid>
-
-            {effectiveWrapOriginal && (
-              <Grid item xs={12} sm={12} md={6} lg={3}>
-                <TextField
-                  select
-                  size="small"
-                  fullWidth
-                  name="originalTextStyle"
-                  value={originalTextStyle}
-                  label={i18n("original_text_style")}
-                  disabled={disabled}
-                  onChange={handleChange}
-                >
-                  {GlobalItem}
-                  {allTextStyles.map((item) => (
-                    <MenuItem key={item.styleSlug} value={item.styleSlug}>
-                      {item.styleName}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
-            )}
 
             {/* 悬停恢复原文设置 */}
             <Grid item xs={12} sm={12} md={6} lg={3}>

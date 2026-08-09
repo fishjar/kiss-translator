@@ -33,7 +33,6 @@ import Tooltip from "@mui/material/Tooltip";
 import Grid from "@mui/material/Grid";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
-import ApiIcon from "@mui/icons-material/Api";
 import Link from "@mui/material/Link";
 import { useSetting } from "../../hooks/Setting";
 import { useAlert } from "../../hooks/Alert";
@@ -51,29 +50,8 @@ import {
   OPT_TRANS_CUSTOMIZE,
   OPT_TRANS_EPHONEAI,
   OPT_TRANS_BUILTINAI,
-  OPT_TRANS_GOOGLE,
-  OPT_TRANS_GOOGLE_2,
-  OPT_TRANS_MICROSOFT,
-  OPT_TRANS_DEEPSEEK,
-  OPT_TRANS_OPENCODEGO,
-  OPT_TRANS_SILICONFLOW,
-  OPT_TRANS_XIAOMIMIMO,
-  OPT_TRANS_ALIYUNBAILIAN,
-  OPT_TRANS_CEREBRAS,
-  OPT_TRANS_ZAI,
-  OPT_TRANS_DEEPL,
-  OPT_TRANS_DEEPLFREE,
-  OPT_TRANS_BAIDU,
-  OPT_TRANS_TENCENT,
-  OPT_TRANS_VOLCENGINE,
-  OPT_TRANS_OPENAI,
   OPT_TRANS_GEMINI,
   OPT_TRANS_GEMINI_2,
-  OPT_TRANS_CLAUDE,
-  OPT_TRANS_CLOUDFLAREAI,
-  OPT_TRANS_OLLAMA,
-  OPT_TRANS_OPENROUTER,
-  OPT_TRANS_ORCAROUTER,
   DEFAULT_FETCH_LIMIT,
   DEFAULT_FETCH_INTERVAL,
   DEFAULT_HTTP_TIMEOUT,
@@ -104,8 +82,9 @@ import {
 } from "../../config";
 import ValidationInput from "../../hooks/ValidationInput";
 import { usePromptList } from "../../hooks/Prompt";
+import ApiProviderIcon from "../../components/ApiProviderIcon";
+import { usePersistedEntityDraft } from "./usePersistedEntityDraft";
 
-const API_ICON_SIZE = 22;
 const API_LIST_CONTROL_SIZE = 24;
 const API_LIST_CONTROL_GAP = 0.5;
 
@@ -121,88 +100,6 @@ const EPHONEAI_MODELS = [
   "gemini-3.1-flash-lite-preview",
   "grok-4.20-beta-0309-non-reasoning",
 ];
-
-// Keep icon paths tied to apiType because apiName is user editable.
-const API_ICON_FILES = {
-  [OPT_TRANS_BUILTINAI]: "BuiltinAI.svg",
-  [OPT_TRANS_GOOGLE]: "Google.svg",
-  [OPT_TRANS_GOOGLE_2]: "Google.svg",
-  [OPT_TRANS_MICROSOFT]: "Microsoft.svg",
-  [OPT_TRANS_AZUREAI]: "AzureAI.svg",
-  [OPT_TRANS_DEEPSEEK]: "DeepSeek.svg",
-  [OPT_TRANS_OPENCODEGO]: "OpenCodeGo.svg",
-  [OPT_TRANS_SILICONFLOW]: "SiliconFlow.svg",
-  [OPT_TRANS_XIAOMIMIMO]: "XiaomiMimo.svg",
-  [OPT_TRANS_ALIYUNBAILIAN]: "AliyunBailian.svg",
-  [OPT_TRANS_CEREBRAS]: "Cerebras.svg",
-  [OPT_TRANS_ZAI]: "Zai.svg",
-  [OPT_TRANS_DEEPL]: "DeepL.svg",
-  [OPT_TRANS_DEEPLFREE]: "DeepL.svg",
-  [OPT_TRANS_DEEPLX]: "DeepL.svg",
-  [OPT_TRANS_BAIDU]: "Baidu.svg",
-  [OPT_TRANS_TENCENT]: "Tencent.svg",
-  [OPT_TRANS_VOLCENGINE]: "Volcengine.svg",
-  [OPT_TRANS_EPHONEAI]: "ePhoneAI.png",
-  [OPT_TRANS_OPENAI]: "OpenAI.svg",
-  [OPT_TRANS_GEMINI]: "Gemini.svg",
-  [OPT_TRANS_GEMINI_2]: "Gemini.svg",
-  [OPT_TRANS_CLAUDE]: "Claude.svg",
-  [OPT_TRANS_CLOUDFLAREAI]: "CloudflareAI.svg",
-  [OPT_TRANS_OLLAMA]: "Ollama.svg",
-  [OPT_TRANS_OPENROUTER]: "OpenRouter.svg",
-  [OPT_TRANS_ORCAROUTER]: "OrcaRouter.svg",
-};
-
-function getApiIconSrc(apiType) {
-  const iconFile = API_ICON_FILES[apiType];
-
-  if (!iconFile) {
-    return "";
-  }
-
-  return `${process.env.PUBLIC_URL || "."}/api/${iconFile}`;
-}
-
-function ApiProviderIcon({ apiType, disabled = false, sx = {} }) {
-  const iconSrc = getApiIconSrc(apiType);
-
-  return (
-    <Box
-      sx={{
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        width: API_ICON_SIZE,
-        height: API_ICON_SIZE,
-        flex: "0 0 auto",
-        opacity: disabled ? 0.5 : 1,
-        ...sx,
-      }}
-    >
-      {iconSrc ? (
-        <Box
-          component="img"
-          src={iconSrc}
-          alt=""
-          aria-hidden="true"
-          sx={(theme) => ({
-            width: API_ICON_SIZE,
-            height: API_ICON_SIZE,
-            objectFit: "contain",
-            display: "block",
-            filter:
-              theme.palette.mode === "dark" &&
-              API_SPE_TYPES.darkIcon.has(apiType)
-                ? "invert(100%)"
-                : "none",
-          })}
-        />
-      ) : (
-        <ApiIcon fontSize="small" color="action" />
-      )}
-    </Box>
-  );
-}
 
 function TestButton({ api }) {
   const i18n = useI18n();
@@ -306,11 +203,23 @@ function SensitiveTextField({ value = "", onChange, inputProps, ...props }) {
   );
 }
 
-function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
+function ApiFields({
+  apiSlug,
+  deleteApi,
+  copyApi,
+  onCollapse,
+  onDirtyChange,
+  confirmDiscardChanges,
+}) {
   const { api, update, reset } = useApiItem(apiSlug);
   const { prompts } = usePromptList();
   const i18n = useI18n();
-  const [formData, setFormData] = useState(() => api || {});
+  const {
+    draft: formData,
+    setDraft: setFormData,
+    discardDraft,
+    isDirty: hasDraftChanges,
+  } = usePersistedEntityDraft(api || {}, apiSlug);
   const [showMore, setShowMore] = useState(false);
   const [modelOptions, setModelOptions] = useState([]);
   const [modelThinkingCapabilities, setModelThinkingCapabilities] = useState(
@@ -320,10 +229,6 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
   const [modelListError, setModelListError] = useState("");
   const requestedModelListKeyRef = useRef("");
   const confirm = useConfirm();
-
-  useLayoutEffect(() => {
-    setFormData(api || {});
-  }, [api]);
 
   useLayoutEffect(() => {
     setShowMore(false);
@@ -344,8 +249,12 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
       return false;
     }
 
-    return JSON.stringify(api) !== JSON.stringify(activeFormData);
-  }, [api, apiSlug, activeFormData]);
+    return hasDraftChanges;
+  }, [api, apiSlug, activeFormData, hasDraftChanges]);
+
+  useEffect(() => {
+    onDirtyChange?.(isModified);
+  }, [isModified, onDirtyChange]);
 
   const handleChange = (e) => {
     e?.preventDefault();
@@ -430,13 +339,16 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
       nextFormData.thinkingEffort = "_default";
     }
     update(nextFormData);
+    setFormData(nextFormData);
     if (activeFormData.isDisabled || activeFormData.sortOrder === -1) {
       onCollapse?.();
     }
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
+    if (!(await confirmDiscardChanges())) return;
     reset();
+    discardDraft();
   };
 
   const handleCopy = () => {
@@ -449,9 +361,8 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
       cancelText: i18n("cancel"),
     });
 
-    if (isConfirmed) {
-      deleteApi(apiSlug);
-    }
+    if (!isConfirmed || !(await confirmDiscardChanges())) return;
+    deleteApi(apiSlug);
   };
 
   const {
@@ -535,6 +446,8 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
           thinkingCapabilities: effectiveThinkingCapabilities,
         })
       : null;
+  const hasRuntimeOptions =
+    API_SPE_TYPES.stream.has(apiType) || API_SPE_TYPES.context.has(apiType);
   const selectedBatchPromptSlug = Object.prototype.hasOwnProperty.call(
     activeFormData,
     "batchPromptSlug"
@@ -643,7 +556,16 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
       setModelListStatus("error");
       setModelListError(err?.message || String(err));
     }
-  }, [api, apiSlug, apiType, httpTimeout, key, modelListStatus, modelListUrl]);
+  }, [
+    api,
+    apiSlug,
+    apiType,
+    httpTimeout,
+    key,
+    modelListStatus,
+    modelListUrl,
+    setFormData,
+  ]);
 
   return (
     <Stack spacing={3}>
@@ -948,82 +870,84 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
         </Box>
       )}
 
-      <Box>
-        <Grid container spacing={2} columns={12}>
-          {API_SPE_TYPES.stream.has(apiType) && (
-            <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
-                select
-                fullWidth
-                size="small"
-                name="useStream"
-                value={useStream}
-                label={i18n("use_stream")}
-                onChange={handleChange}
-              >
-                <MenuItem value={false}>{i18n("disable")}</MenuItem>
-                <MenuItem value={true}>{i18n("enable")}</MenuItem>
-              </TextField>
-            </Grid>
-          )}
-
-          {API_SPE_TYPES.stream.has(apiType) && useStream && (
-            <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
-                select
-                fullWidth
-                size="small"
-                name="streamRenderMode"
-                value={streamRenderMode}
-                label={i18n("stream_render_mode")}
-                onChange={handleChange}
-              >
-                <MenuItem value="disabled">{i18n("disable")}</MenuItem>
-                <MenuItem value="realtime">
-                  {i18n("stream_render_realtime")}
-                </MenuItem>
-                <MenuItem value="segment">
-                  {i18n("stream_render_segment")}
-                </MenuItem>
-              </TextField>
-            </Grid>
-          )}
-
-          {API_SPE_TYPES.context.has(apiType) && (
-            <>
+      {hasRuntimeOptions && (
+        <Box className="kt-api-runtime-options">
+          <Grid container spacing={2} columns={12}>
+            {API_SPE_TYPES.stream.has(apiType) && (
               <Grid item xs={12} sm={12} md={6} lg={3}>
-                {" "}
                 <TextField
                   select
-                  size="small"
                   fullWidth
-                  name="useContext"
-                  value={useContext}
-                  label={i18n("use_context")}
+                  size="small"
+                  name="useStream"
+                  value={useStream}
+                  label={i18n("use_stream")}
                   onChange={handleChange}
                 >
                   <MenuItem value={false}>{i18n("disable")}</MenuItem>
                   <MenuItem value={true}>{i18n("enable")}</MenuItem>
                 </TextField>
               </Grid>
+            )}
+
+            {API_SPE_TYPES.stream.has(apiType) && useStream && (
               <Grid item xs={12} sm={12} md={6} lg={3}>
-                {" "}
                 <TextField
-                  size="small"
+                  select
                   fullWidth
-                  label={i18n("context_size")}
-                  type="number"
-                  name="contextSize"
-                  value={contextSize}
+                  size="small"
+                  name="streamRenderMode"
+                  value={streamRenderMode}
+                  label={i18n("stream_render_mode")}
                   onChange={handleChange}
-                  min={1}
-                  max={20}
-                />
+                >
+                  <MenuItem value="disabled">{i18n("disable")}</MenuItem>
+                  <MenuItem value="realtime">
+                    {i18n("stream_render_realtime")}
+                  </MenuItem>
+                  <MenuItem value="segment">
+                    {i18n("stream_render_segment")}
+                  </MenuItem>
+                </TextField>
               </Grid>
-            </>
-          )}
-        </Grid>
-      </Box>
+            )}
+
+            {API_SPE_TYPES.context.has(apiType) && (
+              <>
+                <Grid item xs={12} sm={12} md={6} lg={3}>
+                  {" "}
+                  <TextField
+                    select
+                    size="small"
+                    fullWidth
+                    name="useContext"
+                    value={useContext}
+                    label={i18n("use_context")}
+                    onChange={handleChange}
+                  >
+                    <MenuItem value={false}>{i18n("disable")}</MenuItem>
+                    <MenuItem value={true}>{i18n("enable")}</MenuItem>
+                  </TextField>
+                </Grid>
+                <Grid item xs={12} sm={12} md={6} lg={3}>
+                  {" "}
+                  <TextField
+                    size="small"
+                    fullWidth
+                    label={i18n("context_size")}
+                    type="number"
+                    name="contextSize"
+                    value={contextSize}
+                    onChange={handleChange}
+                    min={1}
+                    max={20}
+                  />
+                </Grid>
+              </>
+            )}
+          </Grid>
+        </Box>
+      )}
 
       <Box>
         <Grid container spacing={2} columns={12}>
@@ -1066,7 +990,6 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
               max={600}
             />
           </Grid>
-          <Grid item xs={12} sm={12} md={6} lg={3}></Grid>
         </Grid>
       </Box>
 
@@ -1422,6 +1345,7 @@ function ApiListItem({
   onDragOver,
   onDrop,
   onDragEnd,
+  onToggle,
 }) {
   const handleContentClick = (event) => {
     if (bulkMode) {
@@ -1502,17 +1426,52 @@ function ApiListItem({
             <DragIndicatorIcon fontSize="small" />
           </Box>
         </Tooltip>
-        <ApiProviderIcon apiType={api.apiType} disabled={api.isDisabled} />
-        <Typography
+        <ApiProviderIcon
+          className="kt-api-provider-icon"
+          apiType={api.apiType}
+          size={38}
+          imageSize={22}
+          disabled={api.isDisabled}
+        />
+        <Box
           sx={{
             minWidth: 0,
             flex: 1,
             opacity: api.isDisabled ? 0.5 : 1,
-            overflowWrap: "anywhere",
           }}
         >
-          {api.apiName || api.apiType}
-        </Typography>
+          <Typography
+            sx={{
+              fontSize: 14,
+              fontWeight: 650,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {api.apiName || api.apiType}
+          </Typography>
+          <Typography
+            color="text.secondary"
+            sx={{
+              mt: 0.25,
+              fontSize: 11,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {api.model || api.apiType}
+          </Typography>
+        </Box>
+        {!bulkMode && (
+          <Switch
+            checked={!api.isDisabled}
+            onClick={(event) => event.stopPropagation()}
+            onChange={onToggle}
+            inputProps={{ "aria-label": api.apiName || api.apiType }}
+          />
+        )}
       </ListItemButton>
     </ListItem>
   );
@@ -1536,6 +1495,7 @@ export default function Apis() {
 
   const [alphaSortDir, setAlphaSortDir] = useState("asc");
   const [detailKey, setDetailKey] = useState(0);
+  const [detailDirty, setDetailDirty] = useState(false);
   const [selectedApiSlug, setSelectedApiSlug] = useState("");
   const [bulkMode, setBulkMode] = useState(false);
   const [checkedApiSlugs, setCheckedApiSlugs] = useState([]);
@@ -1612,6 +1572,25 @@ export default function Apis() {
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
 
+  const confirmDiscardChanges = useCallback(async () => {
+    if (!detailDirty) return true;
+
+    const isConfirmed = await confirm({
+      message: i18n(
+        "discard_api_changes_confirm",
+        "This API has unsaved changes. Discard them?"
+      ),
+      confirmText: i18n("discard_changes"),
+      cancelText: i18n("cancel"),
+    });
+
+    if (!isConfirmed) return false;
+
+    setDetailDirty(false);
+    setDetailKey((key) => key + 1);
+    return true;
+  }, [confirm, detailDirty, i18n]);
+
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
   };
@@ -1620,10 +1599,22 @@ export default function Apis() {
     setAnchorEl(null);
   };
 
-  const handleMenuItemClick = (apiType) => {
-    addApi(apiType);
+  const handleMenuItemClick = async (apiType) => {
     handleClose();
+    if (!(await confirmDiscardChanges())) return;
+    addApi(apiType);
   };
+
+  const handleSelectApi = useCallback(
+    async (apiSlug) => {
+      if (apiSlug === selectedApiSlug || !(await confirmDiscardChanges())) {
+        return;
+      }
+
+      setSelectedApiSlug(apiSlug);
+    },
+    [confirmDiscardChanges, selectedApiSlug]
+  );
 
   const handleCheckApi = useCallback((event, apiSlug) => {
     event.stopPropagation();
@@ -1652,20 +1643,38 @@ export default function Apis() {
     });
   }, []);
 
-  const handlePinCheckedApis = useCallback(() => {
+  const handlePinCheckedApis = useCallback(async () => {
+    if (!(await confirmDiscardChanges())) return;
     pinApis(checkedApiSlugs);
-    setDetailKey((key) => key + 1);
-  }, [checkedApiSlugs, pinApis]);
+  }, [checkedApiSlugs, confirmDiscardChanges, pinApis]);
 
-  const handleEnableCheckedApis = useCallback(() => {
+  const handleEnableCheckedApis = useCallback(async () => {
+    if (!(await confirmDiscardChanges())) return;
     enableApis(checkedApiSlugs);
-    setDetailKey((key) => key + 1);
-  }, [checkedApiSlugs, enableApis]);
+  }, [checkedApiSlugs, confirmDiscardChanges, enableApis]);
 
-  const handleDisableCheckedApis = useCallback(() => {
+  const handleDisableCheckedApis = useCallback(async () => {
+    if (!(await confirmDiscardChanges())) return;
     disableApis(checkedApiSlugs);
-    setDetailKey((key) => key + 1);
-  }, [checkedApiSlugs, disableApis]);
+  }, [checkedApiSlugs, confirmDiscardChanges, disableApis]);
+
+  const handleToggleApi = useCallback(
+    async (api) => {
+      if (!(await confirmDiscardChanges())) return;
+
+      if (api.isDisabled) enableApis([api.apiSlug]);
+      else disableApis([api.apiSlug]);
+    },
+    [confirmDiscardChanges, disableApis, enableApis]
+  );
+
+  const handleAlphaSortApis = useCallback(async () => {
+    if (!(await confirmDiscardChanges())) return;
+
+    const newDir = alphaSortDir === "asc" ? "desc" : "asc";
+    setAlphaSortDir(newDir);
+    alphaSortApis(newDir);
+  }, [alphaSortApis, alphaSortDir, confirmDiscardChanges]);
 
   const handleDeleteCheckedApis = useCallback(async () => {
     const isConfirmed = await confirm({
@@ -1677,12 +1686,18 @@ export default function Apis() {
       cancelText: i18n("cancel"),
     });
 
-    if (isConfirmed) {
-      deleteApis(checkedApiSlugs);
-      setCheckedApiSlugs([]);
-      setDetailKey((key) => key + 1);
-    }
-  }, [checkedApiCount, checkedApiSlugs, confirm, deleteApis, i18n]);
+    if (!isConfirmed || !(await confirmDiscardChanges())) return;
+
+    deleteApis(checkedApiSlugs);
+    setCheckedApiSlugs([]);
+  }, [
+    checkedApiCount,
+    checkedApiSlugs,
+    confirm,
+    confirmDiscardChanges,
+    deleteApis,
+    i18n,
+  ]);
 
   const handleDragStart = useCallback((event, apiSlug) => {
     event.dataTransfer.effectAllowed = "move";
@@ -1701,19 +1716,25 @@ export default function Apis() {
   );
 
   const handleDrop = useCallback(
-    (event, apiSlug) => {
+    async (event, apiSlug) => {
       event.preventDefault();
       const activeSlug =
         draggingApiSlug || event.dataTransfer.getData("text/plain");
 
-      if (activeSlug && activeSlug !== apiSlug) {
-        reorderApis(activeSlug, apiSlug);
-      }
-
       setDraggingApiSlug("");
       setDragOverApiSlug("");
+
+      if (
+        !activeSlug ||
+        activeSlug === apiSlug ||
+        !(await confirmDiscardChanges())
+      ) {
+        return;
+      }
+
+      reorderApis(activeSlug, apiSlug);
     },
-    [draggingApiSlug, reorderApis]
+    [confirmDiscardChanges, draggingApiSlug, reorderApis]
   );
 
   const handleDragEnd = useCallback(() => {
@@ -1762,12 +1783,7 @@ export default function Apis() {
             <Button
               size="small"
               variant="outlined"
-              onClick={() => {
-                const newDir = alphaSortDir === "asc" ? "desc" : "asc";
-                setAlphaSortDir(newDir);
-                setDetailKey((k) => k + 1);
-                alphaSortApis(newDir);
-              }}
+              onClick={handleAlphaSortApis}
               startIcon={<SwapVertIcon />}
             >
               {i18n("sort_alphabetically")}
@@ -1844,7 +1860,12 @@ export default function Apis() {
                 onClick={() => handleMenuItemClick(apiOption.type)}
                 sx={{ gap: 1 }}
               >
-                <ApiProviderIcon apiType={apiOption.type} />
+                <ApiProviderIcon
+                  className="kt-api-provider-icon"
+                  apiType={apiOption.type}
+                  size={38}
+                  imageSize={22}
+                />
                 <Box component="span" sx={{ flex: 1 }}>
                   {apiOption.label}
                 </Box>
@@ -1856,75 +1877,39 @@ export default function Apis() {
           </Menu>
         </Box>
 
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: { xs: "column", md: "row" },
-            border: 1,
-            borderColor: "divider",
-            borderRadius: 1,
-            overflow: "hidden",
-            height: { md: "calc(100vh - 250px)" },
-          }}
-        >
-          <Box
-            sx={(theme) => ({
-              width: { xs: "100%", md: 280 },
-              flex: { xs: "0 0 auto", md: "0 0 280px" },
-              height: { md: "100%" },
-              overflowY: "auto",
-              borderRight: {
-                xs: 0,
-                md: `1px solid ${theme.palette.divider}`,
-              },
-              borderBottom: {
-                xs: `1px solid ${theme.palette.divider}`,
-                md: 0,
-              },
-            })}
-          >
-            <List disablePadding>
-              {apiItems.map(({ api }) => (
-                <ApiListItem
-                  key={api.apiSlug}
-                  api={api}
-                  selected={api.apiSlug === selectedApiSlug}
-                  bulkMode={bulkMode}
-                  checked={checkedApiSlugSet.has(api.apiSlug)}
-                  dragging={api.apiSlug === draggingApiSlug}
-                  dragOver={api.apiSlug === dragOverApiSlug}
-                  onSelect={() => setSelectedApiSlug(api.apiSlug)}
-                  onCheck={handleCheckApi}
-                  onDragStart={(event) => handleDragStart(event, api.apiSlug)}
-                  onDragOver={(event) => handleDragOver(event, api.apiSlug)}
-                  onDrop={(event) => handleDrop(event, api.apiSlug)}
-                  onDragEnd={handleDragEnd}
-                />
-              ))}
-            </List>
-          </Box>
-          <Box
-            ref={detailPanelRef}
-            sx={{
-              flex: 1,
-              minWidth: 0,
-              p: 2,
-              boxSizing: "border-box",
-              height: { md: "100%" },
-              overflowY: { md: "auto" },
-              scrollbarGutter: { md: "stable" },
-              overscrollBehavior: "contain",
-            }}
-          >
-            {selectedApiItem && (
+        <Box>
+          <List disablePadding className="kt-api-grid">
+            {apiItems.map(({ api }) => (
+              <ApiListItem
+                key={api.apiSlug}
+                api={api}
+                selected={api.apiSlug === selectedApiSlug}
+                bulkMode={bulkMode}
+                checked={checkedApiSlugSet.has(api.apiSlug)}
+                dragging={api.apiSlug === draggingApiSlug}
+                dragOver={api.apiSlug === dragOverApiSlug}
+                onSelect={() => handleSelectApi(api.apiSlug)}
+                onCheck={handleCheckApi}
+                onDragStart={(event) => handleDragStart(event, api.apiSlug)}
+                onDragOver={(event) => handleDragOver(event, api.apiSlug)}
+                onDrop={(event) => handleDrop(event, api.apiSlug)}
+                onDragEnd={handleDragEnd}
+                onToggle={() => handleToggleApi(api)}
+              />
+            ))}
+          </List>
+          {selectedApiItem && (
+            <Box className="kt-api-detail" ref={detailPanelRef}>
               <ApiFields
                 key={detailKey}
                 apiSlug={selectedApiItem.api.apiSlug}
                 deleteApi={deleteApi}
                 copyApi={copyApi}
+                onDirtyChange={setDetailDirty}
+                confirmDiscardChanges={confirmDiscardChanges}
               />
-            )}
-          </Box>
+            </Box>
+          )}
         </Box>
       </Stack>
     </Box>
