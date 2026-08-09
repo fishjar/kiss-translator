@@ -178,7 +178,11 @@ export default function AiDictCont({
           alignItems: "center",
         }}
       >
-        <BrowserTtsBtn text={text} lang={speechLang || fromLang || "en-US"} />
+        <BrowserTtsBtn
+          text={text}
+          lang={speechLang || fromLang || "en-US"}
+          title={i18n("read_aloud")}
+        />
         <CopyBtn text={markdown} title={i18n("copy")} />
       </Box>
       {loading && <CircularProgress size={12} sx={{ mr: 1 }} />}

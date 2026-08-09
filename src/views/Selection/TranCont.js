@@ -15,6 +15,7 @@ import {
 import { useI18n } from "../../hooks/I18n";
 import { decodeHTMLEntities } from "../../libs/html";
 import CopyBtn from "./CopyBtn";
+import { BrowserTtsBtn } from "./AudioBtn";
 
 /**
  * 判断划词翻译结果是否允许进行可见的流式渲染。
@@ -115,6 +116,7 @@ const translateBuiltinText = async (text, translate) => {
  * @param {string} props.apiSlug 选用的翻译 API 唯一标识。
  * @param {Array<Object>} props.transApis 可用翻译 API 配置列表。
  * @param {boolean} [props.simpleStyle=false] 是否使用极简文本样式渲染。
+ * @param {boolean} [props.popupStyle=false] 是否使用 Popup M3 结果卡片。
  * @returns {JSX.Element|null} 单个翻译服务商的结果视图。
  */
 export default function TranCont({
@@ -124,11 +126,13 @@ export default function TranCont({
   apiSlug,
   transApis,
   simpleStyle = false,
+  popupStyle = false,
 }) {
   const i18n = useI18n();
   const [trText, setTrText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [elapsedMs, setElapsedMs] = useState(null);
 
   // 根据 slug 找到当前组件实例负责调用的翻译接口配置。
   const apiSetting = useMemo(
@@ -147,6 +151,7 @@ export default function TranCont({
     let active = true;
     const controller = new AbortController();
     const enableStreamRender = canRenderStream(apiSetting);
+    const startedAt = Date.now();
 
     /**
      * 接收底层翻译队列吐出的流式增量文本，并同步到当前输出框。
@@ -177,6 +182,7 @@ export default function TranCont({
         setLoading(true);
         setTrText("");
         setError("");
+        setElapsedMs(null);
 
         const translate = (requestText) =>
           apiTranslate({
@@ -195,6 +201,7 @@ export default function TranCont({
 
         if (active) {
           setTrText(normalizeTranslationText(trText, apiSetting.apiType, text));
+          setElapsedMs(Date.now() - startedAt);
         }
       } catch (err) {
         if (err?.name === "AbortError") {
@@ -241,6 +248,42 @@ export default function TranCont({
           <CircularProgress size={16} />
         ) : null}
       </Box>
+    );
+  }
+
+  if (popupStyle) {
+    return (
+      <article className="kt-popup-translation-result">
+        <header>
+          <strong>{apiSetting.apiName || apiSetting.apiSlug}</strong>
+          {elapsedMs !== null && <span>{elapsedMs}ms</span>}
+          <div>
+            <CopyBtn text={trText} title={i18n("copy")} />
+            <BrowserTtsBtn
+              text={trText}
+              lang={toLang}
+              title={i18n("read_aloud")}
+            />
+          </div>
+        </header>
+        <div
+          className="kt-popup-translation-result__body"
+          aria-live="polite"
+          aria-busy={loading}
+        >
+          {loading && !trText ? (
+            <CircularProgress size={18} />
+          ) : error ? (
+            <span className="kt-popup-translation-result__error">{error}</span>
+          ) : trText ? (
+            <span>{trText}</span>
+          ) : (
+            <span className="kt-popup-translation-result__empty">
+              {i18n("popup_enter_text")}
+            </span>
+          )}
+        </div>
+      </article>
     );
   }
 

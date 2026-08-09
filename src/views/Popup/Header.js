@@ -1,82 +1,114 @@
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import DragIndicatorRoundedIcon from "@mui/icons-material/DragIndicatorRounded";
+import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
+import RateReviewRoundedIcon from "@mui/icons-material/RateReviewRounded";
+import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
+import VolunteerActivismRoundedIcon from "@mui/icons-material/VolunteerActivismRounded";
 import IconButton from "@mui/material/IconButton";
-import CloseIcon from "@mui/icons-material/Close";
-import HomeIcon from "@mui/icons-material/Home";
-import Stack from "@mui/material/Stack";
-// import DarkModeButton from "../Options/DarkModeButton";
-import Typography from "@mui/material/Typography";
-import SyncAltIcon from "@mui/icons-material/SyncAlt";
-import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import ListItemIcon from "@mui/material/ListItemIcon";
+import ListItemText from "@mui/material/ListItemText";
+import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
+import { useState } from "react";
+import Logo from "../../components/Logo";
 import { useI18n } from "../../hooks/I18n";
 
-/**
- * Popup 弹窗页面头部组件
- *
- * @param {Object} props
- * @param {Function} [props.onClose] - 关闭弹窗的回调函数（仅在作为内嵌组件展示时有值）
- * @param {Function} props.toggleTab - 切换“网页翻译设置”与“文本翻译面板”的函数
- * @param {Function} props.openSeparateWindow - 在独立小窗口中打开翻译界面的函数
- */
-export default function Header({ onClose, toggleTab, openSeparateWindow }) {
+export default function Header({ onClose, openSeparateWindow, openSettings }) {
   const i18n = useI18n();
+  const [supportAnchor, setSupportAnchor] = useState(null);
 
-  // 打开项目主页/官方网站
   const handleHomepage = () => {
-    window.open(process.env.REACT_APP_HOMEPAGE, "_blank");
+    window.open(
+      process.env.REACT_APP_HOMEPAGE,
+      "_blank",
+      "noopener,noreferrer"
+    );
+  };
+
+  const openSupportLink = (url) => {
+    setSupportAnchor(null);
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   return (
-    <Stack
-      direction="row"
-      justifyContent="space-between"
-      alignItems="center"
-      spacing={2}
-    >
-      {/* 头部左侧：主页按钮与插件名称/版本号 */}
-      <Stack direction="row" justifyContent="flex-start" alignItems="center">
-        <IconButton onClick={handleHomepage}>
-          <HomeIcon />
-        </IconButton>
-        <Typography
-          component="div"
-          sx={{
-            userSelect: "none",
-            WebkitUserSelect: "none",
-            fontWeight: "bold",
-          }}
-        >
-          {`${process.env.REACT_APP_NAME} v${process.env.REACT_APP_VERSION}`}
-        </Typography>
-      </Stack>
-
-      {/* 头部右侧：根据 onClose 是否存在，渲染关闭按钮，或者功能控制按钮（切换面板、新窗口打开） */}
+    <header className="kt-popup-header">
+      {onClose && (
+        <span className="kt-popup-header__drag" aria-hidden="true">
+          <DragIndicatorRoundedIcon fontSize="small" />
+        </span>
+      )}
+      <button
+        type="button"
+        className="kt-popup-brand-button"
+        onClick={handleHomepage}
+        aria-label={i18n("app_name")}
+      >
+        <Logo size={24} className="kt-popup-header__logo" />
+      </button>
+      <span className="kt-popup-header__title">{i18n("app_name")}</span>
+      <span className="kt-popup-header__version">
+        v{process.env.REACT_APP_VERSION}
+      </span>
+      <span className="kt-popup-header__spacer" />
       {onClose ? (
-        <IconButton
-          onClick={() => {
-            onClose();
-          }}
-        >
-          <CloseIcon />
+        <IconButton onClick={onClose} aria-label={i18n("close")}>
+          <CloseRoundedIcon />
         </IconButton>
       ) : (
-        <Stack
-          direction="row"
-          alignItems="center"
-          title={i18n("toggle_transbox")}
-        >
-          {/* 切换到独立文本翻译输入框面板 */}
-          <IconButton onClick={toggleTab}>
-            <SyncAltIcon />
-          </IconButton>
-          {/* <DarkModeButton /> */}
-          {/* 独立窗口打开 */}
-          <IconButton
-            onClick={openSeparateWindow}
-            title={i18n("open_separate_window")}
+        <>
+          <span className="kt-popup-header__actions">
+            <IconButton
+              className="kt-popup-header__sponsor"
+              title={i18n("popup_support")}
+              aria-label={i18n("popup_support")}
+              aria-controls={
+                supportAnchor ? "kt-popup-support-menu" : undefined
+              }
+              aria-expanded={supportAnchor ? "true" : undefined}
+              aria-haspopup="menu"
+              onClick={(event) => setSupportAnchor(event.currentTarget)}
+            >
+              <VolunteerActivismRoundedIcon />
+            </IconButton>
+            <IconButton
+              onClick={openSeparateWindow}
+              aria-label={i18n("open_separate_window")}
+            >
+              <OpenInNewRoundedIcon />
+            </IconButton>
+            <IconButton onClick={openSettings} aria-label={i18n("setting")}>
+              <SettingsRoundedIcon />
+            </IconButton>
+          </span>
+          <Menu
+            id="kt-popup-support-menu"
+            anchorEl={supportAnchor}
+            open={Boolean(supportAnchor)}
+            onClose={() => setSupportAnchor(null)}
+            anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+            transformOrigin={{ vertical: "top", horizontal: "left" }}
+            transitionDuration={0}
+            MenuListProps={{ "aria-label": i18n("popup_support") }}
           >
-            <OpenInNewIcon />
-          </IconButton>
-        </Stack>
+            <MenuItem
+              onClick={() => openSupportLink(process.env.REACT_APP_REVIEW_URL)}
+            >
+              <ListItemIcon>
+                <RateReviewRoundedIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>{i18n("comment_support")}</ListItemText>
+            </MenuItem>
+            <MenuItem
+              onClick={() => openSupportLink(process.env.REACT_APP_SUPPORT_URL)}
+            >
+              <ListItemIcon>
+                <VolunteerActivismRoundedIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>{i18n("appreciate_support")}</ListItemText>
+            </MenuItem>
+          </Menu>
+        </>
       )}
-    </Stack>
+    </header>
   );
 }

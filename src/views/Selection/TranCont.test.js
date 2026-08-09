@@ -1,3 +1,4 @@
+/* eslint-disable testing-library/no-container, testing-library/no-unnecessary-act, testing-library/render-result-naming-convention */
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import TranCont from "./TranCont";
@@ -32,6 +33,19 @@ jest.mock("./CopyBtn", () => {
       { type: "button", "data-copy-text": text },
       "copy"
     );
+});
+
+jest.mock("./AudioBtn", () => {
+  const React = require("react");
+
+  return {
+    BrowserTtsBtn: ({ text }) =>
+      React.createElement(
+        "button",
+        { type: "button", "data-speech-text": text },
+        "speak"
+      ),
+  };
 });
 
 /**
@@ -133,6 +147,24 @@ describe("TranCont", () => {
   beforeEach(() => {
     apiTranslate.mockReset();
     document.body.innerHTML = "";
+  });
+
+  test("renders the Popup M3 result card with copy and speech actions", async () => {
+    apiTranslate.mockResolvedValueOnce({ trText: "译文" });
+    const { container, root } = renderTranCont({ popupStyle: true });
+    await flushEffects();
+
+    const result = container.querySelector(".kt-popup-translation-result");
+    expect(result).not.toBeNull();
+    expect(result.textContent).toContain("译文");
+    expect(result.querySelector("[data-copy-text]").dataset.copyText).toBe(
+      "译文"
+    );
+    expect(result.querySelector("[data-speech-text]").dataset.speechText).toBe(
+      "译文"
+    );
+
+    act(() => root.unmount());
   });
 
   test("renders streaming chunks before the final translation", async () => {

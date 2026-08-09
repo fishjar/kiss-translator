@@ -57,7 +57,7 @@ export function BaiduAudioBtn({ text, lan = "uk", spd = 3 }) {
   return <AudioBtn src={src} />;
 }
 
-export function BrowserTtsBtn({ text, lang = "en-US" }) {
+export function BrowserTtsBtn({ text, lang = "en-US", title = "Speak" }) {
   const [speaking, setSpeaking] = useState(false);
 
   if (!text?.trim() || !canSpeak()) return null;
@@ -82,6 +82,8 @@ export function BrowserTtsBtn({ text, lang = "en-US" }) {
       // 对齐默认词典按钮：播放中高亮，并忽略重复点击。
       onClick={speaking ? undefined : handleSpeak}
       size="small"
+      title={title}
+      aria-label={title}
       sx={{ ml: 0.5, verticalAlign: "middle" }}
     >
       <VolumeUpIcon fontSize="inherit" />

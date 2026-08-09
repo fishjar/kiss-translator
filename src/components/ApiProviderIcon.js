@@ -31,6 +31,7 @@ import {
   OPT_TRANS_ZAI,
 } from "../config";
 import { browser } from "../libs/browser";
+import { isGm } from "../libs/client";
 
 const API_ICON_FILES = {
   [OPT_TRANS_BUILTINAI]: "BuiltinAI.svg",
@@ -64,14 +65,18 @@ const API_ICON_FILES = {
 
 export function getApiIconSrc(
   apiType,
-  { runtime = browser?.runtime, publicUrl = process.env.PUBLIC_URL || "." } = {}
+  {
+    runtime = browser?.runtime,
+    publicUrl = process.env.PUBLIC_URL || ".",
+    allowPublicUrl = !isGm,
+  } = {}
 ) {
   const fileName = API_ICON_FILES[apiType];
   if (!fileName) return "";
 
   const relativePath = `api/${fileName}`;
   if (runtime?.getURL) return runtime.getURL(relativePath);
-  return `${publicUrl}/${relativePath}`;
+  return allowPublicUrl ? `${publicUrl}/${relativePath}` : "";
 }
 
 export default function ApiProviderIcon({

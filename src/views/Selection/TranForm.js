@@ -5,10 +5,13 @@ import Tab from "@mui/material/Tab";
 import MenuItem from "@mui/material/MenuItem";
 import Grid from "@mui/material/Grid";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
 import DoneIcon from "@mui/icons-material/Done";
 import CircularProgress from "@mui/material/CircularProgress";
 import ContentPasteIcon from "@mui/icons-material/ContentPaste";
+import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
+import TranslateRoundedIcon from "@mui/icons-material/TranslateRounded";
 import { useI18n } from "../../hooks/I18n";
 import {
   OPT_LANGS_FROM_REVERSED as OPT_LANGS_FROM,
@@ -32,6 +35,7 @@ import Zdic from "./Zdic";
 import { isValidWord, isSingleChineseChar } from "../../libs/utils";
 import { kissLog } from "../../libs/log";
 import { tryDetectLang } from "../../libs/detect";
+import CompactLanguageSelect from "../Popup/CompactLanguageSelect";
 
 /**
  * 翻译交互核心表单组件 (集成源/目标语言选择、多引擎翻译、词典展示、汉典展示、语言检测与文本输入)
@@ -54,6 +58,7 @@ export default function TranForm({
   prompts = [],
   selectionContext = "",
   isPlaygound = false,
+  popupStyle = false,
 }) {
   const i18n = useI18n();
 
@@ -70,6 +75,7 @@ export default function TranForm({
   const [enDict, setEnDict] = useState(initEnDict);
   const [enSug, setEnSug] = useState(initEnSug);
   const [dictTab, setDictTab] = useState("default");
+  const [showPopupServices, setShowPopupServices] = useState(false);
   const hasUserChangedDictTabRef = useRef(false);
   // 异步自动检测到的源文本语言代码 (例如 "en", "zh")
   const [deLang, setDeLang] = useState("");
@@ -175,7 +181,10 @@ export default function TranForm({
 
   const activeApiSlugs = useMemo(() => {
     const validSlugs = new Set(optApis.map((api) => api.key));
-    return apiSlugs.filter((slug) => validSlugs.has(slug));
+    const activeSlugs = (apiSlugs || []).filter((slug) => validSlugs.has(slug));
+    return activeSlugs.length > 0
+      ? activeSlugs
+      : optApis.slice(0, 1).map((api) => api.key);
   }, [apiSlugs, optApis]);
 
   // 默认词典覆盖英文单词和单个汉字：英文走 Bing/有道，单字走汉典。
@@ -226,6 +235,199 @@ export default function TranForm({
       setDictTab("ai");
     }
   }, [text, defaultDictAvailable, aiDictAvailable]);
+
+  const commitText = () => {
+    setEditMode(false);
+    setText(editText.trim());
+  };
+
+  const togglePopupService = (slug) => {
+    setHasUserChangedApiSlugs(true);
+    setApiSlugs((current) => {
+      const validSlugs = new Set(optApis.map((api) => api.key));
+      const validCurrent = (current || []).filter((currentSlug) =>
+        validSlugs.has(currentSlug)
+      );
+      if (!validCurrent.includes(slug)) return [...validCurrent, slug];
+      return validCurrent.length > 1
+        ? validCurrent.filter((currentSlug) => currentSlug !== slug)
+        : validCurrent;
+    });
+  };
+
+  const popupDictionaryPanels = (
+    <>
+      {(defaultDictAvailable || aiDictAvailable) && (
+        <Box className="kt-popup-dictionary">
+          {aiDictAvailable ? (
+            <>
+              <Tabs
+                value={defaultDictAvailable ? dictTab : "ai"}
+                onChange={(_, value) => {
+                  hasUserChangedDictTabRef.current = true;
+                  setDictTab(value);
+                }}
+                variant="scrollable"
+                allowScrollButtonsMobile
+                sx={{ minHeight: 36, mb: 1 }}
+              >
+                {defaultDictAvailable && (
+                  <Tab
+                    value="default"
+                    label={i18n("default_dict", "Default dictionary")}
+                    sx={{ minHeight: 36, py: 0.5 }}
+                  />
+                )}
+                <Tab
+                  value="ai"
+                  label={i18n("ai_dict", "AI dictionary")}
+                  sx={{ minHeight: 36, py: 0.5 }}
+                />
+              </Tabs>
+              {defaultDictAvailable && dictTab === "default" && (
+                <>
+                  {isWord && OPT_DICT_MAP.has(enDict) && (
+                    <DictCont text={text} enDict={enDict} />
+                  )}
+                  {isSingleChineseChar(text) && <Zdic text={text} />}
+                </>
+              )}
+              {(!defaultDictAvailable || dictTab === "ai") && (
+                <AiDictCont
+                  text={text}
+                  fromLang={fromLang}
+                  speechLang={fromLang === "auto" ? deLang : fromLang}
+                  toLang={realToLang}
+                  apiSetting={aiDictApiSetting}
+                  context={
+                    selectionContext && selectionContext.includes(text)
+                      ? selectionContext
+                      : ""
+                  }
+                />
+              )}
+            </>
+          ) : (
+            <>
+              {isWord && OPT_DICT_MAP.has(enDict) && (
+                <DictCont text={text} enDict={enDict} />
+              )}
+              {isSingleChineseChar(text) && <Zdic text={text} />}
+            </>
+          )}
+        </Box>
+      )}
+
+      {isWord && OPT_SUG_MAP.has(enSug) && (
+        <Box className="kt-popup-dictionary">
+          <SugCont text={text} enSug={enSug} />
+        </Box>
+      )}
+    </>
+  );
+
+  if (popupStyle) {
+    return (
+      <div className="kt-popup-translation-form">
+        <div className="kt-popup-translation-input">
+          <textarea
+            ref={inputRef}
+            value={editText}
+            maxLength={5000}
+            aria-label={i18n("original_text")}
+            placeholder={i18n("original_text")}
+            onChange={(event) => setEditText(event.target.value)}
+            onKeyDown={(event) => {
+              if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+                event.preventDefault();
+                commitText();
+              }
+            }}
+          />
+          <div className="kt-popup-translation-input__footer">
+            <Stack direction="row" alignItems="center" spacing={0.5}>
+              <span>{editText.length} / 5000</span>
+              {!editText.trim() && (
+                <IconButton
+                  size="small"
+                  onClick={handlePaste}
+                  title={i18n("paste")}
+                  aria-label={i18n("paste")}
+                >
+                  <ContentPasteIcon fontSize="inherit" />
+                </IconButton>
+              )}
+            </Stack>
+            <Button
+              variant="contained"
+              disabled={!editText.trim()}
+              startIcon={<TranslateRoundedIcon />}
+              onClick={commitText}
+            >
+              {i18n("translate")}
+            </Button>
+          </div>
+        </div>
+
+        <div className="kt-popup-translation-direction">
+          <CompactLanguageSelect
+            value={fromLang}
+            ariaLabel={i18n("from_lang")}
+            options={OPT_LANGS_FROM}
+            onChange={(event) => setFromLang(event.target.value)}
+          />
+          <span aria-hidden="true">→</span>
+          <CompactLanguageSelect
+            value={toLang}
+            ariaLabel={i18n("to_lang")}
+            options={OPT_LANGS_TO}
+            onChange={(event) => setToLang(event.target.value)}
+          />
+        </div>
+
+        <div className="kt-popup-translation-results">
+          {activeApiSlugs.map((slug) => (
+            <TranCont
+              key={slug}
+              text={translationText}
+              fromLang={fromLang}
+              toLang={realToLang}
+              apiSlug={slug}
+              transApis={transApis}
+              popupStyle
+            />
+          ))}
+        </div>
+
+        <button
+          type="button"
+          className="kt-popup-translation-compare"
+          aria-expanded={showPopupServices}
+          onClick={() => setShowPopupServices((current) => !current)}
+        >
+          {i18n("popup_compare_services")}
+          <ExpandMoreRoundedIcon />
+        </button>
+
+        {showPopupServices && (
+          <div className="kt-popup-translation-services">
+            {optApis.map((api) => (
+              <button
+                type="button"
+                aria-pressed={activeApiSlugs.includes(api.key)}
+                onClick={() => togglePopupService(api.key)}
+                key={api.key}
+              >
+                {api.name}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {popupDictionaryPanels}
+      </div>
+    );
+  }
 
   return (
     <Stack spacing={simpleStyle ? 1 : 2}>

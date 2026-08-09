@@ -1,3 +1,4 @@
+/* eslint-disable testing-library/no-container, testing-library/no-unnecessary-act */
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import TranForm from "./TranForm";
@@ -26,11 +27,12 @@ jest.mock("react-markdown", () => {
 jest.mock("./TranCont", () => {
   const React = require("react");
 
-  return ({ apiSlug, text }) =>
+  return ({ apiSlug, text, popupStyle }) =>
     React.createElement("div", {
       "data-testid": "tran-cont",
       "data-api-slug": apiSlug,
       "data-text": text,
+      "data-popup-style": String(Boolean(popupStyle)),
     });
 });
 
@@ -198,6 +200,100 @@ describe("TranForm AI dictionary tab", () => {
   });
 });
 
+describe("TranForm popup input", () => {
+  beforeEach(() => {
+    apiDict.mockReset();
+    document.body.innerHTML = "";
+  });
+
+  test("pastes clipboard text into an empty popup input", async () => {
+    const setText = jest.fn();
+    const readText = jest.fn().mockResolvedValue("  clipboard text  ");
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { readText },
+    });
+    const { container, root } = renderTranForm({
+      text: "",
+      setText,
+      popupStyle: true,
+    });
+    await flushEffects();
+
+    const pasteButton = container.querySelector('button[aria-label="paste"]');
+    expect(pasteButton).not.toBeNull();
+
+    await act(async () => {
+      pasteButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    expect(readText).toHaveBeenCalledTimes(1);
+    expect(setText).toHaveBeenCalledWith("clipboard text");
+
+    act(() => root.unmount());
+  });
+
+  test("submits the popup input with Ctrl+Enter", () => {
+    const setText = jest.fn();
+    const { container, root } = renderTranForm({
+      text: "library",
+      setText,
+      popupStyle: true,
+    });
+    const textarea = container.querySelector("textarea");
+
+    act(() => {
+      const setTextareaValue = Object.getOwnPropertyDescriptor(
+        HTMLTextAreaElement.prototype,
+        "value"
+      ).set;
+      setTextareaValue.call(textarea, "updated library");
+      textarea.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    const event = new KeyboardEvent("keydown", {
+      bubbles: true,
+      cancelable: true,
+      ctrlKey: true,
+      key: "Enter",
+    });
+
+    act(() => textarea.dispatchEvent(event));
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(setText).toHaveBeenCalledWith("updated library");
+    act(() => root.unmount());
+  });
+
+  test("shows M3 results before the expandable service choices", () => {
+    const { container, root } = renderTranForm({
+      apiSlugs: ["openai"],
+      popupStyle: true,
+    });
+    const form = container.querySelector(".kt-popup-translation-form");
+    const results = form.querySelector(".kt-popup-translation-results");
+    const compareButton = form.querySelector(".kt-popup-translation-compare");
+
+    expect(results.querySelector('[data-popup-style="true"]')).not.toBeNull();
+    expect(form.querySelector(".kt-popup-translation-services")).toBeNull();
+
+    act(() => {
+      compareButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    const services = form.querySelector(".kt-popup-translation-services");
+    const children = [...form.children];
+    expect(children.indexOf(results)).toBeLessThan(
+      children.indexOf(compareButton)
+    );
+    expect(children.indexOf(compareButton)).toBeLessThan(
+      children.indexOf(services)
+    );
+
+    act(() => root.unmount());
+  });
+});
+
 describe("TranForm translation service selection", () => {
   beforeEach(() => {
     apiDict.mockReset();
@@ -222,6 +318,76 @@ describe("TranForm translation service selection", () => {
         (element) => element.dataset.text
       )
     ).toEqual(["First line Second line", "First line Second line"]);
+
+    act(() => root.unmount());
+  });
+
+  test("falls back to the first enabled service when persisted slugs are stale", async () => {
+    const { container, root } = renderTranForm({
+      apiSlugs: ["removed", "disabled"],
+      transApis: [
+        {
+          apiSlug: "disabled",
+          apiName: "Disabled",
+          apiType: "Google",
+          isDisabled: true,
+        },
+        { apiSlug: "google", apiName: "Google", apiType: "Google" },
+        { apiSlug: "openai", apiName: "OpenAI", apiType: "OpenAI" },
+      ],
+      popupStyle: true,
+    });
+    await flushEffects();
+
+    expect(
+      [...container.querySelectorAll('[data-testid="tran-cont"]')].map((el) =>
+        el.getAttribute("data-api-slug")
+      )
+    ).toEqual(["google"]);
+
+    act(() => root.unmount());
+  });
+
+  test("keeps one valid popup service after removing stale selections", async () => {
+    const { container, root } = renderTranForm({
+      apiSlugs: ["removed", "disabled", "google"],
+      transApis: [
+        {
+          apiSlug: "disabled",
+          apiName: "Disabled",
+          apiType: "Google",
+          isDisabled: true,
+        },
+        { apiSlug: "google", apiName: "Google", apiType: "Google" },
+        { apiSlug: "openai", apiName: "OpenAI", apiType: "OpenAI" },
+      ],
+      popupStyle: true,
+    });
+    await flushEffects();
+
+    const resultSlugs = () =>
+      [...container.querySelectorAll('[data-testid="tran-cont"]')].map((el) =>
+        el.getAttribute("data-api-slug")
+      );
+    act(() => container.querySelector(".kt-popup-translation-compare").click());
+    const serviceButtons = [
+      ...container.querySelectorAll(".kt-popup-translation-services button"),
+    ];
+    const googleButton = serviceButtons.find(
+      (button) => button.textContent === "Google"
+    );
+    const openAiButton = serviceButtons.find(
+      (button) => button.textContent === "OpenAI"
+    );
+
+    act(() => googleButton.click());
+    expect(resultSlugs()).toEqual(["google"]);
+
+    act(() => openAiButton.click());
+    expect(resultSlugs()).toEqual(["google", "openai"]);
+
+    act(() => googleButton.click());
+    expect(resultSlugs()).toEqual(["openai"]);
 
     act(() => root.unmount());
   });

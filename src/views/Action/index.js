@@ -1,4 +1,4 @@
-import ThemeProvider from "../../hooks/Theme";
+import ThemeProvider from "../Popup/PopupTheme";
 import Draggable from "./Draggable";
 import { useEffect, useMemo, useCallback, useState } from "react";
 import { SettingProvider } from "../../hooks/Setting";
@@ -14,6 +14,7 @@ import {
 import PopupCont from "../Popup/PopupCont";
 import { isExt } from "../../libs/client";
 import { sendBgMsg } from "../../libs/msg";
+import { POPUP_STYLES } from "../Popup/styles";
 
 /**
  * 内容页悬浮控制面板的主入口视图组件
@@ -30,7 +31,11 @@ export default function Action({ translator, processActions }) {
     if (isExt) {
       sendBgMsg(MSG_OPEN_OPTIONS);
     } else {
-      window.open(process.env.REACT_APP_OPTIONSPAGE, "_blank");
+      window.open(
+        process.env.REACT_APP_OPTIONSPAGE,
+        "_blank",
+        "noopener,noreferrer"
+      );
     }
   }, []);
 
@@ -85,6 +90,7 @@ export default function Action({ translator, processActions }) {
   return (
     <SettingProvider context="contentPopup">
       <ThemeProvider>
+        <style>{POPUP_STYLES}</style>
         {showPopup && (
           <Draggable
             key="pop"
@@ -102,7 +108,14 @@ export default function Action({ translator, processActions }) {
               </Box>
             }
           >
-            <Box width={360}>
+            <Box
+              className="kt-popup-shell kt-popup-shell--content"
+              width={popProps.width}
+              style={{
+                maxHeight: Math.max(0, popProps.height - 57),
+                overflowY: "auto",
+              }}
+            >
               <PopupCont
                 rule={rule}
                 setting={setting}
