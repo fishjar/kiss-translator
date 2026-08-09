@@ -1,7 +1,7 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { css as mockCss } from "@emotion/css";
-import { StyleAccordion } from "./StylesSetting";
+import StylesSetting, { StyleAccordion } from "./StylesSetting";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -30,12 +30,24 @@ jest.mock("../../hooks/I18n", () => ({
   useI18n: () => (key) => key,
 }));
 
-jest.mock("../../hooks/Setting", () => ({
-  useSetting: () => ({
-    setting: { uiLang: "en" },
-    updateSetting: jest.fn(),
-  }),
-}));
+jest.mock("../../hooks/Setting", () => {
+  const setting = {
+    uiLang: "en",
+    darkMode: "auto",
+    customStyles: [
+      {
+        styleSlug: "custom-dangerous",
+        styleName: "Custom Dangerous",
+        styleCode: "position: fixed; inset: 0; z-index: 2147483647;",
+      },
+    ],
+  };
+  const updateSetting = jest.fn();
+
+  return {
+    useSetting: () => ({ setting, updateSetting }),
+  };
+});
 
 jest.mock("../../hooks/Confirm", () => ({
   useConfirm: () => jest.fn(async () => true),
@@ -67,6 +79,24 @@ function renderStyleAccordion(customStyle) {
         render(nextStyle);
       });
     },
+    cleanup() {
+      act(() => root.unmount());
+      container.remove();
+    },
+  };
+}
+
+function renderStylesSetting() {
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  const root = createRoot(container);
+
+  act(() => {
+    root.render(<StylesSetting />);
+  });
+
+  return {
+    container,
     cleanup() {
       act(() => root.unmount());
       container.remove();
@@ -152,6 +182,53 @@ describe("StylesSetting style previews", () => {
       view.container.querySelectorAll("button")
     ).find((button) => button.textContent === "save");
     expect(saveButton.disabled).toBe(true);
+
+    view.cleanup();
+  });
+
+  test("keeps an expanded style draft mounted while the manager is hidden", () => {
+    const view = renderStylesSetting();
+
+    expect(view.container.querySelector(".kt-style-manager")).toBeNull();
+
+    const openButton = Array.from(
+      view.container.querySelectorAll("button")
+    ).find((button) => button.textContent === "edit");
+    act(() => openButton.click());
+
+    const manager = view.container.querySelector(".kt-style-manager");
+    expect(manager).not.toBeNull();
+    expect(manager.hidden).toBe(false);
+
+    act(() => {
+      manager.querySelector(".MuiAccordionSummary-root").click();
+    });
+
+    const nameInput = manager.querySelector('input[name="styleName"]');
+    act(() => {
+      Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value"
+      ).set.call(nameInput, "Unsaved style draft");
+      nameInput.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+
+    const hideButton = Array.from(
+      view.container.querySelectorAll("button")
+    ).find((button) => button.textContent === "hide");
+    act(() => hideButton.click());
+
+    expect(view.container.querySelector(".kt-style-manager")).toBe(manager);
+    expect(manager.hidden).toBe(true);
+
+    const reopenButton = Array.from(
+      view.container.querySelectorAll("button")
+    ).find((button) => button.textContent === "edit");
+    act(() => reopenButton.click());
+
+    expect(manager.hidden).toBe(false);
+    expect(manager.querySelector('input[name="styleName"]')).toBe(nameInput);
+    expect(nameInput.value).toBe("Unsaved style draft");
 
     view.cleanup();
   });

@@ -2,7 +2,6 @@ import { OPT_TRANS_GOOGLE, OPT_TRANS_ORCAROUTER } from "../config";
 import { getApiIconSrc } from "./ApiProviderIcon";
 
 jest.mock("../libs/browser", () => ({ browser: undefined }));
-jest.mock("../libs/client", () => ({ isGm: false }));
 
 describe("getApiIconSrc", () => {
   test("uses the extension origin when a runtime is available", () => {
@@ -34,12 +33,20 @@ describe("getApiIconSrc", () => {
     ).toBe("/kiss-translator/api/OrcaRouter.svg");
   });
 
-  test("uses the bundled generic icon when a userscript has no asset host", () => {
-    expect(
-      getApiIconSrc(OPT_TRANS_GOOGLE, {
-        runtime: undefined,
-        allowPublicUrl: false,
-      })
-    ).toBe("");
+  test("uses the public path by default for hosted userscript options", () => {
+    const previousPublicUrl = process.env.PUBLIC_URL;
+    process.env.PUBLIC_URL = "";
+
+    try {
+      expect(getApiIconSrc(OPT_TRANS_GOOGLE, { runtime: undefined })).toBe(
+        "./api/Google.svg"
+      );
+    } finally {
+      if (previousPublicUrl === undefined) {
+        delete process.env.PUBLIC_URL;
+      } else {
+        process.env.PUBLIC_URL = previousPublicUrl;
+      }
+    }
   });
 });

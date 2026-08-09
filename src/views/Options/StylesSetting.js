@@ -219,6 +219,7 @@ export default function StylesSetting() {
   const i18n = useI18n();
   const { setting, updateSetting } = useSetting();
   const [showStyleManager, setShowStyleManager] = useState(false);
+  const [hasOpenedStyleManager, setHasOpenedStyleManager] = useState(false);
   // 自定义 CSS 列表 Hook
   const { addStyle, deleteStyle, updateStyle } = useStyleList();
   // 系统内置的只读样式配置列表
@@ -228,6 +229,11 @@ export default function StylesSetting() {
   const handleClick = (e) => {
     e.preventDefault();
     addStyle();
+  };
+
+  const setStyleManagerVisibility = (visible) => {
+    if (visible) setHasOpenedStyleManager(true);
+    setShowStyleManager(visible);
   };
 
   const darkMode = setting.darkMode || "auto";
@@ -260,7 +266,7 @@ export default function StylesSetting() {
             <Button
               size="small"
               variant="contained"
-              onClick={() => setShowStyleManager(true)}
+              onClick={() => setStyleManagerVisibility(true)}
             >
               {i18n("edit")}
             </Button>
@@ -274,7 +280,7 @@ export default function StylesSetting() {
             <Button
               size="small"
               variant="outlined"
-              onClick={() => setShowStyleManager((current) => !current)}
+              onClick={() => setStyleManagerVisibility(!showStyleManager)}
             >
               {showStyleManager ? i18n("hide") : i18n("edit")}
             </Button>
@@ -282,8 +288,14 @@ export default function StylesSetting() {
         </SettingsCard>
       </SettingsSection>
 
-      {showStyleManager && (
-        <Stack className="kt-style-manager" spacing={3}>
+      {hasOpenedStyleManager && (
+        <Stack
+          className="kt-style-manager"
+          spacing={3}
+          hidden={!showStyleManager}
+          aria-hidden={!showStyleManager}
+          sx={{ display: showStyleManager ? "flex" : "none" }}
+        >
           <Box>
             <Button
               size="small"

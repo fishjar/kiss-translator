@@ -8,11 +8,13 @@ import {
   OPT_INPUT_DOT_DISABLE,
   OPT_INPUT_DOT_MOBILE,
   OPT_INPUT_DOT_ALWAYS,
+  DEFAULT_INPUT_RULE,
 } from "../../config";
 import ShortcutInput from "./ShortcutInput";
 import { useInputRule } from "../../hooks/InputRule";
 import { useCallback } from "react";
 import { useApiList } from "../../hooks/Api";
+import { limitNumber } from "../../libs/utils";
 import {
   SettingsAdvanced,
   SettingsCard,
@@ -23,6 +25,22 @@ import {
   SettingsSelect,
   SettingsSwitch,
 } from "./SettingsCard";
+
+const MIN_TRIGGER_TIME = 10;
+const MAX_TRIGGER_TIME = 1000;
+
+export function normalizeTriggerTime(value) {
+  if (value === null || value === undefined || value === "") {
+    return DEFAULT_INPUT_RULE.triggerTime;
+  }
+
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) {
+    return DEFAULT_INPUT_RULE.triggerTime;
+  }
+
+  return limitNumber(numericValue, MIN_TRIGGER_TIME, MAX_TRIGGER_TIME);
+}
 
 /**
  * 网页输入框快捷输入翻译设置页面 (InputSetting)
@@ -65,6 +83,7 @@ export default function InputSetting() {
     showDot,
     blacklist = "",
   } = inputRule;
+  const normalizedTriggerTime = normalizeTriggerTime(triggerTime);
 
   return (
     <Box>
@@ -172,9 +191,9 @@ export default function InputSetting() {
             </SettingsRow>
             <SettingsRow label={i18n("combo_timeout")}>
               <SettingsRange
-                value={triggerTime}
-                min={10}
-                max={1000}
+                value={normalizedTriggerTime}
+                min={MIN_TRIGGER_TIME}
+                max={MAX_TRIGGER_TIME}
                 step={1}
                 unit=" ms"
                 label={i18n("combo_timeout")}

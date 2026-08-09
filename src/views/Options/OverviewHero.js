@@ -12,22 +12,29 @@ import {
 export default function OverviewHero() {
   const i18n = useI18n();
   const { setting } = useSetting();
-  const { list: rules } = useRules();
+  const { list: rules, isLoading: rulesLoading = false } = useRules();
   const shortcutMap = useOverviewShortcuts(setting);
-  const globalRule = rules.find((rule) => rule.pattern === "*") || GLOBLA_RULE;
-  const activeApi = (setting.transApis || []).find(
-    (api) => api.apiSlug === globalRule.apiSlug
-  );
-  const serviceName =
-    activeApi?.apiName || activeApi?.apiType || globalRule.apiSlug || "—";
-  const sourceLanguage =
-    OPT_LANGS_FROM.find(([key]) => key === globalRule.fromLang)?.[1] ||
-    globalRule.fromLang ||
-    "—";
-  const targetLanguage =
-    OPT_LANGS_TO.find(([key]) => key === globalRule.toLang)?.[1] ||
-    globalRule.toLang ||
-    "—";
+  const globalRule = rulesLoading
+    ? null
+    : rules.find((rule) => rule.pattern === "*") || GLOBLA_RULE;
+  const activeApi = globalRule
+    ? (setting.transApis || []).find(
+        (api) => api.apiSlug === globalRule.apiSlug
+      )
+    : null;
+  const serviceName = globalRule
+    ? activeApi?.apiName || activeApi?.apiType || globalRule.apiSlug || "—"
+    : "—";
+  const sourceLanguage = globalRule
+    ? OPT_LANGS_FROM.find(([key]) => key === globalRule.fromLang)?.[1] ||
+      globalRule.fromLang ||
+      "—"
+    : "—";
+  const targetLanguage = globalRule
+    ? OPT_LANGS_TO.find(([key]) => key === globalRule.toLang)?.[1] ||
+      globalRule.toLang ||
+      "—"
+    : "—";
   const shortcuts = [
     [i18n("popup_translate_page"), shortcutMap.page],
     [i18n("open_menu"), shortcutMap.popup],
@@ -38,7 +45,10 @@ export default function OverviewHero() {
   ];
 
   return (
-    <section className="kt-overview-top">
+    <section
+      className="kt-overview-top"
+      aria-busy={rulesLoading ? "true" : undefined}
+    >
       <div className="kt-overview-hero">
         <div className="kt-overview-hero__header">
           <span className="kt-overview-hero__icon" aria-hidden="true">

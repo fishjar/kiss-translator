@@ -1,6 +1,6 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
-import Options from "./index";
+import Options, { normalizeOptionsHashPath } from "./index";
 import { trySyncRules, trySyncSetting, trySyncWords } from "../../libs/sync";
 import { kissLog } from "../../libs/log";
 import { adaptScript } from "../../libs/gm";
@@ -8,6 +8,18 @@ import { runDataMigration } from "../../libs/storage";
 import { sleep } from "../../libs/utils";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+
+describe("normalizeOptionsHashPath", () => {
+  test.each([
+    ["#/", "/"],
+    ["#/?source=test", "/"],
+    ["#/rules/", "/rules"],
+    ["#/rules/?source=test", "/rules"],
+    ["", "/"],
+  ])("normalizes %p to %p", (hash, expected) => {
+    expect(normalizeOptionsHashPath(hash)).toBe(expected);
+  });
+});
 
 let mockIsGm = false;
 const mockSettingProvider = jest.fn();
@@ -316,7 +328,7 @@ describe("Options startup sync", () => {
     trySyncSetting.mockReturnValueOnce(settingSync.promise);
     trySyncRules.mockReturnValueOnce(rulesSync.promise);
 
-    const view = renderOptions("#/");
+    const view = renderOptions("#/?source=test");
     await flushEffects();
 
     expect(trySyncSetting).toHaveBeenCalledTimes(1);

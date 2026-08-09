@@ -23,7 +23,7 @@ import {
   OPT_SYNCTYPE_GIST,
   OPT_SYNCTOKEN_PERFIX,
 } from "../../config";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { changeSyncEncryptKey, syncSettingAndRules } from "../../libs/sync";
 import { useAlert } from "../../hooks/Alert";
 import { useConfirm } from "../../hooks/Confirm";
@@ -78,6 +78,7 @@ export default function SyncSetting() {
   const [showOldEncryptKey, setShowOldEncryptKey] = useState(false);
   const [showNewEncryptKey, setShowNewEncryptKey] = useState(false);
   const [showConfirmEncryptKey, setShowConfirmEncryptKey] = useState(false);
+  const syncMethodRefs = useRef([]);
   const { reloadSetting } = useSetting();
 
   const getSyncErrorMessage = (err, fallback = i18n("sync_failed")) => {
@@ -108,6 +109,34 @@ export default function SyncSetting() {
   const handleSyncTypeChange = async (syncTypeValue) => {
     if (syncTypeValue === syncType) return;
     await updateSync({ syncType: syncTypeValue });
+  };
+
+  const handleSyncTypeKeyDown = (event, currentIndex) => {
+    const lastIndex = OPT_SYNCTYPE_ALL.length - 1;
+    let targetIndex;
+
+    switch (event.key) {
+      case "ArrowDown":
+      case "ArrowRight":
+        targetIndex = currentIndex === lastIndex ? 0 : currentIndex + 1;
+        break;
+      case "ArrowLeft":
+      case "ArrowUp":
+        targetIndex = currentIndex === 0 ? lastIndex : currentIndex - 1;
+        break;
+      case "Home":
+        targetIndex = 0;
+        break;
+      case "End":
+        targetIndex = lastIndex;
+        break;
+      default:
+        return;
+    }
+
+    event.preventDefault();
+    syncMethodRefs.current[targetIndex]?.focus();
+    void handleSyncTypeChange(OPT_SYNCTYPE_ALL[targetIndex]);
   };
 
   // 触发物理网络数据上传/下载同步
@@ -265,6 +294,9 @@ export default function SyncSetting() {
     syncEncryptKey = "",
   } = sync;
   const isGistSync = syncType === OPT_SYNCTYPE_GIST;
+  const selectedSyncMethodIndex = OPT_SYNCTYPE_ALL.indexOf(syncType);
+  const tabbableSyncMethodIndex =
+    selectedSyncMethodIndex === -1 ? 0 : selectedSyncMethodIndex;
 
   return (
     <Box>
@@ -282,7 +314,7 @@ export default function SyncSetting() {
           role="radiogroup"
           aria-label={i18n("data_sync_type")}
         >
-          {OPT_SYNCTYPE_ALL.map((item) => {
+          {OPT_SYNCTYPE_ALL.map((item, index) => {
             const { Icon, descriptionKey } = SYNC_METHOD_METADATA[item];
             return (
               <button
@@ -290,8 +322,13 @@ export default function SyncSetting() {
                 className="kt-sync-method"
                 role="radio"
                 aria-checked={syncType === item}
+                tabIndex={index === tabbableSyncMethodIndex ? 0 : -1}
+                ref={(element) => {
+                  syncMethodRefs.current[index] = element;
+                }}
                 key={item}
                 onClick={() => void handleSyncTypeChange(item)}
+                onKeyDown={(event) => handleSyncTypeKeyDown(event, index)}
               >
                 <Icon />
                 <span className="kt-sync-method__name">{item}</span>

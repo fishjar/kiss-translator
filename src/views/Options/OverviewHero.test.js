@@ -4,6 +4,8 @@ import OverviewHero from "./OverviewHero";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
+let mockRulesLoading = false;
+
 jest.mock("../../hooks/I18n", () => ({
   useI18n: () => (key) => key,
 }));
@@ -19,6 +21,7 @@ jest.mock("../../hooks/Setting", () => ({
 }));
 jest.mock("../../hooks/Rules", () => ({
   useRules: () => ({
+    isLoading: mockRulesLoading,
     list: [
       {
         pattern: "*",
@@ -40,6 +43,10 @@ jest.mock("../../hooks/Commands", () => ({
   }),
 }));
 describe("OverviewHero", () => {
+  beforeEach(() => {
+    mockRulesLoading = false;
+  });
+
   test("renders the global rule and actual command shortcuts", () => {
     const container = document.createElement("div");
     const root = createRoot(container);
@@ -66,6 +73,27 @@ describe("OverviewHero", () => {
     expect(
       container.querySelector(".kt-overview-hero__summary")
     ).not.toBeNull();
+
+    act(() => root.unmount());
+  });
+
+  test("does not render default rule details while rules are loading", () => {
+    mockRulesLoading = true;
+    const container = document.createElement("div");
+    const root = createRoot(container);
+
+    act(() => root.render(<OverviewHero />));
+
+    expect(
+      container.querySelector(".kt-overview-top").getAttribute("aria-busy")
+    ).toBe("true");
+    expect(container.textContent).not.toContain("Microsoft");
+    expect(container.textContent).not.toContain("BuiltinAI");
+    expect(
+      Array.from(
+        container.querySelectorAll(".kt-overview-hero__summary-item strong")
+      ).map((element) => element.textContent)
+    ).toEqual(["—", "— → —"]);
 
     act(() => root.unmount());
   });
