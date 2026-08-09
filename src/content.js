@@ -1,5 +1,7 @@
 import { run } from "./common";
+import { APP_CONSTS } from "./config";
 import { browser, isExtensionContextInvalidatedError } from "./libs/browser";
+import { removeStaleShadowHosts } from "./libs/shadowHost";
 
 // Mark the global execution context so getContext() can identify the host.
 globalThis.__KISS_CONTEXT__ = "content";
@@ -13,6 +15,7 @@ try {
   runtimeAvailable = false;
 }
 const runtimeMarker = `__KISS_CONTENT_RUNTIME__${runtimeOrigin}`;
+const runtimeReplacementEvent = `${runtimeMarker}:replace`;
 
 const stopRuntimeManager = (manager) => {
   try {
@@ -54,22 +57,45 @@ if (
 }
 
 if (shouldStart) {
+  // Extension updates create a new isolated world that cannot read the old
+  // world's global marker. A DOM event lets compatible invalidated runtimes
+  // stop after their own liveness check; strict host cleanup also covers older
+  // releases that did not yet register that listener.
+  document.dispatchEvent(new Event(runtimeReplacementEvent));
+  removeStaleShadowHosts(APP_CONSTS);
+
   const identity = {};
   let manager;
   let disposed = false;
+  const probe = () => browser?.runtime?.getURL?.("");
+  const dispose = () => {
+    if (disposed) return;
+    disposed = true;
+    document.removeEventListener(
+      runtimeReplacementEvent,
+      handleRuntimeReplacement
+    );
+    if (globalThis[runtimeMarker]?.identity === identity) {
+      delete globalThis[runtimeMarker];
+    }
+    stopRuntimeManager(manager);
+    manager = undefined;
+  };
+  const handleRuntimeReplacement = () => {
+    try {
+      probe();
+    } catch (error) {
+      if (isExtensionContextInvalidatedError(error)) {
+        dispose();
+      }
+    }
+  };
   const currentRuntime = {
     identity,
-    probe: () => browser?.runtime?.getURL?.(""),
-    dispose: () => {
-      if (disposed) return;
-      disposed = true;
-      if (globalThis[runtimeMarker]?.identity === identity) {
-        delete globalThis[runtimeMarker];
-      }
-      stopRuntimeManager(manager);
-      manager = undefined;
-    },
+    probe,
+    dispose,
   };
+  document.addEventListener(runtimeReplacementEvent, handleRuntimeReplacement);
   globalThis[runtimeMarker] = currentRuntime;
 
   const handleStartupFailure = (error) => {
