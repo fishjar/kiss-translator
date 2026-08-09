@@ -21,6 +21,11 @@ function _browser() {
 // 统一的浏览器扩展 API 导出对象
 export const browser = _browser();
 
+export function isExtensionContextInvalidatedError(error) {
+  const message = error?.message || String(error || "");
+  return message.includes("Extension context invalidated");
+}
+
 /**
  * 获取当前脚本在浏览器扩展中的具体执行环境上下文
  * @returns {string} 返回 "background" | "content" | "options" | "popup" | "undefined"

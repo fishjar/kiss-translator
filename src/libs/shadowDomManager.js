@@ -12,12 +12,14 @@ export default class ShadowDomManager {
 
   _id;
   _className;
+  _cacheKey;
   _ReactComponent;
   _props;
 
   constructor({
     id,
     className = "",
+    cacheKey = id,
     reactComponent,
     props = {},
     rootElement = document.body,
@@ -27,6 +29,7 @@ export default class ShadowDomManager {
     }
     this._id = id;
     this._className = className;
+    this._cacheKey = cacheKey;
     this._ReactComponent = reactComponent;
     this._props = props;
     this._rootElement = rootElement;
@@ -117,7 +120,7 @@ export default class ShadowDomManager {
     shadowContainer.appendChild(appRoot);
 
     const cache = createCache({
-      key: this._id,
+      key: this._cacheKey,
       prepend: true,
       container: shadowContainer,
     });

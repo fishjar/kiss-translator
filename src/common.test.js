@@ -1,4 +1,5 @@
 const mockTranslatorManagerStart = jest.fn();
+const mockTranslatorManagerStop = jest.fn();
 let mockIsIframe = false;
 
 jest.mock("./config", () => ({
@@ -54,6 +55,7 @@ jest.mock("./libs/translatorManager", () => ({
   __esModule: true,
   default: jest.fn().mockImplementation(() => ({
     start: mockTranslatorManagerStart,
+    stop: mockTranslatorManagerStop,
   })),
 }));
 
@@ -112,6 +114,7 @@ describe("common iframe startup", () => {
 
     TranslatorManager.mockImplementation(() => ({
       start: mockTranslatorManagerStart,
+      stop: mockTranslatorManagerStop,
     }));
     getSettingWithDefault.mockResolvedValue({
       blacklist: "",
@@ -152,11 +155,12 @@ describe("common iframe startup", () => {
     mockIsIframe = true;
     document.body.innerHTML = "<main>Hello iframe</main>";
 
-    await run();
+    const runtime = await run();
 
     expect(matchRule).toHaveBeenCalledTimes(1);
     expect(TranslatorManager).toHaveBeenCalledTimes(1);
     expect(mockTranslatorManagerStart).toHaveBeenCalledTimes(1);
+    expect(runtime).toBe(TranslatorManager.mock.results[0].value);
     expect(runSubtitle).not.toHaveBeenCalled();
   });
 
@@ -202,6 +206,36 @@ describe("common iframe startup", () => {
     expect(TranslatorManager).toHaveBeenCalledTimes(1);
     expect(mockTranslatorManagerStart).toHaveBeenCalledTimes(1);
     expect(runSubtitle).toHaveBeenCalledTimes(1);
+  });
+
+  test("rejects startup failures so the content marker can retry", async () => {
+    jest.useFakeTimers();
+    const consoleError = jest.spyOn(console, "error").mockImplementation();
+    getSettingWithDefault.mockRejectedValueOnce(new Error("load failed"));
+
+    await expect(run()).rejects.toThrow("load failed");
+
+    expect(TranslatorManager).not.toHaveBeenCalled();
+    expect(document.getElementById("KISS-Translator-Message")).not.toBeNull();
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
+    consoleError.mockRestore();
+  });
+
+  test("stops a partially started manager when later startup fails", async () => {
+    jest.useFakeTimers();
+    const consoleError = jest.spyOn(console, "error").mockImplementation();
+    runSubtitle.mockImplementationOnce(() => {
+      throw new Error("subtitle failed");
+    });
+
+    await expect(run()).rejects.toThrow("subtitle failed");
+
+    expect(mockTranslatorManagerStart).toHaveBeenCalledTimes(1);
+    expect(mockTranslatorManagerStop).toHaveBeenCalledTimes(1);
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
+    consoleError.mockRestore();
   });
 
   test("inverts the FAB visibility when the top-level page matches its exception list", async () => {

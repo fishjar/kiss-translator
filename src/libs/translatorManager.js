@@ -1,4 +1,4 @@
-import { browser } from "./browser";
+import { browser, isExtensionContextInvalidatedError } from "./browser";
 import { Translator } from "./translator";
 import { InputTranslator } from "./inputTranslate";
 import { TransboxManager } from "./tranbox";
@@ -125,21 +125,32 @@ export default class TranslatorManager {
       return;
     }
 
-    this.#createRuntimeModules();
-    this.#setupMessageListeners();
-    if (!this.#transboxOnly) {
-      this.#setupTouchOperations();
-    }
-
-    if (!this.#transboxOnly && !this.#isIframe && this.#isUserscript) {
-      this.#registerShortcuts();
-      this.#registerMenus();
-    }
-
-    if (!this.#transboxOnly) {
-      this.#setupSpaListeners();
-    }
     this.#isActive = true;
+    try {
+      this.#createRuntimeModules();
+      this.#setupMessageListeners();
+      if (!this.#transboxOnly) {
+        this.#setupTouchOperations();
+      }
+
+      if (!this.#transboxOnly && !this.#isIframe && this.#isUserscript) {
+        this.#registerShortcuts();
+        this.#registerMenus();
+      }
+
+      if (!this.#transboxOnly) {
+        this.#setupSpaListeners();
+      }
+    } catch (error) {
+      try {
+        this.stop();
+      } catch (cleanupError) {
+        if (!isExtensionContextInvalidatedError(cleanupError)) {
+          logger.info("rollback failed runtime", cleanupError);
+        }
+      }
+      throw error;
+    }
     logger.info("TranslatorManager started.");
   }
 
@@ -182,35 +193,43 @@ export default class TranslatorManager {
       return;
     }
 
-    this.#clearSpaRefreshTimer();
-    this.#teardownSpaListeners();
-
-    window.removeEventListener(
-      EVENT_KISS_TRANSLATOR,
-      this.#windowMessageHandler
-    );
-    if (this.#isUserscript) {
-      window.removeEventListener("message", this.#innerMessageHandler);
-    } else {
-      browser.runtime.onMessage.removeListener(this.#browserMessageHandler);
-      if (this.#isIframe) {
-        window.removeEventListener("message", this.#innerMessageHandler);
-      }
-    }
-
-    this.#clearShortcuts.forEach((clear) => clear());
-    this.#clearShortcuts = [];
-
-    this.#clearTouchListeners.forEach((clear) => clear());
-    this.#clearTouchListeners = [];
-
-    if (globalThis.GM && this.#menuCommandIds.length > 0) {
-      this.#menuCommandIds.forEach((id) => GM.unregisterMenuCommand?.(id));
-      this.#menuCommandIds = [];
-    }
-
-    this.#destroyRuntimeModules();
     this.#isActive = false;
+    try {
+      this.#clearSpaRefreshTimer();
+      this.#teardownSpaListeners();
+
+      window.removeEventListener(
+        EVENT_KISS_TRANSLATOR,
+        this.#windowMessageHandler
+      );
+      if (this.#isUserscript) {
+        window.removeEventListener("message", this.#innerMessageHandler);
+      } else {
+        try {
+          browser.runtime.onMessage.removeListener(this.#browserMessageHandler);
+        } catch (error) {
+          if (!isExtensionContextInvalidatedError(error)) {
+            logger.info("remove runtime listener", error);
+          }
+        }
+        if (this.#isIframe) {
+          window.removeEventListener("message", this.#innerMessageHandler);
+        }
+      }
+
+      this.#clearShortcuts.forEach((clear) => clear());
+      this.#clearShortcuts = [];
+
+      this.#clearTouchListeners.forEach((clear) => clear());
+      this.#clearTouchListeners = [];
+
+      if (globalThis.GM && this.#menuCommandIds.length > 0) {
+        this.#menuCommandIds.forEach((id) => GM.unregisterMenuCommand?.(id));
+        this.#menuCommandIds = [];
+      }
+    } finally {
+      this.#destroyRuntimeModules();
+    }
     logger.info("TranslatorManager stopped.");
   }
 
@@ -263,11 +282,21 @@ export default class TranslatorManager {
    * restart 只调用本方法，避免重复注册全局入口。
    */
   #destroyRuntimeModules() {
-    this._popupManager?.destroy();
-    this._fabManager?.destroy();
-    this._transboxManager?.disable();
-    this._inputTranslator?.disable();
-    this._translator?.stop();
+    [
+      () => this._popupManager?.destroy(),
+      () => this._fabManager?.destroy(),
+      () => this._transboxManager?.disable(),
+      () => this._inputTranslator?.disable(),
+      () => this._translator?.stop(),
+    ].forEach((cleanup) => {
+      try {
+        cleanup();
+      } catch (error) {
+        if (!isExtensionContextInvalidatedError(error)) {
+          logger.info("stop runtime module", error);
+        }
+      }
+    });
 
     this._translator = null;
     this._transboxManager = null;
@@ -652,7 +681,7 @@ export default class TranslatorManager {
    * 已经是统一入口，不再二次广播，避免 iframe 收到重复指令。
    */
   #processActions({ action, args } = {}, fromExt = false) {
-    if (!action) return;
+    if (!this.#isActive || !action) return;
 
     // 非 background 指令需要主动同步给子 iframe，保持多 frame 页面状态一致。
     if (!fromExt) {
@@ -663,7 +692,13 @@ export default class TranslatorManager {
 
     switch (action) {
       case MSG_TRANS_TOGGLE:
-        this._translator?.toggle();
+        if (typeof args?.enabled === "boolean") {
+          args.enabled
+            ? this._translator?.enable()
+            : this._translator?.disable();
+        } else {
+          this._translator?.toggle();
+        }
         break;
       case MSG_TRANS_TOGGLE_ONLY:
         this._translator?.toggleTransOnly();
@@ -687,15 +722,46 @@ export default class TranslatorManager {
         this._popupManager?.toggle();
         break;
       case MSG_TRANSBOX_TOGGLE:
-        this._transboxManager?.toggle();
-        this._translator?.toggleTransbox();
+        if (typeof args?.enabled === "boolean") {
+          args.enabled
+            ? this._transboxManager?.enable()
+            : this._transboxManager?.disable();
+          if (
+            Boolean(this._translator?.setting?.tranboxSetting?.transOpen) !==
+            args.enabled
+          ) {
+            this._translator?.toggleTransbox();
+          }
+        } else {
+          this._transboxManager?.toggle();
+          this._translator?.toggleTransbox();
+        }
         break;
       case MSG_MOUSEHOVER_TOGGLE:
-        this._translator?.toggleMouseHover();
+        if (
+          typeof args?.enabled !== "boolean" ||
+          Boolean(
+            this._translator?.setting?.mouseHoverSetting?.useMouseHover
+          ) !== args.enabled
+        ) {
+          this._translator?.toggleMouseHover();
+        }
         break;
       case MSG_TRANSINPUT_TOGGLE:
-        this._inputTranslator?.toggle();
-        this._translator?.toggleInputTranslate();
+        if (typeof args?.enabled === "boolean") {
+          args.enabled
+            ? this._inputTranslator?.enable()
+            : this._inputTranslator?.disable();
+          if (
+            Boolean(this._translator?.setting?.inputRule?.transOpen) !==
+            args.enabled
+          ) {
+            this._translator?.toggleInputTranslate();
+          }
+        } else {
+          this._inputTranslator?.toggle();
+          this._translator?.toggleInputTranslate();
+        }
         break;
       case MSG_HOVERNODE_TOGGLE:
         this._translator?.toggleHoverNode();

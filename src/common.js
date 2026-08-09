@@ -14,6 +14,7 @@ import { runSubtitle } from "./subtitle/subtitle";
 import { logger } from "./libs/log";
 import { injectInlineJs } from "./libs/injector";
 import TranslatorManager from "./libs/translatorManager";
+import { isExtensionContextInvalidatedError } from "./libs/browser";
 
 /**
  * 油猴脚本特权桥接设置。
@@ -232,6 +233,8 @@ async function waitForIframeTranslatableText() {
  * @param {boolean} isUserscript 是否作为油猴 Userscript 脚本模式运行 (false 代表作为浏览器 Extension 运行)
  */
 export async function run(isUserscript = false) {
+  let translatorManager;
+
   try {
     const href = document?.location?.href || "";
 
@@ -304,7 +307,7 @@ export async function run(isUserscript = false) {
     }
 
     // 8. 创建翻译调度器管理器并启动
-    const translatorManager = new TranslatorManager({
+    translatorManager = new TranslatorManager({
       setting,
       rule,
       fabConfig,
@@ -317,7 +320,7 @@ export async function run(isUserscript = false) {
 
     // 9. 若当前页面是嵌套的 iframe，不进行视频字幕翻译，避免多个 iframe 里重复跑字幕服务造成冲突
     if (isIframe || isPdfDocument) {
-      return;
+      return translatorManager;
     }
 
     // 10. 启动视频字幕翻译子模块 (仅在顶级 frame 下运行)
@@ -327,8 +330,20 @@ export async function run(isUserscript = false) {
     if (isUserscript) {
       trySyncAllSubRules(setting);
     }
+
+    return translatorManager;
   } catch (err) {
+    try {
+      translatorManager?.stop();
+    } catch (cleanupError) {
+      if (!isExtensionContextInvalidatedError(cleanupError)) {
+        logger.info("stop failed runtime", cleanupError);
+      }
+    }
     console.error("[KISS-Translator]", err);
-    showErr(err.message); // 向前台页面绘制报错 Banner，便于用户感知与排查问题
+    if (!isExtensionContextInvalidatedError(err)) {
+      showErr(err.message); // 向前台页面绘制报错 Banner，便于用户感知与排查问题
+    }
+    throw err;
   }
 }
