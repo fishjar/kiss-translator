@@ -8,6 +8,7 @@ import {
   APP_CONSTS,
   resolveApiPromptList,
 } from "../config";
+import { isolateShadowHost } from "./shadowHost";
 
 function resolvePromptProps(props = {}) {
   return {
@@ -45,6 +46,7 @@ export class TransboxManager {
       this.#container = document.createElement("div");
       this.#container.id = APP_CONSTS.boxID;
       this.#container.className = "notranslate";
+      isolateShadowHost(this.#container);
 
       document.body.appendChild(this.#container);
       this.#shadowContainer = this.#container.attachShadow({ mode: "open" });

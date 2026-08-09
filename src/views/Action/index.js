@@ -110,7 +110,6 @@ export default function Action({ translator, processActions }) {
           >
             <Box
               className="kt-popup-shell kt-popup-shell--content"
-              width={popProps.width}
               style={{
                 maxHeight: Math.max(0, popProps.height - 57),
                 overflowY: "auto",

@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { CacheProvider } from "@emotion/react";
 import createCache from "@emotion/cache";
 import { logger } from "./log";
+import { isolateShadowHost, setShadowHostVisible } from "./shadowHost";
 
 export default class ShadowDomManager {
   #hostElement = null;
@@ -66,7 +67,7 @@ export default class ShadowDomManager {
       }
     }
 
-    this.#hostElement.style.display = "";
+    setShadowHostVisible(this.#hostElement, true);
     this.#isVisible = true;
   }
 
@@ -74,7 +75,7 @@ export default class ShadowDomManager {
     if (!this.#isVisible || !this.#hostElement) {
       return;
     }
-    this.#hostElement.style.display = "none";
+    setShadowHostVisible(this.#hostElement, false);
     this.#isVisible = false;
   }
 
@@ -111,6 +112,7 @@ export default class ShadowDomManager {
     if (this._className) {
       host.className = this._className;
     }
+    isolateShadowHost(host);
 
     this._rootElement.appendChild(host);
     this.#hostElement = host;

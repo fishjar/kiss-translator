@@ -45,6 +45,30 @@ describe("TransboxManager", () => {
     });
   });
 
+  test("isolates the selection box host from page styles", () => {
+    let manager;
+
+    act(() => {
+      manager = new TransboxManager({
+        tranboxSetting: { transOpen: true, triggerMode: "select" },
+      });
+    });
+
+    const host = document.getElementById(APP_CONSTS.boxID);
+    expect(host.style.getPropertyValue("all")).toBe("initial");
+    expect(host.style.getPropertyPriority("all")).toBe("important");
+    expect(host.style.getPropertyValue("display")).toBe("block");
+    expect(host.style.getPropertyPriority("display")).toBe("important");
+    expect(host.style.getPropertyValue("direction")).toBe("ltr");
+    expect(host.style.getPropertyPriority("direction")).toBe("important");
+    expect(host.style.getPropertyValue("unicode-bidi")).toBe("normal");
+    expect(host.style.getPropertyPriority("unicode-bidi")).toBe("important");
+
+    act(() => {
+      manager.disable();
+    });
+  });
+
   test("unmounts when transOpen is disabled", () => {
     let manager;
 

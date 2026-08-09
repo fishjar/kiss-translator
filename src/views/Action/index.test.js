@@ -5,6 +5,8 @@ import Action from "./index";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
+let mockWindowSize = { w: 240, h: 300 };
+
 jest.mock("../../hooks/Setting", () => ({
   SettingProvider: ({ children }) => children,
 }));
@@ -14,7 +16,7 @@ jest.mock("../Popup/PopupTheme", () => ({
 }));
 jest.mock("../../hooks/WindowSize", () => ({
   __esModule: true,
-  default: () => ({ w: 240, h: 300 }),
+  default: () => mockWindowSize,
 }));
 jest.mock("../../libs/client", () => ({ isExt: false }));
 jest.mock("../../libs/msg", () => ({ sendBgMsg: jest.fn() }));
@@ -65,7 +67,11 @@ jest.mock("@mui/material/Divider", () => {
 });
 
 describe("content action Popup integration", () => {
-  test("injects Popup styles and constrains its inner width", () => {
+  beforeEach(() => {
+    mockWindowSize = { w: 240, h: 300 };
+  });
+
+  test("passes the narrow viewport width to the draggable panel", () => {
     const container = document.createElement("div");
     document.body.appendChild(container);
     const root = createRoot(container);
@@ -84,10 +90,6 @@ describe("content action Popup integration", () => {
     ).toBe("240");
     expect(
       container.querySelector('[data-testid="popup-content"]').parentElement
-        .dataset.boxWidth
-    ).toBe("240");
-    expect(
-      container.querySelector('[data-testid="popup-content"]').parentElement
         .dataset.boxMaxHeight
     ).toBe("243");
     expect(
@@ -102,6 +104,29 @@ describe("content action Popup integration", () => {
     expect(container.querySelector("style").textContent).toContain(
       ".kt-popup-shell"
     );
+
+    act(() => root.unmount());
+    container.remove();
+  });
+
+  test("caps the draggable panel at 360 pixels on wide viewports", () => {
+    mockWindowSize = { w: 800, h: 600 };
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    act(() => {
+      root.render(
+        <Action
+          translator={{ rule: {}, setting: {} }}
+          processActions={jest.fn()}
+        />
+      );
+    });
+
+    expect(
+      container.querySelector('[data-testid="draggable"]').dataset.width
+    ).toBe("360");
 
     act(() => root.unmount());
     container.remove();

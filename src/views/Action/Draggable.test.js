@@ -120,6 +120,7 @@ describe("Draggable FAB edge locking", () => {
 
   test("keeps the right edge during immediate and debounced viewport resize", () => {
     const fab = renderFab();
+    expect(draggable.style.width).toBe("40px");
     expect(draggable.style.transform).toBe("translate(580px, 200px)");
 
     setViewport(1200, 800);
@@ -128,6 +129,21 @@ describe("Draggable FAB edge locking", () => {
 
     rerenderFab(fab, { windowSize: { w: 1200, h: 800 } });
     expect(draggable.style.transform).toBe("translate(1180px, 400px)");
+  });
+
+  test("constrains a content panel to its requested width", () => {
+    renderFab({
+      width: 360,
+      height: 442,
+      left: 120,
+      top: 40,
+      edge: undefined,
+      snapEdge: false,
+      usePaper: true,
+    });
+
+    expect(draggable.style.width).toBe("360px");
+    expect(draggable.querySelector(".MuiPaper-root")).not.toBeNull();
   });
 
   test.each([

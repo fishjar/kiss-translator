@@ -315,6 +315,7 @@ export default function Draggable({
     <div
       ref={containerRef}
       style={{
+        width,
         opacity,
         position: "fixed",
         top: 0,
