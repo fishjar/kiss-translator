@@ -5,6 +5,7 @@ import {
 } from "../config";
 import { logger } from "../libs/log.js";
 import { intelligentSentenceBreak } from "./sentenceBreaker.js";
+import { isNonSpeechSegment } from "./subtitleTextClassification.js";
 
 /**
  * YouTube 字幕文本处理层。
@@ -50,123 +51,99 @@ export function cleanTimedText(utf8 = "") {
 }
 
 /**
- * 规范化 YouTube json3 events。
- * 保留断行控制事件和时间断点，同时清洗可见文本并去除重复字幕。
+ * 一次完成 YouTube json3 events 的文本清洗、相邻重复事件去除和时间轴展平。
+ * 原始输入不会被修改；统计断句读取 events，规则和 AI 断句读取已过滤非语音片段的 flatEvents。
  *
- * @param {Array<object>} [events=[]] YouTube 原始 json3 events。
- * @returns {Array<object>} 规范化后的 events。
+ * @param {Array<object>} [rawEvents=[]] YouTube 原始 json3 events。
+ * @returns {{events:Array<object>, flatEvents:Array<object>, filteredNonSpeechCount:number}}
  */
-export function normalizeTimedTextEvents(events = []) {
-  const normalizedEvents = [];
+export function prepareTimedTextEvents(rawEvents = []) {
+  const events = [];
+  const flatEvents = [];
+  let filteredNonSpeechCount = 0;
+  let buffer = null;
   let lastVisibleEventKey = "";
 
-  events.forEach((event) => {
-    const { segs = [], tStartMs = 0, dDurationMs = 0 } = event || {};
-
-    // YouTube 会用 aAppend + "\n" 标记原始字幕断行；统计断句模式会读取这个信号。
-    // 因此这类控制事件必须原样保留，不能被“空文本清理”误删。
-    if (event?.aAppend === 1 && segs.length === 1 && segs[0]?.utf8 === "\n") {
-      normalizedEvents.push(event);
-      lastVisibleEventKey = "";
-      return;
+  const flushBuffer = (endAt) => {
+    if (!buffer) return;
+    if (!buffer.end || (Number.isFinite(endAt) && buffer.end > endAt)) {
+      buffer.end = endAt;
     }
+    if (Number.isFinite(buffer.end) && buffer.end > buffer.start) {
+      flatEvents.push(buffer);
+    }
+    buffer = null;
+  };
 
-    const normalizedSegs = segs.map((seg) => ({
+  for (const rawEvent of Array.isArray(rawEvents) ? rawEvents : []) {
+    const event = rawEvent || {};
+    const rawSegs = Array.isArray(event.segs) ? event.segs : [];
+    const tStartMs = Number(event.tStartMs) || 0;
+    const dDurationMs = Number(event.dDurationMs) || 0;
+    const isLineBreak =
+      event.aAppend === 1 && rawSegs.length === 1 && rawSegs[0]?.utf8 === "\n";
+
+    const normalizedSegs = rawSegs.map((seg) => ({
       ...seg,
-      utf8: cleanTimedText(seg?.utf8),
+      // 统计断句仍需识别 YouTube 的物理换行控制信号。
+      utf8: isLineBreak ? "\n" : cleanTimedText(seg?.utf8),
     }));
-    const visibleSegs = normalizedSegs.filter((seg) => seg.utf8);
-
-    // 清洗后没有可见文本的 seg 仍可能携带 tOffsetMs 断点。
-    // 这些断点会被 genFlatEvents 用来截断前一个可见片段，直接丢弃会让字幕粘连。
-    // 因此这里只清理文本内容，不改变原始 seg 的时间结构。
-    if (!visibleSegs.length) {
-      normalizedEvents.push({
-        ...event,
-        segs: normalizedSegs,
-      });
-      lastVisibleEventKey = "";
-      return;
-    }
-
-    const visibleText = visibleSegs
-      .map((seg) => seg.utf8)
+    const visibleText = normalizedSegs
+      .map((seg) => cleanTimedText(seg.utf8))
+      .filter(Boolean)
       .join(" ")
       .replace(/\s+/g, " ")
       .trim();
-    const eventKey = `${tStartMs}|${dDurationMs}|${visibleText}`;
+    const eventKey = visibleText
+      ? `${tStartMs}|${dDurationMs}|${visibleText}`
+      : "";
 
-    // 部分 json3 timedtext 会把同一字幕用两套 pPenId 样式连续输出两遍。
-    // 去重键只使用时间和可见文本，避免格式层差异污染字幕内容。
-    if (eventKey === lastVisibleEventKey) return;
+    // 只删除相邻且时间、时长、可见文本完全相同的重复事件。
+    if (eventKey && eventKey === lastVisibleEventKey) continue;
 
-    normalizedEvents.push({
-      ...event,
-      segs: normalizedSegs,
-    });
+    const canonicalEvent = { ...event, segs: normalizedSegs };
+    events.push(canonicalEvent);
     lastVisibleEventKey = eventKey;
-  });
 
-  return normalizedEvents;
-}
-
-/**
- * 将 YouTube events 格式的原始字幕流展平为按单词或词组标记起止时间的数组。
- *
- * @param {Array<object>} [events=[]] 规范化后的 YouTube json3 events。
- * @returns {Array<object>} 展平后的字幕事件流。
- */
-export function genFlatEvents(events = []) {
-  const segments = [];
-  let buffer = null;
-
-  events.forEach(({ segs = [], tStartMs = 0, dDurationMs = 0 }) => {
-    segs.forEach(({ utf8 = "", tOffsetMs = 0 }, j) => {
+    for (let index = 0; index < normalizedSegs.length; index += 1) {
+      const { utf8 = "", tOffsetMs = 0 } = normalizedSegs[index];
       const text = cleanTimedText(utf8);
-      const start = tStartMs + tOffsetMs;
+      const start = tStartMs + (Number(tOffsetMs) || 0);
+
       if (!text) {
-        if (buffer) {
-          if (!buffer.end || buffer.end > start) {
-            buffer.end = start;
-          }
-          if (buffer.end > buffer.start) {
-            segments.push(buffer);
-          }
-          buffer = null;
-        }
-        return;
+        // json3 换行控制偶尔比前一事件的末尾词更早；这种倒退断点不能截掉未来词。
+        if (!buffer || start > buffer.start) flushBuffer(start);
+        continue;
       }
 
-      if (buffer) {
-        if (!buffer.end || buffer.end > start) {
-          buffer.end = start;
-        }
-        if (buffer.end > buffer.start) {
-          segments.push(buffer);
-        }
-        buffer = null;
+      if (isNonSpeechSegment(text)) {
+        // 在声音说明开始处结束前一个语音片段，保留真实静音间隔供后续断句判断。
+        flushBuffer(start);
+        filteredNonSpeechCount += 1;
+        continue;
       }
 
-      buffer = {
-        text,
-        start,
-      };
-
-      if (j === segs.length - 1) {
+      flushBuffer(start);
+      buffer = { text, start };
+      if (index === normalizedSegs.length - 1) {
         buffer.end = tStartMs + dDurationMs;
       }
-    });
-  });
-
-  if (buffer) {
-    if (buffer.end > buffer.start) {
-      segments.push(buffer);
     }
   }
 
-  return segments.filter(
-    (s) => s && typeof s.start === "number" && s.end > s.start
-  );
+  flushBuffer(buffer?.end);
+
+  return {
+    events,
+    flatEvents: flatEvents.filter(
+      (item) =>
+        item &&
+        Number.isFinite(item.start) &&
+        Number.isFinite(item.end) &&
+        item.end > item.start
+    ),
+    filteredNonSpeechCount,
+  };
 }
 
 /**
@@ -352,9 +329,19 @@ export function formatSubtitles(
 
     let currentLine = null;
     const MAX_LENGTH = 30;
+    const PAUSE_THRESHOLD_MS = 1000;
 
     for (const segment of flatEvents) {
       if (segment.text) {
+        // 无标点字幕遇到明显静音时先结束上一句，避免跨越长停顿合并。
+        if (
+          currentLine &&
+          segment.start - currentLine.end > PAUSE_THRESHOLD_MS
+        ) {
+          subtitles.push(currentLine);
+          currentLine = null;
+        }
+
         if (!currentLine) {
           currentLine = {
             text: segment.text,
@@ -366,7 +353,11 @@ export function formatSubtitles(
           currentLine.end = segment.end;
         }
 
-        if (currentLine.text.length >= MAX_LENGTH) {
+        // 中文和日文句末可能带引号或括号，仍应在当前时间事件处立即落句。
+        const isEndOfSentence = /[。！？.!?…][”’"'」』】）》）\]]*$/.test(
+          segment.text
+        );
+        if (isEndOfSentence || currentLine.text.length >= MAX_LENGTH) {
           subtitles.push(currentLine);
           currentLine = null;
         }
@@ -448,20 +439,46 @@ export function algorithmicSegment(events) {
  * @returns {Array<object>} 格式化后的字幕条目。
  */
 export function builtinSegment(events, flatEvents, fromLang, setting = {}) {
-  const { useAlgorithmBreaker } = setting;
+  return runBuiltinSegmentation({
+    events,
+    flatEvents,
+    fromLang,
+    mode: setting.useAlgorithmBreaker,
+    longSentenceThreshold: setting.longSentenceThreshold,
+  });
+}
 
-  if (useAlgorithmBreaker === "statistical") {
+/**
+ * 统一运行规则或统计算法，并始终返回标准 SubtitleCue 结构。
+ */
+export function runBuiltinSegmentation({
+  events = [],
+  flatEvents = [],
+  fromLang = "auto",
+  mode = "rule",
+  longSentenceThreshold = 120,
+} = {}) {
+  const toCues = (items) =>
+    (items || []).map((item) => ({
+      start: item.start,
+      end: item.end,
+      text: item.text,
+      translation: item.translation || "",
+    }));
+
+  if (mode === "statistical") {
     logger.info("Youtube Provider: Sentence break mode: STATISTICAL");
     const result = algorithmicSegment(events);
-    if (result?.length) return result;
-    logger.info("Youtube Provider: Statistical segmentation returned empty");
-    return [];
+    if (result?.length) return toCues(result);
+    logger.info(
+      "Youtube Provider: Statistical segmentation returned empty, falling back to rule"
+    );
   }
 
   logger.info("Youtube Provider: Sentence break mode: RULE");
-  return formatSubtitles(flatEvents, fromLang, {
-    longSentenceThreshold: setting.longSentenceThreshold,
-  });
+  return toCues(
+    formatSubtitles(flatEvents, fromLang, { longSentenceThreshold })
+  );
 }
 
 /**
@@ -479,42 +496,43 @@ export function splitEventsIntoChunks(flatEvents, chunkLength = 1000) {
   const eventChunks = [];
   let currentChunk = [];
   let currentChunkTextLength = 0;
-  const MAX_CHUNK_LENGTH = chunkLength + 500;
+  const maxChunkLength = Math.max(1, Number(chunkLength) || 1000);
+  const preferredBoundaryLength = Math.floor(maxChunkLength * 0.8);
   const PAUSE_THRESHOLD_MS = 1000;
+
+  const flushChunk = () => {
+    if (!currentChunk.length) return;
+    eventChunks.push(currentChunk);
+    currentChunk = [];
+    currentChunkTextLength = 0;
+  };
 
   for (let i = 0; i < flatEvents.length; i++) {
     const event = flatEvents[i];
-    currentChunk.push(event);
-    currentChunkTextLength += event.text.length;
+    const eventLength = String(event?.text || "").length;
 
-    const isLastEvent = i === flatEvents.length - 1;
-    if (isLastEvent) {
-      continue;
+    if (
+      currentChunk.length &&
+      currentChunkTextLength + eventLength > maxChunkLength
+    ) {
+      flushChunk();
     }
 
-    let shouldSplit = false;
+    currentChunk.push(event);
+    currentChunkTextLength += eventLength;
 
-    if (currentChunkTextLength >= MAX_CHUNK_LENGTH) {
-      shouldSplit = true;
-    } else if (currentChunkTextLength >= chunkLength) {
+    const isLastEvent = i === flatEvents.length - 1;
+    if (!isLastEvent && currentChunkTextLength >= preferredBoundaryLength) {
       const isEndOfSentence = /[.?!…\])]$/.test(event.text);
       const nextEvent = flatEvents[i + 1];
       const pauseDuration = nextEvent.start - event.end;
       if (isEndOfSentence || pauseDuration > PAUSE_THRESHOLD_MS) {
-        shouldSplit = true;
+        flushChunk();
       }
     }
-
-    if (shouldSplit) {
-      eventChunks.push(currentChunk);
-      currentChunk = [];
-      currentChunkTextLength = 0;
-    }
   }
 
-  if (currentChunk.length > 0) {
-    eventChunks.push(currentChunk);
-  }
+  flushChunk();
 
   return eventChunks;
 }

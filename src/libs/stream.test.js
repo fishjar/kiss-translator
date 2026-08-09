@@ -1,14 +1,80 @@
-jest.mock("@streamparser/json", () => ({
-  JSONParser: jest.fn(),
-}));
+// Jest 27 resolves the package's ESM entry for imports; requireActual selects
+// its equivalent CommonJS export so these tests exercise the real parser.
+jest.mock("@streamparser/json", () =>
+  jest.requireActual("../../node_modules/@streamparser/json/dist/cjs/index.js")
+);
+
+const { TextDecoder, TextEncoder } = require("util");
+global.TextEncoder = global.TextEncoder || TextEncoder;
+global.TextDecoder = global.TextDecoder || TextDecoder;
 
 import {
+  createRealtimeStreamParser,
   createSSEParser,
   createStreamingSubtitleParser,
   getStreamDelta,
   parseStreamingSegments,
 } from "./stream";
-import { OPT_TRANS_EPHONEAI } from "../config";
+import {
+  OPT_TRANS_EPHONEAI,
+  OPT_TRANS_GEMINI,
+  OPT_TRANS_ORCAROUTER,
+} from "../config";
+
+describe("createRealtimeStreamParser", () => {
+  test("streams partial text from wrapped JSON objects without duplicates", () => {
+    const parser = createRealtimeStreamParser();
+
+    expect(parser.write('{"translations":[{"id":0,"text":"你')).toEqual([
+      { id: 0, partialText: "你", isComplete: false },
+    ]);
+    expect(parser.write("")).toEqual([]);
+    expect(parser.write('好","sourceLanguage":"zh"}]}')).toEqual([
+      { id: 0, partialText: "你好", isComplete: false },
+    ]);
+  });
+
+  test("supports root arrays and keeps segment ids independent", () => {
+    const parser = createRealtimeStreamParser();
+
+    expect(parser.write('[{"id":0,"text":"One')).toEqual([
+      { id: 0, partialText: "One", isComplete: false },
+    ]);
+    expect(parser.write('"},{"id":1,"text":"Two')).toEqual([
+      { id: 1, partialText: "Two", isComplete: false },
+    ]);
+    expect(parser.write('"}]')).toEqual([]);
+  });
+
+  test("decodes escaped JSON text across chunks", () => {
+    const parser = createRealtimeStreamParser();
+
+    expect(
+      parser.write('{"translations":[{"id":0,"text":"Quote: \\\"x')
+    ).toEqual([{ id: 0, partialText: 'Quote: "x', isComplete: false }]);
+    expect(parser.write('\\\"\\nPath C:\\\\Temp \\u4F60')).toEqual([
+      {
+        id: 0,
+        partialText: 'Quote: "x"\nPath C:\\Temp 你',
+        isComplete: false,
+      },
+    ]);
+    expect(parser.write('\\u597D"}]}')).toEqual([
+      {
+        id: 0,
+        partialText: 'Quote: "x"\nPath C:\\Temp 你好',
+        isComplete: false,
+      },
+    ]);
+  });
+
+  test("waits for an explicit id before streaming JSON text", () => {
+    const parser = createRealtimeStreamParser();
+
+    expect(parser.write('{"translations":[{"text":"orphan')).toEqual([]);
+    expect(parser.write('","id":0}]}')).toEqual([]);
+  });
+});
 
 describe("createSSEParser", () => {
   test("parses data fields with or without a following space", () => {
@@ -45,6 +111,70 @@ describe("getStreamDelta", () => {
     };
 
     expect(getStreamDelta(chunk, OPT_TRANS_EPHONEAI)).toBe("hello");
+  });
+
+  test("extracts OrcaRouter as an OpenAI-compatible stream", () => {
+    const chunk = {
+      choices: [{ delta: { content: "敏" }, finish_reason: null, index: 0 }],
+      object: "chat.completion.chunk",
+    };
+
+    expect(getStreamDelta(chunk, OPT_TRANS_ORCAROUTER)).toBe("敏");
+    expect(getStreamDelta({ choices: [] }, OPT_TRANS_ORCAROUTER)).toBe("");
+  });
+
+  test("extracts only text step deltas from Gemini interactions", () => {
+    expect(
+      getStreamDelta(
+        {
+          event_type: "step.delta",
+          delta: { type: "text", text: "你好" },
+        },
+        OPT_TRANS_GEMINI
+      )
+    ).toBe("你好");
+    expect(
+      getStreamDelta(
+        {
+          event_type: "step.delta",
+          delta: { type: "thought_summary", text: "reasoning" },
+        },
+        OPT_TRANS_GEMINI
+      )
+    ).toBe("");
+    expect(
+      getStreamDelta(
+        {
+          type: "step.delta",
+          delta: { type: "text", text: "你好" },
+        },
+        OPT_TRANS_GEMINI
+      )
+    ).toBe("你好");
+    expect(
+      getStreamDelta(
+        { event_type: "interaction.completed", interaction: {} },
+        OPT_TRANS_GEMINI
+      )
+    ).toBe("");
+  });
+
+  test("turns Gemini terminal stream events into fallback errors", () => {
+    expect(() =>
+      getStreamDelta(
+        {
+          event_type: "interaction.status_update",
+          status: "incomplete",
+        },
+        OPT_TRANS_GEMINI
+      )
+    ).toThrow("incomplete");
+    expect(() =>
+      getStreamDelta(
+        { event_type: "error", error: { message: "bad request" } },
+        OPT_TRANS_GEMINI
+      )
+    ).toThrow("bad request");
   });
 });
 
@@ -90,6 +220,59 @@ describe("createStreamingSubtitleParser", () => {
         translation: "你好世界",
         _si: 0,
         _ei: 1,
+      },
+    ]);
+  });
+
+  test("keeps boundary-v3 without anchors compatible with one shared boundary cursor", () => {
+    const parser = createStreamingSubtitleParser(events, { fromLang: "en" });
+
+    expect(
+      parser.write('[{"e":0,"t":"你好"},{"e":2,"t":"世界又来了"}]')
+    ).toEqual([
+      {
+        start: 0,
+        end: 1000,
+        text: "hello",
+        translation: "你好",
+        _si: 0,
+        _ei: 0,
+      },
+      {
+        start: 1000,
+        end: 3000,
+        text: "world again",
+        translation: "世界又来了",
+        _si: 1,
+        _ei: 2,
+      },
+    ]);
+  });
+
+  test("streams default boundary-v3 anchors with one shared boundary cursor", () => {
+    const parser = createStreamingSubtitleParser(events, { fromLang: "en" });
+
+    expect(
+      // `o` 仅供模型自检；流式结果的原文仍按 e 游标从输入事件重建。
+      parser.write(
+        '[{"e":0,"o":"wrong source","t":"你好"},{"e":2,"o":"also wrong","t":"世界又来了"}]'
+      )
+    ).toEqual([
+      {
+        start: 0,
+        end: 1000,
+        text: "hello",
+        translation: "你好",
+        _si: 0,
+        _ei: 0,
+      },
+      {
+        start: 1000,
+        end: 3000,
+        text: "world again",
+        translation: "世界又来了",
+        _si: 1,
+        _ei: 2,
       },
     ]);
   });
@@ -167,6 +350,8 @@ describe("createStreamingSubtitleParser", () => {
             translation: "译文",
             _si: 4,
             _ei: 6,
+            _alignedSi: 1,
+            _alignedEi: 3,
           },
         ]
       );

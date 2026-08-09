@@ -1,11 +1,10 @@
 /**
  * @file detect.js
- * @description 语言检测服务模块。整合了本地浏览器端检测与各大厂商（谷歌、微软、腾讯、百度等）的远程 API 检测服务，为划词和整页翻译提供基础语言代码匹配。
+ * @description 语言检测服务模块。整合了本地浏览器端检测与各大厂商（谷歌、腾讯、百度等）的远程 API 检测服务，为划词和整页翻译提供基础语言代码匹配。
  */
 
 import {
   OPT_TRANS_GOOGLE,
-  OPT_TRANS_MICROSOFT,
   OPT_TRANS_BAIDU,
   OPT_TRANS_TENCENT,
   OPT_LANGS_TO_CODE,
@@ -16,7 +15,6 @@ import {
 import { browser } from "./browser";
 import {
   apiGoogleLangdetect,
-  apiMicrosoftLangdetect,
   apiBaiduLangdetect,
   apiTencentLangdetect,
   apiBuiltinAIDetect,
@@ -26,7 +24,6 @@ import { kissLog } from "./log";
 // 各个平台的语言检测函数映射表
 const langdetectFns = {
   [OPT_TRANS_GOOGLE]: apiGoogleLangdetect,
-  [OPT_TRANS_MICROSOFT]: apiMicrosoftLangdetect,
   [OPT_TRANS_BAIDU]: apiBaiduLangdetect,
   [OPT_TRANS_TENCENT]: apiTencentLangdetect,
   [OPT_TRANS_BUILTINAI]: apiBuiltinAIDetect,

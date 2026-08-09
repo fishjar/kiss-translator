@@ -1,0 +1,200 @@
+[
+  {
+    "tStartMs": 0,
+    "dDurationMs": 3000,
+    "segs": [
+      {
+        "utf8": "Long video sample starts here."
+      }
+    ]
+  },
+  {
+    "tStartMs": 60000,
+    "dDurationMs": 3000,
+    "segs": [
+      {
+        "utf8": "Minute one checkpoint."
+      }
+    ]
+  },
+  {
+    "tStartMs": 120000,
+    "dDurationMs": 3000,
+    "segs": [
+      {
+        "utf8": "Minute two checkpoint."
+      }
+    ]
+  },
+  {
+    "tStartMs": 180000,
+    "dDurationMs": 3000,
+    "segs": [
+      {
+        "utf8": "Minute three checkpoint."
+      }
+    ]
+  },
+  {
+    "tStartMs": 240000,
+    "dDurationMs": 3000,
+    "segs": [
+      {
+        "utf8": "Minute four checkpoint."
+      }
+    ]
+  },
+  {
+    "tStartMs": 300000,
+    "dDurationMs": 3000,
+    "segs": [
+      {
+        "utf8": "Minute five checkpoint."
+      }
+    ]
+  },
+  {
+    "tStartMs": 360000,
+    "dDurationMs": 3000,
+    "segs": [
+      {
+        "utf8": "Minute six checkpoint."
+      }
+    ]
+  },
+  {
+    "tStartMs": 420000,
+    "dDurationMs": 3000,
+    "segs": [
+      {
+        "utf8": "Minute seven checkpoint."
+      }
+    ]
+  },
+  {
+    "tStartMs": 480000,
+    "dDurationMs": 3000,
+    "segs": [
+      {
+        "utf8": "Minute eight checkpoint."
+      }
+    ]
+  },
+  {
+    "tStartMs": 540000,
+    "dDurationMs": 3000,
+    "segs": [
+      {
+        "utf8": "Minute nine checkpoint."
+      }
+    ]
+  },
+  {
+    "tStartMs": 600000,
+    "dDurationMs": 3000,
+    "segs": [
+      {
+        "utf8": "Minute ten checkpoint."
+      }
+    ]
+  },
+  {
+    "tStartMs": 660000,
+    "dDurationMs": 3000,
+    "segs": [
+      {
+        "utf8": "Minute eleven checkpoint."
+      }
+    ]
+  },
+  {
+    "tStartMs": 720000,
+    "dDurationMs": 3000,
+    "segs": [
+      {
+        "utf8": "Minute twelve checkpoint."
+      }
+    ]
+  },
+  {
+    "tStartMs": 780000,
+    "dDurationMs": 3000,
+    "segs": [
+      {
+        "utf8": "Minute thirteen checkpoint."
+      }
+    ]
+  },
+  {
+    "tStartMs": 840000,
+    "dDurationMs": 3000,
+    "segs": [
+      {
+        "utf8": "Minute fourteen checkpoint."
+      }
+    ]
+  },
+  {
+    "tStartMs": 900000,
+    "dDurationMs": 3000,
+    "segs": [
+      {
+        "utf8": "Minute fifteen checkpoint."
+      }
+    ]
+  },
+  {
+    "tStartMs": 960000,
+    "dDurationMs": 3000,
+    "segs": [
+      {
+        "utf8": "Minute sixteen checkpoint."
+      }
+    ]
+  },
+  {
+    "tStartMs": 1020000,
+    "dDurationMs": 3000,
+    "segs": [
+      {
+        "utf8": "Minute seventeen checkpoint."
+      }
+    ]
+  },
+  {
+    "tStartMs": 1080000,
+    "dDurationMs": 3000,
+    "segs": [
+      {
+        "utf8": "Minute eighteen checkpoint."
+      }
+    ]
+  },
+  {
+    "tStartMs": 1140000,
+    "dDurationMs": 3000,
+    "segs": [
+      {
+        "utf8": "Minute nineteen checkpoint."
+      }
+    ]
+  },
+  {
+    "tStartMs": 1200000,
+    "dDurationMs": 3000,
+    "segs": [
+      {
+        "utf8": "Minute twenty checkpoint."
+      }
+    ]
+  },
+  {
+    "tStartMs": 1260000,
+    "dDurationMs": 3000,
+    "segs": [
+      {
+        "utf8": "Long video sample ends here."
+      }
+    ]
+  }
+]

@@ -2,22 +2,29 @@ import Fab from "@mui/material/Fab";
 import TranslateIcon from "@mui/icons-material/Translate";
 import ThemeProvider from "../../hooks/Theme";
 import Draggable from "./Draggable";
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { SettingProvider } from "../../hooks/Setting";
 import { MSG_TRANS_TOGGLE, MSG_POPUP_TOGGLE } from "../../config";
 import useWindowSize from "../../hooks/WindowSize";
+import { useFullscreenDetect } from "../../hooks/useFullscreenDetect";
 
 /**
  * 内容页悬浮翻译球 (Floating Action Button) 组件
  * 支持拖拽、贴边吸附隐藏以及点击事件
  */
 export default function ContentFab({
-  fabConfig: { x: fabX, y: fabY, fabClickAction = 0 } = {},
+  fabConfig: { x: fabX, y: fabY, edge: fabEdge, fabClickAction = 0 } = {},
   processActions,
 }) {
   const fabWidth = 40; // 悬浮球的固定宽度 40px
   const windowSize = useWindowSize();
   const [moved, setMoved] = useState(false); // 标记是否发生了拖动
+  const [showFab, setShowFab] = useState(true);
+  const { isVideoFullscreen } = useFullscreenDetect();
+
+  useEffect(() => {
+    setShowFab(!isVideoFullscreen);
+  }, [isVideoFullscreen]);
 
   // 拖拽开始时的回调
   const handleStart = useCallback(() => {
@@ -50,8 +57,9 @@ export default function ContentFab({
       height: fabWidth,
       left: fabX ?? -fabWidth,
       top: fabY ?? windowSize.h / 2,
+      edge: fabEdge,
     }),
-    [windowSize, fabWidth, fabX, fabY]
+    [windowSize, fabWidth, fabX, fabY, fabEdge]
   );
 
   return (
@@ -61,6 +69,7 @@ export default function ContentFab({
           key="fab"
           snapEdge // 启用贴边吸附隐藏效果
           {...fabProps}
+          show={showFab}
           onStart={handleStart}
           onMove={handleMove}
           handler={

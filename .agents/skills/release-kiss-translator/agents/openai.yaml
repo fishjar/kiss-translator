@@ -1,0 +1,4 @@
+interface:
+  display_name: "KISS Translator 版本发布"
+  short_description: "安全执行 KISS Translator 完整版本升级与发布流程"
+  default_prompt: "使用 $release-kiss-translator 完成一次 KISS Translator 版本升级与发布。"

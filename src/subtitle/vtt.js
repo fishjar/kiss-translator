@@ -177,3 +177,31 @@ export function buildBilingualVtt(cues) {
   // 使用双换行符拼接文件头和各个字幕块
   return [header, ...cueBlocks].join("\n\n");
 }
+
+/**
+ * 将 parseBilingualVtt 生成的 JSON 数据构造为仅含译文的 VTT 字幕字符串。
+ * 译文缺失时回退为原文，避免生成空白字幕行。
+ *
+ * @param {Array<Object>} cues - 包含 start, end, text, translation 属性的字幕对象数组
+ * @returns {string} - 仅含译文的标准 VTT 字幕文件内容文本
+ */
+export function buildTranslationOnlyVtt(cues) {
+  if (!Array.isArray(cues)) {
+    return "WEBVTT";
+  }
+
+  const header = "WEBVTT";
+
+  const cueBlocks = cues.map((cue, index) => {
+    const startTime = formatMillisecondsToTimestamp(cue.start);
+    const endTime = formatMillisecondsToTimestamp(cue.end);
+
+    const cueIndex = index + 1;
+    const timestampLine = `${startTime} --> ${endTime}`;
+    const textLine = cue.translation || cue.text || "";
+
+    return `${cueIndex}\n${timestampLine}\n${textLine}`;
+  });
+
+  return [header, ...cueBlocks].join("\n\n");
+}

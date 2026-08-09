@@ -8,6 +8,8 @@ import {
   defaultDictUserPrompt,
   defaultSubtitlePrompt,
   API_SPE_TYPES,
+  GEMINI_GENERATE_CONTENT_URL,
+  OPT_TRANS_GEMINI,
 } from "./api";
 
 // 定义各类预设提示词的唯一标识符 (Slug)
@@ -44,7 +46,8 @@ export const DEFAULT_DICTIONARY_PROMPT_SLUG = PROMPT_SLUG_DICTIONARY_EN_ZH;
 // 配置数据结构的版本号（用于检测并执行数据迁移升级逻辑）
 export const SETTINGS_VERSION_V1 = 1;
 export const SETTINGS_VERSION_V2 = 2;
-export const CURRENT_SETTINGS_VERSION = SETTINGS_VERSION_V2;
+export const SETTINGS_VERSION_V3 = 3;
+export const CURRENT_SETTINGS_VERSION = SETTINGS_VERSION_V3;
 
 /**
  * 预设的提示词列表。包含了系统出厂自带的各种场景提示词模板。
@@ -687,6 +690,50 @@ export function migrateSettingPromptsToV2(setting = {}) {
   }
 
   return nextSetting;
+}
+
+/**
+ * 从Interactions API改回generateContent API的补救
+ */
+export function migrateSettingToV3(setting = {}) {
+  if (!setting || typeof setting !== "object") {
+    return setting;
+  }
+
+  const v2Setting =
+    getSettingVersion(setting) < SETTINGS_VERSION_V2
+      ? migrateSettingPromptsToV2(setting)
+      : setting;
+  if (getSettingVersion(v2Setting) >= SETTINGS_VERSION_V3) {
+    return v2Setting;
+  }
+
+  const transApis = Array.isArray(v2Setting.transApis)
+    ? v2Setting.transApis.map((apiSetting) => {
+        if (apiSetting?.apiType !== OPT_TRANS_GEMINI) {
+          return apiSetting;
+        }
+
+        const url = apiSetting.url || "";
+        if (
+          url.includes("generativelanguage.googleapis.com") &&
+          url.includes("interactions")
+        ) {
+          return {
+            ...apiSetting,
+            url: GEMINI_GENERATE_CONTENT_URL,
+          };
+        }
+
+        return apiSetting;
+      })
+    : v2Setting.transApis;
+
+  return {
+    ...v2Setting,
+    transApis,
+    version: SETTINGS_VERSION_V3,
+  };
 }
 
 /**

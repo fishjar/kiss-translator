@@ -348,6 +348,7 @@ export default function SubtitleSetting() {
     blurTranslation = false,
     enhanceMode,
     hoverLookupMode,
+    autoFavWord = false,
     showList = OPT_ENHANCE_MOBILE_OFF,
     skipAd = false,
     aiContextSlug = "-",
@@ -924,6 +925,20 @@ export default function SubtitleSetting() {
                 <MenuItem value={OPT_ENHANCE_MOBILE_OFF}>
                   {i18n("disable_on_mobile")}
                 </MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={3}>
+              <TextField
+                fullWidth
+                select
+                size="small"
+                name="autoFavWord"
+                value={autoFavWord}
+                label={i18n("auto_fav_word")}
+                onChange={handleChange}
+              >
+                <MenuItem value={false}>{i18n("disable")}</MenuItem>
+                <MenuItem value={true}>{i18n("enable")}</MenuItem>
               </TextField>
             </Grid>
             {/* 视频侧边/下方的独立字幕全文滚动列表显示模式 */}

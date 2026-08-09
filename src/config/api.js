@@ -10,6 +10,7 @@ export const DEFAULT_FETCH_INTERVAL = 100; // 默认任务间隔时间 (单位�
 export const DEFAULT_BATCH_INTERVAL = 400; // 批处理合并请求的等待延迟时间 (单位：毫秒)
 export const DEFAULT_BATCH_SIZE = 20; // 每次翻译请求最多合并发送的 DOM 段落数量
 export const DEFAULT_BATCH_LENGTH = 10000; // 每次翻译请求发送的最大字符数限制
+export const DEFAULT_BATCH_CONCURRENCY = 10; // 同时执行的聚合批次数量
 export const DEFAULT_CONTEXT_SIZE = 3; // AI 翻译时保留的上下文会话历史轮数
 
 // --- 翻译内容替换占位符 ---
@@ -27,6 +28,10 @@ export const INPUT_PLACE_CONTEXT = "{{context}}"; // 当前选中文本所在上
 export const INPUT_PLACE_KEY = "{{key}}"; // API Key 占位符
 export const INPUT_PLACE_MODEL = "{{model}}"; // AI 模型名称占位符
 export const INPUT_PLACE_GLOSSARY = "{{glossary}}"; // 专业术语表占位符
+
+export const GEMINI_GENERATE_CONTENT_URL = `https://generativelanguage.googleapis.com/v1beta/models/${INPUT_PLACE_MODEL}:generateContent`;
+export const GEMINI_INTERACTIONS_URL =
+  "https://generativelanguage.googleapis.com/v1/interactions";
 
 // --- 划词翻译词典服务商 ---
 // export const OPT_DICT_BAIDU = "Baidu";
@@ -68,6 +73,7 @@ export const OPT_TRANS_CLAUDE = "Claude"; // Anthropic Claude 翻译
 export const OPT_TRANS_CLOUDFLAREAI = "CloudflareAI"; // Cloudflare Workers AI 翻译
 export const OPT_TRANS_OLLAMA = "Ollama"; // 本地部署 Ollama 模型翻译
 export const OPT_TRANS_OPENROUTER = "OpenRouter"; // OpenRouter 多模型聚合 API 翻译
+export const OPT_TRANS_ORCAROUTER = "OrcaRouter"; // OrcaRouter 多模型聚合 API 翻译
 export const OPT_TRANS_CUSTOMIZE = "Custom"; // 自定义翻译 API
 
 // 内置支持的翻译引擎
@@ -98,13 +104,13 @@ export const OPT_ALL_TRANS_TYPES = [
   OPT_TRANS_CLOUDFLAREAI,
   OPT_TRANS_OLLAMA,
   OPT_TRANS_OPENROUTER,
+  OPT_TRANS_ORCAROUTER,
   OPT_TRANS_CUSTOMIZE,
 ];
 
 export const OPT_LANGDETECTOR_ALL = [
   OPT_TRANS_BUILTINAI,
   OPT_TRANS_GOOGLE,
-  OPT_TRANS_MICROSOFT,
   OPT_TRANS_BAIDU,
   OPT_TRANS_TENCENT,
 ];
@@ -139,6 +145,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_CLAUDE,
     OPT_TRANS_OLLAMA,
     OPT_TRANS_OPENROUTER,
+    OPT_TRANS_ORCAROUTER,
     OPT_TRANS_CUSTOMIZE,
   ]),
   // 支持多 API Key 轮询/备用的引擎
@@ -159,6 +166,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_CLOUDFLAREAI,
     OPT_TRANS_OLLAMA,
     OPT_TRANS_OPENROUTER,
+    OPT_TRANS_ORCAROUTER,
     OPT_TRANS_EPHONEAI,
     OPT_TRANS_CUSTOMIZE,
   ]),
@@ -182,6 +190,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_CLAUDE,
     OPT_TRANS_OLLAMA,
     OPT_TRANS_OPENROUTER,
+    OPT_TRANS_ORCAROUTER,
     OPT_TRANS_EPHONEAI,
     OPT_TRANS_CUSTOMIZE,
   ]),
@@ -200,6 +209,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_CLAUDE,
     OPT_TRANS_OLLAMA,
     OPT_TRANS_OPENROUTER,
+    OPT_TRANS_ORCAROUTER,
     OPT_TRANS_EPHONEAI,
     OPT_TRANS_CUSTOMIZE,
   ]),
@@ -218,6 +228,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_CLAUDE,
     OPT_TRANS_OLLAMA,
     OPT_TRANS_OPENROUTER,
+    OPT_TRANS_ORCAROUTER,
     OPT_TRANS_EPHONEAI,
   ]),
   // 官方推荐/赞助商的翻译服务
@@ -237,123 +248,470 @@ export const API_SPE_TYPES = {
   ]),
 };
 
-// REVIEW: 思考模式参数映射：定义各 API 的思考开关和强度参数。
-// 这里的设计可以将 AI 推理模型的“思考过程”(Reasoning Effort) 与普通参数解耦，支持可视化调节。
-// type: 对应的厂商/平台类型；efforts: 思考强度级别列表 (如 max, high 等)，null 表示仅支持开启/关闭，无多档强度可选。
-// disableSupported: 是否允许用户手动关闭思考模式，默认 true。若为 false 则说明该模型强制开启思考（如 Claude 的部分高推理模型）。
+const THINKING_EFFORT_LABELS = {
+  max: "Max",
+  xhigh: "X-High",
+  high: "High",
+  medium: "Medium",
+  low: "Low",
+  minimal: "Minimal",
+};
+const THINKING_EFFORT_RANK = {
+  none: 0,
+  minimal: 1,
+  low: 2,
+  medium: 3,
+  high: 4,
+  xhigh: 5,
+  max: 6,
+};
+const toThinkingEffortOptions = (efforts = []) =>
+  efforts.map((effort) => ({
+    value: effort,
+    label: THINKING_EFFORT_LABELS[effort] || effort,
+  }));
+
+const OPENAI_COMPAT_CAPABILITY = {
+  protocol: "openai",
+  efforts: toThinkingEffortOptions(["high"]),
+  disableEffort: "none",
+};
+
+const createThinkingCapability = (protocol, efforts, extra = {}) => ({
+  protocol,
+  efforts: efforts ? toThinkingEffortOptions(efforts) : null,
+  ...extra,
+});
+
+// 保留静态映射供旧调用方判断接口是否显示思考设置；具体模型能力统一由
+// getThinkingCapability 解析，避免界面和请求层各自维护一套等级列表。
 export const THINKING_PARAM_MAP = {
-  [OPT_TRANS_DEEPSEEK]: {
-    type: "deepseek",
-    efforts: [
-      { value: "max", label: "Max" },
-      { value: "high", label: "High" },
-    ],
-  },
-  [OPT_TRANS_OPENCODEGO]: {
-    type: "deepseek",
-    efforts: [
-      { value: "max", label: "Max" },
-      { value: "high", label: "High" },
-    ],
-  },
-  [OPT_TRANS_SILICONFLOW]: {
-    type: "siliconflow",
-    efforts: [
-      { value: "max", label: "Max (32768)" },
-      { value: "high", label: "High (16384)" },
-      { value: "medium", label: "Medium (8192)" },
-      { value: "low", label: "Low (4096)" },
-      { value: "minimal", label: "Minimal (2048)" },
-    ],
-  },
-  [OPT_TRANS_XIAOMIMIMO]: {
-    type: "deepseek",
-    efforts: null,
-  },
-  [OPT_TRANS_ALIYUNBAILIAN]: {
-    type: "aliyunbailian",
-    efforts: null,
-  },
-  [OPT_TRANS_CEREBRAS]: {
-    type: "cerebras",
-    efforts: [
-      { value: "high", label: "High" },
-      { value: "medium", label: "Medium" },
-      { value: "low", label: "Low" },
-    ],
-  },
-  [OPT_TRANS_ZAI]: {
-    type: "deepseek",
-    efforts: null,
-  },
-  [OPT_TRANS_EPHONEAI]: {
-    type: "openai",
-    efforts: [
-      { value: "xhigh", label: "X-High" },
-      { value: "high", label: "High" },
-      { value: "medium", label: "Medium" },
-      { value: "low", label: "Low" },
-      { value: "minimal", label: "Minimal" },
-    ],
-  },
-  [OPT_TRANS_OPENAI]: {
-    type: "openai",
-    efforts: [
-      { value: "xhigh", label: "X-High" },
-      { value: "high", label: "High" },
-      { value: "medium", label: "Medium" },
-      { value: "low", label: "Low" },
-      { value: "minimal", label: "Minimal" },
-    ],
-  },
-  [OPT_TRANS_GEMINI]: {
-    type: "gemini",
-    efforts: [
-      { value: "high", label: "High" },
-      { value: "medium", label: "Medium" },
-      { value: "low", label: "Low" },
-      { value: "minimal", label: "Minimal" },
-    ],
-  },
-  [OPT_TRANS_GEMINI_2]: {
-    type: "openai",
-    efforts: [
-      { value: "xhigh", label: "X-High" },
-      { value: "high", label: "High" },
-      { value: "medium", label: "Medium" },
-      { value: "low", label: "Low" },
-      { value: "minimal", label: "Minimal" },
-    ],
-  },
-  [OPT_TRANS_CLAUDE]: {
-    type: "claude",
-    disableSupported: false,
-    efforts: [
-      { value: "max", label: "Max" },
-      { value: "xhigh", label: "X-High" },
-      { value: "high", label: "High" },
-      { value: "medium", label: "Medium" },
-      { value: "low", label: "Low" },
-    ],
-  },
-  [OPT_TRANS_OLLAMA]: {
-    type: "cerebras",
-    efforts: [
-      { value: "high", label: "High" },
-      { value: "medium", label: "Medium" },
-      { value: "low", label: "Low" },
-    ],
-  },
-  [OPT_TRANS_OPENROUTER]: {
-    type: "openrouter",
-    disableSupported: false,
-    efforts: [
-      { value: "high", label: "High" },
-      { value: "medium", label: "Medium" },
-      { value: "low", label: "Low" },
-      { value: "minimal", label: "Minimal" },
-    ],
-  },
+  [OPT_TRANS_DEEPSEEK]: { type: "deepseek" },
+  [OPT_TRANS_OPENCODEGO]: { type: "deepseek" },
+  [OPT_TRANS_SILICONFLOW]: { type: "siliconflow" },
+  [OPT_TRANS_XIAOMIMIMO]: { type: "deepseek" },
+  [OPT_TRANS_ALIYUNBAILIAN]: { type: "aliyunbailian" },
+  [OPT_TRANS_CEREBRAS]: { type: "openai" },
+  [OPT_TRANS_ZAI]: { type: "deepseek" },
+  [OPT_TRANS_EPHONEAI]: { type: "openai" },
+  [OPT_TRANS_OPENAI]: { type: "openai" },
+  [OPT_TRANS_GEMINI]: { type: "gemini" },
+  [OPT_TRANS_GEMINI_2]: { type: "gemini" },
+  [OPT_TRANS_CLAUDE]: { type: "claude" },
+  [OPT_TRANS_OLLAMA]: { type: "openai" },
+  [OPT_TRANS_OPENROUTER]: { type: "openrouter" },
+  [OPT_TRANS_ORCAROUTER]: { type: "openai" },
+};
+
+const getOpenAIThinkingCapability = (model = "") => {
+  const normalizedModel = String(model).trim().toLowerCase();
+
+  if (/^gpt-5\.6(?:-|$)/.test(normalizedModel)) {
+    return createThinkingCapability(
+      "openai",
+      ["max", "xhigh", "high", "medium", "low"],
+      { disableEffort: "none" }
+    );
+  }
+  if (/^gpt-5\.(?:4|2)-pro(?:-|$)/.test(normalizedModel)) {
+    return createThinkingCapability("openai", ["xhigh", "high", "medium"], {
+      disableEffort: "none",
+    });
+  }
+  if (/^gpt-5-pro(?:-|$)/.test(normalizedModel)) {
+    return createThinkingCapability("openai", ["high"], {
+      disableEffort: "none",
+    });
+  }
+  if (/^gpt-5\.[23]-codex(?:-|$)/.test(normalizedModel)) {
+    return createThinkingCapability(
+      "openai",
+      ["xhigh", "high", "medium", "low"],
+      { disableEffort: "none" }
+    );
+  }
+  if (/^gpt-5\.(?:5|4|2)(?:-|$)/.test(normalizedModel)) {
+    return createThinkingCapability(
+      "openai",
+      ["xhigh", "high", "medium", "low"],
+      { disableEffort: "none" }
+    );
+  }
+  if (/^gpt-5\.1(?:-|$)/.test(normalizedModel)) {
+    return createThinkingCapability("openai", ["high", "medium", "low"], {
+      disableEffort: "none",
+    });
+  }
+  if (/^gpt-5(?:-|$)/.test(normalizedModel)) {
+    return createThinkingCapability(
+      "openai",
+      ["high", "medium", "low", "minimal"],
+      { disableEffort: "none" }
+    );
+  }
+
+  // 文档无法确认的 OpenAI 兼容模型只发送最通用的 high/none，避免猜测 xhigh、minimal 等扩展等级。
+  return OPENAI_COMPAT_CAPABILITY;
+};
+
+const normalizeOpenRouterCapability = (model, metadata) => {
+  if (!metadata || metadata.model !== model) return null;
+
+  const supportedEfforts = Array.isArray(metadata.supportedEfforts)
+    ? metadata.supportedEfforts.filter(
+        (effort) =>
+          effort !== "none" && THINKING_EFFORT_RANK[effort] !== undefined
+      )
+    : [];
+  if (!supportedEfforts.length) return null;
+
+  return createThinkingCapability("openrouter", supportedEfforts, {
+    explicitEnable: true,
+    disableEffort: metadata.mandatory ? null : "none",
+  });
+};
+
+const getClaudeThinkingCapability = (model = "") => {
+  const normalizedModel = String(model).trim().toLowerCase();
+  const supportsAdaptiveThinking =
+    /^claude-(?:opus|sonnet)-(?:[5-9](?:-|$)|4-[6-9](?:-|$))/.test(
+      normalizedModel
+    ) ||
+    /^claude-(?:fable|mythos)-5(?:-|$)/.test(normalizedModel) ||
+    normalizedModel.startsWith("claude-mythos-preview");
+
+  if (!supportsAdaptiveThinking) return null;
+
+  const mandatory =
+    /^claude-(?:fable|mythos)-5(?:-|$)/.test(normalizedModel) ||
+    normalizedModel.startsWith("claude-mythos-preview");
+  return createThinkingCapability(
+    "claude",
+    ["max", "xhigh", "high", "medium", "low"],
+    {
+      explicitEnable: true,
+      explicitDisable: !mandatory,
+    }
+  );
+};
+
+/**
+ * 返回当前接口和模型真正可用的思考能力。未知聚合接口与未知模型按 OpenAI
+ * 兼容基线处理；Gemini 和 Claude 仍保留各自原生协议，不能混用请求字段。
+ */
+export const getThinkingCapability = ({
+  apiType,
+  model = "",
+  thinkingCapabilities,
+}) => {
+  if (apiType === OPT_TRANS_GEMINI || apiType === OPT_TRANS_GEMINI_2) {
+    return createThinkingCapability(
+      "gemini",
+      getGeminiThinkingEfforts({ apiType, model }).map((item) => item.value)
+    );
+  }
+  if (apiType === OPT_TRANS_CLAUDE) {
+    return getClaudeThinkingCapability(model);
+  }
+  if (apiType === OPT_TRANS_OPENROUTER) {
+    return (
+      normalizeOpenRouterCapability(model, thinkingCapabilities) ||
+      createThinkingCapability("openrouter", ["high"], {
+        explicitEnable: true,
+        disableEffort: "none",
+      })
+    );
+  }
+  if (apiType === OPT_TRANS_OPENAI) {
+    return getOpenAIThinkingCapability(model);
+  }
+  if (apiType === OPT_TRANS_CEREBRAS && /^gpt-oss-120b(?:-|$)/i.test(model)) {
+    return createThinkingCapability("openai", ["high", "medium", "low"], {
+      explicitEnable: true,
+      disableEffort: "none",
+    });
+  }
+  if (apiType === OPT_TRANS_DEEPSEEK || apiType === OPT_TRANS_OPENCODEGO) {
+    return createThinkingCapability("deepseek", ["max", "high"], {
+      explicitEnable: true,
+      explicitDisable: true,
+    });
+  }
+  if (apiType === OPT_TRANS_XIAOMIMIMO || apiType === OPT_TRANS_ZAI) {
+    return createThinkingCapability("deepseek", null, {
+      explicitEnable: true,
+      explicitDisable: true,
+    });
+  }
+  if (apiType === OPT_TRANS_ALIYUNBAILIAN) {
+    return createThinkingCapability("aliyunbailian", null, {
+      explicitEnable: true,
+      explicitDisable: true,
+    });
+  }
+  if (apiType === OPT_TRANS_SILICONFLOW) {
+    return createThinkingCapability(
+      "siliconflow",
+      ["max", "high", "medium", "low", "minimal"],
+      { explicitEnable: true, explicitDisable: true }
+    );
+  }
+  if (THINKING_PARAM_MAP[apiType]) {
+    return OPENAI_COMPAT_CAPABILITY;
+  }
+  return null;
+};
+
+export const normalizeThinkingEffort = (effort, supportedEfforts = []) => {
+  const supported = supportedEfforts.map((item) => item.value);
+  if (!supported.length) return null;
+  if (!effort || effort === "_default") return supported[supported.length - 1];
+  if (supported.includes(effort)) return effort;
+
+  const targetRank = THINKING_EFFORT_RANK[effort];
+  if (targetRank === undefined) return supported[0];
+  return supported.reduce((closest, candidate) => {
+    const distance = Math.abs(THINKING_EFFORT_RANK[candidate] - targetRank);
+    const closestDistance = Math.abs(
+      THINKING_EFFORT_RANK[closest] - targetRank
+    );
+    return distance < closestDistance ? candidate : closest;
+  });
+};
+
+/**
+ * auto 不注入参数；enabled 优先走显式开关，否则取最高等级；disabled
+ * 优先显式关闭，不能关闭时降到模型最低等级。
+ */
+export const resolveThinkingStrategy = ({
+  apiType,
+  url = "",
+  model = "",
+  thinkingMode = "disabled",
+  thinkingEffort = "_default",
+  thinkingCapabilities,
+}) => {
+  const capability = getThinkingCapability({
+    apiType,
+    model,
+    thinkingCapabilities,
+  });
+  if (!capability || thinkingMode === "auto") {
+    return { capability, action: "none", effort: null, fallback: false };
+  }
+  if (capability.protocol === "gemini") {
+    const strategy = getGeminiThinkingStrategy({
+      apiType,
+      url,
+      model,
+      thinkingMode,
+      thinkingEffort,
+    });
+    return {
+      capability,
+      action: strategy.field ? "effort" : "none",
+      effort: strategy.value,
+      fallback: strategy.fallback,
+    };
+  }
+
+  const hasExplicitEffort = thinkingEffort && thinkingEffort !== "_default";
+  const normalizedEffort = normalizeThinkingEffort(
+    thinkingEffort,
+    capability.efforts || []
+  );
+  if (thinkingMode === "enabled") {
+    const useExplicitEnable = capability.explicitEnable && !hasExplicitEffort;
+    return {
+      capability,
+      action: useExplicitEnable ? "enabled" : "effort",
+      effort: useExplicitEnable ? null : normalizedEffort,
+      fallback: false,
+    };
+  }
+  if (capability.explicitDisable) {
+    return { capability, action: "disabled", effort: null, fallback: false };
+  }
+  if (capability.disableEffort) {
+    return {
+      capability,
+      action: "effort",
+      effort: capability.disableEffort,
+      fallback: false,
+    };
+  }
+
+  const efforts = capability.efforts || [];
+  return {
+    capability,
+    action: "effort",
+    effort: efforts[efforts.length - 1]?.value || null,
+    fallback: true,
+  };
+};
+
+export const normalizeGeminiModelName = (model = "") =>
+  String(model)
+    .trim()
+    .replace(/^models\//i, "")
+    .toLowerCase();
+
+export const isGeminiInteractionsUrl = (url = "") =>
+  /\/v1(?:beta\d*)?\/interactions(?:[/?]|$)/i.test(url);
+
+const GEMINI_EFFORT_OPTIONS = {
+  high: { value: "high", label: "High" },
+  medium: { value: "medium", label: "Medium" },
+  low: { value: "low", label: "Low" },
+  minimal: { value: "minimal", label: "Minimal" },
+};
+const GEMINI_EFFORT_RANK = { minimal: 0, low: 1, medium: 2, high: 3 };
+const GEMINI25_BUDGETS = {
+  minimal: 1024,
+  low: 1024,
+  medium: 8192,
+  high: 24576,
+};
+
+const isGemini25 = (model) => model.startsWith("gemini-2.5-");
+const isGemini25FlashLite = (model) =>
+  model.startsWith("gemini-2.5-flash-lite");
+const isGemini25Pro = (model) => model.startsWith("gemini-2.5-pro");
+const isGemini25NonPro = (model) => isGemini25(model) && !isGemini25Pro(model);
+const isGemini31Pro = (model) => model.startsWith("gemini-3.1-pro");
+const isGemini3Pro = (model) => model.startsWith("gemini-3-pro");
+const isGemini31FlashLiteImage = (model) =>
+  model.startsWith("gemini-3.1-flash-lite-image");
+
+const toGeminiEffortOptions = (efforts) =>
+  efforts.map((effort) => GEMINI_EFFORT_OPTIONS[effort]);
+
+/**
+ * Gemini 不同模型支持的 thinkingLevel 并不一致。UI 与请求构造共用这份能力表，
+ * 避免界面允许选择一个最终会被官方接口拒绝的等级。
+ */
+export const getGeminiThinkingEfforts = ({ apiType, model = "" }) => {
+  if (apiType === OPT_TRANS_GEMINI_2) {
+    return toGeminiEffortOptions(["high", "medium", "low", "minimal"]);
+  }
+
+  const normalizedModel = normalizeGeminiModelName(model);
+  if (isGemini25(normalizedModel)) {
+    return toGeminiEffortOptions(["high", "medium", "low"]);
+  }
+  if (isGemini31FlashLiteImage(normalizedModel)) {
+    return toGeminiEffortOptions(["high", "minimal"]);
+  }
+  if (isGemini31Pro(normalizedModel)) {
+    return toGeminiEffortOptions(["high", "medium", "low"]);
+  }
+  if (isGemini3Pro(normalizedModel)) {
+    return toGeminiEffortOptions(["high", "low"]);
+  }
+  if (
+    normalizedModel.startsWith("gemini-3") &&
+    normalizedModel.includes("flash")
+  ) {
+    return toGeminiEffortOptions(["high", "medium", "low", "minimal"]);
+  }
+  return toGeminiEffortOptions(["high", "medium", "low"]);
+};
+
+const normalizeGeminiThinkingEffort = (effort, supportedEfforts) => {
+  const supported = supportedEfforts.map((item) => item.value);
+  if (supported.includes(effort)) return effort;
+  if (!effort || effort === "_default") return supported[0];
+
+  const targetRank = GEMINI_EFFORT_RANK[effort];
+  if (targetRank === undefined) return supported[0];
+  return supported.reduce((closest, candidate) => {
+    const distance = Math.abs(GEMINI_EFFORT_RANK[candidate] - targetRank);
+    const closestDistance = Math.abs(GEMINI_EFFORT_RANK[closest] - targetRank);
+    return distance < closestDistance ? candidate : closest;
+  });
+};
+
+/**
+ * 将三态思考设置转换为当前协议和模型真正支持的参数。
+ * auto 完全不注入参数；enabled 优先显式开启，否则取最高等级；disabled 无法关闭时取最低等级。
+ */
+export const getGeminiThinkingStrategy = ({
+  apiType,
+  url = "",
+  model = "",
+  thinkingMode = "disabled",
+  thinkingEffort = "_default",
+}) => {
+  if (thinkingMode === "auto") {
+    return { field: null, value: null, fallback: false };
+  }
+
+  const normalizedModel = normalizeGeminiModelName(model);
+  const supportedEfforts = getGeminiThinkingEfforts({ apiType, model });
+  const lowestEffort = supportedEfforts[supportedEfforts.length - 1].value;
+  const requestedEffort = normalizeGeminiThinkingEffort(
+    thinkingEffort,
+    supportedEfforts
+  );
+
+  if (apiType === OPT_TRANS_GEMINI_2) {
+    if (thinkingMode === "disabled" && isGemini25NonPro(normalizedModel)) {
+      return { field: "reasoning_effort", value: "none", fallback: false };
+    }
+    return {
+      field: "reasoning_effort",
+      value: thinkingMode === "enabled" ? requestedEffort : lowestEffort,
+      fallback: thinkingMode === "disabled",
+    };
+  }
+
+  if (isGeminiInteractionsUrl(url)) {
+    // Interactions 对 2.5 Flash-Lite 不提供关闭参数；省略等级即可保留模型默认的不思考状态。
+    if (thinkingMode === "disabled" && isGemini25FlashLite(normalizedModel)) {
+      return { field: null, value: null, fallback: false };
+    }
+    return {
+      field: "thinking_level",
+      value: thinkingMode === "enabled" ? requestedEffort : lowestEffort,
+      fallback: thinkingMode === "disabled",
+    };
+  }
+
+  // generateContent 的 Gemini 2.5 使用 token 预算，Gemini 3 才使用 thinkingLevel。
+  if (isGemini25(normalizedModel)) {
+    if (thinkingMode === "enabled") {
+      return {
+        field: "thinkingBudget",
+        value:
+          thinkingEffort === "_default"
+            ? -1
+            : GEMINI25_BUDGETS[requestedEffort],
+        fallback: false,
+      };
+    }
+    return isGemini25Pro(normalizedModel)
+      ? { field: "thinkingBudget", value: 128, fallback: true }
+      : { field: "thinkingBudget", value: 0, fallback: false };
+  }
+
+  return {
+    field: "thinkingLevel",
+    value: thinkingMode === "enabled" ? requestedEffort : lowestEffort,
+    fallback: thinkingMode === "disabled",
+  };
+};
+
+export const getGeminiThinkingDisableStrategy = ({
+  apiType,
+  url = "",
+  model = "",
+}) => {
+  return getGeminiThinkingStrategy({
+    apiType,
+    url,
+    model,
+    thinkingMode: "disabled",
+  });
 };
 
 export const BUILTIN_STONES = [
@@ -463,8 +821,8 @@ export const OPT_LANGS_TO_SPEC = {
   [OPT_TRANS_DEEPL]: new Map([
     ...OPT_LANGS_SPEC_DEFAULT_UC,
     ["auto", ""],
-    ["zh-CN", "ZH"],
-    ["zh-TW", "ZH"],
+    ["zh-CN", "ZH-HANS"],
+    ["zh-TW", "ZH-HANT"],
   ]),
   [OPT_TRANS_DEEPLFREE]: new Map([
     ...OPT_LANGS_SPEC_DEFAULT_UC,
@@ -475,8 +833,8 @@ export const OPT_LANGS_TO_SPEC = {
   [OPT_TRANS_DEEPLX]: new Map([
     ...OPT_LANGS_SPEC_DEFAULT_UC,
     ["auto", "auto"],
-    ["zh-CN", "ZH"],
-    ["zh-TW", "ZH"],
+    ["zh-CN", "ZH-HANS"],
+    ["zh-TW", "ZH-HANT"],
   ]),
   [OPT_TRANS_DEEPSEEK]: OPT_LANGS_SPEC_NAME,
   [OPT_TRANS_OPENCODEGO]: OPT_LANGS_SPEC_NAME,
@@ -547,6 +905,7 @@ export const OPT_LANGS_TO_SPEC = {
   [OPT_TRANS_CLAUDE]: OPT_LANGS_SPEC_NAME,
   [OPT_TRANS_OLLAMA]: OPT_LANGS_SPEC_NAME,
   [OPT_TRANS_OPENROUTER]: OPT_LANGS_SPEC_NAME,
+  [OPT_TRANS_ORCAROUTER]: OPT_LANGS_SPEC_NAME,
   [OPT_TRANS_CLOUDFLAREAI]: new Map([
     ...OPT_LANGS_SPEC_DEFAULT,
     ["auto", "en"],
@@ -554,6 +913,20 @@ export const OPT_LANGS_TO_SPEC = {
     ["zh-TW", "zh"],
   ]),
   [OPT_TRANS_CUSTOMIZE]: OPT_LANGS_SPEC_NAME,
+};
+
+export const OPT_LANGS_FROM_SPEC = {
+  ...OPT_LANGS_TO_SPEC,
+  [OPT_TRANS_DEEPL]: new Map([
+    ...OPT_LANGS_TO_SPEC[OPT_TRANS_DEEPL],
+    ["zh-CN", "ZH"],
+    ["zh-TW", "ZH"],
+  ]),
+  [OPT_TRANS_DEEPLX]: new Map([
+    ...OPT_LANGS_TO_SPEC[OPT_TRANS_DEEPLX],
+    ["zh-CN", "ZH"],
+    ["zh-TW", "ZH"],
+  ]),
 };
 
 const specToCode = (m) =>
@@ -573,6 +946,9 @@ const specToCode = (m) =>
 export const OPT_LANGS_TO_CODE = {};
 Object.entries(OPT_LANGS_TO_SPEC).forEach(([t, m]) => {
   OPT_LANGS_TO_CODE[t] = specToCode(m);
+});
+[OPT_TRANS_DEEPL, OPT_TRANS_DEEPLX].forEach((apiType) => {
+  OPT_LANGS_TO_CODE[apiType].set("ZH", "zh-CN");
 });
 
 export const defaultNobatchPrompt = `You are a professional, authentic machine translation engine.`;
@@ -700,12 +1076,23 @@ export const defaultDictPrompt = `# Role
 
 # Execution Rules
 1. **智能分流机制（CRITICAL）**：请严格基于下方 \`[Target / 目标文本]\` 的长度和性质决定工作模式：
-   - **词典模式**：如果 \`[Target / 目标文本]\` 是**单个单词、短语、成语或固定搭配**，请严格执行下方的【词典输出格式】。
-   - **纯翻译模式**：如果 \`[Target / 目标文本]\` 是**一个完整的句子、段落或长文本**，请**立即放弃词典格式**，仅提供该文本的高质量、地道双语翻译。禁止输出音标、词源、搭配和例句等无关内容。
+   - **词典模式**：仅当 \`[Target / 目标文本]\` 明确是**单个词、成语，或不超过 3 个词的固定搭配**时，才严格执行下方的【词典输出格式】。
+   - **纯翻译模式**：完整句子、分句、自然语言短语、段落、长文本，或**超过 3 个词的连续文本**，一律进入纯翻译模式。无法确定时，优先进入纯翻译模式。
 2. **语境优先原则**：在【词典模式】下，若 \`[Context / 上下文]\` 中存在有效信息，请优先锁定该词在特定语境下的义项，并将其置于释义首位。
 3. **格式死线**：无论进入哪种模式，严格按对应格式输出，禁止输出任何前导寒暄（如“好的”、“为您解析”）或尾部总结。
 
 ---
+
+# Pure Translation Output Contract (仅限【纯翻译模式】执行)
+
+你的整条回复必须且只能是目标语言译文文本本身。不得添加任何字符、格式或说明：
+- 不输出原文、双语对照、标题、标签、语言名称、引号或 Markdown。
+- 不输出“译文：”“翻译如下：”等前缀，也不输出解释、音标、词源、搭配、例句或致谢。
+- 原文是单段时，译文也只输出单段；仅在原文有多个段落时保留相应分段。
+
+示例：
+- 输入：The library for web and native user interfaces
+- 正确输出：用于 Web 和原生用户界面的库
 
 # Output Format (仅限【词典模式】执行)
 
@@ -752,6 +1139,7 @@ export const defaultDictUserPrompt = `# Input Data
 > 触发【词典模式】或【纯翻译模式】的核心判定对象：
 ${INPUT_PLACE_TEXT}`;
 
+// AI 字幕默认使用 boundary-v3：模型返回句末事件 ID、原文锚点和译文，最终原文与时间轴仍由程序重建。
 export const defaultSubtitlePrompt = `# Context
 Title: ${INPUT_PLACE_TITLE}
 Description: ${INPUT_PLACE_DESCRIPTION}
@@ -766,19 +1154,26 @@ Group the input word-level JSON array into readable, well-paced bilingual subtit
 
 # Output Contract
 1. STRICTLY output a valid JSON array only. No markdown formatting (e.g., do not use \`\`\`json fences), no preamble, and no postscript.
-2. Format per element: {"s":<first_word_id>, "e":<last_word_id>, "o":"merged original text", "t":"translation"}
-3. The "s" (start) and "e" (end) fields must represent inclusive, exact word IDs from the input.
-4. Completeness: Cover every single word from the input exactly once. No missing words, no overlaps, and no gaps.
+2. Format per element: {"e":<last_word_id>, "o":"exact merged source text", "t":"translation"}
+3. The "e" field must be an inclusive, exact word ID from the input and must increase strictly. The first segment starts at ID 0; every later segment starts at the previous "e" + 1.
+4. Completeness: Cover every input item exactly once. The final "e" must equal the final input ID. No missing items, overlaps, or gaps.
+5. For each segment, first determine its exact input range from the previous "e" + 1 through the current "e", then merge every source item in that range verbatim into "o". Do not paraphrase, normalize, translate, omit, or add source text in "o".
+6. Do not return start IDs, timestamps, or any extra fields. The application reconstructs them from the input.
 
 # Rules
-1. Length Constraint: Keep each subtitle segment concise for on-screen readability. The translation ("t") and original text ("o") should ideally not exceed 12 words per segment. Split longer sentences at logical break points.
-2. Segmentation: Merge words into complete sentences or logical phrases. Split at natural pauses, conjunctions, or punctuation marks to maintain a natural reading pace.
-3. Pause Indicators: Use the "p" (pause level 1-3) attribute in the input as a hint for segmentation. Higher "p" values indicate stronger sentence boundaries, but grammatical correctness and semantic coherence always take priority.
-4. Translation Quality: Translate accurately and naturally, strictly adhering to the provided Context, Tone, and Glossary.
+1. Hard Source Length Limit:
+   - For space-separated source languages, each source span MUST contain no more than 15 words; aim for 8-12 words when a natural boundary exists.
+   - For Chinese, Japanese, and other non-space-separated source languages, each source span MUST contain no more than 30 source characters.
+   - If a sentence exceeds the applicable limit, split it at a clause, comma, conjunction, or natural phrase boundary. The hard length limit takes priority over keeping a long grammatical sentence intact.
+2. Sentence Boundaries: Never merge two complete sentences into one subtitle segment. Terminal punctuation such as .?!。！？ normally ends the current segment.
+3. Pause Indicators: An optional "pauseMs" field is the timeline gap in milliseconds after the current input item. If "pauseMs" is missing, treat it as 0 milliseconds and do not infer a pause. Larger positive values indicate stronger sentence boundaries, but grammatical correctness and semantic coherence always take priority.
+4. Exact Translation Alignment: Build "o" first from the exact source span covered by the current "e", starting after the previous "e". Then translate only the current "o" into "t". The "t" field MUST NOT omit that span, translate future input items, or carry text from adjacent segments.
+5. Silent Self-Check: Before returning, silently verify that every "e", "o", and "t" correspond one-to-one, every "o" matches its exact input range, all source-length limits are satisfied, and all input items are covered exactly once. Do not output the self-check or any reasoning.
+6. Translation Quality: Keep "t" concise, accurate, and natural while strictly adhering to the provided Context, Tone, and Glossary.
 
 # Example
-Input: [{"id":0,"text":"Hello"},{"id":1,"text":"world!"},{"id":2,"text":"Good","p":2},{"id":3,"text":"morning."}]
-Output: [{"s":0,"e":1,"o":"Hello world!","t":"你好，世界！"},{"s":2,"e":3,"o":"Good morning.","t":"早上好。"}]`;
+Input: [{"id":0,"text":"Once"},{"id":1,"text":"the"},{"id":2,"text":"assets"},{"id":3,"text":"are"},{"id":4,"text":"ready,"},{"id":5,"text":"open"},{"id":6,"text":"the"},{"id":7,"text":"storyboard"},{"id":8,"text":"tab.","pauseMs":850},{"id":9,"text":"This"},{"id":10,"text":"is"},{"id":11,"text":"where"},{"id":12,"text":"everything"},{"id":13,"text":"comes"},{"id":14,"text":"together."},{"id":15,"text":"If"},{"id":16,"text":"a"},{"id":17,"text":"scene"},{"id":18,"text":"does"},{"id":19,"text":"not"},{"id":20,"text":"match"},{"id":21,"text":"your"},{"id":22,"text":"idea,"},{"id":23,"text":"regenerate"},{"id":24,"text":"it"},{"id":25,"text":"or"},{"id":26,"text":"adjust"},{"id":27,"text":"the"},{"id":28,"text":"prompt"},{"id":29,"text":"carefully"},{"id":30,"text":"until"},{"id":31,"text":"it"},{"id":32,"text":"feels"},{"id":33,"text":"right."}]
+Output: [{"e":8,"o":"Once the assets are ready, open the storyboard tab.","t":"素材准备好后，打开故事板标签页。"},{"e":14,"o":"This is where everything comes together.","t":"一切从这里开始整合。"},{"e":22,"o":"If a scene does not match your idea,","t":"如果某个场景与你的想法不符，"},{"e":33,"o":"regenerate it or adjust the prompt carefully until it feels right.","t":"请重新生成，或仔细调整提示词，直到效果合适。"}]`;
 
 const defaultRequestHook = `async (args, { url, body, headers, userMsg, method } = {}) => {
   console.log("request hook args:", { args, url, body, headers, userMsg, method });
@@ -826,6 +1221,7 @@ const defaultApi = {
   batchInterval: DEFAULT_BATCH_INTERVAL, // 批处理请求间隔时间
   batchSize: DEFAULT_BATCH_SIZE, // 每次最多发送段落数量
   batchLength: DEFAULT_BATCH_LENGTH, // 每次发送最大文字数量
+  batchConcurrency: DEFAULT_BATCH_CONCURRENCY, // 同时执行的聚合批次数量
   useBatchFetch: false, // 是否启用聚合发送请求
   useStream: false, // 是否启用流式传输
   streamRenderMode: "disabled", // 流式渲染模式：disabled/realtime/segment
@@ -835,7 +1231,7 @@ const defaultApi = {
   contextSize: DEFAULT_CONTEXT_SIZE, // 智能上下文保留会话数
   temperature: 0.0,
   maxTokens: 20480,
-  thinkingMode: "auto", // 思考模式：auto | enabled | disabled
+  thinkingMode: "disabled", // 思考模式：auto | enabled | disabled
   thinkingEffort: "_default", // 思考强度：_default=接口默认,不注入参数
   isDisabled: false, // 是否不显示,
   region: "", // Azure 专用
@@ -959,16 +1355,18 @@ const defaultApiOpts = {
   },
   [OPT_TRANS_GEMINI]: {
     ...defaultApi,
-    url: `https://generativelanguage.googleapis.com/v1beta/models/${INPUT_PLACE_MODEL}:generateContent`,
+    // 官方 Gemini 默认使用 GA 的 Interactions；用户自定义 URL 仍由运行时按协议自动分流。
+    url: GEMINI_INTERACTIONS_URL,
     modelListUrl: "https://generativelanguage.googleapis.com/v1beta/models",
-    model: "gemini-2.5-flash",
+    model: "gemini-3.6-flash",
     ...defaultAiApiOpts,
   },
   [OPT_TRANS_GEMINI_2]: {
     ...defaultApi,
     url: `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions`,
-    modelListUrl: "https://generativelanguage.googleapis.com/v1beta/models",
-    model: "gemini-2.0-flash",
+    modelListUrl:
+      "https://generativelanguage.googleapis.com/v1beta/openai/models",
+    model: "gemini-3.6-flash",
     ...defaultAiApiOpts,
   },
   [OPT_TRANS_CLAUDE]: {
@@ -994,6 +1392,13 @@ const defaultApiOpts = {
     url: "https://openrouter.ai/api/v1/chat/completions",
     modelListUrl: "https://openrouter.ai/api/v1/models",
     model: "openai/gpt-4o",
+    ...defaultAiApiOpts,
+  },
+  [OPT_TRANS_ORCAROUTER]: {
+    ...defaultApi,
+    url: "https://api.orcarouter.ai/v1/chat/completions",
+    modelListUrl: "https://api.orcarouter.ai/v1/models",
+    model: "openai/gpt-5.4-mini",
     ...defaultAiApiOpts,
   },
   [OPT_TRANS_CUSTOMIZE]: {
@@ -1068,7 +1473,7 @@ export function normalizeApiModelListUrls(transApis = []) {
   return hasChanges ? nextApis : transApis;
 }
 
-export const DEFAULT_API_TYPE = OPT_TRANS_MICROSOFT;
+export const DEFAULT_API_TYPE = OPT_TRANS_TENCENT;
 export const DEFAULT_API_SETTING = DEFAULT_API_LIST.find(
   (a) => a.apiType === DEFAULT_API_TYPE
 );

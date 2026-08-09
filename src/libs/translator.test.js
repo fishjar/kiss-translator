@@ -7,6 +7,7 @@ jest.mock("./msg", () => ({
 }));
 
 const { apiTranslate } = require("../apis");
+const { OPT_HIGHLIGHT_WORDS_BEFORETRANS } = require("../config/rules");
 const { Translator } = require("./translator");
 
 const flushAsync = async () => {
@@ -28,7 +29,7 @@ const hoverNode = async (node, x = 20, y = 20) => {
   await Promise.resolve();
 };
 
-function createTranslator(rule = {}, setting = {}) {
+function createTranslator(rule = {}, setting = {}, favWords = []) {
   return new Translator({
     rule: {
       transOpen: "true",
@@ -49,6 +50,7 @@ function createTranslator(rule = {}, setting = {}) {
       transApis: [],
       ...setting,
     },
+    favWords,
   });
 }
 
@@ -194,6 +196,75 @@ describe("Translator rule styles", () => {
     expect(requestedTexts.every((text) => text.trim())).toBe(true);
   });
 
+  test("trims source indentation before creating whitespace placeholders", async () => {
+    document.body.innerHTML =
+      '<main id="root"><span id="target">\n\t\t1. Overall Structure\n\t</span></main>';
+
+    createTranslator(
+      {
+        autoScan: "false",
+        selector: "#target",
+      },
+      { minLength: 0 }
+    );
+    await flushAsync();
+
+    expect(apiTranslate).toHaveBeenCalledTimes(1);
+    expect(apiTranslate.mock.calls[0][0].text).toBe("1. Overall Structure");
+  });
+
+  test("protects and restores internal newlines and tabs", async () => {
+    const sourceText = "First\tcolumn\nSecond line";
+    apiTranslate.mockImplementation(({ text }) =>
+      Promise.resolve({ trText: text, isSame: false })
+    );
+    document.body.innerHTML =
+      '<main id="root"><span id="target"></span></main>';
+    document.getElementById("target").textContent = sourceText;
+
+    createTranslator(
+      {
+        autoScan: "false",
+        selector: "#target",
+      },
+      { minLength: 0 }
+    );
+    await flushAsync();
+
+    const requestedText = apiTranslate.mock.calls[0][0].text;
+    const inner = document.querySelector(`.${Translator.KISS_CLASS.inner}`);
+
+    expect(requestedText).toBe("First{1}column{2}Second line");
+    expect(requestedText).not.toContain("\t");
+    expect(requestedText).not.toContain("\n");
+    expect(inner.textContent).toBe(sourceText);
+  });
+
+  test("keeps literal backslash-t text unchanged", async () => {
+    const sourceText = "Show \\t literally";
+    apiTranslate.mockImplementation(({ text }) =>
+      Promise.resolve({ trText: text, isSame: false })
+    );
+    document.body.innerHTML =
+      '<main id="root"><span id="target"></span></main>';
+    document.getElementById("target").textContent = sourceText;
+
+    createTranslator(
+      {
+        autoScan: "false",
+        selector: "#target",
+      },
+      { minLength: 0 }
+    );
+    await flushAsync();
+
+    const requestedText = apiTranslate.mock.calls[0][0].text;
+    const inner = document.querySelector(`.${Translator.KISS_CLASS.inner}`);
+
+    expect(requestedText).toBe(sourceText);
+    expect(inner.textContent).toBe(sourceText);
+  });
+
   test("still translates mixed inline text groups", async () => {
     apiTranslate.mockResolvedValue({
       trText: "Translated mixed inline content",
@@ -218,8 +289,68 @@ describe("Translator rule styles", () => {
     expect(apiTranslate).toHaveBeenCalled();
     expect(combinedRequestedText).toContain("Text");
     expect(combinedRequestedText).toContain("tail");
+    expect(
+      requestedTexts.some(
+        (text) => text.startsWith("Text ") && text.endsWith(" tail")
+      )
+    ).toBe(true);
     expect(wrapper).not.toBeNull();
     expect(wrapper.textContent).toBe("Translated mixed inline content");
+  });
+
+  test("keeps pre-translation highlights out of the translation request", async () => {
+    const sourceText = "A model evaluation security incident report";
+    document.body.innerHTML = '<main id="root"><p id="target"></p></main>';
+    document.getElementById("target").textContent = sourceText;
+
+    createTranslator(
+      {
+        autoScan: "false",
+        selector: "#target",
+        hasRichText: "true",
+        highlightWords: OPT_HIGHLIGHT_WORDS_BEFORETRANS,
+      },
+      { minLength: 0 },
+      ["incident"]
+    );
+    await flushAsync();
+
+    const highlight = document.querySelector(
+      `#target > .${Translator.KISS_CLASS.highlight}`
+    );
+
+    expect(highlight).not.toBeNull();
+    expect(highlight.textContent).toBe("incident");
+    expect(apiTranslate).toHaveBeenCalledTimes(1);
+    expect(apiTranslate.mock.calls[0][0].text).toBe(sourceText);
+  });
+
+  test("filters only extension highlights from rich text requests", async () => {
+    document.body.innerHTML = `
+      <main id="root">
+        <p id="target">Review the <strong>incident response</strong> details</p>
+      </main>
+    `;
+
+    createTranslator(
+      {
+        autoScan: "false",
+        selector: "#target",
+        hasRichText: "true",
+        highlightWords: OPT_HIGHLIGHT_WORDS_BEFORETRANS,
+      },
+      { minLength: 0 },
+      ["incident"]
+    );
+    await flushAsync();
+
+    const requestedText = apiTranslate.mock.calls[0][0].text;
+    const highlight = document.querySelector(
+      `#target strong > .${Translator.KISS_CLASS.highlight}`
+    );
+
+    expect(highlight).not.toBeNull();
+    expect(requestedText).toBe("Review the <i1>incident response</i1> details");
   });
 
   test("continues scanning block children after processing mixed parent nodes", async () => {
@@ -453,7 +584,9 @@ describe("Translator rule styles", () => {
     createTranslator({ transOpen: "false", isPlainText: "true" });
     await flushAsync();
 
-    expect(document.querySelector("pre > span")?.textContent).toBe("First line");
+    expect(document.querySelector("pre > span")?.textContent).toBe(
+      "First line"
+    );
   });
 
   test("splits plain text pre content into bounded block chunks", async () => {
@@ -733,6 +866,206 @@ describe("Translator rule styles", () => {
     expect(bubble.style.zIndex).toBe("2147483647");
   });
 
+  test("shows the hidden original in a bubble after the configured hover delay", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="target">Hello hidden original</p></main>';
+
+    const translator = createTranslator(
+      {
+        transOnly: "true",
+        transOnlyRevert: "false",
+        transOnlyRevertDelay: "0.3",
+      },
+      {
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          displayMode: "bubble",
+        },
+      }
+    );
+    await flushAsync();
+
+    const wrapper = document.querySelector(`.${Translator.KISS_CLASS.warpper}`);
+    const inner = wrapper.querySelector(`.${Translator.KISS_CLASS.inner}`);
+    const translateCallCount = apiTranslate.mock.calls.length;
+
+    await hoverNode(inner);
+    jest.advanceTimersByTime(299);
+    expect(
+      document.querySelector(`.${Translator.KISS_CLASS.hoverBubble}`)
+    ).toBeNull();
+
+    jest.advanceTimersByTime(1);
+    const bubble = document.querySelector(
+      `.${Translator.KISS_CLASS.hoverBubble}`
+    );
+    expect(bubble.textContent).toBe("Hello hidden original");
+    expect(apiTranslate).toHaveBeenCalledTimes(translateCallCount);
+    expect(document.getElementById("target").textContent).not.toContain(
+      "Hello hidden original"
+    );
+
+    translator.updateRule({ transOnly: "false" });
+    expect(
+      document.querySelector(`.${Translator.KISS_CLASS.hoverBubble}`)
+    ).toBeNull();
+  });
+
+  test("shows the hidden original immediately when the hover shortcut is used", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p>Hello shortcut original</p></main>';
+
+    createTranslator(
+      {
+        transOnly: "true",
+        transOnlyRevert: "true",
+        transOnlyRevertDelay: "10",
+      },
+      {
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: ["ControlLeft"],
+          mouseHoverKey2: [],
+          displayMode: "bubble",
+        },
+      }
+    );
+    await flushAsync();
+
+    const inner = document.querySelector(`.${Translator.KISS_CLASS.inner}`);
+    const translateCallCount = apiTranslate.mock.calls.length;
+    await hoverNode(inner);
+
+    expect(
+      document.querySelector(`.${Translator.KISS_CLASS.hoverBubble}`)
+    ).toBeNull();
+
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", { code: "ControlLeft", bubbles: true })
+    );
+    window.dispatchEvent(
+      new KeyboardEvent("keyup", { code: "ControlLeft", bubbles: true })
+    );
+
+    const bubble = document.querySelector(
+      `.${Translator.KISS_CLASS.hoverBubble}`
+    );
+    expect(bubble.textContent).toBe("Hello shortcut original");
+    expect(apiTranslate).toHaveBeenCalledTimes(translateCallCount);
+  });
+
+  test("shows the original after translation-only mode is enabled dynamically", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p>Original hidden after control panel toggle</p></main>';
+
+    const translator = createTranslator(
+      {
+        transOnly: "false",
+        transOnlyRevert: "false",
+        transOnlyRevertDelay: "0",
+      },
+      {
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          displayMode: "bubble",
+        },
+      }
+    );
+    await flushAsync();
+
+    translator.updateRule({ transOnly: "true" });
+    await flushAsync();
+
+    const inner = document.querySelector(`.${Translator.KISS_CLASS.inner}`);
+    const translateCallCount = apiTranslate.mock.calls.length;
+    await hoverNode(inner);
+    jest.advanceTimersByTime(1);
+
+    expect(
+      document.querySelector(`.${Translator.KISS_CLASS.hoverBubble}`)
+        .textContent
+    ).toBe("Original hidden after control panel toggle");
+    expect(apiTranslate).toHaveBeenCalledTimes(translateCallCount);
+  });
+
+  test("cancels a pending original bubble after leaving the translation", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p>Original bubble should be cancelled</p></main>';
+
+    createTranslator(
+      {
+        transOnly: "true",
+        transOnlyRevert: "true",
+        transOnlyRevertDelay: "0.5",
+      },
+      {
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          displayMode: "bubble",
+        },
+      }
+    );
+    await flushAsync();
+
+    const inner = document.querySelector(`.${Translator.KISS_CLASS.inner}`);
+    await hoverNode(inner);
+    await hoverNode(document.body);
+    jest.advanceTimersByTime(1000);
+
+    expect(
+      document.querySelector(`.${Translator.KISS_CLASS.hoverBubble}`)
+    ).toBeNull();
+  });
+
+  test("shows rich original text only for the latest hovered translation", async () => {
+    document.body.innerHTML = `
+      <main id="root">
+        <p>First <strong>rich</strong> original</p>
+        <p>Second <em>latest</em> original</p>
+      </main>
+    `;
+
+    createTranslator(
+      {
+        transOnly: "true",
+        transOnlyRevert: "true",
+        transOnlyRevertDelay: "0.5",
+      },
+      {
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          displayMode: "bubble",
+        },
+      }
+    );
+    await flushAsync();
+
+    const inners = document.querySelectorAll(`.${Translator.KISS_CLASS.inner}`);
+    expect(inners).toHaveLength(2);
+
+    await hoverNode(inners[0]);
+    jest.advanceTimersByTime(200);
+    await hoverNode(inners[1]);
+    jest.advanceTimersByTime(499);
+    expect(
+      document.querySelector(`.${Translator.KISS_CLASS.hoverBubble}`)
+    ).toBeNull();
+
+    jest.advanceTimersByTime(1);
+    expect(
+      document.querySelector(`.${Translator.KISS_CLASS.hoverBubble}`)
+        .textContent
+    ).toBe("Second latest original");
+  });
+
   test("keeps forced bubble positioning when custom CSS misses trailing semicolon", async () => {
     document.body.innerHTML =
       '<main id="root"><p id="target">Hello hover</p></main>';
@@ -961,5 +1294,225 @@ describe("Translator rule styles", () => {
     expect(
       document.querySelector(`.${Translator.KISS_CLASS.hoverBubble}`)
     ).toBeNull();
+  });
+
+  test("wraps original nodes with a reusable text style and unwraps on disable", async () => {
+    document.body.innerHTML = `
+      <main id="root">
+        <p id="target">Text <a id="link" href="#">link</a> tail</p>
+      </main>
+    `;
+    const target = document.getElementById("target");
+    const link = document.getElementById("link");
+    const translator = createTranslator(
+      {
+        wrapOriginal: "true",
+        originalTextStyle: "original_custom",
+        autoScan: "false",
+        selector: "#target",
+      },
+      {
+        minLength: 0,
+        customStyles: [
+          {
+            styleSlug: "original_custom",
+            styleName: "Original Custom",
+            styleCode: "background: yellow;",
+          },
+        ],
+      }
+    );
+    await flushAsync();
+
+    const original = target.querySelector(
+      `:scope > .${Translator.KISS_CLASS.original}`
+    );
+    expect(original).not.toBeNull();
+    expect(original.classList.length).toBeGreaterThan(1);
+    expect(original.querySelector("#link")).toBe(link);
+    expect(
+      target.querySelectorAll(`.${Translator.KISS_CLASS.original}`)
+    ).toHaveLength(1);
+
+    translator.disable();
+
+    expect(
+      target.querySelector(`.${Translator.KISS_CLASS.original}`)
+    ).toBeNull();
+    expect(target.querySelector("#link")).toBe(link);
+    expect(target.textContent).toContain("Text link tail");
+    expect(
+      target.querySelector(`.${Translator.KISS_CLASS.warpper}`)
+    ).toBeNull();
+  });
+
+  test("updates original wrapping and style without translating again", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="target">Hello original</p></main>';
+    const target = document.getElementById("target");
+    const translator = createTranslator(
+      { wrapOriginal: "false" },
+      {
+        minLength: 0,
+        customStyles: [
+          {
+            styleSlug: "original_one",
+            styleName: "Original One",
+            styleCode: "color: red;",
+          },
+          {
+            styleSlug: "original_two",
+            styleName: "Original Two",
+            styleCode: "color: blue;",
+          },
+        ],
+      }
+    );
+    await flushAsync();
+    const requestCount = apiTranslate.mock.calls.length;
+
+    translator.updateRule({
+      wrapOriginal: "true",
+      originalTextStyle: "original_one",
+    });
+    await flushAsync();
+
+    let original = target.querySelector(
+      `:scope > .${Translator.KISS_CLASS.original}`
+    );
+    expect(original).not.toBeNull();
+    const firstStyleClass = Array.from(original.classList).find(
+      (className) => className !== Translator.KISS_CLASS.original
+    );
+    expect(apiTranslate).toHaveBeenCalledTimes(requestCount);
+
+    translator.updateRule({ originalTextStyle: "original_two" });
+    await flushAsync();
+
+    original = target.querySelector(
+      `:scope > .${Translator.KISS_CLASS.original}`
+    );
+    expect(original.classList.contains(firstStyleClass)).toBe(false);
+    expect(apiTranslate).toHaveBeenCalledTimes(requestCount);
+
+    translator.updateRule({ transOrder: "translation-first" });
+    await flushAsync();
+    expect(target.firstElementChild.classList).toContain(
+      Translator.KISS_CLASS.warpper
+    );
+    expect(target.lastElementChild).toBe(original);
+
+    translator.updateRule({ wrapOriginal: "false" });
+    await flushAsync();
+    expect(
+      target.querySelector(`.${Translator.KISS_CLASS.original}`)
+    ).toBeNull();
+    expect(apiTranslate).toHaveBeenCalledTimes(requestCount);
+  });
+
+  test("moves a wrapped original through translation-only mode and cleans it up", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="target">Hidden original</p></main>';
+    const target = document.getElementById("target");
+    const translator = createTranslator({
+      wrapOriginal: "true",
+      originalTextStyle: "style_none",
+      transOnly: "true",
+      transOrder: "translation-first",
+    });
+    await flushAsync();
+
+    const translation = target.querySelector(
+      `.${Translator.KISS_CLASS.warpper}`
+    );
+    const backup = translation.querySelector(
+      `template.${Translator.KISS_CLASS.backup}`
+    );
+    expect(
+      backup.content.querySelector(`.${Translator.KISS_CLASS.original}`)
+    ).not.toBeNull();
+    expect(
+      target.querySelector(`.${Translator.KISS_CLASS.original}`)
+    ).toBeNull();
+
+    const requestCount = apiTranslate.mock.calls.length;
+    translator.updateRule({ wrapOriginal: "false" });
+    await flushAsync();
+    expect(
+      backup.content.querySelector(`.${Translator.KISS_CLASS.original}`)
+    ).toBeNull();
+    expect(apiTranslate).toHaveBeenCalledTimes(requestCount);
+
+    translator.updateRule({
+      wrapOriginal: "true",
+      originalTextStyle: "blockquote",
+    });
+    await flushAsync();
+    expect(
+      backup.content.querySelector(`.${Translator.KISS_CLASS.original}`)
+    ).not.toBeNull();
+    expect(apiTranslate).toHaveBeenCalledTimes(requestCount);
+
+    translator.updateRule({ transOnly: "false" });
+    await flushAsync();
+    expect(target.lastElementChild.classList).toContain(
+      Translator.KISS_CLASS.original
+    );
+
+    translator.updateRule({ transOnly: "true" });
+    await flushAsync();
+    expect(
+      backup.content.querySelector(`.${Translator.KISS_CLASS.original}`)
+    ).not.toBeNull();
+
+    translator.disable();
+    expect(target.textContent).toBe("Hidden original");
+    expect(
+      target.querySelector(`.${Translator.KISS_CLASS.original}`)
+    ).toBeNull();
+  });
+
+  test("does not wrap original nodes when translation produces no result", async () => {
+    apiTranslate.mockResolvedValueOnce({ trText: "", isSame: false });
+    document.body.innerHTML =
+      '<main id="root"><p id="target">Untranslated original</p></main>';
+
+    createTranslator({ wrapOriginal: "true" });
+    await flushAsync();
+
+    const target = document.getElementById("target");
+    expect(
+      target.querySelector(`.${Translator.KISS_CLASS.original}`)
+    ).toBeNull();
+    expect(
+      target.querySelector(`.${Translator.KISS_CLASS.warpper}`)
+    ).toBeNull();
+    expect(target.textContent).toBe("Untranslated original");
+  });
+
+  test("rescans changed wrapped content without nesting original wrappers", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="target">Initial original</p></main>';
+    const translator = createTranslator(
+      { wrapOriginal: "true" },
+      { minLength: 0 }
+    );
+    await flushAsync();
+
+    const target = document.getElementById("target");
+    const original = target.querySelector(`.${Translator.KISS_CLASS.original}`);
+    const requestCount = apiTranslate.mock.calls.length;
+    original.firstChild.nodeValue = "Changed original";
+
+    translator.rescan();
+    await flushAsync();
+
+    expect(apiTranslate.mock.calls.length).toBeGreaterThan(requestCount);
+    expect(
+      target.querySelectorAll(`.${Translator.KISS_CLASS.original}`)
+    ).toHaveLength(1);
+    expect(
+      target.querySelector(`.${Translator.KISS_CLASS.original}`).textContent
+    ).toBe("Changed original");
   });
 });

@@ -26,6 +26,9 @@ jest.mock("../../libs/sync", () => ({
 
 jest.mock("../../libs/log", () => ({
   kissLog: jest.fn(),
+  LogLevel: {
+    INFO: { value: 3 },
+  },
 }));
 
 jest.mock("../../libs/gm", () => ({
@@ -41,6 +44,10 @@ jest.mock("../../libs/utils", () => ({
 }));
 
 jest.mock("../../hooks/Setting", () => ({
+  useSetting: () => ({
+    setting: { uiLang: "zh-CN" },
+    updateSetting: jest.fn(),
+  }),
   SettingProvider: function SettingProvider(props) {
     mockSettingProvider(props);
     return props.children;

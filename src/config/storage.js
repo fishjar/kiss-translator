@@ -14,7 +14,6 @@ export const KV_SALT_SYNC = "KISS-Translator-SYNC"; // 导出同步配置加密�
 export const KV_SALT_SHARE = "KISS-Translator-SHARE"; // 导出共享配置加密时的 Salt
 
 // --- 浏览器本地存储 (chrome.storage 或 localStorage) 的键名 ---
-export const STOKEY_MSAUTH = `${APP_NAME}_msauth`; // 微软翻译授权 Token 缓存键名
 export const STOKEY_BDAUTH = `${APP_NAME}_bdauth`; // 百度翻译授权 Token 缓存键名
 export const STOKEY_SETTING_OLD = `${APP_NAME}_setting`; // 旧版全局配置的缓存键名
 export const STOKEY_RULES_OLD = `${APP_NAME}_rules`; // 旧版网页规则的缓存键名

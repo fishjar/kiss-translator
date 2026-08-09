@@ -4,6 +4,20 @@ import { OPT_TRANS_GEMINI } from "../config/api";
 const MODEL_KEY_PLACEHOLDER = "{{key}}";
 
 /**
+ * 判断 URL 是否为 Google Gemini 原生模型列表端点。
+ *
+ * 原生端点（如 `https://generativelanguage.googleapis.com/v1beta/models`）使用
+ * `?key=...` 鉴权，而不使用 `Authorization: Bearer`。
+ *
+ * @param {string} url 待检验的 URL。
+ * @returns {boolean} 是否为 Gemini 原生模型列表 URL。
+ */
+const isGeminiNativeModelListUrl = (url = "") =>
+  /^https:\/\/generativelanguage\.googleapis\.com\/v1(?:beta\d*)?\/models(?:[/?]|$)/i.test(
+    url
+  ) && !/\/openai\//i.test(url);
+
+/**
  * 去掉 Gemini 原生模型列表返回的资源名前缀。
  *
  * Gemini `models.list` 返回的 `name` 通常是 `models/gemini-xxx`，但生成接口里
@@ -50,12 +64,13 @@ const addUniqueModel = (models, seen, model) => {
  * @param {unknown} data 模型列表接口返回的 JSON 数据。
  * @returns {string[]} 标准化、去重后的模型名称列表。
  */
-export function parseModelListResponse(data) {
+export function parseModelCatalogResponse(data) {
   if (!data || typeof data !== "object") {
-    return [];
+    return { models: [], thinkingCapabilities: {} };
   }
 
   const models = [];
+  const thinkingCapabilities = {};
   const seen = new Set();
   // 兼容 OpenAI-compatible 的 `data` 和 Gemini/Ollama 的 `models` 两种列表字段。
   const lists = [data.data, data.models].filter(Array.isArray);
@@ -72,14 +87,47 @@ export function parseModelListResponse(data) {
         return;
       }
 
-      // 按常见字段依次尝试；去重逻辑会避免同一模型被重复加入。
-      addUniqueModel(models, seen, item.id);
-      addUniqueModel(models, seen, item.name);
-      addUniqueModel(models, seen, item.baseModelId);
+      // 每条记录只对应一个可填入 `model` 的值。OpenRouter 等接口会同时返回
+      // `id`（请求使用的模型 ID）和 `name`（展示标题），因此必须优先选择
+      // `id`，不能把同一模型的多个描述字段都展开成下拉选项。
+      const model = [item.id, item.name, item.baseModelId].find(
+        (value) => typeof value === "string" && value.trim()
+      );
+      addUniqueModel(models, seen, model);
+
+      const normalizedModel = stripGeminiModelPrefix(model?.trim?.() || "");
+      if (
+        normalizedModel &&
+        item.reasoning &&
+        typeof item.reasoning === "object"
+      ) {
+        // OpenRouter 会在 Models API 中动态公布各模型的推理等级和强制推理状态。
+        // 这里只保留请求规范化需要的字段，避免把整条易变的模型记录写入设置。
+        const rawEfforts = item.reasoning.supported_efforts;
+        const supportedEfforts =
+          rawEfforts === null
+            ? ["max", "xhigh", "high", "medium", "low", "minimal"]
+            : Array.isArray(rawEfforts)
+              ? rawEfforts
+              : [];
+        if (supportedEfforts.length) {
+          thinkingCapabilities[normalizedModel] = {
+            model: normalizedModel,
+            supportedEfforts,
+            defaultEffort: item.reasoning.default_effort,
+            defaultEnabled: item.reasoning.default_enabled,
+            mandatory: item.reasoning.mandatory === true,
+          };
+        }
+      }
     });
   });
 
-  return models;
+  return { models, thinkingCapabilities };
+}
+
+export function parseModelListResponse(data) {
+  return parseModelCatalogResponse(data).models;
 }
 
 /**
@@ -143,7 +191,7 @@ export function createModelListRequest({ apiType, modelListUrl, key }) {
   }
 
   // Google Gemini 原生 REST API 不使用 Bearer header，而是通过 key query 参数鉴权。
-  if (apiType === OPT_TRANS_GEMINI) {
+  if (apiType === OPT_TRANS_GEMINI || isGeminiNativeModelListUrl(trimmedUrl)) {
     return {
       input: appendQueryParam(trimmedUrl, "key", trimmedKey),
       init: {
@@ -177,7 +225,7 @@ export function createModelListRequest({ apiType, modelListUrl, key }) {
  * @param {number} [params.httpTimeout] 请求超时时间配置。
  * @returns {Promise<string[]>} 可用于模型下拉选项的模型名称列表。
  */
-export async function fetchModelList({
+export async function fetchModelCatalog({
   apiType,
   modelListUrl,
   key,
@@ -188,7 +236,7 @@ export async function fetchModelList({
   const request = createModelListRequest({ apiType, modelListUrl, key });
 
   if (!request) {
-    return [];
+    return { models: [], thinkingCapabilities: {} };
   }
 
   const data = await fnPolyfill({
@@ -202,5 +250,11 @@ export async function fetchModelList({
     },
   });
 
-  return parseModelListResponse(data);
+  return parseModelCatalogResponse(data);
+}
+
+// 兼容只消费字符串模型 ID 的现有调用方。
+export async function fetchModelList(params) {
+  const catalog = await fetchModelCatalog(params);
+  return catalog.models;
 }

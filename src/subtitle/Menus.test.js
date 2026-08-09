@@ -44,6 +44,10 @@ describe("subtitle Menus", () => {
     expect(DEFAULT_SUBTITLE_SETTING.autoTranslate).toBe(true);
   });
 
+  test("keeps automatic subtitle word favorites disabled by default", () => {
+    expect(DEFAULT_SUBTITLE_SETTING.autoFavWord).toBe(false);
+  });
+
   test("renders translation first and updates the current video state", () => {
     const view = renderMenus({ autoTranslate: false });
     const label = Array.from(view.container.querySelectorAll("div")).find(
@@ -52,8 +56,9 @@ describe("subtitle Menus", () => {
         element.children.length === 0
     );
 
-    expect(view.container.textContent.startsWith("enable_subtitle_translate"))
-      .toBe(true);
+    expect(
+      view.container.textContent.startsWith("enable_subtitle_translate")
+    ).toBe(true);
 
     act(() => {
       label.parentElement.click();

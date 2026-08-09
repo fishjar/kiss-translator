@@ -8,8 +8,9 @@ import {
   OPT_DICT_BING,
   OPT_SUG_YOUDAO,
   DEFAULT_HTTP_TIMEOUT,
-  OPT_TRANS_MICROSOFT,
+  OPT_TRANS_TENCENT,
   DEFAULT_API_LIST,
+  OPT_LANGS_TO,
 } from "./api";
 import {
   CURRENT_SETTINGS_VERSION,
@@ -76,7 +77,7 @@ export const DEFAULT_INPUT_SHORTCUT = ["AltLeft", "KeyI"]; // 触发输入框翻
 export const DEFAULT_INPUT_RULE = {
   transOpen: true, // 是否开启输入框翻译功能
   blacklist: "", // 禁用输入框翻译的域名列表
-  apiSlug: OPT_TRANS_MICROSOFT, // 默认使用的翻译服务 API 标识
+  apiSlug: OPT_TRANS_TENCENT, // 默认使用的翻译服务 API 标识
   fromLang: "auto", // 默认自动检测输入源语言
   toLang: "en", // 默认翻译目标语言为英文
   triggerShortcut: DEFAULT_INPUT_SHORTCUT, // 快捷键组合
@@ -112,10 +113,17 @@ export const OPT_TRANBOX_BTN_POSITION_ALL = [
 export const OPT_TRANBOX_INTERACT_CLICK = "click"; // 单击翻译框内选中文本触发新翻译
 export const OPT_TRANBOX_INTERACT_DBLCLICK = "dblclick"; // 双击翻译框内选中文本触发新翻译
 export const DEFAULT_TRANBOX_SHORTCUT = ["AltLeft", "KeyS"]; // 呼出划词翻译面板的键盘快捷键
+
+// 划词翻译"忽略的语言"下拉选项：将 zh-CN/zh-TW 合并为单个 "zh" 条目
+export const OPT_SKIPLANGS_SELECTION = [
+  ["zh", "中文 Chinese"],
+  ...OPT_LANGS_TO.filter(([code]) => code !== "zh-CN" && code !== "zh-TW"),
+];
+
 export const DEFAULT_TRANBOX_SETTING = {
   transOpen: true, // 是否启用划词翻译功能
   blacklist: "", // 划词翻译禁用的域名列表
-  apiSlugs: [OPT_TRANS_MICROSOFT], // 启用的翻译 API (支持多选)
+  apiSlugs: [OPT_TRANS_TENCENT], // 启用的翻译 API (支持多选)
   singleWordNoTrans: false, // 划词为单个单词时是否仅查询词典，不请求整句翻译服务
   autoFavWord: false, // 打开划词翻译框时自动收藏英文单词
   fromLang: "auto",
@@ -134,6 +142,8 @@ export const DEFAULT_TRANBOX_SETTING = {
   triggerMode: OPT_TRANBOX_TRIGGER_CLICK, // 划词触发翻译的行为模式
   btnPositionMode: OPT_TRANBOX_BTN_POSITION_FIXED, // 划词后弹出按钮的定位模式
   tranboxInteractMode: "-", // 翻译框内交互模式（"-"表示禁用）
+  skipLangs: [], // 忽略的语言：默认为空，检测到列表内语言时不弹窗
+
   // extStyles: "", // 附加样式
   enDict: OPT_DICT_BING, // 默认英文网络词典数据源
   enSug: OPT_SUG_YOUDAO, // 英文输入联想建议源
@@ -159,10 +169,10 @@ export const OPT_ENHANCE_MOBILE_OFF = "mobile_off"; // 移动端浏览器中默�
 // --- 字幕翻译核心配置 ---
 export const DEFAULT_SUBTITLE_SETTING = {
   enabled: true, // 是否自动开启视频字幕翻译功能
-  apiSlug: OPT_TRANS_MICROSOFT, // 默认的字幕翻译接口 (使用微软翻译)
+  apiSlug: OPT_TRANS_TENCENT, // 默认的字幕翻译接口 (使用腾讯翻译)
   segSlug: "-", // 智能 AI 断句/字幕合并的算法选择 ("-" 表示禁用 AI 段落合并)
   forceSubtitleRetranslate: false, // AI 断句服务与翻译服务不同时，是否强制使用翻译服务重翻译文
-  chunkLength: 2000, // 触发 AI 翻译的单包最大字幕字符数
+  chunkLength: 1000, // 新配置默认使用更短 AI 分块；已保存的用户值仍由存储配置优先覆盖
   longSentenceThreshold: 100, // 启用基于标点规则拆分的长句判定字符长度限制
   useAlgorithmBreaker: "rule", // 字幕断句断行处理器类型 ("rule" 规则断行，"statistical" 基于时间统计特征断行)
   preTrans: 90, // 字幕翻译提前发送的时长 (毫秒)，防止接口网络延迟导致字幕不同步
@@ -178,6 +188,7 @@ export const DEFAULT_SUBTITLE_SETTING = {
   originStyle: SUBTITLE_ORIGIN_STYLE, // 原文字体大小及字重样式
   translationStyle: SUBTITLE_TRANSLATION_STYLE, // 译文字体大小样式
   hoverLookupMode: OPT_ENHANCE_MOBILE_OFF, // 鼠标悬停到字幕单词上时是否弹出查词面板
+  autoFavWord: false, // 字幕悬停查词成功后是否自动收藏单词
   showList: OPT_ENHANCE_MOBILE_OFF, // 是否在侧边/右侧显示字幕全文滚动历史面板
   hideSubtitleButton: false, // 是否隐藏 YouTube 播放器中的字幕功能按钮
   aiContextSlug: "-", // 是否为字幕启用智能上下文，以获取更好的代词翻译效果

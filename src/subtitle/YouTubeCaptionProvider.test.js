@@ -1,15 +1,9 @@
 import { act } from "react";
 import { apiSubtitle, apiSummarizeContext } from "../apis/index.js";
 import { YouTubeCaptionProvider } from "./YouTubeCaptionProvider.js";
-import {
-  getCaptionTracks,
-  getSubtitleEvents,
-} from "./youtubeCaptionTracks.js";
+import { getCaptionTracks, getSubtitleEvents } from "./youtubeCaptionTracks.js";
 import { eventsToSubtitles } from "./youtubeAiSegmentation.js";
-import {
-  genFlatEvents,
-  normalizeTimedTextEvents,
-} from "./youtubeSubtitleProcessing.js";
+import { prepareTimedTextEvents } from "./youtubeSubtitleProcessing.js";
 
 jest.mock("../config", () => ({
   MSG_XHR_DATA_YOUTUBE: "xhr-youtube",
@@ -56,9 +50,8 @@ jest.mock("./youtubeCaptionTracks.js", () => ({
 jest.mock("./youtubeSubtitleProcessing.js", () => ({
   builtinSegment: jest.fn(),
   formatSubtitles: jest.fn(),
-  genFlatEvents: jest.fn(),
   getFromLang: () => "en",
-  normalizeTimedTextEvents: jest.fn(),
+  prepareTimedTextEvents: jest.fn(),
 }));
 
 jest.mock("./youtubeAiSegmentation.js", () => ({
@@ -83,16 +76,18 @@ describe("YouTubeCaptionProvider manual translation", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     window.history.replaceState({}, "", "/watch?v=video-1");
-    document.body.innerHTML = '<video></video><button class="captions" aria-pressed="true"></button>';
+    document.body.innerHTML =
+      '<video></video><button class="captions" aria-pressed="true"></button>';
     getCaptionTracks.mockResolvedValue({
       captionTracks: [{ baseUrl: "https://www.youtube.com/timedtext" }],
       fullDescription: "",
     });
     getSubtitleEvents.mockResolvedValue([{ text: "hello" }]);
-    normalizeTimedTextEvents.mockReturnValue([{ text: "hello" }]);
-    genFlatEvents.mockReturnValue([
-      { start: 0, end: 1000, text: "hello" },
-    ]);
+    // 新准备接口一次返回规范化事件和展平事件，避免测试继续依赖已删除的两段处理。
+    prepareTimedTextEvents.mockReturnValue({
+      events: [{ text: "hello" }],
+      flatEvents: [{ start: 0, end: 1000, text: "hello" }],
+    });
     eventsToSubtitles.mockResolvedValue([
       [{ start: 0, end: 1000, text: "hello", translation: "你好" }],
       100,
@@ -122,8 +117,7 @@ describe("YouTubeCaptionProvider manual translation", () => {
     await act(async () => flushPromises());
 
     expect(getSubtitleEvents).toHaveBeenCalledTimes(1);
-    expect(normalizeTimedTextEvents).toHaveBeenCalledTimes(1);
-    expect(genFlatEvents).toHaveBeenCalledTimes(1);
+    expect(prepareTimedTextEvents).toHaveBeenCalledTimes(1);
     expect(apiSubtitle).not.toHaveBeenCalled();
     expect(eventsToSubtitles).not.toHaveBeenCalled();
 

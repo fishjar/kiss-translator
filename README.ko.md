@@ -20,7 +20,7 @@
 - [x] 다양한 번역 서비스 지원
   - [x] Google/Microsoft
   - [x] Tencent/Volcengine
-  - [x] OpenAI/Gemini/Claude/Ollama/DeepSeek/OpenRouter
+  - [x] OpenAI/Gemini/Claude/Ollama/DeepSeek/OpenRouter/OrcaRouter
   - [x] DeepL/DeepLX
   - [x] AzureAI/CloudflareAI
   - [x] Chrome 브라우저 내장 AI 번역(BuiltinAI)

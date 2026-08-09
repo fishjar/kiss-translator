@@ -89,9 +89,8 @@ export function findCaptionTrack(captionTracks, lang, kind) {
   }
 
   if (!captionTrack) {
-    // REVIEW: 这里沿用原有 pop() 行为。它会修改 captionTracks 数组，
-    // 后续若要修复副作用，应单独改为下标读取或克隆数组。
-    captionTrack = captionTracks.pop();
+    // Keep cached track metadata immutable.
+    captionTrack = captionTracks[captionTracks.length - 1];
   }
 
   // Chat/弹幕字幕轨道自动降级为正常字幕轨道。
@@ -123,18 +122,11 @@ export function findCaptionTrack(captionTracks, lang, kind) {
   return captionTrack;
 }
 
-/**
- * 请求 YouTube 播放页 HTML，并解析当前视频的字幕轨列表与原始描述。
- *
- * @param {string} videoId 当前视频 ID。
- * @returns {Promise<{captionTracks?: Array<object>, fullDescription?: string}>} 字幕轨配置与视频描述。
- */
-export async function getCaptionTracks(videoId) {
+let captionTracksCache = null;
+
+async function fetchCaptionTracks(videoId) {
   try {
     const url = `https://www.youtube.com/watch?v=${videoId}`;
-    // REVIEW: 每次处理字幕都会重新 fetch 播放页并正则匹配 ytInitialPlayerResponse。
-    // 这会造成二次网页下载，也可能在高频使用时被 YouTube 视为异常流量。
-    // 后续可优先从当前页面全局对象或客户端内部 API 读取。
     const html = await fetch(url).then((r) => r.text());
     const match = html.match(/ytInitialPlayerResponse\s*=\s*(\{.*?\});/s);
     if (!match) return {};
@@ -148,6 +140,33 @@ export async function getCaptionTracks(videoId) {
     logger.info("Youtube Provider: get captionTracks", err);
     return {};
   }
+}
+
+/**
+ * Fetch and cache the current video's caption metadata.
+ * Reuses an in-flight request when multiple tracks arrive for the same video.
+ *
+ * @param {string} videoId Current video ID.
+ * @returns {Promise<{captionTracks?: Array<object>, fullDescription?: string}>}
+ */
+export async function getCaptionTracks(videoId) {
+  if (captionTracksCache?.videoId === videoId) {
+    return captionTracksCache.promise;
+  }
+
+  const promise = fetchCaptionTracks(videoId);
+  captionTracksCache = { videoId, promise };
+  const result = await promise;
+
+  // Do not retain failed or incomplete metadata; a later request can retry.
+  if (
+    !result.captionTracks?.length &&
+    captionTracksCache?.promise === promise
+  ) {
+    captionTracksCache = null;
+  }
+
+  return result;
 }
 
 /**

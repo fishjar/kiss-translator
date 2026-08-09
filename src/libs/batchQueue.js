@@ -2,6 +2,7 @@ import {
   DEFAULT_BATCH_INTERVAL,
   DEFAULT_BATCH_SIZE,
   DEFAULT_BATCH_LENGTH,
+  DEFAULT_BATCH_CONCURRENCY,
 } from "../config";
 
 /**
@@ -14,6 +15,7 @@ import {
  * @param {number} [options.batchInterval] - 触发批处理的最大延迟等待时间（毫秒）
  * @param {number} [options.batchSize] - 触发批处理的最大任务条数上限
  * @param {number} [options.batchLength] - 整个批次中所有文本内容的最大字符长度上限，防止超长报错
+ * @param {number} [options.batchConcurrency] - 同时执行的最大批次数
  * @returns {object} 返回具有 addTask 和 destroy 方法的实例对象
  */
 const BatchQueue = (
@@ -22,10 +24,17 @@ const BatchQueue = (
     batchInterval = DEFAULT_BATCH_INTERVAL,
     batchSize = DEFAULT_BATCH_SIZE,
     batchLength = DEFAULT_BATCH_LENGTH,
+    batchConcurrency = DEFAULT_BATCH_CONCURRENCY,
   } = {}
 ) => {
   const queue = []; // 存储待处理翻译任务的队列
-  let isProcessing = false; // 当前队列是否正在处理中
+  const configuredBatchConcurrency = Number(batchConcurrency);
+  const concurrency =
+    Number.isFinite(configuredBatchConcurrency) &&
+    configuredBatchConcurrency >= 1
+      ? Math.floor(configuredBatchConcurrency)
+      : DEFAULT_BATCH_CONCURRENCY;
+  let activeBatchCount = 0; // 当前正在执行的批次数
   let timer = null; // 用于延迟处理任务的定时器
 
   /**
@@ -41,12 +50,12 @@ const BatchQueue = (
       timer = null;
     }
 
-    // 如果队列为空或已经在处理中，则直接返回
-    if (queue.length === 0 || isProcessing) {
+    // 如果队列为空或已经达到批次并发上限，则直接返回
+    if (queue.length === 0 || activeBatchCount >= concurrency) {
       return;
     }
 
-    isProcessing = true;
+    activeBatchCount++;
 
     let tasksToProcess = [];
     let currentBatchLength = 0;
@@ -71,7 +80,7 @@ const BatchQueue = (
     }
 
     if (tasksToProcess.length === 0) {
-      isProcessing = false;
+      activeBatchCount--;
       return;
     }
 
@@ -150,7 +159,7 @@ const BatchQueue = (
         }
       });
     } finally {
-      isProcessing = false;
+      activeBatchCount--;
       // 如果队列中还有残留任务，判断是否立即继续处理还是延迟等待
       if (queue.length > 0) {
         if (queue.length >= batchSize) {
@@ -166,7 +175,7 @@ const BatchQueue = (
    * 安排下一次队列的延迟防抖执行
    */
   const scheduleProcessing = () => {
-    if (!isProcessing && !timer && queue.length > 0) {
+    if (activeBatchCount < concurrency && !timer && queue.length > 0) {
       timer = setTimeout(processQueue, batchInterval);
     }
   };

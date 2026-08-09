@@ -3,7 +3,7 @@
  * @description 网页翻译规则相关的配置参数。定义匹配选择器、翻译时机、段落切分、生词高亮策略以及兜底和内置的定制网站翻译规则。
  */
 
-import { OPT_TRANS_MICROSOFT } from "./api";
+import { OPT_TRANS_TENCENT } from "./api";
 import { OPT_STYLE_NONE } from "./styles";
 
 // --- 规则模式关键字 ---
@@ -75,6 +75,8 @@ export const DEFAULT_RULE = {
   fromLang: GLOBAL_KEY, // 网页源语言代码 (继承/覆盖全局)
   toLang: GLOBAL_KEY, // 目标语言代码 (继承/覆盖全局)
   textStyle: GLOBAL_KEY, // 译文样式类型 (继承/覆盖全局)
+  wrapOriginal: GLOBAL_KEY, // 是否为原文节点增加稳定的包裹元素
+  originalTextStyle: GLOBAL_KEY, // 原文样式类型 (继承/覆盖全局)
   transOpen: GLOBAL_KEY, // 是否自动开启翻译 (继承/覆盖全局)
   // bgColor: "", // 译文颜色 (作废)
   // textDiyStyle: "", // 自定义译文样式 (作废)
@@ -122,10 +124,12 @@ export const GLOBLA_RULE = {
   blockSelector: "",
   terms: "",
   aiTerms: "",
-  apiSlug: OPT_TRANS_MICROSOFT, // 默认采用微软翻译
+  apiSlug: OPT_TRANS_TENCENT, // 默认采用腾讯翻译
   fromLang: "auto", // 默认自动识别原文语言
   toLang: "zh-CN", // 默认翻译为简体中文
   textStyle: OPT_STYLE_NONE, // 默认译文不加额外线条/高亮背景
+  wrapOriginal: "false", // 默认不改变原文 DOM 层级
+  originalTextStyle: OPT_STYLE_NONE, // 默认原文不加额外样式
   transOpen: "false", // 默认不自动开始翻译网页 (需要手动点击或快捷键)
   // bgColor: DEFAULT_COLOR, // 译文颜色 (作废)
   // textDiyStyle: DEFAULT_DIY_STYLE, // 自定义译文样式 (作废)

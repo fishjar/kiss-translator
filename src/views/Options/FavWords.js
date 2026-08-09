@@ -71,18 +71,8 @@ function resolveAiDictApiSetting({
  * @param {Object} props
  * @param {string} props.word - 生词/词组文本
  * @param {number} props.index - 单词在生词表中的序号
- * @param {number} [props.createdAt] - 收藏生词的创建时间戳
- * @param {number} [props.timestamp] - 关联的视频播放时间戳 (毫秒)
  */
-function FavAccordion({
-  word,
-  index,
-  createdAt,
-  timestamp,
-  tranboxSetting,
-  transApis,
-  prompts,
-}) {
+function FavAccordion({ word, index, tranboxSetting, transApis, prompts }) {
   // 控制当前手风琴展开与收起状态
   const [expanded, setExpanded] = useState(false);
   // 提取配置中用户选择的查词词典 (enDict) 和联想源 (enSug)
@@ -111,53 +101,12 @@ function FavAccordion({
     setExpanded((pre) => !pre);
   };
 
-  // 将时间戳 (毫秒数) 格式化为 MM:SS 格式，方便视频时间跳转提示展示
-  const formatTime = (milliseconds) => {
-    if (!milliseconds) return "";
-    const totalSeconds = Math.floor(milliseconds / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
-  };
-
-  // 处理点击跳转到视频指定时间点的事件
-  const jumpToTime = (e) => {
-    e.stopPropagation();
-    if (timestamp) {
-      // 通过 window.postMessage 向主页面发送跨文档消息，通知视频播放器跳转到对应时间
-      window.postMessage(
-        {
-          type: "KISS_TRANSLATOR_JUMP_TO_TIME",
-          time: timestamp,
-        },
-        "*"
-      );
-    }
-  };
-
   return (
     <Accordion expanded={expanded} onChange={handleChange}>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
         <Typography>
           {/* 序号与生词本身 */}
           {`${index + 1}. ${word}`}
-          {/* 若带有视频时间戳，展示可点击跳转的时间按钮 */}
-          {timestamp && (
-            <Button
-              size="small"
-              onClick={jumpToTime}
-              style={{
-                minWidth: "auto",
-                padding: "0 4px",
-                marginLeft: "10px",
-                fontSize: "0.9rem",
-                color: "#1e88e5",
-                textTransform: "none",
-              }}
-            >
-              {formatTime(timestamp)}
-            </Button>
-          )}
         </Typography>
       </AccordionSummary>
       <AccordionDetails>
@@ -534,13 +483,11 @@ export default function FavWords() {
 
         {/* 手风琴风折叠的生词列表区域 */}
         <Box>
-          {favList.map(([word, { createdAt, timestamp }], index) => (
+          {favList.map(([word], index) => (
             <FavAccordion
               key={word}
               index={index}
               word={word}
-              createdAt={createdAt}
-              timestamp={timestamp}
               tranboxSetting={tranboxSetting}
               transApis={resolvedTransApis}
               prompts={prompts}

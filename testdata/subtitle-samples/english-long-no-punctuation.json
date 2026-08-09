@@ -1,0 +1,63 @@
+[
+  {
+    "tStartMs": 0,
+    "dDurationMs": 9000,
+    "segs": [
+      {
+        "utf8": "well"
+      },
+      {
+        "utf8": " this",
+        "tOffsetMs": 400
+      },
+      {
+        "utf8": " is",
+        "tOffsetMs": 800
+      },
+      {
+        "utf8": " a",
+        "tOffsetMs": 1100
+      },
+      {
+        "utf8": " deliberately",
+        "tOffsetMs": 1500
+      },
+      {
+        "utf8": " long",
+        "tOffsetMs": 2200
+      },
+      {
+        "utf8": " stream",
+        "tOffsetMs": 2700
+      },
+      {
+        "utf8": " without",
+        "tOffsetMs": 3300
+      },
+      {
+        "utf8": " punctuation",
+        "tOffsetMs": 4000
+      },
+      {
+        "utf8": " and",
+        "tOffsetMs": 4900
+      },
+      {
+        "utf8": " with",
+        "tOffsetMs": 5500
+      },
+      {
+        "utf8": " repeated",
+        "tOffsetMs": 6100
+      },
+      {
+        "utf8": " repeated",
+        "tOffsetMs": 6900
+      },
+      {
+        "utf8": " words",
+        "tOffsetMs": 7600
+      }
+    ]
+  }
+]

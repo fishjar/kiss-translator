@@ -117,7 +117,6 @@ const userscriptWebpack = (config, env) => {
 // @connect       translate-pa.googleapis.com
 // @connect       generativelanguage.googleapis.com
 // @connect       api.cognitive.microsofttranslator.com
-// @connect       api-edge.cognitive.microsofttranslator.com
 // @connect       edge.microsoft.com
 // @connect       bing.com
 // @connect       api-free.deepl.com
@@ -151,6 +150,7 @@ const userscriptWebpack = (config, env) => {
 // @connect       open.bigmodel.cn
 // @connect       api.cloudflare.com
 // @connect       openrouter.ai
+// @connect       api.orcarouter.ai
 // @connect       localhost
 // @connect       127.0.0.1
 // @run-at        document-end

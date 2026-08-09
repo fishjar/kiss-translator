@@ -1,0 +1,168 @@
+{
+  "version": 1,
+  "samples": [
+    {
+      "id": "english-asr-zero-pause",
+      "name": "英文自动字幕：弱停顿",
+      "language": "en",
+      "path": "english-asr-zero-pause.json",
+      "videoUrl": "https://www.youtube.com/watch?v=qCPlEOY2zgI",
+      "size": 89277,
+      "sha256": "eea691ee23be8b433eae101e038085793bc5c6bbaae23d8a568483777c5b0833",
+      "goldenBoundaries": {
+        "rule": "cb331e4a774d5f62",
+        "statistical": "ab45d8625b8f0349"
+      },
+      "tags": [
+        "asr",
+        "word-level",
+        "zero-pause",
+        "real-world"
+      ]
+    },
+    {
+      "id": "english-manual",
+      "name": "英文人工字幕：完整标点",
+      "language": "en",
+      "path": "english-manual.json",
+      "videoUrl": "",
+      "size": 434,
+      "sha256": "946d907e44c665ffb9f9d2829048098a38413673b328d5cb3a04a58cb43b9903",
+      "goldenBoundaries": {
+        "rule": "a47333ac0bdd4f8f",
+        "statistical": "b1c2d032eb844e22"
+      },
+      "tags": [
+        "manual",
+        "punctuation"
+      ]
+    },
+    {
+      "id": "english-long-no-punctuation",
+      "name": "英文自动字幕：无标点长语流",
+      "language": "en",
+      "path": "english-long-no-punctuation.json",
+      "videoUrl": "",
+      "size": 1020,
+      "sha256": "65549ad1879e72294128b12bdf38b80354e18e99a00c0f3562cba1d2b5c8dae9",
+      "goldenBoundaries": {
+        "rule": "80b10bfa8003f401",
+        "statistical": "55a5e65db22fb0e8"
+      },
+      "tags": [
+        "asr",
+        "no-punctuation",
+        "repetition"
+      ]
+    },
+    {
+      "id": "english-asr-long-sentences",
+      "name": "英文自动字幕：规则长句",
+      "language": "en",
+      "path": "kiss-subtitles-raw-mSw8xFPpn2o.json",
+      "videoUrl": "https://www.youtube.com/watch?v=mSw8xFPpn2o",
+      "size": 175962,
+      "sha256": "551a62dd1f8ff95270a49f6b04e22e3fc9021c73ac4a50d08123d5e4c8b93718",
+      "goldenBoundaries": {
+        "rule": "fda495d3a735cc34",
+        "statistical": "0ea3bf447e58e92f"
+      },
+      "tags": [
+        "asr",
+        "word-level",
+        "long-sentence",
+        "real-world"
+      ]
+    },
+    {
+      "id": "chinese-asr",
+      "name": "中文自动字幕：无空格语言",
+      "language": "zh-CN",
+      "path": "chinese-asr.json",
+      "videoUrl": "",
+      "size": 548,
+      "sha256": "46c65235e75d3ce5672cea42be11e1cb0062439633392e0b4fd2af2dc519b809",
+      "goldenBoundaries": {
+        "rule": "e05fbcc97e0eae2d",
+        "statistical": "fed325b859f98a8c"
+      },
+      "tags": [
+        "asr",
+        "cjk",
+        "no-space"
+      ]
+    },
+    {
+      "id": "japanese-asr",
+      "name": "日文自动字幕：无空格语言",
+      "language": "ja",
+      "path": "japanese-asr.json",
+      "videoUrl": "",
+      "size": 500,
+      "sha256": "1aed3a2b88319948236edd90ca0e2a8d48f5b963b78cc294d4871825e3a88510",
+      "goldenBoundaries": {
+        "rule": "2ba3a608cab2ca24",
+        "statistical": "4273b177527bb8ae"
+      },
+      "tags": [
+        "asr",
+        "cjk",
+        "no-space"
+      ]
+    },
+    {
+      "id": "technical-content",
+      "name": "技术内容：数字与符号",
+      "language": "en",
+      "path": "technical-content.json",
+      "videoUrl": "",
+      "size": 559,
+      "sha256": "60448ba8c1bc07da476726102620c74e384cd5b5bdffdad39b15b9b9c45366bf",
+      "goldenBoundaries": {
+        "rule": "aae164b6a59fcfff",
+        "statistical": "aae164b6a59fcfff"
+      },
+      "tags": [
+        "technical",
+        "numbers",
+        "symbols"
+      ]
+    },
+    {
+      "id": "noisy-events",
+      "name": "异常事件：标签、重复和非语音",
+      "language": "en",
+      "path": "noisy-events.json",
+      "videoUrl": "",
+      "size": 777,
+      "sha256": "cc0d696396a5f273f52660a855e526ed4e1d384f962e9fb7d8572606ade91d92",
+      "goldenBoundaries": {
+        "rule": "a5da3c9788edca6e",
+        "statistical": "082980b36903aecd"
+      },
+      "tags": [
+        "dirty",
+        "duplicate",
+        "line-break",
+        "non-speech"
+      ]
+    },
+    {
+      "id": "long-video",
+      "name": "长视频：二十一分钟时间轴",
+      "language": "en",
+      "path": "long-video.json",
+      "videoUrl": "",
+      "size": 3038,
+      "sha256": "4f4cbb8ab41d759ea57d566b4cf0748ff08c8ae50cae6ad64c747915d470561c",
+      "goldenBoundaries": {
+        "rule": "8b6c5e02101b91bc",
+        "statistical": "8b6c5e02101b91bc"
+      },
+      "tags": [
+        "long-duration",
+        "sparse"
+      ]
+    }
+  ]
+}

@@ -52,6 +52,38 @@ import { sha256 } from "./libs/utils";
 
 globalThis.__KISS_CONTEXT__ = "background";
 
+let openingOptionsPage = false;
+
+/**
+ * Open the extension settings with the native API when available.
+ * Fall back to a new tab when the native API is unavailable or fails.
+ */
+async function openOptionsPage() {
+  if (openingOptionsPage) return;
+
+  openingOptionsPage = true;
+  try {
+    if (typeof browser.runtime.openOptionsPage === "function") {
+      try {
+        await browser.runtime.openOptionsPage();
+        return;
+      } catch (err) {
+        kissLog("open options page with runtime API", err);
+      }
+    }
+
+    try {
+      await browser.tabs.create({
+        url: browser.runtime.getURL("options.html"),
+      });
+    } catch (err) {
+      kissLog("open options page in new tab", err);
+    }
+  } finally {
+    openingOptionsPage = false;
+  }
+}
+
 /**
  * 根据前台翻译的激活状态更新浏览器插件栏图标。
  * @param {boolean} isActive 翻译器是否激活 (是否处于高亮彩色状态)
@@ -531,7 +563,7 @@ const messageHandlers = {
   [MSG_GET_HTTPCACHE]: (args) => getHttpCache(args), // 读取翻译 HTTP 缓存
   [MSG_PUT_HTTPCACHE]: (args) => putHttpCache(args), // 存入翻译 HTTP 缓存
   [MSG_SHA256]: ({ text = "", salt = "" } = {}) => sha256(text, salt), // 代算缓存签名
-  [MSG_OPEN_OPTIONS]: () => browser.runtime.openOptionsPage(), // 打开设置选项页
+  [MSG_OPEN_OPTIONS]: () => openOptionsPage(), // 打开设置选项页
   [MSG_SAVE_RULE]: (args) => saveRule(args), // 写入/保存规则
   [MSG_INJECT_JS]: (args) => injectToCurrentTab(injectInlineJsBg, args), // 注入 JS 代码到前台
   [MSG_INJECT_CSS]: (args) => injectToCurrentTab(injectInternalCss, args), // 注入 CSS 样式到前台
@@ -581,7 +613,7 @@ browser.commands?.onCommand?.addListener?.((command) => {
       sendTabMsg(MSG_TRANS_TOGGLE_STYLE);
       break;
     case CMD_OPEN_OPTIONS:
-      browser.runtime.openOptionsPage();
+      openOptionsPage();
       break;
     case CMD_OPEN_SEPARATE_WINDOW:
       if (messageHandlers[MSG_OPEN_SEPARATE_WINDOW]) {
@@ -615,7 +647,7 @@ browser?.contextMenus?.onClicked?.addListener?.(
         sendTabMsg(MSG_TRANSBOX_TOGGLE);
         break;
       case CMD_OPEN_OPTIONS:
-        browser.runtime.openOptionsPage();
+        openOptionsPage();
         break;
       default:
     }

@@ -53,7 +53,9 @@ jest.mock("../../hooks/Api", () => ({
 }));
 
 jest.mock("../../hooks/CustomStyles", () => ({
-  useAllTextStyles: () => ({ allTextStyles: [] }),
+  useAllTextStyles: () => ({
+    allTextStyles: [{ styleSlug: "style_none", styleName: "style_none" }],
+  }),
 }));
 
 jest.mock("./HelpButton", () => {
@@ -325,6 +327,46 @@ describe("Options Rules personal tab", () => {
       enabled: false,
     });
     expect(view.container.querySelector('input[name="pattern"]')).toBeNull();
+
+    view.unmount();
+  });
+
+  test("shows original style when a rule enables original wrapping", async () => {
+    useRules.mockReturnValue({
+      list: [
+        {
+          pattern: "example.com",
+          enabled: true,
+          wrapOriginal: "true",
+          originalTextStyle: "style_none",
+        },
+        {
+          pattern: "*",
+          selector: "p",
+          wrapOriginal: "false",
+          originalTextStyle: "style_none",
+        },
+      ],
+      put: mockPutRule,
+    });
+    const view = renderRules();
+    await openPersonalTab(view);
+
+    const wrappedRule = Array.from(
+      view.container.querySelectorAll('[role="button"]')
+    ).find((item) => item.textContent.includes("example.com"));
+    expect(wrappedRule).toBeDefined();
+    await act(async () => {
+      wrappedRule.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await flushEffects();
+
+    expect(
+      view.container.querySelector('input[name="wrapOriginal"]')
+    ).not.toBeNull();
+    expect(
+      view.container.querySelector('input[name="originalTextStyle"]')
+    ).not.toBeNull();
 
     view.unmount();
   });
