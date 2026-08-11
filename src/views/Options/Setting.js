@@ -231,7 +231,7 @@ export default function Settings() {
           <Typography className="kt-options-section-title">
             {i18n("general")}
           </Typography>
-          <Grid container spacing={2} columns={12}>
+          <Grid container columns={12}>
             {/* 设置面板用户界面语言 */}
             <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField

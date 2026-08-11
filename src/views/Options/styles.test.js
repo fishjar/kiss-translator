@@ -54,9 +54,20 @@ describe("settings layout boundaries", () => {
       /\.kt-overview-settings > \.MuiGrid-container\s*\{[^}]*border:\s*1px solid var\(--kt-linev\);[^}]*border-radius:\s*20px;/
     );
 
+    const overviewGridRule = OPTIONS_STYLES.match(
+      /\.kt-overview-settings > \.MuiGrid-container\s*\{([^}]*)\}/
+    )?.[1];
+    expect(overviewGridRule).toContain("width: 100%");
+    expect(overviewGridRule).toContain("margin: 0");
+    expect(OPTIONS_STYLES).not.toMatch(
+      /\.kt-options-page > \.MuiBox-root > \.MuiStack-root\s*\{[^}]*gap:/
+    );
+
     const formControlLabelRule = OPTIONS_STYLES.match(
       /\.kt-options-page \.MuiFormControlLabel-root\s*\{([^}]*)\}/
     )?.[1];
+    expect(formControlLabelRule).toContain("margin-inline: 0");
+    expect(formControlLabelRule).not.toMatch(/(?:^|;)\s*margin:\s*0/);
     expect(formControlLabelRule).not.toContain("background");
     expect(formControlLabelRule).not.toContain("padding");
     expect(formControlLabelRule).not.toContain("border-radius");

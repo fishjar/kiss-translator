@@ -1001,7 +1001,7 @@ export default function SubtitleSetting() {
             p: 2,
           }}
         >
-          <Stack spacing={2}>
+          <Stack spacing={2} useFlexGap>
             {/* 字幕预览展示窗 */}
             <SubtitleStylePreview
               windowStyle={localWindowStyle}

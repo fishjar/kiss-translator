@@ -49,7 +49,6 @@ export const OPTIONS_STYLES = String.raw`
 .kt-options-version-alert a { color: inherit; font-weight: 700; }
 .kt-options-page { min-width: 0; }
 
-.kt-options-page > .MuiBox-root > .MuiStack-root { gap: 18px; }
 .kt-options-page .MuiAlert-root { border: 0; border-radius: 18px; background: var(--kt-sf1); color: var(--kt-onv); }
 .kt-options-page .MuiTextField-root { min-width: 0; }
 .kt-options-page .MuiInputLabel-root.MuiInputLabel-shrink { max-width: calc(125% - 24px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -63,7 +62,7 @@ export const OPTIONS_STYLES = String.raw`
 .kt-options-page .kt-translation-text-field__actions .MuiIconButton-root.Mui-disabled { background: var(--kt-sf2); color: var(--kt-line); }
 .kt-options-page .kt-translation-text-field--source textarea { caret-color: var(--kt-pri); }
 .kt-options-page .kt-translation-text-field--result textarea { cursor: default; }
-.kt-options-page .MuiFormControlLabel-root { min-height: 40px; gap: 8px; margin: 0; }
+.kt-options-page .MuiFormControlLabel-root { min-height: 40px; gap: 8px; margin-inline: 0; }
 .kt-options-page .MuiFormControlLabel-label { font-size: 13px; font-weight: 550; }
 .kt-options-page .MuiAccordion-root { border-radius: 20px !important; background: var(--kt-sf0); }
 .kt-options-page .MuiAccordion-root.Mui-expanded { margin-block: 0; }
@@ -189,7 +188,7 @@ export const OPTIONS_STYLES = String.raw`
 .kt-overview-shortcut { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 25px; color: var(--kt-onv); font-size: 11.5px; }
 .kt-overview-shortcut__keys { display: flex; gap: 4px; }
 .kt-overview-shortcut kbd { min-width: 24px; padding: 2px 5px; border: 1px solid var(--kt-linev); border-bottom-width: 2px; border-radius: 6px; background: var(--kt-sf0); color: var(--kt-on); font-family: ui-monospace, monospace; font-size: 9.5px; text-align: center; }
-.kt-overview-settings > .MuiGrid-container { display: block; overflow: hidden; padding: 0; border: 1px solid var(--kt-linev); border-radius: 20px; background: var(--kt-sf0); }
+.kt-overview-settings > .MuiGrid-container { width: 100%; display: block; overflow: hidden; margin: 0; padding: 0; border: 1px solid var(--kt-linev); border-radius: 20px; background: var(--kt-sf0); }
 .kt-overview-settings > .MuiGrid-container > .MuiGrid-item { width: 100%; max-width: none; min-height: 64px; display: flex; align-items: stretch; padding: 0 !important; border-bottom: 1px solid var(--kt-linev); }
 .kt-overview-settings > .MuiGrid-container > .MuiGrid-item:last-child { border-bottom: 0; }
 .kt-overview-settings .MuiFormControl-root { width: 100%; min-height: 63px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(190px, 250px); align-items: center; column-gap: 18px; padding: 8px 12px 8px 16px; }
