@@ -3,6 +3,7 @@ import {
   createAiChunkScheduler,
   eventsToSubtitles,
 } from "./youtubeAiSegmentation";
+import { mapBoundaryItemToCue } from "./subtitleBoundaryProtocol";
 import { prepareTimedTextEvents } from "./youtubeSubtitleProcessing";
 
 jest.mock("../libs/log.js", () => ({
@@ -44,6 +45,117 @@ const subtitle = {
   _si: 0,
   _ei: 1,
 };
+
+describe("coarse timedtext normalization", () => {
+  test("expands a coarse phrase for AI boundaries and reconstructs adjacent cue times", async () => {
+    const rawEvents = [
+      {
+        tStartMs: 1200,
+        dDurationMs: 3400,
+        segs: [{ utf8: "The quick brown fox." }],
+      },
+    ];
+    const prepared = prepareTimedTextEvents(rawEvents);
+    const apiSubtitle = jest.fn(({ events }) => {
+      let nextIndex = 0;
+      return Promise.resolve(
+        [
+          { e: 1, t: "敏捷的狐狸" },
+          { e: 3, t: "棕色狐狸。" },
+        ].map((item) => {
+          const cue = mapBoundaryItemToCue(item, events, nextIndex, "en");
+          nextIndex = item.e + 1;
+          return cue;
+        })
+      );
+    });
+
+    const result = await aiSegment({
+      videoId: "video-coarse-captions",
+      fromLang: "en",
+      toLang: "zh-CN",
+      chunkEvents: prepared.flatEvents,
+      segApiSetting: { apiSlug: "openai" },
+      apiSubtitle,
+      docInfo: {},
+      formatSubtitles: jest.fn(() => []),
+      clearSegmentTranslation: false,
+      setting: {},
+    });
+
+    expect(prepared.events).toEqual(rawEvents);
+    expect(apiSubtitle.mock.calls[0][0].events).toEqual([
+      { text: "The", start: 1200, end: 1800 },
+      { text: "quick", start: 1800, end: 2800 },
+      { text: "brown", start: 2800, end: 3800 },
+      { text: "fox.", start: 3800, end: 4600 },
+    ]);
+    expect(result).toEqual([
+      {
+        start: 1200,
+        end: 2800,
+        text: "The quick",
+        translation: "敏捷的狐狸",
+        _si: 0,
+        _ei: 1,
+      },
+      {
+        start: 2800,
+        end: 4600,
+        text: "brown fox.",
+        translation: "棕色狐狸。",
+        _si: 2,
+        _ei: 3,
+      },
+    ]);
+  });
+
+  test("leaves word-level offsets unchanged", () => {
+    const rawEvents = [
+      {
+        tStartMs: 2000,
+        dDurationMs: 1500,
+        segs: [
+          { utf8: "hello", tOffsetMs: 0 },
+          { utf8: "world.", tOffsetMs: 600 },
+        ],
+      },
+    ];
+
+    expect(prepareTimedTextEvents(rawEvents)).toMatchObject({
+      events: rawEvents,
+      flatEvents: [
+        { text: "hello", start: 2000, end: 2600 },
+        { text: "world.", start: 2600, end: 3500 },
+      ],
+    });
+  });
+
+  test.each([
+    ["empty", { tStartMs: 0, dDurationMs: 1000, segs: [{ utf8: "" }] }, []],
+    [
+      "line break",
+      {
+        tStartMs: 0,
+        dDurationMs: 0,
+        aAppend: 1,
+        segs: [{ utf8: "\n" }],
+      },
+      [],
+    ],
+    [
+      "non-space text",
+      {
+        tStartMs: 0,
+        dDurationMs: 1000,
+        segs: [{ utf8: "今天我们测试" }],
+      },
+      [{ text: "今天我们测试", start: 0, end: 1000 }],
+    ],
+  ])("does not synthetically split %s segments", (_name, event, expected) => {
+    expect(prepareTimedTextEvents([event]).flatEvents).toEqual(expected);
+  });
+});
 
 describe("aiSegment recovery", () => {
   test("sends only speech events after timedtext preparation", async () => {

@@ -51,6 +51,28 @@ export function cleanTimedText(utf8 = "") {
 }
 
 /**
+ * 按词长比例将粗粒度空格文本展开为连续的时间片段。
+ * 无安全分词边界或无有效时长时保持原片段。
+ */
+function expandCoarseTimedText(text, start, end) {
+  const words = text.split(" ").filter(Boolean);
+  if (words.length < 2 || !Number.isFinite(end) || end <= start) return null;
+
+  const totalWeight = words.reduce((total, word) => total + word.length, 0);
+  let elapsedWeight = 0;
+
+  return words.map((word, index) => {
+    const wordStart = start + ((end - start) * elapsedWeight) / totalWeight;
+    elapsedWeight += word.length;
+    const wordEnd =
+      index === words.length - 1
+        ? end
+        : start + ((end - start) * elapsedWeight) / totalWeight;
+    return { text: word, start: wordStart, end: wordEnd };
+  });
+}
+
+/**
  * 一次完成 YouTube json3 events 的文本清洗、相邻重复事件去除和时间轴展平。
  * 原始输入不会被修改；统计断句读取 events，规则和 AI 断句读取已过滤非语音片段的 flatEvents。
  *
@@ -124,6 +146,19 @@ export function prepareTimedTextEvents(rawEvents = []) {
       }
 
       flushBuffer(start);
+      const nextOffset =
+        index === normalizedSegs.length - 1
+          ? dDurationMs
+          : Number(normalizedSegs[index + 1]?.tOffsetMs) || 0;
+      const expanded = text.includes(" ")
+        ? expandCoarseTimedText(text, start, tStartMs + nextOffset)
+        : null;
+      if (expanded) {
+        flatEvents.push(...expanded.slice(0, -1));
+        buffer = expanded[expanded.length - 1];
+        continue;
+      }
+
       buffer = { text, start };
       if (index === normalizedSegs.length - 1) {
         buffer.end = tStartMs + dDurationMs;
