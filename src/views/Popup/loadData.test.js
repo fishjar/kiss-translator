@@ -1,4 +1,12 @@
-import { loadPopupData } from "./loadData";
+const mockSendTopFrameMsg = jest.fn();
+
+jest.mock("../../libs/msg", () => ({
+  getCurTab: jest.fn(),
+  sendTopFrameMsg: (...args) => mockSendTopFrameMsg(...args),
+}));
+
+const { MSG_TRANS_GETRULE } = require("../../config");
+const { loadPopupData } = require("./loadData");
 
 const popupData = {
   rule: { transOpen: "false" },
@@ -6,6 +14,22 @@ const popupData = {
 };
 
 describe("loadPopupData", () => {
+  beforeEach(() => {
+    mockSendTopFrameMsg.mockReset();
+  });
+
+  test("uses only the top-frame response for the default readiness probe", async () => {
+    mockSendTopFrameMsg.mockResolvedValue(popupData);
+    const executeScript = jest.fn();
+
+    await expect(
+      loadPopupData({ executeScript, wait: jest.fn() })
+    ).resolves.toBe(popupData);
+
+    expect(mockSendTopFrameMsg).toHaveBeenCalledWith(MSG_TRANS_GETRULE);
+    expect(executeScript).not.toHaveBeenCalled();
+  });
+
   test("returns immediately when the content script is already responsive", async () => {
     const sendMessage = jest.fn().mockResolvedValue(popupData);
     const executeScript = jest.fn();

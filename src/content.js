@@ -114,6 +114,10 @@ if (shouldStart) {
           stopRuntimeManager(startedManager);
           return;
         }
+        if (!startedManager) {
+          currentRuntime.dispose();
+          return;
+        }
         manager = startedManager;
       })
       .catch(handleStartupFailure);

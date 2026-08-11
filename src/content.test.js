@@ -51,7 +51,7 @@ describe("content runtime marker", () => {
   });
 
   test("stores an identity and liveness probe in the marker", () => {
-    mockRun.mockResolvedValueOnce();
+    mockRun.mockResolvedValueOnce({ stop: jest.fn() });
 
     require("./content");
 
@@ -64,8 +64,14 @@ describe("content runtime marker", () => {
     );
   });
 
-  test("deduplicates injection while the existing runtime is alive", () => {
-    mockRun.mockResolvedValueOnce();
+  test("deduplicates injection while startup is pending", async () => {
+    let resolveStartup;
+    const manager = { stop: jest.fn() };
+    mockRun.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveStartup = resolve;
+      })
+    );
 
     require("./content");
     const firstRuntime = globalThis[marker];
@@ -79,6 +85,47 @@ describe("content runtime marker", () => {
     expect(mockRun).toHaveBeenCalledTimes(1);
     expect(globalThis[marker]).toBe(firstRuntime);
     expect(activeHost.isConnected).toBe(true);
+
+    resolveStartup(manager);
+    await flushPromises();
+
+    expect(globalThis[marker]).toBe(firstRuntime);
+    expect(manager.stop).not.toHaveBeenCalled();
+  });
+
+  test("deduplicates injection after the manager starts successfully", async () => {
+    const manager = { stop: jest.fn() };
+    mockRun.mockResolvedValueOnce(manager);
+
+    require("./content");
+    await flushPromises();
+    const firstRuntime = globalThis[marker];
+
+    jest.resetModules();
+    require("./content");
+
+    expect(mockRun).toHaveBeenCalledTimes(1);
+    expect(globalThis[marker]).toBe(firstRuntime);
+    expect(manager.stop).not.toHaveBeenCalled();
+  });
+
+  test("clears a skipped startup marker so a later injection can recover", async () => {
+    const manager = { stop: jest.fn() };
+    mockRun.mockResolvedValueOnce(undefined).mockResolvedValueOnce(manager);
+
+    require("./content");
+    expect(globalThis[marker]).toBeDefined();
+
+    await flushPromises();
+    expect(globalThis[marker]).toBeUndefined();
+
+    jest.resetModules();
+    require("./content");
+    await flushPromises();
+
+    expect(mockRun).toHaveBeenCalledTimes(2);
+    expect(globalThis[marker]).toBeDefined();
+    expect(manager.stop).not.toHaveBeenCalled();
   });
 
   test("replaces a marker whose runtime context was invalidated", () => {
@@ -258,10 +305,13 @@ describe("content runtime marker", () => {
   test("an old startup rejection cannot remove a replacement marker", async () => {
     const consoleError = jest.spyOn(console, "error").mockImplementation();
     let rejectOldStartup;
+    const replacementManager = { stop: jest.fn() };
     const oldStartup = new Promise((resolve, reject) => {
       rejectOldStartup = reject;
     });
-    mockRun.mockReturnValueOnce(oldStartup).mockResolvedValueOnce();
+    mockRun
+      .mockReturnValueOnce(oldStartup)
+      .mockResolvedValueOnce(replacementManager);
 
     require("./content");
     jest.resetModules();

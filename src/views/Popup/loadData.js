@@ -1,6 +1,6 @@
 import { MSG_TRANS_GETRULE } from "../../config";
 import { browser } from "../../libs/browser";
-import { getCurTab, sendTabMsg } from "../../libs/msg";
+import { getCurTab, sendTopFrameMsg } from "../../libs/msg";
 
 const sleep = (milliseconds) =>
   new Promise((resolve) => window.setTimeout(resolve, milliseconds));
@@ -20,7 +20,7 @@ async function trySend(sendMessage) {
 }
 
 export async function loadPopupData({
-  sendMessage = () => sendTabMsg(MSG_TRANS_GETRULE),
+  sendMessage = () => sendTopFrameMsg(MSG_TRANS_GETRULE),
   getTab = getCurTab,
   executeScript = (details) => browser?.scripting?.executeScript(details),
   wait = sleep,

@@ -19,12 +19,18 @@ import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
 import Snackbar from "@mui/material/Snackbar";
 import Switch from "@mui/material/Switch";
-import { sendBgMsg, sendTabMsg, getCurTab } from "../../libs/msg";
+import {
+  sendBgMsg,
+  sendTabMsg,
+  sendTopFrameMsg,
+  getCurTab,
+} from "../../libs/msg";
 import { isExt } from "../../libs/client";
 import { useI18n } from "../../hooks/I18n";
 import {
   MSG_TRANS_TOGGLE,
   MSG_TRANS_PUTRULE,
+  MSG_TRANS_GETRULE,
   MSG_SAVE_RULE,
   OPT_LANGS_FROM_REVERSED as OPT_LANGS_FROM,
   OPT_LANGS_TO_REVERSED as OPT_LANGS_TO,
@@ -82,7 +88,11 @@ export default function PopupCont({
   const [domainOptions, setDomainOptions] = useState([]);
   const [selectedDomain, setSelectedDomain] = useState("");
   const [currentHref, setCurrentHref] = useState("");
-  const [snackbar, setSnackbar] = useState({ open: false, message: "" });
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showAllServices, setShowAllServices] = useState(false);
   const [showAllStyles, setShowAllStyles] = useState(false);
@@ -95,13 +105,23 @@ export default function PopupCont({
   const supportDisclosureId = useId();
   const supportTriggerId = `${supportDisclosureId}-trigger`;
   const { allTextStyles } = useAllTextStyles();
-  const popupTextStyles = useMemo(
-    () => resolvePopupTextStyles(allTextStyles, rule?.textStyle, showAllStyles),
-    [allTextStyles, rule?.textStyle, showAllStyles]
+  const primaryPopupTextStyles = useMemo(
+    () => resolvePopupTextStyles(allTextStyles, rule?.textStyle, false),
+    [allTextStyles, rule?.textStyle]
   );
+  const extraPopupTextStyles = useMemo(() => {
+    const primarySlugs = new Set(
+      primaryPopupTextStyles.map((style) => style.styleSlug)
+    );
+    return allTextStyles.filter((style) => !primarySlugs.has(style.styleSlug));
+  }, [allTextStyles, primaryPopupTextStyles]);
+  const hiddenStyleCount = extraPopupTextStyles.length;
+  const styleDisclosureLabel = showAllStyles
+    ? `${i18n("popup_collapse")}: ${i18n("popup_all_styles")}`
+    : `${i18n("popup_all_styles")} (${hiddenStyleCount})`;
 
-  const showMessage = useCallback((message) => {
-    setSnackbar({ open: true, message });
+  const showMessage = useCallback((message, severity = "success") => {
+    setSnackbar({ open: true, message, severity });
   }, []);
 
   useEffect(
@@ -170,7 +190,11 @@ export default function PopupCont({
     async (enabled) => {
       if (translationTogglePendingRef.current) return;
       translationTogglePendingRef.current = true;
-      let resolvedEnabled = enabled;
+      const previousTransOpen = rule?.transOpen;
+      if (busyTimerRef.current) {
+        window.clearTimeout(busyTimerRef.current);
+        busyTimerRef.current = null;
+      }
       setRule((previous) => ({
         ...previous,
         transOpen: enabled ? "true" : "false",
@@ -179,24 +203,49 @@ export default function PopupCont({
       try {
         let response;
         if (processActions) {
-          response = processActions({
+          response = await processActions({
             action: MSG_TRANS_TOGGLE,
             args: { enabled },
           });
         } else {
-          response = await sendTabMsg(MSG_TRANS_TOGGLE, { enabled });
+          await sendTabMsg(MSG_TRANS_TOGGLE, { enabled });
+          response = await sendTopFrameMsg(MSG_TRANS_GETRULE);
         }
-        if (response?.rule) {
-          resolvedEnabled =
-            response.rule.transOpen === true ||
-            response.rule.transOpen === "true";
-          setRule(response.rule);
+
+        if (response?.error) {
+          throw new Error(response.error);
         }
-      } catch (error) {
-        kissLog("toggle translation", error);
-      } finally {
-        translationTogglePendingRef.current = false;
-        if (busyTimerRef.current) window.clearTimeout(busyTimerRef.current);
+
+        const responseTransOpen = response?.rule?.transOpen;
+        const hasConfirmedState =
+          responseTransOpen === true ||
+          responseTransOpen === false ||
+          responseTransOpen === "true" ||
+          responseTransOpen === "false";
+
+        // Direct page actions intentionally return void. A completed call is
+        // sufficient confirmation there; tab messages require an explicit
+        // state because the browser may otherwise have had no receiver.
+        if (!processActions && !hasConfirmedState) {
+          throw new Error("Page translation state was not confirmed");
+        }
+        if (processActions && response !== undefined && !hasConfirmedState) {
+          throw new Error("Page translation state was not confirmed");
+        }
+
+        const resolvedEnabled = hasConfirmedState
+          ? responseTransOpen === true || responseTransOpen === "true"
+          : enabled;
+        if (hasConfirmedState && resolvedEnabled !== enabled) {
+          throw new Error("Page translation state did not match the request");
+        }
+        if (hasConfirmedState) {
+          setRule((previous) => ({
+            ...previous,
+            transOpen: resolvedEnabled ? "true" : "false",
+          }));
+        }
+
         busyTimerRef.current = window.setTimeout(
           () => {
             setTranslationBusy(false);
@@ -206,9 +255,19 @@ export default function PopupCont({
           },
           resolvedEnabled ? 900 : 0
         );
+      } catch (error) {
+        kissLog("toggle translation", error);
+        setRule((previous) => ({
+          ...previous,
+          transOpen: previousTransOpen,
+        }));
+        setTranslationBusy(false);
+        showMessage(i18n("rule_toggle_failed"), "error");
+      } finally {
+        translationTogglePendingRef.current = false;
       }
     },
-    [i18n, processActions, setRule, showMessage]
+    [i18n, processActions, rule?.transOpen, setRule, showMessage]
   );
 
   const { handleInputToggle, handleMouseHoverToggle, handleTransboxToggle } =
@@ -309,6 +368,10 @@ export default function PopupCont({
     () => getVisibleServices(services, apiSlug, showAllServices),
     [apiSlug, services, showAllServices]
   );
+  const hiddenServiceCount = services.length - visibleServices.length;
+  const serviceDisclosureLabel = showAllServices
+    ? `${i18n("popup_collapse")}: ${i18n("popup_more_services")}`
+    : `${i18n("popup_more_services")} (${hiddenServiceCount})`;
 
   const scenes = [
     {
@@ -365,6 +428,23 @@ export default function PopupCont({
         {i18n("appreciate_support")}
       </a>
     </div>
+  );
+
+  const renderPopupStyleChip = (style) => (
+    <button
+      type="button"
+      className="kt-popup-style-chip"
+      aria-pressed={style.styleSlug === textStyle}
+      key={style.styleSlug}
+      onClick={() => putRuleValue("textStyle", style.styleSlug)}
+    >
+      <PopupStylePreview
+        styleSlug={style.styleSlug}
+        previewCode={getCompactStylePreviewCode(style)}
+        label={i18n("style_preview_translation")}
+      />
+      <small>{style.styleName}</small>
+    </button>
   );
 
   return (
@@ -463,13 +543,18 @@ export default function PopupCont({
           {services.length > COLLAPSED_SERVICE_LIMIT && (
             <button
               type="button"
-              className="kt-popup-service kt-popup-more-service"
+              className={`kt-popup-service kt-popup-more-service ${
+                showAllServices ? "kt-popup-more-service--open" : ""
+              }`}
+              aria-label={serviceDisclosureLabel}
+              aria-expanded={showAllServices}
+              title={serviceDisclosureLabel}
               onClick={() => setShowAllServices((current) => !current)}
             >
               {showAllServices
                 ? i18n("popup_collapse")
                 : `+${services.length - visibleServices.length}`}
-              <ExpandMoreRoundedIcon />
+              <ExpandMoreRoundedIcon aria-hidden="true" />
             </button>
           )}
         </div>
@@ -488,7 +573,9 @@ export default function PopupCont({
             >
               <SceneIcon />
               <span className="kt-popup-scene__copy">
-                <span className="kt-popup-scene__label">{scene.label}</span>
+                <span className="kt-popup-scene__label" title={scene.label}>
+                  {scene.label}
+                </span>
                 <span className="kt-popup-scene__state">
                   {i18n(scene.enabled ? "popup_enabled" : "popup_disabled")}
                 </span>
@@ -520,7 +607,7 @@ export default function PopupCont({
             {i18n(
               isInCurrentBlacklist
                 ? "popup_domain_blocked"
-                : "popup_domain_active"
+                : "popup_domain_allowed"
             )}
           </span>
         </div>
@@ -581,34 +668,24 @@ export default function PopupCont({
                 showAllStyles ? "kt-popup-style-chips--open" : ""
               }`}
             >
-              {popupTextStyles.map((style) => (
+              {primaryPopupTextStyles.map(renderPopupStyleChip)}
+              {allTextStyles.length > 5 && (
                 <button
                   type="button"
-                  className="kt-popup-style-chip"
-                  aria-pressed={style.styleSlug === textStyle}
-                  key={style.styleSlug}
-                  onClick={() => putRuleValue("textStyle", style.styleSlug)}
+                  className="kt-popup-style-chip kt-popup-style-more"
+                  aria-label={styleDisclosureLabel}
+                  aria-expanded={showAllStyles}
+                  title={styleDisclosureLabel}
+                  onClick={() => setShowAllStyles((current) => !current)}
                 >
-                  <PopupStylePreview
-                    styleSlug={style.styleSlug}
-                    previewCode={getCompactStylePreviewCode(style)}
-                    label={i18n("style_preview_translation")}
-                  />
-                  <small>{style.styleName}</small>
+                  {showAllStyles
+                    ? i18n("popup_collapse")
+                    : `+${hiddenStyleCount}`}
+                  <ExpandMoreRoundedIcon aria-hidden="true" />
                 </button>
-              ))}
+              )}
+              {showAllStyles && extraPopupTextStyles.map(renderPopupStyleChip)}
             </div>
-            {allTextStyles.length > 5 && (
-              <button
-                type="button"
-                className="kt-popup-style-more"
-                aria-expanded={showAllStyles}
-                onClick={() => setShowAllStyles((current) => !current)}
-              >
-                {i18n(showAllStyles ? "popup_collapse" : "popup_all_styles")}
-                <ExpandMoreRoundedIcon />
-              </button>
-            )}
           </div>
           <div className="kt-popup-advanced-grid">
             {advancedRows.map(([name, label, checked]) => (
@@ -684,12 +761,16 @@ export default function PopupCont({
         open={snackbar.open}
         autoHideDuration={2200}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-        onClose={() => setSnackbar({ open: false, message: "" })}
+        onClose={() =>
+          setSnackbar({ open: false, message: "", severity: "success" })
+        }
       >
         <Alert
-          severity="success"
+          severity={snackbar.severity}
           variant="filled"
-          onClose={() => setSnackbar({ open: false, message: "" })}
+          onClose={() =>
+            setSnackbar({ open: false, message: "", severity: "success" })
+          }
         >
           {snackbar.message}
         </Alert>

@@ -322,6 +322,32 @@ describe("TranForm translation service selection", () => {
     act(() => root.unmount());
   });
 
+  test.each([true, false])(
+    "does not translate with explicitly empty service slugs when simpleStyle is %s",
+    async (simpleStyle) => {
+      const { container, root } = renderTranForm({
+        apiSlugs: [],
+        simpleStyle,
+      });
+      await flushEffects();
+
+      expect(container.querySelector('[data-testid="tran-cont"]')).toBeNull();
+
+      act(() => root.unmount());
+    }
+  );
+
+  test("falls back when the service selection is missing rather than explicitly empty", async () => {
+    const { container, root } = renderTranForm({ apiSlugs: undefined });
+    await flushEffects();
+
+    expect(
+      container.querySelectorAll('[data-testid="tran-cont"]')
+    ).toHaveLength(1);
+
+    act(() => root.unmount());
+  });
+
   test("falls back to the first enabled service when persisted slugs are stale", async () => {
     const { container, root } = renderTranForm({
       apiSlugs: ["removed", "disabled"],

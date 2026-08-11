@@ -95,6 +95,60 @@ describe("Popup focus", () => {
     container.remove();
   });
 
+  test("announces configuration loading without calling it translation", async () => {
+    mockSendTabMsg.mockReturnValue(new Promise(() => {}));
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(<Popup />);
+      await Promise.resolve();
+    });
+
+    expect(
+      container
+        .querySelector('.kt-popup-loading[role="status"]')
+        .getAttribute("aria-label")
+    ).toBe("popup_loading");
+
+    act(() => root.unmount());
+    container.remove();
+  });
+
+  test("announces translation settings loading as loading", async () => {
+    mockSetting = null;
+    mockSendTabMsg.mockResolvedValue({
+      rule: { pattern: "*", transOpen: "true" },
+      setting: { darkMode: "auto" },
+    });
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(<Popup />);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    const textTab = Array.from(container.querySelectorAll('[role="tab"]')).find(
+      (tab) => tab.textContent === "popup_text_translation"
+    );
+    await act(async () => {
+      textTab.click();
+      await Promise.resolve();
+    });
+
+    expect(
+      container
+        .querySelector('.kt-popup-loading[role="status"]')
+        .getAttribute("aria-label")
+    ).toBe("popup_loading");
+
+    act(() => root.unmount());
+    container.remove();
+  });
+
   test("focuses the popup shell instead of the first form control", async () => {
     const previousControl = document.createElement("select");
     document.body.appendChild(previousControl);

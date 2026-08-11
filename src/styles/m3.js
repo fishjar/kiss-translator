@@ -198,12 +198,6 @@ export const M3_GLOBAL_CSS = String.raw`
   }
 }
 
-@supports (outline-color: color-mix(in srgb, red 50%, transparent)) {
-  .kt-m3-root :focus-visible {
-    outline-color: color-mix(in srgb, var(--kt-pri) 55%, transparent);
-  }
-}
-
 .kt-m3-root .MuiInputBase-input:focus,
 .kt-m3-root .MuiInputBase-input:focus-visible {
   outline: none;

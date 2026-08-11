@@ -37,7 +37,7 @@ function TranslationTab() {
       <div
         className="kt-popup-loading"
         role="status"
-        aria-label={i18n("popup_translating")}
+        aria-label={i18n("popup_loading")}
       >
         <AutorenewRoundedIcon />
       </div>
@@ -282,7 +282,7 @@ export default function Popup() {
           <div
             className="kt-popup-loading"
             role="status"
-            aria-label={i18n("popup_translating")}
+            aria-label={i18n("popup_loading")}
           >
             <AutorenewRoundedIcon />
           </div>

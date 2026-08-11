@@ -47,7 +47,7 @@ describe("M3 global motion", () => {
 });
 
 describe("M3 keyboard focus", () => {
-  test("provides a solid focus fallback before progressive enhancement", () => {
+  test("keeps the primary focus ring solid after progressive enhancement", () => {
     const fallbackRule = M3_GLOBAL_CSS.match(
       /\.kt-m3-root :focus\s*\{([^}]*)\}/
     )?.[1];
@@ -56,7 +56,9 @@ describe("M3 keyboard focus", () => {
     expect(fallbackRule).toContain("outline-offset: 2px");
     expect(fallbackRule).not.toContain("color-mix");
     expect(M3_GLOBAL_CSS).toContain("@supports selector(:focus-visible)");
-    expect(M3_GLOBAL_CSS).toContain("@supports (outline-color: color-mix");
+    expect(M3_GLOBAL_CSS).not.toMatch(
+      /:focus-visible\s*\{[^}]*outline-color:\s*color-mix/
+    );
   });
 
   test("delegates MUI input focus rendering to the field container", () => {

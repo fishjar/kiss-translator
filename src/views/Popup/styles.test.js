@@ -47,6 +47,30 @@ describe("popup keyboard focus", () => {
       /\.kt-popup-translation-input textarea\s*\{[^}]*outline:\s*0;/
     );
   });
+
+  test("restores a solid focus ring for the compact language selector", () => {
+    expect(POPUP_STYLES).toMatch(
+      /\.kt-popup-language-select \.MuiSelect-select\.MuiInputBase-input:focus,[\s\S]*?\.MuiInputBase-input:focus-visible\s*\{[^}]*outline:\s*3px solid var\(--kt-pri\);[^}]*outline-offset:\s*2px;/
+    );
+  });
+
+  test("does not clip service focus rings in the collapsed row", () => {
+    const servicesRule = POPUP_STYLES.match(
+      /\.kt-popup-services\s*\{([^}]*)\}/
+    )?.[1];
+
+    expect(servicesRule).toContain("overflow: visible");
+    expect(servicesRule).not.toContain("overflow: hidden");
+  });
+
+  test("keeps the disabled language swap arrow visibly dark", () => {
+    const swapRule = POPUP_STYLES.match(
+      /\.kt-popup-swap\.MuiIconButton-root\.Mui-disabled\s*\{([^}]*)\}/
+    )?.[1];
+
+    expect(swapRule).toContain("color: var(--kt-line)");
+    expect(swapRule).toContain("opacity: 1");
+  });
 });
 
 describe("popup translation controls", () => {
@@ -85,5 +109,37 @@ describe("popup translation controls", () => {
 
     expect(footerRule).toContain("align-items: center");
     expect(footerRule).toContain("padding: 7px 10px 7px 15px");
+  });
+
+  test("wraps scene labels and long translation output", () => {
+    const sceneLabelRule = POPUP_STYLES.match(
+      /\.kt-popup-scene__label\s*\{([^}]*)\}/
+    )?.[1];
+    const resultBodyRule = POPUP_STYLES.match(
+      /\.kt-popup-translation-result__body\s*\{([^}]*)\}/
+    )?.[1];
+
+    expect(sceneLabelRule).toContain("white-space: normal");
+    expect(sceneLabelRule).toContain("overflow-wrap: anywhere");
+    expect(sceneLabelRule).not.toContain("text-overflow: ellipsis");
+    expect(resultBodyRule).toContain("overflow-wrap: anywhere");
+    expect(resultBodyRule).toContain("word-break: break-word");
+  });
+
+  test("rotates the more-services icon when expanded", () => {
+    expect(POPUP_STYLES).toMatch(
+      /\.kt-popup-more-service\[aria-expanded="true"\] svg\s*\{[^}]*transform:\s*rotate\(180deg\);/
+    );
+  });
+
+  test("keeps the all-styles disclosure inside the chip flow", () => {
+    const moreStyleRule = POPUP_STYLES.match(
+      /\.kt-popup-style-more\s*\{([^}]*)\}/
+    )?.[1];
+
+    expect(moreStyleRule).toContain("min-height: 44px");
+    expect(moreStyleRule).toContain("flex-direction: row");
+    expect(moreStyleRule).toContain("background: var(--kt-sf2)");
+    expect(moreStyleRule).not.toContain("margin:");
   });
 });

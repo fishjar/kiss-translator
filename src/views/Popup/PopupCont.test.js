@@ -5,6 +5,7 @@ import PopupCont from "./PopupCont";
 import { getVisibleServices } from "./services";
 import {
   MSG_MOUSEHOVER_TOGGLE,
+  MSG_TRANS_GETRULE,
   MSG_TRANS_TOGGLE,
   MSG_TRANSBOX_TOGGLE,
 } from "../../config";
@@ -26,6 +27,7 @@ const mockStyles = Array.from({ length: 7 }, (_, index) => {
 const mockUpdateSetting = jest.fn();
 const mockSendBgMsg = jest.fn(async () => []);
 const mockSendTabMsg = jest.fn(async () => undefined);
+const mockSendTopFrameMsg = jest.fn(async () => undefined);
 const mockCss = jest.fn(() => "mock-preview-class");
 let mockIsExt = false;
 
@@ -54,6 +56,7 @@ jest.mock("../../libs/msg", () => ({
   getCurTab: jest.fn(async () => ({ url: "https://example.com/page" })),
   sendBgMsg: (...args) => mockSendBgMsg(...args),
   sendTabMsg: (...args) => mockSendTabMsg(...args),
+  sendTopFrameMsg: (...args) => mockSendTopFrameMsg(...args),
 }));
 
 jest.mock("../../libs/client", () => ({
@@ -62,6 +65,10 @@ jest.mock("../../libs/client", () => ({
   },
 }));
 jest.mock("../../libs/cache", () => ({ tryClearCaches: jest.fn() }));
+jest.mock("../../libs/log", () => ({
+  ...jest.requireActual("../../libs/log"),
+  kissLog: jest.fn(),
+}));
 jest.mock("../../libs/rules", () => ({ saveRule: jest.fn() }));
 
 async function flushEffects() {
@@ -130,6 +137,8 @@ describe("PopupCont capability parity", () => {
     mockSendBgMsg.mockResolvedValue([]);
     mockSendTabMsg.mockReset();
     mockSendTabMsg.mockResolvedValue(undefined);
+    mockSendTopFrameMsg.mockReset();
+    mockSendTopFrameMsg.mockResolvedValue(undefined);
     mockUpdateSetting.mockClear();
     mockCss.mockClear();
   });
@@ -148,7 +157,9 @@ describe("PopupCont capability parity", () => {
     act(() => advancedButton.click());
     expect(view.container.querySelectorAll("label label")).toHaveLength(0);
 
-    let styleButtons = view.container.querySelectorAll(".kt-popup-style-chip");
+    let styleButtons = view.container.querySelectorAll(
+      ".kt-popup-style-chip:not(.kt-popup-style-more)"
+    );
     expect(styleButtons).toHaveLength(5);
     expect(
       view.container.querySelector(
@@ -156,13 +167,29 @@ describe("PopupCont capability parity", () => {
       ).textContent
     ).toBe("Style 6");
 
-    const allStylesButton = Array.from(
-      view.container.querySelectorAll("button")
-    ).find((button) => button.textContent.includes("popup_all_styles"));
+    const allStylesButton = view.container.querySelector(
+      ".kt-popup-style-more"
+    );
+    expect(
+      allStylesButton.parentElement.classList.contains("kt-popup-style-chips")
+    ).toBe(true);
+    expect(allStylesButton.textContent).toContain("+2");
+    expect(allStylesButton.getAttribute("aria-label")).toBe(
+      "popup_all_styles (2)"
+    );
+    expect(allStylesButton.getAttribute("aria-expanded")).toBe("false");
     act(() => allStylesButton.click());
 
-    styleButtons = view.container.querySelectorAll(".kt-popup-style-chip");
+    styleButtons = view.container.querySelectorAll(
+      ".kt-popup-style-chip:not(.kt-popup-style-more)"
+    );
     expect(styleButtons).toHaveLength(7);
+    expect(allStylesButton.textContent).toContain("popup_collapse");
+    expect(allStylesButton.getAttribute("aria-expanded")).toBe("true");
+    expect(allStylesButton.previousElementSibling.textContent).toContain(
+      "Style 3"
+    );
+    expect(allStylesButton.nextElementSibling.textContent).toContain("Style 4");
     view.cleanup();
   });
 
@@ -245,15 +272,19 @@ describe("PopupCont capability parity", () => {
     const view = renderPopupCont();
     await flushEffects();
 
-    const featureLabels = Array.from(
+    const featureLabelNodes = Array.from(
       view.container.querySelectorAll(".kt-popup-scene__label")
-    ).map((node) => node.textContent);
+    );
+    const featureLabels = featureLabelNodes.map((node) => node.textContent);
     expect(featureLabels).toEqual([
       "selection_translate",
       "mousehover_translate",
       "input_translate",
     ]);
     expect(featureLabels).not.toContain("subtitle_translate");
+    featureLabelNodes.forEach((node) => {
+      expect(node.title).toBe(node.textContent);
+    });
     view.cleanup();
   });
 
@@ -266,7 +297,10 @@ describe("PopupCont capability parity", () => {
     const mainSwitch = view.container.querySelector(
       'input[aria-label="popup_translate_page"]'
     );
-    act(() => mainSwitch.click());
+    await act(async () => {
+      mainSwitch.click();
+      await Promise.resolve();
+    });
 
     expect(processActions).toHaveBeenCalledTimes(1);
     expect(processActions).toHaveBeenCalledWith({
@@ -274,6 +308,214 @@ describe("PopupCont capability parity", () => {
       args: { enabled: false },
     });
     expect(setRule).toHaveBeenCalledTimes(1);
+    view.cleanup();
+  });
+
+  test("merges only a confirmed translation state from an async action", async () => {
+    let resolveAction;
+    const processActions = jest.fn(
+      () =>
+        new Promise((resolve) => {
+          resolveAction = resolve;
+        })
+    );
+    let liveRule = {
+      transOpen: "true",
+      apiSlug: "google",
+      fromLang: "auto",
+      toLang: "zh-CN",
+    };
+    const setRule = jest.fn((update) => {
+      liveRule = typeof update === "function" ? update(liveRule) : update;
+    });
+    const view = renderPopupCont({ processActions, setRule });
+    await flushEffects();
+
+    const mainSwitch = view.container.querySelector(
+      'input[aria-label="popup_translate_page"]'
+    );
+    act(() => mainSwitch.click());
+    expect(liveRule.transOpen).toBe("false");
+
+    liveRule = { ...liveRule, apiSlug: "deepl", toLang: "fr" };
+    await act(async () => {
+      resolveAction({
+        rule: {
+          transOpen: "false",
+          apiSlug: "stale-service",
+          toLang: "stale-language",
+        },
+      });
+      await Promise.resolve();
+    });
+
+    expect(liveRule).toMatchObject({
+      transOpen: "false",
+      apiSlug: "deepl",
+      toLang: "fr",
+    });
+    expect(
+      setRule.mock.calls.every(([update]) => typeof update === "function")
+    ).toBe(true);
+    view.cleanup();
+  });
+
+  test("uses top-frame confirmation and ignores unrelated rule fields", async () => {
+    let liveRule = {
+      transOpen: "true",
+      apiSlug: "google",
+      fromLang: "auto",
+      toLang: "zh-CN",
+    };
+    const setRule = jest.fn((update) => {
+      liveRule = typeof update === "function" ? update(liveRule) : update;
+    });
+    mockSendTabMsg.mockResolvedValueOnce({
+      rule: {
+        transOpen: "false",
+        apiSlug: "iframe-service",
+        fromLang: "iframe-source",
+        toLang: "iframe-target",
+      },
+    });
+    mockSendTopFrameMsg.mockResolvedValueOnce({
+      rule: {
+        transOpen: "false",
+        apiSlug: "top-frame-stale-service",
+        fromLang: "top-frame-stale-source",
+        toLang: "top-frame-stale-target",
+      },
+    });
+    const view = renderPopupCont({ setRule });
+    await flushEffects();
+
+    const mainSwitch = view.container.querySelector(
+      'input[aria-label="popup_translate_page"]'
+    );
+    await act(async () => {
+      mainSwitch.click();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(liveRule).toMatchObject({
+      transOpen: "false",
+      apiSlug: "google",
+      fromLang: "auto",
+      toLang: "zh-CN",
+    });
+    expect(
+      setRule.mock.calls.every(([update]) => typeof update === "function")
+    ).toBe(true);
+    expect(mockSendTabMsg).toHaveBeenCalledWith(MSG_TRANS_TOGGLE, {
+      enabled: false,
+    });
+    expect(mockSendTopFrameMsg).toHaveBeenCalledWith(MSG_TRANS_GETRULE);
+    view.cleanup();
+  });
+
+  test("does not accept an iframe-only response as top-frame confirmation", async () => {
+    let liveRule = {
+      transOpen: "true",
+      apiSlug: "google",
+      fromLang: "auto",
+      toLang: "zh-CN",
+    };
+    const setRule = jest.fn((update) => {
+      liveRule = typeof update === "function" ? update(liveRule) : update;
+    });
+    mockSendTabMsg.mockResolvedValueOnce({ rule: { transOpen: "false" } });
+    const view = renderPopupCont({ setRule });
+    await flushEffects();
+
+    const mainSwitch = view.container.querySelector(
+      'input[aria-label="popup_translate_page"]'
+    );
+    await act(async () => {
+      mainSwitch.click();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(liveRule.transOpen).toBe("true");
+    expect(setRule).toHaveBeenCalledTimes(2);
+    const alert = view.container.querySelector('[role="alert"]');
+    expect(alert).not.toBeNull();
+    expect(alert.textContent).toContain("rule_toggle_failed");
+    expect(alert.className).toContain("MuiAlert-filledError");
+    view.cleanup();
+  });
+
+  test("rolls back when the top frame confirms the opposite state", async () => {
+    let liveRule = {
+      transOpen: "true",
+      apiSlug: "google",
+      fromLang: "auto",
+      toLang: "zh-CN",
+    };
+    const setRule = jest.fn((update) => {
+      liveRule = typeof update === "function" ? update(liveRule) : update;
+    });
+    mockSendTopFrameMsg.mockResolvedValueOnce({
+      rule: { transOpen: "true" },
+    });
+    const view = renderPopupCont({ setRule });
+    await flushEffects();
+
+    const mainSwitch = view.container.querySelector(
+      'input[aria-label="popup_translate_page"]'
+    );
+    await act(async () => {
+      mainSwitch.click();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(liveRule.transOpen).toBe("true");
+    expect(
+      view.container.querySelector('[role="alert"]').textContent
+    ).toContain("rule_toggle_failed");
+    view.cleanup();
+  });
+
+  test("labels and exposes the service disclosure state", async () => {
+    const setting = {
+      transApis: ["google", "deepl", "microsoft", "openai"].map((apiSlug) => ({
+        apiSlug,
+        apiName: apiSlug,
+        apiType: apiSlug,
+      })),
+      tranboxSetting: { transOpen: true },
+      mouseHoverSetting: { useMouseHover: false },
+      inputRule: { transOpen: true },
+      shortcuts: { toggleTranslate: ["AltLeft", "KeyQ"] },
+    };
+    const view = renderPopupCont({ setting });
+    await flushEffects();
+
+    const moreServices = view.container.querySelector(".kt-popup-more-service");
+    expect(moreServices.getAttribute("aria-label")).toBe(
+      "popup_more_services (2)"
+    );
+    expect(moreServices.getAttribute("aria-expanded")).toBe("false");
+
+    act(() => moreServices.click());
+
+    expect(moreServices.getAttribute("aria-label")).toBe(
+      "popup_collapse: popup_more_services"
+    );
+    expect(moreServices.getAttribute("aria-expanded")).toBe("true");
+    expect(moreServices.className).toContain("kt-popup-more-service--open");
+    view.cleanup();
+  });
+
+  test("describes a site outside the blacklist without implying translation is active", async () => {
+    const view = renderPopupCont();
+    await flushEffects();
+
+    expect(
+      view.container.querySelector(".kt-popup-site__badge").textContent
+    ).toBe("popup_domain_allowed");
     view.cleanup();
   });
 

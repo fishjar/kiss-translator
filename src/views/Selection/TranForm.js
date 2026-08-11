@@ -182,9 +182,13 @@ export default function TranForm({
   const activeApiSlugs = useMemo(() => {
     const validSlugs = new Set(optApis.map((api) => api.key));
     const activeSlugs = (apiSlugs || []).filter((slug) => validSlugs.has(slug));
-    return activeSlugs.length > 0
-      ? activeSlugs
-      : optApis.slice(0, 1).map((api) => api.key);
+    const hasExplicitEmptySelection =
+      Array.isArray(apiSlugs) && apiSlugs.length === 0;
+    if (activeSlugs.length > 0 || hasExplicitEmptySelection) {
+      return activeSlugs;
+    }
+
+    return optApis.slice(0, 1).map((api) => api.key);
   }, [apiSlugs, optApis]);
 
   // 默认词典覆盖英文单词和单个汉字：英文走 Bing/有道，单字走汉典。

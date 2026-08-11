@@ -10,3 +10,11 @@ test("covers every supported locale for every registered label", () => {
 
   expect(missing).toEqual([]);
 });
+
+test("provides distinct popup loading and domain status labels", () => {
+  expect(I18N.popup_loading.en).toBe("Loading…");
+  expect(I18N.popup_loading.en).not.toBe(I18N.popup_translating.en);
+  expect(I18N.popup_domain_allowed.en).toBe("Not blocked");
+  expect(I18N.popup_domain_allowed.en).not.toBe(I18N.popup_domain_active.en);
+  expect(I18N.popup_more_services.en).toBe("More translation services");
+});

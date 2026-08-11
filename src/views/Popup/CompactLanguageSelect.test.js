@@ -16,10 +16,10 @@ describe("CompactLanguageSelect", () => {
       root.render(
         <CompactLanguageSelect
           ariaLabel="Source language"
-          value="en"
+          value="zh-CN"
           options={[
-            ["en", "English - en"],
-            ["zh-CN", "Chinese - zh-CN"],
+            ["en", "English - English"],
+            ["zh-CN", "简体中文 - Simplified Chinese"],
           ]}
           onChange={jest.fn()}
         />
@@ -29,7 +29,15 @@ describe("CompactLanguageSelect", () => {
     const combobox = container.querySelector('[role="combobox"]');
     expect(combobox).not.toBeNull();
     expect(combobox.getAttribute("aria-label")).toBe("Source language");
-    expect(combobox.textContent).toBe("English");
+    expect(
+      combobox.querySelector(".kt-popup-language-value__primary").textContent
+    ).toBe("简体中文");
+    expect(
+      combobox.querySelector(".kt-popup-language-value__secondary").textContent
+    ).toBe("Simplified Chinese");
+    expect(combobox.querySelector(".kt-popup-language-value").title).toBe(
+      "简体中文 - Simplified Chinese"
+    );
 
     act(() => root.unmount());
     container.remove();
@@ -47,8 +55,8 @@ describe("CompactLanguageSelect", () => {
           ariaLabel="Source language"
           value="en"
           options={[
-            ["en", "English - en"],
-            ["zh-CN", "Chinese - zh-CN"],
+            ["en", "English - English"],
+            ["zh-CN", "简体中文 - Simplified Chinese"],
           ]}
           onChange={jest.fn()}
         />
@@ -56,6 +64,9 @@ describe("CompactLanguageSelect", () => {
     });
 
     const combobox = container.querySelector('[role="combobox"]');
+    expect(combobox.querySelector(".kt-popup-language-value").title).toBe(
+      "English"
+    );
     act(() => {
       combobox.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
     });
@@ -65,6 +76,11 @@ describe("CompactLanguageSelect", () => {
     expect(menu.closest(".kt-m3-root")).toBe(container);
     expect(container.getAttribute("aria-hidden")).toBeNull();
     expect(container.querySelector('[role="listbox"]')).not.toBeNull();
+    expect(
+      Array.from(container.querySelectorAll('[role="option"]')).map(
+        (option) => option.textContent
+      )
+    ).toEqual(["English", "简体中文 - Simplified Chinese"]);
     expect(document.body.style.overflow).toBe("");
 
     act(() => root.unmount());
