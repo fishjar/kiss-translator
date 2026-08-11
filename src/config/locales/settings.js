@@ -1,4 +1,13 @@
 export const SETTINGS_I18N = {
+  api_actions: {
+    zh: `接口操作`,
+    en: `API actions`,
+    zh_TW: `介面操作`,
+    ja: `API 操作`,
+    ko: `API 작업`,
+    tr: `API işlemleri`,
+    vi: `Thao tác API`,
+  },
   discard_api_changes_confirm: {
     zh: `当前 API 有未保存的更改，确定放弃吗？`,
     en: `This API has unsaved changes. Discard them?`,

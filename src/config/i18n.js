@@ -277,6 +277,42 @@ const SUBTITLE_PLAYGROUND_I18N = {
     "Metin çevirisi",
     "Dịch văn bản"
   ),
+  playground_translation_config_title: subtitlePlaygroundText(
+    "翻译配置",
+    "Translation setup",
+    "翻譯設定",
+    "翻訳設定",
+    "번역 설정",
+    "Çeviri ayarları",
+    "Thiết lập bản dịch"
+  ),
+  playground_translation_config_description: subtitlePlaygroundText(
+    "选择本次测试使用的服务、语言和辅助工具",
+    "Choose the services, languages, and helpers for this test",
+    "選擇本次測試使用的服務、語言和輔助工具",
+    "このテストで使用するサービス、言語、補助機能を選択",
+    "이 테스트에 사용할 서비스, 언어 및 보조 도구 선택",
+    "Bu test için hizmetleri, dilleri ve yardımcıları seçin",
+    "Chọn dịch vụ, ngôn ngữ và công cụ hỗ trợ cho lần thử này"
+  ),
+  playground_translation_empty_result: subtitlePlaygroundText(
+    "输入原文后，译文将在这里显示",
+    "Enter source text to see the translation here",
+    "輸入原文後，譯文會顯示在這裡",
+    "原文を入力すると、ここに翻訳が表示されます",
+    "원문을 입력하면 여기에 번역이 표시됩니다",
+    "Kaynak metni girin; çeviri burada görünecek",
+    "Nhập văn bản nguồn để xem bản dịch tại đây"
+  ),
+  playground_translation_select_service: subtitlePlaygroundText(
+    "请先选择至少一个可用的翻译服务",
+    "Select at least one available translation service",
+    "請先選擇至少一個可用的翻譯服務",
+    "利用可能な翻訳サービスを1つ以上選択してください",
+    "사용 가능한 번역 서비스를 하나 이상 선택하세요",
+    "En az bir kullanılabilir çeviri hizmeti seçin",
+    "Chọn ít nhất một dịch vụ dịch khả dụng"
+  ),
   playground_merge_single_line_breaks: subtitlePlaygroundText(
     "合并单个换行（保留段落）",
     "Merge single line breaks (preserve paragraphs)",

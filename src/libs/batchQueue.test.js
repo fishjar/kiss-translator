@@ -30,13 +30,16 @@ describe("BatchQueue batch concurrency", () => {
     jest.useRealTimers();
   });
 
-  test("keeps batches serial by default", async () => {
+  test("keeps batches serial when concurrency is one", async () => {
     const batches = [deferred(), deferred()];
     const taskFn = jest
       .fn()
       .mockImplementationOnce(() => batches[0].promise)
       .mockImplementationOnce(() => batches[1].promise);
-    const queue = createBatchQueue(taskFn, { batchSize: 1 });
+    const queue = createBatchQueue(taskFn, {
+      batchSize: 1,
+      batchConcurrency: 1,
+    });
 
     const first = queue.addTask("first");
     const second = queue.addTask("second");

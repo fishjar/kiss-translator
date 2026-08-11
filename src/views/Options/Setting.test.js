@@ -103,4 +103,13 @@ describe("ExtCommands", () => {
     expect(alert.info).not.toHaveBeenCalled();
     act(() => root.unmount());
   });
+
+  test("uses a two-column layout at large breakpoints", async () => {
+    const { container, root } = await renderCommands();
+    const commandGridItem = container.querySelector(".MuiGrid-item");
+
+    expect(commandGridItem.classList.contains("MuiGrid-grid-lg-6")).toBe(true);
+    expect(commandGridItem.classList.contains("MuiGrid-grid-lg-3")).toBe(false);
+    act(() => root.unmount());
+  });
 });

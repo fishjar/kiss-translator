@@ -2,7 +2,9 @@ import { act, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   SettingsAdvanced,
+  SettingsCard,
   SettingsRange,
+  SettingsRow,
   SettingsSegmented,
 } from "./SettingsCard";
 
@@ -96,6 +98,52 @@ describe("SettingsAdvanced", () => {
     expect(
       container.querySelector('[data-testid="advanced-content"]')
     ).not.toBeNull();
+
+    act(() => root.unmount());
+  });
+
+  test("keeps layout spacing outside the accordion and supports flat rows", () => {
+    const container = document.createElement("div");
+    const root = createRoot(container);
+    act(() => {
+      root.render(
+        <SettingsAdvanced rows className="about-override" label="Details">
+          <SettingsRow label="One">Control</SettingsRow>
+        </SettingsAdvanced>
+      );
+    });
+
+    const shell = container.querySelector(".kt-settings-advanced-shell");
+    const accordion = shell.querySelector(".kt-settings-advanced");
+    expect(shell.classList.contains("about-override")).toBe(true);
+    expect(accordion.classList.contains("about-override")).toBe(false);
+
+    act(() => accordion.querySelector(".MuiAccordionSummary-root").click());
+    const content = accordion.querySelector(".kt-settings-advanced__content");
+    const rows = content.querySelector(".kt-settings-advanced__rows");
+    expect(content.tagName).toBe("DIV");
+    expect(rows.tagName).toBe("UL");
+    expect(rows.children).toHaveLength(1);
+    expect(rows.firstElementChild.tagName).toBe("LI");
+
+    act(() => root.unmount());
+  });
+});
+
+describe("SettingsCard", () => {
+  test("uses valid list semantics for setting rows", () => {
+    const container = document.createElement("div");
+    const root = createRoot(container);
+    act(() => {
+      root.render(
+        <SettingsCard>
+          <SettingsRow label="Setting">Control</SettingsRow>
+        </SettingsCard>
+      );
+    });
+
+    expect(container.querySelector(".kt-settings-card").tagName).toBe("UL");
+    expect(container.querySelector(".kt-settings-row").tagName).toBe("LI");
 
     act(() => root.unmount());
   });

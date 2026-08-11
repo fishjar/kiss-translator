@@ -179,6 +179,7 @@ export default function OptionsTheme({
           },
         },
         MuiAccordion: {
+          defaultProps: { disableGutters: true },
           styleOverrides: {
             root: {
               overflow: "hidden",

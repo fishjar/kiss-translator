@@ -39,8 +39,9 @@ export const OPTIONS_STYLES = String.raw`
 .kt-options-sidebar__close svg { width: 22px; height: 22px; }
 .kt-options-overlay { display: none; }
 
-.kt-options-main { min-width: 0; padding: 38px clamp(24px, 5vw, 72px) 80px; }
+.kt-options-main { min-width: 0; padding: 38px clamp(24px, 5vw, 72px) 80px; container-name: options-main; container-type: inline-size; }
 .kt-options-main__inner { width: min(790px, 100%); margin: 0 auto; }
+.kt-options-main__inner--wide { width: min(1120px, 100%); }
 .kt-options-page-header { margin: 0 0 26px; }
 .kt-options-page-header h1 { margin: 0; color: var(--kt-on); font-size: clamp(27px, 3vw, 31px); font-weight: 650; letter-spacing: -.035em; line-height: 1.2; }
 .kt-options-page-header p { margin: 8px 0 0; color: var(--kt-onv); font-size: 13.5px; line-height: 1.5; }
@@ -50,8 +51,6 @@ export const OPTIONS_STYLES = String.raw`
 
 .kt-options-page > .MuiBox-root > .MuiStack-root { gap: 18px; }
 .kt-options-page .MuiAlert-root { border: 0; border-radius: 18px; background: var(--kt-sf1); color: var(--kt-onv); }
-.kt-options-page .MuiGrid-container { width: 100%; margin: 0; padding: 8px; border: 1px solid var(--kt-linev); border-radius: 20px; background: var(--kt-sf0); }
-.kt-options-page .MuiGrid-item { padding: 8px !important; }
 .kt-options-page .MuiTextField-root { min-width: 0; }
 .kt-options-page .MuiInputLabel-root.MuiInputLabel-shrink { max-width: calc(125% - 24px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .kt-options-page .kt-translation-text-field .MuiFilledInput-root { min-height: 128px; align-items: flex-start; padding: 0; border-radius: 20px; }
@@ -64,9 +63,10 @@ export const OPTIONS_STYLES = String.raw`
 .kt-options-page .kt-translation-text-field__actions .MuiIconButton-root.Mui-disabled { background: var(--kt-sf2); color: var(--kt-line); }
 .kt-options-page .kt-translation-text-field--source textarea { caret-color: var(--kt-pri); }
 .kt-options-page .kt-translation-text-field--result textarea { cursor: default; }
-.kt-options-page .MuiFormControlLabel-root { min-height: 48px; gap: 8px; margin: 0; padding: 4px 8px 4px 14px; border-radius: 14px; background: var(--kt-sf1); }
+.kt-options-page .MuiFormControlLabel-root { min-height: 40px; gap: 8px; margin: 0; }
 .kt-options-page .MuiFormControlLabel-label { font-size: 13px; font-weight: 550; }
 .kt-options-page .MuiAccordion-root { border-radius: 20px !important; background: var(--kt-sf0); }
+.kt-options-page .MuiAccordion-root.Mui-expanded { margin-block: 0; }
 .kt-options-page .MuiAccordion-root:not(:last-child) { margin-bottom: 8px; }
 .kt-options-page .MuiAccordionSummary-root { min-height: 58px; padding-inline: 18px; }
 .kt-options-page .MuiButton-root { white-space: nowrap; }
@@ -82,15 +82,35 @@ export const OPTIONS_STYLES = String.raw`
 .kt-options-page pre { padding: 14px; border-radius: 16px; background: var(--kt-sf1); }
 .kt-options-page code,
 .kt-options-page a { overflow-wrap: anywhere; }
-.kt-options-page ul,
-.kt-options-page ol { max-width: 100%; margin-inline: 0; padding-inline-start: 24px; }
-.kt-options-page li { min-width: 0; overflow-wrap: anywhere; }
+.kt-about-markdown ul,
+.kt-about-markdown ol { max-width: 100%; margin-inline: 0; padding-inline-start: 24px; }
+.kt-about-markdown li { min-width: 0; overflow-wrap: anywhere; }
 .kt-options-page pre > code { min-width: 100%; display: block; overflow-wrap: normal; }
+.kt-playground { min-width: 0; container: playground / inline-size; }
+.kt-playground__tabs { margin-bottom: 18px; }
+.kt-playground-translator.MuiStack-root { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 14px; }
+.kt-playground-config { min-width: 0; grid-column: 1 / -1; padding: 18px; border: 1px solid var(--kt-linev); border-radius: 24px; background: var(--kt-sf0); }
+.kt-playground-config__header { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 16px; }
+.kt-playground-config__copy { min-width: 0; }
+.kt-playground-config__copy h2 { margin: 0; color: var(--kt-on); font-size: 14px; font-weight: 700; letter-spacing: -.01em; }
+.kt-playground-config__copy p { margin: 4px 0 0; color: var(--kt-onv); font-size: 11.5px; line-height: 1.45; }
+.kt-playground-config__normalize { width: fit-content; flex: none; }
+.kt-playground-config__grid.MuiGrid-container { width: 100%; display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; margin: 0; }
+.kt-playground-config__grid.MuiGrid-container > .MuiGrid-item { width: auto; max-width: none; flex-basis: auto; padding: 0 !important; }
+.kt-playground-config__grid .MuiSelect-select { text-overflow: ellipsis; }
+.kt-playground-config__grid input[readonly] { color: var(--kt-onv); -webkit-text-fill-color: var(--kt-onv); }
+.kt-playground-translator__source { min-width: 0; grid-column: 1; }
+.kt-playground-translator__results { min-width: 0; grid-column: 2; }
+.kt-playground-translator__result { min-width: 0; }
+.kt-playground-translator__empty { min-height: 128px; display: grid; place-items: center; padding: 20px; border: 1px dashed var(--kt-linev); border-radius: 20px; background: var(--kt-sf1); color: var(--kt-onv); font-size: 12px; line-height: 1.5; text-align: center; }
+.kt-playground-translator__auxiliary { min-width: 0; grid-column: 1 / -1; }
+.kt-playground-translator__source .MuiFormControl-root,
+.kt-playground-translator__result .MuiFormControl-root { width: 100%; }
 .kt-options-section-title { margin: 0 0 10px !important; color: var(--kt-onv); font-size: 11px !important; font-weight: 700 !important; letter-spacing: .08em !important; text-transform: uppercase; }
 .kt-settings-section { margin-top: 26px; }
 .kt-settings-section:first-child { margin-top: 0; }
 .kt-settings-section > h2 { margin: 0 4px 9px; color: var(--kt-on); font-size: 12px; font-weight: 700; letter-spacing: .02em; }
-.kt-settings-card { overflow: hidden; border: 1px solid var(--kt-linev); border-radius: 20px; background: var(--kt-sf0); }
+.kt-settings-card { margin: 0; overflow: hidden; padding: 0; border: 1px solid var(--kt-linev); border-radius: 20px; background: var(--kt-sf0); list-style: none; }
 .kt-settings-row { min-height: 68px; display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 11px 18px 11px 20px; border-top: 1px solid var(--kt-linev); }
 .kt-settings-row:first-child { border-top: 0; }
 .kt-settings-row__copy { min-width: 0; flex: 1; }
@@ -99,6 +119,7 @@ export const OPTIONS_STYLES = String.raw`
 .kt-settings-row__control { min-width: 0; max-width: 58%; display: flex; flex: none; align-items: center; justify-content: flex-end; gap: 8px; }
 .kt-settings-row--stacked { align-items: flex-start; flex-direction: column; gap: 10px; }
 .kt-settings-row--stacked .kt-settings-row__control { width: 100%; max-width: none; justify-content: stretch; }
+.kt-settings-row--trigger .kt-settings-segmented { width: 100%; }
 .kt-settings-select { min-width: 112px; max-width: 260px; }
 .kt-settings-select .MuiFilledInput-root { min-height: 40px; border-radius: 14px; }
 .kt-settings-select .MuiSelect-select { padding: 9px 34px 9px 14px; color: var(--kt-on); font-size: 12px; font-weight: 600; text-overflow: ellipsis; }
@@ -125,12 +146,15 @@ export const OPTIONS_STYLES = String.raw`
 .kt-settings-keys { display: inline-flex; align-items: center; gap: 5px; }
 .kt-settings-keys kbd { min-width: 28px; padding: 3px 7px; border: 1px solid var(--kt-linev); border-bottom-width: 2px; border-radius: 7px; background: var(--kt-sf0); color: var(--kt-on); font-family: ui-monospace, monospace; font-size: 10px; text-align: center; }
 .kt-settings-keys--empty { color: var(--kt-onv); }
-.kt-settings-advanced.MuiAccordion-root { margin-top: 18px; overflow: hidden; border: 1px solid var(--kt-linev); border-radius: 20px !important; background: var(--kt-sf0); }
+.kt-settings-advanced-shell { margin-top: 18px; }
+.kt-settings-advanced.MuiAccordion-root,
+.kt-settings-advanced.MuiAccordion-root.Mui-expanded { margin: 0; overflow: hidden; border: 1px solid var(--kt-linev); border-radius: 20px !important; background: var(--kt-sf0); }
 .kt-settings-advanced .MuiAccordionSummary-root { min-height: 52px; padding: 0 18px; color: var(--kt-pri); font-size: 12px; font-weight: 700; }
 .kt-settings-advanced .MuiAccordionSummary-content { margin-block: 12px; }
 .kt-settings-advanced .MuiAccordionSummary-expandIconWrapper { color: var(--kt-pri); }
-.kt-settings-advanced__content { padding: 4px 12px 14px !important; border-top: 1px solid var(--kt-linev); animation: kt-m3-rise .3s var(--kt-spring); }
-.kt-settings-advanced__content > .MuiGrid-container { border: 0; background: transparent; }
+.kt-settings-advanced .kt-settings-advanced__content { padding: 4px 12px 14px; border-top: 1px solid var(--kt-linev); animation: kt-m3-rise .3s var(--kt-spring); }
+.kt-settings-advanced-shell--rows .kt-settings-advanced__content { padding: 0; }
+.kt-settings-advanced__rows { margin: 0; padding: 0; list-style: none; }
 .kt-settings-advanced__content > .MuiTextField-root { width: 100%; margin-top: 12px; }
 .kt-settings-card .MuiButton-root { min-height: 38px; padding-inline: 15px; font-size: 11.5px; }
 .kt-settings-card .MuiSwitch-root { margin-inline: 2px; }
@@ -148,14 +172,6 @@ export const OPTIONS_STYLES = String.raw`
 .kt-style-card__summary { min-width: 0; display: flex; flex: 1; flex-direction: column; justify-content: center; gap: 3px; padding: 12px 0; }
 .kt-style-card__summary > span { overflow: hidden; color: var(--kt-on); font-size: 12px; line-height: 1.45; text-overflow: ellipsis; white-space: nowrap; }
 .kt-style-card__summary > .MuiTypography-root { margin-top: 7px; color: var(--kt-onv); font-size: 11px; font-weight: 700; }
-.kt-rule-style-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
-.kt-rule-style-card { min-height: 112px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 3px; padding: 14px 15px; border: 1px solid var(--kt-linev); border-radius: 20px; background: var(--kt-sf0); color: var(--kt-on); cursor: pointer; text-align: left; transition: border-color .3s, background .3s, transform .15s; }
-.kt-rule-style-card:active { transform: scale(.98); }
-.kt-rule-style-card[aria-pressed="true"] { border: 2px solid var(--kt-pri); background: var(--kt-pric); color: var(--kt-onpric); }
-.kt-rule-style-card:disabled { cursor: default; opacity: .72; }
-.kt-rule-style-card > span { font-size: 11.5px; line-height: 1.4; }
-.kt-rule-style-card > strong { margin-top: 7px; font-size: 10.5px; }
-
 .kt-overview-top { display: grid; grid-template-columns: 1.35fr 1fr; gap: 14px; margin-bottom: 20px; }
 .kt-overview-hero { min-height: 200px; display: flex; flex-direction: column; position: relative; padding: 24px; border-radius: 26px; background: var(--kt-pric); color: var(--kt-onpric); overflow: hidden; }
 .kt-overview-hero__header { display: flex; align-items: center; gap: 13px; }
@@ -173,7 +189,7 @@ export const OPTIONS_STYLES = String.raw`
 .kt-overview-shortcut { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 25px; color: var(--kt-onv); font-size: 11.5px; }
 .kt-overview-shortcut__keys { display: flex; gap: 4px; }
 .kt-overview-shortcut kbd { min-width: 24px; padding: 2px 5px; border: 1px solid var(--kt-linev); border-bottom-width: 2px; border-radius: 6px; background: var(--kt-sf0); color: var(--kt-on); font-family: ui-monospace, monospace; font-size: 9.5px; text-align: center; }
-.kt-overview-settings > .MuiGrid-container { display: block; overflow: hidden; padding: 0; }
+.kt-overview-settings > .MuiGrid-container { display: block; overflow: hidden; padding: 0; border: 1px solid var(--kt-linev); border-radius: 20px; background: var(--kt-sf0); }
 .kt-overview-settings > .MuiGrid-container > .MuiGrid-item { width: 100%; max-width: none; min-height: 64px; display: flex; align-items: stretch; padding: 0 !important; border-bottom: 1px solid var(--kt-linev); }
 .kt-overview-settings > .MuiGrid-container > .MuiGrid-item:last-child { border-bottom: 0; }
 .kt-overview-settings .MuiFormControl-root { width: 100%; min-height: 63px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(190px, 250px); align-items: center; column-gap: 18px; padding: 8px 12px 8px 16px; }
@@ -183,13 +199,17 @@ export const OPTIONS_STYLES = String.raw`
 .kt-overview-settings .MuiFilledInput-input { padding-block: 9px; }
 .kt-overview-settings .MuiFormHelperText-root { grid-column: 1 / -1; margin-inline: 0; }
 
-.kt-api-grid { max-height: 340px; display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; overflow-x: hidden; overflow-y: auto; padding: 0 4px 0 0 !important; }
-.kt-api-grid .MuiListItem-root { min-height: 72px; padding: 8px !important; border: 1px solid var(--kt-linev); border-radius: 20px; background: var(--kt-sf0); }
-.kt-api-grid .MuiListItemButton-root { min-height: 54px; border-radius: 15px; }
-.kt-api-grid .MuiListItemButton-root.Mui-selected { background: var(--kt-pric); color: var(--kt-onpric); }
-.kt-api-grid .MuiSwitch-root { flex: none; }
+.kt-api-master-detail { min-width: 0; }
+.kt-api-list { margin: 0; padding: 0; list-style: none; scrollbar-gutter: stable; }
+.kt-api-list__item,
+.kt-api-list__card { min-width: 0; width: 100%; }
 .kt-api-provider-icon { width: 38px !important; height: 38px !important; border: 1px solid var(--kt-linev); border-radius: 50%; background: #fff; }
-.kt-api-detail { margin-top: 14px; padding: 22px; border-radius: 24px; background: var(--kt-sf1); animation: kt-m3-rise .35s var(--kt-spring); }
+.kt-api-detail { min-width: 0; padding: 22px; border: 1px solid var(--kt-linev); border-radius: 24px; background: var(--kt-sf0); animation: kt-m3-rise .35s var(--kt-spring); }
+.kt-api-detail__header { padding-bottom: 16px; border-bottom: 1px solid var(--kt-linev); }
+.kt-api-detail__footer { padding-top: 16px; border-top: 1px solid var(--kt-linev); }
+.kt-api-detail__primary-actions,
+.kt-api-detail__secondary-actions,
+.kt-api-detail__status-actions { flex-wrap: wrap; }
 .kt-sync-methods { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .kt-sync-method { min-height: 116px; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 16px; border: 1px solid var(--kt-linev); border-radius: 20px; background: var(--kt-sf0); color: var(--kt-on); cursor: pointer; text-align: left; transition: border-color .3s, background .3s, transform .15s; }
 .kt-sync-method:active { transform: scale(.98); }
@@ -222,11 +242,11 @@ export const OPTIONS_STYLES = String.raw`
 .kt-about-hero small { margin-top: 5px; color: var(--kt-onv); font-size: 11px; }
 .kt-about-hero__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 19px; }
 .kt-about-details { margin-top: 0; }
-.kt-about-details .kt-settings-advanced__content { padding: 0; }
+.kt-about-details .kt-settings-advanced .kt-settings-advanced__content { padding: 0; }
 .kt-about-loading { min-height: 120px; display: grid; place-items: center; }
 .kt-about-markdown { padding: 20px; }
 
-@media (max-width: 859px) {
+@media (max-width: 1179px) {
   .kt-options-layout { display: block; }
   .kt-options-mobile-header { min-height: 62px; display: flex; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 30; padding: 8px 14px; border-bottom: 1px solid var(--kt-linev); background: color-mix(in srgb, var(--kt-bg) 92%, transparent); backdrop-filter: blur(14px); }
   .kt-options-mobile-header__name { flex: 1; font-size: 14px; font-weight: 700; }
@@ -239,12 +259,13 @@ export const OPTIONS_STYLES = String.raw`
 }
 
 @media (max-width: 620px) {
-  .kt-overview-top { grid-template-columns: 1fr; }
-  .kt-api-grid { grid-template-columns: 1fr; }
   .kt-options-main { padding-inline: 14px; }
+}
+
+@container options-main (max-width: 620px) {
+  .kt-overview-top { grid-template-columns: 1fr; }
   .kt-sync-methods { grid-template-columns: 1fr; }
   .kt-style-grid { grid-template-columns: 1fr; }
-  .kt-rule-style-grid { grid-template-columns: 1fr; }
   .kt-overview-settings .MuiFormControl-root { grid-template-columns: 1fr; gap: 7px; padding-block: 11px; }
   .kt-overview-settings .MuiInputLabel-root,
   .kt-overview-settings .MuiInputBase-root { grid-column: 1; }
@@ -257,5 +278,17 @@ export const OPTIONS_STYLES = String.raw`
   .kt-settings-range { width: 100%; max-width: none; }
   .kt-settings-segmented > button { padding-inline: 8px; font-size: 10.5px; }
   .kt-settings-segmented--trigger { grid-template-columns: repeat(2, minmax(0, 1fr)); display: grid; border-radius: 18px; }
+}
+
+@container options-main (max-width: 720px) {
+  .kt-api-master-detail { grid-template-columns: minmax(0, 1fr); }
+}
+
+@container playground (max-width: 760px) {
+  .kt-playground-translator.MuiStack-root { grid-template-columns: minmax(0, 1fr); }
+  .kt-playground-translator__source,
+  .kt-playground-translator__results { grid-column: 1; }
+  .kt-playground-config__header { align-items: flex-start; flex-direction: column; gap: 10px; }
+  .kt-playground-config__normalize { max-width: 100%; }
 }
 `;

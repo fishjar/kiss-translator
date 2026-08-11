@@ -1,6 +1,11 @@
 import { BilingualSubtitleManager } from "./BilingualSubtitleManager";
 import { apiTranslate } from "../apis/index.js";
 
+jest.mock("./favoriteWords.js", () => ({
+  createFavoriteButton: jest.fn(() => global.document.createElement("button")),
+  saveFavoriteWordIfMissing: jest.fn(),
+}));
+
 jest.mock("../apis/index.js", () => ({
   apiTranslate: jest.fn(),
   apiMicrosoftDict: jest.fn(),

@@ -121,6 +121,65 @@ describe("Prompts", () => {
     }
   });
 
+  test("marks the editor as container responsive and caps the stacked list", () => {
+    const { container, unmount } = renderPrompts(PROMPT_CATEGORY_USER);
+    const editor = container.querySelector(".kt-prompt-editor");
+
+    expect(editor.classList).toContain(
+      "kt-prompt-editor--container-responsive"
+    );
+    expect(
+      container.querySelector(".kt-prompt-editor__list-panel")
+    ).not.toBeNull();
+    expect(
+      container.querySelector(".kt-prompt-editor__detail-panel")
+    ).not.toBeNull();
+
+    expect(
+      getComputedStyle(container.querySelector(".kt-prompt-editor__list-panel"))
+        .maxHeight
+    ).toBe("min(40vh, 360px)");
+    unmount();
+  });
+
+  test("exposes selection while preserving keyboard and mouse behavior", async () => {
+    const firstPrompt = createPrompt(PROMPT_CATEGORY_USER, {
+      slug: "first_prompt",
+      name: "First prompt",
+    });
+    const secondPrompt = createPrompt(PROMPT_CATEGORY_USER, {
+      slug: "second_prompt",
+      name: "Second prompt",
+    });
+    const { container, unmount } = renderPrompts([firstPrompt, secondPrompt]);
+    const promptList = container.querySelector(".kt-prompt-editor__list");
+    const promptButtons = Array.from(
+      promptList.querySelectorAll('[role="button"]')
+    );
+
+    expect(promptList.classList).not.toContain("MuiList-padding");
+    expect(getComputedStyle(promptList).width).toBe("100%");
+    expect(getComputedStyle(promptList).boxSizing).toBe("border-box");
+    expect(promptButtons).toHaveLength(2);
+    expect(promptButtons[0].getAttribute("aria-pressed")).toBe("true");
+    expect(promptButtons[1].getAttribute("aria-pressed")).toBe("false");
+
+    await act(async () => {
+      promptButtons[1].dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Enter", bubbles: true })
+      );
+    });
+
+    expect(promptButtons[0].getAttribute("aria-pressed")).toBe("false");
+    expect(promptButtons[1].getAttribute("aria-pressed")).toBe("true");
+
+    await act(async () => promptButtons[0].click());
+
+    expect(promptButtons[0].getAttribute("aria-pressed")).toBe("true");
+    expect(promptButtons[1].getAttribute("aria-pressed")).toBe("false");
+    unmount();
+  });
+
   test("confirms before switching away from unsaved changes", async () => {
     const firstPrompt = createPrompt(PROMPT_CATEGORY_USER, {
       slug: "first_prompt",

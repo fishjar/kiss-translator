@@ -180,6 +180,40 @@ function getButtonByLabel(container, label) {
   return button;
 }
 
+function getButtonByText(container, text) {
+  const button = Array.from(container.querySelectorAll("button")).find(
+    (item) => item.textContent === text
+  );
+  if (!button) {
+    throw new Error(`Unable to find button named ${text}`);
+  }
+  return button;
+}
+
+async function selectOption(container, inputName, optionName) {
+  const input = container.querySelector(`input[name="${inputName}"]`);
+  const select = input?.parentElement?.querySelector('[role="combobox"]');
+  if (!select) {
+    throw new Error(`Unable to find select named ${inputName}`);
+  }
+
+  await act(async () => {
+    select.dispatchEvent(
+      new MouseEvent("mousedown", {
+        bubbles: true,
+        cancelable: true,
+        button: 0,
+      })
+    );
+  });
+
+  const option = getByRole(document.body, "option", optionName);
+  await act(async () => {
+    option.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  });
+  await flushEffects();
+}
+
 describe("Options Rules subscription tab", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -278,6 +312,77 @@ describe("Options Rules subscription tab", () => {
 
     view.unmount();
   });
+
+  test("allows subscription action rows to wrap on narrow screens", async () => {
+    const view = renderRules();
+    await openSubscribeTab(view);
+
+    const addButton = getButtonByText(view.container, "add");
+    const subscriptionRadio = view.container.querySelector(
+      'input[type="radio"]'
+    );
+
+    expect(window.getComputedStyle(addButton.parentElement).flexWrap).toBe(
+      "wrap"
+    );
+    expect(
+      window.getComputedStyle(subscriptionRadio.closest(".MuiStack-root"))
+        .flexWrap
+    ).toBe("wrap");
+
+    await act(async () => {
+      addButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await flushEffects();
+
+    const saveButton = getButtonByText(view.container, "save");
+    expect(window.getComputedStyle(saveButton.parentElement).flexWrap).toBe(
+      "wrap"
+    );
+
+    view.unmount();
+  });
+});
+
+describe("Options Rules global tab", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    useRules.mockReturnValue({
+      list: [
+        {
+          pattern: "*",
+          selector: "p",
+          textStyle: "style_none",
+          wrapOriginal: "false",
+          originalTextStyle: "style_none",
+        },
+      ],
+      put: mockPutRule,
+    });
+    mockSubRules = createSubRules({ selectedRules: [] });
+    useSubRules.mockImplementation(() => mockSubRules);
+    useSyncCaches.mockReturnValue({
+      dataCaches: {},
+      updateDataCache: mockUpdateDataCache,
+      deleteDataCache: mockDeleteDataCache,
+      reloadSync: mockReloadSync,
+    });
+  });
+
+  test("renders one text style control without the duplicate style preview", () => {
+    const view = renderRules();
+
+    expect(
+      view.container.querySelectorAll('input[name="textStyle"]')
+    ).toHaveLength(1);
+    expect(view.container.querySelector(".kt-rule-style-grid")).toBeNull();
+    expect(
+      view.container.querySelector('input[name="wrapOriginal"]')
+    ).not.toBeNull();
+    expect(view.container.querySelector(".MuiGrid-grid-lg-3")).toBeNull();
+
+    view.unmount();
+  });
 });
 
 describe("Options Rules personal tab", () => {
@@ -367,18 +472,14 @@ describe("Options Rules personal tab", () => {
     await flushEffects();
 
     expect(
-      view.container.querySelector(
-        '[role="combobox"][aria-label="wrap_original"]'
-      )
-    ).not.toBeNull();
+      view.container.querySelector('input[name="wrapOriginal"]')?.value
+    ).toBe("true");
     expect(
-      view.container.querySelector(
-        '[role="combobox"][aria-label="original_text_style"]'
-      )
-    ).not.toBeNull();
+      view.container.querySelector('input[name="originalTextStyle"]')?.value
+    ).toBe("style_none");
     expect(
       view.container.querySelector(".kt-rule-original-settings")
-    ).not.toBeNull();
+    ).toBeNull();
 
     view.unmount();
   });
@@ -413,13 +514,74 @@ describe("Options Rules personal tab", () => {
     await flushEffects();
 
     const wrapOriginalControl = view.container.querySelector(
-      '[role="combobox"][aria-label="wrap_original"]'
+      'input[name="wrapOriginal"]'
     );
     const originalStyleControl = view.container.querySelector(
-      '[role="combobox"][aria-label="original_text_style"]'
+      'input[name="originalTextStyle"]'
     );
-    expect(wrapOriginalControl?.textContent).toBe("*");
-    expect(originalStyleControl?.textContent).toBe("*");
+    expect(wrapOriginalControl?.value).toBe("*");
+    expect(originalStyleControl?.value).toBe("*");
+
+    view.unmount();
+  });
+
+  test("updates original wrapping from the regular form grid", async () => {
+    useRules.mockReturnValue({
+      list: [
+        {
+          pattern: "example.com",
+          enabled: true,
+          wrapOriginal: "false",
+          originalTextStyle: "style_none",
+        },
+        {
+          pattern: "*",
+          selector: "p",
+          wrapOriginal: "false",
+          originalTextStyle: "style_none",
+        },
+      ],
+      put: mockPutRule,
+    });
+    const view = renderRules();
+    await openPersonalTab(view);
+
+    const ruleSummary = Array.from(
+      view.container.querySelectorAll('[role="button"]')
+    ).find((item) => item.textContent.includes("example.com"));
+    await act(async () => {
+      ruleSummary.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await flushEffects();
+
+    const editButton = getButtonByText(view.container, "edit");
+    expect(window.getComputedStyle(editButton.parentElement).flexWrap).toBe(
+      "wrap"
+    );
+    await act(async () => {
+      editButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await flushEffects();
+
+    await selectOption(view.container, "wrapOriginal", "enable");
+
+    expect(
+      view.container.querySelector('input[name="wrapOriginal"]')?.value
+    ).toBe("true");
+    expect(
+      view.container.querySelector('input[name="originalTextStyle"]')
+    ).not.toBeNull();
+
+    const saveButton = getButtonByText(view.container, "save");
+    await act(async () => {
+      saveButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await flushEffects();
+
+    expect(mockPutRule).toHaveBeenCalledWith(
+      "example.com",
+      expect.objectContaining({ wrapOriginal: "true" })
+    );
 
     view.unmount();
   });

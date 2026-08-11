@@ -4,6 +4,7 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
+import Typography from "@mui/material/Typography";
 import TranForm from "../Selection/TranForm";
 import SubtitleSegmentationPlayground from "./SubtitleSegmentationPlayground";
 import {
@@ -57,11 +58,11 @@ export default function Playgound() {
     aiDictPromptSlug,
   } = tranboxSetting || DEFAULT_TRANBOX_SETTING;
   return (
-    <Box>
+    <Box className="kt-playground">
       <Tabs
+        className="kt-playground__tabs"
         value={activeTab}
         onChange={(_, value) => setActiveTab(value)}
-        sx={{ mb: 2 }}
       >
         <Tab
           value="translation"
@@ -74,42 +75,55 @@ export default function Playgound() {
       </Tabs>
 
       {activeTab === "translation" && (
-        <>
-          <FormControlLabel
-            control={
-              <Switch
-                size="small"
-                checked={mergeSingleLineBreaks}
-                onChange={(event) =>
-                  setMergeSingleLineBreaks(event.target.checked)
+        <TranForm
+          text={text}
+          translationText={translationText}
+          setText={setText}
+          apiSlugs={apiSlugs}
+          fromLang={fromLang}
+          toLang={toLang}
+          toLang2={toLang2}
+          transApis={resolvedTransApis}
+          simpleStyle={false}
+          langDetector={langDetector}
+          enDict={enDict}
+          enSug={enSug}
+          aiDictApiSlug={aiDictApiSlug}
+          aiDictPromptSlug={aiDictPromptSlug}
+          prompts={prompts}
+          isPlaygound={true}
+          playgroundConfigHeader={
+            <Box className="kt-playground-config__header">
+              <Box className="kt-playground-config__copy">
+                <Typography component="h2">
+                  {i18n("playground_translation_config_title", "翻译配置")}
+                </Typography>
+                <Typography component="p">
+                  {i18n(
+                    "playground_translation_config_description",
+                    "选择本次测试使用的服务、语言和辅助工具"
+                  )}
+                </Typography>
+              </Box>
+              <FormControlLabel
+                className="kt-playground-config__normalize"
+                control={
+                  <Switch
+                    size="small"
+                    checked={mergeSingleLineBreaks}
+                    onChange={(event) =>
+                      setMergeSingleLineBreaks(event.target.checked)
+                    }
+                  />
                 }
+                label={i18n(
+                  "playground_merge_single_line_breaks",
+                  "合并单个换行（保留段落）"
+                )}
               />
-            }
-            label={i18n(
-              "playground_merge_single_line_breaks",
-              "合并单个换行（保留段落）"
-            )}
-            sx={{ width: "fit-content", ml: 0, mb: 2 }}
-          />
-          <TranForm
-            text={text}
-            translationText={translationText}
-            setText={setText}
-            apiSlugs={apiSlugs}
-            fromLang={fromLang}
-            toLang={toLang}
-            toLang2={toLang2}
-            transApis={resolvedTransApis}
-            simpleStyle={false}
-            langDetector={langDetector}
-            enDict={enDict}
-            enSug={enSug}
-            aiDictApiSlug={aiDictApiSlug}
-            aiDictPromptSlug={aiDictPromptSlug}
-            prompts={prompts}
-            isPlaygound={true} // 标识为 Playground 环境以进行特定的渲染样式和交互处理
-          />
-        </>
+            </Box>
+          }
+        />
       )}
 
       {activeTab === "segmentation" && (

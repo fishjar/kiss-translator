@@ -141,7 +141,11 @@ export default function Tranbox() {
                 options={OPT_SKIPLANGS_SELECTION}
               />
             </SettingsRow>
-            <SettingsRow label={i18n("trigger_mode")}>
+            <SettingsRow
+              stacked
+              className="kt-settings-row--trigger"
+              label={i18n("trigger_mode")}
+            >
               <SettingsSegmented
                 className="kt-settings-segmented--trigger"
                 value={triggerMode}
@@ -254,11 +258,11 @@ export default function Tranbox() {
         </SettingsSection>
 
         <SettingsAdvanced label={i18n("settings_detailed_controls")}>
-          {/* 各项具体参数网格配置区 */}
-          <Box>
+          <>
+            {/* 各项具体参数网格配置区 */}
             <Grid container spacing={2} columns={12}>
               {/* 划词翻译框中支持多选并存展示的并行翻译服务 */}
-              <Grid item xs={12} sm={12} md={6} lg={3}>
+              <Grid item xs={12} sm={12} md={6} lg={6}>
                 <TextField
                   select
                   fullWidth
@@ -279,7 +283,7 @@ export default function Tranbox() {
                 </TextField>
               </Grid>
               {/* 默认源语言 */}
-              <Grid item xs={12} sm={12} md={6} lg={3}>
+              <Grid item xs={12} sm={12} md={6} lg={6}>
                 <TextField
                   fullWidth
                   select
@@ -297,7 +301,7 @@ export default function Tranbox() {
                 </TextField>
               </Grid>
               {/* 首选翻译出的目标语言 */}
-              <Grid item xs={12} sm={12} md={6} lg={3}>
+              <Grid item xs={12} sm={12} md={6} lg={6}>
                 <TextField
                   fullWidth
                   select
@@ -315,7 +319,7 @@ export default function Tranbox() {
                 </TextField>
               </Grid>
               {/* 次选目标语言 (例如：如果划词内容本身就是首选语言，则翻译为次选语言) */}
-              <Grid item xs={12} sm={12} md={6} lg={3}>
+              <Grid item xs={12} sm={12} md={6} lg={6}>
                 <TextField
                   fullWidth
                   select
@@ -336,7 +340,7 @@ export default function Tranbox() {
               </Grid>
 
               {/* AI 词典提示词来源：跟随接口默认配置，或指定全局词典提示词。 */}
-              <Grid item xs={12} sm={12} md={6} lg={3}>
+              <Grid item xs={12} sm={12} md={6} lg={6}>
                 <TextField
                   fullWidth
                   select
@@ -356,7 +360,7 @@ export default function Tranbox() {
                   ))}
                 </TextField>
               </Grid>
-              <Grid item xs={12} sm={12} md={6} lg={3}>
+              <Grid item xs={12} sm={12} md={6} lg={6}>
                 <TextField
                   fullWidth
                   select
@@ -375,7 +379,7 @@ export default function Tranbox() {
                 </TextField>
               </Grid>
               {/* 划词后弹出按钮的定位模式：沿用选区右下角，或跟随鼠标/触摸结束位置 */}
-              <Grid item xs={12} sm={12} md={6} lg={3}>
+              <Grid item xs={12} sm={12} md={6} lg={6}>
                 <TextField
                   fullWidth
                   select
@@ -393,7 +397,7 @@ export default function Tranbox() {
                 </TextField>
               </Grid>
               {/* 是否隐藏触发划词翻译的浮动 FAB 小按钮 (隐藏后通常只能通过快捷键调起翻译框) */}
-              <Grid item xs={12} sm={12} md={6} lg={3}>
+              <Grid item xs={12} sm={12} md={6} lg={6}>
                 <TextField
                   fullWidth
                   select
@@ -408,7 +412,7 @@ export default function Tranbox() {
                 </TextField>
               </Grid>
               {/* 点击翻译框外任意处时，是否关闭并自动销毁翻译框 */}
-              <Grid item xs={12} sm={12} md={6} lg={3}>
+              <Grid item xs={12} sm={12} md={6} lg={6}>
                 <TextField
                   fullWidth
                   select
@@ -424,7 +428,7 @@ export default function Tranbox() {
               </Grid>
 
               {/* 浮动 FAB 触发按钮相对于光标的物理水平偏移量 (X 轴像素) */}
-              <Grid item xs={12} sm={12} md={6} lg={3}>
+              <Grid item xs={12} sm={12} md={6} lg={6}>
                 <ValidationInput
                   fullWidth
                   size="small"
@@ -438,7 +442,7 @@ export default function Tranbox() {
                 />
               </Grid>
               {/* 浮动 FAB 触发按钮相对于光标的物理垂直偏移量 (Y 轴像素) */}
-              <Grid item xs={12} sm={12} md={6} lg={3}>
+              <Grid item xs={12} sm={12} md={6} lg={6}>
                 <ValidationInput
                   fullWidth
                   size="small"
@@ -452,7 +456,7 @@ export default function Tranbox() {
                 />
               </Grid>
               {/* 悬浮翻译框相对于光标/按钮的物理水平偏移量 (X 轴像素) */}
-              <Grid item xs={12} sm={12} md={6} lg={3}>
+              <Grid item xs={12} sm={12} md={6} lg={6}>
                 <ValidationInput
                   fullWidth
                   size="small"
@@ -466,7 +470,7 @@ export default function Tranbox() {
                 />
               </Grid>
               {/* 悬浮翻译框相对于光标/按钮的物理垂直偏移量 (Y 轴像素) */}
-              <Grid item xs={12} sm={12} md={6} lg={3}>
+              <Grid item xs={12} sm={12} md={6} lg={6}>
                 <ValidationInput
                   fullWidth
                   size="small"
@@ -480,7 +484,7 @@ export default function Tranbox() {
                 />
               </Grid>
               {/* 翻译文本较多时，翻译框高度是否随着文字自动拉伸，否则启用内部局部纵向滚动条 */}
-              <Grid item xs={12} sm={12} md={6} lg={3}>
+              <Grid item xs={12} sm={12} md={6} lg={6}>
                 <TextField
                   fullWidth
                   select
@@ -496,7 +500,7 @@ export default function Tranbox() {
               </Grid>
 
               {/* 翻译框内部交互：单击或双击选中文本触发新翻译 */}
-              <Grid item xs={12} sm={12} md={6} lg={3}>
+              <Grid item xs={12} sm={12} md={6} lg={6}>
                 <TextField
                   fullWidth
                   select
@@ -516,7 +520,7 @@ export default function Tranbox() {
                 </TextField>
               </Grid>
             </Grid>
-          </Box>
+          </>
 
           {/* 划词翻译不生效的黑名单域名及正则规则列表 */}
           <TextField

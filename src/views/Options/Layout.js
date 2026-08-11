@@ -6,6 +6,10 @@ import { useI18n } from "../../hooks/I18n";
 import { useMediaQueryMatch } from "../../hooks/MediaQuery";
 import { OPTIONS_STYLES } from "./styles";
 
+const WIDE_PAGE_PATHS = new Set(["/apis", "/playground", "/prompts"]);
+
+export const isWideOptionsPage = (pathname) => WIDE_PAGE_PATHS.has(pathname);
+
 export async function fetchLatestVersion({ signal, now = Date.now } = {}) {
   const versionUrls = [
     process.env.REACT_APP_VERSION_URL,
@@ -36,7 +40,8 @@ export default function Layout() {
   const navigationTriggerRef = useRef(null);
   const backgroundRef = useRef(null);
   const [latestVersion, setLatestVersion] = useState("");
-  const isMobile = useMediaQueryMatch("(max-width: 859px)");
+  const isMobile = useMediaQueryMatch("(max-width: 1179px)");
+  const isWidePage = isWideOptionsPage(location.pathname);
 
   useEffect(() => {
     if (process.env.NODE_ENV === "test") return undefined;
@@ -193,7 +198,11 @@ export default function Layout() {
         <div className="kt-options-layout">
           {!isMobile && <Navigator open={false} isMobile={false} />}
           <main className="kt-options-main">
-            <div className="kt-options-main__inner">
+            <div
+              className={`kt-options-main__inner ${
+                isWidePage ? "kt-options-main__inner--wide" : ""
+              }`.trim()}
+            >
               <header className="kt-options-page-header">
                 <h1>{page[0]}</h1>
                 {page[1] && <p>{page[1]}</p>}

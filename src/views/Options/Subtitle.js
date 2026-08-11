@@ -632,7 +632,7 @@ export default function SubtitleSetting() {
         <Box>
           <Grid container spacing={2} columns={12}>
             {/* 是否在获取字幕后立即启动翻译 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 select
                 fullWidth
@@ -648,7 +648,7 @@ export default function SubtitleSetting() {
               </TextField>
             </Grid>
             {/* 字幕翻译首选的翻译引擎服务商 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 select
                 fullWidth
@@ -666,7 +666,7 @@ export default function SubtitleSetting() {
               </TextField>
             </Grid>
             {/* 字幕长句断句首选的大语言 AI 引擎服务商 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 select
                 fullWidth
@@ -696,7 +696,7 @@ export default function SubtitleSetting() {
               </TextField>
             </Grid>
             {segSlug !== "-" && (
-              <Grid item xs={12} sm={12} md={6} lg={3}>
+              <Grid item xs={12} sm={12} md={6} lg={6}>
                 <TextField
                   select
                   fullWidth
@@ -718,7 +718,7 @@ export default function SubtitleSetting() {
               </Grid>
             )}
             {/* AI 断句服务与翻译服务不同时，是否丢弃 AI 断句返回的译文并交给翻译服务重翻 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 fullWidth
                 select
@@ -733,7 +733,7 @@ export default function SubtitleSetting() {
               </TextField>
             </Grid>
             {/* 系统内置的轻量断句算法类型 (基于固定句尾符号断句，或统计学概率断句) */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 select
                 fullWidth
@@ -752,7 +752,7 @@ export default function SubtitleSetting() {
               </TextField>
             </Grid>
             {/* 字幕翻译是否使用 AI 增强上下文，并指定提供服务的 AI 引擎 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 select
                 fullWidth
@@ -771,7 +771,7 @@ export default function SubtitleSetting() {
               </TextField>
             </Grid>
             {/* 一批提交给 AI 进行断句的最长原始字幕文本长度阈值 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <ValidationInput
                 fullWidth
                 size="small"
@@ -785,7 +785,7 @@ export default function SubtitleSetting() {
               />
             </Grid>
             {/* 判定为长句并强行触发断句的句子最大长度限制 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <ValidationInput
                 fullWidth
                 size="small"
@@ -799,7 +799,7 @@ export default function SubtitleSetting() {
               />
             </Grid>
             {/* 视频拉取到字幕时，默认超前预翻译多少秒的后续字幕，以防视频播放时发生延迟查词 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <ValidationInput
                 fullWidth
                 size="small"
@@ -813,7 +813,7 @@ export default function SubtitleSetting() {
               />
             </Grid>
             {/* 避免短时间内视频拖拽和字幕块大量翻滚时发生高频网络请求的防抖限流间隔 (s) */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <ValidationInput
                 fullWidth
                 size="small"
@@ -827,7 +827,7 @@ export default function SubtitleSetting() {
               />
             </Grid>
             {/* 目标翻译出的双语字幕语言 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 fullWidth
                 select
@@ -846,7 +846,7 @@ export default function SubtitleSetting() {
             </Grid>
 
             {/* 是否保留双语字幕 (若禁用则在视频窗口上仅显示翻译后的目标语字幕) */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 fullWidth
                 select
@@ -861,7 +861,7 @@ export default function SubtitleSetting() {
               </TextField>
             </Grid>
             {/* 双语字幕在视频画面中的显示顺序 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 fullWidth
                 select
@@ -880,7 +880,7 @@ export default function SubtitleSetting() {
               </TextField>
             </Grid>
             {/* 是否开启磨砂模糊译文字幕显示效果 (鼠标划过时才高亮看清译文，用于英语听力训练备考) */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 fullWidth
                 select
@@ -895,7 +895,7 @@ export default function SubtitleSetting() {
               </TextField>
             </Grid>
             {/* 视频插播商业广告时是否自动识别并跳过翻译网络请求 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 fullWidth
                 select
@@ -910,7 +910,7 @@ export default function SubtitleSetting() {
               </TextField>
             </Grid>
             {/* 鼠标悬停在视频窗口字幕单字词上时是否允许悬浮框划词查词解释 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 fullWidth
                 select
@@ -927,7 +927,7 @@ export default function SubtitleSetting() {
                 </MenuItem>
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 fullWidth
                 select
@@ -942,7 +942,7 @@ export default function SubtitleSetting() {
               </TextField>
             </Grid>
             {/* 视频侧边/下方的独立字幕全文滚动列表显示模式 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 fullWidth
                 select
@@ -960,7 +960,7 @@ export default function SubtitleSetting() {
               </TextField>
             </Grid>
             {/* 网页加载完毕且成功识别到视频字幕流时，是否在右下角弹出载入成功的横幅提示 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 fullWidth
                 select
@@ -975,7 +975,7 @@ export default function SubtitleSetting() {
               </TextField>
             </Grid>
             {/* 是否隐藏 YouTube 播放器控制栏中的 KT 字幕功能按钮 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 fullWidth
                 select

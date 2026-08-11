@@ -1,6 +1,7 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
-import TranForm from "./TranForm";
+import { Simulate } from "react-dom/test-utils";
+import TranForm, { formatLanguageOptionName } from "./TranForm";
 import { apiDict } from "../../apis";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -100,6 +101,144 @@ function renderTranForm(props = {}) {
 
   return { container, root };
 }
+
+describe("TranForm Playground presentation", () => {
+  beforeEach(() => {
+    apiDict.mockReset();
+    document.body.innerHTML = "";
+  });
+
+  test.each([
+    ["English - English", "English"],
+    ["AutoDetect - AutoDetect", "AutoDetect"],
+    ["Résumé - Resume", "Résumé - Resume"],
+    ["简体中文 - Simplified Chinese", "简体中文 - Simplified Chinese"],
+  ])("formats language label %j as %j", (label, expected) => {
+    expect(formatLanguageOptionName(label)).toBe(expected);
+  });
+
+  test("uses a responsive config grid and a read-only detection result", async () => {
+    const { container, root } = renderTranForm({
+      simpleStyle: false,
+      isPlaygound: true,
+      fromLang: "auto",
+      toLang: "en",
+      toLang2: "en",
+      playgroundConfigHeader: <div data-testid="config-header" />,
+    });
+    await flushEffects();
+
+    expect(
+      container.querySelector(".kt-playground-config__grid")
+    ).not.toBeNull();
+    expect(
+      container.querySelector('[data-testid="config-header"]')
+    ).not.toBeNull();
+    expect(
+      container.querySelector(".kt-playground-translator__source")
+    ).not.toBeNull();
+    expect(
+      container.querySelector(".kt-playground-translator__empty").textContent
+    ).toContain("请先选择至少一个");
+
+    const detectionResult = container.querySelector('input[name="deLang"]');
+    expect(detectionResult.readOnly).toBe(true);
+    expect(detectionResult.disabled).toBe(false);
+
+    act(() => root.unmount());
+  });
+
+  test("shows the service empty state when configured services are unavailable", async () => {
+    const { container, root } = renderTranForm({
+      simpleStyle: false,
+      isPlaygound: true,
+      apiSlugs: ["disabled"],
+      transApis: [
+        {
+          apiSlug: "disabled",
+          apiName: "Disabled",
+          apiType: "Google",
+          isDisabled: true,
+        },
+      ],
+    });
+    await flushEffects();
+
+    expect(
+      container.querySelector(".kt-playground-translator__empty").textContent
+    ).toContain("请先选择至少一个");
+
+    act(() => root.unmount());
+  });
+
+  test("keeps the submit action mounted through pointer down and commits once", async () => {
+    const setText = jest.fn();
+    const { container, root } = renderTranForm({
+      text: "before",
+      setText,
+      simpleStyle: false,
+      isPlaygound: true,
+    });
+    await flushEffects();
+
+    const textarea = container.querySelector(
+      ".kt-playground-translator__source textarea:not([aria-hidden='true'])"
+    );
+    act(() => Simulate.focus(textarea));
+    act(() => Simulate.change(textarea, { target: { value: "  after  " } }));
+
+    const submitButton = container.querySelector('button[title="submit"]');
+    const pointerDown = new MouseEvent("pointerdown", {
+      bubbles: true,
+      cancelable: true,
+    });
+    act(() => submitButton.dispatchEvent(pointerDown));
+    expect(pointerDown.defaultPrevented).toBe(true);
+    expect(container.querySelector('button[title="submit"]')).toBe(
+      submitButton
+    );
+
+    act(() => submitButton.click());
+    expect(setText).toHaveBeenCalledTimes(1);
+    expect(setText).toHaveBeenCalledWith("after");
+    expect(document.activeElement).not.toBe(textarea);
+
+    act(() => Simulate.focus(textarea));
+    expect(container.querySelector('button[title="submit"]')).toBeNull();
+    act(() => Simulate.change(textarea, { target: { value: "again" } }));
+    expect(container.querySelector('button[title="submit"]')).not.toBeNull();
+
+    act(() => root.unmount());
+  });
+
+  test("keeps multiple translation results together and spans auxiliary content", async () => {
+    const { container, root } = renderTranForm({
+      simpleStyle: false,
+      isPlaygound: true,
+      apiSlugs: ["google", "openai"],
+      transApis: [
+        { apiSlug: "google", apiName: "Google", apiType: "Google" },
+        { apiSlug: "openai", apiName: "OpenAI", apiType: "OpenAI" },
+      ],
+      enDict: "Bing",
+    });
+    await flushEffects();
+
+    const results = container.querySelector(
+      ".kt-playground-translator__results"
+    );
+    expect(results.querySelectorAll('[data-testid="tran-cont"]')).toHaveLength(
+      2
+    );
+    expect(
+      container
+        .querySelector('[data-testid="default-dict"]')
+        .closest(".kt-playground-translator__auxiliary")
+    ).not.toBeNull();
+
+    act(() => root.unmount());
+  });
+});
 
 describe("TranForm AI dictionary tab", () => {
   beforeEach(() => {

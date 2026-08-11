@@ -103,7 +103,7 @@ export function ExtCommands() {
     <Box>
       <Grid container spacing={2} columns={12}>
         {commands.map((cmd) => (
-          <Grid item xs={12} sm={12} md={6} lg={3} key={cmd.name}>
+          <Grid item xs={12} sm={12} md={6} lg={6} key={cmd.name}>
             <Stack direction="row" alignItems="flex-start">
               <TextField
                 size="small"
@@ -233,7 +233,7 @@ export default function Settings() {
           </Typography>
           <Grid container spacing={2} columns={12}>
             {/* 设置面板用户界面语言 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 select
                 fullWidth
@@ -251,7 +251,7 @@ export default function Settings() {
               </TextField>
             </Grid>
             {/* 页面打开时是否预先初始化运行环境 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 select
                 fullWidth
@@ -266,7 +266,7 @@ export default function Settings() {
               </TextField>
             </Grid>
             {/* 点击悬浮球时触发的行为 (直接展示菜单或立即启动全文双语翻译) */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 select
                 fullWidth
@@ -281,7 +281,7 @@ export default function Settings() {
               </TextField>
             </Grid>
             {/* 单个 DOM 文本块触发网页翻译的最小有效文本长度 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <ValidationInput
                 fullWidth
                 size="small"
@@ -295,7 +295,7 @@ export default function Settings() {
               />
             </Grid>
             {/* 允许发起单次网页段落翻译的最长文本限制 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <ValidationInput
                 fullWidth
                 size="small"
@@ -309,7 +309,7 @@ export default function Settings() {
               />
             </Grid>
             {/* 网页中单个纯文本换行符被当作真换行截断句子的数量 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <ValidationInput
                 fullWidth
                 size="small"
@@ -323,7 +323,7 @@ export default function Settings() {
               />
             </Grid>
             {/* DOM 段落网页翻译扫描定时查询轮询间隔时间 (ms) */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <ValidationInput
                 fullWidth
                 size="small"
@@ -337,7 +337,7 @@ export default function Settings() {
               />
             </Grid>
             {/* 全局接口 HTTP 网络请求超时阈值 (s) */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <ValidationInput
                 fullWidth
                 size="small"
@@ -351,7 +351,7 @@ export default function Settings() {
               />
             </Grid>
             {/* 移动端/触屏端特定的触摸手势快捷翻译触发方式 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 select
                 fullWidth
@@ -372,7 +372,7 @@ export default function Settings() {
               </TextField>
             </Grid>
             {/* 浏览器右键上下文菜单的展示层级 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 select
                 fullWidth
@@ -388,7 +388,7 @@ export default function Settings() {
               </TextField>
             </Grid>
             {/* 网页首选的语言自动检测服务组件 (如 Chrome Builtin, FastText 或 API) */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 select
                 fullWidth
@@ -407,7 +407,7 @@ export default function Settings() {
               </TextField>
             </Grid>
             {/* 日志记录详细层级 (Error/Info/Debug 等) */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 select
                 fullWidth
@@ -538,31 +538,31 @@ export default function Settings() {
           <>
             <Box>
               <Grid container spacing={2} columns={12}>
-                <Grid item xs={12} sm={12} md={6} lg={3}>
+                <Grid item xs={12} sm={12} md={6} lg={6}>
                   <ShortcutItem
                     action={OPT_SHORTCUT_TRANSLATE}
                     label={i18n("toggle_translate_shortcut")}
                   />
                 </Grid>
-                <Grid item xs={12} sm={12} md={6} lg={3}>
+                <Grid item xs={12} sm={12} md={6} lg={6}>
                   <ShortcutItem
                     action={OPT_SHORTCUT_TRANSONLY}
                     label={i18n("toggle_transonly_shortcut")}
                   />
                 </Grid>
-                <Grid item xs={12} sm={12} md={6} lg={3}>
+                <Grid item xs={12} sm={12} md={6} lg={6}>
                   <ShortcutItem
                     action={OPT_SHORTCUT_STYLE}
                     label={i18n("toggle_style_shortcut")}
                   />
                 </Grid>
-                <Grid item xs={12} sm={12} md={6} lg={3}>
+                <Grid item xs={12} sm={12} md={6} lg={6}>
                   <ShortcutItem
                     action={OPT_SHORTCUT_POPUP}
                     label={i18n("toggle_popup_shortcut")}
                   />
                 </Grid>
-                <Grid item xs={12} sm={12} md={6} lg={3}>
+                <Grid item xs={12} sm={12} md={6} lg={6}>
                   <ShortcutItem
                     action={OPT_SHORTCUT_SETTING}
                     label={i18n("open_setting_shortcut")}

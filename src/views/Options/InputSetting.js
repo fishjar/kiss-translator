@@ -167,41 +167,37 @@ export default function InputSetting() {
         </SettingsCard>
       </SettingsSection>
 
-      <SettingsAdvanced label={i18n("settings_detailed_controls")}>
-        <SettingsSection>
-          <SettingsCard>
-            <SettingsRow label={i18n("translate_service")}>
-              <SettingsSelect
-                value={apiSlug}
-                label={i18n("translate_service")}
-                onChange={(value) => updateInputRule({ apiSlug: value })}
-                options={enabledApis.map((api) => ({
-                  value: api.apiSlug,
-                  label: api.apiName,
-                }))}
-              />
-            </SettingsRow>
-            <SettingsRow label={i18n("from_lang")}>
-              <SettingsSelect
-                value={fromLang}
-                label={i18n("from_lang")}
-                onChange={(value) => updateInputRule({ fromLang: value })}
-                options={OPT_LANGS_FROM}
-              />
-            </SettingsRow>
-            <SettingsRow label={i18n("combo_timeout")}>
-              <SettingsRange
-                value={normalizedTriggerTime}
-                min={MIN_TRIGGER_TIME}
-                max={MAX_TRIGGER_TIME}
-                step={1}
-                unit=" ms"
-                label={i18n("combo_timeout")}
-                onChange={(value) => updateInputRule({ triggerTime: value })}
-              />
-            </SettingsRow>
-          </SettingsCard>
-        </SettingsSection>
+      <SettingsAdvanced rows label={i18n("settings_detailed_controls")}>
+        <SettingsRow label={i18n("translate_service")}>
+          <SettingsSelect
+            value={apiSlug}
+            label={i18n("translate_service")}
+            onChange={(value) => updateInputRule({ apiSlug: value })}
+            options={enabledApis.map((api) => ({
+              value: api.apiSlug,
+              label: api.apiName,
+            }))}
+          />
+        </SettingsRow>
+        <SettingsRow label={i18n("from_lang")}>
+          <SettingsSelect
+            value={fromLang}
+            label={i18n("from_lang")}
+            onChange={(value) => updateInputRule({ fromLang: value })}
+            options={OPT_LANGS_FROM}
+          />
+        </SettingsRow>
+        <SettingsRow label={i18n("combo_timeout")}>
+          <SettingsRange
+            value={normalizedTriggerTime}
+            min={MIN_TRIGGER_TIME}
+            max={MAX_TRIGGER_TIME}
+            step={1}
+            unit=" ms"
+            label={i18n("combo_timeout")}
+            onChange={(value) => updateInputRule({ triggerTime: value })}
+          />
+        </SettingsRow>
       </SettingsAdvanced>
 
       <SettingsSection title={i18n("blacklist")}>

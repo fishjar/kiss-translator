@@ -22,7 +22,11 @@ jest.mock("../Selection/TranForm", () => {
   const React = require("react");
   return (props) => {
     mockTranForm(props);
-    return React.createElement("div", { "data-testid": "translation-tab" });
+    return React.createElement(
+      "div",
+      { "data-testid": "translation-tab" },
+      props.playgroundConfigHeader
+    );
   };
 });
 
@@ -41,6 +45,12 @@ test("moves the existing translator into the text tab and exposes segmentation t
   expect(
     container.querySelector('[data-testid="translation-tab"]')
   ).not.toBeNull();
+  expect(container.querySelector(".kt-playground")).not.toBeNull();
+  expect(
+    container.querySelector(".kt-playground-config__header")
+  ).not.toBeNull();
+  expect(container.textContent).toContain("翻译配置");
+  expect(container.textContent).toContain("合并单个换行");
   const segmentationTab = [...container.querySelectorAll('[role="tab"]')].find(
     (tab) => tab.textContent === "字幕断句"
   );

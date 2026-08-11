@@ -26,7 +26,11 @@ export function SettingsSection({ title, children, className = "" }) {
 
 export function SettingsCard({ children, className = "" }) {
   return (
-    <Card variant="outlined" className={`kt-settings-card ${className}`.trim()}>
+    <Card
+      component="ul"
+      variant="outlined"
+      className={`kt-settings-card ${className}`.trim()}
+    >
       {children}
     </Card>
   );
@@ -245,6 +249,7 @@ export function SettingsAdvanced({
   label,
   children,
   open = false,
+  rows = false,
   className = "",
 }) {
   const [expanded, setExpanded] = useState(open);
@@ -261,18 +266,30 @@ export function SettingsAdvanced({
   };
 
   return (
-    <Accordion
-      disableGutters
-      expanded={expanded}
-      onChange={handleChange}
-      className={`kt-settings-advanced ${className}`.trim()}
+    <Box
+      className={`kt-settings-advanced-shell ${
+        rows ? "kt-settings-advanced-shell--rows" : ""
+      } ${className}`.trim()}
     >
-      <AccordionSummary expandIcon={<ExpandMoreRoundedIcon />}>
-        {label}
-      </AccordionSummary>
-      <AccordionDetails className="kt-settings-advanced__content">
-        {hasExpanded ? children : null}
-      </AccordionDetails>
-    </Accordion>
+      <Accordion
+        disableGutters
+        expanded={expanded}
+        onChange={handleChange}
+        className="kt-settings-advanced"
+      >
+        <AccordionSummary expandIcon={<ExpandMoreRoundedIcon />}>
+          {label}
+        </AccordionSummary>
+        <AccordionDetails className="kt-settings-advanced__content">
+          {rows ? (
+            <Box component="ul" className="kt-settings-advanced__rows">
+              {hasExpanded ? children : null}
+            </Box>
+          ) : hasExpanded ? (
+            children
+          ) : null}
+        </AccordionDetails>
+      </Accordion>
+    </Box>
   );
 }

@@ -33,6 +33,18 @@ import { isValidWord, isSingleChineseChar } from "../../libs/utils";
 import { kissLog } from "../../libs/log";
 import { tryDetectLang } from "../../libs/detect";
 
+export const formatLanguageOptionName = (name) => {
+  const parts = String(name || "")
+    .split(" - ")
+    .map((part) => part.trim());
+
+  if (parts.length === 2 && parts[0].toLowerCase() === parts[1].toLowerCase()) {
+    return parts[0];
+  }
+
+  return parts.join(" - ");
+};
+
 /**
  * 翻译交互核心表单组件 (集成源/目标语言选择、多引擎翻译、词典展示、汉典展示、语言检测与文本输入)
  */
@@ -54,6 +66,7 @@ export default function TranForm({
   prompts = [],
   selectionContext = "",
   isPlaygound = false,
+  playgroundConfigHeader = null,
 }) {
   const i18n = useI18n();
 
@@ -227,16 +240,51 @@ export default function TranForm({
     }
   }, [text, defaultDictAvailable, aiDictAvailable]);
 
+  const commitEditText = () => {
+    setEditMode(false);
+    setText(editText.trim());
+  };
+
+  const translationResults = activeApiSlugs.map((slug) => (
+    <TranCont
+      key={slug}
+      text={translationText}
+      fromLang={fromLang}
+      toLang={realToLang}
+      simpleStyle={simpleStyle}
+      apiSlug={slug}
+      transApis={transApis}
+      isPlayground={isPlaygound}
+    />
+  ));
+
   return (
-    <Stack spacing={simpleStyle ? 1 : 2}>
+    <Stack
+      className={isPlaygound ? "kt-playground-translator" : undefined}
+      spacing={simpleStyle ? 1 : 2}
+      useFlexGap={isPlaygound}
+    >
       {/* 极简模式下不展示任何语言、服务商配置栏以及原始文本框 */}
       {!simpleStyle && (
         <>
-          <Box>
+          <Box className={isPlaygound ? "kt-playground-config" : undefined}>
+            {isPlaygound && playgroundConfigHeader}
             {/* 各类服务参数、语种设置下拉菜单网格 */}
-            <Grid container spacing={2} columns={12}>
+            <Grid
+              className={isPlaygound ? "kt-playground-config__grid" : undefined}
+              container
+              spacing={2}
+              columns={12}
+            >
               {/* 多选框：允许同时勾选多个翻译引擎进行结果对比 */}
-              <Grid item xs={xs} md={md}>
+              <Grid
+                className={
+                  isPlaygound ? "kt-playground-config__service" : undefined
+                }
+                item
+                xs={xs}
+                md={md}
+              >
                 <TextField
                   select
                   SelectProps={{
@@ -276,7 +324,7 @@ export default function TranForm({
                 >
                   {OPT_LANGS_FROM.map(([lang, name]) => (
                     <MenuItem key={lang} value={lang}>
-                      {name}
+                      {formatLanguageOptionName(name)}
                     </MenuItem>
                   ))}
                 </TextField>
@@ -297,7 +345,7 @@ export default function TranForm({
                 >
                   {OPT_LANGS_TO.map(([lang, name]) => (
                     <MenuItem key={lang} value={lang}>
-                      {name}
+                      {formatLanguageOptionName(name)}
                     </MenuItem>
                   ))}
                 </TextField>
@@ -324,7 +372,7 @@ export default function TranForm({
                     >
                       {OPT_LANGS_TO.map(([lang, name]) => (
                         <MenuItem key={lang} value={lang}>
-                          {name}
+                          {formatLanguageOptionName(name)}
                         </MenuItem>
                       ))}
                     </TextField>
@@ -407,10 +455,15 @@ export default function TranForm({
                       fullWidth
                       size="small"
                       name="deLang"
-                      value={deLang && OPT_LANGS_MAP.get(deLang)}
+                      value={
+                        deLang &&
+                        formatLanguageOptionName(OPT_LANGS_MAP.get(deLang))
+                      }
                       label={i18n("detected_result")}
-                      disabled
+                      placeholder="—"
+                      InputLabelProps={{ shrink: true }}
                       InputProps={{
+                        readOnly: true,
                         startAdornment: deLoading ? (
                           <CircularProgress size={16} />
                         ) : null,
@@ -423,14 +476,24 @@ export default function TranForm({
           </Box>
 
           {/* 原始文本输入区域 */}
-          <Box>
+          <Box
+            className={
+              isPlaygound ? "kt-playground-translator__source" : undefined
+            }
+          >
             <TextField
+              className={
+                isPlaygound
+                  ? "kt-translation-text-field kt-translation-text-field--source"
+                  : undefined
+              }
               size="small"
               label={i18n("original_text")}
+              InputLabelProps={isPlaygound ? { shrink: true } : undefined}
               fullWidth
               multiline
               inputRef={inputRef}
-              minRows={isPlaygound ? 2 : 1}
+              minRows={isPlaygound ? 4 : 1}
               maxRows={10}
               sx={{
                 "& textarea": {
@@ -444,29 +507,38 @@ export default function TranForm({
               onFocus={() => {
                 setEditMode(true);
               }}
-              // REVIEW: TextField 的 onBlur 会立即触发 setEditMode(false) 并提交数据，而 DoneIcon 的 onClick 也会执行相同逻辑。这会在点击提交按钮时产生多余重入。更关键的是，在某些系统或移动端环境下，onBlur 优先于 click 触发会使 EditMode 瞬间置为 false，导致 DoneIcon 被提早销毁而无法正常响应 onClick 事件。建议在图标按钮上改用 onMouseDown + preventDefault，或使用 onCommit 统一提交通道。
-              onBlur={() => {
-                setEditMode(false);
-                setText(editText.trim());
-              }}
+              onBlur={commitEditText}
               InputProps={{
                 endAdornment: (
                   <Stack
+                    className={
+                      isPlaygound
+                        ? "kt-translation-text-field__actions"
+                        : undefined
+                    }
                     direction="row"
-                    sx={{
-                      position: "absolute",
-                      right: 0,
-                      top: 0,
-                    }}
+                    sx={
+                      isPlaygound
+                        ? undefined
+                        : {
+                            position: "absolute",
+                            right: 0,
+                            top: 0,
+                          }
+                    }
                   >
-                    {editMode ? (
+                    {editMode && editText !== text ? (
                       /* 编辑模式：显示提交勾选图标 */
                       <IconButton
                         size="small"
+                        onPointerDown={(e) => e.preventDefault()}
                         onClick={(e) => {
                           e.stopPropagation();
-                          setEditMode(false);
-                          setText(editText.trim());
+                          if (document.activeElement === inputRef.current) {
+                            inputRef.current.blur();
+                          } else {
+                            commitEditText();
+                          }
                         }}
                         title={i18n("submit")}
                       >
@@ -495,21 +567,34 @@ export default function TranForm({
 
       {/* ---------------- 翻译及释义面板的按需渲染分发 ---------------- */}
       {/* 1. 分别为每一个选定的翻译服务引擎渲染对应的 TranCont 内容翻译器 */}
-      {activeApiSlugs.map((slug) => (
-        <TranCont
-          key={slug}
-          text={translationText}
-          fromLang={fromLang}
-          toLang={realToLang}
-          simpleStyle={simpleStyle}
-          apiSlug={slug}
-          transApis={transApis}
-        />
-      ))}
+      {isPlaygound ? (
+        <Stack
+          className="kt-playground-translator__results"
+          spacing={2}
+          useFlexGap
+        >
+          {translationResults.length > 0 ? (
+            translationResults
+          ) : (
+            <Box className="kt-playground-translator__empty" role="status">
+              {i18n(
+                "playground_translation_select_service",
+                "请先选择至少一个可用的翻译服务"
+              )}
+            </Box>
+          )}
+        </Stack>
+      ) : (
+        translationResults
+      )}
 
       {/* 2. 根据可用能力在默认词典与 AI 词典之间分流展示 */}
       {(defaultDictAvailable || aiDictAvailable) && (
-        <Box>
+        <Box
+          className={
+            isPlaygound ? "kt-playground-translator__auxiliary" : undefined
+          }
+        >
           {aiDictAvailable ? (
             <>
               <Tabs
@@ -571,9 +656,15 @@ export default function TranForm({
       )}
 
       {/* 3. 如果是合法的英文单词且启用了输入建议，渲染联想建议组件 */}
-      {isWord && OPT_SUG_MAP.has(enSug) && (
-        <SugCont text={text} enSug={enSug} />
-      )}
+      {isWord &&
+        OPT_SUG_MAP.has(enSug) &&
+        (isPlaygound ? (
+          <Box className="kt-playground-translator__auxiliary">
+            <SugCont text={text} enSug={enSug} />
+          </Box>
+        ) : (
+          <SugCont text={text} enSug={enSug} />
+        ))}
     </Stack>
   );
 }

@@ -115,6 +115,7 @@ const translateBuiltinText = async (text, translate) => {
  * @param {string} props.apiSlug 选用的翻译 API 唯一标识。
  * @param {Array<Object>} props.transApis 可用翻译 API 配置列表。
  * @param {boolean} [props.simpleStyle=false] 是否使用极简文本样式渲染。
+ * @param {boolean} [props.isPlayground=false] Whether to render the full Playground result surface.
  * @returns {JSX.Element|null} 单个翻译服务商的结果视图。
  */
 export default function TranCont({
@@ -124,6 +125,7 @@ export default function TranCont({
   apiSlug,
   transApis,
   simpleStyle = false,
+  isPlayground = false,
 }) {
   const i18n = useI18n();
   const [trText, setTrText] = useState("");
@@ -245,13 +247,30 @@ export default function TranCont({
   }
 
   return (
-    <Box>
+    <Box
+      className={isPlayground ? "kt-playground-translator__result" : undefined}
+    >
       <TextField
+        className={
+          isPlayground
+            ? "kt-translation-text-field kt-translation-text-field--result"
+            : undefined
+        }
         size="small"
         label={`${i18n("translated_text")} - ${apiSetting.apiName}`}
+        InputLabelProps={isPlayground ? { shrink: true } : undefined}
         fullWidth
         multiline
+        minRows={isPlayground ? 4 : undefined}
         maxRows={10}
+        placeholder={
+          isPlayground && !text
+            ? i18n(
+                "playground_translation_empty_result",
+                "输入原文后，译文将在这里显示"
+              )
+            : undefined
+        }
         sx={{
           "& textarea": {
             resize: "vertical",
@@ -260,18 +279,26 @@ export default function TranCont({
         value={trText}
         helperText={error}
         InputProps={{
+          readOnly: true,
           startAdornment: loading ? <CircularProgress size={16} /> : null,
           endAdornment: (
             <Stack
+              className={
+                isPlayground ? "kt-translation-text-field__actions" : undefined
+              }
               direction="row"
-              sx={{
-                position: "absolute",
-                right: 0,
-                top: 0,
-              }}
+              sx={
+                isPlayground
+                  ? undefined
+                  : {
+                      position: "absolute",
+                      right: 0,
+                      top: 0,
+                    }
+              }
             >
               {/* 复制当前译文；流式渲染期间复制到的是已经到达的部分文本。 */}
-              <CopyBtn text={trText} title={i18n("copy")} />
+              {trText && <CopyBtn text={trText} title={i18n("copy")} />}
             </Stack>
           ),
         }}

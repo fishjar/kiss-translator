@@ -1,8 +1,15 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
-import Layout, { fetchLatestVersion } from "./Layout";
+import Layout, { fetchLatestVersion, isWideOptionsPage } from "./Layout";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+
+test("uses the wide content rail for dense workspace pages", () => {
+  expect(isWideOptionsPage("/apis")).toBe(true);
+  expect(isWideOptionsPage("/playground")).toBe(true);
+  expect(isWideOptionsPage("/prompts")).toBe(true);
+  expect(isWideOptionsPage("/input")).toBe(false);
+});
 
 jest.mock("react-router-dom", () => ({
   Outlet: () => {
@@ -68,6 +75,7 @@ describe("mobile settings navigation", () => {
     document.body.appendChild(container);
     const root = createRoot(container);
     act(() => root.render(<Layout />));
+    expect(window.matchMedia).toHaveBeenCalledWith("(max-width: 1179px)");
 
     const menuButton = container.querySelector("button");
     const contentLink = container.querySelector('a[href="#content"]');

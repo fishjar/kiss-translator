@@ -26,7 +26,9 @@ jest.mock("../../hooks/InputRule", () => ({
   }),
 }));
 jest.mock("../../hooks/Api", () => ({
-  useApiList: () => ({ enabledApis: [] }),
+  useApiList: () => ({
+    enabledApis: [{ apiSlug: "Microsoft", apiName: "Microsoft" }],
+  }),
 }));
 jest.mock("./ShortcutInput", () => {
   const React = require("react");
@@ -79,6 +81,23 @@ describe("InputSetting", () => {
     );
     expect(timeout).not.toBeNull();
     expect(timeout.step).toBe("1");
+
+    act(() => root.unmount());
+  });
+
+  test("renders advanced settings as flat rows without a nested card", () => {
+    const container = document.createElement("div");
+    const root = createRoot(container);
+    act(() => root.render(<InputSetting />));
+
+    const advanced = container.querySelector(".MuiAccordionSummary-root");
+    act(() => advanced.click());
+
+    const content = container.querySelector(".kt-settings-advanced__content");
+    const rows = content.querySelector(".kt-settings-advanced__rows");
+    expect(rows.tagName).toBe("UL");
+    expect(rows.children).toHaveLength(3);
+    expect(rows.querySelector(".kt-settings-card")).toBeNull();
 
     act(() => root.unmount());
   });
