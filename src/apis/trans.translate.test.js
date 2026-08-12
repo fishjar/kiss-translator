@@ -33,6 +33,8 @@ import {
   OPT_TRANS_OPENAI,
   OPT_TRANS_OPENROUTER,
   OPT_TRANS_QWENMT,
+  OPT_TRANS_YANDEX,
+  OPT_TRANS_YANDEXFREE,
 } from "../config";
 import { fetchData, fetchStream } from "../libs/fetch";
 import { trustedTypesHelper } from "../libs/trustedTypes";
@@ -148,6 +150,117 @@ describe("handleTranslate", () => {
       source: "en",
     });
     expect(result).toEqual([{ id: 0, result: ["A &amp; B<br>", "en"] }]);
+  });
+
+  test("sends batched Yandex Cloud requests with automatic source detection", async () => {
+    fetchData.mockResolvedValueOnce({
+      translations: [
+        { text: "你好", detectedLanguageCode: "en" },
+        { text: "世界", detectedLanguageCode: "en" },
+      ],
+    });
+
+    const result = await collectAsyncGenerator(
+      handleTranslate(["Hello", "World"], {
+        from: "auto",
+        to: "zh",
+        fromLang: "auto",
+        toLang: "zh-CN",
+        langMap: () => "",
+        glossary: "",
+        apiSetting: {
+          ...getApiSetting(OPT_TRANS_YANDEX),
+          folderId: "folder-id",
+          useStream: false,
+        },
+        usePool: false,
+      })
+    );
+
+    expect(fetchData.mock.calls[0][0]).toBe(
+      "https://translate.api.cloud.yandex.net/translate/v2/translate"
+    );
+    expect(fetchData.mock.calls[0][1].headers).toMatchObject({
+      "Content-type": "application/json",
+      Authorization: "Api-Key test-key",
+    });
+    expect(JSON.parse(fetchData.mock.calls[0][1].body)).toEqual({
+      folderId: "folder-id",
+      texts: ["Hello", "World"],
+      targetLanguageCode: "zh",
+    });
+    expect(result).toEqual([
+      { id: 0, result: ["你好", "en"] },
+      { id: 1, result: ["世界", "en"] },
+    ]);
+  });
+
+  test("includes an explicit source language in Yandex Cloud requests", async () => {
+    fetchData.mockResolvedValueOnce({
+      translations: [{ text: "你好", detectedLanguageCode: "en" }],
+    });
+
+    await collectAsyncGenerator(
+      handleTranslate(["Hello"], {
+        from: "en",
+        to: "zh",
+        fromLang: "en",
+        toLang: "zh-CN",
+        langMap: () => "",
+        glossary: "",
+        apiSetting: {
+          ...getApiSetting(OPT_TRANS_YANDEX),
+          folderId: "folder-id",
+          useStream: false,
+        },
+        usePool: false,
+      })
+    );
+
+    expect(JSON.parse(fetchData.mock.calls[0][1].body)).toMatchObject({
+      sourceLanguageCode: "en",
+    });
+  });
+
+  test("sends one text through the credential-free Yandex endpoint", async () => {
+    jest.spyOn(Math, "random").mockReturnValue(0);
+    fetchData.mockResolvedValueOnce({
+      code: 200,
+      lang: "en-zh",
+      text: ["你好！"],
+    });
+
+    const result = await collectAsyncGenerator(
+      handleTranslate(["hello"], {
+        from: "en",
+        to: "zh",
+        fromLang: "en",
+        toLang: "zh-CN",
+        langMap: () => "",
+        glossary: "",
+        apiSetting: {
+          ...getApiSetting(OPT_TRANS_YANDEXFREE),
+          useBatchFetch: false,
+          useStream: false,
+        },
+        usePool: false,
+      })
+    );
+
+    const requestUrl = new URL(fetchData.mock.calls[0][0]);
+    expect(requestUrl.origin + requestUrl.pathname).toBe(
+      "https://translate.yandex.net/api/v1/tr.json/translate"
+    );
+    expect(Object.fromEntries(requestUrl.searchParams)).toEqual({
+      id: "00000000000000000000000000000000-0-0",
+      srv: "android",
+      source_lang: "en",
+      target_lang: "zh",
+      text: "hello",
+    });
+    expect(fetchData.mock.calls[0][1]).toMatchObject({ method: "POST" });
+    expect(fetchData.mock.calls[0][1]).not.toHaveProperty("body");
+    expect(result).toEqual([{ id: 0, result: ["你好！", "en"] }]);
   });
 
   test("keeps Google2 HTML encoding inside the request boundary", async () => {
@@ -275,9 +388,7 @@ describe("handleTranslate", () => {
     const body = JSON.parse(init.body);
     expect(body).toEqual({
       model: "qwen-mt-flash",
-      messages: [
-        { role: "user", content: "我看到这个视频后没有笑" },
-      ],
+      messages: [{ role: "user", content: "我看到这个视频后没有笑" }],
       translation_options: {
         source_lang: "auto",
         target_lang: "English",

@@ -20,6 +20,8 @@ import {
   OPT_TRANS_BAIDU,
   OPT_TRANS_TENCENT,
   OPT_TRANS_VOLCENGINE,
+  OPT_TRANS_YANDEX,
+  OPT_TRANS_YANDEXFREE,
   OPT_TRANS_OPENAI,
   OPT_TRANS_GEMINI,
   OPT_TRANS_GEMINI_2,
@@ -652,6 +654,38 @@ const genGoogleCloud = ({ texts, from, to, url, key, textFormat = "text" }) => {
   return { url, body, headers };
 };
 
+const genYandex = ({ texts, from, to, url, key, folderId }) => {
+  const body = {
+    folderId,
+    texts,
+    targetLanguageCode: to,
+    ...(from !== "auto" && { sourceLanguageCode: from }),
+  };
+  const headers = {
+    "Content-type": "application/json",
+    Authorization: `Api-Key ${key}`,
+  };
+
+  return { url, body, headers };
+};
+
+const genYandexFree = ({ texts, from, to }) => {
+  let id = "";
+  for (let i = 0; i < 32; i++) {
+    id += Math.floor(Math.random() * 16).toString(16);
+  }
+  const params = queryString.stringify({
+    id: `${id}-0-0`,
+    srv: "android",
+    source_lang: from,
+    target_lang: to,
+    text: texts[0],
+  });
+  const url = `https://translate.yandex.net/api/v1/tr.json/translate?${params}`;
+
+  return { url, method: "POST" };
+};
+
 const genMicrosoft = ({ texts, from, to }) => {
   // Edge 前端内部端点：无需鉴权，Body 为纯字符串数组；from 留空表示自动检测。
   const params = queryString.stringify({
@@ -1249,6 +1283,8 @@ const genReqFuncs = {
   [OPT_TRANS_GOOGLE]: genGoogle,
   [OPT_TRANS_GOOGLE_2]: genGoogle2,
   [OPT_TRANS_GOOGLE_CLOUD]: genGoogleCloud,
+  [OPT_TRANS_YANDEX]: genYandex,
+  [OPT_TRANS_YANDEXFREE]: genYandexFree,
   [OPT_TRANS_MICROSOFT]: genMicrosoft,
   [OPT_TRANS_AZUREAI]: genAzureAI,
   [OPT_TRANS_DEEPL]: genDeepl,
@@ -1542,6 +1578,13 @@ export const parseTransRes = async (
           : item.translatedText,
         item.detectedSourceLanguage,
       ]);
+    case OPT_TRANS_YANDEX:
+      return res?.translations?.map((item) => [
+        item.text,
+        item.detectedLanguageCode,
+      ]);
+    case OPT_TRANS_YANDEXFREE:
+      return [[res?.text?.[0], res?.lang?.split("-")?.[0]]];
     case OPT_TRANS_MICROSOFT:
     case OPT_TRANS_AZUREAI:
       return res?.map((item) => [

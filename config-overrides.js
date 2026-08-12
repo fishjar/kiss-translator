@@ -115,6 +115,7 @@ const userscriptWebpack = (config, env) => {
 // @grant         unsafeWindow
 // @connect       translate.googleapis.com
 // @connect       translate-pa.googleapis.com
+// @connect       translation.googleapis.com
 // @connect       generativelanguage.googleapis.com
 // @connect       api.cognitive.microsofttranslator.com
 // @connect       edge.microsoft.com
@@ -139,6 +140,8 @@ const userscriptWebpack = (config, env) => {
 // @connect       api.ephone.ai
 // @connect       ephone.ai
 // @connect       translate.volcengine.com
+// @connect       translate.api.cloud.yandex.net
+// @connect       translate.yandex.net
 // @connect       dict.youdao.com
 // @connect       api.anthropic.com
 // @connect       api.deepseek.com

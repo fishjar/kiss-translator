@@ -68,6 +68,8 @@ export const OPT_TRANS_EPHONEAI = "ePhoneAI"; // ePhone AI 翻译服务
 export const OPT_TRANS_BAIDU = "Baidu"; // 百度翻译 API
 export const OPT_TRANS_TENCENT = "Tencent"; // 腾讯翻译君 API
 export const OPT_TRANS_VOLCENGINE = "Volcengine"; // 火山翻译 API
+export const OPT_TRANS_YANDEX = "Yandex"; // Yandex Cloud Translate API
+export const OPT_TRANS_YANDEXFREE = "YandexFree"; // Yandex 免费网页翻译接口
 export const OPT_TRANS_OPENAI = "OpenAI"; // OpenAI 官方大模型 API 翻译
 export const OPT_TRANS_GEMINI = "Gemini"; // 谷歌 Gemini API 翻译 (原版接口形式)
 export const OPT_TRANS_GEMINI_2 = "Gemini2"; // 谷歌 Gemini API 翻译 (OpenAI 兼容接口形式)
@@ -97,6 +99,8 @@ export const OPT_ALL_TRANS_TYPES = [
   OPT_TRANS_ZAI,
   OPT_TRANS_TENCENT,
   OPT_TRANS_VOLCENGINE,
+  OPT_TRANS_YANDEX,
+  OPT_TRANS_YANDEXFREE,
   OPT_TRANS_DEEPL,
   OPT_TRANS_DEEPLFREE,
   OPT_TRANS_DEEPLX,
@@ -132,6 +136,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_BAIDU,
     OPT_TRANS_TENCENT,
     OPT_TRANS_VOLCENGINE,
+    OPT_TRANS_YANDEXFREE,
     OPT_TRANS_QWENMT,
   ]),
   // 大语言模型 AI 翻译引擎
@@ -157,6 +162,7 @@ export const API_SPE_TYPES = {
   mulkeys: new Set([
     OPT_TRANS_AZUREAI,
     OPT_TRANS_GOOGLE_CLOUD,
+    OPT_TRANS_YANDEX,
     OPT_TRANS_DEEPSEEK,
     OPT_TRANS_OPENCODEGO,
     OPT_TRANS_SILICONFLOW,
@@ -189,6 +195,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_ZAI,
     OPT_TRANS_GOOGLE_2,
     OPT_TRANS_GOOGLE_CLOUD,
+    OPT_TRANS_YANDEX,
     OPT_TRANS_MICROSOFT,
     OPT_TRANS_TENCENT,
     OPT_TRANS_DEEPL,
@@ -962,6 +969,19 @@ export const OPT_LANGS_TO_SPEC = {
   [OPT_TRANS_GOOGLE]: OPT_LANGS_SPEC_DEFAULT,
   [OPT_TRANS_GOOGLE_2]: OPT_LANGS_SPEC_DEFAULT,
   [OPT_TRANS_GOOGLE_CLOUD]: OPT_LANGS_SPEC_DEFAULT,
+  [OPT_TRANS_YANDEX]: new Map([
+    ...OPT_LANGS_SPEC_DEFAULT,
+    ["zh-CN", "zh"],
+    ["zh-TW", "zh"],
+    ["nb", "no"],
+  ]),
+  [OPT_TRANS_YANDEXFREE]: new Map([
+    ...OPT_LANGS_SPEC_DEFAULT,
+    ["auto", ""],
+    ["zh-CN", "zh"],
+    ["zh-TW", "zh"],
+    ["nb", "no"],
+  ]),
   [OPT_TRANS_MICROSOFT]: new Map([
     ...OPT_LANGS_SPEC_DEFAULT,
     ["auto", ""],
@@ -1426,6 +1446,15 @@ const defaultApiOpts = {
     ...defaultApi,
     url: "https://translation.googleapis.com/language/translate/v2",
     useBatchFetch: true,
+  },
+  [OPT_TRANS_YANDEX]: {
+    ...defaultApi,
+    url: "https://translate.api.cloud.yandex.net/translate/v2/translate",
+    folderId: "",
+    useBatchFetch: true,
+  },
+  [OPT_TRANS_YANDEXFREE]: {
+    ...defaultApi,
   },
   [OPT_TRANS_MICROSOFT]: {
     ...defaultApi,

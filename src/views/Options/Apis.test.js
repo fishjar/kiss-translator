@@ -9,6 +9,8 @@ import {
   OPT_TRANS_GEMINI,
   OPT_TRANS_GEMINI_2,
   OPT_TRANS_QWENMT,
+  OPT_TRANS_YANDEX,
+  OPT_TRANS_YANDEXFREE,
 } from "../../config";
 import { fetchModelCatalog } from "../../libs/modelList";
 import { apiTranslate } from "../../apis";
@@ -735,6 +737,92 @@ describe("Apis QwenMT fields", () => {
 
     view.unmount();
   });
+});
+
+describe("Apis Yandex fields", () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+    document.body.innerHTML = "";
+  });
+
+  test("uses the current Yandex Folder ID for testing and saving", async () => {
+    apiTranslate.mockResolvedValue({ trText: "你好" });
+    const update = jest.fn();
+    const view = await renderApis(
+      createApi({
+        apiSlug: OPT_TRANS_YANDEX,
+        apiName: OPT_TRANS_YANDEX,
+        apiType: OPT_TRANS_YANDEX,
+        url: "https://translate.api.cloud.yandex.net/translate/v2/translate",
+        folderId: "old-folder",
+        useBatchFetch: true,
+      }),
+      update
+    );
+
+    const folderIdInput = getInput(view.container, "folderId");
+    await act(async () => {
+      Simulate.change(folderIdInput, {
+        target: { name: "folderId", value: "new-folder" },
+      });
+    });
+    await act(async () => {
+      Simulate.click(
+        Array.from(view.container.querySelectorAll("button")).find(
+          (button) => button.textContent === "click_test"
+        )
+      );
+      await Promise.resolve();
+    });
+    expect(apiTranslate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        apiSetting: expect.objectContaining({ folderId: "new-folder" }),
+      })
+    );
+
+    await act(async () => {
+      Simulate.click(getSaveButton(view.container));
+    });
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({ folderId: "new-folder" })
+    );
+
+    view.unmount();
+  });
+
+  test("hides URL, Key, and Folder ID for YandexFree", async () => {
+    const view = await renderApis(
+      createApi({
+        apiSlug: OPT_TRANS_YANDEXFREE,
+        apiName: OPT_TRANS_YANDEXFREE,
+        apiType: OPT_TRANS_YANDEXFREE,
+        url: "",
+        key: "",
+        useBatchFetch: false,
+      })
+    );
+
+    expect(view.container.querySelector('input[name="url"]')).toBeNull();
+    expect(view.container.querySelector('[name="key"]')).toBeNull();
+    expect(view.container.querySelector('input[name="folderId"]')).toBeNull();
+
+    view.unmount();
+  });
+
+  test.each([OPT_TRANS_YANDEX, OPT_TRANS_YANDEXFREE])(
+    "uses the Yandex icon for %s",
+    async (apiType) => {
+      const view = await renderApis(
+        createApi({ apiSlug: apiType, apiName: apiType, apiType })
+      );
+
+      expect(
+        view.container.querySelector('img[src$="/api/Yandex.svg"]')
+      ).not.toBeNull();
+
+      view.unmount();
+    }
+  );
 });
 
 describe("Apis static thinking normalization", () => {

@@ -68,6 +68,8 @@ import {
   OPT_TRANS_BAIDU,
   OPT_TRANS_TENCENT,
   OPT_TRANS_VOLCENGINE,
+  OPT_TRANS_YANDEX,
+  OPT_TRANS_YANDEXFREE,
   OPT_TRANS_OPENAI,
   OPT_TRANS_GEMINI,
   OPT_TRANS_GEMINI_2,
@@ -155,6 +157,8 @@ const API_ICON_FILES = {
   [OPT_TRANS_BAIDU]: "Baidu.svg",
   [OPT_TRANS_TENCENT]: "Tencent.svg",
   [OPT_TRANS_VOLCENGINE]: "Volcengine.svg",
+  [OPT_TRANS_YANDEX]: "Yandex.svg",
+  [OPT_TRANS_YANDEXFREE]: "Yandex.svg",
   [OPT_TRANS_EPHONEAI]: "ePhoneAI.png",
   [OPT_TRANS_OPENAI]: "OpenAI.svg",
   [OPT_TRANS_GEMINI]: "Gemini.svg",
@@ -544,6 +548,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
     placetag = BUILTIN_PLACETAGS[0],
     placetagFormat = "compact",
     region = "",
+    folderId = "",
     sortOrder = 0,
     aiTerms = "",
     thinkingMode = "disabled",
@@ -845,6 +850,16 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
           label={"Region"}
           name="region"
           value={region}
+          onChange={handleChange}
+        />
+      )}
+
+      {apiType === OPT_TRANS_YANDEX && (
+        <TextField
+          size="small"
+          label={"Folder ID"}
+          name="folderId"
+          value={folderId}
           onChange={handleChange}
         />
       )}

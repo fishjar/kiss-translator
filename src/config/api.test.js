@@ -28,6 +28,8 @@ import {
   OPT_TRANS_OPENROUTER,
   OPT_TRANS_QWENMT,
   OPT_TRANS_XIAOMIMIMO,
+  OPT_TRANS_YANDEX,
+  OPT_TRANS_YANDEXFREE,
   OPT_TRANS_ZAI,
 } from "./api";
 
@@ -39,6 +41,36 @@ test("includes Microsoft in the built-in API list", () => {
   expect(
     DEFAULT_API_LIST.some((api) => api.apiType === OPT_TRANS_MICROSOFT)
   ).toBe(true);
+});
+
+test("configures the official and free Yandex translators", () => {
+  const yandex = DEFAULT_API_LIST.find(
+    (api) => api.apiType === OPT_TRANS_YANDEX
+  );
+  const yandexFree = DEFAULT_API_LIST.find(
+    (api) => api.apiType === OPT_TRANS_YANDEXFREE
+  );
+
+  expect(yandex).toMatchObject({
+    apiSlug: OPT_TRANS_YANDEX,
+    url: "https://translate.api.cloud.yandex.net/translate/v2/translate",
+    folderId: "",
+    useBatchFetch: true,
+  });
+  expect(yandexFree).toMatchObject({
+    apiSlug: OPT_TRANS_YANDEXFREE,
+    useBatchFetch: false,
+  });
+  expect(API_SPE_TYPES.mulkeys.has(OPT_TRANS_YANDEX)).toBe(true);
+  expect(API_SPE_TYPES.batch.has(OPT_TRANS_YANDEX)).toBe(true);
+  expect(API_SPE_TYPES.machine.has(OPT_TRANS_YANDEXFREE)).toBe(true);
+  expect(API_SPE_TYPES.batch.has(OPT_TRANS_YANDEXFREE)).toBe(false);
+  expect(API_SPE_TYPES.darkIcon.has(OPT_TRANS_YANDEX)).toBe(false);
+  expect(API_SPE_TYPES.darkIcon.has(OPT_TRANS_YANDEXFREE)).toBe(false);
+  expect(OPT_LANGS_TO_SPEC[OPT_TRANS_YANDEX].get("zh-CN")).toBe("zh");
+  expect(OPT_LANGS_TO_SPEC[OPT_TRANS_YANDEX].get("zh-TW")).toBe("zh");
+  expect(OPT_LANGS_TO_SPEC[OPT_TRANS_YANDEX].get("nb")).toBe("no");
+  expect(OPT_LANGS_FROM_SPEC[OPT_TRANS_YANDEXFREE].get("auto")).toBe("");
 });
 
 test("configures QwenMT as a single-request machine translation API", () => {
