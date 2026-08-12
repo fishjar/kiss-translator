@@ -1,13 +1,16 @@
 import Box from "@mui/material/Box";
+import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import { useI18n } from "../../hooks/I18n";
 import ShortcutInput from "./ShortcutInput";
 import TextField from "@mui/material/TextField";
 import { useMouseHoverSetting } from "../../hooks/MouseHover";
+import { useApiList } from "../../hooks/Api";
 import { useCallback } from "react";
 import {
   DEFAULT_MOUSEHOVER_KEY,
   DEFAULT_MOUSE_HOVER_BUBBLE_STYLE,
+  GLOBAL_KEY,
   OPT_MOUSE_HOVER_DISPLAY_BILINGUAL,
   OPT_MOUSE_HOVER_DISPLAY_BUBBLE,
 } from "../../config";
@@ -21,14 +24,15 @@ import {
 } from "./SettingsCard";
 
 /**
- * 鼠标悬停翻译 (MouseHover) 设置面板组件
+ * Mouse hover translation settings panel.
  */
 export default function MouseHoverSetting() {
   const i18n = useI18n();
-  // 全局鼠标悬浮翻译配置 Hook
+  // Global mouse hover translation settings.
   const { mouseHoverSetting, updateMouseHoverSetting } = useMouseHoverSetting();
+  const { enabledApis } = useApiList();
 
-  // 首选触发快捷键变化时的处理回调
+  // Update the primary trigger shortcut.
   const handleShortcutInput = useCallback(
     (val) => {
       updateMouseHoverSetting({ mouseHoverKey: val });
@@ -36,7 +40,7 @@ export default function MouseHoverSetting() {
     [updateMouseHoverSetting]
   );
 
-  // 备选触发快捷键变化时的处理回调
+  // Update the alternative trigger shortcut.
   const handleAltShortcutInput = useCallback(
     (val) => {
       updateMouseHoverSetting({ mouseHoverKey2: val });
@@ -44,7 +48,7 @@ export default function MouseHoverSetting() {
     [updateMouseHoverSetting]
   );
 
-  // 悬浮查词黑名单 (正则/字符串规则匹配) 文本变化回调
+  // Update blacklist patterns used by mouse hover translation.
   const handleBlacklistChange = useCallback(
     (e) => {
       const { value } = e.target;
@@ -60,15 +64,26 @@ export default function MouseHoverSetting() {
     [updateMouseHoverSetting]
   );
 
-  // 解构当前鼠标悬停状态配置
+  const handleApiChange = useCallback(
+    (e) => {
+      updateMouseHoverSetting({ apiSlug: e.target.value });
+    },
+    [updateMouseHoverSetting]
+  );
+
+  // Normalize the current mouse hover settings.
   const {
     useMouseHover = true,
     mouseHoverKey = DEFAULT_MOUSEHOVER_KEY,
     mouseHoverKey2 = [],
     blacklist = "",
     displayMode = OPT_MOUSE_HOVER_DISPLAY_BILINGUAL,
+    apiSlug = GLOBAL_KEY,
     bubbleStyle = DEFAULT_MOUSE_HOVER_BUBBLE_STYLE,
   } = mouseHoverSetting;
+  const selectedApiSlug = enabledApis.some((api) => api.apiSlug === apiSlug)
+    ? apiSlug
+    : GLOBAL_KEY;
 
   return (
     <Box>
@@ -113,6 +128,33 @@ export default function MouseHoverSetting() {
               ]}
             />
           </SettingsRow>
+          {displayMode === OPT_MOUSE_HOVER_DISPLAY_BUBBLE && (
+            <SettingsRow
+              label={i18n("translate_service")}
+              description={i18n("mousehover_bubble_api_helper")}
+            >
+              <TextField
+                select
+                hiddenLabel
+                size="small"
+                variant="filled"
+                className="kt-settings-select"
+                name="apiSlug"
+                value={selectedApiSlug}
+                inputProps={{ "aria-label": i18n("translate_service") }}
+                onChange={handleApiChange}
+              >
+                <MenuItem value={GLOBAL_KEY}>
+                  {i18n("mousehover_follow_page_rule")}
+                </MenuItem>
+                {enabledApis.map((api) => (
+                  <MenuItem key={api.apiSlug} value={api.apiSlug}>
+                    {api.apiName}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </SettingsRow>
+          )}
         </SettingsCard>
       </SettingsSection>
 

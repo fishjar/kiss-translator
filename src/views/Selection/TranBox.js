@@ -354,6 +354,7 @@ function TranBoxContent({
   toLang2,
   transApis,
   langDetector,
+  translateVariants,
   enDict,
   enSug,
   aiDictApiSlug,
@@ -414,6 +415,7 @@ function TranBoxContent({
         prompts={prompts}
         simpleStyle={simpleStyle}
         langDetector={langDetector}
+        translateVariants={translateVariants}
         enDict={enDict}
         enSug={enSug}
         aiDictApiSlug={aiDictApiSlug}
@@ -484,6 +486,7 @@ export default function TranBox(props) {
               transApis={props.transApis}
               prompts={props.prompts}
               langDetector={props.langDetector}
+              translateVariants={props.translateVariants}
               enDict={props.tranboxSetting.enDict}
               enSug={props.tranboxSetting.enSug}
               aiDictApiSlug={props.tranboxSetting.aiDictApiSlug}

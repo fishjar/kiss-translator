@@ -4,6 +4,7 @@ import {
   OPT_LANGS_SPEC_DEFAULT,
 } from "../config";
 import { logger } from "../libs/log.js";
+import { normalizeLanguageCode } from "../libs/language.js";
 import { intelligentSentenceBreak } from "./sentenceBreaker.js";
 import { isNonSpeechSegment } from "./subtitleTextClassification.js";
 
@@ -19,15 +20,12 @@ import { isNonSpeechSegment } from "./subtitleTextClassification.js";
  * @returns {string} 项目内部识别的语言编码，无法识别时返回 auto。
  */
 export function getFromLang(lang) {
-  if (lang === "zh") {
-    return "zh-CN";
-  }
+  const normalizedLang = normalizeLanguageCode(lang);
+  if (normalizedLang) return normalizedLang;
 
   return (
     OPT_LANGS_SPEC_DEFAULT.get(lang) ||
-    OPT_LANGS_SPEC_DEFAULT.get(lang.slice(0, 2)) ||
     OPT_LANGS_TO_CODE[OPT_TRANS_MICROSOFT].get(lang) ||
-    OPT_LANGS_TO_CODE[OPT_TRANS_MICROSOFT].get(lang.slice(0, 2)) ||
     "auto"
   );
 }

@@ -198,6 +198,7 @@ export default function Settings() {
     logLevel = 1,
     preInit = true,
     skipLangs = [],
+    translateVariants = true,
   } = setting;
   // 解构 FAB 悬浮球的显隐状态及点击后的默认交互行为
   const {
@@ -404,6 +405,22 @@ export default function Settings() {
                     {item}
                   </MenuItem>
                 ))}
+              </TextField>
+            </Grid>
+            {/* Translate variants of the same language, such as Simplified and Traditional Chinese. */}
+            <Grid item xs={12} sm={12} md={6} lg={6}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                name="translateVariants"
+                value={translateVariants}
+                label={i18n("translate_variants")}
+                helperText={i18n("translate_variants_helper")}
+                onChange={handleChange}
+              >
+                <MenuItem value={true}>{i18n("enable")}</MenuItem>
+                <MenuItem value={false}>{i18n("disable")}</MenuItem>
               </TextField>
             </Grid>
             {/* 日志记录详细层级 (Error/Info/Debug 等) */}

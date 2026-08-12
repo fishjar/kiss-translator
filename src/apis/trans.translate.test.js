@@ -24,6 +24,7 @@ import {
   DEFAULT_API_LIST,
   GEMINI_GENERATE_CONTENT_URL,
   GEMINI_INTERACTIONS_URL,
+  OPT_TRANS_DEEPSEEK,
   OPT_TRANS_GEMINI,
   OPT_TRANS_GEMINI_2,
   OPT_TRANS_MICROSOFT,
@@ -98,9 +99,11 @@ describe("handleTranslate", () => {
         apiSetting: {
           ...getApiSetting(OPT_TRANS_GEMINI),
           url: GEMINI_INTERACTIONS_URL,
+          model: "gemini-3.6-flash",
           useStream: false,
           temperature: 0.7,
           thinkingMode: "disabled",
+          thinkingEffort: "minimal",
         },
         usePool: false,
       })
@@ -110,12 +113,12 @@ describe("handleTranslate", () => {
     const body = JSON.parse(init.body);
     expect(url).toBe(GEMINI_INTERACTIONS_URL);
     expect(body).toMatchObject({
-      model: "test-model",
+      model: "gemini-3.6-flash",
       stream: false,
       store: false,
       generation_config: {
         max_output_tokens: expect.any(Number),
-        thinking_level: "low",
+        thinking_level: "minimal",
         temperature: 0.7,
       },
     });
@@ -165,9 +168,9 @@ describe("handleTranslate", () => {
     expect(
       JSON.parse(fetchData.mock.calls[1][1].body).generation_config
         .thinking_level
-    ).toBe("high");
+    ).toBe("medium");
 
-    await translate("disabled");
+    await translate("disabled", "low");
     expect(
       JSON.parse(fetchData.mock.calls[2][1].body).generation_config
         .thinking_level
@@ -190,6 +193,7 @@ describe("handleTranslate", () => {
           apiSetting: {
             ...getApiSetting(OPT_TRANS_OPENROUTER),
             useStream: false,
+            model: "provider/reasoning-model",
             thinkingMode,
             thinkingEffort,
           },
@@ -203,22 +207,53 @@ describe("handleTranslate", () => {
     );
 
     await translate("enabled");
-    expect(JSON.parse(fetchData.mock.calls[1][1].body).reasoning).toEqual({
+    expect(JSON.parse(fetchData.mock.calls[1][1].body)).not.toHaveProperty(
+      "reasoning"
+    );
+
+    await translate("enabled", null);
+    expect(JSON.parse(fetchData.mock.calls[2][1].body).reasoning).toEqual({
       enabled: true,
     });
 
     await translate("enabled", "xhigh");
-    expect(JSON.parse(fetchData.mock.calls[2][1].body).reasoning).toEqual({
-      effort: "high",
+    expect(JSON.parse(fetchData.mock.calls[3][1].body).reasoning).toEqual({
+      effort: "xhigh",
     });
 
     await translate("disabled");
-    expect(JSON.parse(fetchData.mock.calls[3][1].body).reasoning).toEqual({
+    expect(JSON.parse(fetchData.mock.calls[4][1].body)).not.toHaveProperty(
+      "reasoning"
+    );
+
+    await translate("disabled", "none");
+    expect(JSON.parse(fetchData.mock.calls[5][1].body).reasoning).toEqual({
       effort: "none",
     });
+
+    await collectAsyncGenerator(
+      handleTranslate(["hello"], {
+        from: "en",
+        to: "zh-CN",
+        fromLang: "English",
+        toLang: "Chinese",
+        langMap: () => "",
+        glossary: "",
+        apiSetting: {
+          ...getApiSetting(OPT_TRANS_OPENROUTER),
+          useStream: false,
+          model: "provider/unknown-model",
+          thinkingMode: "enabled",
+        },
+        usePool: false,
+      })
+    );
+    expect(JSON.parse(fetchData.mock.calls[6][1].body)).not.toHaveProperty(
+      "reasoning"
+    );
   });
 
-  test("uses OpenRouter model metadata for supported and mandatory efforts", async () => {
+  test("uses OpenRouter settings already normalized by the settings page", async () => {
     fetchData.mockResolvedValue({
       choices: [{ message: { content: "你好" } }],
     });
@@ -226,11 +261,6 @@ describe("handleTranslate", () => {
       ...getApiSetting(OPT_TRANS_OPENROUTER),
       useStream: false,
       model: "provider/mandatory-model",
-      thinkingCapabilities: {
-        model: "provider/mandatory-model",
-        supportedEfforts: ["high", "medium", "low"],
-        mandatory: true,
-      },
     };
 
     await collectAsyncGenerator(
@@ -244,7 +274,7 @@ describe("handleTranslate", () => {
         apiSetting: {
           ...apiSetting,
           thinkingMode: "enabled",
-          thinkingEffort: "xhigh",
+          thinkingEffort: "high",
         },
         usePool: false,
       })
@@ -261,7 +291,11 @@ describe("handleTranslate", () => {
         toLang: "Chinese",
         langMap: () => "",
         glossary: "",
-        apiSetting: { ...apiSetting, thinkingMode: "disabled" },
+        apiSetting: {
+          ...apiSetting,
+          thinkingMode: "disabled",
+          thinkingEffort: "low",
+        },
         usePool: false,
       })
     );
@@ -270,7 +304,7 @@ describe("handleTranslate", () => {
     });
   });
 
-  test("applies the OpenAI-compatible high/none baseline in requests", async () => {
+  test("does not inject thinking parameters for unknown models", async () => {
     fetchData.mockResolvedValue({
       choices: [{ message: { content: "你好" } }],
     });
@@ -298,13 +332,77 @@ describe("handleTranslate", () => {
       "reasoning_effort"
     );
     await translate("enabled");
-    expect(JSON.parse(fetchData.mock.calls[1][1].body).reasoning_effort).toBe(
-      "high"
+    expect(JSON.parse(fetchData.mock.calls[1][1].body)).not.toHaveProperty(
+      "reasoning_effort"
     );
     await translate("disabled");
-    expect(JSON.parse(fetchData.mock.calls[2][1].body).reasoning_effort).toBe(
-      "none"
+    expect(JSON.parse(fetchData.mock.calls[2][1].body)).not.toHaveProperty(
+      "reasoning_effort"
     );
+  });
+
+  test("does not inject native Gemini parameters for unknown models", async () => {
+    fetchData.mockResolvedValue({
+      status: "completed",
+      steps: [
+        {
+          type: "model_output",
+          content: [{ type: "text", text: "你好" }],
+        },
+      ],
+    });
+
+    await collectAsyncGenerator(
+      handleTranslate(["hello"], {
+        from: "en",
+        to: "zh-CN",
+        fromLang: "English",
+        toLang: "Chinese",
+        langMap: () => "",
+        glossary: "",
+        apiSetting: {
+          ...getApiSetting(OPT_TRANS_GEMINI),
+          useStream: false,
+          model: "custom-model",
+          thinkingMode: "enabled",
+          thinkingEffort: "_default",
+        },
+        usePool: false,
+      })
+    );
+
+    expect(
+      JSON.parse(fetchData.mock.calls[0][1].body).generation_config
+    ).not.toHaveProperty("thinking_level");
+  });
+
+  test("keeps DeepSeek enabled when a concrete effort is selected", async () => {
+    fetchData.mockResolvedValue({
+      choices: [{ message: { content: "你好" } }],
+    });
+
+    await collectAsyncGenerator(
+      handleTranslate(["hello"], {
+        from: "en",
+        to: "zh-CN",
+        fromLang: "English",
+        toLang: "Chinese",
+        langMap: () => "",
+        glossary: "",
+        apiSetting: {
+          ...getApiSetting(OPT_TRANS_DEEPSEEK),
+          useStream: false,
+          thinkingMode: "enabled",
+          thinkingEffort: "max",
+        },
+        usePool: false,
+      })
+    );
+
+    expect(JSON.parse(fetchData.mock.calls[0][1].body)).toMatchObject({
+      thinking: { type: "enabled" },
+      reasoning_effort: "max",
+    });
   });
 
   test("maps Gemini2 disabled thinking by model capability", async () => {
@@ -325,6 +423,7 @@ describe("handleTranslate", () => {
           useStream: false,
           model: "gemini-2.5-flash",
           thinkingMode: "disabled",
+          thinkingEffort: "none",
         },
         usePool: false,
       })
@@ -347,6 +446,7 @@ describe("handleTranslate", () => {
           useStream: false,
           model: "gemini-3.5-flash",
           thinkingMode: "disabled",
+          thinkingEffort: "minimal",
         },
         usePool: false,
       })
@@ -356,7 +456,7 @@ describe("handleTranslate", () => {
     );
   });
 
-  test("enables Gemini2 thinking at the highest effort by default", async () => {
+  test("uses the final Gemini2 enabled effort without runtime capability parsing", async () => {
     fetchData.mockResolvedValue({
       choices: [{ message: { content: "你好" } }],
     });
@@ -374,7 +474,7 @@ describe("handleTranslate", () => {
           useStream: false,
           model: "gemini-3.6-flash",
           thinkingMode: "enabled",
-          thinkingEffort: "_default",
+          thinkingEffort: "high",
         },
         usePool: false,
       })
@@ -385,7 +485,7 @@ describe("handleTranslate", () => {
     );
   });
 
-  test("uses thinkingBudget when enabling Gemini 2.5 through generateContent", async () => {
+  test("uses dynamic thinkingBudget by default for Gemini 2.5 generateContent", async () => {
     fetchData.mockResolvedValueOnce({
       candidates: [{ content: { parts: [{ text: "你好" }] } }],
     });
@@ -402,9 +502,9 @@ describe("handleTranslate", () => {
           ...getApiSetting(OPT_TRANS_GEMINI),
           url: GEMINI_GENERATE_CONTENT_URL,
           useStream: false,
-          model: "gemini-2.5-flash-lite",
+          model: "gemini-2.5-flash",
           thinkingMode: "enabled",
-          thinkingEffort: "_default",
+          thinkingEffort: -1,
         },
         usePool: false,
       })
@@ -444,6 +544,7 @@ describe("handleTranslate", () => {
           model: "gemini-3.5-flash",
           temperature: 0.7,
           thinkingMode: "disabled",
+          thinkingEffort: "minimal",
         },
         usePool: false,
       })

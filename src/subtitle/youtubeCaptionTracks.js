@@ -1,4 +1,8 @@
 import { logger } from "../libs/log.js";
+import {
+  isSameTranslationLanguage,
+  normalizeLanguageCode,
+} from "../libs/language.js";
 
 /**
  * YouTube 字幕轨道数据层。
@@ -10,11 +14,29 @@ import { logger } from "../libs/log.js";
  *
  * @param {string} lang1 第一种语言编码，如 zh-CN。
  * @param {string} lang2 第二种语言编码，如 zh-TW。
- * @returns {boolean} 前两个字符一致时返回 true。
+ * @param {boolean} translateVariants 是否区分同一语言的不同变体。
+ * @returns {boolean} 两个轨道语言是否可视为相同。
  */
-export function isSameLang(lang1, lang2) {
-  if (!lang1 || !lang2) return false;
-  return lang1.slice(0, 2) === lang2.slice(0, 2);
+export function isSameLang(lang1, lang2, translateVariants = false) {
+  const source = normalizeLanguageCode(lang1);
+  const target = normalizeLanguageCode(lang2);
+  if (source && target) {
+    return isSameTranslationLanguage(source, target, translateVariants);
+  }
+
+  const rawSource = String(lang1 || "")
+    .trim()
+    .replaceAll("_", "-")
+    .toLowerCase();
+  const rawTarget = String(lang2 || "")
+    .trim()
+    .replaceAll("_", "-")
+    .toLowerCase();
+  if (!rawSource || !rawTarget) return false;
+
+  return translateVariants
+    ? rawSource === rawTarget
+    : rawSource.split("-")[0] === rawTarget.split("-")[0];
 }
 
 /**

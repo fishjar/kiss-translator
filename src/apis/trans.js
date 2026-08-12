@@ -49,9 +49,11 @@ import {
   defaultSystemPromptLines,
   INPUT_PLACE_SUMMARY,
   INPUT_PLACE_CONTEXT,
-  resolveThinkingStrategy,
-  getGeminiThinkingStrategy,
+  GEMINI25_BUDGETS,
+  THINKING_API_REGISTRY,
   isGeminiInteractionsUrl,
+  normalizeGeminiModelName,
+  normalizeThinkingSettings,
 } from "../config";
 import { genDeeplFree } from "./deepl";
 import { genBaidu } from "./baidu";
@@ -428,55 +430,171 @@ const siliconflowEffortMap = {
 };
 
 /**
- * 注入推理模式（Thinking）的专用控制参数。
- * 针对 DeepSeek, 阿里百炼, 硅基流动, Cerebras, OpenRouter 各大模型厂商繁杂的推理链配置参数进行统一映射注入。
+ * 将统一思考设置写入 DeepSeek 风格请求体。
+ * @param {Object} body 待修改的请求体。
+ * @param {Object} settings 已规范化的思考设置。
+ * @param {"enabled"|"disabled"} settings.thinkingMode 最终思考模式。
+ * @param {string|null} settings.thinkingEffort 最终思考强度。
+ * @returns {void}
  */
-const injectThinking = (
-  body,
-  { apiType, model, thinkingMode, thinkingEffort, thinkingCapabilities }
-) => {
-  const strategy = resolveThinkingStrategy({
-    apiType,
-    model,
-    thinkingMode,
-    thinkingEffort,
-    thinkingCapabilities,
-  });
-  if (strategy.action === "none") return;
-
-  switch (strategy.capability.protocol) {
-    case "deepseek":
-      body.thinking = {
-        type: strategy.action === "enabled" ? "enabled" : "disabled",
-      };
-      if (strategy.effort) {
-        body.reasoning_effort = strategy.effort;
-      }
-      break;
-    case "aliyunbailian":
-      // 百炼仅支持 enable_thinking 布尔开关，不支持推理强度参数
-      body.enable_thinking = strategy.action === "enabled";
-      break;
-    case "siliconflow":
-      body.enable_thinking = strategy.action === "enabled";
-      if (strategy.effort) {
-        // 将抽象等级转换为硅基流动所支持的具体思考 tokens 额度
-        body.thinking_budget = siliconflowEffortMap[strategy.effort] || 8192;
-      }
-      break;
-    case "openai":
-      if (strategy.effort) body.reasoning_effort = strategy.effort;
-      break;
-    case "openrouter":
-      if (strategy.action === "enabled" && !strategy.effort) {
-        body.reasoning = { enabled: true };
-      } else if (strategy.effort) {
-        body.reasoning = { effort: strategy.effort };
-      }
-      break;
-    default:
-      break;
+const applyDeepSeekThinking = (body, { thinkingMode, thinkingEffort }) => {
+  body.thinking = { type: thinkingMode };
+  if (thinkingMode === "enabled" && thinkingEffort) {
+    body.reasoning_effort = thinkingEffort;
   }
+};
+
+/**
+ * 将统一思考模式写入布尔开关型接口。
+ * @param {Object} body 待修改的请求体。
+ * @param {Object} settings 已规范化的思考设置。
+ * @param {"enabled"|"disabled"} settings.thinkingMode 最终思考模式。
+ * @returns {void}
+ */
+const applyBooleanThinking = (body, { thinkingMode }) => {
+  body.enable_thinking = thinkingMode === "enabled";
+};
+
+/**
+ * 将统一思考设置写入硅基流动请求体。
+ * @param {Object} body 待修改的请求体。
+ * @param {Object} settings 已规范化的思考设置。
+ * @param {"enabled"|"disabled"} settings.thinkingMode 最终思考模式。
+ * @param {string|null} settings.thinkingEffort 最终思考强度。
+ * @returns {void}
+ */
+const applySiliconFlowThinking = (body, { thinkingMode, thinkingEffort }) => {
+  body.enable_thinking = thinkingMode === "enabled";
+  if (thinkingMode === "enabled" && thinkingEffort) {
+    body.thinking_budget = siliconflowEffortMap[thinkingEffort] || 8192;
+  }
+};
+
+/**
+ * 将统一思考强度写入 OpenAI 兼容请求体。
+ * @param {Object} body 待修改的请求体。
+ * @param {Object} settings 已规范化的思考设置。
+ * @param {string|null} settings.thinkingEffort 最终思考强度或关闭值。
+ * @returns {void}
+ */
+const applyOpenAIThinking = (body, { thinkingEffort }) => {
+  if (thinkingEffort !== null) body.reasoning_effort = thinkingEffort;
+};
+
+/**
+ * 将统一思考设置写入 OpenRouter reasoning 对象。
+ * @param {Object} body 待修改的请求体。
+ * @param {Object} settings 已规范化的思考设置。
+ * @param {"enabled"|"disabled"} settings.thinkingMode 最终思考模式。
+ * @param {string|null} settings.thinkingEffort 最终思考强度或关闭值。
+ * @returns {void}
+ */
+const applyOpenRouterThinking = (body, { thinkingMode, thinkingEffort }) => {
+  if (thinkingMode === "enabled" && thinkingEffort === null) {
+    body.reasoning = { enabled: true };
+    return;
+  }
+  if (thinkingEffort !== null) body.reasoning = { effort: thinkingEffort };
+};
+
+/**
+ * 将统一思考设置写入 Claude 原生请求体。
+ * @param {Object} body 待修改的请求体。
+ * @param {Object} settings 已规范化的思考设置。
+ * @param {"enabled"|"disabled"} settings.thinkingMode 最终思考模式。
+ * @param {string|null} settings.thinkingEffort 最终思考强度。
+ * @returns {void}
+ */
+const applyClaudeThinking = (body, { thinkingMode, thinkingEffort }) => {
+  const usesMinimumEffort =
+    thinkingMode === "disabled" && thinkingEffort !== null;
+  body.thinking = {
+    type:
+      thinkingMode === "enabled" || usesMinimumEffort ? "adaptive" : "disabled",
+  };
+  if (thinkingEffort) body.output_config = { effort: thinkingEffort };
+};
+
+/**
+ * 按 Gemini 实际协议将统一思考设置写入对应请求层级。
+ * @param {Object} body 待修改的 Gemini 请求体。
+ * @param {Object} settings 已规范化的思考设置与请求上下文。
+ * @param {string} settings.apiType Gemini 原生或 OpenAI 兼容接口类型。
+ * @param {string} settings.url 实际请求地址。
+ * @param {string} settings.model Gemini 模型名称。
+ * @param {"enabled"|"disabled"} settings.thinkingMode 最终思考模式。
+ * @param {string|number|null} settings.thinkingEffort 最终思考强度或预算。
+ * @returns {void}
+ */
+const applyGeminiThinking = (
+  body,
+  { apiType, url, model, thinkingMode, thinkingEffort }
+) => {
+  // Gemini 的三种兼容协议字段位置不同，但共用同一份模式与强度解析结果。
+  if (apiType === OPT_TRANS_GEMINI_2) {
+    if (thinkingEffort !== null) body.reasoning_effort = thinkingEffort;
+    return;
+  }
+
+  // null 表示配置阶段已经确认当前关闭方式无需发送思考强度字段。
+  if (thinkingEffort === null) return;
+
+  if (isGeminiInteractionsUrl(url)) {
+    body.generation_config.thinking_level = thinkingEffort;
+    return;
+  }
+
+  const normalizedModel = normalizeGeminiModelName(model);
+  if (normalizedModel.startsWith("gemini-2.5-")) {
+    const thinkingBudget =
+      thinkingMode === "disabled" &&
+      normalizedModel.startsWith("gemini-2.5-pro")
+        ? 128
+        : typeof thinkingEffort === "number"
+          ? thinkingEffort
+          : GEMINI25_BUDGETS[thinkingEffort];
+    body.generationConfig.thinkingConfig = { thinkingBudget };
+    return;
+  }
+
+  body.generationConfig.thinkingConfig = {
+    thinkingLevel: thinkingEffort,
+  };
+};
+
+const THINKING_ADAPTERS = {
+  deepseek: applyDeepSeekThinking,
+  boolean: applyBooleanThinking,
+  siliconflow: applySiliconFlowThinking,
+  openai: applyOpenAIThinking,
+  openrouter: applyOpenRouterThinking,
+  claude: applyClaudeThinking,
+  gemini: applyGeminiThinking,
+};
+
+/**
+ * 将配置阶段已经归一化的两个思考字段写入对应协议请求体。
+ * @param {Object} body 待修改的请求体。
+ * @param {Object} options 思考设置与接口上下文。
+ * @param {string} options.apiType 翻译接口类型。
+ * @param {string} [options.url] 实际请求地址。
+ * @param {string} [options.model] 当前模型名称。
+ * @param {"auto"|"enabled"|"disabled"} [options.thinkingMode] 用户选择的思考模式。
+ * @param {string|number|null} [options.thinkingEffort] 已归一化的最终思考强度或关闭值。
+ * @returns {void} 自动模式和能力未确认的设置不会修改请求体。
+ */
+const applyThinkingParameters = (body, options) => {
+  const registration = THINKING_API_REGISTRY[options.apiType];
+  if (
+    !registration ||
+    options.thinkingMode === "auto" ||
+    options.thinkingEffort === "_default" ||
+    options.thinkingEffort === undefined
+  ) {
+    return;
+  }
+
+  THINKING_ADAPTERS[registration.adapter]?.(body, options);
 };
 
 const genGoogle = ({ texts, from, to, url, key }) => {
@@ -629,7 +747,6 @@ const genOpenAI = ({
   apiType,
   thinkingMode,
   thinkingEffort,
-  thinkingCapabilities,
 }) => {
   const userMsg = {
     role: "user",
@@ -650,12 +767,12 @@ const genOpenAI = ({
     stream: useStream,
   };
 
-  injectThinking(body, {
+  applyThinkingParameters(body, {
     apiType,
+    url,
     model,
     thinkingMode,
     thinkingEffort,
-    thinkingCapabilities,
   });
 
   const headers = {
@@ -696,17 +813,6 @@ const genGemini = ({
       temperature,
     };
 
-    const strategy = getGeminiThinkingStrategy({
-      apiType,
-      url,
-      model,
-      thinkingMode,
-      thinkingEffort,
-    });
-    if (strategy.field) {
-      generationConfig[strategy.field] = strategy.value;
-    }
-
     const body = {
       model,
       system_instruction: systemPrompt,
@@ -716,6 +822,13 @@ const genGemini = ({
       store: false,
       generation_config: generationConfig,
     };
+    applyThinkingParameters(body, {
+      apiType,
+      url,
+      model,
+      thinkingMode,
+      thinkingEffort,
+    });
     const headers = {
       "Content-type": "application/json",
       "x-goog-api-key": key,
@@ -741,18 +854,13 @@ const genGemini = ({
     },
   };
 
-  const strategy = getGeminiThinkingStrategy({
+  applyThinkingParameters(body, {
     apiType,
     url,
     model,
     thinkingMode,
     thinkingEffort,
   });
-  if (strategy.field) {
-    body.generationConfig.thinkingConfig = {
-      [strategy.field]: strategy.value,
-    };
-  }
 
   Object.assign(body, {
     safetySettings: [
@@ -815,16 +923,13 @@ const genGemini2 = ({
     stream: useStream,
   };
 
-  const strategy = getGeminiThinkingStrategy({
+  applyThinkingParameters(body, {
     apiType,
     url,
     model,
     thinkingMode,
     thinkingEffort,
   });
-  if (strategy.field) {
-    body[strategy.field] = strategy.value;
-  }
 
   const headers = {
     "Content-type": "application/json",
@@ -846,7 +951,6 @@ const genClaude = ({
   useStream = false,
   thinkingMode,
   thinkingEffort,
-  thinkingCapabilities,
 }) => {
   const userMsg = {
     role: "user",
@@ -861,23 +965,13 @@ const genClaude = ({
     stream: useStream,
   };
 
-  const strategy = resolveThinkingStrategy({
+  applyThinkingParameters(body, {
     apiType: OPT_TRANS_CLAUDE,
+    url,
     model,
     thinkingMode,
     thinkingEffort,
-    thinkingCapabilities,
   });
-  if (strategy.action === "enabled") {
-    body.thinking = { type: "adaptive" };
-    if (strategy.effort) body.output_config = { effort: strategy.effort };
-  } else if (strategy.action === "disabled") {
-    body.thinking = { type: "disabled" };
-  } else if (strategy.action === "effort" && strategy.effort) {
-    // 强制思考模型不能发送 disabled，只能保持 adaptive 并降到最低等级。
-    body.thinking = { type: "adaptive" };
-    body.output_config = { effort: strategy.effort };
-  }
 
   const headers = {
     "Content-type": "application/json",
@@ -901,7 +995,6 @@ const genOpenRouter = ({
   useStream = false,
   thinkingMode,
   thinkingEffort,
-  thinkingCapabilities,
 }) => {
   const userMsg = {
     role: "user",
@@ -922,12 +1015,12 @@ const genOpenRouter = ({
     stream: useStream,
   };
 
-  injectThinking(body, {
+  applyThinkingParameters(body, {
     apiType: OPT_TRANS_OPENROUTER,
+    url,
     model,
     thinkingMode,
     thinkingEffort,
-    thinkingCapabilities,
   });
 
   const headers = {
@@ -952,7 +1045,6 @@ const genOrcaRouter = ({
   useStream = false,
   thinkingMode,
   thinkingEffort,
-  thinkingCapabilities,
 }) => {
   const userMsg = {
     role: "user",
@@ -973,12 +1065,12 @@ const genOrcaRouter = ({
     stream: useStream,
   };
 
-  injectThinking(body, {
+  applyThinkingParameters(body, {
     apiType: OPT_TRANS_ORCAROUTER,
+    url,
     model,
     thinkingMode,
     thinkingEffort,
-    thinkingCapabilities,
   });
 
   const headers = {
@@ -1004,7 +1096,6 @@ const genOllama = ({
   useStream = false,
   thinkingMode,
   thinkingEffort,
-  thinkingCapabilities,
 }) => {
   const userMsg = {
     role: "user",
@@ -1024,12 +1115,12 @@ const genOllama = ({
     max_tokens: maxTokens,
   };
 
-  injectThinking(body, {
+  applyThinkingParameters(body, {
     apiType: OPT_TRANS_OLLAMA,
+    url,
     model,
     thinkingMode,
     thinkingEffort,
-    thinkingCapabilities,
   });
   body.stream = useStream;
 
@@ -2053,11 +2144,17 @@ export const handleSubtitle = async ({
         ? res?.status === "incomplete" || res?.status === "budget_exceeded"
         : res?.candidates?.[0]?.finishReason === "MAX_TOKENS";
       if (outputWasTruncated && thinkingWasOn) {
+        // 运行时只在实际发生截断重试时归一化一次关闭状态，普通请求不再解析模型能力。
+        const retryThinkingSettings = normalizeThinkingSettings({
+          ...apiSetting,
+          thinkingMode: "disabled",
+          thinkingEffort: "_default",
+        });
         const [retryInput, retryInit] = await genTransReq({
           ...apiSetting,
           // Gemini 字幕重试同样需要完整 JSON/VTT 结果，避免把 SSE 当普通响应解析。
           useStream: false,
-          thinkingMode: "disabled",
+          ...retryThinkingSettings,
           events,
           from,
           to,

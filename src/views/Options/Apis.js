@@ -57,6 +57,7 @@ import {
   OPT_TRANS_CUSTOMIZE,
   OPT_TRANS_EPHONEAI,
   OPT_TRANS_BUILTINAI,
+  OPT_TRANS_OPENROUTER,
   OPT_TRANS_GEMINI,
   OPT_TRANS_GEMINI_2,
   DEFAULT_FETCH_LIMIT,
@@ -74,9 +75,11 @@ import {
   BUILTIN_PLACEHOLDERS,
   BUILTIN_PLACETAGS,
   OPT_TRANS_AZUREAI,
-  THINKING_PARAM_MAP,
+  THINKING_API_REGISTRY,
+  getOpenRouterThinkingCapability,
   getThinkingCapability,
-  resolveThinkingStrategy,
+  isThinkingMinimumFallback,
+  normalizeThinkingSettings,
   DEFAULT_NOBATCH_PROMPT_SLUG,
   DEFAULT_BATCH_PROMPT_SLUG,
   DEFAULT_SUBTITLE_PROMPT_SLUG,
@@ -219,10 +222,12 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
   const [modelThinkingCapabilities, setModelThinkingCapabilities] = useState(
     {}
   );
+  const modelThinkingCapabilitiesRef = useRef({});
   const [modelListStatus, setModelListStatus] = useState("idle");
   const [modelListError, setModelListError] = useState("");
   const requestedModelListKeyRef = useRef("");
   const lastSyncedApiRef = useRef(api);
+  const pendingOpenRouterResolutionRef = useRef(false);
   const confirm = useConfirm();
   const [actionsAnchorEl, setActionsAnchorEl] = useState(null);
   const actionsMenuOpen = Boolean(actionsAnchorEl);
@@ -243,10 +248,12 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
     setShowMore(false);
     setModelOptions([]);
     setModelThinkingCapabilities({});
+    modelThinkingCapabilitiesRef.current = {};
     setModelListStatus("idle");
     setModelListError("");
     setActionsAnchorEl(null);
     requestedModelListKeyRef.current = "";
+    pendingOpenRouterResolutionRef.current = false;
   }, [apiSlug]);
 
   const activeFormData = useMemo(
@@ -273,6 +280,35 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
       value = checked;
     }
 
+    const shouldNormalizeThinking = [
+      "model",
+      "url",
+      "thinkingMode",
+      "thinkingEffort",
+    ].includes(name);
+    let cachedOpenRouterMetadata;
+    let nextOpenRouterMode = thinkingMode;
+    if (api?.apiType === OPT_TRANS_OPENROUTER && shouldNormalizeThinking) {
+      const nextModel = name === "model" ? value : model;
+      nextOpenRouterMode = name === "thinkingMode" ? value : thinkingMode;
+      cachedOpenRouterMetadata =
+        modelThinkingCapabilitiesRef.current[nextModel];
+      const cachedOpenRouterCapability = getOpenRouterThinkingCapability(
+        nextModel,
+        cachedOpenRouterMetadata
+      );
+      pendingOpenRouterResolutionRef.current =
+        nextOpenRouterMode !== "auto" && !cachedOpenRouterCapability;
+      if (
+        pendingOpenRouterResolutionRef.current &&
+        modelListStatus === "error"
+      ) {
+        // Reopen the request path on the next user action without retrying in a loop.
+        setModelListStatus("idle");
+        setModelListError("");
+      }
+    }
+
     setFormData((prevData) => {
       const baseData = prevData?.apiSlug === apiSlug ? prevData : api || {};
       const newData = {
@@ -288,13 +324,18 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
         newData.sortOrder = value ? 999 : 0;
       }
 
-      if (name === "model") {
-        const capabilities = modelThinkingCapabilities[value];
-        if (capabilities) {
-          newData.thinkingCapabilities = capabilities;
-        } else {
-          delete newData.thinkingCapabilities;
+      if (shouldNormalizeThinking && THINKING_API_REGISTRY[baseData.apiType]) {
+        // Clear stale effort when the model, URL, or mode changes.
+        if (["model", "url", "thinkingMode"].includes(name)) {
+          newData.thinkingEffort = "_default";
         }
+        Object.assign(
+          newData,
+          normalizeThinkingSettings({
+            ...newData,
+            openRouterMetadata: cachedOpenRouterMetadata,
+          })
+        );
       }
 
       return newData;
@@ -337,15 +378,18 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
 
   const handleSave = () => {
     const nextFormData = { ...activeFormData };
-    if (
-      thinkingParam &&
-      nextFormData.thinkingEffort &&
-      nextFormData.thinkingEffort !== "_default" &&
-      !thinkingEfforts?.some(
-        (effort) => effort.value === nextFormData.thinkingEffort
-      )
-    ) {
-      nextFormData.thinkingEffort = "_default";
+    if (thinkingParam) {
+      // Revalidate the final fields so test requests and saved settings stay aligned.
+      Object.assign(
+        nextFormData,
+        normalizeThinkingSettings({
+          ...nextFormData,
+          openRouterMetadata:
+            nextFormData.apiType === OPT_TRANS_OPENROUTER
+              ? modelThinkingCapabilitiesRef.current[nextFormData.model]
+              : undefined,
+        })
+      );
     }
     update(nextFormData);
     if (activeFormData.isDisabled || activeFormData.sortOrder === -1) {
@@ -416,7 +460,6 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
     aiTerms = "",
     thinkingMode = "disabled",
     thinkingEffort = "_default",
-    thinkingCapabilities,
     batchPromptSlug = "",
     nobatchPromptSlug = "",
     subtitlePromptSlug = "",
@@ -429,36 +472,38 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
     setModelListStatus("idle");
     setModelListError("");
     setModelThinkingCapabilities({});
+    modelThinkingCapabilitiesRef.current = {};
     requestedModelListKeyRef.current = "";
+    pendingOpenRouterResolutionRef.current = false;
   }, [modelListUrl, key]);
 
-  const effectiveThinkingCapabilities =
-    modelThinkingCapabilities[model] || thinkingCapabilities;
-  const thinkingCapability = getThinkingCapability({
-    apiType,
-    model,
-    thinkingCapabilities: effectiveThinkingCapabilities,
-  });
-  const thinkingParam = THINKING_PARAM_MAP[apiType] && thinkingCapability;
+  const thinkingCapability =
+    apiType === OPT_TRANS_OPENROUTER
+      ? getOpenRouterThinkingCapability(model, modelThinkingCapabilities[model])
+      : getThinkingCapability({ apiType, url, model });
+  // Keep the mode selector visible for unknown models so the fallback is explicit.
+  const thinkingParam = Boolean(THINKING_API_REGISTRY[apiType]);
+  const hasResolvedOpenRouterThinking =
+    apiType === OPT_TRANS_OPENROUTER &&
+    thinkingEffort !== undefined &&
+    thinkingEffort !== "_default";
+  // A persisted OpenRouter effort was already normalized by the settings page.
+  const isUnknownThinkingModel =
+    thinkingParam && !thinkingCapability && !hasResolvedOpenRouterThinking;
   const thinkingEfforts = thinkingCapability?.efforts;
   const selectedThinkingEffort = thinkingEfforts?.some(
     (effort) => effort.value === thinkingEffort
   )
     ? thinkingEffort
     : "_default";
-  const thinkingDisableStrategy =
-    thinkingMode === "disabled"
-      ? resolveThinkingStrategy({
-          apiType,
-          url,
-          model,
-          thinkingMode,
-          thinkingEffort,
-          thinkingCapabilities: effectiveThinkingCapabilities,
-        })
-      : null;
   const hasRuntimeOptions =
     API_SPE_TYPES.stream.has(apiType) || API_SPE_TYPES.context.has(apiType);
+  const showUnknownThinkingWarning =
+    isUnknownThinkingModel && thinkingMode !== "auto";
+  const showMinimumThinkingHelper = isThinkingMinimumFallback({
+    capability: thinkingCapability,
+    thinkingMode,
+  });
   const selectedBatchPromptSlug = Object.prototype.hasOwnProperty.call(
     activeFormData,
     "batchPromptSlug"
@@ -527,6 +572,10 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
   }, [i18n, modelListError, modelListStatus]);
 
   const handleLoadModelList = useCallback(async () => {
+    if (apiType === OPT_TRANS_OPENROUTER && thinkingMode !== "auto") {
+      // The model catalog includes OpenRouter capabilities used for normalization.
+      pendingOpenRouterResolutionRef.current = true;
+    }
     const requestKey = `${apiSlug}|${modelListUrl}|${key}`;
     if (
       !modelListUrl?.trim() ||
@@ -548,34 +597,83 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
         key,
         httpTimeout,
       });
+      // Ignore stale successes after the URL or key changes.
+      if (requestedModelListKeyRef.current !== requestKey) return;
       const nextModelOptions = catalog.models;
       setModelOptions(nextModelOptions);
+      modelThinkingCapabilitiesRef.current = catalog.thinkingCapabilities;
       setModelThinkingCapabilities(catalog.thinkingCapabilities);
-      setFormData((prevData) => {
-        const baseData = prevData?.apiSlug === apiSlug ? prevData : api || {};
-        const capabilities = catalog.thinkingCapabilities[baseData.model];
-        const newData = { ...baseData };
-        if (capabilities) {
-          newData.thinkingCapabilities = capabilities;
-        } else {
-          delete newData.thinkingCapabilities;
-        }
-        return newData;
-      });
       setModelListStatus(nextModelOptions.length > 0 ? "success" : "empty");
     } catch (err) {
+      // Ignore stale failures after the URL or key changes.
+      if (requestedModelListKeyRef.current !== requestKey) return;
+      requestedModelListKeyRef.current = "";
+      pendingOpenRouterResolutionRef.current = false;
       setModelListStatus("error");
       setModelListError(err?.message || String(err));
     }
   }, [
-    api,
     apiSlug,
     apiType,
     httpTimeout,
     key,
     modelListStatus,
     modelListUrl,
-    setFormData,
+    thinkingMode,
+  ]);
+
+  useEffect(() => {
+    if (
+      apiType !== OPT_TRANS_OPENROUTER ||
+      !pendingOpenRouterResolutionRef.current ||
+      thinkingMode === "auto"
+    ) {
+      return;
+    }
+
+    const capability = getOpenRouterThinkingCapability(
+      model,
+      modelThinkingCapabilities[model]
+    );
+    if (!capability) {
+      if (modelListStatus === "idle") void handleLoadModelList();
+      if (["success", "empty", "error"].includes(modelListStatus)) {
+        pendingOpenRouterResolutionRef.current = false;
+      }
+      return;
+    }
+
+    const resolved = normalizeThinkingSettings({
+      apiType,
+      url,
+      model,
+      thinkingMode,
+      thinkingEffort,
+      openRouterMetadata: modelThinkingCapabilities[model],
+    });
+    setFormData((prevData) => {
+      const baseData = prevData?.apiSlug === apiSlug ? prevData : api || {};
+      // Apply async results only while the form still targets the same model and mode.
+      if (baseData.model !== model || baseData.thinkingMode !== thinkingMode) {
+        return baseData;
+      }
+      return {
+        ...baseData,
+        thinkingEffort: resolved.thinkingEffort,
+      };
+    });
+    pendingOpenRouterResolutionRef.current = false;
+  }, [
+    api,
+    apiSlug,
+    apiType,
+    handleLoadModelList,
+    model,
+    modelListStatus,
+    modelThinkingCapabilities,
+    thinkingEffort,
+    thinkingMode,
+    url,
   ]);
 
   return (
@@ -1150,10 +1248,13 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                 value={thinkingMode}
                 label={i18n("thinking_mode")}
                 onChange={handleChange}
+                error={showUnknownThinkingWarning}
                 helperText={
-                  thinkingDisableStrategy?.fallback
-                    ? i18n("gemini_thinking_minimum_helper")
-                    : i18n("thinking_mode_helper")
+                  showUnknownThinkingWarning
+                    ? i18n("thinking_unknown_model_helper")
+                    : showMinimumThinkingHelper
+                      ? i18n("gemini_thinking_minimum_helper")
+                      : i18n("thinking_mode_helper")
                 }
               >
                 <MenuItem value="auto">
@@ -1183,9 +1284,12 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                       {e.label}
                     </MenuItem>
                   ))}
-                  <MenuItem value="_default">
-                    {i18n("thinking_effort_default")}
-                  </MenuItem>
+                  {(apiType !== OPT_TRANS_OPENROUTER ||
+                    thinkingEffort === null) && (
+                    <MenuItem value="_default">
+                      {i18n("thinking_effort_default")}
+                    </MenuItem>
+                  )}
                 </TextField>
               </Grid>
             )}

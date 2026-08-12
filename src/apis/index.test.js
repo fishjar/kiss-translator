@@ -566,6 +566,75 @@ describe("apiTranslate DeepL language mappings", () => {
     expect(result.srCode).toBe("zh-CN");
   });
 
+  test("uses the variant translation setting for normalized API source languages", async () => {
+    const addTask = jest.fn().mockResolvedValue(["繁體譯文", "ZH"]);
+    getBatchQueue.mockReturnValue({ addTask });
+    const apiSetting = {
+      ...DEFAULT_API_LIST.find((api) => api.apiType === OPT_TRANS_DEEPL),
+      apiSlug: "deepl_variant_test",
+    };
+
+    const enabled = await apiTranslate({
+      text: "简体原文",
+      fromLang: "auto",
+      toLang: "zh-TW",
+      apiSetting,
+      useCache: false,
+    });
+    const disabled = await apiTranslate({
+      text: "简体原文",
+      fromLang: "auto",
+      toLang: "zh-TW",
+      apiSetting,
+      translateVariants: false,
+      useCache: false,
+    });
+
+    expect(enabled.isSame).toBe(false);
+    expect(disabled.isSame).toBe(true);
+  });
+
+  test("does not infer a specific Chinese variant from generic ZH", async () => {
+    const addTask = jest.fn().mockResolvedValue(["简体译文", "ZH"]);
+    getBatchQueue.mockReturnValue({ addTask });
+
+    const result = await apiTranslate({
+      text: "繁體原文",
+      fromLang: "auto",
+      toLang: "zh-CN",
+      apiSetting: {
+        ...DEFAULT_API_LIST.find((api) => api.apiType === OPT_TRANS_DEEPL),
+        apiSlug: "deepl_generic_zh_test",
+      },
+      useCache: false,
+    });
+
+    expect(result.srCode).toBe("zh-CN");
+    expect(result.isSame).toBe(false);
+  });
+
+  test("recomputes a cached generic Chinese language match", async () => {
+    getHttpCachePolyfill.mockResolvedValueOnce({
+      trText: "简体译文",
+      srLang: "ZH",
+      srCode: "zh-CN",
+      isSame: true,
+    });
+
+    const result = await apiTranslate({
+      text: "繁體原文",
+      fromLang: "auto",
+      toLang: "zh-CN",
+      apiSetting: {
+        ...DEFAULT_API_LIST.find((api) => api.apiType === OPT_TRANS_DEEPL),
+        apiSlug: "deepl_cached_generic_zh_test",
+      },
+    });
+
+    expect(result.isSame).toBe(false);
+    expect(getBatchQueue).not.toHaveBeenCalled();
+  });
+
   test("uses a Traditional Chinese target variant and generic Chinese source for DeepLX", async () => {
     async function* translate() {
       yield { id: 0, result: ["繁體譯文", "ZH"] };

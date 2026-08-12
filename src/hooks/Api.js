@@ -3,6 +3,7 @@ import {
   DEFAULT_API_LIST,
   API_SPE_TYPES,
   normalizeApiModelListUrls,
+  normalizeApiThinkingSettings,
 } from "../config";
 import { useSetting } from "./Setting";
 
@@ -12,9 +13,11 @@ function useApiState() {
   // 统一排序，所有使用transApis的地方都是按照 sortOrder 从小到大排序好的
   const transApis = useMemo(
     () =>
-      [...normalizeApiModelListUrls(setting?.transApis || [])].sort(
-        (a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)
-      ),
+      [
+        ...normalizeApiThinkingSettings(
+          normalizeApiModelListUrls(setting?.transApis || [])
+        ),
+      ].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)),
     [setting?.transApis]
   );
 

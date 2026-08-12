@@ -21,6 +21,7 @@ import {
   SETTINGS_VERSION_V2,
   CURRENT_SETTINGS_VERSION,
   DEFAULT_TRANBOX_SETTING,
+  normalizeApiThinkingSettings,
 } from "../config";
 import { isExt, isGm } from "./client";
 import { browser } from "./browser";
@@ -158,15 +159,23 @@ export const getSetting = () => getObj(STOKEY_SETTING);
 export const getSettingOld = () => getObj(STOKEY_SETTING_OLD);
 const writeSettingBackupBeforeV2 = (setting) =>
   setObj(STOKEY_SETTING_BACKUP_V1_BEFORE_V2, setting);
-const mergeSettingWithDefault = (setting) => ({
-  ...DEFAULT_SETTING,
-  ...(setting || {}),
-  tranboxSetting: {
-    ...DEFAULT_TRANBOX_SETTING,
-    ...(setting?.tranboxSetting || {}),
-  },
-  version: setting?.version ?? DEFAULT_SETTING.version,
-});
+const mergeSettingWithDefault = (setting) => {
+  const mergedSetting = {
+    ...DEFAULT_SETTING,
+    ...(setting || {}),
+    tranboxSetting: {
+      ...DEFAULT_TRANBOX_SETTING,
+      ...(setting?.tranboxSetting || {}),
+    },
+    version: setting?.version ?? DEFAULT_SETTING.version,
+  };
+
+  // 设置读取时只在内存中归一化一次，避免每次请求重复解析模型能力。
+  return {
+    ...mergedSetting,
+    transApis: normalizeApiThinkingSettings(mergedSetting.transApis),
+  };
+};
 export const migrateStoredSettingToV2 = async (
   setting,
   backupSetting = setting
@@ -196,7 +205,8 @@ export const runDataMigration = async () => {
 export const getSettingWithDefault = async () => {
   const rawSetting = await getSetting();
   if (!rawSetting) {
-    return DEFAULT_SETTING;
+    // 新安装同样通过统一入口得到最终思考设置，避免默认配置绕过归一化。
+    return mergeSettingWithDefault(DEFAULT_SETTING);
   }
 
   const setting =

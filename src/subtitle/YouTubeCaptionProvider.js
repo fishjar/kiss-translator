@@ -571,7 +571,9 @@ export class YouTubeCaptionProvider {
       logger.debug(
         `Youtube Provider: lang: ${lang}, fromLang: ${fromLang}, toLang: ${toLang}`
       );
-      if (isSameLang(fromLang, toLang)) {
+      if (
+        isSameLang(fromLang, toLang, this.#setting.translateVariants ?? true)
+      ) {
         logger.debug("Youtube Provider: skip same lang", fromLang, toLang);
         this.#playerUi.showNotification(this.#i18n("subtitle_same_lang"));
         return;

@@ -36,8 +36,14 @@ export default function Playgound() {
   // 从全局钩子中读取设置
   const { setting } = useSetting();
   // 解构获取当前翻译服务配置列表与语言检测器
-  const { transApis, langDetector, tranboxSetting, prompts, subtitleSetting } =
-    setting || DEFAULT_SETTING;
+  const {
+    transApis,
+    langDetector,
+    tranboxSetting,
+    prompts,
+    subtitleSetting,
+    translateVariants,
+  } = setting || DEFAULT_SETTING;
   const resolvedTransApis = useMemo(
     () => resolveApiPromptList(transApis, prompts, subtitleSetting),
     [prompts, subtitleSetting, transApis]
@@ -91,6 +97,7 @@ export default function Playgound() {
           aiDictApiSlug={aiDictApiSlug}
           aiDictPromptSlug={aiDictPromptSlug}
           prompts={prompts}
+          translateVariants={translateVariants}
           isPlaygound={true}
           playgroundConfigHeader={
             <Box className="kt-playground-config__header">

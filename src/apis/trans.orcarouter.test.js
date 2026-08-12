@@ -20,7 +20,7 @@ import {
   API_SPE_TYPES,
   DEFAULT_API_LIST,
   OPT_TRANS_ORCAROUTER,
-  THINKING_PARAM_MAP,
+  THINKING_API_REGISTRY,
 } from "../config";
 import { fetchData } from "../libs/fetch";
 
@@ -150,7 +150,7 @@ describe("OrcaRouter interface", () => {
   });
 
   test("maps thinking settings to the reasoning_effort parameter", async () => {
-    expect(THINKING_PARAM_MAP[OPT_TRANS_ORCAROUTER].type).toBe("openai");
+    expect(THINKING_API_REGISTRY[OPT_TRANS_ORCAROUTER].adapter).toBe("openai");
 
     mockOnce();
     await translate(
@@ -184,6 +184,6 @@ describe("OrcaRouter interface", () => {
 
     const body = JSON.parse(fetchData.mock.calls[0][1].body);
     expect(body).not.toHaveProperty("reasoning");
-    expect(body.reasoning_effort).toBe("high");
+    expect(body.reasoning_effort).toBe("medium");
   });
 });

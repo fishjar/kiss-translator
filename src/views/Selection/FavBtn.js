@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useFavWords } from "../../hooks/FavWords";
 import { kissLog } from "../../libs/log";
 import { useSetting } from "../../hooks/Setting";
+import { EVENT_FAVORITE_WORD_CHANGE } from "../../config";
 
 /**
  * 收藏生词按钮组件 (红心图标)
@@ -26,13 +27,19 @@ export default function FavBtn({ word, title }) {
     try {
       setLoading(true);
       // REVIEW: toggleFav(word) 极有可能是涉及本地存储或后台同步的异步操作，但在 handleClick 中未对其进行 await (函数也未声明为 async)。这导致 finally 块中的 setLoading(false) 会同步瞬间执行，使防连击的 loading 状态形同虚设。建议将其改为 async 函数，并对 toggleFav(word) 加上 await。
+      const isFavorite = !favWords[word];
       toggleFav(word);
+      document.dispatchEvent(
+        new CustomEvent(EVENT_FAVORITE_WORD_CHANGE, {
+          detail: { word, isFavorite },
+        })
+      );
     } catch (err) {
       kissLog("set fav", err);
     } finally {
       setLoading(false);
     }
-  }, [toggleFav, word]);
+  }, [favWords, toggleFav, word]);
 
   useEffect(() => {
     if (autoCollect && word && !favWords[word]) {

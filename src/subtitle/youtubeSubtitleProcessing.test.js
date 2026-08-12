@@ -3,6 +3,7 @@ import path from "path";
 import {
   cleanTimedText,
   formatSubtitles,
+  getFromLang,
   prepareTimedTextEvents,
   runBuiltinSegmentation,
   splitEventsIntoChunks,
@@ -10,6 +11,7 @@ import {
 import { isNonSpeechSegment } from "./subtitleTextClassification.js";
 
 jest.mock("../config", () => ({
+  OPT_LANGS_LIST: ["zh-CN", "zh-TW", "en", "pt", "nb"],
   OPT_LANGS_SPEC_DEFAULT: new Map(),
   OPT_LANGS_TO_CODE: {
     microsoft: new Map(),
@@ -25,6 +27,15 @@ jest.mock("../libs/log.js", () => ({
 }));
 
 describe("youtubeSubtitleProcessing", () => {
+  test.each([
+    ["zh-Hant", "zh-TW"],
+    ["zh-HK", "zh-TW"],
+    ["zh-Hans", "zh-CN"],
+    ["en-US", "en"],
+  ])("normalizes subtitle source language %s to %s", (source, expected) => {
+    expect(getFromLang(source)).toBe(expected);
+  });
+
   test.each([
     ["[Music]", true],
     ["[music]", true],

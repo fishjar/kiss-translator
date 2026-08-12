@@ -20,6 +20,10 @@ import {
   defaultDictUserPrompt,
 } from "../config";
 import { sha256, withTimeout } from "../libs/utils";
+import {
+  isSameTranslationLanguage,
+  normalizeLanguageCode,
+} from "../libs/language";
 import { getCacheDigest } from "../libs/cacheDigest";
 import {
   handleTranslate,
@@ -44,6 +48,38 @@ const PROMPT_CACHE_SCOPE_BATCH = "batch";
 const PROMPT_CACHE_SCOPE_NOBATCH = "nobatch";
 const PROMPT_CACHE_SCOPE_DICT = "dict";
 const PROMPT_CACHE_SCOPE_PLAIN = "plain";
+
+const isGenericChineseLanguageCode = (code) =>
+  typeof code === "string" && /^zh$/i.test(code.trim());
+
+const getTranslationLanguageMatch = ({
+  fromLang,
+  toLang,
+  to,
+  srLang,
+  srCode,
+  translateVariants,
+}) => {
+  if (fromLang !== "auto") return false;
+
+  const isGenericChinese = isGenericChineseLanguageCode(srLang);
+  const normalizedSource =
+    isGenericChinese && translateVariants
+      ? ""
+      : normalizeLanguageCode(srCode || srLang);
+  const normalizedTarget = normalizeLanguageCode(toLang);
+
+  return (
+    isSameTranslationLanguage(
+      normalizedSource,
+      normalizedTarget,
+      translateVariants
+    ) ||
+    (!isGenericChinese &&
+      (!normalizedSource || !normalizedTarget) &&
+      srLang === to)
+  );
+};
 
 function getTranslatePromptCacheScope(apiSetting = {}) {
   if (!API_SPE_TYPES.ai.has(apiSetting.apiType)) {
@@ -571,6 +607,7 @@ const apiBuiltinAITranslate = async ({ text, from, to, apiSetting }) => {
  * @param {Object} params.docInfo 视频/文档摘要等额外上下文环境数据
  * @param {boolean} params.useCache 是否应用本地请求缓存 (默认 true)
  * @param {boolean} params.usePool 是否应用限制连接池 (默认 true)
+ * @param {boolean} params.translateVariants 是否翻译同一语言的不同变体
  * @param {AbortSignal} params.signal AbortController 传导的取消控制信号
  * @returns {Promise<Object>} 最终解析出的翻译响应数据 (trText, srLang, srCode, isSame)
  */
@@ -584,6 +621,7 @@ export const apiTranslate = async ({
   docInfo,
   useCache = true,
   usePool = true,
+  translateVariants = true,
   signal,
 }) => {
   if (!text) {
@@ -616,6 +654,7 @@ export const apiTranslate = async ({
     text,
     fromLang,
     toLang,
+    translateVariants,
     version: [v1, v2].join("."),
     promptSig,
     ...(docInfo?.summary && { ctx: docInfo.summary.slice(0, 50) }),
@@ -626,7 +665,17 @@ export const apiTranslate = async ({
   if (useCache) {
     const cache = await getHttpCachePolyfill(cacheInput);
     if (cache?.trText) {
-      return cache;
+      return {
+        ...cache,
+        isSame: getTranslationLanguageMatch({
+          fromLang,
+          toLang,
+          to,
+          srLang: cache.srLang,
+          srCode: cache.srCode,
+          translateVariants,
+        }),
+      };
     }
   }
   if (signal?.aborted) {
@@ -747,7 +796,14 @@ export const apiTranslate = async ({
   }
 
   // 判断是否发生了“源语言与目标语言相同”的无效翻译情况 (如英文网页翻译为英文)
-  const isSame = fromLang === "auto" && srLang === to;
+  const isSame = getTranslationLanguageMatch({
+    fromLang,
+    toLang,
+    to,
+    srLang,
+    srCode,
+    translateVariants,
+  });
 
   // 4. 将成功的结果写入本地网络缓存中
   if (useCache) {

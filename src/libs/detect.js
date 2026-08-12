@@ -8,7 +8,6 @@ import {
   OPT_TRANS_BAIDU,
   OPT_TRANS_TENCENT,
   OPT_LANGS_TO_CODE,
-  OPT_LANGS_MAP,
   OPT_TRANS_BUILTINAI,
   OPT_LANGDETECTOR_MAP,
 } from "../config";
@@ -20,6 +19,7 @@ import {
   apiBuiltinAIDetect,
 } from "../apis";
 import { kissLog } from "./log";
+import { normalizeLanguageCode } from "./language";
 
 // 各个平台的语言检测函数映射表
 const langdetectFns = {
@@ -49,7 +49,8 @@ export const tryDetectLang = async (text, langDetector = "-") => {
       const lang = await langdetectFns[langDetector](text);
       if (lang) {
         // 转换成翻译器统一的语言代码格式
-        deLang = OPT_LANGS_TO_CODE[langDetector].get(lang) || "";
+        const mappedLang = OPT_LANGS_TO_CODE[langDetector].get(lang) || lang;
+        deLang = normalizeLanguageCode(mappedLang);
       }
     } catch (err) {
       kissLog("detect lang remote", err);
@@ -61,11 +62,10 @@ export const tryDetectLang = async (text, langDetector = "-") => {
     try {
       const res = await browser?.i18n?.detectLanguage(text);
       const lang = res?.languages?.[0]?.language;
+      const normalizedLang = normalizeLanguageCode(lang);
       // 仅当识别置信度高 (isReliable) 且被当前插件支持时采纳
-      if (res?.isReliable && lang && OPT_LANGS_MAP.has(lang)) {
-        deLang = lang;
-      } else if (lang?.startsWith("zh")) {
-        deLang = "zh-CN";
+      if (normalizedLang && (res?.isReliable || /^zh(?:[-_]|$)/i.test(lang))) {
+        deLang = normalizedLang;
       }
     } catch (err) {
       kissLog("detect lang local", err);

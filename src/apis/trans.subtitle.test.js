@@ -300,6 +300,7 @@ describe("handleSubtitle", () => {
       apiSetting: {
         ...getApiSetting(OPT_TRANS_GEMINI),
         useStream: false,
+        model: "gemini-3-pro-preview",
         thinkingMode: "enabled",
         thinkingEffort: "high",
       },

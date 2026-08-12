@@ -4,6 +4,9 @@ import {
   SETTINGS_VERSION_V2,
   SETTINGS_VERSION_V3,
   DEFAULT_SUBTITLE_SETTING,
+  OPT_TRANS_DEEPSEEK,
+  OPT_TRANS_OPENAI,
+  OPT_TRANS_TENCENT,
 } from "../config";
 import { getSettingWithDefault, runDataMigration } from "./storage";
 
@@ -92,6 +95,45 @@ describe("settings storage migration", () => {
     expect(setting.transApis[0]).not.toHaveProperty("systemPrompt");
   });
 
+  test("merges the language variant default without overriding an explicit choice", async () => {
+    window.localStorage.setItem(
+      STOKEY_SETTING,
+      JSON.stringify({ version: SETTINGS_VERSION_V3, uiLang: "zh" })
+    );
+    await expect(getSettingWithDefault()).resolves.toMatchObject({
+      translateVariants: true,
+    });
+
+    window.localStorage.setItem(
+      STOKEY_SETTING,
+      JSON.stringify({
+        version: SETTINGS_VERSION_V3,
+        translateVariants: false,
+      })
+    );
+    await expect(getSettingWithDefault()).resolves.toMatchObject({
+      translateVariants: false,
+    });
+  });
+
+  test("does not replace explicitly stored Tencent entry points", async () => {
+    window.localStorage.setItem(
+      STOKEY_SETTING,
+      JSON.stringify({
+        version: SETTINGS_VERSION_V3,
+        inputRule: { apiSlug: OPT_TRANS_TENCENT },
+        tranboxSetting: { apiSlugs: [OPT_TRANS_TENCENT] },
+        subtitleSetting: { apiSlug: OPT_TRANS_TENCENT },
+      })
+    );
+
+    await expect(getSettingWithDefault()).resolves.toMatchObject({
+      inputRule: { apiSlug: OPT_TRANS_TENCENT },
+      tranboxSetting: { apiSlugs: [OPT_TRANS_TENCENT] },
+      subtitleSetting: { apiSlug: OPT_TRANS_TENCENT },
+    });
+  });
+
   test("keeps an explicitly stored subtitle chunk length", async () => {
     // 新默认值只影响新配置；已有用户明确保存的 2000 不应被默认设置覆盖。
     expect(DEFAULT_SUBTITLE_SETTING.chunkLength).toBe(1000);
@@ -106,6 +148,39 @@ describe("settings storage migration", () => {
     const setting = await getSettingWithDefault();
 
     expect(setting.subtitleSetting.chunkLength).toBe(2000);
+  });
+
+  test("normalizes legacy default thinking effort only in the loaded setting", async () => {
+    const storedSetting = {
+      version: SETTINGS_VERSION_V3,
+      transApis: [
+        {
+          apiSlug: "openai",
+          apiType: OPT_TRANS_OPENAI,
+          model: "gpt-5.6-sol",
+          thinkingMode: "enabled",
+          thinkingEffort: "_default",
+        },
+      ],
+    };
+    window.localStorage.setItem(STOKEY_SETTING, JSON.stringify(storedSetting));
+
+    const setting = await getSettingWithDefault();
+
+    expect(setting.transApis[0].thinkingEffort).toBeNull();
+    expect(readStoredJson(STOKEY_SETTING)).toEqual(storedSetting);
+  });
+
+  test("normalizes thinking settings for a fresh installation", async () => {
+    const setting = await getSettingWithDefault();
+    const deepseek = setting.transApis.find(
+      (api) => api.apiType === OPT_TRANS_DEEPSEEK
+    );
+
+    expect(deepseek).toMatchObject({
+      thinkingMode: "disabled",
+      thinkingEffort: null,
+    });
   });
 
   test("GM storage reports a clear error when GM APIs are unavailable", async () => {
