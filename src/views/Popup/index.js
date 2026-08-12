@@ -41,6 +41,7 @@ function Trantab() {
     langDetector,
     prompts,
     subtitleSetting,
+    translateVariants,
   } = setting;
   const resolvedTransApis = useMemo(
     () => resolveApiPromptList(transApis, prompts, subtitleSetting),
@@ -65,6 +66,7 @@ function Trantab() {
         aiDictApiSlug={aiDictApiSlug}
         aiDictPromptSlug={aiDictPromptSlug}
         prompts={prompts}
+        translateVariants={translateVariants}
       />
     </Box>
   );

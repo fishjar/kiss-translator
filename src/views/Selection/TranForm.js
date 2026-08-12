@@ -32,6 +32,7 @@ import Zdic from "./Zdic";
 import { isValidWord, isSingleChineseChar } from "../../libs/utils";
 import { kissLog } from "../../libs/log";
 import { tryDetectLang } from "../../libs/detect";
+import { isSameTranslationLanguage } from "../../libs/language";
 
 /**
  * 翻译交互核心表单组件 (集成源/目标语言选择、多引擎翻译、词典展示、汉典展示、语言检测与文本输入)
@@ -47,6 +48,7 @@ export default function TranForm({
   transApis,
   simpleStyle = false,
   langDetector: initLangDetector = "-",
+  translateVariants = true,
   enDict: initEnDict = "-",
   enSug: initEnSug = "-",
   aiDictApiSlug = "-",
@@ -149,13 +151,13 @@ export default function TranForm({
       fromLang === "auto" &&
       toLang !== toLang2 &&
       toLang2 !== "-" &&
-      deLang === toLang
+      isSameTranslationLanguage(deLang, toLang, translateVariants)
     ) {
       return toLang2;
     }
 
     return toLang;
-  }, [fromLang, toLang, toLang2, deLang]);
+  }, [fromLang, toLang, toLang2, deLang, translateVariants]);
 
   // 过滤出未被禁用的翻译服务商
   const optApis = useMemo(
@@ -504,6 +506,7 @@ export default function TranForm({
           simpleStyle={simpleStyle}
           apiSlug={slug}
           transApis={transApis}
+          translateVariants={translateVariants}
         />
       ))}
 

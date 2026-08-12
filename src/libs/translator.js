@@ -35,6 +35,7 @@ import { genTextClass } from "./style";
 import { createLoadingSVG, createRetrySVG } from "./svg";
 import { shortcutRegister } from "./shortcut";
 import { tryDetectLang } from "./detect";
+import { isSameTranslationLanguage } from "./language";
 import { trustedTypesHelper } from "./trustedTypes";
 import { injectJs, INJECTOR } from "../injectors";
 import { injectInternalCss } from "./injector";
@@ -1664,13 +1665,17 @@ export class Translator {
       splitParagraph = OPT_SPLIT_PARAGRAPH_DISABLE,
       splitLength = 100,
     } = this.#rule;
-    const { langDetector, skipLangs = [] } = this.#setting;
+    const {
+      langDetector,
+      skipLangs = [],
+      translateVariants = true,
+    } = this.#setting;
     if (fromLang === "auto") {
       // revert 529
       deLang = await tryDetectLang(node.textContent, langDetector);
       if (
         deLang &&
-        (toLang.slice(0, 2) === deLang.slice(0, 2) ||
+        (isSameTranslationLanguage(deLang, toLang, translateVariants) ||
           skipLangs.includes(deLang))
       ) {
         // 保留处理状态，不做删除
@@ -2870,12 +2875,16 @@ overflow-wrap: anywhere !important;`;
     try {
       let deLang = "";
       const { fromLang = "auto", toLang } = this.#rule;
-      const { langDetector, skipLangs = [] } = this.#setting;
+      const {
+        langDetector,
+        skipLangs = [],
+        translateVariants = true,
+      } = this.#setting;
       if (fromLang === "auto") {
         deLang = await tryDetectLang(text, langDetector);
         if (
           deLang &&
-          (toLang.slice(0, 2) === deLang.slice(0, 2) ||
+          (isSameTranslationLanguage(deLang, toLang, translateVariants) ||
             skipLangs.includes(deLang))
         ) {
           if (this.#hoverBubbleRunId === currentRunId) {
@@ -3151,6 +3160,7 @@ overflow-wrap: anywhere !important;`;
       apiSetting,
       glossary,
       onStreamChunk,
+      translateVariants: this.#setting.translateVariants,
     };
 
     // 翻译开始钩子函数（允许用户在翻译请求发送前修改文本、语言或词典配置）
@@ -3540,6 +3550,7 @@ overflow-wrap: anywhere !important;`;
   // 刷新节点翻译
   #refreshNode(node) {
     this.#cleanupDirectTranslations(node);
+    this.#processedNodes.delete(node);
     this.#processNode(node);
   }
 

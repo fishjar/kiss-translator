@@ -4,9 +4,9 @@
  * 不引入翻译 API 栈，供内容脚本高频调用场景（如选区语言判定）使用。
  */
 
-import { OPT_LANGS_MAP } from "../config";
 import { browser } from "./browser";
 import { kissLog } from "./log";
+import { normalizeLanguageCode } from "./language";
 
 const DETECT_CACHE_LIMIT = 100; // 检测结果缓存条数上限，防止长会话内存膨胀
 const DETECT_TIMEOUT = 100; // 本地语言检测超时阈值 (ms)
@@ -161,10 +161,12 @@ export const detectLangFast = async (text) => {
         ),
       ]);
       const detected = res?.languages?.[0]?.language;
-      if (res?.isReliable && detected && OPT_LANGS_MAP.has(detected)) {
-        lang = detected;
-      } else if (detected?.startsWith("zh")) {
-        lang = detected === "zh-TW" ? "zh-TW" : "zh-CN";
+      const normalizedLang = normalizeLanguageCode(detected);
+      if (
+        normalizedLang &&
+        (res?.isReliable || /^zh(?:[-_]|$)/i.test(detected))
+      ) {
+        lang = normalizedLang;
       }
     } catch (err) {
       kissLog("detect lang fast", err);

@@ -369,13 +369,11 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
     ].includes(name);
     let cachedOpenRouterMetadata;
     let nextOpenRouterMode = thinkingMode;
-    if (
-      api?.apiType === OPT_TRANS_OPENROUTER &&
-      shouldNormalizeThinking
-    ) {
+    if (api?.apiType === OPT_TRANS_OPENROUTER && shouldNormalizeThinking) {
       const nextModel = name === "model" ? value : model;
       nextOpenRouterMode = name === "thinkingMode" ? value : thinkingMode;
-      cachedOpenRouterMetadata = modelThinkingCapabilitiesRef.current[nextModel];
+      cachedOpenRouterMetadata =
+        modelThinkingCapabilitiesRef.current[nextModel];
       const cachedOpenRouterCapability = getOpenRouterThinkingCapability(
         nextModel,
         cachedOpenRouterMetadata
@@ -568,9 +566,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
     thinkingEffort !== "_default";
   // OpenRouter 的具体强度由设置页归一化后持久化，可在重新打开页面时直接视为已确认。
   const isUnknownThinkingModel =
-    thinkingParam &&
-    !thinkingCapability &&
-    !hasResolvedOpenRouterThinking;
+    thinkingParam && !thinkingCapability && !hasResolvedOpenRouterThinking;
   const thinkingEfforts = thinkingCapability?.efforts;
   const selectedThinkingEffort = thinkingEfforts?.some(
     (effort) => effort.value === thinkingEffort

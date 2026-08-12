@@ -87,10 +87,11 @@ const normalizeTranslationText = (text, apiType, sourceText) => {
  *
  * @param {string} text Original text to translate.
  * @param {Function} translate Translation function for one text fragment.
- * @returns {Promise<{trText: string}>} Rejoined translated text.
+ * @returns {Promise<{trText: string, isSame: boolean}>} Rejoined translated text.
  */
 const translateBuiltinText = async (text, translate) => {
   const parts = text.split(/(\r\n|\r|\n)/);
+  const results = [];
   const translatedParts = await Promise.all(
     parts.map(async (part, index) => {
       if (index % 2 === 1 || !part.trim()) {
@@ -98,11 +99,15 @@ const translateBuiltinText = async (text, translate) => {
       }
 
       const result = await translate(part);
+      results.push(result);
       return result.trText;
     })
   );
 
-  return { trText: translatedParts.join("") };
+  return {
+    trText: translatedParts.join(""),
+    isSame: results.length > 0 && results.every((result) => result.isSame),
+  };
 };
 
 /**
@@ -123,6 +128,7 @@ export default function TranCont({
   toLang,
   apiSlug,
   transApis,
+  translateVariants = true,
   simpleStyle = false,
 }) {
   const i18n = useI18n();
@@ -184,17 +190,22 @@ export default function TranCont({
             fromLang,
             toLang,
             apiSetting,
+            translateVariants,
             onStreamChunk: handleStreamChunk,
             // 将组件生命周期的取消信号下传，避免划词内容变化后旧请求继续占用网络与回写 UI。
             signal: controller.signal,
           });
-        const { trText } =
+        const { trText, isSame } =
           apiSetting.apiType === OPT_TRANS_BUILTINAI
             ? await translateBuiltinText(text, translate)
             : await translate(normalizeRequestText(text, apiSetting.apiType));
 
         if (active) {
-          setTrText(normalizeTranslationText(trText, apiSetting.apiType, text));
+          setTrText(
+            isSame
+              ? ""
+              : normalizeTranslationText(trText, apiSetting.apiType, text)
+          );
         }
       } catch (err) {
         if (err?.name === "AbortError") {
@@ -216,7 +227,7 @@ export default function TranCont({
       // 组件卸载或依赖变化时主动中止请求，确保后台流式连接不会继续为旧划词结果推送数据。
       controller.abort();
     };
-  }, [text, fromLang, toLang, apiSetting]);
+  }, [text, fromLang, toLang, apiSetting, translateVariants]);
 
   if (!apiSetting) {
     return null;

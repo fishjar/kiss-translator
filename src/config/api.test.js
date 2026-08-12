@@ -21,7 +21,6 @@ import {
   OPT_TRANS_ALIYUNBAILIAN,
   OPT_TRANS_MICROSOFT,
   OPT_TRANS_SILICONFLOW,
-  OPT_TRANS_TENCENT,
   OPT_TRANS_OPENAI,
   OPT_TRANS_OPENCODEGO,
   OPT_TRANS_OPENROUTER,
@@ -29,8 +28,8 @@ import {
   OPT_TRANS_ZAI,
 } from "./api";
 
-test("uses Tencent as the fallback default API", () => {
-  expect(DEFAULT_API_TYPE).toBe(OPT_TRANS_TENCENT);
+test("uses Microsoft as the fallback default API", () => {
+  expect(DEFAULT_API_TYPE).toBe(OPT_TRANS_MICROSOFT);
 });
 
 test("includes Microsoft in the built-in API list", () => {
@@ -55,27 +54,25 @@ test("keeps disabled as the initial thinking mode", () => {
 });
 
 describe("unified thinking capabilities", () => {
-  test.each([
-    "gpt-5.6-sol",
-    "gpt-5.4-pro",
-    "gpt-5.3-codex",
-    "gpt-5",
-  ])("keeps the OpenAI interface default for model %s", (model) => {
-    expect(
-      normalizeThinkingSettings({
-        apiType: OPT_TRANS_OPENAI,
-        model,
-        thinkingMode: "enabled",
-      }).thinkingEffort
-    ).toBeNull();
-    expect(
-      normalizeThinkingSettings({
-        apiType: OPT_TRANS_OPENAI,
-        model,
-        thinkingMode: "disabled",
-      })
-    ).toEqual({ thinkingMode: "disabled", thinkingEffort: "none" });
-  });
+  test.each(["gpt-5.6-sol", "gpt-5.4-pro", "gpt-5.3-codex", "gpt-5"])(
+    "keeps the OpenAI interface default for model %s",
+    (model) => {
+      expect(
+        normalizeThinkingSettings({
+          apiType: OPT_TRANS_OPENAI,
+          model,
+          thinkingMode: "enabled",
+        }).thinkingEffort
+      ).toBeNull();
+      expect(
+        normalizeThinkingSettings({
+          apiType: OPT_TRANS_OPENAI,
+          model,
+          thinkingMode: "disabled",
+        })
+      ).toEqual({ thinkingMode: "disabled", thinkingEffort: "none" });
+    }
+  );
 
   test.each(["gpt-5.1", "gpt-5.1-2025-11-13"])(
     "enables GPT-5.1 with its lowest non-disabled effort for model %s",
@@ -237,9 +234,9 @@ describe("unified thinking capabilities", () => {
     expect(
       normalize({ defaultEffort: "medium", defaultEnabled: true })
     ).toEqual({ thinkingMode: "enabled", thinkingEffort: "medium" });
-    expect(
-      normalize({ defaultEffort: "none", defaultEnabled: false })
-    ).toEqual({ thinkingMode: "enabled", thinkingEffort: "low" });
+    expect(normalize({ defaultEffort: "none", defaultEnabled: false })).toEqual(
+      { thinkingMode: "enabled", thinkingEffort: "low" }
+    );
     expect(normalize({ defaultEnabled: true })).toEqual({
       thinkingMode: "enabled",
       thinkingEffort: null,

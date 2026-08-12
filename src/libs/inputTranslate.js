@@ -257,12 +257,14 @@ export class InputTranslator {
     transApis = [],
     prompts = [],
     subtitleSetting = {},
+    translateVariants = true,
   } = {}) {
     this.#config = {
       inputRule,
       prompts,
       subtitleSetting,
       transApis,
+      translateVariants,
     };
 
     const { triggerShortcut: initialTriggerShortcut } = this.#config.inputRule;
@@ -610,6 +612,7 @@ export class InputTranslator {
         fromLang,
         toLang,
         apiSetting,
+        translateVariants: this.#config.translateVariants,
       });
 
       const newText = trText?.trim() || "";

@@ -2,6 +2,7 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import TranForm from "./TranForm";
 import { apiDict } from "../../apis";
+import { tryDetectLang } from "../../libs/detect";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -26,11 +27,13 @@ jest.mock("react-markdown", () => {
 jest.mock("./TranCont", () => {
   const React = require("react");
 
-  return ({ apiSlug, text }) =>
+  return ({ apiSlug, text, toLang, translateVariants }) =>
     React.createElement("div", {
       "data-testid": "tran-cont",
       "data-api-slug": apiSlug,
       "data-text": text,
+      "data-to-lang": toLang,
+      "data-translate-variants": String(translateVariants),
     });
 });
 
@@ -201,6 +204,7 @@ describe("TranForm AI dictionary tab", () => {
 describe("TranForm translation service selection", () => {
   beforeEach(() => {
     apiDict.mockReset();
+    tryDetectLang.mockResolvedValue("en");
     document.body.innerHTML = "";
   });
 
@@ -222,6 +226,44 @@ describe("TranForm translation service selection", () => {
         (element) => element.dataset.text
       )
     ).toEqual(["First line Second line", "First line Second line"]);
+
+    act(() => root.unmount());
+  });
+
+  test("switches to the secondary target when Chinese variants are disabled", async () => {
+    tryDetectLang.mockResolvedValue("zh-TW");
+    const { container, root } = renderTranForm({
+      text: "繁體中文",
+      apiSlugs: ["openai"],
+      fromLang: "auto",
+      toLang: "zh-CN",
+      toLang2: "en",
+      translateVariants: false,
+    });
+    await flushEffects();
+
+    const translation = container.querySelector('[data-testid="tran-cont"]');
+    expect(translation.dataset.toLang).toBe("en");
+    expect(translation.dataset.translateVariants).toBe("false");
+
+    act(() => root.unmount());
+  });
+
+  test("keeps the primary target when Chinese variants are enabled", async () => {
+    tryDetectLang.mockResolvedValue("zh-TW");
+    const { container, root } = renderTranForm({
+      text: "繁體中文",
+      apiSlugs: ["openai"],
+      fromLang: "auto",
+      toLang: "zh-CN",
+      toLang2: "en",
+      translateVariants: true,
+    });
+    await flushEffects();
+
+    expect(
+      container.querySelector('[data-testid="tran-cont"]').dataset.toLang
+    ).toBe("zh-CN");
 
     act(() => root.unmount());
   });

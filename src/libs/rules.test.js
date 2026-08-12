@@ -2,7 +2,7 @@ import { checkRules, matchRule, saveRule } from "./rules";
 import { getDisabledSubRules, getRulesWithDefault, setRules } from "./storage";
 import { loadOrFetchSubRules } from "./subRules";
 import { GLOBLA_RULE } from "../config/rules";
-import { OPT_TRANS_TENCENT } from "../config/api";
+import { OPT_TRANS_MICROSOFT, OPT_TRANS_TENCENT } from "../config/api";
 
 jest.mock("./storage", () => ({
   getRulesWithDefault: jest.fn(),
@@ -25,8 +25,22 @@ jest.mock("./log", () => ({
   },
 }));
 
-test("uses Tencent as the default webpage translator", () => {
-  expect(GLOBLA_RULE.apiSlug).toBe(OPT_TRANS_TENCENT);
+test("uses Microsoft as the default webpage translator", () => {
+  expect(GLOBLA_RULE.apiSlug).toBe(OPT_TRANS_MICROSOFT);
+});
+
+test("keeps an explicitly stored Tencent global rule", async () => {
+  getDisabledSubRules.mockResolvedValue([]);
+  getRulesWithDefault.mockResolvedValue([
+    { pattern: "*", apiSlug: OPT_TRANS_TENCENT },
+  ]);
+
+  const rule = await matchRule("https://example.com", {
+    injectRules: false,
+    subrulesList: [],
+  });
+
+  expect(rule.apiSlug).toBe(OPT_TRANS_TENCENT);
 });
 
 describe("rules enabled state", () => {

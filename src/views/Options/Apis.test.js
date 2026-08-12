@@ -444,9 +444,9 @@ describe("Apis model list", () => {
     expect(getInput(view.container, "model").getAttribute("aria-invalid")).toBe(
       "false"
     );
-    expect(getInput(view.container, "model").getAttribute("data-options")).toContain(
-      "gpt-4o"
-    );
+    expect(
+      getInput(view.container, "model").getAttribute("data-options")
+    ).toContain("gpt-4o");
 
     view.unmount();
   });

@@ -489,10 +489,7 @@ const applyOpenAIThinking = (body, { thinkingEffort }) => {
  * @param {string|null} settings.thinkingEffort 最终思考强度或关闭值。
  * @returns {void}
  */
-const applyOpenRouterThinking = (
-  body,
-  { thinkingMode, thinkingEffort }
-) => {
+const applyOpenRouterThinking = (body, { thinkingMode, thinkingEffort }) => {
   if (thinkingMode === "enabled" && thinkingEffort === null) {
     body.reasoning = { enabled: true };
     return;

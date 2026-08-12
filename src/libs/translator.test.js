@@ -8,7 +8,12 @@ jest.mock("./msg", () => ({
   sendBgMsg: jest.fn(),
 }));
 
+jest.mock("./detect", () => ({
+  tryDetectLang: jest.fn(),
+}));
+
 const { apiMicrosoftDict, apiTranslate, apiYoudaoDict } = require("../apis");
+const { tryDetectLang } = require("./detect");
 const {
   DEFAULT_API_SETTING,
   EVENT_FAVORITE_WORD_CHANGE,
@@ -102,6 +107,7 @@ describe("Translator rule styles", () => {
     apiTranslate.mockResolvedValue({ trText: "Translated", isSame: false });
     apiMicrosoftDict.mockResolvedValue(null);
     apiYoudaoDict.mockResolvedValue(null);
+    tryDetectLang.mockResolvedValue("en");
 
     originalIntersectionObserver = global.IntersectionObserver;
     global.IntersectionObserver = class {
@@ -137,6 +143,91 @@ describe("Translator rule styles", () => {
     jest.runOnlyPendingTimers();
     jest.useRealTimers();
     jest.clearAllMocks();
+  });
+
+  test("translates between detected Chinese variants when enabled", async () => {
+    document.body.innerHTML = '<main id="root"><p>繁體中文內容</p></main>';
+    tryDetectLang.mockResolvedValue("zh-TW");
+    apiTranslate.mockClear();
+
+    createTranslator(
+      { fromLang: "auto", toLang: "zh-CN" },
+      { minLength: 0, translateVariants: true }
+    );
+    await flushAsync();
+
+    expect(apiTranslate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fromLang: "zh-TW",
+        toLang: "zh-CN",
+        translateVariants: true,
+      })
+    );
+  });
+
+  test("uses the same Chinese variant rule for hover bubbles", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="target">繁體中文內容</p></main>';
+    const target = document.getElementById("target");
+    tryDetectLang.mockResolvedValue("zh-TW");
+    apiTranslate.mockClear();
+
+    createTranslator(
+      { transOpen: "false", fromLang: "auto", toLang: "zh-CN" },
+      {
+        minLength: 0,
+        translateVariants: true,
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          displayMode: "bubble",
+        },
+      }
+    );
+    await hoverNode(target);
+    await flushAsync();
+
+    expect(apiTranslate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fromLang: "zh-TW",
+        toLang: "zh-CN",
+        translateVariants: true,
+      })
+    );
+  });
+
+  test("skips detected Chinese variants when variant translation is disabled", async () => {
+    document.body.innerHTML = '<main id="root"><p>繁體中文內容</p></main>';
+    tryDetectLang.mockResolvedValue("zh-TW");
+    apiTranslate.mockClear();
+
+    createTranslator(
+      { fromLang: "auto", toLang: "zh-CN" },
+      { minLength: 0, translateVariants: false }
+    );
+    await flushAsync();
+
+    expect(apiTranslate).not.toHaveBeenCalled();
+  });
+
+  test("refreshes an auto-skipped node after switching to a fixed source language", async () => {
+    document.body.innerHTML = '<main id="root"><p>简体中文内容</p></main>';
+    tryDetectLang.mockResolvedValue("zh-CN");
+    apiTranslate.mockClear();
+    const translator = createTranslator(
+      { fromLang: "auto", toLang: "zh-CN" },
+      { minLength: 0 }
+    );
+    await flushAsync();
+    expect(apiTranslate).not.toHaveBeenCalled();
+
+    translator.updateRule({ fromLang: "zh-CN" });
+    await flushAsync();
+
+    expect(apiTranslate).toHaveBeenCalledWith(
+      expect.objectContaining({ fromLang: "zh-CN", toLang: "zh-CN" })
+    );
   });
 
   test("keeps translated text when host style is not a CSSStyleDeclaration", async () => {

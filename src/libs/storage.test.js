@@ -6,6 +6,7 @@ import {
   DEFAULT_SUBTITLE_SETTING,
   OPT_TRANS_DEEPSEEK,
   OPT_TRANS_OPENAI,
+  OPT_TRANS_TENCENT,
 } from "../config";
 import { getSettingWithDefault, runDataMigration } from "./storage";
 
@@ -92,6 +93,45 @@ describe("settings storage migration", () => {
       /^prompt_migrated_batch_/
     );
     expect(setting.transApis[0]).not.toHaveProperty("systemPrompt");
+  });
+
+  test("merges the language variant default without overriding an explicit choice", async () => {
+    window.localStorage.setItem(
+      STOKEY_SETTING,
+      JSON.stringify({ version: SETTINGS_VERSION_V3, uiLang: "zh" })
+    );
+    await expect(getSettingWithDefault()).resolves.toMatchObject({
+      translateVariants: true,
+    });
+
+    window.localStorage.setItem(
+      STOKEY_SETTING,
+      JSON.stringify({
+        version: SETTINGS_VERSION_V3,
+        translateVariants: false,
+      })
+    );
+    await expect(getSettingWithDefault()).resolves.toMatchObject({
+      translateVariants: false,
+    });
+  });
+
+  test("does not replace explicitly stored Tencent entry points", async () => {
+    window.localStorage.setItem(
+      STOKEY_SETTING,
+      JSON.stringify({
+        version: SETTINGS_VERSION_V3,
+        inputRule: { apiSlug: OPT_TRANS_TENCENT },
+        tranboxSetting: { apiSlugs: [OPT_TRANS_TENCENT] },
+        subtitleSetting: { apiSlug: OPT_TRANS_TENCENT },
+      })
+    );
+
+    await expect(getSettingWithDefault()).resolves.toMatchObject({
+      inputRule: { apiSlug: OPT_TRANS_TENCENT },
+      tranboxSetting: { apiSlugs: [OPT_TRANS_TENCENT] },
+      subtitleSetting: { apiSlug: OPT_TRANS_TENCENT },
+    });
   });
 
   test("keeps an explicitly stored subtitle chunk length", async () => {

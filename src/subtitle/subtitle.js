@@ -54,6 +54,7 @@ export function runSubtitle({ href, setting }) {
         transApis,
         prompts: setting.prompts,
         uiLang: setting.uiLang,
+        translateVariants: setting.translateVariants ?? true,
       });
     }
   } catch (err) {

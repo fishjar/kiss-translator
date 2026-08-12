@@ -5,6 +5,8 @@ import { getCaptionTracks, getSubtitleEvents } from "./youtubeCaptionTracks.js";
 import { eventsToSubtitles } from "./youtubeAiSegmentation.js";
 import { prepareTimedTextEvents } from "./youtubeSubtitleProcessing.js";
 
+const mockIsSameLang = jest.fn(() => false);
+
 jest.mock("../config", () => ({
   MSG_XHR_DATA_YOUTUBE: "xhr-youtube",
   API_SPE_TYPES: { ai: new Set(["openai"]) },
@@ -44,7 +46,7 @@ jest.mock("./youtubeCaptionTracks.js", () => ({
   findCaptionTrack: (tracks) => tracks[0],
   getCaptionTracks: jest.fn(),
   getSubtitleEvents: jest.fn(),
-  isSameLang: () => false,
+  isSameLang: (...args) => mockIsSameLang(...args),
 }));
 
 jest.mock("./youtubeSubtitleProcessing.js", () => ({
@@ -101,6 +103,7 @@ describe("YouTubeCaptionProvider manual translation", () => {
       autoTranslate: false,
       aiContextSlug: "-",
       apiSlug: "mock-api",
+      toLang: "zh-CN",
       showList: "off",
     });
     provider.initialize();
@@ -118,6 +121,7 @@ describe("YouTubeCaptionProvider manual translation", () => {
 
     expect(getSubtitleEvents).toHaveBeenCalledTimes(1);
     expect(prepareTimedTextEvents).toHaveBeenCalledTimes(1);
+    expect(mockIsSameLang).toHaveBeenCalledWith("en", "zh-CN", true);
     expect(apiSubtitle).not.toHaveBeenCalled();
     expect(eventsToSubtitles).not.toHaveBeenCalled();
 

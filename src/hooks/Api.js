@@ -17,9 +17,7 @@ function useApiState() {
         ...normalizeApiThinkingSettings(
           normalizeApiModelListUrls(setting?.transApis || [])
         ),
-      ].sort(
-        (a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)
-      ),
+      ].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)),
     [setting?.transApis]
   );
 

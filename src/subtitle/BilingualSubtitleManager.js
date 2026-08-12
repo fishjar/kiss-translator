@@ -664,6 +664,7 @@ export class BilingualSubtitleManager {
         toLang,
         apiSetting: rawApiSetting,
         docInfo,
+        translateVariants = true,
         prompts,
       } = this.#setting;
 
@@ -679,6 +680,7 @@ export class BilingualSubtitleManager {
         toLang,
         apiSetting,
         docInfo,
+        translateVariants,
         signal,
         onStreamChunk: ({ text }) => {
           // 字幕单句翻译的流式 chunk 只更新当前字幕对象，不改时间轴结构。

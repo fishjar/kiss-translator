@@ -165,6 +165,31 @@ describe("TranCont", () => {
     });
   });
 
+  test("clears streamed text when the final response identifies the same language", async () => {
+    const deferred = createDeferred();
+    apiTranslate.mockReturnValueOnce(deferred.promise);
+
+    const { container, root } = renderTranCont({ translateVariants: false });
+    await flushEffects();
+    const textarea = container.querySelector("textarea");
+
+    await act(async () => {
+      apiTranslate.mock.calls[0][0].onStreamChunk({
+        text: "临时译文",
+        isComplete: false,
+      });
+    });
+    expect(textarea.value).toBe("临时译文");
+
+    await act(async () => {
+      deferred.resolve({ trText: "最终译文", isSame: true });
+      await deferred.promise;
+    });
+    expect(textarea.value).toBe("");
+
+    act(() => root.unmount());
+  });
+
   test("preserves line breaks and decodes HTML entities for Google2", async () => {
     apiTranslate.mockResolvedValueOnce({
       trText:

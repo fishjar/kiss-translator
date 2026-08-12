@@ -8,7 +8,7 @@ import {
   OPT_DICT_BING,
   OPT_SUG_YOUDAO,
   DEFAULT_HTTP_TIMEOUT,
-  OPT_TRANS_TENCENT,
+  OPT_TRANS_MICROSOFT,
   DEFAULT_API_LIST,
   OPT_LANGS_TO,
 } from "./api";
@@ -78,7 +78,7 @@ export const DEFAULT_INPUT_SHORTCUT = ["AltLeft", "KeyI"]; // 触发输入框翻
 export const DEFAULT_INPUT_RULE = {
   transOpen: true, // 是否开启输入框翻译功能
   blacklist: "", // 禁用输入框翻译的域名列表
-  apiSlug: OPT_TRANS_TENCENT, // 默认使用的翻译服务 API 标识
+  apiSlug: OPT_TRANS_MICROSOFT, // 默认使用的翻译服务 API 标识
   fromLang: "auto", // 默认自动检测输入源语言
   toLang: "en", // 默认翻译目标语言为英文
   triggerShortcut: DEFAULT_INPUT_SHORTCUT, // 快捷键组合
@@ -124,7 +124,7 @@ export const OPT_SKIPLANGS_SELECTION = [
 export const DEFAULT_TRANBOX_SETTING = {
   transOpen: true, // 是否启用划词翻译功能
   blacklist: "", // 划词翻译禁用的域名列表
-  apiSlugs: [OPT_TRANS_TENCENT], // 启用的翻译 API (支持多选)
+  apiSlugs: [OPT_TRANS_MICROSOFT], // 启用的翻译 API (支持多选)
   singleWordNoTrans: false, // 划词为单个单词时是否仅查询词典，不请求整句翻译服务
   autoFavWord: false, // 打开划词翻译框时自动收藏英文单词
   fromLang: "auto",
@@ -170,7 +170,7 @@ export const OPT_ENHANCE_MOBILE_OFF = "mobile_off"; // 移动端浏览器中默�
 // --- 字幕翻译核心配置 ---
 export const DEFAULT_SUBTITLE_SETTING = {
   enabled: true, // 是否自动开启视频字幕翻译功能
-  apiSlug: OPT_TRANS_TENCENT, // 默认的字幕翻译接口 (使用腾讯翻译)
+  apiSlug: OPT_TRANS_MICROSOFT, // 默认的字幕翻译接口
   segSlug: "-", // 智能 AI 断句/字幕合并的算法选择 ("-" 表示禁用 AI 段落合并)
   forceSubtitleRetranslate: false, // AI 断句服务与翻译服务不同时，是否强制使用翻译服务重翻译文
   chunkLength: 1000, // 新配置默认使用更短 AI 分块；已保存的用户值仍由存储配置优先覆盖
@@ -272,6 +272,7 @@ export const DEFAULT_SETTING = {
   orilist: DEFAULT_ORILIST.join(",\n"), // 需要改写或删除 Cross-Origin HTTP 请求头的网址列表
   // disableLangs: [], // 不翻译的语言(移至rule，作废)
   skipLangs: [], // 忽略翻译的语种代码列表 (即如果网页检测到是这些语言，则不触发自动整页翻译)
+  translateVariants: true, // 是否继续翻译同一语言的不同变体（如简体中文与繁体中文）
   transInterval: 100, // 两次段落翻译执行之间的等待延迟
   langDetector: "-", // 主动检测源语言的外部 API 服务选择 ("-" 表示由翻译 API 本身自动判定)
   mouseHoverSetting: DEFAULT_MOUSE_HOVER_SETTING, // 鼠标悬浮段落翻译的详细配置
