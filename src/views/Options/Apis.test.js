@@ -8,6 +8,7 @@ import {
   OPT_TRANS_OPENROUTER,
   OPT_TRANS_GEMINI,
   OPT_TRANS_GEMINI_2,
+  OPT_TRANS_QWENMT,
 } from "../../config";
 import { fetchModelCatalog } from "../../libs/modelList";
 import { apiTranslate } from "../../apis";
@@ -693,6 +694,46 @@ describe("Apis temperature input", () => {
       gemini2View.container.querySelector('input[name="temperature"]')
     ).toBeNull();
     gemini2View.unmount();
+  });
+});
+
+describe("Apis QwenMT fields", () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+    document.body.innerHTML = "";
+  });
+
+  test("shows fixed translation models without AI-only or batch controls", async () => {
+    const view = await renderApis(
+      createApi({
+        apiSlug: OPT_TRANS_QWENMT,
+        apiName: OPT_TRANS_QWENMT,
+        apiType: OPT_TRANS_QWENMT,
+        model: "qwen-mt-flash",
+        tone: "formal",
+        useBatchFetch: false,
+        useStream: false,
+      })
+    );
+
+    expect(getInput(view.container, "url")).not.toBeNull();
+    expect(view.container.querySelector('[name="key"]')).not.toBeNull();
+    expect(getInput(view.container, "model").dataset.options).toBe(
+      "qwen-mt-flash,qwen-mt-plus,qwen-mt-lite,qwen-mt-turbo"
+    );
+    expect(getInput(view.container, "tone")).not.toBeNull();
+    expect(
+      view.container.querySelector('input[name="modelListUrl"]')
+    ).toBeNull();
+    expect(view.container.querySelector('input[name="temperature"]')).toBeNull();
+    expect(view.container.querySelector('input[name="maxTokens"]')).toBeNull();
+    expect(
+      view.container.querySelector('input[name="useBatchFetch"]')
+    ).toBeNull();
+    expect(view.container.querySelector('input[name="useStream"]')).toBeNull();
+    expect(view.container.querySelector('input[name="useContext"]')).toBeNull();
+
+    view.unmount();
   });
 });
 

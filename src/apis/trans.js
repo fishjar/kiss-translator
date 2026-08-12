@@ -12,6 +12,7 @@ import {
   OPT_TRANS_SILICONFLOW,
   OPT_TRANS_XIAOMIMIMO,
   OPT_TRANS_ALIYUNBAILIAN,
+  OPT_TRANS_QWENMT,
   OPT_TRANS_CEREBRAS,
   OPT_TRANS_ZAI,
   OPT_TRANS_EPHONEAI,
@@ -54,6 +55,7 @@ import {
   isGeminiInteractionsUrl,
   normalizeGeminiModelName,
   normalizeThinkingSettings,
+  BUILTIN_STONES,
 } from "../config";
 import { genDeeplFree } from "./deepl";
 import { genBaidu } from "./baidu";
@@ -784,6 +786,66 @@ const genOpenAI = ({
   return { url, body, headers, userMsg };
 };
 
+const getQwenMtDomains = (tone = "") => {
+  const normalizedTone = String(tone).trim();
+  if (!normalizedTone) return "";
+
+  return BUILTIN_STONES.includes(normalizedTone)
+    ? `Translate in a ${normalizedTone.toLowerCase()} style.`
+    : normalizedTone;
+};
+
+const getQwenMtTerms = (glossary = {}, aiTerms = "") => {
+  const mergedTerms = { ...glossary, ...parseAITerms(aiTerms) };
+  return Object.entries(mergedTerms)
+    .filter(([source]) => String(source).trim())
+    .map(([source, target]) => {
+      const normalizedTarget = String(target ?? "");
+      return {
+        source,
+        target: normalizedTarget.trim() ? normalizedTarget : source,
+      };
+    });
+};
+
+const genQwenMt = ({
+  url,
+  key,
+  model,
+  texts,
+  from,
+  to,
+  glossary,
+  aiTerms,
+  tone,
+}) => {
+  const translationOptions = {
+    source_lang: from,
+    target_lang: to,
+  };
+  const terms = getQwenMtTerms(glossary, aiTerms);
+  const domains = getQwenMtDomains(tone);
+
+  if (terms.length) translationOptions.terms = terms;
+  if (domains) translationOptions.domains = domains;
+
+  const userMsg = {
+    role: "user",
+    content: texts[0],
+  };
+  const body = {
+    model,
+    messages: [userMsg],
+    translation_options: translationOptions,
+  };
+  const headers = {
+    "Content-type": "application/json",
+    Authorization: `Bearer ${key}`,
+  };
+
+  return { url, body, headers, userMsg };
+};
+
 const genGemini = ({
   url,
   key,
@@ -1173,6 +1235,7 @@ const genReqFuncs = {
   [OPT_TRANS_SILICONFLOW]: genOpenAI,
   [OPT_TRANS_XIAOMIMIMO]: genOpenAI,
   [OPT_TRANS_ALIYUNBAILIAN]: genOpenAI,
+  [OPT_TRANS_QWENMT]: genQwenMt,
   [OPT_TRANS_CEREBRAS]: genOpenAI,
   [OPT_TRANS_ZAI]: genOpenAI,
   [OPT_TRANS_DEEPLX]: genDeeplX,
@@ -1479,6 +1542,10 @@ export const parseTransRes = async (
       return res?.auto_translation?.map((text) => [text, res?.src_lang]);
     case OPT_TRANS_VOLCENGINE:
       return [[res?.translation, res?.detected_language]];
+    case OPT_TRANS_QWENMT: {
+      const content = res?.choices?.[0]?.message?.content;
+      return typeof content === "string" ? [[content]] : [];
+    }
     case OPT_TRANS_EPHONEAI:
     case OPT_TRANS_OPENAI:
     case OPT_TRANS_DEEPSEEK:

@@ -13,6 +13,7 @@ import {
   MSG_BUILTINAI_DETECT,
   MSG_BUILTINAI_TRANSLATE,
   OPT_TRANS_BUILTINAI,
+  OPT_TRANS_QWENMT,
   URL_CACHE_SUBTITLE,
   URL_CACHE_CONTEXT,
   OPT_LANGS_TO_CODE,
@@ -48,6 +49,7 @@ const PROMPT_CACHE_SCOPE_BATCH = "batch";
 const PROMPT_CACHE_SCOPE_NOBATCH = "nobatch";
 const PROMPT_CACHE_SCOPE_DICT = "dict";
 const PROMPT_CACHE_SCOPE_PLAIN = "plain";
+const PROMPT_CACHE_SCOPE_QWEN_MT = "qwen-mt";
 
 const isGenericChineseLanguageCode = (code) =>
   typeof code === "string" && /^zh$/i.test(code.trim());
@@ -82,6 +84,9 @@ const getTranslationLanguageMatch = ({
 };
 
 function getTranslatePromptCacheScope(apiSetting = {}) {
+  if (apiSetting.apiType === OPT_TRANS_QWENMT) {
+    return PROMPT_CACHE_SCOPE_QWEN_MT;
+  }
   if (!API_SPE_TYPES.ai.has(apiSetting.apiType)) {
     return PROMPT_CACHE_SCOPE_PLAIN;
   }
@@ -91,32 +96,39 @@ function getTranslatePromptCacheScope(apiSetting = {}) {
     : PROMPT_CACHE_SCOPE_NOBATCH;
 }
 
-function getPromptCacheFields(apiSetting = {}, promptScope) {
-  if (promptScope === PROMPT_CACHE_SCOPE_BATCH) {
-    return [apiSetting.systemPrompt || ""];
-  }
+function getPromptCacheFields(apiSetting = {}, promptScope, glossary = {}) {
+  let fields = [];
 
-  if (promptScope === PROMPT_CACHE_SCOPE_NOBATCH) {
-    return [
+  if (promptScope === PROMPT_CACHE_SCOPE_BATCH) {
+    fields = [apiSetting.systemPrompt || ""];
+  } else if (promptScope === PROMPT_CACHE_SCOPE_NOBATCH) {
+    fields = [
       apiSetting.nobatchPrompt || "",
       apiSetting.nobatchUserPrompt ?? defaultNobatchUserPrompt,
     ];
-  }
-
-  if (promptScope === PROMPT_CACHE_SCOPE_DICT) {
+  } else if (promptScope === PROMPT_CACHE_SCOPE_DICT) {
     return [
       apiSetting.dictPrompt || "",
       apiSetting.dictUserPrompt ?? defaultDictUserPrompt,
     ];
+  } else if (promptScope === PROMPT_CACHE_SCOPE_QWEN_MT) {
+    fields = [];
+  } else {
+    return [];
   }
 
-  return [];
+  fields.push(apiSetting.tone || "", apiSetting.aiTerms || "");
+  const glossaryEntries = Object.entries(glossary || {}).sort();
+  if (glossaryEntries.length) {
+    fields.push(JSON.stringify(glossaryEntries));
+  }
+  return fields;
 }
 
-async function getPromptCacheSig(apiSetting = {}, promptScope) {
+async function getPromptCacheSig(apiSetting = {}, promptScope, glossary) {
   const promptText = [
     promptScope,
-    ...getPromptCacheFields(apiSetting, promptScope),
+    ...getPromptCacheFields(apiSetting, promptScope, glossary),
   ].join("\n");
 
   return (await getCacheDigest(promptText, PROMPT_CACHE_SALT)).slice(0, 16);
@@ -647,7 +659,8 @@ export const apiTranslate = async ({
   const [v1, v2] = process.env.REACT_APP_VERSION.split(".");
   const promptSig = await getPromptCacheSig(
     apiSetting,
-    getTranslatePromptCacheScope(apiSetting)
+    getTranslatePromptCacheScope(apiSetting),
+    glossary
   );
   const cacheOpts = {
     apiSlug,

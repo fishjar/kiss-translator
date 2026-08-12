@@ -59,6 +59,7 @@ import {
   OPT_TRANS_SILICONFLOW,
   OPT_TRANS_XIAOMIMIMO,
   OPT_TRANS_ALIYUNBAILIAN,
+  OPT_TRANS_QWENMT,
   OPT_TRANS_CEREBRAS,
   OPT_TRANS_ZAI,
   OPT_TRANS_DEEPL,
@@ -124,6 +125,13 @@ const EPHONEAI_MODELS = [
   "grok-4.20-beta-0309-non-reasoning",
 ];
 
+const QWEN_MT_MODELS = [
+  "qwen-mt-flash",
+  "qwen-mt-plus",
+  "qwen-mt-lite",
+  "qwen-mt-turbo",
+];
+
 // Keep icon paths tied to apiType because apiName is user editable.
 const API_ICON_FILES = {
   [OPT_TRANS_BUILTINAI]: "BuiltinAI.svg",
@@ -136,6 +144,7 @@ const API_ICON_FILES = {
   [OPT_TRANS_SILICONFLOW]: "SiliconFlow.svg",
   [OPT_TRANS_XIAOMIMIMO]: "XiaomiMimo.svg",
   [OPT_TRANS_ALIYUNBAILIAN]: "AliyunBailian.svg",
+  [OPT_TRANS_QWENMT]: "QwenMT.svg",
   [OPT_TRANS_CEREBRAS]: "Cerebras.svg",
   [OPT_TRANS_ZAI]: "Zai.svg",
   [OPT_TRANS_DEEPL]: "DeepL.svg",
@@ -626,7 +635,12 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
   );
 
   const allModelOptions = useMemo(() => {
-    const baseOptions = apiType === OPT_TRANS_EPHONEAI ? EPHONEAI_MODELS : [];
+    const baseOptions =
+      apiType === OPT_TRANS_EPHONEAI
+        ? EPHONEAI_MODELS
+        : apiType === OPT_TRANS_QWENMT
+          ? QWEN_MT_MODELS
+          : [];
     return Array.from(new Set([...baseOptions, ...modelOptions]));
   }, [apiType, modelOptions]);
 
@@ -795,7 +809,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
         </Grid>
       </Box>
 
-      {!API_SPE_TYPES.machine.has(apiType) &&
+      {(!API_SPE_TYPES.machine.has(apiType) || apiType === OPT_TRANS_QWENMT) &&
         apiType !== OPT_TRANS_BUILTINAI && (
           <>
             <TextField
@@ -833,16 +847,18 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
         />
       )}
 
-      {API_SPE_TYPES.ai.has(apiType) && (
+      {(API_SPE_TYPES.ai.has(apiType) || apiType === OPT_TRANS_QWENMT) && (
         <>
-          <TextField
-            size="small"
-            fullWidth
-            label={i18n("model_list_url")}
-            name="modelListUrl"
-            value={modelListUrl}
-            onChange={handleChange}
-          />
+          {apiType !== OPT_TRANS_QWENMT && (
+            <TextField
+              size="small"
+              fullWidth
+              label={i18n("model_list_url")}
+              name="modelListUrl"
+              value={modelListUrl}
+              onChange={handleChange}
+            />
+          )}
           <Box>
             <Grid container spacing={2} columns={12}>
               <Grid item xs={12} sm={12} md={6} lg={3}>
@@ -877,7 +893,8 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
                   onChange={handleChange}
                 />
               </Grid>
-              {apiType !== OPT_TRANS_GEMINI &&
+              {apiType !== OPT_TRANS_QWENMT &&
+                apiType !== OPT_TRANS_GEMINI &&
                 apiType !== OPT_TRANS_GEMINI_2 && (
                   <Grid item xs={12} sm={12} md={6} lg={3}>
                     <ValidationInput
@@ -897,19 +914,21 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
                     />
                   </Grid>
                 )}
-              <Grid item xs={12} sm={12} md={6} lg={3}>
-                <ValidationInput
-                  size="small"
-                  fullWidth
-                  label={"Max Tokens (0-1000000)"}
-                  type="number"
-                  name="maxTokens"
-                  value={maxTokens}
-                  onChange={handleChange}
-                  min={0}
-                  max={1000000}
-                />
-              </Grid>
+              {apiType !== OPT_TRANS_QWENMT && (
+                <Grid item xs={12} sm={12} md={6} lg={3}>
+                  <ValidationInput
+                    size="small"
+                    fullWidth
+                    label={"Max Tokens (0-1000000)"}
+                    type="number"
+                    name="maxTokens"
+                    value={maxTokens}
+                    onChange={handleChange}
+                    min={0}
+                    max={1000000}
+                  />
+                </Grid>
+              )}
             </Grid>
           </Box>
         </>
@@ -1372,7 +1391,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse }) {
             </Grid>
           </Box>
 
-          {API_SPE_TYPES.ai.has(apiType) && (
+          {(API_SPE_TYPES.ai.has(apiType) || apiType === OPT_TRANS_QWENMT) && (
             <TextField
               size="small"
               label={i18n("ai_terms")}

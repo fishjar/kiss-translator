@@ -30,6 +30,7 @@ import {
   OPT_TRANS_MICROSOFT,
   OPT_TRANS_OPENAI,
   OPT_TRANS_OPENROUTER,
+  OPT_TRANS_QWENMT,
 } from "../config";
 import { fetchData, fetchStream } from "../libs/fetch";
 import { trustedTypesHelper } from "../libs/trustedTypes";
@@ -127,6 +128,95 @@ describe("handleTranslate", () => {
     expect(body.generation_config).not.toHaveProperty("top_p");
     expect(body.generation_config).not.toHaveProperty("top_k");
     expect(result).toEqual([{ id: 0, result: ["你好", "en"] }]);
+  });
+
+  test("sends one QwenMT user message with native terms and built-in style", async () => {
+    fetchData.mockResolvedValueOnce({
+      choices: [{ message: { role: "assistant", content: "译文" } }],
+    });
+
+    const result = await collectAsyncGenerator(
+      handleTranslate(["我看到这个视频后没有笑"], {
+        from: "auto",
+        to: "English",
+        fromLang: "auto",
+        toLang: "en",
+        langMap: () => "",
+        glossary: { component: "规则组件", Keep: "" },
+        apiSetting: {
+          ...getApiSetting(OPT_TRANS_QWENMT),
+          url: "https://workspace.cn-beijing.maas.aliyuncs.com/compatible-mode/v1/chat/completions",
+          key: "qwen-key",
+          model: "qwen-mt-flash",
+          useStream: false,
+          useBatchFetch: false,
+          tone: "technical",
+          aiTerms: "React,React\ncomponent,接口组件",
+        },
+        usePool: false,
+      })
+    );
+
+    expect(fetchData).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchData.mock.calls[0];
+    expect(url).toBe(
+      "https://workspace.cn-beijing.maas.aliyuncs.com/compatible-mode/v1/chat/completions"
+    );
+    expect(init.headers).toMatchObject({
+      "Content-type": "application/json",
+      Authorization: "Bearer qwen-key",
+    });
+    const body = JSON.parse(init.body);
+    expect(body).toEqual({
+      model: "qwen-mt-flash",
+      messages: [
+        { role: "user", content: "我看到这个视频后没有笑" },
+      ],
+      translation_options: {
+        source_lang: "auto",
+        target_lang: "English",
+        terms: expect.arrayContaining([
+          { source: "component", target: "接口组件" },
+          { source: "Keep", target: "Keep" },
+          { source: "React", target: "React" },
+        ]),
+        domains: "Translate in a technical style.",
+      },
+    });
+    expect(body.messages).toHaveLength(1);
+    expect(result).toEqual([{ id: 0, result: ["译文"] }]);
+  });
+
+  test("passes a custom QwenMT style through without prompt wrapping", async () => {
+    fetchData.mockResolvedValueOnce({
+      choices: [{ message: { content: "Legal translation" } }],
+    });
+
+    await collectAsyncGenerator(
+      handleTranslate(["待翻译文本"], {
+        from: "Chinese",
+        to: "English",
+        fromLang: "zh-CN",
+        toLang: "en",
+        langMap: () => "",
+        glossary: {},
+        apiSetting: {
+          ...getApiSetting(OPT_TRANS_QWENMT),
+          useStream: false,
+          useBatchFetch: false,
+          tone: "Translate for a legal audience.",
+          aiTerms: "",
+        },
+        usePool: false,
+      })
+    );
+
+    const body = JSON.parse(fetchData.mock.calls[0][1].body);
+    expect(body.translation_options).toEqual({
+      source_lang: "Chinese",
+      target_lang: "English",
+      domains: "Translate for a legal audience.",
+    });
   });
 
   test("applies all three thinking modes to Gemini Interactions", async () => {

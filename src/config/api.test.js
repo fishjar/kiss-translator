@@ -2,6 +2,8 @@ import {
   API_SPE_TYPES,
   DEFAULT_API_LIST,
   DEFAULT_API_TYPE,
+  OPT_LANGS_FROM_SPEC,
+  OPT_LANGS_TO_SPEC,
   GEMINI_GENERATE_CONTENT_URL,
   GEMINI_INTERACTIONS_URL,
   getGeminiThinkingEfforts,
@@ -24,6 +26,7 @@ import {
   OPT_TRANS_OPENAI,
   OPT_TRANS_OPENCODEGO,
   OPT_TRANS_OPENROUTER,
+  OPT_TRANS_QWENMT,
   OPT_TRANS_XIAOMIMIMO,
   OPT_TRANS_ZAI,
 } from "./api";
@@ -36,6 +39,31 @@ test("includes Microsoft in the built-in API list", () => {
   expect(
     DEFAULT_API_LIST.some((api) => api.apiType === OPT_TRANS_MICROSOFT)
   ).toBe(true);
+});
+
+test("configures QwenMT as a single-request machine translation API", () => {
+  const qwenMt = DEFAULT_API_LIST.find(
+    (api) => api.apiType === OPT_TRANS_QWENMT
+  );
+
+  expect(qwenMt).toMatchObject({
+    apiSlug: OPT_TRANS_QWENMT,
+    apiType: OPT_TRANS_QWENMT,
+    url: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+    model: "qwen-mt-flash",
+    useBatchFetch: false,
+    useStream: false,
+  });
+  expect(API_SPE_TYPES.machine.has(OPT_TRANS_QWENMT)).toBe(true);
+  expect(API_SPE_TYPES.mulkeys.has(OPT_TRANS_QWENMT)).toBe(true);
+  expect(API_SPE_TYPES.ai.has(OPT_TRANS_QWENMT)).toBe(false);
+  expect(API_SPE_TYPES.batch.has(OPT_TRANS_QWENMT)).toBe(false);
+  expect(API_SPE_TYPES.context.has(OPT_TRANS_QWENMT)).toBe(false);
+  expect(API_SPE_TYPES.stream.has(OPT_TRANS_QWENMT)).toBe(false);
+  expect(OPT_LANGS_FROM_SPEC[OPT_TRANS_QWENMT].get("auto")).toBe("auto");
+  expect(OPT_LANGS_TO_SPEC[OPT_TRANS_QWENMT].get("zh-TW")).toBe(
+    "Traditional Chinese"
+  );
 });
 
 test("all AI APIs define a thinking mode by default", () => {
