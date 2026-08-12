@@ -67,7 +67,11 @@ import {
   stripMarkdownCodeBlock,
   parseAITerms,
 } from "../libs/utils";
-import { decodeHTMLEntities } from "../libs/html";
+import {
+  decodeHTMLEntities,
+  decodeHTMLTranslationText,
+  encodeHTMLTranslationText,
+} from "../libs/html";
 import { parseCompleteTranslationSegments } from "../libs/aiResponseParser";
 import {
   parseStreamingSegments,
@@ -621,8 +625,10 @@ const genGoogle = ({ texts, from, to, url, key }) => {
   return { url, headers, method: "GET" };
 };
 
-const genGoogle2 = ({ texts, from, to, url, key }) => {
-  const body = [[texts, from, to], "wt_lib"];
+const genGoogle2 = ({ texts, from, to, url, key, textFormat = "text" }) => {
+  const requestTexts =
+    textFormat === "html" ? texts : texts.map(encodeHTMLTranslationText);
+  const body = [[requestTexts, from, to], "wt_lib"];
   const headers = {
     "Content-Type": "application/json+protobuf",
     "X-Goog-API-Key": key,
@@ -631,11 +637,11 @@ const genGoogle2 = ({ texts, from, to, url, key }) => {
   return { url, body, headers };
 };
 
-const genGoogleCloud = ({ texts, from, to, url, key }) => {
+const genGoogleCloud = ({ texts, from, to, url, key, textFormat = "text" }) => {
   const body = {
     q: texts,
     target: to,
-    format: "html",
+    format: textFormat,
     ...(from !== "auto" && { source: from }),
   };
   const headers = {
@@ -1482,6 +1488,7 @@ export const parseTransRes = async (
     userMsg,
     apiType,
     useBatchFetch,
+    textFormat = "text",
   }
 ) => {
   // 执行 response hook
@@ -1522,10 +1529,17 @@ export const parseTransRes = async (
     case OPT_TRANS_GOOGLE:
       return [[res?.sentences?.map((item) => item.trans).join(" "), res?.src]];
     case OPT_TRANS_GOOGLE_2:
-      return res?.[0]?.map((_, i) => [res?.[0]?.[i], res?.[1]?.[i]]);
+      return res?.[0]?.map((_, i) => [
+        textFormat === "text"
+          ? decodeHTMLTranslationText(res?.[0]?.[i])
+          : res?.[0]?.[i],
+        res?.[1]?.[i],
+      ]);
     case OPT_TRANS_GOOGLE_CLOUD:
       return res?.data?.translations?.map((item) => [
-        item.translatedText,
+        textFormat === "text"
+          ? decodeHTMLEntities(item.translatedText)
+          : item.translatedText,
         item.detectedSourceLanguage,
       ]);
     case OPT_TRANS_MICROSOFT:
@@ -1868,6 +1882,7 @@ export async function* handleTranslate(
     apiSetting,
     usePool,
     docInfo,
+    textFormat = "text",
     signal,
   }
 ) {
@@ -1909,6 +1924,7 @@ export async function* handleTranslate(
       toLang,
       langMap,
       glossary,
+      textFormat,
       hisMsgs,
       useStream: requestUseStream,
       docInfo,
@@ -1937,6 +1953,7 @@ export async function* handleTranslate(
       history,
       userMsg,
       ...apiSetting,
+      textFormat,
     });
     if (!result?.length) {
       throw new Error("translate got an unexpected result");

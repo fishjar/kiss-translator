@@ -190,10 +190,9 @@ describe("TranCont", () => {
     act(() => root.unmount());
   });
 
-  test("preserves line breaks and decodes HTML entities for Google2", async () => {
+  test("requests plain text without provider-specific normalization", async () => {
     apiTranslate.mockResolvedValueOnce({
-      trText:
-        "First isn&#39;t &quot;plain&quot; &amp; simple<br><br> Second<br/>\tThird<br /> Fourth",
+      trText: 'First isn\'t "plain" & simple\n\nSecond\nThird\nFourth',
     });
 
     const { container, root } = renderTranCont({
@@ -203,8 +202,11 @@ describe("TranCont", () => {
     });
     await flushEffects();
 
-    expect(apiTranslate.mock.calls[0][0].text).toBe(
-      "First<br><br>Second<br>Third<br>Fourth"
+    expect(apiTranslate.mock.calls[0][0]).toEqual(
+      expect.objectContaining({
+        text: "First\n\nSecond\r\nThird\rFourth",
+        textFormat: "text",
+      })
     );
     const expectedText =
       'First isn\'t "plain" & simple\n\nSecond\nThird\nFourth';

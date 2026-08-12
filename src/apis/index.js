@@ -620,6 +620,7 @@ const apiBuiltinAITranslate = async ({ text, from, to, apiSetting }) => {
  * @param {boolean} params.useCache 是否应用本地请求缓存 (默认 true)
  * @param {boolean} params.usePool 是否应用限制连接池 (默认 true)
  * @param {boolean} params.translateVariants 是否翻译同一语言的不同变体
+ * @param {"text"|"html"} params.textFormat 输入与输出的内容格式，默认为纯文本
  * @param {AbortSignal} params.signal AbortController 传导的取消控制信号
  * @returns {Promise<Object>} 最终解析出的翻译响应数据 (trText, srLang, srCode, isSame)
  */
@@ -634,6 +635,7 @@ export const apiTranslate = async ({
   useCache = true,
   usePool = true,
   translateVariants = true,
+  textFormat = "text",
   signal,
 }) => {
   if (!text) {
@@ -667,6 +669,7 @@ export const apiTranslate = async ({
     text,
     fromLang,
     toLang,
+    textFormat,
     translateVariants,
     version: [v1, v2].join("."),
     promptSig,
@@ -726,7 +729,7 @@ export const apiTranslate = async ({
             configuredBatchConcurrency >= 1
           ? Math.floor(configuredBatchConcurrency)
           : 1;
-    const key = `${apiSlug}_${fromLang}_${toLang}_${enableStream ? "stream" : "batch"}_${promptSig}_${effectiveBatchConcurrency}`;
+    const key = `${apiSlug}_${fromLang}_${toLang}_${textFormat}_${enableStream ? "stream" : "batch"}_${promptSig}_${effectiveBatchConcurrency}`;
     const queue = getBatchQueue(key, handleTranslate, {
       batchInterval,
       batchSize,
@@ -741,6 +744,7 @@ export const apiTranslate = async ({
       toLang,
       langMap,
       glossary,
+      textFormat,
       apiSetting,
       usePool,
       onStreamChunk,
@@ -756,6 +760,7 @@ export const apiTranslate = async ({
       toLang,
       langMap,
       glossary,
+      textFormat,
       apiSetting,
       usePool,
       docInfo,

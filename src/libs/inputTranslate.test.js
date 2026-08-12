@@ -45,6 +45,9 @@ jest.mock("./log", () => ({
 
 const { InputTranslator } = require("./inputTranslate");
 const { stepShortcutRegister } = require("./shortcut");
+const { resolveApiPromptSettings } = require("../config/prompt");
+const { apiTranslate } = require("../apis");
+const { createLoadingSVG } = require("./svg");
 
 function makeRect({ top = 100, right = 200, width = 100, height = 30 } = {}) {
   return {
@@ -223,5 +226,47 @@ describe("InputTranslator input button", () => {
 
     expect(getFloatButton(target)).toBeUndefined();
     expect(mockUnregisterShortcut).toHaveBeenCalledTimes(1);
+  });
+
+  test("requests editable content as plain text", async () => {
+    translator.disable();
+    const apiSetting = {
+      apiSlug: "google-cloud",
+      apiType: "GoogleCloud",
+    };
+    translator = new InputTranslator({
+      inputRule: {
+        transOpen: true,
+        triggerShortcut: ["AltLeft", "KeyI"],
+        triggerCount: 1,
+        triggerTime: 200,
+        showDot: "always",
+        apiSlug: "google-cloud",
+        fromLang: "auto",
+        toLang: "en",
+      },
+      transApis: [apiSetting],
+    });
+    resolveApiPromptSettings.mockReturnValue(apiSetting);
+    createLoadingSVG.mockReturnValue(
+      document.createElementNS("http://www.w3.org/2000/svg", "svg")
+    );
+    apiTranslate.mockResolvedValueOnce({
+      trText: "First isn't & simple\n\nSecond",
+      isSame: false,
+    });
+    const target = document.createElement("textarea");
+    target.value = "First & simple\n\nSecond";
+    focusTarget(translator, target);
+
+    await translator.handleTranslate({ isBtnTrigger: true });
+
+    expect(apiTranslate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: "First & simple\n\nSecond",
+        textFormat: "text",
+      })
+    );
+    expect(target.value).toBe("First isn't & simple\n\nSecond");
   });
 });

@@ -612,6 +612,7 @@ export class InputTranslator {
         fromLang,
         toLang,
         apiSetting,
+        textFormat: "text",
         translateVariants: this.#config.translateVariants,
       });
 

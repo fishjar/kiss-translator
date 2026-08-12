@@ -461,6 +461,31 @@ describe("apiTranslate prompt queue isolation", () => {
     );
   });
 
+  test("isolates plain-text and HTML batch queues", async () => {
+    const apiSetting = getOpenAiApiSetting("batch prompt A");
+    await apiTranslate({
+      text: "plain text",
+      fromLang: "en",
+      toLang: "zh-CN",
+      apiSetting,
+      textFormat: "text",
+      useCache: false,
+    });
+    await apiTranslate({
+      text: "<p>HTML</p>",
+      fromLang: "en",
+      toLang: "zh-CN",
+      apiSetting,
+      textFormat: "html",
+      useCache: false,
+    });
+
+    const queueKeys = getBatchQueue.mock.calls.map(([key]) => key);
+    expect(queueKeys[0]).toContain("_text_");
+    expect(queueKeys[1]).toContain("_html_");
+    expect(queueKeys[0]).not.toBe(queueKeys[1]);
+  });
+
   test("does not include subtitle prompt in batch queue key", async () => {
     await apiTranslate({
       text: "hello",

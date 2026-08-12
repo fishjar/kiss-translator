@@ -10,10 +10,8 @@ import {
   API_SPE_TYPES,
   OPT_TRANS_BUILTINAI,
   OPT_TRANS_GOOGLE,
-  OPT_TRANS_GOOGLE_2,
 } from "../../config";
 import { useI18n } from "../../hooks/I18n";
-import { decodeHTMLEntities } from "../../libs/html";
 import CopyBtn from "./CopyBtn";
 
 /**
@@ -44,17 +42,6 @@ const normalizeChunkText = (text) => {
 };
 
 /**
- * Google2 使用 translateHtml，原始换行会被当作普通 HTML 空白折叠。
- * 文本翻译场景用显式 br 标签保留换行数量。
- *
- * @param {string} text 原始待翻译文本。
- * @param {string} apiType 翻译接口类型。
- * @returns {string} 发送给翻译接口的文本。
- */
-const normalizeRequestText = (text, apiType) =>
-  apiType === OPT_TRANS_GOOGLE_2 ? text.replace(/\r\n|\r|\n/g, "<br>") : text;
-
-/**
  * 将接口响应转换为文本框可直接显示和复制的纯文本。
  *
  * @param {string} text 翻译接口返回的文本。
@@ -64,12 +51,6 @@ const normalizeRequestText = (text, apiType) =>
  */
 const normalizeTranslationText = (text, apiType, sourceText) => {
   const normalizedText = normalizeChunkText(text);
-  if (apiType === OPT_TRANS_GOOGLE_2) {
-    return decodeHTMLEntities(
-      normalizedText.replace(/<br\s*\/?>[\t ]*/gi, "\n")
-    );
-  }
-
   if (apiType === OPT_TRANS_GOOGLE) {
     return normalizedText.replace(/[\t ]*(\r\n|\r|\n)[\t ]*/g, "\n");
   }
@@ -190,6 +171,7 @@ export default function TranCont({
             fromLang,
             toLang,
             apiSetting,
+            textFormat: "text",
             translateVariants,
             onStreamChunk: handleStreamChunk,
             // 将组件生命周期的取消信号下传，避免划词内容变化后旧请求继续占用网络与回写 UI。
@@ -198,7 +180,7 @@ export default function TranCont({
         const { trText, isSame } =
           apiSetting.apiType === OPT_TRANS_BUILTINAI
             ? await translateBuiltinText(text, translate)
-            : await translate(normalizeRequestText(text, apiSetting.apiType));
+            : await translate(text);
 
         if (active) {
           setTrText(

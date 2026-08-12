@@ -47,3 +47,9 @@ export function decodeHTMLEntities(str) {
 
   return doc.documentElement.textContent || "";
 }
+
+export const encodeHTMLTranslationText = (text) =>
+  String(text || "").replace(/\r\n|\r|\n/g, "<br>");
+
+export const decodeHTMLTranslationText = (text) =>
+  decodeHTMLEntities(String(text || "").replace(/<br\s*\/?>[\t ]*/gi, "\n"));

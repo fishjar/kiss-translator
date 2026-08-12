@@ -3160,6 +3160,7 @@ overflow-wrap: anywhere !important;`;
       apiSetting,
       glossary,
       onStreamChunk,
+      textFormat: "html",
       translateVariants: this.#setting.translateVariants,
     };
 
