@@ -51,6 +51,13 @@ const externalLinkProps = {
   rel: "noopener noreferrer",
 };
 
+const introductionVideoIds = [
+  "KcU2RpGkyvM",
+  "l8lbWnyeda4",
+  "QAiz68_jCQQ",
+  "vo-XbIQ_GKg",
+];
+
 function LogoMark({ tokens }) {
   return (
     <Box
@@ -428,6 +435,54 @@ function InstallMatrix({ content, tokens }) {
   );
 }
 
+function VideoShowcase({ content, tokens }) {
+  return (
+    <Box component="section" sx={{ py: { xs: 3, sm: 5 } }}>
+      <SectionHeader
+        title={content.videoTitle}
+        subtitle={content.videoSubtitle}
+      />
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: { xs: "1fr", md: "repeat(2, minmax(0, 1fr))" },
+          gap: 1.5,
+        }}
+      >
+        {introductionVideoIds.map((videoId, index) => (
+          <Card
+            key={videoId}
+            elevation={0}
+            sx={{
+              position: "relative",
+              aspectRatio: "16 / 9",
+              overflow: "hidden",
+              border: `1px solid ${tokens.border}`,
+              bgcolor: tokens.panel,
+            }}
+          >
+            <Box
+              component="iframe"
+              src={`https://www.youtube-nocookie.com/embed/${videoId}`}
+              title={`${content.videoLabel} ${index + 1}`}
+              loading="lazy"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+              sx={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                border: 0,
+              }}
+            />
+          </Card>
+        ))}
+      </Box>
+    </Box>
+  );
+}
+
 function SectionHeader({ title, subtitle }) {
   return (
     <Stack spacing={1} sx={{ mb: { xs: 2, sm: 2.5 }, maxWidth: 760 }}>
@@ -524,10 +579,62 @@ function Ecosystem({ content, tokens }) {
         title={content.ecosystemTitle}
         subtitle={content.ecosystemSubtitle}
       />
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))" },
+          gap: 1.5,
+          mb: 2,
+        }}
+      >
+        {content.ecosystemProjects.map((project) => (
+          <Card
+            key={project.name}
+            component={Link}
+            href={project.href}
+            {...externalLinkProps}
+            elevation={0}
+            underline="none"
+            sx={{
+              p: 2,
+              minHeight: 132,
+              border: `1px solid ${tokens.border}`,
+              bgcolor: tokens.panel,
+              color: "text.primary",
+              transition: "border-color 160ms ease, transform 160ms ease",
+              "&:hover": {
+                borderColor: tokens.borderStrong,
+                transform: "translateY(-2px)",
+              },
+            }}
+          >
+            <Stack spacing={1.2} sx={{ height: "100%" }}>
+              <Stack
+                direction="row"
+                alignItems="center"
+                justifyContent="space-between"
+                spacing={2}
+              >
+                <Typography variant="h6" sx={{ fontWeight: 760 }}>
+                  {project.name}
+                </Typography>
+                <OpenInNewIcon
+                  fontSize="small"
+                  sx={{ color: "text.secondary", flex: "0 0 auto" }}
+                />
+              </Stack>
+              <Typography
+                variant="body2"
+                sx={{ color: "text.secondary", lineHeight: 1.68 }}
+              >
+                {project.description}
+              </Typography>
+            </Stack>
+          </Card>
+        ))}
+      </Box>
       <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", rowGap: 1 }}>
         {[
-          "kiss-worker",
-          "kiss-rules",
           "WebDAV",
           "Hooks",
           "Streaming",
@@ -589,6 +696,7 @@ function Homepage() {
             tokens={tokens}
           />
           <Hero content={content} tokens={tokens} />
+          <VideoShowcase content={content} tokens={tokens} />
           <InstallMatrix content={content} tokens={tokens} />
           <FeatureDashboard content={content} tokens={tokens} />
           <Ecosystem content={content} tokens={tokens} />
