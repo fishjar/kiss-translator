@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
@@ -10,20 +10,104 @@ import {
   MSG_OPEN_OPTIONS,
   MSG_OPEN_SEPARATE_WINDOW,
   MSG_TRANS_GETRULE,
+  STOKEY_SETTING,
   resolveApiPromptList,
 } from "../../config";
 import { kissLog } from "../../libs/log";
 import PopupCont from "./PopupCont";
 import TranForm from "../Selection/TranForm";
 import { useSetting } from "../../hooks/Setting";
+import { browser } from "../../libs/browser";
+import { isAutoTranslateClipboardSupported } from "../../libs/client";
+import { readClipboardTextIfAllowed } from "../../libs/clipboard";
 
 /**
  * 文本翻译面板组件 (用于直接在 Popup 中输入文本进行翻译)
  */
-function Trantab() {
+export function Trantab({ isSeparate = false }) {
   const [text, setText] = useState("");
   // 获取全局设置
   const { setting } = useSetting();
+  const shouldReadClipboardInitially =
+    isAutoTranslateClipboardSupported &&
+    (setting.autoTranslateClipboard ?? false);
+  const [autoTranslateClipboard, setAutoTranslateClipboard] = useState(
+    setting.autoTranslateClipboard ?? false
+  );
+  const [autoFocusInput, setAutoFocusInput] = useState(
+    !shouldReadClipboardInitially
+  );
+  const initialClipboardReadRef = useRef(shouldReadClipboardInitially);
+  const readingClipboardRef = useRef(false);
+  const lastClipboardTextRef = useRef("");
+  const textRef = useRef(text);
+
+  useEffect(() => {
+    textRef.current = text;
+  }, [text]);
+
+  useEffect(() => {
+    setAutoTranslateClipboard(setting.autoTranslateClipboard ?? false);
+  }, [setting.autoTranslateClipboard]);
+
+  useEffect(() => {
+    const handleStorageChange = (changes, areaName) => {
+      if (areaName !== "local") return;
+      const nextSetting = changes?.[STOKEY_SETTING]?.newValue;
+      if (nextSetting) {
+        setAutoTranslateClipboard(nextSetting.autoTranslateClipboard ?? false);
+      }
+    };
+    browser?.storage?.onChanged?.addListener?.(handleStorageChange);
+    return () => {
+      browser?.storage?.onChanged?.removeListener?.(handleStorageChange);
+    };
+  }, []);
+
+  const translateClipboard = useCallback(async () => {
+    if (
+      !isAutoTranslateClipboardSupported ||
+      !autoTranslateClipboard ||
+      readingClipboardRef.current
+    ) {
+      return;
+    }
+
+    readingClipboardRef.current = true;
+    let hasClipboardText = false;
+    try {
+      const clipboardText = await readClipboardTextIfAllowed();
+      if (clipboardText === null) return;
+
+      const normalizedText = clipboardText.trim();
+      hasClipboardText = Boolean(normalizedText);
+      if (
+        !normalizedText ||
+        normalizedText === lastClipboardTextRef.current ||
+        normalizedText === textRef.current
+      ) {
+        lastClipboardTextRef.current = normalizedText;
+        return;
+      }
+
+      lastClipboardTextRef.current = normalizedText;
+      setText(normalizedText);
+    } finally {
+      if (initialClipboardReadRef.current) {
+        initialClipboardReadRef.current = false;
+        setAutoFocusInput(!hasClipboardText);
+      }
+      readingClipboardRef.current = false;
+    }
+  }, [autoTranslateClipboard]);
+
+  useEffect(() => {
+    translateClipboard();
+    if (!isSeparate) return;
+
+    window.addEventListener("focus", translateClipboard);
+    return () => window.removeEventListener("focus", translateClipboard);
+  }, [isSeparate, translateClipboard]);
 
   // REVIEW: 如果在异步加载未完成或出现异常时 setting 仍为 null / undefined，此处直接解构 setting 将导致 TypeError 崩溃。建议对 setting 进行判空保护，例如：const { tranboxSetting = {}, transApis = [], langDetector = {} } = setting || {};
   const {
@@ -67,6 +151,8 @@ function Trantab() {
         aiDictPromptSlug={aiDictPromptSlug}
         prompts={prompts}
         translateVariants={translateVariants}
+        autoFocusInput={autoFocusInput}
+        syncExternalTextWhileEditing
       />
     </Box>
   );
@@ -128,7 +214,7 @@ export default function Popup() {
   if (isSeparate) {
     return (
       <Box>
-        <Trantab />
+        <Trantab isSeparate />
       </Box>
     );
   }

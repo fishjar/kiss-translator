@@ -1,8 +1,12 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
-import { ExtCommands } from "./Setting";
+import { AutoTranslateClipboardSetting, ExtCommands } from "./Setting";
 import { browser } from "../../libs/browser";
 import { useAlert } from "../../hooks/Alert";
+import {
+  hasClipboardReadPermission,
+  requestClipboardReadPermission,
+} from "../../libs/clipboard";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -10,6 +14,10 @@ jest.mock("../../libs/browser", () => ({
   browser: {
     commands: { getAll: jest.fn() },
     tabs: { create: jest.fn() },
+    permissions: {
+      onAdded: { addListener: jest.fn(), removeListener: jest.fn() },
+      onRemoved: { addListener: jest.fn(), removeListener: jest.fn() },
+    },
   },
 }));
 
@@ -22,7 +30,15 @@ jest.mock("../../hooks/Alert", () => ({
 }));
 
 jest.mock("../../hooks/Setting", () => ({ useSetting: jest.fn() }));
-jest.mock("../../libs/client", () => ({ isExt: true }));
+jest.mock("../../libs/client", () => ({
+  isAutoTranslateClipboardSupported: true,
+  isExt: true,
+}));
+jest.mock("../../libs/clipboard", () => ({
+  CLIPBOARD_READ_PERMISSION: "clipboardRead",
+  hasClipboardReadPermission: jest.fn(),
+  requestClipboardReadPermission: jest.fn(),
+}));
 jest.mock("../../hooks/Shortcut", () => ({ useShortcut: jest.fn() }));
 jest.mock("./ShortcutInput", () => () => null);
 jest.mock("../../hooks/Fab", () => ({ useFab: jest.fn() }));
@@ -42,7 +58,11 @@ const commands = [
     shortcut: "Alt+Q",
   },
 ];
-const alert = { info: jest.fn() };
+const alert = {
+  info: jest.fn(),
+  success: jest.fn(),
+  warning: jest.fn(),
+};
 const originalUserAgent = navigator.userAgent;
 
 function setUserAgent(userAgent) {
@@ -100,6 +120,77 @@ describe("ExtCommands", () => {
       url: "chrome://extensions/shortcuts",
     });
     expect(alert.info).not.toHaveBeenCalled();
+    act(() => root.unmount());
+  });
+});
+
+async function chooseBooleanOption(container, value) {
+  const input = container.querySelector('input[name="autoTranslateClipboard"]');
+  const button = input
+    .closest(".MuiInputBase-root")
+    .querySelector('[role="combobox"]');
+
+  await act(async () => {
+    button.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    await Promise.resolve();
+  });
+  await act(async () => {
+    document.body
+      .querySelector(`[role="option"][data-value="${value}"]`)
+      .dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+}
+
+describe("AutoTranslateClipboardSetting", () => {
+  beforeEach(() => {
+    document.body.innerHTML = "";
+    hasClipboardReadPermission.mockResolvedValue(false);
+    requestClipboardReadPermission.mockReset();
+    alert.success.mockReset();
+    alert.warning.mockReset();
+    useAlert.mockReturnValue(alert);
+  });
+
+  test("enables the setting only after permission is granted", async () => {
+    requestClipboardReadPermission.mockResolvedValue(true);
+    const onChange = jest.fn();
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    await act(async () => {
+      root.render(
+        <AutoTranslateClipboardSetting value={false} onChange={onChange} />
+      );
+      await Promise.resolve();
+    });
+
+    await chooseBooleanOption(container, true);
+
+    expect(requestClipboardReadPermission).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith(true);
+    expect(alert.success).toHaveBeenCalledWith("clipboard_permission_granted");
+    act(() => root.unmount());
+  });
+
+  test("keeps the setting disabled when permission is denied", async () => {
+    requestClipboardReadPermission.mockResolvedValue(false);
+    const onChange = jest.fn();
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    await act(async () => {
+      root.render(
+        <AutoTranslateClipboardSetting value={false} onChange={onChange} />
+      );
+      await Promise.resolve();
+    });
+
+    await chooseBooleanOption(container, true);
+
+    expect(onChange).toHaveBeenCalledWith(false);
+    expect(alert.warning).toHaveBeenCalledWith("clipboard_permission_denied");
     act(() => root.unmount());
   });
 });

@@ -116,6 +116,27 @@ describe("settings storage migration", () => {
     });
   });
 
+  test("keeps clipboard auto-translation opt-in for existing settings", async () => {
+    window.localStorage.setItem(
+      STOKEY_SETTING,
+      JSON.stringify({ version: SETTINGS_VERSION_V3, uiLang: "zh" })
+    );
+    await expect(getSettingWithDefault()).resolves.toMatchObject({
+      autoTranslateClipboard: false,
+    });
+
+    window.localStorage.setItem(
+      STOKEY_SETTING,
+      JSON.stringify({
+        version: SETTINGS_VERSION_V3,
+        autoTranslateClipboard: true,
+      })
+    );
+    await expect(getSettingWithDefault()).resolves.toMatchObject({
+      autoTranslateClipboard: true,
+    });
+  });
+
   test("does not replace explicitly stored Tencent entry points", async () => {
     window.localStorage.setItem(
       STOKEY_SETTING,

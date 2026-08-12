@@ -73,6 +73,18 @@ try {
     // 2. 清理多余的 Firefox/Thunderbird manifest
     await fs.remove(inDest("manifest.firefox.json"));
     await fs.remove(inDest("manifest.thunderbird.json"));
+
+    if (target === "safari") {
+      const manifestPath = inDest("manifest.json");
+      const manifest = await fs.readJson(manifestPath);
+      manifest.optional_permissions = (
+        manifest.optional_permissions || []
+      ).filter((permission) => permission !== "clipboardRead");
+      if (manifest.optional_permissions.length === 0) {
+        delete manifest.optional_permissions;
+      }
+      await fs.writeJson(manifestPath, manifest, { spaces: 2 });
+    }
   }
 
   // -----------------------------------------------------------------------

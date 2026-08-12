@@ -87,6 +87,9 @@
     "declarativeNetRequest",
     "declarativeNetRequestWithHostAccess"
   ],
+  "optional_permissions": [
+    "clipboardRead"
+  ],
   "host_permissions": [
     "<all_urls>"
   ],

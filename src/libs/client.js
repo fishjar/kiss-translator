@@ -7,6 +7,7 @@ import {
   CLIENT_EXTS,
   CLIENT_USERSCRIPT,
   CLIENT_WEB,
+  CLIENT_CHROME,
   CLIENT_FIREFOX,
 } from "../config";
 
@@ -15,3 +16,6 @@ export const isExt = CLIENT_EXTS.includes(client); // 是否为浏览器插件�
 export const isGm = client === CLIENT_USERSCRIPT; // 是否为油猴脚本运行环境
 export const isWeb = client === CLIENT_WEB; // 是否为纯 Web 演示网页环境
 export const isFirefox = client === CLIENT_FIREFOX; // 是否在 Firefox 浏览器扩展环境中运行
+// Edge 产物直接复用 Chrome 构建，因此编译时同样以 CLIENT_CHROME 标识。
+export const isAutoTranslateClipboardSupported =
+  client === CLIENT_CHROME || client === CLIENT_FIREFOX;
