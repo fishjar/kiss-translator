@@ -48,6 +48,7 @@ export const MSG_SHA256 = "sha256"; // 请求后台脚本代算 SHA-256 签名
 // --- 用于 Window.postMessage 与自定义事件通信的事件名称 ---
 export const EVENT_KISS_INNER = "kiss_translator_inner"; // 插件沙箱/内容脚本内部事件
 export const EVENT_KISS_TRANSLATOR = "kiss_translator"; // 暴露给网页环境的外部交互事件
+export const EVENT_FAVORITE_WORD_CHANGE = "kiss_favorite_word_change"; // 当前页面收藏词状态变化
 
 // --- 视频与字幕翻译特定消息类型 ---
 export const MSG_XHR_DATA_YOUTUBE = "KISS_XHR_DATA_YOUTUBE"; // 传递 YouTube 拦截到的字幕 XHR 数据

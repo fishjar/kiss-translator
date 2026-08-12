@@ -1,5 +1,6 @@
 import { YouTubeSubtitleList } from "./YouTubeSubtitleList";
 import { apiMicrosoftDict } from "../apis/index.js";
+import { EVENT_FAVORITE_WORD_CHANGE } from "../config";
 
 jest.mock("../libs/storage.js", () => ({
   getSettingWithDefault: jest.fn(() => Promise.resolve({ darkMode: "light" })),
@@ -263,6 +264,8 @@ describe("YouTubeSubtitleList", () => {
 
   test("toggles a vocabulary item's global favorite state", async () => {
     const storage = require("../libs/storage.js");
+    const handleFavoriteChange = jest.fn();
+    document.addEventListener(EVENT_FAVORITE_WORD_CHANGE, handleFavoriteChange);
     const videoEl = createVideoElement();
     const manager = new YouTubeSubtitleList(videoEl);
     const item = {
@@ -300,8 +303,17 @@ describe("YouTubeSubtitleList", () => {
     });
     expect(storage.setWords.mock.calls[0][0].ready.timestamp).toBeUndefined();
     expect(button.getAttribute("aria-pressed")).toBe("true");
+    expect(handleFavoriteChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        detail: { word: "ready", isFavorite: true },
+      })
+    );
 
     manager.destroy();
+    document.removeEventListener(
+      EVENT_FAVORITE_WORD_CHANGE,
+      handleFavoriteChange
+    );
   });
 
   test("clears word tooltip when the subtitle list scrolls away from the hovered word", async () => {

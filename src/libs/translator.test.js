@@ -1,13 +1,23 @@
 jest.mock("../apis", () => ({
+  apiMicrosoftDict: jest.fn(),
   apiTranslate: jest.fn(),
+  apiYoudaoDict: jest.fn(),
 }));
 
 jest.mock("./msg", () => ({
   sendBgMsg: jest.fn(),
 }));
 
-const { apiTranslate } = require("../apis");
-const { OPT_HIGHLIGHT_WORDS_BEFORETRANS } = require("../config/rules");
+const { apiMicrosoftDict, apiTranslate, apiYoudaoDict } = require("../apis");
+const {
+  EVENT_FAVORITE_WORD_CHANGE,
+  OPT_DICT_BING,
+  OPT_DICT_YOUDAO,
+} = require("../config");
+const {
+  OPT_HIGHLIGHT_WORDS_AFTERTRANS,
+  OPT_HIGHLIGHT_WORDS_BEFORETRANS,
+} = require("../config/rules");
 const { Translator } = require("./translator");
 
 const flushAsync = async () => {
@@ -82,6 +92,8 @@ describe("Translator rule styles", () => {
     jest.useFakeTimers();
     document.documentElement.innerHTML = "<head></head><body></body>";
     apiTranslate.mockResolvedValue({ trText: "Translated", isSame: false });
+    apiMicrosoftDict.mockResolvedValue(null);
+    apiYoudaoDict.mockResolvedValue(null);
 
     originalIntersectionObserver = global.IntersectionObserver;
     global.IntersectionObserver = class {
@@ -351,6 +363,298 @@ describe("Translator rule styles", () => {
 
     expect(highlight).not.toBeNull();
     expect(requestedText).toBe("Review the <i1>incident response</i1> details");
+  });
+
+  test("updates current-page highlights without retranslating", async () => {
+    document.body.innerHTML = `
+      <main id="root">
+        <p id="target">Library tools improve library research</p>
+        <p id="outside">library outside</p>
+      </main>
+    `;
+
+    createTranslator(
+      {
+        autoScan: "false",
+        selector: "#target",
+        highlightWords: OPT_HIGHLIGHT_WORDS_BEFORETRANS,
+      },
+      { minLength: 0 }
+    );
+    await flushAsync();
+    const wrapper = document.querySelector(`.${Translator.KISS_CLASS.warpper}`);
+    const translateCalls = apiTranslate.mock.calls.length;
+
+    document.dispatchEvent(
+      new CustomEvent(EVENT_FAVORITE_WORD_CHANGE, {
+        detail: { word: "library", isFavorite: true },
+      })
+    );
+
+    const highlights = document.querySelectorAll(
+      `#target > .${Translator.KISS_CLASS.highlight}`
+    );
+    expect(highlights).toHaveLength(2);
+    expect(highlights[0].textContent).toBe("Library");
+    expect(highlights[0].dataset.kissFavoriteWord).toBe("library");
+    expect(
+      document.querySelector(`#outside .${Translator.KISS_CLASS.highlight}`)
+    ).toBeNull();
+    expect(apiTranslate).toHaveBeenCalledTimes(translateCalls);
+    expect(document.querySelector(`.${Translator.KISS_CLASS.warpper}`)).toBe(
+      wrapper
+    );
+
+    document.dispatchEvent(
+      new CustomEvent(EVENT_FAVORITE_WORD_CHANGE, {
+        detail: { word: "LIBRARY", isFavorite: false },
+      })
+    );
+
+    expect(
+      document.querySelector(`#target .${Translator.KISS_CLASS.highlight}`)
+    ).toBeNull();
+    expect(document.getElementById("target").textContent).toContain(
+      "Library tools improve library research"
+    );
+    await flushAsync();
+    expect(apiTranslate).toHaveBeenCalledTimes(translateCalls);
+    expect(document.querySelector(`.${Translator.KISS_CLASS.warpper}`)).toBe(
+      wrapper
+    );
+  });
+
+  test("applies updated favorites to post-translation and dynamic scopes", async () => {
+    document.body.innerHTML = `
+      <main id="root">
+        <p class="target">Existing library</p>
+      </main>
+    `;
+
+    createTranslator(
+      {
+        autoScan: "false",
+        selector: ".target",
+        highlightWords: OPT_HIGHLIGHT_WORDS_AFTERTRANS,
+      },
+      { minLength: 0 }
+    );
+    await flushAsync();
+
+    document.dispatchEvent(
+      new CustomEvent(EVENT_FAVORITE_WORD_CHANGE, {
+        detail: { word: "library", isFavorite: true },
+      })
+    );
+    expect(
+      document.querySelector(`.target .${Translator.KISS_CLASS.highlight}`)
+    ).not.toBeNull();
+
+    const dynamic = document.createElement("p");
+    dynamic.className = "target";
+    dynamic.textContent = "Dynamic library";
+    document.getElementById("root").appendChild(dynamic);
+    await Promise.resolve();
+    jest.runOnlyPendingTimers();
+    await Promise.resolve();
+    await Promise.resolve();
+    await flushAsync();
+
+    expect(
+      dynamic.querySelector(`.${Translator.KISS_CLASS.highlight}`)
+    ).not.toBeNull();
+  });
+
+  test("stops reacting to favorite changes after Translator stops", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="target">library</p></main>';
+    const translator = createTranslator(
+      {
+        autoScan: "false",
+        selector: "#target",
+        highlightWords: OPT_HIGHLIGHT_WORDS_BEFORETRANS,
+      },
+      { minLength: 0 }
+    );
+    await flushAsync();
+
+    translator.stop();
+    document.dispatchEvent(
+      new CustomEvent(EVENT_FAVORITE_WORD_CHANGE, {
+        detail: { word: "library", isFavorite: true },
+      })
+    );
+
+    expect(
+      document.querySelector(`#target .${Translator.KISS_CLASS.highlight}`)
+    ).toBeNull();
+  });
+
+  test("uses the selected dictionary and shows every definition on hover", async () => {
+    apiMicrosoftDict.mockResolvedValue({
+      word: "library",
+      aus: [{ key: "美", phonetic: "laɪbreri" }],
+      trs: [
+        { pos: "n.", def: "图书馆" },
+        { pos: "n.", def: "藏书" },
+        { pos: "n.", def: "文库" },
+        { pos: "n.", def: "程序库" },
+      ],
+    });
+    document.body.innerHTML =
+      '<main id="root"><p id="target">library</p></main>';
+
+    createTranslator(
+      {
+        autoScan: "false",
+        selector: "#target",
+        highlightWords: OPT_HIGHLIGHT_WORDS_BEFORETRANS,
+      },
+      {
+        minLength: 0,
+        tranboxSetting: { enDict: OPT_DICT_BING },
+      },
+      ["library"]
+    );
+    await flushAsync();
+    const highlight = document.querySelector(
+      `.${Translator.KISS_CLASS.highlight}`
+    );
+
+    highlight.dispatchEvent(
+      new MouseEvent("mouseover", { bubbles: true, clientX: 30, clientY: 40 })
+    );
+    jest.advanceTimersByTime(300);
+    await apiMicrosoftDict.mock.results[0].value;
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const bubble = document.querySelector(
+      `.${Translator.KISS_CLASS.hoverBubble}`
+    );
+    expect(apiMicrosoftDict).toHaveBeenCalledWith("library");
+    expect(apiYoudaoDict).not.toHaveBeenCalled();
+    expect(bubble.textContent).toContain("[n.] 图书馆");
+    expect(bubble.textContent).toContain("[n.] 程序库");
+    expect(bubble.style.maxHeight).toBe("60vh");
+    expect(bubble.style.overflowY).toBe("auto");
+  });
+
+  test("uses Youdao when it is the selected favorite-word dictionary", async () => {
+    apiYoudaoDict.mockResolvedValue({
+      ec: {
+        word: {
+          "return-phrase": "library",
+          ukphone: "ˈlaɪbrəri",
+          trs: [{ pos: "n.", tran: "图书馆" }],
+        },
+      },
+    });
+    document.body.innerHTML =
+      '<main id="root"><p id="target">library</p></main>';
+
+    createTranslator(
+      {
+        autoScan: "false",
+        selector: "#target",
+        highlightWords: OPT_HIGHLIGHT_WORDS_BEFORETRANS,
+      },
+      {
+        minLength: 0,
+        tranboxSetting: { enDict: OPT_DICT_YOUDAO },
+      },
+      ["library"]
+    );
+    await flushAsync();
+
+    document
+      .querySelector(`.${Translator.KISS_CLASS.highlight}`)
+      .dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+    jest.advanceTimersByTime(300);
+    await apiYoudaoDict.mock.results[0].value;
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const bubble = document.querySelector(
+      `.${Translator.KISS_CLASS.hoverBubble}`
+    );
+    expect(apiYoudaoDict).toHaveBeenCalledWith("library");
+    expect(apiMicrosoftDict).not.toHaveBeenCalled();
+    expect(bubble.textContent).toContain("英 [ˈlaɪbrəri]");
+    expect(bubble.textContent).toContain("[n.] 图书馆");
+  });
+
+  test("does not fall back when favorite-word dictionary lookup is disabled", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="target">library</p></main>';
+
+    createTranslator(
+      {
+        autoScan: "false",
+        selector: "#target",
+        highlightWords: OPT_HIGHLIGHT_WORDS_BEFORETRANS,
+      },
+      {
+        minLength: 0,
+        tranboxSetting: { enDict: "-" },
+      },
+      ["library"]
+    );
+    await flushAsync();
+
+    document
+      .querySelector(`.${Translator.KISS_CLASS.highlight}`)
+      .dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+    jest.advanceTimersByTime(300);
+
+    const bubble = document.querySelector(
+      `.${Translator.KISS_CLASS.hoverBubble}`
+    );
+    expect(apiMicrosoftDict).not.toHaveBeenCalled();
+    expect(apiYoudaoDict).not.toHaveBeenCalled();
+    expect(bubble.dataset.state).toBe("unavailable");
+  });
+
+  test("does not show a stale definition after leaving the highlighted word", async () => {
+    let resolveLookup;
+    apiMicrosoftDict.mockReturnValue(
+      new Promise((resolve) => {
+        resolveLookup = resolve;
+      })
+    );
+    document.body.innerHTML =
+      '<main id="root"><p id="target">library</p></main>';
+
+    createTranslator(
+      {
+        autoScan: "false",
+        selector: "#target",
+        highlightWords: OPT_HIGHLIGHT_WORDS_BEFORETRANS,
+      },
+      {
+        minLength: 0,
+        tranboxSetting: { enDict: OPT_DICT_BING },
+      },
+      ["library"]
+    );
+    await flushAsync();
+    const highlight = document.querySelector(
+      `.${Translator.KISS_CLASS.highlight}`
+    );
+
+    highlight.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+    jest.advanceTimersByTime(300);
+    highlight.dispatchEvent(new MouseEvent("mouseout", { bubbles: true }));
+    resolveLookup({
+      word: "library",
+      trs: [{ pos: "n.", def: "图书馆" }],
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(
+      document.querySelector(`.${Translator.KISS_CLASS.hoverBubble}`)
+    ).toBeNull();
   });
 
   test("continues scanning block children after processing mixed parent nodes", async () => {

@@ -17,6 +17,9 @@ import {
   API_SPE_TYPES,
   MSG_INJECT_CSS,
   MSG_UPDATE_ICON,
+  EVENT_FAVORITE_WORD_CHANGE,
+  OPT_DICT_BING,
+  OPT_DICT_MAP,
   newI18n,
 } from "../config";
 import { resolveApiPromptSettings } from "../config/prompt";
@@ -24,7 +27,7 @@ import { interpreter } from "./interpreter";
 import { clearFetchPool } from "./pool";
 import { debounce, scheduleIdle, genEventName, parseAITerms } from "./utils";
 import { escapeHTML } from "./html";
-import { apiTranslate } from "../apis";
+import { apiMicrosoftDict, apiTranslate, apiYoudaoDict } from "../apis";
 import { kissLog } from "./log";
 import { clearAllBatchQueue } from "./batchQueue";
 import { genTextClass } from "./style";
@@ -344,6 +347,7 @@ export class Translator {
   #useSheetFallback = false; // Firefox 跨作用域限制标记：adoptedStyleSheets 不可用时直接走内联 <style>
   #apisMap = new Map(); // 用于接口快速查找
   #favWords = []; // 收藏词汇
+  #favoriteHighlightScopes = new Set(); // 已进入收藏词高亮流程的扫描单元
 
   #observedNodes = new WeakSet(); // 存储所有被识别出的、可翻译的 DOM 节点单元
   #translationNodes = new WeakMap(); // 存储所有插入到页面的译文节点
@@ -361,11 +365,16 @@ export class Translator {
   #hoverBubbleNode = null; // 鼠标悬停气泡容器
   #hoverBubbleTarget = null; // 当前气泡绑定的原文节点
   #hoverBubbleRunId = 0; // 用于丢弃过期的气泡翻译请求
+  #favoriteHoverTimer = null;
+  #favoriteHoverTarget = null;
   #hoverOriginalTimer = null; // 延迟显示隐藏原文的定时器
   #hoverOriginalTimerTarget = null; // 当前等待显示原文的译文容器
   #boundMouseMoveHandler; // 鼠标事件
   #boundKeyDownHandler; // 键盘事件
   #windowMessageHandler = null;
+  #boundFavoriteWordChange = null;
+  #boundFavoriteMouseOver = null;
+  #boundFavoriteMouseOut = null;
 
   #debouncedFindShadowRoot = null;
 
@@ -835,7 +844,7 @@ export class Translator {
       ...rule,
       isPlainText: rule.isPlainText === true || rule.isPlainText === "true",
     };
-    this.#favWords = favWords;
+    this.#favWords = this.#dedupeFavoriteWords(favWords);
     this.#apisMap = new Map(
       this.#setting.transApis.map((api) => [api.apiSlug, api])
     );
@@ -858,6 +867,15 @@ export class Translator {
     this.#dmm = this.#createDebounceMouseMover();
 
     this.#windowMessageHandler = this.#handleWindowMessage.bind(this);
+    this.#boundFavoriteWordChange = this.#handleFavoriteWordChange.bind(this);
+    this.#boundFavoriteMouseOver = this.#handleFavoriteMouseOver.bind(this);
+    this.#boundFavoriteMouseOut = this.#handleFavoriteMouseOut.bind(this);
+    document.addEventListener(
+      EVENT_FAVORITE_WORD_CHANGE,
+      this.#boundFavoriteWordChange
+    );
+    document.addEventListener("mouseover", this.#boundFavoriteMouseOver);
+    document.addEventListener("mouseout", this.#boundFavoriteMouseOut);
     this.#debouncedFindShadowRoot = debounce(
       this.#findAndObserveShadowRoot.bind(this),
       300
@@ -1160,6 +1178,15 @@ export class Translator {
   #createDebounceMouseMover() {
     return debounce((targetNode) => {
       const startNode = targetNode;
+      const favoriteWord = startNode.closest?.(
+        `.${Translator.KISS_CLASS.highlight}`
+      );
+      if (favoriteWord && this.#isFavoriteHighlightInScope(favoriteWord)) {
+        this.#hoveredNode = null;
+        this.#clearHoverOriginalTimer();
+        return;
+      }
+
       // 仅译文模式下，真实鼠标目标是扩展生成的译文容器；必须先于普通页面节点识别。
       const translationWrapper = startNode.closest?.(
         `.${Translator.KISS_CLASS.warpper}`
@@ -1508,6 +1535,12 @@ export class Translator {
     // todo: DocumentFragment 无法被 this.#io.observe
     if (!Translator.isElement(node)) return;
     if (this.#tryAdoptExistingTranslationHost(node)) {
+      if (
+        this.#rule.highlightWords === OPT_HIGHLIGHT_WORDS_BEFORETRANS ||
+        this.#rule.highlightWords === OPT_HIGHLIGHT_WORDS_AFTERTRANS
+      ) {
+        this.#favoriteHighlightScopes.add(node);
+      }
       if (!this.#observedNodes.has(node)) {
         this.#observedNodes.add(node);
         this.#io.observe(node);
@@ -1516,6 +1549,7 @@ export class Translator {
     }
 
     if (this.#rule.highlightWords === OPT_HIGHLIGHT_WORDS_BEFORETRANS) {
+      this.#favoriteHighlightScopes.add(node);
       this.#highlightWordsDeeply(node);
     }
 
@@ -1659,7 +1693,11 @@ export class Translator {
 
   // 高亮词汇
   #highlightTextNode(textNode, wordRegex) {
-    if (textNode.parentNode?.nodeName.toLowerCase() === "b") {
+    if (
+      textNode.parentElement?.closest(
+        `.${Translator.KISS_CLASS.highlight}, ${Translator.KISS_IGNORE_SELECTOR}`
+      )
+    ) {
       return;
     }
 
@@ -1678,6 +1716,7 @@ export class Translator {
         // 奇数索引是匹配到的关键词
         const bTag = document.createElement("b");
         bTag.className = Translator.KISS_CLASS.highlight;
+        bTag.dataset.kissFavoriteWord = this.#normalizeFavoriteWord(fragment);
         bTag.style.cssText = this.#rule.highlightStyle || "";
         bTag.textContent = fragment;
         this.#skipMoNodes.add(bTag);
@@ -1696,20 +1735,27 @@ export class Translator {
   }
 
   // 高亮词汇
-  #highlightWordsDeeply(parentNode) {
-    if (!parentNode || this.#favWords.length === 0) {
+  #highlightWordsDeeply(parentNode, words = this.#favWords) {
+    if (!parentNode || words.length === 0) {
       return;
     }
 
     const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const escapedWords = this.#favWords.map(escapeRegex);
+    const escapedWords = words.map(escapeRegex);
     const wordRegex = new RegExp(`\\b(${escapedWords.join("|")})\\b`, "gi");
 
     if (parentNode.nodeType === Node.ELEMENT_NODE) {
       const walker = document.createTreeWalker(
         parentNode,
         NodeFilter.SHOW_TEXT,
-        null,
+        {
+          acceptNode: (node) =>
+            node.parentElement?.closest(
+              `.${Translator.KISS_CLASS.highlight}, ${Translator.KISS_IGNORE_SELECTOR}`
+            )
+              ? NodeFilter.FILTER_REJECT
+              : NodeFilter.FILTER_ACCEPT,
+        },
         false
       );
 
@@ -1725,6 +1771,106 @@ export class Translator {
     } else if (parentNode.nodeType === Node.TEXT_NODE) {
       this.#highlightTextNode(parentNode, wordRegex);
     }
+  }
+
+  #normalizeFavoriteWord(word) {
+    return typeof word === "string" ? word.trim().toLowerCase() : "";
+  }
+
+  #dedupeFavoriteWords(words) {
+    const seen = new Set();
+    return (Array.isArray(words) ? words : []).filter((word) => {
+      const normalized = this.#normalizeFavoriteWord(word);
+      if (!normalized || seen.has(normalized)) return false;
+      seen.add(normalized);
+      return true;
+    });
+  }
+
+  #handleFavoriteWordChange(event) {
+    const { word, isFavorite } = event.detail || {};
+    const normalized = this.#normalizeFavoriteWord(word);
+    if (!normalized || typeof isFavorite !== "boolean") return;
+
+    if (isFavorite) {
+      if (
+        !this.#favWords.some(
+          (item) => this.#normalizeFavoriteWord(item) === normalized
+        )
+      ) {
+        this.#favWords = [...this.#favWords, word.trim()];
+      }
+    } else {
+      this.#favWords = this.#favWords.filter(
+        (item) => this.#normalizeFavoriteWord(item) !== normalized
+      );
+    }
+
+    if (
+      this.#rule.highlightWords !== OPT_HIGHLIGHT_WORDS_BEFORETRANS &&
+      this.#rule.highlightWords !== OPT_HIGHLIGHT_WORDS_AFTERTRANS
+    ) {
+      return;
+    }
+
+    if (isFavorite) {
+      this.#favoriteHighlightScopes.forEach((scope) => {
+        this.#highlightWordsDeeply(scope, [word.trim()]);
+      });
+    } else {
+      this.#removeFavoriteWordHighlights(normalized);
+    }
+  }
+
+  #removeFavoriteWordHighlights(normalizedWord) {
+    const highlights = new Set();
+    this.#favoriteHighlightScopes.forEach((scope) => {
+      if (
+        scope.matches?.(`.${Translator.KISS_CLASS.highlight}`) &&
+        scope.dataset.kissFavoriteWord === normalizedWord
+      ) {
+        highlights.add(scope);
+      }
+      scope
+        .querySelectorAll?.(`.${Translator.KISS_CLASS.highlight}`)
+        .forEach((node) => {
+          if (node.dataset.kissFavoriteWord === normalizedWord) {
+            highlights.add(node);
+          }
+        });
+    });
+
+    highlights.forEach((highlight) => {
+      const textNode = document.createTextNode(highlight.textContent || "");
+      this.#skipMoNodes.add(textNode);
+      highlight.replaceWith(textNode);
+      this.#mergeFavoriteHighlightText(textNode);
+    });
+  }
+
+  #mergeFavoriteHighlightText(textNode) {
+    let mergedNode = textNode;
+    const previous = mergedNode.previousSibling;
+    if (previous?.nodeType === Node.TEXT_NODE) {
+      this.#skipMoNodes.add(previous);
+      previous.nodeValue += mergedNode.nodeValue;
+      mergedNode.remove();
+      mergedNode = previous;
+    }
+
+    const next = mergedNode.nextSibling;
+    if (next?.nodeType === Node.TEXT_NODE) {
+      this.#skipMoNodes.add(mergedNode);
+      mergedNode.nodeValue += next.nodeValue;
+      next.remove();
+    }
+  }
+
+  #isFavoriteHighlightInScope(highlight) {
+    for (const scope of this.#favoriteHighlightScopes) {
+      if (scope === highlight || scope.contains?.(highlight)) return true;
+    }
+    return false;
   }
 
   // 切分文本段落
@@ -2373,6 +2519,7 @@ export class Translator {
 
       // 高亮词汇
       if (highlightWords === OPT_HIGHLIGHT_WORDS_AFTERTRANS) {
+        this.#favoriteHighlightScopes.add(hostNode);
         nodes.forEach((node) => this.#highlightWordsDeeply(node));
       }
 
@@ -2439,6 +2586,181 @@ export class Translator {
   }
 
   // 获取悬停气泡的样式，如果用户未设置则使用默认样式
+  #handleFavoriteMouseOver(event) {
+    const eventTarget = event.composedPath?.()[0] || event.target;
+    const highlight = eventTarget.closest?.(
+      `.${Translator.KISS_CLASS.highlight}`
+    );
+    if (!highlight || !this.#isFavoriteHighlightInScope(highlight)) return;
+    if (highlight.contains(event.relatedTarget)) return;
+
+    this.#hoverPointer = { x: event.clientX, y: event.clientY };
+    if (this.#favoriteHoverTarget === highlight) return;
+
+    this.#hideHoverBubble();
+    this.#favoriteHoverTarget = highlight;
+    this.#favoriteHoverTimer = setTimeout(() => {
+      this.#favoriteHoverTimer = null;
+      this.#showFavoriteWordTooltip(highlight);
+    }, 300);
+  }
+
+  #handleFavoriteMouseOut(event) {
+    const eventTarget = event.composedPath?.()[0] || event.target;
+    const highlight = eventTarget.closest?.(
+      `.${Translator.KISS_CLASS.highlight}`
+    );
+    if (!highlight || !this.#isFavoriteHighlightInScope(highlight)) return;
+    if (highlight.contains(event.relatedTarget)) return;
+    if (this.#favoriteHoverTarget === highlight) {
+      this.#hideHoverBubble();
+    }
+  }
+
+  #clearFavoriteHoverTimer() {
+    if (this.#favoriteHoverTimer) {
+      clearTimeout(this.#favoriteHoverTimer);
+      this.#favoriteHoverTimer = null;
+    }
+  }
+
+  async #showFavoriteWordTooltip(highlight) {
+    if (
+      this.#favoriteHoverTarget !== highlight ||
+      !highlight.isConnected ||
+      !this.#isFavoriteHighlightInScope(highlight)
+    ) {
+      return;
+    }
+
+    const word = (highlight.textContent || "").trim();
+    const i18n = newI18n(this.#setting.uiLang || "zh");
+    const currentRunId = ++this.#hoverBubbleRunId;
+    this.#hoverBubbleTarget = highlight;
+    this.#showFavoriteBubble(
+      i18n("favorite_word_lookup_loading") || "Looking up...",
+      "loading"
+    );
+
+    if (!/^[a-zA-Z]+(?:['’][a-zA-Z]+)?$/.test(word)) {
+      this.#showFavoriteBubble(
+        i18n("favorite_word_lookup_unavailable") ||
+          "Dictionary lookup is unavailable for this word.",
+        "unavailable"
+      );
+      return;
+    }
+
+    const enDict = this.#setting.tranboxSetting?.enDict;
+    if (!OPT_DICT_MAP.has(enDict)) {
+      this.#showFavoriteBubble(
+        i18n("favorite_word_lookup_unavailable") ||
+          "Dictionary lookup is unavailable for this word.",
+        "unavailable"
+      );
+      return;
+    }
+
+    try {
+      const rawResult =
+        enDict === OPT_DICT_BING
+          ? await apiMicrosoftDict(word)
+          : await apiYoudaoDict(word);
+      if (
+        this.#hoverBubbleRunId !== currentRunId ||
+        this.#hoverBubbleTarget !== highlight
+      ) {
+        return;
+      }
+
+      const result = this.#normalizeFavoriteDictionaryResult(
+        enDict,
+        rawResult,
+        word
+      );
+      if (result.definitions.length === 0) {
+        this.#showFavoriteBubble(
+          i18n("favorite_word_definition_not_found") || "No definition found.",
+          "empty"
+        );
+        return;
+      }
+
+      this.#showFavoriteBubble(
+        this.#createFavoriteDictionaryNode(result),
+        "ready"
+      );
+    } catch (err) {
+      if (
+        this.#hoverBubbleRunId !== currentRunId ||
+        this.#hoverBubbleTarget !== highlight
+      ) {
+        return;
+      }
+      kissLog("favorite word lookup failed", err);
+      this.#showFavoriteBubble(
+        i18n("favorite_word_lookup_failed") || "Failed to load definition.",
+        "error"
+      );
+    }
+  }
+
+  #normalizeFavoriteDictionaryResult(enDict, data, fallbackWord) {
+    if (enDict === OPT_DICT_BING) {
+      return {
+        word: data?.word || fallbackWord,
+        phonetics: (data?.aus || [])
+          .filter(({ phonetic }) => phonetic)
+          .map(({ key, phonetic }) => `${key ? `${key} ` : ""}[${phonetic}]`),
+        definitions: (data?.trs || [])
+          .filter(({ def }) => def)
+          .map(({ pos, def }) => ({ pos, text: def })),
+      };
+    }
+
+    const wordData = data?.ec?.word;
+    const phonetics = [];
+    if (wordData?.ukphone) phonetics.push(`英 [${wordData.ukphone}]`);
+    if (wordData?.usphone) phonetics.push(`美 [${wordData.usphone}]`);
+    return {
+      word: wordData?.["return-phrase"] || fallbackWord,
+      phonetics,
+      definitions: (wordData?.trs || [])
+        .filter(({ tran }) => tran)
+        .map(({ pos, tran }) => ({ pos, text: tran })),
+    };
+  }
+
+  #createFavoriteDictionaryNode({ word, phonetics, definitions }) {
+    const container = document.createElement("div");
+    const title = document.createElement("div");
+    title.style.cssText = "font-weight: 700; margin-bottom: 6px;";
+    title.textContent = word;
+    container.appendChild(title);
+
+    if (phonetics.length > 0) {
+      const phonetic = document.createElement("div");
+      phonetic.style.cssText = "opacity: 0.75; margin-bottom: 6px;";
+      phonetic.textContent = phonetics.join("  ");
+      container.appendChild(phonetic);
+    }
+
+    definitions.forEach(({ pos, text }) => {
+      const definition = document.createElement("div");
+      definition.style.cssText = "margin: 3px 0;";
+      definition.textContent = `${pos ? `[${pos}] ` : ""}${text}`;
+      container.appendChild(definition);
+    });
+
+    return container;
+  }
+
+  #showFavoriteBubble(content, state) {
+    this.#showHoverBubble(content, state);
+    this.#hoverBubbleNode?.style.setProperty("max-height", "60vh", "important");
+    this.#hoverBubbleNode?.style.setProperty("overflow-y", "auto", "important");
+  }
+
   #getHoverBubbleStyle() {
     const userStyle =
       this.#setting.mouseHoverSetting?.bubbleStyle ||
@@ -2507,8 +2829,10 @@ overflow-wrap: anywhere !important;`;
   // 隐藏并移除悬停气泡，同时通过递增 RunId 废弃正在进行的翻译请求
   #hideHoverBubble() {
     this.#clearHoverOriginalTimer();
+    this.#clearFavoriteHoverTimer();
     this.#hoverBubbleRunId++;
     this.#hoverBubbleTarget = null;
+    this.#favoriteHoverTarget = null;
     if (this.#hoverBubbleNode) {
       this.#hoverBubbleNode.remove();
       this.#hoverBubbleNode = null;
@@ -3281,6 +3605,7 @@ overflow-wrap: anywhere !important;`;
     this.#mo.disconnect();
     this.#viewNodes.clear();
     this.#rootNodes.clear();
+    this.#favoriteHighlightScopes.clear();
     this.#observedNodes = new WeakSet();
     this.#translationNodes = new WeakMap();
     this.#processedNodes = new WeakMap();
@@ -3617,6 +3942,13 @@ overflow-wrap: anywhere !important;`;
 
   // 停止运行
   stop() {
+    document.removeEventListener(
+      EVENT_FAVORITE_WORD_CHANGE,
+      this.#boundFavoriteWordChange
+    );
+    document.removeEventListener("mouseover", this.#boundFavoriteMouseOver);
+    document.removeEventListener("mouseout", this.#boundFavoriteMouseOut);
+    this.#hideHoverBubble();
     this.disable();
     this.#resetOptions();
     this.#disableMouseHover();

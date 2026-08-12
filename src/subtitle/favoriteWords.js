@@ -1,4 +1,4 @@
-import { KV_WORDS_KEY } from "../config";
+import { EVENT_FAVORITE_WORD_CHANGE, KV_WORDS_KEY } from "../config";
 import {
   debounceSyncMeta,
   getWordsWithDefault,
@@ -32,6 +32,14 @@ async function saveWords(words) {
   debounceSyncMeta(KV_WORDS_KEY);
 }
 
+function notifyFavoriteWordChange(word, isFavorite) {
+  document.dispatchEvent(
+    new CustomEvent(EVENT_FAVORITE_WORD_CHANGE, {
+      detail: { word, isFavorite },
+    })
+  );
+}
+
 export async function isFavoriteWord(word) {
   const words = await getWordsWithDefault();
   return Boolean(words[word]);
@@ -42,6 +50,7 @@ export async function saveFavoriteWordIfMissing(word, data = {}) {
   if (words[word]) return false;
 
   await saveWords({ ...words, [word]: createWordData(data) });
+  notifyFavoriteWordChange(word, true);
   return true;
 }
 
@@ -51,10 +60,12 @@ export async function toggleFavoriteWord(word, data = {}) {
     const nextWords = { ...words };
     delete nextWords[word];
     await saveWords(nextWords);
+    notifyFavoriteWordChange(word, false);
     return false;
   }
 
   await saveWords({ ...words, [word]: createWordData(data) });
+  notifyFavoriteWordChange(word, true);
   return true;
 }
 
