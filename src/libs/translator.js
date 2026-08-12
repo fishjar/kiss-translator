@@ -3,6 +3,7 @@ import {
   APP_CONSTS,
   OPT_STYLE_FUZZY,
   GLOBLA_RULE,
+  GLOBAL_KEY,
   DEFAULT_SETTING,
   // DEFAULT_MOUSEHOVER_KEY,
   OPT_STYLE_NONE,
@@ -757,6 +758,17 @@ export class Translator {
     //   ) || DEFAULT_API_SETTING
     // );
     return this.#apisMap.get(this.#rule.apiSlug) || DEFAULT_API_SETTING;
+  }
+
+  // 气泡模式可使用独立接口；配置失效时继续跟随当前网页规则。
+  get #hoverBubbleApiSetting() {
+    const apiSlug = this.#setting.mouseHoverSetting?.apiSlug;
+    if (!apiSlug || apiSlug === GLOBAL_KEY) {
+      return this.#apiSetting;
+    }
+
+    const apiSetting = this.#apisMap.get(apiSlug);
+    return apiSetting && !apiSetting.isDisabled ? apiSetting : this.#apiSetting;
   }
 
   get #transAllnow() {
@@ -2873,7 +2885,12 @@ overflow-wrap: anywhere !important;`;
         }
       }
 
-      const { trText, isSame } = await this.#translateFetch(text, deLang);
+      const { trText, isSame } = await this.#translateFetch(
+        text,
+        deLang,
+        null,
+        this.#hoverBubbleApiSetting
+      );
       if (
         this.#hoverBubbleRunId !== currentRunId ||
         this.#hoverBubbleTarget !== node
@@ -3108,10 +3125,15 @@ overflow-wrap: anywhere !important;`;
   }
 
   // 发起翻译请求
-  #translateFetch(text, deLang = "", onStreamChunk = null) {
+  #translateFetch(
+    text,
+    deLang = "",
+    onStreamChunk = null,
+    apiSettingOverride = null
+  ) {
     const { toLang, transStartHook } = this.#rule;
     const fromLang = deLang || this.#rule.fromLang;
-    const rawApiSetting = { ...this.#apiSetting };
+    const rawApiSetting = { ...(apiSettingOverride || this.#apiSetting) };
 
     const apiSetting = resolveApiPromptSettings(
       rawApiSetting,

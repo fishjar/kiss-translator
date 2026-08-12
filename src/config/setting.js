@@ -17,6 +17,7 @@ import {
   DEFAULT_SUBTITLE_PROMPT_SLUG,
   PROMPT_MODE_FOLLOW_API,
 } from "./prompt";
+import { GLOBAL_KEY } from "./rules";
 import { DEFAULT_CUSTOM_STYLES } from "./styles";
 
 // --- 默认系统快捷键映射 ---
@@ -230,6 +231,7 @@ export const DEFAULT_MOUSE_HOVER_SETTING = {
   mouseHoverKey: DEFAULT_MOUSEHOVER_KEY, // 主按键
   mouseHoverKey2: [], // 备用快捷按键
   displayMode: OPT_MOUSE_HOVER_DISPLAY_BILINGUAL, // 鼠标悬停翻译展示模式
+  apiSlug: GLOBAL_KEY, // 气泡模式翻译接口，默认跟随当前网页规则
   bubbleStyle: DEFAULT_MOUSE_HOVER_BUBBLE_STYLE, // 气泡模式的容器 CSS
 };
 

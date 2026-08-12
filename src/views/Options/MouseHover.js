@@ -7,11 +7,13 @@ import TextField from "@mui/material/TextField";
 import Switch from "@mui/material/Switch";
 import MenuItem from "@mui/material/MenuItem";
 import { useMouseHoverSetting } from "../../hooks/MouseHover";
+import { useApiList } from "../../hooks/Api";
 import { useCallback } from "react";
 import Grid from "@mui/material/Grid";
 import {
   DEFAULT_MOUSEHOVER_KEY,
   DEFAULT_MOUSE_HOVER_BUBBLE_STYLE,
+  GLOBAL_KEY,
   OPT_MOUSE_HOVER_DISPLAY_BILINGUAL,
   OPT_MOUSE_HOVER_DISPLAY_BUBBLE,
 } from "../../config";
@@ -23,6 +25,7 @@ export default function MouseHoverSetting() {
   const i18n = useI18n();
   // 全局鼠标悬浮翻译配置 Hook
   const { mouseHoverSetting, updateMouseHoverSetting } = useMouseHoverSetting();
+  const { enabledApis } = useApiList();
 
   // 首选触发快捷键变化时的处理回调
   const handleShortcutInput = useCallback(
@@ -63,6 +66,13 @@ export default function MouseHoverSetting() {
     [updateMouseHoverSetting]
   );
 
+  const handleApiChange = useCallback(
+    (e) => {
+      updateMouseHoverSetting({ apiSlug: e.target.value });
+    },
+    [updateMouseHoverSetting]
+  );
+
   // 解构当前鼠标悬停状态配置
   const {
     useMouseHover = true,
@@ -70,8 +80,12 @@ export default function MouseHoverSetting() {
     mouseHoverKey2 = [],
     blacklist = "",
     displayMode = OPT_MOUSE_HOVER_DISPLAY_BILINGUAL,
+    apiSlug = GLOBAL_KEY,
     bubbleStyle = DEFAULT_MOUSE_HOVER_BUBBLE_STYLE,
   } = mouseHoverSetting;
+  const selectedApiSlug = enabledApis.some((api) => api.apiSlug === apiSlug)
+    ? apiSlug
+    : GLOBAL_KEY;
 
   return (
     <Box>
@@ -136,6 +150,29 @@ export default function MouseHoverSetting() {
                 </MenuItem>
               </TextField>
             </Grid>
+            {displayMode === OPT_MOUSE_HOVER_DISPLAY_BUBBLE && (
+              <Grid item xs={12} sm={12} md={4} lg={4}>
+                <TextField
+                  fullWidth
+                  select
+                  size="small"
+                  name="apiSlug"
+                  value={selectedApiSlug}
+                  label={i18n("translate_service")}
+                  helperText={i18n("mousehover_bubble_api_helper")}
+                  onChange={handleApiChange}
+                >
+                  <MenuItem value={GLOBAL_KEY}>
+                    {i18n("mousehover_follow_page_rule")}
+                  </MenuItem>
+                  {enabledApis.map((api) => (
+                    <MenuItem key={api.apiSlug} value={api.apiSlug}>
+                      {api.apiName}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+            )}
           </Grid>
         </Box>
 

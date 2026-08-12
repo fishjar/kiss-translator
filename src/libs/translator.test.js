@@ -10,6 +10,7 @@ jest.mock("./msg", () => ({
 
 const { apiMicrosoftDict, apiTranslate, apiYoudaoDict } = require("../apis");
 const {
+  DEFAULT_API_SETTING,
   EVENT_FAVORITE_WORD_CHANGE,
   OPT_DICT_BING,
   OPT_DICT_YOUDAO,
@@ -38,6 +39,13 @@ const hoverNode = async (node, x = 20, y = 20) => {
   await Promise.resolve();
   await Promise.resolve();
 };
+
+const createApiSetting = (apiSlug, isDisabled = false) => ({
+  ...DEFAULT_API_SETTING,
+  apiSlug,
+  apiName: apiSlug,
+  isDisabled,
+});
 
 function createTranslator(rule = {}, setting = {}, favWords = []) {
   return new Translator({
@@ -1168,6 +1176,136 @@ describe("Translator rule styles", () => {
     expect(bubble.getAttribute("style")).toContain("font-size: 18px");
     expect(bubble.style.position).toBe("fixed");
     expect(bubble.style.zIndex).toBe("2147483647");
+  });
+
+  test("uses the configured translation service only for hover bubbles", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="target">Independent bubble API</p></main>';
+    const target = document.getElementById("target");
+    const pageApi = createApiSetting("page-api");
+    const bubbleApi = createApiSetting("bubble-api");
+
+    createTranslator(
+      { transOpen: "false", apiSlug: pageApi.apiSlug },
+      {
+        preInit: true,
+        transApis: [pageApi, bubbleApi],
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          displayMode: "bubble",
+          apiSlug: bubbleApi.apiSlug,
+        },
+      }
+    );
+    await hoverNode(target);
+    await flushAsync();
+
+    expect(apiTranslate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        apiSetting: expect.objectContaining({ apiSlug: bubbleApi.apiSlug }),
+      })
+    );
+  });
+
+  test("follows the page rule when legacy bubble settings omit apiSlug", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="target">Legacy bubble settings</p></main>';
+    const target = document.getElementById("target");
+    const pageApi = createApiSetting("page-api");
+
+    createTranslator(
+      { transOpen: "false", apiSlug: pageApi.apiSlug },
+      {
+        preInit: true,
+        transApis: [pageApi],
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          displayMode: "bubble",
+        },
+      }
+    );
+    await hoverNode(target);
+    await flushAsync();
+
+    expect(apiTranslate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        apiSetting: expect.objectContaining({ apiSlug: pageApi.apiSlug }),
+      })
+    );
+  });
+
+  test.each([
+    ["missing", "missing-api", []],
+    ["disabled", "disabled-api", [createApiSetting("disabled-api", true)]],
+  ])(
+    "falls back to the page rule for a %s bubble API",
+    async (_, apiSlug, extraApis) => {
+      document.body.innerHTML =
+        '<main id="root"><p id="target">Unavailable bubble API</p></main>';
+      const target = document.getElementById("target");
+      const pageApi = createApiSetting("page-api");
+
+      createTranslator(
+        { transOpen: "false", apiSlug: pageApi.apiSlug },
+        {
+          preInit: true,
+          transApis: [pageApi, ...extraApis],
+          mouseHoverSetting: {
+            useMouseHover: true,
+            mouseHoverKey: [],
+            mouseHoverKey2: [],
+            displayMode: "bubble",
+            apiSlug,
+          },
+        }
+      );
+      await hoverNode(target);
+      await flushAsync();
+
+      expect(apiTranslate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          apiSetting: expect.objectContaining({ apiSlug: pageApi.apiSlug }),
+        })
+      );
+    }
+  );
+
+  test("ignores the bubble API in inline bilingual mode", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="target">Inline translation</p></main>';
+    const target = document.getElementById("target");
+    const pageApi = createApiSetting("page-api");
+    const bubbleApi = createApiSetting("bubble-api");
+
+    createTranslator(
+      { transOpen: "false", apiSlug: pageApi.apiSlug },
+      {
+        preInit: true,
+        transApis: [pageApi, bubbleApi],
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          displayMode: "bilingual",
+          apiSlug: bubbleApi.apiSlug,
+        },
+      }
+    );
+    await hoverNode(target);
+    await flushAsync();
+
+    expect(apiTranslate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        apiSetting: expect.objectContaining({ apiSlug: pageApi.apiSlug }),
+      })
+    );
+    expect(
+      document.querySelector(`.${Translator.KISS_CLASS.warpper}`)
+    ).not.toBeNull();
   });
 
   test("shows the hidden original in a bubble after the configured hover delay", async () => {
