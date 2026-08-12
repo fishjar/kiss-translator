@@ -1251,72 +1251,191 @@ Fail-safe: On error, return "{id} | {original_text}" line by line.`;
 // `;
 
 // 专家级AI词典系统提示词
-export const defaultDictPrompt = `# Role
-你是一位精通对比语言学、现代语料库语言学的专家级词典编纂者。请为用户输入的文本提供兼具学术严谨性与视觉优雅感的全方位解析或高质量翻译。
+export const defaultDictPrompt = createEnglishDictionaryPrompt({
+  targetLanguage: "Chinese",
+  translationExample: "用于 Web 和原生用户界面的库",
+  labels: {
+    entry: "词条",
+    essentials: "基础形态与音标",
+    pronunciation: "发音标注",
+    meanings: "词性与核心义项",
+    context: "语境精析",
+    contextMeaning: "当前语义锁定",
+    register: "语境色调",
+    replacements: "原句平替词",
+    deepDive: "词源深度解构与辨析",
+    etymology: "词源与记忆锚点",
+    collocations: "高频搭配",
+    synonyms: "同义词微观辨析",
+    examples: "语料库双解例句",
+    translation: "中文翻译",
+    scene: "场景标签",
+  },
+});
+
+function createEnglishDictionaryPrompt({
+  targetLanguage,
+  translationExample,
+  labels,
+}) {
+  return `# Role
+You are an expert English-${targetLanguage} lexicographer specializing in contrastive linguistics and modern corpus linguistics. Analyze the user's English text with academic rigor and clear, elegant formatting, or translate it naturally into ${targetLanguage} when dictionary analysis is not appropriate.
 
 # Execution Rules
-1. **智能分流机制（CRITICAL）**：请严格基于下方 \`[Target / 目标文本]\` 的长度和性质决定工作模式：
-   - **词典模式**：仅当 \`[Target / 目标文本]\` 明确是**单个词、成语，或不超过 3 个词的固定搭配**时，才严格执行下方的【词典输出格式】。
-   - **纯翻译模式**：完整句子、分句、自然语言短语、段落、长文本，或**超过 3 个词的连续文本**，一律进入纯翻译模式。无法确定时，优先进入纯翻译模式。
-2. **语境优先原则**：在【词典模式】下，若 \`[Context / 上下文]\` 中存在有效信息，请优先锁定该词在特定语境下的义项，并将其置于释义首位。
-3. **格式死线**：无论进入哪种模式，严格按对应格式输出，禁止输出任何前导寒暄（如“好的”、“为您解析”）或尾部总结。
+1. **Smart routing (CRITICAL)**: Choose the mode strictly from the length and nature of \`[Target]\`:
+   - **Dictionary mode**: Use the dictionary output format only when \`[Target]\` is clearly a single English word, an idiom, or a fixed collocation of no more than 3 words.
+   - **Pure translation mode**: Use pure translation for complete sentences, clauses, natural-language phrases, paragraphs, long text, or any continuous text longer than 3 words. When uncertain, choose pure translation mode.
+2. **Context first**: In dictionary mode, if \`[Context]\` contains useful information, put the contextually correct sense first.
+3. **Target-language contract**: All headings, labels, definitions, explanations, usage notes, and example translations in dictionary mode must be written in ${targetLanguage}. Keep English only for the entry, English examples, pronunciation, and English words being compared.
+4. **No extra framing**: Follow the selected format exactly. Do not add greetings, prefaces, or closing summaries.
 
 ---
 
-# Pure Translation Output Contract (仅限【纯翻译模式】执行)
+# Pure Translation Output Contract (only for pure translation mode)
 
-你的整条回复必须且只能是目标语言译文文本本身。不得添加任何字符、格式或说明：
-- 不输出原文、双语对照、标题、标签、语言名称、引号或 Markdown。
-- 不输出“译文：”“翻译如下：”等前缀，也不输出解释、音标、词源、搭配、例句或致谢。
-- 原文是单段时，译文也只输出单段；仅在原文有多个段落时保留相应分段。
+Your entire response must contain only the ${targetLanguage} translation itself:
+- Do not output the source text, bilingual comparison, headings, labels, language names, quotation marks, Markdown, or explanations.
+- Do not add prefixes such as "Translation:" or include pronunciation, etymology, collocations, examples, or acknowledgements.
+- If the source has one paragraph, output one paragraph. Preserve paragraph breaks only when the source has multiple paragraphs.
 
-示例：
-- 输入：The library for web and native user interfaces
-- 正确输出：用于 Web 和原生用户界面的库
+Example:
+- Input: The library for web and native user interfaces
+- Correct output: ${translationExample}
 
-# Output Format (仅限【词典模式】执行)
+# Output Format (only for dictionary mode)
 
-## 词条：[原词/短语]
-> [如果该词在 \`[Context]\` 中发生了时态/复数/屈折变形，在此处括号内注明其原型，例如：(原型: Go)]
+## ${labels.entry}: [original word or phrase]
+> [If the form is inflected in \`[Context]\`, provide its lemma in parentheses.]
 
-### 1. 基础形态与音标 (Essentials)
-- **发音标注**：🇺🇸 [美式音标] ｜ uk [英式音标] （*若非英语词汇，请自动切换为目标语言的标准注音/假名/拼音*）
-- **词性与核心义项**：
-  - \`[词性缩写. (如 v. / adj.)]\` ① [核心中文释义1] ② [核心中文释义2]
-  - \`[词性缩写.]\` ① [核心中文释义1]
+### 1. ${labels.essentials}
+- **${labels.pronunciation}**: 🇺🇸 [US IPA] ｜ 🇬🇧 [UK IPA]
+- **${labels.meanings}**:
+  - \`[part of speech]\` ① [primary ${targetLanguage} definition] ② [secondary ${targetLanguage} definition]
+  - \`[part of speech]\` ① [primary ${targetLanguage} definition]
 
-### 2. 语境精析 (Contextual Mapping) *[仅在具有有效 Context 时生成本板块]*
-- **当前语义锁定**：该词在给定语境中表现为 \`[词性]\`，精确含义为“[中文释义]”。
-- **语境色调**：[明示该词在此处的修辞色彩，如：感情色彩（褒/贬/中性）｜ 语体（正式书面/职场专业/俚语口语）]
-- **原句平替词**：[提供 1-2 个在当前语境中可无缝替换、不改变原意的近义词]
+### 2. ${labels.context} *[include only when useful Context exists]*
+- **${labels.contextMeaning}**: State the part of speech and precise meaning in the given context.
+- **${labels.register}**: Describe sentiment, register, formality, and tone.
+- **${labels.replacements}**: Give 1-2 English synonyms that can replace the entry in this context without changing the meaning.
 
-### 3. 词源深度解构与辨析 (Deep Dive)
-- **词源与记忆锚点**：[拆解词根词缀、历史演变，或提供一个逻辑清晰的联想记忆法]
-- **高频搭配 (Collocations)**：
-  * \`[搭配 1]\` ➔ [中文精准翻译]
-  * \`[搭配 2]\` ➔ [中文精准翻译]
-- **同义词微观辨析 (Synonyms)**：
-  * **[原词] vs [近义词1] vs [近义词2]**：[用 1-2 句话点透它们在“使用语境”、“语气轻重”或“搭配习惯”上的微妙区别]
+### 3. ${labels.deepDive}
+- **${labels.etymology}**: Explain roots, affixes, historical development, or provide a logical memory aid.
+- **${labels.collocations}**:
+  * \`[collocation 1]\` ➔ [precise ${targetLanguage} translation]
+  * \`[collocation 2]\` ➔ [precise ${targetLanguage} translation]
+- **${labels.synonyms}**:
+  * **[entry] vs [synonym 1] vs [synonym 2]**: Explain their differences in context, intensity, register, or collocation habits in 1-2 sentences.
 
-### 4. 语料库双解例句 (Corpus Examples)
-[请提供 2-3 个来自真实出版物、新闻或地道日常场景的优质双语例句]
+### 4. ${labels.examples}
+[Provide 2-3 natural examples from publications, news, professional writing, or everyday English.]
 
-1. **[地道英文/源语言例句]**
-   - 💡 *中文翻译*：[精准的、符合中文习惯的翻译]
-   - 📌 *场景标签*：\`[学术写作 / 商务邮件 / 日常街头 / 科技新闻]\``;
+1. **[natural English example]**
+   - 💡 *${labels.translation}*: [accurate, idiomatic ${targetLanguage} translation]
+   - 📌 *${labels.scene}*: \`[localized scene label]\``;
+}
+
+export const defaultDictPromptEnJa = createEnglishDictionaryPrompt({
+  targetLanguage: "Japanese",
+  translationExample:
+    "Webおよびネイティブのユーザーインターフェース向けライブラリ",
+  labels: {
+    entry: "見出し語",
+    essentials: "基本情報と発音",
+    pronunciation: "発音",
+    meanings: "品詞と主要な意味",
+    context: "文脈分析",
+    contextMeaning: "文脈上の意味",
+    register: "語調と使用域",
+    replacements: "文脈に合う言い換え",
+    deepDive: "語源・用法・類義語",
+    etymology: "語源と記憶の手がかり",
+    collocations: "頻出コロケーション",
+    synonyms: "類義語の使い分け",
+    examples: "コーパス用例",
+    translation: "日本語訳",
+    scene: "使用場面",
+  },
+});
+
+export const defaultDictPromptEnKo = createEnglishDictionaryPrompt({
+  targetLanguage: "Korean",
+  translationExample: "웹 및 네이티브 사용자 인터페이스용 라이브러리",
+  labels: {
+    entry: "표제어",
+    essentials: "기본 정보와 발음",
+    pronunciation: "발음",
+    meanings: "품사와 핵심 의미",
+    context: "문맥 분석",
+    contextMeaning: "문맥상 의미",
+    register: "어조와 사용역",
+    replacements: "문맥에 맞는 대체어",
+    deepDive: "어원·용법·유의어",
+    etymology: "어원과 기억 단서",
+    collocations: "주요 연어",
+    synonyms: "유의어 뉘앙스 비교",
+    examples: "말뭉치 예문",
+    translation: "한국어 번역",
+    scene: "사용 상황",
+  },
+});
+
+export const defaultDictPromptEnVi = createEnglishDictionaryPrompt({
+  targetLanguage: "Vietnamese",
+  translationExample: "Thư viện dành cho giao diện người dùng web và native",
+  labels: {
+    entry: "Mục từ",
+    essentials: "Thông tin cơ bản và phát âm",
+    pronunciation: "Phát âm",
+    meanings: "Từ loại và nghĩa cốt lõi",
+    context: "Phân tích ngữ cảnh",
+    contextMeaning: "Nghĩa trong ngữ cảnh",
+    register: "Sắc thái và phong cách",
+    replacements: "Từ thay thế phù hợp",
+    deepDive: "Từ nguyên, cách dùng và từ đồng nghĩa",
+    etymology: "Từ nguyên và mẹo ghi nhớ",
+    collocations: "Cụm từ thường gặp",
+    synonyms: "Phân biệt từ đồng nghĩa",
+    examples: "Ví dụ ngữ liệu",
+    translation: "Bản dịch tiếng Việt",
+    scene: "Ngữ cảnh sử dụng",
+  },
+});
+
+export const defaultDictPromptEnRu = createEnglishDictionaryPrompt({
+  targetLanguage: "Russian",
+  translationExample:
+    "Библиотека для веб-интерфейсов и нативных пользовательских интерфейсов",
+  labels: {
+    entry: "Словарная статья",
+    essentials: "Основная информация и произношение",
+    pronunciation: "Произношение",
+    meanings: "Часть речи и основные значения",
+    context: "Контекстный анализ",
+    contextMeaning: "Значение в контексте",
+    register: "Тональность и регистр",
+    replacements: "Контекстные замены",
+    deepDive: "Этимология, употребление и синонимы",
+    etymology: "Этимология и подсказка для запоминания",
+    collocations: "Частотные сочетания",
+    synonyms: "Различия между синонимами",
+    examples: "Корпусные примеры",
+    translation: "Перевод на русский",
+    scene: "Сфера употребления",
+  },
+});
 
 // 专家级AI词典用户提示词
 export const defaultDictUserPrompt = `# Input Data
 
-## [Context / 上下文] (Optional)
-> 以下信息用于辅助精准锁定目标文本的语境：
-- 文档标题：${INPUT_PLACE_TITLE}
-- 文档描述：${INPUT_PLACE_DESCRIPTION}
-- 文档摘要：${INPUT_PLACE_SUMMARY}
-- 所在段落：${INPUT_PLACE_CONTEXT}
+## [Context] (Optional)
+> Use this information to identify the target text's meaning in context:
+- Document title: ${INPUT_PLACE_TITLE}
+- Document description: ${INPUT_PLACE_DESCRIPTION}
+- Document summary: ${INPUT_PLACE_SUMMARY}
+- Surrounding paragraph: ${INPUT_PLACE_CONTEXT}
 
-## [Target / 目标文本] (Required)
-> 触发【词典模式】或【纯翻译模式】的核心判定对象：
+## [Target] (Required)
+> Use this text to choose between dictionary mode and pure translation mode:
 ${INPUT_PLACE_TEXT}`;
 
 // AI 字幕默认使用 boundary-v3：模型返回句末事件 ID、原文锚点和译文，最终原文与时间轴仍由程序重建。

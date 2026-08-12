@@ -5,6 +5,10 @@ import {
   DEFAULT_SUBTITLE_PROMPT_SLUG,
   PRESET_PROMPTS,
   PROMPT_CATEGORY_DICTIONARY,
+  PROMPT_SLUG_DICTIONARY_EN_JA,
+  PROMPT_SLUG_DICTIONARY_EN_KO,
+  PROMPT_SLUG_DICTIONARY_EN_RU,
+  PROMPT_SLUG_DICTIONARY_EN_VI,
   PROMPT_MODE_FOLLOW_API,
   PROMPT_MODE_GLOBAL,
   PROMPT_TEMPLATE_CATEGORIES,
@@ -28,10 +32,15 @@ import {
   defaultNobatchPrompt,
   defaultNobatchUserPrompt,
   defaultDictPrompt,
+  defaultDictPromptEnJa,
+  defaultDictPromptEnKo,
+  defaultDictPromptEnRu,
+  defaultDictPromptEnVi,
   defaultDictUserPrompt,
   defaultSubtitlePrompt,
   defaultSystemPrompt,
 } from "./api";
+import { I18N, UI_LANGS } from "./i18n";
 
 describe("prompt settings", () => {
   test("rewrites Gemini Interactions URL back to GEMINI_GENERATE_CONTENT_URL in V3 migration", () => {
@@ -337,21 +346,96 @@ describe("prompt settings", () => {
   });
 
   test("exposes dictionary prompt templates", () => {
+    const dictionaryPrompts = getDictionaryPromptOptions(PRESET_PROMPTS);
+    const expectedPrompts = [
+      [DEFAULT_DICTIONARY_PROMPT_SLUG, defaultDictPrompt],
+      [PROMPT_SLUG_DICTIONARY_EN_JA, defaultDictPromptEnJa],
+      [PROMPT_SLUG_DICTIONARY_EN_KO, defaultDictPromptEnKo],
+      [PROMPT_SLUG_DICTIONARY_EN_VI, defaultDictPromptEnVi],
+      [PROMPT_SLUG_DICTIONARY_EN_RU, defaultDictPromptEnRu],
+    ];
+
     expect(PROMPT_TEMPLATE_CATEGORIES).toContain(PROMPT_CATEGORY_DICTIONARY);
-    expect(PRESET_PROMPTS).toEqual(
-      expect.arrayContaining([
+    expect(dictionaryPrompts).toHaveLength(expectedPrompts.length);
+    expect(dictionaryPrompts.map(({ slug }) => slug)).toEqual(
+      expectedPrompts.map(([slug]) => slug)
+    );
+    expect(new Set(dictionaryPrompts.map(({ slug }) => slug)).size).toBe(
+      expectedPrompts.length
+    );
+
+    expectedPrompts.forEach(([slug, systemPrompt]) => {
+      expect(dictionaryPrompts).toContainEqual(
         expect.objectContaining({
-          slug: DEFAULT_DICTIONARY_PROMPT_SLUG,
+          slug,
           category: PROMPT_CATEGORY_DICTIONARY,
-          systemPrompt: defaultDictPrompt,
+          systemPrompt,
           userPrompt: defaultDictUserPrompt,
-        }),
-      ])
+        })
+      );
+    });
+  });
+
+  test.each([
+    [
+      DEFAULT_DICTIONARY_PROMPT_SLUG,
+      "Chinese",
+      "词条",
+      "用于 Web 和原生用户界面的库",
+    ],
+    [
+      PROMPT_SLUG_DICTIONARY_EN_JA,
+      "Japanese",
+      "見出し語",
+      "Webおよびネイティブのユーザーインターフェース向けライブラリ",
+    ],
+    [
+      PROMPT_SLUG_DICTIONARY_EN_KO,
+      "Korean",
+      "표제어",
+      "웹 및 네이티브 사용자 인터페이스용 라이브러리",
+    ],
+    [
+      PROMPT_SLUG_DICTIONARY_EN_VI,
+      "Vietnamese",
+      "Mục từ",
+      "Thư viện dành cho giao diện người dùng web và native",
+    ],
+    [
+      PROMPT_SLUG_DICTIONARY_EN_RU,
+      "Russian",
+      "Словарная статья",
+      "Библиотека для веб-интерфейсов и нативных пользовательских интерфейсов",
+    ],
+  ])(
+    "provides target-specific dictionary instructions for %s",
+    (slug, targetLanguage, localizedHeading, translationExample) => {
+      const prompt = PRESET_PROMPTS.find((item) => item.slug === slug);
+
+      expect(prompt.systemPrompt).toContain(
+        `expert English-${targetLanguage} lexicographer`
+      );
+      expect(prompt.systemPrompt).toContain(
+        `only the ${targetLanguage} translation itself`
+      );
+      expect(prompt.systemPrompt).toContain(`## ${localizedHeading}:`);
+      expect(prompt.systemPrompt).toContain(
+        `Correct output: ${translationExample}`
+      );
+      expect(UI_LANGS.every(([lang]) => I18N[prompt.nameKey]?.[lang])).toBe(
+        true
+      );
+    }
+  );
+
+  test("uses one English user prompt for every dictionary preset", () => {
+    expect(defaultDictUserPrompt).toContain("## [Context] (Optional)");
+    expect(defaultDictUserPrompt).toContain("Document title:");
+    expect(defaultDictUserPrompt).toContain("## [Target] (Required)");
+    expect(defaultDictUserPrompt).toContain(
+      "choose between dictionary mode and pure translation mode"
     );
-    expect(getDictionaryPromptOptions(PRESET_PROMPTS)).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ slug: DEFAULT_DICTIONARY_PROMPT_SLUG }),
-      ])
-    );
+    expect(defaultDictUserPrompt).not.toContain("上下文");
+    expect(defaultDictUserPrompt).not.toContain("目标文本");
   });
 });

@@ -5,6 +5,10 @@ import {
   defaultSystemPromptLines,
   defaultSystemPromptXml,
   defaultDictPrompt,
+  defaultDictPromptEnJa,
+  defaultDictPromptEnKo,
+  defaultDictPromptEnRu,
+  defaultDictPromptEnVi,
   defaultDictUserPrompt,
   defaultSubtitlePrompt,
   API_SPE_TYPES,
@@ -19,6 +23,10 @@ export const PROMPT_SLUG_BATCH_TRANSLATION_XML = "batch-translation-xml";
 export const PROMPT_SLUG_BATCH_TRANSLATION_LINE = "batch-translation-line";
 export const PROMPT_SLUG_SUBTITLE_SEGMENTATION = "subtitle-segmentation";
 export const PROMPT_SLUG_DICTIONARY_EN_ZH = "dictionary-en-zh";
+export const PROMPT_SLUG_DICTIONARY_EN_JA = "dictionary-en-ja";
+export const PROMPT_SLUG_DICTIONARY_EN_KO = "dictionary-en-ko";
+export const PROMPT_SLUG_DICTIONARY_EN_VI = "dictionary-en-vi";
+export const PROMPT_SLUG_DICTIONARY_EN_RU = "dictionary-en-ru";
 
 // 提示词应用模式：跟随接口内部配置，或使用全局统一配置
 export const PROMPT_MODE_FOLLOW_API = "follow_api";
@@ -100,6 +108,38 @@ export const PRESET_PROMPTS = [
     nameKey: "preset_prompt_dictionary_en_zh",
     name: "AI English-Chinese Dictionary",
     systemPrompt: defaultDictPrompt,
+    userPrompt: defaultDictUserPrompt,
+  },
+  {
+    slug: PROMPT_SLUG_DICTIONARY_EN_JA,
+    category: PROMPT_CATEGORY_DICTIONARY,
+    nameKey: "preset_prompt_dictionary_en_ja",
+    name: "AI English-Japanese Dictionary",
+    systemPrompt: defaultDictPromptEnJa,
+    userPrompt: defaultDictUserPrompt,
+  },
+  {
+    slug: PROMPT_SLUG_DICTIONARY_EN_KO,
+    category: PROMPT_CATEGORY_DICTIONARY,
+    nameKey: "preset_prompt_dictionary_en_ko",
+    name: "AI English-Korean Dictionary",
+    systemPrompt: defaultDictPromptEnKo,
+    userPrompt: defaultDictUserPrompt,
+  },
+  {
+    slug: PROMPT_SLUG_DICTIONARY_EN_VI,
+    category: PROMPT_CATEGORY_DICTIONARY,
+    nameKey: "preset_prompt_dictionary_en_vi",
+    name: "AI English-Vietnamese Dictionary",
+    systemPrompt: defaultDictPromptEnVi,
+    userPrompt: defaultDictUserPrompt,
+  },
+  {
+    slug: PROMPT_SLUG_DICTIONARY_EN_RU,
+    category: PROMPT_CATEGORY_DICTIONARY,
+    nameKey: "preset_prompt_dictionary_en_ru",
+    name: "AI English-Russian Dictionary",
+    systemPrompt: defaultDictPromptEnRu,
     userPrompt: defaultDictUserPrompt,
   },
 ];
