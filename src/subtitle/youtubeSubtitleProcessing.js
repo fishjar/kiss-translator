@@ -51,7 +51,7 @@ export function cleanTimedText(utf8 = "") {
 }
 
 /**
- * 按词长比例将粗粒度空格文本展开为连续的时间片段。
+ * 按词长比例将自动字幕的粗粒度空格文本展开为连续的时间片段。
  * 无安全分词边界或无有效时长时保持原片段。
  */
 function expandCoarseTimedText(text, start, end) {
@@ -80,6 +80,7 @@ function expandCoarseTimedText(text, start, end) {
  * @returns {{events:Array<object>, flatEvents:Array<object>, filteredNonSpeechCount:number}}
  */
 export function prepareTimedTextEvents(rawEvents = []) {
+  const sourceEvents = Array.isArray(rawEvents) ? rawEvents : [];
   const events = [];
   const flatEvents = [];
   let filteredNonSpeechCount = 0;
@@ -97,7 +98,8 @@ export function prepareTimedTextEvents(rawEvents = []) {
     buffer = null;
   };
 
-  for (const rawEvent of Array.isArray(rawEvents) ? rawEvents : []) {
+  for (let eventIndex = 0; eventIndex < sourceEvents.length; eventIndex += 1) {
+    const rawEvent = sourceEvents[eventIndex];
     const event = rawEvent || {};
     const rawSegs = Array.isArray(event.segs) ? event.segs : [];
     const tStartMs = Number(event.tStartMs) || 0;
@@ -150,9 +152,22 @@ export function prepareTimedTextEvents(rawEvents = []) {
         index === normalizedSegs.length - 1
           ? dDurationMs
           : Number(normalizedSegs[index + 1]?.tOffsetMs) || 0;
-      const expanded = text.includes(" ")
-        ? expandCoarseTimedText(text, start, tStartMs + nextOffset)
-        : null;
+      const declaredEnd = tStartMs + nextOffset;
+      const nextEventStart = Number(sourceEvents[eventIndex + 1]?.tStartMs);
+      const effectiveEnd =
+        index === normalizedSegs.length - 1 &&
+        Number.isFinite(nextEventStart) &&
+        nextEventStart > start
+          ? Math.min(declaredEnd, nextEventStart)
+          : declaredEnd;
+      const isAsrSegment = Object.prototype.hasOwnProperty.call(
+        normalizedSegs[index],
+        "acAsrConf"
+      );
+      const expanded =
+        isAsrSegment && text.includes(" ")
+          ? expandCoarseTimedText(text, start, effectiveEnd)
+          : null;
       if (expanded) {
         flatEvents.push(...expanded.slice(0, -1));
         buffer = expanded[expanded.length - 1];

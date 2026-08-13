@@ -52,7 +52,7 @@ describe("coarse timedtext normalization", () => {
       {
         tStartMs: 1200,
         dDurationMs: 3400,
-        segs: [{ utf8: "The quick brown fox." }],
+        segs: [{ utf8: "The quick brown fox.", acAsrConf: 0 }],
       },
     ];
     const prepared = prepareTimedTextEvents(rawEvents);
@@ -108,6 +108,54 @@ describe("coarse timedtext normalization", () => {
         _ei: 3,
       },
     ]);
+  });
+
+  test("leaves manually authored sentence-level captions unchanged", () => {
+    const rawEvents = [
+      {
+        tStartMs: 1200,
+        dDurationMs: 3400,
+        segs: [{ utf8: "The quick brown fox." }],
+      },
+    ];
+
+    expect(prepareTimedTextEvents(rawEvents).flatEvents).toEqual([
+      { text: "The quick brown fox.", start: 1200, end: 4600 },
+    ]);
+  });
+
+  test("caps coarse ASR words at the next event without overlaps or lost text", () => {
+    const rawEvents = [
+      {
+        tStartMs: 0,
+        dDurationMs: 6000,
+        segs: [{ utf8: "one two six", acAsrConf: 0 }],
+      },
+      {
+        tStartMs: 3000,
+        dDurationMs: 1000,
+        segs: [{ utf8: "next", acAsrConf: 0 }],
+      },
+    ];
+
+    const { flatEvents } = prepareTimedTextEvents(rawEvents);
+
+    expect(flatEvents).toEqual([
+      { text: "one", start: 0, end: 1000 },
+      { text: "two", start: 1000, end: 2000 },
+      { text: "six", start: 2000, end: 3000 },
+      { text: "next", start: 3000, end: 4000 },
+    ]);
+    expect(flatEvents.map((event) => event.text).join(" ")).toBe(
+      "one two six next"
+    );
+    expect(
+      flatEvents.every(
+        (event, index) =>
+          index === flatEvents.length - 1 ||
+          event.end <= flatEvents[index + 1].start
+      )
+    ).toBe(true);
   });
 
   test("leaves word-level offsets unchanged", () => {
