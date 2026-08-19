@@ -810,7 +810,7 @@ export const apiTranslate = async ({
   }
 
   if (!trText) {
-    throw new Error("tanslate api got empty trtext");
+    throw new Error("translate api got empty trtext");
   }
 
   // 判断是否发生了“源语言与目标语言相同”的无效翻译情况 (如英文网页翻译为英文)
