@@ -30,6 +30,14 @@ jest.mock("../libs/pool", () => ({
   })),
 }));
 
+jest.mock("../libs/storage", () => ({
+  getSetting: jest.fn(),
+}));
+
+jest.mock("../libs/log", () => ({
+  kissLog: jest.fn(),
+}));
+
 jest.mock("../libs/request", () => ({
   normalizeHttpTimeout: (timeout) => {
     const normalizedTimeout = timeout || 30;
@@ -73,7 +81,8 @@ jest.mock("./trans", () => ({
 
 import { apiDict, apiSubtitle, apiTranslate } from "./index";
 import { handleDict, handleSubtitle, handleTranslate } from "./trans";
-import { fnPolyfill } from "../libs/fetch";
+import { fetchData, fnPolyfill } from "../libs/fetch";
+import { getSetting } from "../libs/storage";
 import { withTimeout } from "../libs/utils";
 import { getBatchQueue } from "../libs/batchQueue";
 import { getFetchPool } from "../libs/pool";
@@ -81,6 +90,7 @@ import { getHttpCachePolyfill, putHttpCachePolyfill } from "../libs/cache";
 import {
   DEFAULT_API_LIST,
   OPT_TRANS_BUILTINAI,
+  OPT_TRANS_BAIDU,
   OPT_TRANS_DEEPL,
   OPT_TRANS_DEEPLX,
   OPT_TRANS_OPENAI,
@@ -280,6 +290,59 @@ describe("apiTranslate BuiltinAI timeout", () => {
     ).rejects.toThrow(
       "apiBuiltinAITranslate got error: Automatic detection of source language failed: low confidence"
     );
+  });
+
+  test("falls back to the configured detection service when the built-in detector is unavailable", async () => {
+    // #1049: LanguageDetector 不可用导致自动检测失败时，
+    // 改用用户配置的远程检测服务解析源语言并重试一次
+    getSetting.mockResolvedValue({ langDetector: OPT_TRANS_BAIDU });
+    fetchData.mockResolvedValueOnce({ error: 0, lan: "en" });
+    fnPolyfill
+      .mockResolvedValueOnce([
+        "",
+        "auto",
+        "Automatic detection of source language failed: LanguageDetector unavailable",
+      ])
+      .mockResolvedValueOnce(["translated text", "en", ""]);
+
+    const translation = await apiTranslate({
+      text: "hello",
+      fromLang: "auto",
+      toLang: "zh-CN",
+      apiSetting: getBuiltinAiApiSetting(30),
+      useCache: false,
+    });
+
+    // 远程检测服务 (百度) 被调用
+    expect(fetchData).toHaveBeenCalledWith(
+      "https://fanyi.baidu.com/langdetect",
+      expect.anything(),
+      { useCache: true }
+    );
+    // 重试时传入了具体源语言 (BuiltinAI 规范下 en -> en)
+    const retryArgs = fnPolyfill.mock.calls[1][1] ?? {};
+    expect(retryArgs.from).toBe("en");
+    expect(translation.trText).toBe("translated text");
+    expect(translation.srLang).toBe("en");
+  });
+
+  test("keeps the original error when no fallback detector resolves a language", async () => {
+    getSetting.mockResolvedValue({ langDetector: OPT_TRANS_BAIDU });
+    fetchData.mockResolvedValueOnce({ error: 1 });
+
+    await expect(
+      apiTranslate({
+        text: "hello",
+        fromLang: "auto",
+        toLang: "zh-CN",
+        apiSetting: getBuiltinAiApiSetting(30),
+        useCache: false,
+      })
+    ).rejects.toThrow(
+      "apiBuiltinAITranslate got error: Automatic detection of source language failed: LanguageDetector unavailable"
+    );
+    // 检测服务未解析出语言时不做无谓的重试
+    expect(fnPolyfill).toHaveBeenCalledTimes(1);
   });
 });
 
