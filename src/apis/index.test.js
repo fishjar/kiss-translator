@@ -34,10 +34,6 @@ jest.mock("../libs/storage", () => ({
   getSetting: jest.fn(),
 }));
 
-jest.mock("../libs/log", () => ({
-  kissLog: jest.fn(),
-}));
-
 jest.mock("../libs/request", () => ({
   normalizeHttpTimeout: (timeout) => {
     const normalizedTimeout = timeout || 30;
@@ -320,7 +316,7 @@ describe("apiTranslate BuiltinAI timeout", () => {
       { useCache: true }
     );
     // 重试时传入了具体源语言 (BuiltinAI 规范下 en -> en)
-    const retryArgs = fnPolyfill.mock.calls[1][1] ?? {};
+    const retryArgs = fnPolyfill.mock.calls[1][0] ?? {};
     expect(retryArgs.from).toBe("en");
     expect(translation.trText).toBe("translated text");
     expect(translation.srLang).toBe("en");
@@ -328,6 +324,11 @@ describe("apiTranslate BuiltinAI timeout", () => {
 
   test("keeps the original error when no fallback detector resolves a language", async () => {
     getSetting.mockResolvedValue({ langDetector: OPT_TRANS_BAIDU });
+    fnPolyfill.mockResolvedValueOnce([
+      "",
+      "auto",
+      "Automatic detection of source language failed: LanguageDetector unavailable",
+    ]);
     fetchData.mockResolvedValueOnce({ error: 1 });
 
     await expect(
