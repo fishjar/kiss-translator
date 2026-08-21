@@ -323,6 +323,7 @@ describe("handleTranslate", () => {
           useStream: false,
           temperature: 0.7,
           thinkingMode: "disabled",
+          // 3.x 非 lite flash 不支持 minimal，请求层收敛到 low (#1048)
           thinkingEffort: "minimal",
         },
         usePool: false,
@@ -338,7 +339,7 @@ describe("handleTranslate", () => {
       store: false,
       generation_config: {
         max_output_tokens: expect.any(Number),
-        thinking_level: "minimal",
+        thinking_level: "low",
         temperature: 0.7,
       },
     });
@@ -860,7 +861,7 @@ describe("handleTranslate", () => {
     const body = JSON.parse(fetchData.mock.calls[0][1].body);
     expect(body.generationConfig).toMatchObject({
       temperature: 0.7,
-      thinkingConfig: { thinkingLevel: "minimal" },
+      thinkingConfig: { thinkingLevel: "low" },
     });
     expect(body.safetySettings).toHaveLength(4);
   });
@@ -1334,5 +1335,77 @@ describe("handleTranslate", () => {
       { id: 0, result: ["你好世界", "en"] },
       { id: 1, result: ["早上好", "en"] },
     ]);
+  });
+});
+
+describe("gemini thinking effort clamp (#1048)", () => {
+  test("clamps minimal to low for non-lite gemini-3 flash on interactions", async () => {
+    fetchData.mockResolvedValueOnce({
+      status: "completed",
+      steps: [
+        {
+          type: "model_output",
+          content: [{ type: "text", text: "你好" }],
+        },
+      ],
+    });
+
+    await collectAsyncGenerator(
+      handleTranslate(["hello"], {
+        from: "en",
+        to: "zh-CN",
+        fromLang: "English",
+        toLang: "Chinese",
+        langMap: () => "",
+        glossary: "",
+        apiSetting: {
+          ...getApiSetting(OPT_TRANS_GEMINI),
+          url: GEMINI_INTERACTIONS_URL,
+          model: "gemini-3.7-flash",
+          useStream: false,
+          thinkingMode: "enabled",
+          thinkingEffort: "minimal",
+        },
+        usePool: false,
+      })
+    );
+
+    const body = JSON.parse(fetchData.mock.calls[0][1].body);
+    expect(body.generation_config.thinking_level).toBe("low");
+  });
+
+  test("keeps minimal for flash-lite models", async () => {
+    fetchData.mockResolvedValueOnce({
+      status: "completed",
+      steps: [
+        {
+          type: "model_output",
+          content: [{ type: "text", text: "你好" }],
+        },
+      ],
+    });
+
+    await collectAsyncGenerator(
+      handleTranslate(["hello"], {
+        from: "en",
+        to: "zh-CN",
+        fromLang: "English",
+        toLang: "Chinese",
+        langMap: () => "",
+        glossary: "",
+        apiSetting: {
+          ...getApiSetting(OPT_TRANS_GEMINI),
+          url: GEMINI_GENERATE_CONTENT_URL,
+          model: "gemini-3.1-flash-lite",
+          useStream: false,
+          thinkingMode: "enabled",
+          thinkingEffort: "minimal",
+        },
+        usePool: false,
+      })
+    );
+
+    const body = JSON.parse(fetchData.mock.calls[0][1].body);
+    expect(body.generationConfig.thinkingConfig.thinkingLevel).toBe("minimal");
   });
 });
