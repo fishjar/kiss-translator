@@ -364,8 +364,10 @@ export const syncData = async (
     syncEncryptKey
   );
   const newVal = JSON.parse(res.value);
-  // 若返回的云端数据更新时间戳晚于本地，则说明云端有新更改需要覆盖本地
-  const isNew = res.updateAt > updateAt;
+  // 时间戳相等时同步端优先返回远端；内容不同时也需要应用远端数据。
+  const isNew =
+    res.updateAt > updateAt ||
+    (res.updateAt === updateAt && res.value !== data.value);
 
   // 新版客户端首次遇到旧版明文远端数据时，读取后立即迁移为密文。
   if (!encrypted && !forceRemoteRead) {
