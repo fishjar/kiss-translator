@@ -72,6 +72,32 @@ function expandCoarseTimedText(text, start, end) {
   });
 }
 
+function getTimedTextEventText(event = {}) {
+  const segs = Array.isArray(event.segs) ? event.segs : [];
+  return cleanTimedText(segs.map((seg) => seg?.utf8).join(" "));
+}
+function getTimedTextEventKey(event = {}) {
+  const visibleText = getTimedTextEventText(event);
+  if (!visibleText) return "";
+  return `${Number(event.tStartMs) || 0}|${Number(event.dDurationMs) || 0}|${visibleText}`;
+}
+
+const shouldRetainTimedTextEvent = (eventKey, lastVisibleEventKey) =>
+  !eventKey || eventKey !== lastVisibleEventKey;
+
+function findNextEffectiveEventStart(sourceEvents, eventIndex, lastEventKey) {
+  for (let index = eventIndex + 1; index < sourceEvents.length; index += 1) {
+    const event = sourceEvents[index] || {};
+    const eventKey = getTimedTextEventKey(event);
+    if (!shouldRetainTimedTextEvent(eventKey, lastEventKey)) continue;
+    lastEventKey = eventKey;
+    const visibleText = getTimedTextEventText(event);
+    const hasSpeech = visibleText && !isNonSpeechSegment(visibleText);
+    if (hasSpeech) return Number(event.tStartMs);
+  }
+  return NaN;
+}
+
 /**
  * 一次完成 YouTube json3 events 的文本清洗、相邻重复事件去除和时间轴展平。
  * 原始输入不会被修改；统计断句读取 events，规则和 AI 断句读取已过滤非语音片段的 flatEvents。
@@ -112,18 +138,10 @@ export function prepareTimedTextEvents(rawEvents = []) {
       // 统计断句仍需识别 YouTube 的物理换行控制信号。
       utf8: isLineBreak ? "\n" : cleanTimedText(seg?.utf8),
     }));
-    const visibleText = normalizedSegs
-      .map((seg) => cleanTimedText(seg.utf8))
-      .filter(Boolean)
-      .join(" ")
-      .replace(/\s+/g, " ")
-      .trim();
-    const eventKey = visibleText
-      ? `${tStartMs}|${dDurationMs}|${visibleText}`
-      : "";
+    const eventKey = getTimedTextEventKey(event);
 
     // 只删除相邻且时间、时长、可见文本完全相同的重复事件。
-    if (eventKey && eventKey === lastVisibleEventKey) continue;
+    if (!shouldRetainTimedTextEvent(eventKey, lastVisibleEventKey)) continue;
 
     const canonicalEvent = { ...event, segs: normalizedSegs };
     events.push(canonicalEvent);
@@ -153,7 +171,11 @@ export function prepareTimedTextEvents(rawEvents = []) {
           ? dDurationMs
           : Number(normalizedSegs[index + 1]?.tOffsetMs) || 0;
       const declaredEnd = tStartMs + nextOffset;
-      const nextEventStart = Number(sourceEvents[eventIndex + 1]?.tStartMs);
+      const nextEventStart = findNextEffectiveEventStart(
+        sourceEvents,
+        eventIndex,
+        lastVisibleEventKey
+      );
       const effectiveEnd =
         index === normalizedSegs.length - 1 &&
         Number.isFinite(nextEventStart) &&

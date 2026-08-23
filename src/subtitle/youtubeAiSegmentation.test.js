@@ -158,6 +158,22 @@ describe("coarse timedtext normalization", () => {
     ).toBe(true);
   });
 
+  test("coarse ASR -> duplicate -> next effective event", () => {
+    const event = (utf8, tStartMs, dDurationMs) => ({
+      tStartMs,
+      dDurationMs,
+      segs: [{ utf8, acAsrConf: 0 }],
+    });
+    const coarseEvent = event("one two six", 0, 6000);
+    const { flatEvents } = prepareTimedTextEvents([
+      coarseEvent,
+      coarseEvent,
+      event("next", 3000, 1000),
+    ]);
+    expect(flatEvents[2].text).toBe("six");
+    expect(flatEvents[1].end).toBeLessThanOrEqual(flatEvents[3].start);
+  });
+
   test("leaves word-level offsets unchanged", () => {
     const rawEvents = [
       {
