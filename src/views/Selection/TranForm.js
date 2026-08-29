@@ -75,10 +75,22 @@ export default function TranForm({
   const [enSug, setEnSug] = useState(initEnSug);
   const [dictTab, setDictTab] = useState("default");
   const hasUserChangedDictTabRef = useRef(false);
-  // 异步自动检测到的源文本语言代码 (例如 "en", "zh")
-  const [deLang, setDeLang] = useState("");
-  const [deLoading, setDeLoading] = useState(false);
+  // 将检测结果与输入文本/检测器绑定，避免旧请求晚到后覆盖新文本的语种。
+  const [detection, setDetection] = useState({
+    key: "",
+    lang: "",
+    loading: false,
+  });
   const inputRef = useRef(null);
+
+  const detectionKey = useMemo(
+    () => `${langDetector}\u0000${text}`,
+    [langDetector, text]
+  );
+  const hasCurrentDetection = detection.key === detectionKey;
+  const deLang = hasCurrentDetection ? detection.lang : "";
+  const deLoading =
+    Boolean(text.trim()) && (!hasCurrentDetection || detection.loading);
 
   // 允许自动聚焦时，将输入框聚焦并把光标定位在文本尾部。
   // autoFocusInput 可在异步初始化完成后由 false 切换为 true。
@@ -120,25 +132,37 @@ export default function TranForm({
 
   // 文本改变或配置切换时，发起异步语种检测
   useEffect(() => {
+    let active = true;
     if (!text.trim()) {
-      setDeLang("");
-      return;
+      setDetection({ key: detectionKey, lang: "", loading: false });
+      return () => {
+        active = false;
+      };
     }
 
+    setDetection({ key: detectionKey, lang: "", loading: true });
     (async () => {
       try {
-        setDeLoading(true);
-        const deLang = await tryDetectLang(text, langDetector);
-        if (deLang) {
-          setDeLang(deLang);
+        const detectedLang = await tryDetectLang(text, langDetector);
+        if (active) {
+          setDetection({
+            key: detectionKey,
+            lang: detectedLang || "",
+            loading: false,
+          });
         }
       } catch (err) {
         kissLog("tranbox: detect lang", err);
-      } finally {
-        setDeLoading(false);
+        if (active) {
+          setDetection({ key: detectionKey, lang: "", loading: false });
+        }
       }
     })();
-  }, [text, langDetector, setDeLang, setDeLoading]);
+
+    return () => {
+      active = false;
+    };
+  }, [text, langDetector, detectionKey]);
 
   // 从剪贴板粘贴文本到翻译框
   const handlePaste = async () => {
@@ -512,6 +536,8 @@ export default function TranForm({
           apiSlug={slug}
           transApis={transApis}
           translateVariants={translateVariants}
+          detectedLang={deLang}
+          sourceDetectionPending={fromLang === "auto" && deLoading}
         />
       ))}
 

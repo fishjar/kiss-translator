@@ -67,21 +67,53 @@ const normalizeTranslationText = (text, apiType, sourceText) => {
  * non-empty text fragment separately, then rejoin the original separators.
  *
  * @param {string} text Original text to translate.
+ * @param {string} fromLang Requested source language.
+ * @param {string} detectedLang Source language detected from the complete input.
  * @param {Function} translate Translation function for one text fragment.
  * @returns {Promise<{trText: string, isSame: boolean}>} Rejoined translated text.
  */
-const translateBuiltinText = async (text, translate) => {
+const translateBuiltinText = async (
+  text,
+  fromLang,
+  detectedLang,
+  translate
+) => {
   const parts = text.split(/(\r\n|\r|\n)/);
-  const results = [];
-  const translatedParts = await Promise.all(
-    parts.map(async (part, index) => {
-      if (index % 2 === 1 || !part.trim()) {
-        return part;
-      }
+  const translatableIndexes = parts.reduce((indexes, part, index) => {
+    if (index % 2 === 0 && part.trim()) indexes.push(index);
+    return indexes;
+  }, []);
+  if (translatableIndexes.length === 0) {
+    return { trText: text, isSame: false };
+  }
 
-      const result = await translate(part);
+  const results = [];
+  const translatedParts = [...parts];
+  let requestFromLang =
+    fromLang === "auto" && detectedLang ? detectedLang : fromLang;
+  let remainingIndexes = translatableIndexes;
+
+  // 完整文本检测仍未解析出语言时，只允许首个片段走 auto/fallback。
+  // 成功后复用其源语言，避免其余片段并发触发远程检测。
+  if (requestFromLang === "auto") {
+    const [firstIndex, ...restIndexes] = translatableIndexes;
+    const firstResult = await translate(parts[firstIndex], "auto");
+    results.push(firstResult);
+    translatedParts[firstIndex] = firstResult.trText;
+    remainingIndexes = restIndexes;
+    requestFromLang = firstResult.srCode || firstResult.srLang;
+    if (remainingIndexes.length > 0 && !requestFromLang) {
+      throw new Error(
+        "BuiltinAI could not resolve the source language for multiline translation"
+      );
+    }
+  }
+
+  await Promise.all(
+    remainingIndexes.map(async (index) => {
+      const result = await translate(parts[index], requestFromLang);
       results.push(result);
-      return result.trText;
+      translatedParts[index] = result.trText;
     })
   );
 
@@ -110,6 +142,8 @@ export default function TranCont({
   apiSlug,
   transApis,
   translateVariants = true,
+  detectedLang = "",
+  sourceDetectionPending = false,
   simpleStyle = false,
 }) {
   const i18n = useI18n();
@@ -122,11 +156,23 @@ export default function TranCont({
     () => transApis.find((api) => api.apiSlug === apiSlug),
     [transApis, apiSlug]
   );
+  const coordinatesBuiltinSource =
+    apiSetting?.apiType === OPT_TRANS_BUILTINAI && fromLang === "auto";
+  const builtinDetectedLang = coordinatesBuiltinSource ? detectedLang : "";
+  const waitForBuiltinDetection =
+    coordinatesBuiltinSource && sourceDetectionPending;
 
   useEffect(() => {
     if (!text?.trim() || !apiSetting) {
       setTrText("");
       setLoading(false);
+      setError("");
+      return;
+    }
+
+    if (waitForBuiltinDetection) {
+      setTrText("");
+      setLoading(true);
       setError("");
       return;
     }
@@ -165,10 +211,10 @@ export default function TranCont({
         setTrText("");
         setError("");
 
-        const translate = (requestText) =>
+        const translate = (requestText, requestFromLang = fromLang) =>
           apiTranslate({
             text: requestText,
-            fromLang,
+            fromLang: requestFromLang,
             toLang,
             apiSetting,
             textFormat: "text",
@@ -179,7 +225,12 @@ export default function TranCont({
           });
         const { trText, isSame } =
           apiSetting.apiType === OPT_TRANS_BUILTINAI
-            ? await translateBuiltinText(text, translate)
+            ? await translateBuiltinText(
+                text,
+                fromLang,
+                builtinDetectedLang,
+                translate
+              )
             : await translate(text);
 
         if (active) {
@@ -209,7 +260,15 @@ export default function TranCont({
       // 组件卸载或依赖变化时主动中止请求，确保后台流式连接不会继续为旧划词结果推送数据。
       controller.abort();
     };
-  }, [text, fromLang, toLang, apiSetting, translateVariants]);
+  }, [
+    text,
+    fromLang,
+    toLang,
+    apiSetting,
+    translateVariants,
+    builtinDetectedLang,
+    waitForBuiltinDetection,
+  ]);
 
   if (!apiSetting) {
     return null;

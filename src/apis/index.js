@@ -585,9 +585,8 @@ const LANGDETECT_FNS = {
 
 /**
  * BuiltinAI 自动检测源语言失败后的回退解析。
- * 浏览器内置 LanguageDetector 不可用时 (Chrome <127 / 未启用内置 AI /
- * 模型未下载)，改用用户配置的远程语言检测服务 (与划词/整页翻译一致)
- * 解析出具体源语言，全部失败时返回空串并保留原始错误。
+ * 浏览器内置 LanguageDetector 不可用时，改用用户配置的远程语言检测服务
+ * 解析出具体源语言；全部失败时返回空串并保留原始错误。
  * @param {string} text 待检测文本
  * @returns {Promise<string>} 解析出的语言代码，失败返回 ""
  */
@@ -601,7 +600,6 @@ const resolveBuiltinAISourceLang = async (text) => {
       if (detectFn) {
         const lang = await detectFn(text);
         if (lang) {
-          // 转换成翻译器统一的语言代码格式
           const mappedLang = OPT_LANGS_TO_CODE[langDetector].get(lang) || lang;
           return normalizeLanguageCode(mappedLang);
         }
@@ -644,9 +642,7 @@ const apiBuiltinAITranslate = async ({ text, from, to, apiSetting }) => {
 
   const [trText, srLang, error] = result;
   if (error) {
-    // REVIEW: 自动检测源语言失败时 (浏览器 LanguageDetector 不可用)，
-    // 回退到用户配置的远程语言检测服务解析出具体源语言后重试一次，
-    // 避免整次翻译直接失败 (#1049)。
+    // 浏览器内置检测失败时，使用用户配置的检测服务解析具体源语言并重试一次。
     if (
       from === "auto" &&
       String(error).includes("Automatic detection of source language failed")
@@ -665,12 +661,15 @@ const apiBuiltinAITranslate = async ({ text, from, to, apiSetting }) => {
           }),
           normalizeHttpTimeout(httpTimeout)
         );
-        if (retry) {
-          const [trTextRetry, srLangRetry, errorRetry] = retry;
-          if (!errorRetry) {
-            return [trTextRetry, srLangRetry];
-          }
+        if (!retry) {
+          throw new Error("apiBuiltinAITranslate retry got null result");
         }
+
+        const [trTextRetry, srLangRetry, errorRetry] = retry;
+        if (errorRetry) {
+          throw new Error(`apiBuiltinAITranslate got error: ${errorRetry}`);
+        }
+        return [trTextRetry, srLangRetry];
       }
     }
     throw new Error(`apiBuiltinAITranslate got error: ${error}`);

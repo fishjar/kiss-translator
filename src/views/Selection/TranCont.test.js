@@ -326,6 +326,7 @@ describe("TranCont", () => {
       text: "First\n\nSecond\r\nThird\rFourth",
       apiSlug: "builtinai",
       transApis: [builtinApiSetting],
+      detectedLang: "en",
     });
     await flushEffects();
 
@@ -334,6 +335,12 @@ describe("TranCont", () => {
       "Second",
       "Third",
       "Fourth",
+    ]);
+    expect(apiTranslate.mock.calls.map(([args]) => args.fromLang)).toEqual([
+      "en",
+      "en",
+      "en",
+      "en",
     ]);
     expect(
       new Set(apiTranslate.mock.calls.map(([args]) => args.signal)).size
@@ -345,6 +352,133 @@ describe("TranCont", () => {
     act(() => {
       root.unmount();
     });
+  });
+
+  test("waits for complete-input detection before translating BuiltinAI fragments", async () => {
+    apiTranslate.mockResolvedValue({ trText: "translated" });
+    const { container, root } = renderTranCont({
+      text: "First\nSecond",
+      apiSlug: "builtinai",
+      transApis: [builtinApiSetting],
+      sourceDetectionPending: true,
+    });
+    await flushEffects();
+
+    expect(apiTranslate).not.toHaveBeenCalled();
+    expect(container.querySelector('[role="progressbar"]')).not.toBeNull();
+
+    act(() => {
+      root.render(
+        <TranCont
+          text={"First\nSecond"}
+          fromLang="auto"
+          toLang="zh-CN"
+          apiSlug="builtinai"
+          transApis={[builtinApiSetting]}
+          detectedLang="en"
+          sourceDetectionPending={false}
+        />
+      );
+    });
+    await flushEffects();
+
+    expect(apiTranslate).toHaveBeenCalledTimes(2);
+    expect(apiTranslate.mock.calls.map(([args]) => args.fromLang)).toEqual([
+      "en",
+      "en",
+    ]);
+
+    act(() => root.unmount());
+  });
+
+  test("uses one auto seed and reuses its source language for remaining BuiltinAI fragments", async () => {
+    const seed = createDeferred();
+    apiTranslate
+      .mockReturnValueOnce(seed.promise)
+      .mockImplementation(async ({ text }) => ({
+        trText: `translated:${text}`,
+        srLang: "en",
+        srCode: "en",
+        isSame: false,
+      }));
+
+    const { container, root } = renderTranCont({
+      text: "First\nSecond\nThird",
+      apiSlug: "builtinai",
+      transApis: [builtinApiSetting],
+    });
+    await flushEffects();
+    expect(apiTranslate).toHaveBeenCalledTimes(1);
+    expect(apiTranslate.mock.calls[0][0]).toEqual(
+      expect.objectContaining({ text: "First", fromLang: "auto" })
+    );
+
+    await act(async () => {
+      seed.resolve({
+        trText: "translated:First",
+        srLang: "en",
+        srCode: "en",
+        isSame: false,
+      });
+      await seed.promise;
+      await Promise.resolve();
+    });
+
+    expect(apiTranslate).toHaveBeenCalledTimes(3);
+    expect(
+      apiTranslate.mock.calls.slice(1).map(([args]) => args.fromLang)
+    ).toEqual(["en", "en"]);
+    expect(container.querySelector("textarea").value).toBe(
+      "translated:First\ntranslated:Second\ntranslated:Third"
+    );
+
+    act(() => root.unmount());
+  });
+
+  test("stops BuiltinAI multiline translation when the auto seed fails", async () => {
+    apiTranslate.mockRejectedValueOnce(new Error("source detection failed"));
+
+    const { container, root } = renderTranCont({
+      text: "First\nSecond\nThird",
+      apiSlug: "builtinai",
+      transApis: [builtinApiSetting],
+    });
+    await flushEffects();
+
+    expect(apiTranslate).toHaveBeenCalledTimes(1);
+    expect(container.querySelector("textarea").value).toBe("");
+    expect(container.textContent).toContain("source detection failed");
+
+    act(() => root.unmount());
+  });
+
+  test("does not restart non-BuiltinAI translation when detection metadata changes", async () => {
+    apiTranslate.mockResolvedValue({ trText: "translated" });
+    const transApis = [baseApiSetting];
+    const { root } = renderTranCont({
+      transApis,
+      sourceDetectionPending: true,
+    });
+    await flushEffects();
+    expect(apiTranslate).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      root.render(
+        <TranCont
+          text="hello"
+          fromLang="auto"
+          toLang="zh-CN"
+          apiSlug="openai"
+          transApis={transApis}
+          detectedLang="en"
+          sourceDetectionPending={false}
+        />
+      );
+    });
+    await flushEffects();
+
+    expect(apiTranslate).toHaveBeenCalledTimes(1);
+    act(() => root.unmount());
   });
 
   test("shows a BuiltinAI fragment error without rendering a partial result", async () => {
@@ -359,6 +493,7 @@ describe("TranCont", () => {
       text: "First\nSecond",
       apiSlug: "builtinai",
       transApis: [builtinApiSetting],
+      detectedLang: "en",
     });
     await flushEffects();
 
@@ -381,6 +516,7 @@ describe("TranCont", () => {
       text: "First\nSecond",
       apiSlug: "builtinai",
       transApis: [builtinApiSetting],
+      detectedLang: "en",
     });
     await flushEffects();
 

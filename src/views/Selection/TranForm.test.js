@@ -27,13 +27,22 @@ jest.mock("react-markdown", () => {
 jest.mock("./TranCont", () => {
   const React = require("react");
 
-  return ({ apiSlug, text, toLang, translateVariants }) =>
+  return ({
+    apiSlug,
+    text,
+    toLang,
+    translateVariants,
+    detectedLang,
+    sourceDetectionPending,
+  }) =>
     React.createElement("div", {
       "data-testid": "tran-cont",
       "data-api-slug": apiSlug,
       "data-text": text,
       "data-to-lang": toLang,
       "data-translate-variants": String(translateVariants),
+      "data-detected-lang": detectedLang,
+      "data-source-detection-pending": String(sourceDetectionPending),
     });
 });
 
@@ -66,6 +75,16 @@ async function flushEffects() {
     await Promise.resolve();
     await Promise.resolve();
   });
+}
+
+function createDeferred() {
+  let resolve;
+  let reject;
+  const promise = new Promise((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
 }
 
 function renderTranForm(props = {}) {
@@ -264,6 +283,61 @@ describe("TranForm translation service selection", () => {
     expect(
       container.querySelector('[data-testid="tran-cont"]').dataset.toLang
     ).toBe("zh-CN");
+
+    act(() => root.unmount());
+  });
+
+  test("passes only the current complete-input detection result to translations", async () => {
+    const firstDetection = createDeferred();
+    const secondDetection = createDeferred();
+    tryDetectLang.mockImplementation((value) =>
+      value === "first" ? firstDetection.promise : secondDetection.promise
+    );
+    const transApis = [
+      { apiSlug: "openai", apiName: "OpenAI", apiType: "OpenAI" },
+    ];
+    const baseProps = {
+      setText: jest.fn(),
+      apiSlugs: ["openai"],
+      fromLang: "auto",
+      toLang: "zh-CN",
+      toLang2: "-",
+      transApis,
+      simpleStyle: false,
+      langDetector: "Baidu",
+      enDict: "-",
+      enSug: "-",
+      aiDictApiSlug: "-",
+    };
+    const { container, root } = renderTranForm({
+      ...baseProps,
+      text: "first",
+    });
+    await flushEffects();
+
+    act(() => {
+      root.render(<TranForm {...baseProps} text="second" />);
+    });
+    await flushEffects();
+    let translation = container.querySelector('[data-testid="tran-cont"]');
+    expect(translation.dataset.detectedLang).toBe("");
+    expect(translation.dataset.sourceDetectionPending).toBe("true");
+
+    await act(async () => {
+      firstDetection.resolve("fr");
+      await firstDetection.promise;
+    });
+    translation = container.querySelector('[data-testid="tran-cont"]');
+    expect(translation.dataset.detectedLang).toBe("");
+    expect(translation.dataset.sourceDetectionPending).toBe("true");
+
+    await act(async () => {
+      secondDetection.resolve("de");
+      await secondDetection.promise;
+    });
+    translation = container.querySelector('[data-testid="tran-cont"]');
+    expect(translation.dataset.detectedLang).toBe("de");
+    expect(translation.dataset.sourceDetectionPending).toBe("false");
 
     act(() => root.unmount());
   });
