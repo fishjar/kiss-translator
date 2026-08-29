@@ -525,6 +525,29 @@ const applyClaudeThinking = (body, { thinkingMode, thinkingEffort }) => {
 };
 
 /**
+ * 将 3.x 非 lite flash 模型不支持的 minimal 强度兜底降为 low。
+ * 设置页按模型能力只提供支持的档位，但旧版本保存的配置或同步数据
+ * 可能仍带着 minimal，直接发送会被整个请求以 400 拒绝 (#1048)。
+ * @param {string} model 当前模型名称。
+ * @param {string|number} effort 待处理的思考强度。
+ * @returns {string|number} 处理后的强度。
+ */
+const clampGeminiEffort = (model, effort) => {
+  if (effort !== "minimal" || typeof model !== "string") {
+    return effort;
+  }
+  const normalizedModel = normalizeGeminiModelName(model);
+  if (
+    normalizedModel.startsWith("gemini-3") &&
+    normalizedModel.includes("flash") &&
+    !normalizedModel.includes("flash-lite")
+  ) {
+    return "low";
+  }
+  return effort;
+};
+
+/**
  * 按 Gemini 实际协议将统一思考设置写入对应请求层级。
  * @param {Object} body 待修改的 Gemini 请求体。
  * @param {Object} settings 已规范化的思考设置与请求上下文。
@@ -549,7 +572,10 @@ const applyGeminiThinking = (
   if (thinkingEffort === null) return;
 
   if (isGeminiInteractionsUrl(url)) {
-    body.generation_config.thinking_level = thinkingEffort;
+    body.generation_config.thinking_level = clampGeminiEffort(
+      model,
+      thinkingEffort
+    );
     return;
   }
 
@@ -567,7 +593,7 @@ const applyGeminiThinking = (
   }
 
   body.generationConfig.thinkingConfig = {
-    thinkingLevel: thinkingEffort,
+    thinkingLevel: clampGeminiEffort(model, thinkingEffort),
   };
 };
 

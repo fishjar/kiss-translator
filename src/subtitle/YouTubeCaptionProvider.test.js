@@ -6,6 +6,7 @@ import { eventsToSubtitles } from "./youtubeAiSegmentation.js";
 import { prepareTimedTextEvents } from "./youtubeSubtitleProcessing.js";
 
 const mockIsSameLang = jest.fn(() => false);
+const mockManagerSettings = [];
 
 jest.mock("../config", () => ({
   MSG_XHR_DATA_YOUTUBE: "xhr-youtube",
@@ -62,6 +63,9 @@ jest.mock("./youtubeAiSegmentation.js", () => ({
 
 jest.mock("./BilingualSubtitleManager.js", () => ({
   BilingualSubtitleManager: class {
+    constructor({ setting }) {
+      mockManagerSettings.push(setting);
+    }
     start = jest.fn();
     destroy = jest.fn();
     repairChunkTranslations = jest.fn();
@@ -77,6 +81,7 @@ const flushPromises = () => new Promise((resolve) => setTimeout(resolve, 0));
 describe("YouTubeCaptionProvider manual translation", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockManagerSettings.length = 0;
     window.history.replaceState({}, "", "/watch?v=video-1");
     document.body.innerHTML =
       '<video></video><button class="captions" aria-pressed="true"></button>';
@@ -99,12 +104,16 @@ describe("YouTubeCaptionProvider manual translation", () => {
   });
 
   test("prepares source subtitles and waits for the menu before translating", async () => {
+    const onSubtitlePositionChange = jest.fn();
     const provider = new YouTubeCaptionProvider({
       autoTranslate: false,
       aiContextSlug: "-",
       apiSlug: "mock-api",
       toLang: "zh-CN",
       showList: "off",
+      rememberPosition: true,
+      positionRatio: 0.05,
+      onSubtitlePositionChange,
     });
     provider.initialize();
 
@@ -129,5 +138,26 @@ describe("YouTubeCaptionProvider manual translation", () => {
     await act(async () => flushPromises());
 
     expect(eventsToSubtitles).toHaveBeenCalledTimes(1);
+    expect(mockManagerSettings).toHaveLength(1);
+
+    mockManagerSettings[0].onSubtitlePositionChange(0.3);
+    expect(onSubtitlePositionChange).toHaveBeenCalledWith(0.3);
+
+    window.dispatchEvent(new Event("yt-navigate-finish"));
+    window.history.replaceState({}, "", "/watch?v=video-2");
+    provider.updateSetting({ name: "autoTranslate", value: true });
+    window.dispatchEvent(
+      new MessageEvent("message", {
+        data: {
+          type: "xhr-youtube",
+          url: "https://www.youtube.com/api/timedtext?v=video-2&lang=en",
+          response: "{}",
+        },
+      })
+    );
+    await act(async () => flushPromises());
+
+    expect(mockManagerSettings).toHaveLength(2);
+    expect(mockManagerSettings[1].positionRatio).toBe(0.3);
   });
 });

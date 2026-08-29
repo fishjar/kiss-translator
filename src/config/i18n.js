@@ -3,6 +3,8 @@
  * @description 国际化本地化字典文件，包含支持的界面语言、自定义 API 请求帮助文档，以及多语言文案对照（支持中文、英文、繁体中文、日文、韩文）。
  */
 
+import { RU_I18N } from "./i18n.ru";
+
 export const UI_LANGS = [
   ["en", "English"],
   ["zh", "简体中文"],
@@ -11,6 +13,7 @@ export const UI_LANGS = [
   ["ko", "한국어"],
   ["tr", "Türkçe"],
   ["vi", "Tiếng Việt"],
+  ["ru", "Русский"],
 ];
 
 const customApiLangs = `["en", "English - English"],
@@ -4499,6 +4502,141 @@ export const I18N = {
     tr: `Kısayol tuşu boş olduğunda, fare imlecinin üzerine gelerek doğrudan çeviri yapacağı anlamına gelir`,
     vi: "When the shortcut key is empty, it means that the mouse hovers to translate directly",
   },
+  mousehover_hold_key: {
+    zh: `按住鼠标左键触发翻译/还原`,
+    en: `Hold the left mouse button to translate/restore`,
+    zh_TW: `按住滑鼠左鍵觸發翻譯/還原`,
+    ja: `マウスの左ボタンを押し続けて翻訳/復元`,
+    ko: `마우스 왼쪽 버튼을 길게 눌러 번역/복원`,
+    tr: `Çevirmek/geri almak için sol fare düğmesini basılı tutun`,
+    vi: `Nhấn giữ chuột trái để dịch/khôi phục`,
+  },
+  mousehover_hold_key_helper: {
+    zh: `按住鼠标左键不放约设定的延迟时间后，翻译光标所在的整块文字区域；松开后再按住一次即可还原。译文按“显示方式”设置呈现为独立块或行内。`,
+    en: `Hold the left mouse button for the configured delay to translate the whole text block under the cursor; hold again to restore it. The translation is shown as an independent block or inline according to the display setting.`,
+    zh_TW: `按住滑鼠左鍵不放約設定的延遲時間後，翻譯游標所在的整塊文字區域；放開後再按住一次即可還原。譯文依「顯示方式」設定呈現為獨立區塊或行內。`,
+    ja: `左ボタンを設定時間押し続けると、カーソル下のテキストブロック全体を翻訳します。もう一度押し続けると元に戻します。訳文は表示形式の設定に応じて独立ブロックまたは行内で表示されます。`,
+    ko: `설정한 시간 동안 마우스 왼쪽 버튼을 누르고 있으면 커서 아래 텍스트 블록 전체를 번역하고, 다시 길게 누르면 복원합니다. 번역 결과는 표시 방식 설정에 따라 독립 블록 또는 원문과 같은 줄로 표시됩니다.`,
+    tr: `Sol fare düğmesini ayarlanan süre boyunca basılı tutun; imlecin altındaki tüm metin bloğu çevrilir. Geri almak için tekrar basılı tutun. Çeviri, görüntüleme ayarına göre bağımsız blok veya satır içi olarak gösterilir.`,
+    vi: `Nhấn giữ chuột trái trong khoảng thời gian đã cấu hình để dịch toàn bộ khối văn bản dưới con trỏ; nhấn giữ lần nữa để khôi phục. Bản dịch được hiển thị dưới dạng khối độc lập hoặc nội tuyến tùy theo cài đặt hiển thị.`,
+  },
+  mousehover_hold_delay: {
+    zh: `按住触发延迟 (毫秒)`,
+    en: `Hold trigger delay (ms)`,
+    zh_TW: `按住觸發延遲 (毫秒)`,
+    ja: `長押しトリガー遅延 (ms)`,
+    ko: `길게 누름 트리거 지연 (ms)`,
+    tr: `Basılı tutma tetikleyici gecikmesi (ms)`,
+    vi: `Độ trễ kích hoạt khi nhấn giữ (ms)`,
+  },
+  mousehover_hold_delay_helper: {
+    zh: `鼠标左键需要按住多长时间才触发翻译，默认 800 毫秒。`,
+    en: `How long the left mouse button must be held before translation is triggered. Defaults to 800 ms.`,
+    zh_TW: `滑鼠左鍵需要按住多久才觸發翻譯，預設 800 毫秒。`,
+    ja: `翻訳がトリガーされるまで左ボタンを押し続ける時間です。デフォルトは 800 ミリ秒です。`,
+    ko: `번역이 트리거될 때까지 마우스 왼쪽 버튼을 누르고 있어야 하는 시간입니다. 기본값은 800ms입니다.`,
+    tr: `Çevirinin tetiklenmesi için sol fare düğmesinin ne kadar basılı tutulması gerektiği. Varsayılan 800 ms'dir.`,
+    vi: `Thời gian cần nhấn giữ chuột trái trước khi kích hoạt dịch. Mặc định là 800 ms.`,
+  },
+  mousehover_hold_scope: {
+    zh: `按住左键翻译范围`,
+    en: `Hold translation scope`,
+    zh_TW: `按住左鍵翻譯範圍`,
+    ja: `長押し翻訳の範囲`,
+    ko: `길게 눌러 번역할 범위`,
+    tr: `Basılı tutma çeviri kapsamı`,
+    vi: `Phạm vi dịch khi nhấn giữ chuột trái`,
+  },
+  mousehover_hold_scope_paragraph: {
+    zh: `只翻译当前段`,
+    en: `Translate current paragraph only`,
+    zh_TW: `只翻譯目前段落`,
+    ja: `現在の段落のみ翻訳`,
+    ko: `현재 단락만 번역`,
+    tr: `Yalnızca geçerli paragrafı çevir`,
+    vi: `Chỉ dịch đoạn hiện tại`,
+  },
+  mousehover_hold_scope_region: {
+    zh: `翻译最近区域`,
+    en: `Translate the nearest region`,
+    zh_TW: `翻譯最近區域`,
+    ja: `最も近い領域を翻訳`,
+    ko: `가장 가까운 영역 번역`,
+    tr: `En yakın bölgeyi çevir`,
+    vi: `Dịch vùng gần nhất`,
+  },
+  mousehover_hold_scope_area: {
+    zh: `翻译整篇文章`,
+    en: `Translate the whole article`,
+    zh_TW: `翻譯整篇文章`,
+    ja: `記事全体を翻訳`,
+    ko: `기사 전체 번역`,
+    tr: `Makalenin tamamını çevir`,
+    vi: `Dịch toàn bộ bài viết`,
+  },
+  mousehover_hold_scope_helper: {
+    zh: `“只翻译当前段”与旧版悬停翻译一致；“翻译最近区域”从鼠标所在位置向上定位到最近的、包含多个文字块的容器；“翻译整篇文章”优先定位到文章/邮件正文容器，从上到下翻译其中全部内容。`,
+    en: `"Current paragraph only" behaves like the legacy hover translation. "Nearest region" locates the closest container with multiple text blocks above the cursor. "Whole article" prefers the article/mail body container and translates all its content from top to bottom.`,
+    zh_TW: `「只翻譯目前段落」與舊版懸停翻譯一致；「翻譯最近區域」從游標所在位置向上定位到最近的、包含多個文字塊的容器；「翻譯整篇文章」優先定位到文章/郵件正文容器，從上到下翻譯其中全部內容。`,
+    ja: `「現在の段落のみ」は従来のホバー翻訳と同じ動作です。「最も近い領域」はカーソル位置から上方向に、複数のテキストブロックを含む最も近いコンテナを特定します。「記事全体」は記事/メール本文コンテナを優先して特定し、その内容を上から下まで翻訳します。`,
+    ko: `「현재 단락만」은 기존 호버 번역과 동일합니다. 「가장 가까운 영역」은 커서 위치에서 위로 여러 텍스트 블록을 포함하는 가장 가까운 컨테이너를 찾습니다. 「기사 전체」는 기사/메일 본문 컨테이너를 우선하여 찾아 내용 전체를 위에서 아래로 번역합니다.`,
+    tr: `"Yalnızca geçerli paragraf" eski üzerine gelme çevirisiyle aynıdır. "En yakın bölge" imlecin üzerinde birden çok metin bloğu içeren en yakın kabı bulur. "Makalenin tamamı" makale/e-posta gövdesi kabını önceliklendirir ve içindeki tüm içeriği yukarıdan aşağıya çevirir.`,
+    vi: `"Chỉ dịch đoạn hiện tại" giống với dịch khi di chuột ở phiên bản cũ. "Vùng gần nhất" định vị vùng chứa gần nhất có nhiều khối văn bản phía trên con trỏ. "Toàn bộ bài viết" ưu tiên vùng chứa bài viết/nội dung email và dịch toàn bộ nội dung từ trên xuống dưới.`,
+  },
+  mousehover_hold_display: {
+    zh: `按住左键译文显示方式`,
+    en: `Hold translation display mode`,
+    zh_TW: `按住左鍵譯文顯示方式`,
+    ja: `長押し翻訳の表示形式`,
+    ko: `길게 눌러 번역한 결과 표시 방식`,
+    tr: `Basılı tutma çevirisi görüntüleme modu`,
+    vi: `Cách hiển thị bản dịch khi nhấn giữ`,
+  },
+  mousehover_hold_display_inline: {
+    zh: `跟随原文行内`,
+    en: `Inline with original`,
+    zh_TW: `跟隨原文行內`,
+    ja: `原文と同じ行内`,
+    ko: `원문과 같은 줄`,
+    tr: `Orijinal metinle aynı satır`,
+    vi: `Nội tuyến cùng văn bản gốc`,
+  },
+  mousehover_hold_display_block: {
+    zh: `独立成块`,
+    en: `Independent block`,
+    zh_TW: `獨立成塊`,
+    ja: `独立ブロック`,
+    ko: `독립 블록`,
+    tr: `Bağımsız blok`,
+    vi: `Khối độc lập`,
+  },
+  mousehover_hold_display_helper: {
+    zh: `“独立成块”会把译文显示在原文下方并留出间距，适合邮件、长文对照阅读；“跟随原文行内”与普通悬停翻译一致。`,
+    en: `"Independent block" shows the translation below the original with spacing, ideal for mail and long-form reading. "Inline with original" behaves like the regular hover translation.`,
+    zh_TW: `「獨立成塊」會把譯文顯示在原文下方並留出間距，適合郵件、長文對照閱讀；「跟隨原文行內」與一般懸停翻譯一致。`,
+    ja: `「独立ブロック」は原文の下に間隔を空けて訳文を表示し、メールや長文の対訳に適しています。「原文と同じ行内」は通常のホバー翻訳と同じです。`,
+    ko: `「독립 블록」은 원문 아래에 간격을 두고 번역을 표시하여 메일·장문 대조 읽기에 적합합니다. 「원문과 같은 줄」은 일반 호버 번역과 동일합니다.`,
+    tr: `"Bağımsız blok" çeviriyi orijinal metnin altında boşlukla gösterir; e-posta ve uzun metinler için idealdir. "Orijinal metinle aynı satır" normal üzerine gelme çevirisiyle aynıdır.`,
+    vi: `"Khối độc lập" hiển thị bản dịch bên dưới văn bản gốc kèm khoảng cách, phù hợp đọc đối chiếu email và văn bản dài. "Nội tuyến cùng văn bản gốc" giống với dịch khi di chuột thông thường.`,
+  },
+  mousehover_hold_prevent_click: {
+    zh: `按住链接/按钮翻译后，松开不触发点击跳转`,
+    en: `Suppress click/navigation after hold-to-translate on links and buttons`,
+    zh_TW: `按住連結/按鈕翻譯後，放開不觸發點擊跳轉`,
+    ja: `リンク/ボタンを長押し翻訳した後、離してもクリック/移動を発生させない`,
+    ko: `링크/버튼을 길게 눌러 번역한 후, 놓아도 클릭/이동을 발생시키지 않음`,
+    tr: `Bağlantı/düğmelerde basılı tutarak çeviri yaptıktan sonra bırakınca tıklama/gezinmeyi engelle`,
+    vi: `Chặn nhấp chuột sau khi dịch bằng cách nhấn giữ trên liên kết/nút`,
+  },
+  mousehover_hold_prevent_click_helper: {
+    zh: `开启后，按住链接或按钮翻译成功并松开时，不会触发链接跳转或按钮点击；默认关闭。`,
+    en: `When enabled, releasing after a successful hold-to-translate on a link or button will not trigger navigation or a button click. Disabled by default.`,
+    zh_TW: `開啟後，按住連結或按鈕翻譯成功並放開時，不會觸發連結跳轉或按鈕點擊；預設關閉。`,
+    ja: `有効にすると、リンクまたはボタンを長押し翻訳して離しても、リンク移動やボタンクリックは発生しません。デフォルトは無効です。`,
+    ko: `사용하면 링크나 버튼을 길게 눌러 번역한 후 놓아도 링크 이동이나 버튼 클릭이 발생하지 않습니다. 기본값은 꺼짐입니다.`,
+    tr: `Etkinleştirildiğinde, bağlantı veya düğmede başarılı basılı tutma çevirisinden sonra bırakmak gezinme veya düğme tıklamasını tetiklemez. Varsayılan kapalıdır.`,
+    vi: `Khi bật, sau khi nhấn giữ để dịch thành công trên liên kết hoặc nút, việc thả chuột sẽ không kích hoạt chuyển hướng hoặc nhấp nút. Mặc định tắt.`,
+  },
   mousehover_display_mode: {
     zh: `展示模式`,
     en: `Display mode`,
@@ -5128,6 +5266,15 @@ export const I18N = {
     ko: `기능 버튼 숨기기`,
     tr: `İşlev Düğmesini Gizle`,
     vi: "Ẩn nút chức năng",
+  },
+  remember_subtitle_position: {
+    zh: `记住字幕位置`,
+    en: `Remember subtitle position`,
+    zh_TW: `記住字幕位置`,
+    ja: `字幕位置を記憶`,
+    ko: `자막 위치 기억`,
+    tr: `Altyazı konumunu hatırla`,
+    vi: `Ghi nhớ vị trí phụ đề`,
   },
   subtitle_hover_lookup: {
     zh: `悬停查词`,
@@ -5787,5 +5934,13 @@ export const I18N = {
     vi: "Đóng",
   },
 };
+
+// 俄语文案存放在单独的文件中，并在模块初始化时一次性合并进来，
+// 以免在上面 600 多条词条中逐条追加 `ru` 字段。
+// 没有俄语译文的键（含代码示例的帮助文档）回退为英文，
+// 与 ja/ko/tr/vi 的现有处理方式一致。
+Object.keys(I18N).forEach((key) => {
+  I18N[key].ru = RU_I18N[key] ?? I18N[key].en;
+});
 
 export const newI18n = (lang) => (key) => I18N[key]?.[lang] || "";

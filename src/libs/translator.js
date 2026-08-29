@@ -9,9 +9,15 @@ import {
   OPT_STYLE_NONE,
   DEFAULT_API_SETTING,
   DEFAULT_MOUSE_HOVER_BUBBLE_STYLE,
+  DEFAULT_MOUSE_HOVER_HOLD_DELAY,
   OPT_HIGHLIGHT_WORDS_BEFORETRANS,
   OPT_HIGHLIGHT_WORDS_AFTERTRANS,
   OPT_MOUSE_HOVER_DISPLAY_BUBBLE,
+  OPT_MOUSE_HOVER_TRANS_AREA,
+  OPT_MOUSE_HOVER_TRANS_DISPLAY_BLOCK,
+  OPT_MOUSE_HOVER_TRANS_DISPLAY_INLINE,
+  OPT_MOUSE_HOVER_TRANS_PARAGRAPH,
+  OPT_MOUSE_HOVER_TRANS_REGION,
   OPT_SPLIT_PARAGRAPH_PUNCTUATION,
   OPT_SPLIT_PARAGRAPH_DISABLE,
   OPT_SPLIT_PARAGRAPH_TEXTLENGTH,
@@ -362,8 +368,31 @@ export class Translator {
 
   #removeKeydownHandler; // 快捷键清理函数
   #removeKeydownHandler2; // 备用快捷键清理函数
+  #removeMouseHoldHandlers; // 按住鼠标左键触发方式的清理函数
+  #mouseHoldTimer = null; // 按住左键等待触发翻译的定时器
+  #mouseHoldActive = false; // 是否处于按住左键状态
+  #mouseHoldTriggered = false; // 本次按住是否已经触发过翻译
+  #mouseHoldStartX = 0; // 按住左键时的起始 X 坐标
+  #mouseHoldStartY = 0; // 按住左键时的起始 Y 坐标
+  #mouseHoldDownTarget = null; // 按住左键按下时的事件目标（坐标定位失败时兜底）
+  #boundMouseDownHandler = null; // 鼠标左键按下事件
+  #boundMouseUpHandler = null; // 鼠标左键松开事件
+  #boundMouseHoldMoveHandler = null; // 按住期间移动取消事件
+  #boundMouseHoldClickHandler = null; // 按住翻译后拦截点击的事件
+  #boundCancelMouseHold = null; // 取消按住状态的绑定函数
+  #mouseHoldSuppressClick = false; // 本次按住翻译成功后是否阻止松开时的点击
+  #mouseHoldPreventClickEnabled = false; // 本次按住是否启用“阻止点击跳转”
+  #mouseHoldInteractive = false; // 按住起点是否位于链接/按钮等可交互元素上
+  #holdRequestConcurrency = 0; // 按住触发翻译的在途 API 请求数
+  #holdRequestWaiters = []; // 等待并发名额的翻译请求
+  #holdRequestLimit = 5; // 按住触发翻译的最大并发请求数
+  #holdUnitsCache = new WeakMap(); // 区域容器 -> 已收集的翻译单元（DOM 变更/重扫描时失效）
+  #holdGeneration = 0; // 按住操作代次：语言检测期间还原/重触发后用于废弃过期任务
+  #holdProcessGenerations = new WeakMap(); // 节点 -> 当前语言检测中的按住代次，用于竞态回滚处理状态
   #hoveredNode = null; // 存储当前悬停的可翻译节点
   #hoverPointer = { x: 0, y: 0 }; // 最近一次鼠标位置，用于定位气泡
+  #hoverPointerValid = false; // 是否已经收到过有效的 mousemove 坐标
+  #hoverDeepElement = null; // 最近一次 mousemove 在 Shadow DOM 内的实际目标（composedPath[0]）
   #hoverBubbleNode = null; // 鼠标悬停气泡容器
   #hoverBubbleTarget = null; // 当前气泡绑定的原文节点
   #hoverBubbleRunId = 0; // 用于丢弃过期的气泡翻译请求
@@ -926,6 +955,8 @@ export class Translator {
   // 初始化
   #init() {
     this.#isInitialized = true;
+    // 重新初始化意味着规则/DOM 都可能变化，按住翻译的区域单元缓存全部失效
+    this.#holdUnitsCache = new WeakMap();
 
     // 注入JS/CSS
     this.#initInjector();
@@ -1204,15 +1235,22 @@ export class Translator {
       const translationWrapper = startNode.closest?.(
         `.${Translator.KISS_CLASS.warpper}`
       );
-      const { mouseHoverKey = [], mouseHoverKey2 = [] } =
-        this.#setting.mouseHoverSetting;
-      const hasMouseHoverShortcut =
-        mouseHoverKey.length > 0 || mouseHoverKey2.length > 0;
+      const {
+        mouseHoverKey = [],
+        mouseHoverKey2 = [],
+        mouseHoverKeyHold = false,
+        mouseHoverKey2Hold = false,
+      } = this.#setting.mouseHoverSetting;
+      const hasMouseHoverTrigger =
+        mouseHoverKey.length > 0 ||
+        mouseHoverKey2.length > 0 ||
+        mouseHoverKeyHold ||
+        mouseHoverKey2Hold;
 
       if (translationWrapper) {
         this.#hoveredNode = translationWrapper;
         if (this.#canShowOriginalInHoverBubble(translationWrapper)) {
-          if (hasMouseHoverShortcut) {
+          if (hasMouseHoverTrigger) {
             // 配置了快捷键时只记录目标，等待快捷键回调立即显示原文。
             this.#clearHoverOriginalTimer();
             if (this.#hoverBubbleTarget !== translationWrapper) {
@@ -1247,10 +1285,10 @@ export class Translator {
       }
       this.#hoveredNode = foundNode || startNode;
 
-      if (!hasMouseHoverShortcut && !this.#isInitialized) {
+      if (!hasMouseHoverTrigger && !this.#isInitialized) {
         this.#init();
       }
-      if (!hasMouseHoverShortcut && foundNode) {
+      if (!hasMouseHoverTrigger && foundNode) {
         this.#toggleTargetNode(foundNode);
       } else if (!foundNode && this.#isMouseHoverBubbleMode()) {
         this.#hideHoverBubble();
@@ -1261,6 +1299,7 @@ export class Translator {
   // 跟踪鼠标下的可翻译节点
   #handleMouseMove(event) {
     this.#hoverPointer = { x: event.clientX, y: event.clientY };
+    this.#hoverPointerValid = true;
     if (
       this.#isMouseHoverBubbleMode() &&
       this.#hoverBubbleNode &&
@@ -1269,6 +1308,11 @@ export class Translator {
       this.#positionHoverBubble();
     }
     let targetNode = event.composedPath()[0];
+    // 记录 Shadow DOM 内的实际目标：elementFromPoint 对 Shadow DOM 只返回宿主元素
+    this.#hoverDeepElement =
+      targetNode?.nodeType === Node.ELEMENT_NODE
+        ? targetNode
+        : targetNode?.parentElement || targetNode;
     this.#dmm(targetNode);
   }
 
@@ -1293,9 +1337,685 @@ export class Translator {
     this.#handleKeyDown();
   }
 
+  // 获取按住左键触发翻译需要等待的毫秒数
+  #getMouseHoldDelay() {
+    const delay = Number(
+      this.#setting.mouseHoverSetting?.mouseHoverHoldDelay
+    );
+    return Number.isFinite(delay) && delay > 0
+      ? delay
+      : DEFAULT_MOUSE_HOVER_HOLD_DELAY;
+  }
+
+  // 按住左键译文是否独立成块显示（默认独立成块，便于长文对照阅读）
+  #getMouseHoldBlockDisplay() {
+    const display =
+      this.#setting.mouseHoverSetting?.mouseHoverTransDisplay ||
+      OPT_MOUSE_HOVER_TRANS_DISPLAY_BLOCK;
+    return display !== OPT_MOUSE_HOVER_TRANS_DISPLAY_INLINE;
+  }
+
+  // 纯触屏设备（无任何支持悬停的指针输入）上“按住鼠标左键”没有对应语义，
+  // 长按会触发系统菜单/选词，容易误触发翻译，因此不注册按住监听。
+  // 使用 any-hover：触屏为主但外接鼠标/触控板的混合设备仍应启用。
+  // matchMedia 不可用或抛错时（极旧环境）默认启用。
+  #isHoldSupportedByDevice() {
+    try {
+      return (
+        typeof window.matchMedia !== "function" ||
+        window.matchMedia("(any-hover: hover)").matches
+      );
+    } catch (err) {
+      return true;
+    }
+  }
+
+  // 注册“按住鼠标左键不放”触发翻译/还原的监听
+  #registerMouseHoldHandler() {
+    if (this.#removeMouseHoldHandlers) return;
+
+    this.#boundMouseDownHandler = (event) =>
+      this.#handleMouseHoldDown(event);
+    this.#boundMouseUpHandler = (event) => this.#handleMouseHoldUp(event);
+    this.#boundMouseHoldMoveHandler = (event) =>
+      this.#handleMouseHoldMove(event);
+    this.#boundMouseHoldClickHandler = (event) =>
+      this.#handleMouseHoldClick(event);
+    this.#boundCancelMouseHold = () => this.#cancelMouseHold();
+
+    document.addEventListener(
+      "mousedown",
+      this.#boundMouseDownHandler,
+      true
+    );
+    document.addEventListener("mouseup", this.#boundMouseUpHandler, true);
+    document.addEventListener(
+      "mousemove",
+      this.#boundMouseHoldMoveHandler,
+      { capture: true, passive: true }
+    );
+    document.addEventListener(
+      "click",
+      this.#boundMouseHoldClickHandler,
+      true
+    );
+    window.addEventListener("blur", this.#boundCancelMouseHold);
+    document.addEventListener(
+      "visibilitychange",
+      this.#boundCancelMouseHold
+    );
+    // 触摸手势被浏览器接管（按住后滚动/系统手势）时取消，避免残留状态触发翻译
+    document.addEventListener(
+      "pointercancel",
+      this.#boundCancelMouseHold,
+      true
+    );
+    // 按住期间弹出右键/移动端长按菜单时取消
+    document.addEventListener(
+      "contextmenu",
+      this.#boundCancelMouseHold,
+      true
+    );
+
+    this.#removeMouseHoldHandlers = () => {
+      document.removeEventListener(
+        "mousedown",
+        this.#boundMouseDownHandler,
+        true
+      );
+      document.removeEventListener(
+        "mouseup",
+        this.#boundMouseUpHandler,
+        true
+      );
+      document.removeEventListener(
+        "mousemove",
+        this.#boundMouseHoldMoveHandler,
+        true
+      );
+      document.removeEventListener(
+        "click",
+        this.#boundMouseHoldClickHandler,
+        true
+      );
+      window.removeEventListener("blur", this.#boundCancelMouseHold);
+      document.removeEventListener(
+        "visibilitychange",
+        this.#boundCancelMouseHold
+      );
+      document.removeEventListener(
+        "pointercancel",
+        this.#boundCancelMouseHold,
+        true
+      );
+      document.removeEventListener(
+        "contextmenu",
+        this.#boundCancelMouseHold,
+        true
+      );
+      this.#removeMouseHoldHandlers = null;
+      this.#boundCancelMouseHold = null;
+    };
+  }
+
+  // 鼠标左键按下：等待设定的延迟后触发翻译/还原
+  #handleMouseHoldDown(event) {
+    if (event.button !== 0) return;
+    const target = event.target;
+    if (
+      target?.closest?.(
+        "input, textarea, select, [contenteditable='true'], [contenteditable='']"
+      )
+    ) {
+      return;
+    }
+
+    this.#cancelMouseHold();
+    this.#mouseHoldActive = true;
+    this.#mouseHoldTriggered = false;
+    this.#mouseHoldSuppressClick = false;
+    this.#mouseHoldPreventClickEnabled = Boolean(
+      this.#setting.mouseHoverSetting?.mouseHoverPreventClick
+    );
+    this.#mouseHoldInteractive = Boolean(
+      target?.closest?.(
+        "button, a, [role='button'], [role='link'], summary"
+      )
+    );
+    this.#mouseHoldStartX = event.clientX;
+    this.#mouseHoldStartY = event.clientY;
+    this.#mouseHoldDownTarget = target;
+
+    this.#mouseHoldTimer = setTimeout(() => {
+      this.#mouseHoldTimer = null;
+      if (!this.#mouseHoldActive) return;
+      // 按住过程中如果已经产生了文字选区（正在拖选），不触发翻译
+      const selectionText = window.getSelection?.()?.toString()?.trim();
+      if (selectionText) return;
+      this.#mouseHoldTriggered = true;
+      // 先为本次按住生成候选代次，只有目标解析和规则校验实际接受后
+      // 才推进全局代次，避免“按在无效目标上”误伤其他正在检测的任务。
+      const generation = this.#holdGeneration + 1;
+      const accepted = this.#handleMouseHoldToggle(generation);
+      if (accepted) {
+        this.#holdGeneration = generation;
+      }
+      // 只有实际接受（翻译或还原）了目标时才启用点击抑制：
+      // 被规则排除或未命中任何目标的按住不应吞掉后续的导航/按钮点击
+      if (
+        accepted &&
+        this.#mouseHoldPreventClickEnabled &&
+        this.#mouseHoldInteractive
+      ) {
+        this.#mouseHoldSuppressClick = true;
+      }
+    }, this.#getMouseHoldDelay());
+  }
+
+  // 鼠标左键松开：取消本次按住状态
+  #handleMouseHoldUp(event) {
+    if (event.button !== 0) return;
+    this.#cancelMouseHold();
+  }
+
+  // 按住期间鼠标明显移动（拖选/拖动）时取消触发
+  #handleMouseHoldMove(event) {
+    if (!this.#mouseHoldActive || this.#mouseHoldTriggered) return;
+    const moved =
+      Math.abs(event.clientX - this.#mouseHoldStartX) > 6 ||
+      Math.abs(event.clientY - this.#mouseHoldStartY) > 6;
+    if (moved) this.#cancelMouseHold();
+  }
+
+  // 按住链接/按钮翻译成功后，松开时的点击不再触发跳转或按钮点击
+  #handleMouseHoldClick(event) {
+    if (!this.#mouseHoldSuppressClick) return;
+    this.#mouseHoldSuppressClick = false;
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation?.();
+  }
+
+  // 取消按住左键触发的等待状态
+  #cancelMouseHold() {
+    this.#mouseHoldActive = false;
+    this.#mouseHoldTriggered = false;
+    this.#mouseHoldPreventClickEnabled = false;
+    this.#mouseHoldInteractive = false;
+    this.#mouseHoldDownTarget = null;
+    if (this.#mouseHoldSuppressClick) {
+      // click 事件在 mouseup 之后同步触发，这里仅作为兜底清理，
+      // 避免窗口失焦等场景下标志残留导致下一次点击被误拦截。
+      setTimeout(() => {
+        this.#mouseHoldSuppressClick = false;
+      }, 0);
+    }
+    if (this.#mouseHoldTimer) {
+      clearTimeout(this.#mouseHoldTimer);
+      this.#mouseHoldTimer = null;
+    }
+  }
+
+  // 按住左键到点后执行：优先翻译/还原光标所在的整块文字区域
+  #handleMouseHoldToggle(generation) {
+    if (!this.#isInitialized) {
+      this.#init();
+    }
+    let targetNode = this.#hoveredNode;
+    // 触发瞬间重新用鼠标坐标定位，避免滚动/动态渲染后悬停节点过期
+    // （Outlook 邮件正文等页面容易出现只命中第一行的问题）。
+    // 页面刚加载、尚未收到 mousemove 时，退回 mousedown 时的坐标。
+    const pointerX = this.#hoverPointerValid
+      ? this.#hoverPointer.x
+      : this.#mouseHoldStartX;
+    const pointerY = this.#hoverPointerValid
+      ? this.#hoverPointer.y
+      : this.#mouseHoldStartY;
+    try {
+      const el = document.elementFromPoint?.(pointerX, pointerY);
+      if (el) {
+        // Shadow DOM 命中时 elementFromPoint 只返回宿主元素；
+        // 若最近一次 mousemove 的实际目标位于该宿主的 Shadow Root 内，改用实际目标
+        let hit = el;
+        const deep = this.#hoverDeepElement;
+        if (deep && el.shadowRoot?.contains?.(deep)) {
+          hit = deep;
+        }
+        // 链接/按钮等可交互文字元素优先作为独立翻译目标，
+        // 避免跳转到其外层容器后翻译范围过大。
+        const atomic = this.#findAtomicHoldTarget(hit);
+        if (atomic) {
+          targetNode = atomic;
+        } else {
+          let resolved = null;
+          let node = hit;
+          while (node && node !== document.body) {
+            if (this.#observedNodes.has(node)) {
+              resolved = node;
+              break;
+            }
+            node = node.parentElement;
+          }
+          // 鼠标下的节点尚未被扫描/登记时，优先采用本次命中元素，
+          // 避免 DOM 被动态替换后过期的悬停节点胜出。
+          if (
+            !resolved &&
+            Translator.isElement(hit) &&
+            hit !== document.body &&
+            hit !== document.documentElement
+          ) {
+            resolved = hit;
+          }
+          if (resolved) {
+            targetNode = resolved;
+          }
+        }
+      }
+    } catch (err) {
+      kissLog("mouse hold resolve target", err);
+    }
+    // 坐标定位失败时退回 mousedown 按下时的目标元素
+    if (!targetNode) {
+      targetNode = this.#mouseHoldDownTarget;
+    }
+    if (this.#canShowOriginalInHoverBubble(targetNode)) {
+      this.#showOriginalHoverBubble(targetNode);
+      return true;
+    }
+    if (!targetNode) return false;
+    // 鼠标悬停在译文容器上时，还原其所属的原始翻译单元
+    if (targetNode.classList?.contains(Translator.KISS_CLASS.warpper)) {
+      targetNode = targetNode.parentElement || targetNode;
+    }
+
+    // 链接、按钮等短文本元素作为独立翻译单元处理；
+    // 这些元素通常位于导航/按钮等紧凑布局中，译文始终使用行内显示，
+    // 避免块级译文把单行导航撑成两行甚至被容器裁剪。
+    // 是否翻译仍遵循规则设置（不翻译节点选择器、根节点选择器、目标元素选择器等）。
+    const atomicTarget = this.#findAtomicHoldTarget(targetNode);
+    if (atomicTarget) {
+      if (this.#isHoldTargetAllowed(atomicTarget)) {
+        this.#toggleTargetNode(atomicTarget, true, false, generation);
+        return true;
+      }
+      // 原子目标被规则排除时，回退到悬停时登记的容器/原文单元
+      targetNode = this.#hoveredNode;
+      if (targetNode?.classList?.contains(Translator.KISS_CLASS.warpper)) {
+        targetNode = targetNode.parentElement || targetNode;
+      }
+    }
+
+    // 规则设置优先：不满足不翻译节点选择器/根节点/目标选择器时直接跳过
+    if (!this.#isHoldTargetAllowed(targetNode)) return false;
+
+    // 容器内的文本全部位于块级子节点中时（如链接包裹 h1/span），
+    // 直接翻译容器会因块级子节点被分段规则切断而落空，
+    // 应下钻到最深层的文本容器（Yahoo 新闻标题等结构）。
+    if (!Translator.hasTextNode(targetNode)) {
+      const leaf = this.#findDeepestTextLeaf(targetNode);
+      if (leaf && leaf !== targetNode && this.#isHoldTargetAllowed(leaf)) {
+        targetNode = leaf;
+      }
+    }
+
+    const transMode =
+      this.#setting.mouseHoverSetting?.mouseHoverTransMode ||
+      OPT_MOUSE_HOVER_TRANS_AREA;
+    if (transMode === OPT_MOUSE_HOVER_TRANS_PARAGRAPH) {
+      // 只翻译当前段：与旧版鼠标悬停翻译行为一致
+      this.#toggleTargetNode(
+        targetNode,
+        true,
+        this.#getMouseHoldBlockDisplay(),
+        generation
+      );
+      return true;
+    }
+
+    const area = this.#findMouseHoverAreaNode(targetNode, transMode);
+    if (!area || area === targetNode) {
+      this.#toggleTargetNode(
+        targetNode,
+        true,
+        this.#getMouseHoldBlockDisplay(),
+        generation
+      );
+      return true;
+    }
+    return this.#toggleHoverBlock(area, generation);
+  }
+
+  // 查找可作为独立翻译目标的链接/按钮等可交互文字元素。
+  // 按钮、链接、summary 等元素即使不在常规扫描范围内，
+  // 也允许通过按住左键单独翻译，便于处理图标旁文字、按钮文案等短文本。
+  #findAtomicHoldTarget(node) {
+    let current = node;
+    while (current && current !== document.body) {
+      if (Translator.isElement(current)) {
+        try {
+          if (
+            current.matches?.(
+              "button, a, [role='button'], [role='link'], summary"
+            ) &&
+            (current.textContent || "").trim()
+          ) {
+            // 链接/按钮内部没有直接文本时，优先定位最深层的文本容器，
+            // 让译文与解除截断的样式直接作用在真正的文本元素上
+            // （如 <a><span>标题</span></a>，Yahoo 新闻标题即此类结构）。
+            if (!Translator.hasTextNode(current)) {
+              const leaf = this.#findSingleTextLeaf(current);
+              if (leaf) return leaf;
+            }
+            // 链接/按钮内部只有块级内容时（如链接直接包裹 h2/p 等），
+            // 把它当作原子目标会导致内部块被分段规则跳过而翻译失败，
+            // 应退回由悬停登记的标题/段落节点处理。
+            if (this.#hasBlockNode(current)) {
+              break;
+            }
+            return current;
+          }
+        } catch (err) {
+          // 忽略无效选择器
+        }
+      }
+      current = current.parentElement;
+    }
+    return null;
+  }
+
+  // 查找可交互元素内唯一的非空文本叶子元素（行内文本容器）。
+  // 若内部已经存在译文容器，则返回译文宿主，保证再次按住时能正确还原。
+  #findSingleTextLeaf(node) {
+    if (!Translator.isElement(node)) return null;
+    const wrapper = node.querySelector?.(`.${Translator.KISS_CLASS.warpper}`);
+    if (wrapper?.parentElement && wrapper.parentElement !== node) {
+      return wrapper.parentElement;
+    }
+    let leaf = null;
+    const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
+    let current;
+    while ((current = walker.nextNode())) {
+      if (!current.nodeValue?.trim()) continue;
+      if (leaf) return null; // 存在多个非空文本节点时不下钻
+      leaf = current.parentElement;
+    }
+    if (!leaf || leaf === node) return null;
+    if (
+      leaf.matches?.("button, a, [role='button'], [role='link'], summary")
+    ) {
+      return null;
+    }
+    return leaf;
+  }
+
+  // 查找容器内文本最长的深层文本叶子元素。
+  // 用于按住翻译的目标是外层容器、而真实文本在块级子节点内的情况。
+  #findDeepestTextLeaf(node) {
+    if (!Translator.isElement(node)) return null;
+    let best = null;
+    let bestLength = 0;
+    const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
+    let current;
+    while ((current = walker.nextNode())) {
+      const text = current.nodeValue?.trim() || "";
+      if (!text) continue;
+      if (current.parentElement?.closest?.(`.${Translator.KISS_CLASS.warpper}`)) {
+        continue;
+      }
+      if (text.length > bestLength) {
+        bestLength = text.length;
+        best = current.parentElement;
+      }
+    }
+    if (!best || best === node) return null;
+    if (
+      best.matches?.("button, a, [role='button'], [role='link'], summary")
+    ) {
+      return null;
+    }
+    return best;
+  }
+
+  // 目标是否位于规则设置的根节点内（rootsSelector）
+  #isWithinRuleRoots(node) {
+    if (this.#rootNodes.size === 0) return true;
+    let el = node?.nodeType === Node.TEXT_NODE ? node.parentElement : node;
+    while (el) {
+      for (const root of this.#rootNodes) {
+        if (root === el || root.contains?.(el)) return true;
+      }
+      el = el.parentElement;
+    }
+    return false;
+  }
+
+  // autoScan=false 时，目标必须匹配规则设置的目标元素选择器（selector）
+  #matchesRuleTargetSelector(node) {
+    if (this.#rule.autoScan !== "false") return true;
+    const selector = this.#rule.selector?.trim();
+    if (!selector) return true;
+    const el = node?.nodeType === Node.TEXT_NODE ? node.parentElement : node;
+    if (!Translator.isElement(el)) return false;
+    try {
+      return Boolean(el.matches(selector));
+    } catch (err) {
+      return false;
+    }
+  }
+
+  // 按住左键翻译的目标是否允许翻译（遵循个人/订阅/全局规则设置）
+  #isHoldTargetAllowed(node) {
+    if (!node) return false;
+    if (node.closest?.(this.#ignoreSelector)) return false;
+    if (!this.#isWithinRuleRoots(node)) return false;
+    if (!this.#matchesRuleTargetSelector(node)) return false;
+    return true;
+  }
+
+  // 查找“翻译整个区域”模式下的区域容器。
+  // 使用两层限制：
+  // 按住左键区域翻译的目标容器定位：
+  // - 翻译整篇文章（area）：优先最近的 article/main/[role=main] 等文章框架；
+  // - 翻译最近区域（region）：优先“最近的、包含多个文字块”的容器，
+  //   在 Outlook 中即邮件正文容器本身，不会把上方标题栏圈进来；
+  // 两种模式下未命中时都退回鼠标上方最外层块级容器。
+  #findMouseHoverAreaNode(node, scopeMode = OPT_MOUSE_HOVER_TRANS_AREA) {
+    let el = node;
+    if (el?.nodeType === Node.TEXT_NODE) {
+      el = el.parentElement;
+    }
+    if (!Translator.isElementOrFragment(el)) return null;
+    if (el.classList?.contains(Translator.KISS_CLASS.warpper)) return el;
+
+    let current = el;
+    let topmostBlock = el;
+    let strong = null;
+    let multi = null;
+    while (current && current !== document.body) {
+      const parent = current.parentElement;
+      if (
+        !parent ||
+        parent === document.body ||
+        parent === document.documentElement ||
+        parent.closest?.(this.#ignoreSelector) ||
+        !this.#isWithinRuleRoots(parent)
+      ) {
+        break;
+      }
+      if (!this.#isBlockNode(parent)) break;
+      if (!strong && this.#isHoverAreaContainer(parent)) {
+        strong = parent;
+      }
+      if (!multi && this.#countTextBlockChildren(parent) >= 2) {
+        multi = parent;
+      }
+      topmostBlock = parent;
+      current = parent;
+    }
+    if (scopeMode === OPT_MOUSE_HOVER_TRANS_REGION) {
+      // 最近区域优先
+      return multi || strong || topmostBlock;
+    }
+    // 整篇文章优先
+    return strong || multi || topmostBlock;
+  }
+
+  // 判断节点是否为语义化的内容容器（整篇文章/主区域）
+  #isHoverAreaContainer(node) {
+    if (!Translator.isElement(node)) return false;
+    try {
+      return Boolean(
+        node.matches?.(
+          "article, main, [role='main'], [role='article']"
+        )
+      );
+    } catch (err) {
+      return false;
+    }
+  }
+
+  // 统计容器内可直接翻译的文字块数量（含容器自身的直接文本）
+  #countTextBlockChildren(node) {
+    let count = Translator.hasTextNode(node) ? 1 : 0;
+    for (const child of node.children || []) {
+      if (!Translator.isElement(child)) continue;
+      if (!this.#isBlockNode(child)) continue;
+      if (child.closest?.(this.#ignoreSelector)) continue;
+      if (child.textContent?.trim()) count += 1;
+    }
+    return count;
+  }
+
+  // 整块翻译/还原区域内的所有翻译单元。
+  // 返回是否实际接受（翻译或还原）了目标，供点击抑制判断使用。
+  // generation 为按住操作代次，透传给各单元用于废弃过期任务。
+  #toggleHoverBlock(container, generation) {
+    if (!this.#isInitialized) {
+      this.#init();
+    }
+    // 区域容器必须在规则设置的根节点内，避免越界翻译
+    if (!this.#isWithinRuleRoots(container)) {
+      return false;
+    }
+    let units = this.#holdUnitsCache.get(container);
+    if (!units) {
+      this.#scanNode(container);
+      units = this.#collectHoverBlockUnits(container);
+      // 空结果不缓存：区域可能尚未扫描完成，下次按住再尝试
+      if (units.length > 0) {
+        this.#holdUnitsCache.set(container, units);
+      }
+    }
+    // 缓存与新鲜收集的单元统一执行完整规则校验（ignore/roots/selector）：
+    // updateRule 收紧范围规则后，旧的已观察单元不会被继续翻译
+    units = units.filter((unit) => this.#isHoldTargetAllowed(unit));
+    if (units.length === 0) {
+      this.#toggleTargetNode(
+        this.#hoveredNode,
+        true,
+        this.#getMouseHoldBlockDisplay(),
+        generation
+      );
+      return true;
+    }
+
+    const allProcessed = units.every((unit) =>
+      this.#processedNodes.has(unit)
+    );
+    if (allProcessed) {
+      this.#restoreHoverBlock(container);
+      return true;
+    }
+
+    units.forEach((unit) => {
+      if (!this.#processedNodes.has(unit)) {
+        this.#processNode(unit, {
+          blockDisplay: this.#getMouseHoldBlockDisplay(),
+          limitConcurrency: true,
+          generation,
+        });
+      }
+    });
+    return true;
+  }
+
+  // 并发限流：区域模式按住触发可能一次翻译几十个单元，
+  // 限制同时在途的 API 请求数，避免瞬间打满服务端限流配额。
+  #acquireHoldRequestSlot() {
+    if (this.#holdRequestConcurrency < this.#holdRequestLimit) {
+      this.#holdRequestConcurrency += 1;
+      // 快速路径直接返回 undefined，调用方同步继续，不引入额外微任务
+      return undefined;
+    }
+    return new Promise((resolve) => {
+      this.#holdRequestWaiters.push(resolve);
+    });
+  }
+
+  #releaseHoldRequestSlot() {
+    const next = this.#holdRequestWaiters.shift();
+    if (next) {
+      next(); // 名额直接转给下一个等待者，在途总数保持不变
+    } else {
+      this.#holdRequestConcurrency -= 1;
+    }
+  }
+
+  // 收集区域内最外层（互不包含）的已观察翻译单元
+  #collectHoverBlockUnits(container) {
+    const units = [];
+    const maxLength = Number(this.#setting.maxLength) || 100000;
+    const visit = (node, isRoot) => {
+      if (!Translator.isElementOrFragment(node)) return;
+      // 根节点需检查整条祖先链；递归进入的子节点其祖先已在上一层验证过，
+      // 只需 matches 检查自身，避免每个节点都重复遍历祖先链。
+      const isIgnored = isRoot
+        ? node.closest?.(this.#ignoreSelector)
+        : node.matches?.(this.#ignoreSelector);
+      if (isIgnored) return;
+      if (this.#observedNodes.has(node)) {
+        // 超大容器不适合作为单一翻译单元（会超过接口长度限制），继续下钻到子单元
+        const isOversized = (node.textContent || "").trim().length > maxLength;
+        if (!isOversized) {
+          units.push(node);
+        }
+      }
+      // 即使节点自身被观察也继续下钻：混合容器（自身含直接文本 + 块级子节点）
+      // 需要同时翻译其直接文本与子单元，避免只翻译第一行/跳过块级子节点。
+      for (const child of node.children || []) {
+        visit(child, false);
+      }
+    };
+    visit(container, true);
+    return units;
+  }
+
+  // 还原整块区域：移除区域内所有译文并清除相关处理状态
+  #restoreHoverBlock(container) {
+    this.#cleanupAllTranslations(container);
+    const clearState = (node) => {
+      if (!Translator.isElementOrFragment(node)) return;
+      if (this.#observedNodes.has(node) || node === container) {
+        this.#processedNodes.delete(node);
+      }
+      for (const child of node.children || []) {
+        clearState(child);
+      }
+    };
+    clearState(container);
+  }
+
   // 切换节点翻译状态
-  #toggleTargetNode(targetNode) {
-    if (this.#isMouseHoverBubbleMode()) {
+  // forceInline 为 true 时（如按住鼠标左键触发），忽略气泡展示模式，
+  // 始终使用双语行内翻译并保留译文，方便下一次按住还原。
+  // generation 为按住操作代次：语言检测期间还原/重触发后，过期任务据此废弃。
+  #toggleTargetNode(
+    targetNode,
+    forceInline = false,
+    blockDisplay = false,
+    generation
+  ) {
+    if (!forceInline && this.#isMouseHoverBubbleMode()) {
       this.#translateHoverBubbleNode(targetNode);
       return;
     }
@@ -1304,10 +2024,16 @@ export class Translator {
       const hasPendingTranslation = Array.from(
         this.#findTranslationWrappers(targetNode)
       ).some((wrapper) => !this.#translationNodes.has(wrapper));
-      if (hasPendingTranslation) return;
+      if (hasPendingTranslation) {
+        // 按住路径需要“再次按住还原”：移除仍处于 loading 的 wrapper，
+        // 后续请求会通过 wrapper.isConnected 防护丢弃过期结果。
+        if (!forceInline) return;
+        this.#cleanupDirectTranslations(targetNode);
+        return;
+      }
       this.#cleanupDirectTranslations(targetNode);
     } else {
-      this.#processNode(targetNode);
+      this.#processNode(targetNode, { blockDisplay, generation });
     }
   }
 
@@ -1496,6 +2222,9 @@ export class Translator {
 
   // 处理“脏容器”
   #rescanContainer(changedNode) {
+    // DOM 发生变化，按住翻译的区域单元缓存不再可靠，全部失效
+    this.#holdUnitsCache = new WeakMap();
+
     const container = this.#findChangeContainer(changedNode);
     if (!container) return;
 
@@ -1642,7 +2371,7 @@ export class Translator {
   }
 
   // 处理一个待翻译的节点
-  async #processNode(node) {
+  async #processNode(node, options = {}) {
     if (
       this.#processedNodes.has(node) ||
       !Translator.isElementOrFragment(node)
@@ -1651,6 +2380,14 @@ export class Translator {
     }
 
     this.#processedNodes.set(node, { ...this.#rule });
+    // 按住操作代次与 runId：语言检测等异步环节完成后据此判断任务是否已过期
+    const generation = options.generation;
+    const runId = this.#runId;
+    if (generation !== undefined) {
+      this.#holdProcessGenerations.set(node, generation);
+    } else {
+      this.#holdProcessGenerations.delete(node);
+    }
 
     // 提前检测文本
     if (this.#isInvalidText(node.textContent)) {
@@ -1673,6 +2410,23 @@ export class Translator {
     if (fromLang === "auto") {
       // revert 529
       deLang = await tryDetectLang(node.textContent, langDetector);
+      // 语言检测期间可能发生了还原、重新触发或停止/重扫：
+      // 任务已失效，不再创建译文容器或发起翻译请求。
+      // 若当前节点仍由本代次任务标记，则回滚处理状态，避免单段/原子目标
+      // 在还原后永久停留在 processed 状态，导致后续按住无法再次翻译。
+      if (
+        generation !== undefined &&
+        (generation !== this.#holdGeneration || runId !== this.#runId)
+      ) {
+        if (this.#holdProcessGenerations.get(node) === generation) {
+          this.#processedNodes.delete(node);
+          this.#holdProcessGenerations.delete(node);
+        }
+        return;
+      }
+      if (generation !== undefined) {
+        this.#holdProcessGenerations.delete(node);
+      }
       if (
         deLang &&
         (isSameTranslationLanguage(deLang, toLang, translateVariants) ||
@@ -1698,13 +2452,13 @@ export class Translator {
       if (!shouldBreak && shouldGroup) {
         nodeGroup.push(child);
       } else if (shouldBreak && nodeGroup.length) {
-        this.#translateNodeGroup(nodeGroup, node, deLang);
+        this.#translateNodeGroup(nodeGroup, node, deLang, options);
         nodeGroup = [];
       }
     });
 
     if (nodeGroup.length) {
-      this.#translateNodeGroup(nodeGroup, node, deLang);
+      this.#translateNodeGroup(nodeGroup, node, deLang, options);
     }
   }
 
@@ -2332,7 +3086,9 @@ export class Translator {
   }
 
   // 翻译内联节点
-  async #translateNodeGroup(nodes, hostNode, deLang) {
+  // options.blockDisplay 为 true 时（按住鼠标左键触发），译文以独立块的形式
+  // 显示在原文下方，并留出上下间距（margin: 8px 0），便于对照阅读。
+  async #translateNodeGroup(nodes, hostNode, deLang, options = {}) {
     const {
       transTag,
       textStyle,
@@ -2357,6 +3113,8 @@ export class Translator {
     } = this.#setting;
     const parentNode = hostNode.parentElement;
     const hideOrigin = transOnly === "true";
+    // 在 try 外声明，供 catch 分支判断本译文容器是否已被还原移除
+    let wrapper = null;
 
     try {
       const [processedString, placeholderMap] = this.#serializeForTranslation(
@@ -2365,7 +3123,7 @@ export class Translator {
       );
       if (this.#isInvalidText(processedString)) return;
 
-      const wrapper = document.createElement(this.#translationTagName);
+      wrapper = document.createElement(this.#translationTagName);
       wrapper.className = `${Translator.KISS_CLASS.warpper} notranslate`;
 
       const inner = document.createElement(transTag);
@@ -2377,7 +3135,12 @@ export class Translator {
       inner.appendChild(createLoadingSVG());
 
       // 将 <br> 作为 wrapper 的子节点，以便 toggleTranslationOnly 统一管理
-      if (processedString.length > newlineLength) {
+      if (options.blockDisplay) {
+        wrapper.style.display = "block";
+        wrapper.style.margin = "8px 0";
+        wrapper.style.boxSizing = "border-box";
+        wrapper.appendChild(inner);
+      } else if (processedString.length > newlineLength) {
         const br = document.createElement("br");
         br.hidden = hideOrigin;
         if (transOrder === "translation-first") {
@@ -2451,6 +3214,8 @@ export class Translator {
         ? (chunk) => {
             // 防过期控制，若本轮翻译请求已因用户点击关闭或被新请求覆盖，则立刻抛弃
             if (this.#runId !== currentRunId) return;
+            // 容器已被还原移除时同样停止流式写入，避免向脱离文档的节点空转渲染
+            if (!wrapper.isConnected) return;
             const { text, isComplete } = chunk;
             if (!text) return;
 
@@ -2472,8 +3237,33 @@ export class Translator {
         : null;
 
       // 2. 发起真实的翻译网络请求
-      const { trText: translatedText, isSame: isSameLang } =
-        await this.#translateFetch(processedString, deLang, onStreamChunk);
+      // 区域模式按住触发可能一次翻译几十个单元，先获取并发名额再发请求，
+      // 把同时在途的请求数限制在 #holdRequestLimit 内，避免打满服务端限流配额。
+      if (options.limitConcurrency) {
+        const wait = this.#acquireHoldRequestSlot();
+        if (wait) await wait;
+        // 等待并发名额期间，容器可能已被第二次按住还原移除；
+        // 重新检查后丢弃任务并释放名额，避免把已还原的文本外发给翻译服务
+        if (!wrapper.isConnected) {
+          this.#releaseHoldRequestSlot();
+          return;
+        }
+      }
+      let translatedText;
+      let isSameLang;
+      try {
+        const result = await this.#translateFetch(
+          processedString,
+          deLang,
+          onStreamChunk
+        );
+        translatedText = result.trText;
+        isSameLang = result.isSame;
+      } finally {
+        if (options.limitConcurrency) {
+          this.#releaseHoldRequestSlot();
+        }
+      }
 
       // 请求完成后，立刻注销多余的 RAF 定时监听器，防止内存泄漏
       if (rafId) {
@@ -2484,6 +3274,12 @@ export class Translator {
       if (this.#runId !== currentRunId) {
         throw new Error("Request terminated");
       }
+
+      // 还原/清理（如区域模式按住第二次）可能已把本译文容器从文档移除，
+      // 此时丢弃过期结果：继续执行会把包裹/隐藏原文等 DOM 变更作用到已还原的
+      // 原文上（仅译文模式下原文会被搬走消失），并把脱离文档的 wrapper 重新
+      // 登记进 #translationNodes 造成状态泄漏。
+      if (!wrapper.isConnected) return;
 
       // 如果翻译文本为空，或者识别出来的源语言与目标语言一致，则移除临时的翻译 Loading 容器
       if (!translatedText || isSameLang) {
@@ -2567,6 +3363,11 @@ export class Translator {
         }
       }
     } catch (err) {
+      // 容器已被还原移除时丢弃过期失败结果，避免 “Request terminated” 分支的
+      // #cleanupDirectTranslations(hostNode) 误删宿主上随后产生的新译文，
+      // 也避免在已脱离文档的容器里渲染重试按钮。
+      if (wrapper && !wrapper.isConnected) return;
+
       const errorText = this.#formatTranslateError(err);
       kissLog("translate group error: ", errorText);
       if (err?.message === "Request terminated") {
@@ -2576,21 +3377,21 @@ export class Translator {
 
       // 失败重试按钮
       try {
-        const wrapper = hostNode.querySelector(
+        const lastWrapper = hostNode.querySelector(
           `:scope > .${Translator.KISS_CLASS.warpper}:last-of-type`
         );
-        if (wrapper) {
-          const inner = wrapper.querySelector(
+        if (lastWrapper) {
+          const inner = lastWrapper.querySelector(
             `.${Translator.KISS_CLASS.inner}`
           );
           if (inner) {
             inner.textContent = "";
             const retryNode = this.#createRetryErrorNode(errorText, () => {
               this.#withViewportAnchor(() => {
-                wrapper.remove();
+                lastWrapper.remove();
               });
               this.#processedNodes.delete(hostNode);
-              this.#translateNodeGroup(nodes, hostNode, deLang);
+              this.#translateNodeGroup(nodes, hostNode, deLang, options);
             });
             inner.appendChild(retryNode);
           }
@@ -3633,6 +4434,8 @@ overflow-wrap: anywhere !important;`;
 
   // 停止监听，重置参数
   #resetOptions() {
+    // 停止/重扫会清理实例状态，语言检测中的按住任务必须立即过期
+    this.#holdGeneration += 1;
     this.#removeShadowRootListener();
 
     this.#io.disconnect();
@@ -3643,6 +4446,7 @@ overflow-wrap: anywhere !important;`;
     this.#observedNodes = new WeakSet();
     this.#translationNodes = new WeakMap();
     this.#processedNodes = new WeakMap();
+    this.#holdProcessGenerations = new WeakMap();
     this.#plainTextPreprocessingNodes = new WeakSet();
     this.#ignoredMutationTargets = new WeakSet();
     this.#io = this.#createIntersectionObserver();
@@ -3660,10 +4464,22 @@ overflow-wrap: anywhere !important;`;
     }
 
     document.addEventListener("mousemove", this.#boundMouseMoveHandler);
-    const { mouseHoverKey = [], mouseHoverKey2 = [] } =
-      this.#setting.mouseHoverSetting;
-    if (mouseHoverKey.length === 0 && mouseHoverKey2.length === 0) {
-      // mouseHoverKey = DEFAULT_MOUSEHOVER_KEY;
+    const {
+      mouseHoverKey = [],
+      mouseHoverKey2 = [],
+      mouseHoverKeyHold = false,
+      mouseHoverKey2Hold = false,
+    } = this.#setting.mouseHoverSetting;
+    const hasMouseHold = mouseHoverKeyHold || mouseHoverKey2Hold;
+    if (hasMouseHold && this.#isHoldSupportedByDevice()) {
+      this.#registerMouseHoldHandler();
+    }
+    if (
+      mouseHoverKey.length === 0 &&
+      mouseHoverKey2.length === 0 &&
+      !hasMouseHold
+    ) {
+      // 没有任何触发方式时，鼠标悬停即直接翻译
       return;
     }
     const hasPrimaryShortcut = mouseHoverKey.length > 0;
@@ -3693,6 +4509,11 @@ overflow-wrap: anywhere !important;`;
     document.removeEventListener("mousemove", this.#boundMouseMoveHandler);
     this.#removeKeydownHandler?.();
     this.#removeKeydownHandler2?.();
+    this.#removeMouseHoldHandlers?.();
+    this.#cancelMouseHold();
+    // 关闭鼠标悬停翻译时同样废弃语言检测中的按住任务
+    this.#holdGeneration += 1;
+    this.#holdUnitsCache = new WeakMap();
   }
 
   #enableTransOnlyRevert() {
@@ -3912,6 +4733,8 @@ overflow-wrap: anywhere !important;`;
     this.#enabled = false;
     this.#rule.transOpen = "false";
     this.#runId++;
+    // 关闭翻译时立即废弃语言检测中的按住任务
+    this.#holdGeneration += 1;
 
     this.#cleanupAllNodes();
     clearFetchPool();
@@ -4007,6 +4830,7 @@ overflow-wrap: anywhere !important;`;
           key === "autoScan" ||
           key === "blockSelector" ||
           key === "hasShadowroot" ||
+          key === "rootsSelector" ||
           key === "scanAll" ||
           key === "isPlainText"
         ) {

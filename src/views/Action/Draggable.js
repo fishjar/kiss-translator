@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from "react";
-import { limitNumber } from "../../libs/utils";
+import { limitFloat, limitNumber } from "../../libs/utils";
 import { isMobile } from "../../libs/mobile";
 import { putFab } from "../../libs/storage";
 import { debounce } from "../../libs/utils";
@@ -42,6 +42,16 @@ export const getEdgePosition = ({
   hover,
   edge,
 }) => {
+  // 有限值归一化，防止 NaN/Infinity 或零视口把负上限/NaN 传入 clamp
+  const safeCoord = (value, fallback) =>
+    typeof value === "number" && Number.isFinite(value) ? value : fallback;
+  width = safeCoord(width, 1);
+  height = safeCoord(height, 1);
+  windowWidth = safeCoord(windowWidth, 1);
+  windowHeight = safeCoord(windowHeight, 1);
+  left = safeCoord(left, 0);
+  top = safeCoord(top, 0);
+
   switch (edge) {
     case "right":
       left = hover ? windowWidth - width : windowWidth - width / 2;
@@ -55,6 +65,20 @@ export const getEdgePosition = ({
     default:
       top = hover ? 0 : -height / 2;
   }
+
+  // 正交轴 clamp，与 handlePointerMove 拖拽范围完全一致（拖拽同界语义）：
+  // left/right 分支 clamp top（y 最小值为 0，沿用上游拖拽不对称语义）；
+  // 其余（top/bottom 及 default 的垂直语义）clamp left
+  if (edge === "left" || edge === "right") {
+    const minY = 0;
+    const maxY = Math.max(minY, windowHeight - height / 2);
+    top = limitFloat(top, minY, maxY);
+  } else {
+    const minX = -width / 2;
+    const maxX = Math.max(minX, windowWidth - width / 2);
+    left = limitFloat(left, minX, maxX);
+  }
+
   return { x: left, y: top };
 };
 

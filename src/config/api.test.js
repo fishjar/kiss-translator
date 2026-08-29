@@ -457,7 +457,7 @@ test("filters native Gemini thinking efforts by model capability", () => {
       apiType: OPT_TRANS_GEMINI,
       model: "gemini-3.6-flash",
     }).map((item) => item.value)
-  ).toEqual(["high", "medium", "low", "minimal"]);
+  ).toEqual(["high", "medium", "low"]);
 });
 
 describe("normalizeApiModelListUrls", () => {

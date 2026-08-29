@@ -192,6 +192,8 @@ export const DEFAULT_SUBTITLE_SETTING = {
   autoFavWord: false, // 字幕悬停查词成功后是否自动收藏单词
   showList: OPT_ENHANCE_MOBILE_OFF, // 是否在侧边/右侧显示字幕全文滚动历史面板
   hideSubtitleButton: false, // 是否隐藏 YouTube 播放器中的字幕功能按钮
+  rememberPosition: false, // 是否记住字幕拖动后的相对位置
+  positionRatio: 0.05, // 字幕底边相对播放器高度的比例
   aiContextSlug: "-", // 是否为字幕启用智能上下文，以获取更好的代词翻译效果
   segPromptMode: PROMPT_MODE_FOLLOW_API, // AI 断句提示词来源：接口默认或指定 subtitle prompt
   segPromptSlug: DEFAULT_SUBTITLE_PROMPT_SLUG, // 指定的 subtitle prompt slug，仅在指定提示词模式下生效
@@ -216,6 +218,12 @@ export const DEFAULT_SUBRULES_LIST = [
 export const DEFAULT_MOUSEHOVER_KEY = ["ControlLeft"]; // 默认触发悬停翻译的触发按键 (左 Ctrl 键)
 export const OPT_MOUSE_HOVER_DISPLAY_BILINGUAL = "bilingual"; // 鼠标悬停翻译：把译文插入页面形成双语对照
 export const OPT_MOUSE_HOVER_DISPLAY_BUBBLE = "bubble"; // 鼠标悬停翻译：用悬浮气泡展示译文，不改变页面布局
+export const OPT_MOUSE_HOVER_TRANS_PARAGRAPH = "paragraph"; // 按住左键触发时只翻译鼠标所在当前段
+export const OPT_MOUSE_HOVER_TRANS_REGION = "region"; // 按住左键触发时翻译最近的区域（最近的“多段落容器”）
+export const OPT_MOUSE_HOVER_TRANS_AREA = "area"; // 按住左键触发时翻译整篇文章/区域
+export const OPT_MOUSE_HOVER_TRANS_DISPLAY_INLINE = "inline"; // 按住左键译文跟随原文行内显示
+export const OPT_MOUSE_HOVER_TRANS_DISPLAY_BLOCK = "block"; // 按住左键译文独立成块显示
+export const DEFAULT_MOUSE_HOVER_HOLD_DELAY = 800; // 按住鼠标左键多久后触发悬停翻译 (毫秒)
 export const DEFAULT_MOUSE_HOVER_BUBBLE_STYLE = `max-width: min(420px, calc(100vw - 32px));
 padding: 10px 12px;
 border-radius: 8px;
@@ -230,6 +238,12 @@ export const DEFAULT_MOUSE_HOVER_SETTING = {
   blacklist: "", // 鼠标悬停翻译禁用的网页黑名单
   mouseHoverKey: DEFAULT_MOUSEHOVER_KEY, // 主按键
   mouseHoverKey2: [], // 备用快捷按键
+  mouseHoverKeyHold: false, // 主触发方式是否使用“按住鼠标左键不放”
+  mouseHoverKey2Hold: false, // 备用触发方式是否使用“按住鼠标左键不放”
+  mouseHoverHoldDelay: DEFAULT_MOUSE_HOVER_HOLD_DELAY, // 按住左键触发翻译的等待时长 (毫秒)
+  mouseHoverTransMode: OPT_MOUSE_HOVER_TRANS_AREA, // 按住左键触发的翻译范围
+  mouseHoverTransDisplay: OPT_MOUSE_HOVER_TRANS_DISPLAY_BLOCK, // 按住左键译文显示方式
+  mouseHoverPreventClick: false, // 按住链接/按钮翻译后松开是否阻止点击跳转（默认关闭）
   displayMode: OPT_MOUSE_HOVER_DISPLAY_BILINGUAL, // 鼠标悬停翻译展示模式
   apiSlug: GLOBAL_KEY, // 气泡模式翻译接口，默认跟随当前网页规则
   bubbleStyle: DEFAULT_MOUSE_HOVER_BUBBLE_STYLE, // 气泡模式的容器 CSS
@@ -261,7 +275,6 @@ export const DEFAULT_SETTING = {
   // owSubrule: DEFAULT_OW_RULE, // 覆写订阅规则 (作废)
   transApis: DEFAULT_API_LIST, // 缓存的全部可用翻译 API 配置列表（数组格式）
   prompts: [], // 用户自定义提示词；预设提示词由 config/prompt.js 提供，不写入本地配置
-  deletedTransApiSlugs: [], // 用户手动删除的默认翻译接口标识
   // mouseKey: OPT_TIMING_PAGESCROLL, // 翻译时机/鼠标悬停翻译(移至rule，作废)
   shortcuts: DEFAULT_SHORTCUTS, // 键盘快捷键配置对象
   inputRule: DEFAULT_INPUT_RULE, // 输入框即时翻译相关配置

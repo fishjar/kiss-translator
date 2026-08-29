@@ -1,0 +1,32 @@
+{
+  "app_name": {
+    "message": "KISS Translator"
+  },
+  "app_description": {
+    "message": "Минималистичное расширение для двуязычного перевода: веб-страницы, выделенный текст и субтитры видео."
+  },
+  "translate_selection": {
+    "message": "Перевести «%s»"
+  },
+  "toggle_translate": {
+    "message": "Включить или выключить перевод"
+  },
+  "toggle_translate_only": {
+    "message": "Показывать только перевод"
+  },
+  "toggle_style": {
+    "message": "Сменить стиль"
+  },
+  "open_options": {
+    "message": "Открыть настройки"
+  },
+  "open_tranbox": {
+    "message": "Открыть окно перевода"
+  },
+  "open_separate_window": {
+    "message": "Открыть отдельное окно"
+  },
+  "toggle_tranbox": {
+    "message": "Открыть или закрыть окно перевода"
+  }
+}

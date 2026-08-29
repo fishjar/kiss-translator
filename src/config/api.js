@@ -871,7 +871,14 @@ export const getGeminiThinkingEfforts = ({ apiType, model = "" }) => {
     normalizedModel.startsWith("gemini-3") &&
     normalizedModel.includes("flash")
   ) {
-    return toGeminiEffortOptions(["high", "medium", "low", "minimal"]);
+    // Regular 3-series flash models reject "minimal"
+    // ("'minimal' is not a supported thinking level for this model");
+    // only the flash-lite variants accept it.
+    return toGeminiEffortOptions(
+      normalizedModel.includes("flash-lite")
+        ? ["high", "medium", "low", "minimal"]
+        : ["high", "medium", "low"]
+    );
   }
   return null;
 };

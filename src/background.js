@@ -475,7 +475,7 @@ async function getUiLanguage() {
       return "zh_TW";
     } else if (lang.startsWith("zh")) {
       return "zh";
-    } else if (["ja", "ko"].includes(lang.substring(0, 2))) {
+    } else if (["ja", "ko", "ru"].includes(lang.substring(0, 2))) {
       return lang.substring(0, 2);
     } else {
       return "en";

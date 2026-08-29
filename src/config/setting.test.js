@@ -5,7 +5,7 @@ import {
   DEFAULT_SUBTITLE_SETTING,
   DEFAULT_TRANBOX_SETTING,
 } from "./setting";
-import { OPT_TRANS_MICROSOFT } from "./api";
+import { DEFAULT_API_LIST, OPT_TRANS_MICROSOFT } from "./api";
 import { GLOBAL_KEY } from "./rules";
 
 describe("translation box defaults", () => {
@@ -27,7 +27,17 @@ describe("translation box defaults", () => {
     expect(DEFAULT_TRANBOX_SETTING.skipLangs).toEqual([]);
   });
 
+  test("does not remember the subtitle position by default", () => {
+    expect(DEFAULT_SUBTITLE_SETTING.rememberPosition).toBe(false);
+    expect(DEFAULT_SUBTITLE_SETTING.positionRatio).toBe(0.05);
+  });
+
   test("follows the current page rule for hover bubbles by default", () => {
     expect(DEFAULT_MOUSE_HOVER_SETTING.apiSlug).toBe(GLOBAL_KEY);
+  });
+
+  test("includes every current API without legacy deletion markers", () => {
+    expect(DEFAULT_SETTING.transApis).toBe(DEFAULT_API_LIST);
+    expect(DEFAULT_SETTING).not.toHaveProperty("deletedTransApiSlugs");
   });
 });

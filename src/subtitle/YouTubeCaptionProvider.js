@@ -91,6 +91,10 @@ export class YouTubeCaptionProvider {
     this.#setting = {
       ...setting,
       autoTranslate: this.#defaultAutoTranslate,
+      onSubtitlePositionChange: (positionRatio) => {
+        this.#setting.positionRatio = positionRatio;
+        setting.onSubtitlePositionChange?.(positionRatio);
+      },
     };
     this.#i18n = newI18n(setting.uiLang || "zh");
     this.#playerUi = new YouTubePlayerUi({

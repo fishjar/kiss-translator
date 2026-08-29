@@ -6,6 +6,12 @@ jest.mock("../apis/index.js", () => ({
   apiMicrosoftDict: jest.fn(),
 }));
 
+jest.mock("../libs/storage.js", () => ({
+  debounceSyncMeta: jest.fn(),
+  getWordsWithDefault: jest.fn().mockResolvedValue({}),
+  setWords: jest.fn(),
+}));
+
 jest.mock("../libs/log.js", () => ({
   LogLevel: {
     INFO: { value: "info" },
@@ -424,6 +430,86 @@ describe("BilingualSubtitleManager", () => {
     manager.destroy();
   });
 
+  test("restores a remembered relative position", () => {
+    const videoEl = createVideoElement({ playerHeight: 400 });
+    const manager = new BilingualSubtitleManager({
+      videoEl,
+      formattedSubtitles: [{ ...subtitle, translation: "你好世界" }],
+      setting: {
+        ...setting,
+        rememberPosition: true,
+        positionRatio: 0.3,
+      },
+    });
+
+    manager.start();
+    expect(getCaptionBottom()).toBe(120);
+
+    manager.destroy();
+  });
+
+  test("falls back to the default position for an invalid saved ratio", () => {
+    const videoEl = createVideoElement({ playerHeight: 400 });
+    const manager = new BilingualSubtitleManager({
+      videoEl,
+      formattedSubtitles: [{ ...subtitle, translation: "你好世界" }],
+      setting: {
+        ...setting,
+        rememberPosition: true,
+        positionRatio: 2,
+      },
+    });
+
+    manager.start();
+    expect(getCaptionBottom()).toBe(20);
+
+    manager.destroy();
+  });
+
+  test("reapplies a remembered ratio when the player is resized", () => {
+    const originalResizeObserver = global.ResizeObserver;
+    let resizeCallback;
+    const disconnect = jest.fn();
+    global.ResizeObserver = class {
+      constructor(callback) {
+        resizeCallback = callback;
+      }
+      observe() {}
+      disconnect() {
+        disconnect();
+      }
+    };
+
+    const videoEl = createVideoElement({ playerHeight: 400 });
+    const player = videoEl.closest(".html5-video-player");
+    const manager = new BilingualSubtitleManager({
+      videoEl,
+      formattedSubtitles: [{ ...subtitle, translation: "你好世界" }],
+      setting: {
+        ...setting,
+        rememberPosition: true,
+        positionRatio: 0.25,
+      },
+    });
+
+    try {
+      manager.start();
+      expect(getCaptionBottom()).toBe(100);
+
+      Object.defineProperty(player, "clientHeight", {
+        value: 800,
+        configurable: true,
+      });
+      resizeCallback();
+      expect(getCaptionBottom()).toBe(200);
+
+      manager.destroy();
+      expect(disconnect).toHaveBeenCalledTimes(1);
+    } finally {
+      global.ResizeObserver = originalResizeObserver;
+    }
+  });
+
   test("does not treat a click without movement as a drag position update", () => {
     const videoEl = createVideoElement({ playerHeight: 400 });
     setControlBarVisible(videoEl, true);
@@ -449,12 +535,13 @@ describe("BilingualSubtitleManager", () => {
   });
 
   test("treats dragged position as the hidden-controls bottom and floats after drag ends", async () => {
+    const onSubtitlePositionChange = jest.fn();
     const videoEl = createVideoElement({ playerHeight: 400 });
     setControlBarVisible(videoEl, true);
     const manager = new BilingualSubtitleManager({
       videoEl,
       formattedSubtitles: [{ ...subtitle, translation: "你好世界" }],
-      setting,
+      setting: { ...setting, onSubtitlePositionChange },
     });
 
     manager.start();
@@ -491,6 +578,53 @@ describe("BilingualSubtitleManager", () => {
     setControlBarVisible(videoEl, false);
     await waitForMutationObserver();
     expect(getCaptionBottom()).toBe(30);
+    expect(onSubtitlePositionChange).not.toHaveBeenCalled();
+
+    manager.destroy();
+  });
+
+  test("persists the dragged base ratio without the visible control offset", () => {
+    const onSubtitlePositionChange = jest.fn();
+    const videoEl = createVideoElement({ playerHeight: 400 });
+    setControlBarVisible(videoEl, true);
+    const manager = new BilingualSubtitleManager({
+      videoEl,
+      formattedSubtitles: [{ ...subtitle, translation: "你好世界" }],
+      setting: {
+        ...setting,
+        rememberPosition: true,
+        positionRatio: 0.05,
+        onSubtitlePositionChange,
+      },
+    });
+
+    manager.start();
+    const paper = document.querySelector(".kiss-caption-paper");
+    const container = document.querySelector(".kiss-caption-container");
+    const handle = document.querySelector(".kiss-caption-window");
+
+    Object.defineProperty(container, "clientHeight", {
+      value: 400,
+      configurable: true,
+    });
+    Object.defineProperty(paper, "offsetHeight", {
+      value: 40,
+      configurable: true,
+    });
+    container.getBoundingClientRect = () => ({ bottom: 400 });
+    paper.getBoundingClientRect = () => ({
+      bottom: 400 - getCaptionBottom(),
+    });
+
+    handle.dispatchEvent(
+      new MouseEvent("mousedown", { button: 0, clientY: 100 })
+    );
+    document.dispatchEvent(new MouseEvent("mousemove", { clientY: 130 }));
+    document.dispatchEvent(new MouseEvent("mouseup", { clientY: 130 }));
+
+    expect(onSubtitlePositionChange).toHaveBeenCalledTimes(1);
+    expect(onSubtitlePositionChange).toHaveBeenCalledWith(0.075);
+    expect(getCaptionBottom()).toBe(70);
 
     manager.destroy();
   });
