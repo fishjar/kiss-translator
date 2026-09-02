@@ -1,7 +1,7 @@
 import { checkRules, matchRule, saveRule } from "./rules";
 import { getDisabledSubRules, getRulesWithDefault, setRules } from "./storage";
 import { loadOrFetchSubRules } from "./subRules";
-import { GLOBLA_RULE } from "../config/rules";
+import { BUILTIN_RULES, GLOBLA_RULE } from "../config/rules";
 import { OPT_TRANS_MICROSOFT, OPT_TRANS_TENCENT } from "../config/api";
 
 jest.mock("./storage", () => ({
@@ -27,6 +27,16 @@ jest.mock("./log", () => ({
 
 test("uses Microsoft as the default webpage translator", () => {
   expect(GLOBLA_RULE.apiSlug).toBe(OPT_TRANS_MICROSOFT);
+});
+
+test("protects the YouTube comment sort menu from automatic translation", () => {
+  const youtubeRule = BUILTIN_RULES.find(
+    ({ pattern }) => pattern === "www.youtube.com"
+  );
+
+  expect(youtubeRule?.ignoreSelector.split(",").map((s) => s.trim())).toContain(
+    "#sort-menu"
+  );
 });
 
 test("keeps an explicitly stored Tencent global rule", async () => {
