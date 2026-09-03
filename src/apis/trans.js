@@ -1664,33 +1664,57 @@ export const parseTransRes = async (
     case OPT_TRANS_OPENROUTER:
     case OPT_TRANS_ORCAROUTER:
       modelMsg = res?.choices?.[0]?.message;
-      if (history && userMsg && modelMsg) {
-        history.add(userMsg, {
-          role: modelMsg.role,
-          content: modelMsg.content,
-        });
+      if (history && userMsg) {
+        // 成对写入与轮次截断守卫统一内聚在 addPair：空正文/非 assistant role 整对不写
+        history.addPair(userMsg, modelMsg);
       }
       return parseAIRes(modelMsg?.content, useBatchFetch);
     case OPT_TRANS_GEMINI:
+      // Gemini Interactions steps may include thought items.
+      // Their context replay semantics are outside this history-correctness fix.
       if (history && Array.isArray(res?.steps)) {
         history.clear();
         history.add(...res.steps);
       } else {
+        // Gemini generateContent 路径行为未变更：modelMsg 可为 undefined，由既有守卫拦截。
         modelMsg = res?.candidates?.[0]?.content;
         if (history && userMsg && modelMsg) {
           history.add(userMsg, modelMsg);
         }
       }
       return parseAIRes(geminiResponseText(res), useBatchFetch);
-    case OPT_TRANS_CLAUDE:
-      modelMsg = { role: res?.role, content: res?.content?.text };
-      if (history && userMsg && modelMsg) {
-        history.add(userMsg, {
-          role: modelMsg.role,
-          content: modelMsg.content,
-        });
+    case OPT_TRANS_CLAUDE: {
+      // 历史上下文取值必须做形态归一化，原因有三：
+      // 1. 形态防御：响应 content 存在多种形态 —— Anthropic 标准的块数组
+      //    [{type:"text",text:"…"}]、第三方实现可能返回的纯字符串、以及单对象
+      //    {type:"text",text:"…"}。只写 .map(...) 会在字符串形态上抛 TypeError
+      //    让整页翻译崩溃，只写 content?.text 又取不到块数组里的文本，故三分支全覆盖。
+      // 2. 网关现实：Claude 模型价格昂贵且平台随意封号，实际拿来翻译的机会很少；
+      //    现实中这个 /messages 接口多由第三方开源网关模拟 Claude Message 协议提供，
+      //    并不能真实代表 Anthropic 原装 Claude 的体验，响应形态更需要宽容。
+      // 3. 历史教训：本行旧写法是 res?.content?.text —— 块数组没有 .text 属性，
+      //    于是开启「智能上下文」时写进历史的 assistant 条目全是空壳 {role:"assistant"}，
+      //    上下文功能对 Claude 实际失效。2026-08 由用户抓包发现并修复。
+      // 取全部文本块拼接而非只取 [0]：历史上下文应完整保留模型输出，
+      // 与下方解析译文只取首块（最小变更）是两种用途。
+      // 是否写入历史由 addPair 的统一守卫裁决：role 缺失或无可用文本的响应
+      // 整对不写，与其它协议分支语义一致；多块拼接/thinking-first 的统一语义
+      // 不在本修复范围内。
+      const pickClaudeText = (c) =>
+        Array.isArray(c)
+          ? c
+              .map((b) => b?.text)
+              .filter(Boolean)
+              .join("")
+          : typeof c === "string"
+            ? c
+            : (c?.text ?? "");
+      modelMsg = { role: res?.role, content: pickClaudeText(res?.content) };
+      if (history && userMsg) {
+        history.addPair(userMsg, modelMsg);
       }
       return parseAIRes(res?.content?.[0]?.text ?? "", useBatchFetch);
+    }
     case OPT_TRANS_CLOUDFLAREAI:
       return [[res?.result?.translated_text]];
     case OPT_TRANS_OLLAMA:
@@ -1703,11 +1727,8 @@ export const parseTransRes = async (
       //   modelMsg?.content.replace(/<think>[\s\S]*<\/think>/i, "");
       // }
 
-      if (history && userMsg && modelMsg) {
-        history.add(userMsg, {
-          role: modelMsg.role,
-          content: modelMsg.content,
-        });
+      if (history && userMsg) {
+        history.addPair(userMsg, modelMsg);
       }
       return parseAIRes(modelMsg?.content, useBatchFetch);
     case OPT_TRANS_CUSTOMIZE:
@@ -2194,7 +2215,8 @@ async function* handleTranslateStreamInternal(
         parts: [{ text: fullContent }],
       });
     } else {
-      history.add(userMsg, {
+      // 流式非 Gemini 分支与非流式挂载点共用 addPair 守卫：空正文整对不写
+      history.addPair(userMsg, {
         role: "assistant",
         content: fullContent,
       });

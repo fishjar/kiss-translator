@@ -11,7 +11,7 @@ export const DEFAULT_BATCH_INTERVAL = 400; // 批处理合并请求的等待延�
 export const DEFAULT_BATCH_SIZE = 20; // 每次翻译请求最多合并发送的 DOM 段落数量
 export const DEFAULT_BATCH_LENGTH = 10000; // 每次翻译请求发送的最大字符数限制
 export const DEFAULT_BATCH_CONCURRENCY = 10; // 同时执行的聚合批次数量
-export const DEFAULT_CONTEXT_SIZE = 3; // AI 翻译时保留的上下文会话历史轮数
+export const DEFAULT_CONTEXT_SIZE = 3; // AI 翻译时上下文历史条数上限，按完整 user/assistant 轮次向下取整保留
 
 // --- 翻译内容替换占位符 ---
 export const INPUT_PLACE_URL = "{{url}}"; // 当前网页 URL 占位符
@@ -1531,7 +1531,7 @@ const defaultApi = {
   transAllnow: false, // 是否立即全部翻译
   rootMargin: 2000, // 滚动加载提前触发距离
   useContext: false, // 是否启用智能上下文
-  contextSize: DEFAULT_CONTEXT_SIZE, // 智能上下文保留会话数
+  contextSize: DEFAULT_CONTEXT_SIZE, // 智能上下文历史条数上限（按完整轮次取整）
   temperature: 0.0,
   maxTokens: 20480,
   thinkingMode: "disabled", // 思考模式：auto | enabled | disabled
