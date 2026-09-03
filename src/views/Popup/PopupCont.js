@@ -396,7 +396,7 @@ export default function PopupCont({
                 onChange={handleChange}
               />
             }
-            label={i18n("transonly_alt")}
+            label={i18n("show_only_translations")}
           />
         </Grid>
         {/* 开关：开启页面划词翻译框 */}

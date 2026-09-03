@@ -3166,9 +3166,9 @@ export const I18N = {
     vi: 'Phím tắt "Bật/tắt Dịch"',
   },
   toggle_transonly_shortcut: {
-    zh: `"隐藏原文"快捷键`,
+    zh: `"切换仅显示译文"快捷键`,
     en: `"Hide Original" Shortcut`,
-    zh_TW: `「隱藏原文」快速鍵`,
+    zh_TW: `「切換僅顯示譯文」快速鍵`,
     ja: `「原文を隠す」ショートカット`,
     ko: `"원문 숨기기" 단축키`,
     tr: `"Orijinali Gizle" Kısayolu`,
@@ -4737,9 +4737,9 @@ export const I18N = {
     vi: "Văn bản có định dạng",
   },
   transonly_alt: {
-    zh: `隐藏原文`,
+    zh: `切换仅显示译文`,
     en: `Hide Original`,
-    zh_TW: `隱藏原文`,
+    zh_TW: `切換僅顯示譯文`,
     ja: `原文を隠す`,
     ko: `원문 숨기기`,
     tr: `Orijinali Gizle`,
