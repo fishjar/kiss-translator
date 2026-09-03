@@ -9,7 +9,7 @@
     "message": "翻譯 \"%s\""
   },
   "toggle_translate": {
-    "message": "開啟翻譯"
+    "message": "切換網頁翻譯"
   },
   "toggle_translate_only": {
     "message": "切換僅顯示譯文"

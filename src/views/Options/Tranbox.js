@@ -122,7 +122,7 @@ export default function Tranbox() {
               }}
             />
           }
-          label={i18n("toggle_selection_translate")}
+          label={i18n("selection_translate")}
           sx={{ width: "fit-content" }}
         />
 
