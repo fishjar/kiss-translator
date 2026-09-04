@@ -90,10 +90,7 @@ function findNextEffectiveEventStart(sourceEvents, eventIndex, lastEventKey) {
     const event = sourceEvents[index] || {};
     const eventKey = getTimedTextEventKey(event);
     if (!shouldRetainTimedTextEvent(eventKey, lastEventKey)) continue;
-    lastEventKey = eventKey;
-    const visibleText = getTimedTextEventText(event);
-    const hasSpeech = visibleText && !isNonSpeechSegment(visibleText);
-    if (hasSpeech) return Number(event.tStartMs);
+    return Number(event.tStartMs);
   }
   return NaN;
 }

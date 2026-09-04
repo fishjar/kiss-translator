@@ -174,6 +174,32 @@ describe("coarse timedtext normalization", () => {
     expect(flatEvents[1].end).toBeLessThanOrEqual(flatEvents[3].start);
   });
 
+  test.each([
+    ["non-speech", { tStartMs: 3000, segs: [{ utf8: "[Music]" }] }],
+    ["line break", { tStartMs: 3000, aAppend: 1, segs: [{ utf8: "\n" }] }],
+  ])("caps coarse ASR words at a retained %s boundary", (_name, boundary) => {
+    const { flatEvents } = prepareTimedTextEvents([
+      {
+        tStartMs: 0,
+        dDurationMs: 6000,
+        segs: [{ utf8: "one two six", acAsrConf: 0 }],
+      },
+      boundary,
+      {
+        tStartMs: 5000,
+        dDurationMs: 1000,
+        segs: [{ utf8: "next", acAsrConf: 0 }],
+      },
+    ]);
+
+    expect(flatEvents).toEqual([
+      { text: "one", start: 0, end: 1000 },
+      { text: "two", start: 1000, end: 2000 },
+      { text: "six", start: 2000, end: 3000 },
+      { text: "next", start: 5000, end: 6000 },
+    ]);
+  });
+
   test("leaves word-level offsets unchanged", () => {
     const rawEvents = [
       {
