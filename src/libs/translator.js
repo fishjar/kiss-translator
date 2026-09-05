@@ -33,6 +33,7 @@ import { resolveApiPromptSettings } from "../config/prompt";
 import { interpreter } from "./interpreter";
 import { clearFetchPool } from "./pool";
 import { debounce, scheduleIdle, genEventName, parseAITerms } from "./utils";
+import { parseTerms, buildTermsRegex, buildTermsMatcher, applyTermReplace } from "./terms";
 import { escapeHTML } from "./html";
 import { apiMicrosoftDict, apiTranslate, apiYoudaoDict } from "../apis";
 import { kissLog } from "./log";
@@ -339,8 +340,9 @@ export class Translator {
   #transOnlyRevertEnabled = false;
   #boundTransOnlyMouseOver = null;
   #boundTransOnlyMouseOut = null;
-  #termValues = []; // 按顺序存储术语的替换值
+  #termEntries = []; // 排序后的术语条目（parseTerms 输出，供 applyTermReplace 使用）
   #combinedTermsRegex; // 专业术语正则表达式
+  #termMatcher = null; // 术语扫描 matcher（buildTermsMatcher 一次物化，热路径零编译）
   #combinedSkipsRegex; // 跳过文本正则表达式
 
   #placeholderCache = null; // 缓存正则对象
@@ -1064,39 +1066,36 @@ export class Translator {
 
   // 解析专业术语字符串
   #parseTerms(termsString) {
-    this.#termValues = [];
+    this.#termEntries = [];
     this.#combinedTermsRegex = null;
+    this.#termMatcher = null;
 
     if (!termsString || typeof termsString !== "string") return;
 
-    const termPatterns = [];
-    const lines = termsString.split(/\n|;/); // 按换行或分号分割
+    // 纯函数解析：按 key.length 降序、同 key 去重、非法正则收集。
+    // fast 模式跳过跨术语 O(n²) 冲突分析，避免阻塞 Translator 初始化；
+    // 跨术语 conflicting-pattern 诊断由 Playground / CLI 的完整模式负责。
+    const { terms, invalid, diagnostics, hasErrors } = parseTerms(termsString, {
+      fullDiagnostics: false,
+    });
 
-    for (const line of lines) {
-      const trimmedLine = line.trim();
-      if (!trimmedLine) continue;
-
-      let lastCommaIndex = trimmedLine.lastIndexOf(",");
-      if (lastCommaIndex === -1) {
-        lastCommaIndex = trimmedLine.length;
-      }
-      const key = trimmedLine.substring(0, lastCommaIndex).trim();
-      const value = trimmedLine.substring(lastCommaIndex + 1).trim();
-
-      if (key) {
-        try {
-          new RegExp(key);
-          termPatterns.push(`(${key})`);
-          this.#termValues.push(value);
-        } catch (err) {
-          kissLog(`Invalid RegExp for term: "${key}"`, err);
-        }
-      }
+    if (invalid.length > 0) {
+      invalid.forEach(({ key, error }) =>
+        kissLog(`Invalid RegExp for term: "${key}"`, error)
+      );
     }
 
-    if (termPatterns.length > 0) {
-      this.#combinedTermsRegex = new RegExp(termPatterns.join("|"), "g");
+    // 保留诊断与 hasErrors 日志（供 Playground / 控制台排查），但不再因任一非法段
+    // 禁用整份术语：parseTerms 已逐条排除非法项，返回的 terms 是可安全应用的合法集合。
+    if (hasErrors) {
+      kissLog("Term parse errors (legal terms still applied): ", diagnostics);
     }
+
+    this.#termEntries = terms;
+    this.#combinedTermsRegex = buildTermsRegex(terms);
+    // matcher 一次物化槽位表与 phase 正则，逐文本节点扫描零编译；
+    // 规则更新走 #parseTerms 整体重建，热更新自然失效。
+    this.#termMatcher = buildTermsMatcher(terms);
   }
 
   // #parseAITerms(termsString) {
@@ -3752,21 +3751,20 @@ overflow-wrap: anywhere !important;`;
         let text = node.textContent;
         if (!text.trim()) return "";
 
-        // 专业术语替换
+        // 专业术语替换：matcher 一次物化（热路径零编译），applyTermReplace 内部重置 lastIndex
         if (this.#combinedTermsRegex) {
-          this.#combinedTermsRegex.lastIndex = 0;
-          text = text.replace(this.#combinedTermsRegex, (...args) => {
-            const groups = args.slice(1, -2);
-            const matchedIndex = groups.findIndex(
-              (group) => group !== undefined
-            );
-            const fullMatch = args[0];
-            const termValue = this.#termValues[matchedIndex];
-
-            return pushReplace(
-              `<i class="${Translator.KISS_CLASS.term}" style="${termsStyle}">${termValue || fullMatch}</i>`
-            );
-          });
+          const { output } = applyTermReplace(
+            text,
+            this.#termEntries,
+            (termEntry, fullMatch) => {
+              const termValue = termEntry.value;
+              return pushReplace(
+                `<i class="${Translator.KISS_CLASS.term}" style="${termsStyle}">${termValue || fullMatch}</i>`
+              );
+            },
+            this.#termMatcher || this.#combinedTermsRegex
+          );
+          text = output;
         }
 
         return escapeHTML(text);
@@ -4844,6 +4842,22 @@ overflow-wrap: anywhere !important;`;
     // 配置变更时清空正则缓存
     this.#placeholderCache = null;
     this.#blockSelectorInvalid = false;
+
+    // terms 变更时重新解析术语：updateRule 可能由扩展/Popup 在运行期推送新规则，
+    // 必须同步刷新 #termEntries 与 #combinedTermsRegex，否则术语停留在构造时的旧值
+    // （历史缺陷：只有 #rule.terms 被覆盖，解析状态不更新导致新术语静默不生效）。
+    // 用 hasOwnProperty 判定（与上方 3991 行一致）：显式传 terms: undefined 不触发重解析，
+    // 避免把解析状态置位到 undefined 派生值。
+    if (Object.prototype.hasOwnProperty.call(newRule, "terms")) {
+      this.#parseTerms(this.#rule.terms);
+    }
+
+    // aiTerms 变更时同步刷新 #glossary：与 #terms 同类的运行时不对称缺陷——
+    // 构造后运行期更新规则里的 AI 术语若不同步重解析，glossary 会停留构造时旧值，
+    // 导致 AI 翻译静默不生效。这里与 terms 分支并列，保持两者解析状态一致。
+    if (Object.prototype.hasOwnProperty.call(newRule, "aiTerms")) {
+      this.#glossary = parseAITerms(this.#rule.aiTerms);
+    }
 
     const needsTriggerRescan =
       this.#enabled &&

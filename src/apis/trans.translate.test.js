@@ -1336,6 +1336,108 @@ describe("handleTranslate", () => {
       { id: 1, result: ["早上好", "en"] },
     ]);
   });
+
+  test("capture 非流式：先捕获真实请求，再捕获原始响应", async () => {
+    // 诊断通路（Playground 术语测试用）：capture 必须拿到真正发出的请求与未解析的响应，
+    // 且不得改变翻译输出。删掉 trans.js 里 capture?.onRequest / capture?.onResponse
+    // 任一行，本用例都会变红。
+    const rawResponse = { choices: [{ message: { content: "你好" } }] };
+    fetchData.mockResolvedValueOnce(rawResponse);
+
+    const capture = { onRequest: jest.fn(), onResponse: jest.fn() };
+    const result = await collectAsyncGenerator(
+      handleTranslate(["hello"], {
+        from: "en",
+        to: "zh-CN",
+        fromLang: "English",
+        toLang: "Chinese",
+        langMap: () => "",
+        glossary: "",
+        apiSetting: getNobatchApiSetting({
+          nobatchUserPrompt: "Translate: {{text}}",
+        }),
+        usePool: false,
+        capture,
+      })
+    );
+
+    expect(result).toEqual([{ id: 0, result: ["你好"] }]);
+    expect(fetchData).toHaveBeenCalledTimes(1);
+    expect(capture.onRequest).toHaveBeenCalledTimes(1);
+    expect(capture.onResponse).toHaveBeenCalledTimes(1);
+
+    // onRequest 的三个参数就是真正交给 fetchData 的 (input, init) 与本轮 userMsg。
+    const [capturedInput, capturedInit, capturedUserMsg] =
+      capture.onRequest.mock.calls[0];
+    const [fetchInput, fetchInit] = fetchData.mock.calls[0];
+    expect(capturedInput).toBe(fetchInput);
+    expect(capturedInit).toBe(fetchInit);
+    expect(capturedInit.method).toBe("POST");
+    expect(capturedInit.headers).toEqual(
+      expect.objectContaining({ Authorization: "Bearer test-key" })
+    );
+    const body = JSON.parse(capturedInit.body);
+    expect(capturedUserMsg).toEqual({
+      role: "user",
+      content: "Translate: hello",
+    });
+    expect(capturedUserMsg).toEqual(body.messages[body.messages.length - 1]);
+
+    // onResponse 拿到的是 fetchData 的原始返回值本体（解析前）。
+    expect(capture.onResponse).toHaveBeenCalledWith(rawResponse);
+    expect(capture.onResponse.mock.calls[0][0]).toBe(rawResponse);
+
+    // 顺序固定：请求捕获早于响应捕获。
+    expect(capture.onRequest.mock.invocationCallOrder[0]).toBeLessThan(
+      capture.onResponse.mock.invocationCallOrder[0]
+    );
+  });
+
+  test("capture 流式：仍捕获请求，但不捕获响应", async () => {
+    async function* streamChunks() {
+      yield JSON.stringify({ choices: [{ delta: { content: "你好" } }] });
+    }
+
+    fetchStream.mockReturnValueOnce(streamChunks());
+
+    const capture = { onRequest: jest.fn(), onResponse: jest.fn() };
+    const result = await collectAsyncGenerator(
+      handleTranslate(["hello"], {
+        from: "en",
+        to: "zh-CN",
+        fromLang: "English",
+        toLang: "Chinese",
+        langMap: () => "",
+        glossary: "",
+        apiSetting: getNobatchApiSetting({
+          useStream: true,
+          streamRenderMode: "realtime",
+          nobatchUserPrompt: "Translate: {{text}}",
+        }),
+        usePool: false,
+        capture,
+      })
+    );
+
+    expect(fetchStream).toHaveBeenCalledTimes(1);
+    expect(fetchData).not.toHaveBeenCalled();
+    expect(result[result.length - 1]).toEqual({ id: 0, result: ["你好"] });
+
+    // 请求捕获与非流式一致；响应捕获只覆盖非流式分支（流式没有整体响应对象）。
+    expect(capture.onRequest).toHaveBeenCalledTimes(1);
+    expect(capture.onResponse).not.toHaveBeenCalled();
+    const [capturedInput, capturedInit, capturedUserMsg] =
+      capture.onRequest.mock.calls[0];
+    const [streamInput, streamInit] = fetchStream.mock.calls[0];
+    expect(capturedInput).toBe(streamInput);
+    expect(capturedInit).toBe(streamInit);
+    expect(JSON.parse(capturedInit.body).stream).toBe(true);
+    expect(capturedUserMsg).toEqual({
+      role: "user",
+      content: "Translate: hello",
+    });
+  });
+
 });
 
 describe("gemini thinking effort clamp (#1048)", () => {

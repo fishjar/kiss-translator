@@ -926,3 +926,97 @@ describe("apiTranslate non-batch stream", () => {
     });
   });
 });
+
+describe("apiTranslate capture 透传", () => {
+  // 诊断通路：Playground 的术语测试依赖 apiTranslate 把 capture 原样交给翻译执行体，
+  // 删掉 index.js 非批量分支或批量分支的 capture 透传行，对应用例必须变红。
+  beforeEach(() => {
+    mockGetCacheDigest.mockResolvedValue("a".repeat(64));
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test("非批量路径把 capture 原样交给 handleTranslate 并触发两端回调", async () => {
+    const capture = { onRequest: jest.fn(), onResponse: jest.fn() };
+    const rawResponse = { choices: [{ message: { content: "最终译文" } }] };
+    handleTranslate.mockImplementationOnce(async function* (texts, options) {
+      // 以真实 handleTranslate 的调用位置为准：先请求、后响应。
+      options.capture?.onRequest?.(
+        "https://api.test/v1/chat/completions",
+        { method: "POST", body: "{}" },
+        { role: "user", content: texts[0] }
+      );
+      options.capture?.onResponse?.(rawResponse);
+      yield { id: 0, result: ["最终译文", ""] };
+    });
+
+    const result = await apiTranslate({
+      text: "hello",
+      fromLang: "en",
+      toLang: "zh-CN",
+      apiSetting: {
+        ...getOpenAiApiSetting("batch prompt A"),
+        useBatchFetch: false,
+      },
+      useCache: false,
+      capture,
+    });
+
+    expect(result.trText).toBe("最终译文");
+    expect(getBatchQueue).not.toHaveBeenCalled();
+    expect(handleTranslate).toHaveBeenCalledWith(
+      ["hello"],
+      expect.objectContaining({ capture })
+    );
+    expect(handleTranslate.mock.calls[0][1].capture).toBe(capture);
+    expect(capture.onRequest).toHaveBeenCalledTimes(1);
+    expect(capture.onRequest).toHaveBeenCalledWith(
+      "https://api.test/v1/chat/completions",
+      { method: "POST", body: "{}" },
+      { role: "user", content: "hello" }
+    );
+    expect(capture.onResponse).toHaveBeenCalledTimes(1);
+    expect(capture.onResponse.mock.calls[0][0]).toBe(rawResponse);
+  });
+
+  test("批量路径把 capture 原样交给批量队列任务并触发两端回调", async () => {
+    // 限制说明：libs/batchQueue 在本套件被整体 mock（真实实现是按 key 复用的单例 +
+    // 时间窗口合并，直连会引入跨用例耦合与时序抖动），因此这里以白盒方式断言
+    // capture 抵达 addTask 的任务参数，再由任务体转交给 handleTranslate 的回调位置。
+    const capture = { onRequest: jest.fn(), onResponse: jest.fn() };
+    const rawResponse = { choices: [{ message: { content: "batched text" } }] };
+    const addTask = jest.fn(async (text, options) => {
+      options.capture?.onRequest?.(
+        "https://api.test/v1/chat/completions",
+        { method: "POST", body: "{}" },
+        { role: "user", content: text }
+      );
+      options.capture?.onResponse?.(rawResponse);
+      return ["batched text", ""];
+    });
+    getBatchQueue.mockImplementation(() => ({ addTask }));
+
+    const result = await apiTranslate({
+      text: "hello",
+      fromLang: "en",
+      toLang: "zh-CN",
+      apiSetting: getOpenAiApiSetting("batch prompt A"),
+      useCache: false,
+      capture,
+    });
+
+    expect(result.trText).toBe("batched text");
+    expect(getBatchQueue).toHaveBeenCalledTimes(1);
+    expect(getBatchQueue.mock.calls[0][1]).toBe(handleTranslate);
+    expect(addTask).toHaveBeenCalledWith(
+      "hello",
+      expect.objectContaining({ capture })
+    );
+    expect(addTask.mock.calls[0][1].capture).toBe(capture);
+    expect(capture.onRequest).toHaveBeenCalledTimes(1);
+    expect(capture.onResponse).toHaveBeenCalledTimes(1);
+    expect(capture.onResponse.mock.calls[0][0]).toBe(rawResponse);
+  });
+});

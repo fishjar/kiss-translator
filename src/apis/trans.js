@@ -1953,6 +1953,7 @@ export async function* handleTranslate(
     docInfo,
     textFormat = "text",
     signal,
+    capture,
   }
 ) {
   if (signal?.aborted) return;
@@ -2011,6 +2012,7 @@ export async function* handleTranslate(
     if (!response) {
       throw new Error("translate got empty response");
     }
+    capture?.onResponse?.(response);
 
     const result = await parseTransRes(response, {
       texts,
@@ -2034,6 +2036,7 @@ export async function* handleTranslate(
   };
 
   const [input, init, userMsg] = await getRequest(enableStream);
+  capture?.onRequest?.(input, init, userMsg);
 
   if (enableStream) {
     try {

@@ -47,6 +47,7 @@
     "build+zip": "cross-env CI=true pnpm build && pnpm zip",
     "test": "react-app-rewired test",
     "test:subtitle-segmentation": "babel-node src/scripts/test-subtitle-segmentation.js",
+    "test:terms": "babel-node src/scripts/test-term-replace.js",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {

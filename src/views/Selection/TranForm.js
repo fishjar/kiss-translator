@@ -37,6 +37,38 @@ import { isSameTranslationLanguage } from "../../libs/language";
 /**
  * 翻译交互核心表单组件 (集成源/目标语言选择、多引擎翻译、词典展示、汉典展示、语言检测与文本输入)
  */
+
+// ─── 接口多选本地持久化（可选）───────────────────────────────────────────────
+// 仅当宿主显式传入 apiSlugsStorageKey 时启用（Playground 等），普通 Selection/TranForm
+// 不传 key 时行为完全不变。读取/写入全程异常降级：localStorage 不可用、脏 JSON、
+// 非数组、非字符串元素都视为"无可恢复值"，回落既有默认逻辑。
+// 有效存储的 [] 表示用户显式未选择接口（合法状态）；过滤后没有任何有效 slug 且非
+// 显式空选择则视为无可恢复值，走默认逻辑。
+function readStoredApiChoice(storageKey) {
+  try {
+    const raw = window.localStorage.getItem(storageKey);
+    if (raw === null) return { status: "none" };
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return { status: "none" };
+    if (parsed.some((slug) => typeof slug !== "string")) {
+      return { status: "none" };
+    }
+    // 去重：重复 slug 视为同一选择。
+    const slugs = [...new Set(parsed)];
+    return { status: "restored", slugs, isEmpty: slugs.length === 0 };
+  } catch {
+    return { status: "none" };
+  }
+}
+
+function writeStoredApiChoice(storageKey, slugs) {
+  try {
+    window.localStorage.setItem(storageKey, JSON.stringify(slugs));
+  } catch {
+    // localStorage 不可用：静默降级，仅丢失跨刷新留存，不影响页面使用。
+  }
+}
+
 export default function TranForm({
   text,
   setText,
@@ -58,6 +90,7 @@ export default function TranForm({
   isPlaygound = false,
   autoFocusInput = true,
   syncExternalTextWhileEditing = false,
+  apiSlugsStorageKey = undefined,
 }) {
   const i18n = useI18n();
 
@@ -82,6 +115,15 @@ export default function TranForm({
     loading: false,
   });
   const inputRef = useRef(null);
+  // 待恢复的本地持久化接口选择（对应当前 storageKey 渲染期只读一次）。
+  // 哨兵语义：undefined = 未初始化（渲染期读取一次的唯一时机）；null = 已处理。
+  // 处理终态置 null 而非 undefined，避免渲染期读取条件被终态重新武装——否则
+  // 每个处理周期确定性重读 localStorage，且后续 effect 会携带陈旧快照再次执行
+  // 恢复分支，回退用户在窗口期内做出的选择。
+  const pendingApiSlugsRestoreRef = useRef(undefined);
+  if (apiSlugsStorageKey && pendingApiSlugsRestoreRef.current === undefined) {
+    pendingApiSlugsRestoreRef.current = readStoredApiChoice(apiSlugsStorageKey);
+  }
 
   const detectionKey = useMemo(
     () => `${langDetector}\u0000${text}`,
@@ -209,6 +251,36 @@ export default function TranForm({
     return apiSlugs.filter((slug) => validSlugs.has(slug));
   }, [apiSlugs, optApis]);
 
+  // 本地持久化接口选择恢复（apiSlugsStorageKey 可选）。
+  // 在 initApiSlugs 同步 effect 之后声明，保证恢复值胜出且标记为用户选择（不再被外部 prop 覆盖）。
+  // 异步 transApis 尚未就绪（optApis 为空）时保持 pending，待其到达后重新过滤恢复。
+  useEffect(() => {
+    const pending = pendingApiSlugsRestoreRef.current;
+    if (!pending) return; // 无 key / 非 Playground 宿主：保持既有行为
+    if (pending.status === "none") {
+      pendingApiSlugsRestoreRef.current = null; // 无可恢复值：回落默认逻辑
+      return;
+    }
+    if (optApis.length === 0) return; // 等异步 transApis 到达后再过滤
+    pendingApiSlugsRestoreRef.current = null;
+
+    const validSlugs = new Set(optApis.map((api) => api.key));
+    const filtered = pending.slugs.filter((slug) => validSlugs.has(slug));
+
+    if (pending.isEmpty) {
+      // 有效存储 [] = 用户显式未选择接口：保持空选择，不被默认值覆盖
+      setHasUserChangedApiSlugs(true);
+      setApiSlugs([]);
+    } else if (filtered.length > 0) {
+      // 恢复仍在启用的有效接口
+      setHasUserChangedApiSlugs(true);
+      setApiSlugs(filtered);
+    }
+    // 过滤后无有效 slug 且非显式空选择 → 无可恢复值，走既有默认逻辑
+    // (optional chaining safe; deps: optApis only)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [optApis]);
+
   // 默认词典覆盖英文单词和单个汉字：英文走 Bing/有道，单字走汉典。
   const defaultDictAvailable =
     (isWord && OPT_DICT_MAP.has(enDict)) || isSingleChineseChar(text);
@@ -282,6 +354,10 @@ export default function TranForm({
                   onChange={(e) => {
                     setHasUserChangedApiSlugs(true);
                     setApiSlugs(e.target.value);
+                    // 仅在宿主显式提供 storageKey 时写回（空数组 = 用户显式清空）。
+                    if (apiSlugsStorageKey) {
+                      writeStoredApiChoice(apiSlugsStorageKey, e.target.value);
+                    }
                   }}
                 >
                   {optApis.map(({ key, name }) => (

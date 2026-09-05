@@ -4883,4 +4883,684 @@ describe("Translator rule styles", () => {
     ).not.toBeNull();
   });
 
+  describe("Translator terms wiring", () => {
+    test("长词不被短词切割（API/APIKey 接线）", async () => {
+      apiTranslate.mockImplementation(({ text }) =>
+        Promise.resolve({ trText: text, isSame: false })
+      );
+      document.body.innerHTML =
+        '<main id="root"><span id="target"></span></main>';
+      document.getElementById("target").textContent = "APIKey and API";
+
+      createTranslator(
+        {
+          autoScan: "false",
+          selector: "#target",
+          apiSlug: "terms-test",
+          terms: "API,接口;APIKey",
+        },
+        {
+          minLength: 0,
+          transApis: [
+            { ...createApiSetting("terms-test"), placeholder: "[[ ]]" },
+          ],
+        }
+      );
+      await flushAsync();
+
+      const requestedText = apiTranslate.mock.calls[0][0].text;
+      const inner = document.querySelector(`.${Translator.KISS_CLASS.inner}`);
+      expect(requestedText).toBe("[[1]] and [[2]]");
+      expect(inner.textContent).toBe("APIKey and 接口");
+      expect(inner.textContent).not.toContain("接口Key");
+    });
+
+    test("长词触发而短词不抢占（GPT/GPTs 接线）", async () => {
+      apiTranslate.mockImplementation(({ text }) =>
+        Promise.resolve({ trText: text, isSame: false })
+      );
+      document.body.innerHTML =
+        '<main id="root"><span id="target"></span></main>';
+      document.getElementById("target").textContent = "GPTs and GPT";
+
+      createTranslator(
+        {
+          autoScan: "false",
+          selector: "#target",
+          apiSlug: "terms-test",
+          terms: "GPT;GPTs,智能体集合",
+        },
+        {
+          minLength: 0,
+          transApis: [
+            { ...createApiSetting("terms-test"), placeholder: "[[ ]]" },
+          ],
+        }
+      );
+      await flushAsync();
+
+      const requestedText = apiTranslate.mock.calls[0][0].text;
+      const inner = document.querySelector(`.${Translator.KISS_CLASS.inner}`);
+      expect(requestedText).toBe("[[1]] and [[2]]");
+      expect(inner.textContent).toBe("智能体集合 and GPT");
+    });
+
+    test("Dr.whob,神经病; 真实链路：请求前保护 + 返回后恢复", async () => {
+      apiTranslate.mockImplementation(({ text }) =>
+        Promise.resolve({ trText: text, isSame: false })
+      );
+      document.body.innerHTML =
+        '<main id="root"><span id="target"></span></main>';
+      document.getElementById("target").textContent =
+        "The Dr.whob feature will ship in the next release.";
+
+      createTranslator(
+        {
+          autoScan: "false",
+          selector: "#target",
+          apiSlug: "terms-test",
+          terms: "Dr.whob,神经病;",
+        },
+        {
+          minLength: 0,
+          transApis: [
+            { ...createApiSetting("terms-test"), placeholder: "[[ ]]" },
+          ],
+        }
+      );
+      await flushAsync();
+
+      // 1. 发送到翻译提供商前，原始术语已被替换为受保护占位符
+      const requestedText = apiTranslate.mock.calls[0][0].text;
+      expect(requestedText).toBe(
+        "The [[1]] feature will ship in the next release."
+      );
+      expect(requestedText).not.toContain("Dr.whob");
+
+      // 2. 提供商返回后，目标术语被正确恢复到最终输出
+      const inner = document.querySelector(`.${Translator.KISS_CLASS.inner}`);
+      expect(inner.textContent).toContain("神经病");
+      expect(inner.textContent).not.toContain("Dr.whob");
+      expect(inner.textContent).toContain("feature will ship");
+    });
+
+    test("provider 返回错误自然语言译文时，术语仍由占位符恢复（不依赖 provider 质量）", async () => {
+      apiTranslate.mockImplementation(() =>
+        Promise.resolve({
+          trText: "[[1]] translated by a totally different provider",
+          isSame: false,
+        })
+      );
+      document.body.innerHTML =
+        '<main id="root"><span id="target"></span></main>';
+      document.getElementById("target").textContent =
+        "The Dr.whob feature will ship in the next release.";
+
+      createTranslator(
+        {
+          autoScan: "false",
+          selector: "#target",
+          apiSlug: "terms-test",
+          terms: "Dr.whob,神经病;",
+        },
+        {
+          minLength: 0,
+          transApis: [
+            { ...createApiSetting("terms-test"), placeholder: "[[ ]]" },
+          ],
+        }
+      );
+      await flushAsync();
+
+      const inner = document.querySelector(`.${Translator.KISS_CLASS.inner}`);
+      // 本地术语机制独立于 provider 自行翻译：即使 provider 翻错，目标术语仍然恢复
+      expect(inner.textContent).toContain("神经病");
+      expect(inner.textContent).toContain(
+        "translated by a totally different provider"
+      );
+    });
+
+    test("provider 失败后重试：两次请求收到一致的受保护输入，术语仍恢复", async () => {
+      apiTranslate
+        .mockRejectedValueOnce(new Error("provider A down"))
+        .mockImplementation(({ text }) =>
+          Promise.resolve({ trText: text, isSame: false })
+        );
+      document.body.innerHTML =
+        '<main id="root"><span id="target"></span></main>';
+      document.getElementById("target").textContent = "GPTs and GPT";
+
+      createTranslator(
+        {
+          autoScan: "false",
+          selector: "#target",
+          apiSlug: "terms-test",
+          terms: "GPT;GPTs,智能体集合",
+        },
+        {
+          minLength: 0,
+          transApis: [
+            { ...createApiSetting("terms-test"), placeholder: "[[ ]]" },
+          ],
+        }
+      );
+      await flushAsync();
+
+      // 首次请求失败 → 出现重试按钮
+      const retry = document.querySelector(`.${Translator.KISS_CLASS.retry}`);
+      expect(retry).not.toBeNull();
+
+      // 用户点击重试（回退路径）→ 第二次请求收到完全一致的受保护输入
+      retry.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await flushAsync();
+      expect(apiTranslate.mock.calls).toHaveLength(2);
+      expect(apiTranslate.mock.calls[0][0].text).toBe("[[1]] and [[2]]");
+      expect(apiTranslate.mock.calls[1][0].text).toBe(
+        apiTranslate.mock.calls[0][0].text
+      );
+      const inner = document.querySelector(`.${Translator.KISS_CLASS.inner}`);
+      expect(inner.textContent).toBe("智能体集合 and GPT");
+    });
+
+    test("占位符序号跨运行隔离：每次请求都从 1 开始编号", async () => {
+      apiTranslate.mockImplementation(({ text }) =>
+        Promise.resolve({ trText: text, isSame: false })
+      );
+      document.body.innerHTML =
+        '<main id="root"><span id="targetA"></span><span id="targetB"></span></main>';
+      document.getElementById("targetA").textContent = "APIKey and API";
+      document.getElementById("targetB").textContent = "GPTs and GPT";
+
+      createTranslator(
+        {
+          autoScan: "false",
+          selector: "#targetA",
+          apiSlug: "terms-test",
+          terms: "API,接口;APIKey;GPT;GPTs,智能体集合",
+        },
+        {
+          minLength: 0,
+          transApis: [
+            { ...createApiSetting("terms-test"), placeholder: "[[ ]]" },
+          ],
+        }
+      );
+      await flushAsync();
+
+      // 目标 B（第二条并发请求）也独立从 1 开始编号
+      document.getElementById("targetB").textContent = "GPTs and GPT";
+      createTranslator(
+        {
+          autoScan: "false",
+          selector: "#targetB",
+          apiSlug: "terms-test",
+          terms: "GPT;GPTs,智能体集合",
+        },
+        {
+          minLength: 0,
+          transApis: [
+            { ...createApiSetting("terms-test"), placeholder: "[[ ]]" },
+          ],
+        }
+      );
+      await flushAsync();
+
+      expect(apiTranslate.mock.calls).toHaveLength(2);
+      expect(apiTranslate.mock.calls[1][0].text).toBe("[[1]] and [[2]]");
+      // 两次请求的占位符编号互不污染
+      expect(apiTranslate.mock.calls[0][0].text).toBe("[[1]] and [[2]]");
+    });
+
+    test("哨兵术语由本地占位符恢复：provider 未收到原文、无法代为翻译", async () => {
+      apiTranslate.mockImplementation(({ text }) =>
+        Promise.resolve({ trText: text, isSame: false })
+      );
+      document.body.innerHTML =
+        '<main id="root"><span id="target"></span></main>';
+      document.getElementById("target").textContent =
+        "Xyzzy drives the pipeline.";
+
+      createTranslator(
+        {
+          autoScan: "false",
+          selector: "#target",
+          apiSlug: "terms-test",
+          terms: "Xyzzy,比特哨兵",
+        },
+        {
+          minLength: 0,
+          transApis: [
+            { ...createApiSetting("terms-test"), placeholder: "[[ ]]" },
+          ],
+        }
+      );
+      await flushAsync();
+
+      const requestedText = apiTranslate.mock.calls[0][0].text;
+      expect(requestedText).toBe("[[1]] drives the pipeline.");
+      expect(requestedText).not.toContain("Xyzzy");
+      const inner = document.querySelector(`.${Translator.KISS_CLASS.inner}`);
+      // 最终结果来自本地术语 chain（占位符还原），与 provider 是否认识该词无关
+      expect(inner.textContent).toBe("比特哨兵 drives the pipeline.");
+    });
+
+    test("本地 terms 与 provider aiTerms 并存：两套机制互不替代、互不掩盖", async () => {
+      apiTranslate.mockImplementation(({ text }) =>
+        Promise.resolve({ trText: text, isSame: false })
+      );
+      document.body.innerHTML =
+        '<main id="root"><span id="target"></span></main>';
+      document.getElementById("target").textContent = "Xyzzy";
+
+      createTranslator(
+        {
+          autoScan: "false",
+          selector: "#target",
+          apiSlug: "terms-test",
+          terms: "Xyzzy,本地哨兵",
+          aiTerms: "Xyzzy,服务端哨兵",
+        },
+        {
+          minLength: 0,
+          transApis: [
+            { ...createApiSetting("terms-test"), placeholder: "[[ ]]" },
+          ],
+        }
+      );
+      await flushAsync();
+
+      const args = apiTranslate.mock.calls[0][0];
+      // 本地 terms：原文 Xyzzy 已被替换为占位符，provider 收不到原文
+      expect(args.text).toBe("[[1]]");
+      expect(args.text).not.toContain("Xyzzy");
+      // provider aiTerms：作为 glossary 注入 prompt（机制独立，同时存在）
+      expect(args.glossary).toEqual({ Xyzzy: "服务端哨兵" });
+      // 最终输出由本地占位符还原，不被服务端术语遮蔽
+      const inner = document.querySelector(`.${Translator.KISS_CLASS.inner}`);
+      expect(inner.textContent).toBe("本地哨兵");
+    });
+
+    test("整页路径 #translateFetch 携带规则级 aiTerms 生成的 glossary", async () => {
+      apiTranslate.mockImplementation(({ text }) =>
+        Promise.resolve({ trText: text, isSame: false })
+      );
+      document.body.innerHTML =
+        '<main id="root"><span id="target"></span></main>';
+      document.getElementById("target").textContent = "Xyzzy usage";
+
+      createTranslator(
+        {
+          autoScan: "false",
+          selector: "#target",
+          apiSlug: "terms-test",
+          aiTerms: "Xyzzy,整页哨兵",
+        },
+        {
+          minLength: 0,
+          transApis: [
+            { ...createApiSetting("terms-test"), placeholder: "[[ ]]" },
+          ],
+        }
+      );
+      await flushAsync();
+
+      // 整页翻译：glossary 来自规则级 rule.aiTerms，随 #translateFetch 注入 apiTranslate
+      expect(apiTranslate.mock.calls[0][0].glossary).toEqual({
+        Xyzzy: "整页哨兵",
+      });
+    });
+
+    test("标题翻译同样携带规则级 aiTerms 的 glossary（整页+标题+泡泡范围）", async () => {
+      apiTranslate.mockImplementation(({ text }) =>
+        Promise.resolve({ trText: text, isSame: false })
+      );
+      document.title = "Xyzzy Title";
+      document.body.innerHTML =
+        '<main id="root"><span id="target"></span></main>';
+      document.getElementById("target").textContent = "Xyzzy usage";
+
+      createTranslator(
+        {
+          autoScan: "false",
+          selector: "#target",
+          apiSlug: "terms-test",
+          transTitle: "true",
+          aiTerms: "Xyzzy,标题哨兵",
+        },
+        {
+          minLength: 0,
+          transApis: [
+            { ...createApiSetting("terms-test"), placeholder: "[[ ]]" },
+          ],
+        }
+      );
+      await flushAsync();
+
+      // 标题翻译走同一个 #translateFetch，同样携带规则级 glossary
+      const titleCall = apiTranslate.mock.calls.find(
+        ([args]) => args.text === document.title
+      );
+      expect(titleCall).toBeDefined();
+      expect(titleCall[0].glossary).toEqual({ Xyzzy: "标题哨兵" });
+    });
+
+    test("provider 返回完全不同的自然语言译文时，哨兵术语仍稳定恢复", async () => {
+      apiTranslate.mockImplementation(() =>
+        Promise.resolve({
+          trText: "[[1]]（完全错误的 provider 译文）",
+          isSame: false,
+        })
+      );
+      document.body.innerHTML =
+        '<main id="root"><span id="target"></span></main>';
+      document.getElementById("target").textContent = "Xyzzy term here";
+
+      createTranslator(
+        {
+          autoScan: "false",
+          selector: "#target",
+          apiSlug: "terms-test",
+          terms: "Xyzzy,比特哨兵",
+        },
+        {
+          minLength: 0,
+          transApis: [
+            { ...createApiSetting("terms-test"), placeholder: "[[ ]]" },
+          ],
+        }
+      );
+      await flushAsync();
+
+      const inner = document.querySelector(`.${Translator.KISS_CLASS.inner}`);
+      expect(inner.textContent).toBe("比特哨兵（完全错误的 provider 译文）");
+    });
+
+    test("合法术语与非法段共存：非法段只产生诊断，合法术语仍生效（API,接口;([,坏规则）", async () => {
+      apiTranslate.mockImplementation(({ text }) =>
+        Promise.resolve({ trText: text, isSame: false })
+      );
+      document.body.innerHTML =
+        '<main id="root"><span id="target"></span></main>';
+      document.getElementById("target").textContent = "API and the rest";
+
+      createTranslator(
+        {
+          autoScan: "false",
+          selector: "#target",
+          apiSlug: "terms-test",
+          // `([` 无法作为正则解析 → hasErrors=true；`API,接口` 是合法术语，必须继续生效
+          terms: "API,接口;([,坏规则",
+        },
+        {
+          minLength: 0,
+          transApis: [
+            { ...createApiSetting("terms-test"), placeholder: "[[ ]]" },
+          ],
+        }
+      );
+      await flushAsync();
+
+      // 合法术语进入占位符替换链路：provider 收到占位符，不再收到原文 API
+      const requestedText = apiTranslate.mock.calls[0][0].text;
+      expect(requestedText).toBe("[[1]] and the rest");
+      expect(requestedText).not.toContain("API");
+      // 翻译返回后，目标译文恢复；非法段不参与替换，也不产生切割残留
+      const inner = document.querySelector(`.${Translator.KISS_CLASS.inner}`);
+      expect(inner.textContent).toBe("接口 and the rest");
+      expect(inner.textContent).not.toContain("坏规则");
+    });
+
+    test("所有条目均非法：不构造无效正则、不抛异常，原文仍正常翻译", async () => {
+      apiTranslate.mockImplementation(({ text }) =>
+        Promise.resolve({ trText: text, isSame: false })
+      );
+      document.body.innerHTML =
+        '<main id="root"><span id="target"></span></main>';
+      document.getElementById("target").textContent = "API and the rest";
+
+      createTranslator(
+        {
+          autoScan: "false",
+          selector: "#target",
+          apiSlug: "terms-test",
+          terms: "([,坏规则;bad[re",
+        },
+        {
+          minLength: 0,
+          transApis: [
+            { ...createApiSetting("terms-test"), placeholder: "[[ ]]" },
+          ],
+        }
+      );
+      await flushAsync();
+
+      // 无合法术语 → 无占位符替换，原文原样送译（无空匹配正则、无异常）
+      expect(apiTranslate.mock.calls[0][0].text).toBe("API and the rest");
+      const inner = document.querySelector(`.${Translator.KISS_CLASS.inner}`);
+      expect(inner.textContent).toBe("API and the rest");
+    });
+
+    test("P1 真实生产链路：嵌套捕获组 + lookbehind 规则在整页翻译中正常替换并不吞正文", async () => {
+      apiTranslate.mockImplementation(({ text }) =>
+        Promise.resolve({ trText: text, isSame: false })
+      );
+      document.body.innerHTML =
+        '<main id="root"><span id="target"></span></main>';
+      document.getElementById("target").textContent = "xy";
+
+      createTranslator(
+        {
+          autoScan: "false",
+          selector: "#target",
+          apiSlug: "terms-test",
+          terms: "((ABCDEFG)),long;(?<=x)y,look",
+        },
+        {
+          minLength: 0,
+          transApis: [
+            { ...createApiSetting("terms-test"), placeholder: "[[ ]]" },
+          ],
+        }
+      );
+      await flushAsync();
+
+      // 占位符正确替换：x 保留，y 被替换为 [[1]]
+      expect(apiTranslate.mock.calls[0][0].text).toBe("x[[1]]");
+      const inner = document.querySelector(`.${Translator.KISS_CLASS.inner}`);
+      expect(inner.textContent).toBe("xlook");
+    });
+
+    test("updateRule 推送新 terms 后立即重解析，不会停留构造时旧值", async () => {
+      apiTranslate.mockImplementation(({ text }) =>
+        Promise.resolve({ trText: text, isSame: false })
+      );
+      document.body.innerHTML =
+        '<main id="root"><span id="target"></span></main>';
+      document.getElementById("target").textContent = "API and Xyzzy";
+
+      const translator = createTranslator(
+        {
+          autoScan: "false",
+          selector: "#target",
+          apiSlug: "terms-test",
+          terms: "API,接口",
+        },
+        {
+          minLength: 0,
+          transApis: [
+            { ...createApiSetting("terms-test"), placeholder: "[[ ]]" },
+          ],
+        }
+      );
+      await flushAsync();
+
+      // 初始术语 API 生效
+      expect(apiTranslate.mock.calls[0][0].text).toBe("[[1]] and Xyzzy");
+
+      // 运行期推送新术语：Xyzzy 应立即生效，API 移除
+      document.getElementById("target").textContent = "API and Xyzzy";
+      translator.updateRule({ terms: "Xyzzy,哨兵" });
+      translator.rescan();
+      await flushAsync();
+
+      const lastCall = apiTranslate.mock.calls.at(-1)[0];
+      expect(lastCall.text).toBe("API and [[1]]");
+      expect(lastCall.text).not.toContain("Xyzzy");
+    });
+
+    test("updateRule 修改 aiTerms 后 #glossary 立即刷新，不停留构造时旧值", async () => {
+      apiTranslate.mockImplementation(({ text }) =>
+        Promise.resolve({ trText: text, isSame: false })
+      );
+      document.body.innerHTML =
+        '<main id="root"><span id="target"></span></main>';
+      document.getElementById("target").textContent = "Xyzzy usage";
+
+      const translator = createTranslator(
+        {
+          autoScan: "false",
+          selector: "#target",
+          apiSlug: "terms-test",
+          aiTerms: "Xyzzy,构造旧值",
+        },
+        {
+          minLength: 0,
+          transApis: [
+            { ...createApiSetting("terms-test"), placeholder: "[[ ]]" },
+          ],
+        }
+      );
+      await flushAsync();
+
+      // 初始 #glossary 反映构造时的 aiTerms，作为 glossary 注入 provider
+      expect(apiTranslate.mock.calls[0][0].glossary).toEqual({
+        Xyzzy: "构造旧值",
+      });
+
+      // 运行期推送新 aiTerms：#glossary 必须同步刷新，不得停留构造时旧值
+      document.getElementById("target").textContent = "Xyzzy usage";
+      translator.updateRule({ aiTerms: "Xyzzy,运行新值" });
+      translator.rescan();
+      await flushAsync();
+
+      const lastCall = apiTranslate.mock.calls.at(-1)[0];
+      expect(lastCall.glossary).toEqual({ Xyzzy: "运行新值" });
+    });
+
+    test("updateRule 显式传 terms/aiTerms: undefined 时解析状态与 #rule 保持一致（不留旧值）", async () => {
+      apiTranslate.mockImplementation(({ text }) =>
+        Promise.resolve({ trText: text, isSame: false })
+      );
+      document.body.innerHTML =
+        '<main id="root"><span id="target"></span></main>';
+      document.getElementById("target").textContent = "Xyzzy usage";
+
+      const translator = createTranslator(
+        {
+          autoScan: "false",
+          selector: "#target",
+          apiSlug: "terms-test",
+          terms: "Xyzzy,本地哨兵",
+          aiTerms: "Xyzzy,服务端哨兵",
+        },
+        {
+          minLength: 0,
+          transApis: [
+            { ...createApiSetting("terms-test"), placeholder: "[[ ]]" },
+          ],
+        }
+      );
+      await flushAsync();
+
+      // 初始：本地术语替换为占位符、AI glossary 生效
+      expect(apiTranslate.mock.calls[0][0].glossary).toEqual({
+        Xyzzy: "服务端哨兵",
+      });
+
+      // 显式传 terms/aiTerms: undefined（如展开一个缺该 key 的 rule 对象）：
+      // delta 循环会把 #rule.terms/#rule.aiTerms 置为 undefined，解析状态必须同步清空，
+      // 不得停留在构造时旧值（历史缺陷：守卫用 !== undefined 会跳过重解析，导致解析状态残留）。
+      document.getElementById("target").textContent = "Xyzzy usage";
+      translator.updateRule({ terms: undefined, aiTerms: undefined });
+      translator.rescan();
+      await flushAsync();
+
+      const lastCall = apiTranslate.mock.calls.at(-1)[0];
+      // glossary 与 #rule.aiTerms 一致（已清空），不留旧值
+      expect(lastCall.glossary).toEqual({});
+      // 本地术语不再替换原文（#rule.terms 为空 → 无占位符）
+      expect(lastCall.text).toContain("Xyzzy");
+    });
+
+    test("零宽臂术语真实链路：只有零宽分支可命中时，序列化产物无凭空占位符（统一计划 20260829 Task 6）", async () => {
+      apiTranslate.mockImplementation(({ text }) =>
+        Promise.resolve({ trText: text, isSame: false })
+      );
+      document.body.innerHTML =
+        '<main id="root"><span id="target"></span></main>';
+      // 文本含 x（满足 (?=x) 前瞻）但不含 a（a 臂无命中）：
+      // 修复前零宽分支会逐位置注入译文并产生凭空占位符；修复后运行期守卫跳过零宽命中。
+      document.getElementById("target").textContent = "xX finish line";
+
+      createTranslator(
+        {
+          autoScan: "false",
+          selector: "#target",
+          apiSlug: "terms-test",
+          // 混合臂 a|(?=x) 合法保留（含可消费原子 a）；纯零宽模式在静态层即被排除
+          terms: "a|(?=x),Y",
+        },
+        {
+          minLength: 0,
+          transApis: [
+            { ...createApiSetting("terms-test"), placeholder: "[[ ]]" },
+          ],
+        }
+      );
+      await flushAsync();
+
+      // 占位符只能对应真实消费的命中：零命中 → 零占位符，原文原样送译
+      const requestedText = apiTranslate.mock.calls[0][0].text;
+      expect(requestedText).toBe("xX finish line");
+      expect(requestedText).not.toMatch(/\[\[\d+\]\]/);
+      // 最终输出无零宽注入的译文 Y
+      const inner = document.querySelector(`.${Translator.KISS_CLASS.inner}`);
+      expect(inner.textContent).toBe("xX finish line");
+    });
+
+    test("零宽臂术语真实链路：消费臂命中时占位符与真实命中一一对应（统一计划 20260829 Task 6）", async () => {
+      apiTranslate.mockImplementation(({ text }) =>
+        Promise.resolve({ trText: text, isSame: false })
+      );
+      document.body.innerHTML =
+        '<main id="root"><span id="target"></span></main>';
+      // 文本恰含一个 a（消费臂命中 1 次）与多处 x（零宽分支命中点，必须零产出）
+      document.getElementById("target").textContent = "aX finish line x";
+
+      createTranslator(
+        {
+          autoScan: "false",
+          selector: "#target",
+          apiSlug: "terms-test",
+          terms: "a|(?=x),Y",
+        },
+        {
+          minLength: 0,
+          transApis: [
+            { ...createApiSetting("terms-test"), placeholder: "[[ ]]" },
+          ],
+        }
+      );
+      await flushAsync();
+
+      // 消费臂恰命中 1 次 → 恰 1 个占位符；零宽命中点不产生占位符
+      const requestedText = apiTranslate.mock.calls[0][0].text;
+      const placeholders = requestedText.match(/\[\[\d+\]\]/g) || [];
+      expect(placeholders).toEqual(["[[1]]"]);
+      expect(requestedText).toBe("[[1]]X finish line x");
+      // 恢复后：真实命中被替换为译文，其余文本原样
+      const inner = document.querySelector(`.${Translator.KISS_CLASS.inner}`);
+      expect(inner.textContent).toBe("YX finish line x");
+    });
+  });
 });
