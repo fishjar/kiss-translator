@@ -344,7 +344,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 fullWidth
                 name="transOpen"
                 value={transOpen}
-                label={i18n("translate_switch")}
+                label={i18n("translate_alt")}
                 disabled={disabled}
                 onChange={handleChange}
               >

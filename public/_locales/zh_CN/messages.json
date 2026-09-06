@@ -9,10 +9,10 @@
     "message": "翻译 \"%s\""
   },
   "toggle_translate": {
-    "message": "开启翻译"
+    "message": "切换网页翻译"
   },
   "toggle_translate_only": {
-    "message": "仅看译文"
+    "message": "切换仅显示译文"
   },
   "toggle_style": {
     "message": "切换样式"
@@ -27,6 +27,6 @@
     "message": "打开独立窗口"
   },
   "toggle_tranbox": {
-    "message": "开启划词翻译"
+    "message": "切换划词翻译"
   }
 }
