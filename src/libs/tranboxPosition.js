@@ -1,7 +1,11 @@
 // 左右拉伸触发区的宽度 (8px 左侧 + 8px 右侧)
+// DraggableResizable uses lineWidth = 4, with lineWidth * 2 on each grid side.
 const TRANBOX_SIDE_GRIP_WIDTH = 16;
-// 翻译框非内容区的高度 (36px Header + 8px 顶部拉伸区 + 8px 底部拉伸区)
-const TRANBOX_CHROME_HEIGHT = 52;
+// Non-content height: 56px header + two 8px resize grips + two 1px card borders.
+// Keep this aligned with .kt-tranbox-header and .KT-draggable-body in
+// Selection/styles.js, plus the outer grid rows in DraggableResizable.
+// Omitting the taller M3 header and borders lets the box overflow by 22px.
+const TRANBOX_CHROME_HEIGHT = 74;
 
 /**
  * 获取翻译框包含拉伸触发区在内的整体外部宽度

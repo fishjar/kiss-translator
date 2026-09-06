@@ -663,7 +663,13 @@ export default class TranslatorManager {
 
     switch (action) {
       case MSG_TRANS_TOGGLE:
-        this._translator?.toggle();
+        if (typeof args?.enabled === "boolean") {
+          args.enabled
+            ? this._translator?.enable()
+            : this._translator?.disable();
+        } else {
+          this._translator?.toggle();
+        }
         break;
       case MSG_TRANS_TOGGLE_ONLY:
         this._translator?.toggleTransOnly();
@@ -687,15 +693,46 @@ export default class TranslatorManager {
         this._popupManager?.toggle();
         break;
       case MSG_TRANSBOX_TOGGLE:
-        this._transboxManager?.toggle();
-        this._translator?.toggleTransbox();
+        if (typeof args?.enabled === "boolean") {
+          args.enabled
+            ? this._transboxManager?.enable()
+            : this._transboxManager?.disable();
+          if (
+            Boolean(this._translator?.setting?.tranboxSetting?.transOpen) !==
+            args.enabled
+          ) {
+            this._translator?.toggleTransbox();
+          }
+        } else {
+          this._transboxManager?.toggle();
+          this._translator?.toggleTransbox();
+        }
         break;
       case MSG_MOUSEHOVER_TOGGLE:
-        this._translator?.toggleMouseHover();
+        if (
+          typeof args?.enabled !== "boolean" ||
+          Boolean(
+            this._translator?.setting?.mouseHoverSetting?.useMouseHover
+          ) !== args.enabled
+        ) {
+          this._translator?.toggleMouseHover();
+        }
         break;
       case MSG_TRANSINPUT_TOGGLE:
-        this._inputTranslator?.toggle();
-        this._translator?.toggleInputTranslate();
+        if (typeof args?.enabled === "boolean") {
+          args.enabled
+            ? this._inputTranslator?.enable()
+            : this._inputTranslator?.disable();
+          if (
+            Boolean(this._translator?.setting?.inputRule?.transOpen) !==
+            args.enabled
+          ) {
+            this._translator?.toggleInputTranslate();
+          }
+        } else {
+          this._inputTranslator?.toggle();
+          this._translator?.toggleInputTranslate();
+        }
         break;
       case MSG_HOVERNODE_TOGGLE:
         this._translator?.toggleHoverNode();

@@ -80,6 +80,8 @@ describe("useTranBoxState", () => {
     });
   });
 
+  // These expectations use TRANBOX_SIDE_GRIP_WIDTH (16) and TRANBOX_CHROME_HEIGHT (74).
+  // Update them when either constant in tranboxPosition.js changes.
   test("clamps restored fixed-position boxes inside the viewport", async () => {
     getTranBox.mockResolvedValue({ w: 320, h: 240, x: 790, y: 480 });
     const controller = renderTranBoxState();
@@ -89,8 +91,8 @@ describe("useTranBoxState", () => {
     });
 
     expect(controller.state.boxPosition).toEqual({
-      x: 464,
-      y: 208,
+      x: 464, // 800 - (320 + 16)
+      y: 186, // 500 - (240 + 74)
     });
 
     act(() => {
@@ -106,8 +108,8 @@ describe("useTranBoxState", () => {
       await Promise.resolve();
     });
 
-    expect(controller.state.boxSize.w).toBe(784);
-    expect(controller.state.boxSize.h).toBe(448);
+    expect(controller.state.boxSize.w).toBe(784); // 800 - 16
+    expect(controller.state.boxSize.h).toBe(426); // 500 - 74
     expect(controller.state.boxPosition).toEqual({
       x: 0,
       y: 0,
@@ -149,8 +151,8 @@ describe("useTranBoxState", () => {
     });
 
     expect(controller.state.boxSize).toEqual({
-      w: 484,
-      h: 298,
+      w: 484, // 500 - 16
+      h: 276, // 350 - 74
     });
     expect(controller.state.boxPosition).toEqual({
       x: 0,

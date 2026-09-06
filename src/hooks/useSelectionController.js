@@ -24,22 +24,26 @@ import {
   getTranBoxOuterHeight,
 } from "../libs/tranboxPosition";
 
-const TRANBTN_SIZE = isMobile ? 32 : 20;
+const TRANBTN_SIZE = 40;
 const TRANBTN_MOUSE_GAP = isMobile ? 16 : 12;
 
 function getPointerPosition(e) {
   const touch = e?.changedTouches?.[0] || e?.touches?.[0];
-  if (typeof touch?.pageX === "number" && typeof touch?.pageY === "number") {
+  const clientX = touch?.clientX ?? e?.clientX;
+  const clientY = touch?.clientY ?? e?.clientY;
+  if (Number.isFinite(clientX) && Number.isFinite(clientY)) {
     return {
-      x: touch.pageX,
-      y: touch.pageY,
+      x: clientX,
+      y: clientY,
     };
   }
 
-  if (typeof e?.pageX === "number" && typeof e?.pageY === "number") {
+  const pageX = touch?.pageX ?? e?.pageX;
+  const pageY = touch?.pageY ?? e?.pageY;
+  if (Number.isFinite(pageX) && Number.isFinite(pageY)) {
     return {
-      x: e.pageX,
-      y: e.pageY,
+      x: pageX - window.scrollX,
+      y: pageY - window.scrollY,
     };
   }
 
@@ -51,6 +55,35 @@ function limitButtonPosition(value, min, max) {
   return Math.min(Math.max(value, min), safeMax);
 }
 
+function toFiniteNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function getVisibleViewportBounds() {
+  const visualViewport = window.visualViewport;
+  const left = visualViewport?.offsetLeft || 0;
+  const top = visualViewport?.offsetTop || 0;
+  const width =
+    visualViewport?.width ||
+    document.documentElement?.clientWidth ||
+    window.innerWidth;
+  const height =
+    visualViewport?.height ||
+    document.documentElement?.clientHeight ||
+    window.innerHeight;
+
+  return { left, top, right: left + width, bottom: top + height };
+}
+
+function clampButtonPosition(left, top) {
+  const viewport = getVisibleViewportBounds();
+  return {
+    x: limitButtonPosition(left, viewport.left, viewport.right - TRANBTN_SIZE),
+    y: limitButtonPosition(top, viewport.top, viewport.bottom - TRANBTN_SIZE),
+  };
+}
+
 function getPointerButtonPosition(
   pointerPosition,
   btnOffsetX = 0,
@@ -58,38 +91,21 @@ function getPointerButtonPosition(
 ) {
   if (!pointerPosition) return null;
 
-  const offsetX = Number(btnOffsetX) || 0;
-  const offsetY = Number(btnOffsetY) || 0;
-  const viewportLeft = window.scrollX;
-  const viewportTop = window.scrollY;
-  const viewportRight = viewportLeft + window.innerWidth;
-  const viewportBottom = viewportTop + window.innerHeight;
+  const offsetX = toFiniteNumber(btnOffsetX);
+  const offsetY = toFiniteNumber(btnOffsetY);
+  const viewport = getVisibleViewportBounds();
 
   let left = pointerPosition.x + TRANBTN_MOUSE_GAP + offsetX;
   let top = pointerPosition.y + TRANBTN_MOUSE_GAP + offsetY;
 
-  if (left + TRANBTN_SIZE > viewportRight) {
+  if (left + TRANBTN_SIZE > viewport.right) {
     left = pointerPosition.x - TRANBTN_MOUSE_GAP - TRANBTN_SIZE + offsetX;
   }
-  if (top + TRANBTN_SIZE > viewportBottom) {
+  if (top + TRANBTN_SIZE > viewport.bottom) {
     top = pointerPosition.y - TRANBTN_MOUSE_GAP - TRANBTN_SIZE + offsetY;
   }
 
-  const finalLeft = limitButtonPosition(
-    left,
-    viewportLeft,
-    viewportRight - TRANBTN_SIZE
-  );
-  const finalTop = limitButtonPosition(
-    top,
-    viewportTop,
-    viewportBottom - TRANBTN_SIZE
-  );
-
-  return {
-    x: finalLeft - offsetX,
-    y: finalTop - offsetY,
-  };
+  return clampButtonPosition(left, top);
 }
 
 function getEventPath(e) {
@@ -159,12 +175,12 @@ function getSelectionRects(selection) {
   }
 }
 
-function getSelectionPositionFromRect(rect) {
+function getSelectionButtonPosition(rect, btnOffsetX = 0, btnOffsetY = 0) {
   if (!rect) return null;
-  return {
-    x: rect.right + window.scrollX,
-    y: rect.bottom + window.scrollY,
-  };
+
+  const offsetX = toFiniteNumber(btnOffsetX);
+  const offsetY = toFiniteNumber(btnOffsetY);
+  return clampButtonPosition(rect.right + offsetX, rect.bottom + offsetY);
 }
 
 /**
@@ -251,6 +267,21 @@ export default function useSelectionController({
   );
 
   useAutoHideTranBtn(showBtn, setShowBtn, getActiveSelection);
+
+  useEffect(() => {
+    if (!showBtn) return;
+
+    const keepButtonInViewport = () => {
+      setPosition((current) => clampButtonPosition(current.x, current.y));
+    };
+    const visualViewport = window.visualViewport;
+    window.addEventListener("resize", keepButtonInViewport);
+    visualViewport?.addEventListener("resize", keepButtonInViewport);
+    return () => {
+      window.removeEventListener("resize", keepButtonInViewport);
+      visualViewport?.removeEventListener("resize", keepButtonInViewport);
+    };
+  }, [showBtn]);
 
   const commitSelectionSnapshot = useCallback((snapshot) => {
     if (!snapshot?.text) return;
@@ -374,7 +405,11 @@ export default function useSelectionController({
               btnOffsetX,
               btnOffsetY
             )
-          : getSelectionPositionFromRect(snapshot.lastRect) ||
+          : getSelectionButtonPosition(
+              snapshot.lastRect,
+              btnOffsetX,
+              btnOffsetY
+            ) ||
             getPointerButtonPosition(
               snapshot.pointerPosition,
               btnOffsetX,

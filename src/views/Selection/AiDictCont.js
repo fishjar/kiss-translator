@@ -12,10 +12,10 @@ import CopyBtn from "./CopyBtn";
 const pendingRequests = new Map();
 
 /**
- * 生成 AI 词典请求去重 Key。
+ * Build a deduplication key for AI dictionary requests.
  *
- * 同一翻译框在 React 重渲染或 StrictMode 下可能短时间触发重复请求。
- * 用完整输入、语言、接口配置和上下文共同参与去重，避免串用不同语境结果。
+ * React rerenders or StrictMode can trigger duplicate requests in one panel.
+ * Include the complete input, language, API settings, and context to avoid reusing unrelated results.
  */
 function getRequestKey({ text, fromLang, toLang, apiSettingKey, context }) {
   return JSON.stringify({
@@ -28,10 +28,10 @@ function getRequestKey({ text, fromLang, toLang, apiSettingKey, context }) {
 }
 
 /**
- * AI 词典结果展示组件。
+ * AI dictionary result view.
  *
- * 组件负责请求去重、流式 Markdown 增量展示、错误提示、复制按钮和发音按钮。
- * 具体词典生成逻辑统一委托给 `apiDict`，保持 UI 层只处理展示状态。
+ * Handles request deduplication, streaming Markdown, errors, copying, and speech.
+ * Delegates dictionary generation to `apiDict` so the UI only manages display state.
  */
 export default function AiDictCont({
   text,
@@ -76,7 +76,7 @@ export default function AiDictCont({
         setMarkdown("");
         setError("");
 
-        // 多个相同组件实例共享同一个进行中请求，减少 AI 接口重复调用。
+        // Identical component instances share an in-flight request to avoid duplicate API calls.
         let pending = pendingRequests.get(requestKey);
         if (!pending) {
           pending = {
@@ -163,7 +163,7 @@ export default function AiDictCont({
         "& code": {
           px: 0.5,
           py: 0.1,
-          borderRadius: 0.5,
+          borderRadius: "4px",
           bgcolor: "action.hover",
         },
       }}
@@ -178,10 +178,23 @@ export default function AiDictCont({
           alignItems: "center",
         }}
       >
-        <BrowserTtsBtn text={text} lang={speechLang || fromLang || "en-US"} />
-        <CopyBtn text={markdown} title={i18n("copy")} />
+        <BrowserTtsBtn
+          text={text}
+          lang={speechLang || fromLang || "en-US"}
+          title={i18n("read_aloud")}
+        />
+        <CopyBtn
+          text={markdown}
+          title={i18n("copy")}
+          copiedLabel={i18n("copy_success", "Copied")}
+        />
       </Box>
-      {loading && <CircularProgress size={12} sx={{ mr: 1 }} />}
+      {loading && (
+        <CircularProgress
+          size={12}
+          sx={{ position: "absolute", top: 6, right: 72 }}
+        />
+      )}
       <Typography component="div">
         <ReactMarkdown>{markdown}</ReactMarkdown>
       </Typography>
