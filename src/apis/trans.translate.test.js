@@ -24,12 +24,14 @@ import {
   DEFAULT_API_LIST,
   GEMINI_GENERATE_CONTENT_URL,
   GEMINI_INTERACTIONS_URL,
+  OPT_TRANS_CLAUDE,
   OPT_TRANS_DEEPSEEK,
   OPT_TRANS_GEMINI,
   OPT_TRANS_GEMINI_2,
   OPT_TRANS_GOOGLE_2,
   OPT_TRANS_GOOGLE_CLOUD,
   OPT_TRANS_MICROSOFT,
+  OPT_TRANS_OLLAMA,
   OPT_TRANS_OPENAI,
   OPT_TRANS_OPENROUTER,
   OPT_TRANS_QWENMT,
@@ -72,6 +74,12 @@ async function collectAsyncGenerator(generator) {
 describe("handleTranslate", () => {
   afterEach(() => {
     clearMsgHistory(OPT_TRANS_GEMINI);
+    // Claude 上下文用例共用同一个按 apiSlug 缓存的历史单例，必须逐例清空。
+    clearMsgHistory(OPT_TRANS_CLAUDE);
+    // 跨协议上下文历史用例（Chat 家族 / Ollama）同样按 slug 锁存单例，逐例清空。
+    clearMsgHistory(OPT_TRANS_OPENAI);
+    clearMsgHistory(OPT_TRANS_OLLAMA);
+    clearMsgHistory(OPT_TRANS_GEMINI_2);
     jest.clearAllMocks();
     jest.restoreAllMocks();
   });
@@ -1335,6 +1343,550 @@ describe("handleTranslate", () => {
       { id: 0, result: ["你好世界", "en"] },
       { id: 1, result: ["早上好", "en"] },
     ]);
+  });
+
+  // ── Claude 历史上下文取值形态归一化 ──
+
+  /**
+   * 跑两轮 Claude 非流式请求：第一轮响应用给定 content 形态，
+   * 返回第二轮请求体里的 messages（含第一轮写入的历史条目）与两轮抛出的错误。
+   *
+   * 第一轮 content 形态不含 content[0].text 时（纯字符串 / 单对象 / 缺失），
+   * 译文解析路径 parseAIRes 拿到空串 → runNonStream 抛
+   * "translate got an unexpected result"，错误照常收集供用例断言"不是 TypeError"。
+   * 译文只取首块、历史取全部 text 块：首块不可解析时译文抛错而历史可能照写；
+   * 完全无可用文本的轮经 addPair 守卫拦截、整对不写历史。
+   */
+  async function runClaudeContextRounds(firstContent) {
+    const apiSetting = {
+      ...getApiSetting(OPT_TRANS_CLAUDE),
+      useStream: false,
+      useBatchFetch: false,
+      useContext: true,
+      contextSize: 10,
+      nobatchPrompt: "Translate {{text}}.",
+      nobatchUserPrompt: "",
+    };
+    fetchData
+      .mockResolvedValueOnce({ role: "assistant", content: firstContent })
+      .mockResolvedValueOnce({
+        role: "assistant",
+        content: [{ type: "text", text: "第二轮译文" }],
+      });
+
+    const errors = [];
+    for (const text of ["first", "second"]) {
+      try {
+        await collectAsyncGenerator(
+          handleTranslate([text], {
+            from: "en",
+            to: "zh-CN",
+            fromLang: "English",
+            toLang: "Chinese",
+            langMap: () => "",
+            glossary: "",
+            apiSetting,
+            usePool: false,
+          })
+        );
+      } catch (error) {
+        errors.push(error);
+      }
+    }
+
+    expect(fetchData).toHaveBeenCalledTimes(2);
+    const secondBody = JSON.parse(fetchData.mock.calls[1][1].body);
+    return { messages: secondBody.messages, errors };
+  }
+
+  test("Claude 历史：标准块数组的模型文本写入历史（旧写法为空壳）", async () => {
+    const { messages, errors } = await runClaudeContextRounds([
+      { type: "text", text: "你好" },
+    ]);
+
+    expect(errors).toEqual([]);
+    // [第一轮 user, 第一轮 assistant（历史）, 第二轮 user]
+    expect(messages).toHaveLength(3);
+    expect(messages[0].role).toBe("user");
+    expect(messages[1]).toEqual({ role: "assistant", content: "你好" });
+    expect(messages[2].role).toBe("user");
+  });
+
+  test("Claude 历史：多个文本块按顺序拼接，不丢后续块", async () => {
+    const { messages, errors } = await runClaudeContextRounds([
+      { type: "text", text: "A" },
+      { type: "text", text: "B" },
+    ]);
+
+    expect(errors).toEqual([]);
+    expect(messages[1]).toEqual({ role: "assistant", content: "AB" });
+  });
+
+  test("Claude 历史：纯字符串 content 不抛 TypeError 且原样入历史", async () => {
+    const { messages, errors } = await runClaudeContextRounds("纯字符串译文");
+
+    // 只允许译文解析路径的空结果错误，绝不能是 .map 打在字符串上的 TypeError。
+    for (const error of errors) {
+      expect(error.name).not.toBe("TypeError");
+    }
+    expect(messages[1]).toEqual({
+      role: "assistant",
+      content: "纯字符串译文",
+    });
+  });
+
+  test("Claude 历史：单对象 content 取其 text，不把整个对象塞进历史", async () => {
+    const { messages, errors } = await runClaudeContextRounds({
+      type: "text",
+      text: "单对象",
+    });
+
+    for (const error of errors) {
+      expect(error.name).not.toBe("TypeError");
+    }
+    expect(messages[1]).toEqual({ role: "assistant", content: "单对象" });
+  });
+
+  test("Claude 历史：content 缺失时整对不写历史", async () => {
+    const { messages, errors } = await runClaudeContextRounds(undefined);
+
+    // 只允许译文解析路径的空结果错误，绝不能是 TypeError。
+    for (const error of errors) {
+      expect(error.name).not.toBe("TypeError");
+    }
+    expect(errors).toHaveLength(1);
+    // round 1 无可用文本 → 整对不写（防实现退化为只跳 assistant 保留 user 的孤立形态）
+    expect(messages).toHaveLength(1);
+    expect(messages[0].role).toBe("user");
+    expect(messages.filter((m) => m.role === "assistant")).toHaveLength(0);
+  });
+
+  // ── 跨协议上下文历史契约：Chat（含 GEMINI_2）/ Ollama / Claude 统一 addPair ──
+
+  const openaiRes = (content, extra = {}) => ({
+    choices: [{ message: { role: "assistant", content, ...extra } }],
+  });
+
+  async function runTranslateRounds(apiSetting, texts) {
+    const errors = [];
+    for (const text of texts) {
+      try {
+        await collectAsyncGenerator(
+          handleTranslate([text], {
+            from: "en",
+            to: "zh-CN",
+            fromLang: "English",
+            toLang: "Chinese",
+            langMap: () => "",
+            glossary: "",
+            apiSetting,
+            usePool: false,
+          })
+        );
+      } catch (error) {
+        errors.push(error);
+      }
+    }
+    return { errors };
+  }
+
+  /**
+   * 跑 N 轮非流式翻译（显式 useStream:false + useBatchFetch:false + useContext:true），
+   * 返回每轮请求体与收集到的错误。逐轮 try/catch 收集，畸形轮不中断后续轮次。
+   */
+  async function runNonStreamContextRounds(apiType, responses, update = {}) {
+    const apiSetting = {
+      ...getApiSetting(apiType),
+      useStream: false,
+      useBatchFetch: false,
+      useContext: true,
+      contextSize: 10,
+      nobatchPrompt: "Translate {{text}}.",
+      nobatchUserPrompt: "",
+      ...update,
+    };
+    for (const response of responses) {
+      fetchData.mockResolvedValueOnce(response);
+    }
+
+    const { errors } = await runTranslateRounds(
+      apiSetting,
+      ["first", "second", "third"].slice(0, responses.length)
+    );
+
+    expect(fetchData).toHaveBeenCalledTimes(responses.length);
+    const bodies = fetchData.mock.calls.map((call) => JSON.parse(call[1].body));
+    return { bodies, errors };
+  }
+
+  /** mock 一次流式轮：fetchStream 产出事件对象的 JSON 字符串序列（消费端逐条 JSON.parse）。 */
+  const mockStreamRound = (chunks) => {
+    async function* streamChunks() {
+      for (const chunk of chunks) {
+        yield JSON.stringify(chunk);
+      }
+    }
+    fetchStream.mockReturnValueOnce(streamChunks());
+  };
+
+  const claudeTextStream = (text) => [
+    { type: "message_start" },
+    {
+      type: "content_block_delta",
+      index: 0,
+      delta: { type: "text_delta", text },
+    },
+    { type: "message_stop" },
+  ];
+
+  test("Chat 历史：正常响应整对写入第二轮请求体（OPENAI）", async () => {
+    const { bodies, errors } = await runNonStreamContextRounds(
+      OPT_TRANS_OPENAI,
+      [openaiRes("你好"), openaiRes("第二轮译文")]
+    );
+
+    expect(errors).toEqual([]);
+    const messages = bodies[1].messages;
+    // [system, 第一轮 user, 第一轮 assistant, 第二轮 user]
+    expect(messages).toHaveLength(4);
+    expect(messages[0].role).toBe("system");
+    expect(messages[1].role).toBe("user");
+    expect(messages[2]).toEqual({ role: "assistant", content: "你好" });
+    expect(messages[3].role).toBe("user");
+  });
+
+  test.each([
+    ["content 空串", ""],
+    ["content null", null],
+    ["content 为数组/parts 形态", { parts: ["x"] }],
+  ])(
+    "Chat 历史：第一轮 message.content %s → 整对不写（OPENAI）",
+    async (_name, content) => {
+      const { bodies } = await runNonStreamContextRounds(OPT_TRANS_OPENAI, [
+        openaiRes(content),
+        openaiRes("第二轮译文"),
+      ]);
+
+      const messages = bodies[1].messages;
+      expect(messages).toHaveLength(2);
+      expect(messages[0].role).toBe("system");
+      expect(messages[1].role).toBe("user");
+      expect(messages.filter((m) => m.role === "assistant")).toHaveLength(0);
+    }
+  );
+
+  test("Chat 历史：缺 assistant role → 整对不写（OPENAI）", async () => {
+    const { bodies, errors } = await runNonStreamContextRounds(
+      OPT_TRANS_OPENAI,
+      [{ choices: [{ message: { content: "你好" } }] }, openaiRes("第二轮译文")]
+    );
+
+    expect(errors).toEqual([]);
+    const messages = bodies[1].messages;
+    expect(messages).toHaveLength(2);
+    expect(messages.filter((m) => m.role === "assistant")).toHaveLength(0);
+  });
+
+  test("Chat 历史：contextSize=3 多轮只留完整轮次，不以孤立 assistant 开头（OPENAI）", async () => {
+    const { bodies, errors } = await runNonStreamContextRounds(
+      OPT_TRANS_OPENAI,
+      [openaiRes("一"), openaiRes("二"), openaiRes("三")],
+      { contextSize: 3 }
+    );
+
+    expect(errors).toEqual([]);
+    const messages = bodies[2].messages;
+    expect(messages).toHaveLength(4);
+    expect(messages[0].role).toBe("system");
+    expect(messages[1].role).toBe("user");
+    expect(messages[2]).toEqual({ role: "assistant", content: "二" });
+    expect(messages[3].role).toBe("user");
+  });
+
+  test("Chat 历史：响应 message 额外字段不进入历史（OPENAI）", async () => {
+    const { bodies } = await runNonStreamContextRounds(OPT_TRANS_OPENAI, [
+      openaiRes("你好", {
+        reasoning_content: "思考",
+        tool_calls: [{ id: "t" }],
+      }),
+      openaiRes("第二轮译文"),
+    ]);
+
+    const messages = bodies[1].messages;
+    expect(messages[2]).toEqual({ role: "assistant", content: "你好" });
+  });
+
+  test("Chat 历史：GEMINI_2 走共享 case，第二轮请求体按 genGemini2 形状（system 首位）", async () => {
+    const { bodies, errors } = await runNonStreamContextRounds(
+      OPT_TRANS_GEMINI_2,
+      [openaiRes("你好"), openaiRes("第二轮译文")]
+    );
+
+    expect(errors).toEqual([]);
+    const messages = bodies[1].messages;
+    expect(messages).toHaveLength(4);
+    expect(messages[0].role).toBe("system");
+    expect(messages[1].role).toBe("user");
+    expect(messages[2]).toEqual({ role: "assistant", content: "你好" });
+    expect(messages[3].role).toBe("user");
+  });
+
+  test("Ollama 历史：正常正文进第二轮请求体", async () => {
+    const { bodies, errors } = await runNonStreamContextRounds(
+      OPT_TRANS_OLLAMA,
+      [openaiRes("你好"), openaiRes("第二轮译文")]
+    );
+
+    expect(errors).toEqual([]);
+    const messages = bodies[1].messages;
+    expect(messages).toHaveLength(4);
+    expect(messages[0].role).toBe("system");
+    expect(messages[1].role).toBe("user");
+    expect(messages[2]).toEqual({ role: "assistant", content: "你好" });
+    expect(messages[3].role).toBe("user");
+  });
+
+  test.each([
+    ["content 空串", ""],
+    ["content null", null],
+  ])("Ollama 历史：第一轮 %s → 整对不写（非流式）", async (_name, content) => {
+    const { bodies } = await runNonStreamContextRounds(OPT_TRANS_OLLAMA, [
+      openaiRes(content),
+      openaiRes("第二轮译文"),
+    ]);
+
+    const messages = bodies[1].messages;
+    expect(messages).toHaveLength(2);
+    expect(messages[0].role).toBe("system");
+    expect(messages[1].role).toBe("user");
+    expect(messages.filter((m) => m.role === "assistant")).toHaveLength(0);
+  });
+
+  test("Ollama 历史：响应缺 message → 不写历史", async () => {
+    const { bodies } = await runNonStreamContextRounds(OPT_TRANS_OLLAMA, [
+      { choices: [] },
+      openaiRes("第二轮译文"),
+    ]);
+
+    const messages = bodies[1].messages;
+    expect(messages).toHaveLength(2);
+    expect(messages.filter((m) => m.role === "assistant")).toHaveLength(0);
+  });
+
+  test("Ollama 历史：默认容量只留完整轮次，不以孤立 assistant 开头", async () => {
+    const { bodies, errors } = await runNonStreamContextRounds(
+      OPT_TRANS_OLLAMA,
+      [openaiRes("一"), openaiRes("二"), openaiRes("三")],
+      { contextSize: 3 }
+    );
+
+    expect(errors).toEqual([]);
+    const messages = bodies[2].messages;
+    expect(messages).toHaveLength(4);
+    expect(messages[0].role).toBe("system");
+    expect(messages[1].role).toBe("user");
+    expect(messages[2]).toEqual({ role: "assistant", content: "二" });
+    expect(messages[3].role).toBe("user");
+  });
+
+  test("Ollama 流式：空 delta 轮整对不写，round 2 体恰为 [system, u2]、round 3 体含 round 2 完整对", async () => {
+    const apiSetting = {
+      ...getApiSetting(OPT_TRANS_OLLAMA),
+      useStream: true,
+      useBatchFetch: false,
+      useContext: true,
+      nobatchPrompt: "Translate {{text}}.",
+      nobatchUserPrompt: "",
+    };
+    // round 1 只有 role delta、无文本 content → fullContent 恒空 → 整对不写
+    mockStreamRound([{ choices: [{ delta: { role: "assistant" } }] }]);
+    mockStreamRound([
+      { choices: [{ delta: { content: "你" } }] },
+      { choices: [{ delta: { content: "好" } }] },
+    ]);
+    mockStreamRound([{ choices: [{ delta: { content: "第三轮" } }] }]);
+
+    const { errors } = await runTranslateRounds(apiSetting, [
+      "first",
+      "second",
+      "third",
+    ]);
+
+    expect(fetchStream).toHaveBeenCalledTimes(3);
+    expect(errors).toEqual([]);
+    // round 2 请求体恰为 [system, u2]（整对原子性，防"只跳 assistant 保留 user"退化）
+    const secondBody = JSON.parse(fetchStream.mock.calls[1][1].body);
+    expect(secondBody.messages).toHaveLength(2);
+    expect(secondBody.messages[0].role).toBe("system");
+    expect(secondBody.messages[1].role).toBe("user");
+    expect(
+      secondBody.messages.filter((m) => m.role === "assistant")
+    ).toHaveLength(0);
+    // round 3 请求体含 round 2 完整对，不以孤立 assistant 开头
+    const thirdBody = JSON.parse(fetchStream.mock.calls[2][1].body);
+    expect(thirdBody.messages).toHaveLength(4);
+    expect(thirdBody.messages[0].role).toBe("system");
+    expect(thirdBody.messages[1].role).toBe("user");
+    expect(thirdBody.messages[2]).toEqual({
+      role: "assistant",
+      content: "你好",
+    });
+    expect(thirdBody.messages[3].role).toBe("user");
+  });
+
+  test("Claude 历史：响应缺 role → 整对不写历史", async () => {
+    const { bodies, errors } = await runNonStreamContextRounds(
+      OPT_TRANS_CLAUDE,
+      [
+        { content: [{ type: "text", text: "你好" }] },
+        { role: "assistant", content: [{ type: "text", text: "第二轮译文" }] },
+      ]
+    );
+
+    expect(errors).toEqual([]);
+    const messages = bodies[1].messages;
+    expect(messages).toHaveLength(1);
+    expect(messages[0].role).toBe("user");
+    expect(messages.filter((m) => m.role === "assistant")).toHaveLength(0);
+  });
+
+  test("Claude 历史：content 为非文本类型 → 整对不写历史", async () => {
+    const { bodies, errors } = await runNonStreamContextRounds(
+      OPT_TRANS_CLAUDE,
+      [
+        { role: "assistant", content: 123 },
+        { role: "assistant", content: [{ type: "text", text: "第二轮译文" }] },
+      ]
+    );
+
+    // 译文解析空结果错误照抛，但历史整对不写
+    expect(errors).toHaveLength(1);
+    const messages = bodies[1].messages;
+    expect(messages).toHaveLength(1);
+    expect(messages[0].role).toBe("user");
+    expect(messages.filter((m) => m.role === "assistant")).toHaveLength(0);
+  });
+
+  test("OPENAI 流式：空 delta 轮整对不写历史，第二轮请求体恰为 [system, user]", async () => {
+    const apiSetting = {
+      ...getApiSetting(OPT_TRANS_OPENAI),
+      useStream: true,
+      useBatchFetch: false,
+      useContext: true,
+      nobatchPrompt: "Translate {{text}}.",
+      nobatchUserPrompt: "",
+    };
+    // round 1 只有 role delta、无文本 content → fullContent 恒空 → 整对不写
+    mockStreamRound([{ choices: [{ delta: { role: "assistant" } }] }]);
+    mockStreamRound([
+      { choices: [{ delta: { content: "你" } }] },
+      { choices: [{ delta: { content: "好" } }] },
+    ]);
+
+    const { errors } = await runTranslateRounds(apiSetting, [
+      "first",
+      "second",
+    ]);
+
+    // 空 delta 轮零抛错：防异常短路后断言空洞通过
+    expect(errors).toEqual([]);
+    expect(fetchStream).toHaveBeenCalledTimes(2);
+    const secondBody = JSON.parse(fetchStream.mock.calls[1][1].body);
+    expect(secondBody.messages).toHaveLength(2);
+    expect(secondBody.messages[0].role).toBe("system");
+    expect(secondBody.messages[1].role).toBe("user");
+    expect(
+      secondBody.messages.filter((m) => m.role === "assistant")
+    ).toHaveLength(0);
+  });
+
+  test("Claude 流式：content_block_delta 文本累积进历史，第二轮请求体携带完整首轮对", async () => {
+    const apiSetting = {
+      ...getApiSetting(OPT_TRANS_CLAUDE),
+      useStream: true,
+      useBatchFetch: false,
+      useContext: true,
+      contextSize: 10,
+      // CLAUDE 默认条目为 realtime 渲染，会产生 partialText 中间产出；钉死 disabled 使结果断言确定。
+      streamRenderMode: "disabled",
+      nobatchPrompt: "Translate {{text}}.",
+      nobatchUserPrompt: "",
+    };
+    mockStreamRound(claudeTextStream("你好"));
+    mockStreamRound(claudeTextStream("第二轮"));
+
+    const result = await collectAsyncGenerator(
+      handleTranslate(["first"], {
+        from: "en",
+        to: "zh-CN",
+        fromLang: "English",
+        toLang: "Chinese",
+        langMap: () => "",
+        glossary: "",
+        apiSetting,
+        usePool: false,
+      })
+    );
+    await collectAsyncGenerator(
+      handleTranslate(["second"], {
+        from: "en",
+        to: "zh-CN",
+        fromLang: "English",
+        toLang: "Chinese",
+        langMap: () => "",
+        glossary: "",
+        apiSetting,
+        usePool: false,
+      })
+    );
+
+    expect(fetchStream).toHaveBeenCalledTimes(2);
+    expect(result).toEqual([{ id: 0, result: ["你好"] }]);
+    // Claude messages 无 system 前缀：[第一轮 user, 第一轮 assistant, 第二轮 user]
+    const secondBody = JSON.parse(fetchStream.mock.calls[1][1].body);
+    expect(secondBody.messages).toHaveLength(3);
+    expect(secondBody.messages[1]).toEqual({
+      role: "assistant",
+      content: "你好",
+    });
+    expect(secondBody.messages[2].role).toBe("user");
+  });
+
+  test("Claude 流式：contextSize=3 轮次完整、空文本 delta 轮整对跳过", async () => {
+    const apiSetting = {
+      ...getApiSetting(OPT_TRANS_CLAUDE),
+      useStream: true,
+      useBatchFetch: false,
+      useContext: true,
+      contextSize: 3,
+      streamRenderMode: "disabled",
+      nobatchPrompt: "Translate {{text}}.",
+      nobatchUserPrompt: "",
+    };
+    // round 1 无文本 delta → 不写历史对；round 2/3 正常流式
+    mockStreamRound([
+      { type: "content_block_delta", delta: { type: "text_delta", text: "" } },
+      { type: "message_stop" },
+    ]);
+    mockStreamRound(claudeTextStream("第二轮"));
+    mockStreamRound(claudeTextStream("第三轮"));
+
+    await runTranslateRounds(apiSetting, ["first", "second", "third"]);
+
+    expect(fetchStream).toHaveBeenCalledTimes(3);
+    // round 2 请求体：仅当轮 user（round 1 空轮整对未写，无孤立 user / assistant）
+    const secondBody = JSON.parse(fetchStream.mock.calls[1][1].body);
+    expect(secondBody.messages).toHaveLength(1);
+    expect(secondBody.messages[0].role).toBe("user");
+    // round 3 请求体：round 2 的完整对 + 当轮 user，不以孤立 assistant 开头
+    const thirdBody = JSON.parse(fetchStream.mock.calls[2][1].body);
+    expect(thirdBody.messages).toHaveLength(3);
+    expect(thirdBody.messages[0].role).toBe("user");
+    expect(thirdBody.messages[1]).toEqual({
+      role: "assistant",
+      content: "第二轮",
+    });
+    expect(thirdBody.messages[2].role).toBe("user");
   });
 });
 
