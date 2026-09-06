@@ -2,6 +2,20 @@ import { SELECTION_STYLES } from "./styles";
 import { getCssAtRuleBodies } from "../../styles/testUtils";
 
 describe("selection Material 3 shapes", () => {
+  test("bounds the overflow menu and keeps its items scrollable in short viewports", () => {
+    const menuRule = SELECTION_STYLES.match(
+      /\.kt-tranbox-header__menu\s*\{([^}]*)\}/
+    )?.[1];
+    const itemRule = SELECTION_STYLES.match(
+      /\.kt-tranbox-header__menu button\s*\{([^}]*)\}/
+    )?.[1];
+    expect(menuRule).toContain("box-sizing: border-box");
+    expect(menuRule).toContain("max-width: calc(100vw - 16px)");
+    expect(menuRule).toContain("max-height: calc(100vh - 16px)");
+    expect(menuRule).toContain("overflow-y: auto");
+    expect(itemRule).toContain("flex-shrink: 0");
+  });
+
   test("uses restrained surface and menu radii", () => {
     expect(SELECTION_STYLES).toMatch(
       /\.KT-draggable-body\s*\{[^}]*border-radius:\s*16px !important;/

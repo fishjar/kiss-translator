@@ -24,25 +24,39 @@ export default function Action({ translator, processActions }) {
   const [showPopup, setShowPopup] = useState(true); // Panel visibility.
   const [rule, setRule] = useState(translator.rule); // Cached page translation rule.
   const [setting, setSetting] = useState(translator.setting); // Cached global settings.
-  const panelRef = useRef(null);
+  const headerRef = useRef(null);
+  const clearPanelFocusRef = useRef(null);
   const windowSize = useWindowSize();
 
-  useEffect(() => {
-    if (!showPopup) return undefined;
+  const panelRef = useCallback((panel) => {
+    clearPanelFocusRef.current?.();
+    clearPanelFocusRef.current = null;
+    if (!panel) return;
 
     let previousFocus = document.activeElement;
     while (previousFocus?.shadowRoot?.activeElement) {
       previousFocus = previousFocus.shadowRoot.activeElement;
     }
+    const header = headerRef.current;
     const frameId = window.requestAnimationFrame(() => {
-      panelRef.current?.focus();
+      panel.focus();
     });
 
-    return () => {
+    // Ref detachment runs before the focused panel is removed from the DOM.
+    clearPanelFocusRef.current = () => {
       window.cancelAnimationFrame(frameId);
-      previousFocus?.focus?.();
+      if (!previousFocus?.isConnected) return;
+
+      let activeElement = document.activeElement;
+      while (activeElement) {
+        if (panel.contains(activeElement) || header?.contains(activeElement)) {
+          previousFocus.focus?.();
+          return;
+        }
+        activeElement = activeElement.shadowRoot?.activeElement;
+      }
     };
-  }, [showPopup]);
+  }, []);
 
   // Open the extension options page in a new browser tab.
   const handleOpenSetting = useCallback(() => {
@@ -116,7 +130,7 @@ export default function Action({ translator, processActions }) {
             usePaper // Use a paper background with a shadow.
             handler={
               // Drag the panel from its header.
-              <Box style={{ cursor: "move" }}>
+              <Box ref={headerRef} style={{ cursor: "move" }}>
                 <Header
                   onClose={() => {
                     setShowPopup(false);

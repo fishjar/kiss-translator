@@ -1,7 +1,7 @@
 /* eslint-disable testing-library/no-container, testing-library/no-unnecessary-act */
 import { act } from "react";
 import { createRoot } from "react-dom/client";
-import TranBox from "./TranBox";
+import TranBox, { getOverflowMenuPosition } from "./TranBox";
 import { MSG_OPEN_SEPARATE_WINDOW } from "../../config/msg.js";
 import { sendBgMsg } from "../../libs/msg.js";
 
@@ -44,14 +44,19 @@ jest.mock("./DraggableResizable", () => {
   };
 });
 
-describe("TranBox header", () => {
+describe.each(["document", "shadow"])("TranBox header in %s", (scope) => {
   let container;
+  let host;
   let root;
   let handlers;
 
   beforeEach(() => {
     container = document.createElement("div");
-    document.body.appendChild(container);
+    host = document.createElement("div");
+    document.body.appendChild(host);
+    const mount =
+      scope === "shadow" ? host.attachShadow({ mode: "open" }) : host;
+    mount.appendChild(container);
     root = createRoot(container);
     handlers = {
       setShowBox: jest.fn(),
@@ -63,7 +68,8 @@ describe("TranBox header", () => {
 
   afterEach(() => {
     act(() => root.unmount());
-    container.remove();
+    host.remove();
+    jest.restoreAllMocks();
     sendBgMsg.mockReset();
     mockToggleDarkMode.mockReset();
   });
@@ -99,6 +105,7 @@ describe("TranBox header", () => {
   const menuItems = () =>
     Array.from(container.querySelectorAll(".kt-tranbox-header__menu button"));
   const openMenu = () => act(() => actions()[1].click());
+  const activeElement = () => container.getRootNode().activeElement;
 
   test("keeps the lock, overflow and close actions always reachable", () => {
     render();
@@ -131,29 +138,133 @@ describe("TranBox header", () => {
 
     expect(trigger.getAttribute("aria-controls")).toBe(menu().id);
     expect(menu().getAttribute("aria-labelledby")).toBe(trigger.id);
-    expect(document.activeElement).toBe(menuItems()[0]);
+    expect(activeElement()).toBe(menuItems()[0]);
+    if (scope === "shadow") expect(document.activeElement).toBe(host);
 
     const press = (key) =>
       act(() =>
-        document.activeElement.dispatchEvent(
+        activeElement().dispatchEvent(
           new KeyboardEvent("keydown", {
             key,
             bubbles: true,
+            composed: true,
             cancelable: true,
           })
         )
       );
 
     press("ArrowDown");
-    expect(document.activeElement).toBe(menuItems()[1]);
+    expect(activeElement()).toBe(menuItems()[1]);
+    press("ArrowDown");
+    expect(activeElement()).toBe(menuItems()[2]);
+    press("ArrowUp");
+    expect(activeElement()).toBe(menuItems()[1]);
     press("End");
-    expect(document.activeElement).toBe(menuItems()[3]);
+    expect(activeElement()).toBe(menuItems()[3]);
+    press("ArrowDown");
+    expect(activeElement()).toBe(menuItems()[0]);
+    press("ArrowUp");
+    expect(activeElement()).toBe(menuItems()[3]);
     press("Home");
-    expect(document.activeElement).toBe(menuItems()[0]);
+    expect(activeElement()).toBe(menuItems()[0]);
     press("Escape");
     expect(menu()).toBeNull();
-    expect(document.activeElement).toBe(trigger);
+    expect(activeElement()).toBe(trigger);
   });
+
+  test.each(["ArrowUp", "ArrowDown"])(
+    "opens with %s at the expected item",
+    (key) => {
+      render();
+      act(() =>
+        actions()[1].dispatchEvent(
+          new KeyboardEvent("keydown", {
+            key,
+            bubbles: true,
+            composed: true,
+            cancelable: true,
+          })
+        )
+      );
+      expect(activeElement()).toBe(menuItems()[key === "ArrowUp" ? 3 : 0]);
+    }
+  );
+
+  test.each([false, true])(
+    "closes on Tab without blocking traversal (shift: %s)",
+    (shiftKey) => {
+      render();
+      const trigger = actions()[1];
+      openMenu();
+      const event = new KeyboardEvent("keydown", {
+        key: "Tab",
+        shiftKey,
+        bubbles: true,
+        composed: true,
+        cancelable: true,
+      });
+      act(() => activeElement().dispatchEvent(event));
+      expect(menu()).toBeNull();
+      expect(activeElement()).toBe(trigger);
+      expect(event.defaultPrevented).toBe(false);
+    }
+  );
+
+  test.each([
+    ["auto height", false, true, 600],
+    ["minimal", true, false, 600],
+    ["short viewport", false, false, 120],
+  ])(
+    "fits the overflow menu near the bottom in %s mode",
+    (_name, simpleStyle, autoHeight, viewportHeight) => {
+      const previousHeight = window.innerHeight;
+      Object.defineProperty(window, "innerHeight", {
+        configurable: true,
+        value: viewportHeight,
+      });
+      const headerTop = viewportHeight - 70;
+      jest
+        .spyOn(HTMLElement.prototype, "getBoundingClientRect")
+        .mockImplementation(function () {
+          if (this.classList.contains("kt-tranbox-header")) {
+            return { left: 20, top: headerTop, width: 300, height: 56 };
+          }
+          if (this.getAttribute("title") === "more") {
+            return {
+              left: 240,
+              right: 274,
+              top: headerTop + 5,
+              bottom: headerTop + 39,
+              width: 34,
+              height: 34,
+            };
+          }
+          return {
+            left: 0,
+            top: 0,
+            right: 206,
+            bottom: 170,
+            width: 206,
+            height: 170,
+          };
+        });
+      try {
+        render({ simpleStyle, tranboxSetting: { autoHeight } });
+        openMenu();
+        const top = headerTop + Number.parseFloat(menu().style.top);
+        const height = Math.min(170, viewportHeight - 16);
+        expect(top).toBeGreaterThanOrEqual(8);
+        expect(top + height).toBeLessThanOrEqual(viewportHeight - 8);
+        expect(menu().style.maxHeight).toBe(`${viewportHeight - 16}px`);
+        expect(activeElement()).toBe(menuItems()[0]);
+      } finally {
+        Object.defineProperty(window, "innerHeight", {
+          configurable: true,
+          value: previousHeight,
+        });
+      }
+    }
+  );
 
   // These four controls were always visible in the previous header.
   // Moving them into the overflow menu must preserve every action.
@@ -222,5 +333,36 @@ describe("TranBox header", () => {
     });
 
     expect(menu()).toBeNull();
+  });
+});
+
+describe("overflow menu viewport placement", () => {
+  test.each([
+    [
+      "bottom right",
+      { top: 555, bottom: 589, right: 795 },
+      { width: 800, height: 600 },
+    ],
+    [
+      "top left",
+      { top: 1, bottom: 35, right: 35 },
+      { width: 800, height: 600 },
+    ],
+    [
+      "short and narrow",
+      { top: 50, bottom: 84, right: 130 },
+      { width: 150, height: 100 },
+    ],
+  ])("keeps every edge visible at %s", (_name, anchor, viewport) => {
+    const menu = { width: 206, height: 170 };
+    const position = getOverflowMenuPosition(anchor, menu, viewport);
+    expect(position.left).toBeGreaterThanOrEqual(8);
+    expect(position.top).toBeGreaterThanOrEqual(8);
+    expect(
+      position.left + Math.min(menu.width, position.maxWidth)
+    ).toBeLessThanOrEqual(viewport.width - 8);
+    expect(
+      position.top + Math.min(menu.height, position.maxHeight)
+    ).toBeLessThanOrEqual(viewport.height - 8);
   });
 });

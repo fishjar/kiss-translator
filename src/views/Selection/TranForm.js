@@ -27,7 +27,14 @@ import {
   PROMPT_MODE_FOLLOW_API,
   findPromptBySlug,
 } from "../../config";
-import { useId, useState, useMemo, useEffect, useRef } from "react";
+import {
+  useId,
+  useState,
+  useMemo,
+  useEffect,
+  useRef,
+  useCallback,
+} from "react";
 import TranCont from "./TranCont";
 import DictCont from "./DictCont";
 import AiDictCont from "./AiDictCont";
@@ -39,6 +46,7 @@ import { kissLog } from "../../libs/log";
 import { tryDetectLang } from "../../libs/detect";
 import { isSameTranslationLanguage } from "../../libs/language";
 import CompactLanguageSelect from "../Popup/CompactLanguageSelect";
+import { createMenuKeyDownHandler } from "../../libs/menuFocus";
 
 export const formatLanguageOptionName = (name) => {
   const parts = String(name || "")
@@ -112,13 +120,28 @@ export default function TranForm({
     loading: false,
   });
   const inputRef = useRef(null);
+  const [isShadowMenu, setIsShadowMenu] = useState(false);
+  const setInputRef = useCallback((input) => {
+    inputRef.current = input;
+    setIsShadowMenu(Boolean(input?.getRootNode()?.host));
+  }, []);
   const selectMenuProps = useMemo(
     () => ({
       container: () => inputRef.current?.closest(".kt-m3-root"),
       disableScrollLock: true,
+      // MUI's trap sees the shadow host as active and otherwise steals focus
+      // from the selected option. Its normal focus restoration still applies.
+      disableAutoFocus: isShadowMenu,
+      disableEnforceFocus: isShadowMenu,
+      MenuListProps: {
+        onKeyDownCapture: createMenuKeyDownHandler({
+          shadowOnly: true,
+          disableListWrap: true,
+        }),
+      },
       sx: { zIndex: 2147483647 },
     }),
-    []
+    [isShadowMenu]
   );
 
   const detectionKey = useMemo(
@@ -446,7 +469,7 @@ export default function TranForm({
           <div className="kt-popup-translation-textarea">
             <textarea
               className="kt-resizable-textarea"
-              ref={inputRef}
+              ref={setInputRef}
               value={editText}
               maxLength={5000}
               aria-label={i18n("original_text")}
@@ -791,7 +814,7 @@ export default function TranForm({
               InputLabelProps={isPlaygound ? { shrink: true } : undefined}
               fullWidth
               multiline
-              inputRef={inputRef}
+              inputRef={setInputRef}
               minRows={isPlaygound ? 4 : 1}
               maxRows={10}
               inputProps={{

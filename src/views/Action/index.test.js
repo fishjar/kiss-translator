@@ -2,6 +2,7 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import Action from "./index";
+import { EVENT_KISS_INNER, MSG_POPUP_TOGGLE } from "../../config";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -22,14 +23,18 @@ jest.mock("../../libs/client", () => ({ isExt: false }));
 jest.mock("../../libs/msg", () => ({ sendBgMsg: jest.fn() }));
 jest.mock("../Popup/Header", () => {
   const React = require("react");
-  return function Header() {
-    return React.createElement("div", null, "header");
+  return function Header({ onClose }) {
+    return React.createElement("button", { onClick: onClose }, "Close");
   };
 });
 jest.mock("../Popup/PopupCont", () => {
   const React = require("react");
   return function PopupCont() {
-    return React.createElement("div", { "data-testid": "popup-content" });
+    return React.createElement(
+      "div",
+      { "data-testid": "popup-content" },
+      React.createElement("input", { "aria-label": "Panel input" })
+    );
   };
 });
 jest.mock("./Draggable", () => {
@@ -37,7 +42,11 @@ jest.mock("./Draggable", () => {
   return function Draggable({ width, handler, children }) {
     return React.createElement(
       "div",
-      { "data-testid": "draggable", "data-width": width },
+      {
+        "data-testid": "draggable",
+        "data-width": width,
+        onClick: (event) => event.stopPropagation(),
+      },
       handler,
       children
     );
@@ -45,11 +54,15 @@ jest.mock("./Draggable", () => {
 });
 jest.mock("@mui/material/Box", () => {
   const React = require("react");
-  return function Box({ width, children, style, ...props }) {
+  return React.forwardRef(function Box(
+    { width, children, style, ...props },
+    ref
+  ) {
     return React.createElement(
       "div",
       {
         ...props,
+        ref,
         style,
         "data-box-width": width,
         "data-box-max-height": style?.maxHeight,
@@ -57,7 +70,7 @@ jest.mock("@mui/material/Box", () => {
       },
       children
     );
-  };
+  });
 });
 jest.mock("@mui/material/Divider", () => {
   const React = require("react");
@@ -67,18 +80,31 @@ jest.mock("@mui/material/Divider", () => {
 });
 
 describe("content action Popup integration", () => {
+  let fixture;
+  let container;
+  let previousFocus;
+  let root;
+
   beforeEach(() => {
+    jest.useFakeTimers();
     mockWindowSize = { w: 240, h: 300 };
+    fixture = document.createElement("div");
+    document.body.appendChild(fixture);
+    container = document.createElement("div");
+    previousFocus = document.createElement("button");
+    fixture.append(previousFocus, container);
+    previousFocus.focus();
+    root = createRoot(container);
   });
 
-  test("passes the narrow viewport width to the draggable panel", async () => {
-    const container = document.createElement("div");
-    document.body.appendChild(container);
-    const previousFocus = document.createElement("button");
-    document.body.appendChild(previousFocus);
-    previousFocus.focus();
-    const root = createRoot(container);
+  afterEach(() => {
+    act(() => root.unmount());
+    fixture.remove();
+    jest.restoreAllMocks();
+    jest.useRealTimers();
+  });
 
+  const renderAction = () => {
     act(() => {
       root.render(
         <Action
@@ -87,6 +113,36 @@ describe("content action Popup integration", () => {
         />
       );
     });
+    return container.querySelector('[role="dialog"]');
+  };
+
+  const focusPanel = () => {
+    act(() => jest.advanceTimersByTime(20));
+  };
+
+  const pressEscape = (target) => {
+    act(() => {
+      target.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "Escape",
+          bubbles: true,
+          cancelable: true,
+        })
+      );
+    });
+  };
+
+  const createNestedShadowRoot = () => {
+    const host = document.createElement("div");
+    fixture.appendChild(host);
+    const shadowRoot = host.attachShadow({ mode: "open" });
+    const nestedHost = document.createElement("div");
+    shadowRoot.appendChild(nestedHost);
+    return nestedHost.attachShadow({ mode: "open" });
+  };
+
+  test("passes the narrow viewport width to the draggable panel", () => {
+    const panel = renderAction();
 
     expect(
       container.querySelector('[data-testid="draggable"]').dataset.width
@@ -107,50 +163,174 @@ describe("content action Popup integration", () => {
     expect(container.querySelector("style").textContent).toContain(
       ".kt-popup-shell"
     );
-    const panel = container.querySelector('[role="dialog"]');
     expect(panel.getAttribute("aria-label")).toBe(
       process.env.REACT_APP_NAME || "KISS Translator"
     );
     expect(panel.tabIndex).toBe(-1);
-
-    await act(async () => {
-      panel.dispatchEvent(
-        new KeyboardEvent("keydown", {
-          key: "Escape",
-          bubbles: true,
-          cancelable: true,
-        })
-      );
-      await Promise.resolve();
-    });
-    expect(container.querySelector('[role="dialog"]')).toBeNull();
-    expect(document.activeElement).toBe(previousFocus);
-
-    act(() => root.unmount());
-    container.remove();
-    previousFocus.remove();
   });
 
   test("caps the draggable panel at 360 pixels on wide viewports", () => {
     mockWindowSize = { w: 800, h: 600 };
-    const container = document.createElement("div");
-    document.body.appendChild(container);
-    const root = createRoot(container);
-
-    act(() => {
-      root.render(
-        <Action
-          translator={{ rule: {}, setting: {} }}
-          processActions={jest.fn()}
-        />
-      );
-    });
+    renderAction();
 
     expect(
       container.querySelector('[data-testid="draggable"]').dataset.width
     ).toBe("360");
+  });
 
-    act(() => root.unmount());
-    container.remove();
+  test("focuses the panel and restores the opener after Escape", () => {
+    const panel = renderAction();
+    expect(document.activeElement).toBe(previousFocus);
+
+    focusPanel();
+    expect(document.activeElement).toBe(panel);
+    const input = panel.querySelector("input");
+    input.focus();
+    expect(document.activeElement).toBe(input);
+
+    pressEscape(input);
+
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.activeElement).toBe(previousFocus);
+  });
+
+  test("preserves focus on an outside input clicked to dismiss the panel", () => {
+    const panel = renderAction();
+    focusPanel();
+    expect(document.activeElement).toBe(panel);
+    const outsideInput = document.createElement("input");
+    fixture.appendChild(outsideInput);
+
+    act(() => {
+      outsideInput.focus();
+      outsideInput.click();
+    });
+
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.activeElement).toBe(outsideInput);
+  });
+
+  test("restores focus when the focused header close button dismisses the panel", () => {
+    renderAction();
+    focusPanel();
+    const closeButton = container.querySelector("button");
+    closeButton.focus();
+    expect(document.activeElement).toBe(closeButton);
+
+    act(() => closeButton.click());
+
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.activeElement).toBe(previousFocus);
+  });
+
+  test("restores nested shadow focus when a focused panel is toggled closed", () => {
+    const shadowRoot = createNestedShadowRoot();
+    shadowRoot.append(previousFocus, container);
+    previousFocus.focus();
+    const panel = renderAction();
+    focusPanel();
+    expect(shadowRoot.activeElement).toBe(panel);
+
+    act(() => {
+      document.dispatchEvent(
+        new CustomEvent(EVENT_KISS_INNER, {
+          detail: { action: MSG_POPUP_TOGGLE },
+        })
+      );
+    });
+
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(shadowRoot.activeElement).toBe(previousFocus);
+  });
+
+  test("preserves outside input focus within the same nested shadow root", () => {
+    const shadowRoot = createNestedShadowRoot();
+    shadowRoot.append(previousFocus, container);
+    previousFocus.focus();
+    const panel = renderAction();
+    focusPanel();
+    expect(shadowRoot.activeElement).toBe(panel);
+    const outsideInput = document.createElement("input");
+    shadowRoot.appendChild(outsideInput);
+
+    act(() => {
+      outsideInput.focus();
+      outsideInput.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, composed: true })
+      );
+    });
+
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(shadowRoot.activeElement).toBe(outsideInput);
+  });
+
+  test("restores focus when a focused panel is removed with its Action", () => {
+    const panel = renderAction();
+    focusPanel();
+    expect(document.activeElement).toBe(panel);
+
+    act(() => root.render(null));
+
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.activeElement).toBe(previousFocus);
+  });
+
+  test("does not restore focus to an opener that has been disconnected", () => {
+    const panel = renderAction();
+    focusPanel();
+    expect(document.activeElement).toBe(panel);
+    previousFocus.remove();
+    const restoreFocus = jest.spyOn(previousFocus, "focus");
+
+    pressEscape(panel);
+
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(restoreFocus).not.toHaveBeenCalled();
+  });
+
+  test("cancels pending panel focus when dismissed before the opening frame", () => {
+    const panel = renderAction();
+    const focus = jest.spyOn(panel, "focus");
+    const outsideInput = document.createElement("input");
+    fixture.appendChild(outsideInput);
+
+    act(() => {
+      outsideInput.focus();
+      outsideInput.click();
+    });
+    focusPanel();
+
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(focus).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(outsideInput);
+  });
+
+  test("captures the current opener again when the panel reopens", () => {
+    const panel = renderAction();
+    focusPanel();
+    expect(document.activeElement).toBe(panel);
+    const outsideInput = document.createElement("input");
+    fixture.appendChild(outsideInput);
+    act(() => {
+      outsideInput.focus();
+      outsideInput.click();
+    });
+    expect(document.activeElement).toBe(outsideInput);
+
+    act(() => {
+      document.dispatchEvent(
+        new CustomEvent(EVENT_KISS_INNER, {
+          detail: { action: MSG_POPUP_TOGGLE },
+        })
+      );
+    });
+    const reopenedPanel = container.querySelector('[role="dialog"]');
+    focusPanel();
+    expect(document.activeElement).toBe(reopenedPanel);
+
+    pressEscape(reopenedPanel);
+
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.activeElement).toBe(outsideInput);
   });
 });

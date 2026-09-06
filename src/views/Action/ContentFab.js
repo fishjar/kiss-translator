@@ -28,6 +28,7 @@ import {
 import { useI18n } from "../../hooks/I18n";
 import { isExt } from "../../libs/client";
 import { sendBgMsg } from "../../libs/msg";
+import { createMenuKeyDownHandler } from "../../libs/menuFocus";
 import useWindowSize from "../../hooks/WindowSize";
 import { useFullscreenDetect } from "../../hooks/useFullscreenDetect";
 import { ACTION_STYLES } from "./styles";
@@ -72,6 +73,10 @@ export function ContentFabContent({
   const [showFab, setShowFab] = useState(true);
   const [open, setOpen] = useState(false); // Action menu visibility.
   const anchorRef = useRef(null);
+  const handleMenuNavigation = useMemo(
+    () => createMenuKeyDownHandler({ shadowOnly: true }),
+    []
+  );
   const { isVideoFullscreen } = useFullscreenDetect();
 
   useEffect(() => {
@@ -83,20 +88,21 @@ export function ContentFabContent({
     }
   }, [isVideoFullscreen]);
 
-  // Handle the start of a drag.
-  const handleStart = useCallback(() => {
-    setMoved(false);
-  }, []);
-
-  // Handle movement during a drag.
-  const handleMove = useCallback(() => {
-    setMoved(true);
-  }, []);
-
   const closeMenu = useCallback((restoreFocus = false) => {
     setOpen(false);
     if (restoreFocus) anchorRef.current?.focus();
   }, []);
+
+  // Handle the start of a drag without changing ordinary click behavior.
+  const handleStart = useCallback(() => {
+    setMoved(false);
+  }, []);
+
+  // Close the menu before its transformed anchor moves away from it.
+  const handleMove = useCallback(() => {
+    setMoved(true);
+    closeMenu(true);
+  }, [closeMenu]);
 
   // Run an action and close the menu.
   const runAction = useCallback(
@@ -243,6 +249,7 @@ export function ContentFabContent({
               id="kt-content-fab-menu"
               aria-labelledby="kt-content-fab-button"
               autoFocusItem
+              onKeyDownCapture={handleMenuNavigation}
               onKeyDown={handleMenuKeyDown}
             >
               {items.map(({ label, icon: Icon, action }) => (

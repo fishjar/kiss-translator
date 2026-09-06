@@ -3,26 +3,25 @@ import ReactDOM from "react-dom/client";
 import { CacheProvider } from "@emotion/react";
 import createCache from "@emotion/cache";
 import { logger } from "./log";
-import { isolateShadowHost, setShadowHostVisible } from "./shadowHost";
+import {
+  isolateShadowHost,
+  mountShadowHost,
+  setShadowHostVisible,
+} from "./shadowHost";
 
 export default class ShadowDomManager {
   #hostElement = null;
   #reactRoot = null;
   #isVisible = false;
   #isProcessing = false;
+  #cleanupHostMount = null;
 
   _id;
   _className;
   _ReactComponent;
   _props;
 
-  constructor({
-    id,
-    className = "",
-    reactComponent,
-    props = {},
-    rootElement = document.documentElement,
-  }) {
+  constructor({ id, className = "", reactComponent, props = {}, rootElement }) {
     if (!id || !reactComponent) {
       throw new Error("ID and a React Component must be provided.");
     }
@@ -34,7 +33,7 @@ export default class ShadowDomManager {
   }
 
   get isVisible() {
-    return this.#isVisible;
+    return this.#isVisible && Boolean(this.#hostElement?.isConnected);
   }
 
   /**
@@ -47,8 +46,12 @@ export default class ShadowDomManager {
    * @param {Object} props - 可选的新 props
    */
   show(props) {
-    if (this.#isVisible || this.#isProcessing) {
+    if (this.isVisible || this.#isProcessing) {
       return;
+    }
+
+    if (this.#hostElement && !this.#hostElement.isConnected) {
+      this.#unmount();
     }
 
     if (!this.#hostElement) {
@@ -56,6 +59,7 @@ export default class ShadowDomManager {
       try {
         this.#mount(props || this._props);
       } catch (error) {
+        this.#unmount();
         logger.warn(`Failed to mount component with id "${this._id}":`, error);
         this.#isProcessing = false;
         return;
@@ -77,6 +81,12 @@ export default class ShadowDomManager {
   }
 
   destroy() {
+    this.#unmount();
+  }
+
+  #unmount() {
+    this.#cleanupHostMount?.();
+    this.#cleanupHostMount = null;
     if (!this.#hostElement) {
       return;
     }
@@ -96,7 +106,7 @@ export default class ShadowDomManager {
   }
 
   toggle(props) {
-    if (this.#isVisible) {
+    if (this.isVisible) {
       this.hide();
     } else {
       this.show(props || this._props);
@@ -111,8 +121,8 @@ export default class ShadowDomManager {
     }
     isolateShadowHost(host);
 
-    this._rootElement.appendChild(host);
     this.#hostElement = host;
+    this.#cleanupHostMount = mountShadowHost(host, this._rootElement);
     const shadowContainer = host.attachShadow({ mode: "open" });
     const appRoot = document.createElement("div");
     appRoot.className = `${this._id}_wrapper notranslate`;

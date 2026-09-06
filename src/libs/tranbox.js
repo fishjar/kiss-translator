@@ -8,7 +8,7 @@ import {
   APP_CONSTS,
   resolveApiPromptList,
 } from "../config";
-import { isolateShadowHost } from "./shadowHost";
+import { isolateShadowHost, mountShadowHost } from "./shadowHost";
 
 function resolvePromptProps(props = {}) {
   return {
@@ -27,6 +27,7 @@ export class TransboxManager {
   #shadowContainer = null;
   #cache = null;
   #props = {};
+  #cleanupHostMount = null;
 
   constructor(initialProps = {}) {
     this.#props = resolvePromptProps(initialProps);
@@ -38,19 +39,18 @@ export class TransboxManager {
   }
 
   isEnabled() {
-    return (
-      !!this.#container && document.documentElement.contains(this.#container)
-    );
+    return Boolean(this.#container?.isConnected);
   }
 
   enable() {
     if (!this.isEnabled()) {
+      this.disable();
       this.#container = document.createElement("div");
       this.#container.id = APP_CONSTS.boxID;
       this.#container.className = "notranslate";
       isolateShadowHost(this.#container);
 
-      document.documentElement.appendChild(this.#container);
+      this.#cleanupHostMount = mountShadowHost(this.#container);
       this.#shadowContainer = this.#container.attachShadow({ mode: "open" });
       const shadowRootElement = document.createElement("div");
       shadowRootElement.className = `${APP_CONSTS.boxID}_wrapper notranslate`;
@@ -82,11 +82,10 @@ export class TransboxManager {
   }
 
   disable() {
-    if (!this.isEnabled() || !this.#reactRoot) {
-      return;
-    }
-    this.#reactRoot.unmount();
-    this.#container.remove();
+    this.#cleanupHostMount?.();
+    this.#cleanupHostMount = null;
+    this.#reactRoot?.unmount();
+    this.#container?.remove();
     this.#container = null;
     this.#reactRoot = null;
     this.#shadowContainer = null;
@@ -112,16 +111,14 @@ export class TransboxManager {
    */
   update(newProps) {
     this.#props = resolvePromptProps({ ...this.#props, ...newProps });
-    if (this.isEnabled()) {
-      if (!this.#props.tranboxSetting?.transOpen) {
-        this.disable();
-      } else {
-        this.#render();
-      }
+    if (!this.#props.tranboxSetting?.transOpen) {
+      this.disable();
       return;
     }
 
-    if (this.#props.tranboxSetting?.transOpen) {
+    if (this.isEnabled()) {
+      this.#render();
+    } else {
       this.enable();
     }
   }

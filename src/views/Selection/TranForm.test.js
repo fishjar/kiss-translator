@@ -91,10 +91,12 @@ function createDeferred() {
   return { promise, resolve, reject };
 }
 
-function renderTranForm(props = {}) {
+function renderTranForm(props = {}, { shadow = false } = {}) {
   const container = document.createElement("div");
   container.className = "kt-m3-root";
-  document.body.appendChild(container);
+  const host = shadow ? document.createElement("div") : container;
+  document.body.appendChild(host);
+  if (shadow) host.attachShadow({ mode: "open" }).appendChild(container);
   const root = createRoot(container);
   const defaultProps = {
     text: "library",
@@ -126,12 +128,170 @@ function renderTranForm(props = {}) {
 
   return {
     container,
+    host,
     root,
     rerender(nextProps) {
       act(() => render(nextProps));
     },
   };
 }
+
+describe.each([false, true])(
+  "TranForm menu keyboard access (shadow: %s)",
+  (shadow) => {
+    let view;
+    let focusRoot;
+
+    beforeEach(async () => {
+      document.body.innerHTML = "";
+      jest.spyOn(document, "hasFocus").mockReturnValue(true);
+      view = renderTranForm(
+        {
+          simpleStyle: false,
+          autoFocusInput: false,
+          enDict: "-",
+          aiDictApiSlug: "-",
+          apiSlugs: ["alpha"],
+          transApis: [
+            { apiSlug: "alpha", apiName: "Alpha", apiType: "OpenAI" },
+            { apiSlug: "beta", apiName: "Beta", apiType: "OpenAI" },
+            { apiSlug: "bravo", apiName: "Bravo", apiType: "OpenAI" },
+          ],
+        },
+        { shadow }
+      );
+      focusRoot = view.container.getRootNode();
+      await flushEffects();
+    });
+
+    afterEach(() => {
+      act(() => view.root.unmount());
+      view.host.remove();
+      jest.restoreAllMocks();
+    });
+
+    const input = (name) =>
+      view.container.querySelector(`input[name="${name}"]`);
+    const trigger = (name) =>
+      input(name).parentElement.querySelector('[role="combobox"]');
+    const list = () => view.container.querySelector('[role="listbox"]');
+    const options = () =>
+      Array.from(list().querySelectorAll('[role="option"]'));
+    const press = (key, extra = {}) => {
+      const event = new KeyboardEvent("keydown", {
+        key,
+        bubbles: true,
+        composed: true,
+        cancelable: true,
+        ...extra,
+      });
+      act(() => focusRoot.activeElement.dispatchEvent(event));
+      return event;
+    };
+    const open = async (name) => {
+      act(() => {
+        trigger(name).focus();
+        trigger(name).dispatchEvent(
+          new MouseEvent("mousedown", {
+            button: 0,
+            bubbles: true,
+            composed: true,
+            cancelable: true,
+          })
+        );
+      });
+      await flushEffects();
+    };
+
+    test.each(["fromLang", "toLang", "apiSlugs"])(
+      "enters, navigates and dismisses %s",
+      async (name) => {
+        await open(name);
+        const items = options();
+        const selectedIndex = items.findIndex(
+          (item) => item.getAttribute("aria-selected") === "true"
+        );
+        expect(focusRoot.activeElement).toBe(items[selectedIndex]);
+        if (shadow) expect(document.activeElement).toBe(view.host);
+        press("ArrowDown");
+        expect(focusRoot.activeElement).toBe(
+          items[Math.min(selectedIndex + 1, items.length - 1)]
+        );
+        press("ArrowUp");
+        expect(focusRoot.activeElement).toBe(items[selectedIndex]);
+        press("Home");
+        expect(focusRoot.activeElement).toBe(items[0]);
+        press("ArrowUp");
+        expect(focusRoot.activeElement).toBe(items[0]);
+        press("End");
+        expect(focusRoot.activeElement).toBe(items[items.length - 1]);
+        press("ArrowDown");
+        expect(focusRoot.activeElement).toBe(items[items.length - 1]);
+        press("Escape");
+        await flushEffects();
+        expect(trigger(name).getAttribute("aria-expanded")).toBe("false");
+        expect(focusRoot.activeElement).toBe(trigger(name));
+      }
+    );
+
+    test.each([false, true])(
+      "closes on Tab and restores the select (shift: %s)",
+      async (shiftKey) => {
+        await open("fromLang");
+        expect(press("Tab", { shiftKey }).defaultPrevented).toBe(true);
+        await flushEffects();
+        expect(trigger("fromLang").getAttribute("aria-expanded")).toBe("false");
+        expect(focusRoot.activeElement).toBe(trigger("fromLang"));
+      }
+    );
+
+    test("preserves service typeahead and multiple selection", async () => {
+      await open("apiSlugs");
+      const items = options();
+      press("b");
+      expect(focusRoot.activeElement).toBe(items[1]);
+      press("b");
+      expect(focusRoot.activeElement).toBe(items[2]);
+      press("Enter");
+      expect(input("apiSlugs").value).toBe("alpha,bravo");
+      expect(trigger("apiSlugs").getAttribute("aria-expanded")).toBe("true");
+      expect(focusRoot.activeElement).toBe(items[2]);
+      press("Escape");
+      expect(focusRoot.activeElement).toBe(trigger("apiSlugs"));
+    });
+
+    test("selects a language with Enter and restores focus", async () => {
+      await open("fromLang");
+      press("Home");
+      press("Enter");
+      await flushEffects();
+      expect(input("fromLang").value).toBe("auto");
+      expect(trigger("fromLang").getAttribute("aria-expanded")).toBe("false");
+      expect(focusRoot.activeElement).toBe(trigger("fromLang"));
+    });
+
+    test("does not let document-based containment steal shadow focus", async () => {
+      await open("fromLang");
+      const items = options();
+      act(() => items[0].focus());
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 60));
+      });
+      expect(focusRoot.activeElement).toBe(items[0]);
+      const outside = document.createElement("button");
+      document.body.appendChild(outside);
+      act(() => outside.focus());
+      if (shadow) {
+        expect(document.activeElement).toBe(outside);
+      } else {
+        expect(list().parentElement.contains(document.activeElement)).toBe(
+          true
+        );
+      }
+      outside.remove();
+    });
+  }
+);
 
 describe("TranForm Playground presentation", () => {
   beforeEach(() => {

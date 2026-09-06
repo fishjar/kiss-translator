@@ -16,7 +16,15 @@ import BrightnessAutoIcon from "@mui/icons-material/BrightnessAuto";
 import DragIndicatorRoundedIcon from "@mui/icons-material/DragIndicatorRounded";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { useI18n } from "../../hooks/I18n";
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import TranForm from "./TranForm.js";
 import { MSG_OPEN_SEPARATE_WINDOW } from "../../config/msg.js";
 import { sendBgMsg } from "../../libs/msg.js";
@@ -25,6 +33,30 @@ import { useTheme, alpha } from "@mui/material/styles";
 import Logo from "../../components/Logo";
 import { isValidWord } from "../../libs/utils";
 import { useDarkMode } from "../../hooks/ColorMode";
+import { createMenuKeyDownHandler } from "../../libs/menuFocus";
+
+export function getOverflowMenuPosition(anchor, menu, viewport) {
+  const margin = 8;
+  const gap = 4;
+  const maxWidth = Math.max(0, viewport.width - margin * 2);
+  const maxHeight = Math.max(0, viewport.height - margin * 2);
+  const width = Math.min(menu.width, maxWidth);
+  const height = Math.min(menu.height, maxHeight);
+  const below = viewport.height - margin - anchor.bottom - gap;
+  const above = anchor.top - gap - margin;
+  const preferredTop =
+    height > below && above > below
+      ? anchor.top - gap - height
+      : anchor.bottom + gap;
+  const clamp = (value, max) => Math.max(margin, Math.min(value, max));
+
+  return {
+    left: clamp(anchor.right - width, viewport.width - margin - width),
+    top: clamp(preferredTop, viewport.height - margin - height),
+    maxWidth,
+    maxHeight,
+  };
+}
 
 /**
  * Header navigation for the selection translation panel.
@@ -54,44 +86,59 @@ function TranBoxHeader({
   const menuButtonId = `${menuId}-button`;
   const menuRef = useRef(null);
   const menuButtonRef = useRef(null);
+  const focusLastItemRef = useRef(false);
+  const [menuPosition, setMenuPosition] = useState(null);
+  const navigateMenu = useMemo(() => createMenuKeyDownHandler(), []);
+
+  const updateMenuPosition = useCallback(() => {
+    const menu = menuRef.current;
+    const button = menuButtonRef.current;
+    if (!menu || !button) return;
+    const header = button.closest(".kt-tranbox-header").getBoundingClientRect();
+    const ownerWindow = button.ownerDocument.defaultView;
+    const position = getOverflowMenuPosition(
+      button.getBoundingClientRect(),
+      menu.getBoundingClientRect(),
+      { width: ownerWindow.innerWidth, height: ownerWindow.innerHeight }
+    );
+    position.left -= header.left;
+    position.top -= header.top;
+    setMenuPosition((previous) =>
+      previous &&
+      Object.keys(position).every((key) => previous[key] === position[key])
+        ? previous
+        : position
+    );
+  }, []);
+
+  // Refit after panel moves, resizes, or changes between full and minimal mode.
+  useLayoutEffect(() => {
+    if (showMore) updateMenuPosition();
+  });
 
   useEffect(() => {
-    if (showMore) {
-      menuRef.current?.querySelector('[role^="menuitem"]')?.focus();
-    }
+    if (!showMore) return;
+    const items = menuRef.current?.querySelectorAll('[role^="menuitem"]');
+    items?.[focusLastItemRef.current ? items.length - 1 : 0]?.focus();
   }, [showMore]);
 
+  useEffect(() => {
+    if (!showMore) return;
+    const ownerWindow = menuButtonRef.current.ownerDocument.defaultView;
+    ownerWindow.addEventListener("resize", updateMenuPosition);
+    return () => ownerWindow.removeEventListener("resize", updateMenuPosition);
+  }, [showMore, updateMenuPosition]);
+
   const handleMenuKeyDown = (event) => {
-    const items = Array.from(
-      menuRef.current?.querySelectorAll('[role^="menuitem"]') || []
-    ).filter((item) => !item.disabled);
-    if (items.length === 0) return;
-
-    const currentIndex = items.indexOf(document.activeElement);
-    let nextIndex;
-
-    if (event.key === "ArrowDown") {
-      nextIndex = (currentIndex + 1 + items.length) % items.length;
-    } else if (event.key === "ArrowUp") {
-      nextIndex = (currentIndex - 1 + items.length) % items.length;
-    } else if (event.key === "Home") {
-      nextIndex = 0;
-    } else if (event.key === "End") {
-      nextIndex = items.length - 1;
-    } else if (event.key === "Escape") {
-      event.preventDefault();
+    if (event.key === "Escape" || event.key === "Tab") {
+      if (event.key === "Escape") event.preventDefault();
+      event.stopPropagation();
       setShowMore(false);
+      // For Tab, let the browser continue from the trigger in either direction.
       menuButtonRef.current?.focus();
       return;
-    } else if (event.key === "Tab") {
-      setShowMore(false);
-      return;
-    } else {
-      return;
     }
-
-    event.preventDefault();
-    items[nextIndex]?.focus();
+    navigateMenu(event);
   };
 
   // Request a separate borderless translation window.
@@ -137,7 +184,17 @@ function TranBoxHeader({
           aria-expanded={showMore}
           aria-haspopup="menu"
           aria-controls={showMore ? menuId : undefined}
-          onClick={() => setShowMore((pre) => !pre)}
+          onClick={() => {
+            focusLastItemRef.current = false;
+            setShowMore((pre) => !pre);
+          }}
+          onKeyDown={(event) => {
+            if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+            event.preventDefault();
+            event.stopPropagation();
+            focusLastItemRef.current = event.key === "ArrowUp";
+            setShowMore(true);
+          }}
         >
           <MoreVertIcon />
         </IconButton>
@@ -154,6 +211,9 @@ function TranBoxHeader({
             ref={menuRef}
             id={menuId}
             className="kt-tranbox-header__menu"
+            style={
+              menuPosition ? { ...menuPosition, right: "auto" } : undefined
+            }
             role="menu"
             aria-labelledby={menuButtonId}
             onKeyDown={handleMenuKeyDown}
@@ -162,6 +222,7 @@ function TranBoxHeader({
             {isExt && (
               <button
                 type="button"
+                tabIndex={-1}
                 role="menuitem"
                 onClick={openSeparateWindow}
               >
@@ -173,6 +234,7 @@ function TranBoxHeader({
             {/* Toggle the minimal collapsed style. */}
             <button
               type="button"
+              tabIndex={-1}
               role="menuitemcheckbox"
               aria-checked={simpleStyle}
               onClick={() => setSimpleStyle((pre) => !pre)}
@@ -184,6 +246,7 @@ function TranBoxHeader({
             {/* Toggle between a fixed position and following the selection. */}
             <button
               type="button"
+              tabIndex={-1}
               role="menuitemcheckbox"
               aria-checked={followSelection}
               onClick={() => setFollowSelection((pre) => !pre)}
@@ -193,7 +256,12 @@ function TranBoxHeader({
             </button>
 
             {/* Cycle through dark, light, and automatic themes. */}
-            <button type="button" role="menuitem" onClick={toggleDarkMode}>
+            <button
+              type="button"
+              tabIndex={-1}
+              role="menuitem"
+              onClick={toggleDarkMode}
+            >
               {darkMode === "dark" ? (
                 <DarkModeIcon />
               ) : darkMode === "auto" ? (
