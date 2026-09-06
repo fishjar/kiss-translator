@@ -82,6 +82,7 @@ export const OPTIONS_STYLES = String.raw`
 .kt-options-page .MuiAccordion-root:not(:last-child) { margin-bottom: 8px; }
 .kt-options-page .kt-rule-accordion:not(:last-child) { margin-bottom: 8px; }
 .kt-options-page .MuiAccordionSummary-root { min-height: 58px; padding-inline: 18px; }
+.kt-options-page .MuiAccordionSummary-root.kt-rule-summary--with-switch { padding-inline-start: 76px; }
 .kt-options-page .MuiButton-root { white-space: nowrap; }
 .kt-options-page .MuiSwitch-root.MuiSwitch-sizeSmall { width: 52px; height: 32px; padding: 0; overflow: visible; }
 .kt-options-page .MuiSwitch-root.MuiSwitch-sizeSmall .MuiSwitch-switchBase { width: 32px; height: 32px; display: grid; place-items: center; top: 0; left: 0; padding: 0; transform: none; }

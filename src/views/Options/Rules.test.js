@@ -18,6 +18,7 @@ import {
   setDisabledSubRules,
 } from "../../libs/storage";
 import { OPT_SYNCTYPE_WORKER } from "../../config";
+import { OPTIONS_STYLES } from "./styles";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -223,6 +224,100 @@ async function selectOption(container, inputName, optionName) {
   });
   await flushEffects();
 }
+
+describe("Options Rules switch spacing", () => {
+  let optionsStyle;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    useRules.mockReturnValue({
+      list: [
+        { pattern: "example.com", enabled: true },
+        { pattern: "*", selector: "p" },
+      ],
+      put: mockPutRule,
+    });
+    mockSubRules = createSubRules();
+    useSubRules.mockImplementation(() => mockSubRules);
+    useSyncCaches.mockReturnValue({
+      dataCaches: {},
+      updateDataCache: mockUpdateDataCache,
+      deleteDataCache: mockDeleteDataCache,
+      reloadSync: mockReloadSync,
+    });
+    getDisabledSubRules.mockResolvedValue([]);
+    optionsStyle = document.createElement("style");
+    // jsdom cannot parse the container queries that follow the base page styles.
+    optionsStyle.textContent = OPTIONS_STYLES.split("@container")[0];
+  });
+
+  afterEach(() => {
+    optionsStyle.remove();
+  });
+
+  test.each([
+    ["personal rules", openPersonalTab, "Toggle personal rule example.com"],
+    [
+      "subscription rules",
+      openSubscribeTab,
+      "Toggle subscription rule en.wikipedia.org",
+    ],
+    [
+      "injected subscription rules",
+      openPersonalTab,
+      "Toggle subscription rule en.wikipedia.org",
+    ],
+  ])(
+    "reserves a title gutter for %s with the page styles applied",
+    async (_name, openTab, switchLabel) => {
+      const view = renderRules();
+      view.container.classList.add("kt-options-page");
+
+      try {
+        await openTab(view);
+        document.head.appendChild(optionsStyle);
+        const input = view.container.querySelector(
+          `input[aria-label="${switchLabel}"]`
+        );
+        const control = input.closest(".kt-rule-enable-control");
+        const accordion = control.closest(".kt-rule-accordion");
+        const summary = accordion.querySelector(".MuiAccordionSummary-root");
+        const switchStyle = getComputedStyle(input.closest(".MuiSwitch-root"));
+        const controlStyle = getComputedStyle(control);
+        const summaryStyle = getComputedStyle(summary);
+        const switchEnd =
+          parseFloat(controlStyle.insetInlineStart) +
+          parseFloat(switchStyle.width);
+
+        expect(switchStyle.width).toBe("52px");
+        expect(controlStyle.position).toBe("absolute");
+        expect(summary.contains(control)).toBe(false);
+        expect(
+          parseFloat(summaryStyle.paddingInlineStart)
+        ).toBeGreaterThanOrEqual(switchEnd + 8);
+      } finally {
+        view.unmount();
+      }
+    }
+  );
+
+  test("keeps the normal page gutter for the global rule without a switch", () => {
+    const view = renderRules();
+    view.container.classList.add("kt-options-page");
+    document.head.appendChild(optionsStyle);
+
+    try {
+      const accordion = view.container.querySelector(".kt-rule-accordion");
+      const summary = accordion.querySelector(".MuiAccordionSummary-root");
+
+      expect(accordion.querySelector(".kt-rule-enable-control")).toBeNull();
+      expect(summary.classList).not.toContain("kt-rule-summary--with-switch");
+      expect(getComputedStyle(summary).paddingInline).toBe("18px");
+    } finally {
+      view.unmount();
+    }
+  });
+});
 
 describe("Options Rules subscription tab", () => {
   beforeEach(() => {

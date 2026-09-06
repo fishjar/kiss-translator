@@ -255,6 +255,47 @@ font-size: 2rem;`;
     expect(next).toContain(`url("data:image/svg+xml;utf8,<svg/>")`);
     expect(next).toContain("font-size: 2.5rem");
   });
+
+  describe.each([
+    ["an escaped double quote", String.raw`"a\";b"`],
+    ["an escaped single quote", String.raw`'a\';b'`],
+    ["an odd backslash run before a double quote", String.raw`"a\\\";b"`],
+    ["an odd backslash run before a single quote", String.raw`'a\\\';b'`],
+    ["an even backslash run before a closing double quote", String.raw`"a\\"`],
+    [
+      "an even backslash run before a closing single quote",
+      String.raw`'a\\\\'`,
+    ],
+  ])("with %s", (_case, content) => {
+    const css = `content: ${content};\nfont-size: 2rem;\ntext-shadow: 1px 1px black;\ncolor: white;`;
+
+    test("parses each following declaration separately", () => {
+      expect(parseCssToObject(css)).toEqual({
+        content,
+        "font-size": "2rem",
+        "text-shadow": "1px 1px black",
+        color: "white",
+      });
+    });
+
+    test("updates a following declaration without changing the quoted value", () => {
+      const parsed = parseCssToObject(css);
+      parsed["font-size"] = "2.5rem";
+
+      expect(objectToCss(parsed)).toBe(
+        `content: ${content};\nfont-size: 2.5rem;\ntext-shadow: 1px 1px black;\ncolor: white;`
+      );
+    });
+
+    test("removes a following declaration without changing its neighbors", () => {
+      const parsed = parseCssToObject(css);
+      delete parsed["text-shadow"];
+
+      expect(objectToCss(parsed)).toBe(
+        `content: ${content};\nfont-size: 2rem;\ncolor: white;`
+      );
+    });
+  });
 });
 
 describe("Subtitle advanced controls", () => {

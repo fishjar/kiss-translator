@@ -1,8 +1,9 @@
-import { act } from "react";
+import { act, StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
 import Apis from "./Apis";
 import {
+  DEFAULT_API_LIST,
   OPT_TRANS_BUILTINAI,
   GEMINI_INTERACTIONS_URL,
   OPT_TRANS_OPENAI,
@@ -15,6 +16,7 @@ import {
 } from "../../config";
 import { fetchModelCatalog } from "../../libs/modelList";
 import { apiTranslate } from "../../apis";
+import { SettingProvider } from "../../hooks/Setting";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 HTMLElement.prototype.scrollTo = jest.fn();
@@ -45,11 +47,16 @@ jest.mock("../../hooks/Alert", () => ({
   }),
 }));
 
-jest.mock("../../hooks/Setting", () => ({
-  useSetting: () => ({
+jest.mock("../../hooks/Setting", () => {
+  const { createContext, useContext } = jest.requireActual("react");
+  const SettingContext = createContext({
     setting: { prompts: [], subtitleSetting: {}, uiLang: "zh" },
-  }),
-}));
+  });
+  return {
+    SettingProvider: SettingContext.Provider,
+    useSetting: () => useContext(SettingContext),
+  };
+});
 
 jest.mock("../../apis", () => ({
   apiTranslate: jest.fn(),
@@ -166,6 +173,63 @@ async function renderApis(api = createApi(), update = jest.fn()) {
     },
     reset,
     update,
+    unmount: () => {
+      act(() => root.unmount());
+      container.remove();
+    },
+  };
+}
+
+async function renderStatefulApis(apis, strictMode = false) {
+  const actualApiHooks = jest.requireActual("../../hooks/Api");
+  useApiList.mockImplementation(actualApiHooks.useApiList);
+  useApiItem.mockImplementation(actualApiHooks.useApiItem);
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  const root = createRoot(container);
+  let currentSetting;
+  let setCurrentSetting;
+
+  function Harness() {
+    const [setting, setSetting] = useState({
+      transApis: apis,
+      prompts: [],
+      subtitleSetting: {},
+      uiLang: "zh",
+    });
+    currentSetting = setting;
+    setCurrentSetting = setSetting;
+    return (
+      <SettingProvider value={{ setting, updateSetting: setSetting }}>
+        <div className="kt-m3-root">
+          <Apis />
+        </div>
+      </SettingProvider>
+    );
+  }
+
+  await act(async () => {
+    root.render(
+      strictMode ? (
+        <StrictMode>
+          <Harness />
+        </StrictMode>
+      ) : (
+        <Harness />
+      )
+    );
+  });
+  await flushEffects();
+
+  return {
+    container,
+    get setting() {
+      return currentSetting;
+    },
+    updateSetting: async (updater) => {
+      await act(async () => setCurrentSetting(updater));
+      await flushEffects();
+    },
     unmount: () => {
       act(() => root.unmount());
       container.remove();
@@ -1202,6 +1266,119 @@ describe("Apis unsaved API switching", () => {
     expect(getSaveButton(view.container).disabled).toBe(true);
 
     view.unmount();
+  });
+});
+
+describe("Apis with stateful API hooks", () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+    document.body.innerHTML = "";
+  });
+
+  test.each([false, true])(
+    "restores defaults after saving and editing a draft (StrictMode: %s)",
+    async (strictMode) => {
+      const selectedApi = createApi({
+        apiSlug: "custom-openai",
+        apiName: "Custom OpenAI",
+      });
+      const defaultApi = DEFAULT_API_LIST.find(
+        (api) => api.apiType === selectedApi.apiType
+      );
+      const view = await renderStatefulApis([selectedApi], strictMode);
+
+      try {
+        await act(async () => {
+          Simulate.change(getInput(view.container, "url"), {
+            target: { name: "url", value: "https://saved.example/v1" },
+          });
+        });
+        await act(async () => Simulate.click(getSaveButton(view.container)));
+        expect(view.setting.transApis[0].url).toBe("https://saved.example/v1");
+        expect(getSaveButton(view.container).disabled).toBe(true);
+
+        await editUrlDraft(view.container);
+        await act(async () =>
+          Simulate.click(
+            view.container.querySelector('[id^="api-detail-actions-button-"]')
+          )
+        );
+        const resetItem = Array.from(
+          document.body.querySelectorAll('[role="menuitem"]')
+        ).find((item) => item.textContent === "restore_default");
+        await act(async () => Simulate.click(resetItem));
+        await flushEffects();
+
+        expect(view.setting.transApis[0]).toMatchObject({
+          apiSlug: selectedApi.apiSlug,
+          apiName: selectedApi.apiName,
+          apiType: selectedApi.apiType,
+          key: selectedApi.key,
+          url: defaultApi.url,
+        });
+        expect(getInput(view.container, "url").value).toBe(defaultApi.url);
+        expect(getInput(view.container, "model").value).toBe(defaultApi.model);
+        expect(getSaveButton(view.container).disabled).toBe(true);
+      } finally {
+        view.unmount();
+      }
+    }
+  );
+
+  test("reflects a persisted update when the form has no local draft", async () => {
+    const view = await renderStatefulApis([createApi()]);
+
+    try {
+      await view.updateSetting((setting) => ({
+        ...setting,
+        transApis: setting.transApis.map((api) => ({
+          ...api,
+          url: "https://updated.example/v1",
+        })),
+      }));
+
+      expect(getInput(view.container, "url").value).toBe(
+        "https://updated.example/v1"
+      );
+      expect(getSaveButton(view.container).disabled).toBe(true);
+    } finally {
+      view.unmount();
+    }
+  });
+
+  test("preserves a draft through an unrelated API update and identity refresh", async () => {
+    const view = await renderStatefulApis([
+      createApi(),
+      createApi({ apiSlug: "other", apiName: "Other", sortOrder: 1 }),
+    ]);
+
+    try {
+      await editUrlDraft(view.container);
+      await view.updateSetting((setting) => ({
+        ...setting,
+        transApis: setting.transApis.map((api) =>
+          api.apiSlug === "other"
+            ? { ...api, url: "https://other.example/v1" }
+            : { ...api }
+        ),
+      }));
+
+      expect(getInput(view.container, "url").value).toBe(
+        "https://draft.example/v1"
+      );
+      expect(getSaveButton(view.container).disabled).toBe(false);
+
+      await act(async () => Simulate.click(getSaveButton(view.container)));
+      expect(
+        view.setting.transApis.find((api) => api.apiSlug === "OpenAI").url
+      ).toBe("https://draft.example/v1");
+      expect(
+        view.setting.transApis.find((api) => api.apiSlug === "other").url
+      ).toBe("https://other.example/v1");
+      expect(getSaveButton(view.container).disabled).toBe(true);
+    } finally {
+      view.unmount();
+    }
   });
 });
 

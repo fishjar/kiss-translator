@@ -69,7 +69,12 @@ const splitCssDeclarations = (cssString) => {
     }
     if (quote) {
       buffer += char;
-      if (char === quote) quote = null;
+      // Consume escape pairs so only an unescaped quote closes the string.
+      if (char === "\\" && i + 1 < cssString.length) {
+        buffer += cssString[++i];
+      } else if (char === quote) {
+        quote = null;
+      }
       continue;
     }
     if (char === "/" && cssString[i + 1] === "*") {

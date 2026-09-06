@@ -1132,7 +1132,12 @@ function RuleAccordion({ rule, rules, sourceUrl, isExpanded = false }) {
       {ruleSwitch && (
         <Box
           className="kt-rule-enable-control"
-          sx={{ position: "absolute", top: 13, left: 14, zIndex: 2 }}
+          sx={{
+            position: "absolute",
+            top: 13,
+            insetInlineStart: 14,
+            zIndex: 2,
+          }}
         >
           {ruleSwitch}
         </Box>
@@ -1140,7 +1145,7 @@ function RuleAccordion({ rule, rules, sourceUrl, isExpanded = false }) {
       <Accordion expanded={expanded} onChange={handleChange}>
         <AccordionSummary
           expandIcon={<ExpandMoreIcon />}
-          sx={ruleSwitch ? { pl: "76px" } : undefined}
+          className={ruleSwitch ? "kt-rule-summary--with-switch" : undefined}
         >
           <Typography
             sx={{

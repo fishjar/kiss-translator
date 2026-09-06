@@ -242,8 +242,9 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
   const actionsMenuOpen = Boolean(actionsAnchorEl);
 
   useLayoutEffect(() => {
+    // Capture the baseline before React processes the queued state update.
+    const previousApi = lastSyncedApiRef.current;
     setFormData((currentFormData) => {
-      const previousApi = lastSyncedApiRef.current;
       const hasLocalDraft =
         currentFormData?.apiSlug === apiSlug &&
         JSON.stringify(currentFormData) !== JSON.stringify(previousApi || {});
@@ -408,7 +409,8 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
 
   const handleReset = () => {
     setActionsAnchorEl(null);
-    setFormData(api || {});
+    // Drop the draft so the form follows the API produced by reset.
+    setFormData(null);
     reset();
   };
 
