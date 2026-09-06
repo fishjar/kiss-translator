@@ -1,5 +1,5 @@
 /* eslint-disable testing-library/no-container, testing-library/no-unnecessary-act */
-import { act } from "react";
+import { act, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
 import TranForm, { formatLanguageOptionName } from "./TranForm";
@@ -91,7 +91,10 @@ function createDeferred() {
   return { promise, resolve, reject };
 }
 
-function renderTranForm(props = {}, { shadow = false } = {}) {
+function renderTranForm(
+  props = {},
+  { shadow = false, component: Component = TranForm } = {}
+) {
   const container = document.createElement("div");
   container.className = "kt-m3-root";
   const host = shadow ? document.createElement("div") : container;
@@ -121,7 +124,7 @@ function renderTranForm(props = {}, { shadow = false } = {}) {
     selectionContext: "The library is open.",
   };
   const render = (nextProps = {}) => {
-    root.render(<TranForm {...defaultProps} {...props} {...nextProps} />);
+    root.render(<Component {...defaultProps} {...props} {...nextProps} />);
   };
 
   act(() => render());
@@ -409,51 +412,81 @@ describe("TranForm Playground presentation", () => {
     act(() => root.unmount());
   });
 
-  test("keeps the submit action mounted through pointer down and commits once", async () => {
-    const setText = jest.fn();
-    const { container, root } = renderTranForm({
-      text: "before",
-      setText,
-      simpleStyle: false,
-      isPlaygound: true,
-    });
-    await flushEffects();
+  test.each([false, true])(
+    "commits consecutive pointer submissions once each (shadow: %s)",
+    async (shadow) => {
+      const setText = jest.fn();
+      function EditableTranForm(props) {
+        const [text, updateText] = useState(props.text);
+        return (
+          <TranForm
+            {...props}
+            text={text}
+            setText={(value) => {
+              props.setText(value);
+              updateText(value);
+            }}
+          />
+        );
+      }
+      const { container, host, root } = renderTranForm(
+        {
+          text: "before",
+          setText,
+          simpleStyle: false,
+          isPlaygound: true,
+        },
+        { shadow, component: EditableTranForm }
+      );
+      try {
+        await flushEffects();
+        const textarea = container.querySelector(
+          ".kt-playground-translator__source textarea:not([aria-hidden='true'])"
+        );
+        const focusRoot = textarea.getRootNode();
+        expect(textarea.classList).toContain("kt-resizable-textarea");
+        expect(textarea.closest(".kt-resizable-text-field")).not.toBeNull();
+        expect(
+          getComputedStyle(textarea.closest(".MuiInputBase-root")).overflow
+        ).toBe("visible");
+        expect(getComputedStyle(textarea).resize).toBe("vertical");
 
-    const textarea = container.querySelector(
-      ".kt-playground-translator__source textarea:not([aria-hidden='true'])"
-    );
-    expect(textarea.classList).toContain("kt-resizable-textarea");
-    expect(textarea.closest(".kt-resizable-text-field")).not.toBeNull();
-    expect(
-      getComputedStyle(textarea.closest(".MuiInputBase-root")).overflow
-    ).toBe("visible");
-    expect(getComputedStyle(textarea).resize).toBe("vertical");
-    act(() => Simulate.focus(textarea));
-    act(() => Simulate.change(textarea, { target: { value: "  after  " } }));
+        for (const [index, draft] of ["  after  ", "  again  "].entries()) {
+          // Use native focus: a still-focused input cannot emit another focus event.
+          act(() => textarea.focus());
+          expect(focusRoot.activeElement).toBe(textarea);
+          if (shadow) expect(document.activeElement).toBe(host);
+          act(() => Simulate.change(textarea, { target: { value: draft } }));
 
-    const submitButton = container.querySelector('button[title="submit"]');
-    const pointerDown = new MouseEvent("pointerdown", {
-      bubbles: true,
-      cancelable: true,
-    });
-    act(() => submitButton.dispatchEvent(pointerDown));
-    expect(pointerDown.defaultPrevented).toBe(true);
-    expect(container.querySelector('button[title="submit"]')).toBe(
-      submitButton
-    );
+          const submitButton = container.querySelector(
+            'button[title="submit"]'
+          );
+          expect(submitButton).not.toBeNull();
+          const pointerDown = new MouseEvent("pointerdown", {
+            bubbles: true,
+            composed: true,
+            cancelable: true,
+          });
+          act(() => submitButton.dispatchEvent(pointerDown));
+          expect(pointerDown.defaultPrevented).toBe(true);
+          expect(focusRoot.activeElement).toBe(textarea);
+          expect(container.querySelector('button[title="submit"]')).toBe(
+            submitButton
+          );
 
-    act(() => submitButton.click());
-    expect(setText).toHaveBeenCalledTimes(1);
-    expect(setText).toHaveBeenCalledWith("after");
-    expect(document.activeElement).not.toBe(textarea);
-
-    act(() => Simulate.focus(textarea));
-    expect(container.querySelector('button[title="submit"]')).toBeNull();
-    act(() => Simulate.change(textarea, { target: { value: "again" } }));
-    expect(container.querySelector('button[title="submit"]')).not.toBeNull();
-
-    act(() => root.unmount());
-  });
+          await act(async () => submitButton.click());
+          expect(setText).toHaveBeenCalledTimes(index + 1);
+          expect(setText).toHaveBeenNthCalledWith(index + 1, draft.trim());
+          expect(focusRoot.activeElement).not.toBe(textarea);
+          expect(textarea.value).toBe(draft.trim());
+          expect(container.querySelector('button[title="submit"]')).toBeNull();
+        }
+      } finally {
+        act(() => root.unmount());
+        host.remove();
+      }
+    }
+  );
 
   test("keeps multiple translation results together and spans auxiliary content", async () => {
     const { container, root } = renderTranForm({

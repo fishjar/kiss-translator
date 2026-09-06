@@ -863,8 +863,13 @@ export default function TranForm({
                         onPointerDown={(e) => e.preventDefault()}
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (document.activeElement === inputRef.current) {
-                            inputRef.current.blur();
+                          const input = inputRef.current;
+                          // Read focus within the input's root, including shadow roots.
+                          if (
+                            input &&
+                            input.getRootNode().activeElement === input
+                          ) {
+                            input.blur();
                           } else {
                             commitEditText();
                           }
