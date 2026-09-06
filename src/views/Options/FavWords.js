@@ -1,5 +1,5 @@
 import Stack from "@mui/material/Stack";
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import Typography from "@mui/material/Typography";
 import Accordion from "@mui/material/Accordion";
 import AccordionSummary from "@mui/material/AccordionSummary";
@@ -18,6 +18,7 @@ import DownloadButton from "./DownloadButton";
 import UploadButton from "./UploadButton";
 import Button from "@mui/material/Button";
 import ClearAllIcon from "@mui/icons-material/ClearAll";
+import EventNoteIcon from "@mui/icons-material/EventNote";
 import Alert from "@mui/material/Alert";
 import { isSingleChineseChar, isValidWord } from "../../libs/utils";
 import { kissLog } from "../../libs/log";
@@ -72,7 +73,16 @@ function resolveAiDictApiSetting({
  * @param {string} props.word - 生词/词组文本
  * @param {number} props.index - 单词在生词表中的序号
  */
-function FavAccordion({ word, index, tranboxSetting, transApis, prompts }) {
+function FavAccordion({
+  word,
+  index,
+  createdAt,
+  phonetic,
+  definition,
+  tranboxSetting,
+  transApis,
+  prompts,
+}) {
   // 控制当前手风琴展开与收起状态
   const [expanded, setExpanded] = useState(false);
   // 提取配置中用户选择的查词词典 (enDict) 和联想源 (enSug)
@@ -80,6 +90,11 @@ function FavAccordion({ word, index, tranboxSetting, transApis, prompts }) {
     tranboxSetting || DEFAULT_TRANBOX_SETTING;
   const i18n = useI18n();
   const [dictTab, setDictTab] = useState("default");
+  const dictionaryTabsId = useId();
+  const defaultDictionaryTabId = `${dictionaryTabsId}-default-tab`;
+  const defaultDictionaryPanelId = `${dictionaryTabsId}-default-panel`;
+  const aiDictionaryTabId = `${dictionaryTabsId}-ai-tab`;
+  const aiDictionaryPanelId = `${dictionaryTabsId}-ai-panel`;
   const isWord = useMemo(() => isValidWord(word), [word]);
   const isChineseChar = useMemo(() => isSingleChineseChar(word), [word]);
   const defaultDictAvailable =
@@ -95,6 +110,10 @@ function FavAccordion({ word, index, tranboxSetting, transApis, prompts }) {
     [aiDictApiSlug, aiDictPromptSlug, prompts, transApis]
   );
   const aiDictAvailable = Boolean(word?.trim() && aiDictApiSetting);
+  const definitionPreview = String(definition || "").trim();
+  const partOfSpeech = definitionPreview.match(
+    /^(?:adj|adv|art|aux|conj|det|interj|n|num|prep|pron|v)\.?/i
+  )?.[0];
 
   // 展开折叠切换处理
   const handleChange = (e) => {
@@ -102,12 +121,29 @@ function FavAccordion({ word, index, tranboxSetting, transApis, prompts }) {
   };
 
   return (
-    <Accordion expanded={expanded} onChange={handleChange}>
+    <Accordion
+      className="kt-word-card"
+      expanded={expanded}
+      onChange={handleChange}
+    >
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Typography>
-          {/* 序号与生词本身 */}
-          {`${index + 1}. ${word}`}
-        </Typography>
+        <Box className="kt-word-card__summary">
+          <Box className="kt-word-card__copy">
+            <Box className="kt-word-card__word-row">
+              <Typography component="strong">{word}</Typography>
+              {phonetic && (
+                <Typography component="span">/{phonetic}/</Typography>
+              )}
+              {partOfSpeech && <em>{partOfSpeech}</em>}
+            </Box>
+            {definitionPreview && <small>{definitionPreview}</small>}
+          </Box>
+          <Typography component="time">
+            {createdAt
+              ? new Date(createdAt).toLocaleDateString()
+              : `#${index + 1}`}
+          </Typography>
+        </Box>
       </AccordionSummary>
       <AccordionDetails>
         {/* 仅在展开时懒加载渲染词典解释与联想提示组件，以提升长列表性能 */}
@@ -122,38 +158,61 @@ function FavAccordion({ word, index, tranboxSetting, transApis, prompts }) {
                       onChange={(_, value) => setDictTab(value)}
                       variant="scrollable"
                       allowScrollButtonsMobile
+                      aria-label={`${word} ${i18n("default_dict", "Dictionary")}`}
                       sx={{ minHeight: 36, mb: 1 }}
                     >
                       {defaultDictAvailable && (
                         <Tab
+                          id={defaultDictionaryTabId}
+                          aria-controls={defaultDictionaryPanelId}
                           value="default"
                           label={i18n("default_dict", "默认词典")}
                           sx={{ minHeight: 36, py: 0.5 }}
                         />
                       )}
                       <Tab
+                        id={aiDictionaryTabId}
+                        aria-controls={aiDictionaryPanelId}
                         value="ai"
                         label={i18n("ai_dict", "AI词典")}
                         sx={{ minHeight: 36, py: 0.5 }}
                       />
                     </Tabs>
-                    {defaultDictAvailable && dictTab === "default" && (
-                      <>
-                        {isWord && OPT_DICT_MAP.has(enDict) && (
-                          <DictCont text={word} enDict={enDict} />
-                        )}
-                        {isChineseChar && <Zdic text={word} />}
-                      </>
-                    )}
-                    {(!defaultDictAvailable || dictTab === "ai") && (
-                      <AiDictCont
-                        text={word}
-                        fromLang={fromLang}
-                        speechLang={fromLang}
-                        toLang={toLang}
-                        apiSetting={aiDictApiSetting}
-                      />
-                    )}
+                    <Box
+                      id={defaultDictionaryPanelId}
+                      role="tabpanel"
+                      aria-labelledby={
+                        defaultDictAvailable
+                          ? defaultDictionaryTabId
+                          : undefined
+                      }
+                      hidden={!defaultDictAvailable || dictTab !== "default"}
+                    >
+                      {defaultDictAvailable && dictTab === "default" && (
+                        <>
+                          {isWord && OPT_DICT_MAP.has(enDict) && (
+                            <DictCont text={word} enDict={enDict} />
+                          )}
+                          {isChineseChar && <Zdic text={word} />}
+                        </>
+                      )}
+                    </Box>
+                    <Box
+                      id={aiDictionaryPanelId}
+                      role="tabpanel"
+                      aria-labelledby={aiDictionaryTabId}
+                      hidden={defaultDictAvailable && dictTab !== "ai"}
+                    >
+                      {(!defaultDictAvailable || dictTab === "ai") && (
+                        <AiDictCont
+                          text={word}
+                          fromLang={fromLang}
+                          speechLang={fromLang}
+                          toLang={toLang}
+                          apiSetting={aiDictApiSetting}
+                        />
+                      )}
+                    </Box>
                   </>
                 ) : (
                   <>
@@ -178,6 +237,7 @@ function FavAccordion({ word, index, tranboxSetting, transApis, prompts }) {
  */
 export default function FavWords() {
   const i18n = useI18n();
+  const [showMoreExports, setShowMoreExports] = useState(false);
   // 全局生词管理 Hook，提供生词字典、单纯单词列表、合并导入与清空方法
   const { favList, wordList, mergeWords, clearWords } = useFavWords();
   const { setting } = useSetting();
@@ -422,6 +482,7 @@ export default function FavWords() {
 
         {/* 导入、导出以及清空控制操作按钮栏 */}
         <Stack
+          className="kt-word-toolbar"
           direction="row"
           alignItems="center"
           spacing={2}
@@ -436,40 +497,21 @@ export default function FavWords() {
             fileExts={[".txt", ".csv"]}
           />
 
-          {/* 默认纯单词行导出 (.txt) 按钮 */}
-          <DownloadButton
-            handleData={() => wordList.join("\n")}
-            text={i18n("export")}
-            fileName={`kiss-words_${Date.now()}.txt`}
-          />
-
-          {/* 格式化带释义与例句的 TXT 导出按钮 */}
-          <DownloadButton
-            handleData={handleExportTxt}
-            text={i18n("export") + " (TXT)"}
-            fileName={`kiss-words_${Date.now()}.txt`}
-          />
-
           {/* 带释义与例句的 CSV 导出按钮 */}
           <DownloadButton
             handleData={handleExportCsv}
             text={i18n("export") + " (CSV)"}
             fileName={`kiss-words_${Date.now()}.csv`}
           />
-
-          {/* 带释义与例句的 Markdown 导出按钮 */}
-          <DownloadButton
-            handleData={handleExportMd}
-            text={i18n("export") + " (MD)"}
-            fileName={`kiss-words_${Date.now()}.md`}
-          />
-
-          {/* 第三方词典翻译释义 Markdown 导出按钮 */}
-          <DownloadButton
-            handleData={handleTranslation}
-            text={i18n("export_translation")}
-            fileName={`kiss-words_${Date.now()}.md`}
-          />
+          <Button
+            size="small"
+            variant="text"
+            aria-expanded={showMoreExports}
+            onClick={() => setShowMoreExports((current) => !current)}
+            endIcon={<ExpandMoreIcon />}
+          >
+            {i18n("more")}
+          </Button>
           {/* 一键清空所有生词 */}
           <Button
             size="small"
@@ -481,18 +523,54 @@ export default function FavWords() {
           </Button>
         </Stack>
 
+        {showMoreExports && (
+          <Box className="kt-word-export-more">
+            <DownloadButton
+              handleData={() => wordList.join("\n")}
+              text={i18n("export")}
+              fileName={`kiss-words_${Date.now()}.txt`}
+            />
+            <DownloadButton
+              handleData={handleExportTxt}
+              text={i18n("export") + " (TXT)"}
+              fileName={`kiss-words_${Date.now()}.txt`}
+            />
+            <DownloadButton
+              handleData={handleExportMd}
+              text={i18n("export") + " (MD)"}
+              fileName={`kiss-words_${Date.now()}.md`}
+            />
+            <DownloadButton
+              handleData={handleTranslation}
+              text={i18n("export_translation")}
+              fileName={`kiss-words_${Date.now()}.md`}
+            />
+          </Box>
+        )}
+
         {/* 手风琴风折叠的生词列表区域 */}
         <Box>
-          {favList.map(([word], index) => (
-            <FavAccordion
-              key={word}
-              index={index}
-              word={word}
-              tranboxSetting={tranboxSetting}
-              transApis={resolvedTransApis}
-              prompts={prompts}
-            />
-          ))}
+          {favList.length ? (
+            favList.map(([word, entry], index) => (
+              <FavAccordion
+                key={word}
+                index={index}
+                word={word}
+                createdAt={entry?.createdAt}
+                phonetic={entry?.phonetic}
+                definition={entry?.definition}
+                tranboxSetting={tranboxSetting}
+                transApis={resolvedTransApis}
+                prompts={prompts}
+              />
+            ))
+          ) : (
+            <div className="kt-word-empty">
+              <EventNoteIcon />
+              <strong>{i18n("favorite_words_empty")}</strong>
+              <span>{i18n("favorite_words_empty_hint")}</span>
+            </div>
+          )}
         </Box>
       </Stack>
     </Box>

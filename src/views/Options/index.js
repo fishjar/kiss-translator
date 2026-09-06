@@ -5,7 +5,7 @@ import Setting from "./Setting";
 import Layout from "./Layout";
 import SyncSetting from "./SyncSetting";
 import { SettingProvider } from "../../hooks/Setting";
-import ThemeProvider from "../../hooks/Theme";
+import ThemeProvider from "./OptionsTheme";
 import { useEffect, useState } from "react";
 import { isGm } from "../../libs/client";
 import { sleep } from "../../libs/utils";
@@ -31,8 +31,16 @@ import CircularProgress from "@mui/material/CircularProgress";
 import { kissLog } from "../../libs/log";
 import { runDataMigration } from "../../libs/storage";
 
+export function normalizeOptionsHashPath(hash = "") {
+  const rawPath = String(hash).replace(/^#/, "") || "/";
+  const queryIndex = rawPath.indexOf("?");
+  const path =
+    (queryIndex >= 0 ? rawPath.slice(0, queryIndex) : rawPath) || "/";
+  return path.length > 1 ? path.replace(/\/+$/, "") || "/" : path;
+}
+
 const getOptionsStartupSyncTasks = () => {
-  const hashPath = window.location.hash.replace(/^#/, "") || "/";
+  const hashPath = normalizeOptionsHashPath(window.location.hash);
   if (hashPath === "/rules" || hashPath.startsWith("/rules/")) {
     return {
       requiredSync: trySyncRules,
@@ -44,6 +52,13 @@ const getOptionsStartupSyncTasks = () => {
     return {
       requiredSync: trySyncWords,
       backgroundSyncs: [trySyncSetting, trySyncRules],
+    };
+  }
+
+  if (hashPath === "/") {
+    return {
+      requiredSync: () => Promise.all([trySyncSetting(), trySyncRules()]),
+      backgroundSyncs: [trySyncWords],
     };
   }
 
@@ -151,7 +166,7 @@ export default function Options() {
     );
   }
 
-  if (!gmBridgeReady) {
+  if (!gmBridgeReady || syncingRequiredData) {
     return (
       <Backdrop
         data-testid="options-sync-backdrop"
@@ -193,17 +208,6 @@ export default function Options() {
                 </Route>
               </Routes>
             </HashRouter>
-            <Backdrop
-              data-testid="options-sync-backdrop"
-              aria-label="syncing required data"
-              open={syncingRequiredData}
-              sx={(theme) => ({
-                color: "#fff",
-                zIndex: theme.zIndex.modal + 1,
-              })}
-            >
-              <CircularProgress color="inherit" size={72} />
-            </Backdrop>
           </ConfirmProvider>
         </AlertProvider>
       </ThemeProvider>

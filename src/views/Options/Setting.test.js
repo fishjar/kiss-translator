@@ -1,8 +1,13 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
-import { AutoTranslateClipboardSetting, ExtCommands } from "./Setting";
+import Settings, {
+  AutoTranslateClipboardSetting,
+  ExtCommands,
+} from "./Setting";
 import { browser } from "../../libs/browser";
 import { useAlert } from "../../hooks/Alert";
+import { useSetting } from "../../hooks/Setting";
+import { useFab } from "../../hooks/Fab";
 import {
   hasClipboardReadPermission,
   requestClipboardReadPermission,
@@ -50,6 +55,7 @@ jest.mock("../../libs/log", () => ({
 jest.mock("./UploadButton", () => () => null);
 jest.mock("./DownloadButton", () => () => null);
 jest.mock("../../hooks/ValidationInput", () => () => null);
+jest.mock("./OverviewHero", () => () => null);
 
 const commands = [
   {
@@ -82,6 +88,39 @@ async function renderCommands() {
 
   return { container, root };
 }
+
+async function renderSettings() {
+  const container = document.createElement("div");
+  const root = createRoot(container);
+
+  await act(async () => {
+    root.render(<Settings />);
+  });
+
+  return { container, root };
+}
+
+describe("Settings overview layout", () => {
+  test("keeps the list-style grid free of spacing gutters", async () => {
+    browser.commands.getAll.mockResolvedValue([]);
+    useAlert.mockReturnValue({ info: jest.fn(), success: jest.fn() });
+    useSetting.mockReturnValue({
+      setting: { uiLang: "zh", logLevel: 3, clearCache: false },
+      updateSetting: jest.fn(),
+    });
+    useFab.mockReturnValue({ fab: {}, updateFab: jest.fn() });
+
+    const { container, root } = await renderSettings();
+    const overviewGrid = container.querySelector(
+      ".kt-overview-settings > .MuiGrid-container"
+    );
+
+    expect(overviewGrid).not.toBeNull();
+    expect(overviewGrid.className).not.toMatch(/MuiGrid-spacing-xs-/);
+
+    act(() => root.unmount());
+  });
+});
 
 describe("ExtCommands", () => {
   beforeEach(() => {
@@ -120,6 +159,15 @@ describe("ExtCommands", () => {
       url: "chrome://extensions/shortcuts",
     });
     expect(alert.info).not.toHaveBeenCalled();
+    act(() => root.unmount());
+  });
+
+  test("uses a two-column layout at large breakpoints", async () => {
+    const { container, root } = await renderCommands();
+    const commandGridItem = container.querySelector(".MuiGrid-item");
+
+    expect(commandGridItem.classList.contains("MuiGrid-grid-lg-6")).toBe(true);
+    expect(commandGridItem.classList.contains("MuiGrid-grid-lg-3")).toBe(false);
     act(() => root.unmount());
   });
 });

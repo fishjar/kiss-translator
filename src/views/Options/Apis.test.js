@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
 import Apis from "./Apis";
 import {
+  OPT_TRANS_BUILTINAI,
   GEMINI_INTERACTIONS_URL,
   OPT_TRANS_OPENAI,
   OPT_TRANS_OPENROUTER,
@@ -17,12 +18,14 @@ import { apiTranslate } from "../../apis";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 HTMLElement.prototype.scrollTo = jest.fn();
+const mockConfirm = jest.fn();
 
 jest.mock("../../hooks/I18n", () => ({
   useI18n: () => (key, fallback) => fallback || key,
 }));
 
 jest.mock("../../hooks/Api", () => ({
+  ...jest.requireActual("../../hooks/Api"),
   useApiList: jest.fn(),
   useApiItem: jest.fn(),
 }));
@@ -32,7 +35,7 @@ jest.mock("../../hooks/Prompt", () => ({
 }));
 
 jest.mock("../../hooks/Confirm", () => ({
-  useConfirm: () => jest.fn(),
+  useConfirm: () => mockConfirm,
 }));
 
 jest.mock("../../hooks/Alert", () => ({
@@ -84,7 +87,6 @@ jest.mock("./ReusableAutocomplete", () => {
     );
   };
 });
-
 const { useApiList, useApiItem } = require("../../hooks/Api");
 
 function createApi(overrides = {}) {
@@ -110,12 +112,12 @@ async function flushEffects() {
 }
 
 async function renderApis(api = createApi(), update = jest.fn()) {
+  let apis = Array.isArray(api) ? api : [api];
+  const reset = jest.fn();
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
-
-  useApiList.mockReturnValue({
-    transApis: [api],
+  const apiListValue = {
     addApi: jest.fn(),
     deleteApi: jest.fn(),
     deleteApis: jest.fn(),
@@ -125,20 +127,44 @@ async function renderApis(api = createApi(), update = jest.fn()) {
     copyApi: jest.fn(),
     alphaSortApis: jest.fn(),
     reorderApis: jest.fn(),
-  });
-  useApiItem.mockReturnValue({
-    api,
-    update,
-    reset: jest.fn(),
-  });
+  };
+
+  const configureApiMocks = () => {
+    useApiList.mockReturnValue({ transApis: apis, ...apiListValue });
+    useApiItem.mockImplementation((apiSlug) => ({
+      api: apis.find((item) => item.apiSlug === apiSlug),
+      update,
+      reset,
+    }));
+  };
+
+  configureApiMocks();
 
   await act(async () => {
-    root.render(<Apis />);
+    root.render(
+      <div className="kt-m3-root">
+        <Apis />
+      </div>
+    );
   });
   await flushEffects();
 
   return {
+    apiListValue,
     container,
+    rerender: async (nextApis) => {
+      apis = nextApis;
+      configureApiMocks();
+      await act(async () => {
+        root.render(
+          <div className="kt-m3-root">
+            <Apis />
+          </div>
+        );
+      });
+      await flushEffects();
+    },
+    reset,
     update,
     unmount: () => {
       act(() => root.unmount());
@@ -160,6 +186,317 @@ function getSaveButton(container) {
     (button) => button.textContent === "save"
   );
 }
+
+function getApiListItem(container, apiName) {
+  const item = Array.from(
+    container.querySelectorAll(".MuiListItemButton-root")
+  ).find((element) => element.textContent.includes(apiName));
+  if (!item) {
+    throw new Error(`Unable to find list item for ${apiName}`);
+  }
+  return item;
+}
+
+async function editUrlDraft(container) {
+  const urlInput = getInput(container, "url");
+  await act(async () => {
+    Simulate.change(urlInput, {
+      target: { name: "url", value: "https://draft.example/v1" },
+    });
+  });
+  return urlInput;
+}
+
+describe("Apis ordering and master-detail layout", () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+    document.body.innerHTML = "";
+  });
+
+  test("offers explicit A-Z and Z-A actions and starts with A-Z", async () => {
+    const view = await renderApis([
+      createApi({ apiSlug: "alpha", apiName: "Alpha", sortOrder: 0 }),
+      createApi({ apiSlug: "charlie", apiName: "Charlie", sortOrder: 1 }),
+      createApi({ apiSlug: "beta", apiName: "Beta", sortOrder: 2 }),
+    ]);
+    const sortButton = view.container.querySelector("#api-sort-button");
+
+    expect(sortButton.textContent).toContain("Custom");
+    expect(sortButton.getAttribute("aria-label")).toContain("Custom");
+
+    await act(async () => {
+      Simulate.click(sortButton);
+    });
+
+    const sortItems = Array.from(
+      document.body.querySelectorAll('[role="menuitemradio"]')
+    );
+    const ascendingItem = sortItems.find(
+      (item) => item.textContent.trim() === "A–Z"
+    );
+    const descendingItem = sortItems.find(
+      (item) => item.textContent.trim() === "Z–A"
+    );
+
+    expect(ascendingItem).toBeDefined();
+    expect(descendingItem).toBeDefined();
+    expect(ascendingItem.getAttribute("aria-checked")).toBe("false");
+
+    await act(async () => {
+      Simulate.click(ascendingItem);
+    });
+
+    expect(view.apiListValue.alphaSortApis).toHaveBeenCalledWith("asc");
+
+    await act(async () => {
+      Simulate.click(sortButton);
+    });
+    const reopenedDescendingItem = Array.from(
+      document.body.querySelectorAll('[role="menuitemradio"]')
+    ).find((item) => item.textContent.trim() === "Z–A");
+
+    await act(async () => {
+      Simulate.click(reopenedDescendingItem);
+    });
+
+    expect(view.apiListValue.alphaSortApis).toHaveBeenCalledWith("desc");
+
+    view.unmount();
+  });
+
+  test("disables alphabetical sorting when fewer than two APIs can move", async () => {
+    const view = await renderApis(createApi());
+
+    expect(view.container.querySelector("#api-sort-button").disabled).toBe(
+      true
+    );
+
+    view.unmount();
+  });
+
+  test("reflects the persisted order and becomes custom after drag reorder", async () => {
+    const alpha = createApi({
+      apiSlug: "alpha",
+      apiName: "Alpha",
+      sortOrder: 0,
+    });
+    const beta = createApi({
+      apiSlug: "beta",
+      apiName: "Beta",
+      sortOrder: 1,
+    });
+    const charlie = createApi({
+      apiSlug: "charlie",
+      apiName: "Charlie",
+      sortOrder: 2,
+    });
+    const view = await renderApis([alpha, beta, charlie]);
+    const sortButton = view.container.querySelector("#api-sort-button");
+
+    expect(sortButton.textContent).toContain("A–Z");
+
+    const alphaCard = getApiListItem(view.container, "Alpha");
+    const charlieCard = getApiListItem(view.container, "Charlie");
+    const dragHandle = alphaCard.querySelector('[draggable="true"]');
+    const dataTransfer = {
+      effectAllowed: "",
+      dropEffect: "",
+      getData: jest.fn(() => "alpha"),
+      setData: jest.fn(),
+    };
+
+    await act(async () => {
+      Simulate.dragStart(dragHandle, { dataTransfer });
+    });
+    await act(async () => {
+      Simulate.dragOver(charlieCard.closest("li"), { dataTransfer });
+      Simulate.drop(charlieCard.closest("li"), { dataTransfer });
+    });
+
+    expect(view.apiListValue.reorderApis).toHaveBeenCalledWith(
+      "alpha",
+      "charlie"
+    );
+
+    view.apiListValue.reorderApis.mockClear();
+    await act(async () => {
+      Simulate.keyDown(charlieCard, { key: "ArrowUp", altKey: true });
+      await Promise.resolve();
+    });
+    expect(view.apiListValue.reorderApis).toHaveBeenCalledWith(
+      "charlie",
+      "beta"
+    );
+    expect(charlieCard.getAttribute("aria-keyshortcuts")).toContain(
+      "Alt+ArrowUp"
+    );
+
+    await view.rerender([
+      { ...beta, sortOrder: 0 },
+      { ...charlie, sortOrder: 1 },
+      { ...alpha, sortOrder: 2 },
+    ]);
+
+    expect(
+      view.container.querySelector("#api-sort-button").textContent
+    ).toContain("Custom");
+
+    view.unmount();
+  });
+
+  test("uses one-dimensional interactive cards and layered detail actions", async () => {
+    const view = await renderApis([
+      createApi({ apiSlug: "alpha", apiName: "Alpha", sortOrder: 0 }),
+      createApi({ apiSlug: "beta", apiName: "Beta", sortOrder: 1 }),
+    ]);
+    const masterDetail = view.container.querySelector(".kt-api-master-detail");
+    const list = masterDetail.querySelector(".kt-api-list");
+    const selectedCard = getApiListItem(view.container, "Alpha");
+    const detail = masterDetail.querySelector(".kt-api-detail");
+
+    expect(view.container.querySelector(".kt-api-grid")).toBeNull();
+    expect(list.querySelectorAll(".kt-api-list__card")).toHaveLength(2);
+    expect(selectedCard.classList.contains("Mui-selected")).toBe(true);
+    expect(selectedCard.getAttribute("aria-current")).toBe("true");
+    expect(
+      selectedCard.parentElement.classList.contains("kt-api-list__item")
+    ).toBe(true);
+    expect(selectedCard.parentElement.classList.contains("Mui-selected")).toBe(
+      false
+    );
+    expect(masterDetail.children[0]).toBe(list);
+    expect(masterDetail.children[1]).toBe(detail);
+
+    const disabledSwitch = detail.querySelector(
+      '.kt-api-detail__header input[name="isDisabled"]'
+    );
+    expect(disabledSwitch).not.toBeNull();
+    expect(
+      detail.querySelector('.kt-api-detail__header input[name="isPinned"]')
+    ).not.toBeNull();
+
+    expect(disabledSwitch.checked).toBe(false);
+    await act(async () => disabledSwitch.click());
+    expect(disabledSwitch.checked).toBe(true);
+    await act(async () => disabledSwitch.click());
+    expect(disabledSwitch.checked).toBe(false);
+    expect(
+      detail.querySelectorAll('[class*="MuiGrid-grid-lg-3"]')
+    ).toHaveLength(0);
+    expect(
+      detail.querySelectorAll('[class*="MuiGrid-grid-lg-6"]').length
+    ).toBeGreaterThan(0);
+
+    const footer = detail.querySelector(".kt-api-detail__footer");
+    const footerButtonTexts = Array.from(footer.querySelectorAll("button")).map(
+      (button) => button.textContent
+    );
+    expect(footerButtonTexts).toEqual(
+      expect.arrayContaining(["save", "click_test", "api_actions"])
+    );
+    expect(footer.textContent).not.toContain("restore_default");
+    expect(footer.textContent).not.toContain("copy_api");
+    expect(footer.textContent).not.toContain("delete");
+
+    const moreButton = footer.querySelector(
+      '[id^="api-detail-actions-button-"]'
+    );
+    expect(moreButton.getAttribute("aria-haspopup")).toBe("menu");
+
+    await act(async () => {
+      Simulate.click(moreButton);
+    });
+
+    const actionMenu = document.body.querySelector(
+      `#api-detail-actions-menu-alpha`
+    );
+    expect(actionMenu.textContent).toContain("restore_default");
+    expect(actionMenu.textContent).toContain("copy_api");
+    expect(actionMenu.textContent).toContain("delete");
+
+    view.unmount();
+  });
+
+  test("uses the service card itself as the bulk-selection control", async () => {
+    const view = await renderApis([
+      createApi({ apiSlug: "alpha", apiName: "Alpha", sortOrder: 0 }),
+      createApi({ apiSlug: "beta", apiName: "Beta", sortOrder: 1 }),
+    ]);
+    const bulkButton = Array.from(
+      view.container.querySelectorAll("button")
+    ).find((button) => button.textContent === "bulk_actions");
+    expect(bulkButton.getAttribute("aria-pressed")).toBe("false");
+
+    await act(async () => Simulate.click(bulkButton));
+    expect(bulkButton.getAttribute("aria-pressed")).toBe("true");
+
+    const bulkCards = Array.from(
+      view.container.querySelectorAll('.kt-api-list__card[role="checkbox"]')
+    );
+    expect(bulkCards).toHaveLength(2);
+    expect(bulkCards[1].getAttribute("aria-checked")).toBe("false");
+    expect(bulkCards[1].querySelector("input")).toBeNull();
+
+    await act(async () => {
+      Simulate.keyDown(bulkCards[1], { key: " " });
+      Simulate.keyUp(bulkCards[1], { key: " " });
+    });
+    expect(bulkCards[1].getAttribute("aria-checked")).toBe("true");
+    expect(getInput(view.container, "apiName").value).toBe("Alpha");
+    expect(mockConfirm).not.toHaveBeenCalled();
+
+    view.unmount();
+  });
+
+  test("keeps the add menu inside the Material theme root", async () => {
+    const view = await renderApis(createApi());
+    const addButton = Array.from(
+      view.container.querySelectorAll("button")
+    ).find((button) => button.textContent.trim() === "add");
+
+    await act(async () => Simulate.click(addButton));
+
+    const menu = view.container.querySelector("#add-api-menu");
+    expect(menu).not.toBeNull();
+    expect(menu.closest(".kt-m3-root")).toBe(
+      view.container.querySelector(".kt-m3-root")
+    );
+    expect(menu.querySelector(".kt-api-provider-icon")).not.toBeNull();
+    view.unmount();
+  });
+});
+
+describe("Apis conditional option groups", () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+    document.body.innerHTML = "";
+  });
+
+  test("omits the runtime option shell when the API has no matching controls", async () => {
+    const view = await renderApis(
+      createApi({ apiSlug: "BuiltinAI", apiType: OPT_TRANS_BUILTINAI })
+    );
+
+    expect(view.container.querySelector(".kt-api-runtime-options")).toBeNull();
+    expect(
+      Array.from(view.container.querySelectorAll(".MuiGrid-item")).filter(
+        (item) => !item.firstElementChild && !item.textContent.trim()
+      )
+    ).toHaveLength(0);
+
+    view.unmount();
+  });
+
+  test("keeps runtime options for APIs that support them", async () => {
+    const view = await renderApis();
+
+    expect(
+      view.container.querySelector(".kt-api-runtime-options")
+    ).not.toBeNull();
+
+    view.unmount();
+  });
+});
 
 describe("Apis model list", () => {
   afterEach(() => {
@@ -635,6 +972,234 @@ describe("Apis model list", () => {
 
     expect(modelInput.getAttribute("aria-invalid")).toBe("false");
     expect(view.container.textContent).not.toContain("model_list_fetch_failed");
+
+    view.unmount();
+  });
+});
+
+describe("Apis unsaved API switching", () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+    document.body.innerHTML = "";
+  });
+
+  test("keeps the draft and selection when switching APIs is cancelled", async () => {
+    const selectedApi = createApi();
+    const otherApi = createApi({
+      apiSlug: "Other",
+      apiName: "Other",
+      url: "https://other.example/v1",
+    });
+    const view = await renderApis([selectedApi, otherApi]);
+    const urlInput = await editUrlDraft(view.container);
+    mockConfirm.mockResolvedValueOnce(false);
+
+    await act(async () => {
+      Simulate.click(getApiListItem(view.container, otherApi.apiName));
+      await Promise.resolve();
+    });
+
+    expect(mockConfirm).toHaveBeenCalledWith({
+      message: "This API has unsaved changes. Discard them?",
+      confirmText: "discard_changes",
+      cancelText: "cancel",
+    });
+    expect(urlInput.value).toBe("https://draft.example/v1");
+    expect(getInput(view.container, "apiName").value).toBe(selectedApi.apiName);
+
+    view.unmount();
+  });
+
+  test("switches clean APIs without confirmation", async () => {
+    const otherApi = createApi({
+      apiSlug: "Other",
+      apiName: "Other",
+      url: "https://other.example/v1",
+    });
+    const view = await renderApis([createApi(), otherApi]);
+
+    await act(async () => {
+      Simulate.click(getApiListItem(view.container, otherApi.apiName));
+      await Promise.resolve();
+    });
+
+    expect(mockConfirm).not.toHaveBeenCalled();
+    expect(getInput(view.container, "url").value).toBe(otherApi.url);
+
+    view.unmount();
+  });
+
+  test("switches APIs after the draft is deliberately discarded", async () => {
+    const selectedApi = createApi();
+    const otherApi = createApi({
+      apiSlug: "Other",
+      apiName: "Other",
+      url: "https://other.example/v1",
+    });
+    const view = await renderApis([selectedApi, otherApi]);
+    await editUrlDraft(view.container);
+    mockConfirm.mockResolvedValueOnce(true);
+
+    await act(async () => {
+      Simulate.click(getApiListItem(view.container, otherApi.apiName));
+      await Promise.resolve();
+    });
+
+    expect(getInput(view.container, "url").value).toBe(otherApi.url);
+    expect(getInput(view.container, "apiName").value).toBe(otherApi.apiName);
+
+    view.unmount();
+  });
+
+  test("keeps a local draft when the same API is refreshed with a new object", async () => {
+    const selectedApi = createApi();
+    const view = await renderApis(selectedApi);
+    const urlInput = await editUrlDraft(view.container);
+
+    await view.rerender([{ ...selectedApi }]);
+
+    expect(urlInput.value).toBe("https://draft.example/v1");
+    expect(getSaveButton(view.container).disabled).toBe(false);
+
+    view.unmount();
+  });
+
+  test("cancels alphabetical sorting without discarding the current draft", async () => {
+    const view = await renderApis([
+      createApi({ apiSlug: "charlie", apiName: "Charlie", sortOrder: 0 }),
+      createApi({ apiSlug: "alpha", apiName: "Alpha", sortOrder: 1 }),
+    ]);
+    const urlInput = await editUrlDraft(view.container);
+    mockConfirm.mockResolvedValueOnce(false);
+
+    await act(async () => {
+      Simulate.click(view.container.querySelector("#api-sort-button"));
+    });
+    const ascendingItem = Array.from(
+      document.body.querySelectorAll('[role="menuitemradio"]')
+    ).find((item) => item.textContent.trim() === "A–Z");
+    await act(async () => {
+      Simulate.click(ascendingItem);
+      await Promise.resolve();
+    });
+
+    expect(view.apiListValue.alphaSortApis).not.toHaveBeenCalled();
+    expect(urlInput.value).toBe("https://draft.example/v1");
+
+    view.unmount();
+  });
+
+  test("treats the already active sort direction as a no-op", async () => {
+    const view = await renderApis([
+      createApi({ apiSlug: "alpha", apiName: "Alpha", sortOrder: 0 }),
+      createApi({ apiSlug: "beta", apiName: "Beta", sortOrder: 1 }),
+    ]);
+    const urlInput = await editUrlDraft(view.container);
+
+    await act(async () => {
+      Simulate.click(view.container.querySelector("#api-sort-button"));
+    });
+    const ascendingItem = Array.from(
+      document.body.querySelectorAll('[role="menuitemradio"]')
+    ).find((item) => item.textContent.trim() === "A–Z");
+    await act(async () => {
+      Simulate.click(ascendingItem);
+      await Promise.resolve();
+    });
+
+    expect(mockConfirm).not.toHaveBeenCalled();
+    expect(view.apiListValue.alphaSortApis).not.toHaveBeenCalled();
+    expect(urlInput.value).toBe("https://draft.example/v1");
+
+    view.unmount();
+  });
+
+  test("sorts after the current draft is deliberately discarded", async () => {
+    const selectedApi = createApi({
+      apiSlug: "charlie",
+      apiName: "Charlie",
+      sortOrder: 0,
+    });
+    const view = await renderApis([
+      selectedApi,
+      createApi({ apiSlug: "alpha", apiName: "Alpha", sortOrder: 1 }),
+    ]);
+    await editUrlDraft(view.container);
+    mockConfirm.mockResolvedValueOnce(true);
+
+    await act(async () => {
+      Simulate.click(view.container.querySelector("#api-sort-button"));
+    });
+    const ascendingItem = Array.from(
+      document.body.querySelectorAll('[role="menuitemradio"]')
+    ).find((item) => item.textContent.trim() === "A–Z");
+    await act(async () => {
+      Simulate.click(ascendingItem);
+      await Promise.resolve();
+    });
+
+    expect(view.apiListValue.alphaSortApis).toHaveBeenCalledWith("asc");
+    expect(getInput(view.container, "url").value).toBe(selectedApi.url);
+    expect(getSaveButton(view.container).disabled).toBe(true);
+
+    view.unmount();
+  });
+
+  test("cancels drag reordering without discarding the current draft", async () => {
+    const selectedApi = createApi({
+      apiSlug: "alpha",
+      apiName: "Alpha",
+      sortOrder: 0,
+    });
+    const otherApi = createApi({
+      apiSlug: "beta",
+      apiName: "Beta",
+      sortOrder: 1,
+    });
+    const view = await renderApis([selectedApi, otherApi]);
+    const urlInput = await editUrlDraft(view.container);
+    mockConfirm.mockResolvedValueOnce(false);
+    const selectedCard = getApiListItem(view.container, "Alpha");
+    const otherCard = getApiListItem(view.container, "Beta");
+    const dataTransfer = {
+      effectAllowed: "",
+      dropEffect: "",
+      getData: jest.fn(() => "alpha"),
+      setData: jest.fn(),
+    };
+
+    await act(async () => {
+      Simulate.dragStart(selectedCard.querySelector('[draggable="true"]'), {
+        dataTransfer,
+      });
+      Simulate.dragOver(otherCard.closest("li"), { dataTransfer });
+      Simulate.drop(otherCard.closest("li"), { dataTransfer });
+      await Promise.resolve();
+    });
+
+    expect(view.apiListValue.reorderApis).not.toHaveBeenCalled();
+    expect(urlInput.value).toBe("https://draft.example/v1");
+
+    view.unmount();
+  });
+
+  test("restores the persisted form before resetting an edited API", async () => {
+    const selectedApi = createApi();
+    const view = await renderApis(selectedApi);
+    await editUrlDraft(view.container);
+    const actionsButton = view.container.querySelector(
+      '[id^="api-detail-actions-button-"]'
+    );
+
+    await act(async () => Simulate.click(actionsButton));
+    const resetItem = Array.from(
+      document.body.querySelectorAll('[role="menuitem"]')
+    ).find((item) => item.textContent === "restore_default");
+    await act(async () => Simulate.click(resetItem));
+
+    expect(view.reset).toHaveBeenCalledTimes(1);
+    expect(getInput(view.container, "url").value).toBe(selectedApi.url);
+    expect(getSaveButton(view.container).disabled).toBe(true);
 
     view.unmount();
   });

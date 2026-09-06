@@ -32,15 +32,79 @@ import { usePromptList } from "../../hooks/Prompt";
 import ValidationInput from "../../hooks/ValidationInput";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { normalizeSubtitleMode } from "../../subtitle/modes";
+import {
+  SettingsAdvanced,
+  SettingsCard,
+  SettingsRow,
+  SettingsSection,
+  SettingsSegmented,
+  SettingsSelect,
+  SettingsSwitch,
+} from "./SettingsCard";
+
+/**
+ * Split CSS at declaration boundaries.
+ *
+ * Semicolons inside strings, parentheses, or comments are part of the value.
+ * Preserve them so editing a style slider cannot truncate values such as
+ * `url("data:image/svg+xml;utf8,...")` when saving the updated declarations.
+ *
+ * @param {string} cssString CSS source.
+ * @returns {string[]} Declarations with their original whitespace and comments.
+ */
+const splitCssDeclarations = (cssString) => {
+  const parts = [];
+  let buffer = "";
+  let depth = 0;
+  let quote = null;
+  let inComment = false;
+
+  for (let i = 0; i < cssString.length; i++) {
+    const char = cssString[i];
+
+    if (inComment) {
+      buffer += char;
+      if (char === "/" && cssString[i - 1] === "*") inComment = false;
+      continue;
+    }
+    if (quote) {
+      buffer += char;
+      if (char === quote) quote = null;
+      continue;
+    }
+    if (char === "/" && cssString[i + 1] === "*") {
+      inComment = true;
+      buffer += char;
+      continue;
+    }
+    if (char === '"' || char === "'") {
+      quote = char;
+      buffer += char;
+      continue;
+    }
+    if (char === "(") depth++;
+    else if (char === ")") depth = Math.max(0, depth - 1);
+
+    if (char === ";" && depth === 0) {
+      parts.push(buffer);
+      buffer = "";
+      continue;
+    }
+    buffer += char;
+  }
+
+  parts.push(buffer);
+  return parts;
+};
 
 /**
  * 将 CSS 字符串解析成键值对 JavaScript 对象
  */
-const parseCssToObject = (cssString) => {
+export const parseCssToObject = (cssString) => {
   const result = {};
   if (!cssString) return result;
 
-  const properties = cssString.split(";").filter((p) => p.trim());
+  const properties = splitCssDeclarations(cssString).filter((p) => p.trim());
   properties.forEach((prop) => {
     const colonIndex = prop.indexOf(":");
     if (colonIndex > 0) {
@@ -55,7 +119,7 @@ const parseCssToObject = (cssString) => {
 /**
  * 将 JavaScript CSS 样式对象转换回标准 CSS 字符串
  */
-const objectToCss = (obj) => {
+export const objectToCss = (obj) => {
   const entries = Object.entries(obj).filter(
     ([, value]) => value !== undefined && value !== ""
   );
@@ -239,7 +303,7 @@ function SubtitleStylePreview({
       <Box
         sx={{
           bgcolor: "#ffffff",
-          borderRadius: 1,
+          borderRadius: "12px",
           border: "1px solid",
           borderColor: "divider",
           overflow: "hidden",
@@ -404,10 +468,16 @@ export default function SubtitleSetting() {
   const transCssRef = useRef(parseCssToObject(localTransStyle));
   const windowCssRef = useRef(parseCssToObject(localWindowStyle));
 
-  // 组件卸载时销毁所有动画帧与防抖定时器
+  // Cancel animation frames and flush pending debounced writes on unmount.
   useEffect(() => {
     return () => {
-      Object.values(debounceTimers.current).forEach(clearTimeout);
+      // Flush the pending write because these controls have no onChangeCommitted.
+      // The debounce is the only persistence path for style edits.
+      // Clearing the timer would lose edits when navigating away after dragging.
+      Object.values(debounceTimers.current).forEach((pending) => {
+        clearTimeout(pending.timer);
+        pending.flush();
+      });
       debounceTimers.current = {};
       Object.values(rafIds.current).forEach(
         (id) => id && cancelAnimationFrame(id)
@@ -419,12 +489,18 @@ export default function SubtitleSetting() {
   // 防抖保存最终 CSS 样式至 Chrome 扩展的持久存储中，避免拖动滑块时高频读写造成卡顿
   const debouncedUpdate = useCallback(
     (name, value) => {
-      if (debounceTimers.current[name]) {
-        clearTimeout(debounceTimers.current[name]);
+      const pending = debounceTimers.current[name];
+      if (pending) {
+        clearTimeout(pending.timer);
       }
-      debounceTimers.current[name] = setTimeout(() => {
+      const flush = () => {
+        delete debounceTimers.current[name];
         updateSubtitle({ [name]: value });
-      }, 200);
+      };
+      debounceTimers.current[name] = {
+        flush,
+        timer: setTimeout(flush, 200),
+      };
     },
     [updateSubtitle]
   );
@@ -542,6 +618,7 @@ export default function SubtitleSetting() {
             </Typography>
             <Slider
               size="small"
+              aria-label={`${label} ${i18n("font_size") || "Font size"}`}
               value={fontSize.preferred}
               min={0.5}
               max={5}
@@ -576,15 +653,27 @@ export default function SubtitleSetting() {
             <Box
               component="input"
               type="color"
+              aria-label={`${label} ${i18n("font_color") || "Font color"}`}
               value={colorToHex(cssObj["color"])}
               onChange={(e) => updateCss("color", e.target.value)}
               sx={{
-                width: 28,
-                height: 28,
-                border: "none",
+                width: 48,
+                height: 48,
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: "8px",
                 cursor: "pointer",
                 p: 0,
                 bgcolor: "transparent",
+                "&::-webkit-color-swatch-wrapper": { p: "3px" },
+                "&::-webkit-color-swatch": {
+                  border: 0,
+                  borderRadius: "6px",
+                },
+                "&::-moz-color-swatch": {
+                  border: 0,
+                  borderRadius: "6px",
+                },
               }}
             />
             <TextField
@@ -592,6 +681,9 @@ export default function SubtitleSetting() {
               value={cssObj["color"] || ""}
               onChange={(e) => updateCss("color", e.target.value)}
               placeholder="#ffffff"
+              inputProps={{
+                "aria-label": `${label} ${i18n("font_color") || "Font color"}`,
+              }}
               sx={{ flex: 1 }}
             />
           </Box>
@@ -613,68 +705,77 @@ export default function SubtitleSetting() {
           {i18n("subtitle_helper_3")}
         </Alert>
 
-        {/* 开关：是否在支持的视频网站上加载双语字幕翻译逻辑 */}
-        <FormControlLabel
-          control={
-            <Switch
-              size="small"
-              name="enabled"
-              checked={enabled}
-              onChange={() => {
-                updateSubtitle({ enabled: !enabled });
-              }}
-            />
-          }
-          label={i18n("toggle_subtitle_translate")}
-          sx={{ width: "fit-content" }}
-        />
-
-        {/* 字幕分句分词策略、翻译引擎、超前预翻译等参数配置网格区域 */}
-        <Box>
-          <Grid container spacing={2} columns={12}>
-            {/* 是否在获取字幕后立即启动翻译 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
-                select
-                fullWidth
-                size="small"
-                name="autoTranslate"
-                value={autoTranslate}
-                label={i18n("default_subtitle_translate")}
-                onChange={handleChange}
+        <SettingsSection>
+          <SettingsCard>
+            <SettingsRow label={i18n("toggle_subtitle_translate")}>
+              <SettingsSwitch
+                checked={enabled}
+                label={i18n("toggle_subtitle_translate")}
+                onChange={(checked) => updateSubtitle({ enabled: checked })}
+              />
+            </SettingsRow>
+            <SettingsRow
+              label={i18n("settings_subtitle_auto_start")}
+              description={i18n("settings_subtitle_auto_start_description")}
+            >
+              <SettingsSwitch
+                checked={autoTranslate}
                 disabled={!enabled}
-              >
-                <MenuItem value={false}>{i18n("disable")}</MenuItem>
-                <MenuItem value={true}>{i18n("enable")}</MenuItem>
-              </TextField>
-            </Grid>
-            {/* 字幕翻译首选的翻译引擎服务商 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
-                select
-                fullWidth
-                size="small"
-                name="apiSlug"
+                label={i18n("settings_subtitle_auto_start")}
+                onChange={(checked) =>
+                  updateSubtitle({ autoTranslate: checked })
+                }
+              />
+            </SettingsRow>
+            <SettingsRow label={i18n("is_bilingual_view")}>
+              <SettingsSwitch
+                checked={isBilingual}
+                label={i18n("is_bilingual_view")}
+                onChange={(checked) => updateSubtitle({ isBilingual: checked })}
+              />
+            </SettingsRow>
+            <SettingsRow label={i18n("trans_order")}>
+              <SettingsSegmented
+                value={displayOrder}
+                label={i18n("trans_order")}
+                onChange={(value) => updateSubtitle({ displayOrder: value })}
+                items={[
+                  { value: "original-first", label: i18n("original_first") },
+                  {
+                    value: "translation-first",
+                    label: i18n("translation_first"),
+                  },
+                ]}
+              />
+            </SettingsRow>
+          </SettingsCard>
+        </SettingsSection>
+
+        <SettingsSection title={i18n("settings_quality_group")}>
+          <SettingsCard>
+            <SettingsRow label={i18n("translate_service")}>
+              <SettingsSelect
                 value={apiSlug}
                 label={i18n("translate_service")}
-                onChange={handleChange}
-              >
-                {enabledApis.map((api) => (
-                  <MenuItem key={api.apiSlug} value={api.apiSlug}>
-                    {api.apiName}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-            {/* 字幕长句断句首选的大语言 AI 引擎服务商 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+                onChange={(value) => updateSubtitle({ apiSlug: value })}
+                options={enabledApis.map((api) => ({
+                  value: api.apiSlug,
+                  label: api.apiName,
+                }))}
+              />
+            </SettingsRow>
+            {/* Keep TextField so mismatched segmentation and translation
+                services retain their helper text and error state. */}
+            <SettingsRow label={i18n("ai_segmentation")}>
               <TextField
                 select
-                fullWidth
+                hiddenLabel
                 size="small"
+                variant="filled"
+                className="kt-settings-select"
                 name="segSlug"
                 value={segSlug}
-                label={i18n("ai_segmentation")}
+                inputProps={{ "aria-label": i18n("ai_segmentation") }}
                 onChange={handleChange}
                 helperText={
                   forceSubtitleRetranslate &&
@@ -695,9 +796,64 @@ export default function SubtitleSetting() {
                   </MenuItem>
                 ))}
               </TextField>
-            </Grid>
+            </SettingsRow>
+            <SettingsRow
+              label={i18n("is_skip_ad")}
+              description={i18n("settings_skip_ad_description")}
+            >
+              <SettingsSwitch
+                checked={skipAd}
+                label={i18n("is_skip_ad")}
+                onChange={(checked) => updateSubtitle({ skipAd: checked })}
+              />
+            </SettingsRow>
+          </SettingsCard>
+        </SettingsSection>
+
+        <SettingsSection title={i18n("settings_learning_group")}>
+          <SettingsCard>
+            <SettingsRow
+              label={i18n("is_blur_translation")}
+              description={i18n("settings_blur_translation_description")}
+            >
+              <SettingsSwitch
+                checked={blurTranslation}
+                label={i18n("is_blur_translation")}
+                onChange={(checked) =>
+                  updateSubtitle({ blurTranslation: checked })
+                }
+              />
+            </SettingsRow>
+            <SettingsRow label={i18n("subtitle_hover_lookup")}>
+              <SettingsSegmented
+                value={hoverLookupModeValue}
+                label={i18n("subtitle_hover_lookup")}
+                onChange={(value) => updateSubtitle({ hoverLookupMode: value })}
+                items={[
+                  { value: OPT_ENHANCE_ON, label: i18n("enable") },
+                  { value: OPT_ENHANCE_OFF, label: i18n("disable") },
+                  {
+                    value: OPT_ENHANCE_MOBILE_OFF,
+                    label: i18n("disable_on_mobile"),
+                  },
+                ]}
+              />
+            </SettingsRow>
+            <SettingsRow label={i18n("auto_fav_word")}>
+              <SettingsSwitch
+                checked={autoFavWord}
+                label={i18n("auto_fav_word")}
+                onChange={(checked) => updateSubtitle({ autoFavWord: checked })}
+              />
+            </SettingsRow>
+          </SettingsCard>
+        </SettingsSection>
+
+        {/* Advanced segmentation, tokenization, and pretranslation settings. */}
+        <SettingsAdvanced label={i18n("settings_detailed_controls")}>
+          <Grid container spacing={2} columns={12}>
             {segSlug !== "-" && (
-              <Grid item xs={12} sm={12} md={6} lg={3}>
+              <Grid item xs={12} sm={12} md={6} lg={6}>
                 <TextField
                   select
                   fullWidth
@@ -719,7 +875,7 @@ export default function SubtitleSetting() {
               </Grid>
             )}
             {/* AI 断句服务与翻译服务不同时，是否丢弃 AI 断句返回的译文并交给翻译服务重翻 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 fullWidth
                 select
@@ -734,7 +890,7 @@ export default function SubtitleSetting() {
               </TextField>
             </Grid>
             {/* 系统内置的轻量断句算法类型 (基于固定句尾符号断句，或统计学概率断句) */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 select
                 fullWidth
@@ -753,7 +909,7 @@ export default function SubtitleSetting() {
               </TextField>
             </Grid>
             {/* 字幕翻译是否使用 AI 增强上下文，并指定提供服务的 AI 引擎 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 select
                 fullWidth
@@ -772,7 +928,7 @@ export default function SubtitleSetting() {
               </TextField>
             </Grid>
             {/* 一批提交给 AI 进行断句的最长原始字幕文本长度阈值 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <ValidationInput
                 fullWidth
                 size="small"
@@ -786,7 +942,7 @@ export default function SubtitleSetting() {
               />
             </Grid>
             {/* 判定为长句并强行触发断句的句子最大长度限制 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <ValidationInput
                 fullWidth
                 size="small"
@@ -800,7 +956,7 @@ export default function SubtitleSetting() {
               />
             </Grid>
             {/* 视频拉取到字幕时，默认超前预翻译多少秒的后续字幕，以防视频播放时发生延迟查词 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <ValidationInput
                 fullWidth
                 size="small"
@@ -814,7 +970,7 @@ export default function SubtitleSetting() {
               />
             </Grid>
             {/* 避免短时间内视频拖拽和字幕块大量翻滚时发生高频网络请求的防抖限流间隔 (s) */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <ValidationInput
                 fullWidth
                 size="small"
@@ -828,7 +984,7 @@ export default function SubtitleSetting() {
               />
             </Grid>
             {/* 目标翻译出的双语字幕语言 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 fullWidth
                 select
@@ -846,104 +1002,8 @@ export default function SubtitleSetting() {
               </TextField>
             </Grid>
 
-            {/* 是否保留双语字幕 (若禁用则在视频窗口上仅显示翻译后的目标语字幕) */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
-                fullWidth
-                select
-                size="small"
-                name="isBilingual"
-                value={isBilingual}
-                label={i18n("is_bilingual_view")}
-                onChange={handleChange}
-              >
-                <MenuItem value={true}>{i18n("enable")}</MenuItem>
-                <MenuItem value={false}>{i18n("disable")}</MenuItem>
-              </TextField>
-            </Grid>
-            {/* 双语字幕在视频画面中的显示顺序 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
-                fullWidth
-                select
-                size="small"
-                name="displayOrder"
-                value={displayOrder}
-                label={i18n("trans_order")}
-                onChange={handleChange}
-              >
-                <MenuItem value={"original-first"}>
-                  {i18n("original_first")}
-                </MenuItem>
-                <MenuItem value={"translation-first"}>
-                  {i18n("translation_first")}
-                </MenuItem>
-              </TextField>
-            </Grid>
-            {/* 是否开启磨砂模糊译文字幕显示效果 (鼠标划过时才高亮看清译文，用于英语听力训练备考) */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
-                fullWidth
-                select
-                size="small"
-                name="blurTranslation"
-                value={blurTranslation}
-                label={i18n("is_blur_translation")}
-                onChange={handleChange}
-              >
-                <MenuItem value={true}>{i18n("enable")}</MenuItem>
-                <MenuItem value={false}>{i18n("disable")}</MenuItem>
-              </TextField>
-            </Grid>
-            {/* 视频插播商业广告时是否自动识别并跳过翻译网络请求 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
-                fullWidth
-                select
-                size="small"
-                name="skipAd"
-                value={skipAd}
-                label={i18n("is_skip_ad")}
-                onChange={handleChange}
-              >
-                <MenuItem value={true}>{i18n("enable")}</MenuItem>
-                <MenuItem value={false}>{i18n("disable")}</MenuItem>
-              </TextField>
-            </Grid>
-            {/* 鼠标悬停在视频窗口字幕单字词上时是否允许悬浮框划词查词解释 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
-                fullWidth
-                select
-                size="small"
-                name="hoverLookupMode"
-                value={hoverLookupModeValue}
-                label={i18n("subtitle_hover_lookup")}
-                onChange={handleChange}
-              >
-                <MenuItem value={OPT_ENHANCE_ON}>{i18n("enable")}</MenuItem>
-                <MenuItem value={OPT_ENHANCE_OFF}>{i18n("disable")}</MenuItem>
-                <MenuItem value={OPT_ENHANCE_MOBILE_OFF}>
-                  {i18n("disable_on_mobile")}
-                </MenuItem>
-              </TextField>
-            </Grid>
-            <Grid item xs={12} sm={12} md={6} lg={3}>
-              <TextField
-                fullWidth
-                select
-                size="small"
-                name="autoFavWord"
-                value={autoFavWord}
-                label={i18n("auto_fav_word")}
-                onChange={handleChange}
-              >
-                <MenuItem value={false}>{i18n("disable")}</MenuItem>
-                <MenuItem value={true}>{i18n("enable")}</MenuItem>
-              </TextField>
-            </Grid>
             {/* 视频侧边/下方的独立字幕全文滚动列表显示模式 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 fullWidth
                 select
@@ -961,7 +1021,7 @@ export default function SubtitleSetting() {
               </TextField>
             </Grid>
             {/* 网页加载完毕且成功识别到视频字幕流时，是否在右下角弹出载入成功的横幅提示 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 fullWidth
                 select
@@ -976,7 +1036,7 @@ export default function SubtitleSetting() {
               </TextField>
             </Grid>
             {/* 是否隐藏 YouTube 播放器控制栏中的 KT 字幕功能按钮 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 fullWidth
                 select
@@ -990,8 +1050,8 @@ export default function SubtitleSetting() {
                 <MenuItem value={false}>{i18n("disable")}</MenuItem>
               </TextField>
             </Grid>
-            {/* 是否记住字幕拖动后的相对位置并应用到后续视频 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            {/* Remember the dragged subtitle position for subsequent videos. */}
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 fullWidth
                 select
@@ -1006,263 +1066,293 @@ export default function SubtitleSetting() {
               </TextField>
             </Grid>
           </Grid>
-        </Box>
+        </SettingsAdvanced>
 
         {/* 字幕外观样式设计及预览器板块 */}
-        <Box
-          sx={{
-            border: "1px solid",
-            borderColor: "divider",
-            borderRadius: 1,
-            p: 2,
-          }}
-        >
-          <Stack spacing={2}>
-            {/* 字幕预览展示窗 */}
-            <SubtitleStylePreview
-              windowStyle={localWindowStyle}
-              originStyle={localOriginStyle}
-              translationStyle={localTransStyle}
-              displayOrder={displayOrder}
-            />
+        <SettingsSection title={i18n("settings_appearance_group")}>
+          <Box
+            sx={{
+              border: "1px solid",
+              borderColor: "divider",
+              borderRadius: "12px",
+              p: 2,
+            }}
+          >
+            <Stack spacing={2} useFlexGap>
+              {/* Subtitle preview. */}
+              <SubtitleStylePreview
+                windowStyle={localWindowStyle}
+                originStyle={localOriginStyle}
+                translationStyle={localTransStyle}
+                displayOrder={displayOrder}
+              />
 
-            <Divider />
+              <Divider />
 
-            {/* 字号与字体颜色修改 */}
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
-                {textStyleControls(
-                  i18n("origin_styles"),
-                  originFontSize,
-                  originCssObj,
-                  updateOriginCss
-                )}
+              {/* Font size and color controls. */}
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  {textStyleControls(
+                    i18n("origin_styles"),
+                    originFontSize,
+                    originCssObj,
+                    updateOriginCss
+                  )}
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  {textStyleControls(
+                    i18n("translation_styles"),
+                    transFontSize,
+                    transCssObj,
+                    updateTranslationCss
+                  )}
+                </Grid>
               </Grid>
-              <Grid item xs={12} sm={6}>
-                {textStyleControls(
-                  i18n("translation_styles"),
-                  transFontSize,
-                  transCssObj,
-                  updateTranslationCss
-                )}
-              </Grid>
-            </Grid>
 
-            <Divider />
+              <Divider />
 
-            {/* 字幕窗格背景样式控制区域 */}
-            <Box>
-              <Typography variant="subtitle2" gutterBottom>
-                {i18n("background_styles")}
-              </Typography>
-              <Grid container spacing={1.5} alignItems="center">
-                {/* 窗格背景底色与透明度滑动条 */}
-                <Grid item xs={12} sm={6}>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{ minWidth: 56, flexShrink: 0 }}
-                    >
-                      {i18n("background_color") || "背景颜色"}
-                    </Typography>
-                    <Box
-                      component="input"
-                      type="color"
-                      value={windowBgHex}
-                      onChange={(e) => {
-                        const rgb = hexToRgb(e.target.value);
-                        updateWindowCss(
-                          "background-color",
-                          `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${windowBgRgba.a})`
-                        );
-                      }}
-                      sx={{
-                        width: 28,
-                        height: 28,
-                        border: "none",
-                        cursor: "pointer",
-                        p: 0,
-                        bgcolor: "transparent",
-                      }}
-                    />
-                    <Typography variant="body2" sx={{ minWidth: 48 }}>
-                      {i18n("opacity") || "透明度"}
-                    </Typography>
-                    <Slider
-                      size="small"
-                      value={windowBgRgba.a}
-                      min={0}
-                      max={1}
-                      step={0.05}
-                      onChange={(e, val) => {
-                        updateWindowCss(
-                          "background-color",
-                          `rgba(${windowBgRgba.r}, ${windowBgRgba.g}, ${windowBgRgba.b}, ${val})`
-                        );
-                      }}
-                      sx={{ flex: 1 }}
-                    />
-                    <Typography
-                      variant="body2"
-                      sx={{ minWidth: 36, textAlign: "right" }}
-                    >
-                      {Math.round(windowBgRgba.a * 100)}%
-                    </Typography>
-                  </Box>
-                </Grid>
-                {/* 行高微调 Slider */}
-                <Grid item xs={12} sm={6}>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{ minWidth: 56, flexShrink: 0 }}
-                    >
-                      {i18n("line_height") || "行高"}
-                    </Typography>
-                    <Slider
-                      size="small"
-                      value={windowLineHeight}
-                      min={1}
-                      max={2.5}
-                      step={0.1}
-                      onChange={(e, val) =>
-                        updateWindowCss("line-height", String(val))
-                      }
-                      sx={{ flex: 1 }}
-                    />
-                    <Typography
-                      variant="body2"
-                      sx={{ minWidth: 28, textAlign: "right" }}
-                    >
-                      {windowLineHeight}
-                    </Typography>
-                  </Box>
-                </Grid>
-                {/* 上下与左右内边距微调 Slider */}
-                <Grid item xs={12} sm={6}>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{ minWidth: 56, flexShrink: 0 }}
-                    >
-                      {i18n("padding") || "内边距"}
-                    </Typography>
-                    <Typography variant="body2">
-                      {i18n("vertical") || "上下"}
-                    </Typography>
-                    <Slider
-                      size="small"
-                      value={windowPadding.vertical}
-                      min={0}
-                      max={2}
-                      step={0.1}
-                      onChange={(e, val) => {
-                        updateWindowCss(
-                          "padding",
-                          `${val}${windowPadding.unit} ${windowPadding.horizontal}${windowPadding.unit}`
-                        );
-                      }}
-                      sx={{ width: 80 }}
-                    />
-                    <Typography variant="body2">
-                      {i18n("horizontal") || "左右"}
-                    </Typography>
-                    <Slider
-                      size="small"
-                      value={windowPadding.horizontal}
-                      min={0}
-                      max={3}
-                      step={0.1}
-                      onChange={(e, val) => {
-                        updateWindowCss(
-                          "padding",
-                          `${windowPadding.vertical}${windowPadding.unit} ${val}${windowPadding.unit}`
-                        );
-                      }}
-                      sx={{ width: 80 }}
-                    />
-                  </Box>
-                </Grid>
-                {/* 字幕文字四周的阴影开关 */}
-                <Grid item xs={12} sm={6}>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        size="small"
-                        checked={windowHasTextShadow}
+              {/* Subtitle window background controls. */}
+              <Box>
+                <Typography variant="subtitle2" gutterBottom>
+                  {i18n("background_styles")}
+                </Typography>
+                <Grid container spacing={1.5} alignItems="center">
+                  {/* Background color and opacity controls. */}
+                  <Grid item xs={12} sm={6}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ minWidth: 56, flexShrink: 0 }}
+                      >
+                        {i18n("background_color") || "背景颜色"}
+                      </Typography>
+                      <Box
+                        component="input"
+                        type="color"
+                        aria-label={
+                          i18n("background_color") || "Background color"
+                        }
+                        value={windowBgHex}
                         onChange={(e) => {
-                          if (e.target.checked) {
-                            updateWindowCss("text-shadow", "1px 1px 2px black");
-                          } else {
-                            const newObj = { ...windowCssRef.current };
-                            delete newObj["text-shadow"];
-                            updateWindowCssDirect(objectToCss(newObj));
-                          }
+                          const rgb = hexToRgb(e.target.value);
+                          updateWindowCss(
+                            "background-color",
+                            `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${windowBgRgba.a})`
+                          );
+                        }}
+                        sx={{
+                          width: 48,
+                          height: 48,
+                          border: "1px solid",
+                          borderColor: "divider",
+                          borderRadius: "8px",
+                          cursor: "pointer",
+                          p: 0,
+                          bgcolor: "transparent",
+                          "&::-webkit-color-swatch-wrapper": { p: "3px" },
+                          "&::-webkit-color-swatch": {
+                            border: 0,
+                            borderRadius: "6px",
+                          },
+                          "&::-moz-color-swatch": {
+                            border: 0,
+                            borderRadius: "6px",
+                          },
                         }}
                       />
-                    }
-                    label={
-                      <Typography variant="body2">
-                        {i18n("text_shadow") || "文字阴影"}
+                      <Typography variant="body2" sx={{ minWidth: 48 }}>
+                        {i18n("opacity") || "透明度"}
                       </Typography>
-                    }
-                  />
+                      <Slider
+                        size="small"
+                        aria-label={i18n("opacity") || "Opacity"}
+                        value={windowBgRgba.a}
+                        min={0}
+                        max={1}
+                        step={0.05}
+                        onChange={(e, val) => {
+                          updateWindowCss(
+                            "background-color",
+                            `rgba(${windowBgRgba.r}, ${windowBgRgba.g}, ${windowBgRgba.b}, ${val})`
+                          );
+                        }}
+                        sx={{ flex: 1 }}
+                      />
+                      <Typography
+                        variant="body2"
+                        sx={{ minWidth: 36, textAlign: "right" }}
+                      >
+                        {Math.round(windowBgRgba.a * 100)}%
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  {/* Line height slider. */}
+                  <Grid item xs={12} sm={6}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ minWidth: 56, flexShrink: 0 }}
+                      >
+                        {i18n("line_height") || "行高"}
+                      </Typography>
+                      <Slider
+                        size="small"
+                        aria-label={i18n("line_height") || "Line height"}
+                        value={windowLineHeight}
+                        min={1}
+                        max={2.5}
+                        step={0.1}
+                        onChange={(e, val) =>
+                          updateWindowCss("line-height", String(val))
+                        }
+                        sx={{ flex: 1 }}
+                      />
+                      <Typography
+                        variant="body2"
+                        sx={{ minWidth: 28, textAlign: "right" }}
+                      >
+                        {windowLineHeight}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  {/* Vertical and horizontal padding sliders. */}
+                  <Grid item xs={12} sm={6}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                        gap: 2,
+                      }}
+                    >
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ minWidth: 56, flexShrink: 0 }}
+                      >
+                        {i18n("padding") || "内边距"}
+                      </Typography>
+                      <Typography variant="body2">
+                        {i18n("vertical") || "上下"}
+                      </Typography>
+                      <Slider
+                        size="small"
+                        aria-label={`${i18n("padding") || "Padding"} ${i18n("vertical") || "Vertical"}`}
+                        value={windowPadding.vertical}
+                        min={0}
+                        max={2}
+                        step={0.1}
+                        onChange={(e, val) => {
+                          updateWindowCss(
+                            "padding",
+                            `${val}${windowPadding.unit} ${windowPadding.horizontal}${windowPadding.unit}`
+                          );
+                        }}
+                        sx={{ width: 80, flex: "1 1 80px" }}
+                      />
+                      <Typography variant="body2">
+                        {i18n("horizontal") || "左右"}
+                      </Typography>
+                      <Slider
+                        size="small"
+                        aria-label={`${i18n("padding") || "Padding"} ${i18n("horizontal") || "Horizontal"}`}
+                        value={windowPadding.horizontal}
+                        min={0}
+                        max={3}
+                        step={0.1}
+                        onChange={(e, val) => {
+                          updateWindowCss(
+                            "padding",
+                            `${windowPadding.vertical}${windowPadding.unit} ${val}${windowPadding.unit}`
+                          );
+                        }}
+                        sx={{ width: 80, flex: "1 1 80px" }}
+                      />
+                    </Box>
+                  </Grid>
+                  {/* Subtitle text shadow toggle. */}
+                  <Grid item xs={12} sm={6}>
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          size="small"
+                          checked={windowHasTextShadow}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              updateWindowCss(
+                                "text-shadow",
+                                "1px 1px 2px black"
+                              );
+                            } else {
+                              const newObj = { ...windowCssRef.current };
+                              delete newObj["text-shadow"];
+                              updateWindowCssDirect(objectToCss(newObj));
+                            }
+                          }}
+                        />
+                      }
+                      label={
+                        <Typography variant="body2">
+                          {i18n("text_shadow") || "文字阴影"}
+                        </Typography>
+                      }
+                    />
+                  </Grid>
                 </Grid>
-              </Grid>
-            </Box>
+              </Box>
 
-            {/* 折叠的高级 CSS 源码编辑器面板 (可自由手写额外的样式规则覆盖视频字幕的外观) */}
-            <Accordion
-              sx={{ boxShadow: "none", "&:before": { display: "none" } }}
-            >
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography variant="body2" color="text.secondary">
-                  {i18n("advanced_css") || "高级 CSS 编辑"}
-                </Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} sm={4}>
-                    <CodeField
-                      size="small"
-                      label={i18n("origin_styles")}
-                      name="originStyle"
-                      value={originStyle}
-                      onChange={handleChange}
-                      maxRows={10}
-                      fullWidth
-                    />
+              {/* Advanced CSS editor for overriding the subtitle appearance. */}
+              <Accordion
+                sx={{ boxShadow: "none", "&:before": { display: "none" } }}
+              >
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Typography variant="body2" color="text.secondary">
+                    {i18n("advanced_css") || "高级 CSS 编辑"}
+                  </Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={4}>
+                      <CodeField
+                        size="small"
+                        label={i18n("origin_styles")}
+                        name="originStyle"
+                        value={originStyle}
+                        onChange={handleChange}
+                        maxRows={10}
+                        fullWidth
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <CodeField
+                        size="small"
+                        label={i18n("translation_styles")}
+                        name="translationStyle"
+                        value={translationStyle}
+                        onChange={handleChange}
+                        maxRows={10}
+                        fullWidth
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <CodeField
+                        size="small"
+                        label={i18n("background_styles")}
+                        name="windowStyle"
+                        value={windowStyle}
+                        onChange={handleChange}
+                        maxRows={10}
+                        fullWidth
+                      />
+                    </Grid>
                   </Grid>
-                  <Grid item xs={12} sm={4}>
-                    <CodeField
-                      size="small"
-                      label={i18n("translation_styles")}
-                      name="translationStyle"
-                      value={translationStyle}
-                      onChange={handleChange}
-                      maxRows={10}
-                      fullWidth
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={4}>
-                    <CodeField
-                      size="small"
-                      label={i18n("background_styles")}
-                      name="windowStyle"
-                      value={windowStyle}
-                      onChange={handleChange}
-                      maxRows={10}
-                      fullWidth
-                    />
-                  </Grid>
-                </Grid>
-              </AccordionDetails>
-            </Accordion>
-          </Stack>
-        </Box>
+                </AccordionDetails>
+              </Accordion>
+            </Stack>
+          </Box>
+        </SettingsSection>
       </Stack>
     </Box>
   );
