@@ -77,7 +77,10 @@ const splitCssDeclarations = (cssString) => {
     }
     if (inComment) {
       buffer += char;
-      if (char === "/" && cssString[i - 1] === "*") inComment = false;
+      if (char === "*" && cssString[i + 1] === "/") {
+        buffer += cssString[++i];
+        inComment = false;
+      }
       continue;
     }
     if (quote) {
@@ -122,7 +125,9 @@ const splitCssDeclarations = (cssString) => {
     if (char === "/" && cssString[i + 1] === "*") {
       inComment = true;
       name = "";
-      buffer += char;
+      // The opening star cannot also terminate the comment.
+      buffer += "/*";
+      i += 1;
       continue;
     }
     if (char === '"' || char === "'") {

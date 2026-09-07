@@ -266,16 +266,18 @@ export const OPTIONS_STYLES = String.raw`
 .kt-sync-method__description { color: var(--kt-onv); font-size: 10.5px; line-height: 1.4; transition: color .3s ease, opacity .3s ease; }
 .kt-sync-method[aria-checked="true"] .kt-sync-method__description { color: inherit; opacity: .72; }
 .kt-word-card { margin-bottom: 9px !important; }
+.kt-word-card .MuiAccordionSummary-content { min-width: 0; }
 .kt-word-toolbar { padding: 10px 12px; border-radius: 12px; background: var(--kt-sf1); }
 .kt-word-export-more { display: flex; flex-wrap: wrap; gap: 8px; margin-top: -14px; padding: 12px; border: 1px solid var(--kt-linev); border-radius: 12px; background: var(--kt-sf0); animation: kt-m3-rise .3s var(--kt-spring); }
-.kt-word-card__summary { min-width: 0; display: flex; flex: 1; align-items: center; gap: 10px; }
-.kt-word-card__copy { min-width: 0; flex: 1; }
-.kt-word-card__word-row { min-width: 0; display: flex; align-items: center; gap: 8px; }
-.kt-word-card__word-row > strong { min-width: 0; overflow: hidden; font-size: 15px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
-.kt-word-card__word-row > span { color: var(--kt-onv); font-family: ui-monospace, monospace; font-size: 10.5px; }
+.kt-word-card__summary { min-width: 0; display: flex; flex: 1; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.kt-word-card__copy { min-width: 0; flex: 1 1 180px; }
+.kt-word-card__word-row { min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.kt-word-card__word-row > strong { min-width: 0; max-width: 100%; overflow: hidden; font-size: 15px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.kt-word-card.Mui-expanded .kt-word-card__word-row > strong { overflow: visible; text-overflow: clip; white-space: normal; overflow-wrap: anywhere; }
+.kt-word-card__word-row > span { min-width: 0; max-width: 100%; color: var(--kt-onv); font-family: ui-monospace, monospace; font-size: 10.5px; overflow-wrap: anywhere; }
 .kt-word-card__word-row > em { padding: 2px 7px; border-radius: 999px; background: var(--kt-terc); color: var(--kt-onterc); font-size: 9.5px; font-style: normal; font-weight: 700; }
 .kt-word-card__copy > small { max-width: 540px; display: block; margin-top: 4px; overflow: hidden; color: var(--kt-onv); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
-.kt-word-card__summary > time { flex: none; color: var(--kt-onv); font-family: ui-monospace, monospace; font-size: 10px; }
+.kt-word-card__summary > time { max-width: 100%; flex: none; color: var(--kt-onv); font-family: ui-monospace, monospace; font-size: 10px; overflow-wrap: anywhere; }
 .kt-word-empty { min-height: 220px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 28px; border: 1px dashed var(--kt-linev); border-radius: 16px; background: var(--kt-sf1); color: var(--kt-onv); text-align: center; }
 .kt-word-empty svg { width: 34px; height: 34px; color: var(--kt-pri); }
 .kt-word-empty strong { color: var(--kt-on); font-size: 14px; }

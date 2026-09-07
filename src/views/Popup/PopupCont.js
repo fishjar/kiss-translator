@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import AutorenewRoundedIcon from "@mui/icons-material/AutorenewRounded";
 import DeleteSweepRoundedIcon from "@mui/icons-material/DeleteSweepRounded";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
@@ -92,6 +99,7 @@ export default function PopupCont({
   const busyTimerRef = useRef(null);
   const translationTogglePendingRef = useRef(false);
   const snackbarSequenceRef = useRef(0);
+  const ruleRef = useRef(rule);
   const { allTextStyles } = useAllTextStyles();
   const primaryPopupTextStyles = useMemo(
     () => resolvePopupTextStyles(allTextStyles, rule?.textStyle, false),
@@ -123,6 +131,10 @@ export default function PopupCont({
     },
     []
   );
+
+  useLayoutEffect(() => {
+    ruleRef.current = rule;
+  }, [rule]);
 
   const blacklistValue = contextSetting?.blacklist || "";
   const isInCurrentBlacklist = useMemo(() => {
@@ -156,17 +168,19 @@ export default function PopupCont({
     showMessage(`${i18n("remove_from_blacklist")}: ${selectedDomain}`);
   }, [blacklistValue, i18n, selectedDomain, showMessage, updateSetting]);
 
-  const putRuleValue = useCallback(
-    async (name, value) => {
-      setRule((previous) => ({ ...previous, [name]: value }));
+  const putRuleValues = useCallback(
+    async (values) => {
+      // Keep consecutive actions current even before React commits their updates.
+      ruleRef.current = { ...ruleRef.current, ...values };
+      setRule((previous) => ({ ...previous, ...values }));
       try {
         if (processActions) {
           processActions({
             action: MSG_TRANS_PUTRULE,
-            args: { [name]: value },
+            args: values,
           });
         } else {
-          await sendTabMsg(MSG_TRANS_PUTRULE, { [name]: value });
+          await sendTabMsg(MSG_TRANS_PUTRULE, values);
         }
       } catch (error) {
         kissLog("update rule", error);
@@ -174,6 +188,16 @@ export default function PopupCont({
     },
     [processActions, setRule]
   );
+
+  const putRuleValue = useCallback(
+    (name, value) => putRuleValues({ [name]: value }),
+    [putRuleValues]
+  );
+
+  const handleSwapLanguages = useCallback(() => {
+    const { fromLang, toLang } = ruleRef.current;
+    void putRuleValues({ fromLang: toLang, toLang: fromLang });
+  }, [putRuleValues]);
 
   const handleTransToggle = useCallback(
     async (enabled) => {
@@ -463,10 +487,7 @@ export default function PopupCont({
           className="kt-popup-swap"
           disabled={isAutoSource}
           title={i18n("swap_languages")}
-          onClick={async () => {
-            await putRuleValue("fromLang", toLang);
-            await putRuleValue("toLang", fromLang);
-          }}
+          onClick={handleSwapLanguages}
         >
           <SwapHorizRoundedIcon />
         </IconButton>

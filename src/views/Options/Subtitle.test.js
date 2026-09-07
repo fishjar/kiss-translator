@@ -185,6 +185,31 @@ describe("Subtitle style persistence", () => {
     view.unmount();
   });
 
+  test.each(["/*/ ( */", '/*/ " */'])(
+    "preserves sibling styles when changing font size after %s",
+    (comment) => {
+      jest.useFakeTimers();
+      const view = renderSubtitle({
+        originStyle: `font-size: 2rem ${comment}; color: red; text-shadow: 1px 1px black;`,
+      });
+      const slider = view.container.querySelector(
+        'input[aria-label="origin_styles font_size"]'
+      );
+
+      setSliderValue(slider, 2.1);
+      act(() => {
+        jest.advanceTimersByTime(200);
+      });
+
+      expect(view.updateSubtitle).toHaveBeenCalledTimes(1);
+      expect(view.updateSubtitle).toHaveBeenCalledWith({
+        originStyle:
+          "font-size: clamp(1.05rem, 2.1cqw, 3.15rem);\ncolor: red;\ntext-shadow: 1px 1px black;",
+      });
+      view.unmount();
+    }
+  );
+
   test.each([
     ["an escaped opening parenthesis", "font-family", String.raw`Font\(`],
     ["an escaped quote", "font-family", String.raw`Font\"`],

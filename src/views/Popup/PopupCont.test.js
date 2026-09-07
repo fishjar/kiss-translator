@@ -1,11 +1,12 @@
 /* eslint-disable testing-library/no-container, testing-library/no-unnecessary-act */
-import { act } from "react";
+import { act, StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
 import PopupCont from "./PopupCont";
 import { getVisibleServices } from "./services";
 import {
   MSG_MOUSEHOVER_TOGGLE,
   MSG_TRANS_GETRULE,
+  MSG_TRANS_PUTRULE,
   MSG_TRANS_TOGGLE,
   MSG_TRANSBOX_TOGGLE,
 } from "../../config";
@@ -78,7 +79,7 @@ async function flushEffects() {
   });
 }
 
-function renderPopupCont(props = {}) {
+function renderPopupCont(props = {}, { statefulRule = false } = {}) {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
@@ -108,16 +109,31 @@ function renderPopupCont(props = {}) {
     isPlainText: false,
   };
 
+  const popupProps = {
+    rule,
+    setting,
+    setRule: jest.fn(),
+    setSetting: jest.fn(),
+    handleOpenSetting: jest.fn(),
+    ...props,
+  };
+
+  function StatefulPopup() {
+    const [currentRule, setCurrentRule] = useState({ ...rule, ...props.rule });
+    return (
+      <PopupCont {...popupProps} rule={currentRule} setRule={setCurrentRule} />
+    );
+  }
+
   act(() => {
     root.render(
-      <PopupCont
-        rule={rule}
-        setting={setting}
-        setRule={jest.fn()}
-        setSetting={jest.fn()}
-        handleOpenSetting={jest.fn()}
-        {...props}
-      />
+      statefulRule ? (
+        <StrictMode>
+          <StatefulPopup />
+        </StrictMode>
+      ) : (
+        <PopupCont {...popupProps} />
+      )
     );
   });
 
@@ -146,6 +162,92 @@ describe("PopupCont capability parity", () => {
   afterEach(() => {
     jest.useRealTimers();
     document.body.innerHTML = "";
+  });
+
+  test("swaps both languages atomically while earlier tab messages are pending", async () => {
+    const pendingReplies = [];
+    mockSendTabMsg.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          pendingReplies.push(resolve);
+        })
+    );
+    const view = renderPopupCont(
+      { rule: { fromLang: "en", toLang: "fr" } },
+      { statefulRule: true }
+    );
+    await flushEffects();
+    const swap = view.container.querySelector(".kt-popup-swap");
+    const languages = () =>
+      Array.from(
+        view.container.querySelectorAll(".kt-popup-language-select input")
+      ).map((input) => input.value);
+
+    expect(languages()).toEqual(["en", "fr"]);
+    act(() => swap.click());
+    expect(languages()).toEqual(["fr", "en"]);
+    expect(mockSendTabMsg).toHaveBeenCalledTimes(1);
+    expect(mockSendTabMsg).toHaveBeenNthCalledWith(1, MSG_TRANS_PUTRULE, {
+      fromLang: "fr",
+      toLang: "en",
+    });
+
+    act(() => swap.click());
+    expect(languages()).toEqual(["en", "fr"]);
+    expect(mockSendTabMsg).toHaveBeenCalledTimes(2);
+    expect(mockSendTabMsg).toHaveBeenNthCalledWith(2, MSG_TRANS_PUTRULE, {
+      fromLang: "en",
+      toLang: "fr",
+    });
+
+    await act(async () => {
+      pendingReplies[1]({ rule: { fromLang: "en", toLang: "fr" } });
+      await Promise.resolve();
+      pendingReplies[0]({ rule: { fromLang: "fr", toLang: "en" } });
+      await Promise.resolve();
+    });
+    expect(languages()).toEqual(["en", "fr"]);
+    expect(mockSendTabMsg).toHaveBeenCalledTimes(2);
+    view.cleanup();
+  });
+
+  test("keeps consecutive content swaps current and preserves single-field actions", async () => {
+    const processActions = jest.fn();
+    const view = renderPopupCont(
+      { rule: { fromLang: "en", toLang: "fr" }, processActions },
+      { statefulRule: true }
+    );
+    await flushEffects();
+    const swap = view.container.querySelector(".kt-popup-swap");
+
+    act(() => {
+      swap.click();
+      swap.click();
+    });
+
+    expect(processActions).toHaveBeenCalledTimes(2);
+    expect(processActions).toHaveBeenNthCalledWith(1, {
+      action: MSG_TRANS_PUTRULE,
+      args: { fromLang: "fr", toLang: "en" },
+    });
+    expect(processActions).toHaveBeenNthCalledWith(2, {
+      action: MSG_TRANS_PUTRULE,
+      args: { fromLang: "en", toLang: "fr" },
+    });
+    expect(
+      Array.from(
+        view.container.querySelectorAll(".kt-popup-language-select input")
+      ).map((input) => input.value)
+    ).toEqual(["en", "fr"]);
+
+    act(() => view.container.querySelector(".kt-popup-service").click());
+    expect(processActions).toHaveBeenCalledTimes(3);
+    expect(processActions).toHaveBeenLastCalledWith({
+      action: MSG_TRANS_PUTRULE,
+      args: { apiSlug: "google" },
+    });
+    expect(mockSendTabMsg).not.toHaveBeenCalled();
+    view.cleanup();
   });
 
   test("keeps the active style visible and expands to every style", async () => {
