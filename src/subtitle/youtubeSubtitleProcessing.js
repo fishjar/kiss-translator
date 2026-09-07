@@ -7,6 +7,8 @@ import { logger } from "../libs/log.js";
 import { intelligentSentenceBreak } from "./sentenceBreaker.js";
 import { isNonSpeechSegment } from "./subtitleTextClassification.js";
 
+const NO_SPACE_LANGUAGES = ["zh", "ja", "ko", "th", "lo", "km", "my"];
+
 /**
  * YouTube 字幕文本处理层。
  * 只负责语言映射、timedtext 事件清洗、展平、切块和内置断句，不发起 AI 请求，也不触碰页面 DOM。
@@ -85,12 +87,21 @@ function getTimedTextEventKey(event = {}) {
 const shouldRetainTimedTextEvent = (eventKey, lastVisibleEventKey) =>
   !eventKey || eventKey !== lastVisibleEventKey;
 
-function findNextEffectiveEventStart(sourceEvents, eventIndex, lastEventKey) {
+function findNextEffectiveEventStart(
+  sourceEvents,
+  eventIndex,
+  lastEventKey,
+  currentStart
+) {
   for (let index = eventIndex + 1; index < sourceEvents.length; index += 1) {
     const event = sourceEvents[index] || {};
     const eventKey = getTimedTextEventKey(event);
     if (!shouldRetainTimedTextEvent(eventKey, lastEventKey)) continue;
-    return Number(event.tStartMs);
+    lastEventKey = eventKey;
+    const eventStart = Number(event.tStartMs);
+    if (Number.isFinite(eventStart) && eventStart > currentStart) {
+      return eventStart;
+    }
   }
   return NaN;
 }
@@ -100,10 +111,14 @@ function findNextEffectiveEventStart(sourceEvents, eventIndex, lastEventKey) {
  * 原始输入不会被修改；统计断句读取 events，规则和 AI 断句读取已过滤非语音片段的 flatEvents。
  *
  * @param {Array<object>} [rawEvents=[]] YouTube 原始 json3 events。
+ * @param {string} [fromLang="auto"] 字幕源语言代码。
  * @returns {{events:Array<object>, flatEvents:Array<object>, filteredNonSpeechCount:number}}
  */
-export function prepareTimedTextEvents(rawEvents = []) {
+export function prepareTimedTextEvents(rawEvents = [], fromLang = "auto") {
   const sourceEvents = Array.isArray(rawEvents) ? rawEvents : [];
+  const canExpandCoarseText = !NO_SPACE_LANGUAGES.some((lang) =>
+    String(fromLang).startsWith(lang)
+  );
   const events = [];
   const flatEvents = [];
   let filteredNonSpeechCount = 0;
@@ -171,7 +186,8 @@ export function prepareTimedTextEvents(rawEvents = []) {
       const nextEventStart = findNextEffectiveEventStart(
         sourceEvents,
         eventIndex,
-        lastVisibleEventKey
+        lastVisibleEventKey,
+        start
       );
       const effectiveEnd =
         index === normalizedSegs.length - 1 &&
@@ -184,7 +200,7 @@ export function prepareTimedTextEvents(rawEvents = []) {
         "acAsrConf"
       );
       const expanded =
-        isAsrSegment && text.includes(" ")
+        isAsrSegment && canExpandCoarseText && text.includes(" ")
           ? expandCoarseTimedText(text, start, effectiveEnd)
           : null;
       if (expanded) {
@@ -387,9 +403,7 @@ export function formatSubtitles(
 ) {
   if (!flatEvents?.length) return [];
 
-  const noSpaceLanguages = ["zh", "ja", "ko", "th", "lo", "km", "my"];
-
-  if (noSpaceLanguages.some((l) => lang?.startsWith(l))) {
+  if (NO_SPACE_LANGUAGES.some((l) => lang?.startsWith(l))) {
     const subtitles = [];
 
     if (isQualityPoor(flatEvents, 5, 0.5)) {

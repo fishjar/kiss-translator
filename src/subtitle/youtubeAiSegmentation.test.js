@@ -4,7 +4,10 @@ import {
   eventsToSubtitles,
 } from "./youtubeAiSegmentation";
 import { mapBoundaryItemToCue } from "./subtitleBoundaryProtocol";
-import { prepareTimedTextEvents } from "./youtubeSubtitleProcessing";
+import {
+  formatSubtitles,
+  prepareTimedTextEvents,
+} from "./youtubeSubtitleProcessing";
 
 jest.mock("../libs/log.js", () => ({
   LogLevel: {
@@ -198,6 +201,61 @@ describe("coarse timedtext normalization", () => {
       { text: "six", start: 2000, end: 3000 },
       { text: "next", start: 5000, end: 6000 },
     ]);
+  });
+
+  test("looks past a same-timestamp newline for the next usable boundary", () => {
+    const { flatEvents } = prepareTimedTextEvents([
+      {
+        tStartMs: 1000,
+        dDurationMs: 6000,
+        segs: [{ utf8: "one two six", acAsrConf: 0 }],
+      },
+      {
+        tStartMs: 1000,
+        aAppend: 1,
+        segs: [{ utf8: "\n" }],
+      },
+      {
+        tStartMs: 4000,
+        dDurationMs: 1000,
+        segs: [{ utf8: "next", acAsrConf: 0 }],
+      },
+    ]);
+
+    expect(flatEvents).toEqual([
+      { text: "one", start: 1000, end: 2000 },
+      { text: "two", start: 2000, end: 3000 },
+      { text: "six", start: 3000, end: 4000 },
+      { text: "next", start: 4000, end: 5000 },
+    ]);
+  });
+
+  test("preserves Korean ASR spaces in AI and rule-based reconstruction", () => {
+    const prepared = prepareTimedTextEvents(
+      [
+        {
+          tStartMs: 1000,
+          dDurationMs: 3000,
+          segs: [{ utf8: "오늘 날씨 정말 좋다", acAsrConf: 0 }],
+        },
+      ],
+      "ko"
+    );
+
+    expect(prepared.flatEvents).toEqual([
+      { text: "오늘 날씨 정말 좋다", start: 1000, end: 4000 },
+    ]);
+    expect(
+      mapBoundaryItemToCue(
+        { e: 0, t: "좋은 날씨" },
+        prepared.flatEvents,
+        0,
+        "ko"
+      ).text
+    ).toBe("오늘 날씨 정말 좋다");
+    expect(formatSubtitles(prepared.flatEvents, "ko")[0].text).toBe(
+      "오늘 날씨 정말 좋다"
+    );
   });
 
   test("leaves word-level offsets unchanged", () => {
