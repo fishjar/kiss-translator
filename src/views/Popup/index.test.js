@@ -9,6 +9,7 @@ import { SEPARATE_WINDOW_CONTENT_WIDTH } from "../../config/app";
 import { Trantab } from ".";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+let mockIsFirefox = false;
 
 jest.mock("../../hooks/Setting", () => ({ useSetting: jest.fn() }));
 jest.mock("../../hooks/I18n", () => ({
@@ -16,12 +17,22 @@ jest.mock("../../hooks/I18n", () => ({
 }));
 jest.mock("../../libs/client", () => ({
   isAutoTranslateClipboardSupported: true,
+  get isFirefox() {
+    return mockIsFirefox;
+  },
 }));
 jest.mock("../../libs/clipboard", () => ({
   readClipboardTextIfAllowed: jest.fn(),
 }));
 jest.mock("../../libs/browser", () => ({
   browser: {
+    windows: {
+      getCurrent: jest.fn(),
+    },
+    tabs: {
+      getCurrent: jest.fn(),
+      getZoom: jest.fn(),
+    },
     storage: {
       onChanged: {
         addListener: jest.fn(),
@@ -285,6 +296,18 @@ describe("separate window auto-fit", () => {
 
   beforeEach(() => {
     sendBgMsg.mockClear();
+    mockIsFirefox = false;
+    browser.windows.getCurrent.mockResolvedValue({ width: 760, height: 800 });
+    browser.tabs.getCurrent.mockResolvedValue({ id: 7 });
+    browser.tabs.getZoom.mockResolvedValue(1);
+    Object.defineProperty(window.screen, "availWidth", {
+      configurable: true,
+      value: 2560,
+    });
+    Object.defineProperty(window.screen, "availHeight", {
+      configurable: true,
+      value: 1440,
+    });
     useSetting.mockReturnValue({ setting });
     readClipboardTextIfAllowed.mockResolvedValue(null);
     container = document.createElement("div");
@@ -345,6 +368,132 @@ describe("separate window auto-fit", () => {
     );
   });
 
+  test.each([0.8, 1.5, 2])(
+    "fits screen dimensions at tab zoom %s",
+    async (zoom) => {
+      browser.tabs.getZoom.mockResolvedValue(zoom);
+      setWindowMetric("innerWidth", 744 / zoom);
+      setWindowMetric("innerHeight", 760 / zoom);
+      // DOM outer dimensions differ across browsers and must not affect fitting.
+      setWindowMetric("outerWidth", 760 / zoom);
+      setWindowMetric("outerHeight", 800 / zoom);
+
+      await renderAndMeasure(612);
+
+      expect(browser.tabs.getZoom).toHaveBeenCalledWith(7);
+      expect(sendBgMsg).toHaveBeenCalledWith(
+        MSG_FIT_SEPARATE_WINDOW,
+        expect.objectContaining({
+          width: Math.round(SEPARATE_WINDOW_CONTENT_WIDTH * zoom + 16),
+          height: Math.ceil(612 * zoom + 40),
+        })
+      );
+    }
+  );
+
+  test("converts Gecko screen limits from layout pixels", async () => {
+    mockIsFirefox = true;
+    browser.tabs.getZoom.mockResolvedValue(2);
+    setWindowMetric("innerWidth", 372);
+    setWindowMetric("innerHeight", 380);
+    setWindowMetric("outerWidth", 380);
+    setWindowMetric("outerHeight", 400);
+    Object.defineProperty(window.screen, "availWidth", {
+      configurable: true,
+      value: 960,
+    });
+    Object.defineProperty(window.screen, "availHeight", {
+      configurable: true,
+      value: 600,
+    });
+
+    Object.defineProperty(window.screen, "availLeft", {
+      configurable: true,
+      value: -640,
+    });
+    Object.defineProperty(window.screen, "availTop", {
+      configurable: true,
+      value: -360,
+    });
+    await renderAndMeasure(430);
+
+    expect(sendBgMsg).toHaveBeenCalledWith(
+      MSG_FIT_SEPARATE_WINDOW,
+      expect.objectContaining({
+        width: 1456,
+        height: 900,
+        availWidth: 1920,
+        availHeight: 1200,
+        availLeft: -1280,
+        availTop: -720,
+      })
+    );
+  });
+
+  test("does not apply Gecko text-only zoom twice", async () => {
+    mockIsFirefox = true;
+    browser.tabs.getZoom.mockResolvedValue(2);
+    await renderAndMeasure(900);
+
+    expect(sendBgMsg).toHaveBeenCalledWith(
+      MSG_FIT_SEPARATE_WINDOW,
+      expect.objectContaining({
+        width: 736,
+        height: 940,
+        availWidth: 2560,
+        availHeight: 1440,
+      })
+    );
+  });
+  test("measures wrapping at the final width and restores inline styles", async () => {
+    browser.tabs.getZoom.mockResolvedValue(2);
+    setWindowMetric("innerWidth", 372);
+    setWindowMetric("innerHeight", 380);
+    Object.defineProperty(window.screen, "availWidth", {
+      configurable: true,
+      value: 1000,
+    });
+    await act(async () => root.render(<Trantab isSeparate />));
+    const panel = container.querySelector(".kt-popup-text-panel");
+    panel.style.setProperty("width", "300px", "important");
+    Object.defineProperty(panel, "scrollHeight", {
+      configurable: true,
+      get: () => (panel.style.width === "472px" ? 500 : 700),
+    });
+
+    act(() => rafCallbacks.forEach((callback) => callback()));
+
+    expect(sendBgMsg).toHaveBeenCalledWith(
+      MSG_FIT_SEPARATE_WINDOW,
+      expect.objectContaining({ width: 960, height: 1040 })
+    );
+    expect(panel.style.width).toBe("300px");
+    expect(panel.style.getPropertyPriority("width")).toBe("important");
+  });
+
+  test("does not fit after unmounting while the zoom request is pending", async () => {
+    let resolveZoom;
+    browser.tabs.getZoom.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveZoom = resolve;
+      })
+    );
+    await act(async () => root.render(<Trantab isSeparate />));
+    act(() => root.render(null));
+    await act(async () => resolveZoom(2));
+    act(() => rafCallbacks.forEach((callback) => callback()));
+
+    expect(sendBgMsg).not.toHaveBeenCalled();
+  });
+
+  test("preserves the default size when the zoom API fails", async () => {
+    browser.tabs.getZoom.mockRejectedValueOnce(
+      new Error("Zoom is unavailable")
+    );
+    await renderAndMeasure(612);
+
+    expect(sendBgMsg).not.toHaveBeenCalled();
+  });
   test("does not measure the ordinary popup", async () => {
     await act(async () => {
       root.render(<Trantab />);

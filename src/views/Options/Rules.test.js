@@ -110,6 +110,10 @@ const mockUpdateDataCache = jest.fn();
 const mockDeleteDataCache = jest.fn();
 const mockReloadSync = jest.fn();
 
+beforeEach(() => {
+  mockReloadSync.mockResolvedValue(undefined);
+});
+
 function createSubRules(overrides = {}) {
   return {
     subList: [{ url: "https://rules.example/main.json", selected: true }],
@@ -355,12 +359,12 @@ describe("Options Rules subscription tab", () => {
     view.unmount();
   });
 
-  test("does not reload sync cache when subscription rules render or change", async () => {
+  test("refreshes sync cache on entry without repeating it for rule edits", async () => {
     const view = renderRules();
     await openSubscribeTab(view);
 
     expect(view.container.textContent).toContain("en.wikipedia.org");
-    expect(mockReloadSync).not.toHaveBeenCalled();
+    expect(mockReloadSync).toHaveBeenCalledTimes(1);
 
     mockSubRules = createSubRules({
       selectedRules: [
@@ -372,7 +376,7 @@ describe("Options Rules subscription tab", () => {
     await flushEffects();
 
     expect(view.container.textContent).toContain("news.ycombinator.com");
-    expect(mockReloadSync).not.toHaveBeenCalled();
+    expect(mockReloadSync).toHaveBeenCalledTimes(1);
 
     view.unmount();
   });

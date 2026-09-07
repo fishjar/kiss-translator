@@ -1666,7 +1666,15 @@ function SubRules({ subRules, syncCaches }) {
     loading, // 是否正在同步/加载
   } = subRules;
 
-  const { dataCaches, updateDataCache, deleteDataCache } = syncCaches;
+  const { dataCaches, updateDataCache, deleteDataCache, reloadSync } =
+    syncCaches;
+
+  useEffect(() => {
+    if (loading) return;
+    // Automatic downloads write timestamps outside this view's cache state.
+    // Refresh when opening the tab or finishing a subscription load.
+    reloadSync().catch((error) => kissLog("load sync caches", error));
+  }, [loading, selectedUrl, reloadSync]);
 
   useLayoutEffect(() => {
     const listElement = rulesListRef.current;

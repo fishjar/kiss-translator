@@ -34,7 +34,7 @@ import {
   OPT_TRANS_YANDEXFREE,
   OPT_TRANS_ZAI,
 } from "../config";
-import { browser } from "../libs/browser";
+import { browser, isOptions } from "../libs/browser";
 import { isGm } from "../libs/client";
 
 const API_ICON_FILES = {
@@ -96,7 +96,7 @@ export function getApiIconSrc(
   {
     runtime = browser?.runtime,
     publicUrl = process.env.PUBLIC_URL || ".",
-    allowPublicUrl = !isGm,
+    allowPublicUrl = !isGm || isOptions(),
   } = {}
 ) {
   const fileName = API_ICON_FILES[apiType];

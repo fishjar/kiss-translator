@@ -18,6 +18,7 @@ import {
   MSG_OPEN_SEPARATE_WINDOW,
   MSG_FIT_SEPARATE_WINDOW,
   SEPARATE_WINDOW_CONTENT_WIDTH,
+  CLIENT_THUNDERBIRD,
   STOKEY_SETTING,
   DEFAULT_SETTING,
   GLOBLA_RULE,
@@ -29,46 +30,126 @@ import TranForm from "../Selection/TranForm";
 import { useSetting } from "../../hooks/Setting";
 import { useSeparateWindowBounds } from "../../hooks/SeparateWindowBounds";
 import { browser } from "../../libs/browser";
-import { isAutoTranslateClipboardSupported } from "../../libs/client";
+import {
+  client,
+  isFirefox,
+  isAutoTranslateClipboardSupported,
+} from "../../libs/client";
 import { readClipboardTextIfAllowed } from "../../libs/clipboard";
 import { POPUP_STYLES } from "./styles";
 import { loadPopupData } from "./loadData";
 import { REVIEW_URL, SUPPORT_URL } from "./supportLinks";
 
 /**
- * Measure the separate window content and ask the background to fit its height.
- *
- * Height depends on label wrapping, browser zoom, and system font size, so it
- * must be measured after rendering. Keep width at SEPARATE_WINDOW_CONTENT_WIDTH
- * to preserve readable line lengths.
- *
- * Measure once to avoid resizing the window while users type or results arrive.
- *
- * @param {boolean} enabled Whether separate window content is ready to measure.
- * @returns {void}
+ * Fit a newly opened separate window after measuring its rendered content.
+ * Extension window bounds use screen pixels, while layout sizes must be scaled
+ * by the tab zoom. DOM outer dimensions are not consistent across browsers.
  */
 function useFitSeparateWindow(enabled) {
   useEffect(() => {
-    if (!enabled) return undefined;
+    if (
+      !enabled ||
+      typeof browser?.windows?.getCurrent !== "function" ||
+      typeof browser?.tabs?.getCurrent !== "function" ||
+      typeof browser?.tabs?.getZoom !== "function"
+    ) {
+      return undefined;
+    }
 
-    // Wait one frame for layout to settle before measuring.
-    const frame = requestAnimationFrame(() => {
-      const panel = document.querySelector(".kt-popup-text-panel");
-      if (!panel) return;
+    let active = true;
+    let frame;
+    const initialize = async () => {
+      try {
+        const tab = await browser.tabs.getCurrent();
+        if (!active || !Number.isInteger(tab?.id) || tab.id < 0) return;
+        const zoom = await browser.tabs.getZoom(tab.id);
+        const currentWindow = await browser.windows.getCurrent();
+        if (
+          !active ||
+          !Number.isFinite(zoom) ||
+          zoom <= 0 ||
+          !Number.isFinite(currentWindow?.width) ||
+          !Number.isFinite(currentWindow?.height)
+        ) {
+          return;
+        }
 
-      // Measure platform-specific title bar and border dimensions.
-      const chromeHeight = Math.max(0, window.outerHeight - window.innerHeight);
-      const chromeWidth = Math.max(0, window.outerWidth - window.innerWidth);
+        frame = requestAnimationFrame(() => {
+          if (!active) return;
+          const panel = document.querySelector(".kt-popup-text-panel");
+          if (!panel) return;
 
-      sendBgMsg(MSG_FIT_SEPARATE_WINDOW, {
-        width: SEPARATE_WINDOW_CONTENT_WIDTH + chromeWidth,
-        height: Math.ceil(panel.scrollHeight) + chromeHeight,
-        availWidth: window.screen?.availWidth,
-        availHeight: window.screen?.availHeight,
-      });
-    });
+          // Gecko scales DOM outer/screen values with layout zoom. Its tab zoom
+          // may instead be text-only, which is already reflected in scrollHeight.
+          const isGecko = isFirefox || client === CLIENT_THUNDERBIRD;
+          const screenScale =
+            isGecko && window.outerWidth > 0
+              ? currentWindow.width / window.outerWidth
+              : 1;
+          const layoutZoom = isGecko ? screenScale : zoom;
+          const chromeHeight = Math.max(
+            0,
+            currentWindow.height - window.innerHeight * layoutZoom
+          );
+          const chromeWidth = Math.max(
+            0,
+            currentWindow.width - window.innerWidth * layoutZoom
+          );
+          const availWidth = window.screen?.availWidth * screenScale;
+          const maxWidth = Number.isFinite(availWidth)
+            ? availWidth - 40
+            : Infinity;
+          // Match the background's width limits before measuring wrapped text.
+          const width = Math.round(
+            Math.max(
+              360,
+              Math.min(
+                SEPARATE_WINDOW_CONTENT_WIDTH * layoutZoom + chromeWidth,
+                maxWidth
+              )
+            )
+          );
+          const contentWidth = Math.min(
+            SEPARATE_WINDOW_CONTENT_WIDTH,
+            Math.max(1, (width - chromeWidth) / layoutZoom)
+          );
+          const previousWidth = panel.style.getPropertyValue("width");
+          const previousPriority = panel.style.getPropertyPriority("width");
+          let contentHeight;
+          try {
+            // Read at the final width without painting an intermediate layout.
+            panel.style.setProperty("width", `${contentWidth}px`, "important");
+            contentHeight = panel.scrollHeight;
+          } finally {
+            if (previousWidth) {
+              panel.style.setProperty("width", previousWidth, previousPriority);
+            } else {
+              panel.style.removeProperty("width");
+            }
+          }
 
-    return () => cancelAnimationFrame(frame);
+          Promise.resolve(
+            sendBgMsg(MSG_FIT_SEPARATE_WINDOW, {
+              width,
+              height: Math.ceil(contentHeight * layoutZoom + chromeHeight),
+              availWidth,
+              availHeight: window.screen?.availHeight * screenScale,
+              availLeft: window.screen?.availLeft * screenScale,
+              availTop: window.screen?.availTop * screenScale,
+            })
+          ).catch((error) => kissLog("fit separate window", error));
+        });
+      } catch (error) {
+        // Keep the default size if the window closes or its APIs are unavailable.
+        kissLog("measure separate window", error);
+      }
+    };
+
+    void initialize();
+    return () => {
+      active = false;
+      if (frame !== undefined) cancelAnimationFrame(frame);
+    };
   }, [enabled]);
 }
 

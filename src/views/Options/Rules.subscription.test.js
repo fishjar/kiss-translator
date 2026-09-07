@@ -132,6 +132,66 @@ describe("Rules subscription persistence", () => {
   });
 
   test.each([false, true])(
+    "shows an automatic download timestamp (open subscriptions before completion: %s)",
+    async (openBeforeCompletion) => {
+      await delSubRules(SOURCE_URL);
+      await storage.setObj(STOKEY_SYNC, { ...DEFAULT_SYNC, dataCaches: {} });
+      const request = deferred();
+      apiFetch.mockReturnValueOnce(request.promise);
+      await act(async () => {
+        root.render(
+          <SettingProvider>
+            <Rules />
+          </SettingProvider>
+        );
+      });
+      expect(apiFetch).toHaveBeenCalledWith(SOURCE_URL);
+      expect(
+        (await storage.getObj(STOKEY_SYNC)).dataCaches[SOURCE_URL]
+      ).toBeUndefined();
+      if (openBeforeCompletion) {
+        await clickText('[role="tab"]', "subscribe_rules");
+      }
+
+      await act(async () => {
+        request.resolve([{ pattern: "downloaded.example" }]);
+        await request.promise;
+      });
+      const timestamp = (await storage.getObj(STOKEY_SYNC)).dataCaches[
+        SOURCE_URL
+      ];
+      expect(timestamp).toEqual(expect.any(Number));
+      if (!openBeforeCompletion) {
+        await clickText('[role="tab"]', "subscribe_rules");
+      }
+      expect(container.textContent).toContain("downloaded.example");
+      expect(container.textContent).toContain(
+        new Date(timestamp).toLocaleString()
+      );
+    }
+  );
+
+  test("refreshes timestamps changed while another rule tab is open without changing sync metadata", async () => {
+    await renderSubscribeTab();
+    await clickText('[role="tab"]', "personal_rules");
+    const timestamp = Date.UTC(2026, 8, 7, 12);
+    const updatedSync = {
+      ...(await storage.getObj(STOKEY_SYNC)),
+      dataCaches: { [SOURCE_URL]: timestamp },
+      syncMeta: { rules: { updateAt: timestamp, syncAt: timestamp - 1000 } },
+    };
+    await act(async () => {
+      await storage.setObj(STOKEY_SYNC, updatedSync);
+    });
+    await clickText('[role="tab"]', "subscribe_rules");
+
+    expect(container.textContent).toContain(
+      new Date(timestamp).toLocaleString()
+    );
+    expect(await storage.getObj(STOKEY_SYNC)).toEqual(updatedSync);
+  });
+
+  test.each([false, true])(
     "persists a submitted subscription across tab navigation (return before completion: %s)",
     async (returnBeforeCompletion) => {
       const request = deferred();
@@ -320,12 +380,25 @@ describe("Rules subscription persistence", () => {
       await manualRequest.promise;
     });
     expect(container.textContent).toContain("fresh.example");
+    const manualSyncTimestamp = (await storage.getObj(STOKEY_SYNC)).dataCaches[
+      SOURCE_URL
+    ];
+    expect(manualSyncTimestamp).toBeGreaterThan(123);
+    expect(container.textContent).toContain(
+      new Date(manualSyncTimestamp).toLocaleString()
+    );
 
     await act(async () => {
       initialRequest.reject(new Error("initial fetch failed"));
       await initialRequest.promise.catch(() => {});
     });
     expect(container.textContent).toContain("fresh.example");
+    expect((await storage.getObj(STOKEY_SYNC)).dataCaches[SOURCE_URL]).toBe(
+      manualSyncTimestamp
+    );
+    expect(container.textContent).toContain(
+      new Date(manualSyncTimestamp).toLocaleString()
+    );
     expect(await getSubRules(SOURCE_URL)).toEqual([
       expect.objectContaining({ pattern: "fresh.example" }),
     ]);

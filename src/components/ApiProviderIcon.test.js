@@ -15,10 +15,14 @@ import ApiProviderIcon, {
 } from "./ApiProviderIcon";
 
 let mockIsGm = false;
+let mockIsOptions = false;
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
-jest.mock("../libs/browser", () => ({ browser: undefined }));
+jest.mock("../libs/browser", () => ({
+  browser: undefined,
+  isOptions: () => mockIsOptions,
+}));
 jest.mock("../libs/client", () => ({
   get isGm() {
     return mockIsGm;
@@ -27,6 +31,7 @@ jest.mock("../libs/client", () => ({
 
 beforeEach(() => {
   mockIsGm = false;
+  mockIsOptions = false;
 });
 
 function renderIcon(props, mode = "light") {
@@ -135,6 +140,17 @@ describe("resolveApiIconPresentation", () => {
 });
 
 describe("ApiProviderIcon", () => {
+  test("shows provider artwork on the hosted userscript options page", () => {
+    mockIsGm = true;
+    mockIsOptions = true;
+    const view = renderIcon({ apiType: OPT_TRANS_GOOGLE });
+
+    expect(view.container.querySelector("img").getAttribute("src")).toBe(
+      `${process.env.PUBLIC_URL || "."}/api/Google.svg`
+    );
+    view.unmount();
+  });
+
   test("does not invert a regular provider image on a dark light-surface badge", () => {
     const view = renderIcon(
       { apiType: OPT_TRANS_OPENAI, lightSurface: true },

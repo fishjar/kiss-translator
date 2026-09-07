@@ -5,13 +5,69 @@ import Navigator from "./Navigator";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
-jest.mock("../../hooks/I18n", () => ({ useI18n: () => (key) => key }));
+let mockUiLang = "en";
+let mockLabels = {};
+
+jest.mock("../../hooks/I18n", () => ({
+  useI18n: () => (key) => mockLabels[key] || key,
+}));
+jest.mock("../../hooks/Setting", () => ({
+  useSetting: () => ({ setting: { uiLang: mockUiLang } }),
+}));
 jest.mock("../../components/Logo", () => {
   const React = require("react");
   return () => React.createElement("span", null, "logo");
 });
 
+beforeEach(() => {
+  mockUiLang = "en";
+  mockLabels = {};
+});
+
 describe("settings navigator semantics", () => {
+  test.each([
+    ["tr", "İstem Yönetimi", "istem"],
+    ["tr", "İstem Yönetimi", "İSTEM"],
+    ["tr_TR", "İstem Yönetimi", "istem"],
+    ["zh_TW", "Prompt Management", "PROMPT"],
+    [undefined, "Prompt Management", "PROMPT"],
+    ["invalid_locale!", "Prompt Management", "PROMPT"],
+  ])(
+    "filters with UI locale %s, label %s, and query %s",
+    (uiLang, label, query) => {
+      mockUiLang = uiLang;
+      mockLabels = { prompt_management: label };
+      const container = document.createElement("div");
+      document.body.appendChild(container);
+      const root = createRoot(container);
+
+      act(() =>
+        root.render(
+          <MemoryRouter>
+            <Navigator open />
+          </MemoryRouter>
+        )
+      );
+
+      const input = container.querySelector('input[type="search"]');
+      act(() => {
+        Object.getOwnPropertyDescriptor(
+          HTMLInputElement.prototype,
+          "value"
+        ).set.call(input, query);
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+
+      const links = container.querySelectorAll(".kt-options-nav__link");
+      expect(links).toHaveLength(1);
+      expect(links[0].getAttribute("href")).toBe("/prompts");
+      expect(links[0].textContent).toBe(label);
+
+      act(() => root.unmount());
+      container.remove();
+    }
+  );
+
   test("exposes dialog semantics only for the open mobile navigator", () => {
     const container = document.createElement("div");
     document.body.appendChild(container);

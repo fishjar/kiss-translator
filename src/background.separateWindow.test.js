@@ -146,6 +146,40 @@ describe("separate window bounds without onBoundsChanged", () => {
     });
   });
 
+  test.each([
+    [0, 0],
+    [-1280, -720],
+  ])(
+    "keeps a fitted window inside the screen at %s, %s",
+    async (availLeft, availTop) => {
+      const harness = createHarness();
+      const win = await harness.open();
+      harness.windows.set(win.id, {
+        ...win,
+        left: availLeft + 218,
+        top: availTop + 90,
+      });
+      await harness.fit({
+        width: 1440,
+        height: 860,
+        availWidth: 1280,
+        availHeight: 720,
+        availLeft,
+        availTop,
+      });
+      expect(harness.getState().bounds).toEqual({
+        left: availLeft + 20,
+        top: availTop + 40,
+        width: 1240,
+        height: 640,
+      });
+      await harness.close();
+      await harness.open();
+      expect(harness.browser.windows.create.mock.calls[1][0]).toMatchObject(
+        harness.stored.bounds
+      );
+    }
+  );
   test("invalid measurements do not consume the first valid fit", async () => {
     const harness = createHarness();
     await harness.open();

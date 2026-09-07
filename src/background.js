@@ -209,7 +209,8 @@ async function centerOnFocusedWindow({ width, height }) {
 async function fitSeparateWindow(args) {
   if (!separateWindowFitPending || separateWindowId === null) return;
 
-  const { width, height, availWidth, availHeight } = args || {};
+  const { width, height, availWidth, availHeight, availLeft, availTop } =
+    args || {};
   if (!Number.isFinite(width) || !Number.isFinite(height)) return;
   const windowId = separateWindowId;
   separateWindowFitPending = false;
@@ -225,11 +226,30 @@ async function fitSeparateWindow(args) {
     // Preserve windows that are no longer in their normal state.
     if (windowId !== separateWindowId || !win || win.state !== "normal") return;
 
-    const boundsRevision = separateWindowBoundsRevision;
-    const updatedWindow = await browser.windows.update(windowId, {
+    const nextBounds = {
       width: nextWidth,
       height: nextHeight,
-    });
+    };
+    // Widening a new window can move its right or bottom edge off-screen.
+    // Use the measured screen origin to support monitors with negative offsets.
+    if (Number.isFinite(availLeft) && Number.isFinite(availWidth)) {
+      nextBounds.left = Math.round(
+        Math.max(
+          availLeft + 20,
+          Math.min(win.left, availLeft + availWidth - nextWidth - 20)
+        )
+      );
+    }
+    if (Number.isFinite(availTop) && Number.isFinite(availHeight)) {
+      nextBounds.top = Math.round(
+        Math.max(
+          availTop + 40,
+          Math.min(win.top, availTop + availHeight - nextHeight - 40)
+        )
+      );
+    }
+    const boundsRevision = separateWindowBoundsRevision;
+    const updatedWindow = await browser.windows.update(windowId, nextBounds);
     if (boundsRevision === separateWindowBoundsRevision) {
       cacheSeparateWindowBounds(updatedWindow);
     } else if (windowId === separateWindowId) {

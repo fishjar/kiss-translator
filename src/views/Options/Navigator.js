@@ -17,9 +17,21 @@ import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 import { NavLink } from "react-router-dom";
 import Logo from "../../components/Logo";
 import { useI18n } from "../../hooks/I18n";
+import { useSetting } from "../../hooks/Setting";
+
+function normalizeSearchText(text, uiLang) {
+  try {
+    return text.toLocaleLowerCase(uiLang?.replace(/_/g, "-") || undefined);
+  } catch {
+    return text.toLocaleLowerCase();
+  }
+}
 
 export default function Navigator({ open, isMobile = false, onClose }) {
   const i18n = useI18n();
+  const {
+    setting: { uiLang },
+  } = useSetting();
   const [query, setQuery] = useState("");
 
   const groups = useMemo(
@@ -101,12 +113,12 @@ export default function Navigator({ open, isMobile = false, onClose }) {
     [i18n]
   );
 
-  const normalizedQuery = query.trim().toLocaleLowerCase();
+  const normalizedQuery = normalizeSearchText(query.trim(), uiLang);
   const visibleGroups = groups
     .map((group) => ({
       ...group,
       items: group.items.filter(([, label]) =>
-        label.toLocaleLowerCase().includes(normalizedQuery)
+        normalizeSearchText(label, uiLang).includes(normalizedQuery)
       ),
     }))
     .filter((group) => group.items.length);
