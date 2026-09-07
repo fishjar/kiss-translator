@@ -252,6 +252,7 @@ export default class TranslatorManager {
       this._fabManager = new FabManager({
         processActions: this.#processActions.bind(this),
         fabConfig: this.#cloneConfig(this.#fabConfig),
+        getSelectionEnabled: () => Boolean(this._transboxManager?.isEnabled()),
       });
     }
   }
@@ -707,6 +708,12 @@ export default class TranslatorManager {
           this._transboxManager?.toggle();
           this._translator?.toggleTransbox();
         }
+        // Notify mounted page controls after the runtime toggle has completed.
+        document.dispatchEvent(
+          new CustomEvent(EVENT_KISS_INNER, {
+            detail: { action: MSG_TRANSBOX_TOGGLE },
+          })
+        );
         break;
       case MSG_MOUSEHOVER_TOGGLE:
         if (

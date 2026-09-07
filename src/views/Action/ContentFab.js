@@ -14,16 +14,25 @@ import MenuList from "@mui/material/MenuList";
 import Paper from "@mui/material/Paper";
 import Popper from "@mui/material/Popper";
 import SpeedDialIcon from "@mui/material/SpeedDialIcon";
-import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import {
+  useState,
+  useMemo,
+  useCallback,
+  useEffect,
+  useRef,
+  useSyncExternalStore,
+} from "react";
 import ThemeProvider from "../../hooks/M3Theme";
 import Draggable from "./Draggable";
 import { SettingProvider } from "../../hooks/Setting";
 import {
+  EVENT_KISS_INNER,
   MSG_OPEN_OPTIONS,
   MSG_OPEN_TRANBOX,
   MSG_POPUP_TOGGLE,
   MSG_TRANS_TOGGLE,
   MSG_TRANS_TOGGLE_STYLE,
+  MSG_TRANSBOX_TOGGLE,
 } from "../../config";
 import { useI18n } from "../../hooks/I18n";
 import { isExt } from "../../libs/client";
@@ -32,6 +41,16 @@ import { createMenuKeyDownHandler } from "../../libs/menuFocus";
 import useWindowSize from "../../hooks/WindowSize";
 import { useFullscreenDetect } from "../../hooks/useFullscreenDetect";
 import { ACTION_STYLES } from "./styles";
+
+const selectionUnavailable = () => false;
+
+function subscribeSelectionEnabled(onChange) {
+  const handleChange = (event) => {
+    if (event.detail?.action === MSG_TRANSBOX_TOGGLE) onChange();
+  };
+  document.addEventListener(EVENT_KISS_INNER, handleChange);
+  return () => document.removeEventListener(EVENT_KISS_INNER, handleChange);
+}
 
 // Flip and shift the menu near viewport edges. The FAB can reach any corner,
 // so fallback placements cover all sides to prevent clipping.
@@ -64,8 +83,14 @@ export const FAB_POPPER_MODIFIERS = [
 export function ContentFabContent({
   fabConfig: { x: fabX, y: fabY, edge: fabEdge, fabClickAction = 0 } = {},
   processActions,
+  getSelectionEnabled = selectionUnavailable,
 }) {
   const i18n = useI18n();
+  // Use the current tab's runtime state, which can differ from stored settings.
+  const selectionEnabled = useSyncExternalStore(
+    subscribeSelectionEnabled,
+    getSelectionEnabled
+  );
   const fabWidth = 56; // Material 3 regular FAB size.
   const opensMenu = fabClickAction !== 1;
   const windowSize = useWindowSize();
@@ -145,6 +170,7 @@ export function ContentFabContent({
     (event) => {
       if (event.key !== "Escape" && event.key !== "Tab") return;
       event.preventDefault();
+      event.stopPropagation();
       closeMenu(true);
     },
     [closeMenu]
@@ -178,6 +204,7 @@ export function ContentFabContent({
       label: i18n("selection_translate"),
       icon: SelectAllRoundedIcon,
       action: () => runAction(MSG_OPEN_TRANBOX),
+      disabled: !selectionEnabled,
     },
     {
       label: i18n("open_menu"),
@@ -252,10 +279,11 @@ export function ContentFabContent({
               onKeyDownCapture={handleMenuNavigation}
               onKeyDown={handleMenuKeyDown}
             >
-              {items.map(({ label, icon: Icon, action }) => (
+              {items.map(({ label, icon: Icon, action, disabled }) => (
                 <MenuItem
                   className="kt-content-fab-menu__item"
-                  onClick={action}
+                  disabled={disabled}
+                  onClick={disabled ? undefined : action}
                   key={label}
                 >
                   <ListItemIcon>

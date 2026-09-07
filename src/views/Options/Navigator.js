@@ -165,6 +165,7 @@ export default function Navigator({ open, isMobile = false, onClose }) {
                   to={path}
                   end={path === "/"}
                   key={id}
+                  onClick={isMobile ? onClose : undefined}
                 >
                   <Icon />
                   <span>{label}</span>

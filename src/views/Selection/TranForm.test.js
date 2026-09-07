@@ -945,31 +945,59 @@ describe("TranForm translation service selection", () => {
     act(() => root.unmount());
   });
 
-  test("falls back to the first enabled service when persisted slugs are stale", async () => {
-    const { container, root } = renderTranForm({
-      apiSlugs: ["removed", "disabled"],
-      transApis: [
-        {
-          apiSlug: "disabled",
-          apiName: "Disabled",
-          apiType: "Google",
-          isDisabled: true,
-        },
-        { apiSlug: "google", apiName: "Google", apiType: "Google" },
-        { apiSlug: "openai", apiName: "OpenAI", apiType: "OpenAI" },
-      ],
-      popupStyle: true,
-    });
-    await flushEffects();
+  test.each([
+    ["stale", ["removed", "disabled"], ["google"]],
+    ["missing", undefined, ["google"]],
+    ["explicitly empty", [], []],
+  ])(
+    "adds a popup comparison to the displayed selection when saved slugs are %s",
+    async (_label, apiSlugs, initialSlugs) => {
+      const { container, root } = renderTranForm({
+        apiSlugs,
+        transApis: [
+          {
+            apiSlug: "disabled",
+            apiName: "Disabled",
+            apiType: "Google",
+            isDisabled: true,
+          },
+          { apiSlug: "google", apiName: "Google", apiType: "Google" },
+          { apiSlug: "openai", apiName: "OpenAI", apiType: "OpenAI" },
+        ],
+        popupStyle: true,
+      });
+      await flushEffects();
 
-    expect(
-      [...container.querySelectorAll('[data-testid="tran-cont"]')].map((el) =>
-        el.getAttribute("data-api-slug")
-      )
-    ).toEqual(["google"]);
+      const resultSlugs = () =>
+        [...container.querySelectorAll('[data-testid="tran-cont"]')].map((el) =>
+          el.getAttribute("data-api-slug")
+        );
+      expect(resultSlugs()).toEqual(initialSlugs);
 
-    act(() => root.unmount());
-  });
+      act(() =>
+        container.querySelector(".kt-popup-translation-compare").click()
+      );
+      const services = [
+        ...container.querySelectorAll(".kt-popup-translation-services button"),
+      ];
+      const openAiButton = services.find(
+        (button) => button.textContent === "OpenAI"
+      );
+      act(() => openAiButton.click());
+
+      expect(resultSlugs()).toEqual([...initialSlugs, "openai"]);
+      expect(openAiButton.getAttribute("aria-pressed")).toBe("true");
+      if (initialSlugs.length > 0) {
+        expect(
+          services
+            .find((button) => button.textContent === "Google")
+            .getAttribute("aria-pressed")
+        ).toBe("true");
+      }
+
+      act(() => root.unmount());
+    }
+  );
 
   test("keeps one valid popup service after removing stale selections", async () => {
     const { container, root } = renderTranForm({

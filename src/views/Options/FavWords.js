@@ -112,7 +112,7 @@ function FavAccordion({
   const aiDictAvailable = Boolean(word?.trim() && aiDictApiSetting);
   const definitionPreview = String(definition || "").trim();
   const partOfSpeech = definitionPreview.match(
-    /^(?:adj|adv|art|aux|conj|det|interj|n|num|prep|pron|v)\.?/i
+    /^(?:adj|adv|art|aux|conj|det|interj|num|prep|pron|n|v)(?:\.|(?=\s|$))/i
   )?.[0];
 
   // 展开折叠切换处理

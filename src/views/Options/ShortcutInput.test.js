@@ -19,8 +19,8 @@ jest.mock("../../hooks/I18n", () => ({
 
 describe("formatShortcutKey", () => {
   test.each([
-    ["ControlLeft", "Ctrl"],
-    ["AltRight", "Alt"],
+    ["ControlLeft", "Left Ctrl"],
+    ["AltRight", "Right Alt"],
     ["KeyI", "I"],
     ["Digit3", "3"],
     [" ", "Space"],
@@ -30,7 +30,10 @@ describe("formatShortcutKey", () => {
 
   test("normalizes browser and stored shortcut formats", () => {
     expect(normalizeShortcutKeys("Alt+Q")).toEqual(["Alt", "Q"]);
-    expect(normalizeShortcutKeys(["AltLeft", "KeyI"])).toEqual(["Alt", "I"]);
+    expect(normalizeShortcutKeys(["AltLeft", "KeyI"])).toEqual([
+      "Left Alt",
+      "I",
+    ]);
   });
 });
 

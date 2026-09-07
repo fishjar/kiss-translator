@@ -172,6 +172,24 @@ export function Trantab({ isSeparate = false }) {
   // Wait for settings so the fixed 260px loading state cannot shrink the window.
   useFitSeparateWindow(isSeparate && Boolean(setting?.tranboxSetting));
 
+  const serializedTransApis = useMemo(
+    () =>
+      JSON.stringify(
+        resolveApiPromptList(
+          setting?.transApis,
+          setting?.prompts,
+          setting?.subtitleSetting
+        )
+      ),
+    [setting?.transApis, setting?.prompts, setting?.subtitleSetting]
+  );
+  // Storage updates can recreate JSON objects without changing API settings.
+  // Preserve their identity so unrelated settings do not cancel active requests.
+  const resolvedTransApis = useMemo(
+    () => JSON.parse(serializedTransApis),
+    [serializedTransApis]
+  );
+
   if (!setting?.tranboxSetting) {
     return (
       <div
@@ -195,17 +213,10 @@ export function Trantab({ isSeparate = false }) {
       aiDictApiSlug,
       aiDictPromptSlug,
     },
-    transApis = [],
     langDetector = {},
     prompts = [],
-    subtitleSetting,
     translateVariants,
   } = setting;
-  const resolvedTransApis = resolveApiPromptList(
-    transApis,
-    prompts,
-    subtitleSetting
-  );
 
   return (
     <div className="kt-popup-text-panel">

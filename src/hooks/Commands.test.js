@@ -17,12 +17,12 @@ describe("buildOverviewShortcutMap", () => {
 
   test("uses stored shortcuts outside the extension command API", () => {
     expect(buildOverviewShortcutMap(setting)).toEqual({
-      page: ["Alt", "Q"],
-      popup: ["Alt", "K"],
-      style: ["Alt", "C"],
-      selection: ["Alt", "S"],
-      input: ["Alt", "I"],
-      settings: ["Alt", "O"],
+      page: ["Left Alt", "Q"],
+      popup: ["Left Alt", "K"],
+      style: ["Left Alt", "C"],
+      selection: ["Left Alt", "S"],
+      input: ["Left Alt", "I"],
+      settings: ["Left Alt", "O"],
     });
   });
 

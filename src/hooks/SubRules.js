@@ -35,7 +35,9 @@ export function useSubRules() {
 
   const setSelectedRulesForUrl = useCallback((url, rules) => {
     if (!url || selectedUrlRef.current !== url) return false;
+    requestIdRef.current += 1;
     setSelectedRuleState({ url, rules: Array.isArray(rules) ? rules : [] });
+    setLoading(false);
     return true;
   }, []);
 
@@ -56,10 +58,13 @@ export function useSubRules() {
   // 添加一个新的规则订阅源
   const addSub = useCallback(
     (url) => {
-      updateSetting((prev) => ({
-        ...prev,
-        subrulesList: [...prev.subrulesList, { url, selected: false }],
-      }));
+      updateSetting((prev) => {
+        if (prev.subrulesList.some((item) => item.url === url)) return prev;
+        return {
+          ...prev,
+          subrulesList: [...prev.subrulesList, { url, selected: false }],
+        };
+      });
     },
     [updateSetting]
   );

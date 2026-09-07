@@ -565,7 +565,11 @@ describe("Options Rules subscription tab", () => {
     act(() => getButtonByText(view.container, "add").click());
     const input = view.container.querySelector('input[type="text"]');
     act(() => {
-      input.value = "https://rules.example/cancelled.json";
+      const setValue = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value"
+      ).set;
+      setValue.call(input, "https://rules.example/cancelled.json");
       input.dispatchEvent(new Event("input", { bubbles: true }));
     });
 
@@ -573,6 +577,9 @@ describe("Options Rules subscription tab", () => {
       getButtonByText(view.container, "save").click();
       await Promise.resolve();
     });
+    expect(syncSubRules).toHaveBeenCalledWith(
+      "https://rules.example/cancelled.json"
+    );
     expect(getButtonByText(view.container, "cancel").disabled).toBe(false);
     act(() => getButtonByText(view.container, "cancel").click());
     expect(view.container.querySelector('input[type="text"]')).toBeNull();

@@ -134,4 +134,58 @@ describe("useSubRules", () => {
     expect(latest.selectedRules).toEqual([]);
     expect(latest.loading).toBe(false);
   });
+
+  test.each(["succeeds", "fails"])(
+    "keeps a manual refresh when an older initial load %s",
+    async (result) => {
+      const source = deferred();
+      loadOrFetchSubRules.mockReturnValue(source.promise);
+      act(() => root.render(<Probe />));
+      expect(latest.loading).toBe(true);
+
+      act(() => {
+        expect(
+          latest.setSelectedRulesForUrl("source-a", [
+            { pattern: "fresh.example" },
+          ])
+        ).toBe(true);
+      });
+      expect(latest.selectedRules).toEqual([{ pattern: "fresh.example" }]);
+      expect(latest.loading).toBe(false);
+
+      await act(async () => {
+        if (result === "succeeds") {
+          source.resolve([{ pattern: "stale.example" }]);
+        } else {
+          source.reject(new Error("offline"));
+        }
+        await source.promise.catch(() => {});
+      });
+      expect(latest.selectedRules).toEqual([{ pattern: "fresh.example" }]);
+      expect(latest.loading).toBe(false);
+    }
+  );
+
+  test("keeps the current load pending after refreshing a different source", async () => {
+    const source = deferred();
+    loadOrFetchSubRules.mockReturnValue(source.promise);
+    act(() => root.render(<Probe />));
+
+    act(() => {
+      expect(
+        latest.setSelectedRulesForUrl("source-b", [
+          { pattern: "other.example" },
+        ])
+      ).toBe(false);
+    });
+    expect(latest.selectedRules).toEqual([]);
+    expect(latest.loading).toBe(true);
+
+    await act(async () => {
+      source.resolve([{ pattern: "current.example" }]);
+      await source.promise;
+    });
+    expect(latest.selectedRules).toEqual([{ pattern: "current.example" }]);
+    expect(latest.loading).toBe(false);
+  });
 });

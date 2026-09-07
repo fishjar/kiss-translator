@@ -3,11 +3,13 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import ContentFab from "./ContentFab";
 import {
+  EVENT_KISS_INNER,
   MSG_OPEN_OPTIONS,
   MSG_OPEN_TRANBOX,
   MSG_POPUP_TOGGLE,
   MSG_TRANS_TOGGLE,
   MSG_TRANS_TOGGLE_STYLE,
+  MSG_TRANSBOX_TOGGLE,
 } from "../../config";
 import { sendBgMsg } from "../../libs/msg";
 
@@ -60,11 +62,14 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
   let focusRoot;
   let root;
   let processActions;
+  let selectionEnabled;
+  const getSelectionEnabled = () => selectionEnabled;
 
   beforeEach(() => {
     mockIsVideoFullscreen = false;
     draggableProps = null;
     processActions = jest.fn();
+    selectionEnabled = true;
     host = document.createElement("div");
     document.body.appendChild(host);
     focusRoot =
@@ -86,7 +91,11 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
   function render(fabConfig = {}) {
     act(() =>
       root.render(
-        <ContentFab fabConfig={fabConfig} processActions={processActions} />
+        <ContentFab
+          fabConfig={fabConfig}
+          processActions={processActions}
+          getSelectionEnabled={getSelectionEnabled}
+        />
       )
     );
   }
@@ -193,7 +202,7 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
   });
 
   test.each(["Escape", "Tab"])(
-    "%s closes the menu and restores focus to the FAB",
+    "%s closes the menu, restores focus, and does not reach the host page",
     (key) => {
       render();
       clickFab();
@@ -202,15 +211,75 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
         key,
         bubbles: true,
         cancelable: true,
+        composed: true,
       });
+      const onPageKeyDown = jest.fn();
+      window.addEventListener("keydown", onPageKeyDown);
 
-      act(() => menuItems()[0].dispatchEvent(event));
+      try {
+        act(() => menuItems()[0].dispatchEvent(event));
 
-      expect(event.defaultPrevented).toBe(true);
-      expect(menuItems()).toHaveLength(0);
-      expect(focusRoot.activeElement).toBe(fab());
+        expect(event.defaultPrevented).toBe(true);
+        expect(menuItems()).toHaveLength(0);
+        expect(focusRoot.activeElement).toBe(fab());
+        expect(onPageKeyDown).not.toHaveBeenCalled();
+      } finally {
+        window.removeEventListener("keydown", onPageKeyDown);
+      }
     }
   );
+
+  test("disables selection translation while its runtime is disabled", () => {
+    selectionEnabled = false;
+    render();
+    clickFab();
+
+    expect(menuItems()[2].getAttribute("aria-disabled")).toBe("true");
+    act(() => menuItems()[2].click());
+    expect(processActions).not.toHaveBeenCalled();
+    expect(menuItems()).toHaveLength(5);
+
+    pressMenuKey("ArrowDown");
+    expect(focusRoot.activeElement).toBe(menuItems()[1]);
+    pressMenuKey("ArrowDown");
+    expect(focusRoot.activeElement).toBe(menuItems()[3]);
+  });
+
+  test("updates an open menu when the current tab changes selection availability", () => {
+    selectionEnabled = false;
+    render();
+    clickFab();
+
+    for (const enabled of [true, true, false, true]) {
+      act(() => {
+        selectionEnabled = enabled;
+        document.dispatchEvent(
+          new CustomEvent(EVENT_KISS_INNER, {
+            detail: { action: MSG_TRANSBOX_TOGGLE },
+          })
+        );
+      });
+      expect(menuItems()[2].getAttribute("aria-disabled")).toBe(
+        enabled ? null : "true"
+      );
+    }
+
+    act(() => menuItems()[2].click());
+    expect(processActions).toHaveBeenCalledWith({ action: MSG_OPEN_TRANBOX });
+  });
+
+  test("removes the selection availability listener when unmounted", () => {
+    const addListener = jest.spyOn(document, "addEventListener");
+    const removeListener = jest.spyOn(document, "removeEventListener");
+    render();
+    const listener = addListener.mock.calls.find(
+      ([type]) => type === EVENT_KISS_INNER
+    )[1];
+
+    act(() => root.render(null));
+
+    expect(removeListener).toHaveBeenCalledWith(EVENT_KISS_INNER, listener);
+  });
 
   test("moves focus with arrow keys, wraps, and supports Home and End", () => {
     render();

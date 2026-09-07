@@ -1506,13 +1506,14 @@ function SubRulesEdit({ subList, addSub, updateDataCache }) {
   const [showInput, setShowInput] = useState(false);
   const [loading, setLoading] = useState(false);
   const requestIdRef = useRef(0);
+  const mountedRef = useRef(false);
 
-  useEffect(
-    () => () => {
-      requestIdRef.current += 1;
-    },
-    []
-  );
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   // 取消并隐藏输入栏
   const handleCancel = (e) => {
@@ -1552,15 +1553,17 @@ function SubRulesEdit({ subList, addSub, updateDataCache }) {
       await addSub(url); // 将新订阅源添加到列表
       if (requestId !== requestIdRef.current) return;
       await updateDataCache(url); // 记录首次同步的时间戳
-      if (requestId !== requestIdRef.current) return;
+      if (!mountedRef.current || requestId !== requestIdRef.current) return;
       setShowInput(false);
       setInputText("");
     } catch (err) {
       if (requestId !== requestIdRef.current) return;
       kissLog("fetch rules", err);
-      setInputError(i18n("error_fetch_url")); // 网络请求或同步解析失败提示
+      if (mountedRef.current) setInputError(i18n("error_fetch_url"));
     } finally {
-      if (requestId === requestIdRef.current) setLoading(false);
+      if (mountedRef.current && requestId === requestIdRef.current) {
+        setLoading(false);
+      }
     }
   };
 
@@ -1643,7 +1646,7 @@ function SubRulesEdit({ subList, addSub, updateDataCache }) {
 }
 
 // 订阅规则配置主面板组件
-function SubRules({ subRules }) {
+function SubRules({ subRules, syncCaches }) {
   const i18n = useI18n();
   const rulesListRef = useRef(null);
   const [rulesListHeight, setRulesListHeight] = useState(0);
@@ -1658,8 +1661,7 @@ function SubRules({ subRules }) {
     loading, // 是否正在同步/加载
   } = subRules;
 
-  // 引入同步缓存 Hook，用于管理 WebDAV 或本地订阅源的最后同步时间戳
-  const { dataCaches, updateDataCache, deleteDataCache } = useSyncCaches();
+  const { dataCaches, updateDataCache, deleteDataCache } = syncCaches;
 
   useLayoutEffect(() => {
     const listElement = rulesListRef.current;
@@ -1781,6 +1783,8 @@ export default function Rules() {
   const [activeTab, setActiveTab] = useState(0);
   const subRules = useSubRules();
   const rules = useRules();
+  // Keep cache writes alive when a subscription action outlasts its tab.
+  const syncCaches = useSyncCaches();
 
   // 标签页切换处理器
   const handleTabChange = (e, newValue) => {
@@ -1847,7 +1851,9 @@ export default function Rules() {
           aria-labelledby="kt-rules-subscribe-tab"
           hidden={activeTab !== 2}
         >
-          {activeTab === 2 && <SubRules subRules={subRules} />}
+          {activeTab === 2 && (
+            <SubRules subRules={subRules} syncCaches={syncCaches} />
+          )}
         </div>
         {/* <div hidden={activeTab !== 3}>{activeTab === 3 && <OwSubRule />}</div> */}
       </Stack>

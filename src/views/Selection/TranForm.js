@@ -63,6 +63,18 @@ export const formatLanguageOptionName = (name) => {
 // Treat whitespace-only prompts as unconfigured.
 const hasPrompt = (value) => typeof value === "string" && Boolean(value.trim());
 
+const resolveActiveApiSlugs = (apiSlugs, optApis) => {
+  const validSlugs = new Set(optApis.map((api) => api.key));
+  const activeSlugs = (apiSlugs || []).filter((slug) => validSlugs.has(slug));
+  const hasExplicitEmptySelection =
+    Array.isArray(apiSlugs) && apiSlugs.length === 0;
+  if (activeSlugs.length > 0 || hasExplicitEmptySelection) {
+    return activeSlugs;
+  }
+
+  return optApis.slice(0, 1).map((api) => api.key);
+};
+
 /**
  * Translation form with language and service choices, dictionaries, detection, and text input.
  */
@@ -265,17 +277,10 @@ export default function TranForm({
   const xs = useMemo(() => (isPlaygound ? 6 : 4), [isPlaygound]);
   const md = useMemo(() => (isPlaygound ? 3 : 4), [isPlaygound]);
 
-  const activeApiSlugs = useMemo(() => {
-    const validSlugs = new Set(optApis.map((api) => api.key));
-    const activeSlugs = (apiSlugs || []).filter((slug) => validSlugs.has(slug));
-    const hasExplicitEmptySelection =
-      Array.isArray(apiSlugs) && apiSlugs.length === 0;
-    if (activeSlugs.length > 0 || hasExplicitEmptySelection) {
-      return activeSlugs;
-    }
-
-    return optApis.slice(0, 1).map((api) => api.key);
-  }, [apiSlugs, optApis]);
+  const activeApiSlugs = useMemo(
+    () => resolveActiveApiSlugs(apiSlugs, optApis),
+    [apiSlugs, optApis]
+  );
 
   // Use Bing/Youdao for English words and Zdic for single Chinese characters.
   const defaultDictAvailable =
@@ -361,10 +366,7 @@ export default function TranForm({
   const togglePopupService = (slug) => {
     setHasUserChangedApiSlugs(true);
     setApiSlugs((current) => {
-      const validSlugs = new Set(optApis.map((api) => api.key));
-      const validCurrent = (current || []).filter((currentSlug) =>
-        validSlugs.has(currentSlug)
-      );
+      const validCurrent = resolveActiveApiSlugs(current, optApis);
       if (!validCurrent.includes(slug)) return [...validCurrent, slug];
       return validCurrent.length > 1
         ? validCurrent.filter((currentSlug) => currentSlug !== slug)

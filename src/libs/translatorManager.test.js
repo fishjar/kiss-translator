@@ -78,10 +78,18 @@ jest.mock("./translator", () => ({
 jest.mock("./tranbox", () => ({
   TransboxManager: jest.fn().mockImplementation((setting) => {
     mockTransboxArgs.push(setting);
+    let enabled = Boolean(setting.tranboxSetting?.transOpen);
     const instance = {
-      enable: jest.fn(),
-      disable: jest.fn(),
-      toggle: jest.fn(),
+      isEnabled: jest.fn(() => enabled),
+      enable: jest.fn(() => {
+        enabled = true;
+      }),
+      disable: jest.fn(() => {
+        enabled = false;
+      }),
+      toggle: jest.fn(() => {
+        enabled = !enabled;
+      }),
     };
     mockTransboxInstances.push(instance);
     return instance;
@@ -184,10 +192,18 @@ function setupMockConstructors() {
 
   TransboxManager.mockImplementation((setting) => {
     mockTransboxArgs.push(setting);
+    let enabled = Boolean(setting.tranboxSetting?.transOpen);
     const instance = {
-      enable: jest.fn(),
-      disable: jest.fn(),
-      toggle: jest.fn(),
+      isEnabled: jest.fn(() => enabled),
+      enable: jest.fn(() => {
+        enabled = true;
+      }),
+      disable: jest.fn(() => {
+        enabled = false;
+      }),
+      toggle: jest.fn(() => {
+        enabled = !enabled;
+      }),
     };
     mockTransboxInstances.push(instance);
     return instance;
@@ -479,6 +495,40 @@ describe("TranslatorManager SPA lifecycle", () => {
     expect(
       mockTranslatorInstances[0].toggleInputTranslate
     ).toHaveBeenCalledTimes(1);
+  });
+
+  test("reports live selection availability to the FAB after toggles and restart", () => {
+    const manager = createManager({
+      setting: { tranboxSetting: { transOpen: false } },
+    });
+    manager.start();
+    const { getSelectionEnabled } = FabManager.mock.calls[0][0];
+    const { processActions } = PopupManager.mock.calls[0][0];
+    const snapshots = [];
+    const onSelectionChange = (event) => {
+      if (event.detail.action === "transbox-toggle") {
+        snapshots.push(getSelectionEnabled());
+      }
+    };
+    document.addEventListener("kiss-inner", onSelectionChange);
+
+    try {
+      expect(getSelectionEnabled()).toBe(false);
+      for (const enabled of [true, true, false]) {
+        processActions({ action: "transbox-toggle", args: { enabled } });
+      }
+      processActions({ action: "transbox-toggle" });
+      processActions({ action: "transbox-toggle" });
+
+      expect(snapshots).toEqual([true, true, false, true, false]);
+      expect(getSelectionEnabled()).toBe(false);
+
+      manager.restart("selection-state-test");
+      expect(FabManager.mock.calls[1][0].getSelectionEnabled()).toBe(false);
+      expect(mockTransboxArgs[1].tranboxSetting.transOpen).toBe(false);
+    } finally {
+      document.removeEventListener("kiss-inner", onSelectionChange);
+    }
   });
 
   test("cleans up transbox-only runtime on stop", () => {

@@ -36,14 +36,6 @@ jest.mock("./TranForm.js", () => ({
   default: () => null,
 }));
 
-// Mock positioning, dragging, and resizing to access the header directly.
-jest.mock("./DraggableResizable", () => {
-  const React = require("react");
-  return function DraggableResizable({ header, children }) {
-    return React.createElement("div", null, header, children);
-  };
-});
-
 describe.each(["document", "shadow"])("TranBox header in %s", (scope) => {
   let container;
   let host;
@@ -308,6 +300,46 @@ describe.each(["document", "shadow"])("TranBox header in %s", (scope) => {
     expect(handlers.setShowBox).toHaveBeenCalledWith(false);
   });
 
+  test.each(["lock", "content"])(
+    "clicking the real panel %s closes the menu and stays isolated from the page",
+    (target) => {
+      render();
+      openMenu();
+      const onPageClick = jest.fn();
+      window.addEventListener("click", onPageClick);
+
+      try {
+        act(() => {
+          const element =
+            target === "lock"
+              ? actions()[0]
+              : container.querySelector(".kt-tranbox-content");
+          element.click();
+        });
+
+        expect(menu()).toBeNull();
+        expect(onPageClick).not.toHaveBeenCalled();
+        if (target === "lock") {
+          expect(handlers.setHideClickAway).toHaveBeenCalled();
+        }
+      } finally {
+        window.removeEventListener("click", onPageClick);
+      }
+    }
+  );
+
+  test("clicking a menu action keeps the menu open and the trigger still toggles it", () => {
+    render();
+    openMenu();
+
+    act(() => menuItems()[1].click());
+    expect(handlers.setSimpleStyle).toHaveBeenCalled();
+    expect(menu()).not.toBeNull();
+
+    act(() => actions()[1].click());
+    expect(menu()).toBeNull();
+  });
+
   test("toggle state is exposed to assistive tech", () => {
     render({ hideClickAway: true, simpleStyle: true, followSelection: true });
     expect(actions()[0].getAttribute("aria-pressed")).toBe("true");
@@ -317,16 +349,10 @@ describe.each(["document", "shadow"])("TranBox header in %s", (scope) => {
     expect(menuItems()[2].getAttribute("aria-checked")).toBe("true");
   });
 
-  test("clicking outside closes the overflow menu", async () => {
+  test("clicking outside closes the overflow menu", () => {
     render();
     openMenu();
     expect(menu()).not.toBeNull();
-
-    // ClickAwayListener starts listening after setTimeout(0), preventing the
-    // click that opens the menu from immediately closing it again.
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 0));
-    });
 
     act(() => {
       document.body.dispatchEvent(new MouseEvent("click", { bubbles: true }));

@@ -1,13 +1,13 @@
 export function formatShortcutKey(key) {
   const aliases = {
-    ControlLeft: "Ctrl",
-    ControlRight: "Ctrl",
-    AltLeft: "Alt",
-    AltRight: "Alt",
-    ShiftLeft: "Shift",
-    ShiftRight: "Shift",
-    MetaLeft: "Meta",
-    MetaRight: "Meta",
+    ControlLeft: "Left Ctrl",
+    ControlRight: "Right Ctrl",
+    AltLeft: "Left Alt",
+    AltRight: "Right Alt",
+    ShiftLeft: "Left Shift",
+    ShiftRight: "Right Shift",
+    MetaLeft: "Left Meta",
+    MetaRight: "Right Meta",
     " ": "Space",
   };
 
