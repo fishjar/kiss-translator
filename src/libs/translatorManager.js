@@ -303,10 +303,24 @@ export default class TranslatorManager {
    */
   #snapshotRuntimeState() {
     return {
-      setting: this.#cloneConfig(this._translator?.setting || this.#setting),
+      setting: this.#cloneConfig(this.#getRuntimeSetting()),
       rule: this.#cloneConfig(this._translator?.rule || this.#rule),
       fabConfig: this.#cloneConfig(this.#fabConfig),
       favWords: this.#cloneConfig(this.#favWords),
+    };
+  }
+
+  #getRuntimeSetting() {
+    const setting = this._translator?.setting || this.#setting;
+    if (!this.#transboxOnly || !this._transboxManager) return setting;
+
+    // PDF pages have no Translator to keep the selection setting in sync.
+    return {
+      ...setting,
+      tranboxSetting: {
+        ...setting?.tranboxSetting,
+        transOpen: this._transboxManager.isEnabled(),
+      },
     };
   }
 
@@ -574,7 +588,7 @@ export default class TranslatorManager {
     const result = this.#processActions(message, true);
     const response = result || {
       rule: this._translator?.rule || this.#rule,
-      setting: this._translator?.setting || this.#setting,
+      setting: this.#getRuntimeSetting(),
     };
     sendResponse(response);
     return true;

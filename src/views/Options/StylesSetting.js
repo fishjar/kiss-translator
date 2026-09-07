@@ -205,7 +205,9 @@ export function StyleAccordion({ customStyle, deleteStyle, updateStyle }) {
           <span className={previewClass}>
             {i18n("style_preview_translation")}
           </span>
-          <Typography>{customStyle.styleName}</Typography>
+          <Typography sx={{ overflowWrap: "anywhere" }}>
+            {customStyle.styleName}
+          </Typography>
         </Box>
       </AccordionSummary>
       <AccordionDetails>

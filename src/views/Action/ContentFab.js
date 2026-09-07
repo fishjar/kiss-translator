@@ -5,7 +5,6 @@ import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 import TranslateIcon from "@mui/icons-material/Translate";
 import TranslateRoundedIcon from "@mui/icons-material/TranslateRounded";
 import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
-import ClickAwayListener from "@mui/material/ClickAwayListener";
 import Fab from "@mui/material/Fab";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
@@ -98,6 +97,7 @@ export function ContentFabContent({
   const [showFab, setShowFab] = useState(true);
   const [open, setOpen] = useState(false); // Action menu visibility.
   const anchorRef = useRef(null);
+  const menuRef = useRef(null);
   const popperRef = useRef(null);
   const handleMenuNavigation = useMemo(
     () => createMenuKeyDownHandler({ shadowOnly: true }),
@@ -118,6 +118,43 @@ export function ContentFabContent({
     setOpen(false);
     if (restoreFocus) anchorRef.current?.focus();
   }, []);
+
+  useEffect(() => {
+    if (!opensMenu || !open) return;
+
+    const ownerDocument = anchorRef.current.ownerDocument;
+    let touchMoved = false;
+    // Draggable surfaces stop bubbling events. Capture native events and use
+    // their composed paths to identify the menu and FAB across shadow roots.
+    const handleClickAway = (event) => {
+      const path = event.composedPath();
+      if (path.includes(menuRef.current) || path.includes(anchorRef.current)) {
+        return;
+      }
+      closeMenu();
+    };
+    const handleTouchStart = () => {
+      touchMoved = false;
+    };
+    const handleTouchMove = () => {
+      touchMoved = true;
+    };
+    const handleTouchEnd = (event) => {
+      if (!touchMoved) handleClickAway(event);
+      touchMoved = false;
+    };
+
+    ownerDocument.addEventListener("click", handleClickAway, true);
+    ownerDocument.addEventListener("touchstart", handleTouchStart, true);
+    ownerDocument.addEventListener("touchmove", handleTouchMove, true);
+    ownerDocument.addEventListener("touchend", handleTouchEnd, true);
+    return () => {
+      ownerDocument.removeEventListener("click", handleClickAway, true);
+      ownerDocument.removeEventListener("touchstart", handleTouchStart, true);
+      ownerDocument.removeEventListener("touchmove", handleTouchMove, true);
+      ownerDocument.removeEventListener("touchend", handleTouchEnd, true);
+    };
+  }, [closeMenu, open, opensMenu]);
 
   // Popper does not observe the anchor's edge-reveal transform animation.
   const updateMenuPosition = useCallback(() => {
@@ -269,40 +306,29 @@ export function ContentFabContent({
         popperOptions={{ strategy: "fixed" }}
         modifiers={FAB_POPPER_MODIFIERS}
       >
-        <ClickAwayListener
-          onClickAway={(event) => {
-            // Let handleClick handle clicks on the FAB itself;
-            // otherwise this closes the menu before handleClick reopens it.
-            if (anchorRef.current?.contains(event.target)) {
-              return;
-            }
-            setOpen(false);
-          }}
-        >
-          <Paper className="kt-content-fab-menu" elevation={6}>
-            <MenuList
-              id="kt-content-fab-menu"
-              aria-labelledby="kt-content-fab-button"
-              autoFocusItem
-              onKeyDownCapture={handleMenuNavigation}
-              onKeyDown={handleMenuKeyDown}
-            >
-              {items.map(({ label, icon: Icon, action, disabled }) => (
-                <MenuItem
-                  className="kt-content-fab-menu__item"
-                  disabled={disabled}
-                  onClick={disabled ? undefined : action}
-                  key={label}
-                >
-                  <ListItemIcon>
-                    <Icon />
-                  </ListItemIcon>
-                  <ListItemText>{label}</ListItemText>
-                </MenuItem>
-              ))}
-            </MenuList>
-          </Paper>
-        </ClickAwayListener>
+        <Paper ref={menuRef} className="kt-content-fab-menu" elevation={6}>
+          <MenuList
+            id="kt-content-fab-menu"
+            aria-labelledby="kt-content-fab-button"
+            autoFocusItem
+            onKeyDownCapture={handleMenuNavigation}
+            onKeyDown={handleMenuKeyDown}
+          >
+            {items.map(({ label, icon: Icon, action, disabled }) => (
+              <MenuItem
+                className="kt-content-fab-menu__item"
+                disabled={disabled}
+                onClick={disabled ? undefined : action}
+                key={label}
+              >
+                <ListItemIcon>
+                  <Icon />
+                </ListItemIcon>
+                <ListItemText>{label}</ListItemText>
+              </MenuItem>
+            ))}
+          </MenuList>
+        </Paper>
       </Popper>
     </Draggable>
   );

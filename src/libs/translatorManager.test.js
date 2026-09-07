@@ -275,6 +275,14 @@ async function flushMutationObserver() {
   await Promise.resolve();
 }
 
+function sendRuntimeMessage(message) {
+  const runtimeHandler = browser.runtime.onMessage.addListener.mock.calls[0][0];
+  const sendResponse = jest.fn();
+  runtimeHandler(message, {}, sendResponse);
+  expect(sendResponse).toHaveBeenCalledTimes(1);
+  return sendResponse.mock.calls[0][0];
+}
+
 describe("TranslatorManager SPA lifecycle", () => {
   beforeEach(() => {
     jest.useFakeTimers();
@@ -405,6 +413,97 @@ describe("TranslatorManager SPA lifecycle", () => {
     });
 
     document.removeEventListener("kiss-inner", eventHandler);
+  });
+
+  test.each([true, false])(
+    "keeps reopened Popup toggles in sync in transbox-only mode from %s",
+    (initialEnabled) => {
+      const manager = createManager({
+        transboxOnly: true,
+        setting: { tranboxSetting: { transOpen: initialEnabled } },
+      });
+      manager.start();
+
+      for (const expected of [
+        !initialEnabled,
+        initialEnabled,
+        !initialEnabled,
+      ]) {
+        const reopened = sendRuntimeMessage({ action: "trans-getrule" });
+        const message = {
+          action: "transbox-toggle",
+          args: { enabled: !reopened.setting.tranboxSetting.transOpen },
+        };
+        const response = sendRuntimeMessage(message);
+        expect(response.setting.tranboxSetting.transOpen).toBe(expected);
+        expect(mockTransboxInstances[0].isEnabled()).toBe(expected);
+
+        const replayed = sendRuntimeMessage(message);
+        expect(replayed.setting.tranboxSetting.transOpen).toBe(expected);
+        expect(mockTransboxInstances[0].isEnabled()).toBe(expected);
+      }
+
+      for (const expected of [initialEnabled, !initialEnabled]) {
+        const response = sendRuntimeMessage({ action: "transbox-toggle" });
+        expect(response.setting.tranboxSetting.transOpen).toBe(expected);
+        expect(mockTransboxInstances[0].isEnabled()).toBe(expected);
+        const reopened = sendRuntimeMessage({ action: "trans-getrule" });
+        expect(reopened.setting.tranboxSetting.transOpen).toBe(expected);
+      }
+    }
+  );
+
+  test.each([true, false])(
+    "preserves the live transbox-only state across restart from %s",
+    (initialEnabled) => {
+      const tranboxSetting = {
+        transOpen: initialEnabled,
+        tranboxShortcut: "Alt+S",
+      };
+      const manager = createManager({
+        transboxOnly: true,
+        setting: { tranboxSetting, uiLang: "en" },
+      });
+      manager.start();
+      sendRuntimeMessage({ action: "transbox-toggle" });
+
+      manager.restart("pdf-selection-state-test");
+
+      const response = sendRuntimeMessage({ action: "trans-getrule" });
+      expect(response.setting.tranboxSetting).toEqual({
+        ...tranboxSetting,
+        transOpen: !initialEnabled,
+      });
+      expect(response.setting.uiLang).toBe("en");
+      expect(mockTransboxInstances[1].isEnabled()).toBe(!initialEnabled);
+      expect(mockTransboxArgs[1].tranboxSetting.transOpen).toBe(
+        !initialEnabled
+      );
+      expect(tranboxSetting.transOpen).toBe(initialEnabled);
+      expect(Translator).not.toHaveBeenCalled();
+    }
+  );
+
+  test("returns current translator settings and rules in normal mode", () => {
+    const manager = createManager();
+    manager.start();
+    const translator = mockTranslatorInstances[0];
+    translator.setting.uiLang = "en";
+    translator.rule = { transOpen: "false", toLang: "en" };
+
+    sendRuntimeMessage({
+      action: "transbox-toggle",
+      args: { enabled: false },
+    });
+    const response = sendRuntimeMessage({ action: "trans-getrule" });
+
+    expect(response).toEqual({
+      rule: translator.rule,
+      setting: translator.setting,
+    });
+    expect(response.setting.uiLang).toBe("en");
+    expect(response.setting.tranboxSetting.transOpen).toBe(false);
+    expect(mockTransboxInstances[0].isEnabled()).toBe(false);
   });
 
   test("applies an explicit page translation state without double toggling", () => {

@@ -1700,9 +1700,7 @@ function ApiListItem({
             sx={{
               fontSize: 14,
               fontWeight: 650,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
+              overflowWrap: "anywhere",
             }}
           >
             {displayName}
