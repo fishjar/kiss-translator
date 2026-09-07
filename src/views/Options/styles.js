@@ -215,8 +215,8 @@ export const OPTIONS_STYLES = String.raw`
 .kt-style-grid .kt-style-card.Mui-expanded { grid-column: 1 / -1; }
 .kt-style-card .MuiAccordionSummary-root { min-height: 124px; align-items: stretch; }
 .kt-style-card .MuiAccordionSummary-content { min-width: 0; margin: 0; }
-.kt-style-card__summary { min-width: 0; display: flex; flex: 1; flex-direction: column; justify-content: center; gap: 3px; padding: 12px 0; }
-.kt-style-card__summary > span { overflow: hidden; color: var(--kt-on); font-size: 12px; line-height: 1.45; text-overflow: ellipsis; white-space: nowrap; }
+.kt-style-card__summary { min-width: 0; display: flex; flex: 1; flex-direction: column; justify-content: center; gap: 3px; padding: 12px 0; color: var(--kt-on); }
+.kt-style-card__summary > span { overflow: hidden; font-size: 12px; line-height: 1.45; text-overflow: ellipsis; white-space: nowrap; }
 .kt-style-card__summary > .MuiTypography-root { margin-top: 7px; color: var(--kt-onv); font-size: 11px; font-weight: 700; }
 .kt-overview-top { display: grid; grid-template-columns: 1.35fr 1fr; gap: 14px; margin-bottom: 20px; }
 .kt-overview-hero { min-height: 200px; display: flex; flex-direction: column; position: relative; padding: 24px; border-radius: 16px; background: var(--kt-pric); color: var(--kt-onpric); overflow: hidden; }

@@ -2,6 +2,7 @@
 import { act, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { apiTranslate } from "../../apis";
+import { mountShadowHost } from "../../libs/shadowHost";
 import TranForm from "./TranForm";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -148,9 +149,16 @@ describe("Explicit translation submissions", () => {
     }
   );
 
-  test("submits an edited draft once without resending the previous text", async () => {
+  test("submits an entire edited draft beyond 5000 characters once", async () => {
+    const longText = "Long source text ".repeat(400).trim();
     await renderPanel();
-    updateDraft("  Edited source text  ");
+    expect(input().hasAttribute("maxLength")).toBe(false);
+    updateDraft(`  ${longText}  `);
+    expect(input().value).toBe(`  ${longText}  `);
+    expect(
+      container.querySelector(".kt-popup-translation-input__footer span")
+        .textContent
+    ).toBe(String(longText.length + 4));
     expect(apiTranslate).toHaveBeenCalledTimes(1);
 
     act(() => submitButton().click());
@@ -159,7 +167,7 @@ describe("Explicit translation submissions", () => {
     expect(apiTranslate).toHaveBeenCalledTimes(2);
     expect(apiTranslate.mock.calls.map(([request]) => request.text)).toEqual([
       "Source text",
-      "Edited source text",
+      longText,
     ]);
   });
 
@@ -299,5 +307,71 @@ describe("Explicit translation submissions", () => {
     await flushEffects();
     expect(apiTranslate).toHaveBeenCalledTimes(2);
     expect(apiTranslate.mock.calls[1][0].text).toBe("Updated full-form source");
+  });
+
+  test("keeps a draft during fullscreen reparenting and commits only a later blur", async () => {
+    const host = document.createElement("div");
+    const shadowRoot = host.attachShadow({ mode: "open" });
+    shadowRoot.appendChild(container);
+    const section = document.createElement("section");
+    document.body.appendChild(section);
+    section.moveBefore = undefined;
+    let fullscreenElement = null;
+    const originalFullscreen = Object.getOwnPropertyDescriptor(
+      document,
+      "fullscreenElement"
+    );
+    Object.defineProperty(document, "fullscreenElement", {
+      configurable: true,
+      get: () => fullscreenElement,
+    });
+    const cleanupMount = mountShadowHost(host);
+    let appendChildSpy;
+
+    try {
+      await renderPanel({ popupStyle: false, isPlaygound: true });
+      act(() => input().focus());
+      updateDraft("  Draft before fullscreen  ");
+      const appendChild = section.appendChild;
+      appendChildSpy = jest
+        .spyOn(section, "appendChild")
+        .mockImplementation((node) => {
+          // jsdom does not emit the browser's synchronous reparenting blur.
+          input().blur();
+          return appendChild.call(section, node);
+        });
+
+      act(() => {
+        fullscreenElement = section;
+        document.dispatchEvent(new Event("fullscreenchange"));
+      });
+      await flushEffects();
+
+      expect(host.parentNode).toBe(section);
+      expect(shadowRoot.activeElement).toBe(input());
+      expect(input().value).toBe("  Draft before fullscreen  ");
+      expect(apiTranslate).toHaveBeenCalledTimes(1);
+
+      act(() => input().blur());
+      await flushEffects();
+      expect(apiTranslate).toHaveBeenCalledTimes(2);
+      expect(apiTranslate.mock.calls[1][0].text).toBe(
+        "Draft before fullscreen"
+      );
+    } finally {
+      appendChildSpy?.mockRestore();
+      cleanupMount();
+      host.remove();
+      section.remove();
+      if (originalFullscreen) {
+        Object.defineProperty(
+          document,
+          "fullscreenElement",
+          originalFullscreen
+        );
+      } else {
+        delete document.fullscreenElement;
+      }
+    }
   });
 });

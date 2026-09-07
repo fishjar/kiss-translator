@@ -160,6 +160,31 @@ describe("Subtitle style persistence", () => {
     view.unmount();
   });
 
+  test("preserves the background color when editing opacity after an unquoted URL", () => {
+    jest.useFakeTimers();
+    const backgroundImage = "url(https://example.invalid/image?accept=image/*)";
+    const view = renderSubtitle({
+      windowStyle: `background-image: ${backgroundImage};\ncolor: red;\nfont-size: 32px;\nbackground-color: rgba(255, 0, 0, 0.8);`,
+    });
+    const opacity = view.container.querySelector('input[aria-label="opacity"]');
+    const color = view.container.querySelector(
+      'input[aria-label="background_color"]'
+    );
+    expect(opacity.value).toBe("0.8");
+    expect(color.value).toBe("#ff0000");
+
+    setSliderValue(opacity, 0.6);
+    act(() => {
+      jest.advanceTimersByTime(200);
+    });
+
+    expect(view.updateSubtitle).toHaveBeenCalledTimes(1);
+    expect(view.updateSubtitle).toHaveBeenCalledWith({
+      windowStyle: `background-image: ${backgroundImage};\ncolor: red;\nfont-size: 32px;\nbackground-color: rgba(255, 0, 0, 0.6);`,
+    });
+    view.unmount();
+  });
+
   test.each([
     ["an escaped opening parenthesis", "font-family", String.raw`Font\(`],
     ["an escaped quote", "font-family", String.raw`Font\"`],
@@ -289,6 +314,67 @@ font-size: 2rem;`;
     const next = objectToCss(parsed);
     expect(next).toContain(`url("data:image/svg+xml;utf8,<svg/>")`);
     expect(next).toContain("font-size: 2.5rem");
+  });
+
+  test.each([
+    [
+      "an unmatched comment marker",
+      "url(https://example.invalid/image?accept=image/*)",
+    ],
+    ["paired comment markers", "url(https://example.invalid/a/*b*/c.svg)"],
+    ["an uppercase URL name", "URL(https://example.invalid/a/*b.svg)"],
+    ["a simple escaped URL name", String.raw`\url(image/*icon.svg)`],
+    ["a hex-escaped URL name", String.raw`u\72l(image/*icon.svg)`],
+    ["a six-digit URL name escape", String.raw`\000075rl(image/*icon.svg)`],
+    ["an escape terminator", String.raw`\75 rl(image/*icon.svg)`],
+    ["a CRLF escape terminator", "\\75\r\nrl(image/*icon.svg)"],
+    ["leading CSS whitespace", "url( \t\r\n\fimage/*icon.svg)"],
+    ["a leading comment marker", "url(/*icon.svg)"],
+    [
+      "an escaped closing parenthesis",
+      String.raw`url(image/*icon\);variant.svg)`,
+    ],
+    ["a nested URL", "image-set(url(image/*icon.svg) 1x)"],
+    ["a quoted URL after whitespace", 'url( "image/*);variant.svg")'],
+  ])("keeps declarations separate after a URL with %s", (_case, value) => {
+    const css = `background-image: ${value};\ncolor: red;\nfont-size: 32px;`;
+
+    expect(parseCssToObject(css)).toEqual({
+      "background-image": value,
+      color: "red",
+      "font-size": "32px",
+    });
+    expect(roundTrip(css)).toBe(css);
+  });
+
+  test("recognizes an unquoted URL after a CDO token", () => {
+    const css = "--image: <!--url(image/*icon.svg);\ncolor: red;";
+
+    expect(parseCssToObject(css)).toEqual({
+      "--image": "<!--url(image/*icon.svg)",
+      color: "red",
+    });
+    expect(roundTrip(css)).toBe(css);
+  });
+
+  test.each([
+    ["a regular function", 'var(--image, /* ) ; " */ none)'],
+    ["a function name ending in url", 'myurl(/* ) ; " */ none)'],
+    ["whitespace before the parenthesis", 'url (/* ) ; " */ none)'],
+    ["a comment before the parenthesis", 'url/**/(/* ) ; " */ none)'],
+    ["a dimension token", '1url(/* ) ; " */ none)'],
+    ["a hash token", '#url(/* ) ; " */ none)'],
+    ["an at-keyword token", '@url(/* ) ; " */ none)'],
+    ["a quoted URL function", 'url("image.svg" /* ) ; \" */)'],
+  ])("preserves ordinary comments in %s", (_case, value) => {
+    const css = `--image: ${value};\ncolor: red;\nfont-size: 32px;`;
+
+    expect(parseCssToObject(css)).toEqual({
+      "--image": value,
+      color: "red",
+      "font-size": "32px",
+    });
+    expect(roundTrip(css)).toBe(css);
   });
 
   test.each([

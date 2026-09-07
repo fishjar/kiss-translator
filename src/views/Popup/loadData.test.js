@@ -1,7 +1,9 @@
 const mockSendTopFrameMsg = jest.fn();
+const mockSendTabMsg = jest.fn();
 
 jest.mock("../../libs/msg", () => ({
   sendTopFrameMsg: (...args) => mockSendTopFrameMsg(...args),
+  sendTabMsg: (...args) => mockSendTabMsg(...args),
 }));
 
 const { MSG_TRANS_GETRULE } = require("../../config");
@@ -15,6 +17,7 @@ const popupData = {
 describe("loadPopupData", () => {
   beforeEach(() => {
     mockSendTopFrameMsg.mockReset();
+    mockSendTabMsg.mockReset();
   });
 
   test("loads data from the top frame", async () => {
@@ -24,6 +27,7 @@ describe("loadPopupData", () => {
 
     expect(mockSendTopFrameMsg).toHaveBeenCalledWith(MSG_TRANS_GETRULE);
     expect(mockSendTopFrameMsg).toHaveBeenCalledTimes(1);
+    expect(mockSendTabMsg).not.toHaveBeenCalled();
   });
 
   test("returns immediately when the content script is responsive", async () => {
@@ -47,15 +51,37 @@ describe("loadPopupData", () => {
 
     expect(wait).toHaveBeenCalledWith(80);
     expect(sendMessage).toHaveBeenCalledTimes(2);
+    expect(mockSendTabMsg).not.toHaveBeenCalled();
   });
 
-  test("stops after one retry when no receiver is available", async () => {
-    const sendMessage = jest.fn().mockRejectedValue(new Error("No receiver"));
+  test("loads an enabled child frame only after both top-frame attempts fail", async () => {
+    mockSendTopFrameMsg.mockResolvedValue(undefined);
+    mockSendTabMsg.mockResolvedValue(popupData);
     const wait = jest.fn().mockResolvedValue(undefined);
 
-    await expect(loadPopupData({ sendMessage, wait })).resolves.toBeUndefined();
+    await expect(loadPopupData({ wait })).resolves.toBe(popupData);
+
+    expect(mockSendTopFrameMsg).toHaveBeenCalledTimes(2);
+    expect(mockSendTabMsg).toHaveBeenCalledTimes(1);
+    expect(mockSendTabMsg).toHaveBeenCalledWith(MSG_TRANS_GETRULE);
+    expect(mockSendTabMsg.mock.invocationCallOrder[0]).toBeGreaterThan(
+      mockSendTopFrameMsg.mock.invocationCallOrder[1]
+    );
+  });
+
+  test("stops after the fallback when no frame has a receiver", async () => {
+    const sendMessage = jest.fn().mockRejectedValue(new Error("No receiver"));
+    const sendFallbackMessage = jest
+      .fn()
+      .mockRejectedValue(new Error("No receiver"));
+    const wait = jest.fn().mockResolvedValue(undefined);
+
+    await expect(
+      loadPopupData({ sendMessage, sendFallbackMessage, wait })
+    ).resolves.toBeUndefined();
 
     expect(sendMessage).toHaveBeenCalledTimes(2);
+    expect(sendFallbackMessage).toHaveBeenCalledTimes(1);
     expect(wait).toHaveBeenCalledTimes(1);
   });
 
@@ -70,5 +96,13 @@ describe("loadPopupData", () => {
       errorResponse
     );
     expect(sendMessage).toHaveBeenCalledTimes(2);
+    expect(mockSendTabMsg).not.toHaveBeenCalled();
+  });
+
+  test("does not accept incomplete child-frame data", async () => {
+    mockSendTopFrameMsg.mockResolvedValue(undefined);
+    mockSendTabMsg.mockResolvedValue({ rule: {} });
+
+    await expect(loadPopupData({ wait: jest.fn() })).resolves.toBeUndefined();
   });
 });

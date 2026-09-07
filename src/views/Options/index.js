@@ -52,7 +52,11 @@ const getOptionsStartupSyncTasks = () => {
 
   if (hashPath === "/") {
     return {
-      requiredSync: () => Promise.all([trySyncSetting(), trySyncRules()]),
+      requiredSync: async () => {
+        // The first sync may initialize a shared remote destination.
+        await trySyncSetting();
+        await trySyncRules();
+      },
       backgroundSyncs: [trySyncWords],
     };
   }

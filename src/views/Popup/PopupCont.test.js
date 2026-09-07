@@ -445,7 +445,7 @@ describe("PopupCont capability parity", () => {
     view.cleanup();
   });
 
-  test("does not accept an iframe-only response as top-frame confirmation", async () => {
+  test("does not accept a command response without a confirming state query", async () => {
     let liveRule = {
       transOpen: "true",
       apiSlug: "google",
@@ -474,6 +474,33 @@ describe("PopupCont capability parity", () => {
     expect(alert).not.toBeNull();
     expect(alert.textContent).toContain("rule_toggle_failed");
     expect(alert.className).toContain("MuiAlert-filledError");
+    view.cleanup();
+  });
+
+  test("confirms an enabled child frame when the top frame has no receiver", async () => {
+    let liveRule = { transOpen: "true", apiSlug: "google" };
+    const setRule = jest.fn((update) => {
+      liveRule = typeof update === "function" ? update(liveRule) : update;
+    });
+    mockSendTabMsg.mockImplementation(async (action) =>
+      action === MSG_TRANS_GETRULE
+        ? { rule: { transOpen: "false" }, setting: {} }
+        : undefined
+    );
+    const view = renderPopupCont({ setRule });
+    await flushEffects();
+
+    await act(async () => {
+      view.container
+        .querySelector('input[aria-label="popup_translate_page"]')
+        .click();
+    });
+    await flushEffects();
+
+    expect(mockSendTopFrameMsg).toHaveBeenCalledWith(MSG_TRANS_GETRULE);
+    expect(mockSendTabMsg).toHaveBeenCalledWith(MSG_TRANS_GETRULE);
+    expect(liveRule.transOpen).toBe("false");
+    expect(view.container.querySelector('[role="alert"]')).toBeNull();
     view.cleanup();
   });
 

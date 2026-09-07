@@ -32,6 +32,18 @@ const UNSUPPORTED_FULLSCREEN_ROOTS = new Set([
 ]);
 export const SHADOW_HOST_ATTRIBUTE = `data-${APP_LCNAME}-shadow-host`;
 const SHADOW_HOST_DISPOSE_EVENT = `${APP_LCNAME}-shadow-host-dispose`;
+const movingShadowHosts = new WeakSet();
+
+export function isShadowHostMoving(node) {
+  for (
+    let ancestor = node;
+    ancestor;
+    ancestor = ancestor.parentNode || ancestor.host
+  ) {
+    if (movingShadowHosts.has(ancestor)) return true;
+  }
+  return false;
+}
 
 export function isolateShadowHost(host) {
   if (!host) return host;
@@ -150,6 +162,62 @@ function restoreStyleRules(host, snapshots) {
   }
 }
 
+function snapshotFocusState(host) {
+  let element = host.ownerDocument.activeElement;
+  while (element?.shadowRoot?.activeElement) {
+    element = element.shadowRoot.activeElement;
+  }
+
+  let ancestor = element;
+  while (ancestor && ancestor !== host) {
+    ancestor = ancestor.parentNode || ancestor.host;
+  }
+  if (ancestor !== host || typeof element?.focus !== "function") return null;
+
+  const scrollPositions = [];
+  for (let node = element; node; node = node.parentNode || node.host) {
+    if (node.nodeType === 1) {
+      scrollPositions.push({
+        element: node,
+        top: node.scrollTop,
+        left: node.scrollLeft,
+      });
+    }
+  }
+
+  return {
+    element,
+    selection:
+      typeof element.selectionStart === "number"
+        ? [
+            element.selectionStart,
+            element.selectionEnd,
+            element.selectionDirection,
+          ]
+        : null,
+    scrollPositions,
+  };
+}
+
+function restoreFocusState(host, snapshot) {
+  if (!snapshot) return;
+  const { element, selection, scrollPositions } = snapshot;
+  let ancestor = element;
+  while (ancestor && ancestor !== host) {
+    ancestor = ancestor.parentNode || ancestor.host;
+  }
+  if (ancestor !== host || !element.isConnected) return;
+
+  element.focus({ preventScroll: true });
+  if (selection) element.setSelectionRange(...selection);
+  // Restoring selection can scroll a textarea even when focus prevents scrolling.
+  for (const { element: scroller, top, left } of scrollPositions) {
+    if (!scroller.isConnected) continue;
+    scroller.scrollTop = top;
+    scroller.scrollLeft = left;
+  }
+}
+
 function moveShadowHost(host, root) {
   const snapshots = snapshotStyleRules(host);
   let moved = false;
@@ -162,9 +230,23 @@ function moveShadowHost(host, root) {
     }
   }
 
-  if (!moved) root.appendChild(host);
-  // Either move can replace CSSStyleSheet objects and erase insertRule data.
-  restoreStyleRules(host, snapshots);
+  if (moved) {
+    // Either move can replace CSSStyleSheet objects and erase insertRule data.
+    restoreStyleRules(host, snapshots);
+    return;
+  }
+
+  const focusState = snapshotFocusState(host);
+  movingShadowHosts.add(host);
+  try {
+    // Reparenting emits blur synchronously. Input handlers can ignore that blur
+    // until the existing focused element and its editing state are restored.
+    root.appendChild(host);
+    restoreStyleRules(host, snapshots);
+    restoreFocusState(host, focusState);
+  } finally {
+    movingShadowHosts.delete(host);
+  }
 }
 
 export function mountShadowHost(host, rootElement, { onReconnect } = {}) {

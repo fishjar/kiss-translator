@@ -82,6 +82,20 @@ export default function Layout() {
     if (!isMobile || !navigationOpen) return undefined;
     const navigation = document.getElementById("kt-options-navigation");
     if (!navigation) return undefined;
+    const scrollStyles = [
+      document.documentElement.style,
+      document.body.style,
+    ].map((style) => {
+      const overflowProperties = ["overflow", "overflow-x", "overflow-y"].map(
+        (property) => [
+          property,
+          style.getPropertyValue(property),
+          style.getPropertyPriority(property),
+        ]
+      );
+      style.setProperty("overflow", "hidden", "important");
+      return { style, overflowProperties };
+    });
     const background = backgroundRef.current;
     const backgroundFocusTargets = getNavigationFocusTargets(background).map(
       (element) => [element, element.getAttribute("tabindex")]
@@ -143,7 +157,15 @@ export default function Layout() {
         if (tabIndex === null) element.removeAttribute("tabindex");
         else element.setAttribute("tabindex", tabIndex);
       });
-      navigationTriggerRef.current?.focus();
+      scrollStyles.forEach(({ style, overflowProperties }) => {
+        overflowProperties.forEach(([property]) => {
+          style.removeProperty(property);
+        });
+        overflowProperties.forEach(([property, value, priority]) => {
+          if (value) style.setProperty(property, value, priority);
+        });
+      });
+      navigationTriggerRef.current?.focus({ preventScroll: true });
     };
   }, [isMobile, navigationOpen]);
 

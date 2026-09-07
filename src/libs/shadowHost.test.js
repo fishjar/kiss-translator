@@ -1,5 +1,6 @@
 import {
   isolateShadowHost,
+  isShadowHostMoving,
   disposeShadowHost,
   mountShadowHost,
   setShadowHostVisible,
@@ -110,6 +111,105 @@ describe("Shadow host fullscreen roots", () => {
     };
   }
 
+  test.each(["unavailable", "rejected"])(
+    "preserves nested editing state when a native fullscreen exit move is %s",
+    (nativeMove) => {
+      const host = mount();
+      const shadowRoot = host.attachShadow({ mode: "open" });
+      const scroller = document.createElement("div");
+      shadowRoot.appendChild(scroller);
+      const nestedRoot = scroller.attachShadow({ mode: "open" });
+      const input = document.createElement("textarea");
+      input.value = "unsubmitted draft";
+      nestedRoot.appendChild(input);
+      enterFullscreen(document.body);
+      input.focus();
+      input.setSelectionRange(2, 8, "backward");
+      input.scrollTop = 27;
+      input.scrollLeft = 11;
+      scroller.scrollTop = 71;
+
+      const commit = jest.fn();
+      input.addEventListener("blur", () => {
+        if (!isShadowHostMoving(input)) commit(input.value);
+      });
+      const focus = jest.spyOn(input, "focus");
+      const target = document.documentElement;
+      const originalMove = Object.getOwnPropertyDescriptor(
+        target,
+        "moveBefore"
+      );
+      const moveBefore =
+        nativeMove === "rejected"
+          ? jest.fn(() => {
+              throw new DOMException("Unsupported root transition");
+            })
+          : undefined;
+      Object.defineProperty(target, "moveBefore", {
+        configurable: true,
+        value: moveBefore,
+      });
+      const appendChild = target.appendChild;
+      jest.spyOn(target, "appendChild").mockImplementation((node) => {
+        expect(isShadowHostMoving(input)).toBe(true);
+        expect(isShadowHostMoving(document.body)).toBe(false);
+        // jsdom removes focus without emitting the browser's synchronous blur.
+        input.blur();
+        input.setSelectionRange(0, 0);
+        input.scrollTop = 0;
+        input.scrollLeft = 0;
+        scroller.scrollTop = 0;
+        return appendChild.call(target, node);
+      });
+
+      try {
+        enterFullscreen(null);
+
+        expect(host.parentNode).toBe(target);
+        expect(document.activeElement).toBe(host);
+        expect(nestedRoot.activeElement).toBe(input);
+        expect(input.value).toBe("unsubmitted draft");
+        expect(input.selectionStart).toBe(2);
+        expect(input.selectionEnd).toBe(8);
+        expect(input.selectionDirection).toBe("backward");
+        expect(input.scrollTop).toBe(27);
+        expect(input.scrollLeft).toBe(11);
+        expect(scroller.scrollTop).toBe(71);
+        expect(focus).toHaveBeenCalledWith({ preventScroll: true });
+        expect(commit).not.toHaveBeenCalled();
+        expect(isShadowHostMoving(input)).toBe(false);
+        if (moveBefore) expect(moveBefore).toHaveBeenCalledWith(host, null);
+
+        input.blur();
+        expect(commit).toHaveBeenCalledWith("unsubmitted draft");
+      } finally {
+        if (originalMove) {
+          Object.defineProperty(target, "moveBefore", originalMove);
+        } else {
+          delete target.moveBefore;
+        }
+      }
+    }
+  );
+
+  test("does not restore focus from outside the moving host", () => {
+    const host = mount();
+    const shadowRoot = host.attachShadow({ mode: "open" });
+    const input = document.createElement("textarea");
+    shadowRoot.appendChild(input);
+    const outside = addPageElement("button");
+    outside.focus();
+    const focus = jest.spyOn(input, "focus");
+    const section = addPageElement();
+    section.moveBefore = undefined;
+
+    enterFullscreen(section);
+
+    expect(document.activeElement).toBe(outside);
+    expect(focus).not.toHaveBeenCalled();
+    expect(isShadowHostMoving(input)).toBe(false);
+  });
+
   test("restores CSSOM rules on the same style nodes after fallback reparenting", () => {
     const host = mount();
     const shadowRoot = host.attachShadow({ mode: "open" });
@@ -211,9 +311,14 @@ describe("Shadow host fullscreen roots", () => {
     const shadowRoot = host.attachShadow({ mode: "open" });
     const style = addDynamicStyle(shadowRoot, [".panel { color: red; }"]);
     const originalRules = style.read();
+    const input = document.createElement("textarea");
+    shadowRoot.appendChild(input);
+    input.focus();
+    const focus = jest.spyOn(input, "focus");
     const section = addPageElement();
     section.moveBefore = jest.fn((node, reference) => {
       expect(reference).toBeNull();
+      expect(isShadowHostMoving(input)).toBe(false);
       Element.prototype.appendChild.call(section, node);
       style.reset([]);
     });
@@ -223,6 +328,7 @@ describe("Shadow host fullscreen roots", () => {
 
     expect(section.moveBefore).toHaveBeenCalledWith(host, null);
     expect(appendChild).not.toHaveBeenCalled();
+    expect(focus).not.toHaveBeenCalled();
     expect(host.parentNode).toBe(section);
     expect(style.read()).toEqual(originalRules);
   });

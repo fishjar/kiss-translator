@@ -58,10 +58,23 @@ const splitCssDeclarations = (cssString) => {
   let depth = 0;
   let quote = null;
   let inComment = false;
+  let inUnquotedUrl = false;
+  let name = "";
 
   for (let i = 0; i < cssString.length; i++) {
     const char = cssString[i];
 
+    if (inUnquotedUrl) {
+      buffer += char;
+      // Comment markers are literal URL characters, including an unmatched /*.
+      if (char === "\\" && i + 1 < cssString.length) {
+        buffer += cssString[++i];
+      } else if (char === ")") {
+        inUnquotedUrl = false;
+        depth = Math.max(0, depth - 1);
+      }
+      continue;
+    }
     if (inComment) {
       buffer += char;
       if (char === "/" && cssString[i - 1] === "*") inComment = false;
@@ -77,23 +90,57 @@ const splitCssDeclarations = (cssString) => {
       }
       continue;
     }
+    // A CDO token ends before any following identifier.
+    if (cssString.startsWith("<!--", i)) {
+      buffer += "<!--";
+      name = "";
+      i += 3;
+      continue;
+    }
     // Escaped delimiters outside strings are part of the CSS value.
     if (char === "\\" && i + 1 < cssString.length) {
-      buffer += char + cssString[++i];
+      // Decode escaped function names while keeping the original CSS source.
+      const escape = cssString
+        .slice(i + 1)
+        .match(/^[\da-f]{1,6}(?:\r\n|[ \t\n\r\f])?/i);
+      if (escape) {
+        const codePoint = parseInt(escape[0], 16);
+        name +=
+          codePoint > 0 &&
+          codePoint <= 0x10ffff &&
+          (codePoint < 0xd800 || codePoint > 0xdfff)
+            ? String.fromCodePoint(codePoint)
+            : "\ufffd";
+        buffer += char + escape[0];
+        i += escape[0].length;
+      } else {
+        name = /[\n\r\f]/.test(cssString[i + 1]) ? "" : name + cssString[i + 1];
+        buffer += char + cssString[++i];
+      }
       continue;
     }
     if (char === "/" && cssString[i + 1] === "*") {
       inComment = true;
+      name = "";
       buffer += char;
       continue;
     }
     if (char === '"' || char === "'") {
       quote = char;
+      name = "";
       buffer += char;
       continue;
     }
-    if (char === "(") depth++;
-    else if (char === ")") depth = Math.max(0, depth - 1);
+    if (char === "(") {
+      depth++;
+      if (name.toLowerCase() === "url") {
+        inUnquotedUrl = !/^[ \t\n\r\f]*["']/.test(cssString.slice(i + 1));
+      }
+    } else if (char === ")") {
+      depth = Math.max(0, depth - 1);
+    }
+    // Keep hash and at-keyword prefixes so they cannot match the URL name.
+    name = /[-\w\u0080-\uffff#@]/.test(char) ? name + char : "";
 
     if (char === ";" && depth === 0) {
       parts.push(buffer);

@@ -46,9 +46,9 @@ describe("M3 global motion", () => {
     expect(M3_GLOBAL_CSS).toContain("prefers-reduced-motion: reduce");
   });
 
-  test("preserves MUI button typography while resetting native controls", () => {
+  test("lets component typography override the native button reset", () => {
     expect(M3_GLOBAL_CSS).toContain(
-      ".kt-m3-root button:not(.MuiButtonBase-root)"
+      ":where(.kt-m3-root button:not(.MuiButtonBase-root))"
     );
     expect(M3_GLOBAL_CSS).not.toMatch(/\.kt-m3-root button,\s*\n/);
   });

@@ -322,7 +322,7 @@ describe("Options startup sync", () => {
     view.unmount();
   });
 
-  test("waits for both settings and rules on the overview page", async () => {
+  test("syncs settings before rules and waits for both on the overview page", async () => {
     const settingSync = createDeferred();
     const rulesSync = createDeferred();
     trySyncSetting.mockReturnValueOnce(settingSync.promise);
@@ -332,7 +332,7 @@ describe("Options startup sync", () => {
     await flushEffects();
 
     expect(trySyncSetting).toHaveBeenCalledTimes(1);
-    expect(trySyncRules).toHaveBeenCalledTimes(1);
+    expect(trySyncRules).not.toHaveBeenCalled();
     expect(trySyncWords).not.toHaveBeenCalled();
     expect(mockSettingProvider).not.toHaveBeenCalled();
     expect(view.container.querySelector("[data-testid='setting-page']")).toBe(
@@ -345,6 +345,8 @@ describe("Options startup sync", () => {
     });
     await flushEffects();
 
+    expect(trySyncRules).toHaveBeenCalledTimes(1);
+    expect(trySyncWords).not.toHaveBeenCalled();
     expect(mockSettingProvider).not.toHaveBeenCalled();
     expect(view.container.querySelector("[data-testid='setting-page']")).toBe(
       null

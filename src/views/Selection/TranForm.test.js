@@ -401,6 +401,7 @@ describe("TranForm Playground presentation", () => {
           apiType: "Google",
           isDisabled: true,
         },
+        { apiSlug: "google", apiName: "Google", apiType: "Google" },
       ],
     });
     await flushEffects();
@@ -408,6 +409,7 @@ describe("TranForm Playground presentation", () => {
     expect(
       container.querySelector(".kt-playground-translator__empty").textContent
     ).toContain("请先选择至少一个");
+    expect(container.querySelector('[data-testid="tran-cont"]')).toBeNull();
 
     act(() => root.unmount());
   });
@@ -934,19 +936,24 @@ describe("TranForm translation service selection", () => {
     }
   );
 
-  test("falls back when the service selection is missing rather than explicitly empty", async () => {
-    const { container, root } = renderTranForm({ apiSlugs: undefined });
-    await flushEffects();
+  test.each([undefined, null])(
+    "uses the first enabled service when the selection is %s",
+    async (apiSlugs) => {
+      const { container, root } = renderTranForm({ apiSlugs });
+      await flushEffects();
 
-    expect(
-      container.querySelectorAll('[data-testid="tran-cont"]')
-    ).toHaveLength(1);
+      expect(
+        [...container.querySelectorAll('[data-testid="tran-cont"]')].map(
+          (result) => result.dataset.apiSlug
+        )
+      ).toEqual(["openai"]);
 
-    act(() => root.unmount());
-  });
+      act(() => root.unmount());
+    }
+  );
 
   test.each([
-    ["stale", ["removed", "disabled"], ["google"]],
+    ["stale", ["removed", "disabled"], []],
     ["missing", undefined, ["google"]],
     ["explicitly empty", [], []],
   ])(

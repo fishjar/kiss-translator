@@ -1737,15 +1737,13 @@ function SubRules({ subRules, syncCaches }) {
         aria-busy={loading}
         sx={{
           minHeight: loading ? Math.max(80, rulesListHeight) : undefined,
-          position: "relative",
         }}
       >
         {loading ? (
           <Box
             sx={{
               display: "grid",
-              position: "absolute",
-              inset: 0,
+              minHeight: 80,
               placeItems: "center",
             }}
           >

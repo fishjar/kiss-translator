@@ -47,6 +47,7 @@ import { tryDetectLang } from "../../libs/detect";
 import { isSameTranslationLanguage } from "../../libs/language";
 import CompactLanguageSelect from "../Popup/CompactLanguageSelect";
 import { createMenuKeyDownHandler } from "../../libs/menuFocus";
+import { isShadowHostMoving } from "../../libs/shadowHost";
 
 export const formatLanguageOptionName = (name) => {
   const parts = String(name || "")
@@ -64,15 +65,12 @@ export const formatLanguageOptionName = (name) => {
 const hasPrompt = (value) => typeof value === "string" && Boolean(value.trim());
 
 const resolveActiveApiSlugs = (apiSlugs, optApis) => {
-  const validSlugs = new Set(optApis.map((api) => api.key));
-  const activeSlugs = (apiSlugs || []).filter((slug) => validSlugs.has(slug));
-  const hasExplicitEmptySelection =
-    Array.isArray(apiSlugs) && apiSlugs.length === 0;
-  if (activeSlugs.length > 0 || hasExplicitEmptySelection) {
-    return activeSlugs;
+  if (apiSlugs === undefined || apiSlugs === null) {
+    return optApis.slice(0, 1).map((api) => api.key);
   }
 
-  return optApis.slice(0, 1).map((api) => api.key);
+  const validSlugs = new Set(optApis.map((api) => api.key));
+  return apiSlugs.filter((slug) => validSlugs.has(slug));
 };
 
 /**
@@ -481,7 +479,6 @@ export default function TranForm({
               className="kt-resizable-textarea"
               ref={setInputRef}
               value={editText}
-              maxLength={5000}
               aria-label={i18n("original_text")}
               placeholder={i18n("original_text")}
               onFocus={() => setPopupInputFocused(true)}
@@ -498,7 +495,7 @@ export default function TranForm({
           </div>
           <div className="kt-popup-translation-input__footer">
             <Stack direction="row" alignItems="center" spacing={0.5}>
-              <span>{editText.length} / 5000</span>
+              <span>{editText.length}</span>
               {!editText.trim() && (
                 <IconButton
                   size="small"
@@ -848,7 +845,10 @@ export default function TranForm({
               onFocus={() => {
                 setEditMode(true);
               }}
-              onBlur={commitEditText}
+              onBlur={(event) => {
+                if (isShadowHostMoving(event.target)) return;
+                commitEditText();
+              }}
               InputProps={{
                 endAdornment: (
                   <Stack

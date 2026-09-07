@@ -92,12 +92,33 @@ test.each([
 });
 
 describe("mobile settings navigation", () => {
+  let mediaQuery;
+  let mediaQueryListeners;
+  let originalMatchMedia;
+  let originalRootStyle;
+  let originalBodyStyle;
+
   beforeEach(() => {
-    window.matchMedia = jest.fn(() => ({
+    originalMatchMedia = window.matchMedia;
+    originalRootStyle = document.documentElement.style.cssText;
+    originalBodyStyle = document.body.style.cssText;
+    mediaQueryListeners = new Set();
+    mediaQuery = {
       matches: true,
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-    }));
+      addEventListener: jest.fn((event, listener) => {
+        mediaQueryListeners.add(listener);
+      }),
+      removeEventListener: jest.fn((event, listener) => {
+        mediaQueryListeners.delete(listener);
+      }),
+    };
+    window.matchMedia = jest.fn(() => mediaQuery);
+  });
+
+  afterEach(() => {
+    window.matchMedia = originalMatchMedia;
+    document.documentElement.style.cssText = originalRootStyle;
+    document.body.style.cssText = originalBodyStyle;
   });
 
   test("mounts a modal drawer, isolates the background, and restores focus", () => {
@@ -108,6 +129,7 @@ describe("mobile settings navigation", () => {
     expect(window.matchMedia).toHaveBeenCalledWith("(max-width: 1179px)");
 
     const menuButton = container.querySelector("button");
+    const restoreFocus = jest.spyOn(menuButton, "focus");
     const contentLink = container.querySelector('a[href="#content"]');
     expect(container.querySelector("#kt-options-navigation")).toBeNull();
     expect(menuButton.hasAttribute("tabindex")).toBe(false);
@@ -122,6 +144,8 @@ describe("mobile settings navigation", () => {
     expect(background.hasAttribute("inert")).toBe(true);
     expect(menuButton.getAttribute("tabindex")).toBe("-1");
     expect(contentLink.getAttribute("tabindex")).toBe("-1");
+    expect(document.documentElement.style.overflow).toBe("hidden");
+    expect(document.body.style.overflow).toBe("hidden");
     expect(document.activeElement).toBe(
       container.querySelector('input[aria-label="search"]')
     );
@@ -142,6 +166,9 @@ describe("mobile settings navigation", () => {
     act(() => closeButton.click());
     expect(container.querySelector("#kt-options-navigation")).toBeNull();
     expect(document.activeElement).toBe(menuButton);
+    expect(document.documentElement.style.overflow).toBe("");
+    expect(document.body.style.overflow).toBe("");
+    expect(restoreFocus).toHaveBeenLastCalledWith({ preventScroll: true });
 
     act(() => menuButton.click());
     act(() => {
@@ -160,6 +187,63 @@ describe("mobile settings navigation", () => {
     act(() => root.unmount());
     container.remove();
   });
+
+  test.each(["close", "unmount", "desktop", "route"])(
+    "restores existing overflow declarations after %s",
+    (cleanup) => {
+      const rootStyle = document.documentElement.style;
+      const bodyStyle = document.body.style;
+      rootStyle.setProperty("overflow-x", "scroll", "important");
+      bodyStyle.setProperty("overflow", "auto");
+      bodyStyle.setProperty("overflow-y", "scroll", "important");
+      const getOverflowStyles = () =>
+        [rootStyle, bodyStyle].map((style) =>
+          ["overflow", "overflow-x", "overflow-y"].map((property) => [
+            style.getPropertyValue(property),
+            style.getPropertyPriority(property),
+          ])
+        );
+      const originalOverflow = getOverflowStyles();
+      const container = document.createElement("div");
+      document.body.appendChild(container);
+      const root = createRoot(container);
+      let mounted = true;
+
+      try {
+        act(() => root.render(<Layout />));
+        expect(getOverflowStyles()).toEqual(originalOverflow);
+        act(() => container.querySelector("button").click());
+        [rootStyle, bodyStyle].forEach((style) => {
+          expect(style.overflow).toBe("hidden");
+          expect(style.getPropertyPriority("overflow")).toBe("important");
+        });
+        bodyStyle.setProperty("color", "red");
+
+        act(() => {
+          if (cleanup === "unmount") {
+            root.unmount();
+            mounted = false;
+          } else if (cleanup === "desktop") {
+            mediaQuery.matches = false;
+            mediaQueryListeners.forEach((listener) => listener(mediaQuery));
+          } else if (cleanup === "route") {
+            mockPathname = "/rules";
+            root.render(<Layout />);
+          } else {
+            container
+              .querySelector('button[aria-label="options_close_navigation"]')
+              .click();
+          }
+        });
+
+        expect(getOverflowStyles()).toEqual(originalOverflow);
+        expect(bodyStyle.color).toBe("red");
+      } finally {
+        if (mounted) act(() => root.unmount());
+        container.remove();
+      }
+    }
+  );
 });
 
 describe("fetchLatestVersion", () => {

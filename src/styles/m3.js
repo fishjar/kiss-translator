@@ -166,7 +166,7 @@ export const M3_GLOBAL_CSS = String.raw`
   box-sizing: border-box;
 }
 
-.kt-m3-root button:not(.MuiButtonBase-root),
+:where(.kt-m3-root button:not(.MuiButtonBase-root)),
 .kt-m3-root input,
 .kt-m3-root select,
 .kt-m3-root textarea {
