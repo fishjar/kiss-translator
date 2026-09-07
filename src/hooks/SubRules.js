@@ -4,6 +4,30 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { loadOrFetchSubRules } from "../libs/subRules";
 import { kissLog } from "../libs/log";
 
+// Retain only pending additions so deletion also invalidates remounted editors.
+const pendingSubAdds = new Map();
+
+function beginSubAdd(url) {
+  let operations = pendingSubAdds.get(url);
+  if (!operations) {
+    operations = new Set();
+    pendingSubAdds.set(url, operations);
+  }
+  const token = Symbol();
+  operations.add(token);
+
+  return {
+    isCurrent: () =>
+      pendingSubAdds.get(url) === operations && operations.has(token),
+    finish: () => {
+      operations.delete(token);
+      if (pendingSubAdds.get(url) === operations && operations.size === 0) {
+        pendingSubAdds.delete(url);
+      }
+    },
+  };
+}
+
 /**
  * 订阅规则
  * @returns
@@ -72,6 +96,7 @@ export function useSubRules() {
   // 删除一个规则订阅源
   const delSub = useCallback(
     (url) => {
+      pendingSubAdds.delete(url);
       updateSetting((prev) => ({
         ...prev,
         subrulesList: prev.subrulesList.filter((item) => item.url !== url),
@@ -126,6 +151,7 @@ export function useSubRules() {
   return {
     subList: list,
     selectSub,
+    beginSubAdd,
     addSub,
     delSub,
     selectedSub,

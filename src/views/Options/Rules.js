@@ -1496,7 +1496,7 @@ function SubRulesItem({
 }
 
 // 订阅规则源新增组件
-function SubRulesEdit({ subList, addSub, updateDataCache }) {
+function SubRulesEdit({ subList, beginSubAdd, addSub, updateDataCache }) {
   const i18n = useI18n();
   // 输入的订阅 URL
   const [inputText, setInputText] = useState("");
@@ -1542,25 +1542,29 @@ function SubRulesEdit({ subList, addSub, updateDataCache }) {
     }
 
     const requestId = ++requestIdRef.current;
+    const operation = beginSubAdd(url);
+    const isCurrent = () =>
+      requestId === requestIdRef.current && operation.isCurrent();
     try {
       setLoading(true);
-      const rules = await syncSubRules(url);
-      if (requestId !== requestIdRef.current) return;
+      const rules = await syncSubRules(url, { shouldCommit: isCurrent });
+      if (!isCurrent()) return;
       // REVIEW: 若获取成功但返回的规则数刚好为 0（如合法的空订阅源），直接抛错并提示“获取 URL 失败 (error_fetch_url)”不够精确
       if (rules.length === 0) {
         throw new Error("empty rules");
       }
       await addSub(url); // 将新订阅源添加到列表
-      if (requestId !== requestIdRef.current) return;
+      if (!isCurrent()) return;
       await updateDataCache(url); // 记录首次同步的时间戳
-      if (!mountedRef.current || requestId !== requestIdRef.current) return;
+      if (!mountedRef.current || !isCurrent()) return;
       setShowInput(false);
       setInputText("");
     } catch (err) {
-      if (requestId !== requestIdRef.current) return;
+      if (!isCurrent()) return;
       kissLog("fetch rules", err);
       if (mountedRef.current) setInputError(i18n("error_fetch_url"));
     } finally {
+      operation.finish();
       if (mountedRef.current && requestId === requestIdRef.current) {
         setLoading(false);
       }
@@ -1653,6 +1657,7 @@ function SubRules({ subRules, syncCaches }) {
   const {
     subList, // 订阅源列表
     selectSub, // 选择订阅源方法
+    beginSubAdd,
     addSub, // 添加订阅源方法
     delSub, // 删除订阅源方法
     selectedUrl, // 当前选中的订阅 URL
@@ -1692,6 +1697,7 @@ function SubRules({ subRules, syncCaches }) {
       {/* 新增订阅源按钮及输入框 */}
       <SubRulesEdit
         subList={subList}
+        beginSubAdd={beginSubAdd}
         addSub={addSub}
         updateDataCache={updateDataCache}
       />

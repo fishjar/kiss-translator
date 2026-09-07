@@ -80,11 +80,11 @@ describe("Rules subscription persistence", () => {
     await act(async () => element.click());
   }
 
-  async function renderSubscribeTab() {
+  async function renderSubscribeTab(key) {
     await act(async () => {
       root.render(
         <SettingProvider>
-          <Rules />
+          <Rules key={key} />
         </SettingProvider>
       );
     });
@@ -199,6 +199,84 @@ describe("Rules subscription persistence", () => {
     }
   );
 
+  test.each([
+    ["tab", false],
+    ["tab", true],
+    ["route", false],
+    ["route", true],
+  ])(
+    "keeps deletion newer than an outstanding save across %s navigation (re-add finishes first: %s)",
+    async (navigation, readdFinishesFirst) => {
+      const originalRequest = deferred();
+      const retryRequest = deferred();
+      const readdRequest = deferred();
+      apiFetch
+        .mockReturnValueOnce(originalRequest.promise)
+        .mockReturnValueOnce(retryRequest.promise)
+        .mockReturnValueOnce(readdRequest.promise);
+      await renderSubscribeTab();
+      await saveSubscription();
+      if (navigation === "route") {
+        await renderSubscribeTab("remounted");
+      } else {
+        await clickText('[role="tab"]', "personal_rules");
+        await clickText('[role="tab"]', "subscribe_rules");
+      }
+      await saveSubscription();
+      expect(apiFetch).toHaveBeenCalledTimes(2);
+
+      await act(async () => {
+        retryRequest.resolve([{ pattern: "retry.example" }]);
+        await retryRequest.promise;
+      });
+      const deleteButton = container.querySelector(
+        `button[aria-label="Delete subscription ${NEW_URL}"]`
+      );
+      expect(deleteButton).not.toBeNull();
+      await act(async () => deleteButton.click());
+
+      async function expectDeleted() {
+        const savedSetting = await storage.getObj(STOKEY_SETTING);
+        const savedSync = await storage.getObj(STOKEY_SYNC);
+        expect(
+          savedSetting.subrulesList.some((item) => item.url === NEW_URL)
+        ).toBe(false);
+        expect(savedSync.dataCaches[NEW_URL]).toBeUndefined();
+        expect(await getSubRules(NEW_URL)).toBeNull();
+      }
+
+      async function readdSubscription() {
+        await saveSubscription();
+        expect(apiFetch).toHaveBeenCalledTimes(3);
+        await act(async () => {
+          readdRequest.resolve([{ pattern: "readded.example" }]);
+          await readdRequest.promise;
+        });
+      }
+
+      await expectDeleted();
+      if (readdFinishesFirst) await readdSubscription();
+      await act(async () => {
+        originalRequest.resolve([{ pattern: "stale.example" }]);
+        await originalRequest.promise;
+      });
+      if (!readdFinishesFirst) {
+        await expectDeleted();
+        await readdSubscription();
+      }
+
+      const savedSetting = await storage.getObj(STOKEY_SETTING);
+      const savedSync = await storage.getObj(STOKEY_SYNC);
+      expect(
+        savedSetting.subrulesList.filter((item) => item.url === NEW_URL)
+      ).toEqual([{ url: NEW_URL, selected: false }]);
+      expect(savedSync.dataCaches[NEW_URL]).toEqual(expect.any(Number));
+      expect(await getSubRules(NEW_URL)).toEqual([
+        expect.objectContaining({ pattern: "readded.example" }),
+      ]);
+    }
+  );
+
   test("does not persist a cancelled subscription when its request completes", async () => {
     const request = deferred();
     apiFetch.mockReturnValueOnce(request.promise);
@@ -218,6 +296,7 @@ describe("Rules subscription persistence", () => {
       { url: SOURCE_URL, selected: true },
     ]);
     expect(savedSync.dataCaches[NEW_URL]).toBeUndefined();
+    expect(await getSubRules(NEW_URL)).toBeNull();
   });
 
   test("keeps a manual sync visible when an older initial fetch fails", async () => {

@@ -71,9 +71,13 @@ export default function Action({ translator, processActions }) {
     }
   }, []);
 
-  // Close the panel when a click reaches the window.
+  // Keep this panel's controls and portals inside the same click boundary.
   useEffect(() => {
-    const handleWindowClick = () => {
+    const handleWindowClick = (event) => {
+      const popupRoot = headerRef.current?.closest(".kt-m3-root");
+      // A menu opened on mousedown can move mouseup onto its backdrop, making
+      // the browser dispatch click on their shared theme root instead.
+      if (popupRoot && event.composedPath().includes(popupRoot)) return;
       setShowPopup(false);
     };
     window.addEventListener("click", handleWindowClick);

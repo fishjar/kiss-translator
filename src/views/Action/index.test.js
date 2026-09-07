@@ -11,10 +11,14 @@ let mockWindowSize = { w: 240, h: 300 };
 jest.mock("../../hooks/Setting", () => ({
   SettingProvider: ({ children }) => children,
 }));
-jest.mock("../Popup/PopupTheme", () => ({
-  __esModule: true,
-  default: ({ children }) => children,
-}));
+jest.mock("../Popup/PopupTheme", () => {
+  const React = require("react");
+  return {
+    __esModule: true,
+    default: ({ children }) =>
+      React.createElement("div", { className: "kt-m3-root" }, children),
+  };
+});
 jest.mock("../../hooks/WindowSize", () => ({
   __esModule: true,
   default: () => mockWindowSize,
@@ -209,6 +213,52 @@ describe("content action Popup integration", () => {
     expect(container.querySelector('[role="dialog"]')).toBeNull();
     expect(document.activeElement).toBe(outsideInput);
   });
+
+  test.each(["document", "shadow"])(
+    "keeps a menu-opening click inside the panel in %s",
+    (scope) => {
+      if (scope === "shadow") {
+        createNestedShadowRoot().appendChild(container);
+      }
+      const panel = renderAction();
+      const popupRoot = panel.closest(".kt-m3-root");
+      const backdrop = document.createElement("div");
+      popupRoot.appendChild(backdrop);
+      const hostClick = jest.fn();
+      window.addEventListener("click", hostClick);
+
+      const dispatchMouse = (target, type) => {
+        target.dispatchEvent(
+          new MouseEvent(type, {
+            bubbles: true,
+            cancelable: true,
+            composed: true,
+          })
+        );
+      };
+
+      try {
+        act(() => {
+          // Match the browser trace: opening a portal changes the mouseup
+          // target, so click is dispatched on the shared theme root.
+          dispatchMouse(panel.querySelector("input"), "mousedown");
+          dispatchMouse(backdrop, "mouseup");
+          dispatchMouse(popupRoot, "click");
+        });
+
+        expect(container.querySelector('[role="dialog"]')).toBe(panel);
+        expect(hostClick).toHaveBeenCalledTimes(1);
+
+        act(() => dispatchMouse(backdrop, "click"));
+
+        expect(container.querySelector('[role="dialog"]')).toBe(panel);
+        expect(hostClick).toHaveBeenCalledTimes(2);
+      } finally {
+        window.removeEventListener("click", hostClick);
+        backdrop.remove();
+      }
+    }
+  );
 
   test("restores focus when the focused header close button dismisses the panel", () => {
     renderAction();

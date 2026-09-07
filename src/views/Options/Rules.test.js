@@ -114,6 +114,7 @@ function createSubRules(overrides = {}) {
   return {
     subList: [{ url: "https://rules.example/main.json", selected: true }],
     selectSub: jest.fn(),
+    beginSubAdd: () => ({ isCurrent: () => true, finish: jest.fn() }),
     addSub: jest.fn(),
     delSub: jest.fn(),
     selectedSub: { url: "https://rules.example/main.json", selected: true },
@@ -578,7 +579,8 @@ describe("Options Rules subscription tab", () => {
       await Promise.resolve();
     });
     expect(syncSubRules).toHaveBeenCalledWith(
-      "https://rules.example/cancelled.json"
+      "https://rules.example/cancelled.json",
+      { shouldCommit: expect.any(Function) }
     );
     expect(getButtonByText(view.container, "cancel").disabled).toBe(false);
     act(() => getButtonByText(view.container, "cancel").click());
