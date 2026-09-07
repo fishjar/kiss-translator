@@ -4,10 +4,18 @@ import Layout, { fetchLatestVersion, isWideOptionsPage } from "./Layout";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
+let mockPathname = "/";
+
+beforeEach(() => {
+  mockPathname = "/";
+});
+
 test("uses the wide content rail for dense workspace pages", () => {
   expect(isWideOptionsPage("/apis")).toBe(true);
   expect(isWideOptionsPage("/playground")).toBe(true);
   expect(isWideOptionsPage("/prompts")).toBe(true);
+  expect(isWideOptionsPage("/apis/")).toBe(true);
+  expect(isWideOptionsPage("/prompts///")).toBe(true);
   expect(isWideOptionsPage("/input")).toBe(false);
 });
 
@@ -16,7 +24,7 @@ jest.mock("react-router-dom", () => ({
     const React = require("react");
     return React.createElement("a", { href: "#content" }, "content");
   },
-  useLocation: () => ({ pathname: "/" }),
+  useLocation: () => ({ pathname: mockPathname }),
 }));
 jest.mock("../../hooks/I18n", () => ({ useI18n: () => (key) => key }));
 jest.mock("./styles", () => ({ OPTIONS_STYLES: "" }));
@@ -59,6 +67,28 @@ jest.mock("./Navigator", () => {
           )
         : null
     );
+});
+
+test.each([
+  ["/apis/", "options_translation_services", true],
+  ["/prompts///", "prompt_management", true],
+  ["/playground/", "Playground", true],
+  ["/rules/", "options_web_translation", false],
+])("uses the matching page metadata at %s", (pathname, title, wide) => {
+  mockPathname = pathname;
+  const container = document.createElement("div");
+  const root = createRoot(container);
+
+  act(() => root.render(<Layout />));
+
+  expect(container.querySelector("h1").textContent).toBe(title);
+  expect(
+    container
+      .querySelector(".kt-options-main__inner")
+      .classList.contains("kt-options-main__inner--wide")
+  ).toBe(wide);
+
+  act(() => root.unmount());
 });
 
 describe("mobile settings navigation", () => {

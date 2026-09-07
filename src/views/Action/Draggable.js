@@ -101,6 +101,7 @@ export default function Draggable({
   snapEdge,
   onStart,
   onMove,
+  onPositionTransitionEnd,
   handler, // The drag handle.
   children, // The main content.
   usePaper,
@@ -382,6 +383,14 @@ export default function Draggable({
       onFocusCapture={handleFocusCapture}
       onBlurCapture={handleBlurCapture}
       onClick={handleClick}
+      onTransitionEnd={(event) => {
+        if (
+          event.target === event.currentTarget &&
+          event.propertyName === "transform"
+        ) {
+          onPositionTransitionEnd?.();
+        }
+      }}
     >
       <DraggableWrapper usePaper={usePaper}>
         <div

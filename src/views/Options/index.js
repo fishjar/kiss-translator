@@ -30,17 +30,12 @@ import Backdrop from "@mui/material/Backdrop";
 import CircularProgress from "@mui/material/CircularProgress";
 import { kissLog } from "../../libs/log";
 import { runDataMigration } from "../../libs/storage";
+import { normalizeOptionsPath } from "./paths";
 
-export function normalizeOptionsHashPath(hash = "") {
-  const rawPath = String(hash).replace(/^#/, "") || "/";
-  const queryIndex = rawPath.indexOf("?");
-  const path =
-    (queryIndex >= 0 ? rawPath.slice(0, queryIndex) : rawPath) || "/";
-  return path.length > 1 ? path.replace(/\/+$/, "") || "/" : path;
-}
+export { normalizeOptionsPath as normalizeOptionsHashPath } from "./paths";
 
 const getOptionsStartupSyncTasks = () => {
-  const hashPath = normalizeOptionsHashPath(window.location.hash);
+  const hashPath = normalizeOptionsPath(window.location.hash);
   if (hashPath === "/rules" || hashPath.startsWith("/rules/")) {
     return {
       requiredSync: trySyncRules,

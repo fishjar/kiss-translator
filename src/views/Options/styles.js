@@ -1,3 +1,33 @@
+const NARROW_OPTIONS_MAIN_STYLES = String.raw`
+  .kt-overview-top { grid-template-columns: 1fr; }
+  .kt-sync-methods { grid-template-columns: 1fr; }
+  .kt-style-grid { grid-template-columns: 1fr; }
+  .kt-overview-settings .MuiFormControl-root { grid-template-columns: 1fr; gap: 7px; padding-block: 11px; }
+  .kt-overview-settings .MuiInputLabel-root,
+  .kt-overview-settings .MuiInputBase-root { grid-column: 1; }
+  .kt-overview-settings .MuiInputLabel-root { grid-row: 1; }
+  .kt-overview-settings .MuiInputBase-root { grid-row: 2; width: 100%; }
+  .kt-settings-row { align-items: flex-start; flex-direction: column; gap: 10px; padding: 14px 15px; }
+  .kt-settings-row__control { width: 100%; max-width: none; justify-content: stretch; }
+  .kt-settings-select,
+  .kt-settings-segmented,
+  .kt-settings-range { width: 100%; max-width: none; }
+  .kt-settings-segmented > button { padding-inline: 8px; font-size: 10.5px; }
+  .kt-settings-segmented--trigger { grid-template-columns: repeat(2, minmax(0, 1fr)); display: grid; border-radius: 12px; }
+`;
+
+const NARROW_API_LAYOUT_STYLES = String.raw`
+  .kt-api-master-detail { grid-template-columns: minmax(0, 1fr); }
+`;
+
+const NARROW_PLAYGROUND_STYLES = String.raw`
+  .kt-playground-translator.MuiStack-root { grid-template-columns: minmax(0, 1fr); }
+  .kt-playground-translator__source,
+  .kt-playground-translator__results { grid-column: 1; }
+  .kt-playground-config__header { align-items: flex-start; flex-direction: column; gap: 10px; }
+  .kt-playground-config__normalize { max-width: 100%; }
+`;
+
 export const OPTIONS_STYLES = String.raw`
 .kt-options-shell { min-height: 100vh; background: var(--kt-bg); color: var(--kt-on); }
 .kt-options-background { position: relative; z-index: 0; }
@@ -265,7 +295,7 @@ export const OPTIONS_STYLES = String.raw`
 
 @media (max-width: 1179px) {
   .kt-options-layout { display: block; }
-  .kt-options-mobile-header { min-height: 62px; display: flex; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 30; padding: 8px 14px; border-bottom: 1px solid var(--kt-linev); background: color-mix(in srgb, var(--kt-bg) 92%, transparent); backdrop-filter: blur(14px); }
+  .kt-options-mobile-header { min-height: 62px; display: flex; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 30; padding: 8px 14px; border-bottom: 1px solid var(--kt-linev); background: var(--kt-bg); backdrop-filter: blur(14px); }
   .kt-options-mobile-header__name { flex: 1; font-size: 14px; font-weight: 700; }
   .kt-options-sidebar { position: fixed; left: 0; transform: translateX(-105%); transition: transform .35s var(--kt-spring); box-shadow: var(--kt-shadow-2); }
   .kt-options-sidebar--open { transform: translateX(0); }
@@ -273,6 +303,9 @@ export const OPTIONS_STYLES = String.raw`
   .kt-options-overlay { display: block; position: fixed; inset: 0; z-index: 15; border: 0; background: rgba(0, 0, 0, .35); opacity: 0; pointer-events: none; transition: opacity .25s; }
   .kt-options-overlay--open { opacity: 1; pointer-events: auto; }
   .kt-options-main { padding: 26px 18px 60px; }
+  @supports (background: color-mix(in srgb, white 92%, transparent)) {
+    .kt-options-mobile-header { background: color-mix(in srgb, var(--kt-bg) 92%, transparent); }
+  }
 }
 
 @media (max-width: 620px) {
@@ -280,32 +313,28 @@ export const OPTIONS_STYLES = String.raw`
 }
 
 @container options-main (max-width: 620px) {
-  .kt-overview-top { grid-template-columns: 1fr; }
-  .kt-sync-methods { grid-template-columns: 1fr; }
-  .kt-style-grid { grid-template-columns: 1fr; }
-  .kt-overview-settings .MuiFormControl-root { grid-template-columns: 1fr; gap: 7px; padding-block: 11px; }
-  .kt-overview-settings .MuiInputLabel-root,
-  .kt-overview-settings .MuiInputBase-root { grid-column: 1; }
-  .kt-overview-settings .MuiInputLabel-root { grid-row: 1; }
-  .kt-overview-settings .MuiInputBase-root { grid-row: 2; width: 100%; }
-  .kt-settings-row { align-items: flex-start; flex-direction: column; gap: 10px; padding: 14px 15px; }
-  .kt-settings-row__control { width: 100%; max-width: none; justify-content: stretch; }
-  .kt-settings-select,
-  .kt-settings-segmented,
-  .kt-settings-range { width: 100%; max-width: none; }
-  .kt-settings-segmented > button { padding-inline: 8px; font-size: 10.5px; }
-  .kt-settings-segmented--trigger { grid-template-columns: repeat(2, minmax(0, 1fr)); display: grid; border-radius: 12px; }
+${NARROW_OPTIONS_MAIN_STYLES}
 }
 
 @container options-main (max-width: 720px) {
-  .kt-api-master-detail { grid-template-columns: minmax(0, 1fr); }
+${NARROW_API_LAYOUT_STYLES}
 }
 
 @container playground (max-width: 760px) {
-  .kt-playground-translator.MuiStack-root { grid-template-columns: minmax(0, 1fr); }
-  .kt-playground-translator__source,
-  .kt-playground-translator__results { grid-column: 1; }
-  .kt-playground-config__header { align-items: flex-start; flex-direction: column; gap: 10px; }
-  .kt-playground-config__normalize { max-width: 100%; }
+${NARROW_PLAYGROUND_STYLES}
+}
+
+@supports not (container-type: inline-size) {
+  /* Add the mobile main's 36px horizontal padding to each content breakpoint.
+     The desktop layout starts with 792px of content, above all three cutoffs. */
+  @media (max-width: 656px) {
+${NARROW_OPTIONS_MAIN_STYLES}
+  }
+  @media (max-width: 756px) {
+${NARROW_API_LAYOUT_STYLES}
+  }
+  @media (max-width: 796px) {
+${NARROW_PLAYGROUND_STYLES}
+  }
 }
 `;

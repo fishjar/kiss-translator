@@ -3,7 +3,10 @@ import { SEPARATE_WINDOW_CONTENT_WIDTH } from "../../config/app";
 export const POPUP_STYLES = String.raw`
 .kt-popup-shell {
   width: 396px;
-  min-width: 396px;
+  /* A percentage cap preserves toolbar popup intrinsic sizing; viewport units
+     can lock the browser's initially narrow measurement viewport in place. */
+  max-width: 100%;
+  min-width: 0;
   overflow: visible;
   background: var(--kt-sf0);
   color: var(--kt-on);
@@ -48,7 +51,7 @@ export const POPUP_STYLES = String.raw`
 .kt-popup-header__logo { border-radius: 8px; }
 .kt-popup-brand-button { display: block; padding: 0; border: 0; border-radius: 8px; background: transparent; cursor: pointer; }
 .kt-popup-header__identity { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
-.kt-popup-header__title { min-width: 0; font-size: 15px; font-weight: 650; white-space: nowrap; }
+.kt-popup-header__title { min-width: 0; max-width: 100%; overflow: hidden; font-size: 15px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
 .kt-popup-header__version { padding: 3px 8px; border-radius: 999px; background: var(--kt-sf2); color: var(--kt-onv); font-size: 10.5px; font-weight: 650; }
 .kt-popup-header__spacer { flex: 1; }
 .kt-popup-header__drag { display: flex; color: var(--kt-onv); cursor: move; }

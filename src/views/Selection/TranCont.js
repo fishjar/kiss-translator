@@ -4,7 +4,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { apiTranslate } from "../../apis";
 import {
   API_SPE_TYPES,
@@ -136,6 +136,7 @@ const translateBuiltinText = async (
  * @param {boolean} [props.simpleStyle=false] Whether to use the simple text layout.
  * @param {boolean} [props.isPlayground=false] Whether to render the full Playground result surface.
  * @param {boolean} [props.popupStyle=false] Whether to use the Popup M3 result card.
+ * @param {number} [props.requestRevision=0] Explicit submission revision for retrying unchanged input.
  * @returns {JSX.Element|null} Result view for one translation provider.
  */
 export default function TranCont({
@@ -150,12 +151,15 @@ export default function TranCont({
   simpleStyle = false,
   isPlayground = false,
   popupStyle = false,
+  requestRevision = 0,
 }) {
   const i18n = useI18n();
   const [trText, setTrText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [elapsedMs, setElapsedMs] = useState(null);
+  const [attemptRevision, setAttemptRevision] = useState(requestRevision);
+  const requestPendingRef = useRef(false);
 
   // Resolve the translation API settings for this instance's slug.
   const apiSetting = useMemo(
@@ -169,6 +173,7 @@ export default function TranCont({
     coordinatesBuiltinSource && sourceDetectionPending;
 
   useEffect(() => {
+    requestPendingRef.current = false;
     if (!text?.trim() || !apiSetting) {
       setTrText("");
       setLoading(false);
@@ -177,6 +182,7 @@ export default function TranCont({
     }
 
     if (waitForBuiltinDetection) {
+      requestPendingRef.current = true;
       setTrText("");
       setLoading(true);
       setError("");
@@ -184,6 +190,7 @@ export default function TranCont({
     }
 
     let active = true;
+    requestPendingRef.current = true;
     const controller = new AbortController();
     const enableStreamRender = canRenderStream(apiSetting);
     const startedAt = Date.now();
@@ -259,6 +266,7 @@ export default function TranCont({
         }
       } finally {
         if (active) {
+          requestPendingRef.current = false;
           setLoading(false);
         }
       }
@@ -266,6 +274,7 @@ export default function TranCont({
 
     return () => {
       active = false;
+      requestPendingRef.current = false;
       // Abort on unmount or dependency changes to stop streaming data for stale selections.
       controller.abort();
     };
@@ -277,7 +286,14 @@ export default function TranCont({
     translateVariants,
     builtinDetectedLang,
     waitForBuiltinDetection,
+    attemptRevision,
   ]);
+
+  // Keep pending requests, including queued batches, intact on repeated submits.
+  // Input changes are handled above and must not trigger a second attempt here.
+  useEffect(() => {
+    if (!requestPendingRef.current) setAttemptRevision(requestRevision);
+  }, [requestRevision]);
 
   if (!apiSetting) {
     return null;

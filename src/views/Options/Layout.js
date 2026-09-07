@@ -5,10 +5,12 @@ import Navigator from "./Navigator";
 import { useI18n } from "../../hooks/I18n";
 import { useMediaQueryMatch } from "../../hooks/MediaQuery";
 import { OPTIONS_STYLES } from "./styles";
+import { normalizeOptionsPath } from "./paths";
 
 const WIDE_PAGE_PATHS = new Set(["/apis", "/playground", "/prompts"]);
 
-export const isWideOptionsPage = (pathname) => WIDE_PAGE_PATHS.has(pathname);
+export const isWideOptionsPage = (pathname) =>
+  WIDE_PAGE_PATHS.has(normalizeOptionsPath(pathname));
 
 export async function fetchLatestVersion({ signal, now = Date.now } = {}) {
   const versionUrls = [
@@ -35,13 +37,14 @@ export async function fetchLatestVersion({ signal, now = Date.now } = {}) {
 
 export default function Layout() {
   const location = useLocation();
+  const pathname = normalizeOptionsPath(location.pathname);
   const i18n = useI18n();
   const [navigationOpen, setNavigationOpen] = useState(false);
   const navigationTriggerRef = useRef(null);
   const backgroundRef = useRef(null);
   const [latestVersion, setLatestVersion] = useState("");
   const isMobile = useMediaQueryMatch("(max-width: 1179px)");
-  const isWidePage = isWideOptionsPage(location.pathname);
+  const isWidePage = isWideOptionsPage(pathname);
 
   useEffect(() => {
     if (process.env.NODE_ENV === "test") return undefined;
@@ -181,8 +184,8 @@ export default function Layout() {
       "/playground": ["Playground", ""],
       "/about": [i18n("about"), ""],
     };
-    return pages[location.pathname] || pages["/"];
-  }, [i18n, location.pathname]);
+    return pages[pathname] || pages["/"];
+  }, [i18n, pathname]);
 
   return (
     <div className="kt-options-shell">

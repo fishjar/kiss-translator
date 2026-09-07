@@ -132,6 +132,54 @@ describe("settings layout boundaries", () => {
     );
   });
 
+  test.each([
+    ["options-main", 620, 656],
+    ["options-main", 720, 756],
+    ["playground", 760, 796],
+  ])(
+    "preserves the %s %ipx layout without container support at a %ipx viewport",
+    (container, contentWidth, viewportWidth) => {
+      const fallbackBodies = getCssAtRuleBodies(
+        OPTIONS_STYLES,
+        "@supports not (container-type: inline-size)"
+      );
+      expect(fallbackBodies).toHaveLength(1);
+
+      const viewportBodies = getCssAtRuleBodies(
+        fallbackBodies[0],
+        `@media (max-width: ${viewportWidth}px)`
+      );
+      const containerBodies = getCssAtRuleBodies(
+        OPTIONS_STYLES,
+        `@container ${container} (max-width: ${contentWidth}px)`
+      );
+      expect(viewportBodies).toHaveLength(1);
+      expect(containerBodies).toHaveLength(1);
+      expect(viewportBodies[0].trim()).toBe(containerBodies[0].trim());
+    }
+  );
+
+  test("keeps the sticky mobile header opaque without color-mix support", () => {
+    const mobileBody = getCssAtRuleBodies(
+      OPTIONS_STYLES,
+      "@media (max-width: 1179px)"
+    )[0];
+    const headerRule = mobileBody.match(
+      /\.kt-options-mobile-header\s*\{([^}]*)\}/
+    )?.[1];
+    expect(headerRule).toContain("background: var(--kt-bg)");
+    expect(headerRule).not.toContain("color-mix");
+
+    const enhancedBodies = getCssAtRuleBodies(
+      mobileBody,
+      "@supports (background: color-mix(in srgb, white 92%, transparent))"
+    );
+    expect(enhancedBodies).toHaveLength(1);
+    expect(enhancedBodies[0]).toMatch(
+      /\.kt-options-mobile-header\s*\{[^}]*background:\s*color-mix\(in srgb, var\(--kt-bg\) 92%, transparent\);/
+    );
+  });
+
   test("lays out the Playground by its own available width", () => {
     expect(OPTIONS_STYLES).toMatch(
       /\.kt-playground\s*\{[^}]*container:\s*playground \/ inline-size;/

@@ -1,4 +1,5 @@
 import { act } from "react";
+import styled from "@emotion/styled";
 import Selection from "../views/Selection";
 import { APP_CONSTS } from "../config";
 import { TransboxManager } from "./tranbox";
@@ -23,6 +24,8 @@ function lastSelectionProps() {
   const calls = Selection.mock.calls;
   return calls[calls.length - 1]?.[0];
 }
+
+const SelectionInput = styled.input({ color: "red" });
 
 describe("TransboxManager", () => {
   beforeEach(() => {
@@ -280,6 +283,40 @@ describe("TransboxManager fullscreen lifecycle", () => {
     expect(oldHost.parentElement).toBe(document.documentElement);
     expect(newHost.parentElement).toBe(document.body);
   });
+
+  test.each(["contents", "ancestor"])(
+    "recovers styles and unsaved input after fullscreen %s removal",
+    (removedPart) => {
+      Selection.mockImplementation(() => (
+        <SelectionInput defaultValue="selection" />
+      ));
+      enable();
+      const host = document.getElementById(APP_CONSTS.boxID);
+      const input = host.shadowRoot.querySelector("input");
+      input.value = "unsaved translation";
+      const section = addSection();
+      enterFullscreen(section);
+      const oldStyles = Array.from(host.shadowRoot.querySelectorAll("style"));
+      expect(oldStyles.length).toBeGreaterThan(0);
+
+      if (removedPart === "contents") section.replaceChildren();
+      else section.remove();
+      enterFullscreen(null);
+
+      expect(manager.isEnabled()).toBe(true);
+      expect(host.parentNode).toBe(document.documentElement);
+      expect(host.shadowRoot.querySelector("input")).toBe(input);
+      expect(input.value).toBe("unsaved translation");
+      expect(oldStyles.every((style) => !style.isConnected)).toBe(true);
+      const restoredStyles = Array.from(
+        host.shadowRoot.querySelectorAll("style")
+      );
+      expect(restoredStyles.length).toBeGreaterThan(0);
+      expect(restoredStyles.every((style) => !oldStyles.includes(style))).toBe(
+        true
+      );
+    }
+  );
 
   test("disabling a detached box releases its React tree and fullscreen listener", () => {
     enable();

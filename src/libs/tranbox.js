@@ -50,21 +50,29 @@ export class TransboxManager {
       this.#container.className = "notranslate";
       isolateShadowHost(this.#container);
 
-      this.#cleanupHostMount = mountShadowHost(this.#container);
+      this.#cleanupHostMount = mountShadowHost(this.#container, undefined, {
+        onReconnect: () => this.#refreshStyles(),
+      });
       this.#shadowContainer = this.#container.attachShadow({ mode: "open" });
       const shadowRootElement = document.createElement("div");
       shadowRootElement.className = `${APP_CONSTS.boxID}_wrapper notranslate`;
       this.#shadowContainer.appendChild(shadowRootElement);
 
-      this.#cache = createCache({
-        key: APP_CONSTS.boxID,
-        prepend: true,
-        container: this.#shadowContainer,
-      });
-
       this.#reactRoot = ReactDOM.createRoot(shadowRootElement);
-      this.#render();
+      this.#refreshStyles();
     }
+  }
+
+  #refreshStyles() {
+    this.#cache?.sheet.flush();
+    this.#cache = createCache({
+      key: APP_CONSTS.boxID,
+      prepend: true,
+      container: this.#shadowContainer,
+    });
+    // A new cache restores CSSOM lost during page-owned DOM removal while the
+    // unchanged React root preserves unsaved selection text and panel state.
+    this.#render();
   }
 
   #render() {
@@ -85,6 +93,7 @@ export class TransboxManager {
     this.#cleanupHostMount?.();
     this.#cleanupHostMount = null;
     this.#reactRoot?.unmount();
+    this.#cache?.sheet.flush();
     this.#container?.remove();
     this.#container = null;
     this.#reactRoot = null;

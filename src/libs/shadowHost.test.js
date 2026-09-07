@@ -1,5 +1,6 @@
 import {
   isolateShadowHost,
+  disposeShadowHost,
   mountShadowHost,
   setShadowHostVisible,
   SHADOW_HOST_ATTRIBUTE,
@@ -15,6 +16,14 @@ describe("Shadow host isolation", () => {
     expect(host.style.getPropertyPriority("all")).toBe("important");
     expect(host.style.getPropertyValue("display")).toBe("block");
     expect(host.style.getPropertyPriority("display")).toBe("important");
+    expect(host.style.getPropertyValue("position")).toBe("absolute");
+    expect(host.style.getPropertyPriority("position")).toBe("important");
+    for (const property of ["top", "left", "width", "height"]) {
+      expect(host.style.getPropertyValue(property)).toBe("0px");
+      expect(host.style.getPropertyPriority(property)).toBe("important");
+    }
+    expect(host.style.getPropertyValue("z-index")).toBe("");
+    expect(host.style.getPropertyValue("transform")).toBe("");
     expect(host.style.getPropertyValue("direction")).toBe("ltr");
     expect(host.style.getPropertyPriority("direction")).toBe("important");
     expect(host.style.getPropertyValue("unicode-bidi")).toBe("normal");
@@ -71,10 +80,10 @@ describe("Shadow host fullscreen roots", () => {
     return element;
   }
 
-  function mount(rootElement) {
+  function mount(rootElement, options) {
     const host = isolateShadowHost(document.createElement("div"));
     hosts.push(host);
-    cleanupMounts.push(mountShadowHost(host, rootElement));
+    cleanupMounts.push(mountShadowHost(host, rootElement, options));
     return host;
   }
 
@@ -362,30 +371,100 @@ describe("Shadow host fullscreen roots", () => {
     expect(documentHost.parentElement).toBe(document.documentElement);
   });
 
-  test("does not remount a directly removed host on subsequent events", () => {
+  test("restores an active host removed by fullscreen content replacement", () => {
+    const section = addPageElement();
+    enterFullscreen(section);
+    const onReconnect = jest.fn();
+    const host = mount(undefined, { onReconnect });
+    expect(onReconnect).not.toHaveBeenCalled();
+    section.replaceChildren(document.createElement("p"));
+
+    enterFullscreen(null);
+    expect(host.parentNode).toBe(document.documentElement);
+    expect(onReconnect).toHaveBeenCalledTimes(1);
+    enterFullscreen(section);
+    expect(onReconnect).toHaveBeenCalledTimes(1);
+  });
+
+  test("retiring a host prevents recovery and releases its event listeners", () => {
+    const onReconnect = jest.fn();
+    const host = mount(undefined, { onReconnect });
+    disposeShadowHost(host);
+    host.remove();
+
+    enterFullscreen(document.body);
+    expect(host.isConnected).toBe(false);
+    expect(onReconnect).not.toHaveBeenCalled();
+    expect(host.getAttribute(SHADOW_HOST_ATTRIBUTE)).toBe("disposed");
+
+    // Even an already queued event callback must stay inactive after disposal.
+    document.documentElement.appendChild(host);
+    enterFullscreen(document.body);
+    expect(host.parentNode).toBe(document.documentElement);
+  });
+
+  test("recovers fullscreen content removed and reinserted within one task", async () => {
+    const section = addPageElement();
+    enterFullscreen(section);
+    const onReconnect = jest.fn();
+    const host = mount(undefined, { onReconnect });
+    section.remove();
+    document.body.appendChild(section);
+
+    await Promise.resolve();
+
+    expect(host.parentNode).toBe(section);
+    expect(onReconnect).toHaveBeenCalledTimes(1);
+  });
+
+  test("restores fullscreen content immediately without waiting for exit", async () => {
+    const section = addPageElement();
+    enterFullscreen(section);
+    const onReconnect = jest.fn();
+    const host = mount(undefined, { onReconnect });
+    section.replaceChildren();
+
+    await Promise.resolve();
+
+    expect(host.parentNode).toBe(section);
+    expect(onReconnect).toHaveBeenCalledTimes(1);
+    enterFullscreen(null);
+    expect(onReconnect).toHaveBeenCalledTimes(1);
+  });
+
+  test("cleanup cancels recovery queued by a fullscreen content removal", async () => {
+    const section = addPageElement();
+    enterFullscreen(section);
+    const onReconnect = jest.fn();
+    const host = mount(undefined, { onReconnect });
+    section.replaceChildren();
+    disposeShadowHost(host);
+
+    await Promise.resolve();
+
+    expect(host.isConnected).toBe(false);
+    expect(onReconnect).not.toHaveBeenCalled();
+  });
+
+  test("stops root reconciliation after cleanup", () => {
     const host = mount();
+    cleanupMounts[0]();
     host.remove();
 
     enterFullscreen(document.body);
     expect(host.isConnected).toBe(false);
   });
 
-  test("stops root reconciliation after cleanup", () => {
-    const host = mount();
-    cleanupMounts[0]();
-
-    enterFullscreen(document.body);
-    expect(host.parentElement).toBe(document.documentElement);
-  });
-
   test("restores hosts when their fullscreen ancestor is removed", () => {
     const section = addPageElement();
     enterFullscreen(section);
-    const host = mount();
+    const onReconnect = jest.fn();
+    const host = mount(undefined, { onReconnect });
     section.remove();
 
     enterFullscreen(null);
     expect(host.isConnected).toBe(true);
     expect(host.parentElement).toBe(document.documentElement);
+    expect(onReconnect).toHaveBeenCalledTimes(1);
   });
 });

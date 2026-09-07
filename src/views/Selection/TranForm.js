@@ -114,6 +114,7 @@ export default function TranForm({
   const [popupInputFocused, setPopupInputFocused] = useState(false);
   // Keep draft input until blur or submission updates the outer text state.
   const [editText, setEditText] = useState(text);
+  const [requestRevision, setRequestRevision] = useState(0);
   const [apiSlugs, setApiSlugs] = useState(initApiSlugs);
   const [hasUserChangedApiSlugs, setHasUserChangedApiSlugs] = useState(false);
   const [fromLang, setFromLang] = useState(initFromLang);
@@ -348,6 +349,12 @@ export default function TranForm({
     setText(editText.trim());
   };
 
+  const submitTranslation = () => {
+    commitEditText();
+    // Explicit submissions retry unchanged text; ordinary blur commits do not.
+    setRequestRevision((revision) => revision + 1);
+  };
+
   const translationResults = activeApiSlugs.map((slug) => (
     <TranCont
       key={slug}
@@ -361,6 +368,7 @@ export default function TranForm({
       translateVariants={translateVariants}
       detectedLang={deLang}
       sourceDetectionPending={fromLang === "auto" && deLoading}
+      requestRevision={requestRevision}
     />
   ));
   const togglePopupService = (slug) => {
@@ -480,9 +488,10 @@ export default function TranForm({
               onBlur={() => setPopupInputFocused(false)}
               onChange={(event) => setEditText(event.target.value)}
               onKeyDown={(event) => {
+                if (event.nativeEvent.isComposing) return;
                 if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
                   event.preventDefault();
-                  commitEditText();
+                  if (!event.repeat) submitTranslation();
                 }
               }}
             />
@@ -505,7 +514,7 @@ export default function TranForm({
               variant="contained"
               disabled={!editText.trim()}
               startIcon={<TranslateRoundedIcon />}
-              onClick={commitEditText}
+              onClick={submitTranslation}
             >
               {i18n("translate")}
             </Button>
@@ -540,6 +549,7 @@ export default function TranForm({
               translateVariants={translateVariants}
               detectedLang={deLang}
               sourceDetectionPending={fromLang === "auto" && deLoading}
+              requestRevision={requestRevision}
               popupStyle
             />
           ))}

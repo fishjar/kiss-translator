@@ -2,14 +2,15 @@ import { POPUP_STYLES } from "./styles";
 import { getCssAtRuleBodies } from "../../styles/testUtils";
 
 describe("Safari popup sizing", () => {
-  test("uses intrinsic fixed dimensions instead of viewport-relative sizing", () => {
+  test("keeps an intrinsic preferred width within the available container", () => {
     const shellRule = POPUP_STYLES.match(/\.kt-popup-shell\s*\{([^}]*)\}/)?.[1];
     const scrollRule = POPUP_STYLES.match(
       /\.kt-popup-scroll\s*\{([^}]*)\}/
     )?.[1];
 
     expect(shellRule).toContain("width: 396px");
-    expect(shellRule).toContain("min-width: 396px");
+    expect(shellRule).toContain("max-width: 100%");
+    expect(shellRule).toContain("min-width: 0");
     expect(POPUP_STYLES).not.toMatch(
       /\.kt-popup-shell:not\(\.kt-popup-shell--window\)\s*\{[^}]*width:\s*100%;[^}]*min-width:\s*0;/
     );

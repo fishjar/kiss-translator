@@ -69,6 +69,45 @@ function focus(element) {
 }
 
 describe("SettingsAdvanced", () => {
+  test("links each summary to its own named region", () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    act(() => {
+      root.render(
+        <>
+          <SettingsAdvanced label="Translation details">First</SettingsAdvanced>
+          <SettingsAdvanced label="Dictionary details">Second</SettingsAdvanced>
+        </>
+      );
+    });
+
+    const summaries = Array.from(
+      container.querySelectorAll(".MuiAccordionSummary-root")
+    );
+    const regions = summaries.map((summary) =>
+      document.getElementById(summary.getAttribute("aria-controls"))
+    );
+    expect(new Set(summaries.map((summary) => summary.id)).size).toBe(2);
+    expect(new Set(regions.map((region) => region.id)).size).toBe(2);
+    regions.forEach((region, index) => {
+      expect(region.getAttribute("role")).toBe("region");
+      expect(
+        document.getElementById(region.getAttribute("aria-labelledby"))
+      ).toBe(summaries[index]);
+    });
+
+    act(() => summaries[0].click());
+    expect(
+      summaries.map((summary) => summary.getAttribute("aria-expanded"))
+    ).toEqual(["true", "false"]);
+    expect(regions[0].textContent).toBe("First");
+    expect(regions[1].textContent).toBe("");
+
+    act(() => root.unmount());
+    container.remove();
+  });
+
   test("mounts advanced content lazily and keeps it mounted", () => {
     const container = document.createElement("div");
     const root = createRoot(container);

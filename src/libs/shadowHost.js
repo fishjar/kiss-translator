@@ -31,6 +31,7 @@ const UNSUPPORTED_FULLSCREEN_ROOTS = new Set([
   "wbr",
 ]);
 export const SHADOW_HOST_ATTRIBUTE = `data-${APP_LCNAME}-shadow-host`;
+const SHADOW_HOST_DISPOSE_EVENT = `${APP_LCNAME}-shadow-host-dispose`;
 
 export function isolateShadowHost(host) {
   if (!host) return host;
@@ -38,6 +39,13 @@ export function isolateShadowHost(host) {
   host.setAttribute(SHADOW_HOST_ATTRIBUTE, "");
   host.style.setProperty("all", "initial", IMPORTANT);
   host.style.setProperty("display", "block", IMPORTANT);
+  // Stay out of fullscreen flex/grid layout without creating a containing block
+  // for fixed descendants or a stacking context around their overlays.
+  host.style.setProperty("position", "absolute", IMPORTANT);
+  host.style.setProperty("top", "0", IMPORTANT);
+  host.style.setProperty("left", "0", IMPORTANT);
+  host.style.setProperty("width", "0", IMPORTANT);
+  host.style.setProperty("height", "0", IMPORTANT);
   host.style.setProperty("direction", "ltr", IMPORTANT);
   host.style.setProperty("unicode-bidi", "normal", IMPORTANT);
   return host;
@@ -46,6 +54,13 @@ export function isolateShadowHost(host) {
 export function setShadowHostVisible(host, visible) {
   if (!host) return;
   host.style.setProperty("display", visible ? "block" : "none", IMPORTANT);
+}
+
+// The DOM marker also lets a newer injected runtime retire an older host.
+export function disposeShadowHost(host) {
+  if (!host) return;
+  host.setAttribute(SHADOW_HOST_ATTRIBUTE, "disposed");
+  host.dispatchEvent(new Event(SHADOW_HOST_DISPOSE_EVENT));
 }
 
 function getFullscreenRoot(host) {
@@ -152,30 +167,76 @@ function moveShadowHost(host, root) {
   restoreStyleRules(host, snapshots);
 }
 
-export function mountShadowHost(host, rootElement) {
+export function mountShadowHost(host, rootElement, { onReconnect } = {}) {
   if (rootElement !== undefined) {
     rootElement.appendChild(host);
-    return () => {};
+    return () => disposeShadowHost(host);
   }
 
   const doc = host.ownerDocument;
+  let active = true;
+  let mounted = false;
+  let needsStyleRefresh = false;
+  let observedAncestors = new Set();
+  const observer = new MutationObserver((records) => {
+    if (!active) return;
+    const removedAncestor = records.some((record) =>
+      Array.from(record.removedNodes).some((node) =>
+        observedAncestors.has(node)
+      )
+    );
+    if (!removedAncestor) return;
+    // Removal and reinsertion in one task can leave the host connected by the
+    // time this runs, even though its CSSOM was already discarded.
+    needsStyleRefresh = true;
+    reconcileRoot();
+  });
+  const observeFullscreenRoot = (root) => {
+    observer.disconnect();
+    observedAncestors = new Set([host]);
+    if (root === doc.documentElement) return;
+
+    // Watch only child lists along the fullscreen ancestor chain. No document
+    // subtree scans or polling are needed to detect removal of this host.
+    for (let node = root; node; node = node.parentNode || node.host) {
+      observedAncestors.add(node);
+      observer.observe(node, { childList: true });
+    }
+  };
+  const cleanup = () => {
+    if (!active) return;
+    active = false;
+    observer.disconnect();
+    observedAncestors.clear();
+    host.setAttribute(SHADOW_HOST_ATTRIBUTE, "disposed");
+    host.removeEventListener(SHADOW_HOST_DISPOSE_EVENT, cleanup);
+    FULLSCREEN_EVENTS.forEach((eventName) => {
+      doc.removeEventListener(eventName, reconcileRoot);
+    });
+  };
   const reconcileRoot = () => {
+    if (!active) return;
+    if (host.getAttribute(SHADOW_HOST_ATTRIBUTE) === "disposed") {
+      cleanup();
+      return;
+    }
+
+    const refreshStyles = mounted && (!host.isConnected || needsStyleRefresh);
     const root = getFullscreenRoot(host);
     if (host.parentNode !== root) moveShadowHost(host, root);
-  };
-  const handleFullscreenChange = () => {
-    // A directly removed host belongs to a disposed or stale manager.
-    if (host.parentNode) reconcileRoot();
+    mounted = true;
+    needsStyleRefresh = false;
+    observeFullscreenRoot(root);
+    // Page-owned removal can erase CSSOM before a move can snapshot it. Let the
+    // owner refresh its style cache while keeping the existing React tree alive.
+    if (refreshStyles && host.isConnected) onReconnect?.();
   };
 
   reconcileRoot();
+  host.addEventListener(SHADOW_HOST_DISPOSE_EVENT, cleanup);
   FULLSCREEN_EVENTS.forEach((eventName) => {
-    doc.addEventListener(eventName, handleFullscreenChange);
+    doc.addEventListener(eventName, reconcileRoot);
   });
 
-  return () => {
-    FULLSCREEN_EVENTS.forEach((eventName) => {
-      doc.removeEventListener(eventName, handleFullscreenChange);
-    });
-  };
+  return cleanup;
 }

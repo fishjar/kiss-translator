@@ -15,6 +15,8 @@ export default class ShadowDomManager {
   #isVisible = false;
   #isProcessing = false;
   #cleanupHostMount = null;
+  #cache = null;
+  #renderProps = null;
 
   _id;
   _className;
@@ -100,6 +102,9 @@ export default class ShadowDomManager {
 
     this.#hostElement = null;
     this.#reactRoot = null;
+    this.#cache?.sheet.flush();
+    this.#cache = null;
+    this.#renderProps = null;
     this.#isVisible = false;
     this.#isProcessing = false;
     logger.info(`Component with id "${this._id}" has been destroyed.`);
@@ -122,28 +127,38 @@ export default class ShadowDomManager {
     isolateShadowHost(host);
 
     this.#hostElement = host;
-    this.#cleanupHostMount = mountShadowHost(host, this._rootElement);
+    this.#cleanupHostMount = mountShadowHost(host, this._rootElement, {
+      onReconnect: () => this.#refreshStyles(),
+    });
     const shadowContainer = host.attachShadow({ mode: "open" });
     const appRoot = document.createElement("div");
     appRoot.className = `${this._id}_wrapper notranslate`;
     shadowContainer.appendChild(appRoot);
 
-    const cache = createCache({
+    this.#renderProps = props;
+    this.#reactRoot = ReactDOM.createRoot(appRoot);
+    this.#refreshStyles();
+  }
+
+  #refreshStyles() {
+    this.#cache?.sheet.flush();
+    this.#cache = createCache({
       key: this._id,
       prepend: true,
-      container: shadowContainer,
+      container: this.#hostElement.shadowRoot,
     });
 
     const enhancedProps = {
-      ...props,
+      ...this.#renderProps,
       onClose: this.hide.bind(this),
     };
 
     const ComponentToRender = this._ReactComponent;
-    this.#reactRoot = ReactDOM.createRoot(appRoot);
+    // Changing only the cache reinserts Emotion rules without resetting panel
+    // inputs, visibility, or any other state owned by the existing React tree.
     this.#reactRoot.render(
       <React.StrictMode>
-        <CacheProvider value={cache}>
+        <CacheProvider value={this.#cache}>
           <ComponentToRender {...enhancedProps} />
         </CacheProvider>
       </React.StrictMode>

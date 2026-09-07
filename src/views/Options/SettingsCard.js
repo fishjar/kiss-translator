@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import Accordion from "@mui/material/Accordion";
 import AccordionDetails from "@mui/material/AccordionDetails";
@@ -253,6 +253,9 @@ export function SettingsAdvanced({
   rows = false,
   className = "",
 }) {
+  const id = useId();
+  const summaryId = `kt-settings-advanced-summary-${id}`;
+  const regionId = `kt-settings-advanced-region-${id}`;
   const [expanded, setExpanded] = useState(open);
   const [hasExpanded, setHasExpanded] = useState(open);
 
@@ -278,7 +281,11 @@ export function SettingsAdvanced({
         onChange={handleChange}
         className="kt-settings-advanced"
       >
-        <AccordionSummary expandIcon={<ExpandMoreRoundedIcon />}>
+        <AccordionSummary
+          id={summaryId}
+          aria-controls={regionId}
+          expandIcon={<ExpandMoreRoundedIcon />}
+        >
           {label}
         </AccordionSummary>
         <AccordionDetails className="kt-settings-advanced__content">

@@ -1,11 +1,19 @@
 import React, { act, useState } from "react";
+import styled from "@emotion/styled";
 import ShadowDomManager from "./shadowDomManager";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
-function CounterPanel() {
+const CounterButton = styled.button({ color: "red" });
+
+function CounterPanel({ label = "" }) {
   const [count, setCount] = useState(0);
-  return <button onClick={() => setCount(count + 1)}>{count}</button>;
+  return (
+    <CounterButton onClick={() => setCount(count + 1)}>
+      {label}
+      {count}
+    </CounterButton>
+  );
 }
 
 describe("ShadowDomManager fullscreen lifecycle", () => {
@@ -114,6 +122,62 @@ describe("ShadowDomManager fullscreen lifecycle", () => {
     enterFullscreen(document.body);
     expect(host.parentElement).toBe(explicitRoot);
     expect(manager.isVisible).toBe(true);
+  });
+
+  test.each(["contents", "ancestor"])(
+    "restores styles and panel state after the fullscreen %s are removed",
+    (removedPart) => {
+      const manager = createManager();
+      const host = document.getElementById("fullscreen-panel");
+      const button = host.shadowRoot.querySelector("button");
+      act(() => button.click());
+      const section = addSection();
+      enterFullscreen(section);
+      const oldStyles = Array.from(host.shadowRoot.querySelectorAll("style"));
+      expect(oldStyles.length).toBeGreaterThan(0);
+
+      if (removedPart === "contents") section.replaceChildren();
+      else section.remove();
+      enterFullscreen(null);
+
+      expect(manager.isVisible).toBe(true);
+      expect(host.parentNode).toBe(document.documentElement);
+      expect(host.shadowRoot.querySelector("button")).toBe(button);
+      expect(button.textContent).toBe("1");
+      expect(oldStyles.every((style) => !style.isConnected)).toBe(true);
+      const restoredStyles = Array.from(
+        host.shadowRoot.querySelectorAll("style")
+      );
+      expect(restoredStyles.length).toBeGreaterThan(0);
+      expect(restoredStyles.every((style) => !oldStyles.includes(style))).toBe(
+        true
+      );
+    }
+  );
+
+  test("keeps hidden visibility and the last mounted props during style recovery", () => {
+    const manager = new ShadowDomManager({
+      id: "fullscreen-panel",
+      reactComponent: CounterPanel,
+      props: { label: "initial " },
+    });
+    managers.push(manager);
+    act(() => manager.show({ label: "custom " }));
+    const host = document.getElementById("fullscreen-panel");
+    const button = host.shadowRoot.querySelector("button");
+    act(() => button.click());
+    const section = addSection();
+    enterFullscreen(section);
+    act(() => manager.hide());
+    section.remove();
+    enterFullscreen(null);
+
+    expect(manager.isVisible).toBe(false);
+    expect(host.style.display).toBe("none");
+    expect(button.textContent).toBe("custom 1");
+    act(() => manager.show());
+    expect(host.shadowRoot.querySelector("button")).toBe(button);
+    expect(button.textContent).toBe("custom 1");
   });
 
   test("replaces a removed host and does not retain listeners for old hosts", () => {

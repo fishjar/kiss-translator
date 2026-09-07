@@ -98,6 +98,7 @@ export function ContentFabContent({
   const [showFab, setShowFab] = useState(true);
   const [open, setOpen] = useState(false); // Action menu visibility.
   const anchorRef = useRef(null);
+  const popperRef = useRef(null);
   const handleMenuNavigation = useMemo(
     () => createMenuKeyDownHandler({ shadowOnly: true }),
     []
@@ -116,6 +117,11 @@ export function ContentFabContent({
   const closeMenu = useCallback((restoreFocus = false) => {
     setOpen(false);
     if (restoreFocus) anchorRef.current?.focus();
+  }, []);
+
+  // Popper does not observe the anchor's edge-reveal transform animation.
+  const updateMenuPosition = useCallback(() => {
+    popperRef.current?.update();
   }, []);
 
   // Handle the start of a drag without changing ordinary click behavior.
@@ -228,6 +234,7 @@ export function ContentFabContent({
       show={showFab}
       onStart={handleStart}
       onMove={handleMove}
+      onPositionTransitionEnd={updateMenuPosition}
       handler={
         <Fab
           id="kt-content-fab-button"
@@ -252,6 +259,7 @@ export function ContentFabContent({
       }
     >
       <Popper
+        popperRef={popperRef}
         open={opensMenu && open && Boolean(anchorRef.current)}
         anchorEl={anchorRef.current}
         placement="top-end"
