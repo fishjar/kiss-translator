@@ -245,11 +245,22 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
     // Capture the baseline before React processes the queued state update.
     const previousApi = lastSyncedApiRef.current;
     setFormData((currentFormData) => {
-      const hasLocalDraft =
-        currentFormData?.apiSlug === apiSlug &&
-        JSON.stringify(currentFormData) !== JSON.stringify(previousApi || {});
+      if (
+        !api ||
+        currentFormData?.apiSlug !== apiSlug ||
+        previousApi?.apiSlug !== apiSlug
+      ) {
+        return api || {};
+      }
 
-      return hasLocalDraft ? currentFormData : api || {};
+      // Rebase only edited fields so newer persisted values are not rolled back.
+      const draftChanges = Object.fromEntries(
+        Object.entries(currentFormData).filter(
+          ([key, value]) =>
+            JSON.stringify(value) !== JSON.stringify(previousApi[key])
+        )
+      );
+      return { ...api, ...draftChanges };
     });
     lastSyncedApiRef.current = api;
   }, [api, apiSlug]);
@@ -401,6 +412,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
         })
       );
     }
+    setFormData(nextFormData);
     update(nextFormData);
     if (activeFormData.isDisabled || activeFormData.sortOrder === -1) {
       onCollapse?.();

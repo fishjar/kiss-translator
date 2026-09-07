@@ -1346,6 +1346,132 @@ describe("Apis with stateful API hooks", () => {
     }
   });
 
+  test.each([false, true])(
+    "saves edited fields without rolling back newer API values (StrictMode: %s)",
+    async (strictMode) => {
+      const view = await renderStatefulApis(
+        [createApi({ customHeader: "obsolete-header" })],
+        strictMode
+      );
+
+      try {
+        await editUrlDraft(view.container);
+        for (const version of [1, 2]) {
+          await view.updateSetting((setting) => ({
+            ...setting,
+            transApis: setting.transApis.map((api) => {
+              const nextApi = { ...api };
+              delete nextApi.customHeader;
+              return {
+                ...nextApi,
+                url: `https://synced.example/v${version}`,
+                key: `synced-key-${version}`,
+                model: version === 1 ? "gpt-4o" : "gpt-4.1",
+                sortOrder: version,
+              };
+            }),
+          }));
+
+          expect(getInput(view.container, "url").value).toBe(
+            "https://draft.example/v1"
+          );
+          expect(getInput(view.container, "model").value).toBe(
+            version === 1 ? "gpt-4o" : "gpt-4.1"
+          );
+          expect(getSaveButton(view.container).disabled).toBe(false);
+        }
+
+        await act(async () => getSaveButton(view.container).click());
+
+        expect(view.setting.transApis[0]).toMatchObject({
+          url: "https://draft.example/v1",
+          key: "synced-key-2",
+          model: "gpt-4.1",
+          sortOrder: 2,
+        });
+        expect(view.setting.transApis[0]).not.toHaveProperty("customHeader");
+        expect(getSaveButton(view.container).disabled).toBe(true);
+      } finally {
+        view.unmount();
+      }
+    }
+  );
+
+  test("accepts normalized draft values after a synced model change", async () => {
+    const view = await renderStatefulApis([
+      createApi({
+        apiSlug: OPT_TRANS_GEMINI,
+        apiType: OPT_TRANS_GEMINI,
+        model: "gemini-3-flash-preview",
+        thinkingMode: "enabled",
+        thinkingEffort: "high",
+      }),
+    ]);
+
+    try {
+      await act(async () => {
+        Simulate.change(getInput(view.container, "thinkingEffort"), {
+          target: { name: "thinkingEffort", value: "medium" },
+        });
+      });
+      await view.updateSetting((setting) => ({
+        ...setting,
+        transApis: setting.transApis.map((api) => ({
+          ...api,
+          model: "gemini-3-pro-preview",
+          thinkingEffort: "high",
+        })),
+      }));
+      expect(getSaveButton(view.container).disabled).toBe(false);
+
+      await act(async () => getSaveButton(view.container).click());
+
+      expect(view.setting.transApis[0]).toMatchObject({
+        model: "gemini-3-pro-preview",
+        thinkingMode: "enabled",
+        thinkingEffort: "high",
+      });
+      expect(getSaveButton(view.container).disabled).toBe(true);
+    } finally {
+      view.unmount();
+    }
+  });
+
+  test("follows later updates after a draft is reverted to the received value", async () => {
+    const view = await renderStatefulApis([createApi()]);
+
+    try {
+      await editUrlDraft(view.container);
+      await view.updateSetting((setting) => ({
+        ...setting,
+        transApis: setting.transApis.map((api) => ({
+          ...api,
+          url: "https://synced.example/v1",
+        })),
+      }));
+      await act(async () => {
+        Simulate.change(getInput(view.container, "url"), {
+          target: { name: "url", value: "https://synced.example/v1" },
+        });
+      });
+      expect(getSaveButton(view.container).disabled).toBe(true);
+
+      await view.updateSetting((setting) => ({
+        ...setting,
+        transApis: setting.transApis.map((api) => ({
+          ...api,
+          url: "https://synced.example/v2",
+        })),
+      }));
+      expect(getInput(view.container, "url").value).toBe(
+        "https://synced.example/v2"
+      );
+      expect(getSaveButton(view.container).disabled).toBe(true);
+    } finally {
+      view.unmount();
+    }
+  });
+
   test("preserves a draft through an unrelated API update and identity refresh", async () => {
     const view = await renderStatefulApis([
       createApi(),

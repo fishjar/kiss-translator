@@ -77,6 +77,11 @@ const splitCssDeclarations = (cssString) => {
       }
       continue;
     }
+    // Escaped delimiters outside strings are part of the CSS value.
+    if (char === "\\" && i + 1 < cssString.length) {
+      buffer += char + cssString[++i];
+      continue;
+    }
     if (char === "/" && cssString[i + 1] === "*") {
       inComment = true;
       buffer += char;

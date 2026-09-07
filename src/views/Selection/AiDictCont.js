@@ -140,8 +140,10 @@ export default function AiDictCont({
   return (
     <Box
       sx={{
-        position: "relative",
-        pr: 8,
+        display: "grid",
+        gridTemplateColumns: "minmax(0, 1fr) auto",
+        columnGap: 1,
+        alignItems: "start",
         "& > :first-of-type": { mt: 0 },
         "& > :last-child": { mb: 0 },
         "& h1, & h2, & h3, & h4, & h5, & h6": {
@@ -170,14 +172,15 @@ export default function AiDictCont({
     >
       <Box
         sx={{
-          position: "absolute",
-          top: 0,
-          right: 0,
-          zIndex: 1,
+          gridColumn: 2,
+          gridRow: 1,
           display: "flex",
           alignItems: "center",
         }}
       >
+        {loading && (
+          <CircularProgress size={12} sx={{ mr: 0.5, flexShrink: 0 }} />
+        )}
         <BrowserTtsBtn
           text={text}
           lang={speechLang || fromLang || "en-US"}
@@ -189,13 +192,10 @@ export default function AiDictCont({
           copiedLabel={i18n("copy_success", "Copied")}
         />
       </Box>
-      {loading && (
-        <CircularProgress
-          size={12}
-          sx={{ position: "absolute", top: 6, right: 72 }}
-        />
-      )}
-      <Typography component="div">
+      <Typography
+        component="div"
+        sx={{ gridColumn: 1, gridRow: 1, minWidth: 0 }}
+      >
         <ReactMarkdown>{markdown}</ReactMarkdown>
       </Typography>
     </Box>

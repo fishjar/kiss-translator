@@ -159,6 +159,41 @@ describe("Subtitle style persistence", () => {
 
     view.unmount();
   });
+
+  test.each([
+    ["an escaped opening parenthesis", "font-family", String.raw`Font\(`],
+    ["an escaped quote", "font-family", String.raw`Font\"`],
+    [
+      "an escaped closing parenthesis in a URL",
+      "background-image",
+      String.raw`url(icon\);variant.svg)`,
+    ],
+  ])(
+    "removes text shadow after %s without changing other styles",
+    (_case, property, value) => {
+      jest.useFakeTimers();
+      const view = renderSubtitle({
+        windowStyle: `${property}: ${value};\ntext-shadow: 1px 1px black;\ncolor: white;`,
+      });
+      const shadowLabel = Array.from(
+        view.container.querySelectorAll("label")
+      ).find((label) => label.textContent === "text_shadow");
+      const shadowInput = shadowLabel.querySelector('input[type="checkbox"]');
+      expect(shadowInput.checked).toBe(true);
+
+      act(() => shadowInput.click());
+      act(() => {
+        jest.advanceTimersByTime(200);
+      });
+
+      expect(shadowInput.checked).toBe(false);
+      expect(view.updateSubtitle).toHaveBeenCalledTimes(1);
+      expect(view.updateSubtitle).toHaveBeenCalledWith({
+        windowStyle: `${property}: ${value};\ncolor: white;`,
+      });
+      view.unmount();
+    }
+  );
 });
 
 describe("Subtitle segmentation warning", () => {
@@ -255,6 +290,46 @@ font-size: 2rem;`;
     expect(next).toContain(`url("data:image/svg+xml;utf8,<svg/>")`);
     expect(next).toContain("font-size: 2.5rem");
   });
+
+  test.each([
+    ["an escaped opening parenthesis", "font-family", String.raw`Font\(`],
+    ["an escaped closing parenthesis", "font-family", String.raw`Font\)`],
+    ["an escaped double quote", "font-family", String.raw`Font\"`],
+    ["an escaped single quote", "font-family", String.raw`Font\'`],
+    ["an escaped semicolon", "font-family", String.raw`Font\;Variant`],
+    [
+      "an odd backslash run before an opening parenthesis",
+      "font-family",
+      String.raw`Font\\\(`,
+    ],
+    [
+      "an even backslash run before a delimiter",
+      "font-family",
+      String.raw`Font\\`,
+    ],
+    [
+      "an escaped closing parenthesis in a URL",
+      "background-image",
+      String.raw`url(icon\);variant.svg)`,
+    ],
+    [
+      "an escaped slash before an asterisk in a URL",
+      "background-image",
+      String.raw`url(icon\/*variant.svg)`,
+    ],
+  ])(
+    "keeps declarations separate after %s outside strings",
+    (_case, property, value) => {
+      const css = `${property}: ${value};\ntext-shadow: 1px 1px black;\ncolor: white;`;
+
+      expect(parseCssToObject(css)).toEqual({
+        [property]: value,
+        "text-shadow": "1px 1px black",
+        color: "white",
+      });
+      expect(roundTrip(css)).toBe(css);
+    }
+  );
 
   describe.each([
     ["an escaped double quote", String.raw`"a\";b"`],
