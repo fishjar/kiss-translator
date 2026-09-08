@@ -149,6 +149,7 @@ const CSP_REMOVE_HEADERS = [
 let separateWindowId = null; // 当前已打开窗口的 ID
 let lastKnownBounds = null; // 缓存窗口最后一次有效的屏幕位置坐标与大小
 let separateWindowFitPending = false; // Whether a default-sized window still needs content fitting.
+let separateWindowFitSize = null;
 let separateWindowBoundsRevision = 0;
 let separateWindowBoundsRead = 0;
 
@@ -213,6 +214,7 @@ async function fitSeparateWindow(args) {
     args || {};
   if (!Number.isFinite(width) || !Number.isFinite(height)) return;
   const windowId = separateWindowId;
+  const initialSize = separateWindowFitSize;
   separateWindowFitPending = false;
 
   // Leave room around the screen edges and taskbar.
@@ -225,6 +227,15 @@ async function fitSeparateWindow(args) {
     const win = await browser.windows.get(windowId);
     // Preserve windows that are no longer in their normal state.
     if (windowId !== separateWindowId || !win || win.state !== "normal") return;
+    // A resize can arrive before this request or while its window read is pending.
+    if (!initialSize || initialSize !== separateWindowFitSize) return;
+    if (
+      Math.round(win.width) !== initialSize.width ||
+      Math.round(win.height) !== initialSize.height
+    ) {
+      cacheSeparateWindowBounds(win);
+      return;
+    }
 
     const nextBounds = {
       width: nextWidth,
@@ -248,6 +259,8 @@ async function fitSeparateWindow(args) {
         )
       );
     }
+    // Bounds events from our own update must not count as a user resize.
+    separateWindowFitSize = null;
     const boundsRevision = separateWindowBoundsRevision;
     const updatedWindow = await browser.windows.update(windowId, nextBounds);
     if (boundsRevision === separateWindowBoundsRevision) {
@@ -263,13 +276,25 @@ async function fitSeparateWindow(args) {
 
 // Cache the actual browser result even when onBoundsChanged is unavailable.
 function cacheSeparateWindowBounds(win) {
+  if (!win || win.id !== separateWindowId) return;
+  if (win.state && win.state !== "normal") {
+    separateWindowFitPending = false;
+    separateWindowFitSize = null;
+    return;
+  }
   if (
-    !win ||
-    win.id !== separateWindowId ||
     win.state !== "normal" ||
     ![win.left, win.top, win.width, win.height].every(Number.isFinite)
   ) {
     return;
+  }
+  if (
+    separateWindowFitSize &&
+    (Math.round(win.width) !== separateWindowFitSize.width ||
+      Math.round(win.height) !== separateWindowFitSize.height)
+  ) {
+    separateWindowFitPending = false;
+    separateWindowFitSize = null;
   }
   lastKnownBounds = {
     left: Math.round(win.left),
@@ -319,7 +344,6 @@ async function openSeparateWindowWithSavedBounds() {
     );
 
     // Center and fit only on the first opening, preserving saved user bounds.
-    separateWindowFitPending = !saved;
     if (!saved) {
       const centered = await centerOnFocusedWindow(bounds);
       if (centered) Object.assign(bounds, centered);
@@ -342,6 +366,12 @@ async function openSeparateWindowWithSavedBounds() {
       width: win.width,
       height: win.height,
     };
+    // Use the browser's actual creation size, which can differ from the request.
+    // Repeated initial bounds and position-only changes still allow fitting.
+    separateWindowFitPending = !saved;
+    separateWindowFitSize = saved
+      ? null
+      : { width: Math.round(win.width), height: Math.round(win.height) };
 
     return win;
   } catch (err) {
@@ -399,6 +429,7 @@ browser.windows?.onRemoved?.addListener?.(async (windowId) => {
     separateWindowId = null;
     lastKnownBounds = null;
     separateWindowFitPending = false;
+    separateWindowFitSize = null;
     await persistSeparateWindowBounds(bounds);
   }
 });

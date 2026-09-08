@@ -10,7 +10,12 @@ const windowCode = source.slice(
   source.lastIndexOf("/**", source.indexOf("async function addContextMenus("))
 );
 
-function createHarness({ saved, updateBounds, boundsEvents = false } = {}) {
+function createHarness({
+  saved,
+  createBounds,
+  updateBounds,
+  boundsEvents = false,
+} = {}) {
   const stored = saved ? { bounds: saved } : {};
   const windows = new Map();
   const listeners = {};
@@ -30,7 +35,7 @@ function createHarness({ saved, updateBounds, boundsEvents = false } = {}) {
         height: 900,
       })),
       create: jest.fn(async (args) => {
-        const win = { ...args, id: nextId++, state: "normal" };
+        const win = { ...args, ...createBounds, id: nextId++, state: "normal" };
         windows.set(win.id, win);
         return { ...win };
       }),
@@ -147,6 +152,94 @@ describe("separate window bounds without onBoundsChanged", () => {
   });
 
   test.each([
+    ["native bounds event", { width: 1000 }],
+    ["fallback read", { height: 850 }],
+    ["fit read", { width: 1000, height: 850 }],
+  ])(
+    "preserves a resize before the first fit detected by a %s",
+    async (notification, changedSize) => {
+      const harness = createHarness({ boundsEvents: true });
+      const win = await harness.open();
+      const resized = { ...win, ...changedSize };
+      harness.windows.set(win.id, resized);
+      if (notification === "native bounds event") {
+        harness.boundsChanged(resized);
+      } else if (notification === "fallback read") {
+        await harness.refresh();
+      }
+
+      await harness.fit();
+      expect(harness.browser.windows.update).not.toHaveBeenCalled();
+      expect(harness.getState().fitPending).toBe(false);
+      await harness.close();
+      expect(harness.stored.bounds).toMatchObject(changedSize);
+      await harness.open();
+      expect(harness.browser.windows.create.mock.calls[1][0]).toMatchObject(
+        changedSize
+      );
+    }
+  );
+
+  test("still fits after initial bounds events and position-only adjustments", async () => {
+    const harness = createHarness({
+      createBounds: { width: 730, height: 700 },
+      boundsEvents: true,
+    });
+    const win = await harness.open();
+    harness.boundsChanged(win);
+    harness.boundsChanged({ ...win, left: -740, top: 90 });
+    await harness.refresh();
+    expect(harness.getState().fitPending).toBe(true);
+
+    await harness.fit();
+    expect(harness.browser.windows.update).toHaveBeenCalledWith(win.id, {
+      width: 744,
+      height: 450,
+    });
+    expect(harness.getState().bounds).toEqual({
+      left: -740,
+      top: 90,
+      width: 744,
+      height: 450,
+    });
+
+    harness.boundsChanged({ ...win, width: 1000, height: 850 });
+    await harness.close();
+    expect(harness.stored.bounds).toMatchObject({ width: 1000, height: 850 });
+  });
+
+  test.each([
+    ["resizes", { width: 1000, height: 850 }],
+    ["maximizes", { width: 1280, height: 900, state: "maximized" }],
+  ])(
+    "does not fit a stale normal snapshot when the user %s during its read",
+    async (_action, changedBounds) => {
+      const harness = createHarness({ boundsEvents: true });
+      const win = await harness.open();
+      let resolveRead;
+      harness.browser.windows.get.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveRead = resolve;
+          })
+      );
+      const pendingFit = harness.fit();
+      harness.boundsChanged({ ...win, ...changedBounds });
+      resolveRead(win);
+      await pendingFit;
+
+      expect(harness.browser.windows.update).not.toHaveBeenCalled();
+      expect(harness.getState().fitPending).toBe(false);
+      await harness.close();
+      expect(harness.stored.bounds).toMatchObject(
+        changedBounds.state
+          ? { width: win.width, height: win.height }
+          : changedBounds
+      );
+    }
+  );
+
+  test.each([
     [0, 0],
     [-1280, -720],
   ])(
@@ -242,6 +335,32 @@ describe("separate window bounds without onBoundsChanged", () => {
     resolveRead(oldWindow);
     await pendingFit;
     expect(harness.browser.windows.update).not.toHaveBeenCalled();
+  });
+
+  test("an old fit cannot cancel its replacement's first fit", async () => {
+    const harness = createHarness();
+    const oldWindow = await harness.open();
+    let resolveRead;
+    harness.browser.windows.get.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveRead = resolve;
+        })
+    );
+    const pendingFit = harness.fit();
+    await harness.close();
+    delete harness.stored.bounds;
+    const newWindow = await harness.open();
+    resolveRead(oldWindow);
+    await pendingFit;
+
+    expect(harness.getState().fitPending).toBe(true);
+    await harness.fit();
+    expect(harness.browser.windows.update).toHaveBeenCalledTimes(1);
+    expect(harness.browser.windows.update).toHaveBeenCalledWith(newWindow.id, {
+      width: 744,
+      height: 450,
+    });
   });
 
   test("an older fallback read cannot replace a newer native bounds event", async () => {
