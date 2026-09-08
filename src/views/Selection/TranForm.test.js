@@ -5,6 +5,7 @@ import { Simulate } from "react-dom/test-utils";
 import TranForm, { formatLanguageOptionName } from "./TranForm";
 import { apiDict } from "../../apis";
 import { tryDetectLang } from "../../libs/detect";
+import { mountShadowHost } from "../../libs/shadowHost";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -139,11 +140,35 @@ function renderTranForm(
   };
 }
 
-describe.each([false, true])(
+function mountInFullscreen(host) {
+  const originalFullscreen = Object.getOwnPropertyDescriptor(
+    document,
+    "fullscreenElement"
+  );
+  const player = document.createElement("section");
+  document.body.appendChild(player);
+  Object.defineProperty(document, "fullscreenElement", {
+    configurable: true,
+    value: player,
+  });
+  const cleanupMount = mountShadowHost(host);
+  return () => {
+    cleanupMount();
+    player.remove();
+    if (originalFullscreen) {
+      Object.defineProperty(document, "fullscreenElement", originalFullscreen);
+    } else {
+      delete document.fullscreenElement;
+    }
+  };
+}
+
+describe.each([false, true, "fullscreen"])(
   "TranForm menu keyboard access (shadow: %s)",
   (shadow) => {
     let view;
     let focusRoot;
+    let cleanupFullscreen;
 
     beforeEach(async () => {
       document.body.innerHTML = "";
@@ -163,12 +188,15 @@ describe.each([false, true])(
         },
         { shadow }
       );
+      cleanupFullscreen =
+        shadow === "fullscreen" ? mountInFullscreen(view.host) : null;
       focusRoot = view.container.getRootNode();
       await flushEffects();
     });
 
     afterEach(() => {
       act(() => view.root.unmount());
+      cleanupFullscreen?.();
       view.host.remove();
       jest.restoreAllMocks();
     });
@@ -773,53 +801,66 @@ describe("TranForm popup input", () => {
     act(() => root.unmount());
   });
 
-  test("submits the popup input with Ctrl+Enter", () => {
-    const setText = jest.fn();
-    const { container, root } = renderTranForm({
-      text: "library",
-      setText,
-      popupStyle: true,
-    });
-    const textarea = container.querySelector("textarea");
-    expect(textarea.classList).toContain("kt-resizable-textarea");
-    expect(textarea.parentElement.classList).toContain(
-      "kt-popup-translation-textarea"
-    );
-    const inputContainer = textarea.closest(".kt-popup-translation-input");
-    expect(inputContainer.classList).toContain(
-      "kt-popup-translation-input--focused"
-    );
+  test.each([
+    { modifier: "ctrlKey", fullscreen: false },
+    { modifier: "ctrlKey", fullscreen: true },
+    { modifier: "metaKey", fullscreen: true },
+  ])(
+    "submits with $modifier+Enter (fullscreen: $fullscreen)",
+    ({ modifier, fullscreen }) => {
+      const setText = jest.fn();
+      const { container, host, root } = renderTranForm(
+        {
+          text: "library",
+          setText,
+          popupStyle: true,
+        },
+        { shadow: fullscreen }
+      );
+      const cleanupFullscreen = fullscreen ? mountInFullscreen(host) : null;
+      const textarea = container.querySelector("textarea");
+      expect(textarea.classList).toContain("kt-resizable-textarea");
+      expect(textarea.parentElement.classList).toContain(
+        "kt-popup-translation-textarea"
+      );
+      const inputContainer = textarea.closest(".kt-popup-translation-input");
+      expect(inputContainer.classList).toContain(
+        "kt-popup-translation-input--focused"
+      );
 
-    act(() => Simulate.blur(textarea));
-    expect(inputContainer.classList).not.toContain(
-      "kt-popup-translation-input--focused"
-    );
-    act(() => Simulate.focus(textarea));
-    expect(inputContainer.classList).toContain(
-      "kt-popup-translation-input--focused"
-    );
+      act(() => Simulate.blur(textarea));
+      expect(inputContainer.classList).not.toContain(
+        "kt-popup-translation-input--focused"
+      );
+      act(() => Simulate.focus(textarea));
+      expect(inputContainer.classList).toContain(
+        "kt-popup-translation-input--focused"
+      );
 
-    act(() => {
-      const setTextareaValue = Object.getOwnPropertyDescriptor(
-        HTMLTextAreaElement.prototype,
-        "value"
-      ).set;
-      setTextareaValue.call(textarea, "updated library");
-      textarea.dispatchEvent(new Event("input", { bubbles: true }));
-    });
-    const event = new KeyboardEvent("keydown", {
-      bubbles: true,
-      cancelable: true,
-      ctrlKey: true,
-      key: "Enter",
-    });
+      act(() => {
+        const setTextareaValue = Object.getOwnPropertyDescriptor(
+          HTMLTextAreaElement.prototype,
+          "value"
+        ).set;
+        setTextareaValue.call(textarea, "updated library");
+        textarea.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      const event = new KeyboardEvent("keydown", {
+        bubbles: true,
+        composed: true,
+        cancelable: true,
+        [modifier]: true,
+        key: "Enter",
+      });
 
-    act(() => textarea.dispatchEvent(event));
+      act(() => textarea.dispatchEvent(event));
 
-    expect(event.defaultPrevented).toBe(true);
-    expect(setText).toHaveBeenCalledWith("updated library");
-    act(() => root.unmount());
-  });
+      expect(event.defaultPrevented).toBe(true);
+      expect(setText).toHaveBeenCalledWith("updated library");
+      act(() => root.unmount());
+      cleanupFullscreen?.();
+    }
+  );
 
   test("shows M3 results before the expandable service choices", () => {
     const { container, root } = renderTranForm({

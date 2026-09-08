@@ -93,6 +93,113 @@ describe("Shadow host fullscreen roots", () => {
     document.dispatchEvent(new Event("fullscreenchange"));
   }
 
+  test.each(["input", "textarea", "select"])(
+    "protects nested shadow %s editing from fullscreen player hotkeys",
+    (tagName) => {
+      const player = addPageElement();
+      const host = mount();
+      const nestedHost = document.createElement("div");
+      host.attachShadow({ mode: "open" }).appendChild(nestedHost);
+      const input = document.createElement(tagName);
+      nestedHost.attachShadow({ mode: "open" }).appendChild(input);
+      enterFullscreen(player);
+      input.focus();
+      expect(document.activeElement).toBe(host);
+
+      const playerHotkey = jest.fn((event) => {
+        // Players cannot recognize an input from the retargeted active element.
+        if (!document.activeElement.matches("input, textarea, select")) {
+          event.preventDefault();
+        }
+      });
+      const inputHandler = jest.fn();
+      const captureShortcut = jest.fn();
+      const eventTypes = ["keydown", "keypress", "keyup"];
+      eventTypes.forEach((type) => {
+        player.addEventListener(type, playerHotkey);
+        input.addEventListener(type, inputHandler);
+        window.addEventListener(type, captureShortcut, true);
+      });
+
+      try {
+        for (const type of eventTypes) {
+          for (const key of [" ", "k", "m", "f"]) {
+            const event = new KeyboardEvent(type, {
+              key,
+              bubbles: true,
+              composed: true,
+              cancelable: true,
+            });
+            input.dispatchEvent(event);
+            expect(event.defaultPrevented).toBe(false);
+          }
+        }
+        expect(inputHandler).toHaveBeenCalledTimes(12);
+        expect(captureShortcut).toHaveBeenCalledTimes(12);
+        expect(playerHotkey).not.toHaveBeenCalled();
+
+        // Ordinary player controls and non-editing extension content keep their
+        // existing keyboard behavior instead of losing all page shortcuts.
+        for (const parent of [player, host.shadowRoot]) {
+          const button = document.createElement("button");
+          parent.appendChild(button);
+          button.focus();
+          const event = new KeyboardEvent("keydown", {
+            key: "f",
+            bubbles: true,
+            composed: true,
+            cancelable: true,
+          });
+          button.dispatchEvent(event);
+          expect(event.defaultPrevented).toBe(true);
+        }
+        expect(playerHotkey).toHaveBeenCalledTimes(2);
+      } finally {
+        eventTypes.forEach((type) => {
+          window.removeEventListener(type, captureShortcut, true);
+        });
+      }
+    }
+  );
+
+  test.each(["keydown", "keypress", "keyup"])(
+    "%s isolation ends on fullscreen exit and host disposal",
+    (type) => {
+      const player = addPageElement();
+      const host = mount();
+      const input = document.createElement("textarea");
+      host.attachShadow({ mode: "open" }).appendChild(input);
+      const pageShortcut = jest.fn();
+      document.addEventListener(type, pageShortcut);
+      const press = () => {
+        input.dispatchEvent(
+          new KeyboardEvent(type, {
+            key: "m",
+            bubbles: true,
+            composed: true,
+          })
+        );
+      };
+
+      try {
+        press();
+        expect(pageShortcut).toHaveBeenCalledTimes(1);
+        enterFullscreen(player);
+        press();
+        expect(pageShortcut).toHaveBeenCalledTimes(1);
+        enterFullscreen(null);
+        press();
+        expect(pageShortcut).toHaveBeenCalledTimes(2);
+        enterFullscreen(player);
+        disposeShadowHost(host);
+        press();
+        expect(pageShortcut).toHaveBeenCalledTimes(3);
+      } finally {
+        document.removeEventListener(type, pageShortcut);
+      }
+    }
+  );
+
   function addDynamicStyle(root, rules) {
     const element = document.createElement("style");
     root.appendChild(element);

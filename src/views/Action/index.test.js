@@ -3,6 +3,7 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import Action from "./index";
 import { EVENT_KISS_INNER, MSG_POPUP_TOGGLE } from "../../config";
+import { mountShadowHost } from "../../libs/shadowHost";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -130,6 +131,7 @@ describe("content action Popup integration", () => {
         new KeyboardEvent("keydown", {
           key: "Escape",
           bubbles: true,
+          composed: true,
           cancelable: true,
         })
       );
@@ -196,6 +198,44 @@ describe("content action Popup integration", () => {
 
     expect(container.querySelector('[role="dialog"]')).toBeNull();
     expect(document.activeElement).toBe(previousFocus);
+  });
+
+  test("handles Escape inside an input before the fullscreen host boundary", () => {
+    const originalFullscreen = Object.getOwnPropertyDescriptor(
+      document,
+      "fullscreenElement"
+    );
+    Object.defineProperty(document, "fullscreenElement", {
+      configurable: true,
+      value: fixture,
+    });
+    const host = document.createElement("div");
+    host.attachShadow({ mode: "open" }).appendChild(container);
+    const cleanupMount = mountShadowHost(host);
+    const playerHotkey = jest.fn();
+    fixture.addEventListener("keydown", playerHotkey);
+
+    try {
+      const panel = renderAction();
+      focusPanel();
+      const input = panel.querySelector("input");
+      input.focus();
+      pressEscape(input);
+
+      expect(container.querySelector('[role="dialog"]')).toBeNull();
+      expect(playerHotkey).not.toHaveBeenCalled();
+    } finally {
+      cleanupMount();
+      if (originalFullscreen) {
+        Object.defineProperty(
+          document,
+          "fullscreenElement",
+          originalFullscreen
+        );
+      } else {
+        delete document.fullscreenElement;
+      }
+    }
   });
 
   test("preserves focus on an outside input clicked to dismiss the panel", () => {

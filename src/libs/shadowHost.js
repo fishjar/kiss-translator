@@ -1,6 +1,7 @@
 import { APP_LCNAME } from "../config/app";
 
 const IMPORTANT = "important";
+const EDITING_KEY_EVENTS = ["keydown", "keypress", "keyup"];
 const FULLSCREEN_EVENTS = [
   "fullscreenchange",
   "webkitfullscreenchange",
@@ -256,6 +257,21 @@ export function mountShadowHost(host, rootElement, { onReconnect } = {}) {
   }
 
   const doc = host.ownerDocument;
+  const handleEditingKey = (event) => {
+    const root = getFullscreenRoot(host);
+    if (root === doc.documentElement || host.parentNode !== root) return;
+
+    const target = event.composedPath()[0];
+    if (
+      target?.matches?.("input, textarea, select, [role='textbox']") ||
+      target?.isContentEditable
+    ) {
+      // React handlers inside the host have already run. Keep editing keys out
+      // of fullscreen players, which see the host instead of the focused input.
+      // Leave browser defaults and the extension's capture shortcuts intact.
+      event.stopPropagation();
+    }
+  };
   let active = true;
   let mounted = false;
   let needsStyleRefresh = false;
@@ -292,6 +308,9 @@ export function mountShadowHost(host, rootElement, { onReconnect } = {}) {
     observedAncestors.clear();
     host.setAttribute(SHADOW_HOST_ATTRIBUTE, "disposed");
     host.removeEventListener(SHADOW_HOST_DISPOSE_EVENT, cleanup);
+    EDITING_KEY_EVENTS.forEach((eventName) => {
+      host.removeEventListener(eventName, handleEditingKey);
+    });
     FULLSCREEN_EVENTS.forEach((eventName) => {
       doc.removeEventListener(eventName, reconcileRoot);
     });
@@ -316,6 +335,9 @@ export function mountShadowHost(host, rootElement, { onReconnect } = {}) {
 
   reconcileRoot();
   host.addEventListener(SHADOW_HOST_DISPOSE_EVENT, cleanup);
+  EDITING_KEY_EVENTS.forEach((eventName) => {
+    host.addEventListener(eventName, handleEditingKey);
+  });
   FULLSCREEN_EVENTS.forEach((eventName) => {
     doc.addEventListener(eventName, reconcileRoot);
   });
