@@ -1,6 +1,7 @@
 import { logger } from "../libs/log.js";
 import { truncateWords, throttle } from "../libs/utils.js";
 import { decodeHTMLEntities } from "../libs/html.js";
+import { parseMathInText } from "../libs/mathParse.js";
 import { apiTranslate } from "../apis/index.js";
 import { resolveApiPromptSettings } from "../config/prompt.js";
 import { trustedTypesHelper } from "../libs/trustedTypes.js";
@@ -687,7 +688,8 @@ export class BilingualSubtitleManager {
       if (!translation || sessionId !== this.#translationSessionId) return;
       if (signal?.aborted) return;
 
-      subtitle.translation = decodeHTMLEntities(translation);
+      // 字幕以纯文本渲染，将模型输出的行内 LaTeX 转成可读的 Unicode。
+      subtitle.translation = parseMathInText(decodeHTMLEntities(translation));
       subtitle._isDraftTranslation = false;
 
       const currentSubtitleIndexNow = this.#findSubtitleIndexForTime(

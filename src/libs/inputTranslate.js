@@ -9,6 +9,7 @@ import {
 import { resolveApiPromptSettings } from "../config/prompt";
 import { isMobile } from "./mobile";
 import { genEventName, removeEndchar, matchInputStr, sleep } from "./utils";
+import { parseMathInText } from "./mathParse";
 import { stepShortcutRegister } from "./shortcut";
 import { apiTranslate } from "../apis";
 import { createLoadingSVG } from "./svg";
@@ -616,7 +617,8 @@ export class InputTranslator {
         translateVariants: this.#config.translateVariants,
       });
 
-      const newText = trText?.trim() || "";
+      // 输入框写回纯文本，将模型输出的行内 LaTeX 转成可读的 Unicode
+      const newText = parseMathInText(trText?.trim() || "");
       if (!newText || isSame) return;
 
       // 6. 执行替换 (使用新的智能替换函数)

@@ -12,6 +12,7 @@ import {
   OPT_TRANS_GOOGLE,
 } from "../../config";
 import { useI18n } from "../../hooks/I18n";
+import { parseMathInText } from "../../libs/mathParse";
 import CopyBtn from "./CopyBtn";
 
 /**
@@ -51,15 +52,15 @@ const normalizeChunkText = (text) => {
  */
 const normalizeTranslationText = (text, apiType, sourceText) => {
   const normalizedText = normalizeChunkText(text);
+  let result = normalizedText;
   if (apiType === OPT_TRANS_GOOGLE) {
-    return normalizedText.replace(/[\t ]*(\r\n|\r|\n)[\t ]*/g, "\n");
+    result = normalizedText.replace(/[\t ]*(\r\n|\r|\n)[\t ]*/g, "\n");
+  } else if (API_SPE_TYPES.ai.has(apiType) && /\r\n|\r|\n/.test(sourceText)) {
+    result = normalizedText.replace(/\\r\\n|\\n|\\r/g, "\n");
   }
 
-  if (API_SPE_TYPES.ai.has(apiType) && /\r\n|\r|\n/.test(sourceText)) {
-    return normalizedText.replace(/\\r\\n|\\n|\\r/g, "\n");
-  }
-
-  return normalizedText;
+  // 划词结果以纯文本展示，把模型输出的行内 LaTeX 转成可读的 Unicode。
+  return parseMathInText(result);
 };
 
 /**
