@@ -32,6 +32,13 @@ const ALL_INPUTS = [
   "$$ unclosed",
   "\\(\\foo{x}\\)",
   "\\(a < b\\)",
+  "\\(\\$x\\)\\(\\$y\\)",
+  "\\(\\$5\\)",
+  "\\(\\&#60;b\\&#62;\\)",
+  "costs $5\\n$10 total",
+  "export $HOME$USER",
+  "\\(O(n \\log n)\\)",
+  "\\(\\left\\lVert x \\right\\rVert\\)",
   "plain text without math",
   "C:\\temp\\file.txt",
   "line1\nline2 {a} 100%",
@@ -155,8 +162,8 @@ describe("parseMathInText — coverage set", () => {
     ["\\(x \\in A \\cup B\\)", "x∈A∪B"],
     ["\\(\\forall x \\exists y\\)", "∀x∃y"],
     ["\\(\\langle a, b \\rangle\\)", "⟨a,b⟩"],
-    ["\\(\\cos x + \\log y - \\ln z\\)", "cosx+logy-lnz"],
-    ["\\(\\lim x\\)", "limx"],
+    ["\\(\\cos x + \\log y - \\ln z\\)", "cos x+log y-ln z"],
+    ["\\(\\lim x\\)", "lim x"],
     ["\\(\\sum_{i=1}^{n} i\\)", "∑ᵢ₌₁ⁿi"],
   ])("converts %s to %s", (input, expected) => {
     expect(parseMathInText(input)).toBe(expected);
@@ -194,6 +201,11 @@ describe("parseMathInText — coverage set", () => {
     expect(parseMathInText("\\(\\frac{1}{2}\\)")).toBe("1/2");
     expect(parseMathInText("\\(\\frac{a+b}{c}\\)")).toBe("(a+b)/c");
     expect(parseMathInText("\\(\\frac{(a+b)}{c}\\)")).toBe("(a+b)/c");
+  });
+
+  test("treats a subscript fallback as compound, like the superscript twin", () => {
+    expect(parseMathInText("\\(\\frac{x_{\\infty}}{y}\\)")).toBe("(x_(∞))/y");
+    expect(parseMathInText("\\(\\frac{x^{\\infty}}{y}\\)")).toBe("(x^(∞))/y");
   });
 });
 
@@ -245,6 +257,100 @@ describe("parseMathInText — fail safe", () => {
     expect(convertLatexToUnicode("\\frac{a}")).toBe(null);
     expect(convertLatexToUnicode("")).toBe(null);
     expect(convertLatexToUnicode("x^2")).toBe("x²");
+  });
+});
+
+describe("parseMathInText — bare dollar heuristic", () => {
+  test.each([
+    "costs $5\\n$10 total",
+    "use $\\d+$ pattern",
+    "open $C:\\temp$ now",
+    "export $HOME$USER",
+    "$true$ or $false$",
+    "$Q4$ revenue",
+    "run $make$ first",
+    "$PATH$ and $HOME$",
+  ])("rejects %p as math", (input) => {
+    expect(parseMathInText(input)).toBe(input);
+  });
+
+  test.each([
+    ["$x$", "x"],
+    ["$x^2$", "x²"],
+    ["$\\alpha$", "α"],
+    ["$a=b$", "a=b"],
+  ])("still converts %p to %p", (input, expected) => {
+    expect(parseMathInText(input)).toBe(expected);
+  });
+});
+
+describe("parseMathInText — input size and scan cost", () => {
+  test("returns an over-long input untouched", () => {
+    const input = "see \\(x_1 and ".repeat(1000);
+    expect(input.length).toBeGreaterThan(10000);
+    expect(parseMathInText(input)).toBe(input);
+  });
+
+  test("stays fast on many unclosed openers", () => {
+    const input = "see \\(x_1 and ".repeat(600);
+    expect(input.length).toBeLessThan(10000);
+    const started = Date.now();
+    expect(parseMathInText(input)).toBe(input);
+    expect(Date.now() - started).toBeLessThan(1000);
+  });
+});
+
+describe("parseMathInText — segment guards", () => {
+  test.each([
+    "\\(\\$x\\)",
+    "\\(\\$x\\)\\(\\$y\\)",
+    "\\(\\$5\\)",
+    "\\(\\&#60;b\\&#62;\\)",
+    "\\(\\&amp;\\)",
+  ])("keeps %p verbatim rather than re-forming a delimiter or entity", (i) => {
+    expect(parseMathInText(i)).toBe(i);
+  });
+
+  test("still converts a plain escaped ampersand", () => {
+    expect(parseMathInText("\\(a\\&b\\)")).toBe("a&b");
+  });
+});
+
+describe("parseMathInText — structural commands", () => {
+  test.each([
+    ["\\[\\begin{array}{cc} a & b \\end{array}\\]", "a b"],
+    ["\\(\\begin{bmatrix} a \\end{bmatrix}\\)", "a"],
+    ["\\(\\color{red}{x}\\)", "x"],
+    ["\\(\\textcolor{red}{x}\\)", "x"],
+    ["\\(\\overbrace{a+b}^{n}\\)", "a+bⁿ"],
+    ["\\(\\underbrace{a+b}\\)", "a+b"],
+    ["\\(\\overset{a}{b}\\)", "bᵃ"],
+    ["\\(\\underset{a}{b}\\)", "bₐ"],
+    ["\\(\\substack{a\\\\b}\\)", "a b"],
+    ["\\(a \\hspace{2em} b\\)", "a b"],
+    ["\\(\\left\\lVert x \\right\\rVert\\)", "‖x‖"],
+    ["\\(\\left\\lvert x \\right\\rvert\\)", "|x|"],
+    ["\\(\\left\\lceil x \\right\\rceil\\)", "⌈x⌉"],
+  ])("converts %s to %s", (input, expected) => {
+    expect(parseMathInText(input)).toBe(expected);
+  });
+
+  test("never deletes an unknown \\left delimiter", () => {
+    expect(parseMathInText("\\(\\left\\weird x \\right\\weird\\)")).toBe(
+      "weirdxweird"
+    );
+  });
+});
+
+describe("parseMathInText — spacing around function names", () => {
+  test.each([
+    ["\\(\\sin\\theta\\)", "sinθ"],
+    ["\\(\\sin x\\)", "sin x"],
+    ["\\(O(n \\log n)\\)", "O(n log n)"],
+    ["\\(\\log(x)\\)", "log(x)"],
+    ["\\(\\sin^2 x\\)", "sin²x"],
+  ])("converts %s to %s", (input, expected) => {
+    expect(parseMathInText(input)).toBe(expected);
   });
 });
 

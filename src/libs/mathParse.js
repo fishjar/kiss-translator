@@ -23,6 +23,7 @@ import {
   FUNCTIONS,
   GREEK,
   IGNORED,
+  SPACE_ARG,
   SPACING,
   SUBSCRIPTS,
   SUPERSCRIPTS,
@@ -32,6 +33,36 @@ import {
 
 /** Longest content accepted between bare `$...$` delimiters. */
 const MAX_INLINE_DOLLAR_LEN = 80;
+
+/**
+ * Longest input scanned at all. Subtitle lines, selections, input boxes and
+ * hover bubbles never legitimately reach this, and refusing early keeps a
+ * hostile string from being rescanned on every streaming update.
+ */
+const MAX_INPUT_LEN = 10000;
+
+/** Structural commands the parser implements itself. */
+const STRUCTURAL_COMMANDS = new Set([
+  "frac",
+  "dfrac",
+  "tfrac",
+  "sqrt",
+  "left",
+  "right",
+  "begin",
+  "end",
+  "overbrace",
+  "underbrace",
+  "overset",
+  "underset",
+  "substack",
+]);
+
+/** HTML entities, which must never be formed by a conversion. */
+const ENTITY_RE = /&(#\d+|#x[0-9a-fA-F]+|[a-zA-Z]+);/;
+
+/** An entity that was already spelled out, unescaped, in the source. */
+const RAW_ENTITY_RE = /(^|[^\\])&(#\d+|#x[0-9a-fA-F]+|[a-zA-Z]+);/;
 
 /**
  * Supported math delimiters, longest-first so `$$` wins over `$`.
@@ -52,6 +83,26 @@ const SUPERSCRIPT_CHARS = new Set(Object.values(SUPERSCRIPTS));
 
 /** Signals a math segment that cannot be converted structurally. */
 class MathParseError extends Error {}
+
+/**
+ * Whether a command name is one this converter actually knows.
+ *
+ * @param {string} name Command name without the leading backslash.
+ * @returns {boolean} True when the name resolves to a table entry or to a
+ *   structural command.
+ */
+const isKnownCommand = (name) =>
+  Boolean(GREEK[name]) ||
+  Boolean(SYMBOLS[name]) ||
+  Boolean(ACCENTS[name]) ||
+  Boolean(FONTS[name]) ||
+  SPACING[name] !== undefined ||
+  FUNCTIONS.has(name) ||
+  TEXT_COMMANDS.has(name) ||
+  IGNORED.has(name) ||
+  DROP_ARG.has(name) ||
+  SPACE_ARG.has(name) ||
+  STRUCTURAL_COMMANDS.has(name);
 
 /**
  * Split a math segment into tokens: commands, whitespace runs and characters.
@@ -110,6 +161,21 @@ const skipSpaces = (state) => {
   ) {
     state.pos += 1;
   }
+};
+
+/**
+ * Look at the next token that is not whitespace, without consuming anything.
+ *
+ * @param {Object} state Parser state.
+ * @returns {{type: string, value: string}|null} Token, or null at the end.
+ */
+const peekNonSpace = (state) => {
+  let index = state.pos;
+  while (index < state.tokens.length && state.tokens[index].type === "space") {
+    index += 1;
+  }
+
+  return state.tokens[index] || null;
 };
 
 /**
@@ -207,6 +273,7 @@ const wrapCompound = (str) => {
   const compound =
     COMPOUND_RE.test(str) ||
     str.includes("^(") ||
+    str.includes("_(") ||
     Array.from(str).some((char) => SUPERSCRIPT_CHARS.has(char));
 
   return compound ? `(${str})` : str;
@@ -231,7 +298,38 @@ const readArgument = (state) => {
     }
   }
 
+  // An argument starts a fresh run: nothing precedes its first atom.
+  state.prev = "";
   return parseAtom(state);
+};
+
+/**
+ * Consume an optional trailing `{...}` or `[...]` specification, as in
+ * `\begin{array}{cc}`.
+ *
+ * @param {Object} state Parser state.
+ * @returns {void}
+ */
+const skipOptionalSpec = (state) => {
+  skipSpaces(state);
+  const token = state.tokens[state.pos];
+  if (!token || token.type !== "char") return;
+
+  if (token.value === "{") {
+    state.pos += 1;
+    parseList(state, true);
+    return;
+  }
+
+  if (token.value === "[") {
+    state.pos += 1;
+    while (state.pos < state.tokens.length) {
+      const next = state.tokens[state.pos];
+      state.pos += 1;
+      if (next.type === "char" && next.value === "]") return;
+    }
+    throw new MathParseError("unclosed option");
+  }
 };
 
 /**
@@ -250,7 +348,8 @@ const readDelimiter = (state) => {
     return token.value === "." ? "" : token.value;
   }
 
-  return ESCAPES[token.value] ?? SYMBOLS[token.value] ?? "";
+  // Never delete an unknown delimiter: keep its name like any other command.
+  return ESCAPES[token.value] ?? SYMBOLS[token.value] ?? token.value;
 };
 
 /**
@@ -275,6 +374,7 @@ const parseSqrt = (state) => {
         closed = true;
         break;
       }
+      state.prev = "";
       parts.push(parseAtom(state));
     }
     if (!closed) throw new MathParseError("unclosed radical index");
@@ -317,6 +417,28 @@ const parseCommand = (state) => {
 
   if (name === "left" || name === "right") return readDelimiter(state);
 
+  if (name === "begin" || name === "end") {
+    readArgument(state);
+    // `\begin{array}{cc}` — the column spec is layout, not content.
+    skipOptionalSpec(state);
+    return "";
+  }
+
+  if (name === "overbrace" || name === "underbrace" || name === "substack") {
+    return readArgument(state);
+  }
+
+  if (name === "overset" || name === "underset") {
+    const script = readArgument(state);
+    const base = readArgument(state);
+    return base + toScript(script, name === "overset");
+  }
+
+  if (SPACE_ARG.has(name)) {
+    readArgument(state);
+    return " ";
+  }
+
   if (DROP_ARG.has(name)) {
     readArgument(state);
     return "";
@@ -326,7 +448,17 @@ const parseCommand = (state) => {
   if (IGNORED.has(name)) return "";
   if (GREEK[name]) return GREEK[name];
   if (SYMBOLS[name]) return SYMBOLS[name];
-  if (FUNCTIONS.has(name)) return name;
+
+  if (FUNCTIONS.has(name)) {
+    // Keep a function name off its neighbours: `O(n \log n)` → `O(n log n)`,
+    // while `\sin\theta` stays tight.
+    const next = peekNonSpace(state);
+    const lead = /[A-Za-z0-9]$/.test(state.prev || "") ? " " : "";
+    const tail =
+      next && next.type === "char" && /[A-Za-z0-9]/.test(next.value) ? " " : "";
+    return `${lead}${name}${tail}`;
+  }
+
   if (ESCAPES[name] !== undefined) return ESCAPES[name];
 
   // Unknown command: keep the name, drop the backslash — never drop content.
@@ -383,6 +515,7 @@ function parseList(state, insideGroup) {
       continue;
     }
 
+    state.prev = atoms.length ? atoms[atoms.length - 1] : "";
     const atom = parseAtom(state);
     if (atom !== "") atoms.push(atom);
   }
@@ -402,11 +535,15 @@ export const convertLatexToUnicode = (latex) => {
   if (typeof latex !== "string" || !latex.trim()) return null;
 
   try {
-    const state = { tokens: tokenize(latex), pos: 0, text: false };
+    const state = { tokens: tokenize(latex), pos: 0, text: false, prev: "" };
     const result = parseList(state, false).join("").normalize("NFC");
     if (!result.trim()) return null;
-    // The result crosses DOMPurify: never introduce angle brackets.
+    // The result crosses DOMPurify: never introduce angle brackets…
     if (/[<>]/.test(result) && !/[<>]/.test(latex)) return null;
+    // …nor an HTML entity that was escaped in the source.
+    if (ENTITY_RE.test(result) && !RAW_ENTITY_RE.test(latex)) return null;
+    // A `\$` would turn into a delimiter on the next pass: stay idempotent.
+    if (result.includes("$")) return null;
     return result;
   } catch (err) {
     return null;
@@ -423,9 +560,17 @@ const looksLikeInlineMath = (content) => {
   if (!content || content.length > MAX_INLINE_DOLLAR_LEN) return false;
   if (/^\s|\s$/.test(content)) return false;
   if (/^[\d.,:%\s]+$/.test(content)) return false;
-  if (/\\[a-zA-Z]/.test(content)) return true;
+
+  const commands = content.match(/\\[a-zA-Z]+/g);
+  if (commands) {
+    // `$5\n$10`, `$\d+$`, `$C:\temp$`: a backslash word this converter does
+    // not know is evidence against math, not for it.
+    return commands.every((command) => isKnownCommand(command.slice(1)));
+  }
+
   if (/[\^_=×÷≤≥]/.test(content)) return true;
-  return /^[A-Za-z][A-Za-z0-9]*$/.test(content);
+  // Only a lone letter is a plausible variable; `$HOME`, `$true`, `$Q4` are not.
+  return /^[A-Za-z]$/.test(content);
 };
 
 /**
@@ -459,11 +604,14 @@ const findEndOfMath = (right, text, startIndex) => {
  *
  * @param {string} text Full text.
  * @param {number} from Search start index.
+ * @param {Set<Object>} disabled Delimiter kinds already known to have no
+ *   closer in the remaining text.
  * @returns {{index: number, delim: Object}|null} Match, or null.
  */
-const findNextDelimiter = (text, from) => {
+const findNextDelimiter = (text, from, disabled) => {
   for (let i = from; i < text.length; i += 1) {
     for (const delim of DELIMITERS) {
+      if (disabled.has(delim)) continue;
       if (!text.startsWith(delim.left, i)) continue;
       // `\$` is an escaped dollar, not a delimiter.
       if (delim.left[0] === "$" && i > 0 && text[i - 1] === "\\") continue;
@@ -486,6 +634,7 @@ const findNextDelimiter = (text, from) => {
  */
 export const parseMathInText = (text) => {
   if (typeof text !== "string" || !text) return text;
+  if (text.length > MAX_INPUT_LEN) return text;
   if (!text.includes("\\(") && !text.includes("\\[") && !text.includes("$")) {
     return text;
   }
@@ -494,17 +643,20 @@ export const parseMathInText = (text) => {
     let out = "";
     let pos = 0;
     let converted = false;
+    const disabled = new Set();
 
     while (pos < text.length) {
-      const found = findNextDelimiter(text, pos);
+      const found = findNextDelimiter(text, pos, disabled);
       if (!found) break;
 
       const { index, delim } = found;
       const contentStart = index + delim.left.length;
       const end = findEndOfMath(delim.right, text, contentStart);
 
-      // Unclosed, or a dollar amount: emit the opening run and keep scanning.
+      // No closer left in the text: emit the opener, and stop looking for
+      // this kind entirely — a later opener cannot find one either.
       if (end < 0) {
+        disabled.add(delim);
         out += text.slice(pos, contentStart);
         pos = contentStart;
         continue;

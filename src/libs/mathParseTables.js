@@ -185,6 +185,10 @@ export const SYMBOLS = {
   rbrack: "]",
   vert: "|",
   Vert: "‖",
+  lvert: "|",
+  rvert: "|",
+  lVert: "‖",
+  rVert: "‖",
 };
 
 /**
@@ -301,20 +305,25 @@ export const IGNORED = new Set([
 ]);
 
 /**
- * Commands that swallow one argument and render nothing.
+ * Commands that swallow one argument and render nothing. `\color{red}{x}` is
+ * covered here: the color is dropped and `{x}` flows on as a normal group.
  * @type {Set<string>}
  */
 export const DROP_ARG = new Set([
-  "hspace",
-  "vspace",
   "phantom",
   "hphantom",
   "vphantom",
   "label",
   "tag",
-  "begin",
-  "end",
+  "color",
+  "textcolor",
 ]);
+
+/**
+ * Commands that swallow one argument and render a single space.
+ * @type {Set<string>}
+ */
+export const SPACE_ARG = new Set(["hspace", "vspace"]);
 
 /**
  * Commands whose argument is plain prose: rendered verbatim, spaces kept.
