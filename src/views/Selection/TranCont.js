@@ -48,9 +48,10 @@ const normalizeChunkText = (text) => {
  * @param {string} text 翻译接口返回的文本。
  * @param {string} apiType 翻译接口类型。
  * @param {string} sourceText 原始待翻译文本。
+ * @param {boolean} parseLatex 是否转换译文中的行内 LaTeX 公式。
  * @returns {string} 供文本 UI 使用的译文。
  */
-const normalizeTranslationText = (text, apiType, sourceText) => {
+const normalizeTranslationText = (text, apiType, sourceText, parseLatex) => {
   const normalizedText = normalizeChunkText(text);
   let result = normalizedText;
   if (apiType === OPT_TRANS_GOOGLE) {
@@ -59,8 +60,8 @@ const normalizeTranslationText = (text, apiType, sourceText) => {
     result = normalizedText.replace(/\\r\\n|\\n|\\r/g, "\n");
   }
 
-  // 划词结果以纯文本展示，把模型输出的行内 LaTeX 转成可读的 Unicode。
-  return parseMathInText(result);
+  // 划词结果以纯文本展示，开启后把模型输出的行内 LaTeX 转成可读的 Unicode。
+  return parseLatex ? parseMathInText(result) : result;
 };
 
 /**
@@ -143,6 +144,7 @@ export default function TranCont({
   apiSlug,
   transApis,
   translateVariants = true,
+  parseLatex = false,
   detectedLang = "",
   sourceDetectionPending = false,
   simpleStyle = false,
@@ -198,7 +200,8 @@ export default function TranCont({
           const nextText = normalizeTranslationText(
             chunkText,
             apiSetting.apiType,
-            text
+            text,
+            parseLatex
           );
           if (nextText) {
             setTrText(nextText);
@@ -238,7 +241,12 @@ export default function TranCont({
           setTrText(
             isSame
               ? ""
-              : normalizeTranslationText(trText, apiSetting.apiType, text)
+              : normalizeTranslationText(
+                  trText,
+                  apiSetting.apiType,
+                  text,
+                  parseLatex
+                )
           );
         }
       } catch (err) {
@@ -267,6 +275,7 @@ export default function TranCont({
     toLang,
     apiSetting,
     translateVariants,
+    parseLatex,
     builtinDetectedLang,
     waitForBuiltinDetection,
   ]);

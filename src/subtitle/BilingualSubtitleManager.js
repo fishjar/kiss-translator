@@ -688,8 +688,11 @@ export class BilingualSubtitleManager {
       if (!translation || sessionId !== this.#translationSessionId) return;
       if (signal?.aborted) return;
 
-      // 字幕以纯文本渲染，将模型输出的行内 LaTeX 转成可读的 Unicode。
-      subtitle.translation = parseMathInText(decodeHTMLEntities(translation));
+      // 字幕以纯文本渲染，开启后将模型输出的行内 LaTeX 转成可读的 Unicode。
+      const decoded = decodeHTMLEntities(translation);
+      subtitle.translation = this.#setting.parseLatex
+        ? parseMathInText(decoded)
+        : decoded;
       subtitle._isDraftTranslation = false;
 
       const currentSubtitleIndexNow = this.#findSubtitleIndexForTime(

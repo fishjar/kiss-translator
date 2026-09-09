@@ -22,6 +22,7 @@ export default function Selection({
   uiLang,
   langDetector,
   translateVariants = true,
+  parseLatex = false,
 }) {
   // 1. 初始化并管理划词翻译框（TranBox）的各种展示和交互状态（如宽高、位置、极简模式、点击外部关闭等）
   const {
@@ -96,6 +97,7 @@ export default function Selection({
           // extStyles={extStyles}
           langDetector={langDetector}
           translateVariants={translateVariants}
+          parseLatex={parseLatex}
           selectionContext={textContext}
         />
       }

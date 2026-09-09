@@ -259,6 +259,7 @@ export class InputTranslator {
     prompts = [],
     subtitleSetting = {},
     translateVariants = true,
+    parseLatex = false,
   } = {}) {
     this.#config = {
       inputRule,
@@ -266,6 +267,7 @@ export class InputTranslator {
       subtitleSetting,
       transApis,
       translateVariants,
+      parseLatex,
     };
 
     const { triggerShortcut: initialTriggerShortcut } = this.#config.inputRule;
@@ -617,8 +619,11 @@ export class InputTranslator {
         translateVariants: this.#config.translateVariants,
       });
 
-      // 输入框写回纯文本，将模型输出的行内 LaTeX 转成可读的 Unicode
-      const newText = parseMathInText(trText?.trim() || "");
+      // 输入框写回纯文本，开启后将模型输出的行内 LaTeX 转成可读的 Unicode
+      const trimmedText = trText?.trim() || "";
+      const newText = this.#config.parseLatex
+        ? parseMathInText(trimmedText)
+        : trimmedText;
       if (!newText || isSame) return;
 
       // 6. 执行替换 (使用新的智能替换函数)

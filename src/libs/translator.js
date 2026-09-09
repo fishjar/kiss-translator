@@ -3714,9 +3714,10 @@ overflow-wrap: anywhere !important;`;
         return;
       }
 
-      // 气泡以纯文本渲染，将模型输出的行内 LaTeX 转成可读的 Unicode
+      // 气泡以纯文本渲染，开启后将模型输出的行内 LaTeX 转成可读的 Unicode
+      const bubbleText = Array.isArray(trText) ? trText[0] : trText;
       this.#showHoverBubble(
-        parseMathInText(Array.isArray(trText) ? trText[0] : trText)
+        this.#setting.parseLatex ? parseMathInText(bubbleText) : bubbleText
       );
     } catch (err) {
       if (
