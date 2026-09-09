@@ -87,6 +87,7 @@ import { createSubtitleIndexAligner } from "../libs/subtitleIndexAlign";
 import { kissLog } from "../libs/log";
 import { fetchData, fetchStream } from "../libs/fetch";
 import { getMsgHistory } from "./history";
+import { getOpenCodeSessionId } from "./opencode";
 import { parseBilingualVtt } from "../subtitle/vtt";
 import { getDocInfo } from "../libs/docInfo";
 import {
@@ -1491,6 +1492,17 @@ export const genTransReq = async ({ reqHook, ...args }) => {
   }
   if (customBody?.trim()) {
     Object.assign(body, parseJsonObj(customBody));
+  }
+
+  // OpenCode Go 要求稳定的会话 ID；同时覆盖不执行 hook 的字幕请求。
+  // 自定义请求头大小写不敏感，保留用户显式配置的值。
+  if (
+    apiType === OPT_TRANS_OPENCODEGO &&
+    !Object.keys(headers).some(
+      (name) => name.toLowerCase() === "x-opencode-session"
+    )
+  ) {
+    headers["x-opencode-session"] = getOpenCodeSessionId({ apiSlug, url });
   }
 
   // 执行 request hook
