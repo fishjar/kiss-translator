@@ -115,27 +115,43 @@ const SUBSCRIPT_CHARS = new Set(Object.values(SUBSCRIPTS));
 class MathParseError extends Error {}
 
 /**
- * Count HTML entities in a string. In the source, an entity written `\&lt;`
- * is escaped and does not count — the conversion would be the thing that
- * turns it into a real one.
+ * Whether a string contains the given entity unescaped — `\&lt;` in the source
+ * is escaped text, and only the conversion could turn it into a real entity.
  *
  * @param {string} str Text to scan.
- * @param {boolean} skipEscaped True to ignore backslash-escaped entities.
- * @returns {number} Number of entities found.
+ * @param {string} entity Exact entity string, e.g. `&lt;`.
+ * @returns {boolean} True when the entity appears unescaped.
  */
-const countEntities = (str, skipEscaped) => {
-  ENTITY_RE.lastIndex = 0;
-  let count = 0;
-  let match = ENTITY_RE.exec(str);
+const hasUnescapedEntity = (str, entity) => {
+  let index = str.indexOf(entity);
 
-  while (match) {
-    if (!skipEscaped || match.index === 0 || str[match.index - 1] !== "\\") {
-      count += 1;
-    }
-    match = ENTITY_RE.exec(str);
+  while (index !== -1) {
+    if (index === 0 || str[index - 1] !== "\\") return true;
+    index = str.indexOf(entity, index + 1);
   }
 
-  return count;
+  return false;
+};
+
+/**
+ * Whether a conversion result spells out an HTML entity that its source did
+ * not already contain. Membership rather than counting, so that destroying one
+ * entity cannot pay for creating another.
+ *
+ * @param {string} result Converted text.
+ * @param {string} source Text it was converted from.
+ * @returns {boolean} True when the result introduces an entity.
+ */
+const formsNewEntity = (result, source) => {
+  ENTITY_RE.lastIndex = 0;
+  let match = ENTITY_RE.exec(result);
+
+  while (match) {
+    if (!hasUnescapedEntity(source, match[0])) return true;
+    match = ENTITY_RE.exec(result);
+  }
+
+  return false;
 };
 
 /**
@@ -338,6 +354,19 @@ const wrapCompound = (str) =>
   isCompound(str) && !isWrapped(str) ? `(${str})` : str;
 
 /**
+ * Whether a run already carries script material.
+ *
+ * @param {string} str Converted run.
+ * @returns {boolean} True when it holds a script character or fallback group.
+ */
+const hasScripts = (str) =>
+  str.includes("^(") ||
+  str.includes("_(") ||
+  Array.from(str).some(
+    (char) => SUPERSCRIPT_CHARS.has(char) || SUBSCRIPT_CHARS.has(char)
+  );
+
+/**
  * Remove script material already attached to the end of a run: Unicode
  * super/subscript characters and `^(…)` / `_(…)` fallback groups.
  *
@@ -384,6 +413,16 @@ const stripTrailingScripts = (str) => {
  */
 const wrapScriptBase = (str) =>
   isCompound(stripTrailingScripts(str)) && !isWrapped(str) ? `(${str})` : str;
+
+/**
+ * Parenthesize an explicitly grouped script base. Its own scripts were written
+ * by the author, so they belong to the base: `{x^2}^3` is `(x²)³`.
+ *
+ * @param {string} str Converted base atom.
+ * @returns {string} Base, parenthesized when needed.
+ */
+const wrapGroupedScriptBase = (str) =>
+  (isCompound(str) || hasScripts(str)) && !isWrapped(str) ? `(${str})` : str;
 
 /**
  * Read one command argument: a braced group, or the next single token.
@@ -575,7 +614,9 @@ const parseCommand = (state) => {
 };
 
 /**
- * Convert one atom: a group, a command, or a single character.
+ * Convert one atom: a group, a command, or a single character. Reports
+ * through `state.group` whether the atom came from an explicit `{...}` group,
+ * which decides how a following script binds to it.
  *
  * @param {Object} state Parser state.
  * @returns {string} Converted text, empty for dropped whitespace.
@@ -585,13 +626,24 @@ function parseAtom(state) {
 
   if (token.type === "space") {
     state.pos += 1;
+    state.group = false;
     return state.text ? " " : "";
   }
 
-  if (token.type === "cmd") return parseCommand(state);
+  if (token.type === "cmd") {
+    const value = parseCommand(state);
+    state.group = false;
+    return value;
+  }
 
   state.pos += 1;
-  if (token.value === "{") return parseList(state, true).join("");
+  if (token.value === "{") {
+    const value = parseList(state, true).join("");
+    state.group = true;
+    return value;
+  }
+
+  state.group = false;
   if (token.value === "&" || token.value === "~") return " ";
   return token.value;
 }
@@ -606,6 +658,8 @@ function parseAtom(state) {
  */
 function parseList(state, insideGroup) {
   const atoms = [];
+  // Whether the atom at the same index came from an explicit `{...}` group.
+  const grouped = [];
 
   while (state.pos < state.tokens.length) {
     const token = state.tokens[state.pos];
@@ -621,17 +675,26 @@ function parseList(state, insideGroup) {
       const script = toScript(readArgument(state), token.value === "^");
       if (atoms.length) {
         // A script binds to one atom: `\frac{a}{b}^2` is `(a/b)²`, not `a/b²`.
-        const base = wrapScriptBase(atoms[atoms.length - 1]);
-        atoms[atoms.length - 1] = base + script;
+        // `{x^2}^3` was scripted explicitly, so its script is part of the
+        // base and must not be stripped away: `(x²)³`, not `x²³`.
+        const last = atoms.length - 1;
+        atoms[last] = grouped[last]
+          ? wrapGroupedScriptBase(atoms[last]) + script
+          : wrapScriptBase(atoms[last]) + script;
       } else {
         atoms.push(script);
+        grouped.push(false);
       }
       continue;
     }
 
     state.prev = atoms.length ? atoms[atoms.length - 1] : "";
+    state.group = false;
     const atom = parseAtom(state);
-    if (atom !== "") atoms.push(atom);
+    if (atom !== "") {
+      atoms.push(atom);
+      grouped.push(state.group);
+    }
   }
 
   if (insideGroup) throw new MathParseError("missing closing brace");
@@ -654,8 +717,8 @@ export const convertLatexToUnicode = (latex) => {
     if (!result.trim()) return null;
     // The result crosses DOMPurify: never introduce angle brackets…
     if (/[<>]/.test(result) && !/[<>]/.test(latex)) return null;
-    // …nor more HTML entities than the source already spelled out.
-    if (countEntities(result, false) > countEntities(latex, true)) return null;
+    // …nor an HTML entity the source did not already spell out.
+    if (formsNewEntity(result, latex)) return null;
     // A `\$` would turn into a delimiter on the next pass: stay idempotent.
     if (result.includes("$")) return null;
     return result;
@@ -675,8 +738,13 @@ const looksLikeInlineMath = (content) => {
   if (/^\s|\s$/.test(content)) return false;
   if (/^[\d.,:%\s]+$/.test(content)) return false;
   // Snake-case identifiers are shell variables, not math: `$my_var$OTHER`.
-  // A real subscript has a short base: `x_1` and `x_12` still qualify.
-  if (/[A-Za-z0-9]{2,}_[A-Za-z0-9]{2,}/.test(content)) return false;
+  // A real subscript has a short base: `x_1` and `x_12` still qualify. Command
+  // words are blanked first so `\alpha_12` is not read as an identifier.
+  if (
+    /[A-Za-z0-9]{2,}_[A-Za-z0-9]{2,}/.test(content.replace(/\\[a-zA-Z]+/g, " "))
+  ) {
+    return false;
+  }
   // An amount with a unit, with or without a trailing `=`: `$5USD=$35USD`.
   if (/^\d[\d.,]*[A-Za-z]{2,}$/.test(content.replace(/=$/, ""))) return false;
 
@@ -816,7 +884,7 @@ const parseOnce = (text) => {
     if (!converted) return text;
     const result = out + text.slice(pos);
     // Neighbouring segments can spell out an entity no single segment saw.
-    if (countEntities(result, false) > countEntities(text, true)) return text;
+    if (formsNewEntity(result, text)) return text;
     return result;
   } catch (err) {
     return text;

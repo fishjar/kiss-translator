@@ -45,6 +45,9 @@ const ALL_INPUTS = [
   "\\(\\begin{matrix}{a}&b\\end{matrix}{c}\\)",
   "\\(\\frac{a}{b}^2\\)",
   "\\(x^2_1\\)",
+  "\\({x^2}^3\\)",
+  "$\\alpha_12$",
+  "&\\(lt\\); \\(&amp;\\)",
   "\\(\\constructor{x}\\)",
   "export $MY_VAR$OTHER",
   "export $my_var$OTHER",
@@ -299,6 +302,8 @@ describe("parseMathInText — bare dollar heuristic", () => {
     ["$x_12$", "x₁2"],
     ["$x_{12}$", "x₁₂"],
     ["$2x=4$", "2x=4"],
+    ["$\\alpha_12$", "α₁2"],
+    ["$\\alpha_1$", "α₁"],
     ["$a\\times b$", "a×b"],
   ])("still converts %p to %p", (input, expected) => {
     expect(parseMathInText(input)).toBe(expected);
@@ -332,6 +337,8 @@ describe("parseMathInText — segment guards", () => {
     "&\\(#60\\);",
     "&amp; &\\(lt\\);",
     "&lt; and &\\(gt\\);",
+    "&\\(lt\\); \\(&\\)",
+    "&\\(lt\\); \\(&amp;\\)",
   ])("keeps %p verbatim rather than re-forming a delimiter or entity", (i) => {
     expect(parseMathInText(i)).toBe(i);
   });
@@ -398,6 +405,9 @@ describe("parseMathInText — environments and precedence", () => {
     ["\\(x^2\\)", "x²"],
     ["\\(x^2_1\\)", "x²₁"],
     ["\\(x_1^2\\)", "x₁²"],
+    ["\\({x^2}^3\\)", "(x²)³"],
+    ["\\({x_1}_2\\)", "(x₁)₂"],
+    ["\\({x}^2\\)", "x²"],
     ["\\(x^\\infty_1\\)", "x^(∞)₁"],
     ["\\(\\dot{x}_1\\)", "ẋ₁"],
     ["\\(\\sum_{i=1}^{n}\\)", "∑ᵢ₌₁ⁿ"],
