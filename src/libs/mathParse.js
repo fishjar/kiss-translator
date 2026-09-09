@@ -16,20 +16,39 @@
  */
 
 import {
-  ACCENTS,
+  ACCENTS as ACCENTS_TABLE,
   DROP_ARG,
-  ESCAPES,
-  FONTS,
+  ESCAPES as ESCAPES_TABLE,
+  FONTS as FONTS_TABLE,
   FUNCTIONS,
-  GREEK,
+  GREEK as GREEK_TABLE,
   IGNORED,
   SPACE_ARG,
-  SPACING,
-  SUBSCRIPTS,
-  SUPERSCRIPTS,
-  SYMBOLS,
+  SPACING as SPACING_TABLE,
+  SUBSCRIPTS as SUBSCRIPTS_TABLE,
+  SUPERSCRIPTS as SUPERSCRIPTS_TABLE,
+  SYMBOLS as SYMBOLS_TABLE,
   TEXT_COMMANDS,
 } from "./mathParseTables";
+
+/**
+ * Re-key a table onto a null prototype, so that a command named after an
+ * `Object.prototype` member (`\constructor`, `\hasOwnProperty`) misses instead
+ * of resolving to an inherited function.
+ *
+ * @param {Object} table Source lookup table.
+ * @returns {Object} Prototype-less copy.
+ */
+const toLookup = (table) => Object.assign(Object.create(null), table);
+
+const ACCENTS = toLookup(ACCENTS_TABLE);
+const ESCAPES = toLookup(ESCAPES_TABLE);
+const FONTS = toLookup(FONTS_TABLE);
+const GREEK = toLookup(GREEK_TABLE);
+const SPACING = toLookup(SPACING_TABLE);
+const SUBSCRIPTS = toLookup(SUBSCRIPTS_TABLE);
+const SUPERSCRIPTS = toLookup(SUPERSCRIPTS_TABLE);
+const SYMBOLS = toLookup(SYMBOLS_TABLE);
 
 /** Longest content accepted between bare `$...$` delimiters. */
 const MAX_INLINE_DOLLAR_LEN = 80;
@@ -75,8 +94,19 @@ const DELIMITERS = [
   { left: "$", right: "$", bare: true },
 ];
 
-/** Characters that make a fraction side or radicand read as compound. */
-const COMPOUND_RE = /[\s/+*×÷±∓=<>≤≥≠≈-]/;
+/** Characters that make a converted run read as compound, not as one atom. */
+const COMPOUND_RE = /[\s/+*×÷±∓=<>≤≥≠≈·∙∗⋆∘⊕⊖⊗⊘⊙∧∨∖¬-]/;
+
+/** Environments whose `\begin` carries a column or alignment spec. */
+const SPEC_ENVIRONMENTS = new Set([
+  "array",
+  "tabular",
+  "tabular*",
+  "subarray",
+  "alignat",
+  "alignat*",
+  "alignedat",
+]);
 
 /** Superscript characters, used to detect compound fraction sides. */
 const SUPERSCRIPT_CHARS = new Set(Object.values(SUPERSCRIPTS));
@@ -260,24 +290,29 @@ const isWrapped = (str) => {
 };
 
 /**
- * Parenthesize a fraction side or radicand unless it reads as a single atom.
+ * Whether a converted run reads as several atoms rather than one.
  * Superscripts count as compound (`\frac{d^2x}{dt^2}` → `(d²x)/(dt²)`) while
  * subscripts do not (`\frac{d\mathbf r_1}{dt}` → `d𝐫₁/dt`).
  *
- * @param {string} str Converted side.
- * @returns {string} Side, parenthesized when needed.
+ * @param {string} str Converted run.
+ * @returns {boolean} True when parentheses would keep it unambiguous.
  */
-const wrapCompound = (str) => {
-  if (str.length < 2 || isWrapped(str)) return str;
-
-  const compound =
-    COMPOUND_RE.test(str) ||
+const isCompound = (str) =>
+  str.length > 1 &&
+  (COMPOUND_RE.test(str) ||
     str.includes("^(") ||
     str.includes("_(") ||
-    Array.from(str).some((char) => SUPERSCRIPT_CHARS.has(char));
+    Array.from(str).some((char) => SUPERSCRIPT_CHARS.has(char)));
 
-  return compound ? `(${str})` : str;
-};
+/**
+ * Parenthesize a fraction side, radicand or script base unless it is a single
+ * atom already.
+ *
+ * @param {string} str Converted run.
+ * @returns {string} Run, parenthesized when needed.
+ */
+const wrapCompound = (str) =>
+  isCompound(str) && !isWrapped(str) ? `(${str})` : str;
 
 /**
  * Read one command argument: a braced group, or the next single token.
@@ -418,10 +453,13 @@ const parseCommand = (state) => {
   if (name === "left" || name === "right") return readDelimiter(state);
 
   if (name === "begin" || name === "end") {
-    readArgument(state);
-    // `\begin{array}{cc}` — the column spec is layout, not content.
-    skipOptionalSpec(state);
-    return "";
+    const environment = readArgument(state);
+    // Only `\begin{array}{cc}` & co carry a spec; a brace after any other
+    // environment name — or after any `\end` — is content.
+    if (name === "begin" && SPEC_ENVIRONMENTS.has(environment)) {
+      skipOptionalSpec(state);
+    }
+    return " ";
   }
 
   if (name === "overbrace" || name === "underbrace" || name === "substack") {
@@ -510,8 +548,13 @@ function parseList(state, insideGroup) {
     if (token.type === "char" && (token.value === "^" || token.value === "_")) {
       state.pos += 1;
       const script = toScript(readArgument(state), token.value === "^");
-      if (atoms.length) atoms[atoms.length - 1] += script;
-      else atoms.push(script);
+      if (atoms.length) {
+        // A script binds to one atom: `\frac{a}{b}^2` is `(a/b)²`, not `a/b²`.
+        const base = wrapCompound(atoms[atoms.length - 1]);
+        atoms[atoms.length - 1] = base + script;
+      } else {
+        atoms.push(script);
+      }
       continue;
     }
 
@@ -536,7 +579,7 @@ export const convertLatexToUnicode = (latex) => {
 
   try {
     const state = { tokens: tokenize(latex), pos: 0, text: false, prev: "" };
-    const result = parseList(state, false).join("").normalize("NFC");
+    const result = parseList(state, false).join("").trim().normalize("NFC");
     if (!result.trim()) return null;
     // The result crosses DOMPurify: never introduce angle brackets…
     if (/[<>]/.test(result) && !/[<>]/.test(latex)) return null;
@@ -568,7 +611,20 @@ const looksLikeInlineMath = (content) => {
     return commands.every((command) => isKnownCommand(command.slice(1)));
   }
 
-  if (/[\^_=×÷≤≥]/.test(content)) return true;
+  if (/[×÷≤≥]/.test(content)) return true;
+
+  // `^`, `_` and `=` only count inside plain ASCII that holds a variable and
+  // is not shell-variable shaped: `$MY_VAR$OTHER`, `$5元=$35元` and
+  // `$12=$15` are prose or prices, not math.
+  if (
+    /[\^_=]/.test(content) &&
+    /^[\x20-\x7E]+$/.test(content) &&
+    /[A-Za-z]/.test(content) &&
+    !/^[A-Z][A-Z0-9_]*$/.test(content)
+  ) {
+    return true;
+  }
+
   // Only a lone letter is a plausible variable; `$HOME`, `$true`, `$Q4` are not.
   return /^[A-Za-z]$/.test(content);
 };
@@ -623,16 +679,13 @@ const findNextDelimiter = (text, from, disabled) => {
 };
 
 /**
- * Replace the inline LaTeX inside a translated string with plain Unicode.
- *
- * Supports `\(…\)`, `\[…\]`, `$$…$$` and heuristic-guarded `$…$`. Segments
- * that cannot be converted are kept verbatim, delimiters included, so the
- * worst case is the untouched input. Never throws.
+ * One conversion pass over the text. Never throws; returns the input itself
+ * when nothing was converted.
  *
  * @param {string} text Translated text, possibly containing LaTeX.
- * @returns {string} Text with math segments rendered as plain Unicode.
+ * @returns {string} Text with its math segments rendered as plain Unicode.
  */
-export const parseMathInText = (text) => {
+const parseOnce = (text) => {
   if (typeof text !== "string" || !text) return text;
   if (text.length > MAX_INPUT_LEN) return text;
   if (!text.includes("\\(") && !text.includes("\\[") && !text.includes("$")) {
@@ -653,10 +706,13 @@ export const parseMathInText = (text) => {
       const contentStart = index + delim.left.length;
       const end = findEndOfMath(delim.right, text, contentStart);
 
-      // No closer left in the text: emit the opener, and stop looking for
-      // this kind entirely — a later opener cannot find one either.
+      // Emit the opener and keep scanning. Only when the closer is truly
+      // absent — as opposed to hidden inside braces — can a later opener of
+      // this kind be skipped too.
       if (end < 0) {
-        disabled.add(delim);
+        if (text.indexOf(delim.right, contentStart) === -1) {
+          disabled.add(delim);
+        }
         out += text.slice(pos, contentStart);
         pos = contentStart;
         continue;
@@ -682,8 +738,31 @@ export const parseMathInText = (text) => {
     }
 
     if (!converted) return text;
-    return out + text.slice(pos);
+    const result = out + text.slice(pos);
+    // Neighbouring segments can spell out an entity no single segment saw.
+    if (ENTITY_RE.test(result) && !RAW_ENTITY_RE.test(text)) return text;
+    return result;
   } catch (err) {
     return text;
   }
+};
+
+/**
+ * Replace the inline LaTeX inside a translated string with plain Unicode.
+ *
+ * Supports `\(…\)`, `\[…\]`, `$$…$$` and heuristic-guarded `$…$`. Segments
+ * that cannot be converted are kept verbatim, delimiters included, so the
+ * worst case is the untouched input. Never throws.
+ *
+ * Idempotence holds by construction: a result that a second pass would change
+ * again is discarded in favour of the original text. The verification pass
+ * only runs when the first pass converted something.
+ *
+ * @param {string} text Translated text, possibly containing LaTeX.
+ * @returns {string} Text with math segments rendered as plain Unicode.
+ */
+export const parseMathInText = (text) => {
+  const out = parseOnce(text);
+  if (out === text) return text;
+  return parseOnce(out) === out ? out : text;
 };

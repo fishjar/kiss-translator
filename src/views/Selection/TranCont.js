@@ -53,15 +53,21 @@ const normalizeChunkText = (text) => {
  */
 const normalizeTranslationText = (text, apiType, sourceText, parseLatex) => {
   const normalizedText = normalizeChunkText(text);
-  let result = normalizedText;
+  // 划词结果以纯文本展示，开启后把模型输出的行内 LaTeX 转成可读的 Unicode。
+  // 必须先于换行反转义执行：`\right` 等命令会被 `\\n|\\r` 规则拆坏。
+  const mathText = parseLatex
+    ? parseMathInText(normalizedText)
+    : normalizedText;
+
   if (apiType === OPT_TRANS_GOOGLE) {
-    result = normalizedText.replace(/[\t ]*(\r\n|\r|\n)[\t ]*/g, "\n");
-  } else if (API_SPE_TYPES.ai.has(apiType) && /\r\n|\r|\n/.test(sourceText)) {
-    result = normalizedText.replace(/\\r\\n|\\n|\\r/g, "\n");
+    return mathText.replace(/[\t ]*(\r\n|\r|\n)[\t ]*/g, "\n");
   }
 
-  // 划词结果以纯文本展示，开启后把模型输出的行内 LaTeX 转成可读的 Unicode。
-  return parseLatex ? parseMathInText(result) : result;
+  if (API_SPE_TYPES.ai.has(apiType) && /\r\n|\r|\n/.test(sourceText)) {
+    return mathText.replace(/\\r\\n|\\n|\\r/g, "\n");
+  }
+
+  return mathText;
 };
 
 /**

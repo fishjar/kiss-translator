@@ -39,6 +39,13 @@ const ALL_INPUTS = [
   "export $HOME$USER",
   "\\(O(n \\log n)\\)",
   "\\(\\left\\lVert x \\right\\rVert\\)",
+  "$\\(x\\)$",
+  "&\\(lt\\);",
+  "\\(unclosed { text; \\(x_1\\)",
+  "\\(\\begin{matrix}{a}&b\\end{matrix}{c}\\)",
+  "\\(\\frac{a}{b}^2\\)",
+  "\\(\\constructor{x}\\)",
+  "export $MY_VAR$OTHER",
   "plain text without math",
   "C:\\temp\\file.txt",
   "line1\nline2 {a} 100%",
@@ -270,6 +277,9 @@ describe("parseMathInText — bare dollar heuristic", () => {
     "$Q4$ revenue",
     "run $make$ first",
     "$PATH$ and $HOME$",
+    "export $MY_VAR$OTHER",
+    "$5元=$35元",
+    "总价 $12=$15 元",
   ])("rejects %p as math", (input) => {
     expect(parseMathInText(input)).toBe(input);
   });
@@ -279,6 +289,8 @@ describe("parseMathInText — bare dollar heuristic", () => {
     ["$x^2$", "x²"],
     ["$\\alpha$", "α"],
     ["$a=b$", "a=b"],
+    ["$x_1$", "x₁"],
+    ["$a\\times b$", "a×b"],
   ])("still converts %p to %p", (input, expected) => {
     expect(parseMathInText(input)).toBe(expected);
   });
@@ -307,6 +319,8 @@ describe("parseMathInText — segment guards", () => {
     "\\(\\$5\\)",
     "\\(\\&#60;b\\&#62;\\)",
     "\\(\\&amp;\\)",
+    "&\\(lt\\);",
+    "&\\(#60\\);",
   ])("keeps %p verbatim rather than re-forming a delimiter or entity", (i) => {
     expect(parseMathInText(i)).toBe(i);
   });
@@ -322,7 +336,7 @@ describe("parseMathInText — structural commands", () => {
     ["\\(\\begin{bmatrix} a \\end{bmatrix}\\)", "a"],
     ["\\(\\color{red}{x}\\)", "x"],
     ["\\(\\textcolor{red}{x}\\)", "x"],
-    ["\\(\\overbrace{a+b}^{n}\\)", "a+bⁿ"],
+    ["\\(\\overbrace{a+b}^{n}\\)", "(a+b)ⁿ"],
     ["\\(\\underbrace{a+b}\\)", "a+b"],
     ["\\(\\overset{a}{b}\\)", "bᵃ"],
     ["\\(\\underset{a}{b}\\)", "bₐ"],
@@ -351,6 +365,78 @@ describe("parseMathInText — spacing around function names", () => {
     ["\\(\\sin^2 x\\)", "sin²x"],
   ])("converts %s to %s", (input, expected) => {
     expect(parseMathInText(input)).toBe(expected);
+  });
+});
+
+describe("parseMathInText — environments and precedence", () => {
+  test.each([
+    ["\\(\\begin{matrix}{a}&b\\end{matrix}{c}\\)", "a b c"],
+    ["\\[\\begin{array}{cc} a & b \\end{array}\\]", "a b"],
+    ["\\(\\begin{aligned} x \\end{aligned}{y}\\)", "x y"],
+  ])("keeps environment content in %s", (input, expected) => {
+    expect(parseMathInText(input)).toBe(expected);
+  });
+
+  test.each([
+    ["\\(\\frac{a}{b}^2\\)", "(a/b)²"],
+    ["\\(\\frac{a}{b}_1\\)", "(a/b)₁"],
+    ["\\(x^2\\)", "x²"],
+    ["\\(\\dot{x}_1\\)", "ẋ₁"],
+    ["\\(\\sum_{i=1}^{n}\\)", "∑ᵢ₌₁ⁿ"],
+  ])("binds the script in %s as %s", (input, expected) => {
+    expect(parseMathInText(input)).toBe(expected);
+  });
+
+  test.each([
+    ["\\(\\frac{1}{a\\cdot b}\\)", "1/(a·b)"],
+    ["\\(\\frac{1}{a\\circ b}\\)", "1/(a∘b)"],
+    ["\\(\\frac{1}{a\\oplus b}\\)", "1/(a⊕b)"],
+  ])("treats the Unicode operator in %s as compound", (input, expected) => {
+    expect(parseMathInText(input)).toBe(expected);
+  });
+});
+
+describe("parseMathInText — prototype pollution", () => {
+  test.each([
+    ["\\(\\constructor{x}\\)", "constructorx"],
+    ["\\(\\hasOwnProperty{x}\\)", "hasOwnPropertyx"],
+    ["\\(\\toString\\)", "toString"],
+    ["\\(\\valueOf{x}\\)", "valueOfx"],
+  ])("falls back to the bare name for %s", (input, expected) => {
+    expect(parseMathInText(input)).toBe(expected);
+  });
+
+  test.each(["$\\constructor$", "$\\hasOwnProperty$", "$\\toString$"])(
+    "rejects %p as bare-dollar math",
+    (input) => {
+      expect(parseMathInText(input)).toBe(input);
+    }
+  );
+});
+
+describe("parseMathInText — scan resilience", () => {
+  test("converts a later segment when an earlier closer is brace-hidden", () => {
+    expect(parseMathInText("\\(unclosed { text; \\(x_1\\)")).toBe(
+      "\\(unclosed { text; x₁"
+    );
+  });
+
+  test("keeps skipping a delimiter kind whose closer is truly absent", () => {
+    const input = "see \\(x_1 and \\(y_2 too";
+    expect(parseMathInText(input)).toBe(input);
+  });
+});
+
+describe("parseMathInText — idempotence backstop", () => {
+  test.each(["$\\(x\\)$", "$\\(a\\)$ and $\\(b\\)$"])(
+    "returns %p verbatim rather than a result a second pass would change",
+    (input) => {
+      expect(parseMathInText(input)).toBe(input);
+    }
+  );
+
+  test("still converts when the result is already a fixed point", () => {
+    expect(parseMathInText("\\(x_1\\)")).toBe("x₁");
   });
 });
 
