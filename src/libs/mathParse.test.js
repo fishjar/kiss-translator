@@ -468,6 +468,41 @@ describe("parseMathInText — idempotence backstop", () => {
   });
 });
 
+describe("parseMathInText — work budget", () => {
+  // Hostile shapes: brace-hidden closers make the scanner re-walk the same
+  // suffix, and a long script run re-walks a growing base.
+  const braceProbe = "\\({".repeat(3000) + "\\)";
+  const scriptProbe = `\\(x${"^1".repeat(4400)}\\)`;
+
+  test.each([
+    ["brace-blocked openers", braceProbe],
+    ["repeated scripts", scriptProbe],
+  ])("returns the original for %s", (_name, input) => {
+    expect(input.length).toBeLessThan(10000);
+    expect(() => parseMathInText(input)).not.toThrow();
+    expect(parseMathInText(input)).toBe(input);
+  });
+
+  test.each([
+    ["brace-blocked openers", braceProbe],
+    ["repeated scripts", scriptProbe],
+  ])("bails quickly on %s", (_name, input) => {
+    const started = Date.now();
+    parseMathInText(input);
+    expect(Date.now() - started).toBeLessThan(250);
+  });
+
+  test("still converts a large but legitimate input in full", () => {
+    const legit = ("padding words here ".repeat(2) + "\\(x_1\\) ").repeat(200);
+    expect(legit.length).toBeGreaterThan(8000);
+    expect(legit.length).toBeLessThan(10000);
+
+    const out = parseMathInText(legit);
+    expect(out).not.toContain("\\(");
+    expect((out.match(/x₁/g) || []).length).toBe(200);
+  });
+});
+
 describe("parseMathInText — invariants", () => {
   test.each(ALL_INPUTS)("is idempotent for %p", (input) => {
     const once = parseMathInText(input);

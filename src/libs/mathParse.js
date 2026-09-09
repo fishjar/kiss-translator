@@ -80,6 +80,14 @@ const STRUCTURAL_COMMANDS = new Set([
 /** HTML entities, which a conversion must never create more of. */
 const ENTITY_RE = /&(#\d+|#x[0-9a-fA-F]+|[a-zA-Z]+);/g;
 
+/** The same pattern for the source side; a second object keeps `lastIndex`
+ * of the two interleaved scans apart. */
+const SOURCE_ENTITY_RE = /&(#\d+|#x[0-9a-fA-F]+|[a-zA-Z]+);/g;
+
+/** Positions where a delimiter can start; every left delimiter begins with
+ * one of these, so prose between them is skipped by the regexp engine. */
+const CANDIDATE_RE = /[$\\]/g;
+
 /**
  * Supported math delimiters, longest-first so `$$` wins over `$`.
  * `bare` marks the heuristic-guarded single dollar form.
@@ -111,26 +119,54 @@ const SUPERSCRIPT_CHARS = new Set(Object.values(SUPERSCRIPTS));
 /** Subscript characters, used to strip script material off a script base. */
 const SUBSCRIPT_CHARS = new Set(Object.values(SUBSCRIPTS));
 
+/**
+ * Work allowed in one `parseOnce` call, counted in scanned or copied
+ * characters. The 10K length cap bounds input size, not the work a hostile
+ * input can provoke: brace-hidden closers make the scanner re-walk the same
+ * suffix, and a long run of scripts re-walks a growing base. A legitimate 8K
+ * input full of math uses a low single-digit percentage of this.
+ */
+const MAX_WORK = 400000;
+
+/** Budget of the call in flight; `null` outside a call. Never re-entered. */
+let work = null;
+
 /** Signals a math segment that cannot be converted structurally. */
 class MathParseError extends Error {}
 
 /**
- * Whether a string contains the given entity unescaped — `\&lt;` in the source
+ * Charge work to the call in flight, aborting it once the budget is gone.
+ * Every abort path ends in the original text being returned verbatim.
+ *
+ * @param {number} amount Characters scanned or copied.
+ * @returns {void}
+ */
+const spend = (amount) => {
+  if (!work) return;
+  work.left -= amount;
+  if (work.left <= 0) throw new MathParseError("work budget exhausted");
+};
+
+/**
+ * Collect the entities a string spells out unescaped — `\&lt;` in the source
  * is escaped text, and only the conversion could turn it into a real entity.
  *
  * @param {string} str Text to scan.
- * @param {string} entity Exact entity string, e.g. `&lt;`.
- * @returns {boolean} True when the entity appears unescaped.
+ * @returns {Set<string>} Entity strings, e.g. `&lt;`.
  */
-const hasUnescapedEntity = (str, entity) => {
-  let index = str.indexOf(entity);
+const collectUnescapedEntities = (str) => {
+  const entities = new Set();
+  SOURCE_ENTITY_RE.lastIndex = 0;
+  let match = SOURCE_ENTITY_RE.exec(str);
 
-  while (index !== -1) {
-    if (index === 0 || str[index - 1] !== "\\") return true;
-    index = str.indexOf(entity, index + 1);
+  while (match) {
+    if (match.index === 0 || str[match.index - 1] !== "\\") {
+      entities.add(match[0]);
+    }
+    match = SOURCE_ENTITY_RE.exec(str);
   }
 
-  return false;
+  return entities;
 };
 
 /**
@@ -145,9 +181,12 @@ const hasUnescapedEntity = (str, entity) => {
 const formsNewEntity = (result, source) => {
   ENTITY_RE.lastIndex = 0;
   let match = ENTITY_RE.exec(result);
+  if (!match) return false;
 
+  // Only now is scanning the source worth it, and only once.
+  const sourceEntities = collectUnescapedEntities(source);
   while (match) {
-    if (!hasUnescapedEntity(source, match[0])) return true;
+    if (!sourceEntities.has(match[0])) return true;
     match = ENTITY_RE.exec(result);
   }
 
@@ -350,8 +389,10 @@ const isCompound = (str) =>
  * @param {string} str Converted run.
  * @returns {string} Run, parenthesized when needed.
  */
-const wrapCompound = (str) =>
-  isCompound(str) && !isWrapped(str) ? `(${str})` : str;
+const wrapCompound = (str) => {
+  spend(str.length);
+  return isCompound(str) && !isWrapped(str) ? `(${str})` : str;
+};
 
 /**
  * Whether a run already carries script material.
@@ -678,6 +719,7 @@ function parseList(state, insideGroup) {
         // `{x^2}^3` was scripted explicitly, so its script is part of the
         // base and must not be stripped away: `(x²)³`, not `x²³`.
         const last = atoms.length - 1;
+        spend(atoms[last].length);
         atoms[last] = grouped[last]
           ? wrapGroupedScriptBase(atoms[last]) + script
           : wrapScriptBase(atoms[last]) + script;
@@ -688,6 +730,7 @@ function parseList(state, insideGroup) {
       continue;
     }
 
+    spend(1);
     state.prev = atoms.length ? atoms[atoms.length - 1] : "";
     state.group = false;
     const atom = parseAtom(state);
@@ -711,7 +754,12 @@ function parseList(state, insideGroup) {
 export const convertLatexToUnicode = (latex) => {
   if (typeof latex !== "string" || !latex.trim()) return null;
 
+  // Direct callers get their own budget; `parseOnce` shares the call's.
+  const outerWork = work;
+  if (!work) work = { left: MAX_WORK };
+
   try {
+    spend(latex.length);
     const state = { tokens: tokenize(latex), pos: 0, text: false, prev: "" };
     const result = parseList(state, false).join("").trim().normalize("NFC");
     if (!result.trim()) return null;
@@ -724,6 +772,8 @@ export const convertLatexToUnicode = (latex) => {
     return result;
   } catch (err) {
     return null;
+  } finally {
+    work = outerWork;
   }
 };
 
@@ -789,13 +839,17 @@ const findEndOfMath = (right, text, startIndex) => {
 
   while (index < text.length) {
     const char = text[index];
-    if (braceLevel <= 0 && text.startsWith(right, index)) return index;
+    if (braceLevel <= 0 && text.startsWith(right, index)) {
+      spend(index - startIndex);
+      return index;
+    }
     if (char === "\\") index += 1;
     else if (char === "{") braceLevel += 1;
     else if (char === "}") braceLevel -= 1;
     index += 1;
   }
 
+  spend(index - startIndex);
   return -1;
 };
 
@@ -809,16 +863,24 @@ const findEndOfMath = (right, text, startIndex) => {
  * @returns {{index: number, delim: Object}|null} Match, or null.
  */
 const findNextDelimiter = (text, from, disabled) => {
-  for (let i = from; i < text.length; i += 1) {
+  // One sweep over the `$`/`\` candidates, not four probes per position.
+  CANDIDATE_RE.lastIndex = from;
+  let match = CANDIDATE_RE.exec(text);
+
+  while (match) {
+    const i = match.index;
     for (const delim of DELIMITERS) {
       if (disabled.has(delim)) continue;
       if (!text.startsWith(delim.left, i)) continue;
       // `\$` is an escaped dollar, not a delimiter.
       if (delim.left[0] === "$" && i > 0 && text[i - 1] === "\\") continue;
+      spend(i - from);
       return { index: i, delim };
     }
+    match = CANDIDATE_RE.exec(text);
   }
 
+  spend(text.length - from);
   return null;
 };
 
@@ -835,6 +897,9 @@ const parseOnce = (text) => {
   if (!text.includes("\\(") && !text.includes("\\[") && !text.includes("$")) {
     return text;
   }
+
+  const outerWork = work;
+  work = { left: MAX_WORK };
 
   try {
     let out = "";
@@ -854,6 +919,7 @@ const parseOnce = (text) => {
       // absent — as opposed to hidden inside braces — can a later opener of
       // this kind be skipped too.
       if (end < 0) {
+        spend(text.length - contentStart);
         if (text.indexOf(delim.right, contentStart) === -1) {
           disabled.add(delim);
         }
@@ -881,13 +947,17 @@ const parseOnce = (text) => {
       pos = segmentEnd;
     }
 
-    if (!converted) return text;
+    // A segment that ran the budget out was kept verbatim; the call as a
+    // whole still has to fall back to the untouched input.
+    if (!converted || work.left <= 0) return text;
     const result = out + text.slice(pos);
     // Neighbouring segments can spell out an entity no single segment saw.
     if (formsNewEntity(result, text)) return text;
     return result;
   } catch (err) {
     return text;
+  } finally {
+    work = outerWork;
   }
 };
 
