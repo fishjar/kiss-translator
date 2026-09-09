@@ -44,8 +44,11 @@ const ALL_INPUTS = [
   "\\(unclosed { text; \\(x_1\\)",
   "\\(\\begin{matrix}{a}&b\\end{matrix}{c}\\)",
   "\\(\\frac{a}{b}^2\\)",
+  "\\(x^2_1\\)",
   "\\(\\constructor{x}\\)",
   "export $MY_VAR$OTHER",
+  "export $my_var$OTHER",
+  "&amp; &\\(lt\\);",
   "plain text without math",
   "C:\\temp\\file.txt",
   "line1\nline2 {a} 100%",
@@ -278,8 +281,11 @@ describe("parseMathInText — bare dollar heuristic", () => {
     "run $make$ first",
     "$PATH$ and $HOME$",
     "export $MY_VAR$OTHER",
+    "export $my_var$OTHER",
     "$5元=$35元",
     "总价 $12=$15 元",
+    "$5USD=$35USD",
+    "price $12EUR$ today",
   ])("rejects %p as math", (input) => {
     expect(parseMathInText(input)).toBe(input);
   });
@@ -290,6 +296,9 @@ describe("parseMathInText — bare dollar heuristic", () => {
     ["$\\alpha$", "α"],
     ["$a=b$", "a=b"],
     ["$x_1$", "x₁"],
+    ["$x_12$", "x₁2"],
+    ["$x_{12}$", "x₁₂"],
+    ["$2x=4$", "2x=4"],
     ["$a\\times b$", "a×b"],
   ])("still converts %p to %p", (input, expected) => {
     expect(parseMathInText(input)).toBe(expected);
@@ -321,12 +330,18 @@ describe("parseMathInText — segment guards", () => {
     "\\(\\&amp;\\)",
     "&\\(lt\\);",
     "&\\(#60\\);",
+    "&amp; &\\(lt\\);",
+    "&lt; and &\\(gt\\);",
   ])("keeps %p verbatim rather than re-forming a delimiter or entity", (i) => {
     expect(parseMathInText(i)).toBe(i);
   });
 
   test("still converts a plain escaped ampersand", () => {
     expect(parseMathInText("\\(a\\&b\\)")).toBe("a&b");
+  });
+
+  test("converts next to an entity the input already spelled out", () => {
+    expect(parseMathInText("&amp; \\(x_1\\)")).toBe("&amp; x₁");
   });
 });
 
@@ -381,6 +396,9 @@ describe("parseMathInText — environments and precedence", () => {
     ["\\(\\frac{a}{b}^2\\)", "(a/b)²"],
     ["\\(\\frac{a}{b}_1\\)", "(a/b)₁"],
     ["\\(x^2\\)", "x²"],
+    ["\\(x^2_1\\)", "x²₁"],
+    ["\\(x_1^2\\)", "x₁²"],
+    ["\\(x^\\infty_1\\)", "x^(∞)₁"],
     ["\\(\\dot{x}_1\\)", "ẋ₁"],
     ["\\(\\sum_{i=1}^{n}\\)", "∑ᵢ₌₁ⁿ"],
   ])("binds the script in %s as %s", (input, expected) => {

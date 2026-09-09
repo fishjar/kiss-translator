@@ -77,11 +77,8 @@ const STRUCTURAL_COMMANDS = new Set([
   "substack",
 ]);
 
-/** HTML entities, which must never be formed by a conversion. */
-const ENTITY_RE = /&(#\d+|#x[0-9a-fA-F]+|[a-zA-Z]+);/;
-
-/** An entity that was already spelled out, unescaped, in the source. */
-const RAW_ENTITY_RE = /(^|[^\\])&(#\d+|#x[0-9a-fA-F]+|[a-zA-Z]+);/;
+/** HTML entities, which a conversion must never create more of. */
+const ENTITY_RE = /&(#\d+|#x[0-9a-fA-F]+|[a-zA-Z]+);/g;
 
 /**
  * Supported math delimiters, longest-first so `$$` wins over `$`.
@@ -111,8 +108,35 @@ const SPEC_ENVIRONMENTS = new Set([
 /** Superscript characters, used to detect compound fraction sides. */
 const SUPERSCRIPT_CHARS = new Set(Object.values(SUPERSCRIPTS));
 
+/** Subscript characters, used to strip script material off a script base. */
+const SUBSCRIPT_CHARS = new Set(Object.values(SUBSCRIPTS));
+
 /** Signals a math segment that cannot be converted structurally. */
 class MathParseError extends Error {}
+
+/**
+ * Count HTML entities in a string. In the source, an entity written `\&lt;`
+ * is escaped and does not count — the conversion would be the thing that
+ * turns it into a real one.
+ *
+ * @param {string} str Text to scan.
+ * @param {boolean} skipEscaped True to ignore backslash-escaped entities.
+ * @returns {number} Number of entities found.
+ */
+const countEntities = (str, skipEscaped) => {
+  ENTITY_RE.lastIndex = 0;
+  let count = 0;
+  let match = ENTITY_RE.exec(str);
+
+  while (match) {
+    if (!skipEscaped || match.index === 0 || str[match.index - 1] !== "\\") {
+      count += 1;
+    }
+    match = ENTITY_RE.exec(str);
+  }
+
+  return count;
+};
 
 /**
  * Whether a command name is one this converter actually knows.
@@ -305,14 +329,61 @@ const isCompound = (str) =>
     Array.from(str).some((char) => SUPERSCRIPT_CHARS.has(char)));
 
 /**
- * Parenthesize a fraction side, radicand or script base unless it is a single
- * atom already.
+ * Parenthesize a fraction side or radicand unless it is a single atom already.
  *
  * @param {string} str Converted run.
  * @returns {string} Run, parenthesized when needed.
  */
 const wrapCompound = (str) =>
   isCompound(str) && !isWrapped(str) ? `(${str})` : str;
+
+/**
+ * Remove script material already attached to the end of a run: Unicode
+ * super/subscript characters and `^(…)` / `_(…)` fallback groups.
+ *
+ * @param {string} str Converted run.
+ * @returns {string} Run without its trailing scripts.
+ */
+const stripTrailingScripts = (str) => {
+  const chars = Array.from(str);
+
+  for (;;) {
+    const before = chars.length;
+
+    while (chars.length) {
+      const last = chars[chars.length - 1];
+      if (!SUPERSCRIPT_CHARS.has(last) && !SUBSCRIPT_CHARS.has(last)) break;
+      chars.pop();
+    }
+
+    if (chars.length > 2 && chars[chars.length - 1] === ")") {
+      let depth = 0;
+      for (let i = chars.length - 1; i >= 0; i -= 1) {
+        if (chars[i] === ")") depth += 1;
+        else if (chars[i] === "(") depth -= 1;
+        if (depth === 0) {
+          if (i > 0 && (chars[i - 1] === "^" || chars[i - 1] === "_")) {
+            chars.length = i - 1;
+          }
+          break;
+        }
+      }
+    }
+
+    if (chars.length === before) return chars.join("");
+  }
+};
+
+/**
+ * Parenthesize the base a sub/superscript attaches to, so that the script
+ * binds to one atom: `\frac{a}{b}^2` is `(a/b)²`. Script material already on
+ * the base does not make it compound — `x^2_1` stays `x²₁`.
+ *
+ * @param {string} str Converted base atom.
+ * @returns {string} Base, parenthesized when needed.
+ */
+const wrapScriptBase = (str) =>
+  isCompound(stripTrailingScripts(str)) && !isWrapped(str) ? `(${str})` : str;
 
 /**
  * Read one command argument: a braced group, or the next single token.
@@ -550,7 +621,7 @@ function parseList(state, insideGroup) {
       const script = toScript(readArgument(state), token.value === "^");
       if (atoms.length) {
         // A script binds to one atom: `\frac{a}{b}^2` is `(a/b)²`, not `a/b²`.
-        const base = wrapCompound(atoms[atoms.length - 1]);
+        const base = wrapScriptBase(atoms[atoms.length - 1]);
         atoms[atoms.length - 1] = base + script;
       } else {
         atoms.push(script);
@@ -583,8 +654,8 @@ export const convertLatexToUnicode = (latex) => {
     if (!result.trim()) return null;
     // The result crosses DOMPurify: never introduce angle brackets…
     if (/[<>]/.test(result) && !/[<>]/.test(latex)) return null;
-    // …nor an HTML entity that was escaped in the source.
-    if (ENTITY_RE.test(result) && !RAW_ENTITY_RE.test(latex)) return null;
+    // …nor more HTML entities than the source already spelled out.
+    if (countEntities(result, false) > countEntities(latex, true)) return null;
     // A `\$` would turn into a delimiter on the next pass: stay idempotent.
     if (result.includes("$")) return null;
     return result;
@@ -603,6 +674,11 @@ const looksLikeInlineMath = (content) => {
   if (!content || content.length > MAX_INLINE_DOLLAR_LEN) return false;
   if (/^\s|\s$/.test(content)) return false;
   if (/^[\d.,:%\s]+$/.test(content)) return false;
+  // Snake-case identifiers are shell variables, not math: `$my_var$OTHER`.
+  // A real subscript has a short base: `x_1` and `x_12` still qualify.
+  if (/[A-Za-z0-9]{2,}_[A-Za-z0-9]{2,}/.test(content)) return false;
+  // An amount with a unit, with or without a trailing `=`: `$5USD=$35USD`.
+  if (/^\d[\d.,]*[A-Za-z]{2,}$/.test(content.replace(/=$/, ""))) return false;
 
   const commands = content.match(/\\[a-zA-Z]+/g);
   if (commands) {
@@ -740,7 +816,7 @@ const parseOnce = (text) => {
     if (!converted) return text;
     const result = out + text.slice(pos);
     // Neighbouring segments can spell out an entity no single segment saw.
-    if (ENTITY_RE.test(result) && !RAW_ENTITY_RE.test(text)) return text;
+    if (countEntities(result, false) > countEntities(text, true)) return text;
     return result;
   } catch (err) {
     return text;
