@@ -237,6 +237,28 @@ test("saving keeps the inspector open on failure and closes it on success", asyn
   expect(session.state.inspectorOpen).toBe(false);
 });
 
+test("Escape in a shadow-tree menu does not close the editor or inspector", () => {
+  const host = document.createElement("div");
+  host.id = "kiss-rule-editor";
+  document.body.appendChild(host);
+  const shadow = host.attachShadow({ mode: "open" });
+  shadow.innerHTML =
+    '<ul role="listbox"><li role="option" tabindex="0">Option</li></ul>';
+  session.add();
+  shadow
+    .querySelector("li")
+    .dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "Escape",
+        bubbles: true,
+        composed: true,
+      })
+    );
+  expect(session.state.inspectorOpen).toBe(true);
+  expect(session.onExit).not.toHaveBeenCalled();
+  host.remove();
+});
+
 test("dynamic content updates counts and removed selections are released", async () => {
   session.selectElement(document.querySelector("a"));
   session.setInput(".story");

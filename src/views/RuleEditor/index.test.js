@@ -1,6 +1,11 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { Editor } from ".";
+import { storage } from "../../libs/storage";
+import {
+  STOKEY_RULE_EDITOR_POSITION,
+  STOKEY_RULE_INSPECTOR_POSITION,
+} from "../../config";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 jest.mock("../../hooks/Theme", () => ({
@@ -11,13 +16,15 @@ jest.mock("../../hooks/Setting", () => ({
   SettingProvider: ({ children }) => children,
 }));
 jest.mock("../../hooks/I18n", () => ({ useI18n: () => (key) => key }));
-jest.mock("../../hooks/WindowSize", () => ({
-  __esModule: true,
-  default: () => ({ w: 1440, h: 900 }),
+jest.mock("../../libs/storage", () => ({
+  storage: { getObj: jest.fn(), setObj: jest.fn() },
 }));
+jest.mock("../../libs/sync", () => ({ syncData: jest.fn() }));
 
 let root, container, session, originalResizeObserver;
 beforeEach(() => {
+  storage.getObj.mockReset().mockResolvedValue(null);
+  storage.setObj.mockReset().mockResolvedValue();
   originalResizeObserver = globalThis.ResizeObserver;
   globalThis.ResizeObserver = class {
     observe() {}
@@ -43,6 +50,8 @@ beforeEach(() => {
     hover: jest.fn(),
     refresh: jest.fn(),
     closeInspector: jest.fn(),
+    save: jest.fn(),
+    setField: jest.fn(),
   };
 });
 afterEach(() => {
@@ -51,12 +60,12 @@ afterEach(() => {
   globalThis.ResizeObserver = originalResizeObserver;
 });
 const render = () =>
-  act(() => root.render(<Editor session={session} onExit={jest.fn()} />));
+  act(async () => root.render(<Editor session={session} onExit={jest.fn()} />));
 const click = (element) =>
   act(() => element.dispatchEvent(new MouseEvent("click", { bubbles: true })));
 
-test("the entire rule card selects the entry while delete acts independently", () => {
-  render();
+test("the entire rule card selects the entry while delete acts independently", async () => {
+  await render();
   const card = container.querySelector('button[aria-label=".story"]');
   click(card.querySelector(".MuiChip-root"));
   click(card.querySelector(".MuiTypography-root"));
@@ -72,10 +81,10 @@ test("the entire rule card selects the entry while delete acts independently", (
   expect(session.edit).toHaveBeenCalledTimes(3);
 });
 
-test("selector input and save live only in the closable inspector", () => {
+test("selector input and save live only in the closable inspector", async () => {
   session.getSnapshot().inspectorOpen = true;
   session.getSnapshot().editing = ".story";
-  render();
+  await render();
   const main = container.querySelector('aside[aria-label="rule_editor_title"]');
   const inspector = container.querySelector(
     'aside[aria-label="rule_editor_editSelector"]'
@@ -87,4 +96,117 @@ test("selector input and save live only in the closable inspector", () => {
     inspector.querySelector('button[aria-label="rule_editor_closeInspector"]')
   );
   expect(session.closeInspector).toHaveBeenCalledTimes(1);
+});
+
+test("themed menus reuse settings labels and keep automatic scanning values", async () => {
+  await render();
+  expect(container.querySelector("select")).toBeNull();
+  const selects = container.querySelectorAll('[role="combobox"]');
+  expect(selects[0].textContent).toContain("disable");
+  expect(container.textContent).toContain("auto_scan_page");
+  expect(selects[1].textContent).toContain("target_selector");
+  act(() =>
+    selects[0].dispatchEvent(
+      new MouseEvent("mousedown", { bubbles: true, button: 0 })
+    )
+  );
+  click(document.querySelector('[role="option"][data-value="true"]'));
+  expect(session.save).toHaveBeenCalledWith({ autoScan: "true" });
+  act(() =>
+    selects[1].dispatchEvent(
+      new MouseEvent("mousedown", { bubbles: true, button: 0 })
+    )
+  );
+  click(document.querySelector('[role="option"][data-value="ignoreSelector"]'));
+  expect(session.setField).toHaveBeenCalledWith("ignoreSelector");
+});
+
+test("conflicts appear in the footer and take precedence over stale save notices", async () => {
+  Object.assign(session.getSnapshot(), {
+    error: "rule-conflict",
+    notice: "saved",
+  });
+  await render();
+  const footer = container.querySelector("footer");
+  expect(footer.querySelectorAll('[role="alert"]')).toHaveLength(1);
+  expect(footer.textContent).not.toContain("rule_editor_saved");
+  expect(footer.textContent.indexOf("rule_editor_pagePreview")).toBeLessThan(
+    footer.textContent.indexOf("rule_editor_rule-conflict")
+  );
+});
+
+test("save confirmation appears after the preview in the footer", async () => {
+  session.getSnapshot().notice = "saved";
+  await render();
+  const footer = container.querySelector("footer");
+  expect(footer.querySelector('[role="alert"]').textContent).toContain(
+    "rule_editor_saved"
+  );
+  expect(footer.textContent.indexOf("rule_editor_pagePreview")).toBeLessThan(
+    footer.textContent.indexOf("rule_editor_saved")
+  );
+});
+
+test("both panels restore saved positions and persist keyboard movement", async () => {
+  storage.getObj.mockImplementation(async (key) =>
+    key === STOKEY_RULE_EDITOR_POSITION ? { x: 160, y: 80 } : { x: 32, y: 48 }
+  );
+  session.getSnapshot().inspectorOpen = true;
+  await render();
+  const panels = container.querySelectorAll("aside");
+  expect(getComputedStyle(panels[0]).left).toBe("160px");
+  expect(getComputedStyle(panels[0]).top).toBe("80px");
+  expect(getComputedStyle(panels[1]).left).toBe("32px");
+  for (const panel of panels) {
+    await act(async () =>
+      panel
+        .querySelector("header button")
+        .dispatchEvent(
+          new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true })
+        )
+    );
+  }
+  expect(storage.setObj).toHaveBeenCalledWith(STOKEY_RULE_EDITOR_POSITION, {
+    x: 184,
+    y: 80,
+  });
+  expect(storage.setObj).toHaveBeenCalledWith(STOKEY_RULE_INSPECTOR_POSITION, {
+    x: 56,
+    y: 48,
+  });
+});
+
+test("invalid saved positions fall back to finite viewport coordinates", async () => {
+  storage.getObj.mockResolvedValue({ x: "bad", y: null });
+  await render();
+  const rect = getComputedStyle(container.querySelector("aside"));
+  expect(Number.isFinite(parseFloat(rect.left))).toBe(true);
+  expect(Number.isFinite(parseFloat(rect.top))).toBe(true);
+});
+
+test("shadow-tree menus keep focus on options and support arrow navigation", async () => {
+  act(() => root.unmount());
+  const shadow = container.attachShadow({ mode: "open" });
+  const wrapper = document.createElement("div");
+  wrapper.className = "notranslate";
+  shadow.appendChild(wrapper);
+  root = createRoot(wrapper);
+  await render();
+  const scan = shadow.querySelector('[role="combobox"]');
+  act(() =>
+    scan.dispatchEvent(
+      new MouseEvent("mousedown", { bubbles: true, button: 0 })
+    )
+  );
+  const list = shadow.querySelector('[role="listbox"]');
+  const options = list.querySelectorAll('[role="option"]');
+  expect(shadow.activeElement).toBe(options[0]);
+  act(() =>
+    options[0].dispatchEvent(
+      new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true })
+    )
+  );
+  expect(shadow.activeElement).toBe(options[1]);
+  click(options[1]);
+  expect(session.save).toHaveBeenCalledWith({ autoScan: "true" });
 });

@@ -12,19 +12,23 @@ export default function FloatingPanel({
   footer,
   position,
   onMove,
+  onMoveEnd,
   width,
   viewport,
+  bodySx,
 }) {
   const panel = useRef(null);
   const origin = useRef(null);
+  const lastMove = useRef(null);
   const [height, setHeight] = useState(0);
-  const panelWidth = Math.min(width, viewport.w - 24);
-  const left = limitNumber(position.x, 12, viewport.w - panelWidth - 12);
-  const top = limitNumber(
-    position.y,
-    12,
-    Math.max(12, viewport.h - height - 12)
-  );
+  const margin = Math.min(12, viewport.w / 4, viewport.h / 4);
+  const panelWidth = Math.min(width, viewport.w - margin * 2);
+  const minX = (viewport.x || 0) + margin;
+  const minY = (viewport.y || 0) + margin;
+  const maxX = minX + viewport.w - panelWidth - margin * 2;
+  const maxY = minY + Math.max(0, viewport.h - height - margin * 2);
+  const left = limitNumber(position.x, minX, maxX);
+  const top = limitNumber(position.y, minY, maxY);
 
   useLayoutEffect(() => {
     const measure = () =>
@@ -35,13 +39,45 @@ export default function FloatingPanel({
     return () => observer.disconnect();
   }, []);
 
-  const move = (x, y) =>
-    onMove({
-      x: limitNumber(x, 12, viewport.w - panelWidth - 12),
-      y: limitNumber(y, 12, Math.max(12, viewport.h - height - 12)),
-    });
+  useLayoutEffect(() => {
+    const element = panel.current;
+    // overscroll-behavior handles scrollable lists. Also consume wheel input
+    // over empty lists and fixed controls, where there is no scroll container.
+    const containWheel = (event) => {
+      event.stopPropagation();
+      const canScroll = event.composedPath().some((node) => {
+        if (!(node instanceof Element) || !element.contains(node)) return false;
+        const style = getComputedStyle(node);
+        return (
+          (/(auto|scroll)/.test(style.overflowY) &&
+            ((event.deltaY < 0 && node.scrollTop > 0) ||
+              (event.deltaY > 0 &&
+                node.scrollTop + node.clientHeight < node.scrollHeight - 1))) ||
+          (/(auto|scroll)/.test(style.overflowX) &&
+            ((event.deltaX < 0 && node.scrollLeft > 0) ||
+              (event.deltaX > 0 &&
+                node.scrollLeft + node.clientWidth < node.scrollWidth - 1)))
+        );
+      });
+      if (!canScroll && !event.ctrlKey) event.preventDefault();
+    };
+    element.addEventListener("wheel", containWheel, { passive: false });
+    return () => element.removeEventListener("wheel", containWheel);
+  }, []);
+
+  const move = (x, y) => {
+    const next = {
+      x: limitNumber(x, minX, maxX),
+      y: limitNumber(y, minY, maxY),
+    };
+    lastMove.current = next;
+    onMove(next);
+    return next;
+  };
   const stopDrag = () => {
+    if (origin.current && lastMove.current) onMoveEnd?.(lastMove.current);
     origin.current = null;
+    lastMove.current = null;
   };
   return (
     <Paper
@@ -54,7 +90,8 @@ export default function FloatingPanel({
         left,
         top,
         width: panelWidth,
-        maxHeight: "min(760px, calc(100dvh - 24px))",
+        maxHeight: viewport.h - margin * 2,
+        boxSizing: "border-box",
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
@@ -113,7 +150,9 @@ export default function FloatingPanel({
             const direction = directions[event.key];
             if (!direction) return;
             event.preventDefault();
-            move(left + direction[0] * 24, top + direction[1] * 24);
+            onMoveEnd?.(
+              move(left + direction[0] * 24, top + direction[1] * 24)
+            );
           }}
           sx={{
             flex: 1,
@@ -138,15 +177,29 @@ export default function FloatingPanel({
         </ButtonBase>
         {actions}
       </Box>
-      <Box sx={{ overflowY: "auto", minHeight: 0, p: 2 }}>{children}</Box>
+      <Box
+        sx={{
+          overflowY: "auto",
+          overscrollBehavior: "contain",
+          minHeight: 0,
+          p: 2,
+          ...bodySx,
+        }}
+      >
+        {children}
+      </Box>
       {footer && (
         <Box
+          component="footer"
           sx={{
             p: 2,
             pt: 1.5,
             borderTop: "1px solid",
             borderColor: "divider",
             flexShrink: 0,
+            maxHeight: viewport.h * 0.55,
+            overflowY: "auto",
+            overscrollBehavior: "contain",
           }}
         >
           {footer}

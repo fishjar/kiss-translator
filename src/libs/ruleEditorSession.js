@@ -104,6 +104,18 @@ export class RuleEditorSession {
     );
     this.handleKey = (event) => {
       if (event.key === "Escape") {
+        // Let an open editor menu consume Escape before closing either panel.
+        if (
+          isEditorElement(event.target) &&
+          event
+            .composedPath()
+            .some(
+              (node) =>
+                node.getAttribute?.("role") === "listbox" ||
+                node.shadowRoot?.querySelector('[role="listbox"]')
+            )
+        )
+          return;
         event.preventDefault();
         event.stopImmediatePropagation();
         if (this.state.saving) return;

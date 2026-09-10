@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 import {
   Alert,
   Box,
@@ -7,6 +7,7 @@ import {
   Chip,
   Divider,
   IconButton,
+  MenuItem,
   Stack,
   TextField,
   Typography,
@@ -18,7 +19,10 @@ import AddIcon from "@mui/icons-material/Add";
 import Theme from "../../hooks/Theme";
 import { SettingProvider } from "../../hooks/Setting";
 import { useI18n } from "../../hooks/I18n";
-import useWindowSize from "../../hooks/WindowSize";
+import {
+  STOKEY_RULE_EDITOR_POSITION,
+  STOKEY_RULE_INSPECTOR_POSITION,
+} from "../../config";
 import { describeElement } from "../../libs/ruleEditorDom";
 import {
   EMPTY_SELECTOR,
@@ -27,6 +31,18 @@ import {
 } from "../../libs/selectorList";
 import { limitNumber } from "../../libs/utils";
 import FloatingPanel from "./FloatingPanel";
+import EditorSelect from "./EditorSelect";
+import usePanelPosition from "./usePanelPosition";
+import usePanelViewport from "./usePanelViewport";
+
+const selectorLabels = {
+  selector: "target_selector",
+  ignoreSelector: "ignore_selector",
+  rootsSelector: "root_selector",
+  keepSelector: "keep_selector",
+  blockSelector: "block_selector",
+};
+const MAIN_WIDTH = 448;
 
 const codeStyle = {
   fontFamily: 'Consolas, "SFMono-Regular", monospace',
@@ -64,10 +80,7 @@ function CandidateList({ session, state, t }) {
   return (
     <Stack spacing={1}>
       {!!state.ancestors.length && (
-        <TextField
-          select
-          SelectProps={{ native: true }}
-          size="small"
+        <EditorSelect
           label={t("element")}
           value={state.ancestors.indexOf(state.selected)}
           disabled={busy}
@@ -77,11 +90,11 @@ function CandidateList({ session, state, t }) {
           inputProps={{ style: codeStyle }}
         >
           {state.ancestors.map((element, index) => (
-            <option key={index} value={index}>
+            <MenuItem key={index} value={index} sx={codeStyle}>
               {describeElement(element)}
-            </option>
+            </MenuItem>
           ))}
-        </TextField>
+        </EditorSelect>
       )}
       {state.candidates.map((candidate) => (
         <ButtonBase
@@ -162,43 +175,52 @@ export function Editor({ session, onExit }) {
   const state = useSyncExternalStore(session.subscribe, session.getSnapshot);
   const i18n = useI18n();
   const t = (key) => i18n(`rule_editor_${key}`, key);
-  const windowSize = useWindowSize();
-  const viewport = {
-    w: windowSize.w || window.innerWidth,
-    h: windowSize.h || window.innerHeight,
+  const viewport = usePanelViewport();
+  const mainPosition = usePanelPosition(STOKEY_RULE_EDITOR_POSITION);
+  const inspectorPosition = usePanelPosition(STOKEY_RULE_INSPECTOR_POSITION);
+  const position = mainPosition.position || {
+    x: viewport.x + viewport.w - MAIN_WIDTH - 12,
+    y: viewport.y + 24,
   };
-  const [position, setPosition] = useState(() => ({
-    x: window.innerWidth - 412,
-    y: 24,
-  }));
-  const [inspectorPosition, setInspectorPosition] = useState(null);
-  useEffect(() => {
-    setInspectorPosition(null);
-  }, [viewport.w, viewport.h]);
-  const mainWidth = Math.min(400, viewport.w - 24);
+  const mainWidth = Math.min(MAIN_WIDTH, viewport.w - 24);
   const inspectorWidth = Math.min(380, viewport.w - 24);
-  const mainX = limitNumber(position.x, 12, viewport.w - mainWidth - 12);
+  const mainX = limitNumber(
+    position.x,
+    viewport.x + 12,
+    viewport.x + viewport.w - mainWidth - 12
+  );
   const besideX =
-    mainX >= inspectorWidth + 24
+    mainX - viewport.x >= inspectorWidth + 24
       ? mainX - inspectorWidth - 12
       : mainX + mainWidth + 12;
   const adjacent = {
-    x: limitNumber(besideX, 12, viewport.w - inspectorWidth - 12),
+    x: limitNumber(
+      besideX,
+      viewport.x + 12,
+      viewport.x + viewport.w - inspectorWidth - 12
+    ),
     y: position.y + (viewport.w < mainWidth + inspectorWidth + 36 ? 64 : 0),
   };
   const rule = state.context?.effective;
   const busy = state.loading || state.saving;
   const inspectorVisible =
     state.inspectorOpen && !state.picking && !state.translated;
+  if (mainPosition.isLoading || inspectorPosition.isLoading) return null;
   return (
     <>
       <FloatingPanel
         title={t("title")}
         moveLabel={t("move")}
         position={position}
-        onMove={setPosition}
-        width={400}
+        onMove={mainPosition.onMove}
+        onMoveEnd={mainPosition.onMoveEnd}
+        width={MAIN_WIDTH}
         viewport={viewport}
+        bodySx={{
+          display: "flex",
+          flexDirection: "column",
+          p: viewport.h < 780 ? 1.5 : 2,
+        }}
         actions={
           <Stack direction="row">
             <IconButton
@@ -228,73 +250,98 @@ export function Editor({ session, onExit }) {
           </Stack>
         }
         footer={
-          rule && (
-            <Stack
-              component="section"
-              aria-label={t("pagePreview")}
-              spacing={0.5}
-            >
-              <Typography variant="body2" fontWeight={600}>
-                {t("pagePreview")}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {t("pagePreviewHelp")}
-              </Typography>
-              <Stack direction="row" justifyContent="space-between">
-                <Button
-                  size="small"
-                  disabled={busy}
-                  onClick={() => session.showWhole()}
+          <Stack spacing={1.5}>
+            {rule && (
+              <Stack
+                component="section"
+                aria-label={t("pagePreview")}
+                spacing={0.5}
+              >
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  justifyContent="space-between"
+                  flexWrap="wrap"
+                  gap={0.5}
                 >
-                  {t("whole")}
-                </Button>
-                <Button
-                  size="small"
-                  disabled={busy}
-                  onClick={() => session.showTranslation(!state.translated)}
-                >
-                  {t(state.translated ? "original" : "translation")}
-                </Button>
+                  <Typography variant="body2" fontWeight={600}>
+                    {t("pagePreview")}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {t("pagePreviewHelp")}
+                  </Typography>
+                </Stack>
+                <Stack direction="row" justifyContent="space-between">
+                  <Button
+                    size="small"
+                    disabled={busy}
+                    onClick={() => session.showWhole()}
+                  >
+                    {t("whole")}
+                  </Button>
+                  <Button
+                    size="small"
+                    disabled={busy}
+                    onClick={() => session.showTranslation(!state.translated)}
+                  >
+                    {t(state.translated ? "original" : "translation")}
+                  </Button>
+                </Stack>
               </Stack>
-            </Stack>
-          )
+            )}
+            {state.error && (
+              <Alert
+                severity="error"
+                sx={{ "& .MuiAlert-action": { alignItems: "center" } }}
+                action={
+                  <Button
+                    size="small"
+                    sx={{ whiteSpace: "nowrap" }}
+                    disabled={busy}
+                    onClick={() => session.load()}
+                  >
+                    {t("reload")}
+                  </Button>
+                }
+              >
+                {t(state.error)}
+              </Alert>
+            )}
+            {!state.error && <Notice {...{ session, state, t }} />}
+            {state.saving && (
+              <Typography role="status" variant="caption">
+                {t("saving")}
+              </Typography>
+            )}
+          </Stack>
         }
       >
-        <Stack spacing={2}>
+        <Stack
+          spacing={1}
+          sx={{
+            minHeight: 0,
+            "& > :not(section)": { flexShrink: 0 },
+          }}
+        >
           <Typography sx={codeStyle} color="text.secondary" title={t("scope")}>
             {window.location.hostname}
           </Typography>
           {state.loading && (
             <Typography role="status">{t("loading")}</Typography>
           )}
-          {state.error && (
-            <Alert
-              severity="error"
-              action={
-                <Button disabled={busy} onClick={() => session.load()}>
-                  {t("reload")}
-                </Button>
-              }
-            >
-              {t(state.error)}
-            </Alert>
-          )}
           {rule && (
             <>
-              <TextField
-                select
-                SelectProps={{ native: true }}
-                size="small"
-                label={t("mode")}
+              <EditorSelect
+                label={i18n("auto_scan_page")}
                 disabled={busy}
                 value={rule.autoScan}
                 onChange={(event) =>
                   session.save({ autoScan: event.target.value })
                 }
               >
-                <option value="true">{t("auto")}</option>
-                <option value="false">{t("manual")}</option>
-              </TextField>
+                <MenuItem value="false">{i18n("disable")}</MenuItem>
+                <MenuItem value="true">{i18n("enable")}</MenuItem>
+              </EditorSelect>
               {(rule.scanAll === "true" ||
                 rule.isPlainText === true ||
                 rule.isPlainText === "true") && (
@@ -303,30 +350,31 @@ export function Editor({ session, onExit }) {
               <Stack
                 component="section"
                 aria-label={t("currentGroup")}
-                spacing={1.5}
+                spacing={1}
                 sx={{
-                  border: "1px solid",
-                  borderColor: "divider",
-                  borderRadius: 1,
-                  p: 1.5,
                   minWidth: 0,
+                  minHeight: 0,
+                  flexShrink: 1,
+                  "& > :not([aria-label])": { flexShrink: 0 },
                 }}
               >
-                <TextField
-                  select
-                  SelectProps={{ native: true }}
-                  size="small"
+                <Divider textAlign="left">
+                  <Typography variant="caption" color="text.secondary">
+                    {t("currentGroup")}
+                  </Typography>
+                </Divider>
+                <EditorSelect
                   label={t("purpose")}
                   value={state.field}
                   disabled={busy}
                   onChange={(event) => session.setField(event.target.value)}
                 >
                   {SELECTOR_FIELDS.map((field) => (
-                    <option key={field} value={field}>
-                      {t(field)}
-                    </option>
+                    <MenuItem key={field} value={field}>
+                      {i18n(selectorLabels[field])}
+                    </MenuItem>
                   ))}
-                </TextField>
+                </EditorSelect>
                 <Stack direction="row" gap={1}>
                   <Button
                     variant="contained"
@@ -359,9 +407,12 @@ export function Editor({ session, onExit }) {
                 <Stack
                   spacing={1}
                   sx={{
-                    // Leave room for group actions and the page preview footer.
-                    maxHeight: "clamp(120px, calc(100dvh - 504px), 260px)",
+                    maxHeight: 280,
+                    minHeight: 80,
+                    flexShrink: 1,
                     overflowY: "auto",
+                    overscrollBehavior: "contain",
+                    scrollbarWidth: "thin",
                   }}
                   aria-label={t("entries")}
                 >
@@ -462,13 +513,7 @@ export function Editor({ session, onExit }) {
                   </Button>
                 </Stack>
               </Stack>
-              <Notice {...{ session, state, t }} />
             </>
-          )}
-          {state.saving && (
-            <Typography role="status" variant="caption">
-              {t("saving")}
-            </Typography>
           )}
         </Stack>
       </FloatingPanel>
@@ -476,8 +521,9 @@ export function Editor({ session, onExit }) {
         <FloatingPanel
           title={t(state.editing ? "editSelector" : "candidates")}
           moveLabel={t("moveInspector")}
-          position={inspectorPosition || adjacent}
-          onMove={setInspectorPosition}
+          position={inspectorPosition.position || adjacent}
+          onMove={inspectorPosition.onMove}
+          onMoveEnd={inspectorPosition.onMoveEnd}
           width={380}
           viewport={viewport}
           actions={
@@ -523,7 +569,7 @@ export function Editor({ session, onExit }) {
               justifyContent="space-between"
             >
               <Typography variant="body2" color="text.secondary">
-                {t(state.field)}
+                {i18n(selectorLabels[state.field])}
               </Typography>
               <Button
                 size="small"
